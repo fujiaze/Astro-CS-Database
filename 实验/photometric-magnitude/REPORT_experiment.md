@@ -21,7 +21,7 @@
 - **求积退化分支（订正 P1-m02）**：`n_int == 3` 时 1/3 前段区间数 `n_13 = 0` ⇒ 该段必须为 0；历史多计 `2·y[0]·h/3`，常数被积函数得 3.6667 vs 真值 3.0（+22.2%）。生产端与实验参考实现已按 claim `PHOT-SIMPSON-N3-001` 同步订正并补闭式期望 + 故障注入。
 - **双边界判据**：`σ_floor/σ_ceiling = (1 ∓ 3·1.166/√n)·(下/上界)`；1.166 = √1.361（MAD 标准化方差，**按台账 A-P1-01 订正标签**）；预算项各计一次。
 - **判据作用域（订正 P1-M07）**：`rho_lo = 1 − 3·1.166/√n ≤ 0` ⟺ `n ≤ 12.236` ⇒ 作用域降级 `upper_only`、状态词 `LOWER_BOUND_UNDEFINED`（**不记 PASS**）；**撤回** `max(rho_lo,0)` 夹逼（恒真门）。
-- **σ_flat 独立性（订正 P1-B01）**：仿真帧取**真值**逐像素平场散度经 `N_eff` 折算（`scia_common.sigma_flat_independent`，变更 claim `PHOT-SIGMAFLAT-INDEP-001`）；真实帧取 `06_photometry.md` §4.1 的 `σ_flat,hf = 0.0007 mag`；`calibrate()['delta_after_m']`（与被测统计量同源）**降级为诊断字段**，不进预算。反例化见 `results/step7_negatives.json → N6`。
+- **σ_flat 独立性（订正 P1-B01）**：仿真帧取**真值**逐像素平场散度经 `N_eff` 折算（`scia_common.sigma_flat_independent`，变更 claim `PHOT-SIGMAFLAT-INDEP-001`）；真实帧取 `docs/detail/registry/astrocs.phase1.photometry.md`「测光一致性判据（单帧、尺度无关、双边界）」 的 `σ_flat,hf = 0.0007 mag`；`calibrate()['delta_after_m']`（与被测统计量同源）**降级为诊断字段**，不进预算。反例化见 `results/step7_negatives.json → N6`。
 - **重做轮方法学**：三路互不通信独立取证；每项"文献腿（一手 DOI/官方文档/开源逐字）＋实验腿（固定 seed 合成实验，含"真值无效应⇒归零"负例）＋推导腿"三腿补齐；纯 numpy，不 import 仓库任何 Python。
 
 ## 3 数据
@@ -110,7 +110,7 @@
 | 5 | Gaia DR3 arXiv 号 2205.11321 | 正确号 2208.00211 | 路线1 文献腿自纠 |
 | 6 | `frame_photometry_fit.cpp:292` 1.4826 截断、mag_max_arr 耦合、B13 接线 | 登记为条款一致性/接线整改项（不改判据方向） | **按分歧台账 A-P1-08 订正** |
 | 7 | 旧 REPORT_paper 精读版（保留其仍成立的三类数据结论） | 本报告与其重写版并存；两轮数字均标注 seed 来源 | 本轮成稿纪律 |
-| 8 | **σ_flat 取 `calibrate()['delta_after_m']`**（自指：被测样本拟合后的残差散度充当预算项，真实帧占上界方差 47.6%） | 仿真帧改取**真值**平场散度经 `N_eff` 折算、真实帧取 `06_photometry.md` §4.1 的 `σ_flat,hf = 0.0007 mag`；`delta_after_m` 降级为诊断字段 | **审查 P1-B01（blocker）**；变更 claim `PHOT-SIGMAFLAT-INDEP-001`；反例化 = `step7_negatives.json → N6`；同一订正使真实帧由 PASS 翻为 ABOVE_CEILING（如实改判「不成立（待修）」） |
+| 8 | **σ_flat 取 `calibrate()['delta_after_m']`**（自指：被测样本拟合后的残差散度充当预算项，真实帧占上界方差 47.6%） | 仿真帧改取**真值**平场散度经 `N_eff` 折算、真实帧取 `docs/detail/registry/astrocs.phase1.photometry.md`「测光一致性判据（单帧、尺度无关、双边界）」 的 `σ_flat,hf = 0.0007 mag`；`delta_after_m` 降级为诊断字段 | **审查 P1-B01（blocker）**；变更 claim `PHOT-SIGMAFLAT-INDEP-001`；反例化 = `step7_negatives.json → N6`；同一订正使真实帧由 PASS 翻为 ABOVE_CEILING（如实改判「不成立（待修）」） |
 | 9 | 低样本下界建议 `max(rho_lo, 0)·σ_fit` | **撤回**；改显式最小样本规则：`n ≤ 12.236` ⇒ 作用域 `upper_only` + 状态词 `LOWER_BOUND_UNDEFINED`（不记 PASS），并报出 `n`/`gate_scope` | **审查 P1-M07**（恒真门无证据资格，标准 §7）；`docs/science/PHOTOMETRY.md` §16.5 第 3 条已同步 |
 | 10 | 预筛窗写作 `|r − median(r)| ≤ 3.0`（r 为 dex）却注「= 1.2 dex」 | 量纲显式：`|delta − median(delta)| ≤ 3.0 mag` ⟺ `|r − median(r)| ≤ 1.2 dex`，实现 = `delta_i := −2.5·log10 F_instr,i − G_i` | **审查 P1-M03**；`docs/derivation_robust_weights.md` D1 |
 | 11 | n=3 渐近式「高估 7.4%」 | **8.03%**（精确 SE 0.6698291607404144σ / 渐近 0.7235930923753581σ − 1） | **审查 P1-M04** |

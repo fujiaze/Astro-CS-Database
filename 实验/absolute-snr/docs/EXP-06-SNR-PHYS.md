@@ -1,7 +1,7 @@
 # EXP-06 帧内 SNR 的物理建模与重建
 
 > 上游：`docs/ASTROCS_DESIGN.md` §2.2（创新点二：跨帧可用绝对信噪比）、§5.3（SNR 重建与逆方差叠加）、§12.2/§12.3（三类实验数据与实验单元）；
-> 规范细节：`docs/plugins/algorithms_phase1/07_noise_snr.md` §4.1/§4.2/§4.5、`docs/science/NOISE_MODEL.md` §5/§9a/§10、`docs/science/CONTROL_WEIGHT_SNR.md` §2a/§8a/§8b。
+> 规范细节：`docs/detail/registry/astrocs.phase1.noise-snr.md`「帧级 SNR（frame_snr）」/「SNR 三条路径与稀疏帧内层」/「稀疏帧内层几何与重建算子」、`docs/science/NOISE_MODEL.md` §5/§9a/§10、`docs/science/CONTROL_WEIGHT_SNR.md` §2a/§8a/§8b。
 > 前置单元：`实验/absolute-snr/docs/EXP-03-REGIONAL-SIGMA.md`（区域 σ 的空间结构与口径）、`EXP-04-RECONSTRUCTION.md`（稀疏控制点重建算子选型）、`EXP-05-ABSOLUTE-SNR.md`（稀疏层存绝对 SNR 的表示层推导）。
 > 代码：`实验/absolute-snr/code/exp06/`；结果：`实验/absolute-snr/results/exp06_*.json`、`EXP06_TABLES.md`；日志：`run/EXP-06-SNR-PHYS/logs/`。
 
@@ -50,7 +50,7 @@
 ### 0.5 建议（供负责人裁决）
 
 1. **保留 EXP-04 的算子选型结论，但把它的作用对象从「σ 控制点」改为「平滑弥散分量 `D(p)` 的 mesh 展开」与「物理模型的残差场」**。实测：mesh 中值滤波在**平滑**弥散场上注入棋盘状偏置，`|D_hat - D_true|` 中位从 1.0 ADU 升到 4.9 ADU，足以让斜率估计偏出 40% 以上（§3.2）。
-2. **帧内稠密 SNR 场的默认重建增加一条物理路径**（`Var = a + c*(D - D_ref)`，`a`、`c` 由控制点稳健拟合，斜率由控制点交叉验证在 `{0, 自由}` 中二选一）。该路径**完全由数据自拟合**，不依赖 FITS 头里的 GAIN，且对控制值整体缩放**严格正齐次**（满足 `07_noise_snr.md` §4.5 对算子的要求 ②）；用 header gain 固定斜率的变体**不正齐次**（实测最大相对偏差 0.213），且触及 `NOISE_MODEL.md` §10 的「不融合 gain 诊断模型」条款，**需 SCI 变更裁决**。
+2. **帧内稠密 SNR 场的默认重建增加一条物理路径**（`Var = a + c*(D - D_ref)`，`a`、`c` 由控制点稳健拟合，斜率由控制点交叉验证在 `{0, 自由}` 中二选一）。该路径**完全由数据自拟合**，不依赖 FITS 头里的 GAIN，且对控制值整体缩放**严格正齐次**（满足 `docs/detail/registry/astrocs.phase1.noise-snr.md`「稀疏帧内层几何与重建算子」 对算子的要求 ②）；用 header gain 固定斜率的变体**不正齐次**（实测最大相对偏差 0.213），且触及 `NOISE_MODEL.md` §10 的「不融合 gain 诊断模型」条款，**需 SCI 变更裁决**。
 3. **帧内稠密权重场的口径必须显式声明**（见 §11.1）：空背景口径 T1 与逐像素总方差口径 T2 在源像素上差异显著（sigma 比的中位为 1.0000，但 p99.9 达 4.70、最大 52.6；换算成方差比是 22 与 2765），物理模型只承载 T1 的弥散部分。
 
 ---
@@ -63,7 +63,7 @@
 |---|---|---|---|
 | 最高设计 | `docs/ASTROCS_DESIGN.md` | §2.2 帧级 SNR 与稀疏控制点同口径同 `F_ref`；§5.3 三种重建口径与逆方差权重 | 全篇 |
 | 最高设计 | `docs/ASTROCS_DESIGN.md` | §12.2 三类实验数据；§12.3 实验单元 | 臂 A/B/C |
-| 插件细节 | `docs/plugins/algorithms_phase1/07_noise_snr.md` | §4.1 SNR 红线；§4.2 三条路径；**§4.5 稀疏层几何与重建算子（冻结词表、正齐次性、控制点局部 σ 必须结构感知）** | §2/§3/§10 |
+| 插件细节 | `docs/detail/registry/astrocs.phase1.noise-snr.md` | 「帧级 SNR（frame_snr）」的 SNR 红线；「SNR 三条路径与稀疏帧内层」的三条路径；**「稀疏帧内层几何与重建算子」（冻结词表、正齐次性、控制点局部 σ 必须结构感知）** | §2/§3/§10 |
 | 科学定义 | `docs/science/NOISE_MODEL.md` | §5 连续定义；§9a 专属问题；**§10 不可接受变化（gain 诊断模型不入生产 variance/ivar）** | §10/§11 |
 | 科学定义 | `docs/science/CONTROL_WEIGHT_SNR.md` | §2a 帧级科学基准；§8a/§8b 三口径适用域 | §2 |
 | 工程 | `ENGINEERING_SPEC.md`、`AGENTS.md` §5 | 判据非退化；实验单元自包含 | §7/§12 |
@@ -84,7 +84,7 @@
 
 | 口径 | 定义 | 场内空间变化来自 | 是否平滑 | 在文献/实现中的地位 |
 |---|---|---|---|---|
-| **F（通量型，ACSD 冻结）** | `SNR(p) = F_ref / sigma_F(p)`，`F_ref` 逐帧常数 | **只**来自 `sigma_F(p)` | **是**（`sigma` 是平滑弥散分量的光滑函数） | `07_noise_snr.md` §4.1/§4.2、`frame-snr-canon` §0；SExtractor `FLUXERR`、DAOPHOT `merr`、LSST `instFluxErr` 同族 |
+| **F（通量型，ACSD 冻结）** | `SNR(p) = F_ref / sigma_F(p)`，`F_ref` 逐帧常数 | **只**来自 `sigma_F(p)` | **是**（`sigma` 是平滑弥散分量的光滑函数） | `docs/detail/registry/astrocs.phase1.noise-snr.md`「帧级 SNR（frame_snr）」§4.2、`frame-snr-canon` §0；SExtractor `FLUXERR`、DAOPHOT `merr`、LSST `instFluxErr` 同族 |
 | **P（逐像素显著性）** | `SNR_P(p) = I(p)/sigma(p)` | 分子 `I(p)` 的**结构性亮源** | **否**（星点处爆表） | 文献中**没有**把逐像素 `S/sigma` 定义为 SNR 的权威用法（见 §9 负面清单）；它对应的是**探测显著性**，不是测量量的 SNR |
 
 ### 2.2 命题①的判定
@@ -183,7 +183,7 @@ lever_var = (p95(D) - p05(D)) / g / V_ref        （lever_arm_diag）
 
 ### 3.5 正齐次性（与冻结算子要求对接）
 
-`07_noise_snr.md` §4.5 要求重建算子满足 `R[a*v] = a*R[v]`（`a > 0`），这是「帧内共模因子在权重口径下相消」的前提。实测：
+`docs/detail/registry/astrocs.phase1.noise-snr.md`「稀疏帧内层几何与重建算子」 要求重建算子满足 `R[a*v] = a*R[v]`（`a > 0`），这是「帧内共模因子在权重口径下相消」的前提。实测：
 
 | 模型 | `max |R[1.7*v] / (1.7*R[v]) - 1|` |
 |---|---|
@@ -220,7 +220,7 @@ adu(p)   = Poisson(lam_e)/g + N(0, RN)/g + bias        （含 ADU 取整）
 - 相对帧级标量的优势 **150×（cell 内不可分辨）~ 3721×（弱梯度）**——该区间**只覆盖物理建模占优的 5 个场景**；在 A0/A1/A7 上帧级标量本身更优（见上一条）；
 - **逐像素代入亮度在全部 8 个场景上劣于物理建模 37×（cell 内不可分辨）~ 5756×（平坦场+极亮像素）**；
 - **不做结构分离在含结构性亮源的场景上劣 30×（cell 内不可分辨）~ 34709×（平坦场+极亮像素）、在真实结构场景上劣 576×**；在**无源场景**（纯平滑星云，无星/线/宇宙线）上二者相当（0.8×）——「分离」的必要性**只**在存在结构性亮源时成立；
-- **R0 控制值（不扣局部背景）在真实结构场景上劣 206 倍**——这条与 `07_noise_snr.md` §4.5「控制点局部 σ 必须结构感知」一致。
+- **R0 控制值（不扣局部背景）在真实结构场景上劣 206 倍**——这条与 `docs/detail/registry/astrocs.phase1.noise-snr.md`「稀疏帧内层几何与重建算子」「控制点局部 σ 必须结构感知」一致。
 
 ### 4.3 电平（`median(sigma_hat/sigma_true)`，T1）
 
@@ -506,8 +506,8 @@ Massey & Jacoby 1992（Crossref 未命中）｜Morton optimal weighting（未命
 
 | 条款 | 关系 |
 |---|---|
-| `07_noise_snr.md` §4.5 算子正齐次性 | 自由斜率版本严格满足（6.7e-16）；**固定增益版本不满足**（0.213）⇒ 若采用后者必须写入 `homogeneity = false` 并放弃共模相消假设 |
-| `07_noise_snr.md` §4.5 控制点局部 σ 必须结构感知 | 本单元复核并加强：R0 控制值在真实结构场景上劣 206 倍（§4.2） |
+| `docs/detail/registry/astrocs.phase1.noise-snr.md`「稀疏帧内层几何与重建算子」 算子正齐次性 | 自由斜率版本严格满足（6.7e-16）；**固定增益版本不满足**（0.213）⇒ 若采用后者必须写入 `homogeneity = false` 并放弃共模相消假设 |
+| `docs/detail/registry/astrocs.phase1.noise-snr.md`「稀疏帧内层几何与重建算子」 控制点局部 σ 必须结构感知 | 本单元复核并加强：R0 控制值在真实结构场景上劣 206 倍（§4.2） |
 | `NOISE_MODEL.md` §10「gain 诊断模型不入生产 variance/ivar」 | **推荐路径不依赖 FITS GAIN**（斜率由数据自拟合，CV 决定是否启用）⇒ 不触及该条款；若要用 header gain 固定斜率，属 SCI 变更，需裁决 |
 | `docs/ASTROCS_DESIGN.md` §5.3 三口径与算子词表 | 物理路径是**第四条重建路径**，需在设计层登记其标识、诊断字段与适用域；算子词表本身不变（插值仍是残差项与 `D` 展开的工具） |
 

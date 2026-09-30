@@ -127,7 +127,7 @@ v_dr 一一对应）：
 8. 标注级文献锚（Aitken/Moffat/de Boor）不承担任何数值判据。
 9. 项目约定豁免：quality_factor 0.1/0.5（比值 0.1/0.5 与 share/absolute 口径差不豁免）、γ<1e-10、节点容差 1e-9、Δ=64。
 10. **σ 口径是本项目定义而非通用物理量**：Moffat4 只有 α，本域 σ 由冻结参数化 `Q = 0.5r²/σ²` 定义（= √⟨r²⟩ = α/√2 ⇒ FWHM/σ = 1.2303076526）；他域逐轴口径 σ_g = α/2 ⇒ 1.7399178，二者恒差 √2、禁止互换（[推导:docs/derivations.md §6]、`docs/science/PSF.md §16`）。
-11. **跨单元数字与缺口（交接）**：① 组成常数 1.152 与 mesh 高对比域读数（E 0.0490/0.0530）均出自**其他单元**，本单元未复核；② `idw_power=1.0` 实现侧落地属跨域改动（`lib/algorithms/drizzle/healpix_drizzle/snr_evaluator.{h,cpp}` 与 `docs/plugins/algorithms_phase1/07_noise_snr.md:194`）；③ 逐像素重建面在 Phase2 已接通（`sparse_reconstruct` 为 `snr_path` 默认，`module_adapters.cpp:12581` 逐像素调 `weight_from_sparse_layer_pixel_prepared`）；`in.sparse = nullptr`（`:12112`）只表示稀疏层不经帧级标量链。真正 fail-closed 的是 `snr_path=dense`（`:11967`）。带绝对真方差参照的生产端到端试跑仍缺参照产品。详见 REPORT_paper.md §7.9–§7.14。
+11. **跨单元数字与缺口（交接）**：① 组成常数 1.152 与 mesh 高对比域读数（E 0.0490/0.0530）均出自**其他单元**，本单元未复核；② `idw_power=1.0` 实现侧落地属跨域改动（`lib/algorithms/drizzle/healpix_drizzle/snr_evaluator.{h,cpp}` 与 `docs/detail/registry/astrocs.phase1.noise-snr.md`「稀疏帧内层几何与重建算子」）；③ 逐像素重建面在 Phase2 已接通（`sparse_reconstruct` 为 `snr_path` 默认，`module_adapters.cpp:12581` 逐像素调 `weight_from_sparse_layer_pixel_prepared`）；`in.sparse = nullptr`（`:12112`）只表示稀疏层不经帧级标量链。真正 fail-closed 的是 `snr_path=dense`（`:11967`）。带绝对真方差参照的生产端到端试跑仍缺参照产品。详见 REPORT_paper.md §7.9–§7.14。
 12. **判据与门禁的订正落点**：零源负例/亮度跟随门/有源对照三项原判据判别力不足（P4-M03）；订正不修改已归档实验（避免脚本与存档脱钩），而是新增判据实验 `code/fix/fix01_metric_E_and_gates.py`；Δ 上界守卫与节点相位量化为 `code/fix/fix02_boundaries_estimator_phase.py`（正例 Δ=64 平滑域 PASS、负例 Δ=256 高对比域 RED；相位半像素差 ≤0.5%、角点约定 1.23× 退化）。
 
 13. **「真方差动态范围 1.78–235」不是有效域判据**（被否证假设）：窗口**内**（v_dr = 75.8）稠密口径照样失效

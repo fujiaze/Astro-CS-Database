@@ -4,7 +4,7 @@
 > 负责人裁决（2026-09-22，原话）：「对于 m42 这种目标确实很难。但是**叠加的时候，所有这个位置的信号都有一样的背景**。
 > 因此**只要这个区域产生的信噪比绝对准确就行**。**本身也不会和其他天区叠加**。此外**可以查论文，其他开源天文软件等等如何计算**。」
 > 上游缺陷来源：`实验/absolute-snr/docs/EXP-02-STRUCTURE-CONTAMINATION.md`
-> 权威依据：`AGENTS.md` §5／§8、`docs/ASTROCS_DESIGN.md` §2.2、§5.3、§5.4、§12.1、§12.2、§12.3、`docs/plugins/algorithms_phase1/07_noise_snr.md` §4.2a／§4.3／§4.5、`docs/science/NOISE_MODEL.md`、`docs/science/CONTROL_WEIGHT_SNR.md`
+> 权威依据：`AGENTS.md` §5／§8、`docs/ASTROCS_DESIGN.md` §2.2、§5.3、§5.4、§12.1、§12.2、§12.3、`docs/detail/registry/astrocs.phase1.noise-snr.md`「σ_sky 口径冻结（防读出噪声双计）」／「标量降级门与质量代理」／「稀疏帧内层几何与重建算子」、`docs/science/NOISE_MODEL.md`、`docs/science/CONTROL_WEIGHT_SNR.md`
 > 固定 seed：**20260925**｜本单元**只读** `lib/**`、`eng/**`、`docs/**`、`testdata/**`、`实验/shared/**`
 > **不运行任何 ACSD 可执行文件**；**不使用 `ulimit -v`**；无 git 写操作；**不运行 `eng/tools/round_start.sh`**。
 
@@ -39,10 +39,10 @@
 | 最高设计 | `docs/ASTROCS_DESIGN.md` §12.1 | 每个科学结论需**三类独立一手证据**：论文/标准 + 开源库代码（项目+版本+文件:行）+ 仓内实测 |
 | 最高设计 | `docs/ASTROCS_DESIGN.md` §12.2 | 三类实验数据：HST 真实模板+物理前向仿真／纯解析代数合成（含「真值无效应⇒归零」负例）／testdata 真实数据 |
 | 最高设计 | `docs/ASTROCS_DESIGN.md` §12.3 | 实验报告八要素；**每个度量具备非退化判据**，恒真门没有证据资格 |
-| 插件文档 | `07_noise_snr.md` §4.2a | `sigma_sky_source` 二选一必填（`shot_noise_only` / `empirical_total_rms`），**读噪只出现一次**；声明与实际不一致 ⇒ fail-closed |
-| 插件文档 | `07_noise_snr.md` §4.3 | **标量降级门**：仅当帧内 `W_psf(x,y)` 鲁棒相对离散与系统趋势低于阈值才存帧级标量；**否则存 map/控制点/多项式/HEALPix** |
-| 插件文档 | `07_noise_snr.md` §4.5 | 稀疏控制点间隔 **Δ = hips.tile_width / 8 = 64 px**（tile_width=512） |
-| 插件文档 | `10_sampling.md` §4.1 | 星点掩膜**排除**：检测目录星点、**饱和与溢出区**、坏点/宇宙线区、亮星光晕、**高结构区域** |
+| 插件文档 | `docs/detail/registry/astrocs.phase1.noise-snr.md`「σ_sky 口径冻结（防读出噪声双计）」 | `sigma_sky_source` 二选一必填（`shot_noise_only` / `empirical_total_rms`），**读噪只出现一次**；声明与实际不一致 ⇒ fail-closed |
+| 插件文档 | `docs/detail/registry/astrocs.phase1.noise-snr.md`「标量降级门与质量代理」 | **标量降级门**：仅当帧内 `W_psf(x,y)` 鲁棒相对离散与系统趋势低于阈值才存帧级标量；**否则存 map/控制点/多项式/HEALPix** |
+| 插件文档 | `docs/detail/registry/astrocs.phase1.noise-snr.md`「稀疏帧内层几何与重建算子」 | 稀疏控制点间隔 **Δ = hips.tile_width / 8 = 64 px**（tile_width=512） |
+| 插件文档 | `docs/detail/registry/astrocs.phase2.sample.md`「星点掩膜」 | 星点掩膜**排除**：检测目录星点、**饱和与溢出区**、坏点/宇宙线区、亮星光晕、**高结构区域** |
 | 手册 | `AGENTS.md` §5 | 发现科学文档或自己的前提可能有错时，先质疑前提、做实验/查一手证据；开源实现同样可能有错 |
 | 手册 | `AGENTS.md` §8 | 科学疑义走「查证 → 订正 → 补 Oracle/负例 → 独立验证」闭环 |
 
@@ -61,7 +61,7 @@
 > **一处口径澄清（已独立交叉核对）**：调研子代理曾提出「仓库里没有『整帧 2 轮 median±3·1.4826·MAD 裁剪 RMS』这一实现」，
 > 它指的是 `lib/algorithms/noise_snr/cpp/src/noise_model.cpp`（8×8 patch、5σ、2 轮、MAD）与 `lib/algorithms/coverage/src/sky_plane.cpp` 两条**另外的**路径。
 > 本单元独立 grep 复核：`noise_sigma` 的**生产写入点**确为 `star_detector.cpp::estimate_background`（`:135`）→ `module_adapters.cpp:2486` → `:4629 cfg.sigma_sky_adu`，
-> 即 **EXP-02 的账目正确**；`noise_model.cpp` 按 `07_noise_snr.md` §4.4 自陈「**尚未挂 variance 块**」，不在 `noise_sigma` 的生产链上。
+> 即 **EXP-02 的账目正确**；`noise_model.cpp` 按 `docs/detail/registry/astrocs.phase1.noise-snr.md`「噪声模型 A 与逐像素方差面」 自陈「**尚未挂 variance 块**」，不在 `noise_sigma` 的生产链上。
 > 两条路径的差异本身是真实的架构问题，但不是本单元的缺陷来源。
 
 ### 1.3 只读边界
@@ -234,7 +234,7 @@ R1 被亚网格结构污染只会让它**变负**。实测 `excess` 中位 -0.1%
 
 > **区域化 σ_sky**：对帧内一个 `B×B` 的区域 `r`（互不重叠、覆盖全帧），
 > `σ_sky(r)` = **该区域内「非被测量源」部分的逐像素标准差的区域平均值**，单位 ADU，语义 = `empirical_total_rms`
-> （含天光散粒 + 暗流 + 读出 + 量化；**不含**被测量源自身的泊松，后者由 `F·P_i/g` 单独承载，见 `07_noise_snr.md` §4.2a）。
+> （含天光散粒 + 暗流 + 读出 + 量化；**不含**被测量源自身的泊松，后者由 `F·P_i/g` 单独承载，见 `docs/detail/registry/astrocs.phase1.noise-snr.md`「σ_sky 口径冻结（防读出噪声双计）」）。
 
 交付形态：**逐区域 σ 图（二维）+ 逐区域有效性掩膜 + provenance**，不是帧级标量。
 
@@ -677,8 +677,8 @@ EXP-02 的 F2 代理量：`kf`、`A1 = σ̂_prod/(σ_diff/√2)`、`R`、`A2 = �
 | 动作 | 位置 | 内容 |
 |---|---|---|
 | 新增小节 | `docs/science/`（沿 `docs/ASTROCS_DESIGN.md` §2.2 索引下钻）——**「区域化 σ_sky 的口径、可信域与尺度选择」** | ① σ_sky 的语义与 `sigma_sky_source` 声明；② 三项误差-尺度关系式（§4.1）；③ 推荐 B=64 与有效性掩膜要求；④ **「帧级标量」与「区域 σ 图」是两个不同语义的量，不可互替**；⑤ R2 的适用前提（≥2 帧同天区、位置稳定分量对消）与失效边界 |
-| 订正 | `07_noise_snr.md` §4.3 | 「标量降级门」补上**量化判据**：用 §4.1 的 `res_err(B)` 与 σ 图离散 `D_reg` 作为触发条件（M42 类帧 `D_reg ≫ 1.25` ⇒ 必须存图） |
-| 新增 | `07_noise_snr.md` §4.5 | 明确稀疏层除「相对 SNR」外**新增绝对 σ 层**（§8.3） |
+| 订正 | `docs/detail/registry/astrocs.phase1.noise-snr.md`「标量降级门与质量代理」 | 「标量降级门」补上**量化判据**：用 §4.1 的 `res_err(B)` 与 σ 图离散 `D_reg` 作为触发条件（M42 类帧 `D_reg ≫ 1.25` ⇒ 必须存图） |
+| 新增 | `docs/detail/registry/astrocs.phase1.noise-snr.md`「稀疏帧内层几何与重建算子」 | 明确稀疏层除「相对 SNR」外**新增绝对 σ 层**（§8.3） |
 | 登记 | EXP-01 D8 缺陷登记表 | 链到本报告；把「帧级标量」的判定从「精度不足」升级为「**定义域错误**」 |
 | **订正（独立发现，本单元未改）** | `lib/algorithms/noise_snr/cpp/src/snr_science.cpp:148`、`lib/algorithms/noise_snr/README.md:207`、`docs/references/PHOTOMETRY_LITERATURE_REVIEW_ARCHIVE.md:97` | **出处错标**：把 `n_pix·σ_sky²·(1 + n_pix/n_sky)` 归给 **Howell 1989**。子代理 R2 一手核验：Howell 1989 全文只有一个编号公式且**不含 `n_sky` 项**；该形式应注 **Merline & Howell 1995, Exp. Astron. 6, 163, eq. (25)** |
 | **登记（不算证据）** | `eng/tests/unit/.../p1snr_science_test.cpp:124-128` | 该 Oracle 与实现**同源**（同一作者、同一假设），只能锁「实现 = 自定参考」，**不构成 Merline & Howell eq. (25) 科学性的证据**。若要真正锁定，需一个**独立**复算的 Oracle（按 eq. (25) 从原始量重算 `Var_ap`） |
@@ -698,7 +698,7 @@ EXP-02 的 F2 代理量：`kf`、`A1 = σ̂_prod/(σ_diff/√2)`、`R`、`A2 = �
 
 **结论：网格几何可以直接复用，数据语义必须改两处，否则会静默丢掉绝对标度。**
 
-| 维度 | 现状（`07_noise_snr.md` §4.2/§4.5、`10_sampling.md` §4.2） | 承载区域 σ 需要 | 判定 |
+| 维度 | 现状（`docs/detail/registry/astrocs.phase1.noise-snr.md`「SNR 三条路径与稀疏帧内层」§4.5、`docs/detail/registry/astrocs.phase2.sample.md`「天光背景采样点（稀疏）」） | 承载区域 σ 需要 | 判定 |
 |---|---|---|---|
 | 控制点几何 | `Δ = hips.tile_width / 8 = 64 px` | 同一网格（B=64） | **可直接复用** ✔ |
 | 控制点内容 | 帧内**相对** SNR（**中位归一**，无量纲） | **绝对 σ（ADU）** + 有效性 | **必须改**：中位归一化会把待认证的绝对标度除掉 |

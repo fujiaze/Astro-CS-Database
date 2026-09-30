@@ -19,7 +19,7 @@ step1/step3/step4/step5/step6/step7 的数字我逐条核对**全部与 README/G
    N0 与 N5 是同一条恒等式；N3 的 pass 来自 10× 于真实值的合成扫描。**"6/6 通过"实质只有 N1 提供真实注入-响应证据**，
    而 G6 仍记 PASS。
 3. **DOC_CORRECTIONS C1 是稻草人**：它要求订正的"原文口径 `Var≈σ_pix²N_eff+F·w/g, w=ΣP³/ΣP²`"
-   在 `06_photometry.md`（该文件根本没有 §2.1/§3.1）与 `run/RELEASE-02/parallel/06.md` §2.2
+   在 `docs/detail/registry/astrocs.phase1.photometry.md`（该文件根本没有 §2.1/§3.1）与 `run/RELEASE-02/parallel/06.md` §2.2
    （Horne 形式 `σ_F/F=sqrt(1/(gF)+N_eff·σ_pix²/F²)`）中**都不存在**，全仓 grep 无此式；
    被"证明低估 2.15×"的对象是作者自己造出来的。附带发现 step6 的低阶空间增益改正**方向反了**、
    `calibrate()` 的 `delta_after_m` **多乘 2.5**、预算上限**系统项二次计入**（上限放宽 21–34%）。
@@ -100,15 +100,15 @@ step1/step3/step4/step5/step6/step7 的数字我逐条核对**全部与 README/G
     "漏掉的那一项够大时判红"接近代数必然。
 - 建议：G6 改为如实记 `1/6 真实注入-响应 + 1/6 合成构造 + 3/6 恒等式 + 1/6 反向判据`，
   并在报告里显式说明每条负例的**判别力边界**；至少补一条"真值有强效应 ⇒ 必红"的**物理**负例（例如
-  `F_instr` 乘随机因子 0.2 mag 散度，见 `06_photometry.md` §8 的负例②，本实验没有做）。
+  `F_instr` 乘随机因子 0.2 mag 散度，见 `docs/detail/registry/astrocs.phase1.photometry.md`「独立 synthetic 验证命令与容差」 的负例②，本实验没有做）。
 
 ### R5 DOC_CORRECTIONS C1 是无对象的稻草人订正
 严重度：**高**  类型：事实错误 / 越权风险
 
 - 位置：`results/DOC_CORRECTIONS.md:8-25`（C1）；`README.md:107-114`；`code/scia_common.py:443`
 - 证据：
-  - C1 称"原文口径：`Var(F̂) ≈ σ_pix²·N_eff + F·w/g`，`w = ΣP³/ΣP²`"，并归给 `06_photometry.md` §2.1。
-  - `wc -l docs/plugins/algorithms_phase1/06_photometry.md` = **102 行，章节只有 §1–§8**，
+  - C1 称"原文口径：`Var(F̂) ≈ σ_pix²·N_eff + F·w/g`，`w = ΣP³/ΣP²`"，并归给 `docs/detail/registry/astrocs.phase1.photometry.md`（原 §2.1 在新分册无对应节）。
+  - `wc -l `docs/detail/registry/astrocs.phase1.photometry.md` = **102 行，章节只有 §1–§8**，
     `grep -n "§2\.1|§3\.1|N_eff|ΣP|定案"` **无任何命中**。该文件没有 §2.1，也没有 §3.1/"定案 6"。
   - 真正的权威出处 `run/RELEASE-02/parallel/06.md` §2.2 逐字给的是
     `σ_F/F = sqrt( 1/(g·F) + N_eff·σ_pix²/F² )`（Horne 1986），**没有** `ΣP³/ΣP²` 权重；
@@ -235,14 +235,14 @@ step1/step3/step4/step5/step6/step7 的数字我逐条核对**全部与 README/G
 ### R14 判据出处引用错文件（phantom §3.1 / §2.1）
 严重度：**中**  类型：事实错误（引用）
 
-- 位置：`README.md:8`（"06_photometry.md §3.1/§4.1"）、`README.md:54`（"`06_photometry.md` §3.1 定案 6，逐字"）；
+- 位置：`README.md:8`（"`docs/detail/registry/astrocs.phase1.photometry.md`（原 §3.1 → ）§4.1"）、`README.md:54`（"`docs/detail/registry/astrocs.phase1.photometry.md`（原 §3.1 在新分册无对应节） 定案 6，逐字"）；
   `code/scia_common.py:34,35,393,443,489`、`code/scia_calib.py:4,172`（多处 "06.md §2.1/§3.1"）
-- 证据：`docs/plugins/algorithms_phase1/06_photometry.md` 只有 §1–§8，双边界判据在 **§4.1**；
+- 证据：`docs/detail/registry/astrocs.phase1.photometry.md` 只有 §1–§8，双边界判据在 **§4.1**；
   §2.1（逐项预算表）与 §3.1（判据形态）、"定案 6"都在 `run/RELEASE-02/parallel/06.md`。
   README 把两个"06"混为一谈。另：`run/` 按 `AGENTS.md` §7 是 gitignore 的临时产物目录，
   把冻结判据的规范依据放在那里，可追溯性弱于 `docs/`。
 - 建议：统一写成 `run/RELEASE-02/parallel/06.md` §2.1/§3.1（并登记"判据形态已冻结进
-  `docs/plugins/algorithms_phase1/06_photometry.md` §4.1"），代码注释同步。
+  `docs/detail/registry/astrocs.phase1.photometry.md`「数值落地口径」（内的「测光一致性判据（单帧、尺度无关、双边界）」"），代码注释同步。
 
 ### R15 "SHA256 固定的缓存"是文档承诺，不是机制
 严重度：**中**  类型：可复现性
@@ -451,13 +451,13 @@ code/scia_calib.py                 0b67f1b3d080b7bce7a180cf962e7e7ceac939c41974d
 | **R2** 盲检耗时相差 445× | **部分修复** | 数量级问题已修：JSON `guided_vs_blind_real.blind_wall_time_s=1.7511251850082772`（≈1.75 s，不再是 890.7 s），`guided_wall_time_s=2.0929827929940075`，`guided_sec_per_fit=0.004822540997682045`，`blind_detections=13163`，`guided_candidates=434`。**但 README §4.7:254-255 写的是"引导 2.32 s（0.0053 s/星）"与"盲检测 1.68 s"，三个数都与归档 JSON 不符**（2.32≠2.0930、0.0053≠0.004823、1.68≠1.7511），也不符日志 `run/SCI-401/logs/step8_real_frame.log`（`guided 2.1s` / `blind 1.8s`）。§9 的 R2 行（`README.md:419`）同样写死"现为 1.68 s"。 |
 | **R3** N2 判据方向相反 | **已修复** | `step7_negatives.py:58-66` `resimulate()` 走**真 Poisson 前向**：`mu=clip(fr["mu"]+sky_delta_e)` → `r.poisson(mu)` → `+r.normal(0,read_noise)` → `/gain` → `clip(round,0,saturation)`；`:137-139` N2 对 `mult∈(0.5,1,2,4,8)` 逐档重画帧；`:182` `pass_=bool(rows2[-1]["sigma_obs_mag"] > rows2[0]["sigma_obs_mag"]*1.5)` ⇒ **要求"必须响应"**，方向与 `ACCEPTANCE_SPEC` 一致。JSON N2：`monotone=true`（`:167-170` 只在 `mult≥1` 子族上判定）、`response_ratio=2.910948485672687`（我复算 0.0733541784782176/0.025199407972781862=2.9110）、`rows` 0.0252→0.0481→0.0734、4× 判 `ABOVE_CEILING`。算术相加的确定性梯度已降级为 `arithmetic_gradient_control`（1.08×，明确"不作为通过依据"）⇒ R13 一并修复。 |
 | **R4** N0/N4/N5 恒等式 | **已修复，N5 的"未通过"是真的** | **N4** 改读 step5 实测值：`step7_negatives.py:242-245` `s5["frame_independence"]` → `kA=2.07278579295233e-17`、`kB=3.336901807409466e-17`（与 `step5_calibration_gate.json → frames[A/B].calibration.k_photo` 逐位一致），`k_ratio_measured=1.6098633147502515`（=step5 `k_ratio`），**不再是 `kB:=kA/0.62`**。**N5** 换成对帧 A 实测通量的真实过裁剪（`:261-276`，`|r−median(r)|<tol`，tol=None/0.05/0.01/0.002/0.001）：σ_obs 0.045344→0.038031→0.019762→0.003562（单调下降），`sigma_floor` 0.009638→0.008586→0.002926→**−0.004911**，四行判定**全 PASS**。**"未通过"确实是真的**：`:288` `pass_=any(verdict=="BELOW_FLOOR")` ⇒ `pass_=false`；JSON `n_pass=5/6`、`n_injection_response_pass=3/3`；我独立复算下界 `rho_lo=1−3·1.166/√n`：n=48→0.4951、n=45→0.4785、n=22→0.2542、**n=5→−0.5644**（`floor=−0.004911` ⇒ 隐含 `sigma_fit_white=0.008702`）⇒ 下界在 n<12.2 时数学上变负，过裁剪样本不可判红。**不是自我开脱，是如实登记。** |
-| **R5** C1 稻草人 | **部分修复（撤回到位，但马甲留在代码/JSON 里）** | `DOC_CORRECTIONS.md:130-139` 有独立"## 已撤回"节，逐字写明撤回原因与我的意见一致（"被订正的原文口径 `Var≈σ_pix²·N_eff+F·w/g (w=ΣP³/ΣP²)` **不存在于任何文档**；`06_photometry.md` 只有 §1–§8（无 §2.1/§3.1），`run/RELEASE-02/parallel/06.md` §2.2 给的是 Horne 形式"）；新 C1 换成 N5 的 σ_floor 下界失效（真实发现，数字与 N5 逐位一致），**不是换马甲**；原 2.149× 改记为 C8"自由背景简并代价，**不是文档错误**、无需订正"。**但**：`code/step1_analytic.py:194` 与 `results/step1_analytic.json → sigma_fit_composition_form.note` 仍逐字写"`06.md §2.1` 的一阶展开 `Var≈sigma_pix²N_eff+F·w/g（w=ΣP³/ΣP²）`……一阶式低估方差"——**即被撤回的误引本身仍在交付代码与机读结果里**。我复核 `grep -rn "P³|P\*\*3|ΣP"` 于 `run/RELEASE-02/parallel/06.md`、`docs/plugins/algorithms_phase1/06_photometry.md`、`docs/science/PHOTOMETRY.md` ⇒ **零命中**，该式确实不存在于任何权威文档。 |
+| **R5** C1 稻草人 | **部分修复（撤回到位，但马甲留在代码/JSON 里）** | `DOC_CORRECTIONS.md:130-139` 有独立"## 已撤回"节，逐字写明撤回原因与我的意见一致（"被订正的原文口径 `Var≈σ_pix²·N_eff+F·w/g (w=ΣP³/ΣP²)` **不存在于任何文档**；`docs/detail/registry/astrocs.phase1.photometry.md` 只有 §1–§8（无 §2.1/§3.1），`run/RELEASE-02/parallel/06.md` §2.2 给的是 Horne 形式"）；新 C1 换成 N5 的 σ_floor 下界失效（真实发现，数字与 N5 逐位一致），**不是换马甲**；原 2.149× 改记为 C8"自由背景简并代价，**不是文档错误**、无需订正"。**但**：`code/step1_analytic.py:194` 与 `results/step1_analytic.json → sigma_fit_composition_form.note` 仍逐字写"`06.md §2.1` 的一阶展开 `Var≈sigma_pix²N_eff+F·w/g（w=ΣP³/ΣP²）`……一阶式低估方差"——**即被撤回的误引本身仍在交付代码与机读结果里**。我复核 `grep -rn "P³|P\*\*3|ΣP"` 于 `run/RELEASE-02/parallel/06.md`、`docs/detail/registry/astrocs.phase1.photometry.md`、`docs/science/PHOTOMETRY.md` ⇒ **零命中**，该式确实不存在于任何权威文档。 |
 | **R7** 预算二次计入 | **已修复** | `scia_calib.py:225` `sig_robust_mc = mc_sigma_obs(sig_i_robust, 0.0, tag=tag+":robust")`、`:222` `sig_white_mc = mc_sigma_obs(sig_i_white, 0.0, ...)` ⇒ **只合成噪声，extra_sigma=0.0**（注释 `:223-224` 明确记录此前二次计入）。`scia_common.py:427-431` `Budget.sigma_ceiling` 只在平方和中各计一次（`sigma_fit_robust²+psfsys²+color²+gaia²+flat²+skyres²+q²`）。ceiling 确已收紧：帧 A `sigma_ceiling=0.05683000488871848`（≈0.0568，修复前 0.074312）、帧 B `0.1030148789260557`、帧 C `0.15989923273887163`，与 README §4.2 表逐位一致，三帧判定仍 PASS。 |
 | **R8** `delta_after_m` 多乘 2.5 | **部分修复（代码已修，README §4.1 未同步）** | `scia_calib.py:153` `delta_after_m=float(mad_sigma(dm - pred))`，`:149` 注释"dm/pred 都是**星等**残差（不是 dex）⇒ 不再乘 2.5（此前多乘了 2.5）" ⇒ **代码已修**。step5 JSON `frames[A].calibration.delta_after_m=0.019732468945651404`（不再是 0.049331）✅。**但** `results/step1_analytic.json → spatial_gain_recovery.sigma_obs_with_m_model=0.00036516034225241733`，而 `README.md:106` 仍写"拟合 `m`(deg2) 后 `0.000913`" —— 这正是我 R8 建议里说"应约为 0.000365"的那个数，**JSON 已改对、README 没改**。 |
 | **R9** `m̂` 方向反了 | **已修复** | `step6_apply_and_units.py:59` `m_hat = 10.0 ** (0.4 * dm)`；`:57` 注释"pred 是**星等残差**多项式 ⇒ 归一化修正场 `m_corr=10^(+0.4·pred)=1/m_gain`"；`:76-83` 星等域残差与不改正对照。JSON `magnitude_only`：`resid_mag_median=0.005106310487555277`、`resid_mag_mad_sigma=0.0197324689456575` **<** `resid_mag_mad_sigma_no_m=0.04534425693654346`、`m_correction_improves=true`；`m_hat_range=[0.9620,1.0792]`、`m_corr_definition="m_corr(x,y) = 10^(+0.4 * poly(x,y)) = 1/m_gain"`（与 step5 逐帧 `m_corr_definition` 一致）。G5 判据已加入方向自检（`GATES.md:12`"m 改正后残差 0.01973 vs 不改正 0.04534（改善=True）"）。 |
 | **R10** `quick` 干净状态崩溃 | **已修复（我实测）** | 我用**临时副本实测**（不动机内文件）：把 `results/*` 复制到 `/tmp/r2_results_nostep6`（**故意不含 `step6_apply_and_units.json`**），patch `scia_common.RESULTS` 后执行 `step9_collect.main()` ⇒ 输出 `[step9] 缺失结果文件：['step6']（quick 模式跳过 step6 时正常）`、`[step9] gates 6/9 PASS`、`EXIT OK`，`G2 NOT_RUN | step6 未运行（quick 模式）`、`G5 NOT_RUN` ⇒ **不崩溃**。静态对照：`step9_collect.py:71-76` `if s6 is None` → G2 NOT_RUN；`:125` `ap = None if s6 is None else s6["apply"]` → G5 NOT_RUN；`s8` 全部用 `(s8 or {})` 保护。（未采用"原地改名"法，避免动到非授权文件。） |
 | **R11** 残差分布一致性是死代码 | **已修复** | `step5_calibration_gate.json → frame_independence.residual_distribution_ks` 存在且非空：`n_A=48`、`n_B=54`、`statistic=0.12268518518518519`、`pvalue=0.7868810385958391`、`median_A=-0.0008585`、`median_B=-0.0013562`、`mad_A=0.045344`、`mad_B=0.057457` ⇒ README §4.2"KS 检验 `D=0.1227`、`p=0.787`（n_A=48, n_B=54）"逐位一致。 |
-| **R14** 判据出处引用错 | **部分修复** | `README.md:8` 已改为 `docs/plugins/algorithms_phase1/06_photometry.md` **§4.1**，`:9` 还主动注明"该文只有 §1–§8，**没有 §2.1/§3.1**"，`:10-11` 把 §2 的实测预算归给 `run/RELEASE-02/parallel/06.md` 并声明 `run/` 追溯性弱 ⇒ README 层面已修。**残留**：`code/scia_common.py:409` 仍写"`06.md §2.1/§3.1` 形态"（未区分是哪一份 06.md），`code/step1_analytic.py:194` 仍把不存在的公式归给 `06.md §2.1`（见 R5）。 |
+| **R14** 判据出处引用错 | **部分修复** | `README.md:8` 已改为 `docs/detail/registry/astrocs.phase1.photometry.md` **§4.1**，`:9` 还主动注明"该文只有 §1–§8，**没有 §2.1/§3.1**"，`:10-11` 把 §2 的实测预算归给 `run/RELEASE-02/parallel/06.md` 并声明 `run/` 追溯性弱 ⇒ README 层面已修。**残留**：`code/scia_common.py:409` 仍写"`06.md §2.1/§3.1` 形态"（未区分是哪一份 06.md），`code/step1_analytic.py:194` 仍把不存在的公式归给 `06.md §2.1`（见 R5）。 |
 | **R18** 裸 NaN | **已修复** | 我对 `results/*.json` 全部 9 个文件做**严格解析**（`json.loads(..., parse_constant=raise)` + 正则扫 `NaN`/`Infinity` 裸 token）：`gates.json / step1 / step2 / step3 / step4 / step5 / step6 / step7 / step8` **全部 OK，BAD COUNT=0**。轮次 1 出问题的 `step5 → sigma_psfsys_noise_expect`（帧 C）现在是有限值 `0.0420…` 而非 NaN。 |
 | **R21** astropy 版本 | **已修复** | `README.md:384-388` 明确："文献记录核到的是 **8.0.1**（上游 main 线），而**本机实际运行环境是 astropy 7.0.1**……7.0.1 的对应实现语义相同但行号可能不同，本实验**未在 7.0.1 上核对该行号**"；`code/README.md:42-45` 亦写"本机实测环境 **Python 3.13.5 / numpy 2.2.4 / scipy 1.15.3 / astropy 7.0.1**……photutils 3.0.0 / sep 1.4.1 行号来自**文献与上游源码核对**，不是本机安装版本" ⇒ 两个版本已区分。 |
 

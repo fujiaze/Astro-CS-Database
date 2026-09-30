@@ -5,7 +5,7 @@
 - **一键复跑**：`bash 实验/photometric-magnitude/code/run_all.sh`（`quick` 跳过最慢的 step6）
 - **判据表**：`results/GATES.md`（机读 `results/gates.json`）
 - **规范依据**：`docs/ASTROCS_DESIGN.md` §2.1 / §4.2 / §4.4 / §12.1–12.3；
-  `ACCEPTANCE_SPEC.md` §2.1 判据表；`docs/plugins/algorithms_phase1/06_photometry.md` **§4.1**
+  `ACCEPTANCE_SPEC.md` §2.1 判据表；`docs/detail/registry/astrocs.phase1.photometry.md` **§4.1**
   （"测光一致性判据（从误差预算推导）"，判据形态逐字来源；该文只有 §1–§8，**没有 §2.1/§3.1**）；
   `docs/science/PHOTOMETRY.md`（推导出处）；`run/RELEASE-02/parallel/06.md` §2（逐项预算实测）
   ——注意 `run/` 是 gitignore 目录，追溯性弱于 `docs/`，前台合并时应把引用改锚到 `docs/`
@@ -70,7 +70,7 @@ F_λ   = byte·flux_mul + flux_min         # 绝对谱辐照度 W·m⁻²·nm⁻
 `sigma_residual = MAD(r_inliers)/0.6744897501960817`；`sigma_obs = 2.5·sigma_residual`。
 预筛（**订正 P1-M03**）：`|delta_i − median(delta)| ≤ 3.0 mag`，`delta_i := −2.5·log10 F_instr,i − G_i`（G 已在该定义内减去一次，实现 `.py:123-126`）；因 `delta_i = −2.5·r_i − C`，**严格等价于** `|r_i − median(r)| ≤ 1.2 dex`（3.0/2.5 = 1.2）。历史写法 `|r − median(r)| ≤ 3.0`（r 为 dex）与同句「= 1.2 dex」自相矛盾，已订正。
 
-### 2.3 双边界判据（`06_photometry.md` §4.1，逐字）
+### 2.3 双边界判据（`docs/detail/registry/astrocs.phase1.photometry.md`「测光一致性判据（单帧、尺度无关、双边界）」，逐字）
 
 ```
 n             = 本帧匹配星数（Gaia 匹配 ∧ 有效域 ∧ IRLS inlier）
@@ -366,7 +366,7 @@ N0/N4/N5 是退化输入与错误门禁反例。
 | **翻转临界** | 使该帧由红翻绿的 `σ_flat = 0.013057` mag = 该约定值的 **18.7 倍**（即只有把平场项放宽近 19 倍才能声称「落在预算内」） |
 | **不可自算项（如实标 `null`）** | `σ_color`、`σ_gaia`（真实帧无独立通带/参考侧真值，不用 0 冒充）⇒ **上界不完整** |
 
-**与 `06_photometry.md` §4.1 实测对照的关系（订正 P1-B01 后改写）**：该文记录 L4 49 帧真实数据 **PASS 1/49**，
+**与 `docs/detail/registry/astrocs.phase1.photometry.md`「测光一致性判据（单帧、尺度无关、双边界）」 实测对照的关系（订正 P1-B01 后改写）**：该文记录 L4 49 帧真实数据 **PASS 1/49**，
 未消系统项 0.0442 mag。本实验在**预算完整**的仿真帧上 3/3 PASS（obs/pred 1.15/1.01/0.42）；
 真实 M42 帧在 σ_flat 换成独立项后同样**判红**。
 ⇒ 本单元**不再声称**「真实帧残差落在本帧预算内」；真实帧判红与 48/49 判红**同归因**：
@@ -402,7 +402,7 @@ N0/N4/N5 是退化输入与错误门禁反例。
 5. **判据的能力边界**：`σ_obs` 对**乘性**空间残差（N1，3.52×）与**散粒噪声**（N2，2.91×）敏感、
    对**算术相加的确定性加性图样**不敏感（1.08×）⇒ 它不能认证天光**扣除**质量；
    且 `n ≤ 12.236` 时下包络不存在（作用域降级 `upper_only`）⇒ 低样本域**只有上界与状态词可用**。
-6. **与 `06_photometry.md` §4.1` 实测对照**：真实 L4 数据 PASS 1/49；本实验在预算完整的仿真帧上 3/3 PASS、
+6. **与 `docs/detail/registry/astrocs.phase1.photometry.md`「测光一致性判据（单帧、尺度无关、双边界）」 实测对照**：真实 L4 数据 PASS 1/49；本实验在预算完整的仿真帧上 3/3 PASS、
    在真实 M42 帧上**判红** ⇒ **两侧一致**：真实数据的判红归因到**未建模系统项**（拥挤场 σ_psfsys、
    真实通带 σ_color、差分消光），而不是判据不可用；本实验的 C2/C3/C5 量化了这三项的量级。
 
@@ -445,7 +445,7 @@ N0/N4/N5 是退化输入与错误门禁反例。
     现以 `LOWER_BOUND_UNDEFINED` 显式降级（不记 PASS），**撤回**历史建议的 `max(rho_lo,0)` 夹逼。
 13. **文献腿的二手归属（P1 审查 §1）**：Beaton & Tukey 1974（V3，无 OA 全文）与 Aitken 1935（V11）
     只能作**二手归属**，不得声称已核原文；V4 期号、V8 题名/DOI、V10 适用域（两级域）、V2 路径、Akima 页域已按 P1-m06 订正。
-14. **本单元 σ_flat 口径与上游文档的关系**：判据形态与预算项逐字取自 `06_photometry.md` §4.1；
+14. **本单元 σ_flat 口径与上游文档的关系**：判据形态与预算项逐字取自 `docs/detail/registry/astrocs.phase1.photometry.md`「测光一致性判据（单帧、尺度无关、双边界）」；
     本单元只订正了实现侧的自指错误，**未改**上游文档的常数与容差（未越权）。
 15. **CI 登记缺口（需负责人处理，本轮不自处理）**：`flock /tmp/astrocs_ci.lock python3 eng/ci/run_checks.py --all --profile fast`
    实测 `pass=87 fail=12`，其中 `ENG-CONSTRAINTS` 报
@@ -460,7 +460,7 @@ N0/N4/N5 是退化输入与错误门禁反例。
    `grep -c 实验 run/SCI-401/logs/ci_fast.log = 0`），来自并发的 DOC/SCI-B 改动与既有仓库状态。
 16. **探测器线性适用域未测（乘性假设的前提缺失）**：`I_photo = k_photo·m(x,y)·I_cal` 的乘性假设要求探测器工作在线性区，这是 `r_i` 取对数变成加性零点的**唯一前提**。代码里只有饱和硬门（`saturation_adu = 65535`，`code/scia_sim.py:75`、`code/step5_calibration_gate.py:63`、`code/step7_negatives.py:48`、`code/step8_real_frame.py:112`），**不拦未饱和但已进入非线性区的像元**；全单元源码无「线性化 / 非线性 / 线性区」的任何量。**「线性化残差」整项不在 `sigma_ceiling` 的任何一项里**，进入非线性区的电子数阈值**未测**。实测：亮度依赖乘性残差 `a·(F/F_max)` 在 a = 0.02/0.05 时把 `sigma_obs` 由 0.00220 抬到 0.00874/0.01216（`code/redteam/rt_gate_attribution.py`）⇒ 在该阈值落地前，本单元**不宣称**真实帧判红的成因已被排除。
 17. **σ_gaia 的仿真取值自参照且比正本口径乐观 5.4 倍**：仿真帧取 `σ_gaia = 0.002 mag`（`code/step5_calibration_gate.py:111`、`code/step7_negatives.py:69`），恰等于仿真注入的参考侧误差 `ref_err_mag = 0.002`（`code/scia_sim.py:93`）⇒ **预算项 = 被注入真值**。Gaia DR3 XP 绝对刻度上限 1% ⇒ `−2.5·log10(1.01) = 0.0109 mag`，是 0.002 的 **5.4 倍**；换成 0.0109 时帧 A 的 `sigma_ceiling` 由 0.048473 升到 0.049646（+2.4%，判定不翻转）⇒ 三帧 PASS 条件性成立。真实帧 `σ_gaia = null` 不可自算。
-18. **σ_flat = 0.0007 mag 的一手出处未取得**：仓内唯一活着处是 `code/scia_calib.py:31` 的字面量 `SIGMA_FLAT_HF_CANONICAL`；被归给的 `docs/plugins/algorithms_phase1/06_photometry.md` §4.1 与「`docs/science/PHOTOMETRY.md` §16.4 的同一行」在当前树**均不存在**（该节只有 `σ_flat,hf` 字样、无 0.0007）。该值**单独决定真实帧判红方向**（`sigma_ceiling = 0.020561` 由它定，翻转临界 0.013057 = 其 18.7 倍）⇒ 按 AGENTS §4，它在本单元内只能作**仓内约定常数**引用，**不得称权威常数**；其向逐星预算的折算链亦未独立核证（第 5 条）。
+18. **σ_flat = 0.0007 mag 的一手出处未取得**：仓内唯一活着处是 `code/scia_calib.py:31` 的字面量 `SIGMA_FLAT_HF_CANONICAL`；被归给的 `docs/detail/registry/astrocs.phase1.photometry.md`「数值落地口径」（内的「测光一致性判据（单帧、尺度无关、双边界）」 与「`docs/science/PHOTOMETRY.md` §16.4 的同一行」在当前树**均不存在**（该节只有 `σ_flat,hf` 字样、无 0.0007）。该值**单独决定真实帧判红方向**（`sigma_ceiling = 0.020561` 由它定，翻转临界 0.013057 = 其 18.7 倍）⇒ 按 AGENTS §4，它在本单元内只能作**仓内约定常数**引用，**不得称权威常数**；其向逐星预算的折算链亦未独立核证（第 5 条）。
 19. **双边界判据在低样本域与尺度估计上双重偏松**：`n ≤ 12.236` 时 `rho_lo ≤ 0` ⇒ 作用域降级为 `upper_only`（下界**不存在**，只报 `LOWER_BOUND_UNDEFINED`）；同时 `sigma_obs` 由 MAD 型尺度估计量给出，该估计在 n=3 处的**期望值只有 0.67σ**（缺损因子 1.49）⇒ 被测统计量本身也系统性偏低。降级条件**只按 n 判**。
 20. **双边界门对未建模乘性残差「可见但成因失明」，且下包络在自称有效的样本域内可被推翻**：`sigma_obs_mag` 在 `m(x,y)` **之前**算（`code/scia_calib.py` 中 `sigma_obs_mag = 2.5·sigma_residual` 的赋值位于 `if m_degree > 0` 分支之前），`m(x,y)` 只改诊断字段 `delta_after_m`。实测（`code/redteam/rt_gate_attribution.py`，n = 48 ≫ 12.236，`sigma_floor = 0.01731`、`sigma_ceiling = 0.03097`）：**第 B 组全部 16 个算例的 `m_degree = 0` 与 `m_degree = 2` 读数逐位相同**；位置依赖残差下 `m(x,y)` 把同一批星残差散度由 `sigma_obs = 0.06892` 压到 `delta_after_m = 0.00819`（吸收 99%），而 `sigma_obs` 一动不动 ⇒ 门**无法**区分「平场残余 / PSF / 颜色 / 探测器非线性」中的任何一项；且**仅 2% 的位置依赖乘性残差**即把判定由 `BELOW_FLOOR` 翻成 `PASS`（`sigma_obs` 0.00220 → 0.02884），3% 翻成 `ABOVE_CEILING` ⇒ `LOWER_BOUND_UNDEFINED` 的降级条件对「样本量够但残差场被单一时变结构支配」不充分。**判读后果**：真实帧判红只能归到「未消系统项超预算」这一层，具体归因超出该门能给出的证据。
 
@@ -590,7 +590,7 @@ python3 实验/photometric-magnitude/code/step9_collect.py            # → resu
 | R10 | 中 | `run_all.sh quick` 在干净状态崩溃 | **已修**：step9 容忍缺失结果并标 `NOT_RUN` | `step9_collect.py` |
 | R11 | 中 | "帧间残差分布一致"从未被检验（死代码） | **已修**：补做 KS 检验 `D=0.1227, p=0.787` | §4.2 |
 | R13 | 中 | N2 的注入是"算术相加的确定性图样"（§12.2 禁止） | **已修**：改为 `resimulate()` 走 Poisson 前向；算术版本降为对照记录 | `step7_negatives.py` |
-| R14 | 中 | 判据出处写成 `06_photometry.md §3.1`（不存在） | **已修**：改为 **§4.1**，并注明 `run/` 引用追溯性弱 | §2.3、文首 |
+| R14 | 中 | 判据出处写成 `docs/detail/registry/astrocs.phase1.photometry.md`（原 §3.1 → ）`（不存在） | **已修**：改为 **§4.1**，并注明 `run/` 引用追溯性弱 | §2.3、文首 |
 | R15 | 中 | step0 只打印 SHA256 不校验 | **已修**：脚本内钉死 SHA256，不匹配直接失败 | `step0_fetch_refs.sh` |
 | R16 | 中 | 引导匹配率的定位输入就是注入真值（循环） | **已登记**为诚实边界（§6.9），并指出非循环检验来自真实帧 | §4.3、§6.9 |
 | R17 | 中 | σ_psfsys 孔径口径由 r=10 改为 r=4 | **已登记**为作者约定（§6.10），保留三方对照 | §6.10 |

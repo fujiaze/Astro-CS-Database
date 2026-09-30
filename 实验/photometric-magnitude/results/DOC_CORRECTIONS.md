@@ -154,7 +154,7 @@
 - **订正**（变更 claim `PHOT-SIGMAFLAT-INDEP-001`）：
   ① 仿真帧取**真值**逐像素平场散度经 `N_eff` 折算——`σ_flat = (2.5/ln10)·s_flat/√N_eff`，
      `N_eff = 1/ΣP_i²`（`code/scia_common.py → sigma_flat_independent`），只依赖仪器/仿真真值与 PSF 形状；
-  ② 真实帧取**仓内约定常数** `σ_flat,hf = 0.0007 mag`（活出处 `code/scia_calib.py:31` 的字面量 `SIGMA_FLAT_HF_CANONICAL`；**一手出处未取得**，被归给的 `docs/plugins/algorithms_phase1/06_photometry.md` §4.1 与 `docs/science/PHOTOMETRY.md` §16.4 对应行在当前树均不存在）；
+  ② 真实帧取**仓内约定常数** `σ_flat,hf = 0.0007 mag`（活出处 `code/scia_calib.py:31` 的字面量 `SIGMA_FLAT_HF_CANONICAL`；**一手出处未取得**，被归给的 `docs/detail/registry/astrocs.phase1.photometry.md`「数值落地口径」（内的「测光一致性判据（单帧、尺度无关、双边界）」 与 `docs/science/PHOTOMETRY.md` §16.4 对应行在当前树均不存在）；
   ③ `delta_after_m` 降级为**诊断字段** `delta_after_m_diagnostic` / `delta_after_m_role = diagnostic_only`（JSON 中显式标注），**不得**再进 `σ_ceiling`。
 - **后果（如实）**：真实 M42 帧判定由 **PASS 翻为 `ABOVE_CEILING`**：
   `σ_obs = 0.026520 mag` vs `σ_ceiling = 0.020561 mag`（n=157，inlier 151；`σ_floor = 0.006008`）；
@@ -174,7 +174,7 @@
 
 - **撤回原因**：轮次 1 独立审稿指出这是**稻草人**——被订正的"原文口径
   `Var ≈ σ_pix²·N_eff + F·w/g`（`w = ΣP³/ΣP²`）"**不存在于任何文档**：
-  `docs/plugins/algorithms_phase1/06_photometry.md` 只有 §1–§8（无 §2.1/§3.1），
+  `docs/detail/registry/astrocs.phase1.photometry.md` 只有 §1–§8（无 §2.1/§3.1），
   `run/RELEASE-02/parallel/06.md` §2.2 给的是 Horne 形式，全仓 grep `P**3` 无命中。
 - **核实**：作者已亲自复核，确认审稿意见成立。该条订正**撤回**；实测数字（1.13–2.15×）
   改记为 C8 的"自由背景简并代价"，不作为文档缺陷。

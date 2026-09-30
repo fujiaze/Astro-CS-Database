@@ -11,7 +11,7 @@
 **现象**：σ_F 被系统性高估（SNR 被低估），只在读噪相对天光散粒不可忽略时出现，且随天光升高而消失。
 
 **证据链**
-- 设计意图：`lib/algorithms/noise_snr/cpp/include/.../snr_science.h` 与 `docs/plugins/algorithms_phase1/07_noise_snr.md` 规定 `σ_i² = σ_sky,散粒² + (RN/g)² + F·P_i/g`（读噪只出现一次）。
+- 设计意图：`lib/algorithms/noise_snr/cpp/include/.../snr_science.h` 与 `docs/detail/registry/astrocs.phase1.noise-snr.md` 规定 `σ_i² = σ_sky,散粒² + (RN/g)² + F·P_i/g`（读噪只出现一次）。
 - 调用点：`lib/infrastructure/scheduler/src/module_adapters.cpp:4258` `cfg.sigma_sky_adu = src_frame->value("noise_sigma", 0.0)` —— `noise_sigma` 由 `noise_model` 的经验空天稳健尺度给出（`noise_model.cpp` §5，**含读出噪声的总 rms**）。
 - 同时：`module_adapters.cpp:3944-3945` 把 `snr.gain_e_per_adu` / `snr.read_noise_e` 配置进 `cfg`，`snr_science.cpp` 的 gain>0 分支据此再加一次 `(RN/g)²`。
 - 实测（`code/b2_noise_terms.py`，N_MC=1000，闭式预言 vs 蒙特卡洛臂）：
@@ -22,7 +22,7 @@
 - 对照（正确口径，均 ≤3σ）：PSF 行路径 `snr_estimator.cpp:83`（`sigma_sky_adu = residual_scale/0.7316727929211932`，gain 未知 ⇒ 不加 RN 项）与"天光散粒 σ + RN 项"臂。
 - 帧级 SNR 实证（`results/b1_sky_scan.json`）：B=0 时"经验+RN"臂 SNR=38.47 vs 定义式/真值 43.32/43.21（−11.2%）。
 
-**建议处理（FIX 域，本单元不改生产码）**：在 `07_noise_snr.md` 明确 `sigma_sky_adu` 的口径（**天光+暗流散粒，不含读噪**），并在调用点做**显式契约检查**：当 `gain_e_per_adu>0 && read_noise_e>0` 而 `sigma_sky_adu` 来源为经验总 rms 时，要么扣除 RN 项，要么 fail-closed 拒绝（禁止静默双计）。补一条负例锁定：RN 主导点 σ_F 偏差 ≤5%。
+**建议处理（FIX 域，本单元不改生产码）**：在 `docs/detail/registry/astrocs.phase1.noise-snr.md` 明确 `sigma_sky_adu` 的口径（**天光+暗流散粒，不含读噪**），并在调用点做**显式契约检查**：当 `gain_e_per_adu>0 && read_noise_e>0` 而 `sigma_sky_adu` 来源为经验总 rms 时，要么扣除 RN 项，要么 fail-closed 拒绝（禁止静默双计）。补一条负例锁定：RN 主导点 σ_F 偏差 ≤5%。
 
 **闭环状态（RELEASE-05 / SCI-501 已闭环）**：生产码已按 DOC-502 冻结口径修复 ——
 `SnrSourceParams.sigma_sky_source` 显式声明语义（`SHOT_ONLY` / `EMPIRICAL_TOTAL_RMS`），

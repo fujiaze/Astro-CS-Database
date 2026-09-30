@@ -192,5 +192,5 @@
 ## 新增待裁（W2 量纲轴，本轴不自行择一）
 - **A-45｜层级与父元方差是否要求含协方差的聚合式**：代码用 `Σv·w²/(Σarea)²`（`aio_hips_writer.cpp:769-783`/`:1118-1124`，`add_var` 显式 `(void)area`），而 `UNCERTAINTY_AND_COVARIANCE.md` 自有 Cov 定义并要求 aperture 误差显式加交叉项 ⇒ 一滴水均分 2/4 子叶时父元方差低估 2×/4×，且自动 nside 的 1–2× 过采样使跨子叶成常态。**请裁：聚合式是否须含交叉项**（`W2-N-07`）。
 - **A-46｜variance 与 ivar 是否随 photscal 作 α² 变换、跨帧 ivar 求和的同单位前提如何成立**：现只乘像素、唯一 α² 实现 `snr_noise_scale_law` 生产零调用 ⇒ 高标定帧权重少计 55.6%/75.0%/88.9%（`W2-N-05`）。
-- **A-47｜已裁「通量=ADU」口径向实现与登记面的传导**：`registry/astrocs.phase1.photometry.md:43` 已订正为 ADU（含 P5-SNR 授权注释），但 `module_adapters.cpp:786`/`:804` 仍标 ELECTRON、`noise-snr.md:33` 未改，且单位门因**两端同标恒不红**（`W2-N-03`）。
+- **A-47｜已裁「通量=ADU」口径向实现与登记面的传导**：`registry/astrocs.phase1.photometry.md:43` 已订正为 ADU（含 P5-SNR 授权注释），但 `module_adapters.cpp:786`/`:804` 仍标 ELECTRON、`docs/detail/registry/astrocs.phase1.noise-snr.md`「输入输出端口、DATA、单位、坐标、invalid」（单位列） 未改，且单位门因**两端同标恒不红**（`W2-N-03`）。
 - **A-48｜zero_point_mag 的每秒标度是否入合同**：EXPTIME 在全链**从未被除出**（ADU/s、/exptime、flux_rate 生产码与 science 文档零命中）⇒ 若按 ADU/s 供零点，t=30/300/1800 s 时 m_5 偏 −3.693/−6.193/−8.138 mag，**30 s 与 300 s 的混合深度互不可比**；属合同真空需裁决而非判代码错（W2 的 R-4）。
