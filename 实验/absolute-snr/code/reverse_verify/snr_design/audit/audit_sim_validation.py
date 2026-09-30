@@ -36,12 +36,17 @@ Run:
       --out ../../../../run/reverse_verify/snr_design/audit/audit_sim_validation.json
 """
 import argparse, json, os, sys, time
+from pathlib import Path
 import numpy as np
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import physnoise as pn
 
-NORM = "../../../../../../run/RELEASE-02/L4-rebuild/norm/t2_m2_red"
+# 仓库根从本文件位置推导（…/code/reverse_verify/snr_design/audit/ → 上溯 6 级），
+# 不依赖调用者的 CWD；真实标定帧树可用 P2_NORM_DIR 覆盖。
+_ROOT = Path(__file__).resolve().parents[6]
+_NORM = os.environ.get("P2_NORM_DIR") or str(_ROOT / "run/RELEASE-02/L4-rebuild/norm")
+NORM = os.path.join(_NORM, "t2_m2_red")
 CUT = (1024, 2048, 1024, 2048)
 QUANT_VAR_ADU2 = 1.0 / 12.0          # ADC step = 1 ADU  =>  Delta^2/12
 

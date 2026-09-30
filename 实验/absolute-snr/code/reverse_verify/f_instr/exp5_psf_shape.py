@@ -10,12 +10,17 @@
 判据: |bias| <= 0.02 mag 视为可接受 (尺度无关的星等比).
 """
 import os, sys, time
+from pathlib import Path
 import numpy as np
 from scipy.optimize import least_squares
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from f_instr_lib import (NoiseModel, render_psf, robust_sky_stats, local_cutout,
                          robust_loc_scale, save_json, moffat_profile)
+
+# 仓库根从本文件位置推导（实验/absolute-snr/code/reverse_verify/f_instr/ → 上溯 5 级）
+ROOT = str(Path(__file__).resolve().parents[5])
+OUT = os.path.join(ROOT, "run/reverse_verify/f_instr")
 
 
 def fit_free(frame, x0, y0, kind, beta, fwhm0, free_fwhm=True):
@@ -49,7 +54,6 @@ def fit_free(frame, x0, y0, kind, beta, fwhm0, free_fwhm=True):
 
 def main():
     t0 = time.time()
-    OUT = "/workspace/Astro CS Database/run/reverse_verify/f_instr"
     d = np.load(os.path.join(OUT, "scene.npz"))
     sky = d["sky_good"]
     nm = NoiseModel()

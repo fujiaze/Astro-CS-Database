@@ -12,7 +12,7 @@ ENGINEERING_SPEC.md §10/§11「降级必须显式」）：
     eng/tools/doccheck/check_version_namespaces.py 原样塞进检查明细，把「依赖不可用」
     误报成「版本链不符」—— 报错语义错位。
   * 现行为 = **显式降级 + 具名留痕 + fail-closed**，先例：
-    - eng/ci/check_version.py::anchor_status（非 git 工作树 ⇒ 跳过跟踪复核并留痕）；
+    - 非 git 工作树时跳过跟踪复核并留痕；
     - eng/tools/traceability/check_traceability_matrix.py（GIT_UNAVAILABLE ⇒ rc=2）。
     具体：
       - stderr 打印 GIT_UNAVAILABLE: <具名原因>；

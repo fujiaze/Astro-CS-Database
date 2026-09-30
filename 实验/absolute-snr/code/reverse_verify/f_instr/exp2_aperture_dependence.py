@@ -8,6 +8,7 @@
   C. 孔径依赖度量: 峰峰散度 (max-min of dmag over r) 与对数斜率 dlog10F/dlog10r.
 """
 import os, sys, time
+from pathlib import Path
 import numpy as np
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -15,7 +16,7 @@ from f_instr_lib import (NoiseModel, render_psf, aperture_curve, encircled_energ
                          est_box5, est_iso, est_kron, est_psf_nlsq, est_psf_optimal,
                          dmag, robust_loc_scale, save_json, moffat_profile)
 
-ROOT = "/workspace/Astro CS Database"
+ROOT = str(Path(__file__).resolve().parents[5])
 OUT = os.path.join(ROOT, "run/reverse_verify/f_instr")
 BETA = 3.5
 RADII = [2.0, 2.5, 3.0, 3.5, 4.0, 5.0, 6.0, 7.0, 8.0, 10.0, 12.0, 14.0, 16.0]

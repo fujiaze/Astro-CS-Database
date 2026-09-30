@@ -271,8 +271,10 @@ def test_T12_production_crosscheck(repo_root: str, tmpdir: str) -> dict:
     1.914005x）。本函数把它作为**负例**保留，并要求该负例判红（能红能绿）。
     """
     src = os.path.join(repo_root, "lib/algorithms/noise_snr/cpp/src/snr_science.cpp")
-    probe_cpp = os.path.join(os.path.dirname(os.path.abspath(__file__)), "cpp", "p1snr_probe.cpp")
-    os.makedirs(os.path.join(os.path.dirname(probe_cpp)), exist_ok=True)
+    # 探针源码是本脚本的生成产物，写进临时目录而不是仓库源码树：
+    # 否则每次复跑都会静默覆写 cpp/p1snr_probe.cpp 这个受版本管理的文件。
+    os.makedirs(tmpdir, exist_ok=True)
+    probe_cpp = os.path.join(tmpdir, "p1snr_probe.cpp")
     with open(probe_cpp, "w") as f:
         f.write(CPP_PROBE)
     exe = os.path.join(tmpdir, "p1snr_probe")

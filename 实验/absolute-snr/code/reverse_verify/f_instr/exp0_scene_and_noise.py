@@ -8,6 +8,7 @@
 产出: run/reverse_verify/f_instr/scene.npz + exp0_noise_validation.json
 """
 import glob, os, sys, json
+from pathlib import Path
 import numpy as np
 from astropy.io import fits
 
@@ -15,7 +16,12 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from f_instr_lib import (NoiseModel, smooth_sky_map, robust_sky_stats, render_psf,
                          moffat_fwhm_to_alpha, save_json, GAIN_DEFAULT, RN_DEFAULT)
 
-ROOT = "/workspace/Astro CS Database"
+# 仓库根从本文件位置推导（实验/absolute-snr/code/reverse_verify/f_instr/ → 上溯 5 级），
+# 不写死任何机器绝对路径，镜像副本内同样成立。
+ROOT = str(Path(__file__).resolve().parents[5])
+# 真实标定帧产品树：默认 L4 rebuild 落点；可用环境变量 P2_NORM_DIR 指向等价的
+# normalize 产品树（须含 <tile>/calibrated_*.fts），便于换数据源复跑。
+NORM = os.environ.get("P2_NORM_DIR") or os.path.join(ROOT, "run/RELEASE-02/L4-rebuild/norm")
 OUT = os.path.join(ROOT, "run/reverse_verify/f_instr")
 PATCH = 512
 
@@ -73,10 +79,18 @@ def empirical_psf(frame, half=14, nthr=2000.0, max_stars=400):
 
 def main():
     os.makedirs(OUT, exist_ok=True)
-    paths = sorted(glob.glob(os.path.join(ROOT, "run/RELEASE-02/L4-rebuild/norm/*/calibrated_*.fts")))
+    paths = sorted(glob.glob(os.path.join(NORM, "*", "calibrated_*.fts")))
+    if not paths:
+        sys.stderr.write(
+            "FATAL: 未找到真实标定帧。期望布局 <norm>/<tile>/calibrated_*.fts。\n"
+            f"       当前 NORM = {NORM}\n"
+            "       需先重建 L4 normalize 产品树，或用环境变量 P2_NORM_DIR 指向等价的\n"
+            "       normalize 产品树（含 p1_sources.json / p1_snr.json）。\n")
+        return 2
     rep = {"base_data": {
         "hubble_available": False,
         "hubble_note": "全仓检索未发现 HST/哈勃帧; 按负责人令替代条款用 L4 真实标定帧作底",
+        "norm_dir": os.path.relpath(NORM, ROOT),
         "n_real_frames": len(paths),
         "frames": [os.path.relpath(p, ROOT) for p in paths],
     }, "noise_model": {}, "patches": []}
@@ -87,6 +101,10 @@ def main():
         with fits.open(p, memmap=True) as h:
             meta.append((p, float(h[0].header.get("FWHM", -1)), float(h[0].header.get("ZMAG", -99))))
     meta_ok = [m for m in meta if m[1] > 0]
+    if len(meta_ok) < 3:
+        sys.stderr.write(
+            f"FATAL: 带 FWHM 头的标定帧不足 3 帧（实得 {len(meta_ok)}），无法取视宁度跨度三档。\n")
+        return 2
     meta_ok.sort(key=lambda t: t[1])
     sel = [meta_ok[0], meta_ok[len(meta_ok) // 2], meta_ok[-1]]
     rep["selected_frames"] = [{"path": os.path.relpath(m[0], ROOT), "header_FWHM_px": m[1],
@@ -166,4 +184,4 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    sys.exit(main())

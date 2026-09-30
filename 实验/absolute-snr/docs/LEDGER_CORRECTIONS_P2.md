@@ -20,4 +20,4 @@
 | 14 | 路线2 R5 | Fruchter & Hook DOI | 旧 DOI 10.1086/341773 实测为他文；正确 10.1086/338393，仓内引用一律订正 | refs.md A#8 |
 | 15 | 路线3 L2 | 稳健尺度归属 | PHASE2_SAMPLER.md:219 归属注应指 Croux & Rousseeuw 1992 | refs.md A#3 |
 
-**历史正本处置**：整理前 README（30.6 KB 实验报告）与 REPORT_paper.md（35 KB 精读报告）原样存档于 docs/LEGACY_README_SCI-B_v1.md 与 docs/LEGACY_REPORT_paper_v1.md；其中仍成立的部分（三口径适用域、双计读噪发现→修复闭环、逆方差集成对拍、恒真门审查、fail-closed 范围声明）已吸收进现行文件；失效/冲突部分以上表为准。
+**历史正本处置**：整理前的单元 README（实验报告）与精读报告不再随单元保存。其中仍成立的部分（三口径适用域、双计读噪发现→修复闭环、逆方差集成对拍、恒真门审查、fail-closed 范围声明）已吸收进 `README.md`、`REPORT_paper.md` 与 `REPORT_experiment.md`；失效/冲突部分以上表为准。

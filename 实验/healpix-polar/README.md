@@ -16,10 +16,12 @@ ACSD 科学链第 3 点（最高设计 §2 ALG-DRZ）：mosaic 阶段把源帧 d
 | docs/DERIVATIONS-P3.md | 支撑推导（A_leaf、亏缺律、外接半径双口径、矢高深度、量化界、k_corr 两因子等 10 条） |
 | docs/EXP-07-POLAR.md（+摘要） | **历史正本**：极区破门根因与候选算法对照（保留；与台账无冲突数值，其 §4.7/§4.8 自我更正在原文内） |
 | code/ | 历史探针（C++17，p0–p10，固定几何无随机）＋ code/audit/（三路审计与补实验脚本收编） |
-| code/audit/run_all.sh | 三路＋补实验一键复现（各脚本 seed 写死：route1=20050709、route2=20260927、route3=20260926、kcorr SEED_BASE=20260816） |
+| code/audit/sim/exp_sim01_m16_forward_conservation.py | M16 物理前向仿真腿（最高设计 §12.2 第 1 类数据）：真实 M16 帧作纯信号模板经共享物理链生成仿真采样帧，取其无噪声期望率面做守恒算子的输入；13 门判据含三条归零负例（详见 REPORT_experiment.md §4.6） |
+| code/audit/run_all.sh | 三路＋补实验＋M16 仿真腿一键复现（各脚本 seed 写死：route1=20050709、route2=20260927、route3=20260926、kcorr SEED_BASE=20260816、仿真腿 seed 在共享场景配方内）；首行先跑公共前置步 `实验/shared/synthetic/run_selftests.sh` |
 | run_all.sh（根） | 历史探针一键复现（quick/full，逐位一致） |
 | results/ | 历史探针日志/CSV 存档＋ SNAPSHOT.sha256 |
 | results/audit/{route1,route2,route3,kcorr}/ | 三路＋补实验关键结果 JSON 存档（索引见 results/audit/KEY_RESULTS.md，注明来源路线与台账编号） |
+| results/audit/sim/ | M16 物理前向仿真腿结果 JSON（守恒、drop 精确立体角闭合、权重分割、逐叶面亮度、三条归零负例） |
 
 ## 一句话结论（按分歧台账订正后）
 
@@ -39,14 +41,34 @@ RC2a acos(z) 角点构造（RC1 的前置暴露条件）、RC3 TAN 逆投影极�
 另有 u+v=1 接缝逐叶求和相对 drop 面积的偏差（【订正 P3-06】口径，原写"绝对面积地板 ≈1.4e-16 sr"）：**HST 0.04″/px 实测 1.383e-03**（另一口径生产直调 3.317e-03），绝对亏空 **2.9e-17…1.05e-16 sr**（端点幂律 **−0.83，不是 −1**），按实测外推像元尺度 ≲2.4″/px 破门，判据须用逐 drop 绝对项。<!-- 订正: P3-06 接缝口径改为实测区间+幂律，去掉"绝对地板 ≈1.4e-16 sr" -->
 最小改动面修复（REC-1：稳定角点式＋自适应细分＋覆盖自检）预算 1e-7·A_drop 下极点 0/1089、最坏 2.79e-8，非极区零代价。
 
+## M16 物理前向仿真腿
+
+本单元的守恒算子第一次在**物理前向生成的非退化信号面**上被验证：真实 HST M16 帧作纯信号模板，
+经共享物理链（`实验/shared/synthetic/m16_sampling.py → noise_model.expose`，源/天光/暗流电子域
+Poisson、读出电子域 Gaussian、增益+饱和+量化、平场、天空梯度）生成仿真采样帧，取其**无噪声期望率面**
+作为算子输入。读数与判据见 REPORT_experiment.md §4.6，脚本
+`code/audit/sim/exp_sim01_m16_forward_conservation.py`，结果 `results/audit/sim/`。
+
+**新测得并三方印证的几何项**：(π/3)·A_chart/A_exact − 1 = ½ρ²，ρ 为 gnomonic 半径
+（实测系数 0.49978，ρ 由 0 扫到 10000″、4 个方位、4 个足迹尺度），且**与足迹大小无关**
+（不随分辨率收缩，系数散差 1.5e-07）——落在既有 gnomonic drop 级预算带 [0.5, 1.5]·ρ_max²
+的**下端点**。该偏差对所有 drop 同号，在 Σ_p w_jp = 1 上精确抵消，只体现在逐叶面亮度上。
+
 ## 一键复现
 
-- 三路审计＋补实验：bash code/audit/run_all.sh（Python，seed 写死，日志到 run/healpix-polar-audit-logs/，各实验 JSON 落 results/audit/<路线>/，与存档逐位对照）
+- **公共前置步（两个单元共用）**：bash 实验/shared/synthetic/run_selftests.sh
+  四个组件独立自校验（m16_mask / m16_scene / m16_sampling / noise_selftest），实测全绿约 2 分 32 秒、
+  rc=0；任一组件判红 rc=1、组件缺失 rc=2。**不得只调 `noise_selftest.py`**——它的 12 个用例中只有 A2
+  调用生产实现且生产臂不进入判词，对生产实现零判别力；生产面的门禁责任在
+  `m16_scene --selftest` 与 `m16_sampling --selftest`。本单元的 M16 仿真腿依赖该自检为绿。
+- 三路审计＋补实验＋M16 仿真腿：bash code/audit/run_all.sh（Python，seed 写死，日志到 run/healpix-polar-audit-logs/，各实验 JSON 落 results/audit/<路线>/，与存档逐位对照）
 - 历史探针：bash run_all.sh [quick|full]（约 15/60 分钟，日志落 run/EXP-07-POLAR/logs/）
 
 ## 环境
 
 - Python ≥3.10 + numpy（audit 脚本，无仓库内 import、无网络）；Linux amd64，g++ -O2 -std=c++17（历史探针）。
+- M16 仿真腿另需 astropy + scipy 与 `testdata/HST_M16/`（唯一仓外只读输入），并且只读 import
+  `实验/shared/synthetic/` 的生成器（本单元不写、不改共享层）。
 - 历史探针不链接产品二进制（只读编译生产两个源文件做交叉核对），峰值 RSS < 130 MB。
 
 ## 与生产代码的关系

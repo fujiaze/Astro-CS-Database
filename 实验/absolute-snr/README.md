@@ -17,8 +17,9 @@
 | `results/AUDIT_KEY_RESULTS.json` | 关键结果 JSON 汇总（逐条注明来源路线与台账裁决号） |
 | `code/` | 单元主实验 b1–b7（seed 20260921，`run_all.sh`）+ exp01–06 + reverse_verify |
 | `code/audit/` | 独立审计三路重做 + 补实验脚本与结果快照（seed 20260926 / 20260601，`run_all.sh`，见其 README） |
-| `docs/` | 支撑推导（DERIVATIONS_P2.md）、台账订正记录（LEDGER_CORRECTIONS_P2.md）、历史正本存档（LEGACY_*） |
-| `results/` | 单元主实验 JSON（b*.json、exp0*.json）+ `DOC_CORRECTIONS.md` + `figs/` |
+| `docs/` | 支撑推导、分册实验报告、定案与调研（见 `docs/README.md`） |
+| `results/` | 单元主实验 JSON（b*.json、exp0*.json）+ `figs/` |
+| `data/` | 数据指针（只读声明，本单元不新增、不复制数据） |
 
 ## 固定 seed
 
@@ -28,48 +29,61 @@
 
 ## 复现
 
+所有命令都从**仓库根**执行。脚本内部从自身位置推导仓库根（`Path(__file__).resolve().parents[N]`），
+不写死任何机器绝对路径，也不依赖调用者的工作目录。
+
+### 公共前置步：合成数据物理链自检
+
 ```bash
-bash 实验/absolute-snr/code/run_all.sh                                        # 主实验 b1–b7 + ctest（需构建/联网，25–35 min）
-bash 实验/absolute-snr/code/audit/run_all.sh                                  # 审计三路 + 补实验（36 脚本，全量实测约 55 min）
-bash 实验/absolute-snr/code/reverse_verify/f_instr/run_all.sh                 # f_instr exp0–exp5（需真实 L4 标定帧，约 2.5 min）
-bash 实验/absolute-snr/code/reverse_verify/frame_snr/run_all.sh               # 解析/物理红线 + 外部对拍（无构建，约 82 s）
-bash 实验/absolute-snr/code/reverse_verify/snr_design/run_all.sh              # snr_design exp1–exp5（无构建，约 50 s）
-( cd 实验/absolute-snr/code/reverse_verify/snr_design/audit && bash run_all_audit.sh )   # 4 项审计复算（无构建，约 10 min）
+bash 实验/shared/synthetic/run_selftests.sh
 ```
 
-> **前置条件（第 3–6 条命令）**：需要真实 L4 标定帧产品树
-> `run/RELEASE-02/L4-rebuild/norm/<tile>/{calibrated_*.fts, p1_sources.json, p1_snr.json}`。
-> 该产品树已随轮次 GC 回收（`run/<轮次>/out/` 回收策略），本机当前不存在；重建需先重跑 RELEASE-02
-> 的 L4 normalize（原始素材见 `testdata/M42_T2T3_mosaic_Flying_dutchman/`，本轮未重建）。
-> **实跑状态**列区分「本次订正实跑」与「未实跑」，未实跑项写明阻塞条件；原始日志见
-> `run/FINAL-07/审核包/科研审查/P2_订正/evidence/logs/`，逐条证据与判定见
-> `run/FINAL-07/审核包/科研审查/P2_订正/P2-m7_m9_订正说明.md`。
+先证明合成器链本身可信（能红能绿），再让本单元跑真实验；任一组件判红时退出码为 1，
+实验读数不得作为证据。**不得只调 `noise_selftest.py`**——它只验独立重实现，对生产实现零判别力；
+生产面的门禁责任在 `m16_scene --selftest` 与 `m16_sampling --selftest`。
 
-| # | 命令 | 产物落点 | 耗时 / 构建 / 网络 | 本次实跑状态 |
-|---|---|---|---|---|
-| 1 | `bash 实验/absolute-snr/code/run_all.sh` | 单元 `results/`（b*.json、`figs/`、`tables/`）+ `run/SCI-402/`（逐步日志） | 约 25–35 min；**需先构建**（`cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release && ninja -C build`；脚本内再 g++ 直编生产驱动、跑 `ctest -R p1snr_science\|p1noise_numpy_oracle`，写 `build/`）；第 1 步 `fetch_evidence.py` **需联网** | **未实跑**（注①） |
-| 2 | `bash 实验/absolute-snr/code/audit/run_all.sh` | 单元 `code/audit/results/<route>/*.json`（就地覆盖）；`EXP11_SKIP=1` 可跳 route3/exp11 | 全量 **实测约 55 min**（3281 s，`EXP11_SKIP=1` 跳过 route3/exp11 时 35 个路线脚本全绿 exit 0）；含 `route3/exp11` 另需约 8 min（需 g++ 与 testdata M42 帧）；单脚本 `route2/exp02` 单独实测 442 s；无构建、无网络 | **实跑**：先按 1800 s 上限跑 → 超时（16/36，exit 124，peak 2.09 GB）；改为 3600 s 上限后 **35/35 全绿 exit 0，3281 s**（peak 2.07 GB；注②） |
-| 3 | `bash 实验/absolute-snr/code/reverse_verify/f_instr/run_all.sh` | `run/reverse_verify/f_instr/{logs/*.log, scene.npz, exp*.json}` | 约 2.5 min；无构建；需 numpy/scipy/astropy | **未跑通**（exp0 抛 IndexError；注③） |
-| 4 | `bash 实验/absolute-snr/code/reverse_verify/frame_snr/run_all.sh` | `run/reverse_verify/frame_snr/{redlines,redlines_physical,external_crosscheck}.json` + `实验/absolute-snr/run/reverse_verify/frame_snr/{branch_discriminator,p1_snr_inventory}.json` | 约 82 s；无构建（T12/P12 内用 `g++` 直编只读生产 TU） | **实跑**（exit 1：T8–T12/P8–P12/P14 绿；**T12/P12 已于 P2 订正转绿**；余 P13 与 branch_discriminator 红；注④⑤⑥） |
-| 5 | `bash 实验/absolute-snr/code/reverse_verify/snr_design/run_all.sh` | `run/reverse_verify/snr_design/exp*.{json,log}`，并**回拷覆盖** `code/reverse_verify/snr_design/exp*.json` | 约 50 s；无构建；exp2/exp3 需真实帧 | **实跑**（exp1/2/4/5 绿；exp3 红：缺 `t2_m2_red/p1_sources.json`） |
-| 6 | `bash 实验/absolute-snr/code/reverse_verify/snr_design/audit/run_all_audit.sh` | `run/reverse_verify/snr_design/audit/*.{json,log}` | 约 10 min（实测 588 s）；无构建；**CWD 必须 = 该 audit 目录**（脚本内数据路径为相对路径） | **实跑**（3/4 绿；`audit_sim_validation` 红，注⑥） |
+### 本单元入口
 
-- 注① `code/run_all.sh` 未实跑，三个独立阻塞条件：(a) 需 `cmake`/`ninja` 构建产物与 `ctest`（`ctest` 写仓库根 `build/`）；(b) 第 1 步 `fetch_evidence.py` 走 `urllib` 取 6 处外部一手佐证（pixinsight / crossref / arxiv / gitlab / github），无网络必然失败；(c) 产物写 `run/SCI-402/`，整轮 25–35 min。审查报告 §4.1 同样登记为「未跑」。
-- 注② 第 2 条以 `python3 eng/tools/monitoring/mem_guard.py --max-rss-gb 8 --timeout 1800 -- bash run_all.sh` 实跑：1800 s 被杀（exit 124），完成 16/36 个脚本，被杀时停在 `route2/exp02_robust_scale_mad.py`（单独计时 442 s）。故脚本注释与 `code/audit/README.md` 的「单脚本 CPU 秒级」不适用于全量：`route1/*` 多为分钟级，前 16 个脚本就用满 1800 s，全量实测 3281 s。**两次实跑（超时版与全绿版）跑后与跑前快照比较：35 个 `results/<route>/*.json` 逐字节 0 差异**（幂等）。`route3/exp11`（`exp11_frozen_operator_transfer.py`）本轮以 `EXP11_SKIP=1` 排除——该脚本为同期另一 worker 新增、仍在开发，本代理未实跑它。**该目录同期正被另一 worker 并发编辑**（工作树有 `M code/audit/run_all.sh`、`?? code/audit/route3/exp11_frozen_operator_transfer.py` 等），36 脚本数与耗时随其改动漂移。
-- 注③ 第 3 条：`exp0_scene_and_noise.py:91` 抛 `IndexError: list index out of range` —— 它从 `run/RELEASE-02/L4-rebuild/norm/*/calibrated_*.fts` 选帧，该树已回收（本机仅存 1 帧 smoke 产物，且它在 `run/AUTONOMOUS-01/` 下、不在该 glob 路径内）。**另：该组 6 个脚本把 `ROOT` 写死为绝对路径 `/workspace/Astro CS Database`（`exp0:18`、`exp1:17`、`exp2:18`、`exp3:22`、`exp4:20`、`exp5:52`），违反机器手册 §3「在仓库内工作，不写死服务器绝对路径」，并使该 runner 无法在镜像副本内运行**（它会无视副本路径、直接读写工作仓库）。属既有缺陷，本次未修（超出 P2-m7/P2-m9 订正范围），已上报。
-- 注④ 第 4 条 runner 末尾对 `run/reverse_verify/frame_snr/` 的 3 个 JSON 做丢字段检查，缺 p1 产品即整轮 FAIL，故 exit 1。T12/P12 需在**工作仓库**（`lib/` 生产 TU 在位）条件下才真跑；镜像内跑会退化为 `SKIP: production source not found`，因此本次另用 `--repo <工作仓库> --out <证据目录>` 单独补跑（不写仓库）。
-- 注⑤（**P2 订正后重写**）T12/P12 原红是**判据传参口径缺陷**（前台裁定属缺陷订正、不走变更流程），不是生产与 canon 不一致：生产 `snr_source_snr_f64` 的 `fwhm_px` 字段语义是「检测块高斯 FWHM」（`lib/algorithms/noise_snr/cpp/src/snr_science.cpp:53` `detectionSigmaFromFwhm = fwhm/2.3548200`，`:110-112` 明示跨块禁止混用），而 `run_redlines.py`/`run_redlines_physical.py` 把 canon 的 **Moffat4 FWHM**（`FWHM = 1.230310σ`，`docs/science/PSF.md:66`）原样灌入该字段。**订正（2026-09-29，P2 域，本轮）**：判据改走生产 ABI 的同尺度入口 `sigma_px`（`fwhm_px=0`，生产 `snr_science.cpp:157`：`sigma=(fwhm_px>0)?fwhm/2.3548200:sigma_px`），传 canon 的 Moffat4 sigma；并**保留错约定为负例**（把 Moffat4 FWHM 灌进 `fwhm_px`，即旧版做法）要求判红 ⇒ 判据能红能绿。
-  实测（`run/FINAL-07/审核包/科研审查/P2_订正/evidence/t12_p12/`，命令见该目录 `P2-T12-P12_redgreen.md`）：**订正前恒红** T12 `rel_sumP2=0.7287043`、`rel_snr=0.1930–0.4750`（5 个 B 档）；**订正后正例绿** T12 `rel_snr≤5.77e-15`、`rel_sumP2=1.33e-14`，P12 `rel_snr≤1.02e-14`（判据阈值 1e-12）；**同判据负例红** `rel_snr=0.193–0.475`、`rel_sumP2=0.7287`（T12 各行 `wrong_convention_rejected=true`）。订正后 `run_redlines.py` 全绿 exit 0（T8–T12），`run_redlines_physical.py` 仅余 `P13=null`（SKIP）故 exit 1。
-  `P13` 红因无真实帧（`SKIP: no real frame found`）；`branch_discriminator.py:28`、`inventory_p1_snr.py:27` 的 `REPO` 只上溯 3 级（指到 `实验/absolute-snr` 而非仓库根），故永远扫不到 `run/` 下的 p1 产品、恒报 0 产品。三项均为既有缺陷，本次未修，已上报。
-- 注⑥ 第 6 条：`audit_sp0` / `audit_exp3_physical` / `audit_exp1245` 绿；`audit_sim_validation` 写出部分 JSON 后 `KeyError: 'G_noise_affinity_dimensionless'` —— G 段需要 ≥2 帧同夜真实帧，本机替代数据仅 1 帧。该 runner 同时是 P2-m9 改前/改后逐位对比的载体：4 个产物除 `elapsed_s` 计时字段外**值域逐位一致**（`evidence/logs/m9_after_compare.log`）。
-- 通用：第 3–6 条落 `run/reverse_verify/**`；`eng/tools/run_keep.txt` 未登记该族（`grep reverse_verify` 无命中），产物可能被 `run_gc` 回收。第 5 条会把产物**回拷覆盖**单元内既有 `code/reverse_verify/snr_design/*.json` 快照——复核时建议先备份或在副本内运行。
+| # | 命令 | 产物落点 | 耗时 / 构建 / 网络 |
+|---|---|---|---|
+| A | `bash 实验/absolute-snr/code/run_all.sh` | 单元 `results/`（b*.json、`figs/`、`tables/`）+ `run/SCI-402/`（逐步日志） | 约 25–35 min；**需先构建**（`cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release && ninja -C build`）；第 1 步 `fetch_evidence.py` **需联网** |
+| B | `bash 实验/absolute-snr/code/audit/run_all.sh` | `code/audit/results/<route>/*.json`（就地覆盖）；`EXP11_SKIP=1` 可跳 route3/exp11 | 全量约 55 min；`route3/exp11` 另需 g++ 与 testdata M42 帧；无构建、无网络 |
+| C | `bash 实验/absolute-snr/code/reverse_verify/frame_snr/run_all.sh` | `run/reverse_verify/frame_snr/*.json` | 约 82 s；无构建（T12/P12 内用 `g++` 直编只读生产 TU） |
+| D | `bash 实验/absolute-snr/code/reverse_verify/snr_design/run_all.sh` | `run/reverse_verify/snr_design/exp*.{json,log}`，并回拷覆盖 `code/reverse_verify/snr_design/exp*.json` | 约 50 s；无构建 |
+| E | `bash 实验/absolute-snr/code/reverse_verify/snr_design/audit/run_all_audit.sh` | `run/reverse_verify/snr_design/audit/*.{json,log}` | 约 10 min；无构建 |
+| F | `bash 实验/absolute-snr/code/reverse_verify/f_instr/run_all.sh` | `run/reverse_verify/f_instr/{logs/*.log, scene.npz, exp*.json}` | 约 2.5 min；无构建；需 numpy/scipy/astropy |
 
-## 与台账/历史正本的关系
+### 真实标定帧产品树
 
-- 本单元历史正本（整理前的 README 与论文精读报告）原样存档于 `docs/LEGACY_README_SCI-B_v1.md` 与 `docs/LEGACY_REPORT_paper_v1.md`，未删除；仍成立部分已吸收进现行文件。
-- 与台账冲突处按裁决改写并逐条注明 D-xx/A-P2-xx，明细见 `docs/LEDGER_CORRECTIONS_P2.md`（1.152 终裁与 5811→5816.6、“seed 无关闭式”错误标签、对角欠估闭式统一、γ 恒等门 4 ulp 规则、control_variance N=5 方向词、k_corr 改查表等）。
-- 负责人已批事项在本单元的落实：k_corr 查表由 P3 承载（本单元只引机制腿）；插值设置配置化＋运行日志输出不落盘（P4 承载）；掩膜 k=0.1 等规范选择登记为“项目约定，不注文献出处”；反方差口径＋Aitken 1935（标注级）引用进入科学文档。
+入口 D、E、F 与入口 C 的 P13 项需要真实标定帧产品树，默认落点
+
+    run/RELEASE-02/L4-rebuild/norm/<tile>/{calibrated_*.fts, p1_sources.json, p1_snr.json}
+
+可用环境变量 `P2_NORM_DIR` 指向等价的 normalize 产品树（须含 `<tile>/calibrated_*.fts`）：
+
+```bash
+P2_NORM_DIR=/path/to/norm bash 实验/absolute-snr/code/reverse_verify/snr_design/run_all.sh
+```
+
+产品树缺位时，相关项以**明确诊断**退出（f_instr 为退出码 2 并打印期望布局），
+不再以 `IndexError` 形式失败。重建该产品树需先跑 normalize（原始素材见
+`testdata/M42_T2T3_mosaic_Flying_dutchman/`）。
+
+注：入口 D 会把产物**回拷覆盖**单元内既有 `code/reverse_verify/snr_design/*.json` 快照——
+复核时建议先备份或在副本内运行。入口 B 就地覆盖 `code/audit/results/`。`run/reverse_verify/**`
+未被产物保留清单登记，可能被 `run_gc` 回收。
+
+### 已知缺口
+
+- `code/reverse_verify/snr_design/audit/audit_mosaic_shape.py` 有脚本与结果快照，但**未接入**入口 E 的
+  脚本列表；补齐需前台决定是否纳入一键入口。
+
+## 与台账的关系
+
+- 整理前的历史正本不再随单元保存；其仍成立部分已吸收进现行 `README.md`、`REPORT_paper.md` 与 `REPORT_experiment.md`，失效部分按台账订正。
+- 与台账冲突处按裁决改写并逐条注明 D-xx/A-P2-xx，明细见 `docs/LEDGER_CORRECTIONS_P2.md`（1.152 终裁与 5811→5816.6、「seed 无关闭式」错误标签、对角欠估闭式统一、γ 恒等门 4 ulp 规则、control_variance N=5 方向词、k_corr 改查表等）。
+- 负责人已批事项在本单元的落实：k_corr 查表由 P3 承载（本单元只引机制腿）；插值设置配置化＋运行日志输出不落盘（P4 承载）；掩膜 k=0.1 等规范选择登记为「项目约定，不注文献出处」；反方差口径＋Aitken 1935（标注级）引用进入科学文档。
 
 ## 诚实边界速览
 
-1.152 标定登记出处待补登；m_ref=6.0 为单位制锚点（冻结纪律）；k_corr 查表网格属 P3 交付件；P-CST-23 声称系列生成配置欠定；生产链被估量 y 的合同语义待负责人裁决；对 MC 真值的偏置数字带 ±3 pp MC 噪声（低噪证据是臂比值 vs 闭式预言 ≤1.25 pp）。详见 `REPORT_paper.md` §6 与 `REPORT_experiment.md` §7。
+1.152 标定登记出处待补登；m_ref=6.0 为单位制锚点（冻结纪律）；k_corr 查表网格属 P3 交付件；P-CST-23 声称系列生成配置欠定；生产链被估量 y 的合同语义待负责人裁决；对 MC 真值的偏置数字带 ±3 pp MC 噪声（低噪证据是臂比值 vs 闭式预言 ≤1.25 pp）。详见 `REPORT_paper.md` §6 与 `REPORT_experiment.md` §8。

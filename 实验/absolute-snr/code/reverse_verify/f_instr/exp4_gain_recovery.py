@@ -10,6 +10,7 @@
   D 小尺度乘性结构 (平场/PRNU 残差, 相关长度 1.5 px, 3% rms) => 回收增益随孔径变化.
 """
 import os, sys, time
+from pathlib import Path
 import numpy as np
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -17,7 +18,7 @@ from f_instr_lib import (NoiseModel, render_psf, aperture_curve, est_box5, est_i
                          est_kron, est_psf_nlsq, est_psf_optimal, robust_loc_scale,
                          save_json, moffat_profile, add_sky_gradient)
 
-ROOT = "/workspace/Astro CS Database"
+ROOT = str(Path(__file__).resolve().parents[5])
 OUT = os.path.join(ROOT, "run/reverse_verify/f_instr")
 BETA = 3.5
 APERTURES = [2.0, 3.0, 4.0, 6.0, 8.0, 10.0, 14.0]

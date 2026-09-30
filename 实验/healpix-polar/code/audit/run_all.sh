@@ -11,17 +11,32 @@
 #   kcorr   run_scan/run_extra/direct_char  SEED_BASE = 20260816（与正本
 #           control_median_mc_test.cpp 同基；各实验组独立偏移见各脚本头）
 #
-# 依赖：Python >= 3.10 + numpy；单脚本 CPU <= 5 分钟（exp05_sagitta_subdiv.py 约 4 分钟）；
+# 前置：实验/shared/synthetic/run_selftests.sh（物理链自检，全四项）
+# 依赖：Python >= 3.10 + numpy（仿真腿另需 astropy/scipy 与 testdata/HST_M16）；单脚本 CPU <= 5 分钟（exp05_sagitta_subdiv.py 约 4 分钟）；
 #       全部脚本不 import 仓库任何模块、不联网；各实验 JSON 以脚本自身位置锚定落 results/audit/<路线>/，与既有存档逐位可对照。
 # 既有结果存档于 results/audit/<路线>/（与本脚本输出逐位可对照）。
 # ============================================================================
 set -u
 HERE="$(cd "$(dirname "$0")" && pwd)"
+REPO="$(cd "$HERE/../../../.." && pwd)"
 OUT="$(cd "$HERE/../../.." && pwd)/run/healpix-polar-audit-logs"
 mkdir -p "$OUT"
 
 run() { name="$1"; script="$2"; timeout 600 python3 "$script" > "$OUT/$name.out" 2>&1 \
         && echo "[ok]  $name" || { echo "[FAIL] $name (see $OUT/$name.out)"; return 1; }; }
+
+# 公共前置步：合成数据物理链自检。必须跑**全四项**（m16_mask / m16_scene /
+# m16_sampling / noise_selftest），不得只调 noise_selftest.py —— 后者只验独立
+# 重实现，对生产实现零判别力；生产面的门禁责任在 m16_scene --selftest 与
+# m16_sampling --selftest。任一组件判红则本腿读数不可作为证据。
+echo "== [0/5] 合成数据物理链自检（公共前置步）=="
+if [ -f "$REPO/实验/shared/synthetic/run_selftests.sh" ]; then
+  TMPDIR="${TMPDIR:-/var/tmp/astrocs}" bash "$REPO/实验/shared/synthetic/run_selftests.sh" \
+    || { echo "[FAIL] 物理链自检未通过，本单元读数不可作为证据"; exit 1; }
+else
+  echo "缺少 实验/shared/synthetic/run_selftests.sh —— 物理链自检不可跳过" >&2
+  exit 2
+fi
 
 # --- 路线 1（seed 20050709）---
 run r1_e1 "$HERE/route1/e1_leaf_area_and_scale.py"
@@ -50,5 +65,8 @@ run k_run_extra  "$HERE/kcorr/run_extra.py"      # G0b/G3b/G7 ~60 s
 run k_direct     "$HERE/kcorr/direct_char.py"    # 400k 直接定征 ~10 s
 run k_tables     "$HERE/kcorr/read_tables.py"    # 由 JSON 重生成汇总表
 
+# --- M16 物理前向仿真腿（第 1 类数据：哈勃仿真成像）---
+run sim_exp01 "$HERE/sim/exp_sim01_m16_forward_conservation.py"
+
 echo "---- 全部日志：$OUT ----"
-echo "对照存档：实验/healpix-polar/results/audit/{route1,route2,route3,kcorr}/"
+echo "对照存档：实验/healpix-polar/results/audit/{route1,route2,route3,kcorr,sim}/"

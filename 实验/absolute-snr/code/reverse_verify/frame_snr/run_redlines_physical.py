@@ -447,9 +447,10 @@ def test_P12(repo_root: str, tmpdir: str) -> dict:
     fwhm_px，DISP-STAR-007 禁止）作为负例必须判红。
     """
     src = os.path.join(repo_root, "lib/algorithms/noise_snr/cpp/src/snr_science.cpp")
-    cppdir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "cpp")
-    os.makedirs(cppdir, exist_ok=True)
-    probe = os.path.join(cppdir, "p1snr_probe.cpp")
+    # 探针源码是本脚本的生成产物，写进临时目录而不是仓库源码树：
+    # 否则每次复跑都会静默覆写 cpp/p1snr_probe.cpp 这个受版本管理的文件。
+    os.makedirs(tmpdir, exist_ok=True)
+    probe = os.path.join(tmpdir, "p1snr_probe.cpp")
     with open(probe, "w") as f:
         f.write(CPP_PROBE)
     exe = os.path.join(tmpdir, "p1snr_probe")

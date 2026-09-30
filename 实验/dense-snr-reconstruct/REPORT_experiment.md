@@ -40,7 +40,22 @@
 | route2 | exp_P4R2_01…09（9） | route2/*.json（9） | 20260926–20261003（每实验一档） |
 | route3 | exp01…06（6） | route3/*.json（6） | 20260926 |
 
+| sim | sim/exp_sim01_m16_forward_snr_truth.py（1） | sim/*.json（1） | 20261010（共享场景配方内） |
+
 三路互不通信、全仓库只读、纯 Python+numpy、单实验 CPU ≤5 min；seed 写死于脚本（route1 统一 SEED=20260926 + 偏移派生；route2 按实验日递增；route3 统一 20260926）。results/summary.json 为关键读数汇总（注明来源路线与字段）。
+
+**哈勃物理仿真腿（第 1 类数据）**：真实 HST M16 F657N drz 帧作**纯信号模板**，经共享物理链
+`实验/shared/synthetic/m16_sampling.py → noise_model.expose()` 生成仿真采样帧（768² 帧、0.2″/px、
+曝光 300 s、seeing FWHM 3.2 px、天光 0.5 e⁻/s、增益 1.5 e⁻/ADU、读出 5 e⁻、平场 PRNU 1%/低阶 2%/渐晕 5%）。
+该链的六环节（源/天光/暗流电子域 Poisson、读出电子域 Gaussian、增益+饱和+量化、平场、天空梯度）自洽性由
+**公共前置步** `bash 实验/shared/synthetic/run_selftests.sh` 承担：四个组件独立自校验全跑（m16_mask /
+m16_scene / m16_sampling / noise_selftest），实测 4/4 PASS、rc=0、约 2 分 32 秒；**不得只调
+`noise_selftest.py`**——它的 12 个用例中只有 A2 调用生产实现且生产臂不进入判词，对生产实现零判别力，
+生产面的门禁责任在 `m16_scene --selftest` 与 `m16_sampling --selftest`。本腿依赖该自检为绿。
+
+**真值定义**：SNR_true = (S_e/g)/√((S_e+B_e+D_e)/g² + RN²/g² + 1/12)，S_e/B_e/D_e 取自物理链的逐像素
+期望量（与 `noise_model.predicted_variance_adu2` 同式），饱和像元剔除。这是本单元第一次拿到
+**逐像素绝对 SNR 真值**——此前 C 臂用的是局部 MAD² 代理。
 
 ## 4 结果（判读按台账终裁）
 
@@ -51,6 +66,50 @@
 5. **三口径（H5）**：同一物理量表示约定（台账 X3/A-P4 口径）；m_ref 降格为记录参考电平（A-P4-06）。
 6. **几何与常数链（H6/H9）**：1/16 判据为带余量保守守卫；组成常数 `c(n=64)=1.152` 的出处是**跨单元分歧台账 D-04**（其 MC 落盘件未随本单元收录，**本单元不可复算**）；本单元可复算的自身读数为同一常数的实测 `k = 1.1614111`（n_rep=2000×4000 px，理论 1.1664237），**比 1.152 高 0.82%**、比理论低 0.43%（`results/route2/exp08_mad_sigma_budget.json::part_B_mad_sigma_estimator`）。引用 1.152 时须一并标注其为台账值。
 7. **诚实边界主数**：稀疏控制格不表示 PSF 尺度——偏差中位 3.8 dex（p99 5.7 dex）[实验:route1/exp_p4_04]；有效域为 ≥Δ 尺度平滑场。
+
+### 4.1 M16 物理前向仿真腿（H-sim）—— 12 门全绿，实测耗时 11.5 s
+
+探测器 0.2″/px，Δ = 64 px = 12.8″，768² 帧，12×12 = 144 个控制点。源项标度扫描（α 与真方差动态范围
+v_dr 一一对应）：
+
+| α | v_dr | E_eff_frame | E_eff_cell | E_eff_dense | 样条负值像素占比 |
+|---:|---:|---:|---:|---:|---:|
+| 0.003 | 75.8 | 7.69e-03 | 3.20e-02 | 7.89e+04 | 2.5% |
+| 0.01 | 236.2 | 1.52e-02 | 4.60e-02 | 3.72e+03 | 8.3% |
+| 0.03 | 694.5 | 3.52e-02 | 7.03e-02 | 1.11e+06 | 14.7% |
+| 0.1 | 2299 | 9.22e-02 | 1.78e-01 | 1.13e+05 | 21.9% |
+| 0.3 | 6882 | 1.85e-01 | 4.23e-01 | 9.52e+04 | 22.6% |
+| 1.0 | 2.29e+04 | 3.54e-01 | 9.20e-01 | 2.58e+04 | 18.3% |
+
+| 判据 | 读数 | 结论 |
+|---|---:|---|
+| G1 Oracle 逐像素真方差臂 E_eff | −1.11e-16 | 机器零 |
+| G2 排序 E_frame < E_cell < E_dense | 6/6 档成立 | PASS |
+| G3 值域钳制守卫改善稠密口径（α=1：2.58e4 → 4.54） | 改善 5700 倍 | PASS（H2「钳制必要」的物理前向定量复核） |
+| R2 E_eff 对 w 的乘性缩放不变（×3.17） | ≤1e-8 相对 | PASS |
+| R1 打乱控制点节点（α=1） | 2.58e4 → 2.17e5（8.4 倍） | 判红 |
+| dex-RMSE(α=1) frame / cell / dense | 14.06 / 14.08 / 66.74 | 与排序一致 |
+
+**归零负例**：
+- **NC-A1 平坦真值 + 理想控制值**：三口径 E_eff 全部 **−0.0**（≤1e-12）⇒ **归零**。
+- **NC-A2 平坦真值 + 估计器控制值**（物理前向：均匀源、均匀天光、无平场）：帧级口径 E_eff = **−0.0** 精确归零，
+  Oracle = −1.1e-16，稠密口径 2.47e-3 **不小于** 帧级 ⇒ 稠密不得凭空占优。**归零 + 不占优**。
+- **NC-B 打乱控制点节点**：8.4 倍变差 ⇒ **判红**。
+- **NC-C 丢源项臂**：**分歧，不入门禁**——帧级口径下丢源项反而更好（1.77e-4 < 3.54e-1）。见 §6 第 14 条。
+
+**噪声相关性边界（本腿的判据取舍）**：真实 drz 噪声经 32 次曝光 + drizzle 已相关化，本链生成逐像素独立
+噪声 ⇒ 对相关长度敏感的判据**不得**用合成帧定标。现场探针给出定量理由：同一控制点配方（8×8 patch
+1.4826·MAD 平方）下，合成帧控制点噪声 lag-1 = **+0.195**，真实 drz = **−1.1e-4**，相差 0.195。据此：
+
+| 编号 | 被排除的判据 | 留在原腿的出处 | 排除理由 |
+|---|---|---|---|
+| E1 | IDW 最优幂 p* 与 K 近邻截断的定标 | route2/exp_P4R2_02、route3/exp04 | 最优 p 由噪声空间相关长度决定 |
+| E2 | Δ² 偏置律系数（零噪偏置 128/64 = 4.06 vs 理论 4） | route2/exp_P4R2_03 | 偏置按有效独立样本数 n 走，n 由相关长度决定 |
+| E3 | 白性 lag-1 = −1/2、散粒/PRNU 相对散布比、指纹斜率 | route2/exp_P4R2_05、route3/exp06 | 本链噪声按构造独立，该类判据在本腿恒真、无判别力 |
+| E4 | E_eff 绝对效率数值向真实帧的外推 | calibers/exp_P4CAL_02 的 C 臂（MAD² 代理） | Var_opt = 1/Σ(1/v_true) 以噪声独立为前提 |
+
+本腿**上**的判据：真值下三口径的相对序、dex-RMSE、算子性质（节点复现、钳制、覆盖域）、
+亮度携带义务的端到端代价、四条归零负例、有效域边界。
 
 ## 5 结论
 
@@ -71,11 +130,29 @@
 11. **跨单元数字与缺口（交接）**：① 组成常数 1.152 与 mesh 高对比域读数（E 0.0490/0.0530）均出自**其他单元**，本单元未复核；② `idw_power=1.0` 实现侧落地属跨域改动（`lib/algorithms/drizzle/healpix_drizzle/snr_evaluator.{h,cpp}` 与 `docs/plugins/algorithms_phase1/07_noise_snr.md:194`）；③ P4 稠密重建在生产集成面上不可达（`module_adapters.cpp` 的 `in.sparse = nullptr`），端到端接线归调度/适配器单元。详见 REPORT_paper.md §7.9–§7.14。
 12. **判据与门禁的订正落点**：零源负例/亮度跟随门/有源对照三项原判据判别力不足（P4-M03）；订正不修改已归档实验（避免脚本与存档脱钩），而是新增判据实验 `code/fix/fix01_metric_E_and_gates.py`；Δ 上界守卫与节点相位量化为 `code/fix/fix02_boundaries_estimator_phase.py`（正例 Δ=64 平滑域 PASS、负例 Δ=256 高对比域 RED；相位半像素差 ≤0.5%、角点约定 1.23× 退化）。
 
+13. **已声明的有效域判据被本腿否证**：§4 声明的稠密口径有限窗口是**真方差动态范围** 1.78–235；本腿实测
+    窗口**内**（v_dr = 75.8）稠密口径照样失效（E = 7.9e4），窗口外（v_dr = 2.3e4）失效量级相当
+    （E = 2.6e4）⇒ **v_dr 窗口既不充分也不必要**。真正的门是场的**亚 Δ 空间功率**。本腿把该边界变成
+    可计算判据：patch 级控制值与该 patch 真方差之比落在 [1/2, 2] 内即为有效域。该窗口的成立范围收窄为
+    「解析/光滑合成场」。
+14. **H4 亮度携带机制在 M16 物理前向场上不成立（分歧）**：帧级口径下不带源项的控制值 E = 1.77e-4
+    **小于**带源项的 3.54e-1，与 H4 的机制方向相反。这不推翻 H4（H4 在有效域内的光滑解析场上证：
+    丢源项 1.31e-3 vs 机器零 2.22e-16、极端对比 12 倍），而是把 H4 的适用域收窄到「场在 Δ 尺度上平滑」。
+    本腿据此把 NC-C 标为 informative-only（不入门禁），分歧原文登记在结果 JSON 的
+    `negative_control.NC-C_lost_source_term.discrepancy`。
+15. **M16 仿真腿的覆盖范围**：只跑 F657N 单帧、单一指向、无滚转角、无 IDW 对照档、无 M16 三波段同天区、
+    无不同指向/滚转角的多帧几何；不含任何相关长度敏感量的定标。
+
 ## 7 复现命令
 
 ```bash
 cd "实验/dense-snr-reconstruct"
-bash code/run_all.sh                 # 全部 19 实验按 route1→route2→route3 串行，~30 s
+# (0) 公共前置步：合成数据物理链自检（四个组件全跑）
+#     不得只调 noise_selftest.py —— 它只验独立重实现，对生产实现零判别力
+bash 实验/shared/synthetic/run_selftests.sh          # 实测 4/4 PASS、rc=0、约 2 分 32 秒
+
+bash code/run_all.sh                 # 前置步 + 19 个原实验 + M16 仿真腿
+python3 code/sim/exp_sim01_m16_forward_snr_truth.py   # 只跑 M16 物理前向仿真腿（~12 s）
 # 单项示例（输出与 results/ 存档同构，固定 seed）：
 python3 code/route1/exp_p4_01_weight_optimality.py
 python3 code/route2/exp_P4R2_02_idw_params.py
@@ -88,4 +165,21 @@ python3 code/calibers/exp_P4CAL_02_three_calibers_guarded.py  # 三口径对照�
 # 两脚本输出与 results/fix/*.json 逐字段同构（本机实测 all_pass=true）。
 ```
 
-依赖：Python3 + numpy（stdlib json），无仓库内 import、无网络、无时间/环境随机源。脚本输出以脚本自身位置锚定，统一落本单元 results/route1/、results/route2/、results/route3/（与运行时工作目录无关），输出与 results/ 存档逐字段同构。
+依赖：Python3 + numpy（stdlib json），无网络、无时间/环境随机源。19 个原实验不 import 仓内任何模块，
+输出以脚本自身位置锚定，统一落 results/{route1,route2,route3}/（与运行时工作目录无关），与存档逐字段同构。
+M16 仿真腿另需 astropy + scipy 与 `testdata/HST_M16/`（唯一仓外只读输入），并只读 import
+`实验/shared/synthetic/` 的生成器（本单元不写、不改共享层），输出落 results/sim/。
+
+## 8 佐证来源
+
+按最高设计 §12.1「每个科学结论具备三类一手证据」：
+
+| 一级断言 | 一手论文/标准 | 开源实现（项目 + 版本 + 文件:行） | 仓内实测（复现命令 + 读数） |
+|---|---|---|---|
+| 定权恒等式 w = SNR²/F_ref² = 1/σ_F²，γ = 2 由定义唯一（GLS 逆方差最优） | Keys 1981, IEEE Trans. ASSP 29(6), 1153（refs.md 参考文献 4，DOI 10.1109/TASSP.1981.1163711）；Rousseeuw & Croux 1993, JASA 88(424), 1273（参考文献 14，MAD 效率语境） | `lib/algorithms/drizzle/healpix_drizzle/snr_estimator.{h,cpp}`（本单元只登记不落码，见 §6 第 11 条②） | `bash code/run_all.sh` → route1/exp_p4_01、route2/exp_P4R2_01、route3/exp01、fix/fix01：恒等偏差 3.7e-16…5.55e-16（2 ulp），γ=0 差 26.3×、γ=1 效率 3.73、等权 104.58 |
+| 生产默认算子 natural_bicubic_spline_clip_v1：节点复现 ≤3.6e-15、收敛阶 −4、钳制必要 | de Boor 2001, *A Practical Guide to Splines*（标注级，不承担数值判据，refs.md 参考文献 11） | 同单元 `code/route3/exp03_sparse_dense_reconstruction.py` 的独立分段基实现 | route1/exp_p4_02、route3/exp03、exp05；**M16 仿真腿 G3：钳制把 E 从 2.58e4 压到 4.54** |
+| 稀疏控制格不表示 PSF 尺度、有效域为 ≥Δ 尺度平滑场 | Trujillo et al. 2001, MNRAS 328, 977（参考文献 15，Moffat 轮廓 Eq.(1) 逐字锚）；Moffat 1969, A&A 3, 455（参考文献 10，未验证、不承担数值） | 共享物理链 `实验/shared/synthetic/{noise_model,m16_scene,m16_sampling}.py`（自检面全四项） | route1/exp_p4_04 偏差中位 3.8 dex；**M16 仿真腿：α 扫描 6/6 档 E_frame < E_cell < E_dense，v_dr 窗口判据被否证** |
+| 判据 E_eff = Var_w/Var_opt − 1 唯一口径、有证据资格、乘性免疫 | Astier & Antilogus 2019, arXiv:1905.08677（参考文献 13，PTC 斜率语境） | 仓内 `code/fix/fix01_metric_E_and_gates.py`（判据改造的唯一落点） | route3/exp02、fix/fix01：乘性 σ̂=3.17σ 时 E = −1.1e-16、错误臂 0.314 判红、打乱 0.6335；**M16 仿真腿 R2：×3.17 后 ≤1e-8 相对** |
+| 物理前向仿真数据本身 | Merline & Howell 1995；Howell 2006（CCD 噪声模型），逐条文献锚见 `实验/shared/synthetic/noise_model.py` 模块 docstring | 共享链 `实验/shared/synthetic/`（本单元只读 import） | `bash 实验/shared/synthetic/run_selftests.sh` → 4/4 PASS、rc=0、约 2 分 32 秒；判别力已由注入缺陷实测 |
+| 真实数据腿 | — | `testdata/HST_M16/*.drz`（HST WFC3/UVIS 窄带 drizzled，PHOTFLAM 带头，NDRIZIM=32）；本地 MAD² 代理参照 | `python3 code/realdata/exp_P4RD_01_real_hst_m16.py`（见 §6 第 5 条：HLA drz 无 ERR/WHT，参照量是局部 MAD² 代理，不是绝对真方差） |
+| 辅助常数链 1.4826 / 9216 预算 / Moffat4 = 1.230310 | Rousseeuw & Croux 1993（参考文献 14）；Trujillo et al. 2001（参考文献 15） | `code/route2/exp_P4R2_08_mad_sigma_budget.py`、`exp_P4R2_09_moffat4_factor.py` | 1.4826022185056023（1.50e-16）；9216 = (1.44/0.015)² 精确；闭式 1.2303076526 vs 独立数值积分 1.2303076507（差 1.91e-6） |

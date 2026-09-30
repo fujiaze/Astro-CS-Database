@@ -16,14 +16,19 @@ Run:
      --out ../../../../run/reverse_verify/snr_design/audit/audit_exp1245.json
 """
 import argparse, json, os, sys, time
+from pathlib import Path
 import numpy as np
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import physnoise as pn
 
 MAD2SIG = pn.MAD2SIG
-EXP2_FRAME = ("../../../../../../run/RELEASE-02/L4-rebuild/norm/t2_m1_red/"
-              "calibrated_M42_M1_T2_flying_dutchman-20251212@012404-300S-Red.fts")
+# 仓库根从本文件位置推导（…/code/reverse_verify/snr_design/audit/ → 上溯 6 级），
+# 不依赖调用者的 CWD；真实标定帧树可用 P2_NORM_DIR 覆盖。
+_ROOT = Path(__file__).resolve().parents[6]
+_NORM = os.environ.get("P2_NORM_DIR") or str(_ROOT / "run/RELEASE-02/L4-rebuild/norm")
+EXP2_FRAME = os.path.join(
+    _NORM, "t2_m1_red", "calibrated_M42_M1_T2_flying_dutchman-20251212@012404-300S-Red.fts")
 PB = 32
 CUT = (1024, 3072, 1024, 3072)
 

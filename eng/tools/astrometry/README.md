@@ -14,5 +14,5 @@
 
 ## 上游
 
-- 注册于 `eng/ci/checks.json`：`CHK-E2E-REPRO` 的步骤 `E2E-WCS-CLOSURE-REPRO-SELFTEST`（`python3 eng/tools/astrometry/closure_metric.py selftest`）。
+- 由门禁在重建时注册为可执行项（`python3 eng/tools/astrometry/closure_metric.py selftest`）。
 - 检查项条目见 `docs/engineering/01_CHECKS.md`，门禁分级见 `docs/engineering/03_GATES.md`。

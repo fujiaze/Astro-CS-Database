@@ -6,6 +6,7 @@
 度量: dmag = -2.5 log10(F_rec/F_true) 的稳健位置(中值)与稳健散度(MAD*1.4826).
 """
 import os, sys, json, time
+from pathlib import Path
 import numpy as np
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -14,7 +15,7 @@ from f_instr_lib import (NoiseModel, render_psf, robust_sky_stats, aperture_curv
                          est_psf_nlsq, est_psf_optimal, est_kron, dmag,
                          robust_loc_scale, save_json, add_sky_gradient, moffat_profile)
 
-ROOT = "/workspace/Astro CS Database"
+ROOT = str(Path(__file__).resolve().parents[5])
 OUT = os.path.join(ROOT, "run/reverse_verify/f_instr")
 FWHM_TRUE, BETA = 2.5, 3.5
 APERTURES = [3.0, 4.0, 6.0, 10.0]

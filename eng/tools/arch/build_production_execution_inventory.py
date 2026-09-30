@@ -7,7 +7,7 @@
     第二跑必然通过。故本生成器支持 --out：校验器写临时目录再比对，跟踪件保持只读。
   * 第 29 条：exe_target 面原先只扫 lib/ 与 eng/tools，生产入口 acsd（根 CMakeLists.txt）
     因此完全不在登记面，而「没登记」还被写成通过条件。故 exe 面补读**根构建图目标集**
-    （eng/ci/cmake_graph.py，唯一实现）：登记集合必须包含构建产出的可执行目标集合。
+    （eng/tools/arch/cmake_graph.py，唯一实现）：登记集合必须包含构建产出的可执行目标集合。
     非根构建图的子项目目标按原 rg() 口径保留（登记面只增不减，分类与注记原样）。
 
 口径
@@ -65,9 +65,9 @@ rows, notes = [], []
 def add(cat, sym, loc, cls, reach, phase, tm, ev, risk=""):
     rows.append(dict(zip(COLS, [cat, sym, loc, cls, reach, phase, tm, ev, risk])))
 
-# 0 真实构建图（唯一实现 eng/ci/cmake_graph.py）
+# 0 真实构建图（唯一实现 eng/tools/arch/cmake_graph.py）
 def _load_graph_module():
-    path = os.path.join(REPO, "eng", "ci", "cmake_graph.py")
+    path = os.path.join(REPO, "eng", "tools", "arch", "cmake_graph.py")
     if not os.path.isfile(path):
         return None
     spec = importlib.util.spec_from_file_location("acsd_cmake_graph", path)
@@ -82,7 +82,7 @@ if GRAPH_MOD is not None:
     GRAPH = GRAPH_MOD.parse_cmake_graph(pathlib.Path(REPO))
     ENTRY = GRAPH_MOD.production_entry(pathlib.Path(REPO))
 else:
-    print("WARNING: 未找到 eng/ci/cmake_graph.py —— 根构建图 exe 面未登记（仅夹具树允许）",
+    print("WARNING: 未找到 eng/tools/arch/cmake_graph.py —— 根构建图 exe 面未登记（仅夹具树允许）",
           file=sys.stderr)
 
 # 1 exe 目标(生产=acsd CLI 唯一; 其余标 test/tool)
@@ -168,7 +168,7 @@ io_files = sorted({l.split(":")[0] for l in rg(r"aio_frame_add_block|aio_write|f
 # 会过度声明（清单与事实不符）。登记项 = 已由机器判据核实"不在生产入口 acsd 的
 # 传递闭包内"的文件：按既有列语义改标 classification=test / production_reachable=no
 # （它仍被编译，但只在测试面），依据写进 risk_note。
-# 反向存活（fail-closed）：该事实由 eng/ci/ledgers/spec_named_impl_gaps.json 的
+# 反向存活（fail-closed）：该事实由 eng/contracts/data/spec_named_impl_gaps.json 的
 # SNI-S4-P3X-06 台账承载 —— 一旦文件被接进生产闭包，该台账即 stale，
 # CHK-SPEC-NAMED-IMPL-ON-PROD-PATH 判红，强制删掉本登记项（登记项不得成为免检区）。
 PRODUCTION_UNREACHABLE = {

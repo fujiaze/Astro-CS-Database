@@ -15,7 +15,7 @@
   BUILD-GRAPH-NONROOT 不在根构建图内的目标（子项目自有 CMakeLists，target|cmakelists|理由）。
 
 口径
-  - 唯一事实源 = 根 CMakeLists.txt 沿未注释 add_subdirectory 递归（eng/ci/cmake_graph.py）；
+  - 唯一事实源 = 根 CMakeLists.txt 沿未注释 add_subdirectory 递归（eng/tools/arch/cmake_graph.py）；
   - 生成器自身 fail-closed：登记为非生产的目标若不在图中或已进入生产闭包，
     或登记为非根图的目标若已在根图中 ⇒ 非零退出，绝不把假事实写进文档；
   - 只写机器块之间的内容，块外文字（说明/复算命令）保持人工维护。
@@ -72,9 +72,9 @@ def repo_default():
 
 
 def load_graph_module(repo):
-    path = os.path.join(repo, "eng", "ci", "cmake_graph.py")
+    path = os.path.join(repo, "eng", "tools", "arch", "cmake_graph.py")
     if not os.path.isfile(path):
-        raise SystemExit("ANCHOR_MISSING: eng/ci/cmake_graph.py（真实构建图读取器）")
+        raise SystemExit("ANCHOR_MISSING: eng/tools/arch/cmake_graph.py（真实构建图读取器）")
     spec = importlib.util.spec_from_file_location("acsd_cmake_graph", path)
     mod = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(mod)

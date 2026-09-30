@@ -24,7 +24,9 @@ import os
 import sys
 import time
 
-REPO = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", ".."))
+# 仓库根从本文件位置推导：…/实验/absolute-snr/code/reverse_verify/frame_snr/ 上溯 5 级。
+# 原实现只上溯 3 级，指到 实验/absolute-snr，导致 run/ 下的 p1_snr.json 永远扫不到。
+REPO = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "..", "..", ".."))
 OUT = os.path.join(REPO, "run", "reverse_verify", "frame_snr", "p1_snr_inventory.json")
 
 

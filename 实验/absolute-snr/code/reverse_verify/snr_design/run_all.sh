@@ -8,7 +8,8 @@ set -o pipefail
 HERE="$(cd "$(dirname "$0")" && pwd)"
 ROOT="$(cd "$HERE/../../../../.." && pwd)"
 OUT="$ROOT/run/reverse_verify/snr_design"
-NORM="$ROOT/run/RELEASE-02/L4-rebuild/norm"
+# 真实标定帧产品树：默认 L4 rebuild 落点；P2_NORM_DIR 可指向等价的 normalize 产品树。
+NORM="${P2_NORM_DIR:-$ROOT/run/RELEASE-02/L4-rebuild/norm}"
 
 mkdir -p "$OUT"
 export TMPDIR="${TMPDIR:-/dev/shm/astrocs_snrd}"
@@ -17,6 +18,7 @@ mkdir -p "$TMPDIR"
 echo "== SNR-DESIGN run_all =="
 echo "   repo root : $ROOT"
 echo "   output    : $OUT"
+echo "   norm dir  : $NORM"
 echo "   TMPDIR    : $TMPDIR"
 echo
 
