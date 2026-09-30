@@ -2655,7 +2655,7 @@
       "judgement": "归零（红）：rho=0 时 chart 侧项与精确立体角之比必归零到读数地板（地板来源与 M3 同类：chart 角点绝对分辨率 / drop 尺度）"
     }
   },
-  "elapsed_s": 30.74632239341736,
+  "elapsed_s": 29.840144634246826,
   "verdict": "PASS",
   "gates_total": 16,
   "gates_failed": []
