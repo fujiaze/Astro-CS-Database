@@ -14,8 +14,11 @@
   (依据与日期见 docs/engineering/01_CHECKS.md §2 退役记录)。本文件的 mutation 基线改为**自带 tracked 小夹具**
   eng/tests/quality/fixtures/docchk002_claims_fixture.csv(13 列表头同模板 / 11 claim / R1-R7 全过);
   检测力不变: 绿基线 → 注入必红 → 还原回绿, 且不再依赖任何构建产物目录。
-  活件判定: eng/tools/check_unit_closure.py 仍是 CI 注册项 UNIT-CLOSURE(三 profile, waivable=false),
-  故本文件保留, UNIT 断言继续跑真仓。
+  活件判定: eng/tools/check_unit_closure.py 曾是 CI 注册项 UNIT-CLOSURE(三 profile, waivable=false),
+  **该 step 已于 2026-09-30 随文档域门 CHK-SCI-REF 整体退役而从 eng/ci/checks.json 移除**
+  (取样: git show 3abdf2dd^:eng/ci/checks.json 含 UNIT-CLOSURE 1 处, 现行 0 处)。
+  故本文件作为**历史证据件保留**(夹具与 mutation 基线仍可复跑), 但**不再声称它是活注册项** ——
+  那正是登记册 C-35「照一段不存在的规范写断言」的同型, 本次修正。
   夹具维护纪律: 夹具刻意只引用 docs/、eng/tools/、eng/tests/version/ 三个长期稳定域(不绑模块源码路径),
   以降低模块重构(如 lib/* 迁移)带来的漂移; 若这些资产本身改名, 须在同一提交内同步本夹具
   —— 同 ANCHOR_CONTRACT §5「被锚资产移动须同提交更新锚」纪律。

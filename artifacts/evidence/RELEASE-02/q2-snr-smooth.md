@@ -1,6 +1,9 @@
 # RELEASE-02 Q2：如何正确把信噪比传播进拟合面，并保持平滑（无阶跃）
 
 > **2026-09-30 由 FINAL-07 前台从 git 历史恢复。**
+> **现位 `artifacts/evidence/RELEASE-02/q2-snr-smooth.md`** —— 恢复时曾暂放仓根 `reports/`，
+> 触发 `CHK-ROOT-CLEAN` 的「顶层条目不在 `ENGINEERING_SPEC` §7 白名单，且未登记为本地保留；
+> 新增根条目须先登记并经负责人确认」，故移入既有的 `artifacts/` 白名单位置。**下文的「原路径」是历史路径，保持原样不改。**
 > 本文件原存在于 `reports/RELEASE-02/q2-snr-smooth.md`，在 commit `ae0f1e63`
 > （`chore(governance): 清理历史控制包与一次性报告（CLEAN-402）`）中被删除，
 > 而生产代码当时仍在引用它：`weight_chain.cpp:911` 与 `weight_chain.h:309`
