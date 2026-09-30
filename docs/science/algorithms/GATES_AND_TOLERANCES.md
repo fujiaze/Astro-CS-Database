@@ -78,7 +78,7 @@ R-3 §2.9 实测同一 Moffat4 场 `SNR_peak=20` 时 sdet 检出 **0 星**、
 
 | 脚本 / 阈值 | 现状 | 处置 |
 |---|---|---|
-| `lib/algorithms/photometry/cpp/test/gate4_dr3sp_gaiaxpy/gate2_psf_oracle.py` 的 `fwhm_median_le_1pct` / `ell_median_le_0.005` / `flux_median_le_1pct` / `photutils_oracle_centroid_p95_le_0.05px` | Windows 专用脚本，未注册进 `eng/ci/checks.json`（`grep -c gate2 eng/ci/checks.json` = 0），4 个阈值在活动 `docs/**` 零命中（R-3 §3.5） | 降级为**诊断脚本**：引用面限于诊断；如需升格，必须先在 §3 登记门ID/域/统计量/来源并注册 CI 检查（转 CI-003） |
+| `lib/algorithms/photometry/cpp/test/gate4_dr3sp_gaiaxpy/gate2_psf_oracle.py` 的 `fwhm_median_le_1pct` / `ell_median_le_0.005` / `flux_median_le_1pct` / `photutils_oracle_centroid_p95_le_0.05px` | Windows 专用脚本，未注册进 门禁注册面（G08-10 重建）（`grep -c gate2 eng/ci/checks.json` = 0），4 个阈值在活动 `docs/**` 零命中（R-3 §3.5） | 降级为**诊断脚本**：引用面限于诊断；如需升格，必须先在 §3 登记门ID/域/统计量/来源并注册 CI 检查（转 CI-003） |
 
 ## 4a 台账实测值（**XISF 母版单位修复后须整体复跑**）
 

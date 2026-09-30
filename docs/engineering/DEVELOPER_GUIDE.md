@@ -9,7 +9,7 @@ cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release
 ninja -C build
 ```
 
-模块地图见 `docs/engineering/MODULE_MAP.md`；机器一致性检查见 `docs/engineering/CI_SPEC.md`（范围与门禁口径 = 该文件 §2）。
+模块地图见 `docs/engineering/MODULE_MAP.md`；机器一致性检查见 `docs/engineering/TEST_STANDARD.md`（范围与门禁口径 = 该文件 §2）。
 
 ## 测试
 
@@ -17,7 +17,7 @@ ninja -C build
 ctest --test-dir build --output-on-failure
 ```
 
-模块级科学矩阵由 `eng/tests/**` 的 CTEST 目标现场枚举（唯一源 = 构建面与 `eng/ci/checks.json` 的 `ctest_targets` 字段），本指南只给入口：
+模块级科学矩阵由 `eng/tests/**` 的 CTEST 目标现场枚举（唯一源 = 构建面与 门禁注册面（G08-10 重建） 的 `ctest_targets` 字段），本指南只给入口：
 
 ```bash
 ctest --test-dir build -R <target> --output-on-failure      # 单个矩阵

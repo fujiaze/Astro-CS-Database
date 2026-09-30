@@ -450,7 +450,6 @@ doc_index:
       status: ACTIVE_INFORMATIVE
       duty: "工程集入口：行为合同、架构、标准注册、CI 门禁、追溯、版本与状态登记（由原 15 个工程类目录的招牌件合并消化）"
       upstream: "docs/ASTROCS_DESIGN.md §8（架构与工程口径）"
-    - path: "docs/engineering/01_CHECKS.md"
       status: ACTIVE_NORMATIVE
       duty: "检查项目录（docs/engineering/VALIDATION_EVIDENCE_STANDARD.md 的文档侧双向登记）"
       upstream: "docs/ASTROCS_DESIGN.md §12.4（验证层级与四层验收）、§12.5（状态阶梯）"
@@ -460,7 +459,6 @@ doc_index:
       duty: "CI 流水线与 profile 定义"
       upstream: "docs/ASTROCS_DESIGN.md §12.4（验证层级与四层验收）、§12.5（状态阶梯）"
       downstream: "README.md、README.md"
-    - path: "docs/engineering/03_GATES.md"
       status: ACTIVE_NORMATIVE
       duty: "门禁分级与阻断规则"
       upstream: "docs/ASTROCS_DESIGN.md §12.4（验证层级与四层验收）、§12.5（状态阶梯）"
@@ -470,7 +468,6 @@ doc_index:
       duty: "CI 工件与证据落位规范"
       upstream: "docs/ASTROCS_DESIGN.md §10（I/O 与原子产品）、§12.4（验证层级与四层验收）"
       downstream: "ACCEPTANCE_SPEC.md、README.md、README.md 等 5 处"
-    - path: "docs/engineering/CI_SPEC.md"
       status: ACTIVE_NORMATIVE
       duty: "CI 规范的入口与总则"
       upstream: "docs/ASTROCS_DESIGN.md §12.4（验证层级与四层验收）、§12.5（状态阶梯）"
@@ -1254,7 +1251,6 @@ doc_index:
       duty: "冻结门台账（表内唯一来源与证据必需的正本登记）"
       upstream: "docs/ASTROCS_DESIGN.md §12.1（科学正确性）、docs/engineering/SCIENCE_FREEZE.md（冻结基线）、docs/science/algorithms/GATES_AND_TOLERANCES.md §1 R1/R2（表内唯一来源、证据必需）"
       downstream: ""
-    - path: "docs/engineering/TIER_VERDICT_CRITERIA.md"
       status: ACTIVE_NORMATIVE
       duty: "四层验收的档位判据（TV-01..TV-12）"
       upstream: "docs/ASTROCS_DESIGN.md §12.4（四层验收与验证层级）、ACCEPTANCE_SPEC.md §5/§6（L3/L4）"

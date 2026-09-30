@@ -177,7 +177,7 @@
 - 检查器：`python3 eng/tools/hipsform/check_hips_storage_form.py --root .`（exit 0 = PASS；同时跑逐层字段口径一致性判据）；
 - 逐层口径：`python3 eng/tools/hipsform/check_hips_storage_form.py --root . --doc-consistency`（每层文档必须出现词表登记的字段名与取值，词表外的同义名一律判红）；
 - 负例自检：`python3 eng/tools/hipsform/check_hips_storage_form.py --self-test`（恒 0 = 全部内置正/负例符合预期；覆盖形态键缺省/留空的默认+warn、逐帧索引字段、清单 storage 段、mosaic/export 形态键 REJECT、层间口径不一致）；
-- CI 登记：`eng/ci/checks.json` 的 `CHK-HIPS-STORAGE-FORM`。
+- CI 登记：门禁注册面（G08-10 重建） 的 `CHK-HIPS-STORAGE-FORM`。
 
 ## 10. 形态的输入配置与输出清单字段（MUST）
 

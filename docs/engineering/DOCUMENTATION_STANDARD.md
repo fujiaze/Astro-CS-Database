@@ -21,7 +21,7 @@ L5 模块文档        docs/detail/registry/**（module 页 + MODULE_MAP.yaml + 
 ~~~
 
 - 活动/归档边界与机器索引：`docs/DOCUMENT_INDEX.yaml` + `python3 eng/tools/doccheck/check_doc_index.py --strict`。
-- 机器一致性检查器以 `eng/ci/checks.json` 为唯一注册表（`docs/engineering/01_CHECKS.md`）。
+- 机器一致性检查器以 门禁注册面（G08-10 重建） 为唯一注册表（`docs/engineering/VALIDATION_EVIDENCE_STANDARD.md §12`）。
 
 - 每份 science 文档：目的、科学定义、公式、变量/单位、假设、有效域、
   不保证什么、失效条件、系统误差、随机误差、数值精度、参考文献、
@@ -43,5 +43,5 @@ L5 模块文档        docs/detail/registry/**（module 页 + MODULE_MAP.yaml + 
 1. **口径只在一处**：名词的定义在上位冻结语句出现处；下层正文引用它时给条款号，不复述定义；
 2. **反义即缺陷**：下层把该名词取成反义含义（把表达层量当数据形态、把绝对量当相对量、把「不可辨识」读成「不许出现数值」等）时，以上位冻结语句为准并立即订正下层；
 3. **逐条比对**：验收判据与上位冻结语句的名词口径逐条比对，出现反义即判红；比对方向固定为「下层判据 → 上位冻结语句」，不自建上位口径；
-4. **执行面**：该比对属文档域，按 `DOCUMENT_GOVERNANCE.md` §6 与 `01_CHECKS.md` 的口径由对抗性审查逐条覆盖；若它被登记为机器检查项，则自检必须含「注入反义表述 ⇒ 判红」的负例，只有正例自检不足以证明判据有牙；
+4. **执行面**：该比对属文档域，按 `DOCUMENT_GOVERNANCE.md` §6 的口径由对抗性审查逐条覆盖；文档域不设机器门（`VALIDATION_EVIDENCE_STANDARD.md` §12.5），若同一比对在别面具备实质判据则按该面登记；自检必须含「注入反义表述 ⇒ 判红」的负例，只有正例自检不足以证明判据有牙；
 5. **澄清用正向陈述**：需要消歧时直接写现行口径的正向句子，不写成对另一种说法的纠正（写法纪律见 `DOCUMENT_GOVERNANCE.md` §5）。

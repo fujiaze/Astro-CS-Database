@@ -3,7 +3,7 @@
 > 上游：ASTROCS_DESIGN.md §12.4（验证层级与四层验收）
 
 - 合同依据：**第一次 deep CI 只测量并记录基线，不设阈值**；每模块复杂度上限待冻结
-  （检查 `DEEP-COMPLEXITY`，见 `eng/ci/checks.json`）。
+  （检查 `DEEP-COMPLEXITY`，见 门禁注册面（G08-10 重建））。
 - 工具：`eng/tools/quality/check_complexity.py`（正则近似：函数头计数 +
   全文分支 token；文件级粒度，不做函数体切分——namespace/class 花括号
   会把多函数吞并成假"巨型函数"，实测伪影 max≈504 已弃用该算法）。

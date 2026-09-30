@@ -4,7 +4,7 @@
 
 ## 1. 触发与范围
 
-范围口径以 `CI_SPEC.md §2` 为正本；本节只写"什么事件跑哪个范围"。
+范围口径以 `TEST_STANDARD.md` §8 为正本；本节只写"什么事件跑哪个范围"。
 
 | 事件 | 范围 | 说明 |
 |---|---|---|
@@ -17,26 +17,26 @@
 
 - 两平台 workflow 的 `on:` 面只含 `push`（`main`）、`workflow_dispatch`、`schedule`，均未配置 `pull_request` 触发；合并前验证由提交前本地 / agent 运行（`fast` + `integration` 两档）承担。
 
-- scope 语义、fail-closed 三条与超时／预算取值 = `CI_SPEC.md` §2（唯一正本）；本节只写"什么事件跑哪个范围"。
+- scope 语义、fail-closed 三条与超时／预算取值 = `TEST_STANDARD.md` §8（唯一正本）；本节只写「什么事件跑哪个范围」。
 
 ## 2. Job 结构
 
 两平台各一个独立 workflow、各一个 job，无 `needs` 依赖链；检查项的编排由
-`eng/ci/run.py --profile <profile>` 在 job 内完成（profile → 检查集见 `eng/ci/checks.json`）。
+`eng/ci/run.py --profile <profile>` 在 job 内完成（profile → 检查集见 门禁注册面（G08-10 重建））。
 
 | Workflow | Job（依赖） | 内容 | 证据锚 |
 |---|---|---|---|
 | `ci-linux.yml` | `linux`（单 job，ubuntu） | run.py --profile linux-main（workflow_dispatch 可选 linux-deep）；失败路径 wf_step.py --step LINUX-BOOTSTRAP-DIAG | `linux-ci-<sha>` ← `artifacts/ci/`（always） |
 | `ci-windows.yml` | `windows`（单 job） | run.py --profile windows-main；失败调 wf_step.py --step WINDOWS-BOOTSTRAP-DIAG | `astrocs-windows-candidate-<sha>`、`windows-ci-<sha>` ← artifacts/（success/always） |
 
-增量档不跑整条链：只执行与改动集相交的检查（`CI_SPEC.md §2.3`），构建/测试 target 由构建图反查得出；
+增量档不跑整条链：只执行与改动集相交的检查（`TEST_STANDARD.md` §8），构建/测试 target 由构建图反查得出；
 任一 fail-closed 条件命中即判红。
 
 ## 3. 并行与超时
 
 - `ci-linux.yml` 与 `ci-windows.yml` 是两个独立 workflow，各自触发、互不依赖；
 - 每 workflow 单 job，`timeout-minutes: 330`（`ci-linux.yml` / `ci-windows.yml` 一致）；
-- 每 step 的 timeout 上界与档位硬上限：口径正本 = `CI_SPEC.md` §2.5，取值唯一源 = `eng/ci/checks.json`；
+- 每 step 的 timeout 上界与档位硬上限：口径正本 = `TEST_STANDARD.md` §8，取值唯一源 = 门禁注册面；
 - 日志按 job 留存，可下载。
 
 ## 4. 门禁判定

@@ -594,7 +594,7 @@ oracle 同容差；actual_k 精确相等。
   ④`eng/packaging/config/defaults.json` 登记 `calibration.master_flat_median_range`（[0.5,2.0]）；
   ⑤与 U3 冲突的既有节点级夹具（`eng/tests/unit/p1001_real_nodes_test.cpp` 9 处 doc）补显式
   `dark_optimization=false`（该夹具 `vd=5 < vb=10` = 已减 bias 的暗电流，声明后数值不变）。
-  **残留（登记待裁定）**：⑥**未新增 ctest 目标**（新目标必须在 `eng/ci/checks.json` 的
+  **残留（登记待裁定）**：⑥**未新增 ctest 目标**（新目标必须在 门禁注册面（G08-10 重建） 的
   `ctest_targets` 登记）⇒ U1–U4 的机器覆盖由上述门脚本承担；
   ⑦**节点 manifest 未落盘**：`master_unit_guard` 写入节点 manifest 与 `stages.calibrate`，
   但当前 CLI 面只持久化 run manifest（`summary`/`provenance.units=["ADU"]`）与失败时的
