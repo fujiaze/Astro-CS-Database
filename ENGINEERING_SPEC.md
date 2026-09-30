@@ -178,7 +178,8 @@ run/（gitignore：开发/CI 过程产物与过程日志，与块级 output_dir 
 - **双向索引**：最高设计每节末尾指向对应下级文档；每份下级文档抬头标注上游最高设计条款；
 - **悬空即缺陷**：索引指向的文件/章节必须存在，文档引用的代码路径必须真实；跨域未修项登记于 `eng/tools/doccheck/dangling_ledger.json`，只减不增；
 - 代码改动改变行为时，同一提交内更新对应文档与索引；
-- 机器检查项：`DOC-INDEX`（索引闭合）、`DOC-INDEX-SELFTEST`（可执行正/负例面）、`CHK-DOC-HYGIENE`（写作规则与过程痕迹）、`CHK-DANGLING`（悬空引用），注册面 = `eng/ci/checks.json` 与 `docs/engineering/01_CHECKS.md` §2。
+- **文档域不设机器门**：索引闭合、写作规则与过程痕迹、悬空引用三项原机器检查已整体撤销，本节各条改由对抗性审查逐条覆盖；
+- 仍设机器门的项，其注册面 = `eng/ci/checks.json` 与 `docs/engineering/01_CHECKS.md` §2。
 
 ---
 
@@ -198,10 +199,11 @@ run/（gitignore：开发/CI 过程产物与过程日志，与块级 output_dir 
 - **可执行负例面**：每项检查提供机器可执行负例入口（`--self-test` 或 `--fault-inject`）；
 - **fail-closed**：检查器在输入缺失、路径不存在、依赖不可用时判红；"文件不存在"按"无违规"通过视为假绿；
 - **锚存活**：检查器硬编码引用的文件/目录必须存在，失效时报 `ANCHOR_STALE`；
-- **注册表双向一致**：`eng/ci/checks.json` 与 `docs/engineering/01_CHECKS.md §2` 双向对齐；
+- **注册表双向一致**：`eng/ci/checks.json` 与 `docs/engineering/01_CHECKS.md §2` 双向对齐（原双向一致机器门已撤销，改由对抗性审查逐条核对）；
 - **悬空引用台账**：跨域未修的悬空引用登记于 `eng/tools/doccheck/dangling_ledger.json`，只减不增；台账缺失或不可解析按 fail-closed 判红；
 - 修改代码/测试后本地复跑对应检查项；
-- 检查器覆盖（至少）：模块 manifest/注册表/构建 target/产品清单一致、端口引用有效 DATA 合同、算法引用有效 SCI/ALG、核心合同有独立测试、API 文档与 AST 一致、删除/重命名无悬空引用（含文档索引）、活动文档版本号与状态均为现行、实现处置合规（§2）、Git diff 映射到受影响合同与最小测试集、**落盘形态合同**（`CHK-HIPS-STORAGE-FORM`：命名/互斥/归档逐成员帧/索引不变式/哈希口径，含正例与负例注入）、**交付共享对象符号闭包**（`CHK-PLUGIN-SYMBOL-CLOSURE`：产品清单登记的每个 plugin .so 的强未定义符号可在 DT_NEEDED 闭包内解析、DT_NEEDED 可解析、`dlopen(RTLD_NOW)` 成功，含正例与负例注入）。
+- 检查器覆盖（至少）：模块 manifest/注册表/构建 target/产品清单一致、端口引用有效 DATA 合同、核心合同有独立测试、实现处置合规（§2）、Git diff 映射到受影响合同与最小测试集、**落盘形态合同**（`CHK-HIPS-STORAGE-FORM`：命名/互斥/归档逐成员帧/索引不变式/哈希口径，含正例与负例注入）、**交付共享对象符号闭包**（`CHK-PLUGIN-SYMBOL-CLOSURE`：产品清单登记的每个 plugin .so 的强未定义符号可在 DT_NEEDED 闭包内解析、DT_NEEDED 可解析、`dlopen(RTLD_NOW)` 成功，含正例与负例注入）。
+- **文档域不设机器门**：算法引用有效性、API 文档与 AST 一致、悬空引用与文档索引、活动文档版本号与状态现行性等判据已无机器执行者，改由对抗性审查逐条覆盖。
 
 ---
 
