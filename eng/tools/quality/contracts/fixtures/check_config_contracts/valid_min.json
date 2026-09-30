@@ -1,4 +1,0 @@
-{
-  "inputs": {"hips": ["a.hips"]},
-  "integration": {"acr_route": "auto"}
-}
