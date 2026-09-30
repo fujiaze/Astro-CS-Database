@@ -609,8 +609,26 @@ bool write_fits_atomic(const std::string& final_path,
                     (unsigned long long)pr.punched_bytes, (unsigned)pr.holes,
                     (unsigned long long)pr.released_bytes(),
                     (unsigned long long)pr.size_bytes, tmp.c_str());
+        } else if (pr.rc == aio_sparse::PUNCH_NO_RELEASE) {
+            // 合同 `HIPS_STORAGE_FORM_CONTRACT.md` T1 判据第 ⑤ 条逐字：
+            //   「`st_blocks` **必须下降**（未下降 ⇒ **判红，不静默通过**）」。
+            // 而 `aio_sparse_punch.h` 的枚举注释与 :603 实现都把它标为红判
+            // （:603 逐字「洞提交了但分配字节未下降 ⇒ 判红（不得当成功）」）。
+            //
+            // **本分支此前把它并入下面的 WARN 并照常 `atomic_replace` 发布** ——
+            // 合同要求不判红，实现判红；原语保留了红判，是**本 writer 丢掉了它**。
+            // 修法按合同回判：不发布（remove_file + 返回 false），
+            // 使 `st_blocks` 未下降成为硬失败而非静默降级。
+            aio_atomic::remove_file(tmp);
+            if (err)
+                *err = "sparse punch did not release blocks (" + pr.reason + "): " + tmp;
+            aio_log(AIO_LOG_ERROR, "aio_sparse",
+                    "trim=rejected(no-release) errno=%d file=%s",
+                    pr.sys_errno, tmp.c_str());
+            return false;
         } else if (pr.rc != aio_sparse::PUNCH_OK) {
-            // 打洞是体积优化，不是科学语义：降级不阻断发布。
+            // 其余码（IO_ERROR 等）仍是体积优化不阻断，保留原降级语义。
+            // 注意与上面分开：合同第 ⑤ 条只对「分配字节未下降」这一条判红。
             aio_log(AIO_LOG_WARN, "aio_sparse",
                     "trim=skipped(%s) errno=%d file=%s",
                     pr.reason.c_str(), pr.sys_errno, tmp.c_str());
