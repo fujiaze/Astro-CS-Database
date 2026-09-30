@@ -14,9 +14,9 @@
 |---|---|---|---|---|
 | H1 | w = SNR²/F_ref² = 1/σ_F² 逐位恒等（幂次 2 非自由参数，γ=2 = GLS 逆方差最优） | **成立（四路验证）** | 恒等偏差 5.55e-16 / 4.44e-16 / 3.7e-16 / 4.4e-16（2 ulp）；γ=2 方差最小，γ=0 差 26.3×，γ=1 效率 3.73，等权 104.58 | route1/exp_p4_01 → exp_p4_01_weight_optimality.json；route2/exp_P4R2_01 → exp01_weight_identity_gamma.json；route3/exp01 → exp01_weight_identity.json；P2 路线1 exp12（台账 A-P2-11 转写） |
 | H2 | 生产默认算子 = natural_bicubic_spline_clip_v1，节点精确复现、收敛阶 −4、钳制必要、正齐次性可红 | **成立** | 节点残差 ≤3.6e-15（门 1e-9）；样条内部阶 −3.97/−4.18；去钳制 min=−161.5 / 出现负 σ；公理偏差 ≤2.8e-15、收缩反例 0.54 | route1/exp_p4_02 → exp_p4_02_interpolators.json；route3/exp03 → exp03_sparse_dense_reconstruction.json；route3/exp05 → exp05_operator_axioms.json |
-| H3 | IDW 默认 idw_power=2.0 有标定支撑 | **推翻 → 按 D-05 终裁默认 1.0（配置级；实现侧未落地）** | 含噪（2%/6%）最优 p≈0.5–1（rmse_rel 6.827e-3 / 1.414e-2），p=2 差 2–3×；无噪 p=2 最优（1.639e-3）；误差面光滑无尖峰、p→∞ 退化为最近点。**实现侧现状（P4-M05）**：默认仍硬写 2.0，配置键与 p* 日志未实现——终裁 ≠ 已生效 | route2/exp_P4R2_02 → exp02_idw_params.json；route3/exp04 → exp04_idw_parameters.json；route1/exp_p4_02；缺口清单见 REPORT_paper.md §7.9 |
-| H4 | 控制值必须携带源项亮度，否则下游效率损失 | **成立** | Oracle：含源项 E=2.22e-16（机器零）、丢源项 1.31e-3、等权 1.78e-2；极端对比 A_full 0.037 vs A_bglimit 0.433（12×）；零源负例两臂逐位恒等 | route1/exp_p4_04 → exp_p4_04_brightness_forward.json；route2/exp_P4R2_07 → exp07_luminance_chain_negative.json |
-| H5 | 三口径（dense/sparse_reconstruct/frame_reconstruct）是同一物理量的三种还原粒度，不构成三种权 | **口径表示成立（同一权公式）；「dense 一律最优」被本轮对照实验否证（P4-M10 已闭环）** | route1 的 frame 臂按**帧级常数铺满**实现（退化的上界对照）：dex-RMSE 0.0295 vs 样条 0.0058、动态范围保持比 0.7525 vs 0.9888，权重公式不变；w 对 m_ref 不变逐位。`dense` 口径本轮已补对照实验（`code/calibers/exp_P4CAL_02_three_calibers_guarded.py`，三类数据 + 对比度扫描 + 守卫臂 `all_pass = true`）：结构场 `E_cell = 0.00903 < E_dense = 0.577 < E_frame = 1.159`，HST 物理前向 `E_cell = 0.206 < E_frame = 0.416 ≪ E_dense = 2.57e5`（样条欠冲），真实帧 `E_cell = 0.171 ≪ E_frame = 11.8 ≪ E_dense = 6.46e4`；`E_dense < E_frame` 仅落在 v 跨幅 ≈1.78–235 的窗口内 ⇒ **dense 口径不是一律最优**；生产帧级口径（帧级 SNR 逆方差链）在单帧内即空间常数权场 = 本实验 `frame` 臂。 **与 route1/exp04 的关系（关键区分）**：exp04 的控制值是**精确的 cell 模型量**（表示上限测试，无估计量噪声）⇒ 其 `E_full = 7.43e-4` 是**表示上限**（控制值精确时的可达下界）；本实验 `dense` 臂的控制值走**生产配方**（8×8 patch `1.4826·MAD` 平方 + cell 内平面拟合）⇒ 估计量噪声使同一算子的 `E` 升到 `0.577`（平滑场）/`2.57e5`（亮源前向）。两者不矛盾：**真实可达效率由控制值精度支配**，`7.43e-4` 不是端到端可达值。 | route1/exp_p4_04（`::arms/A_frame_recon`、`::arms/A_full`）；route3/exp01（H1d：w 比 = 1.0 逐位） |
+| H3 | IDW 默认 idw_power=2.0 有标定支撑 | **推翻 → 按 D-05 终裁默认 1.0（配置级；实现侧未落地）** | 含噪（2%/6%）最优 p≈0.5–1（rmse_rel 6.827e-3 / 1.414e-2），p=2 差 2–3×；无噪 p=2 最优（1.639e-3）；误差面光滑无尖峰、p→∞ 退化为最近点。**实现侧现状（P4-M05）**：drizzle 侧求值器已落地 1.0（`snr_evaluator.h:110`、`snr_evaluator.cpp:212,268`）；仍硬写 2.0 的只有 `snr_estimator.cpp:593,730,833`（Phase1 输出模型路径）。配置键与 p* 日志未实现 | route2/exp_P4R2_02 → exp02_idw_params.json；route3/exp04 → exp04_idw_parameters.json；route1/exp_p4_02；缺口清单见 REPORT_paper.md §7.9 |
+| H4 | **逐像素**定权面上控制值必须携带源项亮度，否则下游效率损失 | **成立（适用域 = 场在 Δ 尺度上平滑；帧级常数口径上方向相反，§6 第 14 条）** | Oracle：含源项 E=2.22e-16（机器零）、丢源项 1.31e-3、等权 1.78e-2；极端对比 A_full 0.0301577 vs A_bglimit 0.3804647（12.6×，以 `results/route1/exp_p4_04_brightness_forward.json::arms/extreme_*` 存档为准）；零源负例两臂逐位恒等 | route1/exp_p4_04 → exp_p4_04_brightness_forward.json；route2/exp_P4R2_07 → exp07_luminance_chain_negative.json |
+| H5 | 三口径（dense/sparse_reconstruct/frame_reconstruct）是同一物理量的三种还原粒度，不构成三种权 | **口径表示成立（同一权公式）；「dense 一律最优」被本轮对照实验否证（P4-M10 已闭环）** | route1 的 frame 臂按**帧级常数铺满**实现（退化的上界对照）：dex-RMSE 0.0295 vs 样条 0.0058、动态范围保持比 0.7525 vs 0.9888，权重公式不变；w 对 m_ref 不变逐位。`dense` 口径本轮已补对照实验（`code/calibers/exp_P4CAL_02_three_calibers_guarded.py`，三类数据 + 对比度扫描 + 守卫臂 `all_pass = true`）：结构场 `E_cell = 0.00903 < E_dense = 0.577 < E_frame = 1.159`，HST 物理前向 `E_cell = 0.206 < E_frame = 0.416 ≪ E_dense = 2.57e5`（样条欠冲），真实帧 `E_cell = 0.171 ≪ E_frame = 11.8 ≪ E_dense = 6.46e4`；该扫描曾给出的「v 跨幅 1.78–235 窗口」已被 M16 物理前向腿否证（窗口内稠密口径照样失效），**不是有效域判据**；替代口径见 §6 第 13 条 ⇒ **dense 口径不是一律最优**；生产帧级口径（帧级 SNR 逆方差链）在单帧内即空间常数权场 = 本实验 `frame` 臂。 **与 route1/exp04 的关系（关键区分）**：exp04 的控制值是**精确的 cell 模型量**（表示上限测试，无估计量噪声）⇒ 其 `E_full = 7.43e-4` 是**表示上限**（控制值精确时的可达下界）；本实验 `dense` 臂的控制值走**生产配方**（8×8 patch `1.4826·MAD` 平方 + cell 内平面拟合）⇒ 估计量噪声使同一算子的 `E` 升到 `0.577`（平滑场）/`2.57e5`（亮源前向）。两者不矛盾：**真实可达效率由控制值精度支配**，`7.43e-4` 不是端到端可达值。 | route1/exp_p4_04（`::arms/A_frame_recon`、`::arms/A_full`）；route3/exp01（H1d：w 比 = 1.0 逐位） |
 | H6 | λlo/λhi ≥ 1/16 是保守良态守卫（κ=√(λhi/λlo)=轴比） | **成立** | 放大 1.007/2.025/3.956/7.980 vs 理论 1/2/4/8（0.5% 内）；共线触发率 1.000；各向同性最小 0.330 永不误红 | route2/exp_P4R2_04 → exp04_plane_conditioning.json；route1/exp_p4_03 → exp_p4_03_plane_geometry.json |
 | H7 | 分母方差面缓变：白性 lag-1=−1/2、relspread 散粒 1×/PRNU 2×、指纹斜率 1/2/0；分子纯度（无源⇒臂逐位相等） | **成立（但“无源⇒臂逐位相等”是结构断言、非估计器断言，P4-M03）** | lag-1 −0.5007/−0.4995/−0.4984 与 −0.49963±0.00078；散粒比 **0.9240（route2 实测）**/0.99999999（route3 解析档）、PRNU 比 **1.9113（route2 实测）**/1.99067（route3 解析档）；斜率 1.000/2.000/0.000；无源 SNR≡0 精确（两臂同式构造，任何算子都判绿 ⇒ 判别力改由 `code/fix/fix01_metric_E_and_gates.py` 的逐臂估计器版承担） | route2/exp_P4R2_05 → exp05_whiteness_variance_map.json；route3/exp06 → exp06_white_noise_and_purity.json；results/fix/fix01_metric_E_and_gates.json::C_rebuilt_gates/C2_zero_source_per_arm_estimator |
 | H8 | 判据 `E_eff = Var_w/Var_opt − 1`（**唯一口径** `Var_opt = 1/Σ(1/σ_true²)`）有证据资格（能红）且乘性免疫 | **成立（口径按 P4-B02 定案；被否口径 `1/Σw` 登记为无效定义）** | 乘性 σ̂=3.17σ 时 E=−1.1e-16（尺度不变偏差 0，机器零）；平坦+平坦 E=0 精确；错误臂 0.314 判红；打乱 0.6335；被否口径在同臂上判负（−0.9005）且尺度不变偏差 3.75 | route3/exp02 → exp02_metric_E_properties.json；results/fix/fix01…json::A_metric_definition；定义与证明 [推导:docs/derivations.md §7] |
@@ -61,7 +61,7 @@ m16_scene / m16_sampling / noise_selftest），实测 4/4 PASS、rc=0、约 2 �
 
 1. **定权恒等式（H1）**：四路独立验证机器精度成立；γ=2 唯一确定（A-P4-02 三路同判，审查"γ=1 保守"不成立）。γ 扫描负例（同方差场景 gain≈1.0125）证明判据非退化。
 2. **默认算子（H2）**：natural_bicubic_spline_clip_v1 为生产默认（**按台账 D-10 订正**旧稿"bilinear 是默认"），双线性对照/回退；节点复现 ≤3.6e-15 对 1e-9 门为浮点性质余量而非松容差；"默认档总是最优"不成立——Δ=256 被双线性/IDW 反超，跨 Δ 外推须重验（A-P4-07）。
-3. **IDW 默认值（H3）**：**按台账 D-05 终裁 idw_power=1.0**（含噪最优带 0.5–1 上端），K=16 折中、γ<1e-10 数值守卫；**目标形态**为配置化 + 运行日志输出实测 p*（不落盘产品）。**实现侧现状（P4-M05，如实登记）**：`snr_estimator.cpp` 三处仍硬写 2.0（drizzle 侧 `snr_evaluator.{h,cpp}` 另有两处初值/兜底），配置键与 p* 日志未实现——终裁 ≠ 已生效；因改动会与域外登记句（`docs/plugins/algorithms_phase1/07_noise_snr.md:194`）冲突，本单元只登记不落码。p=2 降级为无噪/光滑极限最优读数。
+3. **IDW 默认值（H3）**：**按台账 D-05 终裁 idw_power=1.0**（含噪最优带 0.5–1 上端），K=16 折中、γ<1e-10 数值守卫；**目标形态**为配置化 + 运行日志输出实测 p*（不落盘产品）。**实现侧现状（P4-M05，如实登记）**：drizzle 侧求值器**已与终裁一致**（`snr_evaluator.h:110` 成员初值 1.0；`snr_evaluator.cpp:212,268` 的 ≤0 兜底回落 1.0）；仍硬写 2.0 的只有 `snr_estimator.cpp:593,730,833` 三处 `out_model->idw_power` 初始化（Phase1 输出模型路径，与 Phase2 逐像素消费面不是同一条链）。配置键与 p* 日志未实现；`lib/**` 不在本单元文件域内，只登记不落码。p=2 降级为无噪/光滑极限最优读数。
 4. **亮度携带（H4）**：丢源项 Oracle E=1.31e-3（机器零对照 2.22e-16），极端对比 12 倍效率损失；端到端链亮度跟随 √10 闭合（3.1970 vs 3.1623，+1.1% 来自 2% 控制噪声）；P5 定权增益 1.0428 vs 理论 1.0444。
 5. **三口径（H5）**：同一物理量表示约定（台账 X3/A-P4 口径）；m_ref 降格为记录参考电平（A-P4-06）。
 6. **几何与常数链（H6/H9）**：1/16 判据为带余量保守守卫；组成常数 `c(n=64)=1.152` 的出处是**跨单元分歧台账 D-04**（其 MC 落盘件未随本单元收录，**本单元不可复算**）；本单元可复算的自身读数为同一常数的实测 `k = 1.1614111`（n_rep=2000×4000 px，理论 1.1664237），**比 1.152 高 0.82%**、比理论低 0.43%（`results/route2/exp08_mad_sigma_budget.json::part_B_mad_sigma_estimator`）。引用 1.152 时须一并标注其为台账值。
@@ -85,7 +85,7 @@ v_dr 一一对应）：
 |---|---:|---|
 | G1 Oracle 逐像素真方差臂 E_eff | −1.11e-16 | 机器零 |
 | G2 排序 E_frame < E_cell < E_dense | 6/6 档成立 | PASS |
-| G3 值域钳制守卫改善稠密口径（α=1：2.58e4 → 4.54） | 改善 5700 倍 | PASS（H2「钳制必要」的物理前向定量复核） |
+| G3 值域钳制守卫改善稠密口径（α=1：2.58e4 → 4.54） | 改善 5700 倍 | PASS（**注**：本腿 dense 臂是**未钳制**样条，守卫臂用 `clip(0.25·min, 4·max)` 启发式钳制，**两者都不是**生产默认算子 `natural_bicubic_spline_clip_v1` 的「钳到控制值值域 [min,max]」语义；见 §6 第 16 条） |
 | R2 E_eff 对 w 的乘性缩放不变（×3.17） | ≤1e-8 相对 | PASS |
 | R1 打乱控制点节点（α=1） | 2.58e4 → 2.17e5（8.4 倍） | 判红 |
 | dex-RMSE(α=1) frame / cell / dense | 14.06 / 14.08 / 66.74 | 与排序一致 |
@@ -113,7 +113,7 @@ v_dr 一一对应）：
 
 ## 5 结论
 
-假说判定：H1/H2/H4/H6/H7/H8/H9 成立，H5 口径表示成立、但「dense 一律最优」经对照实验否证（见 §2 H5），H3 推翻并按 D-05 换默认值（实现侧未落地），H10 豁免为结构常数（科学后果另由 Δ/ℓ 判据承载）。P4 单元的科学内容收敛为一句话：**稀疏控制点到稠密 SNR 场的重建以自然三次样条钳制算子为生产默认（节点复现 3.6e-15、可分辨域内最优），定权恒等式 w = SNR²/F_ref² = 1/σ_F² 机器精度成立且 γ=2 由定义唯一确定；控制值是否携带亮度决定 P5 权重是否最优（最劣 12 倍），IDW 的终裁默认 idw_power=1.0 为配置级约定、实现侧尚未落地。**
+假说判定：H1/H2/H4/H6/H7/H8/H9 成立，H5 口径表示成立、但「dense 一律最优」经对照实验否证（见 §2 H5），H3 推翻并按 D-05 换默认值（drizzle 侧已落地，Phase1 估计器路径待裁决），H10 豁免为结构常数（科学后果另由 Δ/ℓ 判据承载）。P4 单元的科学内容收敛为一句话：**稀疏控制点到稠密 SNR 场的重建以自然三次样条钳制算子为生产默认（节点复现 3.6e-15、可分辨域内最优），定权恒等式 w = SNR²/F_ref² = 1/σ_F² 机器精度成立且 γ=2 由定义唯一确定；逐像素定权面上控制值是否携带亮度决定 P5 权重是否最优（最劣 12.6 倍，适用域 = 场在 Δ 尺度上平滑），IDW 的终裁默认 idw_power=1.0 已在 drizzle 侧生效、Phase1 估计器路径待裁决。**
 
 ## 6 诚实边界
 
@@ -127,21 +127,41 @@ v_dr 一一对应）：
 8. 标注级文献锚（Aitken/Moffat/de Boor）不承担任何数值判据。
 9. 项目约定豁免：quality_factor 0.1/0.5（比值 0.1/0.5 与 share/absolute 口径差不豁免）、γ<1e-10、节点容差 1e-9、Δ=64。
 10. **σ 口径是本项目定义而非通用物理量**：Moffat4 只有 α，本域 σ 由冻结参数化 `Q = 0.5r²/σ²` 定义（= √⟨r²⟩ = α/√2 ⇒ FWHM/σ = 1.2303076526）；他域逐轴口径 σ_g = α/2 ⇒ 1.7399178，二者恒差 √2、禁止互换（[推导:docs/derivations.md §6]、`docs/science/PSF.md §16`）。
-11. **跨单元数字与缺口（交接）**：① 组成常数 1.152 与 mesh 高对比域读数（E 0.0490/0.0530）均出自**其他单元**，本单元未复核；② `idw_power=1.0` 实现侧落地属跨域改动（`lib/algorithms/drizzle/healpix_drizzle/snr_evaluator.{h,cpp}` 与 `docs/plugins/algorithms_phase1/07_noise_snr.md:194`）；③ P4 稠密重建在生产集成面上不可达（`module_adapters.cpp` 的 `in.sparse = nullptr`），端到端接线归调度/适配器单元。详见 REPORT_paper.md §7.9–§7.14。
+11. **跨单元数字与缺口（交接）**：① 组成常数 1.152 与 mesh 高对比域读数（E 0.0490/0.0530）均出自**其他单元**，本单元未复核；② `idw_power=1.0` 实现侧落地属跨域改动（`lib/algorithms/drizzle/healpix_drizzle/snr_evaluator.{h,cpp}` 与 `docs/plugins/algorithms_phase1/07_noise_snr.md:194`）；③ 逐像素重建面在 Phase2 已接通（`sparse_reconstruct` 为 `snr_path` 默认，`module_adapters.cpp:12581` 逐像素调 `weight_from_sparse_layer_pixel_prepared`）；`in.sparse = nullptr`（`:12112`）只表示稀疏层不经帧级标量链。真正 fail-closed 的是 `snr_path=dense`（`:11967`）。带绝对真方差参照的生产端到端试跑仍缺参照产品。详见 REPORT_paper.md §7.9–§7.14。
 12. **判据与门禁的订正落点**：零源负例/亮度跟随门/有源对照三项原判据判别力不足（P4-M03）；订正不修改已归档实验（避免脚本与存档脱钩），而是新增判据实验 `code/fix/fix01_metric_E_and_gates.py`；Δ 上界守卫与节点相位量化为 `code/fix/fix02_boundaries_estimator_phase.py`（正例 Δ=64 平滑域 PASS、负例 Δ=256 高对比域 RED；相位半像素差 ≤0.5%、角点约定 1.23× 退化）。
 
-13. **已声明的有效域判据被本腿否证**：§4 声明的稠密口径有限窗口是**真方差动态范围** 1.78–235；本腿实测
-    窗口**内**（v_dr = 75.8）稠密口径照样失效（E = 7.9e4），窗口外（v_dr = 2.3e4）失效量级相当
-    （E = 2.6e4）⇒ **v_dr 窗口既不充分也不必要**。真正的门是场的**亚 Δ 空间功率**。本腿把该边界变成
-    可计算判据：patch 级控制值与该 patch 真方差之比落在 [1/2, 2] 内即为有效域。该窗口的成立范围收窄为
-    「解析/光滑合成场」。
-14. **H4 亮度携带机制在 M16 物理前向场上不成立（分歧）**：帧级口径下不带源项的控制值 E = 1.77e-4
-    **小于**带源项的 3.54e-1，与 H4 的机制方向相反。这不推翻 H4（H4 在有效域内的光滑解析场上证：
-    丢源项 1.31e-3 vs 机器零 2.22e-16、极端对比 12 倍），而是把 H4 的适用域收窄到「场在 Δ 尺度上平滑」。
-    本腿据此把 NC-C 标为 informative-only（不入门禁），分歧原文登记在结果 JSON 的
-    `negative_control.NC-C_lost_source_term.discrepancy`。
+13. **「真方差动态范围 1.78–235」不是有效域判据**（被否证假设）：窗口**内**（v_dr = 75.8）稠密口径照样失效
+    （E = 7.9e4），窗口外（v_dr = 2.3e4）失效量级相当（E = 2.6e4）⇒ **v_dr 窗口既不充分也不必要**；它只是
+    `calibers/exp_P4CAL_02` 6 档扫描中两条「dense 胜出」行的 v 跨幅极值，属 fixture 偶然量，不得留在任何
+    有效域表述里。替代口径 = **Δ-格可表示性 `J_Δ = E_eff(cell-oracle)`**：只用真值即可算，不含估计量噪声、
+    不含算子、与 v 跨幅无关、随 Δ 单调增。盲复算（M16 物理前向、**生产默认算子含值域钳制**）：
+    `J_Δ` = 0.161(Δ=16) / 0.177(Δ=32) / 0.204(Δ=64) / 0.250(Δ=128) / 0.283(Δ=256)，同五档 `v_true` 跨幅恒为
+    2.29e4（不随 α 变）⇒ 门随 Δ 走、不随动态范围走。**`J_Δ` 的已知盲区**：cell 内未分辨**点源**几乎不抬高
+    `J_Δ`（点源场 0.046 vs 光滑场 0.0397），胞内阶跃边缘则抬到 0.419 ⇒ `J_Δ` 单独不是完整判据；完整口径是
+    正本 `docs/science/CONTROL_WEIGHT_SNR.md` §8b 的三因子联合判据「`Δ/ℓ` × σ 场幅度 × 未分辨结构污染」，
+    第三因子不可由控制网格自身推断、按数据来源显式开启 mesh 中值档。
+14. **H4 的适用域是「场在 Δ 尺度上平滑」**：M16 物理前向场上帧级口径丢源项反而更好（E = 1.77e-4
+    **小于**带源项的 3.54e-1），与 H4 的机制方向相反。机理与同一腿的排序读数一致——真实结构场上
+    `E_frame < E_cell < E_dense`，**跟踪得越少越好**。判读：H4 的**机制陈述**（权形状须与
+    `σ_w² = σ_slow² + S_src/g` 一致）在其适用域内成立（有效域内光滑解析场：丢源项 1.31e-3 vs 机器零
+    2.22e-16、极端对比 12.6 倍）；**跨口径的普适性不成立**——帧级常数口径下源项只改标量、不改权形状，
+    故 H4 只约束**逐像素**定权面。本腿据此把 NC-C 标为 informative-only（不入门禁），分歧原文登记在
+    结果 JSON 的 `negative_control.NC-C_lost_source_term.discrepancy`。
 15. **M16 仿真腿的覆盖范围**：只跑 F657N 单帧、单一指向、无滚转角、无 IDW 对照档、无 M16 三波段同天区、
     无不同指向/滚转角的多帧几何；不含任何相关长度敏感量的定标。
+16. **本腿的 dense 臂不是生产默认算子（算子口径缺口）**：`calibers()` 里 `rec = spline2d(npl, Δ, q)` 后直接
+    `w_dense = 1/rec`，**未施加生产默认算子 `natural_bicubic_spline_clip_v1` 的「钳到控制值值域 [min,max]」**；
+    `dense_guard_clamp` 臂用 `clip(0.25·min(rec), 4·max(node))` 启发式钳制（因 `min(rec) < 0`，其下界为负、
+    不构成下侧保护），**与生产钳制语义不同**。后果：本腿的稠密失效量级（E = 7.9e4…2.6e4、负值像素 2.5–22.6%、
+    「钳制改善 5700 倍」）是**未钳制变体**的读数。以独立实现按生产语义（钳到 [min(node), max(node)]）复算，
+    同场景 E_dense(Δ=64) = **1.95**（未钳制 2.58e4）⇒「稠密在 M16 上劣于 cell 与 frame」的定性结论不变，
+    量级差四个数量级。本单元以不修改已归档实验为纪律（改脚本会使存档与脚本脱钩），该口径缺口登记为待补。
+17. **本腿未执行 fail-closed 覆盖域与有效域判据**：`code/sim/exp_sim01_m16_forward_snr_truth.py` 定义了
+    `valid_domain_mask()`（patch 级 v_patch / 真方差之比 ∈ [1/2,2]）但**全程未被调用**（结果 JSON 无对应字段），
+    且 `calibers()` 的 `mask` 参数在本腿四次调用中均传 `None` ⇒「本腿把有效域变成可计算判据」与
+    `kept_here` 中的「fail-closed 覆盖域」两条**没有实测读数**。对照：生产重建器对该项有明确门
+    （`phase2_integrate/src/weight_chain.cpp`：`nx>=2 && ny>=2`、查询点越出层 cell 并集即 fail-closed 不外推、
+    层值域非正即判红），本腿脚本无对应检查。
 
 ## 7 复现命令
 
@@ -176,7 +196,7 @@ M16 仿真腿另需 astropy + scipy 与 `testdata/HST_M16/`（唯一仓外只读
 
 | 一级断言 | 一手论文/标准 | 开源实现（项目 + 版本 + 文件:行） | 仓内实测（复现命令 + 读数） |
 |---|---|---|---|
-| 定权恒等式 w = SNR²/F_ref² = 1/σ_F²，γ = 2 由定义唯一（GLS 逆方差最优） | Keys 1981, IEEE Trans. ASSP 29(6), 1153（refs.md 参考文献 4，DOI 10.1109/TASSP.1981.1163711）；Rousseeuw & Croux 1993, JASA 88(424), 1273（参考文献 14，MAD 效率语境） | `lib/algorithms/drizzle/healpix_drizzle/snr_estimator.{h,cpp}`（本单元只登记不落码，见 §6 第 11 条②） | `bash code/run_all.sh` → route1/exp_p4_01、route2/exp_P4R2_01、route3/exp01、fix/fix01：恒等偏差 3.7e-16…5.55e-16（2 ulp），γ=0 差 26.3×、γ=1 效率 3.73、等权 104.58 |
+| 定权恒等式 w = SNR²/F_ref² = 1/σ_F²，γ = 2 由定义唯一（GLS 逆方差最优） | **Aitken 1935/36, Proc. R. Soc. Edinb. 55, 42–48（DOI 10.1017/S0370164600014346，逆方差定权理论腿）**；Rousseeuw & Croux 1993, JASA 88(424), 1273（参考文献 14，MAD 效率语境）。Keys 1981 是插值算子出处，**不承担定权理论腿** | `lib/algorithms/drizzle/healpix_drizzle/snr_estimator.{h,cpp}`（本单元只登记不落码，见 §6 第 11 条②） | `bash code/run_all.sh` → route1/exp_p4_01、route2/exp_P4R2_01、route3/exp01、fix/fix01：恒等偏差 3.7e-16…5.55e-16（2 ulp），γ=0 差 26.3×、γ=1 效率 3.73、等权 104.58 |
 | 生产默认算子 natural_bicubic_spline_clip_v1：节点复现 ≤3.6e-15、收敛阶 −4、钳制必要 | de Boor 2001, *A Practical Guide to Splines*（标注级，不承担数值判据，refs.md 参考文献 11） | 同单元 `code/route3/exp03_sparse_dense_reconstruction.py` 的独立分段基实现 | route1/exp_p4_02、route3/exp03、exp05；**M16 仿真腿 G3：钳制把 E 从 2.58e4 压到 4.54** |
 | 稀疏控制格不表示 PSF 尺度、有效域为 ≥Δ 尺度平滑场 | Trujillo et al. 2001, MNRAS 328, 977（参考文献 15，Moffat 轮廓 Eq.(1) 逐字锚）；Moffat 1969, A&A 3, 455（参考文献 10，未验证、不承担数值） | 共享物理链 `实验/shared/synthetic/{noise_model,m16_scene,m16_sampling}.py`（自检面全四项） | route1/exp_p4_04 偏差中位 3.8 dex；**M16 仿真腿：α 扫描 6/6 档 E_frame < E_cell < E_dense，v_dr 窗口判据被否证** |
 | 判据 E_eff = Var_w/Var_opt − 1 唯一口径、有证据资格、乘性免疫 | Astier & Antilogus 2019, arXiv:1905.08677（参考文献 13，PTC 斜率语境） | 仓内 `code/fix/fix01_metric_E_and_gates.py`（判据改造的唯一落点） | route3/exp02、fix/fix01：乘性 σ̂=3.17σ 时 E = −1.1e-16、错误臂 0.314 判红、打乱 0.6335；**M16 仿真腿 R2：×3.17 后 ≤1e-8 相对** |
