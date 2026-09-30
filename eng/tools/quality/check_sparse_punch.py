@@ -402,6 +402,44 @@ def static_checks(repo: Path, cases: Cases):
                        i_fsync, i_punch, i_rename, i_mismatch)
     cases.add("S10_writer_wiring", ok10, detail10)
 
+    # S11 写端对 PUNCH_NO_RELEASE 的处置（FINAL-07 第5轮 B-2）。
+    #   合同 HIPS_STORAGE_FORM_CONTRACT.md T1 判据第 5 条逐字：
+    #     「st_blocks **必须下降**（未下降 ⇒ **判红，不静默通过**）」
+    #   而 aio_sparse_punch.h:603-607 确实产出 PUNCH_NO_RELEASE 并注明「判红，不得当成功」。
+    #   **缺陷史**：writer 曾只拦 PUNCH_VERIFY_MISMATCH，NO_RELEASE 落入 WARN 分支后
+    #   照常 atomic_replace 发布（前台已修，见提交「稀疏打洞：st_blocks 未下降按合同判红拒绝发布」）。
+    #   **为何必须有本条**：S10 只按符号名与位置匹配、全文无 PUNCH_NO_RELEASE，
+    #   而 T3_repunch_no_release 反而**要求** rc==RC_NO_RELEASE 出现
+    #   ⇒ 改前该分支在发布路径上零断言覆盖，改后也不再有回归保护。
+    #   **判据**：NO_RELEASE 的比较必须出现在 `return false` **之前**且在 rename 之前，
+    #   即「未下降 ⇒ 拒绝发布」而不是「未下降 ⇒ 记 warn 后照常发布」。
+    if wb:
+        f = wtext[wb[0]:wb[1]]
+        i_norel = f.find("PUNCH_NO_RELEASE")
+        i_rename2 = f.find("atomic_replace(tmp, final_path)")
+        # **判据必须落在「该分支体里有没有拒绝发布」，而不是「符号名是否出现」。**
+        #   首版写成 `find("PUNCH_NO_RELEASE")` 存在 + rename 在其后 —— 变异测试
+        #   （把该条件改成 `false && …`）后仍 PASS ⇒ 零判别力，当场作废。
+        # 现取该分支体（自符号名起至下一个 `else if` / `else` / 收尾 `}`），要求其内含 return false。
+        branch = ""
+        if 0 <= i_norel:
+            tail = f[i_norel:]
+            ends = [i for i in (tail.find("else if"), tail.find("else "),
+                                tail.find("\n        }")) if i > 0]
+            branch = tail[:min(ends)] if ends else tail[:400]
+        has_reject = "return false" in branch
+        ok11 = (0 <= i_norel < i_rename2) and has_reject
+        cases.add("S11_no_release_rejects_publish", ok11,
+                  ("PUNCH_NO_RELEASE 分支体含 return false（拒绝发布），"
+                   "且该分支在 rename 之前（%d < %d）"
+                   % (i_norel, i_rename2)) if ok11 else
+                  ("PUNCH_NO_RELEASE 分支体**不含** return false（位置 %d）"
+                   "⇒ 只记 warn 后照常发布，违反合同第 5 条"
+                   "（rename 在 %d）；分支体=%r"
+                   % (i_norel, i_rename2, branch.strip()[:120])),
+                  {"i_no_release": i_norel, "i_rename": i_rename2,
+                   "has_reject": has_reject, "branch": branch.strip()[:200]})
+
 
 # ── T2：谓词模型 + 判据判别力 ───────────────────────────────────────────────
 def corpus():
