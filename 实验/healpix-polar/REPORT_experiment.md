@@ -1,7 +1,7 @@
 # REPORT_experiment.md — P3 守恒映射算子实验报告（三路审计重做＋补实验＋历史正本）
 
 单元：实验/healpix-polar ｜ 论文：REPORT_paper.md ｜ 推导：docs/DERIVATIONS-P3.md ｜ 文献台账：refs.md
-分歧裁决依据：《独立审计/实验重做/总编对账/分歧台账.md》（D-xx/A-xx 引用不另改判）。
+分歧裁决依据：`实验/裁决台账.md`（D-xx）与 `docs/DISPUTES.md`（A-P3-xx）（引用不另改判）。
 **本报告只引用既有 results，不重跑实验**；复现命令见文末（脚本收编于 code/audit/，历史探针在 code/ 根）。
 
 ---
@@ -22,10 +22,10 @@
 - **补实验-k_corr**：平面受控 MC（drizzle 线性算子 v_p = Σ_j (a_jp/D_p)·x_j/A_drop 解析精确；球面面积残差 δ=1.9e-7 可忽略），16 相位 × 8 seed（NMC=2000），三臂分解（全臂/形状臂/恒等参考臂），组 G0–G7。
 - **历史探针（EXP-07）**：自包含 C++17（固定几何、无随机数、生产代码只读编译交叉核对），全因子消融弦/曲线边界 × 角点公式 × 快路径，独立 oracle（真曲线采样＋Richardson 外推）＋两个仲裁自检（rotate_to_z ≤1.13e-16 rad；解析 drop 面积 4·asin(h²/(1+h²)) 仲裁，一般位置 ≤3.4e-10）。
 - **证据源清单（收编位置）**：
-  - results/audit/route1/（e1–e6 JSON/txt）← 独立审计/实验重做/P3守恒映射算子/路线1
-  - results/audit/route2/（exp01–exp10 JSON）← 同上/路线2
-  - results/audit/route3/（exp01–exp08 JSON）← 同上/路线3
-  - results/audit/kcorr/（g0–g7 JSON、summary.csv、tables.md）← 同上/补实验-k_corr
+  - results/audit/route1/（e1–e6 JSON/txt）← 路线1 存档
+  - results/audit/route2/（exp01–exp10 JSON）← 路线2 存档
+  - results/audit/route3/（exp01–exp08 JSON）← 路线3 存档
+  - results/audit/kcorr/（g0–g7 JSON、summary.csv、tables.md）← k_corr 补实验存档
   - results/*.out|.csv 与 docs/EXP-07-POLAR.md：历史正本（保留；EXP-07-POLAR 与台账无冲突数值，维持原文，其自我更正 §4.7/§4.8 已在原文内注明）
 
 ## 3. 数据

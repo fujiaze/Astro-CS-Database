@@ -139,7 +139,7 @@
 - **C2 M2/M3 的 oracle 底噪未报**：flat-sky 世界 oracle 臂 g 残差 0.0217（2.2%），说明 MA 求解器本身有 ~2% 底噪；M3 的 2.95% 仅比底噪高 1.4×。建议同时报 oracle 臂。
 - **C2 M1b** 与 M1 是同一数字的两面（0.5599），作为独立"对照门"计入 7/7 略冗余。
 - **C1 A7b / C5 W5 是"缺陷登记门"**：PASS 表示生产代码有缺陷（`converged=0`），与能力门同列在"11/11 PASS"里容易被误读。
-- **FIX-1 的建议已存在变更草案**：`lib/infrastructure/scheduler/src/module_adapters.cpp:5936-5947` 的注释明确写着"上一版实现就地改为 tolerance=1e-3 + tolerance_relative=1（未走变更流程）⇒ 现回退到冻结值"，并指向 `工程控制/RELEASE-02/change-claims/CONFORM-FIX-B-001-tolerance-relative.md`（草案，待裁决）。SCI-C §10 的 FIX-1 建议应引用该草案而不是另起一条。
+- **FIX-1 的建议已存在变更草案**：`lib/infrastructure/scheduler/src/module_adapters.cpp:5936-5947` 的注释明确写着"上一版实现就地改为 tolerance=1e-3 + tolerance_relative=1（未走变更流程）⇒ 现回退到冻结值"，说明该变更草案**已存在且处于待裁决状态**。SCI-C §10 的 FIX-1 建议应引用该草案而不是另起一条。
 - **FIX-1/FIX-2 的行号已漂移**：README §10 写 `module_adapters.cpp:5941-5942`，当前该处是注释；实际赋值在 `:5948-5949`（该文件工作树里被别的任务改了 735 行，mtime 14:27:41）。引用生产代码行号时应带 commit/内容锚点。
 - **κ 的普遍性**：C1 κ=3.36e6、C3 κ=3.00e6、C7 κ=3.16e7，三者都接近 `kappa_max=1e8`（`lib/algorithms/coverage/src/sky_plane.cpp:409` 的默认值，实验未覆写）；README §10 只登记了真实数据的 FIX-3。建议合并为一条"天光面正规方程条件数普遍偏高"。
 - **未报告的量**：C3 `chi2_red=1.524`（合成世界，误差模型低估 ~50%）未进报告；C5 报了 `chi2_red=0.771` 但没有任何门。

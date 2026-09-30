@@ -218,7 +218,7 @@ P1 是科学链的**根基**：把仪器信号统一到**测光星等坐标系**
 ## 复现命令（全部在 `code/` 下，固定 seed=20260926，纯 Python+numpy，不 import 仓库任何 Python）
 
 ```bash
-cd "独立审计/实验重做/P1通量积分拟合/路线3/code"
+cd "实验/photometric-magnitude/code/redo/route3"
 for f in exp_S00_anchor_verification.py exp_S01_tukey_c.py exp_S02_mad_consistency.py \
          exp_S03_irls_convergence.py exp_S04_mag_tolerance.py exp_S05_gates_inlier.py \
          exp_S06_fsyn_lambda_simpson.py exp_S07_fov_constants.py exp_S08_ladder.py \

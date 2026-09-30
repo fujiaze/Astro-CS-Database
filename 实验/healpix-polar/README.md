@@ -79,7 +79,8 @@ Poisson、读出电子域 Gaussian、增益+饱和+量化、平场、天空梯�
 
 ## 目录约定
 
-沿用仓库既有实验单元约定 实验/<kebab-topic>/{code,docs,results,README.md}；2026-09 成稿新增
-REPORT_paper.md / REPORT_experiment.md / refs.md / code/audit/ / results/audit/（收编自
-独立审计/实验重做/P3守恒映射算子/ 三路＋补实验，原文件名保持）。
-分歧裁决一律以 独立审计/实验重做/总编对账/分歧台账.md 为准（D-01/02/03/08/09/11、A-P3-01…12）。
+沿用仓库既有实验单元约定 实验/<kebab-topic>/{code,docs,results,README.md}；成稿新增
+REPORT_paper.md / REPORT_experiment.md / refs.md / code/audit/ / results/audit/（三路重做＋k_corr 补实验，
+原文件名保持）。
+分歧裁决一律以 `实验/裁决台账.md` 为准（D-01/02/03/08/09/11），本单元裁决见 `docs/DISPUTES.md`（A-P3-01…12），
+科学正本同步件见 `docs/science/DISPUTE_RESOLUTION.md`。

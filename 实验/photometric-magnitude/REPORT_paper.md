@@ -1,7 +1,7 @@
 # 测光星等坐标系：以 Gaia XP 绝对分光刻度锚定的通量积分拟合
 
 **单元**：`实验/photometric-magnitude`（SCI-A，任务 SCI-401；科学链第 1 点，最高设计 §2）
-**性质**：定稿论文（实验重做轮融合重写）。整合三路独立重做证据（路线1/2/3，seed=20260926）与本单元历史正本实验（step1–step9，seed=20260921）；分歧裁决一律以 `独立审计/实验重做/总编对账/分歧台账.md` 为准，UNRESOLVED 项不进正文（见 §7 诚实边界）。
+**性质**：定稿论文（实验重做轮融合重写）。整合三路独立重做证据（路线1/2/3，seed=20260926）与本单元历史正本实验（step1–step9，seed=20260921）；分歧裁决一律以 `实验/裁决台账.md`（D-xx）与 `docs/DISPUTES.md`（A-P1-xx）为准，UNRESOLVED 项不进正文（见 §7 诚实边界）。
 **数字溯源约定**：每个关键数字标注 `[文献]`（refs.md 台账条目）、`[实验:code 文件名]` 或 `[推导]`（docs/derivation_robust_weights.md）。
 **权威正本**：`docs/science/PHOTOMETRY.md`（SCI-PHOT-001）；机器可读结果 `results/`（历史轮）与 `results/redo/`（重做轮，注明来源路线）。
 

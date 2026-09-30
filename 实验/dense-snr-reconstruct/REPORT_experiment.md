@@ -2,9 +2,9 @@
 
 **单元目录**: 实验/dense-snr-reconstruct/
 **科学链位置**: 第 4 点——由稀疏控制点重建稠密信噪比场及其定权消费（最高设计 §2）
-**证据源**: 独立审计/实验重做/P4重建稠密SNR/ 路线1/2/3（互不通信的三路独立审计）的 code/results，原样收录本单元 code/ 与 results/；全部读数引用既有存档 JSON，并由订正轮在**单元副本**上重跑 `bash code/run_all.sh` 逐叶核对（19/19 JSON 除计时字段 `runtime_s` 外全同，见 `run/FINAL-07/logs/P4_F4_reproducibility.out`）。
+**证据源**: 三路互不通信的独立重做之 code/results，原样收录本单元 code/ 与 results/；全部读数引用既有存档 JSON，并由订正轮在**单元副本**上重跑 `bash code/run_all.sh` 逐叶核对（19/19 JSON 除计时字段 `runtime_s` 外全同，见 `run/FINAL-07/logs/P4_F4_reproducibility.out`）。
 **复现**: bash code/run_all.sh（纯 CPU，产物与存档 JSON 逐字段同构；本机实测峰值 RSS 0.35 GB，见 `run/FINAL-07/logs/P4_F4_reproducibility.out`）
-**判读口径**: 分歧台账 D-xx/A-P4-xx 终裁。
+**判读口径**: `实验/裁决台账.md` D-xx 与 `docs/DISPUTES.md` A-P4-xx 终裁。
 
 ---
 

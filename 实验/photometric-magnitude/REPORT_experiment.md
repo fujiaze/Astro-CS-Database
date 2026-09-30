@@ -1,7 +1,7 @@
 # 实验报告 · P1 通量积分拟合（测光星等坐标系）
 
 **单元**：`实验/photometric-magnitude`（SCI-A，SCI-401）。本报告是实验重做轮的成稿实验报告：整合历史正本轮实验（step0–step9，seed=20260921）与三路独立重做（路线1/2/3，seed=20260926）；既有历史文档（`README.md`、`docs/fsyn_convention.md`、`RESOLUTION_m42_curve_resolve.md`、`results/REVIEW.md`、`results/DOC_CORRECTIONS.md`、`results/GATES.md`）保留，失效处按台账订正并在文内注明。
-**裁决依据**：`独立审计/实验重做/总编对账/分歧台账.md`（D-xx/A-xx）与 `五单元成稿简报.md`。本单元无 P1 专属补实验目录（`补实验-control_variance / -k_corr / -5.07` 分别由 P2/P3/P5 承载）。
+**裁决依据**：`实验/裁决台账.md`（D-xx）、`docs/DISPUTES.md`（A-P1-xx）、`docs/science/DISPUTE_RESOLUTION.md`（科学正本同步件）。本单元无 P1 专属补实验目录（`补实验-control_variance / -k_corr / -5.07` 分别由 P2/P3/P5 承载）。
 **论文版**：`REPORT_paper.md`；文献台账：`refs.md`；推导：`docs/derivation_robust_weights.md`。
 
 ---

@@ -1,7 +1,7 @@
 # 实验/dense-snr-reconstruct — P4 重建稠密信噪比（科学链第 4 点）
 
 > **单元定位**：由稀疏控制点（P2 sparse_snr_layer，Δ=64 px cell_center_v1）重建稠密 SNR 场，供 P5 逐像素定权（w = SNR²/F_ref² = 1/σ_F²）。最高设计 §2 第 4 点。
-> **成稿依据**：独立审计/实验重做/总编对账/分歧台账.md 与 五单元成稿简报.md（唯一事实源）；三路证据 = 同目录下 P4重建稠密SNR/路线1/2/3。
+> **裁决依据**：`实验/裁决台账.md`（跨单元 D-xx）与 `docs/DISPUTES.md`（本单元 A-P4-xx）；科学正本同步件 `docs/science/DISPUTE_RESOLUTION.md`；三路证据 = 本单元 `results/route{1,2,3}/` 与 `code/`。
 > **复现**：bash code/run_all.sh（固定 seed；首行先跑公共前置步 `实验/shared/synthetic/run_selftests.sh`，随后串行 19 个原实验与 M16 物理前向仿真腿）。
 > **公共前置步**：合成数据物理链自检（m16_mask / m16_scene / m16_sampling / noise_selftest 四组件全跑，
 > 实测 4/4 PASS、rc=0、约 2 分 32 秒）。**不得只调 `noise_selftest.py`**——它的 12 个用例中只有 A2

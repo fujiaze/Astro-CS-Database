@@ -15,7 +15,7 @@
 - **论文**：`REPORT_paper.md`（三路重做证据融合重写版）；**实验报告**：`REPORT_experiment.md`
 - **文献台账**：`refs.md`（只收一手 VERIFIED 条目）；**支撑推导**：`docs/derivation_robust_weights.md`
 - **重做轮代码/结果**：`code/redo/`（路线1/2/3，seed=20260926，`bash code/redo/run_all.sh`）与 `results/redo/`（基准快照）、`results/redo_summary.json`（关键读数汇总，注明来源路线）
-- **裁决依据**：`独立审计/实验重做/总编对账/分歧台账.md`；订正记录见 `REPORT_experiment.md` §7（A-P1-01/04/06/08/09/12、D-06）
+- **裁决依据**：`实验/裁决台账.md`（跨单元 D-xx）与 `docs/DISPUTES.md`（本单元 A-P1-xx）；科学正本同步件 `docs/science/DISPUTE_RESOLUTION.md`；订正记录见 `REPORT_experiment.md` §7（A-P1-01/04/06/08/09/12、D-06）
 - **无 P1 专属补实验目录**：`补实验-control_variance / -k_corr / -5.07` 分别由 P2/P3/P5 承载
 
 ---

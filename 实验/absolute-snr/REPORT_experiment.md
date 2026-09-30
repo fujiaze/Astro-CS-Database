@@ -1,7 +1,7 @@
 # P2 跨帧绝对 SNR · 实验报告（REPORT_experiment）
 
 **单元**：实验/absolute-snr（SCI-B，科学链创新点 P2）
-**事实源**：独立审计/实验重做/总编对账/分歧台账.md、五单元成稿简报.md。整理前的历史正本不再随单元保存；其仍成立部分已吸收进本报告与 `REPORT_paper.md`，失效部分按台账订正并逐条注明（明细见 `docs/LEDGER_CORRECTIONS_P2.md`）。
+**裁决依据**：`实验/裁决台账.md`（D-xx）、`docs/DISPUTES.md`（A-P2-xx）、`docs/science/DISPUTE_RESOLUTION.md`（科学正本同步件）。整理前的历史正本不再随单元保存；其仍成立部分已吸收进本报告与 `REPORT_paper.md`，失效部分按裁决逐条订正并注明（明细见 `docs/LEDGER_CORRECTIONS_P2.md`）。
 **正式论文**：REPORT_paper.md（本报告为其实验证据底稿）。
 
 ---
