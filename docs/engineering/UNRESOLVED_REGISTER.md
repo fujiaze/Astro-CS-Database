@@ -667,3 +667,175 @@ N2c 是下界型判据——只有当被测量本身小到低于下界时才红�
 
 生产 `weight_chain.cpp` 对 nx/ny≥2、越域、值域非正均有 fail-closed ⇒ **这些不是生产缺陷，
 是本单元实验脚本无守卫的隐患**。
+
+---
+
+## 23. R09（跨文档一致性）查出的常数冲突与 GLOSSARY 问题
+
+**归属**：跨文档　**状态**：GLOSSARY 已订正（前台）；集成权重口径待负责人裁决
+
+### 23.1 两处互相矛盾的常数取值（车道已订正）
+
+| 量 | 冲突 | 处置 |
+|---|---|---|
+| `k_corr` | `UNCERTAINTY_AND_COVARIANCE.md:36` 写 `= N_retained/N_eff`，`:48-52` 写 `= k_gauss×k_geo`，相隔 12 行两个定义且无关系声明 | 已订正为「同一量两种表述、数值同解、规范式 = 因子式」 |
+| `1.44`（噪声传播常数） | `NOISE_MODEL.md:99` 作 `1.152×1.25`、`:303` 作恒等式 `1.152×1.2533`（实为 1.4438，**算术不成立**） | 已统一为 `1.44 ≈ 1.152×√(π/2) = 1.4438，冻结取 1.44` |
+
+### 23.2 GLOSSARY 的两处阻断级冲突（前台已订正 :12）
+
+`docs/GLOSSARY.md` 自述「**本词典是唯一术语权威**……任何文档/代码/接口与本文冲突时以本文锚点所指的
+权威文件为准」——但它自己写错了：
+
+**(1) `:12` variance 项漏因子 `k²`**。GLOSSARY 写 `variance_p = Σ v_j·w_jp²/D_p²`，
+而权威式 `docs/science/DRIZZLE.md:218` 是 `variance_p = sumVarNum/N_p²`，等价参数化写法为
+`sumVarNum·k²/D_p²`（`k := D_p/N_p = pixfrac²`），并逐字警告「**裸写 `sumVarNum/D_p²` 漏掉 k²，
+两者仅在 pixfrac=1 时同值，pixfrac<1 时后者偏低 pixfrac⁴ 倍（pf=0.8 ⇒ 0.4096，即 2.44×）**」。
+⇒ GLOSSARY 写的正是被明令禁止的裸写法。作为「唯一术语权威」，任何按它实现的代码会得到
+**2.44 倍**偏低的方差。**已订正**（补 `k²` 并附同一条警告）。
+
+**(2) `:15` `frame_quality_weight = support×snr_v²` 与 SCI-CW 正本双重冲突**：
+函数形式正是 `CONTROL_WEIGHT_SNR.md` §4 注释「不存在 support×snr² 通道」所禁者；
+且「snr=1.0 按 unknown」的缺失语义与 §6 不变量「无伪 unknown」相反。**待裁决**（车道写域外）。
+
+### 23.3 待负责人裁决：Phase2 集成权重用哪个 ivar 口径相反
+
+- `docs/detail/INTEGRATION.md:147` 写「权重来源 = SCI-NOISE ivar（空背景方差面）」；
+- `docs/engineering/CONTROL_WEIGHT_SNR.md:61-64` 要求「唯一来源 = 含源光子散粒项的 `σ_F²`」；
+- 且 INTEGRATION §3 自认权重域是 `(ADU·sr⁻¹)⁻²`，而 SCI-NOISE ivar 是 `ADU⁻²` —— **量纲即不同**。
+
+车道未擅改 SCI-INT 冻结定义，登记待裁决。
+
+### 23.4 车道推翻任务清单的一处预设
+
+任务清单点名的「Gaia XP `0.002` vs `0.0109` mag 常数冲突」**经逐行核对不是冲突**：
+`0.0028` 是官方 `ZP_VEG(G)` 零点不确定度，`0.0109` 是 UPM 接缝门 1.0050% 的 mag 换算值，
+**是两个不同物理量**。另 `2.266` 全库零命中；满阱/增益/读噪全库无冻结值（有意为之，非缺失）。
+
+---
+
+## 24. R08（实验与复现）查出的写死/CWD 相对路径与根目录污染
+
+**归属**：实验单元　**状态**：待修（脚本在 `实验/absolute-snr/**`，需与 R08 车道协调后统一修）
+
+**根目录出现了一个未登记的 `results/` 目录**（含 `exp02_e1_analytic.json`，218 KB），成因已定位到
+**CWD 相对路径默认值**：
+
+    实验/absolute-snr/code/exp02/e1_analytic_scan.py:204
+      ap.add_argument("--out", default="results/exp02_e1_analytic.json")
+
+同目录的 `make_tables.py:22` 是对的（`RES = UNIT / "results"`，从 `__file__` 推导），
+`e1_analytic_scan.py` 与 `e4_gates_selftest.py` 却没有 —— **同一目录内两个脚本口径不一致**。
+
+后果：从仓库根运行时产物落到 `<repo>/results/`，违反规范 01 的目录拓扑（`results/` 只允许在
+各实验单元下），且 `results/` **未被 `.gitignore` 忽略**，会误入版本控制。
+
+**处置方向**：`--out` 默认值改为从 `__file__` 推导的单元内绝对路径（与 `make_tables.py` 同口径）；
+根目录的 `results/` 清零并把 `results/` 加入 `.gitignore`（只禁顶层，不影响单元内）。
+
+---
+
+## 25. GATE-3 · 星点检测的背景 σ̂ 存在**静默置地板**的 fail-open（R10 构造反例，前台已核实代码）
+
+**归属**：P2（生产实现）　**状态**：**最高优先级待修**——这是本轮唯一一处**生产侧 fail-open**
+
+### 25.1 前台核实的代码（逐行）
+
+`lib/algorithms/star_detection/wrapper_phase1/star_detector.cpp:117-123`：
+
+```cpp
+*sigma = std::sqrt(sum / static_cast<double>(kn > 0 ? kn : 1));
+// CLEAN-401 缺陷修（fail-closed）：原 `if (*sigma < 1e-9)` 对 NaN 判假 ⇒ NaN 帧
+// 会把 NaN 当 σ 放行（假源爆炸，见函数上方保留块「已知缺陷」）。非有限 ⇒ 显式失败。
+if (!std::isfinite(*bg) || !std::isfinite(*sigma)) return false;
+if (!(*sigma > 0.0)) *sigma = 1e-9;
+return true;
+```
+
+CLEAN-401 为修「NaN 被当 σ 放行」，把判定从 `*sigma < 1e-9` 改成 `!(*sigma > 0.0)`。
+**该改法把 `sigma == 0` 也一并路由进了同一个分支**——而该分支的动作是**静默置地板**（`*sigma = 1e-9`），
+不是显式失败。函数对 NaN 是 fail-closed，对 0 却是 fail-open，**处置自相矛盾**。
+
+下游 `lib/algorithms/noise_snr/wrapper_phase1/snr_frame_science.cpp:89` 的守卫是：
+
+```cpp
+if (!std::isfinite(cfg.sigma_sky_adu) || !(cfg.sigma_sky_adu > 0.0)) { … return out; }
+```
+
+`1e-9 > 0.0` ⇒ **地板值恰好通过下游守卫**。链上无第二道拦截。
+
+### 25.2 触发条件与后果（R10 实测）
+
+当裁剪窗内像素**全为常量或全被掩膜**（常量/掩膜像素占比 **≥ 0.40**）时，第二阶 MAD **恰为 0**，
+裁剪窗塌成 3e-9，落进上述分支 ⇒ `σ̂ = 1e-9` ⇒ **`SNR_frame` 高估约 2×10¹⁰ 倍**。
+0.30–0.38 区间还有**无告警退化带**（高估 1.8–10.6 倍）。
+
+### 25.3 为什么这一条最优先
+
+- 它在**生产实现**里，不是实验脚本；
+- 它**不是恒红**而是**恒绿方向的错误**（把异常值变成极小 σ ⇒ SNR 极大 ⇒ 一切判据看起来通过）；
+- 1e-9 的地板值**恰好绕过了下游的正值守卫**；
+- R10 同轮补出了 R04 待补实验 E2 的定量阈值：`r = σ_s/σ_n ≈ 3.2` 时单调性斜率已由 0.498 降到 0.192，
+  `r≈9.5 → 0.048`，`r≈32 → 0.005`；而 M42 M2/M5 帧的 2.44–3.66 **正在半衰点上**
+  ⇒ `frame-snr-canon.md` §2.7 现写的结构阈值**偏松约 1 个量级**。
+
+### 25.4 修法方向（待负责人确认，不单方面改生产码）
+
+把 `sigma == 0` 从「静默置地板」改为**显式失败**（与 NaN 同处置），并给下游一个**下界以上的合理性门槛**
+而非仅 `>0`。注意这会改变现有读数（凡落在退化带的帧将从「通过」变为「失败」），属口径变更，
+需按 AGENTS §8 走变更流程并登记读数差异。
+
+---
+
+## 26. R08（实验与复现）查出的可复现性缺陷
+
+**归属**：P2 / P3　**状态**：待修
+
+### 26.1 P3 的 27 个 audit 脚本全部写盘锚点少一级（阻断）
+
+前台已复现：`实验/healpix-polar/code/audit/route3/exp01_leaf_area.py` 落盘路径是
+
+    实验/healpix-polar/code/results/audit/route3/exp01_leaf_area.json
+
+（`dirname×3` 只回到 `code/`，应为 `dirname×4` 回到 `healpix-polar/`），实际
+`FileNotFoundError`、rc=1、**零产物**。
+
+⇒ **`results/audit/**` 的归档当前无法由代码再生成**。`code/audit/{route1,route2,route3,kcorr}`
+四路 27 个脚本同型。
+
+### 26.2 P3 的 `code/audit/run_all.sh` 恒绿（阻断）
+
+无 `set -e`、失败不回传 ⇒ **全部腿失败仍退出 0**。与 P5 在 G08-04 修掉的
+`audit_rework/run_all.sh` 是**同一形态的第二例**（那处已 `set -eu`）。
+
+### 26.3 P2 的 7 个脚本 `--out` 是相对路径
+
+按 README「从仓库根执行」会把产物丢到**仓库根新建的 `results/`**（前台已实测发生并清理）。
+与 §24 登记的 `e1_analytic_scan.py:204` 是同一类。
+
+### 26.4 seed 固定性本身没有问题
+
+5 单元 + 共享链全部写死源码常量/场景配方，**全仓无 time/pid/环境变量 seed**。
+真正的问题是 `results/**` 里 **67/208 份 JSON 内嵌 `runtime_s`/`elapsed_s`/`wall_s`/`generated_at`**
+⇒ 固定 seed 下产物也不可能逐字节相同（P2 占 40/44）。
+
+⇒ 「逐字节可复现」这一验收口径本身需要修订：要么剔除墙钟字段，要么改为「数值字段逐位相同」。
+
+### 26.5 新发现的两处恒真门（均无恒红门）
+
+| 位置 | 形态 |
+|---|---|
+| `实验/absolute-snr/code/exp02/e1_analytic_scan.py:190` | `"G_gate_disabled_turns_green_wrongly": True` **硬编码 True**（同块另两条是真求值；注释已诚实声明不执行注入，但门表仍把它计入） |
+| `实验/healpix-polar/code/audit/route3/exp01_leaf_area.py` | 4 个 `negative_controls` 算完**从不进 verdict**（全仓扫描只此一例） |
+
+### 26.6 独立复算结果（正面）
+
+车道自写脚本复算 **30 个量**：26 个 ≤1.9e-16，2 个（README 印 10 位的对数）2.2e-11~2.4e-10
+属打印精度。**未发现任何落盘值与独立复算不一致。**
+
+### 26.7 共享链判别力被独立复验（正面）
+
+车道在 `/tmp` 复制三份共享链做注入：clean rc=0、注入「去掉电子域泊松抽样」rc=1、
+注入「忽略平场乘性响应」rc=1，汇总退出码 0/1/1 全对；`noise_selftest` 两种缺陷下都绿，
+**证实其对生产实现零判别力**（README 的能力边界声明属实）。
+
+⇒ 前台在 G08-04 建立的「判别力已实测」声明经独立车道复验成立。

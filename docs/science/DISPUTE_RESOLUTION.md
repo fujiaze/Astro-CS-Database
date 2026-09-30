@@ -288,9 +288,14 @@
 ## §27 `m_ref` 的定位（A-P4-06）
 
 - **终裁**：`m_ref` 只作**记录参考电平约定**，不是需标定的量 ——
-  `w` 对 `m_ref` 不变逐位；亮端 1 mag ⇒ SNR × 2.512 仅是记录口径。
-- **依据**：`w` 对 `m_ref` 不变逐位实测。
-- **正本落点**：`docs/science/CONTROL_WEIGHT_SNR.md` —— **无落点（待同步）**。
+  `w` 对 `m_ref` 的不变性是**代数恒等**（SNR 与 `F_ref` 同源，归一在 `w = SNR²/F_ref²` 中相消）：
+  天光受限臂实测逐位不变（相对偏差 ≈ 4e-16），**生产组成臂（σ_F² 含源光子散粒项）只近似成立**，
+  实测 `m_ref` 档漂移 1.9%–4.2%；亮端 1 mag ⇒ SNR × 2.512 仅是记录口径。
+  ⇒ 跨帧比较必须限「同一 `m_ref` 档」，且该档随产品落盘。
+- **依据**：天光受限臂 `mref_drift_rel = 4.44e-16`、源主导臂 `0.0383`
+  （`实验/absolute-snr/code/audit/results/route3/exp04_refmag_chain.json`）；
+  档漂移区间读数正本 = `实验/absolute-snr/REPORT_experiment.md` §精度约定。
+- **正本落点**：`docs/science/CONTROL_WEIGHT_SNR.md` §8a 第 3 条（限定已入正本）。
 
 ## §28 「默认档总是最优」的适用域（A-P4-07）
 

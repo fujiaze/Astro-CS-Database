@@ -8,8 +8,9 @@
 > `docs/architecture/execution_inventory.csv` 中的表述不构成 science authority。
 
 > **权重场口径**：
-> **本文件（Phase2 stage2 内部）**所称 `local_snr` / `frame_snr` 是**相对质量权重场**（`quality_weight =
-> frame_quality_scalar × local_quality_proxy/median`），**不是科学信噪比**；科学 SNR 由
+> **本文件（Phase2 stage2 内部）**所称 `local_snr` / `frame_snr` 是**相对质量权重场**（规范写法
+> `quality_weight[s] = snr_v[s]`，即「该 cell 的局部质量代理 `o.snr`，局部不可得时取整帧质量权重中位
+> `frame_snr_by_id[frame_id]`」），**不是科学信噪比**；科学 SNR 由
 > 逐源 `σ_F` 定义，帧级科学基准为 5σ 点源深度 `m_5`（§2a）。字段名 `snr` 为兼容保留，
 > 其语义为 "SNR-equivalent relative quality, not a calibrated signal-to-noise ratio"。
 > stage2 侧字段名 = `quality_weight`（`snr_v` 为别名）。
@@ -23,9 +24,9 @@
 
 ## 1 目的与非目标
 
-- **目的**：定义 phase2 控制采样与诊断所用的**相对质量权重场**（`quality_weight =
-  frame_quality_scalar × local_quality_proxy/median`）与**帧/星点质量**。该量**无量纲、
-  不产生权重**：Phase2 集成的权重恒为逐样本 `ivar` 逆方差（§5）；该权重场**不是科学信噪比**——其数值来源为
+- **目的**：定义 phase2 控制采样与诊断所用的**相对质量权重场**（规范写法见 §4：
+  `quality_weight[s] = snr_v[s]`，局部不可得时回退整帧质量权重中位并计数）与**帧/星点质量**。
+  该量**无量纲、不产生权重**：Phase2 集成的权重恒为逐样本 `ivar` 逆方差（§5）；该权重场**不是科学信噪比**——其数值来源为
   帧级定标散度与逐星拟合质量代理，科学 SNR 由逐源 `σ_F`（PSF 拟合协方差或 CCD 方程）
   定义，帧级科学基准为 5σ 点源深度 `m_5`（§2a）。与 SCI-NOISE 的逐像素 `variance/ivar`
   （随机噪声倒数权重）**区隔**，二者量纲语义不同、不混用。
@@ -38,7 +39,7 @@
 |---|---|---|
 | `local_snr` | 区域级局部**相对质量权重**（有局部星点可得时；**不是**科学信噪比） | `stage2.cpp`（`snr_available` 回退与 `frame_snr_by_id` 消费点；该量**不承载任何权重**） |
 | `frame_snr`（stage2 内部，建议改名 `quality_weight`） | 整帧 Phase1 SNR 目录值的**中位数（回退质量基准）**（**不是**科学信噪比；Phase1 HiPS 文件头的同名 `frame_snr` 是科学量，见 §0 注记与 §2a） | `stage2.cpp`（`frame_snr_medians`） |
-| `quality_weight` | `frame_quality_scalar × local_quality_proxy/median`，无量纲相对质量权重（S4 重定义的规范名；`snr_v` 为其别名） | 本文件 §4 |
+| `quality_weight` | 相对质量权重，**规范写法 = `quality_weight[s] = snr_v[s]`**（局部质量代理 `o.snr`；局部不可得回退整帧中位并计数 `local_snr_unavailable`），无量纲（S4 重定义的规范名；`snr_v` 为其别名） | 本文件 §4 |
 | `m_5` | 5σ 点源深度 `ZP − 2.5·log10(5·sigma_F(ref))`（唯一帧级科学基准，单位 mag） | 本文件 §2a |
 | `sigma_F` | 逐源通量不确定度（科学 SNR 定义量；PSF 拟合协方差或 CCD 方程，当前实现不产出） | 消费侧定义；本文件 §2a 登记边界 |
 | snr_available | 该控制观测是否含真实可用的局部质量权重（字段名沿用 `snr`） | `stage2.cpp` |
@@ -198,15 +199,14 @@ for 每个控制星 s（半径内）:
 3. **跨帧可比性硬约束**：逐帧 `F_ref,k`、同帧配对、`m_ref=6.0`（`m_ref` 为**记录参考
    电平约定**而非标定量：`w = SNR²/F_ref²` 对 `m_ref` **逐位不变**——SNR 与 `F_ref` 的
    归一互相抵消，变更 `m_ref` 只改记账口径不改权重）；`SNR_combined²=ΣSNR_k²` 相对偏差 2.2e-16，Q/W 信息量 `Var=1/ΣW` 实测 1275 vs 解析 1260（+1.2%）；逆方差组合严格优于等权与 `w∝SNR`。
-   **⚠ 适用域限定（2026-09-30 依本仓实验补）**：上一条「对 `m_ref` 逐位不变」**只在天光受限臂成立**。
+   **⚠ 适用域限定**：上一条「对 `m_ref` 逐位不变」**只在天光受限臂成立**。
    实测 `实验/absolute-snr/code/audit/results/route3/exp04_refmag_chain.json` 的
    `H2_pairing_and_cross_frame.cross_frame_invariance`：
    - `sky_limited_arm.mref_drift_rel` = **4.44e-16**（机器精度级）
    - `source_dominated_arm.mref_drift_rel` = **0.0383（3.83%）**
    **机理**：σ_F² 含源光子散粒项，源主导时 F_ref 的归一不再与 SNR 完全抵消。
    **⇒ 跨帧比对须限「同一 m_ref 档」，且天光受限与源主导两档不可混比。**
-   （本条为 FINAL-07 第 6 轮 `r6-absolute-snr` 车道实测；该车道同时指出：
-   `SNR_combined²` 的偏差腿属**代数恒等**，实验侧已自标 `evidence_eligible=false`，
+   （读数正本：`实验/absolute-snr/`；其中 `SNR_combined²` 的偏差腿属**代数恒等**，实验侧已自标 `evidence_eligible=false`，
    故「2.2e-16」只作定义性结论，不作独立证据腿。）
 4. **量纲区隔复核**：`quality_weight`（无量纲相对质量）与 `variance/ivar`（ADU²）不混用——§5/§6 的不变量在本单元以数值方式复核（权重换算恒等、组合方差解析对拍）。
 5. **读噪口径必须由 `sigma_sky_source` 显式声明**：`SnrSourceParams.sigma_sky_source` 取 `SHOT_ONLY` / `EMPIRICAL_TOTAL_RMS` 之一，生产调用点声明 `EMPIRICAL_TOTAL_RMS`（`noise_sigma` = `StarDetector::estimate_background` 的**整帧 2 轮裁剪 RMS**，含读噪的经验总 rms；噪声模型 A 的 `1.482602218505602×MAD` 稳健尺度是另一生产者，承载逐像素 `variance`）；`sigma_sky_source_effective` 落 provenance。**禁用**把**含读噪**的经验空天总 rms 填入 `sigma_sky_adu` 后又在 gain>0 时叠加 `(RN/g)²`（`snr_science.cpp`）——会高估 σ_F（基准点 +12.8%、RN=50 时 +34.0%，天光主导时消失；负例判据）。**保护测试** `p1snr_science_skysource`：正确口径与独立 MC 真值 zA=1.27（≤3σ）绿、双计臂 zB=25.6（>3σ）红、legacy 缺省与双计臂逐位一致（向后兼容）。PSF 行路径（`snr_estimator.cpp`，gain 未知不加 RN 项）不受影响。量化见 `实验/absolute-snr/results/DOC_CORRECTIONS.md` D1。

@@ -65,7 +65,14 @@ Poisson、读出电子域 Gaussian、增益+饱和+量化、平场、天空梯�
   调用生产实现且生产臂不进入判词，对生产实现零判别力；生产面的门禁责任在
   `m16_scene --selftest` 与 `m16_sampling --selftest`。本单元的 M16 仿真腿依赖该自检为绿。
 - 三路审计＋补实验＋M16 仿真腿：bash code/audit/run_all.sh（Python，seed 写死，日志到 run/healpix-polar-audit-logs/，各实验 JSON 落 results/audit/<路线>/，与存档逐位对照）
+  - **当前状态（未修复，勿据此引用 `results/audit/` 存档）**：`code/audit/{route1,route2,route3,kcorr}`
+    下 27 个脚本的落盘路径锚点少一级（取到 `healpix-polar/code/results/…`，该目录不存在），
+    实测 route1/e3、route2/exp01、route3/exp01、kcorr/direct_char 四路均在写盘处 `FileNotFoundError`、
+    **rc=1 且不产生任何产物**；且该入口 `run_all.sh` 只有 `set -u`、失败仅打印不回传，
+    **全部腿失败时脚本仍退出 0** ⇒ 该一键入口当前不产出证据，也不报警。
 - 历史探针：bash run_all.sh [quick|full]（约 15/60 分钟，日志落 run/EXP-07-POLAR/logs/）
+  - **该入口会覆写 `results/**`**：跑完把 `run/EXP-07-POLAR/logs/*.out|*.csv` 拷进 `results/`，
+    并重算 `results/SNAPSHOT.sha256`。复跑前请先备份 `results/`。
 
 ## 环境
 
