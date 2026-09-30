@@ -353,7 +353,7 @@ flowchart LR
 |---|---|
 | 无黑洞 | 无异常零值区、死区或未填充孔洞；稀疏区与重叠区过渡自然，无不自然暗斑 |
 | 无亮斑 | 无宇宙线或卫星线残留、校准伪影、饱和溢出形成的异常亮点；星云高亮区有层次而非死白 |
-| 无接缝 | 帧间与块间无亮度或灰度阶跃，无重影、错位与重复星点。机器判据 = `CHK-L4-SEAM-FOOTPRINT`：沿真实帧足迹取法向差分，判据量为**有符号台阶**相对边界局部背景电平之比；只对两侧都在数据内部的帧边界计入，被排除的边界逐条落盘；噪声比与方差比只作诊断量、不判红（方差比对电平阶跃原理性失明）。门限取值与默认参数的唯一数值源 = 机器门实现，门限推导与实测标定的正本 = `docs/science/PHASE2_UPM.md` |
+| 无接缝 | 帧间与块间无亮度或灰度阶跃，无重影、错位与重复星点。机器判据（可执行面重建后登记）：沿真实帧足迹取法向差分，判据量为**有符号台阶**相对边界局部背景电平之比；只对两侧都在数据内部的帧边界计入，被排除的边界逐条落盘；噪声比与方差比只作诊断量、不判红（方差比对电平阶跃原理性失明）。门限取值与默认参数的唯一数值源 = 机器门实现，门限推导与实测标定的正本 = `docs/science/PHASE2_UPM.md` |
 | 星点质量 | 星点圆锐，无拖尾、拉伸或双线；跨帧星点重合 |
 | 背景与几何 | 背景均匀、天光结构连续；无明显投影畸变，WCS 网格与星点位置吻合 |
 | 全局观感 | 整幅缩略图上天区结构正确（M42 星云形态、银心带与星场分布），灰度与动态范围自然 |
@@ -366,9 +366,9 @@ flowchart LR
 
 | 面 | 正本 | 机器门 |
 |---|---|---|
-| 落盘形态（裸 / 归档两形态都能写、都能读，解压后逐字节一致，索引可重算，形态键缺省时必须有指名该键的告警事件，Phase2/3 形态键 REJECT） | `docs/engineering/HIPS_STORAGE_FORM_CONTRACT.md`、`docs/detail/PRODUCT_STORAGE_FORM.md` | `CHK-HIPS-STORAGE-FORM` |
-| 裸形态体积削减（只对 4 KiB 对齐的全零整块打洞、读回逐字节不变、随机访问不变、卷不支持时显式降级而不失败） | `docs/engineering/HIPS_STORAGE_FORM_CONTRACT.md`、`docs/detail/PRODUCT_STORAGE_FORM.md` | `CHK-SPARSE-PUNCH`、`CHK-SPARSE-PUNCH-PROBE` |
-| 日志与错误系统（错误上行到命令行、无静默降级、无吞错、日志落输出目录、日志写失败不静默、判据自身能红能绿、台账只减不增） | `docs/engineering/LOG_AND_ERROR_CONTRACT.md`、`docs/detail/LOG_AND_ERROR_SYSTEM.md` | `CHK-LOG-SYS` |
+| 落盘形态（裸 / 归档两形态都能写、都能读，解压后逐字节一致，索引可重算，形态键缺省时必须有指名该键的告警事件，Phase2/3 形态键 REJECT） | `docs/engineering/HIPS_STORAGE_FORM_CONTRACT.md`、`docs/detail/PRODUCT_STORAGE_FORM.md` | 可执行面重建后登记 |
+| 裸形态体积削减（只对 4 KiB 对齐的全零整块打洞、读回逐字节不变、随机访问不变、卷不支持时显式降级而不失败） | `docs/engineering/HIPS_STORAGE_FORM_CONTRACT.md`、`docs/detail/PRODUCT_STORAGE_FORM.md` | 可执行面重建后登记、可执行面重建后登记 |
+| 日志与错误系统（错误上行到命令行、无静默降级、无吞错、日志落输出目录、日志写失败不静默、判据自身能红能绿、台账只减不增） | `docs/engineering/LOG_AND_ERROR_CONTRACT.md`、`docs/detail/LOG_AND_ERROR_SYSTEM.md` | 可执行面重建后登记 |
 
 未在正式平台实测的行为项（如 Windows 侧的稀疏文件等价实现）如实标为未验证，静态面由对应门的静态断言覆盖，行为面在正式平台复验前不冒充已验证。
 
