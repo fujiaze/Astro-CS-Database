@@ -6,7 +6,7 @@
   * docs/ASTROCS_DESIGN.md §3.3（三命令通用输入合同：**键名一律以命令行实际认的键为准**；
     「唯一声明 = lib/infrastructure/cli/session_commands.h 的 config_fields()」）；
   * 工程控制/RELEASE-03/tasks/FIX-203.md 步骤 3（提升后**生产零消费**的键必须在
-    eng/ci/ledgers/dead_config_keys.json 登记「合同声明但生产零读取」，不得静默变 no-op）；
+    eng/contracts/ledgers/dead_config_keys.json 登记「合同声明但生产零读取」，不得静默变 no-op）；
   * GAP_AUDIT G05（snr_path 不在 CLI 白名单）/ N02（algorithm_upm_gauge 死键）/
     N03（export 几何死键）。
 
@@ -28,7 +28,7 @@ sys.path.insert(0, os.path.join(REPO, "eng", "ci"))
 
 import gate_common as gc  # noqa: E402
 
-LEDGER_REL = "eng/ci/ledgers/dead_config_keys.json"
+LEDGER_REL = "eng/contracts/ledgers/dead_config_keys.json"
 # CLI 键表 = 「只声明键名」的文件；其中的 token 命中**不算**生产消费。
 CLI_TABLE_FILES = ("lib/infrastructure/cli/parser.cpp",
                    "lib/infrastructure/cli/session_commands.h")

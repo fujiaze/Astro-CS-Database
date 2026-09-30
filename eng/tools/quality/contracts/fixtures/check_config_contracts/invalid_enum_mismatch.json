@@ -1,4 +1,0 @@
-{
-  "inputs": {"hips": ["a.hips"]},
-  "integration": {"weight_mode": "invalid_mode"}
-}
