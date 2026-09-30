@@ -2,7 +2,7 @@
 
 > 上游：docs/ASTROCS_DESIGN.md §9（CPU 后端与资源）、§8.3（调度器）；docs/ASTROCS_DESIGN.md §9（CPU 后端与资源）
 
-机器 schema：`eng/contracts/schemas/perf_gate_criteria.schema.json`、`eng/contracts/schemas/monitor_field_semantics.schema.json`；判据阈值正本 = `docs/engineering/TEST_STANDARD.md` §9.2，阈值唯一数值源 = `eng/contracts/resource_gate_v1.json`。
+机器 schema：`eng/contracts/schemas/perf_gate_criteria.schema.json`、`eng/contracts/schemas/monitor_field_semantics.schema.json`；判据阈值正本 = 本文件 §1（L2 冻结判据，四条全部为真判红），阈值唯一数值源 = `eng/contracts/resource_gate_v1.json`。
 
 ## 1 L2 冻结判据（四条，全部为**真判红**）
 
@@ -15,7 +15,7 @@
 
 - **enforcement = fail-closed**：任一判据违规 ⇒ `verdict=red`；`record_and_justify` 只是无违规样本的**记录语义**，不参与裁决；
 - 判据阈值本身**保持事前冻结值**（唯一数值源 = `eng/contracts/resource_gate_v1.json::compute`）；硬件/算法上限只作证据化上限随判据登记，不 waiver。
-- **定义与适用域（自洽说明）**：`utilization = busy_cpu_seconds / (window_seconds × n_workers)`；适用域 = 生产重计算面、`effective_cpus ≥ 2` 且采样区间 > 10 s；**验证方式** = 已归档运行证据回放（`实验/engineering-evidence/l2_performance/gates/`）与红绿双向自测（`eng/ci/check_frozen_gate.py --self-test`）。
+- **定义与适用域（自洽说明）**：`utilization = busy_cpu_seconds / (window_seconds × n_workers)`；适用域 = 生产重计算面、`effective_cpus ≥ 2` 且采样区间 > 10 s；**验证方式** = 已归档运行证据回放（`实验/engineering-evidence/l2_performance/gates/`）与红绿双向自测（可执行面（重建后登记））。
 
 ## 2 测量口径（冻结）
 
@@ -41,7 +41,7 @@ utilization_pct = 100 × mean_over_windows( busy_workers_in_window / n_workers )
 | `requires_monitor` | 声明该检查**必须**有监控证据（CPU/RSS/时长采样） | **真强制**：声明为 true 而监控证据缺失/为空/不可解析 ⇒ **判红**（fail-closed）；判定只走具名分支（`else PASS` 属未登记形态） |
 | `mutates_workspace` | 声明该检查**会改写工作区**（如生成产物、改配置） | **真语义**：为 true 时检查前后工作区指纹必须**可解释**（改动面 = 声明的 outputs）；指纹对比是唯一判据（「跳过 git 对比」属未登记形态） |
 
-- `requires_monitor` 声明逐个核对执行语义，对照表见 `docs/engineering/VALIDATION_EVIDENCE_STANDARD.md §12` §6.2；
+- `requires_monitor` 声明逐个核对执行语义，对照表见本文件 §4（监控字段语义）；采样隔离见 `docs/engineering/VALIDATION_EVIDENCE_STANDARD.md` §12.7；
 - 语义是**真强制**，不改名为 `monitor_capable`；改名属合同变更，走变更流程。
 
 ## 5 fail-closed 普查（全部门禁）
