@@ -126,7 +126,9 @@ static void test_01_read_fits() {
         CHECK(false, "readFits 成功");
         return;
     }
-    CHECK(true, "readFits 成功");
+    // 原为 `CHECK(true, "readFits 成功")` —— 恒真；上方 :126 的 CHECK(false) 已负责
+    // 失败路径，这里只需对**实际观测量**断言，不重复报告同一件事。
+    CHECK(ok, "readFits 返回 true");
     fprintf(stderr, "  文件: %s\n", g_fits_path.c_str());
     fprintf(stderr, "  尺寸: %d x %d x %d\n", g_fits_img.width, g_fits_img.height, g_fits_img.channels);
     fprintf(stderr, "  WCS:  has_wcs=%d\n", g_fits_img.wcs.has_wcs);
