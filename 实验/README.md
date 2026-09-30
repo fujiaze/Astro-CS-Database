@@ -5,10 +5,11 @@
 ## 职责边界
 
 - 放：随仓库维护的实验单元——固定 seed 的实验代码（code/）、输入数据（data/）、结果与判据表（results/）、支撑推导（docs/）、文献台账（refs.md）、REPORT_experiment.md 与 REPORT_paper.md。
-- 放：工程实测类证据留档（engineering-evidence/）——测量结果 / 基准数值 / 质量实测 / 审计时点证据，按负责人裁决（2026-09-28，artifacts 重组）自 artifacts/{evidence,acceptance} 迁入留档，历史记录不改写。
+- 放：工程实测类证据留档（engineering-evidence/）——测量结果 / 基准数值 / 质量实测 / 审计时点证据；时点证据快照，历史记录不改写。
 - 不放：科学公式正本与推导（docs/science/、docs/science/algorithms/）；单元报告只引用这些权威，不复制正文。
 - 不放：一次性运行产物与日志（run/）、CI 运行产物（artifacts/ci/）、机器门基线与台账（artifacts/evidence/）。
 - 自包含要求：仅凭一个单元目录即可回答假说、方法、数据、结果、诚实边界、复现命令与佐证来源，不依赖单元之外的临时文件。
+- **结果产物的可复现口径**：固定 seed 下，「可复现」的判定面是 `results/**` 的**确定性数值字段**逐位相同，不是文件逐字节相同。墙钟类字段（`elapsed_s` / `runtime_s` / `wall_s` / `generated_at` / `written_utc`）是运行时事实，不参与可复现判定，但必须保留——它们是重型验证的成本证据。
 
 ## 内容
 
