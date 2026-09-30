@@ -1110,7 +1110,8 @@ void test_part3_checkpoint_resume() {
 
         // 再次清除 (应安全无异常)
         mgr.clear_all();
-        ASSERT_TRUE(true, "重复清除安全无异常");
+        // 原为恒真断言；改为重复清除的**幂等性**：列表仍应为空。
+        ASSERT_EQ(list.size(), static_cast<size_t>(0), "重复清除后列表仍为空（幂等）");
     }
 
     // 测试 5: Orchestrator 集成 - 设置检查点目录

@@ -459,7 +459,10 @@ void test_clear_all() {
 
     // 再次清除 (空目录应安全无异常)
     mgr.clear_all();
-    TEST_CHECK(true, "对空目录 clear_all 应安全无异常");
+    // 原为 `TEST_CHECK(true, …)` 恒真；改为断言**幂等性**观测量：
+    // 二次 clear_all 后仍应为空且各文件仍不存在。
+    TEST_CHECK(mgr.list_all().empty(), "二次 clear_all 后仍无检查点（幂等）");
+    TEST_CHECK(!mgr.exists("clearA.fts"), "二次 clear_all 后 clearA 仍不存在（幂等）");
 
     // 清理
     remove_dir(tmp_dir);

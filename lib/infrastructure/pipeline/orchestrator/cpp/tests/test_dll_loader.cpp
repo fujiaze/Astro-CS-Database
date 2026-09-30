@@ -282,7 +282,13 @@ void test_unload_all() {
 
     // 再卸载一次 (应安全无异常)
     loader.unload_all();
-    TEST_CHECK(true, "重复 unload_all 安全无异常");
+    // 原为 `TEST_CHECK(true, …)` 恒真；改为断言重复卸载的**幂等性**：
+    // 二次 unload_all 后全部 5 个模块仍应为 NOT_LOADED（上方已建立该起点）。
+    for (auto id : ids) {
+        TEST_CHECK(!loader.is_loaded(id),
+                   std::string("重复 unload_all 后 ") + loader.get_info(id).name +
+                   " 仍未加载（幂等）");
+    }
 }
 
 // ============================================================================
