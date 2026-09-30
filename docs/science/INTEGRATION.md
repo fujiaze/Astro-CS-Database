@@ -56,7 +56,8 @@
 
 聚合:
   n_accepted      = |{i | accepted(i)}|
-  n_finite        = |{i | valid(i) ∧ weights[i]≥0}|
+  n_finite        = |{i | accepted(i) ∧ finite(value) ∧ finite(support) ∧ finite(weight)}|
+                   # 不含 weight>0（零权重合法，只是不贡献 signal）
   n_positive_weight = |{i | valid(i) ∧ weights[i]>0}|  (weights 空时视 1.0)
   若 invalid_input           ⇒ status=INVALID_INPUT, n_used=已计数部分
   否则若 n_positive_weight==0:
