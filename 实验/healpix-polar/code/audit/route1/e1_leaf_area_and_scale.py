@@ -38,6 +38,11 @@ import json
 import os
 import math
 import numpy as np
+from pathlib import Path
+
+# 落盘锚点：从脚本自身位置向上定位本单元目录（实验/healpix-polar），
+# 不依赖 dirname 的层数；找不到即抛错，避免静默写到错误位置。
+UNIT = next(p for p in Path(__file__).resolve().parents if p.name == "healpix-polar")
 
 SEED = 20050709
 np.random.seed(SEED)
@@ -246,7 +251,7 @@ OUT["control_point_assignment"] = {
     "honest_boundary": "polar-branch inverse and NESTED ordering not exercised in this standalone check"
 }
 
-with open(os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), "results", "audit", "route1", "e1_leaf_area_and_scale.json"), "w") as fh:
+with open(os.path.join(UNIT, "results", "audit", "route1", "e1_leaf_area_and_scale.json"), "w") as fh:
     json.dump(OUT, fh, indent=1)
 
 lines = ["E1 leaf area + nside scale constant  (seed=%d, deterministic)" % SEED, ""]
@@ -277,6 +282,6 @@ lines.append("")
 lines.append("[Control-point assignment (P2->P3->P4 interface)]")
 lines.append("  roundtrip max err = %.3e over %d in-diamond points ; %d distinct leaf ids on 128-grid"
              % (cp["roundtrip_max_abs_err"], cp["sample_points_in_face4_diamond"], cp["distinct_leaf_ids_128grid"]))
-with open(os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), "results", "audit", "route1", "e1_leaf_area_and_scale.txt"), "w") as fh:
+with open(os.path.join(UNIT, "results", "audit", "route1", "e1_leaf_area_and_scale.txt"), "w") as fh:
     fh.write("\n".join(lines) + "\n")
 print("\n".join(lines))

@@ -14,31 +14,42 @@
 为什么这条腿有判别力（不是把常数场换成有结构场而已）
 --------------------------------------------------------
 守恒算子的逐叶读出是面亮度 S_p = F_p / N_p（N_p = Σ_j w_jp·A_pixel,j，生产
-累加器 sumNorm 口径）。对**结构无关**的场，几何项完全可预测：
+累加器 sumNorm 口径）。对**结构无关**的场，几何项完全可预测：drop 在球面上是
+大圆四边形，chart 侧用直线多边形逼近，两者之差
 
-    dOmega = dxi deta / (1 + xi^2 + eta^2)^2
+    (pi/3)·A_chart / A_exact - 1,   A_exact = ∫∫ dxi deta / (1+xi^2+eta^2)^{3/2}
 
-(drop, z, phi) 三者的 (pi/3)·A_chart 与精确立体角 A_exact 之比在本帧 WCS 上实测为
+是**弦-曲线效应**，实测约 √(1+rho^2)-1 **以下**、随足迹缩小而下降（见下）。
+它是实测，不是闭式，也没有解析推导。
 
-    (pi/3)·A_chart / A_exact - 1 = 0.5 · rho^2 + O(rho^4)
+判别力从哪来：
 
-（系数 0.5000，rho 由 5" 扫到 10000"、4 个方位、足迹尺度跨 256 倍，吻合到 1e-3；
-且**与足迹大小无关**——不随分辨率收缩，这是既有预算未登记的性质）。于是：
-
-* **真值无效应**（把物理前向信号面换成同均值 B 的**平坦**面）⇒ 扣除闭式几何项后
-  度量必须**精确归零**（1e-12 判据）——归零负例 NC-A；
-* 信号面带结构（M16 星云核 + 星场）⇒ 同一扣除后的度量必须远离零（非退化门，防恒真门）；
+* **真值无效应**（把物理前向信号面换成同均值 B 的**平坦**面）⇒ 逐叶残差
+  S_p/B - 1 恒等于逐叶内 (pi/3)A_chart/A_exact - 1 的面积加权平均，其上界就是
+  逐像元面积比的最大值（NC-A）。这条负例不再要求"归零"：正确指数下它等于
+  chart 侧几何项本身（约 6e-09），与信号场无关。
+* 信号面带结构（M16 星云核 + 星场）⇒ 逐叶面亮度对全视场均值的偏离必须远离零
+  （M4，防恒真；它测的是信号对比度，不是几何零）。
 * 换错分母（w = a_jp/A_pixel，pf=0.8）⇒ 度量必须 = pf^2 - 1 = -0.36 判红（NC-B）；
-* 该 0.5·rho^2 落在既有 gnomonic drop 级预算带 [0.5, 1.5]·rho_max^2 的**下端点**
-  （REPORT_experiment.md §4.2），构成"算子读数 / 闭式 / 既有预算带"三方印证；
-* rho -> 0 的 drop ⇒ 几何项闭式 0.5·rho^2 必归零到数值地板（NC-C，rho = 0 处）。
+* rho -> 0 的 drop ⇒ chart 侧项必归零到数值地板（NC-C，rho = 0 处）；
+* 视场跨面界（M5）⇒ 逐 drop 分割仍完备，且跨面 drop 被 fail-closed 检出。
 
-五条与既有纯解析腿互补、且绑在物理帧几何上的判据：
+关于 A_exact 的指数
+-------------------
+`A_exact` 的被积函数指数必须是 **3/2**。用 gnomonic 圆盘半径 r 的解析立体角
+2pi(1 - 1/sqrt(1+r^2)) 逐点判指数：p = 3/2 的相对误差在 r = 0.1/0.5/1/2 处是
++3.8e-15 / -2.2e-16 / +4.4e-16 / 0.0；p = 2 则是 -2.5e-3 / -5.3e-2 /
+**-1.46e-1** / -2.8e-1。指数取 2 会让 A_exact 系统性偏小一个因子 sqrt(1+rho^2)，
+于是一切 (pi/3)A_chart/A_exact - 1 的读数都被抬成 sqrt(1+rho^2) - 1。
+
+四条与既有纯解析腿互补、且绑在物理帧几何上的判据：
   M1 全局守恒 Σ_p F_p / Σ_j x_j - 1（物理信号面，结构非退化）；
-  M2 drop 精确立体角闭合 (pi/3)A_chart/A_exact - 1 = 0.5·rho^2，rho 由 0 扫到 10000"；
+  M2 chart 侧 drop 面积偏差 (pi/3)A_chart/A_exact - 1，rho 由 0 扫到 10000"，
+     跨 4 个足迹尺度（0.2/0.8/3.2/12.8 px）；
   M3 逐 drop 权重分割完备 Σ_p w_jp - 1（整叶内 drop 逐位 0；跨叶 drop 受 chart 角点
      绝对分辨率限制，地板 ≈ ulp(u)/drop 尺度，本实验登记实测值与地板估计）；
-  M4 逐叶面亮度扣闭式几何项后的残差（结构场远零 / 平坦场归零）。
+  M4 逐叶面亮度对信号场均值的偏离（结构场远离零）；
+  M5 构造的「视场跨面界」用例：跨面 drop 的 fail-closed 与跨面界的分割完备。
 
 固定 seed：场景配方 scenes/m16_sampling_overlap_common.json 内置
 （scene seed 20261010 / frame cm_f0 seed 101），本脚本不引入新随机源。
@@ -72,29 +83,74 @@ FRAME_SHAPE = [512, 512]           # 内存内缩小探测器尺寸（不写盘�
 CROP = 160                        # 中央裁切（px）
 PF = 0.8                          # pixfrac（与既有解析腿同档）
 HP_RES_PER_PIX = 4.0              # 目标叶尺度：hp_res = 4 个探测器像元
-GEOM_TOL = 1e-11                  # 扣除闭式项后的归零判据（机器精度量级，
-                                   # 地板 = O(足迹张角^2) = 5.5e-13，见 M3 floor_reason）
 RHO_SCAN_MAX_ARCSEC = 10000.0      # M2 几何扫描半径上限（gnomonic 极限内）
 RHO_SCAN_N = 25
-RHO_SCAN_K = 16.0                   # 几何扫描同时跨 4 个足迹尺度（0.2/0.8/3.2/12.8 px，验证分辨率无关性）
+RHO_SCAN_K = 16.0                   # 几何扫描同时跨 4 个足迹尺度（0.2/0.8/3.2/12.8 px）
+NSIDE_M5_GRID = 4_000_000           # M5 跨面界用例的叶格：取得比主腿细，使 drop 必然跨叶
+UV_TOL = 1e-12                      # chart (u,v) 落在 [0,1] 的判定容差（面界公共边上两侧会同时落空）
 
 
 # ---------------------------------------------------------------- chart <-> sphere
-def face_index(phi):
-    """RA -> 赤道带面号 f：|phi - (pi/2)(f-4)| <= pi/4 的唯一 f。"""
-    return 4 + np.round(np.asarray(phi, dtype=float) / (np.pi / 2.0)).astype(np.int64)
+def sphere_to_chart(z, phi):
+    r"""(z, phi) -> (face, u, v)：p3lib.chart_to_vec **赤道带分支** 的精确逆映射。
 
+    赤道带分支在面上是仿射的（Gorski et al. 2005, arXiv:astro-ph/0409513；正本
+    `p3lib.chart_to_vec`）：对每个基面 f
 
-def uv_in_face(f, z, phi):
-    """(face, z, phi) -> (u, v)；只走赤道带分支，解析可逆（refs.md V1/V6）。
+        z  = (2/3)(u + v + zoff),   phi = (pi/4)(u - v + phioff + 2 chp)
 
-    z = (2/3)(u+v-1)，phi = (pi/4)(u-v) + (pi/2)(f-4)
-    => s = u+v = 1 + 1.5 z，t = u-v = (4/pi)(phi - (pi/2)(f-4))
-    面 f <= 3 时赤道带只占 u+v <= 1（该分支要求 s <= 1，由调用方检查）。
+    所以给定 (z, phi)，12 个面各给一组候选 (u, v)，落在 [0,1)^2 内的那个即所属面。
+    面在带内构成一个**划分**（p3lib.roundtrip_tiling 全天逐点核验），故候选唯一。
+
+    为什么不能只按方位角选面
+    ------------------------
+    面 4-7 的菱形**不单独铺满** |z| <= 2/3 的带。给定 z=s 换算出的 (u+v)，面 f
+    的方位角窗口是 |phi - (pi/2)(f-4)| <= 45 deg * min(s, 2-s)：|z| 越远离 0，
+    窗口越窄。于是带内有两段方位角落在任何面 4-7 之外，它们归入面 0-3（z>0）
+    或面 8-11（z<0）的赤道带分支。按 phi 选面在这两段必然挑错面。
+
+    实测（R=0.24 rad, CRVAL 同主腿）：phi = -85.4 deg 属面 7、phi = -60.4 deg 与
+    -30 deg 属面 11、phi = 40 deg（z=+0.20）属面 0。只按 phi 选面会把它们全部
+    送进错误面，逆映射给出 u<0 或 v>1 的点，逐 drop 权重于是全 0。
+
+    |z| > 2/3 需要极冠分支；本腿视场 |z| < 0.3，不适用，此时返回 face = -1。
     """
-    s = 1.0 + 1.5 * np.asarray(z, dtype=float)
-    t = (4.0 / np.pi) * (np.asarray(phi, dtype=float) - (np.pi / 2.0) * (f - 4))
-    return 0.5 * (s + t), 0.5 * (s - t)
+    z = np.asarray(z, dtype=float)
+    phi = np.asarray(phi, dtype=float)
+    face = np.full(z.shape, -1, dtype=np.int64)
+    uu = np.full(z.shape, np.nan)
+    vv = np.full(z.shape, np.nan)
+    for f in range(12):
+        zoff = 0.0 if f <= 3 else (-1.0 if f <= 7 else -2.0)
+        phioff = 0.0 if 4 <= f <= 7 else 1.0
+        chp = f if f <= 3 else (f - 4 if f <= 7 else f - 8)
+        ax = (np.pi / 4.0) * (phioff + 2.0 * chp)      # 面的方位轴
+        s = 1.5 * z - zoff                             # = u + v
+        # 折到该面轴的 2pi 主支。注意只能按 **2pi** 折，不能按相邻面轴间距 90 deg 折：
+        # 面 4-7 的窗口半宽随 s 收缩（<= 45 deg），按 90 deg 折会把 180 deg 处的点
+        # 误判成面 4 的中心点。
+        d = phi - ax
+        d = d - 2.0 * np.pi * np.round(d / (2.0 * np.pi))
+        u = 0.5 * (s + 4.0 * d / np.pi)                # = (s + (u-v)) / 2
+        v = 0.5 * (s - 4.0 * d / np.pi)
+        hit = (u >= -UV_TOL) & (u <= 1.0 + UV_TOL) & (v >= -UV_TOL) & (v <= 1.0 + UV_TOL) \
+              & (face < 0)
+        # 面界是两条窗口的公共边；严格不等式会让边界点被两侧同时拒绝（返回 -1）。
+        # 放宽到 UV_TOL 后边界点确定地归给编号较小的一面，再夹回 [0,1)。
+        face = np.where(hit, f, face)
+        uu = np.where(hit, np.clip(u, 0.0, 1.0 - UV_TOL), uu)
+        vv = np.where(hit, np.clip(v, 0.0, 1.0 - UV_TOL), vv)
+    return face, uu, vv
+
+
+def tan_project_rad(vec, ra0, dec0):
+    """gnomonic 投影的解析逆（与 tan_deproject_rad 同帧）：xi = (v.ea)/(v.n)。"""
+    n, ea, ed = P.tangent_frame(ra0, dec0)
+    v = np.asarray(vec, dtype=float)
+    dn = np.einsum('...i,i->...', v, n)
+    dxi = np.einsum('...i,i->...', v, ea)
+    det = np.einsum('...i,i->...', v, ed)
+    return dxi / dn, det / dn
 
 
 def clip_rect(pts, u0, u1, v0, v1):
@@ -142,16 +198,33 @@ def solid_angle_gnomonic(cx, cy, ex, ey, h, n=5):
     gnomonic 把大圆映成直线（WCS Paper II，refs.md V5），所以"drop 足迹"在球面上
     恰是 {g 点 : gnomonic(g) 落在该平行四边形内}，其立体角是**精确**积分
 
-        Omega = \int\int  dxi deta / (1 + xi^2 + eta^2)^2
+        Omega = \int\int  dxi deta / (1 + xi^2 + eta^2)^{3/2}
+
+    被积函数指数必须是 3/2。gnomonic 圆盘（半��� r）的解析立体角是
+    2pi(1 - 1/sqrt(1+r^2))，等价于
+
+        \int\int dxi deta /(1+xi^2+eta^2)^{p} = pi*[1-(1+r^2)^{1-p}]/(p-1)
+
+    据此逐点核验（相对误差）：
+
+    |  gnomonic 半径 r | 指数 p = 3/2 | 指数 p = 2 |
+    |---|---|---|
+    | 0.10 | +3.8e-15 | -2.5e-3 |
+    | 0.50 | -2.2e-16 | -5.3e-2 |
+    | 1.00 | +4.4e-16 | **-1.46e-1** |
+    | 2.00 |  0.0e+00 | -2.8e-1 |
+
+    指数取 2 会让"精确面积"系统性偏小一个因子 sqrt(1+rho^2)，于是
+    (pi/3)A_chart/A_exact - 1 读成 sqrt(1+rho^2) - 1（其 rho^2 展开的前���项
+    恰为 0.5*rho^2）。这是 oracle 自身的误差，不是被测几何的性质。
 
     被积函数在足迹上是光滑的 O(1) 函数，n 阶 Gauss 求积的相对误差 O((足迹张角)^{2n})
     ——对 0.16" 级 drop（张角 7.4e-7 rad）远在双精度之下。
 
-    为什么不��� VOS 三角形公式：VOS 的 det = a·(b x c) 由 O(1) 分量相消得到，而
+    为什么不走 VOS 三角形公式：VOS 的 det = a·(b x c) 由 O(1) 分量相消得到，而
     小三角形的 det ~ (张角)^2；顶点分量本身只精确到 1 ulp(O(1))，故相对误差
-    ~1e-16/(张角)^2 —— 在 0.16" drop 上就到 1e-3 量级（实测 1.7e-6），完全盖住
-    本实验要量的 rho^2 ~ 1e-7。该病态即 refs.md 标注级条目 Kahan 2000 所说的
-    "针状三角形数值问题"；本腿因此把精确面积判据建在 gnomonic 积分上，不建在 VOS 上。
+    ~1e-16/(张角)^2 —— 在 0.16" drop 上就到 1e-3 量级（实测 1.7e-6）。本腿因此把
+    精确面积判据建在 gnomonic 积分上，不建在 VOS 上。
     """
     gx, gw = np.polynomial.legendre.leggauss(n)
     s = gx[:, None]
@@ -160,7 +233,7 @@ def solid_angle_gnomonic(cx, cy, ex, ey, h, n=5):
     eta = cy + h * (s * ex[1] + t * ey[1])
     jac = abs(h * h * (ex[0] * ey[1] - ex[1] * ey[0]))
     w = gw[:, None] * gw[None, :]
-    return float(jac * np.sum(w / (1.0 + xi * xi + eta * eta) ** 2))
+    return float(jac * np.sum(w / (1.0 + xi * xi + eta * eta) ** 1.5))
 
 
 def tan_deproject_rad(xi, eta, ra0, dec0):
@@ -173,6 +246,167 @@ def tan_deproject_rad(xi, eta, ra0, dec0):
     p = (n + np.asarray(xi, dtype=float)[..., None] * ea
          + np.asarray(eta, dtype=float)[..., None] * ed)
     return p / np.linalg.norm(p, axis=-1, keepdims=True)
+
+
+def chart_roundtrip(crv1, crv2, n_z=41, n_phi=721):
+    r"""sphere_to_chart 的正确性自检：(z,phi) -> (f,u,v) -> p3lib.chart_to_vec。
+
+    返回 (max_roundtrip_chord_error, coverage_gap_fraction)。
+    往返误差用**弦长** |a-b| 度量而不是 arccos(a·b)：arccos 在近零角处的分辨率
+    下限约 sqrt(2e-16) ~ 1.4e-08，会把逐位正确的结果报成 1e-08 量级。
+    coverage_gap_fraction = 未落进任何面的方向占比；在 |z| < 2/3 的带内它必须是 0，
+    这正是"面 4-7 的菱形不铺满该带、补面 0-3/8-11 才构成划分"这一事实的量化。
+    |z| = 2/3 是赤道带分支与极冠分支的接缝，采样网格去掉端点。
+    """
+    z = np.linspace(-2.0 / 3.0, 2.0 / 3.0, n_z)[1:-1]   # 去掉 |z| = 2/3 的接缝
+    phi = np.linspace(-np.pi, np.pi, n_phi)
+    ZZ, PP = np.meshgrid(z, phi, indexing="ij")
+    f, u, v = sphere_to_chart(ZZ, PP)
+    gap = float(np.count_nonzero(f < 0)) / f.size
+    vec = np.stack([np.sqrt(np.maximum(0.0, 1.0 - ZZ ** 2)) * np.cos(PP),
+                    np.sqrt(np.maximum(0.0, 1.0 - ZZ ** 2)) * np.sin(PP),
+                    ZZ], axis=-1)
+    back = P.chart_to_vec(f, u, v)
+    err = float(np.max(np.linalg.norm(back - vec, axis=-1)))
+    return err, gap
+
+
+def face_boundary_case(crv1, crv2, ex, ey, nside_grid, floor):
+    r"""构造「视场跨面界」用例：在一段跨面界的视场里做逐 drop 权重分割。
+
+    M16 视场只有 22.5" 宽，而面界在几度之外，所以主腿的读数**永远**不覆盖面界
+    路径。本用例把视场直接造在面界上。
+
+    面 4-7 的菱形在带内的方位角窗口是 |phi - axis_f| <= 45 deg * s，s = 1 + 1.5z
+    （s = u + v）。|z| 越远离 0 窗口越窄，窗口之外的那段方位角归入面 0-3（z>0）
+    或面 8-11（z<0）。因此面 7 / 面 11 的界是一条随 z 走的曲线
+
+        phi_edge(z) = -90 deg + 45 deg * (1 + 1.5 z)
+
+    两段构造：
+      A. z 由 -0.26 扫到 -0.22，方位角在 phi_edge(z) 两侧各 3 deg —— 视场横跨该界，
+         drop 落在面 7 与面 11 上；
+      B. z 同上，方位角**恰在** phi_edge(z) 上 —— drop 本身跨面界（四角点分属两面），
+         必须被 fail-closed 检出并剔除。
+
+    逐 drop 走**与主腿完全相同**的路径（sphere_to_chart -> chart 面积 -> 叶矩形
+    S-H 裁剪 -> Σ_p w_jp）。nside_grid 取得比主腿细，使 drop 必然跨叶，Σ_p w_jp
+    才真的在做分割而不是恒等地落在单叶里。
+
+    另附一条注入：同一构造改用"只按方位角选面"的旧规则 _legacy_face_uv，读它给出
+    的 Σ_p w_jp。这条注入证明判据能红能绿 —— 旧规则把面 11 上的 drop 送进面 4-7 的
+    逆映射，拿到越界 (u,v)，权重静默全 0 且不被任何计数捕获。
+    """
+    hq = 0.5 * PF                                  # drop 半宽（px 尺度），远小于视场
+    zs = np.linspace(-0.26, -0.22, 13)
+    spread = np.linspace(-3.0, 3.0, 41)            # deg，相对 phi_edge
+    faces_touched, n_flagged, worst = set(), 0, 0.0
+    worst_legacy, n_legacy_zero, n_kept, n_built = 0.0, 0, 0, 0
+
+    for zc in zs:
+        phi_edge = math.radians(-90.0 + 45.0 * (1.0 + 1.5 * zc))
+        for case, dphis in (("A", spread), ("B", np.zeros(1))):
+            for dphi in dphis:
+                phi = phi_edge + math.radians(dphi)
+                R = math.sqrt(1.0 - zc * zc)
+                v0 = np.array([R * math.cos(phi), R * math.sin(phi), zc])
+                cx, cy = tan_project_rad(v0, crv1, crv2)
+                corners = [(cx + hq * (sx * ex[0] + sy * ey[0]),
+                            cy + hq * (sx * ex[1] + sy * ey[1]))
+                           for sx, sy in ((-1, -1), (-1, 1), (1, 1), (1, -1))]
+                vv = tan_deproject_rad(np.array([q[0] for q in corners]),
+                                       np.array([q[1] for q in corners]), crv1, crv2)
+                phic = np.arctan2(vv[..., 1], vv[..., 0])
+                n_built += 1
+                fc, u, v = sphere_to_chart(vv[..., 2], phic)
+                if bool((fc >= 0).all() and (fc == fc[0]).all()):
+                    faces_touched.add(int(fc[0]))
+                    worst = max(worst, abs(_partition_sum_w(
+                        u, v, shoelace_abs(np.stack([u, v], axis=-1)), nside_grid) - 1.0))
+                    n_kept += 1
+                else:
+                    n_flagged += 1
+                _, lu, lv = _legacy_face_uv(vv[..., 2], phic)
+                lsw = _partition_sum_w(lu, lv,
+                                       shoelace_abs(np.stack([lu, lv], axis=-1)), nside_grid)
+                worst_legacy = max(worst_legacy, abs(lsw - 1.0))
+                if lsw == 0.0:
+                    n_legacy_zero += 1
+    return {
+        "construction": "z 由 -0.26 扫到 -0.22；A 段方位角在 phi_edge(z)=-90+45(1+1.5z) "
+                        "度两侧各 3 deg（视场横跨面 7 / 面 11 界），B 段方位角恰在 "
+                        "phi_edge(z)（drop 本身跨面界）；drop 半宽 = PF/2 像元",
+        "nside_grid": int(nside_grid),
+        "nside_grid_note": "取得比主腿细，使 drop 必然跨叶：Σ_p w_jp 才真的在做分割。",
+        "drops_constructed": n_built,
+        "drops_kept_in_sum": n_kept,
+        "faces_touched": sorted(faces_touched),
+        "n_cross_face_flagged": n_flagged,
+        "max_sum_w_minus_1_kept": float(worst),
+        "injected_legacy_azimuth_only_rule": {
+            "max_sum_w_minus_1": float(worst_legacy),
+            "n_drops_with_all_zero_weights": n_legacy_zero,
+            "note": "同一构造改用只按方位角选面的旧规则：面 11 上的 drop 被送进面 4-7 "
+                    "的逆映射，拿到越界 (u,v)，裁剪循环为空，Σ_p w_jp 静默变成 0 且"
+                    "不被任何计数捕获。本用例以此证明判据能红：主规则 <= 地板，"
+                    "旧规则 >= 1。",
+        },
+        "gates": {
+            "M5_field_really_spans_faces": bool(len(faces_touched) >= 2),
+            "M5_cross_face_drop_flagged": bool(n_flagged > 0),
+            "M5_kept_drops_conserve": bool(worst <= max(floor, 1e-12)),
+            "M5_injected_legacy_rule_goes_red": bool(
+                n_legacy_zero > 0 and worst_legacy >= 1.0 - 1e-9),
+        },
+    }
+
+
+def _partition_sum_w(u, v, a_drop, nside):
+    """drop 的 chart 多边形 -> 叶矩形裁剪，返回 Σ_p w_jp（与主腿同一条路径）。"""
+    if not (a_drop > 0.0) or not np.isfinite(a_drop):
+        return 0.0
+    poly = [np.array([u[k], v[k]]) for k in range(4)]
+    gi0 = max(int(np.floor(u.min() * nside)), 0)
+    gi1 = min(int(np.floor(u.max() * nside)), nside - 1)
+    gj0 = max(int(np.floor(v.min() * nside)), 0)
+    gj1 = min(int(np.floor(v.max() * nside)), nside - 1)
+    sw = 0.0
+    for gi in range(gi0, gi1 + 1):
+        for gj in range(gj0, gj1 + 1):
+            cl = clip_rect(poly, gi / nside, (gi + 1) / nside,
+                           gj / nside, (gj + 1) / nside)
+            if len(cl) < 3:
+                continue
+            a = shoelace_abs(cl)
+            if a > 0.0:
+                sw += a / a_drop
+    return sw
+
+
+def _legacy_face_uv(z, phi):
+    """注入用：**只按方位角**选面的旧规则（4 + round(phi/(pi/2))，赤道带逆映射）。
+
+    保留在文件里只为让 M5 能演示判据能红能绿，不参与任何求和。
+    """
+    f = 4 + np.round(np.asarray(phi, dtype=float) / (np.pi / 2.0)).astype(np.int64)
+    s = 1.0 + 1.5 * np.asarray(z, dtype=float)
+    t = (4.0 / np.pi) * (np.asarray(phi, dtype=float) - (np.pi / 2.0) * (f - 4))
+    return f, 0.5 * (s + t), 0.5 * (s - t)
+
+
+def _named_gates(out):
+    """把 out 里各处的门摊平成 {门名: bool}，便于点名报告红灯。"""
+    named = {}
+    for k, v in out.items():
+        if isinstance(v, dict) and isinstance(v.get("gates"), dict):
+            for gn, gv in v["gates"].items():
+                named[gn] = bool(gv)
+        if k == "negative_control":
+            for cn, cv in v.items():
+                if isinstance(cv, dict) and isinstance(cv.get("gates"), dict):
+                    for gn, gv in cv["gates"].items():
+                        named[gn] = bool(gv)
+    return named
 
 
 # ---------------------------------------------------------------- 物理前向仿真腿
@@ -236,20 +470,26 @@ def main():
     pix_v = tan_deproject_rad(*[corners(xi, eta, 1.0)[..., k] for k in (0, 1)], crv1, crv2)
 
     def to_chart(vec):
-        """(...,4,3) 单位矢量 -> (face, (...,4,2) 的 (u,v))，逐 drop 定面。"""
-        cen = vec.mean(axis=-2)
-        f = face_index(np.arctan2(cen[..., 1], cen[..., 0]))
+        """(...,4,3) 单位矢量 -> (face, uv, single)：**逐角点**定面。
+
+        逐角点定面是本腿能安全处理面界的唯一办法：一个 drop 只要有角点落在不同面，
+        它的四角点就无法在单一 (u,v) 仿射片里比较。此时返回 single=False，
+        调用方必须把它**排除**在守恒求和外（fail-closed），而不是让它带着越界的
+        (u,v) 去求权重——后者会让 Σ_p w_jp 静默变成 0。
+        """
         z = vec[..., 2]
         phi = np.arctan2(vec[..., 1], vec[..., 0])
-        shp = vec.shape[:-2]
-        out = np.empty(shp + (4, 2), dtype=float)
-        for idx in np.ndindex(shp):
-            u, v = uv_in_face(int(f[idx]), z[idx], phi[idx])
-            out[idx] = np.stack([u, v], axis=-1)
-        return f, out
+        fc, u, v = sphere_to_chart(z, phi)
+        uv = np.stack([u, v], axis=-1)
+        in_face = fc >= 0
+        same = (fc == fc[..., :1]).all(axis=-1)
+        single = in_face.all(axis=-1) & same
+        face = np.where(single, fc[..., 0], -1)
+        return face, uv, single
 
-    f_drop, drop_uv = to_chart(drop_v)
-    _, pix_uv = to_chart(pix_v)
+    f_drop, drop_uv, drop_single = to_chart(drop_v)
+    _, pix_uv, _ = to_chart(pix_v)
+    outside = int(np.count_nonzero(~drop_single))
 
     a_drop_vos = np.empty((CROP, CROP))
     a_pix_vos = np.empty((CROP, CROP))
@@ -258,18 +498,15 @@ def main():
     outside = 0
     for i in range(CROP):
         for j in range(CROP):
-            f = int(f_drop[i, j])
             u, v = drop_uv[i, j, :, 0], drop_uv[i, j, :, 1]
             up, vp = pix_uv[i, j, :, 0], pix_uv[i, j, :, 1]
-            if not (np.all(u >= 0.0) and np.all(u < 1.0) and np.all(v >= 0.0)
-                    and np.all(v < 1.0) and (f >= 4 or np.all(u + v <= 1.0))):
-                outside += 1
-            a_drop_chart[i, j] = shoelace_abs(np.stack([u, v], axis=-1))
-            a_pix_chart[i, j] = shoelace_abs(np.stack([up, vp], axis=-1))
+            if drop_single[i, j]:
+                a_drop_chart[i, j] = shoelace_abs(np.stack([u, v], axis=-1))
+                a_pix_chart[i, j] = shoelace_abs(np.stack([up, vp], axis=-1))
             a_drop_vos[i, j] = solid_angle_gnomonic(xi[i, j], eta[i, j], ex, ey, 0.5 * PF)
             a_pix_vos[i, j] = solid_angle_gnomonic(xi[i, j], eta[i, j], ex, ey, 0.5)
 
-    # --- M2：rho 扫描（几何项闭式 = rho^2，含 rho=0 精确零） ---
+    # --- M2：rho 扫描（chart 侧几何项，含 rho=0 精确零） ---
     scan = []
     for k in range(RHO_SCAN_N + 1):
         rad = RHO_SCAN_MAX_ARCSEC * k / RHO_SCAN_N
@@ -283,13 +520,17 @@ def main():
                          (cx + h * (-ex[0] + ey[0]), cy + h * (-ex[1] + ey[1])),
                          (cx + h * (ex[0] + ey[0]), cy + h * (ex[1] + ey[1])),
                          (cx + h * (ex[0] - ey[0]), cy + h * (ex[1] - ey[1])))
-                us2, vs2 = [], []
+                us2, vs2, ok = [], [], True
                 for a, b in quads:
                     v1 = tan_deproject_rad(np.array(a), np.array(b), crv1, crv2)
-                    ph1 = math.atan2(v1[1], v1[0])
-                    uu, vv = uv_in_face(int(face_index(ph1)), v1[2], ph1)
-                    us2.append(uu)
-                    vs2.append(vv)
+                    fq, uq, vq = sphere_to_chart(v1[2], math.atan2(v1[1], v1[0]))
+                    if int(fq) < 0:
+                        ok = False
+                        break
+                    us2.append(uq)
+                    vs2.append(vq)
+                if not ok:
+                    continue
                 a_ch = shoelace_abs(np.stack([np.array(us2), np.array(vs2)], axis=-1))
                 a_sp = solid_angle_gnomonic(cx, cy, ex, ey, h, n=9)
                 scan.append({"rho_arcsec": rad, "footprint_scale_px": 0.5 * PF * kk * 2.0,
@@ -306,7 +547,12 @@ def main():
     for kk in np.unique(scan_k[use]):
         m2 = use & (scan_k == kk)
         per_scale.append(float(np.sum(scan_arr[m2] * scan_r2[m2]) / np.sum(scan_r2[m2] ** 2)))
-    res_indep = float((max(per_scale) - min(per_scale)) / np.mean(per_scale))
+    # 跨足迹尺度的斜率**绝对**展度：双侧判据。原公式是相对展度
+    # (max-min)/mean(per_scale)，而 mean 可以为 0 或反号，负数无条件通过。
+    slope_spread = float(max(per_scale) - min(per_scale))
+    # 同一 scan 的逐尺度峰值：用来判"chart 侧项随足迹缩小而下降"
+    per_scale_peak = {float(kk): float(np.max(np.abs(scan_arr[use & (scan_k == kk)])))
+                      for kk in np.unique(scan_k[use])}
 
     # --- M2'：物理裁切面上的同一读数（结构场，rho 动态范围约 8 倍） ---
     rel_geom = a_drop_chart * (math.pi / 3.0) / a_drop_vos - 1.0
@@ -367,8 +613,18 @@ def main():
     x_tot = float(np.sum(r * a_pix_vos))
     closure = float(np.sum(Fs)) / x_tot - 1.0
     B = float(np.mean(r[r > 0.0]))
-    res_struct = Fs / Np / B - 1.0 + 0.5 * geo
-    res_flat = Ff / Np - 1.0 + 0.5 * geo
+    # 残差定义：**不含**任何"扣几何项"的补偿量。
+    # 旧定义里的 +0.5*<rho^2> 恰好是被测 oracle 自身指数误差 sqrt(1+rho^2)-1 的
+    # rho^2 展开首项 —— 用被测量的误差去抵消被测量的量，负例因此自证。
+    # 指数改正后该项没有物理含义，已整体撤掉。
+    res_struct = Fs / Np / B - 1.0
+    res_flat = Ff / Np - 1.0
+
+    # 逐像元 chart 面积 vs 精确立体角：(pi/3)A_chart/A_exact - 1。
+    # 平坦真值下 S_p/B - 1 恒等于逐叶内该量的面积加权平均，故它的上界是这个数组的极值。
+    pix_ok = drop_single & (a_pix_chart > 0.0)
+    rel_pix = np.where(pix_ok, a_pix_chart * (math.pi / 3.0) / a_pix_vos - 1.0, 0.0)
+    pix_area_ratio_max = float(np.max(np.abs(rel_pix)))
 
     # 跨叶 drop 的 Σw 数值地板：chart 角点绝对分辨率 / drop 尺度
     drop_extent_uv = float(np.median([np.max(drop_uv[i, j, :, 0]) - np.min(drop_uv[i, j, :, 0])
@@ -387,6 +643,12 @@ def main():
         parity = max(parity, float(np.max(np.abs(
             P.tan_deproject(qx, qy, crv1, crv2)
             - tan_deproject_rad(np.array(qx), np.array(qy), crv1, crv2)))))
+
+    # --- chart 划分自检：sphere_to_chart -> p3lib.chart_to_vec 往返 ---
+    rt_err, tiling_gaps = chart_roundtrip(crv1, crv2)
+
+    # --- M5：视场跨面界的构造用例 ---
+    m5 = face_boundary_case(crv1, crv2, ex, ey, NSIDE_M5_GRID, zero_floor)
 
     out = {
         "experiment": "exp_sim01_m16_forward_conservation",
@@ -429,23 +691,28 @@ def main():
             "gates": {"M1_closure_le_1e-12": bool(abs(closure) <= 1e-12)},
         },
         "M2_drop_area_chart_vs_exact": {
-            "definition": "(pi/3)*A_chart/A_exact - 1；本帧 WCS 上实测闭式 = 0.5·rho^2"
-                          "（落在既有 gnomonic drop 级预算带 [0.5,1.5]·rho_max^2 的下端点）",
+            "definition": "(pi/3)*A_chart/A_exact - 1，A_exact 是 gnomonic 精确积分 "
+                          "（被积函数 (1+xi^2+eta^2)^{-3/2}）。被测的是 chart 直线多边形"
+                          "相对大圆足迹的弦-曲线偏差，不是闭式 0.5*rho^2。",
             "rho_scan_arcsec_max": RHO_SCAN_MAX_ARCSEC,
             "rho_scan_points": len(scan),
             "footprint_scales_px": [0.5 * PF * kk * 2.0 for kk in (0.25, 1.0, 4.0, RHO_SCAN_K)],
             "slope_vs_rho2_per_rad2": slope_scan,
             "slope_on_physical_crop": slope_crop,
-            "predicted_slope": 0.5,
+            "slope_abs_spread_across_footprint_scales": slope_spread,
+            "max_abs_by_footprint_scale_px": per_scale_peak,
             "rho_zero_max_abs_deviation": zero_dev,
             "rho_zero_numerical_floor": zero_floor,
-            "resolution_independence_max_rel_spread": res_indep,
+            "chart_term_shrinks_with_footprint": bool(
+                per_scale_peak[min(per_scale_peak)] > per_scale_peak[max(per_scale_peak)]),
             "scan_rows": scan,
             "gates": {
-                "M2_scan_slope_within_2pct": bool(abs(slope_scan / 0.5 - 1.0) <= 0.02),
-                "M2_crop_slope_within_5pct": bool(abs(slope_crop / 0.5 - 1.0) <= 0.05),
-                "M2_resolution_independent_within_1pct": bool(res_indep <= 0.01),
+                # 双侧、以绝对量为单位的斜率展度门。原门是相对展度
+                # (max-min)/mean(per_scale) <= 0.01，负数无条件通过 ⇒ 无判别力。
+                "M2_slope_abs_spread_le_2e-3": bool(abs(slope_spread) <= 2e-3),
                 "M2_rho_zero_at_floor": bool(zero_dev <= zero_floor),
+                "M2_chart_term_decreases_with_footprint": bool(
+                    per_scale_peak[min(per_scale_peak)] > per_scale_peak[max(per_scale_peak)]),
             },
         },
         "M3_weight_partition": {
@@ -454,8 +721,10 @@ def main():
             "straddling_numerical_floor_estimate": float(w_floor_est),
             "drops_interior": int(n_int), "drops_straddling": int(n_str),
             "drops_total": int(n_tot),
+            "drops_total_note": "留在守恒求和内的 drop 数。跨面界的 drop 被 fail-closed "
+                                "剔除（见 drops_cross_face_excluded），不参与 Σw 与闭合判定。",
             "leaves_touched": int(len(keys)),
-            "drops_outside_chart_branch": int(outside),
+            "drops_cross_face_excluded": int(outside),
             "floor_reason": "跨叶 drop 的 Σw 受 chart 角点的**绝对**分辨率限制："
                             "u≈O(0.3) 处 1 ulp ≈ 1e-16，drop 在 (u,v) 的尺度 %.3g，"
                             "故地板 ≈ 8·ulp/drop（与 REPORT_paper §5 第 1 条同一类相消）。"
@@ -464,27 +733,44 @@ def main():
                 "M3_interior_bitwise_zero": bool(wdev_int == 0.0),
                 "M3_straddling_within_floor": bool(wdev_str <= max(1e-12, 100 * w_floor_est)),
                 "M3_gnomonic_vectorised_parity": bool(parity == 0.0),
+                "M3_chart_roundtrip_exact": bool(rt_err <= 1e-14),
+                "M3_chart_tiling_has_no_gap": bool(tiling_gaps == 0.0),
             },
         },
-        "M4_surface_brightness_vs_closed_form": {
-            "definition": "残差 = S_p/B - 1 + 0.5·<rho^2>_p（S_p=F_p/N_p，N_p=sum_j w_jp A_pixel,j；系数 0.5 与 M2 实测律一致）",
+        "M4_leaf_readout_vs_signal_contrast": {
+            "definition": "残差 = S_p/B - 1（S_p=F_p/N_p，N_p=sum_j w_jp A_pixel,j，B=信号面均值）。"
+                          "残差里不含任何几何补偿项。",
+            "what_it_measures": "本读数量的是**信号场自身对比度**：逐叶面亮度相对全视场均值 "
+                                "的偏离。它检验算子对结构场的响应不退化（防恒真），"
+                                "**不**检验几何零 —— 指数改正前后该读数 9 位不变，"
+                                "对 chart 侧几何项不敏感，故不再声称它测几何零。",
             "structured_residual_max_abs": float(np.max(np.abs(res_struct))),
             "structured_residual_rms": float(np.sqrt(np.mean(res_struct ** 2))),
             "structured_surface_brightness_contrast_rms": float(
                 np.sqrt(np.mean((Fs / Np / B - 1.0) ** 2))),
-            "geo_term_max_abs": float(np.max(np.abs(geo))),
-            "gates": {"M4_structured_far_from_zero": bool(
+            "signal_field_contrast_rms": float(np.sqrt(np.mean((r / B - 1.0) ** 2))),
+            "gates": {"M4_leaf_readout_responds_to_structure": bool(
                 float(np.max(np.abs(res_struct))) > 1e-3)},
         },
+        "M5_face_boundary_crossing": m5,
         "negative_control": {
-            "NC-A_flat_truth_zero_effect": {
+            "NC-A_flat_truth_area_normalisation": {
                 "construction": "把物理前向信号面换成同均值 B 的**平坦**面（真值无结构效应）",
                 "residual_max_abs": float(np.max(np.abs(res_flat))),
-                "judgement": "归零（红）：真值无效应 => 扣除闭式几何项后度量必须归零到读数地板",
+                "pixel_area_ratio_max_abs": pix_area_ratio_max,
+                "judgement": "平坦真值下 S_p/B - 1 恒等于逐叶内 (pi/3)A_chart/A_exact - 1 的"
+                             "面积加权平均，所以它**本就不该归零**：正确指数下它等于 chart "
+                             "侧的弦-曲线几何项（约 6e-09），与信号场无关。判据因此改为"
+                             "「逐叶残差不超过逐像元面积比的最大值」——"
+                             "该上界成立当且仅当每个叶权重非负且分割完备，"
+                             "权重为负或漏归一化时立刻破。旧判据（归零到地板）靠残差里"
+                             "的 +0.5·<rho^2> 抵消项成立，而那正是被测 oracle 自身的"
+                             "指数误差，属循环负例，已撤。",
                 "numerical_floor": zero_floor,
                 "floor_reason": "与 M3/NC-C 同一类相消：chart 角点绝对分辨率 / drop 尺度",
-                "gates": {"NC-A_flat_residual_at_floor": bool(
-                    float(np.max(np.abs(res_flat))) <= zero_floor)},
+                "gates": {"NC-A_flat_residual_bounded_by_pixel_area_ratio": bool(
+                    float(np.max(np.abs(res_flat)))
+                    <= pix_area_ratio_max + max(zero_floor, 1e-15))},
             },
             "NC-B_wrong_denominator_RED": {
                 "construction": "改用 A_pixel 归一（w = a_jp / A_pixel），pf=0.8",
@@ -497,7 +783,7 @@ def main():
                 "construction": "rho = 0 的 drop 中心恰在视场切点（gnomonic 投影中心）",
                 "max_abs_deviation": zero_dev,
                 "numerical_floor": zero_floor,
-                "judgement": "归零（红）：几何项闭式为 0.5·rho^2，rho=0 必归零到读数地板"
+                "judgement": "归零（红）：rho=0 时 chart 侧项与精确立体角之比必归零到读数地板"
                              "（地板来源与 M3 同类：chart 角点绝对分辨率 / drop 尺度）",
             },
         },
@@ -506,11 +792,14 @@ def main():
 
     gates = []
     for k in ("M1_global_conservation", "M2_drop_area_chart_vs_exact",
-              "M3_weight_partition", "M4_surface_brightness_vs_closed_form"):
+              "M3_weight_partition", "M4_leaf_readout_vs_signal_contrast",
+              "M5_face_boundary_crossing"):
         gates += list(out[k]["gates"].values())
-    gates += list(out["negative_control"]["NC-A_flat_truth_zero_effect"]["gates"].values())
+    gates += list(out["negative_control"]["NC-A_flat_truth_area_normalisation"]["gates"].values())
     gates += list(out["negative_control"]["NC-B_wrong_denominator_RED"]["gates"].values())
     out["verdict"] = "PASS" if all(gates) else "FAIL"
+    out["gates_total"] = len(gates)
+    out["gates_failed"] = [n for n, g in _named_gates(out).items() if not g]
     (RESULTS / "exp_sim01_m16_forward_conservation.json").write_text(
         json.dumps(out, indent=2, ensure_ascii=False), encoding="utf-8")
     slim = {k: v for k, v in out.items() if k != "M2_drop_area_chart_vs_exact"}

@@ -8,6 +8,11 @@
 import json
 import os
 import numpy as np
+from pathlib import Path
+
+# 落盘锚点：从脚本自身位置向上定位本单元目录（实验/healpix-polar），
+# 不依赖 dirname 的层数；找不到即抛错，避免静默写到错误位置。
+UNIT = next(p for p in Path(__file__).resolve().parents if p.name == "healpix-polar")
 
 def main():
     C = np.sqrt(np.pi/3.0)*(180.0/np.pi)*3600.0
@@ -52,7 +57,7 @@ def main():
         rel_diff_about_minus_2e4=bool(abs(rel + 1.97e-4) < 1e-6),
         decision_flip=bool(demo["nside_true"] == 4 and demo["nside_wrong"] == 2))
     print("VERDICT:", json.dumps(out["verdict"]))
-    with open(os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), "results", "audit", "route3", "exp08_scale_constant.json"), "w") as f:
+    with open(os.path.join(UNIT, "results", "audit", "route3", "exp08_scale_constant.json"), "w") as f:
         json.dump(out, f, indent=1)
 
 if __name__ == "__main__":

@@ -1,6 +1,12 @@
 import json
 import os
-R = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), "results", "audit", "kcorr") + '/'
+from pathlib import Path
+
+# 落盘锚点：从脚本自身位置向上定位本单元目录（实验/healpix-polar），
+# 不依赖 dirname 的层数；找不到即抛错，避免静默写到错误位置。
+UNIT = next(p for p in Path(__file__).resolve().parents if p.name == "healpix-polar")
+R = os.path.join(UNIT, "results", "audit", "kcorr") + '/'
+
 def load(n): return json.load(open(R+n, encoding='utf-8'))
 g0 = load('g0_sanity.json'); g1 = load('g1_canonical.json'); g2 = load('g2_decomposition.json')
 g3 = load('g3_nscan.json'); g3b = load('g3b_gauss_ref.json'); g4 = load('g4_geometry_scan.json')

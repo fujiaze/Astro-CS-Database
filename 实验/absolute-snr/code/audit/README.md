@@ -8,6 +8,7 @@
 | `route2/` | `route2/`（本目录内） | 12 个实验（exp01–exp12），25/25 三腿覆盖 | `20260926`（写死于脚本） |
 | `route3/` | `route3/`（本目录内） | 6 个实验（exp01–exp06），26/26；**另加 `exp11_frozen_operator_transfer.py`（P2-M5 闭环，见下节，非路线3 原件）** | `20260926`（写死于脚本） |
 | `supplement_control_variance/` | `supplement_control_variance/`（本目录内） | 3 个脚本：有限 N 解析+MC、生产链忠实臂、独立 seed 抽检 | `20260601`（主）/ `20260605`（生产链臂）/ `20260602–04`（复核，写死于脚本） |
+| `../redteam/` | `absolute-snr/code/redteam/` | 帧级 `sigma_sky` 估计器的适用域反例（结构/噪声比阈值、常量像素 fail-open），逐条镜像生产裁剪循环、不调用生产二进制 | 无（确定性种子内联） |
 
 ## 环境与纪律
 

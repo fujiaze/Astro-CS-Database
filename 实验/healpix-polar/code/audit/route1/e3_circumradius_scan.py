@@ -22,6 +22,11 @@ import json
 import os
 import math
 import numpy as np
+from pathlib import Path
+
+# 落盘锚点：从脚本自身位置向上定位本单元目录（实验/healpix-polar），
+# 不依赖 dirname 的层数；找不到即抛错，避免静默写到错误位置。
+UNIT = next(p for p in Path(__file__).resolve().parents if p.name == "healpix-polar")
 
 SEED = 20050709
 np.random.seed(SEED)
@@ -156,7 +161,7 @@ out["classification"] = ("structural safety buffer (exempt from three-leg requir
                          "bound for candidate completeness; does not enter published signal/variance; "
                          "zero-miss enforced by candidate oracle")
 
-with open(os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), "results", "audit", "route1", "e3_circumradius_scan.json"), "w") as fh:
+with open(os.path.join(UNIT, "results", "audit", "route1", "e3_circumradius_scan.json"), "w") as fh:
     json.dump(out, fh, indent=1)
 lines = ["E3 HP_CIRCUMRADIUS_FACTOR scan (seed=%d)" % SEED, ""]
 for N in sorted(out["per_n"], key=int):
@@ -168,6 +173,6 @@ for N, v in out["lonlat_contrast"].items():
     lines.append("  lon-lat grid contrast N=%s: %.4f" % (N, v))
 lines.append("  classification: " + out["classification"])
 txt = "\n".join(lines)
-with open(os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), "results", "audit", "route1", "e3_circumradius_scan.txt"), "w") as fh:
+with open(os.path.join(UNIT, "results", "audit", "route1", "e3_circumradius_scan.txt"), "w") as fh:
     fh.write(txt + "\n")
 print(txt)

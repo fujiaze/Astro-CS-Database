@@ -1,0 +1,254 @@
+{
+  "note": "N2b′/N2c′ 的缺陷注入自检；defects 只注入施加函数（δ 解出之后）",
+  "n2b_tol_rel": 1e-09,
+  "n2c_tol_step": 1e-06,
+  "n2c_tol_aff": 1e-06,
+  "injected_offset_e": 6.0,
+  "rows": [
+    {
+      "defect": "D0_baseline",
+      "desc": "正确实现",
+      "expect_green": true,
+      "n2a_max_abs_delta": 2.785952824208552e-10,
+      "n2a_ok": true,
+      "n2b_worst_rel": 1.3159125022703723e-15,
+      "n2b_ok": true,
+      "n2c_step_at_alpha1": 4.916955731459893e-12,
+      "n2c_affine_rel": 3.6319796046294886e-12,
+      "n2c_ok": true,
+      "n2b_red": false,
+      "n2c_red": false,
+      "any_red": false
+    },
+    {
+      "defect": "D1_solver_bias",
+      "desc": "求解器返回 δ + 0.5 e-",
+      "expect_green": false,
+      "n2a_max_abs_delta": 0.5000000001282543,
+      "n2a_ok": false,
+      "n2b_worst_rel": 0.023149777558114697,
+      "n2b_ok": false,
+      "n2c_step_at_alpha1": 4.916955731459893e-12,
+      "n2c_affine_rel": 3.6319796046294886e-12,
+      "n2c_ok": true,
+      "n2b_red": true,
+      "n2c_red": false,
+      "any_red": true
+    },
+    {
+      "defect": "D2_not_applied",
+      "desc": "δ 算出但不施加",
+      "expect_green": false,
+      "n2a_max_abs_delta": 0.0,
+      "n2a_ok": true,
+      "n2b_worst_rel": 2.0,
+      "n2b_ok": false,
+      "n2c_step_at_alpha1": -2.723240755309689,
+      "n2c_affine_rel": 2.0,
+      "n2c_ok": false,
+      "n2b_red": true,
+      "n2c_red": true,
+      "any_red": true
+    },
+    {
+      "defect": "D3_sign_flip",
+      "desc": "δ 符号反转",
+      "expect_green": false,
+      "n2a_max_abs_delta": 2.785952824208552e-10,
+      "n2a_ok": true,
+      "n2b_worst_rel": 4.0,
+      "n2b_ok": false,
+      "n2c_step_at_alpha1": -5.446481510624324,
+      "n2c_affine_rel": 4.000000000003632,
+      "n2c_ok": false,
+      "n2b_red": true,
+      "n2c_red": true,
+      "any_red": true
+    },
+    {
+      "defect": "D4_double",
+      "desc": "δ × 2（过校正）",
+      "expect_green": false,
+      "n2a_max_abs_delta": 5.571905648417104e-10,
+      "n2a_ok": true,
+      "n2b_worst_rel": 2.0,
+      "n2b_ok": false,
+      "n2c_step_at_alpha1": 2.72324075531958,
+      "n2c_affine_rel": 2.000000000007274,
+      "n2c_ok": false,
+      "n2b_red": true,
+      "n2c_red": true,
+      "any_red": true
+    },
+    {
+      "defect": "D5_quarter",
+      "desc": "δ × 0.25（欠校正）",
+      "expect_green": false,
+      "n2a_max_abs_delta": 6.96488206052138e-11,
+      "n2a_ok": true,
+      "n2b_worst_rel": 1.4999999999999993,
+      "n2b_ok": false,
+      "n2c_step_at_alpha1": -2.0424305664810447,
+      "n2c_affine_rel": 1.499999999999092,
+      "n2c_ok": false,
+      "n2b_red": true,
+      "n2c_red": true,
+      "any_red": true
+    },
+    {
+      "defect": "D6_inject_1p2",
+      "desc": "注入幅度降到 1.2 e-（真值本身变小）",
+      "expect_green": true,
+      "n2a_max_abs_delta": 2.785952824208552e-10,
+      "n2a_ok": true,
+      "n2b_worst_rel": 1.3159125022703723e-15,
+      "n2b_ok": true,
+      "n2c_step_at_alpha1": 5.229594535194337e-12,
+      "n2c_affine_rel": 1.0544454198679887e-11,
+      "n2c_ok": true,
+      "n2b_red": false,
+      "n2c_red": false,
+      "any_red": false
+    },
+    {
+      "defect": "D7_inject_0p9",
+      "desc": "注入幅度降到 0.9 e-（真值本身变小）",
+      "expect_green": true,
+      "n2a_max_abs_delta": 2.785952824208552e-10,
+      "n2a_ok": true,
+      "n2b_worst_rel": 1.3159125022703723e-15,
+      "n2b_ok": true,
+      "n2c_step_at_alpha1": 5.6274984672199935e-12,
+      "n2c_affine_rel": 1.1368683772161603e-11,
+      "n2c_ok": true,
+      "n2b_red": false,
+      "n2c_red": false,
+      "any_red": false
+    },
+    {
+      "defect": "D8_frame_mismatch",
+      "desc": "δ 施加到错误的帧",
+      "expect_green": false,
+      "n2a_max_abs_delta": 2.785952824208552e-10,
+      "n2a_ok": true,
+      "n2b_worst_rel": 2.606004786991259,
+      "n2b_ok": false,
+      "n2c_step_at_alpha1": -5.446481510630889,
+      "n2c_affine_rel": 4.000000000008433,
+      "n2c_ok": false,
+      "n2b_red": true,
+      "n2c_red": true,
+      "any_red": true
+    },
+    {
+      "defect": "D9_wrong_weights",
+      "desc": "施加时用非均匀权重",
+      "expect_green": false,
+      "n2a_max_abs_delta": 5.571905648417104e-10,
+      "n2a_ok": true,
+      "n2b_worst_rel": 1.999989335157546,
+      "n2b_ok": false,
+      "n2c_step_at_alpha1": 1.3616203776622626,
+      "n2c_affine_rel": 1.0000000000054583,
+      "n2c_ok": false,
+      "n2b_red": true,
+      "n2c_red": true,
+      "any_red": true
+    }
+  ],
+  "gates": [
+    {
+      "id": "DEF1_baseline_all_green",
+      "desc": "D0 正确实现下 N2a/N2b/N2c 全绿",
+      "ok": true,
+      "value": {
+        "n2a": true,
+        "n2b": true,
+        "n2c": true
+      }
+    },
+    {
+      "id": "DEF2_n2b_reds_on_all_value_defects",
+      "desc": "N2b 对每个量值型缺陷（不施加/反号/×2/×0.25/错帧/错权重）判红",
+      "ok": true,
+      "value": {
+        "D2_not_applied": 2.0,
+        "D3_sign_flip": 4.0,
+        "D4_double": 2.0,
+        "D5_quarter": 1.4999999999999993,
+        "D8_frame_mismatch": 2.606004786991259,
+        "D9_wrong_weights": 1.999989335157546
+      }
+    },
+    {
+      "id": "DEF3_n2c_reds_on_all_value_defects",
+      "desc": "N2c 对每个量值型缺陷判红",
+      "ok": true,
+      "value": {
+        "D2_not_applied": [
+          -2.723241,
+          2.0
+        ],
+        "D3_sign_flip": [
+          -5.446482,
+          4.0
+        ],
+        "D4_double": [
+          2.723241,
+          2.0
+        ],
+        "D5_quarter": [
+          -2.042431,
+          1.5
+        ],
+        "D8_frame_mismatch": [
+          -5.446482,
+          4.0
+        ],
+        "D9_wrong_weights": [
+          1.36162,
+          1.0
+        ]
+      }
+    },
+    {
+      "id": "DEF4_n2a_catches_solver_bias",
+      "desc": "D1（求解器偏置）由 N2a 判红（N2b′/N2c′ 不覆盖求解器侧）",
+      "ok": true,
+      "value": [
+        0.5000000001282543
+      ]
+    },
+    {
+      "id": "DEF5_smaller_truth_stays_green",
+      "desc": "真值本身变小（1.2 / 0.9 e-）时两条新判据**仍绿**（不是下界型）",
+      "ok": true,
+      "value": [
+        [
+          "D6_inject_1p2",
+          true,
+          true
+        ],
+        [
+          "D7_inject_0p9",
+          true,
+          true
+        ]
+      ]
+    },
+    {
+      "id": "DEF6_every_defect_red_somewhere",
+      "desc": "每个注入缺陷至少被三条判据之一判红",
+      "ok": true,
+      "value": {
+        "D1_solver_bias": true,
+        "D2_not_applied": true,
+        "D3_sign_flip": true,
+        "D4_double": true,
+        "D5_quarter": true,
+        "D8_frame_mismatch": true,
+        "D9_wrong_weights": true
+      }
+    }
+  ]
+}

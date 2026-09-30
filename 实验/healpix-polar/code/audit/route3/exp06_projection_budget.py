@@ -14,6 +14,11 @@ import os
 import numpy as np
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from exp03_weight_conservation import tan_to_vec, quad_area
+from pathlib import Path
+
+# 落盘锚点：从脚本自身位置向上定位本单元目录（实验/healpix-polar），
+# 不依赖 dirname 的层数；找不到即抛错，避免静默写到错误位置。
+UNIT = next(p for p in Path(__file__).resolve().parents if p.name == "healpix-polar")
 
 def part_a(theta_arcsec=10.0):
     th = np.radians(theta_arcsec/3600.0)
@@ -87,7 +92,7 @@ def main():
         ortho_dev_at_1e3=h1e3["max_dev_rad"],
         comment_4e8_is_wrong=bool(h1e3["max_dev_rad"] > 4e-8))
     print("VERDICT:", json.dumps(out["verdict"]))
-    with open(os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), "results", "audit", "route3", "exp06_projection_budget.json"), "w") as f:
+    with open(os.path.join(UNIT, "results", "audit", "route3", "exp06_projection_budget.json"), "w") as f:
         json.dump(out, f, indent=1)
 
 if __name__ == "__main__":

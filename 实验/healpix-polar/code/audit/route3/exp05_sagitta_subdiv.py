@@ -13,6 +13,11 @@ import numpy as np
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from edge_geom import sample_edge, to_vec, wrap_pi
 from exp01_leaf_area import ring_layout
+from pathlib import Path
+
+# 落盘锚点：从脚本自身位置向上定位本单元目录（实验/healpix-polar），
+# 不依赖 dirname 的层数；找不到即抛错，避免静默写到错误位置。
+UNIT = next(p for p in Path(__file__).resolve().parents if p.name == "healpix-polar")
 
 SEED = 20260926
 
@@ -163,7 +168,7 @@ def main():
         meridian_zero=bool(row["meridian_max"] < 1e-15),
         frac_over_chart=oc/tot, frac_over_phiz=oz/tot)
     print("VERDICT:", json.dumps(out["verdict"]))
-    with open(os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), "results", "audit", "route3", "exp05_sagitta_subdiv.json"), "w") as f:
+    with open(os.path.join(UNIT, "results", "audit", "route3", "exp05_sagitta_subdiv.json"), "w") as f:
         json.dump(out, f, indent=1)
 
 if __name__ == "__main__":

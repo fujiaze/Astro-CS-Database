@@ -2,7 +2,7 @@
 # ============================================================================
 # P3 守恒映射算子 · 三路独立审计 + k_corr 补实验 · 一键复现
 # 来源：独立审计/实验重做/P3守恒映射算子/{路线1,路线2,路线3,补实验-k_corr}/code
-#       （2026-09 收编入本单元，文件名保持原样；判读见 REPORT_experiment.md）
+#       （文件名保持原样；判读见 REPORT_experiment.md）
 #
 # 固定 seed（写死在各脚本内，无命令行覆盖）：
 #   route1  e1..e6        SEED = 20050709
@@ -15,15 +15,23 @@
 # 依赖：Python >= 3.10 + numpy（仿真腿另需 astropy/scipy 与 testdata/HST_M16）；单脚本 CPU <= 5 分钟（exp05_sagitta_subdiv.py 约 4 分钟）；
 #       全部脚本不 import 仓库任何模块、不联网；各实验 JSON 以脚本自身位置锚定落 results/audit/<路线>/，与既有存档逐位可对照。
 # 既有结果存档于 results/audit/<路线>/（与本脚本输出逐位可对照）。
+#
+# 失败传播：任一腿非零退出即计入 RC，脚本末尾 exit $RC（全部腿都会跑完，
+# 既不早退丢诊断，也不以最后一次 echo 的返回码 0 掩盖失败）。
 # ============================================================================
-set -u
+set -eu
 HERE="$(cd "$(dirname "$0")" && pwd)"
 REPO="$(cd "$HERE/../../../.." && pwd)"
 OUT="$(cd "$HERE/../../.." && pwd)/run/healpix-polar-audit-logs"
 mkdir -p "$OUT"
 
-run() { name="$1"; script="$2"; timeout 600 python3 "$script" > "$OUT/$name.out" 2>&1 \
-        && echo "[ok]  $name" || { echo "[FAIL] $name (see $OUT/$name.out)"; return 1; }; }
+RC=0
+run() { name="$1"; script="$2";
+        if timeout 600 python3 "$script" > "$OUT/$name.out" 2>&1; then
+          echo "[ok]  $name"
+        else
+          echo "[FAIL] $name (see $OUT/$name.out)"; RC=$((RC + 1))
+        fi; }
 
 # 公共前置步：合成数据物理链自检。必须跑**全四项**（m16_mask / m16_scene /
 # m16_sampling / noise_selftest），不得只调 noise_selftest.py —— 后者只验独立
@@ -50,13 +58,13 @@ run r1_e6 "$HERE/route1/e6_lhuilier_vos.py"
 for e in exp01_leaf_area exp02_polar_pixel exp03_flux_conservation exp04_area_operators \
          exp05_projection_budgets exp06_circumradius_margin exp07_polar_sagitta_ladder \
          exp08_coverage_quantization exp09_sum_vs_per_leaf_criteria exp10_chain_usecase; do
-  run "r2_$e" "$HERE/route2/$e.py" || true
+  run "r2_$e" "$HERE/route2/$e.py"
 done
 
 # --- 路线 3（seed 20260926）---
 for e in exp01_leaf_area exp02_polar_limit exp03_weight_conservation exp04_circumradius \
          exp05_sagitta_subdiv exp06_projection_budget exp07_quantization exp08_scale_constant; do
-  run "r3_$e" "$HERE/route3/$e.py" || true
+  run "r3_$e" "$HERE/route3/$e.py"
 done
 
 # --- k_corr 补实验（SEED_BASE 20260816）---
@@ -70,3 +78,8 @@ run sim_exp01 "$HERE/sim/exp_sim01_m16_forward_conservation.py"
 
 echo "---- 全部日志：$OUT ----"
 echo "对照存档：实验/healpix-polar/results/audit/{route1,route2,route3,kcorr,sim}/"
+if [ "$RC" -ne 0 ]; then
+  echo "[FAIL] $RC 条腿未通过 rc=0（逐条日志见 $OUT/*.out）" >&2
+  exit "$RC"
+fi
+echo "[ok] 全部腿 rc=0"

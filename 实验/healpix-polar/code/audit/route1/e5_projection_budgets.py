@@ -30,6 +30,11 @@ import json
 import os
 import math
 import numpy as np
+from pathlib import Path
+
+# 落盘锚点：从脚本自身位置向上定位本单元目录（实验/healpix-polar），
+# 不依赖 dirname 的层数；找不到即抛错，避免静默写到错误位置。
+UNIT = next(p for p in Path(__file__).resolve().parents if p.name == "healpix-polar")
 
 SEED = 20050709
 rng = np.random.default_rng(SEED)
@@ -178,7 +183,7 @@ OUT["tangent_plane_fit"] = {"coefficient": float(coef_good), "max_residual": flo
                             "wrong_model_residual": float(res_wrong),
                             "verdict": "theta^2/2-family model fits; theta^2/12-model residual is nonzero"}
 
-with open(os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), "results", "audit", "route1", "e5_projection_budgets.json"), "w") as fh:
+with open(os.path.join(UNIT, "results", "audit", "route1", "e5_projection_budgets.json"), "w") as fh:
     json.dump(OUT, fh, indent=1)
 
 L = ["E5 projection budgets (seed=%d)" % SEED, ""]
@@ -207,6 +212,6 @@ ft = OUT["tangent_plane_fit"]
 L.append("  theta^2-model coefficient = %.4f (max residual %.1e); wrong theta^2/12 model residual %.1e"
          % (ft["coefficient"], ft["max_residual"], ft["wrong_model_residual"]))
 txt = "\n".join(L)
-with open(os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), "results", "audit", "route1", "e5_projection_budgets.txt"), "w") as fh:
+with open(os.path.join(UNIT, "results", "audit", "route1", "e5_projection_budgets.txt"), "w") as fh:
     fh.write(txt + "\n")
 print(txt)

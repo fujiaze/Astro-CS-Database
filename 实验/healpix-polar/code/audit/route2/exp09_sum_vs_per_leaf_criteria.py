@@ -26,6 +26,11 @@ import json
 import os
 import sys
 import numpy as np
+from pathlib import Path
+
+# 落盘锚点：从脚本自身位置向上定位本单元目录（实验/healpix-polar），
+# 不依赖 dirname 的层数；找不到即抛错，避免静默写到错误位置。
+UNIT = next(p for p in Path(__file__).resolve().parents if p.name == "healpix-polar")
 
 sys.path.insert(0, "code")
 
@@ -117,7 +122,7 @@ def main():
     ok = out["min_separation_orders"] >= 14.0
     out["verdict"] = "PASS" if ok else "FAIL"
     print(json.dumps(out, indent=2))
-    with open(os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), "results", "audit", "route2", "exp09_sum_vs_per_leaf_criteria.json"), "w") as fh:
+    with open(os.path.join(UNIT, "results", "audit", "route2", "exp09_sum_vs_per_leaf_criteria.json"), "w") as fh:
         json.dump(out, fh, indent=2)
 
 

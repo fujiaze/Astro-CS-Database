@@ -27,8 +27,13 @@ import numpy as np
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import mc_kcorr as m  # noqa: E402
+from pathlib import Path
 
-OUT = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), "results", "audit", "kcorr")
+# 落盘锚点：从脚本自身位置向上定位本单元目录（实验/healpix-polar），
+# 不依赖 dirname 的层数；找不到即抛错，避免静默写到错误位置。
+UNIT = next(p for p in Path(__file__).resolve().parents if p.name == "healpix-polar")
+
+OUT = os.path.join(UNIT, "results", "audit", "kcorr")
 os.makedirs(OUT, exist_ok=True)
 
 SEED_IID = 990001          # 形状臂独立流(写死)

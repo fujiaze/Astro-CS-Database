@@ -485,6 +485,10 @@ code/scia_calib.py                 0b67f1b3d080b7bce7a180cf962e7e7ceac939c41974d
    （R12 的"独立复算"仍是同一表达式两份拷贝：`step6:61` `(k_photo*m_hat)*img` vs `pl.apply_photometry`，`rel=0.0` 仍非独立证据；
    `step6:60` 注释"不复用 apply_photometry 的实现"与实际不符。该条不在本轮必查清单，仅记录。）
 6. **未发现其他新的科学阻断项**：GATES.md 的 **G6 已从 PASS 降为 PARTIAL** ✅（`GATES.md:13`，`step9_collect.py:144` `verdict="PASS" if s7["n_pass"]==s7["n_negatives"] else "PARTIAL"`），合计"8/9 项 PASS"✅；G1–G5/G7/G8 与 JSON 一致；`step8` 的 `σ_obs=0.026520 ∈ [0.006008, 0.032456]` 与 JSON 的 `sigma_floor/sigma_ceiling` 一致。
+   **读数订正指针**：上界 `0.032456` 是 **σ_flat 取自指值 `delta_after_m` 时**的上界，属已撤回口径；
+   现行 `σ_flat` 为独立项后同一帧的 `sigma_ceiling = 0.020561`，判定为 **`ABOVE_CEILING`（红）**
+   （翻转临界 `σ_flat = 0.013057`，即该约定值的 18.7 倍）。本行保留审稿原判读不改写，
+   现行读数见 `README.md` §4.7 与 §6 第 5、18 条。
 
 **§4.2/§4.4/§4.6/§4.7/§5/§9 数字抽查（≥10 个，均我自己从 JSON 读出）**：
 ✅ §4.2 帧A `0.04534/0.00966/0.05683/1.009/2.09%`、帧B `0.05746/0.01252/0.10301/0.727/1.85%`、

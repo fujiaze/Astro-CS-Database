@@ -17,6 +17,11 @@ import numpy as np
 
 sys.path.insert(0, "code")
 import p3lib as P  # noqa: E402
+from pathlib import Path
+
+# 落盘锚点：从脚本自身位置向上定位本单元目录（实验/healpix-polar），
+# 不依赖 dirname 的层数；找不到即抛错，避免静默写到错误位置。
+UNIT = next(p for p in Path(__file__).resolve().parents if p.name == "healpix-polar")
 
 
 def face_area_numeric(f, n_grid=400):
@@ -67,7 +72,7 @@ def main():
           and res["negative_control"]["metric_wrong_candidate"] > 0.2)
     res["verdict"] = "PASS" if ok else "FAIL"
     print(json.dumps(res, indent=2))
-    with open(os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), "results", "audit", "route2", "exp01_leaf_area.json"), "w") as fh:
+    with open(os.path.join(UNIT, "results", "audit", "route2", "exp01_leaf_area.json"), "w") as fh:
         json.dump(res, fh, indent=2)
 
 
