@@ -30,6 +30,9 @@ doc_index:
   schema_rev: "3"
   coverage: "docs/** 全部 .md 与 .yaml + 仓库根固定条目（AGENTS.md、README.md、VERSION）；目录招牌件按「每目录必有 README」治理，不进规范索引面"
   active:
+    - path: "docs/detail/infrastructure/acr.md"
+      status: ACTIVE_NORMATIVE
+      duty: "异构计算运行时落地设计：kernel registry、CPU 调度、device executor、route calibration"
     - path: "实验/裁决台账.md"
       status: ACTIVE_NORMATIVE
       duty: "跨单元裁决台账：五个创新点实验重做的分歧终裁，含依据与落点正本节"
@@ -416,7 +419,6 @@ doc_index:
       upstream: "docs/ASTROCS_DESIGN.md §8（软件架构）"
       downstream: "文档现状审计台账.csv、迁移合并清单.md、special_lists.md 等 19 处"
       notes: "机器生成清单（api/execution/production inventory）"
-    - path: "docs/detail/HIPS_BROWSER.md"
       status: ACTIVE_INFORMATIVE
       duty: "HiPS 浏览器的职责边界与用法"
       upstream: "docs/ASTROCS_DESIGN.md §8.1（顶层结构）"
@@ -619,7 +621,6 @@ doc_index:
       upstream: "docs/ASTROCS_DESIGN.md §8.4（模块与 ABI）"
       downstream: "README.md、ARCH-001-migration-manifest.md、unified_object_compatibility_map_v1.json 等 53 处"
       notes: "模块八元组映射（MOD-001）"
-    - path: "docs/detail/acr.md"
       status: ACTIVE_INFORMATIVE
       duty: "异构计算运行时：kernel registry、CPU/GPU 调度、device executor、"
       upstream: "docs/ASTROCS_DESIGN.md §8.5（模块与 ABI）"
