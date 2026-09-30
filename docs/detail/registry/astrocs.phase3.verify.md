@@ -54,5 +54,5 @@ docs/science/algorithms/PHASE3_FITS_IMPL.md（FITS 写出与校验的实现级�
 
 ## 已知限制
 
-见 docs/KNOWN_LIMITATIONS.md 与 `ALG-P3-005` 合同边界
+见 artifacts/evidence/known-limitations-ledger/LIMITATIONS.md 与 `ALG-P3-005` 合同边界
 （docs/science/algorithms/PHASE3_FITS_IMPL.md 的校验条款）。

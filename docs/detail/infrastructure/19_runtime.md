@@ -4,18 +4,19 @@
 
 ## 1. 职责与边界
 
-- **职责**：typed DAG 的执行（注册、依赖、调度）、统一线程预算、**locality-aware 编排**、流式内存管理、资源监控、取消与 checkpoint。
-- **不是**：不定义科学公式；不产生科学值；模块注册/加载与 ABI 校验由调度器承担（本模块负责执行与资源）。**模块名只有一份 = `scheduler` + `pipeline`（最高设计 §7.1）；`runtime` 不是模块名（禁第二名字）**；本页文件名 `19_runtime.md` 是登记在册的文档路径，仅作路径使用。
+- **职责**：typed DAG 的执行（注册、依赖、调度）、统一线程预算、**locality-aware 编排**、流式内存管理、资源监控、取消与 checkpoint。编排入口以阶段 JSON 驱动各 stage（READ / CALIBRATE / STAR / PSF / PLATESOLVE / PHOTOMETRIC / NOISE / DRIZZLE / HIPS_WRITE），并经加载面装配模块。
+- **不是**：不定义科学公式；不产生科学值；不实现科学算法 —— 各 stage 的科学实现一律委托各模块的冻结 C API；模块注册/加载与 ABI 校验由调度器承担（本模块负责执行与资源）。**模块名只有一份 = `scheduler` + `pipeline`（最高设计 §7.1）；`runtime` 不是模块名（禁第二名字）**；本页文件名 `19_runtime.md` 是登记在册的文档路径，仅作路径使用。
 
 ## 2. 权威依据
 
-- 最高设计 `ASTROCS_DESIGN.md` §8.1（顶层结构：scheduler + pipeline 职责名全仓唯一）、§9（CPU 后端与资源：内存极简化、编排连续性）
-- `docs/detail/README.md`（节点与先后关系）
+- 最高设计 `ASTROCS_DESIGN.md` §8.1（顶层结构：scheduler + pipeline 职责名全仓唯一）、§8.4（顶层结构）、§9（CPU 后端与资源：内存极简化、编排连续性）
+- `docs/engineering/COMMON_ABI_V1.md`（C ABI 规则）、`docs/engineering/ERROR_HANDLING_STANDARD.md`（退出码全集合）
+- `docs/detail/anchors/ANCHOR_CONTRACT.md`（行号锚合同）、`docs/detail/UNIFIED_MODEL.md`（数据对象）
 - `docs/detail/infrastructure/21_observability.md` §8（G-RES-01 资源门）
 
 ## 3. 输入/输出数据合同
 
-- **输入**：run-plan（节点图、模块 ID、配置、输出路径）、cpu_profile、内存预算（可选）。
+- **输入**：run-plan（节点图、模块 ID、配置、输出路径）、cpu_profile、内存预算（可选）；编排入口侧另消费阶段 JSON（`configs/stage1.schema.json`：输入 / 校准 / 输出 / 参数）。
 - **输出**：运行图三件（`graph/static_graph.json`（计划）、`graph/observed_trace.json`（实际观测）、`graph/graph_sidecar.json`）、资源三件套（`resource_timeseries.csv`、`resource_summary.json`、`worker_balance.csv`）、run 摘要与 artifact 登记面；artifact-manifest 与调度指标（worker 空转率、缓存命中率、数据搬运量、上下文切换次数、RSS 峰值）为待实现项。
 - 参考：`eng/contracts/schemas/run_*.schema.json`。
 
@@ -75,14 +76,17 @@ flowchart LR
 | `block` | 由 profile | —— | 分块大小（结合内存预算自动收窄） |
 | `checkpoint` | true | —— | 进程内检查点开关（`CheckpointStore`，存活于进程生命周期内） |
 | `memory_limit` | —— | MB | 内存预算（可选） |
-| `cache_budget_mb` | —— | MB | 进程内共享缓存字节预算（LRU）；当前无行为承载，生产路径不读取，存废走变更流程 |
-| `schedule_policy` | `locality_first` | —— | 调度策略（locality_first/balanced）；当前无行为承载，生产路径不读取，存废走变更流程 |
+| `cache_budget_mb` | —— | MB | 进程内共享缓存字节预算（LRU）；当前无行为承载，生产路径不读取该键 |
+| `schedule_policy` | `locality_first` | —— | 调度策略（locality_first/balanced）；当前无行为承载，生产路径不读取该键 |
+| `stage1` | —— | —— | 编排入口的阶段 JSON（`configs/stage1.schema.json`：输入 / 校准 / 输出 / 参数），由编排入口消费，驱动 READ / CALIBRATE / STAR / PSF / PLATESOLVE / PHOTOMETRIC / NOISE / DRIZZLE / HIPS_WRITE 各 stage |
 
 ## 6. 接口/ABI
 
-- entrypoint：run-plan → 执行 → run 产物；
-- 模块经构建内注册表装配（`ModuleRegistry`，`runtime_client.cpp`），不隐藏整阶段 Session；装载期版本化 C ABI 校验由 `secure_loader` 提供，生产装配不走动态装载路径；
+- entrypoint：run-plan → 执行 → run 产物；编排入口侧 = 阶段 JSON → 各 stage 顺序执行。
+- 模块经构建内注册表装配（`ModuleRegistry`，`runtime_client.cpp`），不隐藏整阶段 Session；装载期版本化 C ABI 校验由 `secure_loader` 提供，**生产装配不走动态装载路径**。
+- 历史编排面经 `DllLoader` 以纯 C 调用模块符号（合同 = docs/engineering/COMMON_ABI_V1.md）；该动态装载路径是编排层的 legacy 装配面，不进产品命令树。
 - 缓存以只读共享句柄向模块提供（如星表客户端），模块不自行持有重复副本。
+- **模块句柄所有权**：句柄生命周期由编排层管理。
 
 ## 7. 错误与边界
 
@@ -90,6 +94,7 @@ flowchart LR
 - 执行失败 → exit 6（COMPUTE）；
 - **磁盘写满 / 写盘失败 → exit 10（RESOURCE）**（与资源门判定域内的 exit 10 相互独立，见 `21_observability.md` §8.4）；内存/CPU/线程不设门（最高设计 §4.5，退出码见 §7.2）；
 - 取消/超时 → exit 9（CANCELLED）；
+- **模块加载失败 / 阶段失败 → 显式 exit code + 日志**，不静默跳段、不产出半成品运行。
 - 内存预算内无法安排最小工作集时：调度器对就绪队列回压——谓词挂起等待在途节点释放内存（非自旋），并在无在途节点或取消时放行队首以保证推进；不静默退化、不改写数值路径。
 - **退出码唯一源 = `lib/infrastructure/cli/exit_codes.h`**（本页不复制定义第二套数值表）；域→码映射唯一源 = `docs/engineering/LOG_AND_ERROR_CONTRACT.md` §5。
 - **模块错误必须上行到 CLI**（最高设计 §7.3）：节点/模块的失败以稳定错误码返回并终止本阶段；**错误码一律上行**（空 catch、忽略返回码、只写日志不返回错误、"警告后继续"均不在处置面内）；
@@ -107,6 +112,8 @@ flowchart LR
 - **错误上行**：每个节点的失败路径测试断言"返回稳定错误码 + CLI 退出码正确"，负例注入（吞掉错误码）必红；
 - **降级显式**：构造上游产物缺失场景，断言 `degraded_reason` 落盘且 manifest 记录；注入静默回退（不写 `degraded_reason`）必红（判据见 `docs/engineering/LOG_AND_ERROR_CONTRACT.md`）；
 - 资源监控记录完整性；磁盘门测试（能红能绿）。
+- **编排入口层**：单帧端到端验证；模块加载冒烟（缺符号 / 签名不符 / 加载失败必红）；阶段失败注入断言「显式 exit code + 日志」且不产出伪完整产物。编排层共址测试覆盖 logger 单测、checkpoint 单测、CLI 集成、legacy 编排入口冒烟 ×2、可执行级饱和接线门。
+- **退出码一致性**：编排层退出码集合与 `docs/engineering/ERROR_HANDLING_STANDARD.md` 全集合一致（机器判据 = `eng/tools/docs_machine_consistency.py`）。
 
 ---
 
@@ -120,3 +127,45 @@ flowchart LR
   `docs/detail/00_INDEX.md` §2 第 2 列 = `scheduler`。
 - `runtime` **不是模块名**，其用途仅限路径；本页文件名 `19_runtime.md` 是 `docs/DOCUMENT_INDEX.yaml` 登记在册的文档路径，仅作路径使用。
 - `pipeline` 在 `docs/modules/MODULE_MAP.yaml` 中登记；本页与 `00_INDEX.md` 已覆盖其名。
+
+---
+
+## 10. 归属与构建（ORCH-001 落位）
+
+- **职责家 = `lib/infrastructure/scheduler/**`**：与 `ASTROCS_DESIGN.md` 目录树
+  scheduler/ 行逐条对应 —— 注册 = `dll_loader.cpp`（模块动态加载 + 函数指针
+  注册表）；资源预算 = `admission_controller.h` + `resource_monitor.h`；执行 =
+  `orchestrator.cpp` 的 `run_stage_*` 与阶段表；取消 = `request_cancel()` /
+  SIGINT 原子 token（`ASTROCS_CANCELLED`）；checkpoint = `checkpoint.cpp`。
+- `ASTROCS_DESIGN.md` §8.4 顶层结构里的 pipeline 位（typed DAG、块生命周期、
+  内存/数据管线）在代码侧的实体是 `lib/infrastructure/scheduler/src/{pipeline,
+  artifact,artifact_store}.cpp` 与 `lib/infrastructure/runtime/**`
+  （MODULE_MAP `id=runtime`），**不属**编排层实体。
+- **物理位 = `lib/infrastructure/pipeline/orchestrator/**`**：该目录承载编排层
+  实现，对应顶层设计 §8.4 的「infrastructure/pipeline（typed DAG 编排）」位。
+- ⇒ **位置与职责分离**：归属一律按职责判定，不按目录名推断。检查器、清单与
+  文档的归属判据同此口径。
+- **构建 target**：`astrocs_infra_orchestrator`（静态库；编排层
+  `CMakeLists.txt` 声明，根 `CMakeLists.txt` 经 `add_subdirectory` 注册）；
+  vendored json-schema-validator 独立为 `astrocs_orchestrator_jsv`；入口可执行
+  `orchestrator_legacy_cli` 为**非产品**（不进 install 白名单、不进产品 manifest；
+  最高设计 §6.2 的唯一命令树仍是产品 `acsd`）。
+- **语言与 ABI 锚点**：C++17（`-std=c++17`，编排层 `Makefile` 的 CXXFLAGS；
+  正式构建入口 = 根 CMake 的 `astrocs_infra_orchestrator`）；C ABI 经 `DllLoader`
+  纯 C 调用（docs/engineering/COMMON_ABI_V1.md）。
+- **编排层源文件**：`lib/infrastructure/pipeline/orchestrator/cpp/`。
+
+---
+
+## 11. 已知限制
+
+- 编排层目录 `cpp/` 下存在嵌套的 `logs` 目录（非阻断缺陷）；日志落点的唯一合法
+  面是 `<output_dir>/logs`（最高设计 §7.3），落点之外的位置（含 `run/`、源码树
+  目录、安装目录、用户家目录、进程 CWD 相对路径）均不在处置面内，机器判据见
+  docs/engineering/LOG_AND_ERROR_CONTRACT.md。
+- `cache_budget_mb` 与 `schedule_policy` 为无行为承载的配置键。
+- artifact-manifest 与调度指标（worker 空转率、缓存命中率、数据搬运量、上下文
+  切换次数、RSS 峰值）为待实现项。
+- 动态装载（`DllLoader`）是 legacy 装配面，生产装配走构建内注册表；legacy 入口
+  可执行 `orchestrator_legacy_cli` 非产品。
+- 全局限制登记 = artifacts/evidence/known-limitations-ledger/LIMITATIONS.md。

@@ -48,4 +48,4 @@ cache/内存按 ALG 合同(bounded); I-O 单 writer; 所有权=调用方分配 b
 
 ## 已知限制
 
-见 docs/KNOWN_LIMITATIONS.md 与 `ALG-P1-WR-001` 合同边界。
+见 artifacts/evidence/known-limitations-ledger/LIMITATIONS.md 与 `ALG-P1-WR-001` 合同边界。
