@@ -6,8 +6,8 @@
 > 矩阵 README 未落地）。本文件**不替代** `DATA-TYPE-MATRIX` 的产出：
 > 该分片落地后请**在本文件基础上扩展**（矩阵单元、判据清单），不要另建第二个矩阵文件。
 >
-> 依据：`工程控制/RELEASE-02/GAP_AUDIT.md` §9.47（论文工作区须按「数据类型」组织
-> 真实 + 合成测试）、§9.41（合成必须是真实物理噪声过程）。
+> 依据：`实验/裁决台账.md` **GA-08**（论文工作区须按「数据类型」组织
+> 真实 + 合成测试）、**GA-05**（合成必须是真实物理噪声过程）。
 
 ## 1. 组织方式
 
@@ -25,7 +25,7 @@
 - **大产物**（掩膜 FITS、合成帧 FITS）一律落 `run/`（gitignore），**不入库**；
 - 仓库内只保留**可复跑入口 + 小体积元数据索引**；
 - 每个矩阵单元 = **真实数据实例**（real_instance）× **合成数据配方**（scene），
-  两者都登记，缺一不可（§9.47 第 4 条）。
+  两者都登记，缺一不可（GA-08 第 4 条）。
 
 ## 2. 矩阵单元 × 真实数据实例
 
@@ -48,7 +48,7 @@
 | 波段 | `band:Red/Green/Blue` | `L4-rebuild/norm/t3_m2_red` | `sweep_band.json`、`nebula_core_m42_*` | 对应目录 |
 | 负例 | `negative_control:true` | —（真值「无效应」由**同一真值、逐位相同的重复渲染**实现） | `common_mode_overlap.json`；A6 实验的 P3a/P3b 臂 | `.../common_mode_overlap`、`.../m16_scene/a6_seeing` |
 
-**M16 三波段本身就是「不同数据类型」**（§9.47 第 3 条「按波段」）：
+**M16 三波段本身就是「不同数据类型」**（GA-08 第 3 条「按波段」）：
 同一片天空、同一 WCS 网格，但谱线结构完全不同 ——
 Hα（F657N）亮星云丝状结构 + 密集星场；[S II]（F673N）极暗（中位 0.0213 e/s，比 Hα 暗 10.9×）；
 [O III]（F502N）弥散平坦、星点为主。
@@ -58,7 +58,7 @@ Hα（F657N）亮星云丝状结构 + 密集星场；[S II]（F673N）极暗（�
 | 入口 | 作用 |
 |---|---|
 | `实验/shared/synthetic/m16_mask.py` | 由 HST_M16 三帧生成**有效域掩膜**（valid + flags + meta），落 `run/reverse_verify/m16_scene/masks/` |
-| `实验/shared/synthetic/m16_scene.py` | **前向渲染接口**：真实 M16 结构 + PHOTFLAM 星等尺度 + §9.41 物理噪声链 |
+| `实验/shared/synthetic/m16_scene.py` | **前向渲染接口**：真实 M16 结构 + PHOTFLAM 星等尺度 + GA-05 物理噪声链 |
 | `实验/shared/data/synthetic/generate.py` | 统一生成入口（`renderer` 键派发；M16 场景走 `m16_scene`） |
 | `run/reverse_verify/m16_scene/make_index.py` | 重建 `实验/shared/data/real/m16_scene_index.json` |
 | `实验/additive-sky-seamless/code/reverse_verify/m16_scene/exp_a6_seeing_aperture.py` | 示范判据（A6 seeing 红绿例 + 负例） |
@@ -68,7 +68,7 @@ Hα（F657N）亮星云丝状结构 + 密集星场；[S II]（F673N）极暗（�
 | 判据 id | 内容 | 脚本 | 结果 |
 |---|---|---|---|
 | `exp1_sky_poisson_snr` | 天光 ↑ ⇒ 散粒方差 ↑ ⇒ SNR ↓（**不得**用加常数代替） | `experiments/data_matrix/exp1_sky_poisson_snr.py` | DATA-TYPE-MATRIX |
-| `exp2_mosaic_shape_difference` | 不同指向马赛克 ⇒ 帧间空间形状差异（§9.46 场景） | `.../exp2_mosaic_shape_difference.py` | DATA-TYPE-MATRIX |
+| `exp2_mosaic_shape_difference` | 不同指向马赛克 ⇒ 帧间空间形状差异（GA-07 场景） | `.../exp2_mosaic_shape_difference.py` | DATA-TYPE-MATRIX |
 | `exp3_variance_closure` | 逐像素方差闭合到解析预测 | `.../exp3_variance_closure.py` | DATA-TYPE-MATRIX |
 | `exp_variance_closure` | **M16 合成帧**逐像素方差闭合（含平场乘性响应显式分解 + 掩膜传播） | `experiments/m16_scene/exp_variance_closure.py` | **M16-SCENE，已跑（9/9 PASS）** |
 | `exp_a6_seeing_aperture` | **固定真值通量、只改 seeing** ⇒ PSF 域口径孔径无关；5x5 盒和域**不**无关；负例归零 | `experiments/m16_scene/exp_a6_seeing_aperture.py` | **M16-SCENE，已跑（4/4 PASS）** |

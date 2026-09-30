@@ -440,15 +440,35 @@ def base_rate_transport_residual(frame, base_rate: np.ndarray,
                    - float(dark_rate_e_per_s) / m)
         if inj_rate_e_per_s is not None:      # 扣掉注入星率面 => 只剩真实底的贡献
             implied = implied - np.asarray(inj_rate_e_per_s, dtype=float)
-    sel = np.ones(base_rate.shape, dtype=bool) if valid is None else np.asarray(valid, bool)
-    sel = sel & (np.abs(base_rate) > 1e-6)
+    base = np.asarray(base_rate, dtype=float)
+    # 判据像素的选择必须**按条件数**给，不是「非零即取」。
+    #
+    # implied 是若干 O(sky) 的大数相减得到的量，它的**绝对**误差底 ≈ eps·(|sky|+|inj|+|D/m|)，
+    # 与 base 的大小无关。真实底的逐像素分布里含大量近零像素（本仓 M16 真实底底值中位
+    # 0.024 e-/s，但全域跨度 −503…655），对这类像素做比值，比值完全由绝对误差底决定，
+    # 与被测物理无关 —— 真实底口径正确的情形下 max|ratio−1| 也会顶到 1 附近。
+    #
+    # 因此只取「真实底显著高于反解残差绝对误差底」的像素：
+    #   base > K · eps · max(|sky|, |inj|, |D|)
+    # 取 K=1e3 留三个数量级余量；低于该底的像素其比值不承载判据信息，计入 n_px_skipped。
+    eps = float(np.finfo(float).eps)
+    ref = float(np.max(np.abs(np.asarray(sky_e_per_s, dtype=float))))
+    if inj_rate_e_per_s is not None:
+        ref = max(ref, float(np.max(np.abs(np.asarray(inj_rate_e_per_s, dtype=float)))))
+    ref = max(ref, abs(float(dark_rate_e_per_s)))
+    floor = 1e3 * eps * ref
+    in_mask = np.ones(base.shape, dtype=bool) if valid is None else np.asarray(valid, bool)
+    sel = in_mask & (base > floor)
+    n_skipped = int((in_mask & ~sel).sum())
     if not sel.any():
-        return {"n_px": 0, "max_abs_rel_dev": 0.0, "median_ratio": 1.0,
+        return {"n_px": 0, "n_px_skipped": n_skipped, "max_abs_rel_dev": 0.0,
+                "median_ratio": 1.0, "selection_floor": floor,
                 "expected_if_defect": 1.0 / t - 1.0}
-    ratio = implied[sel] / np.asarray(base_rate, dtype=float)[sel]
-    return {"n_px": int(sel.sum()),
+    ratio = implied[sel] / base[sel]
+    return {"n_px": int(sel.sum()), "n_px_skipped": n_skipped,
             "max_abs_rel_dev": float(np.max(np.abs(ratio - 1.0))),
             "median_ratio": float(np.median(ratio)),
+            "selection_floor": floor,
             "expected_if_defect": 1.0 / t - 1.0}
 
 
