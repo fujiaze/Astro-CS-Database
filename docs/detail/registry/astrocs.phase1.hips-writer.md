@@ -72,7 +72,7 @@ abort 不清理已写文件，处置归调用方/IO-003 层（缺陷登记 = ALG
 
 ## 原子发布边界
 
-最高设计 §9 要求所有产品（含 HiPS tile）走「临时文件/目录 + 校验 + fsync + 原子
+最高设计 §10 要求所有产品（含 HiPS tile）走「临时文件/目录 + 校验 + fsync + 原子
 rename 提交」。本模块现状为 `remove → fits_create → write_chksum → close`
 （lib/infrastructure/aio/src/hips/aio_hips_writer.cpp 的 `std::remove`），不构成原子发布，
 属已登记的例外面（缺陷登记 = ALG-HIPS-001 §10）。闭合判据 = tile 走

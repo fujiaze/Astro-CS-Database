@@ -1,7 +1,7 @@
 # 模块 astrocs.phase1.photometry
 
 > 上游：docs/ASTROCS_DESIGN.md §8.5（模块与 ABI）、§4.2（Phase1 节点流程）、
-> §4.4（产品基数不变量）、§4.6（硬约束：测光）
+> §4.4（产品基数不变量）
 > 科学正本：docs/science/PHOTOMETRY.md（SCI-PHOT-001，含 §1 判据与 §5 观测统计量、
 > §16 平移精化判据）、docs/science/algorithms/PHOTOMETRIC_FIT.md（ALG-PHOT-001..002
 > §13 逐符号锚）、docs/science/UNCERTAINTY_AND_COVARIANCE.md（通量方差）
@@ -182,7 +182,7 @@ cache/内存按 ALG 合同（bounded）; I-O 单 writer。
   消费并如实登记）。
 
 取消 = 协作取消（契约：宿主 cancel 通道 → 停止调度新单元 → 等运行中单元完成
-→ exit 9，最高设计 §6.3；接线以实测为准）；模块内无 checkpoint。
+→ exit 9，最高设计 §7.2；接线以实测为准）；模块内无 checkpoint。
 
 ## 独立 synthetic 验证命令与容差
 

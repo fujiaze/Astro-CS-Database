@@ -140,7 +140,7 @@ PSF 拟合质量只能作 validity/诊断，不能未经概率模型直接乘入
 |---|---|---|---|
 | Phase1 帧平面（calibrated / cleaned） | 线性计数（逐像素） | `ADU` | 未按立体角归一 |
 | Phase1 测光施加后帧平面 `photoapplied_<base>` | 线性计数 × 逐帧标度 | `k_photo·ADU`（零点 = 本帧相对测光零点） | `I_photo = k_photo·I_cal` |
-| Phase1 HiPS signal | 线性面亮度 | `ADU/sr` | writer 归一 `Σ_j x_j·w_jp / Σ_j a_jp` |
+| Phase1 HiPS signal | 线性面亮度 | `ADU/sr` | writer 归一 `S_p = F_p / N_p`，`F_p = Σ_j x_j·w_jp`、`N_p = Σ_j w_jp·A_pixel,j`（`docs/science/DRIZZLE.md` §3/§5/§7） |
 | Phase1 HiPS variance / ivar | `ADU^2/sr^2` / `sr^2/ADU^2` | 二次律 `FZ-P3-BUNIT-QUADRATIC` |
 | Phase1 点源量（flux / Q / W_info） | `ADU` / `ADU^-1` / `ADU^-2` | 点源与面亮度两套量各自闭合 |
 | Phase2 马赛克 signal | 线性面亮度（与输入同标度） | 面亮度产品为 `ADU/sr` | `Σ w_i·x_i / Σ w_i`（线性加权） |
@@ -193,11 +193,11 @@ PSF 拟合质量代理（FWHM、残差尺度等）**只作诊断**，**权重面
 
 ## 9. 球面 Drizzle 与不确定度
 
-源像素积分通量 `x_j` 先转换为源像素面亮度 `B_j = x_j/A_pixel,j`，按球面交叠面积 `a_jp` 估计：
+源像素积分通量 `x_j` 先转换为源像素面亮度 `B_j = x_j/A_pixel,j`，再按球面交叠面积 `a_jp` 估计。核与归一分母的定义式、单位与恒等式见 `docs/science/DRIZZLE.md` §3/§5/§7 与 `docs/science/algorithms/DRIZZLE_GEOMETRY.md`（`DISP-DRZ-009` 覆盖正向与反向两个面），本页只记落地约束：
 
-```text
-S_p = Σ_j B_j a_jp / Σ_j a_jp
-```
+- 正向（帧→球面）核 `w_jp = a_jp/A_drop,j`（按 drop 面积归一，`Σ_p w_jp = 1`）；
+- 正向面亮度归一分母用 `N_p = Σ_j w_jp·A_pixel,j`（`N_p = D_p/pixfrac²`），该面**不**取覆盖面积 `D_p = Σ_j a_jp` —— 换了在 `pixfrac < 1` 时使面亮度偏 `pixfrac²`；
+- `provenance.flux_conservation_factor` 恒为 1（`FZ-COND-FLUX-CONSERV`）。
 
 同时输出线性算子/足够的方差传播信息、support、coverage、validity 和相关噪声描述。pixfrac、像素面积与单位不可隐含。点源信息权重不能仅用 drizzle 后逐像素 ivar 重建而丢掉 PSF/协方差。
 

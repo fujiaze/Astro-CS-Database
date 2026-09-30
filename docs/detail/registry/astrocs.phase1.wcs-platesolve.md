@@ -1,7 +1,7 @@
 # 模块 astrocs.phase1.wcs-platesolve
 
 > 上游：docs/ASTROCS_DESIGN.md §8.5（模块与 ABI）、§4.2（WCS 解算：近似指向 + 星表匹配精化）、
-> §4.6（硬约束：WCS 为 ICRS）
+
 > 科学正本：docs/science/ASTROMETRY.md（SCI-WCS-001）、docs/science/algorithms/PLATESOLVE.md
 > （ALG-WCS-001，解算算法推导）、docs/science/PHOTOMETRY.md §16（平移精化判据与读数）
 > 数据正本：docs/science/DATA_SEMANTICS.md §18（DATA-P1-WCS）
@@ -127,7 +127,7 @@ PLATESOLVE.md §11）。
 匹配不足 / 无法收敛 → fail-closed（输出面 = 无 WCS 产物）；残差超门 → 拒绝或
 标记两态之一（"尽力拟合"属另一口径）。
 
-取消 = 协作取消（契约：宿主 cancel 通道 → exit 9，最高设计 §6.3；现状缺失）；
+取消 = 协作取消（契约：宿主 cancel 通道 → exit 9，最高设计 §7.2；现状缺失）；
 模块内无 checkpoint（无断点续算）。
 
 ## 独立 synthetic 验证命令与容差

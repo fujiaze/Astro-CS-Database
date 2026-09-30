@@ -1,121 +1,81 @@
-# Astro Celestial Sphere Database（ACSD） 详细设计集 · 插件域索引（docs/detail）
+# ACSD 细节文档索引（docs/detail）
 
-> 上游：ASTROCS_DESIGN.md §0.2（详细文档层与双向索引）
-> 本索引只覆盖 `docs/detail/` 下的**插件域**四个目录。本集其余篇目（三阶段详细设计、
-> 阶段专用设计、模块说明卡 `registry/`、锚设施 `anchors/`、根级模块页与合同页）不在本索引范围。
+> 上游：docs/ASTROCS_DESIGN.md §0（文档权威与索引）、§8（软件架构）
+> 本索引覆盖 `docs/detail/` 全树：根级跨模块正本、`registry/` 模块登记面、
+> `infrastructure/` 基建模块落地面、`anchors/` 文档—代码锚合同面。
 
----
-
-## 1. 模块归属
+## 1. 目录结构
 
 ```text
-docs/detail/                    本索引覆盖范围 = 下列插件域四个目录
-├── 00_INDEX.md                 本文
-├── algorithms_phase1/          normalize 相关科学模块（8 篇）+ 集 README
-├── algorithms_phase2/          mosaic 相关科学模块（5 篇）+ 集 README
-├── algorithms_phase3/          export 相关科学模块（3 篇）+ 集 README
-├── infrastructure/             基建模块（7 篇）+ 集 README
-├── registry/                   模块说明卡 26 张 + 集 README（不在本索引范围）
-└── anchors/                    锚合同与机读登记（不在本索引范围）
+docs/detail/
+├── 00_INDEX.md                        本文
+├── README.md                          目录说明
+├── common.md                          跨链路共享基础库（lib/algorithms/shared/）
+├── UNIFIED_MODEL.md                   统一线性观测模型与数据对象
+├── PHASE1_DETAILED_DESIGN.md          normalize 阶段详细设计
+├── PHASE2_DETAILED_DESIGN.md          mosaic 阶段详细设计
+├── PHASE3_DETAILED_DESIGN.md          export 阶段详细设计
+├── PRODUCT_STORAGE_FORM.md            裸 HiPS 与 zstd 归档包落盘形态
+├── LOG_AND_ERROR_SYSTEM.md            日志与错误系统详细设计
+├── STAR_DETECTION_IMPL_DESIGN.md      星检测逐算子落地规格
+├── merged_TROUBLESHOOTING.md          排障手册（症状 → 定位 → 修复）
+├── registry/                          生产模块登记正本（26 张卡 + README）
+├── infrastructure/                    基建模块落地设计（8 张卡 + README）
+└── anchors/                           文档—代码锚合同（ANCHOR_CONTRACT + README）
 ```
 
-各目录的「+ 集 README」是有意合并的产物：迁移 A 段把原 26 份目录级招牌件
-消化为 3 份集 README 与 1 份 `merged_TROUBLESHOOTING.md`，故每目录文件数 = 声明篇数 + 1。
+四个文件夹各配一个极简 README，说明该文件夹放什么。
 
-**代码落位**：所有科学算法模块在 `lib/algorithms/` 下**并联放置**；`phase1/2/3` 是设计层面的内部指代，代码目录统一为 `lib/algorithms/` 平铺 + `lib/infrastructure/cli/{normalize,mosaic,export}`，引用对应算法模块。（见最高设计 §7.1/§8.4）
+## 2. 模块落位规则
 
----
-
-## 2. 模块总表（23 篇）
-
-> 分组标题中的 phase1/2/3 仅是**阅读分组**（文档目录），代码中所有算法模块在 `lib/algorithms/` 下并联放置。
-
-### algorithms/phase1（normalize，8）
-
-| 文档 | 模块 | 一句话职责 |
+| 面 | 承载对象 | 体例 |
 |---|---|---|
-| `01_calibration.md` | calibration | 减偏置/暗流/平场，单位与方差传播 |
-| `02_cosmetic.md` | cosmetic | 坏点（hot/cold 像素）/坏列检测与插值修复 |
-| `03_star_detection.md` | star_detection | 源探测与质心/矩 |
-| `04_psf.md` | psf | 空间 PSF 建模与参数化 |
-| `05_platesolve.md` | platesolve | 天体测量解算与 WCS 拟合 |
-| `06_photometry.md` | photometry | 孔径/PSF 测光与通量定标 |
-| `07_noise_snr.md` | noise_snr | 噪声模型、variance/ivar、SNR、depth、信息权重、帧级 SNR（文件头）、稀疏层 |
-| `08_drizzle.md` | drizzle | 球面 Drizzle / HEALPix 累积 |
+| `registry/` | 每个**生产 DAG 节点模块**一页 | 职责与明确非职责、输入输出端口与 DATA/单位/坐标/invalid、公共头与核心符号生命周期、配置 schema、执行类与并行轴、内存与所有权、错误与取消、独立验证命令与容差、已知限制 |
+| `infrastructure/` | 每个**工程基建组件**一页（`lib/infrastructure/**`），含生产不可达的隔离实验与未来可视化组件 | 同 `registry/` 体例 |
+| 根级 | 跨模块的观测模型、阶段详细设计、落盘形态、日志错误系统、逐算子实现规格、排障手册，以及不属于生产 DAG 的跨链路共享库 | 按主题组织 |
+| `anchors/` | 文档条款锚定到源码符号与内容锚的合同 | 合同正文 |
 
-### algorithms/phase2（mosaic，5）
+不在 `registry/` 登记面的对象：`common`（跨链路共享基础库，不是流水节点）、
+`infrastructure/` 下的 `acr`（隔离实验，`p2_acr_block_eligible` 恒 false）与
+`hips_browser`（未来可视化组件，不进产品 manifest）。
 
-| 文档 | 模块 | 一句话职责 |
+## 3. `registry/` 模块卡（26）
+
+| 命令 | 模块卡 |
+|---|---|
+| normalize | `astrocs.phase1.session`、`astrocs.phase1.calibration`、`astrocs.phase1.cosmetic`、`astrocs.phase1.star-detection`、`astrocs.phase1.star-psf`、`astrocs.phase1.wcs-platesolve`、`astrocs.phase1.photometry`、`astrocs.phase1.noise-snr`、`astrocs.phase1.drizzle`、`astrocs.phase1.hips-writer`、`astrocs.phase1.writer` |
+| mosaic | `astrocs.phase2.session`、`astrocs.phase2.coverage`、`astrocs.phase2.sample`、`astrocs.phase2.upm-fit`、`astrocs.phase2.upm-apply`、`astrocs.phase2.reject`、`astrocs.phase2.integrate`、`astrocs.phase2.write`、`astrocs.phase2.resample` |
+| export | `astrocs.phase3.properties`、`astrocs.phase3.wcs`、`astrocs.phase3.resample2`、`astrocs.phase3.writer`、`astrocs.phase3.verify` |
+
+各卡的公共抬头面：上游条款（最高设计节号 + 一级正本 + 数据/API/算法正本）、
+职责与明确非职责、端口表、落地口径、公共头与 symbol、配置 schema、
+执行类与并行轴、内存与所有权、错误与取消、验证面、已知限制。
+
+## 4. `infrastructure/` 基建卡（8）
+
+| 卡 | 组件 | 物理位 |
 |---|---|---|
-| `09_coverage.md` | coverage | 覆盖联合与几何有效域 |
-| `10_sampling.md` | sampling | 控制点采样（避开亮星/异常） |
-| `11_upm.md` | upm | 加性背景/梯度统一模型拟合与施加 |
-| `12_rejection.md` | rejection | 排异算法与自动策略 |
-| `13_integration.md` | integration | 扩展源 GLS / 点源 Q-W / psfsw_robust |
+| `17_aio.md` | FITS / XISF / HiPS / manifest 唯一 I/O 与原子提交 | `lib/infrastructure/aio/` |
+| `18_cli.md` | 唯一命令行入口、预检、机器输出与退出码 | `lib/infrastructure/cli/` |
+| `19_runtime.md` | `scheduler` + `pipeline`：typed DAG、线程预算、资源监控 | `lib/infrastructure/scheduler/`、`lib/infrastructure/pipeline/` |
+| `20_benchmark.md` | CPU 机器画像生成与校验 | `lib/infrastructure/benchmark/` |
+| `21_observability.md` | 结构化日志、事件流、运行图、资源门 | `lib/infrastructure/observability/` |
+| `22_gaia_xpsd_client.md` | 本地星表解析与两级缓存（离线、零网络） | `lib/infrastructure/gaia_xpsd_client/` |
+| `23_hips_browser.md` | 球面浏览器与显示变换（不进产品 manifest） | `lib/infrastructure/hips_browser/` |
+| `acr.md` | 异构计算运行时（隔离实验，生产不可达） | `lib/infrastructure/acr/` |
 
-### algorithms/phase3（export，3）
+## 5. 每册必须回答的问题
 
-| 文档 | 模块 | 一句话职责 |
-|---|---|---|
-| `14_projection.md` | projection | 投影 registry（内置 TAN/SIN/CAR/AIT/STG/MOL/CEA/ZEA） |
-| `15_resample.md` | resample | 球面反向映射与重采样 |
-| `16_fits_output.md` | fits_output | 流式 FITS + WCS/coverage/validity |
-
-### infrastructure（7）
-
-| 文档 | 模块 | 一句话职责 |
-|---|---|---|
-| `17_aio.md` | aio | FITS/HiPS/manifest 唯一 I/O、原子提交 |
-| `18_cli.md` | cli | 命令解析、JSON/JSONL、取消、退出码 |
-| `19_runtime.md` | scheduler | 模块名 = `scheduler` + `pipeline`（最高设计 §8.1；`runtime` 不是模块名）；typed DAG、调度、线程预算、资源监控 |
-| `20_benchmark.md` | benchmark | CPU profile 生成与校验 |
-| `21_observability.md` | observability | 日志、事件、运行图 |
-| `22_gaia_xpsd_client.md` | gaia_xpsd_client | 本地星表解析、缓存、坐标/历元语义（离线、零网络） |
-| `23_hips_browser.md` | hips_browser | 未来 GUI 可视化组件（不进产品 manifest） |
-
----
-
-## 3. 插件文档统一模板（每篇 8 节）
-
-每篇插件文档固定 8 节（机器与人都按此结构消费）：
-
-1. **职责与边界** —— 一句话职责 + "不是做什么"；
-2. **权威依据** —— 最高设计节号 + docs/science + docs/algorithms 具体引用；
-3. **输入/输出数据合同** —— 引用 eng/contracts/schemas，不复制 schema；
-4. **算法与公式要点** —— 关键公式（引用权威推导，不重复展开）；
-5. **配置项** —— phase_config 字段、默认值、单位、约束；
-6. **接口/ABI** —— entrypoint、端口、所有权；
-7. **错误与边界** —— 退出码、fail-closed、边界情况；
-8. **测试与 Oracle** —— 必须有的测试与独立 Oracle。
-
----
-
-## 4. 每篇文档必须回答的问题
-
-- 本模块的**输入对象**和**输出对象**分别是什么（用 `docs/detail/UNIFIED_MODEL.md` 的术语）？
+- 本模块的输入对象与输出对象是什么（用 `UNIFIED_MODEL.md` 的术语）？
 - 本模块**不做什么**（边界，防止越界改科学）？
-- 本模块的**验收门**是什么（可复跑命令）？
-- 本模块的**配置**哪些字段、默认值、单位？
-- 本模块与相邻模块的**DAG 位置**？
+- 端口的 DATA 编号、单位、坐标系与 invalid 语义分别是什么？
+- 执行类、并行轴与确定性口径是什么？worker 数从哪个预算对象来？
+- 验收门是什么（可复跑命令 + 容差）？
+- 配置哪些字段、默认值、单位、约束？
 
----
+## 6. 与一级正本的关系
 
-## 5. 维护规则
-
-- 插件文档与代码/合同同步更新；改合同必须先改插件文档（文档先行）；
-- 插件文档与最高设计保持一致；冲突以最高设计为准并修订本文档；
-- 新增模块 = 新增插件文档 + module.yaml 注册 + 测试；删除模块 = 反向操作并登记。
-
----
-
-## 6. 五个创新点与实验单元
-
-ACSD 的科学核心是**一条科学链上的五个相互纠缠的创新点**（最高设计 §2），插件文档集按它们组织：
-
-1. **P1 通量积分拟合（根基）**（§2.1）：Gaia DR3 XP 星点光谱 × CCD QE 曲线 × 滤镜透过率曲线积分，正向合成期望测光量并与实测通量拟合，结果以线性乘性标度应用到整帧像素，把图像校准到**测光星等坐标系**、**整帧消除物理单位**；
-2. **P2 跨帧可用的绝对信噪比**（§2.2）：**帧级 SNR**（点源 PSF 信号口径，写入 HiPS 文件头）+ **稀疏控制点上的绝对 SNR**（与帧级同口径、同逐帧参考通量 `F_ref`，无量纲），不依赖参考帧；
-3. **P3 平面到球面的通量守恒映射算子**（§2.3）：平面到 HEALPix 的**通量绝对守恒**映射（球面 drizzle）；稀疏 SNR 控制点同经该算子上球；
-4. **P4 重建稠密信噪比**（§2.4）：基于本仓噪声信号模型，把稀疏控制点重建为稠密 SNR 场（Phase2 消费）；
-5. **P5 加性天光去除与无接缝叠加**（§2.5）：UPM 在全部帧上联合建立**连续的绝对天光参考平面**，各帧按「**多退少补**」用加法扣除偏差、保留公共天光平面；P1 已统一信号平面、P2/P4 已给出精确 SNR，SNR 加权叠加在**公共天光面可表示**的前提下无接缝——判定取**有符号电平台阶**（沿真实帧足迹的法向差分，只计两侧都在数据内部的边界），参考面节点间距由输入几何导出；对参考面不可表示且沿图像方向相干的小尺度分量，残余接缝随其幅度线性增长（最高设计 §2.5）。
-
-五个创新点各自是一个独立实验单元（最高设计 §12.3）：实验报告、固定 seed 的代码、结果与数据见 `实验/photometric-magnitude`（P1 测光星等坐标系）、`实验/absolute-snr`（P2 绝对 SNR 传递链）、`实验/healpix-polar`（P3 平面到球面守恒映射与极区面积交叠）、`实验/dense-snr-reconstruct`（P4 稀疏→稠密 SNR 重建）、`实验/additive-sky-seamless`（P5 加性天光与无接缝）；公式与推导正本见 `docs/science/`、`docs/science/algorithms/`。
+- 一级正本是 `docs/science/`（公式、常数、判据、算法推导）与 `docs/engineering/`
+  （架构、行为合同、标准）；detail 只做展开，不另立口径。
+- detail 引用一级已定稿的公式与结论编号，不重复推导；数值表与推导留在 science。
+- 冲突时以更高一层为准；一级表述不足以支撑实现时回到一级补要点，不在 detail 另立结论。

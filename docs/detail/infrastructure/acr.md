@@ -1,11 +1,18 @@
 # Module: acr
 
-> 上游：docs/ASTROCS_DESIGN.md §8.5（模块与 ABI）
+> 上游：docs/ASTROCS_DESIGN.md §8.4（顶层结构：lib/infrastructure/acr/ 隔离实验位）、
+> §8.5（模块与 ABI）、§1.3（非目标：CPU/GPU 混合生产路由，生产不可达）、
+> §9（CPU 后端与资源：仅纯 CPU 进生产）
+> 依赖面正本：docs/engineering/DEPENDENCY_RULES.md（ACR 为 DORMANT：不进生产构建/加载/路由/benchmark/发布）
+> 等价性正本：docs/science/algorithms/ACR_EQUIVALENCE_ALGORITHMS.md
 
 ## 职责
 
 异构计算运行时：kernel registry、CPU/GPU 调度、device executor、
 route calibration、cuda bridge（phase2 集成 CPU reference + CUDA）。
+本模块是**隔离实验**：`p2_acr_block_eligible(...)` 在生产恒返回 false，
+ACR 块在生产不可达是构造性结论；ACR 状态为 DORMANT，保留源码与隔离测试，
+不进生产构建、加载、路由、benchmark 与发布（`DEPENDENCY_RULES.md`）。
 
 ## 非职责
 
@@ -38,11 +45,11 @@ work_pool 调度；dispatcher 纯 CPU 回退；设备不可用时按 partial 契
 ## Science IDs
 
 依赖 phase2（ALG-UPM-*、ALG-REJ-*、SCI-INT-* 等）；无独立科学定义，
-等价性判据正本 = `docs/science/algorithms/ACR_EQUIVALENCE.md`。
+等价性判据正本 = `docs/science/algorithms/ACR_EQUIVALENCE_ALGORITHMS.md`。
 
 ## 性能特征
 
-route estimator 由 qualification 微基准标定（`routing/benchmark_route_estimator.hpp` 读 `RouteSamplePoint`/`RouteReplayPoint` 生成 `RoutePrediction`）；qualification 矩阵 = (operation, device, precision, size 档) 组合的路由准入表（`qualification/profile_generator.hpp` + `routing/route_profile_v2.hpp` 的 `OperationRouteProfile`），组合未登记时回退 CPU reference。等价性判据正本 = `docs/science/algorithms/ACR_EQUIVALENCE.md`。
+route estimator 由 qualification 微基准标定（`routing/benchmark_route_estimator.hpp` 读 `RouteSamplePoint`/`RouteReplayPoint` 生成 `RoutePrediction`）；qualification 矩阵 = (operation, device, precision, size 档) 组合的路由准入表（`qualification/profile_generator.hpp` + `routing/route_profile_v2.hpp` 的 `OperationRouteProfile`），组合未登记时回退 CPU reference。等价性判据正本 = `docs/science/algorithms/ACR_EQUIVALENCE_ALGORITHMS.md`。
 
 ## Tests
 

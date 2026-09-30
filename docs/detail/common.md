@@ -1,6 +1,12 @@
 # Module: common
 
-> 上游：docs/ASTROCS_DESIGN.md §8.5（模块与 ABI）
+> 上游：docs/ASTROCS_DESIGN.md §8.5（模块与 ABI：版本化公开头、跨动态库不传 STL/异常/RTTI）、
+> §3.3（精度归属：稠密大面默认单精度、稀疏与元数据全程双精度、JSON 显式指定以 JSON 为准）、
+> §3.1（数据对象：全链一套球面索引与一套帧标识）
+> 依赖面正本：docs/engineering/DEPENDENCY_RULES.md（`astrocs_common` 可被任何模块单向依赖；
+> 共享 HEALPix 核心单源 = `lib/algorithms/shared/healpix/healpix_core.cpp`）
+> 精度边界正本：docs/engineering/NUMERIC_STANDARD.md
+> 承载位置：本库是跨全链路的共享基础库，不是流水节点，故不在 `registry/` 的生产模块登记面内。
 
 ## 职责
 
@@ -25,7 +31,7 @@
 
 - HEALPix `order K → nside=2^K`，`ang2pix` 内归一 `ra` 任意值 `dec∈[-90,90]`，非法 `pix2ang` 返回 `0`；NESTED leaf local 18 bits `interleave(x,y)`，FITS index `(511-x)*512+y` 由 CDS Hipsgen oracle 冻结（`docs/science/DATA_SEMANTICS.md §2-3`）。
 - frame_id = truncated-64(canonical SHA-256 of science payload)（`DATA-FRAME-ID-001`）。
-- 标量精度 `FP32/FP64` 经 `aio_set_precision_mode` 跨 DLL 传递。
+- 标量精度 `FP32/FP64` 经 `aio_set_precision_mode` 跨 DLL 传递；全局 `AstroScalarType` 是**计算路径**的精度开关，**发布面** dtype 另按 `docs/ASTROCS_DESIGN.md` §3.3 与 `docs/engineering/NUMERIC_STANDARD.md` 逐数据形态归属（稠密发布面 FP32、稀疏与元数据 FP64）——两者是不同面，不互相覆盖。
 
 ## Ownership
 

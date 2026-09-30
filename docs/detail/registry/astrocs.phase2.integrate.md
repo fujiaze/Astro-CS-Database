@@ -1,7 +1,7 @@
 # 模块 astrocs.phase2.integrate
 
 > 上游：docs/ASTROCS_DESIGN.md §8.5（模块与 ABI）、§5.2（固定科学流程）、
-> §5.3（SNR 重建与逆方差叠加）、§5.6（硬约束：Phase2 信号为面亮度量纲）
+> §5.3（SNR 重建与逆方差叠加）
 > 科学正本：docs/science/INTEGRATION.md（SCI-INT-001，FROZEN，零改动）、
 > docs/science/PSF_SIGNAL_WEIGHT.md（PSF 与信息权重、§8 诊断面不作权重）
 > 算法正本：docs/science/algorithms/PHASE2_INTEGRATION.md（ALG-P2-INT-001；§3 锚表、

@@ -965,3 +965,83 @@ R05 建议的 `4 + floor(mod(φ,2π)/(π/2))` **关不掉它自己的反例**（
 `M5_injected_legacy_rule_goes_red: true`、`verdict: PASS`、`gates_failed: []`、rc=0）。
 
 ⇒ 这条同时是一次**判据设计示范**：新判据不是「跑绿」就算数，而是**必须有对应的注入反例**。
+
+---
+
+## 31. G08-06 detail 推理报回的一级缺口（须回一级处置）
+
+detail 车道按规范 05 §3「detail 不引入无上游依据的科学口径；新发现的实现必要决策回溯到一级正本补要点」
+报回 14 项。前台独立核实了最重的三项。
+
+### 31.1 R2 · 一级内部冲突：drizzle 方差归一分母 `D_p²` 还是 `N_p²`（**必须回一级**）
+
+| 出处 | 写法 |
+|---|---|
+| `docs/engineering/data/DATA-002_PHASE_PRODUCT_EXCHANGE.md:146` | `D_p = Σ_j a_jp` = `covered_area`；`variance_p = Σ_j v_j·w_jp² / D_p²` |
+| `docs/science/DRIZZLE.md:36` | 面亮度归一分母 `N_p = Σ_j w_jp·A_pixel,j`，`N_p = D_p/pixfrac²`；`variance_p = sumVarNum/N_p²` |
+| `docs/science/DRIZZLE.md:218` | 逐字警告「**裸写 `sumVarNum/D_p²` 漏掉 k²**，两者仅在 pixfrac=1 时同值，pixfrac<1 时后者偏低 pixfrac⁴ 倍（pf=0.8 ⇒ 2.44×）」 |
+
+⇒ **DATA-002 用的正是 DRIZZLE 明令禁止的裸写法。** detail 不能选边（本车道按 science 写并登记）。
+
+⚠ **这是同一错误的第三例**：
+① `docs/GLOSSARY.md:12`（自称「唯一术语权威」）—— 前台已在 G08-05 订正；
+② `docs/detail/PHASE1_DETAILED_DESIGN.md` §7.1/§9 的面亮度归一分母写成覆盖面积 `Σ_j a_jp`
+—— detail 车道本轮已订正；
+③ **DATA-002:146 —— 一级正本本身，尚未订正。**
+
+⇒ 说明该错误在仓内有系统性来源，不是孤立笔误。G08-07 应把它列为**逐文件排查项**。
+
+### 31.2 R3 · 标量精度是单一全局开关还是按面分派（一级未定义）
+
+三处口径：
+
+| 出处 | 口径 |
+|---|---|
+| `docs/ASTROCS_DESIGN.md` §3.3「精度归属」 | 稠密大面默认**单精度**；稀疏与元数据全程**双精度** ⇒ **按面分派** |
+| `docs/engineering/NUMERIC_STANDARD.md:10` | 「precision requirement（FP32/FP64 边界；**默认 science=FP64**）」⇒ **第三个口径** |
+| `docs/detail/common.md:34` | detail 自行给出调和读法：计算路径经 `aio_set_precision_mode` 跨 DLL 传递、全局 `AstroScalarType` 是**计算路径**的精度开关、**发布面** dtype 另按 §3.3 与 NUMERIC_STANDARD |
+
+⇒ detail 的调和读法**在代码里站得住**（三个面确实分开），但它**没有上游依据**——
+按规范 05 §3，detail 不得自行调和一级口径。**须回一级把三者的关系写死。**
+
+### 31.3 R11 · ISA 变体在 detail 完全无载体（一级 79 条实施要求）
+
+`docs/engineering/ISA_VARIANTS.md` 的 79 条实施要求在 detail 全树 grep
+`ISA_VARIANTS|backends.manifest|astrocs_cpuprov_|check_isa_same_source` **零命中**。
+`infrastructure/20_benchmark.md` 只有 53 行、仅覆盖画像生成，不覆盖 backend/provider 两族 DSO 的
+独立冻结 C ABI 与入口符号（`astrocs_backend_get_api_v1` / `astrocs_provider_query_v1`）、
+`backends.manifest.json`/`providers.manifest.json` 同目录安装、能力位唯一源 `cpu_features.h`、
+门面 TU / 计算面 TU 两 TU 拆分与 MSVC 无函数级指令集覆盖的隔离理由、
+`check_isa_same_source.py` 的 `tu_isolation`、`check_variant_isa_disasm.py` 的产物级判据、
+`2e-4` 冻结容差。
+
+**detail 车道未新建这一页** —— 新建等于在 detail 侧决定组件切分与命名，且牵连
+`ISA_BIT_MANIP_VARIANTS.md`（13 条）的关系，属结构级决策。**待负责人裁定**：
+新增 `infrastructure/isa_variants.md`，还是并入 `20_benchmark.md`。
+
+### 31.4 其余待回一级项（车道已逐条记录，此处仅列要点）
+
+| 编号 | 要点 |
+|---|---|
+| R1 | 一级 15 份文件 45 处引用指向 G08-03 已删的 detail 册；**内容全部有承接，只是路径断裂**。改要动 science 正文（已定稿） |
+| R4 | 阶段 ID 19 个字符串与模块错误码 10 个值在 detail 无载体（一级明写以 detail 注册表为对照面） |
+| R5 | 稀疏层 token 表在 detail 与 `UNIFIED_OBJECTS` 重复 |
+| R6 | `eng/ci/` 退场后 4 处检查器指针悬空（待 G08-10 给落点） |
+| R7 | `docs/KNOWN_LIMITATIONS.md` 被 9 份 engineering 引但不存在；detail 28 份指 `artifacts/evidence/known-limitations-ledger/LIMITATIONS.md` —— **两个登记面并存** |
+| R8 | `DISPUTE_RESOLUTION:169-170` 自记「γ=2 非自由参数」无科学面落点 |
+| R9 | `infrastructure` 17–23 编号去留（detail 车道判定这串编号是已作废的 23 册方案残留，故 acr **不接续编号**） |
+| R10 | `DOCUMENT_INDEX.yaml` 需同步 3 条 |
+| R12 | `SCIENCE_FREEZE.md:76-80` 四条排除面在 detail 无登记；detail 各卡「已知限制」承载现状登记，不承载排除面 |
+| R13 | `SCHEDULER_CONTRACT.md:36` 要求每阶段声明四类资源，detail `19_runtime.md §5` 只有三项，缺队列深度与子块大小 |
+| R14 | `SCHEDULER_CONTRACT.md:29`「跨后端等价无合同、判据面为空」未在 detail 显式登记，读者可能误以为 ACR↔CPU 等价有合同面 |
+
+### 31.5 覆盖限制（如实登记）
+
+engineering 83 份中 **31 份未完成抽取**，含 `PUBLIC_API.md`（420 条）、`VALIDATION_EVIDENCE_STANDARD.md`（192）、
+`TEST_STANDARD.md`、`TEST_MATRIX.md`、`CONFIG_SCHEMA.md`、`PIPELINE_BLOCK_CONTRACT.md`、`COMMON_ABI_V1.md`、
+`MODULE_MAP.md`、`DATA_FLOW.md`、`NUMERIC_STANDARD.md`、`UNRESOLVED_REGISTER.md`（未决项登记册，多为裁决前临时取向，
+**不能当规范基线**）。
+
+⇒ 「不遗漏」当前总计：**绿 34 / 黄 9 / 红 17**（首批 48 条 + 后到 12 条）。
+**补抽最高优先**：`PUBLIC_API.md` + `COMMON_ABI_V1.md`（各 registry 卡「公共 header 与 symbol」节的直接正本）、
+`PIPELINE_BLOCK_CONTRACT.md`（节点序机器判据面）、`TEST_MATRIX.md`（容差规则兜底面）。

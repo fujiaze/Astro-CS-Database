@@ -9,7 +9,7 @@
 
 ## 2. 权威依据
 
-- 最高设计 `ASTROCS_DESIGN.md` §8.1（顶层结构：scheduler + pipeline 职责名全仓唯一）、§8.4（顶层结构）、§9（CPU 后端与资源：内存极简化、编排连续性）
+- 最高设计 `ASTROCS_DESIGN.md` §8.4（顶层结构：scheduler + pipeline 职责名全仓唯一）、§9（CPU 后端与资源：内存极简化、编排连续性）
 - `docs/engineering/COMMON_ABI_V1.md`（C ABI 规则）、`docs/engineering/ERROR_HANDLING_STANDARD.md`（退出码全集合）
 - `docs/detail/anchors/ANCHOR_CONTRACT.md`（行号锚合同）、`docs/detail/UNIFIED_MODEL.md`（数据对象）
 - `docs/detail/infrastructure/21_observability.md` §8（G-RES-01 资源门）

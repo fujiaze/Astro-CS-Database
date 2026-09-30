@@ -164,7 +164,7 @@
   清理、finalize 写 CHECKSUM / DATASUM 后交付；单 tile 为 remove → create →
   write_chksum → close（lib/infrastructure/aio/src/hips/aio_hips_writer.cpp 的
   `std::remove`），**不是** temp + rename 原子发布。**HiPS tile 原子发布的宣称以
-  该缺口闭合为前提**（最高设计 §9「本期例外（如实登记）」）；
+  该缺口闭合为前提**（最高设计 §10 的原子发布条款；缺口如实登记）；
 - 归档形态的写出与读取、产品级索引与完成清单 `storage` 段写出未落地，生产只落
   裸形态；
 - 标准块定义表未收录 `variance` 块，且无块名越表的机器判据；

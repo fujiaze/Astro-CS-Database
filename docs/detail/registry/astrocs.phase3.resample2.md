@@ -189,7 +189,7 @@ TEST-P3-RES-001）与 module_id 合同值 `astrocs.p3.resample` 的对齐属迁�
 - astrocs_p3_resample.dll 未建（entrypoint 未落地）；探针/回归为内联编译。
 - 错误码与退出码唯一源 = lib/infrastructure/cli/exit_codes.h（本页不复制数值表）；
   取消 = 协作取消（宿主 cancel 通道 → 停止调度新单元 → 等运行中单元完成 →
-  exit 9，最高设计 §6.3）；模块内无 checkpoint（无断点续算）。
+  exit 9，最高设计 §7.2）；模块内无 checkpoint（无断点续算）。
 - **错误与边界补充**：缺 tile / 非有限 → validity 标记，**不以零填充**；
   无覆盖 / 无数据 = NaN（与支撑度 ≤ 0 一致），不用 0 或 ±Inf 冒充无效；NaN 采用
   **样本级掩膜**（被掩除的样本不参与该输出像素，剩余样本权重**重归一**），

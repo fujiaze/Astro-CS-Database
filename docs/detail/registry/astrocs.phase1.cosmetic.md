@@ -1,6 +1,6 @@
 # 模块 astrocs.phase1.cosmetic
 
-> 上游：docs/ASTROCS_DESIGN.md §8.5（模块与 ABI）、§4.6（硬约束：cosmetic/validity）
+> 上游：docs/ASTROCS_DESIGN.md §8.5（模块与 ABI）
 > 科学正本：docs/science/algorithms/COSMETIC_ALGORITHMS.md（ALG-COS-001..005）
 > 数据正本：docs/science/DATA_SEMANTICS.md §10（DATA-P1-COS）、
 > docs/science/UNCERTAINTY_AND_COVARIANCE.md（修正对协方差的影响）

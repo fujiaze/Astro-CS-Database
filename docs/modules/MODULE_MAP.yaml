@@ -51,7 +51,7 @@ modules:
   - id: calibration
     scope: phase1
     group: algorithms
-    plugin_doc: docs/detail/algorithms_phase1/01_calibration.md
+    plugin_doc: docs/detail/registry/astrocs.phase1.calibration.md
     target_dir: lib/algorithms/calibration
     readme: lib/algorithms/calibration/README.md
     module_yaml: lib/algorithms/calibration/module.yaml
@@ -66,7 +66,7 @@ modules:
     data_contracts: [DATA-P1-CAL]
     data_contracts_source: lib/algorithms/calibration/module.yaml（声明面，观察值）
     schema_links: [eng/contracts/schemas/data_light.schema.json, eng/contracts/schemas/calibration_output.schema.json]
-    schema_links_source: docs/detail/algorithms_phase1/01_calibration.md §3
+    schema_links_source: docs/detail/registry/astrocs.phase1.calibration.md「输入输出端口、DATA、单位、坐标、invalid」
     schema_link_globs: []
     product_manifest:
       required: true
@@ -80,7 +80,7 @@ modules:
   - id: cosmetic
     scope: phase1
     group: algorithms
-    plugin_doc: docs/detail/algorithms_phase1/02_cosmetic.md
+    plugin_doc: docs/detail/registry/astrocs.phase1.cosmetic.md
     target_dir: lib/algorithms/cosmetic
     readme: lib/algorithms/cosmetic/README.md
     module_yaml: lib/algorithms/cosmetic/module.yaml
@@ -95,7 +95,7 @@ modules:
     data_contracts: [DATA-P1-CAL, DATA-P1-COS]
     data_contracts_source: lib/algorithms/cosmetic/module.yaml（声明面，观察值）
     schema_links: [eng/contracts/schemas/cosmetic_output.schema.json]
-    schema_links_source: docs/detail/algorithms_phase1/02_cosmetic.md §3
+    schema_links_source: docs/detail/registry/astrocs.phase1.cosmetic.md「输入输出端口、DATA、单位、坐标、invalid」
     schema_link_globs: []
     product_manifest:
       required: true
@@ -109,7 +109,7 @@ modules:
   - id: star_detection
     scope: phase1
     group: algorithms
-    plugin_doc: docs/detail/algorithms_phase1/03_star_detection.md
+    plugin_doc: docs/detail/registry/astrocs.phase1.star-detection.md
     target_dir: lib/algorithms/star_detection
     readme: lib/algorithms/star_detection/README.md
     module_yaml: lib/algorithms/star_detection/module.yaml
@@ -124,7 +124,7 @@ modules:
     data_contracts: [DATA-P1-STAR]
     data_contracts_source: lib/algorithms/star_detection/module.yaml（声明面，观察值）
     schema_links: [eng/contracts/schemas/source_catalog.schema.json]
-    schema_links_source: docs/detail/algorithms_phase1/03_star_detection.md §3
+    schema_links_source: docs/detail/registry/astrocs.phase1.star-detection.md「输入输出端口、DATA、单位、坐标、invalid」
     schema_link_globs: []
     product_manifest:
       required: true
@@ -138,7 +138,7 @@ modules:
   - id: psf
     scope: phase1
     group: algorithms
-    plugin_doc: docs/detail/algorithms_phase1/04_psf.md
+    plugin_doc: docs/detail/registry/astrocs.phase1.star-psf.md
     target_dir: lib/algorithms/psf
     readme: lib/algorithms/psf/README.md
     module_yaml: lib/algorithms/psf/module.yaml
@@ -154,7 +154,7 @@ modules:
     data_contracts: [DATA-P1-PSF, DATA-P1-SOURCES, DATA-P1-COSMETIC]
     data_contracts_source: lib/algorithms/psf/module.yaml（声明面，观察值）
     schema_links: [eng/contracts/schemas/psf_output.schema.json]
-    schema_links_source: docs/detail/algorithms_phase1/04_psf.md §3
+    schema_links_source: docs/detail/registry/astrocs.phase1.star-psf.md「输入输出端口、DATA、单位、坐标、invalid」
     schema_link_globs: []
     product_manifest:
       required: true
@@ -168,7 +168,7 @@ modules:
   - id: platesolve
     scope: phase1
     group: algorithms
-    plugin_doc: docs/detail/algorithms_phase1/05_platesolve.md
+    plugin_doc: docs/detail/registry/astrocs.phase1.wcs-platesolve.md
     target_dir: lib/algorithms/platesolve
     readme: lib/algorithms/platesolve/README.md
     module_yaml: lib/algorithms/platesolve/module.yaml
@@ -184,7 +184,7 @@ modules:
     data_contracts: [DATA-P1-WCS]
     data_contracts_source: lib/algorithms/platesolve/module.yaml（声明面，观察值）
     schema_links: [eng/contracts/schemas/wcs_output.schema.json]
-    schema_links_source: docs/detail/algorithms_phase1/05_platesolve.md §3
+    schema_links_source: docs/detail/registry/astrocs.phase1.wcs-platesolve.md「输入输出端口、DATA、单位、坐标、invalid」
     schema_link_globs: []
     product_manifest:
       required: true
@@ -198,7 +198,7 @@ modules:
   - id: photometry
     scope: phase1
     group: algorithms
-    plugin_doc: docs/detail/algorithms_phase1/06_photometry.md
+    plugin_doc: docs/detail/registry/astrocs.phase1.photometry.md
     target_dir: lib/algorithms/photometry
     readme: lib/algorithms/photometry/README.md
     module_yaml: lib/algorithms/photometry/module.yaml
@@ -213,7 +213,7 @@ modules:
     data_contracts: [DATA-P1-PHOT]
     data_contracts_source: lib/algorithms/photometry/module.yaml（声明面，观察值）
     schema_links: [eng/contracts/schemas/photometry_output.schema.json]
-    schema_links_source: docs/detail/algorithms_phase1/06_photometry.md §3
+    schema_links_source: docs/detail/registry/astrocs.phase1.photometry.md「输入输出端口、DATA、单位、坐标、invalid」
     schema_link_globs: []
     product_manifest:
       required: true
@@ -227,7 +227,7 @@ modules:
   - id: noise_snr
     scope: phase1
     group: algorithms
-    plugin_doc: docs/detail/algorithms_phase1/07_noise_snr.md
+    plugin_doc: docs/detail/registry/astrocs.phase1.noise-snr.md
     target_dir: lib/algorithms/noise_snr
     readme: lib/algorithms/noise_snr/README.md
     module_yaml: lib/algorithms/noise_snr/module.yaml
@@ -243,7 +243,7 @@ modules:
     data_contracts: [DATA-P1-NOISE]
     data_contracts_source: lib/algorithms/noise_snr/module.yaml（声明面，观察值）
     schema_links: [eng/contracts/schemas/noise_snr_output.schema.json]
-    schema_links_source: docs/detail/algorithms_phase1/07_noise_snr.md §3
+    schema_links_source: docs/detail/registry/astrocs.phase1.noise-snr.md「输入输出端口、DATA、单位、坐标、invalid」
     schema_link_globs: []
     product_manifest:
       required: true
@@ -257,7 +257,7 @@ modules:
   - id: drizzle
     scope: phase1
     group: algorithms
-    plugin_doc: docs/detail/algorithms_phase1/08_drizzle.md
+    plugin_doc: docs/detail/registry/astrocs.phase1.drizzle.md
     target_dir: lib/algorithms/drizzle
     readme: lib/algorithms/drizzle/README.md
     module_yaml: lib/algorithms/drizzle/module.yaml
@@ -272,7 +272,7 @@ modules:
     data_contracts: [DATA-P1-CAL, DATA-P1-DRZ]
     data_contracts_source: lib/algorithms/drizzle/module.yaml（声明面，观察值；entrypoint 记 MISSING）
     schema_links: [eng/contracts/schemas/hips_product.schema.json, eng/contracts/schemas/manifest.schema.json]
-    schema_links_source: docs/detail/algorithms_phase1/08_drizzle.md §3
+    schema_links_source: docs/detail/registry/astrocs.phase1.drizzle.md「输入输出端口、DATA、单位、坐标、invalid」
     schema_link_globs: []
     product_manifest:
       required: true
@@ -286,7 +286,7 @@ modules:
   - id: coverage
     scope: phase2
     group: algorithms
-    plugin_doc: docs/detail/algorithms_phase2/09_coverage.md
+    plugin_doc: docs/detail/registry/astrocs.phase2.coverage.md
     target_dir: lib/algorithms/coverage
     readme: lib/algorithms/coverage/README.md
     module_yaml: lib/algorithms/coverage/module.yaml
@@ -301,7 +301,7 @@ modules:
     data_contracts: [DATA-COV-001]
     data_contracts_source: lib/algorithms/coverage/module.yaml（声明面，观察值）
     schema_links: [eng/contracts/schemas/coverage_output.schema.json]
-    schema_links_source: docs/detail/algorithms_phase2/09_coverage.md §3
+    schema_links_source: docs/detail/registry/astrocs.phase2.coverage.md「输入输出端口、DATA、单位、坐标、invalid」
     schema_link_globs: []
     product_manifest:
       required: true
@@ -315,7 +315,7 @@ modules:
   - id: sampling
     scope: phase2
     group: algorithms
-    plugin_doc: docs/detail/algorithms_phase2/10_sampling.md
+    plugin_doc: docs/detail/registry/astrocs.phase2.sample.md
     target_dir: lib/algorithms/sampling
     readme: lib/algorithms/sampling/README.md
     module_yaml: lib/algorithms/sampling/module.yaml
@@ -331,7 +331,7 @@ modules:
     data_contracts: [DATA-P2-SMP]
     data_contracts_source: lib/algorithms/sampling/module.yaml（声明面，观察值）
     schema_links: [eng/contracts/schemas/control_points.schema.json]
-    schema_links_source: docs/detail/algorithms_phase2/10_sampling.md §3
+    schema_links_source: docs/detail/registry/astrocs.phase2.sample.md「输入输出端口、DATA、单位、坐标、invalid」
     schema_link_globs: []
     product_manifest:
       required: true
@@ -345,7 +345,7 @@ modules:
   - id: upm
     scope: phase2
     group: algorithms
-    plugin_doc: docs/detail/algorithms_phase2/11_upm.md
+    plugin_doc: docs/detail/registry/astrocs.phase2.upm-fit.md
     target_dir: lib/algorithms/upm
     readme: lib/algorithms/upm/README.md
     module_yaml: lib/algorithms/upm/module.yaml
@@ -360,7 +360,7 @@ modules:
     data_contracts: [DATA-P2-UPM, DATA-P2-COR]
     data_contracts_source: lib/algorithms/upm/module.yaml（声明面，观察值）
     schema_links: [eng/contracts/schemas/upm_output.schema.json]
-    schema_links_source: docs/detail/algorithms_phase2/11_upm.md §3
+    schema_links_source: docs/detail/registry/astrocs.phase2.upm-fit.md「输入输出端口、DATA、单位、坐标、invalid」
     schema_link_globs: []
     product_manifest:
       required: true
@@ -374,7 +374,7 @@ modules:
   - id: rejection
     scope: phase2
     group: algorithms
-    plugin_doc: docs/detail/algorithms_phase2/12_rejection.md
+    plugin_doc: docs/detail/registry/astrocs.phase2.reject.md
     target_dir: lib/algorithms/rejection
     readme: lib/algorithms/rejection/README.md
     module_yaml: lib/algorithms/rejection/module.yaml
@@ -389,7 +389,7 @@ modules:
     data_contracts: [DATA-P2-REJ]
     data_contracts_source: lib/algorithms/rejection/module.yaml（声明面，观察值）
     schema_links: [eng/contracts/schemas/rejection_output.schema.json]
-    schema_links_source: docs/detail/algorithms_phase2/12_rejection.md §3
+    schema_links_source: docs/detail/registry/astrocs.phase2.reject.md「输入输出端口、DATA、单位、坐标、invalid」
     schema_link_globs: []
     product_manifest:
       required: true
@@ -403,7 +403,7 @@ modules:
   - id: integration
     scope: phase2
     group: algorithms
-    plugin_doc: docs/detail/algorithms_phase2/13_integration.md
+    plugin_doc: docs/detail/registry/astrocs.phase2.integrate.md
     target_dir: lib/algorithms/integration
     readme: lib/algorithms/integration/README.md
     module_yaml: lib/algorithms/integration/module.yaml
@@ -418,7 +418,7 @@ modules:
     data_contracts: [DATA-P2-INT]
     data_contracts_source: lib/algorithms/integration/module.yaml（声明面，观察值）
     schema_links: [eng/contracts/schemas/integration_output.schema.json]
-    schema_links_source: docs/detail/algorithms_phase2/13_integration.md §3（surface_brightness/point_source/psfsw_integration 产品族）
+    schema_links_source: docs/detail/registry/astrocs.phase2.integrate.md「输入输出端口、DATA、单位、坐标、invalid」（surface_brightness/point_source/psfsw_integration 产品族）
     schema_link_globs: []
     product_manifest:
       required: true
@@ -432,7 +432,7 @@ modules:
   - id: projection
     scope: phase3
     group: algorithms
-    plugin_doc: docs/detail/algorithms_phase3/14_projection.md
+    plugin_doc: docs/detail/registry/astrocs.phase3.wcs.md
     target_dir: lib/algorithms/projection
     readme: lib/algorithms/projection/README.md
     module_yaml: lib/algorithms/projection/module.yaml
@@ -447,7 +447,7 @@ modules:
     data_contracts: [DATA-P3-WCS]
     data_contracts_source: lib/algorithms/projection/module.yaml（声明面，观察值）
     schema_links: [eng/contracts/schemas/projection_registry.schema.json]
-    schema_links_source: docs/detail/algorithms_phase3/14_projection.md §3
+    schema_links_source: docs/detail/registry/astrocs.phase3.wcs.md「输入输出端口、DATA、单位、坐标、invalid」
     schema_link_globs: []
     product_manifest:
       required: true
@@ -461,7 +461,7 @@ modules:
   - id: resample
     scope: phase3
     group: algorithms
-    plugin_doc: docs/detail/algorithms_phase3/15_resample.md
+    plugin_doc: docs/detail/registry/astrocs.phase3.resample2.md
     target_dir: lib/algorithms/resample
     readme: lib/algorithms/resample/README.md
     module_yaml: lib/algorithms/resample/module.yaml
@@ -476,7 +476,7 @@ modules:
     data_contracts: [DATA-P3-RES]
     data_contracts_source: lib/algorithms/resample/module.yaml（声明面，观察值）
     schema_links: [eng/contracts/schemas/export_product.schema.json]
-    schema_links_source: docs/detail/algorithms_phase3/15_resample.md §3
+    schema_links_source: docs/detail/registry/astrocs.phase3.resample2.md「输入输出端口、DATA、单位、坐标、invalid」
     schema_link_globs: []
     product_manifest:
       required: true
@@ -490,7 +490,7 @@ modules:
   - id: fits_output
     scope: phase3
     group: algorithms
-    plugin_doc: docs/detail/algorithms_phase3/16_fits_output.md
+    plugin_doc: docs/detail/registry/astrocs.phase3.writer.md
     target_dir: lib/algorithms/fits_output
     readme: lib/algorithms/fits_output/README.md
     module_yaml: lib/algorithms/fits_output/module.yaml
@@ -506,7 +506,7 @@ modules:
     data_contracts: [DATA-P3-FITS]
     data_contracts_source: lib/algorithms/fits_output/module.yaml（声明面，观察值）
     schema_links: [eng/contracts/schemas/fits_product.schema.json]
-    schema_links_source: docs/detail/algorithms_phase3/16_fits_output.md §3
+    schema_links_source: docs/detail/registry/astrocs.phase3.writer.md「输入输出端口、DATA、单位、坐标、invalid」
     schema_link_globs: []
     product_manifest:
       required: true
@@ -657,9 +657,9 @@ modules:
     entrypoint: astrocs_module_query_v1
     entrypoint_kind: c-abi
     data_contracts: []
-    data_contracts_source: docs/detail/infrastructure/21_observability.md §3（输出=JSONL 事件流/run-trace/资源时间序列，无 DATA-* 产品合同）
+    data_contracts_source: docs/detail/infrastructure/21_observability.md「输入输出端口、DATA、单位、坐标、invalid」（输出=JSONL 事件流/run-trace/资源时间序列，无 DATA-* 产品合同）
     schema_links: []
-    schema_links_source: docs/detail/infrastructure/21_observability.md §3 引用 eng/contracts/schemas/events.schema.json + run_*.schema.json（glob）
+    schema_links_source: docs/detail/infrastructure/21_observability.md「输入输出端口、DATA、单位、坐标、invalid」 引用 eng/contracts/schemas/events.schema.json + run_*.schema.json（glob）
     schema_link_globs: [eng/contracts/schemas/events.schema.json, eng/contracts/schemas/run_*.schema.json]
     product_manifest:
       required: true
@@ -688,7 +688,7 @@ modules:
     data_contracts: [DATA-GAIA-001]
     data_contracts_source: lib/infrastructure/gaia_xpsd_client/module.yaml（声明面，观察值）
     schema_links: [eng/contracts/schemas/catalog_query.schema.json]
-    schema_links_source: docs/detail/infrastructure/22_gaia_xpsd_client.md §3
+    schema_links_source: docs/detail/infrastructure/22_gaia_xpsd_client.md「输入输出端口、DATA、单位、坐标、invalid」
     schema_link_globs: []
     product_manifest:
       required: true
@@ -719,9 +719,9 @@ modules:
     entrypoint: astrocs_module_query_v1
     entrypoint_kind: c-abi
     data_contracts: []
-    data_contracts_source: docs/detail/infrastructure/23_hips_browser.md §3（只读 HiPS；无 DATA-* 产品合同）
+    data_contracts_source: docs/detail/infrastructure/23_hips_browser.md「输入输出端口、DATA、单位、坐标、invalid」（只读 HiPS；无 DATA-* 产品合同）
     schema_links: [eng/contracts/schemas/hips_product.schema.json]
-    schema_links_source: docs/detail/infrastructure/23_hips_browser.md §3
+    schema_links_source: docs/detail/infrastructure/23_hips_browser.md「输入输出端口、DATA、单位、坐标、invalid」
     schema_link_globs: []
     product_manifest:
       required: false
