@@ -64,7 +64,11 @@ CPP_TRIVIAL = [
     # 本仓实测两处最高危恒真（p1_resource_test.cpp:78 的发布门判决、
     # p1cos_tests_badcol.cpp:412）都是析取尾形态，而本门当时是绿的。
     # 该形态无论左边是什么，整个表达式恒真 ⇒ 必须判红。
-    (r"\|\|\s*true\b", "析取尾 `|| true`（整个断言恒真）"),
+    # **必须带断言宏前缀**：裸 `|| true` 会命中 shell 命令串里的
+    # `ls ... | grep -c X || true`（那是让 grep 退出码不失败的**合法** shell 写法，
+    # 实测误报于 p3_export_e2e_test.cpp:377）。
+    (r"\b(?:TEST_)?(?:CHECK|ASSERT|EXPECT|REQUIRE|VERIFY|check|CHECK_FALSE|ASSERT_FALSE)\s*\([^;\n]*\|\|\s*true\b",
+     "断言内析取尾 `|| true`（整个断言恒真）"),
     (r"\btrue\s*\|\|", "析取尾 `true ||`（整个断言恒真）"),
 ]
 CPP_TRIVIAL_RE = [(re.compile(p), name) for p, name in CPP_TRIVIAL]
