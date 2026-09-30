@@ -46,7 +46,7 @@
 |---|---|---|---|
 | y_ik（value） | 控制观测（patch 位置估计，可负） | 面亮度 ADU·sr⁻¹ | upm.h:282（字段 `value`） |
 | uncertainty | control estimator 标准误 = sqrt(control_variance) | 面亮度 ADU·sr⁻¹ | 由 `control_ivar` 反演（`upm.cpp:1665-1681`） |
-| control_variance | k_corr·(π/2)·σ_bg²/N_retained（sampler 域产出） | (ADU·sr⁻¹)² | `upm.cpp:2785`（唯一发布点 `p2_upm_control_variance`） |
+| control_variance | k_corr·(π/2)·σ_bg²/N_retained（sampler 域产出） | (ADU·sr⁻¹)² | `upm.cpp:2954`（唯一发布点 `p2_upm_control_variance`） |
 | control_ivar | 1/control_variance | (ADU·sr⁻¹)⁻² | upm.h:283（字段 `control_ivar`） |
 | ivar（弃用字段） | 单像素 Phase1 ivar，仅诊断，禁入科学权重 | — | upm.h 冻结注释（禁入科学权重） |
 | M_k | latent unified reference | 面亮度 ADU·sr⁻¹ | upm.cpp:65（`ControlNode::M`） |
