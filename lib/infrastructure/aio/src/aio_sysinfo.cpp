@@ -66,22 +66,77 @@ uint64_t parse_cgroup_bytes(const std::string& text) {
   return static_cast<uint64_t>(v);
 }
 
+// 本进程在 cgroup 层级中的**相对路径**（v2 形态），取自 /proc/self/cgroup。
+//
+// 为什么必须用它而不能用挂载根：容器里本进程通常位于层级的一个**子路径**，
+// 挂载根上的 memory.max 要么是 "max"、要么是宿主上限而非本容器的上限。
+// 直接读挂载根会让「本容器内存余量」被系统性高估，在嵌套容器下高估幅度随层级深度放大。
+//
+// 形态（cgroup v2）：`0::/some/path` —— 取 `0::` 之后的相对路径。
+// 读不到或形态不符 ⇒ 返回空串，调用方回落到挂载根（即旧行为，保守侧）。
+std::string cgroup_self_relative_path() {
+  std::string text;
+  if (!aio_file::read_all("/proc/self/cgroup", &text)) return std::string();
+  std::istringstream in(text);
+  std::string line;
+  while (std::getline(in, line)) {
+    // 每行形如 `hierarchy-ID:controller-list:cgroup-path`
+    const size_t first = line.find(':');
+    if (first == std::string::npos) continue;
+    const size_t second = line.find(':', first + 1);
+    if (second == std::string::npos) continue;
+    const std::string controllers = line.substr(first + 1, second - first - 1);
+    // v2 统一层级：hierarchy-ID 为 0 且 controller-list 为空
+    if (line.compare(0, first, "0") != 0) continue;
+    if (!controllers.empty()) continue;
+    std::string rel = line.substr(second + 1);
+    // 去掉结尾换行；根层级本身也是合法值（"/" ⇒ 无子目录）
+    while (!rel.empty() && (rel.back() == '\r' || rel.back() == '\n')) rel.pop_back();
+    return rel;
+  }
+  return std::string();
+}
+
 // cgroup 内存余量 = limit - usage（>0 才有意义）；不可判定 ⇒ 0（不参与 min）。
 uint64_t cgroup_available_bytes() {
   static const char* kLimitV2 = "/sys/fs/cgroup/memory.max";
   static const char* kUsageV2 = "/sys/fs/cgroup/memory.current";
   static const char* kLimitV1 = "/sys/fs/cgroup/memory/memory.limit_in_bytes";
   static const char* kUsageV1 = "/sys/fs/cgroup/memory/memory.usage_in_bytes";
-  const char* limit_path = kLimitV2;
-  const char* usage_path = kUsageV2;
-  std::string limit_text;
-  if (!aio_file::read_all(limit_path, &limit_text)) {
-    limit_path = kLimitV1;
-    usage_path = kUsageV1;
-    if (!aio_file::read_all(limit_path, &limit_text)) return 0;
+
+  // 优先读**本进程所属**的那个 cgroup 节点；读不到再回落到挂载根。
+  // 两条路径都要试「自身节点 → 挂载根」，且 v2 先于 v1 —— 与
+  // eng/tools/**/resource_probe.py 的 _cgroup_relative_path() + read_cgroup_quota()
+  // 同一算法（该 Python 侧本来就做对了，此处此前与它不一致）。
+  const std::string rel = cgroup_self_relative_path();
+  std::vector<std::string> limit_candidates;
+  std::vector<std::string> usage_candidates;
+  if (!rel.empty()) {
+    std::string sub = (rel[0] == '/') ? rel.substr(1) : rel;
+    if (!sub.empty()) {
+      limit_candidates.push_back("/sys/fs/cgroup/" + sub + "/memory.max");
+      usage_candidates.push_back("/sys/fs/cgroup/" + sub + "/memory.current");
+      limit_candidates.push_back("/sys/fs/cgroup" + sub + "/memory/memory.limit_in_bytes");
+      usage_candidates.push_back("/sys/fs/cgroup" + sub + "/memory/memory.usage_in_bytes");
+    }
   }
-  const uint64_t limit = parse_cgroup_bytes(limit_text);
-  if (limit == 0) return 0;  // "max" / 无限制 ⇒ 该项不参与
+  limit_candidates.push_back(kLimitV2);
+  usage_candidates.push_back(kUsageV2);
+  limit_candidates.push_back(kLimitV1);
+  usage_candidates.push_back(kUsageV1);
+
+  uint64_t limit = 0;
+  std::string usage_path;
+  for (size_t i = 0; i < limit_candidates.size(); ++i) {
+    std::string limit_text;
+    if (!aio_file::read_all(limit_candidates[i], &limit_text)) continue;
+    limit = parse_cgroup_bytes(limit_text);
+    // "max" / 0 ⇒ 该节点无限制，继续试下一候选（挂载根往往就是这种情况）
+    if (limit == 0) continue;
+    usage_path = usage_candidates[i];
+    break;
+  }
+  if (limit == 0) return 0;  // 全部候选都不可判定 ⇒ 该项不参与
   std::string usage_text;
   if (!aio_file::read_all(usage_path, &usage_text)) return 0;
   const uint64_t usage = parse_cgroup_bytes(usage_text);

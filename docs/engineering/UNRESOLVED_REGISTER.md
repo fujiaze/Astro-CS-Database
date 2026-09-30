@@ -2212,3 +2212,55 @@ IO_AND_ATOMICITY}.md`（迁移后已删）、registry 已迁 `docs/modules/regis
 与挂载根取交集**静默不发生** ⇒ **内存预算大幅高估**。
 车道核实 Python 工具 `eng/tools/**/resource_probe.py:199-243` **做对了**
 ⇒ 两侧算法不一致，可作对照修。
+
+---
+
+## 49. P-6 已修：cgroup 内存余量读的是**挂载根**而非**本进程 cgroup 节点**
+
+**归属**：`lib/infrastructure/aio/src/aio_sysinfo.cpp`　**状态**：已修（前台亲改）
+
+### 49.1 原实现的问题
+
+原 `cgroup_available_bytes()` 只读四个**固定挂载根**路径：
+
+    /sys/fs/cgroup/memory.max            /sys/fs/cgroup/memory.current
+    /sys/fs/cgroup/memory/memory.limit_in_bytes   …/memory.usage_in_bytes
+
+而容器里本进程通常位于层级的一个**子路径** ⇒ 挂载根上的 `memory.max` 要么是 `"max"`、
+要么是宿主上限，**都不是本容器的上限**。
+
+### 49.2 前台的实测（本机即典型嵌套容器形态）
+
+`/proc/self/cgroup` 实为：
+
+    0::/user.slice/user-1001.slice/user@1001.service/app.slice/dsh-subprocess-<pid>-<id>.scope
+
+实测：
+- **旧路径 `/sys/fs/cgroup/memory.max` 不存在** ⇒ `read_all` 失败 → 回退 v1 也失败 → `return 0`
+  ⇒ **该约束静默完全不参与**（`return 0` 在调用方的语义是「不可判定」，不是「无上限」）
+- 修正后的路径 `/sys/fs/cgroup/<rel>/memory.max` **存在** ✅
+
+⚠ **诚实边界**：本机该节点的 `memory.max` 字面值是 **`max`**（无限制），
+所以**本机上修前修后的最终取值相同**，本次修复的收益在本机**不可测**。
+但路径解析的错误本身已实测确认（旧路径根本不存在），且在任何
+**真正给容器设了内存上限**的环境（典型 K8s pod）中，修前会读不到本容器上限、
+修后能读到 ⇒ 该修复的价值在那些环境，不在本机。
+
+### 49.3 修法
+
+新增 `cgroup_self_relative_path()`：从 `/proc/self/cgroup` 解析 v2 统一层级的相对路径
+（`0::` + 空 controller-list + 路径），按「自身节点 v2 → 自身节点 v1 → 挂载根 v2 → 挂载根 v1」
+四候选依次尝试，遇到 `"max"`/0 继续试下一候选。
+
+**与仓内 Python 参考实现同算法**：`eng/tools/**/resource_probe.py` 的
+`_cgroup_relative_path()` + `read_cgroup_quota()` **本来就做对了**（它先读
+`/proc/self/cgroup` 再与 sysfs 根拼接），此前是 C++ 侧与 Python 侧**算法不一致**。
+
+⇒ 今后两侧算法一致，C++ 侧不再是「另一套」。
+
+### 49.4 前台验证
+
+- 括号平衡：32/32 ✅
+- 所需头文件 `<sstream>` `<string>` `<vector>` 均已在 `:39/:40/:42` 存在 ✅
+- 解析逻辑用 Python 逐字复刻实跑：新路径**存在**、旧路径**不存在** ✅
+- 按 AGENTS §9 未编译（编译验证在 G08-09）
