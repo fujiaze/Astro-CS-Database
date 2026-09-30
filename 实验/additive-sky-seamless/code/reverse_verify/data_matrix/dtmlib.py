@@ -258,3 +258,42 @@ def save_result(name: str, payload: Dict[str, Any]) -> Path:
 def verdict(name: str, ok: bool, detail: str = "") -> Dict[str, Any]:
     print("  [%s] %s %s" % ("PASS" if ok else "FAIL", name, detail))
     return {"name": name, "pass": bool(ok), "detail": detail}
+
+
+# ---------------------------------------------------------------------------
+# 缺输入的前置守卫
+# ---------------------------------------------------------------------------
+def missing_real_base_inputs() -> Dict[str, Any]:
+    """登记场景配方引用的真实底图帧是否齐备。
+
+    `render.real_base_surface` 对缺件抛 `FileNotFoundError`；直接冒到调用方会让
+    「缺输入」被读成「判红」。这里把缺件显式登记，退出码用 2（与
+    `run_selftests.sh` 的 0/1/2 约定一致），**不冒充已验证**。
+    """
+    missing: List[Dict[str, Any]] = []
+    if not SCENES.is_dir():
+        return {"ok": False, "detail": "场景配方目录不存在：%s" % SCENES, "missing": missing}
+    for sc_path in sorted(SCENES.glob("*.json")):
+        try:
+            sc = json.loads(sc_path.read_text(encoding="utf-8"))
+        except Exception:                       # 配方损坏不算缺输入，交给调用方报错
+            continue
+        rb = sc.get("real_base") or {}
+        pats = [q.strip() for q in str(rb.get("path") or "").split("|") if q.strip()]
+        pats = [q for q in pats if any(ch in q for ch in "*?[")]
+        if pats and not any(h for q in pats for h in ROOT.glob(q)):
+            missing.append({"scene": sc_path.name, "patterns": pats})
+    return {"ok": not missing, "detail": "缺件场景数=%d" % len(missing), "missing": missing}
+
+
+def skip_if_inputs_missing(experiment: str) -> int:
+    """缺真实底图帧时落一份 SKIP 记录并返回退出码 2；齐备时返回 -1（继续）。"""
+    st = missing_real_base_inputs()
+    if st["ok"]:
+        return -1
+    save_result(experiment, {"experiment": experiment, "status": "SKIP",
+                             "reason": "缺少真实底图帧（过程产物，本单元不可再生）",
+                             "input_check": st, "all_pass": None})
+    print("[skip] %s：%s；缺件场景 %s"
+          % (experiment, st["detail"], [m["scene"] for m in st["missing"]]))
+    return 2

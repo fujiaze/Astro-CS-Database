@@ -93,6 +93,9 @@ def block_closure(scene_rel, frame_index, *, seeds, mode=None, sky_override=None
 
 
 def main() -> int:
+    rc = L.skip_if_inputs_missing("exp3_variance_closure")
+    if rc >= 0:
+        return rc
     res = {"experiment": "exp3_variance_closure", "criteria": [], "arms": {}}
 
     # ---------------- E1：天光扫描的逐块方差闭合 ----------------

@@ -210,6 +210,9 @@ def analyze(scene_rel, tag, *, measured=True):
 
 
 def main() -> int:
+    rc = L.skip_if_inputs_missing("exp2_mosaic_shape_difference")
+    if rc >= 0:
+        return rc
     res = {"experiment": "exp2_mosaic_shape_difference", "criteria": [], "arms": {}}
     mos = analyze("synthetic/scenes/mosaic_diff_pointing_highsky.json", "mosaic_highsky")
     com = analyze("synthetic/scenes/common_mode_overlap.json", "common_mode")
