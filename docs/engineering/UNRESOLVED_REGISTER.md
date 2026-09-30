@@ -2075,3 +2075,69 @@ IO_AND_ATOMICITY}.md`（迁移后已删）、registry 已迁 `docs/modules/regis
 
 「未实现」仅 `check_variant_isa_disasm.py`。6 条「仅声明」的根因是 **G08-01 删了 `eng/ci` 与
 `eng/tools/quality` 的四个检查器**（全仓零命中）⇒ 属预期 doc-lag，待 G08-10 重建。
+
+---
+
+## 47. 规范 07 §4 末句的直接违反：编排参数**永远不会**被性能探针实测覆盖
+
+**归属**：调度器资源面　**状态**：待负责人定口径（改造面大，前台不擅自改）
+
+### 47.1 规范原文
+
+> 编排参数（窗口大小、预取深度、帧并发、工作窃取）由性能探针实测迭代，**不使用固定经验值**。
+
+### 47.2 实况（四段证据链，车道逐段复核）
+
+**（1）JSON → 生成头是 build-time `configure_file`，产物是 `inline constexpr`。**
+`CMakeLists.txt:189-197` 用 `string(JSON …)` 从 `runtime_resources.json` 取值；
+`runtime_resources_generated.h.in:34-43` 把它们写成 `inline constexpr`。
+
+⇒ **编译期就固化了**，运行期没有任何代码路径能改写它们。
+
+**（2）** `module_adapters.cpp` 的 `:14969`、`:15786` 直接用缺省常量。
+
+**（3）** ⇒ 未手写这两个键时，`p3_default_sub_block_px=256` / `p3_default_queue_depth=4`
+**恒生效**。
+
+**（4）`SCHEDULER_CONTRACT §4` 的探针事件流在生产路径上是死的。**
+唯一产出 `queue_wait` / `block_birth` / `worker_busy` / `cache_hit` 的生产侧 TU 是
+`lib/infrastructure/scheduler/src/normalize_workflow.cpp`，而 `NormalizeWorkflow` 在生产上**不被使用**。
+
+⇒ **同时命中**：既是固定经验值，又是不被消费的死流。规范 §4 末句被**两处独立地**违反。
+
+### 47.3 `hardware_concurrency()` 的准确口径（前台已复验）
+
+车道核实：`git ls-files 'lib/*'` 下 `std::thread::hardware_concurrency` 共 **29 行命中**，
+其中 27 行在可写范围、2 行在 `lib/infrastructure/benchmark`（车道持有）。
+
+**正面**：唯一一处生产调度路径上的 `hardware_concurrency()` **已被正确降级为兜底** ——
+即先读 config/画像，缺失时才回落到硬件查询。这符合规范 §4「运行参数优先读 config，
+其次从运行环境获取」。
+
+**问题项**：
+
+| 位置 | 问题 |
+|---|---|
+| `acr/scheduler/dispatcher.cpp:476` | `min(16, hardware_concurrency())` 作 worker 槽位上限 —— **硬编码 16 直接违反 CONCURRENCY_STANDARD** |
+| `acr/scheduler/dispatcher.cpp:1121` | `cpu_single_ns = cpu_ns_per_item × hardware_concurrency()`，把 profile 的「全量并行」单线程成本**换算错误** ⇒ 影响 CPU↔GPU 路由定价 |
+| `pipeline/orchestrator/cpp/src/orchestrator.cpp:515` | 构造函数 `LOG_INFO` 打印「可用线程数」= `hardware_concurrency()` ⇒ **纯遥测失真**（未叠加 cgroup/亲和性/Job Object 限制） |
+
+**「第 5 处不是一处，是三处」**（车道纠正了自己的初报）：`dispatcher.cpp` 里 `:476`、`:1121`
+及另一处构成三处相关缺陷，初报只算了一处。
+
+### 47.4 私建池的第 5 处（`acr` 侧）
+
+`acr/core/runtime.cpp:97-99`：`config.max_threads` 或 `default_thread_count()`，
+而 `runtime.cpp:73-77` 的 `default_thread_count()` = `hardware_concurrency()`
+⇒ 调用方不传预算即静默开池，且**开在进程级 `global_control` 上**。
+
+### 47.5 待裁（前台未实施）
+
+改造面大且涉及**改变默认行为**（从编译期常量改为运行期可调），按派单只提方案：
+
+1. 编排参数是否要从 `inline constexpr` 改为**运行期可覆盖**（config 优先、画像次之、
+   规范缺省最后）？
+2. 若改，探针事件流如何接进生产（当前唯一产出 TU 不被使用）？
+3. `dispatcher.cpp:476` 的硬编码 16 与 CONCURRENCY_STANDARD 的冲突如何裁定？
+4. `dispatcher.cpp:1121` 的成本换算错误是否影响已登记的 **8.5 倍 profile 漂移**
+   （§41.5）—— 两者可能同源，建议合并裁。
