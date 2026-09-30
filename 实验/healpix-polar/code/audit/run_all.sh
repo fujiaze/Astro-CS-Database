@@ -22,7 +22,7 @@
 set -eu
 HERE="$(cd "$(dirname "$0")" && pwd)"
 REPO="$(cd "$HERE/../../../.." && pwd)"
-OUT="$(cd "$HERE/../../.." && pwd)/run/healpix-polar-audit-logs"
+OUT="$(cd "$HERE/../../../.." && pwd)/run/healpix-polar-audit-logs"
 mkdir -p "$OUT"
 
 RC=0
