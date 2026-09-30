@@ -409,7 +409,17 @@ void case_master_paths(int w, int h) {
               5.0f, 3, 1, cm.data(), sm.data(), cf.data(), &n, &ns, &nd, &nb, &px, &sg, &st) == AC_OK,
               "arbitration ABI rc==AC_OK");
         check(cm[12] == 1 && cm[25] == 1 && cm[50] == 1, "并集: 三路检出都必须保留");
-        check(!g_inj.no_degrade || true, "");
+        // 原为 `check(!g_inj.no_degrade || true, "")` —— **恒真**且消息为空，
+        // 拆掉了本文件 --self-test 里 degrade_untraced 注入的一条 tripwire。
+        // 改为断言**被测量本身**：`st` 在上方 :407 声明、:408-410 写出，
+        // 但整个 8c 块从未有任何 check 断言过它。
+        // 判据依据（同文件 :421/:429 已对同两本母版断言 stq == AC_COLSTAT_OK）：
+        // 三路均非退化时 status 不得带任何降级标志。
+        // 守卫沿用同文件 :205/:226/:296/:310/:466 的「守卫进 if」结构，但**换掉条件**
+        // —— `g_inj.no_degrade` 是测试装置、不是产品性质。
+        if (!g_inj.no_degrade)
+            check(st == AC_COLSTAT_OK,
+                  "仲裁路径: 三路均非退化 => status 不得带任何降级标志");
         // 逐路独立复核（口令负例：**暗场里正常的列不得被判为坏列**）。
         // 每本母版只应判出被注入的那些列，其余 60+ 列一律零检出、零降级。
         {
