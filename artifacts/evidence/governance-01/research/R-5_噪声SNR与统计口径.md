@@ -72,7 +72,7 @@
 - 科学公式、权重/variance/ivar/SNR 定义、排异规则、归约顺序、精度与默认容差 **不可修改**；
 - 架构重构**不得**同时改动科学语义；迁移必须 bitwise 相等（顺序变化时先冻结容差并登记）；
 - 模块不得根据 CPU 型号改变公式；`cpu_profile` 只影响并行/ISA，不进入科学配置；
-- 数据对象按 `docs/design/UNIFIED_MODEL.md` 区分，禁止一个字段承载多个含义。
+- 数据对象按 `docs/detail/UNIFIED_MODEL.md` 区分，禁止一个字段承载多个含义。
 ```
 
 > 「**精度与默认容差不可修改**」是 M3-C-003 的直接上位约束：任何一方的改动都必须走文档集变更流程。
@@ -143,7 +143,7 @@ ivar = 1 / max(variance, floor)   # fill 阶段 max(a+b·x+c·y, floor)；contro
 - `:135`（§14 文献）—— `2. MAD→σ 换算 1.482602218505602=1/Φ⁻¹(3/4)：标准正态 MAD 分位恒等式（Φ⁻¹(3/4)≈0.674490），教科书级，Project-defined 采纳；与 SCI-PHOT 的 0.6745 同源。`  ← **V12-N-03 的被诉行（"同源"声明）**
 - `:140`（§15 Acceptance）—— `- §11 Oracle 全过：Gaussian 5% 复现、Poisson 诊断 5% 交叉（仅诊断）、平面场 10% 恢复、四不变量门、Python 参考 rtol 1e-9；`
 
-### 1.3 噪声算法推导（`docs/algorithms/NOISE_ESTIMATION.md`，链「docs/algorithms 算法推导（权威）」）
+### 1.3 噪声算法推导（`docs/science/algorithms/NOISE_ESTIMATION.md`，链「docs/algorithms 算法推导（权威）」）
 
 - `:4` —— `> (docs/science/NOISE_MODEL.md，FROZEN T104 2026-08-23，共享引用不改动)`
 - `:109-116`（§13 抬头）—— 逐字：`> 上游: SCI-NOISE-001..015（docs/science/NOISE_MODEL.md，FROZEN T104 2026-08-23，不改 SCI） …` / `> 本节由源码逐符号核对后追加（P1-NOISE-DOC）：§1-§12 为 T204/V5 既有登记，根公式（MAD→σ、5σ≤2 轮、平面场、floor、ivar=1/variance）不变；…` / `> 禁止声明 IMPLEMENTED（迁移落码由 P1-NOISE-IMPL 执行）。**禁止根据代码缺陷反向修改 SCI——全部差异登记 DISP-NOISE-***。`
@@ -162,14 +162,14 @@ ivar = 1 / max(variance, floor)   # fill 阶段 max(a+b·x+c·y, floor)；contro
 
 - `docs/GLOSSARY.md:3` —— `本词典是**唯一术语权威**。每个核心术语恰一个含义;legacy alias 列出迁移去向。任何文档/代码/接口与本文冲突时,以本文锚点所指的权威文件为准并回改词典——**禁止两套定义并存**。`
 - `docs/GLOSSARY.md:10-12` —— `| variance | 逐像素随机方差… | 信号单位²(ADU²) | … |` / `| ivar | 逆方差=1/variance;variance=0/缺失 → ivar=0(显式不可用,禁止伪装);NaN/负 variance=产品损坏 | **ADU⁻²** |` / `| pixel_weight | 像素级科学权重=ivar… | 无量纲 |`
-- `docs/contracts/DATA_SEMANTICS.md:393-397`（DATA-P1-NOISE 抬头）—— `> 本节是该模块单位/dtype/shape/invalid 的唯一权威；§4a 产品语义（ivar=1/variance、ivar=0 显式不可用）在此落地为模块级 I/O 语义。`
-- `docs/contracts/DATA_SEMANTICS.md:406` —— `| cfg（SnrNoiseModelConfig） | … | patch_grid_x/y≥2、cosmic_clip_sigma≥1、**min_patch_samples≥1（默认 64）**、max_clip_rounds≥0 静默钳位（DISP-NOISE-007）；…`
-- `docs/contracts/DATA_SEMANTICS.md:413` —— `| NoiseWeightModelV1 | … | σ: ADU；variance: ADU²；**ivar: ADU⁻²** | 合格 patch 的 max(patch_var, floor) 与 1/var；n_qualified_patches+n_rejected_patches==64（8×8） |`
-- `docs/contracts/DATA_SEMANTICS.md:416` —— `| fill 输出 out_variance / out_ivar | float32 [h·w] 行主序 | ADU² / ADU⁻² | … 无合格 patch 时 ivar=0 拒绝加权（SCI §7） |`
-- `docs/contracts/DATA_SEMANTICS.md:499` —— `| out_sigma_residual | double 标量 | dex（log10 flux-ratio） | MAD(r_inliers)/0.6745（:551-560）；下游换算 sigma_mag/sigma_cal_rel 由 snr_phot_cal_quality 承担（API-NOISE-001 边界） |`
-- `docs/contracts/DATA_SEMANTICS.md:553` —— `| [0]=status | double（整值 0..3） | 拟合状态码（STAR_PSF_ALGORITHMS §11.2 四码语义）；**PHOTOMETRIC 仅 status=0 行入匹配**（pc 匹配侧 status≠0 记 reject） |`
-- `docs/contracts/DATA_SEMANTICS.md:765` —— `| star_measurements（orchestrator 侧权威源，非 C ABI 直入） | FLOAT64 [N,≥15] 行主序 | … | 缺失/格式错 → BLOCK_MISSING（:1830-1839）；**过滤 status∉{0,3}**、sat r[13]、fwhm r[7]∉[0.5,20]、边缘 5px（:1852-1862） |`
-- `docs/algorithms/STAR_PSF_ALGORITHMS.md:165` 起（§11.2 拟合失败语义，冻结）—— 逐字表行：
+- `docs/science/DATA_SEMANTICS.md:393-397`（DATA-P1-NOISE 抬头）—— `> 本节是该模块单位/dtype/shape/invalid 的唯一权威；§4a 产品语义（ivar=1/variance、ivar=0 显式不可用）在此落地为模块级 I/O 语义。`
+- `docs/science/DATA_SEMANTICS.md:406` —— `| cfg（SnrNoiseModelConfig） | … | patch_grid_x/y≥2、cosmic_clip_sigma≥1、**min_patch_samples≥1（默认 64）**、max_clip_rounds≥0 静默钳位（DISP-NOISE-007）；…`
+- `docs/science/DATA_SEMANTICS.md:413` —— `| NoiseWeightModelV1 | … | σ: ADU；variance: ADU²；**ivar: ADU⁻²** | 合格 patch 的 max(patch_var, floor) 与 1/var；n_qualified_patches+n_rejected_patches==64（8×8） |`
+- `docs/science/DATA_SEMANTICS.md:416` —— `| fill 输出 out_variance / out_ivar | float32 [h·w] 行主序 | ADU² / ADU⁻² | … 无合格 patch 时 ivar=0 拒绝加权（SCI §7） |`
+- `docs/science/DATA_SEMANTICS.md:499` —— `| out_sigma_residual | double 标量 | dex（log10 flux-ratio） | MAD(r_inliers)/0.6745（:551-560）；下游换算 sigma_mag/sigma_cal_rel 由 snr_phot_cal_quality 承担（API-NOISE-001 边界） |`
+- `docs/science/DATA_SEMANTICS.md:553` —— `| [0]=status | double（整值 0..3） | 拟合状态码（STAR_PSF_ALGORITHMS §11.2 四码语义）；**PHOTOMETRIC 仅 status=0 行入匹配**（pc 匹配侧 status≠0 记 reject） |`
+- `docs/science/DATA_SEMANTICS.md:765` —— `| star_measurements（orchestrator 侧权威源，非 C ABI 直入） | FLOAT64 [N,≥15] 行主序 | … | 缺失/格式错 → BLOCK_MISSING（:1830-1839）；**过滤 status∉{0,3}**、sat r[13]、fwhm r[7]∉[0.5,20]、边缘 5px（:1852-1862） |`
+- `docs/science/algorithms/STAR_PSF_ALGORITHMS.md:165` 起（§11.2 拟合失败语义，冻结）—— 逐字表行：
 ```text
 | 0 | DPSF_FIT_OK | 收敛 :163 且过验证链一~三 | 全参数回填 :391-403 | 计入 out_n_valid；写 9 字段 :784-794/907-916 |
 | 1 | DPSF_FIT_NO_CONVERGENCE | 验证链一 :336-338 / 二 :341-346 / 三 :349-354 | … | 不计入 compact 行；逐星 out_status=1 |
@@ -177,9 +177,9 @@ ivar = 1 / max(variance, floor)   # fill 阶段 max(a+b·x+c·y, floor)；contro
 | 3 | DPSF_FIT_ITERATION_LIMIT | max_iter=200 耗尽 :187 | 仍回填当前最优参数 :391-403 | 非 OK→NaN，不计 valid |
 ```
 - `docs/science/PHOTOMETRY.md:20/:22/:29/:52/:60/:107/:127`（链「docs/science」）—— `| S | MAD(r)/0.6745 初值尺度 (dex) |`；`| sigma_residual | MAD(r_inliers)/0.6745 dex | QA |`；`… sigma_cal_rel: 相对误差（sigma_cal_rel = ln10·sigma_residual）；qf 无量纲标志。`；`- **合成注入**：已知 scale 的 F_instr=k·F_syn 注入场，估计 location≈log10 k（rtol 1e-4）。`；`2. MAD→σ 换算 1/0.6745：标准正态 MAD 分位（Φ⁻¹(3/4)≈0.6745），教科书级恒等式，Project-defined 采纳。`
-- `docs/plugins/algorithms_phase1/07_noise_snr.md:12`（链⑥插件文档）—— `- docs/science/NOISE_MODEL.md、docs/science/PSF_SIGNAL_WEIGHT.md`（即插件层把 SCI 列为上位依据）。
+- `docs/detail/algorithms_phase1/07_noise_snr.md:12`（链⑥插件文档）—— `- docs/science/NOISE_MODEL.md、docs/science/PSF_SIGNAL_WEIGHT.md`（即插件层把 SCI 列为上位依据）。
 
-### 1.5 配置层（`config/defaults.json`，链①§3.3 + `docs/contracts/CONFIG_CONTRACT.md:29`）
+### 1.5 配置层（`config/defaults.json`，链①§3.3 + `docs/engineering/CONFIG_CONTRACT.md:29`）
 
 - `config/defaults.json:6-7` —— `"design": "ASTROCS_DESIGN.md §3.3（程序根 config/：defaults.json 放暗场-亮场曝光容差、默认 PSF 模型、检测阈值、标量门、稀疏层密度等）"` / `"preflight": "ASTROCS_DESIGN.md §3.5（预检三级：容差等判定基准来自 config/defaults.json）"`
 - `config/defaults.json:101-111`（逐字）：
@@ -190,13 +190,13 @@ ivar = 1 / max(variance, floor)   # fill 阶段 max(a+b·x+c·y, floor)；contro
       "unit": "count",
       "constraint": ">= 1；patch 合格样本数下限（默认 64）",
       "authority_status": "sourced",
-      "source": "docs/algorithms/NOISE_ESTIMATION.md:134（默认 min 64）",
-      "source_ref": {"path": "docs/algorithms/NOISE_ESTIMATION.md", "line": 134},
+      "source": "docs/science/algorithms/NOISE_ESTIMATION.md:134（默认 min 64）",
+      "source_ref": {"path": "docs/science/algorithms/NOISE_ESTIMATION.md", "line": 134},
       "pending_task": null,
       "note": "同文件 :151 记 min_patch_samples 默认 64（snr_estimator.h:117、default_config :333）。"
     },
 ```
-- `docs/contracts/CONFIG_CONTRACT.md:29` —— `## 2 config/defaults.json（44 字段；astrocs.config-defaults/v1）`
+- `docs/engineering/CONFIG_CONTRACT.md:29` —— `## 2 config/defaults.json（44 字段；astrocs.config-defaults/v1）`
 
 ### 1.6 权威链位置小结
 
@@ -743,11 +743,11 @@ RTOL_MODEL = 1e-9                  # NOISE_MODEL.md §15:140 承诺 rtol 1e-9   
 **最小改动路径**：
 1. `docs/science/NOISE_MODEL.md:37`：`min_samples（patch 样本数阈）默认 5` → `默认 64`，行尾加变更 claim 注释（沿用本仓既有格式，先例见 `NOISE_MODEL.md:98`：`<!-- (R-5 裁决 2026-09-16，负责人授权；依据 reports/PROJECT-GOVERNANCE-01/research/R-5_噪声SNR与统计口径.md §2 EXP-1/2/3) -->`）。
 2. `docs/science/NOISE_MODEL.md` §12/§14 增一行"默认值导出依据"（引本报告）。
-3. `docs/algorithms/NOISE_ESTIMATION.md:151-153`：删除「不改 SCI，以代码为准登记」，改为「SCI §4 已按变更 claim 升级为 64；ALG 以 SCI 为准」。
+3. `docs/science/algorithms/NOISE_ESTIMATION.md:151-153`：删除「不改 SCI，以代码为准登记」，改为「SCI §4 已按变更 claim 升级为 64；ALG 以 SCI 为准」。
 4. `config/defaults.json` `noise.min_patch_samples` 的 `source/source_ref` 由 `NOISE_ESTIMATION.md:134` 改指 `docs/science/NOISE_MODEL.md:37`（值不变，仍是 64）——消除"配置以推导层为源"的同型倒置。
 5. 变更 claim 记账：**需要**（属 `ENGINEERING_SPEC.md:25`「默认容差不可修改」范畴）。
 
-**影响面**：`docs/science/NOISE_MODEL.md`（§4、§12/§14）、`docs/algorithms/NOISE_ESTIMATION.md`（§13.2）、`config/defaults.json`（source 字段）、`tests/config/test_cfg001_contracts.py`（当前只校验 `noise.source_mask_radius_px`/`noise.variance_floor` 两键，**无需改**，建议补 `noise.min_patch_samples` 正例）、`docs/contracts/DATA_SEMANTICS.md:406`（已写 64，无需改）。**代码/测试/ABI 零改动。**
+**影响面**：`docs/science/NOISE_MODEL.md`（§4、§12/§14）、`docs/science/algorithms/NOISE_ESTIMATION.md`（§13.2）、`config/defaults.json`（source 字段）、`tests/config/test_cfg001_contracts.py`（当前只校验 `noise.source_mask_radius_px`/`noise.variance_floor` 两键，**无需改**，建议补 `noise.min_patch_samples` 正例）、`docs/science/DATA_SEMANTICS.md:406`（已写 64，无需改）。**代码/测试/ABI 零改动。**
 
 ### 5.2 M7-A-203：SCI §5:51 记号拆分（**不是 ivar 单位**）
 
@@ -772,7 +772,7 @@ det = sxx·syy − sxy²;   若 det <= eps_rel · sxx · syy   (建议 eps_rel =
 
 **置信度：高**（有 EXP-7 正/负例复现）。
 **反方**：`1e-24` 从未在生产触发（共线几何罕见），"不改也能跑"。**答辩**：①它**已经**可触发（EXP-7 B 例只需"一行 patch + 一个异行 patch"，这在重掩膜帧里正是 EXP-5 实测的存活形态）；②触发后果是 Phase2 权重场 ±62%，远超所有科学容差；③`has_spatial_field` 是 `DATA_SEMANTICS:415` 定义的字段，恒假的字段属"一个字段承载多个含义"（`ENGINEERING_SPEC.md:28`）。
-**最小改动路径**：`noise_model.cpp` 两处小改（`:263` 判据、`:403` 同判据）+ 新增 `DISP-NOISE-010` 登记 + 一个负例夹具（共线/近共线控制点 → `has_spatial_field=0` 且场为常量）。**影响面**：`docs/algorithms/NOISE_ESTIMATION.md` §13.3 增条；`docs/science/NOISE_MODEL.md` §5 增一句"几何退化 ⇒ 全局常量场"；回归测试加负例；**不需要** SCI 数值变更（SCI 未规定 det）。
+**最小改动路径**：`noise_model.cpp` 两处小改（`:263` 判据、`:403` 同判据）+ 新增 `DISP-NOISE-010` 登记 + 一个负例夹具（共线/近共线控制点 → `has_spatial_field=0` 且场为常量）。**影响面**：`docs/science/algorithms/NOISE_ESTIMATION.md` §13.3 增条；`docs/science/NOISE_MODEL.md` §5 增一句"几何退化 ⇒ 全局常量场"；回归测试加负例；**不需要** SCI 数值变更（SCI 未规定 det）。
 
 ### 5.5 M3-A-006：注释、fixture、常数三处对齐
 
@@ -797,7 +797,7 @@ det = sxx·syy − sxy²;   若 det <= eps_rel · sxx · syy   (建议 eps_rel =
 
 **唯一推荐结论**：`PHOTOMETRY.md:29`/`:97` 增补定义：`sigma_residual` 是**逐星回归散度**（dex），`sigma_cal_rel = ln10·sigma_residual` 是**散度**而非零点误差；零点（median 位置）的统计标准误为 `sigma_kappa,stat ≈ 1.253·sigma_residual/√N_eff`（1.253=√(π/2)）。**代码已实现该式，无码改**（`snr_science.cpp:236-246`、`noise_model.cpp:292-296`）。**置信度：高。**
 **反方**：旧字段名已在下游使用，改语义有兼容风险。**答辩**：本推荐**不改字段值**（`sigma_cal_rel` 仍 = ln10×散度），只补定义 + 禁混条款；零点标准误早已由 `snr_phot_cal_quality` 输出为 `sigma_location_se_dex/mag`。
-**最小改动路径**：`PHOTOMETRY.md` 两行 + `DATA_SEMANTICS` §14 登记 `sigma_location_se_*`（若尚未登记）。**影响面**：`docs/contracts/DATA_SEMANTICS.md:499` 一行注记。
+**最小改动路径**：`PHOTOMETRY.md` 两行 + `DATA_SEMANTICS` §14 登记 `sigma_location_se_*`（若尚未登记）。**影响面**：`docs/science/DATA_SEMANTICS.md:499` 一行注记。
 
 ### 5.9 M6a-D-007：`SNR_QF_PSF_OK ⇔ status==0`
 
@@ -809,7 +809,7 @@ det = sxx·syy − sxy²;   若 det <= eps_rel · sxx · syy   (建议 eps_rel =
 
 **唯一推荐结论**：全仓该换算只保留一个常数 `1/Φ⁻¹(3/4) = 1.482602218505602`（等价写法 `0.6744897501960817`）：`star_matcher.cpp:21` 的 `0.6745` 改为 `0.6744897501960817`，SCI-PHOT 的 `0.6745` 字样与 `NOISE_MODEL.md:135` 的"同源"表述同步订正（变更 claim）。`sigma_residual` 相对变化 **+1.52e-5**（远小于 5% 科学容差）。**置信度：中**（科学上无关紧要，属一致性问题；"只改声明不改数"的替代路径会使两套常数并存，违反 `GLOSSARY.md:3`，故不取）。
 **反方**：改动跨模块交付量（`sigma_residual`→`sigma_mag`→`sigma_cal_rel`→帧 QA），收益仅 1.5e-5 ⇒ 不值。**答辩**：本轮同时发现 `photometer.cpp:90` 的第三套 1.4826，三套并存本身违反 `ENGINEERING_SPEC §3`「不得多源」；一次收敛的代价是一行代码 + 一处测试锚（`p1phot_tests_properties.cpp:234` 的 P4 复算用的是同一个 0.6745，须同步）。
-**影响面**：`lib/algorithms/photometry/**`（1 行 + 头注释）、`docs/science/PHOTOMETRY.md:20/22/52/60/127`、`docs/science/NOISE_MODEL.md:135`、`docs/contracts/DATA_SEMANTICS.md:499`。
+**影响面**：`lib/algorithms/photometry/**`（1 行 + 头注释）、`docs/science/PHOTOMETRY.md:20/22/52/60/127`、`docs/science/NOISE_MODEL.md:135`、`docs/science/DATA_SEMANTICS.md:499`。
 
 ### 5.11 V12-N-16：`kLn10` 单一定义
 
@@ -853,7 +853,7 @@ g++ (Debian 14.2.0-19) 14.2.0
 $ git status --porcelain run/            # 空输出 ⇒ 本轮产物全部在忽略区
 $ git check-ignore -v run/PROJECT-GOVERNANCE-01/R-5/logs/exp1_mad_bias_mc.log
 .gitignore:19:run/*	run/PROJECT-GOVERNANCE-01/R-5/logs/exp1_mad_bias_mc.log
-$ git status --porcelain lib/algorithms/noise_snr docs/science/NOISE_MODEL.md docs/algorithms/NOISE_ESTIMATION.md config/defaults.json
+$ git status --porcelain lib/algorithms/noise_snr docs/science/NOISE_MODEL.md docs/science/algorithms/NOISE_ESTIMATION.md config/defaults.json
 （空输出 ⇒ 本域受控文件无改动）
 ```
 
@@ -890,7 +890,7 @@ $ ls lib/snr_estimator                # → "没有那个文件或目录"（退�
 $ grep -n "_MAD_SCALE" lib/algorithms/photometry/cpp/src/star_matcher.cpp
 $ grep -n "1.4826" lib/algorithms/photometry/wrapper_phase1/photometer.cpp
 $ grep -n "kLn10" lib/algorithms/noise_snr/cpp/src/snr_science.cpp lib/algorithms/noise_snr/cpp/src/noise_model.cpp
-$ sed -n '165,192p' docs/algorithms/STAR_PSF_ALGORITHMS.md
+$ sed -n '165,192p' docs/science/algorithms/STAR_PSF_ALGORITHMS.md
 ```
 
 ### 6.4 数值复算命令

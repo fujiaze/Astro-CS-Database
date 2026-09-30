@@ -44,16 +44,16 @@
 | # | 位置 | 逐字原文 | 在权威链的位置 |
 |---|---|---|---|
 | A1 | `docs/science/STAR_DETECTION.md:12-14` | 「- subpixel centroid: 亚像素质心为连续估计（一阶导零交叉 / 二阶导零交叉 / Moffat4 GSL-LM 中心），不引入 0.5px 网格量化损失；合成场验收容差 \|Δc\|<=0.3 px（SNR>=20）见 ALG-STARDET-001 §11.4 F1。」 | SCI-P1-STAR-001（FROZEN 2026-09-07）——**权威** |
-| A2 | `docs/algorithms/STAR_DETECTION_ALGORITHMS.md:256-258` | 「- F1 合成高斯星场（已知中心/流量/FWHM/SNR）: 亚像素质心 \|Δc\|<=0.3 px（SNR>=20）；FWHM 相对误差 <=10%；完整性: SNR>=10 星召回 >=99%；纯噪声场虚警 <=0.1/千像素（专项=completeness/false positive synthetic fields）。」 | ALG-STARDET-001 §11.4 TEST-STAR-DESIGN-001——**权威（冻结测试设计）** |
-| A3 | `docs/algorithms/STAR_DETECTION_ALGORITHMS.md:263-265` | 「- F4 FP64 通道 oracle: 独立 Moffat4/Gaussian 复算（B,A,x0,y0,sx,sy,theta）\|Δ中心\|<=0.05 px、A/B 相对误差 <=1e-3（GSL 对独立实现，双精度）；FP32 通道经 uint16 量化容差独立冻结 \|Δc\|<=0.5 px（DISP-STAR-001）。」 | 同上——**「0.5 px 质心门」的唯一文本出处** |
-| A4 | `docs/algorithms/PLATESOLVE.md:185-187` | 「- F1 合成线性场（order=1，已知 CD/CRVAL/CRPIX 合成星表）：求解成功且 n_pairs>=12；rms_arcsec <=0.5"（实测锚 Galaxy_Center=0.1431"，memory.md 2026-07-12）；CD 元素相对误差 <=2%（§9 尺度容差 0.002 同源）；\|ΔCRVAL\|<=1"。」 | ALG-WCS-001 §11.4 TEST-WCS-DESIGN-001——**权威；「F1 精度门」的文本出处（注意与 A2 的 F1 同名不同门）** |
-| A5 | `docs/algorithms/PLATESOLVE.md:125` | 「\| RMS 统计 \| ipv_wcs.cpp:483-517 \| rms_arcsec=sqrt(Σr²/n)；rms_px=rms_arcsec/s0 \|」 | ALG-WCS-001 §11.1 逐符号锚——**只给公式，不给量测域** |
+| A2 | `docs/science/algorithms/STAR_DETECTION_ALGORITHMS.md:256-258` | 「- F1 合成高斯星场（已知中心/流量/FWHM/SNR）: 亚像素质心 \|Δc\|<=0.3 px（SNR>=20）；FWHM 相对误差 <=10%；完整性: SNR>=10 星召回 >=99%；纯噪声场虚警 <=0.1/千像素（专项=completeness/false positive synthetic fields）。」 | ALG-STARDET-001 §11.4 TEST-STAR-DESIGN-001——**权威（冻结测试设计）** |
+| A3 | `docs/science/algorithms/STAR_DETECTION_ALGORITHMS.md:263-265` | 「- F4 FP64 通道 oracle: 独立 Moffat4/Gaussian 复算（B,A,x0,y0,sx,sy,theta）\|Δ中心\|<=0.05 px、A/B 相对误差 <=1e-3（GSL 对独立实现，双精度）；FP32 通道经 uint16 量化容差独立冻结 \|Δc\|<=0.5 px（DISP-STAR-001）。」 | 同上——**「0.5 px 质心门」的唯一文本出处** |
+| A4 | `docs/science/algorithms/PLATESOLVE.md:185-187` | 「- F1 合成线性场（order=1，已知 CD/CRVAL/CRPIX 合成星表）：求解成功且 n_pairs>=12；rms_arcsec <=0.5"（实测锚 Galaxy_Center=0.1431"，memory.md 2026-07-12）；CD 元素相对误差 <=2%（§9 尺度容差 0.002 同源）；\|ΔCRVAL\|<=1"。」 | ALG-WCS-001 §11.4 TEST-WCS-DESIGN-001——**权威；「F1 精度门」的文本出处（注意与 A2 的 F1 同名不同门）** |
+| A5 | `docs/science/algorithms/PLATESOLVE.md:125` | 「\| RMS 统计 \| ipv_wcs.cpp:483-517 \| rms_arcsec=sqrt(Σr²/n)；rms_px=rms_arcsec/s0 \|」 | ALG-WCS-001 §11.1 逐符号锚——**只给公式，不给量测域** |
 | A6 | `lib/algorithms/platesolve/memory.md:55-56` | 「  - T3: PlateSolve RMS=0.151px(31pairs) vs 独立 median=0.897px(702 matched) — 5.9x 差距 /   - T2: PlateSolve RMS=0.108px(33pairs) vs 独立 median=0.772px(1237 matched) — 7.2x 差距」 | **模块 memory（非规范层）**——0.897px 的唯一出处 |
 | A7 | `run/PROJECT-GOVERNANCE-01/DOC-001/逐条处置表.md:66` | 「\| 58 \| M3b-G-01 \| P0 \| 1 \| OPEN \| 留待后续：0.5px/质心门与实测 0.897px 的差值属科学裁决面…本轮不得代裁…」 | **DOC-001 处置表**（本轮 D-16 的成形处）——把 A3 的 0.5px 与 A6 的 0.897px 直接并列 |
 | A8 | `lib/infrastructure/pipeline/orchestrator/cpp/tests/test_p1_batchH_star_coord.cpp:5-9` | 「//   - sdet star_det 坐标 = "像素中心=索引+0.5" 连续系 (§17.2 权威); / //   - DPSF 拟合中心与输入 det_x 同系 (dpsf_psf.cpp 样本 dx=索引-cx、回移 cx+x0, 无 0.5 注入) -> 亦为 "像素中心=索引+0.5" 系; / //   - star_measurements 权威块 = 统一契约 index-is-center (值=连续系-0.5); / //   - ipv detections 输入 = IPV 接口契约 (像素中心=索引+0.5) (§18.1)。」 | 共址测试头注（**测试面，非规范层**）——本议题的判据前提 |
-| A9 | `docs/contracts/DATA_SEMANTICS.md:760` | 「\| detections \| double [n,6] 行主序 \| 列 [0..5]=det_x,det_y,flux,mag,sat,has_sat；det_x/det_y 为 pixel（**IPV 接口契约：像素中心=索引+0.5**） \| orchestrator 由 star_measurements 统一契约（index-is-center）**+0.5 显式转换**构造（:1867）；…」 | DATA-P1-WCS——**权威合同** |
-| A10 | `docs/algorithms/PLATESOLVE.md:127` | 「\| orchestrator 过滤+坐标契约 \| orchestrator.cpp:1855-1876 \| star_measurements [N,>=15] FLOAT64；status∈{0,3}、sat r[13]、fwhm r[7]∈[0.5,20]、边缘 5px；**+0.5 转换 :1867**（统一契约 index-is-center -> IPV 接口契约 center=index+0.5）；sdet fallback 坐标已是 +0.5 契约（:1878） \|」 | ALG-WCS-001 §11.1——**权威；规定 fallback 直送** |
-| A11 | `docs/contracts/DATA_SEMANTICS.md:714` | 「PLATESOLVE fallback 读 star_det 块显式 DETECTOR_FALLBACK 并按「像素中心=索引+0.5」-0.5 转统一契约（orchestrator.cpp:1826-1829）」 | DATA-P1-STAR §17.2——**与 A10 及实码互斥（见 §3.4）** |
+| A9 | `docs/science/DATA_SEMANTICS.md:760` | 「\| detections \| double [n,6] 行主序 \| 列 [0..5]=det_x,det_y,flux,mag,sat,has_sat；det_x/det_y 为 pixel（**IPV 接口契约：像素中心=索引+0.5**） \| orchestrator 由 star_measurements 统一契约（index-is-center）**+0.5 显式转换**构造（:1867）；…」 | DATA-P1-WCS——**权威合同** |
+| A10 | `docs/science/algorithms/PLATESOLVE.md:127` | 「\| orchestrator 过滤+坐标契约 \| orchestrator.cpp:1855-1876 \| star_measurements [N,>=15] FLOAT64；status∈{0,3}、sat r[13]、fwhm r[7]∈[0.5,20]、边缘 5px；**+0.5 转换 :1867**（统一契约 index-is-center -> IPV 接口契约 center=index+0.5）；sdet fallback 坐标已是 +0.5 契约（:1878） \|」 | ALG-WCS-001 §11.1——**权威；规定 fallback 直送** |
+| A11 | `docs/science/DATA_SEMANTICS.md:714` | 「PLATESOLVE fallback 读 star_det 块显式 DETECTOR_FALLBACK 并按「像素中心=索引+0.5」-0.5 转统一契约（orchestrator.cpp:1826-1829）」 | DATA-P1-STAR §17.2——**与 A10 及实码互斥（见 §3.4）** |
 
 ### 1.2 M3b-A-01（高斯 vs Moffat4）相关原文
 
@@ -64,9 +64,9 @@
 | B3 | `docs/science/PSF.md:43,50-52` | 「I(r) = B + A / (1 + Q)^4」/「各向同性 sx=sy=sigma ⇒ Q=0.5·r²/sigma² / alpha=sqrt2·sigma, FWHM=2alpha·sqrt(2^{1/4}-1)=2sqrt2·sigma·sqrt(2^{1/4}-1)≈1.230310·sigma / flux = 2piA·sxsy/3   (整平面延伸假设)」 | SCI-PSF-001 §5——**权威** |
 | B4 | `docs/science/PSF.md:94` | 「- 引入未文档的高斯备选拟合路径作为主路径。」（列于 §10「不可接受变化」） | SCI-PSF-001 §10——**权威；本条禁则的范围是本议题争议焦点** |
 | B5 | `docs/science/PSF.md:111` | 「- 实现: lib/algorithms/psf/src/dpsf_psf.cpp (…)」 | SCI-PSF-001 §13——SCI-PSF-001 **自我绑定 dpsf 为唯一实现面** |
-| B6 | `docs/algorithms/STAR_DETECTION_ALGORITHMS.md:60-64` | 「- Moffat4/Gaussian 拟合模型（sdet_lm_fit :262-437，GSL trust-region LM，7 参数）: f(x,y)=B+A·exp(-(x'²/SX+(y'/r)²/SX)/1)，参数 {B,A,x0,y0,SX=2sigma²,fr,alpha}，… fwhm=2.3548·sigma（TWO_SQRT_2_LOG2），…」 | ALG-STARDET-001 §2——**权威；此处写的已是高斯式** |
-| B7 | `docs/algorithms/STAR_DETECTION_ALGORITHMS.md:169-171` | 「- 亚像素质心: 一阶导/零交叉为连续估计（无 0.5px 网格量化损失），Moffat4 中心由 GSL LM（XTOL/GTOL/FTOL 编译期常量）收敛；合成高斯场 oracle 容差于 §11.4 冻结，禁止放宽。」 | 同上 §9——**同段内「Moffat4 中心」与「合成高斯场」并置** |
-| B8 | `docs/algorithms/STAR_PSF_ALGORITHMS.md:52-58` | 「F1: I(r)=B+A/(1+Q)^4 … F2: 各向同性 sx=sy=sigma -> Q=0.5·r²/sigma², alpha=sqrt2 sigma, FWHM=2sqrt2 sigma·sqrt(2^{1/4}-1)=1.230310 sigma …」 | ALG-STARPSF-001 §2——**权威** |
+| B6 | `docs/science/algorithms/STAR_DETECTION_ALGORITHMS.md:60-64` | 「- Moffat4/Gaussian 拟合模型（sdet_lm_fit :262-437，GSL trust-region LM，7 参数）: f(x,y)=B+A·exp(-(x'²/SX+(y'/r)²/SX)/1)，参数 {B,A,x0,y0,SX=2sigma²,fr,alpha}，… fwhm=2.3548·sigma（TWO_SQRT_2_LOG2），…」 | ALG-STARDET-001 §2——**权威；此处写的已是高斯式** |
+| B7 | `docs/science/algorithms/STAR_DETECTION_ALGORITHMS.md:169-171` | 「- 亚像素质心: 一阶导/零交叉为连续估计（无 0.5px 网格量化损失），Moffat4 中心由 GSL LM（XTOL/GTOL/FTOL 编译期常量）收敛；合成高斯场 oracle 容差于 §11.4 冻结，禁止放宽。」 | 同上 §9——**同段内「Moffat4 中心」与「合成高斯场」并置** |
+| B8 | `docs/science/algorithms/STAR_PSF_ALGORITHMS.md:52-58` | 「F1: I(r)=B+A/(1+Q)^4 … F2: 各向同性 sx=sy=sigma -> Q=0.5·r²/sigma², alpha=sqrt2 sigma, FWHM=2sqrt2 sigma·sqrt(2^{1/4}-1)=1.230310 sigma …」 | ALG-STARPSF-001 §2——**权威** |
 | B9 | `lib/algorithms/star_detection/README.md:29-30` | 「+ Moffat4（GSL trust-region LM，7 参数 Gaussian 参数化）逐候选拟合 + …」 | 模块 README（合同入口）——**自相矛盾命名** |
 
 ### 1.3 M3b-F-02（Oracle）相关原文
@@ -74,9 +74,9 @@
 | # | 位置 | 逐字原文 |
 |---|---|---|
 | C1 | `docs/science/PSF.md:98-99` | 「- **解析解**：各向同性 FWHM/sigma 与 flux 公式的解析一致性（max_abs==0）。 / - **Python 参考**：scipy / NumPy 对同参数 Moffat4 图像块做 curve_fit 复算，位置 <=0.05px、FWHM <=1%（合成无噪声谱）。」 |
-| C2 | `docs/algorithms/STAR_PSF_ALGORITHMS.md:192-193` | 「- oracle：解析 Moffat4（beta=4）合成图回收 B,A,cx,cy,sx,sy,theta；flux=2piAsxsy/3 与 FWHM=1.230310·sigma 恒等复核；独立参考不调用生产 symbol（11 号标准 §5）。」 |
-| C3 | `docs/algorithms/STAR_PSF_ALGORITHMS.md:201` | 「- 状态：VERIFIED（设计冻结，dpsf 套件建立后 TEST-P1-PSF-001 落 EVIDENCE）。」 |
-| C4 | `docs/traceability/TRACEABILITY_MATRIX.json` ::MOD-astrocs-phase1-star-psf（复读实测） | 「"test_id": "TEST-PSF-DESIGN-001" / "test_path": "docs/algorithms/STAR_PSF_ALGORITHMS.md::TEST-PSF-DESIGN-001" / "test_status": "VERIFIED" / "evidence_id": "EVID-MISSING" / "evidence_status": "MISSING"」 |
+| C2 | `docs/science/algorithms/STAR_PSF_ALGORITHMS.md:192-193` | 「- oracle：解析 Moffat4（beta=4）合成图回收 B,A,cx,cy,sx,sy,theta；flux=2piAsxsy/3 与 FWHM=1.230310·sigma 恒等复核；独立参考不调用生产 symbol（11 号标准 §5）。」 |
+| C3 | `docs/science/algorithms/STAR_PSF_ALGORITHMS.md:201` | 「- 状态：VERIFIED（设计冻结，dpsf 套件建立后 TEST-P1-PSF-001 落 EVIDENCE）。」 |
+| C4 | `docs/traceability/TRACEABILITY_MATRIX.json` ::MOD-astrocs-phase1-star-psf（复读实测） | 「"test_id": "TEST-PSF-DESIGN-001" / "test_path": "docs/science/algorithms/STAR_PSF_ALGORITHMS.md::TEST-PSF-DESIGN-001" / "test_status": "VERIFIED" / "evidence_id": "EVID-MISSING" / "evidence_status": "MISSING"」 |
 | C5 | `ENGINEERING_SPEC.md:52-53` | 「- 确定性合成数据生成器； / - 不调用生产实现的独立 Oracle 或解析解；」 |
 
 ### 1.4 M1a-A-001 相关原文
@@ -85,7 +85,7 @@
 |---|---|---|
 | D1 | `docs/science/ASTROMETRY.md:45-49` | 「前向 WCS (像素->天球): /   xp = x+1,  yp = y+1 /   (u,v) = CD · (xp-CRPIX) + SIP_A/B(u,v)   # (u,v) 为 TAN 投影中间坐标 /   (RA,Dec) = TAN^{-1}(u,v; CRVAL)」 |
 | D2 | `docs/science/ASTROMETRY.md:66` | 「与 lib/algorithms/platesolve/cpp/ipv/src/ipv_wcs.cpp:13-16,153-164,274-420,530-576 及 ipv_select.cpp:723,712 一致。」 |
-| D3 | `docs/algorithms/PLATESOLVE.md:16-17` | 「F4: SIP逆向 AP/BP = argmin \|\|UV-(u,v)-SIP(u,v)\|\|² on 7x7 grid, AP[1,0]-=1, BP[0,1]-=1」 |
+| D3 | `docs/science/algorithms/PLATESOLVE.md:16-17` | 「F4: SIP逆向 AP/BP = argmin \|\|UV-(u,v)-SIP(u,v)\|\|² on 7x7 grid, AP[1,0]-=1, BP[0,1]-=1」 |
 
 ### 1.5 M1a-C-001 相关原文
 
@@ -96,9 +96,9 @@
 | E3 | `docs/science/ASTROMETRY.md:109` | 「- **SIP 逆一致性**：前向+逆向在 7x7 网格上往返误差 ‖(x,y)-WCS^{-1}(WCS(x,y))‖ < 1e-6 pixel（FP64）。」 |
 | E4 | `docs/science/ASTROMETRY.md:125` | 「- FP64 全链路；CD 与 SIP 系数以 double 写入 FITS 头；NB_GRID=7 最小二乘拟合 AP/BP，残差 rms_px 写入诊断。」 |
 | E5 | `docs/science/ASTROMETRY.md:145` | 「- **往返不变量**：像素->天球->像素往返 max_abs <1e-6 px（网格 7x7 拟合精度门）。」 |
-| E6 | `docs/algorithms/PLATESOLVE.md:124` | 「\| SIP AP/BP 网格反变换 \| ipv_wcs.cpp:400-478 \| 7x7 网格最小二乘；AP[6]-=1、BP[1]-=1（:456-461，F4）；奇异仅 warn（:477） \|」 |
-| E7 | `docs/standards/STANDARDS_REGISTRY.md:66,76` | 「\| SIP §A（A/B 前向、AP/BP 逆向与单位线性剔除） \| … \| PROJECT_DEFINED \| … \| DISP-WCS-006（AP/BP 以 7x7 网格最小二乘拟合而非标准迭代反演；SCI 层已显式冻结该口径） \|」／「\| DISP-WCS-006 \| 低 \| docs/algorithms/PLATESOLVE.md \| P1-WCS-IMPL（AP/BP 网格拟合口径与 SCI 冻结一致，维护歧义） \|」 |
-| E8 | `tests/unit/p1wcs/p1wcs_tests_apbp.cpp:4-5` | 「// 合同锚: docs/algorithms/PLATESOLVE.md §11.4 F2 (SIP 前向/逆向 roundtrip / // \|Δ\|<=1e-4 px, 冻结不放宽); owner 裁决 1 选 B (2026-09-09): AP/BP 布局扩展 / // + 消费方迭代式反演, 恢复冻结门, 不接受缩小 fixture 畸变量级。」 |
+| E6 | `docs/science/algorithms/PLATESOLVE.md:124` | 「\| SIP AP/BP 网格反变换 \| ipv_wcs.cpp:400-478 \| 7x7 网格最小二乘；AP[6]-=1、BP[1]-=1（:456-461，F4）；奇异仅 warn（:477） \|」 |
+| E7 | `docs/engineering/STANDARDS_REGISTRY.md:66,76` | 「\| SIP §A（A/B 前向、AP/BP 逆向与单位线性剔除） \| … \| PROJECT_DEFINED \| … \| DISP-WCS-006（AP/BP 以 7x7 网格最小二乘拟合而非标准迭代反演；SCI 层已显式冻结该口径） \|」／「\| DISP-WCS-006 \| 低 \| docs/science/algorithms/PLATESOLVE.md \| P1-WCS-IMPL（AP/BP 网格拟合口径与 SCI 冻结一致，维护歧义） \|」 |
+| E8 | `tests/unit/p1wcs/p1wcs_tests_apbp.cpp:4-5` | 「// 合同锚: docs/science/algorithms/PLATESOLVE.md §11.4 F2 (SIP 前向/逆向 roundtrip / // \|Δ\|<=1e-4 px, 冻结不放宽); owner 裁决 1 选 B (2026-09-09): AP/BP 布局扩展 / // + 消费方迭代式反演, 恢复冻结门, 不接受缩小 fixture 畸变量级。」 |
 | E9 | `docs/archive/HANDOVER.md:63` | 「\| WCS-002 F1 \| owner 已裁决（选 B） \| 冻结 1e-4px 在高畸变 fixture 下不可达 -> WCS-003 节点：AP/BP 布局扩展+消费方迭代反演，保留高畸变 fixture+增低中高三档，恢复冻结门后 G-SCI 才开 \| WCS-003 \|」——**唯一书面载体是 ARCHIVED 文档** |
 
 ---
@@ -322,7 +322,7 @@ int sdet_moffat4_fit(const T* image, int width, int height,
 - B4-5 共址锁（`p1psf_prodpath_centroid`）逐字：`T1 fit=(31.370000,27.610000) truth=(31.370000,27.610000) |dc|=0.000000 px`；`p1psf_prodpath_check.cpp:99` 以 CX+0.5 作初值（即承认 sdet 系 = 索引+0.5），而真值 CX 定义在 `moffat4_eval(...,(double)x,(double)y)`（索引系）⇒ **该锁自身即证明 dpsf 输出为索引系**。
 - `lib/infrastructure/pipeline/orchestrator/cpp/tests/test_p1_batchH_star_coord.cpp` **未被任何 CMakeLists 引用**（`grep -rn "test_p1_batchH_star_coord" --include=CMakeLists.txt .` -> 0 命中；`build/` 下无该目标）⇒ 它是**未入门禁的锁**。
 - `eng/ci/checks.json` 对 `gate2_psf_oracle` **0 命中**（`grep -c 'gate2' eng/ci/checks.json` -> 0）；`gate2_psf_oracle.py:314-318` 的 `fwhm_median_le_1pct / ell_median_le_0.005 / flux_median_le_1pct / photutils_oracle_centroid_p95_le_0.05px` 四个阈值在 `docs/**`（非 archive）**全文零命中**。
-- `TRACEABILITY_MATRIX.json` 的 PSF 行：`test_path` = **文档锚** `docs/algorithms/STAR_PSF_ALGORITHMS.md::TEST-PSF-DESIGN-001`，`test_status=VERIFIED` 与 `evidence_status=MISSING` 并存；`docs/traceability/TRACEABILITY_MATRIX.csv:11-12` 两行已标 `SUPERSEDED`。
+- `TRACEABILITY_MATRIX.json` 的 PSF 行：`test_path` = **文档锚** `docs/science/algorithms/STAR_PSF_ALGORITHMS.md::TEST-PSF-DESIGN-001`，`test_status=VERIFIED` 与 `evidence_status=MISSING` 并存；`docs/traceability/TRACEABILITY_MATRIX.csv:11-12` 两行已标 `SUPERSEDED`。
 
 ### 3.6 SIP 逆映射实现与实测（对 E1–E7 的判决）
 
@@ -477,10 +477,10 @@ gate2: fwhm/ell/flux/photutils| 仅 scripts/gate2_psf_oracle.py | 有   | 合成
 | PSF 支路写端去 -0.5（或改读端只对 fallback 加 +0.5） | `lib/infrastructure/pipeline/orchestrator/cpp/src/orchestrator.cpp:2496-2504` | 否（实现对齐已冻结的 A10 合同） |
 | 让 test_p1_batchH_star_coord 进入构建，并改为**链接 sdet+dpsf** 的绝对位置门 | 新增 CMake 条目 + 该 .cpp 改造 | 否 |
 | 把 B4-5 锁升级为双支路断言 | `lib/algorithms/psf/tests/p1psf/p1psf_prodpath_check.cpp` | 否 |
-| F4 补"仅量化面"限定语；F1 补量测域句 | `docs/algorithms/STAR_DETECTION_ALGORITHMS.md:263-265`、`docs/algorithms/PLATESOLVE.md:185-187` | 否（澄清，不改阈值） |
-| 作废/订正 A11 | `docs/contracts/DATA_SEMANTICS.md:714` | 否（订正为实码事实） |
+| F4 补"仅量化面"限定语；F1 补量测域句 | `docs/science/algorithms/STAR_DETECTION_ALGORITHMS.md:263-265`、`docs/science/algorithms/PLATESOLVE.md:185-187` | 否（澄清，不改阈值） |
+| 作废/订正 A11 | `docs/science/DATA_SEMANTICS.md:714` | 否（订正为实码事实） |
 
-**影响面**：`lib/infrastructure/pipeline/orchestrator`（坐标桥）、`lib/phase1/stars`/`lib/algorithms/star_detection`（下游坐标消费）、`lib/algorithms/platesolve`（输入坐标）、`contracts/` 的 DATA-P1-STAR §17.2 / DATA-P1-WCS §18.1、`docs/algorithms/PLATESOLVE.md §11.1` 的 orchestrator 行、`tests/unit/p1wcs` 与 `p1psf/p1star` 的期望值（凡以绝对坐标比对真值的用例都要重锚）。**风险**：改桥会改变已发布产品的像素坐标 0.5px ⇒ 必须走「产品面影响评估 + 版本递增」，不得静默改。
+**影响面**：`lib/infrastructure/pipeline/orchestrator`（坐标桥）、`lib/phase1/stars`/`lib/algorithms/star_detection`（下游坐标消费）、`lib/algorithms/platesolve`（输入坐标）、`contracts/` 的 DATA-P1-STAR §17.2 / DATA-P1-WCS §18.1、`docs/science/algorithms/PLATESOLVE.md §11.1` 的 orchestrator 行、`tests/unit/p1wcs` 与 `p1psf/p1star` 的期望值（凡以绝对坐标比对真值的用例都要重锚）。**风险**：改桥会改变已发布产品的像素坐标 0.5px ⇒ 必须走「产品面影响评估 + 版本递增」，不得静默改。
 
 ### 5.2 M3b-A-01（高斯 vs Moffat4）
 
@@ -495,7 +495,7 @@ gate2: fwhm/ell/flux/photutils| 仅 scripts/gate2_psf_oracle.py | 有   | 合成
 
 **反方论证**：最强反驳是「SCI-PSF-001 §10 的禁则本意就是禁止**任何**高斯主路径（含检测），因为它会把 q_psf/FWHM 语义污染成两套」。回应：污染已由 §4.4 的换算声明与列改名消除，而 `q_psf=A/residual_scale` 只存在于 dpsf 侧（PSF.md:24,88），检测侧不产出 q_psf ⇒ 禁则的立法目的（保护 q_psf/PSF 语义）不受影响。第二反驳：「改 SCI 就是放宽冻结」——本改法是**缩小**禁则的适用范围至其 §13 已声明的实现面，不是放宽本模块的实现约束。
 
-**最小改动路径**：`docs/science/STAR_DETECTION.md:12-14,41-42`、`docs/algorithms/STAR_DETECTION_ALGORITHMS.md:60,169-171`、`docs/science/PSF.md:94`、`docs/contracts/DATA_SEMANTICS.md:703`、`lib/algorithms/star_detection/README.md:29`、`sdet_api.cpp` 函数名（含 PUBLIC_API.md:549/567/608 中出现的符号）、`docs/modules/registry/astrocs.phase1.star-psf.md`。
+**最小改动路径**：`docs/science/STAR_DETECTION.md:12-14,41-42`、`docs/science/algorithms/STAR_DETECTION_ALGORITHMS.md:60,169-171`、`docs/science/PSF.md:94`、`docs/science/DATA_SEMANTICS.md:703`、`lib/algorithms/star_detection/README.md:29`、`sdet_api.cpp` 函数名（含 PUBLIC_API.md:549/567/608 中出现的符号）、`docs/detail/registry/astrocs.phase1.star-psf.md`。
 
 **影响面**：SCI 变更 claim（docs/science/STAR_DETECTION.md 是 FROZEN）；ALG-STARDET-001 符号锚表；traceability src_path 的符号名；p1star 测试注释与 extras 列名；跨块比较 FWHM 的任何下游。
 
@@ -542,11 +542,11 @@ gate2: fwhm/ell/flux/photutils| 仅 scripts/gate2_psf_oracle.py | 有   | 合成
 
 **反方论证**：反驳可能是「7x7 是 SCI 显式冻结、注册表已登记 DISP-WCS-006 说"与 SCI 冻结一致"，改动会破坏 registry 的 CONFORMANT 判定」。回应：E7 的注册表行自述「维护歧义」且严重度"低"；而**实码从来没有 7x7**（41/81 两处 + 三处旧注释），继续保留 7x7 只会让 registry 的 CONFORMANT 判定永久失真。另可反驳：「批注说 order 6..15 收敛率 0.73，说明提高阶比加密网格更有效」——这正是本推荐把判据重心从"网格"移到"阶 + 迭代"的理由。
 
-**最小改动路径**：docs/science/ASTROMETRY.md（5 处）+ docs/algorithms/PLATESOLVE.md（7 处）+ docs/standards/STANDARDS_REGISTRY.md（2 处）+ ipv_wcs.cpp（3 处注释）+ ipv_solver.cpp（1 处注释）。**影响面**：SCI/ALG 文本、registry、traceability 的 ALG 锚、p1wcs 测试注释；**不影响数值**（实现不变）。
+**最小改动路径**：docs/science/ASTROMETRY.md（5 处）+ docs/science/algorithms/PLATESOLVE.md（7 处）+ docs/engineering/STANDARDS_REGISTRY.md（2 处）+ ipv_wcs.cpp（3 处注释）+ ipv_solver.cpp（1 处注释）。**影响面**：SCI/ALG 文本、registry、traceability 的 ALG 锚、p1wcs 测试注释；**不影响数值**（实现不变）。
 
 ### 5.6 F-2（科学门/容差缺依据）
 
-**唯一推荐结论**：在 SCI 侧新增一张**机器可校验的冻结门表**（建议落 `docs/science/GATES_AND_TOLERANCES.md`，或作为 SCI-PSF/STAR/WCS 的附录节），每行至少 8 列：`门ID | 判据式 | 量测域 | 统计量 | SNR/信噪定义 | 阈值 | 阈值来源(标定/解析/负责人裁决) | 证据ID`；并规定 (a) 任何检查器/门不得引用表外阈值；(b) 表内每行必须有证据 ID 或显式 UNJUSTIFIED 标记（后者不得用于发布门）。本域必须立即补齐的行：
+**唯一推荐结论**：在 SCI 侧新增一张**机器可校验的冻结门表**（建议落 `docs/science/algorithms/GATES_AND_TOLERANCES.md`，或作为 SCI-PSF/STAR/WCS 的附录节），每行至少 8 列：`门ID | 判据式 | 量测域 | 统计量 | SNR/信噪定义 | 阈值 | 阈值来源(标定/解析/负责人裁决) | 证据ID`；并规定 (a) 任何检查器/门不得引用表外阈值；(b) 表内每行必须有证据 ID 或显式 UNJUSTIFIED 标记（后者不得用于发布门）。本域必须立即补齐的行：
 - G-P1-CENTROID-SCI：补 SNR 定义（建议 SNR := A_fit/sigma_bg）与统计量（median/p95）。
 - G-P1-CENTROID-U16：注明"仅量化面"。
 - G-P1-WCS-F1：补量测域（内点 trans 域、合成线性场、n_pairs>=12）。
@@ -599,7 +599,7 @@ gate2: fwhm/ell/flux/photutils| 仅 scripts/gate2_psf_oracle.py | 有   | 合成
 ### 6.4 只读定位命令（本报告引用的 文件:行 均由这些命令复核）
 
 ```bash
-grep -n "NB_GRID\|7×7\|AP_FIT_ORDER\|APX_ORDER" docs/science/ASTROMETRY.md docs/algorithms/PLATESOLVE.md
+grep -n "NB_GRID\|7×7\|AP_FIT_ORDER\|APX_ORDER" docs/science/ASTROMETRY.md docs/science/algorithms/PLATESOLVE.md
 grep -n "NB_GRID\|AP_FIT_ORDER\|APX_ORDER" lib/algorithms/platesolve/cpp/ipv/src/ipv_wcs.cpp lib/algorithms/platesolve/cpp/ipv/src/ipv_solver.cpp
 grep -n "sdet_gaussian_f\|sdet_gaussian_df\|sdet_moffat4_fit\|sdet_lm_fit\|TWO_SQRT_2_LOG2" lib/algorithms/star_detection/src/sdet_api.cpp
 grep -n "MOFFAT4_FWHM_FACTOR\|0\.5" lib/algorithms/psf/src/dpsf_psf.cpp

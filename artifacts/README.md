@@ -22,5 +22,5 @@
 
 ## 上游
 
-上游：docs/ASTROCS_DESIGN.md §12.4（验证层级与四层验收）；docs/ci/04_ARTIFACTS.md（产物与留存）；
+上游：docs/ASTROCS_DESIGN.md §12.4（验证层级与四层验收）；docs/engineering/04_ARTIFACTS.md（产物与留存）；
 ENGINEERING_SPEC.md §7（目录落位）。

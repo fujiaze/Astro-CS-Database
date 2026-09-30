@@ -66,7 +66,7 @@
 > **§14:141 的存在很关键**：SCI 自己已经确立了「默认值必须有可复跑 MC 推导」的先例（SC-002 对 `min_samples`）。
 > 掩膜半径 `rmax` 是同一族默认值，**却没有任何对应条款**——这是本任务的形式化缺口。
 
-### 1.3 被诉算法条款（`docs/algorithms/NOISE_ESTIMATION.md`）
+### 1.3 被诉算法条款（`docs/science/algorithms/NOISE_ESTIMATION.md`）
 
 | 位置 | 逐字原文（改前） |
 |---|---|
@@ -80,17 +80,17 @@
 > **行号口径**：本节行号为本轮进场时（2026-09-17 02:2x）的文件快照。工作树中存在**并发会话**对
 > `config/defaults.json` 其他条目的改动（CFG-002：新增 `registry_ref` 5 行 + 2 处无关条目），使 `noise.*` 段整体下移 5 行；
 > **`noise.source_mask_radius_px` / `noise.mask_radius_scale` 两条本身未被任何会话改动**
-> （本轮末复核：现值仍为 10 / 6，`source_ref` 仍指 `docs/algorithms/NOISE_ESTIMATION.md:134`）。
+> （本轮末复核：现值仍为 10 / 6，`source_ref` 仍指 `docs/science/algorithms/NOISE_ESTIMATION.md:134`）。
 
 ```json
 { "key": "noise.source_mask_radius_px", "value": 10,
   "constraint": ">= 1；参与 rmax = max(1, source_mask_radius_px) * max(1, mask_radius_scale)",
   "authority_status": "sourced",
-  "source": "docs/algorithms/NOISE_ESTIMATION.md:134（默认 r0=10；SCI 只冻结 rmax 公式不给数值）",
-  "source_ref": {"path": "docs/algorithms/NOISE_ESTIMATION.md", "line": 134},
+  "source": "docs/science/algorithms/NOISE_ESTIMATION.md:134（默认 r0=10；SCI 只冻结 rmax 公式不给数值）",
+  "source_ref": {"path": "docs/science/algorithms/NOISE_ESTIMATION.md", "line": 134},
   "note": "数值默认 10 仅 ALG §13.1 列出；语义公式见 docs/science/NOISE_MODEL.md:46。同文件 :155。" }
 { "key": "noise.mask_radius_scale", "value": 6,
-  "source_ref": {"path": "docs/algorithms/NOISE_ESTIMATION.md", "line": 134} }
+  "source_ref": {"path": "docs/science/algorithms/NOISE_ESTIMATION.md", "line": 134} }
 ```
 
 **循环链实证**：`config/defaults.json` →(source_ref)→ `NOISE_ESTIMATION.md:134` →(内容)→ `noise_model.cpp:376-377` →(被 defaults.json 读取)→ 回到起点。
@@ -648,7 +648,7 @@ SCI §6:70 的「API 无 amplitude」把**接口现状**写成了**物理假设*
   >   来源 reports/PROJECT-GOVERNANCE-01/research/MASK-001_掩膜语义重新推导.md §3.3/§3.4。`
 - 依据：EXP-B/EXP-D；与 §14:141（min_samples 的 MC 推导）同构。
 
-**V-9 `docs/algorithms/NOISE_ESTIMATION.md §13.1:134、§13.2:155-158`**
+**V-9 `docs/science/algorithms/NOISE_ESTIMATION.md §13.1:134、§13.2:155-158`**
 
 - 改前：
   > `| ALG-NOISE-001 | snr_noise_model_v1_default_config | noise_model.cpp:371-384（默认 8×8/r0=10/scale=6/...） |`
