@@ -15,7 +15,8 @@
 ```text
 F1: σ_bg = 1.482602218505602 · median(|x−median(x)|)  (MAD→σ Gaussian)
 F2: 5σ裁剪 ≤2轮: 剔除 |x−median|>5σ, 剩余求 σ_bg
-F3: var(x,y)=a+b·x+c·y (LS平面, enable_spatial_field==1 && n_ctrl≥4 else 全局中位数)
+F3: var(x,y)=a+b·x+c·y (相对误差加权 w_i=(v_med/v_i)² + 控制点凸包非负硬约束, enable_spatial_field==1 && n_ctrl≥4 else 全局中位数)
+    **为何不是无权最小二乘**：无权 LS 会让平面在帧内部穿过零点，实测 30.42% 像素预测 <= 0（ivar 归零）、马赛克丢 13.22% 信号；见 `lib/algorithms/coverage/src/upm.cpp` 中 SCI-VAR-ADAPT-01 (SCI-NOISE-001 §5d) 段的自陈。正本条款见 `docs/science/NOISE_MODEL.md`（拟合可行域/结构非负）。
 F4: 可用档（平面预测 > 0）: variance = max(var, floor), ivar = 1/variance
     不可用档（预测 ≤ 0 或产品 dtype 不可表示）: variance = 0, ivar = 0
     （floor 默认 1e-12 ADU²；非有限或 ≤0 一律 SNR_FLOOR_UNBOUND(-10)，不静默回退）
