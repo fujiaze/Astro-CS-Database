@@ -9,7 +9,7 @@
 | # | 文献 | 标识 | 核验方式 | 用途 |
 |---|---|---|---|---|
 | 1 | Pogson, N. (1856), MNRAS 17, 12–15 | DOI 10.1093/mnras/17.1.12 | Crossref 逐字段（题名/卷/页/日期），路线2 R1 | P-CST-01/02：星等标度 2.5 与 −0.4 为定义常数 [文献] |
-| 2 | Rousseeuw & Croux (1993), JASA 88(424), 1273–1283 | DOI 10.1080/01621459.1993.10476408 | Crossref works API（路线3 L1；KU Leuven 官方 PDF 在案） | P-CST-03：MAD 稳健尺度与 ARE≈37% [文献] |
+| 2 | Rousseeuw & Croux (1993), JASA 88(424), 1273–1283 | DOI 10.1080/01621459.1993.10476408 | Crossref works API 逐字段（路线3 L1）；**本轮复核（对抗审查 R02）**：Crossref 与 OpenAlex 均记 oa_status=closed，期刊页与任何 OA 镜像本轮均不可达，**Table 2 的 1.361 与 “37% efficient” 原句本轮未能独立复核**（登记为未能核实，原因：付费墙 + 无 OA 全文） | P-CST-03：MAD 稳健尺度与 ARE≈37% [文献]（数值判据由 exp08 MC 与解析闭式承担，不依赖该表页） |
 | 3 | Croux & Rousseeuw (1992), Computational Statistics, 411–428 | DOI 10.1007/978-3-662-26811-7_58 | Crossref works API（路线3 L2） | P-CST-03 归属订正：PHASE2_SAMPLER.md:219 归属注应指本文 |
 | 4 | Huber, P. J. (1981), Robust Statistics, Wiley（2004 二版） | 专著；二版 DOI 10.1002/0471725250 | Crossref（type=monograph）；审查所引页码级定位未核 | P-CST-03/07：MAD 渐近方差与中位数 SE 渐近式参照 |
 | 5 | Stigler, S. M. (1977), Ann. Statist. 5(6), 1055–1098 | DOI 10.1214/aos/1176343997 | Crossref works API（路线3 L4）；真题名 “Do Robust Estimators Work with Real Data?” | P-CST-06：截尾均值类估计子实证经典 [文献] |
@@ -19,11 +19,11 @@
 | 9 | Bertin & Arnouts (1996), A&AS 117, 393–404 | DOI 10.1051/aas:1996164 | Crossref works API（路线3 L8） | P-CST-15：背景估计/掩膜**实践参照**（k=0.1 本身为项目约定，不注文献出处，负责人已批） |
 | 10 | Newberry, M. V. (1991), PASP 103, 122 | DOI 10.1086/132801 | Crossref works API（路线3 L10 独立复核） | P-CST-11：天空扣除 SNR 噪声组成口径 [文献] |
 | 11 | Stetson, P. B. (1987), PASP 99, 191 | DOI 10.1086/131977 | Crossref works API（路线3 L9） | 逐源测光背景，链上参照 |
-| 12 | IVOA (2017), HiPS REC 1.0 | DOI 10.5479/ADS/bib/2017ivoa.spec.0519F | 官方 REC 页 + 官方 PDF 流级解压，正文实测 hips_tile_width = 512（路线2 R6） | P-CST-16：Δ = 512/8 = 64 px 的 tile 侧出处 [文献] |
-| 13 | Riello et al. (2020), A&A 649, A3 | arXiv:2012.01916 | arXiv abs 页实测题名/作者/日期（路线2 R7） | P-CST-19：Gaia G 星等制与零点口径参照系（不构成 m_ref=6.0 的锚） |
+| 12 | IVOA (2017), HiPS REC 1.0 | DOI 10.5479/ADS/bib/2017ivoa.spec.0519F | Crossref 逐字段（type=standard，标题 "HiPS - Hierarchical Progressive Surveys …"，作者 Fernique）+ 路线2 R6 官方 REC 页/官方 PDF 流级解压（正文实测 hips_tile_width = 512）。**本轮复核**：ADS bibcode DOI 可解析，但 ivoa.net 现行文档路径本轮返回 404，**官方 PDF 全文未能再次取回**，故 hips_tile_width = 512 的页内定位本轮记为未复核 | P-CST-16：Δ = 512/8 = 64 px 的 tile 侧出处 [文献]（该 512 的仓内权威是 `defaults.json` 冻结值与 schema，文献腿为旁证） |
+| 13 | Riello et al. (2021), A&A 649, A3 | arXiv:2012.01916；DOI 10.1051/0004-6361/202039587 | arXiv abs 页实测题名/作者/日期（路线2 R7）＋ Crossref 逐字段（issued 2021、A&A 649、A3、题名 "Gaia Early Data Release 3: Photometric content and validation"）。**年份订正**：本行原写 2020（arXiv 预印年），出版年为 2021，正文参考文献已按 2021 书写 | P-CST-19：Gaia G 星等制与零点口径参照系（不构成 m_ref=6.0 的锚） |
 | 14 | Goldberg, D. (1991), ACM Comput. Surv. 23(1), 5–48 | 无 DOI（公认综述） | 标准综述 + np.finfo(float64).eps 实测双锚（路线2 R11） | P-CST-13：浮点门值 2.22×10⁻¹⁶ = 1 ulp [文献] |
 | 15 | Janesick (2001), Scientific Charge-Coupled Devices, SPIE PM83；Howell (2006), Handbook of CCD Astronomy, 2nd ed. | 标准专著 | 专著（路线2 R12） | P-CST-11/15：CCD 噪声组成通行出处 [文献] |
-| 16 | Zackay & Ofek (2017), ApJ 836, 187/188 | arXiv:1512.06872、arXiv:1512.06879 | arXiv 摘要页（路线1 R5；II 明确 background dominated noise limit） | SNR 传递链与背景主导极限的相容性佐证 [文献] |
+| 16 | Zackay & Ofek (2017), ApJ 836, 187/188 | DOI 10.3847/1538-4357/836/2/187 与 /188；arXiv:1512.06872、arXiv:1512.06879 | Crossref + arXiv 摘要页（路线1 R5）+ **两篇 PDF 首页题名逐字**（II 逐字含 "in the background dominated noise limit"）。题名订正：II 的题名为 "How to COADD Images? II. A coaddition image that is optimal for any purpose in the background dominated noise limit"；仓内正文参考文献原写的 "TRIPOLI series" 非该文题名 | SNR 传递链与背景主导极限的相容性佐证 [文献] |
 | 17 | Christoph, G., Ulyanov, V. V., & Bening, V. E. (2022), "Second Order Expansions for Sample Median with Random Sample Size", ALEA Lat. Am. J. Probab. Math. Stat. 19, 339–365 | DOI 10.30757/ALEA.v19-13 | 期刊全文 PDF 取回（alea.impa.br/articles/v19/19-13.pdf，74 208 字符）：首页题名/作者/卷页年逐字段命中；Crossref 同 DOI 作者字段 = Christoph/Ulyanov/Bening、v19、p339、2022；ALEA v19 全卷目（Crossref 期刊 ISSN 1980-0436 枚举 69 篇）中 **无以 p359 起篇的条目**，p339–365 即本篇 | control_variance 渐近系数 (π/2) 的样本中位数方差依据 [文献] |
 | 18 | Akinshin, A. | arXiv:2209.12268、arXiv:2207.12005 | arXiv 摘要级（补实验 refs） | MAD 有限样本偏置修正因子现象（N=5 时 c_mad2=0.906 的文献旁证） [文献] |
 | 19 | Shepard, D. (1968), Proc. 23rd ACM Nat. Conf., 517–524 | DOI 10.1145/800186.810616 | Crossref 逐字段（题名 "A two-dimensional interpolation function for irregularly-spaced data"/卷名/页 517–524/1968/proceedings-article） | P-CST-24：IDW 出处（配置级，插值参数已批配置化，P4 承载） |

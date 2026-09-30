@@ -55,7 +55,7 @@
 
 ### 4.1 稳健统计常数：解析恒等式的逐位闭合
 
-四个稳健统计常数全部收敛于解析闭式：κ_MAD = 1/Φ⁻¹(3/4) = 1.482602218505602（三路独立 MC 与闭式一致至 1.5×10⁻¹⁶）[5,6][实验:code/audit/route1/exp01_robust_statistics_constants.py][实验:code/audit/route2/exp02_robust_scale_mad.py]；高斯 FWHM/σ = 2√(2 ln 2) = 2.3548200450309493（连续插值差 10⁻¹³）[实验:code/audit/route3/exp02_profile_constants.py]；Moffat β=4 的 FWHM/σ 闭式 2√2·√(2^{1/4}−1) = 1.2303076525901024，冻结值 1.230310 为手抄截断（相对差 +1.908×10⁻⁶），三路独立复算一致[8] [实验:code/audit/route1/exp02_moffat4_constant.py][推导]；90–10% 截尾均值常数闭式 0.7316730952806134（登记值相对差 −4.13×10⁻⁷）[4,7][实验:code/audit/route2/exp03_closed_form_constants.py]。中位数标准误系数 √(π/2) = 1.2533141373155001，登记值 1.253 的截断差 −2.5×10⁻⁴ 在 MC 误差内无害[4,17] [实验:code/audit/route1/exp01_robust_statistics_constants.py]。
+四个稳健统计常数全部收敛于解析闭式：κ_MAD = 1/Φ⁻¹(3/4) = 1.482602218505602（三路独立 MC 与闭式一致至 1.5×10⁻¹⁶）[5,6][实验:code/audit/route1/exp01_robust_statistics_constants.py][实验:code/audit/route2/exp02_robust_scale_mad.py]；高斯 FWHM/σ = 2√(2 ln 2) = 2.3548200450309493（连续插值差 10⁻¹³）[实验:code/audit/route3/exp02_profile_constants.py]；Moffat β=4 的 FWHM/σ 闭式 2√2·√(2^{1/4}−1) = 1.2303076525901024，冻结值 1.230310 为手抄截断（相对差 +1.908×10⁻⁶），三路独立复算一致[8] [实验:code/audit/route1/exp02_moffat4_constant.py][推导]；90–10% 截尾均值常数闭式 0.7316730952806134（登记值相对差 −4.13×10⁻⁷）[7][实验:code/audit/route2/exp03_closed_form_constants.py]；中位数标准误系数 √(π/2) = 1.2533141373155001，登记值 1.253 的截断差 −2.5×10⁻⁴ 在 MC 误差内无害[17] [实验:code/audit/route1/exp01_robust_statistics_constants.py]。
 
 ### 4.2 天空样本预算：1.152 的终裁与 9216 的自洽
 
@@ -180,7 +180,7 @@ P2 用生产的 GLS 信息权重解与生产 Moffat4 轮廓，P3 用生产的掩
 6. Croux, C., & Rousseeuw, P. J. (1992). Time-efficient algorithms for two highly robust estimators of scale. Computational Statistics, 411–428. DOI: 10.1007/978-3-662-26811-7_58. [稳健尺度算法]
 7. Stigler, S. M. (1977). Do robust estimators work with real data? Ann. Statist. 5(6), 1055–1098. DOI: 10.1214/aos/1176343997. [稳健性实证]
 8. Moffat, A. F. J. (1969). A theoretical investigation of focal stellar images. A&A 3, 455. bibcode: 1969A&A.....3..455M. [Moffat 轮廓族出处：该文给出的是以 β 为自由参数的轮廓族，**β=4 不是该文结论**，而是项目/工具约定（PixInsight 标定集用 β=4，见 docs/science/PSF_SIGNAL_WEIGHT.md 引文与 docs/plugins/*/07_noise_snr.md 的冻结口径）；bibcode 锚定，标注级（未逐页）——P2-m1 订正]
-9. Zackay, B., & Ofek, E. O. (2017). TRIPOLI series. ApJ 836, 187/188. arXiv:1512.06872; arXiv:1512.06879. [背景主导噪声极限与 SNR 传递的相容性]
+9. Zackay, B., & Ofek, E. O. (2017). How to COADD Images? I. Optimal source detection and photometry using ensembles of images. ApJ 836, 187. arXiv:1512.06872. II. How to COADD Images? II. A coaddition image that is optimal for any purpose in the background dominated noise limit. ApJ 836, 188. arXiv:1512.06879. [题名按两篇 PDF 首页逐字更正；原写的 “TRIPOLI series” 非该文题名。背景主导噪声极限与 SNR 传递的相容性]
 10. Bertin, E., & Arnouts, S. (1996). SExtractor: Software for source extraction. A&AS 117, 393–404. DOI: 10.1051/aas:1996164. [背景估计与掩膜实践参照（不作为 k 值出处）]
 11. Goldberg, D. (1991). What every computer scientist should know about floating-point arithmetic. ACM Comput. Surv. 23, 5. [浮点门值]
 12. Janesick, J. (2001). Scientific Charge-Coupled Devices. SPIE PM83. [CCD 噪声项；标准专著]
@@ -189,5 +189,5 @@ P2 用生产的 GLS 信息权重解与生产 Moffat4 轮廓，P3 用生产的掩
 15. IVOA (2017). Hierarchical Progressive Surveys, REC 1.0. DOI: 10.5479/ADS/bib/2017ivoa.spec.0519F. [hips_tile_width=512；官方 PDF 正文命中]
 16. Riello, M. et al. (2021). Gaia EDR3: Photometric content and validation. A&A 649, A3. arXiv:2012.01916（arXiv 2020-12-03 预印；Crossref 10.1051/0004-6361/202039587 出版年 2021）. [测光标定实践；年标按出版年订正，P2-m2]
 17. Christoph, G., Ulyanov, V. V., & Bening, V. E. (2022). Second Order Expansions for Sample Median with Random Sample Size. ALEA Lat. Am. J. Probab. Math. Stat. 19, 339–365. DOI: 10.30757/ALEA.v19-13. [样本中位数方差；期刊全文取回，著者/题名/页码经 Crossref 与期刊 PDF 双核]
-18. Akinshin, A. arXiv:2209.12268; arXiv:2207.12005. [MAD 有限样本偏置修正因子；摘要级]
+18. Akinshin, A. 2022a, Finite-sample Rousseeuw-Croux scale estimators, arXiv:2209.12268; Akinshin, A. 2022b, Finite-sample bias-correction factors for the median absolute deviation based on the Harrell–Davis quantile estimator and its trimmed modification, arXiv:2207.12005. [题名按 arXiv abs 页逐字；MAD 有限样本偏置修正因子；摘要级]
 19. Stetson, P. B. (1987). DAOPHOT: A computer program for crowded-field stellar photometry. PASP 99, 191. DOI: 10.1086/131977. [逐源测光背景，链上参照]

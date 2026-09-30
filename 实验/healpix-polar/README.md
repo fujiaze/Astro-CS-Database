@@ -6,7 +6,7 @@ ACSD 科学链第 3 点（最高设计 §2 ALG-DRZ）：mosaic 阶段把源帧 d
 精确计算"源像元 drop 足迹 × HEALPix 叶单元"的球面交叠面积，实现平面到球面的通量守恒映射。
 本单元是 **k_corr 常数的归属单元**（D-08 终裁，供 P5 引用，正确表述见 REPORT_paper.md §3.4）。
 
-## 成稿文件（2026-09 总编对账收口）
+## 成稿文件
 
 | 文件 | 内容 |
 |---|---|
@@ -16,7 +16,7 @@ ACSD 科学链第 3 点（最高设计 §2 ALG-DRZ）：mosaic 阶段把源帧 d
 | docs/DERIVATIONS-P3.md | 支撑推导（A_leaf、亏缺律、外接半径双口径、矢高深度、量化界、k_corr 两因子等 10 条） |
 | docs/EXP-07-POLAR.md（+摘要） | **历史正本**：极区破门根因与候选算法对照（保留；与台账无冲突数值，其 §4.7/§4.8 自我更正在原文内） |
 | code/ | 历史探针（C++17，p0–p10，固定几何无随机）＋ code/audit/（三路审计与补实验脚本收编） |
-| code/audit/sim/exp_sim01_m16_forward_conservation.py | M16 物理前向仿真腿（最高设计 §12.2 第 1 类数据）：真实 M16 帧作纯信号模板经共享物理链生成仿真采样帧，取其无噪声期望率面做守恒算子的输入；13 门判据含三条归零负例（详见 REPORT_experiment.md §4.6） |
+| code/audit/sim/exp_sim01_m16_forward_conservation.py | M16 物理前向仿真腿（最高设计 §12.2 第 1 类数据）：真实 M16 帧作纯信号模板经共享物理链生成仿真采样帧，取其无噪声期望率面做守恒算子的输入；11 个门禁布尔（M1 / M2×4 / M3×3 / M4 / NC-A / NC-B）含归零与报警负例（详见 REPORT_experiment.md §4.6） |
 | code/audit/run_all.sh | 三路＋补实验＋M16 仿真腿一键复现（各脚本 seed 写死：route1=20050709、route2=20260927、route3=20260926、kcorr SEED_BASE=20260816、仿真腿 seed 在共享场景配方内）；首行先跑公共前置步 `实验/shared/synthetic/run_selftests.sh` |
 | run_all.sh（根） | 历史探针一键复现（quick/full，逐位一致） |
 | results/ | 历史探针日志/CSV 存档＋ SNAPSHOT.sha256 |
@@ -49,10 +49,13 @@ Poisson、读出电子域 Gaussian、增益+饱和+量化、平场、天空梯�
 作为算子输入。读数与判据见 REPORT_experiment.md §4.6，脚本
 `code/audit/sim/exp_sim01_m16_forward_conservation.py`，结果 `results/audit/sim/`。
 
-**新测得并三方印证的几何项**：(π/3)·A_chart/A_exact − 1 = ½ρ²，ρ 为 gnomonic 半径
-（实测系数 0.49978，ρ 由 0 扫到 10000″、4 个方位、4 个足迹尺度），且**与足迹大小无关**
-（不随分辨率收缩，系数散差 1.5e-07）——落在既有 gnomonic drop 级预算带 [0.5, 1.5]·ρ_max²
-的**下端点**。该偏差对所有 drop 同号，在 Σ_p w_jp = 1 上精确抵消，只体现在逐叶面亮度上。
+**新测得的图表侧项是弦–曲线效应。** 精确立体角用 gnomonic 积分给出，被积函数
+`dΩ = dξdη/(1+ξ²+η²)^{3/2}`；"chart 直线多边形 vs 真 drop（大圆四边形）"这一真实偏差在
+0.2/0.8/3.2/12.8 px 四个足迹尺度上实测为 **+4.66e-09 / +6.99e-10 / +7.53e-11 / +3.18e-13**
+（rho 扫到 10000″，角半径跨 64×）：它是与叶侧弦亏缺同类的 O(h³) 效应，**随足迹缩小而下降**，
+不随分辨率保持不变。rho 是 drop 中心到本帧 gnomonic 切点的场量，与 drop 自身角半径无关。
+本腿的守恒读数（M1 全局闭合、整叶内 drop 的 Σw 逐位 0、错分母报警 −0.36、rho=0 归零）对精确面积
+原语的取法不敏感——该原语不进入权重，分子分母共用它。
 
 ## 一键复现
 

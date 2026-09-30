@@ -332,7 +332,7 @@ def main():
         independent_turns_red_at=next((r["injected_scatter_mag"] for r in rows6
                                        if r["verdict_independent"] == "ABOVE_CEILING"), None),
         expected="独立口径：注入越大越判红；自指口径：ceiling 随观测同步膨胀 ⇒ 恒 PASS（无判别力）",
-        note="这是 blocker P1-B01 的**反例化**：自指口径下 ceiling 0.0325→0.1271 与 sigma_obs",
+        note="这是 blocker P1-B01 的**反例化**：自指口径下 ceiling 0.0562→0.1605 与 sigma_obs",
         pass_=bool(all(r["verdict_selfref"] == "PASS" for r in rows6)
                    and any(r["verdict_independent"] == "ABOVE_CEILING" for r in rows6))))
 

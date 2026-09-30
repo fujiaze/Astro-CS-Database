@@ -153,7 +153,7 @@ def main():
         # 真实帧没有独立平场观测（无 repeat-flat/sky-flat 对照）⇒ 取权威预算表值
         # σ_flat,hf = 0.0007 mag（docs/plugins/algorithms_phase1/06_photometry.md §4.1，
         # 同帧族 M42 T2 Red 300 s）；大尺度平场残差登记为"判不了"。
-        # calibrate 的 delta_after_m 与被测统计量 sigma_obs 同源（占旧上界方差 59.9%），
+        # calibrate 的 delta_after_m 与被测统计量 sigma_obs 同源（占旧上界方差 47.6%），
         # 只作诊断登记，**不进**预算。
         sig_flat = float(SIGMA_FLAT_HF_CANONICAL)
         delta_diag = float(cal["delta_after_m"]) if np.isfinite(cal["delta_after_m"]) else None
