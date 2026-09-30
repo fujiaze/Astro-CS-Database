@@ -4795,6 +4795,15 @@
       "note": "CHK-DOC-UNVERIFIED-CITE"
     },
     {
+      "old_id": "PROVIDER-MANIFESTS",
+      "decision": "MERGED-INTO",
+      "target": "CHK-PROVIDER-MANIFESTS",
+      "kind": "doc",
+      "grade": "P0",
+      "order_in_target": 0,
+      "note": "provider 清单门实质判据面（2026-09-30 补：此前父项 command 不执行致恒真门）"
+    },
+    {
       "old_id": "PROVIDER-MANIFESTS-NEG",
       "decision": "MERGED-INTO",
       "target": "CHK-PROVIDER-MANIFESTS",
@@ -5267,9 +5276,10 @@
       "CHK-MUTATION-GATES-INJECT",
       "CHK-CTEST-SKIP-REGISTER",
       "CHK-CTEST-SKIP-REGISTER-SELFTEST",
-      "CHK-CTEST-SKIP-REGISTER-INJECT"
+      "CHK-CTEST-SKIP-REGISTER-INJECT",
+      "PROVIDER-MANIFESTS"
     ],
-    "absorbed_note": "CHK-SECRET-HYGIENE 不属本波基线 146 项，来自 ROOT-006 注册文件（吸收并入）",
+    "absorbed_note": "CHK-SECRET-HYGIENE 不属本波基线 146 项，来自 ROOT-006 注册文件（吸收并入） FINAL07-R1（2026-09-30）：新增 1 个执行单元（PROVIDER-MANIFESTS，CHK-PROVIDER-MANIFESTS 的实质判据面；此前父项 command 不执行致恒真门，前台修恒真门时补入）登记为 absorbed。",
     "kept_pending_merge": 3,
     "result_entry_count": 112
   }

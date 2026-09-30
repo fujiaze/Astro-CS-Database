@@ -61,7 +61,7 @@
   解析失败/HiPS 目录或 tile 不可读→P3_RS_IO；**tile 缺失=coverage=0
   数据语义非错误**（§6.6 值语义表：tile 内 NaN→值 NaN+coverage=1
   传播；tile 缺失→NaN+coverage=0；未打开→coverage=0）。
-- 坐标/单位冻结: 采样值=面亮度（BUNIT 承载，缺省 'ADU' 绝不
+- 坐标/单位冻结: 采样值=面亮度（BUNIT 承载，缺省 canonical **'ADU/sr'** 绝不裸 ADU、绝不
   Jy/beam——SCI §9a-8/-11）；coverage 无量纲二值；tile 内 leaf
   local 坐标 fits_index=(511-x)*512+y（DATA_SEMANTICS §3 CDS
   oracle 冻结，nested_local_to_fits_index 权威函数）。
