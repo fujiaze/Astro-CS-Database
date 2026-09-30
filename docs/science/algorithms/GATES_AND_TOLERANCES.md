@@ -32,13 +32,17 @@
 
 | 名称 | 定义式 | 单位 | 计算面（列/来源） |
 |---|---|---|---|
-| `SNR_peak` | `A_fit / sigma_bg` | 无量纲 | 检测侧: `A_fit` = 椭圆高斯拟合峰值振幅（star_det `flux` 列，DATA-P1-STAR §17.2；**不是**解析积分流量）、`sigma_bg` = 背景噪声 RMS = `bgnoise`（行差分 FnNoise1 族，`sdet_compute_bgnoise()`，实现见 `lib/algorithms/star_detection/src/sdet_api.cpp`）。PSF 侧: `A_fit` = Moffat4 振幅 `A`、`sigma_bg` = `mad/0.7316727929211932`（star_measurements 列 [4]/[10]；**列名 `mad` 是 10–90% 截尾均值 \|残差\|（`residual_scale`）的历史别名，不是中位绝对偏差**，故用截尾均值→σ 因子而非 MAD 因子；实现锚 `lib/algorithms/noise_snr/cpp/src/snr_estimator.cpp`（`sigma_sky_adu = residual_scale/0.7316727929211932`）、`lib/algorithms/noise_snr/cpp/src/noise_model.cpp`、统计量定义 `lib/algorithms/psf/src/dpsf_psf.cpp`；本行原读法 `mad·1.482602218505602` **已废止（历史读法，R6-02）**：MAD 因子只作用于真 MAD，互斥条款见 `docs/science/NOISE_MODEL.md`） |
+| `SNR_peak` | `A_fit / sigma_bg` | 无量纲 | 检测侧: `A_fit` = 椭圆高斯拟合峰值振幅（star_det `flux` 列，DATA-P1-STAR §17.2；**不是**解析积分流量）、`sigma_bg` = 背景噪声 RMS = `bgnoise`（行差分 FnNoise1 族，`sdet_compute_bgnoise()`，实现见 `lib/algorithms/star_detection/src/sdet_api.cpp`）。**⚠ 两条限定必须随本行引用同写**（正文见 `docs/science/algorithms/STAR_DETECTION_ALGORITHMS.md`）：① **`sigma_bg` 属于哪幅图必须声明** —— 它是**未平滑原图**噪声的倍数，不是阈值作用图上的显著性（该文 :55-56）；② 行差分族的估计量只在 **`rho_adj = 0`（相邻像素噪声独立）时无偏**，一般情形为 `Var(d) = 2·sigma_n²·(1−rho_adj)`、`sigma_hat = sigma_n·sqrt(1−rho_adj)`，`rho_adj` 须按该文 :37-47 的 AR(1) 标定表取值（:39-47）。**不声明这两条，「5σ」在真 sigma 下有 4 种读法（5.00σ / 3.33σ / 13.0σ / 8.7σ）。**PSF 侧: `A_fit` = Moffat4 振幅 `A`、`sigma_bg` = `mad/0.7316727929211932`（star_measurements 列 [4]/[10]；**列名 `mad` 是 10–90% 截尾均值 \|残差\|（`residual_scale`）的历史别名，不是中位绝对偏差**，故用截尾均值→σ 因子而非 MAD 因子；实现锚 `lib/algorithms/noise_snr/cpp/src/snr_estimator.cpp`（`sigma_sky_adu = residual_scale/0.7316727929211932`）、`lib/algorithms/noise_snr/cpp/src/noise_model.cpp`、统计量定义 `lib/algorithms/psf/src/dpsf_psf.cpp`；本行原读法 `mad·1.482602218505602` **已废止（历史读法，R6-02）**：MAD 因子只作用于真 MAD，互斥条款见 `docs/science/NOISE_MODEL.md`） |
 | `SNR_phot` | `F / sigma_F`（Horne 1986） | 无量纲 | 测光域（DATA-P1-SNR §13.4），**与本表门无关**，列此仅作区分 |
 | `SNR_det` | `(peak − background) / noise_sigma` | 无量纲 | 检出目录列（`p1_sources.json` 的 `sources[].snr`）：`peak` = **未平滑原图**上检出像素峰值、`background`/`noise_sigma` = 该帧背景与背景 RMS；实现 `lib/algorithms/star_detection/wrapper_phase1/star_detector.cpp`（`s.snr = (peak − cat.background) / cat.noise_sigma`）。**与 `SNR_peak` 不同源**：`SNR_peak` 用椭圆高斯拟合振幅 `A_fit`（检测侧 `flux` 列），`SNR_det` 用原始峰值 ⇒ 两列**各自具名**；凡门写「SNR>x」必须点名用哪一行 |
 
 **SNR_peak 的定义敏感性（必须随门一起读）**：全局检测阈值是
 `threshold = median(img) + 5.0·bgnoise`（阈组装在 `sdet_prepare_field()` 内，实现见 `lib/algorithms/star_detection/src/sdet_api.cpp`），作用于
-**σ=2 平滑后**的图像（`sdet_gaussian_blur_yvv(..., 2.0)`，见 `lib/algorithms/star_detection/src/sdet_api.cpp`；同文件 bgnoise 计算面 = `sdet_compute_bgnoise()`，由 `sdet_prepare_field()` 调用） ⇒ 同一合成场在不同「峰值 SNR」下可检出性差异极大：
+**σ=2 平滑后**的图像（`sdet_gaussian_blur_yvv(..., 2.0)`，见 `lib/algorithms/star_detection/src/sdet_api.cpp`；同文件 bgnoise 计算面 = `sdet_compute_bgnoise()`，由 `sdet_prepare_field()` 调用）。
+**⚠ 「5σ」在本行的读法限定（正文见 `docs/science/algorithms/STAR_DETECTION_ALGORITHMS.md` :55-56）**：`5.0` 乘的是 `bgnoise`，
+即**未平滑原图**的噪声倍数；阈值实际作用在 **σ=2 平滑后**的图上 ⇒ **这不是「平滑图上的 5σ 显著性」**。
+`STAR_DETECTION_ALGORITHMS.md` 逐字：「`threshold_sigma` 是未平滑原图噪声的倍数，不是阈值实际作用图像上的显著性；引用「5σ」时**必须**声明 σ 属于哪幅图」。
+⇒ 同一合成场在不同「峰值 SNR」下可检出性差异极大：
 R-3 §2.9 实测同一 Moffat4 场 `SNR_peak=20` 时 sdet 检出 **0 星**、
 `SNR_peak=50` 检出 **36/40**、`SNR_peak=300` 检出 36/40。
 ⇒ 任何门若写「SNR≥x」，必须同时写 `SNR_peak`（本节定义）与 `x` 的取值域，
