@@ -176,7 +176,7 @@ rc=2 门: control_ivar≤0/非有限 → rc=2 显式拒绝（:1985；build 内 :
 **F2 per-control 归一化**（out_norm = raw/Σraw × control_reliability）：
 
 ```text
-build 内: sums[ck] 按 control 聚合 raw；s>1e-12 → raw/sums×reliability
+build 内: sums[ck] 按 control 聚合 raw；s>0 && isfinite(s) → raw/sums×reliability
   else 0.0                                            # :665-669（尺度无关判据 :667-669；
   # 旧绝对阈值 sums[ck] > 1e-12 已按 SCI-UPM 改成尺度无关形式 :655-661）
 API 面: `p2_upm_normalized_weights` **已 RETIRED**（定义删除、全仓零消费者，
@@ -416,7 +416,7 @@ frames 重复 rc=1、C 行数≠frame 数 rc=1、dense stale rc=2。fixture
 | final_gauge | 0（legacy）；生产 1 | upm.h: 108；upm.cpp:283/:304 |
 
 **数值常数**：CG max_cg=200、CG 早停 pAp≤1e-30 / rs_new<1e-24、
-归一化门 s>1e-12、per-control sums 门 den>1e-12、`kChunk=16`、
+归一化门 s>0 && isfinite(s)、per-control sums 门 den>1e-12、`kChunk=16`、
 `kLeafPx=512²`、跨 tile 邻接 link_rad=1.6×cell_dist、dense/sparse 等价 1e-12、
 `kStallPatience=5`（upm.cpp:719）、`kObjImproveFloor=1e-12`（upm.cpp:720）。
 
