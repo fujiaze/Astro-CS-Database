@@ -122,7 +122,7 @@ function snr_noise_model_v1_free(model): g_model_floor.erase(model*)
 
 ### 13.1 逐符号实现锚定（现行唯一生产实现）
 
-生产符号唯一源 = `lib/algorithms/noise_snr/cpp/src/noise_model.cpp`（938 行，头
+生产符号唯一源 = `lib/algorithms/noise_snr/cpp/src/noise_model.cpp`（1482 行，头
 `lib/algorithms/noise_snr/cpp/include/snr_estimator.h` 624 行；现状构建 =
 `lib/algorithms/noise_snr/cpp/Makefile:5,12`（g++ -shared → `snr_estimator.dll`，
 MinGW 通道）+ `cpp/build.ps1:29`——未编入根 CMake 主构建（无
