@@ -1150,3 +1150,99 @@ engineering 83 份中 **31 份未完成抽取**，含 `PUBLIC_API.md`（420 条�
 
 本条是本轮**第二次**遇到「引用链一致但引用内容不符」（第一次是 §31.1 的 GLOSSARY 自称唯一术语权威）。
 ⇒ 机器可查的「引用路径存在」**不等于**「引用内容正确」。一致性门必须能识别这一类。
+
+---
+
+## 34. G08-07 分片审稿报回的生产码问题（noise_snr + integration）
+
+分片读了 **60 文件 / 约 19,400 行 / 约 420 个函数·结构体·枚举**。四类重点计数：
+**静默回退 47 · 结构性残留 9 · 重复实现 12 组 · 硬编码 63**（①保留 17 / ②改现场计算 12 /
+③移 config 14 组 / ④改自适应 17 / ⑤待签署 3）。
+
+### 34.1 D3（最高优先级）· 两条并行的权重口径同时在生产路径被调
+
+前台独立核实：`weight_from_snr` 与 `weight_from_corrected_variance` **都在生产路径**：
+
+| 函数 | 生产调用点 |
+|---|---|
+| `weight_from_snr` | `weight_chain.cpp:197`、`:941`（库内生产路径），另 `oracle/weight_chain_selfcheck.cpp` 多处 |
+| `weight_from_corrected_variance` | `module_adapters.cpp:12534`（调度器生产路径） |
+
+**同一头文件 4 行内给出两个不同的权重定义**（`weight_chain.h`）：
+
+    :50  weights w : [ADU^-2]（= 1/σ_F²，与 Phase1 W_info 同量纲）
+    :54  SNR_k = a_k·F_ref,k/σ_k  ⇒  SNR_k²/F_ref,k² = a_k²/σ_k² = w_k
+
+⇒ 两者相差一个 **`a_k²`**。detail 冻结的是「**单一权重口径**」，现在有两条并行实现且互不自洽。
+**这条不裁定，Phase2 全部叠加权重的口径都悬着。**
+
+### 34.2 D1 · 移交项 2 确认成立：σ_sky 承载面缺「口径不适用」字段
+
+生产链逐跳取证：`module_adapters.cpp:7337` 从 FITS `noise_sigma` 取单个整帧标量 → `:7345`
+**无条件硬写** `EMPIRICAL_TOTAL_RMS` → `snr_frame_science.h:48/61` 承载面只有「一个 double +
+一个 3 值 int」→ `:89` 只校验量值（>0 且有限）→ `snr_science.cpp:160-210` 只按读噪双计轴与
+gain 轴分支 → `snr_estimator.h:349` 出参只取 {1,2,3}。
+
+⇒ **四个承载面无任何字段能表达「整帧标量口径不适用」**；detail 已要求的 `snr_caliber` /
+`snr_degraded_reason` 在代码里**根本没有字段**。
+
+附带：`:7345` 的硬写使 detail 的「声明/实际不一致 ⇒ fail-closed」**永不可达**。
+
+两方案（均未落地）：A = 新增正交字段（不改任何现有数值）；B = 改由噪声模型 A 逐像素面供数
+（需动 science 口径）。
+
+### 34.3 「失败不产生稳定错误码」9 处
+
+- `phase1_product.cpp` **全部 32 个出口零映射** `exit_codes.h`；`violations` 逐条登记只兑现 3/32。
+- `phase2_integrate.cpp` **全部 4 个公开入口同样零错误码**；`violations` 面 37 出口只填 2 处。
+- `noise_model.cpp:1302/1313/1422-1424` 把 `catch(...)` 映射成 `3`，而 `exit_codes.h:10`
+  的 `3 = INPUT` ⇒ **内部异常被报成输入错误**（且 `(void)e` 吞掉 `what()`）。
+- `snr_frame_science.cpp:59→117→134-137`：内部异常被**静默重解释**成「flux/fwhm 退化」。
+- `module_entry.cpp:706` 是 8 个 catch 里唯一丢诊断的（该函数签名无 err 出参）。
+- `weight_closure_token()` 把两个枚举映射到同一 token ⇒ closure 不可唯一反解。
+- 两片对 `exit_codes.h` **零引用**；仓内实为三层码空间（CLI `ExitCode` / 模块 ABI `acs_status` /
+  模块局部 `NOISE_ECODE_*`）。
+
+### 34.4 并发（规范 06 §2）
+
+| 类别 | 数量 | 要点 |
+|---|---:|---|
+| **私建线程池** | **1** | `oracle/weight_chain_selfcheck.cpp:524-535`：`hardware_concurrency()` + `vector<thread>` + worker clamp 到**无出处的硬编码 `[2,8]`**；两份并发正本均无 oracle/test 豁免条款，而 `PRODUCTION_EXECUTION_INVENTORY.csv:353-354` 把该文件归为 **`production`** |
+| **worker 不受预算约束** | 2 | `snr_estimator.cpp` 11 处 omp pragma 零 `num_threads`；`snr_frame_science.cpp:113` 取 OpenMP 默认（该目标确实链 OMP ⇒ 生产会执行，并行性论证通过，无归约、按下标固定写回） |
+| **死并行区** | 11 | pragma 无 `_OPENMP` 守卫且所在目标不链 OMP，**当前所有构建都不执行** |
+| 嵌套并行 | **0** | — |
+
+### 34.5 重复实现 12 组（最重的一组）
+
+**冻结权重来源禁词表有**三份**且已分叉**：`phase2_integrate.cpp:128-133` 缺 `med_source_snr`、
+多 6 项、且**大小写敏感** vs `coverage.cpp:426` 的 `ascii_ieq` **不敏感** ⇒ 同一冻结门两套判据，
+`Support`/`PSFSW` 在一面放行。detail 明文警告两侧不同步会**放宽**冻结科学门。
+
+另：`snr_estimate`↔`_f64` 160 行两份（`data` 不参与计算）、`snr_extract_model` 三份同构、
+平面拟合 build/fill 各跑一遍、掩膜默认参数双写、`is_hex40` 逐字同构。
+
+### 34.6 前台独立核实的一条：同文件内的处置自相矛盾
+
+`noise_model.cpp:1339-1350`：平面拟合两次皆失败 ⇒ **静默写满全局常量场并 `return 0`**（成功）。
+而**同一文件**紧随其后的 `W1-NOISE-002` 对同类情形明确走 fail-closed：
+
+    **fail-closed**: 模型未绑定 floor（或绑定值非法）时显式拒绝（SNR_FLOOR_UNBOUND），
+    不再静默回退 1e-12 —— 后者会让配置的 variance_floor 在生产 fill 路径上被无声忽略。
+
+⇒ 与 GATE-3 是**同一形态**：一个文件里对相似情形一个 fail-closed 一个 fail-open。
+
+### 34.7 两个测试文件从未机器执行
+
+- `noise_model_science_test.cpp`（603 行）**不在任何构建图内**，全部断言从未机器执行；
+  其中 `snr_extract_model == (A-B)/residual_scale`（已退休量）在现行代码下**必然红灯**。
+- `snr_reconcile_test.cpp` 编而不注册（`add_test` 被注释）。
+
+⇒ 按 AGENTS §8/§9 需前台处理（不 amend、不以 waiver 覆盖）；车道按约束未跑任何编译测试。
+
+### 34.8 前台自查发现的模块锚悬空
+
+`weight_chain.h:22/35/120`、`phase2_intate.cpp:1528`、`variance_propagation.h:6` 引用的
+`docs/detail/algorithms_phase2/13_integration.md`、`11_upm.md`、
+`algorithms_phase1/07_noise_snr.md` 在文档迁移后**全部悬空** ⇒ 本模块头文件的**直接依据锚已断**。
+属 G08-03/G08-06 域（悬空引用车道已登记为写域外项），但这条是**模块自身实现所依据的条款**，
+优先级高于普通文档引用。

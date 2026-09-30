@@ -169,10 +169,9 @@ SnrFrameScienceResult compute_snr_frame_science(
   //   SNR_f = a_f·F_ref/σ_f  ⇒  SNR_f²/F_ref² = a_f²/σ_f² = w_f
   // 成立当且仅当分母 F_ref 与定义 SNR 时所用参考通量是同一个。
   // 逐帧检出通量中位数回退会丢掉帧间标度因子 a_f²，并使存头 SNR 混入本帧检出
-  // 亮度（帧间不可比较），与 Phase2 闸门/权重链的单 F_ref 约定不配对
-  // ⇒ 必然 unclosed_invalid_reference_flux。该回退**已删除**（不得恢复）。
-  // reference_flux_adu 缺失/非有限/≤0 ⇒ fail-closed；调用方（Phase1 节点）必须为
-  // 整个帧组选定一个公共 F0 并对所有帧传入同一值。
+  // 亮度（帧间不可比较），与 Phase2 权重链的 F_ref 口径不配对
+  // ⇒ 必然 unclosed_invalid_reference_flux。故只接受显式传入的 reference_flux_adu。
+  // reference_flux_adu 缺失/非有限/≤0 ⇒ fail-closed。
   if (!std::isfinite(cfg.reference_flux_adu) || !(cfg.reference_flux_adu > 0.0)) {
     out.reason =
         "reference_flux_adu required (group-common F_ref; per-frame median "

@@ -266,8 +266,9 @@ bool reconstruct_sparse_snr(const SparseSnrLayer& layer, double x, double y,
 /* 标量换算                                                             */
 /* ------------------------------------------------------------------ */
 /* w = SNR² / F_ref² = 1/σ_F²。reference_flux 必须是**定义 snr 时所用的同一
- * 参考通量**（组内公共 F_ref，配对性定理；逐帧参考会丢掉 a_f²）。
- * 任一输入非有限/非正 → false（fail-closed）。签名/实现保持正确不变。 */
+ * 参考通量**（配对性只要求同一帧内 SNR 与 F_ref 同源，逐帧与组标量皆合法，
+ * 口径与推导见本文件头「前置条件」一节）。任一输入非有限/非正 → false
+ * （fail-closed）。 */
 bool weight_from_snr(double snr, double reference_flux, double* out_weight,
                      std::string* err);
 
