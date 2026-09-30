@@ -16,9 +16,12 @@ extern "C" {
 
 // ── 字段默认成员初始化（NSDMI）= SDetParams 的「类型层默认值」───────────────
 // 取值依据（逐字段查证消费点得出, 非按「0 看着安全」推定）:
-//   ① 有行为读点的字段 → 取 sdet_create(NULL) 的同一组默认（sdet_api.cpp:1119-1133）,
-//      使 sdet_create(nullptr) 与「SDetParams x;」两条路径给出同一组参数;
-//   ② 语义为「<=0 ⇒ 用内置默认」的字段 → 取 0, 与生产三处 memset(0) 后的取值逐位一致;
+//   ① 有行为读点的字段 → 取 sdet_create(NULL) 的同一组默认（sdet_api.cpp:1119-1133）;
+//   ② 语义为「<=0 ⇒ 用内置默认」的字段 → 取 0（本组的 fitRadius 与四个
+//      psfFwhm*/maxPeakFraction/minQuarterMaxPixels）, 使 sdet_create(nullptr)
+//      与「SDetParams x;」两条路径**行为**等价; 两条路径的**字面取值**在 ② 类
+//      字段上不相同（NULL 分支直接写内置默认, NSDMI 分支写 0 哨兵）, 消费点
+//      用 `>0 ? 取值 : 内置默认` 归一, 故不影响任何判定;
 //   ③ 无任何行为读点的字段（只被赋值 / 只进日志）→ 取同一组默认以保持自文档, 不改判定。
 // 作用: 消除「SDetParams x;」未初始化即使用这一未定义行为（读到栈垃圾 ⇒ 形状门用
 // 随机阈值判星 ⇒ 误杀）。对既有「先 memset(0) 再逐字段赋」的调用方**零影响**:
@@ -31,9 +34,12 @@ typedef struct {
     int   medianFilterDetail   = 1;     // ③ 同上
     int   maxStars             = 2000;  // ① 读点 sdet_emit_records: 仅 >0 时截断
                                           //   ⇒ 0 会静默退化为「不截断」, 故取 2000
-    int   fitRadius            = 0;     // ② 读点 sdet_api.cpp:450 形状门:
+    int   fitRadius            = 0;     // ② 读点 sdet_api.cpp 形状门窗半径:
                                           //   fitRadius>0 ? fitRadius : 6 ⇒ 0 即「自动」,
                                           //   与生产三处（fitRadius=0，注释「0 = 自动」）一致
+                                          //   ⚠ 字段名是 fitRadius 但它**不**驱动 LM 拟合盒
+                                          //   半径（那来自候选 R = ceil(3.7172*Sr)）;
+                                          //   唯一消费点是 O13b 点源形状门的量测窗半径。
     float fwhmClipSigma        = 3.0f;  // ③ 仅日志读点; 取 sdet_create 默认
     float maxAxisRatio         = 2.0f;  // ① 读点 sdet_api.cpp:2092/2337: 仅 >0 时启门
                                           //   ⇒ 0 会静默关闭细长门, 故取 2.0

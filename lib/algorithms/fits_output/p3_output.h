@@ -52,7 +52,9 @@ enum P3OutputStatus {
 };
 
 /* 原子写 S+C 合成 FITS(主 HDU=signal, 扩展=coverage 二值):
- * 写入 <dir>/.<base>.<pid>.tmp → flush(cfitsio 缓冲全部写出) → fsync(fd) →
+ * 写入 <out>.<pid>.tmp（与 output_path 同目录；无前导点——见
+ * docs/science/algorithms/PHASE3_FITS_IMPL.md DISP-P3FITS-002 关于本协议注
+ * 与 make_temp_path 实际形态的偏差登记）→ flush(cfitsio 缓冲全部写出) → fsync(fd) →
  * 校验(tmp, 结构+DATASUM/CHECKSUM) → sha256(tmp) → rename 到 output_path
  * (IO_003 §4 正本: 关闭/fsync → fitsverify → sha256 → 原子 rename; P-205);
  * 取消/失败 → 删除 tmp/产物, 不留完整假文件, 也不发布无完整性锚的输出。 */

@@ -21,7 +21,6 @@
 // ONE_STDEV_PERCENTILE = 0.683 (1-sigma 百分位, 用于最终 sig)
 // AT_MATCH_REQUIRE_LINEAR = 3, AT_MATCH_STARTN_LINEAR = 6
 //
-// 日期: 2026-07-05
 // ============================================================================
 
 #include "ipv_itertrans.h"

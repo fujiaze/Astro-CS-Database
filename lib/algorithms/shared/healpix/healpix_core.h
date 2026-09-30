@@ -1,5 +1,5 @@
 // ============================================================================
-// healpix_core.h - ACSD 共享 HEALPix 核心 (Phase1 Final Signoff)
+// healpix_core.h - ACSD 共享 HEALPix 核心 (NESTED)
 //
 // 单一权威 NESTED HEALPix 位置/层级实现, AIO / Drizzle / Browser 共同使用。
 // 来源: 依据公开 HEALPix 算法 (Gorski et al. 2005, arXiv:astro-ph/0409513)
@@ -13,7 +13,7 @@
 #define ASTROCS_HEALPIX_CORE_H
 
 #include <cstdint>
-#include <string>  // std::to_string (require_valid_nside); MSVC <stdexcept> 不传递引入 <string> — R9-B batchJ(ce93f9ac) Windows build C2039 修复
+#include <string>  // std::to_string (require_valid_nside); MSVC 侧 <stdexcept> 不传递引入 <string>
 #include <stdexcept>
 #include <vector>
 
@@ -22,7 +22,7 @@ namespace healpix {
 
 // (ra_deg, dec_deg) -> NESTED ipix @ nside (nside 必须为 2 的幂)
 // ra/dec 单位: 度; ra 任意值(内部归一化), dec ∈ [-90, 90]
-// nside == 0 或非 2 的幂: 抛 std::invalid_argument (R9-B: 禁止静默向上取整)
+// nside == 0 或非 2 的幂: 抛 std::invalid_argument (禁止静默向上取整)
 uint64_t ang2pix_nest(uint32_t nside, double ra_deg, double dec_deg);
 
 // NESTED ipix @ nside -> (ra_deg, dec_deg), ra ∈ [0, 360), dec ∈ [-90, 90]
@@ -53,7 +53,7 @@ uint64_t fits_index_to_nested_local(uint64_t fits_index, uint32_t shift, uint32_
 uint64_t parent_nest(uint64_t ipix, uint32_t shift);
 
 // 子像素: ipix << (2*shift) (调用方保证不溢出目标阶)
-// shift 使 2*shift >= 64 或结果左移溢出: 抛 std::overflow_error (R9-B: 禁止 UB)
+// shift 使 2*shift >= 64 或结果左移溢出: 抛 std::overflow_error (禁止 UB)
 uint64_t child_nest(uint64_t ipix, uint32_t shift);
 
 // 校验 nside 为合法 HEALPix 参数 (>=1 且 2 的幂), 否则抛 std::invalid_argument
@@ -64,7 +64,7 @@ inline void require_valid_nside(uint32_t nside) {
     }
 }
 
-// 由叶级 nside 计算 tile 阶 (log2); 非 2 的幂输入是编程错误 -> 抛异常 (R9-B)
+// 由叶级 nside 计算 tile 阶 (log2); 非 2 的幂输入是编程错误 -> 抛异常
 inline uint32_t nside_to_order(uint32_t nside) {
     require_valid_nside(nside);
     uint32_t k = 0;
@@ -76,7 +76,7 @@ inline uint32_t nside_to_order(uint32_t nside) {
 inline uint32_t order_to_nside(uint32_t order) { return uint32_t(1) << order; }
 
 // 叶级 ipix (nside=2^leaf_order) -> tile ipix (nside=2^tile_order), tile_order<=leaf_order
-// leaf_order < tile_order (层级倒挂): 抛 std::invalid_argument (R9-B)
+// leaf_order < tile_order (层级倒挂): 抛 std::invalid_argument
 inline uint64_t leaf_to_tile_nest(uint64_t leaf_ipix, uint32_t leaf_order, uint32_t tile_order) {
     if (leaf_order < tile_order) {
         throw std::invalid_argument("healpix: leaf_order < tile_order in leaf_to_tile_nest");
@@ -86,7 +86,7 @@ inline uint64_t leaf_to_tile_nest(uint64_t leaf_ipix, uint32_t leaf_order, uint3
 }
 
 // tile ipix -> 叶级首像素 (tile_order<=leaf_order)
-// leaf_order < tile_order (层级倒挂) 或 tile_ipix 超出 tile_order 表示范围: 抛异常 (R9-B)
+// leaf_order < tile_order (层级倒挂) 或 tile_ipix 超出 tile_order 表示范围: 抛异常
 inline uint64_t tile_to_leaf_nest(uint64_t tile_ipix, uint32_t tile_order, uint32_t leaf_order) {
     if (leaf_order < tile_order) {
         throw std::invalid_argument("healpix: leaf_order < tile_order in tile_to_leaf_nest");
@@ -100,7 +100,7 @@ inline uint64_t tile_to_leaf_nest(uint64_t tile_ipix, uint32_t tile_order, uint3
     return tile_ipix << bits;
 }
 
-// ---- NESTED 权威扩展 (B4-01 去重, 由原 healpix_drizzle::HealpixCore 精选迁移) ----
+// ---- NESTED 权威扩展 (query_disc / neighbors 工具面) ----
 double pixel_resolution_arcsec(uint32_t nside);
 uint64_t npix(uint32_t nside);
 std::vector<uint64_t> query_disc(uint32_t nside, double ra_deg, double dec_deg,

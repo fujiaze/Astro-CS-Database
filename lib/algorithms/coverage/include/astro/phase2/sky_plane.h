@@ -61,7 +61,10 @@ enum {
 };
 
 // 每帧稀疏天光采样点（10_sampling.md §3/§4.2）。
-// value/variance 单位 ADU / ADU²；snr 为点 SNR（帧级 × 帧内，缺帧内时=帧级）。
+// value 单位 ADU·sr⁻¹（面亮度，与 UPM control 观测同标度）；
+// variance 单位 ADU²·sr⁻²；snr 为点 SNR（帧级 × 帧内，缺帧内时=帧级）。
+// 量纲依据 = docs/science/PHASE2_UPM.md §3（写盘 BUNIT 冻结集
+// {ADU/sr, ADU^2/sr^2, sr^2/ADU^2}；裸 ADU 判红）。
 typedef struct {
     std::uint64_t frame_id;
     std::uint64_t control_id;   // 采样点拓扑 id（同一 id 跨帧为同一空间位置）

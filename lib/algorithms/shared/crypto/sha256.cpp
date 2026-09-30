@@ -32,7 +32,7 @@ Sha256::Sha256() {
     h_[0] = 0x6a09e667u; h_[1] = 0xbb67ae85u; h_[2] = 0x3c6ef372u;
     h_[3] = 0xa54ff53au; h_[4] = 0x510e527fu; h_[5] = 0x9b05688cu;
     h_[6] = 0x1f83d9abu; h_[7] = 0x5be0cd19u;
-    std::memset(block_, 0, sizeof(block_));   // QA-001: 静态分析初始化告警清零
+    std::memset(block_, 0, sizeof(block_));   // 静态分析初始化告警: 显式清零
 }
 
 void Sha256::process_block(const unsigned char* p) {
@@ -112,7 +112,7 @@ std::string sha256_hex(const void* data, std::size_t len) {
     return s.final_hex();
 }
 
-// CLEAN-403 (docs/ASTROCS_DESIGN §10「aio 是文件级唯一 I/O 边界」): 原
+// (docs/ASTROCS_DESIGN §10「aio 是文件级唯一 I/O 边界」): 原
 // astrocs::crypto::sha256_file(path) 在本模块内自持 fopen/fread/fclose ——
 // 纯算法模块不得持有文件通道, 且全仓零调用者 ⇒ 删除该接口。文件级摘要
 // 唯一实现 = aio_file::sha256_hex (lib/infrastructure/aio/src/aio_file_io.h)。

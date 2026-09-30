@@ -231,7 +231,7 @@ void hp_to_xyz(uint32_t basehp, uint32_t px, uint32_t py, double dx, double dy,
 // ang2pix_nest - (ra, dec) -> NESTED ipix @ nside
 // ============================================================================
 uint64_t ang2pix_nest(uint32_t nside, double ra_deg, double dec_deg) {
-    require_valid_nside(nside);   // R9-B: 非 2 次幂 nside 禁止静默向上取整
+    require_valid_nside(nside);   // 非 2 次幂 nside 禁止静默向上取整
     const uint32_t order = nside_to_order(nside);
     const uint32_t ns = uint32_t(1) << order;
     double vx, vy, vz;
@@ -248,7 +248,7 @@ uint64_t ang2pix_nest(uint32_t nside, double ra_deg, double dec_deg) {
 void pix2ang_nest(uint32_t nside, uint64_t ipix, double& ra_deg, double& dec_deg) {
     ra_deg = 0.0;
     dec_deg = 0.0;
-    require_valid_nside(nside);   // R9-B: 非 2 次幂 nside 禁止静默取整
+    require_valid_nside(nside);   // 非 2 次幂 nside 禁止静默取整
     const uint32_t order = nside_to_order(nside);
     const uint32_t ns = uint32_t(1) << order;
     const uint64_t npface = static_cast<uint64_t>(ns) * ns;
@@ -334,9 +334,9 @@ uint64_t npix(uint32_t nside) {
     return 12ULL * uint64_t(nside) * uint64_t(nside);
 }
 
-// ---- neighbors / query_disc helpers (B4-01 精选迁移, 仅 NESTED) ----
-// R9-B 重写: 邻居算法移植自官方 HEALPix C++ (Healpix_3.83 healpix_base.cc /
-// healpix_tables.cc, GPL-2+ 参考), 8 方向槽位序 (-0,-+,0+,++ ,+0,+- ,0- ,--)
+// ---- neighbors / query_disc helpers (仅 NESTED) ----
+// 邻居算法移植自官方 HEALPix C++ (Healpix_3.83 healpix_base.cc /
+// healpix_tables.cc, GPL-2+ 参考), 8 方向槽位序 (-0,-+,0+,++ ,+0,+- ,0- ,--
 // + nbnum 面映射/折回表; 由纯 python 双参照 oracle (astrometry get_neighbours
 // 逐槽算法 + Healpix paper Gorski 2005 钉值) 全像素交叉验证。
 namespace {
@@ -414,7 +414,7 @@ std::vector<uint64_t> neighbors(uint32_t nside, uint64_t ipix) {
     return result;
 }
 
-// ---- query_disc (R9-B 重写: 官方 HEALPix C++ NEST scheme 四叉树下钻算法) ----
+// ---- query_disc (官方 HEALPix C++ NEST scheme 四叉树下钻算法) ----
 // 移植自 Healpix_3.83 healpix_base.cc query_disc_internal (NEST 分支, fct=0):
 // 12 基面入栈 -> 逐像素以 cos 角距分区 (zone 0=盘外/1=安全环/2=中心入盘/3=整像素
 // 入盘), 粗于目标阶时 zone 3 整子树直出、zone 1/2 下钻; 目标阶 zone>=2 出结果。
@@ -438,7 +438,7 @@ inline double max_pixrad_order(uint32_t order) {
 std::vector<uint64_t> query_disc(uint32_t nside, double ra_deg, double dec_deg,
                                  double radius_arcsec) {
     std::vector<uint64_t> result;
-    require_valid_nside(nside);   // R9-B: 非 2 次幂 nside 禁止静默取整
+    require_valid_nside(nside);   // 非 2 次幂 nside 禁止静默取整
     const uint32_t order = nside_to_order(nside);
     double radius_rad = radius_arcsec * kPi / (180.0 * 3600.0);
     double decR = dec_deg * kPi / 180.0;
@@ -450,7 +450,7 @@ std::vector<uint64_t> query_disc(uint32_t nside, double ra_deg, double dec_deg,
         return result;
     }
     if (radius_rad >= kPi) {
-        // WIN-PORT C4334: nside = 2^order，像素数 = 12*nside² 是 HEALPix 定义式。
+        // 告警口径 (MSVC C4334): nside = 2^order，像素数 = 12*nside² 是 HEALPix 定义式。
         // 原式用 uint32_t(1) << order 再提升到 64 位 ⇒ order ≥ 31 时 32 位移位溢出
         // (UB)，且 MSVC /W4 对"32 位移位结果隐式转 64 位"报 C4334。改用 64 位移位后
         // 公式与全部合法域 (order ≤ 29) 的取值逐位不变，溢出域从 UB 变为定义良好。

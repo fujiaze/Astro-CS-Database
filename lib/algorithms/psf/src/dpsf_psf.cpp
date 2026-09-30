@@ -1,8 +1,9 @@
-/* Moffat4/PSF 拟合数值契约（B4-14，不改算法，仅文档锚点）：
+/* Moffat4/PSF 拟合数值契约（不改算法，仅文档锚点；锚点按符号名给，不写行号）：
  * SCI-PSF-001 / ALG-STAR-PSF-*：I=B+A/(1+Q)⁴；Q/dx·dy 定见 STAR_PSF_ALGORITHMS.md 伪代码与 docs/science/PSF.md；
- * 守卫：pivot 1e-30（数值奇异，45）、sx/sy≤0 哨兵 1e10（71-74）、Q<0 哨兵 1e10（89-91）、
- *  h=max(|x|·1e-6,1e-8)（114）、sx/sy 下界 0.3（169-170,326）、FWHM>rect 拒绝（333-341）、
- *  背景比 0.5（343-344）；对照表见 docs/science/PSF.md / docs/science/algorithms/STAR_PSF_ALGORITHMS.md。
+ * 守卫：gauss_solve_buf pivot 1e-30（数值奇异）、moffat4_residual 的 sx/sy≤0 与 Q<0 哨兵 1e10、
+ *  lm_solve 求导步长 h=max(|x|·1e-6,1e-8)、moffat4_fit_tmpl_core 的 sx/sy 下界 0.3、
+ *  fwhm>rect 拒绝、背景比 0.5（|B−bkg0|/max(bkg0,0.01)）；
+ *  对照表见 docs/science/PSF.md / docs/science/algorithms/STAR_PSF_ALGORITHMS.md。
  */
 #include "dpsf_psf.h"
 #include "dpsf_log.h"

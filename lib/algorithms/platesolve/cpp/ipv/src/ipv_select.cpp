@@ -303,15 +303,12 @@ void compute_fov_density(
     // Gaia 目标密度 = gaia_density_ratio × 图像密度
     rho_target = gaia_density_ratio * rho_img;
 
-    // 目标星数 = gaia_density_ratio × n_img × (查询圆面积/图像面积), 下限 50
-    // 密集星场兜底保护: 避免N_W爆炸导致kvector_build内存爆炸(34GB内存元凶)
-    // 宽 FOV (>3°) 原上限 150 (星密导致六边形形状碰撞, polygon_match 区分度低)
-    // 宽 FOV 上限 150→300 (Galaxy_Center 银心方向 Gaia 截断导致分布不匹配, max_vote=6)
-    // 窄/中 FOV 上限 300
-    // 回退: 宽 FOV 上限 300→150 (全量测试退化严重: wide FOV 84.7%→79.2%, 多失败 21 帧)
-    // 300 在多数宽 FOV 场景下引入过多形状碰撞, 整体识别率下降, 故回退至 150
-    // 宽窄 FOV 统一为 60 (与 img_n_target 一致, 减少形状碰撞)
-    // 选星改用统一 mag/flux 排序后, 60 颗足够三角形匹配, 不需要更大候选池
+    // 目标星数 = gaia_density_ratio × n_img × (查询圆面积/图像面积), 钳 [50, 60]
+    // (ALG-WCS-001 §4a.2: n_target 必须落在闭区间 [50, 60]; 分子 n_img_bright
+    //  必须是实际进入 U 的样本基数, 不是检测总数)。
+    // 取值 60 是标定值而非推导值: 更宽的候选池在本仓宽 FOV 实测中引入过多
+    // 三角形形状碰撞、整体识别率反而下降。标定依据与适用域登记在
+    // ALG-WCS-001 §9「阈值来源 UNJUSTIFIED」面, 改取值须重跑该标定。
     double img_area_safe = std::max(img_area_sqdeg, 1e-10);
     double n_target_dbl = gaia_density_ratio * static_cast<double>(n_img_bright)
                         * (query_area_sqdeg / img_area_safe);

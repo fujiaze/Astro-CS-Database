@@ -129,8 +129,8 @@ typedef struct {
 } P2SigmaParams;           // robust_mad_clip / winsorized / averaged / median_sigma
 
 typedef struct {
-    double lower;          // 低侧因子（默认 4.0）
-    double upper;          // 高侧因子（默认 3.0）
+    double lower;          // 低侧因子（默认 5.0）
+    double upper;          // 高侧因子（默认 3.5）
     int max_iterations;    // 默认 8
 } P2LinearFitParams;
 
@@ -140,8 +140,8 @@ typedef struct {
 } P2EsdParams;
 
 typedef struct {
-    double low_fraction;   // 相对 median 低侧小数（默认 0.1 = 10%）
-    double high_fraction;  // 相对 median 高侧小数（默认 0.1）
+    double low_fraction;   // 相对 median 低侧小数（默认 0.2 = 20%）
+    double high_fraction;  // 相对 median 高侧小数（默认 0.1 = 10%）
 } P2PercentileParams;
 
 typedef struct {
@@ -411,7 +411,8 @@ P2_API int p2_reject_stack_ex(const P2CandidateStack* stack,
 // AUTO（在本函数内于 planning 层解析，kernel 永不见 AUTO）。resolved_plan
 // 可空；非空时回填解析结果（provenance）。返回 0=OK（out->status 表达
 // 科学状态）；非 0=参数非法（err 填充原因）。
-/* RETIRED 2026-09-25 (CHK-PROD-WIRING W1): p2_reject_stack_resolve_ex 全仓零消费者声明已撤下。 */
+// 逐 stack 解析 + 执行由调用方分两步完成：p2_reject_plan_resolve_n 解析，
+// p2_reject_stack_ex 执行。合成入口已撤下（全仓零消费者）。
 
 // 大尺度 grow 后处理（生产 stage2 唯一调用点）。
 // low/high 为 frame-major 每帧 width*height 字节（1=rejected），原地修改。

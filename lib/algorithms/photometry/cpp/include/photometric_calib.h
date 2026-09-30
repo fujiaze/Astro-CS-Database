@@ -28,12 +28,13 @@ struct PhotometricDiag {
     int psf_total;                // n_psf (输入 PSF 星总数)
     int psf_valid;                // status==0 的 PSF 星数
     // 阶段4/5: 匹配
-    int spatial_candidates;       // KD-tree 查询命中数 (距离<阈值的初始匹配)
-    int unique_matches;           // 唯一配对后数 (当前实现无双向过滤, 等于 spatial_candidates)
+    int spatial_candidates;       // 正向命中数 (PSF→Gaia 最近邻距离 < match_radius_px 的对数)
+    int unique_matches;           // 双向唯一匹配数 (互为最近邻的配对数; ≤ spatial_candidates)
     // 阶段6: 拒绝原因
-    int rejected_ambiguous;       // 双向匹配冲突 (当前无双向, 保持 0)
+    int rejected_ambiguous;       // 正向命中但非互为最近邻的对数 (= spatial_candidates − unique_matches)
     int rejected_distance;        // 距离超阈值 (KD-tree 最近邻仍 > match_radius_px)
-    int rejected_quality;         // F<=0/非有限 + 星等不一致 + IRLS 离群 的总和
+    int rejected_quality;         // 未进入 IRLS 的样本总数 = 饱和/质量位 + F<=0/非有限
+                                  // + 星等不一致 + IRLS 离群（逐路径求和项不同，见 star_matcher.cpp）
     // 阶段7: 拟合
     int fit_used;                 // IRLS inliers (Tukey 权重 > 0)
     int robust_iterations;        // IRLS 实际迭代次数

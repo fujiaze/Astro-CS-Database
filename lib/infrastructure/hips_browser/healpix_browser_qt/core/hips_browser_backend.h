@@ -1,5 +1,5 @@
 // ============================================================================
-// hips_browser_backend.h - HiPS 产品集浏览器后端 (Phase1 Final Signoff)
+// hips_browser_backend.h - HiPS 产品集浏览器后端
 //
 // 正式 Browser 数据源: HiPS Product Set (signal/support/snr)
 // 仅通过 astro_image_io.dll 的 AIO HiPS Reader API 读取, 不直接链接 CFITSIO。

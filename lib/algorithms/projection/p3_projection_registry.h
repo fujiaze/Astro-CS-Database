@@ -185,7 +185,7 @@ inline P3WcsStatus p3_proj_declare(const char* code, std::string* why) {
             reason = "unknown projection code (not in the frozen 8-projection set)";
         }
         *why = "projection '" + c + "' unsupported; supported projections: " +
-               p3_proj_declared_list() + " (docs/ASTROCS_DESIGN 5.3); reason: " + reason;
+               p3_proj_declared_list() + " (docs/ASTROCS_DESIGN 6.3); reason: " + reason;
     }
     return P3_WCS_UNSUPPORTED;
 }

@@ -24,7 +24,6 @@
 //       test/test_extract_wcs_sip_failclosed.cpp -o /tmp/t && /tmp/t
 // ctest 目标名: ipv_extract_wcs_sip_failclosed (注册钩子见 REPORT "越域残余")
 //
-// 日期: 2026-09-14 (RQS B4-phase1)
 // ============================================================================
 
 #include "ipv_solver.h"

@@ -1,24 +1,17 @@
-// lib/phase3_session/p3_resample.cpp — 重采样实现 (ALG-P3-003) — P3-003
+// lib/algorithms/resample/p3_resample.cpp — 重采样实现 (ALG-P3-003)
 // 叶级 nside = 512·2^K(K=properties order); NEAREST/BILINEAR 均经 healpix_core
 // 权威函数(ang2pix/pix2ang/neighbors) — 禁止第二套数学核心。
 //
-// P30 (Phase3 导出性能 P0) 修复注记 —— 采样数学逐位不变, 只改 tile 存取层:
-//   修复前实测 (真实 M42 T2+Blue, 14375² = 206.6 Mpx, 0.805″/px):
-//     * 每个 worker 的 P3Sampler 是 p3_sampler_open_ex 新建实例, max_tiles
-//       (默认 804) 只设到了主 sampler 上 → worker 实际 cache.cap = 8;
-//       产物 523 个 tile 的工作集 >> 8 → 逐行抖动, 同一 tile 被反复解码。
-//     * tile 缺失(覆盖外)没有负缓存: 该平面 34.2% 像素在 MOC 之外 (实测
-//       astropy-healpix 逐格核对), 每像素最多 4 次 read_leaf → ~2.8e8 次
-//       fits_open_file 打在**不存在的文件**上; 该调用全程持有进程级
-//       aio::cfitsio_io_mutex (RT-008), 且每次构造路径/错误串 → 全进程
-//       串行化 + 高 sys 时间, 实测 17 线程只用 ~1.9 核 (门禁 §10.5 需 ≥85%)。
-//   本文件修复 = ①跨 worker 共享一个**有界 LRU** tile 缓存 (容量 = max_tiles,
-//   与 worker 数无关 → 峰值内存不随核数增长); ②缺失 tile 负缓存 (每 tile 至多
-//   一次真实 open, 结果与修复前逐位相同: 那些 open 本来就必然失败);
-//   ③每线程前端热缓存 (命中不取共享锁); ④bilinear 每像素不再堆分配;
-//   ⑤暴露缓存统计供 §10.5 资源证据。
-//   数学路径 (ang2pix_nest / pix2ang_nest / neighbors / 四象限双线性 / NaN 与
-//   coverage 语义) 与修复前逐行等价。
+// tile 存取层的两条结构性不变量 (与采样数学无关, 改动须保持逐位等价):
+//   ①跨 worker 共享同一个**有界 LRU** tile 缓存: 容量 = max_tiles 个 512²f32 tile
+//     (1 MiB/个), 与 worker 数无关 ⇒ 峰值内存不随核数增长;
+//   ②缺失 tile **负缓存**: 每 tile 至多一次真实 open, 结果与"每次 open 都失败"
+//     逐位相同 (那些 open 本来就必然失败)。
+//   ③每 sampler 前端热缓存 kHotSlots 槽 (命中不取共享锁; 每线程一个 sampler
+//     ⇒ 无锁访问)。
+//   缓存策略只影响 I/O 命中率, **不影响任何像素值** (tile 内容只读); 一旦引入
+//   跨 tile 的数值状态即失效。数学路径 (ang2pix_nest / pix2ang_nest / neighbors /
+//   四象限双线性 / NaN 与 coverage 语义) 与缓存策略、逐出顺序、容量均无关。
 #include "p3_resample.h"
 
 #include <algorithm>
@@ -37,7 +30,7 @@
 #include "aio_hips_reader.h"
 #include "hips_properties.h"
 
-// CLEAN-403 (docs/ASTROCS_DESIGN §10「aio 是文件级唯一 I/O 边界」): 子产品 properties
+// (docs/ASTROCS_DESIGN §10「aio 是文件级唯一 I/O 边界」): 子产品 properties
 // 的整文件读取经 aio 唯一实现 (aio_file::read_all), 本 TU 不自持 FILE*。
 #include "aio_atomic_file.h"
 #include "aio_file_io.h"
@@ -317,8 +310,11 @@ P3ResampleStatus p3_sample_bilinear(P3Sampler* s, double ra_deg, double dec_deg,
     return p3_sample_bilinear_ex(s, ra_deg, dec_deg, value, coverage, nullptr, nullptr);
 }
 
-// P30: 3×3 邻域点由 std::vector 改为定长栈数组 (单像素不再堆分配); 取样/
-// 四象限选择/退化填充/双线性权重与 NaN·coverage 语义与修复前逐行等价。
+// 3×3 邻域点用定长栈数组 pts[10] 承载; 取样/四象限选择/退化填充/双线性权重与
+// NaN·coverage 语义与 bilinear_ex 逐行等价。
+// 性能注记 (非不变量): 邻域 ipix 列表仍由 healpix::neighbors 返回 std::vector, 故本
+// 像素路径**仍含一次 per-pixel 堆分配** (CODE_STANDARD §MUST「无 per-pixel
+// malloc/new」未满足); 该分配只影响性能, 不影响任何像素值。
 P3ResampleStatus p3_sample_bilinear_ex(P3Sampler* s, double ra_deg, double dec_deg,
                                        float* value, int* coverage,
                                        double weights[4], uint64_t leaf_ipix[4]) {
@@ -485,7 +481,7 @@ P3ResampleStatus p3_uncertainty_open(const char* product_dir, int signal_order,
     const std::string root = std::string(product_dir);
     for (const auto& c : cands) {
         const std::string props_path = root + "/" + c.sub + "/properties";
-        // CLEAN-403: 读取经 aio (aio_file::read_all)。
+        // 读取经 aio (aio_file::read_all) — 本 TU 不自持文件通道。
         // 子产品不存在 → 试下一候选 (与原 fopen 失败同语义);
         // 存在但读取失败 → P3_RS_IO (fail-closed, 不静默跳过)。
         int props_is_dir = 0;

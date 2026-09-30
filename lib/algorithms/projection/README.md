@@ -69,13 +69,13 @@
 - 故障注入: ASTROCS_P3PROJ_FAULT=tan|sin|car|ait|registry（测试级注入，
   生产源零 getenv，P2-002 先例同构）。
 
-## 3 生产源（冻结实测，2026-09-11）
+## 3 生产源
 
-- 唯一权威签名头: lib/algorithms/projection/p3_wcs.h（W4-A9 批次 1 迁入）——
-  P3WcsDescriptor（h:11-20）/P3WcsStatus（h:22-27）/
-  p3_wcs_make（h:31-34）/p3_wcs_pix2world（h:38-39）/
-  p3_wcs_world2pix（h:42-43）/p3_wcs_fits_keywords（h:46）。
-- 实现: lib/algorithms/projection/p3_wcs.cpp（W4-A9 批次 1 迁入；源逐字节等价）。
+- 唯一权威签名头: lib/algorithms/projection/p3_wcs.h——
+  P3WcsDescriptor（h:14-23）/P3WcsStatus（h:25-30）/
+  p3_wcs_make（h:47-50）/p3_wcs_pix2world（h:54-55）/
+  p3_wcs_world2pix（h:58-59）/p3_wcs_fits_keywords（h:62）。
+- 实现: lib/algorithms/projection/p3_wcs.cpp。
 - 会话消费点: p3_session.cpp:17（include）/:160（p3_wcs_make，
   rotation_pa_deg 恒 0.0）/:163（状态映射）/:232（worker 循环
   pix2world，半球外像素 NaN）/:247-253（线程池）；backend 探针
@@ -125,7 +125,8 @@
 - 适用域门（DESIGN §6.3「违反 ⇒ 拒绝」，`p3_wcs_check_applicability`）:
   |CRVAL2|≤85°、FOV≤20°（`p3_wcs_fov_deg` = scale×√(W²+H²) 帧对角全视场）、
   手性 det(CD)<0、CRPIX=(W+1)/2,(H+1)/2（FITS 1-based 像素中心）、
-  往返 <1e-8 px（`p3_wcs_roundtrip_max_error_px`，9 点采样；`kTanApplicability.roundtrip_tol_px`）。
+  往返 <1e-8 px（`p3_wcs_roundtrip_dense_max_error_px`，密集域采样；
+  `kTanApplicability.roundtrip_tol_px`；9 点采样器不得单独作门证据）。
 - 可执行面: `eng/tests/p3wcs/p3_projection_registry_test.cpp`（ctest
   `p3_projection_registry` + 负例入口 `p3_projection_registry_selftest`）+
   `eng/tests/p3wcs/p3_projection_unsupported_cli.py`（ctest

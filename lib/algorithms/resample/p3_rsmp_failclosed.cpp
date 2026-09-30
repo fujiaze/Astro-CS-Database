@@ -25,7 +25,7 @@ const std::vector<std::string>& forbidden_weight_source_tokens() {
 }
 
 bool is_retired_canonical_weight_object(const std::string& token) {
-  // 统一对象 psfsw_robust_weight 已退役（14→13；CHG-2026-09-20-PSFSW-RETIRE）：
+  // 统一对象 psfsw_robust_weight 已退役（统一对象 14→13）：
   // 不是现行对象，无 canonical schema，端口合同枚举不接受。
   return token == "psfsw_robust_weight";
 }

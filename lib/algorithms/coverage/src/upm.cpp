@@ -1026,11 +1026,11 @@ static int build_impl(const P2ControlObservation* obs, std::uint64_t n_obs,
         // P2a-3：绝对 1e-6 在 max|M|~3e15 时低于 ULP(0.5)
         // 5-8 个数量级，原理上不可达（iterations=100,converged=0）。
         // tolerance_relative=1 时改为相对判据：
-        //   阈值 = tolerance × max(scale, 1.0)，scale = max|M| / max|C|；
+        //   阈值 = tolerance × max(scale_obs, 1.0)；分母 = **观测量尺度** scale_obs
+        //   （control 观测值的稳健尺度，**不是** max|M| / max|C|，
+        //    docs/science/PHASE2_UPM.md §5 明文）；
         // max(...,1.0) 保证小尺度合成数据与 legacy 绝对判据逐位等价。
         // tolerance_relative=0 时 tol_M=tol_C=cfg.tolerance（legacy，逐位不变）。
-        // SCI-502: 相对判据的分母 = **观测量尺度** scale_obs（不是 max|M|）。
-        // max(scale_obs, 1.0) 保留近零尺度下的绝对容差保护（小尺度合成数据逐位不变）。
         double tol_M = cfg.tolerance;
         double tol_C = cfg.tolerance;
         if (cfg.tolerance_relative) {

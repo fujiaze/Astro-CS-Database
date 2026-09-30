@@ -1,14 +1,12 @@
 // lib/algorithms/coverage/src/rejection.cpp — Phase2 Rejection Framework CPU reference
 //
-// 权威 = docs/science/REJECTION.md 与 docs/science/algorithms/REJECTION_ALGORITHMS.md：
+// 权威 = docs/science/REJECTION.md 与 docs/science/algorithms/PHASE2_REJECTION.md：
 // - 输入：UPM-calibrated 样本栈 values[]/valid[]/support[]/weights[]/quality[]；
-// - 首版实现：None、Sigma、WinsorizedSigma（确定性，Oracle 对照）；
-// - AveragedSigma/LinearFit/ESD/RCR 接口冻结，后续子任务按论文/Oracle 独立实现；
 // - 输出 accepted mask + low/high 计数 + 迭代数 + status。
 // - 排异阈值/迭代冻结锚点 SCI-REJ-*/ALG-REJ-001..008：
 // sigma/winsorized/averaged 4.0/3.0/8、linear_fit 5.0/3.5/8、ESD alpha 0.05/max 10、
 // percentile 0.2/0.1、minmax 1/1/4 等与 docs/science/REJECTION.md、
-// docs/science/algorithms/REJECTION_ALGORITHMS.md 一致（见本文件 p2_reject_plan_resolve）；
+// docs/science/algorithms/PHASE2_REJECTION.md 一致（见本文件 p2_reject_plan_resolve）；
 // 本文件为阈值/迭代权威实现，禁止阈值漂移。
 #include "astro/phase2/rejection.h"
 
@@ -1109,11 +1107,9 @@ const char* p2_rejection_semantic_id(int method) {
 // WBPP 2.5.9 WeightedBatchPreprocessing-engine.js:1421-1429 bestRejectionMethod()
 // （官方包 sha1 712cc7c3fdb523643ad0e685104592d511996f82）：
 // n < 6 → PercentileClip；6 ≤ n ≤ 15（或 BIAS/DARK）→ WinsorizedSigmaClip；
-// n > 15 → Rejection_ESD。**本表 N ≥ 16 → linear_fit 与 WBPP 2.4.0+ 该分支不同**
-// （对应的是 WBPP ≤2.3.x 的 n < 25 → LinearFit，1.4.6 :190-203 实测）；
-// 即档界取自 2.4.0+、该档算法取自 ≤2.3.x。逐像素粒度是 ACSD 自定扩展
-// （WBPP 按帧组 activeFrames().length 路由，无逐像素行为）。
-// 旧引文 "BPP-FrameGroup.js:1304-1312" 不存在于任何官方包，引文以官方包现行文件为准。
+// n > 15 → Rejection_ESD。**本表 n ≥ 16 也取 winsorized_sigma**，与 WBPP 2.4.0+
+// 该分支不同（逐像素粒度是 ACSD 自定扩展，偏离依据见
+// docs/science/REJECTION.md §5；WBPP 按帧组 activeFrames().length 路由，无逐像素行为）。
 //
 // ╔════════════════════════════════════════════════════════════════════╗
 // ║ **唯一显式决策点**（**只改这一处**）                                 ║
@@ -1140,10 +1136,7 @@ const char* p2_rejection_semantic_id(int method) {
 //     P2_STATUS_UNDERDETERMINED，provenance 如实记录（非静默降级）；
 //   * 若要「N ≤ 3 **强制** percentile 排异」，除本决策点外还需把
 //     pixel profile 的 underdetermined_n 默认从 3 降到 2（见
-//     p2_reject_plan_resolve 的 undet_default）；两处都属该决策落地面，
-//     本任务只落 WBPP 表（kWbppTable）。
-// 原四档表（n ≤ 3 不排异 / 4–7 percentile / 8–15 winsorized / ≥16 linear）
-// **作废**（docs/ASTROCS_DESIGN.md §4.5 已加作废横幅）。
+//     p2_reject_plan_resolve 的 undet_default）；两处都属该决策落地面。
 enum class PixelSmallNPolicy { kWbppTable, kConservativeNone };
 static constexpr PixelSmallNPolicy kPixelSmallNPolicy =
     PixelSmallNPolicy::kConservativeNone;   // ← 定案值；改判对称读法只改本行
@@ -1231,8 +1224,8 @@ int p2_reject_plan_resolve(const P2RejectionPlanRequest* req,
     //   （opt-in 先验 σ 档）→ 1（使 n=2 能进 kernel，n=1 由 minimum_n=2 拦下）；
     //   其余（AUTO）→ 3（**kernel 闸**：候选数 ≤3 不做排异判定，全接受并记
     //   UNDERDETERMINED，不冒充排异成功。此后该值与路由档**解耦**：
-    //   N ≤ 3 的路由由 astrocs_n_map_method 上方的唯一决策点决定（WBPP 表
-    //   ⇒ percentile），实际执行仍受本闸约束；若要「强制
+    //   N ≤ 3 的路由由 astrocs_n_map_method 上方的唯一决策点决定（当前定案值
+    //   kConservativeNone ⇒ none），实际执行仍受本闸约束；若要「强制
     //   percentile 排异」需把本默认降到 2，见该决策点注释）；
     // - 其余冻结 profile → 2（逐位不变，含显式 extreme_prior）。
     std::uint32_t undet_default = 2u;
@@ -2229,7 +2222,8 @@ int p2_reject_stack_ex(const P2CandidateStack* stack,
     return 0;
 }
 
-/* RETIRED 2026-09-25 (CHK-PROD-WIRING W1): p2_reject_stack_resolve_ex 定义已删（全仓零消费者；同能力变体入口保留在产）。 */
+// 合成入口已撤下：p2_reject_stack_resolve_ex（全仓零消费者；同能力由
+// p2_reject_plan_resolve_n + p2_reject_stack_ex 两步承担）。
 
 // =====================================================================
 // COMPAT adapter（旧签名；生产 Stage2 不再调用）

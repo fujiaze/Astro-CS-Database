@@ -57,8 +57,10 @@ typedef struct {
     // 的星按 radius 膨胀进 star_mask（P0-08；原 catalog veto 硬编码整改）。
     double star_mask_snr_factor;          // 默认 10.0
     double star_mask_radius_deg;          // 默认 0.012
-    // CON-004 并行采样 worker 数（0=auto：omp_get_max_threads/hardware_concurrency；1=串行默认）。
-    // 仅 P2_ENABLE_OPENMP 且 >1 时启用并行第一遍；否则恒串行（默认行为不变）。
+    // CON-004 并行采样 worker 数（0=auto；1=串行 reference）。
+    // >1 时以 std::thread + next_c 原子领取 union cell 启用并行第一遍，
+    // 否则恒串行。worker 数唯一来源 = Runtime lease 传入的 budget.max_workers
+    // （ExecutionOptions 透传），模块不读硬件并发数、不自建线程预算。
     int cpu_workers;                      // 来自 Runtime lease(p2_session 传 budget.max_workers); 1=串行 reference
 } P2SamplerConfig;
 
@@ -95,7 +97,7 @@ typedef struct P2ControlNode {
 // - 路径/重命名/换根目录不变；任何科学 payload 变化 → 改变；
 // - 取 SHA-256 前 16 hex 字符（大端序截断）为 uint64；
 // - 与输入顺序无关；UPM 参考帧 = 每分量最小 frame_id。
-// 禁止描述为 FNV-1a / 路径派生（旧文档已修正）。
+// 本标识是 truncated-64 SHA-256，不是 FNV-1a，也不由路径派生。
 P2_API std::uint64_t p2_frame_id(const char* hips_path);
 
 // 统一统计量（sampler patch estimator / MAD / SNR 邻域共用同一实现）。
@@ -130,9 +132,9 @@ P2_API int p2_sample_controls(
 // 观测值仍来自实际 Phase1 HiPS；禁止重新检测星点。
 // probe/fill 协议同 p2_sample_controls*（out 可空查询容量）。
 // ===========================================================================
-/* RETIRED 2026-09-25 (CHK-PROD-WIRING W1): p2_sample_sky 全仓零消费者声明已撤下。 */
-
-/* RETIRED 2026-09-25 (CHK-PROD-WIRING W1): p2_sample_sky_cached 全仓零消费者声明已撤下。 */
+// 声明已撤下：p2_sample_sky（全仓零消费者；天光采样点改由
+// p2_sample_controls_cached 同遍扫描产出）。
+// 声明已撤下：p2_sample_sky_cached（全仓零消费者；同上）。
 
 // 含 frame_id 缓存的重载（性能：stage2 已算 frame_id 时透传，避免二次 500MB payload 哈希）。
 // @param frame_ids 长度 n_inputs，与 hips_paths 同序；0 视为非法（p2_frame_id 失败哨兵），实现将直接拒绝。
