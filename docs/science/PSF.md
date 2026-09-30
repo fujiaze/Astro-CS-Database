@@ -174,7 +174,7 @@ flux = 2πA·sxsy/3   (整平面延伸假设；对任意 sx,sy,θ 成立，见�
 
 ## 14 Primary literature（引用定位声明）
 
-1. Moffat, A. F. J. 1969, A&A 3, 455（"A Theoretical Investigation of Focal Stellar Images"）：Moffat 轮廓 I(r)∝(1+r²/α²)^{−β} 来源——文章级定位（bibcode 1969A&A.....3..455M，未逐页核验）。
+1. Moffat, A. F. J. 1969, A&A 3, 455, "A Theoretical Investigation of Focal Stellar Images in the Photographic Emulsion and Application to Photographic Photometry"：Moffat 轮廓 I(r)∝(1+r²/α²)^{−β} 来源——文章级定位（bibcode 1969A&A.....3..455M；题名全称与页范围 455-461 已按印本首页核验，2026-09-30）。
 2. β=4 解析通量 `flux=2πA·sxsy/3` 与 `FWHM/σ=1.230310`（σ = 模型参数口径 √⟨r²⟩=α/√2，见 §16）：**Project-defined derivation**（§5 对 (1+Q)^{−4} 解析积分，各向同性极限 πα²/3·A=2πAσ²/3 自洽），不引用外部公式号；精确闭式 `2√2·√(2^{1/4}−1)=1.230307652590102`，他域约定 σ_g=α/2 对应 `4·√(2^{1/4}−1)=1.7399178387`（本域禁用）。
 3. trimmed-mean→σ 换算系数 `0.7316727929211932`：高斯假设下 10–90% trimmed mean 的标准化常数。**闭式**：`2(φ(Φ⁻¹(0.55))−φ(Φ⁻¹(0.95)))/0.8 = 0.7316730952806134`（本仓复算 `run/SCI-FIX-STARPSF-01/results/e1_constants.txt` §B，与实现常量相对差 4.13e-7）。适用域见 §9。
 
