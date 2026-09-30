@@ -1349,3 +1349,65 @@ gain 轴分支 → `snr_estimator.h:349` 出参只取 {1,2,3}。
 
 **教训**：前台把「实验单元模拟器里的门」当成了「生产库里的门」——这两者不是一回事，
 后续派单须先问车道核实，不要直接转述上游车道的报回。
+
+---
+
+## 37. GOV-ERR-4（前台自陈）· G08-01 删除了合同的机器判据载体，一级正本仍在声称它们存在
+
+**归属**：G08-01 的后果　**状态**：待 G08-10 重建 CI 时闭环；本条不豁免红灯
+
+### 37.1 事实
+
+G08-01 提交 `e5f589a6`（物理删除旧门禁与 CI，344 件 / −136,676 行）删除了 `eng/ci/` 整个目录。
+但**一级正本仍把这些已删脚本写成现行机器判据的承载体**：
+
+| 正本 | 声称的承载体 | 现状 |
+|---|---|---|
+| `docs/engineering/PIPELINE_BLOCK_CONTRACT.md:79` | `eng/tools/quality/check_block_flow_ports_vs_code.py`（C1–C6） | **不存在**（只剩 `__pycache__/` 里的陈旧 `.pyc`，`.py` 源不在仓库） |
+| `PIPELINE_BLOCK_CONTRACT.md:96` | `eng/ci/check_registry_ir_parity.py`（CHK-REGISTRY-IR-PARITY，C4–C7） | **不存在**（`eng/ci/` 已删） |
+| `02_PIPELINE.md` | `eng/ci/run.py` | 不存在 |
+| `BUILD_GRAPH.md` | `eng/ci/check_spec_named_impl.py`、`eng/tools/quality/contracts/check_build_graph.py` | 不存在 |
+| `CLI_PROTOCOL_V1.md` | `eng/ci/check_event_field_sets.py`、`eng/tools/check_api_docs.py` | 不存在 |
+| `CODE_STANDARD.md` / `COMMENT_STANDARD.md` / `COMPATIBILITY_POLICY.md` / `CONFIG_CONTRACT.md` / `coverage_baseline_v1.md` / `complexity_baseline_v1.md` | 各自点名的 `eng/ci/*` / `eng/tools/*` 脚本 | 不存在 |
+
+**前台全库扫描：悬空的 `eng/(ci|tools)/*.py` 引用共 53 条。**
+
+⇒ 这正是 `SCI-DRZ-V1` 与 `p1hips_tests_properties.cpp:17` 那一类问题的**制度版**：
+**引用链「看起来」完整（正本逐字写了脚本路径与判据编号），但承载体已不存在 ⇒ 该判据零执行。**
+
+### 37.2 直接后果：端口漂移长期无人发现
+
+`PIPELINE_BLOCK_CONTRACT.md:6` 声明 `lib/infrastructure/pipeline/module_ports.registry.json` 是**端口事实源**。
+scheduler+pipeline 分片逐条比对发现：**20 个 module 的 registry 端口名与
+`module_adapters.cpp:703-1195` 的 `ModuleDescriptor::ports` 是两套互不相同的词表**，例如：
+
+- `p2_coverage_descriptor()` `:1065` 输入声明 `calibrated` / `DATA-P2-CAL` / `SURFACE_BRIGHTNESS` / `PIXEL`；
+  registry 真值是 `frame_hips` / `DATA-HIPS-001` / `SURFACE_BRIGHTNESS` / **HEALPIX** / `hips_product_tree`
+  ⇒ **DATA id 错（`DATA-P2-CAL` 在 registry 20 个 module 里零出现）+ 坐标错**
+- `p2_upm_apply_descriptor()` `:1123` `calibrated_frames` / `DATA-P2-CAL` 标 **SURFACE_BRIGHTNESS**，
+  而 `DATA_SEMANTICS.md` §26.1(2) 明写「单位 = **ADU**」⇒ **单位接错**
+- 同一 `data_id` `DATA-P2-RES` 两套单位：`phase2_descriptor()` `:731` = ADU，
+  `p2_write_descriptor()` `:1186-1187` = SURFACE_BRIGHTNESS
+- `p1_drizzle_descriptor()` `:1023` 只声明 `stacked` / `DATA-P1-STACK`，
+  registry 的真实主输出是 `frame_hips` / `DATA-HIPS-001` / HEALPIX / `hips_product_tree`
+  ⇒ **P1 主产品端口未声明**
+- `p3_writer_descriptor()` `:829-832` 只 1 入 1 出；registry 声明 4 入 2 出；`p3_verify_descriptor()` 同类缺 3 输入
+
+**这些漂移能长期存在的原因就是 §37.1 —— 判据载体没了，漂移没人比。**
+
+### 37.3 前台自陈：这是 G08-01 的治理后果，不是外部问题
+
+G08-01 删旧门禁本身是对的（AGENTS §6「退役代码从代码库删除」）。**错在删除时没有同步把
+一级正本里对这些载体作为「现行判据」的声称改掉**，也没有把「谁来实现 C1–C8」落到 G08-10。
+
+⇒ 这与 G08-03 的历史包删除（GOV-ERR-1）、冻结目录改写（GOV-ERR-2）同属一类：
+**删除动作本身合法，但删除的「配套声明」没跟着改**，于是留下了一批「看起来有门、其实没门」的条款。
+
+### 37.4 对 G08-10 的硬约束
+
+G08-10 重建 CI 时**必须**为 `PIPELINE_BLOCK_CONTRACT.md` 的 C1–C8 逐条给出实现落点，
+并**先修端口漂移再重建判据** —— 否则新门第一次运行就会红，而那批红是**真实缺陷**，
+不得以 waiver 覆盖（AGENTS §8）。
+
+另：53 条悬空 `eng/` 引用要么补实现、要么改正本的声称，**不得留着声称一个不存在的脚本
+是现行门**。此项与 §31 的 R6（`eng/ci/` 退场后 4 处检查器指针悬空）是同一批。
