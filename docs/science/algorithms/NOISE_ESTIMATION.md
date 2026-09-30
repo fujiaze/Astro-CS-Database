@@ -141,8 +141,8 @@ eng/tests/unit/p1_noise_test.cpp 经 eng/tests/unit/CMakeLists.txt:619-623 注�
 | ALG-NOISE-001 | `robust_median` / `robust_sigma`（1.482602218505602·MAD）/ `collect_patch_sky`（掩膜+饱和过滤+5σ≤2 轮裁剪） | noise_model.cpp:100-110,113-120,133-171 |
 | ALG-NOISE-002 | `fill_impl`（平面 LS var(x,y)=a+b·x+c·y：预测 > 0 ⇒ `max(预测,floor)` + `ivar=1/var`；预测 ≤ 0 或产品 dtype 不可表示 ⇒ `0/0`；否则全局常量）+ `snr_noise_model_v1_fill` | noise_model.cpp:1323-1410（LS 系数 :1335-1360，floor 查询/拒绝 :1362，逐像素两态 :1365-1375，全局常量支 :1343-1347，fill 门面 :1412-1446） |
 | ALG-NOISE-002 | `snr_noise_model_v1_free`（free ctrl 数组 + 按指针擦除 g_model_floor） | noise_model.cpp:1447-1461 |
-| ALG-NOISE-002 | `snr_noise_scale_law`（x'=αx → var'=α²var, ivar'=ivar/α²） | noise_model.cpp:1463-1470；snr_estimator.h:256-257 |
-| ALG-NOISE-003 | `snr_noise_gain_variance`（var_ADU=max(signal,0)/gain+(rn/gain)²，诊断不入生产） | noise_model.cpp:1472-1480；snr_estimator.h:261-263 |
+| ALG-NOISE-002 | `snr_noise_scale_law`（x'=αx → var'=α²var, ivar'=ivar/α²） | noise_model.cpp:1463-1470；snr_estimator.h:279 |
+| ALG-NOISE-003 | `snr_noise_gain_variance`（var_ADU=max(signal,0)/gain+(rn/gain)²，诊断不入生产） | noise_model.cpp:1472-1480；snr_estimator.h:284 |
 | （同头三层其余） | `snr_phot_cal_quality`（dex/mag/rel 换算 `noise_model.cpp:1177-1204`）、`snr_psf_fit_quality`（residual_scale/0.7316727929211932、q_psf=A/residual_scale `noise_model.cpp:1205-1242`） | 属 P1-PHOT/PSF 合同视角引用，本模块不重复冻结 |
 
 返回码合同（三函数一致）：`0`=成功（含 degenerate=1 全局兜底成功）；`1`=
