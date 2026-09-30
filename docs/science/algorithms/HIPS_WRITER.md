@@ -3,7 +3,7 @@
 > 上游：ASTROCS_DESIGN.md §4.2（Phase1 节点流程）、§10（I/O 与原子产品）
 
 > SCI 上游: SCI-DRZ-001（docs/science/DRIZZLE.md，FROZEN，共享引用不改动；
-> :130 实现锚 finalize_tile 方差语义、:145 support=D_p 归一语义）
+> 实现锚 finalize_tile 方差语义与 support=D_p 归一语义两处）
 > 与 SCI-SCOPE-001（docs/science/SCIENCE_SCOPE.md，产品目标）；读侧消费合同
 > SCI-P3-001（docs/science/PHASE3_HIPS_TO_FITS.md，只读引用）。
 > 实现源（逐公式锚定）: lib/infrastructure/aio/src/hips/aio_hips_writer.cpp
@@ -11,18 +11,17 @@
 > 数据语义权威: docs/science/DATA_SEMANTICS.md §12（DATA-P1-HIPS；上游 §11 DATA-P1-DRZ、
 > §4a DATA-HIPS-VAR-001/DATA-HIPS-IVAR-001、§3 FITS 局部像素映射、§5 帧身份）。
 > HiPS 1.0/1.4 外部参照: IVOA HiPS 推荐（Fernique et al. 2015）、HEALPix 算法
-> （Górski et al. 2005）——经 SCI-P3-001 :120-124 收录的文献锚，本文件不另立外部断言。
+> （Górski et al. 2005）——经 SCI-P3-001 收录的文献锚，本文件不另立外部断言。
 > 本文件为逐公式"算法+源码锚点"登记：凡 SCI 层无覆盖而实现自带的语义（HiPS 写出
 > 合同细节），以实现为准登记并标注；凡实现与 SCI 语义冲突处，登记 DISP- 条目。
 > **权威订正原则** = `ENGINEERING_SPEC.md` §3「科学正确性优先」：独立证据（外部标准 /
 > 文献 / 可复跑实验）证明文档与事实不符时，**订正文档是义务**（SCI 层订正走变更流程并
 > 记录证据与影响面）；文档已被证明正确而实现不符时改实现。
 >
-> **行号锚声明**：`aio_hips_writer.cpp` 经原子写与流式 hierarchy 重构后行号整体推移
-> （主函数漂移约 +710…+1228），函数内部结构亦有多处重排（如 write_moc_fits 分层出
-> write_moc_fits_raw、finalize_hierarchy 分层出 write_hierarchy_cell）。本文件 §1–§5 的
-> **主源码锚（各「源码锚」行的函数行域）已按现行源码实测重标**；各小节内的子行锚
-> 与 §10 DISP 表裸 `:NNN` 尚未逐一重测，读法以**符号名与语义**为准。
+> **源码锚声明**：`aio_hips_writer.cpp` 经原子写与流式 hierarchy 重构后主函数行域整体推移，
+> 函数内部结构亦有多处重排（如 write_moc_fits 分层出
+> write_moc_fits_raw、finalize_hierarchy 分层出 write_hierarchy_cell）。本文件全文的
+> 锚一律给到**符号名 + 文件**（不再用行号定位），读法以**符号名与语义**为准。
 > `docs/algorithms/anchors/anchor_contract.json` 未对 aio 文件声明 symbol binding，
 > 故 C4 机器门不覆盖此漂移；子锚批量重标归全库重锚工程。
 
@@ -38,126 +37,126 @@ docs/engineering/io/IO_003_ATOMIC_OUTPUT_PUBLISH.md，本文件仅登记对齐�
 
 ## 1. ALG-HIPS-001 — 产品生命周期与叶级几何基数
 
-**源码锚**: aio_hips_writer.cpp `aio_hips_product_begin` :1165-1260。
+**源码锚**: `lib/infrastructure/aio/src/hips/aio_hips_writer.cpp` 的 `aio_hips_product_begin`。
 
-- (1a) 叶级阶 K 与 tile 阶：`leaf_order = ilog2(nside)`（:411），
-  `tile_order = leaf_order − 9`（:412，tile 宽恒 512=2^9），叶级
-  nside = 2^K ≥ 512（:399-401 拒绝 nside<512）、tile_width==512（:402）。
+- (1a) 叶级阶 K 与 tile 阶：`leaf_order = ilog2(nside)`，
+  `tile_order = leaf_order − 9`（tile 宽恒 512=2^9），叶级
+  nside = 2^K ≥ 512（拒绝 nside<512）、tile_width==512（同文件）。
   与 DATA_SEMANTICS §2（leaf_order=tile_order+9）一致；与 SCI-P3-001 读侧
-  默认一致。注意 hiss 侧 `compute_tile_depth`（hiss_common.cpp:65-79，
+  默认一致。注意 hiss 侧 `compute_tile_depth`（`lib/infrastructure/aio/src/hips/hiss_common.cpp`，
   d=clamp(log2(nside)−4,0,9)）是独立中间容器语义，与本公式不同（不混用）。
-- (1b) 单叶球面元面积 `A_cell = 4π / (12·nside²)`（:413），即 Górski 2005
+- (1b) 单叶球面元面积 `A_cell = 4π / (12·nside²)`，即 Górski 2005
   NESTED 等面积基数 4π/(12·4^K)；无 SCI 独立条目，按实现+文献登记。
 - (1c) MOC 阶：入参 moc_order>0 时 `moc_order = min(moc_order, tile_order)`
-  （:419）；=0 时自动取 tile_order（finalize :1022-1027 路径）。读侧
-  aio_hips_reader.cpp:166-175 仅保留 order==K 的 UNIQ——moc_order<K 时
+  ；=0 时自动取 tile_order（finalize 路径）。读侧
+  `lib/infrastructure/aio/src/hips/aio_hips_reader.cpp` 仅保留 order==K 的 UNIQ——moc_order<K 时
   低阶父 cell 对自家 reader 无效（见 DISP-HIPS-005）。
 - (1d) 产品集校验：flags 位域 {1,2,4,8,16}，ALL=7/ALL_V19=31
-  （aio_hips.h:34-43；begin :404 拒绝越位）；dtype∈{0=float32,1=float64}
-  （:403）；违规 → 返回 NULL + last_error。
+  （`lib/infrastructure/aio/include/aio_hips.h`；begin 拒绝越位）；dtype∈{0=float32,1=float64}
+  （同文件）；违规 → 返回 NULL + last_error。
 - (1e) 缺省元数据：creator_did="ivo://astrocs/phase1"、
-  obs_title="Astro Celestial Sphere Database（ACSD） Phase1"（:414-415，可入参覆盖）。
+  obs_title="Astro Celestial Sphere Database（ACSD） Phase1"（可入参覆盖）。
 - (1f) 状态句柄 ProductSet 持有：nside/tile_width/data_type/flags/out_dir/
-  properties 元数据、moc_cells（叶级 cell 集 :359）、leaf_ipix_list（写序
-  :360）、hier[k]（map<ipix,AncestorAcc> :361，:420 resize(tile_order)）、
-  SNR 点缓存（:684-691）、prov 键（默认 unset :347-348）、六段 profile
-  计时（:368-373）。
+  properties 元数据、moc_cells（叶级 cell 集）、leaf_ipix_list（写序）、
+  hier[k]（map<ipix,AncestorAcc>，resize(tile_order)）、
+  SNR 点缓存、prov 键（默认 unset）、六段 profile
+  计时（同文件）。
 
 ## 2. ALG-HIPS-002 — 叶级 tile 信号/支撑归一与 FITS 写出
 
-**源码锚**: aio_hips_writer.cpp `aio_hips_write_signal_support_tile` :1262-1468
-（视图校验 :428-437；缓冲 :442-456；NESTED→FITS 序 :463-465；归一 :476-479；
-无效规则 :481-485；FITS 写 :503-521；MOC/面积登记 :528-532）。
+**源码锚**: `lib/infrastructure/aio/src/hips/aio_hips_writer.cpp` 的 `aio_hips_write_signal_support_tile`
+（视图校验；缓冲；NESTED→FITS 序；归一；
+无效规则；FITS 写；MOC/面积登记，各段均在同一文件）。
 
 - (2a) 叶级局部索引映射：`fits_index(i) = nested_local_to_fits_index(i, 9, 512)`
-  （:463-465；三处 scatter 写点 :464/:604/:809 全部同式）。权威实现
-  lib/algorithms/shared/healpix/healpix_core.cpp:287-296：NESTED 交错位解（x=偶位、
-  y=奇位，nested_local_to_xy→nest_to_xy :272-275,37-54）后
+  （三处 scatter 写点全部同式）。权威实现
+  `lib/algorithms/shared/healpix/healpix_core.cpp`：NESTED 交错位解（x=偶位、
+  y=奇位，nested_local_to_xy→nest_to_xy）后
   `fits = (511−x)·512 + y`——即 DATA_SEMANTICS §3 冻结的 (511−x)·512+y
-  （CDS Hipsgen MAPTILES 对拍冻结，healpix_core.h:39-43 头注释）。tile 内
+  （CDS Hipsgen MAPTILES 对拍冻结，`lib/algorithms/shared/healpix/healpix_core.h` 头注释）。tile 内
   512×512，与父 cell parent_ipix（NESTED，Norder K）拼接出全局 HEALPix 索引。
-- (2b) 归一（与 SCI-DRZ-001 :145 support=D_p 语义一致，集合级细节由实现定，
+- (2b) 归一（与 SCI-DRZ-001 的 support=D_p 语义一致，集合级细节由实现定，
   DATA_SEMANTICS §4）：对 tile 内每局部像素 p（512²）：
-  `signal[p] = flux_sum[p] / covered_area[p]`（:1300），
-  `support[p] = covered_area[p]/A_cell`，`>1 钳 1.0`（:1301-1305）。
+  `signal[p] = flux_sum[p] / covered_area[p]`，
+  `support[p] = covered_area[p]/A_cell`，`>1 钳 1.0`（`lib/infrastructure/aio/src/hips/aio_hips_writer.cpp`）。
   **量纲（逐项）**：flux_sum [ADU]、covered_area [sr] ⇒ `signal` **[ADU/sr]**
   （面亮度，`FZ-UNIT-SIGNAL-SB` FROZEN；推导见 DATA_SEMANTICS §31.1a 量纲链表）；
   `support` **无量纲**（sr/sr，∈[0,1]）。**`signal` 的读法 = 面亮度 [ADU/sr]**；另一种读数是"每像素计数"
   （裸 ADU）：两者相差 1/A_cell 的立体角因子，且跨像元尺度不可比。
-- (2b-上游) Phase1 编排（module_adapters.cpp p1_op_writer）必须按 HISS 支持度
+- (2b-上游) Phase1 编排（`lib/infrastructure/scheduler/src/module_adapters.cpp` 的 p1_op_writer）必须按 HISS 支持度
   uint8 面连续缩放 `covered_area = (support/255)·A_cell`，并置 `valid_mask`=
   本 parent 实际触及叶像素（未覆盖偏移一律取未触及态，与上一 parent 缓冲无关）；
   **禁用** `support>0 ? A_cell : 0` 这一写法——它把任意部分覆盖塌缩为满覆盖
   （AIO 侧 `support=area/A_cell` 恒 1，负例判据）；provenance
   `covered_area_model="hiss_support_ratio_x_A_cell"`。
-- (2c) 无效规则（:476,:481-485）：当 `valid[p] && area[p]>0 && isfinite(flux[p])
-  && isfinite(area[p])` 为假 → signal=NaN、support=0（:483-485）；
-  signal_min/signal_max 遍历有限值更新（:481-482，供 properties
+- (2c) 无效规则（`lib/infrastructure/aio/src/hips/aio_hips_writer.cpp`）：当 `valid[p] && area[p]>0 && isfinite(flux[p])
+  && isfinite(area[p])` 为假 → signal=NaN、support=0；
+  signal_min/signal_max 遍历有限值更新（供 properties
   hips_data_range）。IEEE NaN 填充（无 FITS BLANK 整型卡）。
-- (2d) FITS tile：`write_fits_image` :171-238（vendored CFITSIO 4.6.4）——
-  先 `std::remove` 后 `fits_create_file`（:185-186，覆盖式直写，无临时
+- (2d) FITS tile：`write_fits_image`（vendored CFITSIO 4.6.4）——
+  先 `std::remove` 后 `fits_create_file`（覆盖式直写，无临时
   文件——原子发布属 IO-003 层，见 DISP-HIPS-004）；cards
   PIXTYPE=HEALPIX / ORDERING=NESTED / COORDSYS=C :194-196 +
-  OBJECT/FILTER/EXPTIME/DATE-OBS :197-204 + NSIDE/FIRSTPIX="0"/
-  LASTPIX="262143"（调用方 :505-506/:638-639/:804-805；声明性头卡，
-  DISP-HIPS-012）；`fits_write_pix` 行主序一次写 512×512（:220-225，
-  bitpix −32/−64 随 data_type）；`fits_write_chksum`（:230，DATASUM/
+  OBJECT/FILTER/EXPTIME/DATE-OBS + NSIDE/FIRSTPIX="0"/
+  LASTPIX="262143"（调用方三处同文件；声明性头卡，
+  DISP-HIPS-012）；`fits_write_pix` 行主序一次写 512×512（
+  bitpix −32/−64 随 data_type）；`fits_write_chksum`（DATASUM/
   CHECKSUM 完整性）。路径 `Norder{K}/Dir{(ipix/10000)*10000}/Npix{ipix}.fits`
   （IVOA REC-HIPS-1.0 §4.1；**禁用** Dir=商/Npix=余数这一与标准相反的映射；
   tile_rel_path 位于本文件 aio_hips_writer.cpp 的匿名命名空间内）。
-- (2e) 登记副作用：FITS 写失败 rc=−4（signal，:513）/−5（support，:521）；
-  MOC 叶级 cell（moc_cells.insert :528-529）、moc_area_sr += A_cell(K)
-  （:530）、covered_area_sr += tile_covered（:532）、leaf_ipix_list 追加
+- (2e) 登记副作用：FITS 写失败 rc=−4（signal）/−5（support）；
+  MOC 叶级 cell（moc_cells.insert）、moc_area_sr += A_cell(K)、
+  covered_area_sr += tile_covered、leaf_ipix_list 追加（均在同文件）
   （写序即 leaf 顺序）。
 
 ## 3. ALG-HIPS-003 — 方差/逆方差产品
 
-**源码锚**: aio_hips_writer.cpp `aio_hips_write_variance_tile` :1481-1659
-（参数校验 :573-584；缓冲 :590-600；主循环 :607-628；全无效 :629-632；
-FITS 写 :641-658；hierarchy 登记 :663-679）。SCI 锚：SCI-DRZ-001 :130
+**源码锚**: `lib/infrastructure/aio/src/hips/aio_hips_writer.cpp` 的 `aio_hips_write_variance_tile`
+（参数校验；缓冲；主循环；全无效；
+FITS 写；hierarchy 登记，各段同文件）。SCI 锚：SCI-DRZ-001 的 finalize_tile 段
 （finalize_tile 方差传播，方差分子已由 P1-DRZ 链生产，本模块只做除法归一）；
 DATA_SEMANTICS §4a（DATA-HIPS-VAR-001/DATA-HIPS-IVAR-001）。
 
 - (3a) 归一：条件 `valid && area>0 && vnum>0 && isfinite(area) &&
-  isfinite(vnum)`（:617-621）下 `variance[p] = var_num_sum[p] / (covered_area[p])²`、
-  `ivar[p] = 1 / variance[p]`（:618-621）；否则 variance=ivar=NaN（:615-616）。
+  isfinite(vnum)`（`lib/infrastructure/aio/src/hips/aio_hips_writer.cpp`）下 `variance[p] = var_num_sum[p] / (covered_area[p])²`、
+  `ivar[p] = 1 / variance[p]`；否则 variance=ivar=NaN（同文件）。
   var_n[i] 缓存（供 hierarchy）取 `vnum` 当 `valid && area>0 && vnum>0`
-  （:622-628，不含 isfinite——与写盘条件略有差，如实登记）。var_num_sum
-  语义=Σ v_j·w_jp²（drizzle 侧逐像素分子，astro_sphere_sink.cpp:100 传入），
+  （同文件，不含 isfinite——与写盘条件略有差，如实登记）。var_num_sum
+  语义=Σ v_j·w_jp²（drizzle 侧逐像素分子，`lib/algorithms/drizzle/healpix_drizzle/astro_sphere_sink.cpp` 传入），
   本模块不改传播公式（与 DISP-DRZ-007 的行漂移说明相接）。
-- (3b) 全无效 tile：该 tile 无任何有效样本 → 返回 −5（:629-632）**不写文件**
+- (3b) 全无效 tile：该 tile 无任何有效样本 → 返回 −5 **不写文件**
   （显式失败，不静默产空 tile；调用方须自行预判跳过——sink 侧对 −5 跳过
-  该 tile 计数 n_variance_skipped，astro_sphere_sink.cpp:123-144，不因此
-  abort）。参数校验 rc=−2（var_num_sum 缺失 :575-576）/−3（视图不匹配
-  :579）/−4（parent_ipix 越界 :584）。
-- (3c) FITS 写同 (2d)：`variance` 目录 tile 写失败 rc=−6（:648）、`ivar`
-  rc=−7（:658）。
-- (3d) hierarchy 登记：`acc.add_var(z, var_n[i])`（:664-679，add_var
-  :327-333 直接累加方差分子，权重恒 0 不另乘）。
+  该 tile 计数 n_variance_skipped，`lib/algorithms/drizzle/healpix_drizzle/astro_sphere_sink.cpp`，不因此
+  abort）。参数校验 rc=−2（var_num_sum 缺失）/−3（视图不匹配）
+  /−4（parent_ipix 越界）（均在同文件）。
+- (3c) FITS 写同 (2d)：`variance` 目录 tile 写失败 rc=−6、`ivar`
+  rc=−7。
+- (3d) hierarchy 登记：`acc.add_var(z, var_n[i])`（add_var
+  直接累加方差分子，权重恒 0 不另乘；均在同文件）。
 
 ## 4. ALG-HIPS-004 — hierarchy 低阶 tile 聚合
 
-**源码锚**: aio_hips_writer.cpp 叶级同步累加（signal tile 内与 variance tile 内
-同构段，`leaf_ipix_list.push_back` :1388/:1756）（AncestorAcc :780 起，
-add_var :840）；finalize 落盘 `finalize_hierarchy` :1972-1982
-（逐层循环内经 `write_hierarchy_cell` :976 写各阶 FITS，流式写出共用同一函数）。IVOA HiPS hierarchy
+**源码锚**: `lib/infrastructure/aio/src/hips/aio_hips_writer.cpp` 叶级同步累加（signal tile 内与 variance tile 内
+同构段，`leaf_ipix_list.push_back`）（AncestorAcc 与
+add_var 同文件）；finalize 落盘 `finalize_hierarchy`
+（逐层循环内经 `write_hierarchy_cell` 写各阶 FITS，流式写出共用同一函数）。IVOA HiPS hierarchy
 （上采样满足任意浏览器）的写出侧实现合同；SCI 层零覆盖（读侧 SCI-P3-001
 只规定消费），按实现+IVOA 语义登记。
 
 - (4a) 父索引下降：对叶 tile（阶 K，tile 阶 T=K−9）内局部 NESTED 索引 l
   （512×512 展平 2^18），对 k=T−1..0 降序：`z = ((s<<18)|l) >> 2(T−k)`
-  （:552-556，s=tile 内 NESTED 段），得阶 k 的父 cell 索引——标准 HEALPix
+  （同文件，s=tile 内 NESTED 段），得阶 k 的父 cell 索引——标准 HEALPix
   NESTED 4 分叉父子关系（Górski 2005）；叶 tile→父 cell 分离
-  `leaf_to_tile_nest = leaf_ipix >> 2(L−K)`（healpix_core.h:65-68）。
-- (4b) 逐父 cell 确定性累加（叶级缓存 :689-694、归约 :748-758）：
+  `leaf_to_tile_nest = leaf_ipix >> 2(L−K)`（`lib/algorithms/shared/healpix/healpix_core.h`）。
+- (4b) 逐父 cell 确定性累加（叶级缓存、归约，同文件）：
   `flux_n += sig·a`、`area_n += a`，其中 **`a` = 未钳制真实覆盖面积**
-  （叶级 `area_true`→`scratch_area_n`，:645/:670-694），`sig` = 发布面叶级
-  signal（f32 产品取 float 截断后的值，:689）。**归约权重取自未钳制真实覆盖面积；钳后的 support 只作发布值，不进入
+  （叶级 `area_true`→`scratch_area_n`），`sig` = 发布面叶级
+  signal（f32 产品取 float 截断后的值）。**归约权重取自未钳制真实覆盖面积；钳后的 support 只作发布值，不进入
   权重**：support 是 a/A_cell 的钳后发布值，用它反乘等于把父级面亮度降为
   sup 加权均值；异质覆盖（a>A_cell）下父级通量出现**本可避免的损失**
   （M2a-H-3；R-7 实测 sb=10@c=4 与 sb=0.1@c=1 混合域：面积加权 8.02 vs
   旧式 5.05，损失 37.032%→0）。方差分子直接累加
-  `var_n += var_num`（:734-747，add_var :465-472，var_num 本身已是
+  `var_n += var_num`（同文件，var_num 本身已是
   Σv_j w_jp² 分子，不另乘权）。AncestorAcc 保持 f32/f64 双轨（is_f32
   :444-457；**f32 产品用 float 累加 Σflux/Σarea——多子 tile 有舍入漂移
   风险，DISP-HIPS-009**）。同一父 cell 按叶写序单线程顺序累加（map 条目

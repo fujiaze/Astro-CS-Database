@@ -28,7 +28,7 @@
 | DATA-P3-FITS-001 | 平面 FITS | f32/f64 | [W_out,H_out] | 面亮度(禁默认 Jy/beam) | TAN/ICRS | NaN+coverage | persisted | FITS |
 | DATA-P1-PHOTPROV-001 | Phase1 测光 provenance sidecar(p1_phot.json; B2-A14 关闭伪造 PHOTAPPL) | 无标量(标签+比例) | n/a | **逐字段量纲**：`photometry_applied`/`pixel_scaling`/`status` 等标签 = 无量纲；**`photscal`（= `k_photo`）= `[F_syn 单位]/ADU`**（F_syn 单位 = 模型通带积分辐照度 `W·m^-2·nm^-1`，见 `docs/science/DATA_SEMANTICS.md` §14.3），**不是**无量纲、**不是**其倒数；`len(photscales)` 与 `frames[]` 的逐帧对应见 invalid 列 | n/a | 缺文件=未应用测光(允许显式 ADU 降级); schema≠DATA-P1-PHOTPROV-001 / photscal 非有限或≤0 → drizzle DATA 拒绝; PHOTAPPL=1 取显式值。该「缺文件」分支只允许是**显式**状态——CLI 链上 phot→drz 有 typed 依赖边（phot 输出端口 p1_phot → drz 输入端口 p1_phot, artifact:p1_phot），调度器保证 phot 落盘后才执行 drz，存在性判定 = typed 依赖边。**逐帧判决**：`frames[]` 逐帧记 `status ∈ {ok, fail}`，`status=fail` 必须带 `error_domain`/`error_status`（稳定错误码）/\`error\` 且 `photometry_applied=false`、不产出 `photoapplied_<base>`、不写 `degraded_reason`（失败≠降级）；`photometry_applied` 是**组级摘要**（至少一帧已施加，`pixel_scaling` ∈ applied/partial/none），逐帧真相只在 `frames[]`；不变量 `n_frames_ok + n_frames_failed == n_frames`、`len(photscales) == n_frames_applied`、`failed_frames` 与 `frames[]` 一致（门禁 `CHK-PROVENANCE-CONSISTENCY` P3b/P3b-2） | unique(p1_op_photometry 原子写) | JSON |
 | DATA-GAIA-001 | Gaia XPSD 星表行(C ABI 输出) | f64/i32/u8[] | [out_count]; 光谱 [out_count×spec_n] | deg,mag,W·m⁻²·nm⁻¹,nm | ICRS J2000 | out_match_idx=−1 未匹配; out_count=0 空结果合法; DR3 下 BP/RP=0 sentinel; 无光谱 flux_min/mul=0 | caller free(顶层 malloc) | in-memory(不落盘, §8.3) |
-| DATA-COV-001 | Phase2 coverage 联合 MOC(P2CoverageResult) | u64/u64 | union_cells [K](P2MocCell: order+ipix); K=n_union_cells 标量; inputs [n_inputs] | 无量纲(order/ipix) | HEALPix NESTED 父单元(ipix<12·4^order, 去重升序) | K=0 空结果合法(rc=0); 两阶段协议第一次调用不写 union_cells/inputs | caller free(调用方分配, coverage.h:27-48) | in-memory(不落盘) |
+| DATA-COV-001 | Phase2 coverage 联合 MOC(P2CoverageResult) | u64/u64 | union_cells [K](P2MocCell: order+ipix); K=n_union_cells 标量; inputs [n_inputs] | 无量纲(order/ipix) | HEALPix NESTED 父单元(ipix<12·4^order, 去重升序) | K=0 空结果合法(rc=0); 两阶段协议第一次调用不写 union_cells/inputs | caller free(调用方分配, coverage.h) | in-memory(不落盘) |
 | DATA-UNC-001 | Phase2/Phase3 不确定度产品合同容器(DATA_SEMANTICS §30, 目标态) | 容器(无标量) | n/a | n/a | 跨域(见各子 schema) | 合同先行（实现随后）; unavailable 显式登记模式 | owner(DATA-001 冻结) | DATA_SEMANTICS.md §30 |
 | DATA-P2-VAR-001 | Phase2 马赛克 variance/ivar 子产品(目标态) | f32/f64 | HEALPix NESTED 512 tile | **`ADU^2/sr^2` / `sr^2/ADU^2`**（面亮度方差/逆方差；立体角幂不可省，见 `docs/engineering/NUMERIC_STANDARD.md` 面亮度标度律） | ICRS | 无有效样本=NaN(signal=NaN 同态); 非有限合成=NaN; 禁 0/±Inf 伪装 | persisted(variance/,ivar/ 目录) | HiPS(AIO_HIPS_PRODUCT_VARIANCE=8/IVAR=16) |
 | DATA-P2-REJ-001 | Phase2 rejection 产品 nused/nrej + 逐样本接受掩码 sample_mask(目标态, 诊断统计平面 + integrate 原始样本索引资格载体) | int32 + u8 | HEALPix NESTED 512 tile + 逐 tile [depth×tile_span] | 无量纲计数 + 0/1 接受位 | ICRS | 无覆盖=0(禁 −1 哨兵); sample_mask 缺失/offset 错位/frame_slots 不符/字节∉{0,1} → integrate fail-closed(禁回退像素级 accepted); 逐帧 reason 级非目标 | persisted(nused/,nrej/ 目录; AIO 位 64/32 冻结分配; files.sample_mask=p2_rejection_sample_mask.bin) | HiPS(不入 exchange science planes 枚举) |
@@ -64,11 +64,11 @@
 上表末两行 `DATA-HIPS-001` / `DATA-TILE-001` 是**既存** ID 的登记行，
 **不引入新语义**：两 ID 已在 DATA_SEMANTICS §29.5（"DATA-HIPS-001/
 DATA-TILE-001（HiPS properties/tile 输入面）"）、生产 descriptor
-（lib/infrastructure/scheduler/src/module_adapters.cpp:498-499 与 :459/:498）、
-lib/infrastructure/pipeline/module_ports.registry.json:246/:277、
+（lib/infrastructure/scheduler/src/module_adapters.cpp 四处）、
+lib/infrastructure/pipeline/module_ports.registry.json 两处、
 端口合同页（`docs/detail/phase3_rsmp.md`、`docs/detail/phase3_proj.md`）、
-eng/tests/unit/core_pipeline_test.cpp:66-67 在用，并在
-docs/traceability/TRACEABILITY_MATRIX.csv:25/:31 登记为 `VERIFIED`。
+eng/tests/unit/core_pipeline_test.cpp 在用，并在
+docs/traceability/TRACEABILITY_MATRIX.csv 两行登记为 `VERIFIED`。
 
 登记行与冻结正文逐条对应，不新增/修改任何公式、单位、
 坐标系、精度或 invalid 规则。逐行正文锚点：
@@ -85,13 +85,13 @@ docs/traceability/TRACEABILITY_MATRIX.csv:25/:31 登记为 `VERIFIED`。
 - `DATA-TILE-001`（单 leaf tile 面）: 同上 §3 冻结映射（tile 内
   `fits_index=(511−x)·512+y`）与 SCI-P3-001 §9a-1/-8；descriptor 单位
   `UnitId::SURFACE_BRIGHTNESS`、坐标 `CoordinateFrame::HEALPIX`
-  （module_adapters.cpp:499）；"tile 读路径权威=DATA_SEMANTICS §3"
-  （docs/detail/phase3_rsmp.md:75）。
+  （module_adapters.cpp）；"tile 读路径权威=DATA_SEMANTICS §3"
+  （docs/detail/phase3_rsmp.md）。
 
 **端口词汇面偏差（登记 finding）**：`DATA-HIPS-001` 的
 coordinate 在端口词汇面存在两个值——`CoordinateFrame::PIXEL`
-（module_adapters.cpp:498）与 `CoordinateFrame::HEALPIX`
-（lib/infrastructure/scheduler/src/module_adapters.cpp:521/:560）。本表按冻结正文（§29.1/§3）登记
+（module_adapters.cpp）与 `CoordinateFrame::HEALPIX`
+（lib/infrastructure/scheduler/src/module_adapters.cpp 两处）。本表按冻结正文（§29.1/§3）登记
 HEALPix NESTED；PIXEL 一侧属端口词汇漂移（§29.5 已声明端口表只作对齐面、
 冻结依据取自冻结正文）。
 
@@ -112,7 +112,7 @@ HEALPix NESTED；PIXEL 一侧属端口词汇漂移（§29.5 已声明端口表�
 | `snr` | CW/sampler | 区域级 SNR 权重因子 snr_v² | SCI-CW-001 | 明确(与 ivar 语义分离) |
 | `value` (integrate) | integrate.h | 候选样本值 | DATA-IMG-CAL-001 标度 | 明确 |
 | `quality` | sampler | 帧/星点质量位掩码 | SCI-CW-001 | 明确 |
-| `k_corr` | sampler.cpp:83/:874-875 | Drizzle 协方差方差放大因子：域内 = k_gauss(N_retained)×k_geo 逐帧查表；1.4 = 代码默认（域外回退） | SCI-UPM-WEIGHT-001 | 明确 |
+| `k_corr` | sampler.cpp | Drizzle 协方差方差放大因子：域内 = k_gauss(N_retained)×k_geo 逐帧查表；1.4 = 代码默认（域外回退） | SCI-UPM-WEIGHT-001 | 明确 |
 
 结论：`weight` 在 integrate 与 UPM 两处语义已显式分离命名（`stack.*.v1` vs
 `upm.robust_control_weight.v1`），无未消除歧义；`scale/sigma/snr/value/quality` 均有

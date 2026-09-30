@@ -42,7 +42,7 @@ handler→内部会话 API 追溯(phase 为内部指代): normalize→API-003(�
 ## 3 stdout/stderr 纪律
 
 - 人类模式: stdout=简洁结果, stderr=日志/诊断;`--json`: stdout 恰一个 JSON 文档;运行事件流: stdout 每行一个 UTF-8 JSON 事件,禁夹普通文字;JSON 路径全 UTF-8(Windows 内部 Unicode 路径正确处理)。
-- **事件流 = 默认输出**（`ASTROCS_DESIGN.md` §7.2）：**不需要旗标开启**；GUI 用其它语言**直接捕获 CLI 输出**。`--events-jsonl` **保留接受**，语义**等价默认行为**（别名，`lib/infrastructure/cli/commands.cpp:2115`、`command_tree.h:43`）——**事件流的开启条件 = 默认行为本身**。
+- **事件流 = 默认输出**（`ASTROCS_DESIGN.md` §7.2）：**不需要旗标开启**；GUI 用其它语言**直接捕获 CLI 输出**。`--events-jsonl` **保留接受**，语义**等价默认行为**（别名，`lib/infrastructure/cli/commands.cpp`、`command_tree.h`）——**事件流的开启条件 = 默认行为本身**。
 - **stdout 无日志污染**为机器测试项(CLI-002 golden)。
 
 ## 4 JSONL 运行事件流 v1（**唯一 schema**）
@@ -106,9 +106,9 @@ handler→内部会话 API 追溯(phase 为内部指代): normalize→API-003(�
 `alloc_samples.csv` / `alloc_report.json`、节点科学产物)**只落 `output_dir`**;
 
 > **资源时序工件的唯一列合同**：
-> - **唯一列合同 = 生产实现** `lib/infrastructure/cli/resource_recorder.h:289-293`：**20 列**
+> - **唯一列合同 = 生产实现** `lib/infrastructure/cli/resource_recorder.h`：**20 列**
 >   `elapsed_seconds,stage,cpu_pct,system_cpu_pct,active_workers,runnable_workers,rss_bytes,pss_bytes,commit_bytes,page_faults,read_bytes,write_bytes,queue_depth,lock_wait_ns,progress,threads,active_compute_threads,per_thread_cpu_max_pct,per_thread_cpu_sum_pct,io_wait_pct`
->   （**run 收尾一次性落盘**，被 manifest / 目录树哈希覆盖）；`lib/infrastructure/cli/resource_events.h:6` 明文
+>   （**run 收尾一次性落盘**，被 manifest / 目录树哈希覆盖）；`lib/infrastructure/cli/resource_events.h` 明文
 >   「资源时序曲线的**唯一载体** = 磁盘工件 `resource_timeseries.csv`」。
 > - `docs/engineering/observability/RESOURCE_MONITORING_CONTRACT.md`（LOG-002）的「每秒采样 + seed 行 + 指纹链」
 >   CSV 是**监控伴随器的原始数据**，**不是同一工件** ⇒ 其工件名固定为 **`monitor_timeseries.csv`**。
@@ -136,7 +136,7 @@ UT-CLI `mutates_workspace=false` 的 dirty 判定。
 > 同时支持手动输入裁剪范围；GUI HiPS 浏览器的框选直接导出依赖此接口，接口须保留。
 > 上游：本文件 §1（命令树）/ §7（配置与 `output_dir`）+ `ASTROCS_DESIGN.md` §6/§7.2。
 > 设计正本：`docs/detail/PHASE3_DETAILED_DESIGN.md` §8；字段合同：
-> `eng/contracts/schemas/phase_config_export.schema.json#/$defs/export_crop`；
+> `eng/contracts/schemas/phase_config_export.schema.json` 的 `$defs/export_crop`；
 > 字段说明（`--help` 同源）：`lib/infrastructure/cli/session_commands.h` 的
 > `config_fields(SESSION_EXPORT)`。
 

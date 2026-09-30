@@ -11,17 +11,17 @@
   descriptor 无此 module_id，五函数经 P1Api 被 8 descriptor 工厂委托——
   lib/infrastructure/scheduler/src/module_adapters.cpp 的工厂注册面）。
 - 层级：assembly（编排），不设独立 DLL；构建 = 静态库 astrocs_phase1_session
-  （根 CMakeLists.txt:448-452）。
+  （根 CMakeLists.txt）。
 - 合同：DATA-P1-SESSION（DATA_SEMANTICS §16）/ API-P1-SESSION
   （PUBLIC_API「Phase1 装配会话 C API」节）/ 编排上游 API-P1-001
   （docs/engineering/PHASE1_API_V1.md FROZEN）。
 - 节点：canonical 4 段 io_read→calibrate→cosmetic→io_write
-  （p1_session.cpp:168/:195/:283/:319；eng/tests/unit/p1_ir_facade_test.cpp:33-40
-  断言）；科学实现委托 ac_calibrate_frame（:243）/ac_correct_frame（:294）。
+  （p1_session.cpp 四段；eng/tests/unit/p1_ir_facade_test.cpp
+  断言）；科学实现委托 ac_calibrate_frame / ac_correct_frame（均在 p1_session.cpp）。
 - 外部输入：config JSON 键集（§16.1）/host services 四通道
-  （common_abi_v1.h:110-117）/FITS·XISF 读帧/FITS 写帧。
+  （common_abi_v1.h）/FITS·XISF 读帧/FITS 写帧。
 - 并发：threadsafe:no（handle 级）+ reentrant:yes；budget.max_workers
-  注入 ac_set_num_threads（:162-165，禁硬编码）。
+  注入 ac_set_num_threads（p1_session.cpp，禁硬编码）。
 - 错误：ACS_ERR_*（PARAM/ABI_MISMATCH/NOMEM/IO/CANCELLED/INTERNAL…）；
   manifest 状态机 created→complete/failed。
 - 已知差距：API-P1-001 冻结 7-stage vs 现状 4 段（CAL+COS）——如实

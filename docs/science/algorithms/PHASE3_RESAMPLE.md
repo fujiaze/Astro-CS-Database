@@ -66,8 +66,8 @@ G5 (ALG-P3-004) FITS 写:
   # 依据 DATA_SEMANTICS §31.1/§31.1a（FZ-UNIT-SIGNAL-SB FROZEN）：重采样值是输入
   # tile 值的凸组合 ⇒ 与输入同量纲（面亮度）；'ADU/sr' 是计数按立体角归一的合法串，
   # 裸 'ADU' 是每像素计数口径（与数值不符且量纲不可判）；§31.1a 同时否定 'ADU/px^2'。
-  # 实现锚：p3_resample.cpp p3_sampler_open_ex（缺省串）→ p3_session.cpp:396 透传
-  # → p3_output.cpp:284/351/675（写盘缺省同串）。
+  # 实现锚：p3_resample.cpp p3_sampler_open_ex（缺省串）→ p3_session.cpp 透传
+  # → p3_output.cpp 三处（写盘缺省同串）。
   WCS: G1 全量 + CTYPE=RA---<proj>/DEC--<proj> + CUNIT=deg
   (<proj> 取自已校验 projection, alpha 唯一合法值 "TAN";
    未实现投影在写前 fail-closed, 不落任何 FITS)
@@ -96,7 +96,7 @@ function phase3_resample(hips_dir, params):
   validate(params): frame=icrs, W,H∈[1,20000], s_out>0, |center.Dec|≤85°(距极点 ≥5°), pixfrac N/A
     # |center.Dec| ≤ 85°（离两极 ≥5°），与 SCI-P3 §4 的 abs(dec)<=85° 一致。
   order_sel = G3(props.hips_order, W=props.hips_tile_width, s_out)
-  cd = G1(params); tiles = TileCache(order_sel)        # 有界 **LRU** 缓存（SharedTileCache：get 时 splice 到表头 = 访问序更新，超容逐出表尾；跨 worker 共享 + 负缓存 + 每 sampler 8 槽热缓存；p3_resample.cpp:63-122、p3_sampler_attach_cache cpp:235）
+  cd = G1(params); tiles = TileCache(order_sel)        # 有界 **LRU** 缓存（SharedTileCache：get 时 splice 到表头 = 访问序更新，超容逐出表尾；跨 worker 共享 + 负缓存 + 每 sampler 8 槽热缓存；p3_resample.cpp 与 `p3_sampler_attach_cache`）
   parallel for row_band in rows(out):                  # worker pool by affinity, 禁硬编码线程数
     if cancelled(row_band): return CANCELLED           # 行带粒度
     for y in row_band:
@@ -198,8 +198,8 @@ function phase3_resample(hips_dir, params):
 ## U 承接：`uncertainty_available=false`（fail-closed 唯一出口）
 
 本层产出/消费不确定度子产品时，`uncertainty_available=false` 的处置**承接
-`docs/science/DATA_SEMANTICS.md` §30 的 fail-closed 唯一出口**（规则
-`:2733-2740`；显式登记 `:2837-2839`）：输入面不含 variance/ivar 子产品
+`docs/science/DATA_SEMANTICS.md` §30 的 fail-closed 唯一出口**（§30 规则面；
+同节显式登记面）：输入面不含 variance/ivar 子产品
 （或权重非纯逆方差、发生 fallback、合成输入非有限被拒等规则项）⇒ **不写**
 variance/ivar 子产品 + manifest 写 `uncertainty_available=false` +
 diagnostics 标红计数；**该键不是失败态**，是 unavailable 显式登记模式

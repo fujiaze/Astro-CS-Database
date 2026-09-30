@@ -118,7 +118,7 @@ flowchart LR
 |---|---|
 | 构建 | Linux/Windows Release 构建、安装树、打包 |
 | 静态 | 格式（clang-format）、编译警告（W4/Wall）、静态分析 |
-| 文档一致性 | AGENTS.md 硬禁令存在、模块 manifest/注册表/构建 target/产品清单一致、端口引用有效合同、算法引用有效 SCI/ALG、核心合同有独立测试、无悬空引用、无陈旧版本号/历史状态冒充 |
+| 文档一致性 | AGENTS.md 硬禁令存在、模块 manifest/注册表/构建 target/产品清单一致、端口引用有效合同、核心合同有独立测试（文档域不设机器门，其余条目见 `01_CHECKS.md` §2） |
 | 单元/模块 | 每模块单测、Oracle、不变量、负例 |
 | 合同/ABI | C ABI 兼容、schema 校验、双平台允许误差 |
 | 科学 | 合成全链（normalize/mosaic/export 分别）、ISA 等价、1 vs N worker 一致 |
@@ -247,6 +247,6 @@ flowchart TD
 
 普查表落 `实验/engineering-evidence/`（机器可读面由检查器现场产出，落点按
 `ENGINEERING_SPEC.md` §7 的运行产物规则）；适用面判绿即假绿风险，检查判红。
-显式登记豁免（`SILENT_OK_UNITS`：`API-DOCS`、`UNIT-CLOSURE`）
-在表中标注来源，不冒充已覆盖。
+显式登记豁免（`SILENT_OK_UNITS`：`UNIT-CLOSURE`）
+在表中标注来源，不冒充已覆盖。文档域检查项已整体撤销、不再参与普查，其原豁免登记随之作废。
 

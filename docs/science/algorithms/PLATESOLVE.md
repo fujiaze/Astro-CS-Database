@@ -21,7 +21,7 @@ F5: Y-down: cd12,cd22 取反; A'=A·(-1)^j, B'=−B·(-1)^j, AP/BP 同规则
 F6: 投影 TAN + SIP畸变 + J2000, 极区 Lipschitz C=π/2 / C45=π/(2√2) conservative prune
 ```
 
-来源: `ipv_wcs.cpp:153-576` `ipv_select.cpp:723` `gaia_client.c:polar_plane_intersects`
+来源: `lib/algorithms/platesolve/cpp/ipv/src/ipv_wcs.cpp` `lib/algorithms/platesolve/cpp/ipv/src/ipv_select.cpp` `gaia_client.c:polar_plane_intersects`
 
 ## 3 伪代码
 
@@ -32,7 +32,7 @@ function solve_wcs(detections, gaia):
   matches = kd_match(triangles, gaia_triangles) tol=5.0"
   for each hypothesis:
     trans = iterative_reproject(matches) conv 0.01" max5 (ipv_solver.cpp)
-    sip = build_sip(trans) order 2-3, IRLS 15× ε1e-6 Huber 1.345 (ipv_sip.cpp:238-261)
+    sip = build_sip(trans) order 2-3, IRLS 15× ε1e-6 Huber 1.345 (lib/algorithms/platesolve/cpp/ipv/src/ipv_sip.cpp)
     wcs = compose(CRPIX,CRVAL,CD, sip, Y-down)
     rms = residual(wcs, matches)
   best = min rms, rank by n_matches + rms
@@ -180,11 +180,11 @@ Polar prune: if |dec|>45° use C/C45 disk B(q,C·radius), false_negative=0
 
 ## 9 容差来源
 
-- 收敛 0.01" (pixel/3600)：`ipv_solver.cpp:199 CONV_THRESH_ARCSEC = 0.01`，判据
-  `√(x00²+y00²) < 0.01″`（`ipv_solver.cpp:19`）。**量纲 arcsec**；
+- 收敛 0.01" (pixel/3600)：`lib/algorithms/platesolve/cpp/ipv/src/ipv_solver.cpp` 的 `CONV_THRESH_ARCSEC = 0.01`，判据
+  `√(x00²+y00²) < 0.01″`（同文件）。**量纲 arcsec**；
   **适用域**：该值只约束迭代重投影的**自洽收敛**，不是天测精度界——
   产品级天测精度门另立（G-P1-WCS-CLOSURE，阈值 UNJUSTIFIED）。
-- 三角形匹配容差 5.0″：`ipv_solver.cpp:660` 实参。**量纲 arcsec**；
+- 三角形匹配容差 5.0″：`lib/algorithms/platesolve/cpp/ipv/src/ipv_solver.cpp` 实参。**量纲 arcsec**；
   **阈值来源 UNJUSTIFIED**（无推导、未随像素尺度归一），登记为待标定项，
   标定前其引用面 = 待标定项登记。
 - 尺度容差 0.002（各向异性 0.2%）：**阈值来源 UNJUSTIFIED**，登记为待标定项。
@@ -192,10 +192,10 @@ Polar prune: if |dec|>45° use C/C45 disk B(q,C·radius), false_negative=0
   Gaussian 的渐近效率为 **95%**（Huber, P. J. 1964, Ann. Math. Statist. 35, 73,
   DOI 10.1214/aoms/1177703732；效率表见 Holland & Welsch 1977, Comm. Statist.
   Theor. Meth. 6, 813, DOI 10.1080/03610927708827533 §2）。实现锚
-  `ipv_sip.cpp:242`：`delta = 1.345 × median_abs_r`。
+  `lib/algorithms/platesolve/cpp/ipv/src/ipv_sip.cpp`：`delta = 1.345 × median_abs_r`。
   **适用域**：`δ = 1.345·MAD(|r|)` 要求残差近似对称且尺度由 MAD 稳健估计；
   非对称/重尾残差下 95% 效率结论不成立。
-- IRLS 迭代上限 15、收敛 ε 1e-6：`ipv_sip.cpp:408-409`（`IRLS_MAX_ITER`、
+- IRLS 迭代上限 15、收敛 ε 1e-6：`lib/algorithms/platesolve/cpp/ipv/src/ipv_sip.cpp`（`IRLS_MAX_ITER`、
   `IRLS_CONV_EPS`）。**阈值来源 UNJUSTIFIED**；该路径经 DISP-WCS-003 登记为
   **非生产**（生产走 `extract_wcs_sip` 的采样网格解析路径），本条只描述
   非生产实现，生产精度依据只取生产路径的实测值。
@@ -213,61 +213,60 @@ Polar prune: if |dec|>45° use C/C45 disk B(q,C·radius), false_negative=0
 ### 11.1 ALG-WCS-001 逐符号锚
 
 生产通道 = orchestrator PLATESOLVE 阶段直调 `ipv_solve_from_detections_v1`
-（DLL=ipv_solver.dll，MinGW/MSYS2 g++ 构建 `build.ps1:27` / `Makefile:6`，
+（DLL=ipv_solver.dll，MinGW/MSYS2 g++ 构建 `build.ps1` / `Makefile`，
 `-fopenmp -O3`）；消费 PSF 产出 star_measurements 权威块。行号均 grep 实测。
 
 | 符号 | 锚 | 角色 |
 |---|---|---|
-| ipv_solve_create | ipv_entry.cpp:369（声明 ipv_api.h:113） | 句柄生命周期 |
-| ipv_solve_destroy | ipv_entry.cpp:381（ipv_api.h:116） | 句柄释放 |
-| ipv_set_gaia_handle | ipv_entry.cpp:392（ipv_api.h:119） | Gaia 句柄注入 |
-| ipv_set_detector_handle | ipv_entry.cpp:405（ipv_api.h:122） | sdet 句柄注入 |
-| ipv_get_default_params | ipv_entry.cpp:418（ipv_api.h:227） | IpvParams 默认值（log_dir 空=无日志） |
-| ipv_get_last_inlier_count | ipv_entry.cpp:459（ipv_api.h:253） | inlier 计数查询 |
-| ipv_get_last_inliers | ipv_entry.cpp:473（ipv_api.h:261） | inlier 9 列缓冲（ipv_api.h:232-250：det_x/det_y/gaia_ra/gaia_dec/pred_x/pred_y/residual_x/residual_y/residual_dist） |
-| ipv_solve | ipv_entry.cpp:490（ipv_api.h:126） | 文件路径入口（非生产） |
-| ipv_solve_from_memory | ipv_entry.cpp:525（ipv_api.h:139） | PipelineFrame 内存入口 |
-| **ipv_solve_from_detections_v1** | ipv_entry.cpp:675（ipv_api.h:175） | **生产入口**（检测坐标 double 数组直入） |
-| ipv_solve_from_memory_with_callback | ipv_entry.cpp:720（ipv_api.h:194） | 回调进度变体 |
-| ipv_solve_from_memory_with_callback_d | ipv_entry.cpp:767（ipv_api.h:211） | 回调变体 FP64 |
-| do_solve_from_detections_v1_impl | ipv_entry.cpp:581 | 参数装配 → IPVSolver::solve_from_memory；try/catch → set_error_msg（:188，:251-262/:288-299） |
-| IPVSolver::solve_from_memory | ipv_solver.cpp:781 | 主求解流程（入口日志 :794） |
-| 选星 + U 构建 | ipv_select.cpp:787-837（`select_image_stars`：非饱和候选按 mag(box积分) 升序取前 img_n_target，§4a.1）、:840-852（样本不足报错，点名 n_detected/n_saturated/n_unsat） | U=(det_x−cx, −(det_y−cy)) 像素、Y-up、原点图像中心；s0=206.265·pixel_um/focal_mm（:57,:282） |
-| 密度/目标星数 | ipv_select.cpp:260-330（`compute_fov_density`，rho_img 分子 = 实际样本基数，§4a.2） | n_target = min(60, max(50, round(ρ_target·query_area/img_area))) |
-| 极限星等迭代与交付 | ipv_select.cpp:374-556（`estimate_mag_lim_iterative`，§4a.3/§4a.4 空扫描 provenance）、:600-664（`gaia_query_mag_iterative`：空扫描/触顶样本 fail-closed） | 空结果向更暗步进；全空扫描 empty_sweep；触顶样本一律走显式错误 |
-| 错误串编码归一 | ipv_entry.cpp:320-370（`utf8_safe_copy`，§4b）、:186-193（`set_error_msg`）、:179-185（`to_c_result`） | error_msg 恒为合法 UTF-8：码点边界截断 + 非法字节替换为 '?' |
-| 三角形投票 | ipv_triangle.cpp:296-357 | 线程局部投票矩阵（:296-300）+ omp for schedule(dynamic,64)（:309-311）+ 整数归并 collapse(2) schedule(static)（:347-357） |
-| iter_trans_solve | ipv_itertrans.cpp:974 | 迭代重投影多项式拟合（order 1→3） |
-| robust_refine_wcs | 调用点 ipv_solver.cpp:692-712；irls_fit_one_step ipv_robust_refine.cpp:661 | 稳健扩增精化（CD 阻尼 + Tukey biweight；佐证链：`docs/engineering/SCIENTIFIC_REFERENCES.md` §E 20 Mosteller & Tukey 1977、§F 37 Beaton & Tukey 1974 biweight 原始出处），失败回退不破坏主解 |
-| extract_wcs_sip | ipv_wcs.cpp:229 | WCS+SIP 提取（生产路径） |
-| CD = trans 线性项/3600 | ipv_wcs.cpp:256-266 | 度/像素（F2） |
-| CRVAL/CRPIX 冻结 | ipv_wcs.cpp:264-277 | CRPIX=w/2+0.5, h/2+0.5（1-based，F1） |
-| ctype 选择 | ipv_wcs.cpp:283-290 | order≤1 → RA---TAN/DEC--TAN；否则 -SIP 后缀 |
-| SIP A/B 解析 | ipv_wcs.cpp:322-365 | cd_inv=inv(trans 线性项)（det<1e-15 warn :322-325）；A[i*6+j]=cd_inv·trans.x_ij（F3） |
-| SIP AP/BP 网格反变换 | ipv_wcs.cpp:395-527 | 采样网格 ≥7×7（实现 AP/BP 41×41 阶 5；APx/BPx 81×81 阶 7，DISP-WCS-008）最小二乘；AP[6]−=1、BP[1]−=1（:505-509，F4）；奇异仅 warn（:521-523） |
-| RMS 统计 | ipv_wcs.cpp:484-516 | rms_arcsec=√(Σr²/n)；rms_px=rms_arcsec/s0 |
-| Y-down 输出转换 | ipv_wcs.cpp:528-576 | cd12/cd22 取反（:542-544）；A/B/AP/BP 符号规则（:546-571，F5） |
-| inlier 缓存 | ipv_solver.cpp:756-764 | cache_last_inliers_（WCS Gate v2 双层闭环） |
-| orchestrator 过滤+坐标契约 | orchestrator.cpp:1855-1876 | star_measurements [N,≥15] FLOAT64；status∈{0,3}、sat r[13]、fwhm r[7]∈[0.5,20]、边缘 5px；**+0.5 转换 :1867**（统一契约 index-is-center → IPV 接口契约 center=index+0.5）；sdet fallback 坐标已是 +0.5 契约（:1878） |
-| orchestrator 调用与写回 | orchestrator.cpp:1967-2049 | 求解调用 :1967；失败 → PLATESOLVE_FAILED :1980；CTYPE/CRVAL/CRPIX/CD + RADESYS=ICRS/EQUINOX=2000 写回 :2003-2010；SIP A/B/AP/BP 写回 :2017-2049 |
+| ipv_solve_create | lib/algorithms/platesolve/cpp/ipv/src/ipv_entry.cpp（声明 `lib/algorithms/platesolve/cpp/ipv/include/ipv_api.h`） | 句柄生命周期 |
+| ipv_solve_destroy | lib/algorithms/platesolve/cpp/ipv/src/ipv_entry.cpp（ipv_api.h） | 句柄释放 |
+| ipv_set_gaia_handle | lib/algorithms/platesolve/cpp/ipv/src/ipv_entry.cpp（ipv_api.h） | Gaia 句柄注入 |
+| ipv_set_detector_handle | lib/algorithms/platesolve/cpp/ipv/src/ipv_entry.cpp（ipv_api.h） | sdet 句柄注入 |
+| ipv_get_default_params | lib/algorithms/platesolve/cpp/ipv/src/ipv_entry.cpp（ipv_api.h） | IpvParams 默认值（log_dir 空=无日志） |
+| ipv_get_last_inlier_count | lib/algorithms/platesolve/cpp/ipv/src/ipv_entry.cpp（ipv_api.h） | inlier 计数查询 |
+| ipv_get_last_inliers | lib/algorithms/platesolve/cpp/ipv/src/ipv_entry.cpp（ipv_api.h） | inlier 9 列缓冲（ipv_api.h 的 inlier 行结构：det_x/det_y/gaia_ra/gaia_dec/pred_x/pred_y/residual_x/residual_y/residual_dist） |
+| ipv_solve | lib/algorithms/platesolve/cpp/ipv/src/ipv_entry.cpp（ipv_api.h） | 文件路径入口（非生产） |
+| ipv_solve_from_memory | lib/algorithms/platesolve/cpp/ipv/src/ipv_entry.cpp（ipv_api.h） | PipelineFrame 内存入口 |
+| **ipv_solve_from_detections_v1** | lib/algorithms/platesolve/cpp/ipv/src/ipv_entry.cpp（ipv_api.h） | **生产入口**（检测坐标 double 数组直入） |
+| ipv_solve_from_memory_with_callback | lib/algorithms/platesolve/cpp/ipv/src/ipv_entry.cpp（ipv_api.h） | 回调进度变体 |
+| ipv_solve_from_memory_with_callback_d | lib/algorithms/platesolve/cpp/ipv/src/ipv_entry.cpp（ipv_api.h） | 回调变体 FP64 |
+| do_solve_from_detections_v1_impl | lib/algorithms/platesolve/cpp/ipv/src/ipv_entry.cpp | 参数装配 → IPVSolver::solve_from_memory；try/catch → set_error_msg（同文件） |
+| IPVSolver::solve_from_memory | lib/algorithms/platesolve/cpp/ipv/src/ipv_solver.cpp | 主求解流程（含入口日志） |
+| 选星 + U 构建 | lib/algorithms/platesolve/cpp/ipv/src/ipv_select.cpp（`select_image_stars`：非饱和候选按 mag(box积分) 升序取前 img_n_target，§4a.1；样本不足报错点名 n_detected/n_saturated/n_unsat） | U=(det_x−cx, −(det_y−cy)) 像素、Y-up、原点图像中心；s0=206.265·pixel_um/focal_mm（同文件） |
+| 密度/目标星数 | lib/algorithms/platesolve/cpp/ipv/src/ipv_select.cpp（`compute_fov_density`，rho_img 分子 = 实际样本基数，§4a.2） | n_target = min(60, max(50, round(ρ_target·query_area/img_area))) |
+| 极限星等迭代与交付 | lib/algorithms/platesolve/cpp/ipv/src/ipv_select.cpp（`estimate_mag_lim_iterative`，§4a.3/§4a.4 空扫描 provenance；`gaia_query_mag_iterative`：空扫描/触顶样本 fail-closed） | 空结果向更暗步进；全空扫描 empty_sweep；触顶样本一律走显式错误 |
+| 错误串编码归一 | lib/algorithms/platesolve/cpp/ipv/src/ipv_entry.cpp（`utf8_safe_copy`，§4b；`set_error_msg`；`to_c_result`） | error_msg 恒为合法 UTF-8：码点边界截断 + 非法字节替换为 '?' |
+| 三角形投票 | lib/algorithms/platesolve/cpp/ipv/src/ipv_triangle.cpp | 线程局部投票矩阵 + omp for schedule(dynamic,64) + 整数归并 collapse(2) schedule(static) |
+| iter_trans_solve | lib/algorithms/platesolve/cpp/ipv/src/ipv_itertrans.cpp | 迭代重投影多项式拟合（order 1→3） |
+| robust_refine_wcs | 调用点 lib/algorithms/platesolve/cpp/ipv/src/ipv_solver.cpp；irls_fit_one_step lib/algorithms/platesolve/cpp/ipv/src/ipv_robust_refine.cpp | 稳健扩增精化（CD 阻尼 + Tukey biweight；佐证链：`docs/engineering/SCIENTIFIC_REFERENCES.md` §E 20 Mosteller & Tukey 1977、§F 37 Beaton & Tukey 1974 biweight 原始出处），失败回退不破坏主解 |
+| extract_wcs_sip | lib/algorithms/platesolve/cpp/ipv/src/ipv_wcs.cpp | WCS+SIP 提取（生产路径） |
+| CD = trans 线性项/3600 | lib/algorithms/platesolve/cpp/ipv/src/ipv_wcs.cpp | 度/像素（F2） |
+| CRVAL/CRPIX 冻结 | lib/algorithms/platesolve/cpp/ipv/src/ipv_wcs.cpp | CRPIX=w/2+0.5, h/2+0.5（1-based，F1） |
+| ctype 选择 | lib/algorithms/platesolve/cpp/ipv/src/ipv_wcs.cpp | order≤1 → RA---TAN/DEC--TAN；否则 -SIP 后缀 |
+| SIP A/B 解析 | lib/algorithms/platesolve/cpp/ipv/src/ipv_wcs.cpp | cd_inv=inv(trans 线性项)（det<1e-15 warn）；A[i*6+j]=cd_inv·trans.x_ij（F3） |
+| SIP AP/BP 网格反变换 | lib/algorithms/platesolve/cpp/ipv/src/ipv_wcs.cpp | 采样网格 ≥7×7（实现 AP/BP 41×41 阶 5；APx/BPx 81×81 阶 7，DISP-WCS-008）最小二乘；AP[6]−=1、BP[1]−=1（F4）；奇异仅 warn |
+| RMS 统计 | lib/algorithms/platesolve/cpp/ipv/src/ipv_wcs.cpp | rms_arcsec=√(Σr²/n)；rms_px=rms_arcsec/s0 |
+| Y-down 输出转换 | lib/algorithms/platesolve/cpp/ipv/src/ipv_wcs.cpp | cd12/cd22 取反；A/B/AP/BP 符号规则（F5） |
+| inlier 缓存 | lib/algorithms/platesolve/cpp/ipv/src/ipv_solver.cpp | cache_last_inliers_（WCS Gate v2 双层闭环） |
+| orchestrator 过滤+坐标契约 | `lib/infrastructure/pipeline/orchestrator/cpp/src/orchestrator.cpp` | star_measurements [N,≥15] FLOAT64；status∈{0,3}、sat r[13]、fwhm r[7]∈[0.5,20]、边缘 5px；**+0.5 转换**（统一契约 index-is-center → IPV 接口契约 center=index+0.5）；sdet fallback 坐标已是 +0.5 契约 |
+| orchestrator 调用与写回 | `lib/infrastructure/pipeline/orchestrator/cpp/src/orchestrator.cpp` | 求解调用；失败 → PLATESOLVE_FAILED；CTYPE/CRVAL/CRPIX/CD + RADESYS=ICRS/EQUINOX=2000 写回；SIP A/B/AP/BP 写回（同一文件） |
 
 ### 11.2 返回码/失败语义（含像素中心契约）
 
 - C ABI 层：ipv_solve_from_detections_v1 返回 0=失败/1=成功；result->success
-  0/1；error_msg[256] 由 set_error_msg（ipv_entry.cpp:141）在 NULL 参数、
-  C++ 异常路径填充（:181-187/:218-224）；success=1 时 IpvWcsResult POD
-  （ipv_api.h:39-61：cd[4]/crval[2]/crpix[2](1-based)/sip_a·b·ap·bp[36]/
+  0/1；error_msg[256] 由 set_error_msg（lib/algorithms/platesolve/cpp/ipv/src/ipv_entry.cpp）在 NULL 参数、
+  C++ 异常路径填充（同文件）；success=1 时 IpvWcsResult POD
+  （`lib/algorithms/platesolve/cpp/ipv/include/ipv_api.h`：cd[4]/crval[2]/crpix[2](1-based)/sip_a·b·ap·bp[36]/
   rms_px/rms_arcsec/n_pairs/trans_order/ctype[2]）为唯一权威输出。
 - 求解器层：三角形匹配 0 匹配或 iter_trans_solve 全阶失败
-  （ipv_solver.cpp:901-941）→ fail_result（trans_order=0, success=false）
+  （lib/algorithms/platesolve/cpp/ipv/src/ipv_solver.cpp`）→ fail_result（trans_order=0, success=false）
   显式返回，不抛异常不崩溃。
-- 编排层（orchestrator.cpp）：DLL 未加载 :1763；data 块缺失 →
-  BLOCK_MISSING :1814；star_measurements 缺失/格式错 → BLOCK_MISSING
-  :1832；过滤后 0 星 → BLOCK_MISSING :1896；求解失败 → PLATESOLVE_FAILED
-  :1980。
+- 编排层（`lib/infrastructure/pipeline/orchestrator/cpp/src/orchestrator.cpp`）：DLL 未加载；data 块缺失 →
+  BLOCK_MISSING；star_measurements 缺失/格式错 → BLOCK_MISSING；
+  过滤后 0 星 → BLOCK_MISSING；求解失败 → PLATESOLVE_FAILED（同一文件）。
 - **像素中心双契约**：统一契约（star_measurements，index-is-center）与
-  IPV 接口契约（center=index+0.5）由 orchestrator :1867 显式 +0.5 转换
-  桥接；sdet fallback 坐标已在 +0.5 契约（:1878）。消费方对 IpvWcsResult/
+  IPV 接口契约（center=index+0.5）由 `lib/infrastructure/pipeline/orchestrator/cpp/src/orchestrator.cpp` 显式 +0.5 转换
+  桥接；sdet fallback 坐标已在 +0.5 契约（同文件）。消费方对 IpvWcsResult/
   inlier 缓冲坐标必须按 +0.5 契约解读（CRPIX 1-based 与其自洽）。
 - 线程安全：solver 句柄级互斥使用；gaia/detector 句柄由调用方保证生存期；
   无内部锁。
@@ -275,31 +274,31 @@ Polar prune: if |dec|>45° use C/C45 disk B(q,C·radius), false_negative=0
 ### 11.3 现状缺陷清单（DISP-WCS-001..008，登记不改码，整改归 P1-WCS-IMPL/INT）
 
 - DISP-WCS-001 CD/线性变换退化静默坍缩（R1 登记项，失败-置信度语义核心）：
-  lib/algorithms/photometry/cpp/src/wcs_transform.cpp:39-49 构造时
+  `lib/algorithms/photometry/cpp/src/wcs_transform.cpp` 构造时
   det<1e-15 → cdInv 全零 + 仅 stderr 警告，pixelToSky/skyToPixel 输出坍缩
-  到 CRPIX−1 附近，无错误码无标志位；同族 lib/algorithms/platesolve/wrapper_phase1/wcs_tan.cpp:48-51
+  到 CRPIX−1 附近，无错误码无标志位；同族 `lib/algorithms/platesolve/wrapper_phase1/wcs_tan.cpp`
   det<1e-30 → 直接返回 CRPIX 且零日志。调用方无法区分"真解≈CRPIX"与
   "退化坍缩=CRPIX"（wcs_transform 输出恒 CRPIX−1，0-based，更不可判）。
   失败-置信度语义契约：**CD det 退化必须视为求解失败（success=0），解的取值面 = 显式失败，不
   以 CRPIX 坍缩值冒充解**——本语义由 P1-WCS-IMPL 落地、P1-WCS-TEST 按
   TEST-WCS-DESIGN-001 F4 验收。
 - DISP-WCS-002 wcs_transform 错误通道缺失族：tanWorldToIntermediate
-  :148-170 cosc<1e-12 → xi=eta=1e6 哨兵（:154-155）无标志位；skyToPixel
-  缺 AP/BP 时 3 迭代牛顿近似（:221-240）无收敛判据——均静默返回可疑值。
+  cosc<1e-12 → xi=eta=1e6 哨兵无标志位；skyToPixel
+  缺 AP/BP 时 3 迭代牛顿近似无收敛判据——均静默返回可疑值（同文件）。
 - DISP-WCS-003 双 SIP 拟合路径并存：生产 extract_wcs_sip（TRANS 解析 A/B
-  + 采样网格 ≥7×7（实现 AP/BP 41×41 阶 5；APx/BPx 81×81 阶 7，DISP-WCS-008）反变换 AP/BP，ipv_wcs.cpp:322-478）与非生产 fit_sip IRLS+Huber
-  （ipv_sip.cpp:268；irls_huber_fit :161-263，δ=1.345·MAD :241），后者仅被非生产
-  build_wcs（ipv_wcs.cpp:157-165，AP/BP 显式清零）消费；两实现行为漂移，
+  + 采样网格 ≥7×7（实现 AP/BP 41×41 阶 5；APx/BPx 81×81 阶 7，DISP-WCS-008）反变换 AP/BP，`lib/algorithms/platesolve/cpp/ipv/src/ipv_wcs.cpp`）与非生产 fit_sip IRLS+Huber
+  （`lib/algorithms/platesolve/cpp/ipv/src/ipv_sip.cpp` 的 `irls_huber_fit`，δ=1.345·MAD），后者仅被非生产
+  build_wcs（`lib/algorithms/platesolve/cpp/ipv/src/ipv_wcs.cpp`，AP/BP 显式清零）消费；两实现行为漂移，
   去留归 P1-WCS-IMPL。
-- DISP-WCS-004 AP/BP 拟合奇异半静默：ipv_wcs.cpp:477 仅 logger warn（写
+- DISP-WCS-004 AP/BP 拟合奇异半静默：`lib/algorithms/platesolve/cpp/ipv/src/ipv_wcs.cpp` 仅 logger warn（写
   日志文件），IpvWcsResult 无拟合失败标志位——ap_order=0 无法区分"线性
-  解"与"网格拟合失败"；cd_inv det<1e-15 跳过 SIP（:322-325）同理。
-- DISP-WCS-005 取消检查点缺失 + OpenMP 未接 ThreadBudget：ipv_triangle
-  .cpp:302/:347、ipv_select.cpp:1226/:1526/:1803/:2137 等 #pragma omp 无
+  解"与"网格拟合失败"；cd_inv det<1e-15 跳过 SIP（同文件）同理。
+- DISP-WCS-005 取消检查点缺失 + OpenMP 未接 ThreadBudget：`lib/algorithms/platesolve/cpp/ipv/src/ipv_triangle.cpp`
+  与 `ipv_select.cpp` 的多处 #pragma omp 无
   num_threads 注入；长帧求解不可中断。threading_model=host_executor_lease
   为合同值，接线归 P1-WCS-IMPL。
 - DISP-WCS-006 三套 TAN 实现并存：ipv（生产）、wcs_tan（lib/algorithms/platesolve/wrapper_phase1，
-  仅 eng/tests/unit/p1_wcs_phot_test.cpp 消费）、wcs_transform（P1-PHOT 域）
+  仅 `eng/tests/unit/p1_wcs_phot_test.cpp` 消费）、wcs_transform（P1-PHOT 域）
   ——像素中心契约不一致（§11.2 双契约），维护歧义，去留归
   P1-WCS-IMPL/P1-PHOT-IMPL。
 - DISP-WCS-008 SIP 逆映射网格/阶扩展 + 迭代反演：生产 `ipv_wcs.cpp` AP/BP 用
@@ -329,14 +328,14 @@ Polar prune: if |dec|>45° use C/C45 disk B(q,C·radius), false_negative=0
 - F4 失败语义负例：0 星/<3 星 → ret=0 或 success=0 且 error_msg 非空，进程
   不崩溃；指向偏差 >FOV → 显式失败；**CD det 退化注入（DISP-WCS-001）→
   success=0 即最终取值，坍缩值只作诊断量**；DLL 缺失 → orchestrator 非零退出码
-  （orchestrator.cpp:1764）。
+  （`lib/infrastructure/pipeline/orchestrator/cpp/src/orchestrator.cpp`）。
 - F5 确定性：同输入同线程数 3 次运行 IpvWcsResult bitwise 一致；线程
-  1/2/4 下 bitwise 一致（投票归并为整数求和 ipv_triangle.cpp:347-357、
+  1/2/4 下 bitwise 一致（投票归并为整数求和 lib/algorithms/platesolve/cpp/ipv/src/ipv_triangle.cpp、
   拟合单线程，无跨线程浮点重结合——§5c 禁令；若实测违背，P1-WCS-TEST
   如实登记，语义取值照本节）。
 - F6 WcsTan 桥回归：WcsTan pix2sky/sky2pix roundtrip <1e-6 deg
-  （eng/tests/unit/p1_wcs_phot_test.cpp:50 冻结值）；另有**独立前向交叉绝对门**：pix2sky 输出与
-  独立 TAN 逆投影参考解（module_adapters.cpp 内 p1_tan_forward_reference，
+  （`eng/tests/unit/p1_wcs_phot_test.cpp` 冻结值）；另有**独立前向交叉绝对门**：pix2sky 输出与
+  独立 TAN 逆投影参考解（`lib/infrastructure/scheduler/src/module_adapters.cpp` 内 p1_tan_forward_reference，
   与 WcsTan 的 atan(R)/asin 式不同源）角距 **≤1e-9 deg**；测试锚
   eng/tests/unit/p1wcs negative `n1_wcs_tan_unit_anchor` 与 units
   `u1_f6_abs_cross`，生产门同在 p1_op_wcs。roundtrip 仅作次级不变量
@@ -350,12 +349,12 @@ Polar prune: if |dec|>45° use C/C45 disk B(q,C·radius), false_negative=0
 
 科学专项（matrix P1-WCS 行）映射：plate solving TAN+SIP=本 ALG F1-F5 公式
 与 §11.1 生产通道；ICRS/J2000=RADESYS=ICRS/EQUINOX=2000 写回
-（orchestrator.cpp:2025，ASTROMETRY.md §3a）；degenerate conditions=
+（`lib/infrastructure/pipeline/orchestrator/cpp/src/orchestrator.cpp` 的 RADESYS/EQUINOX 写回处，ASTROMETRY.md §3a）；degenerate conditions=
 ASTROMETRY §8 ↔ DISP-WCS-001 退化语义（坍缩禁冒充解）；astropy oracle=
 ASTROMETRY §11 ↔ F2。共享 SCI（ASTROMETRY.md SCI-WCS-001，FROZEN）
 不因本附录改动；本节是唯一冻结依据（编排层词汇只作对齐对象；descriptor
 astrocs.phase1.wcs-platesolve 占位 ID SCI-P1-WCS-001/ALG-002/DATA-P1-WCS/
-API-P1-004/TEST-P1-WCS-001，module_adapters.cpp:517-529，由 P1-WCS-INT
+API-P1-004/TEST-P1-WCS-001，`lib/infrastructure/scheduler/src/module_adapters.cpp`，由 P1-WCS-INT
 对齐本合同，不作冻结依据）。
 
 ## 参考文献与参考代码库（含许可证）

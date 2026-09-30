@@ -32,8 +32,8 @@ astrocs_p1_calibration.dll 为迁移目标（未落地）。
 ## Production callers
 
 当前生产调用点：
-`lib/phase1_session/p1_session.cpp:243` 调 `ac_calibrate_frame`
-（calibrate stage）与 `:294` 调 `ac_correct_frame`（cosmetic stage；
+`lib/phase1_session/p1_session.cpp` 调 `ac_calibrate_frame`
+（calibrate stage）与 `ac_correct_frame`（cosmetic stage；
 master_dark/master_bias 传 nullptr → 检测全禁用、恒等 pass；cosmetic 域
 现状见 lib/algorithms/cosmetic/README.md）。`ac_generate_master_*`、`ac_set_num_threads`
 当前无生产调用方（master 由外部预生成；ac_set_num_threads 由
@@ -67,7 +67,7 @@ CALIBRATION_ALGORITHMS.md §10）。
 
 ## Errors
 
-AC_OK(0)/AC_ERR_PARAM(-1)（astro_calibration.h:21-24）；AC_ERR_MEMORY(-2)/
+AC_OK(0)/AC_ERR_PARAM(-1)（`lib/algorithms/calibration/include/astro_calibration.h`）；AC_ERR_MEMORY(-2)/
 AC_ERR_INTERNAL(-3) 定义但从未返回（无 extern "C" 异常屏障；缺陷登记 =
 CALIBRATION_ALGORITHMS.md §10）。母版缺失/滤镜不匹配 → orchestrator 层 CONFIG/NO_DATA。
 flat floor 0.1 下界与 median 归一行为见 ALG-CAL §3（F1–F3）。

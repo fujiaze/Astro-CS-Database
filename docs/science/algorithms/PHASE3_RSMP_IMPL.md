@@ -37,17 +37,17 @@
 | 项 | 合同值 | 实测 |
 |---|---|---|
 | module_id（矩阵 CSV 权威） | astrocs.p3.resample | MODULE_MIGRATION_MATRIX.csv P3-RSMP 行 |
-| registry 生产 descriptor | astrocs.phase3.resample2（module_adapters.cpp:783 `p3_resample2_descriptor`，module_id 同名；`grep -n` 实测 `:783`） | 实测 |
+| registry 生产 descriptor | astrocs.phase3.resample2（`lib/infrastructure/scheduler/src/module_adapters.cpp` 的 `p3_resample2_descriptor`，module_id 同名） | 实测 |
 | dll_target | astrocs_p3_resample.dll | 矩阵 CSV；entrypoint 实测未建（DISP-P3RSMP-005） |
 | owner | SA-P3-S26 | 矩阵 CSV |
 | 合同目录 | lib/algorithms/resample/（本域合同文件，无源码） | 生产源仍在 lib/phase3_session/ |
 | 依赖 | lib/algorithms/shared/healpix（leaf_to_tile_nest/tile_to_leaf_nest/nested_local_to_fits_index/ang2pix/pix2ang）、lib/phase3_session/hips_properties（properties 严格校验经 p3_sampler_open 间接消费） | §3 |
 | 下游 | P3-RSMP-IMPL（实现）、P3-RSMP-TEST（可执行测试）、P3-RSMP-INT（descriptor 对齐 astrocs.p3.resample） | — |
 
-- 静态库落位: astrocs_phase3_session（根 CMakeLists.txt:460-465，
+- 静态库落位: astrocs_phase3_session（根 `CMakeLists.txt`，
   p3_resample.cpp 为五源文件之一）。
 - 会话编排消费: lib/phase3_session/p3_session.cpp（§8 逐点锚定）。
-- descriptor 端口绑定（module_adapters.cpp:795-813）: 输入
+- descriptor 端口绑定（`lib/infrastructure/scheduler/src/module_adapters.cpp`）: 输入
   DATA-P3-WCS（必需）+ DATA-HIPS-001（必需），输出 DATA-P3-RES
   （可选产出）。
 
@@ -68,12 +68,12 @@ eng/tests/unit/p3_interp_test.cpp          137 行  单元参考实现（独立�
 eng/tests/unit/p3_coverage_test.cpp        224 行  同上（coverage 语义）
 ```
 
-- p3_resample.cpp 内部结构: :18 `kTileWidth=512`（编译期常量，SCI
-  §9a-1 tile 宽冻结一致）；:19 `kReaderBuf=512*512`（FITS 读缓冲）；
-  :22-36 `TileCache`（FIFO 最旧逐出有界缓存，§7）；:38-47 匿名命名空间
-  辅助；:49-80 `read_leaf`；:82-93 `p3_order_select`；:95-107
-  `p3_resample_check_mode`；:109-194 `P3SamplerImpl`（open/open_ex/
-  set_max_tiles/close）；:196-230 `p3_sample_bilinear`；:232-239
+- p3_resample.cpp 内部结构（按符号名定位，行号仅作导航）: `kTileWidth=512`（编译期常量，SCI
+  §9a-1 tile 宽冻结一致）；`kReaderBuf=512*512`（FITS 读缓冲）；
+  `TileCache`（FIFO 最旧逐出有界缓存，§7）；匿名命名空间
+  辅助；`read_leaf`；`p3_order_select`；
+  `p3_resample_check_mode`；`P3SamplerImpl`（open/open_ex/
+  set_max_tiles/close）；`p3_sample_bilinear`；
   `p3_sample_nearest`。
 
 ## 4 符号冻结（实测签名，不改码）
@@ -81,33 +81,33 @@ eng/tests/unit/p3_coverage_test.cpp        224 行  同上（coverage 语义）
 lib/algorithms/resample/p3_resample.h 全部公共符号（ALG-P3-003 施工面 11 个；本次新增
 `P3SampleRejection` 与 `p3_sample_bilinear_nanmask_ex`，其余 9 个签名零改动）：
 
-| 符号 | 头锚 | 实现锚 | 签名要点 |
+| 符号 | 声明（p3_resample.h） | 实现（p3_resample.cpp） | 签名要点 |
 |---|---|---|---|
-| `P3ResampleStatus` | h:12-17 | — | enum: `P3_RS_OK=0 / P3_RS_PARAM=1 / P3_RS_UNSUPPORTED=2 / P3_RS_IO=3` |
-| `p3_order_select` | h:21 | cpp:82-93 | `(int max_order, double scale_deg_per_px, int* out_order)` |
-| `p3_resample_check_mode` | h:25 | cpp:95-107 | `(const char* input_mode)`；`surface_brightness` 唯一合法 |
-| `P3SamplerImpl` | h:28（前置声明） | cpp:38-47 等 | 不透明实现类型 |
-| `P3Sampler` | h:29-31 | — | `P3SamplerImpl* impl; char last_error[256];` |
-| `p3_sampler_open` | h:32-33 | cpp:109+ | `(const char* hips_dir, P3Sampler* out, char* err)`；= open_ex 缺参薄封装 |
-| `p3_sampler_open_ex` | h:39-41 | cpp:269-296 | `(const char* product_dir, P3Sampler* out, int* out_order, std::string* out_bunit, std::string* err)`（**std::string***，非 `char*`） |
-| `p3_sampler_set_max_tiles` | h:42 | cpp:161-168 | `(P3Sampler*, int max_tiles)`；≤0 恢复默认 8 |
-| `p3_sample_nearest` | h:87-88 | cpp:296-300 | `(P3Sampler*, double ra_deg, double dec_deg, float* value, int* coverage)`（= `_ex` 薄封装） |
-| `p3_sample_nearest_ex` | h:132-134 | cpp:301-314 | 同上 + `uint64_t* leaf_ipix`（nearest 方差传播面） |
-| `p3_sample_bilinear` | h:96-97 | cpp:315-321 | `(P3Sampler*, double ra_deg, double dec_deg, float* value, int* coverage)`（= `_ex` 薄封装） |
-| `p3_sample_bilinear_ex` | h:145-147 | cpp:322-339 | 同上 + `double weights[4]` + `uint64_t leaf_ipix[4]` |
-| `p3_sampler_attach_cache` | h:56 | cpp:235-241 | `(P3Sampler* dst, const P3Sampler* src)`：共享有界 LRU（P30；§7） |
-| `p3_sampler_cache_stats` | h:73 | cpp:242-248 | `(const P3Sampler*, P3CacheStats*)`：命中率/负缓存/逐出可观测计数 |
-| `p3_sampler_set_absent_cache` | h:79 | cpp:250-256 | 负缓存开关（默认开；回归阴性对照用） |
-| `p3_uncertainty_open` / `p3_uncertainty_close` / `p3_uncertainty_propagate` | h:126 / h:129 / h:195 | 同文件 | DATA-P3-UNC-001 不确定度消费面（variance/ivar 子产品） |
+| `P3ResampleStatus` | `lib/algorithms/resample/p3_resample.h` | — | enum: `P3_RS_OK=0 / P3_RS_PARAM=1 / P3_RS_UNSUPPORTED=2 / P3_RS_IO=3` |
+| `p3_order_select` | 同上 | 同上 | `(int max_order, double scale_deg_per_px, int* out_order)` |
+| `p3_resample_check_mode` | 同上 | 同上 | `(const char* input_mode)`；`surface_brightness` 唯一合法 |
+| `P3SamplerImpl` | 同上（前置声明） | 同上（匿名命名空间辅助等） | 不透明实现类型 |
+| `P3Sampler` | 同上 | — | `P3SamplerImpl* impl; char last_error[256];` |
+| `p3_sampler_open` | 同上 | 同上 | `(const char* hips_dir, P3Sampler* out, char* err)`；= open_ex 缺参薄封装 |
+| `p3_sampler_open_ex` | 同上 | 同上 | `(const char* product_dir, P3Sampler* out, int* out_order, std::string* out_bunit, std::string* err)`（**std::string***，非 `char*`） |
+| `p3_sampler_set_max_tiles` | 同上 | 同上 | `(P3Sampler*, int max_tiles)`；≤0 恢复默认 8 |
+| `p3_sample_nearest` | 同上 | 同上 | `(P3Sampler*, double ra_deg, double dec_deg, float* value, int* coverage)`（= `_ex` 薄封装） |
+| `p3_sample_nearest_ex` | 同上 | 同上 | 同上 + `uint64_t* leaf_ipix`（nearest 方差传播面） |
+| `p3_sample_bilinear` | 同上 | 同上 | `(P3Sampler*, double ra_deg, double dec_deg, float* value, int* coverage)`（= `_ex` 薄封装） |
+| `p3_sample_bilinear_ex` | 同上 | 同上 | 同上 + `double weights[4]` + `uint64_t leaf_ipix[4]` |
+| `p3_sampler_attach_cache` | 同上 | 同上 | `(P3Sampler* dst, const P3Sampler* src)`：共享有界 LRU（P30；§7） |
+| `p3_sampler_cache_stats` | 同上 | 同上 | `(const P3Sampler*, P3CacheStats*)`：命中率/负缓存/逐出可观测计数 |
+| `p3_sampler_set_absent_cache` | 同上 | 同上 | 负缓存开关（默认开；回归阴性对照用） |
+| `p3_uncertainty_open` / `p3_uncertainty_close` / `p3_uncertainty_propagate` | 同上（三处声明） | 同文件 | DATA-P3-UNC-001 不确定度消费面（variance/ivar 子产品） |
 
 - **签名漂移订正（本次）**：本表早期版本把采样函数记为
   `(const P3Sampler*, const P3WcsDescriptor*, int x, int y, float* value, float* coverage)`
   （像素坐标入参、coverage 为 `float*`）——现行公共面是**天球坐标入参**
   `(P3Sampler*, double ra_deg, double dec_deg, float* value, int* coverage)`
   （coverage 为 `int*` 二值），并新增 `_ex`/`nanmask_ex`/`attach_cache`/
-| `p3_sampler_close` | h:95 | cpp:465-470 | `(P3Sampler*)`；释放 impl，置 nullptr |
-| `P3SampleRejection` | h:159-166 | — | 样本级掩膜强制计数（`n_rejected_nonfinite` + 三项原因分类 + `n_eligible`） |
-| `p3_sample_bilinear_nanmask_ex` | h:171-174 | cpp:322-464 | `(..., double weights[4], uint64_t leaf_ipix[4], P3SampleRejection*)`；= `p3_sample_bilinear_ex` 的唯一实现，额外暴露强制计数 |
+| `p3_sampler_close` | 同上 | 同上 | `(P3Sampler*)`；释放 impl，置 nullptr |
+| `P3SampleRejection` | 同上 | — | 样本级掩膜强制计数（`n_rejected_nonfinite` + 三项原因分类 + `n_eligible`） |
+| `p3_sample_bilinear_nanmask_ex` | 同上 | 同上 | `(..., double weights[4], uint64_t leaf_ipix[4], P3SampleRejection*)`；= `p3_sample_bilinear_ex` 的唯一实现，额外暴露强制计数 |
 
 - **签名漂移订正（本次）**：本表早期版本把采样函数记为
   `(const P3Sampler*, const P3WcsDescriptor*, int x, int y, float* value, float* coverage)`
@@ -116,11 +116,11 @@ lib/algorithms/resample/p3_resample.h 全部公共符号（ALG-P3-003 施工面 
   （coverage 为 `int*` 二值），并新增 `_ex`/`nanmask_ex`/`attach_cache`/
   `cache_stats`/`uncertainty_*` 等符号族。消费方按符号名核对，行号仅作导航。
 
-- 内部符号（合同可见但非导出）: `read_leaf`（cpp:186-202）、`SharedTileCache`（cpp:64-122）、
-  `kTileWidth=512`（cpp:48）。
-- 本表行锚注记: 表内**未改动符号**的行锚沿用合同冻结时的版本（与本表同批冻结，未随
-  P30/DATA-P3-UNC-001 两轮加行而重排）；本次改动的两个符号按现行源重新锚定。
-- 头注合同（h:1-3）: 覆盖跨 tile 采样、coverage/mask 二值、NaN 语义
+- 内部符号（合同可见但非导出）: `read_leaf`、`SharedTileCache`、
+  `kTileWidth=512`（均在 `p3_resample.cpp`）。
+- 本表锚注记: 表内**未改动符号**的锚沿用合同冻结时的版本（与本表同批冻结，未随
+  P30/DATA-P3-UNC-001 两轮加符号而重排）；本次改动的两个符号按现行源重新锚定。
+- 头注合同（`lib/algorithms/resample/p3_resample.h` 文件头）: 覆盖跨 tile 采样、coverage/mask 二值、NaN 语义
   （SCI §4）、单位固定 surface brightness、未支持输入模式显式拒
   UNSUPPORTED。与 SCI §7 非目标清单一致。
 
@@ -144,7 +144,7 @@ lib/algorithms/resample/p3_resample.h 全部公共符号（ALG-P3-003 施工面 
 
 ## 6 逐符号冻结（公式与实现等价性）
 
-### 6.1 G3 order 选择——`p3_order_select`（cpp:82-93）
+### 6.1 G3 order 选择——`p3_order_select`（`lib/algorithms/resample/p3_resample.cpp`）
 
 冻结语义：在线性扫描 `k ∈ [0, max_order]` 中找**最小** k 使
 
@@ -167,24 +167,24 @@ pixel_resolution_arcsec(nside=512 << k) / 3600 ≤ scale_deg_per_px
 `k ≥ log2( sqrt(π/3)/(W·s_out_rad) )`，即同一 ceil 表达式。无更细层时
 （扫描完未命中）`*out_order = max_order`（欠采样降级为 survey 原生
 分辨率输出，SCI §9a-5 允许并记录）。守卫: `!out_order || max_order<0
-|| max_order>20 || !(scale_deg_per_px>0)` → `P3_RS_PARAM`（cpp:84-86）；
-kMaxOrder=20 来自 hips_properties.h:23（ARCH-P3 §3）。
-会话消费（p3_session.cpp:197-199）: `max_order = 输入实际 order`
+|| max_order>20 || !(scale_deg_per_px>0)` → `P3_RS_PARAM`（同文件）；
+kMaxOrder=20 来自 `lib/phase3_session/hips_properties.h`（ARCH-P3 §3）。
+会话消费（`lib/phase3_session/p3_session.cpp`）: `max_order = 输入实际 order`
 （open_ex 返回值，clamp ≤20）——**禁仅写 metadata 的 order**。
 
-### 6.2 输入模式守卫——`p3_resample_check_mode`（cpp:95-107）
+### 6.2 输入模式守卫——`p3_resample_check_mode`（`lib/algorithms/resample/p3_resample.cpp`）
 
 `input_mode == "surface_brightness"` 唯一返回 `P3_RS_OK`；`nullptr`/空串 ⇒ `P3_RS_PARAM`；
 `weight`/`flux-per-pixel` ⇒ `P3_RS_UNSUPPORTED`（SCI §9a-8）；其余（含 `flux`/`variance`/`ivar`）
-⇒ `P3_RS_PARAM`——**「未支持模式」≠「显式拒」**：`variance`/`ivar` 依 DATA-P3-UNC-001 §30.4-4 已转 uncertainty 子产品消费面（§3 符号表 `p3_uncertainty_*`；cpp:221-222 逐字注记）。
+⇒ `P3_RS_PARAM`——**「未支持模式」≠「显式拒」**：`variance`/`ivar` 依 DATA-P3-UNC-001 §30.4-4 已转 uncertainty 子产品消费面（§3 符号表 `p3_uncertainty_*`；同文件逐字注记）。
 实测偏差: 会话编排层未接线（DISP-P3RSMP-003）。
 
 ### 6.3 sampler 生命周期
 
-- `p3_sampler_open_ex`（cpp:130-159）: ①`hips_properties_parse`
+- `p3_sampler_open_ex`（`lib/algorithms/resample/p3_resample.cpp`）: ①`hips_properties_parse`
   严格校验（必需 keys `hips_order, hips_tile_width, hips_frame,
   dataproduct_type`；`hips_order ∈ [0,20]`；`hips_tile_width` 必须
-  512——hips_properties.cpp:122 显式拒非 512；NESTED 唯一）②校验
+  512——`lib/phase3_session/hips_properties.cpp` 显式拒非 512；NESTED 唯一）②校验
   `hips_frame` ICRS ③构造 `P3SamplerImpl`（nside=512·2^order）④
   `out_order`/`out_bunit` 回填实际值；BUNIT **必须**取输入 tile 的 BUNIT，
   输入 properties 无 BUNIT 时取 **canonical `ADU/sr`**（**绝不**缺省 `ADU`、
@@ -195,14 +195,14 @@ kMaxOrder=20 来自 hips_properties.h:23（ARCH-P3 §3）。
   `p3_sampler_open_ex`（`out_bunit = p.bunit.empty() ? "ADU/sr" : p.bunit`）。失败路径: properties
   校验失败/路径不存在 → `P3_RS_IO`；语义不符 → `P3_RS_PARAM` 或
   `P3_RS_UNSUPPORTED`（frame≠ICRS）；err 缓冲写人类可读消息。
-- `p3_sampler_open`（cpp:109+）: open_ex 缺参薄封装（out_order/
+- `p3_sampler_open`（`p3_resample.cpp`）: open_ex 缺参薄封装（out_order/
   out_bunit 传 nullptr）。
-- `p3_sampler_set_max_tiles`（cpp:161-168）: 设置 TileCache 容量；
+- `p3_sampler_set_max_tiles`（同文件）: 设置 TileCache 容量；
   `max_tiles ≤ 0` 恢复默认 8。负值不报错（按合同恢复默认）。
-- `p3_sampler_close`（cpp:170-180）: 释放 impl 并置空；可安全对
+- `p3_sampler_close`（同文件）: 释放 impl 并置空；可安全对
   已关闭/空 sampler 调用（幂等）。
 
-### 6.4 tile 寻址与读取——`read_leaf`（cpp:49-80）
+### 6.4 tile 寻址与读取——`read_leaf`（`p3_resample.cpp`）
 
 冻结映射（全部经 healpix_core 权威函数，禁第二套实现）:
 
@@ -212,22 +212,22 @@ local_x,y  = tile_to_leaf_nest 反交织    # leaf local 坐标（NESTED 18 bits
 fits_index = nested_local_to_fits_index(local, 9, 512)   # = (511-x)*512 + y（DATA_SEMANTICS §3 CDS oracle 冻结）
 ```
 
-- 缓存命中: 直接返回 tile 缓冲（cpp:62-66 路径）。
+- 缓存命中: 直接返回 tile 缓冲（`p3_resample.cpp` 路径）。
 - 缓存未命中: 定位 `order_{order}/dir{tile_ipix>>28}/Npix{tile}.fits`
  （HiPS 目录布局），FITS float tile 读入 `kReaderBuf`，插入缓存
- （可能触发 FIFO 逐出），再取像素（cpp:68-80 路径）。
+ （可能触发 FIFO 逐出），再取像素（同文件路径）。
 - tile 文件不存在/读失败: 返回 false（= 无覆盖路径，**非错误抛出**），
   语义见 §6.6；SCI §9a-9 要求 provenance 记 missing tile——聚合上报
   未接线，DISP-P3RSMP-004。
 
-### 6.5 G4 采样核（cpp:196-239）
+### 6.5 G4 采样核（`lib/algorithms/resample/p3_resample.cpp`）
 
-- `p3_sample_nearest`（cpp:232-239）: 输出像素中心 → `pix2ang` →
+- `p3_sample_nearest`（`p3_resample.cpp`）: 输出像素中心 → `pix2ang` →
   `ang2pix(nside_leaf)` → 精确 cell（tile=leaf>>18, local 如 §6.4）。
   无插值误差（SCI §9a-12）。tile 像素 NaN → `*value=NaN,
   *coverage=1`；tile 缺失 → `*coverage=0, *value=NaN`。
-- `p3_sample_bilinear`（cpp:315-318 → `p3_sample_bilinear_nanmask_ex`，
-  cpp:322-464）: ①输出像素中心 `pix2ang` → leaf 3×3 邻域
+- `p3_sample_bilinear`（薄封装 → `p3_sample_bilinear_nanmask_ex`，
+  均在 `p3_resample.cpp`）: ①输出像素中心 `pix2ang` → leaf 3×3 邻域
   （`healpix_neighbors`）②四象限各自取**最近中心** cell（d² 距离比较）
   ③切平面双线性: 以四角中心定义局部坐标解 `(u,v) ∈ [0,1]`（clamp），
   几何权重 `wg = {(1-u)(1-v), u(1-v), (1-u)v, uv}`（FP64，Σwg=1±k·ULP）；
@@ -265,14 +265,14 @@ fits_index = nested_local_to_fits_index(local, 9, 512)   # = (511-x)*512 + y（D
 - coverage 为**二值语义**（0/1，float 承载）；C=1 ⇔ 采样足迹内**存在 tile 像素**
   （存在判定，ALG-P3-003 §2 G4 / §4：值非有限**不改** C；4 个 tile 均可读则 C=1；
   任一角 tile 缺失 ⇒ C=0）。mask 输出由会话层从 coverage 生成
-  （coverage_output 仅 `mask` 合法，p3_session.cpp:128-129）。
+  （coverage_output 仅 `mask` 合法，`lib/phase3_session/p3_session.cpp`）。
 - **零填口径**: 零合格样本取 NaN（覆盖级 NaN）；`0`/`±Inf`/哨兵属另一形态；
   被剔除样本的权重必须**不进分母**（禁留在分母 ⇒ 系统性偏低），也**不进方差项**。
 - 计数语义: `n_rejected_nonfinite` 按原因分类（值非有限 / 方差非有限 / 权重非正，
   互斥可加）；计数 0 与「字段缺失」必须可区分（DATA-002 §2a 规则 3）。信号核的
   方差/权重两类恒 0（不消费方差面；权重由几何唯一确定）。
 
-## 7 TileCache 并发/确定性合同（`SharedTileCache`，cpp:63-122）
+## 7 TileCache 并发/确定性合同（`SharedTileCache`，`lib/algorithms/resample/p3_resample.cpp`）
 
 - **有界 LRU 缓存（跨 worker 共享、线程安全）**: 结构 = `std::list<uint64_t> lru`
   （front = MRU）+ `unordered_map` + `std::mutex`；`get` 命中时
@@ -280,7 +280,7 @@ fits_index = nested_local_to_fits_index(local, 9, 512)   # = (511-x)*512 + y（D
   超容时逐出 `lru.back()`（最久未用）。容量默认 8（`set_max_tiles` 可调，≤0 恢复 8），
   生产会话经 `p3_sampler_attach_cache` 让每 worker sampler **共享同一缓存**
   （容量 = max_tiles 总量，与 worker 数无关 ⇒ 峰值内存不随核数增长；
-  p3_session.cpp:260-273）。**DISP-P3RSMP-002（FIFO 登记）已随 P30 缓存改造失效**，
+  `lib/phase3_session/p3_session.cpp`）。**DISP-P3RSMP-002（FIFO 登记）已随 P30 缓存改造失效**，
   现行策略 = LRU。
 - **负缓存（absent）**: tile 不存在/读失败记一次，之后直接返回缺失，
   语义与"每次 open 都失败"逐位等价（`stat_open_fail` 与负缓存命中分列计数）。
@@ -288,34 +288,34 @@ fits_index = nested_local_to_fits_index(local, 9, 512)   # = (511-x)*512 + y（D
   每 sampler 另有 `kHotSlots=8` 前端热缓存（命中不取共享锁）。
 - 并发模型: 缓存本身线程安全；**单 `P3Sampler` 实例的其余状态非线程安全**
   （无内部锁），同一 `P3Sampler` 的共享面 = 单线程（合同项）。
-  HiPS tile 文件只读共享，无写锁（p3_session.cpp:217-244 worker 闭包内
+  HiPS tile 文件只读共享，无写锁（`lib/phase3_session/p3_session.cpp` 的 worker 闭包内
   `p3_sampler_open_ex` 每 worker 重建 + attach 共享缓存）。
 - 确定性: 缓存策略（LRU/容量/负缓存开关）只影响 I/O 命中率，**不影响任何像素值**
   （tile 内容只读；同一输出像素的计算路径固定: 邻域确定 → 最近中心确定 → 权重确定）
   ⇒ 输出与 tile 装载顺序、worker 数、缓存容量**无关**。该"只影响 I/O"性质是结构性约束：
   一旦引入跨 tile 的数值状态即失效。禁 hardware_concurrency 决定
-  worker 数（=budget.max_workers，p3_session.cpp:211-214）。
+  worker 数（=budget.max_workers，同一 `p3_session.cpp`）。
 
-## 8 会话编排合同（p3_session.cpp 消费链，实测）
+## 8 会话编排合同（`lib/phase3_session/p3_session.cpp` 消费链，实测）
 
-| 消费点 | 锚 | 合同 |
+| 消费点 | 锚（p3_session.cpp） | 合同 |
 |---|---|---|
-| sampler 打开 | :171（映射 :175-176） | 主线程 open_ex 暴露输入实际 order/BUNIT；失败映射 P3_RS_IO→ACS_ERR_IO、UNSUPPORTED→ACS_ERR_UNSUPPORTED、PARAM→ACS_ERR_PARAM |
-| max_tiles 守卫 | :179-194 | 默认 `min(1024, ceil(W·H/512²)+16)`；请求 > 默认 → `ACS_ERR_BUDGET`（可降不可升） |
-| order 选择 | :196-199 | max_order=输入实际 order（clamp ≤20），p3_order_select 就地选择 |
-| worker 池 | :211-214/:246-255 | n_workers=budget.max_workers（禁 hardware_concurrency）；>hpx clamp 行带不空；<2 或未注入 budget → 串行；每 worker 独立 sampler+cache（:217-244 闭包，worker open_ex :222，§7） |
-| 采样分派 | :236-237 | nearest/bilinear 按请求 `sampler` 字段分派（缺省 bilinear，parse_request :116-119 白名单） |
-| 取消 | :258-263 | 行级取消检查 → `ACS_ERR_CANCELLED`（"cancelled at row N"，:260-261）；worker open 失败 → `ACS_ERR_IO`（:263） |
-| provenance | :265-277 | order_sel_used/sampler_used 填实际值（:276-277）；manifest_hash/missing_tiles 恒 nullptr（:271-272，DISP-P3RSMP-004） |
-| 请求守卫 | :95-129 | projection 仅 TAN（:97）；frame 仅 icrs（:103）；\|dec\|≤85°（:107）；scale>0（:109）；W/H∈[1,20000]（:114）；sampler∈{nearest,bilinear}（:116-119）；parity∈{east_left,east_right}；bitpix∈{-32,-64}（:127）；coverage_output 仅 mask（:129） |
+| sampler 打开 | 同上（映射分支另见同文件） | 主线程 open_ex 暴露输入实际 order/BUNIT；失败映射 P3_RS_IO→ACS_ERR_IO、UNSUPPORTED→ACS_ERR_UNSUPPORTED、PARAM→ACS_ERR_PARAM |
+| max_tiles 守卫 | 同上 | 默认 `min(1024, ceil(W·H/512²)+16)`；请求 > 默认 → `ACS_ERR_BUDGET`（可降不可升） |
+| order 选择 | 同上 | max_order=输入实际 order（clamp ≤20），p3_order_select 就地选择 |
+| worker 池 | 同上（两处） | n_workers=budget.max_workers（禁 hardware_concurrency）；>hpx clamp 行带不空；<2 或未注入 budget → 串行；每 worker 独立 sampler+cache（同文件闭包，§7） |
+| 采样分派 | 同上 | nearest/bilinear 按请求 `sampler` 字段分派（缺省 bilinear，parse_request 白名单，同文件） |
+| 取消 | 同上 | 行级取消检查 → `ACS_ERR_CANCELLED`（"cancelled at row N"）；worker open 失败 → `ACS_ERR_IO`（同文件） |
+| provenance | 同上 | order_sel_used/sampler_used 填实际值；manifest_hash/missing_tiles 恒 nullptr（DISP-P3RSMP-004） |
+| 请求守卫 | 同上 | projection 仅 TAN（projection 分支）；frame 仅 icrs；\|dec\|≤85°；scale>0；W/H∈[1,20000]；sampler∈{nearest,bilinear}；parity∈{east_left,east_right}；bitpix∈{-32,-64}；coverage_output 仅 mask（均在同一文件） |
 
 ## 9 错误语义冻结
 
 | 状态 | 触发（实测） | 会话映射 |
 |---|---|---|
 | P3_RS_OK | 成功 | ACS_OK |
-| P3_RS_PARAM | out_order 空/max_order 越界/scale≤0（:84-86）；properties 语义不符 | ACS_ERR_PARAM |
-| P3_RS_UNSUPPORTED | input_mode 非 surface_brightness（:95-107）；frame≠ICRS | ACS_ERR_UNSUPPORTED |
+| P3_RS_PARAM | out_order 空/max_order 越界/scale≤0（`lib/algorithms/resample/p3_resample.cpp`）；properties 语义不符 | ACS_ERR_PARAM |
+| P3_RS_UNSUPPORTED | input_mode 非 surface_brightness（同上文件）；frame≠ICRS | ACS_ERR_UNSUPPORTED |
 | P3_RS_IO | properties 解析失败/HiPS 目录或 tile 文件不可读 | ACS_ERR_IO |
 | （采样层无错误码） | tile 缺失 = coverage=0 数据语义（§6.6），非错误 | — |
 
@@ -343,12 +343,12 @@ fits_index = nested_local_to_fits_index(local, 9, 512)   # = (511-x)*512 + y（D
 
 | ID | 偏差 | 实测依据 | SCI/ALG 依据 | 整改归属 |
 |---|---|---|---|---|
-| DISP-P3RSMP-001 | bilinear 为切平面**四象限最近中心**双线性；G4 施工规格写"面积重叠分数（投影线性化）"。同族一阶插值、Σw=1 不变量一致，离散化方案不同 | p3_resample.cpp:196-230 | ALG-P3-003 §2 G4 | P3-RSMP-IMPL 决策: 升级实现或修订 ALG 表述（须保持 SCI §9a-7 不变量） |
-| DISP-P3RSMP-002 | tile cache 逐出为 FIFO；ALG §3 伪代码写 "LRU" | cpp:22-36（无访问序更新） | ALG-P3-003 §3 | P3-RSMP-IMPL（实现升级 LRU 或 ALG 修订为 FIFO 表述） |
-| DISP-P3RSMP-003 | `p3_resample_check_mode` 会话编排层无调用点（flux/variance 输入拒未经会话守卫；能力在内核、探针消费） | grep 全仓: 仅 p3_resample_probe_main.cpp:31 | SCI §9a-8/10 | P3-RSMP-INT 接线（会话请求守卫增加 input_mode 检查） |
-| DISP-P3RSMP-004 | provenance.missing_tiles 恒 nullptr（缺 tile 聚合上报未接线；SCI §9a-9 要求记 missing） | p3_session.cpp:265-277 | SCI §9a-9 | P3-RSMP-IMPL/INT |
+| DISP-P3RSMP-001 | bilinear 为切平面**四象限最近中心**双线性；G4 施工规格写"面积重叠分数（投影线性化）"。同族一阶插值、Σw=1 不变量一致，离散化方案不同 | `lib/algorithms/resample/p3_resample.cpp` | ALG-P3-003 §2 G4 | P3-RSMP-IMPL 决策: 升级实现或修订 ALG 表述（须保持 SCI §9a-7 不变量） |
+| DISP-P3RSMP-002 | tile cache 逐出为 FIFO；ALG §3 伪代码写 "LRU" | `lib/algorithms/resample/p3_resample.cpp`（无访问序更新） | ALG-P3-003 §3 | P3-RSMP-IMPL（实现升级 LRU 或 ALG 修订为 FIFO 表述） |
+| DISP-P3RSMP-003 | `p3_resample_check_mode` 会话编排层无调用点（flux/variance 输入拒未经会话守卫；能力在内核、探针消费） | grep 全仓: 仅 `eng/tests/backend/p3_resample_probe_main.cpp` | SCI §9a-8/10 | P3-RSMP-INT 接线（会话请求守卫增加 input_mode 检查） |
+| DISP-P3RSMP-004 | provenance.missing_tiles 恒 nullptr（缺 tile 聚合上报未接线；SCI §9a-9 要求记 missing） | `lib/phase3_session/p3_session.cpp` | SCI §9a-9 | P3-RSMP-IMPL/INT |
 | DISP-P3RSMP-005 | astrocs_p3_resample.dll 未建（entrypoint 缺失） | 全仓无该 target | 矩阵 dll_target | P3-RSMP-IMPL |
-| DISP-P3RSMP-006 | **强制计数的产品承载面未冻结**：DATA-002 §2a 冻结了计数**字段名** `n_rejected_nonfinite`（按原因分类、per-pixel、mandatory），但**未**冻结 Phase3 产品里的承载面（`phase3_planar_fits_v1` 最小平面集 = signal/support/mask，plane_id 枚举 `{signal,support,variance,ivar,mask,sparse_snr}` 无计数字段；`p3_resampled.json` 的 `planes` 列表亦无）。内核面已按冻结字段名暴露（`P3SampleRejection`），**产品承载面不自行发明** | `eng/contracts/data/phase_product_exchange.schema.json`（无 `invalid_handling`/`count_field` 键，与 DATA-002 §2a「机器形态」声明不一致）；`eng/contracts/schemas/unified/rejection.schema.json:322` 仅有可选 `rejected_sample_count`；DATA_SEMANTICS §30.2（Phase2 诊断平面 `nrej/nused` 通道，语义为 P2 排异原因计数，非本规则） | DATA-002 §2a 规则 3；ALG-P3-003 §2 G4 | 待合同域登记：候选 =（a）逐像素诊断平面（沿用 §30.2 诊断平面通道，不入 science planes 枚举）；（b）`p3_resampled.json` 聚合键（drizzle 先例 `module_entry.cpp:971` 的 `"n_rejected_nonfinite"`）；（c）provenance 计数。三者均需合同域登记后才可落产品 |
+| DISP-P3RSMP-006 | **强制计数的产品承载面未冻结**：DATA-002 §2a 冻结了计数**字段名** `n_rejected_nonfinite`（按原因分类、per-pixel、mandatory），但**未**冻结 Phase3 产品里的承载面（`phase3_planar_fits_v1` 最小平面集 = signal/support/mask，plane_id 枚举 `{signal,support,variance,ivar,mask,sparse_snr}` 无计数字段；`p3_resampled.json` 的 `planes` 列表亦无）。内核面已按冻结字段名暴露（`P3SampleRejection`），**产品承载面不自行发明** | `eng/contracts/data/phase_product_exchange.schema.json`（无 `invalid_handling`/`count_field` 键，与 DATA-002 §2a「机器形态」声明不一致）；`eng/contracts/schemas/unified/rejection.schema.json` 仅有可选 `rejected_sample_count`；DATA_SEMANTICS §30.2（Phase2 诊断平面 `nrej/nused` 通道，语义为 P2 排异原因计数，非本规则） | DATA-002 §2a 规则 3；ALG-P3-003 §2 G4 | 待合同域登记：候选 =（a）逐像素诊断平面（沿用 §30.2 诊断平面通道，不入 science planes 枚举）；（b）`p3_resampled.json` 聚合键（drizzle 先例 `lib/algorithms/drizzle/healpix_drizzle/module_entry.cpp` 的 `"n_rejected_nonfinite"`）；（c）provenance 计数。三者均需合同域登记后才可落产品 |
 | DISP-P3RSMP-007 | **C（coverage）语义的唯一正本 = DATA_SEMANTICS §29**：Phase3 侧执行口径 = ALG-P3-003 §2 G4 / §4 与 §29.4「C 只判足迹内有无 tile 像素，值 NaN 不改 C」（零合格样本 ⇒ `S=NaN` ∧ `C=1`）；§29.2「C=1 ⇔ 足迹内存在**有限** tile 像素」与 DATA-002 §2a 规则 2「零合格样本 ⇒ signal=NaN ∧ **support≤0**」按 §29 正本订正 | 本层零合格样本输出 `S=NaN` 且 `C=1`（四角上游 support≤0），与 §29.4 一致 | ALG-P3-003 §2 G4/§4；DATA_SEMANTICS §29；DATA-002 §2a 规则 2 | 合同域登记面：§29.2 与 §29.4 的表述按 §29 正本收敛（订正动作落合同域） |
 
 ## 12 TEST-P3-RSMP-DESIGN-001 设计冻结（登记面 VERIFIED）
@@ -421,8 +421,8 @@ fits_index = nested_local_to_fits_index(local, 9, 512)   # = (511-x)*512 + y（D
 ## U 承接：`uncertainty_available=false`（fail-closed 唯一出口）
 
 本层产出/消费不确定度子产品时，`uncertainty_available=false` 的处置**承接
-`docs/science/DATA_SEMANTICS.md` §30 的 fail-closed 唯一出口**（规则
-`:2733-2740`；显式登记 `:2837-2839`）：输入面不含 variance/ivar 子产品
+`docs/science/DATA_SEMANTICS.md` §30 的 fail-closed 唯一出口**（该节的不确定度
+fail-closed 规则与其显式登记项）：输入面不含 variance/ivar 子产品
 （或权重非纯逆方差、发生 fallback、合成输入非有限被拒等规则项）⇒ **不写**
 variance/ivar 子产品 + manifest 写 `uncertainty_available=false` +
 diagnostics 标红计数；**该键不是失败态**，是 unavailable 显式登记模式

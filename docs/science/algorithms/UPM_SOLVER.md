@@ -20,9 +20,9 @@ F1: w_UPM = quality·control_ivar（绝对式，ADU⁻²，唯一生产式）或
     （k_corr=1 ⇔ 忽略相关，p2_upm_control_variance 显式拒 rc=2；k_corr<1 拒 rc=1
     <!-- 订正: 检查-行文逻辑 Y1——原作「定义域 1 ≤ k_corr」，k_corr=1 恰是实现显式拒绝（rc=2）的点，
     与 PHASE2_SAMPLER.md §5.4 的冻结拒绝规则对齐。旧对照：定义域 1 ≤ k_corr -->）
-F2: w_cell = w_UPM / Σ_cell w_UPM · control_reliability（份额式，无量纲，实锚 upm.cpp:655 归一化注释<!-- 订正: 检查-跨文档冲突 黄8 连带——原注 upm.cpp:565，现 :563-567 为 lambda_s/zero_anchor 区。旧对照：upm.cpp:565 -->），
-    Σ_cell w_cell = control_reliability；求解器实际消费的就是它）<!-- 订正: 检查-跨文档冲突 黄8 连带——删除行尾失效锚 upm.cpp:565（实锚 :655 见上行订正注） -->
-F3: Huber IRLS (标准无量纲残差, 对齐 upm.cpp:761-763/:778-780<!-- 订正: 检查-科学性 Y-3c 行漂移连带——原注 :207-216,629-639，现 :207-216 为双线性插值、:629-640 为 joint-LS 归约，均非 Huber。旧对照：upm.cpp:207-216,629-639 -->):
+F2: w_cell = w_UPM / Σ_cell w_UPM · control_reliability（份额式，无量纲，实锚 `lib/algorithms/coverage/src/upm.cpp` 归一化注释<!-- 订正: 检查-跨文档冲突 黄8 连带——原注的 upm.cpp 锚点落在 lambda_s/zero_anchor 区，已改指该文件归一化注释处；行号随本轮行锚整改一并退役 -->），
+    Σ_cell w_cell = control_reliability；求解器实际消费的就是它）<!-- 订正: 检查-跨文档冲突 黄8 连带——删除行尾失效锚（实锚见上行订正注） -->
+F3: Huber IRLS (标准无量纲残差, 对齐 `lib/algorithms/coverage/src/upm.cpp` 的 Huber rho/IRLS 段<!-- 订正: 检查-科学性 Y-3c 行漂移连带——原注的两处 upm.cpp 锚点实为双线性插值区与 joint-LS 归约区，均非 Huber，已改指 Huber rho/IRLS 段；行号随本轮行锚整改一并退役 -->):
     z = r/sigma_eff; r = value − M − C; sigma_eff=max(|uncertainty|,sigma_floor)
     loss(z)=0.5z² if |z|≤δ else δ(|z|−0.5δ);  w(z)=1 if |z|≤δ else δ/|z|
     δ=1.345 (无量纲, 单位=sigma_eff), iterative reweight + 弱零锚 + 平滑
@@ -31,7 +31,7 @@ F5: 連通分量 gauge = min frame_id per component, harmonic continuation 单�
 F6: hash = SHA256(C), persist: sparse json + dense cache materialize, 1e-12等价
 ```
 
-来源（实测复核）: `upm.cpp:1-27`(冻结头注释) `upm.cpp:203-213`(Huber rho/w) `upm.cpp:500-889`(Huber IRLS) `upm.cpp:942`(p2_upm_build) `upm.cpp:1323`(raw weight) `upm.cpp:1356`(per-control 归一化) `upm.cpp:953-1020`(sparse persist) `sampler.cpp:855-859`(control_variance/control_ivar, k_corr 承接 ALG-UPM-CONTROL-IVAR-001)
+来源（实测复核）: `lib/algorithms/coverage/src/upm.cpp`（冻结头注释 / Huber rho·w / Huber IRLS / `p2_upm_build` / raw weight / per-control 归一化 / sparse persist）、`lib/algorithms/coverage/src/sampler.cpp`（control_variance·control_ivar，k_corr 承接 ALG-UPM-CONTROL-IVAR-001）
 
 ## 3 伪代码
 
@@ -58,7 +58,7 @@ function p2_upm_build(observations, cfg):
 
 ## 5 确定性与归约
 
-- 求解串行reference; **无 OpenMP**（实测 grep `#pragma omp` 于 upm.cpp 零命中）。并行=std::thread 池五段: raw+归一化聚合 :509-561、Huber w :612-650、M 更新 :656-764、C 更新逐帧 CG :773-858、dense materialize (kChunk=16, :1407) :1479-1502; worker-local 分块 + 按 tid 升序合并（确定性三档见 §9：同配置重复位精确；跨 worker 数 1e-12，非位精确——`compute_raw` 的 per-control 求和结合顺序随 worker 数变化）, worker 数=cfg.cpu_workers (Runtime lease 唯一来源, p2_session.cpp:195; 无 hardware_concurrency 硬件探测, upm.cpp:518-521); IRLS 迭代顺序固定。
+- 求解串行reference; **无 OpenMP**（实测 grep `#pragma omp` 于 upm.cpp 零命中）。并行=std::thread 池五段（均在 `lib/algorithms/coverage/src/upm.cpp`）: raw+归一化聚合、Huber w、M 更新、C 更新逐帧 CG、dense materialize (kChunk=16); worker-local 分块 + 按 tid 升序合并（确定性三档见 §9：同配置重复位精确；跨 worker 数 1e-12，非位精确——`compute_raw` 的 per-control 求和结合顺序随 worker 数变化）, worker 数=cfg.cpu_workers (Runtime lease 唯一来源, `lib/phase2_session/p2_session.cpp`; 无 hardware_concurrency 硬件探测, 同 `upm.cpp`); IRLS 迭代顺序固定。
 
 ## 6 复杂度
 
@@ -93,11 +93,11 @@ function p2_upm_build(observations, cfg):
 ## 11 数据布局
 
 - 输入：control observations（`value, uncertainty, snr_available` per control），帧 ivar 产品；
-  `frame_id[i]` 与 `control_by_id[control_id]` 索引（`upm.cpp:303-321`）。
-- 图：frame-control 二分图邻接 + 连通分量（`upm.cpp:82-84,422-498`），每分量独立 gauge（参考帧=最小 frame_id,
-  C=0）；无观测几何节点用 sentinel（`SIZE_MAX`, `upm.cpp:224`）。
+  `frame_id[i]` 与 `control_by_id[control_id]` 索引（`lib/algorithms/coverage/src/upm.cpp`）。
+- 图：frame-control 二分图邻接 + 连通分量（`lib/algorithms/coverage/src/upm.cpp`），每分量独立 gauge（参考帧=最小 frame_id,
+  C=0）；无观测几何节点用 sentinel（`SIZE_MAX`, 同上文件）。
 - 解：`M` per control（公共场）、`C[frame][control]` 校正；双线性 8×8 θ_f（每帧 θ）；
-  `w[i]=raw_w[i]⊗huber_w`（`upm.cpp:657`）。
+  `w[i]=raw_w[i]⊗huber_w`（`lib/algorithms/coverage/src/upm.cpp`）。
 - 权重/字典：`raw_w` per-control 归一化 + `control_ivar`；弱零锚 `zero_anchor_weight=1e-3`。
 - 持久化：`parameter_rows[index] ↔ frame_id_by_index[index]` 同长无重复（`SCI-UPM-PERSIST-001`）；
   `g_model_floor`/绑定仅由稳定 frame_id 决定（`aio_upm.cpp`）。
@@ -105,7 +105,7 @@ function p2_upm_build(observations, cfg):
 
 ## 12 误差预算
 
-- FP64 全链路；Huber IRLS 坐标下降稳态收敛（`upm.cpp:500-889`）。
+- FP64 全链路；Huber IRLS 坐标下降稳态收敛（`lib/algorithms/coverage/src/upm.cpp`）。
 - 弱零锚 `0.001`：正则化偏移 <~0.1%；帧绑定幂等门：`save→open` 重开值 `max_abs==0`
   （dense/sparse `1e-12` 等价门）；`k_corr` = k_gauss(N_retained)×k_geo 两因子几何查表
   （公式与查表由 P3 单元 实验/healpix-polar 承载；
@@ -113,11 +113,11 @@ function p2_upm_build(observations, cfg):
   低估 32%/约 2 倍，仅作实现记录与域外回退；证据源 `control_median_mc_test`
   **已注册（可复跑）**）。
 - `control_variance=k_corr·(π/2)·σ_bg²/N_retained`，`control_ivar=1/var`；污染观测经
-  `sigma_eff=max(|uncertainty|,sigma_floor)` 与无量纲 δ=1.345 强降权（`upm.cpp:761-763/:778-780`；δ 默认 `upm.cpp:286`）。
+  `sigma_eff=max(|uncertainty|,sigma_floor)` 与无量纲 δ=1.345 强降权（`lib/algorithms/coverage/src/upm.cpp` 的 Huber rho/IRLS 段；δ 默认见同文件）。
 - 误差排序：**数值 FP64(≪1e-12) ≪ 科学/统计容差(k_corr 查表回退, 控制噪声) ≪ 门禁**。
 - 各 F 映射：`F1`→`p2_upm_raw_weight`/`p2_upm_normalized_weights`（`UPMW-001..003`）；
-  `F3`→`upm.cpp:761-763/:778-780`（Huber，δ 默认 `upm.cpp:286`，`UPMW-*`）；`F4`→`p2_upm_calibrate_block`；
-  `F5`→分量 gauge（`upm.cpp:471-476,837-842`）。
+  `F3`→`lib/algorithms/coverage/src/upm.cpp`（Huber，δ 默认同文件，`UPMW-*`）；`F4`→`p2_upm_calibrate_block`；
+  `F5`→分量 gauge（同上文件）。
 
 ## 参考文献与参考代码库（含许可证）
 

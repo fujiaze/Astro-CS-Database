@@ -18,7 +18,7 @@
 - **输入**：合同兼容 HiPS（signal、variance/correlation、coverage/validity、PSF 或 point-source statistics）、WCS 计划、采样核、配置。
 - **输出**：平面重采样产品（信号/统计、variance、correlation、coverage、validity、effective PSF 或明确不支持点源）。
 - 参考：`docs/science/DATA_SEMANTICS.md` §29（DATA-P3-RES：模块输入/输出数据合同正本）。
-- **不确定度可得性（fail-closed，唯一出口）**：输入 HiPS 不含 variance/ivar 子产品（或权重非纯逆方差、发生 fallback 等 §30 规则项）时 → **不写** VARIANCE/IVAR 扩展 HDU（禁静默丢弃、禁用常量 0 冒充）+ manifest 写 `uncertainty_available=false` + diagnostics 标红计数；**该键不是失败态**，是 unavailable 显式登记模式。正本：`docs/science/DATA_SEMANTICS.md:2733-2739`（规则）与 `:2837-2839`（显式登记，禁占位/静默缺键/空输出冒充）。
+- **不确定度可得性（fail-closed，唯一出口）**：输入 HiPS 不含 variance/ivar 子产品（或权重非纯逆方差、发生 fallback 等 §30 规则项）时 → **不写** VARIANCE/IVAR 扩展 HDU（禁静默丢弃、禁用常量 0 冒充）+ manifest 写 `uncertainty_available=false` + diagnostics 标红计数；**该键不是失败态**，是 unavailable 显式登记模式。正本：`docs/science/DATA_SEMANTICS.md` 的「规则」条与「显式登记」条（禁占位/静默缺键/空输出冒充）。
 
 ## 4. 算法与公式要点
 

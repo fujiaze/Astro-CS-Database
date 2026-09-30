@@ -28,11 +28,11 @@
 - 职责：signal 主 HDU + COVERAGE 扩展 HDU 的 FITS 单文件写出——
   WCS/BUNIT/provenance 关键字全量（SCI-P3 §96 面）、原子发布序
   （tmp→fits_flush_file→close→fsync(fd)→rename，
-  p3_output.cpp:235-287）、失败/取消清理不发布（p3_output.h:41-44）、
-  sha256 严格封装完整性锚（:92-114）与独立重开验证
-  （p3_output_verify :296-368）。
+  p3_output.cpp）、失败/取消清理不发布（p3_output.h）、
+  sha256 严格封装完整性锚（p3_output.h）与独立重开验证
+  （p3_output_verify，p3_output.cpp）。
 - 非职责：重采样/tile 读取（P3-RSMP 域）、请求解析与参数拒绝
-  清单（p3_session run 段 :97-129）、读路径 FITS/HiPS 解析
+  清单（p3_session run 段）、读路径 FITS/HiPS 解析
   （AIO/hips 域）、vendored cfitsio 修改、SCI 公式改动。
 
 ## 输入输出端口、DATA、单位、坐标、invalid
@@ -47,18 +47,18 @@
   +HISTORY，DATASUM 32-bit）+ P3OutputResult（sha256[65]/
   coverage_ok/reopen_ok/covered_px/total_px）——§27.2。
 - rc：P3_OUT_OK=0/P3_OUT_PARAM=1/P3_OUT_IO=2/P3_OUT_CANCELLED=3
-  （h:34-39）；端口词汇（resampled/fits、DATA-P3-RES）为 descriptor
+  （p3_output.h）；端口词汇（resampled/fits、DATA-P3-RES）为 descriptor
   派生（其对齐属迁移目标，未落地）。
 
 ## 公共 header、核心 symbol 与生命周期
 
 - 内核消费面=API-P3-FITS-001（p3_output.h 176 行签名头正本）：
-  p3_output_write_atomic（h:45-53，实现 :117-321）/p3_output_verify
-  （h:57-60，:296-368）+ P3Provenance/P3OutputResult/P3OutputStatus
+  p3_output_write_atomic（p3_output.h 声明，p3_output.cpp 实现）/p3_output_verify
+  （p3_output.h 声明，p3_output.cpp 实现）+ P3Provenance/P3OutputResult/P3OutputStatus
   + p3_wcs_make/p3_wcs_pix2world/p3_wcs_world2pix/
-  p3_wcs_fits_keywords（p3_wcs.h:44-59）。
-- 编排面=API-P3-001 FROZEN（p3_session.h:16-28 五段 C ABI +
-  last_error h:33-37）；生命周期 create→validate→run→inspect→
+  p3_wcs_fits_keywords（p3_wcs.h）。
+- 编排面=API-P3-001 FROZEN（p3_session.h 五段 C ABI +
+  last_error，见 p3_session.h）；生命周期 create→validate→run→inspect→
   destroy；不新增/不修改任何 C 头/C ABI。
 
 ## Registry descriptor 与配置 schema
@@ -71,9 +71,9 @@
 
 ## Execution class、并行轴、ThreadBudget lease、确定性
 
-- io 类；写面单线程串行（cfitsio 进程锁 RT-008，p3_output.cpp:125
-  与 aio_fits.cpp:529 共锁）；并行仅上游采样 std::thread 池
-  （p3_session.cpp:247-253，worker=budget.max_workers，:209 注释禁
+- io 类；写面单线程串行（cfitsio 进程锁 RT-008，p3_output.cpp
+  与 aio_fits.cpp 共锁）；并行仅上游采样 std::thread 池
+  （p3_session.cpp，worker=budget.max_workers，其注释禁
   hardware_concurrency；本域 0 处 #pragma omp）；ThreadLease/取消
   检查点无接线（整改项）。
 - 确定性：输出与 worker 数无关（1..N bitwise）；fits_write_pix
@@ -83,7 +83,7 @@
 ## 内存、cache、I-O、所有权
 
 - 内存 O(W·H)×2×4B（调用方缓冲，本域不复制），不依赖 tile 数
-  （max_tiles 守卫 p3_session.cpp:179-193）；I-O 单 writer 串行，
+  （max_tiles 守卫 p3_session.cpp）；I-O 单 writer 串行，
   tmp=`<path>.<pid>.tmp` 同目录（命名差异见「已知限制」）；
   所有权=输出文件与 result 归调用方。
 
@@ -91,7 +91,7 @@
 
 - rc 语义+会话层 ACS_ERR_* 映射（ALG-P3-FITS-IMPL-001 §10 表）；
   失败不变量 unlink(tmp/产物) 不留假文件；inspect JSON 摘要
-  （p3_session.cpp:296-313）；无 checkpoint（整文件原子单元）。
+  （p3_session.cpp）；无 checkpoint（整文件原子单元）。
 
 ## 独立 synthetic 验证命令与容差
 
@@ -106,9 +106,9 @@
 ## 已知限制
 
 - AIO README 的 cfitsio 表述与 vendored 现状矛盾（他域文件只登记不修）；
-  tmp 命名协议注（h:41-44）与实测（cpp:81）差异 + 测试残留检查前缀
+  tmp 命名协议注（p3_output.h）与实测（p3_output.cpp）差异 + 测试残留检查前缀
   弱匹配（登记不改码）。
-- 整改项：manifest_hash 恒 nullptr（p3_session.cpp:270，SCI-P3 §96 接线
+- 整改项：manifest_hash 恒 nullptr（p3_session.cpp，SCI-P3 §96 接线
   未落地）、verify 忽略 wcs（(void)wcs 设计如此）、DATASUM 非 FITS 标准
   ASCII CHECKSUM（如实冻结）。
 - 其余见 docs/KNOWN_LIMITATIONS.md 与 ALG-P3-FITS-IMPL-001 §14。

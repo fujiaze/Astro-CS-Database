@@ -21,16 +21,16 @@ PipelineFrame/引擎。
 
 aio_* 系列（aio_fits/aio_xisf/aio_hips_reader/aio_hips_writer/
 aio_upm/aio_compressor/aio_pipeline）；API-AIO-001..（S2 注册）。
-PipelineFrame：纯命名块容器（按块名索引）。**块词表的唯一登记处 = `lib/infrastructure/aio/include/aio_pipeline.h:287-305` 的「标准块定义表」**（aio 是文件级唯一 I/O 边界，块词表属 aio 的内存块合同 ⇒ 登记处归 aio）；**其它文档只作引用**——`lib/infrastructure/pipeline/orchestrator/cpp/src/orchestrator.cpp` 的 6 个名字**不是块词表**，而是 `stage_trace.jsonl` 的**跟踪子集**（orchestrator 不在产品入口位）；`docs/science/DATA_SEMANTICS.md` §11.1 的「帧内命名块」表**只作引用**。⚠ **Q8 待落地的代码侧项（登记，非本任务文件域）**：① 把 `variance` 块补进标准块定义表；② 删除 `:304`「未列出的自定义块名也允许」；③ 补机器判据（块名 ∉ 标准表 ⇒ 判红）。`PipelineStageFn` 签名 `const input/output/params + error_msg/error_capacity（可为 NULL，>0 保证 NUL 终止/截断）`，`aio_frame_add_block_move` 为 move 语义（成功接管后调用方不再拥有 `aio_alloc` buffer）。
+PipelineFrame：纯命名块容器（按块名索引）。**块词表的唯一登记处 = `lib/infrastructure/aio/include/aio_pipeline.h` 的「标准块定义表」**（aio 是文件级唯一 I/O 边界，块词表属 aio 的内存块合同 ⇒ 登记处归 aio）；**其它文档只作引用**——`lib/infrastructure/pipeline/orchestrator/cpp/src/orchestrator.cpp` 的 6 个名字**不是块词表**，而是 `stage_trace.jsonl` 的**跟踪子集**（orchestrator 不在产品入口位）；`docs/science/DATA_SEMANTICS.md` §11.1 的「帧内命名块」表**只作引用**。⚠ **Q8 待落地的代码侧项（登记，非本任务文件域）**：① 把 `variance` 块补进标准块定义表；② 删除 aio_pipeline.h 里「未列出的自定义块名也允许」；③ 补机器判据（块名 ∉ 标准表 ⇒ 判红）。`PipelineStageFn` 签名 `const input/output/params + error_msg/error_capacity（可为 NULL，>0 保证 NUL 终止/截断）`，`aio_frame_add_block_move` 为 move 语义（成功接管后调用方不再拥有 `aio_alloc` buffer）。
 
 ## Data contract
 
 FITS 标准 + IVOA HiPS；HiPS tile 语义：signal/support/variance/ivar
 （DATA-HIPS-SIGNAL-001 等，S2 注册）；UPM sparse format astrocs-upm-v2。
 HiPS 精度：`AioHipsDataType` 枚举 `AIO_HIPS_FLOAT32=0` / `AIO_HIPS_FLOAT64=1`
-（`lib/infrastructure/aio/include/aio_hips.h:46-49`）透传至 `aio_hips_product_begin`
+（`lib/infrastructure/aio/include/aio_hips.h`）透传至 `aio_hips_product_begin`
 `data_type`，写盘 `BITPIX -32/-64` 对应 `CFITSIO TFLOAT/TDOUBLE`
-（`src/hips/aio_hips_writer.cpp:222-225`）；科学精度优先 FP64 reference，FP32
+（`src/hips/aio_hips_writer.cpp`）；科学精度优先 FP64 reference，FP32
 仅显式等价路径（见 `docs/engineering/PERFORMANCE_MODEL.md`）。
 
 ## Ownership

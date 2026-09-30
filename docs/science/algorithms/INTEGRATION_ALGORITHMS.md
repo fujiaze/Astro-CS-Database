@@ -36,7 +36,7 @@ F6a: support reducer 作用域 = accepted ∧ finite(value/support)（**不含**
      零权 accepted 样本合法不贡献 signal, 但必须进入 sup_max
 ```
 
-来源: `integrate.cpp:10-79` `integrate.h: P2PixelStack/Result`
+来源: `lib/algorithms/coverage/src/integrate.cpp` `lib/algorithms/coverage/include/astro/phase2/integrate.h`（符号 `P2PixelStack` / `Result`）
 
 ## 3 伪代码
 

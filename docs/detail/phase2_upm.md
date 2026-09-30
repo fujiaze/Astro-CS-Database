@@ -27,8 +27,8 @@
   迁移目标未落地）。
 - 合同三件套：`lib/algorithms/upm/`（README + module.yaml CONTRACT_READY，
   entrypoint 未落地 + memory.md）；落位规则见 docs/detail/README.md。
-- 生产源：`lib/algorithms/coverage/src/upm.cpp`（1565 行，根 CMakeLists.txt
-  :337-346 astrocs_phase2 静态库成员，upm.cpp 列于 :338）+ 权威源
+- 生产源：`lib/algorithms/coverage/src/upm.cpp`（1565 行，属根 `CMakeLists.txt` 的
+  astrocs_phase2 静态库成员）+ 权威源
   签名头 `lib/algorithms/coverage/include/astro/phase2/upm.h`（184 行）。模块页=
   本文件。
 - owner SA-P2-U21；depends_on_int=P2-SAMP;CPU-005；
@@ -41,13 +41,13 @@
   `w = quality_factor × control_ivar`（control_ivar=1/control_
   variance，ALG-UPM-CONTROL-IVAR-001；control_ivar≤0/非有限 →
   p2_upm_raw_weight rc=2 显式 INVALID，禁静默回退）→ per-control
-  归一化 `w_norm = w/Σw × control_reliability`（upm.cpp:1325-1344）
+  归一化 `w_norm = w/Σw × control_reliability`（`lib/algorithms/coverage/src/upm.cpp`）
   → Huber IRLS（δ=1.345 无量纲、IRLS 迭代重加权 + 图平滑 + 弱零锚
   + 连通分量逐分量 gauge=分量内最小 frame_id，ALG-UPM-001 F3/F5）。
-  模型=C[frame][control] 8×8 control cell 双线性场（upm.cpp:75）+
+  模型=C[frame][control] 8×8 control cell 双线性场（`lib/algorithms/coverage/src/upm.cpp`）+
   frame_index/frame_id_by_index 稳定绑定（绑定仅由稳定 frame_id 决
-  定，save 前校验行数一致 :944-945，拒绝写绑定损坏的模型文件）。
-  build_geo 变体（:934）消费全几何 P2ControlNode（含单帧区），单帧
+  定，save 前校验行数一致，见 `lib/algorithms/coverage/src/upm.cpp`，拒绝写绑定损坏的模型文件）。
+  build_geo 变体（同上文件）消费全几何 P2ControlNode（含单帧区），单帧
   区经全局平滑/Laplacian 延拓（harmonic continuation）。
 - apply 职责：按 frame_id 绑定逐块校准——**默认只扣偏差 δ_k、保留公共天光面
   B_ref**：`calibrated_k(x) = raw_k(x) − δ_k(x)`（最高设计 §5.4「公共面语义：
@@ -57,20 +57,18 @@
   还是「仅偏差」。实现键 `seam.additive_mode ∈ {c, delta, both}`：`delta` =
   `raw − δ_k`（保留 `B_ref`，**设计默认**）、`c` = 全量扣除、`both` = 两者同时
   施加（最高设计 §5.4；实现面默认仍为 `c`，属**待改**，以设计为准）。
-  内核锚 = p2_upm_calibrate_block :1240，与 p2_upm_evaluate_c :1271
+  内核锚 = p2_upm_calibrate_block 与 p2_upm_evaluate_c（均见 `lib/algorithms/coverage/src/upm.cpp`），
   sparse/dense 同一科学语义；dense cache 物化/读取
-  （p2_upm_materialize_dense_n :1390 分批并行求值→(f,tile) 单调序
-  串行写、bit-identical，p2_upm_dense_read_block :1542 stale 拒绝
-  rc=2）；生产 apply 消费链=lib/algorithms/coverage/tools/stage2.cpp
-  （p2_upm_build_geo :432、save :473、materialize_dense_n :482、
-  calibrate_block :927/:1272）。
+  （p2_upm_materialize_dense_n 分批并行求值→(f,tile) 单调序
+  串行写、bit-identical，p2_upm_dense_read_block stale 拒绝
+  rc=2；同在 `lib/algorithms/coverage/src/upm.cpp`）；生产 apply 消费链=lib/algorithms/coverage/tools/stage2.cpp
+  （p2_upm_build_geo、save、materialize_dense_n、calibrate_block 四处调用点）。
 - 非职责：不做控制点采样/几何（P2-SAMP 上游，DATA-P2-SMP 域）；不
   做 coverage union（P2-COV 域）；不做加权积分与排异（P2-INT/P2-REJ
   下游）；不做马赛克写出（P2-HIPS）；不处理乘性尺度差（SCI-UPM-001
   非目标，已撤销）；不跨滤镜统一（filter 分组调用方保证）；不暴露
-  per-frame gradient 产品（upm.h:11-12 冻结）；无 session 依赖
-  （模型数据面显式传入；会话消费=lib/phase2_session/p2_session.cpp
-  :180-233）。
+  per-frame gradient 产品（`lib/algorithms/coverage/include/astro/phase2/upm.h` 冻结）；无 session 依赖
+  （模型数据面显式传入；会话消费=lib/phase2_session/p2_session.cpp）。
 
 ## 输入输出端口、DATA、单位、坐标、invalid
 
@@ -107,35 +105,31 @@ component_count/model_hash[65] + C[frame][control] FP64）；apply 输
 - invalid: null 参数/n_obs=0/frame 绑定不一致/open/parse 失败 →
   rc=1；production 模式 control_ivar≤0/非有限 → p2_upm_raw_weight
   rc=2 → build rc=2（显式 INVALID，禁静默回退 support/SNR，
-  upm.h:88-95）；未知 frame_id → p2_upm_evaluate_c 返回 NaN
-  （显式不可用，禁 frame 0 参数伪装，upm.cpp:1277-1280）；
+  `lib/algorithms/coverage/include/astro/phase2/upm.h`）；未知 frame_id → p2_upm_evaluate_c 返回 NaN
+  （显式不可用，禁 frame 0 参数伪装，见 `lib/algorithms/coverage/src/upm.cpp`）；
   dense_read_block source hash 不匹配 → rc=2 stale 拒绝。
 
 ## 公共 header、核心 symbol 与生命周期
 
 - 签名头正本: lib/algorithms/coverage/include/astro/phase2/upm.h（453 行；
-  P2ControlObservation :31-57、P2ModelInfo :60-68、P2UpmBuildConfig
-  :71-92、build :95-98、build_geo :103-107、save/open/info
-  :108-110、calibrate_block :113-、evaluate_c :122、
-  raw_weight 冻结注 :126-133、normalized_weights :139-、
-  geometry_hash :146、component_gauges :150、
-  materialize_dense 重复声明 :154-156/:173-178（登记见 ALG-P2-UPM-IMPL-001）、
-  dense_info :159-、dense_read_block :166-、close :180）。
-- 核心 symbol（lib/algorithms/coverage/src/upm.cpp 导出，extern "C"；行锚为本轮实测重算）:
-  p2_upm_build（:1372）、p2_upm_build_geo（:1377）、p2_upm_save
-  （:1383）、p2_upm_open（:1506）、p2_upm_info（:1803）、
-  p2_upm_calibrate_block（:1907）、p2_upm_evaluate_c（:1943）、
-  p2_upm_raw_weight（:1966）、p2_upm_geometry_hash（:2001）、
-  p2_upm_component_gauges（:2024）、p2_upm_materialize_dense_n（:2045）、
-  p2_upm_materialize_dense（:2177-2180）、p2_upm_dense_info（:2182）、
-  p2_upm_dense_read_block（:2201）、p2_upm_close（:2218）。
-  `p2_upm_normalized_weights` 已于 2026-09-25 退役（`upm.cpp:1999` / `upm.h:184` 的 RETIRED 注记，全仓零消费者），本表不再列为在役导出。
-  **`p2_upm_materialize_dense` 的 worker 语义（本轮实测订正）**：该 wrap 恒传 `workers=0`（`upm.cpp:2177-2180`），而实现取 `nw = (workers > 0) ? workers : 1`（`upm.cpp:2137`）⇒ `workers=0` = **单线程串行**，**不是 auto**；同一约定见 `upm.cpp:614/:749/:791/:913`（`cfg.cpu_workers > 0 ? cfg.cpu_workers : 1`）。
+  P2ControlObservation、P2ModelInfo、P2UpmBuildConfig 三处结构体定义，
+  build / build_geo / save / open / info / calibrate_block / evaluate_c /
+  raw_weight（含冻结注）/ normalized_weights / geometry_hash /
+  component_gauges / materialize_dense（重复声明，登记见 ALG-P2-UPM-IMPL-001）/
+  dense_info / dense_read_block / close 声明）。
+- 核心 symbol（`lib/algorithms/coverage/src/upm.cpp` 导出，extern "C"）:
+  p2_upm_build、p2_upm_build_geo、p2_upm_save、p2_upm_open、p2_upm_info、
+  p2_upm_calibrate_block、p2_upm_evaluate_c、p2_upm_raw_weight、
+  p2_upm_geometry_hash、p2_upm_component_gauges、p2_upm_materialize_dense_n、
+  p2_upm_materialize_dense、p2_upm_dense_info、p2_upm_dense_read_block、
+  p2_upm_close。
+  `p2_upm_normalized_weights` 已于 2026-09-25 退役（`upm.cpp` / `upm.h` 的 RETIRED 注记，全仓零消费者），本表不再列为在役导出。
+  **`p2_upm_materialize_dense` 的 worker 语义（本轮实测订正）**：该 wrap 恒传 `workers=0`（`upm.cpp`），而实现取 `nw = (workers > 0) ? workers : 1`（`upm.cpp`）⇒ `workers=0` = **单线程串行**，**不是 auto**；同一约定见 `upm.cpp`（`cfg.cpu_workers > 0 ? cfg.cpu_workers : 1`）。
 - C API 面: API-P2-UPM-001（PUBLIC_API.md，16 导出符号锚）+ 编排级
   API-P2-001（FROZEN）。
 - 生命周期=build/build_geo（调用方持有 void* model）→ info/
   evaluate_c/calibrate_block/dense 物化与读取 → save/open 往返 →
-  p2_upm_close（:1559，delete Model；nullptr=rc 0 幂等）。模型/缓冲
+  p2_upm_close（delete Model；nullptr=rc 0 幂等）。模型/缓冲
   所有权=调用方。
 
 ## Registry descriptor 与配置 schema
@@ -149,29 +143,29 @@ fit=SCI-P2-UPM-001/ALG-P2-UPM-001/DATA-P2-UPM/TEST-P2-UPM-001；apply=
 SCI-P2-UPM-002/ALG-P2-UPM-002/DATA-P2-COR/TEST-P2-UPM-002。
 descriptor 端口为静态声明的 persist→reload 语义，与内核 probe/fill
 语义的桥接未验证。配置=P2UpmBuildConfig 16
-字段（upm.h:71-92；production 默认单一来源=p2_session.cpp:183-199:
+字段（`lib/algorithms/coverage/include/astro/phase2/upm.h`；production 默认单一来源=lib/phase2_session/p2_session.cpp:
 robust_loss=0 huber、upm_weight_source=0 snr2_normalized、
 huber_delta=1.345、max_iterations=100、tolerance=1e-6、
 target_order=覆盖图 order（取自 coverage）、sigma_floor=1e-3、support_power=1.0、
 use_ivar_weight=1、control_reliability=1.0；upm/smoothing_lambda/
 huber_delta/max_iterations 可被 phase config JSON 覆盖
-p2_session.cpp:200-206）。
+见 `lib/phase2_session/p2_session.cpp`）。
 
 ## Execution class、并行轴、ThreadBudget lease、确定性
 
-- `cpu_heavy`；并行轴=观测间 compute_raw/聚合（upm.cpp:513-530
-  worker-local tsums、:613-661 逐 obs 独立 w）与 dense tile 求值
-  （:1477-1484 std::thread 池，workers 由调用方传 lease）；模块内
-  std::thread 实现，**无 OpenMP**（:1477 注释"无 OpenMP"；upm.h
-  :89-91 注释仍写 OpenMP，属注释漂移，登记见 ALG-P2-UPM-IMPL-001）。
+- `cpu_heavy`；并行轴=观测间 compute_raw/聚合（`lib/algorithms/coverage/src/upm.cpp` 的 worker-local tsums、
+  逐 obs 独立 w）与 dense tile 求值
+  （同文件 std::thread 池，workers 由调用方传 lease）；模块内
+  std::thread 实现，**无 OpenMP**（同文件有"无 OpenMP"注释；`lib/algorithms/coverage/include/astro/phase2/upm.h`
+  另有一处注释仍写 OpenMP，属注释漂移，登记见 ALG-P2-UPM-IMPL-001）。
 - worker 数=Runtime lease 唯一来源：cfg.cpu_workers=ThreadBudget.
-  max_workers 经 p2_session.cpp:197（§3 blocks=budget）与 stage2.cpp
-  :482 传入；模块无 hardware_concurrency 自行开线程；**0 = 单线程串行**
-  （`nw = (workers > 0) ? workers : 1`，`upm.cpp:2137`；同 `:614/:749/:791/:913`）、
+  max_workers 经 `lib/phase2_session/p2_session.cpp`（§3 blocks=budget）与
+  `lib/algorithms/coverage/tools/stage2.cpp` 传入；模块无 hardware_concurrency 自行开线程；**0 = 单线程串行**
+  （`nw = (workers > 0) ? workers : 1`，`upm.cpp`）、
   1 = 单线程 reference，>1 = 调用方显式给定的线程数——"0=auto" 的旧述已按实测订正。
-- 确定性: 聚合=worker-local tsums + **tid 升序归并**（:513 注释，
+- 确定性: 聚合=worker-local tsums + **tid 升序归并**（`upm.cpp` 注释，
   determinism class D1=worker 数无关、同 worker 数位精确）；
-  gauge/连通分量/收敛/归并固定顺序；稠密缓存 bit-identical（:1387-1390 冻结注释）；既有验证=eng/tests/api/test_upm_parallel.py
+  gauge/连通分量/收敛/归并固定顺序；稠密缓存 bit-identical（`upm.cpp` 冻结注释）；既有验证=eng/tests/api/test_upm_parallel.py
   test_02_one_t_same_as_n_t_scientific（1/N 等价）+
   test_01_deterministic_repeat_each_worker；1/N 等价亦见
   eng/tests/backend/test_p2002_parallel_upm.py。
@@ -179,32 +173,32 @@ p2_session.cpp:200-206）。
 ## 内存/cache/I-O/所有权
 
 - 内存: 构建 O(n_ctrl + n_frame·n_ctrl)（Model.C [frame][control]
-  upm.cpp:75 + obs_w 权重缓存）；dense 物化上界=kChunk·kLeafPx·8
-  字节（:1389 冻结注释）；无无界缓存。
-- I/O: 唯一 AIO 通道=aio_upm_write_sparse（upm.cpp:1005，模型稀疏
+  `upm.cpp` + obs_w 权重缓存）；dense 物化上界=kChunk·kLeafPx·8
+  字节（`upm.cpp` 冻结注释）；无无界缓存。
+- I/O: 唯一 AIO 通道=aio_upm_write_sparse（`upm.cpp`，模型稀疏
   持久化，ENG-IO-001 原子写）+ aio_upm_open/aio_upm_dense_* 读面；
   dense cache=空间求值缓存（frame × tile 的 C_i(p) 值，同模型
   hash/目标 order/frame hash 校验，stale 拒绝）。无其他文件 I/O。
 - 所有权: model（void*）与全部输入/输出缓冲=调用方分配与释放
-  （p2_upm_close :1559 唯一释放口）；模块无全局可变状态
+  （p2_upm_close 唯一释放口）；模块无全局可变状态
   （reentrant=yes；并行面经显式 worker 数受控）。
 
 ## 错误、日志、指标、取消和 checkpoint
 
 - 错误面=rc 三态 + 调用方语义承载: rc=0 ok；rc=1 参数/绑定/open/
-  parse/IO（:941/:945/:1009-1028/:1234 等）；rc=2 production 缺
-  control ivar（:609→build 传播，upm.h:46-50 冻结）与 dense stale
-  cache（upm.h:167 注释 0=ok,1=io/parse,2=stale）。evaluate_c
-  未知 frame_id=NaN（:1277-1280）。模块面错误码词汇 = P2UPM 内核 rc，
+  parse/IO（`upm.cpp` 的绑定/open 校验段等）；rc=2 production 缺
+  control ivar（`upm.cpp` 传播至 build，`upm.h` 冻结）与 dense stale
+  cache（`upm.h` 注释 0=ok,1=io/parse,2=stale）。evaluate_c
+  未知 frame_id=NaN（`upm.cpp`）。模块面错误码词汇 = P2UPM 内核 rc，
   不使用编排层 ACS_ERR_* 词汇。
 - 取消: 会话消费面整模型不写半成品——upm_build 入口检查
-  p2_session.cpp:181、persist 段取消点 :223-227（取消即 close 模型
+  `lib/phase2_session/p2_session.cpp`、persist 段取消点（同文件）（取消即 close 模型
   返回 ACS_ERR_CANCELLED，无半成品文件）；模块内核无取消检查点。
 - 无段内 checkpoint（dense 物化整缓存一次写）；stage2 消费链逐阶段
   stage 日志由会话/编排层承载，非模块内输出。
 - known_defects（登记不改码；正本 = ALG-P2-UPM-IMPL-001 缺陷清单）:
-  upm.h:197-198/:216-217 materialize_dense 重复声明；upm.h:89-91 注释漂移
-  （OpenMP vs std::thread 实现）；p2_session.cpp:196-204 覆盖键缺口；
+  `upm.h` materialize_dense 重复声明；`upm.h` 注释漂移
+  （OpenMP vs std::thread 实现）；`lib/phase2_session/p2_session.cpp` 覆盖键缺口；
   descriptor 端口静态声明的 persist→reload 语义；整改面未落地。
 
 ## 独立 synthetic 验证命令与容差
@@ -227,9 +221,9 @@ F6 dense/sparse 1e-12 等价基线）。
   continuation 非数据约束解（SCI-UPM-001 §4）；legacy
   snr²/(1+snr²)/unc² 权重（含 support^p 与 σ_floor 分母）由 **`use_ivar_weight=0`** 选择、
   仅 ablation/诊断（SNR-015）——**不是** `quality_mode`：`quality_mode` 只决定 quality 因子的
-  分支，实现在 `quality_factor(flags, mode)` 内 `(void)mode` **恒忽略该参数**（`upm.cpp:220-221`），
-  生产默认 `cfg.quality_mode = 0` + `cfg.use_ivar_weight = 1`（`upm.cpp:1975-1976`），
-  真开关 = `upm.cpp:1981` 的 `if (cfg.use_ivar_weight != 0)`。
+  分支，实现在 `quality_factor(flags, mode)` 内 `(void)mode` **恒忽略该参数**（`lib/algorithms/coverage/src/upm.cpp`），
+  生产默认 `cfg.quality_mode = 0` + `cfg.use_ivar_weight = 1`（同上文件），
+  真开关 = 同上文件的 `if (cfg.use_ivar_weight != 0)`。
 - 缺陷与现行语义正本 = `docs/science/algorithms/PHASE2_UPM_IMPL.md`
   §11/§13（本页只留指针）。
 

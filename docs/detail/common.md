@@ -58,7 +58,7 @@ SCI-DRZ-* / SCI-UPM-*（HEALPix 几何）；DATA-FRAME-ID-001（frame_id）；�
 ## Known limitations
 
 - 仅支持 NESTED ordering（ring 未迁移）；
-- 当前仅 Linux x86_64 字节序路径（`sampler.cpp:250-364` payload 字节语义）。
+- 当前仅 Linux x86_64 字节序路径（`lib/algorithms/coverage/src/sampler.cpp` payload 字节语义）。
 
 ## Source files
 

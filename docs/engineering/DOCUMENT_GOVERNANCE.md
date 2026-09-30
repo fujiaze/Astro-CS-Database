@@ -2,7 +2,8 @@
 
 > 上游：docs/ASTROCS_DESIGN.md §0.2（详细文档层与双向索引）、§0.3（文档写法）；ENGINEERING_SPEC.md §8（文档集与索引规则）。
 > 地位：文档体系的分层模型、准入判据、上游抬头、正向书写与科学佐证条款的唯一正本；索引与登记规则的正本在 `ENGINEERING_SPEC.md` §8，本文件只引用不复述。
-> 判据同源：`eng/tools/doccheck/check_doc_index.py`、`eng/tools/doccheck/check_doc_hygiene.py`。
+> 判据同源：文档域不设机器门（文档索引闭合、文档写法与过程痕迹两项原机器检查已撤销），
+> 本文件各条由对抗性审查逐条覆盖；`eng/tools/doccheck/` 下的检查器脚本已不在册。
 
 ## 1. 分层模型与目录规范
 
@@ -43,13 +44,13 @@ docs/
 
 ## 3. 锚纪律与机器门
 
-- 行锚/符号锚门（`ALG-LINE-ANCHORS`、`DOC-LINE-ANCHORS`）全量生效；锚的路径与行号随文档维护同提交更新（锚合同的唯一正本 = `docs/detail/anchors/ANCHOR_CONTRACT.md`）；
-- 重锚只改路径与行号，锚语义保持不变；正文内容订正走订正流程并复跑门禁，不借重锚顺带改内容；
-- 门的 `doc_glob` / `changed_paths` 面与文档路径改动同提交生效。
+- **文档内不留指向仓内文档的行锚**：引用本仓其他文档一律用内容锚（引文 + 内容指纹）或 `§条` 引用；行锚只用于外部文献与代码（锚合同的唯一正本 = `docs/detail/anchors/ANCHOR_CONTRACT.md`）；
+- 行锚仓内条款已于 2026-09-30 撤销，相关机器门不再执行；引用外部文献与代码的行锚仍须与文档同提交更新。
+- 文档域不设机器门，锚存活与锚规模一致性改由对抗性审查逐条覆盖。
 
 ## 4. 索引与引用维护纪律
 
-1. 每条 `docs/` 路径引用与索引条目在同一批改动内闭合：`docs/DOCUMENT_INDEX.yaml` 与 `docs/TRACEABILITY.csv` 同批更新，`python3 eng/tools/doccheck/check_doc_index.py --strict` 通过才算完成；
+1. 每条 `docs/` 路径引用与索引条目在同一批改动内闭合：`docs/DOCUMENT_INDEX.yaml` 与 `docs/TRACEABILITY.csv` 同批更新，由对抗性审查确认索引闭合后才算完成（原 `--strict` 机器检查已随文档域门禁撤销）；
 2. 引用重写规则：`docs/` 前缀路径按新拓扑改写；markdown 相对链接逐条解析改写；裸名 `ASTROCS_DESIGN.md` 在 `docs/` 外带 `docs/` 前缀、在 `docs/` 内保持裸名；
 3. 本域改动面不含 `eng/contracts/` 冻结 schema、`实验/` 单元、`testdata/`、`gaia/`；这些面的处置属各自域；
 4. 索引与文件树一致：未登记即缺陷，登记不存在同样是缺陷；悬空引用跨域未修项登记于 `eng/tools/doccheck/dangling_ledger.json`，只减不增。
@@ -61,7 +62,7 @@ docs/
 - **订正 = 整段重写为现行口径**：删除订正注记、历史对照与编号引用，代之以正向表述 + 现行佐证锚；
 - **佐证来源区只挂现行依据**：文献、开源实现、实验复算；
 - **历史痕迹清零**：日期、版本沿革、任务编号、基线 SHA 不出现在跟踪文档；文档头部只保留「上游：〈上层文档 §条〉」与现行佐证锚；
-- 对抗审查把"正文含沿革叙述或历史痕迹"判红（`CHK-DOC-HYGIENE` 的 D1/D3 面）。
+- 对抗审查把"正文含沿革叙述或历史痕迹"判红（原 D1/D3 判据面，已无机器门执行者，由审查逐条覆盖）。
 
 ## 6. 对抗审查准入
 

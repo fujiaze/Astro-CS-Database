@@ -20,21 +20,21 @@ F6: scale = 10^{−location}
 F7: 星等一致性预过滤 |Δ−median(Δ)|>3.0 mag reject where Δ=−2.5·log10(F_instr)−G_Gaia
 ```
 
-来源: `star_matcher.cpp:21,23,25,27,445-464,486-501,518-536,538-590,592-627`；`image_corrector.cpp:62-77`
+来源: `lib/algorithms/photometry/cpp/src/star_matcher.cpp`；`lib/algorithms/photometry/cpp/src/image_corrector.cpp`
 
 **逐式的量纲、中心约定、适用域与证据**
 
-- **F1 量纲**：`F_instr` 单位 **ADU**；`F_syn` 单位 **W·m⁻²·nm**（定义式与逐项量纲见 `docs/science/PHOTOMETRY.md` §2a.1/§2a.2）；`r_i` 是**有量纲比值**的对数，单位 `dex(ADU/[F_syn 单位])`；`location` 同单位；`scale` 单位 `[F_syn 单位]/ADU`。**有效域**：`F_instr>0`、`F_syn>0`、`r` 有限（`star_matcher.cpp:452-464`）；不成立者显式拒绝，不进入 `r`。
-- **F2 中心约定**：`MAD` 的中心是**中位数**（`star_matcher.cpp:540-545`：先 `location=median(r_consistent)`，再取 `MAD=median(|r−location|)`）。常数 `0.6744897501960817 = Φ⁻¹(3/4)` 的推导前提即「中心 = 中位数」。
+- **F1 量纲**：`F_instr` 单位 **ADU**；`F_syn` 单位 **W·m⁻²·nm**（定义式与逐项量纲见 `docs/science/PHOTOMETRY.md` §2a.1/§2a.2）；`r_i` 是**有量纲比值**的对数，单位 `dex(ADU/[F_syn 单位])`；`location` 同单位；`scale` 单位 `[F_syn 单位]/ADU`。**有效域**：`F_instr>0`、`F_syn>0`、`r` 有限（`star_matcher.cpp`）；不成立者显式拒绝，不进入 `r`。
+- **F2 中心约定**：`MAD` 的中心是**中位数**（`star_matcher.cpp`：先 `location=median(r_consistent)`，再取 `MAD=median(|r−location|)`）。常数 `0.6744897501960817 = Φ⁻¹(3/4)` 的推导前提即「中心 = 中位数」。
   **有限样本偏差（适用域）**：`MAD/0.6744897501960817` 对 σ 的期望在 n<20 时系统性偏低；修正因子 `b_n`（Croux & Rousseeuw 1992, *Computational Statistics* **1**, 411, p.413 表：n=3→1.495、4→1.363、5→1.206、9→1.107，n>9→`n/(n−0.8)`）。合成实验独立复算该表的期望并与文献预言一致（读数正本 = 实验/photometric-magnitude/results/）。本层冻结门 `|r_consistent|≥3` 恰落在偏差最大处：**n=3 时 S 与 sigma_residual 的期望偏低约 1.49 倍**、n=9 偏低 1.107 倍、n≥50 偏差 <2%；**该偏差在实现中不修正**，故低星数帧的 `sigma_mag` 是下偏估计。证据与读数正本 = 实验/photometric-magnitude/results/。
-- **F3 尺度路线**：`S` 由 `MAD` **一次估计后在迭代中固定**（`star_matcher.cpp:545,558,597`），属「先验尺度估计的 M 估计」路线（Huber & Ronchetti 2009, *Robust Statistics* 2nd ed. §6.5；与 §6.4「位置-尺度同时迭代」并列）。
+- **F3 尺度路线**：`S` 由 `MAD` **一次估计后在迭代中固定**（`star_matcher.cpp`），属「先验尺度估计的 M 估计」路线（Huber & Ronchetti 2009, *Robust Statistics* 2nd ed. §6.5；与 §6.4「位置-尺度同时迭代」并列）。
   **收益**：`location` 继承 `MAD` 的 50% 崩溃点（MASS 7.3-66 `R/rlm.R:171-183` 的 MM 法说明：「The final estimator is an M-estimator with Tukey's biweight and **fixed scale** that will inherit this breakdown point provided c > k0」）。
   **代价**：`c=4.685` 的 95% 渐近效率只对**已知尺度**严格成立（statsmodels `robust/_tables.py`：`tukeybiweight_eff[0.95]=(4.685065, 0.119414)`；闭式复算 `ARE(4.685065)=0.950000`）。本层合成实测 93.7%（n=1000）–96.0%（n=50），与名义值同量级。证据与读数正本 = 实验/photometric-magnitude/results/。
   **成对变更约束**：若采用**每轮重估尺度**方案（MASS `rlm()` `R/rlm.R:171-183`、statsmodels `RLM(update_scale=True)` 的默认路线），`c=4.685` 下的崩溃点降到 **11.9%**；要保 50% 崩溃点必须同时把 `c` 降到 1.548（效率仅 28.7%）。⇒ `c` 与「尺度是否重估」**必须成对变更**，单独改任一项即破坏另一侧保证。
-- **F4 中心约定与语义**：实现的 `MAD` 中心是 **IRLS 收敛后的 `location`**，不是 `median(r_inliers)`（`star_matcher.cpp:616-621`）。二者相差 `δ=|location−median(r_inliers)|` 时，本式相对标准 MAD 的一阶偏差为 `δ/σ`：合成实验核实该一阶偏差（纯高斯与含污染两档；读数正本 = 实验/photometric-magnitude/results/）。**适用域**：`δ ≪ σ`（帧内残差近似单峰对称）时与标准 MAD 等价；`δ ≳ 0.1σ` 时必须声明所用中心。证据与读数正本 = 实验/photometric-magnitude/results/。
+- **F4 中心约定与语义**：实现的 `MAD` 中心是 **IRLS 收敛后的 `location`**，不是 `median(r_inliers)`（`star_matcher.cpp`）。二者相差 `δ=|location−median(r_inliers)|` 时，本式相对标准 MAD 的一阶偏差为 `δ/σ`：合成实验核实该一阶偏差（纯高斯与含污染两档；读数正本 = 实验/photometric-magnitude/results/）。**适用域**：`δ ≪ σ`（帧内残差近似单峰对称）时与标准 MAD 等价；`δ ≳ 0.1σ` 时必须声明所用中心。证据与读数正本 = 实验/photometric-magnitude/results/。
   **语义**：`sigma_residual` 是**逐星定标散度**（系综量，dex），不是单源通量误差；与 SExtractor 的 `FLUXERR/MAGERR` **同名不同义**，两者各自独立、不可互换。SExtractor 定义见其**用户手册** §2.24.2 式(1.2)（`MAGERR = 2.5/ln10·FLUXERR/FLUX`）与式(1.46)（`FLUXERR = sqrt(Σ(σ_i²+p_i/g_i))`），原文注明该误差「provides a lower limit of the true uncertainty, as it only takes into account photon and detector noise」——即**逐源**量，与本层系综散度不同。
 - **F5 语义与覆盖边界**：`sigma_mag`、`sigma_cal_rel` 是帧级定标散度的线性换算，**不含**参考端（XP 谱解码、Gaia 星表、通带曲线）误差与逐源测量误差；作为单源精度指标使用会低估（误差预算逐项见 `docs/science/PHOTOMETRY.md` §16.4）。
-- **F6 量纲与施加面**：`scale` 单位 `[F_syn 单位]/ADU`，其绝对量级由该帧仪器标度（增益/口径/曝光等不可测量）决定，**无物理意义**（`docs/science/PHOTOMETRY.md` §1/§16.2）；施加式 `I_cal=I·scale` 逐元素（`image_corrector.cpp:62-77`，OpenMP `schedule(static)` :74）。
+- **F6 量纲与施加面**：`scale` 单位 `[F_syn 单位]/ADU`，其绝对量级由该帧仪器标度（增益/口径/曝光等不可测量）决定，**无物理意义**（`docs/science/PHOTOMETRY.md` §1/§16.2）；施加式 `I_cal=I·scale` 逐元素（`image_corrector.cpp`，OpenMP `schedule(static)`）。
 - **F7 适用域**：窗口作用于 `Δ−median(Δ)`，故对 `F_instr` 的**整体乘性标度严格不变**（合成实验：`k=10⁻⁴…10⁶` 下拒绝集逐位相同）；对**与星相关的颜色项不不变**。窗口 = **7.29σ（≈10.81×MAD）** ⇒ 需颜色项散度 ≈3.0 mag 才首次触发（斜率 4.0 mag/颜色单位），故该窗在本仓真实数据上不承担「防通带失配」职能（通带取错的跨星散度读数正本 = 实验/photometric-magnitude/results/）；对 6 mag 级粗大离群，其相对 IRLS 的边际贡献不可测（污染 0–49% 时 location RMSE 差 <2%）。`3.0` 为 Project-defined 冻结值。证据与读数正本 = 实验/photometric-magnitude/results/。
 
 ## 3 伪代码
@@ -63,7 +63,7 @@ function photometric_fit(F_instr, F_syn, G_Gaia):
 | `\|r_inliers\|<2` | `sigma_residual=0`（不可估计） |
 | `S=0` 且 `\|r_consistent\|≥3` | 可达：n=3 时两颗星 `r` 逐位相等即 `MAD=0`（合成实验实测）；此时 `location=median(r)`、`scale` 照常发布、`sigma_residual=0` |
 
-**`sigma_residual=0` 的双义与下游消歧（正向约束）**：`0` 同时表示「不可估计（`|r_inliers|<2`）」与「实测零散度（S=0 分支）」。下游 `snr_phot_cal_quality`（`noise_model.cpp:630-641`）把 `sigma≤0` 映射为 `fit_status=2`（未估计）并**不发布** `sigma_mag/sigma_cal_rel`，故两种含义在 SNR 面被消歧为「无不确定度可用」；**任何其他消费方**必须按同一规则处理，`0` 的解释 = 「无不确定度可用」；「零不确定度」是另一含义。
+**`sigma_residual=0` 的双义与下游消歧（正向约束）**：`0` 同时表示「不可估计（`|r_inliers|<2`）」与「实测零散度（S=0 分支）」。下游 `snr_phot_cal_quality`（`lib/algorithms/noise_snr/cpp/src/noise_model.cpp`）把 `sigma≤0` 映射为 `fit_status=2`（未估计）并**不发布** `sigma_mag/sigma_cal_rel`，故两种含义在 SNR 面被消歧为「无不确定度可用」；**任何其他消费方**必须按同一规则处理，`0` 的解释 = 「无不确定度可用」；「零不确定度」是另一含义。
 **S=0 分支的可达性判据**：n=3 两值相等 ⇒ S=0；n=3 三值互异 ⇒ S>0（负例对照）；证据与读数正本 = 实验/photometric-magnitude/results/。
 
 ## 5 确定性与归约
@@ -128,9 +128,9 @@ function photometric_fit(F_instr, F_syn, G_Gaia):
 
 ## 9 容差来源
 
-- location tol `1e-6`（IRLS 收敛判据 `_IRLS_CONVERGE`；定义 `star_matcher.cpp:27`、使用 :580），预冻结。
+- location tol `1e-6`（IRLS 收敛判据 `_IRLS_CONVERGE`；定义与使用均在 `star_matcher.cpp`），预冻结。
   **适用域**：该容差是**迭代停机**阈值（相邻两次 `location` 之差），不是产品精度指标；产品精度由 `scale` 的相对误差承载。判据取绝对值而非相对值，故对 `location` 的量级不敏感（`location` 单位 dex、量级 ~10–17，绝对 1e-6 相当于相对 ~1e-7）。
-  **未收敛时的行为**：达 `_IRLS_MAX_ITER=50` 仍未收敛时按最后一次迭代值发布 `location`/`scale`（`star_matcher.cpp:555-586` 无未收敛标记），`robust_iterations` 记录实际迭代数（=50 即触顶）；消费方须以 `robust_iterations` 判定是否触顶。
+  **未收敛时的行为**：达 `_IRLS_MAX_ITER=50` 仍未收敛时按最后一次迭代值发布 `location`/`scale`（`star_matcher.cpp` 无未收敛标记），`robust_iterations` 记录实际迭代数（=50 即触顶）；消费方须以 `robust_iterations` 判定是否触顶。
 
 ## 10 关联 ARC/API/TST
 
@@ -142,9 +142,9 @@ function photometric_fit(F_instr, F_syn, G_Gaia):
 > 本节内容: §13.1 逐符号实现锚定、§13.2 实现事实（仅 ALG 文档事实层，
 > 不改根科学公式；SCI-PHOT-001 docs/science/PHOTOMETRY.md FROZEN
 > 共享引用不改动）、§13.3 已登记现状缺陷 DISP-PHOT-001..009、§13.4 冻结测试设计
-> TEST-PHOT-DESIGN-001、§13.5 非生产通道与待迁移符号。行号为
-> lib/algorithms/photometry/cpp/ 的 grep 实测，后续重构以 grep
-> 重锚为准。状态词唯一口径 = `ASTROCS_DESIGN.md` §12.5；IMPLEMENTED 只由验收签发（迁移落码归 P1-PHOT-IMPL）。
+> TEST-PHOT-DESIGN-001、§13.5 非生产通道与待迁移符号。锚点一律给到
+> 文件级（`lib/algorithms/photometry/cpp/` 下的符号名），后续重构以
+> grep 重锚为准。状态词唯一口径 = `ASTROCS_DESIGN.md` §12.5；IMPLEMENTED 只由验收签发（迁移落码归 P1-PHOT-IMPL）。
 
 ### 13.1 逐符号实现锚定
 
@@ -152,31 +152,31 @@ function photometric_fit(F_instr, F_syn, G_Gaia):
 
 | 步骤 | 符号/位置 | 锚 |
 |---|---|---|
-| 常量 | _MAD_SCALE=0.6744897501960817 / _TUKEY_C=4.685 / _IRLS_MAX_ITER=50 / _IRLS_CONVERGE=1e-6 | :21-27 |
-| 质量/饱和位过滤 | `PC_QF_SATURATED` 不入定标 | :415-443 |
-| 有效残差 r_i=log10(F_instr/F_syn) | cleanAndScale 内 r 计算 | :445-464 |
-| 星等预过滤 | delta−median_delta 阈值 mag_tolerance | :486-501 |
-| 参考星数门 | `|r_consistent|<3` → NO_DATA，scale=1.0/fit_used=0 | :513-536 |
-| IRLS 初值 | location=median(r), S=MAD/0.6744897501960817; S=0→median 兜底 | :538-546 |
-| IRLS 迭代 | Tukey w=(1−u²)², ≤50 iter, 收敛 1e-6 | :548-586 |
-| scale | 10^(−location) | :588-590 |
-| inliers/sigma_residual | `|u|<1`; median(|r−location|)/0.6744897501960817 | :592-627 |
-| diag 填充 | r_median/p90/max, rejected_quality | :646-668 |
-| 一站式入口 | matchAndClean(2.0,3.0) | :680-704 |
+| 常量 | _MAD_SCALE=0.6744897501960817 / _TUKEY_C=4.685 / _IRLS_MAX_ITER=50 / _IRLS_CONVERGE=1e-6 | `star_matcher.cpp` |
+| 质量/饱和位过滤 | `PC_QF_SATURATED` 不入定标 | `star_matcher.cpp` |
+| 有效残差 r_i=log10(F_instr/F_syn) | cleanAndScale 内 r 计算 | `star_matcher.cpp` |
+| 星等预过滤 | delta−median_delta 阈值 mag_tolerance | `star_matcher.cpp` |
+| 参考星数门 | `|r_consistent|<3` → NO_DATA，scale=1.0/fit_used=0 | `star_matcher.cpp` |
+| IRLS 初值 | location=median(r), S=MAD/0.6744897501960817; S=0→median 兜底 | `star_matcher.cpp` |
+| IRLS 迭代 | Tukey w=(1−u²)², ≤50 iter, 收敛 1e-6 | `star_matcher.cpp` |
+| scale | 10^(−location) | `star_matcher.cpp` |
+| inliers/sigma_residual | `|u|<1`; median(|r−location|)/0.6744897501960817 | `star_matcher.cpp` |
+| diag 填充 | r_median/p90/max, rejected_quality | `star_matcher.cpp` |
+| 一站式入口 | matchAndClean(2.0,3.0) | `star_matcher.cpp` |
 
 **ALG-PHOT-002 星等一致性匹配（双向最近邻唯一配对）**（star_matcher.cpp）:
 
 | 步骤 | 符号/位置 | 锚 |
 |---|---|---|
-| 常量/ctor | StarMatcher 构造 | :172-174 |
-| Gaia 投影入帧 | matchWithKdTree 内投影与 in-frame 统计 | :207-219 |
-| Gaia KD-tree | KdTree2D::build | :103-124/:230 |
-| PSF 有效过滤 | status==0 | :232-245 |
-| PSF KD-tree | KdTree2D::build | :253-261 |
-| 正向最近邻 | PSF→Gaia | :263-282 |
-| 反向最近邻 | Gaia→PSF | :284-297 |
-| 唯一配对 | 互为最近邻过滤 + match_radius=2.0 | :299-333 |
-| 分阶段 diag | spatial_candidates/unique_matches/rejected_* | :335-368 |
+| 常量/ctor | StarMatcher 构造 | `star_matcher.cpp` |
+| Gaia 投影入帧 | matchWithKdTree 内投影与 in-frame 统计 | `star_matcher.cpp` |
+| Gaia KD-tree | KdTree2D::build | `star_matcher.cpp` |
+| PSF 有效过滤 | status==0 | `star_matcher.cpp` |
+| PSF KD-tree | KdTree2D::build | `star_matcher.cpp` |
+| 正向最近邻 | PSF→Gaia | `star_matcher.cpp` |
+| 反向最近邻 | Gaia→PSF | `star_matcher.cpp` |
+| 唯一配对 | 互为最近邻过滤 + match_radius=2.0 | `star_matcher.cpp` |
+| 分阶段 diag | spatial_candidates/unique_matches/rejected_* | `star_matcher.cpp` |
 
 **F_syn 合成测光**（spectrum_integrator.cpp; 生产路径=XPSD 官方解码）:
 
@@ -190,22 +190,22 @@ F_syn = ∫ F_λ(λ)·T(λ)·Q(λ)·λ dλ        # W·m⁻²·nm；F_λ 单位 
 
 | 步骤 | 符号/位置 | 锚 |
 |---|---|---|
-| Akima 子样条 | akima_interpolate（fill=0） | :44-126 |
-| Simpson 1/3 复合（尾 3/8） | simpson_integrate | :128-168 |
-| **生产符号（XPSD 绝对口径）** | `compute_f_syn_cached_xpsd`（被积函数 `(byte·flux_mul+flux_min)·λTQ`） | :416-455（:443-449） |
-| 滤光片/QE 缓存 | prepare_filter_cache（T、Q 用 Akima 重采样到**完整** 343 点谱网格，区间外 0；权重 = Simpson 系数×T×Q×λ） | :288-365（重采样 :339/:343，权重 :346-351） |
-| XPSD 解码 | F(λ)=byte·flux_mul+flux_min（W·m⁻²·nm⁻¹，逐星量化参数） | gaia_client.h:61-64；记录解码 `gaia_client.c:1985-1999` |
-| 谱网格来源 | 由 XPSD 文件头 `parameters="spectrumStart=336,spectrumStep=2,spectrumCount=343,spectrumBits=8"` 逐字给出（真实分片实测） | `gaia_client.c:1437-1491` |
-| **非生产通道（数值对拍用）** | `compute_f_syn` / `compute_f_syn_cached`：`∫uint8·T·Q·λdλ × 10^(−0.4·magG)`；仅作数值对拍，**生产定标面不含该通道** | :172-283 / :369-410 |
+| Akima 子样条 | akima_interpolate（fill=0） | `spectrum_integrator.cpp` |
+| Simpson 1/3 复合（尾 3/8） | simpson_integrate | `spectrum_integrator.cpp` |
+| **生产符号（XPSD 绝对口径）** | `compute_f_syn_cached_xpsd`（被积函数 `(byte·flux_mul+flux_min)·λTQ`） | `spectrum_integrator.cpp`（被积函数体同文件） |
+| 滤光片/QE 缓存 | prepare_filter_cache（T、Q 用 Akima 重采样到**完整** 343 点谱网格，区间外 0；权重 = Simpson 系数×T×Q×λ） | `spectrum_integrator.cpp`（重采样与权重两段同文件） |
+| XPSD 解码 | F(λ)=byte·flux_mul+flux_min（W·m⁻²·nm⁻¹，逐星量化参数） | `lib/infrastructure/gaia_xpsd_client/src/gaia_client.h`；记录解码 `lib/infrastructure/gaia_xpsd_client/src/gaia_client.c` |
+| 谱网格来源 | 由 XPSD 文件头 `parameters="spectrumStart=336,spectrumStep=2,spectrumCount=343,spectrumBits=8"` 逐字给出（真实分片实测） | `lib/infrastructure/gaia_xpsd_client/src/gaia_client.c` |
+| **非生产通道（数值对拍用）** | `compute_f_syn` / `compute_f_syn_cached`：`∫uint8·T·Q·λdλ × 10^(−0.4·magG)`；仅作数值对拍，**生产定标面不含该通道** | `spectrum_integrator.cpp`（两处非生产符号） |
 
 **生产路径的实证判据**（真实 M42 产物；读数与证据正本 = 实验/photometric-magnitude/results/）：
 `zero_point_mag = median_i(magG_i + 2.5·log10 F_syn,i)` 必须由上式**逐位复现**（落盘值与复算值相对差 ≤1e-12）。
 
-**生产编排**（pc_api.cpp，实测行号）: 生产主路径 = `run_with_gaia_impl<T>` :896-1186；参数校验 :926-946；退化（无 PSF :953 / 无光谱星 :1011 / 滤光片-QE 失败 :1054 → scale=1.0、rc=0）；自适应锥搜 `mag_max_arr{12..16}`×5 :977-1006；F_syn OpenMP `schedule(dynamic,64)` 逐星（整数 `reduction(+:n_valid_fsyn)`）:1071-1096；匹配+清洗 :1113-1122；逐星 PcMatchRecord :1127-1167；f64 内联像素校正 :1168-1173；`make_dr3sp_id` :884-893；v2 封装 :1193-1237（`pc_calibrate_simple_with_gaia_v2`）/ :1239-1283（`_f64_v2`）/ :1294-1336（`_f64_v2_qf`）。旧 ABI 通道：`pc_calibrate_simple` :175、`_with_gaia` :469、`_f64` :510、`_with_gaia_f64` :635。
+**生产编排**（`lib/algorithms/photometry/cpp/src/pc_api.cpp`）: 生产主路径 = `run_with_gaia_impl<T>`；参数校验；退化（无 PSF / 无光谱星 / 滤光片-QE 失败 → scale=1.0、rc=0）；自适应锥搜 `mag_max_arr{12..16}`×5；F_syn OpenMP `schedule(dynamic,64)` 逐星（整数 `reduction(+:n_valid_fsyn)`）；匹配+清洗；逐星 PcMatchRecord；f64 内联像素校正；`make_dr3sp_id`；v2 封装三支（`pc_calibrate_simple_with_gaia_v2` / `_f64_v2` / `_f64_v2_qf`）。旧 ABI 通道：`pc_calibrate_simple`、`_with_gaia`、`_f64`、`_with_gaia_f64`（均在同一文件）。
 
-**图像校正**: ImageCorrector::correctImage I_cal=I·scale（image_corrector.cpp:62-77，OpenMP static :74-76）。
+**图像校正**: ImageCorrector::correctImage I_cal=I·scale（`image_corrector.cpp`，OpenMP static）。
 
-**aperture 测光非生产符号**（lib/algorithms/photometry/wrapper_phase1/photometer.cpp，§13.5）: 天空环收集 d∈[sky_inner,sky_outer] :31-42; 背景中值 :47-51; 孔径积分 d²≤r² Σ(pixel−background) :53-62; σ_sky=1.482602218505602·MAD :69-70; flux_error=sqrt(max(sum,0)+n_in·σ_sky²) :72-80; snr :81。
+**aperture 测光非生产符号**（lib/algorithms/photometry/wrapper_phase1/photometer.cpp，§13.5）: 天空环收集 d∈[sky_inner,sky_outer]; 背景中值; 孔径积分 d²≤r² Σ(pixel−background); σ_sky=1.482602218505602·MAD; flux_error=sqrt(max(sum,0)+n_in·σ_sky²); snr（各段均在同一文件）。
 
 ### 13.2 实现事实修订（ALG 文档事实层；不改根科学公式）
 
@@ -213,54 +213,54 @@ F_syn = ∫ F_λ(λ)·T(λ)·Q(λ)·λ dλ        # W·m⁻²·nm；F_λ 单位 
 - 清洗为**星等预过滤 + IRLS/Tukey 稳健位置估计**；
   scale=10^(−location)（IRLS 直出），median(F_syn/F_instr) 仅为
   computeScale 残留符号（DISP-PHOT-003）。
-- F_syn 网格：生产 `prepare_filter_cache` 路径把 T/Q 重采样到**谱网格本身**（343 点 / 2 nm / 336–1020 nm，末点 336+2×342=1020），`compute_f_syn_cached_xpsd` 在该网格上做复合 Simpson；非生产的 `compute_f_syn` 用重叠区 **1.0 nm** 网格（`spectrum_integrator.cpp:250`）。
-  **网格的实测来源**：真实 XPSD 分片文件头逐字为 `parameters="spectrumStart=336,spectrumStep=2,spectrumCount=343,spectrumBits=8"`（`gaia/GaiaDR3SP/gdr3sp-1.0.0-01.xpsd`，含 11 272 905 颗源、量程 `magnitudeRange="-2.00,13.62"`）⇒ 网格与位深是**容器自报**而非硬编码；生产按文件头取参（`gaia_client.c:1437-1491`）。
+- F_syn 网格：生产 `prepare_filter_cache` 路径把 T/Q 重采样到**谱网格本身**（343 点 / 2 nm / 336–1020 nm，末点 336+2×342=1020），`compute_f_syn_cached_xpsd` 在该网格上做复合 Simpson；非生产的 `compute_f_syn` 用重叠区 **1.0 nm** 网格（`spectrum_integrator.cpp`）。
+  **网格的实测来源**：真实 XPSD 分片文件头逐字为 `parameters="spectrumStart=336,spectrumStep=2,spectrumCount=343,spectrumBits=8"`（`gaia/GaiaDR3SP/gdr3sp-1.0.0-01.xpsd`，含 11 272 905 颗源、量程 `magnitudeRange="-2.00,13.62"`）⇒ 网格与位深是**容器自报**而非硬编码；生产按文件头取参（`lib/infrastructure/gaia_xpsd_client/src/gaia_client.c`）。
   **两条路径的网格不可直接对拍**：生产用 2 nm 谱网格，非生产用 1.0 nm 重叠区网格；两者的离散误差量级不同（2 nm 网格离散误差 0.66–1.34%）。
 - **参考通量口径**：`F_syn = ∫F_λ·T·Q·λ dλ`（W·m⁻²·nm，**不含** `10^(−0.4·G)`；XPSD 解码 `F_λ=byte·flux_mul+flux_min` 已是绝对谱辐照度，实测 `median(m_syn−magG)=−0.0037 mag`）。权威 `docs/science/PHOTOMETRY.md` §2a。
-- 生产 XPSD 光谱为 uint8 编码 F(λ)=byte·flux_mul+flux_min（解码 :443-449），非 float 原始光谱。
+- 生产 XPSD 光谱为 uint8 编码 F(λ)=byte·flux_mul+flux_min（解码见 `spectrum_integrator.cpp`），非 float 原始光谱。
   **量化误差（真实数据）**：逐样本相对半步步长 `0.5·flux_mul/F` 与进入 `F_syn` 的**加权和**相对误差是两个不同量级——积分后比逐样本小约 30 倍（权重代理 `w=λ`，T=Q=1）。⇒ 引用该误差时**必须声明是「逐样本」还是「积分后」**；读数正本 = 实验/photometric-magnitude/results/。证据与读数正本 = 实验/photometric-magnitude/results/。
-- 自适应星等锥搜 mag_max_arr={12,13,14,15,16}（pc_api.cpp:836-866）实际
+- 自适应星等锥搜 mag_max_arr={12,13,14,15,16}（`lib/algorithms/photometry/cpp/src/pc_api.cpp`）实际
   覆盖 mag_max 入参（DISP-PHOT-005）。
-- 构建现状=cpp/Makefile:11 + build.ps1:9（photometric_calib.dll，链接
+- 构建现状=`lib/algorithms/photometry/cpp/Makefile` + `build.ps1`（photometric_calib.dll，链接
   gaia_client.dll），未编入根 CMake 主构建（CMake 集成归 P1-PHOT-IMPL）。
 - OpenMP：F_syn 逐星 `schedule(dynamic,64)`、像素校正 `schedule(static)` 逐元素——科学结果 **bitwise 与线程数无关**。
-  **该结论的依据（逐条，缺一即不成立）**：① F_syn 按星写入**各自下标**的数组，星间无浮点归约；② 并行区内唯一的归约是**整数**计数器 `reduction(+:n_valid_fsyn)`（整数加法可结合，次序无关）；③ `location`/`scale`/`sigma_residual` 的 IRLS 归约是 `cleanAndScale` 内的**串行**循环（`star_matcher.cpp:548-586`，无 OpenMP 指令），样本序由 PSF 表序唯一决定（§5.1）；④ 像素校正是逐元素乘法（`image_corrector.cpp:74`）。
+  **该结论的依据（逐条，缺一即不成立）**：① F_syn 按星写入**各自下标**的数组，星间无浮点归约；② 并行区内唯一的归约是**整数**计数器 `reduction(+:n_valid_fsyn)`（整数加法可结合，次序无关）；③ `location`/`scale`/`sigma_residual` 的 IRLS 归约是 `cleanAndScale` 内的**串行**循环（`star_matcher.cpp`，无 OpenMP 指令），样本序由 PSF 表序唯一决定（§5.1）；④ 像素校正是逐元素乘法（`image_corrector.cpp`）。
   ⇒ **若在星间或样本间引入任何浮点归约**（如并行求和/并行排序），该 bitwise 保证立即失效，必须重新论证。
-- 匹配半径 `match_radius=2.0 px` 是**像素域常数**（`pc_api.cpp:137,427,592,835,1115` 传入；`star_matcher.h:71` 默认值）。
+- 匹配半径 `match_radius=2.0 px` 是**像素域常数**（`lib/algorithms/photometry/cpp/src/pc_api.cpp` 五处调用点传入；默认值见 `lib/algorithms/photometry/cpp/src/star_matcher.h`）。
   **适用域**：匹配成功要求（a）该帧 WCS 的**绝对指向残差 ≪ match_radius**（像素域），且（b）`match_radius` ≳ PSF 质心不确定度。仓内真实帧的像元尺度跨 **0.9586″/px – 6.3076″/px（6.58 倍）**，同一常数对应的天球半径为 **1.92″ – 12.6″**；testdata 真实帧的 WCS 二轮精化后残余 **0.0068″**（`docs/science/PHOTOMETRY.md` §16.5 第 6 条）⇒ 在该帧上条件 (a) 以 ~280 倍余量成立。**跨仪器使用时必须按像元尺度复核该常数**（2.0 px 的通用性只在上述条件下成立）。
 
 ### 13.3 已登记现状缺陷（DISP-PHOT-001..009，登记不改码，整改归 P1-PHOT-IMPL/INT）
 
-- **DISP-PHOT-001**: star_matcher.cpp 头注释（:4-6）与 PhotometricDiag
-  注释（photometric_calib.h:32-38 "当前无双向过滤/rejected_ambiguous
+- **DISP-PHOT-001**: `star_matcher.cpp` 头注释与 PhotometricDiag
+  注释（`photometric_calib.h` "当前无双向过滤/rejected_ambiguous
   保持 0"）失实——实现为双向互最近邻唯一配对，rejected_ambiguous 实际
-  统计（:342-346）。
+  统计（`star_matcher.cpp`）。
 - **DISP-PHOT-002**: `lib/algorithms/photometry/docs/algorithm.md` 的部分
   表述（暴力最近邻 3px/scale=median/MAD 清洗 σ=3/0.1nm 网格/2D 曲面拟合）
   与现行实现不符；现行事实以本文档 §2/§13.1 为准。
-- **DISP-PHOT-003**: ImageCorrector::computeScale（image_corrector.cpp:26-57）
+- **DISP-PHOT-003**: ImageCorrector::computeScale（`image_corrector.cpp`）
   死代码，生产无调用方。
 - **DISP-PHOT-004**: 无取消检查点；无 plan/execute/cancel/inspect 生命周期
   （PHASE1_API_V1 §2 为计划语义）。
 - **DISP-PHOT-005**: 入参静默失效——mag_max 被自适应 mag_max_arr 覆盖
-  （pc_api.cpp:836-866，:758 形参注释 /*mag_max*/）；pc_calibrate_simple
-  的 QE 三参数 (void) 丢弃（:103，头注释 :85-88 声明保留）。
+  （`lib/algorithms/photometry/cpp/src/pc_api.cpp`；同文件形参注释 /*mag_max*/）；pc_calibrate_simple
+  的 QE 三参数 (void) 丢弃（同一文件，头注释亦声明保留）。
 - **DISP-PHOT-006**: PhotometricDiag.rejected_quality 为 invalid+mag+irls
-  混合计数不可归因（star_matcher.cpp:580-581）；v2 per-star reject_reason
+  混合计数不可归因（`star_matcher.cpp`）；v2 per-star reject_reason
   才可区分。
-- **DISP-PHOT-007**: orchestrator 双通道四调用（:2714-2831）与 registry
-  descriptor 占位 ID（lib/infrastructure/scheduler/src/module_adapters.cpp:535-552）双轨并存，统一归
+- **DISP-PHOT-007**: `lib/infrastructure/pipeline/orchestrator/cpp/src/orchestrator.cpp` 的双通道四调用与 registry
+  descriptor 占位 ID（`lib/infrastructure/scheduler/src/module_adapters.cpp`）双轨并存，统一归
   P1-PHOT-INT。
 - **DISP-PHOT-008**: Photometer 孔径/天空环全图 O(h·w) 扫描 + 背景中值
-  整段排序（photometer.cpp:25-62），未优化且未接管线。
+  整段排序（`lib/algorithms/photometry/wrapper_phase1/photometer.cpp`），未优化且未接管线。
 - **DISP-PHOT-009**: 帧级 QA 换算（sigma_mag/sigma_cal_rel）落位
-  snr_estimator（snr_phot_cal_quality，noise_model.cpp:305），本模块仅
+  snr_estimator（snr_phot_cal_quality，`lib/algorithms/noise_snr/cpp/src/noise_model.cpp`），本模块仅
   登记边界。
 
 ### 13.4 冻结测试设计 TEST-PHOT-DESIGN-001（容差取值即本节）
 
 - fixture F1: 合成注入已知乘性偏移 k（location=log10 k 恢复，rtol 1e-4，
-  SCI-PHOT-001 §11）。**该 fixture 的行使域（必须如实声明）**：F1 的注入**无扰动**（`p1phot_fixtures.hpp:125` 以 `perturb_amp=0.0` 构造 ⇒ 全部 `r_i ≡ log10 k`），故 `S=0`，走的正是 §4 的 **S=0 直取 median 分支**；可执行测试同时断言 `robust_iterations==0` 与 `sigma==0`（`p1phot_tests_units.cpp:112-118`）。⇒ **rtol 1e-4 门只覆盖 median 通路，不覆盖 IRLS 迭代通路**；IRLS 通路的可执行门是 F2（`perturb_amp=0.02` ⇒ `S>0`）的 `|Δlocation|<0.1 dex`（宽松门）。
+  SCI-PHOT-001 §11）。**该 fixture 的行使域（必须如实声明）**：F1 的注入**无扰动**（`lib/algorithms/photometry/tests/p1phot/p1phot_fixtures.hpp` 以 `perturb_amp=0.0` 构造 ⇒ 全部 `r_i ≡ log10 k`），故 `S=0`，走的正是 §4 的 **S=0 直取 median 分支**；可执行测试同时断言 `robust_iterations==0` 与 `sigma==0`（`lib/algorithms/photometry/tests/p1phot/p1phot_tests_units.cpp`）。⇒ **rtol 1e-4 门只覆盖 median 通路，不覆盖 IRLS 迭代通路**；IRLS 通路的可执行门是 F2（`perturb_amp=0.02` ⇒ `S>0`）的 `|Δlocation|<0.1 dex`（宽松门）。
   F2: 20% 星等离群注入（Δlocation<0.1 dex）；F3:
   双向唯一配对构造帧（含歧义对，断言 unique_matches 与 rejected_ambiguous）；
   F4: XPSD uint8 光谱解码+1.0nm 积分 NumPy 参考复算（rtol 1e-9）；F5:
@@ -268,7 +268,7 @@ F_syn = ∫ F_λ(λ)·T(λ)·Q(λ)·λ dλ        # W·m⁻²·nm；F_λ 单位 
   records reject_reason 显式）；F6: Photometer aperture 已知通量 + 越界/
   空环/空孔径显式失败（对齐 eng/tests/unit/p1_wcs_phot_test 4 组）。
 - 不变量 I1: out_pixels=round-trip(I·scale) bitwise（f64 通道）；I2:
-  sigma_residual=`median(|r_inliers−location|)/0.6744897501960817` 与逐星 records 残差一致。**该门的性质**：oracle 侧（`p1phot_oracle.hpp:120-126`）按**同一中心约定**（中心 = `location`）复算，故 I2 是**实现一致性**门（可抓编码错误），**不是定义正确性**门——若中心约定本身有误，两侧同错、门仍绿。定义口径由 §2 F4 的显式声明固定；中心约定的敏感度见 §2 F4（δ/σ 一阶偏差）。I3:
+  sigma_residual=`median(|r_inliers−location|)/0.6744897501960817` 与逐星 records 残差一致。**该门的性质**：oracle 侧（`lib/algorithms/photometry/tests/p1phot/p1phot_oracle.hpp`）按**同一中心约定**（中心 = `location`）复算，故 I2 是**实现一致性**门（可抓编码错误），**不是定义正确性**门——若中心约定本身有误，两侧同错、门仍绿。定义口径由 §2 F4 的显式声明固定；中心约定的敏感度见 §2 F4（δ/σ 一阶偏差）。I3:
   Σdiag.rejected_*+fit_used=unique_matches；I4: records[star_id] 与输入
   psf_star_ids 一一对应；I5: 线程数扫描（1/4/N）科学输出 bitwise 不变；
   I6: r 方向恒为 log10(F_instr/F_syn)。
@@ -278,15 +278,15 @@ F_syn = ∫ F_λ(λ)·T(λ)·Q(λ)·λ dλ        # W·m⁻²·nm；F_λ 单位 
 
 ### 13.5 非生产通道与待迁移符号（去留归 P1-PHOT-IMPL 登记）
 
-- ABI 兼容通道保留: pc_calibrate_simple/:103、pc_calibrate_simple_f64/:185、
-  pc_calibrate_simple_with_gaia/:153、pc_calibrate_simple_with_gaia_f64/:201
-  （with-gaia 系为 v2 封装 :1048 前的实现路径 :154-385/:508-727）；生产主
-  路径=v2/_f64_v2。
-- ImageCorrector::computeScale（image_corrector.cpp:26-57）=待迁移符号
+- ABI 兼容通道保留（均在 `lib/algorithms/photometry/cpp/src/pc_api.cpp`）:
+  pc_calibrate_simple、pc_calibrate_simple_f64、pc_calibrate_simple_with_gaia、
+  pc_calibrate_simple_with_gaia_f64（with-gaia 系为 v2 封装前的实现路径，同文件）；
+  生产主路径=v2/_f64_v2。
+- ImageCorrector::computeScale（`image_corrector.cpp`）=待迁移符号
   （median 回退，无调用方，DISP-PHOT-003）。
 - astrocs::phase1::Photometer（lib/algorithms/photometry/wrapper_phase1/photometer.{h,cpp}）
-  =aperture 测光待迁移符号（静态库 astrocs_phase1_phot，CMakeLists.txt:429-432，
-  单测 eng/tests/unit/p1_wcs_phot_test eng/tests/unit/CMakeLists.txt:305-310，
+  =aperture 测光待迁移符号（静态库 astrocs_phase1_phot，`CMakeLists.txt`；
+  单测 eng/tests/unit/p1_wcs_phot_test 与其注册处 `eng/tests/unit/CMakeLists.txt`，
   未接 orchestrator 管线），aperture 合同并入 lib/algorithms/photometry/
   README.md §9。
 

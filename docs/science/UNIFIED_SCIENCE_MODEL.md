@@ -51,7 +51,7 @@ Var(F_hat_k) = 1/W_k
 
 **权重与 SNR 的换算口径（P-055 收窄，定义不变）**：`SNR²=F_ref²W` 只在**该帧固定的逐帧参考通量** `F_ref` 下成立；由此得到的帧权重是
 `w = SNR²/F_ref² = W = 1/σ_F²`，即**已归一的逆方差**（归一化因子 `F_ref²` 必须显式带上）。**裸 `SNR²` 不是权重**——
-`w = SNR²/F_ref²` 与 `w = SNR²` 只有在 `F_ref ≡ 1` 的约定下才数值同一，任何跨帧/跨路径代入都必须携带 `F_ref²`（禁令措辞同 `docs/detail/algorithms_phase2/11_upm.md:76`）。
+`w = SNR²/F_ref²` 与 `w = SNR²` 只有在 `F_ref ≡ 1` 的约定下才数值同一，任何跨帧/跨路径代入都必须携带 `F_ref²`（禁令措辞同 `docs/detail/algorithms_phase2/11_upm.md`）。
 
 ## 4.1 叠加权重的来源
 

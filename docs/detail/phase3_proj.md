@@ -52,8 +52,8 @@
   lib/phase3_session/ 迁入本模块）:
   P3WcsDescriptor/P3WcsStatus/p3_wcs_make/p3_wcs_pix2world/
   p3_wcs_world2pix/p3_wcs_fits_keywords。
-- 会话消费点: p3_session.cpp :17/:160/:163/:232/:247-253；
-  域际消费: p3_output.cpp:157-182（WCS 关键词写，DATA-P3-FITS 面）。
+- 会话消费点: p3_session.cpp 五处；
+  域际消费: p3_output.cpp（WCS 关键词写，DATA-P3-FITS 面）。
 - 执行面: eng/tests/unit/p3_wcs_test.cpp（474 行）+
   eng/tests/backend/test_p1002_gaps.py（独立解析解回归）+
   eng/tests/backend/p3_wcs_main.cpp（探针）。
@@ -70,7 +70,7 @@ module_id=astrocs.phase3.wcs），其对齐属迁移目标（未落地），不�
 
 ## 6 实测偏差与整改（不修码）
 
-- PA 未接线（p3_session.cpp:160 恒 0.0）；接线属迁移目标（未落地）。
+- PA 未接线（p3_session.cpp 恒 0.0）；接线属迁移目标（未落地）。
 - kMaxSide=20000 可 ASTROCS_P3_MAX_SIDE 编译期覆盖（默认值语义）。
 - 产品声明门 `p3_proj_declare` 对非 TAN 码
   **显式返回 `P3_WCS_UNSUPPORTED`**（含请求码 + 原因 + 已支持清单），

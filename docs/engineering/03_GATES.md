@@ -24,16 +24,18 @@
 |---|---|---|---|
 | CHK-BUILD-LINUX / WIN | P0 | 是 | 否 |
 | CHK-WARN / STATIC | P0 | 是 | 否 |
-| CHK-MODULE-MANIFEST / CONTRACT-REF / SCI-REF / CONTRACT-TEST / AGENTS-GOV / ENG-CONSTRAINTS / CHK-REGISTRY-DOC-SYNC | P0 | 是 | 否 |
+| CHK-MODULE-MANIFEST / CONTRACT-REF / CONTRACT-TEST / AGENTS-GOV | P0 | 是 | 否 |
 | CHK-UNIT / ORACLE / INVARIANT / ABI / SCHEMA | P0 | 是 | 否 |
 | CHK-SYNTH-P1/P2/P3 / NWORKER / RESOURCE | P0 | 是 | 否 |
 | RESOURCE-GATE-REAL / RESOURCE-GATE-REAL-NEG（真实重计算面利用率 + 负例面） | P0 | 是 | 否 |
 | L2-FROZEN-GATE-SELFTEST / L2-FROZEN-GATE-REPLAY / WORKER-BALANCE-METRIC-SELFTEST / WORKER-BALANCE-METRIC-REPLAY（L2 冻结判据 fail-closed + 指标判别力） | P0 | 是 | 否 |
 | CHK-REGISTRY-VALIDATE / CHK-GATE-FAILCLOSED-SELFTEST / CHK-FAILCLOSED-SURVEY（注册表门 + fail-closed 契约自测 + 全门禁普查） | P0 | 是 | 否 |
 | CHK-SECRET-HYGIENE / CHK-ROOT-CLEAN | P0 | 是 | 否 |
-| CHK-ISA-EQ / SANITIZER / VERSION-CONSISTENCY / VERSION-NAMESPACES / DOC-L0 / CHK-ENV-ADOPTION / STD-REG | P1 | 是 | 负责人登记 |
-| CHK-DANGLING / STALE-DOC | P1 | 是 | 负责人登记 |
-| CHK-COVERAGE / GLOSSARY-DOCS | P2 | 否 | —— |
+| CHK-ISA-EQ / SANITIZER / VERSION-CONSISTENCY / CHK-ENV-ADOPTION / STD-REG | P1 | 是 | 负责人登记 |
+| CHK-COVERAGE | P2 | 否 | —— |
+
+**文档域不设机器门**：文档域（文档一致性、文档写法、文档索引、锚存活）不设任何机器门禁，
+原文档域检查项已整体撤销；文档正确性改由对抗性审查逐条覆盖，本表因此不含文档域条目。
 
 **RESERVED（文档登记但无实现，不进本表）**：逐条清单与重新注册前置条件 = `01_CHECKS.md` §2.1（唯一注册面）；
 机器可读面 = `eng/ci/id_migration_map.json::reserved_targets`。**保留一个不存在的 P0 门 = 把假绿写进本表。**
