@@ -1,17 +1,16 @@
-// ── RETIRED-CODE-RETAINED (ENGINEERING_SPEC §2 保留则注释) ─────────────
-// WHAT:       healpix_core 兼容 shim（B4-01 去重后仅转发至 astrocs::healpix 权威实现；
-//             .cpp 只有 3 行、无独立实现）。
-// WHY-KEPT:   历史消费方仍以 healpix_drizzle 的头名 include 本文件；删除需同批改
-//             lib/algorithms/drizzle/healpix_drizzle 下的消费点与 CMake 源列表，
-//             并确认无 legacy 测试面引用（本轮未做引用清点）。
+// ── RETIRED-CODE-RETAINED（历史实现处置：保留则写明原因与影响面）─────────
+// WHAT:       healpix_core 兼容 shim（转发至 astrocs::healpix 权威实现，
+//             .cpp 无独立数值算法）。
+// WHY-KEPT:   drizzle 模块内仍有三个消费点 include 本文件的旧头名
+//             （spherical_overlap.h、reverse_drizzle.cpp、spherical_overlap_science.h）；
+//             另有 9 个 tests/ TU 同样 include。删除需同批改这些 include 与
+//             CMake 源列表。
 // STATUS:     非权威实现（唯一实现 = lib/algorithms/shared/healpix/healpix_core.h/.cpp）；
 //             本文件禁止新增/修改任何数值算法。
-// EXIT:       引用清点为零（drizzle 模块内 grep 无 #include "healpix_core.h" 消费点、
-//             CMake 源列表移除）后删除本 shim；权威实现不受影响。
-// AUTHORITY:  ENGINEERING_SPEC.md §2（历史实现处置：保留则注释）/§9；
-//             本文件原注记「DEPRECATED: B4-01 去重」。
+// EXIT:       上述消费点全部改指权威头、CMake 源列表移除后删除本 shim；
+//             权威实现不受影响。
 // ──────────────────────────────────────────────────────────────────────
-// DEPRECATED: B4-01 去重，唯一实现见 lib/algorithms/shared/healpix/healpix_core.h
+// 唯一实现见 lib/algorithms/shared/healpix/healpix_core.h
 // 本文件为兼容 shim，转发至 astrocs::healpix 权威实现。
 // 禁止在此新增/修改任何数值算法；新增需求请在 common 增补充。
 #ifndef HEALPIX_DRIZZLE_SHIM_H

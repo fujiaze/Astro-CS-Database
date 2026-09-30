@@ -1246,3 +1246,49 @@ gain 轴分支 → `snr_estimator.h:349` 出参只取 {1,2,3}。
 `algorithms_phase1/07_noise_snr.md` 在文档迁移后**全部悬空** ⇒ 本模块头文件的**直接依据锚已断**。
 属 G08-03/G08-06 域（悬空引用车道已登记为写域外项），但这条是**模块自身实现所依据的条款**，
 优先级高于普通文档引用。
+
+---
+
+## 35. G08-07 分片二（drizzle + calibration）报回
+
+读了 90 文件 / 约 34,100 行。**移交项 6 前台独立核实成立**。
+
+### 35.1 `tri_inside` 快路径绕过尺度分档（前台核实）
+
+| 位置 | 面积取法 |
+|---|---|
+| `:1099-1101` `drop_area`（核分母 `A_drop,j`） | `ang0 < 1e-3` → 切平面，否则 → VOS |
+| `:1336-1340` `nb==4` 的 S-H 交集 | `max_angle < 1e-3` → 切平面，否则 → VOS |
+| `:1379-1384` 三角形扇的 S-H 交集 | 同上分档 |
+| **`:1369-1370` `tri_inside` 快路径** | **`total_overlap += spherical_polygon_area_n<double>(triangle, 3);` —— 无条件 VOS** |
+| `:1923-1941` `polygon_area_consistent`（`A_pixel,j` 唯一例程，DRIZZLE §8 点名） | 同样按 1e-3 分档 |
+
+⇒ 五处里**只有 `tri_inside` 快路径不遵守分档**。代码注释 `:1007-1013` 声称切平面的偏差是
+`≈ −θ_max²/2`（`θ_max=1e-3 rad ⇒ −5.0e-7`，恒负单向下偏），而 VOS 在该区间噪声 `~1e-4~5e-5`
+且**反号** ⇒ 跨档时面积不连续，两条路径给出的 `S_p` 不同源。
+
+**未擅自改**：面积口径属科学口径变更（与 SCI-DRZ-V1 同族）。
+
+### 35.2 一个签名里的死参数 + 一个「看起来有用其实无效」的配置键（前台核实）
+
+`lib/algorithms/calibration/src/cosmetic_corrector.cpp`：
+
+- `:299` 注释声称「`neighbor_k`: 锚点搜索半径（每侧列数）；**段长上限 = 2k−1**」
+- `:325` 签名接受 `int neighbor_k`
+- **`:331` ` (void)neighbor_k;` —— 实现显式丢弃**
+
+⇒ 文档描述的参数**根本没有参与计算**。车道已把注释改为按真实语义（`max_seg_len` 承担段长上限，
+并引 `docs/science/DATA_SEMANTICS.md §10.4`），并显式标记该形参「当前实现不读、属冻结的对外签名」。
+
+**更值得注意的一层**：`lib/infrastructure/scheduler/src/module_adapters.cpp:2833` 从 config 读
+`bad_column_neighbor_k`（默认 3）、`:3191` 回写、`:3234` 记进 manifest
+⇒ **一个配置键被完整地贯穿到实现里，然后被丢弃**。使用户改这个键看起来生效、实则毫无影响。
+
+⇒ 按规范 06 §4「不保留『以防万一』的兼容层」，该键与该形参应一并处置（删形参会动冻结签名，
+属口径变更，列待裁）。
+
+### 35.3 移交项 7（代码注释自称权威但引错写法）—— 车道无权处置
+
+`lib/infrastructure/aio/tests/p1hips/p1hips_tests_properties.cpp:17` 的注释写
+`variance_p=sumVarNum/D_p²` 并自称「科学层权威」，与 `DRIZZLE.md:218` 的警告矛盾。
+该文件在 `lib/infrastructure/`（aio 分片），车道**只登记未改**。

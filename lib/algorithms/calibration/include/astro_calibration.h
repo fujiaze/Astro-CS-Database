@@ -139,7 +139,12 @@ AC_API int ac_correct_frame(
  * data: 检测与修复源帧 [height*width] float32（生产 = cal 节点产物）
  * out:  修复帧 [height*width] float32（调用方分配；非坏列逐像素恒等）
  * column_sigma: 判据阈值（帧内 MAD 倍数，无量纲）；<=0 = 显式禁用本路径
- * neighbor_k:   横向邻域半径（每侧列数）；<=0 归一到 3
+ * neighbor_k:   **当前实现不读此形参**。判据的段长上限由 max_seg_len 承担
+ *               （依据 docs/science/DATA_SEMANTICS.md §10.4「修复」行：只修单列）。
+ *               本形参属冻结的对外签名，保留并显式标记未使用；调用方传任何值
+ *               都不改变结果。**不得**按下面的 max_seg_len 语义去理解它。
+ * max_seg_len:  坏列段的**最大长度**（列数）；<=0 取缺省 1（只判单列缺陷）。
+ *               超过上限的段不修复，只以掩膜值 2 标记并置 AC_COLSTAT_WIDE_DEFECT。
  * col_mask:     输出 [width] unsigned char，1 = 该列被判为坏列（可 NULL）
  * out_n_cols:   输出检出坏列数（可 NULL）
  * out_px_repaired: 输出被插值覆盖的像素数 = Σ(坏列段长度)*height（可 NULL）
@@ -149,7 +154,7 @@ AC_API int ac_correct_frame(
  * 检测（列统计量的跳变配对分段）：colstat[x]=median_y data；
  *   d[x]=colstat[x]-colstat[x-1]；sigma_col=1.482602218505602*MAD(d)；
  *   显著跳变 J={x: |d[x]-median(d)| >= column_sigma*sigma_col}；
- *   边界 {0}∪J∪{width} 把列轴切成电平段；段长 <= 2*neighbor_k-1 且非全宽
+ *   边界 {0}∪J∪{width} 把列轴切成电平段；段长 <= max_seg_len 且非全宽
  *   ⇒ 判为坏列段。判据建在一阶差分上，对缓变结构、段内互相印证、坏列污染
  *   邻居基准三种失败模式同时免疫；且与修复算子（段外锚点线性插值）同构。
  *   sigma_col==0 时显式降级（AC_COLSTAT_SCALE_DEGENERATE），不判任何列。
@@ -179,7 +184,8 @@ AC_API int ac_correct_columns(
  * 标度不一致**不影响**坏列检出集合，无需标度声明即可安全并用。
  *
  * 判据与 ac_correct_columns 完全同构（跳变配对分段），阈值语义同：
- *   column_sigma <= 0 显式禁用；neighbor_k <= 0 归一到 3；段长上限 2k-1。
+ *   column_sigma <= 0 显式禁用；段长上限 = max_seg_len（<=0 取 1）；
+ *   neighbor_k 同样不被读取（见 ac_correct_columns 的同名形参说明）。
  */
 AC_API int ac_detect_bad_columns_from_master(
     const float* master, int width, int height,
