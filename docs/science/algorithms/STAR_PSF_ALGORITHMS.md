@@ -97,9 +97,14 @@ F5: q_psf=A/residual_scale, q_psf为QA代理不进science weight
 
 ## 3 伪代码
 
+> **阈值口径**：`5.0·σbg` 中的 `σbg` 是 `sdet_compute_bgnoise()` 的输出（行差分 FnNoise1 族），
+> 即**未平滑原图**噪声；候选阈值 `thr = bg + 5.0·bgnoise`（`sdet_api.cpp` 的 `O3` 冻结值）。
+> **引用「5σ」时必须声明 σ 属哪幅图**（同口径见 `STAR_DETECTION_ALGORITHMS.md` 与
+> `GATES_AND_TOLERANCES.md` 门表两处限定）。
+
 ```text
 function detect_centroid(image, sigma_bg):
-  for each pixel: if image > bkg+1.5·σbg → candidate (sdet_detector.cpp THRESH_FACTOR=1.5)
+  for each pixel: if image > bkg+5.0·σbg → candidate
   centroid weighted mean of 3×3 neighborhood
   if saturated median+0.7·dynrange reject
 
