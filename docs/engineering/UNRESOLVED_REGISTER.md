@@ -1694,3 +1694,59 @@ UTF-8 fopen **4 份且回退语义分叉**；原子替换 2 份；原子发布 3
 
 另：`backends/cpu/isa/` 是**影子 ISA 实现**，四文件全用 `#if defined(__GNUC__)`
 ⇒ **MSVC（正式 Windows 工具链）上静默退化为标量**，且不满足契约任何一条、连 CMake 都没进。
+
+---
+
+## 42. LIC-1（最高优先级，触及 AGENTS §4 红线）· `healpix_core.cpp` 的上游出处三方矛盾
+
+**归属**：`lib/algorithms/shared/healpix/`　**状态**：**未决 —— 前台不擅自裁定，须负责人定性**
+
+### 42.1 前台核实到的事实（三方互相矛盾）
+
+| 出处 | 声称 |
+|---|---|
+| `healpix_core.cpp:338` | 「邻居算法**移植自官方 HEALPix C++ (Healpix_3.83 healpix_base.cc / healpix_tables.cc, GPL-2+ 参考)**」 |
+| `healpix_core.cpp:417-418` | 「`query_disc`（官方 HEALPix C++ NEST 四叉树下钻算法）**移植自 Healpix_3.83 healpix_base.cc query_disc_internal**」 |
+| `healpix_core.cpp:425` | 「官方 `max_pixrad`（**healpix_base.cc L1314**）」—— 带**逐行锚** |
+| `THIRD_PARTY_NOTICE.md`「算法来源」 | 迁移自 **astrometry.net 的 `healpix.c`（BSD 3-Clause）**，文件头 `Licensed under a 3-clause BSD style license` |
+| `THIRD_PARTY_NOTICE.md:19` | 「仅迁移 NESTED 排序所需路径，**未迁移 RING 排序与邻居查询**」 |
+| `THIRD_PARTY_NOTICE.md:22` | 「**未复制任何 GPL (Healpix_cxx / RELION) 代码进入生产树**」 |
+
+⇒ **矛盾一**：代码说「邻居算法移植自 Healpix_3.83」，NOTICE 说「**未迁移邻居查询**」。
+⇒ **矛盾二**：代码说来源是 `healpix_base.cc`，NOTICE 说来源是 astrometry.net 的 `healpix.c`
+（两者是完全不同的上游文件）。
+⇒ **矛盾三**：NOTICE 与代码注释**都假定 Healpix_cxx 是 GPL**，而同一句里又把 RELION 列为 GPL。
+
+### 42.2 前台**没有**确认的事（不得据推测下结论）
+
+- 前台核实 **HEALPix 3.83 确为真实发布版**（2022-11-18），代码引的版本号不是虚构。
+- 前台**未能**从官方站点确认 `Healpix_cxx` 的实际许可条款。
+  ⚠ **代码注释与 NOTICE 可能共享同一个事实错误**（都以为 Healpix_cxx 是 GPL；实际广泛引用的说法是
+  HEALPix C++ 走 BSD 风格许可、GPL 的是 RELION）。**但前台不凭「印象」下结论** ——
+  这必须以 `Healpix_3.83` 原包的许可文件为准。
+
+### 42.3 两种可能与各自的后果
+
+| 可能 | 判定 | 后果 |
+|---|---|---|
+| **A**：注释为真（邻居函数确实来自 Healpix_3.83） | 需先定 Healpix_cxx 许可 | 若确为 GPL ⇒ **直接违反 AGENTS §4「GPL 等传染性许可的代码只读、不复制进仓库」**，且影响面覆盖 drizzle / resample / hips_browser **全部下游** |
+| **B**：NOTICE 为真（只用了 astrometry.net 的 BSD 实现，邻居查询是自研） | 注释与 NOTICE 均需订正 | 无许可问题，但**注释里的 `healpix_base.cc L1314` 逐行锚是伪造的来源标注** —— 属 AGENTS §4「实质性证据」造假，须订正 |
+
+⇒ **两种情况都需要处置，且都只能由负责人定性**。前台不删锚、不改 NOTICE、不改注释。
+
+### 42.4 需要的输入（交给负责人）
+
+1. `Healpix_3.83` 原包的**许可文件**（`healpix_cxx` 子包目录下的 LICENSE/COPYING）——
+   决定 A 分支是否成立；
+2. `healpix_core.cpp:337-341`（`neighbors`）、`:417-434`（`query_disc`）、`:425`（`max_pixrad`）
+   这三处的**实际出处**：逐行对照 `healpix_base.cc`，或说明为何逐行锚不成立；
+3. 若为 A：按 AGENTS §4 决定是**删除重写**还是**补齐隔离与归属登记**。
+
+### 42.5 一条方法论记录
+
+这是本轮**第二次**「文档声称」与「事实」方向相反（前一次是 `aio_pipeline.h:241-243` 称孤儿 TU
+是「唯一在位的内部调用点」）。
+
+⚠ **更值得注意的是：代码里的来源锚比 NOTICE 更具体**（带行号 `L1314`），因而**更像真的**。
+**来源标注的详尽程度不能当作真实性的证据** —— 越是精确的引用，越需要独立复核。
+这与 §33「引用链一致但引用内容不符」是同一个教训的第三种形态。
