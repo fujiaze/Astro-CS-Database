@@ -314,7 +314,10 @@ bool read_fits_hdus(const std::string& path, HduInfo* out) {
     status = 0;
   }
   fits_close_file(f, &status);
-  return status == 0 || true;
+  // 原为 `status == 0 || true`：**恒真**，损坏 FITS 也会以 true 返回，
+  // 使 :367/:393 两个 CHECK 失去判别力。
+  // 本函数语义 = 「成功读出 HDU 目录返回 true」；CFITSIO 的 status 非 0 即失败。
+  return status == 0;
 }
 
 // 读 HDU 像素 (TFLOAT), 返回 false=HDU 不存在/读失败

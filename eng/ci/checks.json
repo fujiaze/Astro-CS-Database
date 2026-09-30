@@ -13800,13 +13800,13 @@
             "python3",
             "eng/tools/quality/known_failures_baseline.py",
             "--output",
-            "eng/ci/known_failures_baseline.json"
+            "run/ci/known-failures/known_failures_baseline.json"
           ],
           "timeout_seconds": 60,
           "heavy": false,
           "mutates_workspace": false,
           "outputs": [
-            "eng/ci/known_failures_baseline.json"
+            "run/ci/known-failures/known_failures_baseline.json"
           ],
           "waivable": false,
           "changed_paths": [

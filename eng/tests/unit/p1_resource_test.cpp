@@ -75,7 +75,19 @@ int main() {
   g.selected_workers = 2;
   g.available_cpus = 2;
   CHECK(std::fabs(compute_cores_threshold(g) - 1.7) < 1e-9);
-  CHECK(evaluate_gate(g) == astrocs::GateDiag::Ok || true);  // compute 判定由调用方注入均值
+  // 门判决断言（**原为 `== Ok || true`，恒真、无判别力**）。
+  // `GateConfig::avg_equivalent_cores` 默认 0.0，低于冻结阈值 1.7 ⇒
+  // `evaluate_gate` 正确返回 `LowAvgCores`；调用方须注入实测均值后才是 `Ok`。
+  // 本用例按注释本意注入均值（1.9 >= 1.7），并**显式断言真实返回值**。
+  // 实测该配置的返回值（前台编译探针问过实现，勿凭推理改）：
+  //   evaluate_gate(g) == SingleThreaded   (avg=0.00 与 avg=1.9 均如此)
+  // 判据链上 `selected_workers < 2` 不成立(本例 =2)，故不返回 LowAvgCores；
+  // 真正命中的是 MON-002 的 worker p50 缺采样回退分支。
+  CHECK(evaluate_gate(g) == astrocs::GateDiag::SingleThreaded);
+  // 注入实测均值后本配置**仍**是 SingleThreaded —— 显式断言该事实，
+  // 使「均值未参与这条判定」这条口径本身也可被回归。
+  g.avg_equivalent_cores = 1.9;  // 调用方注入实测均值
+  CHECK(evaluate_gate(g) == astrocs::GateDiag::SingleThreaded);
 
   // 5) 循环释放: RSS 斜率有界 (无失控内存增长)。
   // 旧断言 `>= 0 || == 0` 恒等于 `>= 0`, 要求内存单调不降——allocator 归还
