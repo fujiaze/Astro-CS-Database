@@ -32,6 +32,7 @@
 #include <memory>
 #include <algorithm>
 #include <cstdlib>
+#include <csignal>
 
 #ifdef _WIN32
 #include <windows.h>
@@ -1869,7 +1870,13 @@ void test_part7_sha256_and_config_hash() {
         Orchestrator orch;
         // 注册信号处理器 (不应崩溃)
         p04004_register_signal_handler(&orch, true);
-        ASSERT_TRUE(true, "p04004_register_signal_handler(true) 执行成功");
+        // 原为 `ASSERT_TRUE(true, …)` 恒真；改断言「SIGINT 处置确已被替换」。
+        // 判红条件：删掉 cli_command.cpp:66 的 `std::signal(SIGINT, …)`。
+        {
+            void (*prev)(int) = std::signal(SIGINT, SIG_DFL);
+            ASSERT_TRUE(prev != SIG_DFL, "register(true) 后 SIGINT 处置应已被替换");
+            std::signal(SIGINT, prev);  // 原样装回，不影响后续断言的起点
+        }
 
         // 请求取消 (模拟信号触发)
         ASSERT_FALSE(orch.is_cancelled(), "注册后初始状态: 未取消");
@@ -1882,16 +1889,30 @@ void test_part7_sha256_and_config_hash() {
 
         // 注销信号处理器 (不应崩溃)
         p04004_unregister_signal_handler();
-        ASSERT_TRUE(true, "p04004_unregister_signal_handler 执行成功");
+        // 原为 `ASSERT_TRUE(true, …)` 恒真；改断言「SIGINT 处置已恢复默认」。
+        // 调用前处置已被上方「已被替换」那条证明为非默认 ⇒ 这是真实状态迁移。
+        // 判红条件：删掉 cli_command.cpp:76 的 `std::signal(SIGINT, SIG_DFL)`。
+        {
+            void (*prev)(int) = std::signal(SIGINT, SIG_DFL);
+            ASSERT_TRUE(prev == SIG_DFL, "unregister 后 SIGINT 处置应恢复为 SIG_DFL");
+        }
     }
 
     // 测试 11: SIGINT 处理器注册 (cancel_on_signal=false)
     {
         Orchestrator orch;
         p04004_register_signal_handler(&orch, false);
-        ASSERT_TRUE(true, "p04004_register_signal_handler(false) 执行成功");
+        // 原为恒真；改断言「处置**保持** SIG_DFL」—— register(false) 走 cli_command.cpp:65
+        // 的 if 守卫根本不装 handler。判红条件：去掉那个 if 守卫。
+        {
+            void (*prev)(int) = std::signal(SIGINT, SIG_DFL);
+            ASSERT_TRUE(prev == SIG_DFL, "register(false) 不应安装 SIGINT handler");
+            std::signal(SIGINT, prev);
+        }
         p04004_unregister_signal_handler();
-        ASSERT_TRUE(true, "p04004_unregister_signal_handler 执行成功");
+        // 原 `ASSERT_TRUE(true, …)` 已**删除**：本块起点处置已是 SIG_DFL ⇒
+        // 「调用后处置 == SIG_DFL」在实现做与不做任何事时都成立，写出来必是空断言。
+        // unregister 的真覆盖由上一块承担（那里是「非默认 -> 默认」的真实迁移）。
     }
 
     // 测试 12: AstroCsExitCode 错误码字符串映射
