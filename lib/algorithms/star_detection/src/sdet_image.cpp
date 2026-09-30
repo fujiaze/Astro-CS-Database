@@ -377,13 +377,22 @@ void sdet_local_maxima_map(const float* src, float* dst, int w, int h, int radiu
 // ============================================================================
 namespace {
 
+// 中位数。只要求返回中位数，**不要求容器保持有序**（三个调用点都只取返回值）。
 template <typename F>
-inline F sdet_sorted_median(std::vector<F>* v) {
+inline F sdet_median_inplace(std::vector<F>* v) {
     const std::size_t n = v->size();
     if (n == 0) return (F)0;
-    std::sort(v->begin(), v->end());
-    if (n % 2 == 1) return (*v)[n / 2];
-    return (F)(0.5 * ((double)(*v)[n / 2 - 1] + (double)(*v)[n / 2]));
+    const std::size_t mid = n / 2;
+    // O(n) 取代 O(n log n)。**只对 v 做 partition，不产生有序序列**。
+    // 入参的有限性由调用点保证（sdet_median_of_finite :395 / sdet_mad_sigma_impl :405
+    // 都逐个 isfinite 过滤后才进这里），故桶内无 NaN/Inf，
+    // nth_element 与原 sort 在此给出相同的值。
+    std::nth_element(v->begin(), v->begin() + mid, v->end());
+    if (n % 2 == 1) return (*v)[mid];
+    // 偶数需第 mid-1 与第 mid 小的两个。nth_element 只就位后者，
+    // 而前 mid 个元素都不大于它 ⇒ 第 mid-1 小的就是前 mid 个里的最大值。
+    const std::size_t lo = *std::max_element(v->begin(), v->begin() + mid);
+    return (F)(0.5 * ((double)lo + (double)(*v)[mid]));
 }
 
 template <typename F>
@@ -393,7 +402,7 @@ inline F sdet_median_of_finite(const F* data, int n) {
     v.reserve((std::size_t)n);
     for (int i = 0; i < n; ++i)
         if (std::isfinite((double)data[i])) v.push_back(data[i]);
-    return sdet_sorted_median<F>(&v);
+    return sdet_median_inplace<F>(&v);
 }
 
 template <typename F>
@@ -404,10 +413,10 @@ inline F sdet_mad_sigma_impl(const F* data, int n) {
     for (int i = 0; i < n; ++i)
         if (std::isfinite((double)data[i])) v.push_back(data[i]);
     if (v.empty()) return (F)0;
-    const F med = sdet_sorted_median<F>(&v);
+    const F med = sdet_median_inplace<F>(&v);
     for (std::size_t i = 0; i < v.size(); ++i)
         v[i] = (F)std::fabs((double)v[i] - (double)med);
-    const F mad = sdet_sorted_median<F>(&v);
+    const F mad = sdet_median_inplace<F>(&v);
     return (F)((double)mad * 1.482602218505602);
 }
 
