@@ -1578,7 +1578,9 @@ void DrizzleEngine::processPixelSharedTiled(
         use_adaptive ? nullptr : &drop_corners_d);
     const spherical::DropGeometryT<Scalar>& drop_geom = t_drop_geom;
     Scalar drop_area = Scalar(drop_geom.drop_area);
-    if (drop_area < Scalar(1e-20)) {
+    // NaN 表示「不支持」（见 spherical_overlap.cpp 质心退化 / 角跨度 >= 90° 两处），
+    // 而 NaN < 1e-20 恒假 ⇒ 必须显式拦。与 spherical_overlap_science.cpp 的 isfinite 范式对齐。
+    if (!std::isfinite(drop_area) || drop_area < Scalar(1e-20)) {
         return;
     }
 
@@ -1598,7 +1600,7 @@ void DrizzleEngine::processPixelSharedTiled(
     Scalar pixel_area = drop_area;
     if (pixel_corners_v != nullptr) {
         pixel_area = Scalar(spherical::polygon_area_consistent(pixel_corners_v, 4));
-        if (pixel_area < Scalar(1e-20)) {
+        if (!std::isfinite(pixel_area) || pixel_area < Scalar(1e-20)) {
             return;   // 退化像素几何: fail-closed, 不产伪权重
         }
     }
@@ -1663,7 +1665,7 @@ void DrizzleEngine::processPixelSharedTiled(
         } else {
             ++counters.geometry_cache_hits;
         }
-        if (overlap_area < Scalar(1e-20)) {
+        if (!std::isfinite(overlap_area) || overlap_area < Scalar(1e-20)) {
             counters.quick_rejects++;
             continue;
         }
@@ -1678,7 +1680,7 @@ void DrizzleEngine::processPixelSharedTiled(
         // 面亮度归一分母由 acc.sumNorm (Σ w_jp·A_pixel,j) 承担, 见 drizzle_engine.h
         // 的字段说明: S_p = sumFlux/sumNorm = Σ_j B_j a_jp/Σ_j a_jp。
         Scalar weight = overlap_area / drop_area;
-        if (weight <= Scalar(0)) {
+        if (!(weight > Scalar(0))) {  // NaN-safe：NaN > 0 恒假 ⇒ 拒
             counters.quick_rejects++;
             continue;
         }
