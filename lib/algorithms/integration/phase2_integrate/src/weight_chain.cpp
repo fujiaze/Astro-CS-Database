@@ -83,9 +83,9 @@ const char* weight_closure_token(WeightClosure c) {
     case WeightClosure::kBaselineEqualWeight: return "baseline_equal_weight";
     case WeightClosure::kUnclosedMissingGain: return "unclosed_missing_gain";
     case WeightClosure::kUnclosedInvalidGain: return "unclosed_invalid_gain";
-  case WeightClosure::kUnclosedSparseLayerRequiredMissing:
-    return "unclosed_sparse_layer_required_missing";
-  case WeightClosure::kUnclosedInvalidLayerSnr: return "unclosed_invalid_layer_snr";
+    case WeightClosure::kUnclosedSparseLayerRequiredMissing:
+      return "unclosed_sparse_layer_required_missing";
+    case WeightClosure::kUnclosedInvalidLayerSnr: return "unclosed_invalid_layer_snr";
   }
   return "unknown";
 }
@@ -286,9 +286,6 @@ PixelWeightResult weight_from_sparse_layer_pixel_prepared(
   }
   return finish_pixel_weight(in, policy, info, v);
 }
-
-
-
 
 /* ------------------------------------------------------------------ */
 /* 重建算子词表（冻结；算子标识 = 唯一配置面）                            */
