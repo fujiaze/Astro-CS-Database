@@ -449,7 +449,7 @@ contracts:
     status: ACTIVE
     owner: ACSD
     version: 1.0.0
-    path: docs/science/algorithms/REJECTION_ALGORITHMS.md
+    path: docs/science/algorithms/PHASE2_REJECTION.md
     upstream: [SCI-REJ-001]
     downstream: [ALG-P2-REJ-001]
   - id: ALG-INT-001

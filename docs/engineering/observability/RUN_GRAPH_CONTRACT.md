@@ -136,7 +136,7 @@ hash 等观测字段一律只来自 trace 事件。
 `graph-runtime.{json,dot}`（含 generator/source/输入 hash 头）：
 
 - 可审计事实 = 重跑生成的 `graph-runtime.{json,dot}`；`graph-runtime.svg` 是派生展示物；
-- 静态架构示意图（`docs/engineering/DATA_FLOW.md` 等 ASCII 流程、`docs/engineering/ARCHITECTURE.md`
+- 静态架构示意图（`docs/engineering/DATA_FLOW.md` 等 ASCII 流程、`docs/engineering/ARCH-001.md`
   的 mermaid 图）是**信息性视图**，不承载运行事实；
 - 运行图语义的变更 = 改本工具 + 改本合同 + 重跑验证；证据面只用重跑生成的图作证。
 

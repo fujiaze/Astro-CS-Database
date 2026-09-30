@@ -75,7 +75,7 @@ fuzz/sanitize driver；Python oracle（hips_mapping_oracle）；
 
 ## Known limitations
 
-UPM sparse 走 temp+rename 原子写（见 docs/engineering/IO_AND_ATOMICITY.md）；**HiPS tiles 非原子 —— 已登记的待修缺口（未闭合）**：partial-file 策略 = abort 尽力清理、finalize 写 CHECKSUM/DATASUM 后交付，单 tile 为 remove→create→write_chksum→close（`lib/infrastructure/aio/src/hips/aio_hips_writer.cpp` 的 `std::remove`），**不是** temp+rename 原子发布；**HiPS tile 原子发布的宣称以该缺口闭合为前提**（最高设计 §9「本期例外（如实登记）」）；orchestrator 日志路径嵌套 bug（非阻断）。
+UPM sparse 走 temp+rename 原子写（见 docs/engineering/io/IO_003_ATOMIC_OUTPUT_PUBLISH.md）；**HiPS tiles 非原子 —— 已登记的待修缺口（未闭合）**：partial-file 策略 = abort 尽力清理、finalize 写 CHECKSUM/DATASUM 后交付，单 tile 为 remove→create→write_chksum→close（`lib/infrastructure/aio/src/hips/aio_hips_writer.cpp` 的 `std::remove`），**不是** temp+rename 原子发布；**HiPS tile 原子发布的宣称以该缺口闭合为前提**（最高设计 §9「本期例外（如实登记）」）；orchestrator 日志路径嵌套 bug（非阻断）。
 
 ## Source files
 

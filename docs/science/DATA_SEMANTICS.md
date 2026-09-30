@@ -138,7 +138,7 @@ signal / support / MOC(union tiles) / SNR catalogue / quality flags /
 frame_id / manifest / RA-Dec 度 / NESTED / 512-tile 映射
 ```
 
-契约测试：见 `docs/engineering/TESTING.md`（cross-stage contract test）。
+契约测试：见 `docs/engineering/TEST_STANDARD.md`（cross-stage contract test）。
 
 ## 8. Gaia XPSD 星表输入与星表行（DATA-GAIA-001）
 
@@ -3399,8 +3399,7 @@ concentration 写作 `ADU/px` 属**登记在案的文本错误**：`ADU/px²` �
 **`OPEN` 条款的承载**：id 见本节 `OPEN` 列表；未冻结项的生产判据面 = 空，引用处显式标 pending
 （§31.9）。
 
-**与上游 FROZEN 科学文档的关系**：本文 §31.1（单位）、§31.2（BUNIT/标度）、§31.3（权重模式词表，已作废
-）、§31.7（PSFSW 四分量与 concentration 单位）、§28.6（采样核 registry）对上游
+**与上游 FROZEN 科学文档的关系**：本文 §31.1（单位）、§31.2（BUNIT/标度）、§31.3（权重模式词表，不属现行词汇）、§31.7（PSFSW 四分量与 concentration 单位）、§28.6（采样核 registry）对上游
 `docs/science/**` 相应章节给出**现行合同口径**；涉及上游文本修订的条款 =
 `PENDING_OWNER_SIGNOFF`（生效前 fail-closed，见上表）。
 

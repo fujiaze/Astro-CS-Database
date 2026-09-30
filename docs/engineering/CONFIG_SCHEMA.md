@@ -60,7 +60,7 @@ integration: precision(fp32) memory_limit_mb rejection{method
 rejection.method 说明（V17 冻结）：
   - 默认 `method=auto` + `profile=astrocs_adaptive_pixel`
     （**Astro Celestial Sphere Database（ACSD） 自研**，逐输出像素几何 N 内置映射：1≤N≤3→none；4≤N≤5→
-    percentile；N≥6→winsorized_sigma（**M3 裁决 2026-09-25：原 N≥16→linear_fit 档改投**）；阈值逐档继承
+    percentile；N≥6→winsorized_sigma；线性拟合档不参与逐像素自动路由；阈值逐档继承
     SCI-REJ 冻结锚点）；`wbpp_2_9_1` 为**对照档**（`wbpp_current` 为
     alias，解析并序列化为 wbpp_2_9_1）；
   - auto 在 **planning 层**按 integration cohort/tile 的 nominal
@@ -112,4 +112,4 @@ output.hips / diagnostics
 见 `lib/infrastructure/pipeline/orchestrator/configs/stage1_*.json` 模板。
 
 - `drizzle.pixfrac` (0,1]：`stage1.schema.json` 默认 0.8（生产默认收缩滴落，`stage1.template.json` 同）；
-  银心三面板 `stage1_gc_panel{1,2,3}_Red.json` 为 `pixfrac=1.0` 无收缩分支（最大覆盖/GC 专用），与默认分支在 `lib/infrastructure/pipeline/orchestrator/configs/` 并存，`docs/engineering/ARCHITECTURE.md §6` 同步说明。
+  银心三面板 `stage1_gc_panel{1,2,3}_Red.json` 为 `pixfrac=1.0` 无收缩分支（最大覆盖/GC 专用），与默认分支在 `lib/infrastructure/pipeline/orchestrator/configs/` 并存，`docs/engineering/ARCH-001.md §6` 同步说明。

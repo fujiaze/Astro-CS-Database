@@ -164,6 +164,6 @@ ACSD 需要一个跨 run/任务/节点/模块/线程的统一结构化日志接�
 ## 9. 参考
 
 - 依据：`docs/ASTROCS_DESIGN.md` §7.2（配置、事件与退出码）、§7.3（错误传播与运行日志）
-- 依据：`docs/ASTROCS_DESIGN.md` §7.1（命令树）、§8.1（总原则：唯一 CLI 入口、阶段独立调度器）+ `docs/engineering/ARCHITECTURE.md`
+- 依据：`docs/ASTROCS_DESIGN.md` §7.1（命令树）、§8.1（总原则：唯一 CLI 入口、阶段独立调度器）+ `docs/engineering/ARCH-001.md`
 - 落点与错误收敛：`docs/detail/LOG_AND_ERROR_SYSTEM.md`、`docs/engineering/LOG_AND_ERROR_CONTRACT.md`
 - 机器事实源：`lib/infrastructure/observability/logging/log_event_v1.schema.json`、`eng/tools/monitoring/check_log_contract.py`

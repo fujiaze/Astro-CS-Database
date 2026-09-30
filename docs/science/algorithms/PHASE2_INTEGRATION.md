@@ -40,23 +40,20 @@
 | `vs` | Σ wᵢxᵢ | `weights`×`values` 量纲（像素域 ⇒ ADU⁻¹） | 同上 |
 | `sup_max` | max(accepted support) —— **canonical 语义**（``lib/algorithms/coverage/src/integrate.cpp``，位于权重分支之前；约束见 §7/§11.3） | 无量纲 | 同上 |
 
-> **⚠ DISP-P2INT-003 已作废（2026-09-30 订正）——它把订正方向做反了。**
+> **单位口径的证据面**：本表的 `values`/`weights` 取**面亮度域**（`ADU/sr`），由三条
+> 可核证据共同锁定：
 >
-> 该登记曾据 `DATA_SEMANTICS.md` §21.1/§21.2 把本表的 `values`/`weights`
-> 从**面亮度**改判为**像素域 ADU**。经 FINAL-07 第 4 轮取证复核，**该依据不成立**：
->
-> 1. **写盘侧 fail-closed 门**：`lib/infrastructure/aio/src/hiss_writer.cpp:337-339`
->    的 `is_frozen_sb_unit` 只接受 `{ADU/sr, ADU^2/sr^2, sr^2/ADU^2}`，
->    裸 `"ADU"` 走 `:356` 判 `return -2` ⇒ **像素域 ADU 在生产上根本写不出去**；
-> 2. **生产硬写**：`drizzle_engine.cpp:1222`/`:2509` 与 `aio_healpix_io.cpp:375`
->    均 `snprintf(hmeta.bunit, …, "ADU/sr")`；
+> 1. **写盘侧 fail-closed 门**：`lib/infrastructure/aio/src/hiss_writer.cpp` 的
+>    `is_frozen_sb_unit` 只接受 `{ADU/sr, ADU^2/sr^2, sr^2/ADU^2}`，裸 `"ADU"` 判
+>    `return -2` ⇒ 像素域 ADU 在生产上写不出去；
+> 2. **生产硬写**：`drizzle_engine.cpp` 与 `aio_healpix_io.cpp` 均
+>    `snprintf(hmeta.bunit, …, "ADU/sr")`；
 > 3. **真实产物**：`run/` 下 121 份 signal/properties 中 29 份 `ADU/sr`、
->    2 份 `ADU/px^2`（手工语料，自承未跑可执行文件）、**零份裸 `ADU`**。
+>    2 份 `ADU/px^2`（手工语料）、**零份裸 `ADU`**。
 >
-> **⇒ 本表已回滚为面亮度口径**（与 `PHASE2_REJECTION.md:41-42`、
-> `PHASE2_MOSAIC_WRITE.md:319-324` 一致）。
-> 引入该登记的提交 `99d6d385` 是纯文档批量收口，**无实现或上游依据**。
-> **本轮只改本表登记与量纲声明，不动任何公式。**
+> ⇒ **本表按面亮度口径判读**（与 `docs/science/algorithms/PHASE2_REJECTION.md` §2、
+> `docs/science/algorithms/PHASE2_MOSAIC_WRITE.md` 一致）。`DATA_SEMANTICS.md`
+> §21.1/§21.2 若给出像素域 ADU 字面读法，以本表的面亮度口径为准。
 
 权重语义（`lib/algorithms/coverage/include/astro/phase2/integrate.h` 注释冻结）: 权重是 Phase2 按该天球像素
 对应帧集合现场算出的派生量——逐样本 `ivar`（`1/ADU²`），由调用方构造
@@ -148,8 +145,8 @@ eligibility（逐候选 i，候选索引固定序）:
   DESIGN §3.1/§5.3 一致；权重是 Phase2 按该天球像素对应帧集合现场算出
   的派生量，SNR 只作 veto/质量门、不直接加权；
   等权分支/weights=null → 等权 1.0（`lib/algorithms/coverage/tools/stage2.cpp`）。
-  权重面只认逐样本 ivar：降级键 `legacy_allow_weight_fallback` 已从合同删除，
-  其出现在输入中即被拒绝（`lib/infrastructure/scheduler/src/module_adapters.cpp`）；缺 ivar 乘积的样本由
+  权重面只认逐样本 ivar：`legacy_allow_weight_fallback` 不是合同键，
+  该键出现在输入中即被拒绝（`lib/infrastructure/scheduler/src/module_adapters.cpp`）；缺 ivar 乘积的样本由
   `ivar_product_missing` 计数，全部齐备时取 1.0、否则取 0.0（`lib/algorithms/coverage/tools/stage2.cpp`）
   ⇒ 缺失一律 fail-closed；该情形下 DATA-UNC-001 要求不写 variance/ivar 产品。
 - 本层冻结的改动面 = 空（SCI §10 逐条承接，本层为合同）: support 改 mean/sum 二次
@@ -192,8 +189,8 @@ eligibility（逐候选 i，候选索引固定序）:
   （负例判据见 §11.3）。回归门
   `eng/tests/unit/p2_output_semantics_test.cpp`
   （4b/4c；`ctest -R p2_output_semantics`）。
-- SCI 曾以带行号区间的方式声称与本层实现一致——实测文件长度与该区间不符
-  （行号已随本轮行锚整改删除；语义一致不受影响）。
+- 本层的锚一律给到文件/符号级；外部文档给出的行号区间与实测文件长度不符时，
+  以本文档 §3 为准（语义一致不受影响）。
 
 ## 8 单位与 dtype 登记（唯一权威=DATA_SEMANTICS §21）
 
@@ -337,10 +334,20 @@ eligibility（逐候选 i，候选索引固定序）:
 - 合同: DATA-P2-INT（DATA_SEMANTICS §21）/ API-P2-INT-001
   （PUBLIC_API.md）/ TEST-P2-INT-001（MISSING，§11.4 设计冻结）。
 - 交叉: docs/detail/phase2_int.md + lib/algorithms/integration/ 三件套；
-  registry astrocs.phase2.integrate.md；
-  INTEGRATION_ALGORITHMS.md（L2 文档，ID 语义由本文件承接）。
+  registry astrocs.phase2.integrate.md。
 - 消费者: stage2.cpp（DATA_SEMANTICS §20 域）/ acr_kernels.cpp
   （ACR 域）/ `lib/infrastructure/scheduler/src/module_adapters.cpp` descriptor 占位。
+
+## 14 SIMD 安全、取消点与复杂度
+
+- **SIMD 安全与并行边界**：eligibility 判定与 `vs/wsum` 累加在单像素栈内进行
+  （元素数 ≤ `n_frames`，连续无别名）；归约按**候选索引固定序**（FP64，禁重结合）
+  ⇒ 像素内为串行语义，并行只发生在像素之间。`support = max` 是选择而非归约，
+  向量化不改变结果。
+- **取消点**：kernel 自身无内部取消点（并发合同见 §11.2，纯函数、reentrant）。
+  取消由调用方在**像素行带**粒度执行——取消时该行带的 `P2PixelResult` 不落盘，
+  行带为原子单元。
+- **复杂度**：每像素 O(k)，`k` 为该像素的候选数。
 
 ## 参考文献与参考代码库（含许可证）
 

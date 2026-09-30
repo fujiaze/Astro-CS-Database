@@ -47,7 +47,7 @@
 ## 4 错误与回退
 
 - reader 拒绝类（properties 非法 / lossy tile / `hips_frame` ∉ {equatorial, icrs}）= 启动前显式拒（拒绝码正本 = `docs/science/algorithms/PHASE3_RESAMPLE.md` §9a），**不进入半成品 run**；
-- 运行中 tile IO 错误（非缺失）= stage 安全中止（禁静默降级 nearest；错误码与传播链见 `docs/engineering/ERROR_MODEL.md`）；
+- 运行中 tile IO 错误（非缺失）= stage 安全中止（禁静默降级 nearest；错误码与传播链见 `docs/engineering/ERROR_HANDLING_STANDARD.md`）；
 - FitsWriter 落盘失败 = tmp 清理 + 错误码，目录无残留产物。
 
 ## 5 追溯（逐条到算法正本）

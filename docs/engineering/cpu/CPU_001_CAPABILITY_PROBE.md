@@ -97,4 +97,4 @@ AVX512DQ=1<<11, AVX512VL=1<<12`。
 | AVX2 / AVX-512 provider（`lib/infrastructure/benchmark/cpu/avx2/`、`.../avx512/`） | 各自在编译/加载期查 `required_features ⊆ os_safe`；本层不含任何 AVX 指令 |
 | 逐 kernel 路由（`lib/infrastructure/benchmark/backend_host/`；`eng/tests/cpu/dispatch/cpu005_route_decision_test.cpp`） | 逐 kernel provider 选择前先 capability 判定 |
 | 基准与 profile（`lib/infrastructure/benchmark/backend_host/profile_store.h` 的 `save_profile_atomic_v1`、`eng/contracts/schemas/cpu_profile.schema.json`） | profile 指纹含本层 CPUID/XCR0 输出；本层不读写 profile |
-| 线程 / 资源预算（`lib/infrastructure/scheduler/`、`docs/engineering/THREADING_MODEL.md`） | 有效核/线程建议属预算面；本层零核心计数 |
+| 线程 / 资源预算（`lib/infrastructure/scheduler/`、`docs/engineering/execution_options_contract.md`） | 有效核/线程建议属预算面；本层零核心计数 |

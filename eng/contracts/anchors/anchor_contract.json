@@ -183,7 +183,7 @@
   ],
   "exemptions": [
     {
-      "doc": "docs/science/algorithms/INTEGRATION_ALGORITHMS.md",
+      "doc": "docs/science/algorithms/PHASE2_INTEGRATION.md",
       "raw": "integrate.cpp:10-79",
       "kind": "FROZEN_SCI_CLAIM",
       "reason": "转述 SCI §5:63 声明原文（实际 76 行）；本 ALG 文档 §3 已给现行行号",
