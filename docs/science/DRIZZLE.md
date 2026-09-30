@@ -202,7 +202,7 @@ Fruchter & Hook 线性重建 (SCI-DRZ-001; 核按 **drop 面积** 归一):
 - **pixfrac**：drop 收缩因子，有效域 `(0,1]`，非法值显式 `NO_DATA`（§4），不静默夹逼。
 - **surface brightness/flux**：输入 `x_j`=源像素积分通量，输出 `S_p=F_p/N_p=Σ_j B_j a_jp/Σ_j a_jp`=面亮度（`B_j=x_j/A_pixel,j`，核 `w_jp=a_jp/A_drop,j`，归一分母 `N_p=Σ_j w_jp·A_pixel,j`）；"每像素常量通量"与"常量天空面亮度"分属两个量（§5 语义固定，GLOSSARY `surface_brightness`）。
 - **support**：`D_p=Σ_j a_jp` 为目标像素覆盖面积；HiPS 产品 `support∈[0,1]`（覆盖度）语义冻结于 DATA_SEMANTICS §4，由 `D_p` 与目标像素面积归一导出。
-- **variance/covariance**：`variance_p=sumVarNum/N_p²`（§5，独立像素方差传播；与等价参数化的 `sumVarNum/D_p²` 逐位同值）；**不存完整协方差矩阵**——相邻像素相关性已文档化（UNCERTAINTY_AND_COVARIANCE.md），协方差产品为非目标（§1）。
+- **variance/covariance**：`variance_p=sumVarNum/N_p²`（§5，独立像素方差传播；与等价参数化写法 `sumVarNum·k²/D_p²`（k := D_p/N_p = pixfrac²）逐位同值；**注意**裸写 `sumVarNum/D_p²` 漏掉 k²，两者仅在 pixfrac=1 时同值，pixfrac<1 时后者偏低 pixfrac⁴ 倍（pf=0.8 => 0.4096，即 2.44x））；**不存完整协方差矩阵**——相邻像素相关性已文档化（UNCERTAINTY_AND_COVARIANCE.md），协方差产品为非目标（§1）。
 - **边界**：极区 `|dec|>45°` 保守 prune、`θ_q+radius>90°`/跨边界 `boundary_fallback`（§4a）；非法 `pixfrac`/`nside` 显式拒绝。
 
 ## 14 Primary literature（引用定位声明）
@@ -241,24 +241,24 @@ Fruchter & Hook 线性重建 (SCI-DRZ-001; 核按 **drop 面积** 归一):
 ## 15 变更登记 —— 面亮度归一分母 `N_p` 家族（R-43 / P-102）
 
 > 本节为**加性登记**（行锚安全：追加在文末，不改既有行号）。**冻结数值、容差、`pixfrac` 域一字未动**；
-> **canonical 定义 `N_p = Σ_j w_jp·A_pixel,j`（§2:22 / §5:49）未变**，运行时行为零变化。
+> **canonical 定义 `N_p = Σ_j w_jp·A_pixel,j`（§2 / §5）未变**，运行时行为零变化。
 
 ### 15.1 变更前 / 变更后
 
 | # | 位置 | 变更前 | 变更后 | 性质 |
 |---|---|---|---|---|
-| 1 | §5:64（等价参数化） | `N'_p = Σ_j w'_jp = D_p/pixfrac²` | `N'_p = Σ_j w'_jp·A_pixel,j = D_p`（并显式并列 canonical 侧 `N_p = D_p/pixfrac²`） | 订正（**等价参数化的分母错标**；原式与同句「给出同一个 `c_jp = w_jp/N_p`」自相矛盾，且量纲不齐——`Σ_j w'_jp` 无量纲、`D_p/pixfrac²` 为 `sr`） |
-| 2 | `docs/science/DATA_SEMANTICS.md` §4a:48-49 | 实现锚 `drizzle_engine.cpp` `weight = overlap_area / pixel_area` | 实现锚 = `weight = overlap_area / drop_area`（:1617）+ `acc.sumNorm += overlap_area*(pixel_area/drop_area)`（:1644）+ `drizzle_engine.h` `sumNorm = Σ_j w_jp·A_pixel,j` | 订正（**失实实现锚**；代码从无 `overlap_area / pixel_area` 之核） |
+| 1 | §5（等价参数化） | `N'_p = Σ_j w'_jp = D_p/pixfrac²` | `N'_p = Σ_j w'_jp·A_pixel,j = D_p`（并显式并列 canonical 侧 `N_p = D_p/pixfrac²`） | 订正（**等价参数化的分母错标**；原式与同句「给出同一个 `c_jp = w_jp/N_p`」自相矛盾，且量纲不齐——`Σ_j w'_jp` 无量纲、`D_p/pixfrac²` 为 `sr`） |
+| 2 | `docs/science/DATA_SEMANTICS.md` §4a | 实现锚 `drizzle_engine.cpp` `weight = overlap_area / pixel_area` | 实现锚 = `weight = overlap_area / drop_area`（drizzle_engine.cpp）+ `acc.sumNorm += overlap_area*(pixel_area/drop_area)`（同文件）+ `drizzle_engine.h` `sumNorm = Σ_j w_jp·A_pixel,j` | 订正（**失实实现锚**；代码从无 `overlap_area / pixel_area` 之核） |
 
-**未变更（须逐字保留）**：§2:22、§5:49 的 `N_p = Σ_j w_jp·A_pixel,j`；§5:45 的核 `w_jp = a_jp/A_drop,j`；
-§5:87-90 的组合系数 `c_jp = a_jp/(A_pixel,j·D_p)`；§7:127-130 两条不变量的相容性论断；§10:159-161 的不可接受变化清单；
-§14a:226 的 canonical 口径与实现锚；§11:170-172 的常量面亮度门。
+**未变更（须逐字保留）**：§2、§5 的 `N_p = Σ_j w_jp·A_pixel,j`；§5 的核 `w_jp = a_jp/A_drop,j`；
+§5 的组合系数 `c_jp = a_jp/(A_pixel,j·D_p)`；§7 两条不变量的相容性论断；§10 的不可接受变化清单；
+§14a 的 canonical 口径与实现锚；§11 的常量面亮度门。
 
 ### 15.2 依据（一手）
 
-- **文献**：Fruchter & Hook 2002（PASP 114, 144；arXiv:astro-ph/9808087v2）§7.2 式(7) 正下方逐字：`a` 是 *"the fractional area overlap of **the drop** of input data pixel d_xy with the output pixel o"* ⇒ 每个输入像素 `Σ_o a_io = 1` ⇒ 核按 **drop** 面积归一（= 本文件 §5:45）。该文未给面亮度归一分母的符号定义，分母由**冻结的 `S_p` 不变量**反解。
+- **文献**：Fruchter & Hook 2002（PASP 114, 144；arXiv:astro-ph/9808087v2）§7.2 式(7) 正下方逐字：`a` 是 *"the fractional area overlap of **the drop** of input data pixel d_xy with the output pixel o"* ⇒ 每个输入像素 `Σ_o a_io = 1` ⇒ 核按 **drop** 面积归一（= 本文件 §5）。该文未给面亮度归一分母的符号定义，分母由**冻结的 `S_p` 不变量**反解。
 - **冻结不变量反解（决定性）**：`S_p = Σ_j x_j·w_jp / Σ_j w_jp·A_pixel,j`，代入 `x_j = B_j·A_pixel,j` 得 `S_p = Σ_j B_j·(A_pixel,j·w_jp) / Σ_j (A_pixel,j·w_jp)`。该式**对任意 `B_j`** 等于 `Σ_j B_j a_jp / Σ_j a_jp` 的充要条件是 `A_pixel,j·w_jp ∝ a_jp`。取 `w_jp = a_jp/A_drop,j`、`A_drop,j = pixfrac²·A_pixel,j` ⇒ `A_pixel,j·w_jp = a_jp/pixfrac² ∝ a_jp` ✓（`pixfrac²` 为常量，在分子分母相消）。
-- **实现（逐行）**：`drizzle_engine.cpp:1617` `weight = overlap_area / drop_area`（核）；`:1640` `acc.sumArea += overlap_area`（`D_p`）；`:1644` `acc.sumNorm += overlap_area*(pixel_area/drop_area)`（= `a_jp·A_pixel,j/A_drop,j = w_jp·A_pixel,j` ⇒ `sumNorm = N_p`）；`:1649` `acc.sumVarNum += v_j·w_jp²`。单一事实源三处同义：`drizzle_engine.h:72/:80`、`astro_sphere_sink.h:29/:38-41`（`k := D_p/N_p = sumArea/sumNorm = pixfrac²`）、本文件 §14a:226。
+- **实现（逐行）**：`drizzle_engine.cpp` 的 `weight = overlap_area / drop_area`（核）；`acc.sumArea += overlap_area`（`D_p`）；`acc.sumNorm += overlap_area*(pixel_area/drop_area)`（= `a_jp·A_pixel,j/A_drop,j = w_jp·A_pixel,j` ⇒ `sumNorm = N_p`）；`acc.sumVarNum += v_j·w_jp²`（均在 drizzle_engine.cpp）。单一事实源三处同义：`drizzle_engine.h`、`astro_sphere_sink.h`（`k := D_p/N_p = sumArea/sumNorm = pixfrac²`）、本文件 §14a。
 - **量纲核验**：`N_p` = `Σ_j w_jp·A_pixel,j` = `sr`（无量纲核 × 球面面积）与 `D_p` 同量纲；`D_p/pixfrac²` 才是 canonical 侧 `N_p` 的取值。`N'_p = Σ_j w'_jp·A_pixel,j` = `Σ_j a_jp` = `D_p` ✓。
 
 ### 15.3 影响面
@@ -280,6 +280,6 @@ Fruchter & Hook 线性重建 (SCI-DRZ-001; 核按 **drop 面积** 归一):
 ### 15.5 勘误记录（R-43 撤销案）
 
 - 查证报告《科学文档疑义查证报告》§1.3/§1.5/§9 曾判「实现式 `N_p = Σ_j w_jp²·A_pixel,j` 为正本、文档式错」，并据此提 R-38（改冻结文档）与 R-41/N-01（改实现）。
-- **该判定已撤回**（`RULINGS.md` R-43）：误判机制 = 把 `:1644` 的 `overlap_area` 当成 `A_pixel`，从而把 `a_jp·A_pixel,j/A_drop,j` 误读为 `a_jp²/A_pixel,j`。代码中不存在 `Σ_j w_jp²·A_pixel,j` 这一分母。
-- **后果**：若照原判定落地，`DRIZZLE.md:22/:48/:87-90/:128-130` 会被改错，且 `R-41` 的两行「修复」会把 `sumNorm` 改成 `Σ a²/(pixfrac⁴·A_pixel)` 使 `S_p` 偏 `1/pixfrac²`（`p1drz_disp009` 判红）。**故不得执行**。
-- 复查命令（任何人可复现）：`sed -n "1617p;1640p;1644p;1649p" lib/algorithms/drizzle/healpix_drizzle/drizzle_engine.cpp` 与上列两条门命令。
+- **该判定已撤回**（`RULINGS.md` R-43）：误判机制 = 把 `acc.sumNorm += overlap_area*(pixel_area/drop_area)` 中的 `overlap_area` 当成 `A_pixel`，从而把 `a_jp·A_pixel,j/A_drop,j` 误读为 `a_jp²/A_pixel,j`。代码中不存在 `Σ_j w_jp²·A_pixel,j` 这一分母。
+- **后果**：若照原判定落地，本文件 §2/§5/§7/§10 的对应条款会被改错，且 `R-41` 的两行「修复」会把 `sumNorm` 改成 `Σ a²/(pixfrac⁴·A_pixel)` 使 `S_p` 偏 `1/pixfrac²`（`p1drz_disp009` 判红）。**故不得执行**。
+- 复查命令（任何人可复现）：在 `lib/algorithms/drizzle/healpix_drizzle/drizzle_engine.cpp` 中按符号名（`weight = overlap_area / drop_area`、`acc.sumArea`、`acc.sumNorm`、`acc.sumVarNum`）定位四行，与上列两条门命令并读。
