@@ -124,7 +124,7 @@
 | 网格规则：`σ = fwhm_px/2.3548200450309493`，`fwhm_eff = 1.230310·σ`，`half = clip(ceil(12·fwhm_eff),30,256)` | `detectionSigmaFromFwhm` / `autoHalf` / `moffat4Discrete` | 读源码；FWHM=3 ⇒ half=30 ⇒ **61×61** |
 | `gain<=0` 分支：`var_f = σ_sky²/sum_p2`，**不含源泊松项** | `snr_source_snr_f64` else 支 | 读源码 |
 | PSF 解析通量 `2πA·sx·sy/3` | `p1_psf_analytic_flux`（`module_adapters.cpp`） | 读源码 |
-| 冻结口径「全链只有一个 flux 口径 = PSF 拟合域 flux」 | `docs/plugins/algorithms_phase1/06_photometry.md` §4 | 读文档（**规范依据**，不是实验证据） |
+| 冻结口径「全链只有一个 flux 口径 = PSF 拟合域 flux」 | `docs/detail/registry/astrocs.phase1.photometry.md`「数值落地口径」 | 读文档（**规范依据**，不是实验证据） |
 | 帧级 `reference_snr_f` 用模型总通量 F_ref + `snr_optimal` | `snr_frame_science.cpp`（`ref_row.flux_adu = cfg.reference_flux_adu`） | 读源码 |
 | 背景电平 `b̂` = 帧全局 2 轮 `median ± 3·1.4826·MAD` 裁剪后的**中位数**；`noise_sigma` = 裁剪后 RMS | `StarDetector::estimate_background` | 读源码 |
 | `psf.max_stars` 默认 5000（FAST 模式），`psf_params[].flux` 只对拟合成功子集存在 | `module_adapters.cpp` `p1_op_star_psf_impl` | 读源码 + 真实产物实测 |
@@ -557,7 +557,7 @@ A 的口径是**总通量**，跨帧乘性偏差为 0（解析）/ 2.7%~3.1%（�
 | PSF 失配鲁棒性（真值 β=3、模型 β=4） | 偏置 −5.6% | −4.6%（拟合）/ −20.0%（固定形状） | −5.6%（截断）/−8.3%（去截断） |
 
 > **判定：选方案 A。** 它在 (a)(c)(d) 三条科学判据上唯一自洽，并与冻结规范
-> `docs/plugins/algorithms_phase1/06_photometry.md` §4「全链只有一个 flux 口径 = PSF 拟合域 flux」一致。
+> `docs/detail/registry/astrocs.phase1.photometry.md`「数值落地口径」的生产口径条（全链各模块共用同一个 `flux` 口径）一致。
 > **但 A 不能照抄落地**，必须同时：
 > ① 补 **方差配对修正**（把 `1/Σ(P²/V)` 乘拟合膨胀因子，或改用全参数 Fisher 信息；实测 1.18~1.95）；
 > ② 修正 **跨块 FWHM 列口径**（喂 2.3548·sx，不是 fwhm_x）；
@@ -618,7 +618,7 @@ A 的口径是**总通量**，跨帧乘性偏差为 0（解析）/ 2.7%~3.1%（�
 | **D7** | **方案 A 的样本代价** | 登记为"未量化"（§7 未核实项 6） | **实测 0.049%~1.89%（中位 0.42%，473/174030）** | 落地前必须评估 `median_snr` 语义变化与 `local_snr` 覆盖 |
 | **D8** | **结构污染** | 未登记 | 真实星云结构 rms ≳ 噪声 rms 时 `noise_sigma` 迅速失去 σ_sky 语义（HST 扫描 +11371%；真实 M2 帧 16.8% 裁剪率、9× 块间 σ 离散） | **比 δ 问题更大**，应单独立项 |
 
-### 5.3 与 `docs/plugins/algorithms_phase1/06_photometry.md` 的一致性
+### 5.3 与 `docs/detail/registry/astrocs.phase1.photometry.md` 的一致性
 
 该文档 §4 已冻结「全链只有一个 flux 口径 = PSF 拟合域 flux = 2πA·sx·sy/3，禁止任何模块另起盒和/振幅口径」。
 本单元的实验证据**独立支持该规范**（跨帧可比 + 帧级一致性 + 绝对标定），并补充了落地所必需的两个修正（D6/D7 与跨块列口径）。
@@ -715,7 +715,7 @@ bash code/run_all.sh
 |---|---|
 | 规范 | `docs/ASTROCS_DESIGN.md` §2.2（跨帧绝对 SNR）/§3.1（权重只能来自纯净信号与噪声之比、绝对标定）/§12.2（三类实验数据）/§12.3（实验单元八要素）；`AGENTS.md` §5 |
 | 代码（只读） | `lib/algorithms/noise_snr/cpp/src/snr_science.cpp`（`snr_source_snr_f64`/`moffat4Discrete`/`autoHalf`/`detectionSigmaFromFwhm`）；`lib/algorithms/star_detection/wrapper_phase1/star_detector.cpp`（`detect`/`estimate_background`）；`lib/infrastructure/scheduler/src/module_adapters.cpp`（`p1_psf_analytic_flux`/`p1_op_star_psf_impl`）；`lib/algorithms/noise_snr/wrapper_phase1/snr_frame_science.cpp` |
-| 文档 | `docs/plugins/algorithms_phase1/06_photometry.md` §4；`docs/science/PSF.md` §2/§5/§9a；`docs/science/NOISE_MODEL.md` §5/§5a/§9a |
+| 文档 | `docs/detail/registry/astrocs.phase1.photometry.md`「数值落地口径」；`docs/science/PSF.md` §2/§5/§9a；`docs/science/NOISE_MODEL.md` §5/§5a/§9a |
 | 既有报告（输入，非终点） | `run/SCI-SNR-01/REPORT.md`、`run/SNR-REVIEW-01/REVIEW.md`、`run/SNR-ESTIMATOR-01/REPORT.md` |
 | 数据（只读） | `testdata/HST_M16/hlsp_heritage_hst_wfc3-uvis_m16_f657n_v1_drz.fits`；`testdata/M42_T2T3_mosaic_Flying_dutchman/T2/*-300S-Red.fts`（8 帧）；`run/PERF-401/work/p1_blk{{1..4}}/p1_sources.json`（16 帧、**3,639,783** 源） |
 | 共享仿真器（只读 import） | `实验/shared/synthetic/render.py`、`实验/shared/synthetic/noise_model.py` |

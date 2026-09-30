@@ -102,7 +102,7 @@
 
 ## 7. 完成判据
 
-- 第 2.2 节三个量在科学文档中有完整公式、量纲、出处，且与 `07_noise_snr.md`、`UNIFIED_MODEL.md` 口径一致；
+- 第 2.2 节三个量在科学文档中有完整公式、量纲、出处，且与 `docs/detail/registry/astrocs.phase1.noise-snr.md`、`UNIFIED_MODEL.md` 口径一致；
 - 逆方差权重与 Zackay & Ofek 结论一致（或给出有据的偏离说明）；
 - 合成数据证明 frame_snr 对天光梯度/光污染不敏感、对真实信号/噪声变化敏感；
 - 至少三个开源对照实现的行为比对记录归档；
@@ -142,8 +142,8 @@
 
 **PSF 有效面积 / 功率口径的对应**（术语对齐，避免混用）：
 
-- 本项目的“PSF 有效面积”是 `A_NEA = 1/Σ_p P_p²`（噪声等效面积），出现在白噪声近似的点源信息 `W_psf = a²/(σ_pix²·A_NEA)`（`docs/science/PSF_SIGNAL_WEIGHT.md` §2；`docs/detail/algorithms_phase1/07_noise_snr.md` §4）——它是**通量型**口径的方差因子，与“随帧级 SNR 一并落盘”的产品字段同源（`ASTROCS_DESIGN.md` §4.4）；
-- PixInsight 的“功率口径”指 `(Σf)²/σ_n²` 这一 **ratio-of-powers** 形态（上表），它没有显式的 `A_NEA` 因子，且不能再做 `SNR²/F_ref²` 换算（`07_noise_snr.md` §4.1 口径澄清）；
+- 本项目的“PSF 有效面积”是 `A_NEA = 1/Σ_p P_p²`（噪声等效面积），出现在白噪声近似的点源信息 `W_psf = a²/(σ_pix²·A_NEA)`（`docs/science/PSF_SIGNAL_WEIGHT.md` §2；`docs/detail/registry/astrocs.phase1.noise-snr.md`「数值落地口径」）——它是**通量型**口径的方差因子，与“随帧级 SNR 一并落盘”的产品字段同源（`ASTROCS_DESIGN.md` §4.4）；
+- PixInsight 的“功率口径”指 `(Σf)²/σ_n²` 这一 **ratio-of-powers** 形态（上表），它没有显式的 `A_NEA` 因子，且不能再做 `SNR²/F_ref²` 换算（`docs/detail/registry/astrocs.phase1.noise-snr.md`「帧级 SNR（frame_snr）」 口径澄清）；
 - 因此两者**不可互换**：引用 PixInsight 常数或公式时必须带版本，且不得把功率比数值与本项目通量型 SNR 直接比较。
 
 ### 8.2 Horne 1986：最优提取与 `PᵀC⁻¹P` 结构
@@ -157,7 +157,7 @@
 - Zackay, B., & Ofek, E. O. 2017, *How to COAAD Images. I. Optimal Source Detection and Photometry of Point Sources Using Ensembles of Images*, ApJ **836**, 187 — `[DOI]` 10.3847/1538-4357/836/2/187；`[ARXIV]` 1512.06872（arXiv API 标题核对一致）。
 - 结论要点（本项目 `point_information` 模式的依据）：每帧先用**各自 PSF** 做 matched filter 再加权求和才最优；先做 PSF 均质化再叠加会损失灵敏度。对应设计 `ASTROCS_DESIGN.md` §5.3 的 `w = 1/σ² = SNR²/F_ref²`（不是直接用 SNR 加权）。
 - Zackay, B., & Ofek, E. O. 2017, *How to COAAD Images. II. A Coaddition Image that is Optimal for Any Purpose in the Background-dominated Noise Limit*, ApJ **836**, 188 — `[DOI]` 10.3847/1538-4357/836/2/188；`[ARXIV]` 1512.06879。背景主导噪声极限下的 proper coaddition。
-- **配对性条件**（本项目写法）：`w ∝ SNR²` 只在**同一帧内** `SNR` 与 `F_ref` 同源时成立（`07_noise_snr.md` §4.1）；跨帧 `F_ref,k` 合法地不同，不要求相等。
+- **配对性条件**（本项目写法）：`w ∝ SNR²` 只在**同一帧内** `SNR` 与 `F_ref` 同源时成立（`docs/detail/registry/astrocs.phase1.noise-snr.md`「帧级 SNR（frame_snr）」）；跨帧 `F_ref,k` 合法地不同，不要求相等。
 
 ### 8.4 ZOGY（与 COAAD I 消歧）
 

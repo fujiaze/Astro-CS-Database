@@ -147,7 +147,7 @@ git status --short ; git diff --stat ; git status --short docs/research/ docs/sc
 
 - **位置**：`code/b6_gates_audit.py:99-145`（`path_state_machine` 定义在 b6 内部，用例与期望值同表硬编码）。
 - **复现**：`grep -rn "sparse_reconstruct\|snr_path_effective\|FZ-SNR" lib/ lib/include/ eng/contracts/` ⇒ 命中仅 `lib/infrastructure/cli/session_commands.h`（模板字符串）、`eng/contracts/schemas/phase_config_mosaic.schema.json`（description），**lib/ 实现代码中没有任何路径状态机**。
-- **期望 vs 实际**：期望"对拍"= 与独立实现/真实调用路径比对；实际是作者把自己的转写与自己的期望表比对，`H4_all_cases_match` **在任何数据下恒真**（只有改源码才可能失败）。语义转写与 `07_noise_snr.md` §4.2 一致（这点我核对了，一致），但它**不能支撑 README §3.6「fail-closed 路径对拍」与 H14「语义正确」的强度**——应表述为"按规范转写的语义自检，实现侧尚未落地"。
+- **期望 vs 实际**：期望"对拍"= 与独立实现/真实调用路径比对；实际是作者把自己的转写与自己的期望表比对，`H4_all_cases_match` **在任何数据下恒真**（只有改源码才可能失败）。语义转写与 `docs/detail/registry/astrocs.phase1.noise-snr.md`「SNR 三条路径与稀疏帧内层」 一致（这点我核对了，一致），但它**不能支撑 README §3.6「fail-closed 路径对拍」与 H14「语义正确」的强度**——应表述为"按规范转写的语义自检，实现侧尚未落地"。
 
 #### **I3｜`N1_flat_field_sparse_never_wins` 是恒真门，却被计入"非退化负例 PASS"**
 
@@ -201,7 +201,7 @@ git status --short ; git diff --stat ; git status --short docs/research/ docs/sc
 4. **未核验 `code/diag_highN.py`、`diag_noise_terms.py`、`make_tables.py`、`fetch_evidence.py`** 的逻辑（非主链路）。
 5. **无法归因工作树中生产码/科学文档改动的作者**：`实验/` 整个目录未被 git 跟踪，`lib/algorithms/noise_snr/*`、`module_adapters.cpp`、`docs/science/NOISE_MODEL.md` 的改动我判断来自并发任务（FIX-405 / DOC-402，有 `run/DOC-402/`、`run/CLEAN-401/` 与代码内注释为证），但**没有工具能证明 SCI-B 作者从未碰过它们**。可核验的只有：SCI-B 全部脚本的写目标都在 `results/` 与 `run/SCI-402/` 内。
 6. **未做 b1 的更大 N_MC 收敛性复核**（N_MC=1000 的 z 检验余量：max|z|=2.06/2.68，接近 3σ 门；我没有独立提高统计量去检验这些点是否只是"刚好过关"）。
-7. **未复核 `07_noise_snr.md` 之外的上游合同**（如 Phase2 侧是否真的按 `snr_path` 消费）。
+7. **未复核 `docs/detail/registry/astrocs.phase1.noise-snr.md` 之外的上游合同**（如 Phase2 侧是否真的按 `snr_path` 消费）。
 
 ---
 

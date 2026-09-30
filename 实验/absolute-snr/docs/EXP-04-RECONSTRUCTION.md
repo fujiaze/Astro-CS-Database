@@ -3,7 +3,7 @@
 > 实验单元：`实验/absolute-snr/`（SCI-B 绝对 SNR 传递链）
 > 任务单元：**SCI-B-EXP-04**
 > 权威链：`AGENTS.md` §5（科学纪律）→ `docs/ASTROCS_DESIGN.md` §5.3 → `docs/design/UNIFIED_MODEL.md:46`（**判据 SP-0**）
-> → `docs/plugins/algorithms_phase1/07_noise_snr.md` §4.2/§4.5 → `docs/plugins/algorithms_phase2/13_integration.md:19-41`
+> → `docs/detail/registry/astrocs.phase1.noise-snr.md`「SNR 三条路径与稀疏帧内层」/「稀疏帧内层几何与重建算子」 → `docs/detail/registry/astrocs.phase2.integrate.md`「输入输出端口、DATA、单位、坐标、invalid」/「SNR 重建与逆方差权重（单一权重口径，没有可选择项）」
 > 判据正本：`docs/science/CONTROL_WEIGHT_SNR.md` §8b（`E = Var_w/Var_opt − 1`）
 > 固定 seed：`20260921`｜复现：`bash 实验/absolute-snr/code/exp04/run_all.sh`
 > 本单元**只读**生产代码；未运行任何 ACSD 可执行文件。
@@ -50,7 +50,7 @@
 **问三：现行默认还站得住吗？**
 **站不住（有明确证据）**。生产代码里唯一实现的重建算子是**双线性**
 （`lib/algorithms/integration/v6/src/weight_chain.cpp:136` `reconstruct_sparse_snr`，
-`operator_id = "bilinear_regular_grid_v1"`），而**文档从未规定算法**（`07_noise_snr.md` §4.5
+`operator_id = "bilinear_regular_grid_v1"`），而**文档从未规定算法**（`docs/detail/registry/astrocs.phase1.noise-snr.md`「稀疏帧内层几何与重建算子」
 只说"重建算子返回预测方差"）。实测：
 - 可分辨结构域上双线性比自然样条差 2.2 倍（E 0.0204 vs 0.0091）；
 - **HST 类数据上双线性稀疏在 Δ ≥ 32 就劣于帧级兜底臂**（Δ*=32 px，定义见 §5.3），
@@ -124,10 +124,10 @@ SExtractor `backsig` 语义，`back.c:846`）、`frame_global_mad`（整帧未�
   （`weight_chain.h:90-98`）；查询点越出定义域 ⇒ `out_of_domain=true` + **fail-closed
   （不外推、不回退帧级）**（`:233-237`）；域内**先钳到节点范围再求值**（`:239-240`）；
   另有控制点自身复现自检 `node_reproduction_max_abs`（`weight_chain.h:105`）。
-- **文档事实**：`07_noise_snr.md` §4.5 只说"重建算子返回预测方差"；`docs/ASTROCS_DESIGN.md`
+- **文档事实**：`docs/detail/registry/astrocs.phase1.noise-snr.md`「稀疏帧内层几何与重建算子」 只说"重建算子返回预测方差"；`docs/ASTROCS_DESIGN.md`
   §5.3 只说"稀疏控制点插值重建"；`UNIFIED_MODEL.md:46` 只说"Phase2 由它重建稠密 SNR"。
-  **算法名在整个文档集中不存在** ⇒ 本任务的空白点（`07_noise_snr.md:141` 亦自记为登记项）。
-- **v6 家族的去留**：`07_noise_snr.md` §4.4（`:131`）明示该家族在 orchestrator 接线搬入
+  **算法名在整个文档集中不存在** ⇒ 本任务的空白点（`docs/detail/registry/astrocs.phase1.noise-snr.md`「噪声模型 A 与逐像素方差面」 亦自记为登记项）。
+- **v6 家族的去留**：`docs/detail/registry/astrocs.phase1.noise-snr.md`「噪声模型 A 与逐像素方差面」（`:131`）明示该家族在 orchestrator 接线搬入
   scheduler 后删除 ⇒ **推荐算子需要在新落点重新实现，不能依赖 v6**。
 - **等价性验证**：本单元 `op_bilinear` 与逐行镜像生产语义的 `op_bilinear_prod`
   实测差 **1.78e-15**（自检门 **S6**，Δ=16/32/64 三档，落盘 `selftest.log`）
@@ -403,7 +403,7 @@ log10 域跨实现离散中位数（dex）；C1 = 同一真值场 + 8 个独立�
 | **HST 高对比域** | ℓ≈107 px，s=0.049，cell 内有亮源 | 稀疏 `photutils_zoom1` | **0.0449@Δ64**（0.0124@Δ16） | 0.0530 | 0.0564 | **稀疏胜（用中值滤波算子）；用双线性则帧级胜** |
 | **地面真实帧（M42）** | ℓ≈27–30 px，s≈0.05 | **M1/M2：稠密 `dense_P32`（0.0312/0.0268）；M4：稀疏 `bicubic_cc`（0.0246）** | 0.0246–0.0325 | 0.0555–0.0915 | 0.0268–0.0312 | **2/3 帧稠密略胜、1/3 帧稀疏胜 ⇒ 只能给"15% 内互有胜负"的定性结论** |
 
-**三口径的适用域总结（可写进 `07_noise_snr.md` §4.2 的图谱）**：
+**三口径的适用域总结（可写进 `docs/detail/registry/astrocs.phase1.noise-snr.md`「SNR 三条路径与稀疏帧内层」 的图谱）**：
 
 1. **`dense` 只在"帧内噪声场确实有 P=32 级细结构、且预算允许"的域最优**；实测 M42 的 M1/M2 帧
    落在该域（稠密胜约 4–15%），**但 M4 帧相反**。它的代价是 **2048× 存储**。
@@ -561,7 +561,7 @@ SExtractor `BACK_FILTTHRESH` 默认 0.0 语义）。
 
 - `eng/contracts/schemas/phase_config_mosaic.schema.json:166`（`snr_path` 的 description）：
   "SNR(p) 由**绝对** SNR 控制点重建为稠密场，**不乘帧级标量**"；
-- `docs/plugins/algorithms_phase2/13_integration.md:22/:37`：同口径，并要求"重建算子与误差入 manifest"。
+- `docs/detail/registry/astrocs.phase2.integrate.md`「SNR 重建与逆方差权重（单一权重口径，没有可选择项）」的稀疏臂与分工固定两条：同口径，并要求"重建算子与误差入 manifest"。
 
 因此本单元的推荐必须满足以下**接口约束**（逐条已在本单元验证）：
 
@@ -582,7 +582,7 @@ SExtractor `BACK_FILTTHRESH` 默认 0.0 语义）。
 
 ### 5.1 事实基线
 
-- 现行生产值 `sparse_snr_spacing_px = 64`，`Δ = hips.tile_width/8 = 512/8`（`07_noise_snr.md` §5），
+- 现行生产值 `sparse_snr_spacing_px = 64`，`Δ = hips.tile_width/8 = 512/8`（`docs/detail/registry/astrocs.phase1.noise-snr.md`「Registry descriptor 与配置 schema」），
   复用 Phase2 UPM 的 8×8/tile 控制网格 ⇒ **Δ 的当前取值来自几何复用，不是来自精度实验**。
 - 存储预算 1 MiB/帧允许 **Δ 降到 16 px**（FP64 下 512 KiB，占预算 50%）⇒ **存储不构成约束**。
 - 控制点估计量的自身噪声地板 `ε_cell = 1.166/ln10/√(Δ²/2)`（`exp04_common.py:67`）：
@@ -616,7 +616,7 @@ SExtractor `BACK_FILTTHRESH` 默认 0.0 语义）。
 
 | 项 | 推荐值 | 依据 |
 |---|---|---|
-| **默认 Δ** | **保持 64 px** | ① 与 Phase2 UPM 的 8×8/tile 控制网格几何复用（`07_noise_snr.md` §5），改 Δ 会同时改动 UPM 接口；② **在默认路径的目标域（地面/seeing-limited 与解析可分辨域）上，Δ=64 已落在适用域内**。**注意（v2 补登）**：**推荐默认自身在 HST 类域 Δ=64 的 E=0.1375，比帧级兜底 0.0530 差 2.6 倍**，其 Δ*（HST）= **32 px，与现行双线性相同**；**只有叠加中值滤波后才改善到 0.0490、Δ*=128**。⇒ **HST 类域的滤波开关是必需项，不是可选优化**（该事实在 v2 初稿中未登记）。 |
+| **默认 Δ** | **保持 64 px** | ① 与 Phase2 UPM 的 8×8/tile 控制网格几何复用（`docs/detail/registry/astrocs.phase1.noise-snr.md`「Registry descriptor 与配置 schema」），改 Δ 会同时改动 UPM 接口；② **在默认路径的目标域（地面/seeing-limited 与解析可分辨域）上，Δ=64 已落在适用域内**。**注意（v2 补登）**：**推荐默认自身在 HST 类域 Δ=64 的 E=0.1375，比帧级兜底 0.0530 差 2.6 倍**，其 Δ*（HST）= **32 px，与现行双线性相同**；**只有叠加中值滤波后才改善到 0.0490、Δ*=128**。⇒ **HST 类域的滤波开关是必需项，不是可选优化**（该事实在 v2 初稿中未登记）。 |
 | **HST 类高对比数据的推荐 Δ** | **32 px**（可选 16 px） | HST 实测 E：0.0449(64) → 0.0214(32) → 0.0124(16)，**Δ=32 相对 Δ=64 收益 2.1 倍**，代价是存储 0.031 MiB → 0.125 MiB（仍只占预算 12.5%）。 |
 | **Δ 下限** | **16 px（且已到估计量噪声地板）** | ① 存储：512 KiB = 预算 50%；② **ε_cell(16)=0.0448 dex，与 HST/M42 的 `s_field`（0.049 / 0.05）同量级** ⇒ 16 px 时控制点估计量噪声已与场的真实空间变化相当，**再细下去由估计量噪声主导**；若要 Δ=16 必须先降 ε_cell（更大 cell 内像素数或更强的控制点估计量）。 |
 | **禁止** | Δ > 64（除非显式声明降级） | HST 上 Δ=128 时滤波版 E=0.0826、**推荐默认 `spline_natural_clip` 0.2918**，均已劣于帧级兜底 0.0530；Δ=256 时**无钳制的 `gpr_rbf` 单独失控到 7.80e5**（同 Δ 下 `spline_natural`/`gpr_matern32`/`gpr_exp` 在 23 个面上最大仅 5.62——1e4–1e5 量级失控发生在 **Δ=16** 的格子，v2 初稿把两处混淆）。 |

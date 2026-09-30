@@ -116,7 +116,7 @@
 | 匹配星数 N < 3 | **完全退化到现有行为**（NO_DATA，k_photo=1.0，不施加） | 主线冻结门 SCI-PHOT-001 §4/§8，**不动** |
 | 3 ≤ N < N_min(order) | **只做标量**（order 0），m ≡ 1，provenance 记 `spatial_gain=degraded_scalar` | 见下 |
 | 覆盖不足（3×3 分块中 <6 块含 ≥5 星，或星位置包围盒 <50% 帧幅） | **只做标量**，provenance 记 `spatial_gain=degraded_coverage` | 聚集分布实验（§3.5） |
-| 曲面拟合失败 / 系数非有限 / sigma_residual 超门 | **该帧判 fail**：`status=fail` + `error_domain`/`error_status`/`error`（稳定错误码 `PHOT_FIT_IMPLAUSIBLE_SCATTER`），不施加空间增益、不产出该帧产品；**其余帧照常拟合与施加**（帧级失败作用域，运行不中止） | 帧级失败语义：`docs/design/LOG_AND_ERROR_SYSTEM.md` §10「该帧不产出产品，其余帧照常完成」；`docs/contracts/LOG_AND_ERROR_CONTRACT.md` §6；`docs/plugins/algorithms_phase1/06_photometry.md` §7。**不得**降级为「只做标量」：空间增益与帧级标量是同一乘性标度的两段，只施加一半即部分归一化 |
+| 曲面拟合失败 / 系数非有限 / sigma_residual 超门 | **该帧判 fail**：`status=fail` + `error_domain`/`error_status`/`error`（稳定错误码 `PHOT_FIT_IMPLAUSIBLE_SCATTER`），不施加空间增益、不产出该帧产品；**其余帧照常拟合与施加**（帧级失败作用域，运行不中止） | 帧级失败语义：`docs/design/LOG_AND_ERROR_SYSTEM.md` §10「该帧不产出产品，其余帧照常完成」；`docs/contracts/LOG_AND_ERROR_CONTRACT.md` §6；`docs/detail/registry/astrocs.phase1.photometry.md`「错误、日志、指标、取消和 checkpoint」。**不得**降级为「只做标量」：空间增益与帧级标量是同一乘性标度的两段，只施加一半即部分归一化 |
 
 **N_min 的定量依据（合成负例噪声底 vs N，σ_int=0.010 dex）**：
 

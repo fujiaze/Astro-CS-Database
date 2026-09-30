@@ -72,7 +72,7 @@
 
 > **注意区分**：PixInsight 的 **PSFSNR（式[18]）** 分子是"FWTM 孔径内像素**减局部背景**求和"的平方，
 > 因此**它本身不会被天光均值抬高**（天光只进 `σ_n`）。ACSD 不采用它的**功率比形式**，
-> 只借鉴方法学（信号取数、稳健噪声、独立背景）—— 与本仓 `docs/plugins/algorithms_phase1/07_noise_snr.md` 一致。
+> 只借鉴方法学（信号取数、稳健噪声、独立背景）—— 与本仓 `docs/detail/registry/astrocs.phase1.noise-snr.md` 一致。
 
 ---
 
@@ -199,7 +199,7 @@ SNR_frame,k --(逐源/逐像素)-->  sigma_F,k = F_ref,k / SNR_frame,k
 
   即 `w = SNR²/F_ref²` 仅在**通量型（一次方比）** SNR 下严格成立；
   **功率比型（`SNR²` 已是平方比）不可再做此换算** —— 这正是本仓
-  `docs/plugins/algorithms_phase1/07_noise_snr.md` §4.1 选择通量型的理由，定案**确认该理由成立**。
+  `docs/detail/registry/astrocs.phase1.noise-snr.md`「帧级 SNR（frame_snr）」 选择通量型的理由，定案**确认该理由成立**。
 - **命名纪律（负责人 2026-09-19 裁决 A1/C1，claim `FIX-SCI-SNR-CANON-001`）**：
   Phase1 产品面（HiPS 文件头 `ASTROCS_FRAME_SNR`）的 `frame_snr` 是**科学量**；
   Phase2 stage2 内部的 `local_snr`/`frame_snr_medians` 是**相对质量场**，须改名 `quality_weight`。
@@ -478,7 +478,7 @@ HiPS writer     ASTROCS_FRAME_SNR / ASTROCS_FRAME_REFERENCE_FLUX
 |---|---|---|---|---|---|
 | **G1** | **`sigma_sky` 用整帧标量，不是局部** | `noise_sigma` = 整帧 1.4826×MAD（sigma-clip 2 轮），含星点/星云污染 | 必须**局部**估计（强天光梯度下整帧标量把梯度误当噪声） | `star_detector.cpp:30-60`；`module_adapters.cpp:3770` | **高**（M42 是星云场：同夜同仪器 `t2_m2` 帧 `noise_sigma=38.22` vs `t2_m1` 帧 `20.74`，差 1.8×） |
 | **G2** | **`m_5` 的产出条件未在合同里声明** | `frame_depth_m5_mag` 在 `zero_point_mag <= 0` 时为 NaN（`snr_frame_depth_f64`）。取该帧 `ZP_k` 的产物中实测 **8/8 帧非空**（19.59–20.82 mag）；`ZP_k` 不可得的产物全为 null ⇒ 是**条件性缺失**而非「从不产出」 | 合同须写「`ZP_k` 可得 ⇔ `m_5` 非空」，并规定 `ZP_k` 不可得时的处置（显式 NaN + provenance），不得让读者把 0/N 读成「字段不需要」 | `snr_science.cpp::snr_frame_depth_f64`；`p1_snr.json` 的 `frame_depth_m5_mag` 与 `snr_reference.frame_zero_point_mag` | **中**（能力已在，条件未声明） |
-| **G3** | **`W_psf = a_k² P_kᵀ C_k⁻¹ P_k` 未实现** | 实现是**对角、白噪声**近似 `1/Σ P_i²/σ_i²`，**无 `a_k`、无协方差 `C`** | 文档若写 `W_psf` 就必须实现或显式降级声明 | `snr_science.cpp:145-177` vs `docs/plugins/algorithms_phase1/07_noise_snr.md` §4.1 式 | **中**（文档-实现落差，不是数值错误） |
+| **G3** | **`W_psf = a_k² P_kᵀ C_k⁻¹ P_k` 未实现** | 实现是**对角、白噪声**近似 `1/Σ P_i²/σ_i²`，**无 `a_k`、无协方差 `C`** | 文档若写 `W_psf` 就必须实现或显式降级声明 | `snr_science.cpp:145-177` vs `docs/detail/registry/astrocs.phase1.noise-snr.md`「帧级 SNR（frame_snr）」 式 | **中**（文档-实现落差，不是数值错误） |
 | **G4** | **读出噪声可能重复计入** | `sigma_sky` 来自整帧 MAD（**已含**读出噪声），而 (2.1) 又加 `(sigma_R/g)^2` | 二者只能取一；文档须写清 | `snr_science.cpp:147-149, 168-169` | **中**（真实 run 因 gain=0 未触发；一旦配置 gain+read_noise 即触发） |
 | **G5** | **信号是等值孔径和，不是 PSF 加权通量** | `F` = `sum(max(I-bkg,0))`（sdet 连通域正部求和），而 `sigma_F` 按 Moffat4 全网格算 | 分子与分母必须**同口径**（或显式声明保守性方向） | `sdet_detector.cpp:281-285` vs `snr_science.cpp:145-177` | **中**（当前系统性**低估** SNR；方向保守） |
 | **G6** | **`F_ref` 单位是 ADU，参考轮廓已落盘但未与定案式绑定** | `reference_flux_adu` 是 ADU；`snr_reference.profile = "median_fwhm_of_catalogue_sky_limited"` | 单位与参考轮廓须**显式落盘**（**已做到**，降级为低） | `p1_snr.json` 实测 | **低** |
@@ -486,7 +486,7 @@ HiPS writer     ASTROCS_FRAME_SNR / ASTROCS_FRAME_REFERENCE_FLUX
 | **G7** | **`A_NEA` 未落盘** | `sum_p2` 在 C ABI 里返回，但 `p1_snr.json` **不写** `A_NEA` | 帧间比较 `SNR` 必须能追溯到 `A_NEA`（否则不同 PSF 的帧不可比） | `snr_science.cpp:180`（有 `sum_p2`）vs `p1_snr.json`（无该字段） | **中** |
 | **G8** | **`snr_noise_model_v1*` 未编入生产** | `nm` 全 build 归档 0 命中 | 要么接线、要么从 `module.yaml` 移除声明 | `ci/ledgers/dormant_algorithms.json`；本轮 `nm` 复核 | **中**（门禁已登记，未闭环） |
 | **G9** | **stage2 与 Phase1 同名互指** | stage2 的 `frame_snr_medians` 与 Phase1 的 `frame_snr` 同名不同物 | 已裁决：stage2 改名 `quality_weight`（实现跟随项） | `docs/science/CONTROL_WEIGHT_SNR.md` §0/§2a/§9 | **低**（文档已裁决，实现待跟随） |
-| **G10** | **`p1_snr.json` 的 `frame_snr` 字段名与科学定义冲突** | 该字段是**深度容器**，且**已自文档化**：31/32 个产品带 `"definition": "...; NOT a whole-frame scalar SNR"`（实测），真正的帧级 SNR 在 `snr_reference.snr_f` | 命名应消歧（改名 `depth`），否则与 `07_noise_snr.md` §4.1「`frame_snr` = 帧级未加权原始信噪比」在**同名不同物**层面继续冲突 | `run/reverse_verify/frame_snr/p1_snr_inventory.json`（C5：31/32 自文档化） | **中** |
+| **G10** | **`p1_snr.json` 的 `frame_snr` 字段名与科学定义冲突** | 该字段是**深度容器**，且**已自文档化**：31/32 个产品带 `"definition": "...; NOT a whole-frame scalar SNR"`（实测），真正的帧级 SNR 在 `snr_reference.snr_f` | 命名应消歧（改名 `depth`），否则与 `docs/detail/registry/astrocs.phase1.noise-snr.md`「帧级 SNR（frame_snr）」「`frame_snr` = 帧级未加权原始信噪比」在**同名不同物**层面继续冲突 | `run/reverse_verify/frame_snr/p1_snr_inventory.json`（C5：31/32 自文档化） | **中** |
 
 ### 4.3 `p1_snr.json` 现状核对（**带时间戳的快照**）
 
@@ -534,7 +534,7 @@ HiPS writer     ASTROCS_FRAME_SNR / ASTROCS_FRAME_REFERENCE_FLUX
 ## 5 需要订正的主线文档（**只给建议，未改 docs/**）
 
 > 背景：负责人 2026-09-19 裁决 A1/C1（claim `FIX-SCI-SNR-CANON-001`）**已经**把
-> `CONTROL_WEIGHT_SNR.md` §0/§2a/§9、`UNIFIED_MODEL.md` §2、`07_noise_snr.md` §4.1 更新为
+> `CONTROL_WEIGHT_SNR.md` §0/§2a/§9、`UNIFIED_MODEL.md` §2、`docs/detail/registry/astrocs.phase1.noise-snr.md`「帧级 SNR（frame_snr）」 更新为
 > "同名两义"的定案。**本轮不再主张"两条互斥"** —— 该冲突已关闭。
 > 下面只列**仍然与实测不符**或**尚未闭合**的条款。
 
@@ -542,22 +542,22 @@ HiPS writer     ASTROCS_FRAME_SNR / ASTROCS_FRAME_REFERENCE_FLUX
 |---|---|---|---|
 | `docs/science/CONTROL_WEIGHT_SNR.md:36` | `\| sigma_F \| 逐源通量不确定度（科学 SNR 定义量；PSF 拟合协方差或 CCD 方程，**当前实现不产出**）\|` | **与实测不符**：生产**已产出** `sigma_f_optimal_adu`（`snr_science.cpp:181`）与 `snr_reference.sigma_f_adu`，且 `snr_f == F_ref/sigma_f` 在 59/59 帧成立 | 改为"**当前实现已产出**（`snr_science.cpp:181`；`p1_snr.json` 的 `snr_reference.sigma_f_adu`）；但**未落盘到独立字段供 Phase2 消费**，且**不含协方差/`a_k`**（见 G3）" |
 | `docs/science/CONTROL_WEIGHT_SNR.md:33` | `\| frame_snr \| 整帧 Phase1 SNR 目录值的**中位数（回退质量基准）**\|` | **provenance 不准**：Phase1 写进 HiPS 的帧级量是 `snr_reference.snr_f`（**参考源** SNR，不是目录中位数）；目录中位数是 `median_source_snr`（另一个字段） | 改为"来源 = Phase1 `p1_snr.json` 的 `snr_reference.snr_f`（**参考通量 `F_ref` 上的 PSF SNR**）；**不是** `median_source_snr`（后者是目录中位数，语义不同）" |
-| `docs/plugins/algorithms_phase1/07_noise_snr.md` §4.1 数学定义 | `W_psf,k = a_k² P_kᵀ C_k⁻¹ P_k` | **未实现**（实现是对角 `1/ΣP_i²/σ_i²`，无 `a_k`、无 `C`） | 加一行**实现状态**：`W_psf` 是**目标规范**；当前实现为 `W_psf ≈ 1/sigma_F²` 且 `sigma_F² = Σ P_i²/σ_i²`（对角、白噪声），`a_k` 与协方差 `C` **未接入**（附 file:line）；或明确写"实现跟随项" |
-| `docs/plugins/algorithms_phase1/07_noise_snr.md` §4.1 | 未声明 `F_ref` 的单位、参考轮廓与定义域 | `F_ref,k` 是 ADU、参考轮廓是"目录天限星 FWHM 中位数"（`snr_reference.profile`）、**逐帧**（`snr_reference_scope="frame_independent_fixed_magnitude"`），但文档未写 | 补：`F_ref,k` [ADU]、参考轮廓 = `median_fwhm_of_catalogue_sky_limited`、**逐帧**（由该帧 `ZP_k` 与 `m_ref` 导出）；组内公共的是 `reference_mag` 与 `reference_flux_common` |
+| `docs/detail/registry/astrocs.phase1.noise-snr.md`「帧级 SNR（frame_snr）」 数学定义 | `W_psf,k = a_k² P_kᵀ C_k⁻¹ P_k` | **未实现**（实现是对角 `1/ΣP_i²/σ_i²`，无 `a_k`、无 `C`） | 加一行**实现状态**：`W_psf` 是**目标规范**；当前实现为 `W_psf ≈ 1/sigma_F²` 且 `sigma_F² = Σ P_i²/σ_i²`（对角、白噪声），`a_k` 与协方差 `C` **未接入**（附 file:line）；或明确写"实现跟随项" |
+| `docs/detail/registry/astrocs.phase1.noise-snr.md`「帧级 SNR（frame_snr）」 | 未声明 `F_ref` 的单位、参考轮廓与定义域 | `F_ref,k` 是 ADU、参考轮廓是"目录天限星 FWHM 中位数"（`snr_reference.profile`）、**逐帧**（`snr_reference_scope="frame_independent_fixed_magnitude"`），但文档未写 | 补：`F_ref,k` [ADU]、参考轮廓 = `median_fwhm_of_catalogue_sky_limited`、**逐帧**（由该帧 `ZP_k` 与 `m_ref` 导出）；组内公共的是 `reference_mag` 与 `reference_flux_common` |
 | `docs/design/UNIFIED_MODEL.md:42` | `… 天光散粒噪声计入 σ_n`（已符合定案） | 缺少**可复算判据**的指向 | 补一句"红线判据与数值见 `实验/absolute-snr/docs/frame-snr-canon.md` §3；`B→∞ ⇒ SNR→0` 的解析断言见 §3.1" |
 | `docs/science/CONTROL_WEIGHT_SNR.md` §2a | `唯一帧级科学基准是 5σ 点源深度 m_5` | `m_5` **从不产出**（G2），而 `snr_reference.snr_f` **实际是**帧级科学量 | 改为"帧级科学量有二：**帧级 SNR**（`snr_reference.snr_f`，已产出）与 **`m_5`**（需 ZP，**当前未产出**，属实现缺口 G2）"；并把 `m_5` 的产出接入登记为跟随项 |
-| `docs/plugins/algorithms_phase1/07_noise_snr.md` §4.1 | 未声明**源自身泊松**的取舍 | 调研结论：各家取舍不同（SDSS 不进 / SExtractor·HSC·JWST·LSST 进） | 显式声明：生产 **gain 未知 ⇒ 源泊松项未计入**（`snr_science.cpp:176-177`），故 `sigma_F` 在亮源端**偏低** ⇒ `SNR` **偏高**；须作为已知偏差登记 |
+| `docs/detail/registry/astrocs.phase1.noise-snr.md`「帧级 SNR（frame_snr）」 | 未声明**源自身泊松**的取舍 | 调研结论：各家取舍不同（SDSS 不进 / SExtractor·HSC·JWST·LSST 进） | 显式声明：生产 **gain 未知 ⇒ 源泊松项未计入**（`snr_science.cpp:176-177`），故 `sigma_F` 在亮源端**偏低** ⇒ `SNR` **偏高**；须作为已知偏差登记 |
 | `docs/science/CONTROL_WEIGHT_SNR.md` §2a | `sigma_F` 的 `sigma_sky` 来源未声明 | 实际是**整帧** MAD（G1），会把天光梯度/星云误当噪声 | 补：`sigma_sky` 当前为**整帧**稳健估计（`star_detector.cpp:30-60`），**局部化**登记为跟随项（G1） |
-| `docs/plugins/algorithms_phase1/07_noise_snr.md` §4.1 与 `docs/design/UNIFIED_MODEL.md:42` | 把 `frame_snr` 定义为"帧级未加权原始信噪比" | 而 `p1_snr.json` 里**名为 `frame_snr` 的字段是深度容器**（G10） | 消歧：给 `p1_snr.json` 的深度字段改名 `depth`（或加 `not_a_snr: true` 注解），把 `frame_snr` 留给 `snr_reference.snr_f` |
+| `docs/detail/registry/astrocs.phase1.noise-snr.md`「帧级 SNR（frame_snr）」 与 `docs/design/UNIFIED_MODEL.md:42` | 把 `frame_snr` 定义为"帧级未加权原始信噪比" | 而 `p1_snr.json` 里**名为 `frame_snr` 的字段是深度容器**（G10） | 消歧：给 `p1_snr.json` 的深度字段改名 `depth`（或加 `not_a_snr: true` 注解），把 `frame_snr` 留给 `snr_reference.snr_f` |
 
-| `07_noise_snr.md` §4.1 / `UNIFIED_MODEL.md:42` | 未要求 @@F_ref@@ 与 @@snr_f@@ **同帧同源**、未声明 @@F_ref@@ 的定义域 | @@w = SNR²/F_ref²@@ 的成立条件是**同帧同源**，不是跨帧相等（`F_ref` 在恒等式中相消）；`F_ref,k` 跨帧不等是**正确行为**，前提是逐帧导出（`ZP_k`）且公共锚 `F0` 落盘 | 补：@@F_ref,k 由该帧 ZP_k 与 m_ref 导出（scope="frame_independent_fixed_magnitude"）@@；@@F_ref,k 与该帧 snr_f 必须同源@@；@@组内公共对象是 reference_mag 与 reference_flux_common@@。若某产物 `scope="group_median"`，其 `F_ref` 继承检测器口径（随 seeing 漂移），**不得**用于帧间 SNR 比较 |
+| `docs/detail/registry/astrocs.phase1.noise-snr.md`「帧级 SNR（frame_snr）」 / `UNIFIED_MODEL.md:42` | 未要求 @@F_ref@@ 与 @@snr_f@@ **同帧同源**、未声明 @@F_ref@@ 的定义域 | @@w = SNR²/F_ref²@@ 的成立条件是**同帧同源**，不是跨帧相等（`F_ref` 在恒等式中相消）；`F_ref,k` 跨帧不等是**正确行为**，前提是逐帧导出（`ZP_k`）且公共锚 `F0` 落盘 | 补：@@F_ref,k 由该帧 ZP_k 与 m_ref 导出（scope="frame_independent_fixed_magnitude"）@@；@@F_ref,k 与该帧 snr_f 必须同源@@；@@组内公共对象是 reference_mag 与 reference_flux_common@@。若某产物 `scope="group_median"`，其 `F_ref` 继承检测器口径（随 seeing 漂移），**不得**用于帧间 SNR 比较 |
 | `p1_snr.json` 的 `snr_reference.profile` | @@median_fwhm_of_catalogue_sky_limited@@ | 参考轮廓口径正确，但**未声明对应的 @@A_NEA@@**（G7） | 补落盘 @@a_nea_px@@（由 @@sum_p2@@ 得，C ABI 已返回：`snr_science.cpp:180`） |
 
-**结论（回答"`CONTROL_WEIGHT_SNR.md:11-14` 与 `07_noise_snr.md:39` 哪一条对"）**：
+**结论（回答"`CONTROL_WEIGHT_SNR.md:11-14` 与 `docs/detail/registry/astrocs.phase1.noise-snr.md`「帧级 SNR（frame_snr）」 哪一条对"）**：
 
 - **两条都对，但指的是两个不同对象** —— 这是**同名两义**，不是互斥。
   负责人 2026-09-19 裁决（claim `FIX-SCI-SNR-CANON-001`）已如此定案，本轮**独立复核后同意**。
-- **`07_noise_snr.md:39`（"未加权的原始信噪比，不是权重"）** 描述的是 **Phase1 产品面帧级科学量** ——
+- **`docs/detail/registry/astrocs.phase1.noise-snr.md`「帧级 SNR（frame_snr）」（"未加权的原始信噪比，不是权重"）** 描述的是 **Phase1 产品面帧级科学量** ——
   **本定案的红线测试（P8/P8b/P8c/P9/P10/P13/P14）证明该定义满足"纯信号/噪声、不被天光抬高"**，
   且与生产实际落盘的 `snr_reference.snr_f` **逐位一致**（59/59）。
 - **`CONTROL_WEIGHT_SNR.md:11-14`** 描述的是 **Phase2 stage2 内部相对质量场** ——

@@ -133,7 +133,7 @@ dark_opt=1:  y_p = ( r_p − b_p − α·(d_p − b_p) ) / max(f_p, 0.1)
 α = t_light / t_dark
 ```
 
-逐像素方差的**完整一阶传播**（`docs/plugins/algorithms_phase1/01_calibration.md:31`，标记为"目标态"）：
+逐像素方差的**完整一阶传播**（`docs/detail/registry/astrocs.phase1.calibration.md`:（原行锚 31 在新分册无对应落点）`，标记为"目标态"）：
 
 ```text
 V(y_p) = { V(r_p) + V(b_p) + α²[ V(d_p) + V(b_p) ] + y_p² V(f_p) } / f_p²      (2.1)
@@ -290,7 +290,7 @@ SNR:   SNR_k(F_ref) = F_ref / σ_F,k                                            
 ```
 
 性质：**加性天光平移不改变信号项**（`I_p − B̂_p` 对 `B → B + const` 不变），但天光变亮使 `σ_pix` 变大、SNR 如实下降。
-这正是 `docs/plugins/algorithms_phase1/07_noise_snr.md:40-41` 的要求："信号项不被加性天光背景虚高……天光散粒噪声是真实噪声的一部分"。
+这正是 `docs/detail/registry/astrocs.phase1.noise-snr.md`「帧级 SNR（frame_snr）」 的要求："信号项不被加性天光背景虚高……天光散粒噪声是真实噪声的一部分"。
 
 #### 口径 B（背景作为噪声，power-ratio / 全局 SNR）— **不推荐作帧级参考**
 
@@ -299,8 +299,8 @@ SNR_global² = ( Σ_p I_p )² / ( Σ_p σ²_pix )      或   σ²_signal / σ²_
 ```
 
 性质：**随天光变亮而虚高**（分子含 `B`，分母只含其平方根量级的增长）。
-`07_noise_snr.md:40` 明确："普通 SNR（全局信号方差/噪声方差，含天光背景）随天光变亮而虚高，不能作唯一帧级参考"；
-`07_noise_snr.md:107`："帧级 SNR 无法计算 → fail-closed，**不得用受天光影响的普通 SNR 代替**"。
+`docs/detail/registry/astrocs.phase1.noise-snr.md`「帧级 SNR（frame_snr）」 明确："普通 SNR（全局信号方差/噪声方差，含天光背景）随天光变亮而虚高，不能作唯一帧级参考"；
+`docs/detail/registry/astrocs.phase1.noise-snr.md`「SNR 三条路径与稀疏帧内层」："帧级 SNR 无法计算 → fail-closed，**不得用受天光影响的普通 SNR 代替**"。
 PixInsight 官方文档亦指出其标准 SNR（式[20] `σ²/σ_n²`）受背景梯度与天光正向影响（`docs/science/PSF_SIGNAL_WEIGHT.md:44`）。
 
 #### 推荐与理由
@@ -316,7 +316,7 @@ PixInsight 官方文档亦指出其标准 SNR（式[20] `σ²/σ_n²`）受背�
 
 1. `B̂_p` 必须是**独立局部**估计（不是全帧单一常数）。当前生产用**全帧裁剪中位数**（`star_detector.cpp:63`）
    在 5×5 窗口内扣除（`star_detector.cpp:144-151`）——**这是"全局背景"，不是文档要求的"独立局部背景"**
-   （`07_noise_snr.md:51`）。梯度场下会留下残余基座，使 `F̂` 有百分之几的偏差。
+   （`docs/detail/registry/astrocs.phase1.noise-snr.md`「帧级 SNR（frame_snr）」）。梯度场下会留下残余基座，使 `F̂` 有百分之几的偏差。
 2. `F_ref` 必须是**组内公共常数**，否则 `w = SNR²/F_ref² = a_f²/σ_f²` 的配对定理失效（`lib/algorithms/integration/v6/include/astrocs/v6/weight_chain.h:34-41`）。
 3. 天光的**泊松项**必须在 `σ²_pix` 中保留；不能因为"已经扣了背景"就把天光从噪声里也删掉。
 
@@ -339,11 +339,11 @@ PixInsight 官方文档亦指出其标准 SNR（式[20] `σ²/σ_n²`）受背�
    白噪声特例: W_info,k = a_k² Σ_p P_k,p² / σ²_pix,k = a_k² / ( σ²_pix,k · A_NEA,k )
 ```
 
-- **是"未加权的原始信噪比，不是权重"**（`07_noise_snr.md:39`）：它描述客观测量事实，不含任何为某次叠加服务的加权；
+- **是"未加权的原始信噪比，不是权重"**（`docs/detail/registry/astrocs.phase1.noise-snr.md`「帧级 SNR（frame_snr）」）：它描述客观测量事实，不含任何为某次叠加服务的加权；
   权重由 Phase2 从 SNR 现场换算。
 - **用途**：① HiPS 文件头的唯一帧级参考；② Phase2 权重链的回退路径 `w_k = SNR_k²/F_ref²`；③ 深度指标 `m5 = ZP − 2.5 log10(5 σ_F(ref))`。
-- **不是**：不是 `median(SNR_F)`（那是分布摘要），不是 5σ 深度，不是 PSFSW（无量纲复合权重，`07_noise_snr.md:83` 明令不得混）。
-- **标量降级门**（`07_noise_snr.md:82`）：仅当帧内 `W_psf(x,y)` 的鲁棒相对离散与系统趋势低于阈值才允许压为帧级标量；
+- **不是**：不是 `median(SNR_F)`（那是分布摘要），不是 5σ 深度，不是 PSFSW（无量纲复合权重，`docs/detail/registry/astrocs.phase1.noise-snr.md`「标量降级门与质量代理」 明令不得混）。
+- **标量降级门**（`docs/detail/registry/astrocs.phase1.noise-snr.md`「标量降级门与质量代理」）：仅当帧内 `W_psf(x,y)` 的鲁棒相对离散与系统趋势低于阈值才允许压为帧级标量；
   否则必须存 map/控制点/多项式/HEPix 并附 p05/p50/p95、最大系统偏差、覆盖与模型误差。**这是"稀疏层"的正式依据。**
 
 ### 2.4 稀疏帧内 SNR 层（帧级之外的第二个量）
@@ -356,7 +356,7 @@ intra_k(x,y) = sqrt( W_info,k(x,y) / ⟨W_info,k⟩ )        （组内归一，�
 - **换算红线**：控制点值是 **SNR**，**不是权重**——`w(p) = SNR(p)²/F_ref²`（差一个平方就会系统性偏权）。
   > **【订正记录（SNR-DESIGN-01）】式 (2.5) 的"帧级 × 帧内相对因子"分解已由负责人裁决取消**：
   > 控制点直接存**绝对** SNR，Phase2 由控制点直接重建为稠密 `SNR(x,y)`，不乘帧级标量（详见 §3.3 订正记录）。
-- 控制点存**未加权 SNR**（`07_noise_snr.md:70`），不是权重；
+- 控制点存**未加权 SNR**（`docs/detail/registry/astrocs.phase1.noise-snr.md`「帧级 SNR（frame_snr）」），不是权重；
 - 契约载体已存在：`eng/contracts/schemas/unified/sparse_snr_layer.schema.json`，
   `control_points[{x, y, sparse_snr_value}]`，`role = intra_frame_reference`，
   `object_weight_capability = false`（"该层是参考层，不是 variance/ivar，不承载帧级权重"）。
@@ -406,7 +406,7 @@ intra_k(x,y) = sqrt( W_info,k(x,y) / ⟨W_info,k⟩ )        （组内归一，�
 |---|---|---|---|
 | C1.1 | 合成注入-回收：注入已知 `(F, FWHM, σ_bg)` 的点源，`σ̂_F` 与解析 `σ_sky/√(ΣP²)` 一致 | rtol ≤ 5% | 把 `FWHM=2.3548σ`（高斯矩）当 Moffat4 FWHM 用 ⇒ 系统性偏离 1.914×（见下） |
 | C1.2 | 与 `photutils`/`SEP` 孔径 SNR 对拍 | 同孔径同背景估计下 rtol ≤ 5% | 用不同背景估计器 ⇒ 必须显示差异而不是"通过" |
-| C1.3 | **加性天光平移不改变信号项**（`07_noise_snr.md:114`） | 注入 `B += const`，`F̂` 变化 < 1e-9 相对 | 用全帧常数背景 + 梯度场 ⇒ `F̂` 随注入常数漂移 ⇒ 红 |
+| C1.3 | **加性天光平移不改变信号项**（`docs/detail/registry/astrocs.phase1.noise-snr.md`「σ_sky 口径冻结（防读出噪声双计）」） | 注入 `B += const`，`F̂` 变化 < 1e-9 相对 | 用全帧常数背景 + 梯度场 ⇒ `F̂` 随注入常数漂移 ⇒ 红 |
 | C1.4 | **天光散粒噪声增强时 SNR 按理论下降** | 注入额外泊松噪声，`SNR ∝ 1/σ` | 把天光从噪声里也扣掉 ⇒ SNR 不降 ⇒ 红 |
 | C1.5 | 常量场不变量 | 常数输入 ⇒ `σ_bg = 0`、退化路径、不产生伪梯度 | 未裁剪 MAD 在含星帧上给出非零伪梯度 ⇒ 红 |
 | C1.6 | 源污染门 | `|σ̂_bg/σ_bg − 1| ≤ 2%`（12 seeds） | 固定 2 px 半径 + `F_max=10⁶` ⇒ 必须检出 > 2% 偏差 |
@@ -499,18 +499,18 @@ intra_k(x,y) = sqrt( W_info,k(x,y) / ⟨W_info,k⟩ )        （组内归一，�
 
 **推荐 (b)**，三条理由：
 
-1. 它与既有权威的合成规则**逐字一致**：『实际 SNR = 帧级 × 帧内』（`docs/plugins/algorithms_phase1/07_noise_snr.md:75`）；
+1. 它与既有权威的合成规则**逐字一致**：『实际 SNR = 帧级 × 帧内』（`docs/detail/registry/astrocs.phase1.noise-snr.md`「帧级 SNR（frame_snr）」）；
 2. 它是**无量纲**的，组内归一后不受 `a_k`/零点口径影响，跨帧可直接比较与插值；
 3. 帧级标量已经承载绝对尺度，稀疏层只需承载**空间形状**，把绝对与相对分开可以独立检验。
 
 > **【订正记录（SNR-DESIGN-01，负责人裁决）】数值语义冻结为 (a)：控制点直接存绝对通量型 SNR。**
-> 权威落点已改为：`docs/plugins/algorithms_phase1/07_noise_snr.md` §4.2/§4.5/§4.6、
+> 权威落点已改为：`docs/detail/registry/astrocs.phase1.noise-snr.md`「SNR 三条路径与稀疏帧内层」§4.5/§4.6、
 > `docs/design/UNIFIED_MODEL.md` §2、`docs/ASTROCS_DESIGN.md` §2.2/§3.1/§4.4/§5.3，
 > 并由 `eng/contracts/schemas/unified/sparse_snr_layer.schema.json` 的
 > `sparse_snr_semantics = "absolute_flux_type_snr"` 机器冻结。
 > 裁决理由：去掉「除以帧级 → 再乘帧级」的往返（少一次除法 + 一次乘法，并免去"中位归一"这一额外约定），
 > 使稀疏层与帧级标量成为**两个互不依赖**的对象。
-> **本节 (b)/(c) 保留为实验对照臂**：它们的数值差异正是新判据要判红的对象（`07_noise_snr.md` §7/§8）。
+> **本节 (b)/(c) 保留为实验对照臂**：它们的数值差异正是新判据要判红的对象（`docs/detail/registry/astrocs.phase1.noise-snr.md`「错误、日志、指标、取消和 checkpoint」§8）。
 > 下方 §2.4 式 (2.5)、§3.3 的 `rho_c` 与伴随量键名 `rho_c` 均按此口径读作**绝对 SNR**（键名保留为历史记录）。
 
 **控制点值的支撑尺度（本文新增的冻结项）**：每个控制点的值定义为该 `cell_side × cell_side`（64×64 leaf px）单元内
@@ -716,7 +716,7 @@ sparse_snr_layer:
 - `object_weight_capability` **保持 false**（该层是参考层，不是 variance/ivar，不承载帧级权重）；
 - 稀疏层的值**禁止**写入 `ivar`/`variance`/`W_info`（`docs/science/PSF_SIGNAL_WEIGHT.md:57` 的同类红线）；
 - 无控制点的 tile **必须**写占位节点（`n_controls` 含空覆盖占位，与 `DATA_SEMANTICS.md:1577` 一致），**禁止**用插值伪造覆盖；
-- 帧级 SNR 缺失时稀疏层**必须**整体 fail-closed，**禁止**用受天光影响的普通 SNR 顶替（`07_noise_snr.md:107`）。
+- 帧级 SNR 缺失时稀疏层**必须**整体 fail-closed，**禁止**用受天光影响的普通 SNR 顶替（`docs/detail/registry/astrocs.phase1.noise-snr.md`「SNR 三条路径与稀疏帧内层」）。
 
 ### 3.8 判据与能红能绿的负例
 
@@ -760,7 +760,7 @@ Phase2 内部:
 
 ### 4.2 UPM 拟合中的权重
 
-**冻结目标模型**（`docs/plugins/algorithms_phase2/11_upm.md:25-28, 57-60`）：
+**冻结目标模型**（`docs/detail/registry/astrocs.phase2.upm-fit.md`「数值落地口径」）：
 
 ```text
 y_k(x) = g_k · s(x) + b_k(x) + eps_k(x) ,   b_k(x) = B_ref(x) + delta_k(x)
@@ -966,7 +966,7 @@ integrate 的权重优先级（module_adapters.cpp:6708-6765，已核）:
 | C4.5 | **绝对尺度可追溯** | `C_θ` 的绝对尺度接到 §2.1 的 `σ²_pix` 模型项，而非拟合残差 | 用 reduced-χ² 重标定 ⇒ **红**（Andrae et al. 2010 明确禁止用于非线性模型） |
 | C4.6 | **`uncertainty_available` 真值条件** | 仅当 `逐像素噪声 ∧ 参数协方差 ∧ 全部帧 var 可用` 三者同时为真才置 true | 当前 `param_covariance_included` 硬编码 false（`module_adapters.cpp:5610`）⇒ 恒 false ⇒ **当前为红**，且这是**正确**的 fail-closed，**不得**为「让它亮」而放宽 |
 | C4.7 | **两链一致性**（D7） | 链 A 与链 B 的帧平均权重比值在 `sqrt(1+Var_p(δ))` 预测范围内 | 偏离超出预测 ⇒ 红 |
-| C4.8 | **reject 阈值含参数不确定度** | `σ_eff² = σ_phase1² + J_out C_θ J_outᵀ`（`12_rejection.md:22` 硬要求） | 用样本栈 MAD 代替 ⇒ 当前生产即如此（`module_adapters.cpp:6006, 6033`）⇒ **红**；且缺 `σ_eff` 时合同要求 fail-closed |
+| C4.8 | **reject 阈值含参数不确定度** | `σ_eff² = σ_phase1² + J_out C_θ J_outᵀ`（`docs/detail/registry/astrocs.phase2.reject.md`「数值落地口径」 硬要求） | 用样本栈 MAD 代替 ⇒ 当前生产即如此（`module_adapters.cpp:6006, 6033`）⇒ **红**；且缺 `σ_eff` 时合同要求 fail-closed |
 | C4.9 | **天光面尺度职责** | 天光面 node spacing ≥ 0.5°，稀疏 SNR 层 Δ = 64 px；二者尺度差 ≥ 50× | 用天光面承载小尺度噪声 ⇒ 红 |
 
 ---
@@ -989,7 +989,7 @@ integrate 的权重优先级（module_adapters.cpp:6708-6765，已核）:
 
 式 (5.1) 给出的是**逐像素**逆方差叠加，对**面亮度型**信号最优。
 **点源**的最优统计量是 PSF 匹配滤波（Zackay & Ofek 2017, ApJ 836, 187, DOI 10.3847/1538-4357/836/2/187），
-`docs/plugins/algorithms_phase2/13_integration.md:6` 已明文禁止宣称二者等价。
+`docs/detail/registry/astrocs.phase2.integrate.md`「职责与明确非职责」 已明文禁止宣称二者等价。
 **本文的立场**：成品 `SNR_mosaic(p)` 是**逐像素**信噪比，**不是**点源探测信噪比；
 点源 SNR 必须由 §5.4 的 PSF 加权形式另行给出，且**不得**用逐像素 SNR 冒充。
 
@@ -1098,7 +1098,7 @@ uncertainty_available = true 的真值条件（三条同时成立，fail-closed�
 | C5.2 | **`√N` 律的诚实性** | 等 SNR 帧时增益 `= √N`（rtol 1%）；不等 SNR 时**低于** `√N` 且与式 (5.1) 预测一致 | 宣称「总是 `√N`」⇒ 红 |
 | C5.3 | **无信息像素语义** | 无覆盖写 `variance = 0 ∧ ivar = 0` | 写 NaN 或 `1/0 = Inf` ⇒ 红（`DATA_SEMANTICS.md:45-50` 明令） |
 | C5.4 | **`uncertainty_available` fail-closed** | 抽掉任一真值条件后置 false 并**不写** variance 产品 | 条件不全仍写 variance ⇒ 红 |
-| C5.5 | **逐像素 SNR ≠ 点源 SNR** | 两者分别输出并标注口径 | 用逐像素 SNR 冒充点源探测 SNR ⇒ 红（`13_integration.md:6` 红线） |
+| C5.5 | **逐像素 SNR ≠ 点源 SNR** | 两者分别输出并标注口径 | 用逐像素 SNR 冒充点源探测 SNR ⇒ 红（`docs/detail/registry/astrocs.phase2.integrate.md`「职责与明确非职责」 红线） |
 | C5.6 | **误差预算可复算** | 式 (5.4) 的每一项都能由 `run/reverse_verify/snr_design/exp5_error_budget.json` 的输入复算 | 任何一项无证据来源 ⇒ 红 |
 | C5.7 | **相关噪声标记** | 输出 `correlation_kernel_ref` 或显式声明「对角近似，低估 20.2%」 | 静默输出对角方差 ⇒ 红 |
 
@@ -1153,7 +1153,7 @@ uncertainty_available = true 的真值条件（三条同时成立，fail-closed�
 | `reproject.reproject_and_coadd` | 「它替我们传播方差」 | **API 页已核**：只返回合并数组与 footprint，无方差/协方差输出，`combine_function` 无方差感知选项 ⇒ 传播必须自己实现 |
 | 压缩感知（Candès et al. 2006, DOI 10.1109/TIT.2005.862083） | 「规则网格上的精确重建保证」 | 保证要求稀疏基不相干的**随机**采样；规则 HEALPix 网格与任何光滑基高度相干 ⇒ **不得**对规则网格声称压缩感知保证 |
 | PhotometricMosaic（PixInsight） | 其估计器、其无不确定度传播、其许可条款 | 文档 URL **HTTP 404 且无存档快照**（`[UNVERIFIED]`）；本地源码明示「free for personal use only … may not redistribute or modify」⇒ **不得复制**。概念层的加性/乘性分离改用 Burke et al. 2018 与 SWarp 作引用 |
-| PixInsight ImageWeighting | 其 PSFSNR 的**功率比**口径与版本相关常数 | `07_noise_snr.md:66` 明令：功率比型不能再做 `SNR²/F_ref²` 换算；常数随版本变（c3 = 1.350e-7 article / 1.316e-7 PCL 2.10.4）⇒ 不可移植 |
+| PixInsight ImageWeighting | 其 PSFSNR 的**功率比**口径与版本相关常数 | `docs/detail/registry/astrocs.phase1.noise-snr.md`「帧级 SNR（frame_snr）」 明令：功率比型不能再做 `SNR²/F_ref²` 换算；常数随版本变（c3 = 1.350e-7 article / 1.316e-7 PCL 2.10.4）⇒ 不可移植 |
 | SExtractor 背景 mesh | 作为**最终**天光产品 | 其插值不是统计最优重建，且**不附不确定度**；UPM 必须给天光场附方差 |
 | `photutils` 的 `error=` 语义 | 「给它背景误差就够了」 | 文档已核警告：它假定 `error` 是**总**误差（含源泊松），否则会返回错误 SNR |
 | ubercal | 「它已经处理了天光」 | 它只有乘性模型，**没有逐帧加性天光场** |
@@ -1194,7 +1194,7 @@ uncertainty_available = true 的真值条件（三条同时成立，fail-closed�
 | P2-1 | 生产 UPM 无 `C_θ`（`upm.cpp:233-1158` 只出 model hash） | `C_θ = (JᵀWJ)⁻¹` | **参数项不可得** | 加只读协方差出口（D6(ii)）或提升 MA 求解器 |
 | P2-2 | `const bool param_cov_included = false;` **硬编码**（`module_adapters.cpp:5610`）⇒ `uncertainty_available` 恒 false（`:5611-5612`） | 三项齐全才置真 | tier-1 权重 `1/Var(corrected)` 是**死代码** | 接 `C_θ`（P2-1） |
 | P2-3 | `p2_upm_ma_c_out` = `C_stat + J_out C_θ J_outᵀ` **已实现但零调用者**（`upm.cpp:2623-2643`）；`p2_upm_ma_provenance` 同样零调用者；生产从不调 `p2_upm_ma_build` | 冻结式 | 死代码 | 接线（需先裁决模型冲突） |
-| P2-4 | 生产 reject 用**样本栈 MAD**（`module_adapters.cpp:5743-5751, 6006, 6033`），**无** `σ_phase1`/`upm_variance` | `σ_eff² = σ_p1² + J C_θ Jᵀ`（`12_rejection.md:22` 硬要求；缺失 fail-closed `:43`） | 合同要求未实现 | 路由到 `p2_reject_classify`（`rejection.cpp:2566`，`:2665-2666` 已有 `σ_eff` 式，但只被 v6 自检以合成输入调用） |
+| P2-4 | 生产 reject 用**样本栈 MAD**（`module_adapters.cpp:5743-5751, 6006, 6033`），**无** `σ_phase1`/`upm_variance` | `σ_eff² = σ_p1² + J C_θ Jᵀ`（`docs/detail/registry/astrocs.phase2.reject.md`「数值落地口径」 硬要求；缺失 fail-closed `:43`） | 合同要求未实现 | 路由到 `p2_reject_classify`（`rejection.cpp:2566`，`:2665-2666` 已有 `σ_eff` 式，但只被 v6 自检以合成输入调用） |
 | P2-5 | `p2_rejection.json` **无** `σ_eff`/噪声模型 provenance | 组合式与 profile 版本 | provenance 缺失 | 加字段 |
 | P2-6 | 马赛克 variance = `cov²/W`（`module_adapters.cpp:6794-6797, 6813, 7031-7038`），只含 Phase1 ivar 或帧级 SNR² 代理 | 含 drizzle 相关、共同母版、UPM 参数 | **缺协方差项** | 积分 reducer 接入 corrected variance |
 | P2-7 | 成品**不写 SNR**（`aio_hips_set_frame_snr` 只被 Phase1 调用，`astro_sphere_sink.cpp:414`） | 成品 SNR 面 | 缺失 | `p2_op_write` 加键（需冻结合同） |
@@ -1243,8 +1243,8 @@ uncertainty_available = true 的真值条件（三条同时成立，fail-closed�
 
 | # | 待定内容 | 为什么不能定 | 判定方法 |
 |---|---|---|---|
-| U1 | **`frame_snr` 的语义**：文档两处互斥（`CONTROL_WEIGHT_SNR.md:11-14` 说「相对质量权重场，不是科学 SNR」vs `07_noise_snr.md:39` 说「未加权的原始通量型 SNR」） | 两篇权威打架，**本文无权裁决** | 上呈负责人；本文按「通量型」设计（有 `W_info` 与 `SNR = F/σ_F` 的闭式支撑），但**不**声称另一口径为错 |
-| U2 | **UPM 模型**：冻结的纯加性（`PHASE2_UPM.md:47-75`）vs 目标态的乘性+加性样条（`11_upm.md:25-28`） | 两模型**不可同时为真**（`PHASE2_UPM.md:182` 已登记 UNRESOLVED） | 上呈负责人；本文的 `÷g²` 与 `J_out` 乘性分量按**目标态**写，并明确标注「当前 `g≡1` 故为恒等式」 |
+| U1 | **`frame_snr` 的语义**：文档两处互斥（`CONTROL_WEIGHT_SNR.md:11-14` 说「相对质量权重场，不是科学 SNR」vs `docs/detail/registry/astrocs.phase1.noise-snr.md`「帧级 SNR（frame_snr）」 说「未加权的原始通量型 SNR」） | 两篇权威打架，**本文无权裁决** | 上呈负责人；本文按「通量型」设计（有 `W_info` 与 `SNR = F/σ_F` 的闭式支撑），但**不**声称另一口径为错 |
+| U2 | **UPM 模型**：冻结的纯加性（`PHASE2_UPM.md:47-75`）vs 目标态的乘性+加性样条（`docs/detail/registry/astrocs.phase2.upm-fit.md`「数值落地口径」） | 两模型**不可同时为真**（`PHASE2_UPM.md:182` 已登记 UNRESOLVED） | 上呈负责人；本文的 `÷g²` 与 `J_out` 乘性分量按**目标态**写，并明确标注「当前 `g≡1` 故为恒等式」 |
 | U3 | **C3.4 的口径差异**：逐源 SNR 与局部噪声 SNR 相关只有 0.276 | 未做归一化对照实验 | 把逐源 SNR 除以 `√(ΣP²)/σ_pix` 因子后再比较；若相关性显著上升则确认差异来自口径，否则两条路径之一有缺陷 |
 | U4 | **C1.9 的绝对偏差量级**：`fwhm_px` 口径错配导致的 SNR_F 偏低倍数 | 未用 NumPy oracle 复算 Moffat4 的 `ΣP²` | 对同一 `(F, FWHM)` 分别取 `σ_PSF = FWHM/1.230310` 与 `FWHM/2.3548`，比较 `A_NEA = 1/ΣP²` 与 `σ_F` 的解析比值 |
 | U5 | **稀疏 SNR 层在真实混合数据集上的净收益** | 本轮只有 4 帧同条件重叠数据（`t2_m2_red`），帧间权重差异太小 | 在 49 帧全集上按 `Var_p(δ_空间省略)` 分组，找出 `δ` 大的 tile 子集复测 SP-0 |
