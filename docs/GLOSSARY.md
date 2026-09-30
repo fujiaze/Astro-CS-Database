@@ -25,5 +25,5 @@
 | stacking | 跨帧样本组合的唯一实现是排异积分,在阶段二执行;消费已落到天球像素的样本做排异与加权求和,不做任何坐标变换 | — | - | docs/science/INTEGRATION.md |
 | frame_id | 帧身份=truncated-64(SHA-256 of science payload identity),取前 16 hex 为 uint64;与路径/重命名无关;描述口径 = SHA-256 truncate(FNV-1a/路径派生均不适用) | uint64 | - | docs/science/DATA_SEMANTICS.md §5 |
 | signal | 科学表面亮度(float32/64),不使用 display stretch;负值保留,不自动 pedestal/clamp | ADU/sr | - | docs/science/DATA_SEMANTICS.md §4 |
-| surface_brightness | 输出面亮度 S_p=F_p/D_p(通量按**立体角**归一);每像素常量通量与常量天空面亮度各自具名 | ADU/sr(每立体角;variance=ADU^2/sr^2, ivar=sr^2/ADU^2) | flux(混淆用法) → 显式区分 flux 与 surface_brightness | docs/science/DRIZZLE.md §5 |
+| surface_brightness | 输出面亮度 S_p=F_p/N_p(通量按**立体角**归一);每像素常量通量与常量天空面亮度各自具名 | ADU/sr(每立体角;variance=ADU^2/sr^2, ivar=sr^2/ADU^2) | flux(混淆用法) → 显式区分 flux 与 surface_brightness | docs/science/DRIZZLE.md §5 |
 | calibration_units | t_expo:s;K:无量纲;flat_norm:无量纲(median=1.0,floor 0.1);sigma:无量纲(MAD 倍数);像素坐标无量纲 | 见含义 | - | docs/science/CALIBRATION.md §3 |

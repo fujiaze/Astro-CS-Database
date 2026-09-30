@@ -22,7 +22,7 @@
 - 候选缓冲/几何合同一律引用 ALG-DRZ-001 与 TEST-DRZ-DESIGN-001；
   源码注释中出现的 `ALG-DRZ-GEOM-CACHE-001`、`ALG-DRZ-VAR`、`TEST-ALG-DRZ-*`
   为同义登记名，不另立合同。
-- S_p=F_p/D_p 面亮度归一与 variance/ivar finalize 属 astro_image_io
+- S_p=F_p/N_p 面亮度归一与 variance/ivar finalize 属 astro_image_io
   下游（`lib/algorithms/drizzle/healpix_drizzle/astro_sphere_sink.cpp` 传出原始累加量后由
   aio_hips_writer finalize_tile 完成，见 DISP-DRZ-007），不在本模块。
 
@@ -88,7 +88,10 @@
     只受浮点重结合限制（§9 容差行）。
   - 贡献计数: `nContrib_p = Σ_j 1`（**合格样本计数**，计样本级贡献，非权重级；
     与 §5 的 `n_rejected_nonfinite` 是两个不同的量，各自独立取值）。
-- **估计量类别（与一手文献对照）**：`S_p = F_p/D_p = Σ_j B_j·a_jp / Σ_j a_jp`
+- **估计量类别（与一手文献对照）**：`S_p = F_p/N_p = Σ_j B_j·a_jp / Σ_j a_jp`
+  （分母是**面亮度归一分母** `N_p = Σ_j w_jp·A_pixel,j`，**不是**覆盖面积 `D_p = Σ_j a_jp`；
+  两者相差 `κ = A_pixel,j/A_drop,j = 1/pixfrac²`，
+  **用 `D_p` 会偏高 pixfrac² 倍，正是 §10 `DISP-DRZ-009` 明令禁用的那一个**）
   （B_j = x_j/A_pixel,j [ADU/sr]）是**输入面亮度的 a_jp 加权平均**。Fruchter & Hook 2002
   （PASP 114, 144；arXiv:astro-ph/9808087v2 §2 式(2)–(5)）的 drizzle 输出为
   `I = Σ_i d_i·a_i·w_i·s² / Σ_i a_i·w_i`（"a factor of s² is introduced to conserve
@@ -98,7 +101,7 @@
   `N_p=Σ_j w_jp·A_pixel,j` 归一（⇒ 无需 s² 因子），
   分母 D_p 兼作 support 的分子（`support = D_p/A_cell`）。该差异为 Project-defined
   选择，须与 `FZ-UNIT-SIGNAL-SB` 的量纲链一并阅读，实现口径只取本模块 Project-defined 定义。
-- **S_p = F_p/D_p 归一不在本模块**: sumFlux/sumArea/sumVarNum 原始和
+- **S_p = F_p/N_p 归一不在本模块**: sumFlux/sumArea/sumVarNum 原始和
   逐 tile 传出（`lib/algorithms/drizzle/healpix_drizzle/astro_sphere_sink.cpp` dense 化），归一在
   aio_hips_writer finalize_tile（variance = var_num_sum/area²，
   `lib/infrastructure/aio/src/hips/aio_hips_writer.cpp`）——与
