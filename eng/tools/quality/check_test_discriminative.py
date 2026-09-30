@@ -67,9 +67,16 @@ CPP_TRIVIAL = [
     # **必须带断言宏前缀**：裸 `|| true` 会命中 shell 命令串里的
     # `ls ... | grep -c X || true`（那是让 grep 退出码不失败的**合法** shell 写法，
     # 实测误报于 p3_export_e2e_test.cpp:377）。
-    (r"\b(?:TEST_)?(?:CHECK|ASSERT|EXPECT|REQUIRE|VERIFY|check|CHECK_FALSE|ASSERT_FALSE)\s*\([^;\n]*\|\|\s*true\b",
+    # **前缀必须用后缀通配**：`(?:CHECK|ASSERT|EXPECT|...)[A-Z_]*\s*\(`。
+    #   首版用闭集（`(?:CHECK|ASSERT|...)\s*\(`）造成**覆盖面回退**，实测 5 类真恒真
+    #   从 RED 变 ok：return 形态、EXPECT_TRUE、CHECK_EQ、ASSERT_EQ、CHECK_MESSAGE
+    #   （`_TRUE(` 的下划线使 `EXPECT` 后无法紧跟 `(`，回溯也救不回来）。
+    (r"\b(?:TEST_CHECK|CHECK|ASSERT|EXPECT|REQUIRE|VERIFY|check|test)[A-Z_]*\s*\([^;\n]*\|\|\s*true\b",
      "断言内析取尾 `|| true`（整个断言恒真）"),
-    (r"\btrue\s*\|\|", "析取尾 `true ||`（整个断言恒真）"),
+    #   `return <cond> || true;` 形态：不在断言宏内（V15-N-14 登记的原形态，
+    #   曾被闭集前缀漏掉）。**不锚定**是有意的：全仓该形态只在函数返回处出现，
+    #   而 shell 串里的 `|| true` 总在引号内且前面是 `grep`/`ls` 之类命令词。
+    (r"^\s*return\s+[^;\n]*\|\|\s*true\s*;", "返回 `return … || true`（函数恒返回真）"),
 ]
 CPP_TRIVIAL_RE = [(re.compile(p), name) for p, name in CPP_TRIVIAL]
 
