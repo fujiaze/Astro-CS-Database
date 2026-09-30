@@ -2264,3 +2264,54 @@ IO_AND_ATOMICITY}.md`（迁移后已删）、registry 已迁 `docs/modules/regis
 - 所需头文件 `<sstream>` `<string>` `<vector>` 均已在 `:39/:40/:42` 存在 ✅
 - 解析逻辑用 Python 逐字复刻实跑：新路径**存在**、旧路径**不存在** ✅
 - 按 AGENTS §9 未编译（编译验证在 G08-09）
+
+---
+
+## 50. 改名三层缺口的完整闭环（Linux 本机构建实证）
+
+**状态**：**已闭环**。874/874 目标构建通过，**0 error、0 编译警告**。
+
+### 50.1 缺口分三层，前台两次都只补到前两层
+
+| 层 | 现象 | 发现方式 | 规模 |
+|---|---|---|---|
+| **① 内容层** | 源码/文档里的**字符串**仍是旧名 | 我自己脚本化改名时覆盖 | 1,857 文件 / ~24,000 处 |
+| **② 目录层** | `#include "acsd/…"` 指向不存在的目录 | **G08-08 步骤 2 车道**在编译前报出 | 19 个 `include/astrocs` 目录 |
+| **③ 文件名层** | 引用指向 `acsd.product.json` 而磁盘上是 `astrocs.product.json` | **configure 报错**（`install_layout.cmake:205` file failed to open） | 41 个跟踪文件 |
+
+⇒ **教训**：改名必须同时覆盖「内容 / 目录名 / 文件名」三层，
+**且前两层的「全绿」不能推出第三层无缺口**。第三层只会在 configure 或 build 时才暴露。
+
+### 50.2 第 ③ 层补齐后 configure 与 build 的实证
+
+- `cmake -S . -B build/verify_g08 -G Ninja -DCMAKE_BUILD_TYPE=Release` ⇒ **rc=0，0 个 CMake Error**
+- `ninja -k 0` ⇒ **874/874 目标，0 error，0 编译警告**
+  （日志里唯一那条 `warning:` 是 `ninja: premature end of file; recovering` ——
+  是 ninja 读自己被追加写的日志的产物，**不是编译警告**）
+- 产物：`acsd` 主程序 9,493,776 字节、38 个静态库、14 个 `acsd*` 可执行
+- `acsd --version` ⇒ `acsd 0.1.0-alpha.1+g56a7d5b9…`
+- 三个平级命令 `normalize` / `mosaic` / `export` 的 `--help` **均可用**
+
+⇒ **改名与 ABI 变更在 Linux 侧已取得编译级实证。**
+
+### 50.3 基线哈希的实际用途（已算出）
+
+基线 2,989 份跟踪文件 ⇒ **内容变化 1,388 份、逐字节未变 1,601 份**。
+
+⇒ 今后任何编译/测试失败，**先查该文件是否属这 1,388 份**：
+- 属 ⇒ 可能是改名/ABI 变更引入的，归本轮；
+- 不属（在那 1,601 份里）⇒ **必然是原有问题**，按各自已登记的 UNRESOLVED 处理，
+  不得记到改名头上。
+
+### 50.4 尚未取得实证的部分（不得含糊）
+
+| 项 | 状态 |
+|---|---|
+| Windows 侧编译 | **未做** —— 需 Fatduck 机器窗口（在线时段 06:30–23:30 CST） |
+| 测试与 ctest | **未跑** —— 本次仅授权编译 |
+| P-8 派发接缝、A1 等价性强制 | **未实施** —— 你已裁定方向（A1 = 方案 A），待落地 |
+| 那 29 个 registry 分册的文件名 | 本轮一并改名（`docs/detail/registry/acsd.phaseN.*.md`）⇒ **detail 层的文件引用需同步核对** |
+
+⚠ 最后一行是本轮补改带来的**新风险面**：registry 分册改名后，
+G08-06 悬空引用车道当时写的 `docs/detail/registry/astrocs.phaseN.*` 路径已全部改名为 `acsd.*`
+（内容层改名覆盖了引用），但**需确认没有别处按字面拼路径**（如 CMakeLists、脚本、索引键）。

@@ -129,7 +129,7 @@ uint64_t cgroup_available_bytes() {
   std::string usage_path;
   for (size_t i = 0; i < limit_candidates.size(); ++i) {
     std::string limit_text;
-    if (!aio_file::read_all(limit_candidates[i], &limit_text)) continue;
+    if (!aio_file::read_all(limit_candidates[i].c_str(), &limit_text)) continue;
     limit = parse_cgroup_bytes(limit_text);
     // "max" / 0 ⇒ 该节点无限制，继续试下一候选（挂载根往往就是这种情况）
     if (limit == 0) continue;
@@ -138,7 +138,7 @@ uint64_t cgroup_available_bytes() {
   }
   if (limit == 0) return 0;  // 全部候选都不可判定 ⇒ 该项不参与
   std::string usage_text;
-  if (!aio_file::read_all(usage_path, &usage_text)) return 0;
+  if (!aio_file::read_all(usage_path.c_str(), &usage_text)) return 0;
   const uint64_t usage = parse_cgroup_bytes(usage_text);
   if (usage >= limit) return 1;  // 已到/超上限 ⇒ 余量取最小正数（不返回 0=不可判定）
   return limit - usage;
