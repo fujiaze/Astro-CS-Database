@@ -13,7 +13,7 @@ HOST = os.path.join(REPO, "lib", "infrastructure", "benchmark", "backend_host")
 HW = os.cpu_count() or 1
 
 _DRV = r'''
-#include "astrocs/common_abi_v1.h"
+#include "acsd/common_abi_v1.h"
 #include "baseline_kernels.h"
 #include <cstdio>
 #include <cstdlib>
@@ -22,32 +22,32 @@ _DRV = r'''
 #include <chrono>
 #include <algorithm>
 extern "C" {
-int astrocs_host_services_default_v1(astrocs_host_services_v1* out, void** state_out);
-void astrocs_host_services_destroy_state_v1(void* state);
-void astrocs_host_state_set_budget_v1(void* state, uint32_t cpus, uint32_t max_workers, astrocs_host_services_v1* out);
-int astrocs_backend_get_api_v1(uint32_t, uint32_t, const astrocs_host_services_v1*, astrocs_backend_api_v1*);
+int acsd_host_services_default_v1(acsd_host_services_v1* out, void** state_out);
+void acsd_host_services_destroy_state_v1(void* state);
+void acsd_host_state_set_budget_v1(void* state, uint32_t cpus, uint32_t max_workers, acsd_host_services_v1* out);
+int acsd_backend_get_api_v1(uint32_t, uint32_t, const acsd_host_services_v1*, acsd_backend_api_v1*);
 }
-typedef acs_status (*KernelFn)(const astrocs_host_services_v1*, const void*, uint32_t, const void*, void*);
-static double bench(const astrocs_host_services_v1* host, KernelFn fn, acs_baseline_params_v1 p, int reps, uint32_t* wu){
+typedef acsd_status (*KernelFn)(const acsd_host_services_v1*, const void*, uint32_t, const void*, void*);
+static double bench(const acsd_host_services_v1* host, KernelFn fn, acsd_baseline_params_v1 p, int reps, uint32_t* wu){
     std::vector<double> t;
-    for(int r=0;r<reps;++r){ auto t0=std::chrono::steady_clock::now(); acs_status rc=fn(host,&p,sizeof(p),nullptr,nullptr); auto t1=std::chrono::steady_clock::now(); if(rc!=ACS_OK){printf("RC %d\n",(int)rc);return -1;} t.push_back(std::chrono::duration<double,std::nano>(t1-t0).count()); *wu=p.workers_used; }
+    for(int r=0;r<reps;++r){ auto t0=std::chrono::steady_clock::now(); acsd_status rc=fn(host,&p,sizeof(p),nullptr,nullptr); auto t1=std::chrono::steady_clock::now(); if(rc!=ACS_OK){printf("RC %d\n",(int)rc);return -1;} t.push_back(std::chrono::duration<double,std::nano>(t1-t0).count()); *wu=p.workers_used; }
     std::sort(t.begin(),t.end()); return t[t.size()/2];
 }
 static float lcg(){ static uint32_t s=0x12345678; s=1664525u*s+1013904223u; return (float)s/(float)0xFFFFFFFFu; }
 int main(int argc,char**argv){ int budget=argc>1?atoi(argv[1]):1;
-    astrocs_host_services_v1 host; void* state=nullptr; astrocs_host_services_default_v1(&host,&state);
-    astrocs_host_state_set_budget_v1(state,(uint32_t)budget,(uint32_t)budget,&host);
-    astrocs_backend_api_v1 api; std::memset(&api,0,sizeof(api));
-    if(astrocs_backend_get_api_v1(ACS_ABI_VERSION_V1,sizeof(astrocs_host_services_v1),&host,&api)!=ACS_OK) return 2;
+    acsd_host_services_v1 host; void* state=nullptr; acsd_host_services_default_v1(&host,&state);
+    acsd_host_state_set_budget_v1(state,(uint32_t)budget,(uint32_t)budget,&host);
+    acsd_backend_api_v1 api; std::memset(&api,0,sizeof(api));
+    if(acsd_backend_get_api_v1(ACS_ABI_VERSION_V1,sizeof(acsd_host_services_v1),&host,&api)!=ACS_OK) return 2;
     const uint32_t W=1u<<10,H=1u<<10,N=W*H,FR=3; std::vector<float> in0(N*(FR+1)),in1(N*(FR+1)),out(N);
     for(auto&x:in0)x=lcg(); for(auto&x:in1)x=lcg();
-    acs_baseline_params_v1 p; std::memset(&p,0,sizeof(p)); p.head.struct_size=sizeof(p); p.head.abi_version=ACS_ABI_VERSION_V1;
+    acsd_baseline_params_v1 p; std::memset(&p,0,sizeof(p)); p.head.struct_size=sizeof(p); p.head.abi_version=ACS_ABI_VERSION_V1;
     p.op=ACS_KOP_DRIZZLE_ACCUMULATE; p.w=W;p.h=H;p.k=0.0f;p.aux0=FR;
     p.in0=ACS_SPAN_F32(in0.data(),in0.size()); p.in1=ACS_SPAN_F32(in1.data(),in1.size()); p.out0=ACS_SPAN_F32(out.data(),out.size());
     uint32_t wu=0; double ns=bench(&host,api.kernels[0].fn,p,6,&wu);
     double chk=0; for(uint32_t i=0;i<N;i+=997) chk+=out[i];
     printf("DRIZ budget=%d ns=%.1f workers=%u chk=%.6f\n",budget,ns,wu,chk);
-    astrocs_host_services_destroy_state_v1(state);
+    acsd_host_services_destroy_state_v1(state);
     return 0; }
 '''
 

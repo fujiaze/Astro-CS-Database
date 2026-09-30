@@ -5,7 +5,7 @@
 // aio_file_io.h - AIO 文件级读/摘要机制原语 (header-only; aio 唯一实现)
 //
 // 依据:
-// - docs/ASTROCS_DESIGN.md §9「aio 是文件级唯一 I/O 边界：任何文件读写必须经 aio；
+// - docs/ACSD_DESIGN.md §9「aio 是文件级唯一 I/O 边界：任何文件读写必须经 aio；
 //   不得有第二处 I/O 实现」（全部文件读写走 aio）；
 // - 机器判据：全仓文件打开 / 流式读写 / 文件系统写操作，除 aio 内部外应为 0。
 //   ⇒ 「整文件读入内存」与「算出已落盘文件的 sha256」都属文件读取，
@@ -13,7 +13,7 @@
 // - 语义承接 R10-C（bughunt p2）：只有**完整读取成功**才产出结果；
 //   fopen / ferror / fclose 任一失败 ⇒ 返回 false 且清空输出。**禁止**把空串
 //   或"前缀（部分数据）哈希"当作完整性锚写进 provenance/结果结构。
-// - SHA-256 单一实现 = lib/algorithms/shared/crypto（astrocs::crypto::Sha256），
+// - SHA-256 单一实现 = lib/algorithms/shared/crypto（acsd::crypto::Sha256），
 //   本头不复制第二份算法。
 // ============================================================================
 
@@ -125,7 +125,7 @@ inline bool read_range(const char* path, std::uint64_t offset, std::size_t count
 }
 
 // ── 位置写（随机访问顺序无关写入；P3-STREAM-01）────────────────────────────
-// 语义：子块流式的**唯一随机写通道**（docs/ASTROCS_DESIGN §8.3 export「子块流式」）。
+// 语义：子块流式的**唯一随机写通道**（docs/ACSD_DESIGN §8.3 export「子块流式」）。
 // 用途：子块产出顺序与平面文件的字节序无关（平面 = 行主序连续区），故必须能
 // 「按偏移写子块」而不是只能顺序追加；调用方（算法/基建）禁止自行 fopen/fseek。
 // 并发：同一实例的多线程写由内部互斥串行化（FILE* 游标是共享状态）；
@@ -241,7 +241,7 @@ inline bool sha256_hex(const char* path, std::string* out_hex) {
     if (!path || !*path || !out_hex) return false;
     std::FILE* f = aio_fopen_utf8(path, "rb");
     if (!f) return false;
-    astrocs::crypto::Sha256 h;
+    acsd::crypto::Sha256 h;
     unsigned char buf[64 * 1024];
     std::size_t n = 0;
     while ((n = std::fread(buf, 1, sizeof(buf), f)) > 0) h.update(buf, n);

@@ -1,6 +1,6 @@
 // eng/tests/unit/aio/fsync_dir_fail_interposer.cpp — P-174 第三态负例注入器。
 //
-// LD_PRELOAD 拦截 fsync(2): 仅当 (a) 环境变量 ASTROCS_FAIL_DIR_FSYNC=1、
+// LD_PRELOAD 拦截 fsync(2): 仅当 (a) 环境变量 ACSD_FAIL_DIR_FSYNC=1、
 // (b) 目标 fd 经 fstat(2) 判定为**目录**、(c) 本进程已发生过一次成功的 rename(2)
 // 时返回 -1/EIO。文件 fd 的 fsync 与 rename **之前**的目录 fsync(目录树 staging
 // 落盘)一律放行 —— 负例只注入「rename 之后目录 fsync 失败」这一个条件，其余步序
@@ -34,7 +34,7 @@ __attribute__((constructor)) void aio_fsync_dir_fail_init(void) {
   g_real_fsync = (int (*)(int))dlsym(RTLD_NEXT, "fsync");
   g_real_rename =
       (int (*)(const char*, const char*))dlsym(RTLD_NEXT, "rename");
-  g_fail_dir_fsync = std::getenv("ASTROCS_FAIL_DIR_FSYNC") ? 1 : 0;
+  g_fail_dir_fsync = std::getenv("ACSD_FAIL_DIR_FSYNC") ? 1 : 0;
 }
 
 }  // namespace

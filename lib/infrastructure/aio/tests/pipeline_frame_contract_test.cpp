@@ -61,7 +61,7 @@ int main(){
  CHECK(aio_frame_add_block_move(f,"ids",AIO_BLOCK_INT32,moved,4,md,1,"moved")==0,"add_block_move");
  CHECK(aio_frame_get_block_data(f,"ids")==moved,"move preserves pointer ownership");
  f->stages_completed=0x35;
- const char* cache="/tmp/astrocs_pipeline_contract.aio";
+ const char* cache="/tmp/acsd_pipeline_contract.aio";
  CHECK(aio_frame_save_cache(f,cache)==0,"cache save");
  PipelineFrame* g=aio_pipeline_frame_create();
  CHECK(aio_frame_load_cache(g,cache)==0,"cache load");

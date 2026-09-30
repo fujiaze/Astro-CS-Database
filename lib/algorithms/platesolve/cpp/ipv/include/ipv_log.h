@@ -12,7 +12,7 @@
 // ├── phase_prosac.log
 // └── wcs_final.json (最终 WCS)
 //
-// 分层纪律（docs/ASTROCS_DESIGN §8.4「lib/include/ 公共头」、§8.5「版本化公开头」）:
+// 分层纪律（docs/ACSD_DESIGN §8.4「lib/include/ 公共头」、§8.5「版本化公开头」）:
 //   本头是公共 include 面（ipv/include/）的一员——ipv_solver.h / ipv_select.h /
 //   ipv_sip.h / ipv_distortion.h / ipv_robust_refine.h 均包含它，且 Logger*
 //   出现在这些头的公共签名里。公共头**只允许依赖公共 include 面**
@@ -20,7 +20,7 @@
 //   机器判据 = DOC-004/AST-API（eng/tools/check_ast_api.py，clang 独立解析面）
 //   + UT-BACKEND 的 test_public_header_layering.py（公共头 → src/ 依赖直接判红）。
 //
-// 日志落盘的**机制原语**属基建层（docs/ASTROCS_DESIGN §10「aio 是文件级唯一 I/O
+// 日志落盘的**机制原语**属基建层（docs/ACSD_DESIGN §10「aio 是文件级唯一 I/O
 // 边界」; CLEAN-403）。故此处只声明 LogSink 接缝（前向声明的不透明句柄 + 四个
 // 自由函数），把「经 aio 落盘」的唯一实现留在 TU 侧:
 //   ipv/src/ipv_log_sink.h —— 由使用 Logger 的生产 TU 包含

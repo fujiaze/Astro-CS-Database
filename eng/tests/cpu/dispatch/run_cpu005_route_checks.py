@@ -16,7 +16,7 @@ eng/tests/cpu/dispatch/run_cpu005_route_checks.py
 
 编译: 生产同源全量 TUs (cpu_routing 为本任务修改文件; 其余 b99fcd8 原样) +
        -Wall -Wextra -Wpedantic 严格零告警; 链接 -ldl -lpthread。
-       -I 面 = 根 CMakeLists 里 astrocs_aio/astrocs_cpu 的 PUBLIC 面同集
+       -I 面 = 根 CMakeLists 里 acsd_aio/acsd_cpu 的 PUBLIC 面同集
        (lib/include + backend_host + crypto + third_party + aio/{include,src,
        third_party/cfitsio} + algorithms/shared); 完整性由 check_include_face()
        判据在编译前钉死, **不得靠 CPLUS_INCLUDE_PATH 之类调用环境兜**。
@@ -38,7 +38,7 @@ INC = os.path.join(REPO, "lib", "include")
 TP = os.path.join(REPO, "lib", "third_party")
 # ROOT-008 整合后 backend_host 的生产 TU 还会引 aio / algorithms-shared 的头
 # （hardware_inspect.cpp → aio_atomic_file.h）。声明面必须与根 CMakeLists 的
-# astrocs_aio/astrocs_cpu PUBLIC include 面同集，否则本 runner 在干净 checkout 上
+# acsd_aio/acsd_cpu PUBLIC include 面同集，否则本 runner 在干净 checkout 上
 # 首编译即失败——实测（2026-09-29）：缺 AIO_INCS 时 hardware_inspect.cpp 报
 # "aio_atomic_file.h: 没有那个文件或目录"，此前是靠调用方 CPLUS_INCLUDE_PATH 兜过去的
 # ——那是"环境变量兜编译面"的口子，已由 check_include_face() 判据钉死。

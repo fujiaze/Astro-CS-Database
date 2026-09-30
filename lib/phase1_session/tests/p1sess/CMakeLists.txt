@@ -41,7 +41,7 @@
 #   p1sess_performance  — 装配哨兵 (8 帧 32x32 <20s + worker 完成性)
 #   p1sess_selfcheck    — 故障注入必败自检 (验收: 注入可失败, 双注入点)
 # 被测面: 现状唯一生产实现 p1_session 五导出 C API (静态库
-# astrocs_phase1_session, 根 CMakeLists.txt:448; API-P1-SESSION)。
+# acsd_phase1_session, 根 CMakeLists.txt:448; API-P1-SESSION)。
 # 生产源只读 — 本任务仅新增测试 (批次: 会话 direct 面, 不做 DLL dlopen;
 # CAT-GAIA-INT 调用计数模式的 direct 面形态: manifest stages 即节点
 # 调用账本)。
@@ -63,7 +63,7 @@ target_include_directories(p1sess_tests PRIVATE
   ${P1SESS_INC_ROOT}/lib/infrastructure/aio/include
   ${P1SESS_INC_ROOT}/third_party
   ${P1SESS_DIR})
-target_link_libraries(p1sess_tests PRIVATE astrocs_phase1_session ${ASTROCS_OMP_TARGET})
+target_link_libraries(p1sess_tests PRIVATE acsd_phase1_session ${ACSD_OMP_TARGET})
 # 单组单跑: ctest -R p1sess_units / p1sess_properties / p1sess_negative / p1sess_performance
 add_test(NAME p1sess_units COMMAND p1sess_tests units)
 add_test(NAME p1sess_properties COMMAND p1sess_tests properties)
@@ -82,5 +82,5 @@ target_include_directories(p1sess_selfcheck_test PRIVATE
   ${P1SESS_INC_ROOT}/lib/infrastructure/aio/include
   ${P1SESS_INC_ROOT}/third_party
   ${P1SESS_DIR})
-target_link_libraries(p1sess_selfcheck_test PRIVATE astrocs_phase1_session ${ASTROCS_OMP_TARGET})
+target_link_libraries(p1sess_selfcheck_test PRIVATE acsd_phase1_session ${ACSD_OMP_TARGET})
 add_test(NAME p1sess_selfcheck COMMAND p1sess_selfcheck_test)

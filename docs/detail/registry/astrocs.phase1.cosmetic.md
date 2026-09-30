@@ -1,6 +1,6 @@
-# 模块 astrocs.phase1.cosmetic
+# 模块 acsd.phase1.cosmetic
 
-> 上游：docs/ASTROCS_DESIGN.md §8.5（模块与 ABI）
+> 上游：docs/ACSD_DESIGN.md §8.5（模块与 ABI）
 > 科学正本：docs/science/algorithms/COSMETIC_ALGORITHMS.md（ALG-COS-001..005）
 > 数据正本：docs/science/DATA_SEMANTICS.md §10（DATA-P1-COS）、
 > docs/science/UNCERTAINTY_AND_COVARIANCE.md（修正对协方差的影响）
@@ -8,7 +8,7 @@
 > docs/engineering/PHASE1_API_V1.md（API-P1-002）
 
 合同三件套落位 `lib/algorithms/cosmetic/`（README/module.yaml/memory.md）；
-descriptor 词汇 module_id=`astrocs.phase1.cosmetic`（`p1_cosmetic_descriptor`）为
+descriptor 词汇 module_id=`acsd.phase1.cosmetic`（`p1_cosmetic_descriptor`）为
 编排层口径；模块级事实以三件套与现行生产实现
 `lib/algorithms/calibration/src/cosmetic_corrector.cpp` 为准。
 
@@ -64,7 +64,7 @@ invalid = NaN（透传，不判坏）；掩码极性 1 = 坏点（SCI-CAL-001 §
 `ac_correct_frame_f64` / `ac_set_num_threads`，头
 lib/algorithms/calibration/include/astro_calibration.h）；编排级：API-P1-002
 （PHASE1_API_V1 §2，生命周期 create→validate→run→inspect→destroy，
-多模块共享）。目标交付形态 astrocs_p1_cosmetic.dll + C ABI adapter（entrypoint
+多模块共享）。目标交付形态 acsd_p1_cosmetic.dll + C ABI adapter（entrypoint
 未落地）。
 
 entrypoint = 定标信号 + cosmetic map（master_dark / master_bias）→ 修正信号 +
@@ -73,8 +73,8 @@ manifest。
 
 ## Registry descriptor 与配置 schema
 
-module_id=`astrocs.phase1.cosmetic`; execution_class=`cpu_heavy`;
-parallel_ok=True; 目标交付形态 astrocs_p1_cosmetic.dll。
+module_id=`acsd.phase1.cosmetic`; execution_class=`cpu_heavy`;
+parallel_ok=True; 目标交付形态 acsd_p1_cosmetic.dll。
 
 descriptor 侧配置 = cosmetic JSON（`enabled` / `hot_sigma` / `cold_sigma` /
 `method` / `max_structure_size`，由 p1_session.cpp 校验；正式版本化 schema
@@ -134,5 +134,5 @@ Oracle 面：
 - 现状生产调用未接线母版，检测全禁用、恒等 pass；
 - 现状无 ThreadLease，并行度取进程默认 team；
 - `cr_detection` / `cr_sigma` 为无行为承载的配置键；
-- 目标交付形态 astrocs_p1_cosmetic.dll + C ABI adapter 的 entrypoint 未落地；
+- 目标交付形态 acsd_p1_cosmetic.dll + C ABI adapter 的 entrypoint 未落地；
 - 全局限制登记 = artifacts/evidence/known-limitations-ledger/LIMITATIONS.md。

@@ -23,13 +23,13 @@
 #include <unistd.h>
 #endif
 
-// CLEAN-403 (docs/ASTROCS_DESIGN §10「aio 是文件级唯一 I/O 边界」): 临时文件/fsync/
+// CLEAN-403 (docs/ACSD_DESIGN §10「aio 是文件级唯一 I/O 边界」): 临时文件/fsync/
 // 原子 rename/目录创建/目录枚举/删除/存在性一律经 aio 唯一实现
 // (aio_atomic_file.h / aio_file_io.h), 本 TU 不自持 std::filesystem / FILE* / fd。
 #include "aio_atomic_file.h"
 #include "aio_file_io.h"
 
-namespace astrocs::backend_host {
+namespace acsd::backend_host {
 
 namespace {
 
@@ -145,7 +145,7 @@ bool is_old_or_foreign_schema(const std::string& text) {
     if (!d.is_object()) return true;
     if (d.contains("schema_version")) return true;   // v1 旧布局
     const std::string s = d.value("schema", std::string());
-    if (s != "astrocs.cpu-profile/v2") return true;
+    if (s != "acsd.cpu-profile/v2") return true;
     return false;
 }
 
@@ -318,7 +318,7 @@ ProfileLoadResult load_profile_checked_v1(const std::string& target_path,
     // 文本级(旧版本/外域 schema 先归类, 再走唯一出处 verify)
     if (is_old_or_foreign_schema(text)) {
         out.status = "rejected";
-        out.reason = "old_schema: schema != astrocs.cpu-profile/v2 (old version or foreign document)";
+        out.reason = "old_schema: schema != acsd.cpu-profile/v2 (old version or foreign document)";
         out.rejected_path = target_path + ".rejected-" + utc_now_compact();
         (void)aio_atomic::atomic_replace(target_path, out.rejected_path);
         return out;
@@ -413,7 +413,7 @@ std::string classify_profile_rejection_v1(const std::string& verify_error,
     }
     // 文本面: verify_profile_v2 错误词表。
     if (verify_error.rfind("malformed JSON", 0) == 0) return "corrupted";
-    if (verify_error.find("schema != astrocs.cpu-profile/v2") != std::string::npos)
+    if (verify_error.find("schema != acsd.cpu-profile/v2") != std::string::npos)
         return "old_schema";
     if (verify_error.find("build.source_commit != expected") != std::string::npos)
         return "stale_build";
@@ -422,4 +422,4 @@ std::string classify_profile_rejection_v1(const std::string& verify_error,
     return "corrupted";
 }
 
-}  // namespace astrocs::backend_host
+}  // namespace acsd::backend_host

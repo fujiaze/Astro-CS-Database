@@ -31,7 +31,7 @@ def field_stats(obs, key):
             out.update(min=None, max=None, mean=None, median=None, percentile=None)
     return out
 
-report = {'schema': 'ASTROCS-Q2-REALDATA-P2SAMPLES', 'files': {}}
+report = {'schema': 'ACSD-Q2-REALDATA-P2SAMPLES', 'files': {}}
 
 for tag, path in (('bitref_16w', L4 + '/bitref_16w/p2_samples.json'),
                   ('upmfix_out', L4 + '/upmfix_out/p2_samples.json')):

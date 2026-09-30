@@ -1,6 +1,6 @@
 # Module: acr
 
-> 上游：docs/ASTROCS_DESIGN.md §8.4（顶层结构：lib/infrastructure/acr/ 隔离实验位）、
+> 上游：docs/ACSD_DESIGN.md §8.4（顶层结构：lib/infrastructure/acr/ 隔离实验位）、
 > §8.5（模块与 ABI）、§1.3（非目标：CPU/GPU 混合生产路由，生产不可达）、
 > §9（CPU 后端与资源：仅纯 CPU 进生产）
 > 依赖面正本：docs/engineering/DEPENDENCY_RULES.md（ACR 为 DORMANT：不进生产构建/加载/路由/benchmark/发布）

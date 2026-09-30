@@ -20,7 +20,7 @@ set(V6_P3RSMP_SOURCES
   ${V6_P3RSMP_DIR}/p3_rsmp_failclosed.cpp
 )
 
-# 生产源直接编入各测试可执行（自足；不依赖 astrocs_p3_rsmp target，
+# 生产源直接编入各测试可执行（自足；不依赖 acsd_p3_rsmp target，
 # 使本目录既可被根 add_subdirectory 也可独立 configure）。
 # 可执行名字保留 p3_rsmp_*_test；**ctest 用例名与可执行名同族（p3_rsmp_*）**
 # （控制器 AR-034 处置）：与 eng/ci/checks.json 的 V6-CTEST-UNIT 期望 glob

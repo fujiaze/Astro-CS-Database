@@ -28,7 +28,7 @@ eng/tests/cpu/avx512/run_provider_avx512_checks.py
      归约, 顺序不变; 差异仅 FMA/EVEX 单次舍入)。
 
 依赖: 仅标准库 + objdump (binutils)。退出码 0=全 PASS; 77=宿主缺 AVX-512F
-SKIP (前置 gate, astrocs_cpu_detect_features_v1 缺 ACS_FEAT_AVX512F; 与 ctest
+SKIP (前置 gate, acsd_cpu_detect_features_v1 缺 ACS_FEAT_AVX512F; 与 ctest
 cpu001_selftest_avx512 SKIP_RETURN_CODE 同码同治理语义, 复审 N1); 1=真 FAIL。
 """
 import os
@@ -102,7 +102,7 @@ PROBE_SRC = b'''#include "cpu_features.h"
 #include <cstdio>
 int main() {
   const unsigned long long d =
-      (unsigned long long)astrocs_cpu_detect_features_v1();
+      (unsigned long long)acsd_cpu_detect_features_v1();
   std::printf("detected=0x%016llx avx512f=%d\\n", d,
               (d & ACS_FEAT_AVX512F) ? 1 : 0);
   return 0;
@@ -118,7 +118,7 @@ def host_avx512f_detected(tmp):
     已在 16867c25 合同化: 无 ACS_FEAT_AVX512F → SKIP (exit 77, SKIP_RETURN_CODE)。
     本 runner 此前无宿主 gate —— 无 AVX-512F 硬件上 oracle main rc=3 (QUERY_FAIL)
     直接判 FAIL 并跳过后续全部检查, 把宿主环境事实记成 FAIL (复审 N1)。
-    检测复用同一 API astrocs_cpu_detect_features_v1: 编译 lib/infrastructure/benchmark/backend_host/
+    检测复用同一 API acsd_cpu_detect_features_v1: 编译 lib/infrastructure/benchmark/backend_host/
     cpu_features.cpp + 探针 main, 模式同 eng/tests/backend/test_abi_loader.py test_01
     的 cpu_probe (不发明新机制)。
     返回 (ok, text): ok=False 表示探针自身不可用 (编译/运行失败), 调用方按
@@ -161,9 +161,9 @@ def main():
             f"exit 77 (ctest SKIP_RETURN_CODE, 同 cpu001_selftest_avx512)")
         return 77
 
-    so_b = os.path.join(tmp, "astrocs_cpu_baseline.so")
-    so_a = os.path.join(tmp, "astrocs_cpu_avx2.so")
-    so_x = os.path.join(tmp, "astrocs_cpu_avx512.so")
+    so_b = os.path.join(tmp, "acsd_cpu_baseline.so")
+    so_a = os.path.join(tmp, "acsd_cpu_avx2.so")
+    so_x = os.path.join(tmp, "acsd_cpu_avx512.so")
     # capability_detect.c 独立编译为无 SIMD 旗标对象 (探测路径零 EVEX;
     # 见 check_avx512_illegal_instr.py 说明 —— 非支持 CPU 上 query 必须先
     # 安全完成探测再拒绝, 探测自身不得含 AVX-512 指令)。C 编译避免
@@ -193,7 +193,7 @@ def main():
     # 2) 编译 avx2 .so —— R-60 TU 级隔离: 门面 TU **零 ISA 旗标**（query /
     #    self_test / cap_gate 必须在仅 SSE2 的主机上可执行 = 干净拒绝而不是 #UD）+
     #    计算面 TU **唯一**带 -mavx2 -mfma（编译隔离 15 §6 + R-60 配方）;
-    #    两者只经唯一跨 TU 桥 astrocs_cpuprov_kernel_range_v1 相连。
+    #    两者只经唯一跨 TU 桥 acsd_cpuprov_kernel_range_v1 相连。
     #    配方不在本文件重写: 唯一取数口 = eng/tests/backend/variant_build.py。
     rc, err = vb.build_cpuprov_variant("avx2", so_a,
                                        extra_link_inputs=[cap_obj], ld_extra=["-lpthread"])

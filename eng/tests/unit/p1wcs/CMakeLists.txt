@@ -4,8 +4,8 @@
 # 控制包任务: P1-WCS-TEST (lock-P1-WCS; 依赖 P1-WCS-DOC 闭环, 2026-09-07)。
 # 合同锚: docs/science/algorithms/PLATESOLVE.md §11.4 TEST-WCS-DESIGN-001 (F1-F6,
 # 冻结容差不放宽); docs/science/ASTROMETRY.md SCI-WCS-001; 矩阵行 P1-WCS
-# (MOD astrocs.phase1.wcs-platesolve, registry 页
-# docs/detail/registry/astrocs.phase1.wcs-platesolve.md)。
+# (MOD acsd.phase1.wcs-platesolve, registry 页
+# docs/detail/registry/acsd.phase1.wcs-platesolve.md)。
 #
 # 结构 (模块 eng/tests/{unit,properties,oracle,fixtures,negative,performance} 对应):
 #   p1wcs/p1wcs_fixtures.hpp      — FIX-WCS-A..E 固定 seed fixture
@@ -15,7 +15,7 @@
 #                                   向量第二路径交叉 oracle-1b; 不调用
 #                                   被测函数, 只依赖标准库与被测 API 头)
 #   p1wcs/p1wcs_test_main.hpp     — 执行器框架 (FaultRegistry 双注入点:
-#                                   env ASTROCS_P1WCS_FAULT + argv --fault=)
+#                                   env ACSD_P1WCS_FAULT + argv --fault=)
 #   p1wcs/p1wcs_tests_units.cpp      — units 组 (F1/F3/F6 + n=3 边界)
 #   p1wcs/p1wcs_tests_properties.cpp — properties 组 (F5 确定性 bitwise +
 #                                   线程 1/2/4 + 结构性质, 1-N worker)

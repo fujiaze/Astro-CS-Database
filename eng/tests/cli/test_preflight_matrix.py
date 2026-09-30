@@ -2,7 +2,7 @@
 """预检语义矩阵测试（GATE-502 步骤 6）—— correct/warn/error × yes/-y/无确认/-force。
 
 权威：
-  * docs/ASTROCS_DESIGN.md §4.5（运行前预检三档 + 确认与越权语义）；
+  * docs/ACSD_DESIGN.md §4.5（运行前预检三档 + 确认与越权语义）；
   * docs/engineering/CLI_PROTOCOL_V1.md §1（error 阻断且 -y 不可越；correct/warn 都需 yes 确认，
     -y/-yes 跳过确认；-force 跳过整个检查步骤）；
   * lib/infrastructure/cli/subcommand.h Subcommand::run（唯一实现：预检页 → 阻断优先级
@@ -17,7 +17,7 @@
 判据定义（都能红）：
   * 放行 = stderr 无 "not confirmed" 且无 "blocked by"；
   * 阻断 = stderr 含 "blocked by"，且**不含** "not confirmed"（阻断发生在确认之前），
-    且该档 output_dir 零产物（无 astrocs_run_*.json）；
+    且该档 output_dir 零产物（无 acsd_run_*.json）；
   * -force = stderr 含 "skipping precheck and confirmation"，且不含 "blocked by"。
 
 三档如何构造（只用预检自身的判据，不解析 FITS —— 预检只核磁盘可达性）：
@@ -43,7 +43,7 @@ SPARSE_GIB = 200          # > 本机可用空间（约 100 GiB），保证触发
 
 
 def cli_binary():
-    env = os.environ.get("ASTROCS_CLI_BIN")
+    env = os.environ.get("ACSD_CLI_BIN")
     if env and os.path.isfile(env):
         return env
     for rel in (("build", "acsd"), ("build", "cli", "acsd")):
@@ -60,7 +60,7 @@ class TestPreflightMatrix(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         assert os.path.isfile(EXE), "先构建 CLI（ninja -C build acsd）"
-        cls.tmp = tempfile.mkdtemp(prefix="astrocs_preflight_")
+        cls.tmp = tempfile.mkdtemp(prefix="acsd_preflight_")
         cls.n = 0
 
     @classmethod
@@ -106,7 +106,7 @@ class TestPreflightMatrix(unittest.TestCase):
     def _products(out_dir):
         if not os.path.isdir(out_dir):
             return []
-        return sorted(f for f in os.listdir(out_dir) if f.startswith("astrocs_run_"))
+        return sorted(f for f in os.listdir(out_dir) if f.startswith("acsd_run_"))
 
     # ── 档位前置：三档必须真的是 correct / warn / error（否则矩阵空转） ──
     def test_00_levels_are_what_they_claim(self):

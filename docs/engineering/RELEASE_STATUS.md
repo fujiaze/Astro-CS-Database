@@ -1,20 +1,20 @@
 # 发布状态（Release Status）
 
-> 上游：ASTROCS_DESIGN.md §12.5（状态阶梯）、§13（版本与发布权）
+> 上游：ACSD_DESIGN.md §12.5（状态阶梯）、§13（版本与发布权）
 
-> 最终发布裁定只属项目负责人（`ASTROCS_DESIGN.md` §12；原引「宪章 §1.2/§H」已废止），本 Agent 至多声明
+> 最终发布裁定只属项目负责人（`ACSD_DESIGN.md` §12；原引「宪章 §1.2/§H」已废止），本 Agent 至多声明
 > READY_FOR_OWNER_REVIEW，不替代批准。
 
-## 0. 状态词阶梯（`ASTROCS_DESIGN.md` §12.5 的操作层判据）
+## 0. 状态词阶梯（`ACSD_DESIGN.md` §12.5 的操作层判据）
 
-> 本节展开 `ASTROCS_DESIGN.md` §12.5（状态阶梯）的**操作层判据**；其它登记表/映射表
+> 本节展开 `ACSD_DESIGN.md` §12.5（状态阶梯）的**操作层判据**；其它登记表/映射表
 > 只引用 §12.5 与本表（状态词清单的唯一登记处 = §12.5）。
 
 | 状态词 | 语义 | 判据（当前提交内可核） |
 |---|---|---|
 | `CONTRACT_READY` | 权威文档/合同/schema 冻结在位；**文档与合同类对象以此为终态** | 权威文档 + `module.yaml`/registry 条目 + 机器检查器 rc=0 |
 | `IMPLEMENTED` | 生产（或注册测试面）源码在位，且**当前提交内实际执行通过** | 文件锚 + 命令 + rc=0（ctest/pytest 实测） |
-| `INSTALLED` | 除 IMPLEMENTED 外，已进入构建安装树 + 产品清单，并可被 CLI/loader 实际发现 | `eng/cmake/install_layout.cmake` + `eng/packaging/astrocs.product.json` + `modules list/verify` 实测 |
+| `INSTALLED` | 除 IMPLEMENTED 外，已进入构建安装树 + 产品清单，并可被 CLI/loader 实际发现 | `eng/cmake/install_layout.cmake` + `eng/packaging/acsd.product.json` + `modules list/verify` 实测 |
 | `VERIFIED` | 除 INSTALLED 外，已在正式平台（Windows x64）与真实数据上通过验收 | Fatduck/真实数据证据（**当前无此项**） |
 | `NOT_IMPLEMENTED` | 能力不在当前基线（符号/路径不存在） | 全域 grep 零命中 |
 | `NOT_VERIFIED` | 能力可能存在但当前提交未复跑执行验收 | 无当前提交证据 |
@@ -34,7 +34,7 @@
 架构收敛主体已完成：合同面（权威文档集[原冻结宪章已删除]/版本单源/文档边界/ABI v1/数据产物/Runtime 图/
 工具链 preset/DLL schema/FITS 流接口/内核标准注册表）冻结在位；三 Phase 节点化、
 Phase3 四投影 registry、RT 唯一 executor + 实测资源门、MOD 科学模块安装面、
-CLI 命令面 = `normalize`/`mosaic`/`export` + `doctor`/`benchmark` 五入口（唯一命令树 = `docs/ASTROCS_DESIGN.md` §7.1）；
+CLI 命令面 = `normalize`/`mosaic`/`export` + `doctor`/`benchmark` 五入口（唯一命令树 = `docs/ACSD_DESIGN.md` §7.1）；
 独立 `validate`/`plan`/`inspect` 命令面**无载体**、调用返回 rc=2（`docs/engineering/CLI_PROTOCOL_V1.md` §1），
 其职责由 §4.5 预检三档页面与产物 `run-plan.json`/`run-graph.json` 承接；遗留 run --phases
 连跑已删除。**本节不主张「当前提交复跑」**：`IMPLEMENTED`/`INSTALLED` 级证据的基准 = §3 注
@@ -54,13 +54,13 @@ psf_snr_power:       DEFERRED（生产拒绝）
 ~~~
 
 - 逐面状态与证据锚以本文（§0 词表 + 分面表）与 `docs/modules/MODULE_MAP.yaml` 为准。
-- **合成测试或历史可用节点不等于真实数据 / Windows `VERIFIED`**（`ASTROCS_DESIGN.md` §12.5 末条）。
-- 最终发布决定只属项目负责人；Agent 至多声明 `READY_FOR_OWNER_REVIEW`（`ASTROCS_DESIGN.md` §12）。版本信息按阶段出现：alpha 阶段之前程序/代码/产物内不存在版本信息；进入 alpha 阶段后按本文 §2 单源条款出现（`ASTROCS_DESIGN.md` §13、`docs/ASTROCS_DESIGN.md` §10（I/O 与原子产品））。
+- **合成测试或历史可用节点不等于真实数据 / Windows `VERIFIED`**（`ACSD_DESIGN.md` §12.5 末条）。
+- 最终发布决定只属项目负责人；Agent 至多声明 `READY_FOR_OWNER_REVIEW`（`ACSD_DESIGN.md` §12）。版本信息按阶段出现：alpha 阶段之前程序/代码/产物内不存在版本信息；进入 alpha 阶段后按本文 §2 单源条款出现（`ACSD_DESIGN.md` §13、`docs/ACSD_DESIGN.md` §10（I/O 与原子产品））。
 
 ## 2. 版本与发布面
 
 - 产品版本唯一源：根 `VERSION` = `0.1.0-alpha.1`，内容一行 `MAJOR.MINOR.PATCH-alpha.N`（禁 stable/rc/beta）。
-- **本条款管"谁是唯一源"，不规定版本信息何时开始出现**（后者见 `ASTROCS_DESIGN.md` §13）：进入 alpha 阶段后，
+- **本条款管"谁是唯一源"，不规定版本信息何时开始出现**（后者见 `ACSD_DESIGN.md` §13）：进入 alpha 阶段后，
   程序/代码/产物中的产品版本一律由根 `VERSION` 派生或与其一致；alpha 阶段之前不出现版本信息。
 - **版本命名空间**（生命周期独立，号段只在各自命名空间内递增）：
 
@@ -68,13 +68,13 @@ psf_snr_power:       DEFERRED（生产拒绝）
 |---|---|---|---|
 | product | 仓库根 `VERSION`（唯一事实源） | `0.1.0-alpha.1` | `MAJOR.MINOR.PATCH` 只由负责人指令变更，`alpha.N` 只在外部审核通过后提升 |
 | module | 各模块 `module.yaml` 的 `module_version` | 逐模块独立（以 manifest 为准） | 模块接口/产物变更时由模块 owner 递增，与产品版本无关 |
-| ABI | `lib/include/astrocs/common_abi_v1.h` 的 `ACS_ABI_VERSION_V1` 与 CLI 暴露的 `abi_version` | ABI v1（头常量 `1u`） | 任何破坏二进制兼容的变更必须递增 |
+| ABI | `lib/include/acsd/common_abi_v1.h` 的 `ACS_ABI_VERSION_V1` 与 CLI 暴露的 `abi_version` | ABI v1（头常量 `1u`） | 任何破坏二进制兼容的变更必须递增 |
 | data-schema | `eng/contracts/data/artifact_types.registry.json` 的 `schema_version` 与各 schema 文件的 `$schema` 版本 | type_id schema_version = 1 | 数据产品结构变更时按 registry 递增 |
 | doc-revision | 治理/规范文档自身的修订号 | 逐文档独立 | 文档内容修订时递增；与产品版本无换算关系 |
 | history（历史工程轮次） | 只允许出现在 `git log` 与 `docs/**/v6/**`（产品族设计档案） | — | 不携带可递增的"当前值"；旧轮次数字只作历史标识，当前产品状态取自根 `VERSION` |
 
 - 非产品版本的数字三元组只作格式/组件标识，产品版本一律取自根 `VERSION`：FITS 4.0（格式规范）、HiPS 1.0/1.4（IVOA 格式版本）、DatabaseVersion（Gaia 库标识）、`schema_version` / ABI v1（见上表定义点）、外部组件版本（CFITSIO 4.6.4、gcc/cmake 等）、`X.Y.Z` / `MAJOR.MINOR.PATCH` 占位表述。
-- **生成链**（CMake/CLI/打包从根 `VERSION` 派生，字面量只有一个来源）：根 `CMakeLists.txt` 的 `file(READ …/VERSION)` + `git rev-parse HEAD` → `ASTROCS_VERSION_STRING`（`X.Y.Z-alpha.N+g<sha>`）→ `configure_file` 生成 `lib/infrastructure/cli/version_generated.h`；`eng/tools/gen_version.py --json` 输出 version/prerelease/commit/dirty/build_id/abi_version/cli_schema_version 合同对象；CLI `--version[ --json]` 与 doctor/hardware/verify 共用同一生成串。
+- **生成链**（CMake/CLI/打包从根 `VERSION` 派生，字面量只有一个来源）：根 `CMakeLists.txt` 的 `file(READ …/VERSION)` + `git rev-parse HEAD` → `ACSD_VERSION_STRING`（`X.Y.Z-alpha.N+g<sha>`）→ `configure_file` 生成 `lib/infrastructure/cli/version_generated.h`；`eng/tools/gen_version.py --json` 输出 version/prerelease/commit/dirty/build_id/abi_version/cli_schema_version 合同对象；CLI `--version[ --json]` 与 doctor/hardware/verify 共用同一生成串。
 - 生成串形态：clean main 为 `0.1.0-alpha.1+g<commit12>`，dirty 工作树追加 `.dirty`。
 - **机器检查入口**：`eng/tools/doccheck/check_version_namespaces.py`（唯一源格式 + 生成链 + 允许路径扫描 + 反误报断言 + 伪造版本必须判红）；既有版本扫描 `eng/tools/check_version_consistency.py`。
 - Windows 正式发布候选：**未产生**（`NOT_VERIFIED`）。DLL 化安装树的 **Linux 技术预览安装面已 `INSTALLED`**（五科学模块 + noop 入 `modules/`，产品清单 10 units，安全 loader 实测 64/64 PASS），Windows 侧复验未执行。
@@ -84,20 +84,20 @@ psf_snr_power:       DEFERRED（生产拒绝）
 
 | 面 | 状态 | 主要依据（文件锚 / 命令 / rc） |
 |---|---|---|
-| 最高设计 | `CONTRACT_READY` | `docs/ASTROCS_DESIGN.md`（§0 权威链，唯一最高权威） |
-| 最高设计 ↔ 工程规范边界 | `CONTRACT_READY` | `ASTROCS_DESIGN.md` §0 权威链 + `docs/engineering/`；旧 `AstroCS_ENGINEERING_CONSTRAINTS.md` 与 `eng/tools/doccheck/check_engineering_constraints.py` 已退役（历史条目） |
+| 最高设计 | `CONTRACT_READY` | `docs/ACSD_DESIGN.md`（§0 权威链，唯一最高权威） |
+| 最高设计 ↔ 工程规范边界 | `CONTRACT_READY` | `ACSD_DESIGN.md` §0 权威链 + `docs/engineering/`；旧 `ACSD_ENGINEERING_CONSTRAINTS.md` 与 `eng/tools/doccheck/check_engineering_constraints.py` 已退役（历史条目） |
 | 文档边界/索引 | `CONTRACT_READY` | `docs/DOCUMENT_INDEX.yaml`（DOC-001 收敛：新文档集补登 + 旧体系移出活动区）；`eng/tools/doccheck/check_doc_index.py --strict` 残留 1 项 `control_archive_dir_readme`（绑定已删除的 `engineering/control/archive/**`），登记 CI-001 迁移 |
 | 内核标准注册表 | `CONTRACT_READY` | `docs/engineering/STANDARDS_REGISTRY.md` + `docs/standards/checks/check_standards_registry.py` → STANDARDS_REGISTRY_PASS（STD-REG-001 `fb7f232a`） |
 | 版本单源 | `CONTRACT_READY` | `VERSION` + 本文 §2；检查器 rc=0 |
-| C ABI v1 / DLL 边界 / 安全 loader 合同 | `CONTRACT_READY` | `lib/include/astrocs/abi/*.h`（ABI-001）、`eng/contracts/config/module_dll_contract.schema.json`（ARC-001）、`runtime/module_loader/secure_loader.h`（ABI-003） |
+| C ABI v1 / DLL 边界 / 安全 loader 合同 | `CONTRACT_READY` | `lib/include/acsd/abi/*.h`（ABI-001）、`eng/contracts/config/module_dll_contract.schema.json`（ARC-001）、`runtime/module_loader/secure_loader.h`（ABI-003） |
 | 类型化产物 / 三阶段交换 / 不确定度合同 | `CONTRACT_READY` | DATA-001/002 + DATA-UNC-001（`99713034`）+ `eng/contracts/data/*` |
 | Runtime 类型化运行图 + 节点绑定表 | `IMPLEMENTED` | `runtime/pipeline/typed_dag.py` + `module_ports.registry.json`；节点绑定经 ctest 节点化用例复核 |
-| 三 Phase 节点化（`ASTROCS_DESIGN.md` §3.2/§4.2/§5.2 每节点唯一真实 operation；原引「宪章 §F.1」已废止） | `IMPLEMENTED` | `lib/infrastructure/scheduler/src/module_adapters.cpp`:4257/:4282/:4309（P1 8 / P2 7 / P3 5 节点）；ctest `p1001_real_nodes`/`p2001_real_nodes`/`p3002_real_nodes`/`p3002_uncertainty` 4/4 PASS |
-| RT 唯一 executor + 实测资源门（`ASTROCS_DESIGN.md` §8/§10 + `docs/ASTROCS_DESIGN.md` §9（CPU 后端与资源）；原引「宪章 §10.4/§10.5/§18.2」已废止） | `IMPLEMENTED` | `lib/infrastructure/scheduler/src/executor_runtime.h`、`module_adapters.cpp`:3777-3793、`eng/tools/monitoring/run_monitored.py:evaluate_frozen_gate()`；ctest `rt001_unique_executor` PASS（RT-001 `91440c16`） |
+| 三 Phase 节点化（`ACSD_DESIGN.md` §3.2/§4.2/§5.2 每节点唯一真实 operation；原引「宪章 §F.1」已废止） | `IMPLEMENTED` | `lib/infrastructure/scheduler/src/module_adapters.cpp`:4257/:4282/:4309（P1 8 / P2 7 / P3 5 节点）；ctest `p1001_real_nodes`/`p2001_real_nodes`/`p3002_real_nodes`/`p3002_uncertainty` 4/4 PASS |
+| RT 唯一 executor + 实测资源门（`ACSD_DESIGN.md` §8/§10 + `docs/ACSD_DESIGN.md` §9（CPU 后端与资源）；原引「宪章 §10.4/§10.5/§18.2」已废止） | `IMPLEMENTED` | `lib/infrastructure/scheduler/src/executor_runtime.h`、`module_adapters.cpp`:3777-3793、`eng/tools/monitoring/run_monitored.py:evaluate_frozen_gate()`；ctest `rt001_unique_executor` PASS（RT-001 `91440c16`） |
 | Phase3 四投影 registry（TAN/SIN/CAR/AIT） | `IMPLEMENTED` | `lib/algorithms/projection/p3_projection.{h,cpp}`:267-273（registry v1 恰四行）；ctest `p3_projection_units`/`p3_projection_fault` 2/2 PASS；CI `CTEST-P3-PROJECTION-UNITS/FAULT` |
-| MOD 科学模块安装面 + 产品清单 | `INSTALLED` | `eng/cmake/install_layout.cmake`:104-105；`eng/packaging/astrocs.product.json` units=10；`eng/tests/abi/mod001_install_load_check.py` 64/64 PASS（MOD-001 `59fdeab3`；`f74fc20f` 摘出 p1_noise） |
+| MOD 科学模块安装面 + 产品清单 | `INSTALLED` | `eng/cmake/install_layout.cmake`:104-105；`eng/packaging/acsd.product.json` units=10；`eng/tests/abi/mod001_install_load_check.py` 64/64 PASS（MOD-001 `59fdeab3`；`f74fc20f` 摘出 p1_noise） |
 | CLI 薄命令面（normalize/mosaic/export + doctor/benchmark） | `INSTALLED` | `command_tree.h` 唯一命令树（golden = `docs/engineering/CLI_PROTOCOL_V1.md` §1；`eng/tests/cli/test_cli_protocol.py` test_01/test_07） |
-| 三 Phase 隔离（三个独立命令，一次调用只驱动一个阶段） | `IMPLEMENTED` | `normalize`/`mosaic`/`export` 各拉起本阶段调度器（`ASTROCS_DESIGN.md` §1.2/§8.1）；`run --phases 1,2,3` → rc=2 `unknown command 'run'`（CLI-002）；DATA-002 磁盘交换合同冻结 |
+| 三 Phase 隔离（三个独立命令，一次调用只驱动一个阶段） | `IMPLEMENTED` | `normalize`/`mosaic`/`export` 各拉起本阶段调度器（`ACSD_DESIGN.md` §1.2/§8.1）；`run --phases 1,2,3` → rc=2 `unknown command 'run'`（CLI-002）；DATA-002 磁盘交换合同冻结 |
 | 结构化日志合同 | `CONTRACT_READY` | LOG-001（schema/JSONL 契约） |
 | Windows 工具链 preset | `CONTRACT_READY` | BLD-001 + `eng/packaging/schemas/preset-contract.json` |
 | 唯一根 CMake 构建图 | `IMPLEMENTED` | BLD-002；根 `ninja -C build` 本提交实测 rc=0（全量 28 步） |
@@ -119,7 +119,7 @@ psf_snr_power:       DEFERRED（生产拒绝）
 | Phase3 四投影 DLL 挂载/生产会话切换 | `NOT_IMPLEMENTED` | registry 实现已 IMPLEMENTED，但 `lib/algorithms/projection/module.yaml`:79-80 `entrypoint: MISSING`，生产 WCS 路径仍 TAN-only（`lib/algorithms/projection/p3_wcs.cpp`，W4-A9 批次 1 迁入） |
 | Phase3 `healpix_interp4` | `NOT_IMPLEMENTED` | lib/cli/include/runtime 全域无 `interp4` 实现符号；当前 nearest/bilinear |
 | Phase3 流式 FITS 输出接入 | `NOT_IMPLEMENTED` | IO-001 接口在位；Phase3 writer 走 CFITSIO 原子写（`lib/algorithms/fits_output/p3_output.cpp`） |
-| 顶层占位 descriptor `astrocs.phase3.resample` | `DEFERRED` | P2 模板复制残留，归 P3-RSMP-INT（`lib/algorithms/resample/README.md` 登记） |
+| 顶层占位 descriptor `acsd.phase3.resample` | `DEFERRED` | P2 模板复制残留，归 P3-RSMP-INT（`lib/algorithms/resample/README.md` 登记） |
 | 旧 `aio_pipeline_engine` 越权编排 | 保留中（`DEFERRED`） | `lib/infrastructure/aio/src/aio_pipeline_engine.cpp` 仍在位，ARCH-001 §7 登记为已知现状差距（LEG-003 迁移）；不宣称已删除 |
 | ACR | `DORMANT` | 根 `CMakeLists.txt`:17 ACR 默认 OFF；生产构建/加载/路由/benchmark/发布不含 ACR/CUDA |
 
@@ -132,13 +132,13 @@ psf_snr_power:       DEFERRED（生产拒绝）
   如实标注 `NOT_READY_FOR_RELEASE`。
 - 资源门口径（负责人既定原则，CI-001/CI-REPAIR-001 裁决）：构建/打包/单测为
   **非重计算面**，冻结阈值语义针对重计算区间；重计算面必须显式请求
-  `--gate-required` 并附判定证据，缺失即 fail-closed（原引「宪章 §10.5/§18.2」已废止；现行 = `ASTROCS_DESIGN.md` §8 + `eng/contracts/resource_gate_v1.json`；阈值不被放宽）。
+  `--gate-required` 并附判定证据，缺失即 fail-closed（原引「宪章 §10.5/§18.2」已废止；现行 = `ACSD_DESIGN.md` §8 + `eng/contracts/resource_gate_v1.json`；阈值不被放宽）。
 
 ## 6. 状态汇总
 
 ```text
 冻结/合同面:    CONTRACT_READY（权威文档集/索引/版本/ABI/DLL schema/数据合同/标准注册表）
-节点化与运行时: IMPLEMENTED（三 Phase 节点化 `ASTROCS_DESIGN.md` §3.2/§4.2/§5.2、RT 唯一 executor + 资源门）
+节点化与运行时: IMPLEMENTED（三 Phase 节点化 `ACSD_DESIGN.md` §3.2/§4.2/§5.2、RT 唯一 executor + 资源门）
 Phase3 投影:    IMPLEMENTED（TAN/SIN/CAR/AIT registry v1 + Oracle + 故障注入）
 安装面:         INSTALLED（Linux 技术预览：5 科学模块 + noop / 10 units / 安全 loader）
 CLI 命令面:     INSTALLED（normalize/mosaic/export + doctor/benchmark；独立 validate/plan/inspect/verify 无载体, 调用 rc=2）

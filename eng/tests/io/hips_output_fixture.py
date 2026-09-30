@@ -53,23 +53,23 @@ def _ensure_lib() -> ctypes.CDLL:
         if r.returncode != 0:
             raise RuntimeError(f"build libfits_core_test.so failed: {r.stderr}")
     lib = ctypes.CDLL(str(LIB_SO))
-    lib.acs_fio_writer_begin_v1.restype = ctypes.c_int
-    lib.acs_fio_writer_begin_v1.argtypes = [ctypes.c_char_p, ctypes.c_void_p,
+    lib.acsd_fio_writer_begin_v1.restype = ctypes.c_int
+    lib.acsd_fio_writer_begin_v1.argtypes = [ctypes.c_char_p, ctypes.c_void_p,
                                             ctypes.c_char_p, ctypes.c_int,
                                             ctypes.c_void_p, ctypes.c_void_p,
                                             ctypes.c_char_p, ctypes.c_size_t]
-    lib.acs_fio_write_plane_v1.restype = ctypes.c_int
-    lib.acs_fio_write_plane_v1.argtypes = [ctypes.c_void_p, ctypes.c_int,
+    lib.acsd_fio_write_plane_v1.restype = ctypes.c_int
+    lib.acsd_fio_write_plane_v1.argtypes = [ctypes.c_void_p, ctypes.c_int,
                                            ctypes.c_void_p, ctypes.c_size_t,
                                            ctypes.c_void_p, ctypes.c_char_p,
                                            ctypes.c_size_t]
-    lib.acs_fio_writer_end_v1.restype = ctypes.c_int
-    lib.acs_fio_writer_end_v1.argtypes = [ctypes.c_void_p, ctypes.c_int,
+    lib.acsd_fio_writer_end_v1.restype = ctypes.c_int
+    lib.acsd_fio_writer_end_v1.argtypes = [ctypes.c_void_p, ctypes.c_int,
                                           ctypes.c_int, ctypes.c_int,
                                           ctypes.c_void_p, ctypes.c_char_p,
                                           ctypes.c_size_t]
-    lib.acs_fio_writer_abort_v1.restype = None
-    lib.acs_fio_writer_abort_v1.argtypes = [ctypes.c_void_p]
+    lib.acsd_fio_writer_abort_v1.restype = None
+    lib.acsd_fio_writer_abort_v1.argtypes = [ctypes.c_void_p]
     return lib
 
 
@@ -108,18 +108,18 @@ def make_tile_fits_bytes(width: int = 16, ipix: int = 0,
     with tempfile.TemporaryDirectory() as td:
         p = pathlib.Path(td) / "tile.fits"
         wr = ctypes.c_void_p()
-        st = lib.acs_fio_writer_begin_v1(str(p).encode(), ctypes.byref(decl),
+        st = lib.acsd_fio_writer_begin_v1(str(p).encode(), ctypes.byref(decl),
                                          None, 1, None, ctypes.byref(wr),
                                          err, len(err))
         if st != 0:
             raise RuntimeError(f"writer_begin: {err.value!r}")
-        st = lib.acs_fio_write_plane_v1(
+        st = lib.acsd_fio_write_plane_v1(
             wr, 0, arr.ctypes.data_as(ctypes.c_void_p), arr.nbytes,
             None, err, len(err))
         if st != 0:
-            lib.acs_fio_writer_abort_v1(wr)
+            lib.acsd_fio_writer_abort_v1(wr)
             raise RuntimeError(f"write_plane: {err.value!r}")
-        st = lib.acs_fio_writer_end_v1(wr, 1, 0, 0, None, err, len(err))
+        st = lib.acsd_fio_writer_end_v1(wr, 1, 0, 0, None, err, len(err))
         if st != 0:
             raise RuntimeError(f"writer_end: {err.value!r}")
         return p.read_bytes()

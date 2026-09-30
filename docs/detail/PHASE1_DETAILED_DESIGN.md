@@ -1,8 +1,8 @@
 # Phase1 目标态详细设计
 
-> 上游：ASTROCS_DESIGN.md §4（normalize：单帧标准化）
+> 上游：ACSD_DESIGN.md §4（normalize：单帧标准化）
 
-上位：`ASTROCS_DESIGN.md`（§0 权威链，最高设计）、`docs/engineering/PROJECT_SPEC.md`  
+上位：`ACSD_DESIGN.md`（§0 权威链，最高设计）、`docs/engineering/PROJECT_SPEC.md`  
 下游：Phase1 SCI/ALG/DATA/API/实现与验收；冲突时本文件描述目标，目标只由本文件定义。
 
 ## 1. 使命与科学产品
@@ -31,7 +31,7 @@ d_k = A_k x + n_k,    Cov(n_k) = C_k
 
 ## 3. 节点与先后关系
 
-**节点顺序以 `ASTROCS_DESIGN.md` §4.2 为唯一权威**：
+**节点顺序以 `ACSD_DESIGN.md` §4.2 为唯一权威**：
 
 ```text
 ingest → calibration → cosmetic/validity → background/noise
@@ -60,7 +60,7 @@ ingest → calibration → cosmetic/validity → background/noise
 **单帧拟合失败**不属降级，按帧级失败上报，见下）；
 ⑤ **施加的可核对性不因合并而降低**：provenance `p1_phot.json`（`DATA-P1-PHOTPROV-001`）必须记 `photometry_applied` /
 `photscal` / `photscales`（逐帧 `k_photo`）/ `photoapplied_artifacts`（施加后产物路径），使「k 确实乘进了像素」
-可由独立读者用「calibrated 面 × k」逐像素复算核对（判据与实测见 `docs/science/algorithms/CALIBRATION_ALGORITHMS.md` §3.6；语义正本 = `ASTROCS_DESIGN.md` §4.2）。
+可由独立读者用「calibrated 面 × k」逐像素复算核对（判据与实测见 `docs/science/algorithms/CALIBRATION_ALGORITHMS.md` §3.6；语义正本 = `ACSD_DESIGN.md` §4.2）。
 
 **测光失败的失败语义（帧级 vs 全局，两种作用域各自具名）**：
 
@@ -75,8 +75,8 @@ ingest → calibration → cosmetic/validity → background/noise
 - **全局失败**（换任何一帧都不会好：星表/响应曲线不可读、`gaia_data_dir`/`filter`/`filters_json`
   配置缺项、冻结 C 入口返回非零）⇒ **中止运行**（`ErrorDomain::CONFIG`/`IO` 上行到 CLI 收敛为退出码），
   不把整批帧逐帧判 fail。
-- **运行级判红**：产品基数按 `ASTROCS_DESIGN.md` §4.4「每一帧输入对应一个 HiPS 产品，任何一帧未被处理、
-  跳过或失败都显式判红」——`write_hips` 对失败帧上抛 `SCIENCE_PRECONDITION`（退出码 4，`ASTROCS_DESIGN.md` §7.2）
+- **运行级判红**：产品基数按 `ACSD_DESIGN.md` §4.4「每一帧输入对应一个 HiPS 产品，任何一帧未被处理、
+  跳过或失败都显式判红」——`write_hips` 对失败帧上抛 `SCIENCE_PRECONDITION`（退出码 4，`ACSD_DESIGN.md` §7.2）
   且**不发布** `p1_products.json`（不产出部分产品却报成功）；其他帧已写出的产物保留在磁盘上作为证据。
 - **组级摘要与逐帧真相**：`photometry_applied=true` 只表示「至少一帧已施加」（`pixel_scaling` 取
   `applied`/`partial`/`none`）；逐帧真相只在 `frames[]`。下游 `drizzle_stack` 按 `frames[]` 逐帧选择输入面
@@ -185,7 +185,7 @@ W_psf,k = a_k² Σ_p P_k,p² / sigma_pix,k² = a_k² / (sigma_pix,k² A_NEA,k)
 
 Phase1 **只**产出帧级 SNR、稀疏控制点上的**绝对** SNR（`F_ref/σ_F(x,y)`，与帧级同口径、同参考通量 `F_ref`），以及 `W_psf = PᵀC⁻¹P` 作为点源充分统计量（`point_source_information`）；
 **不产生、不消费**任何叠加权重。叠加权重由**阶段二**按该天球像素对应的输入帧集合**现场算出**（派生量）。
-PSF 拟合质量代理（FWHM、残差尺度等）**只作诊断**，**权重面排除**该项（`ASTROCS_DESIGN.md` §2、§3.1）。
+PSF 拟合质量代理（FWHM、残差尺度等）**只作诊断**，**权重面排除**该项（`ACSD_DESIGN.md` §2、§3.1）。
 
 ### 8.3 标量降级门
 

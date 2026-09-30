@@ -1,13 +1,13 @@
 // CORE-003 / RT-005 ModuleDescriptor + Registry 实现
 // registry 支持可执行模块工厂；index 用 JSON library 正确转义。
-#include "astrocs/core/module.h"
+#include "acsd/core/module.h"
 
 #include <nlohmann/json.hpp>
 
 #include <cstdio>
 #include <set>
 
-namespace astrocs::core {
+namespace acsd::core {
 
 using nlohmann::json;
 
@@ -16,8 +16,8 @@ bool ModuleDescriptor::validate(std::string* err) const {
     if (err) *err = "module_id empty";
     return false;
   }
-  if (module_id.rfind("astrocs.", 0) != 0) {
-    if (err) *err = "module_id must be namespaced astrocs.*: " + module_id;
+  if (module_id.rfind("acsd.", 0) != 0) {
+    if (err) *err = "module_id must be namespaced acsd.*: " + module_id;
     return false;
   }
   if (version.empty()) {
@@ -55,7 +55,7 @@ bool ModuleDescriptor::validate(std::string* err) const {
     return false;
   }
   // ACR production 拒绝（ACR 不接生产）
-  if (module_id.rfind("astrocs.acr.", 0) == 0) {
+  if (module_id.rfind("acsd.acr.", 0) == 0) {
     if (err) *err = "ACR module cannot be registered for production: " + module_id;
     return false;
   }
@@ -155,7 +155,7 @@ std::vector<std::string> ModuleRegistry::module_ids() const {
 
 bool ModuleRegistry::export_index_json(std::string* out) const {
   json j;
-  j["schema"] = "astrocs.module-index/v1";
+  j["schema"] = "acsd.module-index/v1";
   j["modules"] = json::array();
   for (const auto& [id, m] : modules_) {
     json mj;
@@ -176,4 +176,4 @@ bool ModuleRegistry::export_index_json(std::string* out) const {
   return true;
 }
 
-}  // namespace astrocs::core
+}  // namespace acsd::core

@@ -1,11 +1,11 @@
 {
-  "contract_schema": "astrocs.aio-abi-contract/v1",
+  "contract_schema": "acsd.aio-abi-contract/v1",
   "contract_version": 1,
   "task_id": "AIO-001",
   "title": "唯一 AIO C ABI v1 与内容哈希复核",
   "owner": "SA-AIO",
   "frozen": true,
-  "doc_ref": "lib/include/astrocs/io/aio_abi_v1.h",
+  "doc_ref": "lib/include/acsd/io/aio_abi_v1.h",
   "constitution_ref": [
     "ASTROCS-CONSTITUTION-001 §8.3 (唯一 FITS/HiPS/manifest I/O 边界)",
     "ASTROCS-CONSTITUTION-001 §8.6 (版本化 C ABI: struct_size/abi_version/稳定状态码/禁 STL-异常-RTTI-第三方类型)"
@@ -15,13 +15,13 @@
     "rule": "v1 不可变；任何字段/符号/数值扩展必须升 ABI 版本并同步本合同",
     "struct_pattern": "跨边界结构前两字段恒 struct_size + abi_version，失配即 AIO_ERR_ABI_MISMATCH，不猜布局",
     "ownership": "out 缓冲一律调用方分配（无跨边界托管分配/释放义务）；digest hex 缓冲容量 >= 65 字节",
-    "text_encoding": "UTF-8（路径 path_utf8 与 IO-001 acs_fio_* 同语义）"
+    "text_encoding": "UTF-8（路径 path_utf8 与 IO-001 acsd_fio_* 同语义）"
   },
   "status_codes": {
     "count": 17,
     "alignment": {
-      "acs_status_common": "0..7 与 lib/include/astrocs/common_abi_v1.h acs_status 共同子域数值一致",
-      "acs_fio_status_full": "0..13 与 lib/infrastructure/aio/io/include/astrocs/io/fits_stream_v1.h acs_fio_status 全域逐值一致（测试编译期交叉断言证明）"
+      "acsd_status_common": "0..7 与 lib/include/acsd/common_abi_v1.h acsd_status 共同子域数值一致",
+      "acsd_fio_status_full": "0..13 与 lib/infrastructure/aio/io/include/acsd/io/fits_stream_v1.h acsd_fio_status 全域逐值一致（测试编译期交叉断言证明）"
     },
     "codes": [
       {
@@ -93,7 +93,7 @@
       {
         "value": 70,
         "name": "AIO_ERR_INTERNAL",
-        "note": "未分类内部错误（同 acs_status INTERNAL=70 语义）"
+        "note": "未分类内部错误（同 acsd_status INTERNAL=70 语义）"
       }
     ],
     "sentinel": "AIO_STATUS_COUNT=71（等于该值及以外均非法；0..15 与 70 有效）"
@@ -136,7 +136,7 @@
     {
       "path": "lib/astro_image_io/src/aio_abi.cpp",
       "lang": "C++17",
-      "note": "唯一公共 ABI 实现（astrocs_aio 域 = AIO 正统归属，宪章 §8.5 astrocs_aio 交付单元）；SHA-256 原语复用 lib/common/crypto 单一实现（astrocs_common，与 AIO UPM 同源）；异常屏障家族口径"
+      "note": "唯一公共 ABI 实现（acsd_aio 域 = AIO 正统归属，宪章 §8.5 acsd_aio 交付单元）；SHA-256 原语复用 lib/common/crypto 单一实现（acsd_common，与 AIO UPM 同源）；异常屏障家族口径"
     }
   ],
   "oracle_refs": [
@@ -146,7 +146,7 @@
     },
     {
       "kind": "status_alignment",
-      "note": "lib/infrastructure/aio/io/include/astrocs/io/fits_stream_v1.h acs_fio_status 0..13 全域交叉断言（测试编译期）"
+      "note": "lib/infrastructure/aio/io/include/acsd/io/fits_stream_v1.h acsd_fio_status 0..13 全域交叉断言（测试编译期）"
     }
   ],
   "conformance_tests": [
@@ -154,7 +154,7 @@
     "eng/tests/unit/aio_abi_selfcheck.cpp（故障注入必败自检：baseline PASS + 注入必败）"
   ],
   "fault_injection": {
-    "env": "ASTROCS_AIO_FAULT",
+    "env": "ACSD_AIO_FAULT",
     "registry": [
       "n1_hash_value_flip",
       "n2_verify_mismatch_shortcut",
@@ -163,7 +163,7 @@
     "rule": "每个注册名使对应断言确定性翻转并输出 FAULT-INJECT 行（验收：注入必败，不存在恒 PASS 占位）"
   },
   "known_scope_limits": [
-    "本任务交付合同头 + 唯一实现 + 测试；实现编入生产 DLL target（astrocs_aio）的构建接线属 MOD-001（根 CMakeLists.txt 不在本任务写域），已登记 finding",
+    "本任务交付合同头 + 唯一实现 + 测试；实现编入生产 DLL target（acsd_aio）的构建接线属 MOD-001（根 CMakeLists.txt 不在本任务写域），已登记 finding",
     "lib/core ArtifactStore content_sha256 仅验长度不复核（lib/core 不在本任务写域），接线 read_verified 属 DATA-003 后续，已登记 finding",
     "astro_image_io.h 既有产品结构无 struct_size/abi_version（v1 冻结域外，扩展须升版本），已登记 finding"
   ]

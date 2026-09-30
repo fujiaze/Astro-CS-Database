@@ -35,14 +35,14 @@
 #endif
 
 /* FINAL-07 WIN-PORT 批次二: 平台专属调用的唯一判定点 ——
- * Windows 侧的 popen/pclose 经 eng/tests/support/astrocs_test_posix_compat.h 统一给等价物
+ * Windows 侧的 popen/pclose 经 eng/tests/support/acsd_test_posix_compat.h 统一给等价物
  * (::popen 经函数式宏展开为 ::_popen(...), 语义等价)。
  * 类 UNIX 侧该头整头为空, 上面保留本 TU 原有系统头 => Linux 预处理零 delta。 */
-#include "../../support/astrocs_test_posix_compat.h"
+#include "../../support/acsd_test_posix_compat.h"
 
-using namespace astrocs::phase3::v6;
-namespace p3rsmp = astrocs::p3rsmp;
-namespace phase3proj = astrocs::phase3proj;
+using namespace acsd::phase3::v6;
+namespace p3rsmp = acsd::p3rsmp;
+namespace phase3proj = acsd::phase3proj;
 using nlohmann::json;
 
 static int g_checks = 0;
@@ -332,14 +332,14 @@ bool allclose(const std::vector<double>& a, const std::vector<double>& b, double
   return true;
 }
 
-bool has_hdu(const astrocs::aio::FitsVerifyResult& r, const std::string& ext) {
+bool has_hdu(const acsd::aio::FitsVerifyResult& r, const std::string& ext) {
   for (const auto& h : r.hdus) {
     if (h.extname == ext) return true;
   }
   return false;
 }
 
-std::string hdu_bunit(const astrocs::aio::FitsVerifyResult& r, const std::string& ext) {
+std::string hdu_bunit(const acsd::aio::FitsVerifyResult& r, const std::string& ext) {
   for (const auto& h : r.hdus) {
     if (h.extname == ext) return h.bunit;
   }
@@ -397,11 +397,11 @@ int run_positive(const std::string& art) {
     in.measurement_capable = true;
     in.uncertainty_available = true;
     const ExportResult r = export_product(ExportMode::kSurfaceBrightness, s.grid, in,
-                                          s.plan, dir, astrocs::aio::PublishOptions(),
-                                          astrocs::aio::CancelFn());
+                                          s.plan, dir, acsd::aio::PublishOptions(),
+                                          acsd::aio::CancelFn());
     std::fprintf(stderr, "SB: status=%d code=%s reason=%s\n", (int)r.status, r.code.c_str(), r.reason.c_str());
     CHECK(r.status == p3rsmp::Status::Ok, "SB status Ok");
-    CHECK(r.publish.status == astrocs::aio::PublishStatus::kOk, "SB publish ok");
+    CHECK(r.publish.status == acsd::aio::PublishStatus::kOk, "SB publish ok");
     CHECK(r.publish.renamed, "SB renamed");
     CHECK(r.reopen.ok, "SB reopen ok");
     CHECK(r.provenance_reopen_check.ok(), "SB provenance reopen ok");
@@ -422,8 +422,8 @@ int run_positive(const std::string& art) {
     in.measurement_capable = true;
     in.uncertainty_available = true;
     const ExportResult r = export_product(ExportMode::kPointSourceFlux, s.grid, in,
-                                          s.plan, dir, astrocs::aio::PublishOptions(),
-                                          astrocs::aio::CancelFn());
+                                          s.plan, dir, acsd::aio::PublishOptions(),
+                                          acsd::aio::CancelFn());
     std::fprintf(stderr, "PSF: status=%d code=%s reason=%s\n", (int)r.status, r.code.c_str(), r.reason.c_str());
     CHECK(r.status == p3rsmp::Status::Ok, "PSF status Ok");
     CHECK(r.reopen.ok, "PSF reopen ok");
@@ -452,8 +452,8 @@ int run_positive(const std::string& art) {
     in.measurement_capable = false;
     in.uncertainty_available = false;
     const ExportResult r = export_product(ExportMode::kVisualization, s.grid, in,
-                                          s.plan, dir, astrocs::aio::PublishOptions(),
-                                          astrocs::aio::CancelFn());
+                                          s.plan, dir, acsd::aio::PublishOptions(),
+                                          acsd::aio::CancelFn());
     std::fprintf(stderr, "VIS: status=%d code=%s reason=%s\n", (int)r.status, r.code.c_str(), r.reason.c_str());
     CHECK(r.status == p3rsmp::Status::Ok, "VIS status Ok");
     CHECK(r.reopen.ok, "VIS reopen ok");
@@ -552,8 +552,8 @@ int run_negative(const std::string& art) {
     c.mutate(&in);
     const std::string dir = art + "/neg_" + c.name;
     const ExportResult r = export_product(c.mode, sc.grid, in, sc.plan, dir,
-                                          astrocs::aio::PublishOptions(),
-                                          astrocs::aio::CancelFn());
+                                          acsd::aio::PublishOptions(),
+                                          acsd::aio::CancelFn());
     const std::string label = std::string("neg[") + c.name + "]";
     CHECK(r.status != p3rsmp::Status::Ok, (label + " must be red").c_str());
     CHECK(match_code(r.code, c.expect_code_prefix),

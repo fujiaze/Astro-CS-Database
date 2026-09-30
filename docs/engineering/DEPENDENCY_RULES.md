@@ -1,11 +1,11 @@
 # Dependency Rules
 
-> 上游：docs/ASTROCS_DESIGN.md §8（软件架构）、§12.5（状态阶梯（唯一口径））
+> 上游：docs/ACSD_DESIGN.md §8（软件架构）、§12.5（状态阶梯（唯一口径））
 
 - 唯一 I/O 依赖方向：上层模块 → aio（文件级唯一 I/O 边界）；aio 不依赖
   上层科学模块（最高设计 §10）。
-- 共享面（`astrocs_common`，含 SHA-256 与共享 HEALPix 核心）可被任何模块依赖，依赖方向单向。
-- healpix_drizzle 依赖共享 HEALPix 核心，实现单源 = `lib/algorithms/shared/healpix/healpix_core.cpp`（CMake target `astrocs_common`）。
+- 共享面（`acsd_common`，含 SHA-256 与共享 HEALPix 核心）可被任何模块依赖，依赖方向单向。
+- healpix_drizzle 依赖共享 HEALPix 核心，实现单源 = `lib/algorithms/shared/healpix/healpix_core.cpp`（CMake target `acsd_common`）。
 - phase2 依赖共享 HEALPix 核心 + aio 的产品读写面（`aio_upm` / `aio_hips_reader`）。
   ⛔ **生产构建采用无 ACR/CUDA 的链接面**（最高设计 §1.4 非目标：ACR/GPU 生产路由
   生产不可达）。ACR 为 `DORMANT`：保留源码与隔离测试，

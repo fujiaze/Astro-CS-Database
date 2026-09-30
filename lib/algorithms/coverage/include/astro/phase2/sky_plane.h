@@ -3,7 +3,7 @@
 // Phase2 稀疏天光面（sky plane）公共接口。
 //
 // 权威：
-//   docs/ASTROCS_DESIGN.md §4.4（天光亮度平面稀疏表示、按需求值）
+//   docs/ACSD_DESIGN.md §4.4（天光亮度平面稀疏表示、按需求值）
 //   docs/detail/algorithms_phase2/10_sampling.md（star_mask / sky_samples / 点权重）
 //   docs/detail/algorithms_phase2/11_upm.md §4.1-§4.4（b_k(x)=B_ref(x)+δ_k(x)、SNR 加权最小 RMS）
 //   docs/detail/UNIFIED_MODEL.md §2（sky_samples / sky_plane 数据对象）

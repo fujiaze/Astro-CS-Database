@@ -13,7 +13,7 @@
 
 #include "p3_wcs.h"
 
-using namespace astrocs::phase3;
+using namespace acsd::phase3;
 
 int main(int argc, char** argv) {
     if (argc < 3) return 2;

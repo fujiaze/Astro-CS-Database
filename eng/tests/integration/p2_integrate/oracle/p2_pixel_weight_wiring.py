@@ -17,7 +17,7 @@ import re
 import sys
 
 ADAPTER = "lib/infrastructure/scheduler/src/module_adapters.cpp"
-HEADER = "lib/algorithms/integration/phase2_integrate/include/astrocs/weight_chain.h"
+HEADER = "lib/algorithms/integration/phase2_integrate/include/acsd/weight_chain.h"
 IMPL = "lib/algorithms/integration/phase2_integrate/src/weight_chain.cpp"
 
 # 代码面（去注释）后的禁止形态：帧级 SNR 与层值相乘/相除

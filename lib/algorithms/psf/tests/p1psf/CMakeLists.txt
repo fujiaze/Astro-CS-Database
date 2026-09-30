@@ -47,7 +47,7 @@ target_include_directories(p1psf_tests PRIVATE
   ${P1PSF_INC}
   ${P1PSF_SRC}
   ${P1PSF_DIR})
-target_link_libraries(p1psf_tests PRIVATE ${ASTROCS_OMP_TARGET})
+target_link_libraries(p1psf_tests PRIVATE ${ACSD_OMP_TARGET})
 # 单组单跑: ctest -R "p1psf_(units|properties|oracle|negative|boundary)"
 add_test(NAME p1psf_units      COMMAND p1psf_tests units)
 add_test(NAME p1psf_properties COMMAND p1psf_tests properties)
@@ -63,7 +63,7 @@ target_include_directories(p1psf_perf_test PRIVATE
   ${P1PSF_INC}
   ${P1PSF_SRC}
   ${P1PSF_DIR})
-target_link_libraries(p1psf_perf_test PRIVATE ${ASTROCS_OMP_TARGET})
+target_link_libraries(p1psf_perf_test PRIVATE ${ACSD_OMP_TARGET})
 add_test(NAME p1psf_performance COMMAND p1psf_perf_test)
 
 # ----------------------------------------------------------------------------
@@ -83,7 +83,7 @@ target_include_directories(p1psf_stall_equiv_test PRIVATE
   ${P1PSF_INC}
   ${P1PSF_SRC}
   ${P1PSF_DIR})
-target_link_libraries(p1psf_stall_equiv_test PRIVATE ${ASTROCS_OMP_TARGET})
+target_link_libraries(p1psf_stall_equiv_test PRIVATE ${ACSD_OMP_TARGET})
 add_test(NAME p1psf_stall_equiv COMMAND p1psf_stall_equiv_test)
 
 add_executable(p1psf_stall_equiv_inject_test
@@ -93,7 +93,7 @@ target_include_directories(p1psf_stall_equiv_inject_test PRIVATE
   ${P1PSF_INC}
   ${P1PSF_SRC}
   ${P1PSF_DIR})
-target_link_libraries(p1psf_stall_equiv_inject_test PRIVATE ${ASTROCS_OMP_TARGET})
+target_link_libraries(p1psf_stall_equiv_inject_test PRIVATE ${ACSD_OMP_TARGET})
 target_compile_definitions(p1psf_stall_equiv_inject_test PRIVATE
   P1PSF_STALL_INJECT
   DPSF_BATCH_STALL_ITERS=2)
@@ -107,9 +107,9 @@ set_tests_properties(p1psf_stall_equiv_inject PROPERTIES
 # 依据 AGENTS.md §3 (重计算必须先落盘测量) / ENGINEERING_SPEC.md §7。
 # 与上述测试目标的两点差别:
 #   ① 生产源以 -DDPSF_FIT_DIAG 编入 ⇒ 逐候选诊断面生效 (生产 target
-#      astrocs_p1_dpsf **不定义**该宏, 生产二进制与判据逐位不变; 先例 =
+#      acsd_p1_dpsf **不定义**该宏, 生产二进制与判据逐位不变; 先例 =
 #      sdet_api.cpp 的 #ifdef SDET_TESTING 审计钩子);
-#   ② 需要 aio (读真实 FITS) 与 astrocs_phase1_stars (盲检测候选面),
+#   ② 需要 aio (读真实 FITS) 与 acsd_phase1_stars (盲检测候选面),
 #      以便在**真实帧**上复现节点 p1_op_star_psf_impl 的候选面与拟合输入。
 # 探针只测量、不判据; 不进 CI 默认路径 (不 add_test)。
 # 真实帧复跑命令见 run/FINAL-07/审核包/PSF/ 报告。
@@ -123,7 +123,7 @@ target_include_directories(p1psf_fitcost_probe PRIVATE
   ${P1PSF_SRC}
   ${P1PSF_DIR})
 target_link_libraries(p1psf_fitcost_probe PRIVATE
-  ${ASTROCS_OMP_TARGET} astrocs_aio astrocs_phase1_stars)
+  ${ACSD_OMP_TARGET} acsd_aio acsd_phase1_stars)
 
 # 故障注入必败自检 (验收: baseline 必 PASS + 注入必 FAIL 双向排除恒常)
 add_executable(p1psf_selfcheck_test
@@ -134,7 +134,7 @@ target_include_directories(p1psf_selfcheck_test PRIVATE
   ${P1PSF_INC}
   ${P1PSF_SRC}
   ${P1PSF_DIR})
-target_link_libraries(p1psf_selfcheck_test PRIVATE ${ASTROCS_OMP_TARGET})
+target_link_libraries(p1psf_selfcheck_test PRIVATE ${ACSD_OMP_TARGET})
 add_test(NAME p1psf_selfcheck COMMAND p1psf_selfcheck_test)
 
 # ----------------------------------------------------------------------------
@@ -152,7 +152,7 @@ target_include_directories(p1psf_prodpath_check_test PRIVATE
   ${P1PSF_INC}
   ${P1PSF_SRC}
   ${P1PSF_DIR})
-target_link_libraries(p1psf_prodpath_check_test PRIVATE ${ASTROCS_OMP_TARGET})
+target_link_libraries(p1psf_prodpath_check_test PRIVATE ${ACSD_OMP_TARGET})
 add_test(NAME p1psf_prodpath_centroid COMMAND p1psf_prodpath_check_test)
 
 # ----------------------------------------------------------------------------
@@ -188,13 +188,13 @@ target_include_directories(p1psf_centroid_gate_test PRIVATE
   ${P1PSF_GATE_SDET_DIR}/include
   ${P1PSF_GATE_SDET_DIR}/src
   ${P1PSF_GATE_ORCH_INC})
-# 系统数学库: 平台判断收在共用件 astrocs_platform_math（根 CMakeLists 唯一判定点）
+# 系统数学库: 平台判断收在共用件 acsd_platform_math（根 CMakeLists 唯一判定点）
 # —— 与本文件 :241 的 p1psf_center_contract_gate_test 同一口径。
 # 事实(改前): 裸 m 落在**续行**（命令名在上一行），Windows 冷构建对本目标
 #   实报 LNK1104 "cannot open file 'm.lib'"，而 eng/ci/check_platform_syslib_links.py
 #   逐行匹配命令名 ⇒ 当时对此判绿（恒绿面）。判据已改为按括号配平覆盖续行。
 target_link_libraries(p1psf_centroid_gate_test PRIVATE
-  astrocs_platform_math ${ASTROCS_OMP_TARGET})
+  acsd_platform_math ${ACSD_OMP_TARGET})
 # sdet_log 写 CWD 相对日志 → WORKING_DIRECTORY 隔离; OMP_NUM_THREADS=1 固定
 # 候选拟合归约序 (门要求逐位可复现)。
 file(MAKE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/run)
@@ -243,7 +243,7 @@ target_include_directories(p1psf_center_contract_gate_test PRIVATE
   ${P1PSF_CC_TAN_DIR}
   ${P1PSF_CC_ORCH_INC}
   ${P1PSF_DIR})
-target_link_libraries(p1psf_center_contract_gate_test PRIVATE astrocs_platform_math ${ASTROCS_OMP_TARGET})
+target_link_libraries(p1psf_center_contract_gate_test PRIVATE acsd_platform_math ${ACSD_OMP_TARGET})
 add_test(NAME p1psf_center_contract_gate COMMAND p1psf_center_contract_gate_test)
 add_test(NAME p1psf_center_contract_gate_neg
   COMMAND p1psf_center_contract_gate_test negative-injection)

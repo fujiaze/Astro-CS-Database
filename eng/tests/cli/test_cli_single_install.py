@@ -7,7 +7,7 @@ CLI = os.path.join(REPO, "lib", "infrastructure", "cli")
 
 # 非发布(旧 phase/benchmark/tool/test)exe 名: 泄漏到 install 树任一都是违规
 LEGACY_EXES = re.compile(
-    r"^(orchestrator\.exe|astrocs-stage2|phase2|acr-benchmark|acr-report|acr-classic-runner|"
+    r"^(orchestrator\.exe|acsd-stage2|phase2|acr-benchmark|acr-report|acr-classic-runner|"
     r"browser_cli|healpix_browser_qt|calibrated_pair_diag|rejection_cli|"
     r"phase1|phase2_synthetic_gate|phase2_ivar_wiring|phase2_execution_options|"
     r"phase2_routing|phase2_async_io|phase2_sampler_parallel)$", re.I)
@@ -21,8 +21,8 @@ class TestCliSingleInstall(unittest.TestCase):
         # BLD-002 冻结合同 (3e7f7581): 唯一产品事实源 = 根 CMakeLists, cli 子图
         # 禁止 install 规则。扫描对象改用根图构建树 (CI build 步产出; 漂移修复)。
         # 断言语义不变: install 树恰一个用户 exe acsd + 无 legacy exe 泄漏。
-        # DISPATCH 附录 H（构建隔离）: 被测构建树 = 被测二进制所在目录; ASTROCS_CLI_BIN 覆盖。
-        _bin = os.environ.get("ASTROCS_CLI_BIN")
+        # DISPATCH 附录 H（构建隔离）: 被测构建树 = 被测二进制所在目录; ACSD_CLI_BIN 覆盖。
+        _bin = os.environ.get("ACSD_CLI_BIN")
         cls.bdir = (os.path.dirname(os.path.abspath(_bin)) if _bin
                     else os.path.join(REPO, "build"))
         # install 规则源 = 真实 CMake 构建目录(有 CMakeCache.txt); 根 build/

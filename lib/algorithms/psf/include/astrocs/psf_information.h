@@ -13,14 +13,14 @@
  * 纪律: 本头/源不接线 session; 不含任何权重/方差反推; 不引用 legacy median SNR。
  * 复用: 无 (纯 std + libm)。
  */
-#ifndef ASTROCS_V6_P1PSFW_PSF_INFORMATION_H
-#define ASTROCS_V6_P1PSFW_PSF_INFORMATION_H
+#ifndef ACSD_V6_P1PSFW_PSF_INFORMATION_H
+#define ACSD_V6_P1PSFW_PSF_INFORMATION_H
 
 #include <cstddef>
 #include <string>
 #include <vector>
 
-namespace astrocs {
+namespace acsd {
 namespace v6 {
 namespace p1psfw {
 
@@ -90,6 +90,6 @@ double measure_encircled_energy(const double* profile, std::size_t n, double rad
 
 }  /* namespace p1psfw */
 }  /* namespace v6 */
-}  /* namespace astrocs */
+}  /* namespace acsd */
 
-#endif /* ASTROCS_V6_P1PSFW_PSF_INFORMATION_H */
+#endif /* ACSD_V6_P1PSFW_PSF_INFORMATION_H */

@@ -490,7 +490,7 @@ int test_units() {
 
     // ── U9: F6 aperture 重锚 (p1_wcs_phot_test 4 组对齐) ─────────────────
     {
-        using astrocs::phase1::Photometer;
+        using acsd::phase1::Photometer;
         // (1) 已知通量: oracle 独立逐像素求和对拍 + 常数背景精确
         {
             SplitMix64 rng(0x5EED00000000A90FULL);

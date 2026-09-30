@@ -291,7 +291,7 @@ int main(int argc, char** argv) {
                     um <= 0.0f)
                     continue;
                 const std::uint64_t local =
-                    astrocs::healpix::fits_index_to_nested_local(
+                    acsd::healpix::fits_index_to_nested_local(
                         (std::uint64_t)k, (std::uint32_t)kTileShift,
                         (std::uint32_t)kTileWidth);
                 leaves.push_back((t << (2u * (unsigned)kTileShift)) | local);
@@ -311,7 +311,7 @@ int main(int argc, char** argv) {
             }
             for (std::size_t k = 0; k < leaves.size(); ++k) {
                 double ra = 0, dec = 0;
-                astrocs::healpix::pix2ang_nest(
+                acsd::healpix::pix2ang_nest(
                     1u << (unsigned)(kLeafOrder + kTileShift), leaves[k], ra,
                     dec);
                 ps.ra.push_back(ra);

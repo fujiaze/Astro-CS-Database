@@ -11,9 +11,9 @@
 //
 // 定案（FREF-BASELINE-001, 负责人「直接用 6 等星/一个数值表示比较正常的星等
 // 来做基准」）: F_ref,k = 10^(-0.4*(m_ref - ZP_k))，ZP_k = ZP_syn,k - 2.5*log10 k_photo,k。
-//   头部 ASTROCS_REFERENCE_FLUX 写**物理公共锚** F0 = 10^(-0.4*(m_ref - ZP_syn))。
+//   头部 ACSD_REFERENCE_FLUX 写**物理公共锚** F0 = 10^(-0.4*(m_ref - ZP_syn))。
 //
-// 本锁经**生产模块注册表**跑真实 op (astrocs.phase1.noise-snr)，两个 case:
+// 本锁经**生产模块注册表**跑真实 op (acsd.phase1.noise-snr)，两个 case:
 //   OLD   : 上游 p1_phot.json **无** photscale_fit（改前形态）⇒ 参考通量只能
 //           退化为块级中位数 ⇒ 下列"固定星等"断言必须**全红**（RED 判据）。
 //   NEW   : 上游 p1_phot.json **有** photscale_fit ⇒ 固定星等绝对基准生效 ⇒
@@ -27,9 +27,9 @@
 //      （OLD 形态下 N5 必红: F_ref 是块级中位数, 必然随帧集改变）
 // 该文件在改前(pristine)生产源上编译运行 ⇒ N1–N5 全红; 改后 GREEN。
 // ============================================================================
-#include "astrocs/core/module.h"
-#include "astrocs/core/module_adapters.h"
-#include "astrocs/core/context.h"
+#include "acsd/core/module.h"
+#include "acsd/core/module_adapters.h"
+#include "acsd/core/context.h"
 
 #include "p1sess_fixtures.hpp"
 
@@ -52,7 +52,7 @@
 
 using json = nlohmann::json;
 namespace fs = std::filesystem;
-using namespace astrocs::core;
+using namespace acsd::core;
 
 static int g_fail = 0;
 static int g_check = 0;
@@ -131,7 +131,7 @@ static bool prep_case(ModuleRegistry& reg, const std::string& od, bool with_fit,
     cfg["input_lights"] = json::array({lights[i]});
     cfg["output_dir"] = od;
     cfg["psf"] = json{{"max_stars", 0}};
-    if (!run_node(reg, "astrocs.phase1.star-psf", cfg.dump(), err)) return false;
+    if (!run_node(reg, "acsd.phase1.star-psf", cfg.dump(), err)) return false;
     json sj = read_json(od + "/p1_sources.json");
     json fr = sj["frames"][0];
     // 两帧给不同噪声（模拟真实帧间噪声差），使 SNR 帧间散度可观测
@@ -148,9 +148,9 @@ static bool prep_case(ModuleRegistry& reg, const std::string& od, bool with_fit,
 
   // p1_phot.json: OLD 形态无 photscale_fit; NEW 形态有（含 zero_point_mag）
   json prov = json{{"schema", "DATA-P1-PHOTPROV-001"},
-                   {"node", "astrocs.phase1.photometry"},
+                   {"node", "acsd.phase1.photometry"},
                    {"operation", "measure_flux"},
-                   {"entry", "astrocs_phase1_photometry_v1"},
+                   {"entry", "acsd_phase1_photometry_v1"},
                    {"photometry_applied", false},
                    {"photscal", 1.0},
                    {"pixel_scaling", "none"},
@@ -186,7 +186,7 @@ static bool run_noise2(ModuleRegistry& reg, const std::string& od,
                                        : json::array({light1, light2});
   cfg["output_dir"] = od;
   cfg["snr"] = json::object();   // 走 FREF-BASELINE 默认 m_ref = 6.0
-  if (!run_node(reg, "astrocs.phase1.noise-snr", cfg.dump(), err)) return false;
+  if (!run_node(reg, "acsd.phase1.noise-snr", cfg.dump(), err)) return false;
   *snr_out = read_json(od + "/p1_snr.json");
   return true;
 }

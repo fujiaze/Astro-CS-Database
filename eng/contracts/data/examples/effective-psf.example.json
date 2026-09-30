@@ -1,5 +1,5 @@
 {
-  "effective_psf_schema": "astrocs.v6.effective-psf/v1",
+  "effective_psf_schema": "acsd.v6.effective-psf/v1",
   "schema_version": 1,
   "effective_psf_id": "epsf_run3_psfsw",
   "definition": "impulse_response_of_combination",

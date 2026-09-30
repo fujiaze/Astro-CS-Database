@@ -1,6 +1,6 @@
 # 性能模型
 
-> 上游：`docs/ASTROCS_DESIGN.md` §8（软件架构）、§9（CPU 后端与资源）
+> 上游：`docs/ACSD_DESIGN.md` §8（软件架构）、§9（CPU 后端与资源）
 
 ## 0 结构原则与来源
 
@@ -24,7 +24,7 @@
 ## 1 编排参数标定（探针驱动）
 
 > 上游条款：`docs/engineering/SCHEDULER_CONTRACT.md` §3（编排参数的**最终取值**由探针基于
-> 实测数据确定，合同只保证机制正确与探针齐全）；`docs/ASTROCS_DESIGN.md` §9（探针驱动优化）。
+> 实测数据确定，合同只保证机制正确与探针齐全）；`docs/ACSD_DESIGN.md` §9（探针驱动优化）。
 > 并行轴语义（含帧内 OpenMP 度公式与轴不变式）唯一正本 = `docs/engineering/execution_options_contract.md`；
 > 本节只给编排参数的结构结论与冻结取值，不复制轴公式。
 

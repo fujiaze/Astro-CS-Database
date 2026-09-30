@@ -1,10 +1,10 @@
 // CORE-007 单元测试: checkpoint 幂等恢复 / 半成品拒绝
-#include "astrocs/core/checkpoint.h"
+#include "acsd/core/checkpoint.h"
 
 #include <cstdio>
 #include <string>
 
-using namespace astrocs::core;
+using namespace acsd::core;
 
 static int failures = 0;
 #define CHECK(cond)                                                       \

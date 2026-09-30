@@ -7,7 +7,7 @@
  *
  * 本 probe 不读取核心数; 不执行 AVX* 指令; 可重入。
  */
-#include "astrocs/cpu/capability_v1.h"
+#include "acsd/cpu/capability_v1.h"
 
 #include <stdio.h>
 #include <string.h>
@@ -17,16 +17,16 @@ static const char* yn(int v) { return v ? "yes" : "no"; }
 int main(int argc, char** argv) {
     (void)argc;
     (void)argv;
-    acs_cap_result_v1 cap;
+    acsd_cap_result_v1 cap;
     memset(&cap, 0, sizeof(cap));
     cap.abi_version = ACS_CAP_ABI_VERSION_V1;
-    const int rc = acs_cap_detect_v1(&cap);
+    const int rc = acsd_cap_detect_v1(&cap);
     if (rc != ACS_CAP_OK) {
-        fprintf(stderr, "acs_cap_detect_v1 rc=%d (unsupported arch?) no JSON output\n", rc);
+        fprintf(stderr, "acsd_cap_detect_v1 rc=%d (unsupported arch?) no JSON output\n", rc);
         return rc == ACS_CAP_ERR_ABI_MISMATCH ? 2 : 5;
     }
     char buf[16384];
-    const size_t need = acs_cap_serialize_json_v1(&cap, buf, sizeof(buf), NULL, 0);
+    const size_t need = acsd_cap_serialize_json_v1(&cap, buf, sizeof(buf), NULL, 0);
     if (need == 0 || need >= sizeof(buf)) {
         fprintf(stderr, "serialize failed (need=%zu)\n", need);
         return 1;

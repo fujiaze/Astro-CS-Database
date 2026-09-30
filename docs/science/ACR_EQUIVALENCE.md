@@ -1,11 +1,11 @@
 # ACR Work-Domain Equivalence Science (SCI-ACR-EQUIV)
 
-> 上游：ASTROCS_DESIGN.md §1.3（非目标）、§4（normalize）
+> 上游：ACSD_DESIGN.md §1.3（非目标）、§4（normalize）
 
 ## 1 目的与非目标
 
 - **目的**：定义 CPU / GPU / 混合分块的工作域 `equiv`、数值等价边界与失败回退语义，使 `phase2` 加权叠加在任意 `ACR` 调度下科学结果一致，允许的数值差异仅来自编译器/FMA/归约阶且预冻结冻结。
-- **生产地位**：`ACR` 是隔离实验，生产不可达（`ASTROCS_DESIGN.md` §1.3/§8.1）；本文件定义其工作域等价边界，供隔离实验与回归使用。
+- **生产地位**：`ACR` 是隔离实验，生产不可达（`ACSD_DESIGN.md` §1.3/§8.1）；本文件定义其工作域等价边界，供隔离实验与回归使用。
 - **非目标**：不决定 `ACR` 资源调度/性能优化（见 `PERFORMANCE_MODEL.md`）；不定义 `ACR` 通用硬件画像（聚焦 `phase2` 热点）；不改变 `phase2` 权重/排异科学（`acr_kernels.cpp: CPU reference 是权威 science semantics`）。
 
 ## 2 符号表
@@ -39,7 +39,7 @@
 - **标量布局（正向约束，按 `append_scalar` 紧凑追加顺序、无填充）**：10 槽、共 **60 字节**，逐槽偏移 `px@0 / depth@8 / method@16 / und_n@20 / lo@24 / hi@32 / max_it@40 / p0@44 / wmode@52 / workers@56`。注册声明的 `args.scalar_bytes` **必须等于**该布局字节数：`validate_invocation` 按**精确相等**判定（`lib/infrastructure/acr/api/kernel_registry.cpp`），语义不是「不小于」。
 - **缺省与符号约定**：`method=1u`、`underdetermined_n=2u`、`max_iterations=8`、`p0=0`、`wmode=0`、`workers=1`；`sigma_lower=-4.0`、`sigma_upper=3.0` 的**符号位不承载语义**——CPU launcher 取 `fabs` 后写入 `plan.sigma.lower_sigma/upper_sigma`（`acr_kernels.cpp`），CUDA launcher 以 `-fabs(lo)`/`+fabs(hi)` 传入（`acr_kernels.cpp`）；两侧默认量值等价（`|lower|=4.0`、`upper=3.0`）。
 - 逐像素 ivar 权重时 `ACR` 块禁用，走 CPU `canonical p2_integrate_pixel` 路径（`ACR-IVAR-001`），不进入 `GPU/Mixed` 分块。
-  - **可判定条件**：`p2_acr_block_eligible(...)`（`stage2_common.cpp`）在本仓**恒返回 `false`**——冻结口径下生产只剩「逐样本逆方差」一条权重路径，而该路径按 `ACR-IVAR-001` 必须走 CPU canonical。⇒ **ACR 块在生产不可达是构造性结论**，不存在任何合法配置能进入该块（`stage2.cpp`）；ACR 等价门只在隔离实验/回归域内有意义（`ASTROCS_DESIGN.md` §1.3/§8.1）。
+  - **可判定条件**：`p2_acr_block_eligible(...)`（`stage2_common.cpp`）在本仓**恒返回 `false`**——冻结口径下生产只剩「逐样本逆方差」一条权重路径，而该路径按 `ACR-IVAR-001` 必须走 CPU canonical。⇒ **ACR 块在生产不可达是构造性结论**，不存在任何合法配置能进入该块（`stage2.cpp`）；ACR 等价门只在隔离实验/回归域内有意义（`ACSD_DESIGN.md` §1.3/§8.1）。
 - `acr_route∈{auto,cpu}`，其他取值在配置解析期显式拒绝（`stage2_common.cpp`）。
 
 ## 5 连续定义
@@ -170,7 +170,7 @@
 
 - **浮点语义与归约非结合**：IEEE 754-2019, IEEE Standard for Floating-Point Arithmetic；Goldberg, D. 1991, ACM Computing Surveys 23, 5（DOI 10.1145/103162.103163）。
 - **归约误差界/确定性求和**：Higham, N. J. 2002, Accuracy and Stability of Numerical Algorithms, 2nd ed., SIAM（ISBN 0-89871-521-0）；可复现求和技术见 Demmel, J. & Nguyen, H. D. 2013, “Fast Reproducible Floating-Point Summation”, Proc. 21st IEEE Symp. Computer Arithmetic (ARITH)。
-- **并行执行语义**：OpenMP Application Programming Interface（OpenMP ARB）——本模块 fallback 路径（§5）的语义基础；ACR 为隔离实验，生产不可达（`ASTROCS_DESIGN.md` §1.3/§8.1）。
+- **并行执行语义**：OpenMP Application Programming Interface（OpenMP ARB）——本模块 fallback 路径（§5）的语义基础；ACR 为隔离实验，生产不可达（`ACSD_DESIGN.md` §1.3/§8.1）。
 - **CPU reference 为权威 science semantics**：Project-defined（§5）；GPU/Mixed 仅加速热点，不改变 rejection/integrate 语义。
 
 参考代码库（含许可证）正本 = docs/engineering/SCIENTIFIC_REFERENCES.md §M。

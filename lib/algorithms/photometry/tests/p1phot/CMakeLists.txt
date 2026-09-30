@@ -4,7 +4,7 @@
 # 控制包任务: P1-PHOT-TEST (lock-P1-PHOT; 依赖 P1-PHOT-DOC 闭环)。合同锚:
 # docs/science/algorithms/PHOTOMETRIC_FIT.md §13.4 TEST-PHOT-DESIGN-001 (P1-PHOT-DOC
 # 冻结, 2026-09-07); docs/science/PHOTOMETRY.md §11 (SCI-PHOT-001 FROZEN);
-# 矩阵行 P1-PHOT (MOD-astrocs-phase1-photometry, API-PHOT-001 六导出)。
+# 矩阵行 P1-PHOT (MOD-acsd-phase1-photometry, API-PHOT-001 六导出)。
 #
 # 结构 (模块 eng/tests/{unit,properties,oracle,fixtures,negative,performance} 对应):
 #   p1phot/p1phot_fixtures.hpp      — FIX-PHOT-A..F 固定 seed fixture
@@ -68,7 +68,7 @@ set(P1PHOT_PROD_SOURCES
   ${P1PHOT_SRC}/spatial_gain.cpp
   ${P1PHOT_LIB}/algorithms/calibration/src/photometry_apply.cpp
   # PHOT-MXY-01: 可辨识性判据 = 仓内唯一实现 (coverage/src/identifiability.cpp,
-  # 与 astrocs_phase2 同一份源码; 测试 target 沿用「生产源零修改编入」先例)
+  # 与 acsd_phase2 同一份源码; 测试 target 沿用「生产源零修改编入」先例)
   ${P1PHOT_LIB}/algorithms/coverage/src/identifiability.cpp
   # F6 legacy 旧符号 (README §9; 只读引用, 不改生产面)
   ${P1PHOT_LIB}/algorithms/photometry/wrapper_phase1/photometer.cpp

@@ -13,7 +13,7 @@
 //
 // 被测面: 现状唯一生产实现 ac_correct_frame(+_f64) C ABI
 // (lib/algorithms/calibration/src/cosmetic_corrector.cpp + ac_api.cpp, CMake
-// astrocs_calibration); 期望值一律由 p1cos_oracle.hpp 独立 oracle 推导。
+// acsd_calibration); 期望值一律由 p1cos_oracle.hpp 独立 oracle 推导。
 #include "astro_calibration.h"
 
 #include <algorithm>

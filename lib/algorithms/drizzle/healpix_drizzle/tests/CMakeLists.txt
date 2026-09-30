@@ -38,7 +38,7 @@ target_include_directories(drizzle_acceptance_test PRIVATE
 target_compile_definitions(drizzle_acceptance_test PRIVATE
   AIO_ENABLE_FITS AIO_ENABLE_HEALPIX)
 target_link_libraries(drizzle_acceptance_test PRIVATE
-  astrocs_drizzle ${ASTROCS_OMP_TARGET})
+  acsd_drizzle ${ACSD_OMP_TARGET})
 # 常态门 = A..D + T 分片 (位置 / pixfrac×过采样 / 双向投影 / 尺度×nside /
 # 数值类型)。实测 ~5 min (52 checks, 0 fail)。
 # E 段 (广域大畸变, 1024² SIP order=5 @ nside=65536) 的**几何构建**是小时级
@@ -89,7 +89,7 @@ target_include_directories(drizzle_freeze_test PRIVATE
 target_compile_definitions(drizzle_freeze_test PRIVATE
   AIO_ENABLE_FITS AIO_ENABLE_HEALPIX)
 target_link_libraries(drizzle_freeze_test PRIVATE
-  astrocs_drizzle ${ASTROCS_OMP_TARGET})
+  acsd_drizzle ${ACSD_OMP_TARGET})
 add_test(NAME drizzle_freeze COMMAND drizzle_freeze_test)
 set_tests_properties(drizzle_freeze PROPERTIES
   WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}" TIMEOUT 1800)
@@ -104,7 +104,7 @@ target_include_directories(candidate_oracle_test PRIVATE
 target_compile_definitions(candidate_oracle_test PRIVATE
   AIO_ENABLE_FITS AIO_ENABLE_HEALPIX)
 target_link_libraries(candidate_oracle_test PRIVATE
-  astrocs_drizzle ${ASTROCS_OMP_TARGET})
+  acsd_drizzle ${ACSD_OMP_TARGET})
 # 注意: candidate_oracle_test 的 argv[1] 是 **JSONL 文件路径**(不是目录),
 # 与 acceptance_drizzle.py 读 `<out_dir>/candidate_matrix.jsonl` 的口径对齐。
 add_test(NAME drizzle_candidate_oracle
@@ -123,7 +123,7 @@ target_include_directories(control_median_mc_test PRIVATE
 target_compile_definitions(control_median_mc_test PRIVATE
   AIO_ENABLE_FITS AIO_ENABLE_HEALPIX)
 target_link_libraries(control_median_mc_test PRIVATE
-  astrocs_drizzle ${ASTROCS_OMP_TARGET})
+  acsd_drizzle ${ACSD_OMP_TARGET})
 add_test(NAME drizzle_control_median_mc COMMAND control_median_mc_test)
 set_tests_properties(drizzle_control_median_mc PROPERTIES
   WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}" TIMEOUT 1800)
@@ -138,7 +138,7 @@ target_include_directories(test_spherical_overlap PRIVATE
 target_compile_definitions(test_spherical_overlap PRIVATE
   AIO_ENABLE_FITS AIO_ENABLE_HEALPIX)
 target_link_libraries(test_spherical_overlap PRIVATE
-  astrocs_drizzle ${ASTROCS_OMP_TARGET})
+  acsd_drizzle ${ACSD_OMP_TARGET})
 add_test(NAME drizzle_spherical_overlap COMMAND test_spherical_overlap)
 set_tests_properties(drizzle_spherical_overlap PROPERTIES
   WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}" TIMEOUT 600)
@@ -168,7 +168,7 @@ set(DRZ_EXTRA_TESTS
   variance_propagation_test
   oracle_edge_crossing_test
   oracle_independent_test
-  # drizzle_nonfinite_test 需要 coverage 的 astro/phase2/integrate.h + astrocs_phase2
+  # drizzle_nonfinite_test 需要 coverage 的 astro/phase2/integrate.h + acsd_phase2
   # (跨模块依赖), 单独处理见下。
   concurrency_cache_test
   p0_sip_order_guard_test
@@ -185,12 +185,12 @@ foreach(_t ${DRZ_EXTRA_TESTS})
   add_executable(${_t} ${DRZ_TESTS_DIR}/${_t}.cpp)
   target_include_directories(${_t} PRIVATE ${DRZ_MODULE_DIR})
   target_compile_definitions(${_t} PRIVATE AIO_ENABLE_FITS AIO_ENABLE_HEALPIX)
-  target_link_libraries(${_t} PRIVATE astrocs_drizzle ${ASTROCS_OMP_TARGET})
+  target_link_libraries(${_t} PRIVATE acsd_drizzle ${ACSD_OMP_TARGET})
   set_target_properties(${_t} PROPERTIES EXCLUDE_FROM_ALL FALSE)
 endforeach()
 
 # 7b. drizzle_nonfinite_test: 依赖 coverage 的头与库 (astro/phase2/integrate.h、
-#     astrocs_phase2), 单独给 include/链接面。
+#     acsd_phase2), 单独给 include/链接面。
 add_executable(drizzle_nonfinite_test
   ${DRZ_TESTS_DIR}/drizzle_nonfinite_test.cpp)
 target_include_directories(drizzle_nonfinite_test PRIVATE
@@ -199,7 +199,7 @@ target_include_directories(drizzle_nonfinite_test PRIVATE
 target_compile_definitions(drizzle_nonfinite_test PRIVATE
   AIO_ENABLE_FITS AIO_ENABLE_HEALPIX)
 target_link_libraries(drizzle_nonfinite_test PRIVATE
-  astrocs_drizzle astrocs_phase2 ${ASTROCS_OMP_TARGET})
+  acsd_drizzle acsd_phase2 ${ACSD_OMP_TARGET})
 
 # 8. 科学矩阵 (ulp_distribution.json + leaf_comparison.jsonl 的生产者)
 #    产物落 acceptance 的同一 outdir: strategies 与 runner 的 G 段口径一致。
@@ -209,7 +209,7 @@ target_include_directories(drizzle_science_matrix_test PRIVATE ${DRZ_MODULE_DIR}
 target_compile_definitions(drizzle_science_matrix_test PRIVATE
   AIO_ENABLE_FITS AIO_ENABLE_HEALPIX)
 target_link_libraries(drizzle_science_matrix_test PRIVATE
-  astrocs_drizzle ${ASTROCS_OMP_TARGET})
+  acsd_drizzle ${ACSD_OMP_TARGET})
 add_test(NAME drizzle_science_matrix
   COMMAND drizzle_science_matrix_test ${CMAKE_BINARY_DIR}/drizzle_acceptance)
 set_tests_properties(drizzle_science_matrix PROPERTIES
@@ -246,7 +246,7 @@ foreach(_t ${DRZ_PROBE_TESTS})
     ${CMAKE_SOURCE_DIR}/lib/infrastructure/aio/include)
   target_compile_definitions(${_t} PRIVATE AIO_ENABLE_FITS AIO_ENABLE_HEALPIX)
   target_link_libraries(${_t} PRIVATE
-    astrocs_drizzle astrocs_hips ${ASTROCS_OMP_TARGET})
+    acsd_drizzle acsd_hips ${ACSD_OMP_TARGET})
 endforeach()
 
 # 9b. mini_sip1000: P0-1 SIP order 越界负例 driver。
@@ -257,7 +257,7 @@ target_include_directories(mini_sip1000 PRIVATE ${DRZ_MODULE_DIR})
 target_compile_definitions(mini_sip1000 PRIVATE
   AIO_ENABLE_FITS AIO_ENABLE_HEALPIX)
 target_link_libraries(mini_sip1000 PRIVATE
-  astrocs_drizzle ${ASTROCS_OMP_TARGET})
+  acsd_drizzle ${ACSD_OMP_TARGET})
 add_test(NAME drizzle_sip_order_guard_mini COMMAND mini_sip1000)
 set_tests_properties(drizzle_sip_order_guard_mini PROPERTIES
   WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}" TIMEOUT 300)
@@ -268,7 +268,7 @@ target_include_directories(reference_overlap PRIVATE ${DRZ_MODULE_DIR})
 target_compile_definitions(reference_overlap PRIVATE
   AIO_ENABLE_FITS AIO_ENABLE_HEALPIX)
 target_link_libraries(reference_overlap PRIVATE
-  astrocs_drizzle ${ASTROCS_OMP_TARGET})
+  acsd_drizzle ${ACSD_OMP_TARGET})
 # **不注册 ctest**: 一次性实跑该独立蒙特卡洛参考路径得 "32 通过, 3 失败"
 # (登记取证 reference_overlap.txt): 三条断言分别差
 # 3.4e-19 (tol 3.0e-20)、2.6e-6 (tol 4.1e-13)、rel_err 1.04e-6 (tol 1e-6)。
@@ -288,7 +288,7 @@ if(WIN32)
   target_compile_definitions(drizzle_l3_full_fp32 PRIVATE
     AIO_ENABLE_FITS AIO_ENABLE_HEALPIX)
   target_link_libraries(drizzle_l3_full_fp32 PRIVATE
-    astrocs_drizzle ${ASTROCS_OMP_TARGET})
+    acsd_drizzle ${ACSD_OMP_TARGET})
   add_test(NAME drizzle_l3_full_fp32 COMMAND drizzle_l3_full_fp32)
   set_tests_properties(drizzle_l3_full_fp32 PROPERTIES
     WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}" TIMEOUT 1800)
@@ -315,7 +315,7 @@ set_tests_properties(drizzle_pf_sb_variance PROPERTIES
 #      发布的 signal/variance 必须是面亮度口径 (读回落盘 FITS, 非只看累加器)。
 #      profile=0 = write_hips_direct (生产管线 orchestrator -> hp_drizzle_run_hips
 #      走这一支), profile=1 = write_hips_phase1。
-#      负例 (同一可执行 + 同一判据): ASTROCS_DRZ_SB_FAULT=legacy_dp_normalization
+#      负例 (同一可执行 + 同一判据): ACSD_DRZ_SB_FAULT=legacy_dp_normalization
 #      复现修复前缺陷 (直写漏乘 k=D_p/N_p) ⇒ 必须判红 (WILL_FAIL)。
 # ----------------------------------------------------------------------------
 add_executable(drizzle_pf_sb_gate ${DRZ_TESTS_DIR}/drizzle_pf_sb_gate.cpp)
@@ -326,7 +326,7 @@ target_include_directories(drizzle_pf_sb_gate PRIVATE
 target_compile_definitions(drizzle_pf_sb_gate PRIVATE
   AIO_ENABLE_FITS AIO_ENABLE_HEALPIX)
 target_link_libraries(drizzle_pf_sb_gate PRIVATE
-  astrocs_drizzle astrocs_hips ${ASTROCS_OMP_TARGET})
+  acsd_drizzle acsd_hips ${ACSD_OMP_TARGET})
 add_test(NAME drizzle_pf_sb_gate
   COMMAND drizzle_pf_sb_gate ${CMAKE_BINARY_DIR}/drizzle_pf_sb_gate)
 set_tests_properties(drizzle_pf_sb_gate PROPERTIES
@@ -336,7 +336,7 @@ add_test(NAME drizzle_pf_sb_gate_legacy_injection
 set_tests_properties(drizzle_pf_sb_gate_legacy_injection PROPERTIES
   WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}" TIMEOUT 600
   WILL_FAIL TRUE
-  ENVIRONMENT "ASTROCS_DRZ_SB_FAULT=legacy_dp_normalization")
+  ENVIRONMENT "ACSD_DRZ_SB_FAULT=legacy_dp_normalization")
 
 
 # ============================================================================
@@ -348,7 +348,7 @@ set_tests_properties(drizzle_pf_sb_gate_legacy_injection PROPERTIES
 # 判据口径 = docs/science/algorithms/DRIZZLE_GEOMETRY.md §9「面积守恒闭合」:
 #   逐 drop |Σ_j a_jp − A_drop,p| ≤ max(1e-6·A_drop,p, 1e-15 sr)；帧级 ≤ 1e-4。
 # 参考面积由门内自算（long double VOS），不复用被测路径。
-# 负例（同一可执行 + 同一判据）: ASTROCS_DRZ_P3_FAULT=legacy_corner_fast 注入
+# 负例（同一可执行 + 同一判据）: ACSD_DRZ_P3_FAULT=legacy_corner_fast 注入
 #   订正前行为（叶多边形顶点全含判定 + 返回 π/(3N²)）⇒ 必须判红（WILL_FAIL）。
 # self-test: 判据正例/负例/边界 + "旧相对口径在接缝域结构性不可达"对照。
 # ============================================================================
@@ -357,7 +357,7 @@ target_include_directories(p3_conservation_gate PRIVATE ${DRZ_MODULE_DIR})
 target_compile_definitions(p3_conservation_gate PRIVATE
   AIO_ENABLE_FITS AIO_ENABLE_HEALPIX)
 target_link_libraries(p3_conservation_gate PRIVATE
-  astrocs_drizzle ${ASTROCS_OMP_TARGET})
+  acsd_drizzle ${ACSD_OMP_TARGET})
 add_test(NAME drizzle_p3_conservation COMMAND p3_conservation_gate)
 set_tests_properties(drizzle_p3_conservation PROPERTIES
   WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}" TIMEOUT 1800)
@@ -367,13 +367,13 @@ set_tests_properties(drizzle_p3_conservation_self_test PROPERTIES
 add_test(NAME drizzle_p3_conservation_legacy_injection COMMAND p3_conservation_gate --quiet)
 set_tests_properties(drizzle_p3_conservation_legacy_injection PROPERTIES
   WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}" TIMEOUT 900
-  ENVIRONMENT "ASTROCS_DRZ_P3_FAULT=legacy_corner_fast"
+  ENVIRONMENT "ACSD_DRZ_P3_FAULT=legacy_corner_fast"
   WILL_FAIL TRUE)
 
 # ============================================================================
 # 11. M42-CONC-FIX-01 / 缺陷 B: drizzle_trace 全局量跨帧并发回归
 # ----------------------------------------------------------------------------
-# 打开 ASTROCS_DRIZZLE_TRACE 后多帧并发跑 drizzleTiled, 覆盖 init_from_env /
+# 打开 ACSD_DRIZZLE_TRACE 后多帧并发跑 drizzleTiled, 覆盖 init_from_env /
 # ensure_selection / selected / push_source / push_leaf / flush / clear_buffers
 # 的**读写两侧**并发 (跨帧并发形态 = scheduler module_adapters 的 p1_parallel_for)。
 # 修复前 flush() 无锁遍历 g_sources/g_leaves, 与 push_source 追加、clear_buffers
@@ -388,7 +388,7 @@ target_include_directories(drizzle_trace_concurrency_test PRIVATE ${DRZ_MODULE_D
 target_compile_definitions(drizzle_trace_concurrency_test PRIVATE
   AIO_ENABLE_FITS AIO_ENABLE_HEALPIX)
 target_link_libraries(drizzle_trace_concurrency_test PRIVATE
-  astrocs_drizzle ${ASTROCS_OMP_TARGET})
+  acsd_drizzle ${ACSD_OMP_TARGET})
 add_test(NAME drizzle_trace_concurrency
   COMMAND drizzle_trace_concurrency_test ${CMAKE_BINARY_DIR}/drizzle_trace_conc)
 set_tests_properties(drizzle_trace_concurrency PROPERTIES

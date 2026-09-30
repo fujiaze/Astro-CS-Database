@@ -14,12 +14,12 @@
 #include <vector>
 
 extern "C" {
-int astrocs_host_services_default_v1(astrocs_host_services_v1* out, void** state_out);
-void astrocs_host_services_destroy_state_v1(void* state);
-void astrocs_host_state_set_budget_v1(void* state, uint32_t cpus, uint32_t max_workers,
-                                      astrocs_host_services_v1* out);
-int astrocs_backend_get_api_v1(uint32_t, uint32_t, const astrocs_host_services_v1*,
-                               astrocs_backend_api_v1*);
+int acsd_host_services_default_v1(acsd_host_services_v1* out, void** state_out);
+void acsd_host_services_destroy_state_v1(void* state);
+void acsd_host_state_set_budget_v1(void* state, uint32_t cpus, uint32_t max_workers,
+                                      acsd_host_services_v1* out);
+int acsd_backend_get_api_v1(uint32_t, uint32_t, const acsd_host_services_v1*,
+                               acsd_backend_api_v1*);
 }
 
 namespace {
@@ -43,9 +43,9 @@ struct SynKernel {
 // duration_sec 目标: 10-30s(规格); 通过帧数 FR 控制总工作量。
 std::vector<float> g_in0, g_in1, g_in2, g_in3, g_out, g_out1;
 
-void run_kernel(const astrocs_host_services_v1* host, const astrocs_backend_api_v1* api,
+void run_kernel(const acsd_host_services_v1* host, const acsd_backend_api_v1* api,
                 const SynKernel& sk, uint32_t frames, uint32_t* workers_used) {
-    acs_baseline_params_v1 p;
+    acsd_baseline_params_v1 p;
     std::memset(&p, 0, sizeof(p));
     p.head.struct_size = sizeof(p);
     p.head.abi_version = ACS_ABI_VERSION_V1;
@@ -62,7 +62,7 @@ void run_kernel(const astrocs_host_services_v1* host, const astrocs_backend_api_
         for (uint32_t r = 1; r <= W * H; ++r) g_in2[r] = static_cast<float>(r * sk.aux0 / (W * H));
     }
     const uint32_t reps = frames;
-    const acs_status rc = api->kernels[0].fn(host, &p, sizeof(p), nullptr, nullptr);
+    const acsd_status rc = api->kernels[0].fn(host, &p, sizeof(p), nullptr, nullptr);
     (void)rc;
     for (uint32_t r = 1; r < reps; ++r)
         api->kernels[0].fn(host, &p, sizeof(p), nullptr, nullptr);
@@ -77,13 +77,13 @@ int main(int argc, char** argv) {
         duration_sec = std::atof(argv[2]);
     const uint32_t avail = 2;   // 2c2g fixture(规格 MON-003 Linux 2 核)
 
-    astrocs_host_services_v1 host;
+    acsd_host_services_v1 host;
     void* state = nullptr;
-    astrocs_host_services_default_v1(&host, &state);
-    astrocs_host_state_set_budget_v1(state, avail, avail, &host);
-    astrocs_backend_api_v1 api;
+    acsd_host_services_default_v1(&host, &state);
+    acsd_host_state_set_budget_v1(state, avail, avail, &host);
+    acsd_backend_api_v1 api;
     std::memset(&api, 0, sizeof(api));
-    if (astrocs_backend_get_api_v1(ACS_ABI_VERSION_V1, sizeof(astrocs_host_services_v1),
+    if (acsd_backend_get_api_v1(ACS_ABI_VERSION_V1, sizeof(acsd_host_services_v1),
                                    &host, &api) != ACS_OK) return 2;
 
     const uint32_t N = W * H;
@@ -121,7 +121,7 @@ int main(int argc, char** argv) {
         // 多核生产(workers=avail) → 期望通过
         {
             uint32_t wu = 0;
-            astrocs::ProcessMonitor mon(0.5);
+            acsd::ProcessMonitor mon(0.5);
             const auto start = std::chrono::steady_clock::now();
             // 采样线程
             std::atomic<bool> stop{false};
@@ -132,42 +132,42 @@ int main(int argc, char** argv) {
             stop.store(true); sampler.join();
             const auto wall = std::chrono::duration<double>(std::chrono::steady_clock::now() - start).count();
             const auto sum = mon.summary();
-            astrocs::GateConfig g;
-            g.kind = astrocs::ResKind::Compute;
+            acsd::GateConfig g;
+            g.kind = acsd::ResKind::Compute;
             g.available_cpus = avail; g.selected_workers = wu;
             g.max_active_threads = std::max(1u, wu);
             g.avg_equivalent_cores = sum.avg_equivalent_cores;
             g.wall_seconds = wall;
             g.has_stage_annotation = true;
             g.cpu_percent = sum.avg_cpu_percent;
-            const auto d = astrocs::evaluate_gate(g);
+            const auto d = acsd::evaluate_gate(g);
             std::printf("MULTI %s wall=%.1fs workers=%u avg_cores=%.2f cpu%%=%.1f gate=%s\n",
                         sk.name, wall, wu, sum.avg_equivalent_cores, sum.avg_cpu_percent,
-                        astrocs::gate_diag_name(d));
+                        acsd::gate_diag_name(d));
             if (wall < 5.0) std::printf("WARN %s wall<5s (frames=%u)\n", sk.name, frames);
             // 2c2g 验证机受 DSH harness 常驻进程干扰, avg_equivalent_cores 绝对阈值不可达;
             // 生产机制判定: workers_used>=2(多线程租约生效) 且 gate 未因单线程/退化失败。
             // 门禁阈值本身由 mon002_gate_test 单测保证(不放宽阈值)。
-            if (d == astrocs::GateDiag::SingleThreaded || d == astrocs::GateDiag::GlobalLockDegradation) {
-                ++failures; std::printf("MULTI_FAIL %s (%s)\n", sk.name, astrocs::gate_diag_name(d));
-            } else if (d != astrocs::GateDiag::Ok) {
+            if (d == acsd::GateDiag::SingleThreaded || d == acsd::GateDiag::GlobalLockDegradation) {
+                ++failures; std::printf("MULTI_FAIL %s (%s)\n", sk.name, acsd::gate_diag_name(d));
+            } else if (d != acsd::GateDiag::Ok) {
                 std::printf("NOTE %s gate=%s (harness 干扰环境; 生产机制已验证 workers=%u)\n",
-                            sk.name, astrocs::gate_diag_name(d), wu);
+                            sk.name, acsd::gate_diag_name(d), wu);
             }
         }
 
         // 单核负 fixture(workers=1) → 期望失败(SingleThreaded)
         {
-            astrocs_host_services_v1 h1;
+            acsd_host_services_v1 h1;
             void* st1 = nullptr;
-            astrocs_host_services_default_v1(&h1, &st1);
-            astrocs_host_state_set_budget_v1(st1, 2, 1, &h1);
-            astrocs_backend_api_v1 a1;
+            acsd_host_services_default_v1(&h1, &st1);
+            acsd_host_state_set_budget_v1(st1, 2, 1, &h1);
+            acsd_backend_api_v1 a1;
             std::memset(&a1, 0, sizeof(a1));
-            if (astrocs_backend_get_api_v1(ACS_ABI_VERSION_V1, sizeof(astrocs_host_services_v1),
+            if (acsd_backend_get_api_v1(ACS_ABI_VERSION_V1, sizeof(acsd_host_services_v1),
                                            &h1, &a1) != ACS_OK) { ++failures; continue; }
             uint32_t wu1 = 0;
-            astrocs::ProcessMonitor mon1(0.5);
+            acsd::ProcessMonitor mon1(0.5);
             std::atomic<bool> stop1{false};
             std::thread sampler1([&mon1, &stop1]() {
                 while (!stop1.load()) { mon1.tick(); std::this_thread::sleep_for(std::chrono::milliseconds(250)); }
@@ -177,23 +177,23 @@ int main(int argc, char** argv) {
             stop1.store(true); sampler1.join();
             const auto wall1 = std::chrono::duration<double>(std::chrono::steady_clock::now() - t10).count();
             const auto sum1 = mon1.summary();
-            astrocs::GateConfig g1;
-            g1.kind = astrocs::ResKind::Compute;
+            acsd::GateConfig g1;
+            g1.kind = acsd::ResKind::Compute;
             g1.available_cpus = 2; g1.selected_workers = wu1;
             g1.max_active_threads = std::max(1u, wu1);
             g1.avg_equivalent_cores = sum1.avg_equivalent_cores;
             g1.wall_seconds = wall1;
             g1.has_stage_annotation = true;
             g1.cpu_percent = sum1.avg_cpu_percent;
-            const auto d1 = astrocs::evaluate_gate(g1);
+            const auto d1 = acsd::evaluate_gate(g1);
             std::printf("SINGLE %s workers=%u avg_cores=%.2f gate=%s\n",
-                        sk.name, wu1, sum1.avg_equivalent_cores, astrocs::gate_diag_name(d1));
+                        sk.name, wu1, sum1.avg_equivalent_cores, acsd::gate_diag_name(d1));
             // 负 fixture: 单线程必须被 gate 拒绝(任意非 Ok 判定均算负 fixture 生效)
-            if (d1 == astrocs::GateDiag::Ok) { ++failures; std::printf("SINGLE_NOT_FAIL %s\n", sk.name); }
-            astrocs_host_services_destroy_state_v1(st1);
+            if (d1 == acsd::GateDiag::Ok) { ++failures; std::printf("SINGLE_NOT_FAIL %s\n", sk.name); }
+            acsd_host_services_destroy_state_v1(st1);
         }
     }
-    astrocs_host_services_destroy_state_v1(state);
+    acsd_host_services_destroy_state_v1(state);
     if (failures == 0) {
         std::printf("MON-003 SYNTHETIC PASS (multi 生产通过, single 负 fixture 失败, 5 kernel)\n");
         return 0;

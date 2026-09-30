@@ -35,14 +35,14 @@ from typing import Any, Dict, List, Optional, Tuple
 REPO = pathlib.Path(__file__).resolve().parents[3]
 SCHEMA_PATH = REPO / "lib" / "infrastructure" / "pipeline" / "typed_dag.schema.json"
 REGISTRY_PATH = REPO / "lib" / "infrastructure" / "pipeline" / "module_ports.registry.json"
-SCHEMA_CONST = "astrocs.typed-dag/v1"
-PLAN_SCHEMA_CONST = "astrocs.plan-graph/v1"
+SCHEMA_CONST = "acsd.typed-dag/v1"
+PLAN_SCHEMA_CONST = "acsd.plan-graph/v1"
 
 _PHASES = ("phase1", "phase2", "phase3")
 _RESOURCE_CLASSES = ("metadata", "io", "cpu_light", "cpu_heavy")
 _DIRECTIONS = ("input", "output")
 _NODE_ID_RE = re.compile(r"^[a-z][a-z0-9_.-]*$")
-_MODULE_ID_RE = re.compile(r"^astrocs\.[a-z0-9_.-]+$")
+_MODULE_ID_RE = re.compile(r"^acsd\.[a-z0-9_.-]+$")
 _OPERATION_RE = re.compile(r"^[a-z][a-z0-9_.-]*$")
 _ARTIFACT_RE = re.compile(r"^artifact:[A-Za-z0-9_.:-]+$")
 # shape 语法: [] | [H] | [H,W] | [N,2] ... 字母或 * 或 正整数; 亦允许 [*,*]

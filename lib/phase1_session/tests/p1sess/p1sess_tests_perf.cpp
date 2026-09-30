@@ -34,14 +34,14 @@ static void* perf_alloc(void*, std::uint64_t n, std::uint64_t) {
 static void perf_free(void*, void* p) { std::free(p); }
 static int perf_not_cancelled(void*) { return 0; }
 
-static astrocs_host_services_v1 perf_make_host(std::uint32_t workers) {
-    astrocs_host_services_v1 h{};
-    h.struct_size = sizeof(astrocs_host_services_v1);
+static acsd_host_services_v1 perf_make_host(std::uint32_t workers) {
+    acsd_host_services_v1 h{};
+    h.struct_size = sizeof(acsd_host_services_v1);
     h.abi_version = ACS_ABI_VERSION_V1;
-    h.allocator = {sizeof(acs_allocator), ACS_ABI_VERSION_V1, perf_alloc, perf_free, nullptr};
-    h.logger = {sizeof(acs_logger), ACS_ABI_VERSION_V1, nullptr, nullptr};
-    h.cancel = {sizeof(acs_cancel), ACS_ABI_VERSION_V1, perf_not_cancelled, nullptr};
-    h.budget = {sizeof(acs_thread_budget), ACS_ABI_VERSION_V1, workers, workers,
+    h.allocator = {sizeof(acsd_allocator), ACS_ABI_VERSION_V1, perf_alloc, perf_free, nullptr};
+    h.logger = {sizeof(acsd_logger), ACS_ABI_VERSION_V1, nullptr, nullptr};
+    h.cancel = {sizeof(acsd_cancel), ACS_ABI_VERSION_V1, perf_not_cancelled, nullptr};
+    h.budget = {sizeof(acsd_thread_budget), ACS_ABI_VERSION_V1, workers, workers,
                 nullptr, nullptr, nullptr};
     return h;
 }
@@ -54,7 +54,7 @@ int run_performance() {
     const char* w2 = std::getenv("TMP");
     const std::string tmp_root = (d ? d : (w ? w : (w2 ? w2 : ".")));
     const std::string base =
-        (fs::path(tmp_root) / "astrocs_p1sess_perf").generic_string();
+        (fs::path(tmp_root) / "acsd_p1sess_perf").generic_string();
     const std::string out_dir = base + "/out";
     std::error_code ec;
     fs::remove_all(base, ec);
@@ -81,19 +81,19 @@ int run_performance() {
 
     double seconds_1w = -1.0;
     for (const std::uint32_t workers : {1u, 4u}) {
-        astrocs_host_services_v1 host = perf_make_host(workers);
-        acs_handle h = nullptr;
+        acsd_host_services_v1 host = perf_make_host(workers);
+        acsd_handle h = nullptr;
         P1SESS_CHECK_EQ(cs, p1_session_create(&host, &h), ACS_OK);
-        acs_span_u8 sp = ACS_SPAN_U8(reinterpret_cast<std::uint8_t*>(const_cast<char*>(cfg.c_str())),
+        acsd_span_u8 sp = ACS_SPAN_U8(reinterpret_cast<std::uint8_t*>(const_cast<char*>(cfg.c_str())),
                                      static_cast<std::uint64_t>(cfg.size()));
         const auto t0 = std::chrono::steady_clock::now();
-        const acs_status rc = p1_session_run(h, sp, 0);
+        const acsd_status rc = p1_session_run(h, sp, 0);
         const auto t1 = std::chrono::steady_clock::now();
         const double sec =
             std::chrono::duration_cast<std::chrono::duration<double>>(t1 - t0).count();
         P1SESS_CHECK_MSG(cs, rc == ACS_OK, "w1_run_ok", "workers=%u rc=%d", workers,
                          static_cast<int>(rc));
-        acs_span_u8 mf{};
+        acsd_span_u8 mf{};
         P1SESS_CHECK_EQ(cs, p1_session_inspect(h, &mf), ACS_OK);
         json m = json::parse(std::string(reinterpret_cast<const char*>(mf.data), mf.count));
         host.allocator.free(host.allocator.user_data, mf.data);

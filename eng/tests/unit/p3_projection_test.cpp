@@ -21,7 +21,7 @@
 //   G6 CTYPE 关键词面(RA---<code>/DEC--<code>, 每行 ≤80 字节)。
 //   G7 确定性: 全网格重复计算 bitwise 一致。
 //   G8 1/N worker: 像素网格 1 vs 4 worker 分块计算 bitwise 一致。
-//   G9 故障注入: ASTROCS_P3PROJ_FAULT=tan|sin|car|ait|registry 注入等价
+//   G9 故障注入: ACSD_P3PROJ_FAULT=tan|sin|car|ait|registry 注入等价
 //      缺陷必败(测试级注入, 生产源零 getenv, P2-002 先例同构)。
 #include "p3_projection.h"
 
@@ -38,23 +38,23 @@
 
 #include "p3_wcs.h"  // lib/phase3_session (TAN 冻结生产实现, 对拍用)
 
-using astrocs::phase3proj::P3ProjectionDescriptor;
-using astrocs::phase3proj::P3ProjectionId;
-using astrocs::phase3proj::P3ProjectionSpec;
-using astrocs::phase3proj::P3ProjectionStatus;
-using astrocs::phase3proj::p3_projection_fits_keywords;
-using astrocs::phase3proj::p3_projection_make;
-using astrocs::phase3proj::p3_projection_pix2world;
-using astrocs::phase3proj::p3_projection_registry_find;
-using astrocs::phase3proj::p3_projection_registry_find_id;
-using astrocs::phase3proj::p3_projection_registry_selfcheck;
-using astrocs::phase3proj::p3_projection_registry_table;
-using astrocs::phase3proj::p3_projection_world2pix;
+using acsd::phase3proj::P3ProjectionDescriptor;
+using acsd::phase3proj::P3ProjectionId;
+using acsd::phase3proj::P3ProjectionSpec;
+using acsd::phase3proj::P3ProjectionStatus;
+using acsd::phase3proj::p3_projection_fits_keywords;
+using acsd::phase3proj::p3_projection_make;
+using acsd::phase3proj::p3_projection_pix2world;
+using acsd::phase3proj::p3_projection_registry_find;
+using acsd::phase3proj::p3_projection_registry_find_id;
+using acsd::phase3proj::p3_projection_registry_selfcheck;
+using acsd::phase3proj::p3_projection_registry_table;
+using acsd::phase3proj::p3_projection_world2pix;
 
 namespace {
 
 int failures = 0;
-bool fault_mode = false;  // ASTROCS_P3PROJ_FAULT 注入模式(必败面)
+bool fault_mode = false;  // ACSD_P3PROJ_FAULT 注入模式(必败面)
 
 #define CHECK_MSG(cond, msg)                                              \
     do {                                                                  \
@@ -81,11 +81,11 @@ constexpr double kOracleTolDeg = 1e-9;     // 解析解比对(FP64 机器精度�
 //     ⇒ 本测试面取**全域保守门** roundtrip_tol_global_px（= SCI-WCS-001 §11 STD-F1
 //     登记的 1e-6 px, 不是表外阈值, GATES §1 R1）。该值是**测试域上界**,
 //     不得引用为产品门。
-inline double roundtrip_tol_px(astrocs::phase3proj::P3ProjectionId id) {
-    const astrocs::phase3::P3WcsApplicability* ap =
-        astrocs::phase3::p3_wcs_applicability("TAN");
+inline double roundtrip_tol_px(acsd::phase3proj::P3ProjectionId id) {
+    const acsd::phase3::P3WcsApplicability* ap =
+        acsd::phase3::p3_wcs_applicability("TAN");
     if (ap == nullptr) return 0.0;   // fail-closed: 无声明 ⇒ 断言必红
-    return (id == astrocs::phase3proj::P3ProjectionId::TAN) ? ap->roundtrip_tol_px
+    return (id == acsd::phase3proj::P3ProjectionId::TAN) ? ap->roundtrip_tol_px
                                                            : ap->roundtrip_tol_global_px;
 }
 
@@ -318,10 +318,10 @@ void test_roundtrip_and_oracle(const CaseCtx& c) {
 // G3: TAN 与冻结生产实现(lib/algorithms/projection/p3_wcs.cpp) bitwise 对拍
 void test_tan_bitwise_vs_production(const CaseCtx& c) {
     P3ProjectionDescriptor d = make_case(c);
-    astrocs::phase3::P3WcsDescriptor legacy{};
-    const astrocs::phase3::P3WcsStatus lst = astrocs::phase3::p3_wcs_make(
+    acsd::phase3::P3WcsDescriptor legacy{};
+    const acsd::phase3::P3WcsStatus lst = acsd::phase3::p3_wcs_make(
         c.ra0, c.dec0, c.scale, c.w, c.h, "east_left", 0.0, &legacy);
-    CHECK_MSG(lst == astrocs::phase3::P3_WCS_OK, "legacy make");
+    CHECK_MSG(lst == acsd::phase3::P3_WCS_OK, "legacy make");
     CHECK_MSG(std::memcmp(d.cd, legacy.cd, sizeof(d.cd)) == 0,
               "G1 CD bitwise identical (TAN 冻结零漂移)");
     CHECK_MSG(d.crpix_x == legacy.crpix_x && d.crpix_y == legacy.crpix_y,
@@ -332,7 +332,7 @@ void test_tan_bitwise_vs_production(const CaseCtx& c) {
     for (const auto& p : pts) {
         double ra1, dec1, ra2, dec2;
         const auto s1 = p3_projection_pix2world(&d, p.first, p.second, &ra1, &dec1);
-        const auto s2 = astrocs::phase3::p3_wcs_pix2world(
+        const auto s2 = acsd::phase3::p3_wcs_pix2world(
             &legacy, p.first, p.second, &ra2, &dec2);
         CHECK_MSG((int)s1 == (int)s2, "TAN pix2world status identical");
         if ((int)s1 == 0 && (int)s2 == 0) {
@@ -341,7 +341,7 @@ void test_tan_bitwise_vs_production(const CaseCtx& c) {
                       "TAN pix2world bitwise identical");
             double x1, y1, x2, y2;
             const auto w1 = p3_projection_world2pix(&d, ra1, dec1, &x1, &y1);
-            const auto w2 = astrocs::phase3::p3_wcs_world2pix(
+            const auto w2 = acsd::phase3::p3_wcs_world2pix(
                 &legacy, ra2, dec2, &x2, &y2);
             CHECK_MSG((int)w1 == (int)w2, "TAN world2pix status identical");
             if ((int)w1 == 0 && (int)w2 == 0) {
@@ -563,7 +563,7 @@ void test_fault_injection() {
         {"car", {P3ProjectionId::CAR, "CAR", 10.0, 20.0, 0.01, 64, 64}, 1.0},
         {"ait", {P3ProjectionId::AIT, "AIT", 10.0, 20.0, 0.01, 64, 64}, 1.0},
     };
-    const char* env = std::getenv("ASTROCS_P3PROJ_FAULT");
+    const char* env = std::getenv("ACSD_P3PROJ_FAULT");
     if (!env) return;
     for (auto& cs : cases) {
         if (std::strcmp(env, cs.env) != 0) continue;
@@ -595,7 +595,7 @@ int main(int argc, char** argv) {
         int cnt = -1;
         const P3ProjectionSpec* tab = p3_projection_registry_table(&cnt);
         CHECK_MSG(cnt == 4, "registry 恰 4 行(TAN/SIN/CAR/AIT, §18.1)");
-        CHECK_MSG(astrocs::phase3proj::kP3ProjectionRegistryVersion == 1,
+        CHECK_MSG(acsd::phase3proj::kP3ProjectionRegistryVersion == 1,
                   "registry 版本常量=1");
         CHECK_MSG(tab != nullptr, "table 非空");
         const char* codes[4] = {"TAN", "SIN", "CAR", "AIT"};

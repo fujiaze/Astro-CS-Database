@@ -1,11 +1,11 @@
 # Astro Celestial Sphere Database（ACSD） Release Standard
 
-> 上游：ASTROCS_DESIGN.md §8.4（模块与 ABI）
+> 上游：ACSD_DESIGN.md §8.4（模块与 ABI）
 
 - 版本记录：**版本唯一源 = 根 `VERSION`**（`docs/engineering/RELEASE_STATUS.md` §2），
   发布状态记录 = `docs/engineering/RELEASE_STATUS.md`；版本变更历史由 **`VERSION` + git 历史** 承载。
-  根目录条目须先登记并经负责人确认（`AGENTS.md` §6 / `docs/ASTROCS_DESIGN.md` §10（I/O 与原子产品））。
-- 交付包：AstroCS_Review_<主题>_<YYYYMMDD>.zip，SHA256SUMS.txt。
+  根目录条目须先登记并经负责人确认（`AGENTS.md` §6 / `docs/ACSD_DESIGN.md` §10（I/O 与原子产品））。
+- 交付包：ACSD_Review_<主题>_<YYYYMMDD>.zip，SHA256SUMS.txt。
 - 包内容：README、reports/、evidence/、self_review/、
   source/full_first_party_after.zip + manifest、docs_snapshot/。
 - 包内容面：source archive 仅 first-party；build/vendor/data 保留在包外。

@@ -1,23 +1,23 @@
 # Secure Module Loader
 
-> 上游: `docs/ASTROCS_DESIGN.md` §8.5（模块与 ABI）/ `docs/engineering/COMMON_ABI_V1.md`
+> 上游: `docs/ACSD_DESIGN.md` §8.5（模块与 ABI）/ `docs/engineering/COMMON_ABI_V1.md`
 >       / `docs/engineering/ARCH-001.md`（模块边界合同）
 
 ## 1. 目标与验收
 
 实现面 = `lib/infrastructure/pipeline/module_loader/`（`secure_loader.h` + `secure_loader.c`）；
-类型正本 = `lib/include/astrocs/abi/module_api_v1.h` / `host_api_v1.h`；测试面 =
+类型正本 = `lib/include/acsd/abi/module_api_v1.h` / `host_api_v1.h`；测试面 =
 `eng/tests/abi/`（`abi003_loader_probe.c` + `test_secure_loader.py`）。
 本层提供受控动态加载： Windows 用受控绝对路径 +
 `SetDefaultDllDirectories`/`AddDllDirectory`/`LoadLibraryExW` 安全 flags;
 Linux 仅从 product manifest 的绝对 canonical path `dlopen`。加载前后校验
 路径、hash、module ID、ABI/build ID。
 
-验收（依据=`docs/ASTROCS_DESIGN.md` §8.5/§8 + 本文件）:
+验收（依据=`docs/ACSD_DESIGN.md` §8.5/§8 + 本文件）:
 1. 当前目录/PATH DLL 劫持拒绝 —— 相对路径入参即拒; 只认 manifest 绝对路径;
 2. symlink escape 拒绝 —— canonical 不一致 + allowed_root 越界均拒;
 3. hash mismatch 拒绝 —— manifest sha256 与实际文件不符;
-4. 缺 symbol 拒绝 —— 无 `astrocs_module_query_v1` 导出;
+4. 缺 symbol 拒绝 —— 无 `acsd_module_query_v1` 导出;
 5. wrong arch/ABI 拒绝 —— 非 ELF / ELF32 / 非 x86-64 / host_abi 失配 / ABI 版本不符;
 6. 日志不泄凭据 —— 错误消息为静态字面量, 不含路径/sha/内容; loader 不写日志文件;
 7. 正测 —— 加载 `eng/tests/conformance/noop/` 真实一致性模块, module_id/version/build/hash 三方一致。
@@ -35,7 +35,7 @@ product manifest(host 解析) → unit 记录(绝对路径/sha/module_id/abi/bui
 ```
 
 关键点:
-- 职责划分：host 解析 product manifest（模块不自行开任意路径）后填 `acs_load_manifest_unit_v1`，
+- 职责划分：host 解析 product manifest（模块不自行开任意路径）后填 `acsd_load_manifest_unit_v1`，
   loader 消费该已解析单元记录；动态 registry 接线见 `module_loader/module_registry.h`、`module_registry.c`。
 - 拒绝相对路径 → 当前目录/PATH/`LD_LIBRARY_PATH` 发现语义不存在;
 - `realpath` 后再比对入参文本: 入参含 symlink/`..` 分量即拒 → 目录内链接伪装
@@ -74,7 +74,7 @@ product manifest(host 解析) → unit 记录(绝对路径/sha/module_id/abi/bui
 ## 5. 日志纪律
 
 - 错误消息为编译期静态字面量(`detail_message()`), 无格式化参数 → 无注入面;
-- loader 不写任何日志文件; 详细诊断(路径等)经 `acs_error_info_v1` 返回调用方;
+- loader 不写任何日志文件; 详细诊断(路径等)经 `acsd_error_info_v1` 返回调用方;
 - 测试静态断言（L1/L2/L3）: 消息无 `%` 插值、loader 无 fopen 写模式/独立 open、
   拒绝输出不含路径与 sha 前缀。
 

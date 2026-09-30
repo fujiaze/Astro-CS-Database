@@ -42,7 +42,7 @@ from typing import Any, Callable, Dict, List, Optional
 from . import linux_procfs, windows_pdh_etw
 
 # ── CSV 合同 ──────────────────────────────────────────────────────────────────
-SCHEMA_ID = "astrocs.monitor.sample.v1"
+SCHEMA_ID = "acsd.monitor.sample.v1"
 
 # 列定义（顺序即 CSV 头；键 = 列名，值 = 单位说明）
 CONTRACT_COLUMNS: Dict[str, str] = {
@@ -88,7 +88,7 @@ PHASES = ("init", "active", "io", "flush")
 
 # 指纹轮换参数：冻结格式常量，保证同一采样格式跨进程、跨运行可复验；
 # 改动此值即改变指纹链口径，须同步刷新既有 CSV 的核验基线。
-_FP_SALT = b"astrocs-monitor-v1"
+_FP_SALT = b"acsd-monitor-v1"
 
 
 def _fingerprint(prev_fp: str, row_str: Dict[str, str], seq: int) -> str:

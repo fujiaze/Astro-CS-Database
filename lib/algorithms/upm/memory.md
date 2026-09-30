@@ -1,32 +1,32 @@
-# memory.md — astrocs.p2.upm（P2-UPM-DOC 冻结）
+# memory.md — acsd.p2.upm（P2-UPM-DOC 冻结）
 
 - 任务: P2-UPM-DOC（MODULE_MIGRATION_MATRIX P2-UPM 行，owner
   SA-P2-U21，2026-09-10）——合同冻结层，不改生产源码，不 commit。
   本目录 `lib/algorithms/upm/` 三件套（README r1 + module.yaml +
   memory.md）由 P2-UPM-DOC 建立。
 - 落位: `lib/algorithms/upm/`（本目录）。`lib/algorithms/coverage/` 一目录一套三件套
-  已被 P2-COV（astrocs.p2.coverage）占用（lib/algorithms/coverage/README.md r1），
+  已被 P2-COV（acsd.p2.coverage）占用（lib/algorithms/coverage/README.md r1），
   不可覆盖；按 `lib/algorithms/integration/`（P2-INT-DOC，其按 `lib/algorithms/coverage/hips_p2/`
   P2-HIPS-DOC 先例）→ `lib/algorithms/rejection/`（P2-REJ-DOC）→
   `lib/algorithms/sampling/`（P2-SAMP-DOC）先例新建迁移目标目录，仅合同
   文件、无源码、不与 legacy 目录重叠。生产源引用不搬家。
 - 矩阵权威（P2-UPM 行，禁止编造）: owner=SA-P2-U21、
-  module_id=astrocs.p2.upm、target_dll=astrocs_p2_upm.dll、
+  module_id=acsd.p2.upm、target_dll=acsd_p2_upm.dll、
   legacy_paths="lib/algorithms/coverage upm sources"、depends_on_int=
   **P2-SAMP-INT;CPU-005**、science_specific_acceptance="control
   points;photometric surface basis/regularization/gauge;fit+apply+
   persist+reload;known plane recovery;overlap seam residual;
   ill-conditioning"。
-- MOD ID 决策: registry 两行 MOD-astrocs-phase2-upm-fit /
-  MOD-astrocs-phase2-upm-apply（domain 内两个 descriptor）；
-  module.yaml 单 manifest id 取 MOD-astrocs-phase2-upm-fit，apply
+- MOD ID 决策: registry 两行 MOD-acsd-phase2-upm-fit /
+  MOD-acsd-phase2-upm-apply（domain 内两个 descriptor）；
+  module.yaml 单 manifest id 取 MOD-acsd-phase2-upm-fit，apply
   对应 ID 于文件头注释与 README §fit/apply descriptor 现状声明。
 - 本任务 ID 决策（唯一方案，避免与矩阵/registry 占位冲突）:
   ALG=ALG-P2-UPM-IMPL-001（docs/science/algorithms/PHASE2_UPM_IMPL.md，
   P2-UPM-DOC 新建，SA-B 负责；兼承接 ALG-UPM-001 权威推导
   （docs/science/algorithms/UPM_SOLVER.md）与 ALG-UPM-CONTROL-IVAR-001
   control-ivar 权重子面）——registry 页 upstream 现占位
-  ALG-P2-UPM-001/002（astrocs.phase2.upm-fit/apply.md 头部），ID
+  ALG-P2-UPM-001/002（acsd.phase2.upm-fit/apply.md 头部），ID
   风格与 ALG-P2-SMP-001（phase2_samp 先例）同族，取 -IMPL-1 避免
   与占位 ALG-P2-UPM-001/002 冲突；descriptor 占位 ID 不入合同。
 - 生产源锚（grep/read 实测，2026-09-10）: lib/algorithms/coverage/src/upm.cpp
@@ -48,7 +48,7 @@
   连通分量参考帧=分量内最小 frame_id，C=0）:651/:789-829（component_
   ref_frame upm.h:85）；无观测几何节点 sentinel SIZE_MAX :216/
   :417-421 不参与数据图/gauge；p2_upm_save :940-1006（format
-  astrocs-upm-v2 :947，json 序列化 controls/cell_index/C 稀疏行
+  acsd-upm-v2 :947，json 序列化 controls/cell_index/C 稀疏行
   :972-1002，唯一 AIO aio_upm_write_sparse :1003-1005）；p2_upm_open
   :1008（format 校验 :1027）。导出符号 16 个: p2_upm_build :929 /
   p2_upm_build_geo :934 / p2_upm_save :940 / p2_upm_open :1008 /
@@ -74,14 +74,14 @@
   P2-SESSION-IMPL）。apply 面消费=lib/algorithms/coverage/tools/stage2.cpp 经
   p2_upm_calibrate_block :927/:1272（无独立 apply 段）；AIO 后端
   lib/infrastructure/aio/src/aio_upm.cpp（aio_upm_write_sparse :66、
-  dense 格式 astrocs-upm-dense-v2 :223/:407）。descriptor 占位
+  dense 格式 acsd-upm-dense-v2 :223/:407）。descriptor 占位
   （不改码）: lib/infrastructure/scheduler/src/module_adapters.cpp:599-632
-  p2_upm_fit_descriptor（:599-613，module_id=astrocs.phase2.upm-fit、
+  p2_upm_fit_descriptor（:599-613，module_id=acsd.phase2.upm-fit、
   ports samples in → upm_model out 可选【DISP-004】、占位 sci_id=
   SCI-P2-UPM-001/alg_id=ALG-P2-UPM-001/data_id=DATA-P2-SMP/
   api_id=API-P2-001/test_id=TEST-P2-UPM-001）与
   p2_upm_apply_descriptor（:614-632，module_id=
-  astrocs.phase2.upm-apply、upm_model in 必选 → corrected out、
+  acsd.phase2.upm-apply、upm_model in 必选 → corrected out、
   占位 sci_id=SCI-P2-UPM-002/alg_id=ALG-P2-UPM-002/
   data_id=DATA-P2-CAL/test_id=TEST-P2-UPM-002）。编排层词汇，
   P2-XX-INT 对齐；真实数据流=fit 产模型经 persist → apply reload；
@@ -111,7 +111,7 @@
   TEST-P2-UPM-001（fit）/TEST-P2-UPM-002（apply）均 MISSING
   （P2-UPM-TEST 建立）；登记面=DORMANT MISSING；设计冻结面=
   ALG-P2-UPM-IMPL-001 TEST-DESIGN 节（SA-B 写）。
-- 后续任务锚: P2-UPM-IMPL=迁移到独立 astrocs_p2_upm.dll（C ABI
+- 后续任务锚: P2-UPM-IMPL=迁移到独立 acsd_p2_upm.dll（C ABI
   adapter/plan-execute-cancel-inspect/ThreadLease 接线；DISP-001/002
   整改）；P2-UPM-TEST=建立可执行 TEST-P2-UPM-001/002 与
   oracle/负面/串并行/资源测试；P2-SESSION-IMPL=upm config 键

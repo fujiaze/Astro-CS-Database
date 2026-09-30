@@ -1,6 +1,6 @@
 # ISA 变体与逐 kernel 选路
 
-> 上游：`docs/ASTROCS_DESIGN.md` §9（CPU 后端与资源）、§8.5（模块与 ABI）
+> 上游：`docs/ACSD_DESIGN.md` §9（CPU 后端与资源）、§8.5（模块与 ABI）
 
 ## 0 原则
 
@@ -24,7 +24,7 @@
   与决策原表见测量归档 `实验/engineering-evidence/prerelease-v5/`（`ISA-001` / `ISA-002` /
   `ISA-003` 三批子目录），逐批读数与决策列落 `ISA-00x/MEASUREMENTS.csv`。本文件只承载结构决策。
 - **批间数值差异（诚实登记）**：hips-bulk-transform 增益 `ISA-001/002` 批记为 **+28.2%/+28.3%**
-  （两条腿；热点 profile 注释正本 = `lib/infrastructure/benchmark/cpu/avx2/include/astrocs/cpu/avx2_provider_v1.h`），
+  （两条腿；热点 profile 注释正本 = `lib/infrastructure/benchmark/cpu/avx2/include/acsd/cpu/avx2_provider_v1.h`），
   现行 `ISA-003` 批记为 **+39.8%**（`ISA-003/MEASUREMENTS.csv`）。两者是**不同批次的实测值**，
   不是同一口径的两份读数；决策只取"过阈值且方向稳定"，不取具体数。
 
@@ -53,7 +53,7 @@
 ### 2.1 实现落点（本节登记实现态，§0/§1 为决策态）
 
 **交付形态**：两个变体 target 为 SHARED，安装树 `providers/` 目录内落
-`astrocs_cpu_avx2.so` / `astrocs_cpu_avx512.so`（Windows：同目录 `.dll`），与清单
+`acsd_cpu_avx2.so` / `acsd_cpu_avx512.so`（Windows：同目录 `.dll`），与清单
 `backends.manifest.json`（生成器 = `eng/tools/gen_backends_manifest.py`）**同目录**安装——
 加载器语义要求清单与裸文件名同目录（见 `docs/engineering/CPU_BACKEND_ARCH.md` §3 信任边界）。
 
@@ -76,8 +76,8 @@ avx512 = `avx512f|avx512bw|avx512dq|avx512vl` = 928（声明集 ⊊ 编译所需
 
 | 族 | 文件 | 唯一入口符号 | ABI 正本 | 消费方 | 清单 | 构建产物名 |
 |---|---|---|---|---|---|---|
-| backend（逐 kernel 路由） | `astrocs_cpu_{baseline,avx2,avx512}.so` | `astrocs_backend_get_api_v1` | `lib/include/astrocs/common_abi_v1.h` | `backend_host/backend_loader.cpp` + `cpu_routing` | `backends.manifest.json` | `ASTROCS_BACKENDS_MANIFEST` |
-| provider（能力探测/变体查询） | `astrocs_cpuprov_{baseline,avx2,avx512}.so` | `astrocs_provider_query_v1` | `lib/include/astrocs/abi/module_api_v1.h`（冻结） | `lib/infrastructure/pipeline/module_loader/secure_loader.c` | `providers.manifest.json` | `ASTROCS_PROVIDERS_MANIFEST` |
+| backend（逐 kernel 路由） | `acsd_cpu_{baseline,avx2,avx512}.so` | `acsd_backend_get_api_v1` | `lib/include/acsd/common_abi_v1.h` | `backend_host/backend_loader.cpp` + `cpu_routing` | `backends.manifest.json` | `ACSD_BACKENDS_MANIFEST` |
+| provider（能力探测/变体查询） | `acsd_cpuprov_{baseline,avx2,avx512}.so` | `acsd_provider_query_v1` | `lib/include/acsd/abi/module_api_v1.h`（冻结） | `lib/infrastructure/pipeline/module_loader/secure_loader.c` | `providers.manifest.json` | `ACSD_PROVIDERS_MANIFEST` |
 
 - **入图口径（C-03 判词）**：provider 族是设计文档指定的 provider 实现面
   （`docs/engineering/cpu/CPU_001_CAPABILITY_PROBE.md`、`docs/engineering/cpu/CPU_003_AVX2_PROVIDER.md`），
@@ -93,10 +93,10 @@ avx512 = `avx512f|avx512bw|avx512dq|avx512vl` = 928（声明集 ⊊ 编译所需
 
 - 主 CLI / baseline TU：无 `-march` / `-mavx` 旗标（测试断言）；opcode scanner 禁 VEX/ymm/zmm
   （`eng/tests/backend/test_abi_kernels.py`）。
-- 变体 = **两个 TU**（R-60）：**门面 TU**（`astrocs_cpu_avx2` / `astrocs_cpu_avx512`：`*_backend.cpp`
+- 变体 = **两个 TU**（R-60）：**门面 TU**（`acsd_cpu_avx2` / `acsd_cpu_avx512`：`*_backend.cpp`
   的 get_api / self_test / kernel 注册表）**零 ISA 旗标**，**计算面 TU**（`*_backend_kernels.cpp`，
   与 baseline 共用 `baseline_kernels_impl.inc`）是唯一带 ISA 旗标的 TU，两者经唯一跨 TU 符号
-  `astrocs_variant_kernel_dispatch_v1`（`backend_variant_kernels.h`）相连。
+  `acsd_variant_kernel_dispatch_v1`（`backend_variant_kernels.h`）相连。
   **为什么按源文件隔离**：MSVC 没有函数级指令集覆盖（无 `#pragma GCC target` 对应物），若自检/握手
   入口与计算面同 TU，则「能力预检不过 ⇒ 干净拒绝」会退化成「加载即撞非法指令」。
   机器判据：`eng/tools/quality/check_isa_same_source.py` 的 `tu_isolation`（S7，门面 TU 带旗标即红）
@@ -117,16 +117,16 @@ avx512 = `avx512f|avx512bw|avx512dq|avx512vl` = 928（声明集 ⊊ 编译所需
   清单 `required_features_bits` 由 `eng/tools/gen_provider_manifests.py` 按 `--compiler` 同步
   （GNU 腿输出逐字节不变）。
 
-### 3.3 第二族：CPU provider 变体族（astrocs_cpuprov_*）同配方隔离（R-60）
+### 3.3 第二族：CPU provider 变体族（acsd_cpuprov_*）同配方隔离（R-60）
 
 第一族的 TU 级隔离配方**已推广到第二族**（`lib/infrastructure/benchmark/cpu/{avx2,avx512}/`）：
 
 | | 门面 TU（零 ISA 旗标） | 计算面 TU（唯一带旗标） | 跨 TU 桥 |
 |---|---|---|---|
-| avx2 | `avx2/src/avx2_provider.cpp`（`astrocs_provider_query_v1` / `acs_cpu_avx2_cap_gate` / `*_self_test` / kernel 注册表） | `avx2/src/avx2_kernels.cpp` | `astrocs_cpuprov_kernel_range_v1` |
+| avx2 | `avx2/src/avx2_provider.cpp`（`acsd_provider_query_v1` / `acsd_cpu_avx2_cap_gate` / `*_self_test` / kernel 注册表） | `avx2/src/avx2_kernels.cpp` | `acsd_cpuprov_kernel_range_v1` |
 | avx512 | `avx512/src/avx512_provider.cpp` | `avx512/src/avx512_kernels.cpp` | 同上 |
 
-- **平台旗标形态**（唯一登记点 = 根 `CMakeLists.txt` 的 `astrocs_cpuprov_<v>_kernels`）：
+- **平台旗标形态**（唯一登记点 = 根 `CMakeLists.txt` 的 `acsd_cpuprov_<v>_kernels`）：
   GCC/Clang = `-mavx2 -mfma` / `-mavx512f -mavx512cd -mavx512bw -mavx512dq -mavx512vl`；
   MSVC/clang-cl = `/arch:AVX2`（+ VS2022 起 `/fp:contract`）/ `/arch:AVX512`。
   **改前该族的旗标被 `if(NOT MSVC)` 门控 ⇒ Windows 腿压根没有 ISA 旗标**，两个变体库与基线
@@ -134,11 +134,11 @@ avx512 = `avx512f|avx512bw|avx512dq|avx512vl` = 928（声明集 ⊊ 编译所需
 - **旗标失效不得静默**：计算面 TU 顶部有 `_MSC_VER && !defined(__AVX2__)` / `__AVX512F__`
   （及 AVX-512 的 CD/BW/DQ/VL 齐套）`#error` —— `/arch:` 取值不被识别只报 D9002 且 rc=0，
   不得以「基线同码产物」冒充变体。
-- **ABI 零变化**：导出面仍是 provider ABI 白名单（`astrocs_provider_query_v1` + `acs_cpu_*_cap_gate`
-  + `acs_cap_*` 探测面）；跨 TU 桥在非 MSVC 下 `hidden visibility` ⇒ **不进动态符号表**
+- **ABI 零变化**：导出面仍是 provider ABI 白名单（`acsd_provider_query_v1` + `acsd_cpu_*_cap_gate`
+  + `acsd_cap_*` 探测面）；跨 TU 桥在非 MSVC 下 `hidden visibility` ⇒ **不进动态符号表**
   （Linux 侧导出面与改前逐条相同，实测 `nm -D` 集合一致）。
   Windows 侧 DSO 以 `WINDOWS_EXPORT_ALL_SYMBOLS` 构建，导出表会多一条桥符号，与第一族
-  `astrocs_variant_kernel_dispatch_v1` 同款处置（加载器按名字取 `astrocs_provider_query_v1`，
+  `acsd_variant_kernel_dispatch_v1` 同款处置（加载器按名字取 `acsd_provider_query_v1`，
   多一条不改变任何加载/选路语义）。
 - **数值零变更**：kernel 实现从门面 TU **逐字符搬移**到计算面 TU（只去掉 `static`、改名为桥入口）；
   科学公式 / 项序 / 容差（2e-4 冻结）不动。实测 `CPU-003 AVX2 PASS`（两热点 oracle
@@ -162,9 +162,9 @@ avx512 = `avx512f|avx512bw|avx512dq|avx512vl` = 928（声明集 ⊊ 编译所需
 
   | 项 | 实测 | 判定 |
   |---|---|---|
-  | astrocs_cpuprov_avx512 产物实测发射 FMA3（vfmadd132ss ×2 / vfmadd231ss ×1，VEX.FMA 编码），
+  | acsd_cpuprov_avx512 产物实测发射 FMA3（vfmadd132ss ×2 / vfmadd231ss ×1，VEX.FMA 编码），
     而清单声明 {avx512f, avx512cd, avx512bw, avx512dq, avx512vl}=992（**不含 FMA**） |
-    本机 GCC 14.2 / astrocs_cpuprov_avx512.so 实测 3 条 | **用了却没声明**。根因：isa_sites.json 的
+    本机 GCC 14.2 / acsd_cpuprov_avx512.so 实测 3 条 | **用了却没声明**。根因：isa_sites.json 的
     flag_feature_map["-mavx512f"] = ACS_FEAT_AVX512F 把许可面记窄（实测 GCC 14.2 与 clang 18.1.8
     在 -mavx512f 下都会发射 FMA3）。**实际可达性低**（同时具备 F+CD+BW+DQ+VL 的商用 CPU 均同时具备 FMA3），
     但声明面确实少一位。随第一族同因的裁决一并处置；**未裁决前保持判红**。本轮未改 flag_feature_map

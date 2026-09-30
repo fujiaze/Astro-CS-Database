@@ -1,9 +1,9 @@
 # lib/algorithms/coverage — coverage 子模块合同（P2-COV-DOC）
 
-> 本 README 是 **astrocs.p2.coverage 模块合同**（P2-COV-DOC 冻结，
+> 本 README 是 **acsd.p2.coverage 模块合同**（P2-COV-DOC 冻结，
 > 2026-09-07，SA-P2-S20；MODULE_MIGRATION_MATRIX.csv P2-COV 行，
 > legacy_paths="lib/algorithms/coverage coverage sources"，迁移目标
-> astrocs_p2_coverage.dll）。lib/algorithms/coverage/ 同时承载 phase2 其余源
+> acsd_p2_coverage.dll）。lib/algorithms/coverage/ 同时承载 phase2 其余源
 > （sampler/upm/rejection/integrate 等，分别归 P2-SAMP/P2-UPM/P2-REJ/
 > P2-INT 各自 DOC 任务，不在本合同域）；原 42 行构建/运行说明全文
 > 保留于文末 §13（事实未变，非权威）。落位依据：coverage 生产源
@@ -13,10 +13,10 @@
 
 ## 1. 身份（MOD-* ID、DLL target、module/ABI/doc revision、owner、状态）
 
-- MOD ID: **MOD-astrocs-phase2-coverage**；module_id:
-  **astrocs.p2.coverage**；dll_name/dll_target:
-  **astrocs_p2_coverage.dll**（迁移目标合同值，尚未存在——现状编入
-  astrocs_phase2 STATIC，根 CMakeLists.txt:338-346；独立 DLL target
+- MOD ID: **MOD-acsd-phase2-coverage**；module_id:
+  **acsd.p2.coverage**；dll_name/dll_target:
+  **acsd_p2_coverage.dll**（迁移目标合同值，尚未存在——现状编入
+  acsd_phase2 STATIC，根 CMakeLists.txt:338-346；独立 DLL target
   归 P2-COV-IMPL）。
 - module_version 0.1.0-alpha.1（VERSION 实测）；abi_version 1；
   phase_scope phase2；owner SA-P2-S20；状态 **CONTRACT_READY**
@@ -85,7 +85,7 @@ DISP-COV-003；K=0（空 MOC）合法 rc=0。
   所有权图 Coverage 行 / §2 并发五字段行 1）。
 - ARCH: **ARCH-001**（cpu_heavy 资源类/单线程 internal_parallel=none/
   host_executor_lease 合同值依据 docs/science/algorithms/PHASE2_COVERAGE.md）。
-- MOD: docs/detail/registry/astrocs.phase2.coverage.md（本模块 registry
+- MOD: docs/detail/registry/acsd.phase2.coverage.md（本模块 registry
   合同页）+ docs/detail/phase2.md（legacy 诊断页事实修订）。
 
 ## 5. public entry 和实际主要 source symbols（AST/行号实测，非手抄）
@@ -101,7 +101,7 @@ DISP-COV-003；K=0（空 MOC）合法 rc=0。
   lib/algorithms/coverage/src/coverage.cpp + lib/include/astro/phase2/coverage.h
   （MODULE_MIGRATION_MATRIX.csv P2-COV 行 legacy_paths="lib/algorithms/coverage
   coverage sources"）；迁移=P2-COV-IMPL 经 C ABI adapter 包装为
-  astrocs_p2_coverage.dll，符号集不增减（去留登记其 TASK_RESULT）。
+  acsd_p2_coverage.dll，符号集不增减（去留登记其 TASK_RESULT）。
 
 ## 6. config schema/default/错误码
 
@@ -149,11 +149,11 @@ DISP-COV-003；K=0（空 MOC）合法 rc=0。
 
 ## 10. build/test 命令、已知限制、未实现项
 
-- 构建：根 CMake `astrocs_phase2` STATIC（CMakeLists.txt:338-346，
+- 构建：根 CMake `acsd_phase2` STATIC（CMakeLists.txt:338-346，
   src/coverage.cpp :341）；独立自测 `lib/algorithms/coverage/CMakeLists.txt:42`
   phase2 STATIC（compatibility 声明，非产品事实源）+
   `phase2_synthetic_gate`（:77，GTest）；无 DLL target（迁移目标
-  astrocs_p2_coverage.dll 归 P2-COV-IMPL）。
+  acsd_p2_coverage.dll 归 P2-COV-IMPL）。
 - 测试：`phase2_synthetic_gate`（18/18 基线，lib/algorithms/coverage/memory.md）；
   独立 legacy 构建：cmake -S lib/algorithms/coverage -B lib/algorithms/coverage/build && cmake
   --build lib/algorithms/coverage/build --target phase2_synthetic_gate。
@@ -167,8 +167,8 @@ DISP-COV-003；K=0（空 MOC）合法 rc=0。
 
 ## 11. 编排现状（descriptor 占位，如实登记）
 
-- registry descriptor astrocs.phase2.coverage
-  （module_adapters.cpp:561-576）：module_id=astrocs.p2.coverage、
+- registry descriptor acsd.phase2.coverage
+  （module_adapters.cpp:561-576）：module_id=acsd.p2.coverage、
   execution_class=cpu_heavy、parallel_ok=true、ports calibrated→
   coverage（DATA-P2-COV/DIMENSIONLESS/PIXEL）、sci_id=SCI-P2-COV-001/
   alg_id=ALG-P2-COV-001/data_id=DATA-P2-COV/api_id=API-P2-001/
@@ -189,11 +189,11 @@ DISP-COV-003；K=0（空 MOC）合法 rc=0。
   docs/science/DATA_SEMANTICS.md#§19；API:
   docs/engineering/PUBLIC_API.md#API-COV-001；编排 API:
   docs/engineering/PHASE2_API_V1.md；registry:
-  docs/detail/registry/astrocs.phase2.coverage.md。
+  docs/detail/registry/acsd.phase2.coverage.md。
 
 ## 13. legacy 构建/运行说明（原 42 行 README 全文保留，非权威）
 
-控制包：`AstroCS_Phase2_Implementation_Control_Package_V1`
+控制包：`ACSD_Phase2_Implementation_Control_Package_V1`
 （SHA `34A532A2451C8746BEF7B5DA05C3C4C7D15201D66A9D5F6AB5F8F291BE2EB308`）。
 
 构建（MinGW，Fatduck）：
@@ -202,16 +202,16 @@ DISP-COV-003；K=0（空 MOC）合法 rc=0。
 $env:Path = "C:\msys64\mingw64\bin;$env:Path"
 cd lib\phase2\build
 cmake .. -G Ninja
-ninja astrocs-stage2 phase2_synthetic_gate
+ninja acsd-stage2 phase2_synthetic_gate
 ```
 
-`astrocs-stage2.exe` 依赖 `lib\astro_image_io\astro_image_io.dll`
+`acsd-stage2.exe` 依赖 `lib\astro_image_io\astro_image_io.dll`
 （运行 PATH 加入）。
 
 运行：
 
 ```powershell
-astrocs-stage2 <stage2.json>
+acsd-stage2 <stage2.json>
 ```
 
 只允许一个 JSON 配置路径参数。示例配置见

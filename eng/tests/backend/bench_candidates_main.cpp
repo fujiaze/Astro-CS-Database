@@ -9,17 +9,17 @@
 #include <sstream>
 #include <vector>
 
-#include "astrocs/common_abi_v1.h"
+#include "acsd/common_abi_v1.h"
 #include "baseline_kernels.h"
 #include "bench_harness.h"
 
 extern "C" {
-int astrocs_host_services_default_v1(astrocs_host_services_v1* out, void** state_out);
-void astrocs_host_services_destroy_state_v1(void* state);
-void astrocs_host_state_set_budget_v1(void* state, uint32_t cpus, uint32_t max_workers,
-                                      astrocs_host_services_v1* out);
-int astrocs_backend_get_api_v1(uint32_t, uint32_t, const astrocs_host_services_v1*,
-                               astrocs_backend_api_v1*);
+int acsd_host_services_default_v1(acsd_host_services_v1* out, void** state_out);
+void acsd_host_services_destroy_state_v1(void* state);
+void acsd_host_state_set_budget_v1(void* state, uint32_t cpus, uint32_t max_workers,
+                                      acsd_host_services_v1* out);
+int acsd_backend_get_api_v1(uint32_t, uint32_t, const acsd_host_services_v1*,
+                               acsd_backend_api_v1*);
 }
 
 namespace {
@@ -37,21 +37,21 @@ int main(int argc, char** argv) {
     const char* samples_path = argv[1];
     std::ofstream samples_file(samples_path, std::ios::binary | std::ios::trunc);   // 原始样本引用
 
-    astrocs_host_services_v1 host;
+    acsd_host_services_v1 host;
     void* state = nullptr;
-    astrocs_host_services_default_v1(&host, &state);
-    astrocs_backend_api_v1 api{};
-    astrocs_backend_get_api_v1(ACS_ABI_VERSION_V1, sizeof(astrocs_host_services_v1), &host, &api);
+    acsd_host_services_default_v1(&host, &state);
+    acsd_backend_api_v1 api{};
+    acsd_backend_get_api_v1(ACS_ABI_VERSION_V1, sizeof(acsd_host_services_v1), &host, &api);
 
     // ── 内存带宽基线(读/写/拷贝/triad32/64) ──
-    const auto mem = astrocs::backend_host::bench_memory(4u << 20, 5);
+    const auto mem = acsd::backend_host::bench_memory(4u << 20, 5);
     std::printf("MEMORY read=%.1f write=%.1f copy=%.1f triad32=%.1f triad64=%.1f rss=%llu\n",
                 mem.read_gbs, mem.write_gbs, mem.copy_gbs, mem.triad32_gbs, mem.triad64_gbs,
                 (unsigned long long)mem.rss_delta_bytes);
 
     const uint32_t l2 = 512u << 10;   // L2 画像来自 hardware inspect; 此处用作派生输入
     // block 候选(由 L2 派生的几何序列; 机器无关, 无固定数值)
-    for (uint64_t b : astrocs::backend_host::block_candidates(l2, 4))
+    for (uint64_t b : acsd::backend_host::block_candidates(l2, 4))
         std::printf("BLOCK_CAND %llu\n", (unsigned long long)b);
 
     // ── kernel 候选扫描: calibration × size(small/medium/large)×align(对齐/偏移)×worker 候选 ──
@@ -67,9 +67,9 @@ int main(int argc, char** argv) {
             }
             double best = 1e18;
             uint32_t best_w = 0;
-            for (uint32_t wc : astrocs::backend_host::worker_candidates(2u)) {
-                astrocs_host_state_set_budget_v1(state, wc, wc, &host);
-                acs_baseline_params_v1 p;
+            for (uint32_t wc : acsd::backend_host::worker_candidates(2u)) {
+                acsd_host_state_set_budget_v1(state, wc, wc, &host);
+                acsd_baseline_params_v1 p;
                 std::memset(&p, 0, sizeof(p));
                 p.head.struct_size = sizeof(p);
                 p.head.abi_version = ACS_ABI_VERSION_V1;
@@ -84,7 +84,7 @@ int main(int argc, char** argv) {
                 std::ostringstream srow;
                 for (int r = 0; r < 5; ++r) {
                     const auto t0 = std::chrono::steady_clock::now();
-                    const acs_status rc = api.kernels[0].fn(&host, &p, sizeof(p), nullptr, nullptr);
+                    const acsd_status rc = api.kernels[0].fn(&host, &p, sizeof(p), nullptr, nullptr);
                     const auto t1 = std::chrono::steady_clock::now();
                     if (rc != ACS_OK) { std::printf("SCAN_RC %d\n", (int)rc); return 3; }
                     samples.push_back(std::chrono::duration<double, std::nano>(t1 - t0).count());
@@ -102,6 +102,6 @@ int main(int argc, char** argv) {
         }
     }
     std::printf("CANDIDATES_DONE\n");
-    astrocs_host_services_destroy_state_v1(state);
+    acsd_host_services_destroy_state_v1(state);
     return 0;
 }

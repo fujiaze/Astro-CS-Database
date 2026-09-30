@@ -8,13 +8,13 @@
 //   D. 缺块显式降级（optional）与非 optional 缺块的负例；
 //   E. 取消路径无泄漏（destroy_all 归还全部字节）；
 //   F. 无跨帧/全局单例状态（两个 frame 互不影响）。
-#include "astrocs/core/block_frame.h"
+#include "acsd/core/block_frame.h"
 
 #include <cstdio>
 #include <string>
 #include <vector>
 
-using namespace astrocs::core;
+using namespace acsd::core;
 
 namespace {
 int g_fail = 0;

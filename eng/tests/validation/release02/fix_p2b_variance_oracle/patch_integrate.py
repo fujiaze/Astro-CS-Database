@@ -97,7 +97,7 @@ reps.append((
               return;
             }
             std::string verr;
-            if (!astrocs::v6::p2weight::weight_from_corrected_variance(vv, &w,
+            if (!acsd::v6::p2weight::weight_from_corrected_variance(vv, &w,
                                                                        &verr)) {
               t_errd[ti_s] = static_cast<int>(ErrorDomain::DATA);
               t_err[ti_s] = "weight_from_corrected_variance failed at frame " +

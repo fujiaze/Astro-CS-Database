@@ -29,14 +29,14 @@
 //   TileCache cap；p2 block plan scratch；scheduler NodeSpec 内存回压）。
 #pragma once
 
-#ifndef ASTROCS_CORE_PLAN_ESTIMATOR_H
-#define ASTROCS_CORE_PLAN_ESTIMATOR_H
+#ifndef ACSD_CORE_PLAN_ESTIMATOR_H
+#define ACSD_CORE_PLAN_ESTIMATOR_H
 
 #include <cstdint>
 #include <string>
 #include <vector>
 
-namespace astrocs::core {
+namespace acsd::core {
 
 // 冻结常数（估算公式权威常数；与实现一致，禁止改动）
 constexpr uint64_t kHipsTileWidthPx = 512;
@@ -65,7 +65,7 @@ struct SerialSection {
 // serial sections。可独立序列化，稳定字段顺序。）
 struct PlanEstimate {
   std::string node_id;                 // 计划所属 node（非空）
-  std::string module_id;               // 模块 ID（如 astrocs.phase3.resample2）
+  std::string module_id;               // 模块 ID（如 acsd.phase3.resample2）
   std::string execution_class;         // cpu_heavy|io|cpu_light（descriptor 同源）
 
   uint64_t work_units = 0;             // 并行工作量（tile/row-band/像素样本数）
@@ -126,9 +126,9 @@ struct PlanEstimateResult {
 //   - heavy 且 work_units==1（估算 max useful workers==1 且非 tiny）→
 //     error=HEAVY_TINY（拒绝，不等运行后才发现单线程；14 标准 §3）；
 //   - work_units==1 且 tiny（尺寸过小）→ 标注 tiny_work/serial_only（允许串行）。
-// module_id 支持 astrocs.phase1.{calibration,cosmetic,star-psf,wcs-platesolve,
-// photometry,noise-snr,drizzle} / astrocs.phase2.{resample,sample,upm-fit,upm-apply,
-// reject,integrate,coverage} / astrocs.phase3.{resample,resample2,properties,wcs}。
+// module_id 支持 acsd.phase1.{calibration,cosmetic,star-psf,wcs-platesolve,
+// photometry,noise-snr,drizzle} / acsd.phase2.{resample,sample,upm-fit,upm-apply,
+// reject,integrate,coverage} / acsd.phase3.{resample,resample2,properties,wcs}。
 PlanEstimateResult estimate_plan(const PlanInputMetadata& in);
 
 // 便捷：峰值估算冻结误差断言辅助（返回估算是否落在冻结误差界内）。
@@ -141,6 +141,6 @@ bool peak_within_frozen_bounds(const PlanEstimate& est, uint64_t* min_allowed,
 // 稳定序列化（JSON 文本；字段顺序稳定；测试可解析比对）
 std::string plan_estimate_to_json(const PlanEstimate& est);
 
-}  // namespace astrocs::core
+}  // namespace acsd::core
 
-#endif  // ASTROCS_CORE_PLAN_ESTIMATOR_H
+#endif  // ACSD_CORE_PLAN_ESTIMATOR_H

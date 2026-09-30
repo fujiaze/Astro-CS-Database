@@ -2,10 +2,10 @@
  * v1 通用缓冲合同: 各 kernel op 按 ACS_KOP_* 解释 in/out span(逐字段语义见注释)。
  * 所有 op: 输出元素间独立(无跨线程归约)→固定序确定性随 worker 数不变(ARCH-004 §4)。
  */
-#ifndef ASTROCS_BASELINE_KERNELS_H
-#define ASTROCS_BASELINE_KERNELS_H
+#ifndef ACSD_BASELINE_KERNELS_H
+#define ACSD_BASELINE_KERNELS_H
 
-#include "astrocs/common_abi_v1.h"
+#include "acsd/common_abi_v1.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -27,25 +27,25 @@ enum {
     ACS_KOP_HIPS_BULK               /* 双线性重采样: 源采样位置 (x*k, y*k), 边缘 clamp */
 };
 
-typedef struct acs_baseline_params_v1 {
-    acs_head head;          /* struct_size/abi_version=ACS_ABI_VERSION_V1 */
+typedef struct acsd_baseline_params_v1 {
+    acsd_head head;          /* struct_size/abi_version=ACS_ABI_VERSION_V1 */
     uint32_t op;            /* ACS_KOP_* */
     uint32_t w, h;          /* 2D 域(像素/网格); N=w*h */
     float    k;             /* op 标量(dark 比例/σ 钳制/采样比/clip 倍数/PSF 幅度) */
     uint32_t aux0;          /* op 附加: n_frames(栈类)/nnz(SPMV)/0 */
     uint32_t aux1;          /* op 附加: ncols(SPMV)/0 */
-    acs_span_f32 in0;       /* 语义随 op; 所有权=调用方 */
-    acs_span_f32 in1;
-    acs_span_f32 in2;
-    acs_span_f32 in3;
-    acs_span_f32 out0;      /* 调用方分配; 元素数≥N(栈类=per pixel) */
-    acs_span_f32 out1;      /* 可空(count=0) */
+    acsd_span_f32 in0;       /* 语义随 op; 所有权=调用方 */
+    acsd_span_f32 in1;
+    acsd_span_f32 in2;
+    acsd_span_f32 in3;
+    acsd_span_f32 out0;      /* 调用方分配; 元素数≥N(栈类=per pixel) */
+    acsd_span_f32 out1;      /* 可空(count=0) */
     uint32_t workers_used;  /* out: 实际 worker 数(≥1; 多线程观测点) */
     uint32_t reserved;
-} acs_baseline_params_v1;
+} acsd_baseline_params_v1;
 
 #ifdef __cplusplus
 }
 #endif
 
-#endif /* ASTROCS_BASELINE_KERNELS_H */
+#endif /* ACSD_BASELINE_KERNELS_H */

@@ -23,12 +23,12 @@
 // eng/tests/runtime/test_rt004_executor.py（照 RT-003 harness 模式）。
 #pragma once
 
-#ifndef ASTROCS_CORE_EXECUTOR_H
-#define ASTROCS_CORE_EXECUTOR_H
+#ifndef ACSD_CORE_EXECUTOR_H
+#define ACSD_CORE_EXECUTOR_H
 
-#include "astrocs/core/context.h"
-#include "astrocs/core/contracts.h"
-#include "astrocs/core/trace.h"
+#include "acsd/core/context.h"
+#include "acsd/core/contracts.h"
+#include "acsd/core/trace.h"
 
 #include <atomic>
 #include <condition_variable>
@@ -41,7 +41,7 @@
 #include <thread>
 #include <vector>
 
-namespace astrocs::core {
+namespace acsd::core {
 
 // 任务函数：返回 void；结果/错误经任务内 ctx.log + 输出参数或回调上报。
 // 任务内可经 ctx.acquire_lease(ctx.budget()->budget()) 原子预留 worker 预算。
@@ -155,6 +155,6 @@ Result<std::unique_ptr<CpuHeavyExecutor>> create_cpu_heavy_executor(
 Result<std::unique_ptr<IoExecutor>> create_io_executor(
     uint32_t max_concurrency, uint32_t queue_capacity) noexcept;
 
-}  // namespace astrocs::core
+}  // namespace acsd::core
 
-#endif  // ASTROCS_CORE_EXECUTOR_H
+#endif  // ACSD_CORE_EXECUTOR_H

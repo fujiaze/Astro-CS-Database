@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """FIX-401 CLI 验收: HiPS tile 原子发布 + Phase2 暂存区 (端到端)。
 
-权威: docs/ASTROCS_DESIGN.md §10「I/O 与原子产品」/ GAP_AUDIT G3-1。
+权威: docs/ACSD_DESIGN.md §10「I/O 与原子产品」/ GAP_AUDIT G3-1。
 
 方法 (外部视角, 不调用库内部实现):
   * 合成全链: 真 CLI normalize (Phase1 逐帧 HiPS) → 真 CLI mosaic (Phase2 天球
@@ -9,14 +9,14 @@
     核对完成清单 manifest.json 齐备; 核对无 .tmp. / 无 .p2_mosaic_staging.tmp.* 残留。
   * 磁盘满: unshare -Ur -m + 真实小 tmpfs (无需 root) 跑 normalize ⇒ 必须
     fail-closed 为 exit 10, 且 output_dir 内无完成清单、无截断 tile、无临时残留。
-  * Phase2 暂存区: 注入 ASTROCS_HIPS_TILE_FAULT=tile_diskfull 跑 mosaic ⇒ tile 写入
+  * Phase2 暂存区: 注入 ACSD_HIPS_TILE_FAULT=tile_diskfull 跑 mosaic ⇒ tile 写入
     必败, 而 output_dir **不得**出现 signal/support 半成品目录与完成清单 (证明
     产品在运行私有暂存区生成、失败即丢弃, 不是直写输出目录)。
 """
 import hashlib, json, os, re, shutil, subprocess, tempfile, textwrap, unittest
 
 REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
-EXE = os.environ.get("ASTROCS_CLI_BIN", os.path.join(REPO, "build", "acsd"))
+EXE = os.environ.get("ACSD_CLI_BIN", os.path.join(REPO, "build", "acsd"))
 
 from cli_test_hygiene import run_cwd  # noqa: E402
 
@@ -312,7 +312,7 @@ class TestFix401HipsAtomic(unittest.TestCase):
         # 注入 tile 写入必败 (磁盘满等价面): Phase2 必须失败, 且 output_dir 内
         # **不得**出现 signal/support 半成品目录与完成清单 —— 证明产品在运行私有
         # 暂存区生成 (直写输出目录时 signal/ 会出现)。
-        env = dict(os.environ, ASTROCS_HIPS_TILE_FAULT="tile_diskfull")
+        env = dict(os.environ, ACSD_HIPS_TILE_FAULT="tile_diskfull")
         r2 = self._run("mosaic", "--json", self._p2_cfg(p2, hips), "-y", env=env)
         self.assertNotEqual(r2.returncode, 0,
                             "tile 写入必败时 mosaic 必须 fail-closed")
@@ -328,7 +328,7 @@ class TestFix401HipsAtomic(unittest.TestCase):
         # 其它 I/O 失败语义 —— 仍须是 7=IO)。
         p2io = os.path.join(self.tmp, "p2_stage_io")
         os.makedirs(p2io, exist_ok=True)
-        env_io = dict(os.environ, ASTROCS_HIPS_TILE_FAULT="tile_write_fail")
+        env_io = dict(os.environ, ACSD_HIPS_TILE_FAULT="tile_write_fail")
         r2b = self._run("mosaic", "--json", self._p2_cfg(p2io, hips), "-y", env=env_io)
         self.assertEqual(r2b.returncode, 7,
                          "非空间类写失败必须仍为 exit 7 (实得 %d): %s"

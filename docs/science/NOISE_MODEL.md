@@ -1,6 +1,6 @@
 # Noise / Variance / Ivar / SNR Science (SCI-NOISE)
 
-> 上游：ASTROCS_DESIGN.md §2.2（创新点二：跨帧绝对信噪比）、§4.2（Phase1 节点流程）
+> 上游：ACSD_DESIGN.md §2.2（创新点二：跨帧绝对信噪比）、§4.2（Phase1 节点流程）
 
 > 本文件条款为冻结定义，变更走变更流程。
 

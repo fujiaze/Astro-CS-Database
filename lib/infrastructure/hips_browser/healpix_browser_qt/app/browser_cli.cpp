@@ -206,7 +206,7 @@ static int run_hips_mode(const std::string& dir, JsonOut& json, int n_queries) {
         const uint64_t z = rng() & kTileMask;
         const uint64_t leaf_ipix = (tile_ipix << 18) | z;
         double ra = 0, dec = 0;
-        astrocs::healpix::pix2ang_nest(nside, leaf_ipix, ra, dec);
+        acsd::healpix::pix2ang_nest(nside, leaf_ipix, ra, dec);
 
         double sig_b = 0, sup_b = 0;
         if (bk.query_pixel(ra, dec, sig_b, sup_b) != 0) {
@@ -229,7 +229,7 @@ static int run_hips_mode(const std::string& dir, JsonOut& json, int n_queries) {
             ref_sup[tile_ipix] = std::move(sup0);
         }
         // 与 Browser 同一共享标准映射 (不再用 z%512/z/512)
-        const uint64_t idx = astrocs::healpix::nested_local_to_fits_index(z, 9u, 512u);
+        const uint64_t idx = acsd::healpix::nested_local_to_fits_index(z, 9u, 512u);
         const double sig_d = ref_sig[tile_ipix][idx];
         const double sup_d = ref_sup[tile_ipix][idx];
         ++inside;
@@ -805,7 +805,7 @@ static int run_reference_render(const std::string& dir, const std::string& out,
     auto sample_leaf = [&](double ra_deg, double dec_deg, double* sig,
                            double* sup) -> bool {
         const std::uint64_t leaf =
-            astrocs::healpix::ang2pix_nest(leaf_nside, ra_deg, dec_deg);
+            acsd::healpix::ang2pix_nest(leaf_nside, ra_deg, dec_deg);
         const std::uint64_t tile = leaf >> 18;
         const std::uint64_t local = leaf & kMask;
         auto it = tile_cache.find(tile);
@@ -820,7 +820,7 @@ static int run_reference_render(const std::string& dir, const std::string& out,
                      .first;
         }
         const std::uint64_t fi =
-            astrocs::healpix::nested_local_to_fits_index(local, 9u, 512u);
+            acsd::healpix::nested_local_to_fits_index(local, 9u, 512u);
         *sig = it->second.first[(size_t)fi];
         *sup = it->second.second[(size_t)fi];
         return true;

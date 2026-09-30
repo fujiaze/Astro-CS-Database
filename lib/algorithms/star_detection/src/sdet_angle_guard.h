@@ -26,7 +26,7 @@
 
 #include <cmath>
 
-namespace astrocs {
+namespace acsd {
 namespace star_detector {
 
 // 归一化最多允许的半程 (180°) 次数。物理上 alpha 为朝向角, 归一化后必落在
@@ -65,6 +65,6 @@ inline bool normalize_angle_deg_bounded(double angle_deg, double* out_angle_deg)
 }
 
 }  // namespace star_detector
-}  // namespace astrocs
+}  // namespace acsd
 
 #endif  // SDET_ANGLE_GUARD_H

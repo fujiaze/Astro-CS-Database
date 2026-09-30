@@ -1,23 +1,23 @@
-# astrocs.p2.sampling — Phase2 控制点采样模块（P2-SAMP）
+# acsd.p2.sampling — Phase2 控制点采样模块（P2-SAMP）
 
 > P2-SAMP-DOC（2026-09-09，SA-P2-S20）新建模块页。合同三件套落位
 > `lib/algorithms/sampling/`（README r1 + module.yaml + memory.md，CONTRACT_READY，
 > entrypoint=MISSING）——迁移目标目录按 `lib/algorithms/integration/`（P2-INT-DOC，
 > 其按 `lib/algorithms/coverage/hips_p2/` P2-HIPS-DOC 先例）→ `lib/algorithms/rejection/`（P2-REJ-DOC）
-> 先例新建；`lib/algorithms/coverage/` 三件套已被 P2-COV（astrocs.p2.coverage）占用
+> 先例新建；`lib/algorithms/coverage/` 三件套已被 P2-COV（acsd.p2.coverage）占用
 > （lib/algorithms/coverage/README.md r1，一目录一套 README/module.yaml/memory.md，
 > 不可覆盖）。生产源 `lib/algorithms/coverage/src/sampler.cpp`（1156 行，根
-> CMakeLists astrocs_phase2 静态库成员 :337-346/:342）+ 唯一权威签名头
+> CMakeLists acsd_phase2 静态库成员 :337-346/:342）+ 唯一权威签名头
 > `lib/algorithms/coverage/include/astro/phase2/sampler.h`（136 行）；唯一生产消费方
 > `lib/algorithms/coverage/tools/stage2.cpp`（probe/fill 两遍调用 :279-311）。
 
 ## 身份与合同
 
-- MOD ID：`MOD-astrocs-phase2-sample`（registry 行 ID 沿用
-  `MOD-astrocs-phase2-sample`）；module_id：`astrocs.p2.sampling`
+- MOD ID：`MOD-acsd-phase2-sample`（registry 行 ID 沿用
+  `MOD-acsd-phase2-sample`）；module_id：`acsd.p2.sampling`
   （MODULE_MIGRATION_MATRIX P2-SAMP 行；descriptor 编排层占位
-  astrocs.phase2.sample 由 P2-XX-INT 对齐，不反向作冻结依据）；
-  dll_target：`astrocs_p2_sampling.dll`（合同值，尚未存在，迁移归
+  acsd.phase2.sample 由 P2-XX-INT 对齐，不反向作冻结依据）；
+  dll_target：`acsd_p2_sampling.dll`（合同值，尚未存在，迁移归
   P2-SAMP-IMPL）。
 - owner SA-P2-S20；depends_on_int=P2-COV-INT;CPU-005；
   legacy_paths="lib/algorithms/coverage sampling sources"（均以
@@ -32,7 +32,7 @@
   → DATA-P2-SMP（DATA_SEMANTICS §23）/ API-P2-SMP-001
   （PUBLIC_API Phase2 sampling 公共消费面节）→
   TEST-P2-SMP-001（登记面=设计冻结 TEST-P2-SMP-DESIGN-001 VERIFIED，
-  承载于 docs/detail/registry/astrocs.phase2.sample.md §独立 synthetic
+  承载于 docs/detail/registry/acsd.phase2.sample.md §独立 synthetic
   验证节 + ALG 文档 §11.3 F1-F9 容差；可执行测试 MISSING 归
   P2-SAMP-TEST，不冒认）。
 
@@ -91,7 +91,7 @@
 
 可执行 `TEST-P2-SMP-001` MISSING（P2-SAMP-TEST 建立，不冒认）；
 登记面=TEST-P2-SMP-DESIGN-001 设计冻结 VERIFIED，承载于
-docs/detail/registry/astrocs.phase2.sample.md §独立 synthetic
+docs/detail/registry/acsd.phase2.sample.md §独立 synthetic
 验证节 + ALG-P2-SMP-001 §11.3 F1-F9 容差（F1-F6/F8-F9
 bitwise/解析/计数精确，F2 角点 exact 插值 rtol 1e-12、F3-F5
 rtol 1e-12、F4 atol 1e-9 deg）。现状相邻证据（引用不冒认）：
@@ -111,7 +111,7 @@ WireProductionStage2PerFrameIvar :223。
 - DATA：docs/science/DATA_SEMANTICS.md §23（DATA-P2-SMP）
 - API：docs/engineering/PUBLIC_API.md API-P2-SMP-001；
   API-P2-001（编排层既有）
-- 模块页：docs/detail/registry/astrocs.phase2.sample.md
+- 模块页：docs/detail/registry/acsd.phase2.sample.md
 - 新模块页：docs/detail/phase2_samp.md
 
 ## 已知限制（DISP-P2SMP，登记不改码，整改归 P2-SAMP-IMPL/TEST）

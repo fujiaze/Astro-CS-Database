@@ -1,9 +1,9 @@
 {
-  "defaults_schema": "astrocs.config-defaults/v1",
+  "defaults_schema": "acsd.config-defaults/v1",
   "defaults_id": "config.defaults",
   "authority": {
-    "design": "docs/ASTROCS_DESIGN.md §3.3（程序根 eng/packaging/config/：defaults.json 放暗场-亮场曝光容差、默认 PSF 模型、检测阈值、标量门、稀疏层密度等）",
-    "preflight": "docs/ASTROCS_DESIGN.md §4.5（预检三级：容差等判定基准来自 eng/packaging/config/defaults.json）",
+    "design": "docs/ACSD_DESIGN.md §3.3（程序根 eng/packaging/config/：defaults.json 放暗场-亮场曝光容差、默认 PSF 模型、检测阈值、标量门、稀疏层密度等）",
+    "preflight": "docs/ACSD_DESIGN.md §4.5（预检三级：容差等判定基准来自 eng/packaging/config/defaults.json）",
     "transcription_rule": "每个字段的 value 只能从 docs/science/** 或 docs/science/algorithms/** 逐字转录；无权威数值者写 null + authority_status=pending_authority + pending_task，禁止编造。"
   },
   "field_count": 59,
@@ -17,7 +17,7 @@
       "key": "calibration.dark_light_exposure_tolerance",
       "value": 5,
       "unit": "s",
-      "constraint": "暗场与亮场曝光时间的一致性容差；超容差 -> 预检橘色 optimize（提示走暗场优化），不阻断运行（docs/ASTROCS_DESIGN.md §4.5 运行前预检）",
+      "constraint": "暗场与亮场曝光时间的一致性容差；超容差 -> 预检橘色 optimize（提示走暗场优化），不阻断运行（docs/ACSD_DESIGN.md §4.5 运行前预检）",
       "authority_status": "owner_adjudicated",
       "source": "负责人裁决 2026-09-16（值为 5 s）；待落 docs/science/CALIBRATION.md（SCI-RES-01/R-004 落文档；定义归 SCI-RES-01/R-003）",
       "source_ref": null,
@@ -759,7 +759,7 @@
         "value_text": "FP64"
       },
       "pending_task": null,
-      "note": "docs/ASTROCS_DESIGN.md §3.3 的 JSON 示例写 fp32，属示例取值；默认值以本条为准（SCIENCE_SCOPE 为科学权威）。"
+      "note": "docs/ACSD_DESIGN.md §3.3 的 JSON 示例写 fp32，属示例取值；默认值以本条为准（SCIENCE_SCOPE 为科学权威）。"
     },
     {
       "key": "upm.k_corr",
@@ -821,7 +821,7 @@
       "source": null,
       "source_ref": null,
       "pending_task": "SCI-RES-01/R-001（稀疏帧内 SNR 层控制点密度）",
-      "note": "docs/ASTROCS_DESIGN.md §3.3 点名 defaults.json 应含「稀疏层密度」；docs/science/** 与 docs/science/algorithms/** 全库检索无数值，以 pending_authority 占位，禁止编造。**与 sparse_snr.spacing_px 不是同一字段**：本键单位「点/度²」（插件文档 07_noise_snr.md 的按面积密度表述，数值仍无 SCI/ALG 权威 ⇒ 保持 pending）。稀疏层密度以**像素域控制点间隔**承载 = sparse_snr.spacing_px = 64 px（复用 Phase2 UPM 8×8/tile 控制网格）。"
+      "note": "docs/ACSD_DESIGN.md §3.3 点名 defaults.json 应含「稀疏层密度」；docs/science/** 与 docs/science/algorithms/** 全库检索无数值，以 pending_authority 占位，禁止编造。**与 sparse_snr.spacing_px 不是同一字段**：本键单位「点/度²」（插件文档 07_noise_snr.md 的按面积密度表述，数值仍无 SCI/ALG 权威 ⇒ 保持 pending）。稀疏层密度以**像素域控制点间隔**承载 = sparse_snr.spacing_px = 64 px（复用 Phase2 UPM 8×8/tile 控制网格）。"
     },
     {
       "key": "sparse_snr.spacing_px",
@@ -854,7 +854,7 @@
         "schema": "eng/contracts/schemas/phase_config_mosaic.schema.json",
         "pointer": "#/$defs/mosaic_config/properties/snr_path"
       },
-      "note": "键名依据：docs/ASTROCS_DESIGN.md §4.3:381（Phase2 消费面；§3.3 经多块形态收口后为 CLI 平铺键集，不含 snr_path）与 docs/detail/UNIFIED_MODEL.md、docs/detail/algorithms_phase1/07_noise_snr.md 均写 snr_path；未落地的命名提议 algorithm_snr_path 已统一为 snr_path。本键是 defaults.json 的 SNR 域默认值命名空间，与 phase_config 的 snr 块（P8-SNR-LINUX：gain_e_per_adu/read_noise_e 等噪声模型参数，normalize 面）不同类、不同层，不互为同名同义。enum_token/enum_target 是「默认值 → 字段取值域」的唯一登记（机器门断言 token ∈ snr_path enum）。"
+      "note": "键名依据：docs/ACSD_DESIGN.md §4.3:381（Phase2 消费面；§3.3 经多块形态收口后为 CLI 平铺键集，不含 snr_path）与 docs/detail/UNIFIED_MODEL.md、docs/detail/algorithms_phase1/07_noise_snr.md 均写 snr_path；未落地的命名提议 algorithm_snr_path 已统一为 snr_path。本键是 defaults.json 的 SNR 域默认值命名空间，与 phase_config 的 snr 块（P8-SNR-LINUX：gain_e_per_adu/read_noise_e 等噪声模型参数，normalize 面）不同类、不同层，不互为同名同义。enum_token/enum_target 是「默认值 → 字段取值域」的唯一登记（机器门断言 token ∈ snr_path enum）。"
     },
     {
       "key": "scalar_gate.rd",
@@ -865,7 +865,7 @@
       "source": null,
       "source_ref": null,
       "pending_task": "SCI-RES-01/R-002（标量门判据与阈值）",
-      "note": "docs/ASTROCS_DESIGN.md §3.3 点名「标量门」；docs/science/** 与 docs/science/algorithms/** 无数值。标量门失败须自动升级空间模型（07_noise_snr.md），阈值未定前不得编造。"
+      "note": "docs/ACSD_DESIGN.md §3.3 点名「标量门」；docs/science/** 与 docs/science/algorithms/** 无数值。标量门失败须自动升级空间模型（07_noise_snr.md），阈值未定前不得编造。"
     },
     {
       "key": "scalar_gate.trend",

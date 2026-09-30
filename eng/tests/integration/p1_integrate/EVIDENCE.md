@@ -6,8 +6,8 @@
   —— 控制器在本任务运行期间并行提交了 `P3-INTEGRATE-001`（`a689eff2`）；
   该提交未触及本任务写域（只含 `lib/phase3_session/`、`eng/tests/integration/p3_export/`、台账）。
 - 接线对象（Wave 5，只调用不修改）:
-  - `lib/algorithms/calibration/include/astrocs/calibration/calibration_covariance.h`
-  - `lib/algorithms/psf/include/astrocs/psf_information.h`、`lib/algorithms/noise_snr/include/astrocs/information_weight.h`、`lib/algorithms/photometry/include/astrocs/psfsw.h`
+  - `lib/algorithms/calibration/include/acsd/calibration/calibration_covariance.h`
+  - `lib/algorithms/psf/include/acsd/psf_information.h`、`lib/algorithms/noise_snr/include/acsd/information_weight.h`、`lib/algorithms/photometry/include/acsd/psfsw.h`
   - `lib/algorithms/drizzle/healpix_drizzle/{drizzle_science.h,spherical_overlap_science.h}`
   - `lib/infrastructure/aio/product_io/include/astro/aio/*.h`（FITS/provenance/BUNIT/原子发布/HiPS manifest）
 
@@ -15,9 +15,9 @@
 
 | 文件 | 作用 |
 |---|---|
-| `lib/algorithms/integration/phase1_product/include/astrocs/phase1_product.h` | 单帧产品装配/重开/Phase2 消费面 API |
+| `lib/algorithms/integration/phase1_product/include/acsd/phase1_product.h` | 单帧产品装配/重开/Phase2 消费面 API |
 | `lib/algorithms/integration/phase1_product/src/phase1_product.cpp` | 实现：校准→PSF/W_info→PSFSW→球面 Drizzle→FITS/记录→原子发布→重开验证 |
-| `lib/algorithms/integration/phase1_product/CMakeLists.txt` | 静态库 `astrocs_phase1_product`（自注册，不改根/公共 CMake，C-004.4） |
+| `lib/algorithms/integration/phase1_product/CMakeLists.txt` | 静态库 `acsd_phase1_product`（自注册，不改根/公共 CMake，C-004.4） |
 | `lib/algorithms/integration/phase1_product/README.md` | 接线契约与冻结口径 |
 | `eng/tests/integration/p1_integrate/CMakeLists.txt` | 自注册 ctest 目标（独立可配置） |
 | `eng/tests/integration/p1_integrate/p1_integrate_test.cpp` | 端点测试：写盘/重开/组消费/24 条负向/无半成品 |
@@ -67,7 +67,7 @@ timeout 900 ctest --test-dir build_clean --output-on-failure                    
 磁盘结构：`<dir>/science.fits`（PRIMARY=SIGNAL + SUPPORT/VARIANCE/IVAR）+ `<dir>/phase1_product.json`。
 
 - 重开校验：FITS CHECKSUM/DATASUM + SHA-256 与 manifest/provenance 相符 + 逐 HDU BUNIT + 单位冻结串 + 二次律 + psfsw 四分量 + provenance 最小集 + 禁诊断来源（**现行产品不携带退役对象声明**；携带者按退役/迁移情形登记）。
-- Phase2 消费面（`consume_phase1_group_for_psfsw`）：**整体退役、无条件 fail-closed**（FZ-MODE-RETIRED + 迁移提示，不产出 w_psfsw）——该面的唯一产物就是退役对象 psfsw_robust_weight 的组内归一权重，`docs/ASTROCS_DESIGN.md` §3.1 禁止 PSF 质量代理进入科学叠加权重。Oracle 侧保留独立复算作**非空洞守卫**（fixture 四分量本身能算出合法组内归一 ⇒ 拒绝是策略拒绝而非数据退化）。
+- Phase2 消费面（`consume_phase1_group_for_psfsw`）：**整体退役、无条件 fail-closed**（FZ-MODE-RETIRED + 迁移提示，不产出 w_psfsw）——该面的唯一产物就是退役对象 psfsw_robust_weight 的组内归一权重，`docs/ACSD_DESIGN.md` §3.1 禁止 PSF 质量代理进入科学叠加权重。Oracle 侧保留独立复算作**非空洞守卫**（fixture 四分量本身能算出合法组内归一 ⇒ 拒绝是策略拒绝而非数据退化）。
 - 无半成品：几何闭合不可能（closure tol=0）时发布失败，目标目录不存在且无 `.staging.tmp-` 残留。
 
 ## 5. 负向测试（24 条，全部红）
@@ -86,7 +86,7 @@ manifest_file_hash_changed / bunit_card_changed / **p33_coefficient_reintroduced
 ## 6. 未决风险与需控制器裁决事项
 
 1. **生产 schema 未约束 `quantity.units`**（finding，非本任务写域）：
-   `astrocs.v6.point-information.v1.schema.json#/$defs/quantity` 的 `units` 仅
+   `acsd.v6.point-information.v1.schema.json#/$defs/quantity` 的 `units` 仅
    `type:string`，故 `W_info.units="ADU^-1"` 仍过 schema（Oracle 自检因此改为
    校验 `authoritative_formula` const）。冻结单位串一致性由本层 C++ 重开门补齐，
    但机器 schema 门有缺口，建议 W6/W12 收紧为 `const/enum`。
@@ -96,7 +96,7 @@ manifest_file_hash_changed / bunit_card_changed / **p33_coefficient_reintroduced
    drizzle_forward/phase2_combination/phase3_resample，无"校准 Jacobian"）。本任务以真实
    共享 master（`common_master`）落地规避；若校准无共享项（纯对角），需 owner 就
    `operator_descriptor.kind` 是否容纳校准算子给出裁决。
-3. **构建面欠账（AR-033 / W9）**：`astrocs_phase1_product` 直接把 Wave 5 源编入
+3. **构建面欠账（AR-033 / W9）**：`acsd_phase1_product` 直接把 Wave 5 源编入
    静态库（与 `eng/tests/unit/v6_*` 各自编译同源）。W9 将新生产源接入生产库时，请
    决定复用现有生产 target 还是保留本独立 target，避免重复编译/重复符号。
 4. **`k_corr` 对本帧产品不适用但 schema 必填**：Phase1 无 UPM，

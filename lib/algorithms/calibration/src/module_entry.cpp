@@ -1,10 +1,10 @@
-// module_entry.cpp — astrocs_p1_calibration 模块 C ABI v1 adapter (P1-CAL-IMPL)
+// module_entry.cpp — acsd_p1_calibration 模块 C ABI v1 adapter (P1-CAL-IMPL)
 //
 // 对齐先例: lib/infrastructure/gaia_xpsd_client/src/module_entry.c (CAT-GAIA-IMPL, babe752d)
 //           lib/algorithms/drizzle/src/module_entry.cpp (P1-DRZ-IMPL, C++ TU + extern "C")
 //
 // 冻结合同:
-//   - 唯一导出 astrocs_module_query_v1 (12 §1 / ABI-006); vtable 九操作时序
+//   - 唯一导出 acsd_module_query_v1 (12 §1 / ABI-006); vtable 九操作时序
 //     query → describe/validate_config/plan → create → execute* → inspect
 //     → request_cancel → destroy (module_api_v1.h / lifecycle_v1.h)。
 //   - 科学域零改动 (scientific_change=false): 本文件只做 eng/packaging/config/manifest 解析、
@@ -34,8 +34,8 @@
 // 并发: 同实例 execute 互斥 (state 护栏); inspect 并发只读; request_cancel
 // 原子置位。全部内部状态单写者 = execute 调用线程。
 
-#include "astrocs/abi/lifecycle_v1.h"
-#include "astrocs/calibration/types.h"
+#include "acsd/abi/lifecycle_v1.h"
+#include "acsd/calibration/types.h"
 #include "astro_calibration.h"
 
 #include <cmath>
@@ -61,7 +61,7 @@
 /* 基础工具: 状态填充 / strbuf 两阶段提交 / base64                          */
 /* ====================================================================== */
 
-namespace acs_cal {
+namespace acsd_cal {
 
 typedef std::vector<uint8_t> bytes;
 
@@ -72,11 +72,11 @@ typedef enum {
     OPK_CORRECT = 2     /* correct_frame (± _f64) */
 } op_kind_t;
 
-acs_status efill(acs_error_info_v1* err, acs_status st, int32_t domain,
+acsd_status efill(acsd_error_info_v1* err, acsd_status st, int32_t domain,
                  const char* msg, uint32_t detail) {
     if (err) {
         std::memset(err, 0, sizeof(*err));
-        err->head.struct_size = (uint32_t)sizeof(acs_error_info_v1);
+        err->head.struct_size = (uint32_t)sizeof(acsd_error_info_v1);
         err->head.abi_version = ACS_ABI_VERSION_V1;
         err->status = st;
         err->domain = domain;
@@ -90,8 +90,8 @@ acs_status efill(acs_error_info_v1* err, acs_status st, int32_t domain,
 /* strbuf 两阶段 (drizzle/gaia 口径): data==NULL 或 cap==0 → 尺寸探测,
  * size=所需, 返回 ACS_OK; cap>0 不足 → PARAM + BUFFER_TOO_SMALL, size=所需,
  * 写前缀 + NUL; 足够 → 整写 + NUL。 */
-acs_status strbuf_commit(acs_strbuf_v1* sb, const char* src, uint64_t needed,
-                         acs_error_info_v1* err) {
+acsd_status strbuf_commit(acsd_strbuf_v1* sb, const char* src, uint64_t needed,
+                         acsd_error_info_v1* err) {
     if (!sb) return efill(err, ACS_ERR_PARAM, ACS_ERR_DOMAIN_CONFIG,
                           "output strbuf required", ACS_DIAG_ECODE_NULL_CALLBACK);
     sb->size = needed;
@@ -203,13 +203,13 @@ void b64_encode(const uint8_t* src, uint64_t n, char* out) {
     }
 }
 
-}  // namespace acs_cal
+}  // namespace acsd_cal
 
 /* ====================================================================== */
 /* JSON 配置解析 (迷你严格解析器; 15-键词表, 9 §10 冻结禁止)                 */
 /* ====================================================================== */
 
-namespace acs_cal {
+namespace acsd_cal {
 
 /* 值: 数字 (含整数) / 布尔 / 字符串 / null; 拒对象与数组 (schema 禁止嵌套)。
  * 重复键 → PARAM + CONFIG_SCHEMA (9 §10)。unknown 键 → PARAM + CONFIG_SCHEMA。 */
@@ -420,7 +420,7 @@ int kv_find(const jc_keyval* kvs, int nkv, const char* name) {
 }
 
 /* 类型校验 + 词表校验 + 数值性校验。返回 ACS_OK / ACS_ERR_PARAM。 */
-acs_status cfg_check(const jc_keyval* kvs, int nkv, acs_error_info_v1* err) {
+acsd_status cfg_check(const jc_keyval* kvs, int nkv, acsd_error_info_v1* err) {
     for (int i = 0; i < nkv; ++i) {
         const int vi = cfg_index(kvs[i].key, kvs[i].klen);
         if (vi < 0) {
@@ -496,13 +496,13 @@ int kv_bool(const jc_keyval* kvs, int nkv, const char* name, int* out) {
     return 0;
 }
 
-}  // namespace acs_cal
+}  // namespace acsd_cal
 
 /* ====================================================================== */
 /* op 词表 / 实例 / vtable 主逻辑                                            */
 /* ====================================================================== */
 
-namespace acs_cal {
+namespace acsd_cal {
 
 struct op_entry {
     const char* name;
@@ -595,7 +595,7 @@ int parse_method(const char* v, uint32_t l) {
 
 /* 执行上下文 (execute 一次一具; create 期 cfg 已 parse 成 exec_cfg 雏形) */
 struct cal_exec_ctx {
-    const acs_host_api_v1* host;
+    const acsd_host_api_v1* host;
     exec_cfg               c;         /* create 期 cfg */
     int                    has_cfg;
     /* 租约状态 (execute 期) */
@@ -608,23 +608,23 @@ struct cal_exec_ctx {
 
 /* 实例 (host allocator calloc; ACS_OP_CREATE → 返回) */
 struct cal_inst {
-    acs_head               head;
+    acsd_head               head;
     int                    state;      /* ACS_LC_STATE_* */
     volatile int32_t       cancel_req;
     uint64_t               exec_count;
     int                    last_op;    /* ACS_OP_* */
-    acs_status             last_status;
+    acsd_status             last_status;
     uint32_t               last_detail;
     /* create 期 config 快照 (exec 期 config 可覆盖) */
     exec_cfg               cfg;
     int                    has_cfg;
-    const acs_host_api_v1* host;
+    const acsd_host_api_v1* host;
 };
 
 /* ── config → exec_cfg (validate 语义: 必需键/范围) ── */
 
-acs_status cfg_fill(const jc_keyval* kvs, int nkv, const op_entry* e,
-                    exec_cfg* c, acs_error_info_v1* err) {
+acsd_status cfg_fill(const jc_keyval* kvs, int nkv, const op_entry* e,
+                    exec_cfg* c, acsd_error_info_v1* err) {
     std::memset(c, 0, sizeof(*c));
     c->op_index = (int)(e - OP_VOCAB);
     const char* keys[10];
@@ -723,16 +723,16 @@ int op_lookup(const char* s, uint32_t l) {
     return -1;
 }
 
-}  // namespace acs_cal
+}  // namespace acsd_cal
 
 /* ====================================================================== */
 /* ====================================================================== */
 
-namespace acs_cal {
+namespace acsd_cal {
 
 /* master 输入: aux 数组元素逐个 base64 解码并拼接为 n*w*h*esz 连续栈 */
-acs_status decode_stack(const jc_keyval* fr, uint64_t plane_bytes,
-                        bytes* stack, uint64_t* n_out, acs_error_info_v1* err) {
+acsd_status decode_stack(const jc_keyval* fr, uint64_t plane_bytes,
+                        bytes* stack, uint64_t* n_out, acsd_error_info_v1* err) {
     if (fr->kind != 'S' || fr->aux_n < 1) {
         return efill(err, ACS_ERR_PARAM, ACS_ERR_DOMAIN_DATA,
                      "manifest \"frames\" must be a non-empty base64 array", 110);
@@ -758,8 +758,8 @@ acs_status decode_stack(const jc_keyval* fr, uint64_t plane_bytes,
     return ACS_OK;
 }
 
-acs_status decode_plane(const char* b64, uint64_t bl, uint64_t plane_bytes,
-                        bytes* plane, acs_error_info_v1* err, const char* what) {
+acsd_status decode_plane(const char* b64, uint64_t bl, uint64_t plane_bytes,
+                        bytes* plane, acsd_error_info_v1* err, const char* what) {
     const int64_t dl = b64_decode_len(b64, bl);
     if (dl < 0) {
         return efill(err, ACS_ERR_PARAM, ACS_ERR_DOMAIN_DATA,
@@ -787,10 +787,10 @@ std::string num_json(double v) {
 }
 
 /* 输出 manifest (键序冻结; 事务性: 全部成功才返回非空串) */
-acs_status build_out_manifest(const exec_cfg& c, int is_f64,
+acsd_status build_out_manifest(const exec_cfg& c, int is_f64,
                               const uint8_t* out_plane, uint64_t plane_bytes,
                               double actual_k, int64_t hot, int64_t cold,
-                              std::string* out_json, acs_error_info_v1* err) {
+                              std::string* out_json, acsd_error_info_v1* err) {
     /* WIN-PORT C4100: 本函数是"只产出成功 manifest"的事务性构造器 —— 任一环节
      * 失败即返回空串由调用方回填错误详情，故 err 形参按 ABI 保留但从不读取。
      * 显式标记未使用，形参不改（签名属冻结的模块内部接口）。 */
@@ -833,9 +833,9 @@ acs_status build_out_manifest(const exec_cfg& c, int is_f64,
 }
 
 /* execute 主体 (状态护栏与租约在调用方) */
-acs_status exec_run(cal_inst* inst, const exec_cfg& c,
+acsd_status exec_run(cal_inst* inst, const exec_cfg& c,
                     const char* man_s, uint64_t man_n,
-                    acs_strbuf_v1* out, acs_error_info_v1* err) {
+                    acsd_strbuf_v1* out, acsd_error_info_v1* err) {
     const op_entry* e = &OP_VOCAB[c.op_index];
     const int is_f64 = e->is_f64;
     const uint64_t esz = is_f64 ? 8u : 4u;
@@ -893,7 +893,7 @@ acs_status exec_run(cal_inst* inst, const exec_cfg& c,
             return efill(err, ACS_ERR_PARAM, ACS_ERR_DOMAIN_DATA,
                          "manifest \"frames\" array required for master ops", 110);
         }
-        acs_status st = decode_stack(&mkv[fri], plane_bytes, &stack,
+        acsd_status st = decode_stack(&mkv[fri], plane_bytes, &stack,
                                      &n_frames, err);
         if (st != ACS_OK) return st;
     } else {
@@ -903,7 +903,7 @@ acs_status exec_run(cal_inst* inst, const exec_cfg& c,
             return efill(err, ACS_ERR_PARAM, ACS_ERR_DOMAIN_DATA,
                          "manifest data_base64 required", 110);
         }
-        acs_status st = decode_plane(b64, bl, plane_bytes, &light, err, "data");
+        acsd_status st = decode_plane(b64, bl, plane_bytes, &light, err, "data");
         if (st != ACS_OK) return st;
     }
     /* 可选 master 平面 (键缺席 = NULL → legacy 恒等路径, DEV-2 行为保持) */
@@ -918,7 +918,7 @@ acs_status exec_run(cal_inst* inst, const exec_cfg& c,
         const char* b64 = mkv[bi].val;
         const uint32_t bl = mkv[bi].vlen;
         if (mkv[bi].kind != 's' || !b64) continue;   /* null → 缺席 */
-        acs_status st = decode_plane(b64, bl, plane_bytes, planes[i].dst,
+        acsd_status st = decode_plane(b64, bl, plane_bytes, planes[i].dst,
                                      err, planes[i].key);
         if (st != ACS_OK) return st;
     }
@@ -936,7 +936,7 @@ acs_status exec_run(cal_inst* inst, const exec_cfg& c,
     uint32_t leased = 0;
     int lease_active = 0;
     int omp_prev = -1;
-    const acs_executor_v1* ex =
+    const acsd_executor_v1* ex =
         (inst->host && inst->host->executor) ? inst->host->executor : NULL;
     if (!ex) {
         return efill(err, ACS_ERR_BUDGET, ACS_ERR_DOMAIN_RESOURCE,
@@ -1062,13 +1062,13 @@ acs_status exec_run(cal_inst* inst, const exec_cfg& c,
 
     /* ── 输出 manifest (事务: 此前任何路径不写 out) ── */
     std::string oj;
-    acs_status st = build_out_manifest(c, is_f64, out_plane.data(), plane_bytes,
+    acsd_status st = build_out_manifest(c, is_f64, out_plane.data(), plane_bytes,
                                        actual_k, hot, cold, &oj, err);
     if (st != ACS_OK) return st;
     return strbuf_commit(out, oj.c_str(), (uint64_t)oj.size(), err);
 }
 
-}  // namespace acs_cal
+}  // namespace acsd_cal
 
 /* ====================================================================== */
 /* vtable 九操作 + 唯一导出入口 (异常屏障层)                                  */
@@ -1077,9 +1077,9 @@ acs_status exec_run(cal_inst* inst, const exec_cfg& c,
 extern "C" {
 
 /* ── describe (module 级; 静态串) ── */
-static acs_status cal_describe(const acs_module_api_v1* self,
-                               acs_str_v1 module_id,
-                               acs_module_descriptor_v1* out_desc) {
+static acsd_status cal_describe(const acsd_module_api_v1* self,
+                               acsd_str_v1 module_id,
+                               acsd_module_descriptor_v1* out_desc) {
     /* WIN-PORT C4100: describe 是 vtable 的静态操作，不需要实例指针；形参按
      * module_api_v1 冻结签名保留，显式标记未使用。 */
     (void)self;
@@ -1092,136 +1092,136 @@ static acs_status cal_describe(const acs_module_api_v1* self,
          * (DESCRIPTOR_MISMATCH), 本行为修复经 eng/tests/abi/mod001_install_load_check.py
          * 安装树逐 unit 加载验证闭环。 */
         if (module_id.size != 0 &&
-            (module_id.size != std::strlen(ASTROCS_CAL_MODULE_ID) ||
-             std::memcmp(module_id.data, ASTROCS_CAL_MODULE_ID, module_id.size) != 0)) {
+            (module_id.size != std::strlen(ACSD_CAL_MODULE_ID) ||
+             std::memcmp(module_id.data, ACSD_CAL_MODULE_ID, module_id.size) != 0)) {
             return ACS_ERR_ABI_MISMATCH;
         }
         std::memset(out_desc, 0, sizeof(*out_desc));
-        out_desc->head.struct_size = (uint32_t)sizeof(acs_module_descriptor_v1);
+        out_desc->head.struct_size = (uint32_t)sizeof(acsd_module_descriptor_v1);
         out_desc->head.abi_version = ACS_ABI_VERSION_V1;
-        out_desc->module_id.head.struct_size = (uint32_t)sizeof(acs_str_v1);
+        out_desc->module_id.head.struct_size = (uint32_t)sizeof(acsd_str_v1);
         out_desc->module_id.head.abi_version = ACS_ABI_VERSION_V1;
-        out_desc->module_id.data = ASTROCS_CAL_MODULE_ID;
-        out_desc->module_id.size = std::strlen(ASTROCS_CAL_MODULE_ID);
-        out_desc->version.head.struct_size = (uint32_t)sizeof(acs_str_v1);
+        out_desc->module_id.data = ACSD_CAL_MODULE_ID;
+        out_desc->module_id.size = std::strlen(ACSD_CAL_MODULE_ID);
+        out_desc->version.head.struct_size = (uint32_t)sizeof(acsd_str_v1);
         out_desc->version.head.abi_version = ACS_ABI_VERSION_V1;
-        out_desc->version.data = ASTROCS_CAL_VERSION;
-        out_desc->version.size = std::strlen(ASTROCS_CAL_VERSION);
-        out_desc->build_id.head.struct_size = (uint32_t)sizeof(acs_str_v1);
+        out_desc->version.data = ACSD_CAL_VERSION;
+        out_desc->version.size = std::strlen(ACSD_CAL_VERSION);
+        out_desc->build_id.head.struct_size = (uint32_t)sizeof(acsd_str_v1);
         out_desc->build_id.head.abi_version = ACS_ABI_VERSION_V1;
-        out_desc->build_id.data = ASTROCS_CAL_BUILD_ID;
-        out_desc->build_id.size = std::strlen(ASTROCS_CAL_BUILD_ID);
-        out_desc->sci_id.head.struct_size = (uint32_t)sizeof(acs_str_v1);
+        out_desc->build_id.data = ACSD_CAL_BUILD_ID;
+        out_desc->build_id.size = std::strlen(ACSD_CAL_BUILD_ID);
+        out_desc->sci_id.head.struct_size = (uint32_t)sizeof(acsd_str_v1);
         out_desc->sci_id.head.abi_version = ACS_ABI_VERSION_V1;
-        out_desc->sci_id.data = ASTROCS_CAL_SCI_ID;
-        out_desc->sci_id.size = std::strlen(ASTROCS_CAL_SCI_ID);
-        out_desc->alg_id.head.struct_size = (uint32_t)sizeof(acs_str_v1);
+        out_desc->sci_id.data = ACSD_CAL_SCI_ID;
+        out_desc->sci_id.size = std::strlen(ACSD_CAL_SCI_ID);
+        out_desc->alg_id.head.struct_size = (uint32_t)sizeof(acsd_str_v1);
         out_desc->alg_id.head.abi_version = ACS_ABI_VERSION_V1;
-        out_desc->alg_id.data = ASTROCS_CAL_ALG_ID;
-        out_desc->alg_id.size = std::strlen(ASTROCS_CAL_ALG_ID);
-        out_desc->api_id.head.struct_size = (uint32_t)sizeof(acs_str_v1);
+        out_desc->alg_id.data = ACSD_CAL_ALG_ID;
+        out_desc->alg_id.size = std::strlen(ACSD_CAL_ALG_ID);
+        out_desc->api_id.head.struct_size = (uint32_t)sizeof(acsd_str_v1);
         out_desc->api_id.head.abi_version = ACS_ABI_VERSION_V1;
-        out_desc->api_id.data = ASTROCS_CAL_API_ID;
-        out_desc->api_id.size = std::strlen(ASTROCS_CAL_API_ID);
+        out_desc->api_id.data = ACSD_CAL_API_ID;
+        out_desc->api_id.size = std::strlen(ACSD_CAL_API_ID);
         out_desc->phase = 1;
-        out_desc->config_schema_ver = ASTROCS_CAL_CONFIG_SCHEMA_VER;
+        out_desc->config_schema_ver = ACSD_CAL_CONFIG_SCHEMA_VER;
         out_desc->execution_class = 0;   /* cpu_heavy (module.yaml) */
         out_desc->parallel_ok = 1;       /* 经 host executor 租约 */
         out_desc->flags = 0;
         return ACS_OK;
     } catch (...) {
-        return acs_cal::efill(NULL, ACS_ERR_EXCEPTION, ACS_ERR_DOMAIN_INTERNAL,
+        return acsd_cal::efill(NULL, ACS_ERR_EXCEPTION, ACS_ERR_DOMAIN_INTERNAL,
                               "exception in describe", 130);
     }
 }
 
 /* ── validate_config (module 级; CLI-003: 不触发科学计算) ── */
-static acs_status cal_validate_config(const acs_module_api_v1* self,
-                                      acs_str_v1 config_json,
-                                      acs_error_info_v1* err) {
+static acsd_status cal_validate_config(const acsd_module_api_v1* self,
+                                      acsd_str_v1 config_json,
+                                      acsd_error_info_v1* err) {
     try {
         (void)self;
         if (!config_json.data || config_json.size == 0) {
-            return acs_cal::efill(err, ACS_ERR_PARAM, ACS_ERR_DOMAIN_CONFIG,
+            return acsd_cal::efill(err, ACS_ERR_PARAM, ACS_ERR_DOMAIN_CONFIG,
                                   "config JSON required", ACS_DIAG_ECODE_NULL_CONFIG);
         }
-        acs_cal::jc_doc d = { config_json.data, config_json.size, 0 };
-        acs_cal::jc_keyval kv[16];
+        acsd_cal::jc_doc d = { config_json.data, config_json.size, 0 };
+        acsd_cal::jc_keyval kv[16];
         const char* aux[2 * 3 * ACS_CAL_MAX_STACK];
         int nkv = 0;
-        if (acs_cal::jc_parse_object(&d, kv, &nkv, 16, aux,
+        if (acsd_cal::jc_parse_object(&d, kv, &nkv, 16, aux,
                                      (int)(sizeof(aux) / sizeof(aux[0]))) != 0) {
-            return acs_cal::efill(err, ACS_ERR_PARAM, ACS_ERR_DOMAIN_CONFIG,
+            return acsd_cal::efill(err, ACS_ERR_PARAM, ACS_ERR_DOMAIN_CONFIG,
                                   "config is not a flat JSON object",
                                   ACS_DIAG_ECODE_CONFIG_SCHEMA);
         }
-        acs_status st = acs_cal::cfg_check(kv, nkv, err);
+        acsd_status st = acsd_cal::cfg_check(kv, nkv, err);
         if (st != ACS_OK) return st;
         const char* opv = NULL;
         uint32_t opl = 0;
-        if (acs_cal::kv_str(kv, nkv, "op", &opv, &opl) != 0) {
-            return acs_cal::efill(err, ACS_ERR_PARAM, ACS_ERR_DOMAIN_CONFIG,
+        if (acsd_cal::kv_str(kv, nkv, "op", &opv, &opl) != 0) {
+            return acsd_cal::efill(err, ACS_ERR_PARAM, ACS_ERR_DOMAIN_CONFIG,
                                   "config.op required", 101);
         }
-        const int oi = acs_cal::op_lookup(opv, opl);
+        const int oi = acsd_cal::op_lookup(opv, opl);
         if (oi < 0) {
-            return acs_cal::efill(err, ACS_ERR_PARAM, ACS_ERR_DOMAIN_CONFIG,
+            return acsd_cal::efill(err, ACS_ERR_PARAM, ACS_ERR_DOMAIN_CONFIG,
                                   "config.op outside vocabulary", 100);
         }
-        acs_cal::exec_cfg c;
-        return acs_cal::cfg_fill(kv, nkv, &acs_cal::OP_VOCAB[oi], &c, err);
+        acsd_cal::exec_cfg c;
+        return acsd_cal::cfg_fill(kv, nkv, &acsd_cal::OP_VOCAB[oi], &c, err);
     } catch (...) {
-        return acs_cal::efill(err, ACS_ERR_EXCEPTION, ACS_ERR_DOMAIN_INTERNAL,
+        return acsd_cal::efill(err, ACS_ERR_EXCEPTION, ACS_ERR_DOMAIN_INTERNAL,
                               "exception in validate_config", 130);
     }
 }
 
 /* ── plan (module 级; work_units=数据事实, 不执行科学计算) ── */
-static acs_status cal_plan(const acs_module_api_v1* self,
-                           acs_str_v1 node_id,
-                           acs_str_v1 config_json,
-                           acs_strbuf_v1* out_plan_json,
-                           acs_error_info_v1* err) {
+static acsd_status cal_plan(const acsd_module_api_v1* self,
+                           acsd_str_v1 node_id,
+                           acsd_str_v1 config_json,
+                           acsd_strbuf_v1* out_plan_json,
+                           acsd_error_info_v1* err) {
     try {
         (void)self;
         if (!out_plan_json) {
-            return acs_cal::efill(err, ACS_ERR_PARAM, ACS_ERR_DOMAIN_CONFIG,
+            return acsd_cal::efill(err, ACS_ERR_PARAM, ACS_ERR_DOMAIN_CONFIG,
                                   "plan output strbuf required",
                                   ACS_DIAG_ECODE_NULL_CALLBACK);
         }
         if (!config_json.data || config_json.size == 0) {
-            return acs_cal::efill(err, ACS_ERR_PARAM, ACS_ERR_DOMAIN_CONFIG,
+            return acsd_cal::efill(err, ACS_ERR_PARAM, ACS_ERR_DOMAIN_CONFIG,
                                   "config JSON required", ACS_DIAG_ECODE_NULL_CONFIG);
         }
-        acs_cal::jc_doc d = { config_json.data, config_json.size, 0 };
-        acs_cal::jc_keyval kv[16];
+        acsd_cal::jc_doc d = { config_json.data, config_json.size, 0 };
+        acsd_cal::jc_keyval kv[16];
         const char* aux[2 * 3 * ACS_CAL_MAX_STACK];
         int nkv = 0;
-        if (acs_cal::jc_parse_object(&d, kv, &nkv, 16, aux,
+        if (acsd_cal::jc_parse_object(&d, kv, &nkv, 16, aux,
                                      (int)(sizeof(aux) / sizeof(aux[0]))) != 0) {
-            return acs_cal::efill(err, ACS_ERR_PARAM, ACS_ERR_DOMAIN_CONFIG,
+            return acsd_cal::efill(err, ACS_ERR_PARAM, ACS_ERR_DOMAIN_CONFIG,
                                   "config is not a flat JSON object",
                                   ACS_DIAG_ECODE_CONFIG_SCHEMA);
         }
-        acs_status st = acs_cal::cfg_check(kv, nkv, err);
+        acsd_status st = acsd_cal::cfg_check(kv, nkv, err);
         if (st != ACS_OK) return st;
         const char* opv = NULL;
         uint32_t opl = 0;
-        if (acs_cal::kv_str(kv, nkv, "op", &opv, &opl) != 0) {
-            return acs_cal::efill(err, ACS_ERR_PARAM, ACS_ERR_DOMAIN_CONFIG,
+        if (acsd_cal::kv_str(kv, nkv, "op", &opv, &opl) != 0) {
+            return acsd_cal::efill(err, ACS_ERR_PARAM, ACS_ERR_DOMAIN_CONFIG,
                                   "config.op required", 101);
         }
-        const int oi = acs_cal::op_lookup(opv, opl);
+        const int oi = acsd_cal::op_lookup(opv, opl);
         if (oi < 0) {
-            return acs_cal::efill(err, ACS_ERR_PARAM, ACS_ERR_DOMAIN_CONFIG,
+            return acsd_cal::efill(err, ACS_ERR_PARAM, ACS_ERR_DOMAIN_CONFIG,
                                   "config.op outside vocabulary", 100);
         }
-        acs_cal::exec_cfg c;
-        st = acs_cal::cfg_fill(kv, nkv, &acs_cal::OP_VOCAB[oi], &c, err);
+        acsd_cal::exec_cfg c;
+        st = acsd_cal::cfg_fill(kv, nkv, &acsd_cal::OP_VOCAB[oi], &c, err);
         if (st != ACS_OK) return st;
 
-        const acs_cal::op_entry* e = &acs_cal::OP_VOCAB[oi];
-        const bool master = (e->kind == acs_cal::OPK_MASTER);
+        const acsd_cal::op_entry* e = &acsd_cal::OP_VOCAB[oi];
+        const bool master = (e->kind == acsd_cal::OPK_MASTER);
         /* work_units = 数据事实 (12 §4): master → frames; 帧级 → 像素 */
         const uint64_t work_units = master ? c.frames : (c.width * c.height);
         const char* axis = master ? "frame" : "pixel";
@@ -1231,7 +1231,7 @@ static acs_status cal_plan(const acs_module_api_v1* self,
                       "{\"plan_version\":%d,\"node_id\":\"%.*s\",\"op\":\"%s\","
                       "\"work_unit\":\"%s\",\"work_units\":%llu,"
                       "\"parallel_axis\":\"%s\",\"min_workers\":1,",
-                      ASTROCS_CAL_PLAN_VERSION,
+                      ACSD_CAL_PLAN_VERSION,
                       (int)(node_id.size > 96 ? 96 : node_id.size),
                       node_id.data ? node_id.data : "",
                       e->name, master ? "frame" : "pixel",
@@ -1243,96 +1243,96 @@ static acs_status cal_plan(const acs_module_api_v1* self,
                       (unsigned long long)(work_units *
                                            (e->is_f64 ? 8u : 4u)));
         const std::string js = std::string(head) + tail;
-        return acs_cal::strbuf_commit(out_plan_json, js.c_str(),
+        return acsd_cal::strbuf_commit(out_plan_json, js.c_str(),
                                       (uint64_t)js.size(), err);
     } catch (...) {
-        return acs_cal::efill(err, ACS_ERR_EXCEPTION, ACS_ERR_DOMAIN_INTERNAL,
+        return acsd_cal::efill(err, ACS_ERR_EXCEPTION, ACS_ERR_DOMAIN_INTERNAL,
                               "exception in plan", 130);
     }
 }
 
 /* ── create (module 级 → 实例) ── */
-static acs_status cal_create(const acs_module_api_v1* self,
-                             acs_str_v1 config_json,
-                             const acs_host_api_v1* host,
-                             acs_module_instance_v1** out,
-                             acs_error_info_v1* err) {
+static acsd_status cal_create(const acsd_module_api_v1* self,
+                             acsd_str_v1 config_json,
+                             const acsd_host_api_v1* host,
+                             acsd_module_instance_v1** out,
+                             acsd_error_info_v1* err) {
     try {
         (void)self;
         if (!out) return ACS_ERR_PARAM;
         *out = NULL;
         if (!host || !host->allocator) {
-            return acs_cal::efill(err, ACS_ERR_PARAM, ACS_ERR_DOMAIN_CONFIG,
+            return acsd_cal::efill(err, ACS_ERR_PARAM, ACS_ERR_DOMAIN_CONFIG,
                                   "host allocator required",
                                   ACS_DIAG_ECODE_NULL_CALLBACK);
         }
         if (!config_json.data || config_json.size == 0) {
-            return acs_cal::efill(err, ACS_ERR_PARAM, ACS_ERR_DOMAIN_CONFIG,
+            return acsd_cal::efill(err, ACS_ERR_PARAM, ACS_ERR_DOMAIN_CONFIG,
                                   "config JSON required", ACS_DIAG_ECODE_NULL_CONFIG);
         }
-        acs_cal::jc_doc d = { config_json.data, config_json.size, 0 };
-        acs_cal::jc_keyval kv[16];
+        acsd_cal::jc_doc d = { config_json.data, config_json.size, 0 };
+        acsd_cal::jc_keyval kv[16];
         const char* aux[2 * 3 * ACS_CAL_MAX_STACK];
         int nkv = 0;
-        if (acs_cal::jc_parse_object(&d, kv, &nkv, 16, aux,
+        if (acsd_cal::jc_parse_object(&d, kv, &nkv, 16, aux,
                                      (int)(sizeof(aux) / sizeof(aux[0]))) != 0) {
-            return acs_cal::efill(err, ACS_ERR_PARAM, ACS_ERR_DOMAIN_CONFIG,
+            return acsd_cal::efill(err, ACS_ERR_PARAM, ACS_ERR_DOMAIN_CONFIG,
                                   "config is not a flat JSON object",
                                   ACS_DIAG_ECODE_CONFIG_SCHEMA);
         }
-        acs_status st = acs_cal::cfg_check(kv, nkv, err);
+        acsd_status st = acsd_cal::cfg_check(kv, nkv, err);
         if (st != ACS_OK) return st;
         const char* opv = NULL;
         uint32_t opl = 0;
-        if (acs_cal::kv_str(kv, nkv, "op", &opv, &opl) != 0) {
-            return acs_cal::efill(err, ACS_ERR_PARAM, ACS_ERR_DOMAIN_CONFIG,
+        if (acsd_cal::kv_str(kv, nkv, "op", &opv, &opl) != 0) {
+            return acsd_cal::efill(err, ACS_ERR_PARAM, ACS_ERR_DOMAIN_CONFIG,
                                   "config.op required", 101);
         }
-        const int oi = acs_cal::op_lookup(opv, opl);
+        const int oi = acsd_cal::op_lookup(opv, opl);
         if (oi < 0) {
-            return acs_cal::efill(err, ACS_ERR_PARAM, ACS_ERR_DOMAIN_CONFIG,
+            return acsd_cal::efill(err, ACS_ERR_PARAM, ACS_ERR_DOMAIN_CONFIG,
                                   "config.op outside vocabulary", 100);
         }
-        acs_cal::exec_cfg c;
-        st = acs_cal::cfg_fill(kv, nkv, &acs_cal::OP_VOCAB[oi], &c, err);
+        acsd_cal::exec_cfg c;
+        st = acsd_cal::cfg_fill(kv, nkv, &acsd_cal::OP_VOCAB[oi], &c, err);
         if (st != ACS_OK) return st;
 
-        acs_cal::cal_inst* inst = (acs_cal::cal_inst*)host->allocator->alloc(
-            host->allocator->user_data, sizeof(acs_cal::cal_inst), 16);
+        acsd_cal::cal_inst* inst = (acsd_cal::cal_inst*)host->allocator->alloc(
+            host->allocator->user_data, sizeof(acsd_cal::cal_inst), 16);
         if (!inst) {
-            return acs_cal::efill(err, ACS_ERR_EXCEPTION, ACS_ERR_DOMAIN_INTERNAL,
+            return acsd_cal::efill(err, ACS_ERR_EXCEPTION, ACS_ERR_DOMAIN_INTERNAL,
                                   "instance allocation failed", 130);
         }
         std::memset(inst, 0, sizeof(*inst));
-        inst->head.struct_size = (uint32_t)sizeof(acs_cal::cal_inst);
+        inst->head.struct_size = (uint32_t)sizeof(acsd_cal::cal_inst);
         inst->head.abi_version = ACS_ABI_VERSION_V1;
         inst->state = ACS_LC_STATE_CREATED;
         inst->host = host;
         inst->cfg = c;
         inst->has_cfg = 1;
-        *out = (acs_module_instance_v1*)inst;
+        *out = (acsd_module_instance_v1*)inst;
         return ACS_OK;
     } catch (...) {
-        return acs_cal::efill(err, ACS_ERR_EXCEPTION, ACS_ERR_DOMAIN_INTERNAL,
+        return acsd_cal::efill(err, ACS_ERR_EXCEPTION, ACS_ERR_DOMAIN_INTERNAL,
                               "exception in create", 130);
     }
 }
 
 /* ── execute (实例级; 可重复; 状态护栏 → 租约 → legacy → 事务输出) ── */
-static acs_status cal_execute(acs_module_instance_v1* inst_raw,
-                              acs_str_v1 input_manifest_json,
-                              acs_str_v1 config_json,
-                              acs_strbuf_v1* out_manifest_json,
-                              acs_error_info_v1* err) {
+static acsd_status cal_execute(acsd_module_instance_v1* inst_raw,
+                              acsd_str_v1 input_manifest_json,
+                              acsd_str_v1 config_json,
+                              acsd_strbuf_v1* out_manifest_json,
+                              acsd_error_info_v1* err) {
     try {
-        acs_cal::cal_inst* inst = (acs_cal::cal_inst*)inst_raw;
+        acsd_cal::cal_inst* inst = (acsd_cal::cal_inst*)inst_raw;
         if (!inst || inst->head.abi_version != ACS_ABI_VERSION_V1) {
-            return acs_cal::efill(err, ACS_ERR_PARAM, ACS_ERR_DOMAIN_CONFIG,
+            return acsd_cal::efill(err, ACS_ERR_PARAM, ACS_ERR_DOMAIN_CONFIG,
                                   "instance handle invalid",
                                   ACS_DIAG_ECODE_NULL_CALLBACK);
         }
         if (inst->state != ACS_LC_STATE_CREATED) {
-            return acs_cal::efill(err, ACS_ERR_STATE, ACS_ERR_DOMAIN_CONFIG,
+            return acsd_cal::efill(err, ACS_ERR_STATE, ACS_ERR_DOMAIN_CONFIG,
                                   "instance not in CREATED state",
                                   ACS_DIAG_ECODE_ILLEGAL_STATE);
         }
@@ -1340,38 +1340,38 @@ static acs_status cal_execute(acs_module_instance_v1* inst_raw,
             out_manifest_json->size = 0;   /* 事务性起点 */
         }
         inst->state = ACS_LC_STATE_EXECUTING;
-        acs_status st = ACS_OK;
-        acs_cal::exec_cfg c;
+        acsd_status st = ACS_OK;
+        acsd_cal::exec_cfg c;
         int have_c = 0;
         if (config_json.data && config_json.size > 0) {
             /* execute 期 config 覆盖 create 期 (同 schema 全量校验) */
-            acs_cal::jc_doc d = { config_json.data, config_json.size, 0 };
-            acs_cal::jc_keyval kv[16];
+            acsd_cal::jc_doc d = { config_json.data, config_json.size, 0 };
+            acsd_cal::jc_keyval kv[16];
             const char* aux[2 * 3 * ACS_CAL_MAX_STACK];
             int nkv = 0;
-            if (acs_cal::jc_parse_object(&d, kv, &nkv, 16, aux,
+            if (acsd_cal::jc_parse_object(&d, kv, &nkv, 16, aux,
                                          (int)(sizeof(aux) / sizeof(aux[0]))) != 0) {
-                st = acs_cal::efill(err, ACS_ERR_PARAM, ACS_ERR_DOMAIN_CONFIG,
+                st = acsd_cal::efill(err, ACS_ERR_PARAM, ACS_ERR_DOMAIN_CONFIG,
                                     "config is not a flat JSON object",
                                     ACS_DIAG_ECODE_CONFIG_SCHEMA);
             } else {
-                st = acs_cal::cfg_check(kv, nkv, err);
+                st = acsd_cal::cfg_check(kv, nkv, err);
                 if (st == ACS_OK) {
                     const char* opv = NULL;
                     uint32_t opl = 0;
-                    if (acs_cal::kv_str(kv, nkv, "op", &opv, &opl) != 0) {
-                        st = acs_cal::efill(err, ACS_ERR_PARAM,
+                    if (acsd_cal::kv_str(kv, nkv, "op", &opv, &opl) != 0) {
+                        st = acsd_cal::efill(err, ACS_ERR_PARAM,
                                             ACS_ERR_DOMAIN_CONFIG,
                                             "config.op required", 101);
                     } else {
-                        const int oi = acs_cal::op_lookup(opv, opl);
+                        const int oi = acsd_cal::op_lookup(opv, opl);
                         if (oi < 0) {
-                            st = acs_cal::efill(err, ACS_ERR_PARAM,
+                            st = acsd_cal::efill(err, ACS_ERR_PARAM,
                                                 ACS_ERR_DOMAIN_CONFIG,
                                                 "config.op outside vocabulary", 100);
                         } else {
-                            st = acs_cal::cfg_fill(kv, nkv,
-                                                   &acs_cal::OP_VOCAB[oi], &c, err);
+                            st = acsd_cal::cfg_fill(kv, nkv,
+                                                   &acsd_cal::OP_VOCAB[oi], &c, err);
                             if (st == ACS_OK) have_c = 1;
                         }
                     }
@@ -1381,12 +1381,12 @@ static acs_status cal_execute(acs_module_instance_v1* inst_raw,
             c = inst->cfg;
             have_c = 1;
         } else {
-            st = acs_cal::efill(err, ACS_ERR_PARAM, ACS_ERR_DOMAIN_CONFIG,
+            st = acsd_cal::efill(err, ACS_ERR_PARAM, ACS_ERR_DOMAIN_CONFIG,
                                 "no config available (create or execute)",
                                 ACS_DIAG_ECODE_NULL_CONFIG);
         }
         if (st == ACS_OK && have_c) {
-            st = acs_cal::exec_run(inst, c, input_manifest_json.data,
+            st = acsd_cal::exec_run(inst, c, input_manifest_json.data,
                                    input_manifest_json.size,
                                    out_manifest_json, err);
         }
@@ -1396,29 +1396,29 @@ static acs_status cal_execute(acs_module_instance_v1* inst_raw,
         inst->state = ACS_LC_STATE_CREATED;   /* 可重复 execute */
         return st;
     } catch (const std::bad_alloc&) {
-        if (inst_raw) ((acs_cal::cal_inst*)inst_raw)->state = ACS_LC_STATE_CREATED;
-        return acs_cal::efill(err, ACS_ERR_EXCEPTION, ACS_ERR_DOMAIN_INTERNAL,
+        if (inst_raw) ((acsd_cal::cal_inst*)inst_raw)->state = ACS_LC_STATE_CREATED;
+        return acsd_cal::efill(err, ACS_ERR_EXCEPTION, ACS_ERR_DOMAIN_INTERNAL,
                               "bad_alloc in execute", 130);
     } catch (...) {
-        if (inst_raw) ((acs_cal::cal_inst*)inst_raw)->state = ACS_LC_STATE_CREATED;
-        return acs_cal::efill(err, ACS_ERR_EXCEPTION, ACS_ERR_DOMAIN_INTERNAL,
+        if (inst_raw) ((acsd_cal::cal_inst*)inst_raw)->state = ACS_LC_STATE_CREATED;
+        return acsd_cal::efill(err, ACS_ERR_EXCEPTION, ACS_ERR_DOMAIN_INTERNAL,
                               "exception in execute", 130);
     }
 }
 
 /* ── inspect (实例级; const 只读; 可并发) ── */
-static acs_status cal_inspect(const acs_module_instance_v1* inst_raw,
-                              acs_strbuf_v1* out_json,
-                              acs_error_info_v1* err) {
+static acsd_status cal_inspect(const acsd_module_instance_v1* inst_raw,
+                              acsd_strbuf_v1* out_json,
+                              acsd_error_info_v1* err) {
     try {
-        const acs_cal::cal_inst* inst = (const acs_cal::cal_inst*)inst_raw;
+        const acsd_cal::cal_inst* inst = (const acsd_cal::cal_inst*)inst_raw;
         if (!inst || inst->head.abi_version != ACS_ABI_VERSION_V1) {
-            return acs_cal::efill(err, ACS_ERR_PARAM, ACS_ERR_DOMAIN_CONFIG,
+            return acsd_cal::efill(err, ACS_ERR_PARAM, ACS_ERR_DOMAIN_CONFIG,
                                   "instance handle invalid",
                                   ACS_DIAG_ECODE_NULL_CALLBACK);
         }
         if (!out_json) {
-            return acs_cal::efill(err, ACS_ERR_PARAM, ACS_ERR_DOMAIN_CONFIG,
+            return acsd_cal::efill(err, ACS_ERR_PARAM, ACS_ERR_DOMAIN_CONFIG,
                                   "inspect output strbuf required",
                                   ACS_DIAG_ECODE_NULL_CALLBACK);
         }
@@ -1427,7 +1427,7 @@ static acs_status cal_inspect(const acs_module_instance_v1* inst_raw,
                       "{\"module_id\":\"%s\",\"state\":\"%s\","
                       "\"exec_count\":%llu,\"last_op\":%d,"
                       "\"last_status\":%d,\"cancel_requested\":%s}",
-                      ASTROCS_CAL_MODULE_ID,
+                      ACSD_CAL_MODULE_ID,
                       inst->state == ACS_LC_STATE_CREATED ? "created" :
                       inst->state == ACS_LC_STATE_EXECUTING ? "executing" :
                       inst->state == ACS_LC_STATE_CANCELLING ? "cancelling" :
@@ -1435,17 +1435,17 @@ static acs_status cal_inspect(const acs_module_instance_v1* inst_raw,
                       (unsigned long long)inst->exec_count, inst->last_op,
                       (int)inst->last_status,
                       inst->cancel_req ? "true" : "false");
-        return acs_cal::strbuf_commit(out_json, b, std::strlen(b), err);
+        return acsd_cal::strbuf_commit(out_json, b, std::strlen(b), err);
     } catch (...) {
-        return acs_cal::efill(err, ACS_ERR_EXCEPTION, ACS_ERR_DOMAIN_INTERNAL,
+        return acsd_cal::efill(err, ACS_ERR_EXCEPTION, ACS_ERR_DOMAIN_INTERNAL,
                               "exception in inspect", 130);
     }
 }
 
 /* ── request_cancel (实例级; 原子置位; 幂等) ── */
-static acs_status cal_request_cancel(acs_module_instance_v1* inst_raw) {
+static acsd_status cal_request_cancel(acsd_module_instance_v1* inst_raw) {
     try {
-        acs_cal::cal_inst* inst = (acs_cal::cal_inst*)inst_raw;
+        acsd_cal::cal_inst* inst = (acsd_cal::cal_inst*)inst_raw;
         if (!inst) return ACS_ERR_PARAM;
         inst->cancel_req = 1;
         if (inst->state == ACS_LC_STATE_EXECUTING) {
@@ -1458,12 +1458,12 @@ static acs_status cal_request_cancel(acs_module_instance_v1* inst_raw) {
 }
 
 /* ── destroy (实例级; inst=NULL 空操作; double-destroy 检测) ── */
-static void cal_destroy(acs_module_instance_v1* inst_raw) {
-    acs_cal::cal_inst* inst = (acs_cal::cal_inst*)inst_raw;
+static void cal_destroy(acsd_module_instance_v1* inst_raw) {
+    acsd_cal::cal_inst* inst = (acsd_cal::cal_inst*)inst_raw;
     if (!inst) return;
     if (inst->head.abi_version != ACS_ABI_VERSION_V1) return;
     if (inst->state == ACS_LC_STATE_DESTROYED) return;   /* double → 忽略 */
-    const acs_host_api_v1* host = inst->host;
+    const acsd_host_api_v1* host = inst->host;
     inst->state = ACS_LC_STATE_DESTROYED;
     if (host && host->allocator && host->allocator->free) {
         host->allocator->free(host->allocator->user_data, inst);
@@ -1471,8 +1471,8 @@ static void cal_destroy(acs_module_instance_v1* inst_raw) {
 }
 
 /* ── vtable (静态; head 由 query 填) ── */
-static acs_module_api_v1 g_cal_module_api = {
-    { (uint32_t)sizeof(acs_module_api_v1), ACS_ABI_VERSION_V1 },
+static acsd_module_api_v1 g_cal_module_api = {
+    { (uint32_t)sizeof(acsd_module_api_v1), ACS_ABI_VERSION_V1 },
     &cal_describe,
     &cal_validate_config,
     &cal_plan,
@@ -1484,9 +1484,9 @@ static acs_module_api_v1 g_cal_module_api = {
 };
 
 /* ── 唯一导出 (ABI-006; host_abi 失配 → MISMATCH 不降级) ── */
-acs_status astrocs_module_query_v1(uint32_t host_abi,
-                                   const acs_host_api_v1* host,
-                                   const acs_module_api_v1** out_api) {
+acsd_status acsd_module_query_v1(uint32_t host_abi,
+                                   const acsd_host_api_v1* host,
+                                   const acsd_module_api_v1** out_api) {
     try {
         if (!out_api) return ACS_ERR_PARAM;
         *out_api = NULL;

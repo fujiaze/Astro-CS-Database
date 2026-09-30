@@ -56,7 +56,7 @@
 #include "wcs_tan.h"
 #include "wcs_transform.h"
 
-namespace coord = astrocs::p1::coord;
+namespace coord = acsd::p1::coord;
 
 namespace {
 
@@ -223,7 +223,7 @@ int main(int argc, char** argv) {
 
     // ---- [C4]/[C5] 导出链: WcsTan(1-based 契约) 必须经单次 +1 桥接 ----
     {
-        astrocs::phase1::WcsTan wcs;
+        acsd::phase1::WcsTan wcs;
         wcs.crpix1 = kCrpix1; wcs.crpix2 = kCrpix2;
         wcs.crval1 = kCrval1; wcs.crval2 = kCrval2;
         wcs.cd11 = kCd11; wcs.cd12 = kCd12; wcs.cd21 = kCd21; wcs.cd22 = kCd22;

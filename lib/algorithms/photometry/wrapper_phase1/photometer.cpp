@@ -4,20 +4,20 @@
 #include <algorithm>
 #include <cmath>
 
-namespace astrocs::phase1 {
+namespace acsd::phase1 {
 
-using astrocs::core::Error;
-using astrocs::core::ErrorDomain;
+using acsd::core::Error;
+using acsd::core::ErrorDomain;
 
 Photometer::Photometer(double aperture_radius_px, double sky_annulus_inner,
                        double sky_annulus_outer)
     : aperture_radius_(aperture_radius_px), sky_inner_(sky_annulus_inner),
       sky_outer_(sky_annulus_outer) {}
 
-astrocs::core::Result<PhotometryResult> Photometer::measure(
+acsd::core::Result<PhotometryResult> Photometer::measure(
     const float* image, int w, int h, double cx, double cy) const {
   if (!image || w <= 0 || h <= 0) {
-    return astrocs::core::Result<PhotometryResult>::fail(
+    return acsd::core::Result<PhotometryResult>::fail(
         Error(ErrorDomain::DATA, "photometer: bad image dims"));
   }
   PhotometryResult r;
@@ -26,7 +26,7 @@ astrocs::core::Result<PhotometryResult> Photometer::measure(
   if (cx < 0 || cx >= w || cy < 0 || cy >= h) {
     r.valid = false;
     r.failure_reason = "center out of bounds";
-    return astrocs::core::Result<PhotometryResult>::ok(r);  // 合法结果含失败标志
+    return acsd::core::Result<PhotometryResult>::ok(r);  // 合法结果含失败标志
   }
 
   // 1) sky 环背景: 中位数 (annulus 内像素)
@@ -52,7 +52,7 @@ astrocs::core::Result<PhotometryResult> Photometer::measure(
   if (sky_vals.empty()) {
     r.valid = false;
     r.failure_reason = "no sky annulus pixels";
-    return astrocs::core::Result<PhotometryResult>::ok(r);
+    return acsd::core::Result<PhotometryResult>::ok(r);
   }
   std::sort(sky_vals.begin(), sky_vals.end());
   r.background = sky_vals[sky_vals.size() / 2];
@@ -76,7 +76,7 @@ astrocs::core::Result<PhotometryResult> Photometer::measure(
   if (n_in <= 0) {
     r.valid = false;
     r.failure_reason = "aperture empty";
-    return astrocs::core::Result<PhotometryResult>::ok(r);
+    return acsd::core::Result<PhotometryResult>::ok(r);
   }
   r.flux = sum;
   // Poisson + read noise 简化误差: sqrt(sum + n*sigma_sky^2)
@@ -94,7 +94,7 @@ astrocs::core::Result<PhotometryResult> Photometer::measure(
   r.flux_error = std::sqrt(std::max(sum, 0.0) + n_in * sky_sigma * sky_sigma);
   r.snr = r.flux_error > 0 ? r.flux / r.flux_error : 0.0;
   r.valid = true;
-  return astrocs::core::Result<PhotometryResult>::ok(r);
+  return acsd::core::Result<PhotometryResult>::ok(r);
 }
 
-}  // namespace astrocs::phase1
+}  // namespace acsd::phase1

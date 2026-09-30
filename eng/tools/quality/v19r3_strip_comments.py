@@ -78,7 +78,7 @@ PAREN = re.compile(
     r"\d+\s*[号份]\s*(?:控制包|计划))"
     r"(?:\s*/\s*(?:V\d+(?:\.\d+)?|R\d+|G\d+))?"
     r"(?:\s+[A-Za-z0-9/-]+)*\s*[)）]")
-# 3) 裸轮次 token（不碰 NoiseWeightModelV1/astrocs-upm-v2/FITS 等）
+# 3) 裸轮次 token（不碰 NoiseWeightModelV1/acsd-upm-v2/FITS 等）
 TOKEN = re.compile(
     r"(?<![A-Za-z0-9_/-])(?:F-)?(?:V\d+(?:\.\d+)?(?:-[A-Za-z0-9]+|[A-Za-z]?\d+)?|R\d+|"
     r"MICROFIX(?:\s*#\s*\d+)?)(?:\s*\(CODE-\d+\))?"

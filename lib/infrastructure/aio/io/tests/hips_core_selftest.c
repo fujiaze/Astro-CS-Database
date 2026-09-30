@@ -14,7 +14,7 @@
  * 用法: hips_core_selftest <fixture_dir> [<fixture_dir2...>]
  * 退出码 0 = 全 PASS。
  */
-#include "astrocs/io/hips_input_v1.h"
+#include "acsd/io/hips_input_v1.h"
 
 #include <math.h>
 #include <stdint.h>
@@ -47,7 +47,7 @@ static float expect_val(int x, int y, uint64_t ipix) {
 }
 
 static int run_one(const char* dir) {
-  acs_hips_handle_v1 h = NULL;
+  acsd_hips_handle_v1 h = NULL;
   char err[ACS_HIPS_ERR_TEXT_MAX];
   int32_t status = 0, order = 0, tw = 0;
   int64_t count = 0, got = 0, i;
@@ -55,49 +55,49 @@ static int run_one(const char* dir) {
   char buf[128];
   const int W = 512;
 
-  CHECK_ST(ACS_HIPS_OK, acs_hips_open_v1(dir, NULL, NULL, &h, err, sizeof(err)),
+  CHECK_ST(ACS_HIPS_OK, acsd_hips_open_v1(dir, NULL, NULL, &h, err, sizeof(err)),
            "open fixture");
   if (!h) return g_failures;
 
-  CHECK_ST(ACS_HIPS_OK, acs_hips_get_order_v1(h, &order), "get_order");
-  CHECK_ST(ACS_HIPS_OK, acs_hips_get_tile_width_v1(h, &tw), "get_tile_width");
+  CHECK_ST(ACS_HIPS_OK, acsd_hips_get_order_v1(h, &order), "get_order");
+  CHECK_ST(ACS_HIPS_OK, acsd_hips_get_tile_width_v1(h, &tw), "get_tile_width");
   CHECK(order == 1);
   CHECK(tw == 512);
 
   /* properties 视图 */
   CHECK_ST(ACS_HIPS_OK,
-           acs_hips_props_get_v1(h, "hips_version", buf, sizeof(buf),
+           acsd_hips_props_get_v1(h, "hips_version", buf, sizeof(buf),
                                  err, sizeof(err)),
            "props_get hips_version");
   CHECK(strcmp(buf, "1.4") == 0);
   CHECK_ST(ACS_HIPS_OK,
-           acs_hips_props_get_v1(h, "hips_tile_format", buf, sizeof(buf),
+           acsd_hips_props_get_v1(h, "hips_tile_format", buf, sizeof(buf),
                                  err, sizeof(err)),
            "props_get tile_format");
   CHECK(strcmp(buf, "fits") == 0);
   CHECK_ST(ACS_HIPS_ERR_PARAM,
-           acs_hips_props_get_v1(h, "no_such_key", buf, sizeof(buf),
+           acsd_hips_props_get_v1(h, "no_such_key", buf, sizeof(buf),
                                  err, sizeof(err)),
            "props_get unknown key → PARAM");
 
   /* MOC optional hint: 叶级 ipix 枚举 (K=1: [0,5,8,18,28,40,46]) */
-  CHECK_ST(ACS_HIPS_OK, acs_hips_tile_count_v1(h, &count), "tile_count");
+  CHECK_ST(ACS_HIPS_OK, acsd_hips_tile_count_v1(h, &count), "tile_count");
   CHECK(count >= 1);
   for (i = 0; i < count && i < 8; ++i) {
-    CHECK_ST(ACS_HIPS_OK, acs_hips_tile_ipix_v1(h, i, &ipix_out), "tile_ipix");
-    CHECK_ST(ACS_HIPS_OK, acs_hips_tile_status_v1(h, ipix_out, &status, err,
+    CHECK_ST(ACS_HIPS_OK, acsd_hips_tile_ipix_v1(h, i, &ipix_out), "tile_ipix");
+    CHECK_ST(ACS_HIPS_OK, acsd_hips_tile_status_v1(h, ipix_out, &status, err,
                                                   sizeof(err)),
              "status present");
     CHECK(status == ACS_HIPS_TILE_PRESENT);
   }
-  CHECK_ST(ACS_HIPS_ERR_PARAM, acs_hips_tile_ipix_v1(h, count + 100, &ipix_out),
+  CHECK_ST(ACS_HIPS_ERR_PARAM, acsd_hips_tile_ipix_v1(h, count + 100, &ipix_out),
            "tile_ipix 越界 → PARAM");
 
   /* partial tree: 域内但未覆盖 ipix → MISSING; 读取 → TILE_MISSING */
   {
     uint64_t missing_ipix = 3; /* K=1 域 [0,48), fixture 未覆盖 3 */
     CHECK_ST(ACS_HIPS_OK,
-             acs_hips_tile_status_v1(h, missing_ipix, &status, err,
+             acsd_hips_tile_status_v1(h, missing_ipix, &status, err,
                                      sizeof(err)),
              "status missing");
     CHECK(status == ACS_HIPS_TILE_MISSING);
@@ -105,7 +105,7 @@ static int run_one(const char* dir) {
       float* plane = (float*)malloc((size_t)W * W * sizeof(float));
       CHECK(plane != NULL);
       CHECK_ST(ACS_HIPS_ERR_TILE_MISSING,
-               acs_hips_read_tile_plane_f32_v1(h, missing_ipix, plane,
+               acsd_hips_read_tile_plane_f32_v1(h, missing_ipix, plane,
                                                (int64_t)W * W, &got,
                                                err, sizeof(err)),
                "read missing → TILE_MISSING (无父回退)");
@@ -119,9 +119,9 @@ static int run_one(const char* dir) {
     uint64_t ipix0 = 0;
     float* f32 = (float*)malloc((size_t)W * W * sizeof(float));
     double* f64 = (double*)malloc((size_t)W * W * sizeof(double));
-    CHECK_ST(ACS_HIPS_OK, acs_hips_tile_ipix_v1(h, 0, &ipix0), "tile_ipix 0");
+    CHECK_ST(ACS_HIPS_OK, acsd_hips_tile_ipix_v1(h, 0, &ipix0), "tile_ipix 0");
     CHECK_ST(ACS_HIPS_OK,
-             acs_hips_read_tile_plane_f32_v1(h, ipix0, f32, (int64_t)W * W,
+             acsd_hips_read_tile_plane_f32_v1(h, ipix0, f32, (int64_t)W * W,
                                              &got, err, sizeof(err)),
              "read f32");
     CHECK(got == (int64_t)W * W);
@@ -141,7 +141,7 @@ static int run_one(const char* dir) {
       CHECK(ok);
     }
     CHECK_ST(ACS_HIPS_OK,
-             acs_hips_read_tile_plane_f64_v1(h, ipix0, f64, (int64_t)W * W,
+             acsd_hips_read_tile_plane_f64_v1(h, ipix0, f64, (int64_t)W * W,
                                              &got, err, sizeof(err)),
              "read f64");
     if (f64) {
@@ -165,27 +165,27 @@ static int run_one(const char* dir) {
 
   /* ipix 越界 (K=1: 12*4^1=48) → ADDRESS */
   CHECK_ST(ACS_HIPS_ERR_ADDRESS,
-           acs_hips_tile_status_v1(h, 48, &status, err, sizeof(err)),
+           acsd_hips_tile_status_v1(h, 48, &status, err, sizeof(err)),
            "ipix 越界 → ADDRESS");
 
   /* 容量不足 → PARAM */
   {
     float small[16];
     CHECK_ST(ACS_HIPS_ERR_PARAM,
-             acs_hips_read_tile_plane_f32_v1(h, ipix_out, small, 16, &got,
+             acsd_hips_read_tile_plane_f32_v1(h, ipix_out, small, 16, &got,
                                              err, sizeof(err)),
              "容量不足 → PARAM");
   }
 
-  acs_hips_close_v1(h);
+  acsd_hips_close_v1(h);
   return g_failures;
 }
 
 /* 缺 properties: 空目录 → PROPERTIES */
 static int run_missing_props(const char* empty_dir) {
-  acs_hips_handle_v1 h = NULL;
+  acsd_hips_handle_v1 h = NULL;
   char err[ACS_HIPS_ERR_TEXT_MAX];
-  int st = acs_hips_open_v1(empty_dir, NULL, NULL, &h, err, sizeof(err));
+  int st = acsd_hips_open_v1(empty_dir, NULL, NULL, &h, err, sizeof(err));
   CHECK_ST(ACS_HIPS_ERR_PROPERTIES, st, "空目录 open → PROPERTIES");
   CHECK(h == NULL);
   return g_failures;

@@ -1,11 +1,11 @@
 // RT-007 ArtifactStore 实现：唯一 producer、role 绑定、篡改检测、并发安全。
-#include "astrocs/core/artifact_store.h"
+#include "acsd/core/artifact_store.h"
 
 #include <nlohmann/json.hpp>
 
 #include <mutex>
 
-namespace astrocs::core {
+namespace acsd::core {
 
 using nlohmann::json;
 
@@ -175,4 +175,4 @@ std::vector<std::string> ArtifactStore::ids() const {
   return out;
 }
 
-}  // namespace astrocs::core
+}  // namespace acsd::core

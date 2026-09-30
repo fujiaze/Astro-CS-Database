@@ -3,7 +3,7 @@
 #include "bench_harness.h"
 
 int main() {
-    using namespace astrocs::backend_host;
+    using namespace acsd::backend_host;
     for (uint32_t avail : {1u, 2u, 3u, 8u, 16u, 33u}) {
         std::printf("W avail=%u:", avail);
         for (uint32_t w : worker_candidates(avail)) std::printf(" %u", w);

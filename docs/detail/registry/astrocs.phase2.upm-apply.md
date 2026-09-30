@@ -1,6 +1,6 @@
-# 模块 astrocs.phase2.upm-apply
+# 模块 acsd.phase2.upm-apply
 
-> 上游：docs/ASTROCS_DESIGN.md §8.5（模块与 ABI）、§5.4（天光平面与统一相对模型 UPM）
+> 上游：docs/ACSD_DESIGN.md §8.5（模块与 ABI）、§5.4（天光平面与统一相对模型 UPM）
 > 科学正本：docs/science/PHASE2_UPM.md（SCI-UPM-001，FROZEN；§5/§9a/§14a/§17）、
 > docs/science/algorithms/UPM_SOLVER.md（ALG-UPM-001，权威推导；F4/F6）、
 > docs/science/UNCERTAINTY_AND_COVARIANCE.md（参数协方差）
@@ -10,16 +10,16 @@
 > API 正本：docs/engineering/PUBLIC_API.md（API-P2-UPM-001）、
 > docs/engineering/PHASE2_API_V1.md（API-P2-001，FROZEN）
 
-MOD ID = `MOD-astrocs-phase2-upm-apply`；module_id 合同值 = `astrocs.p2.upm`
-（descriptor 词汇 `astrocs.phase2.upm-apply` 为编排层口径，其对齐属迁移目标、未
-落地）；dll_target = `astrocs_p2_upm.dll`（迁移目标，未落地）。合同三件套落位
+MOD ID = `MOD-acsd-phase2-upm-apply`；module_id 合同值 = `acsd.p2.upm`
+（descriptor 词汇 `acsd.phase2.upm-apply` 为编排层口径，其对齐属迁移目标、未
+落地）；dll_target = `acsd_p2_upm.dll`（迁移目标，未落地）。合同三件套落位
 `lib/algorithms/upm/`（README / module.yaml ，CONTRACT_READY）。
 生产源 = lib/algorithms/coverage/src/upm.cpp + 权威签名头
 lib/algorithms/coverage/include/astro/phase2/upm.h；构建 = 根 CMakeLists 的
-`astrocs_phase2` 静态库成员。owner = SA-P2-U21；depends_on_int = P2-SAMP / CPU-005；
+`acsd_phase2` 静态库成员。owner = SA-P2-U21；depends_on_int = P2-SAMP / CPU-005；
 legacy_paths = 「lib/algorithms/coverage upm sources」。
 
-fit 职能见 registry/astrocs.phase2.upm-fit.md（同一 module_id 的另一职能）。
+fit 职能见 registry/acsd.phase2.upm-fit.md（同一 module_id 的另一职能）。
 
 ## 职责与明确非职责
 
@@ -82,7 +82,7 @@ integration 消费。
 
 ## Registry descriptor 与配置 schema
 
-module_id=`astrocs.phase2.upm-apply`（占位）；execution_class=`cpu_heavy`;
+module_id=`acsd.phase2.upm-apply`（占位）；execution_class=`cpu_heavy`;
 parallel_ok=True（p2_upm_apply_descriptor）。descriptor 派生词汇（其对齐属迁移
 目标，未落地）：SCI-P2-UPM-002 / ALG-P2-UPM-002 / TEST-P2-UPM-002；descriptor
 端口为静态声明的 persist→reload 语义。apply 侧无独立求解配置（消费 fit 侧
@@ -117,7 +117,7 @@ parallel_ok=True（p2_upm_apply_descriptor）。descriptor 派生词汇（其对
 内存 = dense 物化上界 kChunk·kLeafPx·8 字节；模型 `C[frame][control]` 由调用方经
 open / build 持有。
 
-I/O = 唯一 AIO `aio_upm_write_sparse`（模型稀疏持久化，落盘标识 `astrocs-upm-v2` /
+I/O = 唯一 AIO `aio_upm_write_sparse`（模型稀疏持久化，落盘标识 `acsd-upm-v2` /
 DATA-UPM-MODEL-001，ENG-IO-001 原子写）+ `aio_upm_open` / `aio_upm_dense_info` /
 `aio_upm_read_dense_block` 读面；dense cache = 空间求值缓存（同模型 hash / 目标
 order / frame hash 校验，**stale = rc=2 拒绝**）。无其他文件 I/O。
@@ -137,7 +137,7 @@ rc 语义：0 = ok；1 = 参数 / open / parse / IO / 未知 frame；2 = dense s
   同时落盘；口径同「产品照出、rc 不变，判红由 `warning_codes` 非空承载」；
   **不得**静默变成「不校正」，**不得**回退到双重扣除；
 - 该形态的产品**不得用于「无接缝」主张**：全减后背景归零，接缝判据在分母上退化
-  （非退化判据口径见 registry/astrocs.phase2.upm-fit.md 与 SCI-UPM-001 §9a/§17）。
+  （非退化判据口径见 registry/acsd.phase2.upm-fit.md 与 SCI-UPM-001 §9a/§17）。
 
 取消：会话消费面整模型不写半成品（p2_session.cpp 两处）；内核无取消检查点；无段内
 checkpoint（dense 物化整缓存一次写）。
@@ -175,5 +175,5 @@ Oracle 面：
   p2_session.cpp 覆盖键缺口；descriptor 端口静态声明的 persist→reload 语义；
 - `seam.additive_mode` 的现网默认取 `c`（全量扣除），与设计默认 `delta` 不一致，
   口径以设计为准；
-- 目标交付形态 astrocs_p2_upm.dll 未落地；
+- 目标交付形态 acsd_p2_upm.dll 未落地；
 - 全局限制登记 = artifacts/evidence/known-limitations-ledger/LIMITATIONS.md。

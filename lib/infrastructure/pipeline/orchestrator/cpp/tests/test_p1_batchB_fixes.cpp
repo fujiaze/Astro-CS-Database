@@ -90,7 +90,7 @@ int main() {
     std::cout << "== test_p1_batchB_fixes (Bug 狩猎 R5 P1 批次 B) ==\n";
 
     const fs::path base = fs::temp_directory_path() /
-        ("astrocs_p1_batchB_" + std::to_string(::getpid()));
+        ("acsd_p1_batchB_" + std::to_string(::getpid()));
 
     // ------------------------------------------------------------------
     // P1-1: cleanup_partial_output 目录树清理

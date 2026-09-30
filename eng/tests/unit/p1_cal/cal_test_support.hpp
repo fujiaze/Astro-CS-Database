@@ -1,5 +1,5 @@
-#ifndef ASTROCS_V6_P1_CAL_TEST_SUPPORT_HPP
-#define ASTROCS_V6_P1_CAL_TEST_SUPPORT_HPP
+#ifndef ACSD_V6_P1_CAL_TEST_SUPPORT_HPP
+#define ACSD_V6_P1_CAL_TEST_SUPPORT_HPP
 
 /* 极简断言框架（不依赖 gtest）：正例 + 负例逐条登记，任一失败 rc!=0。
  * 零用例 / 全 skip 视为失败（qa policy：executed_cases==0 -> rc!=0）。 */
@@ -43,16 +43,16 @@ inline bool close_rel(double a, double b, double rtol, double atol = 0.0) {
 /* 故障注入辅助：仅在测试中改环境变量。 */
 inline void set_fault(const char* mode) {
 #if defined(_WIN32)
-  _putenv_s("ASTROCS_V6_CAL_FAULT", mode);
+  _putenv_s("ACSD_V6_CAL_FAULT", mode);
 #else
-  setenv("ASTROCS_V6_CAL_FAULT", mode, 1);
+  setenv("ACSD_V6_CAL_FAULT", mode, 1);
 #endif
 }
 inline void clear_fault(void) {
 #if defined(_WIN32)
-  _putenv_s("ASTROCS_V6_CAL_FAULT", "");
+  _putenv_s("ACSD_V6_CAL_FAULT", "");
 #else
-  unsetenv("ASTROCS_V6_CAL_FAULT");
+  unsetenv("ACSD_V6_CAL_FAULT");
 #endif
 }
 

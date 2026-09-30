@@ -2,7 +2,7 @@
 //
 // 职责: AMD64 AVX2/FMA provider (本 TU 单独以 -mavx2 -mfma 编译; Windows
 // /arch:AVX2, 15 §6 编译隔离)。
-//   - 唯一导出 astrocs_provider_query_v1 (lib/include/astrocs/abi/module_api_v1.h 冻结;
+//   - 唯一导出 acsd_provider_query_v1 (lib/include/acsd/abi/module_api_v1.h 冻结;
 //     ARC-001 §1.2: provider DLL 不得导出其他符号);
 //   - 只迁移 profile 指定的热点 kernel (02 §10.1 / ISA-001/003 实测台账;
 //     ISA-001 实测在案，测量工件留档 实验/engineering-evidence/prerelease-v5/):
@@ -12,13 +12,13 @@
 //     ACS_ERR_UNSUPPORTED, host 按 kernel 逐条回落 baseline (15 §1
 //     "高级 provider 只实现已证明热点; 其余返回 unsupported 由 host 使用
 //     baseline"; 函数入口由 provider 表查询, 不复制科学模块);
-//   - 参数合同 = baseline provider v1 同一 POD (acs_cpu_baseline_params_v1;
+//   - 参数合同 = baseline provider v1 同一 POD (acsd_cpu_baseline_params_v1;
 //     CPU-002 冻结, 本 provider include 复用不复制定义); 数值公式与
 //     baseline kernel 实现同式 (ALG-001/ALG-P3-002 离散公式; CPU-002 oracle
 //     同源对照) —— 差异仅: (a) 编译旗标 -mavx2 -mfma, (b) 注册 kernel 子集;
 //   - query 握手: host_abi 失配 → ACS_ERR_ABI_MISMATCH; host 必填 allocator;
 //     out_api = 静态 provider 表;
-//   - 加载判定 (capability 门): acs_cpu_avx2_cap_gate 要求
+//   - 加载判定 (capability 门): acsd_cpu_avx2_cap_gate 要求
 //     required_features (AVX|AVX2|FMA) ⊆ os_safe 平面 (CPUID + OSXSAVE +
 //     XGETBV XMM|YMM; CPU-001 classify 组包含) —— 非支持 CPU (硬件缺
 //     AVX2/FMA 或 OS 不保存 YMM) → ACS_ERR_UNSUPPORTED 拒绝加载 (15 §2;
@@ -40,9 +40,9 @@
 //   - 结论: FMA 不改变归约顺序 (两 kernel 均无跨项/跨线程归约); 可能引入
 //     每元素 ≤ 数 ULP 舍入差 → baseline 对照容差 2e-4 相对 (与 ALG oracle
 //     同规; 冻结于 CPU_003_AVX2_PROVIDER.md §7)。
-#include "astrocs/cpu/avx2_provider_v1.h"
-#include "astrocs/cpu/capability_v1.h"
-#include "astrocs/cpu/cpuprov_kernels_v1.h"   /* R-60: 计算面跨 TU 桥 */
+#include "acsd/cpu/avx2_provider_v1.h"
+#include "acsd/cpu/capability_v1.h"
+#include "acsd/cpu/cpuprov_kernels_v1.h"   /* R-60: 计算面跨 TU 桥 */
 
 #include <algorithm>
 #include <cmath>
@@ -52,41 +52,41 @@
 #include <thread>
 #include <vector>
 
-#if !defined(ASTROCS_NO_EXCEPTIONS)
+#if !defined(ACSD_NO_EXCEPTIONS)
 #include <stdexcept>
 #endif
 
-#if defined(ASTROCS_ABI_SHARED) && !defined(ASTROCS_ABI_EXPORTS)
-#define ASTROCS_ABI_EXPORTS 1
+#if defined(ACSD_ABI_SHARED) && !defined(ACSD_ABI_EXPORTS)
+#define ACSD_ABI_EXPORTS 1
 #endif
 
 /* ───────────────────────── 能力门 (query 期) ─────────────────────────
  * 加载判定只使用 os_safe 平面 (15 §2): required = AVX|AVX2|FMA ⊆ os_safe。
  * 生产链接真实 capability_detect.c; 非支持 CPU (缺 AVX2/FMA / OS 不保存
  * YMM) 负测由测试以 stub 探测注入 (eng/tests/cpu/avx2/
- * provider_avx2_capability_gate_test.c 链接期替换 acs_cap_detect_v1 /
- * acs_cap_os_safe_satisfies_v1)。本函数为 extern "C" 顶层符号 (host/测试
+ * provider_avx2_capability_gate_test.c 链接期替换 acsd_cap_detect_v1 /
+ * acsd_cap_os_safe_satisfies_v1)。本函数为 extern "C" 顶层符号 (host/测试
  * 可直接判定; 不属 provider 导出白名单)。 */
-extern "C" int acs_cpu_avx2_cap_gate(acs_cap_result_v1* out) {
+extern "C" int acsd_cpu_avx2_cap_gate(acsd_cap_result_v1* out) {
     if (out == nullptr) return ACS_ERR_PARAM;
-    acs_cap_result_v1 c;
+    acsd_cap_result_v1 c;
     std::memset(&c, 0, sizeof(c));
-    c.struct_size = (uint32_t)sizeof(acs_cap_result_v1);
+    c.struct_size = (uint32_t)sizeof(acsd_cap_result_v1);
     c.abi_version = ACS_CAP_ABI_VERSION_V1;
-    const int rc = acs_cap_detect_v1(&c);
+    const int rc = acsd_cap_detect_v1(&c);
     if (rc != ACS_CAP_OK) return ACS_ERR_UNSUPPORTED;
-    if (!acs_cap_os_safe_satisfies_v1(&c, ACS_CPU_AVX2_REQUIRED_FEATURES))
+    if (!acsd_cap_os_safe_satisfies_v1(&c, ACS_CPU_AVX2_REQUIRED_FEATURES))
         return ACS_ERR_UNSUPPORTED;   /* 非支持 CPU / OS 不保存 YMM → 拒绝 */
     *out = c;
     return ACS_OK;
 }
 
-namespace astrocs_cpu_avx2 {
+namespace acsd_cpu_avx2 {
 
 /* ───────────────────────── 字符串构造辅助 (静态 init, 无 SIMD) ───────────────────────── */
-static acs_str_v1 mkstr(const char* s) {
-    acs_str_v1 v;
-    v.head.struct_size = (uint32_t)sizeof(acs_str_v1);
+static acsd_str_v1 mkstr(const char* s) {
+    acsd_str_v1 v;
+    v.head.struct_size = (uint32_t)sizeof(acsd_str_v1);
     v.head.abi_version = ACS_ABI_VERSION_V1;
     v.data = s;
     v.size = s ? (uint64_t)std::strlen(s) : 0u;
@@ -98,11 +98,11 @@ static acs_str_v1 mkstr(const char* s) {
  * (avx2 是该 kernel 的已实测更快 ISA 实现; host 以 kernel_id 粒度在 provider
  * 间逐 kernel 选路 — CPU-005 路由语义, 04_CPU_RESOURCE_TASKS CPU-005)。
  * determinism_class: 0=bitwise (逐元素独立; 无跨线程归约)。 */
-static const acs_kernel_desc_v1 kKernels[ACS_CPU_AVX2_KERNEL_COUNT] = {
-    { { (uint32_t)sizeof(acs_kernel_desc_v1), ACS_ABI_VERSION_V1 },
+static const acsd_kernel_desc_v1 kKernels[ACS_CPU_AVX2_KERNEL_COUNT] = {
+    { { (uint32_t)sizeof(acsd_kernel_desc_v1), ACS_ABI_VERSION_V1 },
       mkstr("calibration-pixel-transform"), mkstr("ALG-001"),
       ACS_CPU_BASELINE_PREC_F32, ACS_CPU_BASELINE_DET_BITWISE },
-    { { (uint32_t)sizeof(acs_kernel_desc_v1), ACS_ABI_VERSION_V1 },
+    { { (uint32_t)sizeof(acsd_kernel_desc_v1), ACS_ABI_VERSION_V1 },
       mkstr("hips-bulk-transform"), mkstr("ALG-P3-002"),
       ACS_CPU_BASELINE_PREC_F32, ACS_CPU_BASELINE_DET_BITWISE }
 };
@@ -114,9 +114,9 @@ static const acs_kernel_desc_v1 kKernels[ACS_CPU_AVX2_KERNEL_COUNT] = {
  *                                         1 出 (≥ N);
  * 未使用槽必须 off=len=0; 越界 → ACS_ERR_PARAM; 未知 kernel 索引 →
  * ACS_ERR_UNSUPPORTED (host 回落 baseline)。 */
-static int avx2_validate(const acs_cpu_baseline_params_v1* P,
+static int avx2_validate(const acsd_cpu_baseline_params_v1* P,
                          uint32_t kidx,
-                         const acs_span_u8& in, const acs_span_u8& out) {
+                         const acsd_span_u8& in, const acsd_span_u8& out) {
     if (in.data == nullptr || out.data == nullptr) return ACS_ERR_PARAM;
     if (P->head.struct_size < sizeof(*P) ||
         P->head.abi_version != ACS_ABI_VERSION_V1)
@@ -162,8 +162,8 @@ static int avx2_validate(const acs_cpu_baseline_params_v1* P,
 }
 
 /* 从 span 槽位取 f32 指针 (越界已由 avx2_validate 校验) */
-static void gather_ptrs(const acs_cpu_baseline_params_v1* P,
-                        const acs_span_u8& in, const acs_span_u8& out,
+static void gather_ptrs(const acsd_cpu_baseline_params_v1* P,
+                        const acsd_span_u8& in, const acsd_span_u8& out,
                         const float** ip, float** op) {
     const uint8_t* ib = in.data;
     uint8_t* ob = out.data;
@@ -192,13 +192,13 @@ static void gather_ptrs(const acs_cpu_baseline_params_v1* P,
  * 则应"干净拒绝"，同码则退化成本不该发生的指令集要求。
  * 现计算面在 lib/infrastructure/benchmark/cpu/avx2/src/avx2_kernels.cpp
  * （唯一带 ISA 旗标的 TU），本 TU（门面）零 ISA 旗标，两者只经唯一跨 TU 桥
- * astrocs_cpuprov_kernel_range_v1 相连（见 astrocs/cpu/cpuprov_kernels_v1.h）。
+ * acsd_cpuprov_kernel_range_v1 相连（见 acsd/cpu/cpuprov_kernels_v1.h）。
  * 数值源码逐字符搬移: 公式/项序/容差零变更。 */
 /* ───────────────────────── 并行执行 (host executor 租借) ─────────────────────────
  * 同 baseline 语义: 输出带 [0,N) 按 workers 均分行带 (每输出元素独立 →
  * bitwise 确定不随 worker 数变化); 全或无租借, 失败减半, 1=串行兜底。 */
-static uint32_t run_banded(const acs_host_api_v1* host,
-                           const acs_cpu_baseline_params_v1* P, uint32_t kidx,
+static uint32_t run_banded(const acsd_host_api_v1* host,
+                           const acsd_cpu_baseline_params_v1* P, uint32_t kidx,
                            const float* const* ip, float* const* op) {
     const uint64_t N = (uint64_t)P->w * (uint64_t)P->h;
     uint32_t cap = 1;
@@ -232,9 +232,9 @@ static uint32_t run_banded(const acs_host_api_v1* host,
     ths.reserve(workers > 1 ? workers - 1 : 0);
     for (uint32_t t = 1; t < workers; ++t)
         ths.emplace_back([&, t]() {
-            astrocs_cpuprov_kernel_range_v1(P, kidx, ip, op, start[t], start[t + 1]);
+            acsd_cpuprov_kernel_range_v1(P, kidx, ip, op, start[t], start[t + 1]);
         });
-    astrocs_cpuprov_kernel_range_v1(P, kidx, ip, op, start[0], start[1]);
+    acsd_cpuprov_kernel_range_v1(P, kidx, ip, op, start[0], start[1]);
     for (auto& th : ths) th.join();
 
     if (host != nullptr && host->executor != nullptr &&
@@ -245,9 +245,9 @@ static uint32_t run_banded(const acs_host_api_v1* host,
 
 /* ───────────────────────── provider vtable 函数 ───────────────────────── */
 
-static acs_status avx2_self_test(const acs_host_api_v1* host) {
+static acsd_status avx2_self_test(const acsd_host_api_v1* host) {
     if (host == nullptr) return ACS_ERR_PARAM;
-    if (host->head.struct_size < sizeof(acs_host_api_v1) ||
+    if (host->head.struct_size < sizeof(acsd_host_api_v1) ||
         host->head.abi_version != ACS_ABI_VERSION_V1)
         return ACS_ERR_ABI_MISMATCH;
     if (host->allocator == nullptr || host->allocator->alloc == nullptr ||
@@ -269,7 +269,7 @@ static acs_status avx2_self_test(const acs_host_api_v1* host) {
     }
     /* kernel 表自洽: 2 条 desc 头/串非空 */
     for (uint32_t i = 0; i < ACS_CPU_AVX2_KERNEL_COUNT; ++i) {
-        const acs_kernel_desc_v1& k = kKernels[i];
+        const acsd_kernel_desc_v1& k = kKernels[i];
         if (k.head.abi_version != ACS_ABI_VERSION_V1 ||
             k.kernel_id.data == nullptr || k.kernel_id.size == 0 ||
             k.sci_contract_id.data == nullptr || k.sci_contract_id.size == 0)
@@ -278,9 +278,9 @@ static acs_status avx2_self_test(const acs_host_api_v1* host) {
     return ACS_OK;
 }
 
-static acs_status avx2_kernel_list(const acs_host_api_v1* host,
+static acsd_status avx2_kernel_list(const acsd_host_api_v1* host,
                                    uint32_t* out_count,
-                                   const acs_kernel_desc_v1** out_kernels) {
+                                   const acsd_kernel_desc_v1** out_kernels) {
     (void)host;
     if (out_count == nullptr || out_kernels == nullptr) return ACS_ERR_PARAM;
     *out_count = ACS_CPU_AVX2_KERNEL_COUNT;
@@ -288,17 +288,17 @@ static acs_status avx2_kernel_list(const acs_host_api_v1* host,
     return ACS_OK;
 }
 
-static acs_status avx2_run_kernel(uint32_t kernel_index,
-                                  const acs_host_api_v1* host,
+static acsd_status avx2_run_kernel(uint32_t kernel_index,
+                                  const acsd_host_api_v1* host,
                                   const void* params, uint32_t params_bytes,
-                                  acs_span_u8 in, acs_span_u8 out) {
+                                  acsd_span_u8 in, acsd_span_u8 out) {
     if (kernel_index >= ACS_CPU_AVX2_KERNEL_COUNT)
         return ACS_ERR_UNSUPPORTED;   /* 非热点 kernel → host 回落 baseline */
     if (host == nullptr || params == nullptr) return ACS_ERR_PARAM;
-    if (host->head.struct_size < sizeof(acs_host_api_v1) ||
+    if (host->head.struct_size < sizeof(acsd_host_api_v1) ||
         host->head.abi_version != ACS_ABI_VERSION_V1)
         return ACS_ERR_ABI_MISMATCH;
-    acs_cpu_baseline_params_v1 P;
+    acsd_cpu_baseline_params_v1 P;
     if (params_bytes < sizeof(P)) return ACS_ERR_PARAM;
     std::memcpy(&P, params, sizeof(P));
     if (P.head.abi_version != ACS_ABI_VERSION_V1 ||
@@ -313,7 +313,7 @@ static acs_status avx2_run_kernel(uint32_t kernel_index,
         return ACS_ERR_CANCELLED;   /* cancel 点 = 调用边界 (v1) */
 
     int rc = avx2_validate(&P, kernel_index, in, out);
-    if (rc != ACS_OK) return (acs_status)rc;
+    if (rc != ACS_OK) return (acsd_status)rc;
 
     const float* ip[ACS_CPU_AVX2_MAX_IN_SLOTS] = { nullptr };
     float* op[ACS_CPU_AVX2_MAX_OUT_SLOTS] = { nullptr };
@@ -323,14 +323,14 @@ static acs_status avx2_run_kernel(uint32_t kernel_index,
 }
 
 /* ───────────────────────── provider 静态表 ───────────────────────── */
-static const acs_provider_api_v1 g_provider_api = {
-    { (uint32_t)sizeof(acs_provider_api_v1), ACS_ABI_VERSION_V1 },
+static const acsd_provider_api_v1 g_provider_api = {
+    { (uint32_t)sizeof(acsd_provider_api_v1), ACS_ABI_VERSION_V1 },
     &avx2_self_test,
     &avx2_kernel_list,
     &avx2_run_kernel
 };
 
-}  // namespace astrocs_cpu_avx2
+}  // namespace acsd_cpu_avx2
 
 /* ───────────────────────── 唯一导出 (12 §1) ─────────────────────────
  * host_abi 失配 → ACS_ERR_ABI_MISMATCH; host 必填 allocator; 能力门
@@ -338,7 +338,7 @@ static const acs_provider_api_v1 g_provider_api = {
  * host 回落 baseline)。异常边界: C++ 异常捕获转 ACS_ERR_EXCEPTION (12 §4)。 */
 extern "C" {
 
-#if !defined(ASTROCS_NO_EXCEPTIONS)
+#if !defined(ACSD_NO_EXCEPTIONS)
 #define ACS_TRY try
 #define ACS_CATCH \
     catch (...) { return ACS_ERR_EXCEPTION; }
@@ -347,19 +347,19 @@ extern "C" {
 #define ACS_CATCH
 #endif
 
-ASTROCS_EXPORT acs_status ASTROCS_CALL
-astrocs_provider_query_v1(uint32_t host_abi,
-                          const acs_host_api_v1* host,
-                          const acs_provider_api_v1** out_api) ACS_TRY {
+ACSD_EXPORT acsd_status ACSD_CALL
+acsd_provider_query_v1(uint32_t host_abi,
+                          const acsd_host_api_v1* host,
+                          const acsd_provider_api_v1** out_api) ACS_TRY {
     if (host_abi != ACS_ABI_VERSION_V1) return ACS_ERR_ABI_MISMATCH;
     if (host == nullptr || host->allocator == nullptr) return ACS_ERR_ABI_MISMATCH;
-    if (host->head.struct_size < sizeof(acs_host_api_v1) ||
+    if (host->head.struct_size < sizeof(acsd_host_api_v1) ||
         host->head.abi_version != ACS_ABI_VERSION_V1)
         return ACS_ERR_ABI_MISMATCH;
     if (out_api == nullptr) return ACS_ERR_PARAM;
-    using namespace astrocs_cpu_avx2;
-    acs_cap_result_v1 cap;
-    const int grc = acs_cpu_avx2_cap_gate(&cap);
+    using namespace acsd_cpu_avx2;
+    acsd_cap_result_v1 cap;
+    const int grc = acsd_cpu_avx2_cap_gate(&cap);
     if (grc != ACS_OK) return ACS_ERR_UNSUPPORTED;   /* 非支持 CPU → 拒绝加载 */
     *out_api = &g_provider_api;
     return ACS_OK;

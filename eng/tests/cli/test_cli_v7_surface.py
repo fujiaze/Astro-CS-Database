@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """§6.2 唯一命令面行为测试（原 V7 统一命令面骨架契约文件，按 CLI-001 新树同步）。
 
-权威: docs/ASTROCS_DESIGN §6.2（命令树只有 normalize/mosaic/export ×(--json|--template|
+权威: docs/ACSD_DESIGN §6.2（命令树只有 normalize/mosaic/export ×(--json|--template|
 --help) + help/--version/doctor/benchmark；phase 仅内部指代）、docs/engineering/CLI_PROTOCOL_V1.md §1。
 
 退役登记（旧 surface 已被 CLI-001 删除，依据 §6.2 唯一命令树 + CLI-001 rc 矩阵；
@@ -35,7 +35,7 @@ HELP_LINES = [
 LEGACY_SURFACE = [
     ["version"], ["version", "--json"],
     ["modules", "list", "--json"], ["modules", "verify", "--json"], ["modules", "bogus"],
-    ["selftest"], ["selftest", "--module", "astrocs.noop", "--json"],
+    ["selftest"], ["selftest", "--module", "acsd.noop", "--json"],
     ["hardware", "inspect", "--json"],
     ["config", "init", "--output", "/tmp/x.json"],
     ["config", "validate", "--config", "/tmp/x.json"],
@@ -54,7 +54,7 @@ LEGACY_SURFACE = [
 
 
 def cli_binary():
-    env = os.environ.get("ASTROCS_CLI_BIN")
+    env = os.environ.get("ACSD_CLI_BIN")
     if env and os.path.isfile(env):
         return env
     for rel in (("build", "acsd"), ("build", "cli", "acsd")):
@@ -138,7 +138,7 @@ class TestVersionSurface(unittest.TestCase):
     def test_04_version_rejects_unknown_flag(self):
         r = run("--version", "--bogus")
         self.assertEqual(r.returncode, 2)
-        # 诊断前缀 = 唯一入口名 acsd（docs/ASTROCS_DESIGN.md §1.2/§7.1）。
+        # 诊断前缀 = 唯一入口名 acsd（docs/ACSD_DESIGN.md §1.2/§7.1）。
         self.assertIn("acsd:", r.stderr)
         self.assertEqual(r.stdout, "")
 

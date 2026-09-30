@@ -1,7 +1,7 @@
 // eng/tests/unit/mosaic_window_test.cpp — ARCH-503 mosaic 天球窗口并行调度器回归锁
 //
 // 依据：CONTRACT-501 docs/engineering/SCHEDULER_CONTRACT.md §2（窗口并行与确定性）/
-//       §3（资源声明）/§4（探针）；docs/ASTROCS_DESIGN §8.3（mosaic 行）。
+//       §3（资源声明）/§4（探针）；docs/ACSD_DESIGN §8.3（mosaic 行）。
 // 判据（每条可证伪）：
 //   A. 确定性：N=1/2/4/8/16 worker 的窗口 outcome（含 checksum）**逐位一致**；
 //   B. 归约顺序：输出恒按 window_id 升序；
@@ -14,7 +14,7 @@
 //   F. manifest：窗口大小、窗口数、路由字节、读放大必须落盘；
 //   G. 探针：每窗口一条 io + 一条 node_wall；stage 必须为 mosaic；
 //   H. 取消：能返回、不挂死。
-#include "astrocs/core/mosaic_window.h"
+#include "acsd/core/mosaic_window.h"
 
 #include <algorithm>
 #include <cstdio>
@@ -30,7 +30,7 @@
 #include <unistd.h>
 #endif
 
-using namespace astrocs::core;
+using namespace acsd::core;
 
 #ifndef ARCH503_EVIDENCE_DIR
 #define ARCH503_EVIDENCE_DIR "run/RELEASE-05/evidence"
@@ -166,13 +166,13 @@ int main() {
   {
     std::ofstream ev(std::string(ARCH503_EVIDENCE_DIR) + "/arch503_window_sweep.csv", std::ios::trunc);
     if (ev) ev << "window_tiles,tiles,frames,windows,peak_resident_bytes,bound_bytes,routed_bytes,naive_bytes,amplification\n";
-    std::vector<astrocs::core::WindowPeakSample> samples;
+    std::vector<acsd::core::WindowPeakSample> samples;
     const std::size_t kFrames = 6;
     for (int wt : {1, 2, 4, 8, 16}) {
       std::size_t peak = 0; double amp = 0.0; std::uint64_t routed = 0, naive = 0;
       auto out = run_with(4, wt, 6, 16, 4096, &peak, &amp, &routed, &naive);
       const std::size_t bound =
-          astrocs::core::MosaicWindowScheduler::window_peak_bound_bytes(
+          acsd::core::MosaicWindowScheduler::window_peak_bound_bytes(
               static_cast<std::size_t>(wt), kFrames);
       if (ev) ev << wt << ",16,6," << out.size() << "," << peak << "," << bound << ","
                  << routed << "," << naive << "," << amp << "\n";
@@ -182,13 +182,13 @@ int main() {
       std::size_t peak = 0; double amp = 0.0; std::uint64_t routed = 0, naive = 0;
       auto out = run_with(4, 4, 6, nt, 4096, &peak, &amp, &routed, &naive);
       const std::size_t bound =
-          astrocs::core::MosaicWindowScheduler::window_peak_bound_bytes(4, kFrames);
+          acsd::core::MosaicWindowScheduler::window_peak_bound_bytes(4, kFrames);
       if (ev) ev << 4 << "," << nt << ",6," << out.size() << "," << peak << "," << bound << ","
                  << routed << "," << naive << "," << amp << "\n";
       samples.push_back({4, static_cast<std::size_t>(nt), peak, bound});
     }
     std::string why;
-    const bool green = astrocs::core::window_peak_residency_ok(samples, &why);
+    const bool green = acsd::core::window_peak_residency_ok(samples, &why);
     check(green, "E1/E2/E3 window peak residency criterion GREEN on measured samples" +
                      (green ? std::string() : (" (why: " + why + ")")));
     // 实测非退化自证：窗口越大峰值越大（若为编译期常量则必然相等 ⇒ 旧门恒真）
@@ -202,18 +202,18 @@ int main() {
                         std::to_string(p1) + " -> " + std::to_string(p16) +
                         " (compile-time constant would be equal = degenerate gate)");
     // ── 负例（红）：同一判据函数喂入「编译期常量 32 B」样本 ⇒ 必须判红 ──
-    std::vector<astrocs::core::WindowPeakSample> mutated = samples;
+    std::vector<acsd::core::WindowPeakSample> mutated = samples;
     for (auto& s : mutated) s.peak_bytes = sizeof(double) * 4;   // F-07 的旧常量注入
     std::string why_const;
-    const bool red_const = !astrocs::core::window_peak_residency_ok(mutated, &why_const);
+    const bool red_const = !acsd::core::window_peak_residency_ok(mutated, &why_const);
     check(red_const, "E5 NEGATIVE: constant-residency injection (sizeof(double)*4) turns the " +
                          std::string("criterion RED (got ") + (red_const ? "RED" : "GREEN") +
                          "; why=" + why_const + ")");
     // ── 负例（红）：峰值恒 0（未记账 / 硬写 0）⇒ 必须判红 ──
-    std::vector<astrocs::core::WindowPeakSample> zeroed = samples;
+    std::vector<acsd::core::WindowPeakSample> zeroed = samples;
     for (auto& s : zeroed) s.peak_bytes = 0;
     std::string why_zero;
-    const bool red_zero = !astrocs::core::window_peak_residency_ok(zeroed, &why_zero);
+    const bool red_zero = !acsd::core::window_peak_residency_ok(zeroed, &why_zero);
     check(red_zero, "E6 NEGATIVE: zero-residency injection turns the criterion RED (got " +
                         std::string(red_zero ? "RED" : "GREEN") + "; why=" + why_zero + ")");
     std::printf("INFO window sweep: peak resident w1=%zu B w16=%zu B (constant was %zu B); "

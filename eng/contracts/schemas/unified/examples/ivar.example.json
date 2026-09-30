@@ -1,6 +1,6 @@
 {
   "unified_object": "ivar",
-  "object_schema_id": "https://astrocs.local/schemas/unified/ivar/v1",
+  "object_schema_id": "https://acsd.local/schemas/unified/ivar/v1",
   "schema_version": 1,
   "units": {
     "bunit": "sr^2/ADU^2",

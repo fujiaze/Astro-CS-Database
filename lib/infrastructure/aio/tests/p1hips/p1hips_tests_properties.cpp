@@ -159,7 +159,7 @@ void check_hierarchy_closure_f32(const FixViewF64& in0, const TileFits& sig0,
 void write_product_worker(const std::string& dir) {
     AioHipsProductSet* ps = aio_hips_product_begin(
         dir.c_str(), FIX_NSIDE, 512, AIO_HIPS_FLOAT64, AIO_HIPS_PRODUCT_ALL,
-        "ivo://astrocs/test/p1hips", "det", nullptr, 100.0,
+        "ivo://acsd/test/p1hips", "det", nullptr, 100.0,
         "2026-09-07T00:00:00", 0);
     if (!ps) return;
     FixViewF64 t0 = fix_hips_a_tile(0, 10.0, 0.5, 1.5, true, false);
@@ -212,7 +212,7 @@ int test_properties() {
         AioHipsProductSet* ps = aio_hips_product_begin(
             dir.c_str(), FIX_NSIDE, 512, AIO_HIPS_FLOAT64,
             AIO_HIPS_PRODUCT_SIGNAL | AIO_HIPS_PRODUCT_SUPPORT,
-            "ivo://astrocs/test/p1hips", "p2", nullptr, 0.0, nullptr, 0);
+            "ivo://acsd/test/p1hips", "p2", nullptr, 0.0, nullptr, 0);
         P1HIPS_CHECK(cs, ps != nullptr, "p2_begin");
         if (ps) {
             for (std::uint64_t p : {0ULL, 1ULL, 2ULL}) {
@@ -277,7 +277,7 @@ int test_properties() {
         AioHipsProductSet* ps = aio_hips_product_begin(
             dir.c_str(), 1024, 512, AIO_HIPS_FLOAT64,
             AIO_HIPS_PRODUCT_SIGNAL | AIO_HIPS_PRODUCT_SUPPORT,
-            "ivo://astrocs/test/p1hips", "p3", nullptr, 0.0, nullptr, 0);
+            "ivo://acsd/test/p1hips", "p3", nullptr, 0.0, nullptr, 0);
         P1HIPS_CHECK(cs, ps != nullptr, "p3_begin");
         if (ps) {
             P1HIPS_CHECK_EQ(cs, aio_hips_write_signal_support_tile(ps, &t0.view), 0);
@@ -307,7 +307,7 @@ int test_properties() {
         AioHipsProductSet* ps = aio_hips_product_begin(
             dir.c_str(), 1024, 512, AIO_HIPS_FLOAT32,
             AIO_HIPS_PRODUCT_SIGNAL | AIO_HIPS_PRODUCT_SUPPORT,
-            "ivo://astrocs/test/p1hips", "p4", nullptr, 0.0, nullptr, 0);
+            "ivo://acsd/test/p1hips", "p4", nullptr, 0.0, nullptr, 0);
         P1HIPS_CHECK(cs, ps != nullptr, "p4_begin");
         if (ps) {
             P1HIPS_CHECK_EQ(cs, aio_hips_write_signal_support_tile(ps, &t0.view), 0);
@@ -328,7 +328,7 @@ int test_properties() {
         AioHipsProductSet* ps = aio_hips_product_begin(
             dir.c_str(), FIX_NSIDE, 512, AIO_HIPS_FLOAT64,
             AIO_HIPS_PRODUCT_SIGNAL | AIO_HIPS_PRODUCT_SUPPORT,
-            "ivo://astrocs/test/p1hips", "p5", nullptr, 0.0, nullptr, 0);
+            "ivo://acsd/test/p1hips", "p5", nullptr, 0.0, nullptr, 0);
         if (ps) {
             FixViewF64 t0 = fix_hips_a_tile(0, 10.0, 0.5, 0.0, true, false);
             FixViewF64 t1 = fix_hips_c_edge_tile(1, 20.0, 0.5);
@@ -361,16 +361,16 @@ int test_properties() {
         const std::string d1 = make_tmp_dir("p6a");
         P1HIPS_CHECK_EQ(cs, write_full_f64_product(d1, AIO_HIPS_PRODUCT_SIGNAL, nullptr, true), 0);
         const auto kv1 = read_properties(d1 + "/signal/properties");
-        P1HIPS_CHECK(cs, kv1.count("ASTROCS_DRIZZLE_PIXFRAC") &&
-                         kv1.at("ASTROCS_DRIZZLE_PIXFRAC") == "0.700000", "f5_prov_pixfrac");
-        P1HIPS_CHECK(cs, kv1.count("ASTROCS_DRIZZLE_SCALE_ARCSEC") &&
-                         kv1.at("ASTROCS_DRIZZLE_SCALE_ARCSEC") == "0.3500", "f5_prov_scale");
+        P1HIPS_CHECK(cs, kv1.count("ACSD_DRIZZLE_PIXFRAC") &&
+                         kv1.at("ACSD_DRIZZLE_PIXFRAC") == "0.700000", "f5_prov_pixfrac");
+        P1HIPS_CHECK(cs, kv1.count("ACSD_DRIZZLE_SCALE_ARCSEC") &&
+                         kv1.at("ACSD_DRIZZLE_SCALE_ARCSEC") == "0.3500", "f5_prov_scale");
 
         const std::string d2 = make_tmp_dir("p6b");
         P1HIPS_CHECK_EQ(cs, write_full_f64_product(d2, AIO_HIPS_PRODUCT_SIGNAL, nullptr, false), 0);
         const auto kv2 = read_properties(d2 + "/signal/properties");
-        P1HIPS_CHECK(cs, !kv2.count("ASTROCS_DRIZZLE_PIXFRAC"), "f5_prov_absent_pixfrac");
-        P1HIPS_CHECK(cs, !kv2.count("ASTROCS_DRIZZLE_SCALE_ARCSEC"), "f5_prov_absent_scale");
+        P1HIPS_CHECK(cs, !kv2.count("ACSD_DRIZZLE_PIXFRAC"), "f5_prov_absent_pixfrac");
+        P1HIPS_CHECK(cs, !kv2.count("ACSD_DRIZZLE_SCALE_ARCSEC"), "f5_prov_absent_scale");
     }
 
     // --- P7: I7 判别面 (M2a-H-3) — 异质覆盖 c>1: 面积加权 vs support 加权
@@ -384,7 +384,7 @@ int test_properties() {
         AioHipsProductSet* ps = aio_hips_product_begin(
             dir.c_str(), 1024, 512, AIO_HIPS_FLOAT64,
             AIO_HIPS_PRODUCT_SIGNAL | AIO_HIPS_PRODUCT_SUPPORT,
-            "ivo://astrocs/test/p1hips", "p7", nullptr, 0.0, nullptr, 0);
+            "ivo://acsd/test/p1hips", "p7", nullptr, 0.0, nullptr, 0);
         P1HIPS_CHECK(cs, ps != nullptr, "p7_begin");
         if (ps) {
             P1HIPS_CHECK_EQ(cs, aio_hips_write_signal_support_tile(ps, &t0.view), 0);
@@ -411,21 +411,21 @@ int test_properties() {
         // 父 tile 被叶 tile 覆盖的像素 = 262144/4 = 65536 个, 每个 Σa=10·A_leaf
         // > A_cell_k=4·A_leaf ⇒ 这 65536 个父像素全部超覆盖 (其余父像素无数据)。
         const auto kvp = read_properties(dir + "/signal/properties");
-        const auto itc = kvp.find("astrocs_support_clamped_pixels");
-        const auto itg = kvp.find("astrocs_coverage_gt1_pixels");
+        const auto itc = kvp.find("acsd_support_clamped_pixels");
+        const auto itg = kvp.find("acsd_coverage_gt1_pixels");
         P1HIPS_CHECK_MSG(cs, itc != kvp.end() &&
                                  std::strtoull(itc->second.c_str(), nullptr, 10) == 131072ULL,
                          "p7_leaf_clamp_count",
-                         "astrocs_support_clamped_pixels=%s (want 131072)",
+                         "acsd_support_clamped_pixels=%s (want 131072)",
                          itc == kvp.end() ? "(missing)" : itc->second.c_str());
         P1HIPS_CHECK_MSG(cs, itg != kvp.end() &&
                                  std::strtoull(itg->second.c_str(), nullptr, 10) == 65536ULL,
                          "p7_hier_gt1_count",
-                         "astrocs_coverage_gt1_pixels=%s (want 65536)",
+                         "acsd_coverage_gt1_pixels=%s (want 65536)",
                          itg == kvp.end() ? "(missing)" : itg->second.c_str());
         std::string mtxt, mv;
         const bool mok = read_manifest(dir + "/manifest.json", mtxt) &&
-                         manifest_get(mtxt, "astrocs_support_clamped_pixels", mv);
+                         manifest_get(mtxt, "acsd_support_clamped_pixels", mv);
         P1HIPS_CHECK_MSG(cs, mok && itc != kvp.end() && mv == itc->second,
                          "p7_manifest_clamp_count",
                          "manifest 计数与 properties 不一致 (manifest=%s)",
@@ -444,7 +444,7 @@ int test_properties() {
     //     异步与工作窃取只改变执行顺序, 不改变结合顺序」+ §6:71「归约顺序随
     //     worker 数变化(共享浮点累加器/动态归约序) ⇒ 判红」;
     //   docs/science/algorithms/HIPS_WRITER.md §9「f64 通路逐像素 bitwise(同序确定性)」;
-    //   docs/science/DATA_SEMANTICS.md §12.3:414「astrocs_covered_sky_fraction
+    //   docs/science/DATA_SEMANTICS.md §12.3:414「acsd_covered_sky_fraction
     //     = covered_area_sr/4π」(契约键, 归约须与到达序无关)。
     //
     // 几何 nside=2048 (tile_order=2), 4 个叶 tile (parent_ipix 0..3):
@@ -453,7 +453,7 @@ int test_properties() {
     //   两条写出路径同时被覆盖。
     // 像素值必须**非均匀** (splitmix64 固定 seed): 常数 fixture 下任何重结合都
     // 逐位相同 ⇒ 判据退化。
-    // 负例 (判据非退化, AGENTS §5): 以 ASTROCS_HIPS_HIER_FAULT=cross_tile_sum
+    // 负例 (判据非退化, AGENTS §5): 以 ACSD_HIPS_HIER_FAULT=cross_tile_sum
     // 注入「祖先累加退化为真正的跨瓦片求和」(= PERF-PROFILE-01 §9.3 预警形态),
     // 同一组排列必须**判红**; 无注入时必须**判绿**。两侧都在本组内自证。
     {
@@ -490,7 +490,7 @@ int test_properties() {
                 dir.c_str(), kP8Nside, 512, AIO_HIPS_FLOAT64,
                 AIO_HIPS_PRODUCT_SIGNAL | AIO_HIPS_PRODUCT_SUPPORT |
                     AIO_HIPS_PRODUCT_VARIANCE | AIO_HIPS_PRODUCT_IVAR,
-                "ivo://astrocs/test/p1hips", "p8", nullptr, 0.0, nullptr, 0);
+                "ivo://acsd/test/p1hips", "p8", nullptr, 0.0, nullptr, 0);
             if (!ps) return -1;
             for (int idx : order) {
                 AstroSphereTileView v;
@@ -531,7 +531,7 @@ int test_properties() {
                 std::uint64_t dg = 0;
                 const bool ok = (rc == 0) && tree_digest(dir, dg, "properties", nullptr);
                 const auto kv = read_properties(dir + "/signal/properties");
-                const auto it = kv.find("astrocs_covered_sky_fraction");
+                const auto it = kv.find("acsd_covered_sky_fraction");
                 const std::string frac =
                     (it == kv.end()) ? std::string("(missing)") : it->second;
                 if (ci == 0) { d_ref = dg; frac_ref = frac; ok_ref = ok; continue; }
@@ -555,14 +555,14 @@ int test_properties() {
                          p8_detail.empty() ? "?" : p8_detail.c_str());
         // ② 负例: 注入"跨瓦片求和"形态 ⇒ 必须判红 (证明判据非退化)
         {
-            const char* prev = std::getenv("ASTROCS_HIPS_HIER_FAULT");
+            const char* prev = std::getenv("ACSD_HIPS_HIER_FAULT");
             const std::string prev_s = prev ? prev : std::string();
-            setenv("ASTROCS_HIPS_HIER_FAULT", "cross_tile_sum", 1);
+            setenv("ACSD_HIPS_HIER_FAULT", "cross_tile_sum", 1);
             bool inj_ok = false;
             std::string inj_detail;
             const bool inj_ref_ok = p8_round(&inj_ok, &inj_detail);
-            if (prev) setenv("ASTROCS_HIPS_HIER_FAULT", prev_s.c_str(), 1);
-            else      unsetenv("ASTROCS_HIPS_HIER_FAULT");
+            if (prev) setenv("ACSD_HIPS_HIER_FAULT", prev_s.c_str(), 1);
+            else      unsetenv("ACSD_HIPS_HIER_FAULT");
             // 双侧: 注入轮必须「写入成功」且「排列确实不同」—— 只断言后者
             // 会被「写失败」误判成已检出。
             P1HIPS_CHECK_MSG(cs, inj_ref_ok && !inj_ok, "p8_negative_injection_detected",

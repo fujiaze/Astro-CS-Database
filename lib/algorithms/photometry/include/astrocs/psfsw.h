@@ -24,15 +24,15 @@
  * 纪律: 不接线 session; psfsw 无量纲且组内 median=1, 禁止写成 ivar/Fisher;
  *       不把 median(SNR_F)/support/coverage/FWHM 当权重。纯 std + libm。
  */
-#ifndef ASTROCS_V6_P1PSFW_PSFSW_H
-#define ASTROCS_V6_P1PSFW_PSFSW_H
+#ifndef ACSD_V6_P1PSFW_PSFSW_H
+#define ACSD_V6_P1PSFW_PSFSW_H
 
 #include <cstddef>
 #include <cstdint>
 #include <string>
 #include <vector>
 
-namespace astrocs {
+namespace acsd {
 namespace v6 {
 namespace p1psfw {
 
@@ -402,6 +402,6 @@ RecordValidation validate_psfsw_record(const PsfswRecord& rec);
 
 }  /* namespace p1psfw */
 }  /* namespace v6 */
-}  /* namespace astrocs */
+}  /* namespace acsd */
 
-#endif /* ASTROCS_V6_P1PSFW_PSFSW_H */
+#endif /* ACSD_V6_P1PSFW_PSFSW_H */

@@ -29,7 +29,7 @@
 #endif
 
 // ============================================================================
-// G4: actual-buffer trace (仅诊断, 默认关闭, env: ASTROCS_DRIZZLE_TRACE=<dir>)
+// G4: actual-buffer trace (仅诊断, 默认关闭, env: ACSD_DRIZZLE_TRACE=<dir>)
 // <dir>/trace_selection.tsv: 选择源像素坐标 (x\ty), 与 orchestrator 同一组
 // <dir>/drizzle_lineage.jsonl: 逐源像素贡献 (source x/y, effective value,
 // drop footprint, candidate leaf, overlap,
@@ -112,7 +112,7 @@ static void load_selection(const std::string& dir) {
 
 void init_from_env() {
     if (g_enabled.load(std::memory_order_acquire)) return;
-    const char* dir = std::getenv("ASTROCS_DRIZZLE_TRACE");
+    const char* dir = std::getenv("ACSD_DRIZZLE_TRACE");
     if (!dir || !*dir) return;
     // 跨帧并发: 多帧可能同时进 run() => 同一个进程级 trace 状态被多个线程初始化。
     // 全部状态迁移在 g_mtx 下完成; g_enabled 最后以 release 置位, 作为"状态已就绪"
@@ -291,7 +291,7 @@ void flush() {
 // 无界增长 (g_sources ≤ 选择集大小/run, g_leaves ≤ kMaxTraceLeaves/run), 且第 2
 // 个 run 的 jsonl 会把前面所有 run 的记录一并重写。改为 run 末清空后, 每个 run
 // 的 drizzle_lineage.jsonl / leaf_internal.jsonl 只含本 run 记录, 缓冲峰值与
-// run 数解耦。仅作用于 ASTROCS_DRIZZLE_TRACE 诊断路径 (默认关闭)。
+// run 数解耦。仅作用于 ACSD_DRIZZLE_TRACE 诊断路径 (默认关闭)。
 void clear_buffers() {
     if (!trace_enabled()) return;
     std::lock_guard<std::mutex> lk(g_mtx);
@@ -386,11 +386,11 @@ spherical::TargetGeomCache& run_target_cache(std::uint64_t run_gen) {
 }
 
 // fine-grained per-pixel profiler 默认关闭；
-// 显式 ASTROCS_DRIZZLE_FINE_PROFILE=1 才启用（逐像素 clock 有真实开销，
+// 显式 ACSD_DRIZZLE_FINE_PROFILE=1 才启用（逐像素 clock 有真实开销，
 // 不能默认打开）。返回 false 时热循环完全不调用 high_resolution_clock。
 static bool drizzle_fine_profile_enabled() {
     static const bool en = [] {
-        const char* v = std::getenv("ASTROCS_DRIZZLE_FINE_PROFILE");
+        const char* v = std::getenv("ACSD_DRIZZLE_FINE_PROFILE");
         return v && v[0] == '1';
     }();
     return en;
@@ -1218,7 +1218,7 @@ bool DrizzleEngine::writeHis(const std::unordered_map<uint64_t, PixelAccumulator
     // 「产品 FITS/HiPS 写盘 BUNIT 一律取该串」+ :2827-2830「测光归一化是线性乘性标度，
     // 只改零点、不改量纲类别，标度由 PHOTSCAL/PHOTAPPL 承载」）——测光是否施加**不改变**
     // BUNIT。本路径为 legacy .hiss 容器出口（hp_drizzle_run 零生产调用者，已在
-    // CMakeLists.txt 登记），按同一口径写串，不得再写 ASTROCS_RELATIVE_FLUX / 裸 ADU。
+    // CMakeLists.txt 登记），按同一口径写串，不得再写 ACSD_RELATIVE_FLUX / 裸 ADU。
     std::snprintf(hmeta.bunit, sizeof(hmeta.bunit), "ADU/sr");
     // 传统 FITS 字段 (按输入继承)
     std::snprintf(hmeta.filter, sizeof(hmeta.filter), "%s", meta.filter.c_str());
@@ -1891,7 +1891,7 @@ bool DrizzleEngine::drizzleTiledImpl(const FitsImage& img, const DrizzleConfig& 
     std::vector<DrizzleOpCounters> threadCounters(static_cast<size_t>(num_threads));
     std::vector<double> prof_geom_tl(static_cast<size_t>(num_threads), 0.0);
     std::vector<double> prof_wcs_tl(static_cast<size_t>(num_threads), 0.0);
-    // P22: 归约流水线观测 (仅 ASTROCS_DRIZZLE_FINE_PROFILE=1 时维护, 不改变数值)
+    // P22: 归约流水线观测 (仅 ACSD_DRIZZLE_FINE_PROFILE=1 时维护, 不改变数值)
     std::vector<double> profP_accum(static_cast<size_t>(num_threads), 0.0);
     std::vector<double> profP_merge_wait(static_cast<size_t>(num_threads), 0.0);
     std::vector<double> profP_merge_work(static_cast<size_t>(num_threads), 0.0);
@@ -1941,7 +1941,7 @@ bool DrizzleEngine::drizzleTiledImpl(const FitsImage& img, const DrizzleConfig& 
     // + 既有跨预算回归锁 p1drz_merge_pipeline_lock（taskset 1/2/4/8/16 逐位相同）。
     // 标定旋钮（仅同一二进制受控 A/B；缺省 0 = 策略值 = num_threads）。
     int kScratchPoolCap = num_threads;
-    if (const char* v = std::getenv("ASTROCS_P1_AXIS_SCRATCH_CAP")) {
+    if (const char* v = std::getenv("ACSD_P1_AXIS_SCRATCH_CAP")) {
       if (v[0]) {
         const long x = std::strtol(v, nullptr, 10);
         if (x >= 1) kScratchPoolCap = static_cast<int>(std::min<long>(x, 4096));
@@ -2096,7 +2096,7 @@ bool DrizzleEngine::drizzleTiledImpl(const FitsImage& img, const DrizzleConfig& 
             //   仅当 D_p = 0（零合格样本）时输出 signal = NaN ∧ support ≤ 0；
             //   **强制计数**：被剔除样本按原因分类计数（禁静默剔除）。
             // 方差可用性是**独立通道**，不参与合格性判定（上游授权 =
-            // docs/ASTROCS_DESIGN.md §5.5:379「NaN 采用样本级掩膜」；V≤0 无掩膜授权，
+            // docs/ACSD_DESIGN.md §5.5:379「NaN 采用样本级掩膜」；V≤0 无掩膜授权，
             // 按 §0.1:45「每一层只由它的上一层推出」不得由下级另立）。
             // 现行行为 = 样本级掩膜 + 强制计数；NaN 经 F_p 直接传播 + 无计数的旧行为不再使用（原注释引用的
             // DRIZZLE.md §8「不掩膜」行亦已按同一 rule_id 订正）。
@@ -2349,7 +2349,7 @@ bool DrizzleEngine::drizzleTiledImpl(const FitsImage& img, const DrizzleConfig& 
         n_dropin += d;
         n_sh += s;
     }
-    // P22: 归约流水线剖面 (与 [profile] 同级, 仅 ASTROCS_DRIZZLE_FINE_PROFILE=1)。
+    // P22: 归约流水线剖面 (与 [profile] 同级, 仅 ACSD_DRIZZLE_FINE_PROFILE=1)。
     // par_wall/accum_cpu/merge_wait_cpu/merge_work_cpu 用于区分 "累加并行度" 与
     // "归约串行关键路径": merge_work_cpu 是全部归约 CPU 秒 (归约串行),
     // merge_wait_cpu 是线程等待可归约槽/空闲 map 的 CPU 秒 (越接近 0 越好)。

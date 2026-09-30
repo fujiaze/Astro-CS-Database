@@ -29,7 +29,7 @@
 #include <unistd.h>
 #endif
 
-namespace astrocs {
+namespace acsd {
 namespace aio {
 namespace {
 
@@ -638,4 +638,4 @@ PublishResult atomic_publish_directory(const std::string& target_dir,
 }
 
 }  // namespace aio
-}  // namespace astrocs
+}  // namespace acsd

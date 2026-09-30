@@ -1,4 +1,4 @@
-# lib/algorithms/noise_snr — astrocs.p1.noise-snr（P1-NOISE）
+# lib/algorithms/noise_snr — acsd.p1.noise-snr（P1-NOISE）
 
 > 状态: CONTRACT_READY（P1-NOISE-DOC 冻结，2026-09-07）｜doc revision: r1
 > 本 README 由源码逐符号核对后新建（P1-NOISE-DOC，wave W1）：函数、单位、
@@ -8,7 +8,7 @@
 > `lib/algorithms/noise_snr/cpp/include/snr_estimator.h`（**526 行**，2026-09-16 复测）。
 > **构建面（实测；本模块不得再自报"唯一生产实现"）**：根 CMake 主图只收
 > `wrapper_phase1/noise_model.cpp` + `wrapper_phase1/snr_frame_science.cpp` +
-> `cpp/src/snr_science.cpp`（目标 `astrocs_phase1_noise`）；`cpp/Makefile` + `build.ps1`
+> `cpp/src/snr_science.cpp`（目标 `acsd_phase1_noise`）；`cpp/Makefile` + `build.ps1`
 > 产出 `snr_estimator.dll`，因根 `CMakeLists.txt:236` 的
 > `add_subdirectory(lib/algorithms/noise_snr)` 被注释而**不在根 CMake 主图**
 > （同 lib/algorithms/cosmetic/ 先例：合同目录与生产实现目录并存）。
@@ -20,11 +20,11 @@
 
 | 字段 | 当前值 |
 |---|---|
-| MOD ID / DLL target | `MOD-astrocs-phase1-noise-snr` / 现状产物 `snr_estimator.dll`（构建来源见本表"构建"行）；迁移目标 `astrocs_p1_noise.dll`（P1-NOISE-IMPL 建立，尚未存在） |
-| module / ABI / doc revision | `astrocs.p1.noise-snr` / C ABI（snr_estimator.h `SNR_API` extern "C"，_WIN32 下 __declspec(dllexport) :7-11；无版本化 query 入口，迁移缺口）/ r1 |
+| MOD ID / DLL target | `MOD-acsd-phase1-noise-snr` / 现状产物 `snr_estimator.dll`（构建来源见本表"构建"行）；迁移目标 `acsd_p1_noise.dll`（P1-NOISE-IMPL 建立，尚未存在） |
+| module / ABI / doc revision | `acsd.p1.noise-snr` / C ABI（snr_estimator.h `SNR_API` extern "C"，_WIN32 下 __declspec(dllexport) :7-11；无版本化 query 入口，迁移缺口）/ r1 |
 | owner / phase scope | SA-P1-N17 / phase1（matrix P1-NOISE，wave W1；depends_on_int=P1-CAL-INT;P1-PHOT-INT） |
 | 文档状态 | CONTRACT_READY（实现存在于 lib/algorithms/noise_snr/cpp/，模块化迁移未开始；不声明 IMPLEMENTED） |
-| 构建 | 现状构建=lib/algorithms/noise_snr/cpp/Makefile:5,12（g++ -shared → snr_estimator.dll）+ cpp/build.ps1:29（MinGW 通道）；未编入根 CMake 主构建（无 snr_estimator CMake 目标，与 astrocs_hips/astrocs_drizzle 先例不同）——CMake 集成归 P1-NOISE-IMPL。dll_loader.cpp:41/:55 按该 DLL 名与 lib/algorithms/noise_snr/cpp/ 路径装载（生产通道吻合） |
+| 构建 | 现状构建=lib/algorithms/noise_snr/cpp/Makefile:5,12（g++ -shared → snr_estimator.dll）+ cpp/build.ps1:29（MinGW 通道）；未编入根 CMake 主构建（无 snr_estimator CMake 目标，与 acsd_hips/acsd_drizzle 先例不同）——CMake 集成归 P1-NOISE-IMPL。dll_loader.cpp:41/:55 按该 DLL 名与 lib/algorithms/noise_snr/cpp/ 路径装载（生产通道吻合） |
 
 ## 2. 负责范围
 
@@ -80,7 +80,7 @@ max(a+b·x+c·y, floor)）。所有权：out_model 由调用方分配/持有，c
 | ALG | ALG-NOISE-001..003 | docs/science/algorithms/NOISE_ESTIMATION.md §13（逐符号源码锚定 + DISP-NOISE-001..009 + TEST-NOISE-DESIGN-001） |
 | DATA | DATA-P1-NOISE | docs/science/DATA_SEMANTICS.md §13（上游 §4a 产品语义 ivar=1/variance、ivar=0 显式不可用） |
 | API | API-NOISE-001 / API-P1-006 | docs/engineering/PUBLIC_API.md（snr_estimator.h 7 noise 导出现状 C API）/ docs/engineering/PHASE1_API_V1.md §2（编排级） |
-| ARCH/MOD/SRC | ARCH-001 / MOD-astrocs-phase1-noise-snr / SRC-NOISE-001 | docs/traceability/TRACEABILITY_MATRIX.json；SRC 锚 snr_estimator.h::noise 7 导出 |
+| ARCH/MOD/SRC | ARCH-001 / MOD-acsd-phase1-noise-snr / SRC-NOISE-001 | docs/traceability/TRACEABILITY_MATRIX.json；SRC 锚 snr_estimator.h::noise 7 导出 |
 
 ## 5. 公共入口与符号（API-NOISE-001）
 
@@ -123,7 +123,7 @@ noise_model.cpp:371-384 括号内为默认值）：
 错误码：`0`=成功（含 degenerate 兜底）/ `1`=完全退化（无合格 patch 且
 全帧兜底退化，ivar_bg_global=0.0）/ `3`=参数非法（nullptr、h/w≤0）或
 内部异常（malloc 失败）。无独立版本化 config schema 文件（json/版本号
-=MISSING，正式 schema 由 P1-NOISE-IMPL 冻结 acs_module_descriptor_v1.
+=MISSING，正式 schema 由 P1-NOISE-IMPL 冻结 acsd_module_descriptor_v1.
 config_schema_ver）。
 
 ## 7. 算法与实现锚
@@ -164,8 +164,8 @@ bitwise 与线程数无关。内存：掩膜 O(h·w) uint8（source_mask 直通�
   ivar==0.0、确定性 bitwise、n_qualified+n_rejected==64、free 幂等）。
 - 既有 eng/tests/unit/p1_noise_test.cpp（6 组：blank_sky/monte_carlo_
   poisson/low_high_signal/negative_values/gain_edges/variance_ivar_not_
-  mixed，eng/tests/unit/CMakeLists.txt:614-618 注册，链接 astrocs_phase1_
-  noise）为 P1-005 期旧封装测试（astrocs::phase1::NoiseModel 通道），
+  mixed，eng/tests/unit/CMakeLists.txt:614-618 注册，链接 acsd_phase1_
+  noise）为 P1-005 期旧封装测试（acsd::phase1::NoiseModel 通道），
   非 TEST-NOISE-DESIGN-001 本体；由 P1-NOISE-TEST 对齐重锚（可执行
   TEST-P1-NOISE-001 归 P1-NOISE-TEST 建立）。
 
@@ -182,12 +182,12 @@ variance/ivar 可失互倒）；006 source_mask 与 star 通道互斥（掩膜�
 （引入时按约束 C.4-C.8 逐内核 benchmark 冻结 ULP 容差）。
 
 迁移落点：本目录（lib/algorithms/noise_snr/）为迁移落码目标——
-`astrocs_p1_noise.dll`、C ABI adapter、plan/execute/cancel/inspect、
+`acsd_p1_noise.dll`、C ABI adapter、plan/execute/cancel/inspect、
 ThreadLease 接线、DISP-NOISE 清单消化、版本化 config schema 由
 P1-NOISE-IMPL 建立（module.yaml 已登记 manifest，entrypoint=MISSING）。
 遗留通道（计划迁移旧符号，NOISE_ESTIMATION §13.5）：lib/algorithms/noise_snr/wrapper_phase1/
-noise_model.{h,cpp}（39+67 行，astrocs::phase1::NoiseModel::estimate=
-median+MAD 单值退化子集 + gain_variance；静态库 astrocs_phase1_noise
+noise_model.{h,cpp}（39+67 行，acsd::phase1::NoiseModel::estimate=
+median+MAD 单值退化子集 + gain_variance；静态库 acsd_phase1_noise
 CMakeLists.txt:521-524、主程序链接 :607；单测 eng/tests/unit/
 p1_noise_test.cpp :312-316）去留由 P1-NOISE-IMPL 决定并登记其
 TASK_RESULT。迁移不得改变 ALG-NOISE-001..003 公式语义与 DATA-P1-NOISE

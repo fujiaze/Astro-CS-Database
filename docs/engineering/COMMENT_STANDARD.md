@@ -1,6 +1,6 @@
 # Astro Celestial Sphere Database（ACSD） Comment Standard
 
-> 上游：ASTROCS_DESIGN.md §8.4（模块与 ABI）
+> 上游：ACSD_DESIGN.md §8.4（模块与 ABI）
 
 ## 原则
 

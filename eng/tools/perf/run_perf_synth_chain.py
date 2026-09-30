@@ -10,7 +10,7 @@
   CPU 利用率/内存工作集/线程扩展/编排连续性/缓存复用/I/O 六类记录面）；
 * 冻结判据语义 = docs/detail/infrastructure/21_observability.md §8（G-RES-01，唯一语义权威），
   阈值数值唯一源 = eng/contracts/resource_gate_v1.json（本工具**不发明**任何阈值）；
-* 编排与资源条款 = docs/ASTROCS_DESIGN.md §8.3（探针校正：编排参数基于探针实测迭代，
+* 编排与资源条款 = docs/ACSD_DESIGN.md §8.3（探针校正：编排参数基于探针实测迭代，
   不靠静态猜测）/ §9（两轴并行：帧级并发 × 帧内并行，串行段由帧级并发重叠；模块不自决帧级并发）；
 * 目录纪律 = ENGINEERING_SPEC.md §7（过程产物落 run/，CLI 运行产物落 output_dir）。
 
@@ -25,7 +25,7 @@ docs/engineering/01_CHECKS.md 注册面 CHK-E2E-CHAIN / CHK-E2E-CHAIN-SELFTEST�
 |---|---|---|
 | 实验/shared/data/synthetic/generate.py | 按 datasets.json 生成 DATA-TYPE-MATRIX 场景帧 | 解析玩具仪器产物：无 TAN WCS、无校准母版 ⇒ normalize 的预检/解算链不可用 |
 | 实验/shared/synthetic/m16_sampling.py | 真实信号模板 → 仿真采样帧 + **与探测器模型一致的合成母版** + 真值画布（TAN WCS 一等公民） | 只到"生成数据"为止，不构造三命令配置、不驱动 CLI、不出性能证据 |
-| 实验/additive-sky-seamless/.../run_reconstruct.py | 仿真帧 → normalize → mosaic → export → 与真值比对 | 是**科学保真度**判据驱动（互相关峰位/结构残差/测光），不采样资源、不判 G-RES-01、不落监控证据；且二进制路径写死 build/astrocs（本仓现役 CLI 为 build/acsd） |
+| 实验/additive-sky-seamless/.../run_reconstruct.py | 仿真帧 → normalize → mosaic → export → 与真值比对 | 是**科学保真度**判据驱动（互相关峰位/结构残差/测光），不采样资源、不判 G-RES-01、不落监控证据；且二进制路径写死 build/acsd（本仓现役 CLI 为 build/acsd） |
 
 ⇒ 本工具是"规范路径 + 合成数据驱动件"的**接线层**，不复制上述任何一方的实现：
 数据生成调 m16_sampling（唯一事实源），三命令串行与 manifest 链纪律沿用 run_e2e_chain 的口径，
@@ -87,11 +87,11 @@ RUN_MON = ROOT / "eng" / "tools" / "monitoring" / "run_monitored.py"
 # **禁止**携带 workers/ISA/block（eng/contracts/schemas/phase_config_*.schema.json 硬件字段禁令）。
 # 因此可复现的并发控制手段是两个已登记的标定旋钮：
 #   · taskset -c <cpuset>                          —— 改 lease（帧级并发的唯一来源）
-#   · ASTROCS_P1_AXIS_FRAME_WORKERS / _INNER_OMP   —— 帧级并发 vs 帧内并行的两轴分配
+#   · ACSD_P1_AXIS_FRAME_WORKERS / _INNER_OMP   —— 帧级并发 vs 帧内并行的两轴分配
 #     （module_adapters.cpp:1942 标定旋钮；越界即拒绝覆盖并留痕 ⇒ 总并行度 ≤ lease 不破）
-AXIS_ENV = {"frame": "ASTROCS_P1_AXIS_FRAME_WORKERS", "inner": "ASTROCS_P1_AXIS_INNER_OMP"}
-NODE_TRACE_ENVS = {"ASTROCS_NODE_TRACE": "1", "ASTROCS_LEASE_TRACE": "1",
-                   "ASTROCS_P1CAP_TRACE": "1"}
+AXIS_ENV = {"frame": "ACSD_P1_AXIS_FRAME_WORKERS", "inner": "ACSD_P1_AXIS_INNER_OMP"}
+NODE_TRACE_ENVS = {"ACSD_NODE_TRACE": "1", "ACSD_LEASE_TRACE": "1",
+                   "ACSD_P1CAP_TRACE": "1"}
 
 
 # ─────────────────────────────────────────────────────────── 小工具 ──
@@ -348,7 +348,7 @@ STAGE_KERNEL_PREFIX = {
 def derive_worker_budget(probe: dict, profile: dict, stage: str) -> dict:
     """worker 预算 = 机器有效核 ∩ benchmark profile 声明的 kernel workers。
 
-    落地 docs/ASTROCS_DESIGN.md §9「可用 CPU = 亲和性 ∩ cgroup ∩ Job Object；worker 数只来自
+    落地 docs/ACSD_DESIGN.md §9「可用 CPU = 亲和性 ∩ cgroup ∩ Job Object；worker 数只来自
     profile 与预算对象」：**不从配置猜、不硬编码**。
     """
     eff = int(probe.get("effective_cpu_cores") or 0)
@@ -1697,8 +1697,8 @@ def build_parser() -> argparse.ArgumentParser:
         p.add_argument("--scale", type=int, default=1,
                        help="运行期场景派生倍率（shape 与指向网格步长 ×k）")
         p.add_argument("--workers", type=int, default=0, help="0 = 由机器探测与 cpu_profile 推导")
-        p.add_argument("--axis-frame", type=int, default=0, help="ASTROCS_P1_AXIS_FRAME_WORKERS（0=不设）")
-        p.add_argument("--axis-inner", type=int, default=0, help="ASTROCS_P1_AXIS_INNER_OMP（0=不设）")
+        p.add_argument("--axis-frame", type=int, default=0, help="ACSD_P1_AXIS_FRAME_WORKERS（0=不设）")
+        p.add_argument("--axis-inner", type=int, default=0, help="ACSD_P1_AXIS_INNER_OMP（0=不设）")
         p.add_argument("--cpuset", default=None, help="taskset -c 掩码（改 lease；缺省 = 全核）")
         p.add_argument("--max-rss-gb", type=float, default=8.0)
         p.add_argument("--export-scale-arcsec", type=float, default=0.4,

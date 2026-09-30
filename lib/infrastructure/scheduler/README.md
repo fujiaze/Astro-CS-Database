@@ -31,5 +31,5 @@
 
 ## 构建
 
-`lib/infrastructure/scheduler` 无独立 CMake 目标，随根 `CMakeLists.txt` 编入 `astrocs_core` /
-`astrocs_module_adapters`。测试面见 `eng/tests/unit/`（`core_scheduler` 等）。
+`lib/infrastructure/scheduler` 无独立 CMake 目标，随根 `CMakeLists.txt` 编入 `acsd_core` /
+`acsd_module_adapters`。测试面见 `eng/tests/unit/`（`core_scheduler` 等）。

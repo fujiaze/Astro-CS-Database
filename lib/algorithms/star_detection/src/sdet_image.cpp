@@ -667,9 +667,9 @@ void sdet_dynamic_regional_background(const float* src, float* out_detail, int w
     // blocks[by*n_bx+bx] 这一个互不重叠的元素、只读 src ⇒ 结果逐位不变; 并行度与 GCC
     // 的 collapse(2) 等价 (MSVC 旧行为下只并行外层, 本改动同时修掉该性能回退)。
     #pragma omp parallel for schedule(dynamic)
-    for (int acs_k = 0; acs_k < n_blocks; acs_k++) {
-        const int by = acs_k / n_bx;   // n_bx >= 1 (std::max(1, ...)) ⇒ 无除零
-        const int bx = acs_k % n_bx;
+    for (int acsd_k = 0; acsd_k < n_blocks; acsd_k++) {
+        const int by = acsd_k / n_bx;   // n_bx >= 1 (std::max(1, ...)) ⇒ 无除零
+        const int bx = acsd_k % n_bx;
         {
             int x0 = bx * step;
             int y0 = by * step;

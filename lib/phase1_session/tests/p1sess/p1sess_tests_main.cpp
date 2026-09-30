@@ -2,7 +2,7 @@
 //
 // 控制包任务: P1-SESSION-TEST (SA-P1SS-T, queue 47, lock-P1-SESSION)。
 // 组单跑: ./p1sess_tests units|properties|negative|performance
-// 故障注入: ASTROCS_P1SESS_FAULT=<name>[,<name>...] (selfcheck 覆盖)
+// 故障注入: ACSD_P1SESS_FAULT=<name>[,<name>...] (selfcheck 覆盖)
 #include "p1sess_test_main.hpp"
 
 namespace p1sess {

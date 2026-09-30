@@ -3,7 +3,7 @@
 //
 // 删除第二套手写 NESTED 映射（healpix_core.h 明确禁止模块外维护
 // ang2pix/pix2ang）。pix2ang_nest / ang2pix_nest / angular_distance 全部
-// 委托共享 canonical core（astrocs::healpix，astropy-healpix 1M 点 Oracle
+// 委托共享 canonical core（acsd::healpix，astropy-healpix 1M 点 Oracle
 // mismatch=0）；query_disc / ud_grade 为浏览器局部工具，构建在 canonical
 // 映射之上。
 // ============================================================================
@@ -23,7 +23,7 @@
 
 void HealpixMath::pix2ang_nest(uint32_t nside, uint64_t ipix,
                                double& ra, double& dec) {
-    astrocs::healpix::pix2ang_nest(nside, ipix, ra, dec);
+    acsd::healpix::pix2ang_nest(nside, ipix, ra, dec);
 }
 
 // ============================================================================
@@ -31,7 +31,7 @@ void HealpixMath::pix2ang_nest(uint32_t nside, uint64_t ipix,
 // ============================================================================
 
 uint64_t HealpixMath::ang2pix_nest(uint32_t nside, double ra, double dec) {
-    return astrocs::healpix::ang2pix_nest(nside, ra, dec);
+    return acsd::healpix::ang2pix_nest(nside, ra, dec);
 }
 
 // ============================================================================
@@ -48,8 +48,8 @@ std::vector<uint64_t> HealpixMath::query_disc(uint32_t nside,
     result.reserve(1024);
     for (uint64_t ipix = 0; ipix < total; ipix++) {
         double p_ra, p_dec;
-        astrocs::healpix::pix2ang_nest(nside, ipix, p_ra, p_dec);
-        const double dist = astrocs::healpix::angular_distance_deg(
+        acsd::healpix::pix2ang_nest(nside, ipix, p_ra, p_dec);
+        const double dist = acsd::healpix::angular_distance_deg(
             ra, dec, p_ra, p_dec);
         if (dist <= radius_deg) result.push_back(ipix);
     }
@@ -106,5 +106,5 @@ HealpixMath::GradeResult HealpixMath::ud_grade(uint32_t src_nside,
 
 double HealpixMath::angular_distance(double ra1, double dec1,
                                      double ra2, double dec2) {
-    return astrocs::healpix::angular_distance_deg(ra1, dec1, ra2, dec2);
+    return acsd::healpix::angular_distance_deg(ra1, dec1, ra2, dec2);
 }

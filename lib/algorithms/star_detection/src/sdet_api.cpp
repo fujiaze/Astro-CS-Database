@@ -577,7 +577,7 @@ static int sdet_lm_fit(const T* image, int width,
     pdata.cy0 = cy;
     pdata.rmse = 0.0;
 
-    astrocs::star_detection::nls::Options opts;
+    acsd::star_detection::nls::Options opts;
     opts.max_iter = (size_t)(LM_MAX_ITER_ANGLE * (has_saturated ? 3 : 1));
     opts.xtol = LM_XTOL;
     opts.ftol = LM_FTOL;
@@ -585,10 +585,10 @@ static int sdet_lm_fit(const T* image, int width,
 
     double x0_init[NPARAMS];
     std::memcpy(x0_init, x0, sizeof(x0));
-    astrocs::star_detection::nls::Report rep =
-        astrocs::star_detection::nls::solve(&sdet_gaussian_f, &sdet_gaussian_df, &pdata,
+    acsd::star_detection::nls::Report rep =
+        acsd::star_detection::nls::solve(&sdet_gaussian_f, &sdet_gaussian_df, &pdata,
                                             (size_t)m, (size_t)NPARAMS, x0, opts, nullptr);
-    if (rep.status != astrocs::star_detection::nls::Status::Success) {
+    if (rep.status != acsd::star_detection::nls::Status::Success) {
         // 数值失效重试（实现级保护）: 圆星 theta 平坦方向 + 缺顶样本（邻星决定的
         // sat_threshold 剔除峰顶）可令信赖域内层重试耗尽; 以 sigma 反向扰动 5% 打破
         // 确定性停滞轨迹重试一次, 两次均失败才 NO_CONVERGENCE（判据合同不变）。
@@ -597,10 +597,10 @@ static int sdet_lm_fit(const T* image, int width,
         xr[2] *= 1.05;
         xr[3] *= 0.97;
         xr[4] = 0.0;
-        astrocs::star_detection::nls::Report rep2 =
-            astrocs::star_detection::nls::solve(&sdet_gaussian_f, &sdet_gaussian_df, &pdata,
+        acsd::star_detection::nls::Report rep2 =
+            acsd::star_detection::nls::solve(&sdet_gaussian_f, &sdet_gaussian_df, &pdata,
                                                 (size_t)m, (size_t)NPARAMS, xr, opts, nullptr);
-        if (rep2.status == astrocs::star_detection::nls::Status::Success) {
+        if (rep2.status == acsd::star_detection::nls::Status::Success) {
             rep = rep2;
             std::memcpy(x0, xr, sizeof(x0));
         } else {
@@ -611,10 +611,10 @@ static int sdet_lm_fit(const T* image, int width,
         x6[0] = x0_init[0]; x6[1] = x0_init[1];
         x6[2] = x0_init[2] * 1.05; x6[3] = x0_init[3] * 0.97;
         x6[4] = x0_init[5]; x6[5] = x0_init[6];
-        astrocs::star_detection::nls::Report rep3 =
-            astrocs::star_detection::nls::solve(&sdet_gaussian_f6, &sdet_gaussian_df6, &pdata,
+        acsd::star_detection::nls::Report rep3 =
+            acsd::star_detection::nls::solve(&sdet_gaussian_f6, &sdet_gaussian_df6, &pdata,
                                                 (size_t)m, (size_t)6, x6, opts, nullptr);
-        if (rep3.status == astrocs::star_detection::nls::Status::Success &&
+        if (rep3.status == acsd::star_detection::nls::Status::Success &&
             x6[2] > 0.2122 && x6[3] > 0.2122) {   // 0.5 px FWHM 门等效 sigma 下限
             rep = rep3;
             x0[0] = x6[0]; x0[1] = x6[1]; x0[2] = x6[2]; x0[3] = x6[3];
@@ -626,10 +626,10 @@ static int sdet_lm_fit(const T* image, int width,
         x5[0] = x0_init[0]; x5[1] = x0_init[1];
         x5[2] = 0.5 * (x0_init[2] + x0_init[3]);
         x5[3] = x0_init[5]; x5[4] = x0_init[6];
-        astrocs::star_detection::nls::Report rep4 =
-            astrocs::star_detection::nls::solve(&sdet_gaussian_f5, &sdet_gaussian_df5, &pdata,
+        acsd::star_detection::nls::Report rep4 =
+            acsd::star_detection::nls::solve(&sdet_gaussian_f5, &sdet_gaussian_df5, &pdata,
                                                 (size_t)m, (size_t)5, x5, opts, nullptr);
-        if (rep4.status == astrocs::star_detection::nls::Status::Success &&
+        if (rep4.status == acsd::star_detection::nls::Status::Success &&
             x5[2] > 0.2122) {   // 同上（sigma 各向同性）
             rep = rep4;
             x0[0] = x5[0]; x0[1] = x5[1]; x0[2] = x5[2]; x0[3] = x5[2];
@@ -651,7 +651,7 @@ static int sdet_lm_fit(const T* image, int width,
     const double mad = sdet_median_of(absdev);
 
     // ---- 状态装配（ALG :621-632 行为合同）----
-    bool ok = (rep.status == astrocs::star_detection::nls::Status::Success);
+    bool ok = (rep.status == acsd::star_detection::nls::Status::Success);
     for (int k = 0; k < NPARAMS; ++k) if (!std::isfinite(x0[k])) ok = false;
     if (!(x0[5] > 0.0) || !(x0[2] > 0.0) || !(x0[3] > 0.0)) ok = false;
     if (!ok) {
@@ -664,7 +664,7 @@ static int sdet_lm_fit(const T* image, int width,
     // 辨识, 收敛点可沿等效流形漂到 maxAxisRatio 门外的轴比; 已收敛但超出该门时
     // 以 sigma 各向同性 5 参数重拟合（位置/A/B 可观测量不受影响）。
     if (max_axis_ratio > 0.0 &&
-        rep.status == astrocs::star_detection::nls::Status::Success &&
+        rep.status == acsd::star_detection::nls::Status::Success &&
         x0[2] > 0.0 && x0[3] > 0.0) {
         const double sxa = x0[2], sya = x0[3];
         if (std::max(sxa, sya) / std::min(sxa, sya) > max_axis_ratio) {
@@ -672,10 +672,10 @@ static int sdet_lm_fit(const T* image, int width,
             x5[0] = x0_init[0]; x5[1] = x0_init[1];
             x5[2] = 0.5 * (x0_init[2] + x0_init[3]);
             x5[3] = x0_init[5]; x5[4] = x0_init[6];
-            astrocs::star_detection::nls::Report rep5 =
-                astrocs::star_detection::nls::solve(&sdet_gaussian_f5, &sdet_gaussian_df5, &pdata,
+            acsd::star_detection::nls::Report rep5 =
+                acsd::star_detection::nls::solve(&sdet_gaussian_f5, &sdet_gaussian_df5, &pdata,
                                                     (size_t)m, (size_t)5, x5, opts, nullptr);
-            if (rep5.status == astrocs::star_detection::nls::Status::Success &&
+            if (rep5.status == acsd::star_detection::nls::Status::Success &&
                 x5[2] > 0.2122) {
                 rep = rep5;
                 x0[0] = x5[0]; x0[1] = x5[1]; x0[2] = x5[2]; x0[3] = x5[2];
@@ -698,7 +698,7 @@ static int sdet_lm_fit(const T* image, int width,
     while (deg > 90.0 && guard++ < 4) { deg -= 90.0; std::swap(sxr, syr); }
     while (deg <= -90.0 && guard++ < 4) { deg += 90.0; std::swap(sxr, syr); }
     double dnorm = 0.0;
-    if (!astrocs::star_detector::normalize_angle_deg_bounded(deg, &dnorm)) {
+    if (!acsd::star_detector::normalize_angle_deg_bounded(deg, &dnorm)) {
         result->status = SDET_FIT_NO_CONVERGENCE;
         return SDET_FIT_NO_CONVERGENCE;
     }

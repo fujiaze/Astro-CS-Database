@@ -1,12 +1,12 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://astrocs.local/schemas/unified/sparse_snr_layer/v1",
+  "$id": "https://acsd.local/schemas/unified/sparse_snr_layer/v1",
   "title": "ACSD 统一对象 sparse_snr_layer —— 帧内稀疏控制点绝对 SNR 参考（可选标准层）",
   "description": "UNIFIED_MODEL §2：sparse_snr_layer = 帧内稀疏控制点上的**绝对** SNR 参考（可选标准层）；控制点值 = 该点的通量型信噪比 F_ref/sigma_F(x,y)（与 frame_snr 同物理定义、同逐帧参考通量 F_ref，无量纲），Phase2 由控制点**直接重建**为稠密 SNR 场，权重逐像素换算 w(x,y)=SNR(x,y)^2/F_ref^2；可否作权重 = 帧内精细参考。该层是参考层，不是 variance/ivar，不承载帧级权重；与 frame_snr 相互独立（frame_snr 不作本层的尺度基准）。",
-  "x-astrocs-object": {
+  "x-acsd-object": {
     "name": "sparse_snr_layer",
     "canonical_file": "eng/contracts/schemas/unified/sparse_snr_layer.schema.json",
-    "authority": "docs/detail/UNIFIED_MODEL.md §2；docs/ASTROCS_DESIGN.md §2；ENGINEERING_SPEC.md §3/§4.7",
+    "authority": "docs/detail/UNIFIED_MODEL.md §2；docs/ACSD_DESIGN.md §2；ENGINEERING_SPEC.md §3/§4.7",
     "weight_verdict": "帧内精细参考",
     "weight_eligible": false
   },
@@ -56,7 +56,7 @@
       "description": "对象判别式：本文档声明的 UNIFIED_MODEL §2 对象名（禁止用别的对象名冒充）"
     },
     "object_schema_id": {
-      "const": "https://astrocs.local/schemas/unified/sparse_snr_layer/v1",
+      "const": "https://acsd.local/schemas/unified/sparse_snr_layer/v1",
       "description": "全局唯一 schema ID（eng/contracts/schemas/unified/sparse_snr_layer.schema.json）"
     },
     "schema_version": {

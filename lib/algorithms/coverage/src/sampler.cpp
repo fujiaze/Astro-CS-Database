@@ -132,10 +132,10 @@ void frame_drizzle_provenance(const char* hips_path, double* pixfrac,
             if (eq == std::string::npos) continue;
             const std::string k = line.substr(0, eq);
             const std::string v = line.substr(eq + 1);
-            if (k == "ASTROCS_DRIZZLE_PIXFRAC") {
+            if (k == "ACSD_DRIZZLE_PIXFRAC") {
                 const double vf = std::atof(v.c_str());
                 if (vf > 0.0 && vf <= 1.0) *pixfrac = vf;
-            } else if (k == "ASTROCS_DRIZZLE_SCALE_ARCSEC") {
+            } else if (k == "ACSD_DRIZZLE_SCALE_ARCSEC") {
                 const double vs = std::atof(v.c_str());
                 if (vs > 0.0) *scale_arcsec = vs;
             }
@@ -259,7 +259,7 @@ struct SnrIndex {
             double dra = std::fabs(ra[s] - ra_c);
             if (dra > 180.0) dra = 360.0 - dra;
             if (dra > ra_win) continue;
-            if (astrocs::healpix::angular_distance_deg(ra_c, dec_c, ra[s],
+            if (acsd::healpix::angular_distance_deg(ra_c, dec_c, ra[s],
                                                        dec[s]) <= radius_deg) {
                 if (out_snr) out_snr->push_back(snr[s]);
                 if (out_qual) *out_qual |= quality[s];
@@ -286,7 +286,7 @@ struct SnrIndex {
             if (dra > 180.0) dra = 360.0 - dra;
             if (dra > ra_win) continue;
             if (snr[s] > threshold &&
-                astrocs::healpix::angular_distance_deg(ra_c, dec_c, ra[s],
+                acsd::healpix::angular_distance_deg(ra_c, dec_c, ra[s],
                                                        dec[s]) <= radius_deg)
                 return true;
         }
@@ -331,7 +331,7 @@ std::uint64_t p2_frame_id(const char* hips_path) {
     // （修复 O(payload²) 二次方拷贝）。
     AioHipsDataset* d = aio_hips_open(hips_path, AIO_HIPS_RD_SIGNAL);
     if (!d) return 0;
-    astrocs::crypto::Sha256 sha;
+    acsd::crypto::Sha256 sha;
     char buf[8192];
     if (aio_hips_get_properties(d, buf, (int)sizeof(buf)) == 0) {
         const std::map<std::string, std::string> props = [&]() {
@@ -771,10 +771,10 @@ static int p2_sample_controls_impl(
             for (int gx = 0; gx < grid; ++gx) {
                 const int cx = gx * cell_side + cell_side / 2;
                 const int cy = gy * cell_side + cell_side / 2;
-                const std::uint64_t center_local = astrocs::healpix::xy_to_nested_local((unsigned)cx, (unsigned)cy, (unsigned)kTileShift);
+                const std::uint64_t center_local = acsd::healpix::xy_to_nested_local((unsigned)cx, (unsigned)cy, (unsigned)kTileShift);
                 const std::uint64_t center_leaf = leaf_of_tile(tile_ipix, leaf_shift) + center_local;
                 double ra_deg = 0.0, dec_deg = 0.0;
-                astrocs::healpix::pix2ang_nest(1u << (unsigned)(coverage->target_order + leaf_shift), center_leaf, ra_deg, dec_deg);
+                acsd::healpix::pix2ang_nest(1u << (unsigned)(coverage->target_order + leaf_shift), center_leaf, ra_deg, dec_deg);
 
                 CellStat cs;
                 cs.ra = ra_deg; cs.dec = dec_deg; cs.leaf = center_leaf;
@@ -812,8 +812,8 @@ static int p2_sample_controls_impl(
                             const int x = cx + dx;
                             const int y = cy + dy;
                             if (x < 0 || y < 0 || x >= kTileWidth || y >= kTileWidth) continue;
-                            const std::uint64_t z = astrocs::healpix::xy_to_nested_local((unsigned)x, (unsigned)y, (unsigned)kTileShift);
-                            const std::uint64_t fi_idx = astrocs::healpix::nested_local_to_fits_index(z, (unsigned)kTileShift, kTileWidth);
+                            const std::uint64_t z = acsd::healpix::xy_to_nested_local((unsigned)x, (unsigned)y, (unsigned)kTileShift);
+                            const std::uint64_t fi_idx = acsd::healpix::nested_local_to_fits_index(z, (unsigned)kTileShift, kTileWidth);
                             if (fi_idx >= tp.signal.size() || fi_idx >= tp.support.size()) continue;
                             const float s = tp.signal[(size_t)fi_idx];
                             const float sp = tp.support[(size_t)fi_idx];
@@ -1497,7 +1497,7 @@ int p2_scalar_degrade_gate(const P2ScalarGateThresholds* th,
 // ── 测试接缝 (ALG-P2-SMP-001 §11.3 F2) ──
 // 仅供内部测试驱动匿名命名空间的 kcorr_lookup：与生产同一实现、同一冻结
 // 表值；不进入任何产品入口、不改变导出符号面（static 库内部）。
-extern "C" double astrocs_phase2_kcorr_lookup_for_test(double pixfrac,
+extern "C" double acsd_phase2_kcorr_lookup_for_test(double pixfrac,
                                                        double scale_arcsec) {
     return kcorr_lookup(pixfrac, scale_arcsec);
 }

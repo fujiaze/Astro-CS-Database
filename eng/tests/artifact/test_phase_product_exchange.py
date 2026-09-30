@@ -32,9 +32,9 @@ EX_P3 = EX / "phase3_planar_fits_v1.example.json"
 EX_FX = EX / "external_fixture_hips.example.json"
 
 _ROLE_TYPE = {
-    "phase1_product_v1": "astrocs.phase1.frame_hips.v1",
-    "phase2_mosaic_v1": "astrocs.phase2.mosaic_hips.v1",
-    "phase3_planar_fits_v1": "astrocs.phase3.planar_fits.v1",
+    "phase1_product_v1": "acsd.phase1.frame_hips.v1",
+    "phase2_mosaic_v1": "acsd.phase2.mosaic_hips.v1",
+    "phase3_planar_fits_v1": "acsd.phase3.planar_fits.v1",
 }
 
 
@@ -137,7 +137,7 @@ class TestNoImplicitNameBinding(unittest.TestCase):
     def test_type_id_drives_role_not_manifest_producer_name(self):
         """角色判定依据 product_role+type_id，而非 producer.module_id 名称。"""
         d = base("phase2_mosaic_v1")
-        d["artifact_manifest"]["producer"]["module_id"] = "astrocs.renamed.module"
+        d["artifact_manifest"]["producer"]["module_id"] = "acsd.renamed.module"
         ok, errs = validate(d)
         self.assertTrue(ok, f"producer 名称不得影响角色: {errs}")
 
@@ -186,7 +186,7 @@ class TestMissingEvidenceRejected(unittest.TestCase):
     def test_missing_schema_rejected_role_type_decouple(self):
         """D4c-1 role↔type 解耦 → 拒绝。"""
         d = base()
-        d["type_id"] = "astrocs.phase1.frame_hips.v1"  # role=phase2_mosaic_v1 但 type=phase1
+        d["type_id"] = "acsd.phase1.frame_hips.v1"  # role=phase2_mosaic_v1 但 type=phase1
         ok, errs = validate(d)
         self.assertFalse(ok, "role/type 解耦应被拒")
         self.assertTrue(any("mismatch" in e for e in errs), errs)
@@ -194,7 +194,7 @@ class TestMissingEvidenceRejected(unittest.TestCase):
     def test_missing_schema_rejected_unregistered_type(self):
         """D4c-2 未登记 type_id → 拒绝（缺 schema 语义）。"""
         d = base()
-        d["type_id"] = "astrocs.phase9.mystery.v1"
+        d["type_id"] = "acsd.phase9.mystery.v1"
         ok, errs = validate(d)
         self.assertFalse(ok, "未登记 type_id 应被拒")
         self.assertTrue(any("unknown type_id" in e for e in errs), errs)

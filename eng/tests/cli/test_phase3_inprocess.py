@@ -3,11 +3,11 @@
 
 按 CLI-001 §6.2 新树同步（原文件用 phase3 run --config）:
   * 命令: export --json <cfg> [--events-jsonl] [-y]（§6.2 / §6.3）;
-  * 二进制: 唯一 exe build/acsd（ASTROCS_CLI_BIN 可覆盖）;
+  * 二进制: 唯一 exe build/acsd（ACSD_CLI_BIN 可覆盖）;
   * fixture 源码路径: ARCH-001 迁移后布局（lib/infrastructure/aio +
     lib/algorithms/shared/healpix）, 旧路径回退。
 
-**export 缺陷（显式红, 归属 CLI-002; 依据 docs/ASTROCS_DESIGN §4.5/§6.1 + §6.2）**:
+**export 缺陷（显式红, 归属 CLI-002; 依据 docs/ACSD_DESIGN §4.5/§6.1 + §6.2）**:
   新树 export 的预检(lib/infrastructure/cli/subcommand.h precheck_config)只把 source 当
   array/string 计数, 而 phase3 会话(lib/phase3_session/p3_session.cpp)要求
   source.hips_dir 对象 ⇒ **没有任何 source 形态能同时过两层**:
@@ -26,7 +26,7 @@ REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.a
 
 
 def cli_binary():
-    env = os.environ.get("ASTROCS_CLI_BIN")
+    env = os.environ.get("ACSD_CLI_BIN")
     if env and os.path.isfile(env):
         return env
     for rel in (("build", "acsd"), ("build", "cli", "acsd")):
@@ -98,7 +98,7 @@ class TestPhase3InProcess(unittest.TestCase):
                 os.path.join(AIO, "src", "aio_compressor.cpp"),
                 HEALPIX_SRC,
                 # CTESTFULL-01 根因修复：同 test_phase2_inprocess ——
-                # aio_file_io.h 的 inline sha256_hex 依赖 astrocs::crypto::Sha256。
+                # aio_file_io.h 的 inline sha256_hex 依赖 acsd::crypto::Sha256。
                 os.path.join(SHARED, "crypto", "sha256.cpp")]
         cls.fixture = os.path.join(cls.tmp, "fixture")
         r = subprocess.run(["g++", "-std=c++17", "-O2", "-w", "-DAIO_ENABLE_FITS", *incs,
@@ -165,7 +165,7 @@ class TestPhase3InProcess(unittest.TestCase):
         self.assertTrue(any(a["path"].endswith(".fits") for a in arts),
                         "输出 FITS artifact 必须存在")
         # B2-A10（宪章 §4.3）: run manifest provenance 必须携带真实值，
-        # 禁 p3-node / astrocs-phase3-node 占位与空 manifest hash。
+        # 禁 p3-node / acsd-phase3-node 占位与空 manifest hash。
         prov = m.get("provenance")
         self.assertIsInstance(prov, dict, "run manifest 必须含 provenance 节")
         self.assertRegex(prov.get("source_sha", ""), r"^[0-9a-f]{40}$",
@@ -271,10 +271,10 @@ class TestPhase3InProcess(unittest.TestCase):
             sha = hashlib.sha256(f.read()).hexdigest()
         rcfg = self._cfg_variant("run8/cfg8.json", output_dir=run_dir)
         # 构造一个 prior complete manifest 记录 stable.fits 的原始 hash
-        with open(os.path.join(run_dir, "astrocs_run_abc123def456.json"), "w",
+        with open(os.path.join(run_dir, "acsd_run_abc123def456.json"), "w",
                   encoding="utf-8") as fh:
-            json.dump({"schema_version": "1", "kind": "astrocs_run_manifest",
-                       "run_id": "abc123def456", "astrocs_version": "x",
+            json.dump({"schema_version": "1", "kind": "acsd_run_manifest",
+                       "run_id": "abc123def456", "acsd_version": "x",
                        "platform": {"os": "linux", "arch": "amd64"},
                        "config_path": rcfg,
                        "config_sha256": "x", "phases": [3],
@@ -320,7 +320,7 @@ class TestPhase3InProcess(unittest.TestCase):
             with open(mf["path"], encoding="utf-8") as fh:
                 self.assertEqual(h.get("RUNID"), json.load(fh)["run_id"],
                                  "FITS RUNID 必须是本 run 的真实 run_id")
-            self.assertNotEqual(h.get("SWVER"), "astrocs-phase3-node")
+            self.assertNotEqual(h.get("SWVER"), "acsd-phase3-node")
             # 长 HISTORY 值会被 FITS 68 字符卡片边界拆成多张 HISTORY 卡
             # （cfitsio 惯例）；按读者语义把连续 HISTORY 卡重新拼接后检查。
             hist_parts = [str(c.value) for c in h.cards if c.keyword == "HISTORY"]
@@ -369,7 +369,7 @@ class TestPhase3InProcess(unittest.TestCase):
 
         夹具选择（本用例单独生成，不动 setUpClass 的 --make-field）：
         正例臂要求 mosaic 整链 rc=0，而默认权重是**逐帧逆方差**（权重 = Phase2 消费
-        帧级 SNR 时现场派生量，docs/ASTROCS_DESIGN §2.1 / §9.73 裁决 A44），缺逐帧
+        帧级 SNR 时现场派生量，docs/ACSD_DESIGN §2.1 / §9.73 裁决 A44），缺逐帧
         variance/ivar 时按 DATA-UNC-001 §30.1 **禁止静默回退等权** ⇒ 用只有
         SIGNAL|SUPPORT 的 --make-field 夹具时正例臂必然 rc=2（实测
         "2/2 frames missing ivar ... weight chain NOT closed"）。

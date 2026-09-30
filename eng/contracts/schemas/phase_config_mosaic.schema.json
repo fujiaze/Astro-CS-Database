@@ -1,27 +1,27 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://astrocs.local/schemas/phase_config/mosaic/v1",
+  "$id": "https://acsd.local/schemas/phase_config/mosaic/v1",
   "title": "ACSD phase_config — mosaic v1（三命令通用输入合同：blocks[] / 平铺单块简写 / 旧合同分支保留）",
-  "description": "mosaic 科学配置合同（docs/ASTROCS_DESIGN.md §3.3「三命令通用输入合同」）：三命令同构 —— 顶层 blocks[]（每块 = 输出名称 name/output_dir + 运行参数（块内平铺）+ 一组输入帧 hips_paths）或**平铺单块简写**（只有一块时的等价写法；与 blocks[] 互斥，同时出现 → 报错不静默取一）。旧合同形态 {phase_name, config, inputs[]} **保留不退役**（不是退役旧合同，而是把三套口径统一到块状结构这一个概念上）——它是**合同留痕**，CLI 会话面**显式拒绝 + 给迁移提示**（lib/infrastructure/cli/parser.cpp retired_perframe_form_message）。只含科学参数、输入路径、output_dir 与算法选择；不含任何硬件字段（ISA/workers/block/CPU 型号）。",
-  "x-astrocs-schema-family": "phase_config",
-  "x-astrocs-phase": "mosaic",
-  "x-astrocs-config-class": "phase_config",
-  "x-astrocs-writer": "用户 / cli --template",
-  "x-astrocs-not-writable-by": [
+  "description": "mosaic 科学配置合同（docs/ACSD_DESIGN.md §3.3「三命令通用输入合同」）：三命令同构 —— 顶层 blocks[]（每块 = 输出名称 name/output_dir + 运行参数（块内平铺）+ 一组输入帧 hips_paths）或**平铺单块简写**（只有一块时的等价写法；与 blocks[] 互斥，同时出现 → 报错不静默取一）。旧合同形态 {phase_name, config, inputs[]} **保留不退役**（不是退役旧合同，而是把三套口径统一到块状结构这一个概念上）——它是**合同留痕**，CLI 会话面**显式拒绝 + 给迁移提示**（lib/infrastructure/cli/parser.cpp retired_perframe_form_message）。只含科学参数、输入路径、output_dir 与算法选择；不含任何硬件字段（ISA/workers/block/CPU 型号）。",
+  "x-acsd-schema-family": "phase_config",
+  "x-acsd-phase": "mosaic",
+  "x-acsd-config-class": "phase_config",
+  "x-acsd-writer": "用户 / cli --template",
+  "x-acsd-not-writable-by": [
     "benchmark"
   ],
-  "x-astrocs-authority": [
-    "docs/ASTROCS_DESIGN.md §3.3（三命令通用输入合同：顶层 blocks[] 或平铺单块简写，二者互斥；块内运行参数平铺；键名一律以命令行实际认的键为准）",
-    "docs/ASTROCS_DESIGN.md §3.3「三命令通用输入合同」（mosaic/export 沿用块状结构；一个块 = {输出名称, 运行参数, 输入的一组帧}；键名与 CLI 统一；旧合同不退役）",
+  "x-acsd-authority": [
+    "docs/ACSD_DESIGN.md §3.3（三命令通用输入合同：顶层 blocks[] 或平铺单块简写，二者互斥；块内运行参数平铺；键名一律以命令行实际认的键为准）",
+    "docs/ACSD_DESIGN.md §3.3「三命令通用输入合同」（mosaic/export 沿用块状结构；一个块 = {输出名称, 运行参数, 输入的一组帧}；键名与 CLI 统一；旧合同不退役）",
     "lib/infrastructure/cli/session_commands.h config_fields()（键集唯一声明）+ parser.cpp block_keys()/session_blocks_errors()（块内键集派生与拒绝面）",
     "不存在「权重模式」（三套键名一并作废 —— weight_mode / legacy_allow_weight_fallback / algorithm_weight_mode 在本 schema 的**任何**分支都不存在；旧合同的 algorithm_weight_mode 属性与 config_registry.json 登记、eng/packaging/config/defaults.json#weight.default_mode 组同批注销）",
     "排异逐像素按 N 自动选择；min/max 禁用 ⇒ 旧 enum 的 minmax 已删（判据细节见 docs/science/REJECTION.md）",
-    "docs/ASTROCS_DESIGN.md §4.5（运行前预检绿/橙/红）",
-    "docs/ASTROCS_DESIGN.md §6.1-§6.3（配置挂载 / 模板 / 机器输出）",
+    "docs/ACSD_DESIGN.md §4.5（运行前预检绿/橙/红）",
+    "docs/ACSD_DESIGN.md §6.1-§6.3（配置挂载 / 模板 / 机器输出）",
     "docs/detail/UNIFIED_MODEL.md §3（三类配置严格分离）",
     "docs/detail/infrastructure/18_cli.md §3-§5"
   ],
-  "x-astrocs-notes": [
+  "x-acsd-notes": [
     "形态三分支（互斥，用 if/then/else 而非 oneOf：jsonschema_min.py 的 oneOf 只报「0 branches matched」，会吞掉分支级诊断，与 normalize 同口径）：① blocks[] —— {\"schema_version\",\"blocks\":[mosaic_block, ...]}；② 平铺单块简写 —— 顶层 hips_paths/output_dir/运行参数（= 一个块去掉 name 的等价写法）；③ 旧合同 —— {phase_name:\"mosaic\", config, inputs[]}（保留，见下条）。",
     "块内键集（唯一声明，禁止第二份副本）= lib/infrastructure/cli/session_commands.h 的 config_fields(SESSION_MOSAIC) 键 − schema_version − A44 键 + parser.cpp block_keys() = {name, output_dir}；与 parser.cpp session_blocks_errors() 的块内允许键集逐字同面（schema 通过 ⇒ CLI 通过）。块面**不含** weight_mode / legacy_allow_weight_fallback / algorithm_weight_mode。",
     "块内运行参数的**值域不另写一份**：凡旧合同 $defs.mosaic_config 已定义的键（snr_path / algorithm_rejection_method），块内属性以 $ref 指向该唯一定义（防漂移；同时保住 config_registry.json 的登记点与 CFG002 的值域判据）。仅 CLI 独有、旧合同未定义的键（hips_paths / upm / reject）新增 $defs。",
@@ -30,7 +30,7 @@
     "新分支（blocks[] 与平铺简写）**不出现** phase_name / config / inputs[].product / inputs[].filter：命令名就是阶段身份（§3.3），输入身份 = 一组 HiPS 目录（hips_paths），滤镜身份由 HiPS properties.obs_filter 承载（§3.4 / B2-A8），故新分支无滤镜键。",
     "硬件字段禁令：ISA/workers/block/CPU 型号等一律不得出现在 phase_config（UNIFIED_MODEL.md §3；config_separation_anchors.json cross_class_forbidden.cpu_profile_keys_in_phase_config）。块与 drizzle/wcs 两级用 additionalProperties:false 做机器拒绝。",
     "算法选择的逐项权威见 docs/engineering/CONFIG_CONTRACT.md §3。",
-    "**索引引用键 coverage_index**：阶段二输入以**加性可选键** `coverage_index` 引用数据集级覆盖索引 coverage.index.json 的路径；`hips_paths` 的元素**保持字符串**（不做元素对象化），逐帧产品级索引路径由命名规则派生（<name>.hips / <name>.hips.zst → <name>.hips.index.json）。这样不同批次 Phase1 产出的 p1_products.json（逐帧携带 index_path）可以方便合并，而无需改动既有输入结构。合同与判据：docs/engineering/HIPS_STORAGE_FORM_CONTRACT.md §10.4；字段词表唯一源 = eng/contracts/schemas/hips_storage_form.schema.json#x-astrocs-field-vocabulary。",
+    "**索引引用键 coverage_index**：阶段二输入以**加性可选键** `coverage_index` 引用数据集级覆盖索引 coverage.index.json 的路径；`hips_paths` 的元素**保持字符串**（不做元素对象化），逐帧产品级索引路径由命名规则派生（<name>.hips / <name>.hips.zst → <name>.hips.index.json）。这样不同批次 Phase1 产出的 p1_products.json（逐帧携带 index_path）可以方便合并，而无需改动既有输入结构。合同与判据：docs/engineering/HIPS_STORAGE_FORM_CONTRACT.md §10.4；字段词表唯一源 = eng/contracts/schemas/hips_storage_form.schema.json#x-acsd-field-vocabulary。",
     "**落盘形态键禁令**：阶段二产物固定**裸** `<name>.hips/`（服务面，被随机读取），因此本 schema **任何分支都不设** `storage_form` 键——输入里出现该键（含值 archive）在 schema 面（additionalProperties:false / propertyNames）与 CLI 面（块内未知键门）**双双 REJECT**，不静默忽略。理由：运行期配置门是键白名单（validate_config_full），不是 JSON Schema；只把值域收窄成 bare 会让 archive 在运行期静默透传成 no-op。Phase3 同（裸 FITS 不套壳，且不使用 .hips 中缀）。"
   ],
   "type": "object",
@@ -114,19 +114,19 @@
         "ZWO G",
         "ZWO R"
       ],
-      "description": "滤镜库键，必须逐字命中 eng/packaging/config/filters.json 的 filters 键（未知滤镜 -> error，docs/ASTROCS_DESIGN.md §3.3/:144；enum 由 eng/tests/config 断言与滤镜库逐项相等）"
+      "description": "滤镜库键，必须逐字命中 eng/packaging/config/filters.json 的 filters 键（未知滤镜 -> error，docs/ACSD_DESIGN.md §3.3/:144；enum 由 eng/tests/config 断言与滤镜库逐项相等）"
     },
     "precision": {
       "enum": [
         "fp32",
         "fp64"
       ],
-      "description": "科学计算精度，显式声明（docs/ASTROCS_DESIGN.md §3.3:145）；默认 fp64 见 docs/science/SCIENCE_SCOPE.md:53"
+      "description": "科学计算精度，显式声明（docs/ACSD_DESIGN.md §3.3:145）；默认 fp64 见 docs/science/SCIENCE_SCOPE.md:53"
     },
     "output_dir": {
       "type": "string",
       "minLength": 1,
-      "description": "运行产物唯一落点；不得以进程 CWD 作隐式缺省（docs/ASTROCS_DESIGN.md §6.3:340）"
+      "description": "运行产物唯一落点；不得以进程 CWD 作隐式缺省（docs/ACSD_DESIGN.md §6.3:340）"
     },
     "mosaic_config": {
       "type": "object",
@@ -185,7 +185,7 @@
           "product": {
             "type": "string",
             "minLength": 1,
-            "description": "Phase1 合同兼容产品路径（docs/ASTROCS_DESIGN.md §4.1；输出合同 §3.4：HiPS + 结构化 JSON）"
+            "description": "Phase1 合同兼容产品路径（docs/ACSD_DESIGN.md §4.1；输出合同 §3.4：HiPS + 结构化 JSON）"
           },
           "filter": {
             "$ref": "#/$defs/filter_name"
@@ -196,7 +196,7 @@
     "block_name": {
       "type": "string",
       "minLength": 1,
-      "description": "块归属标识（可选）；写入日志与 run manifest 的 block.name（docs/ASTROCS_DESIGN.md §3.3「输出名称」）。块级键，唯一声明 = parser.cpp block_keys()"
+      "description": "块归属标识（可选）；写入日志与 run manifest 的 block.name（docs/ACSD_DESIGN.md §3.3「输出名称」）。块级键，唯一声明 = parser.cpp block_keys()"
     },
     "hips_paths": {
       "type": "array",
@@ -218,7 +218,7 @@
     "coverage_index_path": {
       "type": "string",
       "minLength": 1,
-      "description": "**加性可选键**：数据集级覆盖索引 coverage.index.json 的路径（块 → 帧集合 + 覆盖分数；唯一词表见 eng/contracts/schemas/hips_storage_form.schema.json#x-astrocs-field-vocabulary）。存在 ⇒ 阶段二启动时载入它做块级查询；缺失 ⇒ 规定回退 = 读入全部产品级索引现场倒排（有依据的回退，不静默降级为逐瓦片探测）。**不改变 hips_paths 的元素类型**：元素仍是字符串，逐帧产品级索引路径由命名规则派生（<name>.hips / <name>.hips.zst → <name>.hips.index.json，见 IO-002 §1）。**分名消歧（P-180）**：本 `$defs` = **字符串**「输入配置里的覆盖索引路径」；`eng/contracts/schemas/hips_storage_form.schema.json#/$defs.coverage_index_ref` = **对象**「输出清单里的运行级索引引用」（含 `sha256`/`n_frames`/`n_blocks`，见 `HIPS_STORAGE_FORM_CONTRACT.md` §10.3）——两者同名异型是机器可读面的最坏形态，故本处改名为 `coverage_index_path`，机器事实源各归其位。"
+      "description": "**加性可选键**：数据集级覆盖索引 coverage.index.json 的路径（块 → 帧集合 + 覆盖分数；唯一词表见 eng/contracts/schemas/hips_storage_form.schema.json#x-acsd-field-vocabulary）。存在 ⇒ 阶段二启动时载入它做块级查询；缺失 ⇒ 规定回退 = 读入全部产品级索引现场倒排（有依据的回退，不静默降级为逐瓦片探测）。**不改变 hips_paths 的元素类型**：元素仍是字符串，逐帧产品级索引路径由命名规则派生（<name>.hips / <name>.hips.zst → <name>.hips.index.json，见 IO-002 §1）。**分名消歧（P-180）**：本 `$defs` = **字符串**「输入配置里的覆盖索引路径」；`eng/contracts/schemas/hips_storage_form.schema.json#/$defs.coverage_index_ref` = **对象**「输出清单里的运行级索引引用」（含 `sha256`/`n_frames`/`n_blocks`，见 `HIPS_STORAGE_FORM_CONTRACT.md` §10.3）——两者同名异型是机器可读面的最坏形态，故本处改名为 `coverage_index_path`，机器事实源各归其位。"
     },
     "mosaic_block": {
       "type": "object",
@@ -227,7 +227,7 @@
         "output_dir"
       ],
       "additionalProperties": false,
-      "description": "一个数据块 = {输出名称（name/output_dir）+ 运行参数（块内平铺，取消 config 子对象）+ 一组输入帧（hips_paths）}（docs/ASTROCS_DESIGN.md §3.3 三命令通用输入合同）。块内键集 = config_fields(SESSION_MOSAIC) 派生 + {name, output_dir}（唯一声明 lib/infrastructure/cli/session_commands.h）；排除 weight_mode / legacy_allow_weight_fallback / algorithm_weight_mode。一块 = 一次运行 = 独立 output_dir / 独立 run manifest（块间 output_dir 不得重复，CLI session_blocks_errors 强制）。",
+      "description": "一个数据块 = {输出名称（name/output_dir）+ 运行参数（块内平铺，取消 config 子对象）+ 一组输入帧（hips_paths）}（docs/ACSD_DESIGN.md §3.3 三命令通用输入合同）。块内键集 = config_fields(SESSION_MOSAIC) 派生 + {name, output_dir}（唯一声明 lib/infrastructure/cli/session_commands.h）；排除 weight_mode / legacy_allow_weight_fallback / algorithm_weight_mode。一块 = 一次运行 = 独立 output_dir / 独立 run manifest（块间 output_dir 不得重复，CLI session_blocks_errors 强制）。",
       "properties": {
         "algorithm_rejection_method": {
           "$ref": "#/$defs/mosaic_config/properties/algorithm_rejection_method"
@@ -277,7 +277,7 @@
         "blocks"
       ]
     },
-    "description": "多块形态：顶层只允许 schema_version + blocks[]（与平铺单块简写互斥，同时出现 → 报错不静默取一；docs/ASTROCS_DESIGN.md §3.3）"
+    "description": "多块形态：顶层只允许 schema_version + blocks[]（与平铺单块简写互斥，同时出现 → 报错不静默取一；docs/ACSD_DESIGN.md §3.3）"
   },
   "else": {
     "if": {

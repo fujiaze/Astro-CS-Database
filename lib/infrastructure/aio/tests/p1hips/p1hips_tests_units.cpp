@@ -182,7 +182,7 @@ int write_full_f64_product(const std::string& dir, int flags,
                            const char* obs_date, bool set_prov) {
     AioHipsProductSet* ps = aio_hips_product_begin(
         dir.c_str(), FIX_NSIDE, 512, AIO_HIPS_FLOAT64, flags,
-        "ivo://astrocs/test/p1hips", "p1hips-test", "r", 100.0, obs_date, 0);
+        "ivo://acsd/test/p1hips", "p1hips-test", "r", 100.0, obs_date, 0);
     if (!ps) return -100;
     if (set_prov) {
         const int prc = aio_hips_set_drizzle_provenance(ps, 0.7, 0.35);
@@ -246,7 +246,7 @@ int test_units() {
         AioHipsProductSet* ps = aio_hips_product_begin(
             dir.c_str(), FIX_NSIDE, 512, AIO_HIPS_FLOAT64,
             AIO_HIPS_PRODUCT_SIGNAL | AIO_HIPS_PRODUCT_SUPPORT,
-            "ivo://astrocs/test/p1hips", "u1-title", "r", 100.0,
+            "ivo://acsd/test/p1hips", "u1-title", "r", 100.0,
             "2026-09-07T12:00:00", 0);
         P1HIPS_CHECK_MSG(cs, ps != nullptr, "u1_begin",
                          "product_begin f64 失败: %s", aio_hips_last_error());
@@ -283,7 +283,7 @@ int test_units() {
         }
         // properties 键值精确 (image 产品)
         const auto kv = read_properties(dir + "/signal/properties");
-        P1HIPS_CHECK(cs, kv.count("creator_did") && kv.at("creator_did") == "ivo://astrocs/test/p1hips", "u1_prop_creator");
+        P1HIPS_CHECK(cs, kv.count("creator_did") && kv.at("creator_did") == "ivo://acsd/test/p1hips", "u1_prop_creator");
         P1HIPS_CHECK(cs, kv.count("hips_version") && kv.at("hips_version") == "1.4", "u1_prop_version");
         P1HIPS_CHECK(cs, kv.count("hips_order") && kv.at("hips_order") == "0", "u1_prop_order");
         P1HIPS_CHECK(cs, kv.count("hips_tile_width") && kv.at("hips_tile_width") == "512", "u1_prop_tilewidth");
@@ -295,7 +295,7 @@ int test_units() {
         P1HIPS_CHECK(cs, !(kv.count("hips_frame") && kv.at("hips_frame") == "icrs"),
                      "u1_prop_frame_neg");
         P1HIPS_CHECK(cs, kv.count("dataproduct_subtype") && kv.at("dataproduct_subtype") == "surface brightness", "u1_prop_subtype");
-        P1HIPS_CHECK(cs, kv.count("astrocs_signal_dtype") && kv.at("astrocs_signal_dtype") == "float64", "u1_prop_dtype");
+        P1HIPS_CHECK(cs, kv.count("acsd_signal_dtype") && kv.at("acsd_signal_dtype") == "float64", "u1_prop_dtype");
         // moc_sky_fraction (1/12 cell) — 非平凡序列化点: 字面量必须
         // round-trip 精确 (≥17 有效位) 且满足 §9 绝对误差 <1e-9。
         // 修复前 std::to_string(6dp) 给出 "0.083333", 偏 3.333e-7 = 容差 333 倍。
@@ -331,7 +331,7 @@ int test_units() {
         AioHipsProductSet* ps = aio_hips_product_begin(
             dir.c_str(), FIX_NSIDE, 512, AIO_HIPS_FLOAT32,
             AIO_HIPS_PRODUCT_SIGNAL | AIO_HIPS_PRODUCT_SUPPORT,
-            "ivo://astrocs/test/p1hips", "u2-title", nullptr, 0.0, nullptr, 0);
+            "ivo://acsd/test/p1hips", "u2-title", nullptr, 0.0, nullptr, 0);
         P1HIPS_CHECK_MSG(cs, ps != nullptr, "u2_begin", "product_begin f32 失败: %s", aio_hips_last_error());
         if (ps) {
             // f32 产品: 视图 data_type 须同为 FLOAT32 (生产按 dtype 解释指针)
@@ -359,7 +359,7 @@ int test_units() {
         AioHipsProductSet* ps = aio_hips_product_begin(
             dir.c_str(), FIX_NSIDE, 512, AIO_HIPS_FLOAT64,
             AIO_HIPS_PRODUCT_SIGNAL | AIO_HIPS_PRODUCT_SUPPORT,
-            "ivo://astrocs/test/p1hips", "u3-title", nullptr, 0.0, nullptr, 0);
+            "ivo://acsd/test/p1hips", "u3-title", nullptr, 0.0, nullptr, 0);
         P1HIPS_CHECK(cs, ps != nullptr, "u3_begin");
         if (ps) {
             FixViewF64 fx = fix_hips_a_tile(0, 10.0, 2.0, 0.0, false, false);
@@ -386,7 +386,7 @@ int test_units() {
         const std::string dir = make_tmp_dir("u4");
         AioHipsProductSet* ps = aio_hips_product_begin(
             dir.c_str(), FIX_NSIDE, 512, AIO_HIPS_FLOAT64,
-            AIO_HIPS_PRODUCT_SNR, "ivo://astrocs/test/p1hips", "u4-title",
+            AIO_HIPS_PRODUCT_SNR, "ivo://acsd/test/p1hips", "u4-title",
             nullptr, 0.0, nullptr, 0);
         P1HIPS_CHECK(cs, ps != nullptr, "u4_begin");
         std::vector<FixSnrPointF> pts = fix_hips_d_snr_points(20260907u, 128);

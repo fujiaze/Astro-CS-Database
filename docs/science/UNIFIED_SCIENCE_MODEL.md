@@ -1,6 +1,6 @@
 # Astro Celestial Sphere Database（ACSD） 统一科学定义与跨阶段合同
 
-> 上游：ASTROCS_DESIGN.md §2（核心科学方法）、§3.1（数据对象）
+> 上游：ACSD_DESIGN.md §2（核心科学方法）、§3.1（数据对象）
 
 适用：Phase1/2/3 全部 SCI、ALG、DATA、API 和产品 schema。
 
@@ -86,7 +86,7 @@ Cov(x_hat) = (Aᵀ C⁻¹ A)⁻¹
 
 重采样是线性算子 R：C_out=R C_in Rᵀ。输出只存对角 variance 时，必须另存 correlation kernel/scale 或可重建算子摘要。Drizzle 的 signal 单位、源/目标像素面积、pixfrac 和归一必须统一；常量面亮度和总积分通量 Oracle 同时成立。
 
-非有限输入按**样本级掩膜 + 重归一 + 覆盖级 NaN + 强制计数**处理：不合格样本从信号、分母与方差三项中一并剔除并重新归一，仅零合格样本的输出像素取 NaN（NaN 是无效的唯一表示），且必须暴露被剔除样本计数；**剔除项逐条进场级日志并计数**（`ASTROCS_DESIGN.md` §5.5；正本见 `docs/science/DRIZZLE.md` 与 `docs/engineering/data/DATA-002_PHASE_PRODUCT_EXCHANGE.md` §2a）。
+非有限输入按**样本级掩膜 + 重归一 + 覆盖级 NaN + 强制计数**处理：不合格样本从信号、分母与方差三项中一并剔除并重新归一，仅零合格样本的输出像素取 NaN（NaN 是无效的唯一表示），且必须暴露被剔除样本计数；**剔除项逐条进场级日志并计数**（`ACSD_DESIGN.md` §5.5；正本见 `docs/science/DRIZZLE.md` 与 `docs/engineering/data/DATA-002_PHASE_PRODUCT_EXCHANGE.md` §2a）。
 
 ## 8. 空间模型与标量压缩
 

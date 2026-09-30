@@ -6,7 +6,7 @@
 #include <cstring>
 #include <string>
 
-extern "C" uint64_t astrocs_cpu_detect_features_v1(void);
+extern "C" uint64_t acsd_cpu_detect_features_v1(void);
 
 static int failures = 0;
 #define CHECK(cond)                                                       \
@@ -32,7 +32,7 @@ int main() {
   // 1) 生成 quick profile (需要真实 backend; 通过 generate_profile_json)
   std::string build_id = "0.10.0-alpha.2";
   std::string commit = "test-commit-abcdef";
-  std::string prof = astrocs::backend_host::generate_profile_json(
+  std::string prof = acsd::backend_host::generate_profile_json(
       "quick", build_id, commit, std::string(64, 'a'));
   CHECK(!prof.empty());
 
@@ -52,14 +52,14 @@ int main() {
 
   // 3) 失效(stale)判定: CPU signature 变化 → 无效 (CLI 语义)
   //    cpu_signature 由硬件 fingerprint 派生; 模拟: 不同 feature_bits 视为变化
-  uint64_t feats = astrocs_cpu_detect_features_v1();
+  uint64_t feats = acsd_cpu_detect_features_v1();
   CHECK((feats & ACS_FEAT_SSE2) != 0);  // baseline 恒有
 
   // 4) 无效 profile 回退语义: schema_version 错误/缺 kernels → 拒 (CLI validate 逻辑)
   {
-    // 模拟 CLI 校验: kind != astrocs_cpu_profile 拒
+    // 模拟 CLI 校验: kind != acsd_cpu_profile 拒
     std::string bad = "{\"kind\":\"wrong\",\"schema_version\":\"1\"}";
-    CHECK(bad.find("astrocs_cpu_profile") == std::string::npos);  // 不含正确 kind
+    CHECK(bad.find("acsd_cpu_profile") == std::string::npos);  // 不含正确 kind
   }
 
   // 5) 关键字段变化失效: 无指纹 → 视为无效 (回退 baseline + warning 语义由 CLI 处理)

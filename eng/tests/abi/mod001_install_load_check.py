@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """MOD-001 科学 DLL 安装加载验证与产品清单 — 机器验收编排（Linux amd64）。
 
-任务: ASTROCS-CONSTITUTION-ALIGNMENT-V1 / MOD-001（宪章 §8.4 科学模块独立
+任务: ACSD-CONSTITUTION-ALIGNMENT-V1 / MOD-001（宪章 §8.4 科学模块独立
 DLL/SO + §8.5 基建构建单元 + §8.1 CLI 产品清单 + §18.4 只加载签名清单官方模块;
 依赖 AIO-001 F-AIO-003 生产接线归属 MOD-001）。
 
@@ -10,14 +10,14 @@ DLL/SO + §8.5 基建构建单元 + §8.1 CLI 产品清单 + §18.4 只加载签
   S1 科学模块 DLL/平台 SHARED 构建在位（build 树 7 模块 .so + acsd exe）;
   S2 cmake --install 产生白名单安装树（eng/cmake/install_layout.cmake 唯一 install 源）;
   S3 eng/packaging/verify_install_tree.py: required 全在 + product manifest units 全在;
-  S4 产品清单完整性: astrocs.product.json 与 install-tree.contract.json 同步登记
-     6 个科学模块 DLL（astrocs.catalog.gaia / astrocs.p1.drizzle /
-     astrocs.p1.calibration / astrocs.p1.cosmetic / astrocs.p1.hips_writer /
-     astrocs.p1.noise）, manifest rel_path ↔ contract install_path ↔ 安装树文件
+  S4 产品清单完整性: acsd.product.json 与 install-tree.contract.json 同步登记
+     6 个科学模块 DLL（acsd.catalog.gaia / acsd.p1.drizzle /
+     acsd.p1.calibration / acsd.p1.cosmetic / acsd.p1.hips_writer /
+     acsd.p1.noise）, manifest rel_path ↔ contract install_path ↔ 安装树文件
      三方一致; sha256=null 合法（BLD-003 骨架约定, 打包期填充; 本脚本在 S6 以
      实测 sha256 传入 loader 验证 hash 核对路径）;
   S5 F-AIO-003 生产接线: lib/infrastructure/aio/src/aio_abi.cpp 符号（aio_abi_query_v1）
-     在生产 target libastrocs_aio.a 内; 直链生产库的探针 aio_abi_query_v1 握手
+     在生产 target libacsd_aio.a 内; 直链生产库的探针 aio_abi_query_v1 握手
      abi_version=1/status_count=71 成功;
   S6 安全 loader 加载验证（探针 = eng/tests/abi/abi003_loader_probe.c, 合同 =
      lib/infrastructure/pipeline/module_loader/secure_loader.h; 绝无静态 fallback）:
@@ -28,18 +28,18 @@ DLL/SO + §8.5 基建构建单元 + §8.1 CLI 产品清单 + §18.4 只加载签
        module_id 错配 → ACS_LOADER_EC_MODULE_ID_MISMATCH(15);
        allowed_root 越界 → ACS_LOADER_EC_PATH_ESCAPE(4);
        文件缺失 → ACS_LOADER_EC_FILE_MISSING(6)。全部必败（fail-closed）;
-  S7 安装树模块面（CLI-001 后现行载体）: 产品 manifest astrocs.product.json
+  S7 安装树模块面（CLI-001 后现行载体）: 产品 manifest acsd.product.json
      units=10 且逐 unit 文件在位; verify_install_tree rc=0; 每个科学模块经装载器
      合同探针装配 PASS（sha256+module_id+root 三校验）; 未登记 module_id 装配必败。
      能力去向: 旧 modules list/verify/selftest 用户命令已按 CLI_PROTOCOL_V1 §1 删除
      （rc=2），其数据面由「产品 manifest + verify_install_tree + 装载器探针」承接。
   S8 安装树完整性负向（fail-closed 破坏性注入, 最后执行）: 删除
-     modules/astrocs_p1_calibration.so → verify_install_tree 明确失败
+     modules/acsd_p1_calibration.so → verify_install_tree 明确失败
      （MISSING REQUIRED）+ 装载器装配必败 FILE_MISSING（无静态 fallback 证明）。
 
 用法:
   python3 eng/tests/abi/mod001_install_load_check.py [--build-dir <dir>] [--keep]
-  退出码 0 = 全部通过; 1 = 任一失败。ASTROCS_MOD001_BUILD_DIR 可指定构建树。
+  退出码 0 = 全部通过; 1 = 任一失败。ACSD_MOD001_BUILD_DIR 可指定构建树。
 
 测试有牙齿: S6 负路径与 S7/S8 注入在本脚本内直接证明"断链/篡改/缺失必败",
 不依赖外部变异。
@@ -63,23 +63,23 @@ TIMEOUT = 900
 # FINAL-07：门内按需构建是**显式选项**（默认关闭）。理由见 S1：CI 的 UT-ABI 登记
 # 超时 300 s，而门内那一次 22 目标构建实测 ≥900 s ⇒ 必然被外部超时杀成"无判词"。
 # 构建树缺失属构建面问题（CHK-BUILD-LINUX），本门只如实判红并给出下一步。
-ALLOW_BUILD = os.environ.get("ASTROCS_MOD001_ALLOW_BUILD") == "1"
+ALLOW_BUILD = os.environ.get("ACSD_MOD001_ALLOW_BUILD") == "1"
 
 # 产品清单合同锚（MOD-001: 科学模块 DLL 必须登记且可加载; 唯一事实源 =
 # lib/<mod>/module.yaml 的 module_id + CMake SHARED target OUTPUT_NAME）。
-# F-CI-002-01 (owner 裁决 2026-09-11): astrocs_p1_noise 随 lib/algorithms/noise_snr
+# F-CI-002-01 (owner 裁决 2026-09-11): acsd_p1_noise 随 lib/algorithms/noise_snr
 # V7 残留断链解除摘出生产图与本清单 (该子图 CMakeLists 未入库, target 不在
 # 根图), V7 残留收编后恢复本锚与产品清单登记。
 SCIENCE_MODULES = [
-    ("MOD-CAT-GAIA",   "astrocs.catalog.gaia",    "astrocs_catalog_gaia"),
-    ("MOD-P1-DRIZZLE", "astrocs.p1.drizzle",      "astrocs_p1_drizzle"),
-    ("MOD-P1-CAL",     "astrocs.p1.calibration",  "astrocs_p1_calibration"),
-    ("MOD-P1-COS",     "astrocs.p1.cosmetic",     "astrocs_p1_cosmetic"),
-    ("MOD-P1-HIPSW",   "astrocs.p1.hips_writer",  "astrocs_p1_hips_writer"),
+    ("MOD-CAT-GAIA",   "acsd.catalog.gaia",    "acsd_catalog_gaia"),
+    ("MOD-P1-DRIZZLE", "acsd.p1.drizzle",      "acsd_p1_drizzle"),
+    ("MOD-P1-CAL",     "acsd.p1.calibration",  "acsd_p1_calibration"),
+    ("MOD-P1-COS",     "acsd.p1.cosmetic",     "acsd_p1_cosmetic"),
+    ("MOD-P1-HIPSW",   "acsd.p1.hips_writer",  "acsd_p1_hips_writer"),
 ]
 SCIENCE_TARGETS = [t[2] for t in SCIENCE_MODULES]
-PLATFORM_TARGETS = ["acsd", "acsd_runtime", "acsd_io", "astrocs_noop",
-                    "astrocs_cpu_baseline"]
+PLATFORM_TARGETS = ["acsd", "acsd_runtime", "acsd_io", "acsd_noop",
+                    "acsd_cpu_baseline"]
 
 FAILURES = []
 CHECKS_TOTAL = [0]
@@ -130,12 +130,12 @@ def compile_probe(work):
 
 
 def compile_aio_abi_probe(work, build):
-    """S5: 直链生产 libastrocs_aio.a（F-AIO-003 接线后含 aio_abi.o）的握手探针。"""
+    """S5: 直链生产 libacsd_aio.a（F-AIO-003 接线后含 aio_abi.o）的握手探针。"""
     src = os.path.join(work, "mod001_aio_abi_probe.cpp")
     with open(src, "w", encoding="utf-8") as f:
-        f.write(r"""// MOD-001 S5: aio_abi 生产接线探针 — 直链生产 astrocs_aio 静态库
-// 调用 aio_abi_query_v1 握手（F-AIO-003: aio_abi.cpp 编入 astrocs_aio target）。
-#include "astrocs/io/aio_abi_v1.h"
+        f.write(r"""// MOD-001 S5: aio_abi 生产接线探针 — 直链生产 acsd_aio 静态库
+// 调用 aio_abi_query_v1 握手（F-AIO-003: aio_abi.cpp 编入 acsd_aio target）。
+#include "acsd/io/aio_abi_v1.h"
 #include <cstdio>
 int main() {
     aio_abi_info_v1 info;
@@ -148,11 +148,11 @@ int main() {
 }
 """)
     exe = os.path.join(work, "mod001_aio_abi_probe")
-    aio_lib = os.path.join(build, "libastrocs_aio.a")
-    common_lib = os.path.join(build, "libastrocs_common.a")
+    aio_lib = os.path.join(build, "libacsd_aio.a")
+    common_lib = os.path.join(build, "libacsd_common.a")
     r = run(["g++", "-std=c++17", f"-I{INC}", src, aio_lib, common_lib,
              "-o", exe])
-    check("compile aio_abi probe (直链生产 libastrocs_aio.a)", r.returncode == 0,
+    check("compile aio_abi probe (直链生产 libacsd_aio.a)", r.returncode == 0,
           r.stderr[-500:] if r.returncode else "")
     if r.returncode != 0:
         return None
@@ -191,7 +191,7 @@ def load_module(probe, abs_path, module_id, sha, root, expect_ok, tag):
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--build-dir", default=os.environ.get("ASTROCS_MOD001_BUILD_DIR")
+    ap.add_argument("--build-dir", default=os.environ.get("ACSD_MOD001_BUILD_DIR")
                     or os.path.join(REPO, "build"))
     ap.add_argument("--keep", action="store_true", help="保留安装树（证据复核）")
     args = ap.parse_args()
@@ -217,7 +217,7 @@ def main():
     targets = PLATFORM_TARGETS + SCIENCE_TARGETS
     # FINAL-07 UT-ABI 真因：原探测用**顶层路径** build/<target>.so，而 Linux 的
     # 实际输出位是 build/<子目录>/<target>.so（本机实测
-    # build/linux-control/lib/algorithms/drizzle/astrocs_p1_drizzle.so）⇒ 即便 CI
+    # build/linux-control/lib/algorithms/drizzle/acsd_p1_drizzle.so）⇒ 即便 CI
     # 的构建步已构建全部科学目标，这里也恒判"缺 5 个"，于是在门内起一次 22 目标
     # 构建（实测 ≥900 s），而登记超时 300 s ⇒ 必然被外部杀成"无判词"。
     # 探测口径必须与下一行的 find_built_so 一致（同一构建树、同一实际输出位）。
@@ -232,11 +232,11 @@ def main():
         # 22 目标构建（本机实测该内层构建 ≥900 s，CI 的 300 s 必然先杀 ⇒ 无判词、只有
         # 超时）。缺件是构建面的事，交给 CHK-BUILD-LINUX；本门默认只如实判红并给出
         # 可执行的下一步，不再用一次完整构建把门变成"事实上的构建步"。
-        # 需要在门内按需构建时显式开 ASTROCS_MOD001_ALLOW_BUILD=1。
+        # 需要在门内按需构建时显式开 ACSD_MOD001_ALLOW_BUILD=1。
         check("S1 build science module DLLs（缺 %d 个且未允许门内构建）" % len(missing),
               False,
               "build=%s missing=%s；先跑 python3 eng/ci/run_checks.py --check "
-              "CHK-BUILD-LINUX 备好构建树，或设 ASTROCS_MOD001_ALLOW_BUILD=1 允许门内构建"
+              "CHK-BUILD-LINUX 备好构建树，或设 ACSD_MOD001_ALLOW_BUILD=1 允许门内构建"
               % (build, missing))
     so_paths = {t: find_built_so(build, t) for t in SCIENCE_TARGETS}
     missing_paths = [t for t, p in so_paths.items() if not p]
@@ -258,7 +258,7 @@ def main():
           (r.stdout + r.stderr)[-600:] if r.returncode else "")
 
     # ── S4: 产品清单完整性 ──
-    manifest_path = os.path.join(prefix, "astrocs.product.json")
+    manifest_path = os.path.join(prefix, "acsd.product.json")
     contract_path = os.path.join(REPO, "eng", "packaging", "install-tree.contract.json")
     try:
         with open(manifest_path, encoding="utf-8") as f:
@@ -297,11 +297,11 @@ def main():
                   os.path.isfile(os.path.join(prefix, rel)), rel)
 
     # ── S5: F-AIO-003 生产接线 ──
-    aio_lib = os.path.join(build, "libastrocs_aio.a")
+    aio_lib = os.path.join(build, "libacsd_aio.a")
     r = run(["nm", "--defined-only", aio_lib])
     sym_ok = r.returncode == 0 and "aio_abi_query_v1" in r.stdout \
         and "aio_content_hash_buffer_v1" in r.stdout
-    check("S5 libastrocs_aio.a 含 aio_abi_* 生产符号 (F-AIO-003)", sym_ok,
+    check("S5 libacsd_aio.a 含 aio_abi_* 生产符号 (F-AIO-003)", sym_ok,
           f"rc={r.returncode}")
     aio_probe = compile_aio_abi_probe(work, build)
     if aio_probe:
@@ -330,24 +330,24 @@ def main():
         load_module(probe, abs_path, mid, bad_sha, prefix, "fail:5",
                     f"S6 注入: sha256 篡改 {mid}")
         # 负2: module_id 错配 → MODULE_ID_MISMATCH(15)
-        load_module(probe, abs_path, "astrocs.wrong.id", real, prefix, "fail:15",
+        load_module(probe, abs_path, "acsd.wrong.id", real, prefix, "fail:15",
                     f"S6 注入: module_id 错配 {mid}")
     # 负3: allowed_root 越界（build 树文件不在安装树 root 内）→ PATH_ESCAPE(4)
-    build_so = so_paths.get("astrocs_p1_calibration")
+    build_so = so_paths.get("acsd_p1_calibration")
     if build_so:
         load_module(probe, build_so, "-", "-", prefix, "fail:4",
                     "S6 注入: root 越界 (build 树路径 vs 安装树 root)")
     # 负4: 文件缺失 → FILE_MISSING(6)
-    load_module(probe, os.path.join(prefix, "modules", "astrocs_missing_mod.so"),
-                "astrocs.missing", "-", prefix, "fail:6",
+    load_module(probe, os.path.join(prefix, "modules", "acsd_missing_mod.so"),
+                "acsd.missing", "-", prefix, "fail:6",
                 "S6 注入: 文件缺失")
 
     # ── S7: 安装树模块面（现行载体） ──
     # CLI-001 已删除 modules list / modules verify / selftest 用户命令（依据
     # docs/engineering/CLI_PROTOCOL_V1.md §1：modules */selftest 属「已删除别名，rc=2」；
-    # docs/ASTROCS_DESIGN §6.2 命令树只有 normalize/mosaic/export/help/--version/doctor/
+    # docs/ACSD_DESIGN §6.2 命令树只有 normalize/mosaic/export/help/--version/doctor/
     # benchmark）。能力去向（本段逐条验证，判据不放松）：
-    #   * units 枚举与 verdict  → 安装树产品 manifest astrocs.product.json +
+    #   * units 枚举与 verdict  → 安装树产品 manifest acsd.product.json +
     #     eng/packaging/verify_install_tree.py（§S3 同一入口，此处对 unit 集再断言）；
     #   * 逐模块「装配 PASS」  → 装载器合同探针（sha256+module_id+root 三校验）；
     #   * 未登记模块必败        → 同一探针的 module_id 错配路径。
@@ -372,13 +372,13 @@ def main():
                     f"S7 loader 装配 {mid} (安装树 .so 三校验)")
     # 负例: 未登记 module_id 必须装配失败（旧 selftest 未登记必败的同义判据）
     victim_so = os.path.join(prefix, "modules", SCIENCE_MODULES[1][2] + ".so")
-    load_module(probe, victim_so, "astrocs.not.in.manifest",
+    load_module(probe, victim_so, "acsd.not.in.manifest",
                 sha256_file(victim_so) if os.path.isfile(victim_so) else "-",
                 prefix, "fail:15",
                 "S7 注入: 未登记 module_id 装配必败")
 
     # ── S8: 破坏性注入（最后执行; 安装树一次性） ──
-    victim = os.path.join(prefix, "modules", "astrocs_p1_calibration.so")
+    victim = os.path.join(prefix, "modules", "acsd_p1_calibration.so")
     if os.path.isfile(victim):
         os.remove(victim)
         r = run([sys.executable, VERIFY_SCRIPT, "--prefix", prefix])

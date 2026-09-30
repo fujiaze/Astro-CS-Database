@@ -20,7 +20,7 @@ HOST = os.path.join(REPO, "lib", "infrastructure", "benchmark", "backend_host")
 P3 = os.path.join(REPO, "lib", "algorithms", "projection")
 
 DRIVER = r'''
-#include "astrocs/common_abi_v1.h"
+#include "acsd/common_abi_v1.h"
 #include "baseline_kernels.h"
 #include "p3_wcs.h"
 #include <cstdio>
@@ -29,27 +29,27 @@ DRIVER = r'''
 #include <vector>
 #include <cmath>
 #include <algorithm>
-using namespace astrocs::phase3;
+using namespace acsd::phase3;
 extern "C" {
-int astrocs_host_services_default_v1(astrocs_host_services_v1* out, void** state_out);
-void astrocs_host_services_destroy_state_v1(void* state);
-void astrocs_host_state_set_budget_v1(void* state, uint32_t cpus, uint32_t max_workers, astrocs_host_services_v1* out);
-int astrocs_backend_get_api_v1(uint32_t, uint32_t, const astrocs_host_services_v1*, astrocs_backend_api_v1*);
+int acsd_host_services_default_v1(acsd_host_services_v1* out, void** state_out);
+void acsd_host_services_destroy_state_v1(void* state);
+void acsd_host_state_set_budget_v1(void* state, uint32_t cpus, uint32_t max_workers, acsd_host_services_v1* out);
+int acsd_backend_get_api_v1(uint32_t, uint32_t, const acsd_host_services_v1*, acsd_backend_api_v1*);
 }
-typedef acs_status (*KernelFn)(const astrocs_host_services_v1*, const void*, uint32_t, const void*, void*);
+typedef acsd_status (*KernelFn)(const acsd_host_services_v1*, const void*, uint32_t, const void*, void*);
 static void put(const float* a,int n,const char* tag){ printf("%s",tag); for(int i=0;i<n;++i) printf("%.9g%c",a[i],(i+1<n)?',':'\n'); }
 int main(int argc,char**argv){
     int budget=argc>1?atoi(argv[1]):1;
-    astrocs_host_services_v1 host; void* state=nullptr; astrocs_host_services_default_v1(&host,&state);
-    astrocs_host_state_set_budget_v1(state,(uint32_t)budget,(uint32_t)budget,&host);
-    astrocs_backend_api_v1 api; std::memset(&api,0,sizeof(api));
-    if(astrocs_backend_get_api_v1(ACS_ABI_VERSION_V1,sizeof(astrocs_host_services_v1),&host,&api)!=ACS_OK) return 2;
+    acsd_host_services_v1 host; void* state=nullptr; acsd_host_services_default_v1(&host,&state);
+    acsd_host_state_set_budget_v1(state,(uint32_t)budget,(uint32_t)budget,&host);
+    acsd_backend_api_v1 api; std::memset(&api,0,sizeof(api));
+    if(acsd_backend_get_api_v1(ACS_ABI_VERSION_V1,sizeof(acsd_host_services_v1),&host,&api)!=ACS_OK) return 2;
     // ==== A) 解析高斯 PSF kernel ====
     const uint32_t W=32,H=24,N=W*H;
     float cx=14.3f, cy=9.7f, k=2.5f;
     std::vector<float> psin(2), psout(N);
     psin[0]=cx; psin[1]=cy;
-    acs_baseline_params_v1 p; std::memset(&p,0,sizeof(p));
+    acsd_baseline_params_v1 p; std::memset(&p,0,sizeof(p));
     p.head.struct_size=sizeof(p); p.head.abi_version=ACS_ABI_VERSION_V1;
     p.op=ACS_KOP_PSF_BATCH; p.w=W;p.h=H;p.k=k;
     p.in0=ACS_SPAN_F32(psin.data(),psin.size()); p.out0=ACS_SPAN_F32(psout.data(),psout.size());
@@ -70,7 +70,7 @@ int main(int argc,char**argv){
     float ex=8.0f,ey=8.0f;
     // 归一化: 高斯 k*exp(-r^2/2) 总体积 = k*2π → 设 k=flux/(2π) 使总测光=flux
     double knorm = flux/(2.0*3.141592653589793);
-    acs_baseline_params_v1 p2; std::memset(&p2,0,sizeof(p2));
+    acsd_baseline_params_v1 p2; std::memset(&p2,0,sizeof(p2));
     p2.head.struct_size=sizeof(p2); p2.head.abi_version=ACS_ABI_VERSION_V1;
     p2.op=ACS_KOP_PSF_BATCH; p2.w=RW;p2.h=RH;p2.k=(float)knorm;
     float cen[2]={ex,ey}; p2.in0=ACS_SPAN_F32(cen,2); std::vector<float> pix(RN);
@@ -78,7 +78,7 @@ int main(int argc,char**argv){
     if(api.kernels[0].fn(&host,&p2,sizeof(p2),nullptr,nullptr)!=ACS_OK) return 6;
     put(pix.data(),RN,"APERTURE ");
     printf("APCENTER %.4f %.4f\n",ex,ey);
-    astrocs_host_services_destroy_state_v1(state); return 0; }
+    acsd_host_services_destroy_state_v1(state); return 0; }
 '''
 
 

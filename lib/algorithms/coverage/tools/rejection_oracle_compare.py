@@ -10,7 +10,7 @@
 # 只读 Oracle 工具（NON_PRODUCTION_TOOL_ONLY）。
 #
 # V15 修复：
-#   - CLI 路径不再硬编码（ASTROCS_REJECTION_CLI 环境变量可覆盖）；
+#   - CLI 路径不再硬编码（ACSD_REJECTION_CLI 环境变量可覆盖）；
 #   - 所有 subprocess 显式 timeout；
 #   - 删除恒真断言（SciPy primitive 对照改为有意义的数值断言）；
 #   - Python 镜像改名 winsorized_mirror_smoke，明确 NOT_AN_ORACLE。
@@ -26,7 +26,7 @@ from astropy.stats import sigma_clip, mad_std
 from scipy.stats import mstats, t as tdist
 
 CLI = os.environ.get(
-    "ASTROCS_REJECTION_CLI",
+    "ACSD_REJECTION_CLI",
     str(Path(__file__).resolve().parents[1] / "build" / "rejection_cli.exe"),
 )
 TIMEOUT_S = 120
@@ -242,7 +242,7 @@ def auto_vs_wbpp_policy():
 
 
 def pixel_profile_policy():
-    """**生产档 astrocs_adaptive_pixel** 的 AUTO 路由（M3 裁决 2026-09-25）：
+    """**生产档 acsd_adaptive_pixel** 的 AUTO 路由（M3 裁决 2026-09-25）：
        n<6 → percentile；n>=6 → winsorized_sigma（n>=16 档原为 linear_fit，已改投）。
        负例：n>=16 **不得**解析为 linear_fit（路由被改回 ⇒ 本函数红）。
        依据 = 生产 kernel 受控评估 run/REJECT-DOCFIX-01/REPORT.md §2/§4。"""
@@ -254,20 +254,20 @@ def pixel_profile_policy():
     ok = True
     for n, want in expected.items():
         _m, _r, stat = run_plan([10.0] * max(3, n), "auto", n,
-                                profile="astrocs_adaptive_pixel")
+                                profile="acsd_adaptive_pixel")
         got = names[int(stat.rsplit("method=", 1)[1])]
         ok &= (got == want)
         print(f"[pixel-policy] nominal={n} resolved={got} want={want} "
               f"{'OK' if got == want else 'FAIL'}")
     for n in (16, 20):
         _m, _r, stat = run_plan([10.0] * n, "auto", n,
-                                profile="astrocs_adaptive_pixel")
+                                profile="acsd_adaptive_pixel")
         got = names[int(stat.rsplit("method=", 1)[1])]
         bad = (got == "linear_fit")
         ok &= (not bad)
         print(f"[pixel-policy-negative] nominal={n} must NOT be linear_fit -> "
               f"{got} {'OK' if not bad else 'FAIL'}")
-    assert ok, "生产档 astrocs_adaptive_pixel 的 AUTO 路由与 M3 冻结表不一致"
+    assert ok, "生产档 acsd_adaptive_pixel 的 AUTO 路由与 M3 冻结表不一致"
     return True
 
 

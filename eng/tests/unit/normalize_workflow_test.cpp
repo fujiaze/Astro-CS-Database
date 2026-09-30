@@ -10,7 +10,7 @@
 //   E. 内存上限：超限帧必须以 memory_limit_exceeded 失败（不是静默通过）；
 //   F. 取消：cancel() 后 run() 能返回且不泄漏、不挂死；
 //   G. 探针 schema：8 类事件名与合同一致；node_wall/queue_wait 单位 s、块事件单位 B。
-#include "astrocs/core/normalize_workflow.h"
+#include "acsd/core/normalize_workflow.h"
 
 #include <algorithm>
 #include <chrono>
@@ -22,7 +22,7 @@
 #include <string>
 #include <vector>
 
-using namespace astrocs::core;
+using namespace acsd::core;
 
 #ifndef ARCH502_EVIDENCE_DIR
 #define ARCH502_EVIDENCE_DIR "run/RELEASE-05/evidence"

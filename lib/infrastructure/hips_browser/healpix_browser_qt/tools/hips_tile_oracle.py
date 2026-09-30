@@ -48,7 +48,7 @@ def interleave(x, y, bits):
     return local
 
 
-def astrocs_fits_to_local(row, col):
+def acsd_fits_to_local(row, col):
     """ACSD 约定：fits_index=(511-x)*512+y；x=偶数位,y=奇数位。"""
     x = TW - 1 - row
     y = col
@@ -86,7 +86,7 @@ def main() -> int:
         xB, yB = row, col
         xC, yC = col, row                   # transpose 候选
         return {
-            "astrocs_x=511-row,y=col": interleave(xA, yA, SHIFT),
+            "acsd_x=511-row,y=col": interleave(xA, yA, SHIFT),
             "x=row,y=col": interleave(xB, yB, SHIFT),
             "x=col,y=row": interleave(xC, yC, SHIFT),
             "x=511-col,y=511-row": interleave(TW - 1 - col, TW - 1 - row, SHIFT),
@@ -94,7 +94,7 @@ def main() -> int:
             "x=511-col,y=row": interleave(TW - 1 - col, row, SHIFT),
         }
 
-    stats = {"astrocs_match": 0, "other_match": 0, "no_match": 0, "points": 0}
+    stats = {"acsd_match": 0, "other_match": 0, "no_match": 0, "points": 0}
     other_wins = {}
     rows = []
     ipix_all = np.arange(TW * TW, dtype=np.uint64)
@@ -121,11 +121,11 @@ def main() -> int:
             exp_local = int(ipix_all[k])
             exp_tile = tile_ipix
             cs = cands(r, c)
-            got = {k: (k == "astrocs_x=511-row,y=col") for k in cs}
+            got = {k: (k == "acsd_x=511-row,y=col") for k in cs}
             match = [k for k, v in cs.items() if v == exp_local]
             stats["points"] += 1
-            if "astrocs_x=511-row,y=col" in match:
-                stats["astrocs_match"] += 1
+            if "acsd_x=511-row,y=col" in match:
+                stats["acsd_match"] += 1
             elif match:
                 stats["other_match"] += 1
                 other_wins[match[0]] = other_wins.get(match[0], 0) + 1
@@ -136,8 +136,8 @@ def main() -> int:
                 "stored_value": float(v),
                 "matched_lin_value": float(lin[k]),
                 "expected_local": exp_local, "expected_tile": exp_tile,
-                "astrocs_local": astrocs_fits_to_local(r, c),
-                "match": "astrocs" if "astrocs_x=511-row,y=col" in match
+                "acsd_local": acsd_fits_to_local(r, c),
+                "match": "acsd" if "acsd_x=511-row,y=col" in match
                          else (match[0] if match else "none"),
             })
 
@@ -148,7 +148,7 @@ def main() -> int:
         "matches": stats,
         "other_wins": other_wins,
         "detail": rows,
-        "verdict": "ASTROCS_MAPPING_MATCHES_EXTERNAL"
+        "verdict": "ACSD_MAPPING_MATCHES_EXTERNAL"
                    if stats["no_match"] == 0 and stats["other_match"] == 0
                    else "MAPPING_MISMATCH",
     }
@@ -190,7 +190,7 @@ def marker_oracle() -> int:
     margin = 0.012  # 度（约 3.7 个 order7 cell）
 
     def sky_of(row, col, tile, mode):
-        if mode == "astrocs":
+        if mode == "acsd":
             x, y = TW - 1 - row, col
         elif mode == "swap":
             x, y = col, TW - 1 - row
@@ -203,7 +203,7 @@ def marker_oracle() -> int:
         sky = hp.healpix_to_skycoord(np.array([leaf], dtype=np.int64))
         return float(sky.ra.deg[0]), float(sky.dec.deg[0])
 
-    modes = ["astrocs", "swap", "noswap", "identity-flip"]
+    modes = ["acsd", "swap", "noswap", "identity-flip"]
     result = {"modes": {}}
     for mode in modes:
         n_ok = 0
@@ -238,12 +238,12 @@ def marker_oracle() -> int:
     out = Path("run/temp/p2_v11/evidence/hips_tile_oracle.json")
     out.parent.mkdir(parents=True, exist_ok=True)
     out.write_text(json.dumps(result, indent=2), encoding="utf-8")
-    astrocs = result["modes"]["astrocs"]
-    others = [m for k, m in result["modes"].items() if k != "astrocs"]
-    print("VERDICT:", "ASTROCS_MAPPING_MATCHES_EXTERNAL"
-          if astrocs["pass"] and not any(m["pass"] for m in others)
+    acsd = result["modes"]["acsd"]
+    others = [m for k, m in result["modes"].items() if k != "acsd"]
+    print("VERDICT:", "ACSD_MAPPING_MATCHES_EXTERNAL"
+          if acsd["pass"] and not any(m["pass"] for m in others)
           else "CHECK_MAPPING")
-    return 0 if astrocs["pass"] else 1
+    return 0 if acsd["pass"] else 1
 
 
 if __name__ == "__main__":

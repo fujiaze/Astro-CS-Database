@@ -48,7 +48,7 @@ def main():
             "flags": args.flags,
             "selftest": "pass",   # 生成前须已通过 self_test(05 §7)
         })
-    doc = {"schema_version": "1", "kind": "astrocs_backends_manifest", "backends": backends}
+    doc = {"schema_version": "1", "kind": "acsd_backends_manifest", "backends": backends}
     with open(args.out, "w", encoding="utf-8") as f:
         json.dump(doc, f, indent=2)
         f.write("\n")

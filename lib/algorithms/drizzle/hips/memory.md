@@ -11,7 +11,7 @@
   错误/并发/原子发布/rollback/tree hash 如实登记，以源码为准，不信任
   旧 README）。
 - 依据 MODULE_MIGRATION_TEMPLATE.md `<prefix>-DOC` 节执行；矩阵行
-  P1-HIPS：module_id=astrocs.p1.hips_writer、target=astrocs_p1_hips_writer.dll、
+  P1-HIPS：module_id=acsd.p1.hips_writer、target=acsd_p1_hips_writer.dll、
   legacy_paths="lib/infrastructure/aio/healpix_db;lib/phase1_session"、
   depends_on_int=P1-DRZ-INT;IO-003。
 
@@ -24,7 +24,7 @@
   锚定 + TEST-HIPS-DESIGN-001（§9）+ DISP-HIPS-001..008（§10）。
 - docs/science/DATA_SEMANTICS.md 追加 §12（DATA-P1-HIPS）。
 - docs/engineering/PUBLIC_API.md 追加 API-HIPS-001 节（9 符号现状 C API）。
-- docs/detail/registry/astrocs.phase1.hips-writer.md 新建。phase3 registry
+- docs/detail/registry/acsd.phase1.hips-writer.md 新建。phase3 registry
   页 `DATA-HIPS-001` 引用**经查非悬空**：该 ID 是既有自洽语义（matrix
   services-io 行 data=DATA-HIPS-001 VERIFIED、TRACEABILITY_SPEC.md:74
   示例、生产源码 lib/infrastructure/scheduler/src/module_adapters.cpp:300/:323 端口表在用，
@@ -32,7 +32,7 @@
   会扩 diff 并触碰生产源码）；本模块用 DATA-P1-HIPS（§12），两者并存
   合法。
 - docs/traceability/TRACEABILITY_MATRIX.{json,csv} 追加
-  MOD-astrocs-phase1-hips-writer 行（七层 VERIFIED + EVID-MISSING，
+  MOD-acsd-phase1-hips-writer 行（七层 VERIFIED + EVID-MISSING，
   追加不重排）。
 - docs/DOCUMENT_INDEX.yaml 登记 docs/science/algorithms/HIPS_WRITER.md 与
   registry 页；lib/algorithms/drizzle/hips/ 三件套入索引。
@@ -42,7 +42,7 @@
 ### 源码核对结论（摘要，行号以实测为准）
 
 - 唯一生产 writer=lib/infrastructure/aio/src/hips/aio_hips_writer.cpp（1222 行，
-  合同头 aio_hips.h 9 符号）；编译于 astrocs_hips 静态库
+  合同头 aio_hips.h 9 符号）；编译于 acsd_hips 静态库
   （CMakeLists.txt:298-309）；调用方=astro_sphere_sink.cpp:97（drizzle
   sink 合并后单线程写）+ stage2.cpp:592（Phase2）+ eng/tests/unit/
   p1_hips_writer_test.cpp:55。lib/phase1_session 零 HiPS 引用（grep rc=1）；
@@ -78,7 +78,7 @@
 - **tree hash/provenance 现状**：C++ writer 无整树哈希——仅 per-tile FITS
   DATASUM/CHECKSUM（fits_write_chksum :230，MOC :275）；sha256 清单在
   IO-003 发布层（lib/infrastructure/aio/io/hips_output_store.py）；properties 级
-  provenance=creator_did/obs_*/prov_progenitor/ASTROCS_DRIZZLE_PIXFRAC/
+  provenance=creator_did/obs_*/prov_progenitor/ACSD_DRIZZLE_PIXFRAC/
   SCALE_ARCSEC（:727-736）+ frame_id 输入白名单含 signal/support tile
   像素与关键 properties（DATA_SEMANTICS §5，DATA-FRAME-ID-001）。
 - SCI 覆盖缺口（不反向改 SCI）：无 SCI 文档定义 HiPS 写出合同（tile
@@ -118,7 +118,7 @@
 
 ### 待后续任务（不阻塞本任务）
 
-- P1-HIPS-IMPL：astrocs_p1_hips_writer.dll、adapter/plan/execute/cancel/
+- P1-HIPS-IMPL：acsd_p1_hips_writer.dll、adapter/plan/execute/cancel/
   inspect、ThreadLease、CFITSIO mutex 包装（DISP-HIPS-006）、abort 事务化
   （DISP-HIPS-001/004，或显式降级注释）、错误码集中化（DISP-HIPS-007）、
   hips_estsize/hips_initial_fov 真实估算（DISP-HIPS-002）、moc_order
@@ -142,10 +142,10 @@
 
 ### 交付物
 
-- lib/algorithms/drizzle/hips/CMakeLists.txt: SHARED 目标 astrocs_p1_hips_writer —— 生产闭包
+- lib/algorithms/drizzle/hips/CMakeLists.txt: SHARED 目标 acsd_p1_hips_writer —— 生产闭包
   从源 PIC 重编译 2 TU（aio_hips_writer.cpp + healpix_core.cpp）+ cfitsio 源
-  （ASTROCS_CFITSIO_SOURCES 相对根路径前缀变换）；version-script/DEF 唯一
-  导出 astrocs_module_query_v1；C/CXX_VISIBILITY_PRESET hidden（Linux 面）。
+  （ACSD_CFITSIO_SOURCES 相对根路径前缀变换）；version-script/DEF 唯一
+  导出 acsd_module_query_v1；C/CXX_VISIBILITY_PRESET hidden（Linux 面）。
 - lib/algorithms/drizzle/hips/src/module_entry.cpp: C ABI v1 九操作 adapter
   （query/describe/validate_config/plan/create/execute/inspect/
   request_cancel/destroy）。单事务 op=write_product（product_begin → 逐 tile
@@ -158,9 +158,9 @@
   （DISP-HIPS-001: abort 不清理已写文件，处置归调用方/IO-003 层）；
   strbuf 两阶段（尺寸探测/BUFFER_TOO_SMALL）；manifest 输入顶层平铺 v1
   （base64 平面 native 字节序 + per-tile 位图 + SNR 六平面 SoA + provenance）。
-- lib/algorithms/drizzle/hips/include/astrocs/hips/types.h + src/module_exports.map +
-  src/astrocs_p1_hips_writer.def + module.yaml（交付态: entrypoint=
-  astrocs_module_query_v1, node_operations=[write_product]）。
+- lib/algorithms/drizzle/hips/include/acsd/hips/types.h + src/module_exports.map +
+  src/acsd_p1_hips_writer.def + module.yaml（交付态: entrypoint=
+  acsd_module_query_v1, node_operations=[write_product]）。
 - eng/tests/unit/p1_hips/adapter_test.c + adapter_entry_impl.cpp + eng/tests/unit/
   CMakeLists.txt 注册块: hips_writer_adapter（9 case: direct reference/
   adapter 全生命周期/direct-vs-plugin 产物树逐文件 size 对拍/alloc_fail/
@@ -169,7 +169,7 @@
 
 ### 关键事实（实证）
 
-- 依赖闭包: writer TU 仅依赖 astrocs::healpix 两符号
+- 依赖闭包: writer TU 仅依赖 acsd::healpix 两符号
   （nested_local_to_fits_index + ang2pix_nest, healpix_core.cpp）+ cfitsio 源；
   aio_fits/aio_log/aio_api/aio_healpix_io/hiss_*/aio_hips_reader/aio_upm
   零依赖剔除（g++ -fsyntax-only 实证）。
@@ -177,7 +177,7 @@
   manifest.json/properties 无路径键（两目录 size 对拍成立）；FITS tile 数据
   位级一致（DATASUM 同值），字节级差异仅 cfitsio CHECKSUM/DATASUM 注释
   的 wall-clock 秒级时间戳（as-built 实测: diff 4 字节全在头部注释）。
-- 导出面: nm -D --defined-only 唯一 T astrocs_module_query_v1；dlsym 九
+- 导出面: nm -D --defined-only 唯一 T acsd_module_query_v1；dlsym 九
   legacy aio_hips_* 全 NULL（ctypes + 测试 case8 双实证，主树 DLL 1.79MB）。
 - 无 OMP: writer/healpix_core 零 #pragma omp，DLL 无 libgomp 依赖 →
   58d20223 OMP 教训本案不触发（测试 TU 亦无 OMP 符号）。
@@ -185,7 +185,7 @@
 ### 验证（run/local/agent_p1hips_impl/ 日志在案）
 
 - 影子树（工作树快照隔离验证）: 构建 + ctest 七组（p1hips 6 + adapter）
-  循环 5/5 全绿（loop_round1..5）；asan 树（ASTROCS_ENABLE_SANITIZERS=ON）
+  循环 5/5 全绿（loop_round1..5）；asan 树（ACSD_ENABLE_SANITIZERS=ON）
   构建 + 6/7 绿，p1hips_properties 失败为 TEST 域断言设计面: tree_digest
   全字节 FNV 含 cfitsio CHECKSUM 注释秒级时间戳，-O0 慢速跨秒必败
   （字节级实证见上），非本任务回归；科学数据位级零差异。
@@ -216,23 +216,23 @@
 
 ### 任务
 
-- 控制包任务 AIO-002（ASTROCS-CONSTITUTION-ALIGNMENT-V1）：staging→校验→
+- 控制包任务 AIO-002（ACSD-CONSTITUTION-ALIGNMENT-V1）：staging→校验→
   fsync→原子 promote；正常/取消/ENOSPC/kill 后无 partial；临时目录 RAII。
 - 写域：lib/algorithms/drizzle/hips/ lib/algorithms/coverage/hips_p2/ eng/tests/。生产 writer（lib/infrastructure/aio）零改动
   （scientific_change=false；git diff 实证空）。
 
 ### 交付物
 
-- lib/algorithms/drizzle/hips/include/astrocs/hips/publish.h：原子发布原语 v1 合同头（4 原语；
+- lib/algorithms/drizzle/hips/include/acsd/hips/publish.h：原子发布原语 v1 合同头（4 原语；
   aio_publish_status_v1 数值 0..15/70/71 与 aio_abi_v1.h aio_status 全域一致
-  （_Static_assert 编译期对齐）；ASTROCS_HIPS_STAGE_BASENAME=".hips_staging.tmp"；
-  故障注入 env=ASTROCS_HIPS_PUBLISH_FAULT 注册名
+  （_Static_assert 编译期对齐）；ACSD_HIPS_STAGE_BASENAME=".hips_staging.tmp"；
+  故障注入 env=ACSD_HIPS_PUBLISH_FAULT 注册名
   p1_stage_create_fail/p1_fsync_fail/p1_promote_fail/p1_discard_noop/
   p1_stage_slow_write）。
 - lib/algorithms/drizzle/hips/src/aio_publish.cpp：唯一实现（stage_create 兄弟 staging+残留自愈/
   stage_discard 递归删除幂等 RAII/tree_fsync 后序文件+目录 fsync（ENOSPC→
   DISKFULL 收敛点）/promote rename 整树原子+目标非空拒绝+父目录 fsync）。
-  DLL 内部隐藏符号，唯一导出面 astrocs_module_query_v1 不变。
+  DLL 内部隐藏符号，唯一导出面 acsd_module_query_v1 不变。
 - lib/algorithms/drizzle/hips/src/module_entry.cpp：write_product 事务化——writer 写 staging；
   cancel 检查点抽取 hips_cancel_requested；发布门（fail/cancel → abort+discard
   → out_dir 无 partial；成功 → fsync 树 → promote → 输出 manifest 报 out_dir）；
@@ -273,7 +273,7 @@
 
 - 主树：hips_publish_atomic_units + hips_publish_atomic + hips_writer_adapter
   + p1_hips_writer（4/4）循环 5 轮全绿（幂等实证）；p1hips 全组 6/6。
-- asan 树（ASTROCS_ENABLE_SANITIZERS=ON）：4/4 两轮零报告（asan 下 kill
+- asan 树（ACSD_ENABLE_SANITIZERS=ON）：4/4 两轮零报告（asan 下 kill
   用例改轮询等待 staging 出现——固定 250ms 在 -O0 慢 10x 下不确定）。
 - 注入必败动态验证（asan eng/tests/unit 直接运行）：p1_stage_create_fail/
   p1_fsync_fail/p1_promote_fail → rc=1 且 0 PASS-line；p1_discard_noop →
@@ -295,7 +295,7 @@
 ### RESCUE-V3 FD-01（2026-09-13，B3 批次）
 
 - 基线红复现：`ctest -R '^hips_writer_adapter$'` FAIL ——
-  `dlopen(build/lib/algorithms/drizzle/hips/astrocs_p1_hips_writer.so): undefined symbol
+  `dlopen(build/lib/algorithms/drizzle/hips/acsd_p1_hips_writer.so): undefined symbol
   aio_hips_tile_ipix`（定义在 `lib/infrastructure/aio/src/hips/aio_hips_reader.cpp:391`）。
 - 根因：2026-09-07 的「writer 依赖闭包实证最小集」漏了
   `aio_hips_writer.cpp:1652,1713` 对 `aio_hips_tile_ipix` 的跨 TU 调用。

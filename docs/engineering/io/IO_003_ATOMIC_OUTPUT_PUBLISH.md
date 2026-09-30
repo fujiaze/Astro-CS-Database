@@ -1,6 +1,6 @@
 # 原子 HiPS/manifest 输出发布合同
 
-> 上游：`docs/ASTROCS_DESIGN.md` §8.5（模块与 ABI）、§10（I/O 与原子产品）
+> 上游：`docs/ACSD_DESIGN.md` §8.5（模块与 ABI）、§10（I/O 与原子产品）
 > 下级接口面：`docs/science/IO_001_FITS_STREAM_INTERFACE.md`（fitsverify 算法族）、
 > `docs/science/IO_002_HIPS_INPUT_INTERFACE.md`（读端接收本接口产出）、
 > `docs/engineering/data/DATA-003_PRODUCTION_ARTIFACT_STORE.md`（生产 ArtifactStore 原子 publish 语义）、
@@ -60,7 +60,7 @@
 可在 Linux 控制 / 轻合成节点完整验证。
 
 **已知缺口登记**：mosaic 阶段直写输出目录、无 staging 环节，缺口登记面 =
-`docs/detail/registry/astrocs.phase2.write.md`。该缺口的闭合条件与判定口径以该登记面为准。
+`docs/detail/registry/acsd.phase2.write.md`。该缺口的闭合条件与判定口径以该登记面为准。
 
 **契约登记**：原子 I/O 与发布契约 = `ENG-IO-001`（登记面 = `docs/TRACEABILITY.csv`）。
 
@@ -165,7 +165,7 @@
   不得静默当成功。
 
 **能区分两序的判据**：在 rename **成功之后**破坏目标内容
-（LD_PRELOAD 注入器加一档 `ASTROCS_TEST_CORRUPT_AFTER_RENAME=1`，在 rename 返回后向目标追加坏字节），
+（LD_PRELOAD 注入器加一档 `ACSD_TEST_CORRUPT_AFTER_RENAME=1`，在 rename 返回后向目标追加坏字节），
 机制层必须**检出并撤销**（`status=ERR_*` + `renamed=false`）；生产者序在该情形下无法检出
 （校验点已在 rename 之前）——该用例即「机制层检测面更强」的可执行证据。
 
@@ -173,13 +173,13 @@
 
 ```json
 {
-  "manifest_schema": "astrocs.hips-output-manifest/v1",
+  "manifest_schema": "acsd.hips-output-manifest/v1",
   "manifest_version": 1,
   "status": "COMPLETE",
   "run_id": "run-abc123",
   "user_path": "signal",
   "product": "signal",
-  "publisher": "astrocs.hips-output/v1",
+  "publisher": "acsd.hips-output/v1",
   "tree": [
     {"path": "Norder0/Dir0/Npix0.fits", "size": <bytes>, "sha256": "<64hex>"},
     {"path": "properties", "size": <bytes>, "sha256": "<64hex>"}

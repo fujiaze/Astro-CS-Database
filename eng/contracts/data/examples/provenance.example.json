@@ -1,7 +1,7 @@
 {
-  "provenance_schema": "astrocs.v6.provenance/v1",
+  "provenance_schema": "acsd.v6.provenance/v1",
   "schema_version": 1,
-  "product": { "type_id": "astrocs.phase2.mosaic_hips.v1", "schema_version": 1 },
+  "product": { "type_id": "acsd.phase2.mosaic_hips.v1", "schema_version": 1 },
   "software_sha": "125bc0999363be1a42a1f2df3254601e0cc7b8fb",
   "run_id": "run-3",
   "input_product_hashes": ["sha256:aaaa", "sha256:bbbb"],

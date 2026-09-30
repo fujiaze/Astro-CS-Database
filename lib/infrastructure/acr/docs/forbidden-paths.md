@@ -27,7 +27,7 @@
 | 文件/目录 | 用途 |
 |---|---|
 | `AGENTS.md` | AI 代理操作指南 |
-| `AstroCS.wiki/` | Wiki 仓库本地副本 |
+| `ACSD.wiki/` | Wiki 仓库本地副本 |
 | `README.md` | 仓库说明 |
 | `.gitignore` / `.gitattributes` | git 配置（如需调整须单独授权） |
 | `eng/tools/astro_toolkit.py` | 主工具 |

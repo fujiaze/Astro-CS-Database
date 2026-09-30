@@ -11,7 +11,7 @@
 // —— 显式 plan（p2_reject_plan_resolve + p2_reject_stack_ex）；
 // plan.json = P2RejectionPlanRequest + method-specific typed 参数
 // + normalization（：与 stage2 生产同解析；缺省时保持
-// resolve 的 astrocs_median_center_v1）
+// resolve 的 acsd_median_center_v1）
 //
 // 输出：accepted mask（0/1，空格分隔）+ 统计行；--reasons 时输出第二行
 // reason 码（0=accepted 1=low 2=high 3=underdetermined）。
@@ -171,13 +171,13 @@ int main(int argc, char** argv) {
         // normalization / normalization_floor 显式字段（与 stage2
         // p2_stage2_parse_config 同语义；alias 兼容并在 manifest 写 canonical）
         const std::string norm_s =
-            j.value("normalization", std::string("astrocs_median_center_v1"));
+            j.value("normalization", std::string("acsd_median_center_v1"));
         if (norm_s == "none") {
             plan.normalization = P2_NORMALIZE_NONE;
-        } else if (norm_s == "astrocs_median_center_v1" ||
+        } else if (norm_s == "acsd_median_center_v1" ||
                    norm_s == "median_center") {
             plan.normalization = P2_NORMALIZE_MEDIAN_CENTER;
-        } else if (norm_s == "astrocs_median_scale_v1" ||
+        } else if (norm_s == "acsd_median_scale_v1" ||
                    norm_s == "median_scale") {
             plan.normalization = P2_NORMALIZE_MEDIAN_SCALE;
         } else {
@@ -190,7 +190,7 @@ int main(int argc, char** argv) {
         if (req_s == "percentile" &&
             plan.normalization != P2_NORMALIZE_MEDIAN_CENTER) {
             std::fprintf(stderr, "percentile 必须 normalization="
-                                 "astrocs_median_center_v1（负值安全）\n");
+                                 "acsd_median_center_v1（负值安全）\n");
             return 2;
         }
         if (req_s == "rcr" && plan.normalization != P2_NORMALIZE_NONE) {

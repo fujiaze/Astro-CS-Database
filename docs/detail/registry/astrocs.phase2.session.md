@@ -1,18 +1,18 @@
-# 模块 astrocs.phase2.session
+# 模块 acsd.phase2.session
 
-> 上游：docs/ASTROCS_DESIGN.md §8.5（模块与 ABI）
+> 上游：docs/ACSD_DESIGN.md §8.5（模块与 ABI）
 
 > Phase2 装配会话（p2_session 函数族）登记页；权威签名头
 > lib/phase2_session/p2_session.h，实现 lib/phase2_session/p2_session.cpp。
 > 装配会话不设独立 registry descriptor：编排占位 descriptor 的 IModule 工厂
 > 经 module_adapters.cpp 的五 C ABI 声明委托本模块（RT-005）。
 
-- 模块词汇：`astrocs.p2.session`（装配会话词汇；五函数经 module_adapters.cpp
+- 模块词汇：`acsd.p2.session`（装配会话词汇；五函数经 module_adapters.cpp
   声明供 IModule 工厂委托，无独立 registry descriptor）；迁移目标
-  astrocs_p2_session.dll（未落地）。
+  acsd_p2_session.dll（未落地）。
 - 层级：assembly（编排，纯 facade 直调 lib/algorithms/coverage 生产符号，不实现
-  科学公式）；构建=静态库 astrocs_phase2_session（根
-  CMakeLists.txt，link astrocs_contracts astrocs_phase2；
+  科学公式）；构建=静态库 acsd_phase2_session（根
+  CMakeLists.txt，link acsd_contracts acsd_phase2；
   CLI target 汇总三处）。
 - 合同：ALG-P2-SESSION-001（docs/science/algorithms/PHASE2_SESSION.md）/
   DATA-P2-SESSION（DATA_SEMANTICS §24）/ API-P2-SESSION-001

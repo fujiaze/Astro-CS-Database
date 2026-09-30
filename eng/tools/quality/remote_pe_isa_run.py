@@ -63,7 +63,7 @@ DOC = {
                 {
                     "id": "PE-BUILD",
                     "cmd": ["cmake", "--build", "build", "--config", "Release",
-                            "--target", "astrocs_cpu_avx2", "astrocs_cpu_avx512"],
+                            "--target", "acsd_cpu_avx2", "acsd_cpu_avx512"],
                     "expect_exit": 0,
                 },
                 {
@@ -86,7 +86,7 @@ DOC = {
                 {
                     "id": "PE-DUMPBIN-TEXT",
                     "cmd": ["dumpbin", "/nologo", "/disasm",
-                            "build/providers/astrocs_cpu_avx512.dll",
+                            "build/providers/acsd_cpu_avx512.dll",
                             ">", "run/pe/avx512_dumpbin.txt"],
                     "expect_exit": 0,
                     "produces": "run/pe/avx512_dumpbin.txt",
@@ -96,7 +96,7 @@ DOC = {
                     "cmd": ["python3", "eng/tools/quality/check_variant_isa_disasm.py",
                             "--text", "run/pe/avx512_dumpbin.txt",
                             "--isa", "avx512",
-                            "--hit", "astrocs_variant_kernel_dispatch_v1",
+                            "--hit", "acsd_variant_kernel_dispatch_v1",
                             "--require-feature", "avx512f",
                             "--require-feature", "avx512vl",
                             "--declared-features", "avx512f,avx512cd,avx512bw,avx512dq,avx512vl"],
@@ -105,9 +105,9 @@ DOC = {
                 {
                     "id": "PE-DUMPBIN-FACE-CLEAN",
                     "cmd": ["python3", "eng/tools/quality/check_variant_isa_disasm.py",
-                            "--binary", "build/providers/astrocs_cpu_avx512.dll",
+                            "--binary", "build/providers/acsd_cpu_avx512.dll",
                             "--dumpbin", "dumpbin",
-                            "--clean-symbol", "astrocs_backend_get_api_v1",
+                            "--clean-symbol", "acsd_backend_get_api_v1",
                             "--clean-symbol", "backend_self_test"],
                     "expect_exit": 0,
                 },

@@ -35,7 +35,7 @@ LOG_IDENTIFYING_KEYS = ("schema", "seq", "ts", "run", "level", "event", "units",
                         "elapsed", "diagnostic")
 
 # ── 合同标识与 schema 文件位置 ────────────────────────────────────────────────
-SCHEMA_ID = "astrocs.log.event.v1"
+SCHEMA_ID = "acsd.log.event.v1"
 SCHEMA_VERSION = "v1"
 REPO_ROOT = pathlib.Path(__file__).resolve().parents[4]  # worktree 根
 SCHEMA_PATH = REPO_ROOT / "lib" / "infrastructure" / "observability" / "logging" / "log_event_v1.schema.json"

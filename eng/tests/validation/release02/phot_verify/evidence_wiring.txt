@@ -31,8 +31,8 @@ lib/infrastructure/aio/tests/test_drizzle_integration.cpp:171:    config.apply_p
 lib/infrastructure/aio/tests/test_drizzle_integration.cpp:210:    config.apply_photometry = false;
 lib/algorithms/calibration/src/photometry_apply.h:37:int apply_photometry(const float* light, int w, int h, double photscal, float* out);
 lib/algorithms/calibration/src/photometry_apply.cpp:29:int apply_photometry(const float* light, int w, int h, double photscal, float* out)
-lib/algorithms/calibration/tests/test_photometry_apply.cpp:14:// 6. Writer 元数据一致性: apply_photometry=true + BUNIT=ASTROCS_RELATIVE_FLUX → 成功
-lib/algorithms/calibration/tests/test_photometry_apply.cpp:15:// 7. Writer 元数据一致性: apply_photometry=false + BUNIT=ASTROCS_RELATIVE_FLUX → 拒绝
+lib/algorithms/calibration/tests/test_photometry_apply.cpp:14:// 6. Writer 元数据一致性: apply_photometry=true + BUNIT=ACSD_RELATIVE_FLUX → 成功
+lib/algorithms/calibration/tests/test_photometry_apply.cpp:15:// 7. Writer 元数据一致性: apply_photometry=false + BUNIT=ACSD_RELATIVE_FLUX → 拒绝
 lib/algorithms/calibration/tests/test_photometry_apply.cpp:16:// 8. Writer 元数据一致性: apply_photometry=false + BUNIT=ADU → 成功
 lib/algorithms/calibration/tests/test_photometry_apply.cpp:89:    int rc = calibration::apply_photometry(light.data(), W, H, 2.0, out.data());
 lib/algorithms/calibration/tests/test_photometry_apply.cpp:108:    int rc = calibration::apply_photometry(light.data(), W, H, 1.0, out.data());
@@ -48,11 +48,11 @@ lib/algorithms/calibration/tests/test_photometry_apply.cpp:185:    int rc6 = cal
 lib/algorithms/calibration/tests/test_photometry_apply.cpp:197:    int rc = calibration::apply_photometry(buf.data(), W, H, 3.0, buf.data());
 lib/algorithms/calibration/tests/test_photometry_apply.cpp:215:    int rc = calibration::apply_photometry(light.data(), W, H, 2.0, out.data());
 lib/algorithms/calibration/tests/test_photometry_apply.cpp:240:    int rc = calibration::apply_photometry(&light, W, H, 1e-7, &out);
-lib/algorithms/calibration/tests/test_photometry_apply.cpp:256:// 测试 6: Writer: apply_photometry=true + BUNIT=ASTROCS_RELATIVE_FLUX → 成功
-lib/algorithms/calibration/tests/test_photometry_apply.cpp:278:    ASSERT_TRUE(rc == 0, "Writer: apply_photometry=true + BUNIT=ASTROCS_RELATIVE_FLUX → open 成功");
-lib/algorithms/calibration/tests/test_photometry_apply.cpp:285:// 测试 7: Writer: apply_photometry=false + BUNIT=ASTROCS_RELATIVE_FLUX → 拒绝
+lib/algorithms/calibration/tests/test_photometry_apply.cpp:256:// 测试 6: Writer: apply_photometry=true + BUNIT=ACSD_RELATIVE_FLUX → 成功
+lib/algorithms/calibration/tests/test_photometry_apply.cpp:278:    ASSERT_TRUE(rc == 0, "Writer: apply_photometry=true + BUNIT=ACSD_RELATIVE_FLUX → open 成功");
+lib/algorithms/calibration/tests/test_photometry_apply.cpp:285:// 测试 7: Writer: apply_photometry=false + BUNIT=ACSD_RELATIVE_FLUX → 拒绝
 lib/algorithms/calibration/tests/test_photometry_apply.cpp:300:    meta.photappl = 0;  // apply_photometry=false
-lib/algorithms/calibration/tests/test_photometry_apply.cpp:307:    ASSERT_TRUE(rc == -2, "Writer: apply_photometry=false + BUNIT=ASTROCS_RELATIVE_FLUX → open 返回 -2 (拒绝)");
+lib/algorithms/calibration/tests/test_photometry_apply.cpp:307:    ASSERT_TRUE(rc == -2, "Writer: apply_photometry=false + BUNIT=ACSD_RELATIVE_FLUX → open 返回 -2 (拒绝)");
 lib/algorithms/calibration/tests/test_photometry_apply.cpp:311:// 测试 8: Writer: apply_photometry=false + BUNIT=ADU → 成功 (允许非测光数据)
 lib/algorithms/calibration/tests/test_photometry_apply.cpp:333:    ASSERT_TRUE(rc == 0, "Writer: apply_photometry=false + BUNIT=ADU → open 成功 (允许非测光数据)");
 lib/algorithms/calibration/tests/test_photometry_apply.cpp:346:    printf("--- 测光应用模块 (calibration::apply_photometry) ---\n");
@@ -96,7 +96,7 @@ t3_m5_red: False 1.0 none
 t3_m6_red: False 1.0 none
 
 === [5] module.yaml build status ===
-22:# dll_target=astrocs_p1_photometry.dll 为迁移目标合同值（尚未存在）。现状
+22:# dll_target=acsd_p1_photometry.dll 为迁移目标合同值（尚未存在）。现状
 25:# cpp/build.ps1:9（MinGW 通道）；未编入根 CMake 主构建（无 photometric_calib
 37:# entrypoint=MISSING：registry 入口未接；descriptor 现状占位 ID
-51:dll_target: astrocs_p1_photometry.dll
+51:dll_target: acsd_p1_photometry.dll

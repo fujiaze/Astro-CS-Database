@@ -1,15 +1,15 @@
-// lib/infrastructure/cli/command_tree.h — 唯一命令树（ASTROCS_DESIGN §7.1 + CLI_PROTOCOL_V1 §1）
+// lib/infrastructure/cli/command_tree.h — 唯一命令树（ACSD_DESIGN §7.1 + CLI_PROTOCOL_V1 §1）
 //
 // 本文件是「用户可见命令面」的唯一事实源：命令名、旗标白名单、help 文本都从
 // 这里生成；根 lib/infrastructure/cli/parser.cpp 只消费本表，不再自带命令清单（旧表含 phase1/2/3
 // 用户命令，已随 CLI-001 删除）。
 //
 // 三条不可回退的约束（改动本文件前先读）：
-//   1) 命令树只登记 ASTROCS_DESIGN §7.1 的条目：normalize/mosaic/export ×(--json|--template|--help)
+//   1) 命令树只登记 ACSD_DESIGN §7.1 的条目：normalize/mosaic/export ×(--json|--template|--help)
 //      + help + --version + doctor + benchmark；旧 phase1/phase2/phase3 及其别名
 //      不得再次出现（用户命令名解析失败 → exit 2）。
 //   2) 三个命令平级独立（§1.2）：本表不表达任何顺序/依赖，禁止隐式串接。
-//   3) 薄入口（ASTROCS_DESIGN §8.1）：本表只描述参数面，不含科学语义。
+//   3) 薄入口（ACSD_DESIGN §8.1）：本表只描述参数面，不含科学语义。
 #pragma once
 
 #include <cstddef>
@@ -19,7 +19,7 @@
 #include <string>
 #include <vector>
 
-namespace astrocs::cli::cmd {
+namespace acsd::cli::cmd {
 
 // 会话标识 — 「内部指代」的唯一形式（数值 1/2/3，与既有 pipeline/session
 // 内部编号一致）。用户可见字符串（normalize/mosaic/export）与之的对应关系
@@ -38,10 +38,10 @@ inline const std::set<std::string>& boolean_flags() {
         "--help", "-h",   // §6.2: 子命令帮助与字段说明
         "-y", "--yes",    // §6.3: 跳过运行确认
         "-force",         // §6.3: 越过可强制项（缺失校准帧等）
-        // （docs/ASTROCS_DESIGN §6.3）：运行事件流 = **默认输出**，
+        // （docs/ACSD_DESIGN §6.3）：运行事件流 = **默认输出**，
         // 不再需要旗标开启；本旗标保留接受（等价默认行为，不再是开启开关）。
         "--events-jsonl",
-        // （docs/ASTROCS_DESIGN §4.5/§6.3）：一般性资源超限门（内存/CPU/线程）
+        // （docs/ACSD_DESIGN §4.5/§6.3）：一般性资源超限门（内存/CPU/线程）
         // 已取消 ⇒ 本旗标保留接受但**不再**改变裁决（恒 record-only，无 rc=10 路径）；
         // 登记为「历史复现开关，已退役」。消费者见 commands.cpp。
         "--strict-resource-gate",
@@ -163,4 +163,4 @@ inline std::string help_text() {
     return out;
 }
 
-}  // namespace astrocs::cli::cmd
+}  // namespace acsd::cli::cmd

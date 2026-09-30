@@ -8,7 +8,7 @@
 输出: capsules/REV-002_<commit12>.zip（旧证据树）
 
 退役 (RETIRED) —— REV-002 属旧世代(V5 控制包)审阅胶囊任务, 随该世代作废:
-  1. 依据: docs/ASTROCS_DESIGN.md §0(权威链: 旧世代控制包产物不构成判据)
+  1. 依据: docs/ACSD_DESIGN.md §0(权威链: 旧世代控制包产物不构成判据)
      （历史版本控制包全部作废; 不归档不保留）;
   2. 输入已不存在: 旧证据树 tables/{TRACEABILITY,COMMITS,REVIEW_CAPSULE_INDEX}.csv
      三条被第 119-121 行的 isfile 判定**静默跳过**(不报错、不留痕);
@@ -138,7 +138,7 @@ def collect_files() -> list[tuple[str, str]]:
 
 RETIRED_NOTICE = (
     "MAKE_REV2_CAPSULE_RETIRED: 本工具（旧世代 REV-002 审阅胶囊生成器）已退役。\n"
-    "  依据: docs/ASTROCS_DESIGN.md §0（权威链：旧世代控制包产物不构成判据）"
+    "  依据: docs/ACSD_DESIGN.md §0（权威链：旧世代控制包产物不构成判据）"
     "（历史版本控制包全部作废；不归档不保留）；"
     "ENGINEERING_SPEC.md §8（不允许静默坏掉）。\n"
     "  输入/输出已不存在: 旧证据树 tables/*.csv 与 capsules/。\n"

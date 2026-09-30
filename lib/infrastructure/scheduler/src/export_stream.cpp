@@ -1,6 +1,6 @@
 // ACSD Core — ARCH-504 export 子块流式调度器实现
-// 依据：docs/ASTROCS_DESIGN.md §6/§8.3；CONTRACT-501 docs/engineering/SCHEDULER_CONTRACT.md
-#include "astrocs/core/export_stream.h"
+// 依据：docs/ACSD_DESIGN.md §6/§8.3；CONTRACT-501 docs/engineering/SCHEDULER_CONTRACT.md
+#include "acsd/core/export_stream.h"
 
 #include <algorithm>
 #include <chrono>
@@ -13,7 +13,7 @@
 #include "aio_atomic_file.h"
 #include "aio_file_io.h"   // CLEAN-403：aio 唯一 I/O 实现（原子写/顺序写/目录/rename）
 
-namespace astrocs::core {
+namespace acsd::core {
 namespace {
 
 double now_seconds() {
@@ -110,7 +110,7 @@ void ExportStreamScheduler::write_manifest() const {
       static_cast<std::size_t>(cfg_.sub_block_px) * cfg_.sub_block_px * sizeof(double);
   std::ostringstream f;
   f << R"JSON({
-  "schema": "astrocs.export-stream-manifest/v1",
+  "schema": "acsd.export-stream-manifest/v1",
   "width": )JSON" << width_ << R"JSON(,
   "height": )JSON" << height_ << R"JSON(,
   "sub_block_px": )JSON" << cfg_.sub_block_px << R"JSON(,
@@ -646,7 +646,7 @@ ExportOutcome ExportStreamScheduler::run() {
     //     两个分支排在 was_cancelled **之前**，异常会被洗成 sink/cancel 泛化文案。
     // 故必须留独立痕迹（本分支），且必须排在 sink 未发布分支之前。
     // exit 70 = INTERNAL「未分类内部软件错误」，唯一源 lib/infrastructure/cli/exit_codes.h:18
-    // （此 TU 不 include 该头：astrocs_core 的 include 面只有 lib/include 与
+    // （此 TU 不 include 该头：acsd_core 的 include 面只有 lib/include 与
     //  lib/third_party，见根 CMakeLists.txt 的 target_include_directories）。
     o.ok = false;
     o.error = worker_error_.empty() ? std::string("worker_exception") : worker_error_;
@@ -685,4 +685,4 @@ ExportOutcome ExportStreamScheduler::run() {
   return o;
 }
 
-}  // namespace astrocs::core
+}  // namespace acsd::core

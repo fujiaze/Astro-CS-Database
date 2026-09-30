@@ -1,6 +1,6 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "$id": "astrocs.monitor-field-semantics/v1",
+  "$id": "acsd.monitor-field-semantics/v1",
   "title": "监控字段执行语义（requires_monitor / mutates_workspace）",
   "x-doc": "docs/engineering/PERF_GATE_CONTRACT.md",
   "type": "object",
@@ -11,7 +11,7 @@
   ],
   "properties": {
     "schema": {
-      "const": "astrocs.monitor-field-semantics/v1"
+      "const": "acsd.monitor-field-semantics/v1"
     },
     "requires_monitor": {
       "type": "object",

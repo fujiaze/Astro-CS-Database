@@ -1,6 +1,6 @@
 # Astro Celestial Sphere Database（ACSD） 资源监控伴随器合同
 
-> 上游：docs/ASTROCS_DESIGN.md §9（CPU 后端与资源）、§10（I/O 与原子产品）、§8.4（顶层结构）
+> 上游：docs/ACSD_DESIGN.md §9（CPU 后端与资源）、§10（I/O 与原子产品）、§8.4（顶层结构）
 
 ## 1. 目的与边界
 
@@ -14,7 +14,7 @@ monitor，同一 run ID **每秒**采集 process/system CPU、active/granted wor
 RSS/private/commit、read/write bytes、queue/lock/io wait、provider/module，
 产出**不可手工合成**的原始 CSV，供运行图、审计、容量分析消费。
 
-**验收（依据=`docs/ASTROCS_DESIGN.md` §9）**：
+**验收（依据=`docs/ACSD_DESIGN.md` §9）**：
 - 无 monitor 的 `cpu_heavy` run **失败**（负测强制点）；
 - I/O 区间与初始化区间**分开**记录；
 - 原始 CSV **不可手工合成**（header 指纹链 + 写后只读 + 时间戳单调断言）；
@@ -102,7 +102,7 @@ fp(seq=n)    = sha256(salt | fp(seq=n-1) | json(行字符串形态) | n)
 
 - 每行指纹绑定**前一行指纹**、**行字符串形态**（与文件逐字节一致）与**行号**；
 - 修改任意字节 / 手工追加 / 删除行 → 该行及后续全部失配（链式断裂）；
-- salt = `b"astrocs-monitor-timeseries-v1"`，跨进程/跨主机可复验。
+- salt = `b"acsd-monitor-timeseries-v1"`，跨进程/跨主机可复验。
 
 ### 4.2 写后只读
 
@@ -157,7 +157,7 @@ exit 0 = PASS；违例 => 非 0 + machine JSON verdict=FAIL。检查：
 
 ## 8. 与结构化日志合同的关系
 
-可选的 metric 事件输出（`trace_feed.emit_metric_event`）复用 `astrocs.log.event.v1` 语义
+可选的 metric 事件输出（`trace_feed.emit_metric_event`）复用 `acsd.log.event.v1` 语义
 （phase=`monitoring`、event=`metric`），字段语义与枚举的正本 =
 `docs/engineering/observability/STRUCTURED_LOGGING_CONTRACT.md` §2.2；生产 Runtime 把
 monitor 摘要写入统一 JSONL 时按该合同适配。本合同的交付面 = CSV 列合同 + 指纹链 + 校验闭环。
@@ -176,7 +176,7 @@ monitor 摘要写入统一 JSONL 时按该合同适配。本合同的交付面 =
 
 ## 10. 参考
 
-- 依据：`docs/ASTROCS_DESIGN.md` §9（CPU 后端与资源）、§10（I/O 与原子产品）
+- 依据：`docs/ACSD_DESIGN.md` §9（CPU 后端与资源）、§10（I/O 与原子产品）
 - 结构化日志合同：`docs/engineering/observability/STRUCTURED_LOGGING_CONTRACT.md`
-- trace 事件：`lib/include/astrocs/core/contracts.h` TraceEvent、
+- trace 事件：`lib/include/acsd/core/contracts.h` TraceEvent、
   `lib/infrastructure/pipeline/trace_replay.py`

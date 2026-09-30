@@ -38,7 +38,7 @@ from pathlib import Path
 
 import numpy as np
 
-SPEC_ID = "astrocs.astrometry.closure-metric/v1"
+SPEC_ID = "acsd.astrometry.closure-metric/v1"
 STATISTIC = "median"
 MAX_SOURCES_DEFAULT = 20000
 SCAN_MAX_ARCSEC = 5.0

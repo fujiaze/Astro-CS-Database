@@ -1,20 +1,20 @@
-# lib/algorithms/coverage/hips_p2 — astrocs.p2.hips_writer（P2-HIPS）
+# lib/algorithms/coverage/hips_p2 — acsd.p2.hips_writer（P2-HIPS）
 
 > 状态: CONTRACT_READY（P2-HIPS-DOC 冻结，2026-09-09）｜doc revision: r1
 > 本 README 由源码逐段核对后新建（P2-HIPS-DOC）：函数、单位、dtype、shape、
 > invalid、错误、并发、内存、I/O 均以现行唯一生产实现
 > `lib/algorithms/coverage/tools/stage2.cpp`（1762 行实测；正式工具入口
-> `astrocs-stage2`，lib/algorithms/coverage/CMakeLists.txt:103-110）与 config 解析层
+> `acsd-stage2`，lib/algorithms/coverage/CMakeLists.txt:103-110）与 config 解析层
 > `lib/algorithms/coverage/include/astro/phase2/stage2_common.h`（P2Stage2Config :16-99、
 > p2_stage2_parse_config :102、p2_stage2_make_upm_cfg :106、
 > p2_acr_block_eligible :113）为准；行号全部 grep/sed 实测，禁止手抄他版。
-> `lib/algorithms/coverage/hips_p2/` 是 P2-HIPS 迁移目标目录（astrocs_p2_hips_writer.dll 落码
+> `lib/algorithms/coverage/hips_p2/` 是 P2-HIPS 迁移目标目录（acsd_p2_hips_writer.dll 落码
 > 由 P2-HIPS-IMPL 建立，当前本目录仅合同文件、无源码）。落位依据：
-> MODULE_MIGRATION_MATRIX.csv P2-HIPS 行 target=astrocs_p2_hips_writer.dll、
-> module_id=astrocs.p2.hips_writer、legacy_paths="lib/algorithms/coverage write sources;
+> MODULE_MIGRATION_MATRIX.csv P2-HIPS 行 target=acsd_p2_hips_writer.dll、
+> module_id=acsd.p2.hips_writer、legacy_paths="lib/algorithms/coverage write sources;
 > lib/infrastructure/aio/healpix_db"——实测 P2 马赛克写编排生产源在
 > lib/algorithms/coverage/tools/stage2.cpp（lib/algorithms/coverage/ 目录三件套已被 P2-COV 域
-> astrocs.p2.coverage 合同占用：lib/algorithms/coverage/README.md r1，一目录一套
+> acsd.p2.coverage 合同占用：lib/algorithms/coverage/README.md r1，一目录一套
 > README/module.yaml/memory.md，不可覆盖他域合同），故按 lib/algorithms/drizzle/hips/（P1-HIPS
 > 迁移目标目录）先例落独立迁移目标目录 lib/algorithms/coverage/hips_p2/，与 legacy 目录不重叠、
 > 不含源码。lib/infrastructure/aio/healpix_db 侧参与 HiPS 写生产的仅 P1 写通道
@@ -35,11 +35,11 @@
 
 | 字段 | 当前值 |
 |---|---|
-| MOD ID / DLL target | `MOD-astrocs-phase2-hips-writer`（矩阵行 MOD-astrocs-phase2-write 的登记延续：registry 页与追溯行沿用既有行 ID，module 词汇 astrocs.p2.hips_writer）；现状实现编入 CMake 工具目标 `astrocs-stage2`（lib/algorithms/coverage/CMakeLists.txt:103-110，EXCLUDE_FROM_ALL，链 phase2 + astrocs_hips 等）；迁移目标 `astrocs_p2_hips_writer.dll`（P2-HIPS-IMPL 建立，尚未存在，全仓库无该目标） |
-| module / ABI / doc revision | `astrocs.p2.hips_writer` / C++17（内部）+ C ABI 库消费（aio_hips.h extern "C"，P1 冻结面）/ r1 |
+| MOD ID / DLL target | `MOD-acsd-phase2-hips-writer`（矩阵行 MOD-acsd-phase2-write 的登记延续：registry 页与追溯行沿用既有行 ID，module 词汇 acsd.p2.hips_writer）；现状实现编入 CMake 工具目标 `acsd-stage2`（lib/algorithms/coverage/CMakeLists.txt:103-110，EXCLUDE_FROM_ALL，链 phase2 + acsd_hips 等）；迁移目标 `acsd_p2_hips_writer.dll`（P2-HIPS-IMPL 建立，尚未存在，全仓库无该目标） |
+| module / ABI / doc revision | `acsd.p2.hips_writer` / C++17（内部）+ C ABI 库消费（aio_hips.h extern "C"，P1 冻结面）/ r1 |
 | owner / phase scope | SA-P2-I23 / phase2（matrix P2-HIPS；depends_on_int=P2-INT-INT;IO-003） |
 | 文档状态 | CONTRACT_READY（实现存在于 lib/algorithms/coverage/tools/stage2.cpp，模块化迁移未开始；不声明 IMPLEMENTED） |
-| 构建 | lib/algorithms/coverage/CMakeLists.txt:103 `add_executable(astrocs-stage2 eng/tools/stage2.cpp)`、:104-105 链接、:107-108 P2_ENABLE_OPENMP 宏（CON-006 逐像素并行）、:110 EXCLUDE_FROM_ALL、:126 与 phase2_synthetic_gate 同列按需工具；stage2_common.cpp 编入 phase2 库（CMakeLists.txt:44、根 CMakeLists.txt:339） |
+| 构建 | lib/algorithms/coverage/CMakeLists.txt:103 `add_executable(acsd-stage2 eng/tools/stage2.cpp)`、:104-105 链接、:107-108 P2_ENABLE_OPENMP 宏（CON-006 逐像素并行）、:110 EXCLUDE_FROM_ALL、:126 与 phase2_synthetic_gate 同列按需工具；stage2_common.cpp 编入 phase2 库（CMakeLists.txt:44、根 CMakeLists.txt:339） |
 
 ## 2. 负责范围 / 不负责
 
@@ -58,26 +58,26 @@
   HIPS_VERIFY（:1659-1676）。
 - 马赛克写出：`aio_hips_product_begin`（out_hips，nside=1<<(target_order+9)
   :525，tile 512，dtype=cfg.precision?FLOAT64:FLOAT32 :529，flags 仅
-  SIGNAL|SUPPORT :594，creator "ivo://astrocs/phase2"、title
+  SIGNAL|SUPPORT :594，creator "ivo://acsd/phase2"、title
   "Astro Celestial Sphere Database（ACSD） Phase2 Mosaic"、filter=infos[0].filter_passband :531/:597）→
   逐 union tile 覆盖帧探测（:663-671）→ rejection 计划解析（group-level
-  wbpp_2_9_1 :641-659 / tile 级 astrocs_adaptive :674-696）→ ACR/CPU 路由
+  wbpp_2_9_1 :641-659 / tile 级 acsd_adaptive :674-696）→ ACR/CPU 路由
   （:733-776）→ micro-chunk 内存规划（`p2_block_plan` :778-817）→ 逐像素
   eligibility→权重→排异→积分（:1057-1538）→ flux/support 逆归一（ACR
   ACR :989-1004、CPU :1227-1228/:1531-1532）→ FITS 序→NESTED 序转换（HIPS-IMG-001 合同
-  ACR :1024-1040/CPU :1606-1619，`astrocs::healpix::nested_local_to_fits_index(i,9,512)`
+  ACR :1024-1040/CPU :1606-1619，`acsd::healpix::nested_local_to_fits_index(i,9,512)`
   调用 :1032/:1611）→ `aio_hips_write_signal_support_tile`
   :1047-1054/:1629-1636 → `aio_hips_finalize` :1638-1648。
 - 权重语义门（matrix 专项；**已订正**）：**唯一权重口径** = 逐帧 ivar
   产品（`AIO_HIPS_RD_IVAR`）逆方差；`weight_mode` 与 `legacy_allow_weight_fallback`
   两个键**已删除** ⇒ 出现即配置解析失败（具名 fail-closed）。ivar 产品缺失**恒**为
   显式科学错误 rc=7（"拒绝继续，防止在非逆方差语义下冒充 ivar coadd"）；唯一自动降级面
-  = 帧级 SNR 逆方差链（`ASTROCS_FRAME_SNR`/`ASTROCS_REFERENCE_FLUX` 齐备），由数据
+  = 帧级 SNR 逆方差链（`ACSD_FRAME_SNR`/`ACSD_REFERENCE_FLUX` 齐备），由数据
   可用性决定，不是用户开关。原「显式
   true 才降级 support 并 diagnostics 标红 :575-577。mode 0=
   support×snr²（legacy/诊断，local_snr_map 64×64 cell :1118-1128）；mode 1=
   等权。`p2_validate_candidate_weights`（:1131-1159）负/NaN/Inf hard fail。
-- large_scale 两遍路径（astrocs.large_scale_rejection.v1，默认关闭）：
+- large_scale 两遍路径（acsd.large_scale_rejection.v1，默认关闭）：
   `p2_large_scale_apply` connected-component grow（:1549-1551）+"拒绝 mask
   应用回原始 calibrated 科学值"二次积分 :1552-1605。
 - HIPS_VERIFY 回读（AIO reader，:1659-1676；失败 rc=7 :1665）与
@@ -122,7 +122,7 @@ surface brightness 语义矛盾，现行 = UnitId::SURFACE_BRIGHTNESS。）
 target_order(auto)、precision(0)、reject_method(AUTO)/reject_profile
 （`weight_mode` / `legacy_allow_weight_fallback` 已删除：出现即拒绝）
 (wbpp_2_9_1)/reject_underdetermined_n(2)、reject_normalization
-(astrocs_median_center_v1)、large_scale_*(false)、acr_route(auto)、
+(acsd_median_center_v1)、large_scale_*(false)、acr_route(auto)、
 memory_limit_mb(24576)、out_hips、diagnostics(true)。权威登记：
 PUBLIC_API.md Phase2 mosaic write 节（API-P2-HIPS-001）。
 
@@ -180,6 +180,6 @@ PUBLIC_API.md Phase2 mosaic write 节（API-P2-HIPS-001）。
   hips_paths 验证 :81-92、coverage :125/:138，不执行 HiPS 写）、
   lib/infrastructure/aio/healpix_db（legacy_paths 提及侧：仅 archive/healpix_drizzle 历史
   实现与上述 P1 sink）。
-- 迁移：astrocs_p2_hips_writer.dll / plan-execute-cancel-inspect /
+- 迁移：acsd_p2_hips_writer.dll / plan-execute-cancel-inspect /
   ThreadLease 接线归 P2-HIPS-IMPL；可执行测试归 P2-HIPS-TEST
   （可执行 TEST-P2-HIPS-001 MISSING；登记面=§11.4 设计冻结）。

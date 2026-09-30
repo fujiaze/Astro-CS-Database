@@ -5,7 +5,7 @@
 // TEST-STAR-DESIGN-001 (P1-STAR-DOC 冻结); ALG-STARDET-001 §2/§11.1。
 // 控制包任务: P1-STAR-TEST (SA-P1ST-T, queue 49, lock-P1-STAR)。
 //
-// FaultRegistry: 环境变量 ASTROCS_P1STAR_FAULT=<name>[,<name>...] 命中的
+// FaultRegistry: 环境变量 ACSD_P1STAR_FAULT=<name>[,<name>...] 命中的
 // CHECK 断言翻转 (通过→失败) 并打印 "FAULT-INJECT <name>"; 自检组用它演示
 // "注入必败", 其余组在无注入时必须全绿。验收关键词:
 // unit/property/oracle/negative/performance。
@@ -27,11 +27,11 @@ namespace p1star {
 struct CheckState {
     int failures = 0;
     int checks = 0;
-    // ASTROCS_P1STAR_FAULT 命中集合 (构造时解析)
+    // ACSD_P1STAR_FAULT 命中集合 (构造时解析)
     std::vector<std::string> faults;
 
     CheckState() {
-        const char* f = std::getenv("ASTROCS_P1STAR_FAULT");
+        const char* f = std::getenv("ACSD_P1STAR_FAULT");
         if (f && *f) {
             std::string s(f);
             for (std::size_t pos = 0; pos < s.size();) {

@@ -13,8 +13,8 @@
  * HDU 布局: PRIMARY (SIMPLE=T) + 扩展 (XTENSION='IMAGE', PCOUNT/GCOUNT)；
  * 每个 HDU 头/数据段 2880 对齐；DATASUM/CHECKSUM 为 END 前最后两个关键字。
  */
-#ifndef ASTROCS_V6_AIO_FITS_H
-#define ASTROCS_V6_AIO_FITS_H
+#ifndef ACSD_V6_AIO_FITS_H
+#define ACSD_V6_AIO_FITS_H
 
 #include <array>
 #include <cstddef>
@@ -25,7 +25,7 @@
 
 #include "astro/aio/validation.h"
 
-namespace astrocs {
+namespace acsd {
 namespace aio {
 
 // ── 关键字 ────────────────────────────────────────────────────────────────
@@ -156,6 +156,6 @@ FitsVerifyResult verify_fits_bytes(const std::vector<std::uint8_t>& bytes,
                                    const std::vector<ExpectedHdu>& expected);
 
 }  // namespace aio
-}  // namespace astrocs
+}  // namespace acsd
 
-#endif  // ASTROCS_V6_AIO_FITS_H
+#endif  // ACSD_V6_AIO_FITS_H

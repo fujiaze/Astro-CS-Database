@@ -4,7 +4,7 @@
 
 模式:
   synthetic: --solved <solved.fits> --ref <known_wcs.json>
-  real:      --solved <solved.fits> --ref <astrocs_wcs.json>
+  real:      --solved <solved.fits> --ref <acsd_wcs.json>
              [--corners drizzle_lineage.jsonl --pixels trace_selection.tsv --pixfrac 0.8]
 
 输出: 报告 JSON 到 stdout / --out，含 center/scale/orientation/pixel→sky 指标与 PASS。

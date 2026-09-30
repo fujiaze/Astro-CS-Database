@@ -1,8 +1,8 @@
 {
-  "$schema": "AstroCS testdata inventory v1.2",
+  "$schema": "ACSD testdata inventory v1.2",
   "version": "1.2",
   "generated_at": "2026-07-31",
-  "description": "AstroCS 测试数据索引 — T1-T4 望远镜原始帧（.fit/.fits/.fts/.xisf）与校准母版",
+  "description": "ACSD 测试数据索引 — T1-T4 望远镜原始帧（.fit/.fits/.fts/.xisf）与校准母版",
   "frame_format_convention": {
     "raw_light_frames": [
       ".fit",

@@ -1,6 +1,6 @@
 /* p1psfw_test_main.hpp - IMPL-P1-PSFW-001 测试执行器框架
  * 单跑: ./p1_psfw_tests <group>|all
- * 故障注入: ASTROCS_P1PSFW_FAULT=<name>[,<name>...] 使对应 CHECKF 确定性翻转 -> rc=1
+ * 故障注入: ACSD_P1PSFW_FAULT=<name>[,<name>...] 使对应 CHECKF 确定性翻转 -> rc=1
  *   (selfcheck ctest 以 WILL_FAIL 断言注入相必败, 证明测试非恒真) */
 #ifndef P1PSFW_TEST_MAIN_HPP
 #define P1PSFW_TEST_MAIN_HPP
@@ -25,7 +25,7 @@ inline bool fault_active(const char* name) {
 }
 
 inline void init_faults() {
-    const char* e = std::getenv("ASTROCS_P1PSFW_FAULT");
+    const char* e = std::getenv("ACSD_P1PSFW_FAULT");
     if (e == nullptr) return;
     const std::string s = e;
     std::size_t p = 0;

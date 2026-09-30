@@ -1,6 +1,6 @@
 // ACSD Core — ARCH-502 normalize 异步工作流调度器实现
-// 依据：docs/ASTROCS_DESIGN.md §8.3；CONTRACT-501 docs/engineering/SCHEDULER_CONTRACT.md
-#include "astrocs/core/normalize_workflow.h"
+// 依据：docs/ACSD_DESIGN.md §8.3；CONTRACT-501 docs/engineering/SCHEDULER_CONTRACT.md
+#include "acsd/core/normalize_workflow.h"
 
 #include <algorithm>
 #include <chrono>
@@ -12,7 +12,7 @@
 // 受控编排参数（唯一数值源 = eng/packaging/config/runtime_resources.json#orchestration_params）。
 #include "runtime_resources_generated.h"
 
-namespace astrocs::core {
+namespace acsd::core {
 namespace {
 
 double now_seconds() {
@@ -466,11 +466,11 @@ std::vector<FrameOutcome> NormalizeWorkflowScheduler::run() {
   std::vector<std::thread> prefetch_pool;
   if (cfg_.prefetch_enabled) {
     // 预取线程上限（受控配置键 scheduler_prefetch_threads_max；0 = 不设上限）：clamp + 留痕。
-    // 依据 docs/ASTROCS_DESIGN.md §8.3:643（预取下一帧、I/O 预取与计算重叠）与 §8.3:647
+    // 依据 docs/ACSD_DESIGN.md §8.3:643（预取下一帧、I/O 预取与计算重叠）与 §8.3:647
     // （线程池的唯一来源是调度器、单进程唯一预算源）⇒ 预取并发不得无上界地由调用方指定。
     int requested = cfg_.prefetch_threads;
     const std::uint32_t prefetch_cap =
-        astrocs::runtime_resources::kSchedulerPrefetchThreadsMax;
+        acsd::runtime_resources::kSchedulerPrefetchThreadsMax;
     if (prefetch_cap > 0u && requested > static_cast<int>(prefetch_cap)) {
       std::fprintf(stderr, "[prefetch] 受控上限生效 prefetch_threads=%d -> %u\n",
                    requested, prefetch_cap);
@@ -500,4 +500,4 @@ std::vector<FrameOutcome> NormalizeWorkflowScheduler::run() {
   return out;
 }
 
-}  // namespace astrocs::core
+}  // namespace acsd::core

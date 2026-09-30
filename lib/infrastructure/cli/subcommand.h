@@ -1,6 +1,6 @@
 // lib/infrastructure/cli/subcommand.h — 三个平级子命令的共用实现（CLI-001）
 //
-// 薄入口（docs/ASTROCS_DESIGN §6.1）职责边界，本文件是这条边界的落点：
+// 薄入口（docs/ACSD_DESIGN §6.1）职责边界，本文件是这条边界的落点：
 //   参数读取 / 配置模板填充 / 运行前预检 / 运行确认 / 退出码映射
 // 科学计算一律不在本层：执行、校验、计划、检视全部委托会话层
 // （lib/infrastructure/cli/commands.cpp 的 session_dispatch → runtime_client/算法模块）。
@@ -31,7 +31,7 @@
 #include "exit_codes.h"
 #include "jsonl.h"
 
-namespace astrocs::cli::cmd {
+namespace acsd::cli::cmd {
 
 // 运行确认（§6.1 / §4.5）。返回 true = 继续运行。
 // 非交互 stdin（EOF）→ false：绝不把「无人确认」当成 yes（fail-closed）。
@@ -121,7 +121,7 @@ inline std::vector<std::string> config_structure_errors(SessionId session,
 }
 
 // ── §4.5 fail-closed 输入路径判定（存在性 / 可读性 / 类型） ──
-// 设计口径（docs/ASTROCS_DESIGN §4.5 运行前预检「🔴 error：文件找不到、路径错误」）：
+// 设计口径（docs/ACSD_DESIGN §4.5 运行前预检「🔴 error：文件找不到、路径错误」）：
 // error = 文件找不到、路径问题。
 // 预检必须在**磁盘**上核实，不得只看 JSON 结构（DC-310/DC-408 假绿根因）。
 // 只报路径层事实，不做科学值域判定。
@@ -285,12 +285,12 @@ inline std::vector<CheckLine> disk_precheck_lines(SessionId session, const nlohm
     std::vector<CheckLine> lines;
     const InputContract& ic = input_contract(session);
     const std::string object_field = (ic.object_field == nullptr) ? std::string() : ic.object_field;
-    for (const auto& sc : astrocs::disk_scopes(doc, ic.key, object_field,
+    for (const auto& sc : acsd::disk_scopes(doc, ic.key, object_field,
                                                /*include_masters=*/session == SESSION_NORMALIZE)) {
-        const astrocs::DiskSpace sp = astrocs::disk_space_of(sc.output_dir);
-        const std::string warn = astrocs::disk_precheck_warning(sp, sc.est, sc.output_dir);
+        const acsd::DiskSpace sp = acsd::disk_space_of(sc.output_dir);
+        const std::string warn = acsd::disk_precheck_warning(sp, sc.est, sc.output_dir);
         if (!warn.empty()) lines.push_back({"warn", warn});
-        else lines.push_back({"correct", astrocs::disk_estimate_line(sp, sc.est, sc.output_dir)});
+        else lines.push_back({"correct", acsd::disk_estimate_line(sp, sc.est, sc.output_dir)});
     }
     return lines;
 }
@@ -362,32 +362,32 @@ struct Subcommand {
     const char*  name;
     SessionId    session;
 
-    int run(const Parsed& p, astrocs::JsonlEmitter& ev) const {
+    int run(const Parsed& p, acsd::JsonlEmitter& ev) const {
         // 测试钩子（非用户接口）: 取消路径注入等待 / crash boundary 验证。
         // 与旧命令树同语义，仅存活于会话运行路径，不出现在 help 与命令表里。
-        if (const char* ms_env = std::getenv("ASTROCS_TEST_SLEEP_MS")) {
+        if (const char* ms_env = std::getenv("ACSD_TEST_SLEEP_MS")) {
             const long ms = std::strtol(ms_env, nullptr, 10);
             const auto deadline = std::chrono::steady_clock::now() +
                                   std::chrono::milliseconds(ms > 0 ? ms : 0);
             while (std::chrono::steady_clock::now() < deadline) {
-                if (astrocs::is_cancelled()) {
+                if (acsd::is_cancelled()) {
                     // 启动期取消也发恰一个 final 事件（DESIGN §7.2 机器输出
                     // 统一；空事件流无法与崩溃区分）。本次运行尚未建立 output_dir/
                     // run_context ⇒ 不写 manifest（不造假清单），final.run_manifest=null。
-                    ev.emit_final(astrocs::CANCELLED, "cancelled", nullptr,
+                    ev.emit_final(acsd::CANCELLED, "cancelled", nullptr,
                                   "cancelled by user");
                     std::fprintf(stderr, "acsd: %s cancelled\n", name);
-                    return astrocs::CANCELLED;             // 9
+                    return acsd::CANCELLED;             // 9
                 }
                 std::this_thread::sleep_for(std::chrono::milliseconds(20));
             }
         }
-        if (std::getenv("ASTROCS_TEST_CRASH")) throw std::runtime_error("cli-crash-hook");
+        if (std::getenv("ACSD_TEST_CRASH")) throw std::runtime_error("cli-crash-hook");
         const std::string cfg = need_value(p, "--json");   // 缺 → ParseError → 2
         std::ifstream f(std::filesystem::u8path(cfg), std::ios::binary);
         if (!f) {
             std::fprintf(stderr, "acsd: config not found '%s'\n", cfg.c_str());
-            return astrocs::INPUT;                          // 3
+            return acsd::INPUT;                          // 3
         }
         nlohmann::json doc;
         try {
@@ -395,11 +395,11 @@ struct Subcommand {
                                                     std::istreambuf_iterator<char>()));
         } catch (const nlohmann::json::parse_error& e) {
             std::fprintf(stderr, "acsd: config malformed JSON: %s\n", sanitize(e.what()).c_str());
-            return astrocs::INPUT;                          // 3
+            return acsd::INPUT;                          // 3
         }
         if (!doc.is_object()) {
             std::fprintf(stderr, "acsd: config is not a JSON object\n");
-            return astrocs::INPUT;                          // 3
+            return acsd::INPUT;                          // 3
         }
         // §4.5: -force 是「我知道我在干什么」的总开关 —— 跳过**全部**预检
         // （不显示页面、不请求确认、也不阻断结构错），直接进入运行过程。
@@ -419,7 +419,7 @@ struct Subcommand {
                                                          session_cli_name(session))}}).c_str(),
                        stderr);
             std::fprintf(stderr, "acsd: %s blocked by config error(s); fix the config\n", name);
-            return astrocs::INPUT;                          // 3: 配置形态不可用
+            return acsd::INPUT;                          // 3: 配置形态不可用
         }
         const std::vector<CheckLine> checks = precheck_config(session, doc);
         const std::string page = render_checks(checks);
@@ -435,27 +435,27 @@ struct Subcommand {
             std::fputs(page.c_str(), stderr);
             std::fprintf(stderr, "acsd: %s blocked by config error(s); "
                                  "fix the config\n", name);
-            return astrocs::ARGS;                           // 2: 配置错
+            return acsd::ARGS;                           // 2: 配置错
         }
         {
             nlohmann::json validated;
             const int vrc = validate_config_full(cfg, &validated, /*session_mode=*/true, session_cli_name(session));
-            if (vrc != astrocs::OK) return vrc;
+            if (vrc != acsd::OK) return vrc;
         }
         if (!input_path_errors(session, doc).empty()) {
             std::fputs(page.c_str(), stderr);
             std::fprintf(stderr, "acsd: %s blocked by missing/unreadable input path(s); "
                                  "-y cannot override (use -force to bypass precheck)\n", name);
-            return astrocs::INPUT;                          // 3: 输入缺失
+            return acsd::INPUT;                          // 3: 输入缺失
         }
         if (has_error(checks)) {
             std::fputs(page.c_str(), stderr);
             std::fprintf(stderr, "acsd: %s blocked by precheck error(s); "
                                  "fix the config or pass -force\n", name);
-            return astrocs::ARGS;                           // 2: 配置错
+            return acsd::ARGS;                           // 2: 配置错
         }
         const bool assume_yes = p.flags.count("-y") > 0 || p.flags.count("--yes") > 0;
-        // §4.5（依据 docs/ASTROCS_DESIGN.md §4.5 运行前预检）: 预检 = ① 打印有没有报错 + ② 详细预估（含资源与磁盘
+        // §4.5（依据 docs/ACSD_DESIGN.md §4.5 运行前预检）: 预检 = ① 打印有没有报错 + ② 详细预估（含资源与磁盘
         // 预估），**无论 correct / warn / error 都必须显示页面**；-y 只跳过**确认**，
         // 不跳过页面 ⇒ 无确认交互时在此打印（有确认时由 confirm_run 打印同一份 page）。
         if (assume_yes) std::fputs(page.c_str(), stderr);
@@ -463,7 +463,7 @@ struct Subcommand {
             std::fputs(page.c_str(), stderr);
             std::fprintf(stderr, "acsd: %s not confirmed — aborting before any product write\n",
                          name);
-            return astrocs::ARGS;                           // 2: 未确认
+            return acsd::ARGS;                           // 2: 未确认
         }
         return session_dispatch(static_cast<int>(session), SessionOp::Run, p, ev);
     }
@@ -477,14 +477,14 @@ struct Subcommand {
             std::ofstream f(std::filesystem::u8path(out_path), std::ios::binary | std::ios::trunc);
             if (!f) {
                 std::fprintf(stderr, "acsd: cannot write template '%s'\n", out_path.c_str());
-                return astrocs::IO;                         // 7
+                return acsd::IO;                         // 7
             }
             f << text;
-            if (!f.good()) return astrocs::IO;
-            return astrocs::OK;
+            if (!f.good()) return acsd::IO;
+            return acsd::OK;
         }
         std::fputs(text.c_str(), stdout);
-        return astrocs::OK;
+        return acsd::OK;
     }
 
     // §1「子命令帮助与字段说明」：usage 行 + 字段表。字段表与 --template 同源
@@ -493,12 +493,12 @@ struct Subcommand {
         const auto* c = find(name);
         std::printf("%s\n", c ? help_usage(*c).c_str() : name);
         std::fputs(config_field_help(session).c_str(), stdout);
-        return astrocs::OK;
+        return acsd::OK;
     }
 
     // 子命令分派：只处理 §6.2 的三种形态（--json 运行 / --template / --help）。
     // 组合非法 → 2（不猜测、不回落）。
-    int dispatch(const Parsed& p, astrocs::JsonlEmitter& ev) const {
+    int dispatch(const Parsed& p, acsd::JsonlEmitter& ev) const {
         const bool wants_help = p.flags.count("--help") > 0 || p.flags.count("-h") > 0;
         const bool wants_template = p.flags.count("--template") > 0 ||
                                     p.values.count("--template") > 0;
@@ -515,4 +515,4 @@ struct Subcommand {
     }
 };
 
-}  // namespace astrocs::cli::cmd
+}  // namespace acsd::cli::cmd

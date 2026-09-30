@@ -56,7 +56,7 @@
 #include <cmath>
 #include <cstring>
 
-namespace astrocs {
+namespace acsd {
 namespace star_detection {
 namespace nls {
 
@@ -461,4 +461,4 @@ Report solve(ResidualFn residual, JacobianFn jacobian, void* ctx,
 
 }  // namespace nls
 }  // namespace star_detection
-}  // namespace astrocs
+}  // namespace acsd

@@ -1,5 +1,5 @@
-#ifndef ASTROCS_PHOTOMETRY_FRAME_FIT_H
-#define ASTROCS_PHOTOMETRY_FRAME_FIT_H
+#ifndef ACSD_PHOTOMETRY_FRAME_FIT_H
+#define ACSD_PHOTOMETRY_FRAME_FIT_H
 // ============================================================================
 // frame_photometry_fit.h - 单帧测光比例 k_photo 的**文件无关**装配入口
 //
@@ -23,7 +23,7 @@
 #include <cstdint>
 #include <string>
 
-namespace astrocs {
+namespace acsd {
 namespace photometry {
 
 struct FramePhotFitRequest {
@@ -171,6 +171,6 @@ struct FramePhotFitResult {
 FramePhotFitResult fit_frame_photometry(const FramePhotFitRequest& req);
 
 }  // namespace photometry
-}  // namespace astrocs
+}  // namespace acsd
 
-#endif  // ASTROCS_PHOTOMETRY_FRAME_FIT_H
+#endif  // ACSD_PHOTOMETRY_FRAME_FIT_H

@@ -34,10 +34,10 @@
 #include <time.h>
 #include <unistd.h>
 
-#include "astrocs/abi/module_api_v1.h"
-#include "astrocs/abi/lifecycle_v1.h"
-#include "astrocs/hips/types.h"
-#include "astrocs/hips/publish.h"
+#include "acsd/abi/module_api_v1.h"
+#include "acsd/abi/lifecycle_v1.h"
+#include "acsd/hips/types.h"
+#include "acsd/hips/publish.h"
 #include "aio_hips.h"
 
 static int g_fail = 0;
@@ -136,7 +136,7 @@ static int stage_exists(const char* out_dir) {
     }
     if (base[0] == '\0') snprintf(base, sizeof(base), "hips");
     snprintf(stage, sizeof(stage), "%s/.%s%s", parent, base,
-             ASTROCS_HIPS_STAGE_BASENAME);
+             ACSD_HIPS_STAGE_BASENAME);
     return path_exists(stage);
 }
 
@@ -177,19 +177,19 @@ static int exec_cancel_counted(void* ud) {
     return ++c->calls > c->skip_after ? 1 : 0;
 }
 
-static const acs_allocator_v1 k_alloc = {
-    { (uint32_t)sizeof(acs_allocator_v1), ACS_ABI_VERSION_V1 },
+static const acsd_allocator_v1 k_alloc = {
+    { (uint32_t)sizeof(acsd_allocator_v1), ACS_ABI_VERSION_V1 },
     halloc, hfree, NULL
 };
-static const acs_executor_v1 k_exec_ok = {
-    { (uint32_t)sizeof(acs_executor_v1), ACS_ABI_VERSION_V1 },
+static const acsd_executor_v1 k_exec_ok = {
+    { (uint32_t)sizeof(acsd_executor_v1), ACS_ABI_VERSION_V1 },
     4, 2, exec_acquire_ok, exec_release_ok, NULL
 };
 
-static void host_fill(acs_host_api_v1* h, const acs_allocator_v1* al,
-                      const acs_executor_v1* ex, const acs_cancel_v1* ca) {
+static void host_fill(acsd_host_api_v1* h, const acsd_allocator_v1* al,
+                      const acsd_executor_v1* ex, const acsd_cancel_v1* ca) {
     memset(h, 0, sizeof(*h));
-    h->head.struct_size = (uint32_t)sizeof(acs_host_api_v1);
+    h->head.struct_size = (uint32_t)sizeof(acsd_host_api_v1);
     h->head.abi_version = ACS_ABI_VERSION_V1;
     h->allocator = al;
     h->executor = ex;
@@ -234,18 +234,18 @@ static char g_out_buf[8192];
 
 /* 组装 execute 输入 (4 tile; flags=7 signal/support/snr) 并执行一次事务。
  * 返回 execute 状态码; out_dir 写入 out_dir 参数。 */
-static acs_status run_write_product(const acs_module_api_v1* api,
-                                    const acs_host_api_v1* host,
+static acsd_status run_write_product(const acsd_module_api_v1* api,
+                                    const acsd_host_api_v1* host,
                                     const char* out_dir,
-                                    acs_error_info_v1* err) {
+                                    acsd_error_info_v1* err) {
     char cfg[1400];
     snprintf(cfg, sizeof(cfg),
              "{\"op\":\"write_product\",\"out_dir\":\"%s\",\"nside\":512,"
              "\"tile_width\":512,\"data_type\":0,\"flags\":7}",
              out_dir);
-    acs_module_instance_v1* inst = NULL;
-    acs_status st = api->create(api,
-        (acs_str_v1){ sizeof(acs_str_v1), ACS_ABI_VERSION_V1,
+    acsd_module_instance_v1* inst = NULL;
+    acsd_status st = api->create(api,
+        (acsd_str_v1){ sizeof(acsd_str_v1), ACS_ABI_VERSION_V1,
                       cfg, strlen(cfg) },
         host, &inst, err);
     if (st != ACS_OK) return st;
@@ -306,12 +306,12 @@ static acs_status run_write_product(const acs_module_api_v1* api,
     }
     w += snprintf(w, (size_t)(sizeof(man) - (size_t)(w - man)), "\"}");
 
-    acs_strbuf_v1 ob = { sizeof(acs_strbuf_v1), ACS_ABI_VERSION_V1,
+    acsd_strbuf_v1 ob = { sizeof(acsd_strbuf_v1), ACS_ABI_VERSION_V1,
                          g_out_buf, sizeof(g_out_buf), 0 };
     st = api->execute(inst,
-        (acs_str_v1){ sizeof(acs_str_v1), ACS_ABI_VERSION_V1,
+        (acsd_str_v1){ sizeof(acsd_str_v1), ACS_ABI_VERSION_V1,
                       man, (uint64_t)(w - man) },
-        (acs_str_v1){ sizeof(acs_str_v1), ACS_ABI_VERSION_V1,
+        (acsd_str_v1){ sizeof(acsd_str_v1), ACS_ABI_VERSION_V1,
                       cfg, strlen(cfg) },
         &ob, err);
     api->destroy(inst);
@@ -332,7 +332,7 @@ static void run_units(const char* root) {
     EXPECT(aio_publish_stage_create_v1(dir, stage, sizeof(stage)) ==
            AIO_PUBLISH_OK);
     EXPECT(path_is_dir(stage));
-    EXPECT(strstr(stage, ASTROCS_HIPS_STAGE_BASENAME) != NULL);
+    EXPECT(strstr(stage, ACSD_HIPS_STAGE_BASENAME) != NULL);
     EXPECT(strncmp(stage, dir, strlen(dir)) == 0 ||
            strstr(stage, "/.") != NULL);
     /* staging 必须是 out_dir 的兄弟 (父目录内), 不在其内部 */
@@ -430,9 +430,9 @@ static void run_units(const char* root) {
      * (注入必败口径: 该注入使"清空断言"翻红, 不存在恒 PASS 占位) */
     EXPECT(aio_publish_stage_create_v1(dir, stage, sizeof(stage)) ==
            AIO_PUBLISH_OK);
-    setenv("ASTROCS_HIPS_PUBLISH_FAULT", "p1_discard_noop", 1);
+    setenv("ACSD_HIPS_PUBLISH_FAULT", "p1_discard_noop", 1);
     EXPECT(aio_publish_stage_discard_v1(dir) == AIO_PUBLISH_OK);
-    unsetenv("ASTROCS_HIPS_PUBLISH_FAULT");
+    unsetenv("ACSD_HIPS_PUBLISH_FAULT");
     EXPECT(path_is_dir(stage));               /* 假清生效 → 残留仍在 */
     EXPECT(aio_publish_stage_discard_v1(dir) == AIO_PUBLISH_OK);
     EXPECT(!path_exists(stage));
@@ -446,13 +446,13 @@ static void run_atomic_success(const char* root) {
     snprintf(out, sizeof(out), "%s/atomic/success/target", root);
     rm_rf(out);                                /* 幂等重跑: 从零态开始 */
     mkdir_p(out);                              /* 空目标 (唯一目标语义) */
-    acs_host_api_v1 host;
+    acsd_host_api_v1 host;
     host_fill(&host, &k_alloc, &k_exec_ok, NULL);
-    const acs_module_api_v1* api = NULL;
-    EXPECT(astrocs_module_query_v1(ACS_ABI_VERSION_V1, &host, &api) == ACS_OK);
-    acs_error_info_v1 err;
+    const acsd_module_api_v1* api = NULL;
+    EXPECT(acsd_module_query_v1(ACS_ABI_VERSION_V1, &host, &api) == ACS_OK);
+    acsd_error_info_v1 err;
     memset(&err, 0, sizeof(err));
-    acs_status st = run_write_product(api, &host, out, &err);
+    acsd_status st = run_write_product(api, &host, out, &err);
     EXPECT(st == ACS_OK);
     char p[1200];
     snprintf(p, sizeof(p), "%s/manifest.json", out);
@@ -471,15 +471,15 @@ static void run_atomic_fsync_fail(const char* root) {
     snprintf(out, sizeof(out), "%s/atomic/fsync_fail/target", root);
     rm_rf(out);
     mkdir_p(out);
-    acs_host_api_v1 host;
+    acsd_host_api_v1 host;
     host_fill(&host, &k_alloc, &k_exec_ok, NULL);
-    const acs_module_api_v1* api = NULL;
-    EXPECT(astrocs_module_query_v1(ACS_ABI_VERSION_V1, &host, &api) == ACS_OK);
-    setenv("ASTROCS_HIPS_PUBLISH_FAULT", "p1_fsync_fail", 1);
-    acs_error_info_v1 err;
+    const acsd_module_api_v1* api = NULL;
+    EXPECT(acsd_module_query_v1(ACS_ABI_VERSION_V1, &host, &api) == ACS_OK);
+    setenv("ACSD_HIPS_PUBLISH_FAULT", "p1_fsync_fail", 1);
+    acsd_error_info_v1 err;
     memset(&err, 0, sizeof(err));
-    acs_status st = run_write_product(api, &host, out, &err);
-    unsetenv("ASTROCS_HIPS_PUBLISH_FAULT");
+    acsd_status st = run_write_product(api, &host, out, &err);
+    unsetenv("ACSD_HIPS_PUBLISH_FAULT");
     EXPECT(st == ACS_ERR_IO);                  /* ENOSPC 收敛面 → IO */
     EXPECT_STR(err.message_utf8, "publish failed");
     EXPECT(target_has_partial(out) == 0);      /* 无 partial (红锚: 旧行为
@@ -493,15 +493,15 @@ static void run_atomic_promote_fail(const char* root) {
     snprintf(out, sizeof(out), "%s/atomic/promote_fail/target", root);
     rm_rf(out);
     mkdir_p(out);
-    acs_host_api_v1 host;
+    acsd_host_api_v1 host;
     host_fill(&host, &k_alloc, &k_exec_ok, NULL);
-    const acs_module_api_v1* api = NULL;
-    EXPECT(astrocs_module_query_v1(ACS_ABI_VERSION_V1, &host, &api) == ACS_OK);
-    setenv("ASTROCS_HIPS_PUBLISH_FAULT", "p1_promote_fail", 1);
-    acs_error_info_v1 err;
+    const acsd_module_api_v1* api = NULL;
+    EXPECT(acsd_module_query_v1(ACS_ABI_VERSION_V1, &host, &api) == ACS_OK);
+    setenv("ACSD_HIPS_PUBLISH_FAULT", "p1_promote_fail", 1);
+    acsd_error_info_v1 err;
     memset(&err, 0, sizeof(err));
-    acs_status st = run_write_product(api, &host, out, &err);
-    unsetenv("ASTROCS_HIPS_PUBLISH_FAULT");
+    acsd_status st = run_write_product(api, &host, out, &err);
+    unsetenv("ACSD_HIPS_PUBLISH_FAULT");
     EXPECT(st == ACS_ERR_IO);
     EXPECT(target_has_partial(out) == 0);
     EXPECT(!stage_exists(out));
@@ -513,15 +513,15 @@ static void run_atomic_stage_fail(const char* root) {
     snprintf(out, sizeof(out), "%s/atomic/stage_fail/target", root);
     rm_rf(out);
     mkdir_p(out);
-    acs_host_api_v1 host;
+    acsd_host_api_v1 host;
     host_fill(&host, &k_alloc, &k_exec_ok, NULL);
-    const acs_module_api_v1* api = NULL;
-    EXPECT(astrocs_module_query_v1(ACS_ABI_VERSION_V1, &host, &api) == ACS_OK);
-    setenv("ASTROCS_HIPS_PUBLISH_FAULT", "p1_stage_create_fail", 1);
-    acs_error_info_v1 err;
+    const acsd_module_api_v1* api = NULL;
+    EXPECT(acsd_module_query_v1(ACS_ABI_VERSION_V1, &host, &api) == ACS_OK);
+    setenv("ACSD_HIPS_PUBLISH_FAULT", "p1_stage_create_fail", 1);
+    acsd_error_info_v1 err;
     memset(&err, 0, sizeof(err));
-    acs_status st = run_write_product(api, &host, out, &err);
-    unsetenv("ASTROCS_HIPS_PUBLISH_FAULT");
+    acsd_status st = run_write_product(api, &host, out, &err);
+    unsetenv("ACSD_HIPS_PUBLISH_FAULT");
     EXPECT(st == ACS_ERR_IO);
     EXPECT_STR(err.message_utf8, "staging create failed");
     EXPECT(target_has_partial(out) == 0);      /* 未触数据平面 */
@@ -534,19 +534,19 @@ static void run_atomic_cancel_mid(const char* root) {
     snprintf(out, sizeof(out), "%s/atomic/cancel_mid/target", root);
     rm_rf(out);
     mkdir_p(out);
-    acs_host_api_v1 host;
+    acsd_host_api_v1 host;
     static cancel_cnt cc = { 0, 1 };           /* tile 间第 2 次查询触发取消 */
     cc.calls = 0;
-    static const acs_cancel_v1 k_cancel = {
-        { (uint32_t)sizeof(acs_cancel_v1), ACS_ABI_VERSION_V1 },
+    static const acsd_cancel_v1 k_cancel = {
+        { (uint32_t)sizeof(acsd_cancel_v1), ACS_ABI_VERSION_V1 },
         exec_cancel_counted, &cc
     };
     host_fill(&host, &k_alloc, &k_exec_ok, &k_cancel);
-    const acs_module_api_v1* api = NULL;
-    EXPECT(astrocs_module_query_v1(ACS_ABI_VERSION_V1, &host, &api) == ACS_OK);
-    acs_error_info_v1 err;
+    const acsd_module_api_v1* api = NULL;
+    EXPECT(acsd_module_query_v1(ACS_ABI_VERSION_V1, &host, &api) == ACS_OK);
+    acsd_error_info_v1 err;
     memset(&err, 0, sizeof(err));
-    acs_status st = run_write_product(api, &host, out, &err);
+    acsd_status st = run_write_product(api, &host, out, &err);
     EXPECT(st == ACS_ERR_CANCELLED);
     EXPECT(cc.calls > 1);                      /* 取消确实发生在事务中 */
     EXPECT(target_has_partial(out) == 0);      /* 取消后无 partial (红锚) */
@@ -567,13 +567,13 @@ static void run_atomic_kill(const char* root) {
     EXPECT(pid >= 0);
     if (pid == 0) {
         /* 子进程: 注入 slow → 驻留 staging 期; SIGKILL 由父进程施加 */
-        setenv("ASTROCS_HIPS_PUBLISH_FAULT", "p1_stage_slow_write", 1);
-        acs_host_api_v1 host;
+        setenv("ACSD_HIPS_PUBLISH_FAULT", "p1_stage_slow_write", 1);
+        acsd_host_api_v1 host;
         host_fill(&host, &k_alloc, &k_exec_ok, NULL);
-        const acs_module_api_v1* api = NULL;
-        if (astrocs_module_query_v1(ACS_ABI_VERSION_V1, &host, &api) != ACS_OK ||
+        const acsd_module_api_v1* api = NULL;
+        if (acsd_module_query_v1(ACS_ABI_VERSION_V1, &host, &api) != ACS_OK ||
             !api) _exit(2);
-        acs_error_info_v1 err;
+        acsd_error_info_v1 err;
         memset(&err, 0, sizeof(err));
         run_write_product(api, &host, out, &err);
         _exit(0);                              /* 未被 kill = 时序异常 */
@@ -597,13 +597,13 @@ static void run_atomic_kill(const char* root) {
     EXPECT(stage_exists(out));
 
     /* 自愈: 下一次事务 stage_create 确定性清残留 → 正常发布 → 完整树 */
-    acs_host_api_v1 host;
+    acsd_host_api_v1 host;
     host_fill(&host, &k_alloc, &k_exec_ok, NULL);
-    const acs_module_api_v1* api = NULL;
-    EXPECT(astrocs_module_query_v1(ACS_ABI_VERSION_V1, &host, &api) == ACS_OK);
-    acs_error_info_v1 err;
+    const acsd_module_api_v1* api = NULL;
+    EXPECT(acsd_module_query_v1(ACS_ABI_VERSION_V1, &host, &api) == ACS_OK);
+    acsd_error_info_v1 err;
     memset(&err, 0, sizeof(err));
-    acs_status st = run_write_product(api, &host, out, &err);
+    acsd_status st = run_write_product(api, &host, out, &err);
     EXPECT(st == ACS_OK);
     EXPECT(!stage_exists(out));                /* 残留已自愈 */
     char p[1200];
@@ -620,13 +620,13 @@ static void run_atomic_overwrite_nonempty_reject(const char* root) {
     mkdir_p(out);
     snprintf(p, sizeof(p), "%s/user_data.bin", out);
     touch_file(p, "precious");
-    acs_host_api_v1 host;
+    acsd_host_api_v1 host;
     host_fill(&host, &k_alloc, &k_exec_ok, NULL);
-    const acs_module_api_v1* api = NULL;
-    EXPECT(astrocs_module_query_v1(ACS_ABI_VERSION_V1, &host, &api) == ACS_OK);
-    acs_error_info_v1 err;
+    const acsd_module_api_v1* api = NULL;
+    EXPECT(acsd_module_query_v1(ACS_ABI_VERSION_V1, &host, &api) == ACS_OK);
+    acsd_error_info_v1 err;
     memset(&err, 0, sizeof(err));
-    acs_status st = run_write_product(api, &host, out, &err);
+    acsd_status st = run_write_product(api, &host, out, &err);
     EXPECT(st == ACS_ERR_IO);                  /* 发布门失败 (promote STATE) */
     EXPECT_STR(err.message_utf8, "no partial tree");
     snprintf(p, sizeof(p), "%s/user_data.bin", out);
@@ -649,17 +649,17 @@ static void run_atomic_stale_junk_selfheal(const char* root) {
         char stage[1200];
         const char* slash = strrchr(out, '/');
         snprintf(stage, sizeof(stage), "%.*s/%s%s", (int)(slash - out), out,
-                 slash + 1, ASTROCS_HIPS_STAGE_BASENAME);
+                 slash + 1, ACSD_HIPS_STAGE_BASENAME);
         snprintf(junk, sizeof(junk), "%s/stale.bin", stage);
         touch_file(junk, "garbage");
     }
-    acs_host_api_v1 host;
+    acsd_host_api_v1 host;
     host_fill(&host, &k_alloc, &k_exec_ok, NULL);
-    const acs_module_api_v1* api = NULL;
-    EXPECT(astrocs_module_query_v1(ACS_ABI_VERSION_V1, &host, &api) == ACS_OK);
-    acs_error_info_v1 err;
+    const acsd_module_api_v1* api = NULL;
+    EXPECT(acsd_module_query_v1(ACS_ABI_VERSION_V1, &host, &api) == ACS_OK);
+    acsd_error_info_v1 err;
     memset(&err, 0, sizeof(err));
-    acs_status st = run_write_product(api, &host, out, &err);
+    acsd_status st = run_write_product(api, &host, out, &err);
     EXPECT(st == ACS_OK);
     snprintf(junk, sizeof(junk), "%s/../stale", out);
     (void)junk;

@@ -4,26 +4,26 @@
 # star_matcher.cpp（matchWithKdTree :185 / cleanAndScale :378）、
 # wcs_transform.cpp、spectrum_integrator.cpp、image_corrector.cpp；C API 6 导出
 # 符号唯一权威签名头 lib/algorithms/photometry/cpp/include/photometric_calib.h），
-# 模块化迁移（独立模块源 astrocs_p1_photometry.dll / C ABI adapter /
+# 模块化迁移（独立模块源 acsd_p1_photometry.dll / C ABI adapter /
 # plan-execute-cancel-inspect / ThreadLease 接线）由 P1-PHOT-IMPL 执行；
 # 可执行测试由 P1-PHOT-TEST 建立（TEST-PHOT-DESIGN-001 → TEST-P1-PHOT-001）。
 # 字段遵循 11_MODULE_SOURCE_TEST_STANDARD.md §4；source_symbols 为源码核对
 # 清单（P1-PHOT-DOC，2026-09-07，6 个 C API 导出符号 grep 实测），禁止手抄
 # 他版。
-# 落位依据：MODULE_MIGRATION_MATRIX.csv P1-PHOT 行 target=astrocs_p1_photometry.dll、
-# module_id=astrocs.p1.photometry、legacy_paths="lib/algorithms/photometry;
+# 落位依据：MODULE_MIGRATION_MATRIX.csv P1-PHOT 行 target=acsd_p1_photometry.dll、
+# module_id=acsd.p1.photometry、legacy_paths="lib/algorithms/photometry;
 # lib/algorithms/photometry/wrapper_phase1"、depends_on_int=P1-PSF-INT;P1-WCS-INT。本目录
 # lib/algorithms/photometry/ 既是生产实现所在又是迁移落码目标（合同三件套
 # README.md r1 + module.yaml + memory.md 落位于此）；lib/algorithms/photometry/wrapper_phase1/
-# 旧符号 astrocs::phase1::Photometer（aperture 测光，CMakeLists.txt:429-432
-# 静态库 astrocs_phase1_phot，仅单测 eng/tests/unit/p1_wcs_phot_test，未接
+# 旧符号 acsd::phase1::Photometer（aperture 测光，CMakeLists.txt:429-432
+# 静态库 acsd_phase1_phot，仅单测 eng/tests/unit/p1_wcs_phot_test，未接
 # orchestrator 管线）为计划迁移旧符号，其 aperture 合同并入
 # lib/algorithms/photometry/README.md §9，去留由 P1-PHOT-IMPL 登记 TASK_RESULT。
-# dll_target=astrocs_p1_photometry.dll 为迁移目标合同值（尚未存在）。现状
+# dll_target=acsd_p1_photometry.dll 为迁移目标合同值（尚未存在）。现状
 # 构建=lib/algorithms/photometry/cpp/Makefile:11（g++ -shared -fopenmp →
 # photometric_calib.dll，链接 ../../gaia_xpsd_client/gaia_client.dll）+
 # cpp/build.ps1:9（MinGW 通道）；未编入根 CMake 主构建（无 photometric_calib
-# CMake 目标，与 astrocs_hips/astrocs_drizzle 先例不同）——CMake 集成归
+# CMake 目标，与 acsd_hips/acsd_drizzle 先例不同）——CMake 集成归
 # P1-PHOT-IMPL。生产调用=orchestrator.cpp:2474 run_stage_photometric →
 # :2714 pc_calibrate_simple_with_gaia_f64_v2 / :2790 _v2（dll_loader.cpp:40/:54
 # 加载名与路径吻合，gaia_client.dll 预加载 :271-281）。
@@ -39,9 +39,9 @@
 # SCI-P1-PHOT-001/ALG-002/DATA-P1-FLUX/API-P1-005/TEST-P1-PHOT-001）由
 # P1-PHOT-INT 对齐本 manifest 与 lib/algorithms/photometry/README.md（r1），
 # 不得反向作为冻结依据。
-schema: astrocs.module-manifest/v1
-id: MOD-astrocs-phase1-photometry
-module_id: astrocs.p1.photometry
+schema: acsd.module-manifest/v1
+id: MOD-acsd-phase1-photometry
+module_id: acsd.p1.photometry
 owner: SA-P1-N17
 language: c++17
 # module_version 属 module 命名空间（docs/engineering/RELEASE_STATUS.md §2），取值须与
@@ -49,8 +49,8 @@ language: c++17
 module_version: 0.1.0-alpha.1
 abi_version: 1
 phase_scope: phase1
-dll_name: astrocs_p1_photometry.dll
-dll_target: astrocs_p1_photometry.dll
+dll_name: acsd_p1_photometry.dll
+dll_target: acsd_p1_photometry.dll
 module_status: CONTRACT_READY
 entrypoint: MISSING
 node_operations: []
@@ -79,7 +79,7 @@ contract_ids:
   alg: ALG-PHOT-001..002
   data: DATA-P1-PHOT
   api: API-PHOT-001
-  mod: MOD-astrocs-phase1-photometry
+  mod: MOD-acsd-phase1-photometry
   src: SRC-PHOT-001
   test: TEST-PHOT-DESIGN-001
 exports:

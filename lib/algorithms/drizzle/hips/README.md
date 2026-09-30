@@ -1,9 +1,9 @@
-# lib/algorithms/drizzle/hips — astrocs.p1.hips_writer（P1-HIPS）
+# lib/algorithms/drizzle/hips — acsd.p1.hips_writer（P1-HIPS）
 
 > 状态: CONTRACT_READY（P1-HIPS-DOC 冻结，2026-09-07）｜doc revision: r1
 > **现状复测（LEDGER-DOC，2026-09-17；`python3 eng/tools/quality/check_module_map.py`）**：
-> 本模块生产源 `lib/algorithms/drizzle/hips/src/module_entry.cpp` 与 CMake SHARED target `astrocs_p1_hips_writer`（`lib/algorithms/drizzle/hips/CMakeLists.txt:43`）均在位，
-> `astrocs_module_query_v1` 导出存在但**函数体零调用**（检查器 finding `noop_entrypoint`）
+> 本模块生产源 `lib/algorithms/drizzle/hips/src/module_entry.cpp` 与 CMake SHARED target `acsd_p1_hips_writer`（`lib/algorithms/drizzle/hips/CMakeLists.txt:43`）均在位，
+> `acsd_module_query_v1` 导出存在但**函数体零调用**（检查器 finding `noop_entrypoint`）
 > ⇒ 机读状态 = **NOT_IMPLEMENTED**。下文旧基线中「仅合同文件/无源码/无 CMake target/
 > entrypoint=MISSING/尚未存在」等表述已被实测反证，以本注记与检查器输出为准；
 > 实现侧整改归 P1-HIPS-IMPL。
@@ -11,10 +11,10 @@
 > shape、invalid、错误、并发、内存、I/O 均以现行唯一生产实现
 > `lib/infrastructure/aio/src/hips/aio_hips_writer.cpp`（合同头
 > `lib/infrastructure/aio/include/aio_hips.h`；根 CMakeLists.txt:298-309 编入静态库
-> `astrocs_hips`，C ABI 导出 aio_hips.h:104,121,130,135,144,149,152,163,177
-> 的 9 符号）为准；`lib/algorithms/drizzle/hips/` 是 P1-HIPS 迁移目标目录（astrocs_p1_hips_writer.dll
+> `acsd_hips`，C ABI 导出 aio_hips.h:104,121,130,135,144,149,152,163,177
+> 的 9 符号）为准；`lib/algorithms/drizzle/hips/` 是 P1-HIPS 迁移目标目录（acsd_p1_hips_writer.dll
 > 与 src/module_entry.cpp 已由 P1-HIPS-IMPL 落地在位；落位依据
-> MODULE_MIGRATION_MATRIX.csv P1-HIPS 行 target=astrocs_p1_hips_writer.dll、
+> MODULE_MIGRATION_MATRIX.csv P1-HIPS 行 target=acsd_p1_hips_writer.dll、
 > legacy_paths="lib/infrastructure/aio/healpix_db;lib/phase1_session"——实测生产 writer 在
 > lib/infrastructure/aio/src/hips/，lib/infrastructure/aio/healpix_db 侧参与生产的为 drizzle 写通道
 > astro_sphere_sink.cpp，healpix_stack 系列函数全仓零调用已死代码化，
@@ -27,11 +27,11 @@
 
 | 字段 | 当前值 |
 |---|---|
-| MOD ID / DLL target | `MOD-astrocs-phase1-hips-writer` / 模块 DLL `astrocs_p1_hips_writer`（SHARED，lib/algorithms/drizzle/hips/CMakeLists.txt:43，**已在位**；legacy 静态库 `astrocs_hips` 并存）；entrypoint `astrocs_module_query_v1` 在位但零调用 ⇒ MOD-001 检查器判 NOT_IMPLEMENTED（整改归 P1-HIPS-IMPL） |
-| module / ABI / doc revision | `astrocs.p1.hips_writer` / C ABI（aio_hips.h extern "C" AIO_HIPS_EXPORT，无版本化 query 入口，迁移缺口）/ r1 |
+| MOD ID / DLL target | `MOD-acsd-phase1-hips-writer` / 模块 DLL `acsd_p1_hips_writer`（SHARED，lib/algorithms/drizzle/hips/CMakeLists.txt:43，**已在位**；legacy 静态库 `acsd_hips` 并存）；entrypoint `acsd_module_query_v1` 在位但零调用 ⇒ MOD-001 检查器判 NOT_IMPLEMENTED（整改归 P1-HIPS-IMPL） |
+| module / ABI / doc revision | `acsd.p1.hips_writer` / C ABI（aio_hips.h extern "C" AIO_HIPS_EXPORT，无版本化 query 入口，迁移缺口）/ r1 |
 | owner / phase scope | SA-P1-D18 / phase1（matrix P1-HIPS；depends_on_int=P1-DRZ-INT;IO-003） |
 | 文档状态 | CONTRACT_READY（实现存在于 lib/infrastructure/aio/src/hips，模块化迁移未开始；不声明 IMPLEMENTED） |
-| 构建 | 现状随 CMakeLists.txt:298-309 `astrocs_hips`（STATIC，AIO_ENABLE_FITS/AIO_ENABLE_HEALPIX :317，链接 astrocs_aio/astrocs_common :318；astrocs_drizzle :378 与主程序 :493-497 均链 astrocs_hips）；独立目标由 P1-HIPS-IMPL 建立 |
+| 构建 | 现状随 CMakeLists.txt:298-309 `acsd_hips`（STATIC，AIO_ENABLE_FITS/AIO_ENABLE_HEALPIX :317，链接 acsd_aio/acsd_common :318；acsd_drizzle :378 与主程序 :493-497 均链 acsd_hips）；独立目标由 P1-HIPS-IMPL 建立 |
 
 ## 2. 负责范围
 
@@ -42,8 +42,8 @@ signal/support/variance/ivar 四个 Image HiPS 子产品与 SNR Catalogue HiPS
 视图）、surface brightness/coverage 归一（signal=flux_sum/covered_area、
 support=covered_area/A_cell）、方差产品（variance=var_num_sum/covered_area²、
 ivar=1/variance）、低阶 hierarchy tiles 从磁盘聚合、Moc.fits（BINTABLE
-UNIQ）、properties（IVOa 关键字 + ASTROCS 扩展键）、metadata.fits、
-manifest.json、Drizzle provenance 键（ASTROCS_DRIZZLE_PIXFRAC/SCALE_ARCSEC，
+UNIQ）、properties（IVOa 关键字 + ACSD 扩展键）、metadata.fits、
+manifest.json、Drizzle provenance 键（ACSD_DRIZZLE_PIXFRAC/SCALE_ARCSEC，
 Phase2 k_corr 选择输入）。数据语义 DATA-P1-HIPS（DATA_SEMANTICS §12）。
 
 不负责：tile 累加本身（sumFlux/sumArea/sumVarNum 生成=P1-DRZ drizzle 引擎，
@@ -62,7 +62,7 @@ Python 侧发布器，不改本 C++ writer——边界引用不越权）；HISS 
 `nside`（叶级，2 的幂且 ≥512，=2^leaf_order）；`tile_width` 恒 512；
 `data_type` AIO_HIPS_FLOAT32(0)/FLOAT64(1)；`flags` 子产品位或
 SIGNAL=1/SUPPORT=2/SNR=4/VARIANCE=8/IVAR=16/ALL=7/ALL_V19=31（aio_hips.h:34-43）；
-properties 元数据入参 creator_did（缺省 ivo://astrocs/phase1）/
+properties 元数据入参 creator_did（缺省 ivo://acsd/phase1）/
 obs_title（缺省 "Astro Celestial Sphere Database（ACSD） Phase1"，:414-415）/obs_filter(可 NULL)/exposure_s(s)/
 obs_date(可 NULL)/moc_order(0=auto=tile_order，>0 取 min 与 tile_order，
 :419)。逐 tile 输入 AstroSphereTileView（aio_hips.h:59-71）：parent_ipix
@@ -89,7 +89,7 @@ write_properties :285-293）+ `Moc.fits`（UNIQ=4·4^m+(c>>2(K−m))，BINTABLE�
 write_moc_fits :243-283；空 MOC 不写 :246）+ `metadata.fits`（:776-786）；
 根级 `manifest.json`（format_version/hips_version="1.4"/nside/tile_width/
 data_type/products/n_leaf_tiles/moc_sky_fraction/
-astrocs_covered_sky_fraction/signal_dtype，:1086-1128）。invalid：
+acsd_covered_sky_fraction/signal_dtype，:1086-1128）。invalid：
 covered_area≤0 或非有限 → signal=NaN、support=0（:476-485）；variance/ivar
 同 tile 域 NaN（:615-621）；无有效样本 tile 的 variance 写请求 rc=−5 显式
 失败（:629-632），不静默产空 tile。
@@ -102,7 +102,7 @@ covered_area≤0 或非有限 → signal=NaN、support=0（:476-485）；varianc
 | ALG | ALG-HIPS-001..005 | docs/science/algorithms/HIPS_WRITER.md（逐公式源码锚定 + DISP-HIPS-001..012） |
 | DATA | DATA-P1-HIPS | docs/science/DATA_SEMANTICS.md §12（上游 DATA-P1-DRZ §11；产品位/ivar 语义 §4a DATA-HIPS-VAR-001/DATA-HIPS-IVAR-001；帧身份 §5） |
 | API | API-HIPS-001 | docs/engineering/PUBLIC_API.md（aio_hips.h 9 符号现状 C API；编排级经 API-P1-007 hp_drizzle_run_hips 间接到达） |
-| ARCH/MOD/SRC | ARCH-001 / MOD-astrocs-phase1-hips-writer / SRC-HIPS-001 | docs/traceability/TRACEABILITY_MATRIX.json；SRC 锚 aio_hips.h::9 符号 |
+| ARCH/MOD/SRC | ARCH-001 / MOD-acsd-phase1-hips-writer / SRC-HIPS-001 | docs/traceability/TRACEABILITY_MATRIX.json；SRC 锚 aio_hips.h::9 符号 |
 
 ## 5. 公共入口与符号（API-HIPS-001）
 
@@ -167,9 +167,9 @@ manifest 字节不跨运行复现**）。hierarchy 归约按 k 降序 + NESTED �
 顺序（:536-557）无浮点求和顺序漂移（每父 cell 单线程顺序累加；f32 产品
 AncestorAcc float 累加精度见 DISP-HIPS-009 与 TEST-HIPS-DESIGN-001 容差）。
 provenance：creator_did/obs_title/obs_filter/exposure/obs_date 直写入
-properties；ASTROCS_DRIZZLE_PIXFRAC/SCALE_ARCSEC 由 sink 经
+properties；ACSD_DRIZZLE_PIXFRAC/SCALE_ARCSEC 由 sink 经
 set_drizzle_provenance 传入（astro_sphere_sink.cpp:65-76）；prov_progenitor
-=ivo://astrocs/phase1/drizzle（:729）；hips_builder 含 CFITSIO 版本。整树
+=ivo://acsd/phase1/drizzle（:729）；hips_builder 含 CFITSIO 版本。整树
 哈希无（writer 层）——sha256 清单在 IO-003 发布层，边界=DATA-P1-HIPS §12.5。
 
 ## 9. 测试、验证与已知限制
@@ -186,7 +186,7 @@ TEST-HIPS-DESIGN-001 见 ALG-HIPS-001 §9（fixture/oracle/不变量 I1-I12/
 publish_atomic_test.c（ctest hips_publish_atomic_units / hips_publish_atomic，
 TEST-P1-HIPS-PUBLISH-001）——publish.h v1 四原语正/负/幂等（units 组）+
 write_product 事务化全链（atomic 组）：正向发布（staging→fsync→原子
-promote→out_dir 完整树）、注入必败（ASTROCS_HIPS_PUBLISH_FAULT=
+promote→out_dir 完整树）、注入必败（ACSD_HIPS_PUBLISH_FAULT=
 p1_stage_create_fail/p1_fsync_fail/p1_promote_fail → rc=1 且 out_dir 无
 partial）、cancel 中断（staging 确定性丢弃）、kill 中断（fork+SIGKILL 驻留
 staging 期 → out_dir 根无 partial + staging 残留 → 下次事务自愈）、非空目标
@@ -222,7 +222,7 @@ RAII + 同目标自愈）；③Windows 编译保持（_commit/MoveFileEx 目录 
 
 ## 10. 迁移（P1-HIPS-IMPL 目标，不声明完成）
 
-本目录（lib/algorithms/drizzle/hips/）为迁移落点：astrocs_p1_hips_writer.dll、module.yaml
+本目录（lib/algorithms/drizzle/hips/）为迁移落点：acsd_p1_hips_writer.dll、module.yaml
 （同目录，已冻结 manifest：entrypoint=MISSING——registry 无 descriptor）、
 C ABI adapter、plan/execute/cancel/inspect、ThreadLease 接线、DISP-HIPS
 清单消化见 ALG-HIPS-001 §0/§10 与 module.yaml 注释。迁移不得改变

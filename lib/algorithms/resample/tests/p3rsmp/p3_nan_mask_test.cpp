@@ -35,11 +35,11 @@
 #include <string>
 #include <vector>
 
-using astrocs::phase3::P3_RS_OK;
-using astrocs::phase3::P3SampleRejection;
-using astrocs::phase3::P3Sampler;
-using astrocs::phase3::P3UncPixelState;
-using astrocs::phase3::P3UncertaintySource;
+using acsd::phase3::P3_RS_OK;
+using acsd::phase3::P3SampleRejection;
+using acsd::phase3::P3Sampler;
+using acsd::phase3::P3UncPixelState;
+using acsd::phase3::P3UncertaintySource;
 
 static int failures = 0;
 #define CHECK(cond)                                                              \
@@ -83,10 +83,10 @@ float gen_var(int i, void*) { return g_tab->var[static_cast<size_t>(i)]; }
 constexpr uint32_t kLeafOrder = 9;
 constexpr uint32_t kLeafNside = 512;
 uint64_t leaf_to_fits_index(uint64_t leaf) {
-    const uint64_t tip = astrocs::healpix::leaf_to_tile_nest(leaf, kLeafOrder, 0);
+    const uint64_t tip = acsd::healpix::leaf_to_tile_nest(leaf, kLeafOrder, 0);
     if (tip != 0ull) return ~0ull;
-    const uint64_t first = astrocs::healpix::tile_to_leaf_nest(tip, 0, kLeafOrder);
-    return astrocs::healpix::nested_local_to_fits_index(leaf - first, 9, kW);
+    const uint64_t first = acsd::healpix::tile_to_leaf_nest(tip, 0, kLeafOrder);
+    return acsd::healpix::nested_local_to_fits_index(leaf - first, 9, kW);
 }
 
 std::string hips_properties_text(const char* bunit, bool with_pixel_semantics) {
@@ -99,8 +99,8 @@ std::string hips_properties_text(const char* bunit, bool with_pixel_semantics) {
     s += "hips_version = 1.0\n";
     if (bunit) s += std::string("BUNIT = ") + bunit + "\n";
     if (with_pixel_semantics) {
-        s += "ASTROCS_PIXEL_SEMANTICS = surface_brightness\n";
-        s += "ASTROCS_PIXEL_AREA_POWER = -2\n";
+        s += "ACSD_PIXEL_SEMANTICS = surface_brightness\n";
+        s += "ACSD_PIXEL_AREA_POWER = -2\n";
     }
     return s;
 }
@@ -122,7 +122,7 @@ bool write_sub(const std::string& root, const char* sub, const char* bunit,
                                    static_cast<int>(kW), gen, nullptr) == 0;
 }
 
-// 完成清单（docs/ASTROCS_DESIGN §10）: 无清单的产品根被 aio_hips_open fail-closed
+// 完成清单（docs/ACSD_DESIGN §10）: 无清单的产品根被 aio_hips_open fail-closed
 bool write_manifest(const std::string& root) {
     const std::string body =
         "{\n  \"format_version\": 1,\n  \"product\": \"HiPS\",\n"
@@ -146,7 +146,7 @@ bool build_fixture(const std::string& root, const PxTable& tab) {
 
 // 采样中心: order-0 tile 0 中心 (四角同落 tile0 ⇒ 覆盖恒 1)
 void tile_center(double* ra, double* dec) {
-    astrocs::healpix::pix2ang_nest(1, 0ull, *ra, *dec);
+    acsd::healpix::pix2ang_nest(1, 0ull, *ra, *dec);
 }
 
 // 找一条采样方向: c==1、四角 leaf 互异、且**角 0 权重占优** (w[0] >= 0.5)。
@@ -166,7 +166,7 @@ bool find_asymmetric_dir(P3Sampler* s, double* ra_out, double* dec_out,
             float v = 0; int cov = 0;
             double ww[4] = {0, 0, 0, 0};
             uint64_t ll[4] = {0, 0, 0, 0};
-            if (astrocs::phase3::p3_sample_bilinear_ex(s, cand[c][0], cand[c][1], &v, &cov,
+            if (acsd::phase3::p3_sample_bilinear_ex(s, cand[c][0], cand[c][1], &v, &cov,
                                                       ww, ll) != P3_RS_OK)
                 continue;
             if (cov != 1 || std::isnan(v)) continue;
@@ -222,7 +222,7 @@ int main() {
     const char* td = std::getenv("TMPDIR");
     if (!td || !*td) td = std::getenv("TMP");
     if (!td || !*td) td = "/tmp";
-    const std::string root = fs::path(td).generic_string() + "/astrocs_p3_nan_mask";
+    const std::string root = fs::path(td).generic_string() + "/acsd_p3_nan_mask";
     const std::string hips = root + "/hips";
     std::error_code ec;
     fs::create_directories(root, ec);
@@ -239,19 +239,19 @@ int main() {
     {
         P3Sampler s{};
         std::string err;
-        CHECK(astrocs::phase3::p3_sampler_open_ex(hips.c_str(), &s, nullptr, nullptr, &err) == P3_RS_OK);
+        CHECK(acsd::phase3::p3_sampler_open_ex(hips.c_str(), &s, nullptr, nullptr, &err) == P3_RS_OK);
         CHECK(find_asymmetric_dir(&s, &ra, &dec, lf, w));
         // ── T1 harness 自检: 生产 read_leaf 映射 == 本用例的 FITS 序索引 ────
         for (int k = 0; k < 4; ++k) {
             double cra = 0, cdec = 0;
-            astrocs::healpix::pix2ang_nest(kLeafNside, lf[k], cra, cdec);
+            acsd::healpix::pix2ang_nest(kLeafNside, lf[k], cra, cdec);
             float v = 0; int c = -1;
-            CHECK(astrocs::phase3::p3_sample_nearest(&s, cra, cdec, &v, &c) == P3_RS_OK);
+            CHECK(acsd::phase3::p3_sample_nearest(&s, cra, cdec, &v, &c) == P3_RS_OK);
             const uint64_t fi = leaf_to_fits_index(lf[k]);
             CHECK_MSG(c == 1 && fi != ~0ull && v == kBase + static_cast<float>(fi),
                       "corner %d: v=%g fi=%llu", k, (double)v, (unsigned long long)fi);
         }
-        astrocs::phase3::p3_sampler_close(&s);
+        acsd::phase3::p3_sampler_close(&s);
     }
     // 非退化前提: 权重不对称 (等权平均判据才有力)
     double wmax = 0, wmin = 1;
@@ -282,12 +282,12 @@ int main() {
         CHECK(build_fixture(hips, t2));
         P3Sampler s{};
         std::string err;
-        CHECK(astrocs::phase3::p3_sampler_open_ex(hips.c_str(), &s, nullptr, nullptr, &err) == P3_RS_OK);
+        CHECK(acsd::phase3::p3_sampler_open_ex(hips.c_str(), &s, nullptr, nullptr, &err) == P3_RS_OK);
         float v = 0; int c = -1;
         double ww[4] = {0, 0, 0, 0};
         uint64_t ll[4] = {0, 0, 0, 0};
         P3SampleRejection rej{};
-        CHECK(astrocs::phase3::p3_sample_bilinear_nanmask_ex(&s, ra, dec, &v, &c, ww, ll, &rej) == P3_RS_OK);
+        CHECK(acsd::phase3::p3_sample_bilinear_nanmask_ex(&s, ra, dec, &v, &c, ww, ll, &rej) == P3_RS_OK);
         int n_rej_expect = 0;
         const double want = oracle_value(w, cs.corner, &n_rej_expect);
         // 几何/邻域必须与 Pass A 一致 (前提; 失败即前提失效)
@@ -344,7 +344,7 @@ int main() {
         }
         // 全部合格时计数必须为 0 (计数 0 与「字段缺失」可区分: 结构已零初始化)
         if (n_rej_expect == 0) CHECK(rej.n_rejected_nonfinite == 0);
-        astrocs::phase3::p3_sampler_close(&s);
+        acsd::phase3::p3_sampler_close(&s);
     }
 
     // ── T6 方差项: 剔除后按重归一权重传播 ───────────────────────────────────
@@ -365,23 +365,23 @@ int main() {
         CHECK(build_fixture(hips, t3));
         P3Sampler s{};
         P3Sampler u{};
-        P3UncertaintySource src = astrocs::phase3::P3_UNC_NONE;
+        P3UncertaintySource src = acsd::phase3::P3_UNC_NONE;
         std::string err;
-        CHECK(astrocs::phase3::p3_sampler_open_ex(hips.c_str(), &s, nullptr, nullptr, &err) == P3_RS_OK);
-        CHECK(astrocs::phase3::p3_uncertainty_open(hips.c_str(), 0, &src, &u) == P3_RS_OK);
-        CHECK(src == astrocs::phase3::P3_UNC_VARIANCE);
+        CHECK(acsd::phase3::p3_sampler_open_ex(hips.c_str(), &s, nullptr, nullptr, &err) == P3_RS_OK);
+        CHECK(acsd::phase3::p3_uncertainty_open(hips.c_str(), 0, &src, &u) == P3_RS_OK);
+        CHECK(src == acsd::phase3::P3_UNC_VARIANCE);
         float v = 0; int c = -1;
         double ww[4] = {0, 0, 0, 0};
         uint64_t ll[4] = {0, 0, 0, 0};
         P3SampleRejection rej{};
-        CHECK(astrocs::phase3::p3_sample_bilinear_nanmask_ex(&s, ra, dec, &v, &c, ww, ll, &rej) == P3_RS_OK);
+        CHECK(acsd::phase3::p3_sample_bilinear_nanmask_ex(&s, ra, dec, &v, &c, ww, ll, &rej) == P3_RS_OK);
         CHECK_MSG(!std::isnan(v) && c == 1 && rej.n_rejected_nonfinite == 1,
                   "T6: signal path must mask 1 sample (n_rej=%d, v=%g)",
                   rej.n_rejected_nonfinite, (double)v);
         double u_out = 0;
-        P3UncPixelState st = astrocs::phase3::P3_U_OK;
-        CHECK(astrocs::phase3::p3_uncertainty_propagate(&u, ww, ll, 4, &u_out, &st) == P3_RS_OK);
-        CHECK_MSG(st == astrocs::phase3::P3_U_OK && std::isfinite(u_out),
+        P3UncPixelState st = acsd::phase3::P3_U_OK;
+        CHECK(acsd::phase3::p3_uncertainty_propagate(&u, ww, ll, 4, &u_out, &st) == P3_RS_OK);
+        CHECK_MSG(st == acsd::phase3::P3_U_OK && std::isfinite(u_out),
                   "T6: masked variance must be finite/OK (st=%d u=%g)", (int)st, u_out);
         const double wsum = ww[1] + ww[2] + ww[3];
         const double want = (ww[1] / wsum) * (ww[1] / wsum) * u1 +
@@ -391,8 +391,8 @@ int main() {
         const double wrong_geom = w[1] * w[1] * u1 + w[2] * w[2] * u2 + w[3] * w[3] * u3;
         CHECK_MSG(std::fabs(wrong_geom - want) / std::max(1e-30, std::fabs(want)) > 0.05,
                   "T6: non-renormalised variance too close (%.9g vs %.9g)", wrong_geom, want);
-        astrocs::phase3::p3_uncertainty_close(&u);
-        astrocs::phase3::p3_sampler_close(&s);
+        acsd::phase3::p3_uncertainty_close(&u);
+        acsd::phase3::p3_sampler_close(&s);
     }
 
     // ── T6b 零合格样本: signal 与 variance 同为覆盖级 NaN (禁静默 0) ────────
@@ -407,23 +407,23 @@ int main() {
         CHECK(build_fixture(hips, t4));
         P3Sampler s{};
         P3Sampler u{};
-        P3UncertaintySource src = astrocs::phase3::P3_UNC_NONE;
+        P3UncertaintySource src = acsd::phase3::P3_UNC_NONE;
         std::string err;
-        CHECK(astrocs::phase3::p3_sampler_open_ex(hips.c_str(), &s, nullptr, nullptr, &err) == P3_RS_OK);
-        CHECK(astrocs::phase3::p3_uncertainty_open(hips.c_str(), 0, &src, &u) == P3_RS_OK);
+        CHECK(acsd::phase3::p3_sampler_open_ex(hips.c_str(), &s, nullptr, nullptr, &err) == P3_RS_OK);
+        CHECK(acsd::phase3::p3_uncertainty_open(hips.c_str(), 0, &src, &u) == P3_RS_OK);
         float v = 0; int c = -1;
         double ww[4] = {0, 0, 0, 0};
         uint64_t ll[4] = {0, 0, 0, 0};
         P3SampleRejection rej{};
-        CHECK(astrocs::phase3::p3_sample_bilinear_nanmask_ex(&s, ra, dec, &v, &c, ww, ll, &rej) == P3_RS_OK);
+        CHECK(acsd::phase3::p3_sample_bilinear_nanmask_ex(&s, ra, dec, &v, &c, ww, ll, &rej) == P3_RS_OK);
         CHECK(std::isnan(v) && c == 1 && rej.n_rejected_nonfinite == 4 && rej.n_eligible == 0);
         double u_out = 123.0;
-        P3UncPixelState st = astrocs::phase3::P3_U_OK;
-        CHECK(astrocs::phase3::p3_uncertainty_propagate(&u, ww, ll, 4, &u_out, &st) == P3_RS_OK);
-        CHECK_MSG(std::isnan(u_out) && st == astrocs::phase3::P3_U_NAN,
+        P3UncPixelState st = acsd::phase3::P3_U_OK;
+        CHECK(acsd::phase3::p3_uncertainty_propagate(&u, ww, ll, 4, &u_out, &st) == P3_RS_OK);
+        CHECK_MSG(std::isnan(u_out) && st == acsd::phase3::P3_U_NAN,
                   "T6b: zero-eligible variance must be NaN/NAN (st=%d u=%g)", (int)st, u_out);
-        astrocs::phase3::p3_uncertainty_close(&u);
-        astrocs::phase3::p3_sampler_close(&s);
+        acsd::phase3::p3_uncertainty_close(&u);
+        acsd::phase3::p3_sampler_close(&s);
     }
 
     fs::remove_all(root, ec);

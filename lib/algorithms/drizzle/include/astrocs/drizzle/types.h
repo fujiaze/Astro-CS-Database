@@ -1,16 +1,16 @@
-/* types.h - astrocs.p1.drizzle 模块常量与词表 (module ABI v1 迁移面)
+/* types.h - acsd.p1.drizzle 模块常量与词表 (module ABI v1 迁移面)
  *
- * 对齐先例: lib/infrastructure/gaia_xpsd_client/include/astrocs/gaia/types.h (CAT-GAIA-IMPL,
+ * 对齐先例: lib/infrastructure/gaia_xpsd_client/include/acsd/gaia/types.h (CAT-GAIA-IMPL,
  * commit babe752d)。本头只承载 C ABI adapter 层的常量/词表/诊断码,
  * 不含任何科学常量 (Van Oosterom 剖分、面积权重、NaN-Inf 传播语义全部留在
  * drizzle_engine / SCI-DRZ-001, 本迁移 scientific_change=false 零改动)。
  *
  * 合同链: SCI-DRZ-001 -> ALG-DRZ-001 -> API-DRZ-001 (docs/engineering/PUBLIC_API.md)
- *         -> lib/algorithms/drizzle/module.yaml (module_id=astrocs.p1.drizzle,
- *            dll_name=astrocs_p1_drizzle.dll, threading_model=host_executor_lease)
+ *         -> lib/algorithms/drizzle/module.yaml (module_id=acsd.p1.drizzle,
+ *            dll_name=acsd_p1_drizzle.dll, threading_model=host_executor_lease)
  */
-#ifndef ASTROCS_DRIZZLE_TYPES_H
-#define ASTROCS_DRIZZLE_TYPES_H
+#ifndef ACSD_DRIZZLE_TYPES_H
+#define ACSD_DRIZZLE_TYPES_H
 
 #include <stdint.h>
 
@@ -20,21 +20,21 @@ extern "C" {
 
 /* ───────── 模块标识 ───────── */
 
-#define ASTROCS_DRIZZLE_MODULE_ID       "astrocs.p1.drizzle"
-#define ASTROCS_DRIZZLE_MODULE_VERSION  1u
-#define ASTROCS_DRIZZLE_ABI_VERSION     1u
+#define ACSD_DRIZZLE_MODULE_ID       "acsd.p1.drizzle"
+#define ACSD_DRIZZLE_MODULE_VERSION  1u
+#define ACSD_DRIZZLE_ABI_VERSION     1u
 /* 构建标识: 迁移任务 P1-DRZ-IMPL (独立 DLL 化, 不改科学域) */
-#define ASTROCS_DRIZZLE_BUILD_ID        "p1-drz-impl-2026-09-02"
+#define ACSD_DRIZZLE_BUILD_ID        "p1-drz-impl-2026-09-02"
 
-#define ASTROCS_DRIZZLE_SCI_ID  "SCI-DRZ-001"
-#define ASTROCS_DRIZZLE_ALG_ID  "ALG-DRZ-001"
-#define ASTROCS_DRIZZLE_API_ID  "API-DRZ-001"
+#define ACSD_DRIZZLE_SCI_ID  "SCI-DRZ-001"
+#define ACSD_DRIZZLE_ALG_ID  "ALG-DRZ-001"
+#define ACSD_DRIZZLE_API_ID  "API-DRZ-001"
 
 /* config schema 版本 (词表见 CFG_KEY_*; v1 冻结) */
-#define ASTROCS_DRIZZLE_CONFIG_SCHEMA_VER 1u
+#define ACSD_DRIZZLE_CONFIG_SCHEMA_VER 1u
 
 /* plan 输出词表版本 (词表演进必须升版本号) */
-#define ASTROCS_DRIZZLE_PLAN_VERSION    1u
+#define ACSD_DRIZZLE_PLAN_VERSION    1u
 
 /* ───────── op 词表 (config "op"; v1) ─────────
  * execute 线程内单帧通道 (PipelineFrame "data" 块 -> HiPS/legacy .hiss),
@@ -45,8 +45,8 @@ extern "C" {
  *                     (输出行数据 base64; 六导出中仅这两个在 v1 模块面)
  * 其余四导出 (fits_to_ahpx / reverse_capability / reverse_version) 为
  * 工具通道, 不在模块 v1 op 面 (API-DRZ-001 已冻结; 迁移不裁剪 legacy 导出)。 */
-#define ASTROCS_DRIZZLE_OP_DRIZZLE   "drizzle"
-#define ASTROCS_DRIZZLE_OP_REVERSE   "reverse"
+#define ACSD_DRIZZLE_OP_DRIZZLE   "drizzle"
+#define ACSD_DRIZZLE_OP_REVERSE   "reverse"
 
 /* ───────── config 键词表 (CFG_KEY; v1) ───────── */
 
@@ -111,4 +111,4 @@ typedef enum {
 }
 #endif
 
-#endif /* ASTROCS_DRIZZLE_TYPES_H */
+#endif /* ACSD_DRIZZLE_TYPES_H */

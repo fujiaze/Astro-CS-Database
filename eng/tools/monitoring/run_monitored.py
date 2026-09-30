@@ -11,7 +11,7 @@ progress 约定（两种途径均实现）：
   1) 被监控进程向 stdout 打印形如 ``PROGRESS: <done>/<total>`` 的行
      （取最后一条）；wrapper 以行缓冲读取，不会被子进程写满管道阻塞。
   2) ``--progress-file PATH``：wrapper 把绝对路径经环境变量
-     ``ASTROCS_PROGRESS_FILE`` 传给被监控进程；进程按行向该文件写进度
+     ``ACSD_PROGRESS_FILE`` 传给被监控进程；进程按行向该文件写进度
      （每行 ``PROGRESS: <done>/<total>`` 或裸 ``<done>/<total>``，
      取最后一条有效行，进程退出后重读一次）。
   两种途径都有结果时以 progress-file 为准（source 字段标注出处）。
@@ -310,7 +310,7 @@ def run_monitored(argv: list[str], *, timeout: Optional[float] = None,
 
     argv 必须是数组（永不 shell=True）；timeout 秒后 SIGKILL 整个进程组；
     output 非空时把 JSON 证据写到该文件。子进程环境注入 PYTHONUNBUFFERED=1
-    与（给了 progress_file 时）ASTROCS_PROGRESS_FILE=<绝对路径>。
+    与（给了 progress_file 时）ACSD_PROGRESS_FILE=<绝对路径>。
     """
     if not argv:
         raise ValueError("argv 不能为空")
@@ -320,7 +320,7 @@ def run_monitored(argv: list[str], *, timeout: Optional[float] = None,
     child_env = dict(env) if env is not None else dict(os.environ)
     child_env.setdefault("PYTHONUNBUFFERED", "1")
     if progress_file is not None:
-        child_env["ASTROCS_PROGRESS_FILE"] = str(Path(progress_file).resolve())
+        child_env["ACSD_PROGRESS_FILE"] = str(Path(progress_file).resolve())
 
     t0 = time.monotonic()
     started_utc = datetime.now(timezone.utc).isoformat()
@@ -495,7 +495,7 @@ def run_monitored(argv: list[str], *, timeout: Optional[float] = None,
 # 2026-09-21 根目录整合：contracts/ → eng/contracts/（parents[3] = 仓库根）。
 CONTRACT_PATH = (Path(__file__).resolve().parents[3] / "eng" / "contracts"
                  / "resource_gate_v1.json")
-CONTRACT_SCHEMA = "astrocs.resource-gate/v1"
+CONTRACT_SCHEMA = "acsd.resource-gate/v1"
 
 
 def load_resource_gate_contract(path=None) -> dict:
@@ -559,7 +559,7 @@ def resolve_allocated_capacity(*, granted_workers, selected_workers, available_c
     """已分配容量分母的唯一实现点（契约 denominator）。
 
     granted_workers  已授予并发租约峰值（观测/显式声明）；哨兵 0 = 未观测，
-                     **不得**以配置值回填（lib/include/astrocs/core/context.h:93-103）。
+                     **不得**以配置值回填（lib/include/acsd/core/context.h:93-103）。
     selected_workers 配置选择的 worker 数；哨兵 0 = 未声明。
     available_cpus   机器有效核（affinity ∩ cgroup）。
 
@@ -919,7 +919,7 @@ def build_arg_parser() -> argparse.ArgumentParser:
     parser.add_argument("--output", "-o", default=None,
                         help="JSON 证据文件路径（同时始终打印到 stdout）")
     parser.add_argument("--progress-file", default=None,
-                        help="progress 文件路径（经 ASTROCS_PROGRESS_FILE 传给子进程）")
+                        help="progress 文件路径（经 ACSD_PROGRESS_FILE 传给子进程）")
     # G-RES-01 重计算负载资源门（判据权威 21_observability §8; 数值源
     # eng/contracts/resource_gate_v1.json; 显式 opt-in, 不改变既有用法）:
     parser.add_argument("--gate-workers", type=int, default=None,

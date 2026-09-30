@@ -1,6 +1,6 @@
-# 模块 astrocs.phase2.upm-fit
+# 模块 acsd.phase2.upm-fit
 
-> 上游：docs/ASTROCS_DESIGN.md §8.5（模块与 ABI）、§5.2（固定科学流程）、
+> 上游：docs/ACSD_DESIGN.md §8.5（模块与 ABI）、§5.2（固定科学流程）、
 > §5.4（天光平面与统一相对模型 UPM）
 > 科学正本：docs/science/PHASE2_UPM.md（SCI-UPM-001，FROZEN；§1/§4/§5/§10/§14a/§17）、
 > docs/science/algorithms/UPM_SOLVER.md（ALG-UPM-001，权威推导；F3/F5/F6）、
@@ -12,16 +12,16 @@
 > API 正本：docs/engineering/PUBLIC_API.md（API-P2-UPM-001）、
 > docs/engineering/PHASE2_API_V1.md（API-P2-001，FROZEN）
 
-MOD ID = `MOD-astrocs-phase2-upm-fit`；module_id 合同值 = `astrocs.p2.upm`
-（descriptor 词汇 `astrocs.phase2.upm-fit` 为编排层口径，其对齐属迁移目标、未
-落地）；dll_target = `astrocs_p2_upm.dll`（迁移目标，未落地）。合同三件套落位
+MOD ID = `MOD-acsd-phase2-upm-fit`；module_id 合同值 = `acsd.p2.upm`
+（descriptor 词汇 `acsd.phase2.upm-fit` 为编排层口径，其对齐属迁移目标、未
+落地）；dll_target = `acsd_p2_upm.dll`（迁移目标，未落地）。合同三件套落位
 `lib/algorithms/upm/`（README / module.yaml ，CONTRACT_READY）。
 生产源 = lib/algorithms/coverage/src/upm.cpp + 权威签名头
 lib/algorithms/coverage/include/astro/phase2/upm.h；构建 = 根 CMakeLists 的
-`astrocs_phase2` 静态库成员。owner = SA-P2-U21；depends_on_int = P2-SAMP / CPU-005；
+`acsd_phase2` 静态库成员。owner = SA-P2-U21；depends_on_int = P2-SAMP / CPU-005；
 legacy_paths = 「lib/algorithms/coverage upm sources」。
 
-apply 职能见 registry/astrocs.phase2.upm-apply.md（同一 module_id 的另一职能）。
+apply 职能见 registry/acsd.phase2.upm-apply.md（同一 module_id 的另一职能）。
 
 ## 职责与明确非职责
 
@@ -60,7 +60,7 @@ per-frame gradient 产品的对外暴露（upm.h 冻结）；session 依赖（�
 | `upm_model` | `DATA-P2-UPM` | 可 | `UnitId::ADU` | `CoordinateFrame::PIXEL` |
 
 入口面：Phase1 产品组、coverage、星点掩膜、光度控制点、天光背景采样点（每点带
-值 / variance / SNR 权重）。落盘标识 = `astrocs-upm-v2`
+值 / variance / SNR 权重）。落盘标识 = `acsd-upm-v2`
 （DATA-UPM-MODEL-001）。**畸形模型 = 硬科学错误 `ERR-P2-UPM-001`**。
 
 输出面：`P2ModelInfo`（version / precision：0=fp32, 1=fp64 / target_order /
@@ -208,7 +208,7 @@ entrypoint = 产品组 + 掩膜 + 控制点 + 天光采样点 → 加性校正�
 
 ## Registry descriptor 与配置 schema
 
-module_id=`astrocs.phase2.upm-fit`（编排层口径）；execution_class=`cpu_heavy`;
+module_id=`acsd.phase2.upm-fit`（编排层口径）；execution_class=`cpu_heavy`;
 parallel_ok=True; abi=c++17; api_id=API-P2-001。descriptor 派生的占位 ID
 （SCI-P2-UPM-001 / ALG-P2-UPM-001 / TEST-P2-UPM-001）与端口占位语义
 （persist→reload）的对齐属迁移目标（未落地）；descriptor 端口为静态声明的
@@ -340,5 +340,5 @@ Oracle 面：
   `quality_factor(flags, mode)` 内恒忽略该参数，生产默认 `quality_mode = 0` +
   `use_ivar_weight = 1`；
 - 拟合质量三元组当前零承载（门口径已冻结、实现三键未落）；
-- 目标交付形态 astrocs_p2_upm.dll 未落地；
+- 目标交付形态 acsd_p2_upm.dll 未落地；
 - 全局限制登记 = artifacts/evidence/known-limitations-ledger/LIMITATIONS.md。

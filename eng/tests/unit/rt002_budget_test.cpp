@@ -6,7 +6,7 @@
 // 4. 取消路径 → 租约归还
 // 5. NONBLOCK/BEST_EFFORT/BLOCK 策略行为
 // 6. 1 worker 仅允许 available=1（本测试 reference 明确标注）
-#include "astrocs/core/context.h"
+#include "acsd/core/context.h"
 
 #include <atomic>
 #include <chrono>
@@ -14,7 +14,7 @@
 #include <thread>
 #include <vector>
 
-using namespace astrocs::core;
+using namespace acsd::core;
 
 static int failures = 0;
 #define CHECK(cond)                                                       \

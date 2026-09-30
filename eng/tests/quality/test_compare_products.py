@@ -54,14 +54,14 @@ def build_tree(root, date, img_values, order="3", extra=None):
     sig = Path(root) / "signal"
     sig.mkdir(parents=True, exist_ok=True)
     (sig / "properties").write_text(
-        "creator_did = astrocs\n"
+        "creator_did = acsd\n"
         "hips_creation_date = %s\n"
         "hips_order = %s\n"
         "hips_frame = equatorial\n" % (date, order), encoding="utf-8")
     write_fits(sig / "img.fits", img_values, date)
     (Path(root) / "support").mkdir(parents=True, exist_ok=True)
     (Path(root) / "support" / "manifest.json").write_text(
-        json.dumps({"kind": "astrocs_run_manifest", "phases": [3]}, sort_keys=True),
+        json.dumps({"kind": "acsd_run_manifest", "phases": [3]}, sort_keys=True),
         encoding="utf-8")
     if extra:
         for rel, text in extra.items():

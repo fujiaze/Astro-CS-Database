@@ -358,13 +358,13 @@ class HipsOutputStore:
       {output_root}/runs/{run_id}/products/{user_path}/manifest.json = 完成 manifest
 
     manifest（完成标记，status=COMPLETE）:
-      manifest_schema: astrocs.hips-output-manifest/v1
+      manifest_schema: acsd.hips-output-manifest/v1
       manifest_version: 1
       run_id / user_path / product（目录型产物名）
       tree: [{path, size, sha256} ...]（全部发布文件；稳定排序）
       tree_hash: sha256(规范 tree)  ← 可重算验收
       fitsverify: 逐 tile DATASUM/结构校验通过记录
-      created_utc / publisher: astrocs.hips-output/v1
+      created_utc / publisher: acsd.hips-output/v1
     """
 
     def __init__(self, output_root: pathlib.Path, run_id: str,
@@ -543,13 +543,13 @@ class HipsOutputStore:
              for r in staged],
             key=lambda e: (e["path"], e["size"], e["sha256"]))
         doc: Dict[str, Any] = {
-            "manifest_schema": "astrocs.hips-output-manifest/v1",
+            "manifest_schema": "acsd.hips-output-manifest/v1",
             "manifest_version": 1,
             "status": _COMPLETE,
             "run_id": self.run_id,
             "user_path": rel,
             "product": rel.rsplit("/", 1)[-1],
-            "publisher": "astrocs.hips-output/v1",
+            "publisher": "acsd.hips-output/v1",
             "tree": tree_entries,
             "tree_hash": tree_hash(tree_entries),
             "fitsverify": {"performed": True, "checksum": "datasum",

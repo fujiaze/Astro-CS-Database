@@ -1,5 +1,5 @@
-#ifndef ASTROCS_CORE_MASTER_UNIT_GUARD_H
-#define ASTROCS_CORE_MASTER_UNIT_GUARD_H
+#ifndef ACSD_CORE_MASTER_UNIT_GUARD_H
+#define ACSD_CORE_MASTER_UNIT_GUARD_H
 
 // UNIT-001 母版单位/归一化消费门（纯规则，无 I/O、无 JSON、无像素算术）。
 //
@@ -19,7 +19,7 @@
 #include <cstdio>
 #include <string>
 
-namespace astrocs {
+namespace acsd {
 namespace core {
 namespace master_units {
 
@@ -174,6 +174,6 @@ inline Verdict check_flat_normalized(const std::string &path, const Decl &d, con
 
 }  // namespace master_units
 }  // namespace core
-}  // namespace astrocs
+}  // namespace acsd
 
-#endif  // ASTROCS_CORE_MASTER_UNIT_GUARD_H
+#endif  // ACSD_CORE_MASTER_UNIT_GUARD_H

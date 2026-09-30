@@ -2,16 +2,16 @@
 // 顺序合同: 正确性筛选(独立 scalar Oracle) → 预热(不计时) → 多次计时(单调钟)
 // → 稳健统计(median/MAD/p05/p95) → 选择(仅 verdict==OK 候选可胜出)。
 // 速度永远不能使错误路径获胜: Oracle/selftest 失败的 backend 直接禁用。
-#ifndef ASTROCS_BENCH_HARNESS_H
-#define ASTROCS_BENCH_HARNESS_H
+#ifndef ACSD_BENCH_HARNESS_H
+#define ACSD_BENCH_HARNESS_H
 
 #include <string>
 #include <vector>
 
-#include "astrocs/common_abi_v1.h"
+#include "acsd/common_abi_v1.h"
 #include "baseline_kernels.h"
 
-namespace astrocs::backend_host {
+namespace acsd::backend_host {
 
 struct BenchResult {
     std::string backend_id;
@@ -26,12 +26,12 @@ struct BenchResult {
 /* 对单 kernel 做完整 harness 流程。
  * expected_ref: 独立 scalar 参考输出(与 kernel 实现不同路径); caller 提供。
  * warmup 次数不计时; samples≥7(06 §4)。 */
-BenchResult bench_kernel(const astrocs_host_services_v1* host,
+BenchResult bench_kernel(const acsd_host_services_v1* host,
                          const char* backend_id,
-                         acs_status (*fn)(
-                             const astrocs_host_services_v1*, const void*, uint32_t,
+                         acsd_status (*fn)(
+                             const acsd_host_services_v1*, const void*, uint32_t,
                              const void*, void*),
-                         const acs_baseline_params_v1& params,
+                         const acsd_baseline_params_v1& params,
                          const std::vector<double>& expected_ref,
                          double tol_rel, int warmup, int samples);
 
@@ -72,6 +72,6 @@ struct NoProfilePolicy {
 };
 NoProfilePolicy no_profile_policy(uint32_t available_cpus);
 
-}  // namespace astrocs::backend_host
+}  // namespace acsd::backend_host
 
-#endif  // ASTROCS_BENCH_HARNESS_H
+#endif  // ACSD_BENCH_HARNESS_H

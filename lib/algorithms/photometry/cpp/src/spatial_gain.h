@@ -1,5 +1,5 @@
-#ifndef ASTROCS_PHOTOMETRY_SPATIAL_GAIN_H
-#define ASTROCS_PHOTOMETRY_SPATIAL_GAIN_H
+#ifndef ACSD_PHOTOMETRY_SPATIAL_GAIN_H
+#define ACSD_PHOTOMETRY_SPATIAL_GAIN_H
 // ============================================================================
 // spatial_gain.h - 单帧低阶乘性空间增益场 m(x,y) 的拟合（SCI-PHOT-001 §16.1 ④）
 //
@@ -52,7 +52,7 @@
 #include <string>
 #include <vector>
 
-namespace astrocs {
+namespace acsd {
 namespace photometry {
 
 // 拟合状态（具名；落盘到 provenance 的 spatial_gain.status）
@@ -168,6 +168,6 @@ struct SpatialGainGrid {
 SpatialGainGrid spatial_gain_frame_grid(int width, int height, int max_samples);
 
 }  // namespace photometry
-}  // namespace astrocs
+}  // namespace acsd
 
-#endif  // ASTROCS_PHOTOMETRY_SPATIAL_GAIN_H
+#endif  // ACSD_PHOTOMETRY_SPATIAL_GAIN_H

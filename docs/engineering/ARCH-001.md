@@ -1,8 +1,8 @@
 # 整体架构与阶段管线
 
-> 上游：docs/ASTROCS_DESIGN.md §8（软件架构）、§1.2（三个命令，三个独立产品）、§4.2/§5.2/§6.2（各阶段节点流程）、§7.1（命令树）、§10（I/O 与原子产品）、§11（双平台发行）
+> 上游：docs/ACSD_DESIGN.md §8（软件架构）、§1.2（三个命令，三个独立产品）、§4.2/§5.2/§6.2（各阶段节点流程）、§7.1（命令树）、§10（I/O 与原子产品）、§11（双平台发行）
 
-本文件是 `docs/engineering/` 的一级工程正本，主题是整体架构与阶段管线。架构问题的权威 = `docs/ASTROCS_DESIGN.md` §8，与本文件冲突时以最高设计为准（§0.1）。全仓文档登记见 `docs/DOCUMENT_INDEX.yaml`。
+本文件是 `docs/engineering/` 的一级工程正本，主题是整体架构与阶段管线。架构问题的权威 = `docs/ACSD_DESIGN.md` §8，与本文件冲突时以最高设计为准（§0.1）。全仓文档登记见 `docs/DOCUMENT_INDEX.yaml`。
 
 ## 1. 唯一全局执行平面
 
@@ -150,7 +150,7 @@ io → data_contracts; io ⇏ runtime; io ⇏ modules
 
 ## 6. ACR 隔离
 
-- 默认构建 `ASTROCS_ENABLE_ACR=OFF`；生产 CLI 链接图/符号/运行模块表内一律没有
+- 默认构建 `ACSD_ENABLE_ACR=OFF`；生产 CLI 链接图/符号/运行模块表内一律没有
   ACR。
 - 生产计算后端是纯 CPU 自适应后端（最高设计 §1.3、§9）；配置项 `acr_route` 只作配置守卫，
   取非 `cpu` 值时显式拒绝或回退 `cpu`。
@@ -171,7 +171,7 @@ io → data_contracts; io ⇏ runtime; io ⇏ modules
 1. 唯一生产入口 = `acsd`；命令树口径唯一，机器门覆盖 `eng/tests/cli/` 与
    `docs/engineering/CLI_PROTOCOL_V1.md` 的命令树一致性。
 2. `lib/` 唯一源码目录；产品只落块级 `output_dir`（最高设计 §10）；`testdata/` 只读。
-3. I/O 唯一入口 `astrocs_aio`；`healpix_core` 与 `crypto/sha256` 单源（target `astrocs_common`）。
+3. I/O 唯一入口 `acsd_aio`；`healpix_core` 与 `crypto/sha256` 单源（target `acsd_common`）。
 4. 科学语义唯一实现，oracle/reference 并存、不重复 active path。
 5. 唯一 CLI 入口在进程内（in-process）按命令拉起对应阶段的调度器：一次调用只驱动一个阶段，
    三个阶段各自实例化调度器与内存管线，无跨阶段进程边界。

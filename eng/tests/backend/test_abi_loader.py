@@ -7,7 +7,7 @@ HOST = os.path.join(REPO, "lib", "infrastructure", "benchmark", "backend_host")
 INC = os.path.join(REPO, "lib", "include")
 
 # 根目录整合后 aio 落 lib/infrastructure/aio，其 PUBLIC include 面 = include/ + src/
-# （见根 CMakeLists.txt: target_include_directories(astrocs_aio PUBLIC ...)）。
+# （见根 CMakeLists.txt: target_include_directories(acsd_aio PUBLIC ...)）。
 # 测试侧独立编译必须同面，否则 aio_atomic_file.h / aio_file_io.h 找不到
 # （GATE-502：修复根目录整合后测试侧遗留的过时 include 面）。
 AIO_INCS = [
@@ -45,7 +45,7 @@ class TestBackendLoader(unittest.TestCase):
         shutil.rmtree(cls.tmp, ignore_errors=True)
 
     def _write_manifest(self, entry):
-        doc = {"schema_version": "1", "kind": "astrocs_backends_manifest", "backends": [entry]}
+        doc = {"schema_version": "1", "kind": "acsd_backends_manifest", "backends": [entry]}
         with open(self.manifest, "w", encoding="utf-8") as f:
             json.dump(doc, f)
         return self.manifest
@@ -74,8 +74,8 @@ class TestBackendLoader(unittest.TestCase):
                            input="#include \"cpu_features.h\"\n"
                                  "#include <cstdio>\n"
                                  "int main(){ printf(\"feat=%llu aff=%u\\n\", "
-                                 "(unsigned long long)astrocs_cpu_detect_features_v1(), "
-                                 "astrocs_cpu_affinity_count_v1()); return 0; }",
+                                 "(unsigned long long)acsd_cpu_detect_features_v1(), "
+                                 "acsd_cpu_affinity_count_v1()); return 0; }",
                            capture_output=True, text=True, timeout=60)
         self.assertEqual(r.returncode, 0, r.stderr)
         run = subprocess.run([exe], capture_output=True, text=True, timeout=30)
@@ -146,7 +146,7 @@ class TestBackendLoader(unittest.TestCase):
         严格类型白名单: 仅无符号整数; 负数/浮点/字符串/布尔均拒, 杜绝
         隐式数值转换把恶意值洗成 0 或近似值。"""
         for evil in ("\"0\"", "-1", "0.5", "true", "null"):
-            doc = {"schema_version": "1", "kind": "astrocs_backends_manifest",
+            doc = {"schema_version": "1", "kind": "acsd_backends_manifest",
                    "backends": [{"file": "fixture.so", "backend_id": "fixture",
                                  "sha256": self.good_sha, "abi_version": 1,
                                  "required_features_bits": json.loads(evil)}]}
@@ -192,7 +192,7 @@ class TestBackendLoader(unittest.TestCase):
                            capture_output=True, text=True, timeout=60)
         self.assertEqual(r.returncode, 0, r.stderr)
         doc = json.load(open(out, encoding="utf-8"))
-        self.assertEqual(doc["kind"], "astrocs_backends_manifest")
+        self.assertEqual(doc["kind"], "acsd_backends_manifest")
         e = doc["backends"][0]
         self.assertEqual(e["file"], "fixture.so")
         self.assertEqual(e["sha256"], self.good_sha)

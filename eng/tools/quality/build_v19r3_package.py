@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""build_v19r3_package.py — 组装 AstroCS_Review_TraceableFoundationCorrection_V19R3.zip。
+"""build_v19r3_package.py — 组装 ACSD_Review_TraceableFoundationCorrection_V19R3.zip。
 
 RETURN_PACKAGE_SPEC.md 结构：
 README.md SHA256SUMS.txt reports/ evidence/ self_review/
@@ -40,7 +40,7 @@ def _deduce_root() -> str:
 
 ROOT = _deduce_root()
 REV = os.path.join(ROOT, "reports", "v19r3")
-PKG_NAME = "AstroCS_Review_TraceableFoundationCorrection_V19R3"
+PKG_NAME = "ACSD_Review_TraceableFoundationCorrection_V19R3"
 PKG = os.path.join(ROOT, PKG_NAME + ".zip")
 TMP = os.path.join(ROOT, "run", "temp", "v19r3_pkg")
 
@@ -49,7 +49,7 @@ SKIP_PARTS = {"build", "build2", "_deps", "CMakeFiles", "archive",
 SKIP_EXT = {".dll", ".exe", ".o", ".a", ".pyc", ".bak", ".obj", ".log",
             ".plist", ".zip", ".xpsd", ".hiss", ".hcsd"}
 EXCLUDED_ROOTS = {"testdata", "GaiaDR3", "GaiaDR3SP",
-                  "siril-1.4.3", "工程控制", "AstroCS.wiki"}
+                  "siril-1.4.3", "工程控制", "ACSD.wiki"}
 
 
 def git(args: list[str]) -> str:
@@ -90,7 +90,7 @@ def write(path: str, content: str) -> None:
 
 
 RETIRED_NOTICE = (
-    "BUILD_V19R3_PACKAGE_RETIRED: 本工具（V19R3 审阅包组装（AstroCS_Review_TraceableFoundationCorrection_V19R3.zip））已退役；任意调用 exit 2（fail-closed，不伪装绿）。\n"
+    "BUILD_V19R3_PACKAGE_RETIRED: 本工具（V19R3 审阅包组装（ACSD_Review_TraceableFoundationCorrection_V19R3.zip））已退役；任意调用 exit 2（fail-closed，不伪装绿）。\n"
     "  依据: ENGINEERING_SPEC.md §8（不允许「静默坏掉 / 僵尸入口」）；"
     "（结论不得写成源码字面量，结论字段必须从证据源读取，读不到写 NOT_VERIFIED）。\n"
     "  退役原因: ① 输出根 V19R3 审阅 zip（V19 世代交付形态，本世代无生产者/无消费者）；② 写出的取证 JSON 里 result=「PASS」是字面量，"
@@ -279,7 +279,7 @@ def _legacy_main() -> int:
 
     write("README.md",
           "# ACSD V19R3 Review — Traceable Foundation Correction\n\n"
-          "对应控制包 AstroCS_PreRelease_TraceableFoundation_Correction_V19R3.zip。"
+          "对应控制包 ACSD_PreRelease_TraceableFoundation_Correction_V19R3.zip。"
           "最终状态：PRE_RELEASE_ENGINEERING_FOUNDATION=PASS，"
           "FINAL_REAL_DATA_VALIDATION=PENDING。结构见 RETURN_PACKAGE_SPEC："
           "reports/ evidence/ self_review/ source/ docs_snapshot/。\n")

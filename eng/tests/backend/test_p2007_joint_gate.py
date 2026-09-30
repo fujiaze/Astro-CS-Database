@@ -53,7 +53,7 @@ CLI-002 迁移注记 (commit de2d6d7f) + 实测口径变更:
     validate_config_full 拒绝(exit 3, kAllowedKeys=RT-008 引入), UPM 持久化载体
     仅存于 lib/phase2_session/p2_session.cpp(persist 阶段, CLI config 不可达) —
     CLI-002 次生缺口(归 IMPL/INT)。改为可达科学证据: seam6 run 的 run_id 与
-    astrocs_run_<run_id>.json manifest 互引 + session 样本统计(obs/overlap_controls
+    acsd_run_<run_id>.json manifest 互引 + session 样本统计(obs/overlap_controls
     非零, 6 帧输入 coverage/sample 阶段完成)。
 """
 import glob
@@ -105,7 +105,7 @@ class TestP2007JointGate(unittest.TestCase):
         out = os.path.join(cls.tmp, tag)
         os.makedirs(out, exist_ok=True)
         cfg = os.path.join(out, "cfg.json")
-        # CLI-002 / docs/ASTROCS_DESIGN 6.2: 旧 phase2 run --config 已删(rc=2);
+        # CLI-002 / docs/ACSD_DESIGN 6.2: 旧 phase2 run --config 已删(rc=2);
         # 现行等价命令 = mosaic --json <cfg>(平铺会话格式 hips_paths)。
         # --resource-detail/--strict-resource-gate 均不在命令树白名单(真 CLI rc=2),
         # 现行唯一可达资源门语义 = P26 默认 record-only(记录+warning, 不改 rc)。
@@ -345,8 +345,8 @@ class TestP2007JointGate(unittest.TestCase):
             self.assertEqual(summ.get("n_inputs"), self.n_frames,
                              f"{self.n_frames} 帧输入未全被接受")
             self.assertGreater(summ.get("n_obs", 0), 0, "session summary n_obs 为空")
-        # run manifest 互引: astrocs_run_<run_id>.json 与事件流 run_id 一致
-        manifests = sorted(glob.glob(os.path.join(self.out, "astrocs_run_*.json")))
+        # run manifest 互引: acsd_run_<run_id>.json 与事件流 run_id 一致
+        manifests = sorted(glob.glob(os.path.join(self.out, "acsd_run_*.json")))
         self.assertTrue(manifests, "run manifest 缺失")
         m = json.load(open(manifests[-1], encoding="utf-8"))
         ev_run_ids = {e.get("run_id") for e in self.evs if e.get("run_id")}

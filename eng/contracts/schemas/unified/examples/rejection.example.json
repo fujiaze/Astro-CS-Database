@@ -1,6 +1,6 @@
 {
   "unified_object": "rejection",
-  "object_schema_id": "https://astrocs.local/schemas/unified/rejection/v1",
+  "object_schema_id": "https://acsd.local/schemas/unified/rejection/v1",
   "schema_version": 1,
   "units": {
     "bunit": "1",

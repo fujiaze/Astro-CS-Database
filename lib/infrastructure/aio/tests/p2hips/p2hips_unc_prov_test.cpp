@@ -3,7 +3,7 @@
 //
 // 合同锚: DATA-UNC-001 §30.2 (DATA-P2-REJ-001) / §30.3 (DATA-P2-PROV-001)
 //         docs/science/DATA_SEMANTICS.md:2259-2305
-// 被测面: astrocs_hips = lib/infrastructure/aio/src/hips/aio_hips_{writer,reader}.cpp
+// 被测面: acsd_hips = lib/infrastructure/aio/src/hips/aio_hips_{writer,reader}.cpp
 //         C ABI 导出面 (aio_hips.h / aio_hips_reader.h)。
 //
 // 验收映射 (任务 SCI-F3-001「必须动作 2/3」):
@@ -28,8 +28,8 @@
 //            N3 verify 篡改判别: 删除已声明子产品 / 伪造 unavailable 占位 /
 //               破坏四键一致性 → verify rc!=0。
 //   selfcheck S1 故障注入必败自检 (baseline 必 PASS + 注入必 FAIL 双向排除
-//               恒常): ASTROCS_HIPS_PROV_FAULT=missing_key 与
-//               ASTROCS_HIPS_DIAG_FAULT=sentinel。
+//               恒常): ACSD_HIPS_PROV_FAULT=missing_key 与
+//               ACSD_HIPS_DIAG_FAULT=sentinel。
 //
 // 运行: p2hips_tests <units|negative|selfcheck> [base_dir]
 // ============================================================================
@@ -72,9 +72,9 @@ const char* kModelHash =
 const char* kProfile = "wbpp_2_9_1";
 
 // 旧「权重模式」provenance 键已删除 (5 → 4 键)。
-const char* kKeys[4] = {"ASTROCS_INPUT_MANIFEST_HASH", "ASTROCS_MODEL_HASH",
-                        "ASTROCS_UNCERTAINTY_AVAILABLE",
-                        "ASTROCS_REJECT_PROFILE"};
+const char* kKeys[4] = {"ACSD_INPUT_MANIFEST_HASH", "ACSD_MODEL_HASH",
+                        "ACSD_UNCERTAINTY_AVAILABLE",
+                        "ACSD_REJECT_PROFILE"};
 
 std::string read_file(const std::string& p) {
     std::ifstream f(p, std::ios::binary);
@@ -142,7 +142,7 @@ Built build_available(const std::string& dir, bool with_diag = true) {
                 AIO_HIPS_PRODUCT_VARIANCE | AIO_HIPS_PRODUCT_IVAR;
     if (with_diag) flags |= AIO_HIPS_PRODUCT_NREJ | AIO_HIPS_PRODUCT_NUSED;
     AioHipsProductSet* ps = aio_hips_product_begin(
-        dir.c_str(), kNside, kTw, AIO_HIPS_FLOAT32, flags, "ivo://astrocs/test",
+        dir.c_str(), kNside, kTw, AIO_HIPS_FLOAT32, flags, "ivo://acsd/test",
         "SCI-F3-001 TEST-P2HIPS-UNC-PROV-001", "R", 60.0,
         "2026-09-12T00:00:00Z", 0);
     if (!ps) return b;
@@ -302,7 +302,7 @@ void units_verify_bidirectional() {
     const std::string d2 = base + "_unavail";
     const int flags = AIO_HIPS_PRODUCT_SIGNAL | AIO_HIPS_PRODUCT_SUPPORT;
     AioHipsProductSet* ps = aio_hips_product_begin(
-        d2.c_str(), kNside, kTw, AIO_HIPS_FLOAT32, flags, "ivo://astrocs/test",
+        d2.c_str(), kNside, kTw, AIO_HIPS_FLOAT32, flags, "ivo://acsd/test",
         "SCI-F3-001 unavailable", "R", 60.0, "2026-09-12T00:00:00Z", 0);
     P2H_CHECK(ps != nullptr, "U: unavailable 产品集 begin");
     if (ps) {
@@ -322,7 +322,7 @@ void units_verify_bidirectional() {
         for (const char* k : kKeys)
             P2H_CHECK(contains(p2, k),
                       (std::string("U: unavailable 面仍写键 ") + k + " (§18.3 禁静默缺键)").c_str());
-        P2H_CHECK(contains(p2, "ASTROCS_UNCERTAINTY_AVAILABLE=false"),
+        P2H_CHECK(contains(p2, "ACSD_UNCERTAINTY_AVAILABLE=false"),
                   "U: unavailable 显式登记 =false");
         P2H_CHECK(!fs::exists(fs::path(d2) / "variance") &&
                       !fs::exists(fs::path(d2) / "ivar"),
@@ -427,7 +427,7 @@ void negative_param_domain() {
         dv.nused = nullptr; dv.nrej = nr.data();
         aio_hips_diag_tile_view_abi_init(&dv);
         const int rc = aio_hips_write_diag_tile(ps2, &dv);
-        if (p2hips::injected("ASTROCS_HIPS_DIAG_FAULT", "sentinel")) {
+        if (p2hips::injected("ACSD_HIPS_DIAG_FAULT", "sentinel")) {
             P2H_CHECK(rc == 0, "N1[inject]: sentinel 注入下守卫被绕过 (判别力证明)");
         } else {
             P2H_CHECK(rc != 0, "N1: 负值哨兵 → write_diag_tile 拒绝");
@@ -498,7 +498,7 @@ void negative_provenance_params() {
         P2H_CHECK(!contains(props, k),
                   (std::string("N2: 全或无 —— setter 全失败后禁写键 ") + k).c_str());
     const std::string man = read_file(d + "/manifest.json");
-    P2H_CHECK(!contains(man, "astrocs_input_manifest_hash"),
+    P2H_CHECK(!contains(man, "acsd_input_manifest_hash"),
               "N2: manifest.json 亦不写 provenance 块 (全或无)");
 
     // uncertainty_available=true 但未置 variance/ivar 位 → finalize fail-closed
@@ -579,8 +579,8 @@ void negative_verify_tamper() {
         if (b.ok) {
             const std::string p = d + "/signal/properties";
             std::string props = read_file(p);
-            const std::string from = std::string("ASTROCS_MODEL_HASH=") + kModelHash;
-            const std::string to = "ASTROCS_MODEL_HASH=" + std::string(64, 'a');
+            const std::string from = std::string("ACSD_MODEL_HASH=") + kModelHash;
+            const std::string to = "ACSD_MODEL_HASH=" + std::string(64, 'a');
             const size_t pos = props.find(from);
             P2H_CHECK(pos != std::string::npos, "N3.T3: 定位 properties MODEL_HASH 行");
             if (pos != std::string::npos) {
@@ -602,11 +602,11 @@ void selfcheck_injection() {
     const std::string base = group_base("s1");
     std::error_code ec;
     fs::remove_all(base, ec);
-    const bool inj_missing = p2hips::injected("ASTROCS_HIPS_PROV_FAULT", "missing_key");
-    const bool inj_sentinel = p2hips::injected("ASTROCS_HIPS_DIAG_FAULT", "sentinel");
+    const bool inj_missing = p2hips::injected("ACSD_HIPS_PROV_FAULT", "missing_key");
+    const bool inj_sentinel = p2hips::injected("ACSD_HIPS_DIAG_FAULT", "sentinel");
     P2H_CHECK(inj_missing || inj_sentinel,
-              "S1: 必须以注入模式运行 (ASTROCS_HIPS_PROV_FAULT=missing_key 或"
-              " ASTROCS_HIPS_DIAG_FAULT=sentinel); 本组用于证明断言有判别力");
+              "S1: 必须以注入模式运行 (ACSD_HIPS_PROV_FAULT=missing_key 或"
+              " ACSD_HIPS_DIAG_FAULT=sentinel); 本组用于证明断言有判别力");
 
     const Built b = build_available(base);
     P2H_CHECK(b.ok, "S1: 注入模式下产品集仍可构建 (注入点是等价缺陷而非崩溃)");

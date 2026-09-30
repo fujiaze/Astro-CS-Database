@@ -10,14 +10,14 @@
 //     kernel 同 TU，在缺 AVX-512 的主机上会在"判定自身是否支持 AVX-512"之前 #UD
 //     （鸡生蛋；GCC 侧靠 target 属性把 cap_gate 逐函数降回，MSVC 侧无此手段）。
 //
-// 平台旗标口径（唯一登记点 = 根 CMakeLists.txt 的 astrocs_cpuprov_avx512_kernels）:
+// 平台旗标口径（唯一登记点 = 根 CMakeLists.txt 的 acsd_cpuprov_avx512_kernels）:
 //   GCC/Clang: -mavx512f -mavx512cd -mavx512bw -mavx512dq -mavx512vl
 //   MSVC     : /arch:AVX512（官方许可面 = F+CD+BW+DQ+VL；无子集档位旗标）
 //
 // 旗标失效不得静默（R-60 硬约束 2）: 下面的 #error 把「/arch: 取值不被识别而只报
 // D9002 且 rc=0（静默忽略）」与「工具链过老」变成**编译期红灯**。
 #if defined(_MSC_VER) && !defined(__AVX512F__)
-#error "astrocs_cpuprov_avx512 计算面 TU 未获得 AVX-512 许可面: MSVC 需 /arch:AVX512（自动向量化面自 VS2019 16.3）。工具链不支持时不得以基线同码产物冒充变体。"
+#error "acsd_cpuprov_avx512 计算面 TU 未获得 AVX-512 许可面: MSVC 需 /arch:AVX512（自动向量化面自 VS2019 16.3）。工具链不支持时不得以基线同码产物冒充变体。"
 #endif
 /* 声明面 (ACS_CPU_AVX512_REQUIRED_FEATURES = F|CD|BW|DQ|VL 五子集) 必须被编译
  * 许可面覆盖 —— 缺任一位就是「声明 ⊋ 编译」⇒ 该机器上加载放行、首调撞非法指令。
@@ -25,11 +25,11 @@
  * 工具链只给子集，这里是编译期红灯，必须显式改口径而不是静默退回。 */
 #if defined(_MSC_VER) && (!defined(__AVX512CD__) || !defined(__AVX512BW__) || \
                           !defined(__AVX512DQ__) || !defined(__AVX512VL__))
-#error "astrocs_cpuprov_avx512 计算面 TU 的 MSVC 许可面缺 CD/BW/DQ/VL 之一: /arch:AVX512 的官方许可面是 F+CD+BW+DQ+VL，缺位即声明位无编译许可面（声明 ⊋ 编译）。"
+#error "acsd_cpuprov_avx512 计算面 TU 的 MSVC 许可面缺 CD/BW/DQ/VL 之一: /arch:AVX512 的官方许可面是 F+CD+BW+DQ+VL，缺位即声明位无编译许可面（声明 ⊋ 编译）。"
 #endif
 
-#include "astrocs/cpu/avx512_provider_v1.h"
-#include "astrocs/cpu/cpuprov_kernels_v1.h"
+#include "acsd/cpu/avx512_provider_v1.h"
+#include "acsd/cpu/cpuprov_kernels_v1.h"
 
 #include <algorithm>
 #include <cmath>
@@ -44,7 +44,7 @@
  *
  * R-60 拆分说明: 本函数体自 avx512_provider.cpp **逐字符搬移**（只去掉 static、
  * 改名为跨 TU 桥入口，形参/语句/项序一字未动）。 */
-extern "C" void astrocs_cpuprov_kernel_range_v1(const acs_cpu_baseline_params_v1* P,
+extern "C" void acsd_cpuprov_kernel_range_v1(const acsd_cpu_baseline_params_v1* P,
                                                 uint32_t kidx,
                                                 const float* const* in, float* const* out,
                                                 uint64_t i0, uint64_t i1) {

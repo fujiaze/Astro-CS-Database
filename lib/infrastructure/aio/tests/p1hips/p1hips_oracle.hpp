@@ -365,10 +365,10 @@ inline bool read_moc_order(const std::string& path, long& moc_order) {
 // 5) 临时目录工具 (fixture 不落仓库大二进制; 每用例独立 mkdtemp)
 // ---------------------------------------------------------------------------
 // 临时根：不写死 "/tmp" —— Windows 无此路径，且系统临时目录可能不可写（AGENTS §3）。
-// 依次尝试 ASTROCS_TEST_TMPDIR / 系统临时目录 / 当前工作目录，取第一个 mkdtemp 成功的。
+// 依次尝试 ACSD_TEST_TMPDIR / 系统临时目录 / 当前工作目录，取第一个 mkdtemp 成功的。
 inline std::string make_tmp_dir(const char* tag) {
     std::vector<std::string> roots;
-    if (const char* e = std::getenv("ASTROCS_TEST_TMPDIR"); e && *e) roots.push_back(e);
+    if (const char* e = std::getenv("ACSD_TEST_TMPDIR"); e && *e) roots.push_back(e);
     std::error_code ec;
     const auto sys = std::filesystem::temp_directory_path(ec);
     if (!ec) roots.push_back(sys.string());

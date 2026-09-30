@@ -1,6 +1,6 @@
 # 排障手册（症状 → 定位 → 修复）
 
-> 上游：`docs/ASTROCS_DESIGN.md` §7.2（机器输出与退出码）、§7.3（错误传播与运行日志）、
+> 上游：`docs/ACSD_DESIGN.md` §7.2（机器输出与退出码）、§7.3（错误传播与运行日志）、
 > `docs/engineering/LOG_AND_ERROR_CONTRACT.md` §5（错误域与退出码映射）、§7（日志面）。
 > 写法：`docs/engineering/DOCUMENT_GOVERNANCE.md` §7（写法判据）与 AGENTS.md 第 5 节。
 
@@ -88,7 +88,7 @@ ctest --test-dir build -R "^phase2_synthetic_gate\." --output-on-failure
 
 # 诊断：输出小 bundle（stage/error/metrics）
 # 日志目录必须是块的 output_dir 下的 logs，传错目录工具会直接返回 2
-python3 eng/tools/astrocs_diagnose.py <output_dir>/logs --json diag.json
+python3 eng/tools/acsd_diagnose.py <output_dir>/logs --json diag.json
 ```
 
 ## 6 外部依赖与网络

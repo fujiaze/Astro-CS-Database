@@ -124,7 +124,7 @@ def main() -> int:
     if not ccdinfo_path.exists():
         print(f"[download] {CCDINFO_URL} -> {ccdinfo_path}")
         req = urllib.request.Request(
-            CCDINFO_URL, headers={"User-Agent": "AstroCS-BASS-Index/1.0"}
+            CCDINFO_URL, headers={"User-Agent": "ACSD-BASS-Index/1.0"}
         )
         with urllib.request.urlopen(req, timeout=300) as resp, open(
             ccdinfo_path, "wb"

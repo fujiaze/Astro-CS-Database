@@ -1,6 +1,6 @@
 # Compatibility Policy
 
-> 上游：docs/ASTROCS_DESIGN.md §8（软件架构）、§10（I/O 与原子产品）、§13（版本与发布权）
+> 上游：docs/ACSD_DESIGN.md §8（软件架构）、§10（I/O 与原子产品）、§13（版本与发布权）
 
 ## 原则
 

@@ -264,27 +264,27 @@ bool p2_stage2_parse_config(const nlohmann::json& j, P2Stage2Config* cfg, std::s
                     return false;
                 }
                 // 版本化 profile。CONFORM-FIX-B-007：生产默认 = 自研档
-                // astrocs_adaptive_pixel（FIX-SCI-SNR-CANON-001 /
+                // acsd_adaptive_pixel（FIX-SCI-SNR-CANON-001 /
                 // SCI REJECTION §4/§5/§7、CONFIG_SCHEMA.md:25、
                 // contracts provenance:67 同值）。wbpp_2_9_1 为**对照档**、
                 // wbpp_current 为 migration alias（规范化到 wbpp_2_9_1）。
                 // 与 node chain（module_adapters.cpp p2_op_reject 缺省）一致。
                 cfg->reject_profile = rj.value(
                     "profile",
-                    std::string(P2_PROFILE_ASTROCS_ADAPTIVE_PIXEL));
+                    std::string(P2_PROFILE_ACSD_ADAPTIVE_PIXEL));
                 if (cfg->reject_profile == "wbpp_current")
                     cfg->reject_profile = "wbpp_2_9_1";   // alias 规范化
                 if (cfg->reject_profile != "wbpp_2_9_1" &&
-                    cfg->reject_profile != "astrocs_adaptive" &&
-                    cfg->reject_profile != "astrocs_adaptive_pixel") {
+                    cfg->reject_profile != "acsd_adaptive" &&
+                    cfg->reject_profile != "acsd_adaptive_pixel") {
                     *err = "rejection.profile 只支持 wbpp_2_9_1（冻结）/ "
-                           "astrocs_adaptive / astrocs_adaptive_pixel";
+                           "acsd_adaptive / acsd_adaptive_pixel";
                     return false;
                 }
                 // CONFORM-FIX-B-008：underdetermined_n 默认值**单一来源** =
                 // p2_reject_plan_resolve 的 profile/request 规则（rejection.h:230-234
                 // 冻结：0 = 按 profile 默认；wbpp/adaptive=2；
-                // astrocs_adaptive_pixel=3（n<=3 保守 none）；显式
+                // acsd_adaptive_pixel=3（n<=3 保守 none）；显式
                 // extreme_prior opt-in=1）。旧实现在此复制了 2/3 两份字面量，
                 // 与 resolver 在 extreme_prior 档分叉（tool 恒 3 vs resolver 1）
                 // ⇒ 同一配置两条链路得到不同 underdetermined_n。现缺键时向
@@ -313,20 +313,20 @@ bool p2_stage2_parse_config(const nlohmann::json& j, P2Stage2Config* cfg, std::s
                     }
                     cfg->reject_underdetermined_n = dplan.underdetermined_n;
                 }
-                // rejection normalization 独立命名（astrocs_*_v1；
+                // rejection normalization 独立命名（acsd_*_v1；
                 // 旧 median_center/median_scale 为 migration alias）
                 cfg->reject_normalization = rj.value(
                     "normalization",
-                    std::string("astrocs_median_center_v1"));
+                    std::string("acsd_median_center_v1"));
                 if (cfg->reject_normalization == "median_center")
-                    cfg->reject_normalization = "astrocs_median_center_v1";
+                    cfg->reject_normalization = "acsd_median_center_v1";
                 else if (cfg->reject_normalization == "median_scale")
-                    cfg->reject_normalization = "astrocs_median_scale_v1";
+                    cfg->reject_normalization = "acsd_median_scale_v1";
                 if (cfg->reject_normalization != "none" &&
-                    cfg->reject_normalization != "astrocs_median_center_v1" &&
-                    cfg->reject_normalization != "astrocs_median_scale_v1") {
+                    cfg->reject_normalization != "acsd_median_center_v1" &&
+                    cfg->reject_normalization != "acsd_median_scale_v1") {
                     *err = "rejection.normalization 只支持 none/"
-                           "astrocs_median_center_v1/astrocs_median_scale_v1";
+                           "acsd_median_center_v1/acsd_median_scale_v1";
                     return false;
                 }
                 cfg->reject_normalization_floor =
@@ -356,9 +356,9 @@ bool p2_stage2_parse_config(const nlohmann::json& j, P2Stage2Config* cfg, std::s
                 }
                 // 方法×normalization 合法性
                 if (method == "percentile" &&
-                    cfg->reject_normalization != "astrocs_median_center_v1") {
+                    cfg->reject_normalization != "acsd_median_center_v1") {
                     *err = "rejection: percentile 必须 normalization="
-                           "astrocs_median_center_v1（负值科学域安全）";
+                           "acsd_median_center_v1（负值科学域安全）";
                     return false;
                 }
                 if (method == "rcr" && cfg->reject_normalization != "none") {
@@ -434,8 +434,8 @@ bool p2_stage2_parse_config(const nlohmann::json& j, P2Stage2Config* cfg, std::s
             }
         // ── legacy 整数权重模式域与其 token 已删除 ──────────
         // 规范依据（权威，只读）：
-        //   · docs/ASTROCS_DESIGN.md §3.1:171「全程只有 SNR，没有"权重模式"这个概念」；
-        //   · docs/ASTROCS_DESIGN.md §3.1:175「权重的产生链固定为两步、**没有可选择项**」；
+        //   · docs/ACSD_DESIGN.md §3.1:171「全程只有 SNR，没有"权重模式"这个概念」；
+        //   · docs/ACSD_DESIGN.md §3.1:175「权重的产生链固定为两步、**没有可选择项**」；
         //   · docs/science/PSF_SIGNAL_WEIGHT.md §4:62/72「单一权重口径（无模式选择）」
         //     「**没有可选择的口径**：不存在口径选择键、口径枚举、口径配置项或口径产物」；
         //   · docs/engineering/01_CHECKS.md CHK-NO-WEIGHT-MODE-CODE（FZ-WEIGHT-SINGLE-PATH）。
@@ -446,7 +446,7 @@ bool p2_stage2_parse_config(const nlohmann::json& j, P2Stage2Config* cfg, std::s
         //   拒绝面必须存活，不得静默忽略或静默取默认值）。
         if (in.contains("weight_mode")) {
             *err = "integration.weight_mode 已按 §9.73 裁决 A44 删除：不存在「权重模式」"
-                   "（docs/ASTROCS_DESIGN.md §3.1:175「权重的产生链固定为两步、没有可选择项」；"
+                   "（docs/ACSD_DESIGN.md §3.1:175「权重的产生链固定为两步、没有可选择项」；"
                    "docs/science/PSF_SIGNAL_WEIGHT.md §4「单一权重口径（无模式选择）」）。"
                    "权重是阶段二按天球像素对应的输入帧集合现场算出的派生量 "
                    "w = SNR^2/F_ref^2 = 1/sigma_F^2；请删除该键。";
@@ -454,12 +454,12 @@ bool p2_stage2_parse_config(const nlohmann::json& j, P2Stage2Config* cfg, std::s
         }
         // legacy_allow_weight_fallback **已删除** ——
         // 该键曾允许「ivar 缺失 → 降级 support/equal」，而 support/equal 都不是
-        // 信号/噪声之比（docs/ASTROCS_DESIGN.md §3.1:173/175）。
+        // 信号/噪声之比（docs/ACSD_DESIGN.md §3.1:173/175）。
         // ⇒ 该键**既不能被设、也不能被读**：出现即 fail-closed 拒绝。
         if (in.contains("legacy_allow_weight_fallback")) {
             *err = "integration.legacy_allow_weight_fallback 已按 §9.73 裁决 A44 删除："
                    "它允许用无量纲 support 或等权降级冒充逆方差权重，与 "
-                   "docs/ASTROCS_DESIGN.md §3.1:173「权重只能来自纯净信号与噪声之比」及 "
+                   "docs/ACSD_DESIGN.md §3.1:173「权重只能来自纯净信号与噪声之比」及 "
                    "§3.1:175「没有可选择项」冲突。唯一降级面 = 帧级 SNR 逆方差链 "
                    "w = SNR^2/F_ref^2（由数据可用性自动决定，不是用户开关）；"
                    "权重链未闭合即显式 science 错误。请删除该键。";
@@ -517,7 +517,7 @@ bool p2_acr_block_eligible(const P2Stage2Config& cfg,
     // 「ivar science 模式必须走 CPU canonical path」；acr_kernels.cpp 亦对
     // cell-ivar 权重显式 throw（ACR 与逐像素 ivar 不等价）。
     // ⇒ 该条件对本仓**恒成立** ⇒ 本函数恒 false：ACR 块在生产不可达
-    //   （docs/ASTROCS_DESIGN.md §2「纯 CPU 生产，ACR 生产不可达」）。
+    //   （docs/ACSD_DESIGN.md §2「纯 CPU 生产，ACR 生产不可达」）。
     // 这不是"关掉一个开关"，而是唯一路径的推论：可进入 ACR 的前提（非 ivar
     // 权重口径）已被冻结口径删除，故不存在任何合法配置能进入 ACR 块。
     (void)cfg;

@@ -27,7 +27,7 @@
 // 的归一发布口径, 两者共同覆盖"引擎 -> writer -> 产品"全链)。
 //
 // 用法: drizzle_pf_sb_gate [work_dir]
-// 环境: ASTROCS_DRZ_SB_FAULT=legacy_dp_normalization
+// 环境: ACSD_DRZ_SB_FAULT=legacy_dp_normalization
 //       → 复现修复前缺陷 (直写漏乘 k) ⇒ 本门必须判红 (负例 ctest)。
 // ============================================================================
 #include "astro_sphere_sink.h"
@@ -171,7 +171,7 @@ int main(int argc, char** argv) {
     fs::remove_all(work, ec);
     fs::create_directories(work, ec);
 
-    const char* fault = std::getenv("ASTROCS_DRZ_SB_FAULT");
+    const char* fault = std::getenv("ACSD_DRZ_SB_FAULT");
     const bool injection = (fault && std::string(fault) == "legacy_dp_normalization");
 
     const uint32_t nside = 512;

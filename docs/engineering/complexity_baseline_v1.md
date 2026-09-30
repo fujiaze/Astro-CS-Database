@@ -1,6 +1,6 @@
 # 复杂度基线 v1（complexity_baseline_v1）
 
-> 上游：ASTROCS_DESIGN.md §12.4（验证层级与四层验收）
+> 上游：ACSD_DESIGN.md §12.4（验证层级与四层验收）
 
 - 合同依据：**第一次 deep CI 只测量并记录基线，不设阈值**；每模块复杂度上限待冻结
   （检查 `DEEP-COMPLEXITY`，见 门禁注册面（G08-10 重建））。
@@ -23,7 +23,7 @@
 | max_file_cyclomatic | 1048（`lib/infrastructure/pipeline/orchestrator/cpp/src/orchestrator.cpp`） |
 
 cli 域 top1：`cli/commands.cpp`（332）；include 域 top1：
-`lib/include/astrocs/core/contracts.h`（29）。
+`lib/include/acsd/core/contracts.h`（29）。
 
 ## hosted 后待补字段
 

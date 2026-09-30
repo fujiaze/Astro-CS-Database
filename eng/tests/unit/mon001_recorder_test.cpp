@@ -22,28 +22,28 @@ static int failures = 0;
   } while (0)
 
 int main() {
-    astrocs::ResourceRecorder rec(0.25);
+    acsd::ResourceRecorder rec(0.25);
     // 构造 10 个样本: init 2 / active 6 / flush 2; active 高 CPU 多 worker
     for (int i = 0; i < 2; ++i) {
-        astrocs::ProcSample s;
+        acsd::ProcSample s;
         s.d_cpu_seconds = 0.05; s.rss_bytes = 100; s.vms_bytes = 1000;
         s.d_read_bytes = 10; s.d_write_bytes = 5;
-        rec.set_stage(astrocs::ResStage::Init);
+        rec.set_stage(acsd::ResStage::Init);
         rec.set_workers(0, 0);
         rec.record(s);
     }
-    rec.set_stage(astrocs::ResStage::Active);
+    rec.set_stage(acsd::ResStage::Active);
     rec.set_workers(2, 2);
     for (int i = 0; i < 6; ++i) {
-        astrocs::ProcSample s;
+        acsd::ProcSample s;
         s.d_cpu_seconds = 0.22;  // ~88% 单核(0.22/0.25)
         s.rss_bytes = static_cast<uint64_t>(200 + i * 10); s.vms_bytes = 2000;
         rec.record(s);
     }
-    rec.set_stage(astrocs::ResStage::Flush);
+    rec.set_stage(acsd::ResStage::Flush);
     rec.set_workers(1, 1);
     for (int i = 0; i < 2; ++i) {
-        astrocs::ProcSample s;
+        acsd::ProcSample s;
         s.d_cpu_seconds = 0.01; s.rss_bytes = 300; s.vms_bytes = 1500;
         rec.record(s);
     }
@@ -52,7 +52,7 @@ int main() {
     // 阶段统计: active 6 样本, workers_mean≈2, cpu p50≈88
     const auto stats = rec.stage_stats();
     CHECK(stats.size() == 3);
-    const astrocs::ResStageStats* act = nullptr;
+    const acsd::ResStageStats* act = nullptr;
     for (const auto& s : stats) if (std::string(s.stage) == "active") act = &s;
     CHECK(act != nullptr);
     CHECK(act->n_samples == 6);
@@ -63,8 +63,8 @@ int main() {
     // percentile 辅助(最近秩: 偶数集合中位数取上中位)
     {
         std::vector<double> v = {1, 2, 3, 4};
-        CHECK(astrocs::percentile_sorted(v, 0.5) == 3.0);
-        CHECK(astrocs::percentile_sorted(v, 0.95) == 4.0);
+        CHECK(acsd::percentile_sorted(v, 0.5) == 3.0);
+        CHECK(acsd::percentile_sorted(v, 0.95) == 4.0);
     }
 
     // 三产物写入 — 跨平台临时目录: 原实现 "/tmp" + std::system("rm -rf/mkdir -p")

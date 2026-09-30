@@ -1,6 +1,6 @@
 // fsyn_export.cpp - Gate 4 (Phase1 v2/v3): 生产 compute_f_syn 导出工具
 //
-// 用途: 供 Python 验证 numpy 移植版 (fsyn_astrocs.py) 与生产 C++
+// 用途: 供 Python 验证 numpy 移植版 (fsyn_acsd.py) 与生产 C++
 // compute_f_syn_cached / compute_f_syn_cached_xpsd 数值一致
 // (同一 uint8 光谱 + flux_min/flux_mul + 同一 filter/QE)。
 //

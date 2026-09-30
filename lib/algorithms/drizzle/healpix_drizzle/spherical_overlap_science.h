@@ -1,5 +1,5 @@
-#ifndef ASTROCS_SPHERICAL_OVERLAP_SCIENCE_H
-#define ASTROCS_SPHERICAL_OVERLAP_SCIENCE_H
+#ifndef ACSD_SPHERICAL_OVERLAP_SCIENCE_H
+#define ACSD_SPHERICAL_OVERLAP_SCIENCE_H
 
 // ============================================================================
 // ACSD v6 Phase1 Drizzle 球面 overlap 适配层
@@ -23,7 +23,7 @@
 #include <cstdint>
 #include <vector>
 
-namespace astrocs {
+namespace acsd {
 namespace v6 {
 namespace drizzle {
 
@@ -94,6 +94,6 @@ DrzError build_operator_from_sources(const ::healpix::HealpixCore& hp,
 
 } // namespace drizzle
 } // namespace v6
-} // namespace astrocs
+} // namespace acsd
 
-#endif // ASTROCS_SPHERICAL_OVERLAP_SCIENCE_H
+#endif // ACSD_SPHERICAL_OVERLAP_SCIENCE_H

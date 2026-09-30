@@ -1,21 +1,21 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://astrocs.local/schemas/run_manifest/v1",
+  "$id": "https://acsd.local/schemas/run_manifest/v1",
   "title": "ACSD run_manifest v1",
   "description": "CFG-001 建立的运行冻结合同：源码 SHA / 配置哈希 / 输入输出哈希 / 工具链版本。不承载科学参数，也不承载硬件调优字段。",
-  "x-astrocs-schema-family": "run_manifest",
-  "x-astrocs-config-class": "run_manifest",
-  "x-astrocs-writer": "运行时（每次运行冻结）",
-  "x-astrocs-not-writable-by": [
+  "x-acsd-schema-family": "run_manifest",
+  "x-acsd-config-class": "run_manifest",
+  "x-acsd-writer": "运行时（每次运行冻结）",
+  "x-acsd-not-writable-by": [
     "用户",
     "benchmark"
   ],
-  "x-astrocs-authority": [
+  "x-acsd-authority": [
     "docs/detail/UNIFIED_MODEL.md §3（run_manifest：本次运行冻结：源码/配置/输入输出哈希）",
     "docs/contracts/config_separation_anchors.json（run_manifest 字段名族与禁止名）",
-    "docs/ASTROCS_DESIGN.md §6.3:322（运行事件与机器输出）"
+    "docs/ACSD_DESIGN.md §6.3:322（运行事件与机器输出）"
   ],
-  "x-astrocs-notes": [
+  "x-acsd-notes": [
     "字段名取自 DATA-001 锚点 config_separation_anchors.json 的 run_manifest 族：^run_id$ / ^software_sha$ / ^config_hash$ / ^manifest_(input|output)_hashes$ / ^toolchain_[a-z0-9_]+$。",
     "禁止名（锚点 config_classes[run_manifest].forbidden_field_names）：isa / workers / block / sci_algorithm_id / sci_weight_mode。哈希一律小写十六进制，长度固定。",
     "加性可选键 storage（R-42/P-181）：归属 docs/engineering/HIPS_STORAGE_FORM_CONTRACT.md §10.3（运行完成清单 manifest.json#storage），属运行级形态事实、不属哈希/版本字段名族；本 schema 只登记键位与类型，字段词表不在本文件复写（唯一机器事实源 = hips_storage_form.schema.json#/$defs.manifest_storage）。"
@@ -34,7 +34,7 @@
   "additionalProperties": false,
   "properties": {
     "manifest_schema": {
-      "const": "astrocs.run-manifest/v1"
+      "const": "acsd.run-manifest/v1"
     },
     "run_id": {
       "type": "string",

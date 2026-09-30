@@ -5,7 +5,7 @@
 用法: python3 eng/tools/pack_audit_package.py
 
 退役 (RETIRED) —— **打包入口(main)退役; 白名单/排除函数仍为活动依赖**:
-  1. 依据: docs/ASTROCS_DESIGN.md §0(权威链: 旧世代控制包产物不构成判据)
+  1. 依据: docs/ACSD_DESIGN.md §0(权威链: 旧世代控制包产物不构成判据)
      （历史版本控制包全部作废; 不归档不保留）;
      产物内含 VERSION/CHANGELOG 口径, 与 §12「Alpha 前不含任何版本信息」冲突;
   2. 输出已不存在: 旧证据树（其 AUDIT_PACKAGE_*.zip 与 capsules/ 已删除）;
@@ -65,8 +65,8 @@ def denied(rel: str) -> bool:
 
 # 排除: 第三方/数据/二进制/运行时/大产物
 EXCLUDE_SUBSTR = ("/third_party/", "/build/", "/builds/", "/run/", "/testdata/",
-                  "/AstroCS.wiki/", "/artifacts/prerelease_v5/ISA-", "/artifacts/prerelease_v5/capsules/",
-                  "/astrocs_run_")
+                  "/ACSD.wiki/", "/artifacts/prerelease_v5/ISA-", "/artifacts/prerelease_v5/capsules/",
+                  "/acsd_run_")
 EXCLUDE_EXT = {".fts", ".fit", ".fits", ".xisf", ".zip", ".dll", ".lib", ".a", ".o", ".so", ".exe",
                ".pdb", ".obj", ".exp", ".cache", ".pyc"}
 
@@ -93,9 +93,9 @@ def allowed(rel: str) -> tuple[bool, str]:
         return (False, "")
     top = rel.split("/")[0]
     if rel.startswith("工程控制/"):
-        if not rel.startswith("工程控制/RELEASE_V5/AstroCS_MAIN_RELEASE_CONTROL_V5_SINGLE_CLI_AMD64_20260828"):
+        if not rel.startswith("工程控制/RELEASE_V5/ACSD_MAIN_RELEASE_CONTROL_V5_SINGLE_CLI_AMD64_20260828"):
             return (False, "")
-        return (True, "evidence/control/" + rel.split("AstroCS_MAIN_RELEASE_CONTROL_V5_SINGLE_CLI_AMD64_20260828/", 1)[-1])
+        return (True, "evidence/control/" + rel.split("ACSD_MAIN_RELEASE_CONTROL_V5_SINGLE_CLI_AMD64_20260828/", 1)[-1])
     if rel.startswith("reports/"):
         return (True, "evidence/" + rel)
     if top in CODE_TOPS:
@@ -116,7 +116,7 @@ def git(*a):
 
 RETIRED_NOTICE = (
     "PACK_AUDIT_PACKAGE_RETIRED: 本打包入口（旧世代 V5 审核包 zip）已退役。\n"
-    "  依据: docs/ASTROCS_DESIGN.md §0（权威链：旧世代控制包产物不构成判据）+ §12（Alpha 前不含版本信息）"
+    "  依据: docs/ACSD_DESIGN.md §0（权威链：旧世代控制包产物不构成判据）+ §12（Alpha 前不含版本信息）"
     "（历史版本控制包全部作废；不归档不保留）；"
     "ENGINEERING_SPEC.md §8（不允许静默坏掉）。\n"
     "  输出路径已不存在（旧证据树）。\n"
@@ -156,7 +156,7 @@ def legacy_main() -> int:
                 continue
             data = src.read_bytes()
             total += len(data)
-            # 包内以相对路径(不带 AstroCS_V5_audit_package_ 前缀)存, 保持 code/ evidence/ 结构
+            # 包内以相对路径(不带 ACSD_V5_audit_package_ 前缀)存, 保持 code/ evidence/ 结构
             z.writestr(dst, data)
             staged.append((dst, rel))
             manifest.append({"path": dst, "source": rel, "size": len(data), "sha256": hashlib.sha256(data).hexdigest()})
@@ -165,7 +165,7 @@ def legacy_main() -> int:
         manifest.append({"path": "00_README.md", "source": "(generated)", "size": len(md.encode()),
                          "sha256": hashlib.sha256(md.encode()).hexdigest()})
         # MANIFEST.json
-        mj = json.dumps({"schema_version": 1, "package": f"AstroCS-audit-{c12}",
+        mj = json.dumps({"schema_version": 1, "package": f"ACSD-audit-{c12}",
                          "version": ver, "commit": commit, "total_bytes": total, "files": manifest},
                         indent=1, ensure_ascii=False)
         z.writestr("MANIFEST.json", mj.encode("utf-8"))

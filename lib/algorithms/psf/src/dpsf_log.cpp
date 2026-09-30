@@ -5,7 +5,7 @@
 #include <mutex>
 #include <string>
 
-// CLEAN-403 (docs/ASTROCS_DESIGN §10「aio 是文件级唯一 I/O 边界」): 日志落盘经 aio
+// CLEAN-403 (docs/ACSD_DESIGN §10「aio 是文件级唯一 I/O 边界」): 日志落盘经 aio
 // 唯一实现 (aio_atomic::make_dirs + append_open/append_write), 本 TU 不自持
 // std::filesystem / FILE* 通道。
 #include "aio_atomic_file.h"

@@ -2,12 +2,12 @@
 //
 // 验收 (模板 <prefix>-TEST): "故障注入能让测试失败" + "不得写永远 PASS\n// 的占位"。本可执行三阶段:
 //   1) 基线: 无注入跑 units 组 → 必 PASS (排除恒 FAIL 侧)。
-//   2) 注入 A: 子进程以 ASTROCS_P1HIPS_FAULT=u1_signal_bitwise 重跑 units
+//   2) 注入 A: 子进程以 ACSD_P1HIPS_FAULT=u1_signal_bitwise 重跑 units
 //      → 必 FAIL (排除恒 PASS 侧), stderr 含 FAULT-INJECT 行。
-//   3) 注入 B: 子进程以 ASTROCS_P1HIPS_FAULT=o1_fits_mapping_bitwise 重跑
+//   3) 注入 B: 子进程以 ACSD_P1HIPS_FAULT=o1_fits_mapping_bitwise 重跑
 //      oracle 组 → 必 FAIL (第二注入点覆盖)。
 // 注入名与 faultname 注册处 (各测试 TU P1HIPS_CHECK 第三参) 对齐;
-// ASTROCS_P1HIPS_SELFCHECK_FAULT 可覆盖阶段 2 注入名。
+// ACSD_P1HIPS_SELFCHECK_FAULT 可覆盖阶段 2 注入名。
 #include "p1hips_test_main.hpp"
 
 #ifdef _WIN32
@@ -40,7 +40,7 @@ namespace {
 // 子进程注入重跑: execve /proc/self/exe <group> + 注入环境
 // 返回子进程 rc (执行失败 → 127)
 int run_injected_child(const char* group, const std::string& fault_name) {
-    const std::string fault_env = "ASTROCS_P1HIPS_FAULT=" + fault_name;
+    const std::string fault_env = "ACSD_P1HIPS_FAULT=" + fault_name;
     std::vector<char> fbuf(fault_env.begin(), fault_env.end());
     fbuf.push_back('\0');
 
@@ -74,7 +74,7 @@ int run_injected_child(const char* group, const std::string& fault_name) {
 }
 
 // 注入子进程入口: execve 重入后 argv[1] = 组名, 直接跑该组
-// (FaultRegistry 由 ASTROCS_P1HIPS_FAULT 初始化, 机制与主执行器一致)。
+// (FaultRegistry 由 ACSD_P1HIPS_FAULT 初始化, 机制与主执行器一致)。
 static int run_injected_group(const char* group) {
     p1hips::init_fault_registry_from_env();
     if (std::strcmp(group, "units") == 0) return p1hips::test_units();
@@ -144,7 +144,7 @@ int run_selfcheck() {
 
     // 阶段 2: 注入 units 组 → 必 FAIL
     {
-        const char* fault = std::getenv("ASTROCS_P1HIPS_SELFCHECK_FAULT");
+        const char* fault = std::getenv("ACSD_P1HIPS_SELFCHECK_FAULT");
         const std::string name = fault ? fault : "u1_signal_bitwise";
         const int child_rc = run_injected_child("units", name);
         if (child_rc == 0) {
@@ -172,9 +172,9 @@ int run_selfcheck() {
     }
 
     // 阶段 4 (SCI-F3-001): DATA-UNC-001 §30.2/§30.3 AIO 通道库级故障注入自检
-    // (ASTROCS_HIPS_PROV_FAULT=missing_key|value_drift、
-    //  ASTROCS_HIPS_DIAG_FAULT=sentinel|skip_write、
-    //  ASTROCS_HIPS_VERIFY_FAULT=shortcut —— 基线 4 场景必 PASS + 5 注入点必 FAIL)
+    // (ACSD_HIPS_PROV_FAULT=missing_key|value_drift、
+    //  ACSD_HIPS_DIAG_FAULT=sentinel|skip_write、
+    //  ACSD_HIPS_VERIFY_FAULT=shortcut —— 基线 4 场景必 PASS + 5 注入点必 FAIL)
     {
         const int rc = p1hips::test_diag_prov_selfcheck();
         if (rc != 0) {

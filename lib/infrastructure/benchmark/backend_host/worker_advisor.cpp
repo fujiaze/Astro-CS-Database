@@ -15,7 +15,7 @@
 
 #include "bench_harness.h"
 
-namespace astrocs::backend_host {
+namespace acsd::backend_host {
 
 namespace {
 
@@ -178,7 +178,7 @@ WorkerAdvice advise_kernel_v1(const std::string& profile_json,
     }
 
     // profile 行读取(benchmark 选择; 合法性由 CPU-007 装载链保证)。
-    // schema 门: 只消费 astrocs.cpu-profile/v2 —— 外域文本(benchmark-report/v1、
+    // schema 门: 只消费 acsd.cpu-profile/v2 —— 外域文本(benchmark-report/v1、
     // resource-plan/v1 等)一律视为无行/不可读, 与 CPU-006/本层 plan 结构性隔离。
     bool have_row = false;
     uint32_t pw = 0;
@@ -192,7 +192,7 @@ WorkerAdvice advise_kernel_v1(const std::string& profile_json,
                                                prof["schema"].is_string()
                                            ? prof["schema"].get<std::string>()
                                            : std::string();
-            if (schema != "astrocs.cpu-profile/v2") {
+            if (schema != "acsd.cpu-profile/v2") {
                 chain += "profile_foreign_schema|";
             } else if (prof.contains("kernels") && prof["kernels"].is_object() &&
                        prof["kernels"].contains(kernel_id) &&
@@ -268,7 +268,7 @@ std::string build_resource_plan_v1(const std::vector<WorkerAdvice>& advice,
                                    const ResourceLimitsV1& limits,
                                    const std::string& build_id) {
     json plan;
-    plan["schema"] = "astrocs.resource-plan/v1";
+    plan["schema"] = "acsd.resource-plan/v1";
     plan["build_id"] = build_id;
     plan["generated_utc"] = "";   // 由 CLI 层注入时间戳(库层不取钟, 同域一致)
     plan["limits"] = {
@@ -299,7 +299,7 @@ std::string build_resource_plan_v1(const std::vector<WorkerAdvice>& advice,
 
 std::string worker_grant_trace_v1(const GrantInput& g) {
     json t;
-    t["schema"] = "astrocs.worker-grant/v1";
+    t["schema"] = "acsd.worker-grant/v1";
     t["build_id"] = g.build_id;
     t["kernel_id"] = g.kernel_id;
     t["provider"] = g.provider;
@@ -312,4 +312,4 @@ std::string worker_grant_trace_v1(const GrantInput& g) {
     return t.dump();
 }
 
-}  // namespace astrocs::backend_host
+}  // namespace acsd::backend_host

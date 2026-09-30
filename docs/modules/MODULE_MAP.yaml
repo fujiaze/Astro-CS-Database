@@ -7,9 +7,9 @@
 # 权威依据：
 #   - docs/detail/00_INDEX.md §1（模块归属）、§2（23 篇模块总表）、§3（每篇 8 节模板）、§5（维护规则）
 #   - ENGINEERING_SPEC.md §4（每模块必备 7 项）、§8（manifest/注册表/target/产品清单一致）
-#   - ASTROCS_DESIGN.md §7.1（顶层结构唯一）、§7.3（模块与 DLL/SO 边界）、§12.5（状态阶梯唯一口径）
+#   - ACSD_DESIGN.md §7.1（顶层结构唯一）、§7.3（模块与 DLL/SO 边界）、§12.5（状态阶梯唯一口径）
 #   - docs/engineering/01_CHECKS.md §2（CHK-MODULE-MANIFEST = 模块 manifest/注册表/构建 target/产品清单一致，P0）
-#   - eng/contracts/config/module_dll_contract.schema.json（entrypoint_abi 统一 astrocs_module_query_v1）
+#   - eng/contracts/config/module_dll_contract.schema.json（entrypoint_abi 统一 acsd_module_query_v1）
 #
 # 本表是**期望映射**：不含任何模块状态声明。模块状态一律由
 # eng/tools/quality/check_module_map.py 现场计算，状态词只取 §12.5 词表；
@@ -29,48 +29,48 @@ tool: eng/tools/quality/check_module_map.py
 authorities:
   module_index: docs/detail/00_INDEX.md §1/§2/§3/§5
   engineering_spec: ENGINEERING_SPEC.md §4/§8
-  design: ASTROCS_DESIGN.md §7.1/§7.3/§12.5
+  design: ACSD_DESIGN.md §7.1/§7.3/§12.5
   checks_registry: docs/engineering/01_CHECKS.md §2
 status_vocabulary: [CONTRACT_READY, IMPLEMENTED, INSTALLED, VERIFIED, NOT_IMPLEMENTED, NOT_VERIFIED, DEFERRED, DORMANT, FAIL]
-status_vocabulary_authority: ASTROCS_DESIGN.md §12.5
+status_vocabulary_authority: ACSD_DESIGN.md §12.5
 conventions:
   target_dir_algorithms: lib/algorithms/<id>
   target_dir_infrastructure: lib/infrastructure/<id>
-  target_algorithms: astrocs_<scope>_<id>
-  target_infrastructure: astrocs_infra_<id>（cli 为唯一入口 exe，target=acsd）
-  abi_entrypoint: astrocs_module_query_v1
+  target_algorithms: acsd_<scope>_<id>
+  target_infrastructure: acsd_infra_<id>（cli 为唯一入口 exe，target=acsd）
+  abi_entrypoint: acsd_module_query_v1
   abi_entrypoint_authority: eng/contracts/config/module_dll_contract.schema.json（entrypoint_abi const）
   public_header_glob: lib/include/**/*.h
   public_header_requirements: [abi_version_or_struct_size]
   co_located_tests_glob: eng/tests/**/*
   module_yaml_required_keys: [id, module_id, module_version, abi_version, entrypoint, input_ports, output_ports, data_contracts]
-  product_manifest_file: eng/packaging/astrocs.product.json
+  product_manifest_file: eng/packaging/acsd.product.json
   contract_index_file: docs/contracts/INDEX.yaml
   schema_dir: eng/contracts/schemas
 modules:
   - id: calibration
     scope: phase1
     group: algorithms
-    plugin_doc: docs/detail/registry/astrocs.phase1.calibration.md
+    plugin_doc: docs/detail/registry/acsd.phase1.calibration.md
     target_dir: lib/algorithms/calibration
     readme: lib/algorithms/calibration/README.md
     module_yaml: lib/algorithms/calibration/module.yaml
-    target: astrocs_p1_calibration
+    target: acsd_p1_calibration
     target_file: lib/algorithms/calibration/CMakeLists.txt
     co_located_tests: lib/algorithms/calibration/tests
-    module_id: astrocs.p1.calibration
+    module_id: acsd.p1.calibration
     module_version: 0.1.0-alpha.1
     abi_version: 1
-    entrypoint: astrocs_module_query_v1
+    entrypoint: acsd_module_query_v1
     entrypoint_kind: c-abi
     data_contracts: [DATA-P1-CAL]
     data_contracts_source: lib/algorithms/calibration/module.yaml（声明面，观察值）
     schema_links: [eng/contracts/schemas/data_light.schema.json, eng/contracts/schemas/calibration_output.schema.json]
-    schema_links_source: docs/detail/registry/astrocs.phase1.calibration.md「输入输出端口、DATA、单位、坐标、invalid」
+    schema_links_source: docs/detail/registry/acsd.phase1.calibration.md「输入输出端口、DATA、单位、坐标、invalid」
     schema_link_globs: []
     product_manifest:
       required: true
-      match_module_id: astrocs.p1.calibration
+      match_module_id: acsd.p1.calibration
       match_unit_id: null
       expected_unit_ids: []
       unit_kind: module
@@ -80,26 +80,26 @@ modules:
   - id: cosmetic
     scope: phase1
     group: algorithms
-    plugin_doc: docs/detail/registry/astrocs.phase1.cosmetic.md
+    plugin_doc: docs/detail/registry/acsd.phase1.cosmetic.md
     target_dir: lib/algorithms/cosmetic
     readme: lib/algorithms/cosmetic/README.md
     module_yaml: lib/algorithms/cosmetic/module.yaml
-    target: astrocs_p1_cosmetic
+    target: acsd_p1_cosmetic
     target_file: lib/algorithms/cosmetic/CMakeLists.txt
     co_located_tests: lib/algorithms/cosmetic/tests
-    module_id: astrocs.p1.cosmetic
+    module_id: acsd.p1.cosmetic
     module_version: 0.1.0-alpha.1
     abi_version: 1
-    entrypoint: astrocs_module_query_v1
+    entrypoint: acsd_module_query_v1
     entrypoint_kind: c-abi
     data_contracts: [DATA-P1-CAL, DATA-P1-COS]
     data_contracts_source: lib/algorithms/cosmetic/module.yaml（声明面，观察值）
     schema_links: [eng/contracts/schemas/cosmetic_output.schema.json]
-    schema_links_source: docs/detail/registry/astrocs.phase1.cosmetic.md「输入输出端口、DATA、单位、坐标、invalid」
+    schema_links_source: docs/detail/registry/acsd.phase1.cosmetic.md「输入输出端口、DATA、单位、坐标、invalid」
     schema_link_globs: []
     product_manifest:
       required: true
-      match_module_id: astrocs.p1.cosmetic
+      match_module_id: acsd.p1.cosmetic
       match_unit_id: null
       expected_unit_ids: []
       unit_kind: module
@@ -109,26 +109,26 @@ modules:
   - id: star_detection
     scope: phase1
     group: algorithms
-    plugin_doc: docs/detail/registry/astrocs.phase1.star-detection.md
+    plugin_doc: docs/detail/registry/acsd.phase1.star-detection.md
     target_dir: lib/algorithms/star_detection
     readme: lib/algorithms/star_detection/README.md
     module_yaml: lib/algorithms/star_detection/module.yaml
-    target: astrocs_p1_star_detection
+    target: acsd_p1_star_detection
     target_file: lib/algorithms/star_detection/CMakeLists.txt
     co_located_tests: lib/algorithms/star_detection/tests
-    module_id: astrocs.p1.star_detection
+    module_id: acsd.p1.star_detection
     module_version: 0.1.0-alpha.1
     abi_version: 1
-    entrypoint: astrocs_module_query_v1
+    entrypoint: acsd_module_query_v1
     entrypoint_kind: c-abi
     data_contracts: [DATA-P1-STAR]
     data_contracts_source: lib/algorithms/star_detection/module.yaml（声明面，观察值）
     schema_links: [eng/contracts/schemas/source_catalog.schema.json]
-    schema_links_source: docs/detail/registry/astrocs.phase1.star-detection.md「输入输出端口、DATA、单位、坐标、invalid」
+    schema_links_source: docs/detail/registry/acsd.phase1.star-detection.md「输入输出端口、DATA、单位、坐标、invalid」
     schema_link_globs: []
     product_manifest:
       required: true
-      match_module_id: astrocs.p1.star_detection
+      match_module_id: acsd.p1.star_detection
       match_unit_id: null
       expected_unit_ids: []
       unit_kind: module
@@ -138,27 +138,27 @@ modules:
   - id: psf
     scope: phase1
     group: algorithms
-    plugin_doc: docs/detail/registry/astrocs.phase1.star-psf.md
+    plugin_doc: docs/detail/registry/acsd.phase1.star-psf.md
     target_dir: lib/algorithms/psf
     readme: lib/algorithms/psf/README.md
     module_yaml: lib/algorithms/psf/module.yaml
-    target: astrocs_p1_psf
+    target: acsd_p1_psf
     target_file: lib/algorithms/psf/CMakeLists.txt
     co_located_tests: lib/algorithms/psf/tests
-    module_id: astrocs.p1.psf
-    aliases: [astrocs.phase1.star-psf]   # MOD-002 中面：D 面将检测/PSF 拆两页，star-psf 指 PSF 模块
+    module_id: acsd.p1.psf
+    aliases: [acsd.phase1.star-psf]   # MOD-002 中面：D 面将检测/PSF 拆两页，star-psf 指 PSF 模块
     module_version: 0.1.0-alpha.1
     abi_version: 1
-    entrypoint: astrocs_module_query_v1
+    entrypoint: acsd_module_query_v1
     entrypoint_kind: c-abi
     data_contracts: [DATA-P1-PSF, DATA-P1-SOURCES, DATA-P1-COSMETIC]
     data_contracts_source: lib/algorithms/psf/module.yaml（声明面，观察值）
     schema_links: [eng/contracts/schemas/psf_output.schema.json]
-    schema_links_source: docs/detail/registry/astrocs.phase1.star-psf.md「输入输出端口、DATA、单位、坐标、invalid」
+    schema_links_source: docs/detail/registry/acsd.phase1.star-psf.md「输入输出端口、DATA、单位、坐标、invalid」
     schema_link_globs: []
     product_manifest:
       required: true
-      match_module_id: astrocs.p1.psf
+      match_module_id: acsd.p1.psf
       match_unit_id: null
       expected_unit_ids: []
       unit_kind: module
@@ -168,27 +168,27 @@ modules:
   - id: platesolve
     scope: phase1
     group: algorithms
-    plugin_doc: docs/detail/registry/astrocs.phase1.wcs-platesolve.md
+    plugin_doc: docs/detail/registry/acsd.phase1.wcs-platesolve.md
     target_dir: lib/algorithms/platesolve
     readme: lib/algorithms/platesolve/README.md
     module_yaml: lib/algorithms/platesolve/module.yaml
-    target: astrocs_p1_platesolve
+    target: acsd_p1_platesolve
     target_file: lib/algorithms/platesolve/CMakeLists.txt
     co_located_tests: lib/algorithms/platesolve/cpp/ipv/test
-    module_id: astrocs.p1.platesolve
-    aliases: [astrocs.p1.wcs, astrocs.phase1.wcs, astrocs.phase1.wcs-platesolve]   # MOD-002：规范形 astrocs.p1.platesolve；B/C/D 面写法登记为弃用别名
+    module_id: acsd.p1.platesolve
+    aliases: [acsd.p1.wcs, acsd.phase1.wcs, acsd.phase1.wcs-platesolve]   # MOD-002：规范形 acsd.p1.platesolve；B/C/D 面写法登记为弃用别名
     module_version: 0.1.0-alpha.1
     abi_version: 1
-    entrypoint: astrocs_module_query_v1
+    entrypoint: acsd_module_query_v1
     entrypoint_kind: c-abi
     data_contracts: [DATA-P1-WCS]
     data_contracts_source: lib/algorithms/platesolve/module.yaml（声明面，观察值）
     schema_links: [eng/contracts/schemas/wcs_output.schema.json]
-    schema_links_source: docs/detail/registry/astrocs.phase1.wcs-platesolve.md「输入输出端口、DATA、单位、坐标、invalid」
+    schema_links_source: docs/detail/registry/acsd.phase1.wcs-platesolve.md「输入输出端口、DATA、单位、坐标、invalid」
     schema_link_globs: []
     product_manifest:
       required: true
-      match_module_id: astrocs.p1.platesolve
+      match_module_id: acsd.p1.platesolve
       match_unit_id: null
       expected_unit_ids: []
       unit_kind: module
@@ -198,26 +198,26 @@ modules:
   - id: photometry
     scope: phase1
     group: algorithms
-    plugin_doc: docs/detail/registry/astrocs.phase1.photometry.md
+    plugin_doc: docs/detail/registry/acsd.phase1.photometry.md
     target_dir: lib/algorithms/photometry
     readme: lib/algorithms/photometry/README.md
     module_yaml: lib/algorithms/photometry/module.yaml
-    target: astrocs_p1_photometry
+    target: acsd_p1_photometry
     target_file: lib/algorithms/photometry/CMakeLists.txt
     co_located_tests: lib/algorithms/photometry/tests
-    module_id: astrocs.p1.photometry
+    module_id: acsd.p1.photometry
     module_version: 0.1.0-alpha.1
     abi_version: 1
-    entrypoint: astrocs_module_query_v1
+    entrypoint: acsd_module_query_v1
     entrypoint_kind: c-abi
     data_contracts: [DATA-P1-PHOT]
     data_contracts_source: lib/algorithms/photometry/module.yaml（声明面，观察值）
     schema_links: [eng/contracts/schemas/photometry_output.schema.json]
-    schema_links_source: docs/detail/registry/astrocs.phase1.photometry.md「输入输出端口、DATA、单位、坐标、invalid」
+    schema_links_source: docs/detail/registry/acsd.phase1.photometry.md「输入输出端口、DATA、单位、坐标、invalid」
     schema_link_globs: []
     product_manifest:
       required: true
-      match_module_id: astrocs.p1.photometry
+      match_module_id: acsd.p1.photometry
       match_unit_id: null
       expected_unit_ids: []
       unit_kind: module
@@ -227,27 +227,27 @@ modules:
   - id: noise_snr
     scope: phase1
     group: algorithms
-    plugin_doc: docs/detail/registry/astrocs.phase1.noise-snr.md
+    plugin_doc: docs/detail/registry/acsd.phase1.noise-snr.md
     target_dir: lib/algorithms/noise_snr
     readme: lib/algorithms/noise_snr/README.md
     module_yaml: lib/algorithms/noise_snr/module.yaml
-    target: astrocs_p1_noise_snr
+    target: acsd_p1_noise_snr
     target_file: lib/algorithms/noise_snr/CMakeLists.txt
     co_located_tests: lib/algorithms/noise_snr/tests
-    module_id: astrocs.p1.noise_snr
-    aliases: [astrocs.p1.noise, astrocs.phase1.noise, astrocs.phase1.noise-snr]   # MOD-002 中面：B/C 面子集名登记为弃用别名
+    module_id: acsd.p1.noise_snr
+    aliases: [acsd.p1.noise, acsd.phase1.noise, acsd.phase1.noise-snr]   # MOD-002 中面：B/C 面子集名登记为弃用别名
     module_version: 0.1.0-alpha.1
     abi_version: 1
-    entrypoint: astrocs_module_query_v1
+    entrypoint: acsd_module_query_v1
     entrypoint_kind: c-abi
     data_contracts: [DATA-P1-NOISE]
     data_contracts_source: lib/algorithms/noise_snr/module.yaml（声明面，观察值）
     schema_links: [eng/contracts/schemas/noise_snr_output.schema.json]
-    schema_links_source: docs/detail/registry/astrocs.phase1.noise-snr.md「输入输出端口、DATA、单位、坐标、invalid」
+    schema_links_source: docs/detail/registry/acsd.phase1.noise-snr.md「输入输出端口、DATA、单位、坐标、invalid」
     schema_link_globs: []
     product_manifest:
       required: true
-      match_module_id: astrocs.p1.noise_snr
+      match_module_id: acsd.p1.noise_snr
       match_unit_id: null
       expected_unit_ids: []
       unit_kind: module
@@ -257,26 +257,26 @@ modules:
   - id: drizzle
     scope: phase1
     group: algorithms
-    plugin_doc: docs/detail/registry/astrocs.phase1.drizzle.md
+    plugin_doc: docs/detail/registry/acsd.phase1.drizzle.md
     target_dir: lib/algorithms/drizzle
     readme: lib/algorithms/drizzle/README.md
     module_yaml: lib/algorithms/drizzle/module.yaml
-    target: astrocs_p1_drizzle
+    target: acsd_p1_drizzle
     target_file: lib/algorithms/drizzle/CMakeLists.txt
     co_located_tests: lib/algorithms/drizzle/healpix_drizzle/tests
-    module_id: astrocs.p1.drizzle
+    module_id: acsd.p1.drizzle
     module_version: 0.1.0-alpha.1
     abi_version: 1
-    entrypoint: astrocs_module_query_v1
+    entrypoint: acsd_module_query_v1
     entrypoint_kind: c-abi
     data_contracts: [DATA-P1-CAL, DATA-P1-DRZ]
     data_contracts_source: lib/algorithms/drizzle/module.yaml（声明面，观察值；entrypoint 记 MISSING）
     schema_links: [eng/contracts/schemas/hips_product.schema.json, eng/contracts/schemas/manifest.schema.json]
-    schema_links_source: docs/detail/registry/astrocs.phase1.drizzle.md「输入输出端口、DATA、单位、坐标、invalid」
+    schema_links_source: docs/detail/registry/acsd.phase1.drizzle.md「输入输出端口、DATA、单位、坐标、invalid」
     schema_link_globs: []
     product_manifest:
       required: true
-      match_module_id: astrocs.p1.drizzle
+      match_module_id: acsd.p1.drizzle
       match_unit_id: null
       expected_unit_ids: []
       unit_kind: module
@@ -286,26 +286,26 @@ modules:
   - id: coverage
     scope: phase2
     group: algorithms
-    plugin_doc: docs/detail/registry/astrocs.phase2.coverage.md
+    plugin_doc: docs/detail/registry/acsd.phase2.coverage.md
     target_dir: lib/algorithms/coverage
     readme: lib/algorithms/coverage/README.md
     module_yaml: lib/algorithms/coverage/module.yaml
-    target: astrocs_p2_coverage
+    target: acsd_p2_coverage
     target_file: lib/algorithms/coverage/CMakeLists.txt
     co_located_tests: lib/algorithms/coverage/tests
-    module_id: astrocs.p2.coverage
+    module_id: acsd.p2.coverage
     module_version: 0.1.0-alpha.1
     abi_version: 1
-    entrypoint: astrocs_module_query_v1
+    entrypoint: acsd_module_query_v1
     entrypoint_kind: c-abi
     data_contracts: [DATA-COV-001]
     data_contracts_source: lib/algorithms/coverage/module.yaml（声明面，观察值）
     schema_links: [eng/contracts/schemas/coverage_output.schema.json]
-    schema_links_source: docs/detail/registry/astrocs.phase2.coverage.md「输入输出端口、DATA、单位、坐标、invalid」
+    schema_links_source: docs/detail/registry/acsd.phase2.coverage.md「输入输出端口、DATA、单位、坐标、invalid」
     schema_link_globs: []
     product_manifest:
       required: true
-      match_module_id: astrocs.p2.coverage
+      match_module_id: acsd.p2.coverage
       match_unit_id: null
       expected_unit_ids: []
       unit_kind: module
@@ -315,27 +315,27 @@ modules:
   - id: sampling
     scope: phase2
     group: algorithms
-    plugin_doc: docs/detail/registry/astrocs.phase2.sample.md
+    plugin_doc: docs/detail/registry/acsd.phase2.sample.md
     target_dir: lib/algorithms/sampling
     readme: lib/algorithms/sampling/README.md
     module_yaml: lib/algorithms/sampling/module.yaml
-    target: astrocs_p2_sampling
+    target: acsd_p2_sampling
     target_file: lib/algorithms/sampling/CMakeLists.txt
     co_located_tests: lib/algorithms/sampling/tests
-    module_id: astrocs.p2.sampling
-    aliases: [astrocs.phase2.sample]   # MOD-002：C/D 面用 sample，登记为弃用别名
+    module_id: acsd.p2.sampling
+    aliases: [acsd.phase2.sample]   # MOD-002：C/D 面用 sample，登记为弃用别名
     module_version: 0.1.0-alpha.1
     abi_version: 1
-    entrypoint: astrocs_module_query_v1
+    entrypoint: acsd_module_query_v1
     entrypoint_kind: c-abi
     data_contracts: [DATA-P2-SMP]
     data_contracts_source: lib/algorithms/sampling/module.yaml（声明面，观察值）
     schema_links: [eng/contracts/schemas/control_points.schema.json]
-    schema_links_source: docs/detail/registry/astrocs.phase2.sample.md「输入输出端口、DATA、单位、坐标、invalid」
+    schema_links_source: docs/detail/registry/acsd.phase2.sample.md「输入输出端口、DATA、单位、坐标、invalid」
     schema_link_globs: []
     product_manifest:
       required: true
-      match_module_id: astrocs.p2.sampling
+      match_module_id: acsd.p2.sampling
       match_unit_id: null
       expected_unit_ids: []
       unit_kind: module
@@ -345,26 +345,26 @@ modules:
   - id: upm
     scope: phase2
     group: algorithms
-    plugin_doc: docs/detail/registry/astrocs.phase2.upm-fit.md
+    plugin_doc: docs/detail/registry/acsd.phase2.upm-fit.md
     target_dir: lib/algorithms/upm
     readme: lib/algorithms/upm/README.md
     module_yaml: lib/algorithms/upm/module.yaml
-    target: astrocs_p2_upm
+    target: acsd_p2_upm
     target_file: lib/algorithms/upm/CMakeLists.txt
     co_located_tests: lib/algorithms/upm/tests
-    module_id: astrocs.p2.upm
+    module_id: acsd.p2.upm
     module_version: 0.1.0-alpha.1
     abi_version: 1
-    entrypoint: astrocs_module_query_v1
+    entrypoint: acsd_module_query_v1
     entrypoint_kind: c-abi
     data_contracts: [DATA-P2-UPM, DATA-P2-COR]
     data_contracts_source: lib/algorithms/upm/module.yaml（声明面，观察值）
     schema_links: [eng/contracts/schemas/upm_output.schema.json]
-    schema_links_source: docs/detail/registry/astrocs.phase2.upm-fit.md「输入输出端口、DATA、单位、坐标、invalid」
+    schema_links_source: docs/detail/registry/acsd.phase2.upm-fit.md「输入输出端口、DATA、单位、坐标、invalid」
     schema_link_globs: []
     product_manifest:
       required: true
-      match_module_id: astrocs.p2.upm
+      match_module_id: acsd.p2.upm
       match_unit_id: null
       expected_unit_ids: []
       unit_kind: module
@@ -374,26 +374,26 @@ modules:
   - id: rejection
     scope: phase2
     group: algorithms
-    plugin_doc: docs/detail/registry/astrocs.phase2.reject.md
+    plugin_doc: docs/detail/registry/acsd.phase2.reject.md
     target_dir: lib/algorithms/rejection
     readme: lib/algorithms/rejection/README.md
     module_yaml: lib/algorithms/rejection/module.yaml
-    target: astrocs_p2_rejection
+    target: acsd_p2_rejection
     target_file: lib/algorithms/rejection/CMakeLists.txt
     co_located_tests: lib/algorithms/rejection/tests
-    module_id: astrocs.p2.rejection
+    module_id: acsd.p2.rejection
     module_version: 0.1.0-alpha.1
     abi_version: 1
-    entrypoint: astrocs_module_query_v1
+    entrypoint: acsd_module_query_v1
     entrypoint_kind: c-abi
     data_contracts: [DATA-P2-REJ]
     data_contracts_source: lib/algorithms/rejection/module.yaml（声明面，观察值）
     schema_links: [eng/contracts/schemas/rejection_output.schema.json]
-    schema_links_source: docs/detail/registry/astrocs.phase2.reject.md「输入输出端口、DATA、单位、坐标、invalid」
+    schema_links_source: docs/detail/registry/acsd.phase2.reject.md「输入输出端口、DATA、单位、坐标、invalid」
     schema_link_globs: []
     product_manifest:
       required: true
-      match_module_id: astrocs.p2.rejection
+      match_module_id: acsd.p2.rejection
       match_unit_id: null
       expected_unit_ids: []
       unit_kind: module
@@ -403,26 +403,26 @@ modules:
   - id: integration
     scope: phase2
     group: algorithms
-    plugin_doc: docs/detail/registry/astrocs.phase2.integrate.md
+    plugin_doc: docs/detail/registry/acsd.phase2.integrate.md
     target_dir: lib/algorithms/integration
     readme: lib/algorithms/integration/README.md
     module_yaml: lib/algorithms/integration/module.yaml
-    target: astrocs_p2_integration
+    target: acsd_p2_integration
     target_file: lib/algorithms/integration/CMakeLists.txt
     co_located_tests: lib/algorithms/integration/tests
-    module_id: astrocs.p2.integration
+    module_id: acsd.p2.integration
     module_version: 0.1.0-alpha.1
     abi_version: 1
-    entrypoint: astrocs_module_query_v1
+    entrypoint: acsd_module_query_v1
     entrypoint_kind: c-abi
     data_contracts: [DATA-P2-INT]
     data_contracts_source: lib/algorithms/integration/module.yaml（声明面，观察值）
     schema_links: [eng/contracts/schemas/integration_output.schema.json]
-    schema_links_source: docs/detail/registry/astrocs.phase2.integrate.md「输入输出端口、DATA、单位、坐标、invalid」（surface_brightness/point_source/psfsw_integration 产品族）
+    schema_links_source: docs/detail/registry/acsd.phase2.integrate.md「输入输出端口、DATA、单位、坐标、invalid」（surface_brightness/point_source/psfsw_integration 产品族）
     schema_link_globs: []
     product_manifest:
       required: true
-      match_module_id: astrocs.p2.integration
+      match_module_id: acsd.p2.integration
       match_unit_id: null
       expected_unit_ids: []
       unit_kind: module
@@ -432,26 +432,26 @@ modules:
   - id: projection
     scope: phase3
     group: algorithms
-    plugin_doc: docs/detail/registry/astrocs.phase3.wcs.md
+    plugin_doc: docs/detail/registry/acsd.phase3.wcs.md
     target_dir: lib/algorithms/projection
     readme: lib/algorithms/projection/README.md
     module_yaml: lib/algorithms/projection/module.yaml
-    target: astrocs_p3_projection
+    target: acsd_p3_projection
     target_file: lib/algorithms/projection/CMakeLists.txt
     co_located_tests: lib/algorithms/projection/tests
-    module_id: astrocs.p3.projection
+    module_id: acsd.p3.projection
     module_version: 0.1.0-alpha.1
     abi_version: 1
-    entrypoint: astrocs_module_query_v1
+    entrypoint: acsd_module_query_v1
     entrypoint_kind: c-abi
     data_contracts: [DATA-P3-WCS]
     data_contracts_source: lib/algorithms/projection/module.yaml（声明面，观察值）
     schema_links: [eng/contracts/schemas/projection_registry.schema.json]
-    schema_links_source: docs/detail/registry/astrocs.phase3.wcs.md「输入输出端口、DATA、单位、坐标、invalid」
+    schema_links_source: docs/detail/registry/acsd.phase3.wcs.md「输入输出端口、DATA、单位、坐标、invalid」
     schema_link_globs: []
     product_manifest:
       required: true
-      match_module_id: astrocs.p3.projection
+      match_module_id: acsd.p3.projection
       match_unit_id: null
       expected_unit_ids: []
       unit_kind: module
@@ -461,26 +461,26 @@ modules:
   - id: resample
     scope: phase3
     group: algorithms
-    plugin_doc: docs/detail/registry/astrocs.phase3.resample2.md
+    plugin_doc: docs/detail/registry/acsd.phase3.resample2.md
     target_dir: lib/algorithms/resample
     readme: lib/algorithms/resample/README.md
     module_yaml: lib/algorithms/resample/module.yaml
-    target: astrocs_p3_resample
+    target: acsd_p3_resample
     target_file: lib/algorithms/resample/CMakeLists.txt
     co_located_tests: lib/algorithms/resample/tests
-    module_id: astrocs.p3.resample
+    module_id: acsd.p3.resample
     module_version: 0.1.0-alpha.1
     abi_version: 1
-    entrypoint: astrocs_module_query_v1
+    entrypoint: acsd_module_query_v1
     entrypoint_kind: c-abi
     data_contracts: [DATA-P3-RES]
     data_contracts_source: lib/algorithms/resample/module.yaml（声明面，观察值）
     schema_links: [eng/contracts/schemas/export_product.schema.json]
-    schema_links_source: docs/detail/registry/astrocs.phase3.resample2.md「输入输出端口、DATA、单位、坐标、invalid」
+    schema_links_source: docs/detail/registry/acsd.phase3.resample2.md「输入输出端口、DATA、单位、坐标、invalid」
     schema_link_globs: []
     product_manifest:
       required: true
-      match_module_id: astrocs.p3.resample
+      match_module_id: acsd.p3.resample
       match_unit_id: null
       expected_unit_ids: []
       unit_kind: module
@@ -490,27 +490,27 @@ modules:
   - id: fits_output
     scope: phase3
     group: algorithms
-    plugin_doc: docs/detail/registry/astrocs.phase3.writer.md
+    plugin_doc: docs/detail/registry/acsd.phase3.writer.md
     target_dir: lib/algorithms/fits_output
     readme: lib/algorithms/fits_output/README.md
     module_yaml: lib/algorithms/fits_output/module.yaml
-    target: astrocs_p3_fits_output
+    target: acsd_p3_fits_output
     target_file: lib/algorithms/fits_output/CMakeLists.txt
     co_located_tests: lib/algorithms/fits_output/tests
-    module_id: astrocs.p3.fits_output
-    aliases: [astrocs.p3.fits_writer, astrocs.phase3.writer]   # MOD-002：A 面规范形；B/C/D 用角色名 fits_writer/writer
+    module_id: acsd.p3.fits_output
+    aliases: [acsd.p3.fits_writer, acsd.phase3.writer]   # MOD-002：A 面规范形；B/C/D 用角色名 fits_writer/writer
     module_version: 0.1.0-alpha.1
     abi_version: 1
-    entrypoint: astrocs_module_query_v1
+    entrypoint: acsd_module_query_v1
     entrypoint_kind: c-abi
     data_contracts: [DATA-P3-FITS]
     data_contracts_source: lib/algorithms/fits_output/module.yaml（声明面，观察值）
     schema_links: [eng/contracts/schemas/fits_product.schema.json]
-    schema_links_source: docs/detail/registry/astrocs.phase3.writer.md「输入输出端口、DATA、单位、坐标、invalid」
+    schema_links_source: docs/detail/registry/acsd.phase3.writer.md「输入输出端口、DATA、单位、坐标、invalid」
     schema_link_globs: []
     product_manifest:
       required: true
-      match_module_id: astrocs.p3.fits_output
+      match_module_id: acsd.p3.fits_output
       match_unit_id: null
       expected_unit_ids: []
       unit_kind: module
@@ -524,13 +524,13 @@ modules:
     target_dir: lib/infrastructure/aio
     readme: lib/infrastructure/aio/README.md
     module_yaml: lib/infrastructure/aio/module.yaml
-    target: astrocs_infra_aio
+    target: acsd_infra_aio
     target_file: lib/infrastructure/aio/CMakeLists.txt
     co_located_tests: lib/infrastructure/aio/tests
-    module_id: astrocs.infra.aio
+    module_id: acsd.infra.aio
     module_version: 0.1.0-alpha.1
     abi_version: 1
-    entrypoint: astrocs_module_query_v1
+    entrypoint: acsd_module_query_v1
     entrypoint_kind: c-abi
     data_contracts: [DATA-ARTIFACTS-001]
     data_contracts_source: docs/contracts/INDEX.yaml（DATA-ARTIFACTS-001 产品/manifest 面）
@@ -556,7 +556,7 @@ modules:
     target: acsd
     target_file: lib/infrastructure/cli/CMakeLists.txt
     co_located_tests: lib/infrastructure/cli/tests
-    module_id: astrocs.infra.cli
+    module_id: acsd.infra.cli
     module_version: 0.1.0-alpha.1
     abi_version: 1
     entrypoint: main
@@ -582,13 +582,13 @@ modules:
     target_dir: lib/infrastructure/scheduler
     readme: lib/infrastructure/scheduler/README.md
     module_yaml: lib/infrastructure/scheduler/module.yaml
-    target: astrocs_core
+    target: acsd_core
     target_file: CMakeLists.txt
     co_located_tests: lib/infrastructure/scheduler/tests
-    module_id: astrocs.infra.scheduler
+    module_id: acsd.infra.scheduler
     module_version: 0.1.0-alpha.1
     abi_version: 1
-    entrypoint: astrocs_module_query_v1
+    entrypoint: acsd_module_query_v1
     entrypoint_kind: c-abi
     data_contracts: []
     data_contracts_source: docs/detail/infrastructure/19_runtime.md §3（run-plan/cpu_profile → run-graph/run-trace/artifact-manifest，无 DATA-* 产品合同）
@@ -604,12 +604,12 @@ modules:
       exemption_reason: null
     legacy_paths: [lib/core]
     note: >-
-      本条目对齐 ASTROCS_DESIGN §7.1：覆盖 §7.1 顶层结构的
+      本条目对齐 ACSD_DESIGN §7.1：覆盖 §7.1 顶层结构的
       scheduler（注册、资源预算、执行、取消、checkpoint；物理位 lib/infrastructure/scheduler）
       与 pipeline（typed DAG、artifact、内存/数据管线；物理位 lib/infrastructure/pipeline）。
       「runtime」不是模块名（禁第二名字）：plugin_doc 文件名 19_runtime.md 仅为历史路径，
       只承载路径语义。物理位与 target 如实登记：scheduler 源集编入根 CMakeLists.txt:292
-      的 astrocs_core STATIC（本项目唯一根 CMake，无逐模块 CMakeLists.txt）；
+      的 acsd_core STATIC（本项目唯一根 CMake，无逐模块 CMakeLists.txt）；
       readme 在位；module_yaml / 共址 tests 缺失属已登记缺口（见文件头「声明路径缺失登记」）。
       lib 侧源 = lib/core（已迁入 target_dir）。
   - id: benchmark
@@ -619,13 +619,13 @@ modules:
     target_dir: lib/infrastructure/benchmark
     readme: lib/infrastructure/benchmark/README.md
     module_yaml: lib/infrastructure/benchmark/module.yaml
-    target: astrocs_infra_benchmark
+    target: acsd_infra_benchmark
     target_file: lib/infrastructure/benchmark/CMakeLists.txt
     co_located_tests: lib/infrastructure/benchmark/tests
-    module_id: astrocs.infra.benchmark
+    module_id: acsd.infra.benchmark
     module_version: 0.1.0-alpha.1
     abi_version: 1
-    entrypoint: astrocs_module_query_v1
+    entrypoint: acsd_module_query_v1
     entrypoint_kind: c-abi
     data_contracts: []
     data_contracts_source: docs/detail/infrastructure/20_benchmark.md §3（输入=机器特征/内核清单，输出=cpu_profile；无 DATA-* 产品合同）
@@ -634,7 +634,7 @@ modules:
     schema_link_globs: []
     product_manifest:
       required: true
-      match_module_id: astrocs.infra.benchmark
+      match_module_id: acsd.infra.benchmark
       match_unit_id: null
       expected_unit_ids: []
       unit_kind: module
@@ -648,13 +648,13 @@ modules:
     target_dir: lib/infrastructure/observability
     readme: lib/infrastructure/observability/README.md
     module_yaml: lib/infrastructure/observability/module.yaml
-    target: astrocs_infra_observability
+    target: acsd_infra_observability
     target_file: lib/infrastructure/observability/CMakeLists.txt
     co_located_tests: lib/infrastructure/observability/tests
-    module_id: astrocs.infra.observability
+    module_id: acsd.infra.observability
     module_version: 0.1.0-alpha.1
     abi_version: 1
-    entrypoint: astrocs_module_query_v1
+    entrypoint: acsd_module_query_v1
     entrypoint_kind: c-abi
     data_contracts: []
     data_contracts_source: docs/detail/infrastructure/21_observability.md「输入输出端口、DATA、单位、坐标、invalid」（输出=JSONL 事件流/run-trace/资源时间序列，无 DATA-* 产品合同）
@@ -663,7 +663,7 @@ modules:
     schema_link_globs: [eng/contracts/schemas/events.schema.json, eng/contracts/schemas/run_*.schema.json]
     product_manifest:
       required: true
-      match_module_id: astrocs.infra.observability
+      match_module_id: acsd.infra.observability
       match_unit_id: null
       expected_unit_ids: []
       unit_kind: module
@@ -677,13 +677,13 @@ modules:
     target_dir: lib/infrastructure/gaia_xpsd_client
     readme: lib/infrastructure/gaia_xpsd_client/README.md
     module_yaml: lib/infrastructure/gaia_xpsd_client/module.yaml
-    target: astrocs_catalog_gaia
+    target: acsd_catalog_gaia
     target_file: lib/infrastructure/gaia_xpsd_client/CMakeLists.txt
     co_located_tests: lib/infrastructure/gaia_xpsd_client/tests
-    module_id: astrocs.catalog.gaia
+    module_id: acsd.catalog.gaia
     module_version: 0.1.0-alpha.1
     abi_version: 1
-    entrypoint: astrocs_module_query_v1
+    entrypoint: acsd_module_query_v1
     entrypoint_kind: c-abi
     data_contracts: [DATA-GAIA-001]
     data_contracts_source: lib/infrastructure/gaia_xpsd_client/module.yaml（声明面，观察值）
@@ -692,7 +692,7 @@ modules:
     schema_link_globs: []
     product_manifest:
       required: true
-      match_module_id: astrocs.catalog.gaia
+      match_module_id: acsd.catalog.gaia
       match_unit_id: MOD-CAT-GAIA
       expected_unit_ids: [MOD-CAT-GAIA]
       unit_kind: module
@@ -710,13 +710,13 @@ modules:
     target_dir: lib/infrastructure/hips_browser
     readme: lib/infrastructure/hips_browser/README.md
     module_yaml: lib/infrastructure/hips_browser/module.yaml
-    target: astrocs_infra_hips_browser
+    target: acsd_infra_hips_browser
     target_file: lib/infrastructure/hips_browser/CMakeLists.txt
     co_located_tests: lib/infrastructure/hips_browser/healpix_browser_qt/tests
-    module_id: astrocs.infra.hips_browser
+    module_id: acsd.infra.hips_browser
     module_version: 0.1.0-alpha.1
     abi_version: 1
-    entrypoint: astrocs_module_query_v1
+    entrypoint: acsd_module_query_v1
     entrypoint_kind: c-abi
     data_contracts: []
     data_contracts_source: docs/detail/infrastructure/23_hips_browser.md「输入输出端口、DATA、单位、坐标、invalid」（只读 HiPS；无 DATA-* 产品合同）
@@ -729,9 +729,9 @@ modules:
       match_unit_id: null
       expected_unit_ids: []
       unit_kind: gui
-      exemption_reason: docs/detail/00_INDEX.md §2（23_hips_browser「未来 GUI 可视化组件（不进产品 manifest）」）+ ASTROCS_DESIGN.md §7.1（hips_browser/ 未来 GUI 可视化组件（不进产品 manifest））
+      exemption_reason: docs/detail/00_INDEX.md §2（23_hips_browser「未来 GUI 可视化组件（不进产品 manifest）」）+ ACSD_DESIGN.md §7.1（hips_browser/ 未来 GUI 可视化组件（不进产品 manifest））
     legacy_paths: []
-    note: 未来 GUI 可视化组件：docs/detail/00_INDEX.md §2「不进产品 manifest」+ ASTROCS_DESIGN.md §7.1 同口径 → product_manifest.required=false。
+    note: 未来 GUI 可视化组件：docs/detail/00_INDEX.md §2「不进产品 manifest」+ ACSD_DESIGN.md §7.1 同口径 → product_manifest.required=false。
 
 
 # ===========================================================================
@@ -820,22 +820,22 @@ declared_absent_paths:
     - {module: hips_browser, key: module_yaml, path: lib/infrastructure/hips_browser/module.yaml, owner: RELEASE-04/未覆盖, reason: "module.yaml 未落地（ENGINEERING_SPEC §4 第 2 项；实现缺口）"}
     - {module: hips_browser, key: target_file, path: lib/infrastructure/hips_browser/CMakeLists.txt, owner: RELEASE-04/未覆盖, reason: "逐模块 CMakeLists.txt 不存在（本项目唯一根 CMake，target 定义在根 CMakeLists.txt；实现缺口）"}
     - {module: hips_browser, key: schema_links, path: eng/contracts/schemas/hips_product.schema.json, owner: RELEASE-04/未覆盖, reason: "模块输出 schema 未落地（plugin 文档声明的 legacy 名；现行 canonical 对象 schema = eng/contracts/schemas/unified/**）"}
-    - {module: star_detection, key: target, path: astrocs_p1_star_detection, owner: BLD-401, reason: "合同声明的独立 CMake target 全仓未定义（DESIGN §8.5 独立 target；实现缺口）"}
-    - {module: psf, key: target, path: astrocs_p1_psf, owner: BLD-401, reason: "合同声明的独立 CMake target 全仓未定义（DESIGN §8.5 独立 target；实现缺口）"}
-    - {module: platesolve, key: target, path: astrocs_p1_platesolve, owner: BLD-401, reason: "合同声明的独立 CMake target 全仓未定义（DESIGN §8.5 独立 target；实现缺口）"}
-    - {module: photometry, key: target, path: astrocs_p1_photometry, owner: BLD-401, reason: "合同声明的独立 CMake target 全仓未定义（DESIGN §8.5 独立 target；实现缺口）"}
-    - {module: noise_snr, key: target, path: astrocs_p1_noise_snr, owner: BLD-401, reason: "合同声明的独立 CMake target 全仓未定义（DESIGN §8.5 独立 target；实现缺口）"}
-    - {module: coverage, key: target, path: astrocs_p2_coverage, owner: BLD-401, reason: "合同声明的独立 CMake target 全仓未定义（DESIGN §8.5 独立 target；实现缺口）"}
-    - {module: sampling, key: target, path: astrocs_p2_sampling, owner: BLD-401, reason: "合同声明的独立 CMake target 全仓未定义（DESIGN §8.5 独立 target；实现缺口）"}
-    - {module: upm, key: target, path: astrocs_p2_upm, owner: BLD-401, reason: "合同声明的独立 CMake target 全仓未定义（DESIGN §8.5 独立 target；实现缺口）"}
-    - {module: rejection, key: target, path: astrocs_p2_rejection, owner: BLD-401, reason: "合同声明的独立 CMake target 全仓未定义（DESIGN §8.5 独立 target；实现缺口）"}
-    - {module: integration, key: target, path: astrocs_p2_integration, owner: BLD-401, reason: "合同声明的独立 CMake target 全仓未定义（DESIGN §8.5 独立 target；实现缺口）"}
-    - {module: projection, key: target, path: astrocs_p3_projection, owner: BLD-401, reason: "合同声明的独立 CMake target 全仓未定义（DESIGN §8.5 独立 target；实现缺口）"}
-    - {module: resample, key: target, path: astrocs_p3_resample, owner: BLD-401, reason: "合同声明的独立 CMake target 全仓未定义（DESIGN §8.5 独立 target；实现缺口）"}
-    - {module: aio, key: target, path: astrocs_infra_aio, owner: BLD-401, reason: "合同声明的独立 CMake target 全仓未定义（DESIGN §8.5 独立 target；实现缺口）"}
-    - {module: benchmark, key: target, path: astrocs_infra_benchmark, owner: BLD-401, reason: "合同声明的独立 CMake target 全仓未定义（DESIGN §8.5 独立 target；实现缺口）"}
-    - {module: observability, key: target, path: astrocs_infra_observability, owner: BLD-401, reason: "合同声明的独立 CMake target 全仓未定义（DESIGN §8.5 独立 target；实现缺口）"}
-    - {module: hips_browser, key: target, path: astrocs_infra_hips_browser, owner: RELEASE-04/未覆盖, reason: "合同声明的独立 CMake target 全仓未定义（DESIGN §8.5 独立 target；实现缺口）"}
+    - {module: star_detection, key: target, path: acsd_p1_star_detection, owner: BLD-401, reason: "合同声明的独立 CMake target 全仓未定义（DESIGN §8.5 独立 target；实现缺口）"}
+    - {module: psf, key: target, path: acsd_p1_psf, owner: BLD-401, reason: "合同声明的独立 CMake target 全仓未定义（DESIGN §8.5 独立 target；实现缺口）"}
+    - {module: platesolve, key: target, path: acsd_p1_platesolve, owner: BLD-401, reason: "合同声明的独立 CMake target 全仓未定义（DESIGN §8.5 独立 target；实现缺口）"}
+    - {module: photometry, key: target, path: acsd_p1_photometry, owner: BLD-401, reason: "合同声明的独立 CMake target 全仓未定义（DESIGN §8.5 独立 target；实现缺口）"}
+    - {module: noise_snr, key: target, path: acsd_p1_noise_snr, owner: BLD-401, reason: "合同声明的独立 CMake target 全仓未定义（DESIGN §8.5 独立 target；实现缺口）"}
+    - {module: coverage, key: target, path: acsd_p2_coverage, owner: BLD-401, reason: "合同声明的独立 CMake target 全仓未定义（DESIGN §8.5 独立 target；实现缺口）"}
+    - {module: sampling, key: target, path: acsd_p2_sampling, owner: BLD-401, reason: "合同声明的独立 CMake target 全仓未定义（DESIGN §8.5 独立 target；实现缺口）"}
+    - {module: upm, key: target, path: acsd_p2_upm, owner: BLD-401, reason: "合同声明的独立 CMake target 全仓未定义（DESIGN §8.5 独立 target；实现缺口）"}
+    - {module: rejection, key: target, path: acsd_p2_rejection, owner: BLD-401, reason: "合同声明的独立 CMake target 全仓未定义（DESIGN §8.5 独立 target；实现缺口）"}
+    - {module: integration, key: target, path: acsd_p2_integration, owner: BLD-401, reason: "合同声明的独立 CMake target 全仓未定义（DESIGN §8.5 独立 target；实现缺口）"}
+    - {module: projection, key: target, path: acsd_p3_projection, owner: BLD-401, reason: "合同声明的独立 CMake target 全仓未定义（DESIGN §8.5 独立 target；实现缺口）"}
+    - {module: resample, key: target, path: acsd_p3_resample, owner: BLD-401, reason: "合同声明的独立 CMake target 全仓未定义（DESIGN §8.5 独立 target；实现缺口）"}
+    - {module: aio, key: target, path: acsd_infra_aio, owner: BLD-401, reason: "合同声明的独立 CMake target 全仓未定义（DESIGN §8.5 独立 target；实现缺口）"}
+    - {module: benchmark, key: target, path: acsd_infra_benchmark, owner: BLD-401, reason: "合同声明的独立 CMake target 全仓未定义（DESIGN §8.5 独立 target；实现缺口）"}
+    - {module: observability, key: target, path: acsd_infra_observability, owner: BLD-401, reason: "合同声明的独立 CMake target 全仓未定义（DESIGN §8.5 独立 target；实现缺口）"}
+    - {module: hips_browser, key: target, path: acsd_infra_hips_browser, owner: RELEASE-04/未覆盖, reason: "合同声明的独立 CMake target 全仓未定义（DESIGN §8.5 独立 target；实现缺口）"}
 
 # ===========================================================================
 # 声明能力缺失登记（实现缺口，逐条）

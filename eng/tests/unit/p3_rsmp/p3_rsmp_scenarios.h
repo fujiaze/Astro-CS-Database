@@ -20,10 +20,10 @@ struct Chain {
   std::vector<double> omega_out;
   std::vector<double> x;    // SB 输入
   std::vector<double> psf;  // 输入 effective PSF，Σ=1
-  astrocs::p3rsmp::Geometry geom;
-  std::vector<astrocs::p3rsmp::OverlapEntry> entries;
+  acsd::p3rsmp::Geometry geom;
+  std::vector<acsd::p3rsmp::OverlapEntry> entries;
   std::vector<p3oracle::Ov> ov;
-  astrocs::p3rsmp::DenseMatrix cx;
+  acsd::p3rsmp::DenseMatrix cx;
 };
 
 inline Chain make_chain(double rho = 0.19) {
@@ -37,7 +37,7 @@ inline Chain make_chain(double rho = 0.19) {
   const int pairs[2][2] = {{0, 1}, {2, 3}};
   for (int o = 0; o < c.n_out; ++o) {
     for (int k = 0; k < 2; ++k) {
-      astrocs::p3rsmp::OverlapEntry e;
+      acsd::p3rsmp::OverlapEntry e;
       e.out_index = o;
       e.in_index = pairs[o][k];
       e.overlap_sr = 1.0;
@@ -49,7 +49,7 @@ inline Chain make_chain(double rho = 0.19) {
       c.ov.push_back(q);
     }
   }
-  c.cx = astrocs::p3rsmp::DenseMatrix(c.n_in, c.n_in);
+  c.cx = acsd::p3rsmp::DenseMatrix(c.n_in, c.n_in);
   for (int i = 0; i < c.n_in; ++i) {
     for (int j = 0; j < c.n_in; ++j) {
       c.cx(i, j) = std::pow(rho, std::abs(i - j));
@@ -58,12 +58,12 @@ inline Chain make_chain(double rho = 0.19) {
   return c;
 }
 
-inline astrocs::p3rsmp::SparseOperator chain_R(const Chain& c) {
-  return astrocs::p3rsmp::operator_from_entries_row(c.entries, c.geom, c.n_out, c.n_in,
+inline acsd::p3rsmp::SparseOperator chain_R(const Chain& c) {
+  return acsd::p3rsmp::operator_from_entries_row(c.entries, c.geom, c.n_out, c.n_in,
                                                     "bilinear_area_overlap_exact");
 }
-inline astrocs::p3rsmp::SparseOperator chain_S(const Chain& c) {
-  return astrocs::p3rsmp::operator_from_entries_col(c.entries, c.geom, c.n_out, c.n_in,
+inline acsd::p3rsmp::SparseOperator chain_S(const Chain& c) {
+  return acsd::p3rsmp::operator_from_entries_col(c.entries, c.geom, c.n_out, c.n_in,
                                                     "bilinear_area_overlap_exact");
 }
 

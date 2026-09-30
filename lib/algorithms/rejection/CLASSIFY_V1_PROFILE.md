@@ -1,4 +1,4 @@
-# astrocs.rejection.classify.v1 — V6 分类排异 profile（IMPL-P2-REJ-001）
+# acsd.rejection.classify.v1 — V6 分类排异 profile（IMPL-P2-REJ-001）
 
 > 状态：v1 **版本化算法 profile**（非 SCI/ALG 冻结阈值）。冻结合同条目：
 > `ALG-P2S-REJ.1..7`、`FZ-REJ-INHERITED-THRESH`（继承阈值）、
@@ -101,7 +101,7 @@ INTERNAL_ERROR`。
 每样本：`reason` / `reason_class` / `probability` / `class_probability` /
 `sigma_eff`（含 `sigma_phase1` 与 UPM 项组成）/ `z`；
 栈级：`status` / counts / `accepted_count` / `recall`。
-profile 版本字符串：`astrocs.rejection.classify.v1`。
+profile 版本字符串：`acsd.rejection.classify.v1`。
 
 ## 8 证据（本任务）
 

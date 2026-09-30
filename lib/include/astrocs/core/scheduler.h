@@ -2,10 +2,10 @@
 // RT-006: NodePlan 先估计 work/memory 再取 lease；内存回压；状态输出带 node ID。
 #pragma once
 
-#include "astrocs/core/context.h"
-#include "astrocs/core/contracts.h"
-#include "astrocs/core/memory_pressure.h"
-#include "astrocs/core/pipeline.h"
+#include "acsd/core/context.h"
+#include "acsd/core/contracts.h"
+#include "acsd/core/memory_pressure.h"
+#include "acsd/core/pipeline.h"
 
 #include <atomic>
 #include <condition_variable>
@@ -18,7 +18,7 @@
 #include <thread>
 #include <vector>
 
-namespace astrocs::core {
+namespace acsd::core {
 
 // 节点执行入口: (node_id, RunContext) -> Result
 using NodeFn = std::function<Result<void>(const std::string&, RunContext&)>;
@@ -89,7 +89,7 @@ class Scheduler {
   // RT-003: Scheduler 持有的唯一 ThreadBudget（run 间复用；重复 run 不泄漏）。
   std::shared_ptr<ThreadBudget> thread_budget() const noexcept { return budget_obj_; }
 
-  // MEMGOV-01: 注入内存压力治理器（docs/ASTROCS_DESIGN.md §8.3:609-615 编排策略）。
+  // MEMGOV-01: 注入内存压力治理器（docs/ACSD_DESIGN.md §8.3:609-615 编排策略）。
   // 非空 ⇒ 就绪节点的派发在压力高时被挡下（在途跑完再考虑，§8.3:614 可中断排队），
   // 且节点执行期间经线程本地 current_governor() 供模块侧帧轴取用（§8.3:680 内存闸门
   // × lease）。nullptr ⇒ 与注入前逐字节等价（不设门、不落台账）。
@@ -120,4 +120,4 @@ class Scheduler {
   CancellationToken* active_token_ = nullptr;  // RT-007: 当前 run 的活动 ctx token
 };
 
-}  // namespace astrocs::core
+}  // namespace acsd::core

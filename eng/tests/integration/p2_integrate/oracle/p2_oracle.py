@@ -223,7 +223,7 @@ def check_product(prod_dir, results):
         for s in rec["weight_mode_record"]["weight"]["sources"]:
             if s in FORBIDDEN_SOURCES:
                 errs.append("diagnostic token in weight.sources: " + s)
-    # FZ-MODE-RETIRED：退役对象 psfsw_robust_weight 不是现行对象（docs/ASTROCS_DESIGN.md
+    # FZ-MODE-RETIRED：退役对象 psfsw_robust_weight 不是现行对象（docs/ACSD_DESIGN.md
     # §3.1；UNIFIED_MODEL.md:58）⇒ 产品声明它即判红（显式拒绝 + 迁移提示，不得静默接受）。
     # 该分支同时保留历史词表禁区判定：退役产品也不得夹带 ivar/variance 冒充。
     if rec["weight_mode"] == "psfsw_robust":

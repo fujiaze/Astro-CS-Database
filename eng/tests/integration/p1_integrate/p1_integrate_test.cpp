@@ -8,7 +8,7 @@
  *
  * 运行: ./p1_integrate_test <group> <work_root>
  */
-#include "astrocs/phase1_product.h"
+#include "acsd/phase1_product.h"
 
 #include <cmath>
 #include <cstdint>
@@ -25,7 +25,7 @@
 
 namespace fs = std::filesystem;
 using nlohmann::json;
-using namespace astrocs::v6::phase1;
+using namespace acsd::v6::phase1;
 
 static int g_checks = 0;
 static int g_fails = 0;
@@ -93,7 +93,7 @@ static Phase1FrameInputs make_inputs(const std::string& frame_id,
   in.config_hash = "sha256:phase1-config-v1";
   in.calibration.input_frame_sha256 = "sha256:input-frame-" + frame_id;
 
-  using namespace astrocs::calibration::v6;
+  using namespace acsd::calibration::v6;
   DetectorMetadata md;
   md.has_gain = true;
   md.gain = 2.0;
@@ -366,7 +366,7 @@ static bool run_group(const fs::path& work) {
   const std::vector<std::string> dirs = {(pos / "frame_a.p1").string(),
                                          (pos / "frame_b.p1").string()};
   /* FZ-MODE-RETIRED（PSFSW-RETIRE-03 产品合同收口后）：Phase1 单帧产品**不再需要**
-   * 声明退役对象 psfsw_robust_weight（该对象已退役：docs/ASTROCS_DESIGN.md §3.1；
+   * 声明退役对象 psfsw_robust_weight（该对象已退役：docs/ACSD_DESIGN.md §3.1；
    * UNIFIED_MODEL.md:58），而本消费面的唯一产物就是该对象的组内归一权重 w_psfsw
    * ⇒ 消费面**整体退役、无条件 fail-closed**（显式拒绝 + 迁移提示），不得静默产出
    * w_psfsw。旧产品仍携带声明时，其登记见 positive 组的 legacy 块。

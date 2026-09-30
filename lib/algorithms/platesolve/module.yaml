@@ -9,22 +9,22 @@
 # ipv_solver/ipv_select/ipv_triangle/ipv_itertrans/ipv_robust_refine/
 # ipv_wcs/ipv_sip 共 13821 行，唯一权威签名头
 # lib/algorithms/platesolve/cpp/ipv/include/ipv_api.h），模块化迁移（独立模块源
-# astrocs_p1_wcs.dll / C ABI adapter / plan-execute-cancel-inspect /
+# acsd_p1_wcs.dll / C ABI adapter / plan-execute-cancel-inspect /
 # ThreadLease 接线）由 P1-WCS-IMPL 执行；可执行测试由 P1-WCS-TEST 建立
 # （TEST-WCS-DESIGN-001 → TEST-P1-WCS-001）。
 # 字段遵循 11_MODULE_SOURCE_TEST_STANDARD.md §4；source_symbols 为源码核对
 # 清单（P1-WCS-DOC，2026-09-07，12 个 C ABI 导出符号 grep 实测），禁止
 # 手抄他版。
 # 落位依据：MODULE_MIGRATION_MATRIX.csv P1-WCS 行 owner=SA-P1-W16、
-# target=astrocs_p1_wcs.dll、module_id=astrocs.p1.wcs、legacy_paths=
+# target=acsd_p1_wcs.dll、module_id=acsd.p1.wcs、legacy_paths=
 # "lib/algorithms/platesolve;lib/algorithms/platesolve/wrapper_phase1"、depends_on_int=CAT-GAIA-INT;P1-STAR-INT。
 # 本目录 lib/algorithms/platesolve/ 既是生产实现所在又是迁移落码目标（合同三件套
 # README.md r1 + module.yaml + memory.md 落位于此）；lib/algorithms/platesolve/wrapper_phase1/
-# 旧符号 astrocs::phase1::WcsTan（TAN 桥，CMakeLists.txt:426-428 静态库
-# astrocs_phase1_wcs，仅单测 eng/tests/unit/p1_wcs_phot_test，未接
+# 旧符号 acsd::phase1::WcsTan（TAN 桥，CMakeLists.txt:426-428 静态库
+# acsd_phase1_wcs，仅单测 eng/tests/unit/p1_wcs_phot_test，未接
 # orchestrator 管线）为计划迁移旧符号，其合同并入
 # lib/algorithms/platesolve/README.md §9，去留由 P1-WCS-IMPL 登记 TASK_RESULT。
-# dll_target=astrocs_p1_wcs.dll 为迁移目标合同值（尚未存在）。现状
+# dll_target=acsd_p1_wcs.dll 为迁移目标合同值（尚未存在）。现状
 # 构建=lib/algorithms/platesolve/cpp/ipv/build.ps1:27 / Makefile:6（g++ -std=c++17
 # -O3 -fopenmp → ipv_solver.dll，MSYS2/MinGW）；未编入根 CMake 主构建
 # （根 CMakeLists.txt 无 ipv 目标）——CMake 集成归 P1-WCS-IMPL。生产
@@ -40,20 +40,20 @@
 # docs/science/algorithms/PLATESOLVE.md §11.3 DISP-WCS-001..006）。
 # entrypoint=MISSING：registry 入口未接；descriptor 现状占位 ID
 # （lib/infrastructure/scheduler/src/module_adapters.cpp:450-464 p1_wcs_descriptor 的
-# module_id=astrocs.phase1.wcs-platesolve、sci_id=SCI-P1-WCS-001/
+# module_id=acsd.phase1.wcs-platesolve、sci_id=SCI-P1-WCS-001/
 # alg_id=ALG-002/data_id=DATA-P1-WCS/api_id=API-P1-004/
 # test_id=TEST-P1-WCS-001、ports sources/wcs）由 P1-WCS-INT 对齐本
 # manifest 与 lib/algorithms/platesolve/README.md（r1），不得反向作为冻结依据。
-schema: astrocs.module-manifest/v1
-id: MOD-astrocs-phase1-wcs-platesolve
-module_id: astrocs.p1.wcs
+schema: acsd.module-manifest/v1
+id: MOD-acsd-phase1-wcs-platesolve
+module_id: acsd.p1.wcs
 owner: SA-P1-W16
 language: c++17
 module_version: 0.1.0-alpha.1
 abi_version: 1
 phase_scope: phase1
-dll_name: astrocs_p1_wcs.dll
-dll_target: astrocs_p1_wcs.dll
+dll_name: acsd_p1_wcs.dll
+dll_target: acsd_p1_wcs.dll
 module_status: CONTRACT_READY
 entrypoint: MISSING
 node_operations: [platesolve]
@@ -80,7 +80,7 @@ contract_ids:
   alg: ALG-WCS-001
   data: DATA-P1-WCS
   api: API-WCS-001
-  mod: MOD-astrocs-phase1-wcs-platesolve
+  mod: MOD-acsd-phase1-wcs-platesolve
   src: SRC-WCS-001
   test: TEST-WCS-DESIGN-001
 exports:

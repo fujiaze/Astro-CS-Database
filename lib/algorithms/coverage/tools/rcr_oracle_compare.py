@@ -15,11 +15,11 @@ from rcr import RCR, SS_MEDIAN_DL
 
 ROOT = Path(__file__).resolve().parents[3]
 CLI = os.environ.get(
-    "ASTROCS_REJECTION_CLI",
+    "ACSD_REJECTION_CLI",
     str(ROOT / "lib" / "phase2" / "build" / "rejection_cli.exe"),
 )
 OUT = os.environ.get(
-    "ASTROCS_RCR_OUT",
+    "ACSD_RCR_OUT",
     str(ROOT / "run" / "phase2" / "rcr_oracle"),
 )
 
@@ -68,9 +68,9 @@ def weighted_sets():
 
 def run_cpp(vals):
     os.environ["PATH"] = (
-        os.environ.get("ASTROCS_MINGW_BIN",
+        os.environ.get("ACSD_MINGW_BIN",
                        r"C:\msys64\mingw64\bin") + ";" +
-        os.environ.get("ASTROCS_AIO_DIR",
+        os.environ.get("ACSD_AIO_DIR",
                        str(ROOT / "lib" / "astro_image_io")) + ";" +
         os.environ.get("PATH", ""))
     txt = "\n".join(repr(float(v)) for v in vals)
@@ -87,9 +87,9 @@ def run_cpp(vals):
 
 def run_cpp_weighted(vals, weights):
     os.environ["PATH"] = (
-        os.environ.get("ASTROCS_MINGW_BIN",
+        os.environ.get("ACSD_MINGW_BIN",
                        r"C:\msys64\mingw64\bin") + ";" +
-        os.environ.get("ASTROCS_AIO_DIR",
+        os.environ.get("ACSD_AIO_DIR",
                        str(ROOT / "lib" / "astro_image_io")) + ";" +
         os.environ.get("PATH", ""))
     txt = "\n".join(f"{repr(float(w))} {repr(float(v))}"

@@ -5,7 +5,7 @@
 # ============================================================================
 cmake_minimum_required(VERSION 3.16)
 if(CMAKE_SOURCE_DIR STREQUAL CMAKE_CURRENT_SOURCE_DIR)
-  project(astrocs_p1_integrate LANGUAGES CXX)
+  project(acsd_p1_integrate LANGUAGES CXX)
   enable_testing()
 endif()
 
@@ -17,7 +17,7 @@ add_subdirectory("${P1_REPO}/lib/algorithms/integration/phase1_product"
                  "${CMAKE_CURRENT_BINARY_DIR}/phase1_product_lib")
 
 add_executable(p1_integrate_test "${P1_IT_DIR}/p1_integrate_test.cpp")
-target_link_libraries(p1_integrate_test PRIVATE astrocs_phase1_product)
+target_link_libraries(p1_integrate_test PRIVATE acsd_phase1_product)
 set_target_properties(p1_integrate_test PROPERTIES
   CXX_STANDARD 17 CXX_STANDARD_REQUIRED ON)
 

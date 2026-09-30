@@ -8,8 +8,8 @@
  *
  * 运行: ./p2_integrate_test <singlepath|write|negative|halfproduct> <work_root>
  */
-#include "astrocs/phase2_integrate.h"
-#include "astrocs/phase1_product.h"
+#include "acsd/phase2_integrate.h"
+#include "acsd/phase1_product.h"
 #include "runtime_contract.h"
 
 #include <algorithm>
@@ -29,8 +29,8 @@
 
 namespace fs = std::filesystem;
 using nlohmann::json;
-using namespace astrocs::v6;
-using namespace astrocs::v6::p2int;
+using namespace acsd::v6;
+using namespace acsd::v6::p2int;
 
 static int g_checks = 0;
 static int g_fails = 0;
@@ -88,7 +88,7 @@ static phase1::Phase1FrameInputs make_inputs(const std::string& frame_id,
   in.config_hash = "sha256:phase2-config-v1";
   in.calibration.input_frame_sha256 = "sha256:input-frame-" + frame_id;
 
-  using namespace astrocs::calibration::v6;
+  using namespace acsd::calibration::v6;
   DetectorMetadata md;
   md.has_gain = true; md.gain = 2.0;
   md.has_read_noise = true; md.read_noise_e = 5.0;
@@ -211,9 +211,9 @@ static bool run_singlepath() {
    * 稠密 SNR 面 → 逆方差定权 → 叠加），没有可选择项 ⇒ phase2 的 --mode token 面
    * 必须对**所有** token fail-closed（rc=2 = ARGS）。
    * 能红能绿：让任何一个 token 走 kProduction 分支，本块立即转红。 */
-  const astrocs::v6runtime::ModeRoute retired =
-      astrocs::v6runtime::route_phase2_weight_token("psfsw_robust");
-  CHECK(retired.kind == astrocs::v6runtime::RouteKind::kReject,
+  const acsd::v6runtime::ModeRoute retired =
+      acsd::v6runtime::route_phase2_weight_token("psfsw_robust");
+  CHECK(retired.kind == acsd::v6runtime::RouteKind::kReject,
         "psfsw_robust RETIRED rejected");
   CHECK(retired.reason.find("FZ-MODE-RETIRED") != std::string::npos,
         "retired reject cites FZ-MODE-RETIRED");
@@ -222,9 +222,9 @@ static bool run_singlepath() {
   for (const char* tok : {"point_information", "surface_gls",
                           "psf_snr_power", "auto", "support_x_snr2", "0", "1", "2",
                           "bogus", ""}) {
-    const astrocs::v6runtime::ModeRoute r =
-        astrocs::v6runtime::route_phase2_weight_token(tok);
-    CHECK(r.kind == astrocs::v6runtime::RouteKind::kReject,
+    const acsd::v6runtime::ModeRoute r =
+        acsd::v6runtime::route_phase2_weight_token(tok);
+    CHECK(r.kind == acsd::v6runtime::RouteKind::kReject,
           "no phase2 weight-mode token may be accepted (FZ-WEIGHT-SINGLE-PATH)");
     CHECK(r.rc == 2, "rejected token maps to CLI ARGS rc=2 (fail-closed)");
   }
@@ -233,9 +233,9 @@ static bool run_singlepath() {
    * 理由消失 ⇒ 全 token 一律拒绝，不留任何"可识别但不作生产口径"的旁门。
    * 能红能绿：任一 token 若走回 kBaseline/kProduction，本块立即转红。 */
   for (const char* tok : {"equal", "pixel_ivar"}) {
-    const astrocs::v6runtime::ModeRoute r =
-        astrocs::v6runtime::route_phase2_weight_token(tok);
-    CHECK(r.kind == astrocs::v6runtime::RouteKind::kReject,
+    const acsd::v6runtime::ModeRoute r =
+        acsd::v6runtime::route_phase2_weight_token(tok);
+    CHECK(r.kind == acsd::v6runtime::RouteKind::kReject,
           "former baseline token must now reject (FZ-WEIGHT-SINGLE-PATH)");
     CHECK(r.rc == 2, "former baseline token maps to CLI ARGS rc=2 (fail-closed)");
   }

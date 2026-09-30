@@ -26,7 +26,7 @@ int main(int argc, char** argv){
                 while (!stop.load()) { for (int i=0;i<2000;++i) x = std::sin(x)+x*0.001; }
             });
     }
-    astrocs::ProcessMonitor mon(0.05);
+    acsd::ProcessMonitor mon(0.05);
     mon.run_for(secs);
     stop.store(true);
     for (auto& th : ths) th.join();

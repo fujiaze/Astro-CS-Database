@@ -2,12 +2,12 @@
 //
 // 验收 (模板 <prefix>-TEST): "故障注入能让测试失败" + "不得写永远 PASS\n// 的占位"。本可执行三阶段 (对齐 p1hips/p1cos 先例):
 //   1) 基线: 无注入跑 units 组 → 必 PASS (排除恒 FAIL 侧)。
-//   2) 注入 A: 子进程以 ASTROCS_P1SESS_FAULT=u1_manifest_kind 重跑 units
+//   2) 注入 A: 子进程以 ACSD_P1SESS_FAULT=u1_manifest_kind 重跑 units
 //      → 必 FAIL rc=1 (排除恒 PASS 侧; 子进程 stderr 有 FAULT-INJECT 行)。
-//   3) 注入 B: 子进程以 ASTROCS_P1SESS_FAULT=n1_validate_reject 重跑
+//   3) 注入 B: 子进程以 ACSD_P1SESS_FAULT=n1_validate_reject 重跑
 //      negative 组 → 必 FAIL (第二注入点覆盖)。
 // 注入名与 faultname 注册处 (各测试 TU P1SESS_CHECK 第三参) 对齐;
-// ASTROCS_P1SESS_SELFCHECK_FAULT 可覆盖阶段 2 注入名。
+// ACSD_P1SESS_SELFCHECK_FAULT 可覆盖阶段 2 注入名。
 // 注: POSIX fork/execve (Linux CI 主路径); Windows CI 本组不注册。
 #ifdef _WIN32
 // WIN-PORT: MSVC 无 <sys/wait.h>/<unistd.h>；子进程重跑改用 CRT spawn（见下方 fork 块）。
@@ -35,7 +35,7 @@ int run_negative();
 namespace {
 
 // 注入子进程入口: execve 重入后 argv[1] = 组名, 直接跑该组并回传 rc。
-// (FaultRegistry 由 ASTROCS_P1SESS_FAULT 初始化, 机制与主执行器一致;
+// (FaultRegistry 由 ACSD_P1SESS_FAULT 初始化, 机制与主执行器一致;
 // 不经 run_all_groups, 必须显式 init —— 对齐 p1hips 先例, 防注入静默失效。)
 int run_injected_group(const char* group) {
     p1sess::init_fault_registry_from_env();
@@ -47,7 +47,7 @@ int run_injected_group(const char* group) {
 // 子进程注入重跑: execve /proc/self/exe <group> + 注入环境
 // 返回子进程 rc (执行失败 → 127)
 int run_injected_child(const char* group, const std::string& fault_name) {
-    const std::string fault_env = "ASTROCS_P1SESS_FAULT=" + fault_name;
+    const std::string fault_env = "ACSD_P1SESS_FAULT=" + fault_name;
     std::vector<char> fbuf(fault_env.begin(), fault_env.end());
     fbuf.push_back('\0');
 
@@ -148,7 +148,7 @@ int run_selfcheck() {
 
     // 阶段 2: 注入 units 组 → 必 FAIL
     {
-        const char* fault = std::getenv("ASTROCS_P1SESS_SELFCHECK_FAULT");
+        const char* fault = std::getenv("ACSD_P1SESS_SELFCHECK_FAULT");
         const std::string name = fault ? fault : "u1_manifest_kind";
         const int child_rc = run_injected_child("units", name);
         if (child_rc == 0) {

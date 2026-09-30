@@ -1,5 +1,5 @@
 {
-  "weight_mode_schema": "astrocs.v6.weight-mode/v1",
+  "weight_mode_schema": "acsd.v6.weight-mode/v1",
   "schema_version": 1,
   "weight_mode": "point_information",
   "mode_class": "production",

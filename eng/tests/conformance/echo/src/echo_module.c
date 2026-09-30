@@ -13,37 +13,37 @@
  * 输出 JSON 缓冲不足 → PARAM + BUFFER_TOO_SMALL (strbuf.size=所需)。
  *
  * 编译合同: 纯 C11; 无 STL/异常/RTTI; -fno-exceptions 亦可编译。
- * 导出可见性: ASTROCS_ABI_SHARED 由 target 编译期定义; 构建 DLL 本体时
- * 需 ASTROCS_ABI_EXPORTS (由 CMake target 编译定义) → dllexport/visibility。
- * 唯一导出 astrocs_module_query_v1 (12 §1 / ARC-001 §1.1; ABI-006 全查 exports)。
+ * 导出可见性: ACSD_ABI_SHARED 由 target 编译期定义; 构建 DLL 本体时
+ * 需 ACSD_ABI_EXPORTS (由 CMake target 编译定义) → dllexport/visibility。
+ * 唯一导出 acsd_module_query_v1 (12 §1 / ARC-001 §1.1; ABI-006 全查 exports)。
  */
-#include "astrocs/abi/lifecycle_v1.h"
-#include "astrocs/abi/module_api_v1.h"
-#include "astrocs/echo/types.h"
+#include "acsd/abi/lifecycle_v1.h"
+#include "acsd/abi/module_api_v1.h"
+#include "acsd/echo/types.h"
 
 #include <stdio.h>
 #include <string.h>
 
-#if defined(ASTROCS_ABI_SHARED) && !defined(ASTROCS_ABI_EXPORTS)
-#define ASTROCS_ABI_EXPORTS 1
+#if defined(ACSD_ABI_SHARED) && !defined(ACSD_ABI_EXPORTS)
+#define ACSD_ABI_EXPORTS 1
 #endif
 
 /* ───────── 静态字符串 (descriptor 输出; 所有权=module 静态, 调用方不得 free) ───────── */
 
-static const char kModuleId[] = ASTROCS_ECHO_MODULE_ID;
-static const char kVersion[]  = ASTROCS_ECHO_MODULE_VERSION;
-static const char kBuildId[]  = ASTROCS_ECHO_BUILD_ID;
+static const char kModuleId[] = ACSD_ECHO_MODULE_ID;
+static const char kVersion[]  = ACSD_ECHO_MODULE_VERSION;
+static const char kBuildId[]  = ACSD_ECHO_BUILD_ID;
 static const char kSciId[]    = "SCI-NONE";   /* conformance: 无科学合同 */
 static const char kAlgId[]    = "ALG-NONE";   /* conformance: 无算法合同 */
 static const char kApiId[]    = "API-ABI-001";/* module C ABI v1 (ABI-001) */
 
-static const char kLogComponent[] = "astrocs.conformance.echo";
+static const char kLogComponent[] = "acsd.conformance.echo";
 
 /* ───────── 基础 helper ───────── */
 
-static acs_str_v1 acs_str_from(const char* s) {
-    acs_str_v1 v;
-    v.head.struct_size = (uint32_t)sizeof(acs_str_v1);
+static acsd_str_v1 acsd_str_from(const char* s) {
+    acsd_str_v1 v;
+    v.head.struct_size = (uint32_t)sizeof(acsd_str_v1);
     v.head.abi_version = ACS_ABI_VERSION_V1;
     v.data = s;
     v.size = s ? (uint64_t)strlen(s) : 0;
@@ -56,11 +56,11 @@ static int str_eq_n(const char* a, const char* b, uint64_t n) {
 }
 
 /* 错误填充 (message 恒为编译期静态字面量; 无路径/sha/内容) */
-static void efill(acs_error_info_v1* err, acs_status st, int32_t domain,
+static void efill(acsd_error_info_v1* err, acsd_status st, int32_t domain,
                   uint32_t detail, const char* msg) {
     if (!err) return;
     memset(err, 0, sizeof(*err));
-    err->head.struct_size = (uint32_t)sizeof(acs_error_info_v1);
+    err->head.struct_size = (uint32_t)sizeof(acsd_error_info_v1);
     err->head.abi_version = ACS_ABI_VERSION_V1;
     err->status = st;
     err->domain = domain;
@@ -71,8 +71,8 @@ static void efill(acs_error_info_v1* err, acs_status st, int32_t domain,
 
 /* strbuf 写 N 字节 (lifecycle_v1.h 截断语义: size=所需; cap>0 写前缀+NUL;
  * 不足 → PARAM + BUFFER_TOO_SMALL) */
-static acs_status strbuf_write(acs_strbuf_v1* out, const char* data, uint64_t n,
-                               acs_error_info_v1* err) {
+static acsd_status strbuf_write(acsd_strbuf_v1* out, const char* data, uint64_t n,
+                               acsd_error_info_v1* err) {
     if (!out) { efill(err, ACS_ERR_PARAM, ACS_ERR_DOMAIN_CONFIG,
                       ACS_DIAG_ECODE_NULL_CALLBACK, "echo: null output buffer");
                 return ACS_ERR_PARAM; }
@@ -90,8 +90,8 @@ static acs_status strbuf_write(acs_strbuf_v1* out, const char* data, uint64_t n,
     return ACS_OK;
 }
 
-static acs_status strbuf_write_cstr(acs_strbuf_v1* out, const char* s,
-                                    acs_error_info_v1* err) {
+static acsd_status strbuf_write_cstr(acsd_strbuf_v1* out, const char* s,
+                                    acsd_error_info_v1* err) {
     return strbuf_write(out, s, (uint64_t)strlen(s), err);
 }
 
@@ -106,8 +106,8 @@ static uint64_t copy_to_cstr(const char* data, uint64_t size, char* dst, uint64_
 
 /* 实例 (create 经 host allocator 分配; destroy 同一 allocator 释放) */
 typedef struct echo_inst_s {
-    const acs_allocator_v1* alloc;   /* create 时快照; destroy 用它释放自身 */
-    const acs_host_api_v1*  host;    /* host 服务表快照 (只读; 模块不改写) */
+    const acsd_allocator_v1* alloc;   /* create 时快照; destroy 用它释放自身 */
+    const acsd_host_api_v1*  host;    /* host 服务表快照 (只读; 模块不改写) */
     int32_t  phase;                  /* 0=idle 1=executing 2=cancelling */
     int32_t  cancel_flag;            /* request_cancel 置位 (幂等) */
     char     last_action[32];        /* 最近 action (inspect 诊断) */
@@ -188,26 +188,26 @@ static int json_get_u64(const char* js, uint64_t len, const char* key,
 
 /* 从 config 提取 action; 空/缺失 → 默认 echo */
 static void cfg_action(const char* js, uint64_t len, char* out, uint64_t cap) {
-    if (!json_get_str(js, len, ASTROCS_ECHO_CFG_KEY_ACTION, out, cap)) {
-        copy_to_cstr(ASTROCS_ECHO_CFG_ACTION_ECHO,
-                     (uint64_t)strlen(ASTROCS_ECHO_CFG_ACTION_ECHO), out, cap);
+    if (!json_get_str(js, len, ACSD_ECHO_CFG_KEY_ACTION, out, cap)) {
+        copy_to_cstr(ACSD_ECHO_CFG_ACTION_ECHO,
+                     (uint64_t)strlen(ACSD_ECHO_CFG_ACTION_ECHO), out, cap);
     }
 }
 
 /* action 白名单 */
 static int action_valid(const char* a) {
-    return strcmp(a, ASTROCS_ECHO_CFG_ACTION_ECHO) == 0 ||
-           strcmp(a, ASTROCS_ECHO_CFG_ACTION_ARTIFACT_READ) == 0 ||
-           strcmp(a, ASTROCS_ECHO_CFG_ACTION_WRITE_BLOCKED) == 0 ||
-           strcmp(a, ASTROCS_ECHO_CFG_ACTION_CANCEL_POLL) == 0 ||
-           strcmp(a, ASTROCS_ECHO_CFG_ACTION_LEASE) == 0 ||
-           strcmp(a, ASTROCS_ECHO_CFG_ACTION_ERROR) == 0 ||
+    return strcmp(a, ACSD_ECHO_CFG_ACTION_ECHO) == 0 ||
+           strcmp(a, ACSD_ECHO_CFG_ACTION_ARTIFACT_READ) == 0 ||
+           strcmp(a, ACSD_ECHO_CFG_ACTION_WRITE_BLOCKED) == 0 ||
+           strcmp(a, ACSD_ECHO_CFG_ACTION_CANCEL_POLL) == 0 ||
+           strcmp(a, ACSD_ECHO_CFG_ACTION_LEASE) == 0 ||
+           strcmp(a, ACSD_ECHO_CFG_ACTION_ERROR) == 0 ||
            strcmp(a, "config_query") == 0;
 }
 
 /* 取消检查点: 实例 request_cancel 置位 或 host cancel 命中 → CANCELLED */
-static acs_status cancel_point(echo_inst_s* inst, acs_error_info_v1* err) {
-    const acs_cancel_v1* c = inst->host ? inst->host->cancel : NULL;
+static acsd_status cancel_point(echo_inst_s* inst, acsd_error_info_v1* err) {
+    const acsd_cancel_v1* c = inst->host ? inst->host->cancel : NULL;
     int hit = inst->cancel_flag != 0;
     if (!hit && c && c->is_cancelled && c->is_cancelled(c->user_data)) hit = 1;
     if (hit) {
@@ -221,20 +221,20 @@ static acs_status cancel_point(echo_inst_s* inst, acs_error_info_v1* err) {
 
 /* ───────── 生命周期 vtable 实现 ───────── */
 
-static acs_status echo_describe(const acs_module_api_v1* self,
-                                acs_str_v1 module_id,
-                                acs_module_descriptor_v1* out_desc) {
+static acsd_status echo_describe(const acsd_module_api_v1* self,
+                                acsd_str_v1 module_id,
+                                acsd_module_descriptor_v1* out_desc) {
     (void)self;
     if (!out_desc) return ACS_ERR_PARAM;
     memset(out_desc, 0, sizeof(*out_desc));
-    out_desc->head.struct_size = (uint32_t)sizeof(acs_module_descriptor_v1);
+    out_desc->head.struct_size = (uint32_t)sizeof(acsd_module_descriptor_v1);
     out_desc->head.abi_version = ACS_ABI_VERSION_V1;
-    out_desc->module_id  = acs_str_from(kModuleId);
-    out_desc->version    = acs_str_from(kVersion);
-    out_desc->build_id   = acs_str_from(kBuildId);
-    out_desc->sci_id     = acs_str_from(kSciId);
-    out_desc->alg_id     = acs_str_from(kAlgId);
-    out_desc->api_id     = acs_str_from(kApiId);
+    out_desc->module_id  = acsd_str_from(kModuleId);
+    out_desc->version    = acsd_str_from(kVersion);
+    out_desc->build_id   = acsd_str_from(kBuildId);
+    out_desc->sci_id     = acsd_str_from(kSciId);
+    out_desc->alg_id     = acsd_str_from(kAlgId);
+    out_desc->api_id     = acsd_str_from(kApiId);
     out_desc->phase             = 0;   /* 平台/conformance (module.yaml registry 定义) */
     out_desc->config_schema_ver = 1;
     out_desc->execution_class   = 2;   /* metadata (与 module_api_v1.h enum 注释一致) */
@@ -246,9 +246,9 @@ static acs_status echo_describe(const acs_module_api_v1* self,
     return ACS_OK;
 }
 
-static acs_status echo_validate_config(const acs_module_api_v1* self,
-                                       acs_str_v1 config_json,
-                                       acs_error_info_v1* err) {
+static acsd_status echo_validate_config(const acsd_module_api_v1* self,
+                                       acsd_str_v1 config_json,
+                                       acsd_error_info_v1* err) {
     (void)self;
     if (config_json.data == NULL || config_json.size == 0) {
         efill(err, ACS_ERR_PARAM, ACS_ERR_DOMAIN_CONFIG,
@@ -265,10 +265,10 @@ static acs_status echo_validate_config(const acs_module_api_v1* self,
         return ACS_ERR_PARAM;
     }
     /* request_error 需 error_status 数值 (>=1 稳定码) */
-    if (strcmp(act, ASTROCS_ECHO_CFG_ACTION_ERROR) == 0) {
+    if (strcmp(act, ACSD_ECHO_CFG_ACTION_ERROR) == 0) {
         uint64_t es = 0;
         if (!json_get_u64(cfg, (uint64_t)strlen(cfg),
-                          ASTROCS_ECHO_CFG_KEY_ERROR_STATUS, &es) || es == 0 ||
+                          ACSD_ECHO_CFG_KEY_ERROR_STATUS, &es) || es == 0 ||
             es > 70) {
             efill(err, ACS_ERR_PARAM, ACS_ERR_DOMAIN_CONFIG,
                   ACS_DIAG_ECODE_CONFIG_SCHEMA, "echo: invalid error_status");
@@ -278,11 +278,11 @@ static acs_status echo_validate_config(const acs_module_api_v1* self,
     return ACS_OK;
 }
 
-static acs_status echo_plan(const acs_module_api_v1* self,
-                            acs_str_v1 node_id,
-                            acs_str_v1 config_json,
-                            acs_strbuf_v1* out_plan_json,
-                            acs_error_info_v1* err) {
+static acsd_status echo_plan(const acsd_module_api_v1* self,
+                            acsd_str_v1 node_id,
+                            acsd_str_v1 config_json,
+                            acsd_strbuf_v1* out_plan_json,
+                            acsd_error_info_v1* err) {
     (void)self;
     char cfg[2048];
     copy_to_cstr(config_json.data ? config_json.data : "",
@@ -304,11 +304,11 @@ static acs_status echo_plan(const acs_module_api_v1* self,
     return strbuf_write_cstr(out_plan_json, out, err);
 }
 
-static acs_status echo_create(const acs_module_api_v1* self,
-                              acs_str_v1 config_json,
-                              const acs_host_api_v1* host,
-                              acs_module_instance_v1** out,
-                              acs_error_info_v1* err) {
+static acsd_status echo_create(const acsd_module_api_v1* self,
+                              acsd_str_v1 config_json,
+                              const acsd_host_api_v1* host,
+                              acsd_module_instance_v1** out,
+                              acsd_error_info_v1* err) {
     (void)self; (void)config_json;
     if (out) *out = NULL;
     if (!host || !host->allocator) {
@@ -327,30 +327,30 @@ static acs_status echo_create(const acs_module_api_v1* self,
     inst->alloc = host->allocator;
     inst->host = host;
     inst->phase = 0;
-    if (out) *out = (acs_module_instance_v1*)inst;
+    if (out) *out = (acsd_module_instance_v1*)inst;
     return ACS_OK;
 }
 
 /* artifact read 动作: host.artifacts 判空负测 + open/read_all/query/parse 正测 */
-static acs_status act_artifact_read(echo_inst_s* inst, const char* cfg,
-                                    acs_strbuf_v1* out, acs_error_info_v1* err) {
-    const acs_artifact_service_v1* ar = inst->host ? inst->host->artifacts : NULL;
+static acsd_status act_artifact_read(echo_inst_s* inst, const char* cfg,
+                                    acsd_strbuf_v1* out, acsd_error_info_v1* err) {
+    const acsd_artifact_service_v1* ar = inst->host ? inst->host->artifacts : NULL;
     if (!ar) {
         efill(err, ACS_ERR_PARAM, ACS_ERR_DOMAIN_DATA,
               ACS_ECHO_ECODE_ARTIFACT_MISSING, "echo: host artifact service missing");
         return ACS_ERR_PARAM;
     }
     char uri[1024];
-    if (!json_get_str(cfg, (uint64_t)strlen(cfg), ASTROCS_ECHO_CFG_KEY_STORAGE_URI,
+    if (!json_get_str(cfg, (uint64_t)strlen(cfg), ACSD_ECHO_CFG_KEY_STORAGE_URI,
                       uri, sizeof(uri)) || !uri[0]) {
         efill(err, ACS_ERR_PARAM, ACS_ERR_DOMAIN_CONFIG,
               ACS_DIAG_ECODE_CONFIG_SCHEMA, "echo: storage_uri missing");
         return ACS_ERR_PARAM;
     }
-    acs_error_info_v1 aerr;
+    acsd_error_info_v1 aerr;
     memset(&aerr, 0, sizeof(aerr));
-    acs_artifact_handle_v1* h = NULL;
-    acs_status st = ar->artifact_open(ar, acs_str_from(uri), acs_str_from(""), &h, &aerr);
+    acsd_artifact_handle_v1* h = NULL;
+    acsd_status st = ar->artifact_open(ar, acsd_str_from(uri), acsd_str_from(""), &h, &aerr);
     if (st != ACS_OK) {
         efill(err, st, ACS_ERR_DOMAIN_IO, 0, "echo: artifact open failed");
         return st;
@@ -360,12 +360,12 @@ static acs_status act_artifact_read(echo_inst_s* inst, const char* cfg,
         return ACS_ERR_IO;
     }
     /* 查询声明字段 (type_id 经 manifest 内容校验; digest/size 直接上报) */
-    acs_str_v1 digest = ar->artifact_query_content_digest_hex(h);
+    acsd_str_v1 digest = ar->artifact_query_content_digest_hex(h);
     uint64_t asize = ar->artifact_query_size(h);
     /* 读全部 (host allocator 分配; 模块同一 allocator free) */
-    acs_span_u8 data;
+    acsd_span_u8 data;
     memset(&data, 0, sizeof(data));
-    acs_error_info_v1 rerr;
+    acsd_error_info_v1 rerr;
     memset(&rerr, 0, sizeof(rerr));
     st = ar->artifact_read_all(h, inst->alloc, &data, &rerr);
     if (st != ACS_OK) {
@@ -379,24 +379,24 @@ static acs_status act_artifact_read(echo_inst_s* inst, const char* cfg,
     uint64_t field_num = 0;
     int has_field = 0;
     if (data.data && data.count > 0) {
-        acs_manifest_handle_v1* mh = NULL;
+        acsd_manifest_handle_v1* mh = NULL;
         char* jbuf = (char*)inst->alloc->alloc(inst->alloc->user_data,
                                                data.count + 1u, 1u);
         if (jbuf) {
             memcpy(jbuf, data.data, (size_t)data.count);
             jbuf[data.count] = 0;
-            acs_error_info_v1 perr;
+            acsd_error_info_v1 perr;
             memset(&perr, 0, sizeof(perr));
-            if (ar->manifest_parse(ar, acs_str_from(jbuf), &mh, &perr) == ACS_OK &&
+            if (ar->manifest_parse(ar, acsd_str_from(jbuf), &mh, &perr) == ACS_OK &&
                 mh) {
-                acs_str_v1 v;
-                if (ar->manifest_get_str(mh, acs_str_from("type_id"), &v) &&
+                acsd_str_v1 v;
+                if (ar->manifest_get_str(mh, acsd_str_from("type_id"), &v) &&
                     v.data && v.size < sizeof(field_val)) {
                     memcpy(field_val, v.data, (size_t)v.size);
                     field_val[v.size] = 0;
                     has_field = 1;
                 }
-                if (ar->manifest_get_u64(mh, acs_str_from("schema_version"),
+                if (ar->manifest_get_u64(mh, acsd_str_from("schema_version"),
                                          &field_num)) {
                 }
                 ar->manifest_destroy(mh);
@@ -419,11 +419,11 @@ static acs_status act_artifact_read(echo_inst_s* inst, const char* cfg,
 }
 
 /* execute 主实现 */
-static acs_status echo_execute(acs_module_instance_v1* self,
-                               acs_str_v1 input_manifest_json,
-                               acs_str_v1 config_json,
-                               acs_strbuf_v1* out_manifest_json,
-                               acs_error_info_v1* err) {
+static acsd_status echo_execute(acsd_module_instance_v1* self,
+                               acsd_str_v1 input_manifest_json,
+                               acsd_str_v1 config_json,
+                               acsd_strbuf_v1* out_manifest_json,
+                               acsd_error_info_v1* err) {
     echo_inst_s* inst = (echo_inst_s*)self;
     if (!inst || !inst->host) {
         efill(err, ACS_ERR_PARAM, ACS_ERR_DOMAIN_CONFIG,
@@ -437,7 +437,7 @@ static acs_status echo_execute(acs_module_instance_v1* self,
         return ACS_ERR_STATE;
     }
     inst->phase = 1;
-    acs_status rc = ACS_OK;
+    acsd_status rc = ACS_OK;
 
     char cfg[2048];
     copy_to_cstr(config_json.data ? config_json.data : "",
@@ -447,9 +447,9 @@ static acs_status echo_execute(acs_module_instance_v1* self,
     copy_to_cstr(act, (uint64_t)strlen(act), inst->last_action,
                  sizeof(inst->last_action));
 
-    const acs_host_api_v1* host = inst->host;
+    const acsd_host_api_v1* host = inst->host;
 
-    if (strcmp(act, ASTROCS_ECHO_CFG_ACTION_ECHO) == 0) {
+    if (strcmp(act, ACSD_ECHO_CFG_ACTION_ECHO) == 0) {
         /* 回显 input manifest (正测: 内容往返一致; cancel 前置检查点) */
         rc = cancel_point(inst, err);
         if (rc == ACS_OK) {
@@ -458,21 +458,21 @@ static acs_status echo_execute(acs_module_instance_v1* self,
                               input_manifest_json.size, err);
             inst->bytes_count += input_manifest_json.size;
         }
-    } else if (strcmp(act, ASTROCS_ECHO_CFG_ACTION_ARTIFACT_READ) == 0) {
+    } else if (strcmp(act, ACSD_ECHO_CFG_ACTION_ARTIFACT_READ) == 0) {
         rc = act_artifact_read(inst, cfg, out_manifest_json, err);
-    } else if (strcmp(act, ASTROCS_ECHO_CFG_ACTION_WRITE_BLOCKED) == 0) {
+    } else if (strcmp(act, ACSD_ECHO_CFG_ACTION_WRITE_BLOCKED) == 0) {
         /* ABI v1 host 无 artifact 写回调: 如实拒绝, 绝不自行开文件 (FORBID-002) */
         if (host->logger && host->logger->log) {
             host->logger->log(host->logger->user_data, ACS_LOG_WARN,
-                              acs_str_from(kLogComponent),
-                              acs_str_from("echo: artifact write not supported by host ABI v1"));
+                              acsd_str_from(kLogComponent),
+                              acsd_str_from("echo: artifact write not supported by host ABI v1"));
         }
         efill(err, ACS_ERR_UNSUPPORTED, ACS_ERR_DOMAIN_DATA,
               ACS_ECHO_ECODE_ARTIFACT_WRITE_UNSUPPORTED,
               "echo: artifact write unsupported");
         rc = ACS_ERR_UNSUPPORTED;
-    } else if (strcmp(act, ASTROCS_ECHO_CFG_ACTION_CANCEL_POLL) == 0) {
-        const acs_cancel_v1* c = host->cancel;
+    } else if (strcmp(act, ACSD_ECHO_CFG_ACTION_CANCEL_POLL) == 0) {
+        const acsd_cancel_v1* c = host->cancel;
         if (!c || !c->is_cancelled) {
             efill(err, ACS_ERR_PARAM, ACS_ERR_DOMAIN_CONFIG,
                   ACS_ECHO_ECODE_CANCEL_MISSING, "echo: host cancel missing");
@@ -496,15 +496,15 @@ static acs_status echo_execute(acs_module_instance_v1* self,
                                        err);
             }
         }
-    } else if (strcmp(act, ASTROCS_ECHO_CFG_ACTION_LEASE) == 0) {
-        const acs_executor_v1* ex = host->executor;
+    } else if (strcmp(act, ACSD_ECHO_CFG_ACTION_LEASE) == 0) {
+        const acsd_executor_v1* ex = host->executor;
         if (!ex || !ex->acquire || !ex->release) {
             efill(err, ACS_ERR_PARAM, ACS_ERR_DOMAIN_CONFIG,
                   ACS_ECHO_ECODE_EXECUTOR_MISSING, "echo: host executor missing");
             rc = ACS_ERR_PARAM;
         } else {
             uint64_t nw = 1;
-            json_get_u64(cfg, (uint64_t)strlen(cfg), ASTROCS_ECHO_CFG_KEY_WORKERS,
+            json_get_u64(cfg, (uint64_t)strlen(cfg), ACSD_ECHO_CFG_KEY_WORKERS,
                          &nw);
             if (nw == 0 || nw > ex->max_workers) {
                 efill(err, ACS_ERR_PARAM, ACS_ERR_DOMAIN_CONFIG,
@@ -522,7 +522,7 @@ static acs_status echo_execute(acs_module_instance_v1* self,
             }
         }
     } else if (strcmp(act, "config_query") == 0) {
-        const acs_host_api_v1* h = host;
+        const acsd_host_api_v1* h = host;
         if (!h->config_query) {
             efill(err, ACS_ERR_UNSUPPORTED, ACS_ERR_DOMAIN_CONFIG,
                   ACS_DIAG_ECODE_UNSUPPORTED_OP, "echo: host config_query unsupported");
@@ -531,15 +531,15 @@ static acs_status echo_execute(acs_module_instance_v1* self,
             char key[128];
             copy_to_cstr("module_id", 9, key, sizeof(key));
             char outb[1024];
-            acs_strbuf_v1 sb;
+            acsd_strbuf_v1 sb;
             memset(&sb, 0, sizeof(sb));
-            sb.head.struct_size = (uint32_t)sizeof(acs_strbuf_v1);
+            sb.head.struct_size = (uint32_t)sizeof(acsd_strbuf_v1);
             sb.head.abi_version = ACS_ABI_VERSION_V1;
             sb.data = outb;
             sb.cap = sizeof(outb);
-            acs_error_info_v1 qerr;
+            acsd_error_info_v1 qerr;
             memset(&qerr, 0, sizeof(qerr));
-            rc = h->config_query(h, acs_str_from(kModuleId), acs_str_from(key),
+            rc = h->config_query(h, acsd_str_from(kModuleId), acsd_str_from(key),
                                  &sb, &qerr);
             if (rc == ACS_OK) {
                 rc = strbuf_write_cstr(out_manifest_json, outb, err);
@@ -548,9 +548,9 @@ static acs_status echo_execute(acs_module_instance_v1* self,
                       "echo: host config_query failed");
             }
         }
-    } else if (strcmp(act, ASTROCS_ECHO_CFG_ACTION_ERROR) == 0) {
+    } else if (strcmp(act, ACSD_ECHO_CFG_ACTION_ERROR) == 0) {
         uint64_t es = 0;
-        json_get_u64(cfg, (uint64_t)strlen(cfg), ASTROCS_ECHO_CFG_KEY_ERROR_STATUS,
+        json_get_u64(cfg, (uint64_t)strlen(cfg), ACSD_ECHO_CFG_KEY_ERROR_STATUS,
                      &es);
         int32_t dom = ACS_ERR_DOMAIN_CONFIG;
         switch ((int)es) {
@@ -559,8 +559,8 @@ static acs_status echo_execute(acs_module_instance_v1* self,
             case ACS_ERR_BUDGET: dom = ACS_ERR_DOMAIN_RESOURCE; break;
             default: dom = ACS_ERR_DOMAIN_CONFIG; break;
         }
-        efill(err, (acs_status)es, dom, 0, "echo: requested error");
-        rc = (acs_status)es;
+        efill(err, (acsd_status)es, dom, 0, "echo: requested error");
+        rc = (acsd_status)es;
     } else {
         efill(err, ACS_ERR_PARAM, ACS_ERR_DOMAIN_CONFIG,
               ACS_DIAG_ECODE_CONFIG_SCHEMA, "echo: unknown action");
@@ -572,9 +572,9 @@ static acs_status echo_execute(acs_module_instance_v1* self,
     return rc;
 }
 
-static acs_status echo_inspect(const acs_module_instance_v1* self,
-                               acs_strbuf_v1* out_json,
-                               acs_error_info_v1* err) {
+static acsd_status echo_inspect(const acsd_module_instance_v1* self,
+                               acsd_strbuf_v1* out_json,
+                               acsd_error_info_v1* err) {
     const echo_inst_s* inst = (const echo_inst_s*)self;
     if (!inst) {
         efill(err, ACS_ERR_PARAM, ACS_ERR_DOMAIN_CONFIG,
@@ -592,23 +592,23 @@ static acs_status echo_inspect(const acs_module_instance_v1* self,
     return strbuf_write_cstr(out_json, outb, err);
 }
 
-static acs_status echo_request_cancel(acs_module_instance_v1* self) {
+static acsd_status echo_request_cancel(acsd_module_instance_v1* self) {
     echo_inst_s* inst = (echo_inst_s*)self;
     if (!inst) return ACS_ERR_STATE;
     inst->cancel_flag = 1;   /* 幂等置位; execute 在安全点响应 */
     return ACS_OK;
 }
 
-static void echo_destroy(acs_module_instance_v1* self) {
+static void echo_destroy(acsd_module_instance_v1* self) {
     echo_inst_s* inst = (echo_inst_s*)self;
     if (!inst) return;
-    const acs_allocator_v1* a = inst->alloc;
+    const acsd_allocator_v1* a = inst->alloc;
     if (a && a->free) a->free(a->user_data, inst);   /* 同一 allocator 释放 (12 §4) */
 }
 
 /* 模块静态 vtable: 所有权=module 静态存储 (12 §1); host 只读 */
-static const acs_module_api_v1 g_echo_api = {
-    { (uint32_t)sizeof(acs_module_api_v1), ACS_ABI_VERSION_V1 },
+static const acsd_module_api_v1 g_echo_api = {
+    { (uint32_t)sizeof(acsd_module_api_v1), ACS_ABI_VERSION_V1 },
     echo_describe,
     echo_validate_config,
     echo_plan,
@@ -623,10 +623,10 @@ static const acs_module_api_v1 g_echo_api = {
  * host_abi 失配 → ACS_ERR_ABI_MISMATCH, 不降级猜测 (ABI-002)。
  * host 必填 allocator (host_api_v1.h: allocator 必填, NULL → query 拒绝)。
  */
-ASTROCS_EXPORT acs_status ASTROCS_CALL
-astrocs_module_query_v1(uint32_t host_abi,
-                        const acs_host_api_v1* host,
-                        const acs_module_api_v1** out_api) {
+ACSD_EXPORT acsd_status ACSD_CALL
+acsd_module_query_v1(uint32_t host_abi,
+                        const acsd_host_api_v1* host,
+                        const acsd_module_api_v1** out_api) {
     if (host_abi != ACS_ABI_VERSION_V1) return ACS_ERR_ABI_MISMATCH;
     if (!host || !host->allocator) return ACS_ERR_ABI_MISMATCH;
     if (!out_api) return ACS_ERR_PARAM;

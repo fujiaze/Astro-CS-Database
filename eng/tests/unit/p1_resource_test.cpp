@@ -9,11 +9,11 @@
 #include <thread>
 #include <vector>
 
-using astrocs::ProcessMonitor;
-using astrocs::GateConfig;
-using astrocs::ResKind;
-using astrocs::evaluate_gate;
-using astrocs::compute_cores_threshold;
+using acsd::ProcessMonitor;
+using acsd::GateConfig;
+using acsd::ResKind;
+using acsd::evaluate_gate;
+using acsd::compute_cores_threshold;
 
 static int failures = 0;
 #define CHECK(cond)                                                       \
@@ -83,11 +83,11 @@ int main() {
   //   evaluate_gate(g) == SingleThreaded   (avg=0.00 与 avg=1.9 均如此)
   // 判据链上 `selected_workers < 2` 不成立(本例 =2)，故不返回 LowAvgCores；
   // 真正命中的是 MON-002 的 worker p50 缺采样回退分支。
-  CHECK(evaluate_gate(g) == astrocs::GateDiag::SingleThreaded);
+  CHECK(evaluate_gate(g) == acsd::GateDiag::SingleThreaded);
   // 注入实测均值后本配置**仍**是 SingleThreaded —— 显式断言该事实，
   // 使「均值未参与这条判定」这条口径本身也可被回归。
   g.avg_equivalent_cores = 1.9;  // 调用方注入实测均值
-  CHECK(evaluate_gate(g) == astrocs::GateDiag::SingleThreaded);
+  CHECK(evaluate_gate(g) == acsd::GateDiag::SingleThreaded);
 
   // 5) 循环释放: RSS 斜率有界 (无失控内存增长)。
   // 旧断言 `>= 0 || == 0` 恒等于 `>= 0`, 要求内存单调不降——allocator 归还

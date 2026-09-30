@@ -127,7 +127,7 @@ inline bool o7_write_product(const std::string& dir, const std::vector<O7Fix>& t
     AioHipsProductSet* ps = aio_hips_product_begin(
         dir.c_str(), O7_NSIDE, 512, AIO_HIPS_FLOAT32,
         AIO_HIPS_PRODUCT_SIGNAL | AIO_HIPS_PRODUCT_SUPPORT,
-        "ivo://astrocs/test/p1hips", "o7", nullptr, 0.0, "2026-09-20T00:00:00Z", 0);
+        "ivo://acsd/test/p1hips", "o7", nullptr, 0.0, "2026-09-20T00:00:00Z", 0);
     if (!ps) { err = aio_hips_last_error(); return false; }
     for (const auto& t : tiles) {
         const int rc = aio_hips_write_signal_support_tile(ps, &t.view);
@@ -244,10 +244,10 @@ inline O7Result o7_oracle(const std::string& dir, const std::vector<O7Fix>& tile
 
 inline void o7_set_f32_accum_env(bool on) {
 #if defined(_WIN32)
-    _putenv_s("ASTROCS_HIPS_HIER_FAULT", on ? "f32_accum" : "");
+    _putenv_s("ACSD_HIPS_HIER_FAULT", on ? "f32_accum" : "");
 #else
-    if (on) setenv("ASTROCS_HIPS_HIER_FAULT", "f32_accum", 1);
-    else    unsetenv("ASTROCS_HIPS_HIER_FAULT");
+    if (on) setenv("ACSD_HIPS_HIER_FAULT", "f32_accum", 1);
+    else    unsetenv("ACSD_HIPS_HIER_FAULT");
 #endif
 }
 
@@ -261,7 +261,7 @@ inline void o7_set_f32_accum_env(bool on) {
 //       ⇒ 必须留到 finalize;
 //     · 叶 32,33 ⇒ level3 cell 8 部分覆盖 (不齐备) ⇒ 与"齐备即写出"形成对照。
 //   非退化前提: 若流式写出被关闭 (或判据恒真), (b) 段的结构断言必须判红 ——
-//   由 ASTROCS_HIPS_HIER_FAULT=dense_blocks (等价修复前"稠密分配 + 不流式"
+//   由 ACSD_HIPS_HIER_FAULT=dense_blocks (等价修复前"稠密分配 + 不流式"
 //   语义) 注入实测。
 //   (a) 段: 稀疏+流式 与 稠密+不流式 两棵产品树**逐文件逐字节**一致 ⇒
 //   稀疏化/流式化不改变任何一次浮点运算与任何落盘字节。
@@ -330,7 +330,7 @@ inline bool o8_write_product(const std::string& dir, std::vector<O8Fix>& tiles, 
                              AioHipsProductSet** keep_open = nullptr) {
     AioHipsProductSet* ps = aio_hips_product_begin(
         dir.c_str(), O8_NSIDE, 512, AIO_HIPS_FLOAT32, flags,
-        "ivo://astrocs/test/p1hips", "o8", nullptr, 0.0, "2026-09-22T00:00:00Z", 0);
+        "ivo://acsd/test/p1hips", "o8", nullptr, 0.0, "2026-09-22T00:00:00Z", 0);
     if (!ps) { err = aio_hips_last_error(); return false; }
     const int n = (stop_after < 0) ? (int)tiles.size() : stop_after;
     for (int t = 0; t < n; ++t) {
@@ -409,13 +409,13 @@ inline std::string o8_tree_diff(const std::string& a, const std::string& b,
     return std::string();
 }
 
-// 环境变量注入面切换 (ASTROCS_HIPS_HIER_FAULT)
+// 环境变量注入面切换 (ACSD_HIPS_HIER_FAULT)
 inline void o8_set_hier_fault(const char* val) {
 #if defined(_WIN32)
-    _putenv_s("ASTROCS_HIPS_HIER_FAULT", val ? val : "");
+    _putenv_s("ACSD_HIPS_HIER_FAULT", val ? val : "");
 #else
-    if (val) setenv("ASTROCS_HIPS_HIER_FAULT", val, 1);
-    else     unsetenv("ASTROCS_HIPS_HIER_FAULT");
+    if (val) setenv("ACSD_HIPS_HIER_FAULT", val, 1);
+    else     unsetenv("ACSD_HIPS_HIER_FAULT");
 #endif
 }
 
@@ -434,7 +434,7 @@ int test_oracle() {
         AioHipsProductSet* ps = aio_hips_product_begin(
             dir.c_str(), FIX_NSIDE, 512, AIO_HIPS_FLOAT64,
             AIO_HIPS_PRODUCT_SIGNAL | AIO_HIPS_PRODUCT_SUPPORT,
-            "ivo://astrocs/test/p1hips", "o1", nullptr, 0.0, nullptr, 0);
+            "ivo://acsd/test/p1hips", "o1", nullptr, 0.0, nullptr, 0);
         P1HIPS_CHECK(cs, ps != nullptr, "o1_begin");
         // fixture: NESTED local i 注入解析唯一值 v(i)=sin(i)*1e3+i (可逆)
         FixViewF64 fx;
@@ -489,7 +489,7 @@ int test_oracle() {
         const std::string dir = make_tmp_dir("o2");
         AioHipsProductSet* ps = aio_hips_product_begin(
             dir.c_str(), FIX_NSIDE, 512, AIO_HIPS_FLOAT64,
-            AIO_HIPS_PRODUCT_SIGNAL, "ivo://astrocs/test/p1hips", "o2",
+            AIO_HIPS_PRODUCT_SIGNAL, "ivo://acsd/test/p1hips", "o2",
             nullptr, 0.0, nullptr, 0);
         if (ps) {
             for (std::uint64_t p : {7ULL, 3ULL, 11ULL}) {
@@ -540,7 +540,7 @@ int test_oracle() {
         const std::string dir = make_tmp_dir("o3");
         AioHipsProductSet* ps = aio_hips_product_begin(
             dir.c_str(), FIX_NSIDE, 512, AIO_HIPS_FLOAT64, AIO_HIPS_PRODUCT_SNR,
-            "ivo://astrocs/test/p1hips", "o3", nullptr, 0.0, nullptr, 0);
+            "ivo://acsd/test/p1hips", "o3", nullptr, 0.0, nullptr, 0);
         P1HIPS_CHECK(cs, ps != nullptr, "o3_begin");
         std::vector<FixSnrPointF> pts = fix_hips_d_snr_points(777u, 200);
         if (ps) {
@@ -572,7 +572,7 @@ int test_oracle() {
         const std::string dir = make_tmp_dir("o4");
         AioHipsProductSet* ps = aio_hips_product_begin(
             dir.c_str(), FIX_NSIDE, 512, AIO_HIPS_FLOAT64,
-            AIO_HIPS_PRODUCT_SIGNAL, "ivo://astrocs/test/p1hips", "o4",
+            AIO_HIPS_PRODUCT_SIGNAL, "ivo://acsd/test/p1hips", "o4",
             nullptr, 0.0, nullptr, 0);
         if (ps) {
             FixViewF64 fx = fix_hips_a_tile(0, 10.0, 0.5, 0.0, true, false);
@@ -605,7 +605,7 @@ int test_oracle() {
         AioHipsProductSet* ps = aio_hips_product_begin(
             d64.c_str(), FIX_NSIDE, 512, AIO_HIPS_FLOAT64,
             AIO_HIPS_PRODUCT_VARIANCE | AIO_HIPS_PRODUCT_IVAR,
-            "ivo://astrocs/test/p1hips", "o5", nullptr, 0.0, nullptr, 0);
+            "ivo://acsd/test/p1hips", "o5", nullptr, 0.0, nullptr, 0);
         if (ps) {
             FixViewF64 fx = fix_hips_e_half_var_tile(0, 10.0, 0.5, 1.5);
             P1HIPS_CHECK_EQ(cs, aio_hips_write_variance_tile(ps, &fx.view), 0);
@@ -658,7 +658,7 @@ int test_oracle() {
         const std::string dir = make_tmp_dir("o6");
         AioHipsProductSet* ps = aio_hips_product_begin(
             dir.c_str(), FIX_NSIDE, 512, AIO_HIPS_FLOAT64,
-            AIO_HIPS_PRODUCT_SIGNAL, "ivo://astrocs/test/p1hips", "o6",
+            AIO_HIPS_PRODUCT_SIGNAL, "ivo://acsd/test/p1hips", "o6",
             nullptr, 0.0, nullptr, 0);
         P1HIPS_CHECK(cs, ps != nullptr, "o6_begin");
         if (ps) {
@@ -691,7 +691,7 @@ int test_oracle() {
     //   修复前: f32 产品走 float 累加器 ⇒ dk 越大偏差越大 (dk=9 实测 2.5e-3);
     //   修复后: 累加恒在 f64, 落盘按声明位深量化一次 ⇒ 偏差只剩 f32 存储舍入。
     //   合同容差 (HIPS_WRITER.md §9 冻结): hierarchy 通路 rtol=1e-6。
-    //   负例: ASTROCS_HIPS_HIER_FAULT=f32_accum 强制复现修复前 f32 累加 ⇒ 同一
+    //   负例: ACSD_HIPS_HIER_FAULT=f32_accum 强制复现修复前 f32 累加 ⇒ 同一
     //   判据必须判红 (否则注入面失效/判据退化, 本条自身判红)。
     {
         std::vector<O7Fix> tiles;
@@ -867,7 +867,7 @@ int test_oracle() {
             AioHipsProductSet* ps = aio_hips_product_begin(
                 dir.c_str(), O8_NSIDE, 512, AIO_HIPS_FLOAT32,
                 AIO_HIPS_PRODUCT_SIGNAL | AIO_HIPS_PRODUCT_SUPPORT,
-                "ivo://astrocs/test/p1hips", "o8", nullptr, 0.0,
+                "ivo://acsd/test/p1hips", "o8", nullptr, 0.0,
                 "2026-09-22T00:00:00Z", 0);
             P1HIPS_CHECK_MSG(cs, ps != nullptr, "o8_struct_begin",
                              "product_begin 失败: %s", aio_hips_last_error());
@@ -964,7 +964,7 @@ int test_oracle() {
             {
                 AioHipsProductSet* ps = aio_hips_product_begin(
                     db.c_str(), O8_NSIDE, 512, AIO_HIPS_FLOAT32, flags,
-                    "ivo://astrocs/test/p1hips", "o8", nullptr, 0.0,
+                    "ivo://acsd/test/p1hips", "o8", nullptr, 0.0,
                     "2026-09-22T00:00:00Z", 0);
                 if (!ps) { e2 = aio_hips_last_error(); ok2 = false; }
                 for (std::size_t t = 0; ok2 && t < tiles.size(); ++t)
@@ -991,7 +991,7 @@ int test_oracle() {
                         nc, d.empty() ? "IDENTICAL" : d.c_str());
         }
 
-        // (c) 红: ASTROCS_HIPS_HIER_FAULT=drop_blk0 (错误跳过子块 0) ⇒ 同一逐字节
+        // (c) 红: ACSD_HIPS_HIER_FAULT=drop_blk0 (错误跳过子块 0) ⇒ 同一逐字节
         //     判据必须判红, 且差异必须出现在**层级面**(叶面无差异) —— 证明判据
         //     真在检验层级累加, 而不是恒真。
         {

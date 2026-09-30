@@ -586,7 +586,7 @@ static int mode_negative() {
     // N3: profile 版本不符 -> INVALID_CONFIGURATION
     {
         P2RejectClassifyConfig cfg = default_cfg();
-        cfg.profile_version = "astrocs.rejection.classify.v2";
+        cfg.profile_version = "acsd.rejection.classify.v2";
         CHECK(p2_reject_classify(&in, &cfg, &buf.out) == 0);
         CHECK(buf.out.status == P2_STATUS_INVALID_CONFIGURATION);
     }

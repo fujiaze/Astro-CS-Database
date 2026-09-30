@@ -19,7 +19,7 @@ BUNIT 量纲可判与二次律、HiPS properties/manifest 渲染与校验。
 | `lib/include/astro/aio/provenance.h` / `src/provenance.cpp` | provenance 最小集对象与 fail-closed 门 |
 | `lib/include/astro/aio/hips_manifest.h` / `src/hips_manifest.cpp` | HiPS properties / manifest 渲染与校验 |
 | `lib/include/astro/aio/product_io.h` / `src/product_io.cpp` | 多 HDU 产品原子发布 + 产品记录级汇总门 |
-| `CMakeLists.txt` | 独立静态库 `astrocs_product_io`（不修改根/公共 CMakeLists，C-004.4） |
+| `CMakeLists.txt` | 独立静态库 `acsd_product_io`（不修改根/公共 CMakeLists，C-004.4） |
 
 ## 2. 冻结节点映射（实现逐条对应）
 

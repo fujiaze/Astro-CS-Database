@@ -8,12 +8,12 @@
 把 Wave 5 交付的 Phase1 科学实现装配为**一个可落盘、可重开、可被 Phase2 消费**
 的单帧产品：
 
-1. 校准 covariance（`astrocs::calibration::v6`，IMPL-P1-CAL-001）
-2. PSF 归一 / `A_NEA` / effective PSF（`astrocs::v6::p1psfw` psf_information，IMPL-P1-PSFW-001）
+1. 校准 covariance（`acsd::calibration::v6`，IMPL-P1-CAL-001）
+2. PSF 归一 / `A_NEA` / effective PSF（`acsd::v6::p1psfw` psf_information，IMPL-P1-PSFW-001）
 3. `W_info` / `Q` / `F_hat`（information_weight，IMPL-P1-PSFW-001）
 4. PSFSW 四分量 + 未归一复合（psfsw，IMPL-P1-PSFW-001）
-5. 球面 Drizzle 面亮度/方差/相关（`astrocs::v6::drizzle`，IMPL-P1-DRZ-001）
-6. FITS 写出 / provenance / BUNIT / 原子发布 / HiPS manifest（`astrocs::aio`，IMPL-AIO-001）
+5. 球面 Drizzle 面亮度/方差/相关（`acsd::v6::drizzle`，IMPL-P1-DRZ-001）
+6. FITS 写出 / provenance / BUNIT / 原子发布 / HiPS manifest（`acsd::aio`，IMPL-AIO-001）
 
 ## 磁盘产物（原子发布，无可见半成品）
 
@@ -28,11 +28,11 @@
 
 | 键 | 生产 schema |
 |---|---|
-| `point_information` | `astrocs.v6.point-information.v1.schema.json` |
-| `psfsw` | `astrocs.v6.psfsw.v1.schema.json` |
-| `calibration_covariance` / `drizzle_covariance` | `astrocs.v6.covariance.v1.schema.json` |
-| `effective_psf` | `astrocs.v6.effective-psf.v1.schema.json` |
-| `provenance` | `astrocs.v6.provenance.v1.schema.json` |
+| `point_information` | `acsd.v6.point-information.v1.schema.json` |
+| `psfsw` | `acsd.v6.psfsw.v1.schema.json` |
+| `calibration_covariance` / `drizzle_covariance` | `acsd.v6.covariance.v1.schema.json` |
+| `effective_psf` | `acsd.v6.effective-psf.v1.schema.json` |
+| `provenance` | `acsd.v6.provenance.v1.schema.json` |
 
 原子发布序列 = `tmp → fsync → CHECKSUM → rename → 重开验证`（AIO
 `atomic_publish_directory`）；失败/取消时 staging 整树删除，目标不出现。

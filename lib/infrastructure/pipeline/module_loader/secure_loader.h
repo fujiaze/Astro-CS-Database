@@ -1,11 +1,11 @@
 /* ACSD 模块 C ABI v1 — Secure Loader 合同头（ABI-003）
  *
  * 文件: lib/infrastructure/pipeline/module_loader/secure_loader.h
- * 依赖: astrocs/abi/module_api_v1.h（族链: module → host → artifact → status）;
+ * 依赖: acsd/abi/module_api_v1.h（族链: module → host → artifact → status）;
  *       本头独立可编译（C11 与 C++17, -fno-exceptions 亦可）。
  *
  * 权威（ABI-003; 规格 = 控制包 tasks/02_ABI_BUILD_CLI_TASKS.md ABI-003 节 +
- * 12_DLL_ABI_AND_LOADER_STANDARD.md §6 + AstroCS_ENGINEERING_CONSTRAINTS.md §F3）:
+ * 12_DLL_ABI_AND_LOADER_STANDARD.md §6 + ACSD_ENGINEERING_CONSTRAINTS.md §F3）:
  *   - Windows: 受控绝对路径 + SetDefaultDllDirectories/AddDllDirectory/
  *     LoadLibraryExW(LOAD_LIBRARY_SEARCH_DLL_LOAD_DIR |
  *     LOAD_LIBRARY_SEARCH_APPLICATION_DIR | LOAD_LIBRARY_SEARCH_SYSTEM32),
@@ -16,15 +16,15 @@
  *     ABI version、build ID; 失败写诊断但绝不执行 fallback 静态算法。
  *
  * 实现分层（本文件族）:
- *   host(registry, ABI-004 接入) 从 eng/packaging/astrocs.product.json 解析出 unit
+ *   host(registry, ABI-004 接入) 从 eng/packaging/acsd.product.json 解析出 unit
  *   记录(unit_id/kind/rel_path→abs/sha256/module_id/abi_version)填入
- *   acs_load_manifest_unit_v1 —— loader 不做 JSON 解析(12 §3: module 不自行开路径),
+ *   acsd_load_manifest_unit_v1 —— loader 不做 JSON 解析(12 §3: module 不自行开路径),
  *   只强制 unit 的语义(绝对+canonical+hash+ID 一致性), 未登记/相对/非 canonical
  *   一律拒绝。
  *
  * 日志纪律(12 §6 / 验收"日志不泄凭据"): loader 写 logger 的消息只含原因与
  * detail_code, 不含路径、不含 sha256 值、不含文件内容; 详细诊断(含路径)经
- * acs_error_info_v1 返回调用方, 由调用方决定去向。错误消息字符串为编译期常量
+ * acsd_error_info_v1 返回调用方, 由调用方决定去向。错误消息字符串为编译期常量
  * 字面量, 所有权=loader 静态, 永久有效, 调用方不得 free。
  *
  * 状态码映射(v1 冻结, 数值来自 status_codes.h; detail_code 是权威细分):
@@ -39,10 +39,10 @@
  *   ACS_ERR_INTERNAL    内部不变量违例(不可恢复, 视为 bug)
  * 所有拒绝均非 0 且 err->detail_code 填本头枚举; err->domain=ACS_ERR_DOMAIN_CONFIG。
  */
-#ifndef ASTROCS_ABI_SECURE_LOADER_H
-#define ASTROCS_ABI_SECURE_LOADER_H
+#ifndef ACSD_ABI_SECURE_LOADER_H
+#define ACSD_ABI_SECURE_LOADER_H
 
-#include "astrocs/abi/module_api_v1.h"
+#include "acsd/abi/module_api_v1.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -77,31 +77,31 @@ enum {
 
 /* ═══════════════ manifest unit(host 从 product manifest 解析; 借入) ═══════════════
  * 所有权: 全部 span 借入, 调用方持有, 有效至 load 调用返回。
- * kind: "module" → 必需 astrocs_module_query_v1 + describe 校验;
- *       "provider" → 必需 astrocs_provider_query_v1 + 握手校验;
+ * kind: "module" → 必需 acsd_module_query_v1 + describe 校验;
+ *       "provider" → 必需 acsd_provider_query_v1 + 握手校验;
  *       其它 → ACS_LOADER_EC_KIND_UNSUPPORTED。 */
-typedef struct acs_load_manifest_unit_v1 {
-    acs_head    head;               /* sizeof/ACS_ABI_VERSION_V1 */
-    acs_str_v1  unit_id;            /* 如 "MOD-NOOP"; 诊断用 */
-    acs_str_v1  kind;               /* "module"|"provider" */
-    acs_str_v1  abs_path_utf8;      /* UTF-8 绝对路径(必须绝对; 加载前 canonical 化) */
-    acs_str_v1  module_id;          /* 期望 module_id; 空 = 不校验(非 module kind) */
-    acs_str_v1  expected_sha256;    /* 64 hex 小写; 空 = 跳过 hash(SKELETON manifest
+typedef struct acsd_load_manifest_unit_v1 {
+    acsd_head    head;               /* sizeof/ACS_ABI_VERSION_V1 */
+    acsd_str_v1  unit_id;            /* 如 "MOD-NOOP"; 诊断用 */
+    acsd_str_v1  kind;               /* "module"|"provider" */
+    acsd_str_v1  abs_path_utf8;      /* UTF-8 绝对路径(必须绝对; 加载前 canonical 化) */
+    acsd_str_v1  module_id;          /* 期望 module_id; 空 = 不校验(非 module kind) */
+    acsd_str_v1  expected_sha256;    /* 64 hex 小写; 空 = 跳过 hash(SKELETON manifest
                                        兼容; 生产 product manifest 必须登记) */
-    acs_str_v1  expected_build_id;  /* 期望 build_id; 空 = 不强制 */
+    acsd_str_v1  expected_build_id;  /* 期望 build_id; 空 = 不强制 */
     uint32_t    abi_version;        /* 期望 ABI(ACS_ABI_VERSION_V1); 0 = 不校验 */
     uint32_t    reserved;           /* v1 = 0 */
-} acs_load_manifest_unit_v1;
+} acsd_load_manifest_unit_v1;
 
 /* ═══════════════ loader options(借入) ═══════════════ */
-typedef struct acs_loader_options_v1 {
-    acs_head    head;               /* sizeof/ACS_ABI_VERSION_V1 */
-    acs_load_manifest_unit_v1 unit; /* 必填 */
-    acs_str_v1  allowed_root_utf8;  /* 可空: canonical 结果必须位于该根下(防 symlink
+typedef struct acsd_loader_options_v1 {
+    acsd_head    head;               /* sizeof/ACS_ABI_VERSION_V1 */
+    acsd_load_manifest_unit_v1 unit; /* 必填 */
+    acsd_str_v1  allowed_root_utf8;  /* 可空: canonical 结果必须位于该根下(防 symlink
                                        escape); 空 = 不做 root 检查(仍强制 canonical) */
-    const acs_allocator_v1* allocator; /* 必填: 句柄/输出字符串内存归属 */
-    const acs_logger_v1*    logger;    /* 可空; 消息只含原因+detail(不泄路径/内容) */
-} acs_loader_options_v1;
+    const acsd_allocator_v1* allocator; /* 必填: 句柄/输出字符串内存归属 */
+    const acsd_logger_v1*    logger;    /* 可空; 消息只含原因+detail(不泄路径/内容) */
+} acsd_loader_options_v1;
 
 /* ═══════════════ loaded 信息(describe 输出; 调用方提供存储) ═══════════════
  * resolved_path_utf8 / loaded_sha256: loader 经 options.allocator 分配,
@@ -109,22 +109,22 @@ typedef struct acs_loader_options_v1 {
  * module_id / module_version / build_id / api_id: 借 module 静态存储(describe),
  * 有效至 handle release(模块卸载), 调用方不得 free。
  * module_api / provider_api: 借模块静态 vtable, 同上生命周期; 所有权=module。 */
-typedef struct acs_loaded_module_v1 {
-    acs_head    head;               /* 调用方填 sizeof/ABI_VERSION; loader 校验 */
-    acs_str_v1  resolved_path_utf8; /* realpath 后实际加载的 canonical 路径 */
-    acs_str_v1  loaded_sha256;      /* 实际加载文件 sha256(64 hex 小写) */
-    const acs_module_api_v1*   module_api;   /* kind=module 握手成功; 否则 NULL */
-    const acs_provider_api_v1* provider_api; /* kind=provider 握手成功; 否则 NULL */
-    acs_str_v1  module_id;          /* 与 manifest 一致校验通过 */
-    acs_str_v1  module_version;     /* descriptor.version */
-    acs_str_v1  build_id;           /* descriptor.build_id(与 manifest 期望一致) */
-    acs_str_v1  api_id;             /* descriptor.api_id("API-ABI-001" 类) */
+typedef struct acsd_loaded_module_v1 {
+    acsd_head    head;               /* 调用方填 sizeof/ABI_VERSION; loader 校验 */
+    acsd_str_v1  resolved_path_utf8; /* realpath 后实际加载的 canonical 路径 */
+    acsd_str_v1  loaded_sha256;      /* 实际加载文件 sha256(64 hex 小写) */
+    const acsd_module_api_v1*   module_api;   /* kind=module 握手成功; 否则 NULL */
+    const acsd_provider_api_v1* provider_api; /* kind=provider 握手成功; 否则 NULL */
+    acsd_str_v1  module_id;          /* 与 manifest 一致校验通过 */
+    acsd_str_v1  module_version;     /* descriptor.version */
+    acsd_str_v1  build_id;           /* descriptor.build_id(与 manifest 期望一致) */
+    acsd_str_v1  api_id;             /* descriptor.api_id("API-ABI-001" 类) */
     uint32_t    abi_version;        /* 校验确认的 ABI version */
     uint32_t    detail_code;        /* 本 handle 最近一次操作 detail(0=成功) */
-} acs_loaded_module_v1;
+} acsd_loaded_module_v1;
 
 /* ═══════════════ opaque handle ═══════════════ */
-typedef struct acs_loader_handle_s acs_loader_handle;
+typedef struct acsd_loader_handle_s acsd_loader_handle;
 
 /* ───────── 安全加载(唯一加载入口) ─────────
  * 流程(两平台一致语义; Linux 真实实现, Windows 契约见文件头注释):
@@ -140,41 +140,41 @@ typedef struct acs_loader_handle_s acs_loader_handle;
  *   不 fallback、不重试其它路径。
  * reentrant=yes; threadsafe=yes(不同 handle); 无内部并行。
  * err 可空(失败时无 detail); out 必填非空, 失败置 *out=NULL。 */
-ASTROCS_EXPORT acs_status ASTROCS_CALL
-acs_secure_loader_load_v1(const acs_loader_options_v1* opt,
-                          acs_error_info_v1* err,
-                          acs_loader_handle** out);
+ACSD_EXPORT acsd_status ACSD_CALL
+acsd_secure_loader_load_v1(const acsd_loader_options_v1* opt,
+                          acsd_error_info_v1* err,
+                          acsd_loader_handle** out);
 
 /* ───────── 读取已加载信息 ─────────
  * out->head 由调用方填 sizeof/ABI_VERSION; loader 校验失配 → ACS_ERR_ABI_MISMATCH。
  * 成功填充后调用方可读 module_api(经其调 lifecycle); handle release 后全部
  * 指针/span 失效。reentrant=yes; threadsafe=yes(只读已冻结状态)。 */
-ASTROCS_EXPORT acs_status ASTROCS_CALL
-acs_secure_loader_describe_v1(acs_loader_handle* h,
-                              acs_loaded_module_v1* out);
+ACSD_EXPORT acsd_status ACSD_CALL
+acsd_secure_loader_describe_v1(acsd_loader_handle* h,
+                              acsd_loaded_module_v1* out);
 
 /* ───────── 释放(唯一卸载入口) ─────────
  * 关闭句柄: dlclose(Windows FreeLibrary) + 释放 loader 分配字符串。
  * 调用方必须先 destroy 全部经 module_api 创建的实例(12 §2), 卸载后表指针失效。
  * h=NULL 为空操作。reentrant=yes; threadsafe=no(同 handle)。 */
-ASTROCS_EXPORT void ASTROCS_CALL
-acs_secure_loader_release_v1(acs_loader_handle* h);
+ACSD_EXPORT void ACSD_CALL
+acsd_secure_loader_release_v1(acsd_loader_handle* h);
 
 /* ───────── 平台自检(不加载任何文件) ─────────
  * 校验: 本构建平台受支持、内部 sha256 已知向量(FIPS 180-4: 空串/"abc")正确、
  * 布局静态断言成立。失败返回非 0(ACS_ERR_SELFTEST)。供测试/doctor。 */
-ASTROCS_EXPORT acs_status ASTROCS_CALL
-acs_secure_loader_self_test_v1(void);
+ACSD_EXPORT acsd_status ACSD_CALL
+acsd_secure_loader_self_test_v1(void);
 
 /* ───────── 布局静态断言(C11/C++17 双形态) ───────── */
-ACS_STATIC_ASSERT(sizeof(acs_load_manifest_unit_v1) > sizeof(acs_head),
+ACS_STATIC_ASSERT(sizeof(acsd_load_manifest_unit_v1) > sizeof(acsd_head),
                   "manifest unit must carry payload");
-ACS_STATIC_ASSERT(offsetof(acs_load_manifest_unit_v1, head) == 0u, "head first");
-ACS_STATIC_ASSERT(offsetof(acs_loader_options_v1, head) == 0u, "head first");
-ACS_STATIC_ASSERT(offsetof(acs_loaded_module_v1, head) == 0u, "head first");
+ACS_STATIC_ASSERT(offsetof(acsd_load_manifest_unit_v1, head) == 0u, "head first");
+ACS_STATIC_ASSERT(offsetof(acsd_loader_options_v1, head) == 0u, "head first");
+ACS_STATIC_ASSERT(offsetof(acsd_loaded_module_v1, head) == 0u, "head first");
 
 #ifdef __cplusplus
 } /* extern "C" */
 #endif
 
-#endif /* ASTROCS_ABI_SECURE_LOADER_H */
+#endif /* ACSD_ABI_SECURE_LOADER_H */

@@ -9,15 +9,15 @@
 // 禁止在本模块之外维护第二套 ang2pix/pix2ang。
 // ============================================================================
 
-#ifndef ASTROCS_HEALPIX_CORE_H
-#define ASTROCS_HEALPIX_CORE_H
+#ifndef ACSD_HEALPIX_CORE_H
+#define ACSD_HEALPIX_CORE_H
 
 #include <cstdint>
 #include <string>  // std::to_string (require_valid_nside); MSVC 侧 <stdexcept> 不传递引入 <string>
 #include <stdexcept>
 #include <vector>
 
-namespace astrocs {
+namespace acsd {
 namespace healpix {
 
 // (ra_deg, dec_deg) -> NESTED ipix @ nside (nside 必须为 2 的幂)
@@ -108,7 +108,7 @@ std::vector<uint64_t> query_disc(uint32_t nside, double ra_deg, double dec_deg,
 std::vector<uint64_t> neighbors(uint32_t nside, uint64_t ipix);
 
 } // namespace healpix
-} // namespace astrocs
+} // namespace acsd
 
-#endif // ASTROCS_HEALPIX_CORE_H
+#endif // ACSD_HEALPIX_CORE_H
 

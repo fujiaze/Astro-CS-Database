@@ -1,18 +1,18 @@
-# lib/algorithms/cosmetic — astrocs.p1.cosmetic（P1-COS）
+# lib/algorithms/cosmetic — acsd.p1.cosmetic（P1-COS）
 
 > 状态: CONTRACT_READY（P1-COS-DOC 冻结，2026-09-07）｜doc revision: r1
 > **现状复测（LEDGER-DOC，2026-09-17；`python3 eng/tools/quality/check_module_map.py`）**：
-> 本模块生产源 `lib/algorithms/cosmetic/src/module_entry.cpp` 与 CMake SHARED target `astrocs_p1_cosmetic`（`lib/algorithms/cosmetic/CMakeLists.txt:50`）均在位，
-> `astrocs_module_query_v1` 导出存在但**函数体零调用**（检查器 finding `noop_entrypoint`）
+> 本模块生产源 `lib/algorithms/cosmetic/src/module_entry.cpp` 与 CMake SHARED target `acsd_p1_cosmetic`（`lib/algorithms/cosmetic/CMakeLists.txt:50`）均在位，
+> `acsd_module_query_v1` 导出存在但**函数体零调用**（检查器 finding `noop_entrypoint`）
 > ⇒ 机读状态 = **NOT_IMPLEMENTED**。下文旧基线中「仅合同文件/无源码/无 CMake target/
 > entrypoint=MISSING/尚未存在」等表述已被实测反证，以本注记与检查器输出为准；
 > 实现侧整改归 P1-COS-IMPL。
 > 本 README 由源码逐函数核对后新建（P1-COS-DOC，wave W1）：函数、单位、
 > 坐标、dtype、shape、invalid、错误、并发、内存、I/O 均以现行唯一生产
 > 实现 `lib/algorithms/calibration/src/cosmetic_corrector.cpp` + `src/ac_api.cpp`
-> （CMake `astrocs_calibration`，CMakeLists.txt:321-333）+ 唯一权威签名源
+> （CMake `acsd_calibration`，CMakeLists.txt:321-333）+ 唯一权威签名源
 > `lib/include/astro_calibration.h` 为准；`lib/algorithms/cosmetic/` 是 P1-COS 迁移目标
-> 目录（astrocs_p1_cosmetic.dll 与 src/module_entry.cpp 已由 P1-COS-IMPL 落地在位）。权威合同：SCI-CAL-001 → ALG-COS-001..005 →
+> 目录（acsd_p1_cosmetic.dll 与 src/module_entry.cpp 已由 P1-COS-IMPL 落地在位）。权威合同：SCI-CAL-001 → ALG-COS-001..005 →
 > DATA-P1-COS / API-COS-001（链接见 §4）。与 P1-CAL-DOC 冻结的
 > lib/algorithms/calibration 合同共存不重叠：本模块只冻结 cosmetic 路径
 > （ac_correct_frame(+_f64) 域），master 生成/校准归 P1-CAL。
@@ -21,11 +21,11 @@
 
 | 字段 | 当前值 |
 |---|---|
-| MOD ID / DLL target | `MOD-astrocs-phase1-cosmetic` / 模块 DLL `astrocs_p1_cosmetic`（SHARED，lib/algorithms/cosmetic/CMakeLists.txt:50，**已在位**）；entrypoint `astrocs_module_query_v1` 在位但零调用 ⇒ MOD-001 检查器判 NOT_IMPLEMENTED（整改归 P1-COS-IMPL） |
-| module / ABI / doc revision | `astrocs.p1.cosmetic` / C ABI（AC_API extern "C"，无版本化 query 入口，迁移缺口）/ r1 |
+| MOD ID / DLL target | `MOD-acsd-phase1-cosmetic` / 模块 DLL `acsd_p1_cosmetic`（SHARED，lib/algorithms/cosmetic/CMakeLists.txt:50，**已在位**）；entrypoint `acsd_module_query_v1` 在位但零调用 ⇒ MOD-001 检查器判 NOT_IMPLEMENTED（整改归 P1-COS-IMPL） |
+| module / ABI / doc revision | `acsd.p1.cosmetic` / C ABI（AC_API extern "C"，无版本化 query 入口，迁移缺口）/ r1 |
 | owner / phase scope | SA-P1-COS / phase1（wave W1） |
 | 文档状态 | CONTRACT_READY（实现存在于 lib/algorithms/calibration，模块化迁移未开始；不声明 IMPLEMENTED） |
-| 构建 | 现状随 CMakeLists.txt:321-333 `astrocs_calibration`（STATIC + OpenMP 可选）；独立目标由 P1-COS-IMPL 建立 |
+| 构建 | 现状随 CMakeLists.txt:321-333 `acsd_calibration`（STATIC + OpenMP 可选）；独立目标由 P1-COS-IMPL 建立 |
 
 ## 2. 负责范围
 
@@ -36,7 +36,7 @@
 DATA-P1-COS（DATA_SEMANTICS §10）。
 
 不负责：master bias/dark/flat 生成与单帧校准算术（P1-CAL /
-astrocs.p1.calibration）；FITS/XISF 读写（astro_image_io，调用方侧）；
+acsd.p1.calibration）；FITS/XISF 读写（astro_image_io，调用方侧）；
 cosmetic 参数与母版的接线决策（调用方/编排层；现状 p1_session 未接线
 母版）；噪声方差/SNR（snr_estimator）；天光背景扣除（Phase2）、宇宙线
 剔除（叠加 rejection）；WCS/测光定标；线程池/ThreadLease 授予（现状
@@ -71,7 +71,7 @@ out_hot/out_cold 可 NULL。
 | ALG | ALG-COS-001..005 | docs/science/algorithms/COSMETIC_ALGORITHMS.md（逐公式源码锚定） |
 | DATA | DATA-P1-COS | docs/science/DATA_SEMANTICS.md §10（上游 DATA-P1-CAL §9） |
 | API | API-COS-001 / API-P1-002 | docs/engineering/PUBLIC_API.md / docs/engineering/PHASE1_API_V1.md §2 |
-| MOD/SRC | MOD-astrocs-phase1-cosmetic / SRC-COS-001 | docs/traceability/TRACEABILITY_MATRIX.json；实现源 cosmetic_corrector.cpp + ac_api.cpp（签名源 astro_calibration.h:97-103,142-148） |
+| MOD/SRC | MOD-acsd-phase1-cosmetic / SRC-COS-001 | docs/traceability/TRACEABILITY_MATRIX.json；实现源 cosmetic_corrector.cpp + ac_api.cpp（签名源 astro_calibration.h:97-103,142-148） |
 | TEST | TEST-COS-DESIGN-001 | docs/science/algorithms/COSMETIC_ALGORITHMS.md §9（可执行 TEST-P1-COS-001 由 P1-COS-TEST 落地） |
 
 ## 5. 实现事实（源码核对）
@@ -130,7 +130,7 @@ out_hot/out_cold 可 NULL。
   :479-484 接线**（旧登记「无 master 键 ⇒ 检测永远禁用」已作废，见 §4 生产调用
   现状）。实验参考
   lib/algorithms/calibration/batch_config.json（5.0/5.0/median/4）。
-- 正式版本化 schema 由 P1-COS-IMPL 冻结（acs_module_descriptor_v1.
+- 正式版本化 schema 由 P1-COS-IMPL 冻结（acsd_module_descriptor_v1.
   config_schema_ver）。
 
 ## 6. 并发与资源
@@ -168,9 +168,9 @@ benchmark 决定，本合同不预设）。f32/f64 双 ABI 即现状的"精度�
 
 ## 9. 构建与已知限制
 
-现状构建：根 CMake 目标 `astrocs_calibration` 内
+现状构建：根 CMake 目标 `acsd_calibration` 内
 cosmetic_corrector.cpp + ac_api.cpp（无独立 cosmetic 产物）；迁移目标
-astrocs_p1_cosmetic.dll + C ABI adapter + plan/execute/cancel/inspect +
+acsd_p1_cosmetic.dll + C ABI adapter + plan/execute/cancel/inspect +
 ThreadLease 接线由 P1-COS-IMPL 建立（module.yaml 已登记 manifest；
 禁止跨 DLL 传 STL/异常/RTTI，约束 F.3）。遗留通道（计划迁移旧符号，
 P1-COS-IMPL 决定去留）：Makefile 编译 lib/algorithms/calibration/cpp/
@@ -189,8 +189,8 @@ ThreadLease 约束；无取消检查点；**母版缺席时的恒等通道（`da
 
 ## 10. 迁移（P1-COS-IMPL 目标，不声明完成）
 
-本目录（lib/algorithms/cosmetic/）为迁移落点：astrocs_p1_cosmetic.dll、
-module.yaml（同目录，manifest：entrypoint=`astrocs_module_query_v1`——入口符号在位、函数体零调用）、C ABI adapter、plan/execute/cancel/inspect、ThreadLease
+本目录（lib/algorithms/cosmetic/）为迁移落点：acsd_p1_cosmetic.dll、
+module.yaml（同目录，manifest：entrypoint=`acsd_module_query_v1`——入口符号在位、函数体零调用）、C ABI adapter、plan/execute/cancel/inspect、ThreadLease
 接线、DISP-COS 清单消化见 ALG-COS（母版接线修复已完成，见 §4 生产调用现状）
 §0/§8 与 module.yaml 注释。迁移不得改变 ALG-COS-001..005 公式语义与
 DATA-P1-COS 数据语义（SCI-CAL-001 未变更前）。

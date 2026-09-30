@@ -1,4 +1,4 @@
-/* adapter_test.cpp - P1-NOISE-IMPL astrocs_p1_noise adapter 对拍验证面
+/* adapter_test.cpp - P1-NOISE-IMPL acsd_p1_noise adapter 对拍验证面
  *
  * 对齐先例: eng/tests/unit/p1_hips/adapter_test.c (P1-HIPS-IMPL 1959dc89)、
  *           eng/tests/unit/calibration_adapter_test.cpp / cosmetic_adapter_test.cpp
@@ -7,7 +7,7 @@
  * 通道:
  *   direct  = p1noise_direct_api_v1() (adapter_entry_impl.cpp 直通编译
  *             module_entry.cpp; 生产符号 p1noise_under_test STATIC)
- *   plugin  = dlopen($ASTROCS_NOISE_DLL_PATH) → astrocs_module_query_v1
+ *   plugin  = dlopen($ACSD_NOISE_DLL_PATH) → acsd_module_query_v1
  *
  * 用例:
  *   A  describe / query 负面 ABI (host_abi 失配不降级)
@@ -39,11 +39,11 @@
 #include <string>
 #include <vector>
 
-#include "astrocs/abi/module_api_v1.h"
-#include "astrocs/abi/lifecycle_v1.h"
-#include "astrocs/noise/types.h"
+#include "acsd/abi/module_api_v1.h"
+#include "acsd/abi/lifecycle_v1.h"
+#include "acsd/noise/types.h"
 
-extern "C" const acs_module_api_v1* p1noise_direct_api_v1(void);
+extern "C" const acsd_module_api_v1* p1noise_direct_api_v1(void);
 
 /* ────────── mini 检查框架 ────────── */
 
@@ -99,23 +99,23 @@ int host_cancelled(void* ud) {
     return ((HostState*)ud)->cancelled;
 }
 
-void fill_host(acs_host_api_v1* host, HostState* st, int with_executor,
+void fill_host(acsd_host_api_v1* host, HostState* st, int with_executor,
                int with_cancel) {
     std::memset(host, 0, sizeof(*host));
-    host->head.struct_size = (uint32_t)sizeof(acs_host_api_v1);
+    host->head.struct_size = (uint32_t)sizeof(acsd_host_api_v1);
     host->head.abi_version = ACS_ABI_VERSION_V1;
-    acs_allocator_v1* alloc = new acs_allocator_v1();
-    std::memset(alloc, 0, sizeof(acs_allocator_v1));
-    alloc->head.struct_size = (uint32_t)sizeof(acs_allocator_v1);
+    acsd_allocator_v1* alloc = new acsd_allocator_v1();
+    std::memset(alloc, 0, sizeof(acsd_allocator_v1));
+    alloc->head.struct_size = (uint32_t)sizeof(acsd_allocator_v1);
     alloc->head.abi_version = ACS_ABI_VERSION_V1;
     alloc->alloc = (void* (*)(void*, uint64_t, uint64_t))host_alloc;
     alloc->free = (void (*)(void*, void*))host_free;
     alloc->user_data = st;
     host->allocator = alloc;
     if (with_executor) {
-        acs_executor_v1* ex = new acs_executor_v1();
-        std::memset(ex, 0, sizeof(acs_executor_v1));
-        ex->head.struct_size = (uint32_t)sizeof(acs_executor_v1);
+        acsd_executor_v1* ex = new acsd_executor_v1();
+        std::memset(ex, 0, sizeof(acsd_executor_v1));
+        ex->head.struct_size = (uint32_t)sizeof(acsd_executor_v1);
         ex->head.abi_version = ACS_ABI_VERSION_V1;
         ex->acquire = (int (*)(void*, uint32_t))host_acquire;
         ex->release = (void (*)(void*, uint32_t))host_release;
@@ -125,24 +125,24 @@ void fill_host(acs_host_api_v1* host, HostState* st, int with_executor,
         host->executor = ex;
     }
     if (with_cancel) {
-        acs_cancel_v1* cc = new acs_cancel_v1();
-        std::memset(cc, 0, sizeof(acs_cancel_v1));
-        cc->head.struct_size = (uint32_t)sizeof(acs_cancel_v1);
+        acsd_cancel_v1* cc = new acsd_cancel_v1();
+        std::memset(cc, 0, sizeof(acsd_cancel_v1));
+        cc->head.struct_size = (uint32_t)sizeof(acsd_cancel_v1);
         cc->head.abi_version = ACS_ABI_VERSION_V1;
         cc->is_cancelled = (int (*)(void*))host_cancelled;
         cc->user_data = st;
         host->cancel = cc;
     }
 }
-void free_host(acs_host_api_v1* host) {
+void free_host(acsd_host_api_v1* host) {
     delete host->allocator;
     delete host->executor;
     delete host->cancel;
 }
 
-acs_str_v1 cstr(const char* s) {
-    acs_str_v1 v;
-    v.head.struct_size = (uint32_t)sizeof(acs_str_v1);
+acsd_str_v1 cstr(const char* s) {
+    acsd_str_v1 v;
+    v.head.struct_size = (uint32_t)sizeof(acsd_str_v1);
     v.head.abi_version = ACS_ABI_VERSION_V1;
     v.data = s;
     v.size = s ? (uint64_t)std::strlen(s) : 0;
@@ -286,19 +286,19 @@ struct Fixture {
 /* ────────── 通道执行器 ────────── */
 
 struct Ch {
-    const acs_module_api_v1* api;
-    const acs_host_api_v1* host;
+    const acsd_module_api_v1* api;
+    const acsd_host_api_v1* host;
     const char* name;
 };
 
 /* create → execute → destroy (每事务独立实例; 返回 execute status) */
-acs_status run_execute(const Ch& ch, const char* config, const char* manifest,
-                       std::string* out_json, acs_error_info_v1* err,
-                       acs_module_instance_v1** kept = NULL) {
-    acs_module_instance_v1* inst = NULL;
-    acs_status st = ch.api->create(ch.api, cstr(config), ch.host, &inst, err);
+acsd_status run_execute(const Ch& ch, const char* config, const char* manifest,
+                       std::string* out_json, acsd_error_info_v1* err,
+                       acsd_module_instance_v1** kept = NULL) {
+    acsd_module_instance_v1* inst = NULL;
+    acsd_status st = ch.api->create(ch.api, cstr(config), ch.host, &inst, err);
     if (st != ACS_OK) return st;
-    acs_strbuf_v1 ob;
+    acsd_strbuf_v1 ob;
     std::memset(&ob, 0, sizeof(ob));
     char buf[1 << 22];
     ob.data = buf;
@@ -314,12 +314,12 @@ acs_status run_execute(const Ch& ch, const char* config, const char* manifest,
 
 void compare_both(const Ch& direct, const Ch& plugin, const char* config,
                   const char* manifest, const char* what) {
-    acs_error_info_v1 e1, e2;
+    acsd_error_info_v1 e1, e2;
     std::memset(&e1, 0, sizeof(e1));
     std::memset(&e2, 0, sizeof(e2));
     std::string od, op;
-    acs_status sd = run_execute(direct, config, manifest, &od, &e1);
-    acs_status sp = run_execute(plugin, config, manifest, &op, &e2);
+    acsd_status sd = run_execute(direct, config, manifest, &od, &e1);
+    acsd_status sp = run_execute(plugin, config, manifest, &op, &e2);
     CHECK(sd == sp, what);
     CHECK(od == op, what);   /* 整输出 JSON bitwise (同 libm 同代码路径) */
     if (od != op && g_fail == 0) {
@@ -331,9 +331,9 @@ void compare_both(const Ch& direct, const Ch& plugin, const char* config,
 }  // namespace
 
 int main(int argc, char** argv) {
-    const char* dll_path = std::getenv("ASTROCS_NOISE_DLL_PATH");
+    const char* dll_path = std::getenv("ACSD_NOISE_DLL_PATH");
     if (!dll_path || !dll_path[0]) {
-        std::printf("SKIP: ASTROCS_NOISE_DLL_PATH not set\n");
+        std::printf("SKIP: ACSD_NOISE_DLL_PATH not set\n");
         return 2;
     }
 
@@ -343,14 +343,14 @@ int main(int argc, char** argv) {
         std::printf("FAIL dlopen: %s\n", dlerror());
         return 2;
     }
-    typedef acs_status (*query_fn)(uint32_t, const acs_host_api_v1*,
-                                   const acs_module_api_v1**);
-    query_fn q = (query_fn)dlsym(h, "astrocs_module_query_v1");
+    typedef acsd_status (*query_fn)(uint32_t, const acsd_host_api_v1*,
+                                   const acsd_module_api_v1**);
+    query_fn q = (query_fn)dlsym(h, "acsd_module_query_v1");
     if (!q) {
-        std::printf("FAIL dlsym astrocs_module_query_v1: %s\n", dlerror());
+        std::printf("FAIL dlsym acsd_module_query_v1: %s\n", dlerror());
         return 2;
     }
-    const acs_module_api_v1* papi = NULL;
+    const acsd_module_api_v1* papi = NULL;
     if (q(ACS_ABI_VERSION_V1, NULL, &papi) != ACS_OK || !papi) {
         std::printf("FAIL plugin query_v1\n");
         return 2;
@@ -380,25 +380,25 @@ int main(int argc, char** argv) {
             void* s = dlsym(h, kLegacy[i]);
             CHECK(s == NULL, kLegacy[i]);
         }
-        void* qq = dlsym(h, "astrocs_module_query_v1");
-        CHECK(qq != NULL, "astrocs_module_query_v1 present");
+        void* qq = dlsym(h, "acsd_module_query_v1");
+        CHECK(qq != NULL, "acsd_module_query_v1 present");
     }
 
     /* ── A. describe / 负面 ABI ── */
     g_case = "A_describe";
     {
-        acs_host_api_v1 host;
+        acsd_host_api_v1 host;
         HostState st;
         fill_host(&host, &st, 1, 1);
         Ch d = direct, p = plugin;
         d.host = &host;
         p.host = &host;
-        acs_module_descriptor_v1 dd, pd;
-        acs_status s1 = d.api->describe(d.api, cstr("astrocs.p1.noise"), &dd);
-        acs_status s2 = p.api->describe(p.api, cstr("astrocs.p1.noise"), &pd);
+        acsd_module_descriptor_v1 dd, pd;
+        acsd_status s1 = d.api->describe(d.api, cstr("acsd.p1.noise"), &dd);
+        acsd_status s2 = p.api->describe(p.api, cstr("acsd.p1.noise"), &pd);
         CHECK(s1 == ACS_OK && s2 == ACS_OK, "describe ok");
-        CHECK(dd.module_id.size == strlen("astrocs.p1.noise") &&
-              std::memcmp(dd.module_id.data, "astrocs.p1.noise", 16) == 0,
+        CHECK(dd.module_id.size == strlen("acsd.p1.noise") &&
+              std::memcmp(dd.module_id.data, "acsd.p1.noise", 16) == 0,
               "descriptor module_id");
         CHECK(std::memcmp(dd.build_id.data, pd.build_id.data,
                           dd.build_id.size) == 0, "build_id match");
@@ -409,12 +409,12 @@ int main(int argc, char** argv) {
         CHECK(std::memcmp(dd.sci_id.data, "SCI-NOISE-001", 13) == 0, "sci_id");
         CHECK(std::memcmp(dd.alg_id.data, "ALG-NOISE-001", 13) == 0, "alg_id");
         CHECK(std::memcmp(dd.api_id.data, "API-NOISE-001", 13) == 0, "api_id");
-        CHECK(d.api->describe(d.api, cstr("astrocs.p1.wrong"), &dd) ==
+        CHECK(d.api->describe(d.api, cstr("acsd.p1.wrong"), &dd) ==
                   ACS_ERR_ABI_MISMATCH, "describe wrong id");
-        CHECK(d.api->describe(d.api, cstr("astrocs.p1.noise"), NULL) ==
+        CHECK(d.api->describe(d.api, cstr("acsd.p1.noise"), NULL) ==
                   ACS_ERR_PARAM, "describe null out");
         /* query 负面 ABI (直接打 DLL query 入口) */
-        const acs_module_api_v1* tmp = NULL;
+        const acsd_module_api_v1* tmp = NULL;
         CHECK(q(2, &host, &tmp) == ACS_ERR_ABI_MISMATCH, "host_abi=2 rejected");
         CHECK(q(0, &host, &tmp) == ACS_ERR_ABI_MISMATCH, "host_abi=0 rejected");
         CHECK(q(0x7f3a11c0u, &host, &tmp) == ACS_ERR_ABI_MISMATCH,
@@ -427,47 +427,47 @@ int main(int argc, char** argv) {
     /* ── B. validate_config 负面 ── */
     g_case = "B_validate_config";
     {
-        acs_error_info_v1 e;
+        acsd_error_info_v1 e;
         std::memset(&e, 0, sizeof(e));
         CHECK(direct.api->validate_config(direct.api, cstr(""), &e) ==
                   ACS_ERR_PARAM && e.detail_code == ACS_DIAG_ECODE_NULL_CONFIG,
               "empty config");
-        e = acs_error_info_v1();
+        e = acsd_error_info_v1();
         CHECK(direct.api->validate_config(direct.api, cstr("{}"), &e) ==
                   ACS_ERR_PARAM && e.detail_code == ACS_DIAG_ECODE_CONFIG_SCHEMA,
               "missing op");
-        e = acs_error_info_v1();
+        e = acsd_error_info_v1();
         CHECK(direct.api->validate_config(
                   direct.api, cstr("{\"op\":\"unknown_op\"}"), &e) ==
                   ACS_ERR_PARAM && e.detail_code == NOISE_ECODE_OP_UNKNOWN,
               "op outside vocabulary (100)");
-        e = acs_error_info_v1();
+        e = acsd_error_info_v1();
         CHECK(direct.api->validate_config(
                   direct.api,
                   cstr("{\"op\":\"estimate_noise_model\",\"dtype\":2,"
                        "\"h\":8,\"w\":8}"), &e) ==
                   ACS_ERR_PARAM && e.detail_code == NOISE_ECODE_PARAM_TYPE,
               "dtype=2 rejected (102)");
-        e = acs_error_info_v1();
+        e = acsd_error_info_v1();
         CHECK(direct.api->validate_config(
                   direct.api,
                   cstr("{\"op\":\"estimate_noise_model\",\"dtype\":0,"
                        "\"h\":0,\"w\":8}"), &e) ==
                   ACS_ERR_PARAM && e.detail_code == NOISE_ECODE_PARAM_RANGE,
               "h=0 rejected (103)");
-        e = acs_error_info_v1();
+        e = acsd_error_info_v1();
         CHECK(direct.api->validate_config(
                   direct.api,
                   cstr("{\"op\":\"fill_noise_field\",\"h\":8,\"w\":8}"), &e) ==
                   ACS_ERR_PARAM && e.detail_code == NOISE_ECODE_PARAM_RANGE,
               "fill without output plane rejected (103)");
-        e = acs_error_info_v1();
+        e = acsd_error_info_v1();
         CHECK(direct.api->validate_config(
                   direct.api,
                   cstr("{\"op\":\"noise_diagnostic\",\"subop\":\"bogus\"}"),
                   &e) == ACS_ERR_PARAM && e.detail_code == NOISE_ECODE_OP_UNKNOWN,
               "subop outside vocabulary (100)");
-        e = acs_error_info_v1();
+        e = acsd_error_info_v1();
         CHECK(direct.api->validate_config(
                   direct.api,
                   cstr("{\"op\":\"noise_diagnostic\",\"subop\":\"gain_variance\","
@@ -489,16 +489,16 @@ int main(int argc, char** argv) {
     /* ── C. plan work_units 事实 + 两阶段 ── */
     g_case = "C_plan";
     {
-        acs_host_api_v1 host;
+        acsd_host_api_v1 host;
         HostState st;
         fill_host(&host, &st, 1, 1);
         Ch d = direct;
         d.host = &host;
-        acs_strbuf_v1 pb;
+        acsd_strbuf_v1 pb;
         char pbuf[2048];
         std::memset(&pb, 0, sizeof(pb));
         /* 阶段 1: 尺寸探测 (data=NULL, cap=0 → OK + size=所需) */
-        acs_status s1 = d.api->plan(
+        acsd_status s1 = d.api->plan(
             d.api, cstr("node-noise-1"),
             cstr("{\"op\":\"estimate_noise_model\",\"dtype\":0,"
                  "\"h\":96,\"w\":128}"), &pb, NULL);
@@ -508,7 +508,7 @@ int main(int argc, char** argv) {
         /* 阶段 2: 整写 */
         pb.data = pbuf;
         pb.cap = sizeof(pbuf);
-        acs_status s2 = d.api->plan(
+        acsd_status s2 = d.api->plan(
             d.api, cstr("node-noise-1"),
             cstr("{\"op\":\"estimate_noise_model\",\"dtype\":0,"
                  "\"h\":96,\"w\":128}"), &pb, NULL);
@@ -552,7 +552,7 @@ int main(int argc, char** argv) {
               "f64 memory estimate");
         /* plugin 同串 (确定性; 比较前重跑 direct 同 config 写同一 buffer,
          * 因 pbuf 被后续 diag/f64 plan 调用覆盖) */
-        acs_strbuf_v1 pp;
+        acsd_strbuf_v1 pp;
         char pbuf2[2048];
         std::memset(&pp, 0, sizeof(pp));
         pp.data = pbuf2;
@@ -612,7 +612,7 @@ int main(int argc, char** argv) {
     /* ── D. direct-vs-plugin BITWISE 对拍 ── */
     g_case = "D_bitwise";
     {
-        acs_host_api_v1 host;
+        acsd_host_api_v1 host;
         HostState st;
         fill_host(&host, &st, 1, 1);
         Ch d = direct, p = plugin;
@@ -631,10 +631,10 @@ int main(int argc, char** argv) {
         compare_both(d, p, cfg_build32.c_str(), man_mask_all.c_str(),
                      "D4 all-mask rc=1 bitwise");
         /* D5/D6: 独立 fill op (round-trip; 影子 floor 回退同构) */
-        acs_error_info_v1 e;
+        acsd_error_info_v1 e;
         std::memset(&e, 0, sizeof(e));
         std::string build_out;
-        acs_status sb = run_execute(d, cfg_build_fill.c_str(),
+        acsd_status sb = run_execute(d, cfg_build_fill.c_str(),
                                     man_build32.c_str(), &build_out, &e);
         if (sb != ACS_OK) {
             std::printf("DBG D5: sb=%d detail=%u msg=%s man_len=%zu head=%.60s\n",
@@ -735,12 +735,12 @@ int main(int argc, char** argv) {
     /* ── E. BUDGET 105 双路径 ── */
     g_case = "E_budget";
     {
-        acs_host_api_v1 host_noex;
+        acsd_host_api_v1 host_noex;
         HostState st1;
         fill_host(&host_noex, &st1, 0, 1);   /* 无 executor */
         Ch d = direct;
         d.host = &host_noex;
-        acs_error_info_v1 e;
+        acsd_error_info_v1 e;
         std::memset(&e, 0, sizeof(e));
         std::string out;
         CHECK(run_execute(d, cfg_build32.c_str(), man_build32.c_str(), &out,
@@ -748,12 +748,12 @@ int main(int argc, char** argv) {
               "E: executor missing -> BUDGET/105");
         CHECK(out.empty(), "E: no output leak (executor missing)");
 
-        acs_host_api_v1 host_fail;
+        acsd_host_api_v1 host_fail;
         HostState st2;
         st2.fail_acquire = 1;
         fill_host(&host_fail, &st2, 1, 1);
         d.host = &host_fail;
-        e = acs_error_info_v1();
+        e = acsd_error_info_v1();
         CHECK(run_execute(d, cfg_build32.c_str(), man_build32.c_str(), &out,
                           &e) == ACS_ERR_BUDGET && e.detail_code == 105,
               "E: acquire fail -> BUDGET/105 (cpu_heavy 禁单线程)");
@@ -767,18 +767,18 @@ int main(int argc, char** argv) {
     g_case = "F_cancel";
     {
         /* F1: entry cancel_req (request_cancel 置位后 execute 拒绝) */
-        acs_host_api_v1 host;
+        acsd_host_api_v1 host;
         HostState st;
         fill_host(&host, &st, 1, 1);
         Ch d = direct;
         d.host = &host;
-        acs_error_info_v1 e;
+        acsd_error_info_v1 e;
         std::memset(&e, 0, sizeof(e));
-        acs_module_instance_v1* inst = NULL;
+        acsd_module_instance_v1* inst = NULL;
         CHECK(d.api->create(d.api, cstr(cfg_build32.c_str()), &host, &inst,
                             &e) == ACS_OK, "F1 create");
         CHECK(d.api->request_cancel(inst) == ACS_OK, "F1 request_cancel");
-        acs_strbuf_v1 ob;
+        acsd_strbuf_v1 ob;
         char obuf[64];
         std::memset(&ob, 0, sizeof(ob));
         ob.data = obuf;
@@ -789,10 +789,10 @@ int main(int argc, char** argv) {
         d.api->destroy(inst);
         /* F2: host cancel 预检 → CANCELLED + 零写入 + 同实例复用 */
         st.cancelled = 1;
-        acs_module_instance_v1* inst2 = NULL;
+        acsd_module_instance_v1* inst2 = NULL;
         CHECK(d.api->create(d.api, cstr(cfg_build32.c_str()), &host, &inst2,
                             &e) == ACS_OK, "F2 create");
-        e = acs_error_info_v1();
+        e = acsd_error_info_v1();
         std::memset(&ob, 0, sizeof(ob));
         ob.data = obuf;
         ob.cap = sizeof(obuf);
@@ -803,8 +803,8 @@ int main(int argc, char** argv) {
         st.cancelled = 0;
         /* 清除后同实例复用成功 (execute 完成回 CREATED) */
         std::string out;
-        e = acs_error_info_v1();
-        acs_strbuf_v1 ob2;
+        e = acsd_error_info_v1();
+        acsd_strbuf_v1 ob2;
         std::memset(&ob2, 0, sizeof(ob2));
         static char big[1 << 22];
         ob2.data = big;
@@ -819,18 +819,18 @@ int main(int argc, char** argv) {
     /* ── G. strbuf 两阶段 + BUFFER_TOO_SMALL ── */
     g_case = "G_strbuf";
     {
-        acs_host_api_v1 host;
+        acsd_host_api_v1 host;
         HostState st;
         fill_host(&host, &st, 1, 1);
         Ch d = direct;
         d.host = &host;
         /* plan 探测 (G 已在 C 覆盖 OK 面; 此处负面: 不足容量截断) */
-        acs_strbuf_v1 pb;
+        acsd_strbuf_v1 pb;
         char small[32];
         std::memset(&pb, 0, sizeof(pb));
         pb.data = small;
         pb.cap = sizeof(small);
-        acs_error_info_v1 e;
+        acsd_error_info_v1 e;
         std::memset(&e, 0, sizeof(e));
         CHECK(d.api->plan(d.api, cstr("n"),
                           cstr("{\"op\":\"estimate_noise_model\","
@@ -841,10 +841,10 @@ int main(int argc, char** argv) {
         CHECK(pb.size > sizeof(small), "size=needed after truncation");
         CHECK(small[sizeof(small) - 1] == '\0', "NUL terminated");
         /* execute 输出探测: cap=0 → OK + size (strbuf 两阶段事务面) */
-        e = acs_error_info_v1();
-        acs_strbuf_v1 ob;
+        e = acsd_error_info_v1();
+        acsd_strbuf_v1 ob;
         std::memset(&ob, 0, sizeof(ob));   /* data=NULL cap=0 */
-        acs_module_instance_v1* inst = NULL;
+        acsd_module_instance_v1* inst = NULL;
         CHECK(d.api->create(d.api, cstr(cfg_build32.c_str()), &host, &inst,
                             &e) == ACS_OK, "G create");
         CHECK(d.api->execute(inst, cstr(man_build32.c_str()),
@@ -858,12 +858,12 @@ int main(int argc, char** argv) {
     /* ── I. inspect / 负面 manifest ── */
     g_case = "I_negative";
     {
-        acs_host_api_v1 host;
+        acsd_host_api_v1 host;
         HostState st;
         fill_host(&host, &st, 1, 1);
         Ch d = direct;
         d.host = &host;
-        acs_error_info_v1 e;
+        acsd_error_info_v1 e;
         std::memset(&e, 0, sizeof(e));
         std::string out;
         /* I1: 空 manifest */
@@ -878,30 +878,30 @@ int main(int argc, char** argv) {
         std::string man_half = "{\"data_base64\":\"" + b64enc(half.data(),
                                                               half.size()) +
                                "\"}";
-        e = acs_error_info_v1();
+        e = acsd_error_info_v1();
         CHECK(run_execute(d, cfg_build32.c_str(), man_half.c_str(), &out,
                           &e) == ACS_ERR_PARAM &&
                   e.detail_code == NOISE_ECODE_MANIFEST_DIMS,
               "I3 plane size mismatch (111)");
         /* I4: b64 坏 */
         std::string man_bad = "{\"data_base64\":\"!!!!\"}";
-        e = acs_error_info_v1();
+        e = acsd_error_info_v1();
         CHECK(run_execute(d, cfg_build32.c_str(), man_bad.c_str(), &out, &e) ==
                   ACS_ERR_PARAM, "I4 bad base64");
         /* I5: 星通道半配 */
         std::string man_star1 = "{\"data_base64\":\"" + data32_b64 +
                                 "\",\"star_x_base64\":\"" + starx_b64 + "\"}";
-        e = acs_error_info_v1();
+        e = acsd_error_info_v1();
         CHECK(run_execute(d, cfg_build32.c_str(), man_star1.c_str(), &out,
                           &e) == ACS_ERR_PARAM, "I5 star_x without star_y");
         /* I6: inspect 计数 */
-        acs_module_instance_v1* inst = NULL;
+        acsd_module_instance_v1* inst = NULL;
         CHECK(d.api->create(d.api, cstr(cfg_build32.c_str()), &host, &inst,
                             &e) == ACS_OK, "I6 create");
-        e = acs_error_info_v1();
+        e = acsd_error_info_v1();
         CHECK(run_execute(d, cfg_build32.c_str(), man_build32.c_str(), &out,
                           &e) == ACS_OK, "I6 exec");
-        acs_strbuf_v1 ib;
+        acsd_strbuf_v1 ib;
         char ibuf[1024];
         std::memset(&ib, 0, sizeof(ib));
         ib.data = ibuf;
@@ -910,7 +910,7 @@ int main(int argc, char** argv) {
         std::string ins(ibuf, (size_t)ib.size);
         CHECK(ins.find("\"exec_count\":0") != std::string::npos,
               "I6 exec_count=0 (create/execute 独立实例)");
-        CHECK(ins.find("astrocs.p1.noise") != std::string::npos,
+        CHECK(ins.find("acsd.p1.noise") != std::string::npos,
               "I6 module_id in inspect");
         /* I7: 生产 rc=3 转发 (h 与平面一致但生产面拒绝 —— 双 NULL 不适用,
          * 用 n_stars=0 + 全 NaN 图 → 全帧兜底退化 rc=1 而非 3; 参数面 rc=3
@@ -920,7 +920,7 @@ int main(int argc, char** argv) {
         std::string man_nan = "{\"data_base64\":\"" +
                               b64enc(nan_img.data(),
                                      nan_img.size() * sizeof(float)) + "\"}";
-        e = acs_error_info_v1();
+        e = acsd_error_info_v1();
         CHECK(run_execute(d, cfg_build32.c_str(), man_nan.c_str(), &out,
                           &e) == ACS_OK &&
                   out.find("\"rc\":1") != std::string::npos,
@@ -936,14 +936,14 @@ int main(int argc, char** argv) {
      * UAF 读不可断言, 对齐 hips/CAL/COS 测试口径) ── */
     g_case = "J_lifecycle";
     {
-        acs_host_api_v1 host;
+        acsd_host_api_v1 host;
         HostState st;
         fill_host(&host, &st, 1, 1);
         Ch d = direct;
         d.host = &host;
-        acs_error_info_v1 e;
+        acsd_error_info_v1 e;
         std::memset(&e, 0, sizeof(e));
-        acs_module_instance_v1* inst = NULL;
+        acsd_module_instance_v1* inst = NULL;
         CHECK(d.api->create(d.api, cstr(cfg_build32.c_str()), &host, &inst,
                             &e) == ACS_OK, "J create");
         d.api->destroy(inst);
@@ -957,12 +957,12 @@ int main(int argc, char** argv) {
     /* ── K. 租约平衡 (CPU-RT 纪律: acquire/release 成对) ── */
     g_case = "K_lease_balance";
     {
-        acs_host_api_v1 host;
+        acsd_host_api_v1 host;
         HostState st;
         fill_host(&host, &st, 1, 1);
         Ch d = direct;
         d.host = &host;
-        acs_error_info_v1 e;
+        acsd_error_info_v1 e;
         std::memset(&e, 0, sizeof(e));
         std::string out;
         CHECK(run_execute(d, cfg_build_fill.c_str(), man_build32.c_str(),

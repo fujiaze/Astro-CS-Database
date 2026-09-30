@@ -9,7 +9,7 @@
 
 #include "astro/aio/bunit.h"
 
-namespace astrocs {
+namespace acsd {
 namespace aio {
 namespace {
 
@@ -359,4 +359,4 @@ ValidationReport validate_provenance(const Provenance& p) {
 }
 
 }  // namespace aio
-}  // namespace astrocs
+}  // namespace acsd

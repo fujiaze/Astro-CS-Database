@@ -1,11 +1,11 @@
 /* aio_publish.cpp - HiPS 原子发布原语 v1 唯一实现 (AIO-002)
  *
- * 合同: lib/algorithms/drizzle/hips/include/astrocs/hips/publish.h (v1 数值冻结)。
+ * 合同: lib/algorithms/drizzle/hips/include/acsd/hips/publish.h (v1 数值冻结)。
  * 流水线: staging → 校验(计数) → fsync 树 → 原子 promote(rename) — 对齐
  * IO_003_ATOMIC_OUTPUT_PUBLISH.md §4; 失败/取消 → stage_discard → 目标根
  * 无 partial (DISP-HIPS-001/004 模块事务面收口; 生产 writer 零改动)。
  *
- * I/O 归属 (docs/ASTROCS_DESIGN §9):
+ * I/O 归属 (docs/ACSD_DESIGN §9):
  *   「aio 是文件级唯一 I/O 边界」+ 机器判据「全仓文件打开 / 流式读写 /
  *   文件系统写操作, 除 aio 内部外应为 0」。
  *   ⇒ 本 TU **不再**自行调用任何文件系统原语 (mkdir/stat/opendir/readdir/
@@ -23,7 +23,7 @@
  * 实现 TU 内 malloc/new 失败走状态码 (无跨边界异常); 递归深度上限 64
  * (HiPS 树深 ≤ Norder15 + 2 目录段, 上限不可达, 防御病态输入)。
  */
-#include "astrocs/hips/publish.h"
+#include "acsd/hips/publish.h"
 
 #include <errno.h>
 #include <stdio.h>
@@ -50,7 +50,7 @@
 /* ═══════════════════ 故障注入 (口径见 publish.h) ═══════════════════ */
 
 static int publish_fault_active(const char* name) {
-    const char* env = getenv("ASTROCS_HIPS_PUBLISH_FAULT");
+    const char* env = getenv("ACSD_HIPS_PUBLISH_FAULT");
     if (!env || !env[0]) return 0;
     if (strcmp(env, name) != 0) return 0;
     fprintf(stderr, "FAULT-INJECT: %s\n", name);
@@ -96,7 +96,7 @@ static int publish_stage_path(const char* out_dir_utf8, char* out, size_t cap,
     char base[PUBLISH_PATH_MAX];
     publish_split_dir(out_dir_utf8, parent, sizeof(parent), base, sizeof(base));
     const int n = snprintf(out, cap, "%s/.%s%s", parent, base,
-                           ASTROCS_HIPS_STAGE_BASENAME);
+                           ACSD_HIPS_STAGE_BASENAME);
     if (n <= 0 || (size_t)n >= cap) return AIO_PUBLISH_ERR_PARAM;
     if (out_len) *out_len = (size_t)n;
     return AIO_PUBLISH_OK;

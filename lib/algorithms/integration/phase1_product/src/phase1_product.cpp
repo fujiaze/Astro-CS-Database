@@ -1,7 +1,7 @@
 /* phase1_product.cpp — V6 Phase1 单帧产品装配 / 原子落盘 / 磁盘重开 / Phase2 消费面
  * 见 phase1_product.h 的冻结锚。本层只接线 Wave 5 实现，不含新科学公式。
  */
-#include "astrocs/phase1_product.h"
+#include "acsd/phase1_product.h"
 
 #include <algorithm>
 #include <cmath>
@@ -11,7 +11,7 @@
 
 #include <nlohmann/json.hpp>
 
-// CLEAN-403 (docs/ASTROCS_DESIGN §10「aio 是文件级唯一 I/O 边界」): 文本读写一律经
+// CLEAN-403 (docs/ACSD_DESIGN §10「aio 是文件级唯一 I/O 边界」): 文本读写一律经
 // aio 唯一实现 (aio_file::read_all / aio_atomic::write_file_atomic), 本 TU 不
 // 自持 fstream 通道。
 #include "aio_atomic_file.h"
@@ -25,13 +25,13 @@
 #include "astro/aio/sha256.h"
 
 using nlohmann::json;
-using namespace astrocs::aio;
-using astrocs::calibration::v6::CalReason;
-using astrocs::calibration::v6::CalResult;
-using astrocs::calibration::v6::CalStatus;
-using astrocs::calibration::v6::CovarianceRecord;
+using namespace acsd::aio;
+using acsd::calibration::v6::CalReason;
+using acsd::calibration::v6::CalResult;
+using acsd::calibration::v6::CalStatus;
+using acsd::calibration::v6::CovarianceRecord;
 
-namespace astrocs {
+namespace acsd {
 namespace v6 {
 namespace phase1 {
 
@@ -58,7 +58,7 @@ json forbidden_variance_sources_json() {
  *        ② 产品形状校验 open_phase1_product 逐条登记 FZ-MODE-RETIRED 违规并置
  *           view.retired_weight_object_declared（下游可判，不静默）。
  * WHY:   「只要纯净信号/噪声的信噪比。要求跨帧可用，不基于参考帧。而是绝对
- *        标定。」⇒ docs/ASTROCS_DESIGN.md §3.1（订正后）「权重只能来自纯净信号与噪声之比……
+ *        标定。」⇒ docs/ACSD_DESIGN.md §3.1（订正后）「权重只能来自纯净信号与噪声之比……
  *        任何使偏差随帧而变的量（含 PSF 拟合质量代理）都不得进入科学叠加权重」；
  *        docs/detail/UNIFIED_MODEL.md:58（旧产品若声明该对象 ⇒ 显式拒绝 + 迁移提示，
  *        不得静默接受）；docs/science/PSF_SIGNAL_WEIGHT.md §1/§4。
@@ -74,12 +74,12 @@ json forbidden_variance_sources_json() {
  *            （该面整体退役，无条件 fail-closed）。
  *        留痕：docs/science/DATA_SEMANTICS.md §31（单位表 OBSOLETE 行 +
  *        退役说明）与 eng/contracts/data/clause_registry.json
- *        #x-astrocs-canonical-object-retirement。 */
+ *        #x-acsd-canonical-object-retirement。 */
 const char* kRetiredCanonicalWeightObject = "psfsw_robust_weight";
 
 const char* kRetiredWeightObjectRejectReason =
     "FZ-MODE-RETIRED: psfsw_robust_weight is not a current object "
-    "(docs/ASTROCS_DESIGN.md 3.1; UNIFIED_MODEL.md:58); "
+    "(docs/ACSD_DESIGN.md 3.1; UNIFIED_MODEL.md:58); "
     "allowed weight objects: point_information (W_info=1/Var(F_hat)), "
     "surface_gls (A^T C^-1 A); "
     "migration: Phase2 derives frame weights from frame SNR (1/sigma_F^2) on site; "
@@ -168,21 +168,21 @@ FitsLayer make_layer(const std::string& extname, const std::string& bunit,
 /* 单位：用生产 schema 的冻结单位串逐条比对（不发明新串）。 */
 bool units_frozen_ok(const Phase1Units& u, std::vector<std::string>* why) {
   ValidationReport r;
-  astrocs::aio::unit_matches_frozen(Quantity::kSignalSb, u.signal_sb, &r);
-  astrocs::aio::unit_matches_frozen(Quantity::kPixelVarianceIn, u.pixel_variance_in, &r);
-  astrocs::aio::unit_matches_frozen(Quantity::kSbVarianceOut, u.sb_variance_out, &r);
-  astrocs::aio::unit_matches_frozen(Quantity::kSbIvarOut, u.sb_ivar_out, &r);
-  astrocs::aio::unit_matches_frozen(Quantity::kWInfo, u.w_info, &r);
-  astrocs::aio::unit_matches_frozen(Quantity::kQ, u.q, &r);
-  astrocs::aio::unit_matches_frozen(Quantity::kFlux, u.flux, &r);
+  acsd::aio::unit_matches_frozen(Quantity::kSignalSb, u.signal_sb, &r);
+  acsd::aio::unit_matches_frozen(Quantity::kPixelVarianceIn, u.pixel_variance_in, &r);
+  acsd::aio::unit_matches_frozen(Quantity::kSbVarianceOut, u.sb_variance_out, &r);
+  acsd::aio::unit_matches_frozen(Quantity::kSbIvarOut, u.sb_ivar_out, &r);
+  acsd::aio::unit_matches_frozen(Quantity::kWInfo, u.w_info, &r);
+  acsd::aio::unit_matches_frozen(Quantity::kQ, u.q, &r);
+  acsd::aio::unit_matches_frozen(Quantity::kFlux, u.flux, &r);
   /* FZ-UNIT-PSFSW / FZ-MODE-RETIRED：psfsw_robust_weight 单位项随对象退役。此处仅保留
    * "历史产品的单位串可判"，**不构成接受依据**：退役对象的显式拒绝在
    * open_phase1_product (6a) 登记 + consume_phase1_group_for_psfsw 硬拒绝
    * （见 kRetiredWeightObjectRejectReason）。 */
-  astrocs::aio::unit_matches_frozen(Quantity::kPsfswRobustWeight,
+  acsd::aio::unit_matches_frozen(Quantity::kPsfswRobustWeight,
                                     u.psfsw_robust_weight, &r);
   std::string qwhy;
-  if (!astrocs::aio::quadratic_law_holds(u.signal_sb, u.sb_variance_out,
+  if (!acsd::aio::quadratic_law_holds(u.signal_sb, u.sb_variance_out,
                                          u.sb_ivar_out, &qwhy)) {
     r.add("G-BUNIT-QUADRATIC", "FZ-P3-BUNIT-QUADRATIC", qwhy);
   }
@@ -266,7 +266,7 @@ Provenance make_provenance(const Phase1FrameInputs& in, const Phase1Units& u,
   p.sampling.pixfrac = pixfrac;
   p.algorithm_ids = {"ALG-P1-CAL-COV-001", "ALG-P1-PSFINF-001",
                      "ALG-P1-PSFW-001", "ALG-P1-DRZ-SB-001"};
-  p.module.module_id = "astrocs.phase1.product";
+  p.module.module_id = "acsd.phase1.product";
   p.module.build_id = in.build_id;
   p.provider = in.provider;
   p.approximations = {
@@ -637,7 +637,7 @@ Phase1WriteResult write_phase1_product(const Phase1FrameInputs& in,
      * 要求携带它的任何声明；旧产品若仍携带，重开门按退役/迁移情形识别并登记
      * （open_phase1_product (6)）。留痕见 docs/science/DATA_SEMANTICS.md §31.1
      * 的 OBSOLETE 行与 eng/contracts/data/clause_registry.json
-     * #x-astrocs-canonical-object-retirement。 */
+     * #x-acsd-canonical-object-retirement。 */
     units["support"] = in.units.support;
     units["pixel_semantics"] = in.units.pixel_semantics;
     units["pixel_area_power"] = in.units.pixel_area_power;
@@ -679,7 +679,7 @@ Phase1WriteResult write_phase1_product(const Phase1FrameInputs& in,
 
     /* point_information（生产 schema 形状）。 */
     json pi;
-    pi["point_information_schema"] = "astrocs.v6.point-information/v1";
+    pi["point_information_schema"] = "acsd.v6.point-information/v1";
     pi["schema_version"] = 1;
     pi["authoritative_formula"] =
         "Q_k=a_k P_k^T C_k^-1 d_k; W_info,k=a_k^2 P_k^T C_k^-1 P_k; "
@@ -715,7 +715,7 @@ Phase1WriteResult write_phase1_product(const Phase1FrameInputs& in,
      * 不需要它；旧产品仍携带时由 open_phase1_product (6) 识别、登记并交消费面
      * fail-closed（迁移提示见 kRetiredWeightObjectRejectReason）。 */
     json ps;
-    ps["psfsw_schema"] = "astrocs.v6.psfsw/v1";
+    ps["psfsw_schema"] = "acsd.v6.psfsw/v1";
     ps["schema_version"] = 1;
     ps["component_flux_unit"] = "ADU";
     auto comp_json = [](const p1psfw::ComponentMeasure& c) {
@@ -761,7 +761,7 @@ Phase1WriteResult write_phase1_product(const Phase1FrameInputs& in,
 
     /* calibration covariance（生产 schema 形状）。 */
     json cc;
-    cc["covariance_schema"] = "astrocs.v6.covariance/v1";
+    cc["covariance_schema"] = "acsd.v6.covariance/v1";
     cc["schema_version"] = 1;
     cc["propagation"] = "C_out = R C_in R^T";
     cc["scalar_form"] = "Var(out) = c^T C_in c = Sum_{i,j} c_i c_j [C_in]_{ij}";
@@ -803,7 +803,7 @@ Phase1WriteResult write_phase1_product(const Phase1FrameInputs& in,
     const double pvar_diag = op.parent_variance_diagonal(in.drizzle.pixel_variance.data());
     const double deficit = (pvar_exact > 0.0) ? (pvar_exact - pvar_diag) / pvar_exact : 0.0;
     json dc;
-    dc["covariance_schema"] = "astrocs.v6.covariance/v1";
+    dc["covariance_schema"] = "acsd.v6.covariance/v1";
     dc["schema_version"] = 1;
     dc["propagation"] = "C_out = R C_in R^T";
     dc["scalar_form"] = "Var(out) = c^T C_in c = Sum_{i,j} c_i c_j [C_in]_{ij}";
@@ -848,7 +848,7 @@ Phase1WriteResult write_phase1_product(const Phase1FrameInputs& in,
     const std::string peff_hash = Sha256::hex_of(
         epsf.profile.data(), epsf.profile.size() * sizeof(double));
     json ep;
-    ep["effective_psf_schema"] = "astrocs.v6.effective-psf/v1";
+    ep["effective_psf_schema"] = "acsd.v6.effective-psf/v1";
     ep["schema_version"] = 1;
     ep["effective_psf_id"] = epsf.effective_psf_id;
     ep["definition"] = "impulse_response_of_combination";
@@ -940,7 +940,7 @@ Phase1WriteResult write_phase1_product(const Phase1FrameInputs& in,
 
     /* manifest：文件 SHA-256 + output_hash。 */
     json mf;
-    mf["manifest_schema"] = "astrocs.v6.hips_manifest/v1";
+    mf["manifest_schema"] = "acsd.v6.hips_manifest/v1";
     mf["schema_version"] = 1;
     mf["product_type_id"] = kPhase1TypeId;
     mf["frame_id"] = in.frame_id;
@@ -1313,7 +1313,7 @@ Phase1GroupConsumption consume_phase1_group_for_psfsw(
   }
   /* FZ-MODE-RETIRED：本消费面**整体退役**——它的唯一产物就是退役对象
    * psfsw_robust_weight 的组内归一权重 w_psfsw（由 PSF 拟合质量代理 S/Conc/N/B
-   * 复合而来）。docs/ASTROCS_DESIGN.md §3.1（订正后）：这类量不得进入科学叠加权重。
+   * 复合而来）。docs/ACSD_DESIGN.md §3.1（订正后）：这类量不得进入科学叠加权重。
    * 因此**不论产品是否仍携带退役声明**（PSFSW-RETIRE-03 后新产品的产品 schema 已
    * 不再要求携带）一律 fail-closed：不静默接受、不参与组内归一、不产出 w_psfsw。
    * 旧产品仍携带声明时，其退役登记在 open_phase1_product (6a)
@@ -1324,4 +1324,4 @@ Phase1GroupConsumption consume_phase1_group_for_psfsw(
 
 }  /* namespace phase1 */
 }  /* namespace v6 */
-}  /* namespace astrocs */
+}  /* namespace acsd */

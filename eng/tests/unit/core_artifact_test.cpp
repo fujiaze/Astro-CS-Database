@@ -1,10 +1,10 @@
 // CORE-002 单元测试: DataArtifact roundtrip/hash/validate
-#include "astrocs/core/artifact.h"
+#include "acsd/core/artifact.h"
 
 #include <cstdio>
 #include <string>
 
-using namespace astrocs::core;
+using namespace acsd::core;
 
 static int failures = 0;
 #define CHECK(cond)                                                       \

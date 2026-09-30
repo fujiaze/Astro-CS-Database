@@ -20,7 +20,7 @@ int main(int argc, char** argv) {
 
     AioHipsProductSet* ps = aio_hips_product_begin(
         out, nside, 512, AIO_HIPS_FLOAT32, AIO_HIPS_PRODUCT_ALL,
-        "ivo://astrocs/test", "Sanitizer HiPS", "L", 300.0, "2026-08-08", 0);
+        "ivo://acsd/test", "Sanitizer HiPS", "L", 300.0, "2026-08-08", 0);
     if (!ps) { std::fprintf(stderr, "begin fail: %s\n", aio_hips_last_error()); return 3; }
     for (uint64_t tile_ipix = 0; tile_ipix < 3; ++tile_ipix) {
         std::vector<float> flux(n, 0.0f), area(n, 0.0f);

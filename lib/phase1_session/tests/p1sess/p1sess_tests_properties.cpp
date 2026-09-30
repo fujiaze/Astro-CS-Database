@@ -77,15 +77,15 @@ static void p_log(void* ud, int, const char*, const char*) {
     if (ud) static_cast<LogSink*>(ud)->stage_events.fetch_add(1);
 }
 
-static astrocs_host_services_v1 make_host2(CancelFlag* cf, LogSink* ls,
+static acsd_host_services_v1 make_host2(CancelFlag* cf, LogSink* ls,
                                            std::uint32_t max_workers) {
-    astrocs_host_services_v1 h{};
-    h.struct_size = sizeof(astrocs_host_services_v1);
+    acsd_host_services_v1 h{};
+    h.struct_size = sizeof(acsd_host_services_v1);
     h.abi_version = ACS_ABI_VERSION_V1;
-    h.allocator = {sizeof(acs_allocator), ACS_ABI_VERSION_V1, p_alloc, p_free, nullptr};
-    h.logger = {sizeof(acs_logger), ACS_ABI_VERSION_V1, p_log, ls};
-    h.cancel = {sizeof(acs_cancel), ACS_ABI_VERSION_V1, p_cancelled, cf};
-    h.budget = {sizeof(acs_thread_budget), ACS_ABI_VERSION_V1, max_workers, max_workers,
+    h.allocator = {sizeof(acsd_allocator), ACS_ABI_VERSION_V1, p_alloc, p_free, nullptr};
+    h.logger = {sizeof(acsd_logger), ACS_ABI_VERSION_V1, p_log, ls};
+    h.cancel = {sizeof(acsd_cancel), ACS_ABI_VERSION_V1, p_cancelled, cf};
+    h.budget = {sizeof(acsd_thread_budget), ACS_ABI_VERSION_V1, max_workers, max_workers,
                 nullptr, nullptr, nullptr};
     return h;
 }
@@ -99,7 +99,7 @@ int run_properties() {
     const char* w2 = std::getenv("TMP");
     const std::string tmp_root = (d ? d : (w ? w : (w2 ? w2 : ".")));
     const std::string base =
-        (fs::path(tmp_root) / "astrocs_p1sess_props").generic_string();
+        (fs::path(tmp_root) / "acsd_p1sess_props").generic_string();
     const std::string out_dir = base + "/out";
     std::error_code ec;
     fs::remove_all(base, ec);
@@ -133,17 +133,17 @@ int run_properties() {
 
     // ── P1: validate 幂等纯读 (同 handle 两次 validate 同果; 不落任何 IO) ──
     {
-        astrocs_host_services_v1 host = make_host2(nullptr, nullptr, 1);
-        acs_handle h = nullptr;
+        acsd_host_services_v1 host = make_host2(nullptr, nullptr, 1);
+        acsd_handle h = nullptr;
         P1SESS_CHECK_EQ(cs, p1_session_create(&host, &h), ACS_OK);
-        acs_span_u8 cfg = ACS_SPAN_U8(reinterpret_cast<std::uint8_t*>(const_cast<char*>(cfg_base.c_str())),
+        acsd_span_u8 cfg = ACS_SPAN_U8(reinterpret_cast<std::uint8_t*>(const_cast<char*>(cfg_base.c_str())),
                                       static_cast<std::uint64_t>(cfg_base.size()));
-        const acs_status r1 = p1_session_validate(h, cfg);
-        const acs_status r2 = p1_session_validate(h, cfg);
+        const acsd_status r1 = p1_session_validate(h, cfg);
+        const acsd_status r2 = p1_session_validate(h, cfg);
         P1SESS_CHECK_EQ(cs, r1, ACS_OK);
         P1SESS_CHECK_EQ(cs, r2, ACS_OK);
         // validate 后未 run: manifest 仍 created (纯读无副作用)
-        acs_span_u8 mfb{};
+        acsd_span_u8 mfb{};
         P1SESS_CHECK_EQ(cs, p1_session_inspect(h, &mfb), ACS_OK);
         json m = json::parse(std::string(reinterpret_cast<const char*>(mfb.data), mfb.count));
         host.allocator.free(host.allocator.user_data, mfb.data);
@@ -161,14 +161,14 @@ int run_properties() {
         for (const std::uint32_t workers : {1u, 2u, 4u}) {
             CancelFlag cf;
             LogSink ls;
-            astrocs_host_services_v1 host = make_host2(&cf, &ls, workers);
-            acs_handle h = nullptr;
+            acsd_host_services_v1 host = make_host2(&cf, &ls, workers);
+            acsd_handle h = nullptr;
             P1SESS_CHECK_EQ(cs, p1_session_create(&host, &h), ACS_OK);
-            acs_span_u8 cfg = ACS_SPAN_U8(reinterpret_cast<std::uint8_t*>(const_cast<char*>(cfg_base.c_str())),
+            acsd_span_u8 cfg = ACS_SPAN_U8(reinterpret_cast<std::uint8_t*>(const_cast<char*>(cfg_base.c_str())),
                                           static_cast<std::uint64_t>(cfg_base.size()));
-            const acs_status rc = p1_session_run(h, cfg, 0);
+            const acsd_status rc = p1_session_run(h, cfg, 0);
             P1SESS_CHECK_MSG(cs, rc == ACS_OK, "p2_run_ok", "workers=%u rc=%d", workers, static_cast<int>(rc));
-            acs_span_u8 mfb{};
+            acsd_span_u8 mfb{};
             P1SESS_CHECK_EQ(cs, p1_session_inspect(h, &mfb), ACS_OK);
             json m = json::parse(std::string(reinterpret_cast<const char*>(mfb.data), mfb.count));
             host.allocator.free(host.allocator.user_data, mfb.data);
@@ -204,8 +204,8 @@ int run_properties() {
         CancelFlag cf;
         cf.flag.store(1);   // 先置位: 第一取消点 (io_read 文件粒度) 即触发
         LogSink ls;
-        astrocs_host_services_v1 host = make_host2(&cf, &ls, 1);
-        acs_handle h = nullptr;
+        acsd_host_services_v1 host = make_host2(&cf, &ls, 1);
+        acsd_handle h = nullptr;
         P1SESS_CHECK_EQ(cs, p1_session_create(&host, &h), ACS_OK);
         // P3 专属输出目录 (P2 已在同 out_dir 落盘产物; 取消面必须隔离观察)
         const std::string cancel_out = base + "/out_cancel";
@@ -217,13 +217,13 @@ int run_properties() {
             "\",\"master_dark\":\"" + md +
             "\",\"master_flat\":\"" + mf +
             "\",\"cosmetic\":{\"enabled\":false}}";
-        acs_span_u8 cfg = ACS_SPAN_U8(reinterpret_cast<std::uint8_t*>(const_cast<char*>(cfg_cancel.c_str())),
+        acsd_span_u8 cfg = ACS_SPAN_U8(reinterpret_cast<std::uint8_t*>(const_cast<char*>(cfg_cancel.c_str())),
                                       static_cast<std::uint64_t>(cfg_cancel.size()));
-        const acs_status rc = p1_session_run(h, cfg, 0);
+        const acsd_status rc = p1_session_run(h, cfg, 0);
         P1SESS_CHECK_MSG(cs, rc == ACS_ERR_CANCELLED, "p3_cancel_rc",
                          "rc=%d (want ACS_ERR_CANCELLED=%d)", static_cast<int>(rc),
                          static_cast<int>(ACS_ERR_CANCELLED));
-        acs_span_u8 mfb{};
+        acsd_span_u8 mfb{};
         P1SESS_CHECK_EQ(cs, p1_session_inspect(h, &mfb), ACS_OK);
         json m = json::parse(std::string(reinterpret_cast<const char*>(mfb.data), mfb.count));
         host.allocator.free(host.allocator.user_data, mfb.data);
@@ -248,30 +248,30 @@ int run_properties() {
     // 上位: SCI-CAL-001 §8 + ALG-CAL-001..006 §7 边界/invalid 表
     // (AC_ERR_PARAM、out 不写); 装配层错误映射见 README §5。
     {
-        astrocs_host_services_v1 host = make_host2(nullptr, nullptr, 1);
-        acs_handle h = nullptr;
+        acsd_host_services_v1 host = make_host2(nullptr, nullptr, 1);
+        acsd_handle h = nullptr;
         P1SESS_CHECK_EQ(cs, p1_session_create(&host, &h), ACS_OK);
         // dark_optimization 错型 string → run 期 doc.value<bool> 抛 → 屏障捕
         const std::string bad_cfg =
             std::string("{\"input_lights\":[\"") + light1 +
             "\"],\"output_dir\":\"" + out_dir +
             "\",\"dark_optimization\":\"oops\"}";
-        acs_span_u8 cfg = ACS_SPAN_U8(reinterpret_cast<std::uint8_t*>(const_cast<char*>(bad_cfg.c_str())),
+        acsd_span_u8 cfg = ACS_SPAN_U8(reinterpret_cast<std::uint8_t*>(const_cast<char*>(bad_cfg.c_str())),
                                       static_cast<std::uint64_t>(bad_cfg.size()));
-        const acs_status rc = p1_session_run(h, cfg, 0);
+        const acsd_status rc = p1_session_run(h, cfg, 0);
         P1SESS_CHECK_MSG(cs, rc == ACS_ERR_PARAM || rc == ACS_ERR_INTERNAL, "p4_barrier_rc",
                          "rc=%d (no terminate; PARAM or INTERNAL acceptable)", static_cast<int>(rc));
-        const std::string le = astrocs::phase1::last_error(h);
+        const std::string le = acsd::phase1::last_error(h);
         P1SESS_CHECK(cs, !le.empty(), "p4_last_error_filled");
         P1SESS_CHECK_EQ(cs, p1_session_destroy(h), ACS_OK);
     }
 
     // ── P5: async_io_depth 值域 {0,1,2} + 3 拒 (边界面) ──
     {
-        astrocs_host_services_v1 host = make_host2(nullptr, nullptr, 1);
-        acs_handle h = nullptr;
+        acsd_host_services_v1 host = make_host2(nullptr, nullptr, 1);
+        acsd_handle h = nullptr;
         P1SESS_CHECK_EQ(cs, p1_session_create(&host, &h), ACS_OK);
-        acs_span_u8 cfg = ACS_SPAN_U8(reinterpret_cast<std::uint8_t*>(const_cast<char*>(cfg_base.c_str())),
+        acsd_span_u8 cfg = ACS_SPAN_U8(reinterpret_cast<std::uint8_t*>(const_cast<char*>(cfg_base.c_str())),
                                       static_cast<std::uint64_t>(cfg_base.size()));
         P1SESS_CHECK_EQ(cs, p1_session_run(h, cfg, 0), ACS_OK);
         P1SESS_CHECK_EQ(cs, p1_session_run(h, cfg, 2), ACS_OK);
@@ -282,8 +282,8 @@ int run_properties() {
 
     // ── P6: ABI 负面 — create host 结构错 → ABI_MISMATCH ──
     {
-        astrocs_host_services_v1 host = make_host2(nullptr, nullptr, 1);
-        acs_handle h = nullptr;
+        acsd_host_services_v1 host = make_host2(nullptr, nullptr, 1);
+        acsd_handle h = nullptr;
         const std::uint32_t save_size = host.struct_size;
         host.struct_size = save_size - 1;
         P1SESS_CHECK_EQ(cs, p1_session_create(&host, &h), ACS_ERR_ABI_MISMATCH);
@@ -297,13 +297,13 @@ int run_properties() {
 
     // ── P7: 空参数域 — run/inspect/destroy NULL handle 拒 ──
     {
-        acs_span_u8 cfg{};
+        acsd_span_u8 cfg{};
         P1SESS_CHECK_EQ(cs, p1_session_run(nullptr, cfg, 0), ACS_ERR_PARAM);
-        acs_span_u8 out{};
+        acsd_span_u8 out{};
         P1SESS_CHECK_EQ(cs, p1_session_inspect(nullptr, &out), ACS_ERR_PARAM);
         P1SESS_CHECK_EQ(cs, p1_session_destroy(nullptr), ACS_ERR_PARAM);
-        astrocs_host_services_v1 host = make_host2(nullptr, nullptr, 1);
-        acs_handle h = nullptr;
+        acsd_host_services_v1 host = make_host2(nullptr, nullptr, 1);
+        acsd_handle h = nullptr;
         P1SESS_CHECK_EQ(cs, p1_session_create(&host, &h), ACS_OK);
         P1SESS_CHECK_EQ(cs, p1_session_run(h, cfg, 0), ACS_ERR_PARAM);   // 空 config span
         P1SESS_CHECK_EQ(cs, p1_session_destroy(h), ACS_OK);

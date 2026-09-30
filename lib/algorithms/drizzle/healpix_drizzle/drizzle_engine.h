@@ -349,7 +349,7 @@ private:
 } // namespace drizzle
 
 // ============================================================================
-// G4: actual-buffer trace (默认关闭, env: ASTROCS_DRIZZLE_TRACE=<dir>)
+// G4: actual-buffer trace (默认关闭, env: ACSD_DRIZZLE_TRACE=<dir>)
 // 仅供诊断/验收, 不影响生产路径; 实现在 drizzle_engine.cpp
 // ============================================================================
 namespace drizzle_trace {

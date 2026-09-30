@@ -13,13 +13,13 @@
 #include "p3_rsmp_scenarios.h"
 #include "p3_rsmp_test_util.h"
 
-using astrocs::p3rsmp::DenseMatrix;
-using astrocs::p3rsmp::GateConfig;
-using astrocs::p3rsmp::KernelDescriptor;
-using astrocs::p3rsmp::KernelRegistry;
-using astrocs::p3rsmp::PointSourceInput;
-using astrocs::p3rsmp::SparseOperator;
-using astrocs::p3rsmp::Status;
+using acsd::p3rsmp::DenseMatrix;
+using acsd::p3rsmp::GateConfig;
+using acsd::p3rsmp::KernelDescriptor;
+using acsd::p3rsmp::KernelRegistry;
+using acsd::p3rsmp::PointSourceInput;
+using acsd::p3rsmp::SparseOperator;
+using acsd::p3rsmp::Status;
 
 namespace {
 
@@ -49,11 +49,11 @@ void test_kernel_oracle_independent() {
   P3_CHECK_NEAR(bil->oracle.max_weight_sum_dev, ko.max_weight_sum_dev, 1e-15);
   P3_CHECK(bil->oracle.ok && bil->oracle.independent);
   P3_CHECK(bil->oracle.boundary_fail_closed);
-  P3_CHECK(bil->boundary_policy == astrocs::p3rsmp::BoundaryPolicy::MissingIsNaN);
+  P3_CHECK(bil->boundary_policy == acsd::p3rsmp::BoundaryPolicy::MissingIsNaN);
   P3_CHECK(bil->oracle.zero_fill_error > 0.5);
   // 无 Oracle 证据的注册 → 结构门必须红（FZ-P3-KERNEL-REGISTRY negative_mutation）
   KernelDescriptor k = *bil;
-  k.oracle = astrocs::p3rsmp::KernelOracleEvidence{};
+  k.oracle = acsd::p3rsmp::KernelOracleEvidence{};
   const auto g = reg.validate_registration(k);
   P3_CHECK(g.status == Status::Reject && g.code == "G-P3-KRN-03");
 }
@@ -65,8 +65,8 @@ void test_covariance_cross_check() {
   const p3oracle::Mat Rm = p3oracle::build_R(c.ov, c.omega_out, c.n_out, c.n_in);
   const p3oracle::Mat Sm = p3oracle::build_S(c.ov, c.omega_in, c.n_out, c.n_in);
   const p3oracle::Mat cxm = to_oracle(c.cx);
-  const DenseMatrix cy_r = astrocs::p3rsmp::propagate_covariance(R, c.cx);
-  const DenseMatrix cy_s = astrocs::p3rsmp::propagate_covariance(S, c.cx);
+  const DenseMatrix cy_r = acsd::p3rsmp::propagate_covariance(R, c.cx);
+  const DenseMatrix cy_s = acsd::p3rsmp::propagate_covariance(S, c.cx);
   const p3oracle::Mat cy_r_o = p3oracle::covariance(Rm, cxm);
   const p3oracle::Mat cy_s_o = p3oracle::covariance(Sm, cxm);
   for (int i = 0; i < c.n_out; ++i) {
@@ -75,7 +75,7 @@ void test_covariance_cross_check() {
       P3_CHECK_NEAR(cy_s(i, j), cy_s_o(i, j), 1e-13);
     }
   }
-  const double rho = astrocs::p3rsmp::max_abs_offdiag_correlation(cy_s);
+  const double rho = acsd::p3rsmp::max_abs_offdiag_correlation(cy_s);
   P3_CHECK(rho > 0.0);  // 重采样制造相邻相关（C-P3-PROP-9）
 }
 
@@ -100,7 +100,7 @@ void test_qw_oracle_and_mc() {
   const p3scen::Chain c = p3scen::make_chain(0.19);
   const SparseOperator S = p3scen::chain_S(c);
   const double a = 2.0;
-  const auto res = astrocs::p3rsmp::propagate_point_source_flux(make_input(c, S, a), GateConfig{});
+  const auto res = acsd::p3rsmp::propagate_point_source_flux(make_input(c, S, a), GateConfig{});
   P3_CHECK(res.status == Status::Ok);
 
   const p3oracle::Mat Sm = p3oracle::build_S(c.ov, c.omega_in, c.n_out, c.n_in);

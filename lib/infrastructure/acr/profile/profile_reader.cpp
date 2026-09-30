@@ -364,7 +364,7 @@ std::string compute_fingerprint_sha256() {
     fp_input << cpu_model << "|" << cores << "|" << isa
              << "|" << gpu_name << "|" << vmem << "|" << driver;
     // SHA-256 归一化到 lib/algorithms/shared/crypto（单一实现）
-    return astrocs::crypto::sha256_hex(fp_input.str().data(),
+    return acsd::crypto::sha256_hex(fp_input.str().data(),
                                        fp_input.str().size());
 }
 

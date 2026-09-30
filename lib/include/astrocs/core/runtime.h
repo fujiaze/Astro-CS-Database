@@ -10,24 +10,24 @@
 // - 本文件是接口冻结点：签名/语义改动必须走新任务与 ABI layout 测试。
 #pragma once
 
-#ifndef ASTROCS_CORE_RUNTIME_H
-#define ASTROCS_CORE_RUNTIME_H
+#ifndef ACSD_CORE_RUNTIME_H
+#define ACSD_CORE_RUNTIME_H
 
-#include "astrocs/core/artifact.h"
-#include "astrocs/core/contracts.h"
-#include "astrocs/core/context.h"
-#include "astrocs/core/memory_pressure.h"
-#include "astrocs/core/module.h"
-#include "astrocs/core/pipeline.h"
-#include "astrocs/core/scheduler.h"
-#include "astrocs/core/trace.h"
+#include "acsd/core/artifact.h"
+#include "acsd/core/contracts.h"
+#include "acsd/core/context.h"
+#include "acsd/core/memory_pressure.h"
+#include "acsd/core/module.h"
+#include "acsd/core/pipeline.h"
+#include "acsd/core/scheduler.h"
+#include "acsd/core/trace.h"
 
 #include <cstdint>
 #include <memory>
 #include <string>
 #include <vector>
 
-namespace astrocs::core {
+namespace acsd::core {
 
 // ModulePlan / IModule 定义于 module.h（RT-005 冻结合同；此处不再重复）。
 
@@ -103,11 +103,11 @@ Result<std::unique_ptr<Runtime>> create_runtime(uint32_t budget) noexcept;
 
 // ── Runtime 资源预算（CPU 与内存**同源**；SCHEDULER_CONTRACT §3） ──
 // 一个进程一个资源预算源：CPU 与内存上限都从**配置/profile 或实测探测**得到，
-// 不得硬编码（AGENTS §6；docs/ASTROCS_DESIGN §8.3/§9）。
+// 不得硬编码（AGENTS §6；docs/ACSD_DESIGN §8.3/§9）。
 //   cpu_budget          : 有效 CPU 配额（>0；CLI 侧 = 亲和性 ∩ cgroup，见 cli_affinity_cpu_count）
 //   memory_limit_bytes  : 峰值工作集上限（0 = 未提供 ⇒ 不启用内存回压）
 //   memory_source       : 上限来源标签（"profile"/"probe"/"none"；观测用，见 memory_budget.h）
-// 语义边界（docs/ASTROCS_DESIGN §4.5 运行前预检）：内存预算是**调度准入输入**，不是门禁判据 ——
+// 语义边界（docs/ACSD_DESIGN §4.5 运行前预检）：内存预算是**调度准入输入**，不是门禁判据 ——
 // 超限只让节点排队等待，绝不改退出码、绝不阻断、绝不让 run 失败。
 struct RuntimeResourceBudget {
   uint32_t cpu_budget = 1;
@@ -115,7 +115,7 @@ struct RuntimeResourceBudget {
   std::string memory_source = "none";
   // ── MEMGOV-01: 内存压力治理输入（全部可选；缺省 ⇒ 治理不启用，行为与注入前一致）──
   // 压力分子来源（进程树 RSS）。生产由 CLI 侧注入 aio_process_tree_rss_bytes
-  // （aio 是文件级唯一 I/O 边界；core 不因此链接 astrocs_aio）。
+  // （aio 是文件级唯一 I/O 边界；core 不因此链接 acsd_aio）。
   // 为空 ⇒ 治理不启用，并落台账登记 governance_unavailable（不静默）。
   RssProbe rss_probe = nullptr;
   // 预算推导的输入回显（证据面；只进观测，不参与判定）。
@@ -129,6 +129,6 @@ struct RuntimeResourceBudget {
 // 失败返回 Error(RESOURCE)（cpu_budget==0）。
 Result<std::unique_ptr<Runtime>> create_runtime(const RuntimeResourceBudget& rb) noexcept;
 
-}  // namespace astrocs::core
+}  // namespace acsd::core
 
-#endif  // ASTROCS_CORE_RUNTIME_H
+#endif  // ACSD_CORE_RUNTIME_H

@@ -45,7 +45,7 @@ eng/tests/testkit/
 ```
 
 - 每模块测试的 label = `module:<module_id>`（先例：
-  `eng/tests/conformance/noop/CMakeLists.txt` → `add_test(NAME module:astrocs.conformance.noop ...)`）。
+  `eng/tests/conformance/noop/CMakeLists.txt` → `add_test(NAME module:acsd.conformance.noop ...)`）。
 - 模块测试放置：单元/负测/性能可放模块共址 `eng/tests/` 或 `eng/tests/<type>/`；
   **关键通过证据**必须有：独立 oracle/期望 + 当前 commit 记录 + 故障注入证明
   （11 号文 §6 末句）。
@@ -56,7 +56,7 @@ eng/tests/testkit/
 
 | 字段 | 必填 | 类型/取值 | 说明 |
 |---|---|---|---|
-| `schema` | 是 | `"astrocs.test-metadata/v1"` | schema 标识 |
+| `schema` | 是 | `"acsd.test-metadata/v1"` | schema 标识 |
 | `test_id` | 是 | `^TEST-[A-Z0-9]+(-[A-Z0-9]+)*$` | 追溯链 TEST 层 ID（DOC-001） |
 | `label` | 是 | `module:<module_id>` 或 `<type>:` 前缀 | 选择键；`module:<id>` 是模块选择主键 |
 | `module_id` | 否* | `^MOD-[A-Za-z0-9]+...$` | *label 含 `module:` 时必填 |
@@ -82,7 +82,7 @@ eng/tests/testkit/
 
 - 选择键：`module:<module_id>`，`module_id` 取模块权威 id（module.yaml `module_id`
   或 DOC-001 追溯矩阵 `module_id` 的 `MOD-` 行键对应点分名，如
-  `module:astrocs.conformance.noop`）。
+  `module:acsd.conformance.noop`）。
 - `harness/run_selector.py` 行为（由 `eng/tools/testkit/check_testkit.py` 实现，见 §7）：
   - `--module <module_id>` → 只执行 label==`module:<module_id>` 的测试；
   - `--type <type>` → 按 type 过滤；

@@ -4,7 +4,7 @@ import math, os, re, shutil, subprocess, tempfile, unittest
 
 REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 HOST = os.path.join(REPO, "lib", "algorithms", "resample")
-# W8 (批次 4): hips_properties.cpp 迁 lib/algorithms/coverage/ (独立库 astrocs_hips_properties)
+# W8 (批次 4): hips_properties.cpp 迁 lib/algorithms/coverage/ (独立库 acsd_hips_properties)
 COV = os.path.join(REPO, "lib", "algorithms", "coverage")
 AIO = os.path.join(REPO, "lib", "infrastructure", "aio")
 

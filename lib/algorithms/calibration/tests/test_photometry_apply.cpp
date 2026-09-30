@@ -12,7 +12,7 @@
 // 4b. photscal<0 → 拒绝 (负值翻转极性无物理意义)
 // 5. 参数校验 (nullptr/非法尺寸/NaN photscal)
 // 6. Writer 单位口径: apply_photometry=true + BUNIT=ADU/sr → 成功
-// 7. Writer 单位口径: BUNIT=ASTROCS_RELATIVE_FLUX（非面亮度口径串）→ 拒绝
+// 7. Writer 单位口径: BUNIT=ACSD_RELATIVE_FLUX（非面亮度口径串）→ 拒绝
 // 8. Writer 单位口径: apply_photometry=false + BUNIT=ADU/sr → 成功
 // 8b. Writer 单位口径: BUNIT=ADU（裸计数，无 provenance 声明）→ 拒绝
 //
@@ -285,7 +285,7 @@ static void test_writer_photappl_true_canonical_sb() {
     std::filesystem::remove(tmp_path + ".partial", ec);
 }
 
-// 测试 7: Writer: BUNIT=ASTROCS_RELATIVE_FLUX → 拒绝（非面亮度口径串，与 PHOTAPPL 无关）
+// 测试 7: Writer: BUNIT=ACSD_RELATIVE_FLUX → 拒绝（非面亮度口径串，与 PHOTAPPL 无关）
 // 该串把「标度已变」写成「量的种类已变」，与 DATA_SEMANTICS §31.1a:2827-2830 相反。
 static void test_writer_photappl_false_relative_flux() {
     hiss::HissGridSpec grid;
@@ -303,12 +303,12 @@ static void test_writer_photappl_false_relative_flux() {
     meta.pixfrac = 1.0;
     meta.photappl = 0;  // apply_photometry=false
     meta.photscal = 1.0;
-    std::snprintf(meta.bunit, sizeof(meta.bunit), "ASTROCS_RELATIVE_FLUX");
+    std::snprintf(meta.bunit, sizeof(meta.bunit), "ACSD_RELATIVE_FLUX");
 
     hiss::HissWriter writer;
     std::string tmp_path = "test_photometry_apply_tmp_reject.hiss";
     int rc = writer.open(tmp_path, grid, meta);
-    ASSERT_TRUE(rc == -2, "Writer: BUNIT=ASTROCS_RELATIVE_FLUX → open 返回 -2 (非面亮度口径串, 拒绝)");
+    ASSERT_TRUE(rc == -2, "Writer: BUNIT=ACSD_RELATIVE_FLUX → open 返回 -2 (非面亮度口径串, 拒绝)");
     // open 失败时不创建 .partial, 无需清理
 }
 

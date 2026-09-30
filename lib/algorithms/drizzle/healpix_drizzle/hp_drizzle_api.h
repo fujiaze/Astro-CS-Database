@@ -3,9 +3,9 @@
 
 // 三态导出 (dllexport / 静态链 / dllimport):
 //   事实: 本仓同名生产源被编进**两个** target ——
-//     (1) 根 CMakeLists.txt:745 astrocs_drizzle  = **STATIC** (全仓生产消费者链它)
-//     (2) lib/algorithms/drizzle/CMakeLists.txt astrocs_p1_drizzle = SHARED 模块 DLL
-//         (ABI-006 导出面净化: 只导出 astrocs_module_query_v1, legacy 六符号经
+//     (1) 根 CMakeLists.txt:745 acsd_drizzle  = **STATIC** (全仓生产消费者链它)
+//     (2) lib/algorithms/drizzle/CMakeLists.txt acsd_p1_drizzle = SHARED 模块 DLL
+//         (ABI-006 导出面净化: 只导出 acsd_module_query_v1, legacy 六符号经
 //          version-script / def 降 local)
 //   HP_DRIZZLE_EXPORTS 只由**定义侧** TU 定义 (hp_drizzle_api.cpp /
 //   hp_drizzle_hips_api.cpp), 模块 CMakeLists 侧禁止补定义 ⇒ 消费者 include
@@ -77,7 +77,7 @@ typedef struct {
 // 返回: 0=成功；非 0 = 失败，**正负号无语义**（同一失败面同时存在正值 1 与
 //        负值 −1..−14 的返回，且同一负值在不同处表示不同原因）。失败原因
 //        只能读 result->error_msg。这是已登记缺陷（正本：detail/registry/
-//        astrocs.phase1.drizzle.md「错误」节「无集中枚举 —— 登记缺陷」），
+//        acsd.phase1.drizzle.md「错误」节「无集中枚举 —— 登记缺陷」），
 //        在错误码集中枚举落地前，调用方**不得**对返回码做分支，只可判 !=0。
 HP_DRIZZLE_API int hp_drizzle_fits_to_ahpx(
     const char* fits_path,

@@ -1,6 +1,6 @@
 # 有界异步 I/O 合同
 
-> 上游：ASTROCS_DESIGN.md §8（软件架构）、§9（CPU 后端与资源）
+> 上游：ACSD_DESIGN.md §8（软件架构）、§9（CPU 后端与资源）
 
 关联代码：`lib/algorithms/coverage/include/astro/phase2/async_io.h`。目标：HiPS/FITS/XISF 读取与计算解耦，使用有界 producer/consumer；队列容量由 `memory_budget_bytes / item_bytes` 推导，取值有上界。
 

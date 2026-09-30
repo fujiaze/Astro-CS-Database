@@ -2,7 +2,7 @@
 // 共址测试: 产品声明注册表 + 显式「不支持」 + 适用域 + 机器判据
 //
 // 规范依据:
-//   * docs/ASTROCS_DESIGN.md §6.3（8 投影冻结; 未实现必须显式报「不支持」, 禁止声称
+//   * docs/ACSD_DESIGN.md §6.3（8 投影冻结; 未实现必须显式报「不支持」, 禁止声称
 //     支持; 每种投影声明适用域, 违反 ⇒ 拒绝）;
 //   * MOD-01 🔴P17 / ARCH-01 🔴14（文档说 1、代码说 4 ⇒ 以可运行验证为准）;
 //   * ENGINEERING_SPEC §8（每项检查能红能绿; 可执行负例入口 --self-test）。
@@ -44,13 +44,13 @@ int failures = 0;
         }                                                          \
     } while (0)
 
-using astrocs::phase3::P3ProjFrozenEntry;
-using astrocs::phase3::P3ProjProductStatus;
-using astrocs::phase3::P3WcsApplicability;
-using astrocs::phase3::P3WcsDescriptor;
-using astrocs::phase3::P3WcsRoundtripGate;
-using astrocs::phase3::P3WcsRoundtripGateStatus;
-using astrocs::phase3::P3WcsStatus;
+using acsd::phase3::P3ProjFrozenEntry;
+using acsd::phase3::P3ProjProductStatus;
+using acsd::phase3::P3WcsApplicability;
+using acsd::phase3::P3WcsDescriptor;
+using acsd::phase3::P3WcsRoundtripGate;
+using acsd::phase3::P3WcsRoundtripGateStatus;
+using acsd::phase3::P3WcsStatus;
 
 // 合同容差**单一事实源** = p3_wcs_applicability("TAN")（本测试不写第二份字面量;
 // 本常量只作「冻结值回归锁」的期望值, 与声明表逐位比对）。
@@ -69,7 +69,7 @@ std::vector<std::string> sorted(std::vector<std::string> v) {
 
 std::vector<std::string> declared_set() {
     int n = 0;
-    const char* const* c = astrocs::phase3::p3_proj_declared_codes(&n);
+    const char* const* c = acsd::phase3::p3_proj_declared_codes(&n);
     std::vector<std::string> out;
     for (int i = 0; i < n; ++i) out.push_back(c[i]);
     return sorted(out);
@@ -77,7 +77,7 @@ std::vector<std::string> declared_set() {
 
 std::vector<std::string> implemented_set() {
     int n = 0;
-    const char* const* c = astrocs::phase3::p3_proj_implemented_codes(&n);
+    const char* const* c = acsd::phase3::p3_proj_implemented_codes(&n);
     std::vector<std::string> out;
     for (int i = 0; i < n; ++i) out.push_back(c[i]);
     return sorted(out);
@@ -86,11 +86,11 @@ std::vector<std::string> implemented_set() {
 // R: 实际可运行集 —— 对 8 冻结码逐一黑盒实跑生产路径（不看声明表）。
 std::vector<std::string> runnable_set() {
     int n = 0;
-    const P3ProjFrozenEntry* tab = astrocs::phase3::p3_proj_frozen_table(&n);
+    const P3ProjFrozenEntry* tab = acsd::phase3::p3_proj_frozen_table(&n);
     std::vector<std::string> out;
     for (int i = 0; i < n; ++i) {
         std::string detail;
-        if (astrocs::phase3::p3_proj_probe(tab[i].code, &detail) ==
+        if (acsd::phase3::p3_proj_probe(tab[i].code, &detail) ==
             P3WcsStatus::P3_WCS_OK) {
             out.push_back(tab[i].code);
         }
@@ -129,23 +129,23 @@ void test_registry_equals_runnable() {
               "机器判据: 声明集 == 实现集 == 实际可运行集");
     CHECK_MSG(d.size() == 1 && d[0] == "TAN",
               "声明集当前 = {TAN}（DESIGN §6.3 当前登记仅 TAN）");
-    CHECK_MSG(astrocs::phase3::p3_proj_registry_selfcheck() == 0,
+    CHECK_MSG(acsd::phase3::p3_proj_registry_selfcheck() == 0,
               "registry 自检全过");
 }
 
 // ---- C2: 负例（未实现投影显式「不支持」+ 已支持清单, 无静默回落）----------
 void test_unsupported_negative() {
     int n = 0;
-    const P3ProjFrozenEntry* tab = astrocs::phase3::p3_proj_frozen_table(&n);
+    const P3ProjFrozenEntry* tab = acsd::phase3::p3_proj_frozen_table(&n);
     CHECK_MSG(n == 8, "冻结表 8 行（DESIGN §6.3）");
     int n_neg = 0;
     for (int i = 0; i < n; ++i) {
         const char* code = tab[i].code;
-        if (astrocs::phase3::p3_proj_is_declared(code)) continue;
+        if (acsd::phase3::p3_proj_is_declared(code)) continue;
         ++n_neg;
         // (a) 声明门: 显式不支持 + 原因 + 已支持清单
         std::string why;
-        const P3WcsStatus ds = astrocs::phase3::p3_proj_declare(code, &why);
+        const P3WcsStatus ds = acsd::phase3::p3_proj_declare(code, &why);
         CHECK_MSG(ds == P3WcsStatus::P3_WCS_UNSUPPORTED, "未声明码 → UNSUPPORTED");
         CHECK_MSG(contains(why, code), "拒绝原因含请求码");
         CHECK_MSG(contains(why, "unsupported"), "拒绝原因显式报「不支持」");
@@ -153,7 +153,7 @@ void test_unsupported_negative() {
                   "拒绝原因列出已支持清单");
         // (b) 请求面门（生产路径唯一语义源）
         std::string vwhy;
-        CHECK_MSG(astrocs::phase3::p3_wcs_validate_request(code, nullptr, nullptr,
+        CHECK_MSG(acsd::phase3::p3_wcs_validate_request(code, nullptr, nullptr,
                                                            &vwhy) ==
                       P3WcsStatus::P3_WCS_UNSUPPORTED,
                   "p3_wcs_validate_request 拒绝未实现投影");
@@ -162,14 +162,14 @@ void test_unsupported_negative() {
         // (c) 构造面门: 不产半成品, 不静默回落 TAN
         P3WcsDescriptor d{};
         d.crval_ra_deg = 123.0;   // 哨兵: 失败不得改写
-        const P3WcsStatus ms = astrocs::phase3::p3_wcs_make(
+        const P3WcsStatus ms = acsd::phase3::p3_wcs_make(
             150.0, 2.0, 0.0001389, 64, 64, "east_left", 0.0, &d, code);
         CHECK_MSG(ms == P3WcsStatus::P3_WCS_UNSUPPORTED,
                   "p3_wcs_make 拒绝未实现投影");
         CHECK_MSG(d.crval_ra_deg == 123.0, "失败不改写 *out（无 TAN 半成品）");
         // (d) 未实现码绝不产生 CTYPE 声明
         std::string detail;
-        CHECK_MSG(astrocs::phase3::p3_proj_probe(code, &detail) !=
+        CHECK_MSG(acsd::phase3::p3_proj_probe(code, &detail) !=
                       P3WcsStatus::P3_WCS_OK,
                   "实跑探针: 未实现码跑不通");
     }
@@ -178,23 +178,23 @@ void test_unsupported_negative() {
     const char* unknown[3] = {"ZZZ", "tan", ""};
     for (const char* c : unknown) {
         std::string why;
-        CHECK_MSG(astrocs::phase3::p3_proj_declare(c, &why) ==
+        CHECK_MSG(acsd::phase3::p3_proj_declare(c, &why) ==
                       P3WcsStatus::P3_WCS_UNSUPPORTED,
                   "未冻结/大小写变体 → UNSUPPORTED");
         CHECK_MSG(contains(why, "supported projections: TAN"),
                   "未知码拒绝原因也列出已支持清单");
     }
     std::string zwhy;
-    astrocs::phase3::p3_proj_declare("ZZZ", &zwhy);
+    acsd::phase3::p3_proj_declare("ZZZ", &zwhy);
     CHECK_MSG(contains(zwhy, "unknown projection code"),
               "未冻结码标注为未知码（与冻结未实现区分）");
     std::string swhy;
-    astrocs::phase3::p3_proj_declare("SIN", &swhy);
+    acsd::phase3::p3_proj_declare("SIN", &swhy);
     CHECK_MSG(contains(swhy, "not product-declarable"),
               "冻结未实现码标注为不可声明（原因可追溯）");
     // 缺省 = TAN（非静默回落: 缺省是冻结语义）
     std::string dwhy;
-    CHECK_MSG(astrocs::phase3::p3_proj_declare(nullptr, &dwhy) ==
+    CHECK_MSG(acsd::phase3::p3_proj_declare(nullptr, &dwhy) ==
                   P3WcsStatus::P3_WCS_OK,
               "缺省投影 = TAN");
 }
@@ -205,41 +205,41 @@ void test_implemented_positive() {
     const double scales[4] = {0.0001389, 0.001, 0.005, 0.02};
     for (double s : scales) {
         P3WcsDescriptor d{};
-        CHECK_MSG(astrocs::phase3::p3_wcs_make(150.0, 2.0, s, 97, 89, "east_left",
+        CHECK_MSG(acsd::phase3::p3_wcs_make(150.0, 2.0, s, 97, 89, "east_left",
                                                0.0, &d, "TAN") ==
                       P3WcsStatus::P3_WCS_OK,
                   "TAN make 成功");
         double max_err = -1.0;
-        CHECK_MSG(astrocs::phase3::p3_wcs_roundtrip_max_error_px(&d, &max_err) ==
+        CHECK_MSG(acsd::phase3::p3_wcs_roundtrip_max_error_px(&d, &max_err) ==
                       P3WcsStatus::P3_WCS_OK,
                   "往返检查可执行");
         // 适用门由单一事实源给出（紧门/全域保守门按尺度选择）; 本测试不硬编第二份
-        const astrocs::phase3::P3WcsRoundtripGate gate =
-            astrocs::phase3::p3_wcs_roundtrip_gate(&d);
+        const acsd::phase3::P3WcsRoundtripGate gate =
+            acsd::phase3::p3_wcs_roundtrip_gate(&d);
         CHECK_MSG(gate.status != P3WcsRoundtripGateStatus::P3_WCS_RT_GATE_OUT_OF_DOMAIN,
                   "该尺度下存在适用的往返门");
         CHECK_MSG(max_err >= 0.0 && max_err < gate.tol_px,
                   "TAN 往返误差 < 该尺度适用门值（单一事实源 p3_wcs_applicability）");
-        CHECK_MSG(astrocs::phase3::p3_wcs_check_applicability(&d, nullptr) ==
+        CHECK_MSG(acsd::phase3::p3_wcs_check_applicability(&d, nullptr) ==
                       P3WcsStatus::P3_WCS_OK,
                   "TAN 适用域检查通过");
-        const std::string kw = astrocs::phase3::p3_wcs_fits_keywords(&d);
+        const std::string kw = acsd::phase3::p3_wcs_fits_keywords(&d);
         CHECK_MSG(contains(kw, "RA---TAN") && contains(kw, "DEC--TAN"),
                   "CTYPE 面 = RA---TAN / DEC--TAN");
         const double det = d.cd[0][0] * d.cd[1][1] - d.cd[0][1] * d.cd[1][0];
         CHECK_MSG(det < 0.0, "手性 det(CD) < 0");
         CHECK_MSG(d.crpix_x == (97 + 1) / 2.0 && d.crpix_y == (89 + 1) / 2.0,
                   "CRPIX = FITS 1-based 像素中心 (W+1)/2");
-        CHECK_MSG(astrocs::phase3::p3_wcs_fov_deg(s, 97, 89) <= 20.0,
+        CHECK_MSG(acsd::phase3::p3_wcs_fov_deg(s, 97, 89) <= 20.0,
                   "FOV 在适用域内");
     }
     // 往返判据非退化: 双桥接（+1px）注入必被 1e-8 px 门捕获
     P3WcsDescriptor d{};
-    astrocs::phase3::p3_wcs_make(150.0, 2.0, 0.001, 97, 89, "east_left", 0.0, &d,
+    acsd::phase3::p3_wcs_make(150.0, 2.0, 0.001, 97, 89, "east_left", 0.0, &d,
                                  "TAN");
     double ra = 0.0, dec = 0.0, x = 0.0, y = 0.0;
-    astrocs::phase3::p3_wcs_pix2world(&d, 32.0, 32.0, &ra, &dec);
-    astrocs::phase3::p3_wcs_world2pix(&d, ra, dec, &x, &y);
+    acsd::phase3::p3_wcs_pix2world(&d, 32.0, 32.0, &ra, &dec);
+    acsd::phase3::p3_wcs_world2pix(&d, ra, dec, &x, &y);
     CHECK_MSG(std::hypot(x - 32.0, y - 32.0) < kRoundtripTolPx,
               "无注入: 往返 < 1e-8 px");
     CHECK_MSG(std::hypot(x - 33.0, y - 32.0) > kRoundtripTolPx,
@@ -250,47 +250,47 @@ void test_implemented_positive() {
 void test_applicability_rejections() {
     P3WcsDescriptor d{};
     // |CRVAL2| > 85°
-    CHECK_MSG(astrocs::phase3::p3_wcs_make(150.0, 85.1, 0.001, 64, 64,
+    CHECK_MSG(acsd::phase3::p3_wcs_make(150.0, 85.1, 0.001, 64, 64,
                                            "east_left", 0.0, &d, "TAN") ==
                   P3WcsStatus::P3_WCS_PARAM,
               "|CRVAL2|>85° → 拒绝");
     // FOV > 20°（0.05 deg/px × √(512²+512²) = 36.2°）
-    CHECK_MSG(astrocs::phase3::p3_wcs_fov_deg(0.05, 512, 512) > 20.0,
+    CHECK_MSG(acsd::phase3::p3_wcs_fov_deg(0.05, 512, 512) > 20.0,
               "FOV 计算超 20°");
-    CHECK_MSG(astrocs::phase3::p3_wcs_make(150.0, 2.0, 0.05, 512, 512,
+    CHECK_MSG(acsd::phase3::p3_wcs_make(150.0, 2.0, 0.05, 512, 512,
                                            "east_left", 0.0, &d, "TAN") ==
                   P3WcsStatus::P3_WCS_PARAM,
               "FOV>20° → 拒绝（SCI §9a-12）");
-    CHECK_MSG(astrocs::phase3::p3_wcs_make(150.0, 2.0, 0.02, 512, 512,
+    CHECK_MSG(acsd::phase3::p3_wcs_make(150.0, 2.0, 0.02, 512, 512,
                                            "east_left", 0.0, &d, "TAN") ==
                   P3WcsStatus::P3_WCS_OK,
               "FOV=14.5° 边界内 → 接受（门非恒红）");
     // 手性 det(CD) >= 0（手工 descriptor: 正向 east_right 注入）
     P3WcsDescriptor bad{};
-    astrocs::phase3::p3_wcs_make(150.0, 2.0, 0.001, 64, 64, "east_left", 0.0, &bad,
+    acsd::phase3::p3_wcs_make(150.0, 2.0, 0.001, 64, 64, "east_left", 0.0, &bad,
                                  "TAN");
     bad.cd[0][0] = std::fabs(bad.cd[0][0]);
     bad.cd[1][1] = std::fabs(bad.cd[1][1]);
     std::string why;
-    CHECK_MSG(astrocs::phase3::p3_wcs_check_applicability(&bad, &why) ==
+    CHECK_MSG(acsd::phase3::p3_wcs_check_applicability(&bad, &why) ==
                   P3WcsStatus::P3_WCS_PARAM,
               "det(CD)>0 → 拒绝");
     CHECK_MSG(contains(why, "chirality"), "手性拒绝原因可读");
     // CRPIX 非 FITS 1-based 像素中心
     P3WcsDescriptor bad2{};
-    astrocs::phase3::p3_wcs_make(150.0, 2.0, 0.001, 64, 64, "east_left", 0.0,
+    acsd::phase3::p3_wcs_make(150.0, 2.0, 0.001, 64, 64, "east_left", 0.0,
                                  &bad2, "TAN");
     bad2.crpix_x = 0.0;
-    CHECK_MSG(astrocs::phase3::p3_wcs_check_applicability(&bad2, &why) ==
+    CHECK_MSG(acsd::phase3::p3_wcs_check_applicability(&bad2, &why) ==
                   P3WcsStatus::P3_WCS_PARAM,
               "CRPIX 非 (W+1)/2 → 拒绝");
     CHECK_MSG(contains(why, "CRPIX"), "CRPIX 拒绝原因可读");
     // 未声明适用域的投影 → UNSUPPORTED（fail-closed）
-    CHECK_MSG(astrocs::phase3::p3_wcs_applicability("SIN") == nullptr,
+    CHECK_MSG(acsd::phase3::p3_wcs_applicability("SIN") == nullptr,
               "SIN 无适用域声明 → nullptr");
-    CHECK_MSG(astrocs::phase3::p3_wcs_applicability("TAN") != nullptr,
+    CHECK_MSG(acsd::phase3::p3_wcs_applicability("TAN") != nullptr,
               "TAN 有适用域声明");
-    const P3WcsApplicability* ap = astrocs::phase3::p3_wcs_applicability("TAN");
+    const P3WcsApplicability* ap = acsd::phase3::p3_wcs_applicability("TAN");
     CHECK_MSG(ap->max_abs_crval_dec_deg == 85.0 && ap->max_fov_deg == 20.0 &&
                   ap->require_negative_det_cd &&
                   ap->crpix_fits_1based_pixel_center &&
@@ -308,24 +308,24 @@ void test_applicability_rejections() {
 // ---- C5: 跨注册表一致（v6 内核行不得冒充产品声明）------------------------
 void test_cross_registry() {
     int nv = 0;
-    const astrocs::phase3proj::v6::Spec* v6 =
-        astrocs::phase3proj::v6::registry_table(&nv);
+    const acsd::phase3proj::v6::Spec* v6 =
+        acsd::phase3proj::v6::registry_table(&nv);
     CHECK_MSG(nv == 4, "v6 内核 registry 4 行（TAN/SIN/CAR/AIT）");
     for (int i = 0; i < nv; ++i) {
         const char* code = v6[i].code;
-        CHECK_MSG(astrocs::phase3::p3_proj_is_frozen_code(code),
+        CHECK_MSG(acsd::phase3::p3_proj_is_frozen_code(code),
                   "v6 内核行 ∈ 冻结集");
-        if (astrocs::phase3::p3_proj_is_declared(code)) continue;
+        if (acsd::phase3::p3_proj_is_declared(code)) continue;
         // 内核已实现但产品未接线: 冻结表必须如实标为 kKernelOnly
         int nf = 0;
-        const P3ProjFrozenEntry* ft = astrocs::phase3::p3_proj_frozen_table(&nf);
+        const P3ProjFrozenEntry* ft = acsd::phase3::p3_proj_frozen_table(&nf);
         for (int k = 0; k < nf; ++k) {
             if (std::strcmp(ft[k].code, code) != 0) continue;
             CHECK_MSG(ft[k].status == P3ProjProductStatus::kKernelOnly,
                       "v6 已实现但未接线的码标为 kKernelOnly（不得声称支持）");
         }
         std::string why;
-        CHECK_MSG(astrocs::phase3::p3_proj_declare(code, &why) !=
+        CHECK_MSG(acsd::phase3::p3_proj_declare(code, &why) !=
                       P3WcsStatus::P3_WCS_OK,
                   "v6 内核码不得经产品声明门放行");
     }
@@ -333,14 +333,14 @@ void test_cross_registry() {
     // ---- C5b: max_fov_deg 的**直径惯例**与逐投影声明值锁（R-40 / P-081）----
     // 惯例 = 球面上离参考点的最大合法角距 ×2；域界为整球者上限即 180°（= 2×90°）。
     // 负例内建: 改前 AIT=360.0 使 (a) 判红（360 > 180 = 整球直径）。
-    const astrocs::phase3proj::v6::Spec* s_tan =
-        astrocs::phase3proj::v6::registry_find("TAN");
-    const astrocs::phase3proj::v6::Spec* s_sin =
-        astrocs::phase3proj::v6::registry_find("SIN");
-    const astrocs::phase3proj::v6::Spec* s_car =
-        astrocs::phase3proj::v6::registry_find("CAR");
-    const astrocs::phase3proj::v6::Spec* s_ait =
-        astrocs::phase3proj::v6::registry_find("AIT");
+    const acsd::phase3proj::v6::Spec* s_tan =
+        acsd::phase3proj::v6::registry_find("TAN");
+    const acsd::phase3proj::v6::Spec* s_sin =
+        acsd::phase3proj::v6::registry_find("SIN");
+    const acsd::phase3proj::v6::Spec* s_car =
+        acsd::phase3proj::v6::registry_find("CAR");
+    const acsd::phase3proj::v6::Spec* s_ait =
+        acsd::phase3proj::v6::registry_find("AIT");
     CHECK_MSG(s_tan && s_sin && s_car && s_ait, "四行声明值可按 code 查到");
     if (s_tan && s_sin && s_car && s_ait) {
         CHECK_MSG(s_tan->max_fov_deg == 20.0,
@@ -372,15 +372,15 @@ void test_cross_registry() {
 // 注: 该工况冻结值 = 5e-5 deg/px（0.18″/px）,
 //     而 0.18″/px 恰是紧门保守性的临界尺度 （GATE-WCS-01 判据）。
 void test_tolerance_freeze() {
-    const P3WcsApplicability* ap = astrocs::phase3::p3_wcs_applicability("TAN");
+    const P3WcsApplicability* ap = acsd::phase3::p3_wcs_applicability("TAN");
     CHECK_MSG(ap != nullptr, "C7: TAN 适用域已声明");
     CHECK_MSG(ap->roundtrip_tol_px == kRoundtripTolPx && kRoundtripTolPx <= 1e-8,
               "C7: 紧门冻结 = 1e-8 px（Oracle 冻结；禁放宽回 1e-6）");
     P3WcsDescriptor d{};
-    CHECK_MSG(astrocs::phase3::p3_wcs_make(150.0, 85.0, 0.00005, 129, 129, "east_left",
+    CHECK_MSG(acsd::phase3::p3_wcs_make(150.0, 85.0, 0.00005, 129, 129, "east_left",
                                            30.0, &d) == P3WcsStatus::P3_WCS_OK,
               "C7: 最坏工况几何 make 放行（不判红）");
-    const P3WcsRoundtripGate gate = astrocs::phase3::p3_wcs_roundtrip_gate(&d);
+    const P3WcsRoundtripGate gate = acsd::phase3::p3_wcs_roundtrip_gate(&d);
     CHECK_MSG(gate.status == P3WcsRoundtripGateStatus::P3_WCS_RT_GATE_GLOBAL,
               "C7: 0.18″/px < min_scale 0.9 ⇒ 紧门不适用, 退回全域保守门");
     CHECK_MSG(std::fabs(gate.scale_arcsec_per_px - 0.18) < 1e-9,
@@ -391,12 +391,12 @@ void test_tolerance_freeze() {
               "C7: 全域门余量 ≥ 4×（冻结值非擦边）");
     double err = -1.0;
     int n_dense = 0;
-    CHECK_MSG(astrocs::phase3::p3_wcs_roundtrip_dense_max_error_px(&d, &err, &n_dense) ==
+    CHECK_MSG(acsd::phase3::p3_wcs_roundtrip_dense_max_error_px(&d, &err, &n_dense) ==
                   P3WcsStatus::P3_WCS_OK,
               "C7: 最坏工况密集域往返可测");
     CHECK_MSG(err > 0.0 && err * 4.0 < gate.tol_px && n_dense > 1000,
               "C7: 实测 >0 且余量 ≥ 4×（冻结值非擦边/非退化）");
-    CHECK_MSG(astrocs::phase3::p3_wcs_check_applicability(&d, nullptr) ==
+    CHECK_MSG(acsd::phase3::p3_wcs_check_applicability(&d, nullptr) ==
                   P3WcsStatus::P3_WCS_OK,
               "C7: 分层后最坏工况无假红");
 }
@@ -412,17 +412,17 @@ void test_tolerance_freeze() {
 //   ④ 密集域扫描非退化: dense ≥ nine（超集性质）, 且对「门值缩小 1e6 倍」的
 //      同一判据必红（能红能绿）。
 void test_gate_domain_and_dense_scan() {
-    const P3WcsApplicability* ap = astrocs::phase3::p3_wcs_applicability("TAN");
+    const P3WcsApplicability* ap = acsd::phase3::p3_wcs_applicability("TAN");
     CHECK_MSG(ap != nullptr, "C8: TAN 适用域已声明");
 
     // ① 紧门适用（尺度 ≥ min_scale）: 3.6″/px
     {
         P3WcsDescriptor d{};
-        CHECK_MSG(astrocs::phase3::p3_wcs_make(150.0, 2.0, 0.001, 256, 256,
+        CHECK_MSG(acsd::phase3::p3_wcs_make(150.0, 2.0, 0.001, 256, 256,
                                                "east_left", 0.0, &d) ==
                       P3WcsStatus::P3_WCS_OK,
                   "C8①: 3.6″/px make 放行");
-        const P3WcsRoundtripGate g = astrocs::phase3::p3_wcs_roundtrip_gate(&d);
+        const P3WcsRoundtripGate g = acsd::phase3::p3_wcs_roundtrip_gate(&d);
         CHECK_MSG(g.status == P3WcsRoundtripGateStatus::P3_WCS_RT_GATE_TIGHT &&
                       g.tol_px == kRoundtripTolPx && g.margin > 1.0,
                   "C8①: 紧门适用且余量 > 1×（真值输入必绿）");
@@ -432,27 +432,27 @@ void test_gate_domain_and_dense_scan() {
     {
         // ②a 0.18″/px: 紧门不适用, 退回全域保守门（仍保守）
         P3WcsDescriptor d{};
-        CHECK_MSG(astrocs::phase3::p3_wcs_make(150.0, 2.0, 0.00005, 129, 129,
+        CHECK_MSG(acsd::phase3::p3_wcs_make(150.0, 2.0, 0.00005, 129, 129,
                                                "east_left", 0.0, &d) ==
                       P3WcsStatus::P3_WCS_OK,
                   "C8②a: 0.18″/px（< min_scale）make 仍放行");
-        const P3WcsRoundtripGate g = astrocs::phase3::p3_wcs_roundtrip_gate(&d);
+        const P3WcsRoundtripGate g = acsd::phase3::p3_wcs_roundtrip_gate(&d);
         CHECK_MSG(g.status == P3WcsRoundtripGateStatus::P3_WCS_RT_GATE_GLOBAL,
                   "C8②a: 紧门超出适用域 ⇒ 退回全域保守门（不判红）");
         // ②b 0.001″/px: 两门包络均超 ⇒ OUT_OF_DOMAIN（明确报, 不判红）
         P3WcsDescriptor d2{};
         const double s_tiny = 0.001 / 3600.0;   // 0.001″/px
-        CHECK_MSG(astrocs::phase3::p3_wcs_make(150.0, 2.0, s_tiny, 64, 64,
+        CHECK_MSG(acsd::phase3::p3_wcs_make(150.0, 2.0, s_tiny, 64, 64,
                                                "east_left", 0.0, &d2) ==
                       P3WcsStatus::P3_WCS_OK,
                   "C8②b: 0.001″/px make 仍放行（不判红）");
-        const P3WcsRoundtripGate g2 = astrocs::phase3::p3_wcs_roundtrip_gate(&d2);
+        const P3WcsRoundtripGate g2 = acsd::phase3::p3_wcs_roundtrip_gate(&d2);
         CHECK_MSG(g2.status ==
                       P3WcsRoundtripGateStatus::P3_WCS_RT_GATE_OUT_OF_DOMAIN &&
                       g2.tol_px == 0.0 && g2.envelope_px > ap->roundtrip_tol_global_px,
                   "C8②b: 两门均超出适用域 ⇒ OUT_OF_DOMAIN（包络 > 全域门值）");
         std::string why;
-        CHECK_MSG(astrocs::phase3::p3_wcs_check_applicability(&d2, &why) ==
+        CHECK_MSG(acsd::phase3::p3_wcs_check_applicability(&d2, &why) ==
                       P3WcsStatus::P3_WCS_OK,
                   "C8②b: 报「超出适用域」而非判红（返回 OK）");
         CHECK_MSG(why.find("OUT OF APPLICABILITY DOMAIN") != std::string::npos &&
@@ -463,17 +463,17 @@ void test_gate_domain_and_dense_scan() {
         P3WcsDescriptor bad = d2;
         bad.cd[0][0] = std::fabs(bad.cd[0][0]);
         bad.cd[1][1] = std::fabs(bad.cd[1][1]);
-        CHECK_MSG(astrocs::phase3::p3_wcs_check_applicability(&bad, &why) ==
+        CHECK_MSG(acsd::phase3::p3_wcs_check_applicability(&bad, &why) ==
                       P3WcsStatus::P3_WCS_PARAM &&
                       why.find("chirality") != std::string::npos,
                   "C8③: 同尺度手性违规仍必红（非恒绿）");
         P3WcsDescriptor bad2 = d2;
         bad2.crpix_x = 0.0;
-        CHECK_MSG(astrocs::phase3::p3_wcs_check_applicability(&bad2, &why) ==
+        CHECK_MSG(acsd::phase3::p3_wcs_check_applicability(&bad2, &why) ==
                       P3WcsStatus::P3_WCS_PARAM &&
                       why.find("CRPIX") != std::string::npos,
                   "C8③: 同尺度 CRPIX 违规仍必红（非恒绿）");
-        CHECK_MSG(astrocs::phase3::p3_wcs_make(150.0, 2.0, 0.05, 512, 512,
+        CHECK_MSG(acsd::phase3::p3_wcs_make(150.0, 2.0, 0.05, 512, 512,
                                                "east_left", 0.0, &d2) ==
                       P3WcsStatus::P3_WCS_PARAM,
                   "C8③: FOV>20° 仍必红（非恒绿）");
@@ -482,16 +482,16 @@ void test_gate_domain_and_dense_scan() {
     // ④ 密集域扫描: 超集性质（dense ≥ nine）+ 能红能绿
     {
         P3WcsDescriptor d{};
-        CHECK_MSG(astrocs::phase3::p3_wcs_make(150.0, 85.0, 0.001, 512, 512,
+        CHECK_MSG(acsd::phase3::p3_wcs_make(150.0, 85.0, 0.001, 512, 512,
                                                "east_left", 30.0, &d) ==
                       P3WcsStatus::P3_WCS_OK,
                   "C8④: 大 FOV 几何 make 放行");
         double nine = -1.0, dense = -1.0;
         int n_dense = 0;
-        CHECK_MSG(astrocs::phase3::p3_wcs_roundtrip_max_error_px(&d, &nine) ==
+        CHECK_MSG(acsd::phase3::p3_wcs_roundtrip_max_error_px(&d, &nine) ==
                       P3WcsStatus::P3_WCS_OK,
                   "C8④: 9 点采样可测");
-        CHECK_MSG(astrocs::phase3::p3_wcs_roundtrip_dense_max_error_px(&d, &dense,
+        CHECK_MSG(acsd::phase3::p3_wcs_roundtrip_dense_max_error_px(&d, &dense,
                                                                       &n_dense) ==
                       P3WcsStatus::P3_WCS_OK,
                   "C8④: 密集域扫描可测");
@@ -507,7 +507,7 @@ void test_gate_domain_and_dense_scan() {
             CHECK_MSG(nine < tol_between && !(dense < tol_between),
                       "C8④: 存在 nine<tol<dense 的门值带 ⇒ 9 点门放行/密集域门判红");
         }
-        const P3WcsRoundtripGate g = astrocs::phase3::p3_wcs_roundtrip_gate(&d);
+        const P3WcsRoundtripGate g = acsd::phase3::p3_wcs_roundtrip_gate(&d);
         CHECK_MSG(dense > 0.0 && dense < g.tol_px, "C8④: 真值输入必绿");
         // 判据能红: 门值缩小 1e6 倍后同一实测值必超门（绿/红两侧都可判）
         CHECK_MSG(!(dense < g.tol_px * 1e-6), "C8④: 门值缩小 1e6 倍 ⇒ 必红（能红能绿）");
@@ -528,7 +528,7 @@ void test_gate_domain_and_dense_scan() {
 //   ③ 余量 > 1×（紧门带）且实测密集域 max < 适用门值（真值输入必绿）;
 //   ④ 边界非退化: 0.9 两侧门选择不同（不是恒 TIGHT 也不是恒 GLOBAL）。
 void test_gate_scale_table() {
-    const P3WcsApplicability* ap = astrocs::phase3::p3_wcs_applicability("TAN");
+    const P3WcsApplicability* ap = acsd::phase3::p3_wcs_applicability("TAN");
     CHECK_MSG(ap != nullptr, "C9: TAN 适用域已声明");
     const double u = 1.1102230246251565e-16;       // 2^-53
     const double arcsec_per_rad = 206264.80624709636;
@@ -537,11 +537,11 @@ void test_gate_scale_table() {
     for (double s_arcsec : scales) {
         P3WcsDescriptor d{};
         const double s_deg = s_arcsec / 3600.0;
-        const P3WcsStatus mk = astrocs::phase3::p3_wcs_make(
+        const P3WcsStatus mk = acsd::phase3::p3_wcs_make(
             150.0, 2.0, s_deg, 1024, 1024, "east_left", 0.0, &d);
         CHECK_MSG(mk == P3WcsStatus::P3_WCS_OK, "C9: 各真实尺度 make 放行");
         if (mk != P3WcsStatus::P3_WCS_OK) continue;
-        const P3WcsRoundtripGate g = astrocs::phase3::p3_wcs_roundtrip_gate(&d);
+        const P3WcsRoundtripGate g = acsd::phase3::p3_wcs_roundtrip_gate(&d);
         // ① 门选择
         if (s_arcsec >= ap->min_scale_arcsec) {
             CHECK_MSG(g.status == P3WcsRoundtripGateStatus::P3_WCS_RT_GATE_TIGHT &&
@@ -555,7 +555,7 @@ void test_gate_scale_table() {
             saw_global = true;
         }
         // ② 包络实现 == 独立复算式（测试侧独立计算）
-        const double fov = astrocs::phase3::p3_wcs_fov_deg(
+        const double fov = acsd::phase3::p3_wcs_fov_deg(
             std::sqrt(std::fabs(d.cd[0][0] * d.cd[1][1] - d.cd[0][1] * d.cd[1][0])),
             1024, 1024);
         const double half = 0.5 * fov * M_PI / 180.0;
@@ -567,7 +567,7 @@ void test_gate_scale_table() {
         // ③ 实测（密集域）必绿 + 余量
         double dense = -1.0;
         int n_dense = 0;
-        CHECK_MSG(astrocs::phase3::p3_wcs_roundtrip_dense_max_error_px(&d, &dense,
+        CHECK_MSG(acsd::phase3::p3_wcs_roundtrip_dense_max_error_px(&d, &dense,
                                                                       &n_dense) ==
                       P3WcsStatus::P3_WCS_OK,
                   "C9③: 密集域往返可测");
@@ -610,9 +610,9 @@ int self_test() {
     expect(criterion_holds({"TAN"}, {"TAN"}, {}), false, "可运行集为空必红");
     // 探针本体: TAN 可跑, 未实现码跑不通
     std::string detail;
-    expect(astrocs::phase3::p3_proj_probe("TAN", &detail) == P3WcsStatus::P3_WCS_OK,
+    expect(acsd::phase3::p3_proj_probe("TAN", &detail) == P3WcsStatus::P3_WCS_OK,
            true, "探针 TAN 可跑");
-    expect(astrocs::phase3::p3_proj_probe("SIN", &detail) == P3WcsStatus::P3_WCS_OK,
+    expect(acsd::phase3::p3_proj_probe("SIN", &detail) == P3WcsStatus::P3_WCS_OK,
            false, "探针 SIN 跑不通");
     if (bad == 0) {
         std::printf("PROJ REGISTRY SELF-TEST PASS: 判据在变异输入下必红, 真值输入必绿\n");
@@ -624,12 +624,12 @@ int self_test() {
 // ---- 可运行矩阵（证据模式, 不参与断言）------------------------------------
 // 逐一实跑 8 冻结码的**产品路径**与 **v6 内核路径**, 打印「跑得通/跑不通」,
 // 用于回答「文档说 1、代码说 4」——以可运行验证为准（MOD-01 🔴P17）。
-const char* v6_status_name(astrocs::phase3proj::v6::ProjStatus s) {
+const char* v6_status_name(acsd::phase3proj::v6::ProjStatus s) {
     switch (s) {
-        case astrocs::phase3proj::v6::ProjStatus::kOk: return "OK";
-        case astrocs::phase3proj::v6::ProjStatus::kParam: return "PARAM";
-        case astrocs::phase3proj::v6::ProjStatus::kUnsupported: return "UNSUPPORTED";
-        case astrocs::phase3proj::v6::ProjStatus::kHemisphere: return "HEMISPHERE";
+        case acsd::phase3proj::v6::ProjStatus::kOk: return "OK";
+        case acsd::phase3proj::v6::ProjStatus::kParam: return "PARAM";
+        case acsd::phase3proj::v6::ProjStatus::kUnsupported: return "UNSUPPORTED";
+        case acsd::phase3proj::v6::ProjStatus::kHemisphere: return "HEMISPHERE";
     }
     return "?";
 }
@@ -645,10 +645,10 @@ const char* p3_status_name(P3WcsStatus s) {
 }
 
 int matrix_mode() {
-    using astrocs::phase3proj::v6::Descriptor;
-    using astrocs::phase3proj::v6::ProjStatus;
+    using acsd::phase3proj::v6::Descriptor;
+    using acsd::phase3proj::v6::ProjStatus;
     int n = 0;
-    const P3ProjFrozenEntry* tab = astrocs::phase3::p3_proj_frozen_table(&n);
+    const P3ProjFrozenEntry* tab = acsd::phase3::p3_proj_frozen_table(&n);
     std::printf("%-4s %-10s %-11s %-22s %-12s\n", "code", "declarable",
                 "implemented", "product_probe", "v6_kernel");
     int n_product_ok = 0;
@@ -656,24 +656,24 @@ int matrix_mode() {
     for (int i = 0; i < n; ++i) {
         const char* code = tab[i].code;
         std::string detail;
-        const P3WcsStatus ps = astrocs::phase3::p3_proj_probe(code, &detail);
+        const P3WcsStatus ps = acsd::phase3::p3_proj_probe(code, &detail);
         if (ps == P3WcsStatus::P3_WCS_OK) ++n_product_ok;
         // v6 内核路径（独立于产品路径）: registry 查表 + make + 往返
-        const astrocs::phase3proj::v6::Spec* sp =
-            astrocs::phase3proj::v6::registry_find(code);
+        const acsd::phase3proj::v6::Spec* sp =
+            acsd::phase3proj::v6::registry_find(code);
         std::string kstatus = "not-implemented";
         if (sp != nullptr) {
             Descriptor d{};
-            const ProjStatus ms = astrocs::phase3proj::v6::make(
+            const ProjStatus ms = acsd::phase3proj::v6::make(
                 sp->id, 150.0, 2.0, 0.0001389, 64, 64, "east_left", 0.0, &d);
             if (ms != ProjStatus::kOk) {
                 kstatus = v6_status_name(ms);
             } else {
                 double ra = 0.0, dec = 0.0, x = 0.0, y = 0.0;
-                const ProjStatus a = astrocs::phase3proj::v6::pix2world(
+                const ProjStatus a = acsd::phase3proj::v6::pix2world(
                     &d, 32.0, 32.0, &ra, &dec);
                 const ProjStatus b = (a == ProjStatus::kOk)
-                                         ? astrocs::phase3proj::v6::world2pix(
+                                         ? acsd::phase3proj::v6::world2pix(
                                                &d, ra, dec, &x, &y)
                                          : a;
                 if (b == ProjStatus::kOk && std::hypot(x - 32.0, y - 32.0) < kRoundtripTolPx) {
@@ -685,8 +685,8 @@ int matrix_mode() {
             }
         }
         std::printf("%-4s %-10s %-11s %-22s %-12s\n", code,
-                    astrocs::phase3::p3_proj_is_declared(code) ? "yes" : "no",
-                    astrocs::phase3::p3_proj_is_implemented(code) ? "yes" : "no",
+                    acsd::phase3::p3_proj_is_declared(code) ? "yes" : "no",
+                    acsd::phase3::p3_proj_is_implemented(code) ? "yes" : "no",
                     p3_status_name(ps), kstatus.c_str());
     }
     std::printf("product-runnable=%d/8  v6-kernel-runnable=%d/8\n", n_product_ok,

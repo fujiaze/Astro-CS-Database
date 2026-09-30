@@ -4,7 +4,7 @@
 # 控制包任务: P1-COS-TEST (SA-P1O-T, queue 34, lock-P1-COS; 依赖 P1-COS-DOC
 # 闭环)。合同锚: docs/science/algorithms/COSMETIC_ALGORITHMS.md §9
 # TEST-COS-DESIGN-001 (P1-COS-DOC 冻结, 2026-09-07, wave W1); 矩阵行
-# P1-COS (MOD astrocs.p1.cosmetic)。
+# P1-COS (MOD acsd.p1.cosmetic)。
 #
 # 结构 (模块 eng/tests/{unit,properties,oracle,fixtures,negative,performance} 对应):
 #   p1cos/p1cos_fixtures.hpp     — FIX-COS-A..F 固定 seed fixture generator
@@ -22,7 +22,7 @@
 #                        + 1-N worker bitwise
 #   p1cos_performance  — perf 基线哨兵 (parity 4x/trend 0.25x/bitwise)
 #   p1cos_selfcheck    — 故障注入必败自检 (验收: 注入可失败)
-# 被测面: 现状唯一生产实现 ac_correct_frame(+_f64) (CMake astrocs_calibration,
+# 被测面: 现状唯一生产实现 ac_correct_frame(+_f64) (CMake acsd_calibration,
 # lib/algorithms/calibration/src/cosmetic_corrector.cpp + ac_api.cpp); lib/algorithms/cosmetic/ 为
 # P1-COS 迁移目标目录 (P1-COS-IMPL 落码后本测试面直接复用, 冻结容差不变)。
 # ============================================================================
@@ -36,7 +36,7 @@ add_executable(p1cos_tests
 target_include_directories(p1cos_tests PRIVATE
   ${CMAKE_CURRENT_SOURCE_DIR}/../../../../lib/algorithms/calibration/include
   ${P1COS_DIR})
-target_link_libraries(p1cos_tests PRIVATE astrocs_calibration ${ASTROCS_OMP_TARGET})
+target_link_libraries(p1cos_tests PRIVATE acsd_calibration ${ACSD_OMP_TARGET})
 # 单组单跑: ctest -R p1cos_units / p1cos_properties / p1cos_negative / p1cos_cosmetic
 add_test(NAME p1cos_units COMMAND p1cos_tests units)
 add_test(NAME p1cos_properties COMMAND p1cos_tests properties)
@@ -49,7 +49,7 @@ add_executable(p1cos_perf_test
 target_include_directories(p1cos_perf_test PRIVATE
   ${CMAKE_CURRENT_SOURCE_DIR}/../../../../lib/algorithms/calibration/include
   ${P1COS_DIR})
-target_link_libraries(p1cos_perf_test PRIVATE astrocs_calibration ${ASTROCS_OMP_TARGET})
+target_link_libraries(p1cos_perf_test PRIVATE acsd_calibration ${ACSD_OMP_TARGET})
 add_test(NAME p1cos_performance COMMAND p1cos_perf_test)
 
 # 故障注入必败自检 (验收: baseline 必 PASS + 注入必 FAIL 双向排除恒常)
@@ -59,7 +59,7 @@ add_executable(p1cos_selfcheck_test
 target_include_directories(p1cos_selfcheck_test PRIVATE
   ${CMAKE_CURRENT_SOURCE_DIR}/../../../../lib/algorithms/calibration/include
   ${P1COS_DIR})
-target_link_libraries(p1cos_selfcheck_test PRIVATE astrocs_calibration ${ASTROCS_OMP_TARGET})
+target_link_libraries(p1cos_selfcheck_test PRIVATE acsd_calibration ${ACSD_OMP_TARGET})
 add_test(NAME p1cos_selfcheck COMMAND p1cos_selfcheck_test)
 
 # ============================================================================
@@ -75,6 +75,6 @@ add_test(NAME p1cos_selfcheck COMMAND p1cos_selfcheck_test)
 add_executable(p1cos_badcol_tests ${P1COS_DIR}/p1cos_tests_badcol.cpp)
 target_include_directories(p1cos_badcol_tests PRIVATE
   ${CMAKE_CURRENT_SOURCE_DIR}/../../../../lib/algorithms/calibration/include)
-target_link_libraries(p1cos_badcol_tests PRIVATE astrocs_calibration ${ASTROCS_OMP_TARGET})
+target_link_libraries(p1cos_badcol_tests PRIVATE acsd_calibration ${ACSD_OMP_TARGET})
 add_test(NAME p1cos_badcol COMMAND p1cos_badcol_tests)
 add_test(NAME p1cos_badcol_selfcheck COMMAND p1cos_badcol_tests --self-test)

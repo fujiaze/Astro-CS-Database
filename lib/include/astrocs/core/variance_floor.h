@@ -30,8 +30,8 @@
 //     非有限原样保留**（那是「不可用」与「损坏」，不得由本函数改写）。
 // ============================================================================
 
-#ifndef ASTROCS_CORE_VARIANCE_FLOOR_H
-#define ASTROCS_CORE_VARIANCE_FLOOR_H
+#ifndef ACSD_CORE_VARIANCE_FLOOR_H
+#define ACSD_CORE_VARIANCE_FLOOR_H
 
 #include <algorithm>
 #include <cmath>
@@ -40,7 +40,7 @@
 #include <string>
 #include <vector>
 
-namespace astrocs {
+namespace acsd {
 
 // dtype 的最小**正**可表示值（denorm_min）。f32 = 1.401298464324817e-45。
 inline double variance_dtype_min_positive(bool product_is_f64) {
@@ -157,6 +157,6 @@ inline std::string variance_floor_provenance_json(const VarianceFloor& f) {
     return s;
 }
 
-}  // namespace astrocs
+}  // namespace acsd
 
-#endif  // ASTROCS_CORE_VARIANCE_FLOOR_H
+#endif  // ACSD_CORE_VARIANCE_FLOOR_H

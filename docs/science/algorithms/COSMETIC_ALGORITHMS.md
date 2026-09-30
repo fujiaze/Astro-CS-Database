@@ -1,17 +1,17 @@
 # Cosmetic Correction Algorithms (P1-COS)
 
-> 上游：ASTROCS_DESIGN.md §4.2（Phase1 节点流程）
+> 上游：ACSD_DESIGN.md §4.2（Phase1 节点流程）
 
 > 实现唯一生产源 =
 > `lib/algorithms/calibration/src/cosmetic_corrector.cpp`（CMake 目标
-> `astrocs_calibration`（源清单 `lib/algorithms/calibration/CMakeLists.txt:20-25`）；C ABI 导出
+> `acsd_calibration`（源清单 `lib/algorithms/calibration/CMakeLists.txt:20-25`）；C ABI 导出
 > `lib/algorithms/calibration/src/ac_api.cpp:108,228`，签名权威
 > `lib/algorithms/calibration/include/astro_calibration.h:97,142`）；迁移目标目录
 > `lib/algorithms/cosmetic/`（落码由 P1-COS-IMPL 执行，尚未存在生产符号）。
 > 科学定义见 `docs/science/CALIBRATION.md`（SCI-CAL-001，FROZEN，§2 参数表
 > `hot_sigma/cold_sigma/method/max_structure_size`、§6 假设、§9a mask 极性
 > 1=坏点）。本文档只登记离散算法与实现事实，不修改 SCI；算法分层与
-> ALG-CAL-004 的重叠界定见 §0。状态词唯一口径 = `ASTROCS_DESIGN.md` §12.5；IMPLEMENTED 只由验收签发。
+> ALG-CAL-004 的重叠界定见 §0。状态词唯一口径 = `ACSD_DESIGN.md` §12.5；IMPLEMENTED 只由验收签发。
 
 ## 0 范围与 ALG-CAL-004 重叠界定
 
@@ -28,9 +28,9 @@ interpolate_pixels/correct_frame`（cosmetic_corrector.cpp:61-265，经
   均以本文档为准）。
 - **单一生产源（冻结）**：本文档全部 `文件:行` 锚点在不写全路径时一律指
   `lib/algorithms/calibration/src/cosmetic_corrector.cpp`（CMake 目标
-  `astrocs_calibration` 与 `astrocs_p1_calibration` 的生产源；
+  `acsd_calibration` 与 `acsd_p1_calibration` 的生产源；
   `lib/algorithms/calibration/CMakeLists.txt:20-25` 的 CMake 变量 `set(CAL_PROD_SOURCES …)`
-  与根 `CMakeLists.txt:617-626` 的 `add_library(astrocs_calibration STATIC ...)`
+  与根 `CMakeLists.txt:617-626` 的 `add_library(acsd_calibration STATIC ...)`
   源清单均含它）；
   同名文件 `lib/algorithms/calibration/cpp/cosmetic_corrector.cpp` **已退役**，
   登记见 §8。二者是两套独立实现，**本模块行为的口径唯一取自生产源；cpp/ 版本的公式、阈值或退化语义无资格**
@@ -78,7 +78,7 @@ interpolate_pixels/correct_frame`（cosmetic_corrector.cpp:61-265，经
 - **适用域（`mad=0` 退化，冻结判据）**：`mad = median(|src − med|) = 0` ⇔
   至少半数像素恰等于中位数。此时 `σ = 0`、阈值退化为 `med`（热）/`med`（冷），
   判定变成"**是否严格大于/小于中位数**"，与坏点无关。**实测（驱动生产静态库
-  `astrocs_calibration` 的 `ac::detect_hot_pixels` / `ac::correct_frame`）**：
+  `acsd_calibration` 的 `ac::detect_hot_pixels` / `ac::correct_frame`）**：
   32×32 帧、80% 像素为 100.0、20%（205 px）为孤立的 100+50.0 ⇒ 检出 205/205
   （真值 0），且 `ac::correct_frame` 实际改写 205/1024 像素；对照组同尺寸帧注入
   3 个孤立热像素（+200/+300/+400 ADU，帧内 σ≈7.08 ADU）⇒ 检出恰 3 个。
@@ -368,7 +368,7 @@ var_out[y][x] = (Σw² · var_in[y][x]) · κ      # 只对被修复列（掩膜
   含 NaN/Inf 时，调用方**必须**在进入本层前拒绝该帧或显式降级登记
   （"检测不可用"），**"阈值 NaN ⇒ 判定全 false ⇒ 0 检出"一律按降级标记消费**；
   本层自身的 NaN 行为按上列现状断言，不构成"已处理 NaN"的保证。
-- 无 fast-math（CMake 主构建，CMakeLists.txt astrocs_calibration 无
+- 无 fast-math（CMake 主构建，CMakeLists.txt acsd_calibration 无
   相关 flag；非生产 MinGW 通道除外）。
 
 ## 8 非生产通道与待迁移符号
@@ -378,7 +378,7 @@ var_out[y][x] = (Σw² · var_in[y][x]) · κ      # 只对被修复列（掩膜
   cc_detect_hot/cc_detect_cold/cc_last_error），唯一构建路径是同目录 Windows
   MinGW `Makefile`（产物 `cosmetic_corrector.dll`）；**不在任何 CMake 目标
   内**（`lib/algorithms/calibration/CMakeLists.txt:20-25` 的 CMake 变量 `set(CAL_PROD_SOURCES …)`
-  与根 `CMakeLists.txt` 的 `astrocs_calibration` 源清单都不含它），仓内无消费者，`lib/algorithms/calibration/python/` 与
+  与根 `CMakeLists.txt` 的 `acsd_calibration` 源清单都不含它），仓内无消费者，`lib/algorithms/calibration/python/` 与
   `cosmetic_corrector.dll` 在当前树中不存在。**退役理由（逐条实测事实，非风格差异）**：
   | 项 | 生产源 `src/cosmetic_corrector.cpp` | 退役源 `cpp/cosmetic_corrector.cpp` |
   |---|---|---|
@@ -390,7 +390,7 @@ var_out[y][x] = (Σw² · var_in[y][x]) · κ      # 只对被修复列（掩膜
   | 全局统计 | 单线程 median/MAD | 同口径但偶数样本用两次 `nth_element`（:39-45，数值等价） |
   ⇒ 二者在**退化语义与边界语义上给出不同数值**，属两套独立实现。现状依据与新测试 oracle 一律取自生产源；如需其能力（参数化
   窗口）应迁入生产源并走 ALG 变更流程；权威口径始终是生产源。
-- 迁移落点: `lib/algorithms/cosmetic/`（P1-COS-IMPL 建 astrocs_p1_cosmetic.dll +
+- 迁移落点: `lib/algorithms/cosmetic/`（P1-COS-IMPL 建 acsd_p1_cosmetic.dll +
   C ABI adapter + plan/execute/cancel/inspect + ThreadLease 接线）；
   本文档不改任何生产代码。
 
@@ -492,7 +492,7 @@ var_out[y][x] = (Σw² · var_in[y][x]) · κ      # 只对被修复列（掩膜
 - API: API-COS-001（docs/engineering/PUBLIC_API.md，ac_correct_frame/
   ac_correct_frame_f64/ac_set_num_threads）；API-P1-002
   （docs/engineering/PHASE1_API_V1.md §2，编排合同，多模块共享）。
-- MOD/SRC: MOD-astrocs-phase1-cosmetic（lib/algorithms/cosmetic/module.yaml，
+- MOD/SRC: MOD-acsd-phase1-cosmetic（lib/algorithms/cosmetic/module.yaml，
   CONTRACT_READY；lib/algorithms/cosmetic/README.md 实现事实）。
 - TEST: TEST-COS-DESIGN-001（本文档 §9）；可执行 TEST-P1-COS-001 由
   P1-COS-TEST 建立。

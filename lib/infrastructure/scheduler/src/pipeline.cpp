@@ -1,6 +1,6 @@
 // CORE-004 / RT-004: Pipeline IR 解析 + 静态验证
 // 使用 nlohmann::json（真正 JSON parser），schema 驱动校验，接受完整 ModuleRegistry。
-#include "astrocs/core/pipeline.h"
+#include "acsd/core/pipeline.h"
 
 #include <nlohmann/json.hpp>
 
@@ -9,7 +9,7 @@
 #include <set>
 #include <sstream>
 
-namespace astrocs::core {
+namespace acsd::core {
 
 using nlohmann::json;
 
@@ -33,7 +33,7 @@ bool is_artifact_ref(const std::string& s) {
 
 std::string PipelineIR::to_json() const {
   json j;
-  j["schema"] = schema.empty() ? "astrocs.pipeline/v1" : schema;
+  j["schema"] = schema.empty() ? "acsd.pipeline/v1" : schema;
   j["pipeline_id"] = pipeline_id;
   j["version"] = version;
   j["nodes"] = json::array();
@@ -70,9 +70,9 @@ Result<PipelineIR> PipelineIRParser::parse(const std::string& json_text) const {
     return Result<PipelineIR>::fail(Error(ErrorDomain::DATA, "schema required"));
   }
   const std::string schema = it_schema->get<std::string>();
-  if (schema != "astrocs.pipeline/v1" && schema != "astrocs.pipeline/v2") {
+  if (schema != "acsd.pipeline/v1" && schema != "acsd.pipeline/v2") {
     return Result<PipelineIR>::fail(Error(ErrorDomain::DATA,
-        "schema must be astrocs.pipeline/v1 or /v2, got " + schema));
+        "schema must be acsd.pipeline/v1 or /v2, got " + schema));
   }
 
   PipelineIR ir;
@@ -346,4 +346,4 @@ std::vector<IrIssue> PipelineIRParser::validate(
   return issues;
 }
 
-}  // namespace astrocs::core
+}  // namespace acsd::core

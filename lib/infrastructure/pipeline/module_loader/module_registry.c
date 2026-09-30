@@ -373,10 +373,10 @@ static const char* reg_msg(int32_t detail) {
     }
 }
 
-static void fill_err(acs_error_info_v1* err, acs_status st, int32_t detail) {
+static void fill_err(acsd_error_info_v1* err, acsd_status st, int32_t detail) {
     if (!err) return;
     memset(err, 0, sizeof(*err));
-    err->head.struct_size = (uint32_t)sizeof(acs_error_info_v1);
+    err->head.struct_size = (uint32_t)sizeof(acsd_error_info_v1);
     err->head.abi_version = ACS_ABI_VERSION_V1;
     err->status = st;
     err->domain = ACS_ERR_DOMAIN_CONFIG;
@@ -414,17 +414,17 @@ typedef struct finding_s {
     int32_t aux_index;
 } finding_s;
 
-struct acs_registry_s {
-    acs_allocator_v1 allocator;
+struct acsd_registry_s {
+    acsd_allocator_v1 allocator;
     entry_s* entries;
     uint32_t entry_count;
     finding_s* findings;
     uint32_t finding_count;
 };
 
-static acs_str_v1 sp(const char* p) {
-    acs_str_v1 v;
-    v.head.struct_size = (uint32_t)sizeof(acs_str_v1);
+static acsd_str_v1 sp(const char* p) {
+    acsd_str_v1 v;
+    v.head.struct_size = (uint32_t)sizeof(acsd_str_v1);
     v.head.abi_version = ACS_ABI_VERSION_V1;
     v.data = p;
     v.size = p ? (uint64_t)strlen(p) : 0;
@@ -471,17 +471,17 @@ static void yaml_load(const char* path, yaml_s* y) {
 
 /* ═══════════════════════════ loader 编排 ═══════════════════════════ */
 
-static acs_status load_dll(const acs_allocator_v1* alloc, const char* kind,
+static acsd_status load_dll(const acsd_allocator_v1* alloc, const char* kind,
                            const char* abs, const char* exp_mid, const char* exp_sha,
                            const char* exp_bid, uint32_t abi,
                            char* out_mid, size_t out_mid_sz,
                            char* out_ver, size_t out_ver_sz,
                            char* out_bid, size_t out_bid_sz,
-                           char* out_sha, acs_error_info_v1* err) {
+                           char* out_sha, acsd_error_info_v1* err) {
     out_mid[0]=0; out_ver[0]=0; out_bid[0]=0; out_sha[0]=0;
-    acs_load_manifest_unit_v1 unit;
+    acsd_load_manifest_unit_v1 unit;
     memset(&unit, 0, sizeof(unit));
-    unit.head.struct_size = (uint32_t)sizeof(acs_load_manifest_unit_v1);
+    unit.head.struct_size = (uint32_t)sizeof(acsd_load_manifest_unit_v1);
     unit.head.abi_version = ACS_ABI_VERSION_V1;
     unit.unit_id = sp("REG-ENTRY");
     unit.kind = sp(kind);
@@ -490,22 +490,22 @@ static acs_status load_dll(const acs_allocator_v1* alloc, const char* kind,
     unit.expected_sha256 = sp(exp_sha && *exp_sha ? exp_sha : "");
     unit.expected_build_id = sp(exp_bid && *exp_bid ? exp_bid : "");
     unit.abi_version = abi;
-    acs_loader_options_v1 opt;
+    acsd_loader_options_v1 opt;
     memset(&opt, 0, sizeof(opt));
-    opt.head.struct_size = (uint32_t)sizeof(acs_loader_options_v1);
+    opt.head.struct_size = (uint32_t)sizeof(acsd_loader_options_v1);
     opt.head.abi_version = ACS_ABI_VERSION_V1;
     opt.unit = unit;
     opt.allocator = alloc;
     opt.allowed_root_utf8 = sp("");
 
-    acs_loader_handle* h = NULL;
-    acs_status st = acs_secure_loader_load_v1(&opt, err, &h);
+    acsd_loader_handle* h = NULL;
+    acsd_status st = acsd_secure_loader_load_v1(&opt, err, &h);
     if (st != ACS_OK) return st;
-    acs_loaded_module_v1 info;
+    acsd_loaded_module_v1 info;
     memset(&info, 0, sizeof(info));
-    info.head.struct_size = (uint32_t)sizeof(acs_loaded_module_v1);
+    info.head.struct_size = (uint32_t)sizeof(acsd_loaded_module_v1);
     info.head.abi_version = ACS_ABI_VERSION_V1;
-    acs_status ds = acs_secure_loader_describe_v1(h, &info);
+    acsd_status ds = acsd_secure_loader_describe_v1(h, &info);
     if (ds == ACS_OK) {
         if (info.module_id.data && info.module_id.size > 0) {
             size_t n = info.module_id.size < out_mid_sz-1 ? (size_t)info.module_id.size : out_mid_sz-1;
@@ -523,13 +523,13 @@ static acs_status load_dll(const acs_allocator_v1* alloc, const char* kind,
             memcpy(out_sha, info.loaded_sha256.data, 64); out_sha[64]=0;
         }
     }
-    acs_secure_loader_release_v1(h);
+    acsd_secure_loader_release_v1(h);
     return ACS_OK;
 }
 
 /* ═══════════════════════════ 公开 API ═══════════════════════════ */
 
-static acs_status grow_entries(acs_registry* r) {
+static acsd_status grow_entries(acsd_registry* r) {
     entry_s* ne = (entry_s*)r->allocator.alloc(
         r->allocator.user_data, (uint64_t)(r->entry_count+1) * sizeof(entry_s), 8u);
     if (!ne) return ACS_ERR_NOMEM;
@@ -541,7 +541,7 @@ static acs_status grow_entries(acs_registry* r) {
     return ACS_OK;
 }
 
-static acs_status grow_findings(acs_registry* r, uint32_t kind, int32_t idx, int32_t aux) {
+static acsd_status grow_findings(acsd_registry* r, uint32_t kind, int32_t idx, int32_t aux) {
     finding_s* nf = (finding_s*)r->allocator.alloc(
         r->allocator.user_data, (uint64_t)(r->finding_count+1) * sizeof(finding_s), 8u);
     if (!nf) return ACS_ERR_NOMEM;
@@ -560,27 +560,27 @@ static void set_entry_str(char* dst, size_t dst_sz, const char* src) {
     tc(dst, dst_sz, src);
 }
 
-static acs_status registry_add_finding_bit(acs_registry* r, entry_s* e,
+static acsd_status registry_add_finding_bit(acsd_registry* r, entry_s* e,
                                            uint32_t finding_kind, int32_t mask_bit) {
     e->finding_mask |= mask_bit;
     return grow_findings(r, finding_kind, (int32_t)(e - r->entries), -1);
 }
 
-ASTROCS_EXPORT acs_status ASTROCS_CALL
-acs_registry_open_v1(const acs_registry_options_v1* opt,
-                     acs_error_info_v1* err,
-                     acs_registry** out) {
+ACSD_EXPORT acsd_status ACSD_CALL
+acsd_registry_open_v1(const acsd_registry_options_v1* opt,
+                     acsd_error_info_v1* err,
+                     acsd_registry** out) {
     if (!opt || !out || !opt->allocator) {
         fill_err(err, ACS_ERR_PARAM, ACS_REG_EC_INVALID_INPUT);
         return ACS_ERR_PARAM;
     }
     *out = NULL;
     if (opt->head.abi_version != ACS_ABI_VERSION_V1 ||
-        opt->head.struct_size != sizeof(acs_registry_options_v1)) {
+        opt->head.struct_size != sizeof(acsd_registry_options_v1)) {
         fill_err(err, ACS_ERR_ABI_MISMATCH, ACS_REG_EC_INVALID_INPUT);
         return ACS_ERR_ABI_MISMATCH;
     }
-    const acs_str_v1* mp = &opt->manifest_abs_path;
+    const acsd_str_v1* mp = &opt->manifest_abs_path;
     if (mp->size == 0 || mp->data == NULL || mp->data[0] != '/') {
         fill_err(err, ACS_ERR_PARAM, ACS_REG_EC_PATH_NOT_ABS);
         return ACS_ERR_PARAM;
@@ -627,8 +627,8 @@ acs_registry_open_v1(const acs_registry_options_v1* opt,
     else mdir[0] = 0;
 
     /* 句柄 */
-    acs_registry* r = (acs_registry*)opt->allocator->alloc(
-        opt->allocator->user_data, sizeof(acs_registry), 8u);
+    acsd_registry* r = (acsd_registry*)opt->allocator->alloc(
+        opt->allocator->user_data, sizeof(acsd_registry), 8u);
     if (!r) { free(mus); free(mdir); free(mcanon); fill_err(err, ACS_ERR_NOMEM, ACS_REG_EC_INTERNAL); return ACS_ERR_NOMEM; }
     memset(r, 0, sizeof(*r));
     r->allocator = *opt->allocator;
@@ -675,10 +675,10 @@ acs_registry_open_v1(const acs_registry_options_v1* opt,
         int is_prov = strcmp(mus[i].kind, "provider") == 0;
         if (!is_mod && !is_prov) continue;   /* exe/lib/infrastructure/aio/io 不进 registry entries */
 
-        acs_status st2 = grow_entries(r);
+        acsd_status st2 = grow_entries(r);
         if (st2 != ACS_OK) {
             free(mus); free(mdir); free(mcanon); if (root_canon) free(root_canon);
-            acs_registry_close_v1(r);
+            acsd_registry_close_v1(r);
             fill_err(err, ACS_ERR_NOMEM, ACS_REG_EC_INTERNAL);
             return ACS_ERR_NOMEM;
         }
@@ -719,7 +719,7 @@ acs_registry_open_v1(const acs_registry_options_v1* opt,
             if (!within) {
                 free(canon);
                 free(mus); free(mdir); free(mcanon);
-                acs_registry_close_v1(r);
+                acsd_registry_close_v1(r);
                 fill_err(err, ACS_ERR_PARAM, ACS_REG_EC_PATH_NOT_CANONICAL);
                 return ACS_ERR_PARAM;
             }
@@ -772,10 +772,10 @@ acs_registry_open_v1(const acs_registry_options_v1* opt,
 
         /* loader 加载(query+describe): module/provider 均走入口握手 */
         {
-            acs_error_info_v1 ler;
+            acsd_error_info_v1 ler;
             memset(&ler, 0, sizeof(ler));
             char lmid[REG_SZ_MID], lver[REG_SZ_VER], lbid[REG_SZ_BID], lsha[REG_SZ_SHA];
-            acs_status lst = load_dll(&r->allocator, mus[i].kind, canon,
+            acsd_status lst = load_dll(&r->allocator, mus[i].kind, canon,
                                       (is_mod && e->module_id[0]) ? e->module_id : "",
                                       e->sha_registered, "", e->abi_version,
                                       lmid, sizeof(lmid), lver, sizeof(lver),
@@ -883,21 +883,21 @@ acs_registry_open_v1(const acs_registry_options_v1* opt,
     return ACS_OK;
 }
 
-ASTROCS_EXPORT acs_status ASTROCS_CALL
-acs_registry_check_v1(acs_registry* r, acs_error_info_v1* err,
+ACSD_EXPORT acsd_status ACSD_CALL
+acsd_registry_check_v1(acsd_registry* r, acsd_error_info_v1* err,
                       uint32_t* out_issue_count) {
     if (!r) { if (err) fill_err(err, ACS_ERR_PARAM, ACS_REG_EC_INVALID_INPUT); return ACS_ERR_PARAM; }
     if (out_issue_count) *out_issue_count = r->finding_count;
     return ACS_OK;
 }
 
-ASTROCS_EXPORT acs_status ASTROCS_CALL
-acs_registry_get_finding_v1(acs_registry* r, uint32_t index,
-                        acs_registry_finding_v1* out) {
+ACSD_EXPORT acsd_status ACSD_CALL
+acsd_registry_get_finding_v1(acsd_registry* r, uint32_t index,
+                        acsd_registry_finding_v1* out) {
     if (!r || !out) return ACS_ERR_PARAM;
     if (index >= r->finding_count) return ACS_ERR_PARAM;
     memset(out, 0, sizeof(*out));
-    out->head.struct_size = (uint32_t)sizeof(acs_registry_finding_v1);
+    out->head.struct_size = (uint32_t)sizeof(acsd_registry_finding_v1);
     out->head.abi_version = ACS_ABI_VERSION_V1;
     out->kind = r->findings[index].kind;
     out->entry_index = r->findings[index].entry_index;
@@ -905,26 +905,26 @@ acs_registry_get_finding_v1(acs_registry* r, uint32_t index,
     const char* m = reg_msg((int32_t)out->kind);
     out->detail.data = m;
     out->detail.size = (uint64_t)strlen(m);
-    out->detail.head.struct_size = (uint32_t)sizeof(acs_str_v1);
+    out->detail.head.struct_size = (uint32_t)sizeof(acsd_str_v1);
     out->detail.head.abi_version = ACS_ABI_VERSION_V1;
     return ACS_OK;
 }
 
-ASTROCS_EXPORT acs_status ASTROCS_CALL
-acs_registry_entry_count_v1(acs_registry* r, uint32_t* out_count) {
+ACSD_EXPORT acsd_status ACSD_CALL
+acsd_registry_entry_count_v1(acsd_registry* r, uint32_t* out_count) {
     if (!r || !out_count) return ACS_ERR_PARAM;
     *out_count = r->entry_count;
     return ACS_OK;
 }
 
-ASTROCS_EXPORT acs_status ASTROCS_CALL
-acs_registry_get_entry_v1(acs_registry* r, uint32_t index,
-                      acs_registry_entry_v1* out) {
+ACSD_EXPORT acsd_status ACSD_CALL
+acsd_registry_get_entry_v1(acsd_registry* r, uint32_t index,
+                      acsd_registry_entry_v1* out) {
     if (!r || !out) return ACS_ERR_PARAM;
     if (index >= r->entry_count) return ACS_ERR_PARAM;
     entry_s* e = &r->entries[index];
     memset(out, 0, sizeof(*out));
-    out->head.struct_size = (uint32_t)sizeof(acs_registry_entry_v1);
+    out->head.struct_size = (uint32_t)sizeof(acsd_registry_entry_v1);
     out->head.abi_version = ACS_ABI_VERSION_V1;
     out->unit_id = sp(e->unit_id);
     out->kind = sp(e->kind);
@@ -946,16 +946,16 @@ acs_registry_get_entry_v1(acs_registry* r, uint32_t index,
     return ACS_OK;
 }
 
-ASTROCS_EXPORT void ASTROCS_CALL
-acs_registry_close_v1(acs_registry* r) {
+ACSD_EXPORT void ACSD_CALL
+acsd_registry_close_v1(acsd_registry* r) {
     if (!r) return;
     if (r->entries) r->allocator.free(r->allocator.user_data, r->entries);
     if (r->findings) r->allocator.free(r->allocator.user_data, r->findings);
     r->allocator.free(r->allocator.user_data, r);
 }
 
-ASTROCS_EXPORT acs_status ASTROCS_CALL
-acs_registry_self_test_v1(void) {
+ACSD_EXPORT acsd_status ACSD_CALL
+acsd_registry_self_test_v1(void) {
     /* sha256 向量: 空串 / "abc" */
     char hx[65];
     sha256_buf_hex("", 0, hx);

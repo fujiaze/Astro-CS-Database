@@ -1,15 +1,15 @@
 # Astro Celestial Sphere Database（ACSD） Documentation Standard
 
-> 上游：ASTROCS_DESIGN.md §8.4（模块与 ABI）
+> 上游：ACSD_DESIGN.md §8.4（模块与 ABI）
 
-权威链（`ASTROCS_DESIGN.md` §0，唯一）：`ASTROCS_DESIGN.md` → `AGENTS.md` →
-`docs/engineering/` → `docs/ASTROCS_DESIGN.md` → `docs/engineering/` → `docs/detail/`；
+权威链（`ACSD_DESIGN.md` §0，唯一）：`ACSD_DESIGN.md` → `AGENTS.md` →
+`docs/engineering/` → `docs/ACSD_DESIGN.md` → `docs/engineering/` → `docs/detail/`；
 另立 `docs/science/`（公式权威）、`docs/science/algorithms/`（推导权威）、
 `docs/detail/UNIFIED_MODEL.md`（数据对象与三类配置分离）。与其他文档冲突时以
-`ASTROCS_DESIGN.md` 为准。
+`ACSD_DESIGN.md` 为准。
 
 ~~~text
-L0 最高设计/纪律   docs/ASTROCS_DESIGN.md / AGENTS.md / docs/ASTROCS_DESIGN.md
+L0 最高设计/纪律   docs/ACSD_DESIGN.md / AGENTS.md / docs/ACSD_DESIGN.md
 L0 项目入口        README.md / docs/engineering/RELEASE_STATUS.md / docs/KNOWN_LIMITATIONS.md /
                    docs/engineering/DEVELOPER_GUIDE.md 
 L1 科学规范        docs/science/*.md（定义/公式/变量/单位/假设/域/误差/ID；权威）

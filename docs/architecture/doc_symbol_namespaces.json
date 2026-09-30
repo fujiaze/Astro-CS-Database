@@ -1,5 +1,5 @@
 {
-  "schema": "astrocs/doc-symbol-namespaces/v1",
+  "schema": "acsd/doc-symbol-namespaces/v1",
   "note": "check_doc_symbols.py 的**非 API 符号命名空间**登记表。判据：文档反引号里的 token 必须能解析到**已登记命名空间之一** —— API inventory / lib·include 公开头 / 文档词干 / 术语词典 / 本表。本表不是豁免表：每条登记的 token 必须在 evidence 所指文件里**逐字出现**（否则 DOC-SYMBOL-REGISTRY-EVIDENCE 判红），且必须在扫描面里**真实出现过**（否则 DOC-SYMBOL-REGISTRY-STALE 判红 ⇒ 登记只减不增）。",
   "auto_domains": [
     {
@@ -41,7 +41,7 @@
       "token": "snr_path_effective",
       "namespace": "doc_header_kv",
       "evidence": "docs/detail/PHASE2_DETAILED_DESIGN.md:21",
-      "reason": "SNR 重建口径的实际生效路径记录名（头部 KV），非代码符号；现行承载见 docs/engineering/PIPELINE_BLOCK_CONTRACT.md:57 与 docs/detail/registry/astrocs.phase1.noise-snr.md「SNR 三条路径与稀疏帧内层」（`snr_path_effective` 登记行）（原写 PIPELINE_BLOCK_CONTRACT.md:58，该行逐字不含本 token，2026-09-30 核验订正为 :57；evidence 行 :21 逐字命中，锚未动）【证据形态 A：该行逐字含 token —— 行锚即为 token 的真实承载行】"
+      "reason": "SNR 重建口径的实际生效路径记录名（头部 KV），非代码符号；现行承载见 docs/engineering/PIPELINE_BLOCK_CONTRACT.md:57 与 docs/detail/registry/acsd.phase1.noise-snr.md「SNR 三条路径与稀疏帧内层」（`snr_path_effective` 登记行）（原写 PIPELINE_BLOCK_CONTRACT.md:58，该行逐字不含本 token，2026-09-30 核验订正为 :57；evidence 行 :21 逐字命中，锚未动）【证据形态 A：该行逐字含 token —— 行锚即为 token 的真实承载行】"
     },
     {
       "token": "P1.HIPS_WRITE",
@@ -92,16 +92,16 @@
       "reason": "未解析登记台账的取值：正文订正叙述里被引的订正前旧锚（被引文件不在本仓），随该叙述段删除而同提交删除登记项；文档承载 = ANCHOR_CONTRACT.md §4.1。行锚 = entries 内 该 kind 行 :23（`\"kind\": \"HISTORICAL_NARRATION\",`）。原锚 :15 逐字是 `\"kind\": \"EXTERNAL_REFERENCE\",`，落在 entries 首条（另一 kind）记录内 ⇒ 2026-09-30 逐条核验订正【证据形态 A：该行逐字含 token —— 行锚即为 token 的真实承载行】"
     },
     {
-      "token": "ASTROCS_BACKENDS_MANIFEST",
+      "token": "ACSD_BACKENDS_MANIFEST",
       "namespace": "cmake_variable",
       "evidence": "CMakeLists.txt:941",
-      "reason": "backend 族清单（backends.manifest.json）的 CMake 变量，生成与安装两处消费（eng/cmake/install_layout.cmake:115）；文档承载 = docs/engineering/ISA_VARIANTS.md §2.2 表「构建产物名」列。行锚 = set() 定义行 :941（`set(ASTROCS_BACKENDS_MANIFEST \"${ASTROCS_ISA_PROVIDER_DIR}/backends.manifest.json\")`）。原锚 :811 逐字是 `#`，落在变体交付形态的注释块内 ⇒ 2026-09-30 逐条核验订正【证据形态 A：该行逐字含 token —— 行锚即为 token 的真实承载行】"
+      "reason": "backend 族清单（backends.manifest.json）的 CMake 变量，生成与安装两处消费（eng/cmake/install_layout.cmake:115）；文档承载 = docs/engineering/ISA_VARIANTS.md §2.2 表「构建产物名」列。行锚 = set() 定义行 :941（`set(ACSD_BACKENDS_MANIFEST \"${ACSD_ISA_PROVIDER_DIR}/backends.manifest.json\")`）。原锚 :811 逐字是 `#`，落在变体交付形态的注释块内 ⇒ 2026-09-30 逐条核验订正【证据形态 A：该行逐字含 token —— 行锚即为 token 的真实承载行】"
     },
     {
-      "token": "ASTROCS_PROVIDERS_MANIFEST",
+      "token": "ACSD_PROVIDERS_MANIFEST",
       "namespace": "cmake_variable",
       "evidence": "CMakeLists.txt:1052",
-      "reason": "provider 族清单（providers.manifest.json）的 CMake 变量，生成与安装两处消费（eng/cmake/install_layout.cmake:135）；文档承载 = docs/engineering/ISA_VARIANTS.md §2.2 表「构建产物名」列。行锚 = set() 定义行 :1052（`set(ASTROCS_PROVIDERS_MANIFEST \"${ASTROCS_ISA_PROVIDER_DIR}/providers.manifest.json\")`）。原锚 :881 逐字是 `target_link_libraries(astrocs_cpu_avx512_kernels PRIVATE astrocs_contracts astrocs_common)`，落在另一个目标体内 ⇒ 2026-09-30 逐条核验订正【证据形态 A：该行逐字含 token —— 行锚即为 token 的真实承载行】"
+      "reason": "provider 族清单（providers.manifest.json）的 CMake 变量，生成与安装两处消费（eng/cmake/install_layout.cmake:135）；文档承载 = docs/engineering/ISA_VARIANTS.md §2.2 表「构建产物名」列。行锚 = set() 定义行 :1052（`set(ACSD_PROVIDERS_MANIFEST \"${ACSD_ISA_PROVIDER_DIR}/providers.manifest.json\")`）。原锚 :881 逐字是 `target_link_libraries(acsd_cpu_avx512_kernels PRIVATE acsd_contracts acsd_common)`，落在另一个目标体内 ⇒ 2026-09-30 逐条核验订正【证据形态 A：该行逐字含 token —— 行锚即为 token 的真实承载行】"
     },
     {
       "token": "CONTRACT_READY",
@@ -230,7 +230,7 @@
       "reason": "C7 规范句式的成句模板常量（--self-test 夹具与正例回读共用：同文件 :320 与 :351）。产出者是 docs/ 下的 .py 检查器，不在 lib 公开头语料也不在 api_inventory ⇒ 显式登记命名空间。行锚 = 定义行 :79。文档承载 = docs/detail/anchors/ANCHOR_CONTRACT.md C7 规模声明【证据形态 A：该行逐字含 token —— 行锚即为 token 的真实承载行】"
     },
     {
-      "token": "ASTROCS_ENABLE_ACR",
+      "token": "ACSD_ENABLE_ACR",
       "namespace": "cmake_variable",
       "evidence": "CMakeLists.txt:18",
       "reason": "根 CMake option（构建 dormant ACR 树，默认 OFF；状态回显 :1580，preset 面 CMakePresets.json:49/:76，正式路径必须 OFF 由 eng/cmake/toolchain/verify_toolchain.py:209-211 断言）。CMake 变量不是 API 符号 ⇒ 显式登记命名空间。行锚 = option() 定义行 :18。文档承载 = docs/engineering/ARCHITECTURE_OVERVIEW.md 构建面表【证据形态 A：该行逐字含 token —— 行锚即为 token 的真实承载行】"
@@ -239,19 +239,19 @@
       "token": "p2_op_coverage",
       "namespace": "module_port_symbol",
       "evidence": "lib/infrastructure/scheduler/src/module_adapters.cpp:9367",
-      "reason": "Phase2 coverage 模块的编排层端口符号（定义行 :9367；派发点 :14088；端口登记面 lib/infrastructure/pipeline/module_ports.registry.json:940/:961；模块→符号映射 eng/tools/quality/check_block_flow_ports_vs_code.py:489）。与既有 p2_write_descriptor / p2_parallel_for 同型：编排层词汇，不进 api_inventory（只登记函数签名），也不在 lib 公开头。行锚 = 定义行 :9367。文档承载 = docs/detail/registry/astrocs.phase2.coverage.md「公共 header、核心 symbol 与生命周期」（`p2_op_coverage` 登记行）【证据形态 A：该行逐字含 token —— 行锚即为 token 的真实承载行】"
+      "reason": "Phase2 coverage 模块的编排层端口符号（定义行 :9367；派发点 :14088；端口登记面 lib/infrastructure/pipeline/module_ports.registry.json:940/:961；模块→符号映射 eng/tools/quality/check_block_flow_ports_vs_code.py:489）。与既有 p2_write_descriptor / p2_parallel_for 同型：编排层词汇，不进 api_inventory（只登记函数签名），也不在 lib 公开头。行锚 = 定义行 :9367。文档承载 = docs/detail/registry/acsd.phase2.coverage.md「公共 header、核心 symbol 与生命周期」（`p2_op_coverage` 登记行）【证据形态 A：该行逐字含 token —— 行锚即为 token 的真实承载行】"
     },
     {
       "token": "p2_op_reject",
       "namespace": "module_port_symbol",
       "evidence": "lib/infrastructure/scheduler/src/module_adapters.cpp:11068",
-      "reason": "Phase2 rejection 模块的编排层端口符号（定义行 :11068；台账面 eng/ci/ledgers/dead_config_keys.json:112/:129 与 eng/ci/ledgers/design_clauses.json:451 以该符号名记退出条件）。与既有 p2_write_descriptor / p2_parallel_for 同型：编排层词汇，不进 api_inventory，也不在 lib 公开头。行锚 = 定义行 :11068。文档承载 = docs/detail/registry/astrocs.phase2.reject.md「公共 header、核心 symbol 与生命周期」（`p2_op_reject` 登记行）【证据形态 A：该行逐字含 token —— 行锚即为 token 的真实承载行】"
+      "reason": "Phase2 rejection 模块的编排层端口符号（定义行 :11068；台账面 eng/ci/ledgers/dead_config_keys.json:112/:129 与 eng/ci/ledgers/design_clauses.json:451 以该符号名记退出条件）。与既有 p2_write_descriptor / p2_parallel_for 同型：编排层词汇，不进 api_inventory，也不在 lib 公开头。行锚 = 定义行 :11068。文档承载 = docs/detail/registry/acsd.phase2.reject.md「公共 header、核心 symbol 与生命周期」（`p2_op_reject` 登记行）【证据形态 A：该行逐字含 token —— 行锚即为 token 的真实承载行】"
     },
     {
       "token": "sdet_gauss_fit",
       "namespace": "module_internal_symbol",
       "evidence": "lib/algorithms/star_detection/src/sdet_api.cpp:779",
-      "reason": "星检测模块翻译单元内的椭圆高斯拟合函数（模板 sdet_gauss_fit<T>，定义行 :779；调用点 :2076 与 :2331；模块登记面 lib/algorithms/star_detection/module.yaml:103、dormant 台账 eng/ci/ledgers/dormant_algorithms.json:377）。不经导出宏、**不在 lib 公开头语料**（门内 _defined_in_public_header 实测判 False）也不在 api_inventory ⇒ 显式登记命名空间。行锚 = 定义行 :779。文档承载 = docs/detail/registry/astrocs.phase1.star-detection.md「数值落地口径与实现落点」（两条实现路径表）【证据形态 A：该行逐字含 token —— 行锚即为 token 的真实承载行】"
+      "reason": "星检测模块翻译单元内的椭圆高斯拟合函数（模板 sdet_gauss_fit<T>，定义行 :779；调用点 :2076 与 :2331；模块登记面 lib/algorithms/star_detection/module.yaml:103、dormant 台账 eng/ci/ledgers/dormant_algorithms.json:377）。不经导出宏、**不在 lib 公开头语料**（门内 _defined_in_public_header 实测判 False）也不在 api_inventory ⇒ 显式登记命名空间。行锚 = 定义行 :779。文档承载 = docs/detail/registry/acsd.phase1.star-detection.md「数值落地口径与实现落点」（两条实现路径表）【证据形态 A：该行逐字含 token —— 行锚即为 token 的真实承载行】"
     },
     {
       "token": "P2_SEMANTIC_",

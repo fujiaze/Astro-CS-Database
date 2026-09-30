@@ -1,15 +1,15 @@
 // ACSD Core Contracts — CORE-007 Checkpoint 与幂等恢复
 #pragma once
 
-#include "astrocs/core/artifact.h"
-#include "astrocs/core/artifact_store.h"
-#include "astrocs/core/contracts.h"
+#include "acsd/core/artifact.h"
+#include "acsd/core/artifact_store.h"
+#include "acsd/core/contracts.h"
 
 #include <map>
 #include <string>
 #include <vector>
 
-namespace astrocs::core {
+namespace acsd::core {
 
 // Checkpoint 记录: 节点产物必须在 Artifact 原子提交后才写入 (API-001 §4)
 // RT-007: scope = 阶段/运行作用域隔离键（如 "phase2"/"phase3"）。不同 scope 的
@@ -77,4 +77,4 @@ Result<void> validate_resume_inputs(const ArtifactStore& store,
                                     const std::vector<ResumeBinding>& want,
                                     const std::string& consumer_node);
 
-}  // namespace astrocs::core
+}  // namespace acsd::core

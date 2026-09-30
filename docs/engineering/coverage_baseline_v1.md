@@ -1,6 +1,6 @@
 # 覆盖率基线（首次 deep CI）
 
-> 上游：ASTROCS_DESIGN.md §12.4（验证层级与四层验收）
+> 上游：ACSD_DESIGN.md §12.4（验证层级与四层验收）
 
 - status: ACTIVE
 - scope: linux-deep profile（DEEP-COV-CPP / DEEP-COV-PY 检查，见 门禁注册面（G08-10 重建））

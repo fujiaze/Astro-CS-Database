@@ -1,6 +1,6 @@
-# 模块 astrocs.phase1.noise-snr
+# 模块 acsd.phase1.noise-snr
 
-> 上游：docs/ASTROCS_DESIGN.md §8.5（模块与 ABI）、§2.2（跨帧可用的绝对信噪比）、
+> 上游：docs/ACSD_DESIGN.md §8.5（模块与 ABI）、§2.2（跨帧可用的绝对信噪比）、
 > §3.1（全程只有 SNR）、§4.2（Phase1 节点流程）、§4.4（输出合同）
 > 科学正本：docs/science/NOISE_MODEL.md（噪声模型 A，§5/§5d/§7/§9）、
 > docs/science/PSF_SIGNAL_WEIGHT.md（帧级 SNR 与点源信息权重的定义式）、
@@ -180,18 +180,18 @@ HiPS 是数据库：帧产品长期保存、可被任意多次、任意科学目
 
 **噪声模型 A 为唯一生产模型**：实现 `cpp/src/noise_model.cpp`，接口
 `snr_noise_model_v1` / `_f64` / `_fill` + `NoiseWeightModelV1`（**逐像素**），
-编入根 CMake 目标 `astrocs_phase1_noise`（STATIC），经 `astrocs_phase1_session`
+编入根 CMake 目标 `acsd_phase1_noise`（STATIC），经 `acsd_phase1_session`
 的 PUBLIC 闭包链入主程序。模型定义、参数语义、稳健噪声估计与掩膜规则的正本见
 docs/science/NOISE_MODEL.md。
 
-**逐像素方差接线现状**：A 已编入 `astrocs_phase1_noise` 并链入主程序；生产
+**逐像素方差接线现状**：A 已编入 `acsd_phase1_noise` 并链入主程序；生产
 调度路径**已挂** `variance` 帧内命名块 —— module_adapters.cpp（`p1_op_drizzle`）
 按 `NoiseWeightModelV1` blank-sky variance 经 `snr_noise_model_v1_fill` 填面后
 `aio_frame_add_block(frame, "variance", AIO_BLOCK_FLOAT32, …)`，引擎侧
 `sumVarNum += v·w²`，sink/writer finalize 出 variance/ivar 子产品；
 `uncertainty_available` 为 provenance 判定结果（由磁盘事实给出，
 `true` ⇒ variance|ivar 位同时置位），显式降级非静默（带 `var_status` /
-`var_reason`）；口径正本 = registry/astrocs.phase1.drizzle.md。
+`var_reason`）；口径正本 = registry/acsd.phase1.drizzle.md。
 
 **逐像素方差面的两态约束（必须成立）**：`snr_noise_model_v1_fill` 输出的每一
 像素必须落在两态之一 —— **可用**（`variance > 0` 且有限，且 `ivar` 为其倒数）
@@ -231,7 +231,7 @@ docs/science/NOISE_MODEL.md §5/§7/§9 与 DATA_SEMANTICS §4a 三态表。门 
   `r_max` / `r_fence`；逐帧另有 `variance_audit_present` /
   `variance_audit_available` / `variance_audit_missing_fields` /
   `variance_audit_source`。清单的机器唯一源 =
-  `astrocs::noise::variance_audit_required_fields()`（生产者、校验者与测试
+  `acsd::noise::variance_audit_required_fields()`（生产者、校验者与测试
   **必须**引用同一份）；
 - **失败语义**：本帧**已发布** variance/ivar 子产品而必落字段不齐 ⇒
   **fail-closed**（DATA 类，`p1_final.json` 不落盘）；`hull_nonpositive_frac != 0`
@@ -326,16 +326,16 @@ create→validate→run→inspect→destroy。
 
 头与导出面（`lib/algorithms/noise_snr/`）：
 
-- `include/astrocs/information_weight.h`：`CovarianceView` / `PointEstimate` /
+- `include/acsd/information_weight.h`：`CovarianceView` / `PointEstimate` /
   `w_info_diagonal` / `w_info_dense` / `w_info_low_rank` / `w_info_solve` /
   `white_noise_gate` / `w_info_white_noise` / `diag_approx_report` /
   `combine_point_estimates`；
-- `include/astrocs/noise/types.h`：C 面类型；
-- `include/astrocs/noise/variance_plane_policy.h`：`VariancePlaneVerdict` /
+- `include/acsd/noise/types.h`：C 面类型；
+- `include/acsd/noise/variance_plane_policy.h`：`VariancePlaneVerdict` /
   `classify_variance_plane`；
-- `include/astrocs/noise/saturation_policy.h`：`resolve_saturation_level` /
+- `include/acsd/noise/saturation_policy.h`：`resolve_saturation_level` /
   `resolve_effective_saturation` / `saturation_filter_state`；
-- 模块入口 `src/module_entry.cpp`，导出面 `src/astrocs_p1_noise.def`。
+- 模块入口 `src/module_entry.cpp`，导出面 `src/acsd_p1_noise.def`。
 
 entrypoint = 信号 + ivar + PSF + `a_k` → {source_snr, depth_m5,
 point_information, frame_snr[, sparse_snr_layer]}。帧级 SNR 经 drizzle 写入
@@ -343,11 +343,11 @@ HiPS 文件头；稀疏层作为标准层插入 HiPS。各类输出独立 schema
 
 ### 源文件
 
-`lib/algorithms/noise_snr/{include/astrocs, src, wrapper_phase1, cpp}/`。
+`lib/algorithms/noise_snr/{include/acsd, src, wrapper_phase1, cpp}/`。
 
 ## Registry descriptor 与配置 schema
 
-module_id=`astrocs.phase1.noise-snr`; execution_class=`cpu_heavy`;
+module_id=`acsd.phase1.noise-snr`; execution_class=`cpu_heavy`;
 parallel_ok=True。配置 = phase config JSON：
 
 | 字段 | 默认 | 单位 | 说明 |
@@ -468,7 +468,7 @@ Oracle 面：
 - 组内参考通量回退的逐帧中位数形态为 fail-closed；
 - 平场大尺度残差类结构项无对照数据；
 - 现状构建产物 `snr_estimator.dll` 未编入根 CMake 主构建（生产走根 CMake 目标
-  `astrocs_phase1_noise` 静态链入）；
+  `acsd_phase1_noise` 静态链入）；
 - 三条 SNR 路径的适用域由 `实验/absolute-snr` 判定，高对比域结论必须绑定算子
   才能成立；
 - 全局限制登记 = artifacts/evidence/known-limitations-ledger/LIMITATIONS.md。

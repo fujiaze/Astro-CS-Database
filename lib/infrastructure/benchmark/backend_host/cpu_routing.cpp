@@ -12,12 +12,12 @@
 #include "hardware_inspect.h"
 #include "profile_gen.h"
 
-namespace astrocs::backend_host {
+namespace acsd::backend_host {
 
 namespace {
 
 // 机器可检测 feature bits(与 cpu_features.h 一致)
-uint64_t detected_features() { return astrocs_cpu_detect_features_v1(); }
+uint64_t detected_features() { return acsd_cpu_detect_features_v1(); }
 
 // 任何伪造/半写/类型篡改 profile 都不得越过本层抛异常(CPU-005 验收:
 // "伪造 profile … 均退回"; 类型异常/越界/损坏 JSON 一律按不可信处理)。
@@ -609,4 +609,4 @@ std::string build_route_table_v1(const std::string& profile_json,
     return out.dump(2) + "\n";
 }
 
-}  // namespace astrocs::backend_host
+}  // namespace acsd::backend_host

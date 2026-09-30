@@ -1,5 +1,5 @@
 {
-  "phase3_schema": "astrocs.v6.phase3/v1",
+  "phase3_schema": "acsd.v6.phase3/v1",
   "schema_version": 1,
   "output_mode": "point_source_flux",
   "measurement_capable": true,

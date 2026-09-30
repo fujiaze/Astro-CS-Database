@@ -1,15 +1,15 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "$id": "astrocs.hips-storage-form/v1",
+  "$id": "acsd.hips-storage-form/v1",
   "title": "ACSD HiPS 落盘形态索引 schema",
   "description": "落盘形态合同 CONTRACT-STORAGE-001 的机器事实源。① 两个索引文件按 index_schema 选择 $defs.product_index 或 $defs.coverage_index 校验；② 形态相关的输入配置键与输出清单字段按 $defs.frame_storage / $defs.coverage_index_ref / $defs.manifest_storage 校验。不变式 I1..I4 / H1..H3 / R1..R6 / F1..F4 / M1..M4 由 eng/tools/hipsform/check_hips_storage_form.py 现场计算。",
-  "x-astrocs-contract": "docs/engineering/HIPS_STORAGE_FORM_CONTRACT.md",
-  "x-astrocs-design": "docs/detail/PRODUCT_STORAGE_FORM.md",
-  "x-astrocs-index-schemas": {
-    "product_index": "astrocs.hips-index/v1",
-    "coverage_index": "astrocs.coverage-index/v1"
+  "x-acsd-contract": "docs/engineering/HIPS_STORAGE_FORM_CONTRACT.md",
+  "x-acsd-design": "docs/detail/PRODUCT_STORAGE_FORM.md",
+  "x-acsd-index-schemas": {
+    "product_index": "acsd.hips-index/v1",
+    "coverage_index": "acsd.coverage-index/v1"
   },
-  "x-astrocs-field-vocabulary": {
+  "x-acsd-field-vocabulary": {
     "note": "形态字段的唯一词表：输入配置键、输出清单字段、清单段名与文件名后缀。任一层文档只能使用本表登记的名字与取值；同义名（见 forbidden_synonyms）一律禁止。检查器 CHK-HIPS-STORAGE-FORM 逐层断言（--doc-consistency），词表漂移即判红。",
     "phase1_input_form_key": {
       "name": "storage_form",
@@ -42,7 +42,7 @@
       "coverage_index_path 自 P-180（R-42）起**不再是禁用同义名**：它是 eng/contracts/schemas/phase_config_mosaic.schema.json#/$defs 的**正名**（输入配置里的覆盖索引**路径字符串**），与本文档运行级清单引用对象 $defs.coverage_index_ref（{path, sha256, n_frames, n_blocks}）分名，消解「同名异型」。此前它被列为 index_path 系的同义名属命名预留，现被正式启用；运行级清单字段名仍只认 coverage_index（manifest_storage_fields）。据此在 contract 层登记 must_contain，使分名事实可被 D1 逐层判据钉住。"
     ],
     "layers": [
-      {"layer": "top-design", "file": "docs/ASTROCS_DESIGN.md", "must_contain": ["storage_form", "archive", "bare", ".hips.index.json", "coverage.index.json"]},
+      {"layer": "top-design", "file": "docs/ACSD_DESIGN.md", "must_contain": ["storage_form", "archive", "bare", ".hips.index.json", "coverage.index.json"]},
       {"layer": "design", "file": "docs/detail/PRODUCT_STORAGE_FORM.md", "must_contain": ["storage_form", "archive", "bare", ".hips.index.json", "coverage.index.json", "form_source"]},
       {"layer": "design-p1", "file": "docs/detail/PHASE1_DETAILED_DESIGN.md", "must_contain": ["storage_form", "archive", "bare"]},
       {"layer": "design-p2", "file": "docs/detail/PHASE2_DETAILED_DESIGN.md", "must_contain": ["coverage_index", ".hips.index.json"]},
@@ -137,7 +137,7 @@
             "fits",
             "tsv"
           ],
-          "description": "瓦片格式 token（P-179 两档词表）：Image 产品子产品固定 `fits`；HiPS 目录子产品 `snr` 固定 `tsv`。逐子产品档位表 = x-astrocs-field-vocabulary.hips_tile_format_two_tiers.by_subproduct（唯一源）；非该档位值一律判红。"
+          "description": "瓦片格式 token（P-179 两档词表）：Image 产品子产品固定 `fits`；HiPS 目录子产品 `snr` 固定 `tsv`。逐子产品档位表 = x-acsd-field-vocabulary.hips_tile_format_two_tiers.by_subproduct（唯一源）；非该档位值一律判红。"
         },
         "n_leaf_tiles": {
           "type": "integer",
@@ -201,7 +201,7 @@
       "properties": {
         "index_schema": {
           "type": "string",
-          "const": "astrocs.hips-index/v1"
+          "const": "acsd.hips-index/v1"
         },
         "product": {
           "type": "string",
@@ -305,7 +305,7 @@
       "properties": {
         "index_schema": {
           "type": "string",
-          "const": "astrocs.coverage-index/v1"
+          "const": "acsd.coverage-index/v1"
         },
         "granularity": {
           "type": "object",
@@ -351,7 +351,7 @@
         "archive",
         "bare"
       ],
-      "description": "落盘形态取值（唯一词表，见 x-astrocs-field-vocabulary）：archive = <name>.hips.zst（整包 tar + 逐成员独立 zstd 帧）；bare = <name>.hips/（目录）"
+      "description": "落盘形态取值（唯一词表，见 x-acsd-field-vocabulary）：archive = <name>.hips.zst（整包 tar + 逐成员独立 zstd 帧）；bare = <name>.hips/（目录）"
     },
     "frame_storage": {
       "type": "object",

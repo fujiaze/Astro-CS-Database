@@ -12,7 +12,7 @@
 int main(int argc, char** argv) {
     if (argc < 3) return 2;
     const std::string mode = argv[1];
-    using namespace astrocs::phase3;
+    using namespace acsd::phase3;
     std::string err;
     HipsProperties p{};
     if (mode == "validate") {

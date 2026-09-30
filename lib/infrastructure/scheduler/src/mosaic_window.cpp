@@ -1,6 +1,6 @@
 // ACSD Core — ARCH-503 mosaic 天球窗口并行调度器实现
-// 依据：docs/ASTROCS_DESIGN.md §8.3；CONTRACT-501 docs/engineering/SCHEDULER_CONTRACT.md
-#include "astrocs/core/mosaic_window.h"
+// 依据：docs/ACSD_DESIGN.md §8.3；CONTRACT-501 docs/engineering/SCHEDULER_CONTRACT.md
+#include "acsd/core/mosaic_window.h"
 
 #include <algorithm>
 #include <chrono>
@@ -12,7 +12,7 @@
 #include <set>
 #include <sstream>
 
-namespace astrocs::core {
+namespace acsd::core {
 namespace {
 
 std::string dirname_of(const std::string& p) {
@@ -108,7 +108,7 @@ void MosaicWindowScheduler::write_manifest() const {
   for (const auto& w : ws) { routed += w.routed_bytes; naive += w.naive_bytes; }
   std::ostringstream f;
   f << R"JSON({
-  "schema": "astrocs.mosaic-window-manifest/v1",
+  "schema": "acsd.mosaic-window-manifest/v1",
   "hips_level": )JSON" << cfg_.hips_level << R"JSON(,
   "window_tiles": )JSON" << cfg_.window_tiles << R"JSON(,
   "window_count": )JSON" << ws.size() << R"JSON(,
@@ -340,7 +340,7 @@ bool window_peak_residency_ok(const std::vector<WindowPeakSample>& samples,
       }
     }
   }
-  // ④ 窗口大小是显式内存权衡参数（docs/ASTROCS_DESIGN §8.3）：两个窗口**都实际装满**时，
+  // ④ 窗口大小是显式内存权衡参数（docs/ACSD_DESIGN §8.3）：两个窗口**都实际装满**时，
   //    window_tiles 更大 ⇒ 峰值驻留**严格更大**。
   //    「严格」是反恒真的关键：编译期常量（F-07 的 32 B）与任何未记账的常量驻留
   //    在这里必然违反 —— 旧的「不减」表述会被常量满足，属退化判据。
@@ -366,4 +366,4 @@ bool window_peak_residency_ok(const std::vector<WindowPeakSample>& samples,
   return true;
 }
 
-}  // namespace astrocs::core
+}  // namespace acsd::core

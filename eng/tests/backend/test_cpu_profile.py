@@ -6,7 +6,7 @@ REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.a
 HOST = os.path.join(REPO, "lib", "infrastructure", "benchmark", "backend_host")
 INC = os.path.join(REPO, "lib", "include")
 # 根目录整合后 aio 落 lib/infrastructure/aio，其 PUBLIC include 面见根 CMakeLists.txt
-# target_include_directories(astrocs_aio PUBLIC ...)；测试侧独立编译必须同面，否则
+# target_include_directories(acsd_aio PUBLIC ...)；测试侧独立编译必须同面，否则
 # aio_atomic_file.h / aio_file_io.h / crypto/sha256.h 找不到
 # （GATE-502：修复根目录整合后测试侧遗留的过时 include 面）。
 AIO_INCS = [
@@ -51,12 +51,12 @@ PROBE_MAIN = r"""
 #include <string>
 #include "hardware_inspect.h"
 int main() {
-    const std::string s = astrocs::backend_host::hardware_inspect_json_v1(
-        std::string("__ASTROCS_BUILD_VERSION__"));
+    const std::string s = acsd::backend_host::hardware_inspect_json_v1(
+        std::string("__ACSD_BUILD_VERSION__"));
     std::fputs(s.c_str(), stdout);
     return 0;
 }
-""".replace("__ASTROCS_BUILD_VERSION__",
+""".replace("__ACSD_BUILD_VERSION__",
             gen_version.read_base_version() + "+g" + COMMIT[:12])
 
 
@@ -73,7 +73,7 @@ class TestCpuProfile(unittest.TestCase):
         assert r.returncode == 0, r.stderr
         cls.profile = os.path.join(cls.tmp, "cpu_profile.json")
         cls.hw = os.path.join(cls.tmp, "hw.json")
-        # CLI-001 / docs/ASTROCS_DESIGN 6.2: 旧 hardware inspect 用户命令已删(rc=2)。
+        # CLI-001 / docs/ACSD_DESIGN 6.2: 旧 hardware inspect 用户命令已删(rc=2)。
         # 硬件画像改由宿主探针直调 hardware_inspect_json_v1(与生产同实现,
         # 同 eng/tests/backend/test_hardware_inspect.py::TestHardwareInspectProbe)。
         hw_main = os.path.join(cls.tmp, "hw_main.cpp")
@@ -201,7 +201,7 @@ class TestCpuProfile(unittest.TestCase):
 #include <cstdio>
 #include "bench_harness.h"
 int main() {
-    using namespace astrocs::backend_host;
+    using namespace acsd::backend_host;
     for (uint32_t avail : {1u, 2u, 16u}) {
         auto p = no_profile_policy(avail);
         std::printf("POL avail=%u backend=%s workers=%u reason=%s\n",
@@ -229,7 +229,7 @@ int main() {
         src = r'''
 #include <cstdio>
 #include "bench_harness.h"
-using namespace astrocs::backend_host;
+using namespace acsd::backend_host;
 int main() {
     std::vector<BenchResult> rs = {
         {"baseline", "OK", "", 9, 1000, 50, 950, 1050, 0, "h1"},

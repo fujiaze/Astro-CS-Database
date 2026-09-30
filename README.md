@@ -39,12 +39,12 @@ acsd benchmark                          # 生成/更新安装目录 cpu_profile�
 
 ## 文档与权威链
 
-权威链只有一条，自上而下递减：与下级文档冲突时以 `docs/ASTROCS_DESIGN.md` 为准。全文档集唯一索引
+权威链只有一条，自上而下递减：与下级文档冲突时以 `docs/ACSD_DESIGN.md` 为准。全文档集唯一索引
 = `docs/DOCUMENT_INDEX.yaml`，各目录均有中文 `README.md` 说明职责与内容。
 
 | 入口 | 回答什么 |
 |---|---|
-| [`docs/ASTROCS_DESIGN.md`](docs/ASTROCS_DESIGN.md) | 是什么、做到什么、顶层架构、CLI、发行、验收（最高设计） |
+| [`docs/ACSD_DESIGN.md`](docs/ACSD_DESIGN.md) | 是什么、做到什么、顶层架构、CLI、发行、验收（最高设计） |
 | [`AGENTS.md`](AGENTS.md) | 干活纪律与工作流（开工前逐层读文档、硬禁令、自查自修） |
 | [`docs/engineering/DOCUMENT_GOVERNANCE.md`](docs/engineering/DOCUMENT_GOVERNANCE.md) | 文档分层、准入、写法与登记判据 |
 | [`docs/engineering/EXECUTION_MODEL.md`](docs/engineering/EXECUTION_MODEL.md) | 工作包的制作与执行纪律、收口即清理 |
@@ -81,7 +81,7 @@ acsd benchmark                          # 生成/更新安装目录 cpu_profile�
 
 ## 状态与版本
 
-状态词表唯一口径 = `docs/ASTROCS_DESIGN.md` §12.5；逐模块状态与证据锚见 `docs/engineering/RELEASE_STATUS.md`
+状态词表唯一口径 = `docs/ACSD_DESIGN.md` §12.5；逐模块状态与证据锚见 `docs/engineering/RELEASE_STATUS.md`
 与 `docs/modules/MODULE_MAP.yaml`。产品版本唯一事实源 = 仓库根 `VERSION`，CMake、CLI、产品 manifest
 由该源派生。已知限制台账：`docs/KNOWN_LIMITATIONS.md`。
 

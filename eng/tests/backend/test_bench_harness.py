@@ -7,7 +7,7 @@ HOST = os.path.join(REPO, "lib", "infrastructure", "benchmark", "backend_host")
 INC = os.path.join(REPO, "lib", "include")
 
 # 根目录整合后 aio 落 lib/infrastructure/aio，其 PUBLIC include 面 = include/ + src/
-# （见根 CMakeLists.txt: target_include_directories(astrocs_aio PUBLIC ...)）。
+# （见根 CMakeLists.txt: target_include_directories(acsd_aio PUBLIC ...)）。
 # 测试侧独立编译必须同面，否则 aio_atomic_file.h / aio_file_io.h 找不到
 # （GATE-502：修复根目录整合后测试侧遗留的过时 include 面）。
 AIO_INCS = [

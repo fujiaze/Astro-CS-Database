@@ -1,5 +1,5 @@
 {
-  "psfsw_schema": "astrocs.v6.psfsw/v1",
+  "psfsw_schema": "acsd.v6.psfsw/v1",
   "schema_version": 1,
   "weight_mode": "psfsw_robust",
   "weight": {

@@ -402,17 +402,17 @@ static constexpr double _IRLS_CONVERGE = 1e-6;   // IRLS 收敛阈值
   像素校正 I_cal=I·scale OpenMP static（image_corrector.cpp:63-77）。
 - 构建现状：cpp/Makefile:11 g++ -shared -fopenmp → photometric_calib.dll
   （链接 ../../gaia_xpsd_client/gaia_client.dll，-static）+ build.ps1:9
-  MinGW 通道；未编入根 CMake 主构建（与 astrocs_hips/astrocs_drizzle 先例
+  MinGW 通道；未编入根 CMake 主构建（与 acsd_hips/acsd_drizzle 先例
   不同）——CMake 集成归 P1-PHOT-IMPL。
 - lib/algorithms/photometry/wrapper_phase1/（Photometer aperture 测光）=静态库
-  astrocs_phase1_phot（CMakeLists.txt:429-432，主程序链接 :513）+ 单测
+  acsd_phase1_phot（CMakeLists.txt:429-432，主程序链接 :513）+ 单测
   eng/tests/unit/p1_wcs_phot_test（eng/tests/unit/CMakeLists.txt:305-310，4 组）；
   未接 orchestrator 管线（grep 无生产调用方）——计划迁移旧符号，aperture
   合同并入 README §9。
 - 帧级 QA 下游：sigma_residual(dex)→snr_estimator snr_phot_cal_quality
   （snr_estimator.h:47-48，noise_model.cpp:276）换算 sigma_mag/sigma_cal_rel。
 - descriptor 现状：lib/infrastructure/scheduler/src/module_adapters.cpp:469-486
-  p1_photometry_descriptor，module_id=astrocs.phase1.photometry、
+  p1_photometry_descriptor，module_id=acsd.phase1.photometry、
   execution_class=cpu_heavy、parallel_ok=true、sci_id=SCI-P1-PHOT-001/
   alg_id=ALG-002/data_id=DATA-P1-FLUX/api_id=API-P1-005/test_id=
   TEST-P1-PHOT-001（占位），ports: psf→DATA-P1-PSF(PIXEL 必)、
@@ -432,7 +432,7 @@ static constexpr double _IRLS_CONVERGE = 1e-6;   // IRLS 收敛阈值
   docs/science/DATA_SEMANTICS.md §14（DATA-P1-PHOT）；docs/contracts/
   PUBLIC_API.md API-PHOT-001（6 导出符号头锚）；docs/contracts/INDEX.yaml
   新 ID 条目与互指；docs/DOCUMENT_INDEX.yaml notes；docs/modules/
-  photometric_calib.md + docs/detail/registry/astrocs.phase1.photometry.md
+  photometric_calib.md + docs/detail/registry/acsd.phase1.photometry.md
   事实修订；docs/traceability/TRACEABILITY_MATRIX.json photometry 行原位
   更新 + CSV 重生成。
 
@@ -447,7 +447,7 @@ static constexpr double _IRLS_CONVERGE = 1e-6;   // IRLS 收敛阈值
 
 ### 待后续任务
 
-- P1-PHOT-IMPL：astrocs_p1_photometry.dll、C ABI adapter、plan/execute/
+- P1-PHOT-IMPL：acsd_p1_photometry.dll、C ABI adapter、plan/execute/
   cancel/inspect、ThreadLease/omp_set_num_threads 接线、CMake 主构建集成、
   DISP-PHOT-001..009 消化、lib/algorithms/photometry/wrapper_phase1 旧符号去留登记。
 - P1-PHOT-TEST：TEST-P1-PHOT-001 可执行测试（fixture F1-F6 + 不变量 I1-I6

@@ -10,18 +10,18 @@
 #include "p3_rsmp_scenarios.h"
 #include "p3_rsmp_test_util.h"
 
-using astrocs::p3rsmp::apply_operator;
-using astrocs::p3rsmp::DenseMatrix;
-using astrocs::p3rsmp::GateConfig;
-using astrocs::p3rsmp::Geometry;
-using astrocs::p3rsmp::InputGrid2D;
-using astrocs::p3rsmp::GateResult;
-using astrocs::p3rsmp::NeighborhoodSet;
-using astrocs::p3rsmp::PointSourceInput;
-using astrocs::p3rsmp::SparseOperator;
-using astrocs::p3rsmp::Status;
-using astrocs::p3rsmp::SurfaceBrightnessInput;
-using astrocs::p3rsmp::TileMask;
+using acsd::p3rsmp::apply_operator;
+using acsd::p3rsmp::DenseMatrix;
+using acsd::p3rsmp::GateConfig;
+using acsd::p3rsmp::Geometry;
+using acsd::p3rsmp::InputGrid2D;
+using acsd::p3rsmp::GateResult;
+using acsd::p3rsmp::NeighborhoodSet;
+using acsd::p3rsmp::PointSourceInput;
+using acsd::p3rsmp::SparseOperator;
+using acsd::p3rsmp::Status;
+using acsd::p3rsmp::SurfaceBrightnessInput;
+using acsd::p3rsmp::TileMask;
 
 namespace {
 
@@ -49,18 +49,18 @@ void test_row_col_normalization() {
   Geometry g2;
   g2.omega_in_sr = {2.0};
   g2.omega_out_sr = {2.0};
-  std::vector<astrocs::p3rsmp::OverlapEntry> e2;
+  std::vector<acsd::p3rsmp::OverlapEntry> e2;
   {
-    astrocs::p3rsmp::OverlapEntry a;
+    acsd::p3rsmp::OverlapEntry a;
     a.out_index = 0;
     a.in_index = 0;
     a.overlap_sr = 2.0;
     e2.push_back(a);
   }
   const SparseOperator R2 =
-      astrocs::p3rsmp::operator_from_entries_row(e2, g2, 1, 1, "bilinear_area_overlap_exact");
+      acsd::p3rsmp::operator_from_entries_row(e2, g2, 1, 1, "bilinear_area_overlap_exact");
   const SparseOperator S2 =
-      astrocs::p3rsmp::operator_from_entries_col(e2, g2, 1, 1, "bilinear_area_overlap_exact");
+      acsd::p3rsmp::operator_from_entries_col(e2, g2, 1, 1, "bilinear_area_overlap_exact");
   for (double v : R2.row_sums()) P3_CHECK_NEAR(v, 1.0, 1e-15);
   for (double v : S2.col_sums()) P3_CHECK_NEAR(v, 1.0, 1e-15);
   P3_CHECK_NEAR(R2.at(0, 0), 1.0, 1e-15);  // 2.0/Omega'_i=2
@@ -117,7 +117,7 @@ void test_flux_conservation() {
 void test_covariance_vs_oracle() {
   const p3scen::Chain c = p3scen::make_chain();
   const SparseOperator R = p3scen::chain_R(c);
-  const DenseMatrix cy = astrocs::p3rsmp::propagate_covariance(R, c.cx);
+  const DenseMatrix cy = acsd::p3rsmp::propagate_covariance(R, c.cx);
   const p3oracle::Mat Rm = p3oracle::build_R(c.ov, c.omega_out, c.n_out, c.n_in);
   const p3oracle::Mat cyo = p3oracle::covariance(Rm, to_oracle(c.cx));
   P3_CHECK(cy.rows == c.n_out && cy.cols == c.n_out);
@@ -133,7 +133,7 @@ void test_diagonal_input_variance() {
   const SparseOperator R = p3scen::chain_R(c);
   std::vector<double> v = {0.04, 0.09, 0.16, 0.25};
   const DenseMatrix cx = DenseMatrix::diagonal(v);
-  const DenseMatrix cy = astrocs::p3rsmp::propagate_covariance(R, cx);
+  const DenseMatrix cy = acsd::p3rsmp::propagate_covariance(R, cx);
   for (int o = 0; o < c.n_out; ++o) {
     double expect = 0.0;  // Σ_j R_oj² v_j（对角输入时严格）
     for (int i = 0; i < c.n_in; ++i) {
@@ -146,7 +146,7 @@ void test_diagonal_input_variance() {
 void test_correlation_deficit_detected() {
   const p3scen::Chain c = p3scen::make_chain(0.19);
   const SparseOperator R = p3scen::chain_R(c);
-  const DenseMatrix cy = astrocs::p3rsmp::propagate_covariance(R, c.cx);
+  const DenseMatrix cy = acsd::p3rsmp::propagate_covariance(R, c.cx);
   // 对角省略公式 Σ c²u 系统性低估（F3-02 / C-P3-PROP-8）
   for (int o = 0; o < c.n_out; ++o) {
     double naive = 0.0;
@@ -196,7 +196,7 @@ void test_qw_output_frame_vs_oracle() {
   const p3scen::Chain c = p3scen::make_chain();
   const SparseOperator S = p3scen::chain_S(c);
   const double a = 2.0;
-  const auto res = astrocs::p3rsmp::propagate_point_source_flux(make_psf_input(c, S, a), GateConfig{});
+  const auto res = acsd::p3rsmp::propagate_point_source_flux(make_psf_input(c, S, a), GateConfig{});
   P3_CHECK(res.status == Status::Ok);
   P3_CHECK(res.frame_is_output_recompute);
 
@@ -232,7 +232,7 @@ void test_qw_vs_monte_carlo() {
   const p3scen::Chain c = p3scen::make_chain();
   const SparseOperator S = p3scen::chain_S(c);
   const double a = 2.0;
-  const auto res = astrocs::p3rsmp::propagate_point_source_flux(make_psf_input(c, S, a), GateConfig{});
+  const auto res = acsd::p3rsmp::propagate_point_source_flux(make_psf_input(c, S, a), GateConfig{});
   P3_CHECK(res.status == Status::Ok);
   DenseMatrix cd(c.n_in, c.n_in);
   for (int i = 0; i < c.n_in; ++i)
@@ -250,7 +250,7 @@ void test_qw_non_commutation() {
   const p3scen::Chain c = p3scen::make_chain();
   const SparseOperator S = p3scen::chain_S(c);
   const SparseOperator R = p3scen::chain_R(c);
-  const auto res = astrocs::p3rsmp::propagate_point_source_flux(make_psf_input(c, S, 2.0), GateConfig{});
+  const auto res = acsd::p3rsmp::propagate_point_source_flux(make_psf_input(c, S, 2.0), GateConfig{});
   P3_CHECK(res.status == Status::Ok);
   // W_naive = Σ_i (行归一核) W_in,i（禁路径），与输出帧重算不可交换
   double w_naive = 0.0;
@@ -272,12 +272,12 @@ void test_sb_propagation_positive() {
   in.c_in = c.cx;
   in.measurement_capable = true;
   in.uncertainty_available = true;
-  in.covariance = astrocs::p3rsmp::CovarianceRepresentation::ExactFull;
-  const auto res = astrocs::p3rsmp::propagate_surface_brightness(R, in, GateConfig{});
+  in.covariance = acsd::p3rsmp::CovarianceRepresentation::ExactFull;
+  const auto res = acsd::p3rsmp::propagate_surface_brightness(R, in, GateConfig{});
   P3_CHECK(res.status == Status::Ok);
   P3_CHECK(res.valid.size() == static_cast<std::size_t>(c.n_out));
   for (std::size_t i = 0; i < res.valid.size(); ++i) P3_CHECK(res.valid[i]);
-  const DenseMatrix cy = astrocs::p3rsmp::propagate_covariance(R, c.cx);
+  const DenseMatrix cy = acsd::p3rsmp::propagate_covariance(R, c.cx);
   for (int i = 0; i < c.n_out; ++i) {
     P3_CHECK_NEAR(res.variance[static_cast<std::size_t>(i)], cy(i, i), 1e-15);
     double expect = 0.0;
@@ -287,11 +287,11 @@ void test_sb_propagation_positive() {
 }
 
 void test_bunit_quadratic() {
-  using astrocs::p3rsmp::is_inverse_pair;
-  using astrocs::p3rsmp::is_quadratic_variance;
-  using astrocs::p3rsmp::units::sb_ivar_out;
-  using astrocs::p3rsmp::units::sb_variance_out;
-  using astrocs::p3rsmp::units::signal_sb;
+  using acsd::p3rsmp::is_inverse_pair;
+  using acsd::p3rsmp::is_quadratic_variance;
+  using acsd::p3rsmp::units::sb_ivar_out;
+  using acsd::p3rsmp::units::sb_variance_out;
+  using acsd::p3rsmp::units::signal_sb;
   P3_CHECK(is_quadratic_variance(signal_sb, sb_variance_out));
   P3_CHECK(is_inverse_pair(sb_variance_out, sb_ivar_out));
   // canonical **产品 BUNIT 串** = 冻结单位表逐字串（docs/science/DATA_SEMANTICS.md
@@ -302,8 +302,8 @@ void test_bunit_quadratic() {
   P3_CHECK(sb_ivar_out.canonical() == "sr^2/ADU^2");
   // 读侧/写侧同一口径: canonical 串必须解析回同一内部幂次（§31.1a 同一映射的逆）。
   {
-    using astrocs::p3rsmp::BunitProvenance;
-    using astrocs::p3rsmp::resolve_bunit;
+    using acsd::p3rsmp::BunitProvenance;
+    using acsd::p3rsmp::resolve_bunit;
     const BunitProvenance no_prov{};
     const auto rs = resolve_bunit(signal_sb.canonical(), no_prov);
     P3_CHECK(rs.resolvable && rs.resolved == signal_sb);
@@ -318,7 +318,7 @@ void test_bunit_quadratic() {
   }
   // 一次幂（mutation）必须被检出
   P3_CHECK(!is_quadratic_variance(signal_sb, signal_sb));
-  using astrocs::p3rsmp::Bunit;
+  using acsd::p3rsmp::Bunit;
   P3_CHECK(!is_quadratic_variance(signal_sb, Bunit{1, -2}));
 }
 
@@ -333,18 +333,18 @@ NeighborhoodSet bilinear_scene(bool all_tiles) {
   tiles.tiles_y = 2;
   tiles.present.assign(4, 1);
   if (!all_tiles) tiles.present[1] = 0;  // tile (1,0) 缺失
-  astrocs::p3rsmp::GridPlan plan;
+  acsd::p3rsmp::GridPlan plan;
   plan.out_width = 4;
   plan.out_height = 4;
   plan.out_origin_x = 4.0;
   plan.out_origin_y = 4.0;
   plan.out_step = 1.0;
-  return astrocs::p3rsmp::make_bilinear_4quad_neighborhood(grid, tiles, plan, 1.0, 1.0);
+  return acsd::p3rsmp::make_bilinear_4quad_neighborhood(grid, tiles, plan, 1.0, 1.0);
 }
 
 void test_cross_tile_boundary_no_zero_fill() {
   const NeighborhoodSet nb_all = bilinear_scene(true);
-  const SparseOperator R_all = astrocs::p3rsmp::build_row_normalized(nb_all, "bilinear_4quad");
+  const SparseOperator R_all = acsd::p3rsmp::build_row_normalized(nb_all, "bilinear_4quad");
   P3_CHECK(R_all.full_coverage(1e-12));
   P3_CHECK_NEAR(R_all.row_sums()[0], 1.0, 1e-14);
   std::vector<double> xb(64, 5.0);
@@ -353,7 +353,7 @@ void test_cross_tile_boundary_no_zero_fill() {
 
   const NeighborhoodSet nb_missing = bilinear_scene(false);
   const SparseOperator R_missing =
-      astrocs::p3rsmp::build_row_normalized(nb_missing, "bilinear_4quad");
+      acsd::p3rsmp::build_row_normalized(nb_missing, "bilinear_4quad");
   const std::vector<double> y_missing = apply_operator(R_missing, xb);
   int n_nan = 0;
   int n_zero = 0;

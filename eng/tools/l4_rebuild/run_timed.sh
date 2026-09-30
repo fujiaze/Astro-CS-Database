@@ -9,7 +9,7 @@
 # 只观测，不改科学参数；不写死线程数（AGENTS §5）。
 set -u
 cd '/workspace/Astro CS Database'
-export TMPDIR="${TMPDIR:-/var/tmp/astrocs}"
+export TMPDIR="${TMPDIR:-/var/tmp/acsd}"
 mkdir -p "$TMPDIR"
 
 L4=run/RELEASE-02/L4-rebuild
@@ -21,7 +21,7 @@ TIMINGS=$L4/timings.csv
 echo 'step,rc,wall_s,user_s,sys_s,maxrss_kb' > "$TIMINGS"
 
 # ── 性能探针: 系统监视器随程序同步启动, 结束(含异常退出)自动收尾 ──
-# ASTROCS_SYSMON=0 可关闭; ASTROCS_SYSMON_INTERVAL 覆盖采样间隔 (默认 1s)。
+# ACSD_SYSMON=0 可关闭; ACSD_SYSMON_INTERVAL 覆盖采样间隔 (默认 1s)。
 # 跟踪 $$ (本 runner) 的整个进程树 ⇒ 覆盖每一步 acsd 子进程; 不做线程数假设。
 SYSMON_PID=""
 SYSMON_CSV="$LOGS/sysmon.csv"
@@ -32,9 +32,9 @@ sysmon_stop() {
     echo "[sysmon] stopped; csv=$SYSMON_CSV"
   fi
 }
-if [ "${ASTROCS_SYSMON:-1}" = "1" ] && [ -f eng/tools/l4_rebuild/sysmon.py ]; then
+if [ "${ACSD_SYSMON:-1}" = "1" ] && [ -f eng/tools/l4_rebuild/sysmon.py ]; then
   python3 eng/tools/l4_rebuild/sysmon.py --pid $$ \
-      --interval "${ASTROCS_SYSMON_INTERVAL:-1}" --tag l4_rebuild \
+      --interval "${ACSD_SYSMON_INTERVAL:-1}" --tag l4_rebuild \
       --out "$SYSMON_CSV" > "$LOGS/sysmon.stdout" 2>&1 &
   SYSMON_PID=$!
   echo "[sysmon] started pid=$SYSMON_PID out=$SYSMON_CSV"

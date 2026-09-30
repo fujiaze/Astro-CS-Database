@@ -1,6 +1,6 @@
 # Phase2 API 定义 v1 (API-004 冻结 — 数据所有权/thread budget/逐函数)
 
-> 上游：ASTROCS_DESIGN.md §5（mosaic）、§8.4（模块与 ABI）
+> 上游：ACSD_DESIGN.md §5（mosaic）、§8.4（模块与 ABI）
 
 > ID: API-P2-001  范围: API-P2-001..012  状态: FROZEN；**用户命令面 = `mosaic`**  上游: API-001/002/003  下游: 用户命令 `mosaic`(CLI-001;`phase2 run` 不在命令面上, rc=2)/TST-P2-*
 > 签名权威=现存头文件(lib/algorithms/coverage/include/astro/phase2/*.h);本文件登记并发合同、**数据所有权**与 thread budget 绑定;全局状态一律显式登记(验收)。
@@ -48,7 +48,7 @@ coverage ──→ sampler ──→ UPM build ──→ calibrate_block ──�
 
 ## 4 错误码映射
 
-模块 rc(NO_DATA/INVALID_INPUT/UNDERDETERMINED/rc=2 build fail/OK, SCI-UPM/REJ/INT 冻结)→acs_status: NO_DATA/INVALID→ACS_ERR_PARAM;rc=2→ACS_ERR_STATE;UNDERDETERMINED→ACS_OK(语义=可继续, final 汇总);映射表由 CLI-002 落地并在 golden 测试断言。
+模块 rc(NO_DATA/INVALID_INPUT/UNDERDETERMINED/rc=2 build fail/OK, SCI-UPM/REJ/INT 冻结)→acsd_status: NO_DATA/INVALID→ACS_ERR_PARAM;rc=2→ACS_ERR_STATE;UNDERDETERMINED→ACS_OK(语义=可继续, final 汇总);映射表由 CLI-002 落地并在 golden 测试断言。
 
 ## 5 与 API-003 同构 checker
 

@@ -7,7 +7,7 @@ HOST = os.path.join(REPO, "lib", "phase3_session")
 # W8 (批次 4): hips_properties.cpp 迁 lib/algorithms/coverage/
 COV = os.path.join(REPO, "lib", "algorithms", "coverage")
 
-GOOD = """creator_did=ivo://astrocs/test
+GOOD = """creator_did=ivo://acsd/test
 obs_title=fixture
 hips_order=0
 hips_tile_width=512
@@ -20,7 +20,7 @@ hips_status=private master
 
 # 根目录整合后 aio 落 lib/infrastructure/aio，其 PUBLIC include 面 = include/ + src/
 # + third_party/cfitsio + lib/algorithms/shared + lib/third_party（见根 CMakeLists.txt:
-# target_include_directories(astrocs_aio PUBLIC ...)）。测试侧独立编译必须同面，否则
+# target_include_directories(acsd_aio PUBLIC ...)）。测试侧独立编译必须同面，否则
 # aio_atomic_file.h / aio_file_io.h / crypto/sha256.h 找不到
 # （GATE-502：修复根目录整合后测试侧遗留的过时 include 面）。
 AIO_INCS = [
@@ -127,7 +127,7 @@ class TestHipsProperties(unittest.TestCase):
         for bad in ("a/../b", "../escape", "/a/../b", "a\\..\\b", "a//b", ""):
             rc, out = self._probe("path", bad)
             self.assertEqual(rc, 1, f"恶意路径必须拒: {bad!r} → {out}")
-        for good in ("run/phase2/x.hips/signal", "/tmp/astrocs/p3_test"):
+        for good in ("run/phase2/x.hips/signal", "/tmp/acsd/p3_test"):
             rc, out = self._probe("path", good)
             self.assertEqual(rc, 0, f"正常路径不应拒: {good!r} → {out}")
 

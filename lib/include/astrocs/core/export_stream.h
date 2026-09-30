@@ -1,6 +1,6 @@
 // ACSD Core — ARCH-504 export 子块流式调度器
 //
-// 依据：docs/ASTROCS_DESIGN.md §6（投影导出）、§8.3（export = 子块流式）；ENGINEERING_SPEC.md
+// 依据：docs/ACSD_DESIGN.md §6（投影导出）、§8.3（export = 子块流式）；ENGINEERING_SPEC.md
 //       §4.1；CONTRACT-501 docs/engineering/SCHEDULER_CONTRACT.md。
 //
 // 核心机制（合同条款，测试逐条锁）：
@@ -14,12 +14,12 @@
 //   ⑦ **生产接线（P3-STREAM-01）**：phase3 writer 节点经 `ExportSink` 把每个
 //      子块写进 FITS 数据区（cfitsio `fits_write_subset`）；resample2 / verify
 //      节点同样按子块读写 —— 生产 export 全程无整幅平面驻留
-//      （docs/ASTROCS_DESIGN §8.3 export 行）。
+//      （docs/ACSD_DESIGN §8.3 export 行）。
 //
 // 边界：投影数学（TAN 冻结）不改；SIN 缺陷未解决前不启用。
 #pragma once
 
-#include "astrocs/core/normalize_workflow.h"   // 复用 ProbeSink / ProbeEvent
+#include "acsd/core/normalize_workflow.h"   // 复用 ProbeSink / ProbeEvent
 
 #include <atomic>
 #include <condition_variable>
@@ -30,7 +30,7 @@
 #include <string>
 #include <vector>
 
-namespace astrocs::core {
+namespace acsd::core {
 
 // 每像素取值函数（由调用方注入；本调度器只做流式编排，不做投影数学）
 using ExportPixelFn = std::function<double(int x, int y)>;
@@ -44,7 +44,7 @@ using ExportSubBlockFn = std::function<void(int x0, int y0, int w, int h, double
 // 顺序与 worker 数无关 ⇒ 输出逐位确定。sink 自行负责原子发布语义
 // （open 建临时对象 → write_sub_block 追加 → finish 走 tmp→fsync→rename，
 // abort 不留半成品）；调度器只做编排、背压与在途字节上界。
-// 生产 FITS 面（astrocs.phase3.writer）经此接口把子块写进 FITS 数据区，
+// 生产 FITS 面（acsd.phase3.writer）经此接口把子块写进 FITS 数据区，
 // 不再需要整幅平面驻留。
 class ExportSink {
  public:
@@ -180,4 +180,4 @@ class ExportStreamScheduler {
   // 头文件不得出现线程容器成员（生命周期不可控的永久池）。
 };
 
-}  // namespace astrocs::core
+}  // namespace acsd::core

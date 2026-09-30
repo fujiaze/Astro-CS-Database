@@ -11,8 +11,8 @@
 
 | 项 | 值 |
 |---|---|
-| 模块 ID | `astrocs.conformance.echo`（MOD-ECHO） |
-| DLL target | `astrocs_echo`（Windows `astrocs_echo.dll`；Linux `astrocs_echo.so`） |
+| 模块 ID | `acsd.conformance.echo`（MOD-ECHO） |
+| DLL target | `acsd_echo`（Windows `acsd_echo.dll`；Linux `acsd_echo.so`） |
 | module/ABI/doc revision | module 0.1.0-alpha.1 / ABI v1 / ABI-005 |
 | owner | SA-ABI-03（ABI-005） |
 | 状态 | `IMPLEMENTED` — ABI-005 conformance；无科学含义 |
@@ -20,7 +20,7 @@
 ## 2. 负责范围 / 不负责
 
 负责：
-- 唯一导出入口 `astrocs_module_query_v1`（12 §1：module DLL 不得导出其他
+- 唯一导出入口 `acsd_module_query_v1`（12 §1：module DLL 不得导出其他
   符号）—— `nm -D` 实测仅该符号（ABI-006 全查 exports）；
 - 每个 host service callback 的正/负探针（action 白名单）：
   - `echo`：回显 input manifest（内容往返一致；含 cancel 前置检查点）；
@@ -52,12 +52,12 @@
 
 无输入/输出 ports、无科学/算法/数据合同（conformance 模块；不接入 Phase
 DAG）。input manifest / config 均为借入 JSON；输出为调用方提供的
-`acs_strbuf_v1` 缓冲 JSON（截断语义：不足 → `ACS_ERR_PARAM` +
+`acsd_strbuf_v1` 缓冲 JSON（截断语义：不足 → `ACS_ERR_PARAM` +
 `BUFFER_TOO_SMALL`，`strbuf.size`=所需字节）。
 
 ## 4. 合同链接
 
-- API：`API-ABI-001`（lib/include/astrocs/abi/module_api_v1.h + host_api_v1.h +
+- API：`API-ABI-001`（lib/include/acsd/abi/module_api_v1.h + host_api_v1.h +
   artifact_api_v1.h + lifecycle_v1.h，ABI-001/002 冻结）；
 - 模块元数据合同：module.yaml 字段规范（11_MODULE_SOURCE_TEST_STANDARD.md
   §4）；三方（module.yaml / DLL descriptor / product manifest）一致校验由
@@ -69,11 +69,11 @@ DAG）。input manifest / config 均为借入 JSON；输出为调用方提供的
 
 | 源 | 内容 |
 |---|---|
-| `src/echo_module.c` | 唯一导出 `astrocs_module_query_v1` + 静态 vtable + action 分发 |
-| `lib/include/astrocs/echo/types.h` | 静态标识常量 + config key/action + 自定义 detail 码（100..105） |
+| `src/echo_module.c` | 唯一导出 `acsd_module_query_v1` + 静态 vtable + action 分发 |
+| `lib/include/acsd/echo/types.h` | 静态标识常量 + config key/action + 自定义 detail 码（100..105） |
 | `eng/tests/unit/echo_host_callback_test.c` | 全部 host callback 正/负断言（独立 fake host；不调生产符号做 oracle） |
 
-导出符号（`nm -D` 实测）：仅 `astrocs_module_query_v1`。vtable 全生命周期
+导出符号（`nm -D` 实测）：仅 `acsd_module_query_v1`。vtable 全生命周期
 回调齐全：describe/validate_config/plan/create/execute/inspect/
 request_cancel/destroy。
 
@@ -97,14 +97,14 @@ config JSON action 白名单（validate/plan/execute 共享）：
 
 ## 7. 验证
 
-- 单元测试（共址 CTest）：`module:astrocs.conformance.echo` → 全部 host
+- 单元测试（共址 CTest）：`module:acsd.conformance.echo` → 全部 host
   callback 正/负断言全 PASS；
 - 动态加载（ABI-003 loader）：eng/tests/abi/test_abi005_echo.py 经
-  `abi003_loader_probe` 加载真实 `astrocs_echo.so`（绝对 canonical + sha256 +
+  `abi003_loader_probe` 加载真实 `acsd_echo.so`（绝对 canonical + sha256 +
   module_id + build_id 全校验一致）→ LOAD_OK/DESCRIBE_OK/RELEASE_OK；
   删除 DLL 后 registry 报缺（无静态 fallback）；
-- exports：`nm -D --defined-only astrocs_echo.so` 仅
-  `astrocs_module_query_v1`；
+- exports：`nm -D --defined-only acsd_echo.so` 仅
+  `acsd_module_query_v1`；
 - 编译：`-Wall -Wextra -fno-exceptions` 零告警（Linux LIGHT；Windows 由
   WIN-* 验证）。
 
@@ -112,6 +112,6 @@ config JSON action 白名单（validate/plan/execute 共享）：
 
 - metrics 上报形态为 inspect JSON（host_api_v1 无 metrics 回调字段；ABI v1
   冻结面内模块无法主动上报计数）；
-- Windows `astrocs_echo.dll` 构建/加载验证留 WIN-* 系列；
+- Windows `acsd_echo.dll` 构建/加载验证留 WIN-* 系列；
 - product manifest 登记本模块（unit MOD-ECHO）与 install 树 add 属前台集成
   （BLD-003 install_layout 白名单同步），本任务不修改根 CMake/install 规则。

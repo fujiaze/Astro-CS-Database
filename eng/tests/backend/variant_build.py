@@ -10,10 +10,10 @@
   · 共享合同（同一 impl 源）的证据从"一个文件含两个 .inc"变成"计算面 TU 含 impl、门面 TU 含注册表"。
 
 两族各一节（**配方只此一处**，判据与 provider oracle 跑道共用）:
-  · build_variant()         —— 第一族 backend_host 变体（astrocs_cpu_<id>.so）;
-  · build_cpuprov_variant() —— 第二族 CPU provider 变体（astrocs_cpuprov_<id>.so）：
+  · build_variant()         —— 第一族 backend_host 变体（acsd_cpu_<id>.so）;
+  · build_cpuprov_variant() —— 第二族 CPU provider 变体（acsd_cpuprov_<id>.so）：
     门面 TU 零 ISA 旗标 + 计算面 TU 唯一带旗标，两者只经唯一跨 TU 桥
-    astrocs_cpuprov_kernel_range_v1 相连。消费者:
+    acsd_cpuprov_kernel_range_v1 相连。消费者:
       eng/tests/cpu/{avx2,avx512}/run_provider_*_checks.py（CPU-003/004 oracle）
       eng/tests/backend/test_cpuprov_isa_variants.py（产物级 ISA 面判据）
 """
@@ -34,7 +34,7 @@ VARIANTS = {
 
 
 # 第二族（CPU provider）变体：门面 TU 零旗标 / 计算面 TU 唯一带旗标。
-# isa_flags 与根 CMakeLists.txt 的 astrocs_cpuprov_<v>_kernels 逐条同源
+# isa_flags 与根 CMakeLists.txt 的 acsd_cpuprov_<v>_kernels 逐条同源
 # （站点登记见 eng/tools/quality/isa_sites.json 的 product-cpuprov-*）。
 CPUPROV_VARIANTS = {
     "avx2": {"face": "avx2/src/avx2_provider.cpp",
@@ -45,7 +45,7 @@ CPUPROV_VARIANTS = {
                "isa_flags": ["-mavx512f", "-mavx512cd", "-mavx512bw",
                              "-mavx512dq", "-mavx512vl"]},
 }
-BRIDGE_SYMBOL = "astrocs_cpuprov_kernel_range_v1"
+BRIDGE_SYMBOL = "acsd_cpuprov_kernel_range_v1"
 
 
 def cpuprov_isa_flags(variant):

@@ -86,7 +86,7 @@ int main(int argc, char** argv) {
         return 0;
     }
     // ── --make-noisy: 带确定性噪声的 light 帧（bias/dark/flat 仍为常量域）────────
-    // 为什么需要（docs/ASTROCS_DESIGN §2.1：HiPS 里**存**帧级 SNR；DATA-UNC-001 §30.1：
+    // 为什么需要（docs/ACSD_DESIGN §2.1：HiPS 里**存**帧级 SNR；DATA-UNC-001 §30.1：
     // 缺逐帧 ivar 时**禁止静默回退等权**）：mosaic 的默认（唯一）生产权重 = 逐帧
     // 逆方差，其 ivar 子产品来自 Phase1 drizzle 的方差传播，而方差传播只在噪声模型
     // 有合格 patch（σ>0）时成立。--make 的常量域帧 σ=0 ⇒ 噪声模型整帧退化

@@ -31,7 +31,7 @@ static int corrupt_snr_tsv(const std::string& out) {
         if (!e.is_regular_file()) continue;
         const std::string p = e.path().string();
         if (p.size() < 4 || p.substr(p.size() - 4) != ".tsv") continue;
-        if (std::getenv("ASTROCS_KEEP_ORIG")) {
+        if (std::getenv("ACSD_KEEP_ORIG")) {
             std::ifstream cp(p, std::ios::binary);
             std::ofstream op(p + ".orig", std::ios::binary | std::ios::trunc);
             op << cp.rdbuf();
@@ -102,7 +102,7 @@ int main(int argc, char** argv) {
 
     AioHipsProductSet* ps = aio_hips_product_begin(
         out.c_str(), nside, 512, dtype, AIO_HIPS_PRODUCT_ALL,
-        "ivo://astrocs/sanitize", "Sanitizer HiPS", "L", 300.0, "2026-08-09", 0);
+        "ivo://acsd/sanitize", "Sanitizer HiPS", "L", 300.0, "2026-08-09", 0);
     if (!ps) { std::fprintf(stderr, "begin fail: %s\n", aio_hips_last_error()); return 3; }
     std::vector<float>  fluxF(n, 0.0f),  areaF(n, 0.0f);
     std::vector<double> fluxD(n, 0.0),  areaD(n, 0.0);

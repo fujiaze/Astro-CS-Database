@@ -1,6 +1,6 @@
 // lib/algorithms/coverage/tests/ivar_wiring_test.cpp — 生产 ivar wiring 集成测试
 //
-// 直接跑生产 Stage2（astrocs-stage2.exe），不是单独调用 reducer：
+// 直接跑生产 Stage2（acsd-stage2.exe），不是单独调用 reducer：
 // - 3 帧合成 HiPS（signal/support/ivar 产品，单 tile）；
 // - 每帧 ivar 空间 pattern 不同（A≈1、B≈4、C≈16 量级 + 空间变化）；
 // - 故意制造像素级 invalid（support=0）使 eligibility compact；
@@ -65,7 +65,7 @@ void write_hips(const std::string& dir, const FrameSpec& spec,
     AioHipsProductSet* ps = aio_hips_product_begin(
         dir.c_str(), kNside, kTileWidth, AIO_HIPS_FLOAT32,
         AIO_HIPS_PRODUCT_ALL_V19,
-        ("ivo://astrocs/test/" + spec.name).c_str(),
+        ("ivo://acsd/test/" + spec.name).c_str(),
         ("ivar wiring frame " + spec.name).c_str(), "Red", 10.0,
         "2026-08-16", 7);
     if (!ps) {
@@ -146,19 +146,19 @@ int exit_code(int st) {
 
 std::string stage2_exe() {
 #ifdef _WIN32
-    return "astrocs-stage2.exe";
+    return "acsd-stage2.exe";
 #else
     // 测试既可能在 build 目录运行，也可能在仓库根运行（如单独执行
     // ./build/linux-openmp-on/phase2_ivar_wiring）。
     // V3 B3-A4: 命中仓内相对路径时必须带 "./" —— std::system() 经 /bin/sh
     // 按 PATH 查找，裸名不会命中当前目录（全量 ctest 中曾因此报
-    // "astrocs-stage2: not found" rc=32512 假红）。
-    for (const char* p : {"astrocs-stage2",
-                          "build/linux-openmp-on/astrocs-stage2",
-                          "build/linux-release/astrocs-stage2"}) {
+    // "acsd-stage2: not found" rc=32512 假红）。
+    for (const char* p : {"acsd-stage2",
+                          "build/linux-openmp-on/acsd-stage2",
+                          "build/linux-release/acsd-stage2"}) {
         if (std::filesystem::exists(p)) return "./" + std::string(p);
     }
-    return "astrocs-stage2";
+    return "acsd-stage2";
 #endif
 }
 
@@ -249,7 +249,7 @@ TEST(Phase2IvarWiring, WireProductionStage2PerFrameIvar) {
         // 数据数组按 NESTED local 索引（写入器期望 NESTED 序）
         for (std::uint64_t z = 0; z < npix; ++z) {
             std::uint32_t nx = 0, ny = 0;
-            astrocs::healpix::nested_local_to_xy(z, 9u, nx, ny);
+            acsd::healpix::nested_local_to_xy(z, 9u, nx, ny);
             const int x = (int)nx;
             const int y = (int)ny;
             // 确定性值：truth + 亚像素正弦（UPM offset≈0，保持帧间差异）
@@ -267,7 +267,7 @@ TEST(Phase2IvarWiring, WireProductionStage2PerFrameIvar) {
         auto invalid_fits_band = [&](int y0, int y1) {
             for (std::uint64_t z = 0; z < npix; ++z) {
                 const std::uint64_t fi =
-                    astrocs::healpix::nested_local_to_fits_index(
+                    acsd::healpix::nested_local_to_fits_index(
                         z, 9u, kTileWidth);
                 const int fy = (int)(fi / kTileWidth);
                 if (fy >= y0 && fy < y1) sup[(std::size_t)z] = 0.0f;
@@ -303,7 +303,7 @@ TEST(Phase2IvarWiring, WireProductionStage2PerFrameIvar) {
     std::size_t n_checked = 0;
     for (std::uint64_t z = 0; z < npix; ++z) {
         const std::uint64_t fits =
-            astrocs::healpix::nested_local_to_fits_index(
+            acsd::healpix::nested_local_to_fits_index(
                 (std::uint32_t)z, 9u, kTileWidth);
         const bool any_valid = supports[0][(std::size_t)z] > 0 ||
                                supports[1][(std::size_t)z] > 0 ||

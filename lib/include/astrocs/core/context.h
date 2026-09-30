@@ -1,9 +1,9 @@
 // ACSD Core Contracts — CORE-005 RunContext 服务接口
 #pragma once
 
-#include "astrocs/core/artifact.h"
-#include "astrocs/core/contracts.h"
-#include "astrocs/core/trace.h"
+#include "acsd/core/artifact.h"
+#include "acsd/core/contracts.h"
+#include "acsd/core/trace.h"
 
 #include <atomic>
 #include <condition_variable>
@@ -22,7 +22,7 @@
 #undef ERROR
 #endif
 
-namespace astrocs::core {
+namespace acsd::core {
 
 // 日志级别 (CORE-008 统一日志)
 enum class LogLevel : uint8_t { DEBUG = 0, INFO = 1, WARN = 2, ERROR = 3 };
@@ -263,4 +263,4 @@ class RunContext {
   std::string run_id_;                       // RT-006: 本次运行 ID
 };
 
-}  // namespace astrocs::core
+}  // namespace acsd::core

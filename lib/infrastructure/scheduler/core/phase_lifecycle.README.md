@@ -10,7 +10,7 @@
 > 跨 Phase manifest 在进程外读取。
 > 验收：进程内全局状态 spy；phase1 DLL 缺失不影响 phase3 外部 fixture；禁止 `--phases` 调用图。
 
-约束来源：`AstroCS_ENGINEERING_CONSTRAINTS.md` A.3/A.4/A.6（三 Phase 是隔离产品命令；
+约束来源：`ACSD_ENGINEERING_CONSTRAINTS.md` A.3/A.4/A.6（三 Phase 是隔离产品命令；
 禁止同进程 `--phases 1,2,3`；阶段间只通过原子发布、哈希与 provenance 完整的磁盘
 产品/manifest 交换）；`03_TARGET_PRODUCT_AND_ARCHITECTURE.md` §5（每个 Phase 启动独立
 Runtime 实例）；DATA-002（Phase 产品 manifest 交换合同，跨 Phase 仅磁盘交换）。

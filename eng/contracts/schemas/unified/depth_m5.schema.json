@@ -1,12 +1,12 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://astrocs.local/schemas/unified/depth_m5/v1",
+  "$id": "https://acsd.local/schemas/unified/depth_m5/v1",
   "title": "ACSD 统一对象 depth_m5 —— 固定参考 PSF/孔径下 5σ 深度",
   "description": "UNIFIED_MODEL §2：depth_m5 = 固定参考 PSF/孔径下 5σ 深度；可否作权重 = 摘要，不作权重。depth_m5 是摘要量，禁止当作 frame_snr 或权重使用。",
-  "x-astrocs-object": {
+  "x-acsd-object": {
     "name": "depth_m5",
     "canonical_file": "eng/contracts/schemas/unified/depth_m5.schema.json",
-    "authority": "docs/detail/UNIFIED_MODEL.md §2；docs/ASTROCS_DESIGN.md §2；ENGINEERING_SPEC.md §3/§4.7",
+    "authority": "docs/detail/UNIFIED_MODEL.md §2；docs/ACSD_DESIGN.md §2；ENGINEERING_SPEC.md §3/§4.7",
     "weight_verdict": "摘要，不作权重",
     "weight_eligible": false
   },
@@ -57,7 +57,7 @@
       "description": "对象判别式：本文档声明的 UNIFIED_MODEL §2 对象名（禁止用别的对象名冒充）"
     },
     "object_schema_id": {
-      "const": "https://astrocs.local/schemas/unified/depth_m5/v1",
+      "const": "https://acsd.local/schemas/unified/depth_m5/v1",
       "description": "全局唯一 schema ID（eng/contracts/schemas/unified/depth_m5.schema.json）"
     },
     "schema_version": {

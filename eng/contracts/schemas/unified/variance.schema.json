@@ -1,12 +1,12 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://astrocs.local/schemas/unified/variance/v1",
+  "$id": "https://acsd.local/schemas/unified/variance/v1",
   "title": "ACSD 统一对象 variance —— 同一估计量的方差",
   "description": "UNIFIED_MODEL §2：variance / ivar = 同一估计量的方差及倒数；可否作权重 = 对该估计目标可以。variance 不得由任何权重标量反推（FZ-FORMULA-COV-PROP；schema 内 variance_from 枚举不含权重标量）。",
-  "x-astrocs-object": {
+  "x-acsd-object": {
     "name": "variance",
     "canonical_file": "eng/contracts/schemas/unified/variance.schema.json",
-    "authority": "docs/detail/UNIFIED_MODEL.md §2；docs/ASTROCS_DESIGN.md §2；ENGINEERING_SPEC.md §3/§4.7",
+    "authority": "docs/detail/UNIFIED_MODEL.md §2；docs/ACSD_DESIGN.md §2；ENGINEERING_SPEC.md §3/§4.7",
     "weight_verdict": "对该估计目标可以",
     "weight_eligible": true
   },
@@ -56,7 +56,7 @@
       "description": "对象判别式：本文档声明的 UNIFIED_MODEL §2 对象名（禁止用别的对象名冒充）"
     },
     "object_schema_id": {
-      "const": "https://astrocs.local/schemas/unified/variance/v1",
+      "const": "https://acsd.local/schemas/unified/variance/v1",
       "description": "全局唯一 schema ID（eng/contracts/schemas/unified/variance.schema.json）"
     },
     "schema_version": {
@@ -361,7 +361,7 @@
           "minLength": 1
         }
       },
-      "x-astrocs-gate": {
+      "x-acsd-gate": {
         "clause_id": "FZ-FORMULA-COV-PROP",
         "gate": "G-COV-DIAGONAL-KERNEL",
         "source": "docs/science/DATA_SEMANTICS.md §31.6"
@@ -389,7 +389,7 @@
           "minLength": 1
         }
       },
-      "x-astrocs-gate": {
+      "x-acsd-gate": {
         "clause_id": "FZ-FORMULA-COV-PROP",
         "gate": "G-COV-DIAGONAL-KERNEL",
         "source": "docs/science/DATA_SEMANTICS.md §31.6"
@@ -422,7 +422,7 @@
           }
         ]
       },
-      "x-astrocs-gate": {
+      "x-acsd-gate": {
         "clause_id": "FZ-FORMULA-COV-PROP",
         "gate": "G-COV-DIAGONAL-KERNEL",
         "rule": "representation=diagonal ⇒ 必带 correlation_kernel 或 operator_descriptor",
@@ -445,7 +445,7 @@
           "correlation_kernel"
         ]
       },
-      "x-astrocs-gate": {
+      "x-acsd-gate": {
         "clause_id": "FZ-FORMULA-COV-PROP",
         "gate": "G-COV-DIAGONAL-KERNEL",
         "rule": "representation=diagonal_plus_correlation_kernel ⇒ 必带 correlation_kernel",
@@ -487,7 +487,7 @@
           }
         }
       },
-      "x-astrocs-gate": {
+      "x-acsd-gate": {
         "clause_id": "FZ-BUNIT-SEMANTICS",
         "gate": "G-BUNIT-SEMANTICS",
         "rule": "bunit_semantics=written_px_power 且 pixel_area_power!=0 ⇒ BUNIT 必须显式含立体角幂次（量纲可判 (a)）",
@@ -527,7 +527,7 @@
           }
         }
       },
-      "x-astrocs-gate": {
+      "x-acsd-gate": {
         "clause_id": "FZ-BUNIT-SEMANTICS",
         "gate": "G-BUNIT-SEMANTICS",
         "rule": "bunit_semantics=declared_via_provenance ⇒ BUNIT 仅写 ADU，量纲由 pixel_semantics + pixel_area_power 声明（量纲可判 (b)）",
@@ -567,7 +567,7 @@
           }
         }
       },
-      "x-astrocs-gate": {
+      "x-acsd-gate": {
         "clause_id": "FZ-BUNIT-SEMANTICS",
         "gate": "G-BUNIT-SEMANTICS",
         "rule": "declared_via_provenance + surface_brightness ⇒ pixel_area_power=-2",
@@ -607,7 +607,7 @@
           }
         }
       },
-      "x-astrocs-gate": {
+      "x-acsd-gate": {
         "clause_id": "FZ-BUNIT-SEMANTICS",
         "gate": "G-BUNIT-SEMANTICS",
         "rule": "declared_via_provenance + integrated_flux ⇒ pixel_area_power=0",

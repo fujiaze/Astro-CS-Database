@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""astrocs_diagnose.py — ACSD 轻量故障定位工具 (V19)
+"""acsd_diagnose.py — ACSD 轻量故障定位工具 (V19)
 
 用法:
-  py -3.12 eng/tools/astrocs_diagnose.py <run_dir> [--json out.json] [--timeout 30]
+  py -3.12 eng/tools/acsd_diagnose.py <run_dir> [--json out.json] [--timeout 30]
 
 功能:
   - 扫描 run_dir 下的日志 (*.log)、stage1/stage2 配置与产物清单
@@ -66,7 +66,7 @@ ERROR_MAP = [
     (r"FILE_IO_ERROR|无法.*文件|failed to open|cannot open|file not found", "E960", "FILE_IO_ERROR",
      "文件 IO 失败 (路径/权限/损坏)", "检查路径大小写、磁盘空间、文件完整性 (sha256)"),
     (r"timed out|timeout|超时", "E980", "TIMEOUT",
-     "阶段超时", "检查硬门耗时; 用 ASTROCS_DRIZZLE_FINE_PROFILE=1 定位热点"),
+     "阶段超时", "检查硬门耗时; 用 ACSD_DRIZZLE_FINE_PROFILE=1 定位热点"),
 ]
 
 
@@ -182,7 +182,7 @@ def main() -> int:
     findings = scan_logs(args.run_dir, args.timeout)
     artifacts = scan_artifacts(args.run_dir)
     report = {
-        "tool": "astrocs-diagnose",
+        "tool": "acsd-diagnose",
         "version": "1.0.0",
         "run_dir": os.path.abspath(args.run_dir),
         "stage_ids": STAGE_IDS,

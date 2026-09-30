@@ -1,15 +1,15 @@
 # ACSD phase1 drizzle module — 元数据 (P1-DRZ-DOC 冻结, 2026-09-07)
 # 状态: CONTRACT_READY —— 实现存在（生产源 lib/algorithms/drizzle/healpix_drizzle/，
-# 编译进根 CMakeLists.txt:356-366 静态库 astrocs_drizzle；C ABI 导出
+# 编译进根 CMakeLists.txt:356-366 静态库 acsd_drizzle；C ABI 导出
 # hp_drizzle_api.h:42,62,70,130,139,140 六符号），模块化迁移（独立模块源
-# astrocs_p1_drizzle.dll / C ABI adapter / plan-execute-cancel-inspect /
+# acsd_p1_drizzle.dll / C ABI adapter / plan-execute-cancel-inspect /
 # ThreadLease 接线）由 P1-DRZ-IMPL 执行；可执行测试由 P1-DRZ-TEST 建立
 # （TEST-DRZ-DESIGN-001 → TEST-P1-DRZ-001）。
 # 字段遵循 11_MODULE_SOURCE_TEST_STANDARD.md §4；source_symbols 为源码核对
 # 清单（P1-DRZ-DOC，2026-09-07），禁止手抄他版。
-# 落位依据：MODULE_MIGRATION_MATRIX.csv P1-DRZ 行 target=astrocs_p1_drizzle.dll、
-# module_id=astrocs.p1.drizzle，legacy_paths="lib/phase1/drizzle;root
-# astrocs_drizzle target"（lib/phase1/drizzle 目录不存在；root astrocs_drizzle
+# 落位依据：MODULE_MIGRATION_MATRIX.csv P1-DRZ 行 target=acsd_p1_drizzle.dll、
+# module_id=acsd.p1.drizzle，legacy_paths="lib/phase1/drizzle;root
+# acsd_drizzle target"（lib/phase1/drizzle 目录不存在；root acsd_drizzle
 # target 源码位于 lib/algorithms/drizzle/healpix_drizzle/，与 lib/algorithms/cosmetic/、
 # lib/algorithms/calibration/ 先例同构，本目录 lib/algorithms/drizzle/ 为迁移目标目录、不与 legacy
 # 目录重叠）。
@@ -18,22 +18,22 @@
 # （drizzle_engine.cpp:1639-1644，不改全局 ICV；config.threads=0 退化
 # omp_get_max_threads()），ThreadLease 接线为迁移整改点（见
 # docs/engineering/PUBLIC_API.md API-DRZ-001 与 docs/science/algorithms/DRIZZLE_GEOMETRY.md）。
-# entrypoint=astrocs_module_query_v1（2026-09-17 LEDGER-DOC 订正：旧值 MISSING 已被实测反证）：
-# 模块 DLL astrocs_p1_drizzle（SHARED，lib/algorithms/drizzle/CMakeLists.txt:61）与
-# src/module_entry.cpp 导出 astrocs_module_query_v1 在位；但该函数体零调用
+# entrypoint=acsd_module_query_v1（2026-09-17 LEDGER-DOC 订正：旧值 MISSING 已被实测反证）：
+# 模块 DLL acsd_p1_drizzle（SHARED，lib/algorithms/drizzle/CMakeLists.txt:61）与
+# src/module_entry.cpp 导出 acsd_module_query_v1 在位；但该函数体零调用
 # （MOD-001 检查器 finding=noop_entrypoint ⇒ NOT_IMPLEMENTED），且 registry
 # descriptor（module_adapters.cpp p1_drizzle_descriptor）仍未接节点
 # （node_operations 空、factory 委托 phase1 session 且 session 无 drizzle stage）。
 # 生产调用现状为遗留 orchestrator DLL 通道（orchestrator.cpp:3256-3371 经
 # 函数指针调 hp_drizzle_run_hips）。实现整改归 P1-DRZ-IMPL。
-id: MOD-astrocs-phase1-drizzle
-module_id: astrocs.p1.drizzle
+id: MOD-acsd-phase1-drizzle
+module_id: acsd.p1.drizzle
 module_version: 0.1.0-alpha.1
 abi_version: 1
 phase_scope: phase1
-dll_name: astrocs_p1_drizzle.dll
+dll_name: acsd_p1_drizzle.dll
 module_status: CONTRACT_READY
-entrypoint: astrocs_module_query_v1
+entrypoint: acsd_module_query_v1
 node_operations: []
 input_ports:
   - p1.calibrated

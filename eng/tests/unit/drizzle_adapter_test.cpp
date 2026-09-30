@@ -16,7 +16,7 @@
  *      history elapsed=%.3fs 差异)。
  *   E. 租借: executor acquire/release 计数; lease 拒绝 → 单线程降级非致命。
  *
- * DLL 经环境变量 ASTROCS_DRIZZLE_DLL_PATH (CMake test properties 注入)。
+ * DLL 经环境变量 ACSD_DRIZZLE_DLL_PATH (CMake test properties 注入)。
  * 直接路径: #include 生产 .cpp (drizzle_engine 等) 进本测试可执行。
  */
 #include "drizzle_adapter_impl.cpp"
@@ -32,19 +32,19 @@
 #endif
 
 /* FINAL-07 WIN-PORT 批次二: 平台专属调用的唯一判定点 ——
- * Windows 侧的 dlopen/dlsym/dlerror、RTLD_* 等经 eng/tests/support/astrocs_test_posix_compat.h
+ * Windows 侧的 dlopen/dlsym/dlerror、RTLD_* 等经 eng/tests/support/acsd_test_posix_compat.h
  * 统一给等价物 (本 TU 的加载用例是平台中立的模块加载器契约, 加守卫跳过会丢覆盖面, 故不跳过)。
  * 类 UNIX 侧该头整头为空, 上面保留本 TU 原有系统头 => Linux 预处理零 delta。
  * 无等价语义的能力见该头「无等价物清单」(显式限定 + 明确状态)。 */
-#include "../support/astrocs_test_posix_compat.h"
+#include "../support/acsd_test_posix_compat.h"
 
-#include "astrocs/abi/lifecycle_v1.h"
-#include "astrocs/abi/module_api_v1.h"
-#include "astrocs/abi/host_api_v1.h"
-#include "astrocs/drizzle/types.h"
+#include "acsd/abi/lifecycle_v1.h"
+#include "acsd/abi/module_api_v1.h"
+#include "acsd/abi/host_api_v1.h"
+#include "acsd/drizzle/types.h"
 
-typedef acs_status (*drz_entry_fn)(uint32_t, const acs_host_api_v1*,
-                                   const acs_module_api_v1**);
+typedef acsd_status (*drz_entry_fn)(uint32_t, const acsd_host_api_v1*,
+                                   const acsd_module_api_v1**);
 
 static int g_fail = 0;
 #define CHECK(cond, name) do { \
@@ -54,8 +54,8 @@ static int g_fail = 0;
 
 int main(void) {
     /* ── A. 入口契约 ── */
-    const char* dll = getenv("ASTROCS_DRIZZLE_DLL_PATH");
-    if (!dll || !dll[0]) { printf("FAIL: ASTROCS_DRIZZLE_DLL_PATH not set\n"); return 2; }
+    const char* dll = getenv("ACSD_DRIZZLE_DLL_PATH");
+    if (!dll || !dll[0]) { printf("FAIL: ACSD_DRIZZLE_DLL_PATH not set\n"); return 2; }
 #ifdef _WIN32
     HMODULE h = LoadLibraryA(dll);
 #else
@@ -63,14 +63,14 @@ int main(void) {
 #endif
     if (!h) { printf("FAIL: dlopen(%s): %s\n", dll, dlerror()); return 2; }
 #ifdef _WIN32
-    drz_entry_fn entry = (drz_entry_fn)GetProcAddress(h, "astrocs_module_query_v1");
+    drz_entry_fn entry = (drz_entry_fn)GetProcAddress(h, "acsd_module_query_v1");
 #else
-    drz_entry_fn entry = (drz_entry_fn)dlsym(h, "astrocs_module_query_v1");
+    drz_entry_fn entry = (drz_entry_fn)dlsym(h, "acsd_module_query_v1");
 #endif
-    CHECK(entry != NULL, "entry astrocs_module_query_v1 exported");
+    CHECK(entry != NULL, "entry acsd_module_query_v1 exported");
 
     if (entry) {
-        const acs_module_api_v1* api = NULL;
+        const acsd_module_api_v1* api = NULL;
         CHECK(entry(999, NULL, &api) == ACS_ERR_ABI_MISMATCH,
               "host_abi mismatch -> ACS_ERR_ABI_MISMATCH");
         CHECK(entry(ACS_ABI_VERSION_V1, NULL, NULL) == ACS_ERR_PARAM,
@@ -90,11 +90,11 @@ int main(void) {
 #endif
 
             /* C. describe */
-            acs_module_descriptor_v1 desc;
+            acsd_module_descriptor_v1 desc;
             memset(&desc, 0, sizeof(desc));
-            acs_str_v1 mid = api_desc_str("astrocs.p1.drizzle");
-            acs_str_v1 mid_bad = api_desc_str("astrocs.p1.other");
-            acs_status st = api->describe(api, mid_bad, &desc);
+            acsd_str_v1 mid = api_desc_str("acsd.p1.drizzle");
+            acsd_str_v1 mid_bad = api_desc_str("acsd.p1.other");
+            acsd_status st = api->describe(api, mid_bad, &desc);
             CHECK(st == ACS_ERR_ABI_MISMATCH, "describe wrong module_id -> MISMATCH");
             memset(&desc, 0, sizeof(desc));
             st = api->describe(api, mid, &desc);
@@ -105,7 +105,7 @@ int main(void) {
                   "descriptor cpu_heavy parallel_ok");
 
             /* validate_config 词表/有限值 */
-            acs_error_info_v1 err;
+            acsd_error_info_v1 err;
             memset(&err, 0, sizeof(err));
             CHECK(api->validate_config(api, api_cfg_str("{\"op\":\"drizzle\",\"nside\":512}"), NULL) == ACS_OK,
                   "validate ok config");
@@ -123,7 +123,7 @@ int main(void) {
                   "validate pixfrac>1 -> PARAM/BAD_VALUE");
 
             /* plan: 真实 work_units (元数据推导; 不跑 execute) */
-            acs_strbuf_v1 pb; char pbuf[1024];
+            acsd_strbuf_v1 pb; char pbuf[1024];
             memset(&pb, 0, sizeof(pb)); pb.data = pbuf; pb.cap = sizeof(pbuf);
             memset(&err, 0, sizeof(err));
             st = api->plan(api, api_desc_str("node-drz-1"),
@@ -139,10 +139,10 @@ int main(void) {
             drz_test_host host;
             memset(&host, 0, sizeof(host));
             drz_host_init(&host);
-            const acs_host_api_v1* hapi = drz_host_api(&host);
+            const acsd_host_api_v1* hapi = drz_host_api(&host);
 
             /* create */
-            acs_module_instance_v1* inst = NULL;
+            acsd_module_instance_v1* inst = NULL;
             memset(&err, 0, sizeof(err));
             st = api->create(api, api_cfg_str("{\"op\":\"drizzle\",\"nside\":512,\"nested\":1,\"precision_mode\":0}"),
                              hapi, &inst, &err);
@@ -153,10 +153,10 @@ int main(void) {
                 /* D2. reverse op BITWISE (输出平面 memcmp) */
                 CHECK(drz_bitwise_reverse(inst, hapi, api), "bitwise reverse plane");
                 /* inspect / cancel */
-                acs_strbuf_v1 ib; char ibuf[512];
+                acsd_strbuf_v1 ib; char ibuf[512];
                 memset(&ib, 0, sizeof(ib)); ib.data = ibuf; ib.cap = sizeof(ibuf);
                 st = api->inspect(inst, &ib, &err);
-                CHECK(st == ACS_OK && strstr(ibuf, "astrocs.p1.drizzle"), "inspect ok");
+                CHECK(st == ACS_OK && strstr(ibuf, "acsd.p1.drizzle"), "inspect ok");
                 CHECK(api->request_cancel(inst) == ACS_OK &&
                       api->request_cancel(inst) == ACS_OK, "cancel idempotent");
                 CHECK(api->execute(inst, api_cfg_str("{\"op\":\"drizzle\",\"width\":2,\"height\":2,\"dtype\":\"f32\",\"data_base64\":\"AAAAAAAAAAAA\"}"),

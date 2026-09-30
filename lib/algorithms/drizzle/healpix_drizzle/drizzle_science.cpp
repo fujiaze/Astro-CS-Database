@@ -14,7 +14,7 @@
 #include <cstdint>
 #include <unordered_set>
 
-namespace astrocs {
+namespace acsd {
 namespace v6 {
 namespace drizzle {
 
@@ -116,7 +116,7 @@ std::string retired_unit_reject_reason(const std::string& symbol) {
     if (!is_retired_unit_symbol(symbol)) return std::string();
     return "retired unit/weight object '" + symbol +
            "' (FZ-UNIT-PSFSW retired; PSFSW-RETIRE-01): psfsw_robust_weight is not a "
-           "current object (docs/ASTROCS_DESIGN.md 3.1; UNIFIED_MODEL.md:58); allowed "
+           "current object (docs/ACSD_DESIGN.md 3.1; UNIFIED_MODEL.md:58); allowed "
            "weight objects: point_information (W_info=1/Var(F_hat)) or surface_gls "
            "(A^T C^-1 A); PSF quality proxies (FWHM/residual) are diagnostics only";
 }
@@ -654,4 +654,4 @@ GateVerdict gate_unit_law(UnitId signal, UnitId variance, UnitId ivar) {
 
 } // namespace drizzle
 } // namespace v6
-} // namespace astrocs
+} // namespace acsd

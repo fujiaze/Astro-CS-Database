@@ -3,10 +3,10 @@
 // 控制包任务: SCI-F3-001 (AIO NREJ/NUSED 通道与四 provenance 键落盘)。
 // finding 锚: 05_FINDINGS_REGISTER §STD-F3（原 F-P2-002-03）。
 //
-// 覆盖 (被测量 = astrocs_hips 生产实现 aio_hips_writer/reader):
+// 覆盖 (被测量 = acsd_hips 生产实现 aio_hips_writer/reader):
 //   §30.2  NREJ=32 / NUSED=64 int32 子产品通道
 //          (BITPIX=32, NESTED 512×512 tile, 无 precision 开关, 0 即"无"禁 −1 哨兵)
-//   §30.3  ASTROCS_* 四 provenance 键双写 (properties 大写键 + manifest.json 小写键)
+//   §30.3  ACSD_* 四 provenance 键双写 (properties 大写键 + manifest.json 小写键)
 //   verify 双向断言: available=true ⇒ variance/ivar 子产品必在 (HDU/PRODUCT);
 //          available=false ⇒ 禁占位 (子产品不得存在);
 //          诊断平面 manifest 声明 ↔ 磁盘事实双向; 值域 (负值 = 契约违反)
@@ -15,9 +15,9 @@
 // 测试设计纪律 (控制包「测试设计先行」):
 //   * 先红后绿: 基线 (未实现通道) 上本组断言必败 —— 证据见任务返回包
 //     run/scif3001/logs/; 实现后必绿。
-//   * 故障注入必败: 三处库级等价缺陷注入 (ASTROCS_HIPS_PROV_FAULT=
-//     missing_key|value_drift、ASTROCS_HIPS_DIAG_FAULT=sentinel|skip_write、
-//     ASTROCS_HIPS_VERIFY_FAULT=shortcut) 由 test_diag_prov_selfcheck() 逐条
+//   * 故障注入必败: 三处库级等价缺陷注入 (ACSD_HIPS_PROV_FAULT=
+//     missing_key|value_drift、ACSD_HIPS_DIAG_FAULT=sentinel|skip_write、
+//     ACSD_HIPS_VERIFY_FAULT=shortcut) 由 test_diag_prov_selfcheck() 逐条
 //     验证"基线必 PASS + 注入必 FAIL"双向排除恒常。
 //   * 独立性: 期望值由本 TU 的独立 oracle 计算 (FITS 序解析期望 + 独立
 //     CFITSIO TINT 只读通道), 不用被测函数生成期望值。
@@ -43,13 +43,13 @@
 #include <vector>
 
 /* FINAL-07 WIN-PORT 批次二: 平台专属调用的唯一判定点 ——
- * Windows 侧的 mkdir(path, mode) 经 eng/tests/support/astrocs_test_posix_compat.h 统一给等价物:
+ * Windows 侧的 mkdir(path, mode) 经 eng/tests/support/acsd_test_posix_compat.h 统一给等价物:
  * 垫片的 `#define mkdir(path, mode) _mkdir(path)` 是函数式宏, 故三参调用
  * `::mkdir(x, 0755)` 展开为 `::_mkdir(x)`, 丢弃 mode 属 Windows CRT 既有语义, 不是缺陷。
  * 类 UNIX 侧该头整头为空, 上面保留本 TU 原有系统头 (sys/stat.h 提供 ::mkdir) => Linux 预处理零 delta。
  *
  * 注: S_ISREG 不在垫片能力内 (B-5 清单 T-B 档, 本轮未做), 该符号本 TU 未用。 */
-#include "../../../../../eng/tests/support/astrocs_test_posix_compat.h"
+#include "../../../../../eng/tests/support/acsd_test_posix_compat.h"
 
 #include "aio_hips.h"
 #include "aio_hips_reader.h"
@@ -63,9 +63,9 @@ namespace {
 
 // ── 冻结常量 (DATA-UNC-001 §30.2/§30.3) ────────────────────────────────────
 // 旧「权重模式」provenance 键已删除 (5 → 4 键)。
-const char* kProvKeys[4] = {"ASTROCS_INPUT_MANIFEST_HASH", "ASTROCS_MODEL_HASH",
-                            "ASTROCS_UNCERTAINTY_AVAILABLE",
-                            "ASTROCS_REJECT_PROFILE"};
+const char* kProvKeys[4] = {"ACSD_INPUT_MANIFEST_HASH", "ACSD_MODEL_HASH",
+                            "ACSD_UNCERTAINTY_AVAILABLE",
+                            "ACSD_REJECT_PROFILE"};
 constexpr uint32_t kSpan = 512u * 512u;
 // 64 hex 真实形态值 (形态即契约: sha256 十六进制)
 const char* kManifestHash =
@@ -153,7 +153,7 @@ std::vector<int32_t> dp_expected_nrej() {
 std::vector<int32_t> dp_to_local(const std::vector<int32_t>& fits_order) {
     std::vector<int32_t> local(kSpan, 0);
     for (uint32_t fi = 0; fi < kSpan; ++fi) {
-        const uint32_t local_i = (uint32_t)astrocs::healpix::fits_index_to_nested_local(
+        const uint32_t local_i = (uint32_t)acsd::healpix::fits_index_to_nested_local(
             (uint64_t)fi, 9u, 512u);
         local[local_i] = fits_order[fi];
     }
@@ -171,7 +171,7 @@ int dp_write_product(const std::string& dir, int flags, bool with_prov,
                      int uncertainty_available, bool with_diag, DpProduct* out) {
     AioHipsProductSet* ps = aio_hips_product_begin(
         dir.c_str(), FIX_NSIDE, 512, AIO_HIPS_FLOAT32, flags,
-        "ivo://astrocs/test/scif3001", "SCI-F3-001", "r", 60.0,
+        "ivo://acsd/test/scif3001", "SCI-F3-001", "r", 60.0,
         "2026-09-12T00:00:00Z", 0);
     if (!ps) return -100;
     if (with_prov) {
@@ -236,9 +236,9 @@ int dp_check_prov_props(CheckState& cs, const std::string& dir,
                      missing);
     if (missing != 0) return 1;
     int bad = 0;
-    bad += (kv.at("ASTROCS_INPUT_MANIFEST_HASH") != kManifestHash);
-    bad += (kv.at("ASTROCS_MODEL_HASH") != kModelHash);
-    bad += (kv.at("ASTROCS_REJECT_PROFILE") != kProfile);
+    bad += (kv.at("ACSD_INPUT_MANIFEST_HASH") != kManifestHash);
+    bad += (kv.at("ACSD_MODEL_HASH") != kModelHash);
+    bad += (kv.at("ACSD_REJECT_PROFILE") != kProfile);
     P1HIPS_CHECK_MSG(cs, bad == 0, fault,
                      "%s/properties provenance 值与 setter 输入不符 (%d 处)",
                      prod, bad);
@@ -327,18 +327,18 @@ int test_diag_prov_units() {
             for (const char* sub : {"nrej", "nused"}) {
                 const auto kv = parse_props(dp_dir(dir, sub) + "/properties");
                 P1HIPS_CHECK_MSG(cs,
-                                 kv.count("astrocs_diag_dtype") &&
-                                     kv.at("astrocs_diag_dtype") == "int32",
+                                 kv.count("acsd_diag_dtype") &&
+                                     kv.at("acsd_diag_dtype") == "int32",
                                  "dp2_diag_dtype",
-                                 "%s properties 缺 astrocs_diag_dtype=int32", sub);
+                                 "%s properties 缺 acsd_diag_dtype=int32", sub);
             }
             // §30.3 manifest.json 双写 (小写键) + products 清单
             const std::string man = slurp(dir + "/manifest.json");
             struct { const char* k; const char* want; } mpairs[] = {
-                {"astrocs_input_manifest_hash", kManifestHash},
-                {"astrocs_model_hash", kModelHash},
-                {"astrocs_uncertainty_available", "true"},
-                {"astrocs_reject_profile", kProfile},
+                {"acsd_input_manifest_hash", kManifestHash},
+                {"acsd_model_hash", kModelHash},
+                {"acsd_uncertainty_available", "true"},
+                {"acsd_reject_profile", kProfile},
             };
             for (const auto& mp : mpairs) {
                 std::string v;
@@ -444,8 +444,8 @@ int test_diag_prov_units() {
         if (rc == 0) {
             const auto kv = parse_props(dir + "/signal/properties");
             P1HIPS_CHECK_MSG(cs,
-                             kv.count("ASTROCS_UNCERTAINTY_AVAILABLE") &&
-                                 kv.at("ASTROCS_UNCERTAINTY_AVAILABLE") == "false",
+                             kv.count("ACSD_UNCERTAINTY_AVAILABLE") &&
+                                 kv.at("ACSD_UNCERTAINTY_AVAILABLE") == "false",
                              "dp4_unavail_key",
                              "unavailable 必须显式登记 =false (§18.3/§30.3)");
             P1HIPS_CHECK_MSG(cs, !file_has(dir + "/variance/properties") &&
@@ -514,7 +514,7 @@ int test_diag_prov_units() {
                 if (nl == std::string::npos) break;
                 const std::string line = p0.substr(p, nl - p);
                 p = nl + 1;
-                if (line.rfind("ASTROCS_", 0) != 0) continue;
+                if (line.rfind("ACSD_", 0) != 0) continue;
                 if (p1.find(line + "\n") == std::string::npos) all_eq = false;
             }
             P1HIPS_CHECK_MSG(cs, all_eq, "dp6_prov_lines",
@@ -790,7 +790,7 @@ int test_diag_prov_negative() {
         std::string line;
         std::istringstream is(body);
         while (std::getline(is, line)) {
-            if (line.rfind("ASTROCS_MODEL_HASH", 0) == 0) continue;
+            if (line.rfind("ACSD_MODEL_HASH", 0) == 0) continue;
             f << line << "\n";
         }
         f.close();
@@ -854,7 +854,7 @@ int dp_scenario_full(CheckState& cs) {
     const std::string man = slurp(dir + "/manifest.json");
     std::string v;
     P1HIPS_CHECK_MSG(cs,
-                     dp_json_scalar(man, "astrocs_model_hash", &v) && v == kModelHash,
+                     dp_json_scalar(man, "acsd_model_hash", &v) && v == kModelHash,
                      nullptr, "manifest.model_hash 缺失或值不符");
     AioHipsVerifyReport rep = make_verify_report();
     P1HIPS_CHECK_MSG(cs, aio_hips_verify_product_set(dir.c_str(), &rep) == 0, nullptr,
@@ -952,15 +952,15 @@ int test_diag_prov_selfcheck() {
 
     // 注入面: 库级等价缺陷 (env) → 对应场景必 FAIL
     const DpFaultCase faults[] = {
-        {"ASTROCS_HIPS_PROV_FAULT", "missing_key", dp_scenario_full,
+        {"ACSD_HIPS_PROV_FAULT", "missing_key", dp_scenario_full,
          "prov_missing_key→四键断言"},
-        {"ASTROCS_HIPS_PROV_FAULT", "value_drift", dp_scenario_full,
+        {"ACSD_HIPS_PROV_FAULT", "value_drift", dp_scenario_full,
          "prov_value_drift→verify rc=8"},
-        {"ASTROCS_HIPS_DIAG_FAULT", "sentinel", dp_scenario_diag_values,
+        {"ACSD_HIPS_DIAG_FAULT", "sentinel", dp_scenario_diag_values,
          "diag_sentinel→值域/verify rc=7"},
-        {"ASTROCS_HIPS_DIAG_FAULT", "skip_write", dp_scenario_diag_values,
+        {"ACSD_HIPS_DIAG_FAULT", "skip_write", dp_scenario_diag_values,
          "diag_skip_write→声明但零 tile 落盘 (值域回读 + verify V4)"},
-        {"ASTROCS_HIPS_VERIFY_FAULT", "shortcut", dp_scenario_placeholder,
+        {"ACSD_HIPS_VERIFY_FAULT", "shortcut", dp_scenario_placeholder,
          "verify_shortcut→占位漏检"},
     };
     for (const auto& fc : faults) {

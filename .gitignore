@@ -88,14 +88,14 @@ __pycache__/
 # dist/ 目录默认排除, 但发布包文本文件 (VERSION/SHA256SUMS/README/verify.bat/config) 例外
 # 二进制文件 (*.exe/*.dll) 不提交, 只通过 SHA256SUMS.txt 记录 hash
 dist/*
-!dist/AstroCS-CLI-v1/
-dist/AstroCS-CLI-v1/*
-!dist/AstroCS-CLI-v1/VERSION.txt
-!dist/AstroCS-CLI-v1/SHA256SUMS.txt
-!dist/AstroCS-CLI-v1/README.txt
-!dist/AstroCS-CLI-v1/verify.bat
-!dist/AstroCS-CLI-v1/config/
-!dist/AstroCS-CLI-v1/config/**
+!dist/ACSD-CLI-v1/
+dist/ACSD-CLI-v1/*
+!dist/ACSD-CLI-v1/VERSION.txt
+!dist/ACSD-CLI-v1/SHA256SUMS.txt
+!dist/ACSD-CLI-v1/README.txt
+!dist/ACSD-CLI-v1/verify.bat
+!dist/ACSD-CLI-v1/config/
+!dist/ACSD-CLI-v1/config/**
 .pytest_cache/
 .ninja_log
 meson-private/
@@ -127,7 +127,7 @@ audit/*.rar
 astrocs_run_*.json
 /Testing/
 /out/
-/AstroCS.wiki/
+/ACSD.wiki/
 resource_timeseries.csv
 resource_summary.json
 worker_balance.csv

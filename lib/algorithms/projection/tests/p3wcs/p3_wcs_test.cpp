@@ -157,21 +157,21 @@ struct CellStats {
 };
 
 // 独立参考 → 生产逆变换 → 相对像素 (x0,y0) 的偏差 (px)
-bool ref_pixel_offset(const astrocs::phase3::P3WcsDescriptor& d,
+bool ref_pixel_offset(const acsd::phase3::P3WcsDescriptor& d,
                       const double crpix[2], const double crval[2],
                       const double cd[2][2], double pixel_origin, double x0,
                       double y0, double* sx, double* sy) {
   double ra, dec, xr, yr;
   fits_tan_forward_ref(crpix, crval, cd, pixel_origin, x0, y0, &ra, &dec);
-  if (astrocs::phase3::p3_wcs_world2pix(&d, ra, dec, &xr, &yr) !=
-      astrocs::phase3::P3_WCS_OK)
+  if (acsd::phase3::p3_wcs_world2pix(&d, ra, dec, &xr, &yr) !=
+      acsd::phase3::P3_WCS_OK)
     return false;
   *sx = xr - x0;
   *sy = yr - y0;
   return true;
 }
 
-void evaluate_cell(const astrocs::phase3::P3WcsDescriptor& d, const GridCell& c,
+void evaluate_cell(const acsd::phase3::P3WcsDescriptor& d, const GridCell& c,
                    CellStats* st) {
   const double crpix[2] = {d.crpix_x, d.crpix_y};
   const double crval[2] = {d.crval_ra_deg, d.crval_dec_deg};
@@ -181,10 +181,10 @@ void evaluate_cell(const astrocs::phase3::P3WcsDescriptor& d, const GridCell& c,
     for (int i = 0; i < kCell; ++i) {
       const double x0 = c.x0 + i;
       const double y0 = c.y0 + j;
-      if (astrocs::phase3::p3_wcs_pix2world(&d, x0, y0, &ra, &dec) !=
-              astrocs::phase3::P3_WCS_OK ||
-          astrocs::phase3::p3_wcs_world2pix(&d, ra, dec, &xr, &yr) !=
-              astrocs::phase3::P3_WCS_OK) {
+      if (acsd::phase3::p3_wcs_pix2world(&d, x0, y0, &ra, &dec) !=
+              acsd::phase3::P3_WCS_OK ||
+          acsd::phase3::p3_wcs_world2pix(&d, ra, dec, &xr, &yr) !=
+              acsd::phase3::P3_WCS_OK) {
         ++st->n_px;
         st->max_rt_px = 1e30;   // 半球外/参数拒绝: 不得静默通过
         continue;
@@ -267,7 +267,7 @@ std::string cell_json(const GridCell& c, const CellStats& st) {
   return s;
 }
 
-std::string descriptor_json(const astrocs::phase3::P3WcsDescriptor& d,
+std::string descriptor_json(const acsd::phase3::P3WcsDescriptor& d,
                             const char* parity, const std::string& keywords) {
   const double det = d.cd[0][0] * d.cd[1][1] - d.cd[0][1] * d.cd[1][0];
   std::string s = "{\"parity\":\"" + std::string(parity) +
@@ -282,22 +282,22 @@ std::string descriptor_json(const astrocs::phase3::P3WcsDescriptor& d,
 
 // 九宫格 + 桥接锁主体验: 每个 parity 跑一遍并导出证据 JSON 片段。
 std::string run_nine_grid(const char* parity,
-                          astrocs::phase3::P3WcsDescriptor* d_out,
+                          acsd::phase3::P3WcsDescriptor* d_out,
                           CellStats stats_out[9],
-                          astrocs::phase3::P3WcsRoundtripGate* gate_out) {
-  astrocs::phase3::P3WcsDescriptor d{};
-  const bool made = astrocs::phase3::p3_wcs_make(
+                          acsd::phase3::P3WcsRoundtripGate* gate_out) {
+  acsd::phase3::P3WcsDescriptor d{};
+  const bool made = acsd::phase3::p3_wcs_make(
                         150.0, 2.0, kScale, kFrameW, kFrameH, parity, 0.0, &d) ==
-                    astrocs::phase3::P3_WCS_OK;
+                    acsd::phase3::P3_WCS_OK;
   CHECK(made);
   if (!made) return {};
   *d_out = d;
   for (int c = 0; c < 9; ++c) evaluate_cell(d, kNineGrid[c], &stats_out[c]);
 
   // 该尺度下的适用门值（单一事实源; 本用例 0.5″/px ⇒ 全域保守门 1e-6 px）
-  const astrocs::phase3::P3WcsRoundtripGate gate =
-      astrocs::phase3::p3_wcs_roundtrip_gate(&d);
-  CHECK(gate.status != astrocs::phase3::P3WcsRoundtripGateStatus::P3_WCS_RT_GATE_OUT_OF_DOMAIN);
+  const acsd::phase3::P3WcsRoundtripGate gate =
+      acsd::phase3::p3_wcs_roundtrip_gate(&d);
+  CHECK(gate.status != acsd::phase3::P3WcsRoundtripGateStatus::P3_WCS_RT_GATE_OUT_OF_DOMAIN);
   CHECK(gate.tol_px > 0.0);
   if (gate_out != nullptr) *gate_out = gate;
   for (int c = 0; c < 9; ++c) {
@@ -340,7 +340,7 @@ std::string run_nine_grid(const char* parity,
 
   std::string body = "{\"parity\":\"" + std::string(parity) + "\",\"descriptor\":" +
                      descriptor_json(d, parity,
-                                     astrocs::phase3::p3_wcs_fits_keywords(&d)) +
+                                     acsd::phase3::p3_wcs_fits_keywords(&d)) +
                      ",\"cells\":[";
   for (int c = 0; c < 9; ++c) {
     if (c) body += ",";
@@ -355,11 +355,11 @@ std::string run_nine_grid(const char* parity,
 int main() {
   // 1) WCS 输出完整: 输入 HiPS properties/尺度 → WCS/dimensions/pixel scale
   {
-    astrocs::phase3::P3WcsDescriptor w{};
+    acsd::phase3::P3WcsDescriptor w{};
     // 输入: 中心 RA/Dec, scale, 尺寸 → 输出 WCS
-    CHECK(astrocs::phase3::p3_wcs_make(
+    CHECK(acsd::phase3::p3_wcs_make(
               150.0, 2.0, 0.0001389, 1024, 768,
-              "east_left", 0.0, &w) == astrocs::phase3::P3_WCS_OK);
+              "east_left", 0.0, &w) == acsd::phase3::P3_WCS_OK);
     CHECK(w.width_px == 1024);
     CHECK(w.height_px == 768);
     CHECK(w.cd[0][0] != 0);   // pixel scale 存在 (deg/px)
@@ -378,25 +378,25 @@ int main() {
 
   // 3) 最大尺寸来自配置合同: 超上限拒绝 (WCS 层)
   {
-    astrocs::phase3::P3WcsDescriptor w{};
+    acsd::phase3::P3WcsDescriptor w{};
     // 20001 > 默认合同上限 20000 → 拒
-    CHECK(astrocs::phase3::p3_wcs_make(
+    CHECK(acsd::phase3::p3_wcs_make(
               150.0, 2.0, 0.0001389, 20001, 100,
-              "east_left", 0.0, &w) == astrocs::phase3::P3_WCS_PARAM);
+              "east_left", 0.0, &w) == acsd::phase3::P3_WCS_PARAM);
     // 边界值 20000 接受
-    CHECK(astrocs::phase3::p3_wcs_make(
+    CHECK(acsd::phase3::p3_wcs_make(
               150.0, 2.0, 0.0001389, 20000, 20000,
-              "east_left", 0.0, &w) == astrocs::phase3::P3_WCS_OK);
+              "east_left", 0.0, &w) == acsd::phase3::P3_WCS_OK);
   }
 
   // 4) pix2world roundtrip (kernel 计划前提)
   {
-    astrocs::phase3::P3WcsDescriptor w{};
-    astrocs::phase3::p3_wcs_make(150.0, 2.0, 0.0001389, 1024, 768,
+    acsd::phase3::P3WcsDescriptor w{};
+    acsd::phase3::p3_wcs_make(150.0, 2.0, 0.0001389, 1024, 768,
                                  "east_left", 0.0, &w);
     double ra, dec, x, y;
-    CHECK(astrocs::phase3::p3_wcs_pix2world(&w, 512.0, 384.0, &ra, &dec) == astrocs::phase3::P3_WCS_OK);
-    CHECK(astrocs::phase3::p3_wcs_world2pix(&w, ra, dec, &x, &y) == astrocs::phase3::P3_WCS_OK);
+    CHECK(acsd::phase3::p3_wcs_pix2world(&w, 512.0, 384.0, &ra, &dec) == acsd::phase3::P3_WCS_OK);
+    CHECK(acsd::phase3::p3_wcs_world2pix(&w, ra, dec, &x, &y) == acsd::phase3::P3_WCS_OK);
     CHECK(std::fabs(x - 512.0) < 1e-4);
     CHECK(std::fabs(y - 384.0) < 1e-4);
   }
@@ -413,9 +413,9 @@ int main() {
   //    每格 100x100 px) 逐像素无 1px 偏移 + 独立参考一致性 + 负向注入必败
   //    + parity 手性 + 确定性 bitwise
   {
-    astrocs::phase3::P3WcsDescriptor d_left{}, d_right{};
+    acsd::phase3::P3WcsDescriptor d_left{}, d_right{};
     CellStats st_left[9], st_right[9];
-    astrocs::phase3::P3WcsRoundtripGate gate{};
+    acsd::phase3::P3WcsRoundtripGate gate{};
     const std::string j_left = run_nine_grid("east_left", &d_left, st_left, &gate);
     const std::string j_right =
         run_nine_grid("east_right", &d_right, st_right, nullptr);
@@ -452,7 +452,7 @@ int main() {
                    "\"runs\":[%s,%s]}\n",
                    kFrameW, kFrameH, kCell, gate.tol_px,
                    (gate.status ==
-                            astrocs::phase3::P3WcsRoundtripGateStatus::P3_WCS_RT_GATE_TIGHT
+                            acsd::phase3::P3WcsRoundtripGateStatus::P3_WCS_RT_GATE_TIGHT
                         ? "tight"
                         : "global_conservative"),
                    kFrozenGatePx,

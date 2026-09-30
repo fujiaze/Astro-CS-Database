@@ -7,9 +7,9 @@
 #include <string>
 #include <vector>
 
-using astrocs::phase1::Photometer;
-using astrocs::phase1::PhotometryResult;
-using astrocs::phase1::WcsTan;
+using acsd::phase1::Photometer;
+using acsd::phase1::PhotometryResult;
+using acsd::phase1::WcsTan;
 
 static int failures = 0;
 #define CHECK(cond)                                                       \

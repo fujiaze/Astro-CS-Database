@@ -61,17 +61,17 @@ Schema 严格校验（`additionalProperties: false`，缺字段、未知字段�
 
 | 码 | 字符串码 | 含义 |
 | --- | --- | --- |
-| 0 | ASTROCS_SUCCESS | 成功 |
-| 1 | ASTROCS_INTERNAL | 内部错误 |
-| 2 | ASTROCS_MODULE_MISSING | DLL 加载失败 |
-| 3 | ASTROCS_BLOCK_MISSING | 数据块缺失 |
-| 4 | ASTROCS_CALIBRATION_MISSING | 校准失败 |
-| 5 | ASTROCS_PLATESOLVE_FAILED | PlateSolve 失败 |
-| 6 | ASTROCS_DRIZZLE_FAILED | Drizzle 失败 |
-| 7 | ASTROCS_CONFIG_INVALID | 配置/Schema 无效 |
-| 8 | ASTROCS_FILE_IO_ERROR | 文件 I/O 错误 |
-| 9 | ASTROCS_TIMEOUT | 阶段超时 |
-| 10 | ASTROCS_CANCELLED | 已取消 |
+| 0 | ACSD_SUCCESS | 成功 |
+| 1 | ACSD_INTERNAL | 内部错误 |
+| 2 | ACSD_MODULE_MISSING | DLL 加载失败 |
+| 3 | ACSD_BLOCK_MISSING | 数据块缺失 |
+| 4 | ACSD_CALIBRATION_MISSING | 校准失败 |
+| 5 | ACSD_PLATESOLVE_FAILED | PlateSolve 失败 |
+| 6 | ACSD_DRIZZLE_FAILED | Drizzle 失败 |
+| 7 | ACSD_CONFIG_INVALID | 配置/Schema 无效 |
+| 8 | ACSD_FILE_IO_ERROR | 文件 I/O 错误 |
+| 9 | ACSD_TIMEOUT | 阶段超时 |
+| 10 | ACSD_CANCELLED | 已取消 |
 
 ## Stage1 流水线（Phase1 V4 生产链）
 

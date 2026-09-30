@@ -1,4 +1,4 @@
-lib/infrastructure/scheduler/src/module_adapters.cpp: In function ‘bool astrocs::core::{anonymous}::p1_is_fits_file(const std::string&)’:
+lib/infrastructure/scheduler/src/module_adapters.cpp: In function ‘bool acsd::core::{anonymous}::p1_is_fits_file(const std::string&)’:
 lib/infrastructure/scheduler/src/module_adapters.cpp:1123:42: warning: ‘std::filesystem::__cxx11::path std::filesystem::__cxx11::u8path(const _Source&) [with _Source = std::__cxx11::basic_string<char>; _Require = path; _CharT = char]’ is deprecated: use 'path((const char8_t*)&*source)' instead [-Wdeprecated-declarations]
  1123 |   std::ifstream f(std::filesystem::u8path(path), std::ios::binary);
       |                   ~~~~~~~~~~~~~~~~~~~~~~~^~~~~~
@@ -8,21 +8,21 @@ In file included from /usr/include/c++/14/filesystem:52,
 /usr/include/c++/14/bits/fs_path.h:843:5: note: declared here
   843 |     u8path(const _Source& __source)
       |     ^~~~~~
-lib/infrastructure/scheduler/src/module_adapters.cpp: In function ‘uint64_t astrocs::core::{anonymous}::p1_fits_primary_header_bytes(const std::string&)’:
+lib/infrastructure/scheduler/src/module_adapters.cpp: In function ‘uint64_t acsd::core::{anonymous}::p1_fits_primary_header_bytes(const std::string&)’:
 lib/infrastructure/scheduler/src/module_adapters.cpp:1131:42: warning: ‘std::filesystem::__cxx11::path std::filesystem::__cxx11::u8path(const _Source&) [with _Source = std::__cxx11::basic_string<char>; _Require = path; _CharT = char]’ is deprecated: use 'path((const char8_t*)&*source)' instead [-Wdeprecated-declarations]
  1131 |   std::ifstream f(std::filesystem::u8path(path), std::ios::binary);
       |                   ~~~~~~~~~~~~~~~~~~~~~~~^~~~~~
 /usr/include/c++/14/bits/fs_path.h:843:5: note: declared here
   843 |     u8path(const _Source& __source)
       |     ^~~~~~
-lib/infrastructure/scheduler/src/module_adapters.cpp: In function ‘bool astrocs::core::{anonymous}::p1_image_sane(const P1Image&, const std::string&)’:
+lib/infrastructure/scheduler/src/module_adapters.cpp: In function ‘bool acsd::core::{anonymous}::p1_image_sane(const P1Image&, const std::string&)’:
 lib/infrastructure/scheduler/src/module_adapters.cpp:1164:69: warning: ‘std::filesystem::__cxx11::path std::filesystem::__cxx11::u8path(const _Source&) [with _Source = std::__cxx11::basic_string<char>; _Require = path; _CharT = char]’ is deprecated: use 'path((const char8_t*)&*source)' instead [-Wdeprecated-declarations]
  1164 |   const auto sz = std::filesystem::file_size(std::filesystem::u8path(path), ec);
       |                                              ~~~~~~~~~~~~~~~~~~~~~~~^~~~~~
 /usr/include/c++/14/bits/fs_path.h:843:5: note: declared here
   843 |     u8path(const _Source& __source)
       |     ^~~~~~
-lib/infrastructure/scheduler/src/module_adapters.cpp: In function ‘bool astrocs::core::{anonymous}::p1_atomic_publish(const std::string&, const std::string&, std::string*)’:
+lib/infrastructure/scheduler/src/module_adapters.cpp: In function ‘bool acsd::core::{anonymous}::p1_atomic_publish(const std::string&, const std::string&, std::string*)’:
 lib/infrastructure/scheduler/src/module_adapters.cpp:1277:50: warning: ‘std::filesystem::__cxx11::path std::filesystem::__cxx11::u8path(const _Source&) [with _Source = std::__cxx11::basic_string<char>; _Require = path; _CharT = char]’ is deprecated: use 'path((const char8_t*)&*source)' instead [-Wdeprecated-declarations]
  1277 |   std::filesystem::rename(std::filesystem::u8path(staging),
       |                           ~~~~~~~~~~~~~~~~~~~~~~~^~~~~~~~~
@@ -59,28 +59,28 @@ lib/infrastructure/scheduler/src/module_adapters.cpp:1291:54: warning: ‘std::f
 /usr/include/c++/14/bits/fs_path.h:843:5: note: declared here
   843 |     u8path(const _Source& __source)
       |     ^~~~~~
-lib/infrastructure/scheduler/src/module_adapters.cpp: In function ‘bool astrocs::core::{anonymous}::p1_write_fits_atomic(const P1Image&, const std::string&, std::string*)’:
+lib/infrastructure/scheduler/src/module_adapters.cpp: In function ‘bool acsd::core::{anonymous}::p1_write_fits_atomic(const P1Image&, const std::string&, std::string*)’:
 lib/infrastructure/scheduler/src/module_adapters.cpp:1313:52: warning: ‘std::filesystem::__cxx11::path std::filesystem::__cxx11::u8path(const _Source&) [with _Source = std::__cxx11::basic_string<char>; _Require = path; _CharT = char]’ is deprecated: use 'path((const char8_t*)&*source)' instead [-Wdeprecated-declarations]
  1313 |     std::filesystem::remove(std::filesystem::u8path(staging), ec);
       |                             ~~~~~~~~~~~~~~~~~~~~~~~^~~~~~~~~
 /usr/include/c++/14/bits/fs_path.h:843:5: note: declared here
   843 |     u8path(const _Source& __source)
       |     ^~~~~~
-lib/infrastructure/scheduler/src/module_adapters.cpp: In function ‘std::string astrocs::core::{anonymous}::p1_calibrated_path(const Json&, const std::string&)’:
+lib/infrastructure/scheduler/src/module_adapters.cpp: In function ‘std::string acsd::core::{anonymous}::p1_calibrated_path(const Json&, const std::string&)’:
 lib/infrastructure/scheduler/src/module_adapters.cpp:1325:54: warning: ‘std::filesystem::__cxx11::path std::filesystem::__cxx11::u8path(const _Source&) [with _Source = std::__cxx11::basic_string<char>; _Require = path; _CharT = char]’ is deprecated: use 'path((const char8_t*)&*source)' instead [-Wdeprecated-declarations]
  1325 |   if (std::filesystem::exists(std::filesystem::u8path(cand), ec)) return cand;
       |                               ~~~~~~~~~~~~~~~~~~~~~~~^~~~~~
 /usr/include/c++/14/bits/fs_path.h:843:5: note: declared here
   843 |     u8path(const _Source& __source)
       |     ^~~~~~
-lib/infrastructure/scheduler/src/module_adapters.cpp: In function ‘std::string astrocs::core::{anonymous}::p1_cleaned_input_path(const Json&, const std::string&)’:
+lib/infrastructure/scheduler/src/module_adapters.cpp: In function ‘std::string acsd::core::{anonymous}::p1_cleaned_input_path(const Json&, const std::string&)’:
 lib/infrastructure/scheduler/src/module_adapters.cpp:1342:54: warning: ‘std::filesystem::__cxx11::path std::filesystem::__cxx11::u8path(const _Source&) [with _Source = std::__cxx11::basic_string<char>; _Require = path; _CharT = char]’ is deprecated: use 'path((const char8_t*)&*source)' instead [-Wdeprecated-declarations]
  1342 |   if (std::filesystem::exists(std::filesystem::u8path(cand), ec)) return cand;
       |                               ~~~~~~~~~~~~~~~~~~~~~~~^~~~~~
 /usr/include/c++/14/bits/fs_path.h:843:5: note: declared here
   843 |     u8path(const _Source& __source)
       |     ^~~~~~
-lib/infrastructure/scheduler/src/module_adapters.cpp: In function ‘bool astrocs::core::{anonymous}::p1_write_text(const std::string&, const std::string&)’:
+lib/infrastructure/scheduler/src/module_adapters.cpp: In function ‘bool acsd::core::{anonymous}::p1_write_text(const std::string&, const std::string&)’:
 lib/infrastructure/scheduler/src/module_adapters.cpp:1360:44: warning: ‘std::filesystem::__cxx11::path std::filesystem::__cxx11::u8path(const _Source&) [with _Source = std::__cxx11::basic_string<char>; _Require = path; _CharT = char]’ is deprecated: use 'path((const char8_t*)&*source)' instead [-Wdeprecated-declarations]
  1360 |     std::ofstream f(std::filesystem::u8path(staging), std::ios::binary);
       |                     ~~~~~~~~~~~~~~~~~~~~~~~^~~~~~~~~
@@ -93,14 +93,14 @@ lib/infrastructure/scheduler/src/module_adapters.cpp:1366:54: warning: ‘std::f
 /usr/include/c++/14/bits/fs_path.h:843:5: note: declared here
   843 |     u8path(const _Source& __source)
       |     ^~~~~~
-lib/infrastructure/scheduler/src/module_adapters.cpp: In function ‘astrocs::core::Result<void> astrocs::core::{anonymous}::p1_op_calibrate(const Json&, Json*)’:
+lib/infrastructure/scheduler/src/module_adapters.cpp: In function ‘acsd::core::Result<void> acsd::core::{anonymous}::p1_op_calibrate(const Json&, Json*)’:
 lib/infrastructure/scheduler/src/module_adapters.cpp:1919:57: warning: ‘std::filesystem::__cxx11::path std::filesystem::__cxx11::u8path(const _Source&) [with _Source = std::__cxx11::basic_string<char>; _Require = path; _CharT = char]’ is deprecated: use 'path((const char8_t*)&*source)' instead [-Wdeprecated-declarations]
  1919 |     if (!std::filesystem::exists(std::filesystem::u8path(a.get<std::string>()), ec)) {
       |                                  ~~~~~~~~~~~~~~~~~~~~~~~^~~~~~~~~~~~~~~~~~~~~~
 /usr/include/c++/14/bits/fs_path.h:843:5: note: declared here
   843 |     u8path(const _Source& __source)
       |     ^~~~~~
-lib/infrastructure/scheduler/src/module_adapters.cpp: In function ‘astrocs::core::Result<void> astrocs::core::{anonymous}::p1_op_wcs(const Json&, Json*)’:
+lib/infrastructure/scheduler/src/module_adapters.cpp: In function ‘acsd::core::Result<void> acsd::core::{anonymous}::p1_op_wcs(const Json&, Json*)’:
 lib/infrastructure/scheduler/src/module_adapters.cpp:2665:66: warning: ‘std::filesystem::__cxx11::path std::filesystem::__cxx11::u8path(const _Source&) [with _Source = std::__cxx11::basic_string<char>; _Require = path; _CharT = char]’ is deprecated: use 'path((const char8_t*)&*source)' instead [-Wdeprecated-declarations]
  2665 |       std::filesystem::create_directories(std::filesystem::u8path(fdir), fec);
       |                                           ~~~~~~~~~~~~~~~~~~~~~~~^~~~~~
@@ -113,7 +113,7 @@ lib/infrastructure/scheduler/src/module_adapters.cpp:2950:64: warning: ‘std::f
 /usr/include/c++/14/bits/fs_path.h:843:5: note: declared here
   843 |     u8path(const _Source& __source)
       |     ^~~~~~
-lib/infrastructure/scheduler/src/module_adapters.cpp: In function ‘astrocs::core::Result<void> astrocs::core::{anonymous}::p1_op_photometry(const Json&, Json*)’:
+lib/infrastructure/scheduler/src/module_adapters.cpp: In function ‘acsd::core::Result<void> acsd::core::{anonymous}::p1_op_photometry(const Json&, Json*)’:
 lib/infrastructure/scheduler/src/module_adapters.cpp:2994:57: warning: ‘std::filesystem::__cxx11::path std::filesystem::__cxx11::u8path(const _Source&) [with _Source = std::__cxx11::basic_string<char>; _Require = path; _CharT = char]’ is deprecated: use 'path((const char8_t*)&*source)' instead [-Wdeprecated-declarations]
  2994 |     if (!std::filesystem::exists(std::filesystem::u8path(src_path), ec))
       |                                  ~~~~~~~~~~~~~~~~~~~~~~~^~~~~~~~~~
@@ -150,7 +150,7 @@ lib/infrastructure/scheduler/src/module_adapters.cpp:3253:47: warning: ‘std::f
 /usr/include/c++/14/bits/fs_path.h:843:5: note: declared here
   843 |     u8path(const _Source& __source)
       |     ^~~~~~
-lib/infrastructure/scheduler/src/module_adapters.cpp: In function ‘astrocs::core::Result<void> astrocs::core::{anonymous}::p1_op_noise(const Json&, Json*)’:
+lib/infrastructure/scheduler/src/module_adapters.cpp: In function ‘acsd::core::Result<void> acsd::core::{anonymous}::p1_op_noise(const Json&, Json*)’:
 lib/infrastructure/scheduler/src/module_adapters.cpp:3398:57: warning: ‘std::filesystem::__cxx11::path std::filesystem::__cxx11::u8path(const _Source&) [with _Source = std::__cxx11::basic_string<char>; _Require = path; _CharT = char]’ is deprecated: use 'path((const char8_t*)&*source)' instead [-Wdeprecated-declarations]
  3398 |     if (!std::filesystem::exists(std::filesystem::u8path(src_path), ec))
       |                                  ~~~~~~~~~~~~~~~~~~~~~~~^~~~~~~~~~
@@ -163,7 +163,7 @@ lib/infrastructure/scheduler/src/module_adapters.cpp:3401:45: warning: ‘std::f
 /usr/include/c++/14/bits/fs_path.h:843:5: note: declared here
   843 |     u8path(const _Source& __source)
       |     ^~~~~~
-lib/infrastructure/scheduler/src/module_adapters.cpp: In function ‘astrocs::core::Result<void> astrocs::core::{anonymous}::p1_op_drizzle(const Json&, Json*)’:
+lib/infrastructure/scheduler/src/module_adapters.cpp: In function ‘acsd::core::Result<void> acsd::core::{anonymous}::p1_op_drizzle(const Json&, Json*)’:
 lib/infrastructure/scheduler/src/module_adapters.cpp:3813:56: warning: ‘std::filesystem::__cxx11::path std::filesystem::__cxx11::u8path(const _Source&) [with _Source = std::__cxx11::basic_string<char>; _Require = path; _CharT = char]’ is deprecated: use 'path((const char8_t*)&*source)' instead [-Wdeprecated-declarations]
  3813 |     if (std::filesystem::exists(std::filesystem::u8path(prov_path), pec)) {
       |                                 ~~~~~~~~~~~~~~~~~~~~~~~^~~~~~~~~~~
@@ -188,7 +188,7 @@ lib/infrastructure/scheduler/src/module_adapters.cpp:4056:64: warning: ‘std::f
 /usr/include/c++/14/bits/fs_path.h:843:5: note: declared here
   843 |     u8path(const _Source& __source)
       |     ^~~~~~
-lib/infrastructure/scheduler/src/module_adapters.cpp: In function ‘astrocs::core::Result<void> astrocs::core::{anonymous}::p1_op_writer(const Json&, Json*)’:
+lib/infrastructure/scheduler/src/module_adapters.cpp: In function ‘acsd::core::Result<void> acsd::core::{anonymous}::p1_op_writer(const Json&, Json*)’:
 lib/infrastructure/scheduler/src/module_adapters.cpp:4170:57: warning: ‘std::filesystem::__cxx11::path std::filesystem::__cxx11::u8path(const _Source&) [with _Source = std::__cxx11::basic_string<char>; _Require = path; _CharT = char]’ is deprecated: use 'path((const char8_t*)&*source)' instead [-Wdeprecated-declarations]
  4170 |     if (!std::filesystem::exists(std::filesystem::u8path(props), ec)) {
       |                                  ~~~~~~~~~~~~~~~~~~~~~~~^~~~~~~
@@ -214,35 +214,35 @@ lib/infrastructure/scheduler/src/module_adapters.cpp:4202:39: warning: ‘std::f
 /usr/include/c++/14/bits/fs_path.h:843:5: note: declared here
   843 |     u8path(const _Source& __source)
       |     ^~~~~~
-lib/infrastructure/scheduler/src/module_adapters.cpp: In function ‘bool astrocs::core::{anonymous}::p2_write_text(const std::string&, const std::string&)’:
+lib/infrastructure/scheduler/src/module_adapters.cpp: In function ‘bool acsd::core::{anonymous}::p2_write_text(const std::string&, const std::string&)’:
 lib/infrastructure/scheduler/src/module_adapters.cpp:4351:42: warning: ‘std::filesystem::__cxx11::path std::filesystem::__cxx11::u8path(const _Source&) [with _Source = std::__cxx11::basic_string<char>; _Require = path; _CharT = char]’ is deprecated: use 'path((const char8_t*)&*source)' instead [-Wdeprecated-declarations]
  4351 |   std::ofstream f(std::filesystem::u8path(path), std::ios::binary);
       |                   ~~~~~~~~~~~~~~~~~~~~~~~^~~~~~
 /usr/include/c++/14/bits/fs_path.h:843:5: note: declared here
   843 |     u8path(const _Source& __source)
       |     ^~~~~~
-lib/infrastructure/scheduler/src/module_adapters.cpp: In function ‘bool astrocs::core::{anonymous}::p2_read_json(const std::string&, Json*)’:
+lib/infrastructure/scheduler/src/module_adapters.cpp: In function ‘bool acsd::core::{anonymous}::p2_read_json(const std::string&, Json*)’:
 lib/infrastructure/scheduler/src/module_adapters.cpp:4376:42: warning: ‘std::filesystem::__cxx11::path std::filesystem::__cxx11::u8path(const _Source&) [with _Source = std::__cxx11::basic_string<char>; _Require = path; _CharT = char]’ is deprecated: use 'path((const char8_t*)&*source)' instead [-Wdeprecated-declarations]
  4376 |   std::ifstream f(std::filesystem::u8path(path), std::ios::binary);
       |                   ~~~~~~~~~~~~~~~~~~~~~~~^~~~~~
 /usr/include/c++/14/bits/fs_path.h:843:5: note: declared here
   843 |     u8path(const _Source& __source)
       |     ^~~~~~
-lib/infrastructure/scheduler/src/module_adapters.cpp: In function ‘bool astrocs::core::{anonymous}::p2_write_bin(const std::string&, const std::vector<_Tp>&)’:
+lib/infrastructure/scheduler/src/module_adapters.cpp: In function ‘bool acsd::core::{anonymous}::p2_write_bin(const std::string&, const std::vector<_Tp>&)’:
 lib/infrastructure/scheduler/src/module_adapters.cpp:4389:42: warning: ‘std::filesystem::__cxx11::path std::filesystem::__cxx11::u8path(const _Source&) [with _Source = std::__cxx11::basic_string<char>; _Require = path; _CharT = char]’ is deprecated: use 'path((const char8_t*)&*source)' instead [-Wdeprecated-declarations]
  4389 |   std::ofstream f(std::filesystem::u8path(path), std::ios::binary);
       |                   ~~~~~~~~~~~~~~~~~~~~~~~^~~~~~
 /usr/include/c++/14/bits/fs_path.h:843:5: note: declared here
   843 |     u8path(const _Source& __source)
       |     ^~~~~~
-lib/infrastructure/scheduler/src/module_adapters.cpp: In function ‘bool astrocs::core::{anonymous}::p2_read_bin_range(const std::string&, uint64_t, uint64_t, std::vector<_Tp>*)’:
+lib/infrastructure/scheduler/src/module_adapters.cpp: In function ‘bool acsd::core::{anonymous}::p2_read_bin_range(const std::string&, uint64_t, uint64_t, std::vector<_Tp>*)’:
 lib/infrastructure/scheduler/src/module_adapters.cpp:4400:42: warning: ‘std::filesystem::__cxx11::path std::filesystem::__cxx11::u8path(const _Source&) [with _Source = std::__cxx11::basic_string<char>; _Require = path; _CharT = char]’ is deprecated: use 'path((const char8_t*)&*source)' instead [-Wdeprecated-declarations]
  4400 |   std::ifstream f(std::filesystem::u8path(path), std::ios::binary);
       |                   ~~~~~~~~~~~~~~~~~~~~~~~^~~~~~
 /usr/include/c++/14/bits/fs_path.h:843:5: note: declared here
   843 |     u8path(const _Source& __source)
       |     ^~~~~~
-lib/infrastructure/scheduler/src/module_adapters.cpp: In function ‘astrocs::core::Result<void> astrocs::core::{anonymous}::p2_op_upm_fit(const Json&, Json*)’:
+lib/infrastructure/scheduler/src/module_adapters.cpp: In function ‘acsd::core::Result<void> acsd::core::{anonymous}::p2_op_upm_fit(const Json&, Json*)’:
 lib/infrastructure/scheduler/src/module_adapters.cpp:4910:52: warning: ‘std::filesystem::__cxx11::path std::filesystem::__cxx11::u8path(const _Source&) [with _Source = std::__cxx11::basic_string<char>; _Require = path; _CharT = char]’ is deprecated: use 'path((const char8_t*)&*source)' instead [-Wdeprecated-declarations]
  4910 |     std::filesystem::remove(std::filesystem::u8path(bin_path), ec);
       |                             ~~~~~~~~~~~~~~~~~~~~~~~^~~~~~~~~~
@@ -261,7 +261,7 @@ lib/infrastructure/scheduler/src/module_adapters.cpp:4921:55: warning: ‘std::f
 /usr/include/c++/14/bits/fs_path.h:843:5: note: declared here
   843 |     u8path(const _Source& __source)
       |     ^~~~~~
-lib/infrastructure/scheduler/src/module_adapters.cpp: In function ‘astrocs::core::Result<void> astrocs::core::{anonymous}::p2_op_upm_apply(const Json&, Json*)’:
+lib/infrastructure/scheduler/src/module_adapters.cpp: In function ‘acsd::core::Result<void> acsd::core::{anonymous}::p2_op_upm_apply(const Json&, Json*)’:
 lib/infrastructure/scheduler/src/module_adapters.cpp:5176:56: warning: ‘std::filesystem::__cxx11::path std::filesystem::__cxx11::u8path(const _Source&) [with _Source = std::__cxx11::basic_string<char>; _Require = path; _CharT = char]’ is deprecated: use 'path((const char8_t*)&*source)' instead [-Wdeprecated-declarations]
  5176 |     if (std::filesystem::exists(std::filesystem::u8path(sky_path), sec)) {
       |                                 ~~~~~~~~~~~~~~~~~~~~~~~^~~~~~~~~~
@@ -281,21 +281,21 @@ lib/infrastructure/scheduler/src/module_adapters.cpp:5344:39: warning: ‘std::f
 /usr/include/c++/14/bits/fs_path.h:843:5: note: declared here
   843 |     u8path(const _Source& __source)
       |     ^~~~~~
-lib/infrastructure/scheduler/src/module_adapters.cpp: In function ‘astrocs::core::Result<void> astrocs::core::{anonymous}::p2_op_integrate(const Json&, Json*)’:
+lib/infrastructure/scheduler/src/module_adapters.cpp: In function ‘acsd::core::Result<void> acsd::core::{anonymous}::p2_op_integrate(const Json&, Json*)’:
 lib/infrastructure/scheduler/src/module_adapters.cpp:6430:72: warning: ‘std::filesystem::__cxx11::path std::filesystem::__cxx11::u8path(const _Source&) [with _Source = std::__cxx11::basic_string<char>; _Require = path; _CharT = char]’ is deprecated: use 'path((const char8_t*)&*source)' instead [-Wdeprecated-declarations]
  6430 |     const auto msz = std::filesystem::file_size(std::filesystem::u8path(smask_file), ec);
       |                                                 ~~~~~~~~~~~~~~~~~~~~~~~^~~~~~~~~~~~
 /usr/include/c++/14/bits/fs_path.h:843:5: note: declared here
   843 |     u8path(const _Source& __source)
       |     ^~~~~~
-lib/infrastructure/scheduler/src/module_adapters.cpp: In function ‘astrocs::core::Result<void> astrocs::core::{anonymous}::p2_op_write(const Json&, Json*)’:
+lib/infrastructure/scheduler/src/module_adapters.cpp: In function ‘acsd::core::Result<void> acsd::core::{anonymous}::p2_op_write(const Json&, Json*)’:
 lib/infrastructure/scheduler/src/module_adapters.cpp:7037:55: warning: ‘std::filesystem::__cxx11::path std::filesystem::__cxx11::u8path(const _Source&) [with _Source = std::__cxx11::basic_string<char>; _Require = path; _CharT = char]’ is deprecated: use 'path((const char8_t*)&*source)' instead [-Wdeprecated-declarations]
  7037 |   if (!std::filesystem::exists(std::filesystem::u8path(props), ec))
       |                                ~~~~~~~~~~~~~~~~~~~~~~~^~~~~~~
 /usr/include/c++/14/bits/fs_path.h:843:5: note: declared here
   843 |     u8path(const _Source& __source)
       |     ^~~~~~
-lib/infrastructure/scheduler/src/module_adapters.cpp: In member function ‘virtual astrocs::core::Result<void> astrocs::core::{anonymous}::P2NodeModule::execute(astrocs::core::RunContext&)’:
+lib/infrastructure/scheduler/src/module_adapters.cpp: In member function ‘virtual acsd::core::Result<void> acsd::core::{anonymous}::P2NodeModule::execute(acsd::core::RunContext&)’:
 lib/infrastructure/scheduler/src/module_adapters.cpp:7474:68: warning: ‘std::filesystem::__cxx11::path std::filesystem::__cxx11::u8path(const _Source&) [with _Source = std::__cxx11::basic_string<char>; _Require = path; _CharT = char]’ is deprecated: use 'path((const char8_t*)&*source)' instead [-Wdeprecated-declarations]
  7474 |         std::filesystem::create_directories(std::filesystem::u8path(out_dir), ec);
       |                                             ~~~~~~~~~~~~~~~~~~~~~~~^~~~~~~~~
@@ -308,7 +308,7 @@ lib/infrastructure/scheduler/src/module_adapters.cpp:7475:67: warning: ‘std::f
 /usr/include/c++/14/bits/fs_path.h:843:5: note: declared here
   843 |     u8path(const _Source& __source)
       |     ^~~~~~
-lib/infrastructure/scheduler/src/module_adapters.cpp: In member function ‘virtual astrocs::core::Result<void> astrocs::core::{anonymous}::P3NodeModule::execute(astrocs::core::RunContext&)’:
+lib/infrastructure/scheduler/src/module_adapters.cpp: In member function ‘virtual acsd::core::Result<void> acsd::core::{anonymous}::P3NodeModule::execute(acsd::core::RunContext&)’:
 lib/infrastructure/scheduler/src/module_adapters.cpp:8521:68: warning: ‘std::filesystem::__cxx11::path std::filesystem::__cxx11::u8path(const _Source&) [with _Source = std::__cxx11::basic_string<char>; _Require = path; _CharT = char]’ is deprecated: use 'path((const char8_t*)&*source)' instead [-Wdeprecated-declarations]
  8521 |         std::filesystem::create_directories(std::filesystem::u8path(out_dir), ec);
       |                                             ~~~~~~~~~~~~~~~~~~~~~~~^~~~~~~~~
@@ -321,7 +321,7 @@ lib/infrastructure/scheduler/src/module_adapters.cpp:8522:67: warning: ‘std::f
 /usr/include/c++/14/bits/fs_path.h:843:5: note: declared here
   843 |     u8path(const _Source& __source)
       |     ^~~~~~
-lib/infrastructure/scheduler/src/module_adapters.cpp: In function ‘astrocs::core::Result<void> astrocs::core::write_run_context(const std::string&, const std::string&, const std::string&, const std::string&)’:
+lib/infrastructure/scheduler/src/module_adapters.cpp: In function ‘acsd::core::Result<void> acsd::core::write_run_context(const std::string&, const std::string&, const std::string&, const std::string&)’:
 lib/infrastructure/scheduler/src/module_adapters.cpp:8606:62: warning: ‘std::filesystem::__cxx11::path std::filesystem::__cxx11::u8path(const _Source&) [with _Source = std::__cxx11::basic_string<char>; _Require = path; _CharT = char]’ is deprecated: use 'path((const char8_t*)&*source)' instead [-Wdeprecated-declarations]
  8606 |   std::filesystem::create_directories(std::filesystem::u8path(out_dir), ec);
       |                                       ~~~~~~~~~~~~~~~~~~~~~~~^~~~~~~~~
@@ -346,7 +346,7 @@ lib/infrastructure/scheduler/src/module_adapters.cpp:8620:50: warning: ‘std::f
 /usr/include/c++/14/bits/fs_path.h:843:5: note: declared here
   843 |     u8path(const _Source& __source)
       |     ^~~~~~
-lib/infrastructure/scheduler/src/module_adapters.cpp: In instantiation of ‘bool astrocs::core::{anonymous}::p2_read_bin_range(const std::string&, uint64_t, uint64_t, std::vector<_Tp>*) [with T = double; std::string = std::__cxx11::basic_string<char>; uint64_t = long unsigned int]’:
+lib/infrastructure/scheduler/src/module_adapters.cpp: In instantiation of ‘bool acsd::core::{anonymous}::p2_read_bin_range(const std::string&, uint64_t, uint64_t, std::vector<_Tp>*) [with T = double; std::string = std::__cxx11::basic_string<char>; uint64_t = long unsigned int]’:
 lib/infrastructure/scheduler/src/module_adapters.cpp:5901:39:   required from here
  5901 |         if (!p2_read_bin_range<double>(frames[rt.frame_idx[d]].value("data_file", ""),
       |              ~~~~~~~~~~~~~~~~~~~~~~~~~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -370,7 +370,7 @@ lib/infrastructure/scheduler/src/module_adapters.cpp:4400:42: warning: ‘std::f
 /usr/include/c++/14/bits/fs_path.h:843:5: note: declared here
   843 |     u8path(const _Source& __source)
       |     ^~~~~~
-lib/infrastructure/scheduler/src/module_adapters.cpp: In instantiation of ‘bool astrocs::core::{anonymous}::p2_write_bin(const std::string&, const std::vector<_Tp>&) [with T = unsigned char; std::string = std::__cxx11::basic_string<char>]’:
+lib/infrastructure/scheduler/src/module_adapters.cpp: In instantiation of ‘bool acsd::core::{anonymous}::p2_write_bin(const std::string&, const std::vector<_Tp>&) [with T = unsigned char; std::string = std::__cxx11::basic_string<char>]’:
 lib/infrastructure/scheduler/src/module_adapters.cpp:6085:20:   required from here
  6085 |   if (!p2_write_bin(acc_file, accepted_bin) || !p2_write_bin(nrej_file, nrej_bin) ||
       |        ~~~~~~~~~~~~^~~~~~~~~~~~~~~~~~~~~~~~
@@ -392,7 +392,7 @@ lib/infrastructure/scheduler/src/module_adapters.cpp:4389:42: warning: ‘std::f
 /usr/include/c++/14/bits/fs_path.h:843:5: note: declared here
   843 |     u8path(const _Source& __source)
       |     ^~~~~~
-lib/infrastructure/scheduler/src/module_adapters.cpp: In instantiation of ‘bool astrocs::core::{anonymous}::p2_write_bin(const std::string&, const std::vector<_Tp>&) [with T = short unsigned int; std::string = std::__cxx11::basic_string<char>]’:
+lib/infrastructure/scheduler/src/module_adapters.cpp: In instantiation of ‘bool acsd::core::{anonymous}::p2_write_bin(const std::string&, const std::vector<_Tp>&) [with T = short unsigned int; std::string = std::__cxx11::basic_string<char>]’:
 lib/infrastructure/scheduler/src/module_adapters.cpp:6085:61:   required from here
  6085 |   if (!p2_write_bin(acc_file, accepted_bin) || !p2_write_bin(nrej_file, nrej_bin) ||
       |                                                 ~~~~~~~~~~~~^~~~~~~~~~~~~~~~~~~~~
@@ -414,7 +414,7 @@ lib/infrastructure/scheduler/src/module_adapters.cpp:4389:42: warning: ‘std::f
 /usr/include/c++/14/bits/fs_path.h:843:5: note: declared here
   843 |     u8path(const _Source& __source)
       |     ^~~~~~
-lib/infrastructure/scheduler/src/module_adapters.cpp: In instantiation of ‘bool astrocs::core::{anonymous}::p2_read_bin_range(const std::string&, uint64_t, uint64_t, std::vector<_Tp>*) [with T = unsigned char; std::string = std::__cxx11::basic_string<char>; uint64_t = long unsigned int]’:
+lib/infrastructure/scheduler/src/module_adapters.cpp: In instantiation of ‘bool acsd::core::{anonymous}::p2_read_bin_range(const std::string&, uint64_t, uint64_t, std::vector<_Tp>*) [with T = unsigned char; std::string = std::__cxx11::basic_string<char>; uint64_t = long unsigned int]’:
 lib/infrastructure/scheduler/src/module_adapters.cpp:6412:34:   required from here
  6412 |   if (!p2_read_bin_range<uint8_t>(acc_file, 0, rej_doc.value("n_pixels", 0ull), &acc_all) ||
       |        ~~~~~~~~~~~~~~~~~~~~~~~~~~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -436,7 +436,7 @@ lib/infrastructure/scheduler/src/module_adapters.cpp:4400:42: warning: ‘std::f
 /usr/include/c++/14/bits/fs_path.h:843:5: note: declared here
   843 |     u8path(const _Source& __source)
       |     ^~~~~~
-lib/infrastructure/scheduler/src/module_adapters.cpp: In instantiation of ‘bool astrocs::core::{anonymous}::p2_read_bin_range(const std::string&, uint64_t, uint64_t, std::vector<_Tp>*) [with T = short unsigned int; std::string = std::__cxx11::basic_string<char>; uint64_t = long unsigned int]’:
+lib/infrastructure/scheduler/src/module_adapters.cpp: In instantiation of ‘bool acsd::core::{anonymous}::p2_read_bin_range(const std::string&, uint64_t, uint64_t, std::vector<_Tp>*) [with T = short unsigned int; std::string = std::__cxx11::basic_string<char>; uint64_t = long unsigned int]’:
 lib/infrastructure/scheduler/src/module_adapters.cpp:6413:35:   required from here
  6413 |       !p2_read_bin_range<uint16_t>(nrej_file, 0, rej_doc.value("n_pixels", 0ull), &nrej_all))
       |        ~~~~~~~~~~~~~~~~~~~~~~~~~~~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -458,7 +458,7 @@ lib/infrastructure/scheduler/src/module_adapters.cpp:4400:42: warning: ‘std::f
 /usr/include/c++/14/bits/fs_path.h:843:5: note: declared here
   843 |     u8path(const _Source& __source)
       |     ^~~~~~
-lib/infrastructure/scheduler/src/module_adapters.cpp: In instantiation of ‘bool astrocs::core::{anonymous}::p2_write_bin(const std::string&, const std::vector<_Tp>&) [with T = double; std::string = std::__cxx11::basic_string<char>]’:
+lib/infrastructure/scheduler/src/module_adapters.cpp: In instantiation of ‘bool acsd::core::{anonymous}::p2_write_bin(const std::string&, const std::vector<_Tp>&) [with T = double; std::string = std::__cxx11::basic_string<char>]’:
 lib/infrastructure/scheduler/src/module_adapters.cpp:6814:20:   required from here
  6814 |   if (!p2_write_bin(sig_file, sig_bin) || !p2_write_bin(sup_file, sup_bin) ||
       |        ~~~~~~~~~~~~^~~~~~~~~~~~~~~~~~~
@@ -480,7 +480,7 @@ lib/infrastructure/scheduler/src/module_adapters.cpp:4389:42: warning: ‘std::f
 /usr/include/c++/14/bits/fs_path.h:843:5: note: declared here
   843 |     u8path(const _Source& __source)
       |     ^~~~~~
-lib/infrastructure/scheduler/src/module_adapters.cpp: In instantiation of ‘bool astrocs::core::{anonymous}::p2_write_bin(const std::string&, const std::vector<_Tp>&) [with T = int; std::string = std::__cxx11::basic_string<char>]’:
+lib/infrastructure/scheduler/src/module_adapters.cpp: In instantiation of ‘bool acsd::core::{anonymous}::p2_write_bin(const std::string&, const std::vector<_Tp>&) [with T = int; std::string = std::__cxx11::basic_string<char>]’:
 lib/infrastructure/scheduler/src/module_adapters.cpp:6815:58:   required from here
  6815 |       !p2_write_bin(wsum_file, wsum_bin) || !p2_write_bin(nused_file, nused_bin) ||
       |                                              ~~~~~~~~~~~~^~~~~~~~~~~~~~~~~~~~~~~

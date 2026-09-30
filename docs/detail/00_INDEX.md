@@ -1,6 +1,6 @@
 # ACSD 细节文档索引（docs/detail）
 
-> 上游：docs/ASTROCS_DESIGN.md §0（文档权威与索引）、§8（软件架构）
+> 上游：docs/ACSD_DESIGN.md §0（文档权威与索引）、§8（软件架构）
 > 本索引覆盖 `docs/detail/` 全树：根级跨模块正本、`registry/` 模块登记面、
 > `infrastructure/` 基建模块落地面、`anchors/` 文档—代码锚合同面。
 
@@ -43,9 +43,9 @@ docs/detail/
 
 | 命令 | 模块卡 |
 |---|---|
-| normalize | `astrocs.phase1.session`、`astrocs.phase1.calibration`、`astrocs.phase1.cosmetic`、`astrocs.phase1.star-detection`、`astrocs.phase1.star-psf`、`astrocs.phase1.wcs-platesolve`、`astrocs.phase1.photometry`、`astrocs.phase1.noise-snr`、`astrocs.phase1.drizzle`、`astrocs.phase1.hips-writer`、`astrocs.phase1.writer` |
-| mosaic | `astrocs.phase2.session`、`astrocs.phase2.coverage`、`astrocs.phase2.sample`、`astrocs.phase2.upm-fit`、`astrocs.phase2.upm-apply`、`astrocs.phase2.reject`、`astrocs.phase2.integrate`、`astrocs.phase2.write`、`astrocs.phase2.resample` |
-| export | `astrocs.phase3.properties`、`astrocs.phase3.wcs`、`astrocs.phase3.resample2`、`astrocs.phase3.writer`、`astrocs.phase3.verify` |
+| normalize | `acsd.phase1.session`、`acsd.phase1.calibration`、`acsd.phase1.cosmetic`、`acsd.phase1.star-detection`、`acsd.phase1.star-psf`、`acsd.phase1.wcs-platesolve`、`acsd.phase1.photometry`、`acsd.phase1.noise-snr`、`acsd.phase1.drizzle`、`acsd.phase1.hips-writer`、`acsd.phase1.writer` |
+| mosaic | `acsd.phase2.session`、`acsd.phase2.coverage`、`acsd.phase2.sample`、`acsd.phase2.upm-fit`、`acsd.phase2.upm-apply`、`acsd.phase2.reject`、`acsd.phase2.integrate`、`acsd.phase2.write`、`acsd.phase2.resample` |
+| export | `acsd.phase3.properties`、`acsd.phase3.wcs`、`acsd.phase3.resample2`、`acsd.phase3.writer`、`acsd.phase3.verify` |
 
 各卡的公共抬头面：上游条款（最高设计节号 + 一级正本 + 数据/API/算法正本）、
 职责与明确非职责、端口表、落地口径、公共头与 symbol、配置 schema、

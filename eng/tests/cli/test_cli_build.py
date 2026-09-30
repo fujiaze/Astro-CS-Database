@@ -83,7 +83,7 @@ def _repo_version():
     with open(os.path.join(REPO, "VERSION"), encoding="utf-8") as fh:
         return fh.read().strip()
 
-# CLI-001: help golden = docs/ASTROCS_DESIGN §6.2 唯一命令树（逐行对照）。
+# CLI-001: help golden = docs/ACSD_DESIGN §6.2 唯一命令树（逐行对照）。
 # 旧命令（phase1/2/3、config *、modules *、selftest、test synthetic、verify*、
 # drizzle、benchmark cpu|verify-profile、hardware inspect）不得出现在 help 里。
 EXPECTED_HELP_LINES = [
@@ -109,7 +109,7 @@ LEGACY_COMMANDS = [
 
 @unittest.skipUnless(shutil.which("cmake") and shutil.which("g++"), "需要 eng/cmake/g++")
 class TestCliBuild(unittest.TestCase):
-    """被测对象 = **根产品图**产出的唯一 exe（build/acsd; ASTROCS_CLI_BIN 可覆盖）。
+    """被测对象 = **根产品图**产出的唯一 exe（build/acsd; ACSD_CLI_BIN 可覆盖）。
 
     退役登记: 旧 setUpClass 以 cmake -S cli -B <tmp> 构建 lib/infrastructure/cli/ 独立图（compatibility
     target）; BLD-002 明确唯一产品事实源是根 CMakeLists.txt, 且该独立图在 ARCH-001
@@ -119,7 +119,7 @@ class TestCliBuild(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
-        env = os.environ.get("ASTROCS_CLI_BIN")
+        env = os.environ.get("ACSD_CLI_BIN")
         cands = [env] if env else []
         cands += [os.path.join(REPO, "build", "acsd"),
                   os.path.join(REPO, "build", "cli", "acsd")]
@@ -187,7 +187,7 @@ class TestCliBuild(unittest.TestCase):
     def test_03d_templates_key_complete_and_accepted(self):
         """§6.3 / E2E-D02: 三命令 --template 的键必须全部是运行期接受键（无 unknown key），
         且结构完整（填好路径即可运行）。负例自证: 注入未登记键必须被判出。"""
-        tmp = tempfile.mkdtemp(prefix="astrocs_tpl_")
+        tmp = tempfile.mkdtemp(prefix="acsd_tpl_")
         self.addCleanup(shutil.rmtree, tmp, True)
         # 各命令「只填路径」的最小填充（不填补即被预检阻断，无法走到键校验面）
         # CLI-MULTIBLOCK（§9.68）: normalize 的路径/落点在**块级**，故逐块填充。
@@ -263,7 +263,7 @@ class TestCliBuild(unittest.TestCase):
 
     def test_06_no_global_arch_flags(self):
         # ARCH-003 §2: 禁全局 ISA 旗标（可加载性/可移植性）。provider target 的
-        # PRIVATE 高级旗标（astrocs_cpu_avx2 等）是合同允许的隔离形态。
+        # PRIVATE 高级旗标（acsd_cpu_avx2 等）是合同允许的隔离形态。
         text = _code_lines(ROOT_CMAKE)
         self.assertEqual(_global_arch_violations(text), [],
                          "根 CMakeLists 出现全局 ISA 旗标泄漏")

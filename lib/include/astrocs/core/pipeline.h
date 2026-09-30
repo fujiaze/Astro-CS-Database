@@ -2,8 +2,8 @@
 // RT-004: 使用真正 JSON parser (nlohmann) + schema 驱动校验；validate 接受完整 ModuleRegistry。
 #pragma once
 
-#include "astrocs/core/contracts.h"
-#include "astrocs/core/module.h"
+#include "acsd/core/contracts.h"
+#include "acsd/core/module.h"
 
 #include <cstdint>
 #include <map>
@@ -11,7 +11,7 @@
 #include <string>
 #include <vector>
 
-namespace astrocs::core {
+namespace acsd::core {
 
 // Pipeline 节点 (03 §4)
 struct PipelineNode {
@@ -28,7 +28,7 @@ struct PipelineNode {
 };
 
 struct PipelineIR {
-  std::string schema;         // "astrocs.pipeline/v1" | "astrocs.pipeline/v2"
+  std::string schema;         // "acsd.pipeline/v1" | "acsd.pipeline/v2"
   std::string pipeline_id;
   std::string version;
   std::vector<PipelineNode> nodes;
@@ -71,4 +71,4 @@ class PipelineIRParser {
                                 const ModuleRegistry& registry) const;
 };
 
-}  // namespace astrocs::core
+}  // namespace acsd::core

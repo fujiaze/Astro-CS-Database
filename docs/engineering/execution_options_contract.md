@@ -1,6 +1,6 @@
 # 全局 worker 预算与执行架构合同（ExecutionOptions）
 
-> 上游：`docs/ASTROCS_DESIGN.md` §8.1（唯一入口、阶段独立调度器）、§8.3（三个阶段调度器）、
+> 上游：`docs/ACSD_DESIGN.md` §8.1（唯一入口、阶段独立调度器）、§8.3（三个阶段调度器）、
 > §9（CPU 后端与资源）
 > 性能模型与标定常数正本：`docs/engineering/PERFORMANCE_MODEL.md`
 > 异步 I/O 细则：`docs/engineering/ASYNC_IO_CONTRACT.md`
@@ -67,7 +67,7 @@
 不由命令行覆盖（命令树正本 = `lib/infrastructure/cli/command_tree.h`，
 接口面 = `docs/engineering/CLI_PROTOCOL_V1.md`）。
 
-`--cpu-workers` / `--io-workers` / `--deterministic` 属**工具面 `astrocs-stage2` 的旗标**
+`--cpu-workers` / `--io-workers` / `--deterministic` 属**工具面 `acsd-stage2` 的旗标**
 （`lib/algorithms/coverage/tools/stage2.cpp`），供分阶段调试与基准使用，不属产品 CLI 面，
 也不进入发布安装面。合同面不存在 `--gpu-route`。
 
@@ -126,13 +126,13 @@ W_eff = in_flight × min(inner_omp, K)        // 有效宽度（PERFORMANCE_MODE
 压到 1 帧会让其余核在串行段上空转而退化为单核。
 ⇒ **保留「帧轴优先摊开、剩余预算转帧内轴」的分配**；分配式的改动依据 = `实验/` 收益记录。
 
-**观测面**：`ASTROCS_LEASE_TRACE=1` 给租约（`[lease] ... cap=`）、`ASTROCS_NODE_TRACE=1`
-给节点执行窗口、`ASTROCS_P1CAP_TRACE=1` 给本分配快照（`[p1cap] ...`）。三者由
+**观测面**：`ACSD_LEASE_TRACE=1` 给租约（`[lease] ... cap=`）、`ACSD_NODE_TRACE=1`
+给节点执行窗口、`ACSD_P1CAP_TRACE=1` 给本分配快照（`[p1cap] ...`）。三者由
 `eng/tools/monitoring/node_waterfall.py` 合成为节点级瀑布 + 逐节点并行宽度表。
 标定常数与实测依据见 `docs/engineering/PERFORMANCE_MODEL.md`。
 
-**轴形态的受控 A/B 旋钮**：`ASTROCS_P1_AXIS_FRAME_WORKERS` / `ASTROCS_P1_AXIS_INNER_OMP`
-（`module_adapters.cpp` 的 `p1_parallel_for`）与 `ASTROCS_P1_AXIS_SCRATCH_CAP`
+**轴形态的受控 A/B 旋钮**：`ACSD_P1_AXIS_FRAME_WORKERS` / `ACSD_P1_AXIS_INNER_OMP`
+（`module_adapters.cpp` 的 `p1_parallel_for`）与 `ACSD_P1_AXIS_SCRATCH_CAP`
 （`drizzle_engine.cpp`）。缺省 `0` = 用策略值；**`frame_w × inner_omp > lease` 时一律
 拒绝覆盖并打 `[p1axis] 拒绝越界标定…`** ⇒ 「总并行度 ≤ Runtime lease」不因标定而破。
 `taskset` 单靠 CPU 掩码无法在 `W_eff` 恒定的前提下产生多种轴形态，故须用这三个旋钮。

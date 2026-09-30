@@ -1,6 +1,6 @@
 # 日志与错误系统（详细设计）
 
-> 上游：ASTROCS_DESIGN.md §7.3（错误传播与运行日志：顶层约束）、§10（I/O 与原子产品）
+> 上游：ACSD_DESIGN.md §7.3（错误传播与运行日志：顶层约束）、§10（I/O 与原子产品）
 
 > 机器事实源：`lib/infrastructure/observability/logging/log_event_v1.schema.json`（日志行，LOG-001 正本）、
 > `eng/run/ledgers/log_system_ledger.json`（显式降级/吞错/落点登记台账）、
@@ -13,7 +13,7 @@ observability 各面是什么关系。字段级格式合同在 `docs/engineering
 
 ## 1. 范围与两条硬要求
 
-日志与错误系统服务两条顶层要求（`ASTROCS_DESIGN.md` §7.3）：
+日志与错误系统服务两条顶层要求（`ACSD_DESIGN.md` §7.3）：
 
 1. **任何模块运行出问题都必须抛错到 CLI**：模块不吞错、不静默降级；故障以稳定错误码上行，
    在 CLI 收敛为 `lib/infrastructure/cli/exit_codes.h` 的退出码；
@@ -71,7 +71,7 @@ L3 不改写事件内容（L1 独占格式）。
 
 | 对象 | 定义 | 归属 | 权威 |
 |---|---|---|---|
-| `log_event` | 单行结构化日志事件（run/task/node/module/phase/commit/host/level/event/units/elapsed/diagnostic + 可选 error/progress/value） | L1 产出 | 既有 schema `astrocs.log.event.v1`（LOG-001 正本，本设计**不新建第二套**） |
+| `log_event` | 单行结构化日志事件（run/task/node/module/phase/commit/host/level/event/units/elapsed/diagnostic + 可选 error/progress/value） | L1 产出 | 既有 schema `acsd.log.event.v1`（LOG-001 正本，本设计**不新建第二套**） |
 | `run_log` | 一次运行的日志工件集合：`{log_dir, files[]}`；`files[]` 条目 = `{kind: jsonl\|summary, name, sha256, bytes, lines, level_counts{debug,info,warn,error}, truncated}` | L2 产出 | `docs/engineering/LOG_AND_ERROR_CONTRACT.md` §4 |
 | `error_report` | CLI 收敛面错误对象：`{domain, exit_code, status, source, symbol, message, run, node, phase, degraded}` | L3 产出 | `docs/engineering/LOG_AND_ERROR_CONTRACT.md` §5 |
 | `degradation_record` | 显式降级记录：`{site_id, module, symbol, reason, scientific_effect, manifest_key}` | L0 产出、manifest 承载 | `docs/engineering/LOG_AND_ERROR_CONTRACT.md` §6 |
@@ -154,11 +154,11 @@ flowchart LR
 
 | 面 | 合同（正本） | 键名/工件 | 消费者 |
 |---|---|---|---|
-| 结构化日志（本设计 L1） | `docs/engineering/observability/STRUCTURED_LOGGING_CONTRACT.md`（LOG-001）+ `log_event_v1.schema.json` | `event` / `seq` / `astrocs.log.event.v1` 行 | 操作员、审计、回放 |
+| 结构化日志（本设计 L1） | `docs/engineering/observability/STRUCTURED_LOGGING_CONTRACT.md`（LOG-001）+ `log_event_v1.schema.json` | `event` / `seq` / `acsd.log.event.v1` 行 | 操作员、审计、回放 |
 | 运行事件流 | `lib/infrastructure/cli/protocol.h` + `jsonl.h` | `kind` / `sequence` / CLI stdout JSONL | GUI、外部 harness |
 | 运行图 | `docs/engineering/observability/RUN_GRAPH_CONTRACT.md`（LOG-003） | run-graph / observed_trace | 审计、性能 |
 | 资源监控伴随器 | `docs/engineering/observability/RESOURCE_MONITORING_CONTRACT.md`（LOG-002） | `monitor_timeseries.csv` | 容量分析、资源门 |
-| 性能探针 | `lib/infrastructure/observability/probes/README.md` | `ASTROCS_PROBE_LOG` JSONL（编译期 OFF） | 性能迭代 |
+| 性能探针 | `lib/infrastructure/observability/probes/README.md` | `ACSD_PROBE_LOG` JSONL（编译期 OFF） | 性能迭代 |
 
 **本设计新增的是 L2 落盘器与 L3 收敛面**，不是第六个面：它把 L1 已冻结的行格式**写到
 `<output_dir>/logs`**，并把错误收敛到退出码。日志行格式、事件流字段、运行图字段**一律不动**。
@@ -203,7 +203,7 @@ flowchart LR
 
 | 作用域 | 触发条件 | 上报形态 | 运行结果 |
 |---|---|---|---|
-| **帧级失败** | 失败只由**该帧自身**的条件决定：换一帧可能成功（本帧 WCS 不可用、本帧星点目录缺行、本帧拟合未产出标度、本帧标度非物理、帧内残差散度超门限） | 该帧记 `status=fail` + `error_domain`/`error_status`/`error`（合同 §5 的 error_report 口径），落在节点 manifest 与 provenance 的**逐帧判决表**里 | **该帧不产出产品，其余帧照常完成**；运行级是否判红由产品基数与不变量决定（`ASTROCS_DESIGN.md` §4.4「任何一帧未被处理、跳过或失败都显式判红」），判红时**不发布**数据集清单 |
+| **帧级失败** | 失败只由**该帧自身**的条件决定：换一帧可能成功（本帧 WCS 不可用、本帧星点目录缺行、本帧拟合未产出标度、本帧标度非物理、帧内残差散度超门限） | 该帧记 `status=fail` + `error_domain`/`error_status`/`error`（合同 §5 的 error_report 口径），落在节点 manifest 与 provenance 的**逐帧判决表**里 | **该帧不产出产品，其余帧照常完成**；运行级是否判红由产品基数与不变量决定（`ACSD_DESIGN.md` §4.4「任何一帧未被处理、跳过或失败都显式判红」），判红时**不发布**数据集清单 |
 | **全局失败** | 失败与具体帧无关：换任何一帧都不会好（星表/响应曲线等程序级输入不可读、配置缺项、冻结 C 入口返回非零） | 节点直接返回 `Error`（域 = `CONFIG`/`IO`）上行到 CLI，收敛为退出码（合同 §4） | **中止运行**：不再处理后续帧，也不把整批帧逐帧判 fail |
 
 **帧级失败不是降级**：降级 = 上游能力缺失时改走替代路径并**继续运行**且**科学语义不变**（合同 §6 D1–D3）。

@@ -2,12 +2,12 @@
  *
  * 纯 FP64 + std；无第三方依赖。全部退化路径 fail-closed，无 NaN/clamp 静默。
  */
-#include "astrocs/variance_propagation.h"
+#include "acsd/variance_propagation.h"
 
 #include <algorithm>
 #include <cmath>
 
-namespace astrocs {
+namespace acsd {
 namespace v6 {
 namespace p2var {
 
@@ -219,4 +219,4 @@ double mean_model_naive_over_correct(std::size_t n) {
 
 }  /* namespace p2var */
 }  /* namespace v6 */
-}  /* namespace astrocs */
+}  /* namespace acsd */

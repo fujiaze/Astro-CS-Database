@@ -77,7 +77,7 @@ PAREN = re.compile(
     r"(?:\s*#\s*\d+)?)"
     r"(?:\s*/\s*(?:V\d+(?:\.\d+)?|R\d+|G\d+))?"
     r"(?:\s+[A-Za-z0-9/-]+)*\s*[)）]")
-# 4) 行中裸轮次标记（词边界；不碰 NoiseWeightModelV1/astrocs-upm-v2）
+# 4) 行中裸轮次标记（词边界；不碰 NoiseWeightModelV1/acsd-upm-v2）
 TOKEN = re.compile(
     r"(?<![A-Za-z0-9_/-])(?:V\d+(?:\.\d+)?(?:-[A-Za-z0-9]+)?|R\d+|"
     r"MICROFIX(?:\s*#\s*\d+)?)"

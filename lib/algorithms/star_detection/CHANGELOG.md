@@ -7,16 +7,16 @@
    (JᵀJ+λD²)h=−Jᵀf + Cholesky、Moré 列范数缩放 D、Nielsen 1999 的 Δ/λ 更新、
    MINPACK lmpar 式 Δ↔λ 一维求根），三判据 xtol/ftol/gtol，迭代上限语义与原后端一致。
 2. **调用点替换** `sdet_api.cpp`：`gsl_multifit_nlinear_alloc/init/driver/free` 全部移除，
-   改调 `astrocs::star_detection::nls::solve`；母函数/雅可比、LM_XTOL/LM_GTOL/LM_FTOL、
+   改调 `acsd::star_detection::nls::solve`；母函数/雅可比、LM_XTOL/LM_GTOL/LM_FTOL、
    迭代上限、`status != Success ⇒ SDET_FIT_NO_CONVERGENCE` 的对外映射、MAD 与角度
    fail-closed 归一化全部保持不变。
-3. **构建面去 GSL**：根 CMakeLists（astrocs_p1_sdet 加 nls_lm.cpp、去掉 -lgsl/-lgslcblas）、
+3. **构建面去 GSL**：根 CMakeLists（acsd_p1_sdet 加 nls_lm.cpp、去掉 -lgsl/-lgslcblas）、
    p1star/p1psf 测试 CMake 的 GSL 探测 + fail-fast 段整段摘除、模块 Makefile LDLIBS=-lm、
    dependency-lock.json/DEPENDENCIES.md 删除 gsl 条目、CI 工具链与测试驱动同步。
 
 ### 理由
 Windows 平台无 GSL 来源（`lib/algorithms/psf/tests/p1psf/CMakeLists.txt` 原在 configure 期
-fail-fast），且 GSL 属 GPL 族并经 `astrocs_p1_sdet → astrocs_module_adapters → acsd` 进入
+fail-fast），且 GSL 属 GPL 族并经 `acsd_p1_sdet → acsd_module_adapters → acsd` 进入
 产品 exe 动态链（`license_review: PENDING_OWNER`）。
 
 ### 禁令

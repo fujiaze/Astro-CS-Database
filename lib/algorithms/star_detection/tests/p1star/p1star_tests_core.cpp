@@ -4,7 +4,7 @@
 // 合同锚: §11.4 TEST-STAR-DESIGN-001 F1-F6; §2 ALG-STARDET-001。
 // 被测面: lib/algorithms/star_detection 生产 sdet_* C API (sdet_detect_ex_f64 主面 +
 // sdet_detect_ex u16 量化面); 与 eng/tests/unit/p1_stars_test.cpp (P1-003 桥接层
-// astrocs::phase1::StarDetector) 互补不重复。
+// acsd::phase1::StarDetector) 互补不重复。
 //
 // 负面组 OOM 注入: LD_PRELOAD sdet_oom_interposer.so (第 N 次 malloc 失败),
 // 注入点以 fork+exec(/proc/self/exe oom-child) 子进程扫描分类 — 批次 R
@@ -40,8 +40,8 @@
 #include <io.h>
 #include <process.h>
 #include <windows.h>
-/* dlsym/RTLD_DEFAULT 由 eng/tests/support/astrocs_test_posix_compat.h 统一提供
- * （RTLD_DEFAULT ⇒ 主模块句柄；与原先的 acs_dlsym_main_module 同语义），本处不再写。 */
+/* dlsym/RTLD_DEFAULT 由 eng/tests/support/acsd_test_posix_compat.h 统一提供
+ * （RTLD_DEFAULT ⇒ 主模块句柄；与原先的 acsd_dlsym_main_module 同语义），本处不再写。 */
 #else
 #include <dlfcn.h>
 #include <sys/wait.h>
@@ -50,9 +50,9 @@
 
 /* FINAL-07 WIN-PORT 批次二: 平台专属调用的唯一判定点 ——
  * dlopen/dlsym/dlerror、setenv/unsetenv、popen/pclose、目录遍历与文件属性等只在类 UNIX
- * 存在的接口经 eng/tests/support/astrocs_test_posix_compat.h 统一给等价物；本 TU 不再写
+ * 存在的接口经 eng/tests/support/acsd_test_posix_compat.h 统一给等价物；本 TU 不再写
  * 平台分支。无等价语义的能力见该头「无等价物清单」(显式限定 + 明确状态)。 */
-#include "../../../../../eng/tests/support/astrocs_test_posix_compat.h"
+#include "../../../../../eng/tests/support/acsd_test_posix_compat.h"
 
 #ifdef _OPENMP
 #include <omp.h>
@@ -898,7 +898,7 @@ int test_negative() {
     std::vector<long> aborts;        // 134 定义性终止 (STL/运行库内部)
     // OOM_TOTAL 落盘路径：不写死 "/tmp"（Windows 无此路径；宿主 /tmp 可能不可写 —— AGENTS §3）。
     // 用当前工作目录相对路径（ctest WORKING_DIRECTORY 保证可写），父子进程共享 cwd。
-    char total_path[] = "astrocs_p1star_oom_total.txt";
+    char total_path[] = "acsd_p1star_oom_total.txt";
     {
         OomProbe g = oom_probe_once(-1, total_path);
         P1STAR_CHECK_EQ(cs, g.shell_rc, 0, "oom_total_probe_rc");

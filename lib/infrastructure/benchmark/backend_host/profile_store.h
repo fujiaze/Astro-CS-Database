@@ -7,14 +7,14 @@
 // 补充(V8.1 03_P0_REMEDIATION_TASKS.md V8-CPU-002): 没有/失配 profile → 选择
 //   generic(baseline) ISA 但仍动态多线程 —— 即装载失败一律回落, 不抛错不阻塞。
 //
-// 层次合同(不复制校验链): 本文件是 CPU-003 v2 profile(schema astrocs.cpu-profile/v2)
+// 层次合同(不复制校验链): 本文件是 CPU-003 v2 profile(schema acsd.cpu-profile/v2)
 // 与 CPU-005 身份校验(check_profile_identity_v1)之上的**存储生命周期层**。合法性判定
 // 全部复用既有唯一实现:
 //   - 文本级: verify_profile_v2(schema/必填字段/版本/commit/指纹/kernels 结构)
 //   - 身份级: check_profile_identity_v1(build/CPU/OS/provider hash 绑定; 机器变化→stale)
 //   - 消费级: profile_kernel_benchmark_valid(oracle/fallback/median 完整性, 供消费方)
 // 本层不解析 profile 业务字段、不改变任何选择逻辑; 与 CPU-006 bench_report
-// (astrocs.benchmark-report/v1)结构性隔离: 本层只接受 cpu-profile/v2, report 文本
+// (acsd.benchmark-report/v1)结构性隔离: 本层只接受 cpu-profile/v2, report 文本
 // 经 verify_profile_v2 拒绝 → 落库被拒, 两条 schema 互不渗透。
 //
 // 原子写协议(load_profile 唯一消费路径下半写文件结构性不可见):
@@ -38,14 +38,14 @@
 //     由消费方(CLI/runtime)原样输出; 本层不打印(库层无 stderr 约定, 同域一致)。
 //   - 线程/ISA/block 由 benchmark 选择禁止硬编码: 本层只存取文本, 无任何选择逻辑。
 //   - 重计算禁止单线程: 选择语义在 profile 内容本身(CPU-003/006 已冻结), 本层透传。
-#ifndef ASTROCS_PROFILE_STORE_H
-#define ASTROCS_PROFILE_STORE_H
+#ifndef ACSD_PROFILE_STORE_H
+#define ACSD_PROFILE_STORE_H
 
 #include <cstdint>
 #include <string>
 #include <vector>
 
-namespace astrocs::backend_host {
+namespace acsd::backend_host {
 
 // ── 默认存储路径(V7.1 规格) ──
 // Windows: %LOCALAPPDATA%/ACSD/cpu_profile.json(LOCALAPPDATA 缺失→回退 USERPROFILE
@@ -60,7 +60,7 @@ struct PathResult {
 PathResult default_profile_path_v1();
 
 // ── 原子保存: 写临时 → 校验 → rename ──
-// json_text: 候选 profile 全文(schema astrocs.cpu-profile/v2)。
+// json_text: 候选 profile 全文(schema acsd.cpu-profile/v2)。
 // hw_json: 当前机器硬件画像(hardware_inspect JSON; 空串=跳过机器身份校验, 仅文本级)。
 // current_commit: 期望 build.source_commit(空串=跳过 build 绑定校验)。
 // 校验失败 → 返回 ok=false + reason, 目标文件与目录零改动(临时文件已清理)。
@@ -103,7 +103,7 @@ ProfileLoadResult load_profile_checked_v1(const std::string& target_path,
 // ── 失效归类(负向样例共用同一实现; 纯函数) ──
 // 输入 verify_profile_v2 与 check_profile_identity_v1 的错误文本, 归类为规格验收类别:
 //   "corrupted"   损坏/半写(JSON 解析失败、必填字段缺失、结构非法)
-//   "old_schema"  旧版本(schema 非 astrocs.cpu-profile/v2, 含 v1/空/外域 schema)
+//   "old_schema"  旧版本(schema 非 acsd.cpu-profile/v2, 含 v1/空/外域 schema)
 //   "stale_machine" 机器变化(vendor/family/model/stepping/xcr0/os_abi/features/
 //                 benchmark_binary_sha256 任一变化)
 //   "stale_build" build 变化(source_commit 不符)
@@ -112,6 +112,6 @@ ProfileLoadResult load_profile_checked_v1(const std::string& target_path,
 std::string classify_profile_rejection_v1(const std::string& verify_error,
                                           const std::string& identity_reason);
 
-}  // namespace astrocs::backend_host
+}  // namespace acsd::backend_host
 
-#endif  // ASTROCS_PROFILE_STORE_H
+#endif  // ACSD_PROFILE_STORE_H

@@ -12,18 +12,18 @@
 //      ③ 每个节点要么已估算且 >0，要么 unestimable_reason 非空（显式登记，不冒充 0 估算）
 //      —— 负例：预算传 0 / 估算硬写 0 ⇒ 同一判据函数必须判红（W1b/W1c）。
 //   W2 受控回压：8 个独立节点 × 1000 B 估算、上限 2500 B ⇒ 并发被压到 ≤2，全部 COMPLETED
-//      （越界 = 排队节流，不是拒绝任务；docs/ASTROCS_DESIGN §8.3「可中断排队」）。
+//      （越界 = 排队节流，不是拒绝任务；docs/ACSD_DESIGN §8.3「可中断排队」）。
 //   W3 生产路径（Runtime + IR）回压：同一 DAG 在「上限=实测估算的 2.5 倍」下并发 < 8，
 //      在「上限=0」下并发 = 8（对照），两者数值结果**逐位一致**。
 //   W4 1/N worker 逐位一致：budget ∈ {1,2,4,8} × 同一内存上限 ⇒ 每节点输出逐位相同。
 //
-// 依据：docs/ASTROCS_DESIGN.md §8.3/§9/§4.5；docs/engineering/SCHEDULER_CONTRACT.md §3；
+// 依据：docs/ACSD_DESIGN.md §8.3/§9/§4.5；docs/engineering/SCHEDULER_CONTRACT.md §3；
 //       内存上限 = 空闲内存 × 可配置比例（默认 95，比例可配置）；**不设固定上限**。
-#include "astrocs/core/memory_budget.h"
-#include "astrocs/core/module.h"
-#include "astrocs/core/plan_estimator.h"
-#include "astrocs/core/runtime.h"
-#include "astrocs/core/scheduler.h"
+#include "acsd/core/memory_budget.h"
+#include "acsd/core/module.h"
+#include "acsd/core/plan_estimator.h"
+#include "acsd/core/runtime.h"
+#include "acsd/core/scheduler.h"
 
 #include <nlohmann/json.hpp>
 
@@ -36,7 +36,7 @@
 #include <thread>
 #include <vector>
 
-using namespace astrocs::core;
+using namespace acsd::core;
 using nlohmann::json;
 
 static int g_checks = 0;
@@ -180,7 +180,7 @@ ModuleDescriptor make_desc(const std::string& id) {
 // 8 个独立节点（无依赖 ⇒ 全部就绪，可观察回压）+ 确定性输出
 std::string make_ir(int n_nodes, const std::string& cfg_json) {
   json ir;
-  ir["schema"] = "astrocs.pipeline/v1";
+  ir["schema"] = "acsd.pipeline/v1";
   ir["pipeline_id"] = "mem-wire";
   ir["version"] = "1.0.0";
   ir["nodes"] = json::array();
@@ -189,7 +189,7 @@ std::string make_ir(int n_nodes, const std::string& cfg_json) {
     const std::string id = "n" + std::to_string(i);
     json n;
     n["node_id"] = id;
-    n["module_id"] = "astrocs.phase3.resample2";
+    n["module_id"] = "acsd.phase3.resample2";
     n["module_api"] = "1.x";
     n["config"] = json::parse(cfg_json);
     n["inputs"] = {{"hips", "artifact:in"}};
@@ -204,11 +204,11 @@ std::string make_ir(int n_nodes, const std::string& cfg_json) {
 
 ModuleRegistry make_registry() {
   ModuleRegistry reg;
-  const ModuleDescriptor d = make_desc("astrocs.phase3.resample2");
+  const ModuleDescriptor d = make_desc("acsd.phase3.resample2");
   const auto r = reg.register_module(d);
   (void)r;
   const auto rf = reg.register_factory(d.module_id, [] {
-    return std::unique_ptr<IModule>(new StubModule(make_desc("astrocs.phase3.resample2")));
+    return std::unique_ptr<IModule>(new StubModule(make_desc("acsd.phase3.resample2")));
   });
   (void)rf;
   return reg;
@@ -305,7 +305,7 @@ static void test_w3_runtime_path() {
 
   // 估算器给出的单节点峰值（判据的独立输入，非硬编码）
   PlanInputMetadata meta;
-  meta.module_id = "astrocs.phase3.resample2";
+  meta.module_id = "acsd.phase3.resample2";
   meta.is_heavy = true;
   meta.width_px = 1024;
   meta.height_px = 1024;

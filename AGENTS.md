@@ -18,7 +18,7 @@ ACSD（Astro Celestial Sphere Database）是天文 CCD/CMOS 图像校准与标�
 
 ```mermaid
 flowchart TD
-    D["最高设计 docs/ASTROCS_DESIGN.md<br/>是什么 · 做到什么 · 顶层架构"]
+    D["最高设计 docs/ACSD_DESIGN.md<br/>是什么 · 做到什么 · 顶层架构"]
     S["科学正本 docs/science/<br/>公式 · 常数 · 判据 · 算法推导"]
     E["工程正本 docs/engineering/<br/>架构 · 合同 · 标准"]
     X["细节文档 docs/detail/<br/>模块 · 接口 · 落地设计"]
@@ -39,7 +39,7 @@ flowchart TD
 
 权威链只有一条，自上而下递减：
 
-1. 最高设计 `docs/ASTROCS_DESIGN.md`：权威顶点；
+1. 最高设计 `docs/ACSD_DESIGN.md`：权威顶点；
 2. 一级正本：`docs/science/`（科学公式、常数、判据、算法推导）与 `docs/engineering/`（架构、行为合同、标准）；
 3. 二级细节：`docs/detail/`（模块工作细节、数据对象、接口落地），由一级正本推理产出；
 4. 代码：最低权威，是细节文档的实现。

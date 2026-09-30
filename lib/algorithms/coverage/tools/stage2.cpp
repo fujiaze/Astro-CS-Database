@@ -1,6 +1,6 @@
 // lib/algorithms/coverage/tools/stage2.cpp — Phase2 正式入口（完整 CPU 链闭合）
 //
-// 用法：astrocs-stage2 <stage2.json>（唯一参数，禁止长串 CLI 科学参数）
+// 用法：acsd-stage2 <stage2.json>（唯一参数，禁止长串 CLI 科学参数）
 //
 // 流程（ 34A532A2...B2EB308 EXECUTION_ORDER）：
 // DISCOVER → VALIDATE → COVERAGE_UNION → CONTROL_SAMPLE → UPM_FIT →
@@ -137,7 +137,7 @@ int main(int argc, char** argv) {
     try {
     if (argc < 2) {
         std::fprintf(stderr,
-                     "usage: astrocs-stage2 <stage2.json> [--cpu-workers N] [--io-workers N] [--gpu-route cpu|auto|cuda] [--deterministic 0|1]\n");
+                     "usage: acsd-stage2 <stage2.json> [--cpu-workers N] [--io-workers N] [--gpu-route cpu|auto|cuda] [--deterministic 0|1]\n");
         return 2;
     }
     nlohmann::json j;
@@ -252,7 +252,7 @@ int main(int argc, char** argv) {
     std::string manifest_payload;
     for (const auto& e : manifest_entries)
         manifest_payload += std::to_string(e.first) + "|" + e.second + ";";
-    const std::string input_manifest_hash = astrocs::crypto::sha256_hex(
+    const std::string input_manifest_hash = acsd::crypto::sha256_hex(
         manifest_payload.data(), manifest_payload.size());
     log("input_manifest_hash=" + input_manifest_hash);
     std::fprintf(stderr, "[stage2] manifest %s, before sampler probe n=%zu cells=%llu\n",
@@ -389,7 +389,7 @@ int main(int argc, char** argv) {
     // 局部 SNR 质量场：PSF_SIGNAL_WEIGHT.md §7a 定案 —— stage2 的 local_snr /
     // frame_snr_medians 是**相对质量权重场**（改名 quality_weight），只作诊断。
     // 它**不再进入任何权重面**：原 weight_mode=0 的
-    // support×snr²（无量纲、非信号/噪声之比）已删除（docs/ASTROCS_DESIGN.md
+    // support×snr²（无量纲、非信号/噪声之比）已删除（docs/ACSD_DESIGN.md
     // §3.1:173「权重只能来自纯净信号与噪声之比」；§3.1:175「没有可选择项」）
     // ⇒ 原 local_snr_map 的构造与其权重消费点一并删除，不留"建了不用"的死面。
     // 仅保留「无局部星点的 control observation 回退整帧 SNR median」这一
@@ -416,7 +416,7 @@ int main(int argc, char** argv) {
         const std::uint64_t tile = o.leaf_ipix >> 18;
         const std::uint64_t local = o.leaf_ipix & ((1ULL << 18) - 1ULL);
         std::uint32_t x = 0, y = 0;
-        astrocs::healpix::nested_local_to_xy(local, 9u, x, y);
+        acsd::healpix::nested_local_to_xy(local, 9u, x, y);
         local_ivar_map[std::make_tuple(o.frame_id, tile, (int)(x / 64),
                                        (int)(y / 64))] = o.ivar;
     }
@@ -778,7 +778,7 @@ int main(int argc, char** argv) {
         }
     }
     // ivar 产品 ——**唯一**权重口径（逐样本逆方差）。
-    // docs/ASTROCS_DESIGN.md §3.1:175「权重的产生链固定为两步、没有可选择项」；
+    // docs/ACSD_DESIGN.md §3.1:175「权重的产生链固定为两步、没有可选择项」；
     // docs/science/PSF_SIGNAL_WEIGHT.md §4:72「没有可选择的口径」。
     // 整个 ivar 产品缺失时默认
     // → 显式 science/degraded 错误（无静默回退）；仅当显式配置
@@ -796,7 +796,7 @@ int main(int argc, char** argv) {
     if (ivar_product_missing > 0) {
         // 原 legacy_allow_weight_fallback=true 的
         // support 降级分支已删除 —— support 是无量纲几何量，不是信号/噪声之比
-        // （docs/ASTROCS_DESIGN.md §3.1:173），且「没有可选择项」（§3.1:175）。
+        // （docs/ACSD_DESIGN.md §3.1:173），且「没有可选择项」（§3.1:175）。
         // ⇒ ivar 产品缺失**恒** fail-closed：拒绝在非逆方差语义下冒充 ivar coadd。
         log("weight_policy=ivar 且 ivar 产品缺失 " +
             std::to_string(ivar_product_missing) + " 帧 → 显式科学错误；"
@@ -823,7 +823,7 @@ int main(int argc, char** argv) {
     AioHipsProductSet* ps = aio_hips_product_begin(
         cfg.out_hips.c_str(), (std::uint32_t)nside, 512, dtype,
         AIO_HIPS_PRODUCT_SIGNAL | AIO_HIPS_PRODUCT_SUPPORT,
-        "ivo://astrocs/phase2", "ACSD Phase2 Mosaic",
+        "ivo://acsd/phase2", "ACSD Phase2 Mosaic",
         filter.empty() ? nullptr : filter.c_str(), 0.0, nullptr, 0);
     if (!ps) {
         const char* e = aio_hips_last_error();
@@ -866,7 +866,7 @@ int main(int argc, char** argv) {
     const int acr_workers = effective_cpu_workers(cfg.exec);
 
     // wbpp_current = integration-group level 一次解析（nominal = 全部
-    // 独立 exposure 数）；astrocs_adaptive 在 tile 层按 nominal depth 解析。
+    // 独立 exposure 数）；acsd_adaptive 在 tile 层按 nominal depth 解析。
     const bool group_level =
         (cfg.reject_profile == "wbpp_2_9_1");
     P2RejectionPlan group_plan{};
@@ -902,7 +902,7 @@ int main(int argc, char** argv) {
 
         // planning 层解析 rejection
         // wbpp_2_9_1 → 使用 group-level 一次解析结果（tile 不重选）；
-        // astrocs_adaptive→ 按 tile nominal geometric depth 解析（独立策略）。
+        // acsd_adaptive→ 按 tile nominal geometric depth 解析（独立策略）。
         P2RejectionPlan rplan = group_plan;
         std::uint32_t nominal_for_resolve = (std::uint32_t)cfg.hips.size();
         if (!group_level) {
@@ -920,9 +920,9 @@ int main(int argc, char** argv) {
             nominal_for_resolve = depth;
         }
         rplan.normalization =
-            (cfg.reject_normalization == "astrocs_median_center_v1")
+            (cfg.reject_normalization == "acsd_median_center_v1")
                 ? P2_NORMALIZE_MEDIAN_CENTER
-                : (cfg.reject_normalization == "astrocs_median_scale_v1")
+                : (cfg.reject_normalization == "acsd_median_scale_v1")
                       ? P2_NORMALIZE_MEDIAN_SCALE
                       : P2_NORMALIZE_NONE;
         rplan.normalization_floor = cfg.reject_normalization_floor;
@@ -1054,7 +1054,7 @@ int main(int argc, char** argv) {
     std::vector<std::vector<std::uint64_t>> chunk_leaves(n_chunk);
     std::vector<std::uint64_t> local_lut(n_leaf);
         for (std::uint64_t i = 0; i < n_leaf; ++i)
-            local_lut[i] = astrocs::healpix::fits_index_to_nested_local(
+            local_lut[i] = acsd::healpix::fits_index_to_nested_local(
                 i, 9u, 512u);
         for (std::uint64_t c = 0; c < n_chunk; ++c) {
             const std::uint64_t p0 = c * chunk_pixels;
@@ -1075,7 +1075,7 @@ int main(int argc, char** argv) {
                 chunk_ra[c].resize(chunk_leaves[c].size());
                 chunk_dec[c].resize(chunk_leaves[c].size());
                 for (std::size_t i = 0; i < chunk_leaves[c].size(); ++i)
-                    astrocs::healpix::pix2ang_nest(sky_nside, chunk_leaves[c][i],
+                    acsd::healpix::pix2ang_nest(sky_nside, chunk_leaves[c][i],
                                                    chunk_ra[c][i], chunk_dec[c][i]);
             }
         }
@@ -1291,7 +1291,7 @@ int main(int argc, char** argv) {
             std::vector<std::uint8_t> valid_leaf(n_leaf);
             for (std::uint64_t i = 0; i < n_leaf; ++i) {
                 const std::uint64_t fi =
-                    astrocs::healpix::nested_local_to_fits_index(i, 9u, 512u);
+                    acsd::healpix::nested_local_to_fits_index(i, 9u, 512u);
                 flux_leaf[(std::size_t)i] =
                     cfg.precision ? (float)fluxD[(std::size_t)fi]
                                   : fluxF[(std::size_t)fi];
@@ -1366,7 +1366,7 @@ int main(int argc, char** argv) {
                 }
                 // 唯一权重口径 = 逐样本 ivar（逆方差）。
                 // 原 weight_mode==0（support×snr²，无量纲、非信号/噪声之比）与
-                // weight_mode==1（等权）两条可选分支已删除（docs/ASTROCS_DESIGN.md
+                // weight_mode==1（等权）两条可选分支已删除（docs/ACSD_DESIGN.md
                 // §3.1:175「没有可选择项」；PSF_SIGNAL_WEIGHT.md §4:72）。
                 for (std::uint32_t s = 0; s < n_valid; ++s) {
                     const std::uint32_t orig = src_idx[s];
@@ -1621,7 +1621,7 @@ int main(int argc, char** argv) {
                 // 唯一权重口径 = 逐像素 ivar（帧 ivar 产品）;
                 // 产品缺失 → support (几何可靠性, 不伪造 ivar)。原 mode 0
                 // (support×snr²) 与 mode 1 (equal) 两条可选分支已删除
-                // （docs/ASTROCS_DESIGN.md §3.1:173/175；PSF_SIGNAL_WEIGHT.md §4:72）。
+                // （docs/ACSD_DESIGN.md §3.1:173/175；PSF_SIGNAL_WEIGHT.md §4:72）。
                 {
                     for (std::uint32_t s = 0; s < n_valid; ++s) {
                         // 用 source_indices（原 frame slot）取该帧该像素 ivar
@@ -1649,7 +1649,7 @@ int main(int argc, char** argv) {
                 }
                 // 原 weight_mode==0（support×snr²，无量纲、非信号/
                 // 噪声之比）与 weight_mode==1（等权）两条可选分支已删除
-                // （docs/ASTROCS_DESIGN.md §3.1:173/175；PSF_SIGNAL_WEIGHT.md §4:72）。
+                // （docs/ACSD_DESIGN.md §3.1:173/175；PSF_SIGNAL_WEIGHT.md §4:72）。
                 // SNR lookup 后统一校验候选权重（非 finite/负 → fatal；诊断透出首 tile/像素）
                 if (p2_validate_candidate_weights(weights.data(), n_valid) !=
                     0) {
@@ -1860,7 +1860,7 @@ int main(int argc, char** argv) {
         std::vector<std::uint8_t> valid_leaf(n_leaf);
         for (std::uint64_t i = 0; i < n_leaf; ++i) {
             const std::uint64_t fi =
-                astrocs::healpix::nested_local_to_fits_index(i, 9u, 512u);
+                acsd::healpix::nested_local_to_fits_index(i, 9u, 512u);
             flux_leaf[(std::size_t)i] =
                 cfg.precision ? (float)fluxD[(std::size_t)fi]
                               : fluxF[(std::size_t)fi];

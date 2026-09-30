@@ -31,7 +31,7 @@ SELF_OWNED_ROOTS = ("cli", "include", "lib", "cmake", "schemas", "tools",
                     "tests", "docs", "scripts", "launch")
 EXCLUDE_DIRS = {".git", "build", "run", "testdata", "artifacts", "evidence",
                 "reports", "third_party", "__pycache__", "工程控制",
-                "AstroCS.wiki", "archive"}
+                "ACSD.wiki", "archive"}
 VENDORED_PARTS = {"third_party"}
 GENERATED_SUFFIX = {".png", ".svg", ".jpg", ".json", ".dot"}
 SOURCE_SUFFIXES = {".c", ".cc", ".cpp", ".cxx", ".h", ".hh", ".hpp", ".inl",
@@ -99,7 +99,7 @@ def walk_self_owned(root: Path) -> list[Path]:
     # root-level self-owned files
     for name in ("VERSION", "AGENTS.md", "README.md", "CMakeLists.txt",
                  "CHANGELOG.md", "DEPENDENCIES.md", "HANDOVER.md",
-                 "AstroCS_ENGINEERING_CONSTRAINTS.md"):
+                 "ACSD_ENGINEERING_CONSTRAINTS.md"):
         path = root / name
         if path.is_file():
             files.append(path)
@@ -134,25 +134,25 @@ def classify_kind(rel: str) -> str:
 def classify_owner(rel: str) -> str:
     first = rel.split("/", 1)[0]
     if first == "cli":
-        return "astrocs-cli"
+        return "acsd-cli"
     if first == "include":
-        return "astrocs-api"
+        return "acsd-api"
     if first in {"cmake", "schemas", "scripts"}:
-        return "astrocs-build"
+        return "acsd-build"
     if first == "tools":
-        return "astrocs-tools"
+        return "acsd-tools"
     if first == "tests":
-        return "astrocs-test"
+        return "acsd-test"
     if first == "docs":
-        return "astrocs-docs"
+        return "acsd-docs"
     if rel.startswith("lib/infrastructure/cli/"):
-        return "astrocs-cli"
+        return "acsd-cli"
     if first == "lib":
         parts = rel.split("/")
         if len(parts) >= 2:
-            return f"astrocs-{parts[1]}"
-        return "astrocs-lib"
-    return "astrocs-root"
+            return f"acsd-{parts[1]}"
+        return "acsd-lib"
+    return "acsd-root"
 
 
 def target_of(rel: str, target_map: dict[str, list[str]]) -> str:
@@ -258,13 +258,13 @@ def main(argv: list[str] | None = None) -> int:
 
     # 5. TARGET_SOURCE_GRAPH.json + .dot
     graph = {
-        "schema": "astrocs.target-source-graph/v1",
+        "schema": "acsd.target-source-graph/v1",
         "source_commit": _git_commit(root),
         "targets": {target: sorted(set(sources)) for target, sources in target_map.items()},
     }
     (out_dir / "TARGET_SOURCE_GRAPH.json").write_text(
         json.dumps(graph, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
-    dot_lines = ["digraph astrocs_targets {"]
+    dot_lines = ["digraph acsd_targets {"]
     for target, sources in sorted(graph["targets"].items()):
         for src in sorted(set(sources)):
             if src.startswith("${"):

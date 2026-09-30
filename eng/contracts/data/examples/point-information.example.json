@@ -1,5 +1,5 @@
 {
-  "point_information_schema": "astrocs.v6.point-information/v1",
+  "point_information_schema": "acsd.v6.point-information/v1",
   "schema_version": 1,
   "authoritative_formula": "Q_k=a_k P_k^T C_k^-1 d_k; W_info,k=a_k^2 P_k^T C_k^-1 P_k; F_hat=Q/W; Var(F_hat)=1/W",
   "W_info": { "value": 0.0125, "units": "ADU^-2" },

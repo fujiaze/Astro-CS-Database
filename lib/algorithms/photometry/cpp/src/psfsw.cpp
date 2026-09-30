@@ -1,13 +1,13 @@
 /* psfsw.cpp - PSFSW 四分量/共同星集/复合/validity-depth/记录门实现 (IMPL-P1-PSFW-001)
  * 合同锚见 psfsw.h。纯 std + libm; 不接线 session。 */
-#include "astrocs/psfsw.h"
+#include "acsd/psfsw.h"
 
 #include <algorithm>
 #include <cmath>
 #include <cstring>
 #include <set>
 
-namespace astrocs {
+namespace acsd {
 namespace v6 {
 namespace p1psfw {
 
@@ -665,7 +665,7 @@ const std::vector<std::string>& forbidden_weight_source_aliases() {
 /* ── FZ-MODE-RETIRED：退役对象 psfsw_robust_weight 的显式拒绝说明（单一事实源） ──
  * WHAT:  weight_mode token "psfsw_robust" 是**退役对象** psfsw_robust_weight 的声明面。
  * WHY:   「只要纯净信号/噪声的信噪比。要求跨帧可用，不基于参考帧。而是
- *        绝对标定。」⇒ docs/ASTROCS_DESIGN.md §3.1：权重只能来自纯净信号与噪声
+ *        绝对标定。」⇒ docs/ACSD_DESIGN.md §3.1：权重只能来自纯净信号与噪声
  *        之比（逆方差），任何使偏差随帧而变的量（含 PSF 拟合质量代理）不得进入科学
  *        叠加权重；docs/detail/UNIFIED_MODEL.md:58（旧产品声明该对象 ⇒ 显式拒绝 +
  *        迁移提示，不得静默接受）；docs/science/PSF_SIGNAL_WEIGHT.md §1/§4。
@@ -682,7 +682,7 @@ std::string retired_weight_mode_reject_reason(const std::string& mode) {
     if (!is_retired_weight_mode_token(mode)) return std::string();
     return std::string("FZ-MODE-RETIRED: '") + mode +
            "' rejected - psfsw_robust_weight is not a current object "
-           "(docs/ASTROCS_DESIGN.md 3.1; UNIFIED_MODEL.md:58); "
+           "(docs/ACSD_DESIGN.md 3.1; UNIFIED_MODEL.md:58); "
            "there is no selectable weight mode (FZ-WEIGHT-SINGLE-PATH): Phase2 "
            "reconstructs the dense SNR field and derives inverse-variance weights "
            "w = SNR^2/F_ref^2 = 1/sigma_F^2; "
@@ -951,4 +951,4 @@ RecordValidation validate_psfsw_record(const PsfswRecord& rec) {
 
 }  /* namespace p1psfw */
 }  /* namespace v6 */
-}  /* namespace astrocs */
+}  /* namespace acsd */

@@ -1,4 +1,4 @@
-/* ACSD HiPS 输入读取 C ABI v1 — lib/infrastructure/aio/io/include/astrocs/io/hips_input_v1.h
+/* ACSD HiPS 输入读取 C ABI v1 — lib/infrastructure/aio/io/include/acsd/io/hips_input_v1.h
  *
  * 角色: acsd_io.dll 对外的 HiPS 输入读取合同 (IO-002 冻结)。
  * 冻结合同见 docs/science/IO_002_HIPS_INPUT_INTERFACE.md (DOC-IO-INTERFACE-002)。
@@ -9,19 +9,19 @@
  *   2) 所有跨边界结构前两字段 = struct_size + abi_version; 失配即拒。
  *   3) 所有权: 只读 out 缓冲由调用方分配; opaque handle 仅经 open/close 对管理。
  *   4) 文本公共格式 UTF-8 定长数组; 禁 STL/异常/RTTI。
- *   5) 错误码 0-7 与 IO-001 acs_fio_status 数值一致; 8-11 为本接口扩展。
+ *   5) 错误码 0-7 与 IO-001 acsd_fio_status 数值一致; 8-11 为本接口扩展。
  *   6) 缺 tile 绝不父 order 静默回退: 请求 order-K ipix 无文件 → TILE_MISSING;
  *      任何父/子 order 内容都不得冒充该 tile 交付。
  *
  * 纯 C11 可编译 (extern "C" 兼容 C++17)。
  */
-#ifndef ASTROCS_IO_HIPS_INPUT_V1_H
-#define ASTROCS_IO_HIPS_INPUT_V1_H
+#ifndef ACSD_IO_HIPS_INPUT_V1_H
+#define ACSD_IO_HIPS_INPUT_V1_H
 
 #include <stddef.h>
 #include <stdint.h>
 
-#include "astrocs/io/fits_stream_v1.h" /* acs_fio_trace_hooks_v1 (trace/cancel 复用) */
+#include "acsd/io/fits_stream_v1.h" /* acsd_fio_trace_hooks_v1 (trace/cancel 复用) */
 
 #ifdef __cplusplus
 extern "C" {
@@ -44,8 +44,8 @@ enum {
   ACS_HIPS_TILE_INVALID = 3    /* 文件存在但布局/头/dtype 非法 */
 };
 
-/* ───────── 错误码 (v1 冻结; 0-7 与 acs_fio_status 对齐, 8-11 本接口扩展) ───────── */
-typedef enum acs_hips_status {
+/* ───────── 错误码 (v1 冻结; 0-7 与 acsd_fio_status 对齐, 8-11 本接口扩展) ───────── */
+typedef enum acsd_hips_status {
   ACS_HIPS_OK = 0,
   ACS_HIPS_ERR_PARAM = 1,
   ACS_HIPS_ERR_ABI_MISMATCH = 2,
@@ -59,10 +59,10 @@ typedef enum acs_hips_status {
   ACS_HIPS_ERR_TILE_MISSING = 10,/* tile 不存在 (order-K 域内; 无父回退) */
   ACS_HIPS_ERR_TILE_INVALID = 11,/* tile 存在但布局/头/dtype 非法 */
   ACS_HIPS_STATUS_COUNT = 12     /* 哨兵: 等于该值及以外均非法 */
-} acs_hips_status;
+} acsd_hips_status;
 
 /* ───────── opaque handle ───────── */
-typedef struct acs_hips_handle_v1_s* acs_hips_handle_v1;
+typedef struct acsd_hips_handle_v1_s* acsd_hips_handle_v1;
 
 /* ───────── 生命周期 ───────── */
 
@@ -75,51 +75,51 @@ typedef struct acs_hips_handle_v1_s* acs_hips_handle_v1;
  * MOC: optional —— 存在则解析叶级 ipix 列表 (供 *_tile_count/_ipix);
  *   缺失/损坏不失败 (enum 接口返回 0 计数)。
  * 所有权: 句柄转移给调用方, 必须 close。并发: reentrant; 句柄非共享。 */
-int acs_hips_open_v1(const char* base_dir_utf8,
+int acsd_hips_open_v1(const char* base_dir_utf8,
                      const char* product,
-                     const acs_fio_trace_hooks_v1* hooks,
-                     acs_hips_handle_v1* out,
+                     const acsd_fio_trace_hooks_v1* hooks,
+                     acsd_hips_handle_v1* out,
                      char* err, size_t err_cap);
 
 /* 关闭句柄并释放内部资源。h=NULL 为空操作。 */
-void acs_hips_close_v1(acs_hips_handle_v1 h);
+void acsd_hips_close_v1(acsd_hips_handle_v1 h);
 
 /* ───────── properties 视图 ───────── */
 
 /* 查询单键值。key 必填; 未找到 → ACS_HIPS_ERR_PARAM (调用方先查存在性/用 serialize)。
  * out 缓冲由调用方分配 (out_cap); 值截断不越界, NUL 结尾。 */
-int acs_hips_props_get_v1(acs_hips_handle_v1 h, const char* key,
+int acsd_hips_props_get_v1(acsd_hips_handle_v1 h, const char* key,
                           char* out, size_t out_cap,
                           char* err, size_t err_cap);
 
 /* 整表序列化 "key=value\n" 视图 (按读入顺序; 供 manifest/trace 落点)。
  * out 可 NULL (只求长度); *out_len 返回需要字节数 (含 NUL)。容量不足 → PARAM。 */
-int acs_hips_props_serialize_v1(acs_hips_handle_v1 h,
+int acsd_hips_props_serialize_v1(acsd_hips_handle_v1 h,
                                 char* out, size_t out_cap, size_t* out_len,
                                 char* err, size_t err_cap);
 
 /* ───────── 布局 / 元数据查询 ───────── */
 
-int acs_hips_get_order_v1(acs_hips_handle_v1 h, int32_t* out_order);
-int acs_hips_get_tile_width_v1(acs_hips_handle_v1 h, int32_t* out_width);
+int acsd_hips_get_order_v1(acsd_hips_handle_v1 h, int32_t* out_order);
+int acsd_hips_get_tile_width_v1(acsd_hips_handle_v1 h, int32_t* out_width);
 
 /* 叶级 tile 集合大小。来自 MOC optional hint (order==hips_order 的 UNIQ 单元);
  * 无 MOC/无叶单元 → 0 (partial tree 合法)。 */
-int acs_hips_tile_count_v1(acs_hips_handle_v1 h, int64_t* out_count);
+int acsd_hips_tile_count_v1(acsd_hips_handle_v1 h, int64_t* out_count);
 
 /* 第 index 个叶级 tile 的 NESTED ipix (0-based; 有 MOC 时有效)。
  * index 越界/无 MOC → ACS_HIPS_ERR_PARAM。 */
-int acs_hips_tile_ipix_v1(acs_hips_handle_v1 h, int64_t index, uint64_t* out_ipix);
+int acsd_hips_tile_ipix_v1(acsd_hips_handle_v1 h, int64_t index, uint64_t* out_ipix);
 
 /* 快速探测: ipix 是否在 order-K 域内且 tile 文件存在。
  * 只做路径存在性; 完整校验见 tile_status/读取接口。 */
-int acs_hips_tile_exists_v1(acs_hips_handle_v1 h, uint64_t ipix, int* out_exists);
+int acsd_hips_tile_exists_v1(acsd_hips_handle_v1 h, uint64_t ipix, int* out_exists);
 
 /* ───────── tile 状态与科学平面读取 ───────── */
 
 /* 单 tile 状态: PRESENT/MISSING/INVALID (见 enum)。ipix 越界 → ADDRESS。
  * INVALID 时 err 附原因文本 (可 NULL)。不做父 order 回退。 */
-int acs_hips_tile_status_v1(acs_hips_handle_v1 h, uint64_t ipix,
+int acsd_hips_tile_status_v1(acsd_hips_handle_v1 h, uint64_t ipix,
                             int32_t* out_status,
                             char* err, size_t err_cap);
 
@@ -129,11 +129,11 @@ int acs_hips_tile_status_v1(acs_hips_handle_v1 h, uint64_t ipix,
  * tile 实际 BITPIX: -32 原样 / -64 原样 / 8 按字节提升; 其它 → INVALID。
  * MISSING → ACS_HIPS_ERR_TILE_MISSING; INVALID → ACS_HIPS_ERR_TILE_INVALID。
  * 成功: *out_got = TW²。err 可 NULL。 */
-int acs_hips_read_tile_plane_f32_v1(acs_hips_handle_v1 h, uint64_t ipix,
+int acsd_hips_read_tile_plane_f32_v1(acsd_hips_handle_v1 h, uint64_t ipix,
                                     float* out, int64_t out_elem_capacity,
                                     int64_t* out_got,
                                     char* err, size_t err_cap);
-int acs_hips_read_tile_plane_f64_v1(acs_hips_handle_v1 h, uint64_t ipix,
+int acsd_hips_read_tile_plane_f64_v1(acsd_hips_handle_v1 h, uint64_t ipix,
                                     double* out, int64_t out_elem_capacity,
                                     int64_t* out_got,
                                     char* err, size_t err_cap);
@@ -142,4 +142,4 @@ int acs_hips_read_tile_plane_f64_v1(acs_hips_handle_v1 h, uint64_t ipix,
 } /* extern "C" */
 #endif
 
-#endif /* ASTROCS_IO_HIPS_INPUT_V1_H */
+#endif /* ACSD_IO_HIPS_INPUT_V1_H */

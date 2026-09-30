@@ -54,7 +54,7 @@ class TestIsaAvx512(unittest.TestCase):
         v = open(os.path.join(HOST, "avx512_backend.cpp"), encoding="utf-8").read()
         k = open(os.path.join(HOST, "avx512_backend_kernels.cpp"), encoding="utf-8").read()
         self.assertIn('#include "backend_table.inc"', v)
-        self.assertIn('ASTROCS_BACKEND_ID "avx512"', v)
+        self.assertIn('ACSD_BACKEND_ID "avx512"', v)
         self.assertIn('#include "baseline_kernels_impl.inc"', k)
 
     def test_03_bench_and_measurement_artifact(self):

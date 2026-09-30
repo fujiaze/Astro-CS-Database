@@ -2,7 +2,7 @@
 // 本文件是 11 个退出码在仓库内的唯一定义处;其他文件只 include, 不得重定义数值表。
 #pragma once
 
-namespace astrocs {
+namespace acsd {
 
 enum ExitCode {
     OK            = 0,   // 成功, 且所有请求门禁通过
@@ -18,4 +18,4 @@ enum ExitCode {
     INTERNAL      = 70,  // 未分类内部软件错误; 必须生成 crash report
 };
 
-}  // namespace astrocs
+}  // namespace acsd

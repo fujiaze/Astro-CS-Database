@@ -1,21 +1,21 @@
 {
-  "exchange_schema": "astrocs.phase-product-exchange/v1",
+  "exchange_schema": "acsd.phase-product-exchange/v1",
   "exchange_version": 1,
   "product_role": "phase2_mosaic_v1",
-  "type_id": "astrocs.phase2.mosaic_hips.v1",
+  "type_id": "acsd.phase2.mosaic_hips.v1",
   "schema_version": 1,
   "origin": "external_fixture",
   "artifact_manifest": {
-    "manifest_schema": "astrocs.artifact-manifest/v1",
+    "manifest_schema": "acsd.artifact-manifest/v1",
     "manifest_version": 1,
     "artifact_id": "fx-hips-ait-0001",
-    "type_id": "astrocs.phase2.mosaic_hips.v1",
+    "type_id": "acsd.phase2.mosaic_hips.v1",
     "schema_version": 1,
-    "storage_uri": "file:///srv/astrocs-test/fixtures/hips_ait_0001",
+    "storage_uri": "file:///srv/acsd-test/fixtures/hips_ait_0001",
     "content_digest": { "algorithm": "sha256", "hex": "3333333333333333333333333333333333333333333333333333333333333333" },
     "size": 209715200,
     "producer": {
-      "module_id": "astrocs.external.fixture_generator",
+      "module_id": "acsd.external.fixture_generator",
       "module_build_id": "fixture-suite-20260902",
       "entry": "fixture_hips_gen",
       "science_contract_ids": ["SCI-P3-001"]
@@ -28,7 +28,7 @@
     "created_utc": "2026-09-02T06:00:00Z"
   },
   "product_content": {
-    "content_schema": "astrocs.phase-product-content/v1",
+    "content_schema": "acsd.phase-product-content/v1",
     "coordinate": { "frame": "icrs", "ra_unit": "deg", "dec_unit": "deg" },
     "geometry": { "format": "hips", "hips": { "ordering": "nested", "tile_width": 512 } },
     "planes": [

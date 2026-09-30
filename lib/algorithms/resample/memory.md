@@ -1,4 +1,4 @@
-# memory.md — astrocs.p3.resample（P3-RSMP-DOC 冻结）
+# memory.md — acsd.p3.resample（P3-RSMP-DOC 冻结）
 
 - 任务: P3-RSMP-DOC（MODULE_MIGRATION_MATRIX P3-RSMP 行，owner
   SA-P3-S26，2026-09-12）——合同冻结层，不改生产源码，不 commit。
@@ -8,33 +8,33 @@
   lib/algorithms/resample/p3_resample.cpp + p3_resample.h 位于
   lib/phase3_session/ ——该目录为 Phase3 会话编排域共享源
   （p3_session/p3_output/p3_wcs/p3_resample/hips_properties 五源同库
-  astrocs_phase3_session，根 CMakeLists.txt:460-465），非整目录归属
+  acsd_phase3_session，根 CMakeLists.txt:460-465），非整目录归属
   本域（矩阵 legacy_paths="lib/phase3_session sampler sources" 只圈
   sampler sources）；按 lib/algorithms/projection→phase3_fits 迁移目录先例
   新建迁移目标目录，仅合同文件、无源码、不与 legacy 目录重叠；
   legacy 生产源引用不搬家。
 - 矩阵权威（P3-RSMP 行，禁止编造）: owner=SA-P3-S26、
-  module_id=astrocs.p3.resample、target_dll=astrocs_p3_resample.dll、
+  module_id=acsd.p3.resample、target_dll=acsd_p3_resample.dll、
   legacy_paths="lib/phase3_session sampler sources"、
   depends_on_int=**P3-PROJ-INT;IO-003;CPU-005**、
   science_specific_acceptance="source_order actually used;nearest
   exact cell;HEALPix iso-latitude interp4;constant/vector field;
   strict missing;support/mask;shared bounded cache"。
-- module_id 决策: 矩阵行 astrocs.p3.resample 为冻结权威依据，
-  直接沿用；descriptor 占位 module_id=astrocs.phase3.resample2
+- module_id 决策: 矩阵行 acsd.p3.resample 为冻结权威依据，
+  直接沿用；descriptor 占位 module_id=acsd.phase3.resample2
   （module_adapters.cpp:363-377 p3_resample2_descriptor）为编排层
   词汇，由 P3-RSMP-INT 对齐，不入合同。
-- MOD ID 决策: registry 现有行 **MOD-astrocs-phase3-resample2**
+- MOD ID 决策: registry 现有行 **MOD-acsd-phase3-resample2**
   （本域生产 descriptor——alg_id=ALG-P3-003、data_id=DATA-P3-RES、
   ports wcs_plan(DATA-P3-WCS 必)+hips(DATA-HIPS-001 必)+
   resampled(DATA-P3-RES 可)，与采样域功能对应），module.yaml id 与
-  之一致；相邻占位行 MOD-astrocs-phase3-resample
+  之一致；相邻占位行 MOD-acsd-phase3-resample
   （module_adapters.cpp:300-318 phase3_descriptor，P2 模板复制残留，
   ports hips/tile、alg_id=ALG-P3-RES-001 占位）**不在本任务触碰**，
   留给 P3-RSMP-INT 对齐处理；registry 页手写化
-  （docs/detail/registry/astrocs.phase3.resample2.md，原 GENERATED
-  风格改 ACTIVE_INFORMATIVE 手写合同页，照 astrocs.phase3.writer.md/
-  astrocs.phase3.wcs.md 先例），模块总页新建 docs/modules/
+  （docs/detail/registry/acsd.phase3.resample2.md，原 GENERATED
+  风格改 ACTIVE_INFORMATIVE 手写合同页，照 acsd.phase3.writer.md/
+  acsd.phase3.wcs.md 先例），模块总页新建 docs/modules/
   phase3_rsmp.md。
 - 本任务 ID 决策（唯一方案，避免与既有占位冲突）:
   SCI=SCI-P3-001（docs/science/PHASE3_HIPS_TO_FITS.md 共享 FROZEN
@@ -133,7 +133,7 @@
   4) DISP-P3RSMP-004: provenance.missing_tiles 恒 nullptr
      （p3_session.cpp:265-277）——缺 tile 聚合上报未接线（SCI §9a-9
      要求记 missing；整改归 P3-RSMP-IMPL/INT）。
-  5) DISP-P3RSMP-005: astrocs_p3_resample.dll 未建（entrypoint
+  5) DISP-P3RSMP-005: acsd_p3_resample.dll 未建（entrypoint
      MISSING；探针/回归现状内联编译，入口由 P3-RSMP-IMPL 建立）。
 - 五门验收: run/local/agent_p3_rsmp_doc/selfcheck.py（结果见
   run/local/agent_p3_rsmp_doc/ 日志；gate1 矩阵 30 modules

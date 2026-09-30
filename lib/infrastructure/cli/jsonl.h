@@ -1,6 +1,6 @@
 // acsd JSON/JSONL writer (API-002 §3/§4 协议 v1) — CLI-002/CLI-004
 //
-// stdout 纪律（docs/ASTROCS_DESIGN §7.2 + docs/engineering/CLI_PROTOCOL_V1.md §3）：
+// stdout 纪律（docs/ACSD_DESIGN §7.2 + docs/engineering/CLI_PROTOCOL_V1.md §3）：
 // 运行事件流是**默认输出**（事件流 = 默认输出，
 // 不需要旗标开启；GUI 用其它语言直接捕获 CLI 输出）。
 //   * 机器通道 = stdout：每行恰一个 UTF-8 JSON 事件（JSONL），禁夹普通文字；
@@ -29,7 +29,7 @@
 #include "exit_codes.h"
 #include "protocol.h"
 
-namespace astrocs {
+namespace acsd {
 
 inline std::string iso8601_utc_now() {
     const auto now = std::chrono::system_clock::now();
@@ -165,7 +165,7 @@ public:
     //   false 的两种来源可区分：协议硬闸拒发（不置 write_failed_）与 I/O 写失败
     //   （置 write_failed_/write_exit_code_）。写失败**不吞**：fputs 与 fflush 的
     //   返回值都查，失败即落可查询状态 + stderr 结构化诊断行；诊断只走 stderr，
-    //   stdout 恒为纯 JSONL（docs/ASTROCS_DESIGN §6.3）。
+    //   stdout 恒为纯 JSONL（docs/ACSD_DESIGN §6.3）。
     bool emit(const std::string& kind, const std::string& severity, const std::string& stage,
               const std::string& message, const nlohmann::json& extra = {}) {
         nlohmann::json ev = {
@@ -186,7 +186,7 @@ public:
                                : it.value();
         }
         // protocol.h (CLI-004): 发送前 ValidateEventV1; 违规行禁入 stdout。
-        if (!astrocs::ValidateEventV1(ev, seq_)) {
+        if (!acsd::ValidateEventV1(ev, seq_)) {
             std::fprintf(stderr, "acsd: protocol: event dropped (kind=%s seq=%llu)\n",
                          kind.c_str(), static_cast<unsigned long long>(seq_));
             ++seq_;  // 保持 sequence 单调性不变(violation 仍占序)
@@ -267,12 +267,12 @@ public:
     int write_exit_code() const { return write_exit_code_; }
     const std::string& last_write_error() const { return last_write_error_; }
 
-    // 发布面退出码（P-163）：事件流是本次运行的默认输出通道（docs/ASTROCS_DESIGN §6.3），
+    // 发布面退出码（P-163）：事件流是本次运行的默认输出通道（docs/ACSD_DESIGN §6.3），
     // 因此「成功」必须包含事件已写出 —— 名义 rc == OK 而事件流写失败时改报写失败码
     // （IO=7；磁盘满 ENOSPC → 10，docs/detail/infrastructure/21_observability.md:45-46）。
     // 名义 rc 已非 0 时保留原码：run 自身的失败更具体，不被写失败掩盖（且已非 0）。
     int publication_exit_code(int nominal_rc) const {
-        if (!write_failed_ || nominal_rc != astrocs::OK) return nominal_rc;
+        if (!write_failed_ || nominal_rc != acsd::OK) return nominal_rc;
         return write_exit_code_;
     }
 
@@ -303,7 +303,7 @@ private:
     // 写失败 → 退出码：磁盘满 = RESOURCE(10)，其它 I/O 写失败 = IO(7)。
     // 码值唯一源 = exit_codes.h；判据语义 = 21_observability.md:45-46。
     static int exit_code_for_write_errno(int e) {
-        return e == ENOSPC ? astrocs::RESOURCE : astrocs::IO;
+        return e == ENOSPC ? acsd::RESOURCE : acsd::IO;
     }
 
     // 结构化诊断行（stderr；机器可解析的 key=value 前缀）。只走 stderr —— stdout
@@ -323,8 +323,8 @@ private:
     unsigned long long seq_ = 0;
     bool write_failed_ = false;
     bool human_channel_failed_ = false;
-    int write_exit_code_ = astrocs::IO;
+    int write_exit_code_ = acsd::IO;
     std::string last_write_error_;
 };
 
-}  // namespace astrocs
+}  // namespace acsd

@@ -1,11 +1,11 @@
 # 机器追溯合同（TRACEABILITY_SPEC v1）
 
-> 上游：ASTROCS_DESIGN.md §12.4（验证层级与四层验收）
+> 上游：ACSD_DESIGN.md §12.4（验证层级与四层验收）
 
 > 矩阵基线 base_main_sha=0d32c07d65c6d7489fa408cbafaa98ddf9ecf4da
 > 本文件冻结追溯 ID 格式、唯一性、跨层关系、CSV/JSON schema
 > 与 source symbol 表达；仓库内所有模块追溯矩阵与机器检查器必须与本文件一致。
-> 权威顺序与分层语义按 `ASTROCS_DESIGN.md` §0（权威链）与 `docs/DOCUMENT_INDEX.yaml`（机器一致性检查）；
+> 权威顺序与分层语义按 `ACSD_DESIGN.md` §0（权威链）与 `docs/DOCUMENT_INDEX.yaml`（机器一致性检查）；
 > 本文件不重复公式、不改科学定义、不放宽既有工程约束。
 
 ## 1. 目的与范围
@@ -75,7 +75,7 @@ ALG      ^ALG-[A-Z0-9]+(-[A-Z0-9]+)*$          例如 ALG-CAL-001、ALG-005
 DATA     ^DATA-[A-Z0-9]+(-[A-Z0-9]+)*$         例如 DATA-P1-FRAME、DATA-HIPS-001
 API      ^API-[A-Z0-9]+(-[A-Z0-9]+)*$          例如 API-P1-001、API-ABI-001
 ARCH     ^ARCH-[A-Z0-9]+(-[A-Z0-9]+)*$         例如 ARCH-001
-MOD      ^MOD-[A-Z0-9]+(-[A-Z0-9]+)*$          例如 MOD-astrocs-phase1-calibration
+MOD      ^MOD-[A-Z0-9]+(-[A-Z0-9]+)*$          例如 MOD-acsd-phase1-calibration
 TEST     ^TEST-[A-Z0-9]+(-[A-Z0-9]+)*$         例如 TEST-P1-CAL-001、TEST-BLD003-NOOP-HANDSHAKE
 EVID     ^EVID-[A-Z0-9]+(-[A-Z0-9]+)*$         例如 EVID-P1-CAL-001
 ```
@@ -122,17 +122,17 @@ EVID     ^EVID-[A-Z0-9]+(-[A-Z0-9]+)*$         例如 EVID-P1-CAL-001
 - SRC 层引用格式：`<repo-relative-path>::<symbol>[,<symbol>...]`，多符号用逗号分隔。
 - 文件必须存在且受 Git 跟踪；符号必须在文件文本中可见（宽松匹配标识符边界）。
 - 无符号可锚时写 `<path>::MISSING`（文件存在但符号待补）——留空与裸路径冒充即判红。
-- 表达示例：`eng/tests/conformance/noop/src/noop_module.c::astrocs_module_query_v1`、
+- 表达示例：`eng/tests/conformance/noop/src/noop_module.c::acsd_module_query_v1`、
   `lib/infrastructure/benchmark/cpu/common/README.md::MISSING`。
 
 ## 6. 初始矩阵（基线）
 
 `docs/traceability/TRACEABILITY_MATRIX.json` 覆盖仓库**全部已注册模块**：
 
-- `lib/infrastructure/aio/io`（IO-001/IO-002 落地）：`astrocs.services.io`
-- `eng/tests/conformance/noop`（BLD-003 SKELETON）：`astrocs.conformance.noop`
-- `docs/detail/registry/astrocs.phase*.md` 声明的 22 个 registry 生产模块
-  （module_id 以 `astrocs.phase1./phase2./phase3.` 开头，唯一源 `lib/infrastructure/scheduler/src/module_adapters.cpp`）
+- `lib/infrastructure/aio/io`（IO-001/IO-002 落地）：`acsd.services.io`
+- `eng/tests/conformance/noop`（BLD-003 SKELETON）：`acsd.conformance.noop`
+- `docs/detail/registry/acsd.phase*.md` 声明的 22 个 registry 生产模块
+  （module_id 以 `acsd.phase1./phase2./phase3.` 开头，唯一源 `lib/infrastructure/scheduler/src/module_adapters.cpp`）
 - `lib/infrastructure/benchmark/cpu`（CPU-001 落地，provider 能力清单）
 
 每行 8 层全部显式；尚无科学/算法合同的行用 `SCI-MISSING`/`ALG-MISSING` + 状态

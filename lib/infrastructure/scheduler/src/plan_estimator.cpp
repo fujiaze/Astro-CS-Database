@@ -15,14 +15,14 @@
 //   - work_units==1 的 heavy 任务：max useful workers==1 → 拒绝(HEAVY_TINY)，
 //     除明确 tiny（极小输入）标注 tiny_work/serial_only 允许串行；
 //   - min/max useful workers 为本征并行上限（不读主机预算；scheduler 侧再 cap）。
-#include "astrocs/core/plan_estimator.h"
+#include "acsd/core/plan_estimator.h"
 
 #include <algorithm>
 #include <cmath>
 #include <limits>
 #include <sstream>
 
-namespace astrocs::core {
+namespace acsd::core {
 
 namespace {
 
@@ -131,10 +131,10 @@ PlanEstimateResult estimate_plan(const PlanInputMetadata& in) {
   e.execution_class = in.is_heavy ? "cpu_heavy" : "io";
 
   // ── 分支：Phase3 HiPS 重投影 ──
-  if (starts_with(in.module_id, "astrocs.phase3.")) {
+  if (starts_with(in.module_id, "acsd.phase3.")) {
     const bool resample =
-        starts_with(in.module_id, "astrocs.phase3.resample") ||
-        starts_with(in.module_id, "astrocs.phase3.resample2");
+        starts_with(in.module_id, "acsd.phase3.resample") ||
+        starts_with(in.module_id, "acsd.phase3.resample2");
     const uint64_t W = in.width_px;
     const uint64_t H = in.height_px;
     if (resample) {
@@ -278,7 +278,7 @@ PlanEstimateResult estimate_plan(const PlanInputMetadata& in) {
     }
   }
   // ── 分支：Phase2 mosaic（coverage/sample/upm/reject/integrate） ──
-  else if (starts_with(in.module_id, "astrocs.phase2.")) {
+  else if (starts_with(in.module_id, "acsd.phase2.")) {
     // P2 有效工作域检查（RT-005: 越界/溢出输入必须 checked 拒绝，不静默饱和）：
     // 覆盖 cell 数（输入 tiles / order 推导）与输出像素域相乘不得溢出。
     if (in.n_tiles_input > (std::numeric_limits<uint64_t>::max() / (kHipsTileWidthPx * kHipsTileWidthPx))) {
@@ -361,15 +361,15 @@ PlanEstimateResult estimate_plan(const PlanInputMetadata& in) {
     e.read_bytes = rb;
     e.write_bytes = out_plane;
     // kernel: 模块 ALG→kernel（backend_table.inc 权威名）
-    if (starts_with(in.module_id, "astrocs.phase2.coverage") ||
-        starts_with(in.module_id, "astrocs.phase2.sample")) {
+    if (starts_with(in.module_id, "acsd.phase2.coverage") ||
+        starts_with(in.module_id, "acsd.phase2.sample")) {
       e.kernel_ids = {"hips-bulk-transform"};
-    } else if (starts_with(in.module_id, "astrocs.phase2.upm-fit") ||
-               starts_with(in.module_id, "astrocs.phase2.upm-apply")) {
+    } else if (starts_with(in.module_id, "acsd.phase2.upm-fit") ||
+               starts_with(in.module_id, "acsd.phase2.upm-apply")) {
       e.kernel_ids = {"upm-spmv", "upm-residual", "upm-weight-update"};
-    } else if (starts_with(in.module_id, "astrocs.phase2.reject")) {
+    } else if (starts_with(in.module_id, "acsd.phase2.reject")) {
       e.kernel_ids = {"rejection-statistics"};
-    } else if (starts_with(in.module_id, "astrocs.phase2.integrate")) {
+    } else if (starts_with(in.module_id, "acsd.phase2.integrate")) {
       e.kernel_ids = {"integration-accumulate"};
     } else {
       e.kernel_ids = {"hips-bulk-transform"};
@@ -382,7 +382,7 @@ PlanEstimateResult estimate_plan(const PlanInputMetadata& in) {
     };
   }
   // ── 分支：Phase1 帧处理 ──
-  else if (starts_with(in.module_id, "astrocs.phase1.")) {
+  else if (starts_with(in.module_id, "acsd.phase1.")) {
     // P1 输入必须携带帧像素域尺寸（宽高缺省会被硬编码 1 掩盖 → checked 拒绝）
     if (in.width_px == 0 || in.height_px == 0) {
       res.error = PlanEstimateError::PARAM;
@@ -462,16 +462,16 @@ PlanEstimateResult estimate_plan(const PlanInputMetadata& in) {
     e.read_bytes = rb;
     e.write_bytes = frame_plane;
     // kernel: ALG 映射（module_adapters.cpp ALG id 同源 backend_table）
-    if (starts_with(in.module_id, "astrocs.phase1.calibration") ||
-        starts_with(in.module_id, "astrocs.phase1.cosmetic")) {
+    if (starts_with(in.module_id, "acsd.phase1.calibration") ||
+        starts_with(in.module_id, "acsd.phase1.cosmetic")) {
       e.kernel_ids = {"calibration-pixel-transform"};
-    } else if (starts_with(in.module_id, "astrocs.phase1.star-psf") ||
-               starts_with(in.module_id, "astrocs.phase1.wcs-platesolve") ||
-               starts_with(in.module_id, "astrocs.phase1.photometry")) {
+    } else if (starts_with(in.module_id, "acsd.phase1.star-psf") ||
+               starts_with(in.module_id, "acsd.phase1.wcs-platesolve") ||
+               starts_with(in.module_id, "acsd.phase1.photometry")) {
       e.kernel_ids = {"wcs-psf-batch"};
-    } else if (starts_with(in.module_id, "astrocs.phase1.noise-snr")) {
+    } else if (starts_with(in.module_id, "acsd.phase1.noise-snr")) {
       e.kernel_ids = {"noise-snr-reductions"};
-    } else if (starts_with(in.module_id, "astrocs.phase1.drizzle")) {
+    } else if (starts_with(in.module_id, "acsd.phase1.drizzle")) {
       e.kernel_ids = {"drizzle-overlap", "drizzle-accumulate", "drizzle-normalize"};
     } else {
       e.kernel_ids = {"calibration-pixel-transform"};
@@ -570,4 +570,4 @@ std::string plan_estimate_to_json(const PlanEstimate& est) {
   return os.str();
 }
 
-}  // namespace astrocs::core
+}  // namespace acsd::core

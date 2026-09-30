@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """CPU-003/§6.2 golden: 唯一 exe 的 benchmark（单命令）+ doctor --json。
 
-权威: docs/ASTROCS_DESIGN §6.2（命令树只有 benchmark，无 cpu/--quick/--full/--output/
+权威: docs/ACSD_DESIGN §6.2（命令树只有 benchmark，无 cpu/--quick/--full/--output/
 verify-profile 子面；benchmark 直接生成/更新安装目录 cpu_profile）、§8（cpu_profile
 绑定 CPU 特征/provider 哈希）、docs/engineering/CLI_PROTOCOL_V1.md §1。
 
@@ -28,7 +28,7 @@ from cli_test_hygiene import run_cwd  # noqa: E402
 
 
 def cli_binary():
-    env = os.environ.get("ASTROCS_CLI_BIN")
+    env = os.environ.get("ACSD_CLI_BIN")
     if env and os.path.isfile(env):
         return env
     for rel in (("build", "acsd"), ("build", "cli", "acsd")):
@@ -79,7 +79,7 @@ class TestBenchCli(unittest.TestCase):
                       % (r.returncode, r.stderr[-300:]))
         self.assertTrue(path and os.path.isfile(path), "benchmark 必须落安装目录 profile: %r" % path)
         self.assertIsNotNone(d)
-        self.assertEqual(d["schema"], "astrocs.cpu-profile/v2")
+        self.assertEqual(d["schema"], "acsd.cpu-profile/v2")
         self.assertRegex(d["profile_id"], r"^sha256:[0-9a-f]{64}$")
         for k in ("created_utc", "host", "build", "memory_bandwidth",
                   "raw_samples_sha256", "kernels", "verdict"):
@@ -167,7 +167,7 @@ class TestBenchCli(unittest.TestCase):
         r = run("doctor", "--json", timeout=120)
         self.assertEqual(r.returncode, 0, r.stderr)
         d = json.loads(r.stdout)
-        self.assertEqual(d["kind"], "astrocs_doctor")
+        self.assertEqual(d["kind"], "acsd_doctor")
         self.assertEqual(d["verdict"], "PASS")
         names = [c["name"] for c in d["checks"]]
         self.assertIn("baseline_selftest", names)

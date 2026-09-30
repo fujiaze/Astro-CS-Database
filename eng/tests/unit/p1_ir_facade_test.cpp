@@ -24,7 +24,7 @@ static std::string read_file(const std::string& p) {
 }
 
 int main() {
-  const char* repo = std::getenv("ASTROCS_REPO");
+  const char* repo = std::getenv("ACSD_REPO");
   const std::string base = repo ? repo : "..";
 
   // 1) canonical 声明节点集 (p1_session 头注释: io_read→calibrate→cosmetic→io_write)

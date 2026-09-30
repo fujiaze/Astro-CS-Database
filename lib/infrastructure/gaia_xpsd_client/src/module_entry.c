@@ -5,7 +5,7 @@
  * 角色 (12_DLL_ABI_AND_LOADER_STANDARD §1/§2; MODULE_MIGRATION_TEMPLATE
  * "<prefix>-IMPL"; GAIA_QUERY.md §3.1 迁移合同):
  *   把 legacy 生产实现 (src/gaia_client.c, 12 个 GAIA_EXPORT C API) 包装为
- *   模块 C ABI v1 DLL astrocs_catalog_gaia —— 唯一导出 astrocs_module_query_v1;
+ *   模块 C ABI v1 DLL acsd_catalog_gaia —— 唯一导出 acsd_module_query_v1;
  *   legacy 符号经 -DGAIA_EXPORT= 本地化 (不进导出面, ABI-006 全查)。
  *
  * 生命周期 (lifecycle_v1.h 冻结时序): query → describe/validate_config/plan
@@ -25,15 +25,15 @@
  *     调用方 strbuf 两阶段提交 (尺寸查询→写入; 不足→PARAM+BUFFER_TOO_SMALL,
  *     不半写)。行数据 base64 (GaiaStar 等结构体原样字节, 供 direct-vs-plugin
  *     bitwise 对比与消费方解码)。
- *   - 输入 typed: config JSON 键词表冻结于 lib/include/astrocs/gaia/types.h;
+ *   - 输入 typed: config JSON 键词表冻结于 lib/include/acsd/gaia/types.h;
  *     catalog_dir 为数据集 port (catalog.xpsd_dir), 模块不自拼路径。
  *
  * 编译合同: 纯 C11; 无 STL/异常/RTTI; -fno-exceptions 亦可编译;
- *   ASTROCS_ABI_SHARED+ASTROCS_ABI_EXPORTS 由 CMake target 定义。
+ *   ACSD_ABI_SHARED+ACSD_ABI_EXPORTS 由 CMake target 定义。
  */
-#include "astrocs/abi/lifecycle_v1.h"
-#include "astrocs/abi/module_api_v1.h"
-#include "astrocs/gaia/types.h"
+#include "acsd/abi/lifecycle_v1.h"
+#include "acsd/abi/module_api_v1.h"
+#include "acsd/gaia/types.h"
 #include "gaia_client.h"
 
 #include <math.h>
@@ -42,42 +42,42 @@
 #include <stdlib.h>
 #include <string.h>
 
-#if defined(ASTROCS_ABI_SHARED) && !defined(ASTROCS_ABI_EXPORTS)
-#define ASTROCS_ABI_EXPORTS 1
+#if defined(ACSD_ABI_SHARED) && !defined(ACSD_ABI_EXPORTS)
+#define ACSD_ABI_EXPORTS 1
 #endif
 
 /* ───────── 静态字符串 (descriptor 输出; 所有权=module 静态) ───────── */
 
-static const char kModuleId[] = ASTROCS_GAIA_MODULE_ID;
-static const char kVersion[]  = ASTROCS_GAIA_VERSION;
-static const char kBuildId[]  = ASTROCS_GAIA_BUILD_ID;
-static const char kSciId[]    = ASTROCS_GAIA_SCI_ID;
-static const char kAlgId[]    = ASTROCS_GAIA_ALG_ID;
-static const char kApiId[]    = ASTROCS_GAIA_API_ID;
+static const char kModuleId[] = ACSD_GAIA_MODULE_ID;
+static const char kVersion[]  = ACSD_GAIA_VERSION;
+static const char kBuildId[]  = ACSD_GAIA_BUILD_ID;
+static const char kSciId[]    = ACSD_GAIA_SCI_ID;
+static const char kAlgId[]    = ACSD_GAIA_ALG_ID;
+static const char kApiId[]    = ACSD_GAIA_API_ID;
 /* 日志组件名（host log 通道标识；inspect/describe JSON 不输出, 保留给
  * 未来 host->log 接入; 防 -Wunused 用 attribute） */
 #if defined(__GNUC__)
-static const char kLogComponent[] __attribute__((unused)) = "astrocs.catalog.gaia";
+static const char kLogComponent[] __attribute__((unused)) = "acsd.catalog.gaia";
 #else
-static const char kLogComponent[] = "astrocs.catalog.gaia";
+static const char kLogComponent[] = "acsd.catalog.gaia";
 #endif
 
 /* ───────── 基础 helper (对齐 lifecycle_v1.h 诊断/strbuf 冻结语义) ───────── */
 
-static acs_str_v1 acs_str_from(const char* s) {
-    acs_str_v1 v;
-    v.head.struct_size = (uint32_t)sizeof(acs_str_v1);
+static acsd_str_v1 acsd_str_from(const char* s) {
+    acsd_str_v1 v;
+    v.head.struct_size = (uint32_t)sizeof(acsd_str_v1);
     v.head.abi_version = ACS_ABI_VERSION_V1;
     v.data = s;
     v.size = s ? (uint64_t)strlen(s) : 0;
     return v;
 }
 
-static void efill(acs_error_info_v1* err, acs_status st, int32_t domain,
+static void efill(acsd_error_info_v1* err, acsd_status st, int32_t domain,
                   uint32_t detail, const char* msg) {
     if (!err) return;
     memset(err, 0, sizeof(*err));
-    err->head.struct_size = (uint32_t)sizeof(acs_error_info_v1);
+    err->head.struct_size = (uint32_t)sizeof(acsd_error_info_v1);
     err->head.abi_version = ACS_ABI_VERSION_V1;
     err->status = st;
     err->domain = domain;
@@ -88,8 +88,8 @@ static void efill(acs_error_info_v1* err, acs_status st, int32_t domain,
 
 /* strbuf 写 N 字节 (lifecycle_v1.h 截断语义: size=所需; cap>0 写前缀+NUL;
  * 不足 → PARAM + BUFFER_TOO_SMALL) */
-static acs_status strbuf_write(acs_strbuf_v1* out, const char* data, uint64_t n,
-                               acs_error_info_v1* err) {
+static acsd_status strbuf_write(acsd_strbuf_v1* out, const char* data, uint64_t n,
+                               acsd_error_info_v1* err) {
     if (!out) { efill(err, ACS_ERR_PARAM, ACS_ERR_DOMAIN_CONFIG,
                       ACS_DIAG_ECODE_NULL_CALLBACK, "gaia: null output buffer");
                 return ACS_ERR_PARAM; }
@@ -107,8 +107,8 @@ static acs_status strbuf_write(acs_strbuf_v1* out, const char* data, uint64_t n,
     return ACS_OK;
 }
 
-static acs_status strbuf_write_cstr(acs_strbuf_v1* out, const char* s,
-                                    acs_error_info_v1* err) {
+static acsd_status strbuf_write_cstr(acsd_strbuf_v1* out, const char* s,
+                                    acsd_error_info_v1* err) {
     return strbuf_write(out, s, s ? (uint64_t)strlen(s) : 0, err);
 }
 
@@ -220,17 +220,17 @@ typedef struct {
 
 /* config 键必需性 + 有限值校验 (detail 102=缺失, 103=非有限;
  * README 已知限制 7 前置条件强化为稳定错误) */
-static acs_status gaia_cfg_check_params(const gaia_cfg* c, int ra_ok, int dec_ok,
+static acsd_status gaia_cfg_check_params(const gaia_cfg* c, int ra_ok, int dec_ok,
                                         int rad_ok, int lo_ok, int hi_ok,
-                                        int mr_ok, acs_error_info_v1* err) {
+                                        int mr_ok, acsd_error_info_v1* err) {
     int need_ra = 0, need_dec = 0, need_rad = 0, need_lo = 0, need_hi = 0, need_mr = 0;
-    if (!strcmp(c->op, ASTROCS_GAIA_OP_CONE) ||
-        !strcmp(c->op, ASTROCS_GAIA_OP_CONE_SPEC) ||
-        !strcmp(c->op, ASTROCS_GAIA_OP_CONE_PHOT)) {
+    if (!strcmp(c->op, ACSD_GAIA_OP_CONE) ||
+        !strcmp(c->op, ACSD_GAIA_OP_CONE_SPEC) ||
+        !strcmp(c->op, ACSD_GAIA_OP_CONE_PHOT)) {
         need_ra = need_dec = need_rad = need_lo = need_hi = 1;
-    } else if (!strcmp(c->op, ASTROCS_GAIA_OP_CONE_SOLVER)) {
+    } else if (!strcmp(c->op, ACSD_GAIA_OP_CONE_SOLVER)) {
         need_ra = need_dec = need_rad = need_hi = 1;
-    } else if (!strcmp(c->op, ASTROCS_GAIA_OP_SPEC_BY_COORDS)) {
+    } else if (!strcmp(c->op, ACSD_GAIA_OP_SPEC_BY_COORDS)) {
         need_mr = need_lo = need_hi = 1;
         if (c->n_coords <= 0 || !c->ra_list || !c->dec_list) {
             efill(err, ACS_ERR_PARAM, ACS_ERR_DOMAIN_CONFIG,
@@ -256,23 +256,23 @@ static acs_status gaia_cfg_check_params(const gaia_cfg* c, int ra_ok, int dec_ok
 }
 
 static int op_is_known(const char* op) {
-    return !strcmp(op, ASTROCS_GAIA_OP_CONE) ||
-           !strcmp(op, ASTROCS_GAIA_OP_CONE_SOLVER) ||
-           !strcmp(op, ASTROCS_GAIA_OP_CONE_SPEC) ||
-           !strcmp(op, ASTROCS_GAIA_OP_CONE_PHOT) ||
-           !strcmp(op, ASTROCS_GAIA_OP_SPEC_BY_COORDS);
+    return !strcmp(op, ACSD_GAIA_OP_CONE) ||
+           !strcmp(op, ACSD_GAIA_OP_CONE_SOLVER) ||
+           !strcmp(op, ACSD_GAIA_OP_CONE_SPEC) ||
+           !strcmp(op, ACSD_GAIA_OP_CONE_PHOT) ||
+           !strcmp(op, ACSD_GAIA_OP_SPEC_BY_COORDS);
 }
 
-/* 解析 config; 校验失败返回非 0 acs_status (err 已填) */
-static acs_status gaia_cfg_parse(const char* config_json, gaia_cfg* c,
-                                 acs_error_info_v1* err) {
+/* 解析 config; 校验失败返回非 0 acsd_status (err 已填) */
+static acsd_status gaia_cfg_parse(const char* config_json, gaia_cfg* c,
+                                 acsd_error_info_v1* err) {
     memset(c, 0, sizeof(*c));
     if (!config_json || !*config_json) {
         efill(err, ACS_ERR_PARAM, ACS_ERR_DOMAIN_CONFIG,
               ACS_DIAG_ECODE_NULL_CONFIG, "gaia: empty config");
         return ACS_ERR_PARAM;
     }
-    if (!json_copy_str(config_json, ASTROCS_GAIA_CFG_KEY_OP,
+    if (!json_copy_str(config_json, ACSD_GAIA_CFG_KEY_OP,
                        c->op, sizeof(c->op))) {
         efill(err, ACS_ERR_PARAM, ACS_ERR_DOMAIN_CONFIG,
               ACS_DIAG_ECODE_CONFIG_SCHEMA, "gaia: missing op");
@@ -283,7 +283,7 @@ static acs_status gaia_cfg_parse(const char* config_json, gaia_cfg* c,
               ACS_GAIA_ECODE_OP_UNKNOWN, "gaia: unknown op");
         return ACS_ERR_PARAM;
     }
-    if (!json_copy_str(config_json, ASTROCS_GAIA_CFG_KEY_CATALOG_DIR,
+    if (!json_copy_str(config_json, ACSD_GAIA_CFG_KEY_CATALOG_DIR,
                        c->catalog_dir, sizeof(c->catalog_dir)) ||
         !c->catalog_dir[0]) {
         efill(err, ACS_ERR_PARAM, ACS_ERR_DOMAIN_CONFIG,
@@ -292,16 +292,16 @@ static acs_status gaia_cfg_parse(const char* config_json, gaia_cfg* c,
     }
     int f = 0;
     int ra_ok = 0, dec_ok = 0, rad_ok = 0, lo_ok = 0, hi_ok = 0, mr_ok = 0;
-    c->ra          = json_get_f64(config_json, ASTROCS_GAIA_CFG_KEY_RA, &ra_ok);
-    c->dec         = json_get_f64(config_json, ASTROCS_GAIA_CFG_KEY_DEC, &dec_ok);
-    c->radius_deg  = json_get_f64(config_json, ASTROCS_GAIA_CFG_KEY_RADIUS, &rad_ok);
-    c->mag_low     = json_get_f64(config_json, ASTROCS_GAIA_CFG_KEY_MAG_LOW, &lo_ok);
-    c->mag_high    = json_get_f64(config_json, ASTROCS_GAIA_CFG_KEY_MAG_HIGH, &hi_ok);
+    c->ra          = json_get_f64(config_json, ACSD_GAIA_CFG_KEY_RA, &ra_ok);
+    c->dec         = json_get_f64(config_json, ACSD_GAIA_CFG_KEY_DEC, &dec_ok);
+    c->radius_deg  = json_get_f64(config_json, ACSD_GAIA_CFG_KEY_RADIUS, &rad_ok);
+    c->mag_low     = json_get_f64(config_json, ACSD_GAIA_CFG_KEY_MAG_LOW, &lo_ok);
+    c->mag_high    = json_get_f64(config_json, ACSD_GAIA_CFG_KEY_MAG_HIGH, &hi_ok);
     c->match_radius_arcsec =
-               json_get_f64(config_json, ASTROCS_GAIA_CFG_KEY_MATCH_RADIUS, &mr_ok);
+               json_get_f64(config_json, ACSD_GAIA_CFG_KEY_MATCH_RADIUS, &mr_ok);
     {
         int fdb = 0;
-        double db = json_get_f64(config_json, ASTROCS_GAIA_CFG_KEY_DB_TYPE, &fdb);
+        double db = json_get_f64(config_json, ACSD_GAIA_CFG_KEY_DB_TYPE, &fdb);
         c->db_type = fdb ? (int)db : 0;
         if (c->db_type < 0 || c->db_type > 2) {
             efill(err, ACS_ERR_PARAM, ACS_ERR_DOMAIN_CONFIG,
@@ -311,13 +311,13 @@ static acs_status gaia_cfg_parse(const char* config_json, gaia_cfg* c,
     }
     {
         int fw = 0;
-        uint64_t w = json_get_u64(config_json, ASTROCS_GAIA_CFG_KEY_MAX_WORKERS, &fw);
+        uint64_t w = json_get_u64(config_json, ACSD_GAIA_CFG_KEY_MAX_WORKERS, &fw);
         c->max_workers = fw ? (uint32_t)w : 0;
     }
-    if (!strcmp(c->op, ASTROCS_GAIA_OP_SPEC_BY_COORDS)) {
+    if (!strcmp(c->op, ACSD_GAIA_OP_SPEC_BY_COORDS)) {
         int nr = 0, nd = 0;
-        c->ra_list  = json_get_f64_array(config_json, ASTROCS_GAIA_CFG_KEY_RA_LIST, &nr);
-        c->dec_list = json_get_f64_array(config_json, ASTROCS_GAIA_CFG_KEY_DEC_LIST, &nd);
+        c->ra_list  = json_get_f64_array(config_json, ACSD_GAIA_CFG_KEY_RA_LIST, &nr);
+        c->dec_list = json_get_f64_array(config_json, ACSD_GAIA_CFG_KEY_DEC_LIST, &nd);
         if (nr < 0 || nd < 0 || nr != nd) {
             free(c->ra_list); free(c->dec_list);
             c->ra_list = NULL; c->dec_list = NULL;
@@ -327,7 +327,7 @@ static acs_status gaia_cfg_parse(const char* config_json, gaia_cfg* c,
         }
         c->n_coords = nr;
     }
-    acs_status pchk = gaia_cfg_check_params(c, ra_ok, dec_ok, rad_ok,
+    acsd_status pchk = gaia_cfg_check_params(c, ra_ok, dec_ok, rad_ok,
                                             lo_ok, hi_ok, mr_ok, err);
     if (pchk != ACS_OK) {
         free(c->ra_list); free(c->dec_list);
@@ -438,11 +438,11 @@ typedef struct {
     int executing;                  /* 同实例 execute 互斥旗标 (state 机护栏) */
     gaia_cfg cfg;                   /* create 时解析的 config 副本 */
     GaiaClient* client;             /* legacy 实例 (缓存生命周期=实例) */
-    const acs_host_api_v1* host;
+    const acsd_host_api_v1* host;
     volatile int cancel_req;        /* request_cancel 置位; execute 读 */
     int cancel_active;              /* execute 期=1 (cancel fn 注入期) */
     uint64_t exec_count;
-    acs_status last_status;
+    acsd_status last_status;
     char last_op[32];
     uint32_t last_workers;
 } gaia_inst;
@@ -459,9 +459,9 @@ static int gaia_inst_cancel_poll(void* ud) {
 
 /* ───────── describe ───────── */
 
-static acs_status gaia_describe(const acs_module_api_v1* self,
-                                acs_str_v1 module_id,
-                                acs_module_descriptor_v1* out_desc) {
+static acsd_status gaia_describe(const acsd_module_api_v1* self,
+                                acsd_str_v1 module_id,
+                                acsd_module_descriptor_v1* out_desc) {
     (void)self;
     if (!out_desc) return ACS_ERR_PARAM;
     /* MOD-001 加载验证对齐: ABI-003 安全 loader 以 empty module_id 调 describe
@@ -474,14 +474,14 @@ static acs_status gaia_describe(const acs_module_api_v1* self,
          memcmp(module_id.data, kModuleId, strlen(kModuleId)) != 0))
         return ACS_ERR_ABI_MISMATCH;
     memset(out_desc, 0, sizeof(*out_desc));
-    out_desc->head.struct_size = (uint32_t)sizeof(acs_module_descriptor_v1);
+    out_desc->head.struct_size = (uint32_t)sizeof(acsd_module_descriptor_v1);
     out_desc->head.abi_version = ACS_ABI_VERSION_V1;
-    out_desc->module_id = acs_str_from(kModuleId);
-    out_desc->version = acs_str_from(kVersion);
-    out_desc->build_id = acs_str_from(kBuildId);
-    out_desc->sci_id = acs_str_from(kSciId);
-    out_desc->alg_id = acs_str_from(kAlgId);
-    out_desc->api_id = acs_str_from(kApiId);
+    out_desc->module_id = acsd_str_from(kModuleId);
+    out_desc->version = acsd_str_from(kVersion);
+    out_desc->build_id = acsd_str_from(kBuildId);
+    out_desc->sci_id = acsd_str_from(kSciId);
+    out_desc->alg_id = acsd_str_from(kAlgId);
+    out_desc->api_id = acsd_str_from(kApiId);
     out_desc->phase = 0;              /* service/catalog (module.yaml 注册表) */
     out_desc->config_schema_ver = 1;  /* data schema version, 与 ABI 分开 (12 §4) */
     out_desc->execution_class = 1;    /* io_bound (module.yaml resource_class) */
@@ -492,23 +492,23 @@ static acs_status gaia_describe(const acs_module_api_v1* self,
 
 /* ───────── validate_config ───────── */
 
-static acs_status gaia_validate_config(const acs_module_api_v1* self,
-                                       acs_str_v1 config_json,
-                                       acs_error_info_v1* err) {
+static acsd_status gaia_validate_config(const acsd_module_api_v1* self,
+                                       acsd_str_v1 config_json,
+                                       acsd_error_info_v1* err) {
     (void)self;
     gaia_cfg tmp;
-    acs_status st = gaia_cfg_parse(config_json.data, &tmp, err);
+    acsd_status st = gaia_cfg_parse(config_json.data, &tmp, err);
     gaia_cfg_free(&tmp);   /* 解析出的数组释放 (validate 无分配保留) */
     return st;
 }
 
 /* ───────── plan: 真实 work_units (元数据遍历, 禁空转) ───────── */
 
-static acs_status gaia_plan(const acs_module_api_v1* self,
-                            acs_str_v1 node_id,
-                            acs_str_v1 config_json,
-                            acs_strbuf_v1* out_plan_json,
-                            acs_error_info_v1* err) {
+static acsd_status gaia_plan(const acsd_module_api_v1* self,
+                            acsd_str_v1 node_id,
+                            acsd_str_v1 config_json,
+                            acsd_strbuf_v1* out_plan_json,
+                            acsd_error_info_v1* err) {
     (void)self;
     (void)node_id;
     if (!out_plan_json) {
@@ -517,7 +517,7 @@ static acs_status gaia_plan(const acs_module_api_v1* self,
         return ACS_ERR_PARAM;
     }
     gaia_cfg c;
-    acs_status st = gaia_cfg_parse(config_json.data, &c, err);
+    acsd_status st = gaia_cfg_parse(config_json.data, &c, err);
     if (st != ACS_OK) { gaia_cfg_free(&c); return st; }
 
     /* plan 不执行科学计算: 只打开数据集读头+树节点 (元数据级只读 I/O) */
@@ -561,7 +561,7 @@ static acs_status gaia_plan(const acs_module_api_v1* self,
                   "\"scratch_per_worker_bytes\":%lld,"
                   "\"parallel_axis\":\"file\",\"min_workers\":1,"
                   "\"max_workers\":%d}",
-                  kModuleId, ASTROCS_GAIA_PLAN_VERSION, c.op,
+                  kModuleId, ACSD_GAIA_PLAN_VERSION, c.op,
                   stats.file_count, stats.db_type, stats.spec_file_count,
                   (long long)stats.work_units_bytes,
                   (long long)stats.leaf_blocks,
@@ -580,11 +580,11 @@ static acs_status gaia_plan(const acs_module_api_v1* self,
 
 /* ───────── create ───────── */
 
-static acs_status gaia_create(const acs_module_api_v1* self,
-                              acs_str_v1 config_json,
-                              const acs_host_api_v1* host,
-                              acs_module_instance_v1** out,
-                              acs_error_info_v1* err) {
+static acsd_status gaia_create(const acsd_module_api_v1* self,
+                              acsd_str_v1 config_json,
+                              const acsd_host_api_v1* host,
+                              acsd_module_instance_v1** out,
+                              acsd_error_info_v1* err) {
     (void)self;
     if (!out) {
         efill(err, ACS_ERR_PARAM, ACS_ERR_DOMAIN_CONFIG,
@@ -598,7 +598,7 @@ static acs_status gaia_create(const acs_module_api_v1* self,
         return ACS_ERR_ABI_MISMATCH;
     }
     gaia_cfg c;
-    acs_status st = gaia_cfg_parse(config_json.data, &c, err);
+    acsd_status st = gaia_cfg_parse(config_json.data, &c, err);
     if (st != ACS_OK) { gaia_cfg_free(&c); return st; }
 
     gaia_inst* inst = (gaia_inst*)calloc(1, sizeof(gaia_inst));
@@ -621,17 +621,17 @@ static acs_status gaia_create(const acs_module_api_v1* self,
               ACS_GAIA_ECODE_CATALOG_OPEN_FAIL, "gaia: catalog open failed");
         return ACS_ERR_IO;
     }
-    *out = (acs_module_instance_v1*)inst;
+    *out = (acsd_module_instance_v1*)inst;
     return ACS_OK;
 }
 
 /* ───────── execute: 租借 + 文件边界取消 + 事务 sink 输出 ───────── */
 
-static acs_status gaia_execute(acs_module_instance_v1* inst_raw,
-                               acs_str_v1 input_manifest_json,
-                               acs_str_v1 config_json,
-                               acs_strbuf_v1* out_manifest_json,
-                               acs_error_info_v1* err) {
+static acsd_status gaia_execute(acsd_module_instance_v1* inst_raw,
+                               acsd_str_v1 input_manifest_json,
+                               acsd_str_v1 config_json,
+                               acsd_strbuf_v1* out_manifest_json,
+                               acsd_error_info_v1* err) {
     (void)input_manifest_json;   /* v1: config 承载 op+参数 (types.h 合同) */
     gaia_inst* inst = (gaia_inst*)inst_raw;
     if (!inst) return ACS_ERR_PARAM;
@@ -642,7 +642,7 @@ static acs_status gaia_execute(acs_module_instance_v1* inst_raw,
     }
     /* execute 期 config 可覆盖 op 参数; 仍走同一解析 (词表/有限值校验同) */
     gaia_cfg c;
-    acs_status st = gaia_cfg_parse(config_json.data, &c, err);
+    acsd_status st = gaia_cfg_parse(config_json.data, &c, err);
     if (st != ACS_OK) return st;
 
     inst->executing = 1;
@@ -656,7 +656,7 @@ static acs_status gaia_execute(acs_module_instance_v1* inst_raw,
     uint32_t leased = 0;
     int lease_active = 0;
     if (inst->host && inst->host->executor) {
-        const acs_executor_v1* ex = inst->host->executor;
+        const acsd_executor_v1* ex = inst->host->executor;
         uint32_t want = file_count > 0 ? file_count : 1;
         if (c.max_workers > 0 && c.max_workers < want) want = c.max_workers;
         if (ex->max_workers > 0 && ex->max_workers < want) want = ex->max_workers;
@@ -691,29 +691,29 @@ static acs_status gaia_execute(acs_module_instance_v1* inst_raw,
     int spec_start = 0, spec_step = 0, spec_count = 0;
     int legacy_rc = -1;
 
-    if (!strcmp(c.op, ASTROCS_GAIA_OP_CONE)) {
+    if (!strcmp(c.op, ACSD_GAIA_OP_CONE)) {
         GaiaStar* stars = NULL;
         legacy_rc = gaia_client_cone_search(cli, c.ra, c.dec, c.radius_deg,
                                             c.mag_low, c.mag_high, &stars, &count);
         row_ptr = stars;
-    } else if (!strcmp(c.op, ASTROCS_GAIA_OP_CONE_SOLVER)) {
+    } else if (!strcmp(c.op, ACSD_GAIA_OP_CONE_SOLVER)) {
         legacy_rc = gaia_client_cone_search_for_solver(cli, c.ra, c.dec, c.radius_deg,
                                                        c.mag_high,
                                                        &solver_ra, &solver_dec,
                                                        &solver_mag, &count);
-    } else if (!strcmp(c.op, ASTROCS_GAIA_OP_CONE_SPEC)) {
+    } else if (!strcmp(c.op, ACSD_GAIA_OP_CONE_SPEC)) {
         GaiaSpectrumStar* stars = NULL;
         legacy_rc = gaia_client_cone_search_with_spectrum(cli, c.ra, c.dec, c.radius_deg,
                                                           c.mag_low, c.mag_high,
                                                           &stars, &spectra, &count);
         row_ptr = stars;
-    } else if (!strcmp(c.op, ASTROCS_GAIA_OP_CONE_PHOT)) {
+    } else if (!strcmp(c.op, ACSD_GAIA_OP_CONE_PHOT)) {
         GaiaPhotometryStar* stars = NULL;
         legacy_rc = gaia_client_cone_search_with_photometry(cli, c.ra, c.dec, c.radius_deg,
                                                             c.mag_low, c.mag_high,
                                                             &stars, &count);
         row_ptr = stars;
-    } else { /* ASTROCS_GAIA_OP_SPEC_BY_COORDS */
+    } else { /* ACSD_GAIA_OP_SPEC_BY_COORDS */
         GaiaSpectrumStar* stars = NULL;
         legacy_rc = gaia_client_query_spectrum_by_coords(cli,
                                                          c.ra_list, c.dec_list, c.n_coords,
@@ -758,17 +758,17 @@ static acs_status gaia_execute(acs_module_instance_v1* inst_raw,
     }
 
     /* 光谱参数 (spectrum ops; 失败非致命) */
-    if (!strcmp(c.op, ASTROCS_GAIA_OP_CONE_SPEC) ||
-        !strcmp(c.op, ASTROCS_GAIA_OP_SPEC_BY_COORDS)) {
+    if (!strcmp(c.op, ACSD_GAIA_OP_CONE_SPEC) ||
+        !strcmp(c.op, ACSD_GAIA_OP_SPEC_BY_COORDS)) {
         gaia_client_get_spectrum_params(cli, &spec_start, &spec_step, &spec_count);
     }
 
     /* ── 组装输出 manifest (事务 sink: 两阶段 strbuf) ── */
     uint64_t row_bytes = 0;
-    if (!strcmp(c.op, ASTROCS_GAIA_OP_CONE))            row_bytes = (uint64_t)count * sizeof(GaiaStar);
-    if (!strcmp(c.op, ASTROCS_GAIA_OP_CONE_SPEC) ||
-        !strcmp(c.op, ASTROCS_GAIA_OP_SPEC_BY_COORDS))  row_bytes = (uint64_t)count * sizeof(GaiaSpectrumStar);
-    if (!strcmp(c.op, ASTROCS_GAIA_OP_CONE_PHOT))       row_bytes = (uint64_t)count * sizeof(GaiaPhotometryStar);
+    if (!strcmp(c.op, ACSD_GAIA_OP_CONE))            row_bytes = (uint64_t)count * sizeof(GaiaStar);
+    if (!strcmp(c.op, ACSD_GAIA_OP_CONE_SPEC) ||
+        !strcmp(c.op, ACSD_GAIA_OP_SPEC_BY_COORDS))  row_bytes = (uint64_t)count * sizeof(GaiaSpectrumStar);
+    if (!strcmp(c.op, ACSD_GAIA_OP_CONE_PHOT))       row_bytes = (uint64_t)count * sizeof(GaiaPhotometryStar);
 
     uint64_t spec_bytes = (spectra && count > 0)
                         ? (uint64_t)count * (uint64_t)spec_count : 0;
@@ -797,17 +797,17 @@ static acs_status gaia_execute(acs_module_instance_v1* inst_raw,
                    (unsigned)file_count, count, c.n_coords, (unsigned)leased,
                    lease_active ? "true" : "false");
     const char* schema = "{}";
-    if (!strcmp(c.op, ASTROCS_GAIA_OP_CONE))
+    if (!strcmp(c.op, ACSD_GAIA_OP_CONE))
         schema = "{\"ra\":\"f64\",\"dec\":\"f64\",\"magG\":\"f64\",\"magBP\":\"f64\","
                  "\"magRP\":\"f64\",\"parallax\":\"f32\",\"pmra\":\"f32\","
                  "\"pmdec\":\"f32\",\"source_id\":\"i64\"}";
-    else if (!strcmp(c.op, ASTROCS_GAIA_OP_CONE_SPEC))
+    else if (!strcmp(c.op, ACSD_GAIA_OP_CONE_SPEC))
         schema = "{\"ra\":\"f64\",\"dec\":\"f64\",\"magG\":\"f64\","
                  "\"flux_min\":\"f32\",\"flux_mul\":\"f32\",\"spectra\":\"u8x343\"}";
-    else if (!strcmp(c.op, ASTROCS_GAIA_OP_CONE_PHOT))
+    else if (!strcmp(c.op, ACSD_GAIA_OP_CONE_PHOT))
         schema = "{\"ra\":\"f64\",\"dec\":\"f64\",\"magG\":\"f64\","
                  "\"magBP\":\"f64\",\"magRP\":\"f64\"}";
-    else if (!strcmp(c.op, ASTROCS_GAIA_OP_SPEC_BY_COORDS))
+    else if (!strcmp(c.op, ACSD_GAIA_OP_SPEC_BY_COORDS))
         schema = "{\"ra\":\"f64\",\"dec\":\"f64\",\"magG\":\"f64\","
                  "\"flux_min\":\"f32\",\"flux_mul\":\"f32\",\"spectra\":\"u8x343\","
                  "\"match_idx\":\"i32\"}";
@@ -962,7 +962,7 @@ static acs_status gaia_execute(acs_module_instance_v1* inst_raw,
             }
             *w++ = '}';
             *w = '\0';
-            acs_status s2 = strbuf_write_cstr(out_manifest_json, big, err);
+            acsd_status s2 = strbuf_write_cstr(out_manifest_json, big, err);
             free(big);
             free(row_ptr); free(spectra); free(match_idx);
             free(solver_ra); free(solver_dec); free(solver_mag);
@@ -984,9 +984,9 @@ static acs_status gaia_execute(acs_module_instance_v1* inst_raw,
 
 /* ───────── inspect / request_cancel / destroy ───────── */
 
-static acs_status gaia_inspect(const acs_module_instance_v1* inst_raw,
-                               acs_strbuf_v1* out_json,
-                               acs_error_info_v1* err) {
+static acsd_status gaia_inspect(const acsd_module_instance_v1* inst_raw,
+                               acsd_strbuf_v1* out_json,
+                               acsd_error_info_v1* err) {
     const gaia_inst* inst = (const gaia_inst*)inst_raw;
     if (!inst) return ACS_ERR_PARAM;
     if (!out_json) {
@@ -1020,7 +1020,7 @@ static acs_status gaia_inspect(const acs_module_instance_v1* inst_raw,
     return strbuf_write_cstr(out_json, buf, err);
 }
 
-static acs_status gaia_request_cancel(acs_module_instance_v1* inst_raw) {
+static acsd_status gaia_request_cancel(acsd_module_instance_v1* inst_raw) {
     gaia_inst* inst = (gaia_inst*)inst_raw;
     if (!inst) return ACS_ERR_PARAM;
     if (inst->state == ACS_LC_STATE_DESTROYED) return ACS_ERR_STATE;
@@ -1028,7 +1028,7 @@ static acs_status gaia_request_cancel(acs_module_instance_v1* inst_raw) {
     return ACS_OK;
 }
 
-static void gaia_destroy(acs_module_instance_v1* inst_raw) {
+static void gaia_destroy(acsd_module_instance_v1* inst_raw) {
     gaia_inst* inst = (gaia_inst*)inst_raw;
     if (!inst) return;
     gaia_cfg_free(&inst->cfg);
@@ -1040,8 +1040,8 @@ static void gaia_destroy(acs_module_instance_v1* inst_raw) {
 
 /* ───────── 静态 vtable 与唯一导出入口 ───────── */
 
-static const acs_module_api_v1 g_gaia_api = {
-    { (uint32_t)sizeof(acs_module_api_v1), ACS_ABI_VERSION_V1 },
+static const acsd_module_api_v1 g_gaia_api = {
+    { (uint32_t)sizeof(acsd_module_api_v1), ACS_ABI_VERSION_V1 },
     gaia_describe,
     gaia_validate_config,
     gaia_plan,
@@ -1054,10 +1054,10 @@ static const acs_module_api_v1 g_gaia_api = {
 
 /* 唯一导出入口 (12 §1; ABI-006 全查 exports):
  * host_abi 失配 → ACS_ERR_ABI_MISMATCH, 不降级猜测。 */
-ASTROCS_EXPORT acs_status ASTROCS_CALL
-astrocs_module_query_v1(uint32_t host_abi,
-                        const acs_host_api_v1* host,
-                        const acs_module_api_v1** out_api) {
+ACSD_EXPORT acsd_status ACSD_CALL
+acsd_module_query_v1(uint32_t host_abi,
+                        const acsd_host_api_v1* host,
+                        const acsd_module_api_v1** out_api) {
     (void)host;   /* allocator 必填在 create 期校验 (query 期 host 可 NULL 于探针) */
     if (host_abi != ACS_ABI_VERSION_V1) return ACS_ERR_ABI_MISMATCH;
     if (!out_api) return ACS_ERR_PARAM;

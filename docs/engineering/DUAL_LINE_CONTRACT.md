@@ -1,6 +1,6 @@
 # 文件域与合并点合同
 
-> 上游：docs/ASTROCS_DESIGN.md §8（软件架构）、§9（CPU 后端与资源）；docs/ASTROCS_DESIGN.md §8.2（命名块内存管线与块生命周期））
+> 上游：docs/ACSD_DESIGN.md §8（软件架构）、§9（CPU 后端与资源）；docs/ACSD_DESIGN.md §8.2（命名块内存管线与块生命周期））
 
 机器 schema：`eng/contracts/schemas/dual_line_file_domain.schema.json`（文件域与合并点的机器取值源）。
 

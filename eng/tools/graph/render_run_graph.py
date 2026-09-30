@@ -7,9 +7,9 @@ workers、provider、耗时、资源、DLL hash、artifact hash。
 
 角色（tasks/03_RUNTIME_DATA_IO_TASKS.md LOG-003 + 控制包标准
 14_RUNTIME_SCHEDULER_AND_TRACE_STANDARD.md §5 + 23_GRAPH_AND_DOC_TOOL_POLICY.md）:
-  - 静态/声明图来自 typed plan（RT-001 `astrocs.plan-graph/v1` 或
-    `astrocs.typed-dag/v1` 原始 IR）；真实运行图来自 RT-006 trace JSONL
-    （`astrocs.trace-event/v1`，一事件一行）。禁止以静态计划冒充运行事实；
+  - 静态/声明图来自 typed plan（RT-001 `acsd.plan-graph/v1` 或
+    `acsd.typed-dag/v1` 原始 IR）；真实运行图来自 RT-006 trace JSONL
+    （`acsd.trace-event/v1`，一事件一行）。禁止以静态计划冒充运行事实；
   - 真实入口/调用计数/workers/granted/provider/耗时/DLL hash/artifact hash
     一律从 trace 事件观测取（禁止 config 值冒充）；resource_class 是计划声明
     属性（标注 source=plan），不冒充观测；
@@ -62,7 +62,7 @@ except Exception:  # pragma: no cover
 
 TOOL = "eng/tools/graph/render_run_graph.py"
 VERSION = "1.0.0"
-GRAPH_JSON_SCHEMA = "astrocs.graph-json/v1"
+GRAPH_JSON_SCHEMA = "acsd.graph-json/v1"
 
 # 合法 trace 事件类型（与 contracts.h trace_event_type_name 同源；空校验集 =
 # 不做类型过滤，逐行按字段聚合）
@@ -301,7 +301,7 @@ def _plan_graph(plan_obj: Any) -> Tuple[Optional[Dict[str, Any]], str]:
     if not isinstance(plan_obj, dict):
         return None, "plan 顶层必须是对象"
     schema = plan_obj.get("schema", "")
-    if schema in ("astrocs.plan-graph/v1",):
+    if schema in ("acsd.plan-graph/v1",):
         nodes = [dict(n) for n in plan_obj.get("nodes", [])]
         edges = [dict(e) for e in plan_obj.get("edges", [])]
         return {
@@ -311,7 +311,7 @@ def _plan_graph(plan_obj: Any) -> Tuple[Optional[Dict[str, Any]], str]:
             "nodes": nodes,
             "edges": edges,
         }, ""
-    if schema in ("astrocs.typed-dag/v1",):
+    if schema in ("acsd.typed-dag/v1",):
         # typed-dag IR 无显式边：用 RT-001 编译器（只读 import，不改动）权威
         # 推导数据边（artifact producer→consumer 已类型校验）。
         nodes = []
@@ -358,7 +358,7 @@ def build_graph(*, trace_path: Optional[pathlib.Path] = None,
                 trace_events: Optional[List[Dict[str, Any]]] = None,
                 plan_obj: Any = None, sha: str = "") -> Dict[str, Any]:
     """核心构建：trace（必需）→ 运行图 JSON；plan（可选）→ 合并声明资源/
-    数据边。返回 astrocs.graph-json/v1 对象。"""
+    数据边。返回 acsd.graph-json/v1 对象。"""
     if trace_events is None:
         if trace_path is None:
             raise ValueError("需要 trace（--trace 路径或预解析事件）")

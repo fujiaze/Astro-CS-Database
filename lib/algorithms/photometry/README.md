@@ -10,7 +10,7 @@
 > （ALG-PHOT-001..002 + §13 逐符号源码锚定）；DATA=docs/contracts/
 > DATA_SEMANTICS.md §14（DATA-P1-PHOT）；API=docs/engineering/PUBLIC_API.md
 > （API-PHOT-001）；矩阵行=docs/traceability/TRACEABILITY_MATRIX.json
-> MOD-astrocs-phase1-photometry。
+> MOD-acsd-phase1-photometry。
 > 唯一权威签名头: lib/algorithms/photometry/cpp/include/photometric_calib.h
 > （271 行；禁止手抄他版）。
 
@@ -19,9 +19,9 @@
 | 项 | 值 |
 |---|---|
 | 矩阵行 | P1-PHOT（MODULE_MIGRATION_MATRIX.csv） |
-| module_id | `astrocs.p1.photometry` |
+| module_id | `acsd.p1.photometry` |
 | owner | SA-P1-N17 |
-| 迁移目标 DLL | `astrocs_p1_photometry.dll`（合同值，尚未建立；现状构建产物 `photometric_calib.dll`，见 §8） |
+| 迁移目标 DLL | `acsd_p1_photometry.dll`（合同值，尚未建立；现状构建产物 `photometric_calib.dll`，见 §8） |
 | depends_on_int | P1-PSF-INT;P1-WCS-INT |
 | module_status | CONTRACT_READY |
 | entrypoint | **MISSING**（registry 入口未接；lib/infrastructure/scheduler/src/module_adapters.cpp:469 `p1_photometry_descriptor` 持占位 ID，由 P1-PHOT-INT 对齐本合同，不得反向作为冻结依据） |
@@ -31,7 +31,7 @@
 lib/algorithms/photometry/（生产实现所在），本目录三件套
 README.md/module.yaml/memory.md 为该模块合同冻结唯一落位；lib/phase1/
 photometry/ 为第二 legacy 路径（旧符号 Photometer，CMakeLists.txt:429-432
-静态库 astrocs_phase1_phot，未接 orchestrator 管线，仅单测
+静态库 acsd_phase1_phot，未接 orchestrator 管线，仅单测
 eng/tests/unit/p1_wcs_phot_test），其合同并入本 README §9，不另立目录。
 
 ## 2. 负责范围 / 不负责
@@ -170,12 +170,12 @@ spec_stars/spectra_buf 内部 malloc 本调用内 free。编排级合同 API-P1-
 
 ## 9. 计划迁移旧符号（lib/algorithms/photometry/wrapper_phase1，去留归 P1-PHOT-IMPL 登记）
 
-- `astrocs::phase1::Photometer`（photometer.h:24 类、:26 ctor 默认
+- `acsd::phase1::Photometer`（photometer.h:24 类、:26 ctor 默认
   aperture 4.0px/annulus 6.0-10.0px；photometer.cpp:12）：天空环中值背景
   （:31-51）+ 孔径积分 Σ(pixel−background)（:53-62，d²≤r²）+ 简化误差
   flux_error=sqrt(max(sum,0)+n_in·σ_sky²)（:72-80，σ_sky=1.482602218505602·MAD）+
   snr（:81）。失败显式三态（§6）。
-- 构建现状：静态库 astrocs_phase1_phot（CMakeLists.txt:429-432），主程序
+- 构建现状：静态库 acsd_phase1_phot（CMakeLists.txt:429-432），主程序
   链接（:513），单测 eng/tests/unit/p1_wcs_phot_test.cpp（eng/tests/unit/
   CMakeLists.txt:305-310，4 组：已知通量/越界失败/积分回归/显式失败）。
   **未接入 orchestrator 管线**（grep 实测无生产调用方）。

@@ -64,7 +64,7 @@ def _build_fixture_exe():
             os.path.join(AIO, "src", "aio_log.cpp"),
             os.path.join(AIO, "src", "aio_compressor.cpp"),
             os.path.join(SHARED, "healpix", "healpix_core.cpp"),
-            # FIX-201: aio_file_io.h 的 sha256_hex 经 astrocs::crypto::Sha256
+            # FIX-201: aio_file_io.h 的 sha256_hex 经 acsd::crypto::Sha256
             #（单一实现 lib/algorithms/shared/crypto/sha256.cpp）⇒ 直编 AIO
             # 源码的 fixture 必须把该 TU 一并链接，否则 aio_hips_writer 未定义符号。
             os.path.join(SHARED, "crypto", "sha256.cpp")]
@@ -77,7 +77,7 @@ def _build_fixture_exe():
     return _FIXTURE_EXE
 
 
-# FIX-402: Phase3 生产输入语义守卫（docs/ASTROCS_DESIGN §6.3 / FZ-BUNIT-SEMANTICS）
+# FIX-402: Phase3 生产输入语义守卫（docs/ACSD_DESIGN §6.3 / FZ-BUNIT-SEMANTICS）
 # 只接受**显式声明**面亮度语义的输入。fixture 由 AIO writer 生成（writer 不写
 # BUNIT），故此处按冻结单位表补齐产品单位声明（与 module_adapters 的
 # declare_hips_surface_brightness_units 同源同串; 幂等）。
@@ -102,14 +102,14 @@ def ensure_hips_unit_declaration(hips_dir):
         keep = []
         for ln in lines:
             key = ln.split("=", 1)[0].strip()
-            if key in ("BUNIT", "bunit", "ASTROCS_SIGNAL_UNIT",
-                       "ASTROCS_PIXEL_SEMANTICS", "ASTROCS_PIXEL_AREA_POWER"):
+            if key in ("BUNIT", "bunit", "ACSD_SIGNAL_UNIT",
+                       "ACSD_PIXEL_SEMANTICS", "ACSD_PIXEL_AREA_POWER"):
                 continue
             keep.append(ln)
         keep += ["BUNIT=%s" % bunit,
-                 "ASTROCS_SIGNAL_UNIT=ADU/sr",
-                 "ASTROCS_PIXEL_SEMANTICS=surface_brightness",
-                 "ASTROCS_PIXEL_AREA_POWER=%d" % power]
+                 "ACSD_SIGNAL_UNIT=ADU/sr",
+                 "ACSD_PIXEL_SEMANTICS=surface_brightness",
+                 "ACSD_PIXEL_AREA_POWER=%d" % power]
         tmp = path + ".fix402.tmp"
         with open(tmp, "w", encoding="utf-8") as f:
             f.write("\n".join(keep) + "\n")

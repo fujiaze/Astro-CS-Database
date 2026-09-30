@@ -1,7 +1,7 @@
 # 国际标准冻结注册表（STANDARDS_REGISTRY）
 
-> 上游权威: `ASTROCS_DESIGN.md` §6.3（冻结八投影；本节号为本轮订正，原写 §5.3 = 「SNR 重建与逆方差叠加」）/附录 B（基础科学与格式参考）+ `docs/DOCUMENT_INDEX.yaml`（本注册表为标准登记，不在 §0 权威链上）
-> 条款锚的现行落点：投影集合 = `ASTROCS_DESIGN.md` §6.3（八投影）；资源门 = 同文 §8 + `eng/contracts/resource_gate_v1.json`
+> 上游权威: `ACSD_DESIGN.md` §6.3（冻结八投影；本节号为本轮订正，原写 §5.3 = 「SNR 重建与逆方差叠加」）/附录 B（基础科学与格式参考）+ `docs/DOCUMENT_INDEX.yaml`（本注册表为标准登记，不在 §0 权威链上）
+> 条款锚的现行落点：投影集合 = `ACSD_DESIGN.md` §6.3（八投影）；资源门 = 同文 §8 + `eng/contracts/resource_gate_v1.json`
 > 机器检查: `docs/standards/checks/check_standards_registry.py`（exit 0 = PASS / 1 = FAIL / 2 = ANCHOR_STALE；见 §5 与 §5 负向注入）
 > 登记: `docs/DOCUMENT_INDEX.yaml` doc_index.active（status = ACTIVE_NORMATIVE）
 
@@ -30,7 +30,7 @@
    无外部 findings 登记册时，机器检查器显式登记
    `C6_external_findings_source`，空集一律显式登记；悬空指针判 FAIL
    （`C6_deviation_id_closure`）。
-6. **变更流程**：新增/变更域、版本或条款映射必须走 `docs/ASTROCS_DESIGN.md` §0（文档权威与索引） + `SCIENCE_CORRECTNESS.md` 变更流程并同步本文件 §2/§3
+6. **变更流程**：新增/变更域、版本或条款映射必须走 `docs/ACSD_DESIGN.md` §0（文档权威与索引） + `SCIENCE_CORRECTNESS.md` 变更流程并同步本文件 §2/§3
    与机器检查器冻结表；仅新增偏差指针（不改语义）由域内原子任务随实现提交更新。
 
 ---
@@ -75,7 +75,7 @@
 | STD-F1 | CLOSED | docs/science/ASTROMETRY.md | STD-F1-ADJ（ipv 求解器输出 `x=u+CRPIX` 即 1-based FITS `p`、与 Paper I 逐式一致；产品网格/数组下标→FITS 的单次 +1 换算在 Phase3 导出边界与 p1_wcs.json 写出侧；实测 astropy 交叉 5.7e-14 deg / 九宫格 18 格无 1px 偏移 / 负向注入必败） |
 | DISP-WCS-001 | 中 | docs/science/algorithms/PLATESOLVE.md | P1-WCS-IMPL（CD 退化静默坍缩，负面用例已在位） |
 | DISP-WCS-008 | 低 | docs/science/algorithms/PLATESOLVE.md；docs/science/ASTROMETRY.md | P1-WCS-IMPL（网格/阶扩展与迭代反演已落地，SCI 口径已同步） |
-| DISP-P3PROJ-001 | 中 | docs/science/algorithms/PHASE3_PROJ_IMPL.md | P3-PROJ-IMPL / P3-PROJ-INT（PA 未接线：会话恒传 rotation_pa_deg=0.0；astrocs_p3_projection.dll 未建 entrypoint=MISSING） |
+| DISP-P3PROJ-001 | 中 | docs/science/algorithms/PHASE3_PROJ_IMPL.md | P3-PROJ-IMPL / P3-PROJ-INT（PA 未接线：会话恒传 rotation_pa_deg=0.0；acsd_p3_projection.dll 未建 entrypoint=MISSING） |
 
 > WCS `1e-4 px` 冻结门以 41×41/81×81 AP/BP 布局扩展 + 消费方迭代反演达成
 > （本机实测 3.3e-10~2.9e-9 px），保留高畸变 fixture。
@@ -222,7 +222,7 @@
 - VERSION: FITS 4.0（IAU FWG，2016-07-22 批准版）
 - CLAUSES: §3.1（基本文件结构/80 字节卡）/§4.2（SIMPLE/BITPIX/NAXIS 基本头）/§4.4（扩展 HDU）/§5（表扩展）/§6（DATASUM/CHECKSUM）
 - COMPLIANCE: PARTIAL
-- EVIDENCE: docs/science/IO_001_FITS_STREAM_INTERFACE.md；docs/science/algorithms/PHASE3_FITS_IMPL.md；docs/science/DATA_SEMANTICS.md；lib/infrastructure/aio/io/include/astrocs/io/fits_stream_v1.h；eng/tests/io/test_fits_stream_contract.py
+- EVIDENCE: docs/science/IO_001_FITS_STREAM_INTERFACE.md；docs/science/algorithms/PHASE3_FITS_IMPL.md；docs/science/DATA_SEMANTICS.md；lib/infrastructure/aio/io/include/acsd/io/fits_stream_v1.h；eng/tests/io/test_fits_stream_contract.py
 - DEVIATION: DISP-FITS-001
 
 | 条款 | 标准要求 | 符合状态 | 证据指针 | 偏差 |
@@ -231,7 +231,7 @@
 | §4.2（SIMPLE/BITPIX/NAXIS 基本头与基本图像 HDU） | 基本 HDU 头卡合法且维度一致 | CONFORMANT | docs/science/IO_001_FITS_STREAM_INTERFACE.md；docs/science/algorithms/PHASE3_FITS_IMPL.md；eng/tests/io/test_fits_stream_contract.py | 无（NAXIS≥0、≤3；dtype/shape 失配显式拒绝） |
 | §4.4/§5（扩展 HDU 与表扩展） | 扩展 HDU/BINTABLE 结构与 EXTNAME/BUNIT 语义 | PARTIAL | docs/science/algorithms/PHASE3_FITS_IMPL.md；eng/tests/io/test_fits_stream_contract.py | DISP-FITS-001（扩展 HDU 面按产品子集实现：仅登记 EXTNAME/BUNIT/DATASUM 面，未覆盖通用表扩展全集） |
 | §6（DATASUM/CHECKSUM 校验和） | 数据与头校验和须可复算、校验失败显式报错 | CONFORMANT | docs/science/IO_001_FITS_STREAM_INTERFACE.md；docs/science/DATA_SEMANTICS.md；eng/tests/io/test_fits_stream_contract.py | 无（内容哈希流式重算复核在位） |
-| §3.1/§4.2（错误语义：截断/坏头/不支持位深） | 违规输入显式错误码，禁静默降级 | CONFORMANT | docs/science/IO_001_FITS_STREAM_INTERFACE.md；lib/infrastructure/aio/io/include/astrocs/io/fits_stream_v1.h；eng/tests/io/test_fits_stream_contract.py | 无（ACS_FIO_ERR_* 17 码，含 TRUNCATED/BAD_HEADER/UNSUPPORTED） |
+| §3.1/§4.2（错误语义：截断/坏头/不支持位深） | 违规输入显式错误码，禁静默降级 | CONFORMANT | docs/science/IO_001_FITS_STREAM_INTERFACE.md；lib/infrastructure/aio/io/include/acsd/io/fits_stream_v1.h；eng/tests/io/test_fits_stream_contract.py | 无（ACS_FIO_ERR_* 17 码，含 TRUNCATED/BAD_HEADER/UNSUPPORTED） |
 | §4.2（BITPIX 与像素中心/值域语义） | 位深与数据类型显式，单位与 BUNIT 一致 | PARTIAL | docs/science/DATA_SEMANTICS.md；docs/science/algorithms/PHASE3_FITS_IMPL.md | DISP-FITS-001（科学产品的 BITPIX/BUNIT 面按 Phase 子集登记，全通用位深面归 IO 域后续任务） |
 
 ### D.fits 偏差表
@@ -300,9 +300,9 @@
 
 ---
 
-## 4. 与 `ASTROCS_DESIGN.md` 附录 B 文献锚的对应
+## 4. 与 `ACSD_DESIGN.md` 附录 B 文献锚的对应
 
-| `ASTROCS_DESIGN.md` 附录 B 条目 | 本注册表域 | 落地文档 |
+| `ACSD_DESIGN.md` 附录 B 条目 | 本注册表域 | 落地文档 |
 |---|---|---|
 | IVOA HiPS 1.0 Recommendation | hips | docs/science/algorithms/HIPS_WRITER.md；docs/science/IO_002_HIPS_INPUT_INTERFACE.md |
 | Fernique et al. 2015, Hierarchical progressive surveys | hips | docs/science/PHASE3_HIPS_TO_FITS.md |
@@ -365,7 +365,7 @@ docs/DOCUMENT_INDEX.yaml）在启动时校验 os.path.exists + `git ls-files --e
 
 人工复现生产路径（不经 --fault-inject）：
 
-    ASTROCS_STD_REG_ANCHOR_OVERRIDE='REGISTRY_REL=docs/standards/__missing__.md' \
+    ACSD_STD_REG_ANCHOR_OVERRIDE='REGISTRY_REL=docs/standards/__missing__.md' \
       python3 docs/standards/checks/check_standards_registry.py --root .; echo rc=$?   # rc=2
 
 > CI 登记状态：本检查器为**治理文档检查器**
@@ -380,10 +380,10 @@ docs/DOCUMENT_INDEX.yaml）在启动时校验 os.path.exists + `git ls-files --e
 
 ## 6. 追溯
 
-- 上游：`ASTROCS_DESIGN.md` 附录 B / §6.3（投影）；本文件不在 `ASTROCS_DESIGN.md` §0 权威链上。
+- 上游：`ACSD_DESIGN.md` 附录 B / §6.3（投影）；本文件不在 `ACSD_DESIGN.md` §0 权威链上。
 - `STD-F6`（「国际标准冻结注册表缺失」）的处置面由本文件落地；
   其跨域治理偏差**定义**在 §3.2。
-- D.fits 的证据指针 = `lib/infrastructure/aio/io/include/astrocs/io/fits_stream_v1.h`。
+- D.fits 的证据指针 = `lib/infrastructure/aio/io/include/acsd/io/fits_stream_v1.h`。
 - 域文档：docs/science/ASTROMETRY.md、docs/science/DRIZZLE.md、docs/science/PHASE3_HIPS_TO_FITS.md、
   docs/science/algorithms/PLATESOLVE.md、docs/science/algorithms/PHASE3_PROJ_IMPL.md、docs/science/algorithms/HIPS_WRITER.md、
   docs/science/algorithms/HEALPIX_MAPPING.md、docs/science/algorithms/DRIZZLE_GEOMETRY.md、docs/science/algorithms/GAIA_QUERY.md、
@@ -395,7 +395,7 @@ docs/DOCUMENT_INDEX.yaml）在启动时校验 os.path.exists + `git ls-files --e
 
 ## 附：状态字段口径
 
-> 依据：`ASTROCS_DESIGN.md` §0.2（登记表/映射表的状态字段一律留空）、§12.5（状态必须现场计算）。
+> 依据：`ACSD_DESIGN.md` §0.2（登记表/映射表的状态字段一律留空）、§12.5（状态必须现场计算）。
 
 - 本表**不写**交付状态阶梯（§12.5 的 `CONTRACT_READY`/`IMPLEMENTED`/…）——那是模块/交付物的状态，由 `eng/tools/quality/check_module_map.py` 现场计算；文档活动分类一律以 `docs/DOCUMENT_INDEX.yaml` + `eng/tools/doccheck/check_doc_index.py` 为准。
 - 本表保留的两列**不是**交付状态，且都由机器校验，不构成「表内自证绿」：

@@ -1,6 +1,6 @@
 # Uncertainty & Covariance
 
-> 上游：ASTROCS_DESIGN.md §5.3（SNR 重建与逆方差叠加）、§3.1（数据对象）
+> 上游：ACSD_DESIGN.md §5.3（SNR 重建与逆方差叠加）、§3.1（数据对象）
 
 ## 目的
 

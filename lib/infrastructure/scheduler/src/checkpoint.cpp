@@ -2,9 +2,9 @@
 // RT-007 扩展:
 //   - phase scope 隔离: begin(run_id, scope); 不同 scope 的 checkpoint 互不可见;
 //   - resume 输入门: 恢复只接受 ArtifactStore 中 hash/schema 匹配的已发布 artifact。
-#include "astrocs/core/checkpoint.h"
+#include "acsd/core/checkpoint.h"
 
-namespace astrocs::core {
+namespace acsd::core {
 
 Result<void> CheckpointStore::begin(const std::string& run_id) {
   return begin(run_id, "");
@@ -131,4 +131,4 @@ Result<void> validate_resume_inputs(const ArtifactStore& store,
   return Result<void>::success();
 }
 
-}  // namespace astrocs::core
+}  // namespace acsd::core

@@ -2,10 +2,10 @@
   "port_id": "phase2.integrate.pixel_variance_in",
   "direction": "input",
   "accepts_object": "psfsw_robust_weight",
-  "accepts_schema_id": "https://astrocs.local/schemas/unified/psfsw_robust_weight/v1",
+  "accepts_schema_id": "https://acsd.local/schemas/unified/psfsw_robust_weight/v1",
   "connected_object_document": {
     "unified_object": "psfsw_robust_weight",
-    "object_schema_id": "https://astrocs.local/schemas/unified/psfsw_robust_weight/v1",
+    "object_schema_id": "https://acsd.local/schemas/unified/psfsw_robust_weight/v1",
     "schema_version": 1,
     "units": {
       "bunit": "1",

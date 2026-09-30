@@ -2,7 +2,7 @@
 """RT-004 验收测试：唯一共享 executor（CPU heavy + 有界 I/O）。
 
 验收映射 (tasks/03_RUNTIME_DATA_IO_TASKS.md RT-004):
-  - 私池静态扫描：生产路径(lib/infrastructure/scheduler/src + lib/include/astrocs/core)无 std::thread
+  - 私池静态扫描：生产路径(lib/infrastructure/scheduler/src + lib/include/acsd/core)无 std::thread
     私建永久池；executor.cpp 是全仓唯一共享 executor 池实现（Impl 持有
     vector<thread> 创建 CPU/I/O worker，析构 stop+notify+join 完整回收生命周期，
     无 detach 常驻线程/UAF）；scheduler.cpp 的 CORE-006 基线 bounded per-run
@@ -16,7 +16,7 @@
 
 方法 (独立 harness, 照 eng/tests/runtime/test_rt003_budget_wiring.py 先例):
   Python unittest 内嵌 C++ driver，g++ 真实编译链接 lib/infrastructure/scheduler/src 源码
-  (executor.cpp/context.cpp/artifact.cpp) + lib/include/astrocs/core 头，运行断言；
+  (executor.cpp/context.cpp/artifact.cpp) + lib/include/acsd/core 头，运行断言；
   另以源码静态扫描断言生产路径无私建永久池、worker 无忙等轮询。
 """
 from __future__ import annotations
@@ -35,7 +35,7 @@ CORE = REPO / "lib" / "infrastructure" / "scheduler" / "src"
 
 _DRIVER = r'''
 // RT-004 harness: 唯一共享 executor（CPU heavy + 有界 I/O）真实编译链接验收
-#include "astrocs/core/executor.h"
+#include "acsd/core/executor.h"
 
 #include <atomic>
 #include <chrono>
@@ -46,7 +46,7 @@ _DRIVER = r'''
 #include <thread>
 #include <vector>
 
-using namespace astrocs::core;
+using namespace acsd::core;
 
 static int failures = 0;
 #define CHECK(cond)                                                       \
@@ -293,7 +293,7 @@ int main() {
 '''
 
 # ── 静态扫描断言 (私池 + 忙等) ──
-# 扫描范围: 生产路径 = lib/infrastructure/scheduler/src/*.cpp + lib/include/astrocs/core/*.h
+# 扫描范围: 生产路径 = lib/infrastructure/scheduler/src/*.cpp + lib/include/acsd/core/*.h
 # 语义 (RT-004): 模块/节点不得 std::thread 私建永久池。executor.cpp 是全仓唯一
 # 共享 executor 池实现，允许创建常驻 worker（CpuHeavyExecutor/IoExecutor 构造，
 # Impl 持有 vector<thread>，析构 stop+notify+join 完整回收生命周期，无 UAF）。
@@ -462,9 +462,9 @@ class TestRt004WorkerNoBusySpin(unittest.TestCase):
 # 130 倍），并由 check_wait_discriminates_real_leak 自检保证真泄漏仍判红（不放宽判据）。
 _POOL_DRIVER = r'''
 // RT-004-POOL-01 harness: 三个阶段调度器的池回收（无泄漏线程）运行时验收
-#include "astrocs/core/export_stream.h"
-#include "astrocs/core/mosaic_window.h"
-#include "astrocs/core/normalize_workflow.h"
+#include "acsd/core/export_stream.h"
+#include "acsd/core/mosaic_window.h"
+#include "acsd/core/normalize_workflow.h"
 
 #include <atomic>
 #include <chrono>
@@ -476,7 +476,7 @@ _POOL_DRIVER = r'''
 #include <thread>
 #include <vector>
 
-using namespace astrocs::core;
+using namespace acsd::core;
 
 static int failures = 0;
 #define CHECK(cond)                                                          \
@@ -677,7 +677,7 @@ int main() {
     c.queue_depth = 4;
     c.output_path = std::string(RT004_POOL_TMP) + "/rt004_pool_w" + std::to_string(round) + ".fits";
     c.wcs_header = "SIMPLE  =                    T\nNAXIS   =                    2\n";
-    c.properties = "ASTROCS PROVENANCE\nPROJECT = ACSD\n";
+    c.properties = "ACSD PROVENANCE\nPROJECT = ACSD\n";
     ExportStreamScheduler s(c);
     s.set_image(512, 512);
     s.set_pixel_fn(ref_pixel);

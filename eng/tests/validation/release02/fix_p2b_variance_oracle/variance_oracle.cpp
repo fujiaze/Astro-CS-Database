@@ -10,8 +10,8 @@
  *           σ² = 1.78725e21（control_variance 中位）；N = 49（L4 帧数）。
  * 构建: 见 build_oracle.sh（g++，链接 variance_propagation.cpp + weight_chain.cpp）。
  */
-#include "astrocs/variance_propagation.h"
-#include "astrocs/weight_chain.h"
+#include "acsd/variance_propagation.h"
+#include "acsd/weight_chain.h"
 
 #include <algorithm>
 #include <cmath>
@@ -20,19 +20,19 @@
 #include <string>
 #include <vector>
 
-using astrocs::v6::p2var::corrected_pixel_variance;
-using astrocs::v6::p2var::HatRow;
-using astrocs::v6::p2var::mean_model_naive_over_correct;
-using astrocs::v6::p2var::naive_variance;
-using astrocs::v6::p2var::normalized_weight_hat_row;
-using astrocs::v6::p2var::residual_maker_variance;
-using astrocs::v6::p2var::weight_from_variance;
-using astrocs::v6::p2weight::compute_inverse_variance_weights;
-using astrocs::v6::p2weight::FrameSnrKind;
-using astrocs::v6::p2weight::FrameWeightInput;
-using astrocs::v6::p2weight::WeightChainPolicy;
-using astrocs::v6::p2weight::WeightChainResult;
-using astrocs::v6::p2weight::WeightClosure;
+using acsd::v6::p2var::corrected_pixel_variance;
+using acsd::v6::p2var::HatRow;
+using acsd::v6::p2var::mean_model_naive_over_correct;
+using acsd::v6::p2var::naive_variance;
+using acsd::v6::p2var::normalized_weight_hat_row;
+using acsd::v6::p2var::residual_maker_variance;
+using acsd::v6::p2var::weight_from_variance;
+using acsd::v6::p2weight::compute_inverse_variance_weights;
+using acsd::v6::p2weight::FrameSnrKind;
+using acsd::v6::p2weight::FrameWeightInput;
+using acsd::v6::p2weight::WeightChainPolicy;
+using acsd::v6::p2weight::WeightChainResult;
+using acsd::v6::p2weight::WeightClosure;
 
 namespace {
 int g_fail = 0, g_pass = 0;

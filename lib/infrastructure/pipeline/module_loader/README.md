@@ -6,7 +6,7 @@ Linux 真实实现的安全动态加载器; Windows 契约同源(实现在 WIN-*
 
 | 文件 | 角色 |
 |---|---|
-| `secure_loader.h` | 合同头(固定宽度 POD、head、错误码枚举、UTF-8 span、opaque handle; 与 `lib/include/astrocs/abi/` 冻结风格一致) |
+| `secure_loader.h` | 合同头(固定宽度 POD、head、错误码枚举、UTF-8 span、opaque handle; 与 `lib/include/acsd/abi/` 冻结风格一致) |
 | `secure_loader.c` | Linux 实现: canonical 路径 + ELF64 校验 + FIPS 180-4 sha256 + dlopen + 加载后符号/握手/describe 校验 |
 | `eng/tests/abi/abi003_loader_probe.c` | 验收探针(包装 load/describe/release, 输出机器可读结果) |
 | `eng/tests/abi/test_secure_loader.py` | 全部正/负场景编排(36 checks) |
@@ -23,13 +23,13 @@ Linux 真实实现的安全动态加载器; Windows 契约同源(实现在 WIN-*
 ## 使用
 
 ```c
-acs_load_manifest_unit_v1 unit = { .head = {sizeof(unit), 1}, .kind = sv("module"),
-  .abs_path_utf8 = sv(manifest_path), .module_id = sv("astrocs.conformance.noop"),
+acsd_load_manifest_unit_v1 unit = { .head = {sizeof(unit), 1}, .kind = sv("module"),
+  .abs_path_utf8 = sv(manifest_path), .module_id = sv("acsd.conformance.noop"),
   .expected_sha256 = sv(hex64), .expected_build_id = sv(build_id), .abi_version = 1 };
-acs_loader_options_v1 opt = { .head = {sizeof(opt), 1}, .unit = unit,
+acsd_loader_options_v1 opt = { .head = {sizeof(opt), 1}, .unit = unit,
   .allowed_root_utf8 = sv(install_root), .allocator = &alloc };
-acs_error_info_v1 err; acs_loader_handle* h = NULL;
-acs_status st = acs_secure_loader_load_v1(&opt, &err, &h);
+acsd_error_info_v1 err; acsd_loader_handle* h = NULL;
+acsd_status st = acsd_secure_loader_load_v1(&opt, &err, &h);
 /* 成功 → describe_v1 读取 module_api; 用完 release_v1 */
 ```
 
@@ -44,8 +44,8 @@ python3 eng/tests/abi/test_secure_loader.py   # 退出码 0 = 36/36 PASS
 - 本文件族由 ABI-003 交付: 加载器安全语义冻结; host(registry) 接线属 ABI-004
   (product manifest → unit 记录 → load)。
 - **未启用面（CHK-PROD-WIRING W6，2026-09-25 声明）**：本加载器与 ABI-004 registry
-  (`acs_registry_open_v1`) **不在三个生产命令的运行期调用图上**——三个命令的模块面
-  走构建内 `astrocs::ModuleRegistry`（`module_adapters.cpp`），本通道是**安装/交付面**，
+  (`acsd_registry_open_v1`) **不在三个生产命令的运行期调用图上**——三个命令的模块面
+  走构建内 `acsd::ModuleRegistry`（`module_adapters.cpp`），本通道是**安装/交付面**，
   由 `eng/tests/abi/mod001_install_load_check.py`（逐 unit 装载 + 4 类负路径必败）、
   `eng/tests/abi/test_module_registry.py`、`eng/packaging/verify_install_tree.py` 消费。
   完整声明（依据/消费者/退出条件）见 `docs/engineering/MODULE_MAP.md` §1.1；

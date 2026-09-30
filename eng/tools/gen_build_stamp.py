@@ -46,7 +46,7 @@ import sys
 
 REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-STAMP_SCHEMA = "astrocs.build-stamp/v1"
+STAMP_SCHEMA = "acsd.build-stamp/v1"
 DIGEST_ALGO = "sha256"
 # 声明源集：这些根下的、后缀命中的**跟踪文件**构成"编入产品的源文件面"。
 # 判据：lib/** 是全部产品代码（含 vendored 第三方源码，它们确实被编译）；
@@ -214,11 +214,11 @@ def render_header(stamp):
         "// 由 eng/tools/gen_build_stamp.py 生成 — 禁手改（构建期指纹）\n"
         "// 依据：docs/engineering/VERSIONING.md 构建指纹合同 / RUN-PROVENANCE-01\n"
         "#pragma once\n"
-        "#define ASTROCS_BUILD_HEAD_SHA %s\n"
-        "#define ASTROCS_BUILD_DIRTY %d\n"
-        "#define ASTROCS_BUILD_SOURCE_DIGEST %s\n"
-        "#define ASTROCS_BUILD_STAMP_UTC %s\n"
-        "#define ASTROCS_CONFIGURE_HEAD_SHA %s\n"
+        "#define ACSD_BUILD_HEAD_SHA %s\n"
+        "#define ACSD_BUILD_DIRTY %d\n"
+        "#define ACSD_BUILD_SOURCE_DIGEST %s\n"
+        "#define ACSD_BUILD_STAMP_UTC %s\n"
+        "#define ACSD_CONFIGURE_HEAD_SHA %s\n"
         % (s(stamp["head_sha"]), 1 if stamp["dirty"] else 0,
            s(stamp["source_digest"]), s(stamp["stamp_utc"]),
            s(stamp["configure_head_sha"]))
@@ -244,7 +244,7 @@ def write_if_different(path, text):
 def manifest_doc(stamp, entries):
     return {
         "schema_version": 1,
-        "kind": "astrocs.build-stamp-manifest/v1",
+        "kind": "acsd.build-stamp-manifest/v1",
         "head_sha": stamp["head_sha"],
         "source_digest": stamp["source_digest"],
         "git_object_format": stamp["git_object_format"],
@@ -266,7 +266,7 @@ def _self_test():
         if not ok:
             problems.append("%s: %s" % (name, detail))
 
-    tmp = tempfile.mkdtemp(prefix="astrocs_stamp_")
+    tmp = tempfile.mkdtemp(prefix="acsd_stamp_")
     try:
         repo = os.path.join(tmp, "r")
         os.makedirs(os.path.join(repo, "lib"))
@@ -323,8 +323,8 @@ def _self_test():
         # 头文件渲染：宏齐全、dirty 为 0/1
         hdr = render_header(s3)
         rec("header_macros", all(m in hdr for m in (
-            "ASTROCS_BUILD_HEAD_SHA", "ASTROCS_BUILD_DIRTY",
-            "ASTROCS_BUILD_SOURCE_DIGEST", "ASTROCS_CONFIGURE_HEAD_SHA")), "ok")
+            "ACSD_BUILD_HEAD_SHA", "ACSD_BUILD_DIRTY",
+            "ACSD_BUILD_SOURCE_DIGEST", "ACSD_CONFIGURE_HEAD_SHA")), "ok")
 
         # 负例：非 git 树 ⇒ 具名 GIT_UNAVAILABLE，不 traceback
         nogit = os.path.join(tmp, "nogit")

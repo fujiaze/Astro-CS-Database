@@ -9,7 +9,7 @@
 > （ALG-WCS-001 + §11 逐符号源码锚定）；DATA=docs/contracts/
 > DATA_SEMANTICS.md §18（DATA-P1-WCS）；API=docs/engineering/PUBLIC_API.md
 > （API-WCS-001）；矩阵行=docs/traceability/TRACEABILITY_MATRIX.json
-> MOD-astrocs-phase1-wcs-platesolve。
+> MOD-acsd-phase1-wcs-platesolve。
 > 唯一权威签名头: lib/algorithms/platesolve/cpp/ipv/include/ipv_api.h（238 行；
 > 禁止手抄他版）。
 
@@ -18,9 +18,9 @@
 | 项 | 值 |
 |---|---|
 | 矩阵行 | P1-WCS（MODULE_MIGRATION_MATRIX.csv） |
-| module_id | `astrocs.p1.wcs` |
+| module_id | `acsd.p1.wcs` |
 | owner | SA-P1-W16 |
-| 迁移目标 DLL | `astrocs_p1_wcs.dll`（合同值，尚未建立；现状构建产物 `ipv_solver.dll`，见 §8） |
+| 迁移目标 DLL | `acsd_p1_wcs.dll`（合同值，尚未建立；现状构建产物 `ipv_solver.dll`，见 §8） |
 | depends_on_int | CAT-GAIA-INT;P1-STAR-INT |
 | module_status | CONTRACT_READY |
 | entrypoint | **MISSING**（registry 入口未接；lib/infrastructure/scheduler/src/module_adapters.cpp:450-464 `p1_wcs_descriptor` 持占位 ID，由 P1-WCS-INT 对齐本合同，不得反向作为冻结依据） |
@@ -29,8 +29,8 @@
 落位依据：MODULE_MIGRATION_MATRIX.csv P1-WCS 行 legacy_paths 第一路径即
 lib/algorithms/platesolve/（生产实现所在），本目录三件套 README.md/module.yaml/
 memory.md 为该模块合同冻结唯一落位；lib/algorithms/platesolve/wrapper_phase1/ 为第二 legacy 路径
-（旧符号 astrocs::phase1::WcsTan，CMakeLists.txt:426-428 静态库
-astrocs_phase1_wcs，未接 orchestrator 管线，仅单测
+（旧符号 acsd::phase1::WcsTan，CMakeLists.txt:426-428 静态库
+acsd_phase1_wcs，未接 orchestrator 管线，仅单测
 eng/tests/unit/p1_wcs_phot_test），其合同并入本 README §9，不另立目录。
 
 ## 2. 负责范围 / 不负责
@@ -121,7 +121,7 @@ inlier 查询（ipv_get_last_inlier_count/ipv_get_last_inliers）。
   -std=c++17 -O3 -fopenmp → ipv_solver.dll，MSYS2/MinGW，链接 kernel32；
   依赖 astro_image_io/gaia_client/star_detector DLL）。
 - 未编入根 CMake 主构建（根 CMakeLists.txt 无 ipv 目标）；CMake 集成与
-  dll 重命名（astrocs_p1_wcs.dll）归 P1-WCS-IMPL。
+  dll 重命名（acsd_p1_wcs.dll）归 P1-WCS-IMPL。
 - 生产调用：orchestrator.cpp:1758 run_stage_platesolve（必需 stage，DLL
   未加载 :1763 退出码 2）；init :1621-1643（create + 句柄注入）；消费
   star_measurements [N,≥15] 权威块（过滤 :1852-1862、+0.5 :1867）+
@@ -132,14 +132,14 @@ inlier 查询（ipv_get_last_inlier_count/ipv_get_last_inliers）。
 
 ## 9. lib/algorithms/platesolve/wrapper_phase1 legacy 合同（并入，不另立目录）
 
-- 符号：astrocs::phase1::WcsTan（wcs_tan.h，54 行实现 wcs_tan.cpp）；
+- 符号：acsd::phase1::WcsTan（wcs_tan.h，54 行实现 wcs_tan.cpp）；
   crpix 1-based、crval deg、CD deg/px；pix2sky :8-32（RA wrap :28-29）、
   sky2pix :34-52（det<1e-30 → CRPIX :48-51，DISP-WCS-001 同族实例）。
-- 构建：根 CMakeLists.txt:426-428 `add_library(astrocs_phase1_wcs STATIC
+- 构建：根 CMakeLists.txt:426-428 `add_library(acsd_phase1_wcs STATIC
   lib/algorithms/platesolve/wrapper_phase1/wcs_tan.cpp)`，:513 链接入 tests。
 - 消费方：仅 eng/tests/unit/p1_wcs_phot_test.cpp（roundtrip <1e-6 deg :50，
   TEST-WCS-DESIGN-001 F6 冻结回归锚）。
-- 去留：P1-WCS-IMPL 登记迁移决策（并入 astrocs_p1_wcs.dll 或显式退役）；
+- 去留：P1-WCS-IMPL 登记迁移决策（并入 acsd_p1_wcs.dll 或显式退役）；
   本合同冻结其行为语义，不冻结其存续。
 
 ## 10. 测试设计（TEST-WCS-DESIGN-001，PLATESOLVE.md §11.4 唯一权威）
@@ -162,7 +162,7 @@ determinism=fixed_reduction_order）；求解主体单线程；FP64 全链路无
 ## 12. 迁移语义
 
 plan/execute/cancel/inspect 生命周期、C ABI module adapter、
-astrocs_p1_wcs.dll 重命名与 CMake 集成由 P1-WCS-IMPL 建立；registry
+acsd_p1_wcs.dll 重命名与 CMake 集成由 P1-WCS-IMPL 建立；registry
 descriptor（module_adapters.cpp:450-464，ports sources/wcs）由 P1-WCS-INT
 对齐本合同；本 README 描述现状 API，不声明 DLL 化完成。禁止声明
 IMPLEMENTED。

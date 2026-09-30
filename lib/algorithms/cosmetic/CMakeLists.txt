@@ -1,16 +1,16 @@
-# CMakeLists.txt - astrocs_p1_cosmetic 模块 DLL (P1-COS-IMPL 迁移面)
+# CMakeLists.txt - acsd_p1_cosmetic 模块 DLL (P1-COS-IMPL 迁移面)
 #
 # 对齐先例: lib/algorithms/calibration/CMakeLists.txt (P1-CAL-IMPL, adf820ac) /
 # lib/algorithms/drizzle/CMakeLists.txt (P1-DRZ-IMPL) / lib/infrastructure/gaia_xpsd_client
 # (CAT-GAIA-IMPL, babe752d)。关键事实 (T-1, drizzle/CAL 实证): STATIC 库
 # 对象非 PIC (TLS local-exec R_X86_64_TPOFF32), 链接 .so 失败 → 本 SHARED
 # 目标从源独立重编译生产源 (POSITION_INDEPENDENT_CODE ON), 不链
-# libastrocs_calibration.a。
+# libacsd_calibration.a。
 #
 # 导出面净化 (ABI-006): legacy AC_API 符号 (ac_api.cpp 定义 12 符号) 在本
 # target 上经 `-DAC_API=` 预定义空 (astro_calibration.h :8 守卫, P1-CAL-IMPL
 # 引入, 生产头零改动) 本地化; 再加链接 version-script (Linux) / /DEF
-# (Windows) 双保险。唯一导出 astrocs_module_query_v1。
+# (Windows) 双保险。唯一导出 acsd_module_query_v1。
 # 科学域零改动: 生产闭包 = calibration 4 TU 全集 (与 CAL-IMPL 同款)。
 # 实证: ac_api.cpp 是 calibration 全域 C API 转发层 (内聚不可拆), 除
 # cosmetic 的 ac::correct_frame 外还转发 ac::generate_master /
@@ -30,12 +30,12 @@
 # 测试 TU 无 OMP 符号引用时 --as-needed 会把测试可执行的 libgomp 从
 # DT_NEEDED 丢弃, DLL 内 GOMP 并行区退化为 dlopen 晚装载 → SEGV。
 # 处置在测试注册段: eng/tests/unit/cosmetic_adapter_test.cpp TU 链
-# astrocs_calibration (天然 OMP 符号引用) 且显式
+# acsd_calibration (天然 OMP 符号引用) 且显式
 # target_link_options(LINKER:--no-as-needed) 双保险。
 #
 # 注: 本子目录由根 CMakeLists.txt (calibration 之后) 注册。
 
-# ── 生产源 (calibration 4 TU 全集; 与根 CMakeLists astrocs_calibration
+# ── 生产源 (calibration 4 TU 全集; 与根 CMakeLists acsd_calibration
 # :333 逐文件一致; 闭包实证据见上方导出面净化注释) ──
 set(COS_PROD_SOURCES
     ${CMAKE_SOURCE_DIR}/lib/algorithms/calibration/src/calibrator.cpp
@@ -47,15 +47,15 @@ set(COS_ADAPTER_SOURCES
     ${CMAKE_CURRENT_SOURCE_DIR}/src/module_entry.cpp
 )
 
-add_library(astrocs_p1_cosmetic SHARED
+add_library(acsd_p1_cosmetic SHARED
     ${COS_ADAPTER_SOURCES}
     ${COS_PROD_SOURCES}
 )
 
-set_target_properties(astrocs_p1_cosmetic PROPERTIES
+set_target_properties(acsd_p1_cosmetic PROPERTIES
     POSITION_INDEPENDENT_CODE ON
     PREFIX ""
-    OUTPUT_NAME "astrocs_p1_cosmetic"
+    OUTPUT_NAME "acsd_p1_cosmetic"
     C_STANDARD 11
     C_STANDARD_REQUIRED ON
     CXX_STANDARD 17
@@ -64,12 +64,12 @@ set_target_properties(astrocs_p1_cosmetic PROPERTIES
 # Windows (MSVC): DLL 无 import lib 前缀需求; 输出到 build 根 (host loader
 # 与测试按 build 根定位, 对齐 CAL/drizzle $<1:...> 惯例)
 if(WIN32)
-    set_target_properties(astrocs_p1_cosmetic PROPERTIES
+    set_target_properties(acsd_p1_cosmetic PROPERTIES
         RUNTIME_OUTPUT_DIRECTORY $<1:${CMAKE_BINARY_DIR}>)
 endif()
 
-# ── include 路径 (生产源口径 = 根 astrocs_calibration :338 同集) ──
-target_include_directories(astrocs_p1_cosmetic PRIVATE
+# ── include 路径 (生产源口径 = 根 acsd_calibration :338 同集) ──
+target_include_directories(acsd_p1_cosmetic PRIVATE
     ${CMAKE_SOURCE_DIR}/lib/include
     ${CMAKE_SOURCE_DIR}/lib/algorithms/calibration/include
     ${CMAKE_SOURCE_DIR}/lib/infrastructure/aio/include
@@ -77,9 +77,9 @@ target_include_directories(astrocs_p1_cosmetic PRIVATE
 )
 
 # ── 编译宏: ABI 导出开关 + legacy 符号本地化 (AC_API= 守卫, 头 :8) ──
-target_compile_definitions(astrocs_p1_cosmetic PRIVATE
-    ASTROCS_ABI_SHARED=1
-    ASTROCS_ABI_EXPORTS=1
+target_compile_definitions(acsd_p1_cosmetic PRIVATE
+    ACSD_ABI_SHARED=1
+    ACSD_ABI_EXPORTS=1
     AC_API=
 )
 
@@ -87,25 +87,25 @@ find_package(Threads REQUIRED)
 
 # ── 链接依赖 (闭包自包含; 只剩系统库 + OpenMP) ──
 set(COS_LINK_LIBS Threads::Threads)
-  list(APPEND COS_LINK_LIBS astrocs_platform_math)
-target_link_libraries(astrocs_p1_cosmetic PRIVATE ${COS_LINK_LIBS})
+  list(APPEND COS_LINK_LIBS acsd_platform_math)
+target_link_libraries(acsd_p1_cosmetic PRIVATE ${COS_LINK_LIBS})
 
 # QA-001 同口径: cosmetic_corrector 含 omp pragma; 门控与旗标收在
-# eng/cmake/cfitsio_platform.cmake 的 astrocs_openmp_link_if_unix() 一处
+# eng/cmake/cfitsio_platform.cmake 的 acsd_openmp_link_if_unix() 一处
 # (非 UNIX / 无 OpenMP 时空操作; DLL 在 UNIX 下自链 libgomp)。
-astrocs_openmp_link_if_unix(astrocs_p1_cosmetic)
+acsd_openmp_link_if_unix(acsd_p1_cosmetic)
 
-# ── 导出面净化 (唯一导出 astrocs_module_query_v1; ABI-006) ──
+# ── 导出面净化 (唯一导出 acsd_module_query_v1; ABI-006) ──
 if(WIN32)
     # MSVC: /DEF 白名单 (AC_API= 已本地化 legacy 符号, def 双保险)
-    set(COS_DEF "${CMAKE_CURRENT_SOURCE_DIR}/src/astrocs_p1_cosmetic.def")
-    target_link_options(astrocs_p1_cosmetic PRIVATE "/DEF:${COS_DEF}")
+    set(COS_DEF "${CMAKE_CURRENT_SOURCE_DIR}/src/acsd_p1_cosmetic.def")
+    target_link_options(acsd_p1_cosmetic PRIVATE "/DEF:${COS_DEF}")
 else()
     # Linux/macOS: version-script 白名单 + hidden 可见性预设
     set(COS_VERSION_SCRIPT "${CMAKE_CURRENT_SOURCE_DIR}/src/module_exports.map")
-    target_link_options(astrocs_p1_cosmetic PRIVATE
+    target_link_options(acsd_p1_cosmetic PRIVATE
         "-Wl,--version-script=${COS_VERSION_SCRIPT}")
-    set_target_properties(astrocs_p1_cosmetic PROPERTIES
+    set_target_properties(acsd_p1_cosmetic PROPERTIES
         C_VISIBILITY_PRESET hidden
         CXX_VISIBILITY_PRESET hidden
         VISIBILITY_INLINES_HIDDEN ON)

@@ -5,8 +5,8 @@
  * 场景并断言状态码与 detail_code。本探针不自己判定"通过/失败"语义, 只忠实
  * 执行并输出单行机器结果:
  *
- *   selftest: 调用 acs_secure_loader_self_test_v1 → "SELFTEST_OK"/"SELFTEST_FAIL"
- *   load:     参数化构造 acs_loader_options_v1 调用 load:
+ *   selftest: 调用 acsd_secure_loader_self_test_v1 → "SELFTEST_OK"/"SELFTEST_FAIL"
+ *   load:     参数化构造 acsd_loader_options_v1 调用 load:
  *     abi003_loader_probe load <kind> <abs_path> <module_id|-> <sha256|-> <build|-> <root|-> <abi|0>
  *     成功: LOAD_OK module_id=<m> version=<v> build=<b> sha=<hex64> path=<canon>
  *     失败: LOAD_FAIL status=<n> detail=<n>
@@ -33,14 +33,14 @@ static void test_free(void* ud, void* p) {
     free(p);
 }
 
-static acs_allocator_v1 g_alloc = {
-    { (uint32_t)sizeof(acs_allocator_v1), ACS_ABI_VERSION_V1 },
+static acsd_allocator_v1 g_alloc = {
+    { (uint32_t)sizeof(acsd_allocator_v1), ACS_ABI_VERSION_V1 },
     test_alloc, test_free, NULL
 };
 
-static acs_str_v1 sv(const char* s) {
-    acs_str_v1 v;
-    v.head.struct_size = (uint32_t)sizeof(acs_str_v1);
+static acsd_str_v1 sv(const char* s) {
+    acsd_str_v1 v;
+    v.head.struct_size = (uint32_t)sizeof(acsd_str_v1);
     v.head.abi_version = ACS_ABI_VERSION_V1;
     v.data = s;
     v.size = s ? (uint64_t)strlen(s) : 0;
@@ -48,7 +48,7 @@ static acs_str_v1 sv(const char* s) {
 }
 
 static int cmd_selftest(void) {
-    if (acs_secure_loader_self_test_v1() == ACS_OK) {
+    if (acsd_secure_loader_self_test_v1() == ACS_OK) {
         printf("SELFTEST_OK\n");
         return 0;
     }
@@ -70,9 +70,9 @@ static int cmd_load(int argc, char** argv) {
     const char* root = argv[5];
     uint32_t abi = (uint32_t)atoi(argv[6]);
 
-    acs_load_manifest_unit_v1 unit;
+    acsd_load_manifest_unit_v1 unit;
     memset(&unit, 0, sizeof(unit));
-    unit.head.struct_size = (uint32_t)sizeof(acs_load_manifest_unit_v1);
+    unit.head.struct_size = (uint32_t)sizeof(acsd_load_manifest_unit_v1);
     unit.head.abi_version = ACS_ABI_VERSION_V1;
     unit.unit_id = sv("TEST-UNIT");
     unit.kind = sv(kind);
@@ -82,19 +82,19 @@ static int cmd_load(int argc, char** argv) {
     unit.expected_build_id = sv(strcmp(bid, "-") == 0 ? "" : bid);
     unit.abi_version = abi;
 
-    acs_loader_options_v1 opt;
+    acsd_loader_options_v1 opt;
     memset(&opt, 0, sizeof(opt));
-    opt.head.struct_size = (uint32_t)sizeof(acs_loader_options_v1);
+    opt.head.struct_size = (uint32_t)sizeof(acsd_loader_options_v1);
     opt.head.abi_version = ACS_ABI_VERSION_V1;
     opt.unit = unit;
     opt.allowed_root_utf8 = sv(strcmp(root, "-") == 0 ? "" : root);
     opt.allocator = &g_alloc;
 
-    acs_error_info_v1 err;
+    acsd_error_info_v1 err;
     memset(&err, 0, sizeof(err));
-    acs_loader_handle* h = (acs_loader_handle*)0x1;  /* 哨兵: 失败必须置 NULL */
+    acsd_loader_handle* h = (acsd_loader_handle*)0x1;  /* 哨兵: 失败必须置 NULL */
 
-    acs_status st = acs_secure_loader_load_v1(&opt, &err, &h);
+    acsd_status st = acsd_secure_loader_load_v1(&opt, &err, &h);
     if (st != ACS_OK) {
         printf("LOAD_FAIL status=%d detail=%u out_null=%d\n",
                (int)st, err.detail_code, h == NULL ? 1 : 0);
@@ -105,13 +105,13 @@ static int cmd_load(int argc, char** argv) {
         return 1;
     }
 
-    acs_loaded_module_v1 info;
+    acsd_loaded_module_v1 info;
     memset(&info, 0, sizeof(info));
-    info.head.struct_size = (uint32_t)sizeof(acs_loaded_module_v1);
+    info.head.struct_size = (uint32_t)sizeof(acsd_loaded_module_v1);
     info.head.abi_version = ACS_ABI_VERSION_V1;
-    acs_status ds = acs_secure_loader_describe_v1(h, &info);
+    acsd_status ds = acsd_secure_loader_describe_v1(h, &info);
     if (ds != ACS_OK) {
-        acs_secure_loader_release_v1(h);
+        acsd_secure_loader_release_v1(h);
         printf("LOAD_FAIL status=%d detail=70 (describe)\n", (int)ds);
         return 1;
     }
@@ -124,16 +124,16 @@ static int cmd_load(int argc, char** argv) {
            (int)info.resolved_path_utf8.size, info.resolved_path_utf8.data ? info.resolved_path_utf8.data : "");
     /* 握手出的 vtable 可用性: module → describe 自证 */
     if (info.module_api && info.module_api->describe) {
-        acs_module_descriptor_v1 d2;
+        acsd_module_descriptor_v1 d2;
         memset(&d2, 0, sizeof(d2));
-        acs_str_v1 empty = sv("");
+        acsd_str_v1 empty = sv("");
         if (info.module_api->describe(info.module_api, empty, &d2) == ACS_OK) {
             printf("DESCRIBE_OK module_id=%.*s build=%.*s\n",
                    (int)d2.module_id.size, d2.module_id.data ? d2.module_id.data : "",
                    (int)d2.build_id.size, d2.build_id.data ? d2.build_id.data : "");
         }
     }
-    acs_secure_loader_release_v1(h);
+    acsd_secure_loader_release_v1(h);
     printf("RELEASE_OK\n");
     return 0;
 }

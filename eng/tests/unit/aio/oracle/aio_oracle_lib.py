@@ -276,7 +276,7 @@ def run_checks(art_dir: str, repo_root: str) -> List[str]:
     # 现行单位行出现（否则同一对象在权威链上出现第二个身份）。
     check("psfsw_robust_weight" not in units_table,
           "retired unit must not be a live units_table row (PSFSW-RETIRE-03)")
-    check(contract["x-astrocs-canonical-object-retirement"]["retired_canonical_object"]
+    check(contract["x-acsd-canonical-object-retirement"]["retired_canonical_object"]
           == "psfsw_robust_weight",
           "retired unit must stay registered as a retired canonical object")
     check("psfsw_robust" in contract["weight_modes"].get("retired", []),

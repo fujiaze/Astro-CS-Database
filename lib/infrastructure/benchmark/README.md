@@ -16,4 +16,4 @@
 
 ## 上游
 
-上游：docs/ASTROCS_DESIGN.md §9（CPU 后端与资源：benchmark 生成 cpu_profile）、§8.4（infrastructure/benchmark 条目）。
+上游：docs/ACSD_DESIGN.md §9（CPU 后端与资源：benchmark 生成 cpu_profile）、§8.4（infrastructure/benchmark 条目）。

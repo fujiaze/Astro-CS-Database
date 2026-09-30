@@ -1,8 +1,8 @@
 # 公共 C ABI 基础层
 
-> 上游：`docs/ASTROCS_DESIGN.md` §8.5（模块与 ABI）、§9（CPU 后端与资源）
+> 上游：`docs/ACSD_DESIGN.md` §8.5（模块与 ABI）、§9（CPU 后端与资源）
 > 规则面：`docs/engineering/API-001.md` §2.3（公共 API 规则）、§2.4（C ABI 规则）
-> 头文件：`lib/include/astrocs/common_abi_v1.h`，单一头，C / C++ 双可编译，
+> 头文件：`lib/include/acsd/common_abi_v1.h`，单一头，C / C++ 双可编译，
 > 跨边界不出现 STL、exception、RTTI 与编译器私有类型。
 
 本文件定义公共 C ABI 的基础层：类型与逐字段单位 / 所有权、并发合同模板、
@@ -21,25 +21,25 @@ host 服务（allocator / logger / cancel / thread budget）与 `docs/engineerin
 
 ```c
 /* 基础 POD(逐字段单位注释为合同一部分, 由 ABI layout 测试核对) */
-typedef struct { uint32_t struct_size, abi_version; } acs_head;
+typedef struct { uint32_t struct_size, abi_version; } acsd_head;
 
 /* CPU-001: 所有跨边界结构带 head(struct_size+abi_version); span 构造经 ACS_SPAN_* 宏 */
-typedef struct acs_span_f32 { acs_head head; float*  data; uint64_t count; } acs_span_f32;  /* count=元素数, data 所有权=外部分配方 */
-typedef struct acs_span_f64 { acs_head head; double* data; uint64_t count; } acs_span_f64;
-typedef struct acs_span_u8  { acs_head head; uint8_t* data; uint64_t count; } acs_span_u8;
-#define ACS_SPAN_U8(ptr, n) { { sizeof(acs_span_u8), ACS_ABI_VERSION_V1 }, (ptr), (n) }
-#define ACS_SPAN_F32(ptr, n) { { sizeof(acs_span_f32), ACS_ABI_VERSION_V1 }, (ptr), (n) }
-#define ACS_SPAN_F64(ptr, n) { { sizeof(acs_span_f64), ACS_ABI_VERSION_V1 }, (ptr), (n) }
+typedef struct acsd_span_f32 { acsd_head head; float*  data; uint64_t count; } acsd_span_f32;  /* count=元素数, data 所有权=外部分配方 */
+typedef struct acsd_span_f64 { acsd_head head; double* data; uint64_t count; } acsd_span_f64;
+typedef struct acsd_span_u8  { acsd_head head; uint8_t* data; uint64_t count; } acsd_span_u8;
+#define ACS_SPAN_U8(ptr, n) { { sizeof(acsd_span_u8), ACS_ABI_VERSION_V1 }, (ptr), (n) }
+#define ACS_SPAN_F32(ptr, n) { { sizeof(acsd_span_f32), ACS_ABI_VERSION_V1 }, (ptr), (n) }
+#define ACS_SPAN_F64(ptr, n) { { sizeof(acsd_span_f64), ACS_ABI_VERSION_V1 }, (ptr), (n) }
 
 /* opaque handle: 不透明指针, 生命周期仅经 create/destroy 对 */
-typedef struct acs_handle_s* acs_handle;
+typedef struct acsd_handle_s* acsd_handle;
 
 /* 错误码(结构化, 禁异常) */
 typedef enum {
   ACS_OK=0, ACS_ERR_PARAM=1, ACS_ERR_ABI_MISMATCH=2, ACS_ERR_NOMEM=3,
   ACS_ERR_IO=4, ACS_ERR_UNSUPPORTED=5, ACS_ERR_CANCELLED=6, ACS_ERR_STATE=7,
   ACS_ERR_BUDGET=8, ACS_ERR_SELFTEST=9
-} acs_status;
+} acsd_status;
 
 /* host allocator: 所有跨边界内存经此(分配方释放或全 host alloc, 二选一由函数合同标注) */
 typedef struct {
@@ -47,21 +47,21 @@ typedef struct {
   void* (*alloc)(void* ud, uint64_t size, uint64_t align);
   void  (*free)(void* ud, void* p);            /* p 可为 NULL */
   void* user_data;
-} acs_allocator;
+} acsd_allocator;
 
 /* logger: 线程安全由宿主保证; level 常量 ACS_LOG_DEBUG/INFO/WARN/ERROR */
 typedef struct {
   uint32_t struct_size, abi_version;
   void (*log)(void* ud, int level, const char* component, const char* msg);
   void* user_data;
-} acs_logger;
+} acsd_logger;
 
 /* cancel: 单向置位(宿主→backend), 原子语义; backend 只读轮询 */
 typedef struct {
   uint32_t struct_size, abi_version;
   int   (*is_cancelled)(void* ud);             /* 0/1, 原子读 */
   void* user_data;
-} acs_cancel;
+} acsd_cancel;
 
 /* thread budget: 只读快照+租借; backend 禁自建线程池, 取值源见 execution_options_contract.md */
 typedef struct {
@@ -71,10 +71,10 @@ typedef struct {
   int      (*acquire)(void* ud, uint32_t n);   /* 原子租借, 0=成功 */
   void     (*release)(void* ud, uint32_t n);
   void* user_data;
-} acs_thread_budget;
+} acsd_thread_budget;
 ```
 
-`acs_status` 是 ABI 层的粗粒度返回码，只区分「成功 / 哪一类失败」；
+`acsd_status` 是 ABI 层的粗粒度返回码，只区分「成功 / 哪一类失败」；
 面向用户的分类、退出码与阶段 ID 分别由 `docs/engineering/ERROR_HANDLING_STANDARD.md` §3 / §4 / §5
 与 `docs/engineering/LOG_AND_ERROR_CONTRACT.md` §5 定义，两层不得互相替代。
 
@@ -93,7 +93,7 @@ typedef struct {
 
 | 本文件 | 落点 |
 |---|---|
-| §2 类型 | `lib/include/astrocs/common_abi_v1.h`（实现头 + ABI layout 测试） |
+| §2 类型 | `lib/include/acsd/common_abi_v1.h`（实现头 + ABI layout 测试） |
 | §3 并发合同 | `docs/engineering/API-001.md` §4 逐函数定义沿用；分阶段 API 面见 `docs/engineering/PHASE1_API_V1.md`、`PHASE2_API_V1.md`、`PHASE3_API_V1.md` |
 | §2 budget / cancel | `docs/engineering/execution_options_contract.md`（唯一执行预算对象）、`docs/engineering/ARCH-001.md`（顶层结构） |
 | §2 loader 侧契约 | `docs/engineering/abi/ABI_003_SECURE_LOADER.md` |

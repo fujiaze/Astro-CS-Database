@@ -1,15 +1,15 @@
 # FIX-A 天光面链 — Phase2 稀疏天光面共址测试
-# 被测面 = astrocs_phase2（含 lib/algorithms/coverage/src/sky_plane.cpp）。
-# 未编入 astrocs_phase2 时链接失败 => 构建即红灯。
+# 被测面 = acsd_phase2（含 lib/algorithms/coverage/src/sky_plane.cpp）。
+# 未编入 acsd_phase2 时链接失败 => 构建即红灯。
 add_executable(p2_sky_test p2_sky_test.cpp)
 target_include_directories(p2_sky_test PRIVATE
   ${CMAKE_CURRENT_SOURCE_DIR}/../../../../lib//algorithms/coverage/include
   ${CMAKE_CURRENT_SOURCE_DIR}/../../../../lib//algorithms/shared)
-target_link_libraries(p2_sky_test PRIVATE astrocs_phase2)
+target_link_libraries(p2_sky_test PRIVATE acsd_phase2)
 # 运行产物显式落 run/（不依赖 cwd 是仓库根）
 target_compile_definitions(p2_sky_test PRIVATE
   SKY_TEST_OUTDIR="${CMAKE_SOURCE_DIR}/run/RELEASE-02/FIX-A")
-target_link_libraries(p2_sky_test PRIVATE astrocs_platform_math)
+target_link_libraries(p2_sky_test PRIVATE acsd_platform_math)
 
 foreach(case patch starmask recovery gauge weighting negative memory determinism seam gain dcgain overflow)
   add_test(NAME p2_sky_${case} COMMAND p2_sky_test ${case})
@@ -26,10 +26,10 @@ add_executable(p2_sky_node_adapt_test p2_sky_node_adapt_test.cpp)
 target_include_directories(p2_sky_node_adapt_test PRIVATE
   ${CMAKE_CURRENT_SOURCE_DIR}/../../../../lib//algorithms/coverage/include
   ${CMAKE_CURRENT_SOURCE_DIR}/../../../../lib//algorithms/shared)
-target_link_libraries(p2_sky_node_adapt_test PRIVATE astrocs_phase2)
+target_link_libraries(p2_sky_node_adapt_test PRIVATE acsd_phase2)
 target_compile_definitions(p2_sky_node_adapt_test PRIVATE
   SKY_TEST_OUTDIR="${CMAKE_SOURCE_DIR}/run/UPM-NODE-ADAPT-01/evidence")
-target_link_libraries(p2_sky_node_adapt_test PRIVATE astrocs_platform_math)
+target_link_libraries(p2_sky_node_adapt_test PRIVATE acsd_platform_math)
 
 foreach(case derive_positive derive_pixel_scale derive_min_bounds derive_negative
              default_config build_geometry_required build_derives kappa_gate
@@ -44,15 +44,15 @@ set_tests_properties(p2_sky_node_adapt_all PROPERTIES LABELS "p2_sky;upm_node_ad
 # ---------------------------------------------------------------------------
 # CHAIN-WIRE-ADAPT-01（W4/W5）：节点间距所需的**输入几何**由产品自身导出。
 # 被测面 = stage2_common.h 的 p2_sky_plane_geometry_from_controls（生产编排
-# upm-fit 节点与 astrocs-stage2 的同一实现路径）。正例 + 单指向退化 + 负例。
+# upm-fit 节点与 acsd-stage2 的同一实现路径）。正例 + 单指向退化 + 负例。
 # ---------------------------------------------------------------------------
 add_executable(p2_sky_geometry_test p2_sky_geometry_test.cpp)
 target_include_directories(p2_sky_geometry_test PRIVATE
   ${CMAKE_CURRENT_SOURCE_DIR}/../../../../lib/algorithms/coverage/include
   ${CMAKE_CURRENT_SOURCE_DIR}/../../../../lib/algorithms/shared
   ${CMAKE_CURRENT_SOURCE_DIR}/../../../../lib/third_party)
-target_link_libraries(p2_sky_geometry_test PRIVATE astrocs_phase2)
-target_link_libraries(p2_sky_geometry_test PRIVATE astrocs_platform_math)
+target_link_libraries(p2_sky_geometry_test PRIVATE acsd_phase2)
+target_link_libraries(p2_sky_geometry_test PRIVATE acsd_platform_math)
 
 foreach(case geometry_positive geometry_single_pointing geometry_negative)
   add_test(NAME p2_sky_${case} COMMAND p2_sky_geometry_test ${case})

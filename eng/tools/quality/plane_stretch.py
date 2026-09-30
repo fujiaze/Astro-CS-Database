@@ -126,7 +126,7 @@ def _pnginfo(meta: dict):
     from PIL import PngImagePlugin
     info = PngImagePlugin.PngInfo()
     for k, v in meta.items():
-        info.add_text(f"astrocs_{k}", str(v))
+        info.add_text(f"acsd_{k}", str(v))
     return info
 
 

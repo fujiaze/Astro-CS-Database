@@ -1,6 +1,6 @@
 // ACSD Core — ARCH-503 mosaic 天球窗口并行调度器
 //
-// 依据：docs/ASTROCS_DESIGN.md §8.1（三命令独立进程、独立调度器）、§8.3（mosaic = 空间窗口
+// 依据：docs/ACSD_DESIGN.md §8.1（三命令独立进程、独立调度器）、§8.3（mosaic = 空间窗口
 //       并行）、§5；ENGINEERING_SPEC.md §4.1；CONTRACT-501 docs/engineering/SCHEDULER_CONTRACT.md。
 //
 // 核心机制（合同条款，测试逐条锁）：
@@ -21,7 +21,7 @@
 // 边界：不改排异档位与科学口径（SCI-502 已修 UPM）；最终并行度调优归 PERF-501。
 #pragma once
 
-#include "astrocs/core/normalize_workflow.h"   // 复用 ProbeSink / ProbeEvent
+#include "acsd/core/normalize_workflow.h"   // 复用 ProbeSink / ProbeEvent
 
 #include <atomic>
 #include <cstdint>
@@ -30,7 +30,7 @@
 #include <string>
 #include <vector>
 
-namespace astrocs::core {
+namespace acsd::core {
 
 // 帧的 tile 覆盖（aio 切片粒度：tile_ipix → 该 tile 的字节数）
 struct MosaicFrameInput {
@@ -148,4 +148,4 @@ class MosaicWindowScheduler {
   std::atomic<std::size_t> peak_inflight_{0};
 };
 
-}  // namespace astrocs::core
+}  // namespace acsd::core

@@ -11,7 +11,7 @@
 判据（fail-closed）:
   A 干净基线: status == 0(kOk) 且 renamed==1 且 target_exists==1 且 bytes==期望长度
     （先证明探针/验证函数本身不恒真——否则 B 的判红没有意义）；
-  B 注入基线: LD_PRELOAD=注入器 + ASTROCS_TEST_CORRUPT_AFTER_RENAME=1
+  B 注入基线: LD_PRELOAD=注入器 + ACSD_TEST_CORRUPT_AFTER_RENAME=1
     -> stderr 必须出现 EVENT CORRUPT-AFTER-RENAME（**注入确实发生**，否则 exit 2：
        注入器未生效时"没判红"不构成任何证据）
     -> 且 status != 0（检出）且 renamed==0 且 target_exists==0（已撤销，无可见半成品）。
@@ -95,7 +95,7 @@ def main(argv) -> int:
     # B 注入基线（rename 之后改坏目标）
     pb = run(probe, workdir + "/corrupt",
              {"LD_PRELOAD": safe_preload_path(interposer),
-              "ASTROCS_TEST_CORRUPT_AFTER_RENAME": "1"})
+              "ACSD_TEST_CORRUPT_AFTER_RENAME": "1"})
     kb = parse(pb.stdout)
     if "EVENT CORRUPT-AFTER-RENAME" not in pb.stderr:
         print("[fail-closed] 注入未发生（stderr 无 EVENT CORRUPT-AFTER-RENAME）——"

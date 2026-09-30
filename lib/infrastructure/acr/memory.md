@@ -9,8 +9,8 @@
 ### 2026-08-08 BDR Reviewed 纠正（控制包 A9766B99...53984，08 号计划 A-J）
 
 **执行入口**：`08_CURRENT_EXECUTION_PLAN.md`（BDR Reviewed 版；解压于
-`run/temp/AstroCS_ACR_Control_Package_20260807-102458/`）。审计对象
-`AstroCS_Review_ACRBDRReviewed_20260807.zip`（HEAD 2a7fbe3）。
+`run/temp/ACSD_ACR_Control_Package_20260807-102458/`）。审计对象
+`ACSD_Review_ACRBDRReviewed_20260807.zip`（HEAD 2a7fbe3）。
 
 **本轮完成（按 08 计划 A-J）**：
 1. 场景级资格语义（A）：RoutePath 拆分 model_available/model_trusted
@@ -204,7 +204,7 @@ focused 测试 4+4+3 全过；真实 RTX 3060 Ti Mixed 正确。期间修复 pla
 ### 2026-08-05 24 号计划执行（控制包 SHA 755278bf...5f98）
 
 **执行入口**：`24_SECOND_FIX_IMPLEMENTATION_CORRECTION_PLAN.md`（审计对象
-`AstroCS_Review_SecondFixReview_20260805(1).zip`，HEAD 2bda708）。
+`ACSD_Review_SecondFixReview_20260805(1).zip`，HEAD 2bda708）。
 
 **重要决策（2026-08-05，用户明确指示）**：
 - **利用率目标闭环（50/80/95/100 稳态误差 ≤0.05）不作为本轮验收门禁**。
@@ -262,7 +262,7 @@ focused 测试 4+4+3 全过；真实 RTX 3060 Ti Mixed 正确。期间修复 pla
 ### 2026-08-04 第二版 Fix Review 纠正（23 号计划，控制包 SHA eb0a0535...0853）
 
 **执行入口**：`23_SECOND_FIX_REVIEW_CORRECTION_PLAN.md`（审计对象
-`AstroCS_ACR_Fix_Review_2026-08-03(2).zip`，结论禁止合并 main）。
+`ACSD_ACR_Fix_Review_2026-08-03(2).zip`，结论禁止合并 main）。
 
 **已完成（按计划章节）**：
 1. **§1 内核 ABI 分层**（`refactor(acr): separate cpu callbacks...` 0a3de3d）：
@@ -442,7 +442,7 @@ pixel_reduce/drizzle resident 阈值单位正确：百万级）。
 ### 2026-08-06 ACR 架构冻结 + 加权积分合成 Mixed 样例（控制包 b98d38f8...efb8a）
 
 **执行入口**：`07_CURRENT_EXECUTION_PLAN.md`（新控制包）。基线
-`AstroCS_Review_ACRFocusedV3_20260806`（HEAD 610d7b6）。目标：不改 Phase1/
+`ACSD_Review_ACRFocusedV3_20260806`（HEAD 610d7b6）。目标：不改 Phase1/
 真实业务算法，冻结 ACR 面向重负载逐像素算法的架构，并完成独立加权积分合成
 Mixed 样例，形成"允许开始修改业务代码"的最终 Evidence。
 
@@ -561,7 +561,7 @@ READY_FOR_BUSINESS_ADAPTER=false。
 **交付**：11 个提交（4769979..da5a280）push 到 feature/astrocompute-runtime；
 证据 run/evidence/acr_bdr3_20260808/（3 轮 CTest 日志、standard/quick 报告、
 Replay 明细、可移植 SHA 清单）；审核包
-AstroCS_Review_ACRScenarioQualificationChunk2D_20260809.zip（SHA 见交付记录）。
+ACSD_Review_ACRScenarioQualificationChunk2D_20260809.zip（SHA 见交付记录）。
 
 ### 2026-08-09 Dispatcher Finalization（最终 HEAD 560c417，控制包 426D9A51...3A37E）
 
@@ -600,7 +600,7 @@ OpenMP/Mixed 成本模型或标定策略）；MSVC ASan CPU 核心本轮环境�
 **交付**：6 个提交（be0f608..560c417）push 到 feature/astrocompute-runtime；
 证据 run/evidence/acr_bdr_dispatcher_finalization_20260809/（含权威 Profile、
 24/24 Replay、quick 不覆盖 SHA、3 轮 CTest、sanitizer、可移植 SHA 清单）；
-审核包 AstroCS_Review_ACRDispatcherFinalization_20260809.zip（SHA 见交付记录）。
+审核包 ACSD_Review_ACRDispatcherFinalization_20260809.zip（SHA 见交付记录）。
 
 ### 2026-08-09 Route/Residency/Generation 闭环（最终 HEAD，控制包 CE288DBF...F7E88）
 

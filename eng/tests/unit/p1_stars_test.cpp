@@ -8,9 +8,9 @@
 #include <random>
 #include <vector>
 
-using astrocs::phase1::StarCatalog;
-using astrocs::phase1::StarDetector;
-using astrocs::phase1::StarSource;
+using acsd::phase1::StarCatalog;
+using acsd::phase1::StarDetector;
+using acsd::phase1::StarSource;
 
 static int failures = 0;
 #define CHECK(cond)                                                       \

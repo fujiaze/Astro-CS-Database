@@ -137,7 +137,7 @@ typedef struct {
     double saturation_level;        // 饱和电平 ADU (0/负/非有限 = 未提供电平 unset, 默认 0;
                                     //   != "无饱和"; 来源优先级 cfg>SATURATE>DATAMAX,
                                     //   未提供时调用方须显式声明降级 -- SCI NOISE_MODEL §4
-                                    //   「饱和域」claim SC-008, 见 astrocs/noise/saturation_policy.h)
+                                    //   「饱和域」claim SC-008, 见 acsd/noise/saturation_policy.h)
     double cosmic_clip_sigma;       // patch 内 cosmic/hot 稳健裁剪 (默认 5.0)
     int    min_patch_samples;       // patch 合格最小 sky 样本数 (默认 64)
     int    max_clip_rounds;         // cosmic 裁剪轮数 (默认 2)

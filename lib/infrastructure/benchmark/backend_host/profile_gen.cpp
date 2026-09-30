@@ -11,22 +11,22 @@
 
 #include <nlohmann/json.hpp>
 
-#include "astrocs/common_abi_v1.h"
+#include "acsd/common_abi_v1.h"
 #include "baseline_kernels.h"
 #include "bench_harness.h"
 #include "hardware_inspect.h"
 #include "sha256.h"
 
 extern "C" {
-int astrocs_host_services_default_v1(astrocs_host_services_v1* out, void** state_out);
-void astrocs_host_services_destroy_state_v1(void* state);
-void astrocs_host_state_set_budget_v1(void* state, uint32_t cpus, uint32_t max_workers,
-                                      astrocs_host_services_v1* out);
-int astrocs_backend_get_api_v1(uint32_t, uint32_t, const astrocs_host_services_v1*,
-                               astrocs_backend_api_v1*);
+int acsd_host_services_default_v1(acsd_host_services_v1* out, void** state_out);
+void acsd_host_services_destroy_state_v1(void* state);
+void acsd_host_state_set_budget_v1(void* state, uint32_t cpus, uint32_t max_workers,
+                                      acsd_host_services_v1* out);
+int acsd_backend_get_api_v1(uint32_t, uint32_t, const acsd_host_services_v1*,
+                               acsd_backend_api_v1*);
 }
 
-namespace astrocs::backend_host {
+namespace acsd::backend_host {
 
 namespace {
 
@@ -40,12 +40,12 @@ float lcg_f() {
 
 std::string generate_profile_json(const std::string& mode, const std::string& build_id,
                                   const std::string& commit, const std::string& backend_sha) {
-    astrocs_host_services_v1 host;
+    acsd_host_services_v1 host;
     void* state = nullptr;
-    astrocs_host_services_default_v1(&host, &state);
-    astrocs_host_state_set_budget_v1(state, 2, 2, &host);
-    astrocs_backend_api_v1 api{};
-    astrocs_backend_get_api_v1(ACS_ABI_VERSION_V1, sizeof(astrocs_host_services_v1), &host, &api);
+    acsd_host_services_default_v1(&host, &state);
+    acsd_host_state_set_budget_v1(state, 2, 2, &host);
+    acsd_backend_api_v1 api{};
+    acsd_backend_get_api_v1(ACS_ABI_VERSION_V1, sizeof(acsd_host_services_v1), &host, &api);
 
     const std::string hw_json = hardware_inspect_json_v1(build_id);
     const nlohmann::json hw_full = nlohmann::json::parse(hw_json);
@@ -110,7 +110,7 @@ std::string generate_profile_json(const std::string& mode, const std::string& bu
     std::vector<double> expected(N);
     for (uint32_t i = 0; i < N; ++i)
         expected[i] = (static_cast<double>(in0[i]) - in1[i] - 2.0 * in2[i]) * in3[i];
-    acs_baseline_params_v1 p;
+    acsd_baseline_params_v1 p;
     std::memset(&p, 0, sizeof(p));
     p.head.struct_size = sizeof(p);
     p.head.abi_version = ACS_ABI_VERSION_V1;
@@ -145,8 +145,8 @@ std::string generate_profile_json(const std::string& mode, const std::string& bu
     }
     j["kernels"] = kernels;
     j["verdict"] = all_pass ? "PASS" : "FAIL";
-    astrocs_host_services_destroy_state_v1(state);
+    acsd_host_services_destroy_state_v1(state);
     return j.dump(2) + "\n";
 }
 
-}  // namespace astrocs::backend_host
+}  // namespace acsd::backend_host

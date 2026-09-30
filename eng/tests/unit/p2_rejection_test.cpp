@@ -2,7 +2,7 @@
 // FIX-204（§9.71 裁决 3）：逐像素按几何 N 自动选择 —— WBPP 实测表
 //   N<6 → percentile / 6≤N≤15 → winsorized / N>15 → linear fit；
 //   禁止 min/max（含 NoRejection）；显式指定合法性窗口只告警不硬阻断。
-// 权威：docs/ASTROCS_DESIGN.md §4.5（下半节）；一手实测出处
+// 权威：docs/ACSD_DESIGN.md §4.5（下半节）；一手实测出处
 //   = WBPP 2.5.9 WeightedBatchPreprocessing-engine.js:1421-1429
 //   （bestRejectionMethod，包 sha1 712cc7c3fdb523643ad0e685104592d511996f82）、
 //   :1349-1412（rejectionIsGood 合法性窗口与明文拒绝 NoRejection/MinMax/CCDClip）。
@@ -27,14 +27,14 @@ static int failures = 0;
     }                                                                     \
   } while (0)
 
-// ── FIX-204 工具：按像素几何 N 解析 AUTO（生产 profile = astrocs_adaptive_pixel）──
+// ── FIX-204 工具：按像素几何 N 解析 AUTO（生产 profile = acsd_adaptive_pixel）──
 namespace {
 
 int resolve_pixel_method(std::uint32_t n) {
   P2RejectionPlanRequest req{};
   req.request = P2_REJECT_AUTO;
   req.nominal_contributors = n;
-  req.profile = P2_PROFILE_ASTROCS_ADAPTIVE_PIXEL;
+  req.profile = P2_PROFILE_ACSD_ADAPTIVE_PIXEL;
   P2RejectionPlan plan{};
   char err[128] = {0};
   if (p2_reject_plan_resolve(&req, &plan, err, sizeof(err)) != 0) return -1;
@@ -45,7 +45,7 @@ P2RejectionPlan pixel_plan(std::uint32_t n, int* rc_out = nullptr) {
   P2RejectionPlanRequest req{};
   req.request = P2_REJECT_AUTO;
   req.nominal_contributors = n;
-  req.profile = P2_PROFILE_ASTROCS_ADAPTIVE_PIXEL;
+  req.profile = P2_PROFILE_ACSD_ADAPTIVE_PIXEL;
   P2RejectionPlan plan{};
   char err[128] = {0};
   const int rc = p2_reject_plan_resolve(&req, &plan, err, sizeof(err));
@@ -237,7 +237,7 @@ int main() {
       CHECK(rc == 0);
       CHECK(p.method == P2_REJECT_NONE);
       CHECK(p.underdetermined_n == 3u);   // EXP-204：闸默认保持 3
-      CHECK(std::string(p2_rejection_semantic_id(p.method)) == "astrocs.none.v1");
+      CHECK(std::string(p2_rejection_semantic_id(p.method)) == "acsd.none.v1");
     }
     // N=0（void 像素占位，无候选栈）仍解析为 percentile，不进 none 分支。
     CHECK(resolve_pixel_method(0) == P2_REJECT_PERCENTILE);
@@ -262,7 +262,7 @@ int main() {
       P2RejectionPlanRequest req{};
       req.request = m;
       req.nominal_contributors = 8;
-      req.profile = P2_PROFILE_ASTROCS_ADAPTIVE_PIXEL;
+      req.profile = P2_PROFILE_ACSD_ADAPTIVE_PIXEL;
       P2RejectionPlan plan{};
       CHECK(p2_reject_plan_resolve(&req, &plan, err, sizeof(err)) == 0);
       CHECK(plan.method == m);
@@ -447,7 +447,7 @@ int main() {
       P2RejectionPlanRequest req{};
       req.request = P2_REJECT_PERCENTILE;   // n=20 窗口外（>8）
       req.nominal_contributors = 20;
-      req.profile = P2_PROFILE_ASTROCS_ADAPTIVE_PIXEL;
+      req.profile = P2_PROFILE_ACSD_ADAPTIVE_PIXEL;
       P2RejectionPlan plan{};
       CHECK(p2_reject_plan_resolve(&req, &plan, err, sizeof(err)) == 0);
       CHECK(plan.method == P2_REJECT_PERCENTILE);   // 未被自动表覆盖

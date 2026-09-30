@@ -1,30 +1,30 @@
-# astrocs.p2.upm — Phase2 联合加性光度模型模块（P2-UPM）
+# acsd.p2.upm — Phase2 联合加性光度模型模块（P2-UPM）
 
 > P2-UPM-DOC（2026-09-10，SA-P2-U21）新建模块页。合同三件套落位
 > `lib/algorithms/upm/`（README r1 + module.yaml + memory.md，CONTRACT_READY，
 > entrypoint=MISSING）——迁移目标目录按 `lib/algorithms/sampling/`（P2-SAMP-DOC，
 > 其按 `lib/algorithms/integration/` → `lib/algorithms/rejection/` → `lib/algorithms/coverage/hips_p2/`
 > P2-HIPS-DOC 先例链）先例新建；`lib/algorithms/coverage/` 一目录一套三件套已被
-> P2-COV（astrocs.p2.coverage）占用（lib/algorithms/coverage/README.md r1，不可
+> P2-COV（acsd.p2.coverage）占用（lib/algorithms/coverage/README.md r1，不可
 > 覆盖）。生产源 `lib/algorithms/coverage/src/upm.cpp`（1565 行，根 CMakeLists
-> astrocs_phase2 静态库成员 :337-346，:338 编入 upm.cpp）+ 唯一权威
+> acsd_phase2 静态库成员 :337-346，:338 编入 upm.cpp）+ 唯一权威
 > 签名头 `lib/algorithms/coverage/include/astro/phase2/upm.h`（184 行）；会话消费方
 > `lib/phase2_session/p2_session.cpp`（upm_build 段 :180-233），apply
 > 面消费 `lib/algorithms/coverage/tools/stage2.cpp`（p2_upm_calibrate_block
 > :927/:1272，无独立 apply 段）；持久化后端
 > `lib/infrastructure/aio/src/aio_upm.cpp`（aio_upm_write_sparse :66，
-> dense 格式 astrocs-upm-dense-v2 :223/:407）。
+> dense 格式 acsd-upm-dense-v2 :223/:407）。
 
 ## 身份与合同
 
-- MOD ID：`MOD-astrocs-phase2-upm-fit` 与 `MOD-astrocs-phase2-upm-apply`
+- MOD ID：`MOD-acsd-phase2-upm-fit` 与 `MOD-acsd-phase2-upm-apply`
   （registry 两行，domain 内两个 descriptor；本域含 fit+apply 两个
   descriptor，故一个域两个 MOD ID，module.yaml 单 manifest 以
-  MOD-astrocs-phase2-upm-fit 为 id，apply 对应 ID 见其文件头注释与
-  本文 §fit/apply descriptor 现状）；module_id：`astrocs.p2.upm`
+  MOD-acsd-phase2-upm-fit 为 id，apply 对应 ID 见其文件头注释与
+  本文 §fit/apply descriptor 现状）；module_id：`acsd.p2.upm`
   （MODULE_MIGRATION_MATRIX P2-UPM 行；descriptor 编排层占位
-  astrocs.phase2.upm-fit / astrocs.phase2.upm-apply 由 P2-XX-INT
-  对齐，不反向作冻结依据）；dll_target：`astrocs_p2_upm.dll`
+  acsd.phase2.upm-fit / acsd.phase2.upm-apply 由 P2-XX-INT
+  对齐，不反向作冻结依据）；dll_target：`acsd_p2_upm.dll`
   （合同值，尚未存在，迁移归 P2-UPM-IMPL）。
 - owner SA-P2-U21；depends_on_int=P2-SAMP-INT;CPU-005；
   legacy_paths="lib/algorithms/coverage upm sources"（均以
@@ -62,7 +62,7 @@
   （:651/:789-829；component_ref_frame upm.h:85；无观测几何节点
   sentinel SIZE_MAX :216/:417-421 不参与数据图/gauge；
   p2_upm_component_gauges :1369 查询）。
-- 持久化：p2_upm_save :940-1006（format astrocs-upm-v2，json 序列化
+- 持久化：p2_upm_save :940-1006（format acsd-upm-v2，json 序列化
   controls/cell_index/C 稀疏行 :972-1002，唯一 AIO
   aio_upm_write_sparse :1003-1005）；p2_upm_open :1008（format 校验
   :1027）；模型 hash=SHA-256（model_hash[65]，upm.h:67）。
@@ -93,15 +93,15 @@
 
 - CONTRACT_READY 语义：实现存在且生产在用（upm.cpp 1565 行 +
   upm.h 184 行，行号 grep/read 实测），模块化迁移（独立
-  astrocs_p2_upm.dll / C ABI adapter / plan-execute-cancel-inspect /
+  acsd_p2_upm.dll / C ABI adapter / plan-execute-cancel-inspect /
   ThreadLease 接线）由 P2-UPM-IMPL 执行。
-- dll_target=astrocs_p2_upm.dll 尚未存在：现状构建=根
-  CMakeLists.txt:337-346 astrocs_phase2 STATIC（:338 编入
-  upm.cpp）+ :454 astrocs_phase2_session STATIC（:458 链接
-  astrocs_phase2）。
+- dll_target=acsd_p2_upm.dll 尚未存在：现状构建=根
+  CMakeLists.txt:337-346 acsd_phase2 STATIC（:338 编入
+  upm.cpp）+ :454 acsd_phase2_session STATIC（:458 链接
+  acsd_phase2）。
 - entrypoint=MISSING：registry 入口未接（registry 页
-  docs/detail/registry/astrocs.phase2.upm-fit.md /
-  astrocs.phase2.upm-apply.md 已存在， descriptor 现状为占位词汇，
+  docs/detail/registry/acsd.phase2.upm-fit.md /
+  acsd.phase2.upm-apply.md 已存在， descriptor 现状为占位词汇，
   见下节）。
 - threading_model=host_executor_lease 为迁移目标合同值（11 号标准
   §4 值域）；现状实现=worker 数取 cfg.cpu_workers（Runtime lease
@@ -118,7 +118,7 @@
 |---|---|---|
 | p2_upm_build | :929 | obs-only 构建（兼容入口） |
 | p2_upm_build_geo | :934 | 全几何节点构建（含无观测 sentinel 节点） |
-| p2_upm_save | :940 | 稀疏模型持久化（astrocs-upm-v2，唯一 AIO） |
+| p2_upm_save | :940 | 稀疏模型持久化（acsd-upm-v2，唯一 AIO） |
 | p2_upm_open | :1008 | 重开（format 校验 :1027） |
 | p2_upm_info | :1233 | P2ModelInfo 查询（model_hash[65]） |
 | p2_upm_calibrate_block | :1240 | per-frame 批量 corrected 输出 |
@@ -141,10 +141,10 @@ use_ivar_weight=1 / control_reliability=1.0 / cpu_workers=1）。
 ## fit/apply descriptor 现状（占位词汇声明）
 
 - lib/infrastructure/scheduler/src/module_adapters.cpp:599-632：p2_upm_fit_descriptor
-  （:599-613，module_id=astrocs.phase2.upm-fit，ports samples in →
+  （:599-613，module_id=acsd.phase2.upm-fit，ports samples in →
   upm_model out（fit 行标可选输出，:609-612））与
   p2_upm_apply_descriptor（:614-632，module_id=
-  astrocs.phase2.upm-apply，ports upm_model in（apply 行标必选输入）
+  acsd.phase2.upm-apply，ports upm_model in（apply 行标必选输入）
   → corrected out）；占位 sci_id=SCI-P2-UPM-001/002、
   alg_id=ALG-P2-UPM-001/002、data_id=DATA-P2-SMP/DATA-P2-CAL、
   api_id=API-P2-001、test_id=TEST-P2-UPM-001/002。
@@ -152,7 +152,7 @@ use_ivar_weight=1 / control_reliability=1.0 / cpu_workers=1）。
   fit 产模型经 persist → apply reload（upm_model 并非 fit 的
   optional 产物直连 apply 输入）；对齐归 P2-XX-INT，占位词汇
   （含 module_id/alg_id/data_id 端口拼写）不反向作冻结依据。
-- 本 manifest 与本页冻结的合同词汇：module_id=astrocs.p2.upm、
+- 本 manifest 与本页冻结的合同词汇：module_id=acsd.p2.upm、
   data=DATA-P2-UPM（fit 侧）/DATA-P2-COR（apply 侧）、
   api=API-P2-UPM-001；descriptor data_id 端口词汇 DATA-P2-SMP/
   DATA-P2-CAL 为上游域合同引用。
@@ -180,8 +180,8 @@ use_ivar_weight=1 / control_reliability=1.0 / cpu_workers=1）。
   §26（DATA-P2-COR）
 - API：docs/engineering/PUBLIC_API.md API-P2-UPM-001；
   API-P2-001（docs/engineering/PHASE2_API_V1.md，编排上游）
-- 模块页：docs/detail/registry/astrocs.phase2.upm-fit.md /
-  astrocs.phase2.upm-apply.md
+- 模块页：docs/detail/registry/acsd.phase2.upm-fit.md /
+  acsd.phase2.upm-apply.md
 - ARCH：ARCH-001
 
 ## 已知限制（DISP-P2UPM，登记不改码，整改归 P2-UPM-IMPL/TEST/SESSION-IMPL）

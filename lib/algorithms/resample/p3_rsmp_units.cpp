@@ -6,7 +6,7 @@
 #include <cstdio>
 #include <cstring>
 
-namespace astrocs {
+namespace acsd {
 namespace p3rsmp {
 
 const char* to_string(Status s) {
@@ -206,4 +206,4 @@ BunitResolution resolve_bunit(const std::string& bunit_str, const BunitProvenanc
 }
 
 }  // namespace p3rsmp
-}  // namespace astrocs
+}  // namespace acsd

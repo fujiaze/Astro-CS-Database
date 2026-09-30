@@ -116,7 +116,7 @@ std::string extract_json_number(const std::string& json, const std::string& key)
 
 // ===== 公开 sha256_hex =====
 std::string sha256_hex(const std::string& input) {
-    return astrocs::crypto::sha256_hex(input.data(), input.size());
+    return acsd::crypto::sha256_hex(input.data(), input.size());
 }
 
 // ===== DeviceFingerprint::to_json =====

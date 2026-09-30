@@ -6,8 +6,8 @@
   2. 计划图 edges 已做类型校验(data_schema_id/unit/coordinate/scalar/shape 一致)。
   3. acyclic=true; 无重复 producer; 顶层 outputs 全部被产出。
   4. 同一 module_id 不可出现两次(node 绑定表唯一)。
-  5. module_ports.registry.json 中聚合 Session 模块(astrocs.phase2.resample /
-     astrocs.phase3.resample)不可入图(IRF-0007)。
+  5. module_ports.registry.json 中聚合 Session 模块(acsd.phase2.resample /
+     acsd.phase3.resample)不可入图(IRF-0007)。
   6. CLI 模式: python3 lib/infrastructure/pipeline/typed_dag.py fixtures/phase2_typed_dag.json
      输出 plan-graph JSON(exit 0)。
   7. 隐式文件路径等负测由 eng/tests/runtime/test_typed_dag_negative.py 覆盖。
@@ -40,13 +40,13 @@ OPS = {
     "write": "write_mosaic",
 }
 CHAIN = [
-    ("coverage", "astrocs.phase2.coverage", "frame_hips", "p2_coverage"),
-    ("sample", "astrocs.phase2.sample", "p2_coverage", "p2_samples"),
-    ("upm_fit", "astrocs.phase2.upm-fit", "p2_samples", "p2_upm_model"),
-    ("upm_apply", "astrocs.phase2.upm-apply", "p2_upm_model", "p2_corrected"),
-    ("reject", "astrocs.phase2.reject", "p2_corrected", "p2_rejection"),
-    ("integrate", "astrocs.phase2.integrate", "p2_rejection", "p2_integrated"),
-    ("write", "astrocs.phase2.write", "p2_integrated", "mosaic_hips"),
+    ("coverage", "acsd.phase2.coverage", "frame_hips", "p2_coverage"),
+    ("sample", "acsd.phase2.sample", "p2_coverage", "p2_samples"),
+    ("upm_fit", "acsd.phase2.upm-fit", "p2_samples", "p2_upm_model"),
+    ("upm_apply", "acsd.phase2.upm-apply", "p2_upm_model", "p2_corrected"),
+    ("reject", "acsd.phase2.reject", "p2_corrected", "p2_rejection"),
+    ("integrate", "acsd.phase2.integrate", "p2_rejection", "p2_integrated"),
+    ("write", "acsd.phase2.write", "p2_integrated", "mosaic_hips"),
 ]
 # 端口身份 = output_dir 下的真实产物（module_ports.registry.json v2）；operation 的
 # 每个 input 端口都必须被节点提供（typed_dag MISSING_PORT），故此处给全。
@@ -101,7 +101,7 @@ def ir_doc() -> dict:
             n["resources"] = {"class": "io", "parallel": False}
         nodes.append(n)
     return {
-        "schema": "astrocs.typed-dag/v1",
+        "schema": "acsd.typed-dag/v1",
         "pipeline_id": "phase2.typed",
         "phase": "phase2",
         "version": "1.0.0",
@@ -150,11 +150,11 @@ class TestPlanGraph(unittest.TestCase):
 
     def test_no_aggregate_session_modules(self):
         reg = Registry.load_default()
-        for banned in ("astrocs.phase2.resample", "astrocs.phase3.resample"):
+        for banned in ("acsd.phase2.resample", "acsd.phase3.resample"):
             self.assertIsNone(reg.module(banned),
                               f"聚合 Session module {banned} 不得入绑定表")
         doc = ir_doc()
-        doc["nodes"][0]["module_id"] = "astrocs.phase2.resample"
+        doc["nodes"][0]["module_id"] = "acsd.phase2.resample"
         doc["nodes"][0]["operation"] = "resample"
         res = self.compiler.compile(doc)
         self.assertFalse(res.ok, "聚合 Session module 入图应 FAIL")

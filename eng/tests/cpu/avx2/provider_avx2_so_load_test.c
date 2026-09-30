@@ -3,9 +3,9 @@
  *
  * 覆盖 (CPU-003 验收 "非支持 CPU 不加载" 的加载面 + 12 §1 唯一导出 +
  * self_test/export/ABI 完整; 无全局 SIMD 静态初始化):
- *   1. dlopen(providers/astrocs_cpu_avx2.so) 成功 (RTLD_NOW|RTLD_LOCAL);
- *   2. 唯一导出: dlsym 查到 astrocs_provider_query_v1; astrocs_module_query_v1 /
- *      astrocs_backend_get_api_v1 → NULL (12 §1: provider DLL 只导出批准入口);
+ *   1. dlopen(providers/acsd_cpu_avx2.so) 成功 (RTLD_NOW|RTLD_LOCAL);
+ *   2. 唯一导出: dlsym 查到 acsd_provider_query_v1; acsd_module_query_v1 /
+ *      acsd_backend_get_api_v1 → NULL (12 §1: provider DLL 只导出批准入口);
  *   3. query → ACS_OK + out_api 非空 (真实 capability 探测: 本机 amd64
  *      AVX2+FMA os_safe → 加载); 非支持 CPU 拒绝路径由 stub gate 测试覆盖;
  *   4. kernel_list: 恰 2 条注册热点 + kernel_id 非空;
@@ -25,8 +25,8 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "astrocs/abi/module_api_v1.h"
-#include "astrocs/cpu/avx2_provider_v1.h"
+#include "acsd/abi/module_api_v1.h"
+#include "acsd/cpu/avx2_provider_v1.h"
 
 static int g_failures = 0;
 #define CHECK(cond)                                                       \
@@ -46,8 +46,8 @@ static int g_failures = 0;
     }                                                                     \
   } while (0)
 
-typedef acs_status (*query_fn)(uint32_t, const acs_host_api_v1*,
-                               const acs_provider_api_v1**);
+typedef acsd_status (*query_fn)(uint32_t, const acsd_host_api_v1*,
+                               const acsd_provider_api_v1**);
 
 /* ── 最小 host ── */
 static int g_alloc_balance = 0;
@@ -67,29 +67,29 @@ static void fake_free(void* ud, void* p) {
 static int fake_acquire(void* ud, uint32_t n) { (void)ud; (void)n; return 0; }
 static void fake_release(void* ud, uint32_t n) { (void)ud; (void)n; }
 static int fake_cancel(void* ud) { (void)ud; return 0; }
-static void fake_log(void* ud, int l, acs_str_v1 c, acs_str_v1 m) {
+static void fake_log(void* ud, int l, acsd_str_v1 c, acsd_str_v1 m) {
     (void)ud; (void)l; (void)c; (void)m;
 }
-static acs_allocator_v1 g_alloc = {
-    { (uint32_t)sizeof(acs_allocator_v1), ACS_ABI_VERSION_V1 },
+static acsd_allocator_v1 g_alloc = {
+    { (uint32_t)sizeof(acsd_allocator_v1), ACS_ABI_VERSION_V1 },
     fake_alloc, fake_free, NULL
 };
-static acs_executor_v1 g_exec = {
-    { (uint32_t)sizeof(acs_executor_v1), ACS_ABI_VERSION_V1 },
+static acsd_executor_v1 g_exec = {
+    { (uint32_t)sizeof(acsd_executor_v1), ACS_ABI_VERSION_V1 },
     4, 4, fake_acquire, fake_release, NULL
 };
-static acs_cancel_v1 g_cancel = {
-    { (uint32_t)sizeof(acs_cancel_v1), ACS_ABI_VERSION_V1 },
+static acsd_cancel_v1 g_cancel = {
+    { (uint32_t)sizeof(acsd_cancel_v1), ACS_ABI_VERSION_V1 },
     fake_cancel, NULL
 };
-static acs_logger_v1 g_logger = {
-    { (uint32_t)sizeof(acs_logger_v1), ACS_ABI_VERSION_V1 },
+static acsd_logger_v1 g_logger = {
+    { (uint32_t)sizeof(acsd_logger_v1), ACS_ABI_VERSION_V1 },
     fake_log, NULL
 };
-static acs_host_api_v1 g_host;
+static acsd_host_api_v1 g_host;
 static void host_init(void) {
     memset(&g_host, 0, sizeof(g_host));
-    g_host.head.struct_size = (uint32_t)sizeof(acs_host_api_v1);
+    g_host.head.struct_size = (uint32_t)sizeof(acsd_host_api_v1);
     g_host.head.abi_version = ACS_ABI_VERSION_V1;
     g_host.allocator = &g_alloc;
     g_host.executor = &g_exec;
@@ -99,7 +99,7 @@ static void host_init(void) {
 
 int main(int argc, char** argv) {
     if (argc < 2) {
-        fprintf(stderr, "usage: %s <path-to-astrocs_cpu_avx2.so>\n", argv[0]);
+        fprintf(stderr, "usage: %s <path-to-acsd_cpu_avx2.so>\n", argv[0]);
         return 2;
     }
     const char* so_path = argv[1];
@@ -113,19 +113,19 @@ int main(int argc, char** argv) {
     CHECK(h != NULL);
 
     /* 1. 唯一导出面 */
-    query_fn q = (query_fn)dlsym(h, "astrocs_provider_query_v1");
+    query_fn q = (query_fn)dlsym(h, "acsd_provider_query_v1");
     CHECK(q != NULL);
-    CHECK(dlsym(h, "astrocs_module_query_v1") == NULL);
-    CHECK(dlsym(h, "astrocs_backend_get_api_v1") == NULL);
+    CHECK(dlsym(h, "acsd_module_query_v1") == NULL);
+    CHECK(dlsym(h, "acsd_backend_get_api_v1") == NULL);
 
     /* 2. query 握手 (真实 capability: 本机 AVX2+FMA os_safe) */
-    const acs_provider_api_v1* api = NULL;
+    const acsd_provider_api_v1* api = NULL;
     CHECK_ST(ACS_OK, q(ACS_ABI_VERSION_V1, &g_host, &api), "so query ok");
     CHECK(api != NULL);
 
     /* 3. kernel_list: 恰 2 条注册热点 */
     uint32_t count = 0;
-    const acs_kernel_desc_v1* ks = NULL;
+    const acsd_kernel_desc_v1* ks = NULL;
     if (api) {
         CHECK_ST(ACS_OK, api->kernel_list(&g_host, &count, &ks), "kernel_list");
         CHECK(count == ACS_CPU_AVX2_KERNEL_COUNT);
@@ -145,7 +145,7 @@ int main(int argc, char** argv) {
         const float one[4] = { 1.0f, 1.0f, 1.0f, 1.0f };
         const float zero[4] = { 0.0f, 0.0f, 0.0f, 0.0f };
         float out[4] = { 0.0f, 0.0f, 0.0f, 0.0f };
-        acs_cpu_avx2_params_v1 P;
+        acsd_cpu_avx2_params_v1 P;
         memset(&P, 0, sizeof(P));
         P.head.struct_size = (uint32_t)sizeof(P);
         P.head.abi_version = ACS_ABI_VERSION_V1;
@@ -160,8 +160,8 @@ int main(int argc, char** argv) {
             inbuf[i] = in0v[i]; inbuf[4 + i] = one[i];
             inbuf[8 + i] = zero[i]; inbuf[12 + i] = one[i];
         }
-        acs_span_u8 sp_in = ACS_SPAN_U8((uint8_t*)inbuf, sizeof(inbuf));
-        acs_span_u8 sp_out = ACS_SPAN_U8((uint8_t*)out, sizeof(out));
+        acsd_span_u8 sp_in = ACS_SPAN_U8((uint8_t*)inbuf, sizeof(inbuf));
+        acsd_span_u8 sp_out = ACS_SPAN_U8((uint8_t*)out, sizeof(out));
         CHECK_ST(ACS_OK, api->run_kernel(ACS_CPU_AVX2_KIDX_CALIBRATION,
                                          &g_host, &P, (uint32_t)sizeof(P),
                                          sp_in, sp_out),

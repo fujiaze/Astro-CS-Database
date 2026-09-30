@@ -11,9 +11,9 @@
 
 - logging/ —— 日志事件脚本与 schema（log_event.py、log_event_v1.schema.json）。
 - monitoring/ —— 监控采集与运行器（monitor.py、runner.py、linux_procfs.py、windows_pdh_etw.py、trace_feed.py）。
-- probes/ —— 探针实现（include/astrocs/probe.h、src/probe.cpp）。
+- probes/ —— 探针实现（include/acsd/probe.h、src/probe.cpp）。
 - PENDING.md —— 本目录内容与目标位置的迁移登记文件。
 
 ## 上游
 
-上游：docs/ASTROCS_DESIGN.md §8.4（infrastructure/observability：日志、事件、运行图、性能探针、资源监控）；ENGINEERING_SPEC.md §11（日志、诊断与错误）。
+上游：docs/ACSD_DESIGN.md §8.4（infrastructure/observability：日志、事件、运行图、性能探针、资源监控）；ENGINEERING_SPEC.md §11（日志、诊断与错误）。

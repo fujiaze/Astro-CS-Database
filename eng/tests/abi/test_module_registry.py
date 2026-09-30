@@ -74,7 +74,7 @@ def sha256f(path):
     return h.hexdigest()
 
 
-NOOP_MID = "astrocs.conformance.noop"
+NOOP_MID = "acsd.conformance.noop"
 def _repo_version():
     """读根 VERSION 文件（与 cli/CMakeLists.txt 单一版本源一致），防 alpha 漂移。"""
     with open(os.path.join(REPO, "VERSION"), encoding="utf-8") as f:
@@ -87,14 +87,14 @@ NOOP_BUILD = "BLD-003-skeleton"
 
 def compile_noop(out_so):
     cmd = [CC, "-std=c11", "-Wall", "-fPIC", "-shared", f"-I{INC}",
-           "-DASTROCS_ABI_SHARED=1", "-DASTROCS_ABI_EXPORTS=1",
+           "-DACSD_ABI_SHARED=1", "-DACSD_ABI_EXPORTS=1",
            NOOP_SRC, "-o", out_so]
     return run(cmd)
 
 
 def make_manifest(base, units, product_version=None):
     product_version = product_version or _repo_version()
-    """units: list of dict. rel_path 相对 base(安装根)。写入 base/astrocs.product.json"""
+    """units: list of dict. rel_path 相对 base(安装根)。写入 base/acsd.product.json"""
     doc = {
         "schema_version": 1,
         "product_version": product_version,
@@ -103,7 +103,7 @@ def make_manifest(base, units, product_version=None):
         "note": "ABI-004 test fixture",
         "units": units,
     }
-    with open(os.path.join(base, "astrocs.product.json"), "w") as f:
+    with open(os.path.join(base, "acsd.product.json"), "w") as f:
         json.dump(doc, f, indent=1)
 
 
@@ -149,19 +149,19 @@ def main():
               r.returncode == 0 and "SELFTEST_OK" in r.stdout, r.stdout + r.stderr)
 
         # ── 真实 noop 编译 ──
-        noop_so = os.path.join(work, "modules", "astrocs_noop.so")
+        noop_so = os.path.join(work, "modules", "acsd_noop.so")
         os.makedirs(os.path.dirname(noop_so))
         r = compile_noop(noop_so)
         check("S2 compile real noop.so", r.returncode == 0,
               r.stderr[-300:] if r.stderr else "")
         noop_sha = sha256f(noop_so)
 
-        # 安装树 fixture: 复制 module.yaml 镜像到 modules/astrocs_noop 源目录?
+        # 安装树 fixture: 复制 module.yaml 镜像到 modules/acsd_noop 源目录?
         # registry 用 yaml_root 找 <rel_dir>/module.yaml; 模拟仓库布局:
-        #   <root>/modules/<dll>.so  + manifest rel modules/astrocs_noop.so
-        #   module.yaml 镜像放 <root>/modules/astrocs_noop/module.yaml? 
+        #   <root>/modules/<dll>.so  + manifest rel modules/acsd_noop.so
+        #   module.yaml 镜像放 <root>/modules/acsd_noop/module.yaml? 
         #   → rel_dir=modules 会找 <root>/modules/module.yaml 更贴仓库
-        # 仓库真实布局: eng/tests/conformance/noop/module.yaml + 安装 modules/astrocs_noop.so。
+        # 仓库真实布局: eng/tests/conformance/noop/module.yaml + 安装 modules/acsd_noop.so。
         # registry 的 yaml 查找用 rel_dir = rel_path 的 dirname(=modules), 找
         # <yaml_root>/modules/module.yaml。为模拟三方, 我们在工作区放:
         #   <work>/yaml_src/modules/module.yaml  (内容=仓库 noop module.yaml)
@@ -176,24 +176,24 @@ def main():
         # ══ 场景 1: clean manifest → 0 findings, 三方一致 ══
         base1 = os.path.join(work, "s1_clean")
         os.makedirs(os.path.join(base1, "modules"))
-        shutil.copy(noop_so, os.path.join(base1, "modules", "astrocs_noop.so"))
+        shutil.copy(noop_so, os.path.join(base1, "modules", "acsd_noop.so"))
         make_manifest(base1, [
-            std_unit("MOD-NOOP", "module", "modules/astrocs_noop.so",
+            std_unit("MOD-NOOP", "module", "modules/acsd_noop.so",
                      module_id=NOOP_MID, sha=noop_sha),
         ])
-        r = run([probe, "check", os.path.join(base1, "astrocs.product.json"),
+        r = run([probe, "check", os.path.join(base1, "acsd.product.json"),
                  yaml_root, base1, "1"])
         check("P1 clean registry open", "CHECK_OK" in r.stdout, r.stdout + r.stderr)
         check("P1 zero findings", "issues=0" in r.stdout, r.stdout)
-        r = run([probe, "dump", os.path.join(base1, "astrocs.product.json"),
+        r = run([probe, "dump", os.path.join(base1, "acsd.product.json"),
                  yaml_root, base1, "0"])
         check("P1 dump entries=1 loaded", "entries=1" in r.stdout and
               "loaded=1" in r.stdout and "mask=0" in r.stdout, r.stdout)
         # 版本断言走根 VERSION 单源 (NOOP_VER=_repo_version(), 防 alpha 字面量快照漂移)
         check("P1 module_id三方一致 (manifest/dll/yaml)",
-              re.search(r"module_id=astrocs\.conformance\.noop\|"
-                        r"mid_dll=astrocs\.conformance\.noop\|"
-                        r"mid_yaml=astrocs\.conformance\.noop\|"
+              re.search(r"module_id=acsd\.conformance\.noop\|"
+                        r"mid_dll=acsd\.conformance\.noop\|"
+                        r"mid_yaml=acsd\.conformance\.noop\|"
                         r"ver_dll=" + re.escape(NOOP_VER) + r"\|"
                         r"ver_yaml=" + re.escape(NOOP_VER) + r"\|", r.stdout), r.stdout)
         check("P1 hash 实际=登记",
@@ -210,14 +210,14 @@ def main():
         # ══ 场景 2: 重复 unit_id ══
         base2 = os.path.join(work, "s2_dup_unit")
         os.makedirs(os.path.join(base2, "modules"))
-        shutil.copy(noop_so, os.path.join(base2, "modules", "astrocs_noop.so"))
+        shutil.copy(noop_so, os.path.join(base2, "modules", "acsd_noop.so"))
         make_manifest(base2, [
-            std_unit("MOD-NOOP", "module", "modules/astrocs_noop.so",
+            std_unit("MOD-NOOP", "module", "modules/acsd_noop.so",
                      module_id=NOOP_MID, sha=noop_sha),
-            std_unit("MOD-NOOP", "module", "modules/astrocs_noop.so",
-                     module_id="astrocs.conformance.noop2", sha=noop_sha),
+            std_unit("MOD-NOOP", "module", "modules/acsd_noop.so",
+                     module_id="acsd.conformance.noop2", sha=noop_sha),
         ])
-        r = run([probe, "check", os.path.join(base2, "astrocs.product.json"),
+        r = run([probe, "check", os.path.join(base2, "acsd.product.json"),
                  yaml_root, base2, "0"])
         check("P2 duplicate unit_id detected", "kind=7" in r.stdout, r.stdout)
 
@@ -232,19 +232,19 @@ def main():
             std_unit("MOD-B", "module", "modules/b.so", module_id=NOOP_MID,
                      sha=noop_sha),
         ])
-        r = run([probe, "check", os.path.join(base3, "astrocs.product.json"),
+        r = run([probe, "check", os.path.join(base3, "acsd.product.json"),
                  yaml_root, base3, "0"])
         check("P3 duplicate module_id detected", "kind=8" in r.stdout, r.stdout)
 
         # ══ 场景 4: manifest sha256 与实际不符 ══
         base4 = os.path.join(work, "s4_hash")
         os.makedirs(os.path.join(base4, "modules"))
-        shutil.copy(noop_so, os.path.join(base4, "modules", "astrocs_noop.so"))
+        shutil.copy(noop_so, os.path.join(base4, "modules", "acsd_noop.so"))
         make_manifest(base4, [
-            std_unit("MOD-NOOP", "module", "modules/astrocs_noop.so",
+            std_unit("MOD-NOOP", "module", "modules/acsd_noop.so",
                      module_id=NOOP_MID, sha="0" * 64),
         ])
-        r = run([probe, "dump", os.path.join(base4, "astrocs.product.json"),
+        r = run([probe, "dump", os.path.join(base4, "acsd.product.json"),
                  yaml_root, base4, "0"])
         check("P4 hash mismatch finding (kind=12)",
               "kind=12" in r.stdout, r.stdout)
@@ -258,12 +258,12 @@ def main():
         # ══ 场景 5: module.yaml module_id 与 manifest 不符 ══
         base5 = os.path.join(work, "s5_yaml")
         os.makedirs(os.path.join(base5, "modules"))
-        shutil.copy(noop_so, os.path.join(base5, "modules", "astrocs_noop.so"))
+        shutil.copy(noop_so, os.path.join(base5, "modules", "acsd_noop.so"))
         make_manifest(base5, [
-            std_unit("MOD-NOOP", "module", "modules/astrocs_noop.so",
-                     module_id="astrocs.conformance.different", sha=noop_sha),
+            std_unit("MOD-NOOP", "module", "modules/acsd_noop.so",
+                     module_id="acsd.conformance.different", sha=noop_sha),
         ])
-        r = run([probe, "dump", os.path.join(base5, "astrocs.product.json"),
+        r = run([probe, "dump", os.path.join(base5, "acsd.product.json"),
                  yaml_root, base5, "0"])
         check("P5 yaml inconsistent finding (kind=14)",
               "kind=14" in r.stdout, r.stdout)
@@ -275,12 +275,12 @@ def main():
         # (yaml_root 不提供 → 仅 manifest vs DLL)
         base6 = os.path.join(work, "s6_mid")
         os.makedirs(os.path.join(base6, "modules"))
-        shutil.copy(noop_so, os.path.join(base6, "modules", "astrocs_noop.so"))
+        shutil.copy(noop_so, os.path.join(base6, "modules", "acsd_noop.so"))
         make_manifest(base6, [
-            std_unit("MOD-NOOP", "module", "modules/astrocs_noop.so",
-                     module_id="astrocs.conformance.wrong", sha=noop_sha),
+            std_unit("MOD-NOOP", "module", "modules/acsd_noop.so",
+                     module_id="acsd.conformance.wrong", sha=noop_sha),
         ])
-        r = run([probe, "dump", os.path.join(base6, "astrocs.product.json"),
+        r = run([probe, "dump", os.path.join(base6, "acsd.product.json"),
                  "-", base6, "0"])
         check("P6 module_id mismatch finding (kind=11)",
               "kind=11" in r.stdout, r.stdout)
@@ -291,9 +291,9 @@ def main():
         # ══ 场景 7: 版本冲突(module.yaml version != DLL descriptor) ══
         base7 = os.path.join(work, "s7_ver")
         os.makedirs(os.path.join(base7, "modules"))
-        shutil.copy(noop_so, os.path.join(base7, "modules", "astrocs_noop.so"))
+        shutil.copy(noop_so, os.path.join(base7, "modules", "acsd_noop.so"))
         make_manifest(base7, [
-            std_unit("MOD-NOOP", "module", "modules/astrocs_noop.so",
+            std_unit("MOD-NOOP", "module", "modules/acsd_noop.so",
                      module_id=NOOP_MID, sha=noop_sha),
         ])
         yaml7 = os.path.join(work, "yaml7")
@@ -305,7 +305,7 @@ def main():
             yaml_cur = m.group(1) if m else _repo_version()
             f.write(yaml_text.replace("module_version: " + yaml_cur,
                                       "module_version: 9.9.9-" + "beta"))
-        r = run([probe, "dump", os.path.join(base7, "astrocs.product.json"),
+        r = run([probe, "dump", os.path.join(base7, "acsd.product.json"),
                  yaml7, base7, "0"])
         check("P7 version conflict finding (kind=9)",
               "kind=9" in r.stdout, r.stdout)
@@ -315,10 +315,10 @@ def main():
         base8 = os.path.join(work, "s8_missing")
         os.makedirs(os.path.join(base8, "modules"))
         make_manifest(base8, [
-            std_unit("MOD-NOOP", "module", "modules/astrocs_noop.so",
+            std_unit("MOD-NOOP", "module", "modules/acsd_noop.so",
                      module_id=NOOP_MID, sha=None),
         ])
-        r = run([probe, "dump", os.path.join(base8, "astrocs.product.json"),
+        r = run([probe, "dump", os.path.join(base8, "acsd.product.json"),
                  yaml_root, base8, "0"])
         check("P8 missing DLL finding (kind=13 loader)",
               "kind=13" in r.stdout and "mask=1" in r.stdout and "loaded=0" in r.stdout,
@@ -327,15 +327,15 @@ def main():
         # ══ 场景 9: 未登记 DLL ══
         base9 = os.path.join(work, "s9_unreg")
         os.makedirs(os.path.join(base9, "modules"))
-        shutil.copy(noop_so, os.path.join(base9, "modules", "astrocs_noop.so"))
+        shutil.copy(noop_so, os.path.join(base9, "modules", "acsd_noop.so"))
         # 未登记(manifest 无)的 .so
         rogue = os.path.join(base9, "modules", "rogue.so")
         shutil.copy(noop_so, rogue)
         make_manifest(base9, [
-            std_unit("MOD-NOOP", "module", "modules/astrocs_noop.so",
+            std_unit("MOD-NOOP", "module", "modules/acsd_noop.so",
                      module_id=NOOP_MID, sha=noop_sha),
         ])
-        r = run([probe, "check", os.path.join(base9, "astrocs.product.json"),
+        r = run([probe, "check", os.path.join(base9, "acsd.product.json"),
                  yaml_root, base9, "1"])
         check("P9 unregistered DLL finding (kind=10)", "kind=10" in r.stdout,
               r.stdout)
@@ -348,7 +348,7 @@ def main():
              "abi_version": 1, "status": "IMPLEMENTED", "module_id": None,
              "sha256": None},
         ])
-        r = run([probe, "open", os.path.join(base10, "astrocs.product.json"),
+        r = run([probe, "open", os.path.join(base10, "acsd.product.json"),
                  "-", "-", "0"])
         check("N1 invalid kind hard-fails", "OPEN_FAIL" in r.stdout and
               "detail=4" in r.stdout, r.stdout + r.stderr)
@@ -356,33 +356,33 @@ def main():
         # ══ 场景 10b: sha 非 64hex → 硬失败 ══
         base10b = os.path.join(work, "s10b_badsha")
         os.makedirs(os.path.join(base10b, "modules"))
-        shutil.copy(noop_so, os.path.join(base10b, "modules", "astrocs_noop.so"))
+        shutil.copy(noop_so, os.path.join(base10b, "modules", "acsd_noop.so"))
         make_manifest(base10b, [
-            std_unit("MOD-NOOP", "module", "modules/astrocs_noop.so",
+            std_unit("MOD-NOOP", "module", "modules/acsd_noop.so",
                      module_id=NOOP_MID, sha="zz-not-hex"),
         ])
-        r = run([probe, "open", os.path.join(base10b, "astrocs.product.json"),
+        r = run([probe, "open", os.path.join(base10b, "acsd.product.json"),
                  "-", "-", "0"])
         check("N1b bad sha hard-fails", "OPEN_FAIL" in r.stdout and
               "detail=4" in r.stdout, r.stdout + r.stderr)
 
         # ══ 场景 11: 非绝对 manifest → 硬失败 ══
         os.chdir(base1)
-        r = run([probe, "open", "astrocs.product.json", "-", "-", "0"])
+        r = run([probe, "open", "acsd.product.json", "-", "-", "0"])
         check("N2 relative manifest path rejected", "OPEN_FAIL" in r.stdout and
               "detail=5" in r.stdout, r.stdout + r.stderr)
 
         # ══ 场景 12: allowed_root 越界 → 硬失败 ══
         base12 = os.path.join(work, "s12_root")
         os.makedirs(os.path.join(base12, "modules"))
-        shutil.copy(noop_so, os.path.join(base12, "modules", "astrocs_noop.so"))
+        shutil.copy(noop_so, os.path.join(base12, "modules", "acsd_noop.so"))
         make_manifest(base12, [
-            std_unit("MOD-NOOP", "module", "modules/astrocs_noop.so",
+            std_unit("MOD-NOOP", "module", "modules/acsd_noop.so",
                      module_id=NOOP_MID, sha=noop_sha),
         ])
         other_root = os.path.join(work, "other_root")
         os.makedirs(other_root)
-        r = run([probe, "open", os.path.join(base12, "astrocs.product.json"),
+        r = run([probe, "open", os.path.join(base12, "acsd.product.json"),
                  "-", other_root, "0"])
         check("N3 file outside allowed_root hard-fails",
               "OPEN_FAIL" in r.stdout and "detail=6" in r.stdout,

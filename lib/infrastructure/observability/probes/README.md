@@ -4,41 +4,41 @@
 
 | 层 | 开关 | 默认 | 作用 |
 |----|------|------|------|
-| 编译期 | CMake `-DASTROCS_PROBES=ON` | **OFF** | OFF：宏展开为 `((void)0)`，不编译 `src/probe.cpp`，产物无 `astrocs::probe::*` 符号 |
-| 运行期 | 环境变量 `ASTROCS_PROBE_LOG=<path>` | 未设 | 未设：即使编译期 ON 也不计时、不分配、不写文件 |
+| 编译期 | CMake `-DACSD_PROBES=ON` | **OFF** | OFF：宏展开为 `((void)0)`，不编译 `src/probe.cpp`，产物无 `acsd::probe::*` 符号 |
+| 运行期 | 环境变量 `ACSD_PROBE_LOG=<path>` | 未设 | 未设：即使编译期 ON 也不计时、不分配、不写文件 |
 
-可选调优：`ASTROCS_PROBE_FLUSH_LINES`（默认 1024 行）、`ASTROCS_PROBE_FLUSH_MS`（默认 1000ms）。
+可选调优：`ACSD_PROBE_FLUSH_LINES`（默认 1024 行）、`ACSD_PROBE_FLUSH_MS`（默认 1000ms）。
 
 ## 用法
 
 ```bash
 # 1) 编译期打开探针（默认 OFF 时以下全部为无副作用的空语句）
-cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DASTROCS_PROBES=ON
+cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DACSD_PROBES=ON
 ninja -C build
 
 # 2) 运行期打开输出（不设则不产出）
-ASTROCS_PROBE_LOG=run/probe/probe.jsonl build/acsd normalize --json cfg.json -y
+ACSD_PROBE_LOG=run/probe/probe.jsonl build/acsd normalize --json cfg.json -y
 ```
 
 ## API
 
 ```cpp
-#include "astrocs/probe.h"
+#include "acsd/probe.h"
 
 // 作用域计时（RAII）
-ASTROCS_PROBE_SCOPE("phase1", "drizzle.frame");
-ASTROCS_PROBE_SCOPE("phase1.drizzle.frame");          // 单参数：scope=首个 '.' 前
+ACSD_PROBE_SCOPE("phase1", "drizzle.frame");
+ACSD_PROBE_SCOPE("phase1.drizzle.frame");          // 单参数：scope=首个 '.' 前
 
 // 带上下文标签
-ASTROCS_PROBE_SCOPE_CTX(t, "phase1", "calibrate.frame");
-ASTROCS_PROBE_TAG(t, "frame_key", key.c_str());
-ASTROCS_PROBE_SCOPE_END(t);                            // 可选：提前结束
+ACSD_PROBE_SCOPE_CTX(t, "phase1", "calibrate.frame");
+ACSD_PROBE_TAG(t, "frame_key", key.c_str());
+ACSD_PROBE_SCOPE_END(t);                            // 可选：提前结束
 
 // 计数 / 取值（线程本地聚合，flush 时输出一行）
-ASTROCS_PROBE_COUNT("phase1", "drizzle.frames", 1);
-ASTROCS_PROBE_GAUGE("phase1", "drizzle.pixels", 1048576.0);
+ACSD_PROBE_COUNT("phase1", "drizzle.frames", 1);
+ACSD_PROBE_GAUGE("phase1", "drizzle.pixels", 1048576.0);
 
-ASTROCS_PROBE_FLUSH();                                 // 手动 flush（可选）
+ACSD_PROBE_FLUSH();                                 // 手动 flush（可选）
 ```
 
 ## 输出（JSONL）
@@ -56,7 +56,7 @@ ASTROCS_PROBE_FLUSH();                                 // 手动 flush（可选�
 - 记录路径：线程本地 `std::string` 行缓冲 + 线程本地 count/gauge 聚合，**无锁**；
 - 仅 flush 点取一把互斥锁写文件并 `fflush`；
 - 线程退出自动 flush；进程 `atexit` 兜底；
-- `ASTROCS_PROBES=OFF`：零计时、零分配、零符号。
+- `ACSD_PROBES=OFF`：零计时、零分配、零符号。
 
 ## 系统监视器
 

@@ -1,5 +1,5 @@
 // CORE-006 单元测试: DAG 调度 + 线程租约 + 取消/失败传播
-#include "astrocs/core/scheduler.h"
+#include "acsd/core/scheduler.h"
 
 #include <atomic>
 #include <chrono>
@@ -7,7 +7,7 @@
 #include <string>
 #include <thread>
 
-using namespace astrocs::core;
+using namespace acsd::core;
 
 static int failures = 0;
 #define CHECK(cond)                                                       \

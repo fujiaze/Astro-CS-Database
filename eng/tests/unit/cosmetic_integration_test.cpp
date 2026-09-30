@@ -33,7 +33,7 @@
  *      entry=describe()/dlsym 实证、workers/granted=host stub 实租借观测、
  *      status/artifact_size=终态与输出 manifest 实际字节; provider 与
  *      artifact_id 不填 (1:1 转发 legacy 无 provider 观测 / ArtifactStore
- *      归全局 —— 空=真实未观测); JSONL (astrocs.trace-event/v1 键序,
+ *      归全局 —— 空=真实未观测); JSONL (acsd.trace-event/v1 键序,
  *      lib/infrastructure/scheduler TraceEvent::to_jsonl 同型) 写盘后本地重放: 每 node
  *      module_call 计数==1 (context.cpp detect_repeated_calls 同语义,
  *      键=(node_id,operation))。
@@ -61,23 +61,23 @@
 #endif
 
 /* FINAL-07 WIN-PORT 批次二: 平台专属调用的唯一判定点 ——
- * Windows 侧的 dlopen/dlsym/dlerror、RTLD_* 等经 eng/tests/support/astrocs_test_posix_compat.h
+ * Windows 侧的 dlopen/dlsym/dlerror、RTLD_* 等经 eng/tests/support/acsd_test_posix_compat.h
  * 统一给等价物 (本 TU 的加载用例是平台中立的模块加载器契约, 加守卫跳过会丢覆盖面, 故不跳过)。
  * 类 UNIX 侧该头整头为空, 上面保留本 TU 原有系统头 => Linux 预处理零 delta。
  * 无等价语义的能力见该头「无等价物清单」(显式限定 + 明确状态)。 */
-#include "../support/astrocs_test_posix_compat.h"
+#include "../support/acsd_test_posix_compat.h"
 
-#include "astrocs/abi/lifecycle_v1.h"
-#include "astrocs/abi/module_api_v1.h"
-#include "astrocs/abi/host_api_v1.h"
-#include "astrocs/cosmetic/types.h"
+#include "acsd/abi/lifecycle_v1.h"
+#include "acsd/abi/module_api_v1.h"
+#include "acsd/abi/host_api_v1.h"
+#include "acsd/cosmetic/types.h"
 
 /* fixture 参考真值 (FIX-COS 谱系; splitmix64 固定 seed, P1-COS-TEST 同源) */
 #include "p1cos_fixtures.hpp"
 
 /* integration descriptor / module.yaml 路径 (CMake 编译定义注入) */
 #ifndef ASTROSCOS_INTEGRATION_JSON
-#define ASTROSCOS_INTEGRATION_JSON "astrocs_p1_cosmetic.integration.json"
+#define ASTROSCOS_INTEGRATION_JSON "acsd_p1_cosmetic.integration.json"
 #endif
 #ifndef ASTROSCOS_MODULE_YAML
 #define ASTROSCOS_MODULE_YAML "module.yaml"
@@ -90,8 +90,8 @@ static int g_fail = 0;
 } while (0)
 
 /* 入口函数指针 (dlsym 需要) */
-typedef acs_status (*cos_entry_fn)(uint32_t, const acs_host_api_v1*,
-                                   const acs_module_api_v1**);
+typedef acsd_status (*cos_entry_fn)(uint32_t, const acsd_host_api_v1*,
+                                   const acsd_module_api_v1**);
 
 /* ── mini JSON 读取 (测试侧; 与 calibration_integration_test 同风格, 只读) ── */
 static int tjson_num(const char* j, const char* key, double* out) {
@@ -282,22 +282,22 @@ static int ex_acquire(void* ud, uint32_t n) {
 }
 static void ex_release(void* ud, uint32_t n) { ((ex_stub*)ud)->release_calls++; (void)n; }
 
-static const acs_host_api_v1* make_host(ex_stub* ex) {
-    static acs_host_api_v1 h;
-    static acs_allocator_v1 al;
-    static acs_executor_v1 exv;
+static const acsd_host_api_v1* make_host(ex_stub* ex) {
+    static acsd_host_api_v1 h;
+    static acsd_allocator_v1 al;
+    static acsd_executor_v1 exv;
     memset(&h, 0, sizeof(h));
     memset(&al, 0, sizeof(al));
     memset(&exv, 0, sizeof(exv));
-    h.head.struct_size = (uint32_t)sizeof(acs_host_api_v1);
+    h.head.struct_size = (uint32_t)sizeof(acsd_host_api_v1);
     h.head.abi_version = ACS_ABI_VERSION_V1;
-    al.head.struct_size = (uint32_t)sizeof(acs_allocator_v1);
+    al.head.struct_size = (uint32_t)sizeof(acsd_allocator_v1);
     al.head.abi_version = ACS_ABI_VERSION_V1;
     al.alloc = cos_alloc;
     al.free = cos_free;
     h.allocator = &al;
     if (ex) {
-        exv.head.struct_size = (uint32_t)sizeof(acs_executor_v1);
+        exv.head.struct_size = (uint32_t)sizeof(acsd_executor_v1);
         exv.head.abi_version = ACS_ABI_VERSION_V1;
         exv.available_cpus = 4;
         exv.max_workers = ex->max_workers;
@@ -310,22 +310,22 @@ static const acs_host_api_v1* make_host(ex_stub* ex) {
 }
 
 /* str/strbuf 构造 (借入) */
-static acs_str_v1 s_from(const char* s) {
-    acs_str_v1 v;
-    v.head.struct_size = (uint32_t)sizeof(acs_str_v1);
+static acsd_str_v1 s_from(const char* s) {
+    acsd_str_v1 v;
+    v.head.struct_size = (uint32_t)sizeof(acsd_str_v1);
     v.head.abi_version = ACS_ABI_VERSION_V1;
     v.data = s;
     v.size = s ? (uint64_t)strlen(s) : 0;
     return v;
 }
-static void sb_init(acs_strbuf_v1* sb) {
+static void sb_init(acsd_strbuf_v1* sb) {
     memset(sb, 0, sizeof(*sb));
-    sb->head.struct_size = (uint32_t)sizeof(acs_strbuf_v1);
+    sb->head.struct_size = (uint32_t)sizeof(acsd_strbuf_v1);
     sb->head.abi_version = ACS_ABI_VERSION_V1;
 }
-static void err_init(acs_error_info_v1* err) {
+static void err_init(acsd_error_info_v1* err) {
     memset(err, 0, sizeof(*err));
-    err->head.struct_size = (uint32_t)sizeof(acs_error_info_v1);
+    err->head.struct_size = (uint32_t)sizeof(acsd_error_info_v1);
     err->head.abi_version = ACS_ABI_VERSION_V1;
 }
 
@@ -352,20 +352,20 @@ static void b64_encode(const uint8_t* src, size_t n, std::string& out) {
 }
 
 /* execute 事务收集: 两阶段 sink 协议 (尺寸探测→整写); 返回 malloc JSON */
-static char* exec_txn(const acs_module_api_v1* api, acs_module_instance_v1* inst,
-                      const char* manifest, const char* cfg, acs_status* rc) {
-    acs_str_v1 mans = s_from(manifest);
-    acs_str_v1 cfgs = s_from(cfg);
-    acs_error_info_v1 err;
+static char* exec_txn(const acsd_module_api_v1* api, acsd_module_instance_v1* inst,
+                      const char* manifest, const char* cfg, acsd_status* rc) {
+    acsd_str_v1 mans = s_from(manifest);
+    acsd_str_v1 cfgs = s_from(cfg);
+    acsd_error_info_v1 err;
     err_init(&err);
-    acs_strbuf_v1 sb;
+    acsd_strbuf_v1 sb;
     sb_init(&sb);
     *rc = api->execute(inst, mans, cfgs, &sb, &err);      /* 第一遍: 尺寸探测 */
     if (*rc != ACS_OK) return NULL;
     sb.data = (char*)malloc((size_t)sb.size + 1);
     sb.cap = sb.size + 1;
     if (!sb.data) { *rc = ACS_ERR_NOMEM; return NULL; }
-    acs_status st2 = api->execute(inst, mans, cfgs, &sb, &err);  /* 第二遍: 整写 */
+    acsd_status st2 = api->execute(inst, mans, cfgs, &sb, &err);  /* 第二遍: 整写 */
     if (st2 != ACS_OK) { free(sb.data); *rc = st2; return NULL; }
     return sb.data;
 }
@@ -418,7 +418,7 @@ static void trace_module_call(trace_writer* tw, const char* node_id,
     char ts[40];
     rfc3339_utc(ts, sizeof(ts));
     fprintf(tw->f,
-            "{\"schema\":\"astrocs.trace-event/v1\",\"type\":\"module_call\","
+            "{\"schema\":\"acsd.trace-event/v1\",\"type\":\"module_call\","
             "\"ts_utc\":\"%s\",\"run_id\":\"%s\",\"node_id\":\"%s\",\"seq\":%llu,"
             "\"module_id\":\"%s\",\"module_version\":\"%s\",\"dll_name\":\"%s\","
             "\"dll_sha256\":\"%s\",\"build_id\":\"%s\",\"entry\":\"%s\","
@@ -435,7 +435,7 @@ static void trace_node_end(trace_writer* tw, const char* node_id, const char* st
     char ts[40];
     rfc3339_utc(ts, sizeof(ts));
     fprintf(tw->f,
-            "{\"schema\":\"astrocs.trace-event/v1\",\"type\":\"node_end\","
+            "{\"schema\":\"acsd.trace-event/v1\",\"type\":\"node_end\","
             "\"ts_utc\":\"%s\",\"run_id\":\"%s\",\"node_id\":\"%s\",\"seq\":%llu,"
             "\"status\":\"%s\"}\n",
             ts, tw->run_id, node_id, (unsigned long long)++tw->seq, status);
@@ -527,7 +527,7 @@ int main(void) {
     /* ════ F. 负面 ABI (模板 INT §5: 缺 DLL/错误 ABI 必须失败) ════ */
     {
         /* F1. 缺 DLL: loader 必须失败 (dlopen 语义) */
-        void* bad = dlopen("__no_such_astrocs_p1_cosmetic__.so", RTLD_NOW | RTLD_LOCAL);
+        void* bad = dlopen("__no_such_acsd_p1_cosmetic__.so", RTLD_NOW | RTLD_LOCAL);
         CHECK(bad == NULL, "F1: 缺 DLL 加载失败 (不降级)");
         if (bad) dlclose(bad);
     }
@@ -544,24 +544,24 @@ int main(void) {
         printf("dlopen error: %s\n", dlerror());
         return 2;
     }
-    cos_entry_fn entry_fn = (cos_entry_fn)dlsym(dl, "astrocs_module_query_v1");
-    CHECK(entry_fn != NULL, "A2: dlsym astrocs_module_query_v1 成功 (entry 真实解析)");
-    const acs_module_api_v1* api = NULL;
-    acs_status qrc = entry_fn((uint32_t)ACS_ABI_VERSION_V1, NULL, &api);
+    cos_entry_fn entry_fn = (cos_entry_fn)dlsym(dl, "acsd_module_query_v1");
+    CHECK(entry_fn != NULL, "A2: dlsym acsd_module_query_v1 成功 (entry 真实解析)");
+    const acsd_module_api_v1* api = NULL;
+    acsd_status qrc = entry_fn((uint32_t)ACS_ABI_VERSION_V1, NULL, &api);
     CHECK(qrc == ACS_OK && api != NULL, "A3: query(host_abi=1) 握手成功");
     {
-        const acs_module_api_v1* bad_api = NULL;
-        acs_status rc = entry_fn(0xDEADBEEFu, NULL, &bad_api);
+        const acsd_module_api_v1* bad_api = NULL;
+        acsd_status rc = entry_fn(0xDEADBEEFu, NULL, &bad_api);
         CHECK(rc == ACS_ERR_ABI_MISMATCH && bad_api == NULL,
               "F2: 错误 host_abi → ACS_ERR_ABI_MISMATCH (不降级)");
     }
 
     /* describe (观测: 模块静态输出) */
-    acs_module_descriptor_v1 desc;
+    acsd_module_descriptor_v1 desc;
     memset(&desc, 0, sizeof(desc));
-    acs_error_info_v1 err;
+    acsd_error_info_v1 err;
     err_init(&err);
-    acs_status drc = api->describe(api, s_from(ASTROCS_COS_MODULE_ID), &desc);
+    acsd_status drc = api->describe(api, s_from(ACSD_COS_MODULE_ID), &desc);
     CHECK(drc == ACS_OK && desc.head.abi_version == ACS_ABI_VERSION_V1,
           "A4: describe 正确 module_id → OK + abi v1");
     char desc_mid[128] = "", desc_ver[64] = "", desc_build[64] = "";
@@ -578,17 +578,17 @@ int main(void) {
                                    (int)desc.alg_id.size, desc.alg_id.data);
     if (desc.api_id.data) snprintf(desc_api, sizeof(desc_api), "%.*s",
                                    (int)desc.api_id.size, desc.api_id.data);
-    CHECK(!strcmp(desc_mid, ASTROCS_COS_MODULE_ID), "A5: describe.module_id == types.h");
-    CHECK(!strcmp(desc_ver, ASTROCS_COS_VERSION), "A6: describe.version == types.h");
-    CHECK(!strcmp(desc_build, ASTROCS_COS_BUILD_ID), "A7: describe.build_id == P1-COS-IMPL");
-    CHECK(!strcmp(desc_sci, ASTROCS_COS_SCI_ID) && !strcmp(desc_alg, ASTROCS_COS_ALG_ID) &&
-              !strcmp(desc_api, ASTROCS_COS_API_ID),
+    CHECK(!strcmp(desc_mid, ACSD_COS_MODULE_ID), "A5: describe.module_id == types.h");
+    CHECK(!strcmp(desc_ver, ACSD_COS_VERSION), "A6: describe.version == types.h");
+    CHECK(!strcmp(desc_build, ACSD_COS_BUILD_ID), "A7: describe.build_id == P1-COS-IMPL");
+    CHECK(!strcmp(desc_sci, ACSD_COS_SCI_ID) && !strcmp(desc_alg, ACSD_COS_ALG_ID) &&
+              !strcmp(desc_api, ACSD_COS_API_ID),
           "A8: describe sci/alg/api 合同三元组 == types.h");
     CHECK(desc.execution_class == 0 && desc.parallel_ok == 1 && desc.phase == 1,
           "A9: describe.execution_class=cpu_heavy(0) parallel_ok=1 phase=1");
     {
-        acs_module_descriptor_v1 d2;
-        acs_status rc = api->describe(api, s_from("astrocs.p1.cosmetic.wrong"), &d2);
+        acsd_module_descriptor_v1 d2;
+        acsd_status rc = api->describe(api, s_from("acsd.p1.cosmetic.wrong"), &d2);
         CHECK(rc == ACS_ERR_ABI_MISMATCH,
               "F3: describe 错误 module_id → ACS_ERR_ABI_MISMATCH");
     }
@@ -599,22 +599,22 @@ int main(void) {
     if (dj) {
         char v[160] = "";
         CHECK(tjson_str(dj, "descriptor_schema", v, sizeof(v)) &&
-                  !strcmp(v, "astrocs.module-integration-descriptor/v1"),
-              "D2: descriptor_schema == astrocs.module-integration-descriptor/v1");
+                  !strcmp(v, "acsd.module-integration-descriptor/v1"),
+              "D2: descriptor_schema == acsd.module-integration-descriptor/v1");
         CHECK(tjson_str(dj, "module_id", v, sizeof(v)) &&
-                  !strcmp(v, ASTROCS_COS_MODULE_ID) && !strcmp(v, desc_mid),
+                  !strcmp(v, ACSD_COS_MODULE_ID) && !strcmp(v, desc_mid),
               "D3: module_id 三方一致 (descriptor==describe==types.h)");
         CHECK(tjson_str(dj, "module_version", v, sizeof(v)) &&
-                  !strcmp(v, ASTROCS_COS_VERSION) && !strcmp(v, desc_ver),
+                  !strcmp(v, ACSD_COS_VERSION) && !strcmp(v, desc_ver),
               "D4: module_version 三方一致");
         long long abi = 0;
-        CHECK(tjson_ll(dj, "abi_version", &abi) && abi == (long long)ASTROCS_COS_ABI_VERSION,
+        CHECK(tjson_ll(dj, "abi_version", &abi) && abi == (long long)ACSD_COS_ABI_VERSION,
               "D5: abi_version == 1 (types.h)");
         CHECK(tjson_str(dj, "build_id", v, sizeof(v)) &&
-                  !strcmp(v, ASTROCS_COS_BUILD_ID) && !strcmp(v, desc_build),
+                  !strcmp(v, ACSD_COS_BUILD_ID) && !strcmp(v, desc_build),
               "D6: build_id 三方一致");
         CHECK(tjson_str(dj, "unique_entry", v, sizeof(v)) &&
-                  !strcmp(v, "astrocs_module_query_v1") && entry_fn != NULL,
+                  !strcmp(v, "acsd_module_query_v1") && entry_fn != NULL,
               "D7: dll.unique_entry == 实际 dlsym 解析符号");
         CHECK(tjson_str(dj, "resource_class", v, sizeof(v)) && !strcmp(v, "cpu_heavy") &&
                   desc.execution_class == 0,
@@ -646,13 +646,13 @@ int main(void) {
                       span_find(tp, ops, "\"direction\": \"output\""),
                   "D14: typed_ports input/output direction (static 可校验)");
         }
-        CHECK(tjson_str(dj, "operation", v, sizeof(v)) && !strcmp(v, ASTROCS_COS_OP_CORRECT_F32),
+        CHECK(tjson_str(dj, "operation", v, sizeof(v)) && !strcmp(v, ACSD_COS_OP_CORRECT_F32),
               "D15: operations[0] == correct_frame (types.h 词表)");
-        CHECK(tjson_contains(dj, ASTROCS_COS_OP_CORRECT_F32) &&
-                  tjson_contains(dj, ASTROCS_COS_OP_CORRECT_F64),
+        CHECK(tjson_contains(dj, ACSD_COS_OP_CORRECT_F32) &&
+                  tjson_contains(dj, ACSD_COS_OP_CORRECT_F64),
               "D16: operations 覆盖 2 op 词表 (types.h)");
-        CHECK(tjson_contains(dj, ASTROCS_COS_SCI_ID) && tjson_contains(dj, ASTROCS_COS_ALG_ID) &&
-                  tjson_contains(dj, "DATA-P1-COS") && tjson_contains(dj, ASTROCS_COS_API_ID) &&
+        CHECK(tjson_contains(dj, ACSD_COS_SCI_ID) && tjson_contains(dj, ACSD_COS_ALG_ID) &&
+                  tjson_contains(dj, "DATA-P1-COS") && tjson_contains(dj, ACSD_COS_API_ID) &&
                   tjson_contains(dj, "TEST-COS-DESIGN-001"),
               "D17: contracts 五元组 == types.h/module.yaml 冻结 ID");
         CHECK(tjson_contains(dj, "\"work_unit\""),
@@ -661,8 +661,8 @@ int main(void) {
         char* my = read_file_all(ASTROSCOS_MODULE_YAML);
         CHECK(my != NULL, "D19: module.yaml 可读");
         if (my) {
-            CHECK(strstr(my, "entrypoint: astrocs_module_query_v1") != NULL,
-                  "D20: module.yaml entrypoint == astrocs_module_query_v1 (注册面事实)");
+            CHECK(strstr(my, "entrypoint: acsd_module_query_v1") != NULL,
+                  "D20: module.yaml entrypoint == acsd_module_query_v1 (注册面事实)");
             CHECK(strstr(my, "  - correct_frame") && strstr(my, "  - correct_frame_f64"),
                   "D21: module.yaml node_operations 覆盖 2 op 词表");
             CHECK(strstr(my, "  - p1.calibrated") && strstr(my, "  - p1.master_dark") &&
@@ -676,7 +676,7 @@ int main(void) {
     /* ════ B. typed ports 静态校验负面 (端口绑定真实性) ════ */
     {
         /* B1: op 缺失 (config 词表第一键) → PARAM + 101 */
-        acs_status rc = api->validate_config(api,
+        acsd_status rc = api->validate_config(api,
               s_from("{\"width\":8,\"height\":6,\"hot_sigma\":5.0,"
                       "\"cold_sigma\":5.0,\"method\":\"median\","
                       "\"max_structure_size\":3}"), &err);
@@ -790,16 +790,16 @@ int main(void) {
         ex_stub ex;
         memset(&ex, 0, sizeof(ex));
         ex.max_workers = 3;
-        const acs_host_api_v1* host = make_host(&ex);
+        const acsd_host_api_v1* host = make_host(&ex);
         const char* cfg = (node_i == 0) ? cfg1 : cfg2;
         const char* man = (node_i == 0) ? m1.c_str() : NULL;  /* node2 由 node1 输出拼装 */
 
         /* C: validate_config(1) */
-        acs_status rc = api->validate_config(api, s_from(cfg), &err);
+        acsd_status rc = api->validate_config(api, s_from(cfg), &err);
         CHECK(rc == ACS_OK, "C1: node validate_config 恰调用 1 次 → OK");
 
         /* D: plan(1) — 真实值 (数据事实) 独立算术交叉 */
-        acs_strbuf_v1 pb;
+        acsd_strbuf_v1 pb;
         sb_init(&pb);
         char pbuf[1024];
         pb.data = pbuf;
@@ -820,10 +820,10 @@ int main(void) {
                      tjson_str(pb.data, "op", pop, sizeof(pop)) &&
                      tjson_contains(pb.data, "\"cancel_support\":\"entry\"");
             CHECK(ok, "D2: plan 键集 == DLL cos_plan 真实输出 (词表冻结)");
-            CHECK((long long)ASTROCS_COS_PLAN_VERSION == pv,
+            CHECK((long long)ACSD_COS_PLAN_VERSION == pv,
                   "D3: plan.plan_version == 1 (types.h)");
             CHECK(pnid[0] && !strcmp(pnid, node_id), "D4: plan.node_id == 驱动节点 id 回显");
-            CHECK(pop[0] && !strcmp(pop, ASTROCS_COS_OP_CORRECT_F32),
+            CHECK(pop[0] && !strcmp(pop, ACSD_COS_OP_CORRECT_F32),
                   "D5: plan.op == 节点 operation 词表 (correct_frame)");
             /* 真实值: 帧级逐像素修复 → width*height (独立算术) */
             long long expect_wu = (long long)FW * FH;
@@ -844,14 +844,14 @@ int main(void) {
              * module_entry.cpp:700 代码事实); 直接调 execute 第一遍
              * (负面在尺寸探测遍即失败, 不走 exec_txn 两阶段) */
             {
-                acs_module_instance_v1* bi = NULL;
+                acsd_module_instance_v1* bi = NULL;
                 err_init(&err);
                 if (api->create(api, s_from(cfg1), host, &bi, &err) == ACS_OK && bi) {
                     std::string mm = "{\"schema_version\":1,\"width\":8,\"height\":6,"
                                      "\"dtype\":\"f64\",\"data_base64\":\"AAAA\"}";
-                    acs_strbuf_v1 sb1;
+                    acsd_strbuf_v1 sb1;
                     sb_init(&sb1);
-                    acs_status brc = api->execute(bi, s_from(mm.c_str()), s_from(cfg1),
+                    acsd_status brc = api->execute(bi, s_from(mm.c_str()), s_from(cfg1),
                                                   &sb1, &err);
                     CHECK(brc == ACS_ERR_PARAM && err.detail_code == 111 && sb1.data == NULL,
                           "P1: dtype 与 op 精度不一致 → PARAM + 111 (typed port scalar)");
@@ -861,15 +861,15 @@ int main(void) {
             /* P2: master_dark base64 非法 → PARAM + 112 (decode_plane
              * "base64 invalid", module_entry.cpp:606 代码事实) */
             {
-                acs_module_instance_v1* bi = NULL;
+                acsd_module_instance_v1* bi = NULL;
                 err_init(&err);
                 if (api->create(api, s_from(cfg1), host, &bi, &err) == ACS_OK && bi) {
                     std::string mm = "{\"schema_version\":1,\"width\":8,\"height\":6,"
                                      "\"dtype\":\"f32\",\"data_base64\":\"" + g_in1_b64 +
                                      "\",\"master_dark\":\"!!!!\"}";
-                    acs_strbuf_v1 sb1;
+                    acsd_strbuf_v1 sb1;
                     sb_init(&sb1);
-                    acs_status brc = api->execute(bi, s_from(mm.c_str()), s_from(cfg1),
+                    acsd_status brc = api->execute(bi, s_from(mm.c_str()), s_from(cfg1),
                                                   &sb1, &err);
                     CHECK(brc == ACS_ERR_PARAM && err.detail_code == 112 && sb1.data == NULL,
                           "P2: master_dark base64 非法 → PARAM + 112 (port 形状)");
@@ -879,15 +879,15 @@ int main(void) {
             /* P2b: master_dark 解码长度 != width*height*esz → PARAM + 111
              * (decode_plane "size mismatch", module_entry.cpp:610 代码事实) */
             {
-                acs_module_instance_v1* bi = NULL;
+                acsd_module_instance_v1* bi = NULL;
                 err_init(&err);
                 if (api->create(api, s_from(cfg1), host, &bi, &err) == ACS_OK && bi) {
                     std::string mm = "{\"schema_version\":1,\"width\":8,\"height\":6,"
                                      "\"dtype\":\"f32\",\"data_base64\":\"" + g_in1_b64 +
                                      "\",\"master_dark\":\"AAAA\"}";
-                    acs_strbuf_v1 sb1;
+                    acsd_strbuf_v1 sb1;
                     sb_init(&sb1);
-                    acs_status brc = api->execute(bi, s_from(mm.c_str()), s_from(cfg1),
+                    acsd_status brc = api->execute(bi, s_from(mm.c_str()), s_from(cfg1),
                                                   &sb1, &err);
                     CHECK(brc == ACS_ERR_PARAM && err.detail_code == 111 && sb1.data == NULL,
                           "P2b: master_dark 平面字节数不符 → PARAM + 111 (port 形状)");
@@ -897,14 +897,14 @@ int main(void) {
             /* P3: data_base64 缺失 (p1.calibrated 必需端口) → PARAM + 110
              * (module_entry.cpp:719 代码事实) */
             {
-                acs_module_instance_v1* bi = NULL;
+                acsd_module_instance_v1* bi = NULL;
                 err_init(&err);
                 if (api->create(api, s_from(cfg1), host, &bi, &err) == ACS_OK && bi) {
                     const char* mm =
                         "{\"schema_version\":1,\"width\":8,\"height\":6,\"dtype\":\"f32\"}";
-                    acs_strbuf_v1 sb1;
+                    acsd_strbuf_v1 sb1;
                     sb_init(&sb1);
-                    acs_status brc = api->execute(bi, s_from(mm), s_from(cfg1), &sb1, &err);
+                    acsd_status brc = api->execute(bi, s_from(mm), s_from(cfg1), &sb1, &err);
                     CHECK(brc == ACS_ERR_PARAM && err.detail_code == 110 && sb1.data == NULL,
                           "P3: data_base64 缺失 → PARAM + 110 (必需端口)");
                     api->destroy(bi);
@@ -913,7 +913,7 @@ int main(void) {
         }
 
         /* C: create(1) */
-        acs_module_instance_v1* inst = NULL;
+        acsd_module_instance_v1* inst = NULL;
         err_init(&err);
         rc = api->create(api, s_from(cfg), host, &inst, &err);
         CHECK(rc == ACS_OK && inst != NULL, "C3: node create 恰调用 1 次 → OK");
@@ -969,7 +969,7 @@ int main(void) {
         }
 
         /* C: inspect(1) — 模块自观测 exec_count/last_op/state */
-        acs_strbuf_v1 ib;
+        acsd_strbuf_v1 ib;
         sb_init(&ib);
         char ibuf[512];
         ib.data = ibuf;
@@ -999,14 +999,14 @@ int main(void) {
          * 保证 (本测试 T3 已证)。本地观测: 重复事务后 exec_count 线性递增,
          * inspect 面可被 RT 巡检发现超限, 不伪造 STATE 断言。 */
         {
-            acs_status rc2 = ACS_OK;
+            acsd_status rc2 = ACS_OK;
             char* out_dup = (inst != NULL && man != NULL) ? exec_txn(api, inst, man, cfg, &rc2) : NULL;
             CHECK(rc2 == ACS_OK && out_dup != NULL,
                   "C17: 重复事务可重入 (KI: 模块不锁完成态, 恰一次归 RT call-count)");
             free(out_dup);
             long long ec2 = -1;
             if (inst) {
-                acs_strbuf_v1 ib2;
+                acsd_strbuf_v1 ib2;
                 sb_init(&ib2);
                 char ibuf2[512];
                 ib2.data = ibuf2;
@@ -1020,7 +1020,7 @@ int main(void) {
 
         /* E: trace module_call 行 (真实观测填充) */
         trace_module_call(&tw, node_id, desc_mid, desc_ver, desc_build,
-                          dll_base, dll_sha_hex, "astrocs_module_query_v1",
+                          dll_base, dll_sha_hex, "acsd_module_query_v1",
                           1, ex.last_leased, ex.max_workers,
                           (rc == ACS_OK || out != NULL) ? "COMPLETED" : "FAILED",
                           art_sizes[node_i], t1 - t0);
@@ -1065,8 +1065,8 @@ int main(void) {
                 CHECK(!strcmp(dn, dll_base), "T4: trace.dll_name == 实际加载 basename");
                 CHECK(!strcmp(ds, dll_sha_hex) && strlen(ds) == 64,
                       "T5: trace.dll_sha256 == 磁盘内容实测 hash (FIPS 180-4)");
-                CHECK(!strcmp(en, "astrocs_module_query_v1"), "T6: trace.entry 真实符号");
-                CHECK(!strcmp(bi, ASTROCS_COS_BUILD_ID), "T7: trace.build_id == describe");
+                CHECK(!strcmp(en, "acsd_module_query_v1"), "T6: trace.entry 真实符号");
+                CHECK(!strcmp(bi, ACSD_COS_BUILD_ID), "T7: trace.build_id == describe");
                 CHECK(cc == 1, "T8: trace.call_count == 1 (该 node 累计)");
                 CHECK(wsz > 0 && gw == 3, "T9: trace.workers/granted == 实租借观测");
                 CHECK(asz > 0, "T10: trace.artifact_size == 输出 manifest 实际字节");

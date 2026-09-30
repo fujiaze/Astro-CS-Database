@@ -15,11 +15,11 @@ run_provider_avx512_checks.py 逐行真编各自三份 ⇒ CPU-002 的「能力�
 覆盖（04_CPU_RESOURCE_TASKS.md CPU-002）:
   1. capability 门负测: 非 amd64 / OS 不保证 SSE2 ⇒ ACS_ERR_UNSUPPORTED，
      SSE2 齐备 ⇒ 通过（provider_capability_gate_test.c；以链接期强符号替换
-     acs_cap_detect_v1 注入 stub 探测，故**不带** capability_detect.c）；
+     acsd_cap_detect_v1 注入 stub 探测，故**不带** capability_detect.c）；
   2. query 握手: host_abi 失配 / host 缺 allocator / out_api NULL 逐条拒绝；
      kernel_list 12 条 + self_test 往返（provider_handshake_test.c；带真实
      capability_detect.c 走真实 CPUID 通过路径）；
-  3. .so 加载冒烟: dlopen 唯一导出 astrocs_provider_query_v1、kernel_list 12 条、
+  3. .so 加载冒烟: dlopen 唯一导出 acsd_provider_query_v1、kernel_list 12 条、
      self_test、run_kernel(calibration) 与独立期望一致（provider_so_load_test.c）。
 
 依赖: 仅标准库 + gcc/g++（本机 Linux 开发节点）。退出码 0=全 PASS。
@@ -70,7 +70,7 @@ def run(cmd, timeout=300):
 def main():
     tmp = "/tmp/cpu002_baseline"
     os.makedirs(tmp, exist_ok=True)
-    so_b = os.path.join(tmp, "astrocs_cpu_baseline.so")
+    so_b = os.path.join(tmp, "acsd_cpu_baseline.so")
     log("repo=%s" % REPO)
 
     # 1) baseline provider .so（保守 SSE2，无 -mavx*; 供 dlopen 冒烟）
@@ -82,7 +82,7 @@ def main():
         fail("baseline .so 编译")
         return 1
 
-    # 2) capability 门负测（stub 探测: 本 TU 提供 acs_cap_detect_v1 强符号）
+    # 2) capability 门负测（stub 探测: 本 TU 提供 acsd_cap_detect_v1 强符号）
     gate_exe = os.path.join(tmp, "baseline_gate")
     r = run(["gcc", "-std=c11", "-Wall", "-Wextra", "-Wpedantic",
              "-I%s" % INC_ROOT, "-I%s" % INC_BASE, "-I%s" % INC_CAP,

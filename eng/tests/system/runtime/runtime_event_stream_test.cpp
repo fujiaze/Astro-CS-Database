@@ -5,7 +5,7 @@
 //   * docs/detail/infrastructure/21_observability.md:45-46「日志/事件写入失败 → 非 0
 //     （IO=7，磁盘满=10）」；manifest 登记失败 → 7；哈希失败 → 8；
 //   * docs/detail/LOG_AND_ERROR_SYSTEM.md:120-130（六步日志生命周期：写入 → 确认落盘）；
-//   * docs/ASTROCS_DESIGN.md §6.3 stdout 纪律：stdout 恒为纯 JSONL，诊断只走 stderr；
+//   * docs/ACSD_DESIGN.md §6.3 stdout 纪律：stdout 恒为纯 JSONL，诊断只走 stderr；
 //   * lib/infrastructure/cli/exit_codes.h（IO=7 / RESOURCE=10 码值语义唯一源）。
 //
 // 注入（POSIX）：stdout → /dev/full（write(2) 返回 ENOSPC）/ 关闭 fd 1（write(2) 返回 EBADF）。
@@ -51,11 +51,11 @@ static nlohmann::json progress_extra() {
 static void test_posix_injection_unavailable_note() {
   // 本平台无 /dev/full 与 fd 级写失败注入；正例/纯净性仍跑，注入判据显式声明未执行
   //（不静默、不假装绿灯）。
-  astrocs::JsonlEmitter ev(astrocs::make_run_id(), "p163");
+  acsd::JsonlEmitter ev(acsd::make_run_id(), "p163");
   const bool ok = ev.emit("stage_start", "info", "s", "positive");
   CHECK(ok);
   CHECK(!ev.write_failed());
-  CHECK(ev.publication_exit_code(astrocs::OK) == astrocs::OK);
+  CHECK(ev.publication_exit_code(acsd::OK) == acsd::OK);
   std::fprintf(stderr, "P163_NOTE: ENOSPC/EBADF 注入判据为 POSIX 专属（/dev/full、关闭 fd 1），"
                        "本平台未执行\n");
 }
@@ -83,7 +83,7 @@ static std::string run_probe_child(int mode, const std::string& tmp_path) {
       if (fd >= 0) { ::dup2(fd, STDOUT_FILENO); ::close(fd); }
     }
     std::clearerr(stdout);
-    astrocs::JsonlEmitter ev(astrocs::make_run_id(), "p163");
+    acsd::JsonlEmitter ev(acsd::make_run_id(), "p163");
     const bool ok = ev.emit("progress", "info", "progress", "progress update", progress_extra());
     // 协议硬闸拒发（未登记 kind）：诊断走 stderr，stdout 不得被污染；
     // 且这**不是** I/O 写失败，不得置 write_failed_。
@@ -94,13 +94,13 @@ static std::string run_probe_child(int mode, const std::string& tmp_path) {
                   "ok=%d ok_drop=%d wf=%d hf=%d code=%d pub0=%d pub2=%d fputs=%d fflush=%d",
                   ok ? 1 : 0, ok_drop ? 1 : 0, ev.write_failed() ? 1 : 0,
                   ev.human_channel_failed() ? 1 : 0, ev.write_exit_code(),
-                  ev.publication_exit_code(astrocs::OK), ev.publication_exit_code(astrocs::ARGS),
+                  ev.publication_exit_code(acsd::OK), ev.publication_exit_code(acsd::ARGS),
                   e.find(":fputs:") != std::string::npos ? 1 : 0,
                   e.find(":fflush:") != std::string::npos ? 1 : 0);
     const ssize_t n = ::write(pipefd[1], buf, std::strlen(buf));
     (void)n;
     ::close(pipefd[1]);
-    ::_exit(ev.publication_exit_code(astrocs::OK));
+    ::_exit(ev.publication_exit_code(acsd::OK));
   }
   ::close(pipefd[1]);
   std::string report;
@@ -118,7 +118,7 @@ static std::string run_probe_child(int mode, const std::string& tmp_path) {
 }
 
 static std::string probe_tmp_path(const char* name) {
-  return std::string("/tmp/acsd_p163_") + name + "_" + astrocs::make_run_id() + ".jsonl";
+  return std::string("/tmp/acsd_p163_") + name + "_" + acsd::make_run_id() + ".jsonl";
 }
 
 // A. 正例 + stdout 纯净性 + 进程退出码 0

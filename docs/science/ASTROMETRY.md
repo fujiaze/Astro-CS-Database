@@ -1,6 +1,6 @@
 # Astrometry / WCS Science (SCI-WCS)
 
-> 上游：ASTROCS_DESIGN.md §4.2（Phase1 节点流程）、§4.4（输出合同）
+> 上游：ACSD_DESIGN.md §4.2（Phase1 节点流程）、§4.4（输出合同）
 
 > 本文件条款为冻结定义，变更走变更流程。
 

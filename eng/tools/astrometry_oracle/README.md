@@ -10,7 +10,7 @@
 ## 内容
 
 - `compare_astrometry.py` —— 比对求解 WCS 与参考 WCS：中心、尺度、旋转与像素到天球链指标，输出报告 JSON 并给 PASS 判定。
-- `make_astrocs_ref.py` —— 从 drizzle lineage 的像素四角 RA/Dec 推导参考 WCS 参数（center/scale/rotation/pixfrac）。
+- `make_acsd_ref.py` —— 从 drizzle lineage 的像素四角 RA/Dec 推导参考 WCS 参数（center/scale/rotation/pixfrac）。
 - `gen_synthetic_from_axy.py` —— 把检测源经注入 WCS 投影渲染为合成星场，头部不写 WCS 供盲解恢复。
 - `__pycache__/` —— Python 字节码缓存，不入库。
 

@@ -1,4 +1,4 @@
-# memory.md — astrocs.p2.session（P2-SESSION-DOC 冻结）
+# memory.md — acsd.p2.session（P2-SESSION-DOC 冻结）
 
 - 任务: P2-SESSION-DOC（V7_1_STATIC_TASK_LEDGER.csv:185 行，owner
   SA-P2-X24，wave W1，2026-09-10）——合同冻结层，不改生产源码，不
@@ -36,15 +36,15 @@
   （状态机 :253-256 取消态回落 created=DISP-003、host.allocator
   :260）；destroy :268-273；last_error :277-282。取消四段边界
   :120/:152/:181/:223（persist 先 close :224）。
-- 构建锚: 根 CMakeLists.txt astrocs_phase2_session STATIC :454
+- 构建锚: 根 CMakeLists.txt acsd_phase2_session STATIC :454
   （:455-457 include lib/algorithms/coverage/include、:458 link
-  astrocs_contracts+astrocs_phase2）；acsd 可执行链接 :501-506/:504；
+  acsd_contracts+acsd_phase2）；acsd 可执行链接 :501-506/:504；
   QA-001 严格警告名单 :517-529/:522。
 - 消费链: lib/infrastructure/scheduler/src/module_adapters.cpp——P2Api :711-718（五静态
-  委托）、phase2_descriptor() :283-300（module_id=astrocs.phase2.
+  委托）、phase2_descriptor() :283-300（module_id=acsd.phase2.
   resample 占位）、占位 descriptor 注册段 :746-751、canonical 7 节点链
   descriptors 定义 :561-694/注册段 :782-794（工厂统一
-  make_session_module<P2Api>，无第二调度顺序；astrocs.phase2.session
+  make_session_module<P2Api>，无第二调度顺序；acsd.phase2.session
   无独立 descriptor，占位词汇由 P2-XX-INT 对齐）。CLI: parser.cpp:344
   output_dir 必填；runtime_client.cpp:49 run 格式自动补 output_dir、
   :51 phase2 直通不补。

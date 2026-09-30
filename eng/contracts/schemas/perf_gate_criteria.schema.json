@@ -1,6 +1,6 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "$id": "astrocs.perf-gate-criteria/v1",
+  "$id": "acsd.perf-gate-criteria/v1",
   "title": "L2 冻结性能判据（fail-closed）",
   "x-doc": "docs/engineering/PERF_GATE_CONTRACT.md",
   "type": "object",
@@ -11,7 +11,7 @@
   ],
   "properties": {
     "schema": {
-      "const": "astrocs.perf-gate-criteria/v1"
+      "const": "acsd.perf-gate-criteria/v1"
     },
     "enforcement": {
       "const": "fail-closed"

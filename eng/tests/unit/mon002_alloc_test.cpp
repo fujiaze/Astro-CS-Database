@@ -27,8 +27,8 @@ static int failures = 0;
 
 namespace {
 
-astrocs::ProcSample sample_rss(uint64_t rss) {
-    astrocs::ProcSample s;
+acsd::ProcSample sample_rss(uint64_t rss) {
+    acsd::ProcSample s;
     s.rss_bytes = rss;
     s.vms_bytes = rss + (64ull << 20);   // VM commit = RSS + 64MiB 保留
     s.pss_bytes = rss;
@@ -36,26 +36,26 @@ astrocs::ProcSample sample_rss(uint64_t rss) {
 }
 
 // 稳定曲线: 首轮 200MiB + 每轮 ±4MiB 交替噪声(峰谷往返, 非单调)。
-void feed_stable(astrocs::AllocationRecorder& rec) {
+void feed_stable(acsd::AllocationRecorder& rec) {
     for (int i = 0; i < 30; ++i)
         rec.observe(i * 0.5, sample_rss((200ull << 20) + (i % 2 ? 4ull << 20 : 0)));
 }
 
 // 注入 leak: 每轮 +3MiB 单调增长(30 轮 0.5s = 15s, 斜率 6 MiB/s > warn)。
-void feed_leak(astrocs::AllocationRecorder& rec) {
+void feed_leak(acsd::AllocationRecorder& rec) {
     for (int i = 0; i < 30; ++i)
         rec.observe(i * 0.5, sample_rss((200ull << 20) + static_cast<uint64_t>(i) * (3ull << 20)));
 }
 
 // 快速 leak(30 轮 +20MiB/轮 = 40 MiB/s ≥ 32 失败线)。
-void feed_leak_fast(astrocs::AllocationRecorder& rec) {
+void feed_leak_fast(acsd::AllocationRecorder& rec) {
     for (int i = 0; i < 30; ++i)
         rec.observe(i * 0.5, sample_rss((200ull << 20) + static_cast<uint64_t>(i) * (20ull << 20)));
 }
 
 // 长 run 回落: 涨到 500MiB(峰值出现区间 t=19..22.5s, 全部在收尾窗外),
 // t>=23s 起释放到 150MiB(收尾工作集; 回落比例 0.7 >= 阈值 → Reclaimed)。
-void feed_reclaim(astrocs::AllocationRecorder& rec) {
+void feed_reclaim(acsd::AllocationRecorder& rec) {
     for (int i = 0; i <= 50; ++i) {
         const double t = i * 0.5;
         uint64_t rss = (100ull << 20) + (i > 8 ? static_cast<uint64_t>(i - 8) * (15ull << 20) : 0);
@@ -68,7 +68,7 @@ void feed_reclaim(astrocs::AllocationRecorder& rec) {
 // 长 run 不回落: 同形曲线(峰值出现区间 t=19..22.5s, 全在收尾窗外), t>=23s 起
 // 收尾留 460MiB — retained 40MiB 超容差(32MiB)且回落比例 0.08 < 0.5 →
 // UnexplainedResidual(不可解释残留)。
-void feed_no_reclaim(astrocs::AllocationRecorder& rec) {
+void feed_no_reclaim(acsd::AllocationRecorder& rec) {
     for (int i = 0; i <= 50; ++i) {
         const double t = i * 0.5;
         uint64_t rss = (100ull << 20) + (i > 8 ? static_cast<uint64_t>(i - 8) * (15ull << 20) : 0);
@@ -81,13 +81,13 @@ void feed_no_reclaim(astrocs::AllocationRecorder& rec) {
 }  // namespace
 
 int main() {
-    using astrocs::AllocGrowthVerdict;
-    using astrocs::AllocReclaimVerdict;
-    using astrocs::GateDiag;
+    using acsd::AllocGrowthVerdict;
+    using acsd::AllocReclaimVerdict;
+    using acsd::GateDiag;
 
     // 1) 稳定曲线: Stable; 峰谷噪声不误判(验收: 重复小 run 无单调增长)。
     {
-        astrocs::AllocationRecorder rec;
+        acsd::AllocationRecorder rec;
         feed_stable(rec);
         rec.finalize();
         const auto& r = rec.report();
@@ -99,31 +99,31 @@ int main() {
     }
     // 2) 注入 leak(慢速): Growing(预警, 未到失败线)。
     {
-        astrocs::AllocationRecorder rec;
+        acsd::AllocationRecorder rec;
         feed_leak(rec);
         rec.finalize();
         const auto& r = rec.report();
         CHECK(r.growth_verdict == AllocGrowthVerdict::Growing);
-        CHECK(r.rss_growth_mb_per_s > astrocs::kAllocGrowthWarnMbPerS);
+        CHECK(r.rss_growth_mb_per_s > acsd::kAllocGrowthWarnMbPerS);
     }
     // 3) 注入 leak(快速, 负向): Unbounded → gate AllocGrowthUnbounded FAIL
     //    (验收: 注入 leak 失败; 整条曲线判定, 非峰值)。
     {
-        astrocs::AllocationRecorder rec;
+        acsd::AllocationRecorder rec;
         feed_leak_fast(rec);
         rec.finalize();
         const auto& r = rec.report();
         CHECK(r.growth_verdict == AllocGrowthVerdict::Unbounded);
-        astrocs::GateConfig g;
+        acsd::GateConfig g;
         g.alloc_report_present = true;
         g.alloc_samples_measured = static_cast<double>(r.n_samples);
         g.alloc_growth_mb_per_s = r.rss_growth_mb_per_s;
         g.alloc_reclaim_verdict = r.reclaim_verdict;
-        CHECK(astrocs::evaluate_mon002(g) == GateDiag::AllocGrowthUnbounded);
+        CHECK(acsd::evaluate_mon002(g) == GateDiag::AllocGrowthUnbounded);
     }
     // 4) 峰值高但曲线平稳(假峰): 不得凭峰值判增长 —— 禁止只看峰值验收。
     {
-        astrocs::AllocationRecorder rec;
+        acsd::AllocationRecorder rec;
         rec.observe(0.0, sample_rss(200ull << 20));
         rec.observe(0.5, sample_rss(600ull << 20));  // 单点假峰(截图式峰值)
         rec.observe(1.0, sample_rss(200ull << 20));
@@ -138,31 +138,31 @@ int main() {
     }
     // 5) 长 run 可解释回落: Reclaimed(验收: run 结束验证可解释回落)。
     {
-        astrocs::AllocationRecorder rec;
+        acsd::AllocationRecorder rec;
         feed_reclaim(rec);
         rec.finalize();
         const auto& r = rec.report();
         CHECK(r.reclaim_verdict == AllocReclaimVerdict::Reclaimed);
-        CHECK(r.reclaim_frac >= astrocs::kAllocMinReclaimFrac);
+        CHECK(r.reclaim_frac >= acsd::kAllocMinReclaimFrac);
     }
     // 6) 长 run 回落不可解释(负向): UnexplainedResidual → gate AllocReclaimMissing。
     {
-        astrocs::AllocationRecorder rec;
+        acsd::AllocationRecorder rec;
         feed_no_reclaim(rec);
         rec.finalize();
         const auto& r = rec.report();
         CHECK(r.reclaim_verdict == AllocReclaimVerdict::UnexplainedResidual);
-        astrocs::GateConfig g;
+        acsd::GateConfig g;
         g.alloc_report_present = true;
         g.alloc_samples_measured = static_cast<double>(r.n_samples);
         g.alloc_growth_mb_per_s = r.rss_growth_mb_per_s;
         g.alloc_reclaim_verdict = r.reclaim_verdict;
-        CHECK(astrocs::evaluate_mon002(g) == GateDiag::AllocReclaimMissing);
+        CHECK(acsd::evaluate_mon002(g) == GateDiag::AllocReclaimMissing);
     }
     // 7) 采样失败哨兵(负向+哨兵纪律): 全哨兵曲线 → 判定双 InsufficientSamples,
     //    reclaim_frac=-1(未采样非 0 回落); gate 面在零有效样本 → FAIL。
     {
-        astrocs::AllocationRecorder rec;
+        acsd::AllocationRecorder rec;
         for (int i = 0; i < 8; ++i) rec.observe(i * 0.5, sample_rss(0));  // rss=0 采样失败
         rec.finalize();
         const auto& r = rec.report();
@@ -172,15 +172,15 @@ int main() {
         CHECK(r.growth_verdict == AllocGrowthVerdict::InsufficientSamples);
         CHECK(r.reclaim_verdict == AllocReclaimVerdict::InsufficientSamples);
         CHECK(r.reclaim_frac < 0.0);   // -1 哨兵, 不得冒充 0 回落
-        astrocs::GateConfig g;
+        acsd::GateConfig g;
         g.alloc_report_present = true;
         g.alloc_samples_measured = static_cast<double>(r.n_samples);  // 0.0
-        g.alloc_growth_mb_per_s = astrocs::kMon001NotSampled;
-        CHECK(astrocs::evaluate_mon002(g) == GateDiag::AllocReclaimMissing);
+        g.alloc_growth_mb_per_s = acsd::kMon001NotSampled;
+        CHECK(acsd::evaluate_mon002(g) == GateDiag::AllocReclaimMissing);
     }
     // 8) 部分哨兵混入: 哨兵行不入统计但入曲线留证; 有效样本仍可判定。
     {
-        astrocs::AllocationRecorder rec;
+        acsd::AllocationRecorder rec;
         rec.observe(0.0, sample_rss(200ull << 20));
         rec.observe(0.5, sample_rss(0));             // 哨兵
         rec.observe(1.0, sample_rss(200ull << 20));
@@ -197,32 +197,32 @@ int main() {
     }
     // 9) 短 run 显式跳过回落判定(非静默): wall<10s → ShortRunSkipped(非 FAIL)。
     {
-        astrocs::AllocationRecorder rec;
+        acsd::AllocationRecorder rec;
         for (int i = 0; i < 8; ++i) rec.observe(i * 0.5, sample_rss(200ull << 20));
         rec.finalize();
         const auto& r = rec.report();
         CHECK(r.reclaim_verdict == AllocReclaimVerdict::ShortRunSkipped);
-        astrocs::GateConfig g;
+        acsd::GateConfig g;
         g.alloc_report_present = true;
         g.alloc_samples_measured = static_cast<double>(r.n_samples);
         g.alloc_growth_mb_per_s = r.rss_growth_mb_per_s;
         g.alloc_reclaim_verdict = r.reclaim_verdict;
-        CHECK(astrocs::evaluate_mon002(g) == GateDiag::Ok);
+        CHECK(acsd::evaluate_mon002(g) == GateDiag::Ok);
     }
     // 10) gate 兼容: report 面未接入(向后兼容)与样本不足(斜率未算)不阻塞。
     {
-        astrocs::GateConfig g;
-        CHECK(astrocs::evaluate_mon002(g) == GateDiag::Ok);   // 面未接入
+        acsd::GateConfig g;
+        CHECK(acsd::evaluate_mon002(g) == GateDiag::Ok);   // 面未接入
         g.alloc_report_present = true;
         g.alloc_samples_measured = 6.0;
-        g.alloc_growth_mb_per_s = astrocs::kMon001NotSampled;  // 样本不足未算斜率
+        g.alloc_growth_mb_per_s = acsd::kMon001NotSampled;  // 样本不足未算斜率
         g.alloc_reclaim_verdict = AllocReclaimVerdict::ShortRunSkipped;
-        CHECK(astrocs::evaluate_mon002(g) == GateDiag::Ok);
+        CHECK(acsd::evaluate_mon002(g) == GateDiag::Ok);
     }
     // 11) cache/commit 口径与 allocator/private 探针可用性: cache=commit-RSS;
     //     本进程真实 /proc 采样(private 可得/glibc outstanding>0)。
     {
-        astrocs::AllocationRecorder rec;
+        acsd::AllocationRecorder rec;
         rec.observe(0.0, sample_rss(100ull << 20));
         rec.observe(0.5, sample_rss(100ull << 20));
         rec.observe(1.0, sample_rss(100ull << 20));
@@ -237,11 +237,11 @@ int main() {
     {
         const std::string dir = "run/local/agent_mon002/tmp_valid";
         std::filesystem::create_directories(dir);   // write 前建目录
-        astrocs::AllocationRecorder rec;
+        acsd::AllocationRecorder rec;
         feed_stable(rec);
         rec.finalize();
         CHECK(rec.write_all(dir));
-        CHECK(astrocs::validate_alloc_report(dir));    // 未篡改 → 一致
+        CHECK(acsd::validate_alloc_report(dir));    // 未篡改 → 一致
         // 篡改 1: 截断曲线行(n_curve 不符)
         {
             std::FILE* f = std::fopen((dir + "/alloc_samples.csv").c_str(), "r");
@@ -253,7 +253,7 @@ int main() {
             CHECK(cut != std::string::npos);
             f = std::fopen((dir + "/alloc_samples.csv").c_str(), "w");
             if (f && cut != std::string::npos) { std::fwrite(all.c_str(), 1, cut + 1, f); std::fclose(f); }
-            CHECK(!astrocs::validate_alloc_report(dir));   // 曲线篡改 → 拒绝
+            CHECK(!acsd::validate_alloc_report(dir));   // 曲线篡改 → 拒绝
         }
         // 篡改 2: 伪造峰值字段(peak_rss_bytes 改大)
         rec.write_all(dir);
@@ -273,11 +273,11 @@ int main() {
                 std::fwrite(rest, 1, all.size() - (pos + 20), f);
                 std::fclose(f);
             }
-            CHECK(!astrocs::validate_alloc_report(dir));   // 字段篡改 → 拒绝
+            CHECK(!acsd::validate_alloc_report(dir));   // 字段篡改 → 拒绝
         }
         // 篡改 3: 哨兵行冒充合法样本(第 2 行 sampled 0→1, 按行精确改写)
         {
-            astrocs::AllocationRecorder rec2;
+            acsd::AllocationRecorder rec2;
             rec2.observe(0.0, sample_rss(200ull << 20));
             rec2.observe(0.5, sample_rss(0));   // 哨兵
             rec2.finalize();
@@ -297,7 +297,7 @@ int main() {
                 for (const auto& l : lines) std::fwrite(l.c_str(), 1, l.size(), f);
                 std::fclose(f);
             }
-            CHECK(!astrocs::validate_alloc_report(dir));   // 哨兵计数不符 → 拒绝
+            CHECK(!acsd::validate_alloc_report(dir));   // 哨兵计数不符 → 拒绝
         }
     }
 

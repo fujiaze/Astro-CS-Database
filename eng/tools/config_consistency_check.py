@@ -80,8 +80,8 @@ ALIAS = {
     "method": ("reject_method", {"\"auto\"": "P2_REJECT_AUTO"}),
     "profile": ("reject_profile", {"\"wbpp_current\"": "\"wbpp_2_9_1\""}),
     "normalization": ("reject_normalization",
-                      {"\"median_center\"": "\"astrocs_median_center_v1\"",
-                       "\"median_scale\"": "\"astrocs_median_scale_v1\""}),
+                      {"\"median_center\"": "\"acsd_median_center_v1\"",
+                       "\"median_scale\"": "\"acsd_median_scale_v1\""}),
     "underdetermined_n": ("reject_underdetermined_n", {}),
     "robust_mad_clip.lower_sigma": ("sigma_lower", {}),
     "robust_mad_clip.upper_sigma": ("sigma_upper", {}),
@@ -146,7 +146,7 @@ def struct_defaults(text, consts=None):
 def include_consts(root, src_text):
     """从 parser 的 include 闭包收集**具名常量**：字符串/数值 #define 与 constexpr。
 
-    必要性：CONFORM-FIX-B 之后 parser/struct 用 P2_PROFILE_ASTROCS_ADAPTIVE_PIXEL、
+    必要性：CONFORM-FIX-B 之后 parser/struct 用 P2_PROFILE_ACSD_ADAPTIVE_PIXEL、
     P2_SMOOTHING_LAMBDA_AUTO 等具名常量而非字面量；只认字面量的提取器会静默丢键
     （=判据塌缩），故按 include 闭包把常量解析回字面量。解析不到的具名常量由
     evaluate 报 macro_unresolved（fail-closed，禁止静默丢键）。
@@ -688,7 +688,7 @@ def load_registry(root):
 
 def emit(result, root, json_out, strict):
     res = {
-        "schema": "astrocs/config-consistency/v2",
+        "schema": "acsd/config-consistency/v2",
         "task": "GUARD-TOOLS-FIX / CONFORM-SWEEP-3-017",
         "fact_sources": {"header": HDR_REL, "parser": SRC_REL, "docs": DOC_REL,
                          "archive_commit": ARCHIVE_COMMIT,
@@ -784,7 +784,7 @@ FIX_DOC = ('# Config / Schema（单一事实来源）\n\n'
            'model: control_grid_per_tile(8) smoothing(auto→0.1)\n'
            'integration: precision(fp32) rejection{method\n'
            '             none|auto\n'
-           '             profile(astrocs_adaptive_pixel(生产默认,自研)|wbpp_2_9_1(对照档))\n'
+           '             profile(acsd_adaptive_pixel(生产默认,自研)|wbpp_2_9_1(对照档))\n'
            '             robust_mad_clip{max_iterations 8}\n'
            '             weight_mode(auto)}\n' + FENCE + '\n')
 FIX_SCHEMA = {"properties": {

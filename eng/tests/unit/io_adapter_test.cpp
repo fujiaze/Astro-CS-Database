@@ -1,5 +1,5 @@
 // IO-001 单元测试: Artifact 事务 + FileIoAdapter
-#include "astrocs/io/io_adapter.h"
+#include "acsd/io/io_adapter.h"
 
 #include <algorithm>
 #include <cstdio>
@@ -13,8 +13,8 @@
 #include <thread>
 #include <vector>
 
-using namespace astrocs::io;
-using astrocs::core::ErrorDomain;
+using namespace acsd::io;
+using acsd::core::ErrorDomain;
 
 static int failures = 0;
 #define CHECK(cond)                                                       \
@@ -212,11 +212,11 @@ static void test_atomic_write() {
 
 static void test_io_adapter_no_scheduler_include() {
   // IO-001: io_adapter.h 不 include Runtime scheduler/模块实现
-  const char* repo = std::getenv("ASTROCS_REPO");
+  const char* repo = std::getenv("ACSD_REPO");
   // BLD-401: 路径随 2026-09-21 根目录整合订正（include/ → lib/include/）。
   // 且**禁止空内容退化**：旧路径在现行树不存在 ⇒ content 为空 ⇒ 下面 5 条
   // find()==npos 全部恒真（空断言充数，AGENTS.md §9）。先 fail-closed 断言非空。
-  std::string hp = (repo ? repo : "..") + std::string("/lib/include/astrocs/io/io_adapter.h");
+  std::string hp = (repo ? repo : "..") + std::string("/lib/include/acsd/io/io_adapter.h");
   std::ifstream h(hp);
   std::string content((std::istreambuf_iterator<char>(h)),
                       std::istreambuf_iterator<char>());

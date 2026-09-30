@@ -36,7 +36,7 @@ for prod in D:
     with fits.open(L4+'/p3_r_vis/output_phase3.fits',memmap=True) as h: cov=np.asarray(h[1].data)>0.5
     gmed[prod]=float(np.nanmedian(D[prod][cov]))
 final=dict(
- schema='ASTROCS-Q2-REALDATA-SEAM-v1',
+ schema='ACSD-Q2-REALDATA-SEAM-v1',
  generated_utc=datetime.datetime.utcnow().isoformat()+'Z',
  scope='RELEASE-02 Q2 real-data measurement: nmap / tilted seam loci / seam steps with off-locus controls / p2 sample structure',
  products={'OLD_p3_r_vis':L4+'/p3_r_vis/output_phase3.fits (source mosaic_out_w1, SWVER 98e529ec)',

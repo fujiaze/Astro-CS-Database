@@ -1,12 +1,12 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://astrocs.local/schemas/task-result-v2.json",
+  "$id": "https://acsd.local/schemas/task-result-v2.json",
   "title": "ACSD V6.1 Task Result",
   "type": "object",
   "additionalProperties": false,
   "required": ["schema", "task_id", "status", "parent_commit", "control_sha256", "ledger_sha256", "change_class", "changed_paths", "impact", "commands", "tests", "evidence", "findings", "expected_commit_subject", "created_utc"],
   "properties": {
-    "schema": {"const": "astrocs.task-result/v2"},
+    "schema": {"const": "acsd.task-result/v2"},
     "task_id": {"type": "string", "pattern": "^[A-Z0-9]+-[0-9]{3}$"},
     "status": {"enum": ["PASS", "FAIL", "WAITING_WINDOWS"]},
     "parent_commit": {"type": "string", "pattern": "^[0-9a-f]{40}$"},

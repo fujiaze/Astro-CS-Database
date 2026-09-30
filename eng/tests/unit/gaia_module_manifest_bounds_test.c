@@ -71,29 +71,29 @@ static void build_cfg(char* out, size_t cap, const char* dir) {
              dir);
 }
 
-static acs_status call_execute(gaia_inst* inst, const char* cfg, char* buf,
-                               uint64_t cap, acs_strbuf_v1* out,
-                               acs_error_info_v1* err) {
-    acs_str_v1 in = acs_str_from("{}");
-    acs_str_v1 cj = acs_str_from(cfg);
+static acsd_status call_execute(gaia_inst* inst, const char* cfg, char* buf,
+                               uint64_t cap, acsd_strbuf_v1* out,
+                               acsd_error_info_v1* err) {
+    acsd_str_v1 in = acsd_str_from("{}");
+    acsd_str_v1 cj = acsd_str_from(cfg);
     memset(out, 0, sizeof(*out));
     out->head.struct_size = (uint32_t)sizeof(*out);
     out->head.abi_version = ACS_ABI_VERSION_V1;
     out->data = buf;
     out->cap = cap;
     out->size = kSizeSentinel;
-    return gaia_execute((acs_module_instance_v1*)inst, in, cj, out, err);
+    return gaia_execute((acsd_module_instance_v1*)inst, in, cj, out, err);
 }
 
-static acs_status call_inspect(const gaia_inst* inst, char* buf, uint64_t cap,
-                               acs_strbuf_v1* out, acs_error_info_v1* err) {
+static acsd_status call_inspect(const gaia_inst* inst, char* buf, uint64_t cap,
+                               acsd_strbuf_v1* out, acsd_error_info_v1* err) {
     memset(out, 0, sizeof(*out));
     out->head.struct_size = (uint32_t)sizeof(*out);
     out->head.abi_version = ACS_ABI_VERSION_V1;
     out->data = buf;
     out->cap = cap;
     out->size = kSizeSentinel;
-    return gaia_inspect((const acs_module_instance_v1*)inst, out, err);
+    return gaia_inspect((const acsd_module_instance_v1*)inst, out, err);
 }
 
 int main(int argc, char** argv) {
@@ -114,8 +114,8 @@ int main(int argc, char** argv) {
 
     static char cfg[4096];
     static char buf[65536];
-    acs_strbuf_v1 out;
-    acs_error_info_v1 err;
+    acsd_strbuf_v1 out;
+    acsd_error_info_v1 err;
 
     /* ── 合法长度 119/120/121: 必须成功且 catalog_dir 原样回读 ── */
     const int lens[3] = { 119, 120, 121 };
@@ -125,7 +125,7 @@ int main(int argc, char** argv) {
         d[lens[i]] = '\0';
         build_cfg(cfg, sizeof(cfg), d);
         buf[0] = 'Z';
-        acs_status st = call_execute(&inst, cfg, buf, sizeof(buf), &out, &err);
+        acsd_status st = call_execute(&inst, cfg, buf, sizeof(buf), &out, &err);
         char what[96];
         snprintf(what, sizeof(what), "execute catalog_dir=%d -> ACS_OK", lens[i]);
         check(st == ACS_OK, what);
@@ -136,7 +136,7 @@ int main(int argc, char** argv) {
     /* ── 转义正例: 2 个反斜杠须翻倍为 4 且不越界 ── */
     build_cfg(cfg, sizeof(cfg), "aa\\\\bb");   /* 配置文本含 2 反斜杠 */
     buf[0] = 'Z';
-    acs_status st_esc = call_execute(&inst, cfg, buf, sizeof(buf), &out, &err);
+    acsd_status st_esc = call_execute(&inst, cfg, buf, sizeof(buf), &out, &err);
     check(st_esc == ACS_OK && strstr(buf, "aa") != NULL
           && strstr(buf, "\\\\\\\\") != NULL,
           "execute escaped backslashes -> ACS_OK + doubled");
@@ -147,13 +147,13 @@ int main(int argc, char** argv) {
     big[1023] = '\0';
     build_cfg(cfg, sizeof(cfg), big);
     buf[0] = 'Z';
-    acs_status st_long = call_execute(&inst, cfg, buf, sizeof(buf), &out, &err);
+    acsd_status st_long = call_execute(&inst, cfg, buf, sizeof(buf), &out, &err);
     check(st_long == ACS_ERR_PARAM, "execute catalog_dir=1023 -> ACS_ERR_PARAM");
     check(out.size == kSizeSentinel, "execute catalog_dir=1023 -> no product (size untouched)");
     check(buf[0] == 'Z', "execute catalog_dir=1023 -> output buffer untouched");
 
     /* ── 越界: 尺寸查询阶段 (data=NULL, cap=0) 同样拒绝, 且不报尺寸 ── */
-    acs_status st_sz = call_execute(&inst, cfg, NULL, 0, &out, &err);
+    acsd_status st_sz = call_execute(&inst, cfg, NULL, 0, &out, &err);
     check(st_sz == ACS_ERR_PARAM, "execute size-query catalog_dir=1023 -> ACS_ERR_PARAM");
     check(out.size == kSizeSentinel, "execute size-query -> no size leaked");
 
@@ -166,26 +166,26 @@ int main(int argc, char** argv) {
 
     snprintf(inst2.cfg.catalog_dir, sizeof(inst2.cfg.catalog_dir), "short/dir");
     buf[0] = 'Z';
-    acs_status st_i1 = call_inspect(&inst2, buf, sizeof(buf), &out, &err);
+    acsd_status st_i1 = call_inspect(&inst2, buf, sizeof(buf), &out, &err);
     check(st_i1 == ACS_OK && strstr(buf, "short/dir") != NULL,
           "inspect short catalog_dir -> ACS_OK round-trips");
 
     snprintf(inst2.cfg.catalog_dir, sizeof(inst2.cfg.catalog_dir), "x\"y\\z");
     buf[0] = 'Z';
-    acs_status st_i2 = call_inspect(&inst2, buf, sizeof(buf), &out, &err);
+    acsd_status st_i2 = call_inspect(&inst2, buf, sizeof(buf), &out, &err);
     check(st_i2 == ACS_OK && strstr(buf, "x\\\"y\\\\z") != NULL,
           "inspect escaped quote/backslash -> ACS_OK + correct escape");
 
     memset(inst2.cfg.catalog_dir, '"', 400);
     inst2.cfg.catalog_dir[400] = '\0';
     buf[0] = 'Z';
-    acs_status st_i3 = call_inspect(&inst2, buf, sizeof(buf), &out, &err);
+    acsd_status st_i3 = call_inspect(&inst2, buf, sizeof(buf), &out, &err);
     check(st_i3 == ACS_ERR_PARAM, "inspect 400x'\"' -> ACS_ERR_PARAM");
     check(out.size == kSizeSentinel, "inspect 400x'\"' -> no product");
 
     memset(inst2.cfg.catalog_dir, 'a', 1023);
     inst2.cfg.catalog_dir[1023] = '\0';
-    acs_status st_i4 = call_inspect(&inst2, buf, sizeof(buf), &out, &err);
+    acsd_status st_i4 = call_inspect(&inst2, buf, sizeof(buf), &out, &err);
     check(st_i4 == ACS_ERR_PARAM, "inspect catalog_dir=1023 -> ACS_ERR_PARAM");
     check(out.size == kSizeSentinel, "inspect catalog_dir=1023 -> no product");
 

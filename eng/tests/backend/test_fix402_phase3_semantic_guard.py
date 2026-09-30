@@ -3,11 +3,11 @@
 """test_fix402_phase3_semantic_guard.py — FIX-402 Phase3 输入语义守卫 + 写端口单位。
 
 依据（逐条可追）:
-  * docs/ASTROCS_DESIGN §6.3 —— 输入语义守卫（只接受面亮度语义输入; 方差/逆方差显式
+  * docs/ACSD_DESIGN §6.3 —— 输入语义守卫（只接受面亮度语义输入; 方差/逆方差显式
     消费并传播; 其余语义显式拒绝）+ 输出模式 surface_brightness / point_source_flux
     / visualization 显式声明, visualization 标注"不可测量";
-  * docs/ASTROCS_DESIGN §5.6 —— Phase2 信号为面亮度量纲（写端口 SURFACE_BRIGHTNESS）;
-  * docs/ASTROCS_DESIGN §7.2 —— 退出码 3 = 输入缺失/格式错, 4 = 科学验证或不变量失败;
+  * docs/ACSD_DESIGN §5.6 —— Phase2 信号为面亮度量纲（写端口 SURFACE_BRIGHTNESS）;
+  * docs/ACSD_DESIGN §7.2 —— 退出码 3 = 输入缺失/格式错, 4 = 科学验证或不变量失败;
   * FZ-BUNIT-SEMANTICS / FZ-P3-BUNIT-QUADRATIC（docs/science/DATA_SEMANTICS.md §31
     01_units_and_bunit.md §1/§3/§4）。
 
@@ -171,8 +171,8 @@ class Fix402Phase3SemanticGuard(unittest.TestCase):
         """BUNIT=ADU + 像素语义声明（FZ-BUNIT-SEMANTICS (b)）→ 放行并归一为 canonical。"""
         hips = self._variant("bare_adu_ok.hips")
         _set_props(hips, "signal", [("BUNIT", "ADU"),
-                                    ("ASTROCS_PIXEL_SEMANTICS", "surface_brightness"),
-                                    ("ASTROCS_PIXEL_AREA_POWER", "-2")])
+                                    ("ACSD_PIXEL_SEMANTICS", "surface_brightness"),
+                                    ("ACSD_PIXEL_AREA_POWER", "-2")])
         out = os.path.join(self.tmp, "out_pos_bare")
         r = _run_export(hips, out)
         self.assertEqual(r.returncode, 0, r.stderr[-500:])
@@ -191,12 +191,12 @@ class Fix402Phase3SemanticGuard(unittest.TestCase):
             # 裸 ADU 且**摘除**像素语义声明 ⇒ 单位不可判（fixture 默认带声明,
             # 故必须显式摘键, 否则退化为 test_02 的合法形态）
             ("bare_adu_no_provenance",
-             [("BUNIT", "ADU"), ("ASTROCS_PIXEL_SEMANTICS", None),
-              ("ASTROCS_PIXEL_AREA_POWER", None)], 3,
+             [("BUNIT", "ADU"), ("ACSD_PIXEL_SEMANTICS", None),
+              ("ACSD_PIXEL_AREA_POWER", None)], 3,
              "P3-INPUT-BUNIT-UNDECIDABLE"),
             ("integrated_flux", [("BUNIT", "ADU"),
-                                 ("ASTROCS_PIXEL_SEMANTICS", "integrated_flux"),
-                                 ("ASTROCS_PIXEL_AREA_POWER", "0")], 4,
+                                 ("ACSD_PIXEL_SEMANTICS", "integrated_flux"),
+                                 ("ACSD_PIXEL_AREA_POWER", "0")], 4,
              "P3-INPUT-NOT-SURFACE-BRIGHTNESS"),
             ("variance_face", [("BUNIT", VAR_BUNIT)], 4,
              "P3-INPUT-NOT-SURFACE-BRIGHTNESS"),
@@ -281,8 +281,8 @@ class Fix402Phase3SemanticGuard(unittest.TestCase):
                 os.remove(dst)
             os.link(os.path.join(sig_dir, name), dst)
         _set_props(hips, "variance", [("BUNIT", VAR_BUNIT),
-                                      ("ASTROCS_PIXEL_SEMANTICS", "surface_brightness"),
-                                      ("ASTROCS_PIXEL_AREA_POWER", "-4")])
+                                      ("ACSD_PIXEL_SEMANTICS", "surface_brightness"),
+                                      ("ACSD_PIXEL_AREA_POWER", "-4")])
         return hips
 
     def test_06_variance_propagation_nearest_exact(self):

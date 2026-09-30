@@ -40,7 +40,7 @@ def build_session() -> requests.Session:
     s = requests.Session()
     s.trust_env = False
     s.proxies = {"http": None, "https": None}
-    s.headers["User-Agent"] = "AstroCS-BASS-Downloader/1.0"
+    s.headers["User-Agent"] = "ACSD-BASS-Downloader/1.0"
     return s
 
 

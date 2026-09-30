@@ -1,7 +1,7 @@
 // ============================================================================
 // test_select_domain.cpp — 图像侧选星有效域 + 空扫描 provenance 回归锁
 // (ALG-WCS-001 §4a; 判据面 = 生产函数本体 select_image_stars /
-//  compute_fov_density / estimate_mag_lim_iterative, 经生产静态库 astrocs_p1_ipv)
+//  compute_fov_density / estimate_mag_lim_iterative, 经生产静态库 acsd_p1_ipv)
 // ----------------------------------------------------------------------------
 // 覆盖:
 //   A. §4a.1 样本定义域: 饱和检测不得进入选星样本

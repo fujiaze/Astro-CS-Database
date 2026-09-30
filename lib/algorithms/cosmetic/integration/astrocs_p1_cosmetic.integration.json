@@ -1,8 +1,8 @@
 {
-  "descriptor_schema": "astrocs.module-integration-descriptor/v1",
+  "descriptor_schema": "acsd.module-integration-descriptor/v1",
   "descriptor_owner_task": "P1-COS-INT",
-  "descriptor_note": "模块本地集成面 (MODULE_MIGRATION_TEMPLATE <prefix>-INT; 对齐先例 CAT-GAIA-INT 054af3a3 / P1-CAL-INT 58d20223)。端口/operation 字段名与 lib/infrastructure/pipeline/module_ports.registry.json v1 消费格式对齐; 本文件是模块侧声明面, 不是全局注册表。global DAG registration (typed DAG node 接线 + module_ports.registry.json 登记 + install manifest) 由 SA-RT-05 assembly task 消费本表执行; 本任务不改全局 registry/graph。所有 ID/键/词表与 lib/algorithms/cosmetic/module.yaml (P1-COS-DOC 冻结, 注册面端口由 P1-COS-INT 同步)、lib/algorithms/cosmetic/include/astrocs/cosmetic/types.h (P1-COS-IMPL 948dfcba) 三方一致 (12 §5)。",
-  "module_id": "astrocs.p1.cosmetic",
+  "descriptor_note": "模块本地集成面 (MODULE_MIGRATION_TEMPLATE <prefix>-INT; 对齐先例 CAT-GAIA-INT 054af3a3 / P1-CAL-INT 58d20223)。端口/operation 字段名与 lib/infrastructure/pipeline/module_ports.registry.json v1 消费格式对齐; 本文件是模块侧声明面, 不是全局注册表。global DAG registration (typed DAG node 接线 + module_ports.registry.json 登记 + install manifest) 由 SA-RT-05 assembly task 消费本表执行; 本任务不改全局 registry/graph。所有 ID/键/词表与 lib/algorithms/cosmetic/module.yaml (P1-COS-DOC 冻结, 注册面端口由 P1-COS-INT 同步)、lib/algorithms/cosmetic/include/acsd/cosmetic/types.h (P1-COS-IMPL 948dfcba) 三方一致 (12 §5)。",
+  "module_id": "acsd.p1.cosmetic",
   "module_version": "0.1.0-alpha.1",
   "abi_version": 1,
   "config_schema_ver": 1,
@@ -14,14 +14,14 @@
     "data_id": "DATA-P1-COS",
     "api_id": "API-COS-001",
     "test_id": "TEST-COS-DESIGN-001",
-    "contracts_note": "五元组按 lib/algorithms/cosmetic/include/astrocs/cosmetic/types.h (P1-COS-IMPL: SCI-CAL-001/ALG-COS-001/API-COS-001) + module.yaml science/algorithm/data/api/test_ids; DATA-P1-CAL 为上游 calibration 校准平面输入面 (module.yaml data_contracts 并列, 端口词表按 DATA-P1-COS inline base64 平面口径); API-P1-002 为 phase1 管线面并列合同 (v1 单值字段取 types.h ASTROCS_COS_API_ID); ALG-COS-002..005 为 ALG-COS-001 族内分段 (检测/结构滤波/插值/并行轴), op 级绑定由 describe().alg_id 顶层承载。"
+    "contracts_note": "五元组按 lib/algorithms/cosmetic/include/acsd/cosmetic/types.h (P1-COS-IMPL: SCI-CAL-001/ALG-COS-001/API-COS-001) + module.yaml science/algorithm/data/api/test_ids; DATA-P1-CAL 为上游 calibration 校准平面输入面 (module.yaml data_contracts 并列, 端口词表按 DATA-P1-COS inline base64 平面口径); API-P1-002 为 phase1 管线面并列合同 (v1 单值字段取 types.h ACSD_COS_API_ID); ALG-COS-002..005 为 ALG-COS-001 族内分段 (检测/结构滤波/插值/并行轴), op 级绑定由 describe().alg_id 顶层承载。"
   },
   "dll": {
-    "cmake_target": "astrocs_p1_cosmetic",
-    "dll_name_windows": "astrocs_p1_cosmetic.dll",
-    "dll_name_linux": "astrocs_p1_cosmetic.so",
-    "unique_entry": "astrocs_module_query_v1",
-    "export_contract": "12 §1/ABI-006: 唯一导出 astrocs_module_query_v1; legacy AC_API 科学符号经 AC_API= 本地化 + version-script/DEF 不进导出面 (P1-COS-IMPL 948dfcba nm 唯一导出 + dlsym 全 NULL 双实证)",
+    "cmake_target": "acsd_p1_cosmetic",
+    "dll_name_windows": "acsd_p1_cosmetic.dll",
+    "dll_name_linux": "acsd_p1_cosmetic.so",
+    "unique_entry": "acsd_module_query_v1",
+    "export_contract": "12 §1/ABI-006: 唯一导出 acsd_module_query_v1; legacy AC_API 科学符号经 AC_API= 本地化 + version-script/DEF 不进导出面 (P1-COS-IMPL 948dfcba nm 唯一导出 + dlsym 全 NULL 双实证)",
     "loader_rule": "缺 DLL (dlopen/LoadLibrary 失败) 必须失败, 不降级直调 (模板 INT §5)"
   },
   "execution": {
@@ -92,12 +92,12 @@
       "invalid_rule": "失败/取消路径不写输出 (事务性); hot/cold 为检测计数真实观测 (master 缺席恒等通道 = 0/0)"
     }
   ],
-  "typed_ports_note": "端口名与 lib/algorithms/cosmetic/module.yaml input_ports/output_ports 逐一同名 (P1-COS-INT 注册面同步)。p1.master_dark/p1.master_bias 为可选输入端口 (manifest 键缺席 = legacy NULL 恒等通道, DISP-COS-009 已在 P1-COS-IMPL/TEST 登记)。correct_frame legacy 签名仅消费 pdark/pbias 两参考平面 (lib/algorithms/cosmetic/src/module_entry.cpp planes[2] 事实面), master_flat 不在本模块词表 (flat 属 calibration calibrate_frame 域, 见 astrocs_p1_calibration.integration.json) —— cosmetic 域为 data + master 两类可选, 非三类。DATA-P1-COS 平面 dtype 冻结 f32|f64 且与 op 精度严格一致 (f64 op 内部降级 float32 执行为 API-COS-001 冻结合同, DISP-COS-004, BITWISE 口径 direct-vs-plugin 同源)。",
+  "typed_ports_note": "端口名与 lib/algorithms/cosmetic/module.yaml input_ports/output_ports 逐一同名 (P1-COS-INT 注册面同步)。p1.master_dark/p1.master_bias 为可选输入端口 (manifest 键缺席 = legacy NULL 恒等通道, DISP-COS-009 已在 P1-COS-IMPL/TEST 登记)。correct_frame legacy 签名仅消费 pdark/pbias 两参考平面 (lib/algorithms/cosmetic/src/module_entry.cpp planes[2] 事实面), master_flat 不在本模块词表 (flat 属 calibration calibrate_frame 域, 见 acsd_p1_calibration.integration.json) —— cosmetic 域为 data + master 两类可选, 非三类。DATA-P1-COS 平面 dtype 冻结 f32|f64 且与 op 精度严格一致 (f64 op 内部降级 float32 执行为 API-COS-001 冻结合同, DISP-COS-004, BITWISE 口径 direct-vs-plugin 同源)。",
   "operations": [
-    { "operation": "correct_frame", "config_op": "correct_frame", "entry": "astrocs_module_query_v1", "resource_class": "cpu_heavy", "inputs": ["p1.calibrated", "p1.master_dark", "p1.master_bias"], "outputs": ["p1.cleaned"] },
-    { "operation": "correct_frame_f64", "config_op": "correct_frame_f64", "entry": "astrocs_module_query_v1", "resource_class": "cpu_heavy", "inputs": ["p1.calibrated", "p1.master_dark", "p1.master_bias"], "outputs": ["p1.cleaned"] }
+    { "operation": "correct_frame", "config_op": "correct_frame", "entry": "acsd_module_query_v1", "resource_class": "cpu_heavy", "inputs": ["p1.calibrated", "p1.master_dark", "p1.master_bias"], "outputs": ["p1.cleaned"] },
+    { "operation": "correct_frame_f64", "config_op": "correct_frame_f64", "entry": "acsd_module_query_v1", "resource_class": "cpu_heavy", "inputs": ["p1.calibrated", "p1.master_dark", "p1.master_bias"], "outputs": ["p1.cleaned"] }
   ],
-  "operations_note": "operation 名=config op 词表 (types.h ASTROCS_COS_OP_* 2 op; ac_set_num_threads 为工具通道不进 op 面 —— 线程注入途径经 host executor 租约, DISP-COS-008)。每 (module_id, operation) 绑定唯一 entry astrocs_module_query_v1 (C ABI 每 DLL 唯一导出面, ABI-001)。inputs 中 p1.master_dark/p1.master_bias 为可选端口 (manifest 键缺席 = legacy NULL 恒等通道)。SA-RT-05 全局注册时按本表落 module_ports.registry.json; 同 entry 跨 node 的 hidden-session 判定键须用 (module_id, operation), 原始 entry 扇出语义见 lib/infrastructure/scheduler/src/context.cpp detect_repeated_calls (裁定权在 SA-RT-05/RT-006 演进)。",
+  "operations_note": "operation 名=config op 词表 (types.h ACSD_COS_OP_* 2 op; ac_set_num_threads 为工具通道不进 op 面 —— 线程注入途径经 host executor 租约, DISP-COS-008)。每 (module_id, operation) 绑定唯一 entry acsd_module_query_v1 (C ABI 每 DLL 唯一导出面, ABI-001)。inputs 中 p1.master_dark/p1.master_bias 为可选端口 (manifest 键缺席 = legacy NULL 恒等通道)。SA-RT-05 全局注册时按本表落 module_ports.registry.json; 同 entry 跨 node 的 hidden-session 判定键须用 (module_id, operation), 原始 entry 扇出语义见 lib/infrastructure/scheduler/src/context.cpp detect_repeated_calls (裁定权在 SA-RT-05/RT-006 演进)。",
   "plan_contract": {
     "plan_version": 1,
     "work_unit": "pixel",
@@ -106,14 +106,14 @@
   },
   "trace_contract": {
     "event_type": "module_call",
-    "standard": "RT-006 TraceEvent (lib/include/astrocs/core/contracts.h; 观测值禁止 config 冒充, 14 §4)",
+    "standard": "RT-006 TraceEvent (lib/include/acsd/core/contracts.h; 观测值禁止 config 冒充, 14 §4)",
     "real_value_fields": {
       "module_id": "describe().module_id (模块静态输出)",
       "module_version": "describe().version",
       "dll_name": "实际 dlopen/LoadLibrary 路径",
       "dll_sha256": "DLL 文件内容 SHA-256 实测 (FIPS 180-4 安装时计算, 本 descriptor 不预填)",
       "build_id": "describe().build_id = P1-COS-IMPL",
-      "entry": "dlsym 实际解析的导出符号 astrocs_module_query_v1",
+      "entry": "dlsym 实际解析的导出符号 acsd_module_query_v1",
       "call_count": "该 node module_call 累计 (每节点必须=1)",
       "workers": "host executor 实际租借数 (观测, 非 config 预测)",
       "granted_workers": "executor 授权上限观测",
@@ -131,7 +131,7 @@
   "failure_contract": {
     "missing_dll": "loader: 缺 DLL 必须失败 (模板 INT §5)",
     "duplicate_node_id": "静态图重复 node_id -> SA-RT-05 compiler 拒绝 (全局职责)",
-    "wrong_abi": "astrocs_module_query_v1(host_abi != ACS_ABI_VERSION_V1) -> ACS_ERR_ABI_MISMATCH 不降级",
+    "wrong_abi": "acsd_module_query_v1(host_abi != ACS_ABI_VERSION_V1) -> ACS_ERR_ABI_MISMATCH 不降级",
     "wrong_abi_id": "describe(module_id 不匹配) -> ACS_ERR_ABI_MISMATCH",
     "repeated_execute": "执行中同实例重入 → ACS_ERR_STATE (state 护栏, ACS_DIAG_ECODE_ILLEGAL_STATE); 事务完成后 state 回 CREATED (v1 语义), host 重复驱动为调用方协议违规, 由 RT-006 runtime call counts / 重放违规检测拒绝 (inspect.exec_count 线性递增可巡检)",
     "unknown_op": "ACS_ERR_PARAM + detail=100 (op 词表外)",
@@ -146,7 +146,7 @@
   "global_dag_registration": {
     "owner": "SA-RT-05",
     "status": "delegated",
-    "delegation": "typed DAG node 接线 (astrocs.typed-dag/v1)、module_ports.registry.json 登记、install manifest、ArtifactStore 端口绑定均由 SA-RT-05 assembly task 执行; 本任务仅交付模块本地集成面 (本 descriptor + 本地集成测试), 不修改 lib/infrastructure/pipeline/*、graph/*、lib/infrastructure/scheduler 全局注册表 (模板 INT §1: 不直接修改全局 pipeline)",
+    "delegation": "typed DAG node 接线 (acsd.typed-dag/v1)、module_ports.registry.json 登记、install manifest、ArtifactStore 端口绑定均由 SA-RT-05 assembly task 执行; 本任务仅交付模块本地集成面 (本 descriptor + 本地集成测试), 不修改 lib/infrastructure/pipeline/*、graph/*、lib/infrastructure/scheduler 全局注册表 (模板 INT §1: 不直接修改全局 pipeline)",
     "consumed_by": ["SA-RT-05 assembly", "typed DAG compiler"]
   }
 }

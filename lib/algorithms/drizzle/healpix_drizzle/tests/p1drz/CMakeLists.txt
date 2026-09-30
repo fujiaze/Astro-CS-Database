@@ -4,7 +4,7 @@
 # 控制包任务: P1-DRZ-TEST (SA-P1D-T, queue 37, lock-P1-DRZ; 依赖 P1-DRZ-DOC
 # 闭环)。合同锚: docs/science/algorithms/DRIZZLE_GEOMETRY.md §9 TEST-DRZ-DESIGN-001
 # (P1-DRZ-DOC 冻结, 2026-09-07, wave W1); 矩阵行 P1-DRZ (MOD
-# astrocs.p1.drizzle); SCI-DRZ-001 (docs/science/DRIZZLE.md §5/§7/§8)。
+# acsd.p1.drizzle); SCI-DRZ-001 (docs/science/DRIZZLE.md §5/§7/§8)。
 #
 # 结构 (模块 eng/tests/{unit,properties,oracle,fixtures,negative,performance} 对应):
 #   p1drz/p1drz_fixtures.hpp     — FIX-DRZ-A..F 固定 seed fixture generator
@@ -13,7 +13,7 @@
 #                                  Van Oosterom 立体角, 切平面 S-H)
 #   p1drz/p1drz_oracle.hpp       — 独立 oracle (不调用被测函数; 期望值由
 #                                  解析恒等式 + 独立几何重算 + 权威
-#                                  astrocs::healpix 地址生成)
+#                                  acsd::healpix 地址生成)
 #   p1drz/p1drz_test_main.hpp    — 执行器框架 (FaultRegistry + 组 runner)
 #   p1drz/p1drz_tests_core.cpp   — units/properties/oracle/negative 四组
 #   p1drz/p1drz_tests_perf.cpp   — performance 基线 (CI 森严哨兵)
@@ -41,10 +41,10 @@ add_executable(p1drz_tests
 target_include_directories(p1drz_tests PRIVATE
   ${CMAKE_CURRENT_SOURCE_DIR}/..
   ${P1DRZ_DIR})
-# 与 astrocs_drizzle (根 CMakeLists:382) 同宏: drizzle_engine.h 引用
+# 与 acsd_drizzle (根 CMakeLists:382) 同宏: drizzle_engine.h 引用
 # aio_healpix_io.h 的 HioSnrModel(_F64) 声明
 target_compile_definitions(p1drz_tests PRIVATE AIO_ENABLE_FITS AIO_ENABLE_HEALPIX)
-target_link_libraries(p1drz_tests PRIVATE astrocs_drizzle ${ASTROCS_OMP_TARGET})
+target_link_libraries(p1drz_tests PRIVATE acsd_drizzle ${ACSD_OMP_TARGET})
 # 单组单跑: ctest -R p1drz_units / p1drz_properties / p1drz_oracle / p1drz_negative
 add_test(NAME p1drz_units COMMAND p1drz_tests units)
 add_test(NAME p1drz_properties COMMAND p1drz_tests properties)
@@ -71,7 +71,7 @@ target_include_directories(p1drz_perf_test PRIVATE
   ${CMAKE_CURRENT_SOURCE_DIR}/..
   ${P1DRZ_DIR})
 target_compile_definitions(p1drz_perf_test PRIVATE AIO_ENABLE_FITS AIO_ENABLE_HEALPIX)
-target_link_libraries(p1drz_perf_test PRIVATE astrocs_drizzle ${ASTROCS_OMP_TARGET})
+target_link_libraries(p1drz_perf_test PRIVATE acsd_drizzle ${ACSD_OMP_TARGET})
 add_test(NAME p1drz_performance COMMAND p1drz_perf_test)
 
 # 故障注入必败自检 (验收: baseline 必 PASS + 注入必 FAIL 双向排除恒常)
@@ -82,7 +82,7 @@ target_include_directories(p1drz_selfcheck_test PRIVATE
   ${CMAKE_CURRENT_SOURCE_DIR}/..
   ${P1DRZ_DIR})
 target_compile_definitions(p1drz_selfcheck_test PRIVATE AIO_ENABLE_FITS AIO_ENABLE_HEALPIX)
-target_link_libraries(p1drz_selfcheck_test PRIVATE astrocs_drizzle ${ASTROCS_OMP_TARGET})
+target_link_libraries(p1drz_selfcheck_test PRIVATE acsd_drizzle ${ACSD_OMP_TARGET})
 add_test(NAME p1drz_selfcheck COMMAND p1drz_selfcheck_test)
 
 # ---------------------------------------------------------------------------
@@ -101,7 +101,7 @@ target_include_directories(p1drz_disp009_gate PRIVATE
   ${CMAKE_CURRENT_SOURCE_DIR}/..
   ${P1DRZ_DIR})
 target_compile_definitions(p1drz_disp009_gate PRIVATE AIO_ENABLE_FITS AIO_ENABLE_HEALPIX)
-target_link_libraries(p1drz_disp009_gate PRIVATE astrocs_drizzle ${ASTROCS_OMP_TARGET})
+target_link_libraries(p1drz_disp009_gate PRIVATE acsd_drizzle ${ACSD_OMP_TARGET})
 add_test(NAME p1drz_disp009 COMMAND p1drz_disp009_gate)
 
 # ---------------------------------------------------------------------------
@@ -115,7 +115,7 @@ target_include_directories(p1drz_thread_probe PRIVATE
   ${CMAKE_CURRENT_SOURCE_DIR}/..
   ${P1DRZ_DIR})
 target_compile_definitions(p1drz_thread_probe PRIVATE AIO_ENABLE_FITS AIO_ENABLE_HEALPIX)
-target_link_libraries(p1drz_thread_probe PRIVATE astrocs_drizzle ${ASTROCS_OMP_TARGET})
+target_link_libraries(p1drz_thread_probe PRIVATE acsd_drizzle ${ACSD_OMP_TARGET})
 
 # ---------------------------------------------------------------------------
 # P15a: 线程预算不变式 *回归锁* (taskset 口径, Linux-only)

@@ -19,19 +19,19 @@
     },
     {
       "at": "2026-09-17T06:55:00+08:00",
-      "change": "中面批次后下调 23/20 → 21/18；依据=新增 module_id 的页 astrocs.phase1.noise-snr.md、astrocs.phase1.star-psf.md（+2 页），新增覆盖 module_id astrocs.p1.noise_snr、astrocs.p1.psf（+2 模块）"
+      "change": "中面批次后下调 23/20 → 21/18；依据=新增 module_id 的页 acsd.phase1.noise-snr.md、acsd.phase1.star-psf.md（+2 页），新增覆盖 module_id acsd.p1.noise_snr、acsd.p1.psf（+2 模块）"
     },
     {
       "at": "2026-09-17T07:25:00+08:00",
-      "change": "大面步骤1+2 后下调：21/18 → 20/18；依据=新增 module_id 的页 astrocs.phase1.star-detection.md（+1 页）；新增 A 面条目 astrocs.p1.hips_writer（map_ids 23→24、covered 5→6，MODULE_WITHOUT_PAGE 不变）；新增错误类 AUTHORITY_MISSING 基线 0"
+      "change": "大面步骤1+2 后下调：21/18 → 20/18；依据=新增 module_id 的页 acsd.phase1.star-detection.md（+1 页）；新增 A 面条目 acsd.p1.hips_writer（map_ids 23→24、covered 5→6，MODULE_WITHOUT_PAGE 不变）；新增错误类 AUTHORITY_MISSING 基线 0"
     },
     {
       "at": "2026-09-17T07:35:00+08:00",
-      "change": "大面步骤1 落地后下调 21/18 → 20/17；依据=新增 module_id 的页 astrocs.phase1.star-detection.md（+1 页）+ 覆盖模块 astrocs.p1.star_detection（+1 模块有页）。大面步骤2（新增 A 面条目 astrocs.p1.hips_writer）已回退：check_module_map findings 155→161（missing_map_field plugin_doc / dangling_data_contract DATA-P1-DRZ+DATA-P1-HIPS / header_missing_abi_version 等 6 条），与「findings 只降不升」冲突 ⇒ 登记为待 B/C 面补齐后新增，条目一律以实测为依据"
+      "change": "大面步骤1 落地后下调 21/18 → 20/17；依据=新增 module_id 的页 acsd.phase1.star-detection.md（+1 页）+ 覆盖模块 acsd.p1.star_detection（+1 模块有页）。大面步骤2（新增 A 面条目 acsd.p1.hips_writer）已回退：check_module_map findings 155→161（missing_map_field plugin_doc / dangling_data_contract DATA-P1-DRZ+DATA-P1-HIPS / header_missing_abi_version 等 6 条），与「findings 只降不升」冲突 ⇒ 登记为待 B/C 面补齐后新增，条目一律以实测为依据"
     },
     {
       "at": "2026-09-20T00:00:00+08:00",
-      "change": "实测下降（**未下调 classes 阈值，保持烧毁式基线保守**）：PAGE_MISSING_MODULE_ID 实测 20 → 14、MODULE_WITHOUT_PAGE 实测 17 → 11；依据=新增 module_id 的 6 页 astrocs.phase1.photometry.md(astrocs.p1.photometry)、astrocs.phase2.coverage.md(astrocs.p2.coverage)、astrocs.phase2.integrate.md(astrocs.p2.integration)、astrocs.phase2.reject.md(astrocs.p2.rejection)、astrocs.phase2.upm-apply.md(astrocs.p2.upm)、astrocs.phase3.wcs.md(astrocs.p3.projection)（+6 页 / +6 模块有页）。**其余 14 页未加**：其中 5 页（astrocs.phase1.calibration.md / astrocs.phase1.cosmetic.md / astrocs.phase1.drizzle.md / astrocs.phase2.upm-fit.md / astrocs.phase3.resample.md）被 docs/contracts/unified_object_registry.json 的**行锚**锁定，加 frontmatter 行会使其锚点漂移 ⇒ 须与锚点同步更新后一并加；另 9 页无 MODULE_MAP 对应 module_id（hips-writer/session/writer/phase2.resample/phase2.session/phase2.write/phase3.properties/phase3.verify），加入会触发 PAGE_UNKNOWN_MODULE_ID（新增错误类）⇒ 须先补 MODULE_MAP 条目（MOD-002 落地批）。未下调 classes 阈值，实际计数低于基线仍 PASS"
+      "change": "实测下降（**未下调 classes 阈值，保持烧毁式基线保守**）：PAGE_MISSING_MODULE_ID 实测 20 → 14、MODULE_WITHOUT_PAGE 实测 17 → 11；依据=新增 module_id 的 6 页 acsd.phase1.photometry.md(acsd.p1.photometry)、acsd.phase2.coverage.md(acsd.p2.coverage)、acsd.phase2.integrate.md(acsd.p2.integration)、acsd.phase2.reject.md(acsd.p2.rejection)、acsd.phase2.upm-apply.md(acsd.p2.upm)、acsd.phase3.wcs.md(acsd.p3.projection)（+6 页 / +6 模块有页）。**其余 14 页未加**：其中 5 页（acsd.phase1.calibration.md / acsd.phase1.cosmetic.md / acsd.phase1.drizzle.md / acsd.phase2.upm-fit.md / acsd.phase3.resample.md）被 docs/contracts/unified_object_registry.json 的**行锚**锁定，加 frontmatter 行会使其锚点漂移 ⇒ 须与锚点同步更新后一并加；另 9 页无 MODULE_MAP 对应 module_id（hips-writer/session/writer/phase2.resample/phase2.session/phase2.write/phase3.properties/phase3.verify），加入会触发 PAGE_UNKNOWN_MODULE_ID（新增错误类）⇒ 须先补 MODULE_MAP 条目（MOD-002 落地批）。未下调 classes 阈值，实际计数低于基线仍 PASS"
     }
   ]
 }

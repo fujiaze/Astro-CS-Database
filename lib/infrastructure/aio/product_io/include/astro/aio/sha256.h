@@ -6,15 +6,15 @@
  * 独立性: 本实现不依赖 OpenSSL；标准 FIPS 180-4 SHA-256，仅用于完整性锚，
  * 不是任何科学量。真值由独立 Oracle (python hashlib) 交叉校验。
  */
-#ifndef ASTROCS_V6_AIO_SHA256_H
-#define ASTROCS_V6_AIO_SHA256_H
+#ifndef ACSD_V6_AIO_SHA256_H
+#define ACSD_V6_AIO_SHA256_H
 
 #include <array>
 #include <cstddef>
 #include <cstdint>
 #include <string>
 
-namespace astrocs {
+namespace acsd {
 namespace aio {
 
 class Sha256 {
@@ -38,6 +38,6 @@ class Sha256 {
 };
 
 }  // namespace aio
-}  // namespace astrocs
+}  // namespace acsd
 
-#endif  // ASTROCS_V6_AIO_SHA256_H
+#endif  // ACSD_V6_AIO_SHA256_H

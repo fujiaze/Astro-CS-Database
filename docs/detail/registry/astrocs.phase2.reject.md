@@ -1,6 +1,6 @@
-# 模块 astrocs.phase2.reject
+# 模块 acsd.phase2.reject
 
-> 上游：docs/ASTROCS_DESIGN.md §8.5（模块与 ABI）、§5.2（固定科学流程）、
+> 上游：docs/ACSD_DESIGN.md §8.5（模块与 ABI）、§5.2（固定科学流程）、
 > §5.5（逐像素排异：按几何覆盖帧数 N 自动选择算法）
 > 科学正本：docs/science/REJECTION.md（SCI-REJ-001；§5 档位条款、§8 空栈语义、
 > §14a 上游一手出处）、docs/detail/PHASE2_DETAILED_DESIGN.md §5
@@ -12,12 +12,12 @@
 > docs/engineering/PHASE2_API_V1.md（API-P2-001，FROZEN）
 
 LIB 面 = `lib/algorithms/rejection/` 三件套（README / module.yaml ，
-CONTRACT_READY）。MOD ID = MOD-astrocs-phase2-reject；module_id 合同值 =
-`astrocs.p2.rejection`（descriptor 词汇 `astrocs.phase2.reject` 为编排层口径，其
-对齐属迁移目标、未落地）；dll_target = `astrocs_p2_rejection.dll`（迁移目标，
+CONTRACT_READY）。MOD ID = MOD-acsd-phase2-reject；module_id 合同值 =
+`acsd.p2.rejection`（descriptor 词汇 `acsd.phase2.reject` 为编排层口径，其
+对齐属迁移目标、未落地）；dll_target = `acsd_p2_rejection.dll`（迁移目标，
 未落地）。生产源 = lib/algorithms/coverage/src/rejection.cpp + 签名头正本
 lib/algorithms/coverage/include/astro/phase2/rejection.h；构建 = 根 CMakeLists 的
-`astrocs_phase2` 静态库成员。owner = SA-xxx；depends_on_int = P2-UPM / CPU-005
+`acsd_phase2` 静态库成员。owner = SA-xxx；depends_on_int = P2-UPM / CPU-005
 （P2-REJ 为 P2-INT 行本域被依赖项）；legacy_paths = 「lib/algorithms/coverage
 rejection sources」。
 
@@ -28,7 +28,7 @@ rejection sources」。
 
 落地链路：eligibility strided gather 单路径（`source_indices` 权威映射
 PHASE2_IVAR_WIRING；compact 后 original slot 只经 `source_indices` 映射）→
-planning 层 AUTO 一次解析（生产默认 profile `astrocs_adaptive_pixel`，自研）→
+planning 层 AUTO 一次解析（生产默认 profile `acsd_adaptive_pixel`，自研）→
 **10 显式方法核**（NONE / SIGMA / WINSORIZED / AVERAGED / LINEAR_FIT / ESD / RCR /
 PERCENTILE / MEDIAN_SIGMA / MINMAX；**AUTO = 10，永不进 kernel**）→ large_scale
 结构生长后处理（trail 扩张只增不减，compact cosmic 不生长，默认关闭）。
@@ -72,7 +72,7 @@ invalid 显式化：非 finite 输入 → `INVALID_INPUT`；AUTO 入 kernel → 
 `P2IntegrateStatus`，语义权威 = ALG-P2-REJ-001 §4.1）。
 
 模块注册 = `lib/infrastructure/pipeline/module_ports.registry.json` 的
-`astrocs.phase2.reject`；生产接线 =
+`acsd.phase2.reject`；生产接线 =
 lib/infrastructure/scheduler/src/module_adapters.cpp 的 `p2_op_reject`。输出被
 integration 消费（作为门 / 概率）。
 
@@ -94,10 +94,10 @@ rejection.cpp 冻结头为准；本页只记落地方式与路由。
 | **4 ≤ N ≤ 5** | percentile clipping |
 | **N ≥ 6** | winsorized sigma clipping |
 
-生产档 `astrocs_adaptive_pixel` 的档位表 = 上述三档。**依据（生产 kernel 受控
+生产档 `acsd_adaptive_pixel` 的档位表 = 上述三档。**依据（生产 kernel 受控
 评估，正本 = docs/science/REJECTION.md §5）**：linear fit 在 `N ≥ 16` 档的等效
 上阈显著低于名义 3.5 倍拟合噪声（秩轴拟合的噪声估计被序统计量间距压小），表现为
-**干净像素过拒**与**显著点漏检**。对照档 `wbpp_2_9_1` / `astrocs_adaptive` 仍为
+**干净像素过拒**与**显著点漏检**。对照档 `wbpp_2_9_1` / `acsd_adaptive` 仍为
 `N > 15 → linear fit`，作为 WBPP 档界对照基线。`linear_fit` 仍是合法显式方法
 （`request = linear_fit`），AUTO 在生产档不产出该档。
 
@@ -145,7 +145,7 @@ create / destroy，无状态纯函数（reentrant）。
 
 ## Registry descriptor 与配置 schema
 
-module_id=`astrocs.phase2.reject`（占位）；execution_class=`cpu_heavy`;
+module_id=`acsd.phase2.reject`（占位）；execution_class=`cpu_heavy`;
 parallel_ok=True。配置面 = lib/algorithms/coverage/include/astro/phase2/stage2_common.h
 的 `reject_method` / `reject_profile` / `reject_underdetermined_n` /
 `reject_normalization`（+ floor 1e-12）/ `large_scale_*`；typed params 的唯一默认
@@ -224,6 +224,6 @@ Oracle 面：
   NO_CANDIDATES」与实现 MIN_SAMPLES 的口径差（NO_CANDIDATES 属积分域，语义
   权威 = ALG §4.1）；SCI §2/§5 行号锚漂移（行号权威 = ALG §3 实测）；minmax
   比较器 value-only tie-break 未显式冻结；整改面未落地；
-- 目标交付形态 astrocs_p2_rejection.dll 未落地；descriptor 占位 module_id 与合同
-  值 `astrocs.p2.rejection` 的对齐属迁移目标（未落地）；
+- 目标交付形态 acsd_p2_rejection.dll 未落地；descriptor 占位 module_id 与合同
+  值 `acsd.p2.rejection` 的对齐属迁移目标（未落地）；
 - 全局限制登记 = artifacts/evidence/known-limitations-ledger/LIMITATIONS.md。

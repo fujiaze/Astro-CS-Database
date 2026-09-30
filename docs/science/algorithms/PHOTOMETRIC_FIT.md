@@ -1,6 +1,6 @@
 # Photometric Fit Algorithms (ALG-PHOT)
 
-> 上游：ASTROCS_DESIGN.md §2.1（创新点一）、§4.4（输出合同）
+> 上游：ACSD_DESIGN.md §2.1（创新点一）、§4.4（输出合同）
 
 ## 1 上游 SCI 与输入输出
 
@@ -144,7 +144,7 @@ function photometric_fit(F_instr, F_syn, G_Gaia):
 > 共享引用不改动）、§13.3 已登记现状缺陷 DISP-PHOT-001..009、§13.4 冻结测试设计
 > TEST-PHOT-DESIGN-001、§13.5 非生产通道与待迁移符号。锚点一律给到
 > 文件级（`lib/algorithms/photometry/cpp/` 下的符号名），后续重构以
-> grep 重锚为准。状态词唯一口径 = `ASTROCS_DESIGN.md` §12.5；IMPLEMENTED 只由验收签发（迁移落码归 P1-PHOT-IMPL）。
+> grep 重锚为准。状态词唯一口径 = `ACSD_DESIGN.md` §12.5；IMPLEMENTED 只由验收签发（迁移落码归 P1-PHOT-IMPL）。
 
 ### 13.1 逐符号实现锚定
 
@@ -284,8 +284,8 @@ F_syn = ∫ F_λ(λ)·T(λ)·Q(λ)·λ dλ        # W·m⁻²·nm；F_λ 单位 
   生产主路径=v2/_f64_v2。
 - ImageCorrector::computeScale（`image_corrector.cpp`）=待迁移符号
   （median 回退，无调用方，DISP-PHOT-003）。
-- astrocs::phase1::Photometer（lib/algorithms/photometry/wrapper_phase1/photometer.{h,cpp}）
-  =aperture 测光待迁移符号（静态库 astrocs_phase1_phot，`CMakeLists.txt`；
+- acsd::phase1::Photometer（lib/algorithms/photometry/wrapper_phase1/photometer.{h,cpp}）
+  =aperture 测光待迁移符号（静态库 acsd_phase1_phot，`CMakeLists.txt`；
   单测 eng/tests/unit/p1_wcs_phot_test 与其注册处 `eng/tests/unit/CMakeLists.txt`，
   未接 orchestrator 管线），aperture 合同并入 lib/algorithms/photometry/
   README.md §9。

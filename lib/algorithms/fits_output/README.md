@@ -1,4 +1,4 @@
-# astrocs.p3.fits_writer — Phase3 FITS 写出域（P3-FITS）
+# acsd.p3.fits_writer — Phase3 FITS 写出域（P3-FITS）
 
 > P3-FITS-DOC（2026-09-08，SA-P3-F27）合同冻结任务新建模块页。合同三件套
 > 落位 `lib/algorithms/fits_output/`（README r1 + module.yaml + memory.md，
@@ -6,7 +6,7 @@
 > → `lib/algorithms/rejection/` → `lib/algorithms/sampling/` → `lib/algorithms/upm/` 先例新建，
 > 仅合同文件、无源码、不与 legacy 目录重叠；生产源引用不搬家。
 > 生产源 `lib/algorithms/fits_output/p3_output.cpp`（**556 行**，根 CMakeLists.txt
-> `add_library(astrocs_phase3_session …)` 五源文件之一）+ 唯一权威
+> `add_library(acsd_phase3_session …)` 五源文件之一）+ 唯一权威
 > 签名头 `lib/algorithms/fits_output/p3_output.h`（**95 行**）；进程内编排消费方
 > `lib/phase3_session/p3_session.cpp`（**441 行**，run 段调
 > `p3_output_write_atomic_ex`）；执行测试 `eng/tests/unit/p3_output_test.cpp`
@@ -17,12 +17,12 @@
 
 ## 身份与合同
 
-- MOD ID：`MOD-astrocs-phase3-writer`（registry 行 ID 沿用，手写合同页
-  `docs/detail/registry/astrocs.phase3.writer.md`）；module_id：
-  `astrocs.p3.fits_writer`（MODULE_MIGRATION_MATRIX P3-FITS 行权威值；
-  任务指派文字 astrocs.p3.fits 与矩阵冲突——矩阵为权威依据，落位决策
+- MOD ID：`MOD-acsd-phase3-writer`（registry 行 ID 沿用，手写合同页
+  `docs/detail/registry/acsd.phase3.writer.md`）；module_id：
+  `acsd.p3.fits_writer`（MODULE_MIGRATION_MATRIX P3-FITS 行权威值；
+  任务指派文字 acsd.p3.fits 与矩阵冲突——矩阵为权威依据，落位决策
   记录于 memory.md 与本 README）；dll_target：
-  `astrocs_p3_fits_writer.dll`（矩阵合同值，尚未存在——MISSING 语义，
+  `acsd_p3_fits_writer.dll`（矩阵合同值，尚未存在——MISSING 语义，
   迁移归 P3-FITS-IMPL，本页不声明 IMPLEMENTED）。
 - owner SA-P3-F27；depends_on_int=**P3-RSMP-INT;IO-003**；
   legacy_paths="lib/phase3_session fits sources"（均以
@@ -37,7 +37,7 @@
   → DATA-P3-FITS（DATA_SEMANTICS §27）/ API-P3-FITS-001（PUBLIC_API
   Phase3 FITS 写出公共消费面节）→ TEST-P3-WR-001（登记面=设计冻结
   TEST-P3-WR-DESIGN-001 VERIFIED，承载于
-  docs/detail/registry/astrocs.phase3.writer.md §独立 synthetic
+  docs/detail/registry/acsd.phase3.writer.md §独立 synthetic
   验证节 + ALG 文档 §TEST-DESIGN 容差；可执行测试 MISSING 归
   P3-FITS-TEST，不冒认）。
 
@@ -78,7 +78,7 @@
   P3_OUT_IO=2 / P3_OUT_CANCELLED=3；CANCELLED 仅由 cancelled_at_row≥0
   触发（:198-202），session 层恒传 -1（:292）。
 - sha256_file_checked 严格封装：fopen/ferror/fclose 全检查，失败不写
-  空/前缀哈希（R10-C；ASTROCS_HASH_FAIL_INJECT 仅测试注入）。
+  空/前缀哈希（R10-C；ACSD_HASH_FAIL_INJECT 仅测试注入）。
 - 参数门：signal/coverage/wcs/output_path 非空、W/H∈[1,20000]（会话
   层 :113-114 先行拒绝；内核再拒 width<1||height<1 :117）。
 - determinism=fixed_reduction_order：像素写序=行主序单线程 cfitsio
@@ -92,7 +92,7 @@
 
 - DISP-P3FITS-001：lib/infrastructure/aio/README.md 旧派生内容声称
   "零外部依赖、不依赖 cfitsio"，与现状 vendored third_party/cfitsio
-  （astrocs_cfitsio 静态库，根 CMakeLists.txt:273-296 astrocs_aio
+  （acsd_cfitsio 静态库，根 CMakeLists.txt:273-296 acsd_aio
   链接）矛盾——P3-FITS-DOC 只登记不修他域文件。
 - DISP-P3FITS-002：tmp 命名冻结注与实现偏差——p3_output.h:41-44
   协议注写 `<dir>/.<base>.<pid>.tmp`（前置点隐藏文件形态），实测
@@ -120,7 +120,7 @@
   （API-P3-FITS-001）」
 - SCI：docs/science/PHASE3_HIPS_TO_FITS.md（FROZEN，零改动）
 - 模块页：docs/detail/phase3_fits.md；registry 手写页：
-  docs/detail/registry/astrocs.phase3.writer.md
+  docs/detail/registry/acsd.phase3.writer.md
 - 元数据：module.yaml（31 个顶层键，CONTRACT_READY，entrypoint=MISSING；
   2026-09-16 实测 `python3 -c "import yaml;print(len(yaml.safe_load(open('lib/algorithms/fits_output/module.yaml'))))"`）、
   memory.md（任务决策与实测锚）

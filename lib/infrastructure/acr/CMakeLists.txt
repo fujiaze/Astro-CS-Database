@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.24)
 
 # ══ ACR-001 dormant build guard (SA-ACR-13; 冻结约束 §C.1) ══
-# 约束 AstroCS_ENGINEERING_CONSTRAINTS.md §C.1: ACR 是正式发布后的 CPU/GPU 异构
+# 约束 ACSD_ENGINEERING_CONSTRAINTS.md §C.1: ACR 是正式发布后的 CPU/GPU 异构
 # 更新；本轮保留源码、接口与隔离测试，但生产构建/加载/路由/benchmark/发布包
 # 均不得依赖或包含 ACR/CUDA；当前唯一生产计算后端是纯 CPU（§C.2）。
 #
@@ -21,9 +21,9 @@ cmake_minimum_required(VERSION 3.24)
 #   1) 默认/Release 根 configure target graph 无 ACR target（根 CMakeLists
 #     从不 add_subdirectory 本目录）；
 #   2) release preset（CMakePresets.json win-msvc-17.14.39-x64 / linux-control）
-#      ASTROCS_ENABLE_ACR=OFF（正式路径不接受 ON；eng/cmake/toolchain/
+#      ACSD_ENABLE_ACR=OFF（正式路径不接受 ON；eng/cmake/toolchain/
 #      verify_toolchain.py 对 formal path 强制 OFF）；
-#   3) 显式 -DASTROCS_ENABLE_ACR=ON 的根 configure 仍不引入 ACR target ——
+#   3) 显式 -DACSD_ENABLE_ACR=ON 的根 configure 仍不引入 ACR target ——
 #      ACR 实验树只能独立 configure（本 guard 即隔离实验 target 的机器边界）；
 #   4) install-tree contract / product manifest / install_layout 零 ACR/CUDA 条目。
 if(NOT CMAKE_SOURCE_DIR STREQUAL CMAKE_CURRENT_SOURCE_DIR)

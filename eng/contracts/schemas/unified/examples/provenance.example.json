@@ -1,6 +1,6 @@
 {
   "unified_object": "provenance",
-  "object_schema_id": "https://astrocs.local/schemas/unified/provenance/v1",
+  "object_schema_id": "https://acsd.local/schemas/unified/provenance/v1",
   "schema_version": 1,
   "units": {
     "bunit": "1",
@@ -33,7 +33,7 @@
     "sha256:bbbb"
   ],
   "run_id": "run-3",
-  "product_type_id": "astrocs.phase2.mosaic_hips.v1",
+  "product_type_id": "acsd.phase2.mosaic_hips.v1",
   "unavailable": {
     "flag": false,
     "reason": "none",

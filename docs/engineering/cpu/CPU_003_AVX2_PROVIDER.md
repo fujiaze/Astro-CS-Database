@@ -1,6 +1,6 @@
 # CPU AVX2/FMA provider（热点 kernel 后端）
 
-> 上游：docs/ASTROCS_DESIGN.md §9（CPU 后端与资源）、docs/ASTROCS_DESIGN.md §9（CPU 后端与资源））、
+> 上游：docs/ACSD_DESIGN.md §9（CPU 后端与资源）、docs/ACSD_DESIGN.md §9（CPU 后端与资源））、
 >       docs/engineering/CPU_BACKEND_ARCH.md、docs/engineering/ISA_VARIANTS.md（逐 kernel 选路）、
 >       docs/engineering/cpu/CPU_001_CAPABILITY_PROBE.md（os_safe 能力平面）
 
@@ -10,7 +10,7 @@ AVX2/FMA provider 建立 AMD64 **AVX2/FMA 后端**：只迁移 profile 指定的
 target 单独 `/arch:AVX2`（Linux `-mavx2 -mfma`）；函数入口由 provider 表查询，
 不复制科学模块；其余 kernel 回落 baseline。
 
-- 实现面：`lib/infrastructure/benchmark/cpu/avx2/`（`include/astrocs/cpu/avx2_provider_v1.h` +
+- 实现面：`lib/infrastructure/benchmark/cpu/avx2/`（`include/acsd/cpu/avx2_provider_v1.h` +
   `src/avx2_provider.cpp`）。
 - 测试面：`eng/tests/cpu/avx2/`（gate stub 负测 + handshake + so_load + 对照 oracle runner）。
 
@@ -46,8 +46,8 @@ target 单独 `/arch:AVX2`（Linux `-mavx2 -mfma`）；函数入口由 provider 
 
 ## 4. 加载门（非支持 CPU 不加载；CPUID/XGETBV negative）
 
-query 期执行 `acs_cpu_avx2_cap_gate`：真实 `acs_cap_detect_v1`（CPUID + OSXSAVE +
-XGETBV）+ `acs_cap_os_safe_satisfies_v1(cap, required)`，其中 `required = AVX | AVX2 | FMA`
+query 期执行 `acsd_cpu_avx2_cap_gate`：真实 `acsd_cap_detect_v1`（CPUID + OSXSAVE +
+XGETBV）+ `acsd_cap_os_safe_satisfies_v1(cap, required)`，其中 `required = AVX | AVX2 | FMA`
 （`ACS_CPU_AVX2_REQUIRED_FEATURES`）。os_safe 平面由 capability classify 组包含语义保证：
 AVX 家族整组仅在 `OSXSAVE=1 且 XCR0.XMM|YMM (0x6)` 时进入 os_safe
 （`lib/infrastructure/benchmark/cpu/common/` 的 `capability_v1.h` 位语义）。
@@ -60,7 +60,7 @@ AVX 家族整组仅在 `OSXSAVE=1 且 XCR0.XMM|YMM (0x6)` 时进入 os_safe
 | AVX2 机（OS 保存 XMM\|YMM） | os_safe 含 AVX\|AVX2\|FMA | 通过 |
 
 负测以 stub 探测注入（`eng/tests/cpu/avx2/provider_avx2_capability_gate_test.c` 链接期替换
-`acs_cap_detect_v1`/`acs_cap_os_safe_satisfies_v1`，同 baseline gate 测试法）；
+`acsd_cap_detect_v1`/`acsd_cap_os_safe_satisfies_v1`，同 baseline gate 测试法）；
 正测经真实 CPUID/XGETBV。
 
 加载成功后才提供 kernel 服务；`self_test` 失败 / ABI 失配按 provider 装载合同拒绝
@@ -70,7 +70,7 @@ AVX 家族整组仅在 `OSXSAVE=1 且 XCR0.XMM|YMM (0x6)` 时进入 os_safe
 ## 5. 函数入口由 provider 表查询
 
 host/测试不硬编码「baseline 内核索引映射」，而是以 **kernel_id** 查 `kernel_list()` 得索引
-再 `run_kernel()`（oracle main 的 `find_kernel`）；provider 描述表（`acs_kernel_desc_v1`）
+再 `run_kernel()`（oracle main 的 `find_kernel`）；provider 描述表（`acsd_kernel_desc_v1`）
 与 baseline 用**同一科学 kernel 身份**（`kernel_id` 与 `sci_contract_id` 逐条相同），
 只是该 kernel 的 AVX2+FMA ISA 实现。注册表只含热点子集是 avx2 provider 与 baseline
 provider 的契约差异，kernel_id 语义两 provider 一致（逐 kernel 路由的事实源）。

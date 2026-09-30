@@ -85,8 +85,8 @@ def b2f(u):
 def main():
     tmp = "/tmp/cpu003_avx2"
     os.makedirs(tmp, exist_ok=True)
-    so_b = os.path.join(tmp, "astrocs_cpu_baseline.so")
-    so_a = os.path.join(tmp, "astrocs_cpu_avx2.so")
+    so_b = os.path.join(tmp, "acsd_cpu_baseline.so")
+    so_a = os.path.join(tmp, "acsd_cpu_avx2.so")
     log(f"repo={REPO} hw_cpus={HW}")
 
     # 0) capability_detect.c → 无任何 -mavx* 旗标的独立对象 (纯 C; 探测路径永不
@@ -112,7 +112,7 @@ def main():
     # 2) 编译 avx2 .so —— R-60 TU 级隔离: 门面 TU **零 ISA 旗标**（query /
     #    self_test / cap_gate 必须在仅 SSE2 的主机上可执行 = 干净拒绝而不是 #UD）+
     #    计算面 TU avx2_kernels.cpp **唯一**带 -mavx2 -mfma（编译隔离 15 §6 + R-60
-    #    配方）; 两者只经唯一跨 TU 桥 astrocs_cpuprov_kernel_range_v1 相连。
+    #    配方）; 两者只经唯一跨 TU 桥 acsd_cpuprov_kernel_range_v1 相连。
     #    配方**不**在本文件重写: 唯一取数口 = eng/tests/backend/variant_build.py
     #    （与 eng/tests/backend/test_cpuprov_isa_variants.py 共用，避免判据各编各的
     #    导致测试产物与发行产物形态分叉）。

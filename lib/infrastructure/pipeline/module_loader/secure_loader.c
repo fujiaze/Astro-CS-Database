@@ -5,7 +5,7 @@
  *
  * 本文件是 host 侧(runtime, 非跨 DLL 模块)工具库: 内部临时内存用 libc;
  * 跨出 loader 的字符串(loaded 信息)经 options.allocator 分配并由
- * acs_secure_loader_release_v1 释放(同一 allocator 实例, 绝不跨 CRT/堆)。
+ * acsd_secure_loader_release_v1 释放(同一 allocator 实例, 绝不跨 CRT/堆)。
  *
  * Linux 加载语义:
  *   - 路径: 必须绝对(拒绝相对 → 当前目录发现无从谈起); realpath 求 canonical;
@@ -19,7 +19,7 @@
  *     describe → 校验 head/abi_version/module_id/build_id/version。
  *
  * 日志纪律: loader 不自行写任何日志(无 logger 依赖路径); 详细诊断经
- * acs_error_info_v1 返回调用方。错误消息为编译期静态字面量, 绝不含路径/
+ * acsd_error_info_v1 返回调用方。错误消息为编译期静态字面量, 绝不含路径/
  * sha256/文件内容(12 §6; 验收: 日志不泄凭据)。
  */
 /* realpath(NULL 输出) 需 XSI 700 特性宏; 必须在任何 include 之前 */
@@ -51,12 +51,12 @@
  * 纯 C、自包含、无第三方依赖(仓库无现成纯 C sha256; lib/common/crypto 为 C++,
  * loader 不跨语言边界)。仅用于二进制身份比对(非密钥用途)。 */
 
-typedef struct acs_sha256_ctx_s {
+typedef struct acsd_sha256_ctx_s {
     uint32_t h[8];
     uint64_t total_bytes;
     uint8_t  block[64];
     uint32_t block_len;
-} acs_sha256_ctx;
+} acsd_sha256_ctx;
 
 static const uint32_t kSha256K[64] = {
     0x428a2f98u, 0x71374491u, 0xb5c0fbcfu, 0xe9b5dba5u, 0x3956c25bu,
@@ -76,7 +76,7 @@ static const uint32_t kSha256K[64] = {
 
 static uint32_t rot_r(uint32_t x, unsigned n) { return (x >> n) | (x << (32u - n)); }
 
-static void sha256_block(acs_sha256_ctx* c, const uint8_t* p) {
+static void sha256_block(acsd_sha256_ctx* c, const uint8_t* p) {
     uint32_t w[64];
     unsigned i;
     for (i = 0; i < 16; ++i) {
@@ -104,7 +104,7 @@ static void sha256_block(acs_sha256_ctx* c, const uint8_t* p) {
     c->h[4] += e; c->h[5] += f; c->h[6] += g; c->h[7] += h;
 }
 
-static void sha256_init(acs_sha256_ctx* c) {
+static void sha256_init(acsd_sha256_ctx* c) {
     c->h[0] = 0x6a09e667u; c->h[1] = 0xbb67ae85u;
     c->h[2] = 0x3c6ef372u; c->h[3] = 0xa54ff53au;
     c->h[4] = 0x510e527fu; c->h[5] = 0x9b05688cu;
@@ -113,7 +113,7 @@ static void sha256_init(acs_sha256_ctx* c) {
     c->block_len = 0;
 }
 
-static void sha256_update(acs_sha256_ctx* c, const void* data, uint64_t len) {
+static void sha256_update(acsd_sha256_ctx* c, const void* data, uint64_t len) {
     const uint8_t* p = (const uint8_t*)data;
     c->total_bytes += len;
     if (c->block_len > 0) {
@@ -139,7 +139,7 @@ static void sha256_update(acs_sha256_ctx* c, const void* data, uint64_t len) {
     }
 }
 
-static void sha256_final(acs_sha256_ctx* c, uint8_t out[32]) {
+static void sha256_final(acsd_sha256_ctx* c, uint8_t out[32]) {
     uint64_t bits = c->total_bytes * 8u;
     uint8_t pad = 0x80u;
     sha256_update(c, &pad, 1);
@@ -169,31 +169,31 @@ static void sha256_hex(const uint8_t d[32], char out[65]) {
 
 /* ═══════════════════════════ span/str 工具 ═══════════════════════════ */
 
-static acs_str_v1 str_view(const char* s) {
-    acs_str_v1 v;
-    v.head.struct_size = (uint32_t)sizeof(acs_str_v1);
+static acsd_str_v1 str_view(const char* s) {
+    acsd_str_v1 v;
+    v.head.struct_size = (uint32_t)sizeof(acsd_str_v1);
     v.head.abi_version = ACS_ABI_VERSION_V1;
     v.data = s;
     v.size = (uint64_t)strlen(s);
     return v;
 }
 
-static int str_eq_span(const acs_str_v1* a, const acs_str_v1* b) {
+static int str_eq_span(const acsd_str_v1* a, const acsd_str_v1* b) {
     if (a->size != b->size) return 0;
     if (a->size == 0) return 1;
     if (a->data == NULL || b->data == NULL) return 0;
     return memcmp(a->data, b->data, (size_t)a->size) == 0;
 }
 
-static int span_is(const acs_str_v1* s, const char* lit) {
+static int span_is(const acsd_str_v1* s, const char* lit) {
     size_t n = strlen(lit);
     return s->size == (uint64_t)n && memcmp(s->data, lit, n) == 0;
 }
 
 /* 由 loader allocator 拥有的 NUL 结尾串构造 span(仅用于 describe 输出读取) */
-static acs_str_v1 make_str(const char* p, uint64_t len) {
-    acs_str_v1 v;
-    v.head.struct_size = (uint32_t)sizeof(acs_str_v1);
+static acsd_str_v1 make_str(const char* p, uint64_t len) {
+    acsd_str_v1 v;
+    v.head.struct_size = (uint32_t)sizeof(acsd_str_v1);
     v.head.abi_version = ACS_ABI_VERSION_V1;
     v.data = p;
     v.size = len;
@@ -226,10 +226,10 @@ static const char* detail_message(int32_t detail) {
     }
 }
 
-static void fill_err(acs_error_info_v1* err, acs_status st, int32_t detail) {
+static void fill_err(acsd_error_info_v1* err, acsd_status st, int32_t detail) {
     if (!err) return;
     memset(err, 0, sizeof(*err));
-    err->head.struct_size = (uint32_t)sizeof(acs_error_info_v1);
+    err->head.struct_size = (uint32_t)sizeof(acsd_error_info_v1);
     err->head.abi_version = ACS_ABI_VERSION_V1;
     err->status = st;
     err->domain = ACS_ERR_DOMAIN_CONFIG;
@@ -241,22 +241,22 @@ static void fill_err(acs_error_info_v1* err, acs_status st, int32_t detail) {
 
 /* ═══════════════════════════ 句柄/分配 ═══════════════════════════ */
 
-struct acs_loader_handle_s {
-    acs_allocator_v1 allocator;   /* 快照(同一实例分配/释放) */
+struct acsd_loader_handle_s {
+    acsd_allocator_v1 allocator;   /* 快照(同一实例分配/释放) */
     void* dl;
-    const acs_module_api_v1*   module_api;
-    const acs_provider_api_v1* provider_api;
+    const acsd_module_api_v1*   module_api;
+    const acsd_provider_api_v1* provider_api;
     char* resolved_path;          /* allocator 分配, NUL 结尾 */
     char* loaded_sha;             /* allocator 分配, 64 hex + NUL */
     uint32_t abi_version;
     /* 以下借 module 静态(describe); 有效至 release(dlclose) */
-    acs_str_v1 module_id;
-    acs_str_v1 module_version;
-    acs_str_v1 build_id;
-    acs_str_v1 api_id;
+    acsd_str_v1 module_id;
+    acsd_str_v1 module_version;
+    acsd_str_v1 build_id;
+    acsd_str_v1 api_id;
 };
 
-static char* alloc_str_copy(const acs_allocator_v1* a, const void* data,
+static char* alloc_str_copy(const acsd_allocator_v1* a, const void* data,
                             uint64_t len, uint64_t extra) {
     void* p = a->alloc(a->user_data, len + extra, 8u);
     if (!p) return NULL;
@@ -318,12 +318,12 @@ static uint8_t* read_file_all(const char* path, uint64_t* size_out) {
 }
 
 /* module/provider 查询入口符号类型 */
-typedef acs_status (ASTROCS_CALL *module_query_fn)(uint32_t,
-                                                   const acs_host_api_v1*,
-                                                   const acs_module_api_v1**);
-typedef acs_status (ASTROCS_CALL *provider_query_fn)(uint32_t,
-                                                     const acs_host_api_v1*,
-                                                     const acs_provider_api_v1**);
+typedef acsd_status (ACSD_CALL *module_query_fn)(uint32_t,
+                                                   const acsd_host_api_v1*,
+                                                   const acsd_module_api_v1**);
+typedef acsd_status (ACSD_CALL *provider_query_fn)(uint32_t,
+                                                     const acsd_host_api_v1*,
+                                                     const acsd_provider_api_v1**);
 
 static void* resolve_symbol(void* dl, const char* name) {
     dlerror();  /* 清残留 */
@@ -342,9 +342,9 @@ static int elf64_ok(const uint8_t* h, int32_t* detail_out) {
 
 /* ═══════════════════════════ 加载主流程 ═══════════════════════════ */
 
-static acs_status check_span(const acs_str_v1* s, acs_error_info_v1* err) {
+static acsd_status check_span(const acsd_str_v1* s, acsd_error_info_v1* err) {
     if (s->head.abi_version != ACS_ABI_VERSION_V1 ||
-        s->head.struct_size != sizeof(acs_str_v1)) {
+        s->head.struct_size != sizeof(acsd_str_v1)) {
         fill_err(err, ACS_ERR_ABI_MISMATCH, ACS_LOADER_EC_INVALID_INPUT);
         return ACS_ERR_ABI_MISMATCH;
     }
@@ -356,20 +356,20 @@ static acs_status check_span(const acs_str_v1* s, acs_error_info_v1* err) {
 }
 
 /* 构造最小 host 表(query 握手需要; allocator 必填, 其余可空) */
-static acs_host_api_v1 make_host(const acs_allocator_v1* allocator) {
-    acs_host_api_v1 host;
+static acsd_host_api_v1 make_host(const acsd_allocator_v1* allocator) {
+    acsd_host_api_v1 host;
     memset(&host, 0, sizeof(host));
-    host.head.struct_size = (uint32_t)sizeof(acs_host_api_v1);
+    host.head.struct_size = (uint32_t)sizeof(acsd_host_api_v1);
     host.head.abi_version = ACS_ABI_VERSION_V1;
     host.allocator = allocator;
     return host;
 }
 
-ASTROCS_EXPORT acs_status ASTROCS_CALL
-acs_secure_loader_load_v1(const acs_loader_options_v1* opt,
-                          acs_error_info_v1* err,
-                          acs_loader_handle** out) {
-    acs_loader_handle* h = NULL;
+ACSD_EXPORT acsd_status ACSD_CALL
+acsd_secure_loader_load_v1(const acsd_loader_options_v1* opt,
+                          acsd_error_info_v1* err,
+                          acsd_loader_handle** out) {
+    acsd_loader_handle* h = NULL;
     char* canon = NULL;
     char computed_hex[65];
 
@@ -379,17 +379,17 @@ acs_secure_loader_load_v1(const acs_loader_options_v1* opt,
     }
     *out = NULL;
     if (opt->head.abi_version != ACS_ABI_VERSION_V1 ||
-        opt->head.struct_size != sizeof(acs_loader_options_v1)) {
+        opt->head.struct_size != sizeof(acsd_loader_options_v1)) {
         fill_err(err, ACS_ERR_ABI_MISMATCH, ACS_LOADER_EC_INVALID_INPUT);
         return ACS_ERR_ABI_MISMATCH;
     }
-    const acs_load_manifest_unit_v1* u = &opt->unit;
+    const acsd_load_manifest_unit_v1* u = &opt->unit;
     if (u->head.abi_version != ACS_ABI_VERSION_V1 ||
-        u->head.struct_size != sizeof(acs_load_manifest_unit_v1)) {
+        u->head.struct_size != sizeof(acsd_load_manifest_unit_v1)) {
         fill_err(err, ACS_ERR_ABI_MISMATCH, ACS_LOADER_EC_INVALID_INPUT);
         return ACS_ERR_ABI_MISMATCH;
     }
-    acs_status st;
+    acsd_status st;
     if ((st = check_span(&u->abs_path_utf8, err)) != ACS_OK) return st;
     if ((st = check_span(&u->kind, err)) != ACS_OK) return st;
     if ((st = check_span(&u->module_id, err)) != ACS_OK) return st;
@@ -488,7 +488,7 @@ acs_secure_loader_load_v1(const acs_loader_options_v1* opt,
         return ACS_ERR_ABI_MISMATCH;
     }
     {
-        acs_sha256_ctx c;
+        acsd_sha256_ctx c;
         uint8_t digest[32];
         sha256_init(&c);
         sha256_update(&c, fbuf, fsize);
@@ -521,8 +521,8 @@ acs_secure_loader_load_v1(const acs_loader_options_v1* opt,
     }
 
     /* ── 4. 句柄分配(此后所有权=句柄; canon 仍须在成功/失败路径释放) ── */
-    h = (acs_loader_handle*)opt->allocator->alloc(
-        opt->allocator->user_data, sizeof(acs_loader_handle), 8u);
+    h = (acsd_loader_handle*)opt->allocator->alloc(
+        opt->allocator->user_data, sizeof(acsd_loader_handle), 8u);
     if (!h) {
         dlclose(dl);
         free(canon); canon = NULL;
@@ -551,17 +551,17 @@ acs_secure_loader_load_v1(const acs_loader_options_v1* opt,
     h->loaded_sha[64] = '\0';
     free(canon); canon = NULL;
 
-    acs_host_api_v1 host = make_host(opt->allocator);
+    acsd_host_api_v1 host = make_host(opt->allocator);
 
     /* ── 5. 加载后: 必需符号 + 握手 + describe 校验 ── */
     if (is_module) {
-        module_query_fn qfn = (module_query_fn)(void*)resolve_symbol(dl, "astrocs_module_query_v1");
+        module_query_fn qfn = (module_query_fn)(void*)resolve_symbol(dl, "acsd_module_query_v1");
         if (!qfn) {
             fill_err(err, ACS_ERR_ABI_MISMATCH, ACS_LOADER_EC_SYMBOL_MISSING);
             goto fail_release_h;
         }
-        const acs_module_api_v1* api = NULL;
-        acs_status qr = qfn(ACS_ABI_VERSION_V1, &host, &api);
+        const acsd_module_api_v1* api = NULL;
+        acsd_status qr = qfn(ACS_ABI_VERSION_V1, &host, &api);
         if (qr != ACS_OK || !api) {
             fill_err(err, ACS_ERR_ABI_MISMATCH,
                      (qr == ACS_ERR_ABI_MISMATCH) ? ACS_LOADER_EC_HANDSHAKE_ABI
@@ -569,7 +569,7 @@ acs_secure_loader_load_v1(const acs_loader_options_v1* opt,
             goto fail_release_h;
         }
         if (api->head.abi_version != ACS_ABI_VERSION_V1 ||
-            api->head.struct_size < sizeof(acs_module_api_v1)) {
+            api->head.struct_size < sizeof(acsd_module_api_v1)) {
             fill_err(err, ACS_ERR_ABI_MISMATCH, ACS_LOADER_EC_HANDSHAKE_ABI);
             goto fail_release_h;
         }
@@ -581,16 +581,16 @@ acs_secure_loader_load_v1(const acs_loader_options_v1* opt,
             fill_err(err, ACS_ERR_ABI_MISMATCH, ACS_LOADER_EC_SYMBOL_MISSING);
             goto fail_release_h;
         }
-        acs_module_descriptor_v1 desc;
+        acsd_module_descriptor_v1 desc;
         memset(&desc, 0, sizeof(desc));
-        acs_str_v1 empty = str_view("");
-        acs_status dr = api->describe(api, empty, &desc);
+        acsd_str_v1 empty = str_view("");
+        acsd_status dr = api->describe(api, empty, &desc);
         if (dr != ACS_OK) {
             fill_err(err, ACS_ERR_ABI_MISMATCH, ACS_LOADER_EC_DESCRIPTOR_MISMATCH);
             goto fail_release_h;
         }
         if (desc.head.abi_version != ACS_ABI_VERSION_V1 ||
-            desc.head.struct_size < sizeof(acs_module_descriptor_v1)) {
+            desc.head.struct_size < sizeof(acsd_module_descriptor_v1)) {
             fill_err(err, ACS_ERR_ABI_MISMATCH, ACS_LOADER_EC_DESCRIPTOR_MISMATCH);
             goto fail_release_h;
         }
@@ -609,13 +609,13 @@ acs_secure_loader_load_v1(const acs_loader_options_v1* opt,
         h->build_id = desc.build_id;
         h->api_id = desc.api_id;
     } else { /* provider */
-        provider_query_fn qfn = (provider_query_fn)(void*)resolve_symbol(dl, "astrocs_provider_query_v1");
+        provider_query_fn qfn = (provider_query_fn)(void*)resolve_symbol(dl, "acsd_provider_query_v1");
         if (!qfn) {
             fill_err(err, ACS_ERR_ABI_MISMATCH, ACS_LOADER_EC_SYMBOL_MISSING);
             goto fail_release_h;
         }
-        const acs_provider_api_v1* api = NULL;
-        acs_status qr = qfn(ACS_ABI_VERSION_V1, &host, &api);
+        const acsd_provider_api_v1* api = NULL;
+        acsd_status qr = qfn(ACS_ABI_VERSION_V1, &host, &api);
         if (qr != ACS_OK || !api) {
             fill_err(err, ACS_ERR_ABI_MISMATCH,
                      (qr == ACS_ERR_ABI_MISMATCH) ? ACS_LOADER_EC_HANDSHAKE_ABI
@@ -623,7 +623,7 @@ acs_secure_loader_load_v1(const acs_loader_options_v1* opt,
             goto fail_release_h;
         }
         if (api->head.abi_version != ACS_ABI_VERSION_V1 ||
-            api->head.struct_size < sizeof(acs_provider_api_v1)) {
+            api->head.struct_size < sizeof(acsd_provider_api_v1)) {
             fill_err(err, ACS_ERR_ABI_MISMATCH, ACS_LOADER_EC_HANDSHAKE_ABI);
             goto fail_release_h;
         }
@@ -651,15 +651,15 @@ fail_release_h:
 #endif /* ACS_LOADER_IMPL_PLATFORM */
 }
 
-ASTROCS_EXPORT acs_status ASTROCS_CALL
-acs_secure_loader_describe_v1(acs_loader_handle* h, acs_loaded_module_v1* out) {
+ACSD_EXPORT acsd_status ACSD_CALL
+acsd_secure_loader_describe_v1(acsd_loader_handle* h, acsd_loaded_module_v1* out) {
     if (!h || !out) return ACS_ERR_PARAM;
     if (out->head.abi_version != ACS_ABI_VERSION_V1 ||
-        out->head.struct_size != sizeof(acs_loaded_module_v1)) {
+        out->head.struct_size != sizeof(acsd_loaded_module_v1)) {
         return ACS_ERR_ABI_MISMATCH;
     }
     memset(out, 0, sizeof(*out));
-    out->head.struct_size = (uint32_t)sizeof(acs_loaded_module_v1);
+    out->head.struct_size = (uint32_t)sizeof(acsd_loaded_module_v1);
     out->head.abi_version = ACS_ABI_VERSION_V1;
     out->module_api = h->module_api;
     out->provider_api = h->provider_api;
@@ -674,8 +674,8 @@ acs_secure_loader_describe_v1(acs_loader_handle* h, acs_loaded_module_v1* out) {
     return ACS_OK;
 }
 
-ASTROCS_EXPORT void ASTROCS_CALL
-acs_secure_loader_release_v1(acs_loader_handle* h) {
+ACSD_EXPORT void ACSD_CALL
+acsd_secure_loader_release_v1(acsd_loader_handle* h) {
     if (!h) return;
 #if ACS_LOADER_IMPL_PLATFORM
     if (h->dl) dlclose(h->dl);
@@ -685,8 +685,8 @@ acs_secure_loader_release_v1(acs_loader_handle* h) {
     h->allocator.free(h->allocator.user_data, h);
 }
 
-ASTROCS_EXPORT acs_status ASTROCS_CALL
-acs_secure_loader_self_test_v1(void) {
+ACSD_EXPORT acsd_status ACSD_CALL
+acsd_secure_loader_self_test_v1(void) {
     /* FIPS 180-4 已知向量: 空串 e3b0c442...; "abc" ba7816bf... */
     static const uint8_t kEmpty[32] = {
         0xe3, 0xb0, 0xc4, 0x42, 0x98, 0xfc, 0x1c, 0x14,
@@ -700,7 +700,7 @@ acs_secure_loader_self_test_v1(void) {
         0xb0, 0x03, 0x61, 0xa3, 0x96, 0x17, 0x7a, 0x9c,
         0xb4, 0x10, 0xff, 0x61, 0xf2, 0x00, 0x15, 0xad
     };
-    acs_sha256_ctx c;
+    acsd_sha256_ctx c;
     uint8_t d[32];
     sha256_init(&c); sha256_final(&c, d);
     if (memcmp(d, kEmpty, 32) != 0) return ACS_ERR_SELFTEST;
@@ -718,8 +718,8 @@ acs_secure_loader_self_test_v1(void) {
     };
     sha256_init(&c); sha256_update(&c, kMsg2, strlen(kMsg2)); sha256_final(&c, d);
     if (memcmp(d, kMsg2Digest, 32) != 0) return ACS_ERR_SELFTEST;
-    if (sizeof(acs_load_manifest_unit_v1) <= sizeof(acs_head)) return ACS_ERR_SELFTEST;
-    if (sizeof(acs_loader_options_v1) <= sizeof(acs_head)) return ACS_ERR_SELFTEST;
-    if (sizeof(acs_loaded_module_v1) <= sizeof(acs_head)) return ACS_ERR_SELFTEST;
+    if (sizeof(acsd_load_manifest_unit_v1) <= sizeof(acsd_head)) return ACS_ERR_SELFTEST;
+    if (sizeof(acsd_loader_options_v1) <= sizeof(acsd_head)) return ACS_ERR_SELFTEST;
+    if (sizeof(acsd_loaded_module_v1) <= sizeof(acsd_head)) return ACS_ERR_SELFTEST;
     return ACS_OK;
 }

@@ -4,7 +4,7 @@
 用例（同一断言集跑两遍，差别只在 LD_PRELOAD 注入）:
   A 正例  : 无 preload 正常发布 file / dir
             => status=OK、renamed=1、durability=DURABLE、目标可见、无 tmp 残留
-  B 负例  : LD_PRELOAD=fsync_dir_fail_interposer + ASTROCS_FAIL_DIR_FSYNC=1
+  B 负例  : LD_PRELOAD=fsync_dir_fail_interposer + ACSD_FAIL_DIR_FSYNC=1
             （只让 rename **之后**落在目录 fd 上的 fsync 失败；文件 fd 与
              rename 前 staging 树的 fsync 放行）
             => status=ERR_IO、renamed=1、durability=NOT_DURABLE、
@@ -16,7 +16,7 @@ B 例必须 FAIL（durability 会退化为 NOT_PUBLISHED）。
 
 权威依据: docs/engineering/io/IO_003_ATOMIC_OUTPUT_PUBLISH.md §4（步序正本）/§6（错误语义）;
           docs/detail/infrastructure/17_aio.md §4（P-174 三终态）;
-          docs/ASTROCS_DESIGN.md §10（原子发布链）。
+          docs/ACSD_DESIGN.md §10（原子发布链）。
 用法: check_atomic_durability.py <probe_exe> <interposer.so> <workdir>
 """
 import os
@@ -56,10 +56,10 @@ def run_probe(probe, mode, workdir, preload):
     env = dict(os.environ)
     if preload:
         env["LD_PRELOAD"] = preload
-        env["ASTROCS_FAIL_DIR_FSYNC"] = "1"
+        env["ACSD_FAIL_DIR_FSYNC"] = "1"
     else:
         env.pop("LD_PRELOAD", None)
-        env.pop("ASTROCS_FAIL_DIR_FSYNC", None)
+        env.pop("ACSD_FAIL_DIR_FSYNC", None)
     p = subprocess.run([probe, mode, workdir], stdout=subprocess.PIPE,
                        stderr=subprocess.PIPE, text=True, env=env, timeout=120)
     return p

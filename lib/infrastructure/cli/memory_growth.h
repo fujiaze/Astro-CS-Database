@@ -9,7 +9,7 @@
 #include <string>
 #include <vector>
 
-namespace astrocs {
+namespace acsd {
 
 // 内存增长诊断类别(07 §6 诊断分类的子集: 泄漏/增长/震荡/稳定/OOM 预警)。
 enum class MemDiag {
@@ -133,4 +133,4 @@ inline MemAnalysisResult analyze_memory_growth(const std::vector<uint64_t>& rss,
     return r;
 }
 
-}  // namespace astrocs
+}  // namespace acsd

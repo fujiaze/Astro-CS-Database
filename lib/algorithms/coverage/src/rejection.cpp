@@ -1102,7 +1102,7 @@ const char* p2_rejection_semantic_id(int method) {
 // =====================================================================
 // 逐像素按几何 N 自动选择 —— 唯一决策点 + WBPP 映射
 // =====================================================================
-// 权威：docs/ASTROCS_DESIGN.md §4.5 下半节「逐像素排异：按该像素的输入集数量 N
+// 权威：docs/ACSD_DESIGN.md §4.5 下半节「逐像素排异：按该像素的输入集数量 N
 // 自动选择」；档界实测出处 =
 // WBPP 2.5.9 WeightedBatchPreprocessing-engine.js:1421-1429 bestRejectionMethod()
 // （官方包 sha1 712cc7c3fdb523643ad0e685104592d511996f82）：
@@ -1132,7 +1132,7 @@ const char* p2_rejection_semantic_id(int method) {
 // 说明（不掩盖、不静默）：
 //   * 本决策点决定**路由表**（provenance 里记录的 method）；
 //   * N ≤ 3 的**实际执行**另受 kernel 的 underdetermined 闸约束：候选数
-//     ≤ underdetermined_n（astrocs_adaptive_pixel 默认 3）⇒ 全接受 +
+//     ≤ underdetermined_n（acsd_adaptive_pixel 默认 3）⇒ 全接受 +
 //     P2_STATUS_UNDERDETERMINED，provenance 如实记录（非静默降级）；
 //   * 若要「N ≤ 3 **强制** percentile 排异」，除本决策点外还需把
 //     pixel profile 的 underdetermined_n 默认从 3 降到 2（见
@@ -1147,7 +1147,7 @@ std::uint32_t p2_rejection_percentile_band_min_n(void) {
     return (kPixelSmallNPolicy == PixelSmallNPolicy::kWbppTable) ? 1u : 4u;
 }
 
-static int astrocs_n_map_method(std::uint32_t n) {
+static int acsd_n_map_method(std::uint32_t n) {
     // 保守分支仅在「保留不排异」读法下可达；n = 0 为 void 像素占位，
     // 不参与该分支 —— AUTO 路由表值域恒为
     // {percentile, winsorized_sigma, linear_fit}。
@@ -1164,7 +1164,7 @@ static int astrocs_n_map_method(std::uint32_t n) {
     // 偏离登记：WBPP 2.5.9 的 n>15 分支是 ESD（帧组级选择），本表的档界取自
     // WBPP、算法类型不取 WBPP 该档；ESD 在 n=16/17 逐像素路由下实测过拒 5.167%
     // （见同报告 §9 的 ESD 自查：实现忠实于 Rosner/NIST，不适用的是**逐像素
-    // 小 n 域**）。**对照档 wbpp_2_9_1 / astrocs_adaptive 未随此改动**（仍为
+    // 小 n 域**）。**对照档 wbpp_2_9_1 / acsd_adaptive 未随此改动**（仍为
     // N>15 → linear_fit，作 WBPP 档界对照基线）。
     return P2_REJECT_WINSORIZED_SIGMA;
 }
@@ -1209,22 +1209,22 @@ int p2_reject_plan_resolve(const P2RejectionPlanRequest* req,
     const std::string profile = req->profile ? req->profile : P2_PROFILE_WBPP_2_9_1;
     if (profile != P2_PROFILE_WBPP_2_9_1 &&
         profile != P2_PROFILE_WBPP_CURRENT &&
-        profile != P2_PROFILE_ASTROCS_ADAPTIVE &&
-        profile != P2_PROFILE_ASTROCS_ADAPTIVE_PIXEL) {
+        profile != P2_PROFILE_ACSD_ADAPTIVE &&
+        profile != P2_PROFILE_ACSD_ADAPTIVE_PIXEL) {
         set_err(err, err_cap,
                 "p2_reject_plan_resolve: profile 仅支持 wbpp_2_9_1"
-                "(wbpp_current alias) / astrocs_adaptive / "
-                "astrocs_adaptive_pixel");
+                "(wbpp_current alias) / acsd_adaptive / "
+                "acsd_adaptive_pixel");
         return 1;
     }
-    const bool pixel_profile = (profile == P2_PROFILE_ASTROCS_ADAPTIVE_PIXEL);
+    const bool pixel_profile = (profile == P2_PROFILE_ACSD_ADAPTIVE_PIXEL);
     P2RejectionPlan p{};
     // underdetermined_n 默认（显式传值优先）：
-    // - astrocs_adaptive_pixel：显式 request=EXTREME_VALUE_PRIOR_SIGMA
+    // - acsd_adaptive_pixel：显式 request=EXTREME_VALUE_PRIOR_SIGMA
     //   （opt-in 先验 σ 档）→ 1（使 n=2 能进 kernel，n=1 由 minimum_n=2 拦下）；
     //   其余（AUTO）→ 3（**kernel 闸**：候选数 ≤3 不做排异判定，全接受并记
     //   UNDERDETERMINED，不冒充排异成功。此后该值与路由档**解耦**：
-    //   N ≤ 3 的路由由 astrocs_n_map_method 上方的唯一决策点决定（当前定案值
+    //   N ≤ 3 的路由由 acsd_n_map_method 上方的唯一决策点决定（当前定案值
     //   kConservativeNone ⇒ none），实际执行仍受本闸约束；若要「强制
     //   percentile 排异」需把本默认降到 2，见该决策点注释）；
     // - 其余冻结 profile → 2（逐位不变，含显式 extreme_prior）。
@@ -1270,13 +1270,13 @@ int p2_reject_plan_resolve(const P2RejectionPlanRequest* req,
         if (pixel_profile) {
             // ACSD 自有「按逐输出像素几何 N」映射（档界 = WBPP 2.5.9 实测表；
             // N<6 percentile / 6..15 winsorized / **N≥16 winsorized**（M3），
-            // 唯一决策点在 astrocs_n_map_method 上方。
-            method = astrocs_n_map_method(n);
+            // 唯一决策点在 acsd_n_map_method 上方。
+            method = acsd_n_map_method(n);
         } else {
             // 本仓冻结 AUTO 路由表（**对照档专用**；档界取自 WBPP 2.5.9
             // bestRejectionMethod engine.js:1421-1429；n>15 档本表取
             // linear_fit，WBPP 2.4.0+ 该档为 ESD。**M3 后与生产档不再同表**：
-            // 生产档 astrocs_adaptive_pixel 的 n≥16 已改投 winsorized_sigma，
+            // 生产档 acsd_adaptive_pixel 的 n≥16 已改投 winsorized_sigma，
             // 本分支不动，见头文件与 docs/science/REJECTION.md §5）
             if (n < 6u) method = P2_REJECT_PERCENTILE;
             else if (n <= 15u) method = P2_REJECT_WINSORIZED_SIGMA;
@@ -2342,7 +2342,7 @@ int p2_reject_stack(const P2SampleStackView* in, P2RejectionResult* out) {
 }
 
 // =====================================================================
-// astrocs.large_scale_rejection.v1 —— connected-component grow
+// acsd.large_scale_rejection.v1 —— connected-component grow
 // =====================================================================
 
 namespace {
@@ -2626,7 +2626,7 @@ int p2_rejection_weight_surface_guard(const char* const* tokens,
 // WHAT:       psfsw 残留面（rejection.cpp 对应点）：拒绝权重面守卫的
 //             冻结禁止 token 表里保留 "psfsw"（与 coverage.cpp:376 同一冻结词表的第二份执行面）。
 // WHY-KEPT:   同 coverage.cpp 的保留块：语义源 = docs/science/DATA_SEMANTICS.md §31
-//             astrocs.v6.contract-freeze.v1.json:196-197 的 forbidden.weight_source_tokens，
+//             acsd.v6.contract-freeze.v1.json:196-197 的 forbidden.weight_source_tokens，
 //             由 FZ-GATE-MEDIAN-SNR / FZ-GATE-SUPPORT-COVERAGE / FZ-MODE-DEFERRED 三条冻结门
 //             要求（本函数是 p2_rejection_weight_surface_guard 的实参面）。
 //             删掉 "psfsw" 会让 psfsw 重新成为合法权重来源 = 放宽科学门；冻结层与 docs/** 属

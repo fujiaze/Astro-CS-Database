@@ -21,7 +21,7 @@
 #include <unistd.h>
 #endif
 
-namespace astrocs {
+namespace acsd {
 namespace aio {
 namespace {
 
@@ -705,4 +705,4 @@ FitsVerifyResult verify_fits_file(const std::string& path,
 }
 
 }  // namespace aio
-}  // namespace astrocs
+}  // namespace acsd

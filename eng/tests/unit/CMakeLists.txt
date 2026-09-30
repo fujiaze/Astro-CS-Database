@@ -1,32 +1,32 @@
 # CORE-*/IO-*/CPU-* 单元测试 (G2/G3 任务逐步加入)
 add_executable(core_contracts_test core_contracts_test.cpp)
 target_include_directories(core_contracts_test PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/../../../lib/include)
-target_link_libraries(core_contracts_test PRIVATE astrocs_contracts)
+target_link_libraries(core_contracts_test PRIVATE acsd_contracts)
 add_test(NAME core_contracts COMMAND core_contracts_test)
 
 add_executable(core_artifact_test core_artifact_test.cpp)
 target_include_directories(core_artifact_test PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/../../../lib/include)
-target_link_libraries(core_artifact_test PRIVATE astrocs_core)
+target_link_libraries(core_artifact_test PRIVATE acsd_core)
 add_test(NAME core_artifact COMMAND core_artifact_test)
 
 add_executable(core_module_test core_module_test.cpp)
 target_include_directories(core_module_test PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/../../../lib/include)
-target_link_libraries(core_module_test PRIVATE astrocs_core)
+target_link_libraries(core_module_test PRIVATE acsd_core)
 add_test(NAME core_module COMMAND core_module_test)
 
 add_executable(core_pipeline_test core_pipeline_test.cpp)
 target_include_directories(core_pipeline_test PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/../../../lib/include)
-target_link_libraries(core_pipeline_test PRIVATE astrocs_core)
+target_link_libraries(core_pipeline_test PRIVATE acsd_core)
 add_test(NAME core_pipeline COMMAND core_pipeline_test)
 
 add_executable(core_block_frame_test core_block_frame_test.cpp)
 target_include_directories(core_block_frame_test PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/../../../lib/include)
-target_link_libraries(core_block_frame_test PRIVATE astrocs_core)
+target_link_libraries(core_block_frame_test PRIVATE acsd_core)
 add_test(NAME core_block_frame COMMAND core_block_frame_test)
 
 add_executable(normalize_workflow_test normalize_workflow_test.cpp)
 target_include_directories(normalize_workflow_test PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/../../../lib/include)
-target_link_libraries(normalize_workflow_test PRIVATE astrocs_core)
+target_link_libraries(normalize_workflow_test PRIVATE acsd_core)
 # 证据落点用绝对路径（ctest 可能在 run/ci/build-*/ 下运行，相对路径会写空）
 target_compile_definitions(normalize_workflow_test PRIVATE
   ARCH502_EVIDENCE_DIR="${CMAKE_SOURCE_DIR}/run/RELEASE-05/evidence")
@@ -34,24 +34,24 @@ add_test(NAME normalize_workflow COMMAND normalize_workflow_test)
 
 add_executable(mosaic_window_test mosaic_window_test.cpp)
 target_include_directories(mosaic_window_test PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/../../../lib/include)
-target_link_libraries(mosaic_window_test PRIVATE astrocs_core)
+target_link_libraries(mosaic_window_test PRIVATE acsd_core)
 target_compile_definitions(mosaic_window_test PRIVATE
   ARCH503_EVIDENCE_DIR="${CMAKE_SOURCE_DIR}/run/RELEASE-05/evidence")
 add_test(NAME mosaic_window COMMAND mosaic_window_test)
 
 add_executable(export_stream_test export_stream_test.cpp)
 target_include_directories(export_stream_test PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/../../../lib/include)
-target_link_libraries(export_stream_test PRIVATE astrocs_core)
+target_link_libraries(export_stream_test PRIVATE acsd_core)
 target_compile_definitions(export_stream_test PRIVATE
   ARCH504_EVIDENCE_DIR="${CMAKE_SOURCE_DIR}/run/RELEASE-05/evidence")
 add_test(NAME export_stream COMMAND export_stream_test)
 
 # ----------------------------------------------------------------------------
-# P3-STREAM-01：生产 export 子块流式门（docs/ASTROCS_DESIGN §8.3 export 行 +
+# P3-STREAM-01：生产 export 子块流式门（docs/ACSD_DESIGN §8.3 export 行 +
 # SCHEDULER_CONTRACT §2）。判据：① 生产链确实引用 ExportStreamScheduler
 # （writer 节点 manifest 自报 scheduler + whole_frame_fault=false；resample2/
 # verify 自报 sub_block_streaming）；② 峰值 RSS 随 sub_block_px 变化；
-# ③ 峰值 RSS 与 W×H 无关；④ 阳性对照（ASTROCS_P3_EXPORT_FAULT=
+# ③ 峰值 RSS 与 W×H 无关；④ 阳性对照（ACSD_P3_EXPORT_FAULT=
 # whole_frame_resident 整幅驻留 ⇒ 同度量必须判红）；⑤ 流式与整幅参考路径
 # FITS 产物逐字节相同。峰值 RSS = 内核记账 VmHWM（clear_refs 归零后读取），
 # 非采样、非声明值；每配置在独立子进程内测量。
@@ -66,7 +66,7 @@ target_include_directories(p3_export_stream_prod_test PRIVATE
   ${CMAKE_CURRENT_SOURCE_DIR}/../../../lib//infrastructure/aio/include
   ${CMAKE_CURRENT_SOURCE_DIR}/../../../lib//algorithms/shared
   ${CMAKE_CURRENT_SOURCE_DIR}/../../../lib//algorithms/shared/healpix)
-target_link_libraries(p3_export_stream_prod_test PRIVATE astrocs_module_adapters astrocs_core astrocs_phase3_session)
+target_link_libraries(p3_export_stream_prod_test PRIVATE acsd_module_adapters acsd_core acsd_phase3_session)
 target_compile_definitions(p3_export_stream_prod_test PRIVATE
   P3STREAM_EVIDENCE_DIR="${CMAKE_SOURCE_DIR}/run/P3-STREAM-01/evidence")
 add_test(NAME p3_export_stream_prod COMMAND p3_export_stream_prod_test)
@@ -76,7 +76,7 @@ set_tests_properties(p3_export_stream_prod PROPERTIES TIMEOUT 900 RUN_SERIAL TRU
 
 add_executable(block_flow_test block_flow_test.cpp)
 target_include_directories(block_flow_test PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/../../../lib/include)
-target_link_libraries(block_flow_test PRIVATE astrocs_core)
+target_link_libraries(block_flow_test PRIVATE acsd_core)
 target_compile_definitions(block_flow_test PRIVATE
   ARCH505_EVIDENCE_DIR="${CMAKE_SOURCE_DIR}/run/RELEASE-05/evidence"
   ARCH505_SPEC_PATH="${CMAKE_SOURCE_DIR}/eng/contracts/block_flow/stage_block_flow.json")
@@ -84,12 +84,12 @@ add_test(NAME block_flow COMMAND block_flow_test)
 
 add_executable(core_context_test core_context_test.cpp)
 target_include_directories(core_context_test PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/../../../lib/include)
-target_link_libraries(core_context_test PRIVATE astrocs_core)
+target_link_libraries(core_context_test PRIVATE acsd_core)
 add_test(NAME core_context COMMAND core_context_test)
 
 add_executable(core_scheduler_test core_scheduler_test.cpp)
 target_include_directories(core_scheduler_test PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/../../../lib/include)
-target_link_libraries(core_scheduler_test PRIVATE astrocs_core)
+target_link_libraries(core_scheduler_test PRIVATE acsd_core)
 add_test(NAME core_scheduler COMMAND core_scheduler_test)
 
 # MEM-WIRE-01: 内存静态预算与回压的**生产路径**判据（ARCH-AUDIT-01 B-3 =
@@ -99,62 +99,62 @@ add_executable(mem_wire_test mem_wire_test.cpp)
 target_include_directories(mem_wire_test PRIVATE
   ${CMAKE_CURRENT_SOURCE_DIR}/../../../lib/include
   ${CMAKE_CURRENT_SOURCE_DIR}/../../../lib/third_party)
-target_link_libraries(mem_wire_test PRIVATE astrocs_core)
+target_link_libraries(mem_wire_test PRIVATE acsd_core)
 add_test(NAME mem_wire COMMAND mem_wire_test)
 
-# MEMGOV-01: 内存压力治理（docs/ASTROCS_DESIGN.md §8.3:609-615 编排策略）的
+# MEMGOV-01: 内存压力治理（docs/ACSD_DESIGN.md §8.3:609-615 编排策略）的
 # 机制判据 —— 四条负例 + 不可确定 fail-open + 调度器派发门红绿配对。
 add_executable(memory_pressure_test memory_pressure_test.cpp)
 target_include_directories(memory_pressure_test PRIVATE
   ${CMAKE_CURRENT_SOURCE_DIR}/../../../lib/include
   ${CMAKE_CURRENT_SOURCE_DIR}/../../../lib/third_party)
-target_link_libraries(memory_pressure_test PRIVATE astrocs_core)
+target_link_libraries(memory_pressure_test PRIVATE acsd_core)
 add_test(NAME memory_pressure COMMAND memory_pressure_test)
 
 add_executable(core_checkpoint_test core_checkpoint_test.cpp)
 target_include_directories(core_checkpoint_test PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/../../../lib/include)
-target_link_libraries(core_checkpoint_test PRIVATE astrocs_core)
+target_link_libraries(core_checkpoint_test PRIVATE acsd_core)
 add_test(NAME core_checkpoint COMMAND core_checkpoint_test)
 
 add_executable(core_logging_test core_logging_test.cpp)
 target_include_directories(core_logging_test PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/../../../lib/include)
-target_link_libraries(core_logging_test PRIVATE astrocs_core)
+target_link_libraries(core_logging_test PRIVATE acsd_core)
 add_test(NAME core_logging COMMAND core_logging_test)
 
 add_executable(rt001_abi_test rt001_abi_test.cpp)
 target_include_directories(rt001_abi_test PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/../../../lib/include)
-target_link_libraries(rt001_abi_test PRIVATE astrocs_core)
+target_link_libraries(rt001_abi_test PRIVATE acsd_core)
 add_test(NAME rt001_abi COMMAND rt001_abi_test)
 
 add_executable(rt002_budget_test rt002_budget_test.cpp)
 target_include_directories(rt002_budget_test PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/../../../lib/include)
-target_link_libraries(rt002_budget_test PRIVATE astrocs_core)
+target_link_libraries(rt002_budget_test PRIVATE acsd_core)
 add_test(NAME rt002_budget COMMAND rt002_budget_test)
 
 add_executable(rt003_context_test rt003_context_test.cpp)
 target_include_directories(rt003_context_test PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/../../../lib/include)
-target_link_libraries(rt003_context_test PRIVATE astrocs_core)
+target_link_libraries(rt003_context_test PRIVATE acsd_core)
 add_test(NAME rt003_context COMMAND rt003_context_test)
 
 add_executable(rt005_registry_test rt005_registry_test.cpp)
 target_include_directories(rt005_registry_test PRIVATE
   ${CMAKE_CURRENT_SOURCE_DIR}/../../../lib/include
   ${CMAKE_CURRENT_SOURCE_DIR}/../../../lib/third_party)
-target_link_libraries(rt005_registry_test PRIVATE astrocs_module_adapters)
+target_link_libraries(rt005_registry_test PRIVATE acsd_module_adapters)
 add_test(NAME rt005_registry COMMAND rt005_registry_test)
 
 add_executable(rt006_scheduler_test rt006_scheduler_test.cpp)
 target_include_directories(rt006_scheduler_test PRIVATE
   ${CMAKE_CURRENT_SOURCE_DIR}/../../../lib/include
   ${CMAKE_CURRENT_SOURCE_DIR}/../../../lib/third_party)
-target_link_libraries(rt006_scheduler_test PRIVATE astrocs_module_adapters astrocs_core)
+target_link_libraries(rt006_scheduler_test PRIVATE acsd_module_adapters acsd_core)
 add_test(NAME rt006_scheduler COMMAND rt006_scheduler_test)
 
 add_executable(rt007_artifact_store_test rt007_artifact_store_test.cpp)
 target_include_directories(rt007_artifact_store_test PRIVATE
   ${CMAKE_CURRENT_SOURCE_DIR}/../../../lib/include
   ${CMAKE_CURRENT_SOURCE_DIR}/../../../lib/third_party)
-target_link_libraries(rt007_artifact_store_test PRIVATE astrocs_core)
+target_link_libraries(rt007_artifact_store_test PRIVATE acsd_core)
 add_test(NAME rt007_artifact_store COMMAND rt007_artifact_store_test)
 
 add_executable(rt008_runtime_client_test rt008_runtime_client_test.cpp)
@@ -162,7 +162,7 @@ target_include_directories(rt008_runtime_client_test PRIVATE
   ${CMAKE_CURRENT_SOURCE_DIR}/../../../lib//infrastructure/cli
   ${CMAKE_CURRENT_SOURCE_DIR}/../../../lib/include
   ${CMAKE_CURRENT_SOURCE_DIR}/../../../lib/third_party)
-target_link_libraries(rt008_runtime_client_test PRIVATE astrocs_cli_runtime)
+target_link_libraries(rt008_runtime_client_test PRIVATE acsd_cli_runtime)
 add_test(NAME rt008_runtime_client COMMAND rt008_runtime_client_test)
 
 # RT-009: 节点 trace 数据源（run 后 status/时间/workers/provider; IR 保留）
@@ -171,7 +171,7 @@ target_include_directories(rt009_node_trace_test PRIVATE
   ${CMAKE_CURRENT_SOURCE_DIR}/../../../lib//infrastructure/cli
   ${CMAKE_CURRENT_SOURCE_DIR}/../../../lib/include
   ${CMAKE_CURRENT_SOURCE_DIR}/../../../lib/third_party)
-target_link_libraries(rt009_node_trace_test PRIVATE astrocs_cli_runtime)
+target_link_libraries(rt009_node_trace_test PRIVATE acsd_cli_runtime)
 add_test(NAME rt009_node_trace COMMAND rt009_node_trace_test)
 
 # B8-P1: lib/infrastructure/cli/process 跨平台子进程封装(argv 传参替代 std::system)共址单测
@@ -179,7 +179,7 @@ add_executable(cli_process_test cli_process_test.cpp)
 target_include_directories(cli_process_test PRIVATE
   ${CMAKE_CURRENT_SOURCE_DIR}/../../../lib//infrastructure/cli
   ${CMAKE_CURRENT_SOURCE_DIR}/../../../lib/third_party)
-target_link_libraries(cli_process_test PRIVATE astrocs_cli_process)
+target_link_libraries(cli_process_test PRIVATE acsd_cli_process)
 add_test(NAME cli_process COMMAND cli_process_test)
 
 # B8-P1-2: benchmark cpu verdict 推导(cli_common.h header-only)共址单测
@@ -207,7 +207,7 @@ find_package(OpenMP)
 if(OpenMP_C_FOUND)
   target_link_libraries(gaia_unshuffle_test PRIVATE OpenMP::OpenMP_C)
 endif()
-target_link_libraries(gaia_unshuffle_test PRIVATE astrocs_platform_zlib astrocs_platform_math Threads::Threads)
+target_link_libraries(gaia_unshuffle_test PRIVATE acsd_platform_zlib acsd_platform_math Threads::Threads)
 add_test(NAME gaia_unshuffle COMMAND gaia_unshuffle_test)
 
 add_executable(io_adapter_test io_adapter_test.cpp)
@@ -219,7 +219,7 @@ add_executable(io_ownership_test io_ownership_test.cpp)
 target_include_directories(io_ownership_test PRIVATE
   ${CMAKE_CURRENT_SOURCE_DIR}/../../../lib/include
   ${CMAKE_CURRENT_SOURCE_DIR}/../../../lib//infrastructure/aio/include)
-target_link_libraries(io_ownership_test PRIVATE astrocs_aio astrocs_core)
+target_link_libraries(io_ownership_test PRIVATE acsd_aio acsd_core)
 add_test(NAME io_ownership COMMAND io_ownership_test)
 
 add_executable(io_reentrant_test io_reentrant_test.cpp)
@@ -229,13 +229,13 @@ target_include_directories(io_reentrant_test PRIVATE
 # 布局是 libz.lib, hosted runner 的 vcpkg x64-windows-static-md 实际产物是
 # zs.lib/zlib.lib; 父 CMakeLists 的 ACS_ZLIB_LIBRARY (ACS_ZLIB_LIB 注入 /
 # find_library z/libz/zlib/zlibstatic/zs) 是唯一已解析的 zlib 库路径, 直接复用。
-# 链接面的平台判断收在共用件 astrocs_platform_zlib / astrocs_platform_math（根
+# 链接面的平台判断收在共用件 acsd_platform_zlib / acsd_platform_math（根
 # CMakeLists 唯一判定点）⇒ 本处不再写 if(MSVC)/else 两套口径。
-target_link_libraries(io_reentrant_test PRIVATE astrocs_cfitsio astrocs_platform_zlib astrocs_platform_math)
+target_link_libraries(io_reentrant_test PRIVATE acsd_cfitsio acsd_platform_zlib acsd_platform_math)
 add_test(NAME io_reentrant COMMAND io_reentrant_test)
 
 # B13-R13-3: executor observed_provider_ 数据竞争回归 (TSAN 可复现:
-# nice -n 19 timeout 300 在 TSAN 构建下运行)。executor.cpp 不在 astrocs_core
+# nice -n 19 timeout 300 在 TSAN 构建下运行)。executor.cpp 不在 acsd_core
 # 内 (eng/tests/runtime Python harness 独立编译), 此处按同组源闭包直编。
 add_executable(executor_provider_race_test executor_provider_race_test.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/../../../lib//infrastructure/scheduler/src/executor.cpp
@@ -267,60 +267,60 @@ set_tests_properties(io_reentrant PROPERTIES
 
 add_executable(cpu_abi_test cpu_abi_test.cpp)
 target_include_directories(cpu_abi_test PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/../../../lib/include)
-target_link_libraries(cpu_abi_test PRIVATE astrocs_cpu astrocs_contracts)
+target_link_libraries(cpu_abi_test PRIVATE acsd_cpu acsd_contracts)
 add_test(NAME cpu_abi COMMAND cpu_abi_test)
 
 add_executable(cpu_lease_test cpu_lease_test.cpp)
 target_include_directories(cpu_lease_test PRIVATE
   ${CMAKE_CURRENT_SOURCE_DIR}/../../../lib/include
   ${CMAKE_CURRENT_SOURCE_DIR}/../../../lib//infrastructure/benchmark/backend_host)
-target_link_libraries(cpu_lease_test PRIVATE astrocs_cpu astrocs_contracts Threads::Threads)
+target_link_libraries(cpu_lease_test PRIVATE acsd_cpu acsd_contracts Threads::Threads)
 add_test(NAME cpu_lease COMMAND cpu_lease_test)
 
 # P1-4 baseline kernels 异常屏障注入单测: TU 匿名命名空间 include
 # baseline_kernels_impl.inc 直调 run_banded 注入可抛 body(与 OpComputer 同一
 # run_body_guarded → std::thread 通路), 断言不 terminate + ACS_ERR_INTERNAL +
-# 租借/归还配平。仅需头文件与产品 .inc, 链 astrocs_cpu 取 abi_boundary_probe。
+# 租借/归还配平。仅需头文件与产品 .inc, 链 acsd_cpu 取 abi_boundary_probe。
 add_executable(cpu_backend_exception_test cpu_backend_exception_test.cpp)
 target_include_directories(cpu_backend_exception_test PRIVATE
   ${CMAKE_CURRENT_SOURCE_DIR}/../../../lib/include
   ${CMAKE_CURRENT_SOURCE_DIR}/../../../lib//infrastructure/benchmark/backend_host)
-target_link_libraries(cpu_backend_exception_test PRIVATE astrocs_cpu astrocs_contracts Threads::Threads)
+target_link_libraries(cpu_backend_exception_test PRIVATE acsd_cpu acsd_contracts Threads::Threads)
 add_test(NAME cpu_backend_exception COMMAND cpu_backend_exception_test)
 
 add_executable(cpu_features_test cpu_features_test.cpp)
 target_include_directories(cpu_features_test PRIVATE
   ${CMAKE_CURRENT_SOURCE_DIR}/../../../lib/include
   ${CMAKE_CURRENT_SOURCE_DIR}/../../../lib//infrastructure/benchmark/backend_host)
-target_link_libraries(cpu_features_test PRIVATE astrocs_cpu astrocs_contracts)
+target_link_libraries(cpu_features_test PRIVATE acsd_cpu acsd_contracts)
 add_test(NAME cpu_features COMMAND cpu_features_test)
 
 add_executable(cpu_provider_test cpu_provider_test.cpp)
 target_include_directories(cpu_provider_test PRIVATE
   ${CMAKE_CURRENT_SOURCE_DIR}/../../../lib/include
   ${CMAKE_CURRENT_SOURCE_DIR}/../../../lib//infrastructure/benchmark/backend_host)
-target_link_libraries(cpu_provider_test PRIVATE astrocs_cpu astrocs_contracts)
+target_link_libraries(cpu_provider_test PRIVATE acsd_cpu acsd_contracts)
 add_test(NAME cpu_provider COMMAND cpu_provider_test)
 
 add_executable(cpu_fallback_test cpu_fallback_test.cpp)
 target_include_directories(cpu_fallback_test PRIVATE
   ${CMAKE_CURRENT_SOURCE_DIR}/../../../lib/include
   ${CMAKE_CURRENT_SOURCE_DIR}/../../../lib//infrastructure/benchmark/backend_host)
-target_link_libraries(cpu_fallback_test PRIVATE astrocs_cpu astrocs_contracts)
+target_link_libraries(cpu_fallback_test PRIVATE acsd_cpu acsd_contracts)
 add_test(NAME cpu_fallback COMMAND cpu_fallback_test)
 
 add_executable(cpu_bench_test cpu_bench_test.cpp)
 target_include_directories(cpu_bench_test PRIVATE
   ${CMAKE_CURRENT_SOURCE_DIR}/../../../lib/include
   ${CMAKE_CURRENT_SOURCE_DIR}/../../../lib//infrastructure/benchmark/backend_host)
-target_link_libraries(cpu_bench_test PRIVATE astrocs_cpu astrocs_contracts)
+target_link_libraries(cpu_bench_test PRIVATE acsd_cpu acsd_contracts)
 add_test(NAME cpu_bench COMMAND cpu_bench_test)
 
 add_executable(cpu_profile_test cpu_profile_test.cpp)
 target_include_directories(cpu_profile_test PRIVATE
   ${CMAKE_CURRENT_SOURCE_DIR}/../../../lib/include
   ${CMAKE_CURRENT_SOURCE_DIR}/../../../lib//infrastructure/benchmark/backend_host)
-target_link_libraries(cpu_profile_test PRIVATE astrocs_cpu astrocs_contracts)
+target_link_libraries(cpu_profile_test PRIVATE acsd_cpu acsd_contracts)
 add_test(NAME cpu_profile COMMAND cpu_profile_test)
 
 # CPU-003 (G3): v2 profile 生成与复读
@@ -328,7 +328,7 @@ add_executable(cpu003_profile_v2_test cpu003_profile_v2_test.cpp)
 target_include_directories(cpu003_profile_v2_test PRIVATE
   ${CMAKE_CURRENT_SOURCE_DIR}/../../../lib/include
   ${CMAKE_CURRENT_SOURCE_DIR}/../../../lib//infrastructure/benchmark/backend_host)
-target_link_libraries(cpu003_profile_v2_test PRIVATE astrocs_cpu astrocs_contracts)
+target_link_libraries(cpu003_profile_v2_test PRIVATE acsd_cpu acsd_contracts)
 add_test(NAME cpu003_profile_v2 COMMAND cpu003_profile_v2_test)
 
 # CPU-006 (G3, V7.1): benchmark report (aggregate/verdict/verify, 正例+负向样例)
@@ -336,7 +336,7 @@ add_executable(cpu006_bench_report_test cpu006_bench_report_test.cpp)
 target_include_directories(cpu006_bench_report_test PRIVATE
   ${CMAKE_CURRENT_SOURCE_DIR}/../../../lib/include
   ${CMAKE_CURRENT_SOURCE_DIR}/../../../lib//infrastructure/benchmark/backend_host)
-target_link_libraries(cpu006_bench_report_test PRIVATE astrocs_cpu astrocs_contracts)
+target_link_libraries(cpu006_bench_report_test PRIVATE acsd_cpu acsd_contracts)
 add_test(NAME cpu006_bench_report COMMAND cpu006_bench_report_test)
 
 # CPU-007 (G3, V7.1): profile 存储生命周期 (原子写/失效隔离/负向样例)
@@ -344,7 +344,7 @@ add_executable(cpu007_profile_store_test cpu007_profile_store_test.cpp)
 target_include_directories(cpu007_profile_store_test PRIVATE
   ${CMAKE_CURRENT_SOURCE_DIR}/../../../lib/include
   ${CMAKE_CURRENT_SOURCE_DIR}/../../../lib//infrastructure/benchmark/backend_host)
-target_link_libraries(cpu007_profile_store_test PRIVATE astrocs_cpu astrocs_contracts)
+target_link_libraries(cpu007_profile_store_test PRIVATE acsd_cpu acsd_contracts)
 add_test(NAME cpu007_profile_store COMMAND cpu007_profile_store_test)
 
 # CPU-008 (G3, V7.1): 自适应线程建议 (no fixed cores/cgroup-job 模拟/内存预算/负向样例)
@@ -352,7 +352,7 @@ add_executable(cpu008_worker_advisor_test cpu008_worker_advisor_test.cpp)
 target_include_directories(cpu008_worker_advisor_test PRIVATE
   ${CMAKE_CURRENT_SOURCE_DIR}/../../../lib/include
   ${CMAKE_CURRENT_SOURCE_DIR}/../../../lib//infrastructure/benchmark/backend_host)
-target_link_libraries(cpu008_worker_advisor_test PRIVATE astrocs_cpu astrocs_contracts)
+target_link_libraries(cpu008_worker_advisor_test PRIVATE acsd_cpu acsd_contracts)
 add_test(NAME cpu008_worker_advisor COMMAND cpu008_worker_advisor_test)
 
 # CPU-004 (G3): 逐 kernel 自适应路由
@@ -360,7 +360,7 @@ add_executable(cpu004_routing_test cpu004_routing_test.cpp)
 target_include_directories(cpu004_routing_test PRIVATE
   ${CMAKE_CURRENT_SOURCE_DIR}/../../../lib/include
   ${CMAKE_CURRENT_SOURCE_DIR}/../../../lib//infrastructure/benchmark/backend_host)
-target_link_libraries(cpu004_routing_test PRIVATE astrocs_cpu astrocs_contracts)
+target_link_libraries(cpu004_routing_test PRIVATE acsd_cpu acsd_contracts)
 add_test(NAME cpu004_routing COMMAND cpu004_routing_test)
 
 # MON-001 (G3): 资源记录器(采样/阶段分段/统计/三产物)
@@ -368,7 +368,7 @@ add_executable(mon001_recorder_test mon001_recorder_test.cpp)
 target_include_directories(mon001_recorder_test PRIVATE
   ${CMAKE_CURRENT_SOURCE_DIR}/../../../lib/include
   ${CMAKE_CURRENT_SOURCE_DIR}/../../../lib//infrastructure/cli)
-target_link_libraries(mon001_recorder_test PRIVATE astrocs_cpu astrocs_contracts)
+target_link_libraries(mon001_recorder_test PRIVATE acsd_cpu acsd_contracts)
 add_test(NAME mon001_recorder COMMAND mon001_recorder_test)
 
 # MON-002 (G3): 资源门禁(compute/io/memory/mixed/first-10s/锁退化)
@@ -377,7 +377,7 @@ target_include_directories(mon002_gate_test PRIVATE
   ${CMAKE_CURRENT_SOURCE_DIR}/../../../lib/include
   ${CMAKE_CURRENT_SOURCE_DIR}/../../../lib//infrastructure/cli  ${CMAKE_BINARY_DIR}
 )
-target_link_libraries(mon002_gate_test PRIVATE astrocs_cpu astrocs_contracts)
+target_link_libraries(mon002_gate_test PRIVATE acsd_cpu acsd_contracts)
 add_test(NAME mon002_gate COMMAND mon002_gate_test)
 
 # MON-002 (G3, V7 04_CPU_RESOURCE_TASKS): RSS/allocation report 内存泄露/增长检测
@@ -388,7 +388,7 @@ target_include_directories(mon002_alloc_test PRIVATE
   ${CMAKE_CURRENT_SOURCE_DIR}/../../../lib/include
   ${CMAKE_CURRENT_SOURCE_DIR}/../../../lib//infrastructure/cli  ${CMAKE_BINARY_DIR}
 )
-target_link_libraries(mon002_alloc_test PRIVATE astrocs_cpu astrocs_contracts)
+target_link_libraries(mon002_alloc_test PRIVATE acsd_cpu acsd_contracts)
 add_test(NAME mon002_alloc COMMAND mon002_alloc_test)
 
 # MON-001 (G3, V7.1): 资源阈值判定(监控缺失FAIL/70%样本U>=0.75/队列10s U<0.50/
@@ -398,7 +398,7 @@ target_include_directories(mon001_gate_test PRIVATE
   ${CMAKE_CURRENT_SOURCE_DIR}/../../../lib/include
   ${CMAKE_CURRENT_SOURCE_DIR}/../../../lib//infrastructure/cli  ${CMAKE_BINARY_DIR}
 )
-target_link_libraries(mon001_gate_test PRIVATE astrocs_cpu astrocs_contracts astrocs_core)
+target_link_libraries(mon001_gate_test PRIVATE acsd_cpu acsd_contracts acsd_core)
 add_test(NAME mon001_gate COMMAND mon001_gate_test)
 
 # P26(负责人 T2/2.A): 资源门「记录/裁决分离」+ 工作量下限。
@@ -409,7 +409,7 @@ target_include_directories(mon004_enforcement_test PRIVATE
   ${CMAKE_CURRENT_SOURCE_DIR}/../../../lib/include
   ${CMAKE_CURRENT_SOURCE_DIR}/../../../lib//infrastructure/cli  ${CMAKE_BINARY_DIR}
 )
-target_link_libraries(mon004_enforcement_test PRIVATE astrocs_cpu astrocs_contracts)
+target_link_libraries(mon004_enforcement_test PRIVATE acsd_cpu acsd_contracts)
 add_test(NAME mon004_enforcement COMMAND mon004_enforcement_test)
 
 # P1-001 (G4): Phase1 8 类模块注册(端口/执行类/Runtime 委托)
@@ -417,18 +417,18 @@ add_executable(p1001_modules_test p1001_modules_test.cpp)
 target_include_directories(p1001_modules_test PRIVATE
   ${CMAKE_CURRENT_SOURCE_DIR}/../../../lib/include
   ${CMAKE_CURRENT_SOURCE_DIR}/../../../lib/third_party)
-target_link_libraries(p1001_modules_test PRIVATE astrocs_module_adapters astrocs_core)
+target_link_libraries(p1001_modules_test PRIVATE acsd_module_adapters acsd_core)
 add_test(NAME p1001_modules COMMAND p1001_modules_test)
 
 # P1-001 (attempt 2): Phase1 真实节点唯一 operation + complete 门 fail-closed
 # (fixture 复用 lib/phase1_session/tests/p1sess 手写 FITS writer, 不调生产 symbol;
-#  p1_session C ABI complete 门断言经 astrocs_phase1_session 链接)
+#  p1_session C ABI complete 门断言经 acsd_phase1_session 链接)
 add_executable(p1001_real_nodes_test p1001_real_nodes_test.cpp)
 target_include_directories(p1001_real_nodes_test PRIVATE
   ${CMAKE_CURRENT_SOURCE_DIR}/../../../lib/include
   ${CMAKE_CURRENT_SOURCE_DIR}/../../../lib/third_party
   ${CMAKE_CURRENT_SOURCE_DIR}/../../../lib//phase1_session/tests/p1sess)
-target_link_libraries(p1001_real_nodes_test PRIVATE astrocs_module_adapters astrocs_core astrocs_phase1_session)
+target_link_libraries(p1001_real_nodes_test PRIVATE acsd_module_adapters acsd_core acsd_phase1_session)
 add_test(NAME p1001_real_nodes COMMAND p1001_real_nodes_test)
 
 # P2-001: Phase2 7 类真实算法节点（唯一真实 operation 委托 + typed artifact +
@@ -441,38 +441,38 @@ target_include_directories(p2001_real_nodes_test PRIVATE
   ${CMAKE_CURRENT_SOURCE_DIR}/../../../lib//phase1_session/tests/p1sess
   ${CMAKE_CURRENT_SOURCE_DIR}/../../../lib//infrastructure/aio/include
   ${CMAKE_CURRENT_SOURCE_DIR}/../../../lib//algorithms/shared)
-target_link_libraries(p2001_real_nodes_test PRIVATE astrocs_module_adapters astrocs_core astrocs_phase2_session)
+target_link_libraries(p2001_real_nodes_test PRIVATE acsd_module_adapters acsd_core acsd_phase2_session)
 add_test(NAME p2001_real_nodes COMMAND p2001_real_nodes_test)
 
 # P2-002: §30.2 rejection 平面（nused/nrej int32 诊断面投影+kernel 拒绝面+
 # n_ineligible 恒等式）+ §30.3 provenance 五键真实值/unavailable 显式登记 +
 # F-UNC-003 science planes 零断链 + 合同登记面 + 确定性 + 1/N parity;
-# 故障注入: ASTROCS_P2002_FAULT=proj|prov 必败（rc=1）
+# 故障注入: ACSD_P2002_FAULT=proj|prov 必败（rc=1）
 add_executable(p2002_unc_rej_prov_test p2002_unc_rej_prov_test.cpp)
 target_compile_definitions(p2002_unc_rej_prov_test PRIVATE
-  ASTROCS_REPO_ROOT="${CMAKE_CURRENT_SOURCE_DIR}/../../..")
+  ACSD_REPO_ROOT="${CMAKE_CURRENT_SOURCE_DIR}/../../..")
 target_include_directories(p2002_unc_rej_prov_test PRIVATE
   ${CMAKE_CURRENT_SOURCE_DIR}/../../../lib/include
   ${CMAKE_CURRENT_SOURCE_DIR}/../../../lib/third_party
   ${CMAKE_CURRENT_SOURCE_DIR}/../../../lib//phase1_session/tests/p1sess
   ${CMAKE_CURRENT_SOURCE_DIR}/../../../lib//infrastructure/aio/include
   ${CMAKE_CURRENT_SOURCE_DIR}/../../../lib//algorithms/shared)
-target_link_libraries(p2002_unc_rej_prov_test PRIVATE astrocs_module_adapters astrocs_core astrocs_phase2_session)
+target_link_libraries(p2002_unc_rej_prov_test PRIVATE acsd_module_adapters acsd_core acsd_phase2_session)
 add_test(NAME p2002_unc_rej_prov COMMAND p2002_unc_rej_prov_test)
 
 # CPU-001 (G3): 独立 provider 构建 — 三份 self-test + 负例
 # 每个 provider 静态库各自链接进独立可执行, 运行共享 backend_table.inc 的
 # backend_self_test(handshake→allocator→cancel→budget→logger); -R "cpu0" 可全跑。
-# 注意: 三个 provider 库都导出 astrocs_backend_get_api_v1(共享 table.inc 的同一符号),
+# 注意: 三个 provider 库都导出 acsd_backend_get_api_v1(共享 table.inc 的同一符号),
 # 因此每个可执行只能链接其中一个 provider 库(禁止混合链接, 否则重复符号)。
-# avx2/avx512 库不含 host_services → 源显式加入; baseline 在 astrocs_cpu 内。
+# avx2/avx512 库不含 host_services → 源显式加入; baseline 在 acsd_cpu 内。
 set(CPU001_SRC ${CMAKE_CURRENT_SOURCE_DIR}/cpu001_provider_selftest.cpp)
 add_executable(cpu001_provider_selftest_baseline ${CPU001_SRC})
 target_include_directories(cpu001_provider_selftest_baseline PRIVATE
   ${CMAKE_CURRENT_SOURCE_DIR}/../../../lib/include
   ${CMAKE_CURRENT_SOURCE_DIR}/../../../lib//infrastructure/benchmark/backend_host)
 target_link_libraries(cpu001_provider_selftest_baseline PRIVATE
-  astrocs_cpu astrocs_contracts astrocs_common)
+  acsd_cpu acsd_contracts acsd_common)
 add_test(NAME cpu001_selftest_baseline COMMAND cpu001_provider_selftest_baseline)
 
 add_executable(cpu001_provider_selftest_avx2 ${CPU001_SRC}
@@ -482,7 +482,7 @@ target_include_directories(cpu001_provider_selftest_avx2 PRIVATE
   ${CMAKE_CURRENT_SOURCE_DIR}/../../../lib/include
   ${CMAKE_CURRENT_SOURCE_DIR}/../../../lib//infrastructure/benchmark/backend_host)
 target_link_libraries(cpu001_provider_selftest_avx2 PRIVATE
-  astrocs_cpu_avx2 astrocs_contracts astrocs_common)
+  acsd_cpu_avx2 acsd_contracts acsd_common)
 add_test(NAME cpu001_selftest_avx2
   COMMAND cpu001_provider_selftest_avx2 avx2)
 
@@ -493,7 +493,7 @@ target_include_directories(cpu001_provider_selftest_avx512 PRIVATE
   ${CMAKE_CURRENT_SOURCE_DIR}/../../../lib/include
   ${CMAKE_CURRENT_SOURCE_DIR}/../../../lib//infrastructure/benchmark/backend_host)
 target_link_libraries(cpu001_provider_selftest_avx512 PRIVATE
-  astrocs_cpu_avx512 astrocs_contracts astrocs_common)
+  acsd_cpu_avx512 acsd_contracts acsd_common)
 add_test(NAME cpu001_selftest_avx512
   COMMAND cpu001_provider_selftest_avx512 avx512)
 # CPU-001 avx512 治理 (DEEP-SAN-ASAN/TSAN/COV + WIN-TEST-UNIT 同一失败):
@@ -504,21 +504,21 @@ add_test(NAME cpu001_selftest_avx512
 # 有硬件时全部断言 (含 self_test/kernel 表) 不变, avx2/baseline 不动。
 set_tests_properties(cpu001_selftest_avx512 PROPERTIES SKIP_RETURN_CODE 77)
 
-# 负例: feature bits 不满足的 provider 加载被拒(用 astrocs_cpu 内的 backend_loader 预检)
+# 负例: feature bits 不满足的 provider 加载被拒(用 acsd_cpu 内的 backend_loader 预检)
 add_executable(cpu001_negative_test cpu001_negative_test.cpp)
 target_include_directories(cpu001_negative_test PRIVATE
   ${CMAKE_CURRENT_SOURCE_DIR}/../../../lib/include
   ${CMAKE_CURRENT_SOURCE_DIR}/../../../lib//infrastructure/benchmark/backend_host)
 target_link_libraries(cpu001_negative_test PRIVATE
-  astrocs_cpu astrocs_contracts astrocs_common)
+  acsd_cpu acsd_contracts acsd_common)
 add_test(NAME cpu001_negative COMMAND cpu001_negative_test)
 
 # G9: OpenMP 可选 (clang Debug 无 libomp 时降级串行; P2_ENABLE_OPENMP 默认 OFF)
 find_package(OpenMP QUIET)
 if(OpenMP_CXX_FOUND)
-  set(ASTROCS_OMP_TARGET OpenMP::OpenMP_CXX)
+  set(ACSD_OMP_TARGET OpenMP::OpenMP_CXX)
 else()
-  set(ASTROCS_OMP_TARGET "")
+  set(ACSD_OMP_TARGET "")
 endif()
 
 add_executable(cpu_monitor_test cpu_monitor_test.cpp)
@@ -526,20 +526,20 @@ target_include_directories(cpu_monitor_test PRIVATE
   ${CMAKE_CURRENT_SOURCE_DIR}/../../../lib/include
   ${CMAKE_CURRENT_SOURCE_DIR}/../../../lib//infrastructure/cli  ${CMAKE_BINARY_DIR}
 )
-target_link_libraries(cpu_monitor_test PRIVATE astrocs_contracts Threads::Threads)
+target_link_libraries(cpu_monitor_test PRIVATE acsd_contracts Threads::Threads)
 add_test(NAME cpu_monitor COMMAND cpu_monitor_test)
 
 add_executable(p1_calibration_test p1_calibration_test.cpp)
 target_include_directories(p1_calibration_test PRIVATE
   ${CMAKE_CURRENT_SOURCE_DIR}/../../../lib//algorithms/calibration/include)
-target_link_libraries(p1_calibration_test PRIVATE astrocs_calibration ${ASTROCS_OMP_TARGET})
+target_link_libraries(p1_calibration_test PRIVATE acsd_calibration ${ACSD_OMP_TARGET})
 add_test(NAME p1_calibration COMMAND p1_calibration_test)
 
 # B13-R13-7: master flat 负中位数拒绝 (SCIENCE: median<=0 不归一化, 修常数 0.1 假主帧)
 add_executable(master_flat_median_test master_flat_median_test.cpp)
 target_include_directories(master_flat_median_test PRIVATE
   ${CMAKE_CURRENT_SOURCE_DIR}/../../../lib//algorithms/calibration/include)
-target_link_libraries(master_flat_median_test PRIVATE astrocs_calibration ${ASTROCS_OMP_TARGET})
+target_link_libraries(master_flat_median_test PRIVATE acsd_calibration ${ACSD_OMP_TARGET})
 add_test(NAME master_flat_median COMMAND master_flat_median_test)
 
 # ----------------------------------------------------------------------------
@@ -557,7 +557,7 @@ add_subdirectory(../../../lib//algorithms/calibration/tests/p1cal p1cal)
 # (FIX-COS-A..F fixture / 独立 oracle / negative / 1-N worker / performance /
 # 故障注入自检); 合同锚 ALG-COS §9 TEST-COS-DESIGN-001 (P1-COS-DOC 冻结)。
 # 注意: p1cos_selfcheck_test 与 p1cos_tests 共享 p1cos_tests_core.cpp TU;
-# 被测面为 astrocs_calibration 的 ac_correct_frame(+_f64) 现状生产实现。
+# 被测面为 acsd_calibration 的 ac_correct_frame(+_f64) 现状生产实现。
 # ----------------------------------------------------------------------------
 add_subdirectory(../../../lib//algorithms/cosmetic/tests/p1cos p1cos)
 
@@ -591,7 +591,7 @@ add_subdirectory(../../../lib//algorithms/drizzle/healpix_drizzle/tests drz_test
 # 独立 oracle / negative / 1-N worker / performance / 故障注入自检); 合同锚
 # HIPS_WRITER.md §9 TEST-HIPS-DESIGN-001 (P1-HIPS-DOC 冻结)。
 # 注意: p1hips_selfcheck_test 与 p1hips_tests 共享四组测试 TU; 被测面为
-# astrocs_hips 的 C ABI 九导出现状生产实现 (API-HIPS-001)。
+# acsd_hips 的 C ABI 九导出现状生产实现 (API-HIPS-001)。
 # ----------------------------------------------------------------------------
 add_subdirectory(../../../lib//infrastructure/aio/tests/p1hips p1hips)
 
@@ -599,7 +599,7 @@ add_subdirectory(../../../lib//infrastructure/aio/tests/p1hips p1hips)
 # AIO-TOPLEVEL-TESTS (RELEASE-01 / TST-001 欠账修复) — lib/infrastructure/aio/tests
 # 顶层原有 20 个测试源文件零 CMake 注册（该目录此前无 CMakeLists.txt），即从未
 # 编译、从未在 ctest 运行。本处只注册已逐条独立复跑通过的 5 个（checksum/
-# tile_model/transform/query_pixel/precision_dual），被测面 astrocs_hips；
+# tile_model/transform/query_pixel/precision_dual），被测面 acsd_hips；
 # 未通过的 3 个另行登记。结构与注册见 lib/infrastructure/aio/tests/CMakeLists.txt。
 # ----------------------------------------------------------------------------
 add_subdirectory(../../../lib//infrastructure/aio/tests aio_toplevel)
@@ -636,13 +636,13 @@ add_subdirectory(../../../lib//algorithms/photometry/tests/p1phot p1phot)
 
 # ----------------------------------------------------------------------------
 # P1-NOISE-TEST (TEST-P1-NOISE-001, 控制包 queue 41, lock-P1-NOISE) —
-# lib/algorithms/noise_snr (astrocs.p1.noise-snr) 可复用验证面。结构与注册详见
+# lib/algorithms/noise_snr (acsd.p1.noise-snr) 可复用验证面。结构与注册详见
 # lib/algorithms/noise_snr/tests/p1noise/CMakeLists.txt (FIX-NOISE-A..G fixture /
 # 独立 oracle / negative / performance / 故障注入自检); 合同锚
 # NOISE_ESTIMATION.md §13.4 TEST-NOISE-DESIGN-001 (P1-NOISE-DOC 冻结)。
 # 注意: p1noise_selfcheck_test 与 p1noise_tests 共享 p1noise_tests_core.cpp
 # TU; 被测面为 lib/algorithms/noise_snr/cpp/src/noise_model.cpp 现状生产实现
-# (根构建无 snr_estimator 目标, 测试面独立编译 astrocs_p1_noise_prod,
+# (根构建无 snr_estimator 目标, 测试面独立编译 acsd_p1_noise_prod,
 # 生产源零改动; lib/algorithms/noise_snr/ 为 P1-NOISE 迁移目标目录)。
 # 本块由 P1-NOISE-TEST agent 单独追加 (多 agent 并发追加区, 只增不改)。
 # ----------------------------------------------------------------------------
@@ -654,10 +654,10 @@ endif()
 
 # ----------------------------------------------------------------------------
 # P1-HIPS-IMPL (SA-P1H-I, queue 40, lock-P1-HIPS): hips_writer 模块适配器
-#   测试 — direct 通道链 astrocs_hips+astrocs_aio STATIC (legacy aio_hips_*
+#   测试 — direct 通道链 acsd_hips+acsd_aio STATIC (legacy aio_hips_*
 #   九导出面, 与 p1_hips_writer_test 同口径) vs DLL C ABI 适配器
-#   astrocs_p1_hips_writer (唯一导出 astrocs_module_query_v1, 环境变量
-#   ASTROCS_HIPS_DLL_PATH 加载): 入口契约/导出面净化(legacy 九符号不得
+#   acsd_p1_hips_writer (唯一导出 acsd_module_query_v1, 环境变量
+#   ACSD_HIPS_DLL_PATH 加载): 入口契约/导出面净化(legacy 九符号不得
 #   dlsym; nm -D 唯一导出另由构建检查实证)/describe/validate 512-5 负例/
 #   plan 真实 work_units/write_product direct-vs-plugin 产物树逐文件
 #   size 一致/executor 硬租约 BUDGET 105/entry cancel (DISP-HIPS-001:
@@ -674,19 +674,19 @@ target_include_directories(hips_writer_adapter_test PRIVATE
   ${CMAKE_CURRENT_SOURCE_DIR}/../../../lib/include
   ${CMAKE_CURRENT_SOURCE_DIR}/../../../lib//algorithms/drizzle/hips/src)
 target_link_libraries(hips_writer_adapter_test PRIVATE
-  astrocs_hips astrocs_aio ${CMAKE_DL_LIBS})
-add_dependencies(hips_writer_adapter_test astrocs_p1_hips_writer)
+  acsd_hips acsd_aio ${CMAKE_DL_LIBS})
+add_dependencies(hips_writer_adapter_test acsd_p1_hips_writer)
 add_test(NAME hips_writer_adapter COMMAND hips_writer_adapter_test
   ${CMAKE_CURRENT_BINARY_DIR}/run/t_hips_adapter
   ${CMAKE_CURRENT_BINARY_DIR}/run/t_hips_ref)
 set_tests_properties(hips_writer_adapter PROPERTIES
-  ENVIRONMENT "ASTROCS_HIPS_DLL_PATH=$<TARGET_FILE:astrocs_p1_hips_writer>")
+  ENVIRONMENT "ACSD_HIPS_DLL_PATH=$<TARGET_FILE:acsd_p1_hips_writer>")
 
 # --- AIO-002: HiPS 原子发布与临时目录清理 (staging→校验→fsync→原子 promote) --
 # 被测面: lib/algorithms/drizzle/hips/src/aio_publish.cpp (publish.h v1 合同, 4 原语唯一实现) +
 # module_entry.cpp 事务面 (write_product 全链 staging 重定向)。
 # 组: units (4 原语正/负/幂等) / atomic (正向发布 + 注入必败 + cancel/kill
-# 中断无 partial + RAII 自愈; 注入 ASTROCS_HIPS_PUBLISH_FAULT=registry)。
+# 中断无 partial + RAII 自愈; 注入 ACSD_HIPS_PUBLISH_FAULT=registry)。
 add_executable(hips_publish_atomic_test p1_hips/publish_atomic_test.c
   p1_hips/adapter_entry_impl.cpp
   ../../../lib//algorithms/drizzle/hips/src/aio_publish.cpp)
@@ -696,8 +696,8 @@ target_include_directories(hips_publish_atomic_test PRIVATE
   ${CMAKE_CURRENT_SOURCE_DIR}/../../../lib/include
   ${CMAKE_CURRENT_SOURCE_DIR}/../../../lib//algorithms/drizzle/hips/src)
 target_link_libraries(hips_publish_atomic_test PRIVATE
-  astrocs_hips astrocs_aio ${CMAKE_DL_LIBS})
-add_dependencies(hips_publish_atomic_test astrocs_p1_hips_writer)
+  acsd_hips acsd_aio ${CMAKE_DL_LIBS})
+add_dependencies(hips_publish_atomic_test acsd_p1_hips_writer)
 add_test(NAME hips_publish_atomic_units COMMAND hips_publish_atomic_test
   units ${CMAKE_CURRENT_BINARY_DIR}/run/t_hips_publish)
 add_test(NAME hips_publish_atomic COMMAND hips_publish_atomic_test
@@ -707,14 +707,14 @@ add_test(NAME hips_publish_atomic COMMAND hips_publish_atomic_test
 add_executable(p1_stars_test p1_stars_test.cpp)
 target_include_directories(p1_stars_test PRIVATE
   ${CMAKE_CURRENT_SOURCE_DIR}/../../../lib//algorithms/star_detection/wrapper_phase1)
-target_link_libraries(p1_stars_test PRIVATE astrocs_phase1_stars)
+target_link_libraries(p1_stars_test PRIVATE acsd_phase1_stars)
 add_test(NAME p1_stars COMMAND p1_stars_test)
 
 add_executable(p1_wcs_phot_test p1_wcs_phot_test.cpp)
 target_include_directories(p1_wcs_phot_test PRIVATE
   ${CMAKE_CURRENT_SOURCE_DIR}/../../../lib//algorithms/platesolve/wrapper_phase1
   ${CMAKE_CURRENT_SOURCE_DIR}/../../../lib//algorithms/photometry/wrapper_phase1)
-target_link_libraries(p1_wcs_phot_test PRIVATE astrocs_phase1_wcs astrocs_phase1_phot)
+target_link_libraries(p1_wcs_phot_test PRIVATE acsd_phase1_wcs acsd_phase1_phot)
 add_test(NAME p1_wcs_phot COMMAND p1_wcs_phot_test)
 
 add_executable(p1_noise_test p1_noise_test.cpp)
@@ -722,7 +722,7 @@ add_executable(p1_noise_test p1_noise_test.cpp)
 target_include_directories(p1_noise_test PRIVATE
   ${CMAKE_CURRENT_SOURCE_DIR}/../../../lib//algorithms/noise_snr/cpp/include
   ${CMAKE_CURRENT_SOURCE_DIR}/../../../lib//algorithms/noise_snr/wrapper_phase1)
-target_link_libraries(p1_noise_test PRIVATE astrocs_phase1_noise)
+target_link_libraries(p1_noise_test PRIVATE acsd_phase1_noise)
 add_test(NAME p1_noise COMMAND p1_noise_test)
 
 add_executable(p1_nside_test p1_nside_test.cpp)
@@ -730,26 +730,26 @@ target_include_directories(p1_nside_test PRIVATE
   ${CMAKE_CURRENT_SOURCE_DIR}/../../../lib/include
   ${CMAKE_CURRENT_SOURCE_DIR}/../../../lib//algorithms/shared/healpix
   ${CMAKE_CURRENT_SOURCE_DIR}/../../../lib//phase3_session)
-target_link_libraries(p1_nside_test PRIVATE astrocs_common astrocs_phase3_session astrocs_hips astrocs_contracts)
+target_link_libraries(p1_nside_test PRIVATE acsd_common acsd_phase3_session acsd_hips acsd_contracts)
 add_test(NAME p1_nside COMMAND p1_nside_test)
 
 # R9-B (bug 狩猎 P1 batchJ): healpix NESTED neighbors corner 分支 + query_disc
 # 完备性修复验证; 源文件共址 lib/algorithms/shared/healpix/tests/ (仓库现行测试装配模式)
 add_executable(r9b_healpix_neighbors_test ../../../lib//algorithms/shared/healpix/tests/test_healpix_neighbors.cpp)
-target_link_libraries(r9b_healpix_neighbors_test PRIVATE astrocs_common)
+target_link_libraries(r9b_healpix_neighbors_test PRIVATE acsd_common)
 add_test(NAME r9b_healpix_neighbors COMMAND r9b_healpix_neighbors_test)
 
 add_executable(p1_hips_writer_test p1_hips_writer_test.cpp)
 target_include_directories(p1_hips_writer_test PRIVATE
   ${CMAKE_CURRENT_SOURCE_DIR}/../../../lib//infrastructure/aio/include)
-target_link_libraries(p1_hips_writer_test PRIVATE astrocs_hips astrocs_aio)
+target_link_libraries(p1_hips_writer_test PRIVATE acsd_hips acsd_aio)
 add_test(NAME p1_hips_writer COMMAND p1_hips_writer_test)
 
 # ----------------------------------------------------------------------------
 add_executable(p1_ir_facade_test p1_ir_facade_test.cpp)
 target_include_directories(p1_ir_facade_test PRIVATE
   ${CMAKE_CURRENT_SOURCE_DIR}/../../../lib//algorithms/calibration/include)
-target_link_libraries(p1_ir_facade_test PRIVATE astrocs_calibration ${ASTROCS_OMP_TARGET})
+target_link_libraries(p1_ir_facade_test PRIVATE acsd_calibration ${ACSD_OMP_TARGET})
 add_test(NAME p1_ir_facade COMMAND p1_ir_facade_test)
 
 # P1 batchD (bug 狩猎 R6): session manifest 写穿 + cosmetic 值类型合同
@@ -760,7 +760,7 @@ target_include_directories(p1_session_manifest_test PRIVATE
   ${CMAKE_CURRENT_SOURCE_DIR}/../../../lib/third_party
   ${CMAKE_CURRENT_SOURCE_DIR}/../../../lib//algorithms/calibration/include
   ${CMAKE_CURRENT_SOURCE_DIR}/../../../lib//infrastructure/aio/include)
-target_link_libraries(p1_session_manifest_test PRIVATE astrocs_phase1_session)
+target_link_libraries(p1_session_manifest_test PRIVATE acsd_phase1_session)
 add_test(NAME p1_session_manifest COMMAND p1_session_manifest_test)
 
 # P1-SESSION-TEST (TEST-P1-SESSION-001, 控制包 queue 47, lock-P1-SESSION) —
@@ -770,7 +770,7 @@ add_test(NAME p1_session_manifest COMMAND p1_session_manifest_test)
 # API-P1-SESSION / DATA-P1-SESSION (P1-SESSION-DOC 冻结) + tasks/
 # 05_PHASE1_TASKS.md §3 (验收: each node once and failure propagation)。
 # 注意: p1sess_selfcheck_test 与 p1sess_tests 共享 units/negative 测试 TU;
-# 被测面为 p1_session 五导出 C API 现状生产实现 (astrocs_phase1_session
+# 被测面为 p1_session 五导出 C API 现状生产实现 (acsd_phase1_session
 # 静态库), manifest stages 即 direct 面节点调用账本。
 # ----------------------------------------------------------------------------
 add_subdirectory(../../../lib//phase1_session/tests/p1sess p1sess)
@@ -783,7 +783,7 @@ target_include_directories(p1_resource_test PRIVATE
   ${CMAKE_CURRENT_SOURCE_DIR}/../../../lib//algorithms/calibration/include
   ${CMAKE_CURRENT_SOURCE_DIR}/../../../lib//infrastructure/cli  ${CMAKE_BINARY_DIR}
 )
-target_link_libraries(p1_resource_test PRIVATE astrocs_calibration ${ASTROCS_OMP_TARGET} Threads::Threads)
+target_link_libraries(p1_resource_test PRIVATE acsd_calibration ${ACSD_OMP_TARGET} Threads::Threads)
 add_test(NAME p1_resource COMMAND p1_resource_test)
 
 add_executable(p2_workers_test p2_workers_test.cpp)
@@ -791,40 +791,40 @@ target_include_directories(p2_workers_test PRIVATE
   ${CMAKE_CURRENT_SOURCE_DIR}/../../../lib//infrastructure/cli
   ${CMAKE_CURRENT_SOURCE_DIR}/../../../lib//algorithms/coverage/include  ${CMAKE_BINARY_DIR}
 )
-target_link_libraries(p2_workers_test PRIVATE astrocs_phase2 astrocs_contracts ${ASTROCS_OMP_TARGET})
+target_link_libraries(p2_workers_test PRIVATE acsd_phase2 acsd_contracts ${ACSD_OMP_TARGET})
 add_test(NAME p2_workers COMMAND p2_workers_test)
 
 add_executable(p2_upm_synthetic_test p2_upm_synthetic_test.cpp)
-target_link_libraries(p2_upm_synthetic_test PRIVATE astrocs_contracts)
+target_link_libraries(p2_upm_synthetic_test PRIVATE acsd_contracts)
 add_test(NAME p2_upm_synthetic COMMAND p2_upm_synthetic_test)
 
 add_executable(p2_block_plan_test p2_block_plan_test.cpp)
 target_include_directories(p2_block_plan_test PRIVATE
   ${CMAKE_CURRENT_SOURCE_DIR}/../../../lib//algorithms/coverage/include)
-target_link_libraries(p2_block_plan_test PRIVATE astrocs_phase2)
+target_link_libraries(p2_block_plan_test PRIVATE acsd_phase2)
 add_test(NAME p2_block_plan COMMAND p2_block_plan_test)
 
 add_executable(p2_rejection_test p2_rejection_test.cpp)
 target_include_directories(p2_rejection_test PRIVATE
   ${CMAKE_CURRENT_SOURCE_DIR}/../../../lib//algorithms/coverage/include)
-target_link_libraries(p2_rejection_test PRIVATE astrocs_phase2)
+target_link_libraries(p2_rejection_test PRIVATE acsd_phase2)
 add_test(NAME p2_rejection COMMAND p2_rejection_test)
 
 add_executable(p2_output_semantics_test p2_output_semantics_test.cpp)
 target_include_directories(p2_output_semantics_test PRIVATE
   ${CMAKE_CURRENT_SOURCE_DIR}/../../../lib//algorithms/coverage/include)
-target_link_libraries(p2_output_semantics_test PRIVATE astrocs_phase2)
+target_link_libraries(p2_output_semantics_test PRIVATE acsd_phase2)
 add_test(NAME p2_output_semantics COMMAND p2_output_semantics_test)
 
 add_executable(p2_ir_facade_test p2_ir_facade_test.cpp)
-target_link_libraries(p2_ir_facade_test PRIVATE astrocs_contracts)
+target_link_libraries(p2_ir_facade_test PRIVATE acsd_contracts)
 add_test(NAME p2_ir_facade COMMAND p2_ir_facade_test)
 
 add_executable(p2_seam_gate_test p2_seam_gate_test.cpp)
 target_include_directories(p2_seam_gate_test PRIVATE
   ${CMAKE_CURRENT_SOURCE_DIR}/../../../lib//infrastructure/cli  ${CMAKE_BINARY_DIR}
 )
-target_link_libraries(p2_seam_gate_test PRIVATE astrocs_contracts)
+target_link_libraries(p2_seam_gate_test PRIVATE acsd_contracts)
 add_test(NAME p2_seam_gate COMMAND p2_seam_gate_test)
 
 # W4-A9 批次 1: p3_wcs_test 迁 lib/algorithms/projection/tests/p3wcs/ (共址),
@@ -833,18 +833,18 @@ add_test(NAME p2_seam_gate COMMAND p2_seam_gate_test)
 # 防重复 add_test (同名即 ctest 冲突)。
 
 add_executable(p3_interp_test p3_interp_test.cpp)
-target_link_libraries(p3_interp_test PRIVATE astrocs_contracts)
+target_link_libraries(p3_interp_test PRIVATE acsd_contracts)
 add_test(NAME p3_interp COMMAND p3_interp_test)
 
 add_executable(p3_coverage_test p3_coverage_test.cpp)
-target_link_libraries(p3_coverage_test PRIVATE astrocs_contracts)
+target_link_libraries(p3_coverage_test PRIVATE acsd_contracts)
 add_test(NAME p3_coverage COMMAND p3_coverage_test)
 
 add_executable(p3_output_test p3_output_test.cpp)
 target_include_directories(p3_output_test PRIVATE
   ${CMAKE_CURRENT_SOURCE_DIR}/../../../lib//phase3_session
   ${CMAKE_CURRENT_SOURCE_DIR}/../../../lib//infrastructure/aio/include)
-target_link_libraries(p3_output_test PRIVATE astrocs_phase3_session astrocs_hips astrocs_common)
+target_link_libraries(p3_output_test PRIVATE acsd_phase3_session acsd_hips acsd_common)
 add_test(NAME p3_output COMMAND p3_output_test)
 
 add_executable(p3_assembly_test p3_assembly_test.cpp)
@@ -852,7 +852,7 @@ target_include_directories(p3_assembly_test PRIVATE
   ${CMAKE_CURRENT_SOURCE_DIR}/../../../lib//phase3_session
   ${CMAKE_CURRENT_SOURCE_DIR}/../../../lib//infrastructure/aio/include
   ${CMAKE_CURRENT_SOURCE_DIR}/../../../lib//algorithms/shared/healpix)
-target_link_libraries(p3_assembly_test PRIVATE astrocs_phase3_session astrocs_hips astrocs_aio astrocs_common)
+target_link_libraries(p3_assembly_test PRIVATE acsd_phase3_session acsd_hips acsd_aio acsd_common)
 add_test(NAME p3_assembly COMMAND p3_assembly_test)
 
 # P30 回归: Phase3 tile 缓存正确性守护 (未覆盖 tile 负缓存去重 + 跨 worker 共享
@@ -863,22 +863,22 @@ target_include_directories(p3_sampler_cache_test PRIVATE
   ${CMAKE_CURRENT_SOURCE_DIR}/../../../lib//phase3_session
   ${CMAKE_CURRENT_SOURCE_DIR}/../../../lib//infrastructure/aio/include
   ${CMAKE_CURRENT_SOURCE_DIR}/../../../lib//algorithms/shared/healpix)
-target_link_libraries(p3_sampler_cache_test PRIVATE astrocs_phase3_session astrocs_hips astrocs_aio astrocs_common)
+target_link_libraries(p3_sampler_cache_test PRIVATE acsd_phase3_session acsd_hips acsd_aio acsd_common)
 add_test(NAME p3_sampler_cache COMMAND p3_sampler_cache_test)
 
-# 依赖 ASTROCS_REPO 定位仓库内资源文件的测试统一注入仓库根路径，
+# 依赖 ACSD_REPO 定位仓库内资源文件的测试统一注入仓库根路径，
 # 保证 ctest 无论从哪个工作目录启动均可解析 (QA-001 ctest 回归全绿)
 set_tests_properties(
   core_pipeline cpu_provider cpu_bench io_adapter p1_ir_facade p2_ir_facade
-  PROPERTIES ENVIRONMENT "ASTROCS_REPO=${CMAKE_SOURCE_DIR}")
+  PROPERTIES ENVIRONMENT "ACSD_REPO=${CMAKE_SOURCE_DIR}")
 
 # ----------------------------------------------------------------------------
 # bug 狩猎 R13 P2-1/P2-2: 批次 K/I 产物共址测试注册 (此前从未进构建/ctest)
 # ----------------------------------------------------------------------------
 # TEST-CAL-001 (批次 K) + RELEASE-02 FIX-P1 (P1-1): photometry_apply.cpp 现
-# 已编入 astrocs_calibration（生产接线; 本测试 target 链接该库即可解析
+# 已编入 acsd_calibration（生产接线; 本测试 target 链接该库即可解析
 # calibration::apply_photometry, 不再重复编译同一 TU）。HAS_ZSTD 不加 —
-# 根 CMake 从未为 astrocs_hips/astrocs_aio 定义该宏, hiss_*/aio_compressor
+# 根 CMake 从未为 acsd_hips/acsd_aio 定义该宏, hiss_*/aio_compressor
 # 以无 zstd 分支自洽 (ZSTD 未编译时 writer 保持 RAW), 测试 TU 自身亦无
 # zstd 依赖, 与库既有编译形态一致。
 add_executable(test_photometry_apply_test
@@ -890,12 +890,12 @@ target_include_directories(test_photometry_apply_test PRIVATE
   ${CMAKE_CURRENT_SOURCE_DIR}/../../../lib//infrastructure/aio/src
   ${CMAKE_CURRENT_SOURCE_DIR}/../../../lib//algorithms/shared)
 target_link_libraries(test_photometry_apply_test PRIVATE
-  astrocs_calibration astrocs_hips astrocs_aio astrocs_common ${ASTROCS_OMP_TARGET})
+  acsd_calibration acsd_hips acsd_aio acsd_common ${ACSD_OMP_TARGET})
 add_test(NAME cal_photometry_apply COMMAND test_photometry_apply_test)
 
 # P1 batchI 恶意 fixture (FP64 硬失败/HCSD JSON 上限/n_pix 2^62/恶意
 # tile_width 2048 拒绝): AIO_ENABLE_HEALPIX 仅为测试 TU 提供 aio_healpix_io.h
-# 声明 (实现在 astrocs_hips, 其已带同宏); HAS_ZSTD 不加 — fixture 在无
+# 声明 (实现在 acsd_hips, 其已带同宏); HAS_ZSTD 不加 — fixture 在无
 # zstd 时走"伪压缩块"分支, 测试 TU 自洽, 与库一致。
 add_executable(p1_io_hardening_test ../../../lib//infrastructure/aio/tests/test_p1_io_hardening.cpp)
 target_include_directories(p1_io_hardening_test PRIVATE
@@ -904,7 +904,7 @@ target_include_directories(p1_io_hardening_test PRIVATE
   ${CMAKE_CURRENT_SOURCE_DIR}/../../../lib//algorithms/shared
   ${CMAKE_CURRENT_SOURCE_DIR}/../../../lib/third_party)
 target_compile_definitions(p1_io_hardening_test PRIVATE AIO_ENABLE_HEALPIX)
-target_link_libraries(p1_io_hardening_test PRIVATE astrocs_aio astrocs_hips astrocs_common)
+target_link_libraries(p1_io_hardening_test PRIVATE acsd_aio acsd_hips acsd_common)
 add_test(NAME p1_io_hardening COMMAND p1_io_hardening_test)
 
 # ----------------------------------------------------------------------------
@@ -918,7 +918,7 @@ add_test(NAME p1_io_hardening COMMAND p1_io_hardening_test)
 add_executable(p15_artifact_collect_test p15_artifact_collect_test.cpp)
 target_include_directories(p15_artifact_collect_test PRIVATE
   ${CMAKE_CURRENT_SOURCE_DIR}/../../../lib//infrastructure/cli)
-target_link_libraries(p15_artifact_collect_test PRIVATE astrocs_cli_runtime)
+target_link_libraries(p15_artifact_collect_test PRIVATE acsd_cli_runtime)
 add_test(NAME p15_artifact_collect COMMAND p15_artifact_collect_test)
 
 
@@ -933,7 +933,7 @@ add_test(NAME p15_artifact_collect COMMAND p15_artifact_collect_test)
 # ----------------------------------------------------------------------------
 set(GAIA_CAT_DATA ${CMAKE_CURRENT_BINARY_DIR}/gaia_cat_test_data)
 add_executable(gaia_xpsd_fixture_gen gaia_xpsd_fixture_gen.c)
-target_link_libraries(gaia_xpsd_fixture_gen PRIVATE astrocs_platform_zlib astrocs_platform_math)
+target_link_libraries(gaia_xpsd_fixture_gen PRIVATE acsd_platform_zlib acsd_platform_math)
 set(GAIA_CAT_CLEAN ${GAIA_CAT_DATA}/cat/clean)
 set(GAIA_CAT_TRUNC ${GAIA_CAT_DATA}/cat/truncdb)
 set(GAIA_CAT_FIXTURES
@@ -971,9 +971,9 @@ foreach(gt gaia_cat_test gaia_cat_polar_ref)
     target_link_libraries(${gt} PRIVATE OpenMP::OpenMP_C)
   endif()
   # gaia_client.c (直编入本用例) 以 <zlib.h> 消费 zlib; 包含面由 gaia 模块的
-  # astrocs_gaia_zlib_include 携带 (口径 = eng/cmake/cfitsio_platform.cmake 的
+  # acsd_gaia_zlib_include 携带 (口径 = eng/cmake/cfitsio_platform.cmake 的
   # 合同两条注入布局; 不靠系统 /usr/include 兜底 —— 那在 Windows 上不存在)。
-  target_link_libraries(${gt} PRIVATE astrocs_platform_zlib astrocs_platform_math Threads::Threads astrocs_gaia_zlib_include)
+  target_link_libraries(${gt} PRIVATE acsd_platform_zlib acsd_platform_math Threads::Threads acsd_gaia_zlib_include)
   add_dependencies(${gt} gaia_cat_fixtures)
 endforeach()
 
@@ -1009,7 +1009,7 @@ else()
 endif()
 
 # ----------------------------------------------------------------------------
-# CAT-GAIA-IMPL (SA-CATG-I): 模块适配器测试 — astrocs_catalog_gaia DLL
+# CAT-GAIA-IMPL (SA-CATG-I): 模块适配器测试 — acsd_catalog_gaia DLL
 #   共址直接路径 (#include gaia_client.c, 无 alloc 钩子) vs DLL C ABI 适配器:
 #   入口契约/导出面净化(legacy 符号不得 dlsym)/describe/validate 负例/
 #   plan 真实 work_units/五 op direct-vs-plugin bitwise/executor 租借/
@@ -1026,14 +1026,14 @@ if(OpenMP_C_FOUND)
   target_link_libraries(gaia_adapter_test PRIVATE OpenMP::OpenMP_C)
 endif()
 # gaia_client.c (本用例直编) 以 <zlib.h> 消费 zlib: 包含面由 gaia 模块的
-# astrocs_gaia_zlib_include 携带 (合同两条注入布局, 见 eng/cmake/cfitsio_platform.cmake),
+# acsd_gaia_zlib_include 携带 (合同两条注入布局, 见 eng/cmake/cfitsio_platform.cmake),
 # 不靠系统 /usr/include 兜底 —— 那在 Windows 上不存在。
-target_link_libraries(gaia_adapter_test PRIVATE astrocs_platform_zlib astrocs_platform_math Threads::Threads astrocs_gaia_zlib_include)
-add_dependencies(gaia_adapter_test gaia_cat_fixtures astrocs_catalog_gaia)
+target_link_libraries(gaia_adapter_test PRIVATE acsd_platform_zlib acsd_platform_math Threads::Threads acsd_gaia_zlib_include)
+add_dependencies(gaia_adapter_test gaia_cat_fixtures acsd_catalog_gaia)
 add_test(NAME gaia_cat_adapter
   COMMAND gaia_adapter_test ${GAIA_CAT_CLEAN})
 set_tests_properties(gaia_cat_adapter PROPERTIES
-  ENVIRONMENT "ASTROCS_GAIA_DLL_PATH=$<TARGET_FILE:astrocs_catalog_gaia>")
+  ENVIRONMENT "ACSD_GAIA_DLL_PATH=$<TARGET_FILE:acsd_catalog_gaia>")
 
 # CAT-GAIA-INT: gaia 模块本地集成测试 (integration descriptor + typed ports +
 # 调用计数 + 真实 plan/trace; global DAG registration 归 SA-RT-05 不做)。
@@ -1047,17 +1047,17 @@ target_include_directories(gaia_integration_test PRIVATE
   ${CMAKE_CURRENT_SOURCE_DIR}/../../../lib/include
   ${GAIA_CAT_DATA}/inc)
 target_compile_definitions(gaia_integration_test PRIVATE
-  ASTROCS_GAIA_INTEGRATION_JSON="${CMAKE_CURRENT_SOURCE_DIR}/../../../lib//infrastructure/gaia_xpsd_client/integration/astrocs_catalog_gaia.integration.json"
-  ASTROCS_GAIA_MODULE_YAML="${CMAKE_CURRENT_SOURCE_DIR}/../../../lib//infrastructure/gaia_xpsd_client/module.yaml")
+  ACSD_GAIA_INTEGRATION_JSON="${CMAKE_CURRENT_SOURCE_DIR}/../../../lib//infrastructure/gaia_xpsd_client/integration/acsd_catalog_gaia.integration.json"
+  ACSD_GAIA_MODULE_YAML="${CMAKE_CURRENT_SOURCE_DIR}/../../../lib//infrastructure/gaia_xpsd_client/module.yaml")
 if(OpenMP_C_FOUND)
   target_link_libraries(gaia_integration_test PRIVATE OpenMP::OpenMP_C)
 endif()
-target_link_libraries(gaia_integration_test PRIVATE ${CMAKE_DL_LIBS} astrocs_platform_zlib astrocs_platform_math Threads::Threads)
-add_dependencies(gaia_integration_test gaia_cat_fixtures astrocs_catalog_gaia)
+target_link_libraries(gaia_integration_test PRIVATE ${CMAKE_DL_LIBS} acsd_platform_zlib acsd_platform_math Threads::Threads)
+add_dependencies(gaia_integration_test gaia_cat_fixtures acsd_catalog_gaia)
 add_test(NAME gaia_integration
   COMMAND gaia_integration_test ${GAIA_CAT_CLEAN})
 set_tests_properties(gaia_integration PROPERTIES
-  ENVIRONMENT "ASTROCS_GAIA_DLL_PATH=$<TARGET_FILE:astrocs_catalog_gaia>;ASTROCS_GAIA_INT_TRACE_OUT=${GAIA_INT_TRACE_OUT}")
+  ENVIRONMENT "ACSD_GAIA_DLL_PATH=$<TARGET_FILE:acsd_catalog_gaia>;ACSD_GAIA_INT_TRACE_OUT=${GAIA_INT_TRACE_OUT}")
 
 # ----------------------------------------------------------------------------
 # M9-H-1 / M9-H-2 (B1-memory): 内存安全回归锁
@@ -1075,13 +1075,13 @@ target_include_directories(gaia_module_manifest_bounds_test PRIVATE
   ${CMAKE_CURRENT_SOURCE_DIR}/../../../lib//infrastructure/gaia_xpsd_client/include
   ${CMAKE_CURRENT_SOURCE_DIR}/../../../lib/include)
 target_compile_definitions(gaia_module_manifest_bounds_test PRIVATE
-  ASTROCS_ABI_SHARED=1
-  ASTROCS_ABI_EXPORTS=1)
+  ACSD_ABI_SHARED=1
+  ACSD_ABI_EXPORTS=1)
 if(OpenMP_C_FOUND)
   target_link_libraries(gaia_module_manifest_bounds_test PRIVATE OpenMP::OpenMP_C)
 endif()
 # 同上: 本 target 显式编入 gaia_client.c ⇒ 必须接同一份 zlib 包含面。
-target_link_libraries(gaia_module_manifest_bounds_test PRIVATE astrocs_platform_zlib astrocs_platform_math Threads::Threads astrocs_gaia_zlib_include)
+target_link_libraries(gaia_module_manifest_bounds_test PRIVATE acsd_platform_zlib acsd_platform_math Threads::Threads acsd_gaia_zlib_include)
 # GAIA-FAILCLOSED-01: 本测试原与 xpsd_spectrum_count_bounds 共用
 # ${GAIA_CAT_DATA}/bounds_work —— 后者会写入 7 个**故意畸形**的 *.xpsd
 # (spnone/sp0/spneg/spabc/sp344/sp100000/spgarbage)。装载 fail-closed 后,
@@ -1097,7 +1097,7 @@ target_include_directories(xpsd_spectrum_count_bounds_test PRIVATE
 if(OpenMP_C_FOUND)
   target_link_libraries(xpsd_spectrum_count_bounds_test PRIVATE OpenMP::OpenMP_C)
 endif()
-target_link_libraries(xpsd_spectrum_count_bounds_test PRIVATE astrocs_platform_zlib astrocs_platform_math Threads::Threads)
+target_link_libraries(xpsd_spectrum_count_bounds_test PRIVATE acsd_platform_zlib acsd_platform_math Threads::Threads)
 add_test(NAME xpsd_spectrum_count_bounds
   COMMAND xpsd_spectrum_count_bounds_test ${GAIA_CAT_DATA}/bounds_work)
 
@@ -1114,7 +1114,7 @@ target_include_directories(gaia_magnitude_range_bounds_test PRIVATE
 if(OpenMP_C_FOUND)
   target_link_libraries(gaia_magnitude_range_bounds_test PRIVATE OpenMP::OpenMP_C)
 endif()
-target_link_libraries(gaia_magnitude_range_bounds_test PRIVATE astrocs_platform_zlib astrocs_platform_math Threads::Threads)
+target_link_libraries(gaia_magnitude_range_bounds_test PRIVATE acsd_platform_zlib acsd_platform_math Threads::Threads)
 add_test(NAME gaia_magnitude_range_bounds
   COMMAND gaia_magnitude_range_bounds_test ${GAIA_CAT_DATA}/magrange_bounds_work)
 
@@ -1133,16 +1133,16 @@ target_include_directories(gaia_shard_coverage_gate_test PRIVATE
 if(OpenMP_C_FOUND)
   target_link_libraries(gaia_shard_coverage_gate_test PRIVATE OpenMP::OpenMP_C)
 endif()
-target_link_libraries(gaia_shard_coverage_gate_test PRIVATE astrocs_platform_zlib astrocs_platform_math Threads::Threads)
+target_link_libraries(gaia_shard_coverage_gate_test PRIVATE acsd_platform_zlib acsd_platform_math Threads::Threads)
 add_test(NAME gaia_shard_coverage
   COMMAND gaia_shard_coverage_gate_test ${GAIA_CAT_DATA}/shard_coverage_work)
 add_test(NAME gaia_shard_coverage_self_test
   COMMAND gaia_shard_coverage_gate_test ${GAIA_CAT_DATA}/shard_coverage_selftest_work --self-test)
 
 # ----------------------------------------------------------------------------
-# P1-DRZ-IMPL (SA-P1D-I): drizzle 模块适配器测试 — astrocs_p1_drizzle DLL
+# P1-DRZ-IMPL (SA-P1D-I): drizzle 模块适配器测试 — acsd_p1_drizzle DLL
 #   直接路径 (#include drizzle_adapter_impl.cpp → legacy hp_drizzle_run /
-#   hp_drizzle_reverse_run 统计面, 链 astrocs_drizzle STATIC, 与 p1drz_tests
+#   hp_drizzle_reverse_run 统计面, 链 acsd_drizzle STATIC, 与 p1drz_tests
 #   同手法) vs DLL C ABI 适配器: 入口契约/导出面净化(legacy 六符号不得
 #   dlsym; nm -D 唯一导出另由构建检查实证)/describe/validate 负例/
 #   plan 真实 work_units/drizzle+reverse direct-vs-plugin bitwise 统计与
@@ -1158,11 +1158,11 @@ target_include_directories(drizzle_adapter_test PRIVATE
 target_compile_definitions(drizzle_adapter_test PRIVATE
   AIO_ENABLE_FITS AIO_ENABLE_HEALPIX)
 target_link_libraries(drizzle_adapter_test PRIVATE
-  astrocs_drizzle ${CMAKE_DL_LIBS} ${ASTROCS_OMP_TARGET})
-add_dependencies(drizzle_adapter_test astrocs_p1_drizzle)
+  acsd_drizzle ${CMAKE_DL_LIBS} ${ACSD_OMP_TARGET})
+add_dependencies(drizzle_adapter_test acsd_p1_drizzle)
 add_test(NAME drizzle_adapter COMMAND drizzle_adapter_test)
 set_tests_properties(drizzle_adapter PROPERTIES
-  ENVIRONMENT "ASTROCS_DRIZZLE_DLL_PATH=$<TARGET_FILE:astrocs_p1_drizzle>")
+  ENVIRONMENT "ACSD_DRIZZLE_DLL_PATH=$<TARGET_FILE:acsd_p1_drizzle>")
 
 # RESCUE-FD-02: hp_drizzle_run 库边界 precision_mode 缺省语义回归
 #   (-1 + 无 PRECISION KV → FP64 累积; 未知 KV 值 fail-closed; 显式 0/1 不变)
@@ -1174,24 +1174,24 @@ target_include_directories(drizzle_precision_default_test PRIVATE
 target_compile_definitions(drizzle_precision_default_test PRIVATE
   AIO_ENABLE_FITS AIO_ENABLE_HEALPIX)
 target_link_libraries(drizzle_precision_default_test PRIVATE
-  astrocs_drizzle ${CMAKE_DL_LIBS} ${ASTROCS_OMP_TARGET})
+  acsd_drizzle ${CMAKE_DL_LIBS} ${ACSD_OMP_TARGET})
 add_test(NAME drizzle_precision_default COMMAND drizzle_precision_default_test)
 
 # calibration_adapter_test (P1-CAL-IMPL): 模块 C ABI v1 adapter 测试。
-# direct 通道链 astrocs_calibration STATIC (AC_API 全导出面); plugin 通道
-# dlopen astrocs_p1_calibration DLL (唯一导出 astrocs_module_query_v1)。
-# DLL 路径经 ENVIRONMENT 注入; include 与根 astrocs_calibration :338 一致。
+# direct 通道链 acsd_calibration STATIC (AC_API 全导出面); plugin 通道
+# dlopen acsd_p1_calibration DLL (唯一导出 acsd_module_query_v1)。
+# DLL 路径经 ENVIRONMENT 注入; include 与根 acsd_calibration :338 一致。
 add_executable(calibration_adapter_test calibration_adapter_test.cpp)
 target_include_directories(calibration_adapter_test PRIVATE
   ${CMAKE_CURRENT_SOURCE_DIR}/../../../lib//algorithms/calibration/include
   ${CMAKE_CURRENT_SOURCE_DIR}/../../../lib//infrastructure/aio/include
   ${CMAKE_CURRENT_SOURCE_DIR}/../../../lib/include)
 target_link_libraries(calibration_adapter_test PRIVATE
-  astrocs_calibration ${CMAKE_DL_LIBS} ${ASTROCS_OMP_TARGET})
-add_dependencies(calibration_adapter_test astrocs_p1_calibration)
+  acsd_calibration ${CMAKE_DL_LIBS} ${ACSD_OMP_TARGET})
+add_dependencies(calibration_adapter_test acsd_p1_calibration)
 add_test(NAME calibration_adapter COMMAND calibration_adapter_test)
 set_tests_properties(calibration_adapter PROPERTIES
-  ENVIRONMENT "ASTROCS_CAL_DLL_PATH=$<TARGET_FILE:astrocs_p1_calibration>")
+  ENVIRONMENT "ACSD_CAL_DLL_PATH=$<TARGET_FILE:acsd_p1_calibration>")
 
 # P1-CAL-INT: calibration 模块本地集成测试 (integration descriptor + typed
 # ports + 调用计数 + 真实 plan/trace; global DAG registration 归 SA-RT-05
@@ -1205,11 +1205,11 @@ target_include_directories(calibration_integration_test PRIVATE
   ${CMAKE_CURRENT_SOURCE_DIR}/../../../lib//algorithms/calibration/tests/p1cal
   ${CMAKE_CURRENT_SOURCE_DIR}/../../../lib/include)
 target_compile_definitions(calibration_integration_test PRIVATE
-  ASTROCS_CAL_INTEGRATION_JSON="${CMAKE_CURRENT_SOURCE_DIR}/../../../lib//algorithms/calibration/integration/astrocs_p1_calibration.integration.json"
-  ASTROCS_CAL_MODULE_YAML="${CMAKE_CURRENT_SOURCE_DIR}/../../../lib//algorithms/calibration/module.yaml")
+  ACSD_CAL_INTEGRATION_JSON="${CMAKE_CURRENT_SOURCE_DIR}/../../../lib//algorithms/calibration/integration/acsd_p1_calibration.integration.json"
+  ACSD_CAL_MODULE_YAML="${CMAKE_CURRENT_SOURCE_DIR}/../../../lib//algorithms/calibration/module.yaml")
 target_link_libraries(calibration_integration_test PRIVATE
-  ${CMAKE_DL_LIBS} ${ASTROCS_OMP_TARGET})
-# libgomp 必须随可执行文件早装载: DLL (astrocs_p1_calibration) 自链 libgomp,
+  ${CMAKE_DL_LIBS} ${ACSD_OMP_TARGET})
+# libgomp 必须随可执行文件早装载: DLL (acsd_p1_calibration) 自链 libgomp,
 # 若测试 TU 无 OMP 符号引用, --as-needed 会把本 target 的 libgomp 从
 # DT_NEEDED 丢弃, libgomp 退化为 dlopen 晚装载 → GOMP 并行区 SEGV (主 build
 # 复现 10/10)。gaia_integration 先例不崩是因其 TU include gaia_client.c
@@ -1219,18 +1219,18 @@ if(UNIX AND NOT APPLE)
   target_link_options(calibration_integration_test PRIVATE
     "LINKER:--no-as-needed")
 endif()
-add_dependencies(calibration_integration_test astrocs_p1_calibration)
+add_dependencies(calibration_integration_test acsd_p1_calibration)
 add_test(NAME calibration_integration COMMAND calibration_integration_test)
 set_tests_properties(calibration_integration PROPERTIES
-  ENVIRONMENT "ASTROCS_CAL_DLL_PATH=$<TARGET_FILE:astrocs_p1_calibration>;ASTROCS_CAL_INT_TRACE_OUT=${CAL_INT_TRACE_OUT}")
+  ENVIRONMENT "ACSD_CAL_DLL_PATH=$<TARGET_FILE:acsd_p1_calibration>;ACSD_CAL_INT_TRACE_OUT=${CAL_INT_TRACE_OUT}")
 
 # cosmetic_adapter_test (P1-COS-IMPL): 模块 C ABI v1 adapter 测试。
-# direct 通道链 astrocs_calibration STATIC (AC_API 全导出面); plugin 通道
-# dlopen astrocs_p1_cosmetic DLL (唯一导出 astrocs_module_query_v1)。
+# direct 通道链 acsd_calibration STATIC (AC_API 全导出面); plugin 通道
+# dlopen acsd_p1_cosmetic DLL (唯一导出 acsd_module_query_v1)。
 # DLL 路径经 ENVIRONMENT 注入; include 与 DLL 生产源口径一致
 # (lib/algorithms/calibration/include 生产头 + lib/algorithms/cosmetic/include types.h)。
-# OMP 教训 (P1-CAL-INT 58d20223): DLL (astrocs_p1_cosmetic) 自链 libgomp,
-# 本 TU 链 astrocs_calibration 已有 OMP 符号引用, 仍显式 --no-as-needed
+# OMP 教训 (P1-CAL-INT 58d20223): DLL (acsd_p1_cosmetic) 自链 libgomp,
+# 本 TU 链 acsd_calibration 已有 OMP 符号引用, 仍显式 --no-as-needed
 # 双保险 (仅 GNU ld 语义, MSVC 无此选项), 防 dlopen 晚装载 SEGV。
 add_executable(cosmetic_adapter_test cosmetic_adapter_test.cpp)
 target_include_directories(cosmetic_adapter_test PRIVATE
@@ -1239,15 +1239,15 @@ target_include_directories(cosmetic_adapter_test PRIVATE
   ${CMAKE_CURRENT_SOURCE_DIR}/../../../lib//infrastructure/aio/include
   ${CMAKE_CURRENT_SOURCE_DIR}/../../../lib/include)
 target_link_libraries(cosmetic_adapter_test PRIVATE
-  astrocs_calibration ${CMAKE_DL_LIBS} ${ASTROCS_OMP_TARGET})
+  acsd_calibration ${CMAKE_DL_LIBS} ${ACSD_OMP_TARGET})
 if(UNIX AND NOT APPLE)
   target_link_options(cosmetic_adapter_test PRIVATE
     "LINKER:--no-as-needed")
 endif()
-add_dependencies(cosmetic_adapter_test astrocs_p1_cosmetic)
+add_dependencies(cosmetic_adapter_test acsd_p1_cosmetic)
 add_test(NAME cosmetic_adapter COMMAND cosmetic_adapter_test)
 set_tests_properties(cosmetic_adapter PROPERTIES
-  ENVIRONMENT "ASTROSCOS_DLL_PATH=$<TARGET_FILE:astrocs_p1_cosmetic>")
+  ENVIRONMENT "ASTROSCOS_DLL_PATH=$<TARGET_FILE:acsd_p1_cosmetic>")
 
 # cosmetic_integration_test (P1-COS-INT): 模块本地集成测试 (MODULE_MIGRATION
 # _TEMPLATE <prefix>-INT)。覆盖 integration descriptor 三方一致 (12 §5) +
@@ -1266,22 +1266,22 @@ target_include_directories(cosmetic_integration_test PRIVATE
   ${CMAKE_CURRENT_SOURCE_DIR}/../../../lib//algorithms/cosmetic/tests/p1cos
   ${CMAKE_CURRENT_SOURCE_DIR}/../../../lib/include)
 target_compile_definitions(cosmetic_integration_test PRIVATE
-  ASTROSCOS_INTEGRATION_JSON="${CMAKE_CURRENT_SOURCE_DIR}/../../../lib//algorithms/cosmetic/integration/astrocs_p1_cosmetic.integration.json"
+  ASTROSCOS_INTEGRATION_JSON="${CMAKE_CURRENT_SOURCE_DIR}/../../../lib//algorithms/cosmetic/integration/acsd_p1_cosmetic.integration.json"
   ASTROSCOS_MODULE_YAML="${CMAKE_CURRENT_SOURCE_DIR}/../../../lib//algorithms/cosmetic/module.yaml")
 target_link_libraries(cosmetic_integration_test PRIVATE
-  ${CMAKE_DL_LIBS} ${ASTROCS_OMP_TARGET})
-# OMP 教训 (P1-CAL-INT 58d20223): DLL (astrocs_p1_cosmetic) 自链 libgomp,
+  ${CMAKE_DL_LIBS} ${ACSD_OMP_TARGET})
+# OMP 教训 (P1-CAL-INT 58d20223): DLL (acsd_p1_cosmetic) 自链 libgomp,
 # 本 TU 为纯 host stub 无 OMP 符号引用, --as-needed 会把 libgomp 从
 # DT_NEEDED 丢弃 → dlopen 晚装载 GOMP 并行区 SEGV (主 build 复现)。
-# 链 ${ASTROCS_OMP_TARGET} + --no-as-needed 归一 (仅 GNU ld, MSVC 无此选项)。
+# 链 ${ACSD_OMP_TARGET} + --no-as-needed 归一 (仅 GNU ld, MSVC 无此选项)。
 if(UNIX AND NOT APPLE)
   target_link_options(cosmetic_integration_test PRIVATE
     "LINKER:--no-as-needed")
 endif()
-add_dependencies(cosmetic_integration_test astrocs_p1_cosmetic)
+add_dependencies(cosmetic_integration_test acsd_p1_cosmetic)
 add_test(NAME cosmetic_integration COMMAND cosmetic_integration_test)
 set_tests_properties(cosmetic_integration PROPERTIES
-  ENVIRONMENT "ASTROSCOS_DLL_PATH=$<TARGET_FILE:astrocs_p1_cosmetic>;ASTROSCOS_INT_TRACE_OUT=${COS_INT_TRACE_OUT}")
+  ENVIRONMENT "ASTROSCOS_DLL_PATH=$<TARGET_FILE:acsd_p1_cosmetic>;ASTROSCOS_INT_TRACE_OUT=${COS_INT_TRACE_OUT}")
 
 # ----------------------------------------------------------------------------
 # ----------------------------------------------------------------------------
@@ -1310,11 +1310,11 @@ add_subdirectory(../../../lib//algorithms/star_detection/tests/p1star p1star)
 
 
 # ----------------------------------------------------------------------------
-# P1-NOISE-IMPL (queue 43, lock-P1-NOISE) — astrocs_p1_noise adapter 对拍面
+# P1-NOISE-IMPL (queue 43, lock-P1-NOISE) — acsd_p1_noise adapter 对拍面
 # (对齐 p1_hips/adapter_test.c 先例 P1-HIPS-IMPL 1959dc89 / CAL/COS
 # adapter_test.cpp 同构): direct 通道 = module_entry.cpp 直通编译 +
-# astrocs_p1_noise_prod STATIC (P1-NOISE-TEST 冻结被测面, 生产源零改动);
-# plugin 通道 = dlopen astrocs_p1_noise DLL 经 astrocs_module_query_v1。
+# acsd_p1_noise_prod STATIC (P1-NOISE-TEST 冻结被测面, 生产源零改动);
+# plugin 通道 = dlopen acsd_p1_noise DLL 经 acsd_module_query_v1。
 # direct-vs-plugin BITWISE 对拍 (f32/f64 + 内联 fill + 独立 fill 影子
 # floor 回退同构 + scale_law/gain_variance 标量); strbuf 两阶段/plan
 # work_units 事实/BUDGET 105 双路径/entry cancel/describe/负面 ABI/
@@ -1323,9 +1323,9 @@ add_subdirectory(../../../lib//algorithms/star_detection/tests/p1star p1star)
 # ----------------------------------------------------------------------------
 # ----------------------------------------------------------------------------
 # F-CI-002-01(CI-002 owner 裁决): 本块依赖 p1noise_under_test(untracked V7 面
-# p1noise 子图)与根图 astrocs_p1_noise(已随断链解除摘出), 门卫化使干净树
+# p1noise 子图)与根图 acsd_p1_noise(已随断链解除摘出), 门卫化使干净树
 # configure 通过; V7 面收编后两 target 恢复, 本块自动重新激活。
-if(TARGET p1noise_under_test AND TARGET astrocs_p1_noise)
+if(TARGET p1noise_under_test AND TARGET acsd_p1_noise)
 add_executable(p1_noise_adapter_test p1_noise/adapter_test.cpp
   p1_noise/adapter_entry_impl.cpp)
 target_include_directories(p1_noise_adapter_test PRIVATE
@@ -1335,11 +1335,11 @@ target_include_directories(p1_noise_adapter_test PRIVATE
   ${CMAKE_CURRENT_SOURCE_DIR}/../../../lib//algorithms/noise_snr/src)
 target_link_libraries(p1_noise_adapter_test PRIVATE
   p1noise_under_test ${CMAKE_DL_LIBS})
-add_dependencies(p1_noise_adapter_test astrocs_p1_noise)
+add_dependencies(p1_noise_adapter_test acsd_p1_noise)
 add_test(NAME p1_noise_adapter COMMAND p1_noise_adapter_test
   ${CMAKE_CURRENT_BINARY_DIR}/run/t_noise_adapter)
 set_tests_properties(p1_noise_adapter PROPERTIES
-  ENVIRONMENT "ASTROCS_NOISE_DLL_PATH=$<TARGET_FILE:astrocs_p1_noise>")
+  ENVIRONMENT "ACSD_NOISE_DLL_PATH=$<TARGET_FILE:acsd_p1_noise>")
 endif()
 # --- P1-WCS-TEST (TEST-P1-WCS-001): WCS/plate_solve 可复用验证面 -----------
 # 六组 CTest: p1wcs_units / p1wcs_properties / p1wcs_oracle /
@@ -1354,13 +1354,13 @@ add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/../../../lib//algorithms/platesolve
 
 
 # ----------------------------------------------------------------------------
-# AIO-001 (ASTROCS-CONSTITUTION-ALIGNMENT-V1) — 唯一 AIO C ABI v1 与内容哈希复核
-# 合同锚: lib/include/astrocs/io/aio_abi_v1.h + eng/contracts/data/aio_abi_contract_v1.json。
-# 被测面: lib/infrastructure/aio/src/aio_abi.cpp (唯一公共 ABI 实现; astrocs_aio 域,
+# AIO-001 (ACSD-CONSTITUTION-ALIGNMENT-V1) — 唯一 AIO C ABI v1 与内容哈希复核
+# 合同锚: lib/include/acsd/io/aio_abi_v1.h + eng/contracts/data/aio_abi_contract_v1.json。
+# 被测面: lib/infrastructure/aio/src/aio_abi.cpp (唯一公共 ABI 实现; acsd_aio 域,
 # 宪章 §8.5 交付单元); oracle: FIPS 180-4 标准向量 (hashlib 预生成) +
-# lib/algorithms/shared crypto::Sha256 交叉对拍 + acs_fio_status 0..13 编译期对齐证明。
+# lib/algorithms/shared crypto::Sha256 交叉对拍 + acsd_fio_status 0..13 编译期对齐证明。
 # 组: aio_abi_units / aio_abi_negative / aio_abi_selfcheck (故障注入必败:
-# ASTROCS_AIO_FAULT=n1_hash_value_flip|n2_verify_mismatch_shortcut|n3_file_size_skip)。
+# ACSD_AIO_FAULT=n1_hash_value_flip|n2_verify_mismatch_shortcut|n3_file_size_skip)。
 # OpenMP 并行轴: 1/4/16 worker 复核位级一致 (reentrant; 非重计算, 显式 worker 传入)。
 # ----------------------------------------------------------------------------
 add_executable(aio_abi_tests
@@ -1371,7 +1371,7 @@ target_include_directories(aio_abi_tests PRIVATE
   ${CMAKE_CURRENT_SOURCE_DIR}/../../../lib//infrastructure/aio/include
   ${CMAKE_CURRENT_SOURCE_DIR}/../../../lib//algorithms/shared
   ${CMAKE_CURRENT_SOURCE_DIR}/../../../lib//infrastructure/aio/io/include)
-target_link_libraries(aio_abi_tests PRIVATE astrocs_common ${ASTROCS_OMP_TARGET})
+target_link_libraries(aio_abi_tests PRIVATE acsd_common ${ACSD_OMP_TARGET})
 add_test(NAME aio_abi_units COMMAND aio_abi_tests units)
 add_test(NAME aio_abi_negative COMMAND aio_abi_tests negative)
 
@@ -1385,7 +1385,7 @@ target_include_directories(aio_abi_selfcheck PRIVATE
   ${CMAKE_CURRENT_SOURCE_DIR}/../../../lib//infrastructure/aio/include
   ${CMAKE_CURRENT_SOURCE_DIR}/../../../lib//algorithms/shared
   ${CMAKE_CURRENT_SOURCE_DIR}/../../../lib//infrastructure/aio/io/include)
-target_link_libraries(aio_abi_selfcheck PRIVATE astrocs_common)
+target_link_libraries(aio_abi_selfcheck PRIVATE acsd_common)
 add_test(NAME aio_abi_selfcheck COMMAND aio_abi_selfcheck)
 
 # ----------------------------------------------------------------------------
@@ -1395,7 +1395,7 @@ add_test(NAME aio_abi_selfcheck COMMAND aio_abi_selfcheck)
 # 被测面 = src/ahpx 的 writer/reader/api 直编 (ahpx 已废弃、不在生产 target 内,
 # 与 aio_abi_tests 直编先例同构; astro_image_io.h 的 aio_ahpx_write 声明已随
 # AHPX-WEIGHT-RETIRE-20260920 同步去掉权重参数, 声明与定义同形)。
-# 故障注入: ASTROCS_AHPX_FAULT=accept_legacy|writer_accept_legacy_meta|
+# 故障注入: ACSD_AHPX_FAULT=accept_legacy|writer_accept_legacy_meta|
 # writer_drop_snr 必败 (rc=1, P2-002/P3-002 先例同构)。
 # ----------------------------------------------------------------------------
 add_executable(ahpx_hips_format_test ahpx_hips_format_test.cpp
@@ -1404,27 +1404,27 @@ add_executable(ahpx_hips_format_test ahpx_hips_format_test.cpp
 target_include_directories(ahpx_hips_format_test PRIVATE
   ${CMAKE_CURRENT_SOURCE_DIR}/../../../lib//infrastructure/aio/include
   ${CMAKE_CURRENT_SOURCE_DIR}/../../../lib//infrastructure/aio/src)
-target_link_libraries(ahpx_hips_format_test PRIVATE astrocs_aio)
+target_link_libraries(ahpx_hips_format_test PRIVATE acsd_aio)
 target_sources(ahpx_hips_format_test PRIVATE
   ${CMAKE_CURRENT_SOURCE_DIR}/../../../lib//infrastructure/aio/src/ahpx/aio_ahpx_api.cpp)
 add_test(NAME ahpx_hips_format COMMAND ahpx_hips_format_test)
 
 # ----------------------------------------------------------------------------
-# P3-001 (ASTROCS-CONSTITUTION-ALIGNMENT-V1) — 版本化 projection registry 与
+# P3-001 (ACSD-CONSTITUTION-ALIGNMENT-V1) — 版本化 projection registry 与
 # 冻结四投影 (TAN/SIN/CAR/AIT) 验证面
 # 合同锚: ALG-P3-PROJ-IMPL-001 §15 (docs/science/algorithms/PHASE3_PROJ_IMPL.md) +
 # SCI-P3-001 (FROZEN, TAN 容差/守卫零改动) + 宪章 §7.3/§18.1 (首批四投影
 # registry 冻结; 新增投影须经 registry 注册并附独立往返 Oracle)。
 # 被测面: lib/algorithms/projection/p3_projection.cpp (registry v1 冻结表 + 四投影
 # 统一操作面, registry 函数指针 dispatch, fail-closed) 直编测试目标 —
-# 生产构建零改动 (根 CMakeLists 不动, astrocs_p3_projection.dll 挂载归
+# 生产构建零改动 (根 CMakeLists 不动, acsd_p3_projection.dll 挂载归
 # P3-PROJ-IMPL/P3-002, 白名单外越界零项)。
 # TAN 冻结零漂移: lib/algorithms/projection/p3_wcs.cpp (冻结生产事实) 同 TU 对拍
 # (G1 CD 构造/CRPIX/正反映射逐点 bitwise)。
 # 独立 Oracle: 3D 单位向量第一性原理 (切基正交投影/透视除法/AIT Paper II
 # 反演式), 不调生产实现; 往返容差 <1e-6 px (SCI §7 冻结)。
 # 组: p3_projection_units / p3_projection_fault (故障注入必败:
-# ASTROCS_P3PROJ_FAULT=tan|sin|car|ait|registry, P2-002 先例同构)。
+# ACSD_P3PROJ_FAULT=tan|sin|car|ait|registry, P2-002 先例同构)。
 # ----------------------------------------------------------------------------
 add_executable(p3_projection_test
   p3_projection_test.cpp
@@ -1435,10 +1435,10 @@ target_include_directories(p3_projection_test PRIVATE
 add_test(NAME p3_projection_units COMMAND p3_projection_test)
 add_test(NAME p3_projection_fault COMMAND p3_projection_test)
 set_tests_properties(p3_projection_fault PROPERTIES
-  ENVIRONMENT "ASTROCS_P3PROJ_FAULT=tan")
+  ENVIRONMENT "ACSD_P3PROJ_FAULT=tan")
 
 # ----------------------------------------------------------------------------
-# P3-002 (ASTROCS-CONSTITUTION-ALIGNMENT-V1) — Phase3 真实节点流式输出与
+# P3-002 (ACSD-CONSTITUTION-ALIGNMENT-V1) — Phase3 真实节点流式输出与
 # 不确定度验证面
 # 合同锚: DATA_SEMANTICS §30.4 (DATA-P3-UNC-001 传播公式/invalid policy) +
 # §30.5 TEST-P3-UNC-DESIGN-001 (W1..W6 门) + docs/science/
@@ -1449,7 +1449,7 @@ set_tests_properties(p3_projection_fault PROPERTIES
 # call_count=1+fail-closed 负面+确定性) / p3002_uncertainty (W3 unavailable
 # 显式登记+W6 available EXTNAME/BUNIT/DATASUM+W4 NaN/负值/覆盖不一致+W5
 # 节点 parity; 采样器级 W1/W2 数值 oracle 在实现符号就位后追加)。
-# 故障注入: ASTROCS_P3002_FAULT=zero_var|norm_sum|skip_hdu 必败 (rc=1,
+# 故障注入: ACSD_P3002_FAULT=zero_var|norm_sum|skip_hdu 必败 (rc=1,
 # P2-002 先例同构: 注入等价缺陷断言, 正常实现必败)。
 # ----------------------------------------------------------------------------
 add_executable(p3002_real_nodes_test p3002_real_nodes_test.cpp)
@@ -1462,7 +1462,7 @@ target_include_directories(p3002_real_nodes_test PRIVATE
   ${CMAKE_CURRENT_SOURCE_DIR}/../../../lib//infrastructure/aio/third_party/cfitsio
   ${CMAKE_CURRENT_SOURCE_DIR}/../../../lib//algorithms/shared
   ${CMAKE_CURRENT_SOURCE_DIR}/../../../lib//algorithms/shared/healpix)
-target_link_libraries(p3002_real_nodes_test PRIVATE astrocs_module_adapters astrocs_core astrocs_phase3_session)
+target_link_libraries(p3002_real_nodes_test PRIVATE acsd_module_adapters acsd_core acsd_phase3_session)
 add_test(NAME p3002_real_nodes COMMAND p3002_real_nodes_test)
 
 add_executable(p3002_uncertainty_test p3002_uncertainty_test.cpp)
@@ -1475,16 +1475,16 @@ target_include_directories(p3002_uncertainty_test PRIVATE
   ${CMAKE_CURRENT_SOURCE_DIR}/../../../lib//infrastructure/aio/third_party/cfitsio
   ${CMAKE_CURRENT_SOURCE_DIR}/../../../lib//algorithms/shared
   ${CMAKE_CURRENT_SOURCE_DIR}/../../../lib//algorithms/shared/healpix)
-target_link_libraries(p3002_uncertainty_test PRIVATE astrocs_module_adapters astrocs_core astrocs_phase3_session astrocs_hips astrocs_aio astrocs_cpu astrocs_common)
+target_link_libraries(p3002_uncertainty_test PRIVATE acsd_module_adapters acsd_core acsd_phase3_session acsd_hips acsd_aio acsd_cpu acsd_common)
 add_test(NAME p3002_uncertainty COMMAND p3002_uncertainty_test)
 
 # ----------------------------------------------------------------------------
 # 组: rt001_unique_executor (RT-001 对齐控制包: 唯一 Executor 接入 + work-unit
 # 租约 + P3 resample 行带经唯一 executor + fail-closed 丢弃注入 + 1v4 bitwise
-# parity)。executor 实现经 astrocs_module_adapters 编入 (RT-001 白名单接线,
+# parity)。executor 实现经 acsd_module_adapters 编入 (RT-001 白名单接线,
 # 见 lib/infrastructure/scheduler/src/module_adapters.cpp 注记; 根 CMakeLists 越界域整改归档
 # finding F-RT-001-04), 本目标不得再单独编 lib/infrastructure/scheduler/src/executor.cpp (防重定义)。
-# 故障注入: ASTROCS_RT001_FAULT=resample_drop_band 必败 (rc=1, P2-002/P3-002
+# 故障注入: ACSD_RT001_FAULT=resample_drop_band 必败 (rc=1, P2-002/P3-002
 # 先例同构: 注入等价缺陷断言, 正常实现必败)。
 # ----------------------------------------------------------------------------
 add_executable(rt001_unique_executor_test rt001_unique_executor_test.cpp)
@@ -1495,7 +1495,7 @@ target_include_directories(rt001_unique_executor_test PRIVATE
   ${CMAKE_CURRENT_SOURCE_DIR}/../../../lib//phase1_session/tests/p1sess
   ${CMAKE_CURRENT_SOURCE_DIR}/../../../lib//algorithms/shared
   ${CMAKE_CURRENT_SOURCE_DIR}/../../../lib//algorithms/shared/healpix)
-target_link_libraries(rt001_unique_executor_test PRIVATE astrocs_module_adapters astrocs_core astrocs_phase3_session astrocs_hips astrocs_aio astrocs_cpu astrocs_common)
+target_link_libraries(rt001_unique_executor_test PRIVATE acsd_module_adapters acsd_core acsd_phase3_session acsd_hips acsd_aio acsd_cpu acsd_common)
 add_test(NAME rt001_unique_executor COMMAND rt001_unique_executor_test)
 
 # ----------------------------------------------------------------------------
@@ -1513,12 +1513,12 @@ target_include_directories(ipv_platform_binding_test PRIVATE
   ${CMAKE_CURRENT_SOURCE_DIR}/../../../lib//infrastructure/aio/src
   ${CMAKE_CURRENT_SOURCE_DIR}/../../../lib//infrastructure/gaia_xpsd_client/src)
 target_link_libraries(ipv_platform_binding_test PRIVATE
-  astrocs_p1_ipv astrocs_p1_sdet astrocs_aio)
+  acsd_p1_ipv acsd_p1_sdet acsd_aio)
 add_test(NAME ipv_platform_binding COMMAND ipv_platform_binding_test)
 
 # ----------------------------------------------------------------------------
 # P8-SNR-LINUX (2026-09-14): Linux 生产路径逐源 SNR 回归锁。
-# 被测面 = 根图真实目标 astrocs_phase1_noise (含 P5 唯一权威科学实现
+# 被测面 = 根图真实目标 acsd_phase1_noise (含 P5 唯一权威科学实现
 # lib/algorithms/noise_snr/cpp/src/snr_science.cpp + P8 聚合层 snr_frame_science.cpp);
 # 注册 5 组 ctest (见 eng/tests/unit/p1snr/CMakeLists.txt)。构建期链接失败即为接线缺失。
 # ----------------------------------------------------------------------------
@@ -1576,20 +1576,20 @@ endif()
 # ── G-RES-01 生成头显式依赖（GATE-FIX-RES）──────────────────────────────────
 # resource_gate_thresholds_generated.h 由根 CMakeLists 的 configure_file 生成；
 # 下面把「生成」与「使用」显式连起来（不依赖"碰巧已生成"）。
-set(ASTROCS_RG_GENERATED_HEADER ${CMAKE_BINARY_DIR}/resource_gate_thresholds_generated.h)
-set_source_files_properties(${ASTROCS_RG_GENERATED_HEADER} PROPERTIES GENERATED TRUE)
+set(ACSD_RG_GENERATED_HEADER ${CMAKE_BINARY_DIR}/resource_gate_thresholds_generated.h)
+set_source_files_properties(${ACSD_RG_GENERATED_HEADER} PROPERTIES GENERATED TRUE)
 foreach(_acs_rg_tgt mon002_gate_test mon002_alloc_test mon001_gate_test
                        mon004_enforcement_test cpu_monitor_test p1_resource_test
                        p2_workers_test p2_seam_gate_test)
   if(TARGET ${_acs_rg_tgt})
-    target_sources(${_acs_rg_tgt} PRIVATE ${ASTROCS_RG_GENERATED_HEADER})
+    target_sources(${_acs_rg_tgt} PRIVATE ${ACSD_RG_GENERATED_HEADER})
   endif()
 endforeach()
 
 # ── 方差地板（按 dtype 导出）验收面 ──────────────────────────────────────────
 # 权威: docs/science/NOISE_MODEL.md §7（floor 只作用于可用方差；不可用一律 ivar=0，
 # 不得由 clamp 产生；每帧生效 floor 及来源随帧登记）、§9（floor 是纯数值保护）。
-# 纯头文件实现（lib/include/astrocs/core/variance_floor.h），无库依赖。
+# 纯头文件实现（lib/include/acsd/core/variance_floor.h），无库依赖。
 add_executable(variance_floor_test variance_floor_test.cpp)
 target_include_directories(variance_floor_test PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/../../../lib/include)
 add_test(NAME variance_floor COMMAND variance_floor_test)
@@ -1632,9 +1632,9 @@ foreach(_t w34_p0_pc_api_exception_barrier w34_p0_sip_order_guard)
     ${ACS_W34_REPO}/lib/algorithms/photometry/cpp/src
     ${ACS_W34_REPO}/lib/infrastructure/gaia_xpsd_client/src
     ${ACS_W34_REPO}/lib/include)
-  # pc::WcsTransform / pc_api 的唯一实现编在 astrocs_phase1_photcal (非 wrapper
-  # 库 astrocs_phase1_phot) —— 以 nm 实测定义符号所在归档为准。
-  target_link_libraries(${_t} PRIVATE astrocs_phase1_photcal ${ASTROCS_OMP_TARGET} astrocs_platform_math)
+  # pc::WcsTransform / pc_api 的唯一实现编在 acsd_phase1_photcal (非 wrapper
+  # 库 acsd_phase1_phot) —— 以 nm 实测定义符号所在归档为准。
+  target_link_libraries(${_t} PRIVATE acsd_phase1_photcal ${ACSD_OMP_TARGET} acsd_platform_math)
 endforeach()
 add_test(NAME w34_p0_pc_api_exception_barrier
   COMMAND w34_p0_pc_api_exception_barrier)
@@ -1646,8 +1646,8 @@ target_include_directories(w34_ipv_last_inlier_reset PRIVATE
   ${ACS_W34_REPO}/lib/algorithms/platesolve/cpp/ipv/include
   ${ACS_W34_REPO}/lib/infrastructure/aio/src
   ${ACS_W34_REPO}/lib/include)
-target_link_libraries(w34_ipv_last_inlier_reset PRIVATE astrocs_p1_ipv astrocs_aio
-  astrocs_p1_sdet ${ASTROCS_OMP_TARGET})
+target_link_libraries(w34_ipv_last_inlier_reset PRIVATE acsd_p1_ipv acsd_aio
+  acsd_p1_sdet ${ACSD_OMP_TARGET})
 add_test(NAME w34_ipv_last_inlier_reset COMMAND w34_ipv_last_inlier_reset)
 
 add_executable(w34_dpsf_nan_sort
@@ -1656,13 +1656,13 @@ target_include_directories(w34_dpsf_nan_sort PRIVATE
   ${ACS_W34_REPO}/lib/algorithms/psf/include
   ${ACS_W34_REPO}/lib/algorithms/psf/src
   ${ACS_W34_REPO}/lib/include)
-target_link_libraries(w34_dpsf_nan_sort PRIVATE astrocs_p1_dpsf)
+target_link_libraries(w34_dpsf_nan_sort PRIVATE acsd_p1_dpsf)
 add_test(NAME w34_dpsf_nan_sort COMMAND w34_dpsf_nan_sort)
 
 # FINAL-07 δc 基准锚: 本用例场景2 需要 O11 判据观察面（sdet_test_probe.h 的
 # sdet_test_deblend_probe / sdet_test_deblend_leaves, 生产 src 内 #ifdef
 # SDET_TESTING 钩子）⇒ 与 p1star_tests 同构, 生产 4 src 直接编入并定义宏;
-# 不再链 astrocs_p1_sdet（同一批 TU 会重复符号）。
+# 不再链 acsd_p1_sdet（同一批 TU 会重复符号）。
 # 修复：W34_SDET_SRC_DIR 原先只在下方的 w34_sdet_deblend_contrast_oracle 之前
 # set，本 target 先用后定义 ⇒ CMake 生成期报 "Cannot find source file:
 # //sdet_api.cpp" 并使整棵构建树无法 regenerate。改为在此以同一取值定义
@@ -1680,8 +1680,8 @@ target_include_directories(w34_sdet_saturation_cursor PRIVATE
   ${ACS_W34_REPO}/lib/infrastructure/aio/src
   ${ACS_W34_REPO}/lib/include)
 target_compile_definitions(w34_sdet_saturation_cursor PRIVATE SDET_TESTING)
-target_link_libraries(w34_sdet_saturation_cursor PRIVATE ${ASTROCS_OMP_TARGET})
-target_link_libraries(w34_sdet_saturation_cursor PRIVATE astrocs_platform_math)
+target_link_libraries(w34_sdet_saturation_cursor PRIVATE ${ACSD_OMP_TARGET})
+target_link_libraries(w34_sdet_saturation_cursor PRIVATE acsd_platform_math)
 add_test(NAME w34_sdet_saturation_cursor COMMAND w34_sdet_saturation_cursor)
 set_tests_properties(w34_sdet_saturation_cursor PROPERTIES
   WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR})
@@ -1703,8 +1703,8 @@ target_include_directories(w34_sdet_deblend_contrast_oracle PRIVATE
   ${ACS_W34_REPO}/lib/infrastructure/aio/src
   ${ACS_W34_REPO}/lib/include)
 target_compile_definitions(w34_sdet_deblend_contrast_oracle PRIVATE SDET_TESTING)
-target_link_libraries(w34_sdet_deblend_contrast_oracle PRIVATE ${ASTROCS_OMP_TARGET})
-target_link_libraries(w34_sdet_deblend_contrast_oracle PRIVATE astrocs_platform_math)
+target_link_libraries(w34_sdet_deblend_contrast_oracle PRIVATE ${ACSD_OMP_TARGET})
+target_link_libraries(w34_sdet_deblend_contrast_oracle PRIVATE acsd_platform_math)
 add_test(NAME w34_sdet_deblend_contrast_oracle
   COMMAND w34_sdet_deblend_contrast_oracle)
 set_tests_properties(w34_sdet_deblend_contrast_oracle PROPERTIES
@@ -1716,7 +1716,7 @@ target_include_directories(w34_p3_nan_mask_test PRIVATE
   ${ACS_W34_REPO}/lib/algorithms/resample/include
   ${ACS_W34_REPO}/lib/phase1_session/tests/p1sess
   ${ACS_W34_REPO}/lib/include)
-target_link_libraries(w34_p3_nan_mask_test PRIVATE astrocs_p3_rsmp)
+target_link_libraries(w34_p3_nan_mask_test PRIVATE acsd_p3_rsmp)
 add_test(NAME w34_p3_nan_mask COMMAND w34_p3_nan_mask_test)
 
 # ── B. 跨模块/IO 面（自包含; 注册 ctest）────────────────────────────────────
@@ -1733,7 +1733,7 @@ foreach(_t w34_fits_core_selftest w34_hips_core_selftest)
   target_link_libraries(${_t} PRIVATE acsd_io)
 endforeach()
 # hips_core_selftest 直测 lib/infrastructure/aio/io/hips_core.c 的 C ABI
-# (acs_hips_open_v1)。**该生产文件当前不在任何构建目标内**（根 CMakeLists 的
+# (acsd_hips_open_v1)。**该生产文件当前不在任何构建目标内**（根 CMakeLists 的
 # acsd_io 只编 fits_core.c）⇒ 本测试把它编进自身，否则声明的 C ABI 无产物可测;
 # 「hips_core.c 未进任何生产目标」本身是 W1 族缺口, 已在报告 §W4-D 上呈前台。
 target_sources(w34_hips_core_selftest PRIVATE
@@ -1764,7 +1764,7 @@ foreach(_t w34_aio_test_p0_io_hardening w34_aio_test_writer_integration
     ${ACS_W34_AIO_INC} ${ACS_W34_AIO_IO_INC} ${ACS_W34_REPO}/lib/include
     ${ACS_W34_REPO}/lib/third_party)
   target_compile_definitions(${_t} PRIVATE AIO_ENABLE_FITS AIO_ENABLE_HEALPIX)
-  target_link_libraries(${_t} PRIVATE astrocs_hips astrocs_aio)
+  target_link_libraries(${_t} PRIVATE acsd_hips acsd_aio)
 endforeach()
 add_test(NAME w34_aio_p0_io_hardening COMMAND w34_aio_test_p0_io_hardening)
 add_test(NAME w34_aio_writer_integration COMMAND w34_aio_test_writer_integration)
@@ -1798,7 +1798,7 @@ foreach(_t w34_aio_hiss_benchmark w34_aio_hiss_experiments
     ${ACS_W34_REPO}/lib/algorithms/drizzle/healpix_drizzle
     ${ACS_W34_REPO}/lib/third_party)
   target_compile_definitions(${_t} PRIVATE AIO_ENABLE_FITS AIO_ENABLE_HEALPIX)
-  target_link_libraries(${_t} PRIVATE astrocs_hips astrocs_drizzle)
+  target_link_libraries(${_t} PRIVATE acsd_hips acsd_drizzle)
 endforeach()
 
 # test_drizzle_integration: 需真实 drizzle 产物/HISS 输入 ⇒ 编入但不注册。
@@ -1811,7 +1811,7 @@ target_include_directories(w34_aio_test_drizzle_integration PRIVATE
 target_compile_definitions(w34_aio_test_drizzle_integration PRIVATE
   AIO_ENABLE_FITS AIO_ENABLE_HEALPIX)
 target_link_libraries(w34_aio_test_drizzle_integration PRIVATE
-  astrocs_hips astrocs_drizzle astrocs_aio)
+  acsd_hips acsd_drizzle acsd_aio)
 
 # ── D. gaia xpsd 客户端并发门（自包含; 注册 ctest）──────────────────────────
 add_executable(w34_gaia_race
@@ -1824,11 +1824,11 @@ foreach(_t w34_gaia_race w34_gaia_spec_collector_ownership)
     ${ACS_W34_REPO}/lib/infrastructure/gaia_xpsd_client/src
     ${ACS_W34_REPO}/lib/infrastructure/gaia_xpsd_client/include
     ${ACS_W34_REPO}/lib/include)
-  target_link_libraries(${_t} PRIVATE astrocs_platform_zlib astrocs_platform_pthread astrocs_platform_math)
+  target_link_libraries(${_t} PRIVATE acsd_platform_zlib acsd_platform_pthread acsd_platform_math)
 endforeach()
 # 仅 w34_gaia_race 直编 gaia_client.c (以 <zlib.h> 消费 zlib) ⇒ 只有它需要第三方
 # 包含面; 同一 foreach 内的 spec_collector 用例不收 zlib, 不跟着放宽。
-target_link_libraries(w34_gaia_race PRIVATE astrocs_gaia_zlib_include)
+target_link_libraries(w34_gaia_race PRIVATE acsd_gaia_zlib_include)
 add_test(NAME w34_gaia_race COMMAND w34_gaia_race)
 add_test(NAME w34_gaia_spec_collector_ownership
   COMMAND w34_gaia_spec_collector_ownership)
@@ -1842,7 +1842,7 @@ target_include_directories(w34_p1_apply_oracle PRIVATE
   ${ACS_W34_REPO}/lib/algorithms/calibration/include
   ${ACS_W34_REPO}/lib/algorithms/calibration/src
   ${ACS_W34_REPO}/lib/include)
-target_link_libraries(w34_p1_apply_oracle PRIVATE astrocs_calibration)
+target_link_libraries(w34_p1_apply_oracle PRIVATE acsd_calibration)
 
 add_executable(w34_p1_qf_oracle
   ${ACS_W34_REPO}/eng/tests/validation/release02/fix_p1_photometry_apply/p1_qf_oracle.cpp
@@ -1853,7 +1853,7 @@ target_include_directories(w34_p1_qf_oracle PRIVATE
   ${ACS_W34_REPO}/lib/algorithms/photometry/tests/p1phot
   ${ACS_W34_REPO}/lib/infrastructure/gaia_xpsd_client/src
   ${ACS_W34_REPO}/lib/include)
-target_link_libraries(w34_p1_qf_oracle PRIVATE astrocs_phase1_photcal ${ASTROCS_OMP_TARGET} astrocs_platform_math)
+target_link_libraries(w34_p1_qf_oracle PRIVATE acsd_phase1_photcal ${ACSD_OMP_TARGET} acsd_platform_math)
 
 # （原 unc_prop_oracle / p1_apply_oracle 两条 RELEASE-02 oracle 的处置见下）
 
@@ -1881,5 +1881,5 @@ target_include_directories(aio_fits_bscale_parse_test PRIVATE
   ${CMAKE_CURRENT_SOURCE_DIR}/../../../lib/algorithms/shared
   ${CMAKE_CURRENT_SOURCE_DIR}/../../../lib/third_party)
 target_compile_definitions(aio_fits_bscale_parse_test PRIVATE AIO_ENABLE_FITS)
-target_link_libraries(aio_fits_bscale_parse_test PRIVATE astrocs_aio astrocs_common)
+target_link_libraries(aio_fits_bscale_parse_test PRIVATE acsd_aio acsd_common)
 add_test(NAME aio_fits_bscale_parse COMMAND aio_fits_bscale_parse_test)

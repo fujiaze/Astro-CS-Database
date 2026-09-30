@@ -5,8 +5,8 @@
 存在理由
   该文档的「生产构建图」表原先手抄，三行的目标名与路径全部落空
   （astro_image_io.dll 所指 lib/infrastructure/aio/CMakeLists.txt 不在根图、
-  hepix_drizzle 实名为 astrocs_drizzle、orchestrator.exe 实名为 orchestrator_legacy_cli，
-  且未列 acsd 与 astrocs_phase2），而门只查「文档里是否出现某四个字符串」⇒ 表全错、门仍绿。
+  hepix_drizzle 实名为 acsd_drizzle、orchestrator.exe 实名为 orchestrator_legacy_cli，
+  且未列 acsd 与 acsd_phase2），而门只查「文档里是否出现某四个字符串」⇒ 表全错、门仍绿。
   表改为导出：本生成器写三个机器块，门 CON-BUILD-GRAPH 逐行比对。
 
 三个机器块
@@ -38,14 +38,14 @@ MARKERS = ("BUILD-GRAPH-TABLE", "BUILD-GRAPH-NONPROD", "BUILD-GRAPH-NONROOT")
 NONPROD = [
     ("acsd_runtime", "安装树根的平台 SHARED（交付件，运行期加载）"),
     ("acsd_io", "安装树根的平台 SHARED（交付件，运行期加载）"),
-    ("astrocs_noop", "安装到 modules/ 的一致性模块（交付件）"),
-    ("astrocs_catalog_gaia", "安装到 modules/ 的星表服务模块（交付件）"),
-    ("astrocs_p1_drizzle", "安装到 modules/ 的 Phase1 模块（交付件）"),
-    ("astrocs_p1_calibration", "安装到 modules/ 的 Phase1 模块（交付件）"),
-    ("astrocs_p1_cosmetic", "安装到 modules/ 的 Phase1 模块（交付件）"),
-    ("astrocs_p1_hips_writer", "安装到 modules/ 的 Phase1 模块（交付件）"),
-    ("astrocs_cpu_baseline", "安装到 providers/ 的 baseline provider（交付件）"),
-    ("astrocs-stage2", "Phase2 工具面（ARCHITECTURE §1 迁移冻结：非入口）"),
+    ("acsd_noop", "安装到 modules/ 的一致性模块（交付件）"),
+    ("acsd_catalog_gaia", "安装到 modules/ 的星表服务模块（交付件）"),
+    ("acsd_p1_drizzle", "安装到 modules/ 的 Phase1 模块（交付件）"),
+    ("acsd_p1_calibration", "安装到 modules/ 的 Phase1 模块（交付件）"),
+    ("acsd_p1_cosmetic", "安装到 modules/ 的 Phase1 模块（交付件）"),
+    ("acsd_p1_hips_writer", "安装到 modules/ 的 Phase1 模块（交付件）"),
+    ("acsd_cpu_baseline", "安装到 providers/ 的 baseline provider（交付件）"),
+    ("acsd-stage2", "Phase2 工具面（ARCHITECTURE §1 迁移冻结：非入口）"),
     ("orchestrator_legacy_cli", "Phase1 编排工具面（ARCHITECTURE §1 迁移冻结：非入口）"),
     ("calibrated_pair_diag", "标定对诊断工具（非入口）"),
     ("rejection_cli", "排异诊断工具（非入口）"),

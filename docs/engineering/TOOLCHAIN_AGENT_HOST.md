@@ -1,6 +1,6 @@
 # TOOLCHAIN_AGENT_HOST — Agent 主机工具链快照
 
-> 上游：ASTROCS_DESIGN.md §11（双平台发行与安装）
+> 上游：ACSD_DESIGN.md §11（双平台发行与安装）
 
 - 生成依据：`eng/ci/toolchain.lock.json`（schema_version=2，scope=`agent-host`）
 - 证据日志：每项采集命令的 stdout/stderr 原文 + `commands.jsonl`

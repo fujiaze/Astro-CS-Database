@@ -16,7 +16,7 @@ file(MAKE_DIRECTORY ${ORCH_TEST_WORK}/cli_integration)
 # ── 1) 既有共址单测（三件套：Logger / Checkpoint / CLI 集成）──────────────
 foreach(orch_test logger checkpoint)
   add_executable(orchestrator_test_${orch_test} test_${orch_test}.cpp)
-  target_link_libraries(orchestrator_test_${orch_test} PRIVATE astrocs_infra_orchestrator)
+  target_link_libraries(orchestrator_test_${orch_test} PRIVATE acsd_infra_orchestrator)
   add_test(NAME orchestrator_${orch_test}_units COMMAND orchestrator_test_${orch_test})
   set_tests_properties(orchestrator_${orch_test}_units PROPERTIES
     WORKING_DIRECTORY ${ORCH_TEST_WORK})
@@ -25,7 +25,7 @@ endforeach()
 # CLI 集成测试（1944 行，Part 1..7）：按文件布局查找 cwd 下的 orchestrator.exe，
 # 故将新构建的 legacy 入口以该名字投放到测试工作目录（POST_BUILD 拷贝，跨平台）。
 add_executable(orchestrator_test_cli test_orchestrator_cli.cpp)
-target_link_libraries(orchestrator_test_cli PRIVATE astrocs_infra_orchestrator)
+target_link_libraries(orchestrator_test_cli PRIVATE acsd_infra_orchestrator)
 # add_custom_command(TARGET ...) 只能在其 target 所在目录使用（CMake 限制），
 # 而 orchestrator_legacy_cli 声明于上一级 ⇒ 这里用 custom target 投放。
 add_custom_target(orchestrator_cli_test_drop ALL
@@ -85,7 +85,7 @@ set_target_properties(orchestrator_gate_module_snr PROPERTIES
 add_executable(orchestrator_saturation_wiring_gate
   gate/orchestrator_saturation_wiring_gate.cpp)
 target_link_libraries(orchestrator_saturation_wiring_gate
-  PRIVATE astrocs_infra_orchestrator)
+  PRIVATE acsd_infra_orchestrator)
 add_dependencies(orchestrator_saturation_wiring_gate
   orchestrator_gate_module_aio orchestrator_gate_module_snr)
 add_test(NAME orchestrator_saturation_wiring_gate
@@ -112,7 +112,7 @@ target_include_directories(orchestrator_curve_resolve_gate PRIVATE
   ${CMAKE_SOURCE_DIR}/lib/infrastructure/aio/src
   ${CMAKE_SOURCE_DIR}/lib/algorithms/shared
   ${CMAKE_SOURCE_DIR}/lib/algorithms/shared/crypto)
-target_link_libraries(orchestrator_curve_resolve_gate PRIVATE astrocs_common)
+target_link_libraries(orchestrator_curve_resolve_gate PRIVATE acsd_common)
 add_test(NAME orchestrator_curve_resolve_gate
   COMMAND orchestrator_curve_resolve_gate ${CMAKE_SOURCE_DIR})
 set_tests_properties(orchestrator_curve_resolve_gate PROPERTIES
@@ -126,12 +126,12 @@ set_tests_properties(orchestrator_curve_resolve_gate_fault_inject PROPERTIES
   PASS_REGULAR_EXPRESSION "FAULT_INJECT\\(legacy\\) DETECTED")
 
 # ── 5) PASSBAND-IDENTITY-GATE-01：测光装配期通带身份门（生产拟合入口）────────
-# 被测面 = 生产装配入口 astrocs::photometry::fit_frame_photometry
+# 被测面 = 生产装配入口 acsd::photometry::fit_frame_photometry
 # （scheduler/module_adapters.cpp 的 photometry 节点 → 本入口）。判据: 配置声明
 # 的通带名与 FILTER 关键字解析出的库键不一致 ⇒ 拒绝产出标度（具名、环境作用域）;
 # 一致 ⇒ 身份门放行。依据 docs/science/PHOTOMETRY.md §2a.4/§2a.5 +
 # docs/engineering/CONFIG_CONTRACT.md §4（名字解析字节精确、无别名）。
-# gaia 客户端由既有共享库 astrocs_catalog_gaia 提供（生产源零改动）。
+# gaia 客户端由既有共享库 acsd_catalog_gaia 提供（生产源零改动）。
 add_executable(p1phot_passband_identity_gate
   test_p1phot_passband_identity.cpp
   ${CMAKE_SOURCE_DIR}/lib/algorithms/photometry/cpp/src/frame_photometry_fit.cpp
@@ -144,7 +144,7 @@ add_executable(p1phot_passband_identity_gate
   # （SCI-PHOT-001 §16.1 ④⑤）⇒ 本「直接编入生产源」的目标必须带上同一批生产源：
   #   spatial_gain.cpp    = 空间增益拟合的唯一实现；
   #   identifiability.cpp = 仓内**唯一**可辨识性判据实现（不是副本；根 CMakeLists
-  #     的 astrocs_identifiability 也编同一份文件，phase2 改为链接该库）。
+  #     的 acsd_identifiability 也编同一份文件，phase2 改为链接该库）。
   ${CMAKE_SOURCE_DIR}/lib/algorithms/photometry/cpp/src/spatial_gain.cpp
   ${CMAKE_SOURCE_DIR}/lib/algorithms/coverage/src/identifiability.cpp
   # gaia 客户端按**生产源零改动**直接编入（既有共享库把 legacy 符号设为 hidden,

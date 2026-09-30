@@ -11,7 +11,7 @@
 
 #include <cstdio>
 
-using namespace astrocs;
+using namespace acsd;
 
 static int failures = 0;
 #define CHECK(cond)                                                       \

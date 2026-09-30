@@ -12,13 +12,13 @@
 //      此时调用方**必须**产出显式降级声明（DISABLED_NO_METADATA），不得静默通过。
 //
 // 本头文件为纯函数、无状态、无 I/O；不改变任何 C ABI（snr_estimator.h 未动）。
-#ifndef ASTROCS_NOISE_SATURATION_POLICY_H
-#define ASTROCS_NOISE_SATURATION_POLICY_H
+#ifndef ACSD_NOISE_SATURATION_POLICY_H
+#define ACSD_NOISE_SATURATION_POLICY_H
 
 #include <cmath>
 #include <cstdlib>
 
-namespace astrocs {
+namespace acsd {
 namespace noise {
 
 // 解析单个 FITS 关键字字符串为饱和电平；0 = 无效/未提供。
@@ -65,6 +65,6 @@ inline const char* saturation_filter_state(double level) {
 }
 
 }  // namespace noise
-}  // namespace astrocs
+}  // namespace acsd
 
-#endif  // ASTROCS_NOISE_SATURATION_POLICY_H
+#endif  // ACSD_NOISE_SATURATION_POLICY_H

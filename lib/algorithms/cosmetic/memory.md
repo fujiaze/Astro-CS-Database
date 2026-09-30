@@ -5,7 +5,7 @@ Phase1 坏点修复（cosmetic correction）：热/冷像素全局阈值检测
 （median ± sigma·1.4826·MAD）、8 连通结构过滤、5×5 中值 / 4 方向 IDW
 插值修复、修复计数输出。现行生产实现位于 lib/algorithms/calibration
 （cosmetic_corrector.cpp，经 ac_correct_frame(+_f64) 导出）；本目录
-lib/algorithms/cosmetic/ 是 astrocs.p1.cosmetic / astrocs_p1_cosmetic.dll 的
+lib/algorithms/cosmetic/ 是 acsd.p1.cosmetic / acsd_p1_cosmetic.dll 的
 迁移目标（P1-COS-IMPL 落码）。
 
 ## 当前版本
@@ -14,7 +14,7 @@ lib/algorithms/cosmetic/ 是 astrocs.p1.cosmetic / astrocs_p1_cosmetic.dll 的
 
 ## 关键决策记录
 - **独立模块合同（不与 P1-CAL 合并）**：MODULE_MIGRATION_MATRIX.csv 将
-  cosmetic 登记为独立模块（astrocs.p1.cosmetic，legacy_paths=
+  cosmetic 登记为独立模块（acsd.p1.cosmetic，legacy_paths=
   "lib/algorithms/calibration;lib/phase1_session"）；SCI 层共享 SCI-CAL-001
   （SCI §12 仅将坏点检测登记为 ALG-CAL-004 摘要），ALG 层独立冻结为
   ALG-COS-001..005（ALG-CAL-004 与之描述同一现行实现，重叠界定见
@@ -41,10 +41,10 @@ lib/algorithms/cosmetic/ 是 astrocs.p1.cosmetic / astrocs_p1_cosmetic.dll 的
   rtol=1e-6/atol=1e-7 + DISP-COS-001..011 缺陷清单）；
   docs/science/DATA_SEMANTICS.md §10（DATA-P1-COS）；docs/contracts/
   PUBLIC_API.md（API-COS-001，3 符号）；docs/detail/calibration.md
-  与 docs/detail/registry/astrocs.phase1.cosmetic.md 事实修订；
-  本 README 新建 + module.yaml 冻结（MOD-astrocs-phase1-cosmetic，
+  与 docs/detail/registry/acsd.phase1.cosmetic.md 事实修订；
+  本 README 新建 + module.yaml 冻结（MOD-acsd-phase1-cosmetic，
   CONTRACT_READY，entrypoint=MISSING，7 个生产符号）；
-  TRACEABILITY_MATRIX json/csv 追加行 MOD-astrocs-phase1-cosmetic
+  TRACEABILITY_MATRIX json/csv 追加行 MOD-acsd-phase1-cosmetic
   （SCI-CAL-001/ALG-COS-001/DATA-P1-COS/API-COS-001/SRC-COS-001/
   TEST-COS-DESIGN-001 → VERIFIED，EVID-MISSING 待 INT/验收）；
   docs/DOCUMENT_INDEX.yaml 登记新算法文档。

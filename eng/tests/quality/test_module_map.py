@@ -14,7 +14,7 @@
       实现判定，且 ARCH-001 完成后旧命名面必须清零（回归即红）；把模块还原成
       「迁移前形态」（旧命名面在 + target_dir 不在）时，门不得判实现、缺实现必须如实红灯
       （夹具反事实，见 T24 的沿革注释）
-  T7  状态词只取 docs/ASTROCS_DESIGN §12.5 词表
+  T7  状态词只取 docs/ACSD_DESIGN §12.5 词表
   T8  检查器 --selftest 全绿（能绿能红自证）
 """
 from __future__ import annotations

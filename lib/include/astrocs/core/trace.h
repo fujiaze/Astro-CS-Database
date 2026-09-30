@@ -15,7 +15,7 @@
 // contracts.h 布局）；contracts.h 仅前向声明 class TraceStore。
 #pragma once
 
-#include "astrocs/core/contracts.h"
+#include "acsd/core/contracts.h"
 
 #include <cstdint>
 #include <map>
@@ -24,7 +24,7 @@
 #include <string>
 #include <vector>
 
-namespace astrocs::core {
+namespace acsd::core {
 
 // ── TraceStore: 运行 trace 事件汇（线程安全；RT-006 冻结语义） ──
 class TraceStore {
@@ -74,7 +74,7 @@ struct TraceNodeReplay {
 };
 
 // 从 JSONL 文本重放为按 node 聚合的可渲染摘要（schema:
-// {"replay_schema":"astrocs.trace-replay/v1","nodes":[...]}）。
+// {"replay_schema":"acsd.trace-replay/v1","nodes":[...]}）。
 // 非法/不可解析行 → 跳过并计入 skipped_lines（返回值含该计数）；空输入合法。
 // 永不 throw；输入任意文本安全。
 struct TraceReplayResult {
@@ -92,4 +92,4 @@ std::string trace_replay_nodes_json(const std::string& jsonl);
 // 便捷工厂（owner=调用者独占）：创建空 TraceStore。
 Result<std::shared_ptr<TraceStore>> create_trace_store() noexcept;
 
-}  // namespace astrocs::core
+}  // namespace acsd::core

@@ -1,7 +1,7 @@
 // p1snr_linux_test.cpp - Linux 生产路径 SNR 回归锁 (P8-SNR-LINUX)
 //
 // 被测面 (真实生产目标, 非测试私有编译):
-//   astrocs_phase1_noise  — 根 CMakeLists.txt 的 Linux 生产静态库
+//   acsd_phase1_noise  — 根 CMakeLists.txt 的 Linux 生产静态库
 //     lib/algorithms/noise_snr/wrapper_phase1/snr_frame_science.cpp  (帧级聚合, P8 接线层)
 //     lib/algorithms/noise_snr/cpp/src/snr_science.cpp (P5-SNR 唯一权威科学实现)
 //   => 本可执行文件若链接不到 snr_source_snr_f64 / snr_frame_depth_f64,
@@ -20,7 +20,7 @@
 #include "snr_frame_science.h"
 
 // P5-SNR 权威科学实现的公开契约头 (snr_moffat4_profile_f64 / snr_source_snr_f64)。
-// 该头不在 astrocs_phase1_noise 的 PUBLIC include 面 (生产源以相对包含使用),
+// 该头不在 acsd_phase1_noise 的 PUBLIC include 面 (生产源以相对包含使用),
 // 故此处同款相对包含 (生产源零副本)。
 #include "../../../../lib//algorithms/noise_snr/cpp/include/snr_estimator.h"
 
@@ -161,10 +161,10 @@ constexpr double kOracleFlux5 = 3563.641141562232;
 // 中位数回退已删除；本常量取 5 颗真实源通量的中位数作为冻结的公共参考值。
 constexpr double kGroupRefFlux = 11581.213134765625;
 
-std::vector<astrocs::phase1::SnrSourceRow> real_rows() {
-  std::vector<astrocs::phase1::SnrSourceRow> rows;
+std::vector<acsd::phase1::SnrSourceRow> real_rows() {
+  std::vector<acsd::phase1::SnrSourceRow> rows;
   for (const auto& s : kReal) {
-    astrocs::phase1::SnrSourceRow r;
+    acsd::phase1::SnrSourceRow r;
     r.id = s.id;
     r.flux_adu = s.flux;
     r.fwhm_px = s.fwhm;
@@ -176,8 +176,8 @@ std::vector<astrocs::phase1::SnrSourceRow> real_rows() {
 // ============================ groups ============================
 
 void group_units() {
-  using astrocs::phase1::SnrFrameScienceConfig;
-  using astrocs::phase1::SnrSourceRow;
+  using acsd::phase1::SnrFrameScienceConfig;
+  using acsd::phase1::SnrSourceRow;
 
   // F1: 天空受限 (gain<=0) 合成集
   std::vector<SnrSourceRow> rows;
@@ -192,7 +192,7 @@ void group_units() {
   cfg.sigma_sky_adu = 40.0;
   // WEIGHT-SCI-001: 组内公共 F_ref（旧逐帧中位数回退已删除 ⇒ 必须显式给出）。
   cfg.reference_flux_adu = kGroupRefFlux;
-  auto out = astrocs::phase1::compute_snr_frame_science(rows, cfg);
+  auto out = acsd::phase1::compute_snr_frame_science(rows, cfg);
   check(out.valid, "F1 valid");
   check(out.n_input == 9 && out.n_used == 9, "F1 counts");
 
@@ -227,7 +227,7 @@ void group_units() {
   // F2: gain>0 (CCD 方程) — 参考实现含源泊松项
   SnrFrameScienceConfig cfg2 = cfg;
   cfg2.gain_e_per_adu = 2.0;
-  auto out2 = astrocs::phase1::compute_snr_frame_science(rows, cfg2);
+  auto out2 = acsd::phase1::compute_snr_frame_science(rows, cfg2);
   check(out2.valid, "F2 valid");
   for (std::size_t i = 0; i < rows.size(); ++i) {
     const Ref ref = ref_source(rows[i].flux_adu, rows[i].fwhm_px, cfg2.sigma_sky_adu, 2.0);
@@ -240,18 +240,18 @@ void group_units() {
   SnrFrameScienceConfig cfg3 = cfg;
   cfg3.sigma_logflux_dex = 0.05;
   cfg3.n_matches = 200;
-  auto out3 = astrocs::phase1::compute_snr_frame_science(rows, cfg3);
+  auto out3 = acsd::phase1::compute_snr_frame_science(rows, cfg3);
   check_close(out3.sigma_location_se_dex, 1.253 * 0.05 / std::sqrt(200.0), 1e-15, "F3 se dex");
   check_close(out3.sigma_location_se_mag, 2.5 * out3.sigma_location_se_dex, 1e-15, "F3 se mag");
 }
 
 void group_oracle() {
-  using astrocs::phase1::SnrFrameScienceConfig;
+  using acsd::phase1::SnrFrameScienceConfig;
   auto rows = real_rows();
   SnrFrameScienceConfig cfg;
   cfg.sigma_sky_adu = kRealSky;
   cfg.reference_flux_adu = kGroupRefFlux;   // WEIGHT-SCI-001: 组内公共 F_ref
-  auto out = astrocs::phase1::compute_snr_frame_science(rows, cfg);
+  auto out = acsd::phase1::compute_snr_frame_science(rows, cfg);
   check(out.valid, "O valid");
   check(out.n_used == 5, "O n_used");
   for (int i = 0; i < 5; ++i) {
@@ -268,17 +268,17 @@ void group_oracle() {
   // ZP 已知时 m5 = ZP - 2.5*log10(F5)
   SnrFrameScienceConfig cfgz = cfg;
   cfgz.zero_point_mag = 20.0;
-  auto outz = astrocs::phase1::compute_snr_frame_science(rows, cfgz);
+  auto outz = acsd::phase1::compute_snr_frame_science(rows, cfgz);
   check_close(outz.frame_depth_m5_mag, 20.0 - 2.5 * std::log10(kOracleFlux5), 1e-12, "O m5 with ZP");
 }
 
 void group_contract() {
-  using astrocs::phase1::SnrFrameScienceConfig;
+  using acsd::phase1::SnrFrameScienceConfig;
   auto rows = real_rows();
   SnrFrameScienceConfig cfg;
   cfg.sigma_sky_adu = kRealSky;
   cfg.reference_flux_adu = kGroupRefFlux;   // WEIGHT-SCI-001: 组内公共 F_ref
-  auto out = astrocs::phase1::compute_snr_frame_science(rows, cfg);
+  auto out = acsd::phase1::compute_snr_frame_science(rows, cfg);
 
   // C1: 三个帧级标量必须是同一个 median(SNR_F), 不是任何"整帧 SNR"构造
   check(out.snr_phot == out.median_snr && out.median_snr == out.median_source_snr,
@@ -298,7 +298,7 @@ void group_contract() {
   {
     auto scaled = rows;
     for (auto& r : scaled) r.flux_adu *= 100.0;
-    auto out_scaled = astrocs::phase1::compute_snr_frame_science(scaled, cfg);
+    auto out_scaled = acsd::phase1::compute_snr_frame_science(scaled, cfg);
     check_close(out_scaled.median_snr / out.median_snr, 100.0, 1e-12, "C2b SNR scales with flux");
   }
 
@@ -330,12 +330,12 @@ void group_contract() {
     }
     check(used_ok, "C6 participating rows local_snr finite == SNR_F/median");
     auto mixed = rows;                       // 5 真实源 + 1 条退化行
-    astrocs::phase1::SnrSourceRow bad;
+    acsd::phase1::SnrSourceRow bad;
     bad.id = "bad-flux";
     bad.flux_adu = 0.0;                      // flux<=0 -> 不参与逐源 SNR
     bad.fwhm_px = 2.0;
     mixed.push_back(bad);
-    auto outm = astrocs::phase1::compute_snr_frame_science(mixed, cfg);
+    auto outm = acsd::phase1::compute_snr_frame_science(mixed, cfg);
     check(outm.n_used == static_cast<int>(rows.size()), "C6 degenerate row not used");
     check(std::isfinite(outm.local_snr[0]), "C6 participating row finite");
     check(std::isnan(outm.local_snr.back()),
@@ -345,8 +345,8 @@ void group_contract() {
 }
 
 void group_negative() {
-  using astrocs::phase1::SnrFrameScienceConfig;
-  using astrocs::phase1::SnrSourceRow;
+  using acsd::phase1::SnrFrameScienceConfig;
+  using acsd::phase1::SnrSourceRow;
 
   // N1: sigma_sky <= 0 -> fail-closed
   {
@@ -356,7 +356,7 @@ void group_negative() {
     rows[0].fwhm_px = 2.0;
     SnrFrameScienceConfig cfg;
     cfg.sigma_sky_adu = 0.0;
-    auto out = astrocs::phase1::compute_snr_frame_science(rows, cfg);
+    auto out = acsd::phase1::compute_snr_frame_science(rows, cfg);
     check(!out.valid && !out.reason.empty(), "N1 sigma_sky<=0 fail-closed");
     check(std::isnan(out.snr_phot), "N1 no fallback scalar");
   }
@@ -364,7 +364,7 @@ void group_negative() {
   {
     SnrFrameScienceConfig cfg;
     cfg.sigma_sky_adu = 10.0;
-    auto out = astrocs::phase1::compute_snr_frame_science({}, cfg);
+    auto out = acsd::phase1::compute_snr_frame_science({}, cfg);
     check(!out.valid && !out.reason.empty(), "N2 empty catalogue fail-closed");
   }
   // N3: 全退化行 (flux<=0 / fwhm<=0 / NaN) -> 不产 SNR, 不填 1.0
@@ -376,7 +376,7 @@ void group_negative() {
     rows[3].id = "d"; rows[3].flux_adu = -5.0;  rows[3].fwhm_px = 2.0;
     SnrFrameScienceConfig cfg;
     cfg.sigma_sky_adu = 10.0;
-    auto out = astrocs::phase1::compute_snr_frame_science(rows, cfg);
+    auto out = acsd::phase1::compute_snr_frame_science(rows, cfg);
     check(!out.valid, "N3 all-degenerate invalid");
     check(out.n_used == 0, "N3 n_used == 0");
     for (double v : out.snr_f) check(std::isnan(v), "N3 NaN (no 1.0 fill)");
@@ -392,7 +392,7 @@ void group_negative() {
     // WEIGHT-SCI-001: 缺组内公共 F_ref 已改为 fail-closed（逐帧中位数回退已删除），
     // 故本用例必须显式给出公共参考通量；n_used 仍应为 2（flux=0 的行仍被掩掉）。
     cfg.reference_flux_adu = 1500.0;
-    auto out = astrocs::phase1::compute_snr_frame_science(rows, cfg);
+    auto out = acsd::phase1::compute_snr_frame_science(rows, cfg);
     check(out.valid && out.n_used == 2, "N4 partial used");
     check(std::isfinite(out.snr_f[0]) && std::isnan(out.snr_f[1]) && std::isfinite(out.snr_f[2]),
           "N4 per-row mask");
@@ -401,13 +401,13 @@ void group_negative() {
 }
 
 void group_determinism() {
-  using astrocs::phase1::SnrFrameScienceConfig;
+  using acsd::phase1::SnrFrameScienceConfig;
   auto rows = real_rows();
   SnrFrameScienceConfig cfg;
   cfg.sigma_sky_adu = kRealSky;
   cfg.reference_flux_adu = kGroupRefFlux;   // WEIGHT-SCI-001: 组内公共 F_ref
-  auto a = astrocs::phase1::compute_snr_frame_science(rows, cfg);
-  auto b = astrocs::phase1::compute_snr_frame_science(rows, cfg);
+  auto a = acsd::phase1::compute_snr_frame_science(rows, cfg);
+  auto b = acsd::phase1::compute_snr_frame_science(rows, cfg);
   bool same = (a.snr_f.size() == b.snr_f.size()) &&
               (a.snr_phot == b.snr_phot) && (a.median_snr == b.median_snr) &&
               (a.frame_depth_flux5_adu == b.frame_depth_flux5_adu);
@@ -419,7 +419,7 @@ void group_determinism() {
   // 输入顺序置换 -> median(SNR_F) 恒等 (排序统计量)
   auto rows2 = rows;
   std::reverse(rows2.begin(), rows2.end());
-  auto c = astrocs::phase1::compute_snr_frame_science(rows2, cfg);
+  auto c = acsd::phase1::compute_snr_frame_science(rows2, cfg);
   check_close(c.median_snr, a.median_snr, 1e-15, "D2 order-independent median");
   check_close(c.frame_depth_flux5_adu, a.frame_depth_flux5_adu, 1e-15, "D2 order-independent F5");
 }
@@ -430,8 +430,8 @@ void group_determinism() {
 //   G3   : reference_snr_f 在公共 F0 处评价（= F0/σ_F(F0)），不是本帧检出通量处;
 //   G4/G5: F0 缺失/非有限/≤0 ⇒ fail-closed，reason 指明组内公共 F_ref（不回退）。
 void group_common_ref() {
-  using astrocs::phase1::SnrFrameScienceConfig;
-  using astrocs::phase1::SnrSourceRow;
+  using acsd::phase1::SnrFrameScienceConfig;
+  using acsd::phase1::SnrSourceRow;
 
   const double F0 = 3000.0;   // 组内公共参考通量 [ADU]
   std::vector<SnrSourceRow> frame_a, frame_b;
@@ -450,8 +450,8 @@ void group_common_ref() {
   SnrFrameScienceConfig cfg;
   cfg.sigma_sky_adu = 40.0;
   cfg.reference_flux_adu = F0;
-  const auto a = astrocs::phase1::compute_snr_frame_science(frame_a, cfg);
-  const auto b = astrocs::phase1::compute_snr_frame_science(frame_b, cfg);
+  const auto a = acsd::phase1::compute_snr_frame_science(frame_a, cfg);
+  const auto b = acsd::phase1::compute_snr_frame_science(frame_b, cfg);
   check(a.valid && b.valid, "G1 both frames valid with group F0");
 
   // 组内公共: 两帧写出的 F_ref 逐位相同（= 定义 SNR 时所用参考通量）。
@@ -472,7 +472,7 @@ void group_common_ref() {
   {
     SnrFrameScienceConfig bad;
     bad.sigma_sky_adu = 40.0;   // reference_flux_adu 缺省 0.0
-    const auto out = astrocs::phase1::compute_snr_frame_science(frame_a, bad);
+    const auto out = acsd::phase1::compute_snr_frame_science(frame_a, bad);
     check(!out.valid, "G4 missing F0 fail-closed");
     check(out.reason.find("reference_flux_adu required") != std::string::npos &&
               out.reason.find("group-common F_ref") != std::string::npos,
@@ -484,15 +484,15 @@ void group_common_ref() {
   {
     SnrFrameScienceConfig z = cfg;
     z.reference_flux_adu = 0.0;
-    check(!astrocs::phase1::compute_snr_frame_science(frame_a, z).valid,
+    check(!acsd::phase1::compute_snr_frame_science(frame_a, z).valid,
           "G5 F0=0 fail-closed");
     SnrFrameScienceConfig n = cfg;
     n.reference_flux_adu = nan_v();
-    check(!astrocs::phase1::compute_snr_frame_science(frame_a, n).valid,
+    check(!acsd::phase1::compute_snr_frame_science(frame_a, n).valid,
           "G5 F0=NaN fail-closed");
     SnrFrameScienceConfig neg = cfg;
     neg.reference_flux_adu = -1.0;
-    check(!astrocs::phase1::compute_snr_frame_science(frame_a, neg).valid,
+    check(!acsd::phase1::compute_snr_frame_science(frame_a, neg).valid,
           "G5 F0<0 fail-closed");
   }
 }
@@ -505,8 +505,8 @@ void group_common_ref() {
 // 判别力: 输入列按高斯因子换算后必须与同 sigma 直传路径**逐位一致** (绿);
 //   旧路径按 PSF 块因子 1.230310 反解 ⇒ sigma 高估 1.914005x (红)。
 void group_mother_function() {
-  using astrocs::phase1::SnrFrameScienceConfig;
-  using astrocs::phase1::SnrSourceRow;
+  using acsd::phase1::SnrFrameScienceConfig;
+  using acsd::phase1::SnrSourceRow;
 
   const double sigma_true = 1.25;                        // 已知 sigma [px]
   const double fwhm_gauss = kGaussFwhmFactor * sigma_true;  // 检测块列 (高斯 FWHM)
@@ -536,7 +536,7 @@ void group_mother_function() {
   SnrFrameScienceConfig cfg;
   cfg.sigma_sky_adu = 20.0;
   cfg.reference_flux_adu = 1.0e4;
-  const auto out = astrocs::phase1::compute_snr_frame_science(rows, cfg);
+  const auto out = acsd::phase1::compute_snr_frame_science(rows, cfg);
   check(out.valid && out.n_used == 1, "M4 frame valid");
   const double sigma_f_expect = cfg.sigma_sky_adu / std::sqrt(sp2_sig);
   check_close(out.sigma_f_adu[0], sigma_f_expect, 1e-12,
@@ -548,7 +548,7 @@ void group_mother_function() {
   // sigma~1px 的 Moffat4 轮廓不满足 sum_p2 ∝ sigma^-2 的连续极限, 实测 1.981)。
   std::vector<SnrSourceRow> wide_rows = rows;
   wide_rows[0].fwhm_px = rows[0].fwhm_px * (kGaussFwhmFactor / kMoffat4FwhmFactor);
-  const auto wide = astrocs::phase1::compute_snr_frame_science(wide_rows, cfg);
+  const auto wide = acsd::phase1::compute_snr_frame_science(wide_rows, cfg);
   check(wide.valid && wide.snr_f[0] < out.snr_f[0],
         "M5 sigma x1.914 (old cross-block) yields lower SNR");
   const double ratio = out.snr_f[0] / wide.snr_f[0];

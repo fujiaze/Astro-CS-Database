@@ -39,7 +39,7 @@ AstroSphereTileView = abi.AstroSphereTileView
 AioHipsSnrPoint = abi.AioHipsSnrPoint
 ROOT = _REPO
 HIPSGEN_DEFAULT = ROOT / "run" / "temp" / "Hipsgen.jar"
-AIO_DLL = os.environ.get("ASTROCS_AIO_DLL") or str(
+AIO_DLL = os.environ.get("ACSD_AIO_DLL") or str(
     _REPO / "lib" / "infrastructure" / "aio" / "astro_image_io.dll")
 
 
@@ -103,7 +103,7 @@ def run_hipsgen(hipsgen: Path, map_path: Path, ref_root: Path, log_path: Path) -
     print(f"hipsgen MAPTILES: rc=0 耗时={dt:.1f}s ref_root={ref_root.name}")
 
 
-def write_astrocs(order: int, out_root: Path) -> None:
+def write_acsd(order: int, out_root: Path) -> None:
     nside = 1 << order
     leaf_order = order
     tile_order = order - 9
@@ -127,7 +127,7 @@ def write_astrocs(order: int, out_root: Path) -> None:
     aio.aio_hips_last_error.restype = ctypes.c_char_p
     ps = aio.aio_hips_product_begin(
         str(out_root).encode(), nside, 512, 1, 1,  # FP64 signal-only
-        b"ivo://astrocs/maptile_oracle", b"Maptile Oracle", None, 1.0, None, 0)
+        b"ivo://acsd/maptile_oracle", b"Maptile Oracle", None, 1.0, None, 0)
     if not ps:
         raise SystemExit("acsd product_begin fail: " + aio.aio_hips_last_error().decode())
     for parent in range(n_tiles):
@@ -157,10 +157,10 @@ def leaf_tile_dims(root: Path) -> tuple:
     raise SystemExit("ref 无 tile")
 
 
-def same_path_compare(astrocs_root: Path, ref_root: Path) -> dict:
+def same_path_compare(acsd_root: Path, ref_root: Path) -> dict:
     a = {}
-    for p in astrocs_root.rglob("Npix*.fits"):
-        rel = p.relative_to(astrocs_root).as_posix()
+    for p in acsd_root.rglob("Npix*.fits"):
+        rel = p.relative_to(acsd_root).as_posix()
         if "Norder" not in rel:
             continue
         rel = rel.split("/", 1)[1] if rel.startswith("signal/") else rel
@@ -190,9 +190,9 @@ def same_path_compare(astrocs_root: Path, ref_root: Path) -> dict:
         if bad:
             mismatch_tiles += 1
             mismatch_pixels += bad
-    return {"mode": "same_path", "ref_tiles": len(r), "astrocs_tiles": len(a),
+    return {"mode": "same_path", "ref_tiles": len(r), "acsd_tiles": len(a),
             "leaf_norder": leaf_norder, "missing": len(missing), "extra_leaf": len(extra_leaf),
-            "astrocs_hierarchy_tiles": len([k for k in extra_all if int(k.split("/")[0][6:]) < leaf_norder]),
+            "acsd_hierarchy_tiles": len([k for k in extra_all if int(k.split("/")[0][6:]) < leaf_norder]),
             "compared_tiles": checked, "compared_pixels": total_pixels,
             "mismatch_tiles": mismatch_tiles, "mismatch_pixels": mismatch_pixels,
             "missing_examples": missing[:10], "extra_leaf_examples": extra_leaf[:10]}
@@ -207,7 +207,7 @@ def deinterleave(z: np.ndarray, shift: int) -> tuple:
     return x, y
 
 
-def derived_compare(astrocs_root: Path, ref_root: Path, order: int, ref_w: int) -> dict:
+def derived_compare(acsd_root: Path, ref_root: Path, order: int, ref_w: int) -> dict:
     # ACSD leaf tile t 覆盖 ipix [t*512^2, (t+1)*512^2);
     # Hipsgen leaf tile ip 覆盖 [ip*ref_w^2, (ip+1)*ref_w^2)。
     # 故每个 ACSD tile t == 连续 factor 个 Hipsgen tile ip = t*factor + tt。
@@ -230,7 +230,7 @@ def derived_compare(astrocs_root: Path, ref_root: Path, order: int, ref_w: int) 
     for t in range(n_astro_tiles):
         d = t // 10000
         npf = t % 10000
-        ap = astrocs_root / "signal" / f"Norder{astro_norder}" / f"Dir{d}" / f"Npix{npf}.fits"
+        ap = acsd_root / "signal" / f"Norder{astro_norder}" / f"Dir{d}" / f"Npix{npf}.fits"
         if not ap.exists():
             mismatch_tiles += 1
             continue
@@ -248,7 +248,7 @@ def derived_compare(astrocs_root: Path, ref_root: Path, order: int, ref_w: int) 
             with fits.open(rp, memmap=False) as fr:
                 rr = np.asarray(fr[0].data).reshape(-1)
             mask = tt_local == tt
-            # 按 acsd FITS 索引位置组装 (astrocs_flat[astro_fi] 与 rr[ref_fi] 应相等)
+            # 按 acsd FITS 索引位置组装 (acsd_flat[astro_fi] 与 rr[ref_fi] 应相等)
             assembled[astro_fi[mask]] = rr[ref_fi[mask]]
         total_pixels += face_pix
         same = (aa == assembled) | (np.isnan(aa) & np.isnan(assembled))
@@ -257,7 +257,7 @@ def derived_compare(astrocs_root: Path, ref_root: Path, order: int, ref_w: int) 
             mismatch_tiles += 1
             mismatch_pixels += bad
     return {"mode": f"derived(ref_w={ref_w}, ref_leaf_norder={leaf_norder}, astro_leaf_norder={astro_norder})",
-            "astrocs_leaf_tiles": n_astro_tiles, "factor": factor,
+            "acsd_leaf_tiles": n_astro_tiles, "factor": factor,
             "compared_pixels": total_pixels,
             "mismatch_tiles": mismatch_tiles, "mismatch_pixels": mismatch_pixels}
 
@@ -266,28 +266,28 @@ def main() -> int:
     ap.add_argument("--order", type=int, default=10)
     ap.add_argument("--workdir", type=Path, default=ROOT / "run" / "temp" / "v5_maptile_oracle")
     ap.add_argument("--hipsgen", type=Path, default=HIPSGEN_DEFAULT)
-    ap.add_argument("--reuse", action="store_true", help="复用已有 map/ref/astrocs 产物, 只重跑比较")
+    ap.add_argument("--reuse", action="store_true", help="复用已有 map/ref/acsd 产物, 只重跑比较")
     args = ap.parse_args()
     order = args.order
     wd = args.workdir / f"order{order}"
     wd.mkdir(parents=True, exist_ok=True)
     map_path = wd / f"map_order{order}_pixval.fits"
     ref_root = wd / "ref"
-    astrocs_root = wd / "acsd"
-    if args.reuse and map_path.exists() and ref_root.exists() and astrocs_root.exists():
-        print("reuse: 跳过生成 (map/ref/astrocs 已存在)")
+    acsd_root = wd / "acsd"
+    if args.reuse and map_path.exists() and ref_root.exists() and acsd_root.exists():
+        print("reuse: 跳过生成 (map/ref/acsd 已存在)")
     else:
         gen_map(order, map_path)
         run_hipsgen(args.hipsgen, map_path, ref_root, wd / "hipsgen_maptiles.log")
         add_dll_dirs()
-        write_astrocs(order, astrocs_root)
+        write_acsd(order, acsd_root)
     dims = leaf_tile_dims(ref_root)
     ref_w = dims[1]
     print("hipsgen leaf tile dims:", dims)
     if ref_w == 512:
-        res = same_path_compare(astrocs_root, ref_root)
+        res = same_path_compare(acsd_root, ref_root)
     else:
-        res = derived_compare(astrocs_root, ref_root, order, ref_w)
+        res = derived_compare(acsd_root, ref_root, order, ref_w)
     res.update({
         "order": order, "nside": 1 << order, "ref_tile_dims": list(dims),
         "input_sha256": sha256_file(map_path),
@@ -295,7 +295,7 @@ def main() -> int:
         "hipsgen_command": "java -jar Hipsgen.jar in=<map> out=<ref> id=AUT/P MAPTILES",
         "hipsgen_timeout_sec": 1800,
         "ref_tree_sha256": sha256_tree(ref_root),
-        "astrocs_tree_sha256": sha256_tree(astrocs_root),
+        "acsd_tree_sha256": sha256_tree(acsd_root),
         "hard_gate": {"tile_missing": 0, "tile_extra": 0, "pixel_mismatch": 0},
     })
     if "extra_leaf" in res:

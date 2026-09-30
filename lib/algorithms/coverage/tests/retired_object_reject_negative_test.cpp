@@ -3,7 +3,7 @@
 // 任务 PSFSW-RETIRE-01 共址负例回归门（跨模块的退役对象拒绝面）。
 //
 // 退役对象口径：「只要纯净信号/噪声的信噪比。要求跨帧可用，不基于参考帧。
-// 而是绝对标定。」⇒ psfsw_robust_weight 不是现行对象（docs/ASTROCS_DESIGN.md §3.1 订正后；
+// 而是绝对标定。」⇒ psfsw_robust_weight 不是现行对象（docs/ACSD_DESIGN.md §3.1 订正后；
 // docs/detail/UNIFIED_MODEL.md:58：旧产品若声明该对象 ⇒ 显式拒绝 + 迁移提示）。
 //
 // 为什么本文件落在 lib/algorithms/coverage/tests/：
@@ -19,7 +19,7 @@
 #include <string>
 #include <vector>
 
-#include "astrocs/calibration/calibration_covariance.h"
+#include "acsd/calibration/calibration_covariance.h"
 #include "p3_rsmp.h"
 #include "drizzle_science.h"
 
@@ -30,18 +30,18 @@ bool contains(const std::string& hay, const std::string& needle) {
 }
 
 // 退役对象在 resample 侧的门号（沿用既有 G-P3-GLB-01：全局权重/方差来源门）。
-const astrocs::p3rsmp::GateResult* find_gate(
-    const std::vector<astrocs::p3rsmp::GateResult>& all, const std::string& code) {
+const acsd::p3rsmp::GateResult* find_gate(
+    const std::vector<acsd::p3rsmp::GateResult>& all, const std::string& code) {
     for (const auto& g : all) {
         if (g.code == code) return &g;
     }
     return nullptr;
 }
 
-astrocs::p3rsmp::ProductRecord sb_record() {
-    astrocs::p3rsmp::ProductRecord rec;
+acsd::p3rsmp::ProductRecord sb_record() {
+    acsd::p3rsmp::ProductRecord rec;
     rec.mode_declared = true;
-    rec.mode = astrocs::p3rsmp::P3Mode::SurfaceBrightness;
+    rec.mode = acsd::p3rsmp::P3Mode::SurfaceBrightness;
     return rec;
 }
 
@@ -49,14 +49,14 @@ astrocs::p3rsmp::ProductRecord sb_record() {
 
 // ── resample（Phase3）：variance_from 声明退役对象 ⇒ 显式拒绝 + 迁移提示 ─────
 TEST(RetiredWeightObject, ResampleVarianceFromRetiredObjectRejected) {
-    astrocs::p3rsmp::ProductRecord rec = sb_record();
+    acsd::p3rsmp::ProductRecord rec = sb_record();
     rec.variance_from = "psfsw_robust_weight";
 
-    const std::vector<astrocs::p3rsmp::GateResult> all =
-        astrocs::p3rsmp::check_failclosed_all(rec, astrocs::p3rsmp::GateConfig{});
-    const astrocs::p3rsmp::GateResult* g = find_gate(all, "G-P3-GLB-01");
+    const std::vector<acsd::p3rsmp::GateResult> all =
+        acsd::p3rsmp::check_failclosed_all(rec, acsd::p3rsmp::GateConfig{});
+    const acsd::p3rsmp::GateResult* g = find_gate(all, "G-P3-GLB-01");
     ASSERT_NE(g, nullptr) << "declaring the retired object must be rejected (G-P3-GLB-01)";
-    EXPECT_EQ(g->status, astrocs::p3rsmp::Status::Reject);
+    EXPECT_EQ(g->status, acsd::p3rsmp::Status::Reject);
     EXPECT_TRUE(contains(g->reason, "retired_canonical_object=psfsw_robust_weight"))
         << "reason must name the retired object; got: " << g->reason;
     EXPECT_TRUE(contains(g->reason, "not a current object"))
@@ -67,61 +67,61 @@ TEST(RetiredWeightObject, ResampleVarianceFromRetiredObjectRejected) {
 
 // ── resample：weight_sources 声明退役对象 ⇒ 同样显式拒绝（不得静默接受） ─────
 TEST(RetiredWeightObject, ResampleWeightSourcesRetiredObjectRejected) {
-    astrocs::p3rsmp::ProductRecord rec = sb_record();
+    acsd::p3rsmp::ProductRecord rec = sb_record();
     rec.weight_sources = {"psfsw_robust_weight"};
 
-    const std::vector<astrocs::p3rsmp::GateResult> all =
-        astrocs::p3rsmp::check_failclosed_all(rec, astrocs::p3rsmp::GateConfig{});
-    const astrocs::p3rsmp::GateResult* g = find_gate(all, "G-P3-GLB-01");
+    const std::vector<acsd::p3rsmp::GateResult> all =
+        acsd::p3rsmp::check_failclosed_all(rec, acsd::p3rsmp::GateConfig{});
+    const acsd::p3rsmp::GateResult* g = find_gate(all, "G-P3-GLB-01");
     ASSERT_NE(g, nullptr);
-    EXPECT_EQ(g->status, astrocs::p3rsmp::Status::Reject);
+    EXPECT_EQ(g->status, acsd::p3rsmp::Status::Reject);
     EXPECT_TRUE(contains(g->reason, "retired_canonical_object=psfsw_robust_weight"))
         << g->reason;
 }
 
 // ── 阳性对照（能绿）：现行方差来源不被该门误杀 ──────────────────────────────
 TEST(RetiredWeightObject, ResampleCurrentVarianceFromNotRejectedByGlbGate) {
-    astrocs::p3rsmp::ProductRecord rec = sb_record();
+    acsd::p3rsmp::ProductRecord rec = sb_record();
     rec.variance_from = "actual_combination_coefficients";
-    const std::vector<astrocs::p3rsmp::GateResult> all =
-        astrocs::p3rsmp::check_failclosed_all(rec, astrocs::p3rsmp::GateConfig{});
+    const std::vector<acsd::p3rsmp::GateResult> all =
+        acsd::p3rsmp::check_failclosed_all(rec, acsd::p3rsmp::GateConfig{});
     EXPECT_EQ(find_gate(all, "G-P3-GLB-01"), nullptr)
         << "current variance source must not trip the retired/relative-weight gate";
 }
 
 // ── calibration（Phase1 covariance）：variance_from 声明退役对象 ⇒ 拒绝 ──────
 TEST(RetiredWeightObject, CalibrationVarianceFromRetiredObjectRejected) {
-    astrocs::calibration::v6::CovarianceRecord rec;
+    acsd::calibration::v6::CovarianceRecord rec;
     rec.representation = "diagonal_variance";
     rec.combination_coefficients = {1.0};
     rec.variance_from = "psfsw_robust_weight";
     std::string err;
-    EXPECT_FALSE(astrocs::calibration::v6::validate_covariance_record(rec, &err))
+    EXPECT_FALSE(acsd::calibration::v6::validate_covariance_record(rec, &err))
         << "retired object must be rejected, not silently accepted";
     EXPECT_TRUE(contains(err, "retired canonical object")) << err;
     EXPECT_TRUE(contains(err, "psfsw_robust_weight")) << err;
     EXPECT_TRUE(contains(err, "migration")) << err;
     // 该 token 同时仍在禁止来源表内（拒绝面不得被"残留清理"删除）。
-    EXPECT_TRUE(astrocs::calibration::v6::is_forbidden_variance_source("psfsw_robust_weight"));
+    EXPECT_TRUE(acsd::calibration::v6::is_forbidden_variance_source("psfsw_robust_weight"));
 }
 
 // ── calibration 阳性对照（能绿）：现行方差来源仍被接受 ──────────────────────
 TEST(RetiredWeightObject, CalibrationCurrentVarianceFromAccepted) {
-    astrocs::calibration::v6::CovarianceRecord rec;
+    acsd::calibration::v6::CovarianceRecord rec;
     rec.representation = "diagonal_variance";
     rec.combination_coefficients = {1.0};
     std::string err;
-    EXPECT_TRUE(astrocs::calibration::v6::validate_covariance_record(rec, &err)) << err;
+    EXPECT_TRUE(acsd::calibration::v6::validate_covariance_record(rec, &err)) << err;
 }
 
 // ── drizzle（Phase1 单位表）：退役单位符号 ⇒ 显式拒绝 + 迁移提示 ────────────
 // PSFSW-RETIRE-03：psfsw_robust_weight 已**物理删除**（UnitId 无其项、冻结单位表无
 // 其行；原 is_retired_unit_id 随之删除），识别面只剩字符串面。
 TEST(RetiredWeightObject, DrizzleRetiredUnitSymbolRejected) {
-    using astrocs::v6::drizzle::frozen_unit;
-    using astrocs::v6::drizzle::is_retired_unit_symbol;
-    using astrocs::v6::drizzle::retired_unit_reject_reason;
-    using astrocs::v6::drizzle::UnitId;
+    using acsd::v6::drizzle::frozen_unit;
+    using acsd::v6::drizzle::is_retired_unit_symbol;
+    using acsd::v6::drizzle::retired_unit_reject_reason;
+    using acsd::v6::drizzle::UnitId;
 
     EXPECT_TRUE(is_retired_unit_symbol("psfsw_robust_weight"));
     EXPECT_TRUE(is_retired_unit_symbol("PSFSW_ROBUST_WEIGHT")) << "case-insensitive parity";

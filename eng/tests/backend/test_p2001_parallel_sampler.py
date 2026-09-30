@@ -59,7 +59,7 @@ class TestP2001ParallelSampler(unittest.TestCase):
                 os.path.join(AIO, "src", "aio_log.cpp"),
                 os.path.join(AIO, "src", "aio_compressor.cpp"),
                 os.path.join(REPO, "lib", "algorithms", "shared", "healpix", "healpix_core.cpp"),
-                # FIX-201: aio_file_io.h 的 sha256_hex 经 astrocs::crypto::Sha256
+                # FIX-201: aio_file_io.h 的 sha256_hex 经 acsd::crypto::Sha256
                 #（单一实现 lib/algorithms/shared/crypto/sha256.cpp）。
                 os.path.join(REPO, "lib", "algorithms", "shared", "crypto", "sha256.cpp")]
         exe = os.path.join(cls.tmp, "fixture")
@@ -80,10 +80,10 @@ class TestP2001ParallelSampler(unittest.TestCase):
             json.dump(cfg, f)
 
     def _run(self, workers_env=None, timeout=600):
-        env = dict(os.environ, ASTROCS_REPO=REPO)
+        env = dict(os.environ, ACSD_REPO=REPO)
         if workers_env:
             env.update(workers_env)
-        # CLI-002 / docs/ASTROCS_DESIGN 6.2: 旧 phase2 run --config 已删(rc=2);
+        # CLI-002 / docs/ACSD_DESIGN 6.2: 旧 phase2 run --config 已删(rc=2);
         # 现行等价命令 = mosaic --json <cfg>(平铺会话格式)。
         r = subprocess.run([EXE, "mosaic", "--json", self.cfg, "--events-jsonl", "-y"],
                            capture_output=True, text=True, env=env, timeout=timeout)
@@ -132,7 +132,7 @@ class TestP2001ParallelSampler(unittest.TestCase):
             json.dump(cfg1, f)
         r1 = subprocess.run([EXE, "mosaic", "--json", cfg1path, "--events-jsonl", "-y"],
                             capture_output=True, text=True,
-                            env=dict(os.environ, ASTROCS_REPO=REPO), timeout=600)
+                            env=dict(os.environ, ACSD_REPO=REPO), timeout=600)
         self.assertEqual(r1.returncode, 0, r1.stdout[-400:] + r1.stderr[-400:])
 
         cfgN = dict(json.load(open(self.cfg)))
@@ -143,7 +143,7 @@ class TestP2001ParallelSampler(unittest.TestCase):
             json.dump(cfgN, f)
         rN = subprocess.run([EXE, "mosaic", "--json", cfgNpath, "--events-jsonl", "-y"],
                             capture_output=True, text=True,
-                            env=dict(os.environ, ASTROCS_REPO=REPO), timeout=600)
+                            env=dict(os.environ, ACSD_REPO=REPO), timeout=600)
         self.assertEqual(rN.returncode, 0, rN.stdout[-400:] + rN.stderr[-400:])
 
         o1 = self._parse_sample(r1.stdout + r1.stderr)

@@ -1,6 +1,6 @@
-# 模块 astrocs.phase3.writer
+# 模块 acsd.phase3.writer
 
-> 上游：docs/ASTROCS_DESIGN.md §8.5（模块与 ABI）、§6.2（export 流程：投影到平面、
+> 上游：docs/ACSD_DESIGN.md §8.5（模块与 ABI）、§6.2（export 流程：投影到平面、
 > WCS 直接计算生成）、§6.3（输出模式显式声明）、§10（I/O 与原子产品：输出不带权重、
 > 原子提交）
 > 科学正本：docs/science/PHASE3_HIPS_TO_FITS.md（SCI-P3-001，FROZEN，零改动；
@@ -19,16 +19,16 @@
 
 ## 1 身份与合同落位
 
-- 模块: astrocs.p3.fits_writer（module_id 合同值；dll_target=
-  astrocs_p3_fits_writer.dll 为迁移合同值，未落地，IMPLEMENTED 只由验收签发；
-  现状构建 = astrocs_phase3_session 静态库成员）。registry 行 ID =
-  `MOD-astrocs-phase3-writer`。
+- 模块: acsd.p3.fits_writer（module_id 合同值；dll_target=
+  acsd_p3_fits_writer.dll 为迁移合同值，未落地，IMPLEMENTED 只由验收签发；
+  现状构建 = acsd_phase3_session 静态库成员）。registry 行 ID =
+  `MOD-acsd-phase3-writer`。
 - **module_status = CONTRACT_READY 语义**：实现存在（生产源实测 + 编排消费方
   接线）且合同已冻结；模块化迁移（独立 dll / adapter / ThreadLease 接线）为迁移
   目标（未落地）。
 - 合同落位: lib/algorithms/fits_output/ 三件套（README/module.yaml/memory.md，
-  CONTRACT_READY；schema `astrocs.module-manifest/v1`）。legacy 生产源在
-  `lib/phase3_session/`（astrocs_phase3_session 五源同库，其中 fits 写出源归属
+  CONTRACT_READY；schema `acsd.module-manifest/v1`）。legacy 生产源在
+  `lib/phase3_session/`（acsd_phase3_session 五源同库，其中 fits 写出源归属
   本模块）。
 - 生产源: lib/algorithms/fits_output/p3_output.cpp + 签名头正本 p3_output.h
   + WCS 关键字源 p3_wcs.h。
@@ -38,8 +38,8 @@
   API-P3-FITS-001（PUBLIC_API Phase3 FITS 写出公共消费面节）→ TEST-P3-WR-001
   （设计冻结 = TEST-P3-WR-DESIGN-001，见 §9）；编排面 API-P3-001（p3_session
   五段 FROZEN）镜像不变。
-- 上游依赖: astrocs_phase3_session（采样/重采样编排域）+
-  astrocs_aio（aio_fits + vendored third_party/cfitsio）；depends_on_int=
+- 上游依赖: acsd_phase3_session（采样/重采样编排域）+
+  acsd_aio（aio_fits + vendored third_party/cfitsio）；depends_on_int=
   P3-RSMP;IO-003。
 
 ## 2 职责与明确非职责
@@ -119,15 +119,15 @@
 
 ## 5 Registry descriptor 与配置 schema
 
-- descriptor（p3_writer_descriptor，编排层口径）: module_id=`astrocs.phase3.writer`；
+- descriptor（p3_writer_descriptor，编排层口径）: module_id=`acsd.phase3.writer`；
   execution_class=`io`；parallel_ok=False；ports resampled(必)+fits(可)；
   sci_id=SCI-P3-WR-001、alg_id=ALG-P3-004、data_id=DATA-P3-FITS、
   api_id=API-P3-001、test_id=TEST-P3-WR-001。descriptor 派生的占位合同 ID 与
-  module_id 合同值 astrocs.p3.fits_writer 的对齐属迁移目标（未落地），
+  module_id 合同值 acsd.p3.fits_writer 的对齐属迁移目标（未落地），
   不作冻结依据。
 - 配置=phase config JSON（键集 = API-P3-001）；无独立 schema 文件。
 - 模块注册 = `lib/infrastructure/pipeline/module_ports.registry.json` 的
-  `astrocs.phase3.writer`；生产接线 =
+  `acsd.phase3.writer`；生产接线 =
   lib/infrastructure/scheduler/src/module_adapters.cpp 的 `p3_op_writer`。
 
 | 字段 | 默认 | 单位 | 说明 |
@@ -215,7 +215,7 @@
 ## 10 已知限制与缺陷登记（登记不改码）
 
 - lib/infrastructure/aio/README.md 的既有表述声称「零外部依赖、不依赖 cfitsio」，
-  与现状 vendored third_party/cfitsio（astrocs_cfitsio 静态库，astrocs_aio 链接）
+  与现状 vendored third_party/cfitsio（acsd_cfitsio 静态库，acsd_aio 链接）
   矛盾；他域文件只登记不修。
 - tmp 命名：p3_output.h 协议注写 `<dir>/.<base>.<pid>.tmp`（前置点隐藏形态），
   实测 make_temp_path 生成 `out_path.<pid>.tmp`（`lib/algorithms/fits_output/p3_output.cpp`）；同目录
@@ -231,7 +231,7 @@
 
 ## NaN 与写端口
 
-- NaN 规则（权威 = `ASTROCS_DESIGN.md` §5.5）：**样本级掩膜 + 重归一 + 覆盖级 NaN + 强制计数**；
+- NaN 规则（权威 = `ACSD_DESIGN.md` §5.5）：**样本级掩膜 + 重归一 + 覆盖级 NaN + 强制计数**；
   剔除项逐条进场级计数。无覆盖/无数据 = NaN；0 与 ±Inf 不作有效值。
 - signal 语义 = **面亮度**，写端口 `UnitId::SURFACE_BRIGHTNESS`；输出模式显式声明
   （`surface_brightness` / `point_source_flux` / `visualization`，最高设计 §6.3）。

@@ -4,7 +4,7 @@
 # 控制包任务: P1-CAL-TEST (SA-P1C-T, queue 31, lock-P1-CAL; 依赖 P1-CAL-DOC 闭环)
 # 合同锚: docs/science/algorithms/CALIBRATION_ALGORITHMS.md §9 TEST-CAL-DESIGN-001
 #        (P1-CAL-DOC 冻结, 2026-09-07, wave W1); 矩阵行 P1-CAL (MOD
-#        astrocs.p1.calibration, TEST-P1-CAL-001)。
+#        acsd.p1.calibration, TEST-P1-CAL-001)。
 #
 # 结构 (模块 eng/tests/{unit,properties,oracle,fixtures,negative,performance} 对应):
 #   p1cal/p1cal_fixtures.hpp     — FIX-CAL-A..F 固定 seed fixture generator
@@ -33,7 +33,7 @@ add_executable(p1cal_tests
 target_include_directories(p1cal_tests PRIVATE
   ${CMAKE_CURRENT_SOURCE_DIR}/../../include
   ${P1CAL_DIR})
-target_link_libraries(p1cal_tests PRIVATE astrocs_calibration ${ASTROCS_OMP_TARGET})
+target_link_libraries(p1cal_tests PRIVATE acsd_calibration ${ACSD_OMP_TARGET})
 # 单组单跑: ctest -R p1cal_units / p1cal_properties / p1cal_negative / p1cal_cosmetic
 add_test(NAME p1cal_units COMMAND p1cal_tests units)
 add_test(NAME p1cal_properties COMMAND p1cal_tests properties)
@@ -46,7 +46,7 @@ add_executable(p1cal_perf_test
 target_include_directories(p1cal_perf_test PRIVATE
   ${CMAKE_CURRENT_SOURCE_DIR}/../../include
   ${P1CAL_DIR})
-target_link_libraries(p1cal_perf_test PRIVATE astrocs_calibration ${ASTROCS_OMP_TARGET})
+target_link_libraries(p1cal_perf_test PRIVATE acsd_calibration ${ACSD_OMP_TARGET})
 add_test(NAME p1cal_performance COMMAND p1cal_perf_test)
 
 # 故障注入必败自检 (验收: baseline 必 PASS + 注入必 FAIL 双向排除恒常)
@@ -56,7 +56,7 @@ add_executable(p1cal_selfcheck_test
 target_include_directories(p1cal_selfcheck_test PRIVATE
   ${CMAKE_CURRENT_SOURCE_DIR}/../../include
   ${P1CAL_DIR})
-target_link_libraries(p1cal_selfcheck_test PRIVATE astrocs_calibration ${ASTROCS_OMP_TARGET})
+target_link_libraries(p1cal_selfcheck_test PRIVATE acsd_calibration ${ACSD_OMP_TARGET})
 add_test(NAME p1cal_selfcheck COMMAND p1cal_selfcheck_test)
 
 # BIAS-001: bias 参与门 + ignore-bias/ignore-K 变异注入（可执行负例面）

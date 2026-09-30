@@ -32,7 +32,7 @@ add_test(NAME ipv_extract_wcs_sip_failclosed
 # P4-magiter — 极限星等割线迭代回归锁 (test/test_mag_iter.cpp)
 # ----------------------------------------------------------------------------
 # 被测函数 estimate_mag_lim_iterative 在 src/ipv_select.cpp (生产源, 零改动直编);
-# 直接链接生产静态库 astrocs_p1_ipv (含 gaia_client.c), 不新建生产 target。
+# 直接链接生产静态库 acsd_p1_ipv (含 gaia_client.c), 不新建生产 target。
 # 全部用例使用固定 stub 查询序列 —— 不依赖网络 / Gaia 数据 / 真实图像。
 #   收敛性 / 确定性(逐位+金标准) / 触顶防御 / N=0 步长 / 查询次数上界 /
 #   参数可覆盖(宪章 §10.4 禁硬编码) / 异常路径。
@@ -42,7 +42,7 @@ add_executable(ipv_mag_iter_test
 target_include_directories(ipv_mag_iter_test PRIVATE
   ${P1IPV_DIR}/include)
 target_link_libraries(ipv_mag_iter_test PRIVATE
-  astrocs_p1_ipv astrocs_p1_sdet astrocs_aio astrocs_cfitsio)
+  acsd_p1_ipv acsd_p1_sdet acsd_aio acsd_cfitsio)
 add_test(NAME ipv_mag_iter COMMAND ipv_mag_iter_test)
 
 # ============================================================================
@@ -57,14 +57,14 @@ add_executable(ipv_mag_iter_delivery_test
 target_include_directories(ipv_mag_iter_delivery_test PRIVATE
   ${P1IPV_DIR}/include)
 target_link_libraries(ipv_mag_iter_delivery_test PRIVATE
-  astrocs_p1_ipv astrocs_p1_sdet astrocs_aio astrocs_cfitsio)
+  acsd_p1_ipv acsd_p1_sdet acsd_aio acsd_cfitsio)
 add_test(NAME ipv_mag_iter_delivery COMMAND ipv_mag_iter_delivery_test)
 
 # ============================================================================
 # ALG-WCS-001 §4a — 图像侧选星有效域 + 空扫描 provenance 回归锁
 # ----------------------------------------------------------------------------
 # 被测面: select_image_stars / compute_fov_density / estimate_mag_lim_iterative
-# (生产源 src/ipv_select.cpp, 经生产静态库 astrocs_p1_ipv 链接)。
+# (生产源 src/ipv_select.cpp, 经生产静态库 acsd_p1_ipv 链接)。
 # 判据: 饱和检测不得进入选星样本 (真实场型: 最亮 N 颗全饱和); 候选不足不回填;
 #       rho_img 分子 = 实际样本基数; 全空扫描必须标记 empty_sweep。
 # 负向对照在测试内: 旧规则 (统一排序含饱和) 必须使同一判据判红 (非恒真门)。
@@ -74,7 +74,7 @@ add_executable(ipv_select_domain_test
 target_include_directories(ipv_select_domain_test PRIVATE
   ${P1IPV_DIR}/include)
 target_link_libraries(ipv_select_domain_test PRIVATE
-  astrocs_p1_ipv astrocs_p1_sdet astrocs_aio astrocs_cfitsio)
+  acsd_p1_ipv acsd_p1_sdet acsd_aio acsd_cfitsio)
 add_test(NAME ipv_select_domain COMMAND ipv_select_domain_test)
 set_tests_properties(ipv_select_domain PROPERTIES TIMEOUT 120)
 
@@ -90,7 +90,7 @@ add_executable(ipv_error_utf8_test
 target_include_directories(ipv_error_utf8_test PRIVATE
   ${P1IPV_DIR}/include)
 target_link_libraries(ipv_error_utf8_test PRIVATE
-  astrocs_p1_ipv astrocs_p1_sdet astrocs_aio astrocs_cfitsio)
+  acsd_p1_ipv acsd_p1_sdet acsd_aio acsd_cfitsio)
 add_test(NAME ipv_error_utf8 COMMAND ipv_error_utf8_test)
 set_tests_properties(ipv_error_utf8 PROPERTIES TIMEOUT 120)
 
@@ -98,7 +98,7 @@ set_tests_properties(ipv_error_utf8 PROPERTIES TIMEOUT 120)
 # P11-IPV-BUDGET — 三角形匹配搜索预算 fail-closed 回归锁
 # ----------------------------------------------------------------------------
 # 被测面: triangle_match (src/ipv_triangle.cpp, 生产源) 经生产静态库
-# astrocs_p1_ipv 链接。锁定: n=60 生产路径预算不触发且确定性; n>=66 越界
+# acsd_p1_ipv 链接。锁定: n=60 生产路径预算不触发且确定性; n>=66 越界
 # 输入进入 O(n_A_tri·n_B_tri) 枚举前即 fail-closed, 有明确 fail_reason,
 # 且在有界时间内返回 (不分配/不枚举)。
 # ============================================================================
@@ -107,7 +107,7 @@ add_executable(ipv_triangle_budget_test
 target_include_directories(ipv_triangle_budget_test PRIVATE
   ${P1IPV_DIR}/include)
 target_link_libraries(ipv_triangle_budget_test PRIVATE
-  astrocs_p1_ipv astrocs_p1_sdet astrocs_aio astrocs_cfitsio)
+  acsd_p1_ipv acsd_p1_sdet acsd_aio acsd_cfitsio)
 add_test(NAME ipv_triangle_budget COMMAND ipv_triangle_budget_test)
 set_tests_properties(ipv_triangle_budget PROPERTIES TIMEOUT 120)
 
@@ -152,7 +152,7 @@ add_executable(ipv_params_abi_failclosed_test
 target_include_directories(ipv_params_abi_failclosed_test PRIVATE
   ${P1IPV_DIR}/include)
 target_link_libraries(ipv_params_abi_failclosed_test PRIVATE
-  astrocs_p1_ipv astrocs_p1_sdet astrocs_aio astrocs_cfitsio)
+  acsd_p1_ipv acsd_p1_sdet acsd_aio acsd_cfitsio)
 add_test(NAME ipv_params_abi_failclosed COMMAND ipv_params_abi_failclosed_test)
 set_tests_properties(ipv_params_abi_failclosed PROPERTIES TIMEOUT 120)
 

@@ -20,7 +20,7 @@ class TestMemoryGrowth(unittest.TestCase):
 #include <cstdio>
 #include <cstdlib>
 #include <vector>
-using namespace astrocs;
+using namespace acsd;
 static void show(const char* name, const MemAnalysisResult& r){
     std::printf("%s=%s slope=%.2f peak=%llu growth=%llu pct=%.1f n=%zu msg=%s\n",
         name, mem_diag_name(r.diag), r.robust_slope_bytes_per_iter,

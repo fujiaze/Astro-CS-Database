@@ -1,20 +1,20 @@
 // lib/algorithms/fits_output/p3_output.h — Phase3 输出 FITS 原子写 (ALG-P3-004) — P3-004
-// 原址 lib/phase3_session/p3_output.h, 按 docs/ASTROCS_DESIGN
-// §7.1「fits_output」行迁入本模块; 命名空间 astrocs::phase3 与公共符号名零改动。
+// 原址 lib/phase3_session/p3_output.h, 按 docs/ACSD_DESIGN
+// §7.1「fits_output」行迁入本模块; 命名空间 acsd::phase3 与公共符号名零改动。
 // 覆盖: 原子写(tmp+rename)、BITPIX=-32/BSCALE=1/BZERO=0/BUNIT、WCS 关键字、
 // HISTORY provenance(源 hips/order_sel/sampler/软件版本/manifest hash)、
 // FITS checksum、失败清理(取消→不落盘)、独立 FITS/WCS reader 重开验证。
-#ifndef ASTROCS_P3_OUTPUT_H
-#define ASTROCS_P3_OUTPUT_H
+#ifndef ACSD_P3_OUTPUT_H
+#define ACSD_P3_OUTPUT_H
 
 #include <cstdint>
 #include <string>
 
 // p3_wcs.h 在 lib/algorithms/projection/, 经本 target
-// 的 include 面 (astrocs_p3_projection_wcs PUBLIC) 解析 —— 不再用相对路径 (迁址即失效)。
+// 的 include 面 (acsd_p3_projection_wcs PUBLIC) 解析 —— 不再用相对路径 (迁址即失效)。
 #include "p3_wcs.h"
 
-namespace astrocs::phase3 {
+namespace acsd::phase3 {
 
 struct P3Provenance {
     const char* hips_id;            // ivo:// 标识
@@ -105,7 +105,7 @@ P3OutputStatus p3_output_verify_ex(const char* output_path,
                                    int width, int height,
                                    P3OutputResult* result);
 
-/* ── 子块流式写/校验（P3-STREAM-01；docs/ASTROCS_DESIGN §8.3 export「子块流式」）────
+/* ── 子块流式写/校验（P3-STREAM-01；docs/ACSD_DESIGN §8.3 export「子块流式」）────
  * 与上列整幅 API **同产品语义、同字节布局**，差别只在驻留面：调用方按子块
  * （矩形区间）喂像素，本类不再要求整幅平面在内存里。
  *   · 写：open 建临时对象并在**首像素写出前**完成 PRIMARY 头组装（合同③）；
@@ -173,6 +173,6 @@ private:
     Impl* impl_ = nullptr;
 };
 
-}  // namespace astrocs::phase3
+}  // namespace acsd::phase3
 
-#endif  // ASTROCS_P3_OUTPUT_H
+#endif  // ACSD_P3_OUTPUT_H

@@ -5,6 +5,6 @@
  * 桥接函数暴露 direct vtable 给测试 TU。 */
 #include "../../../../lib//algorithms/noise_snr/src/module_entry.cpp"
 
-extern "C" const acs_module_api_v1* p1noise_direct_api_v1(void) {
+extern "C" const acsd_module_api_v1* p1noise_direct_api_v1(void) {
     return &g_noise_api;
 }

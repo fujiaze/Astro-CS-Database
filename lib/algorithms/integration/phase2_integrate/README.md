@@ -8,9 +8,9 @@
 
 | 文件 | 说明 |
 |---|---|
-| `lib/include/astrocs/phase2_integrate.h` | 磁盘重开消费 / 组合 / 原子发布 / 重开校验 / UPM·REJ·SAMP 接线公共接口 |
+| `lib/include/acsd/phase2_integrate.h` | 磁盘重开消费 / 组合 / 原子发布 / 重开校验 / UPM·REJ·SAMP 接线公共接口 |
 | `src/phase2_integrate.cpp` | 上述实现（只接线，不含新科学公式） |
-| `CMakeLists.txt` | 自包含静态库 `astrocs_phase2_integrate`（可独立构建） |
+| `CMakeLists.txt` | 自包含静态库 `acsd_phase2_integrate`（可独立构建） |
 
 ## 接线来源（Wave 5/7 交付，本层只调用不修改）
 

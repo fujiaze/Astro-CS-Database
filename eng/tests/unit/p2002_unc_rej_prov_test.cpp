@@ -7,7 +7,7 @@
 //      low 0.2/high 0.1); flat 栈全 ACCEPTED(nrej=0); 单帧离群点
 //      REJECTED_HIGH(nrej=1, SCI-REJ §5 reason∉{ACCEPTED,UNDERDETERMINED}
 //      计数); n=2 → UNDERDETERMINED 全接受; kernel 双调 bitwise 确定性。
-//   SD-18（2026-09-18）: astrocs_adaptive_pixel 低 n 档 n<=3 → none（保守：
+//   SD-18（2026-09-18）: acsd_adaptive_pixel 低 n 档 n<=3 → none（保守：
 //      不排异 + 加权积分），生产不再做 31×31 先验；provenance 记
 //      low_n_policy=underdetermined_no_rejection + stats.underdetermined_pixels。
 //      逐几何 n 映射锁定于 test_s302_kernel_semantics（n<=3 none / 4..7 pct /
@@ -30,7 +30,7 @@
 //   5. 确定性/1-N worker: 2 帧链（depth=2, kernel 不触发, 与 P2-001 同
 //      基线口径）nused/nrej/signal/wsum 平面 bitwise + 1-worker vs
 //      4-worker bitwise。
-//   6. 故障注入有效性: ASTROCS_P2002_FAULT=proj|prov 注入等价缺陷必败
+//   6. 故障注入有效性: ACSD_P2002_FAULT=proj|prov 注入等价缺陷必败
 //      （rc=1）。
 //   7. 合同登记面（§30.2 授权"AIO_ALL 掩码扩展由实现任务在 AIO 域合同
 //      登记"）: eng/contracts/data/phase2_uncertainty_rejection_provenance_v1.json
@@ -44,13 +44,13 @@
 //      p2_integrate_pixel → 恒等式成立（证明 lib/algorithms/coverage 契约正确）; 而把
 //      逐样本剔除塌缩为像素级 accepted 标志（= 基线 lib/infrastructure/scheduler 节点链接线）
 //      → 恒等式被破坏（同一断言在库面直接判负）。
-//      depth=3 1/4 worker parity（2e）+ ASTROCS_P2002_FAULT=identity 等价
+//      depth=3 1/4 worker parity（2e）+ ACSD_P2002_FAULT=identity 等价
 //      缺陷注入必败（2c 负向对照）。
 #include "astro/phase2/rejection.h"
 #include "astro/phase2/integrate.h"   // SCI-F2-001: §30.2 恒等式库面对照（2d）
-#include "astrocs/core/module.h"
-#include "astrocs/core/module_adapters.h"
-#include "astrocs/core/runtime.h"
+#include "acsd/core/module.h"
+#include "acsd/core/module_adapters.h"
+#include "acsd/core/runtime.h"
 
 #include "p1sess_fixtures.hpp"  // 最小 FITS writer (手写, 不调生产 symbol)
 #include "aio_hips.h"
@@ -81,7 +81,7 @@
 #endif
 
 using json = nlohmann::json;
-using namespace astrocs::core;
+using namespace acsd::core;
 
 static int failures = 0;
 #define CHECK(cond)                                                       \
@@ -136,8 +136,8 @@ inline float base_signal(uint32_t x, uint32_t y) {
   return 100.0f + 0.1f * static_cast<float>((x * 7u + y * 13u) % 5u);
 }
 
-// frame_snr/ref_flux > 0 ⇒ 写 RELEASE-02 SD-15 帧级 SNR 键（ASTROCS_FRAME_SNR /
-// ASTROCS_REFERENCE_FLUX）。§9.73 裁决 A44 后，这是「ivar 缺失 ⇒ 方差面不可用」
+// frame_snr/ref_flux > 0 ⇒ 写 RELEASE-02 SD-15 帧级 SNR 键（ACSD_FRAME_SNR /
+// ACSD_REFERENCE_FLUX）。§9.73 裁决 A44 后，这是「ivar 缺失 ⇒ 方差面不可用」
 // 的**唯一合法出口**（帧级 SNR 逆方差链; §30.1 规则 2），不再是 legacy 等权降级。
 bool write_ivar3_frame(const std::string& path, double ivar, float offset,
                        bool with_outliers, double frame_snr = 0.0,
@@ -146,7 +146,7 @@ bool write_ivar3_frame(const std::string& path, double ivar, float offset,
       path.c_str(), kNside, kTw, AIO_HIPS_FLOAT32,
       AIO_HIPS_PRODUCT_SIGNAL | AIO_HIPS_PRODUCT_SUPPORT |
           AIO_HIPS_PRODUCT_VARIANCE | AIO_HIPS_PRODUCT_IVAR,
-      "ivo://astrocs/test", "P2-002 unc/rej/prov fixture", "R", 60.0,
+      "ivo://acsd/test", "P2-002 unc/rej/prov fixture", "R", 60.0,
       "2026-09-10T00:00:00Z", 0);
   if (!ps) {
     std::fprintf(stderr, "fixture begin failed: %s\n", aio_hips_last_error());
@@ -159,7 +159,7 @@ bool write_ivar3_frame(const std::string& path, double ivar, float offset,
     for (uint32_t x = 0; x < kTw; ++x) {
       const uint32_t fi = y * kTw + x;
       const uint32_t local = static_cast<uint32_t>(
-          astrocs::healpix::fits_index_to_nested_local(fi, 9u, kTw));
+          acsd::healpix::fits_index_to_nested_local(fi, 9u, kTw));
       float v = base_signal(x, y) + offset;
       if (with_outliers && is_outlier_fitseq(x, y)) v += kOutlier;
       sig[local] = v;
@@ -268,11 +268,11 @@ std::string read_file(const std::string& p) {
   return s;
 }
 
-// repo 相对路径（ctest cwd=build → 用编译期 ASTROCS_REPO_ROOT 锚定）
+// repo 相对路径（ctest cwd=build → 用编译期 ACSD_REPO_ROOT 锚定）
 std::string repo_file(const char* rel) {
-#ifdef ASTROCS_REPO_ROOT
+#ifdef ACSD_REPO_ROOT
   {
-    const std::string s = read_file(std::string(ASTROCS_REPO_ROOT) + "/" + rel);
+    const std::string s = read_file(std::string(ACSD_REPO_ROOT) + "/" + rel);
     if (!s.empty()) return s;
   }
 #endif
@@ -313,10 +313,10 @@ json run_node(ModuleRegistry& reg, const std::string& module_id,
 // Phase2 全链顺序执行（coverage→…→write）
 json run_p2_chain(ModuleRegistry& reg, const std::string& cfg, RunContext& ctx,
                   Result<void>* first_fail = nullptr) {
-  static const char* mods[] = {"astrocs.phase2.coverage", "astrocs.phase2.sample",
-                               "astrocs.phase2.upm-fit", "astrocs.phase2.upm-apply",
-                               "astrocs.phase2.reject", "astrocs.phase2.integrate",
-                               "astrocs.phase2.write"};
+  static const char* mods[] = {"acsd.phase2.coverage", "acsd.phase2.sample",
+                               "acsd.phase2.upm-fit", "acsd.phase2.upm-apply",
+                               "acsd.phase2.reject", "acsd.phase2.integrate",
+                               "acsd.phase2.write"};
   json last;
   for (const char* m : mods) {
     Result<void> rc;
@@ -408,16 +408,16 @@ bool run_kernel(const double* frame_major, std::uint32_t depth,
   return true;
 }
 
-// ── 生产同参（RELEASE-02 HUB-A ① / SD-18）: astrocs_adaptive_pixel 逐几何 n plan ──
+// ── 生产同参（RELEASE-02 HUB-A ① / SD-18）: acsd_adaptive_pixel 逐几何 n plan ──
 // 与 module_adapters::p2_op_reject 的 req 逐字一致（AUTO + nominal_contributors=0
-// + underdetermined_n=0 → pixel profile 默认 3 + profile=astrocs_adaptive_pixel）。
+// + underdetermined_n=0 → pixel profile 默认 3 + profile=acsd_adaptive_pixel）。
 // SD-18（2026-09-18）：n<=3 走保守 none（不排异 + 加权积分），**不再有任何
 // 31×31 先验计算**；extreme_value_clip_prior_sigma 仅显式 opt-in。
 bool resolve_adaptive_pixel_plan(std::uint32_t geom_n, P2RejectionPlan* out) {
   P2RejectionPlanRequest req{};
   req.request = P2_REJECT_AUTO;
   req.nominal_contributors = 0;
-  req.profile = "astrocs_adaptive_pixel";
+  req.profile = "acsd_adaptive_pixel";
   req.underdetermined_n = 0;   // 0 = pixel profile 默认 3（与生产同参）
   char err[256] = {0};
   if (p2_reject_plan_resolve_n(geom_n, &req, out, err, sizeof(err)) != 0) return false;
@@ -477,7 +477,7 @@ static void test_s302_kernel_semantics() {
   CHECK(plan.percentile.high_fraction == 0.1);
   CHECK(plan.underdetermined_n == 2);
   CHECK(std::string(p2_rejection_semantic_id(plan.method)) ==
-        "astrocs.percentile_siril.v1");
+        "acsd.percentile_siril.v1");
 
   // flat 栈（三帧同值）→ 全 ACCEPTED、nrej=0
   {
@@ -534,8 +534,8 @@ static void test_s302_kernel_semantics() {
           a.dec.rejected_high == b.dec.rejected_high &&
           a.dec.iterations == b.dec.iterations);
   }
-  // ── FIX-204（docs/ASTROCS_DESIGN §4.5 下半节 / §9.71 裁决 3；原四档表**作废**）
-  // + EXP-204 定案（保守读法）：astrocs_adaptive_pixel 逐几何 N 内置映射 ──
+  // ── FIX-204（docs/ACSD_DESIGN §4.5 下半节 / §9.71 裁决 3；原四档表**作废**）
+  // + EXP-204 定案（保守读法）：acsd_adaptive_pixel 逐几何 N 内置映射 ──
   // 1≤N≤3 → none（不排异）；4≤N≤5 → percentile；6≤N≤15 → winsorized_sigma；
   // N≥16 → winsorized_sigma（REJECTION.md §5 改投）；N=0（void 像素占位，无候选栈）→ percentile。
   // extreme_prior 不再出现在 AUTO。
@@ -553,10 +553,10 @@ static void test_s302_kernel_semantics() {
       P2RejectionPlan p{};
       CHECK(resolve_adaptive_pixel_plan(c.n, &p));
       CHECK_MSG(p.method == c.method,
-                ("astrocs_adaptive_pixel n=" + std::to_string(c.n) +
+                ("acsd_adaptive_pixel n=" + std::to_string(c.n) +
                  " must map to method " + std::to_string(c.method)).c_str());
       CHECK_MSG(p.underdetermined_n == 3u,
-                ("astrocs_adaptive_pixel n=" + std::to_string(c.n) +
+                ("acsd_adaptive_pixel n=" + std::to_string(c.n) +
                  " underdetermined_n must be 3 (SD-18 conservative)").c_str());
       CHECK(p.method != P2_REJECT_EXTREME_VALUE_PRIOR_SIGMA);
     }
@@ -564,7 +564,7 @@ static void test_s302_kernel_semantics() {
     // （underdetermined_n 默认 1，使 n=2 能进 kernel；API 未删除）。
     P2RejectionPlanRequest preq{};
     preq.request = P2_REJECT_EXTREME_VALUE_PRIOR_SIGMA;
-    preq.profile = "astrocs_adaptive_pixel";
+    preq.profile = "acsd_adaptive_pixel";
     preq.underdetermined_n = 0;
     P2RejectionPlan popt{};
     CHECK(p2_reject_plan_resolve(&preq, &popt, err, sizeof(err)) == 0);
@@ -605,7 +605,7 @@ static void test_s302_integration_projection(bool fault_inject) {
   CHECK(read_bin<uint16_t>(rej["files"].value("nrej", ""), 0, kTileSpan, &nrej_bins));
 
   // 投影对拍: §30.2 int32 nrej 平面 == rejection bins（逐像素恒等）
-  // 故障注入面: ASTROCS_P2002_FAULT=proj → 期望 +1（等价缺陷: 投影 ±1 错）
+  // 故障注入面: ACSD_P2002_FAULT=proj → 期望 +1（等价缺陷: 投影 ±1 错）
   const int32_t nrej_bias = fault_inject ? 1 : 0;
   for (size_t i = 0; i < nrej_plane.size(); ++i) {
     if (nrej_plane[i] != static_cast<int32_t>(nrej_bins[i]) + nrej_bias) {
@@ -721,7 +721,7 @@ static void test_f_p2002_01_rejection_parity() {
   }
 
   // ── RELEASE-02 HUB-A ① + SD-18: 生产 = 逐输出像素几何 n 路由 ──
-  // （profile=astrocs_adaptive_pixel, nominal_contributors=0, underdetermined_n=0
+  // （profile=acsd_adaptive_pixel, nominal_contributors=0, underdetermined_n=0
   //  → pixel profile 默认 3）。SD-18（2026-09-18）后 n<=3 走保守 none（不排异 +
   // 加权积分），故本 depth=3 fixture 不再产生任何 kernel 拒绝；复算仍按
   // provenance plans[] 逐 n 对拍（不得再用 group-level wbpp_current 一次解析）。
@@ -729,7 +729,7 @@ static void test_f_p2002_01_rejection_parity() {
   for (const auto& pl : rej["plans"])
     plans_by_n[pl["nominal_n"].get<std::uint32_t>()] = pl;
   CHECK(plans_by_n.count(3u) == 1u);
-  // FIX-204（docs/ASTROCS_DESIGN §4.5 下半节 / §9.71 裁决 3；原四档表**作废**）
+  // FIX-204（docs/ACSD_DESIGN §4.5 下半节 / §9.71 裁决 3；原四档表**作废**）
   // + EXP-204 定案（保守读法）：n=3 档**路由** = none（不排异 + 加权积分），
   // underdetermined_n=3（闸默认保持 3；候选 ≤3 亦全接受并记
   // P2_STATUS_UNDERDETERMINED）。provenance 顶层 small_n_policy/low_n_policy +
@@ -738,7 +738,7 @@ static void test_f_p2002_01_rejection_parity() {
   CHECK(plans_by_n.at(3u).value("method", -1) == P2_REJECT_NONE);
   CHECK(plans_by_n.at(3u).value("underdetermined_n", 0u) == 3u);
   CHECK(std::string(plans_by_n.at(3u).value("semantic_id", "")) ==
-        "astrocs.none.v1");
+        "acsd.none.v1");
   CHECK(rej.value("low_n_policy", "") == "underdetermined_no_rejection");
   CHECK(rej.value("low_n_max_n", 0) == 3);
   CHECK(rej.value("prior_unavailable_pixels", 1ull) == 0ull);
@@ -969,7 +969,7 @@ static void test_f_p2002_01_rejection_parity() {
 // nused=3 而 nrej=1 ⇒ n_ineligible = 3−3−1 = −1 < 0 ⇒ 本断言必败。
 // 修复面在 lib/infrastructure/scheduler/src/module_adapters.cpp（本任务写域外）; 最小补丁与
 // 影子树 GREEN 证明见 finding F-SCI-F2-001-01。
-// SD-18（2026-09-18）：默认 astrocs_adaptive_pixel 在 n<=3 走保守 none（不排异），
+// SD-18（2026-09-18）：默认 acsd_adaptive_pixel 在 n<=3 走保守 none（不排异），
 // 本 depth=3 fixture 无法产生部分拒绝；为保留"部分拒绝"判别力，本节显式选冻结
 // wbpp_current profile（n=3 → percentile，仍真正拒绝 F3 离群点）。
 static void test_f_p2002_02_n_ineligible_identity(bool fault_inject) {
@@ -1248,7 +1248,7 @@ static void test_f_p2002_03_sample_mask_failclosed() {
   auto integrate_must_fail = [](Fixture3& fx, ModuleRegistry& reg, const char* what) {
     RunContext c;
     Result<void> rc;
-    run_node(reg, "astrocs.phase2.integrate", chain_cfg(fx), c, &rc);
+    run_node(reg, "acsd.phase2.integrate", chain_cfg(fx), c, &rc);
     CHECK_MSG(rc.failed(),
               (std::string("integrate must fail-closed on ") + what).c_str());
   };
@@ -1278,7 +1278,7 @@ static void test_f_p2002_03_sample_mask_failclosed() {
     {
       RunContext c2;
       Result<void> rc2;
-      run_node(reg, "astrocs.phase2.integrate", chain_cfg(fx), c2, &rc2);
+      run_node(reg, "acsd.phase2.integrate", chain_cfg(fx), c2, &rc2);
       CHECK_MSG(rc2.ok(), rc2.ok() ? "integrate re-run ok"
                                    : rc2.error().message().c_str());
     }
@@ -1396,10 +1396,10 @@ static void test_s303_provenance_keys(bool fault_inject) {
   CHECK(fin.value("schema", "") == "DATA-P2-RES");
   const json& prov = fin["provenance"];
   // 四键全在（键名冻结; 禁静默缺键）。A44（§9.73 / DESIGN §2.1）：全程只有
-  // SNR、不存在「权重模式」⇒ ASTROCS_WEIGHT_MODE 已从契约面删除（原五键）。
-  static const char* keys[] = {"ASTROCS_INPUT_MANIFEST_HASH", "ASTROCS_MODEL_HASH",
-                               "ASTROCS_UNCERTAINTY_AVAILABLE",
-                               "ASTROCS_REJECT_PROFILE"};
+  // SNR、不存在「权重模式」⇒ ACSD_WEIGHT_MODE 已从契约面删除（原五键）。
+  static const char* keys[] = {"ACSD_INPUT_MANIFEST_HASH", "ACSD_MODEL_HASH",
+                               "ACSD_UNCERTAINTY_AVAILABLE",
+                               "ACSD_REJECT_PROFILE"};
   for (const char* k : keys)
     CHECK_MSG(prov.contains(k), (std::string("provenance key missing: ") + k).c_str());
   // 键值真实传递对拍（非伪造 64hex）
@@ -1410,27 +1410,27 @@ static void test_s303_provenance_keys(bool fault_inject) {
   catch (...) { CHECK(false); }
   try { rej = json::parse(read_file(fx.out + "/p2_rejection.json")); }
   catch (...) { CHECK(false); }
-  CHECK_MSG(prov.value("ASTROCS_INPUT_MANIFEST_HASH", "") ==
+  CHECK_MSG(prov.value("ACSD_INPUT_MANIFEST_HASH", "") ==
                 smp.value("input_manifest_hash", ""),
             "INPUT_MANIFEST_HASH must equal p2_samples input_manifest_hash");
-  CHECK(prov.value("ASTROCS_INPUT_MANIFEST_HASH", "").size() == 64);
-  CHECK_MSG(prov.value("ASTROCS_MODEL_HASH", "") == umd.value("model_hash", ""),
+  CHECK(prov.value("ACSD_INPUT_MANIFEST_HASH", "").size() == 64);
+  CHECK_MSG(prov.value("ACSD_MODEL_HASH", "") == umd.value("model_hash", ""),
             "MODEL_HASH must equal p2_upm_model model_hash");
-  CHECK(prov.value("ASTROCS_MODEL_HASH", "").size() == 64);
-  CHECK_MSG(prov.value("ASTROCS_REJECT_PROFILE", "") == rej.value("profile", ""),
+  CHECK(prov.value("ACSD_MODEL_HASH", "").size() == 64);
+  CHECK_MSG(prov.value("ACSD_REJECT_PROFILE", "") == rej.value("profile", ""),
             "REJECT_PROFILE must equal rejection artifact profile");
   // RELEASE-02 HUB-A ①: 生产 reject 默认 profile 已改为逐输出像素几何 n 路由的
-  // astrocs_adaptive_pixel（module_adapters p2_op_reject 缺省）。旧断言硬编码
+  // acsd_adaptive_pixel（module_adapters p2_op_reject 缺省）。旧断言硬编码
   // "wbpp_current"（group-level 一次解析）编码的是被替换的旧行为。
-  CHECK(prov.value("ASTROCS_REJECT_PROFILE", "") == "astrocs_adaptive_pixel");
+  CHECK(prov.value("ACSD_REJECT_PROFILE", "") == "acsd_adaptive_pixel");
   // UNCERTAINTY_AVAILABLE 与实际子产品存在性一致（§30.5 V5）
-  const bool unc = prov.value("ASTROCS_UNCERTAINTY_AVAILABLE", "") == "true";
+  const bool unc = prov.value("ACSD_UNCERTAINTY_AVAILABLE", "") == "true";
   CHECK(fin.value("uncertainty_available", true) == unc);
   const bool var_dir = fs::exists(fs::path(fx.out + "/variance/properties"));
   const bool ivar_dir = fs::exists(fs::path(fx.out + "/ivar/properties"));
   CHECK_MSG(unc == (var_dir && ivar_dir),
             "UNCERTAINTY_AVAILABLE must match variance/ivar subproduct existence");
-  // 故障注入面: ASTROCS_P2002_FAULT=prov → 键缺失（等价缺陷: 静默缺键）
+  // 故障注入面: ACSD_P2002_FAULT=prov → 键缺失（等价缺陷: 静默缺键）
   if (fault_inject) {
     CHECK_MSG(false,
               "FAULT-INJECT: provenance keys must all be present; missing"
@@ -1441,7 +1441,7 @@ static void test_s303_provenance_keys(bool fault_inject) {
   CHECK(fin["pending_contracts"].contains("nused_nrej_planes"));
   CHECK(fin["pending_contracts"].contains("properties_provenance_channel"));
   // AIO properties 通道双向锚（SCI-F3-001）:
-  //   (a) 未设置 provenance 的 Phase2 写节点产品面不得伪造 ASTROCS_* 键
+  //   (a) 未设置 provenance 的 Phase2 写节点产品面不得伪造 ACSD_* 键
   //       (全或无: 通道未接线 → 整体缺席, 禁静默占位/假 64hex);
   //   (b) 通道已实现 → 由 test_s303_aio_channel_real_values() 以真实 Phase2
   //       产物值驱动 AIO 通道并断言落盘 (含 verify 双向)。
@@ -1452,10 +1452,10 @@ static void test_s303_provenance_keys(bool fault_inject) {
   {
     const std::string props = read_file(fx.out + "/signal/properties");
     CHECK(!props.empty());
-    CHECK_MSG(props.find("ASTROCS_INPUT_MANIFEST_HASH") == std::string::npos &&
-                  props.find("ASTROCS_MODEL_HASH") == std::string::npos,
+    CHECK_MSG(props.find("ACSD_INPUT_MANIFEST_HASH") == std::string::npos &&
+                  props.find("ACSD_MODEL_HASH") == std::string::npos,
               "unwired AIO provenance channel must stay all-or-nothing (no"
-              " fabricated ASTROCS_* keys); wiring gap = F-SCI-F3-001-01");
+              " fabricated ACSD_* keys); wiring gap = F-SCI-F3-001-01");
   }
   fs::remove_all(fx.root);
 }
@@ -1470,7 +1470,7 @@ static void test_s303_provenance_keys(bool fault_inject) {
 //     (FITS 序 → NESTED local 视图合同) → 回读逐像素 bitwise;
 //   · verify 双向断言: available=true ⇒ variance/ivar 子产品必在;
 //     available=false ⇒ 禁占位 (同一断言面在真实产品上跑两态)。
-// 故障注入 ASTROCS_P2002_FAULT=aio: 注入等价缺陷 (manifest 五键值漂移 /
+// 故障注入 ACSD_P2002_FAULT=aio: 注入等价缺陷 (manifest 五键值漂移 /
 // 诊断平面偏移 1) → 本函数断言必败 (判别力证明)。
 static void test_s303_aio_channel_real_values(bool fault_inject) {
   Fixture3 fx = make_fixture3("aioch");
@@ -1497,12 +1497,12 @@ static void test_s303_aio_channel_real_values(bool fault_inject) {
   CHECK_MSG(mhash.size() == 64 && modhash.size() == 64 && !profile.empty(),
             "Phase2 artifacts must carry real 64hex hashes + profile");
   // FIX-201 / §9.73 A44: 原断言 CHECK_MSG(wmode == 2, "weight_mode must be 2")
-  // 锁定的是已作废的「权重模式」概念（docs/ASTROCS_DESIGN §2.1「全程只有 SNR,
+  // 锁定的是已作废的「权重模式」概念（docs/ACSD_DESIGN §2.1「全程只有 SNR,
   // 不存在权重模式」）⇒ 该断言与其取值来源 (wmode) 一并删除。
   // 替代锁（更严, 且不依赖被删概念）: 产品面**不得**携带 A44 provenance 键。
   // 生产侧残留（module_adapters.cpp 仍向 p2_integrated.json / manifest 写小写
   // weight_mode）属域外, 登记给前台/FIX-204。
-  CHECK_MSG(!intj.contains("ASTROCS_WEIGHT_MODE"),
+  CHECK_MSG(!intj.contains("ACSD_WEIGHT_MODE"),
             "A44: p2_integrated.json 禁携带权重模式 provenance 键");
   CHECK_MSG(unc, "fixture carries ivar products → uncertainty_available=true");
 
@@ -1519,7 +1519,7 @@ static void test_s303_aio_channel_real_values(bool fault_inject) {
   fs::create_directories(aio_dir);
   AioHipsProductSet* ps = aio_hips_product_begin(
       aio_dir.c_str(), nside, 512, AIO_HIPS_FLOAT32, flags,
-      "ivo://astrocs/phase2", "ACSD Phase2 mosaic (SCI-F3-001)", nullptr,
+      "ivo://acsd/phase2", "ACSD Phase2 mosaic (SCI-F3-001)", nullptr,
       0.0, nullptr, 0);
   CHECK_MSG(ps != nullptr, "aio product_begin failed");
   if (!ps) { fs::remove_all(fx.root); return; }
@@ -1530,7 +1530,7 @@ static void test_s303_aio_channel_real_values(bool fault_inject) {
   std::vector<uint32_t> fits_to_local((size_t)span);
   for (uint64_t i = 0; i < span; ++i)
     fits_to_local[(size_t)i] = static_cast<uint32_t>(
-        astrocs::healpix::fits_index_to_nested_local(i, 9u, 512u));
+        acsd::healpix::fits_index_to_nested_local(i, 9u, 512u));
 
   const json& files = intj["files"];
   const json& tiles = intj["tiles"];
@@ -1617,19 +1617,19 @@ static void test_s303_aio_channel_real_values(bool fault_inject) {
   json finalout;
   try { finalout = json::parse(read_file(fx.out + "/p2_final.json")); } catch (...) { CHECK(false); }
   const json& pprov = finalout["provenance"];
-  CHECK_MSG(pprov.value("ASTROCS_INPUT_MANIFEST_HASH", "") == mhash &&
-                pprov.value("ASTROCS_MODEL_HASH", "") == modhash &&
-                pprov.value("ASTROCS_REJECT_PROFILE", "") == profile &&
-                pprov.value("ASTROCS_UNCERTAINTY_AVAILABLE", "") ==
+  CHECK_MSG(pprov.value("ACSD_INPUT_MANIFEST_HASH", "") == mhash &&
+                pprov.value("ACSD_MODEL_HASH", "") == modhash &&
+                pprov.value("ACSD_REJECT_PROFILE", "") == profile &&
+                pprov.value("ACSD_UNCERTAINTY_AVAILABLE", "") ==
                     (unc ? "true" : "false"),
             "Phase2 manifest provenance must be the real artifact values");
   const std::string props = read_file(aio_dir + "/signal/properties");
-  CHECK_MSG(props.find("ASTROCS_INPUT_MANIFEST_HASH=" + mhash) != std::string::npos &&
-                props.find("ASTROCS_MODEL_HASH=" + modhash) != std::string::npos &&
-                props.find("ASTROCS_REJECT_PROFILE=" + profile) != std::string::npos,
+  CHECK_MSG(props.find("ACSD_INPUT_MANIFEST_HASH=" + mhash) != std::string::npos &&
+                props.find("ACSD_MODEL_HASH=" + modhash) != std::string::npos &&
+                props.find("ACSD_REJECT_PROFILE=" + profile) != std::string::npos,
             "AIO product properties must carry the real Phase2 provenance values");
   const std::string man = read_file(aio_dir + "/manifest.json");
-  CHECK_MSG(man.find("\"astrocs_model_hash\": \"" + modhash + "\"") != std::string::npos,
+  CHECK_MSG(man.find("\"acsd_model_hash\": \"" + modhash + "\"") != std::string::npos,
             "AIO product manifest.json must carry lowercase provenance keys (real value)");
   // (b) int32 诊断平面回读 == Phase2 bins 逐像素 (禁 −1 哨兵: 0 即"无")
   {
@@ -1668,7 +1668,7 @@ static void test_s303_aio_channel_real_values(bool fault_inject) {
     CHECK_EQ_INT(rep.nrej_present, 1);
     CHECK_EQ_INT(rep.nused_present, 1);
   }
-  // 故障注入面 (ASTROCS_P2002_FAULT=aio): 诊断平面偏移 → 上述逐像素断言必败
+  // 故障注入面 (ACSD_P2002_FAULT=aio): 诊断平面偏移 → 上述逐像素断言必败
   if (fault_inject) {
     CHECK_MSG(false,
               "FAULT-INJECT(aio): 等价缺陷 = 诊断平面偏移 1 → 逐像素/verify 断言必败");
@@ -1680,7 +1680,7 @@ static void test_s303_aio_channel_real_values(bool fault_inject) {
 // §9.73 裁决 A44 后本面重建（判据强度不降）：
 //   legacy_allow_weight_fallback **已删除**（出现即拒绝）；weight_mode=1 亦然。
 //   故 unavailable 面的**唯一合法出口** = 帧级 SNR 逆方差链（§30.1 规则 2：
-//   ivar 缺失 + ASTROCS_FRAME_SNR/ASTROCS_REFERENCE_FLUX 齐备 ⇒ 积分仍有权重、
+//   ivar 缺失 + ACSD_FRAME_SNR/ACSD_REFERENCE_FLUX 齐备 ⇒ 积分仍有权重、
 //   方差面 unavailable）。旧断言 "fallback 后成功 + unavailable 面" 编码的正是被
 //   删除的假绿路径; 现分三步:
 //   4a) 两个已删除键**出现** ⇒ 配置准入面即具名拒绝（无伪产物）；
@@ -1692,13 +1692,13 @@ static void test_s303_unavailable_explicit() {
     Fixture3 fx = make_fixture3("unav_fb");
     ModuleRegistry reg;
     CHECK(register_phase_modules(reg).ok());
-    expect_config_rejected(reg, "astrocs.phase2.integrate",
+    expect_config_rejected(reg, "acsd.phase2.integrate",
                            chain_cfg(fx, R"(,"legacy_allow_weight_fallback":true)"),
                            "legacy_allow_weight_fallback");
-    expect_config_rejected(reg, "astrocs.phase2.integrate",
+    expect_config_rejected(reg, "acsd.phase2.integrate",
                            chain_cfg(fx, R"(,"weight_mode":1)"), "weight_mode");
     // 非退化对照：键缺席时同一配置必须放行。
-    auto mc = reg.create("astrocs.phase2.integrate");
+    auto mc = reg.create("acsd.phase2.integrate");
     CHECK(mc.ok());
     if (mc.ok())
       CHECK_MSG(mc.value()->validate_config(chain_cfg(fx)).ok(),
@@ -1760,11 +1760,11 @@ static void test_s303_unavailable_explicit() {
     CHECK(!fs::exists(fs::path(fx.out + "/ivar/properties")));
     // §18.3 unavailable 显式登记: 键仍在、值为 false（禁静默缺键/空输出冒充）
     const json& prov = fin["provenance"];
-    for (const char* k : {"ASTROCS_INPUT_MANIFEST_HASH", "ASTROCS_MODEL_HASH",
-                          "ASTROCS_UNCERTAINTY_AVAILABLE",
-                          "ASTROCS_REJECT_PROFILE"})
+    for (const char* k : {"ACSD_INPUT_MANIFEST_HASH", "ACSD_MODEL_HASH",
+                          "ACSD_UNCERTAINTY_AVAILABLE",
+                          "ACSD_REJECT_PROFILE"})
       CHECK_MSG(prov.contains(k), (std::string("unavailable face missing key: ") + k).c_str());
-    CHECK(prov.value("ASTROCS_UNCERTAINTY_AVAILABLE", "true") == "false");
+    CHECK(prov.value("ACSD_UNCERTAINTY_AVAILABLE", "true") == "false");
     // 诊断平面在 unavailable 面仍投影（int32; nused 语义不变）
     {
       json intj;
@@ -1830,14 +1830,14 @@ static void test_f_unc_003_no_plane_drift() {
       if (c.contains("provenance_keys")) {
         // FIX-201 / §9.73 A44 收窄锁: 只锁四键 (帧级 SNR 与稀疏控制点上的绝对 SNR
         // 之外无 provenance 面)。原断言把已作废的「权重模式」键当契约
-        // (与 docs/ASTROCS_DESIGN §2.1「全程只有 SNR」相反) —— 该键名不再出现在
+        // (与 docs/ACSD_DESIGN §2.1「全程只有 SNR」相反) —— 该键名不再出现在
         // 断言里, 也不得由任何人重新引入。
         // 残留 (域外, 登记给前台): eng/contracts/data/
         // phase2_uncertainty_rejection_provenance_v1.json 的 provenance_keys
         // 仍列该键 (eng/contracts/** 属 FIX-201 禁改域), 须由合同层任务同步删除。
-        for (const char* k : {"ASTROCS_INPUT_MANIFEST_HASH", "ASTROCS_MODEL_HASH",
-                              "ASTROCS_UNCERTAINTY_AVAILABLE",
-                              "ASTROCS_REJECT_PROFILE"})
+        for (const char* k : {"ACSD_INPUT_MANIFEST_HASH", "ACSD_MODEL_HASH",
+                              "ACSD_UNCERTAINTY_AVAILABLE",
+                              "ACSD_REJECT_PROFILE"})
           CHECK_MSG(c["provenance_keys"].contains(k),
                     (std::string("contract provenance key missing: ") + k).c_str());
       }
@@ -1888,17 +1888,17 @@ static void run_chain_via_runtime(ModuleRegistry& reg, const json& pc,
     return n;
   };
   json ir;
-  ir["schema"] = "astrocs.pipeline/v1";
+  ir["schema"] = "acsd.pipeline/v1";
   ir["pipeline_id"] = pipe_id;
   ir["version"] = "1.0.0";
   ir["nodes"] = json::array();
-  ir["nodes"].push_back(node("cov", "astrocs.phase2.coverage", "calibrated", "artifact:in", "coverage", "artifact:cov"));
-  ir["nodes"].push_back(node("smp", "astrocs.phase2.sample", "coverage", "artifact:cov", "samples", "artifact:smp"));
-  ir["nodes"].push_back(node("fit", "astrocs.phase2.upm-fit", "samples", "artifact:smp", "upm_model", "artifact:fit"));
-  ir["nodes"].push_back(node("app", "astrocs.phase2.upm-apply", "upm_model", "artifact:fit", "corrected", "artifact:app"));
-  ir["nodes"].push_back(node("rej", "astrocs.phase2.reject", "corrected", "artifact:app", "accepted_mask", "artifact:rej"));
-  ir["nodes"].push_back(node("int", "astrocs.phase2.integrate", "accepted_mask", "artifact:rej", "integrated", "artifact:int"));
-  ir["nodes"].push_back(node("wr", "astrocs.phase2.write", "integrated", "artifact:int", "mosaic", "artifact:wr"));
+  ir["nodes"].push_back(node("cov", "acsd.phase2.coverage", "calibrated", "artifact:in", "coverage", "artifact:cov"));
+  ir["nodes"].push_back(node("smp", "acsd.phase2.sample", "coverage", "artifact:cov", "samples", "artifact:smp"));
+  ir["nodes"].push_back(node("fit", "acsd.phase2.upm-fit", "samples", "artifact:smp", "upm_model", "artifact:fit"));
+  ir["nodes"].push_back(node("app", "acsd.phase2.upm-apply", "upm_model", "artifact:fit", "corrected", "artifact:app"));
+  ir["nodes"].push_back(node("rej", "acsd.phase2.reject", "corrected", "artifact:app", "accepted_mask", "artifact:rej"));
+  ir["nodes"].push_back(node("int", "acsd.phase2.integrate", "accepted_mask", "artifact:rej", "integrated", "artifact:int"));
+  ir["nodes"].push_back(node("wr", "acsd.phase2.write", "integrated", "artifact:int", "mosaic", "artifact:wr"));
   ir["outputs"] = json{{"mosaic", "artifact:wr"}};
   auto rt = create_runtime(static_cast<size_t>(workers));
   CHECK(rt.ok());
@@ -1953,7 +1953,7 @@ static void test_determinism_and_parity() {
     }
   }
   // 1-worker vs 4-worker bitwise（depth=3 部分拒绝面: F-P2-002-02 场景;
-  // SD-18 后默认 astrocs_adaptive_pixel 在 n<=3 走保守 none（不排异），故显式
+  // SD-18 后默认 acsd_adaptive_pixel 在 n<=3 走保守 none（不排异），故显式
   // 选冻结 wbpp_current profile 使 kernel 真触发 → 掩码/计数/科学值三面同时受
   // worker 划分影响的可能性被逐字节排除, 与 §30.1/§30.2 冻结的 OMP 定序归并/
   // 固定 chunk 合同一致）
@@ -1982,9 +1982,9 @@ static void test_determinism_and_parity() {
 }
 
 int main(int argc, char** argv) {
-  // 故障注入模式: ASTROCS_P2002_FAULT=proj|prov|identity
+  // 故障注入模式: ACSD_P2002_FAULT=proj|prov|identity
   // （等价缺陷注入 → 断言必败; identity = F-P2-002-02 逐样本剔除塌缩）
-  const char* fault = std::getenv("ASTROCS_P2002_FAULT");
+  const char* fault = std::getenv("ACSD_P2002_FAULT");
   const bool fault_proj = fault && std::strcmp(fault, "proj") == 0;
   const bool fault_prov = fault && std::strcmp(fault, "prov") == 0;
   const bool fault_ident = fault && std::strcmp(fault, "identity") == 0;
@@ -2009,7 +2009,7 @@ int main(int argc, char** argv) {
   if (!fault_proj) test_s303_provenance_keys(fault_prov);
   test_s303_unavailable_explicit();
   // SCI-F3-001: Phase2 真实产物值 → AIO 通道端到端 (§30.2 int32 平面 +
-  // §30.3 五键双写 + verify 双向断言; 注入面 ASTROCS_P2002_FAULT=aio)
+  // §30.3 五键双写 + verify 双向断言; 注入面 ACSD_P2002_FAULT=aio)
   if (!fault_prov) test_s303_aio_channel_real_values(fault_aio);
   test_f_unc_003_no_plane_drift();
   if (!fault_proj && !fault_prov) test_determinism_and_parity();

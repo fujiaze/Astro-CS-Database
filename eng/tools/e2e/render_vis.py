@@ -11,7 +11,7 @@
                              （内部空洞 = 被有限值包围的非有限像素，真缺陷）；
                          无覆盖平面时 V1a 不适用，V1b 同判（同一规则，不另设口径）。
      为什么 V1b 判「内部空洞」而不是「覆盖却非有限」：导出画幅由用户给定，**可以大于数据
-     足迹** —— 此时边框上必然出现非有限黑边，这是设计允许的（docs/ASTROCS_DESIGN.md §6：
+     足迹** —— 此时边框上必然出现非有限黑边，这是设计允许的（docs/ACSD_DESIGN.md §6：
      export 按用户指定 WCS 导出平面；负责人 2026-09-23 裁决：默认导出不得裁剪任何有效像素，
      允许导出黑边，由用户到平面后自行裁剪）。因此「覆盖 >0 ⇒ 必须有限」这个前提是错的：
      它把「画幅大于足迹」这一合法几何误判成缺陷（M42 全画幅导出实测 464,263 px / 2.77%，
@@ -361,7 +361,7 @@ def main():
         out_dir = args.out_dir or os.path.join(REPO, "run/ci/seam-footprint")
         os.makedirs(out_dir, exist_ok=True)
         st = self_test(out_dir)
-        rec = {"schema": "astrocs.vis-v6-selftest/v1", "tool": "render_vis",
+        rec = {"schema": "acsd.vis-v6-selftest/v1", "tool": "render_vis",
                "mode": "v6-self-test", "max_rel_step": args.max_rel_step, **st}
         io.open(os.path.join(out_dir, "v6_selftest.json"), "w", encoding="utf-8").write(
             json.dumps(rec, ensure_ascii=False, indent=1) + "\n")
@@ -512,7 +512,7 @@ def main():
                 ntile += 1
         png_written = True
 
-    rec = {"schema": "astrocs.vis-report/v1", "group": args.group, "fits": args.fits,
+    rec = {"schema": "acsd.vis-report/v1", "group": args.group, "fits": args.fits,
            "shape": [int(h), int(w)], "tile_px": args.tile, "n_tiles": ntile,
            "png_written": png_written, "injected": injected,
            "finite_fraction": finite_fraction, "nonzero_fraction": nonzero_fraction,

@@ -85,7 +85,7 @@ class TestCanonicalObjectSchemas(unittest.TestCase):
         """负例④指向的 port_contract 必须是真实存在、可被 jsonschema_min 加载的 schema（不是索引里的内联约定）。"""
         reg = load(REPO / REGISTRY_REL)
         ref = reg["port_contract_ref"]
-        self.assertEqual("https://astrocs.local/schemas/unified/port/v1", ref["schema_id"])
+        self.assertEqual("https://acsd.local/schemas/unified/port/v1", ref["schema_id"])
         self.assertEqual("eng/contracts/schemas/unified/port_contract.schema.json", ref["canonical_schema_file"])
         doc = load(REPO / ref["canonical_schema_file"])
         self.assertEqual(ref["schema_id"], doc["$id"])
@@ -102,7 +102,7 @@ class TestCanonicalObjectSchemas(unittest.TestCase):
         ok = dict(neg)
         ok["connected_object_document"] = {
             "unified_object": "variance",
-            "object_schema_id": "https://astrocs.local/schemas/unified/variance/v1"}
+            "object_schema_id": "https://acsd.local/schemas/unified/variance/v1"}
         self.assertEqual("", merged_errors(ok, doc))
 
     def test_every_schema_loads_and_has_unique_global_id(self):
@@ -116,10 +116,10 @@ class TestCanonicalObjectSchemas(unittest.TestCase):
             self.assertNotIn(sid, ids, "schema ID 不唯一: %s (同时出现在 %s 与 %s)" % (sid, ids.get(sid), p))
             ids[sid] = p.relative_to(REPO).as_posix()
         # 13 个 canonical 对象 schema 必须全部声明 $id 且互不相同（不得靠别处文件凑数）
-        self.assertTrue(all(("https://astrocs.local/schemas/unified/%s/v1" % o) in ids for o in OBJECTS))
+        self.assertTrue(all(("https://acsd.local/schemas/unified/%s/v1" % o) in ids for o in OBJECTS))
         canonical = {}
         for o in OBJECTS:
-            sid = "https://astrocs.local/schemas/unified/%s/v1" % o
+            sid = "https://acsd.local/schemas/unified/%s/v1" % o
             self.assertIn(sid, ids, "缺少 canonical schema ID: %s" % sid)
             canonical[sid] = ids[sid]
         self.assertEqual(len(OBJECTS), len(set(canonical.values())),
@@ -136,7 +136,7 @@ class TestCanonicalObjectSchemas(unittest.TestCase):
             self.assertEqual(p.stem.replace(".schema", ""), name, "文件名与对象名不一致: %s" % p)
             self.assertNotIn(name, owner, "对象 %s 有两个 canonical 文件: %s / %s" % (name, owner.get(name), p))
             owner[name] = p.relative_to(REPO).as_posix()
-            self.assertEqual(name, doc["x-astrocs-object"]["name"])
+            self.assertEqual(name, doc["x-acsd-object"]["name"])
         self.assertEqual(sorted(OBJECTS), sorted(owner))
 
     def test_every_object_schema_is_in_the_ownership_registry(self):
@@ -234,7 +234,7 @@ class TestAmbiguousFieldGuard(unittest.TestCase):
             for bad in AMBIGUOUS:
                 doc = dict(base)
                 doc["unified_object"] = o
-                doc["object_schema_id"] = "https://astrocs.local/schemas/unified/%s/v1" % o
+                doc["object_schema_id"] = "https://acsd.local/schemas/unified/%s/v1" % o
                 doc[bad] = 1.0
                 errs = merged_errors(doc, load(UNIFIED / ("%s.schema.json" % o)))
                 self.assertIn(bad, errs, "%s: 裸字段 %r 未被拦截 (%s)" % (o, bad, errs))
@@ -309,7 +309,7 @@ class TestNegativeFixtures(unittest.TestCase):
 class TestSparseSnrAbsoluteSemantics(unittest.TestCase):
     """G. sparse_snr_layer 存**绝对** SNR：schema 冻结 + 数值判据能红能绿。
 
-    设计（docs/ASTROCS_DESIGN.md §2.2/§3.1/§4.4/§5.3）：控制点值 = 该点的绝对通量型
+    设计（docs/ACSD_DESIGN.md §2.2/§3.1/§4.4/§5.3）：控制点值 = 该点的绝对通量型
     SNR F_ref/σ_F(x,y)，与 frame_snr 同口径、同逐帧参考通量 F_ref；Phase2 由
     控制点**直接重建**为稠密 SNR 场，**不**乘/除帧级标量。本类给出机器可判据：
       * 结构判据：schema 以 sparse_snr_semantics=absolute_flux_type_snr 冻结语义；
@@ -429,7 +429,7 @@ class TestSparseSnrAbsoluteSemantics(unittest.TestCase):
 
     # ── 文档漂移判据（注入相对表述 ⇒ 判红）──────────────────────────────
     AUTHORITY_DOCS = (
-        "docs/ASTROCS_DESIGN.md",
+        "docs/ACSD_DESIGN.md",
         "docs/detail/UNIFIED_MODEL.md",
         "docs/detail/PHASE2_DETAILED_DESIGN.md",
         "docs/detail/algorithms_phase1/07_noise_snr.md",
@@ -480,7 +480,7 @@ class TestRetiredObjectContract(unittest.TestCase):
         self.assertNotIn(self.RETIRED, OBJECTS)
         self.assertFalse((REPO / self.RETIRED_SCHEMA).exists(), "退役对象的 canonical schema 不得复活")
         self.assertFalse((REPO / self.RETIRED_EXAMPLE).exists(), "退役对象的正例不得复活")
-        sid = "https://astrocs.local/schemas/unified/%s/v1" % self.RETIRED
+        sid = "https://acsd.local/schemas/unified/%s/v1" % self.RETIRED
         for p in sorted(SCHEMAS.rglob("*.schema.json")):
             self.assertNotEqual(sid, load(p).get("$id"), "退役对象的 schema ID 仍被声明: %s" % p)
         reg = load(REPO / REGISTRY_REL)
@@ -500,10 +500,10 @@ class TestRetiredObjectContract(unittest.TestCase):
         # 反向：同形端口连接合法对象必须通过（证明判红来自对象枚举，不是端口形态本身）
         ok = json.loads(json.dumps(neg))
         ok["accepts_object"] = "point_information"
-        ok["accepts_schema_id"] = "https://astrocs.local/schemas/unified/point_information/v1"
+        ok["accepts_schema_id"] = "https://acsd.local/schemas/unified/point_information/v1"
         ok["connected_object_document"]["unified_object"] = "point_information"
         ok["connected_object_document"]["object_schema_id"] = \
-            "https://astrocs.local/schemas/unified/point_information/v1"
+            "https://acsd.local/schemas/unified/point_information/v1"
         self.assertEqual("", merged_errors(ok, port))
 
     def test_retirement_record_carries_migration_hint(self):
@@ -557,7 +557,7 @@ class TestUnitsMissingPrecisionWeight(unittest.TestCase):
             self.assertEqual(verdict, doc["properties"]["object_weight_verdict"]["const"],
                              "%s: 可否作权重判定被改动（必须照抄 UNIFIED_MODEL §2）" % o)
             self.assertEqual(eligible, doc["properties"]["object_weight_capability"]["const"])
-            self.assertEqual(verdict, doc["x-astrocs-object"]["weight_verdict"])
+            self.assertEqual(verdict, doc["x-acsd-object"]["weight_verdict"])
             self.assertIn("object_weight_capability", doc["required"])
             self.assertIn("object_weight_verdict", doc["required"])
 
@@ -621,7 +621,7 @@ class TestDeclarationDriftGuard(unittest.TestCase):
         for c in self.reg["canonical_object_classes"]:
             self.assertEqual("DATA-OBJ-%s-001" % c["object_name"].upper().replace("_", "-"),
                              c["object_data_id"])
-            self.assertEqual("https://astrocs.local/schemas/unified/%s/v1" % c["object_name"], c["schema_id"])
+            self.assertEqual("https://acsd.local/schemas/unified/%s/v1" % c["object_name"], c["schema_id"])
 
     def test_registry_field_claims_match_schema(self):
         for c in self.reg["canonical_object_classes"]:
@@ -697,7 +697,7 @@ class TestRegistryIndex(unittest.TestCase):
     """registry 索引与 INDEX.yaml / DATA_ARTIFACTS.md 的一致性（迁移映射与废弃/退役登记）。
 
     废弃登记 = 变更编号（CHG-YYYY-MM-DD-<TAG>）；退役条件 = 负责人裁决哨兵 OWNER_DECISION
-    —— 版本号不得作为生效/退役条件（docs/ASTROCS_DESIGN.md §12；GAP_AUDIT §4.1 Q2 裁决）。
+    —— 版本号不得作为生效/退役条件（docs/ACSD_DESIGN.md §12；GAP_AUDIT §4.1 Q2 裁决）。
     """
 
     def test_registry_has_deprecation_window(self):

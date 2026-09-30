@@ -103,7 +103,7 @@ int main(int argc, char** argv) {
     double worst_face_err = 0.0;
     for (int f = 0; f < 12; ++f) {
         double ra = 0, dec = 0;
-        astrocs::healpix::pix2ang_nest(1, (std::uint64_t)f, ra, dec);
+        acsd::healpix::pix2ang_nest(1, (std::uint64_t)f, ra, dec);
         const double offs[4][2] = {{0.37, 0.37},  {1.37, 0.37},
                                    {0.37, -0.37}, {-0.37, 0.37}};
         for (const auto& off : offs) {
@@ -113,7 +113,7 @@ int main(int argc, char** argv) {
             if (!sample(pra, pdec, 0, &v) || !std::isfinite(v)) continue;
             const double base = 0.20 + 0.50 * (pra / 360.0) +
                                 0.25 * ((pdec + 90.0) / 180.0);
-            const std::uint64_t leaf = astrocs::healpix::ang2pix_nest(
+            const std::uint64_t leaf = acsd::healpix::ang2pix_nest(
                 1u << 9, pra, pdec);
             const int face_here = (int)(leaf >> 18);  // order0 tile = base face
             const double res = (double)v - base - 0.012 * face_here;
@@ -163,8 +163,8 @@ int main(int argc, char** argv) {
             double ra1 = 0, dec1 = 0, ra2 = 0, dec2 = 0;
             const std::uint64_t c1 = (o1tiles[i] << 18) | 196608u;
             const std::uint64_t c2 = (o1tiles[j] << 18) | 196608u;
-            astrocs::healpix::pix2ang_nest(1u << 10, c1, ra1, dec1);
-            astrocs::healpix::pix2ang_nest(1u << 10, c2, ra2, dec2);
+            acsd::healpix::pix2ang_nest(1u << 10, c1, ra1, dec1);
+            acsd::healpix::pix2ang_nest(1u << 10, c2, ra2, dec2);
             const double d = dist_deg(ra1, dec1, ra2, dec2);
             if (d < best) {
                 best = d;
@@ -176,9 +176,9 @@ int main(int argc, char** argv) {
     bool seam_ok = false;
     if (best < 1e30) {
         double ra1 = 0, dec1 = 0, ra2 = 0, dec2 = 0;
-        astrocs::healpix::pix2ang_nest(1u << 10, (pair.first << 18) | 196608u,
+        acsd::healpix::pix2ang_nest(1u << 10, (pair.first << 18) | 196608u,
                                        ra1, dec1);
-        astrocs::healpix::pix2ang_nest(1u << 10, (pair.second << 18) | 196608u,
+        acsd::healpix::pix2ang_nest(1u << 10, (pair.second << 18) | 196608u,
                                        ra2, dec2);
         const double mid_ra = (ra1 + ra2) / 2.0;
         const double mid_dec = (dec1 + dec2) / 2.0;
@@ -201,13 +201,13 @@ int main(int argc, char** argv) {
 
     // 11. 零覆盖区（signal=NaN, support=0）
     {
-        const std::uint64_t leaf = astrocs::healpix::ang2pix_nest(
+        const std::uint64_t leaf = acsd::healpix::ang2pix_nest(
             1u << 9, 180.5, 0.0);
         const std::uint64_t tile = leaf >> 18;
         std::vector<float> sig, sup;
         bool zero_ok = false;
         if (bk.read_tile_at_order(0, tile, sig, sup) == 0) {
-            const std::uint64_t fi = astrocs::healpix::nested_local_to_fits_index(
+            const std::uint64_t fi = acsd::healpix::nested_local_to_fits_index(
                 leaf & ((1ULL << 18) - 1), 9u, 512u);
             zero_ok = !std::isfinite(sig[(size_t)fi]) && sup[(size_t)fi] == 0.0f;
         }

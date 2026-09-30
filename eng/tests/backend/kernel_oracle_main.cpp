@@ -7,16 +7,16 @@
 #include <cstring>
 #include <vector>
 
-#include "astrocs/common_abi_v1.h"
+#include "acsd/common_abi_v1.h"
 #include "baseline_kernels.h"
 
 extern "C" {
-int astrocs_host_services_default_v1(astrocs_host_services_v1* out, void** state_out);
-void astrocs_host_services_destroy_state_v1(void* state);
-void astrocs_host_state_set_budget_v1(void* state, uint32_t cpus, uint32_t max_workers,
-                                      astrocs_host_services_v1* out);
-int astrocs_backend_get_api_v1(uint32_t, uint32_t, const astrocs_host_services_v1*,
-                               astrocs_backend_api_v1*);
+int acsd_host_services_default_v1(acsd_host_services_v1* out, void** state_out);
+void acsd_host_services_destroy_state_v1(void* state);
+void acsd_host_state_set_budget_v1(void* state, uint32_t cpus, uint32_t max_workers,
+                                      acsd_host_services_v1* out);
+int acsd_backend_get_api_v1(uint32_t, uint32_t, const acsd_host_services_v1*,
+                               acsd_backend_api_v1*);
 }
 
 namespace {
@@ -44,13 +44,13 @@ struct Buffers {
 }  // namespace
 
 int main() {
-    astrocs_host_services_v1 host;
+    acsd_host_services_v1 host;
     void* state = nullptr;
-    if (astrocs_host_services_default_v1(&host, &state) != ACS_OK) return 2;
+    if (acsd_host_services_default_v1(&host, &state) != ACS_OK) return 2;
 
-    astrocs_backend_api_v1 api;
+    acsd_backend_api_v1 api;
     std::memset(&api, 0, sizeof(api));
-    if (astrocs_backend_get_api_v1(ACS_ABI_VERSION_V1, sizeof(astrocs_host_services_v1),
+    if (acsd_backend_get_api_v1(ACS_ABI_VERSION_V1, sizeof(acsd_host_services_v1),
                                    &host, &api) != ACS_OK) return 2;
     if (api.kernel_count != 12) { std::printf("KERNEL_COUNT %u\n", api.kernel_count); return 2; }
 
@@ -109,9 +109,9 @@ int main() {
         if (n_in3) print_span("IN3", b.in3);
 
         std::vector<float> out_a(N, 0.0f), out_b(N, 0.0f), out1(N, 0.0f);
-        acs_baseline_params_v1 base;
+        acsd_baseline_params_v1 base;
         std::memset(&base, 0, sizeof(base));
-        base.head.struct_size = sizeof(acs_baseline_params_v1);
+        base.head.struct_size = sizeof(acsd_baseline_params_v1);
         base.head.abi_version = ACS_ABI_VERSION_V1;
         base.op = op.op; base.w = W; base.h = H; base.k = op.k;
         base.aux0 = op.aux0; base.aux1 = op.aux1;
@@ -123,11 +123,11 @@ int main() {
         uint32_t w_used[2] = {0, 0};
         std::vector<float>* outs[2] = {&out_a, &out_b};
         for (int pass = 0; pass < 2; ++pass) {
-            astrocs_host_state_set_budget_v1(state, 1, pass == 0 ? 1u : 4u, &host);
-            acs_baseline_params_v1 p = base;
+            acsd_host_state_set_budget_v1(state, 1, pass == 0 ? 1u : 4u, &host);
+            acsd_baseline_params_v1 p = base;
             p.out0 = ACS_SPAN_F32(outs[pass]->data(), outs[pass]->size());
             p.out1 = ACS_SPAN_F32(out1.data(), out1.size());
-            const acs_status rc = api.kernels[0].fn(&host, &p, sizeof(p), nullptr, nullptr);
+            const acsd_status rc = api.kernels[0].fn(&host, &p, sizeof(p), nullptr, nullptr);
             if (rc != ACS_OK) { std::printf("RC %d\n", (int)rc); return 3; }
             w_used[pass] = p.workers_used;
         }
@@ -137,7 +137,7 @@ int main() {
         std::printf("DET %s\n",
                     std::memcmp(out_a.data(), out_b.data(), N * sizeof(float)) == 0 ? "OK" : "FAIL");
     }
-    astrocs_host_services_destroy_state_v1(state);
+    acsd_host_services_destroy_state_v1(state);
     std::printf("ORACLE_RUNNER_DONE\n");
     return 0;
 }

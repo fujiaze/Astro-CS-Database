@@ -15,7 +15,7 @@
       --providers-dir <build>/providers --isa-only --out <build>/providers/backends.manifest.json
 
 输出 schema (backends.manifest.json, 与 backend_loader.parse_backends_manifest 兼容):
-  {"schema_version":"1","kind":"astrocs_backends_manifest",
+  {"schema_version":"1","kind":"acsd_backends_manifest",
    "build": {"build_id","compiler","flags","commit","abi_version"},
    "features_defined": {"sse2","sse4_1","avx","avx2","fma","avx512f","avx512bw","avx512dq","avx512vl"},
    "backends":[{"file","backend_id","sha256","abi_version",
@@ -62,7 +62,7 @@ DETECTABLE_FEATURES = set(FEATURE_BITS.keys())
 #   · 声明 ⊄ 编译（"声明了但没编进去"）= 虚假能力声明;
 #   · 编译 ⊄ 声明（少声明）= 加载放行后首调撞非法指令（DYN-740 原始事故）。
 # 两族的 avx512 记录不同是**合法**差异，依据在各自源码与旗标里:
-#   backend  家族: -mavx512f -bw -dq -vl 编译（无 CD），声明宏 ASTROCS_BACKEND_REQUIRED_FEATURES
+#   backend  家族: -mavx512f -bw -dq -vl 编译（无 CD），声明宏 ACSD_BACKEND_REQUIRED_FEATURES
 #     按 __AVX512CD__ 两分支 ⇒ GNU 928 / MSVC 992;
 #   provider 家族: 五个子集旗标编译（含 -mavx512cd），声明宏 ACS_CPU_AVX512_REQUIRED_FEATURES
 #     = ACS_CAP_GROUP_AVX512_SUBSET = F|CD|BW|DQ|VL ⇒ **两平台都是 992**（旧清单此处写 928，
@@ -147,28 +147,28 @@ def git_commit(repo):
 # 全仓存在**两个** CPU provider 家族，各带自己的 C ABI 入口；两者都必须进构建图与
 # 清单校验，不得游离 (裁决：属 ISA provider 集合 ⇒ 必须入图)：
 #   backend  家族 = lib/infrastructure/benchmark/backend_host/*_backend.cpp
-#                入口 astrocs_backend_get_api_v1 (lib/include/astrocs/common_abi_v1.h:164)
+#                入口 acsd_backend_get_api_v1 (lib/include/acsd/common_abi_v1.h:164)
 #                消费者 = lib/.../backend_host/backend_loader + cpu_routing + CLI 选取；
-#                交付名 providers/astrocs_cpu_<id>.so + providers/backends.manifest.json。
+#                交付名 providers/acsd_cpu_<id>.so + providers/backends.manifest.json。
 #   provider 家族 = lib/infrastructure/benchmark/cpu/<id>/src/<id>_provider.cpp (+ common/src)
-#                入口 astrocs_provider_query_v1 (lib/include/astrocs/abi/module_api_v1.h 冻结)
+#                入口 acsd_provider_query_v1 (lib/include/acsd/abi/module_api_v1.h 冻结)
 #                消费者 = lib/infrastructure/pipeline/module_loader/secure_loader；
-#                交付名 providers/astrocs_cpuprov_<id>.so + providers/providers.manifest.json。
+#                交付名 providers/acsd_cpuprov_<id>.so + providers/providers.manifest.json。
 # 两族清单互不混装 (backend 清单里出现 provider 入口 = 预检必然拒绝的游离项) ⇒
 # 清单的入口符号与家族归属由门禁在重建时校验。
 FAMILIES = {
     "backend": {
-        "kind": "astrocs_backends_manifest",
-        "entrypoint": "astrocs_backend_get_api_v1",
+        "kind": "acsd_backends_manifest",
+        "entrypoint": "acsd_backend_get_api_v1",
         "abi": "backend_host_v1",
-        "file_prefix": "astrocs_cpu_",
+        "file_prefix": "acsd_cpu_",
         "skip_baseline_when_isa_only": True,
     },
     "provider": {
-        "kind": "astrocs_providers_manifest",
-        "entrypoint": "astrocs_provider_query_v1",
+        "kind": "acsd_providers_manifest",
+        "entrypoint": "acsd_provider_query_v1",
         "abi": "module_provider_v1",
-        "file_prefix": "astrocs_cpuprov_",
+        "file_prefix": "acsd_cpuprov_",
         "skip_baseline_when_isa_only": False,
     },
 }
@@ -196,11 +196,11 @@ def main():
     ap.add_argument("--repo", required=True, help="仓库根目录(找 git commit / lib)")
     ap.add_argument("--build-dir", required=True, help="构建目录(含 provider 静态库 .a)")
     ap.add_argument("--providers-dir", default="",
-                    help="SHARED provider 目录(含 astrocs_cpu_<id>.so|.dll, 与清单同目录)")
+                    help="SHARED provider 目录(含 acsd_cpu_<id>.so|.dll, 与清单同目录)")
     ap.add_argument("--isa-only", action="store_true",
                     help="只登记可选 ISA 变体(baseline 恒为进程内置, 不进清单; 仅 backend 家族适用)")
     ap.add_argument("--family", choices=sorted(FAMILIES), default="backend",
-                    help="provider 家族: backend=astrocs_backend_get_api_v1 / provider=astrocs_provider_query_v1")
+                    help="provider 家族: backend=acsd_backend_get_api_v1 / provider=acsd_provider_query_v1")
     ap.add_argument("--out", required=True, help="输出 manifest JSON 路径")
     ap.add_argument("--compiler", default="", help="编译器标识(如 g++-14)")
     ap.add_argument("--commit", default="", help="覆盖 git commit(默认取 HEAD)")
@@ -216,7 +216,7 @@ def main():
 
     # R-60: 旗标与声明面**同源同平台**。MSVC 没有 AVX-512 子集档位旗标 —— /arch:AVX512 的
     # 许可面是 F+CD+BW+DQ+VL（MS docs /arch (x64) 预定义宏段 + C++ 团队博客），比 GCC 腿的
-    # 四子集旗标多 CD；变体 DSO 的声明（avx512_backend.cpp 的 ASTROCS_BACKEND_REQUIRED_FEATURES
+    # 四子集旗标多 CD；变体 DSO 的声明（avx512_backend.cpp 的 ACSD_BACKEND_REQUIRED_FEATURES
     # 按 __AVX512CD__ 取平台精确值）因此含 CD ⇒ 清单必须同步，否则一边「声明了产物没用上的位」、
     # 另一边「产物声明了清单不认」。GNU/Clang(Linux) 腿的输出逐字节不变。
     platform = isa_sites.platform_of(args.compiler)
@@ -227,8 +227,8 @@ def main():
         return 2
     # 逐变体的**真实构建旗标**（来自站点登记，平台分支已解析）；不是手抄的字符串。
     flags_by_backend = {"baseline": "(none; amd64 SSE2 基线)"}
-    # 交付形态选择: --providers-dir ⇒ SHARED DSO(astrocs_cpu_<id>.so|.dll, PREFIX 已去 lib);
-    # 否则沿用旧静态库面(libastrocs_cpu_<id>.a)。
+    # 交付形态选择: --providers-dir ⇒ SHARED DSO(acsd_cpu_<id>.so|.dll, PREFIX 已去 lib);
+    # 否则沿用旧静态库面(libacsd_cpu_<id>.a)。
     providers_dir = args.providers_dir
     if providers_dir and not os.path.isdir(providers_dir):
         print(f"ERROR: providers dir not found: {providers_dir}", file=sys.stderr)
@@ -287,9 +287,9 @@ def main():
                     lib = cand
                     break
         else:
-            lib = os.path.join(args.build_dir, f"libastrocs_cpu_{backend_id}.a")
+            lib = os.path.join(args.build_dir, f"libacsd_cpu_{backend_id}.a")
             if backend_id == "baseline":
-                lib = os.path.join(args.build_dir, "libastrocs_cpu.a")  # baseline 在 astrocs_cpu 内
+                lib = os.path.join(args.build_dir, "libacsd_cpu.a")  # baseline 在 acsd_cpu 内
         if not lib or not os.path.isfile(lib):
             print(f"ERROR: provider library not found: {lib}", file=sys.stderr)
             return 3

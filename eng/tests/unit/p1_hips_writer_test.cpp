@@ -125,7 +125,7 @@ static void check_primary_cards(const std::string& tile) {
 }
 
 int main() {
-  const std::string base = tmp_dir() + "/astrocs_p1_hips_test";
+  const std::string base = tmp_dir() + "/acsd_p1_hips_test";
   const std::string dirA = base + "/a";
   const std::string dirB = base + "/b";
   const std::string dirC = base + "/c";
@@ -147,7 +147,7 @@ int main() {
     CHECK(props.find("hips_frame=equatorial") != std::string::npos);
     CHECK(props.find("hips_frame=icrs") == std::string::npos);
     CHECK(props.find("hips_status=") != std::string::npos);
-    CHECK(props.find("ASTROCS_DRIZZLE_PIXFRAC") != std::string::npos);
+    CHECK(props.find("ACSD_DRIZZLE_PIXFRAC") != std::string::npos);
     // M2b-B-03: hips_pixel_scale 单位=度 (IVOA REC-HIPS-1.0 §4.4.1):
     // (180/π)·sqrt(π/3)/nside, nside=512 ⇒ 0.114516 (旧实现写 412.258369 角秒)。
     const double scale_deg = (180.0 / M_PI) * std::sqrt(M_PI / 3.0) / 512.0;

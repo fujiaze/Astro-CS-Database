@@ -34,7 +34,7 @@
 // ============================================================================
 #pragma once
 
-namespace astrocs {
+namespace acsd {
 namespace p1 {
 namespace coord {
 
@@ -58,4 +58,4 @@ inline double ipv_detection_from_star_measurement(double unified) {
 
 }  // namespace coord
 }  // namespace p1
-}  // namespace astrocs
+}  // namespace acsd

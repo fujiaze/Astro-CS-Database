@@ -1,6 +1,6 @@
-# 模块 astrocs.phase1.star-detection
+# 模块 acsd.phase1.star-detection
 
-> 上游：docs/ASTROCS_DESIGN.md §8.5（模块与 ABI）、§4.2（节点流程：星表引导检测与 WCS 解算）、
+> 上游：docs/ACSD_DESIGN.md §8.5（模块与 ABI）、§4.2（节点流程：星表引导检测与 WCS 解算）、
 §2.1（创新点一：星点位置由星表逆映射获得）
 > 科学正本：docs/science/STAR_DETECTION.md（SCI-P1-STAR-001）、
 > docs/science/algorithms/STAR_DETECTION_ALGORITHMS.md（ALG-STARDET-001）、
@@ -10,9 +10,9 @@
 > API 正本：docs/engineering/PUBLIC_API.md（API-STAR-001）、
 > docs/engineering/PHASE1_API_V1.md（API-P1-003）
 
-模块词汇 `astrocs.phase1.star-detection` 为 registry descriptor 单源；模块合同
+模块词汇 `acsd.phase1.star-detection` 为 registry descriptor 单源；模块合同
 owner = SA-P1-S15。冻结合同 = `lib/algorithms/star_detection/README.md` +
-`module.yaml`（MOD-astrocs-phase1-star，dll_target=astrocs_p1_star_detection.dll，
+`module.yaml`（MOD-acsd-phase1-star，dll_target=acsd_p1_star_detection.dll，
 entrypoint 未落地）；权威签名头
 `lib/algorithms/star_detection/include/star_detector.h`，生产实现
 `lib/algorithms/star_detection/src/sdet_api.cpp`（检测内核 `sdet_detect_impl`）。
@@ -109,12 +109,12 @@ PLATESOLVE fallback 读块，禁止重检测。
 legacy_paths 第二路径）。
 
 现状构建有两条路径：`lib/algorithms/star_detection/Makefile` → `star_detector.dll`
-（orchestrator.cpp 显式加载，失败即错）；根 CMakeLists 目标 `astrocs_phase1_stars`
+（orchestrator.cpp 显式加载，失败即错）；根 CMakeLists 目标 `acsd_phase1_stars`
 （STATIC，wrapper_phase1）。
 
 ## Registry descriptor 与配置 schema
 
-module_id=`astrocs.phase1.star-detection`; execution_class=`cpu_heavy`;
+module_id=`acsd.phase1.star-detection`; execution_class=`cpu_heavy`;
 parallel_ok=True。
 
 节点 `star-psf` 从输入的 `star_detection` 段解析检测模式（同一键也可回退到 `wcs`
@@ -127,7 +127,7 @@ parallel_ok=True。
 
 本段一切「规模/上限」类数字都由配置键与星表查询口径导出：检测定义域 =
 `star_detection.max_stars`（设计自定算力上界，非科学常数，语义正本 =
-ASTROCS_DESIGN.md §4.2）；拟合样本上限 = `photometry.fit.max_stars`（默认 5000）；
+ACSD_DESIGN.md §4.2）；拟合样本上限 = `photometry.fit.max_stars`（默认 5000）；
 交付 SNR 样本上限 = `snr.max_sources`（默认 0 = 不限，只截断交付样本行、**不**
 截断检测定义域）。三者各自只承担自己的口径，合同域正本 =
 `phase_config_normalize.schema.json`。
@@ -241,8 +241,8 @@ Oracle 面：
 
 - ThreadBudget 接线与取消检查点缺失（缺陷登记 = ALG-STARDET-001 §11.3），迁移
   目标未落地；
-- dll_target = astrocs_p1_star_detection.dll，entrypoint 未落地；现状生产构建走
-  `star_detector.dll` 显式加载与 `astrocs_phase1_stars` 静态库两条路径；
+- dll_target = acsd_p1_star_detection.dll，entrypoint 未落地；现状生产构建走
+  `star_detector.dll` 显式加载与 `acsd_phase1_stars` 静态库两条路径；
 - `wrapper_phase1` 为非生产算法路径的桥接实现；
 - 局部噪声自适应为目标态、当前未实现；
 - 全局限制登记 = artifacts/evidence/known-limitations-ledger/LIMITATIONS.md。

@@ -1,6 +1,6 @@
 # 日志与错误合同
 
-> 上游：`docs/ASTROCS_DESIGN.md` §7.2（机器输出与退出码）、§7.3（错误传播与日志：顶层约束）
+> 上游：`docs/ACSD_DESIGN.md` §7.2（机器输出与退出码）、§7.3（错误传播与日志：顶层约束）
 > 详细设计：`docs/detail/LOG_AND_ERROR_SYSTEM.md`
 > 机器事实源：`lib/infrastructure/observability/logging/log_event_v1.schema.json`（日志行格式正本）、
 > `eng/ci/ledgers/log_system_ledger.json`（登记台账）、`eng/tools/quality/check_log_system.py`（判据）
@@ -30,7 +30,7 @@
 | 字段表、语义、枚举、error 载荷 | `docs/engineering/observability/STRUCTURED_LOGGING_CONTRACT.md` §2 |
 | JSON Schema（draft-07） | `lib/infrastructure/observability/logging/log_event_v1.schema.json` |
 | 参考实现与校验器 | `lib/infrastructure/observability/logging/log_event.py`、`eng/tools/monitoring/check_log_contract.py` |
-| 诊断工具 | `eng/tools/astrocs_diagnose.py <run_dir>`，由一次运行的日志工件汇总输出小 bundle |
+| 诊断工具 | `eng/tools/acsd_diagnose.py <run_dir>`，由一次运行的日志工件汇总输出小 bundle |
 
 - 每行 = 一个 JSON 对象 + `\n`；单行（含换行）≤ **4096 字节**；
 - 事件键名 `event`、顺序键 `seq`；与运行事件流的 `kind` / `sequence` **各自独立**；
@@ -83,8 +83,8 @@ run manifest 增列 `log_artifacts[]`（**每次运行必填，可为空数组�
 
 | 字段 | 类型 | 语义 |
 |---|---|---|
-| `domain` | string | `ErrorDomain` 名（`lib/include/astrocs/core/contracts.h`） |
-| `exit_code` | int | 下表映射结果（`lib/infrastructure/cli/exit_codes.h` 的 `astrocs::ExitCode`） |
+| `domain` | string | `ErrorDomain` 名（`lib/include/acsd/core/contracts.h`） |
+| `exit_code` | int | 下表映射结果（`lib/infrastructure/cli/exit_codes.h` 的 `acsd::ExitCode`） |
 | `status` | string | 稳定错误码（`^[A-Z][A-Z0-9_]{0,63}$`） |
 | `source` | string | 出错位置（模块 id 或仓库内相对路径） |
 | `symbol` | string | 出错符号 |

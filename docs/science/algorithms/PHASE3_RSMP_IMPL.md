@@ -1,6 +1,6 @@
 # Phase3 HiPS Resample 实现级算法合同（ALG-P3-RSMP-IMPL-001）
 
-> 上游：ASTROCS_DESIGN.md §6.2（export 流程）
+> 上游：ACSD_DESIGN.md §6.2（export 流程）
 
 > 上游 SCI: SCI-P3-001（docs/science/PHASE3_HIPS_TO_FITS.md，
 > FROZEN，零改动；矩阵行 science_id 引用的
@@ -36,15 +36,15 @@
 
 | 项 | 合同值 | 实测 |
 |---|---|---|
-| module_id（矩阵 CSV 权威） | astrocs.p3.resample | MODULE_MIGRATION_MATRIX.csv P3-RSMP 行 |
-| registry 生产 descriptor | astrocs.phase3.resample2（`lib/infrastructure/scheduler/src/module_adapters.cpp` 的 `p3_resample2_descriptor`，module_id 同名） | 实测 |
-| dll_target | astrocs_p3_resample.dll | 矩阵 CSV；entrypoint 实测未建（DISP-P3RSMP-005） |
+| module_id（矩阵 CSV 权威） | acsd.p3.resample | MODULE_MIGRATION_MATRIX.csv P3-RSMP 行 |
+| registry 生产 descriptor | acsd.phase3.resample2（`lib/infrastructure/scheduler/src/module_adapters.cpp` 的 `p3_resample2_descriptor`，module_id 同名） | 实测 |
+| dll_target | acsd_p3_resample.dll | 矩阵 CSV；entrypoint 实测未建（DISP-P3RSMP-005） |
 | owner | SA-P3-S26 | 矩阵 CSV |
 | 合同目录 | lib/algorithms/resample/（本域合同文件，无源码） | 生产源仍在 lib/phase3_session/ |
 | 依赖 | lib/algorithms/shared/healpix（leaf_to_tile_nest/tile_to_leaf_nest/nested_local_to_fits_index/ang2pix/pix2ang）、lib/phase3_session/hips_properties（properties 严格校验经 p3_sampler_open 间接消费） | §3 |
-| 下游 | P3-RSMP-IMPL（实现）、P3-RSMP-TEST（可执行测试）、P3-RSMP-INT（descriptor 对齐 astrocs.p3.resample） | — |
+| 下游 | P3-RSMP-IMPL（实现）、P3-RSMP-TEST（可执行测试）、P3-RSMP-INT（descriptor 对齐 acsd.p3.resample） | — |
 
-- 静态库落位: astrocs_phase3_session（根 `CMakeLists.txt`，
+- 静态库落位: acsd_phase3_session（根 `CMakeLists.txt`，
   p3_resample.cpp 为五源文件之一）。
 - 会话编排消费: lib/phase3_session/p3_session.cpp（§8 逐点锚定）。
 - descriptor 端口绑定（`lib/infrastructure/scheduler/src/module_adapters.cpp`）: 输入
@@ -126,7 +126,7 @@ lib/algorithms/resample/p3_resample.h 全部公共符号（ALG-P3-003 施工面 
 
 ## 5 SCI/ALG 映射声明
 
-- 本域矩阵行 `MOD-astrocs-phase3-resample2` 的 `science_id` 现引用
+- 本域矩阵行 `MOD-acsd-phase3-resample2` 的 `science_id` 现引用
   `SCI-P3-RES-001`（MISSING 占位，无权威文档）。本合同声明：本域全部
   科学内容以 **SCI-P3-001**（docs/science/PHASE3_HIPS_TO_FITS.md，
   FROZEN）为唯一权威，映射关系
@@ -347,7 +347,7 @@ fits_index = nested_local_to_fits_index(local, 9, 512)   # = (511-x)*512 + y（D
 | DISP-P3RSMP-002 | tile cache 逐出为 FIFO；ALG §3 伪代码写 "LRU" | `lib/algorithms/resample/p3_resample.cpp`（无访问序更新） | ALG-P3-003 §3 | P3-RSMP-IMPL（实现升级 LRU 或 ALG 修订为 FIFO 表述） |
 | DISP-P3RSMP-003 | `p3_resample_check_mode` 会话编排层无调用点（flux/variance 输入拒未经会话守卫；能力在内核、探针消费） | grep 全仓: 仅 `eng/tests/backend/p3_resample_probe_main.cpp` | SCI §9a-8/10 | P3-RSMP-INT 接线（会话请求守卫增加 input_mode 检查） |
 | DISP-P3RSMP-004 | provenance.missing_tiles 恒 nullptr（缺 tile 聚合上报未接线；SCI §9a-9 要求记 missing） | `lib/phase3_session/p3_session.cpp` | SCI §9a-9 | P3-RSMP-IMPL/INT |
-| DISP-P3RSMP-005 | astrocs_p3_resample.dll 未建（entrypoint 缺失） | 全仓无该 target | 矩阵 dll_target | P3-RSMP-IMPL |
+| DISP-P3RSMP-005 | acsd_p3_resample.dll 未建（entrypoint 缺失） | 全仓无该 target | 矩阵 dll_target | P3-RSMP-IMPL |
 | DISP-P3RSMP-006 | **强制计数的产品承载面未冻结**：DATA-002 §2a 冻结了计数**字段名** `n_rejected_nonfinite`（按原因分类、per-pixel、mandatory），但**未**冻结 Phase3 产品里的承载面（`phase3_planar_fits_v1` 最小平面集 = signal/support/mask，plane_id 枚举 `{signal,support,variance,ivar,mask,sparse_snr}` 无计数字段；`p3_resampled.json` 的 `planes` 列表亦无）。内核面已按冻结字段名暴露（`P3SampleRejection`），**产品承载面不自行发明** | `eng/contracts/data/phase_product_exchange.schema.json`（无 `invalid_handling`/`count_field` 键，与 DATA-002 §2a「机器形态」声明不一致）；`eng/contracts/schemas/unified/rejection.schema.json` 仅有可选 `rejected_sample_count`；DATA_SEMANTICS §30.2（Phase2 诊断平面 `nrej/nused` 通道，语义为 P2 排异原因计数，非本规则） | DATA-002 §2a 规则 3；ALG-P3-003 §2 G4 | 待合同域登记：候选 =（a）逐像素诊断平面（沿用 §30.2 诊断平面通道，不入 science planes 枚举）；（b）`p3_resampled.json` 聚合键（drizzle 先例 `lib/algorithms/drizzle/healpix_drizzle/module_entry.cpp` 的 `"n_rejected_nonfinite"`）；（c）provenance 计数。三者均需合同域登记后才可落产品 |
 | DISP-P3RSMP-007 | **C（coverage）语义的唯一正本 = DATA_SEMANTICS §29**：Phase3 侧执行口径 = ALG-P3-003 §2 G4 / §4 与 §29.4「C 只判足迹内有无 tile 像素，值 NaN 不改 C」（零合格样本 ⇒ `S=NaN` ∧ `C=1`）；§29.2「C=1 ⇔ 足迹内存在**有限** tile 像素」与 DATA-002 §2a 规则 2「零合格样本 ⇒ signal=NaN ∧ **support≤0**」按 §29 正本订正 | 本层零合格样本输出 `S=NaN` 且 `C=1`（四角上游 support≤0），与 §29.4 一致 | ALG-P3-003 §2 G4/§4；DATA_SEMANTICS §29；DATA-002 §2a 规则 2 | 合同域登记面：§29.2 与 §29.4 的表述按 §29 正本收敛（订正动作落合同域） |
 

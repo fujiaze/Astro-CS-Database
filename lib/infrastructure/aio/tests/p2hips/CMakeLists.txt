@@ -4,7 +4,7 @@
 # ----------------------------------------------------------------------------
 # 合同锚: docs/science/DATA_SEMANTICS.md §30.2 (DATA-P2-REJ-001) /
 #         §30.3 (DATA-P2-PROV-001), DATA-UNC-001 FROZEN。
-# 被测面: astrocs_hips (根 CMakeLists.txt, aio_hips_writer.cpp +
+# 被测面: acsd_hips (根 CMakeLists.txt, aio_hips_writer.cpp +
 #         aio_hips_reader.cpp C ABI 导出面)。
 # 结构对齐 P1-HIPS-TEST 先例 lib/infrastructure/aio/tests/p1hips/CMakeLists.txt。
 #
@@ -23,8 +23,8 @@
 #                         同时基线(无注入)必 FAIL ⇒ 双向排除恒常断言
 #
 # 故障注入 (等价缺陷注入; 未设置时逐行零行为差异):
-#   ASTROCS_HIPS_PROV_FAULT=missing_key|value_drift
-#   ASTROCS_HIPS_DIAG_FAULT=sentinel|skip_write
+#   ACSD_HIPS_PROV_FAULT=missing_key|value_drift
+#   ACSD_HIPS_DIAG_FAULT=sentinel|skip_write
 # 判别力实测 (baseline GREEN, 注入 RED; 失败面与注入点一一对应):
 #   missing_key  → units_keys/units_verify 红, units_diag 绿 (prov 面专属)
 #   value_drift  → units_verify V6 红
@@ -39,7 +39,7 @@ add_executable(p2hips_tests ${P2HIPS_DIR}/p2hips_unc_prov_test.cpp)
 target_include_directories(p2hips_tests PRIVATE
   ${P2HIPS_INC}
   ${P2HIPS_DIR})
-target_link_libraries(p2hips_tests PRIVATE astrocs_hips ${ASTROCS_OMP_TARGET})
+target_link_libraries(p2hips_tests PRIVATE acsd_hips ${ACSD_OMP_TARGET})
 
 add_test(NAME p2hips_units COMMAND p2hips_tests units)
 add_test(NAME p2hips_determinism COMMAND p2hips_tests determinism)
@@ -48,4 +48,4 @@ add_test(NAME p2hips_negative COMMAND p2hips_tests negative)
 # 故障注入必败自检 (验收: 注入下必 PASS 且能观测到等价缺陷; 基线必 FAIL)
 add_test(NAME p2hips_selfcheck COMMAND p2hips_tests selfcheck)
 set_tests_properties(p2hips_selfcheck PROPERTIES ENVIRONMENT
-  "ASTROCS_HIPS_PROV_FAULT=missing_key")
+  "ACSD_HIPS_PROV_FAULT=missing_key")

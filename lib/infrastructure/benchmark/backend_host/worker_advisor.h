@@ -17,23 +17,23 @@
 //   - block 候选派生: 复用 bench_harness::block_candidates(L2 几何序列), 不复制。
 //   - 无 profile/失配: 按 V8-CPU-002 语义回落 —— generic ISA + 动态多线程,
 //     workers=可用上限(与 bench_harness::no_profile_policy 一致), 本层不退 1。
-// 与 CPU-006 report(astrocs.benchmark-report/v1)/CPU-007 store(astrocs.cpu-profile/v2)
-// 结构性隔离: 本层产出的 plan/trace 是新面 astrocs.resource-plan/v1 与
-// astrocs.worker-grant/v1, 三种 schema 互不渗透。
+// 与 CPU-006 report(acsd.benchmark-report/v1)/CPU-007 store(acsd.cpu-profile/v2)
+// 结构性隔离: 本层产出的 plan/trace 是新面 acsd.resource-plan/v1 与
+// acsd.worker-grant/v1, 三种 schema 互不渗透。
 //
 // worker=1 语义(规格红线"重计算禁止单线程"与"worker=1 仅 tiny/I/O 允许"):
 //   - tiny/io 类: workers=1 允许(I/O 捆绑或微任务, 无重计算可并行);
 //   - compute/memory 类且硬上限≥2: workers 不得为 1 —— profile 实测行给出 1 时
 //     floor 到 2(reason 记 single_thread_rejected_floor2); 仅系统性资源约束
 //     (用户上限=1 / 内存预算=1 / 资源未知保守回落)允许 workers=1, reason 必记。
-#ifndef ASTROCS_WORKER_ADVISOR_H
-#define ASTROCS_WORKER_ADVISOR_H
+#ifndef ACSD_WORKER_ADVISOR_H
+#define ACSD_WORKER_ADVISOR_H
 
 #include <cstdint>
 #include <string>
 #include <vector>
 
-namespace astrocs::backend_host {
+namespace acsd::backend_host {
 
 // ── 资源上限(全部派生; 零固定核数) ──
 // available_cpus: 有效 affinity∩显式限制(与 hardware_inspect available_logical_cpus
@@ -99,7 +99,7 @@ WorkerAdvice advise_kernel_v1(const std::string& profile_json,   // 空串=无 p
                               const ResourceLimitsV1& limits);
 
 // ── 选择写入 plan(规格: "将选择写入 plan") ──
-// 输出 astrocs.resource-plan/v1 JSON: limits 摘要 + 每条 advice 的 resources 行。
+// 输出 acsd.resource-plan/v1 JSON: limits 摘要 + 每条 advice 的 resources 行。
 // plan 是"建议上限"记录, 不是观测; 实际占用由 worker_grant_trace_v1 落 trace。
 std::string build_resource_plan_v1(const std::vector<WorkerAdvice>& advice,
                                    const ResourceLimitsV1& limits,
@@ -122,6 +122,6 @@ struct GrantInput {
 };
 std::string worker_grant_trace_v1(const GrantInput& g);
 
-}  // namespace astrocs::backend_host
+}  // namespace acsd::backend_host
 
-#endif  // ASTROCS_WORKER_ADVISOR_H
+#endif  // ACSD_WORKER_ADVISOR_H

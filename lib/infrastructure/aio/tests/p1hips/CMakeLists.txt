@@ -4,8 +4,8 @@
 # 控制包任务: P1-HIPS-TEST (SA-P1H-T, queue 39, lock-P1-HIPS; 依赖
 # P1-HIPS-DOC 闭环)。合同锚: docs/science/algorithms/HIPS_WRITER.md §9
 # TEST-HIPS-DESIGN-001 (P1-HIPS-DOC 冻结, 2026-09-07); 矩阵行 P1-HIPS
-# (MOD astrocs.phase1.hips-writer, registry 页
-# docs/detail/registry/astrocs.phase1.hips-writer.md)。
+# (MOD acsd.phase1.hips-writer, registry 页
+# docs/detail/registry/acsd.phase1.hips-writer.md)。
 #
 # 结构 (模块 eng/tests/{unit,properties,oracle,fixtures,negative,performance} 对应):
 #   p1hips/p1hips_fixtures.hpp     — FIX-HIPS-A..F 固定 seed fixture
@@ -34,7 +34,7 @@
 #                         FITS 不可写/prov 2/重复 finalize -2 (I9)/last_error
 #   p1hips_performance  — perf 基线哨兵 (parity 4x/trend 0.25x)
 #   p1hips_selfcheck    — 故障注入必败自检 (验收: 注入可失败, 双注入点)
-# 被测面: 现状唯一生产实现 astrocs_hips (根 CMakeLists.txt:326,
+# 被测面: 现状唯一生产实现 acsd_hips (根 CMakeLists.txt:326,
 # lib/infrastructure/aio/src/hips/aio_hips_writer.cpp C ABI 九导出,
 # API-HIPS-001); 本任务仅新增测试, 不改生产源 (批次 R: 域 hardening
 # 已覆盖, 负面用例从 ABI 合同层注入)。
@@ -57,7 +57,7 @@ add_executable(p1hips_tests
 target_include_directories(p1hips_tests PRIVATE
   ${P1HIPS_INC}
   ${P1HIPS_DIR})
-target_link_libraries(p1hips_tests PRIVATE astrocs_hips ${ASTROCS_OMP_TARGET})
+target_link_libraries(p1hips_tests PRIVATE acsd_hips ${ACSD_OMP_TARGET})
 # 单组单跑: ctest -R p1hips_units / p1hips_properties / p1hips_oracle / p1hips_negative
 add_test(NAME p1hips_units COMMAND p1hips_tests units)
 add_test(NAME p1hips_properties COMMAND p1hips_tests properties)
@@ -70,7 +70,7 @@ add_executable(p1hips_perf_test
 target_include_directories(p1hips_perf_test PRIVATE
   ${P1HIPS_INC}
   ${P1HIPS_DIR})
-target_link_libraries(p1hips_perf_test PRIVATE astrocs_hips ${ASTROCS_OMP_TARGET})
+target_link_libraries(p1hips_perf_test PRIVATE acsd_hips ${ACSD_OMP_TARGET})
 add_test(NAME p1hips_performance COMMAND p1hips_perf_test)
 
 # 故障注入必败自检 (验收: baseline 必 PASS + 注入必 FAIL 双向排除恒常)
@@ -84,7 +84,7 @@ add_executable(p1hips_selfcheck_test
 target_include_directories(p1hips_selfcheck_test PRIVATE
   ${P1HIPS_INC}
   ${P1HIPS_DIR})
-target_link_libraries(p1hips_selfcheck_test PRIVATE astrocs_hips ${ASTROCS_OMP_TARGET})
+target_link_libraries(p1hips_selfcheck_test PRIVATE acsd_hips ${ACSD_OMP_TARGET})
 add_test(NAME p1hips_selfcheck COMMAND p1hips_selfcheck_test)
 
 # P1-HIPS-DIGEST-001 归一化专项验收 harness (EXCLUDE_FROM_ALL + 不入 CTest:
@@ -95,4 +95,4 @@ add_executable(p1hips_digest_verify EXCLUDE_FROM_ALL
 target_include_directories(p1hips_digest_verify PRIVATE
   ${P1HIPS_INC}
   ${P1HIPS_DIR})
-target_link_libraries(p1hips_digest_verify PRIVATE astrocs_hips ${ASTROCS_OMP_TARGET})
+target_link_libraries(p1hips_digest_verify PRIVATE acsd_hips ${ACSD_OMP_TARGET})

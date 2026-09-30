@@ -1,12 +1,12 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://astrocs.local/schemas/unified/source_snr/v1",
+  "$id": "https://acsd.local/schemas/unified/source_snr/v1",
   "title": "ACSD 统一对象 source_snr —— 依赖源亮度的 F_hat/sigma_F",
   "description": "UNIFIED_MODEL §2：source_snr = F_hat/sigma_F；可否作权重 = 不直接作帧权重。source_snr 不是 variance/ivar，不得接入任何要求 variance 的端口（ENGINEERING_SPEC §4.7）。",
-  "x-astrocs-object": {
+  "x-acsd-object": {
     "name": "source_snr",
     "canonical_file": "eng/contracts/schemas/unified/source_snr.schema.json",
-    "authority": "docs/detail/UNIFIED_MODEL.md §2；docs/ASTROCS_DESIGN.md §2；ENGINEERING_SPEC.md §3/§4.7",
+    "authority": "docs/detail/UNIFIED_MODEL.md §2；docs/ACSD_DESIGN.md §2；ENGINEERING_SPEC.md §3/§4.7",
     "weight_verdict": "不直接作帧权重",
     "weight_eligible": false
   },
@@ -57,7 +57,7 @@
       "description": "对象判别式：本文档声明的 UNIFIED_MODEL §2 对象名（禁止用别的对象名冒充）"
     },
     "object_schema_id": {
-      "const": "https://astrocs.local/schemas/unified/source_snr/v1",
+      "const": "https://acsd.local/schemas/unified/source_snr/v1",
       "description": "全局唯一 schema ID（eng/contracts/schemas/unified/source_snr.schema.json）"
     },
     "schema_version": {

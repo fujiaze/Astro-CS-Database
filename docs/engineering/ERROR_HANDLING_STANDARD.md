@@ -1,8 +1,8 @@
 # 错误处理标准
 
-> 上游：`docs/ASTROCS_DESIGN.md` §7.2（机器输出与退出码）、§7.3（错误传播与日志）
-> 机器事实源：`lib/infrastructure/cli/exit_codes.h`（`astrocs::ExitCode` 枚举）、
-> `lib/include/astrocs/core/contracts.h`（`ErrorDomain` 枚举）
+> 上游：`docs/ACSD_DESIGN.md` §7.2（机器输出与退出码）、§7.3（错误传播与日志）
+> 机器事实源：`lib/infrastructure/cli/exit_codes.h`（`acsd::ExitCode` 枚举）、
+> `lib/include/acsd/core/contracts.h`（`ErrorDomain` 枚举）
 
 本标准规定错误的三层语义、违规判据、错误分类表、进程退出码与 error-sensitive 模块的必备要件。
 域 → 退出码的映射面在 `docs/engineering/LOG_AND_ERROR_CONTRACT.md` §5；本文档定义码值语义本身。
@@ -47,7 +47,7 @@
 
 ## 4. 错误域
 
-机器面错误域 = `lib/include/astrocs/core/contracts.h` 的 `ErrorDomain` 枚举：
+机器面错误域 = `lib/include/acsd/core/contracts.h` 的 `ErrorDomain` 枚举：
 `CONFIG` / `DATA` / `SCIENCE_PRECONDITION` / `IO` / `RESOURCE` / `BACKEND` /
 `CANCELLED` / `INTERNAL`。
 
@@ -80,7 +80,7 @@
 
 ## 7. 进程退出码
 
-**退出码唯一源 = `lib/infrastructure/cli/exit_codes.h` 的 `astrocs::ExitCode` 枚举**。
+**退出码唯一源 = `lib/infrastructure/cli/exit_codes.h` 的 `acsd::ExitCode` 枚举**。
 凡需要退出码数值处一律引用该头文件；本文档第 7 节的表与最高设计 §7.2 同源，
 是全仓唯一一份码值语义表。
 
@@ -115,7 +115,7 @@ MODULE_SPECIFIC_BASE=100
 
 ### 7.2 机器判据
 
-本节 11 码与 `lib/infrastructure/cli/exit_codes.h` 的 `astrocs::ExitCode` 枚举逐名逐值一致，
+本节 11 码与 `lib/infrastructure/cli/exit_codes.h` 的 `acsd::ExitCode` 枚举逐名逐值一致，
 由 `eng/tools/docs_machine_consistency.py`（`error_taxonomy_exit_codes`）执行校验。
 第 7.1 节的模块特定码属 JSONL `error.numeric_code` 面，不参与该校验。
 

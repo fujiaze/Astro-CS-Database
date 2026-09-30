@@ -3,7 +3,7 @@
 // 顺序向 stderr 输出事件行 (EVENT FOPEN <path> fd=N mode=... | EVENT FWRITE fd |
 // EVENT FFLUSH fd | EVENT FSYNC fd | EVENT RENAME <path>), 供 test_p3_output.py
 // 断言 flush(cfitsio 缓冲写出)→fsync(fd)→rename 顺序;
-// ASTROCS_FAIL_FSYNC=1 时注入 fsync 失败 (返回 -1/EIO)。
+// ACSD_FAIL_FSYNC=1 时注入 fsync 失败 (返回 -1/EIO)。
 #ifndef _GNU_SOURCE
 #define _GNU_SOURCE
 #endif
@@ -35,7 +35,7 @@ static void init(void) {
     real_fsync = (int (*)(int))dlsym(RTLD_NEXT, "fsync");
     real_open64 = (int (*)(const char*, int, ...))dlsym(RTLD_NEXT, "open64");
     real_rename = (int (*)(const char*, const char*))dlsym(RTLD_NEXT, "rename");
-    g_fail_fsync = std::getenv("ASTROCS_FAIL_FSYNC") ? 1 : 0;
+    g_fail_fsync = std::getenv("ACSD_FAIL_FSYNC") ? 1 : 0;
 }
 
 int open64(const char* path, int flags, ...) {

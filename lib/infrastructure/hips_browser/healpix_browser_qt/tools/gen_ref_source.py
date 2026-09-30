@@ -112,7 +112,7 @@ def build_oracle() -> np.ndarray:
 
 def write_fits(path: Path, data: np.ndarray, bitpix: int = -64):
     hdr = fits.Header(wcs_header(RA0, DEC0))
-    hdr["OBJECT"] = "ASTROCS_REF_V11"
+    hdr["OBJECT"] = "ACSD_REF_V11"
     hdu = fits.PrimaryHDU(data, header=hdr)
     hdu.writeto(path, overwrite=True)
     # WCS 合法性自检

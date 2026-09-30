@@ -241,7 +241,7 @@ def main():
             errs.append(d.min())
     errs = np.array(errs)
     g3a = float(np.median(errs)) <= 0.01 and float(np.percentile(errs, 95)) <= 0.05
-    results["G3_astrocs_noisy"] = {"n": int(len(errs)),
+    results["G3_acsd_noisy"] = {"n": int(len(errs)),
                                    "median": float(np.median(errs)),
                                    "p95": float(np.percentile(errs, 95)),
                                    "pass": bool(g3a)}

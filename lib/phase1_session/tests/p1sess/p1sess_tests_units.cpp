@@ -4,10 +4,10 @@
 // 验收关键词 (tasks/05_PHASE1_TASKS.md §3):
 //   "每声明节点恰好调用一次"     → U1 (4 节点各现一次, canonical 顺序)
 //   "缺任何模块/错误 ABI/坏 artifact/取消不会写完成 manifest" → U3/U4
-//   "仅 Phase1 run ID"           → manifest kind=astrocs_phase1_session
+//   "仅 Phase1 run ID"           → manifest kind=acsd_phase1_session
 // 模板 <prefix>-TEST 覆盖面: 正常/边界/NaN/invalid/确定性 (properties 组)。
 //
-// 被测面: p1_session 五导出 C API (astrocs_phase1_session 静态库)。
+// 被测面: p1_session 五导出 C API (acsd_phase1_session 静态库)。
 // 期望值: p1sess_oracle.hpp (独立代数式 + 手写 FITS 解码), 非被测函数生成。
 #include "p1_session.h"
 
@@ -42,14 +42,14 @@ static void* stub_alloc(void*, std::uint64_t n, std::uint64_t) {
 static void stub_free(void*, void* p) { std::free(p); }
 static int stub_not_cancelled(void*) { return 0; }
 
-static astrocs_host_services_v1 make_host() {
-    astrocs_host_services_v1 h{};
-    h.struct_size = sizeof(astrocs_host_services_v1);
+static acsd_host_services_v1 make_host() {
+    acsd_host_services_v1 h{};
+    h.struct_size = sizeof(acsd_host_services_v1);
     h.abi_version = ACS_ABI_VERSION_V1;
-    h.allocator = {sizeof(acs_allocator), ACS_ABI_VERSION_V1, stub_alloc, stub_free, nullptr};
-    h.logger = {sizeof(acs_logger), ACS_ABI_VERSION_V1, nullptr, nullptr};
-    h.cancel = {sizeof(acs_cancel), ACS_ABI_VERSION_V1, stub_not_cancelled, nullptr};
-    h.budget = {sizeof(acs_thread_budget), ACS_ABI_VERSION_V1, 1u, 1u, nullptr, nullptr, nullptr};
+    h.allocator = {sizeof(acsd_allocator), ACS_ABI_VERSION_V1, stub_alloc, stub_free, nullptr};
+    h.logger = {sizeof(acsd_logger), ACS_ABI_VERSION_V1, nullptr, nullptr};
+    h.cancel = {sizeof(acsd_cancel), ACS_ABI_VERSION_V1, stub_not_cancelled, nullptr};
+    h.budget = {sizeof(acsd_thread_budget), ACS_ABI_VERSION_V1, 1u, 1u, nullptr, nullptr, nullptr};
     return h;
 }
 
@@ -58,10 +58,10 @@ static astrocs_host_services_v1 make_host() {
 // 返回 inspect 原文 (raw) 供独立结构断言。
 // ---------------------------------------------------------------------------
 struct SessionOutcome {
-    acs_status create_rc = ACS_ERR_INTERNAL;
-    acs_status validate_rc = ACS_ERR_INTERNAL;
-    acs_status run_rc = ACS_ERR_INTERNAL;
-    acs_status inspect_rc = ACS_ERR_INTERNAL;
+    acsd_status create_rc = ACS_ERR_INTERNAL;
+    acsd_status validate_rc = ACS_ERR_INTERNAL;
+    acsd_status run_rc = ACS_ERR_INTERNAL;
+    acsd_status inspect_rc = ACS_ERR_INTERNAL;
     bool ran_validate = false;
     std::string manifest_raw;   // inspect 原文 (parse 前的独立文本)
     json manifest;
@@ -71,18 +71,18 @@ struct SessionOutcome {
 static SessionOutcome drive(const std::string& config_json, bool with_validate,
                             int async_io_depth = 0) {
     SessionOutcome out;
-    astrocs_host_services_v1 host = make_host();
-    acs_handle h = nullptr;
+    acsd_host_services_v1 host = make_host();
+    acsd_handle h = nullptr;
     out.create_rc = p1_session_create(&host, &h);
     if (out.create_rc != ACS_OK || !h) return out;
-    acs_span_u8 cfg = ACS_SPAN_U8(reinterpret_cast<std::uint8_t*>(const_cast<char*>(config_json.c_str())),
+    acsd_span_u8 cfg = ACS_SPAN_U8(reinterpret_cast<std::uint8_t*>(const_cast<char*>(config_json.c_str())),
                                   static_cast<std::uint64_t>(config_json.size()));
     if (with_validate) {
         out.validate_rc = p1_session_validate(h, cfg);
         out.ran_validate = true;
     }
     out.run_rc = p1_session_run(h, cfg, async_io_depth);
-    acs_span_u8 mf{};
+    acsd_span_u8 mf{};
     out.inspect_rc = p1_session_inspect(h, &mf);
     if (out.inspect_rc == ACS_OK && mf.data) {
         out.manifest_raw.assign(reinterpret_cast<const char*>(mf.data), mf.count);
@@ -90,7 +90,7 @@ static SessionOutcome drive(const std::string& config_json, bool with_validate,
         catch (...) { out.manifest = json(); }
         host.allocator.free(host.allocator.user_data, mf.data);
     }
-    out.last_error = astrocs::phase1::last_error(h);
+    out.last_error = acsd::phase1::last_error(h);
     p1_session_destroy(h);
     return out;
 }
@@ -139,7 +139,7 @@ static std::string fixture_base() {
     const char* w2 = std::getenv("TMP");
     const std::string tmp_root = (d ? d : (w ? w : (w2 ? w2 : ".")));
     const std::string base =
-        (std::filesystem::path(tmp_root) / "astrocs_p1sess_test").generic_string();
+        (std::filesystem::path(tmp_root) / "acsd_p1sess_test").generic_string();
     return base;
 }
 
@@ -209,7 +209,7 @@ int run_units() {
         P1SESS_CHECK_EQ(cs, o.run_rc, ACS_OK);
         P1SESS_CHECK_EQ(cs, o.inspect_rc, ACS_OK);
         // manifest kind: 仅 Phase1 run ID (验收: "仅 Phase1 run ID")
-        P1SESS_CHECK_MSG(cs, o.manifest.value("kind", "") == "astrocs_phase1_session",
+        P1SESS_CHECK_MSG(cs, o.manifest.value("kind", "") == "acsd_phase1_session",
                          "u1_manifest_kind", "kind=%s", o.manifest.value("kind", "?").c_str());
         // 节点调用计数: 4 个声明节点各恰好 1 次
         P1SESS_CHECK_EQ(cs, count_stage(o.manifest, "io_read"), 1);
@@ -441,10 +441,10 @@ int run_units() {
 
     // ── U8: manifest 状态机 created (未 run 无错) → inspect 契约 ──
     {
-        astrocs_host_services_v1 host = make_host();
-        acs_handle h = nullptr;
+        acsd_host_services_v1 host = make_host();
+        acsd_handle h = nullptr;
         P1SESS_CHECK_EQ(cs, p1_session_create(&host, &h), ACS_OK);
-        acs_span_u8 mf{};
+        acsd_span_u8 mf{};
         P1SESS_CHECK_EQ(cs, p1_session_inspect(h, &mf), ACS_OK);
         json m = json::parse(std::string(reinterpret_cast<const char*>(mf.data), mf.count));
         host.allocator.free(host.allocator.user_data, mf.data);

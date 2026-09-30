@@ -314,7 +314,7 @@ bool DllLoader::load_all(const std::string& lib_base_dir) {
 
     // legacy Stage2 模块（GRADIENT_SPHERE/STACK = healpix_stack.dll）
     // 已从 active production 移除（archive/legacy）；Phase2 唯一生产入口
-    // = astrocs-stage2。枚举保留仅为旧配置兼容元数据，不再加载/链接。
+    // = acsd-stage2。枚举保留仅为旧配置兼容元数据，不再加载/链接。
 
     if (all_ok) {
         std::cerr << "[dll_loader] 全部模块加载成功" << std::endl;

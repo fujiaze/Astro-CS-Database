@@ -128,7 +128,7 @@ static void create_diag_fail(const char *data_dir, const GaiaCreateDiagnostics *
 #define free gaia_test_free
 #endif
 
-/* V18R3 诊断（ASTROCS_GAIA_TRACE=1 启用，默认零共享状态热写）：
+/* V18R3 诊断（ACSD_GAIA_TRACE=1 启用，默认零共享状态热写）：
  * 统计上下文 per-query 持有，仅查询入口调用一次 getenv 判断开关；
  * 并行线程只原子更新本查询上下文，不再触碰 process-global 计数器，
  * 因此并发查询之间不混合、无 data race，trace-off 时零共享写。 */
@@ -143,7 +143,7 @@ typedef struct {
 } GaiaTraceCtx;
 
 static int gaia_trace_enabled(void) {
-    const char *v = getenv("ASTROCS_GAIA_TRACE");
+    const char *v = getenv("ACSD_GAIA_TRACE");
     return (v && v[0] == '1') ? 1 : 0;
 }
 
@@ -2558,7 +2558,7 @@ int gaia_client_cone_search(GaiaClient *client, double ra, double dec, double ra
     free(cache_dec);
     free(cache_mag);
 
-    /* V18R3 诊断输出（ASTROCS_GAIA_TRACE=1）：per-query 统计 */
+    /* V18R3 诊断输出（ACSD_GAIA_TRACE=1）：per-query 统计 */
     if (trace.enabled) {
         fprintf(stderr,
                 "[gaia_trace] query ra=%.4f dec=%.4f r=%.4f -> nodes=%lld "

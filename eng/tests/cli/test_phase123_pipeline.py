@@ -7,7 +7,7 @@
 每阶段独立进程、只读上游**持久化 HiPS 产品**（无任何 fixture 顶替）; 断言
 rc=0 / status=complete / artifacts 非空且 sha256+size 可独立复算。
 
-CLI-002 重锚依据: CLI-001 唯一命令树 = normalize/mosaic/export（docs/ASTROCS_DESIGN §6.2;
+CLI-002 重锚依据: CLI-001 唯一命令树 = normalize/mosaic/export（docs/ACSD_DESIGN §6.2;
 docs/engineering/CLI_PROTOCOL_V1.md §1 旧 phase1|2|3 run / verify / graph 均为已删除别名 → rc=2）。
 旧用例的 verify --json --run-manifest 闭环改为**测试内独立复算** sha256/size（判据不变、
 不依赖已删命令）; graph --preset 退役判据保留为负例（rc=2）。
@@ -21,7 +21,7 @@ Phase1 侧同源: light 帧用 --make-noisy（确定性噪声，校准后 σ≈1
   有合格 patch（σ>0）⇒ normalize 产出 variance/ivar 子产品 ⇒ normalize→mosaic
   默认逐帧逆方差链可闭合（--make 的常量域帧 σ=0 ⇒ 整帧退化 ⇒ 默认链 fail-closed）。
 
-权重口径（docs/ASTROCS_DESIGN §2.1 + GAP_AUDIT §9.73 裁决 A44「不存在权重模式」）:
+权重口径（docs/ACSD_DESIGN §2.1 + GAP_AUDIT §9.73 裁决 A44「不存在权重模式」）:
   HiPS 里**存**的是**帧级 SNR**（与稀疏控制点上的绝对 SNR）; 权重是阶段二消费 SNR 时
   按覆盖该像素的帧集合**现场算出的派生量**，不是配置键 ⇒ 配置面**不得**出现
   weight_mode / legacy_allow_weight_fallback（CLI 白名单已摘除，出现即 rc=3）。
@@ -31,8 +31,8 @@ Phase1 侧同源: light 帧用 --make-noisy（确定性噪声，校准后 σ≈1
 import atexit, hashlib, json, os, re, shutil, signal, subprocess, sys, tempfile, time, unittest
 
 REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
-# ROOT-008: 唯一产品二进制 build/acsd（旧 build/cli/astrocs 已退役）
-EXE = os.environ.get("ASTROCS_CLI_BIN", os.path.join(REPO, "build", "acsd"))
+# ROOT-008: 唯一产品二进制 build/acsd（旧 build/cli/acsd 已退役）
+EXE = os.environ.get("ACSD_CLI_BIN", os.path.join(REPO, "build", "acsd"))
 
 
 def _pick(*cands):
@@ -88,20 +88,20 @@ def _common_incs():
 # 规范依据（AGENTS.md §1.1「先到最高文档确定规范，再动手」）:
 #   * 根 CMakeLists.txt:4-5「显式源列表, 禁 GLOB (QA-002)」⇒ 每个 add_library 的
 #     显式清单**就是**该目标的构建图闭包，不是「惯例」;
-#   * 根 CMakeLists.txt:378-381 `add_library(astrocs_common STATIC ...)` ——
+#   * 根 CMakeLists.txt:378-381 `add_library(acsd_common STATIC ...)` ——
 #     crypto/sha256.cpp + healpix/healpix_core.cpp 的唯一权威源清单;
-#   * 根 CMakeLists.txt:449-459 `add_library(astrocs_aio STATIC ...)`;
-#   * 根 CMakeLists.txt:480-491 `add_library(astrocs_hips STATIC ...)`;
+#   * 根 CMakeLists.txt:449-459 `add_library(acsd_aio STATIC ...)`;
+#   * 根 CMakeLists.txt:480-491 `add_library(acsd_hips STATIC ...)`;
 #   * lib/algorithms/drizzle/hips/CMakeLists.txt:44-54 逐字登记 aio_hips_writer.cpp
 #     的**最小链接闭包必须含 lib/algorithms/shared/crypto/sha256.cpp** —— 链路是
 #     aio_hips_writer.cpp:22 `#include "aio_sparse_punch.h"` →
 #     aio_sparse_punch.h:37 `#include "aio_file_io.h"` →
-#     aio_file_io.h:240 inline `aio_file::sha256_hex` 调 `astrocs::crypto::Sha256`
+#     aio_file_io.h:240 inline `aio_file::sha256_hex` 调 `acsd::crypto::Sha256`
 #     （唯一实现 TU = crypto/sha256.cpp）。漏它的表现是**链接期**
-#     `undefined reference to astrocs::crypto::Sha256::...`（CHK-FIX406-SIGTERM
+#     `undefined reference to acsd::crypto::Sha256::...`（CHK-FIX406-SIGTERM
 #     现场 2026-09-22），而链接器一次只报第一条、且不告诉你该补哪个 .cpp。
 _ROOT_CMAKE = os.path.join(REPO, "CMakeLists.txt")
-_FIXTURE_GRAPH_TARGETS = ("astrocs_common", "astrocs_aio", "astrocs_hips")
+_FIXTURE_GRAPH_TARGETS = ("acsd_common", "acsd_aio", "acsd_hips")
 
 # fixture 需要的源 —— 本表只回答「要谁」（**文件名**），不回答「在哪」；
 # 路径一律由上面的构建图解析，因此目录搬迁/改名不会让清单静默失效（改错即判红，
@@ -309,7 +309,7 @@ class TestPhase123Pipeline(unittest.TestCase):
     def _complete_manifests(d):
         out = []
         for f in os.listdir(d):
-            if f.startswith("astrocs_run_") and f.endswith(".json"):
+            if f.startswith("acsd_run_") and f.endswith(".json"):
                 try:
                     with open(os.path.join(d, f), encoding="utf-8") as fh:
                         m = json.load(fh)
@@ -503,7 +503,7 @@ class TestPhase123Pipeline(unittest.TestCase):
     def test_06_cancel_interrupt(self):
         """运行期取消 → rc=9 + final status=cancelled + 不留 complete manifest。
 
-        CLI-002: 新命令树有两个同语义测试钩子（ASTROCS_TEST_SLEEP_MS）——
+        CLI-002: 新命令树有两个同语义测试钩子（ACSD_TEST_SLEEP_MS）——
         CLI 入口等待（lib/infrastructure/cli/subcommand.h:156, 只回 rc=9 不产事件）
         与会话内等待（lib/infrastructure/cli/commands.cpp cmd_session1_run, 产
         incomplete manifest + final cancelled）。入口窗先耗尽，故 SIGINT 必须落在
@@ -512,7 +512,7 @@ class TestPhase123Pipeline(unittest.TestCase):
         out = os.path.join(self.tmp, "outcancel")
         os.makedirs(out)
         cfg = self._p1_cfg(out, [os.path.join(self.p1data, "light_1.fits")])
-        env = dict(os.environ, ASTROCS_TEST_SLEEP_MS="6000")
+        env = dict(os.environ, ACSD_TEST_SLEEP_MS="6000")
         p = subprocess.Popen([EXE, "normalize", "--json", cfg, "--events-jsonl", "-y"],
                              stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, env=env,
                              cwd=run_cwd())
@@ -558,7 +558,7 @@ class TestPhase123Pipeline(unittest.TestCase):
             self.assertTrue(os.path.isfile(os.path.join(gdir, name)), name)
         with open(os.path.join(gdir, "observed_trace.json"), encoding="utf-8") as fh:
             tr = json.load(fh)
-        self.assertEqual(tr["schema"], "astrocs.observed-trace/v1")
+        self.assertEqual(tr["schema"], "acsd.observed-trace/v1")
         nodes = {n["node_id"]: n for n in tr["nodes"]}
         self.assertIn("properties", nodes)
         self.assertEqual(nodes["properties"]["status"], "COMPLETED")
@@ -568,10 +568,10 @@ class TestPhase123Pipeline(unittest.TestCase):
         self.assertNotIn("/home/", raw)
         with open(os.path.join(gdir, "graph_sidecar.json"), encoding="utf-8") as fh:
             side = json.load(fh)
-        self.assertEqual(side["schema"], "astrocs.graph-sidecar/v1")
+        self.assertEqual(side["schema"], "acsd.graph-sidecar/v1")
         mods = os.path.join(self.tmp, "mods.json")
         with open(mods, "w", encoding="utf-8") as fh:
-            json.dump({"astrocs.phase3.resample": {"module_id": "astrocs.phase3.resample",
+            json.dump({"acsd.phase3.resample": {"module_id": "acsd.phase3.resample",
                                                    "module_version": "1.x"}}, fh)
         c = subprocess.run([sys.executable, os.path.join(REPO, "eng", "tools", "quality",
                             "check_pipeline_graph.py"),
@@ -588,7 +588,7 @@ class TestPhase123Pipeline(unittest.TestCase):
         self.assertEqual(g.returncode, 2, g.stderr[-200:])
         self.assertIn("unknown command", g.stderr)
 
-# ── nm -C 链接闭包判据（对真实 .o 求「未定义 astrocs:: 符号 − 已定义符号」）────
+# ── nm -C 链接闭包判据（对真实 .o 求「未定义 acsd:: 符号 − 已定义符号」）────
 # 判据依赖真实编译（nm 需要目标文件），不是源码文本猜测 —— 本缺陷的典型形态
 # aio_file::sha256_hex 是 aio_file_io.h:240 的 **inline** 函数，纯文本扫不出
 # 「谁在调 crypto::Sha256」，只有编成 .o 才现形。
@@ -600,7 +600,7 @@ def _compile_unit(src, out_dir, *, defs=("-DAIO_ENABLE_FITS",)):
     """编译单个 TU → .o（与 fixture 同款 flags: -std=c++17 -O2 -w + 同一 include 面）。
 
     -O2 必须与 fixture 一致：inline 函数在 -O2 下被内联展开，才会把
-    astrocs::crypto::Sha256::* 变成**未定义外部符号**；换成 -O0 判据就与真实
+    acsd::crypto::Sha256::* 变成**未定义外部符号**；换成 -O0 判据就与真实
     链接面不符（inline 体不展开，符号面不同）。
     """
     obj = os.path.join(out_dir, os.path.basename(src) + ".o")
@@ -695,7 +695,7 @@ def aio_fixture_closure_build():
         main_obj = _compile_unit(
             os.path.join(REPO, "eng", "tests", "backend", "phase2_fixture_main.cpp"), tmp)
         both = objs + [main_obj]
-        undefined = {s for s in _nm_symbols(both, "undefined") if "astrocs::" in s}
+        undefined = {s for s in _nm_symbols(both, "undefined") if "acsd::" in s}
         defined = _nm_symbols(both, "defined")
         _AIO_CLOSURE.update({"objs": objs, "main_obj": main_obj,
                              "undefined": undefined, "defined": defined,
@@ -760,15 +760,15 @@ class TestAioFixtureLinkClosure(unittest.TestCase):
 
     防的缺陷类（CHK-FIX406-SIGTERM 现场 2026-09-22）：aio_hips_writer.cpp 因
     aio_sparse_punch.h → aio_file_io.h 的 inline sha256_hex 引入
-    astrocs::crypto::Sha256::* 外部符号后，手抄源清单要到**链接期**才炸，而链接器
+    acsd::crypto::Sha256::* 外部符号后，手抄源清单要到**链接期**才炸，而链接器
     只报「undefined reference to <符号>」——不告诉你该补哪个 .cpp，一次只报第一条。
     本类用两条判据把这一类缺陷变成可判、可点名的红：
 
       ① test_01_seed_sources_come_from_build_graph：_AIO_SEED 每个名字必须仍在
-         根 CMakeLists.txt 的 astrocs_common/astrocs_aio/astrocs_hips 权威清单里
+         根 CMakeLists.txt 的 acsd_common/acsd_aio/acsd_hips 权威清单里
          （防改名/搬目录后清单静默失效）；
       ② test_02_link_closure_complete：nm -C 对真实 .o 求
-         「未定义 astrocs:: 符号 − 已定义符号」差集，非空即判红，并把每个未解析
+         「未定义 acsd:: 符号 − 已定义符号」差集，非空即判红，并把每个未解析
          符号解析回构建图里定义它的 .cpp（直接点名该补谁）。
     """
 
@@ -787,7 +787,7 @@ class TestAioFixtureLinkClosure(unittest.TestCase):
         missing, detail = aio_fixture_closure_diagnostics()
         if not missing:
             return
-        self.fail("fixture 源清单未覆盖链接闭包（未定义 astrocs:: 符号差集非空）：\n"
+        self.fail("fixture 源清单未覆盖链接闭包（未定义 acsd:: 符号差集非空）：\n"
                   + detail + "\n  修法：把上面点名的 .cpp 加入 _AIO_SEED。")
 
 

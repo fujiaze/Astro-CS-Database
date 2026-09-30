@@ -92,7 +92,7 @@ class TestRealSamplingPositive(unittest.TestCase):
                 for _ in range(2):
                     m.set_static_observation(
                         provider="baseline",
-                        module="astrocs.phase2.coverage",
+                        module="acsd.phase2.coverage",
                         active_workers=1, granted_workers=2)
                     time.sleep(0.6)
 
@@ -282,16 +282,16 @@ class TestTraceObserverWiring(unittest.TestCase):
             {"type": "provider_enter", "run_id": "r", "node_id": "coverage",
              "provider": "avx2", "kernel_id": "k1"},
             {"type": "module_call", "run_id": "r", "node_id": "coverage",
-             "module_id": "astrocs.phase2.coverage", "entry": "e1",
+             "module_id": "acsd.phase2.coverage", "entry": "e1",
              "workers": 2, "call_count": 1},
             {"type": "node_start", "run_id": "r", "node_id": "sampling",
              "granted_workers": 2},
             {"type": "module_call", "run_id": "r", "node_id": "sampling",
-             "module_id": "astrocs.phase2.sampling", "workers": 1},
+             "module_id": "acsd.phase2.sampling", "workers": 1},
         ]
         obs = TraceSnapshotObserver("r", events).observe()
         self.assertEqual(obs["provider"], "avx2")          # 最近真实 provider
-        self.assertEqual(obs["module"], "astrocs.phase2.sampling")
+        self.assertEqual(obs["module"], "acsd.phase2.sampling")
         self.assertEqual(obs["active_workers"], 2)         # 2 个活动节点
         self.assertEqual(obs["granted_workers"], 4)        # max granted 观测
 
@@ -336,7 +336,7 @@ class TestTraceObserverWiring(unittest.TestCase):
                 {"type": "provider_enter", "run_id": "run-obs", "node_id": "cov",
                  "provider": "baseline"},
                 {"type": "module_call", "run_id": "run-obs", "node_id": "cov",
-                 "module_id": "astrocs.phase2.coverage", "workers": 2},
+                 "module_id": "acsd.phase2.coverage", "workers": 2},
             ]
             observer = TraceSnapshotObserver("run-obs", events)
             m = ResourceMonitor("run-obs", csv, interval_s=0.03,
@@ -353,7 +353,7 @@ class TestTraceObserverWiring(unittest.TestCase):
             data = rows[1:]
             self.assertTrue(data)
             any_provider = any(r["provider"] == "baseline" for r in data)
-            any_module = any(r["module"] == "astrocs.phase2.coverage"
+            any_module = any(r["module"] == "acsd.phase2.coverage"
                              for r in data)
             self.assertTrue(any_provider, "CSV 行应带真实 provider 观测")
             self.assertTrue(any_module, "CSV 行应带真实 module 观测")
@@ -426,9 +426,9 @@ class TestRegressionRt006(unittest.TestCase):
         for node in ("coverage", "sampling", "rejection", "upm",
                      "integration", "write", "resample"):
             lines.append(json.dumps({
-                "schema": "astrocs.trace-event/v1", "type": "module_call",
+                "schema": "acsd.trace-event/v1", "type": "module_call",
                 "ts_utc": "2026-09-04T00:00:00Z", "run_id": "r",
-                "node_id": node, "module_id": f"astrocs.phase2.{node}",
+                "node_id": node, "module_id": f"acsd.phase2.{node}",
                 "entry": "e1", "call_count": 1, "seq": 0}, ensure_ascii=False))
         summary = tr.replay_from_jsonl("\n".join(lines))
         self.assertEqual(summary["parsed_lines"], 7)

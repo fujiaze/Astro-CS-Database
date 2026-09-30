@@ -1,29 +1,29 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://astrocs.local/schemas/phase_config/export/v1",
+  "$id": "https://acsd.local/schemas/phase_config/export/v1",
   "title": "ACSD phase_config — export v1（三命令通用输入合同：blocks[] / 平铺单块简写 / 旧合同分支保留）",
-  "description": "export 科学配置合同（docs/ASTROCS_DESIGN.md §3.3「三命令通用输入合同」）：三命令同构 —— 顶层 blocks[]（每块 = 输出名称 name/output_dir + 运行参数（块内平铺）+ 输入的一组帧 source.hips_dir）或**平铺单块简写**（只有一块时的等价写法；与 blocks[] 互斥，同时出现 → 报错不静默取一）。旧合同形态 {phase_name, config, inputs[]} **保留不退役**——它是**合同留痕**，CLI 会话面**显式拒绝 + 给迁移提示**（lib/infrastructure/cli/parser.cpp retired_perframe_form_message）。只含科学参数、输入路径、output_dir 与算法选择；不含任何硬件字段（ISA/workers/block/CPU 型号）。",
-  "x-astrocs-schema-family": "phase_config",
-  "x-astrocs-phase": "export",
-  "x-astrocs-config-class": "phase_config",
-  "x-astrocs-writer": "用户 / cli --template",
-  "x-astrocs-not-writable-by": [
+  "description": "export 科学配置合同（docs/ACSD_DESIGN.md §3.3「三命令通用输入合同」）：三命令同构 —— 顶层 blocks[]（每块 = 输出名称 name/output_dir + 运行参数（块内平铺）+ 输入的一组帧 source.hips_dir）或**平铺单块简写**（只有一块时的等价写法；与 blocks[] 互斥，同时出现 → 报错不静默取一）。旧合同形态 {phase_name, config, inputs[]} **保留不退役**——它是**合同留痕**，CLI 会话面**显式拒绝 + 给迁移提示**（lib/infrastructure/cli/parser.cpp retired_perframe_form_message）。只含科学参数、输入路径、output_dir 与算法选择；不含任何硬件字段（ISA/workers/block/CPU 型号）。",
+  "x-acsd-schema-family": "phase_config",
+  "x-acsd-phase": "export",
+  "x-acsd-config-class": "phase_config",
+  "x-acsd-writer": "用户 / cli --template",
+  "x-acsd-not-writable-by": [
     "benchmark"
   ],
-  "x-astrocs-authority": [
-    "docs/ASTROCS_DESIGN.md §3.3（三命令通用输入合同：顶层 blocks[] 或平铺单块简写，二者互斥；块内运行参数平铺；第三件 = 阶段三 source（一个输入产品））",
-    "docs/ASTROCS_DESIGN.md §3.3「三命令通用输入合同」（mosaic/export 沿用块状结构；一个块 = {输出名称, 运行参数, 输入的一组帧}；键名与 CLI 统一；旧合同不退役）",
+  "x-acsd-authority": [
+    "docs/ACSD_DESIGN.md §3.3（三命令通用输入合同：顶层 blocks[] 或平铺单块简写，二者互斥；块内运行参数平铺；第三件 = 阶段三 source（一个输入产品））",
+    "docs/ACSD_DESIGN.md §3.3「三命令通用输入合同」（mosaic/export 沿用块状结构；一个块 = {输出名称, 运行参数, 输入的一组帧}；键名与 CLI 统一；旧合同不退役）",
     "lib/infrastructure/cli/session_commands.h config_fields()（键集唯一声明）+ parser.cpp input_contract(SESSION_EXPORT)={source, hips_dir} / block_keys()（块内键集派生与拒绝面）",
-    "docs/ASTROCS_DESIGN.md §6.3（投影：首批冻结八投影 TAN/SIN/CAR/AIT/STG/MOL/CEA/ZEA，当前仅 TAN 已实现；未实现必须显式报「不支持」）",
-    "docs/ASTROCS_DESIGN.md §4.5（运行前预检绿/橙/红）",
-    "docs/ASTROCS_DESIGN.md §6.1-§6.3（配置挂载 / 模板 / 机器输出）",
+    "docs/ACSD_DESIGN.md §6.3（投影：首批冻结八投影 TAN/SIN/CAR/AIT/STG/MOL/CEA/ZEA，当前仅 TAN 已实现；未实现必须显式报「不支持」）",
+    "docs/ACSD_DESIGN.md §4.5（运行前预检绿/橙/红）",
+    "docs/ACSD_DESIGN.md §6.1-§6.3（配置挂载 / 模板 / 机器输出）",
     "docs/detail/UNIFIED_MODEL.md §3（三类配置严格分离）",
     "docs/detail/infrastructure/18_cli.md §3-§5"
   ],
-  "x-astrocs-notes": [
+  "x-acsd-notes": [
     "形态三分支（互斥，用 if/then/else 而非 oneOf：jsonschema_min.py 的 oneOf 只报「0 branches matched」，会吞掉分支级诊断，与 normalize 同口径）：① blocks[] —— {\"schema_version\",\"blocks\":[export_block, ...]}；② 平铺单块简写 —— 顶层 source/output_dir/运行参数（= 一个块去掉 name 的等价写法）；③ 旧合同 —— {phase_name:\"export\", config, inputs[]}（保留，见下条）。",
     "块内键集（唯一声明，禁止第二份副本）= lib/infrastructure/cli/session_commands.h 的 config_fields(SESSION_EXPORT) 键 − schema_version + parser.cpp block_keys() = {name, output_dir}；与 parser.cpp session_blocks_errors() 的块内允许键集逐字同面（schema 通过 ⇒ CLI 通过）。块面**不含** weight_mode / legacy_allow_weight_fallback / algorithm_weight_mode。",
-    "第三件 = source: {hips_dir} **单值**（一个输入产品）。依据：docs/ASTROCS_DESIGN.md §3.3 明文「阶段三 source（一个输入产品）」（最高权威）+ CLI input_contract(SESSION_EXPORT)={source, hips_dir}（对象 + 必需非空子键，唯一声明，lib/** 只读）。「一组帧」在阶段三的落地 = 一组退化为一个产品（N=1）；**多产品用多块表达**（每块独立 output_dir / 独立 run manifest），不得把 source 改成数组（那会与 CLI 合同分叉，属顶层合同结构性变更，须先上呈）。",
+    "第三件 = source: {hips_dir} **单值**（一个输入产品）。依据：docs/ACSD_DESIGN.md §3.3 明文「阶段三 source（一个输入产品）」（最高权威）+ CLI input_contract(SESSION_EXPORT)={source, hips_dir}（对象 + 必需非空子键，唯一声明，lib/** 只读）。「一组帧」在阶段三的落地 = 一组退化为一个产品（N=1）；**多产品用多块表达**（每块独立 output_dir / 独立 run manifest），不得把 source 改成数组（那会与 CLI 合同分叉，属顶层合同结构性变更，须先上呈）。",
     "块内运行参数的**值域不另写一份**：凡旧合同 $defs.export_config / $defs.export_wcs 已定义的键（output_mode / width_px / height_px / rotation_deg / crpix_px），块内属性以 $ref 指向该唯一定义（防漂移；同时保住 config_registry.json 的登记点与 CFG002 的值域判据）。仅 CLI 独有、旧合同未定义的键（source / center / scale_deg_per_px / projection / sampler / longitude_parity / coverage_output）新增 $defs。",
     "**projection 大小写**：新分支用注册码**大写**八投影（与 eng/contracts/schemas/projection_registry.schema.json 的 code enum 同面；生产精确匹配 \"TAN\"，§6.3 当前仅 TAN 已实现，其余运行期显式报「不支持」）；旧合同分支的 wcs.projection 小写 enum **保持原样不改**（config_registry.json 的 declared_default=tan 与 CFG002 值域判据依赖它）——两分支大小写不一致是**既有历史留痕**，收口属投影注册表任务。",
     "旧合同分支**保留**的机器理由：① config_registry.json 的登记点（#/$defs/export_config/properties/output_mode、#/$defs/export_wcs/properties/{projection,crpix_px,center_deg,rotation_deg}）与 eng/packaging/config/defaults.json 的引用必须继续可解析；② 跨类不相交门（phase_config ∩ cpu_profile == {precision}）由 $defs.precision 承载；③ 旧合同不退役。CLI 会话面不消费该分支（显式拒绝 + 迁移提示）。",
@@ -138,19 +138,19 @@
         "ZWO G",
         "ZWO R"
       ],
-      "description": "滤镜库键，必须逐字命中 eng/packaging/config/filters.json 的 filters 键（未知滤镜 -> error，docs/ASTROCS_DESIGN.md §3.3/:144；enum 由 eng/tests/config 断言与滤镜库逐项相等）"
+      "description": "滤镜库键，必须逐字命中 eng/packaging/config/filters.json 的 filters 键（未知滤镜 -> error，docs/ACSD_DESIGN.md §3.3/:144；enum 由 eng/tests/config 断言与滤镜库逐项相等）"
     },
     "precision": {
       "enum": [
         "fp32",
         "fp64"
       ],
-      "description": "科学计算精度，显式声明（docs/ASTROCS_DESIGN.md §3.3:145）；默认 fp64 见 docs/science/SCIENCE_SCOPE.md:53"
+      "description": "科学计算精度，显式声明（docs/ACSD_DESIGN.md §3.3:145）；默认 fp64 见 docs/science/SCIENCE_SCOPE.md:53"
     },
     "output_dir": {
       "type": "string",
       "minLength": 1,
-      "description": "运行产物唯一落点；不得以进程 CWD 作隐式缺省（docs/ASTROCS_DESIGN.md §6.3:340）"
+      "description": "运行产物唯一落点；不得以进程 CWD 作隐式缺省（docs/ACSD_DESIGN.md §6.3:340）"
     },
     "export_config": {
       "type": "object",
@@ -174,7 +174,7 @@
             "point_source_flux",
             "visualization"
           ],
-          "description": "输出模式必须显式（docs/ASTROCS_DESIGN.md §6.3:496）；默认 surface_brightness 见 docs/detail/algorithms_phase3/16_fits_output.md:45"
+          "description": "输出模式必须显式（docs/ACSD_DESIGN.md §6.3:496）；默认 surface_brightness 见 docs/detail/algorithms_phase3/16_fits_output.md:45"
         },
         "wcs": {
           "$ref": "#/$defs/export_wcs"
@@ -203,7 +203,7 @@
             "cea",
             "zea"
           ],
-          "description": "投影选择，缺省 TAN（docs/ASTROCS_DESIGN.md §6.3:493-495；docs/detail/algorithms_phase3/14_projection.md:37）"
+          "description": "投影选择，缺省 TAN（docs/ACSD_DESIGN.md §6.3:493-495；docs/detail/algorithms_phase3/14_projection.md:37）"
         },
         "center_deg": {
           "type": "array",
@@ -273,7 +273,7 @@
           "product": {
             "type": "string",
             "minLength": 1,
-            "description": "合同兼容 HiPS 产品路径（docs/ASTROCS_DESIGN.md §5.1-§5.2；NESTED ordering，PHASE3_HIPS_TO_FITS.md:42）"
+            "description": "合同兼容 HiPS 产品路径（docs/ACSD_DESIGN.md §5.1-§5.2；NESTED ordering，PHASE3_HIPS_TO_FITS.md:42）"
           }
         }
       }
@@ -281,7 +281,7 @@
     "block_name": {
       "type": "string",
       "minLength": 1,
-      "description": "块归属标识（可选）；写入日志与 run manifest 的 block.name（docs/ASTROCS_DESIGN.md §3.3「输出名称」）。块级键，唯一声明 = parser.cpp block_keys()"
+      "description": "块归属标识（可选）；写入日志与 run manifest 的 block.name（docs/ACSD_DESIGN.md §3.3「输出名称」）。块级键，唯一声明 = parser.cpp block_keys()"
     },
     "source_hips": {
       "type": "object",
@@ -296,7 +296,7 @@
           "description": "输入 HiPS 根目录（必填非空；对象字段 hips_dir，非字符串——CLI input_contract(SESSION_EXPORT) 的唯一声明）。**落盘形态透明**：值可以是裸 \"<name>.hips/\" 或归档 \"<name>.hips.zst\"，两者读语义相同（形态由落盘名判定，调用方不感知；docs/engineering/HIPS_STORAGE_FORM_CONTRACT.md §6 R1/R2）。本键**不**承载形态选择——Phase3 输入合同不设 storage_form。"
         }
       },
-      "description": "第三件 = 一个输入产品（合同兼容 HiPS 根目录）：{hips_dir}。单值（U07 定案，依据 docs/ASTROCS_DESIGN.md §3.3「阶段三 source（一个输入产品）」）；多产品 = 多块"
+      "description": "第三件 = 一个输入产品（合同兼容 HiPS 根目录）：{hips_dir}。单值（U07 定案，依据 docs/ACSD_DESIGN.md §3.3「阶段三 source（一个输入产品）」）；多产品 = 多块"
     },
     "center": {
       "type": "object",
@@ -337,7 +337,7 @@
         "CEA",
         "ZEA"
       ],
-      "description": "投影注册码（大写，精确匹配无 fallback）：docs/ASTROCS_DESIGN.md §6.3 首批冻结八投影；enum 与 eng/contracts/schemas/projection_registry.schema.json 的 code enum 同面（机器断言）。**当前仅 TAN 已实现**，其余必须由运行期显式报「不支持」（§6.3）——缺省 TAN"
+      "description": "投影注册码（大写，精确匹配无 fallback）：docs/ACSD_DESIGN.md §6.3 首批冻结八投影；enum 与 eng/contracts/schemas/projection_registry.schema.json 的 code enum 同面（机器断言）。**当前仅 TAN 已实现**，其余必须由运行期显式报「不支持」（§6.3）——缺省 TAN"
     },
     "sampler": {
       "enum": [
@@ -494,7 +494,7 @@
         "output_mode"
       ],
       "additionalProperties": false,
-      "description": "一个数据块 = {输出名称（name/output_dir）+ 运行参数（块内平铺，取消 config 子对象）+ 输入的一组帧（source.hips_dir，单值）}。**output_mode 必填**：旧合同 $defs.export_config.required 即含 output_mode（docs/engineering/CONFIG_CONTRACT.md:81），且 p3 resample 节点缺键即 REJECT（FZ-P3-MODES）——合同不得比运行期松（docs/ASTROCS_DESIGN.md §3.3 三命令通用输入合同）。块内键集 = config_fields(SESSION_EXPORT) 派生 + {name, output_dir}（唯一声明 lib/infrastructure/cli/session_commands.h）；排除 weight_mode / legacy_allow_weight_fallback / algorithm_weight_mode。一块 = 一次运行 = 独立 output_dir / 独立 run manifest（块间 output_dir 不得重复，CLI session_blocks_errors 强制）。",
+      "description": "一个数据块 = {输出名称（name/output_dir）+ 运行参数（块内平铺，取消 config 子对象）+ 输入的一组帧（source.hips_dir，单值）}。**output_mode 必填**：旧合同 $defs.export_config.required 即含 output_mode（docs/engineering/CONFIG_CONTRACT.md:81），且 p3 resample 节点缺键即 REJECT（FZ-P3-MODES）——合同不得比运行期松（docs/ACSD_DESIGN.md §3.3 三命令通用输入合同）。块内键集 = config_fields(SESSION_EXPORT) 派生 + {name, output_dir}（唯一声明 lib/infrastructure/cli/session_commands.h）；排除 weight_mode / legacy_allow_weight_fallback / algorithm_weight_mode。一块 = 一次运行 = 独立 output_dir / 独立 run manifest（块间 output_dir 不得重复，CLI session_blocks_errors 强制）。",
       "properties": {
         "bitpix": {
           "$ref": "#/$defs/bitpix"
@@ -551,7 +551,7 @@
         -32,
         -64
       ],
-      "description": "阶段三科学计算位深键（−32 = FP32 / −64 = FP64）：docs/ASTROCS_DESIGN.md §3.3「计算精度键：阶段二/三 = 位深键（−32/−64）」。CLI 只识别并透传（config_fields 的 json==nullptr ⇒ 不进 --template 骨架），消费在 p3 重采样/写出面。**禁止**新造 precision(fp32/fp64) 同义键"
+      "description": "阶段三科学计算位深键（−32 = FP32 / −64 = FP64）：docs/ACSD_DESIGN.md §3.3「计算精度键：阶段二/三 = 位深键（−32/−64）」。CLI 只识别并透传（config_fields 的 json==nullptr ⇒ 不进 --template 骨架），消费在 p3 重采样/写出面。**禁止**新造 precision(fp32/fp64) 同义键"
     }
   },
   "if": {
@@ -575,7 +575,7 @@
         "blocks"
       ]
     },
-    "description": "多块形态：顶层只允许 schema_version + blocks[]（与平铺单块简写互斥，同时出现 → 报错不静默取一；docs/ASTROCS_DESIGN.md §3.3）"
+    "description": "多块形态：顶层只允许 schema_version + blocks[]（与平铺单块简写互斥，同时出现 → 报错不静默取一；docs/ACSD_DESIGN.md §3.3）"
   },
   "else": {
     "if": {

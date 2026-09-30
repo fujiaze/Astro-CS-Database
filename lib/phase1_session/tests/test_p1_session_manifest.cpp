@@ -38,14 +38,14 @@ static void  stub_free(void*, void* p) { std::free(p); }
 static void  stub_log(void*, int, const char*, const char*) {}
 static int   stub_not_cancelled(void*) { return 0; }
 
-static astrocs_host_services_v1 make_host() {
-    astrocs_host_services_v1 h{};
-    h.struct_size = sizeof(astrocs_host_services_v1);
+static acsd_host_services_v1 make_host() {
+    acsd_host_services_v1 h{};
+    h.struct_size = sizeof(acsd_host_services_v1);
     h.abi_version = ACS_ABI_VERSION_V1;
-    h.allocator = {sizeof(acs_allocator), ACS_ABI_VERSION_V1, stub_alloc, stub_free, nullptr};
-    h.logger = {sizeof(acs_logger), ACS_ABI_VERSION_V1, stub_log, nullptr};
-    h.cancel = {sizeof(acs_cancel), ACS_ABI_VERSION_V1, stub_not_cancelled, nullptr};
-    h.budget = {sizeof(acs_thread_budget), ACS_ABI_VERSION_V1, 1u, 1u, nullptr, nullptr, nullptr};
+    h.allocator = {sizeof(acsd_allocator), ACS_ABI_VERSION_V1, stub_alloc, stub_free, nullptr};
+    h.logger = {sizeof(acsd_logger), ACS_ABI_VERSION_V1, stub_log, nullptr};
+    h.cancel = {sizeof(acsd_cancel), ACS_ABI_VERSION_V1, stub_not_cancelled, nullptr};
+    h.budget = {sizeof(acsd_thread_budget), ACS_ABI_VERSION_V1, 1u, 1u, nullptr, nullptr, nullptr};
     return h;
 }
 
@@ -115,28 +115,28 @@ static void write_fits_8x8_pixels(const std::string& path, const std::vector<flo
 
 // ── 会话驱动: create→(可选 validate)→run→inspect→parse manifest ──────────────
 struct SessionOutcome {
-    acs_status validate_rc = ACS_ERR_INTERNAL;
-    acs_status run_rc = ACS_ERR_INTERNAL;
+    acsd_status validate_rc = ACS_ERR_INTERNAL;
+    acsd_status run_rc = ACS_ERR_INTERNAL;
     bool ran_validate = false;
     json manifest;
 };
 
 static SessionOutcome drive(const std::string& config_json, bool with_validate) {
     SessionOutcome out;
-    astrocs_host_services_v1 host = make_host();
-    acs_handle h = nullptr;
+    acsd_host_services_v1 host = make_host();
+    acsd_handle h = nullptr;
     if (p1_session_create(&host, &h) != ACS_OK || !h) {
         std::fprintf(stderr, "session create failed\n");
         std::exit(2);
     }
-    acs_span_u8 cfg = ACS_SPAN_U8(reinterpret_cast<uint8_t*>(const_cast<char*>(config_json.c_str())),
+    acsd_span_u8 cfg = ACS_SPAN_U8(reinterpret_cast<uint8_t*>(const_cast<char*>(config_json.c_str())),
                                   static_cast<uint64_t>(config_json.size()));
     if (with_validate) {
         out.validate_rc = p1_session_validate(h, cfg);
         out.ran_validate = true;
     }
     out.run_rc = p1_session_run(h, cfg, 0);
-    acs_span_u8 mf{};
+    acsd_span_u8 mf{};
     if (p1_session_inspect(h, &mf) == ACS_OK && mf.data) {
         std::string s(reinterpret_cast<const char*>(mf.data), mf.count);
         try { out.manifest = json::parse(s); } catch (...) { out.manifest = json(); }
@@ -167,7 +167,7 @@ int main() {
     // 拒绝 → T1 validate/run 全挂。统一 generic(正斜杠)形态: Windows 文件
     // API 全程接受正斜杠, JSON 转义合法。
     const std::string base =
-        (std::filesystem::path(tmp_root) / "astrocs_p1_batchD_test").generic_string();
+        (std::filesystem::path(tmp_root) / "acsd_p1_batchD_test").generic_string();
     const std::string out_dir = base + "/out";
     {
         std::error_code ec;

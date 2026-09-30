@@ -1,6 +1,6 @@
 # CPU 能力探测与安全矩阵
 
-> 上游：docs/ASTROCS_DESIGN.md §9（CPU 后端与资源）/ docs/ASTROCS_DESIGN.md §9（CPU 后端与资源））
+> 上游：docs/ACSD_DESIGN.md §9（CPU 后端与资源）/ docs/ACSD_DESIGN.md §9（CPU 后端与资源））
 
 ## 1. 目标与验收
 
@@ -29,7 +29,7 @@ CPUID feature → OSXSAVE → XGETBV XMM/YMM/ZMM state → provider 装载的 AB
 - `hw_features`：CPUID 位平面（硬件支持的事实）。
 - `os_safe`：`hw ∩ OS 状态位 ∩ 组包含` 后可安全执行平面。
 - **provider 加载判定只使用 os_safe**：硬件支持但 OS 不保存对应寄存器 → 拒绝
-  （不在 os_safe → `acs_cap_os_safe_satisfies_v1(required)` 返回 0）。
+  （不在 os_safe → `acsd_cap_os_safe_satisfies_v1(required)` 返回 0）。
 - AVX-512 至少检查所需 F/CD/BW/DQ/VL 子集与 XCR0 opmask/ZMM 状态；判定面覆盖“缺任何子集/OS ZMM state 拒绝”。
 
 探测实现自身只执行 SSE2 可执行指令 + cpuid + xgetbv；XGETBV 仅在 OSXSAVE=1
@@ -54,7 +54,7 @@ AVX512DQ=1<<11, AVX512VL=1<<12`。
 
 - 唯一事实源：`lib/infrastructure/benchmark/cpu/common/schemas/cpu_capability.schema.json`
   （draft 2020-12；`additionalProperties:false`；全部 required 枚举冻结）。
-- `acs_cap_serialize_json_v1` 输出与该 schema 一一对应；无浮点；键序固定 →
+- `acsd_cap_serialize_json_v1` 输出与该 schema 一一对应；无浮点；键序固定 →
   同机同构输出逐字节稳定（可哈希/可比对）。
 - 键：`schema_version/kind/architecture/vendor/brand/family/model/stepping/
   cpuid{...}/os_state{osxsave,xcr0}/features{hw[],os_safe[]}/
@@ -64,9 +64,9 @@ AVX512DQ=1<<11, AVX512VL=1<<12`。
 
 ## 5. C ABI 稳定性
 
-- `acs_cap_result_v1` 等 POD 前两字段 `struct_size + abi_version`
+- `acsd_cap_result_v1` 等 POD 前两字段 `struct_size + abi_version`
   （`ACS_CAP_ABI_VERSION_V1=1`）；失配返回 `ACS_CAP_ERR_ABI_MISMATCH`，不做布局猜测。
-- 错误码数值与 `lib/include/astrocs/abi/status_codes.h` `acs_status` 对齐
+- 错误码数值与 `lib/include/acsd/abi/status_codes.h` `acsd_status` 对齐
   （OK=0/ERR_PARAM=1/ERR_ABI_MISMATCH=2/ERR_UNSUPPORTED=5）。
 - 纯 C11（extern "C" 兼容 C++17）；禁 STL/异常/RTTI；无第三方依赖；
   跨边界无托管分配、无 opaque handle。
@@ -74,9 +74,9 @@ AVX512DQ=1<<11, AVX512VL=1<<12`。
 ## 6. 合成 feature matrix（测试事实源）
 
 `eng/tests/cpu/dispatch/cpu_capability_matrix_test.c` 以合成
-`acs_cap_result_v1`（直接置 CPUID 证据 + XCR0/OSXSAVE）驱动与生产同一的
-`cap_classify` 语义（合成证据经公开 API `acs_cap_detect_v1` 的注入入口进入，
-复用 `acs_cap_os_safe_satisfies_v1` 判定）——判定函数即生产函数。矩阵行（节选）：
+`acsd_cap_result_v1`（直接置 CPUID 证据 + XCR0/OSXSAVE）驱动与生产同一的
+`cap_classify` 语义（合成证据经公开 API `acsd_cap_detect_v1` 的注入入口进入，
+复用 `acsd_cap_os_safe_satisfies_v1` 判定）——判定函数即生产函数。矩阵行（节选）：
 
 | 行 | hw CPUID | OSXSAVE/XCR0 | 预期 os_safe | 预期判定 |
 |---|---|---|---|---|

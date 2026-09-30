@@ -207,7 +207,7 @@ HipsSkyView::Tile* HipsSkyView::get_tile(int order, std::uint64_t ipix) {
 bool HipsSkyView::sample_value(double ra, double dec, float& out) {
     if (!bk_) return false;
     int order = target_order();
-    std::uint64_t leaf = astrocs::healpix::ang2pix_nest(
+    std::uint64_t leaf = acsd::healpix::ang2pix_nest(
         1u << (unsigned)(order + kTileShift), ra, dec);
     std::uint64_t tile_ipix = leaf >> 18;
     std::uint64_t local = leaf & kTileMask;
@@ -215,7 +215,7 @@ bool HipsSkyView::sample_value(double ra, double dec, float& out) {
         Tile* t = get_tile(o, tile_ipix);
         if (t) {
             const std::uint64_t fi =
-                astrocs::healpix::nested_local_to_fits_index(
+                acsd::healpix::nested_local_to_fits_index(
                     local, 9u, 512u);
             if (layer_ == 0) {
                 out = t->sig[(size_t)fi];
@@ -228,7 +228,7 @@ bool HipsSkyView::sample_value(double ra, double dec, float& out) {
             ++stats_.parent_fallbacks;
             tile_ipix >>= 2;              // 父 tile
             const int po = o - 1;
-            local = astrocs::healpix::ang2pix_nest(
+            local = acsd::healpix::ang2pix_nest(
                         1u << (unsigned)(po + kTileShift), ra, dec) &
                     kTileMask;
         }
@@ -243,13 +243,13 @@ int HipsSkyView::sample_at(double ra, double dec, int order, float& out) const {
     const int saved_layer = self->layer_;
     self->layer_ = 0;
     int rc = -2;
-    std::uint64_t leaf = astrocs::healpix::ang2pix_nest(
+    std::uint64_t leaf = acsd::healpix::ang2pix_nest(
         1u << (unsigned)(order + kTileShift), ra, dec);
     std::uint64_t tile_ipix = leaf >> 18;
     std::uint64_t local = leaf & kTileMask;
     Tile* t = self->get_tile(order, tile_ipix);
     if (t) {
-        const std::uint64_t fi = astrocs::healpix::nested_local_to_fits_index(
+        const std::uint64_t fi = acsd::healpix::nested_local_to_fits_index(
             local, 9u, 512u);
         out = t->sig[(size_t)fi];
         rc = 0;
@@ -342,7 +342,7 @@ void HipsSkyView::rasterize(std::vector<std::uint32_t>& rgba) {
                     ra = std::fmod(ra, 2.0 * kPi);
                     if (ra < 0.0) ra += 2.0 * kPi;
                     leaves[(std::size_t)j * (std::size_t)w_ + (std::size_t)i] =
-                        astrocs::healpix::ang2pix_nest(
+                        acsd::healpix::ang2pix_nest(
                             nside, ra * 180.0 / kPi, dec * 180.0 / kPi);
                     per_thread[tid].push_back(
                         leaves[(std::size_t)j * (std::size_t)w_ +
@@ -497,7 +497,7 @@ void HipsSkyView::rasterize(std::vector<std::uint32_t>& rgba) {
             if (t) {
                 // 最近邻采样：高倍率下保留 HiPS tile 像素网格，不掩盖真实结构
                 const std::uint64_t fi =
-                    astrocs::healpix::nested_local_to_fits_index(use_local, 9u,
+                    acsd::healpix::nested_local_to_fits_index(use_local, 9u,
                                                                  512u);
                 if (layer_ == 0) {
                     const float val = t->sig[(size_t)fi];

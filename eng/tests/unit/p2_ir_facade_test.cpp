@@ -21,7 +21,7 @@ static std::string read_file(const std::string& p) {
 }
 
 int main() {
-  const char* repo = std::getenv("ASTROCS_REPO");
+  const char* repo = std::getenv("ACSD_REPO");
   const std::string base = repo ? repo : "..";
 
   // 1) canonical IR 全链: p2_session 声明全部阶段节点

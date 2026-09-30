@@ -48,15 +48,15 @@ extern "C" {
 namespace {
 
 // 真实 HiPS fixture 根目录（禁止写死机器绝对路径 —— AGENTS §3）：
-//   ASTROCS_PHASE1_FREEZE_DIR  指向 phase1_freeze 根（默认 run/temp/phase1_freeze）
-//   ASTROCS_PHASE1_TMP_DIR     指向临时根（默认 run/temp）
+//   ACSD_PHASE1_FREEZE_DIR  指向 phase1_freeze 根（默认 run/temp/phase1_freeze）
+//   ACSD_PHASE1_TMP_DIR     指向临时根（默认 run/temp）
 // 未提供 fixture 时相关用例 GTEST_SKIP，并在 skip 消息中给出提供方式。
 std::string phase1_fixture_root() {
-    const char* e = std::getenv("ASTROCS_PHASE1_FREEZE_DIR");
+    const char* e = std::getenv("ACSD_PHASE1_FREEZE_DIR");
     return (e && *e) ? std::string(e) : std::string("run/temp/phase1_freeze");
 }
 std::string phase1_tmp_root() {
-    const char* e = std::getenv("ASTROCS_PHASE1_TMP_DIR");
+    const char* e = std::getenv("ACSD_PHASE1_TMP_DIR");
     return (e && *e) ? std::string(e) : std::string("run/temp");
 }
 
@@ -96,7 +96,7 @@ std::string file_sha256(const std::filesystem::path& p) {
     std::ostringstream ss;
     ss << f.rdbuf();
     const std::string bytes = ss.str();
-    return astrocs::crypto::sha256_hex(bytes.data(), bytes.size());
+    return acsd::crypto::sha256_hex(bytes.data(), bytes.size());
 }
 
 // 在 FITS 文件第一个 HDU 数据区 byte_idx 处翻转一个字节（保持文件结构
@@ -165,7 +165,7 @@ constexpr double kNoiseRms = 0.05;
 
 inline std::uint64_t leaf_of(std::uint64_t tile, int x, int y) {
     const std::uint64_t local =
-        astrocs::healpix::xy_to_nested_local((std::uint32_t)x,
+        acsd::healpix::xy_to_nested_local((std::uint32_t)x,
                                              (std::uint32_t)y,
                                              (std::uint32_t)kTileShift);
     return (tile << (2u * (unsigned)kTileShift)) + local;
@@ -203,7 +203,7 @@ inline void cell_center_radec(std::uint64_t tile, int gx, int gy,
     const int x = gx * kCellSide + kCellSide / 2;
     const int y = gy * kCellSide + kCellSide / 2;
     const std::uint64_t leaf = leaf_of(tile, x, y);
-    astrocs::healpix::pix2ang_nest(
+    acsd::healpix::pix2ang_nest(
         1u << (unsigned)(kTargetOrder + kTileShift), leaf, *ra, *dec);
 }
 
@@ -845,7 +845,7 @@ TEST(Phase2Upm, G1SpatialFieldTruth) {
             const int y = gy * st::kCellSide + off_dist(rng);
             const std::uint64_t leaf = st::leaf_of(st::kTiles[t], x, y);
             double ra = 0, dec = 0;
-            astrocs::healpix::pix2ang_nest(
+            acsd::healpix::pix2ang_nest(
                 1u << (unsigned)(st::kTargetOrder + st::kTileShift),
                 leaf, ra, dec);
             for (int f = 0; f <= ((t == n_tiles - 1) ? 1 : 2); ++f) {
@@ -862,7 +862,7 @@ TEST(Phase2Upm, G1SpatialFieldTruth) {
     std::vector<double> out_sig(val_leaf.size());
     for (std::size_t i = 0; i < val_leaf.size(); ++i) {
         double ra = 0, dec = 0;
-        astrocs::healpix::pix2ang_nest(
+        acsd::healpix::pix2ang_nest(
             1u << (unsigned)(st::kTargetOrder + st::kTileShift),
             val_leaf[i], ra, dec);
         const int f = val_frame[i];
@@ -894,7 +894,7 @@ TEST(Phase2Upm, G1SpatialFieldTruth) {
     for (std::size_t i = 0; i < val_leaf.size(); ++i) {
         residual.push_back(out_sig[i] - val_true[i]);
         double ra = 0, dec = 0;
-        astrocs::healpix::pix2ang_nest(
+        acsd::healpix::pix2ang_nest(
             1u << (unsigned)(st::kTargetOrder + st::kTileShift),
             val_leaf[i], ra, dec);
         const int f = val_frame[i];
@@ -1045,7 +1045,7 @@ TEST(Phase2Upm, G1V3SpatialTruthFull) {
     auto add_val = [&](std::uint64_t tile, int x, int y, int f) {
         const std::uint64_t leaf = st::leaf_of(tile, x, y);
         double ra = 0, dec = 0;
-        astrocs::healpix::pix2ang_nest(
+        acsd::healpix::pix2ang_nest(
             1u << (unsigned)(st::kTargetOrder + st::kTileShift),
             leaf, ra, dec);
         vleaf.push_back(leaf);
@@ -1075,7 +1075,7 @@ TEST(Phase2Upm, G1V3SpatialTruthFull) {
     std::vector<double> in_sig(n_val), out_sig(n_val);
     for (std::size_t i = 0; i < n_val; ++i) {
         double ra = 0, dec = 0;
-        astrocs::healpix::pix2ang_nest(
+        acsd::healpix::pix2ang_nest(
             1u << (unsigned)(st::kTargetOrder + st::kTileShift),
             vleaf[i], ra, dec);
         const int f = vframe[i];
@@ -1102,7 +1102,7 @@ TEST(Phase2Upm, G1V3SpatialTruthFull) {
     std::vector<double> residual(n_val), c_true(n_val), c_hat(n_val);
     for (std::size_t i = 0; i < n_val; ++i) {
         double ra = 0, dec = 0;
-        astrocs::healpix::pix2ang_nest(
+        acsd::healpix::pix2ang_nest(
             1u << (unsigned)(st::kTargetOrder + st::kTileShift),
             vleaf[i], ra, dec);
         residual[i] = out_sig[i] - vtrue[i];
@@ -1345,7 +1345,7 @@ TEST(Phase2Upm, G4BoundaryAndPerturbation) {
                             st::cell_center_radec(st::kTiles[u], g2, h2,
                                                   &r2, &d2);
                             const double dist =
-                                astrocs::healpix::angular_distance_deg(
+                                acsd::healpix::angular_distance_deg(
                                     r1, d1, r2, d2);
                             if (dist < best_dist) {
                                 best_dist = dist;
@@ -1394,7 +1394,7 @@ TEST(Phase2Upm, G4BoundaryAndPerturbation) {
                 gy * st::kCellSide + 32);
             const double ch = p2_upm_evaluate_c(m0, 1, leaf);
             double ra = 0, dec = 0;
-            astrocs::healpix::pix2ang_nest(
+            acsd::healpix::pix2ang_nest(
                 1u << (unsigned)(st::kTargetOrder + st::kTileShift),
                 leaf, ra, dec);
             const double ct = st::frame_field(1, ra, dec);
@@ -1498,7 +1498,7 @@ TEST(Phase2Upm, G4RealTileSeamLeaves) {
             if (x < 128 || x >= 384 || y < 128 || y >= 384) continue;
             const std::uint64_t leaf = st::leaf_of(tiles[t], x, y);
             double ra = 0, dec = 0;
-            astrocs::healpix::pix2ang_nest(
+            acsd::healpix::pix2ang_nest(
                 1u << (unsigned)(st::kTargetOrder + st::kTileShift), leaf,
                 ra, dec);
             const double e = std::fabs(
@@ -1526,14 +1526,14 @@ TEST(Phase2Upm, G4RealTileSeamLeaves) {
             const std::uint64_t la = st::leaf_of(s.ta, xa, ya);
             const std::uint64_t lb = st::leaf_of(s.tb, xb, yb);
             double raa = 0, deca = 0, rab = 0, decb = 0;
-            astrocs::healpix::pix2ang_nest(
+            acsd::healpix::pix2ang_nest(
                 1u << (unsigned)(st::kTargetOrder + st::kTileShift), la,
                 raa, deca);
-            astrocs::healpix::pix2ang_nest(
+            acsd::healpix::pix2ang_nest(
                 1u << (unsigned)(st::kTargetOrder + st::kTileShift), lb,
                 rab, decb);
             // sanity：pair 必须真正相邻（角距 < 2× leaf spacing）
-            EXPECT_LT(astrocs::healpix::angular_distance_deg(raa, deca, rab,
+            EXPECT_LT(acsd::healpix::angular_distance_deg(raa, deca, rab,
                                                              decb),
                       2.0 * leaf_spacing_deg)
                 << "seam pair 必须为真实相邻 leaf";
@@ -1771,7 +1771,7 @@ TEST(Phase2Upm, G1HalfCellPhaseTruth) {
         if (x < 64 || x >= 448) continue;
         const std::uint64_t leaf = st::leaf_of(tile, x, y);
         double ra = 0, dec = 0;
-        astrocs::healpix::pix2ang_nest(
+        acsd::healpix::pix2ang_nest(
             1u << (unsigned)(st::kTargetOrder + st::kTileShift), leaf, ra,
             dec);
         const double ch = p2_upm_evaluate_c(model, 1, leaf);
@@ -1868,7 +1868,7 @@ TEST(Phase2Upm, G1DistinctBoundaryNodesNotAliased) {
     st::cell_center_radec(4, 7, 3, &raa, &deca);
     st::cell_center_radec(5, 0, 3, &rab, &decb);
     const double dist =
-        astrocs::healpix::angular_distance_deg(raa, deca, rab, decb);
+        acsd::healpix::angular_distance_deg(raa, deca, rab, decb);
     EXPECT_GT(dist, 0.0) << "相邻边界 cell 中心必须为不同 sky 位置";
     std::fprintf(stderr, "[G1-noalias] controls=%llu boundary_center_dist=%.6f deg\n",
                  (unsigned long long)info.control_count, dist);
@@ -1937,7 +1937,7 @@ TEST(Phase2Upm, G1BasisCoordinateSelfConsistency) {
         const std::uint64_t tile = leaf >> 18;
         const std::uint64_t local = leaf & ((1ULL << 18) - 1ULL);
         std::uint32_t x = 0, y = 0;
-        astrocs::healpix::nested_local_to_xy(local, 9u, x, y);
+        acsd::healpix::nested_local_to_xy(local, 9u, x, y);
         const int gx = (int)(x / st::kCellSide);
         const int gy = (int)(y / st::kCellSide);
         // 观测 leaf 的 cell 必须与生成时一致（gx=7 时 x=480 → 7）
@@ -2031,7 +2031,7 @@ TEST(Phase2Upm, G1V7EdgeBasisAnalytic) {
         if (o.frame_id != 1) continue;
         const std::uint64_t local = o.leaf_ipix & ((1ULL << 18) - 1ULL);
         std::uint32_t x = 0, y = 0;
-        astrocs::healpix::nested_local_to_xy(local, 9u, x, y);
+        acsd::healpix::nested_local_to_xy(local, 9u, x, y);
         const double got = p2_upm_evaluate_c(model, 1, o.leaf_ipix);
         worst_center =
             std::max(worst_center, std::fabs(got - c_true((int)x, (int)y)));
@@ -2233,7 +2233,7 @@ TEST(Phase2Upm, G1V8ContinuousSkySeam) {
     const double kTolAffine = 1e-3;    // 固定系数阈值
 
     auto leaf_radec = [](std::uint64_t leaf, double& ra, double& dec) {
-        astrocs::healpix::pix2ang_nest(
+        acsd::healpix::pix2ang_nest(
             1u << (unsigned)(st::kTargetOrder + st::kTileShift), leaf, ra,
             dec);
     };
@@ -2632,11 +2632,11 @@ TEST(Phase2Upm, G2PersistenceAndHashSensitivity) {
         const int gy = (int)((c % (grid * grid)) / grid);
         const int gx = (int)(c % grid);
         const std::uint64_t leaf =
-            (tile << 18) + astrocs::healpix::xy_to_nested_local(
+            (tile << 18) + acsd::healpix::xy_to_nested_local(
                                (std::uint32_t)(gx * cell + 32),
                                (std::uint32_t)(gy * cell + 32), 9u);
         double ra = 0, dec = 0;
-        astrocs::healpix::pix2ang_nest(1u << 12, leaf, ra, dec);
+        acsd::healpix::pix2ang_nest(1u << 12, leaf, ra, dec);
         for (int f = 0; f < 2; ++f) {
             P2ControlObservation o{};
             o.frame_id = (std::uint64_t)f;
@@ -3732,7 +3732,7 @@ TEST(Phase2Coverage, RealHipsUnion) {
     const std::string base = phase1_fixture_root();
     const std::string t2 = base + "/T2_v3.hips/signal/properties";
     if (!std::ifstream(t2).good())
-        GTEST_SKIP() << "真实 HiPS fixture 不存在：设 ASTROCS_PHASE1_FREEZE_DIR 指向 phase1_freeze 根";
+        GTEST_SKIP() << "真实 HiPS fixture 不存在：设 ACSD_PHASE1_FREEZE_DIR 指向 phase1_freeze 根";
     const std::string p0 = base + "/T2_v3.hips";
     const std::string p1 = base + "/T3_v3.hips";
     const std::string p2 = base + "/t4_crop_v3.hips";
@@ -3769,8 +3769,8 @@ TEST(Phase2Coverage, FilterMismatchRejected) {
     const std::string base = phase1_fixture_root();
     const std::string t2 = base + "/T2_v3.hips/signal/properties";
     if (!std::ifstream(t2).good())
-        GTEST_SKIP() << "真实 HiPS fixture 不存在：设 ASTROCS_PHASE1_FREEZE_DIR 指向 phase1_freeze 根";
-    const std::string bad_path = phase1_tmp_root() + "/__astrocs_no_such_hips__";
+        GTEST_SKIP() << "真实 HiPS fixture 不存在：设 ACSD_PHASE1_FREEZE_DIR 指向 phase1_freeze 根";
+    const std::string bad_path = phase1_tmp_root() + "/__acsd_no_such_hips__";
     const char* bad[1] = {bad_path.c_str()};
     P2CoverageResult cov{};
     cov.n_inputs = 1;
@@ -3784,7 +3784,7 @@ TEST(Phase2Sampler, RealHipsControlSampling) {
     const std::string base = phase1_fixture_root();
     const std::string t2 = base + "/t4_crop_v3.hips/signal/properties";
     if (!std::ifstream(t2).good())
-        GTEST_SKIP() << "真实 HiPS fixture 不存在：设 ASTROCS_PHASE1_FREEZE_DIR 指向 phase1_freeze 根";
+        GTEST_SKIP() << "真实 HiPS fixture 不存在：设 ACSD_PHASE1_FREEZE_DIR 指向 phase1_freeze 根";
     const std::string p0 = base + "/t4_crop_v3.hips";
     const std::string p1 = base + "/t4_full_v3_final.hips";
     const char* paths[2] = {p0.c_str(), p1.c_str()};
@@ -3869,7 +3869,7 @@ TEST(Phase2Sampler, G6LocalSnrAvailabilityThreeZones) {
         const std::uint64_t leaf =
             st::leaf_of(tile, gx * st::kCellSide + 32,
                         gy * st::kCellSide + 32);
-        astrocs::healpix::pix2ang_nest(
+        acsd::healpix::pix2ang_nest(
             1u << (unsigned)(st::kTargetOrder + st::kTileShift), leaf, *ra,
             *dec);
     };
@@ -3922,7 +3922,7 @@ TEST(Phase2Sampler, G6LocalSnrAvailabilityThreeZones) {
         const std::uint64_t t = o.leaf_ipix >> 18;
         const std::uint64_t local = o.leaf_ipix & ((1ULL << 18) - 1ULL);
         std::uint32_t x = 0, y = 0;
-        astrocs::healpix::nested_local_to_xy(local, 9u, x, y);
+        acsd::healpix::nested_local_to_xy(local, 9u, x, y);
         const int gx = (int)(x / st::kCellSide);
         const int gy = (int)(y / st::kCellSide);
         if (t == tiles[0] && gx == 0 && gy == 0) {
@@ -4099,7 +4099,7 @@ TEST(Phase2Identity, G3ManifestOrderCanonical) {
         std::sort(ids.begin(), ids.end());
         std::string s;
         for (auto id : ids) s += std::to_string(id) + ";";
-        return astrocs::crypto::sha256_hex(s.data(), s.size());
+        return acsd::crypto::sha256_hex(s.data(), s.size());
     };
     EXPECT_EQ(manifest({f0, f1}), manifest({f1, f0}));
     EXPECT_NE(f0, f1);
@@ -4123,7 +4123,7 @@ TEST(Phase2Wiring, G1ProductionWiringTruth) {
       "integration": {
         "precision": "fp32", "memory_limit_mb": 8192,
         "rejection": {"method": "sigma", "profile": "wbpp_2_9_1",
-                       "normalization": "astrocs_median_center_v1",
+                       "normalization": "acsd_median_center_v1",
                        "underdetermined_n": 2}
       },
       "output": {"hips": "out.hips"},
@@ -4723,13 +4723,13 @@ TEST(Phase2Eligibility, V15FilterAllPolicies) {
 
 // config：typed rejection 解析 + production 默认 auto
 TEST(Phase2Config, V15RejectionTypedParseAndDefaultAuto) {
-    // 无 rejection.method → 默认 auto + profile = astrocs_adaptive_pixel（生产默认，自研档）
+    // 无 rejection.method → 默认 auto + profile = acsd_adaptive_pixel（生产默认，自研档）
     // 权威（CONFORM-FIX-B-007/008 落地后）：docs/science/REJECTION.md §2/§5
-    // （profile 行「astrocs_adaptive_pixel（**生产默认，ACSD 自研**）/ wbpp_2_9_1（对照档）」）、
+    // （profile 行「acsd_adaptive_pixel（**生产默认，ACSD 自研**）/ wbpp_2_9_1（对照档）」）、
     // docs/engineering/CONFIG_SCHEMA.md:25（同值）、
     // eng/contracts/data/phase2_uncertainty_rejection_provenance_v1.json:67
-    // （canonical=astrocs_adaptive_pixel）。underdetermined_n 缺键 ⇒ 0 = 按 profile 解析，
-    // 权威 = p2_reject_plan_resolve（rejection.h:230-234 冻结：astrocs_adaptive_pixel=3）。
+    // （canonical=acsd_adaptive_pixel）。underdetermined_n 缺键 ⇒ 0 = 按 profile 解析，
+    // 权威 = p2_reject_plan_resolve（rejection.h:230-234 冻结：acsd_adaptive_pixel=3）。
     // 本测试旧期望（wbpp_2_9_1 / 2u）是 CONFORM-FIX-B 之前的默认值，已按权威订正。
     const std::string j1 = R"({
       "version": 1,
@@ -4743,7 +4743,7 @@ TEST(Phase2Config, V15RejectionTypedParseAndDefaultAuto) {
     ASSERT_TRUE(p2_stage2_parse_config(
         nlohmann::json::parse(j1), &cfg1, &err1)) << err1;
     EXPECT_EQ(cfg1.reject_method, P2_REJECT_AUTO);
-    EXPECT_EQ(cfg1.reject_profile, P2_PROFILE_ASTROCS_ADAPTIVE_PIXEL);
+    EXPECT_EQ(cfg1.reject_profile, P2_PROFILE_ACSD_ADAPTIVE_PIXEL);
     EXPECT_EQ(cfg1.reject_underdetermined_n, 3u);
 
     // typed 参数全解析
@@ -4940,7 +4940,7 @@ TEST(Phase2Config, V16RejectionNormalizationValidation) {
     const std::string ok_auto = R"({
       "version": 1, "inputs": {"hips": ["a.hips", "b.hips"]}, "model": {},
       "integration": {"rejection": {"method": "auto",
-         "profile": "astrocs_adaptive"}},
+         "profile": "acsd_adaptive"}},
       "output": {"hips": "o.hips"}})";
     EXPECT_TRUE(parse(ok_auto));
     const std::string ok_rcr = R"({
@@ -5006,15 +5006,15 @@ TEST(Phase2Eligibility, V16GatherStridedFp32Fp64) {
 }
 
 // M3（依据 docs/science/REJECTION.md §5「n ≥ 6 → winsorized_sigma」）：生产档
-// astrocs_adaptive_pixel 的 n≥16 档由 linear_fit 改投 winsorized_sigma ——
+// acsd_adaptive_pixel 的 n≥16 档由 linear_fit 改投 winsorized_sigma ——
 // 正例（路由档界 + 科学行为保留）+ 负例（改回即红）。
-// 对照档 wbpp_2_9_1 / astrocs_adaptive 的 n>15 → linear_fit **未随此改动**（回归基线）。
+// 对照档 wbpp_2_9_1 / acsd_adaptive 的 n>15 → linear_fit **未随此改动**（回归基线）。
 TEST(Phase2Reject, M3PixelProfileRoutesGe16ToWinsorized) {
     auto resolve = [](std::uint32_t n) {
         P2RejectionPlanRequest req{};
         req.request = P2_REJECT_AUTO;
         req.nominal_contributors = n;
-        req.profile = "astrocs_adaptive_pixel";
+        req.profile = "acsd_adaptive_pixel";
         P2RejectionPlan plan{};
         char err[64] = {0};
         EXPECT_EQ(p2_reject_plan_resolve(&req, &plan, err, sizeof(err)), 0);
@@ -5048,7 +5048,7 @@ TEST(Phase2Reject, M3PixelProfileRoutesGe16ToWinsorized) {
     P2RejectionPlanRequest req{};
     req.request = P2_REJECT_AUTO;
     req.nominal_contributors = 20;
-    req.profile = "astrocs_adaptive_pixel";
+    req.profile = "acsd_adaptive_pixel";
     P2RejectionPlan plan{};
     char err[64] = {0};
     ASSERT_EQ(p2_reject_plan_resolve(&req, &plan, err, sizeof(err)), 0);
@@ -5059,9 +5059,9 @@ TEST(Phase2Reject, M3PixelProfileRoutesGe16ToWinsorized) {
     EXPECT_GE(dec.rejected_high, 1u);
 }
 
-// profile 解析（wbpp_current 与 astrocs_adaptive 都接受；AUTO 路由一致）
+// profile 解析（wbpp_current 与 acsd_adaptive 都接受；AUTO 路由一致）
 TEST(Phase2Reject, V16ProfileGroupVsAdaptive) {
-    for (const char* prof : {"wbpp_2_9_1", "astrocs_adaptive"}) {
+    for (const char* prof : {"wbpp_2_9_1", "acsd_adaptive"}) {
         P2RejectionPlanRequest req{};
         req.request = P2_REJECT_AUTO;
         req.nominal_contributors = 20;
@@ -5195,7 +5195,7 @@ TEST(Phase2Reject, V17InvalidMethodStatus) {
 }
 
 // =====================================================================
-// True Final Freeze — astrocs.large_scale_rejection.v1
+// True Final Freeze — acsd.large_scale_rejection.v1
 // =====================================================================
 
 namespace {
@@ -5882,7 +5882,7 @@ TEST(Phase2Upm, UpmUnknownFrameRejected) {
 // ===========================================================================
 namespace {
 std::uint64_t p2a_leaf(std::uint64_t tile, int x, int y) {
-    const std::uint64_t local = astrocs::healpix::xy_to_nested_local(
+    const std::uint64_t local = acsd::healpix::xy_to_nested_local(
         (std::uint32_t)x, (std::uint32_t)y, 9u);
     return (tile << 18u) + local;
 }

@@ -18,9 +18,9 @@
 //                 不同 (证明 A 的锁不是恒真)。
 // 该文件在改前(pristine)生产源上同样可编译运行 ⇒ parity 断言 RED; 改后 GREEN。
 // ============================================================================
-#include "astrocs/core/module.h"
-#include "astrocs/core/module_adapters.h"
-#include "astrocs/core/context.h"
+#include "acsd/core/module.h"
+#include "acsd/core/module_adapters.h"
+#include "acsd/core/context.h"
 
 #include "p1sess_fixtures.hpp"
 
@@ -43,7 +43,7 @@
 
 using json = nlohmann::json;
 namespace fs = std::filesystem;
-using namespace astrocs::core;
+using namespace acsd::core;
 
 static int g_fail = 0;
 static int g_check = 0;
@@ -109,7 +109,7 @@ static bool run_psf(ModuleRegistry& reg, const std::string& out_dir,
   cfg["input_lights"] = json::array({light});
   cfg["output_dir"] = out_dir;
   cfg["psf"] = json{{"max_stars", max_stars}};
-  return run_node(reg, "astrocs.phase1.star-psf", cfg.dump(), nullptr, err);
+  return run_node(reg, "acsd.phase1.star-psf", cfg.dump(), nullptr, err);
 }
 
 static bool run_noise(ModuleRegistry& reg, const std::string& out_dir,
@@ -121,7 +121,7 @@ static bool run_noise(ModuleRegistry& reg, const std::string& out_dir,
   cfg["snr"] = json{{"zero_point_mag", 25.0}, {"gain_e_per_adu", 1.5},
                     {"read_noise_e", 5.0}};
   if (max_sources > 0) cfg["snr"]["max_sources"] = max_sources;
-  if (!run_node(reg, "astrocs.phase1.noise-snr", cfg.dump(), nullptr, err)) return false;
+  if (!run_node(reg, "acsd.phase1.noise-snr", cfg.dump(), nullptr, err)) return false;
   const json snr = read_json(out_dir + "/p1_snr.json");
   if (!snr.contains("frames") || !snr["frames"].is_array() || snr["frames"].empty()) {
     *err = "p1_snr.json has no frames";
@@ -186,7 +186,7 @@ int main() {
       json pcfg;
       pcfg["input_lights"] = json::array({light});
       pcfg["output_dir"] = od;
-      if (!run_node(reg, "astrocs.phase1.photometry", pcfg.dump(), nullptr, &err)) {
+      if (!run_node(reg, "acsd.phase1.photometry", pcfg.dump(), nullptr, &err)) {
         std::fprintf(stderr, "FAIL: photometry (%s): %s\n", cases[i].name, err.c_str());
         return 1;
       }
@@ -293,7 +293,7 @@ int main() {
     cfg["snr"] = json{{"zero_point_mag", 25.0}, {"gain_e_per_adu", 1.5},
                       {"read_noise_e", 5.0}, {"reference_flux_adu", 777.5}};
     std::string err;
-    CHECK(run_node(reg, "astrocs.phase1.noise-snr", cfg.dump(), nullptr, &err),
+    CHECK(run_node(reg, "acsd.phase1.noise-snr", cfg.dump(), nullptr, &err),
           "WEIGHT-SCI-001: 显式 reference_flux_adu 节点成功");
     const json snr = read_json(od + "/p1_snr.json");
     const json fr = snr["frames"][0];
@@ -320,7 +320,7 @@ int main() {
     cfg2["output_dir"] = od2;
     cfg2["snr"] = json{{"reference_flux_adu", -1.0}};
     std::string err2;
-    CHECK(!run_node(reg, "astrocs.phase1.noise-snr", cfg2.dump(), nullptr, &err2),
+    CHECK(!run_node(reg, "acsd.phase1.noise-snr", cfg2.dump(), nullptr, &err2),
           "WEIGHT-SCI-001: 显式 reference_flux_adu<=0 ⇒ DATA fail-closed");
   }
 

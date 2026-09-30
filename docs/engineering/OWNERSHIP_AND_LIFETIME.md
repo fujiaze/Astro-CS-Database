@@ -1,6 +1,6 @@
 # Ownership & Lifetime
 
-> 上游：ASTROCS_DESIGN.md §8（软件架构）
+> 上游：ACSD_DESIGN.md §8（软件架构）
 
 ## 规则
 

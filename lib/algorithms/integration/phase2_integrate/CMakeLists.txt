@@ -6,23 +6,23 @@
 # ============================================================================
 cmake_minimum_required(VERSION 3.16)
 if(CMAKE_SOURCE_DIR STREQUAL CMAKE_CURRENT_SOURCE_DIR)
-  project(astrocs_phase2_integrate LANGUAGES C CXX)
+  project(acsd_phase2_integrate LANGUAGES C CXX)
 endif()
 
-if(NOT TARGET astrocs_phase2_integrate)
+if(NOT TARGET acsd_phase2_integrate)
   set(P2_REPO "${CMAKE_CURRENT_SOURCE_DIR}/../../../..")
   get_filename_component(P2_REPO "${P2_REPO}" ABSOLUTE)
 
   # 生产 phase2 需要 legacy AIO (aio_hips_reader / aio_upm) -> vendored cfitsio。
-  if(NOT DEFINED ASTROCS_CFITSIO_SOURCES)
+  if(NOT DEFINED ACSD_CFITSIO_SOURCES)
     include("${P2_REPO}/eng/cmake/cfitsio_sources.cmake")
   endif()
   set(_P2_CFITSIO_ABS "")
-  foreach(_s ${ASTROCS_CFITSIO_SOURCES})
+  foreach(_s ${ACSD_CFITSIO_SOURCES})
     list(APPEND _P2_CFITSIO_ABS "${P2_REPO}/${_s}")
   endforeach()
 
-  add_library(astrocs_phase2_integrate STATIC
+  add_library(acsd_phase2_integrate STATIC
     src/phase2_integrate.cpp
     src/weight_chain.cpp
     # 残差制造者 PΣPᵀ 方差传播（纯 FP64 + std，无第三方依赖）。
@@ -55,7 +55,7 @@ if(NOT TARGET astrocs_phase2_integrate)
     "${P2_REPO}/lib/infrastructure/aio/src/aio_upm.cpp"
     ${_P2_CFITSIO_ABS})
 
-  target_include_directories(astrocs_phase2_integrate PUBLIC
+  target_include_directories(acsd_phase2_integrate PUBLIC
     "${CMAKE_CURRENT_SOURCE_DIR}/include"
     "${P2_REPO}/lib/algorithms/integration/phase1_product/include"
     "${P2_REPO}/lib/algorithms/coverage/include"
@@ -79,47 +79,47 @@ if(NOT TARGET astrocs_phase2_integrate)
     "${P2_REPO}/lib/algorithms/shared/healpix"
     "${P2_REPO}/lib/algorithms/shared/crypto")
 
-  target_compile_definitions(astrocs_phase2_integrate PRIVATE
+  target_compile_definitions(acsd_phase2_integrate PRIVATE
     AIO_ENABLE_FITS AIO_ENABLE_XISF _REENTRANT)
 
-  # ── 第三方源的平台面: 与根 astrocs_cfitsio **同一份**实现 ────────────────
+  # ── 第三方源的平台面: 与根 acsd_cfitsio **同一份**实现 ────────────────
   # 事实(改前): 本目标把 vendored cfitsio 的**整套源**再编一遍 (60 TU, 见上方
   #   ${_P2_CFITSIO_ABS}) 并定义 _REENTRANT, 却没有根目标那份平台垫片包含面
   #   ⇒ Windows/MSVC 全量构建报 55 条 C1083 "pthread.h" (fitsio2.h 的
   #   `#ifdef _REENTRANT` / `#include <pthread.h>` 分支被 _REENTRANT 打开);
   #   同目标还自编 zcompress.c/zuncompress.c 却未接 zlib 包含面 ⇒ C1083 "zlib.h"。
-  #   根站点 (CMakeLists.txt 的 astrocs_cfitsio) 本就做了平台隔离 ⇒ 同族两处两套口径。
+  #   根站点 (CMakeLists.txt 的 acsd_cfitsio) 本就做了平台隔离 ⇒ 同族两处两套口径。
   # 现口径: 两处都调用 eng/cmake/cfitsio_platform.cmake 的同名函数 (唯一实现),
   #   不再各自内联路径字面量; 该模块由根 CMake 入口 include, 独立构建本目录时自补。
-  if(NOT COMMAND astrocs_cfitsio_apply_platform_shim)
+  if(NOT COMMAND acsd_cfitsio_apply_platform_shim)
     include("${P2_REPO}/eng/cmake/cfitsio_platform.cmake")
   endif()
-  astrocs_cfitsio_apply_platform_shim(astrocs_phase2_integrate)
-  astrocs_cfitsio_apply_third_party_deps(astrocs_phase2_integrate)
-# 第三方告警隔离 (与基准目标 astrocs_cfitsio 同一份实现): 本目标编的是 vendored
+  acsd_cfitsio_apply_platform_shim(acsd_phase2_integrate)
+  acsd_cfitsio_apply_third_party_deps(acsd_phase2_integrate)
+# 第三方告警隔离 (与基准目标 acsd_cfitsio 同一份实现): 本目标编的是 vendored
 # cfitsio 源, 不该把 drvrnet.c C4206 / zuncompress.c C4267 之类灌进项目告警面。
-astrocs_cfitsio_isolate_warnings(astrocs_phase2_integrate)
-  set_target_properties(astrocs_phase2_integrate PROPERTIES
+acsd_cfitsio_isolate_warnings(acsd_phase2_integrate)
+  set_target_properties(acsd_phase2_integrate PROPERTIES
     CXX_STANDARD 17
     CXX_STANDARD_REQUIRED ON
     POSITION_INDEPENDENT_CODE ON)
   # 平台系统库面: 引用根 CMakeLists 唯一判定点声明的共用件。
   # 本目录**可被独立 configure** (本文件顶部的「当前目录即工程根」守卫 + 独立 project()):
-  # 那种情况下没有根入口 ⇒ 共用件未定义, 直接写 astrocs_platform_math 会被 CMake 当成
-  # **普通库名**展开成 -lastrocs_platform_math ⇒ 链接期 ld: cannot find。实测 (FINAL-07):
-  # 独立 configure 后未守卫时链接 rc=2, 链接行含 -lastrocs_platform_math 与
-  # -lastrocs_platform_zlib。故按「目标是否存在」守卫, 不按平台守卫
+  # 那种情况下没有根入口 ⇒ 共用件未定义, 直接写 acsd_platform_math 会被 CMake 当成
+  # **普通库名**展开成 -lacsd_platform_math ⇒ 链接期 ld: cannot find。实测 (FINAL-07):
+  # 独立 configure 后未守卫时链接 rc=2, 链接行含 -lacsd_platform_math 与
+  # -lacsd_platform_zlib。故按「目标是否存在」守卫, 不按平台守卫
   # (平台判断仍只在共用件内部一处)。
-  foreach(_p2_plat_lib astrocs_platform_math astrocs_platform_zlib)
+  foreach(_p2_plat_lib acsd_platform_math acsd_platform_zlib)
     if(TARGET ${_p2_plat_lib})
-      target_link_libraries(astrocs_phase2_integrate PUBLIC ${_p2_plat_lib})
+      target_link_libraries(acsd_phase2_integrate PUBLIC ${_p2_plat_lib})
     endif()
   endforeach()
-  # 独立 configure 下 astrocs_platform_zlib 缺席, 而本目标自编的 vendored cfitsio 里
+  # 独立 configure 下 acsd_platform_zlib 缺席, 而本目标自编的 vendored cfitsio 里
   # zcompress.c 需要 zlib ⇒ 链接期 undefined reference to deflateEnd (FINAL-07 实测 rc=2)。
   # 回落到系统 zlib, 保持「本目录可独立 configure」这一既有承诺; 平台判断仍只在共用件内部一处。
-  if(NOT TARGET astrocs_platform_zlib)
+  if(NOT TARGET acsd_platform_zlib)
     find_package(ZLIB REQUIRED)
-    target_link_libraries(astrocs_phase2_integrate PUBLIC ZLIB::ZLIB)
+    target_link_libraries(acsd_phase2_integrate PUBLIC ZLIB::ZLIB)
   endif()
 endif()

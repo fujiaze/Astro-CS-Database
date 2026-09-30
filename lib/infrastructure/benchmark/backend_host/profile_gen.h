@@ -1,15 +1,15 @@
 // lib/infrastructure/benchmark/backend_host/profile_gen.h — cpu_profile.json 生成与复读 (BENCH-004/005 + CPU-003)
 // API: generate_profile_json(旧 schema, 保留供旧测试/后端测试)
 // CPU-003: generate_profile_v2 / verify_profile_v2(新 v2 schema)
-#ifndef ASTROCS_PROFILE_GEN_H
-#define ASTROCS_PROFILE_GEN_H
+#ifndef ACSD_PROFILE_GEN_H
+#define ACSD_PROFILE_GEN_H
 
 #include <cstdint>
 #include <map>
 #include <string>
 #include <vector>
 
-namespace astrocs::backend_host {
+namespace acsd::backend_host {
 
 /* ── V5 API(旧 schema; BENCH-004/005 测试与旧 CLI 兼容) ── */
 /* 生成对 cpu_profile.schema.json 有效的 profile JSON 文本。
@@ -100,13 +100,13 @@ struct ProfileBundle {
     std::string raw_samples_sha256;    // 原始候选序列化 hash
     std::string profile_id;            // "sha256:<hex>"
     // 组装期不变量违反项(空=全部合规)。非空 ⇒ 该 profile 结构性不可写盘:
-    // 调用方须 fail-closed(CLI 返回 astrocs::CRASH), 不得落盘再等复读层拒收。
+    // 调用方须 fail-closed(CLI 返回 acsd::CRASH), 不得落盘再等复读层拒收。
     std::vector<std::string> violations;
 };
 
 /* 组装期不变量(唯一出处, 与 verify_profile_v2 同一条判据; 返回 "" = 合规):
  * correctness_test == "oracle:pass" ⇒ median_ns > 0 且 mad_ns >= 0。
- * 依据: docs/ASTROCS_DESIGN.md §9「选择用稳定统计」+ eng/tests/cli/test_bench_cli.py:94-95
+ * 依据: docs/ACSD_DESIGN.md §9「选择用稳定统计」+ eng/tests/cli/test_bench_cli.py:94-95
  * (「过 oracle 却零耗时」是结构性自相矛盾: 唯一物理含义是统计量根本没测到)。
  * 本判据可独立调用 ⇒ 负例注入无需真实测量环境。 */
 std::string profile_invariant_violation(const KernelProfile& kp);
@@ -134,12 +134,12 @@ ProfileBundle generate_profile_v2(const std::string& mode, const std::string& bu
 
 /* 独立复读: 解析并校验 v2 profile 文本。返回 "" 表示合法, 否则返回错误描述。
  * 校验: schema/必填字段/版本格式/commit/指纹/workers/block/median 合理性。
- * astrocs_version 仅做 semver 形态校验(N3, 不钉死版本字面量); build 绑定语义由
+ * acsd_version 仅做 semver 形态校验(N3, 不钉死版本字面量); build 绑定语义由
  * expected_commit(source_commit)与 benchmark_binary_sha256 等指纹承担。
  * expected_commit 非空时须匹配 build.source_commit。 */
 std::string verify_profile_v2(const std::string& json_text,
                               const std::string& expected_commit);
 
-}  // namespace astrocs::backend_host
+}  // namespace acsd::backend_host
 
-#endif  // ASTROCS_PROFILE_GEN_H
+#endif  // ACSD_PROFILE_GEN_H

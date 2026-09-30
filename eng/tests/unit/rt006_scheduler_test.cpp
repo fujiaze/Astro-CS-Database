@@ -1,8 +1,8 @@
 // RT-006 单元测试: 唯一 Scheduler + Runtime 集成
 // 覆盖: 并发 diamond DAG、失败→依赖 SKIPPED + 独立节点完成、取消、
 // 预算上限、内存回压、确定性、Runtime load_pipeline→run 全链路（带 node ID 状态）。
-#include "astrocs/core/module_adapters.h"
-#include "astrocs/core/runtime.h"
+#include "acsd/core/module_adapters.h"
+#include "acsd/core/runtime.h"
 
 #include <atomic>
 #include <cstdio>
@@ -10,7 +10,7 @@
 #include <thread>
 #include <vector>
 
-using namespace astrocs::core;
+using namespace acsd::core;
 
 static int failures = 0;
 #define CHECK(cond)                                                       \
@@ -175,17 +175,17 @@ static void test_runtime_full_pipeline() {
   CHECK(rt.ok());
   // 3 节点: p1 → p2（DATA-P1-CAL 匹配）+ 独立 p3（DATA-HIPS-001 输入）
   const char* ir = R"({
-    "schema": "astrocs.pipeline/v1",
+    "schema": "acsd.pipeline/v1",
     "pipeline_id": "chain3",
     "version": "1.0.0",
     "nodes": [
-      {"node_id": "cal", "module_id": "astrocs.phase1.calibration", "module_api": "1.x",
+      {"node_id": "cal", "module_id": "acsd.phase1.calibration", "module_api": "1.x",
        "config": {}, "inputs": {"frames": "artifact:in"}, "outputs": {"calibrated": "artifact:cal"},
        "resources": {"class": "cpu_heavy", "parallel": true}},
-      {"node_id": "res", "module_id": "astrocs.phase2.resample", "module_api": "1.x",
+      {"node_id": "res", "module_id": "acsd.phase2.resample", "module_api": "1.x",
        "config": {}, "inputs": {"calibrated": "artifact:cal"}, "outputs": {"resampled": "artifact:res"},
        "resources": {"class": "cpu_heavy", "parallel": true}},
-      {"node_id": "hips", "module_id": "astrocs.phase3.resample", "module_api": "1.x",
+      {"node_id": "hips", "module_id": "acsd.phase3.resample", "module_api": "1.x",
        "config": {}, "inputs": {"hips": "artifact:in_hips"}, "outputs": {"tile": "artifact:tile"},
        "resources": {"class": "cpu_heavy", "parallel": true}}
     ],
@@ -205,7 +205,7 @@ static void test_runtime_full_pipeline() {
   CHECK(has_ids);
   auto insp = rt.value()->inspect();
   CHECK(insp.ok());
-  CHECK(insp.value().find("astrocs.runtime/v1") != std::string::npos);
+  CHECK(insp.value().find("acsd.runtime/v1") != std::string::npos);
 }
 
 int main() {

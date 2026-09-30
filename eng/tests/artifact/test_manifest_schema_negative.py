@@ -74,7 +74,7 @@ class TestSchemaNegative(unittest.TestCase):
 
     def test_unknown_type(self):
         d = base()
-        d["type_id"] = "astrocs.phase9.mystery.v1"
+        d["type_id"] = "acsd.phase9.mystery.v1"
         ok, errs = validate(d)
         self.assertFalse(ok, "未知 type_id 应被拒")
         self.assertTrue(any("unknown type_id" in e for e in errs), errs)
@@ -91,7 +91,7 @@ class TestSchemaNegative(unittest.TestCase):
         text = EX.read_text(encoding="utf-8")
         # 在 producer 对象后注入重复 producer 顶层 key
         ins = text.find('"run": {')
-        dup = '  "producer": {"module_id": "astrocs.evil", "module_build_id": "x"},\n'
+        dup = '  "producer": {"module_id": "acsd.evil", "module_build_id": "x"},\n'
         bad = text[:ins] + dup + text[ins:]
         ok, errs = Validator().validate_text(bad)
         self.assertFalse(ok, "重复 producer 顶层 key 应被拒")

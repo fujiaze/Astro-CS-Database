@@ -1,7 +1,7 @@
 # 研究包：测光标定（Gaia XP × 系统响应 → 测光星等坐标系）
 
 > 研究包只承载一手出处、方法学对照与核验留痕；**不定义公式、常数与门限**
-> 上游: `ASTROCS_DESIGN.md` §2.1（创新点一）、§4.2（Phase1 节点流程：星表引导检测 + WCS 解算 + photometry（含同一步内的测光归一化施加））、§4.4（测光输出语义）、附录 B
+> 上游: `ACSD_DESIGN.md` §2.1（创新点一）、§4.2（Phase1 节点流程：星表引导检测 + WCS 解算 + photometry（含同一步内的测光归一化施加））、§4.4（测光输出语义）、附录 B
 > 合同权威: `docs/science/PHOTOMETRY.md`（SCI-PHOT-001，FROZEN）；模块细则: `docs/detail/algorithms_phase1/06_photometry.md`
 > 消费方: SCI-401 / SCI-402（实验单元一与其误差预算）、DOC-403（文档索引门）
 > 依据: AGENTS.md §5（三重佐证）、§8（科学查证流程）、任务书 `DOC-404`
@@ -125,7 +125,7 @@ F_ν = 3631 Jy ⇒ m_AB = 0                            # AB 零点定义
 
 ## 6. 星表引导检测与 WCS 精化的开源对照
 
-**权威范式（本项目）**：WCS 解算的近似指向由 `wcs.init_source` 给出（不是独立的盲解节点），求解器在该指向下匹配星表并稳健迭代精化，其输出即唯一权威 WCS；检测定义域 = 用本帧 WCS 把 Gaia 星表逆投影到像素域，只对星表位置做质心/PSF 拟合（`ASTROCS_DESIGN.md` §4.2；`docs/detail/algorithms_phase1/03_star_detection.md` §4）。
+**权威范式（本项目）**：WCS 解算的近似指向由 `wcs.init_source` 给出（不是独立的盲解节点），求解器在该指向下匹配星表并稳健迭代精化，其输出即唯一权威 WCS；检测定义域 = 用本帧 WCS 把 Gaia 星表逆投影到像素域，只对星表位置做质心/PSF 拟合（`ACSD_DESIGN.md` §4.2；`docs/detail/algorithms_phase1/03_star_detection.md` §4）。
 
 | # | 项目（许可证） | 版本/tag | 入口 文件:行（`[OSS]`） | 对照什么 |
 |---|---|---|---|---|
@@ -163,12 +163,12 @@ F_ν = 3631 Jy ⇒ m_AB = 0                            # AB 零点定义
 
 ## 8. 对 ACSD 的直接约束（与最高设计一致的要点）
 
-1. **只对星点测光**，星点位置由 Gaia 星表逆映射获得；全图盲检测不产生权威星表（`ASTROCS_DESIGN.md` §2.1/§4.2）。
+1. **只对星点测光**，星点位置由 Gaia 星表逆映射获得；全图盲检测不产生权威星表（`ACSD_DESIGN.md` §2.1/§4.2）。
 2. **正向合成**用 XP 谱 × 系统响应在模型通带内积分；`Q(λ)≡1`、通带外无数据等未建模项必须显式声明，不得静默当作已建模（P4 的端到端预算写法、G2 的采样边界）。
-3. **标定因子绝对值无物理意义**：`k_photo`/`scale` 吸收增益/口径/曝光/透过率等不可得量；唯一判据是**尺度无关的测光一致性**（星等残差散度），见 `docs/science/PHOTOMETRY.md` §1/§10 与 `ASTROCS_DESIGN.md` §4.4。
+3. **标定因子绝对值无物理意义**：`k_photo`/`scale` 吸收增益/口径/曝光/透过率等不可得量；唯一判据是**尺度无关的测光一致性**（星等残差散度），见 `docs/science/PHOTOMETRY.md` §1/§10 与 `ACSD_DESIGN.md` §4.4。
 4. **禁止物理闭合反推**（`k = g·h·c·1e9/(A·t)` 一类）：FITS 头拿不到 g、t、A、光学透过率与大气项，方程欠定；反推等于编造未测量量（`docs/science/PHOTOMETRY.md` §10）。
 5. **误差预算必须逐项带出处**（§7 十项），未测项按“不加”处理（上限偏严、fail-closed），并在报告中显式列出（`docs/detail/algorithms_phase1/06_photometry.md` §4.1）。
-6. **跨帧一致性不是门**：不同夜/不同透明度的帧标定系数不同是正常的（`ASTROCS_DESIGN.md` §2.1；`PHOT-GATE-DROP-001`）。
+6. **跨帧一致性不是门**：不同夜/不同透明度的帧标定系数不同是正常的（`ACSD_DESIGN.md` §2.1；`PHOT-GATE-DROP-001`）。
 
 ---
 

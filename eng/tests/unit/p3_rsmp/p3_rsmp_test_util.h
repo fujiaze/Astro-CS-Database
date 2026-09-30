@@ -19,7 +19,7 @@ inline void note_failure(const char* file, int line, const std::string& what) {
   ++g_failures;
 }
 
-inline bool has_code(const std::vector<astrocs::p3rsmp::GateResult>& v, const std::string& code) {
+inline bool has_code(const std::vector<acsd::p3rsmp::GateResult>& v, const std::string& code) {
   for (const auto& g : v) {
     if (g.code == code) return true;
   }

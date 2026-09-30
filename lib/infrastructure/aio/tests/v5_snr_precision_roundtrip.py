@@ -33,7 +33,7 @@ import aio_abi_mirror as abi  # noqa: E402
 AstroSphereTileView = abi.AstroSphereTileView
 AioHipsSnrPoint = abi.AioHipsSnrPoint
 ROOT = _REPO
-AIO_DLL = os.environ.get("ASTROCS_AIO_DLL") or str(
+AIO_DLL = os.environ.get("ACSD_AIO_DLL") or str(
     _REPO / "lib" / "infrastructure" / "aio" / "astro_image_io.dll")
 
 
@@ -94,7 +94,7 @@ def main() -> int:
         dt = 0 if dtype == "fp32" else 1
         ps = aio.aio_hips_product_begin(
             str(out).encode(), 512, 512, dt, 7,  # SIGNAL|SUPPORT|SNR
-            b"ivo://astrocs/snr_precision", b"SNR Precision", None, 1.0, None, 0)
+            b"ivo://acsd/snr_precision", b"SNR Precision", None, 1.0, None, 0)
         if not ps:
             raise SystemExit("begin fail: " + aio.aio_hips_last_error().decode())
         n = 512 * 512

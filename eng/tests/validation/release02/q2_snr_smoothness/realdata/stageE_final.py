@@ -119,7 +119,7 @@ for bn,(ax,smp,f) in SPEC.items():
 stageC=json.load(open(OUT+'/stageC_steps.json'))
 p2=json.load(open(OUT+'/p2_samples_summary.json'))
 final=dict(
-  schema='ASTROCS-Q2-REALDATA-SEAM-v1',
+  schema='ACSD-Q2-REALDATA-SEAM-v1',
   generated_utc=datetime.datetime.utcnow().isoformat()+'Z',
   task='RELEASE-02 Q2 real-data measurement (nmap / tilted seam loci / seam steps / p2 sample structure)',
   products=dict(OLD_normalisation_reference=P['p3_r_vis'],

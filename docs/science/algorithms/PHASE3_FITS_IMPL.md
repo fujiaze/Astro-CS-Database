@@ -1,6 +1,6 @@
-# Phase3 FITS Write-out Algorithms（P3-FITS / astrocs.p3.fits_writer）
+# Phase3 FITS Write-out Algorithms（P3-FITS / acsd.p3.fits_writer）
 
-> 上游：ASTROCS_DESIGN.md §6.2（export 流程）、§10（I/O 与原子产品）
+> 上游：ACSD_DESIGN.md §6.2（export 流程）、§10（I/O 与原子产品）
 
 > 本文件是 Phase3 HiPS→FITS 写出域的**实现级算法合同**：
 > 逐符号源码对照（文件 + 符号） + 冻结容差 + 现状缺陷登记。科学语义权威=SCI-P3-001
@@ -12,7 +12,7 @@
 > lib/algorithms/fits_output/p3_output.h（176 行）+ WCS 关键字源
 > lib/algorithms/projection/p3_wcs.h；
 > API: API-P3-FITS-001（PUBLIC_API.md「Phase3 FITS 写出公共消费面」节）；
-> DATA: DATA-P3-FITS（DATA_SEMANTICS §27）；MOD: astrocs.p3.fits_writer
+> DATA: DATA-P3-FITS（DATA_SEMANTICS §27）；MOD: acsd.p3.fits_writer
 > （MODULE_MIGRATION_MATRIX P3-FITS 行）；TEST: TEST-P3-WR-001
 > （设计冻结面=本文档 §12 + registry 手写页，可执行 MISSING 归
 > P3-FITS-TEST）。
@@ -26,7 +26,7 @@
 - 非目标：不做重采样/tile 读取（ALG-P3-001/003，p3_resample/
   p3_sampler 域）、不做请求解析与参数拒绝清单（p3_session run 段
   职责，§15 引用）、不做读路径 FITS/HiPS 解析（AIO/hips 域）、
-  不改 vendored cfitsio（third_party/cfitsio 隔离，astrocs_cfitsio
+  不改 vendored cfitsio（third_party/cfitsio 隔离，acsd_cfitsio
   静态库，根 CMakeLists.txt）、不改 SCI 公式。
 
 ## 2 符号与单位（权威=本表 + SCI-P3-001 §9a/§96）
@@ -64,7 +64,7 @@
 - `sha256_file_checked`: 原子封装（注释冻结）——
   文件打开/读取/关闭机制下沉 aio（`aio_file::sha256_hex`）：空串/前缀哈希
   完整性锚 = 完整读出后的 64hex（空串/前缀哈希只表失败），失败返回 false 由调用方
-  整体失败（provenance 只收完整 64hex 哈希）。ASTROCS_HASH_FAIL_INJECT
+  整体失败（provenance 只收完整 64hex 哈希）。ACSD_HASH_FAIL_INJECT
   仅测试构建注入。
 - `p3_output_write_atomic`（`lib/algorithms/fits_output/p3_output.h` 声明；实现体 = `p3_output_write_atomic_ex`，
   `p3_output_write_atomic` 为兼容薄壳，转调 `_ex`
@@ -182,8 +182,8 @@ function p3_output_verify(path, wcs, signal, coverage, W, H, out result):
   - `ALG-P3-004`（writer descriptor alg_id）⇒ **ALG-P3-004**
     （PHASE3_RESAMPLE.md G5 施工规格）+ **ALG-P3-FITS-IMPL-001**
     （本文件，实现级合同；ALG-P3-002 G1/G2 WCS 构造子面同承接）；
-  - `astrocs.phase3.writer`（descriptor module_id）⇒
-    **astrocs.p3.fits_writer**（MODULE_MIGRATION_MATRIX P3-FITS 行
+  - `acsd.phase3.writer`（descriptor module_id）⇒
+    **acsd.p3.fits_writer**（MODULE_MIGRATION_MATRIX P3-FITS 行
     权威值）。
   - SCI/公式语义不在此重复定义，两处冲突时以 docs/science/ 为准并
     回改本文档（方向 = 从 docs/science/ 到本文档）；descriptor 词汇由 P3-FITS-INT 对齐，
@@ -204,7 +204,7 @@ function p3_output_verify(path, wcs, signal, coverage, W, H, out result):
   §4.4.2.5。
 - **F2 完整性锚**（`lib/algorithms/fits_output/p3_output.cpp` 的 `sha256_file_checked` + 其冻结注释）: sha256 仅在文件完整读出后产出
   64hex；result/provenance 只收完整 64hex 哈希；测试注入开关
-  ASTROCS_HASH_FAIL_INJECT 仅测试构建。
+  ACSD_HASH_FAIL_INJECT 仅测试构建。
 - **F3 coverage 二值门**（`lib/algorithms/fits_output/p3_output.cpp` 的写面计数点 + verify 回环比对点）: covered ⇔ value>0.5f；回环
   比对在二值化后进行（浮点 0.7 与 0.9 等价 covered），与 DATA-P3-FITS
   §27 二值语义同源。
@@ -224,7 +224,7 @@ function p3_output_verify(path, wcs, signal, coverage, W, H, out result):
   写面；sig/cov 逐像素独立写不相交（同文件行带分工）。
 - sha256/DATASUM 为纯函数（标准校验和由 cfitsio 定长 32-bit 1 补码累加，
   与平台字节序无关的显式构造）；verify 回环逐值精确。
-- provenance 字符串（run_id="p3-"+ASTROCS_COMMIT_SHA、
+- provenance 字符串（run_id="p3-"+ACSD_COMMIT_SHA、
   order_sel 十进制串）确定性生成（`lib/phase3_session/p3_session.cpp`）。
 
 ## 8 并行语义、cfitsio 串行化与 lint 关键词
@@ -313,7 +313,7 @@ function p3_output_verify(path, wcs, signal, coverage, W, H, out result):
   sig[24,32]=100.0+0.5·32（同文件 WCS roundtrip 段）。
 - T5（设计面，现状未覆盖）取消不落盘：cancelled_at_row≥0 → rc=3
   且产物不存在、无 tmp 残留（取消门语义；归 P3-FITS-TEST）。
-- T6（设计面，现状未覆盖）sha256 注入失败：ASTROCS_HASH_FAIL_INJECT
+- T6（设计面，现状未覆盖）sha256 注入失败：ACSD_HASH_FAIL_INJECT
   → rc=2 且产物被删、result 无哈希（`lib/algorithms/fits_output/p3_output.cpp` 的发布后完整性与
   HASH_FAIL_INJECT 注入语义；归 P3-FITS-TEST）。
 - T7（设计面，现状未覆盖）bitpix=-64 全链：写入/回环/校验和
@@ -347,14 +347,14 @@ function p3_output_verify(path, wcs, signal, coverage, W, H, out result):
 
 - **DISP-P3FITS-001**：lib/infrastructure/aio/README.md 旧派生内容声称
   "零外部依赖、不依赖 cfitsio"，与现状 vendored third_party/cfitsio
-  （astrocs_cfitsio 静态库，根 `CMakeLists.txt` 的 astrocs_aio
-  链接；astrocs_aio 含 aio_fits.cpp 等 6 源）矛盾。他域文件只登记
+  （acsd_cfitsio 静态库，根 `CMakeLists.txt` 的 acsd_aio
+  链接；acsd_aio 含 aio_fits.cpp 等 6 源）矛盾。他域文件只登记
   不修（本任务边界）；事实以本文件 §8 + memory.md 为准。
 - **DISP-P3FITS-002**：tmp 命名冻结注与实现偏差——`lib/algorithms/fits_output/p3_output.h`
   协议注写 `<dir>/.<base>.<pid>.tmp`（前置点隐藏文件形态），实测
   make_temp_path 生成 `out_path.<pid>.tmp`（无前置点、保留
   .fits 扩展名）；同目录 rename 原子性语义不变；执行测试残留检查
-  前缀 ".astrocs_p3_out_test."（`eng/tests/unit/p3_output_test.cpp`）
+  前缀 ".acsd_p3_out_test."（`eng/tests/unit/p3_output_test.cpp`）
   与实际命名恒不匹配 → 残留检查弱匹配空转（不误报亦捕不到本实现
   形态残留）。命名统一归 P3-FITS-IMPL（含测试修正）。
 - **DISP-P3FITS-003**：实现面已扩展，本文件 §2-§8 的**逐符号对照表**已按现行实现重定位
@@ -405,16 +405,16 @@ function p3_output_verify(path, wcs, signal, coverage, W, H, out result):
   （p3_output_write_atomic/p3_output_verify 符号级冻结 + 会话编排
   p3_session 五段镜像 API-P3-001 不变）。
 - TEST-P3-WR-001 = 登记面 TEST-P3-WR-DESIGN-001 设计冻结 VERIFIED
-  （§12 + docs/detail/registry/astrocs.phase3.writer.md）；可执行
+  （§12 + docs/detail/registry/acsd.phase3.writer.md）；可执行
   MISSING 归 P3-FITS-TEST。
-- MOD-astrocs-phase3-writer / astrocs.p3.fits_writer /
-  astrocs_p3_fits_writer.dll（合同值未建，P3-FITS-IMPL）；
+- MOD-acsd-phase3-writer / acsd.p3.fits_writer /
+  acsd_p3_fits_writer.dll（合同值未建，P3-FITS-IMPL）；
   三件套 lib/algorithms/fits_output/（README r1 + module.yaml CONTRACT_READY
   entrypoint=MISSING + memory.md）。
 
 ## 17 追溯
 
-- MATRIX 行：MOD-astrocs-phase3-writer（`docs/traceability/TRACEABILITY_MATRIX.json`
+- MATRIX 行：MOD-acsd-phase3-writer（`docs/traceability/TRACEABILITY_MATRIX.json`
   / `docs/traceability/TRACEABILITY_MATRIX.csv` 的 P3-FITS 行）；合同落位=lib/algorithms/fits_output/ 三件套 + 本文件
   + DATA_SEMANTICS §27 + PUBLIC_API API-P3-FITS-001 节 + registry
   手写页 + docs/detail/phase3_fits.md。

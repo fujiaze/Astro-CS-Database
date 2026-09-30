@@ -69,51 +69,51 @@ LIB = ctypes.CDLL(str(LIB_SO))
 
 def bind():
     lib = LIB
-    lib.acs_hips_open_v1.restype = ctypes.c_int
-    lib.acs_hips_open_v1.argtypes = [ctypes.c_char_p, ctypes.c_char_p,
+    lib.acsd_hips_open_v1.restype = ctypes.c_int
+    lib.acsd_hips_open_v1.argtypes = [ctypes.c_char_p, ctypes.c_char_p,
                                      ctypes.c_void_p,
                                      ctypes.POINTER(ctypes.c_void_p),
                                      ctypes.c_char_p, ctypes.c_size_t]
-    lib.acs_hips_close_v1.restype = None
-    lib.acs_hips_close_v1.argtypes = [ctypes.c_void_p]
-    lib.acs_hips_props_get_v1.restype = ctypes.c_int
-    lib.acs_hips_props_get_v1.argtypes = [ctypes.c_void_p, ctypes.c_char_p,
+    lib.acsd_hips_close_v1.restype = None
+    lib.acsd_hips_close_v1.argtypes = [ctypes.c_void_p]
+    lib.acsd_hips_props_get_v1.restype = ctypes.c_int
+    lib.acsd_hips_props_get_v1.argtypes = [ctypes.c_void_p, ctypes.c_char_p,
                                           ctypes.c_char_p, ctypes.c_size_t,
                                           ctypes.c_char_p, ctypes.c_size_t]
-    lib.acs_hips_props_serialize_v1.restype = ctypes.c_int
-    lib.acs_hips_props_serialize_v1.argtypes = [ctypes.c_void_p, ctypes.c_char_p,
+    lib.acsd_hips_props_serialize_v1.restype = ctypes.c_int
+    lib.acsd_hips_props_serialize_v1.argtypes = [ctypes.c_void_p, ctypes.c_char_p,
                                                 ctypes.c_size_t,
                                                 ctypes.POINTER(ctypes.c_size_t),
                                                 ctypes.c_char_p, ctypes.c_size_t]
-    lib.acs_hips_get_order_v1.restype = ctypes.c_int
-    lib.acs_hips_get_order_v1.argtypes = [ctypes.c_void_p,
+    lib.acsd_hips_get_order_v1.restype = ctypes.c_int
+    lib.acsd_hips_get_order_v1.argtypes = [ctypes.c_void_p,
                                           ctypes.POINTER(ctypes.c_int32)]
-    lib.acs_hips_get_tile_width_v1.restype = ctypes.c_int
-    lib.acs_hips_get_tile_width_v1.argtypes = [ctypes.c_void_p,
+    lib.acsd_hips_get_tile_width_v1.restype = ctypes.c_int
+    lib.acsd_hips_get_tile_width_v1.argtypes = [ctypes.c_void_p,
                                                ctypes.POINTER(ctypes.c_int32)]
-    lib.acs_hips_tile_count_v1.restype = ctypes.c_int
-    lib.acs_hips_tile_count_v1.argtypes = [ctypes.c_void_p,
+    lib.acsd_hips_tile_count_v1.restype = ctypes.c_int
+    lib.acsd_hips_tile_count_v1.argtypes = [ctypes.c_void_p,
                                            ctypes.POINTER(ctypes.c_int64)]
-    lib.acs_hips_tile_ipix_v1.restype = ctypes.c_int
-    lib.acs_hips_tile_ipix_v1.argtypes = [ctypes.c_void_p, ctypes.c_int64,
+    lib.acsd_hips_tile_ipix_v1.restype = ctypes.c_int
+    lib.acsd_hips_tile_ipix_v1.argtypes = [ctypes.c_void_p, ctypes.c_int64,
                                           ctypes.POINTER(ctypes.c_uint64)]
-    lib.acs_hips_tile_exists_v1.restype = ctypes.c_int
-    lib.acs_hips_tile_exists_v1.argtypes = [ctypes.c_void_p, ctypes.c_uint64,
+    lib.acsd_hips_tile_exists_v1.restype = ctypes.c_int
+    lib.acsd_hips_tile_exists_v1.argtypes = [ctypes.c_void_p, ctypes.c_uint64,
                                             ctypes.POINTER(ctypes.c_int)]
-    lib.acs_hips_tile_status_v1.restype = ctypes.c_int
-    lib.acs_hips_tile_status_v1.argtypes = [ctypes.c_void_p, ctypes.c_uint64,
+    lib.acsd_hips_tile_status_v1.restype = ctypes.c_int
+    lib.acsd_hips_tile_status_v1.argtypes = [ctypes.c_void_p, ctypes.c_uint64,
                                             ctypes.POINTER(ctypes.c_int32),
                                             ctypes.c_char_p, ctypes.c_size_t]
-    lib.acs_hips_read_tile_plane_f32_v1.restype = ctypes.c_int
-    lib.acs_hips_read_tile_plane_f32_v1.argtypes = [ctypes.c_void_p,
+    lib.acsd_hips_read_tile_plane_f32_v1.restype = ctypes.c_int
+    lib.acsd_hips_read_tile_plane_f32_v1.argtypes = [ctypes.c_void_p,
                                                     ctypes.c_uint64,
                                                     ctypes.POINTER(ctypes.c_float),
                                                     ctypes.c_int64,
                                                     ctypes.POINTER(ctypes.c_int64),
                                                     ctypes.c_char_p,
                                                     ctypes.c_size_t]
-    lib.acs_hips_read_tile_plane_f64_v1.restype = ctypes.c_int
-    lib.acs_hips_read_tile_plane_f64_v1.argtypes = [ctypes.c_void_p,
+    lib.acsd_hips_read_tile_plane_f64_v1.restype = ctypes.c_int
+    lib.acsd_hips_read_tile_plane_f64_v1.argtypes = [ctypes.c_void_p,
                                                     ctypes.c_uint64,
                                                     ctypes.POINTER(ctypes.c_double),
                                                     ctypes.c_int64,
@@ -129,7 +129,7 @@ Handle = ctypes.c_void_p
 
 def hips_open(d: pathlib.Path, product: str | None = None) -> Handle:
     h = Handle()
-    st = LIB.acs_hips_open_v1(str(d).encode(),
+    st = LIB.acsd_hips_open_v1(str(d).encode(),
                               product.encode() if product else None,
                               None, ctypes.byref(h), _ERR, len(_ERR))
     if st != ACS_HIPS_OK:
@@ -155,21 +155,21 @@ class HipsContractTest(unittest.TestCase):
         d = self.make_fixture()
         h = hips_open(d)
         buf = ctypes.create_string_buffer(64)
-        st = LIB.acs_hips_props_get_v1(h, b"hips_version", buf, len(buf),
+        st = LIB.acsd_hips_props_get_v1(h, b"hips_version", buf, len(buf),
                                        _ERR, len(_ERR))
         self.assertEqual(st, ACS_HIPS_OK)
         self.assertEqual(buf.value, b"1.4")
         buf2 = ctypes.create_string_buffer(64)
-        st = LIB.acs_hips_props_get_v1(h, b"hips_tile_format", buf2, len(buf2),
+        st = LIB.acsd_hips_props_get_v1(h, b"hips_tile_format", buf2, len(buf2),
                                        _ERR, len(_ERR))
         self.assertEqual(buf2.value, b"fits")
         order = ctypes.c_int32()
         tw = ctypes.c_int32()
-        LIB.acs_hips_get_order_v1(h, ctypes.byref(order))
-        LIB.acs_hips_get_tile_width_v1(h, ctypes.byref(tw))
+        LIB.acsd_hips_get_order_v1(h, ctypes.byref(order))
+        LIB.acsd_hips_get_tile_width_v1(h, ctypes.byref(tw))
         self.assertEqual(order.value, 1)
         self.assertEqual(tw.value, 512)
-        LIB.acs_hips_close_v1(h)
+        LIB.acsd_hips_close_v1(h)
 
     # ---------- tile width 非 2 次幂拒绝 ----------
     def test_reject_tile_width_not_pow2(self):
@@ -179,7 +179,7 @@ class HipsContractTest(unittest.TestCase):
             props.replace("hips_tile_width=512", "hips_tile_width=513"),
             encoding="utf-8")
         h = Handle()
-        st = LIB.acs_hips_open_v1(str(d).encode(), None, None,
+        st = LIB.acsd_hips_open_v1(str(d).encode(), None, None,
                                   ctypes.byref(h), _ERR, len(_ERR))
         self.assertNotEqual(st, ACS_HIPS_OK, "非 2 次幂 tile width 应拒绝")
 
@@ -198,11 +198,11 @@ class HipsContractTest(unittest.TestCase):
                            height=511)
         h = hips_open(d)
         stt = ctypes.c_int32()
-        st = LIB.acs_hips_tile_status_v1(h, 0, ctypes.byref(stt), _ERR, len(_ERR))
+        st = LIB.acsd_hips_tile_status_v1(h, 0, ctypes.byref(stt), _ERR, len(_ERR))
         self.assertEqual(st, ACS_HIPS_OK)
         self.assertEqual(stt.value, ACS_HIPS_TILE_INVALID,
                          "NAXIS2 != TW 应判 INVALID")
-        LIB.acs_hips_close_v1(h)
+        LIB.acsd_hips_close_v1(h)
 
     # ---------- 布局不符: tile 头卡冲突 (ORDERING=RING) ----------
     def test_reject_tile_ordering_ring(self):
@@ -217,11 +217,11 @@ class HipsContractTest(unittest.TestCase):
                             ("LASTPIX", str(512 * 512 - 1))])
         h = hips_open(d)
         stt = ctypes.c_int32()
-        st = LIB.acs_hips_tile_status_v1(h, 5, ctypes.byref(stt), _ERR, len(_ERR))
+        st = LIB.acsd_hips_tile_status_v1(h, 5, ctypes.byref(stt), _ERR, len(_ERR))
         self.assertEqual(st, ACS_HIPS_OK)
         self.assertEqual(stt.value, ACS_HIPS_TILE_INVALID,
                          "ORDERING=RING (非 NESTED) 应判 INVALID")
-        LIB.acs_hips_close_v1(h)
+        LIB.acsd_hips_close_v1(h)
 
     # ---------- 布局不符: tile NSIDE 与 order 不符 ----------
     def test_reject_tile_nside_mismatch(self):
@@ -237,18 +237,18 @@ class HipsContractTest(unittest.TestCase):
                             ("LASTPIX", str(512 * 512 - 1))])
         h = hips_open(d)
         stt = ctypes.c_int32()
-        st = LIB.acs_hips_tile_status_v1(h, 8, ctypes.byref(stt), _ERR, len(_ERR))
+        st = LIB.acsd_hips_tile_status_v1(h, 8, ctypes.byref(stt), _ERR, len(_ERR))
         self.assertEqual(st, ACS_HIPS_OK)
         self.assertEqual(stt.value, ACS_HIPS_TILE_INVALID,
                          "NSIDE 与 order 不符应判 INVALID")
-        LIB.acs_hips_close_v1(h)
+        LIB.acsd_hips_close_v1(h)
 
     # ---------- 缺 properties 拒绝 ----------
     def test_reject_missing_properties(self):
         d = self.make_fixture()
         (d / "properties").unlink()
         h = Handle()
-        st = LIB.acs_hips_open_v1(str(d).encode(), None, None,
+        st = LIB.acsd_hips_open_v1(str(d).encode(), None, None,
                                   ctypes.byref(h), _ERR, len(_ERR))
         self.assertEqual(st, ACS_HIPS_ERR_PROPERTIES)
 
@@ -258,7 +258,7 @@ class HipsContractTest(unittest.TestCase):
         (d / "properties").write_text(
             props.replace("hips_order=1", "hips_order=abc"), encoding="utf-8")
         h = Handle()
-        st = LIB.acs_hips_open_v1(str(d).encode(), None, None,
+        st = LIB.acsd_hips_open_v1(str(d).encode(), None, None,
                                   ctypes.byref(h), _ERR, len(_ERR))
         self.assertEqual(st, ACS_HIPS_ERR_PROPERTIES)
 
@@ -270,7 +270,7 @@ class HipsContractTest(unittest.TestCase):
             props.replace("hips_frame=equatorial", "hips_frame=galactic"),
             encoding="utf-8")
         h = Handle()
-        st = LIB.acs_hips_open_v1(str(d).encode(), None, None,
+        st = LIB.acsd_hips_open_v1(str(d).encode(), None, None,
                                   ctypes.byref(h), _ERR, len(_ERR))
         self.assertEqual(st, ACS_HIPS_ERR_UNSUPPORTED)
 
@@ -282,7 +282,7 @@ class HipsContractTest(unittest.TestCase):
             props.replace("hips_tile_format=fits", "hips_tile_format=png"),
             encoding="utf-8")
         h = Handle()
-        st = LIB.acs_hips_open_v1(str(d).encode(), None, None,
+        st = LIB.acsd_hips_open_v1(str(d).encode(), None, None,
                                   ctypes.byref(h), _ERR, len(_ERR))
         self.assertEqual(st, ACS_HIPS_ERR_UNSUPPORTED)
 
@@ -300,29 +300,29 @@ class HipsContractTest(unittest.TestCase):
         data = np.full((512, 512), -999.0, dtype=np.float32)
         mhf.make_tile_fits(mhf._ensure_lib(), fake_parent, 512, data, [])
         stt = ctypes.c_int32()
-        st = LIB.acs_hips_tile_status_v1(h, 3, ctypes.byref(stt), _ERR, len(_ERR))
+        st = LIB.acsd_hips_tile_status_v1(h, 3, ctypes.byref(stt), _ERR, len(_ERR))
         self.assertEqual(st, ACS_HIPS_OK)
         self.assertEqual(stt.value, ACS_HIPS_TILE_MISSING,
                          "缺 tile 必须 MISSING, 即使父 order 存在同族 tile")
         # 读取也必须 MISSING 错误 (绝不返回父内容)
         buf = (ctypes.c_float * (512 * 512))()
         got = ctypes.c_int64()
-        st = LIB.acs_hips_read_tile_plane_f32_v1(h, 3, buf, 512 * 512,
+        st = LIB.acsd_hips_read_tile_plane_f32_v1(h, 3, buf, 512 * 512,
                                                  ctypes.byref(got), _ERR,
                                                  len(_ERR))
         self.assertEqual(st, ACS_HIPS_ERR_TILE_MISSING)
         self.assertEqual(got.value, 0)
-        LIB.acs_hips_close_v1(h)
+        LIB.acsd_hips_close_v1(h)
 
     # ---------- ipix 越界 → ADDRESS ----------
     def test_ipix_out_of_domain_address(self):
         d = self.make_fixture()
         h = hips_open(d)
         stt = ctypes.c_int32()
-        st = LIB.acs_hips_tile_status_v1(h, 48, ctypes.byref(stt), _ERR,
+        st = LIB.acsd_hips_tile_status_v1(h, 48, ctypes.byref(stt), _ERR,
                                          len(_ERR))
         self.assertEqual(st, ACS_HIPS_ERR_ADDRESS)
-        LIB.acs_hips_close_v1(h)
+        LIB.acsd_hips_close_v1(h)
 
     # ---------- partial tree + 缺 tile 状态 ----------
     def test_tile_status_present_missing(self):
@@ -330,17 +330,17 @@ class HipsContractTest(unittest.TestCase):
         h = hips_open(d)
         # MOC 叶级集合 [0,5,8,18,28,40,46]
         cnt = ctypes.c_int64()
-        LIB.acs_hips_tile_count_v1(h, ctypes.byref(cnt))
+        LIB.acsd_hips_tile_count_v1(h, ctypes.byref(cnt))
         self.assertGreaterEqual(cnt.value, 1)
         ips = []
         for i in range(cnt.value):
             ip = ctypes.c_uint64()
-            st = LIB.acs_hips_tile_ipix_v1(h, i, ctypes.byref(ip))
+            st = LIB.acsd_hips_tile_ipix_v1(h, i, ctypes.byref(ip))
             self.assertEqual(st, ACS_HIPS_OK)
             ips.append(ip.value)
         for ip in ips:
             stt = ctypes.c_int32()
-            st = LIB.acs_hips_tile_status_v1(h, ip, ctypes.byref(stt), _ERR,
+            st = LIB.acsd_hips_tile_status_v1(h, ip, ctypes.byref(stt), _ERR,
                                              len(_ERR))
             self.assertEqual(st, ACS_HIPS_OK)
             self.assertEqual(stt.value, ACS_HIPS_TILE_PRESENT)
@@ -349,20 +349,20 @@ class HipsContractTest(unittest.TestCase):
         self.assertTrue(missing)
         for ip in missing[:3]:
             stt = ctypes.c_int32()
-            st = LIB.acs_hips_tile_status_v1(h, ip, ctypes.byref(stt), _ERR,
+            st = LIB.acsd_hips_tile_status_v1(h, ip, ctypes.byref(stt), _ERR,
                                              len(_ERR))
             self.assertEqual(st, ACS_HIPS_OK)
             self.assertEqual(stt.value, ACS_HIPS_TILE_MISSING)
         # tile_exists 快探
         ex = ctypes.c_int(0)
-        st = LIB.acs_hips_tile_exists_v1(h, ips[0], ctypes.byref(ex))
+        st = LIB.acsd_hips_tile_exists_v1(h, ips[0], ctypes.byref(ex))
         self.assertEqual(st, ACS_HIPS_OK)
         self.assertEqual(ex.value, 1)
         ex = ctypes.c_int(1)
-        st = LIB.acs_hips_tile_exists_v1(h, missing[0], ctypes.byref(ex))
+        st = LIB.acsd_hips_tile_exists_v1(h, missing[0], ctypes.byref(ex))
         self.assertEqual(st, ACS_HIPS_OK)
         self.assertEqual(ex.value, 0)
-        LIB.acs_hips_close_v1(h)
+        LIB.acsd_hips_close_v1(h)
 
     # ---------- MOC optional hint: 无 MOC 时枚举 0 但单 tile 定位仍可用 ----------
     def test_moc_optional_hint_absent(self):
@@ -370,15 +370,15 @@ class HipsContractTest(unittest.TestCase):
         (d / "Moc.fits").unlink()
         h = hips_open(d)
         cnt = ctypes.c_int64()
-        st = LIB.acs_hips_tile_count_v1(h, ctypes.byref(cnt))
+        st = LIB.acsd_hips_tile_count_v1(h, ctypes.byref(cnt))
         self.assertEqual(st, ACS_HIPS_OK)
         self.assertEqual(cnt.value, 0, "无 MOC: 枚举 0 (optional)")
         # 单 tile 定位不受影响
         stt = ctypes.c_int32()
-        st = LIB.acs_hips_tile_status_v1(h, 0, ctypes.byref(stt), _ERR, len(_ERR))
+        st = LIB.acsd_hips_tile_status_v1(h, 0, ctypes.byref(stt), _ERR, len(_ERR))
         self.assertEqual(st, ACS_HIPS_OK)
         self.assertEqual(stt.value, ACS_HIPS_TILE_PRESENT)
-        LIB.acs_hips_close_v1(h)
+        LIB.acsd_hips_close_v1(h)
 
     # ---------- FITS-only 科学平面读取往返 (f32/f64 与生成数据一致) ----------
     def test_read_signal_plane_matches_fixture(self):
@@ -388,14 +388,14 @@ class HipsContractTest(unittest.TestCase):
         width = 512
         # 用与生成器相同规律重建期望数据
         cnt = ctypes.c_int64()
-        LIB.acs_hips_tile_count_v1(h, ctypes.byref(cnt))
+        LIB.acsd_hips_tile_count_v1(h, ctypes.byref(cnt))
         for i in range(min(cnt.value, 3)):
             ip = ctypes.c_uint64()
-            LIB.acs_hips_tile_ipix_v1(h, i, ctypes.byref(ip))
+            LIB.acsd_hips_tile_ipix_v1(h, i, ctypes.byref(ip))
             expect = mhf.tile_plane(width, ip.value)
             buf32 = (ctypes.c_float * (width * width))()
             got = ctypes.c_int64()
-            st = LIB.acs_hips_read_tile_plane_f32_v1(
+            st = LIB.acsd_hips_read_tile_plane_f32_v1(
                 h, ip.value, buf32, width * width, ctypes.byref(got), _ERR,
                 len(_ERR))
             self.assertEqual(st, ACS_HIPS_OK)
@@ -405,14 +405,14 @@ class HipsContractTest(unittest.TestCase):
             # f64 接口
             buf64 = (ctypes.c_double * (width * width))()
             got = ctypes.c_int64()
-            st = LIB.acs_hips_read_tile_plane_f64_v1(
+            st = LIB.acsd_hips_read_tile_plane_f64_v1(
                 h, ip.value, buf64, width * width, ctypes.byref(got), _ERR,
                 len(_ERR))
             self.assertEqual(st, ACS_HIPS_OK)
             arr64 = np.ctypeslib.as_array(buf64).reshape(width, width)
             np.testing.assert_allclose(arr64, expect.astype(np.float64),
                                        rtol=1e-6, atol=1e-6)
-        LIB.acs_hips_close_v1(h)
+        LIB.acsd_hips_close_v1(h)
 
     # ---------- 容量不足拒绝 ----------
     def test_read_plane_capacity_too_small(self):
@@ -420,11 +420,11 @@ class HipsContractTest(unittest.TestCase):
         h = hips_open(d)
         buf = (ctypes.c_float * 16)()
         got = ctypes.c_int64()
-        st = LIB.acs_hips_read_tile_plane_f32_v1(h, 0, buf, 16,
+        st = LIB.acsd_hips_read_tile_plane_f32_v1(h, 0, buf, 16,
                                                  ctypes.byref(got), _ERR,
                                                  len(_ERR))
         self.assertEqual(st, ACS_HIPS_ERR_PARAM)
-        LIB.acs_hips_close_v1(h)
+        LIB.acsd_hips_close_v1(h)
 
     # ---------- 产品集根目录 + 子产品选择 ----------
     def test_product_subdir_open(self):
@@ -434,16 +434,16 @@ class HipsContractTest(unittest.TestCase):
         shutil.move(str(d), str(root / "signal"))
         # 未知产品拒绝
         h = Handle()
-        st = LIB.acs_hips_open_v1(str(root).encode(), b"snr", None,
+        st = LIB.acsd_hips_open_v1(str(root).encode(), b"snr", None,
                                   ctypes.byref(h), _ERR, len(_ERR))
         self.assertEqual(st, ACS_HIPS_ERR_UNSUPPORTED)
         # 合法子产品
         h2 = hips_open(root, "signal")
         cnt = ctypes.c_int64()
-        st = LIB.acs_hips_tile_count_v1(h2, ctypes.byref(cnt))
+        st = LIB.acsd_hips_tile_count_v1(h2, ctypes.byref(cnt))
         self.assertEqual(st, ACS_HIPS_OK)
         self.assertGreaterEqual(cnt.value, 1)
-        LIB.acs_hips_close_v1(h2)
+        LIB.acsd_hips_close_v1(h2)
 
     # ---------- fixture 可重建 (确定性) ----------
     def test_fixture_rebuild_deterministic(self):

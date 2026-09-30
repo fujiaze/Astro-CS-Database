@@ -62,7 +62,7 @@ D1_REGRESSION_KEYS = {
     "export": {"max_tiles", "frame", "output_fits_path", "sampler_used", "mode"},
 }
 # 契约面残差（只减不增；既有分叉，非 FIX-210 引入）：schema 块内声明但 CLI 两门都不认。
-# 登记依据：eng/contracts/schemas/phase_config_normalize.schema.json x-astrocs-notes
+# 登记依据：eng/contracts/schemas/phase_config_normalize.schema.json x-acsd-notes
 # 「登记在案的既存差异（本任务实测，未修）」（收口二选一：补 config_fields() 或改 schema）。
 SCHEMA_NOT_IN_CLI_KEYS = {
     "normalize": {"sparse_snr_spacing_px", "algorithm_drizzle_pixfrac"},
@@ -73,7 +73,7 @@ UNKNOWN_KEY_PROBE = "workers"   # 真未知键（cpu_profile 字段，phase_conf
 
 
 def cli_binary():
-    env = os.environ.get("ASTROCS_CLI_BIN")
+    env = os.environ.get("ACSD_CLI_BIN")
     if env and os.path.isfile(env):
         return env
     for rel in (("build", "acsd"), ("build", "cli", "acsd")):

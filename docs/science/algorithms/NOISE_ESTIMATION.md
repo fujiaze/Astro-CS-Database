@@ -1,6 +1,6 @@
 # Noise Estimation Algorithms (ALG-NOISE)
 
-> 上游：ASTROCS_DESIGN.md §2.2（创新点二）、§4.2（Phase1 节点流程）
+> 上游：ACSD_DESIGN.md §2.2（创新点二）、§4.2（Phase1 节点流程）
 > (docs/science/NOISE_MODEL.md，FROZEN，共享引用不改动)
 > (逐符号源码锚定 §13.1 / DISP-NOISE §13.3 / TEST-NOISE-DESIGN-001 §13.4，
 > 根公式不变；**噪声模型 A 为唯一生产模型**，公式正本 = docs/science/NOISE_MODEL.md)
@@ -114,11 +114,11 @@ function snr_noise_model_v1_free(model): g_model_floor.erase(model*)
 > 上游：SCI-NOISE-001..015（docs/science/NOISE_MODEL.md，FROZEN，不改 SCI）
 > 下游：DATA-P1-NOISE
 > （DATA_SEMANTICS §13）/ API-NOISE-001（PUBLIC_API）/
-> MOD-astrocs-phase1-noise-snr / TEST-NOISE-DESIGN-001。
+> MOD-acsd-phase1-noise-snr / TEST-NOISE-DESIGN-001。
 > 本节由源码逐符号核对后追加：§1-§12 为既有登记，
 > 根公式（MAD→σ、5σ≤2 轮、平面场、floor、ivar=1/variance）不变；本节登记
 > 现行唯一生产实现逐符号锚、与旧节的实现事实差异修订、缺陷清单与测试设计。
-> 状态词唯一口径 = `ASTROCS_DESIGN.md` §12.5；IMPLEMENTED 只由验收签发（迁移落码由 P1-NOISE-IMPL 执行）。SCI 修改从 SCI 发起，代码缺陷一律登记，不
+> 状态词唯一口径 = `ACSD_DESIGN.md` §12.5；IMPLEMENTED 只由验收签发（迁移落码由 P1-NOISE-IMPL 执行）。SCI 修改从 SCI 发起，代码缺陷一律登记，不
 > 反向修改 SCI——全部差异登记 DISP-NOISE-*。
 
 ### 13.1 逐符号实现锚定（现行唯一生产实现）
@@ -131,7 +131,7 @@ snr_estimator CMake 目标，CMake 集成归 P1-NOISE-IMPL），
 dll_loader.cpp 加载名与路径吻合）。**噪声模型 A 为唯一生产模型**
 （`lib/algorithms/noise_snr/cpp/src/noise_model.cpp`；公式正本 =
 `docs/science/NOISE_MODEL.md`），静态库
-`astrocs_phase1_noise`（源 = A + `wrapper_phase1/snr_frame_science.cpp` + `cpp/src/snr_science.cpp`），在根 `CMakeLists.txt` 中登记，经 `astrocs_phase1_session` PUBLIC 闭包链入主程序（同一 `CMakeLists.txt`）；单测
+`acsd_phase1_noise`（源 = A + `wrapper_phase1/snr_frame_science.cpp` + `cpp/src/snr_science.cpp`），在根 `CMakeLists.txt` 中登记，经 `acsd_phase1_session` PUBLIC 闭包链入主程序（同一 `CMakeLists.txt`）；单测
 eng/tests/unit/p1_noise_test.cpp 经 `eng/tests/unit/CMakeLists.txt` 注册）。
 
 | ALG | 符号 | 源锚 |
@@ -171,7 +171,7 @@ eng/tests/unit/p1_noise_test.cpp 经 `eng/tests/unit/CMakeLists.txt` 注册）�
 - 饱和电平语义（SAT-001）：`collect_patch_sky` 的饱和过滤是**输入有效域规则**
   （`valid_pixel`，`noise_model.cpp`），不是可选优化；SCI §4「饱和域」定电平来源优先级 =
   显式 `cfg.saturation_level>0` > 帧元数据 `SATURATE` > `DATAMAX`（解析实现
-  `lib/algorithms/noise_snr/include/astrocs/noise/saturation_policy.h`，生产接线
+  `lib/algorithms/noise_snr/include/acsd/noise/saturation_policy.h`，生产接线
   orchestrator.cpp run_stage_snr 噪声块）。`saturation_level=0` **只表示「未提供电平」，
   不表示「无饱和」**；未提供时编排层必须写 `NOISE_SATURATION_FILTER=DISABLED_NO_METADATA`
   显式降级声明。**0 的语义 = 「未提供电平」**，"该帧无饱和像素"是独立的另一读数。
@@ -181,7 +181,7 @@ eng/tests/unit/p1_noise_test.cpp 经 `eng/tests/unit/CMakeLists.txt` 注册）�
   （8×8 网格上限 64）；<4 时 has_spatial_field=0（`noise_model.cpp`）。
 - 线程：§5/§5c "OpenMP 并行"为计划语义——noise_model_impl 现状**单线程
   顺序**（无 omp pragma；patch 循环串行），与
-  astrocs.p1.noise-snr descriptor parallel_ok 并行轴为迁移整改点。
+  acsd.p1.noise-snr descriptor parallel_ok 并行轴为迁移整改点。
 
 ### 13.3 缺陷清单（DISP-NOISE，登记不改码）
 
@@ -210,7 +210,7 @@ eng/tests/unit/p1_noise_test.cpp 经 `eng/tests/unit/CMakeLists.txt` 注册）�
 | 3 | MAD→σ 常数 | 唯一全精度写法 `1.482602218505602`（= `1/Φ⁻¹(3/4)`）；`1.4826022185` 与 `1.4826` 只作约等于语境，各档相对差 3.779e-12 / 1.4964e-06；`0.6745` 相对差 +1.5196e-05（不可互换） | SCI-NOISE-001 §9；`docs/GLOSSARY.md` |
 | 4 | PSF 状态位 | 仅 `psf_status == 0.0` 置 `SNR_QF_PSF_OK`；未收敛帧在 UPM `quality_factor` 走"未知"档 0.5 | STAR_PSF_ALGORITHMS §11.2、DATA_SEMANTICS §15 |
 | 5 | kLn10 | 模块内唯一定义点 = `noise_model.cpp`（字面量 `2.302585092994045684`） | 复算 `float('2.302585092994045684')==float('2.302585092994045684017991454684')` → True |
-| 6 | defaults 引用 | `eng/packaging/config/defaults.json` 的 `noise.*` `source_ref` 指向 `docs/science/NOISE_MODEL.md` 的实际陈述（各键定位由内容锚 `sha256` 承担，键名为 `patch_grid`/`clip_sigma`/`max_clip_rounds`/`min_patch_samples`/`spatial_field_enabled`/`variance_floor`）；`source_mask_radius_px`(10) / `mask_radius_scale`(6) 保留 ALG 登记——SCI §5 只冻结 `rmax=max(1,r0)·max(1,scale)` 公式、不给数值 | `docs/ASTROCS_DESIGN.md` §0（文档权威与索引） 权威链：科学默认值引用落在 `docs/science/**` |
+| 6 | defaults 引用 | `eng/packaging/config/defaults.json` 的 `noise.*` `source_ref` 指向 `docs/science/NOISE_MODEL.md` 的实际陈述（各键定位由内容锚 `sha256` 承担，键名为 `patch_grid`/`clip_sigma`/`max_clip_rounds`/`min_patch_samples`/`spatial_field_enabled`/`variance_floor`）；`source_mask_radius_px`(10) / `mask_radius_scale`(6) 保留 ALG 登记——SCI §5 只冻结 `rmax=max(1,r0)·max(1,scale)` 公式、不给数值 | `docs/ACSD_DESIGN.md` §0（文档权威与索引） 权威链：科学默认值引用落在 `docs/science/**` |
 
 **MAD→σ 常数的各档舍入差（由 `1/Φ⁻¹(3/4)` 闭式复算）**：以全精度写法为基准，11 位简写 `1.4826022185` 的绝对差 5.602e-12、相对差 3.779e-12；4 位简写 `1.4826` 的绝对差 2.2185e-06、相对差 1.4964e-06。判据与冻结值一律取全精度写法，各档简写只作约等于语境。
 
@@ -277,7 +277,7 @@ eng/tests/unit/p1_noise_test.cpp 经 `eng/tests/unit/CMakeLists.txt` 注册）�
   （`lib/algorithms/noise_snr/cpp/include/snr_estimator.h` 的乘法 SNR 通道声明段）为诊断口径（同头注释已写明）；
   不属 P1-NOISE 合同（SNR catalogue 语义归 P1-SNR/DRZ 侧），仅登记边界。
 - 迁移落点: `lib/algorithms/noise_snr;lib/algorithms/noise_snr/wrapper_phase1`（matrix legacy_paths）→
-  `astrocs_p1_noise.dll`（P1-NOISE-IMPL 建 C ABI adapter +
+  `acsd_p1_noise.dll`（P1-NOISE-IMPL 建 C ABI adapter +
   plan/execute/cancel/inspect + ThreadLease 接线）；本 DOC 不改任何
   生产代码。
 

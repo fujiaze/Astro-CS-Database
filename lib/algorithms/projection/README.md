@@ -1,10 +1,10 @@
-# lib/algorithms/projection — astrocs.p3.projection（WCS/投影域合同 + 版本化 projection registry）
+# lib/algorithms/projection — acsd.p3.projection（WCS/投影域合同 + 版本化 projection registry）
 
 > P3-PROJ-DOC 冻结（2026-09-11，SA-P3-P25）。本目录为 Phase3 投影域迁移
 > 合同落位（三件套：README + module.yaml + memory.md），照
 > lib/algorithms/upm→phase2_samp→phase2_rej→phase2_int→phase3_fits 迁移
 > 目录先例新建。**SCI-FIX-PROJ 增补（2026-09-16）**：投影集合权威 =
-> docs/ASTROCS_DESIGN.md §6.3 首批八投影（TAN/SIN/CAR/AIT/STG/MOL/CEA/ZEA）；
+> docs/ACSD_DESIGN.md §6.3 首批八投影（TAN/SIN/CAR/AIT/STG/MOL/CEA/ZEA）；
 > **在役 registry = v6 线 p3_proj.h/.cpp（kProjectionRegistryVersion=3）**
 > ——CAR/AIT 按 Calabretta & Greisen (2002) Paper II §2.2 三 Euler 角把
 > CRVAL2（含 LONPOLE 默认 0/180）纳入映射、AIT 椭圆域 A≤1、CAR native 极行
@@ -16,22 +16,22 @@
 > 同目录 p3_wcs.cpp 冻结生产事实（bitwise 对拍承载于
 > eng/tests/unit/p3_projection_test.cpp T3）。**现状**：registry 为测试
 > 目标直编面（eng/tests/unit/CMakeLists.txt），非生产构建成员；
-> dll_target=astrocs_p3_projection.dll 尚未存在（entrypoint=MISSING，
+> dll_target=acsd_p3_projection.dll 尚未存在（entrypoint=MISSING，
 > 挂载由 P3-PROJ-IMPL/P3-002 建立，禁止声明 IMPLEMENTED）。
 > **W4-A9 批次 1（2026-09-17）**：legacy 生产源 p3_wcs.h/.cpp 已由
-> lib/phase3_session/ 迁入本目录（docs/ASTROCS_DESIGN §7.1「projection」行），
-> 并登记 astrocs_p3_projection_wcs STATIC + 共址 eng/tests/p3wcs/**；
+> lib/phase3_session/ 迁入本目录（docs/ACSD_DESIGN §7.1「projection」行），
+> 并登记 acsd_p3_projection_wcs STATIC + 共址 eng/tests/p3wcs/**；
 > 会话消费点 p3_session.cpp 的 include 同步改新址。
 > 文档口径见 docs/science/algorithms/PHASE3_PROJ_IMPL.md §15（v3 冻结口径 + §15.9
 > v1 偏差表）、docs/detail/algorithms_phase3/14_projection.md。
 
 ## 1 身份
 
-- module_id: **astrocs.p3.projection**（MODULE_MIGRATION_MATRIX P3-PROJ 行
-  权威值；registry descriptor 占位 module_id=astrocs.phase3.wcs 由
+- module_id: **acsd.p3.projection**（MODULE_MIGRATION_MATRIX P3-PROJ 行
+  权威值；registry descriptor 占位 module_id=acsd.phase3.wcs 由
   P3-PROJ-INT 对齐，不作冻结依据）。
-- registry 行: MOD-astrocs-phase3-wcs；dll_target:
-  astrocs_p3_projection.dll（合同值，未建）。
+- registry 行: MOD-acsd-phase3-wcs；dll_target:
+  acsd_p3_projection.dll（合同值，未建）。
 - 域: 天球投影/WCS。**内核面**：在役 v3（DESIGN §6.3 八投影冻结集合）
   已实现 TAN/SIN/CAR/AIT，STG/MOL/CEA/ZEA 未实现（registry_find 返回
   nullptr，fail-closed；实施归 P3-001/GAP-011）。新增投影必须落在冻结集合内
@@ -62,11 +62,11 @@
 - 符号: P3ProjectionSpec/P3ProjectionDescriptor/P3ProjectionStatus/
   P3ProjectionId/kP3ProjectionRegistryVersion/p3_projection_registry_
   {table,find,find_id,selfcheck}/p3_projection_{make,pix2world,
-  world2pix,fits_keywords}（namespace astrocs::phase3proj）。
+  world2pix,fits_keywords}（namespace acsd::phase3proj）。
 - 可执行测试: eng/tests/unit/p3_projection_test.cpp（ctest
   p3_projection_units + p3_projection_fault）+ eng/tests/backend/
   test_p3_projection_oracle.py（独立 numpy oracle/跨进程确定性）。
-- 故障注入: ASTROCS_P3PROJ_FAULT=tan|sin|car|ait|registry（测试级注入，
+- 故障注入: ACSD_P3PROJ_FAULT=tan|sin|car|ait|registry（测试级注入，
   生产源零 getenv，P2-002 先例同构）。
 
 ## 3 生产源
@@ -101,13 +101,13 @@
 - DATA: [docs/science/DATA_SEMANTICS.md](../../docs/science/DATA_SEMANTICS.md) §28
 - API: [docs/engineering/PUBLIC_API.md](../../docs/engineering/PUBLIC_API.md)
 - 模块页: [docs/detail/phase3_proj.md](../../docs/detail/phase3_proj.md)；
-  registry 手写页: docs/detail/registry/astrocs.phase3.wcs.md
+  registry 手写页: docs/detail/registry/acsd.phase3.wcs.md
 
 ## 6 实测偏差登记（不改码，详见 ALG-P3-PROJ-IMPL-001 §10）
 
 - PA 未接线: p3_session.cpp:160 rotation_pa_deg 恒 0.0（能力在内核，
   会话未消费）。
-- 20000 上限可编译期覆盖: ASTROCS_P3_MAX_SIDE（p3_wcs.cpp:18-22）。
+- 20000 上限可编译期覆盖: ACSD_P3_MAX_SIDE（p3_wcs.cpp:18-22）。
 - ~~projection 字段硬编码 "TAN"（p3_wcs.cpp:36）~~ **已闭合**：
   descriptor 携带的投影码取自注册表冻结码字面量（p3_proj_canonical_code），
   非 TAN 请求由注册表显式拒绝（见 §7）。
@@ -117,7 +117,7 @@
 - 权威: `p3_projection_registry.h`（header-only/inline；DESIGN §6.3）。
   API: p3_proj_{frozen_table,is_frozen_code,frozen_list,declared_codes,
   is_declared,declared_list,implemented_codes,is_implemented,
-  canonical_code,declare,probe,registry_selfcheck}（namespace astrocs::phase3）。
+  canonical_code,declare,probe,registry_selfcheck}（namespace acsd::phase3）。
 - 显式「不支持」: `p3_proj_declare` 返回 P3_WCS_UNSUPPORTED，why 含
   **请求码 + 原因（冻结未实现/仅内核/未知码）+ 已支持清单**；
   `p3_wcs_validate_request`（CLI 配置面与节点面唯一语义源）委托本门，

@@ -1,17 +1,17 @@
-# memory.md — astrocs.p2.sampling（P2-SAMP-DOC 冻结）
+# memory.md — acsd.p2.sampling（P2-SAMP-DOC 冻结）
 
 - 任务: P2-SAMP-DOC（MODULE_MIGRATION_MATRIX P2-SAMP 行，owner
   SA-P2-S20，2026-09-09）——合同冻结层，不改生产源码，不 commit。
   本目录 `lib/algorithms/sampling/` 三件套（README r1 + module.yaml +
   memory.md）由 P2-SAMP-DOC 建立。
 - 落位: `lib/algorithms/sampling/`（本目录）。`lib/algorithms/coverage/` 一目录一套三件套
-  已被 P2-COV（astrocs.p2.coverage）占用（lib/algorithms/coverage/README.md r1，
+  已被 P2-COV（acsd.p2.coverage）占用（lib/algorithms/coverage/README.md r1，
   2026-09-07），不可覆盖；按 `lib/algorithms/integration/`（P2-INT-DOC，其按
   `lib/algorithms/coverage/hips_p2/` P2-HIPS-DOC 先例）→ `lib/algorithms/rejection/`（P2-REJ-DOC）
   先例新建迁移目标目录，仅合同文件、无源码、不与 legacy 目录重叠。
   生产源引用不搬家。
 - 矩阵权威（P2-SAMP 行，禁止编造）: owner=SA-P2-S20、
-  module_id=astrocs.p2.sampling、target_dll=astrocs_p2_sampling.dll、
+  module_id=acsd.p2.sampling、target_dll=acsd_p2_sampling.dll、
   legacy_paths="lib/algorithms/coverage sampling sources"、depends_on_int=
   **P2-COV-INT;CPU-005**、science_specific_acceptance="coordinate/tile
   mapping;signal/variance/weight alignment;constant/gradient/impulse;
@@ -50,7 +50,7 @@
   修补回退默认 1.4）、probe :279-281 / 上限 :296-300 / 分配 :301 /
   fill :306-311。descriptor 占位（不改码）: lib/infrastructure/scheduler/src/
   module_adapters.cpp p2_sample_descriptor :580-592（module_id=
-  astrocs.phase2.sample、ports coverage（in，DATA-P2-COV/ADU/PIXEL）
+  acsd.phase2.sample、ports coverage（in，DATA-P2-COV/ADU/PIXEL）
   → samples（out，DATA-P2-SMP/DIMENSIONLESS/PIXEL），占位 sci_id=
   SCI-P2-SMP-001/alg_id=ALG-P2-SMP-001/data_id=DATA-P2-SMP/
   api_id=API-P2-001/test_id=TEST-P2-SMP-001）。编排层词汇，
@@ -75,9 +75,9 @@
   ivar_wiring_test.cpp:223（WireProductionStage2PerFrameIvar）。可执行
   TEST-P2-SMP-001 MISSING（P2-SAMP-TEST 建立）；登记面=
   TEST-P2-SMP-DESIGN-001 设计冻结 VERIFIED（registry 页
-  astrocs.phase2.sample.md §独立 synthetic 验证节 + ALG §11.3
+  acsd.phase2.sample.md §独立 synthetic 验证节 + ALG §11.3
   F1-F9 容差）。
-- 后续任务锚: P2-SAMP-IMPL=迁移到独立 astrocs_p2_sampling.dll
+- 后续任务锚: P2-SAMP-IMPL=迁移到独立 acsd_p2_sampling.dll
   （C ABI adapter/plan-execute-cancel-inspect/ThreadLease 接线）；
   P2-SAMP-TEST=建立可执行 TEST-P2-SMP-001 与 F1-F9/负面/串并行/
   资源测试；P2-SAMP-INT=descriptor 对齐注册与 Phase DAG 接入；
@@ -114,6 +114,6 @@
   确定性）。独立 Oracle 与结构门 `run/v6/p2-samp/oracle/check_spec.py`
   （98 checks PASS，不与冻结 JSON 逐项一致即红）；负向 mutation
   `run/v6/p2-samp/oracle/run_mutations.py`（8 注入全红 + 正向控制）。
-  集成：新符号编入根 `astrocs_phase2` 既有 TU，无需改根 CMake；
+  集成：新符号编入根 `acsd_phase2` 既有 TU，无需改根 CMake；
   eng/tests/unit 注册按 C-004.4 由控制器独立集成提交处理。
 

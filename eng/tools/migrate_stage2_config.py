@@ -3,7 +3,7 @@
 #
 # V17 schema v2：rejection 段删除 low/high/max_iterations/min_samples，
 # profile 改为版本化（wbpp_current → wbpp_2_9_1），normalization 改为
-# astrocs_*_v1（median_center → astrocs_median_center_v1）。
+# acsd_*_v1（median_center → acsd_median_center_v1）。
 #
 # 用法：
 #   py -3.12 eng/tools/migrate_stage2_config.py <old.json> <new.json>
@@ -48,9 +48,9 @@ def migrate(obj):
         if rej.get("profile") == "wbpp_current":
             rej["profile"] = "wbpp_2_9_1"
         if rej.get("normalization") == "median_center":
-            rej["normalization"] = "astrocs_median_center_v1"
+            rej["normalization"] = "acsd_median_center_v1"
         elif rej.get("normalization") == "median_scale":
-            rej["normalization"] = "astrocs_median_scale_v1"
+            rej["normalization"] = "acsd_median_scale_v1"
     return o
 
 

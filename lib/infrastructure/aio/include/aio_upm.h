@@ -1,15 +1,15 @@
 // ============================================================================
 // aio_upm.h - Unified Photometric Model (UPM) 模型文件容器 C API
 //
-// Phase2 AstroCS_Phase2_AuditFix_Control_Package_V2
+// Phase2 ACSD_Phase2_AuditFix_Control_Package_V2
 // （ 持久化真正闭合）唯一 AIO 新增：
 // aio_upm_write_sparse / aio_upm_open / aio_upm_read_info /
 // aio_upm_dense_begin / aio_upm_dense_write_tile / aio_upm_dense_end /
 // aio_upm_dense_info / aio_upm_read_dense_block / aio_upm_close
 //
 // 语义（冻结）：
-// - 稀疏模型为权威形态：JSON 文本（format=astrocs-upm-v2，
-// 读兼容 astrocs-upm-v1，见 docs/detail/astro_image_io.md），
+// - 稀疏模型为权威形态：JSON 文本（format=acsd-upm-v2，
+// 读兼容 acsd-upm-v1，见 docs/detail/astro_image_io.md），
 // model_hash 由 phase2 计算（内容哈希）并随 JSON 保存；
 // - dense cache 是同一 UPM 的**空间求值缓存**：按
 // (frame_id, target_order, tile) 保存 C_i(p) 的 evaluated values，

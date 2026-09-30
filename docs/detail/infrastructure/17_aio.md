@@ -1,6 +1,6 @@
 # aio（I/O 与原子提交）
 
-> 上游：docs/ASTROCS_DESIGN.md §10（I/O 与原子产品）、§8.4（顶层结构：aio 模块位）、
+> 上游：docs/ACSD_DESIGN.md §10（I/O 与原子产品）、§8.4（顶层结构：aio 模块位）、
 > §8.5（模块与 ABI）
 > 数据正本：docs/science/DATA_SEMANTICS.md（§11.1 帧内命名块表，仅作引用；
 > DATA-HIPS-SIGNAL-001 等 HiPS tile 语义）、docs/engineering/CONFIG_SCHEMA.md
@@ -35,7 +35,7 @@
 
 ## 2. 权威依据
 
-- 最高设计 `docs/ASTROCS_DESIGN.md` §8.4（顶层结构：aio 模块位）、§10（I/O 与
+- 最高设计 `docs/ACSD_DESIGN.md` §8.4（顶层结构：aio 模块位）、§10（I/O 与
   原子产品：aio 是文件级唯一 I/O 边界）、§9（原子发布的本期例外如实登记）
 - 机器可校验 schema：`eng/contracts/schemas/*.schema.json`（全部数据产品）
 
@@ -49,7 +49,7 @@
   `aio_hips_product_begin` 的 `data_type`，写盘 `BITPIX -32 / -64` 对应 CFITSIO
   `TFLOAT / TDOUBLE`（src/hips/aio_hips_writer.cpp）。**科学精度优先 FP64
   reference，FP32 仅显式等价路径**（见 docs/engineering/PERFORMANCE_MODEL.md）。
-- **UPM sparse format** = `astrocs-upm-v2`（DATA-UPM-MODEL-001）。
+- **UPM sparse format** = `acsd-upm-v2`（DATA-UPM-MODEL-001）。
 
 ## 4. 形态与原子提交
 
@@ -155,7 +155,7 @@
   `pipeline_frame_contract`、`checksum`、`drizzle_integration`、fuzz / sanitize
   driver、Python oracle（`hips_mapping_oracle`）；`test_precision_dual.cpp` 覆盖
   FP64 精度 oracle（DATA_TYPE FLOAT32/FLOAT64 双模式：`precision_mode` /
-  `signal_dtype` 元数据与 `astrocs_signal_dtype` 一致性）。
+  `signal_dtype` 元数据与 `acsd_signal_dtype` 一致性）。
 
 ## 10. 已知限制
 

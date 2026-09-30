@@ -1,7 +1,7 @@
 # ACSD phase1_session module — 元数据 (P1-SESSION-DOC 冻结, 2026-09-07)
 # 状态: CONTRACT_READY —— assembly 层：p1_session 函数族是 Phase1 进程内
 # 装配会话的唯一实现（lib/phase1_session/p1_session.cpp:90-371，五导出 C API
-# + astrocs::phase1::last_error，唯一权威签名头 lib/phase1_session/p1_session.h）。
+# + acsd::phase1::last_error，唯一权威签名头 lib/phase1_session/p1_session.h）。
 # 只描述装配：四段 io_read→calibrate→cosmetic→io_write（p1_session.cpp:168/
 # 195/283/319），科学实现全部委托既有冻结 C API（ac_calibrate_frame :243 /
 # ac_correct_frame :294，见 lib/algorithms/calibration；算法权威 docs/science/algorithms/
@@ -9,7 +9,7 @@
 # 字段遵循 11_MODULE_SOURCE_TEST_STANDARD.md §4；source_symbols 逐符号
 # grep 实测于 p1_session.cpp（P1-SESSION-DOC, 2026-09-07），禁止手抄他版。
 # registry 关系（lib/infrastructure/scheduler/src/module_adapters.cpp 实测，P1-001 后）：无独立
-# astrocs.phase1.session descriptor；p1_session 不再被节点工厂委托——
+# acsd.phase1.session descriptor；p1_session 不再被节点工厂委托——
 # P1-001 真实节点化后 8 个 Phase1 descriptor 各自委托唯一真实 operation
 # （calibrate→ac_calibrate_frame / cosmetic→ac_correct_frame /
 # star-psf→StarDetector / wcs→WcsTan / photometry→Photometer /
@@ -21,8 +21,8 @@
 # complete 门（P1-001，PROD-P0-001 Phase1 侧）：run 成功 status="partial"
 # + availability 8 域如实报告（链不完整禁写 complete，链完整后按门禁
 # 恢复）；锚 eng/tests/unit/p1001_real_nodes_test.cpp。
-# 构建=根 CMakeLists.txt:448-452（STATIC 库 astrocs_phase1_session，链接
-# astrocs_contracts/astrocs_calibration/astrocs_aio）+ :496/:514/:530 编入
+# 构建=根 CMakeLists.txt:448-452（STATIC 库 acsd_phase1_session，链接
+# acsd_contracts/acsd_calibration/acsd_aio）+ :496/:514/:530 编入
 # acsd 主可执行。MODULE_MIGRATION_MATRIX 无 P1-SESSION 行：assembly 层
 # 不设独立 DLL 迁移目标 → dll_name=MISSING（11 号标准：未知/不适用显式
 # MISSING，禁止空串）。
@@ -33,9 +33,9 @@
 # ThreadLease 租借（module_adapters.cpp:156-162）+ ac_set_num_threads(
 # budget.max_workers) 注入（p1_session.cpp:162-165，迁移整改点，禁硬编码
 # 核数）；p1_session 自身 threadsafe:no（handle 级，p1_session.h:15）。
-schema: astrocs.module-manifest/v1
-id: MOD-astrocs-phase1-session
-module_id: astrocs.phase1.session
+schema: acsd.module-manifest/v1
+id: MOD-acsd-phase1-session
+module_id: acsd.phase1.session
 owner: SA-P1-R19
 language: c++17
 module_version: 0.1.0-alpha.1
@@ -70,7 +70,7 @@ contract_ids:
   alg: MISSING
   data: DATA-P1-SESSION
   api: API-P1-SESSION
-  mod: MOD-astrocs-phase1-session
+  mod: MOD-acsd-phase1-session
   src: SRC-P1-SESSION-001
   test: TEST-P1-SESSION-001
 exports:

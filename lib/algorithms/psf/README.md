@@ -1,4 +1,4 @@
-# Astro Celestial Sphere Database（ACSD） P1 PSF 模块（astrocs.p1.psf）— 冻结合同 README
+# Astro Celestial Sphere Database（ACSD） P1 PSF 模块（acsd.p1.psf）— 冻结合同 README
 
 > r1（P1-PSF-DOC，2026-09-07）：由 SRC-PSF-001 源码实测冻结，不信任旧 README。
 > r2（PSF-001，2026-09-10）：批 ABI 尺寸边界修复（DISP-PSF-007 候选收口）后
@@ -6,7 +6,7 @@
 > `dpsf_batch_dims_check`（w/h≤0 与 w*h>INT_MAX → 整体 -1 零输出触碰）与
 > 分配失败异常屏障语义；科学公式、默认容差、状态码语义零改动。
 > 状态 **CONTRACT_READY**：实现与 C API 已存在于 legacy `lib/algorithms/psf`（SRC-PSF-001
-> VERIFIED），独立模块化迁移（`astrocs_p1_psf.dll`、C ABI adapter、ThreadLease）归
+> VERIFIED），独立模块化迁移（`acsd_p1_psf.dll`、C ABI adapter、ThreadLease）归
 > **P1-PSF-IMPL**，可执行测试归 **P1-PSF-TEST**（TEST-PSF-DESIGN-001 → TEST-P1-PSF-001）。
 > 本文件为模块唯一合同入口；registry descriptor（lib/infrastructure/scheduler/src/module_adapters.cpp:430-448）
 > 现为占位 ID，以本 README + module.yaml 为冻结依据，由 P1-PSF-INT 对齐。
@@ -15,9 +15,9 @@
 
 | 项 | 值 | 依据 |
 |---|---|---|
-| MOD ID | `MOD-astrocs-phase1-star-psf` | registry（matrix 行键） |
-| module_id | `astrocs.p1.psf` | MODULE_MIGRATION_MATRIX P1-PSF 行 |
-| DLL target | `astrocs_p1_psf.dll`（合同值，尚未存在） | 同上；现状 `dynamic_psf.dll`（dll_loader.cpp:39） |
+| MOD ID | `MOD-acsd-phase1-star-psf` | registry（matrix 行键） |
+| module_id | `acsd.p1.psf` | MODULE_MIGRATION_MATRIX P1-PSF 行 |
+| DLL target | `acsd_p1_psf.dll`（合同值，尚未存在） | 同上；现状 `dynamic_psf.dll`（dll_loader.cpp:39） |
 | module/ABI revision | module_version 0.1.0-alpha.1 / abi_version 1 | module.yaml |
 | owner | SA-P1-S15 | matrix 行 |
 | 状态 | CONTRACT_READY（未 IMPLEMENTED） | 本任务冻结 |
@@ -66,7 +66,7 @@ registry descriptor ports（module_adapters.cpp:437-441）：
 
 ## 4. module.yaml 与 standards
 
-见本目录 `module.yaml`（schema `astrocs.module-manifest/v1`，字段遵循
+见本目录 `module.yaml`（schema `acsd.module-manifest/v1`，字段遵循
 11_MODULE_SOURCE_TEST_STANDARD.md §4；必填项无删减，未接项显式 `MISSING`）。
 
 ## 5. public entry 与实际主要 source symbols（dpsf_psf.cpp 实测行号）
@@ -187,7 +187,7 @@ TEST-PSF-DESIGN-001（STAR_PSF_ALGORITHMS.md §11.4，P1-PSF-TEST 执行）：
 - 测试：共址测试面 `eng/tests/p1psf/`（P1-PSF-TEST 建立，root CMake 经
   eng/tests/unit/CMakeLists.txt:984 接入；`ctest -R p1psf_`：units/properties/
   oracle/negative/boundary/performance/selfcheck，故障注入
-  `ASTROCS_P1PSF_FAULT=<name>` 必败自检）。批 ABI 尺寸边界负例 = negative 组
+  `ACSD_P1PSF_FAULT=<name>` 必败自检）。批 ABI 尺寸边界负例 = negative 组
   N4b/N4c（PSF-001：w/h∈{0,-1,INT_MIN} × 5 入口 + w*h>INT_MAX，注入名
   `batch_boundary`）。
 - **已知限制（如实登记）**：① `DPSFFitParams.maxIter/tolerance` 死参数（DISP-PSF-003）；
@@ -195,7 +195,7 @@ TEST-PSF-DESIGN-001（STAR_PSF_ALGORITHMS.md §11.4，P1-PSF-TEST 执行）：
   （DISP-PSF-002）；④ 饱和列不消费；⑤ θ 消歧仅 4 候选对称集；⑥ 无参数协方差/
   不确定性输出（科学专项 "covariance" 为迁移整改项，P1-PSF-IMPL 落地，现状不宣称）；
   ⑦ 批 f32/f64 路径逐星退败静默（仅 n_valid 汇总，DISP-PSF-006）。
-- **未实现（MISSING，禁止宣称 IMPLEMENTED）**：`astrocs_p1_psf.dll` 模块壳、C ABI
+- **未实现（MISSING，禁止宣称 IMPLEMENTED）**：`acsd_p1_psf.dll` 模块壳、C ABI
   adapter、plan-execute-cancel-inspect、ThreadLease、共址测试、EVIDENCE 证据链。
 
 ## 11. 历史与记忆
@@ -230,11 +230,11 @@ P14 起 `p1_op_noise` 的 SNR 样本 = `DATA-P1-SOURCES.sources` 的全部测光
 - 生产注册表（`register_phase_modules` 的 `p1_nodes[]`）**不注册**该路径。
 - 存活测试（防死代码清理）：`eng/tests/unit/p1001_real_nodes_test.cpp::
   test_psf_fast_cap_and_inactive_precise` 经公共钩子
-  `astrocs::core::p1_op_star_psf_precise_json`（声明见 lib/include/astrocs/core/
+  `acsd::core::p1_op_star_psf_precise_json`（声明见 lib/include/acsd/core/
   module_adapters.h）直接调用它，断言全量拟合仍能跑出真实结果。
 - 未来启用接线要点（一段话）：把 `kPrecisePsfEnabled` 置 true（或把节点
   `psf.max_stars` 置 0 并把光测光口径改为 PSF 测光），同步在 DATA-P1-PSF
-  （DATA_SEMANTICS §15）、registry `astrocs.phase1.star-psf`、
+  （DATA_SEMANTICS §15）、registry `acsd.phase1.star-psf`、
   module_ports.registry.json 与 `psf_mode` 字段登记由 fast 升 precise，
   并按 §10.5 重评资源门禁（全量拟合单帧 >150 s）与星↔行 compact 映射（B2-A2
   语义不变）。

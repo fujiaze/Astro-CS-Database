@@ -1,6 +1,6 @@
 # Gaia XPSD 查询（ALG-GAIA-001）
 
-> 上游：ASTROCS_DESIGN.md §3.3（科学量与星表）、§4.2（Phase1 节点流程）、
+> 上游：ACSD_DESIGN.md §3.3（科学量与星表）、§4.2（Phase1 节点流程）、
 > SCI-AST-001（docs/science/ASTROMETRY.md，别名 SCI-WCS-001）
 > 权威源码: lib/infrastructure/gaia_xpsd_client/src/gaia_client.c（本文件全部离散公式、常量、
 > 行为边界均从该文件逐函数核对；与 lib/infrastructure/gaia_xpsd_client/README.md 的
@@ -204,7 +204,7 @@ spectrum_start/step/count 取自 XPSD XML <Data parameters="...">（缺省 0，
   `gaia_client_get_file_count / _get_file_entry_count / _get_file_load_fail_count /
   _get_last_create_diagnostics / _get_last_create_error`（头文件为唯一签名源）。
 
-### 3.1 plan / execute / cancel / inspect（迁移合同，astrocs.catalog.gaia）
+### 3.1 plan / execute / cancel / inspect（迁移合同，acsd.catalog.gaia）
 
 - `plan()`：由 file_count、db_type、Σmax_block_size、查询参数推导 work_units
   （≈叶块数×块大小）、memory（mmap 只读 + 块缓存上限 + scratch）、并行轴
@@ -225,7 +225,7 @@ spectrum_start/step/count 取自 XPSD XML <Data parameters="...">（缺省 0，
   查询缓存 lookup/insert；命中路径在持锁状态下完成 O(N) 输出构造
   （gaia_client.c:1658-1684）——命中查询串行化。
 - trace：per-query 上下文 + `#pragma omp atomic`，进程级零共享计数器写
-  （ASTROCS_GAIA_TRACE=1 启用，stderr 输出）。
+  （ACSD_GAIA_TRACE=1 启用，stderr 输出）。
 - 线程来源：OpenMP 默认 team（无 host ThreadLease）——迁移缺口，迁移后由
   host executor/lease 授予线程（冻结约束 D.3/D.4）。
 - `destroy` 与在途查询并发 = UB（文档契约：调用方保证 join 后再 destroy）。
@@ -255,7 +255,7 @@ spectrum_start/step/count 取自 XPSD XML <Data parameters="...">（缺省 0，
   → 无泄漏、无半状态、稳定 -1；空目录语义差异（Win NULL vs POSIX 空 client，
   见 API-GAIA-001）按平台断言。
 - **串并行**：1/N worker 加速比（fixture 足量叶块）；64 并发查询 +
-  ASTROCS_GAIA_TRACE=1 无混合（V18R3 结论复验）。
+  ACSD_GAIA_TRACE=1 无混合（V18R3 结论复验）。
 - **ISA**：baseline（无 -march）与 -march=native 输出 bitwise 一致（本模块无
   手写 SIMD，默认 bitwise 合同）。
 - **资源**：RSS 结束回落有解释高水位；块缓存 total_memory ≤ 4GB；trace 关闭

@@ -1,6 +1,6 @@
 # Astro Celestial Sphere Database（ACSD） 术语与单位词典
 
-> 上游：ASTROCS_DESIGN.md 附录 A（术语）
+> 上游：ACSD_DESIGN.md 附录 A（术语）
 
 本词典是**唯一术语权威**。每个核心术语恰一个含义;legacy alias 列出迁移去向。
 任何文档/代码/接口与本文冲突时,以本文锚点所指的权威文件为准并回改词典——定义只有一套。

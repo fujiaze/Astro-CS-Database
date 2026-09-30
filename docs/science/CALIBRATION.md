@@ -1,6 +1,6 @@
 # Calibration Science (SCI-CAL)
 
-> 上游：ASTROCS_DESIGN.md §4.2（Phase1 节点流程）、§4.6（硬约束）
+> 上游：ACSD_DESIGN.md §4.2（Phase1 节点流程）、§4.6（硬约束）
 
 > 本文件条款为冻结定义，变更走变更流程。
 
@@ -103,8 +103,8 @@ flat_norm = max(flat / median(flat), 0.1)   # median→1.0, 逐像素 floor 0.1
   "平场响应的消费下界 = 中位响应的 10%"。由 `cal = num / max(flat_norm, 0.1)`，
   真实响应 `f < 0.1` 的像素被按 `0.1` 相除 ⇒ 该像素的校准值相对误差为
   `(0.1/f − 1)`，**单边偏低（欠校正）**，且**不可由任何后续标度声明恢复**。
-  **实测（驱动生产静态库 `astrocs_calibration`，raw = 1000 ADU、bias=dark=NULL、K=1，
-  直接调用本仓生产静态库 `astrocs_calibration` 的 `ac::calibrate`）**：
+  **实测（驱动生产静态库 `acsd_calibration`，raw = 1000 ADU、bias=dark=NULL、K=1，
+  直接调用本仓生产静态库 `acsd_calibration` 的 `ac::calibrate`）**：
 
   | `f`（已归一响应） | `cal` [ADU] | 真值 `1000/f` [ADU] | 相对误差 |
   |---|---|---|---|
@@ -223,10 +223,10 @@ flat_norm = max(flat / median(flat), 0.1)   # median→1.0, 逐像素 floor 0.1
 
 ## 6a 暗场-亮场曝光容差的科学判据（冻结）
 
-> 上游：`ASTROCS_DESIGN.md` §4.3（母版标度红线与暗场-亮场曝光容差判定）、§4.5（暗场与亮场曝光差超出容差 = 🟠 warn，不阻塞）。
+> 上游：`ACSD_DESIGN.md` §4.3（母版标度红线与暗场-亮场曝光容差判定）、§4.5（暗场与亮场曝光差超出容差 = 🟠 warn，不阻塞）。
 > **两个判定面必须分开（冻结）**：①**预检面** = `calibration.dark_light_exposure_tolerance`
 > （`eng/packaging/config/defaults.json`，值 5、单位 **s**），判定变量是 `|t_light − t_dark|`，
-> 结论是 🟠 warn（提示、不阻塞、不参与科学可信判定，`ASTROCS_DESIGN.md`）；
+> 结论是 🟠 warn（提示、不阻塞、不参与科学可信判定，`ACSD_DESIGN.md`）；
 > ②**科学面** = 本节的 `|K·Δb| ≤ ε·σ_frame`，判定变量是**与曝光差无关的截距失配**，
 > 量纲为 ADU，`ε` **无量纲**。两个面的判定变量不相关（下表给出反例），
 > **两面各自独立判定**。本节只定义科学面的判据口径。
@@ -349,7 +349,7 @@ cal_pipe − cal_true = (t_light/t_d)·(b_light − b0) = −K·Δb          Δb
   (a) **单位门（U1）**：亮场观测中位数 > 1 ADU 而某 bias/dark 母版观测中位数 ≤ 1.0 且未声明
       `master_units=normalized` + `master_scale` ⇒ 判红（拒绝）。**适用域与两个已实测盲区
       （冻结；实测方式 = 直接调用 `master_unit_guard.h` 的 `check_master_domain`）**：判据本体是
-      `master.median > 1.0 ⇒ 通过`（`lib/include/astrocs/core/master_unit_guard.h`），
+      `master.median > 1.0 ⇒ 通过`（`lib/include/acsd/core/master_unit_guard.h`），
       且只在 `bias`/`dark` 两类上调用（`module_adapters.cpp`）。故：
       ① **反向混标度不判红**——母版在 ADU 域（median 1001.867）而亮场在 [0,1] 域
       （median 0.05）且两者都未声明 ⇒ 实测**判绿**，随后 `(raw − bias)/flat` 会得到

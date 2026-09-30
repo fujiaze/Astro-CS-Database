@@ -12,8 +12,8 @@ import json, os, re, shutil, subprocess, tempfile, unittest
 REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 # ROOT-008: CLI 命令层源在 lib/infrastructure/cli/（旧 cli/ 已退役）
 CLI = os.path.join(REPO, "lib", "infrastructure", "cli")
-# DISPATCH 附录 H（构建隔离）: 被测构建树 = 被测二进制所在目录; ASTROCS_CLI_BIN 覆盖。
-EXE = os.environ.get("ASTROCS_CLI_BIN", os.path.join(REPO, "build", "acsd"))
+# DISPATCH 附录 H（构建隔离）: 被测构建树 = 被测二进制所在目录; ACSD_CLI_BIN 覆盖。
+EXE = os.environ.get("ACSD_CLI_BIN", os.path.join(REPO, "build", "acsd"))
 BUILD = os.path.dirname(os.path.abspath(EXE))
 # CTESTFULL-01：fixture 制备已收归 cli_fixture（自带 AIO/SHARED/cfitsio 定位），
 # 本文件原有的 _pick/AIO/SHARED/HEALPIX_SRC 兼容垫片随之退役。
@@ -179,7 +179,7 @@ class TestIsoAcrGpuIsolation(unittest.TestCase):
                            capture_output=True, text=True, timeout=300, cwd=run_cwd())
         self.assertEqual(r.returncode, 0, r.stderr[-300:])
         cands = [os.path.join(out, f) for f in os.listdir(out)
-                 if f.startswith("astrocs_run_") and f.endswith(".json")]
+                 if f.startswith("acsd_run_") and f.endswith(".json")]
         self.assertTrue(cands, f"缺 run manifest (out={os.listdir(out)})")
         with open(cands[0], encoding="utf-8") as fh:
             m = json.load(fh)

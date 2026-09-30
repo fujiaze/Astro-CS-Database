@@ -6,10 +6,10 @@
 
 ## 职责
 > W4-A9（2026-09-17）后本目录只保留会话 facade 与尚未迁出的 `hips_properties*`；
-> 下列内核的**实现文件**已按 `docs/ASTROCS_DESIGN §7.1` 迁入各自算法模块（源逐字节等价，
+> 下列内核的**实现文件**已按 `docs/ACSD_DESIGN §7.1` 迁入各自算法模块（源逐字节等价，
 > 公共符号与命名空间零改动），此处仅登记职责与去向。
 
-p3_wcs: WCS TAN + 尺寸溢出检查 (uint64) + 配置合同上限 (ASTROCS_P3_MAX_SIDE)。→ `lib/algorithms/projection/`
+p3_wcs: WCS TAN + 尺寸溢出检查 (uint64) + 配置合同上限 (ACSD_P3_MAX_SIDE)。→ `lib/algorithms/projection/`
 p3_resample: leaf 级重采样 + 8-tile 缓存; coverage 缺失 → NaN。→ `lib/algorithms/resample/`
 p3_output: FITS 原子写 + 重开验证 (dims/WCS/BUNIT/checksum/mask)。→ `lib/algorithms/fits_output/`
 p3_session: facade 委托 (仅 Runtime 编排, 不复制算法)（本目录留存）。

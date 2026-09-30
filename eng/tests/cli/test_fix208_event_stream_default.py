@@ -2,7 +2,7 @@
 """FIX-208 验收 1/2：运行事件流 = **默认输出**；运行事件流 schema **唯一**。
 
 权威（逐条）：
-  * docs/ASTROCS_DESIGN.md §6.3（运行事件走 JSONL：schema_version/event_id/run_id/.../kind 含
+  * docs/ACSD_DESIGN.md §6.3（运行事件走 JSONL：schema_version/event_id/run_id/.../kind 含
     progress/resource/artifact/backend/final；stdout 无日志污染）；
   * GAP_AUDIT.md(RELEASE-03) §4.3 Q6 裁决：唯一运行事件流 schema =
     lib/infrastructure/cli/protocol.h（ValidateEventV1）+ jsonl.h（JsonlEmitter）；
@@ -86,7 +86,7 @@ MAX_LINE_BYTES = 4096
 
 
 def cli_binary():
-    env = os.environ.get("ASTROCS_CLI_BIN")
+    env = os.environ.get("ACSD_CLI_BIN")
     if env and os.path.isfile(env):
         return env
     return os.path.join(REPO, "build", "acsd")
@@ -154,7 +154,7 @@ class TestRunEventStreamDefault(unittest.TestCase):
     def setUpClass(cls):
         assert os.path.isfile(EXE), "先构建 CLI（ninja -C build acsd）"
         cls.tmp = tempfile.mkdtemp(prefix="fix208_stream_")
-        cache = os.environ.get("ASTROCS_FIX208_FIXTURE_DIR")
+        cache = os.environ.get("ACSD_FIX208_FIXTURE_DIR")
         if cache and os.path.isfile(os.path.join(cache, "fixture")) and \
                 os.path.isdir(os.path.join(cache, "data")):
             cls.fixture = os.path.join(cache, "fixture")
@@ -267,7 +267,7 @@ class TestRunEventStreamDefault(unittest.TestCase):
         # (d) 顺序键被破坏（只认 sequence，不认墙钟/其它键）⇒ 判红
         self.assertIsNotNone(validate_run_event(dict(base), 1), "sequence 乱序必须判红")
         # (e) 整条流注入一行 LOG-001 行 ⇒ 整流判红
-        log001_line = json.dumps({"schema": "astrocs.log.event.v1", "seq": 1,
+        log001_line = json.dumps({"schema": "acsd.log.event.v1", "seq": 1,
                                   "ts": "2026-09-20T00:00:00Z", "run": "r",
                                   "level": "info", "event": "end", "diagnostic": "d"})
         errors, _ = validate_stream(self.stdout_lines + [log001_line])
@@ -319,7 +319,7 @@ class TestRunEventStreamDefault(unittest.TestCase):
                             timeout=120, cwd=run_cwd())
         self.assertEqual(r2.returncode, 0)
         doc2 = json.loads(r2.stdout)
-        self.assertEqual(doc2["kind"], "astrocs_doctor")
+        self.assertEqual(doc2["kind"], "acsd_doctor")
         self.assertNotIn("sequence", r2.stdout)
 
 
@@ -338,7 +338,7 @@ class TestJsonlHelpersUnit(unittest.TestCase):
 #include <cstdio>
 #include <string>
 int main() {
-    using namespace astrocs;
+    using namespace acsd;
     // 脱敏（LOG-001 §5 同规则）: 绝对路径/盘符/UNC/凭据
     std::printf("r1=%s\n", redact_free_text("write /home/alice/x.fits ok").c_str());
     std::printf("r2=%s\n", redact_free_text("token=abc123").c_str());

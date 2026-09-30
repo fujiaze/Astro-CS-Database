@@ -1,11 +1,11 @@
 // ACSD Core — ARCH-501 命名块与块生命周期实现
-// 依据：docs/ASTROCS_DESIGN.md §8.2；CONTRACT-501 docs/engineering/PIPELINE_BLOCK_CONTRACT.md
-#include "astrocs/core/block_frame.h"
+// 依据：docs/ACSD_DESIGN.md §8.2；CONTRACT-501 docs/engineering/PIPELINE_BLOCK_CONTRACT.md
+#include "acsd/core/block_frame.h"
 
 #include <algorithm>
 #include <set>
 
-namespace astrocs::core {
+namespace acsd::core {
 namespace {
 
 // 冻结上限（BLOCKER-DF-001 同源口径）：单块 4 GiB、单帧 16 GiB
@@ -257,4 +257,4 @@ std::size_t BlockFrame::destroy_all() {
   return freed;
 }
 
-}  // namespace astrocs::core
+}  // namespace acsd::core

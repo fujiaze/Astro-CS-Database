@@ -1,21 +1,21 @@
 // AIO-001 · 唯一 AIO C ABI v1 与内容哈希复核 · 测试执行器 (单执行器 + 组注册 + 故障注入)
 //
-// 控制包任务: AIO-001 (ASTROCS-CONSTITUTION-ALIGNMENT-V1)。
-// 合同锚: lib/include/astrocs/io/aio_abi_v1.h + eng/contracts/data/aio_abi_contract_v1.json。
+// 控制包任务: AIO-001 (ACSD-CONSTITUTION-ALIGNMENT-V1)。
+// 合同锚: lib/include/acsd/io/aio_abi_v1.h + eng/contracts/data/aio_abi_contract_v1.json。
 // 模式对齐先例: lib/infrastructure/aio/tests/p1hips/p1hips_test_main.hpp
 // (FaultRegistry + 组 runner + note_injected 一次性报告)。
 //
 // 单跑: ./aio_abi_tests units|negative|selfcheck|all
 //
 // 故障注入 (验收: "故障注入能让测试失败" + 无恒 PASS 占位):
-//   ASTROCS_AIO_FAULT=<regname>[,<regname>...]
+//   ACSD_AIO_FAULT=<regname>[,<regname>...]
 //   n1_hash_value_flip            -> units: sha256 重算输出翻转 → 已知向量必败
 //   n2_verify_mismatch_shortcut   -> negative: verify_buffer 恒 OK → 篡改必败
 //   n3_file_size_skip             -> negative: verify_file 跳过 size 核对 → 截断必败
 #ifndef AIO_ABI_TEST_MAIN_HPP
 #define AIO_ABI_TEST_MAIN_HPP
 
-#include "astrocs/io/aio_abi_v1.h"
+#include "acsd/io/aio_abi_v1.h"
 
 #include <cstdint>
 #include <cstdio>
@@ -26,7 +26,7 @@
 
 namespace aio_abi_test {
 
-// ───────── 故障注册表 (进程级; main 启动时由 ASTROCS_AIO_FAULT 初始化) ─────────
+// ───────── 故障注册表 (进程级; main 启动时由 ACSD_AIO_FAULT 初始化) ─────────
 struct FaultRegistry {
     static FaultRegistry& instance() {
         static FaultRegistry r;
@@ -43,7 +43,7 @@ struct FaultRegistry {
 };
 
 inline void init_fault_registry_from_env() {
-    const char* env = std::getenv("ASTROCS_AIO_FAULT");
+    const char* env = std::getenv("ACSD_AIO_FAULT");
     if (!env || !*env) return;
     std::string s(env);
     for (std::size_t pos = 0; pos < s.size();) {

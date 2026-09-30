@@ -21,7 +21,7 @@ INC = os.path.join(REPO, "lib", "include")
 HOST = os.path.join(REPO, "lib", "infrastructure", "benchmark", "backend_host")
 
 DRIVER = r'''
-#include "astrocs/common_abi_v1.h"
+#include "acsd/common_abi_v1.h"
 #include "baseline_kernels.h"
 #include <cstdio>
 #include <cstdlib>
@@ -29,18 +29,18 @@ DRIVER = r'''
 #include <vector>
 #include <cmath>
 extern "C" {
-int astrocs_host_services_default_v1(astrocs_host_services_v1* out, void** state_out);
-void astrocs_host_services_destroy_state_v1(void* state);
-void astrocs_host_state_set_budget_v1(void* state, uint32_t cpus, uint32_t max_workers, astrocs_host_services_v1* out);
-int astrocs_backend_get_api_v1(uint32_t, uint32_t, const astrocs_host_services_v1*, astrocs_backend_api_v1*);
+int acsd_host_services_default_v1(acsd_host_services_v1* out, void** state_out);
+void acsd_host_services_destroy_state_v1(void* state);
+void acsd_host_state_set_budget_v1(void* state, uint32_t cpus, uint32_t max_workers, acsd_host_services_v1* out);
+int acsd_backend_get_api_v1(uint32_t, uint32_t, const acsd_host_services_v1*, acsd_backend_api_v1*);
 }
-typedef acs_status (*KernelFn)(const astrocs_host_services_v1*, const void*, uint32_t, const void*, void*);
+typedef acsd_status (*KernelFn)(const acsd_host_services_v1*, const void*, uint32_t, const void*, void*);
 static void putf(const float* a,int n,const char* tag){ printf("%s",tag); for(int i=0;i<n;++i) printf("%.9g%c",a[i],(i+1<n)?',':'\n'); }
 int main(int argc,char**argv){ int budget=argc>1?atoi(argv[1]):1;
-    astrocs_host_services_v1 host; void* state=nullptr; astrocs_host_services_default_v1(&host,&state);
-    astrocs_host_state_set_budget_v1(state,(uint32_t)budget,(uint32_t)budget,&host);
-    astrocs_backend_api_v1 api; std::memset(&api,0,sizeof(api));
-    if(astrocs_backend_get_api_v1(ACS_ABI_VERSION_V1,sizeof(astrocs_host_services_v1),&host,&api)!=ACS_OK) return 2;
+    acsd_host_services_v1 host; void* state=nullptr; acsd_host_services_default_v1(&host,&state);
+    acsd_host_state_set_budget_v1(state,(uint32_t)budget,(uint32_t)budget,&host);
+    acsd_backend_api_v1 api; std::memset(&api,0,sizeof(api));
+    if(acsd_backend_get_api_v1(ACS_ABI_VERSION_V1,sizeof(acsd_host_services_v1),&host,&api)!=ACS_OK) return 2;
     const uint32_t W=24,H=16,N=W*H,FR=3;
     // ---- OVERLAP: 亚像素偏移 drop。u,v 分量为像素到 drop 中心的 x/y 偏置 —— 构造解析
     std::vector<float> ov(N);
@@ -48,7 +48,7 @@ int main(int argc,char**argv){ int budget=argc>1?atoi(argv[1]):1;
         float cx=9.4f, cy=6.7f, pixfrac=0.75f;  // 收缩
         std::vector<float> u(N),v(N);
         for(uint32_t i=0;i<N;++i){ int x=i%W,y=i/W; u[i]=(float)x-cx; v[i]=(float)y-cy; }
-        acs_baseline_params_v1 p; std::memset(&p,0,sizeof(p)); p.head.struct_size=sizeof(p); p.head.abi_version=ACS_ABI_VERSION_V1;
+        acsd_baseline_params_v1 p; std::memset(&p,0,sizeof(p)); p.head.struct_size=sizeof(p); p.head.abi_version=ACS_ABI_VERSION_V1;
         p.op=ACS_KOP_DRIZZLE_OVERLAP; p.w=W;p.h=H;
         p.in0=ACS_SPAN_F32(u.data(),N); p.in1=ACS_SPAN_F32(v.data(),N); p.out0=ACS_SPAN_F32(ov.data(),N);
         if(api.kernels[0].fn(&host,&p,sizeof(p),nullptr,nullptr)!=ACS_OK) return 3;
@@ -57,7 +57,7 @@ int main(int argc,char**argv){ int budget=argc>1?atoi(argv[1]):1;
     // ---- ACCUMULATE: FR=3 帧, flux x weight
     std::vector<float> flux(N*(FR+1)), wgt(N*(FR+1)), acc(N);
     for(uint32_t f=0;f<FR;++f) for(uint32_t i=0;i<N;++i){ flux[f*N+i]=1000.0f+10.0f*(float)f; wgt[f*N+i]=(float)((i*0.001f+f*0.25f)); }
-    acs_baseline_params_v1 p2; std::memset(&p2,0,sizeof(p2)); p2.head.struct_size=sizeof(p2); p2.head.abi_version=ACS_ABI_VERSION_V1;
+    acsd_baseline_params_v1 p2; std::memset(&p2,0,sizeof(p2)); p2.head.struct_size=sizeof(p2); p2.head.abi_version=ACS_ABI_VERSION_V1;
     p2.op=ACS_KOP_DRIZZLE_ACCUMULATE; p2.w=W;p2.h=H;p2.aux0=FR;
     p2.in0=ACS_SPAN_F32(flux.data(),flux.size()); p2.in1=ACS_SPAN_F32(wgt.data(),wgt.size()); p2.out0=ACS_SPAN_F32(acc.data(),N);
     if(api.kernels[0].fn(&host,&p2,sizeof(p2),nullptr,nullptr)!=ACS_OK) return 4;
@@ -65,12 +65,12 @@ int main(int argc,char**argv){ int budget=argc>1?atoi(argv[1]):1;
     // ---- NORMALIZE: acc/support
     std::vector<float> support(N); for(uint32_t i=0;i<N;++i) support[i]=(float)(i%7==0?2.5f:0.0f);
     std::vector<float> norm(N);
-    acs_baseline_params_v1 p3; std::memset(&p3,0,sizeof(p3)); p3.head.struct_size=sizeof(p3); p3.head.abi_version=ACS_ABI_VERSION_V1;
+    acsd_baseline_params_v1 p3; std::memset(&p3,0,sizeof(p3)); p3.head.struct_size=sizeof(p3); p3.head.abi_version=ACS_ABI_VERSION_V1;
     p3.op=ACS_KOP_DRIZZLE_NORMALIZE; p3.w=W;p3.h=H;
     p3.in0=ACS_SPAN_F32(acc.data(),N); p3.in1=ACS_SPAN_F32(support.data(),N); p3.out0=ACS_SPAN_F32(norm.data(),N);
     if(api.kernels[0].fn(&host,&p3,sizeof(p3),nullptr,nullptr)!=ACS_OK) return 5;
     putf(norm.data(),N,"NORM ");
-    astrocs_host_services_destroy_state_v1(state); return 0; }
+    acsd_host_services_destroy_state_v1(state); return 0; }
 '''
 
 

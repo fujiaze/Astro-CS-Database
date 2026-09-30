@@ -5,7 +5,7 @@
 依据（逐条可核）：
   - ACCEPTANCE_SPEC.md §6.2「无接缝：**帧间**、块间无亮度/灰度阶跃」（帧间在前）；
   - ACCEPTANCE_SPEC.md §6.1（L4 产品生成链 = 整幅平面 FITS + 帧清单，两者都在手上）；
-  - docs/ASTROCS_DESIGN.md §2（SCI-C：接缝 = 帧集变化处的亮度阶跃）；
+  - docs/ACSD_DESIGN.md §2（SCI-C：接缝 = 帧集变化处的亮度阶跃）；
   - 实验/additive-sky-seamless/README.md:225（R5「相对接缝度量」< 1% = 1e-2）——
     本门阈值 1e-2 的唯一数值来源，不是另拍的；
   - AGENTS.md §9（判据必须能红能绿、配可执行正例/负例，而不是放松判据）。
@@ -707,7 +707,7 @@ def make_fixture(work_dir, seed=20260924, npix=FIXTURE_NPIX, frame_n=FIXTURE_FRA
         wcs["crval1"] = 84.0 + dra
         wcs["crval2"] = -5.4 + ddec
         io.open(os.path.join(d, "p1_wcs.json"), "w", encoding="utf-8").write(
-            json.dumps({"schema": "astrocs.p1-wcs/synthetic", "wcs": wcs},
+            json.dumps({"schema": "acsd.p1-wcs/synthetic", "wcs": wcs},
                        ensure_ascii=False, indent=1) + "\n")
     return fits_path, [p1_dir], (frame_n, frame_n)
 
@@ -1026,7 +1026,7 @@ def main(argv=None):
             print("SEAM_FOOTPRINT_SELFTEST_ERROR: %s: %s" % (type(exc).__name__, exc),
                   file=sys.stderr)
             return 2
-        rec = {"schema": "astrocs.seam-footprint/v1", "tool": "seam_footprint",
+        rec = {"schema": "acsd.seam-footprint/v1", "tool": "seam_footprint",
                "mode": "self-test", "max_rel_excess": args.max_rel_excess,
                "work_dir": os.path.abspath(args.work_dir), **st}
         _write_json(out, rec)
@@ -1064,7 +1064,7 @@ def main(argv=None):
         return 2
 
     gate = rec["baseline"]["gate"]
-    rec["schema"] = "astrocs.seam-footprint/v1"
+    rec["schema"] = "acsd.seam-footprint/v1"
     rec["tool"] = "seam_footprint"
     rec["mode"] = "product"
     findings = []

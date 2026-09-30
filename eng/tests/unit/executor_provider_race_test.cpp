@@ -1,7 +1,7 @@
 // B13-R13-3 单元测试: CpuHeavyExecutor observed_provider_ 数据竞争回归
 // (nice -n 19 timeout 300, TSAN 构建下运行; 修复前 worker 观测段锁外读
 // observed_provider_ 与完成段锁内写构成跨线程 UB, TSAN 必报 data race)
-#include "astrocs/core/executor.h"
+#include "acsd/core/executor.h"
 
 #include <atomic>
 #include <chrono>
@@ -11,7 +11,7 @@
 #include <thread>
 #include <vector>
 
-using namespace astrocs::core;
+using namespace acsd::core;
 
 static int failures = 0;
 #define CHECK(cond)                                                       \

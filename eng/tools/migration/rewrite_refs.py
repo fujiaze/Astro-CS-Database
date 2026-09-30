@@ -19,22 +19,22 @@ def iter_files():
                 yield p
 
 def rule_design_root(rel, text):
-    """批次1: docs/ASTROCS_DESIGN.md 裸名 → docs 外加 docs/ 前缀；docs 内不变；防双前缀。"""
+    """批次1: docs/ACSD_DESIGN.md 裸名 → docs 外加 docs/ 前缀；docs 内不变；防双前缀。"""
     n = 0
     def out_prefix(mm):
         nonlocal n; n += 1
-        return mm.group(1) + "docs/ASTROCS_DESIGN.md"
+        return mm.group(1) + "docs/ACSD_DESIGN.md"
     if rel.startswith("docs" + os.sep) or rel.startswith("docs/"):
         if rel.replace(os.sep, "/") == "docs/DOCUMENT_INDEX.yaml":
             pass  # INDEX 的 path 字段是仓库根相对路径，按 docs 外处理
         else:
             return text, 0  # docs 内保持裸名（同目录）
-    # 防止已有 docs/ASTROCS_DESIGN.md 被二次前缀
-    t2 = re.sub(r"(?<!docs/)(?<!\u0064ocs/)\bASTROCS_DESIGN\.md\b", "docs/ASTROCS_DESIGN.md", text)
-    n = t2.count("docs/ASTROCS_DESIGN.md") - text.count("docs/ASTROCS_DESIGN.md")
-    # docs/ASTROCS_DESIGN（无 .md 后缀的行文引用，如 "docs/ASTROCS_DESIGN §9"）——只在代码注释/行文中，同样加前缀
-    t3 = re.sub(r"(?<!docs/)(?<![A-Za-z_])docs/ASTROCS_DESIGN(?=\s*[§\s:,)（(、])(?!\.md)", "docs/ASTROCS_DESIGN", t2)
-    n += t3.count("docs/ASTROCS_DESIGN") - t2.count("docs/ASTROCS_DESIGN")
+    # 防止已有 docs/ACSD_DESIGN.md 被二次前缀
+    t2 = re.sub(r"(?<!docs/)(?<!\u0064ocs/)\bACSD_DESIGN\.md\b", "docs/ACSD_DESIGN.md", text)
+    n = t2.count("docs/ACSD_DESIGN.md") - text.count("docs/ACSD_DESIGN.md")
+    # docs/ACSD_DESIGN（无 .md 后缀的行文引用，如 "docs/ACSD_DESIGN §9"）——只在代码注释/行文中，同样加前缀
+    t3 = re.sub(r"(?<!docs/)(?<![A-Za-z_])docs/ACSD_DESIGN(?=\s*[§\s:,)（(、])(?!\.md)", "docs/ACSD_DESIGN", t2)
+    n += t3.count("docs/ACSD_DESIGN") - t2.count("docs/ACSD_DESIGN")
     return t3, n
 
 def rule_algorithms_science(rel, text):
@@ -70,8 +70,8 @@ def main():
         for fn in BATCHES[a.batch]:
             new, _ = fn(rel, new)
         if new != text:
-            total_f += 1; total_n += new.count("docs/ASTROCS_DESIGN") - text.count("docs/ASTROCS_DESIGN")
-            print(f"[{rel}] +{new.count('docs/ASTROCS_DESIGN')-text.count('docs/ASTROCS_DESIGN')}")
+            total_f += 1; total_n += new.count("docs/ACSD_DESIGN") - text.count("docs/ACSD_DESIGN")
+            print(f"[{rel}] +{new.count('docs/ACSD_DESIGN')-text.count('docs/ACSD_DESIGN')}")
             if a.apply:
                 open(p, "w", encoding="utf-8").write(new)
     print(f"== {'APPLIED' if a.apply else 'DRY-RUN'}: {total_f} files, {total_n} replacements")

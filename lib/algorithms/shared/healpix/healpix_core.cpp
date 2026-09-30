@@ -18,7 +18,7 @@
 #include <unordered_map>
 #include <vector>
 
-namespace astrocs {
+namespace acsd {
 namespace healpix {
 
 namespace {
@@ -512,5 +512,5 @@ std::vector<uint64_t> query_disc(uint32_t nside, double ra_deg, double dec_deg,
 }
 
 } // namespace healpix
-} // namespace astrocs
+} // namespace acsd
 

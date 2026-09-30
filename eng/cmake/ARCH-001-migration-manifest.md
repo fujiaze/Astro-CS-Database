@@ -1,6 +1,6 @@
 # ARCH-001 迁移清单（旧路径 -> 新路径 -> 状态 -> 等价性证据 -> 同步义务）
 
-> 权威：docs/ASTROCS_DESIGN.md 7.1（顶层结构唯一）/7.3（模块与 DLL-SO 边界）；ENGINEERING_SPEC.md 3（迁移必须等价）/4/7。
+> 权威：docs/ACSD_DESIGN.md 7.1（顶层结构唯一）/7.3（模块与 DLL-SO 边界）；ENGINEERING_SPEC.md 3（迁移必须等价）/4/7。
 > 生成：run/PROJECT-GOVERNANCE-01/ARCH-001/gen_final_manifest.py（可复跑）；状态由 moves.json 现场计算，禁止手改。
 > 当前 HEAD：`8f0a4c6bf24ffd7346a8c2c3fd8dc0e4407ee6d0`（开工基线 01db973b020957bce9eadd32785216d161b9d093）。
 
@@ -40,7 +40,7 @@
 | 30 | `lib/phase1/tests` | `lib/algorithms/photometry/wrapper_phase1/tests` | **DONE** | P1-001 共址测试（p1phot） |
 | 31 | `lib/phase2` | `lib/algorithms/coverage` | **DONE** | MODULE_MAP: coverage legacy_paths=[lib/phase2]；目录内 upm/rejection/sampling/integration 生产源拆分属架构性边界 -> INT-001 |
 | 32 | `lib/acr` | `lib/infrastructure/acr` | **DONE** | 7.1 infrastructure/acr（DORMANT） |
-| 33 | `lib/hips_p2` | `lib/algorithms/coverage/hips_p2` | **DONE** | P2-HIPS(astrocs.p2.hips_writer) 合同目录；生产源 stage2.cpp 现位于 algorithms/coverage |
+| 33 | `lib/hips_p2` | `lib/algorithms/coverage/hips_p2` | **DONE** | P2-HIPS(acsd.p2.hips_writer) 合同目录；生产源 stage2.cpp 现位于 algorithms/coverage |
 | 34 | `lib/core` | `lib/infrastructure/scheduler` | **DONE** | 7.1 infrastructure/scheduler；目录内 pipeline/observability 拆分属架构性边界 -> INT-001 |
 | 35 | `lib/healpix_db` | `lib/infrastructure/aio/healpix_db` | **DONE** | healpix_io/archive/docs 余部；7.1 无独立 healpix 槽位，归 aio |
 | - | `lib/phase1_session` | （不迁移，删除） | **DEFERRED** | §7.3 禁止 Session 型模块；INT-001 卡步骤 1「删除旧 STATIC/Session/facade 编译路径」 |

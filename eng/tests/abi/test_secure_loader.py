@@ -9,10 +9,10 @@
   1. 当前目录/PATH DLL 劫持拒绝（相对路径入参即拒; 仅 manifest 绝对路径可加载）;
   2. symlink escape 拒绝（canonical 不一致 + allowed_root 越界均拒）;
   3. hash mismatch 拒绝（manifest sha256 与实际不符）;
-  4. 缺 symbol 拒绝（无 astrocs_module_query_v1 的 .so）;
+  4. 缺 symbol 拒绝（无 acsd_module_query_v1 的 .so）;
   5. wrong arch/ABI 拒绝（非 ELF / 32 位 / 非 x86-64 / host_abi 失配）;
   6. 日志不泄凭据（loader 无文件写入; 错误消息为静态字面量不含路径/sha; 测试断言）;
-  7. 正测: 加载真实 BLD-003 astrocs_noop.so, module_id/version/build/hash 校验一致;
+  7. 正测: 加载真实 BLD-003 acsd_noop.so, module_id/version/build/hash 校验一致;
      describe 往返 + release。
 
 本文件职责: 编译 fixture 与探针（gcc -shared 最小 .so; gcc 编译探针）、编排
@@ -56,18 +56,18 @@ def check(name, cond, detail=""):
 
 GOOD_C = r"""
 /* good module fixture: 仿 BLD-003 noop 的唯一导出入口 + describe */
-#include "astrocs/abi/module_api_v1.h"
+#include "acsd/abi/module_api_v1.h"
 #include <string.h>
-static const char kMid[] = "astrocs.test.good";
+static const char kMid[] = "acsd.test.good";
 static const char kVer[] = "0.0.0-" "test";
 static const char kBid[] = "ABI-003-fixture-good";
-static acs_str_v1 sv(const char* s){acs_str_v1 v;v.head.struct_size=(uint32_t)sizeof(acs_str_v1);
+static acsd_str_v1 sv(const char* s){acsd_str_v1 v;v.head.struct_size=(uint32_t)sizeof(acsd_str_v1);
   v.head.abi_version=ACS_ABI_VERSION_V1;v.data=s;v.size=(uint64_t)strlen(s);return v;}
-static acs_status gd_describe(const acs_module_api_v1* self, acs_str_v1 mid,
-                              acs_module_descriptor_v1* out){
+static acsd_status gd_describe(const acsd_module_api_v1* self, acsd_str_v1 mid,
+                              acsd_module_descriptor_v1* out){
   (void)self; if(!out) return ACS_ERR_PARAM;
   memset(out,0,sizeof(*out));
-  out->head.struct_size=(uint32_t)sizeof(acs_module_descriptor_v1);
+  out->head.struct_size=(uint32_t)sizeof(acsd_module_descriptor_v1);
   out->head.abi_version=ACS_ABI_VERSION_V1;
   out->module_id=sv(kMid); out->version=sv(kVer); out->build_id=sv(kBid);
   out->sci_id=sv("SCI-NONE"); out->alg_id=sv("ALG-NONE"); out->api_id=sv("API-ABI-001");
@@ -77,28 +77,28 @@ static acs_status gd_describe(const acs_module_api_v1* self, acs_str_v1 mid,
   }
   return ACS_OK;
 }
-static acs_status gd_validate(const acs_module_api_v1* self, acs_str_v1 cfg,
-                              acs_error_info_v1* e){(void)self;(void)cfg;if(e){e->status=ACS_ERR_UNSUPPORTED;e->domain=ACS_ERR_DOMAIN_CONFIG;}return ACS_ERR_UNSUPPORTED;}
-static acs_status gd_plan(const acs_module_api_v1* self, acs_str_v1 n, acs_str_v1 cfg,
-                          acs_strbuf_v1* o, acs_error_info_v1* e){(void)self;(void)n;(void)cfg;(void)o;if(e){e->status=ACS_ERR_UNSUPPORTED;e->domain=ACS_ERR_DOMAIN_CONFIG;}return ACS_ERR_UNSUPPORTED;}
-static acs_status gd_create(const acs_module_api_v1* self, acs_str_v1 cfg,
-                            const acs_host_api_v1* h, acs_module_instance_v1** o,
-                            acs_error_info_v1* e){(void)self;(void)cfg;(void)h;if(o)*o=NULL;if(e){e->status=ACS_ERR_UNSUPPORTED;e->domain=ACS_ERR_DOMAIN_CONFIG;}return ACS_ERR_UNSUPPORTED;}
-static acs_status gd_exec(acs_module_instance_v1* i, acs_str_v1 a, acs_str_v1 b,
-                          acs_strbuf_v1* o, acs_error_info_v1* e){(void)i;(void)a;(void)b;(void)o;if(e){e->status=ACS_ERR_UNSUPPORTED;e->domain=ACS_ERR_DOMAIN_CONFIG;}return ACS_ERR_UNSUPPORTED;}
-static acs_status gd_inspect(const acs_module_instance_v1* i, acs_strbuf_v1* o,
-                             acs_error_info_v1* e){(void)i;(void)o;if(e){e->status=ACS_ERR_UNSUPPORTED;e->domain=ACS_ERR_DOMAIN_INTERNAL;}return ACS_ERR_UNSUPPORTED;}
-static acs_status gd_cancel(acs_module_instance_v1* i){(void)i;return ACS_OK;}
-static void gd_destroy(acs_module_instance_v1* i){(void)i;}
-static const acs_module_api_v1 g_api = {
-  {(uint32_t)sizeof(acs_module_api_v1), ACS_ABI_VERSION_V1},
+static acsd_status gd_validate(const acsd_module_api_v1* self, acsd_str_v1 cfg,
+                              acsd_error_info_v1* e){(void)self;(void)cfg;if(e){e->status=ACS_ERR_UNSUPPORTED;e->domain=ACS_ERR_DOMAIN_CONFIG;}return ACS_ERR_UNSUPPORTED;}
+static acsd_status gd_plan(const acsd_module_api_v1* self, acsd_str_v1 n, acsd_str_v1 cfg,
+                          acsd_strbuf_v1* o, acsd_error_info_v1* e){(void)self;(void)n;(void)cfg;(void)o;if(e){e->status=ACS_ERR_UNSUPPORTED;e->domain=ACS_ERR_DOMAIN_CONFIG;}return ACS_ERR_UNSUPPORTED;}
+static acsd_status gd_create(const acsd_module_api_v1* self, acsd_str_v1 cfg,
+                            const acsd_host_api_v1* h, acsd_module_instance_v1** o,
+                            acsd_error_info_v1* e){(void)self;(void)cfg;(void)h;if(o)*o=NULL;if(e){e->status=ACS_ERR_UNSUPPORTED;e->domain=ACS_ERR_DOMAIN_CONFIG;}return ACS_ERR_UNSUPPORTED;}
+static acsd_status gd_exec(acsd_module_instance_v1* i, acsd_str_v1 a, acsd_str_v1 b,
+                          acsd_strbuf_v1* o, acsd_error_info_v1* e){(void)i;(void)a;(void)b;(void)o;if(e){e->status=ACS_ERR_UNSUPPORTED;e->domain=ACS_ERR_DOMAIN_CONFIG;}return ACS_ERR_UNSUPPORTED;}
+static acsd_status gd_inspect(const acsd_module_instance_v1* i, acsd_strbuf_v1* o,
+                             acsd_error_info_v1* e){(void)i;(void)o;if(e){e->status=ACS_ERR_UNSUPPORTED;e->domain=ACS_ERR_DOMAIN_INTERNAL;}return ACS_ERR_UNSUPPORTED;}
+static acsd_status gd_cancel(acsd_module_instance_v1* i){(void)i;return ACS_OK;}
+static void gd_destroy(acsd_module_instance_v1* i){(void)i;}
+static const acsd_module_api_v1 g_api = {
+  {(uint32_t)sizeof(acsd_module_api_v1), ACS_ABI_VERSION_V1},
   gd_describe, gd_validate, gd_plan, gd_create, gd_exec, gd_inspect, gd_cancel, gd_destroy};
-#if defined(ASTROCS_ABI_SHARED) && !defined(ASTROCS_ABI_EXPORTS)
-#define ASTROCS_ABI_EXPORTS 1
+#if defined(ACSD_ABI_SHARED) && !defined(ACSD_ABI_EXPORTS)
+#define ACSD_ABI_EXPORTS 1
 #endif
-ASTROCS_EXPORT acs_status ASTROCS_CALL
-astrocs_module_query_v1(uint32_t host_abi, const acs_host_api_v1* host,
-                        const acs_module_api_v1** out){
+ACSD_EXPORT acsd_status ACSD_CALL
+acsd_module_query_v1(uint32_t host_abi, const acsd_host_api_v1* host,
+                        const acsd_module_api_v1** out){
   if(host_abi!=ACS_ABI_VERSION_V1) return ACS_ERR_ABI_MISMATCH;
   if(!host||!host->allocator) return ACS_ERR_ABI_MISMATCH;
   if(!out) return ACS_ERR_PARAM;
@@ -107,21 +107,21 @@ astrocs_module_query_v1(uint32_t host_abi, const acs_host_api_v1* host,
 """
 
 MISSING_SYMBOL_C = r"""
-/* 缺 astrocs_module_query_v1 导出的 .so（wrong symbol 场景） */
-int acs_unrelated_export(void){ return 42; }
+/* 缺 acsd_module_query_v1 导出的 .so（wrong symbol 场景） */
+int acsd_unrelated_export(void){ return 42; }
 """
 
 WRONG_HOST_ABI_C = r"""
 /* query 硬拒 host_abi != 99（wrong ABI 场景）: 恒返回 ABI_MISMATCH */
-#include "astrocs/abi/module_api_v1.h"
-static const acs_module_api_v1 g_api = {
-  {(uint32_t)sizeof(acs_module_api_v1), ACS_ABI_VERSION_V1}, 0,0,0,0,0,0,0,0};
-#if defined(ASTROCS_ABI_SHARED) && !defined(ASTROCS_ABI_EXPORTS)
-#define ASTROCS_ABI_EXPORTS 1
+#include "acsd/abi/module_api_v1.h"
+static const acsd_module_api_v1 g_api = {
+  {(uint32_t)sizeof(acsd_module_api_v1), ACS_ABI_VERSION_V1}, 0,0,0,0,0,0,0,0};
+#if defined(ACSD_ABI_SHARED) && !defined(ACSD_ABI_EXPORTS)
+#define ACSD_ABI_EXPORTS 1
 #endif
-ASTROCS_EXPORT acs_status ASTROCS_CALL
-astrocs_module_query_v1(uint32_t host_abi, const acs_host_api_v1* host,
-                        const acs_module_api_v1** out){
+ACSD_EXPORT acsd_status ACSD_CALL
+acsd_module_query_v1(uint32_t host_abi, const acsd_host_api_v1* host,
+                        const acsd_module_api_v1** out){
   (void)host; if(out) *out=NULL;
   if(host_abi != 99) return ACS_ERR_ABI_MISMATCH;
   *out=&g_api; return ACS_OK;
@@ -130,30 +130,30 @@ astrocs_module_query_v1(uint32_t host_abi, const acs_host_api_v1* host,
 
 WRONG_MODULE_ID_C = r"""
 /* describe 返回与 manifest 不符的 module_id（三方一致拒绝） */
-#include "astrocs/abi/module_api_v1.h"
+#include "acsd/abi/module_api_v1.h"
 #include <string.h>
-static const char kMid[] = "astrocs.test.wrong";
-static acs_str_v1 sv(const char* s){acs_str_v1 v;v.head.struct_size=(uint32_t)sizeof(acs_str_v1);
+static const char kMid[] = "acsd.test.wrong";
+static acsd_str_v1 sv(const char* s){acsd_str_v1 v;v.head.struct_size=(uint32_t)sizeof(acsd_str_v1);
   v.head.abi_version=ACS_ABI_VERSION_V1;v.data=s;v.size=(uint64_t)strlen(s);return v;}
-static acs_status wd_describe(const acs_module_api_v1* self, acs_str_v1 mid,
-                              acs_module_descriptor_v1* out){
+static acsd_status wd_describe(const acsd_module_api_v1* self, acsd_str_v1 mid,
+                              acsd_module_descriptor_v1* out){
   (void)self;(void)mid; if(!out) return ACS_ERR_PARAM;
   memset(out,0,sizeof(*out));
-  out->head.struct_size=(uint32_t)sizeof(acs_module_descriptor_v1);
+  out->head.struct_size=(uint32_t)sizeof(acsd_module_descriptor_v1);
   out->head.abi_version=ACS_ABI_VERSION_V1;
   out->module_id=sv(kMid); out->version=sv("0.0.0-" "test"); out->build_id=sv("ABI-003-fixture-wrong");
   out->api_id=sv("API-ABI-001");
   return ACS_OK;
 }
-static const acs_module_api_v1 g_api = {
-  {(uint32_t)sizeof(acs_module_api_v1), ACS_ABI_VERSION_V1},
+static const acsd_module_api_v1 g_api = {
+  {(uint32_t)sizeof(acsd_module_api_v1), ACS_ABI_VERSION_V1},
   wd_describe, 0,0,0,0,0,0,0};
-#if defined(ASTROCS_ABI_SHARED) && !defined(ASTROCS_ABI_EXPORTS)
-#define ASTROCS_ABI_EXPORTS 1
+#if defined(ACSD_ABI_SHARED) && !defined(ACSD_ABI_EXPORTS)
+#define ACSD_ABI_EXPORTS 1
 #endif
-ASTROCS_EXPORT acs_status ASTROCS_CALL
-astrocs_module_query_v1(uint32_t host_abi, const acs_host_api_v1* host,
-                        const acs_module_api_v1** out){
+ACSD_EXPORT acsd_status ACSD_CALL
+acsd_module_query_v1(uint32_t host_abi, const acsd_host_api_v1* host,
+                        const acsd_module_api_v1** out){
   if(host_abi!=ACS_ABI_VERSION_V1) return ACS_ERR_ABI_MISMATCH;
   if(!host||!host->allocator) return ACS_ERR_ABI_MISMATCH;
   if(!out) return ACS_ERR_PARAM;
@@ -163,30 +163,30 @@ astrocs_module_query_v1(uint32_t host_abi, const acs_host_api_v1* host,
 
 WRONG_BUILD_ID_C = r"""
 /* describe 返回与 manifest 期望不符的 build_id */
-#include "astrocs/abi/module_api_v1.h"
+#include "acsd/abi/module_api_v1.h"
 #include <string.h>
-static const char kMid[] = "astrocs.test.good";
-static acs_str_v1 sv(const char* s){acs_str_v1 v;v.head.struct_size=(uint32_t)sizeof(acs_str_v1);
+static const char kMid[] = "acsd.test.good";
+static acsd_str_v1 sv(const char* s){acsd_str_v1 v;v.head.struct_size=(uint32_t)sizeof(acsd_str_v1);
   v.head.abi_version=ACS_ABI_VERSION_V1;v.data=s;v.size=(uint64_t)strlen(s);return v;}
-static acs_status bd_describe(const acs_module_api_v1* self, acs_str_v1 mid,
-                              acs_module_descriptor_v1* out){
+static acsd_status bd_describe(const acsd_module_api_v1* self, acsd_str_v1 mid,
+                              acsd_module_descriptor_v1* out){
   (void)self;(void)mid; if(!out) return ACS_ERR_PARAM;
   memset(out,0,sizeof(*out));
-  out->head.struct_size=(uint32_t)sizeof(acs_module_descriptor_v1);
+  out->head.struct_size=(uint32_t)sizeof(acsd_module_descriptor_v1);
   out->head.abi_version=ACS_ABI_VERSION_V1;
   out->module_id=sv(kMid); out->version=sv("0.0.0-" "test"); out->build_id=sv("WRONG-BUILD");
   out->api_id=sv("API-ABI-001");
   return ACS_OK;
 }
-static const acs_module_api_v1 g_api = {
-  {(uint32_t)sizeof(acs_module_api_v1), ACS_ABI_VERSION_V1},
+static const acsd_module_api_v1 g_api = {
+  {(uint32_t)sizeof(acsd_module_api_v1), ACS_ABI_VERSION_V1},
   bd_describe, 0,0,0,0,0,0,0};
-#if defined(ASTROCS_ABI_SHARED) && !defined(ASTROCS_ABI_EXPORTS)
-#define ASTROCS_ABI_EXPORTS 1
+#if defined(ACSD_ABI_SHARED) && !defined(ACSD_ABI_EXPORTS)
+#define ACSD_ABI_EXPORTS 1
 #endif
-ASTROCS_EXPORT acs_status ASTROCS_CALL
-astrocs_module_query_v1(uint32_t host_abi, const acs_host_api_v1* host,
-                        const acs_module_api_v1** out){
+ACSD_EXPORT acsd_status ACSD_CALL
+acsd_module_query_v1(uint32_t host_abi, const acsd_host_api_v1* host,
+                        const acsd_module_api_v1** out){
   if(host_abi!=ACS_ABI_VERSION_V1) return ACS_ERR_ABI_MISMATCH;
   if(!host||!host->allocator) return ACS_ERR_ABI_MISMATCH;
   if(!out) return ACS_ERR_PARAM;
@@ -204,10 +204,10 @@ def sha256_file(path):
 
 
 def compile_so(src, out, extra_defs=()):
-    """编译 fixture .so（只导出入口符号; 定义 ASTROCS_ABI_SHARED 使 ASTROCS_EXPORT
+    """编译 fixture .so（只导出入口符号; 定义 ACSD_ABI_SHARED 使 ACSD_EXPORT
     在 Linux 展开 visibility(default)）"""
     cmd = [CC, "-std=c11", "-Wall", "-fPIC", "-shared",
-           f"-I{INC}", "-DASTROCS_ABI_SHARED=1", "-DASTROCS_ABI_EXPORTS=1"]
+           f"-I{INC}", "-DACSD_ABI_SHARED=1", "-DACSD_ABI_EXPORTS=1"]
     for d in extra_defs:
         cmd.append(f"-D{d}")
     cmd += [src, "-o", out]
@@ -287,7 +287,7 @@ def main():
         shutil.copy(good_so, os.path.join(cwd_dir, "good.so"))
 
         # ── 正测 1: 绝对 canonical manifest 路径 + 正确 sha/module_id/build → LOAD_OK ──
-        r = run([probe, "load", "module", good_so, "astrocs.test.good", good_sha,
+        r = run([probe, "load", "module", good_so, "acsd.test.good", good_sha,
                  "ABI-003-fixture-good", os.path.dirname(good_so), "1"])
         check("P1 load good absolute+hash+mid+build",
               r.returncode == 0 and "LOAD_OK" in r.stdout and "RELEASE_OK" in r.stdout,
@@ -297,18 +297,18 @@ def main():
               re.search(r"sha=([0-9a-f]{64})", r.stdout).group(1) == good_sha,
               r.stdout)
         check("P1 loaded module_id",
-              "module_id=astrocs.test.good" in r.stdout, r.stdout)
+              "module_id=acsd.test.good" in r.stdout, r.stdout)
         check("P1 describe roundtrip",
               "DESCRIBE_OK" in r.stdout, r.stdout)
 
         # ── 正测 2: 期望 sha 为空(manifest SKELETON 未登记)也允许加载已登记 ID ──
-        r = run([probe, "load", "module", good_so, "astrocs.test.good", "-",
+        r = run([probe, "load", "module", good_so, "acsd.test.good", "-",
                  "ABI-003-fixture-good", "-", "1"])
         check("P2 load without sha (manifest skeleton)",
               r.returncode == 0 and "LOAD_OK" in r.stdout, r.stdout + r.stderr)
 
         # ── 负测 N1: 当前目录/PATH 劫持 —— 相对路径入参拒 ──
-        r = run([probe, "load", "module", "good.so", "astrocs.test.good", good_sha,
+        r = run([probe, "load", "module", "good.so", "acsd.test.good", good_sha,
                  "ABI-003-fixture-good", os.path.dirname(good_so), "1"], cwd=cwd_dir)
         check("N1 relative path (cwd hijack) rejected",
               "LOAD_FAIL" in r.stdout and "detail=2" in r.stdout,
@@ -320,35 +320,35 @@ def main():
         # 翻转 .so 中部一个字节(避开 ELF 头)
         data[len(data) // 2] ^= 0x01
         open(tampered, "wb").write(bytes(data))
-        r = run([probe, "load", "module", tampered, "astrocs.test.good", good_sha,
+        r = run([probe, "load", "module", tampered, "acsd.test.good", good_sha,
                  "ABI-003-fixture-good", os.path.dirname(tampered), "1"])
         check("N2 tampered file hash mismatch rejected",
               "LOAD_FAIL" in r.stdout and "detail=5" in r.stdout,
               r.stdout + r.stderr)
 
         # ── 负测 N3: 缺必需 symbol 拒 ──
-        r = run([probe, "load", "module", miss_so, "astrocs.test.good", "-",
+        r = run([probe, "load", "module", miss_so, "acsd.test.good", "-",
                  "-", os.path.dirname(miss_so), "1"])
         check("N3 missing entry symbol rejected",
               "LOAD_FAIL" in r.stdout and "detail=11" in r.stdout,
               r.stdout + r.stderr)
 
         # ── 负测 N4: wrong host ABI(握手拒; query 恒 ABI_MISMATCH) ──
-        r = run([probe, "load", "module", wabi_so, "astrocs.test.good", "-",
+        r = run([probe, "load", "module", wabi_so, "acsd.test.good", "-",
                  "-", os.path.dirname(wabi_so), "1"])
         check("N4 host ABI handshake rejected",
               "LOAD_FAIL" in r.stdout and "detail=12" in r.stdout,
               r.stdout + r.stderr)
 
         # ── 负测 N5: manifest module_id 与 describe 不符拒 ──
-        r = run([probe, "load", "module", wmid_so, "astrocs.test.expected", "-",
+        r = run([probe, "load", "module", wmid_so, "acsd.test.expected", "-",
                  "-", os.path.dirname(wmid_so), "1"])
         check("N5 module_id mismatch rejected",
               "LOAD_FAIL" in r.stdout and "detail=15" in r.stdout,
               r.stdout + r.stderr)
 
         # ── 负测 N6: manifest build_id 与 describe 不符拒 ──
-        r = run([probe, "load", "module", wbid_so, "astrocs.test.good", "-",
+        r = run([probe, "load", "module", wbid_so, "acsd.test.good", "-",
                  "ABI-003-fixture-good", os.path.dirname(wbid_so), "1"])
         check("N6 build_id mismatch rejected",
               "LOAD_FAIL" in r.stdout and "detail=16" in r.stdout,
@@ -360,7 +360,7 @@ def main():
         os.makedirs(linkdir)
         linkpath = os.path.join(linkdir, "good_link.so")
         os.symlink(good_so, linkpath)
-        r = run([probe, "load", "module", linkpath, "astrocs.test.good", good_sha,
+        r = run([probe, "load", "module", linkpath, "acsd.test.good", good_sha,
                  "ABI-003-fixture-good", os.path.dirname(good_so), "1"])
         check("N7a symlink path rejected (not canonical)",
               "LOAD_FAIL" in r.stdout and "detail=3" in r.stdout,
@@ -373,7 +373,7 @@ def main():
         # allowed_root 为 work 下另一授权目录(不含 outside/) → 文件越界
         allowed_root = os.path.join(work, "allowed_root")
         os.makedirs(allowed_root)
-        r = run([probe, "load", "module", outside_so, "astrocs.test.good", good_sha,
+        r = run([probe, "load", "module", outside_so, "acsd.test.good", good_sha,
                  "ABI-003-fixture-good", allowed_root, "1"])
         check("N7b file outside allowed_root rejected (escape)",
               "LOAD_FAIL" in r.stdout and "detail=4" in r.stdout,
@@ -417,7 +417,7 @@ def main():
               r.stdout + r.stderr)
 
         # ── 负测 N9: wrong abi_version 期望(manifest 期望 ABI=99) ──
-        r = run([probe, "load", "module", good_so, "astrocs.test.good", good_sha,
+        r = run([probe, "load", "module", good_so, "acsd.test.good", good_sha,
                  "ABI-003-fixture-good", os.path.dirname(good_so), "99"])
         check("N9 manifest abi_version 99 rejected",
               "LOAD_FAIL" in r.stdout and "detail=14" in r.stdout,
@@ -451,7 +451,7 @@ def main():
               f"write_fopen={write_fopen} bad_open={bad_open}")
 
         # ── 回归: 无凭证/路径泄漏在 stdout/stderr(探针打印仅测试侧) ──
-        r = run([probe, "load", "module", tampered, "astrocs.test.good", good_sha,
+        r = run([probe, "load", "module", tampered, "acsd.test.good", good_sha,
                  "-", os.path.dirname(tampered), "1"])
         check("L3 reject output free of path+sha",
               "LOAD_FAIL" in r.stdout and
@@ -461,23 +461,23 @@ def main():
         # ── 正测 P3: 加载 BLD-003 真实 noop 模块(独立 gcc 编译, 不依赖仓库先 build) ──
         noop_src = os.path.join(REPO, "eng", "tests", "conformance", "noop", "src",
                                 "noop_module.c")
-        noop_so = os.path.join(work, "astrocs_noop.so")
+        noop_so = os.path.join(work, "acsd_noop.so")
         r = compile_so(noop_src, noop_so)
         check("P3 compile noop real module", r.returncode == 0,
               r.stderr[-300:] if r.stderr else "")
         if r.returncode == 0:
             noop_sha = sha256_file(noop_so)
-            # module.yaml 权威: module_id=astrocs.conformance.noop / version=根 VERSION 单源
-            # noop_module.c describe: module_id=astrocs.conformance.noop build_id=BLD-003-skeleton
+            # module.yaml 权威: module_id=acsd.conformance.noop / version=根 VERSION 单源
+            # noop_module.c describe: module_id=acsd.conformance.noop build_id=BLD-003-skeleton
             r = run([probe, "load", "module", noop_so,
-                     "astrocs.conformance.noop", noop_sha,
+                     "acsd.conformance.noop", noop_sha,
                      "BLD-003-skeleton", os.path.dirname(noop_so), "1"])
             check("P3 loader loads noop.so with manifest hash+mid+build",
                   r.returncode == 0 and "LOAD_OK" in r.stdout and
                   "RELEASE_OK" in r.stdout and "DESCRIBE_OK" in r.stdout,
                   r.stdout + r.stderr)
             check("P3 noop module_id matches module.yaml",
-                  "module_id=astrocs.conformance.noop" in r.stdout, r.stdout)
+                  "module_id=acsd.conformance.noop" in r.stdout, r.stdout)
             check("P3 noop build matches BLD-003-skeleton",
                   "build=BLD-003-skeleton" in r.stdout, r.stdout)
             check("P3 noop loaded sha matches computed",
@@ -486,7 +486,7 @@ def main():
                   r.stdout)
             # noop 真实模块 + manifest 期望 sha 错误 → 拒
             r = run([probe, "load", "module", noop_so,
-                     "astrocs.conformance.noop", "0" * 64,
+                     "acsd.conformance.noop", "0" * 64,
                      "BLD-003-skeleton", os.path.dirname(noop_so), "1"])
             check("P3b noop wrong manifest hash rejected",
                   "LOAD_FAIL" in r.stdout and "detail=5" in r.stdout,

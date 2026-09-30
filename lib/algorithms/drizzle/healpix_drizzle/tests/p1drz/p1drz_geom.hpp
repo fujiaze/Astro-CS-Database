@@ -11,7 +11,7 @@
 //     生产为 Van Oosterom 扇形三角剖分 (spherical_overlap.cpp);
 //   - 重叠面积: 公共切平面 gnomonic 投影 + 平面 Sutherland–Hodgman +
 //     shoelace (θ≲2e-3 rad 时相对误差 ~ρ²/2 ≈ 2e-6, 容差 1e-3 内);
-//   - leaf 地址: astrocs::healpix 权威 NESTED 核心 (单权威, 头部声明
+//   - leaf 地址: acsd::healpix 权威 NESTED 核心 (单权威, 头部声明
 //     astropy-healpix 外部 oracle 交叉验证 mismatch=0; 与
 //     oracle_independent_test 的 radec2pix 用法同规)。
 #ifndef P1DRZ_GEOM_HPP
@@ -256,7 +256,7 @@ inline std::set<std::uint64_t> geom_pixel_leaves(const drizzle::WcsParams& wcs,
             const double sy = py - h + (2.0 * h) * (j + 0.5) / k;
             double ra, dec;
             geom_pixel_to_sky(wcs, sx, sy, ra, dec);
-            out.insert(astrocs::healpix::ang2pix_nest(nside, ra, dec));
+            out.insert(acsd::healpix::ang2pix_nest(nside, ra, dec));
         }
     return out;
 }

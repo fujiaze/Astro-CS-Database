@@ -1,7 +1,7 @@
-/* ACSD 唯一 AIO C ABI v1 — lib/include/astrocs/io/aio_abi_v1.h (AIO-001)
+/* ACSD 唯一 AIO C ABI v1 — lib/include/acsd/io/aio_abi_v1.h (AIO-001)
  *
  * 角色: AIO (Astro Image IO) 域唯一版本化 C ABI 合同头。AIO-001 冻结。
- * 任务: AIO-001 (ASTROCS-CONSTITUTION-ALIGNMENT-V1) "建立唯一AIO C ABI与内容哈希复核"。
+ * 任务: AIO-001 (ACSD-CONSTITUTION-ALIGNMENT-V1) "建立唯一AIO C ABI与内容哈希复核"。
  * 合同登记: eng/contracts/data/aio_abi_contract_v1.json (唯一事实源)。
  *
  * 宪章锚 (ASTROCS-CONSTITUTION-001):
@@ -13,16 +13,16 @@
  *     明确; 失败返回稳定状态码。
  *
  * 对齐矩阵 (数值冻结; v1 不可变, 扩展须升版本):
- *   - 0..7  与 lib/include/astrocs/common_abi_v1.h acs_status 共同子域数值一致。
- *   - 0..13 与 lib/infrastructure/aio/io/.../fits_stream_v1.h acs_fio_status 全域一致
+ *   - 0..7  与 lib/include/acsd/common_abi_v1.h acsd_status 共同子域数值一致。
+ *   - 0..13 与 lib/infrastructure/aio/io/.../fits_stream_v1.h acsd_fio_status 全域一致
  *     (IO 家族同域; _Static_assert 编译期对齐证明)。
  *   - 14/15 为 AIO 内容哈希复核专属扩展码。
  *
  * 纯 C11 可编译 (extern "C" 兼容 C++17); 禁 STL/异常/RTTI; 无第三方类型。
  * 并发合同逐函数标注; 文本公共格式 UTF-8。
  */
-#ifndef ASTROCS_IO_AIO_ABI_V1_H
-#define ASTROCS_IO_AIO_ABI_V1_H
+#ifndef ACSD_IO_AIO_ABI_V1_H
+#define ACSD_IO_AIO_ABI_V1_H
 
 #include <stddef.h>
 #include <stdint.h>
@@ -61,7 +61,7 @@ typedef enum aio_status {
     /* AIO 专属扩展 (14+) */
     AIO_ERR_DECL_INVALID = 14,  /* 声明 digest 非 sha256/64hex 或 size 非法 */
     AIO_ERR_HASH_MISMATCH = 15, /* 重算 sha256 与声明不一致 (篡改/损坏) */
-    AIO_ERR_INTERNAL = 70,      /* 未分类内部错误 (同 acs_status INTERNAL=70 语义) */
+    AIO_ERR_INTERNAL = 70,      /* 未分类内部错误 (同 acsd_status INTERNAL=70 语义) */
     AIO_STATUS_COUNT = 71       /* 哨兵: 等于该值及以外均非法 (0..15 与 70 有效) */
 } aio_status;
 
@@ -120,7 +120,7 @@ int aio_content_hash_verify_buffer_v1(const void* data, uint64_t len,
 
 /* 复核磁盘文件: 分块流式重算 (不整体载入) sha256, 与声明比对;
  * expected_size 非 0 时同时核对文件字节数 (DATA-001 manifest size 语义)。
- * path_utf8 为 UTF-8 路径 (与 IO-001 acs_fio_* 同语义; Windows 宽字符适配
+ * path_utf8 为 UTF-8 路径 (与 IO-001 acsd_fio_* 同语义; Windows 宽字符适配
  * 属上层)。declared_hex64 非法 -> AIO_ERR_DECL_INVALID;
  * 打开/读失败 -> AIO_ERR_IO; 字节数不符 -> AIO_ERR_TRUNCATED;
  * 摘要不符 -> AIO_ERR_HASH_MISMATCH。
@@ -137,13 +137,13 @@ int aio_content_hash_verify_file_v1(const char* path_utf8,
 
 /* ───────── 编译期对齐证明 (IO 家族数值域一致; AIO-001) ─────────
  * C11 _Static_assert / C++11 static_assert 双侧成立。
- * 0..13 必须与 acs_fio_status 全域逐值一致; 0..7 同时与 acs_status 一致。 */
+ * 0..13 必须与 acsd_fio_status 全域逐值一致; 0..7 同时与 acsd_status 一致。 */
 #if defined(__cplusplus)
 static_assert(AIO_OK == 0 && AIO_ERR_PARAM == 1 && AIO_ERR_ABI_MISMATCH == 2 &&
                   AIO_ERR_NOMEM == 3 && AIO_ERR_IO == 4 &&
                   AIO_ERR_UNSUPPORTED == 5 && AIO_ERR_CANCELLED == 6 &&
                   AIO_ERR_STATE == 7 && AIO_ERR_TRUNCATED == 8,
-              "AIO-001: aio_status 0..8 必须与 acs_status/acs_fio_status 数值一致");
+              "AIO-001: aio_status 0..8 必须与 acsd_status/acsd_fio_status 数值一致");
 static_assert(AIO_ERR_BAD_HEADER == 9 && AIO_ERR_MISMATCH == 10 &&
                   AIO_ERR_CHECKSUM == 11 && AIO_ERR_NANINF == 12 &&
                   AIO_ERR_DISKFULL == 13 && AIO_ERR_DECL_INVALID == 14 &&
@@ -155,7 +155,7 @@ _Static_assert(AIO_OK == 0 && AIO_ERR_PARAM == 1 && AIO_ERR_ABI_MISMATCH == 2 &&
                    AIO_ERR_NOMEM == 3 && AIO_ERR_IO == 4 &&
                    AIO_ERR_UNSUPPORTED == 5 && AIO_ERR_CANCELLED == 6 &&
                    AIO_ERR_STATE == 7 && AIO_ERR_TRUNCATED == 8,
-               "AIO-001: aio_status 0..8 必须与 acs_status/acs_fio_status 数值一致");
+               "AIO-001: aio_status 0..8 必须与 acsd_status/acsd_fio_status 数值一致");
 _Static_assert(AIO_ERR_BAD_HEADER == 9 && AIO_ERR_MISMATCH == 10 &&
                    AIO_ERR_CHECKSUM == 11 && AIO_ERR_NANINF == 12 &&
                    AIO_ERR_DISKFULL == 13 && AIO_ERR_DECL_INVALID == 14 &&
@@ -164,4 +164,4 @@ _Static_assert(AIO_ERR_BAD_HEADER == 9 && AIO_ERR_MISMATCH == 10 &&
                "AIO-001: aio_status 9..15/70/71 数值冻结");
 #endif
 
-#endif /* ASTROCS_IO_AIO_ABI_V1_H */
+#endif /* ACSD_IO_AIO_ABI_V1_H */

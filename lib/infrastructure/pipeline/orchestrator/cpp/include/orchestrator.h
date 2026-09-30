@@ -11,7 +11,7 @@
 //             的 C4 对「ctest_targets 模式匹配不到现存目标」fail-closed；eng/ci/checks.json 属
 //             DOC-403 文件域，本任务（CLEAN-401）无权同步，故本轮不能删。
 // STATUS:     未接入生产。产品可执行 acsd 的 target_link_libraries（根 CMakeLists.txt:834-842）
-//             不含 astrocs_infra_orchestrator；orchestrator_legacy_cli 为非发布目标
+//             不含 acsd_infra_orchestrator；orchestrator_legacy_cli 为非发布目标
 //             （docs/architecture/PRODUCTION_EXECUTION_INVENTORY.csv:93-95 记 production=no）。
 //             本目录职责已由 lib/infrastructure/scheduler/** 生产实现承接：注册=module 注册表、
 //             资源预算=executor/plan_estimator、执行=Runtime/Executor、取消=取消令牌、
@@ -22,7 +22,7 @@
 //                的对应 step；
 //             ③ 同步移除 CMakeLists.txt:347-359 与 :952-954 两处 add_subdirectory，
 //                并更新 docs/detail/orchestrator.md、eng/ci/id_migration_map.json 登记项。
-// AUTHORITY:  ENGINEERING_SPEC.md §2（历史实现处置：保留则注释）；docs/ASTROCS_DESIGN.md §8.1/§8.2
+// AUTHORITY:  ENGINEERING_SPEC.md §2（历史实现处置：保留则注释）；docs/ACSD_DESIGN.md §8.1/§8.2
 //             （生产链路由 scheduler 注册与编排、pipeline 提供 typed DAG 与命名块）；
 //             lib/infrastructure/pipeline/PENDING.md:10（orchestrator/ 属 §7.1 退役计划内）；
 //             docs/detail/orchestrator.md §归属与构建（ORCH-001 落位 / ORCH-HOME-01）。
@@ -168,27 +168,27 @@ namespace AstroCsExitCode {
     // 字符串错误码 (供 JSONL error.code 字段使用, 稳定契约)
     inline const char* error_code_string(int code) {
         switch (code) {
-            case SUCCESS:               return "ASTROCS_SUCCESS";
-            case GENERIC_ERROR:         return "ASTROCS_INTERNAL";
-            case DLL_LOAD_FAILED:       return "ASTROCS_MODULE_MISSING";
-            case BLOCK_MISSING:         return "ASTROCS_BLOCK_MISSING";
-            case CALIBRATE_FAILED:      return "ASTROCS_CALIBRATION_MISSING";
-            case PLATESOLVE_FAILED:     return "ASTROCS_PLATESOLVE_FAILED";
-            case DRIZZLE_FAILED:        return "ASTROCS_DRIZZLE_FAILED";
-            case CONFIG_ERROR:          return "ASTROCS_CONFIG_INVALID";
-            case FILE_IO_ERROR:         return "ASTROCS_FILE_IO_ERROR";
-            case TIMEOUT:               return "ASTROCS_TIMEOUT";
-            case CANCELLED:             return "ASTROCS_CANCELLED";
-            case STAR_DETECT_FAILED:    return "ASTROCS_STAR_DETECT_FAILED";
-            case PSF_FAILED:            return "ASTROCS_PSF_FAILED";
-            case PHOTOMETRIC_FAILED:    return "ASTROCS_PHOTOMETRIC_FAILED";
-            case SNR_FAILED:            return "ASTROCS_SNR_FAILED";
-            case STACK_FAILED:          return "ASTROCS_STACK_FAILED";
-            case HISS_INVALID:          return "ASTROCS_HISS_INVALID";
-            case HCSD_INVALID:          return "ASTROCS_HCSD_INVALID";
-            case MODULE_ABI_UNSUPPORTED: return "ASTROCS_MODULE_ABI_UNSUPPORTED";
-            case INPUT_INVALID:         return "ASTROCS_INPUT_INVALID";
-            default:                    return "ASTROCS_INTERNAL";
+            case SUCCESS:               return "ACSD_SUCCESS";
+            case GENERIC_ERROR:         return "ACSD_INTERNAL";
+            case DLL_LOAD_FAILED:       return "ACSD_MODULE_MISSING";
+            case BLOCK_MISSING:         return "ACSD_BLOCK_MISSING";
+            case CALIBRATE_FAILED:      return "ACSD_CALIBRATION_MISSING";
+            case PLATESOLVE_FAILED:     return "ACSD_PLATESOLVE_FAILED";
+            case DRIZZLE_FAILED:        return "ACSD_DRIZZLE_FAILED";
+            case CONFIG_ERROR:          return "ACSD_CONFIG_INVALID";
+            case FILE_IO_ERROR:         return "ACSD_FILE_IO_ERROR";
+            case TIMEOUT:               return "ACSD_TIMEOUT";
+            case CANCELLED:             return "ACSD_CANCELLED";
+            case STAR_DETECT_FAILED:    return "ACSD_STAR_DETECT_FAILED";
+            case PSF_FAILED:            return "ACSD_PSF_FAILED";
+            case PHOTOMETRIC_FAILED:    return "ACSD_PHOTOMETRIC_FAILED";
+            case SNR_FAILED:            return "ACSD_SNR_FAILED";
+            case STACK_FAILED:          return "ACSD_STACK_FAILED";
+            case HISS_INVALID:          return "ACSD_HISS_INVALID";
+            case HCSD_INVALID:          return "ACSD_HCSD_INVALID";
+            case MODULE_ABI_UNSUPPORTED: return "ACSD_MODULE_ABI_UNSUPPORTED";
+            case INPUT_INVALID:         return "ACSD_INPUT_INVALID";
+            default:                    return "ACSD_INTERNAL";
         }
     }
 
@@ -380,13 +380,13 @@ public:
     // (SCI-FIX-PSF 第 1 项修复; 门 G-P1-CENTROID-1 = ctest p1psf_centroid_gate)。
     // 像素坐标连续值 < 0.5 时 to_unified 会产出负值, 属统一契约合法域 (0-based)。
     static double astro_coord_to_unified(double v) {
-        return astrocs::p1::coord::star_measurement_from_sdet(v);  // sdet 连续系 → 统一契约
+        return acsd::p1::coord::star_measurement_from_sdet(v);  // sdet 连续系 → 统一契约
     }
     static double astro_dpsf_center_to_unified(double v) {
-        return astrocs::p1::coord::star_measurement_from_dpsf(v);  // dpsf 中心(已同系) → 统一契约
+        return acsd::p1::coord::star_measurement_from_dpsf(v);  // dpsf 中心(已同系) → 统一契约
     }
     static double astro_coord_from_unified(double v) {
-        return astrocs::p1::coord::ipv_detection_from_star_measurement(v);  // 统一契约 → IPV 接口契约
+        return acsd::p1::coord::ipv_detection_from_star_measurement(v);  // 统一契约 → IPV 接口契约
     }
 
     // PLATESOLVE astrometric_detections 构造 (纯函数; public: 供共址单测直接
@@ -519,7 +519,7 @@ private:
     bool run_stage_hips_verify(TaskResult& result);
     // stage 9: BROWSER_VERIFY (Browser 后端双精度读取/查询验证)
     bool run_stage_browser_verify(TaskResult& result);
-    // legacy Stage2 handlers removed (Phase2 = astrocs-stage2)
+    // legacy Stage2 handlers removed (Phase2 = acsd-stage2)
 
     // 辅助方法
     static std::string stage_name(PipelineStage stage);

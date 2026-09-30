@@ -71,7 +71,7 @@
  "tool": "file_audit",
  "unscanned": [
   "VERSION",
-  "eng/cmake/astrocs.product.windows.json.in",
+  "eng/cmake/acsd.product.windows.json.in",
   "eng/packaging/config/runtime_resources_generated.h.in",
   "eng/packaging/windows/.vsconfig",
   "eng/tests/validation/release02/fix_p1_photometry_apply/oracle_build.log",

@@ -34,12 +34,12 @@ reps.append((
         }"""))
 reps.append((
 """      const WeightChainResult wres =
-          astrocs::v6::p2weight::compute_inverse_variance_weights(
+          acsd::v6::p2weight::compute_inverse_variance_weights(
               winputs, ref_flux_set ? ref_flux : 0.0);""",
-"""      astrocs::v6::p2weight::WeightChainPolicy wpolicy;
+"""      acsd::v6::p2weight::WeightChainPolicy wpolicy;
       wpolicy.require_frame_gain = require_gain;
       const WeightChainResult wres =
-          astrocs::v6::p2weight::compute_inverse_variance_weights(
+          acsd::v6::p2weight::compute_inverse_variance_weights(
               winputs, ref_flux_set ? ref_flux : 0.0, wpolicy);"""))
 for old, new in reps:
     n = s.count(old)

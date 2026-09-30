@@ -1,16 +1,16 @@
 # Drizzle Geometry Algorithms (P1-DRZ)
 
-> 上游：ASTROCS_DESIGN.md §5.2（固定科学流程）、§6.3（投影算法）
+> 上游：ACSD_DESIGN.md §5.2（固定科学流程）、§6.3（投影算法）
 
 > 本文档由源码逐函数核对后登记。实现唯一生产源 =
-> `lib/algorithms/drizzle/healpix_drizzle/`（CMake 目标 `astrocs_drizzle`，
+> `lib/algorithms/drizzle/healpix_drizzle/`（CMake 目标 `acsd_drizzle`，
 > 在根 `CMakeLists.txt` 中登记；C ABI 导出 `lib/algorithms/drizzle/healpix_drizzle/
 > hp_drizzle_api.h`）；迁移目标目录 `lib/algorithms/drizzle/`。科学定义见
 > `docs/science/DRIZZLE.md`（SCI-DRZ-001，FROZEN，集合 SCI-DRZ-001/014/015/016）。
 > 本文档只登记离散算法与实现事实；源码与 SCI 的差异全部登记于 §10（DISP-DRZ-*）。
-> **权威订正原则** = `docs/ASTROCS_DESIGN.md` §0（文档权威与索引）「科学正确性优先」：独立证据（外部标准 /
+> **权威订正原则** = `docs/ACSD_DESIGN.md` §0（文档权威与索引）「科学正确性优先」：独立证据（外部标准 /
 > 文献 / 可复跑实验）证明文档与事实不符时，**订正文档是义务**（SCI 层订正走变更流程并
-> 记录证据与影响面）；文档已被证明正确而实现不符时改实现。状态词唯一口径 = `ASTROCS_DESIGN.md` §12.5；IMPLEMENTED 只由验收签发。
+> 记录证据与影响面）；文档已被证明正确而实现不符时改实现。状态词唯一口径 = `ACSD_DESIGN.md` §12.5；IMPLEMENTED 只由验收签发。
 
 ## 0 范围界定
 
@@ -152,7 +152,7 @@
 - HEALPix 地址: 仅 NESTED；`parent = ipix >> 2·d`、
   `local = ipix & (4^d − 1)` 位分解（`lib/algorithms/drizzle/healpix_drizzle/drizzle_engine.cpp`）；候选枚举 Morton
   spread 位交织（`lib/algorithms/drizzle/healpix_drizzle/spherical_overlap.cpp`）；shim
-  `lib/algorithms/shared/healpix/healpix_core.h` 转发 astrocs::healpix::ang2pix_nest，RING 直接拒绝。
+  `lib/algorithms/shared/healpix/healpix_core.h` 转发 acsd::healpix::ang2pix_nest，RING 直接拒绝。
 
 ## 3 auto nside 决策（compute_auto_nside）
 
@@ -211,7 +211,7 @@
 | SNR 面非有限 | 计入 `rejected_nonfinite_value` 同族掩膜路径（SNR 面参与权重/有效性判定，剔除项逐条计数登记） | `lib/algorithms/drizzle/healpix_drizzle/drizzle_engine.cpp` |
 | 权重面非有限或 ≤0 | 计入 `rejected_nonpositive_weight`（原因 3）后剔除该样本（**必须计数**，禁静默） | 同上 |
 | variance 面非有限（NaN/Inf） | 计入 `rejected_nonfinite_variance`（原因 2）后剔除该样本（**必须计数**，禁静默） | 同上 |
-| **variance 面 = 0（方差不可用）** | **不是无效像素**：样本合格性只判 `isfinite(x_j)`（DATA-002 §2a）；variance=0 按 DATA_SEMANTICS §4a「无覆盖/无方差信息像素写 variance=0 且 ivar=0（显式不可用）」与 §20.1「ivar==0 = 合法零权重、variance==0 = 无信息」处理 ⇒ **只令方差项为 0，不丢信号、不丢几何支撑**。`V_j ≤ 0` 不构成掩膜授权（`ASTROCS_DESIGN.md` §5.5 只授权对 NaN 做样本级掩膜） | ``lib/algorithms/drizzle/healpix_drizzle/drizzle_engine.cpp`` V≤0 分支（置 0 不 continue）；证据见 实验/absolute-snr/（方差语义面）|
+| **variance 面 = 0（方差不可用）** | **不是无效像素**：样本合格性只判 `isfinite(x_j)`（DATA-002 §2a）；variance=0 按 DATA_SEMANTICS §4a「无覆盖/无方差信息像素写 variance=0 且 ivar=0（显式不可用）」与 §20.1「ivar==0 = 合法零权重、variance==0 = 无信息」处理 ⇒ **只令方差项为 0，不丢信号、不丢几何支撑**。`V_j ≤ 0` 不构成掩膜授权（`ACSD_DESIGN.md` §5.5 只授权对 NaN 做样本级掩膜） | ``lib/algorithms/drizzle/healpix_drizzle/drizzle_engine.cpp`` V≤0 分支（置 0 不 continue）；证据见 实验/absolute-snr/（方差语义面）|
 | 几何 NaN（ra/dec 非有限） | 显式拒绝该像素 | `lib/algorithms/drizzle/healpix_drizzle/drizzle_engine.cpp` |
 | 半球检查失败（max_ang≥π/2） | 返回 NAN 面积 | `lib/algorithms/drizzle/healpix_drizzle/spherical_overlap.cpp` |
 | A_drop<1e-20 / w≤0 | 拒绝 | `lib/algorithms/drizzle/healpix_drizzle/drizzle_engine.cpp` |
@@ -444,7 +444,7 @@ B0=1000、nside=512、W=H=16）：注入态（分母取 A_drop）逐 leaf `S_p/B
   DATA-P1-CAL（§9）；编排现状引用 DATA-P1-STACK（descriptor）。
 - API: API-DRZ-001（docs/engineering/PUBLIC_API.md）；API-P1-007
   （docs/engineering/PHASE1_API_V1.md，区间 API-P1-001..010 编排合同）。
-- MOD/SRC: MOD-astrocs-phase1-drizzle（lib/algorithms/drizzle/module.yaml，
+- MOD/SRC: MOD-acsd-phase1-drizzle（lib/algorithms/drizzle/module.yaml，
   CONTRACT_READY；lib/algorithms/drizzle/README.md 实现事实）；SRC-DRZ-001
   （lib/algorithms/drizzle/healpix_drizzle/hp_drizzle_api.h 等签名源）。
 - TEST: TEST-DRZ-DESIGN-001（本文档 §9）；可执行 TEST-P1-DRZ-001

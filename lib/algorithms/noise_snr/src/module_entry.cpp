@@ -1,10 +1,10 @@
-/* module_entry.cpp - astrocs.p1.noise 模块 C ABI v1 adapter
+/* module_entry.cpp - acsd.p1.noise 模块 C ABI v1 adapter
  *
  * 迁移任务 P1-NOISE-IMPL; 对齐先例 lib/algorithms/calibration/src/module_entry.cpp
  * (P1-CAL-IMPL, adf820ac)、lib/algorithms/cosmetic/src/module_entry.cpp (P1-COS-IMPL,
  * 948dfcba)、lib/algorithms/drizzle/hips/src/module_entry.cpp (P1-HIPS-IMPL, 1959dc89)。
  * TU 以 C++ 编译 (生产头 snr_estimator.h 为 C++ extern "C" 头), 全部导出面
- * 经 extern "C" 保持 C ABI 不变; 唯一导出 astrocs_module_query_v1
+ * 经 extern "C" 保持 C ABI 不变; 唯一导出 acsd_module_query_v1
  * (legacy snr_noise_* 七符号经链接 version-script/DEF 降 local, 见 CMakeLists)。
  *
  * 职责: 把 lib/algorithms/noise_snr/cpp/src/noise_model.cpp 的 legacy C 接口
@@ -51,26 +51,26 @@ extern "C" {
 #include <stdlib.h>
 #include <string.h>
 
-#include "astrocs/abi/module_api_v1.h"
-#include "astrocs/abi/lifecycle_v1.h"
-#include "astrocs/noise/types.h"
+#include "acsd/abi/module_api_v1.h"
+#include "acsd/abi/lifecycle_v1.h"
+#include "acsd/noise/types.h"
 #include "snr_estimator.h"        /* legacy 生产 C API (extern "C"; 七导出) */
 
 /* ═══════════════════ 1. 基础 helper (对齐 cal/cos/hips 先例) ═══════════════════ */
 
-static const char kModuleId[]  = ASTROCS_NOISE_MODULE_ID;
+static const char kModuleId[]  = ACSD_NOISE_MODULE_ID;
 static const char kVersion[]   = "1.0";
-static const char kBuildId[]   = ASTROCS_NOISE_BUILD_ID;
-static const char kSciId[]     = ASTROCS_NOISE_SCI_ID;
-static const char kAlgId[]     = ASTROCS_NOISE_ALG_ID;
-static const char kApiId[]     = ASTROCS_NOISE_API_ID;
+static const char kBuildId[]   = ACSD_NOISE_BUILD_ID;
+static const char kSciId[]     = ACSD_NOISE_SCI_ID;
+static const char kAlgId[]     = ACSD_NOISE_ALG_ID;
+static const char kApiId[]     = ACSD_NOISE_API_ID;
 
 /* 异常屏障细分码: types.h noise_ecode NOISE_ECODE_EXCEPTION (=130, P1-CAL/COS
  * 同款: 全 vtable try/catch → ACS_ERR_EXCEPTION + detail 130) */
 
-static acs_str_v1 acs_str_from(const char* s) {
-    acs_str_v1 v;
-    v.head.struct_size = (uint32_t)sizeof(acs_str_v1);
+static acsd_str_v1 acsd_str_from(const char* s) {
+    acsd_str_v1 v;
+    v.head.struct_size = (uint32_t)sizeof(acsd_str_v1);
     v.head.abi_version = ACS_ABI_VERSION_V1;
     v.data = s;
     v.size = s ? (uint64_t)strlen(s) : 0;
@@ -81,11 +81,11 @@ static acs_str_v1 acs_str_from(const char* s) {
  * host 读取 —— 先例 cal/cos/hips 统一 thread_local 静态缓冲)。 */
 static thread_local char noise_err_msg[1024];
 
-static acs_status efill(acs_error_info_v1* err, acs_status st, int32_t domain,
+static acsd_status efill(acsd_error_info_v1* err, acsd_status st, int32_t domain,
                         uint32_t detail, const char* msg) {
     if (!err) return st;
     memset(err, 0, sizeof(*err));
-    err->head.struct_size = (uint32_t)sizeof(acs_error_info_v1);
+    err->head.struct_size = (uint32_t)sizeof(acsd_error_info_v1);
     err->head.abi_version = ACS_ABI_VERSION_V1;
     err->status = st;
     err->domain = domain;
@@ -105,8 +105,8 @@ static const char* noise_msgf(const char* fmt, ...) {
 
 /* strbuf 写 N 字节 (lifecycle_v1.h 冻结截断语义: size=所需; cap=0 且
  * data=NULL 只问尺寸; 不足 → PARAM + BUFFER_TOO_SMALL, 尽力写前缀+NUL)。 */
-static acs_status strbuf_write(acs_strbuf_v1* out, const char* data, uint64_t n,
-                               acs_error_info_v1* err) {
+static acsd_status strbuf_write(acsd_strbuf_v1* out, const char* data, uint64_t n,
+                               acsd_error_info_v1* err) {
     if (!out) {
         return efill(err, ACS_ERR_PARAM, ACS_ERR_DOMAIN_CONFIG,
                      ACS_DIAG_ECODE_NULL_CALLBACK, "noise: null output buffer");
@@ -125,8 +125,8 @@ static acs_status strbuf_write(acs_strbuf_v1* out, const char* data, uint64_t n,
     return ACS_OK;
 }
 
-static acs_status strbuf_write_cstr(acs_strbuf_v1* out, const char* s,
-                                    acs_error_info_v1* err) {
+static acsd_status strbuf_write_cstr(acsd_strbuf_v1* out, const char* s,
+                                    acsd_error_info_v1* err) {
     return strbuf_write(out, s, s ? (uint64_t)strlen(s) : 0, err);
 }
 
@@ -373,8 +373,8 @@ static void noise_cfg_free(noise_cfg* c) {
     (void)c;   /* POD; 无堆所有权 */
 }
 
-static acs_status noise_cfg_parse(const char* json, noise_cfg* c,
-                                  acs_error_info_v1* err) {
+static acsd_status noise_cfg_parse(const char* json, noise_cfg* c,
+                                  acsd_error_info_v1* err) {
     memset(c, 0, sizeof(*c));
     if (!json || !json[0]) {
         return efill(err, ACS_ERR_PARAM, ACS_ERR_DOMAIN_CONFIG,
@@ -384,15 +384,15 @@ static acs_status noise_cfg_parse(const char* json, noise_cfg* c,
         return efill(err, ACS_ERR_PARAM, ACS_ERR_DOMAIN_CONFIG,
                      ACS_DIAG_ECODE_CONFIG_SCHEMA, "noise: config missing op");
     }
-    if (strcmp(c->op, ASTROCS_NOISE_OP_ESTIMATE) != 0 &&
-        strcmp(c->op, ASTROCS_NOISE_OP_FILL) != 0 &&
-        strcmp(c->op, ASTROCS_NOISE_OP_DIAG) != 0) {
+    if (strcmp(c->op, ACSD_NOISE_OP_ESTIMATE) != 0 &&
+        strcmp(c->op, ACSD_NOISE_OP_FILL) != 0 &&
+        strcmp(c->op, ACSD_NOISE_OP_DIAG) != 0) {
         return efill(err, ACS_ERR_PARAM, ACS_ERR_DOMAIN_CONFIG,
                      NOISE_ECODE_OP_UNKNOWN, "noise: op outside vocabulary");
     }
 
     /* ── estimate_noise_model / fill_noise_field: 形状键 ── */
-    if (strcmp(c->op, ASTROCS_NOISE_OP_DIAG) != 0) {
+    if (strcmp(c->op, ACSD_NOISE_OP_DIAG) != 0) {
         int f = 0;
         uint64_t dt = json_get_u64(json, NOISE_CFG_KEY_DTYPE, &f);
         if (f && dt > 1ull) {
@@ -401,7 +401,7 @@ static acs_status noise_cfg_parse(const char* json, noise_cfg* c,
                          "noise: dtype invalid (0=f32 1=f64)");
         }
         if (!f) {
-            if (strcmp(c->op, ASTROCS_NOISE_OP_ESTIMATE) == 0) {
+            if (strcmp(c->op, ACSD_NOISE_OP_ESTIMATE) == 0) {
                 return efill(err, ACS_ERR_PARAM, ACS_ERR_DOMAIN_CONFIG,
                              NOISE_ECODE_PARAM_MISSING,
                              "noise: config missing dtype (estimate op)");
@@ -429,7 +429,7 @@ static acs_status noise_cfg_parse(const char* json, noise_cfg* c,
             c->fill_variance = 1;
         if (json_get_u64(json, NOISE_CFG_KEY_FILL_IVAR, &f) && f)
             c->fill_ivar = 1;
-        if (strcmp(c->op, ASTROCS_NOISE_OP_FILL) == 0 &&
+        if (strcmp(c->op, ACSD_NOISE_OP_FILL) == 0 &&
             !c->fill_variance && !c->fill_ivar) {
             return efill(err, ACS_ERR_PARAM, ACS_ERR_DOMAIN_CONFIG,
                          NOISE_ECODE_PARAM_RANGE,
@@ -549,10 +549,10 @@ static void noise_rows_free(noise_rows* r) {
     memset(r, 0, sizeof(*r));
 }
 
-static acs_status noise_rows_parse_estimate(const char* manifest,
+static acsd_status noise_rows_parse_estimate(const char* manifest,
                                             const noise_cfg* c,
                                             noise_rows* r,
-                                            acs_error_info_v1* err) {
+                                            acsd_error_info_v1* err) {
     memset(r, 0, sizeof(*r));
     const uint64_t hw = c->h * c->w;
     const uint64_t bytes = (c->dtype == 1) ? 8ull : 4ull;
@@ -627,10 +627,10 @@ static acs_status noise_rows_parse_estimate(const char* manifest,
     return ACS_OK;
 }
 
-static acs_status noise_rows_parse_fill(const char* manifest,
+static acsd_status noise_rows_parse_fill(const char* manifest,
                                         const noise_cfg* c,
                                         noise_rows* r,
-                                        acs_error_info_v1* err) {
+                                        acsd_error_info_v1* err) {
     memset(r, 0, sizeof(*r));
     (void)c;
     int f = 0;
@@ -672,9 +672,9 @@ static acs_status noise_rows_parse_fill(const char* manifest,
 
 /* ═══════════════════ 4. describe / validate_config / plan ═══════════════════ */
 
-static acs_status noise_describe(const acs_module_api_v1* self,
-                                 acs_str_v1 module_id,
-                                 acs_module_descriptor_v1* out_desc) {
+static acsd_status noise_describe(const acsd_module_api_v1* self,
+                                 acsd_str_v1 module_id,
+                                 acsd_module_descriptor_v1* out_desc) {
     try {
         (void)self;
         if (!out_desc) return ACS_ERR_PARAM;
@@ -688,16 +688,16 @@ static acs_status noise_describe(const acs_module_api_v1* self,
              memcmp(module_id.data, kModuleId, strlen(kModuleId)) != 0))
             return ACS_ERR_ABI_MISMATCH;
         memset(out_desc, 0, sizeof(*out_desc));
-        out_desc->head.struct_size = (uint32_t)sizeof(acs_module_descriptor_v1);
+        out_desc->head.struct_size = (uint32_t)sizeof(acsd_module_descriptor_v1);
         out_desc->head.abi_version = ACS_ABI_VERSION_V1;
-        out_desc->module_id = acs_str_from(kModuleId);
-        out_desc->version   = acs_str_from(kVersion);
-        out_desc->build_id  = acs_str_from(kBuildId);
-        out_desc->sci_id    = acs_str_from(kSciId);
-        out_desc->alg_id    = acs_str_from(kAlgId);
-        out_desc->api_id    = acs_str_from(kApiId);
+        out_desc->module_id = acsd_str_from(kModuleId);
+        out_desc->version   = acsd_str_from(kVersion);
+        out_desc->build_id  = acsd_str_from(kBuildId);
+        out_desc->sci_id    = acsd_str_from(kSciId);
+        out_desc->alg_id    = acsd_str_from(kAlgId);
+        out_desc->api_id    = acsd_str_from(kApiId);
         out_desc->phase = 1;              /* module.yaml phase_scope: phase1 */
-        out_desc->config_schema_ver = ASTROCS_NOISE_CONFIG_SCHEMA_VER;
+        out_desc->config_schema_ver = ACSD_NOISE_CONFIG_SCHEMA_VER;
         out_desc->execution_class = 0;    /* cpu_heavy (module.yaml resource_class) */
         out_desc->parallel_ok = 0;        /* 事务内串行 (生产单线程现状, E.3);
                                              并行度=host executor 跨 instance */
@@ -708,13 +708,13 @@ static acs_status noise_describe(const acs_module_api_v1* self,
     }
 }
 
-static acs_status noise_validate_config(const acs_module_api_v1* self,
-                                        acs_str_v1 config_json,
-                                        acs_error_info_v1* err) {
+static acsd_status noise_validate_config(const acsd_module_api_v1* self,
+                                        acsd_str_v1 config_json,
+                                        acsd_error_info_v1* err) {
     try {
         (void)self;
         noise_cfg tmp;
-        acs_status st = noise_cfg_parse(config_json.data, &tmp, err);
+        acsd_status st = noise_cfg_parse(config_json.data, &tmp, err);
         noise_cfg_free(&tmp);
         return st;
     } catch (...) {
@@ -731,11 +731,11 @@ static acs_status noise_validate_config(const acs_module_api_v1* self,
  *     config 元数据推导, 无魔数);
  *     io_bytes_estimate = 0 (v1 inline base64, 无 host I/O; P1-CAL/COS 同款)。
  *   noise_diagnostic: work_units = 1 标量 (tiny 串行, RT-005 tiny 标记)。 */
-static acs_status noise_plan(const acs_module_api_v1* self,
-                             acs_str_v1 node_id,
-                             acs_str_v1 config_json,
-                             acs_strbuf_v1* out_plan_json,
-                             acs_error_info_v1* err) {
+static acsd_status noise_plan(const acsd_module_api_v1* self,
+                             acsd_str_v1 node_id,
+                             acsd_str_v1 config_json,
+                             acsd_strbuf_v1* out_plan_json,
+                             acsd_error_info_v1* err) {
     try {
         (void)self;
         if (!out_plan_json) {
@@ -747,7 +747,7 @@ static acs_status noise_plan(const acs_module_api_v1* self,
                          ACS_DIAG_ECODE_NULL_CONFIG, "noise: config required");
         }
         noise_cfg c;
-        acs_status st = noise_cfg_parse(config_json.data, &c, err);
+        acsd_status st = noise_cfg_parse(config_json.data, &c, err);
         if (st != ACS_OK) return st;
 
         char node[256];
@@ -756,8 +756,8 @@ static acs_status noise_plan(const acs_module_api_v1* self,
         if (node_id.data && node_len) memcpy(node, node_id.data, (size_t)node_len);
         node[node_len] = '\0';
 
-        const int is_diag = (strcmp(c.op, ASTROCS_NOISE_OP_DIAG) == 0);
-        const int is_build = (strcmp(c.op, ASTROCS_NOISE_OP_ESTIMATE) == 0);
+        const int is_diag = (strcmp(c.op, ACSD_NOISE_OP_DIAG) == 0);
+        const int is_build = (strcmp(c.op, ACSD_NOISE_OP_ESTIMATE) == 0);
         uint64_t work_units = is_diag ? 1ull : (c.h * c.w);
         const char* work_unit = is_diag ? "scalar" : "pixel";
         const char* axis = is_diag ? "none" : "instance";
@@ -771,7 +771,7 @@ static acs_status noise_plan(const acs_module_api_v1* self,
         char buf[768];
         int n = snprintf(buf, sizeof(buf),
             "{\"plan_version\":%u,\"module_id\":\"%s\",\"node_id\":\"",
-            ASTROCS_NOISE_PLAN_VERSION, kModuleId);
+            ACSD_NOISE_PLAN_VERSION, kModuleId);
         char* w = buf + n;
         json_append_escaped(&w, node);
         w += snprintf(w, (size_t)(buf + sizeof(buf) - w),
@@ -792,14 +792,14 @@ static acs_status noise_plan(const acs_module_api_v1* self,
 /* ═══════════════════ 5. create / destroy / inspect / cancel ═══════════════════ */
 
 typedef struct {
-    acs_head head;                 /* struct_size/abi_version (CAL 同款) */
+    acsd_head head;                 /* struct_size/abi_version (CAL 同款) */
     uint32_t state;                /* ACS_LC_STATE_* */
-    const acs_host_api_v1* host;
+    const acsd_host_api_v1* host;
     noise_cfg cfg;                 /* create 期校验副本 (execute 期以传入 config 重解析) */
     int executing;
     int cancel_req;
     uint64_t exec_count;
-    acs_status last_status;
+    acsd_status last_status;
     char last_op[32];
     int last_rc;                   /* 生产 legacy 返回码 (0/1 成功面; 3 失败) */
     uint32_t last_workers;
@@ -807,11 +807,11 @@ typedef struct {
     int last_floor_fallback;
 } noise_inst;
 
-static acs_status noise_create(const acs_module_api_v1* self,
-                               acs_str_v1 config_json,
-                               const acs_host_api_v1* host,
-                               acs_module_instance_v1** out,
-                               acs_error_info_v1* err) {
+static acsd_status noise_create(const acsd_module_api_v1* self,
+                               acsd_str_v1 config_json,
+                               const acsd_host_api_v1* host,
+                               acsd_module_instance_v1** out,
+                               acsd_error_info_v1* err) {
     try {
         (void)self;
         if (!out) {
@@ -825,7 +825,7 @@ static acs_status noise_create(const acs_module_api_v1* self,
                          "noise: host allocator required");
         }
         noise_cfg c;
-        acs_status st = noise_cfg_parse(config_json.data, &c, err);
+        acsd_status st = noise_cfg_parse(config_json.data, &c, err);
         if (st != ACS_OK) { noise_cfg_free(&c); return st; }
 
         noise_inst* inst = (noise_inst*)host->allocator->alloc(
@@ -843,7 +843,7 @@ static acs_status noise_create(const acs_module_api_v1* self,
         inst->cfg = c;
         inst->last_status = ACS_OK;
         inst->last_rc = 0;
-        *out = (acs_module_instance_v1*)inst;
+        *out = (acsd_module_instance_v1*)inst;
         return ACS_OK;
     } catch (...) {
         return efill(err, ACS_ERR_EXCEPTION, ACS_ERR_DOMAIN_INTERNAL,
@@ -851,9 +851,9 @@ static acs_status noise_create(const acs_module_api_v1* self,
     }
 }
 
-static acs_status noise_inspect(const acs_module_instance_v1* inst_raw,
-                                acs_strbuf_v1* out_json,
-                                acs_error_info_v1* err) {
+static acsd_status noise_inspect(const acsd_module_instance_v1* inst_raw,
+                                acsd_strbuf_v1* out_json,
+                                acsd_error_info_v1* err) {
     try {
         const noise_inst* inst = (const noise_inst*)inst_raw;
         if (!inst) return ACS_ERR_PARAM;
@@ -881,7 +881,7 @@ static acs_status noise_inspect(const acs_module_instance_v1* inst_raw,
     }
 }
 
-static acs_status noise_request_cancel(acs_module_instance_v1* inst_raw) {
+static acsd_status noise_request_cancel(acsd_module_instance_v1* inst_raw) {
     try {
         noise_inst* inst = (noise_inst*)inst_raw;
         if (!inst) return ACS_ERR_PARAM;
@@ -896,12 +896,12 @@ static acs_status noise_request_cancel(acs_module_instance_v1* inst_raw) {
     }
 }
 
-static void noise_destroy(acs_module_instance_v1* inst_raw) {
+static void noise_destroy(acsd_module_instance_v1* inst_raw) {
     noise_inst* inst = (noise_inst*)inst_raw;
     if (!inst) return;                 /* inst=NULL 空操作 */
     if (inst->head.abi_version != ACS_ABI_VERSION_V1) return;
     if (inst->state == ACS_LC_STATE_DESTROYED) return;   /* double → 忽略 */
-    const acs_host_api_v1* host = inst->host;
+    const acsd_host_api_v1* host = inst->host;
     inst->state = ACS_LC_STATE_DESTROYED;
     if (host && host->allocator && host->allocator->free) {
         host->allocator->free(host->allocator->user_data, inst);
@@ -918,8 +918,8 @@ static void noise_destroy(acs_module_instance_v1* inst_raw) {
       (inst)->host->cancel->is_cancelled(                                \
           (inst)->host->cancel->user_data)))
 
-static acs_status noise_check_entry_cancel(noise_inst* inst,
-                                           acs_error_info_v1* err) {
+static acsd_status noise_check_entry_cancel(noise_inst* inst,
+                                           acsd_error_info_v1* err) {
     if (inst->cancel_req) {
         inst->last_status = ACS_ERR_STATE;
         return efill(err, ACS_ERR_STATE, ACS_ERR_DOMAIN_INTERNAL,
@@ -937,15 +937,15 @@ static acs_status noise_check_entry_cancel(noise_inst* inst,
 
 /* host executor 硬租约 (FORBID-003): acquire(1) 占坑; 缺失/失败 →
  * ACS_ERR_BUDGET detail 105 (cpu_heavy, P1-CAL/COS 同款, 禁无租约运行) */
-static acs_status noise_acquire_lease(noise_inst* inst,
-                                      const acs_executor_v1** ex_out,
+static acsd_status noise_acquire_lease(noise_inst* inst,
+                                      const acsd_executor_v1** ex_out,
                                       uint32_t* leased_out,
-                                      acs_error_info_v1* err) {
+                                      acsd_error_info_v1* err) {
     if (!inst->host || !inst->host->executor) {
         return efill(err, ACS_ERR_BUDGET, ACS_ERR_DOMAIN_RESOURCE, 105,
                      "cpu_heavy module requires host executor");
     }
-    const acs_executor_v1* ex = inst->host->executor;
+    const acsd_executor_v1* ex = inst->host->executor;
     if (!ex->acquire || !ex->release || ex->acquire(ex->user_data, 1) != 0) {
         return efill(err, ACS_ERR_BUDGET, ACS_ERR_DOMAIN_RESOURCE, 105,
                      "executor lease unavailable for cpu_heavy op");
@@ -957,7 +957,7 @@ static acs_status noise_acquire_lease(noise_inst* inst,
 
 /* 生产 legacy 返回码 → status 映射 (rc 原样进 message "legacy_code=%d",
  * 不重解释科学语义; rc=1 完全退化=成功面科学结果不映射错误) */
-static acs_status noise_legacy_status(int rc, int32_t* domain) {
+static acsd_status noise_legacy_status(int rc, int32_t* domain) {
     if (rc == 0 || rc == 1) { *domain = ACS_ERR_DOMAIN_SCIENCE_PRECONDITION; return ACS_OK; }
     /* rc=3: 参数非法/内部异常 (生产 C ABI 门面 catch-all) → PARAM/BACKEND/120
      * (P1-CAL/COS legacy 拒绝同款域) */
@@ -967,13 +967,13 @@ static acs_status noise_legacy_status(int rc, int32_t* domain) {
 
 /* ── 6a. estimate_noise_model: build(+可选内联 fill)+free 单事务 ── */
 
-static acs_status noise_execute_estimate(noise_inst* inst, const char* manifest,
+static acsd_status noise_execute_estimate(noise_inst* inst, const char* manifest,
                                          const noise_cfg* c,
-                                         acs_strbuf_v1* out_json,
-                                         acs_error_info_v1* err) {
-    const acs_executor_v1* ex = NULL;
+                                         acsd_strbuf_v1* out_json,
+                                         acsd_error_info_v1* err) {
+    const acsd_executor_v1* ex = NULL;
     uint32_t leased = 0;
-    acs_status st = noise_acquire_lease(inst, &ex, &leased, err);
+    acsd_status st = noise_acquire_lease(inst, &ex, &leased, err);
     if (st != ACS_OK) return st;
 
     noise_rows rows;
@@ -1025,9 +1025,9 @@ static acs_status noise_execute_estimate(noise_inst* inst, const char* manifest,
         inst->last_rc = rc;
         inst->last_workers = leased;
         snprintf(inst->last_op, sizeof(inst->last_op), "%s",
-                 ASTROCS_NOISE_OP_ESTIMATE);
+                 ACSD_NOISE_OP_ESTIMATE);
         int32_t dom = ACS_ERR_DOMAIN_SCIENCE_PRECONDITION;
-        acs_status cst = noise_legacy_status(rc, &dom);
+        acsd_status cst = noise_legacy_status(rc, &dom);
         inst->last_status = cst;
         return efill(err, cst, dom, NOISE_ECODE_LEGACY_REJECT,
                      noise_msgf("noise: legacy_code=%d at build", rc));
@@ -1077,9 +1077,9 @@ static acs_status noise_execute_estimate(noise_inst* inst, const char* manifest,
             inst->last_rc = frc;
             inst->last_workers = leased;
             snprintf(inst->last_op, sizeof(inst->last_op), "%s",
-                     ASTROCS_NOISE_OP_ESTIMATE);
+                     ACSD_NOISE_OP_ESTIMATE);
             int32_t dom = ACS_ERR_DOMAIN_SCIENCE_PRECONDITION;
-            acs_status cst = noise_legacy_status(frc, &dom);
+            acsd_status cst = noise_legacy_status(frc, &dom);
             inst->last_status = cst;
             return efill(err, cst, dom, NOISE_ECODE_LEGACY_REJECT,
                          noise_msgf("noise: legacy_code=%d at fill", frc));
@@ -1117,7 +1117,7 @@ static acs_status noise_execute_estimate(noise_inst* inst, const char* manifest,
         "\"n_rejected_patches\":%u,\"source\":%u,\"has_spatial_field\":%u,"
         "\"degenerate\":%u,\"%s\":%.17g,\"variance_floor_clamped\":%lld,"
         "\"variance_floor_status\":\"%s\",",
-        ASTROCS_NOISE_OP_ESTIMATE, rc, c->dtype,
+        ACSD_NOISE_OP_ESTIMATE, rc, c->dtype,
         (unsigned long long)c->h, (unsigned long long)c->w,
         (unsigned long long)n_ctrl,
         (unsigned)model.n_qualified_patches,
@@ -1201,10 +1201,10 @@ static acs_status noise_execute_estimate(noise_inst* inst, const char* manifest,
     inst->last_n_ctrl = n_ctrl;
     inst->last_floor_fallback = 0;
     snprintf(inst->last_op, sizeof(inst->last_op), "%s",
-             ASTROCS_NOISE_OP_ESTIMATE);
+             ACSD_NOISE_OP_ESTIMATE);
     inst->last_status = ACS_OK;
 
-    acs_status ret = strbuf_write(out_json, buf, (uint64_t)(w - buf), err);
+    acsd_status ret = strbuf_write(out_json, buf, (uint64_t)(w - buf), err);
     free(buf);
     if (ret == ACS_OK) inst->last_status = ret;
     return ret;
@@ -1219,13 +1219,13 @@ static acs_status noise_execute_estimate(noise_inst* inst, const char* manifest,
  * 非法 ⇒ 显式错误 (不落任何平面); 绑定的 floor 必须有限且 > 0。
  * 对拍口径: direct 通道与影子通道现在都吃同一个显式 floor ⇒ 仍 bitwise 一致。 */
 
-static acs_status noise_execute_fill(noise_inst* inst, const char* manifest,
+static acsd_status noise_execute_fill(noise_inst* inst, const char* manifest,
                                      const noise_cfg* c,
-                                     acs_strbuf_v1* out_json,
-                                     acs_error_info_v1* err) {
-    const acs_executor_v1* ex = NULL;
+                                     acsd_strbuf_v1* out_json,
+                                     acsd_error_info_v1* err) {
+    const acsd_executor_v1* ex = NULL;
     uint32_t leased = 0;
-    acs_status st = noise_acquire_lease(inst, &ex, &leased, err);
+    acsd_status st = noise_acquire_lease(inst, &ex, &leased, err);
     if (st != ACS_OK) return st;
 
     noise_rows rows;
@@ -1333,7 +1333,7 @@ static acs_status noise_execute_fill(noise_inst* inst, const char* manifest,
             inst->last_rc = brc;
             inst->last_workers = leased;
             snprintf(inst->last_op, sizeof(inst->last_op), "%s",
-                     ASTROCS_NOISE_OP_FILL);
+                     ACSD_NOISE_OP_FILL);
             inst->last_status = ACS_ERR_PARAM;
             return efill(err, ACS_ERR_PARAM, ACS_ERR_DOMAIN_CONFIG,
                          ACS_DIAG_ECODE_NONE,
@@ -1353,9 +1353,9 @@ static acs_status noise_execute_fill(noise_inst* inst, const char* manifest,
         inst->last_rc = rc;
         inst->last_workers = leased;
         snprintf(inst->last_op, sizeof(inst->last_op), "%s",
-                 ASTROCS_NOISE_OP_FILL);
+                 ACSD_NOISE_OP_FILL);
         int32_t dom = ACS_ERR_DOMAIN_SCIENCE_PRECONDITION;
-        acs_status cst = noise_legacy_status(rc, &dom);
+        acsd_status cst = noise_legacy_status(rc, &dom);
         inst->last_status = cst;
         return efill(err, cst, dom, NOISE_ECODE_LEGACY_REJECT,
                      noise_msgf("noise: legacy_code=%d at fill", rc));
@@ -1384,7 +1384,7 @@ static acs_status noise_execute_fill(noise_inst* inst, const char* manifest,
          * 回退路径不再存在 ⇒ floor_fallback=0 + 绑定值与状态。 */
         "\"floor_fallback\":0,\"variance_floor_bound\":1,"
         "\"variance_floor\":%.17g,\"variance_floor_status\":\"bound\",",
-        ASTROCS_NOISE_OP_FILL,
+        ACSD_NOISE_OP_FILL,
         (unsigned long long)c->h, (unsigned long long)c->w,
         (unsigned long long)rows.n_ctrl, floor_cfg);
     {
@@ -1441,10 +1441,10 @@ static acs_status noise_execute_fill(noise_inst* inst, const char* manifest,
     inst->last_n_ctrl = rows.n_ctrl;
     inst->last_floor_fallback = 1;
     snprintf(inst->last_op, sizeof(inst->last_op), "%s",
-             ASTROCS_NOISE_OP_FILL);
+             ACSD_NOISE_OP_FILL);
     inst->last_status = ACS_OK;
 
-    acs_status ret = strbuf_write(out_json, buf, (uint64_t)(w - buf), err);
+    acsd_status ret = strbuf_write(out_json, buf, (uint64_t)(w - buf), err);
     free(buf);
     if (ret == ACS_OK) inst->last_status = ret;
     return ret;
@@ -1452,12 +1452,12 @@ static acs_status noise_execute_fill(noise_inst* inst, const char* manifest,
 
 /* ── 6c. noise_diagnostic: scale_law / gain_variance 标量 (tiny 串行) ── */
 
-static acs_status noise_execute_diag(noise_inst* inst, const noise_cfg* c,
-                                     acs_strbuf_v1* out_json,
-                                     acs_error_info_v1* err) {
-    const acs_executor_v1* ex = NULL;
+static acsd_status noise_execute_diag(noise_inst* inst, const noise_cfg* c,
+                                     acsd_strbuf_v1* out_json,
+                                     acsd_error_info_v1* err) {
+    const acsd_executor_v1* ex = NULL;
     uint32_t leased = 0;
-    acs_status st = noise_acquire_lease(inst, &ex, &leased, err);
+    acsd_status st = noise_acquire_lease(inst, &ex, &leased, err);
     if (st != ACS_OK) return st;
 
     if (NOISE_CANCELLED_NOW(inst)) {
@@ -1496,7 +1496,7 @@ static acs_status noise_execute_diag(noise_inst* inst, const noise_cfg* c,
         snprintf(buf, sizeof(buf),
                  "{\"op\":\"%s\",\"subop\":\"scale_law\",%s"
                  "\"alpha_text\":\"%.17g\",\"workers\":%u,",
-                 ASTROCS_NOISE_OP_DIAG, body, c->alpha, (unsigned)leased);
+                 ACSD_NOISE_OP_DIAG, body, c->alpha, (unsigned)leased);
         /* 拼 scalars_base64 (bitwise 主口径) 后收口 */
         char* w = buf + strlen(buf);
         if (!json_append_plane_tail(&w, NOISE_O_KEY_SCALARS_B64, sc,
@@ -1512,7 +1512,7 @@ static acs_status noise_execute_diag(noise_inst* inst, const noise_cfg* c,
         inst->last_workers = leased;
         inst->last_floor_fallback = 0;
         snprintf(inst->last_op, sizeof(inst->last_op), "%s",
-                 ASTROCS_NOISE_OP_DIAG);
+                 ACSD_NOISE_OP_DIAG);
         ex->release(ex->user_data, leased);
         inst->last_status = ACS_OK;
         return strbuf_write_cstr(out_json, buf, err);
@@ -1523,7 +1523,7 @@ static acs_status noise_execute_diag(noise_inst* inst, const noise_cfg* c,
     snprintf(buf, sizeof(buf),
              "{\"op\":\"%s\",\"subop\":\"gain_variance\","
              "\"gain_variance_text\":\"%.17g\",\"workers\":%u,",
-             ASTROCS_NOISE_OP_DIAG, gv, (unsigned)leased);
+             ACSD_NOISE_OP_DIAG, gv, (unsigned)leased);
     char* w = buf + strlen(buf);
     double sc[1] = { gv };
     if (!json_append_plane_tail(&w, NOISE_O_KEY_SCALARS_B64, sc,
@@ -1538,17 +1538,17 @@ static acs_status noise_execute_diag(noise_inst* inst, const noise_cfg* c,
     inst->last_workers = leased;
     inst->last_floor_fallback = 0;
     snprintf(inst->last_op, sizeof(inst->last_op), "%s",
-             ASTROCS_NOISE_OP_DIAG);
+             ACSD_NOISE_OP_DIAG);
     ex->release(ex->user_data, leased);
     inst->last_status = ACS_OK;
     return strbuf_write_cstr(out_json, buf, err);
 }
 
-static acs_status noise_execute(acs_module_instance_v1* inst_raw,
-                                acs_str_v1 input_manifest_json,
-                                acs_str_v1 config_json,
-                                acs_strbuf_v1* out_manifest_json,
-                                acs_error_info_v1* err) {
+static acsd_status noise_execute(acsd_module_instance_v1* inst_raw,
+                                acsd_str_v1 input_manifest_json,
+                                acsd_str_v1 config_json,
+                                acsd_strbuf_v1* out_manifest_json,
+                                acsd_error_info_v1* err) {
     try {
         noise_inst* inst = (noise_inst*)inst_raw;
         if (!inst) return ACS_ERR_PARAM;
@@ -1571,7 +1571,7 @@ static acs_status noise_execute(acs_module_instance_v1* inst_raw,
         /* 事务起点: 输出面零写入承诺 (P1-CAL 同款; 失败/取消路径 out 零泄漏) */
         if (out_manifest_json) out_manifest_json->size = 0;
         noise_cfg c;
-        acs_status st = noise_cfg_parse(config_json.data, &c, err);
+        acsd_status st = noise_cfg_parse(config_json.data, &c, err);
         if (st != ACS_OK) return st;
 
         inst->executing = 1;
@@ -1580,9 +1580,9 @@ static acs_status noise_execute(acs_module_instance_v1* inst_raw,
         /* 入口取消预检 (P1-COS 三查次序: entry cancel → 硬租约 → 解析) */
         st = noise_check_entry_cancel(inst, err);
         if (st == ACS_OK) {
-            if (strcmp(c.op, ASTROCS_NOISE_OP_ESTIMATE) == 0)
+            if (strcmp(c.op, ACSD_NOISE_OP_ESTIMATE) == 0)
                 st = noise_execute_estimate(inst, mjson, &c, out_manifest_json, err);
-            else if (strcmp(c.op, ASTROCS_NOISE_OP_FILL) == 0)
+            else if (strcmp(c.op, ACSD_NOISE_OP_FILL) == 0)
                 st = noise_execute_fill(inst, mjson, &c, out_manifest_json, err);
             else
                 st = noise_execute_diag(inst, &c, out_manifest_json, err);
@@ -1602,8 +1602,8 @@ static acs_status noise_execute(acs_module_instance_v1* inst_raw,
 
 /* ═══════════════════ 7. 静态 vtable 与唯一导出入口 ═══════════════════ */
 
-static const acs_module_api_v1 g_noise_api = {
-    { (uint32_t)sizeof(acs_module_api_v1), ACS_ABI_VERSION_V1 },
+static const acsd_module_api_v1 g_noise_api = {
+    { (uint32_t)sizeof(acsd_module_api_v1), ACS_ABI_VERSION_V1 },
     noise_describe,
     noise_validate_config,
     noise_plan,
@@ -1616,10 +1616,10 @@ static const acs_module_api_v1 g_noise_api = {
 
 /* 唯一导出入口 (ARC-001 §1.1; ABI-006 全查 exports):
  * host_abi 失配 → ACS_ERR_ABI_MISMATCH, 不降级猜测。 */
-ASTROCS_EXPORT acs_status ASTROCS_CALL
-astrocs_module_query_v1(uint32_t host_abi,
-                        const acs_host_api_v1* host,
-                        const acs_module_api_v1** out_api) {
+ACSD_EXPORT acsd_status ACSD_CALL
+acsd_module_query_v1(uint32_t host_abi,
+                        const acsd_host_api_v1* host,
+                        const acsd_module_api_v1** out_api) {
     try {
         (void)host;   /* allocator 必填在 create 期校验 (query 期 host 可 NULL 于探针) */
         if (host_abi != ACS_ABI_VERSION_V1) return ACS_ERR_ABI_MISMATCH;

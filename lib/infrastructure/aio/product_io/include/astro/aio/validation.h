@@ -4,13 +4,13 @@
  * ALG-P3-008 §7.3 / 宪章 §14.4 (fail-fast)。所有门命中即 append Violation；
  * ok() 仅当无任何违规。禁止"无违规即静默通过"以外的语义。
  */
-#ifndef ASTROCS_V6_AIO_VALIDATION_H
-#define ASTROCS_V6_AIO_VALIDATION_H
+#ifndef ACSD_V6_AIO_VALIDATION_H
+#define ACSD_V6_AIO_VALIDATION_H
 
 #include <string>
 #include <vector>
 
-namespace astrocs {
+namespace acsd {
 namespace aio {
 
 struct Violation {
@@ -44,6 +44,6 @@ class ValidationReport {
 };
 
 }  // namespace aio
-}  // namespace astrocs
+}  // namespace acsd
 
-#endif  // ASTROCS_V6_AIO_VALIDATION_H
+#endif  // ACSD_V6_AIO_VALIDATION_H

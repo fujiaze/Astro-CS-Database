@@ -15,19 +15,19 @@
 #   hiss_writer_smoke     断言失败「MAGIC 不匹配」
 #   hiss_correctness_test 缺 astro_calibration.h（跨模块依赖未接线）
 #   pipeline_frame_contract_test  需 aio_pipeline_frame_* 符号
-# 被测面: astrocs_hips（含 hiss_codec/reader/writer/tile_model/transform/stream_writer/upm）。
+# 被测面: acsd_hips（含 hiss_codec/reader/writer/tile_model/transform/stream_writer/upm）。
 # ----------------------------------------------------------------------------
 
 set(AIO_TESTS_DIR ${CMAKE_CURRENT_SOURCE_DIR})
 
 foreach(_t checksum tile_model transform query_pixel precision_dual)
   add_executable(aio_${_t} ${AIO_TESTS_DIR}/test_${_t}.cpp)
-  target_link_libraries(aio_${_t} PRIVATE astrocs_hips)
+  target_link_libraries(aio_${_t} PRIVATE acsd_hips)
   add_test(NAME aio_${_t} COMMAND aio_${_t})
 endforeach()
 
 # ----------------------------------------------------------------------------
-# 原子发布验证面（docs/ASTROCS_DESIGN §10「I/O 与原子产品」）:
+# 原子发布验证面（docs/ACSD_DESIGN §10「I/O 与原子产品」）:
 # HiPS tile 原子发布 + 完成清单 fail-closed 验证面。
 #   被测面: lib/infrastructure/aio/src/hips/aio_hips_writer.cpp（每 tile 私有临时
 #   文件 → DATASUM/CHECKSUM 哈希校验 → fsync → 原子 rename; 全部 tile 完成后最后
@@ -44,7 +44,7 @@ endforeach()
 if(UNIX)
 add_executable(aio_hips_atomic_publish
   ${AIO_TESTS_DIR}/test_hips_atomic_publish.cpp)
-target_link_libraries(aio_hips_atomic_publish PRIVATE astrocs_hips)
+target_link_libraries(aio_hips_atomic_publish PRIVATE acsd_hips)
 add_test(NAME aio_hips_atomic_publish COMMAND aio_hips_atomic_publish)
 else()
 message(STATUS "AIO(aio_hips_atomic_publish): 原子发布 + 中途 SIGKILL 崩溃一致性用例依赖 POSIX fork/kill ⇒ 本平台 ${CMAKE_SYSTEM_NAME} 显式跳过注册（FINAL-07 WIN-PORT）")

@@ -1,15 +1,15 @@
 {
-  "schema": "astrocs.test-registry/v1",
+  "schema": "acsd.test-registry/v1",
   "version": "1.0.0",
   "authoring_task": "TST-001",
   "authoring_owner": "SA-QA-29",
   "base_main_sha": "2a8676bf7546a34af0468d5086e4edd54182a008",
   "tests": [
     {
-      "schema": "astrocs.test-metadata/v1",
+      "schema": "acsd.test-metadata/v1",
       "test_id": "TEST-TST001-UNIT-DEMO",
-      "label": "module:astrocs.conformance.noop",
-      "module_id": "MOD-astrocs-conformance-noop",
+      "label": "module:acsd.conformance.noop",
+      "module_id": "MOD-acsd-conformance-noop",
       "type": "unit",
       "language": "shell",
       "command": "python3 eng/tests/testkit/examples/check_constant.py 4",
@@ -22,10 +22,10 @@
       "notes": "TST-001 示例：unit label，验证 2+2==4 手写期望"
     },
     {
-      "schema": "astrocs.test-metadata/v1",
+      "schema": "acsd.test-metadata/v1",
       "test_id": "TEST-TST001-PROPERTIES-DEMO",
-      "label": "module:astrocs.conformance.noop",
-      "module_id": "MOD-astrocs-conformance-noop",
+      "label": "module:acsd.conformance.noop",
+      "module_id": "MOD-acsd-conformance-noop",
       "type": "properties",
       "language": "Python",
       "command": "python3 eng/tests/testkit/examples/property_invariant.py",
@@ -40,10 +40,10 @@
       "notes": "TST-001 示例：properties label + 固定 seed"
     },
     {
-      "schema": "astrocs.test-metadata/v1",
+      "schema": "acsd.test-metadata/v1",
       "test_id": "TEST-TST001-ORACLE-DEMO",
-      "label": "module:astrocs.conformance.noop",
-      "module_id": "MOD-astrocs-conformance-noop",
+      "label": "module:acsd.conformance.noop",
+      "module_id": "MOD-acsd-conformance-noop",
       "type": "oracle",
       "language": "Python",
       "command": "python3 eng/tests/testkit/examples/oracle_sum.py",
@@ -56,10 +56,10 @@
       "notes": "TST-001 示例：oracle label，独立解析解期望"
     },
     {
-      "schema": "astrocs.test-metadata/v1",
+      "schema": "acsd.test-metadata/v1",
       "test_id": "TEST-TST001-FIXTURES-DEMO",
-      "label": "module:astrocs.conformance.noop",
-      "module_id": "MOD-astrocs-conformance-noop",
+      "label": "module:acsd.conformance.noop",
+      "module_id": "MOD-acsd-conformance-noop",
       "type": "fixtures",
       "language": "shell",
       "command": "python3 eng/tests/testkit/examples/fixture_hash.py {root}",
@@ -73,10 +73,10 @@
       "notes": "TST-001 示例：fixtures label + fixture hash 独立期望"
     },
     {
-      "schema": "astrocs.test-metadata/v1",
+      "schema": "acsd.test-metadata/v1",
       "test_id": "TEST-TST001-NEGATIVE-DEMO",
-      "label": "module:astrocs.conformance.noop",
-      "module_id": "MOD-astrocs-conformance-noop",
+      "label": "module:acsd.conformance.noop",
+      "module_id": "MOD-acsd-conformance-noop",
       "type": "negative",
       "language": "shell",
       "command": "python3 eng/tests/testkit/examples/negative_bad_input.py",
@@ -89,10 +89,10 @@
       "notes": "TST-001 示例：negative label；期望=坏输入拒绝（exit 非 0 由脚本内断言）"
     },
     {
-      "schema": "astrocs.test-metadata/v1",
+      "schema": "acsd.test-metadata/v1",
       "test_id": "TEST-TST001-PERF-DEMO",
-      "label": "module:astrocs.conformance.noop",
-      "module_id": "MOD-astrocs-conformance-noop",
+      "label": "module:acsd.conformance.noop",
+      "module_id": "MOD-acsd-conformance-noop",
       "type": "performance",
       "language": "Python",
       "command": "python3 eng/tests/testkit/examples/perf_linear.py",

@@ -20,7 +20,7 @@ int main(int argc, char** argv) {
     const std::string bsha = arg_of(argc, argv, "--backend-sha", "0");
     if (out.empty()) return 2;
     const std::string json =
-        astrocs::backend_host::generate_profile_json(mode, version, commit, bsha);
+        acsd::backend_host::generate_profile_json(mode, version, commit, bsha);
     std::ofstream f(out, std::ios::binary | std::ios::trunc);
     f << json;
     std::printf("%s\n", out.c_str());

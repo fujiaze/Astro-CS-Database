@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -uo pipefail
 cd "/workspace/Astro CS Database"
-export TMPDIR="${TMPDIR:-/var/tmp/astrocs}"
+export TMPDIR="${TMPDIR:-/var/tmp/acsd}"
 check() {
   local tgt="$1"; local src="$2"; shift 2
   local DEFINES INCLUDES
@@ -15,7 +15,7 @@ check() {
   echo "== $src rc=$RC"
   if [ $RC -ne 0 ]; then head -60 "$OUT"; fi
 }
-check "CMakeFiles/astrocs_phase2.dir/lib/algorithms/coverage/src/sampler.cpp.o" lib/algorithms/coverage/src/sampler.cpp
-check "CMakeFiles/astrocs_drizzle.dir/lib/algorithms/drizzle/healpix_drizzle/astro_sphere_sink.cpp.o" lib/algorithms/drizzle/healpix_drizzle/astro_sphere_sink.cpp
-check "lib/algorithms/integration/phase2_integrate/CMakeFiles/astrocs_phase2_integrate.dir/src/weight_chain.cpp.o" lib/algorithms/integration/phase2_integrate/src/weight_chain.cpp
-check "lib/algorithms/integration/phase2_integrate/CMakeFiles/astrocs_phase2_integrate.dir/src/phase2_integrate.cpp.o" lib/algorithms/integration/phase2_integrate/src/phase2_integrate.cpp
+check "CMakeFiles/acsd_phase2.dir/lib/algorithms/coverage/src/sampler.cpp.o" lib/algorithms/coverage/src/sampler.cpp
+check "CMakeFiles/acsd_drizzle.dir/lib/algorithms/drizzle/healpix_drizzle/astro_sphere_sink.cpp.o" lib/algorithms/drizzle/healpix_drizzle/astro_sphere_sink.cpp
+check "lib/algorithms/integration/phase2_integrate/CMakeFiles/acsd_phase2_integrate.dir/src/weight_chain.cpp.o" lib/algorithms/integration/phase2_integrate/src/weight_chain.cpp
+check "lib/algorithms/integration/phase2_integrate/CMakeFiles/acsd_phase2_integrate.dir/src/phase2_integrate.cpp.o" lib/algorithms/integration/phase2_integrate/src/phase2_integrate.cpp

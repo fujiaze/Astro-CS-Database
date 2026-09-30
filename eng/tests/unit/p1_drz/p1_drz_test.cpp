@@ -7,7 +7,7 @@
 //
 // 正向：冻结公式逐条数值一致（对照独立 Oracle，不调用被测实现生成期望）。
 // 负向：注入违反冻结的实现/记录 -> 对应门必须红（pass=false），并有正向控制。
-// 几何：真实球面 overlap（spherical_overlap.cpp + astrocs::healpix）参与。
+// 几何：真实球面 overlap（spherical_overlap.cpp + acsd::healpix）参与。
 // ============================================================================
 #include "drizzle_science.h"
 #include "spherical_overlap_science.h"
@@ -22,7 +22,7 @@
 #include <string>
 #include <vector>
 
-using namespace astrocs::v6::drizzle;
+using namespace acsd::v6::drizzle;
 
 // 故障注入用的进程环境设置（Linux setenv / Windows _putenv_s）。
 static void set_env(const char* key, const char* value) {
@@ -190,7 +190,7 @@ static void run_units() {
 
     // provenance 最小集 + k_corr
     ProvenanceRecord pr;
-    pr.schema_version = "astrocs.v6.signal/v1";
+    pr.schema_version = "acsd.v6.signal/v1";
     pr.software_sha = "deadbeef";
     pr.run_id = "run-1";
     pr.input_hash = "in";
@@ -699,7 +699,7 @@ static void run_geometry_case(int nside, double pixfrac) {
 // ---------------------------------------------------------------------------
 // 组 4b: 面积失效不得静默吞掉 (DRZ-PF-CORRECT-01 / S1 第 19 条)
 //
-// 负例注入: ASTROCS_DRZ_FAULT=invalid_area 把**一个**候选 target 的交叠面积
+// 负例注入: ACSD_DRZ_FAULT=invalid_area 把**一个**候选 target 的交叠面积
 // 置为 NaN。修复前该分支是裸 continue —— sum_a_jp 偏小、闭合亏损 (rel<0)，而
 // 闭合判据只判 rel>tol ⇒ 面积亏损静默进产品，本测试无从察觉。
 // 修复后要求: ① 计数 n_area_rejected 上升; ② 算子构建以具名错误
@@ -721,7 +721,7 @@ static void run_geometry_area_invalid_injection() {
     OverlapDiagnostics diag;
 
     // 正例控制: 无注入 ⇒ 构建成功且零失效
-    set_env("ASTROCS_DRZ_FAULT", "");
+    set_env("ACSD_DRZ_FAULT", "");
     DrzError e0 = build_operator_from_sources(hp, sources, tan_callback, &wcs, 1e-3, op,
                                               &target_ipix, nullptr, &diag);
     check(e0 == DrzError::ok, "area-invalid positive control: build ok without injection");
@@ -730,12 +730,12 @@ static void run_geometry_area_invalid_injection() {
     check(n_hits_clean > 0, "area-invalid positive control: targets nonempty");
 
     // 负例: 注入一个面积无效像素 ⇒ 必须计数 + 具名失败
-    set_env("ASTROCS_DRZ_FAULT", "invalid_area");
+    set_env("ACSD_DRZ_FAULT", "invalid_area");
     DrizzleOperator op_bad;
     OverlapDiagnostics diag_bad;
     const DrzError e1 = build_operator_from_sources(hp, sources, tan_callback, &wcs, 1e-3,
                                                     op_bad, nullptr, nullptr, &diag_bad);
-    set_env("ASTROCS_DRZ_FAULT", "");
+    set_env("ACSD_DRZ_FAULT", "");
     check(e1 == DrzError::overlap_area_invalid,
           std::string("area-invalid injected -> named failure (got ") +
               drz_error_name(e1) + ")");
@@ -743,10 +743,10 @@ static void run_geometry_area_invalid_injection() {
           "area-invalid injected -> rejected count visible (product provenance)");
 
     // 单行视图: 同一注入下 OverlapRow 的计数与具名失败
-    set_env("ASTROCS_DRZ_FAULT", "invalid_area");
+    set_env("ACSD_DRZ_FAULT", "invalid_area");
     OverlapRow row;
     const DrzError e2 = compute_overlap_row(hp, s, tan_callback, &wcs, 1e-3, &row);
-    set_env("ASTROCS_DRZ_FAULT", "");
+    set_env("ACSD_DRZ_FAULT", "");
     check(e2 == DrzError::overlap_area_invalid,
           std::string("area-invalid row-level named failure (got ") +
               drz_error_name(e2) + ")");

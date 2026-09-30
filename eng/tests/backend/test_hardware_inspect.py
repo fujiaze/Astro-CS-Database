@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""BENCH-001 硬件画像: CLI 域断言 + 宿主探针（docs/ASTROCS_DESIGN §6.2 新树同步）。
+"""BENCH-001 硬件画像: CLI 域断言 + 宿主探针（docs/ACSD_DESIGN §6.2 新树同步）。
 
 CLI-001 删除 hardware inspect 用户命令（§6.2 唯一命令树）后本文件的处置（TEST-CLI-SYNC）:
   * CLI 域断言保留并改新树: hardware inspect → rc=2（命令不存在是**正确行为**）;
@@ -27,7 +27,7 @@ sys.path.insert(0, os.path.join(REPO, "eng", "tools"))
 import gen_version  # noqa: E402
 
 # 根目录整合后 aio 落 lib/infrastructure/aio，其 PUBLIC include 面 = include/ + src/
-# （见根 CMakeLists.txt: target_include_directories(astrocs_aio PUBLIC ...)）。
+# （见根 CMakeLists.txt: target_include_directories(acsd_aio PUBLIC ...)）。
 # 测试侧独立编译必须同面，否则 aio_atomic_file.h / aio_file_io.h 找不到
 # （GATE-502：修复根目录整合后测试侧遗留的过时 include 面）。
 AIO_INCS = [
@@ -42,7 +42,7 @@ AIO_INCS = [
 
 
 def cli_binary():
-    env = os.environ.get("ASTROCS_CLI_BIN")
+    env = os.environ.get("ACSD_CLI_BIN")
     if env and os.path.isfile(env):
         return env
     for rel in (("build", "acsd"), ("build", "cli", "acsd")):
@@ -73,7 +73,7 @@ PROBE_MAIN = r"""
 #include "hardware_inspect.h"
 int main(int argc, char** argv) {
     const std::string build = argc > 1 ? argv[1] : std::string("0.0.0-alpha.0+g000000000000");
-    const std::string s = astrocs::backend_host::hardware_inspect_json_v1(build);
+    const std::string s = acsd::backend_host::hardware_inspect_json_v1(build);
     std::fputs(s.c_str(), stdout);
     std::fputc('\n', stdout);
     return 0;
@@ -99,7 +99,7 @@ class TestHardwareInspectCliDomain(unittest.TestCase):
         r = subprocess.run([EXE, "doctor", "--json"], capture_output=True, text=True, timeout=120)
         self.assertEqual(r.returncode, 0, r.stderr)
         doc = json.loads(r.stdout)   # 整体恰一 JSON 文档
-        self.assertEqual(doc["kind"], "astrocs_doctor")
+        self.assertEqual(doc["kind"], "acsd_doctor")
         self.assertEqual(doc["verdict"], "PASS")
         names = [c["name"] for c in doc["checks"]]
         self.assertIn("hardware_sanity", names)
@@ -181,7 +181,7 @@ class TestHardwareInspectProbe(unittest.TestCase):
         self.assertGreater(d["ram_bytes"], 0)
         self.assertEqual(d["page_size"], os.sysconf("SC_PAGESIZE"))
         self.assertIn(platform.machine(), ("x86_64",))
-        self.assertRegex(d["astrocs_build"], r"^" + re.escape(gen_version.read_base_version())
+        self.assertRegex(d["acsd_build"], r"^" + re.escape(gen_version.read_base_version())
                          + r"\+g[0-9a-f]{12}")
 
     def test_04_affinity_one_cpu_fixture(self):

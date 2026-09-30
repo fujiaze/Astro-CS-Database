@@ -77,8 +77,8 @@ class TestPhaseConfigFamily(unittest.TestCase):
             self.assertEqual([], errs, "%s 模板未通过 %s: %s" % (tpl_rel, PHASE_SCHEMAS[phase], errs))
             # phase 身份：mosaic/export 用模板的 phase_name 判别键；normalize 已按
             # GAP_AUDIT §9.68 改为多数据块形态（无 phase_name），身份由 schema 的
-            # x-astrocs-phase 承载 + 模板必须给出非空 blocks[]。
-            self.assertEqual(phase, schema["x-astrocs-phase"])
+            # x-acsd-phase 承载 + 模板必须给出非空 blocks[]。
+            self.assertEqual(phase, schema["x-acsd-phase"])
             if "phase_name" in tpl:
                 self.assertEqual(phase, tpl["phase_name"])
             else:
@@ -114,9 +114,9 @@ class TestPhaseConfigFamily(unittest.TestCase):
     def test_phase_config_not_writable_by_benchmark(self):
         for phase, rel in PHASE_SCHEMAS.items():
             schema = C.load_json(rel)
-            self.assertEqual("phase_config", schema["x-astrocs-config-class"])
-            self.assertNotIn("benchmark", schema["x-astrocs-writer"])
-            self.assertIn("benchmark", schema["x-astrocs-not-writable-by"])
+            self.assertEqual("phase_config", schema["x-acsd-config-class"])
+            self.assertNotIn("benchmark", schema["x-acsd-writer"])
+            self.assertIn("benchmark", schema["x-acsd-not-writable-by"])
 
     def test_no_aggregate_second_definition(self):
         """锚点保留路径 phase_config.schema.json 实现为三份 phase 专属 schema，不另留聚合等价定义。"""
@@ -237,7 +237,7 @@ class TestDefaultsContract(unittest.TestCase):
         self.assertEqual([], failures, "锚点失败 %d 条：\n  - %s" % (len(failures), "\n  - ".join(failures)))
 
     def test_design_named_defaults_all_present(self):
-        """docs/ASTROCS_DESIGN §3.3 点名的默认值项必须出现（含三项无权威数值者）。"""
+        """docs/ACSD_DESIGN §3.3 点名的默认值项必须出现（含三项无权威数值者）。"""
         _doc, fields = defaults_fields()
         for key in ["calibration.dark_light_exposure_tolerance", "psf.default_model",
                     "detection.threshold_sigma", "scalar_gate.rd", "scalar_gate.trend",
@@ -346,10 +346,10 @@ class TestCpuProfileMigration(unittest.TestCase):
                          "%s 下出现第二份 profile 定义" % schemas_dir)
 
     def test_writer_is_benchmark_only(self):
-        self.assertEqual("cpu_profile", self.schema["x-astrocs-config-class"])
-        self.assertEqual("benchmark", self.schema["x-astrocs-writer"])
+        self.assertEqual("cpu_profile", self.schema["x-acsd-config-class"])
+        self.assertEqual("benchmark", self.schema["x-acsd-writer"])
         for who in ("用户", "cli --template", "phase_config"):
-            self.assertIn(who, self.schema["x-astrocs-not-writable-by"])
+            self.assertIn(who, self.schema["x-acsd-not-writable-by"])
 
     def test_legacy_accessors_preserved(self):
         """既有读取面（eng/tests/backend + eng/tools/validate_cpu_profile.py）不得失去访问路径。"""
@@ -377,7 +377,7 @@ class TestCpuProfileMigration(unittest.TestCase):
         for k in ("vendor", "family", "model", "stepping", "os_abi", "features", "xcr0", "logical_available"):
             self.assertIn(k, host, "v2 host 未绑定 %s" % k)
         build = v2["properties"]["build"]["required"]
-        for k in ("astrocs_version", "source_commit", "benchmark_binary_sha256", "runtime_build_id", "provider_build_ids"):
+        for k in ("acsd_version", "source_commit", "benchmark_binary_sha256", "runtime_build_id", "provider_build_ids"):
             self.assertIn(k, build, "v2 build 未绑定 %s" % k)
         kernel = self.schema["$defs"]["kernel_v2"]
         for k in ("provider", "workers", "block", "self_test_sha256"):

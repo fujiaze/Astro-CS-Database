@@ -1,4 +1,4 @@
-// lib/infrastructure/observability/probes/include/astrocs/probe.h
+// lib/infrastructure/observability/probes/include/acsd/probe.h
 // ============================================================================
 // 性能探针框架 —— 单一开关、两层控制
 // ============================================================================
@@ -9,17 +9,17 @@
 //    这样不用的时候还可以把这些探针直接在 cmake 里面关掉。」
 //
 // 两层开关:
-//   1) 编译期  ASTROCS_PROBES (CMake option, 默认 OFF)
+//   1) 编译期  ACSD_PROBES (CMake option, 默认 OFF)
 //        OFF -> 本头文件只定义空语句宏 ((void)0): 无符号、无计时、无分配、
-//               不编译 probe.cpp, 链接产物中不存在任何 astrocs::probe::* 符号。
+//               不编译 probe.cpp, 链接产物中不存在任何 acsd::probe::* 符号。
 //        ON  -> 探针实现参与编译, 宏展开为真实的 RAII 计时/计数调用。
-//   2) 运行期  ASTROCS_PROBE_LOG=<path> (环境变量)
+//   2) 运行期  ACSD_PROBE_LOG=<path> (环境变量)
 //        未设置/空 -> 即便编译期 ON 也不产出任何文件、不做计时(仅一次 env 读取)。
 //        已设置   -> JSONL 写入 <path> (追加模式)。
 //
 // 可选调优环境变量:
-//   ASTROCS_PROBE_FLUSH_LINES=<n>  行数阈值 (默认 1024)
-//   ASTROCS_PROBE_FLUSH_MS=<n>     时间阈值毫秒 (默认 1000)
+//   ACSD_PROBE_FLUSH_LINES=<n>  行数阈值 (默认 1024)
+//   ACSD_PROBE_FLUSH_MS=<n>     时间阈值毫秒 (默认 1000)
 //
 // 输出格式: JSONL, 每行一个对象, 至少含
 //   ts_utc (RFC3339 UTC 毫秒), thread_id, scope, name, wall_us
@@ -36,7 +36,7 @@
 // ============================================================================
 #pragma once
 
-#if defined(ASTROCS_PROBES) && (ASTROCS_PROBES)
+#if defined(ACSD_PROBES) && (ACSD_PROBES)
 
 #include <array>
 #include <chrono>
@@ -44,10 +44,10 @@
 #include <string>
 #include <type_traits>
 
-namespace astrocs {
+namespace acsd {
 namespace probe {
 
-// 运行期开关: 仅当 ASTROCS_PROBE_LOG 指向非空路径时为 true。
+// 运行期开关: 仅当 ACSD_PROBE_LOG 指向非空路径时为 true。
 // 实现内部缓存, 反复调用代价 = 一次函数局部静态读取。
 bool enabled() noexcept;
 
@@ -95,7 +95,7 @@ class ScopeTimer {
   }
   ScopeTimer& tag(const char* key, const char* value) noexcept;
 
-  // 提前结束并落记录 (供 ASTROCS_PROBE_SCOPE_END 使用); 幂等, 之后析构不再重复。
+  // 提前结束并落记录 (供 ACSD_PROBE_SCOPE_END 使用); 幂等, 之后析构不再重复。
   void stop() noexcept;
 
  private:
@@ -131,53 +131,53 @@ void gauge_set(const char* scope, const char* name, double value) noexcept;
 void flush() noexcept;
 
 }  // namespace probe
-}  // namespace astrocs
+}  // namespace acsd
 
 // ── 宏 ───────────────────────────────────────────────────────────────────────
-#define ASTROCS_PROBE_ENABLED() (::astrocs::probe::enabled())
+#define ACSD_PROBE_ENABLED() (::acsd::probe::enabled())
 
-#define ASTROCS_PROBE_DETAIL_CAT_(a, b) a##b
-#define ASTROCS_PROBE_DETAIL_CAT(a, b) ASTROCS_PROBE_DETAIL_CAT_(a, b)
+#define ACSD_PROBE_DETAIL_CAT_(a, b) a##b
+#define ACSD_PROBE_DETAIL_CAT(a, b) ACSD_PROBE_DETAIL_CAT_(a, b)
 
-#define ASTROCS_PROBE_DETAIL_SCOPE1(name)                     \
-  ::astrocs::probe::ScopeTimer ASTROCS_PROBE_DETAIL_CAT(      \
-      _astrocs_probe_scope_, __COUNTER__)(name)
-#define ASTROCS_PROBE_DETAIL_SCOPE2(scope, name)              \
-  ::astrocs::probe::ScopeTimer ASTROCS_PROBE_DETAIL_CAT(      \
-      _astrocs_probe_scope_, __COUNTER__)(scope, name)
-#define ASTROCS_PROBE_DETAIL_PICK(_1, _2, NAME, ...) NAME
-#define ASTROCS_PROBE_DETAIL_UNUSED(...) ((void)0)
+#define ACSD_PROBE_DETAIL_SCOPE1(name)                     \
+  ::acsd::probe::ScopeTimer ACSD_PROBE_DETAIL_CAT(      \
+      _acsd_probe_scope_, __COUNTER__)(name)
+#define ACSD_PROBE_DETAIL_SCOPE2(scope, name)              \
+  ::acsd::probe::ScopeTimer ACSD_PROBE_DETAIL_CAT(      \
+      _acsd_probe_scope_, __COUNTER__)(scope, name)
+#define ACSD_PROBE_DETAIL_PICK(_1, _2, NAME, ...) NAME
+#define ACSD_PROBE_DETAIL_UNUSED(...) ((void)0)
 
-// ASTROCS_PROBE_SCOPE("phase1.drizzle.frame")
-// ASTROCS_PROBE_SCOPE("phase1.drizzle", "frame")
-#define ASTROCS_PROBE_SCOPE(...)                                              \
-  ASTROCS_PROBE_DETAIL_PICK(__VA_ARGS__, ASTROCS_PROBE_DETAIL_SCOPE2,         \
-                            ASTROCS_PROBE_DETAIL_SCOPE1,                      \
-                            ASTROCS_PROBE_DETAIL_UNUSED)(__VA_ARGS__)
+// ACSD_PROBE_SCOPE("phase1.drizzle.frame")
+// ACSD_PROBE_SCOPE("phase1.drizzle", "frame")
+#define ACSD_PROBE_SCOPE(...)                                              \
+  ACSD_PROBE_DETAIL_PICK(__VA_ARGS__, ACSD_PROBE_DETAIL_SCOPE2,         \
+                            ACSD_PROBE_DETAIL_SCOPE1,                      \
+                            ACSD_PROBE_DETAIL_UNUSED)(__VA_ARGS__)
 
-// 命名作用域 (需要后续 ASTROCS_PROBE_TAG 时使用):
-//   ASTROCS_PROBE_SCOPE_CTX(t, "phase1", "calibrate.frame");
-//   ASTROCS_PROBE_TAG(t, "frame_key", key.c_str());
-#define ASTROCS_PROBE_SCOPE_CTX(var, scope, name) \
-  ::astrocs::probe::ScopeTimer var(scope, name)
-#define ASTROCS_PROBE_SCOPE_END(var) ((var).stop())
-#define ASTROCS_PROBE_TAG(var, key, value) ((var).tag((key), (value)))
+// 命名作用域 (需要后续 ACSD_PROBE_TAG 时使用):
+//   ACSD_PROBE_SCOPE_CTX(t, "phase1", "calibrate.frame");
+//   ACSD_PROBE_TAG(t, "frame_key", key.c_str());
+#define ACSD_PROBE_SCOPE_CTX(var, scope, name) \
+  ::acsd::probe::ScopeTimer var(scope, name)
+#define ACSD_PROBE_SCOPE_END(var) ((var).stop())
+#define ACSD_PROBE_TAG(var, key, value) ((var).tag((key), (value)))
 
-#define ASTROCS_PROBE_COUNT(scope, name, delta) \
-  ::astrocs::probe::count_add((scope), (name), (delta))
-#define ASTROCS_PROBE_GAUGE(scope, name, value) \
-  ::astrocs::probe::gauge_set((scope), (name), (value))
-#define ASTROCS_PROBE_FLUSH() (::astrocs::probe::flush())
+#define ACSD_PROBE_COUNT(scope, name, delta) \
+  ::acsd::probe::count_add((scope), (name), (delta))
+#define ACSD_PROBE_GAUGE(scope, name, value) \
+  ::acsd::probe::gauge_set((scope), (name), (value))
+#define ACSD_PROBE_FLUSH() (::acsd::probe::flush())
 
-#else  // ASTROCS_PROBES off —— 零开销空语句, 不引入任何符号/头文件依赖
+#else  // ACSD_PROBES off —— 零开销空语句, 不引入任何符号/头文件依赖
 
-#define ASTROCS_PROBE_ENABLED() (false)
-#define ASTROCS_PROBE_SCOPE(...) ((void)0)
-#define ASTROCS_PROBE_SCOPE_CTX(var, scope, name) ((void)0)
-#define ASTROCS_PROBE_SCOPE_END(var) ((void)0)
-#define ASTROCS_PROBE_TAG(var, key, value) ((void)0)
-#define ASTROCS_PROBE_COUNT(scope, name, delta) ((void)0)
-#define ASTROCS_PROBE_GAUGE(scope, name, value) ((void)0)
-#define ASTROCS_PROBE_FLUSH() ((void)0)
+#define ACSD_PROBE_ENABLED() (false)
+#define ACSD_PROBE_SCOPE(...) ((void)0)
+#define ACSD_PROBE_SCOPE_CTX(var, scope, name) ((void)0)
+#define ACSD_PROBE_SCOPE_END(var) ((void)0)
+#define ACSD_PROBE_TAG(var, key, value) ((void)0)
+#define ACSD_PROBE_COUNT(scope, name, delta) ((void)0)
+#define ACSD_PROBE_GAUGE(scope, name, value) ((void)0)
+#define ACSD_PROBE_FLUSH() ((void)0)
 
-#endif  // ASTROCS_PROBES
+#endif  // ACSD_PROBES

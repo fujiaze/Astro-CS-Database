@@ -21,11 +21,11 @@
 
 #include <nlohmann/json.hpp>
 
-// CLEAN-403 (docs/ASTROCS_DESIGN §10「aio 是文件级唯一 I/O 边界」): manifest 读取经
+// CLEAN-403 (docs/ACSD_DESIGN §10「aio 是文件级唯一 I/O 边界」): manifest 读取经
 // aio 唯一实现 (aio_file::read_all), 本 TU 不自持 ifstream 通道。
 #include "aio_file_io.h"
 
-#include "astrocs/common_abi_v1.h"
+#include "acsd/common_abi_v1.h"
 #include "backend_loader.h"
 #include "baseline_kernels.h"
 #include "bench_harness.h"
@@ -34,16 +34,16 @@
 #include "sha256.h"
 
 extern "C" {
-int astrocs_host_services_default_v1(astrocs_host_services_v1* out, void** state_out);
-void astrocs_host_services_destroy_state_v1(void* state);
-void astrocs_host_state_set_budget_v1(void* state, uint32_t cpus, uint32_t max_workers,
-                                      astrocs_host_services_v1* out);
-int astrocs_backend_get_api_v1(uint32_t, uint32_t, const astrocs_host_services_v1*,
-                               astrocs_backend_api_v1*);
-uint64_t astrocs_cpu_detect_features_v1(void);
+int acsd_host_services_default_v1(acsd_host_services_v1* out, void** state_out);
+void acsd_host_services_destroy_state_v1(void* state);
+void acsd_host_state_set_budget_v1(void* state, uint32_t cpus, uint32_t max_workers,
+                                      acsd_host_services_v1* out);
+int acsd_backend_get_api_v1(uint32_t, uint32_t, const acsd_host_services_v1*,
+                               acsd_backend_api_v1*);
+uint64_t acsd_cpu_detect_features_v1(void);
 }
 
-namespace astrocs::backend_host {
+namespace acsd::backend_host {
 
 namespace {
 
@@ -271,8 +271,8 @@ Inputs build_inputs(const KernelSpec& sp, const std::string& sc) {
     return r;
 }
 
-/* 把 Inputs 填入 acs_baseline_params_v1 */
-void fill_params(acs_baseline_params_v1* p, const KernelSpec& sp, Inputs& in) {
+/* 把 Inputs 填入 acsd_baseline_params_v1 */
+void fill_params(acsd_baseline_params_v1* p, const KernelSpec& sp, Inputs& in) {
     std::memset(p, 0, sizeof(*p));
     p->head.struct_size = static_cast<uint32_t>(sizeof(*p));
     p->head.abi_version = ACS_ABI_VERSION_V1;
@@ -325,7 +325,7 @@ std::string utc_now() {
 }  // namespace
 
 /* 组装期不变量(唯一出处; 声明见 profile_gen.h)。返回 "" = 合规。
- * 依据: docs/ASTROCS_DESIGN.md §9「选择用稳定统计」——
+ * 依据: docs/ACSD_DESIGN.md §9「选择用稳定统计」——
  * 判 oracle 通过的候选必须有可复读的统计量; median<=0 与 oracle:pass 自相矛盾,
  * 唯一物理含义是"该候选根本没测到统计量"(例如 winner 统计量被未测量的 worker 覆盖拉空)。 */
 std::string profile_invariant_violation(const KernelProfile& kp) {
@@ -415,18 +415,18 @@ ProfileBundle generate_profile_v2(const std::string& mode, const std::string& bu
     ProfileBundle bundle;
 
     // ── 1. host services + 能力/配额 ──
-    astrocs_host_services_v1 host;
+    acsd_host_services_v1 host;
     void* state = nullptr;
-    astrocs_host_services_default_v1(&host, &state);
+    acsd_host_services_default_v1(&host, &state);
     const std::string hw_json = hardware_inspect_json_v1(build_id);
     const nlohmann::json hw = nlohmann::json::parse(hw_json);
     const uint32_t avail = static_cast<uint32_t>(hw.value("available_logical_cpus", 1u));
-    astrocs_host_state_set_budget_v1(state, avail, avail, &host);
+    acsd_host_state_set_budget_v1(state, avail, avail, &host);
 
     // ── 2. 加载可用 provider(manifest 预检; 无 manifest=仅内置 baseline) ──
     struct LoadedProvider {
         std::string id;
-        astrocs_backend_api_v1 api;
+        acsd_backend_api_v1 api;
         void* handle = nullptr;
         bool ok = false;
         std::string fail_reason;
@@ -435,8 +435,8 @@ ProfileBundle generate_profile_v2(const std::string& mode, const std::string& bu
     {
         LoadedProvider base;
         std::memset(&base.api, 0, sizeof(base.api));
-        astrocs_backend_get_api_v1(ACS_ABI_VERSION_V1,
-                                   static_cast<uint32_t>(sizeof(astrocs_host_services_v1)),
+        acsd_backend_get_api_v1(ACS_ABI_VERSION_V1,
+                                   static_cast<uint32_t>(sizeof(acsd_host_services_v1)),
                                    &host, &base.api);
         base.id = "baseline";
         base.ok = true;
@@ -536,7 +536,7 @@ ProfileBundle generate_profile_v2(const std::string& mode, const std::string& bu
                 for (auto& p : providers) if (p.ok && p.id == pid) { prov = &p; break; }
                 if (!prov) continue;
                 // 从 provider API 找到该 kernel entry
-                const astrocs_kernel_entry_v1* entry = nullptr;
+                const acsd_kernel_entry_v1* entry = nullptr;
                 for (uint32_t k = 0; k < prov->api.kernel_count; ++k) {
                     if (std::strncmp(prov->api.kernels[k].algorithm_id, sp.kernel_id,
                                      sizeof(prov->api.kernels[k].algorithm_id)) == 0) {
@@ -557,8 +557,8 @@ ProfileBundle generate_profile_v2(const std::string& mode, const std::string& bu
                 for (const uint32_t w_cand : workers_cand) {
                     for (const uint64_t blk : blocks) {
                         // budget 设为本候选 worker 数; block 通过 params 辅助传入
-                        astrocs_host_state_set_budget_v1(state, avail, w_cand, &host);
-                        acs_baseline_params_v1 p;
+                        acsd_host_state_set_budget_v1(state, avail, w_cand, &host);
+                        acsd_baseline_params_v1 p;
                         fill_params(&p, sp, in);
                         (void)blk;   // v1 kernel 无 block 参数; 记录但执行语义一致
                         BenchResult br = bench_kernel(&host, pid.c_str(), entry->fn, p, ref,
@@ -731,13 +731,13 @@ ProfileBundle generate_profile_v2(const std::string& mode, const std::string& bu
 
     // ── 6. 关闭 provider handles ──
     for (auto& p : providers) if (p.handle) close_backend(p.handle);
-    astrocs_host_services_destroy_state_v1(state);
+    acsd_host_services_destroy_state_v1(state);
 
     // ── 7. 组装 v2 JSON ──
     bundle.raw_samples_sha256 = raw_candidates_sha256(bundle.raw);
     // 组装期违反项随 bundle 交给调用方(fail-closed); 不写入 profile 文本, 保持 v2 schema 闭包。
     nlohmann::json j;
-    j["schema"] = "astrocs.cpu-profile/v2";
+    j["schema"] = "acsd.cpu-profile/v2";
     j["profile_id"] = "sha256:" + bundle.raw_samples_sha256;
     j["created_utc"] = utc_now();
     j["host"] = {
@@ -754,14 +754,14 @@ ProfileBundle generate_profile_v2(const std::string& mode, const std::string& bu
     };
     nlohmann::json provider_ids = nlohmann::json::object();
     for (const auto& p : providers) provider_ids[p.id] = p.ok ? "loaded" : p.fail_reason;
-    // astrocs_version: 记录纯 base 版本(去 +g<hash> 后缀; 来源 ASTROCS_VERSION_STRING
+    // acsd_version: 记录纯 base 版本(去 +g<hash> 后缀; 来源 ACSD_VERSION_STRING
     // → build_id, 版本单源 VER-001)。verify 侧仅做 semver 形态格式校验, 不钉死版本
     // 字面量(N3: 字面量比较在版本 bump 后令自生成 profile 恒 verify 失败)。
     std::string ver = build_id;
     const auto plus = ver.find('+');
     if (plus != std::string::npos) ver = ver.substr(0, plus);
     j["build"] = {
-        {"astrocs_version", ver},
+        {"acsd_version", ver},
         {"source_commit", commit},
         {"benchmark_binary_sha256", cli_sha256},
         {"runtime_build_id", build_id},
@@ -816,7 +816,7 @@ ProfileBundle generate_profile_v2(const std::string& mode, const std::string& bu
 }
 
 namespace {
-// N3: astrocs_version 仅做 semver 形态格式校验 ^\d+\.\d+\.\d+[-+.0-9A-Za-z]*$。
+// N3: acsd_version 仅做 semver 形态格式校验 ^\d+\.\d+\.\d+[-+.0-9A-Za-z]*$。
 // 版本与 build 的绑定语义(约束 C.7)由 source_commit==expected_commit +
 // benchmark_binary_sha256 + runtime_build_id + provider_build_ids 承担(全部保留);
 // base 版本由 source_commit 唯一决定(VERSION 为 git 跟踪单源), 版本字面量比较是
@@ -853,8 +853,8 @@ std::string verify_profile_v2(const std::string& json_text, const std::string& e
     } catch (const nlohmann::json::parse_error& e) {
         return std::string("malformed JSON: ") + e.what();
     }
-    if (d.value("schema", "") != "astrocs.cpu-profile/v2")
-        return "schema != astrocs.cpu-profile/v2";
+    if (d.value("schema", "") != "acsd.cpu-profile/v2")
+        return "schema != acsd.cpu-profile/v2";
     for (const char* k : {"profile_id", "created_utc", "host", "build", "memory_bandwidth",
                           "raw_samples_sha256", "kernels"}) {
         if (!d.contains(k) || d[k].is_null()) return std::string("missing required '") + k + "'";
@@ -867,12 +867,12 @@ std::string verify_profile_v2(const std::string& json_text, const std::string& e
     if (hw.value("arch", "") != "amd64") return "host.arch != amd64";
     if (hw.value("logical_available", 0) < 1) return "host.logical_available < 1";
     const auto& bd = d["build"];
-    for (const char* k : {"astrocs_version", "source_commit", "benchmark_binary_sha256",
+    for (const char* k : {"acsd_version", "source_commit", "benchmark_binary_sha256",
                           "runtime_build_id", "provider_build_ids"}) {
         if (!bd.contains(k) || bd[k].is_null()) return std::string("build missing '") + k + "'";
     }
-    if (!valid_semver_base(bd.value("astrocs_version", "")))
-        return "build.astrocs_version not semver-like (X.Y.Z[-pre][+meta])";
+    if (!valid_semver_base(bd.value("acsd_version", "")))
+        return "build.acsd_version not semver-like (X.Y.Z[-pre][+meta])";
     const std::string sc = bd.value("source_commit", "");
     if (sc.size() != 40 || sc.find_first_not_of("0123456789abcdef") != std::string::npos)
         return "build.source_commit not 40hex";
@@ -963,4 +963,4 @@ std::string verify_profile_v2(const std::string& json_text, const std::string& e
     return "";   // 合法
 }
 
-}  // namespace astrocs::backend_host
+}  // namespace acsd::backend_host

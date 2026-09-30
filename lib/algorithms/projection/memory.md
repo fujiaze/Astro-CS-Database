@@ -1,10 +1,10 @@
-# memory.md — astrocs.p3.projection（P3-PROJ-DOC 冻结）
+# memory.md — acsd.p3.projection（P3-PROJ-DOC 冻结）
 
 > **W4-A9 批次 1（2026-09-17）**：本文件下文所有 `lib/phase3_session/p3_wcs.*`
-> 路径已随生产源迁至 **`lib/algorithms/projection/p3_wcs.{h,cpp}`**（docs/ASTROCS_DESIGN
+> 路径已随生产源迁至 **`lib/algorithms/projection/p3_wcs.{h,cpp}`**（docs/ACSD_DESIGN
 > §7.1「projection」行），共址测试在 `lib/algorithms/projection/tests/p3wcs/**`
-> （ctest 名 `p3_wcs`）；构建为 `astrocs_p3_projection_wcs` STATIC，经
-> `astrocs_phase3_session` → `astrocs_module_adapters` 闭包进产品图。
+> （ctest 名 `p3_wcs`）；构建为 `acsd_p3_projection_wcs` STATIC，经
+> `acsd_phase3_session` → `acsd_module_adapters` 闭包进产品图。
 > 下文保留冻结时（2026-09-11）的历史表述，行号锚按新址复测。
 
 - 任务: P3-PROJ-DOC（MODULE_MIGRATION_MATRIX P3-PROJ 行，owner
@@ -14,7 +14,7 @@
 - 落位: `lib/algorithms/projection/`（本目录）。实测生产源
   lib/phase3_session/p3_wcs.cpp + p3_wcs.h 位于 lib/phase3_session/
   ——该目录为 Phase3 会话编排域共享源（p3_session/p3_resample/
-  p3_output/p3_wcs/hips_properties 五源同库 astrocs_phase3_session，
+  p3_output/p3_wcs/hips_properties 五源同库 acsd_phase3_session，
   根 CMakeLists.txt:460-465），非整目录归属本域（矩阵
   legacy_paths="lib/phase3_session projection sources" 只圈
   projection sources）；按 lib/algorithms/upm→phase2_samp→phase2_rej→
@@ -22,21 +22,21 @@
   仅合同文件、无源码、不与 legacy 目录重叠；legacy 生产源引用
   不搬家。
 - 矩阵权威（P3-PROJ 行，禁止编造）: owner=SA-P3-P25、
-  module_id=astrocs.p3.projection、target_dll=
-  astrocs_p3_projection.dll、legacy_paths="lib/phase3_session
+  module_id=acsd.p3.projection、target_dll=
+  acsd_p3_projection.dll、legacy_paths="lib/phase3_session
   projection sources"、depends_on_int=**ABI-005;DATA-004;RT-006**、
   science_specific_acceptance="TAN/SIN/ZEA/CAR/AIT explicit;FITS WCS
   Paper II;domain/wrap/poles;CRPIX/CRVAL/CD;WCSLIB test oracle;
   round-trip thresholds"。
-- module_id 决策: 矩阵行 astrocs.p3.projection 为冻结权威依据，
-  直接沿用；descriptor 占位 module_id=astrocs.phase3.wcs
+- module_id 决策: 矩阵行 acsd.p3.projection 为冻结权威依据，
+  直接沿用；descriptor 占位 module_id=acsd.phase3.wcs
   （module_adapters.cpp:344-361 p3_wcs_descriptor）为编排层词汇，
   由 P3-PROJ-INT 对齐，不入合同。
-- MOD ID 决策: registry 现有行 MOD-astrocs-phase3-wcs（单
+- MOD ID 决策: registry 现有行 MOD-acsd-phase3-wcs（单
   descriptor 域），module.yaml id 与之一致；registry 页手写化
-  （docs/detail/registry/astrocs.phase3.wcs.md，原 GENERATED
+  （docs/detail/registry/acsd.phase3.wcs.md，原 GENERATED
   风格改 ACTIVE_INFORMATIVE 手写合同页，照
-  astrocs.phase3.writer.md 先例），模块总页新建
+  acsd.phase3.writer.md 先例），模块总页新建
   docs/detail/phase3_proj.md。
 - 本任务 ID 决策（唯一方案，避免与既有占位冲突）:
   SCI=SCI-P3-001（docs/science/PHASE3_HIPS_TO_FITS.md 共享 FROZEN
@@ -74,7 +74,7 @@
   入参 FITS=+1）、p3_wcs_world2pix :42-43、p3_wcs_fits_keywords
   :46（std::string 返回）。
   lib/phase3_session/p3_wcs.cpp（165 行）: 常量 :13-22
-  （kMaxAbsDec=85.0、kMaxSide=20000 可 ASTROCS_P3_MAX_SIDE 编译期
+  （kMaxAbsDec=85.0、kMaxSide=20000 可 ACSD_P3_MAX_SIDE 编译期
   覆盖）、normalize_ra :24-27、p3_wcs_make :30-90（parity 校验
   :39/|dec|>85 拒 :40/scale>0 :41/W,H∈[1,kMaxSide] :42-43/
   crpix=(W+1)/2 :47-48/G1 CD 构造 :51-68：east_left
@@ -101,14 +101,14 @@
   1) PA 未接线——p3_session.cpp:160 rotation_pa_deg 恒 0.0，
      内核 PA 能力（:51-68 推广 CD）无会话消费方（整改归
      P3-PROJ-IMPL/INT）。
-  2) kMaxSide=20000 可经 ASTROCS_P3_MAX_SIDE 编译期覆盖
+  2) kMaxSide=20000 可经 ACSD_P3_MAX_SIDE 编译期覆盖
      （p3_wcs.cpp:18-22）——合同上限 20000 为默认值语义，如实
      冻结。
   3) projection 字段硬编码 "TAN"（:36/:89 (void)proj）；
      P3_WCS_UNSUPPORTED 枚举现无产生点（备而不用，SIN/ZEA/CAR/
      AIT 扩展 TODO）。
   4) 探针/回归现状走内联编译（非独立 DLL/静态库挂载）——
-     astrocs_p3_projection.dll 未建，入口由 P3-PROJ-IMPL 建立。
+     acsd_p3_projection.dll 未建，入口由 P3-PROJ-IMPL 建立。
 - 五门验收: run/local/agent_p3_proj_doc/selfcheck.py ALL PASS
   （gate1 矩阵 31 modules errors=0、gate2 pytest 9 passed、
   gate3 contracts=90、gate4 doccheck rc=0、红线域 git status 零
@@ -118,13 +118,13 @@
   批次 P（eng/tests/backend、eng/tests/cli）/批次 Q（lib/infrastructure/scheduler/、lib/algorithms/shared
   io_adapter、lib/infrastructure/cli/main.cpp）在途域只读不动；本任务零 git 操作。
 
-## P3-001（2026-09-10，控制包 ASTROCS-CONSTITUTION-ALIGNMENT-V1 rev54，attempt 1）
+## P3-001（2026-09-10，控制包 ACSD-CONSTITUTION-ALIGNMENT-V1 rev54，attempt 1）
 
 - 任务: 版本化 projection registry 与冻结投影实现。落位 `p3_projection.h`
-  （唯一权威签名头，namespace astrocs::phase3proj）+ `p3_projection.cpp`
+  （唯一权威签名头，namespace acsd::phase3proj）+ `p3_projection.cpp`
   （registry v1 冻结表 4 行 TAN/SIN/CAR/AIT + 函数指针 dispatch +
   统一操作面 make/pix2world/world2pix/fits_keywords + registry_selfcheck）。
-- 冻结依据: registry 六要素/不散落 CLI switch；现行 = `docs/ASTROCS_DESIGN.md` §6.3（八投影）+ 本目录 module.yaml/README
+- 冻结依据: registry 六要素/不散落 CLI switch；现行 = `docs/ACSD_DESIGN.md` §6.3（八投影）+ 本目录 module.yaml/README
   （首批四投影冻结，新增须注册+独立 Oracle）；TAN 逐式沿用
   lib/phase3_session/p3_wcs.cpp 冻结生产事实（G1/G2 零改动）；SIN/CAR/AIT
   为 §18.1（原宪章条款，已废止）新 claim，ALG 层唯一权威落位 docs/science/algorithms/PHASE3_PROJ_IMPL.md
@@ -142,7 +142,7 @@
   eng/tests/backend/test_p3_projection_oracle.py（numpy 完全独立实现对拍 +
   跨进程 sha256 确定性 + CTYPE）；eng/tests/unit/CMakeLists.txt 注册
   p3_projection_units/p3_projection_fault（直编生产源，先例同构）。
-- 故障注入: ASTROCS_P3PROJ_FAULT=tan|sin|car|ait|registry 五模式注入等价
+- 故障注入: ACSD_P3PROJ_FAULT=tan|sin|car|ait|registry 五模式注入等价
   缺陷必败实测（FAULT-EFFECT-CONFIRMED ×5）；测试级注入、生产源零 getenv。
 - 边界: 根 CMakeLists.txt/lib/phase3_session/docs/contracts 零改动
   （out_of_scope_entries=0）；生产构建挂载（dll/adapter/会话消费）归

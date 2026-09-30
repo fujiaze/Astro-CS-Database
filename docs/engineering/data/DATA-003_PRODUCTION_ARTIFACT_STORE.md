@@ -1,6 +1,6 @@
 # 生产 ArtifactStore 接线
 
-> 上游：docs/ASTROCS_DESIGN.md §8.2（阶段内命名块内存管线）、§10（I/O 与原子产品）、
+> 上游：docs/ACSD_DESIGN.md §8.2（阶段内命名块内存管线）、§10（I/O 与原子产品）、
 > `docs/engineering/data/DATA-002_PHASE_PRODUCT_EXCHANGE.md`（三阶段产品交换、跨 Phase 仅磁盘交换）、
 > `docs/engineering/ARCH-001.md`（phase-isolated Runtime 的调度与运行结构）
 
@@ -17,7 +17,7 @@
 > 验收：spy Store 证明每读写经过 Store；绕过路径/producer 重复/错误 schema/
 > 磁盘满/进程中断/取消均失败且可恢复；manifest hash 可重算。
 
-约束来源：`docs/ASTROCS_DESIGN.md` §8.2（阶段内命名块内存管线）、§10（I/O 与原子产品：三 Phase
+约束来源：`docs/ACSD_DESIGN.md` §8.2（阶段内命名块内存管线）、§10（I/O 与原子产品：三 Phase
 隔离产品命令；阶段间只通过原子发布、哈希和 provenance 完整的磁盘产品/manifest 交换）；
 `docs/engineering/ARCH-001.md`（Pipeline edge 传递 ArtifactHandle，不是路径字符串）；artifact manifest 机器合同
 （`eng/contracts/data/artifact_manifest.schema.json` 与 `eng/contracts/data/artifact_types.registry.json`；

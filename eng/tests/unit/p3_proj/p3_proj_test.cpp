@@ -20,7 +20,7 @@
 //   H CRVAL2 进映射（Paper II §2.2 三 Euler 角）: CRPIX↔CRVAL 定义性不变量、
 //     倾斜 CAR/AIT 相对恒等旋转必不等（负例: CRVAL2 不进映射必红）。
 //   F 确定性 + 1/N worker 分块 bitwise 一致。
-//   G 故障注入（ASTROCS_P3PROJ_FAULT）等价缺陷必败（测试级注入，生产源零 getenv）。
+//   G 故障注入（ACSD_P3PROJ_FAULT）等价缺陷必败（测试级注入，生产源零 getenv）。
 #include "p3_proj.h"
 
 #include <algorithm>
@@ -33,12 +33,12 @@
 #include <thread>
 #include <vector>
 
-using astrocs::phase3proj::v6::Descriptor;
-using astrocs::phase3proj::v6::Plan;
-using astrocs::phase3proj::v6::ProjectionId;
-using astrocs::phase3proj::v6::ProjStatus;
-using astrocs::phase3proj::v6::SampleSemantics;
-using astrocs::phase3proj::v6::Spec;
+using acsd::phase3proj::v6::Descriptor;
+using acsd::phase3proj::v6::Plan;
+using acsd::phase3proj::v6::ProjectionId;
+using acsd::phase3proj::v6::ProjStatus;
+using acsd::phase3proj::v6::SampleSemantics;
+using acsd::phase3proj::v6::Spec;
 
 namespace {
 
@@ -124,7 +124,7 @@ Descriptor make_case(ProjectionId id, double ra0, double dec0, double scale, int
                      int h) {
     Descriptor d;
     const ProjStatus st =
-        astrocs::phase3proj::v6::make(id, ra0, dec0, scale, w, h, "east_left", 0.0, &d);
+        acsd::phase3proj::v6::make(id, ra0, dec0, scale, w, h, "east_left", 0.0, &d);
     CHECK_MSG(st == ProjStatus::kOk, "make must succeed");
     return d;
 }
@@ -132,27 +132,27 @@ Descriptor make_case(ProjectionId id, double ra0, double dec0, double scale, int
 // ---- A registry ----
 void test_registry() {
     int n = -1;
-    const Spec* tab = astrocs::phase3proj::v6::registry_table(&n);
+    const Spec* tab = acsd::phase3proj::v6::registry_table(&n);
     CHECK_MSG(n == 4,
               "registry 已实现恰 4 行（TAN/SIN/CAR/AIT；DESIGN §6.3 八投影之一部）");
     CHECK_MSG(tab != nullptr, "registry table 非空");
-    CHECK_MSG(astrocs::phase3proj::v6::kProjectionRegistryVersion == 3,
+    CHECK_MSG(acsd::phase3proj::v6::kProjectionRegistryVersion == 3,
               "registry 版本 = 3（Paper II CRVAL2 旋转 + AIT A≤1 + CAR 极行 fail-closed）");
     // 权威冻结集合 = DESIGN §6.3 八投影；本层实现为其子集，表内 code 必须属于该集合
     int nf = -1;
-    const char* const* frozen = astrocs::phase3proj::v6::registry_frozen_set(&nf);
+    const char* const* frozen = acsd::phase3proj::v6::registry_frozen_set(&nf);
     CHECK_MSG(nf == 8 && frozen != nullptr, "冻结集合恰 8 行（DESIGN §6.3）");
     const char* frozen_expect[8] = {"TAN", "SIN", "CAR", "AIT",
                                     "STG", "MOL", "CEA", "ZEA"};
     for (int i = 0; i < 8; ++i) {
         CHECK_MSG(std::strcmp(frozen[i], frozen_expect[i]) == 0,
                   "冻结集合顺序 = DESIGN §6.3");
-        CHECK_MSG(astrocs::phase3proj::v6::registry_is_frozen_code(frozen[i]),
+        CHECK_MSG(acsd::phase3proj::v6::registry_is_frozen_code(frozen[i]),
                   "冻结集成员判定为真");
     }
-    CHECK_MSG(!astrocs::phase3proj::v6::registry_is_frozen_code("ARC"),
+    CHECK_MSG(!acsd::phase3proj::v6::registry_is_frozen_code("ARC"),
               "非冻结集投影（ARC）判定为假");
-    CHECK_MSG(!astrocs::phase3proj::v6::registry_is_frozen_code(nullptr),
+    CHECK_MSG(!acsd::phase3proj::v6::registry_is_frozen_code(nullptr),
               "nullptr -> false（fail-closed）");
     const char* codes[4] = {"TAN", "SIN", "CAR", "AIT"};
     for (int i = 0; i < 4; ++i) {
@@ -160,21 +160,21 @@ void test_registry() {
         CHECK_MSG(tab[i].pix2world && tab[i].world2pix, "函数指针非空");
         CHECK_MSG(tab[i].singularity_kind && tab[i].singularity_kind[0] != '\0',
                   "奇点声明非空（DESIGN §6.3 六要素）");
-        CHECK_MSG(astrocs::phase3proj::v6::registry_is_frozen_code(tab[i].code),
+        CHECK_MSG(acsd::phase3proj::v6::registry_is_frozen_code(tab[i].code),
                   "已实现 code 属于 DESIGN §6.3 冻结集");
         CHECK_MSG(tab[i].max_abs_crval_dec_deg == 85.0, "中心守卫 85°");
         CHECK_MSG(tab[i].max_fov_deg > 0.0, "合法 FOV 声明 > 0");
-        CHECK_MSG(astrocs::phase3proj::v6::registry_find(codes[i]) == &tab[i],
+        CHECK_MSG(acsd::phase3proj::v6::registry_find(codes[i]) == &tab[i],
                   "registry_find 命中");
-        CHECK_MSG(astrocs::phase3proj::v6::registry_find_id((ProjectionId)i) == &tab[i],
+        CHECK_MSG(acsd::phase3proj::v6::registry_find_id((ProjectionId)i) == &tab[i],
                   "registry_find_id 命中");
     }
-    CHECK_MSG(astrocs::phase3proj::v6::registry_selfcheck() == 0, "registry 自检全过");
-    CHECK_MSG(astrocs::phase3proj::v6::registry_find("ZEA") == nullptr,
+    CHECK_MSG(acsd::phase3proj::v6::registry_selfcheck() == 0, "registry 自检全过");
+    CHECK_MSG(acsd::phase3proj::v6::registry_find("ZEA") == nullptr,
               "冻结集内未实现投影 ZEA -> nullptr（无 fallback；实施归 P3-001/GAP-011）");
-    CHECK_MSG(astrocs::phase3proj::v6::registry_find("car") == nullptr,
+    CHECK_MSG(acsd::phase3proj::v6::registry_find("car") == nullptr,
               "大小写敏感，无静默");
-    CHECK_MSG(astrocs::phase3proj::v6::registry_find_id((ProjectionId)9) == nullptr,
+    CHECK_MSG(acsd::phase3proj::v6::registry_find_id((ProjectionId)9) == nullptr,
               "越界 id -> nullptr");
 }
 
@@ -194,7 +194,7 @@ void test_standard_wcs() {
                 const double y = (c.h - 1) * j / 6.0;
                 double ra = 0, dec = 0, xb = 0, yb = 0;
                 const ProjStatus st =
-                    astrocs::phase3proj::v6::pix2world(&d, x, y, &ra, &dec);
+                    acsd::phase3proj::v6::pix2world(&d, x, y, &ra, &dec);
                 if (st != ProjStatus::kOk) continue;
                 // 独立 zenithal oracle（TAN/SIN）
                 if (c.id == ProjectionId::kTAN || c.id == ProjectionId::kSIN) {
@@ -245,7 +245,7 @@ void test_standard_wcs() {
                 }
                 // 往返
                 const ProjStatus st2 =
-                    astrocs::phase3proj::v6::world2pix(&d, ra, dec, &xb, &yb);
+                    acsd::phase3proj::v6::world2pix(&d, ra, dec, &xb, &yb);
                 if (st2 == ProjStatus::kOk) {
                     CHECK_MSG(std::hypot(xb - x, yb - y) < kRoundtripTolPx,
                               "往返 < 1e-6 px");
@@ -263,7 +263,7 @@ void test_solid_angle() {
     {
         const Descriptor d = make_case(ProjectionId::kCAR, 0, 0, 0.2, 16, 601);
         std::vector<double> om(static_cast<size_t>(16) * 601, 0.0);
-        CHECK_MSG(astrocs::phase3proj::v6::solid_angle_grid(&d, om.data(), nullptr) ==
+        CHECK_MSG(acsd::phase3proj::v6::solid_angle_grid(&d, om.data(), nullptr) ==
                       ProjStatus::kOk, "CAR 网格 Ω 全 OK");
         double mn = om[0], mx = om[0];
         for (double v : om) { mn = std::min(mn, v); mx = std::max(mx, v); }
@@ -288,7 +288,7 @@ void test_solid_angle() {
     {
         const Descriptor d = make_case(ProjectionId::kAIT, 0, 0, 0.2, 61, 61);
         std::vector<double> om(61 * 61, 0.0);
-        astrocs::phase3proj::v6::solid_angle_grid(&d, om.data(), nullptr);
+        acsd::phase3proj::v6::solid_angle_grid(&d, om.data(), nullptr);
         double mn = om[0], mx = om[0];
         for (double v : om) { mn = std::min(mn, v); mx = std::max(mx, v); }
         CHECK_MSG(mx / mn < 1.00001, "AIT 等积 Ω ratio < 1.00001");
@@ -313,13 +313,13 @@ void test_solid_angle() {
     {
         const Descriptor d0 = make_case(ProjectionId::kTAN, 0, 0, 0.2, 11, 11);
         std::vector<double> om0(121, 0.0);
-        astrocs::phase3proj::v6::solid_angle_grid(&d0, om0.data(), nullptr);
+        acsd::phase3proj::v6::solid_angle_grid(&d0, om0.data(), nullptr);
         double mn = om0[0], mx = om0[0];
         for (double v : om0) { mn = std::min(mn, v); mx = std::max(mx, v); }
         CHECK_MSG(mx / mn < 1.001, "TAN 0.2° 小场 Ω ratio < 1.001");
         const Descriptor d1 = make_case(ProjectionId::kTAN, 0, 60, 0.2, 61, 61);
         std::vector<double> om1(61 * 61, 0.0);
-        astrocs::phase3proj::v6::solid_angle_grid(&d1, om1.data(), nullptr);
+        acsd::phase3proj::v6::solid_angle_grid(&d1, om1.data(), nullptr);
         double mn1 = om1[0], mx1 = om1[0];
         for (double v : om1) { mn1 = std::min(mn1, v); mx1 = std::max(mx1, v); }
         const double ratio1 = mx1 / mn1;
@@ -333,8 +333,8 @@ void test_solid_angle() {
         for (int j = 0; j < 11; ++j) {
             for (int i = 0; i < 11; ++i) {
                 double a = 0, b = 0;
-                const auto sa = astrocs::phase3proj::v6::pixel_solid_angle(&d, i, j, &a);
-                const auto sb = astrocs::phase3proj::v6::pixel_solid_angle_differential(
+                const auto sa = acsd::phase3proj::v6::pixel_solid_angle(&d, i, j, &a);
+                const auto sb = acsd::phase3proj::v6::pixel_solid_angle_differential(
                     &d, i, j, &b);
                 if (sa == ProjStatus::kOk && sb == ProjStatus::kOk)
                     worst = std::max(worst, std::fabs(a - b) / a);
@@ -350,11 +350,11 @@ void test_solid_angle() {
         // fail-closed: 越域像素 Ω 不产值
         const Descriptor dsin = make_case(ProjectionId::kSIN, 0, 0, 0.5, 64, 64);
         double om = -1.0;
-        const ProjStatus st = astrocs::phase3proj::v6::pixel_solid_angle(
+        const ProjStatus st = acsd::phase3proj::v6::pixel_solid_angle(
             &dsin, 1e6, 1e6, &om);
         CHECK_MSG(st != ProjStatus::kOk && om == -1.0,
                   "越域 Ω fail-closed: 非 OK 且 *omega_sr 不变（禁零填）");
-        CHECK_MSG(astrocs::phase3proj::v6::pixel_solid_angle(nullptr, 0, 0, &om) ==
+        CHECK_MSG(acsd::phase3proj::v6::pixel_solid_angle(nullptr, 0, 0, &om) ==
                       ProjStatus::kParam,
                   "Ω 空指针 -> PARAM");
     }
@@ -369,60 +369,60 @@ void test_normalisation() {
                     0.0, 0.1, 0.9, 1.5, 0.0,
                     0.0, 0.0, 0.0, 0.0, 1.5};
     double r[15], s[15], s2[15], rs[3], cs[5];
-    CHECK_MSG(astrocs::phase3proj::v6::row_normalise(a, m, n, om_out, r) ==
+    CHECK_MSG(acsd::phase3proj::v6::row_normalise(a, m, n, om_out, r) ==
                   ProjStatus::kOk, "row_normalise OK");
-    CHECK_MSG(astrocs::phase3proj::v6::col_normalise(a, m, n, om_in, s) ==
+    CHECK_MSG(acsd::phase3proj::v6::col_normalise(a, m, n, om_in, s) ==
                   ProjStatus::kOk, "col_normalise OK");
-    astrocs::phase3proj::v6::matrix_row_sums(r, m, n, rs);
-    astrocs::phase3proj::v6::matrix_col_sums(s, m, n, cs);
+    acsd::phase3proj::v6::matrix_row_sums(r, m, n, rs);
+    acsd::phase3proj::v6::matrix_col_sums(s, m, n, cs);
     for (int i = 0; i < m; ++i)
         CHECK_MSG(std::fabs(rs[i] - 1.0) < kRowSumTol, "Σ_j R_ij = 1（行归一）");
     for (int j = 0; j < n; ++j)
         CHECK_MSG(std::fabs(cs[j] - 1.0) < kRowSumTol, "Σ_i S_ij = 1（列归一）");
     // S_ij = R_ij Ω'_i/Ω_j
-    CHECK_MSG(astrocs::phase3proj::v6::row_to_col(r, m, n, om_out, om_in, s2) ==
+    CHECK_MSG(acsd::phase3proj::v6::row_to_col(r, m, n, om_out, om_in, s2) ==
                   ProjStatus::kOk, "row_to_col OK");
     for (int k = 0; k < m * n; ++k)
         CHECK_MSG(std::fabs(s2[k] - s[k]) < 1e-15, "S_ij = R_ij Ω'_i/Ω_j");
     // 负例: R/S 互换必红（R 不满足列归一；S 不满足行归一）
     double cs_r[5], rs_s[3];
-    astrocs::phase3proj::v6::matrix_col_sums(r, m, n, cs_r);
-    astrocs::phase3proj::v6::matrix_row_sums(s, m, n, rs_s);
+    acsd::phase3proj::v6::matrix_col_sums(r, m, n, cs_r);
+    acsd::phase3proj::v6::matrix_row_sums(s, m, n, rs_s);
     double worst_col = 0.0, worst_row = 0.0;
     for (int j = 0; j < n; ++j) worst_col = std::max(worst_col, std::fabs(cs_r[j] - 1.0));
     for (int i = 0; i < m; ++i) worst_row = std::max(worst_row, std::fabs(rs_s[i] - 1.0));
     CHECK_MSG(worst_col > 0.1, "负例: R 用作列归一必红（R/S 不可互替）");
     CHECK_MSG(worst_row > 0.1, "负例: S 用作行归一必红（R/S 不可互替）");
     // 语义-归一二元一致门
-    CHECK_MSG(astrocs::phase3proj::v6::semantics_compatible(
+    CHECK_MSG(acsd::phase3proj::v6::semantics_compatible(
                   SampleSemantics::kSurfaceBrightnessRowNorm, true, false),
               "surface_brightness <-> 行归一");
-    CHECK_MSG(!astrocs::phase3proj::v6::semantics_compatible(
+    CHECK_MSG(!acsd::phase3proj::v6::semantics_compatible(
                   SampleSemantics::kSurfaceBrightnessRowNorm, false, true),
               "surface_brightness 用列归一 -> 不可兼容（负例）");
-    CHECK_MSG(astrocs::phase3proj::v6::semantics_compatible(
+    CHECK_MSG(acsd::phase3proj::v6::semantics_compatible(
                   SampleSemantics::kPointSourceFluxColNorm, false, true),
               "point_source_flux <-> 列归一");
-    CHECK_MSG(!astrocs::phase3proj::v6::semantics_compatible(
+    CHECK_MSG(!acsd::phase3proj::v6::semantics_compatible(
                   SampleSemantics::kPointSourceFluxColNorm, true, false),
               "point_source_flux 用行归一 -> 不可兼容（负例）");
-    CHECK_MSG(astrocs::phase3proj::v6::semantics_compatible(
+    CHECK_MSG(acsd::phase3proj::v6::semantics_compatible(
                   SampleSemantics::kVisualizationNone, false, false),
               "visualization 无归一");
-    CHECK_MSG(!astrocs::phase3proj::v6::semantics_compatible(
+    CHECK_MSG(!acsd::phase3proj::v6::semantics_compatible(
                   SampleSemantics::kVisualizationNone, true, false),
               "visualization 声明归一 -> 不可兼容（负例）");
     // fail-closed: Ω≤0 / 非有限 / 空指针
     double bad[3] = {2.0, 0.0, 1.5};
-    CHECK_MSG(astrocs::phase3proj::v6::row_normalise(a, m, n, bad, r) ==
+    CHECK_MSG(acsd::phase3proj::v6::row_normalise(a, m, n, bad, r) ==
                   ProjStatus::kParam, "Ω=0 -> PARAM（fail-closed）");
     double bad2[5] = {1.0, -0.5, 1.5, 1.5, 1.5};
-    CHECK_MSG(astrocs::phase3proj::v6::col_normalise(a, m, n, bad2, s) ==
+    CHECK_MSG(acsd::phase3proj::v6::col_normalise(a, m, n, bad2, s) ==
                   ProjStatus::kParam, "Ω<0 -> PARAM（fail-closed）");
     double bad3[5] = {1.0, NAN, 1.5, 1.5, 1.5};
-    CHECK_MSG(astrocs::phase3proj::v6::col_normalise(a, m, n, bad3, s) ==
+    CHECK_MSG(acsd::phase3proj::v6::col_normalise(a, m, n, bad3, s) ==
                   ProjStatus::kParam, "Ω=NaN -> PARAM（fail-closed）");
-    CHECK_MSG(astrocs::phase3proj::v6::row_normalise(nullptr, m, n, om_out, r) ==
+    CHECK_MSG(acsd::phase3proj::v6::row_normalise(nullptr, m, n, om_out, r) ==
                   ProjStatus::kParam, "A=null -> PARAM");
 }
 
@@ -439,7 +439,7 @@ void test_crval2_rotation() {
         const Descriptor d = make_case(c.id, c.ra0, c.dec0, 0.2, 17, 17);
         // (i) CRPIX↔CRVAL 定义性不变量（Paper I §2.1.1）
         double ra = 0, dec = 0;
-        const ProjStatus st = astrocs::phase3proj::v6::pix2world(
+        const ProjStatus st = acsd::phase3proj::v6::pix2world(
             &d, d.crpix_x - 1.0, d.crpix_y - 1.0, &ra, &dec);
         CHECK_MSG(st == ProjStatus::kOk, "CRPIX 处 pix2world OK");
         double dra = std::fabs(ra - c.ra0);
@@ -448,7 +448,7 @@ void test_crval2_rotation() {
                   "pix2world(CRPIX) == CRVAL（CRVAL2 不进映射必红）");
         // (ii) 倾斜后 ≠ 恒等旋转（dec0≠0 时 dec 不再等于平面 Y）
         double ra2 = 0, dec2 = 0;
-        const ProjStatus st2 = astrocs::phase3proj::v6::pix2world(&d, 0.0, 16.0,
+        const ProjStatus st2 = acsd::phase3proj::v6::pix2world(&d, 0.0, 16.0,
                                                                   &ra2, &dec2);
         if (st2 == ProjStatus::kOk) {
             const double dy = d.cd[1][0] * ((0.0 + 1.0) - d.crpix_x) +
@@ -458,7 +458,7 @@ void test_crval2_rotation() {
         }
         // (iii) CRVAL 点往返
         double xb = 0, yb = 0;
-        if (astrocs::phase3proj::v6::world2pix(&d, ra, dec, &xb, &yb) ==
+        if (acsd::phase3proj::v6::world2pix(&d, ra, dec, &xb, &yb) ==
             ProjStatus::kOk) {
             CHECK_MSG(std::hypot(xb - (d.crpix_x - 1.0), yb - (d.crpix_y - 1.0)) <
                           kRoundtripTolPx,
@@ -475,25 +475,25 @@ void test_domain_limits() {
         const Descriptor d = make_case(ProjectionId::kCAR, 0, 0, 1.0, 11, 101);
         double ra = 0, dec = 0;
         const double y_pole = 50.0 + 90.0;    // (y+1-51)*1 = +90 -> y = 140
-        CHECK_MSG(astrocs::phase3proj::v6::pix2world(&d, 0.0, y_pole, &ra, &dec) ==
+        CHECK_MSG(acsd::phase3proj::v6::pix2world(&d, 0.0, y_pole, &ra, &dec) ==
                       ProjStatus::kParam,
                   "CAR native 极行 θ=+90 -> PARAM（fail-closed；旧 >90 放行必红）");
-        CHECK_MSG(astrocs::phase3proj::v6::pix2world(&d, 0.0, 50.0 - 90.0 - 1.0, &ra,
+        CHECK_MSG(acsd::phase3proj::v6::pix2world(&d, 0.0, 50.0 - 90.0 - 1.0, &ra,
                                                      &dec) == ProjStatus::kParam,
                   "CAR native 极行 θ=-90 -> PARAM");
-        CHECK_MSG(astrocs::phase3proj::v6::pix2world(&d, 0.0, y_pole - 1.0, &ra,
+        CHECK_MSG(acsd::phase3proj::v6::pix2world(&d, 0.0, y_pole - 1.0, &ra,
                                                      &dec) == ProjStatus::kOk,
                   "CAR θ=89 域内仍 OK");
-        CHECK_MSG(astrocs::phase3proj::v6::world2pix(&d, 0.0, 90.0, &ra, &dec) ==
+        CHECK_MSG(acsd::phase3proj::v6::world2pix(&d, 0.0, 90.0, &ra, &dec) ==
                       ProjStatus::kParam,
                   "CAR 天球极点（native θ=90）逆映射 φ 不唯一 -> PARAM");
         Descriptor dd;
-        CHECK_MSG(astrocs::phase3proj::v6::make(ProjectionId::kCAR, 0, 0, 0.3, 11, 601,
+        CHECK_MSG(acsd::phase3proj::v6::make(ProjectionId::kCAR, 0, 0, 0.3, 11, 601,
                                                 "east_left", 0.0, &dd) ==
                       ProjStatus::kParam,
                   "CAR make 足迹触极行（600*0.3=180 -> θ=±90）-> PARAM");
         Plan p;
-        CHECK_MSG(astrocs::phase3proj::v6::plan(ProjectionId::kCAR, 0, 0, 0.3, 11, 601,
+        CHECK_MSG(acsd::phase3proj::v6::plan(ProjectionId::kCAR, 0, 0, 0.3, 11, 601,
                                                 "east_left", 0.0, &p) ==
                           ProjStatus::kParam &&
                       !p.domain_valid,
@@ -508,25 +508,25 @@ void test_domain_limits() {
         auto py_for_y = [&](double yd) { return y_mid + yd / cd22; };
         double ra = 0, dec = 0;
         // X 轴: |X| ≤ 2√2 rad 域内 / > 域外（旧判据 A<2 会放行到 229.125°）
-        CHECK_MSG(astrocs::phase3proj::v6::pix2world(
+        CHECK_MSG(acsd::phase3proj::v6::pix2world(
                       &d, px_for_x(162.0), y_mid, &ra, &dec) == ProjStatus::kOk,
                   "AIT A≤1（|X|=162.0° < 2√2 rad）域内 OK");
-        CHECK_MSG(astrocs::phase3proj::v6::pix2world(
+        CHECK_MSG(acsd::phase3proj::v6::pix2world(
                       &d, px_for_x(163.0), y_mid, &ra, &dec) == ProjStatus::kHemisphere,
                   "AIT A>1（|X|=163.0°）-> HEMISPHERE");
-        CHECK_MSG(astrocs::phase3proj::v6::pix2world(
+        CHECK_MSG(acsd::phase3proj::v6::pix2world(
                       &d, px_for_x(-163.0), y_mid, &ra, &dec) == ProjStatus::kHemisphere,
                   "AIT A>1（|X|=−163.0°）-> HEMISPHERE");
-        CHECK_MSG(astrocs::phase3proj::v6::pix2world(
+        CHECK_MSG(acsd::phase3proj::v6::pix2world(
                       &d, px_for_x(229.125), y_mid, &ra, &dec) ==
                       ProjStatus::kHemisphere,
                   "AIT 折叠环带 |X|=229.125°（旧 A<2 放行）-> HEMISPHERE");
         // Y 轴: |Y| ≤ √2 rad 域内 / > 域外
         const double x_mid = d.crpix_x - 1.0;
-        CHECK_MSG(astrocs::phase3proj::v6::pix2world(
+        CHECK_MSG(acsd::phase3proj::v6::pix2world(
                       &d, x_mid, py_for_y(81.0), &ra, &dec) == ProjStatus::kOk,
                   "AIT A≤1（|Y|=81.0° < √2 rad）域内 OK");
-        CHECK_MSG(astrocs::phase3proj::v6::pix2world(
+        CHECK_MSG(acsd::phase3proj::v6::pix2world(
                       &d, x_mid, py_for_y(82.0), &ra, &dec) == ProjStatus::kHemisphere,
                   "AIT A>1（|Y|=82.0°）-> HEMISPHERE");
     }
@@ -537,7 +537,7 @@ void test_plan() {
     // 正常 CAR ±60°
     {
         Plan p;
-        CHECK_MSG(astrocs::phase3proj::v6::plan(ProjectionId::kCAR, 0, 0, 0.2, 16, 601,
+        CHECK_MSG(acsd::phase3proj::v6::plan(ProjectionId::kCAR, 0, 0, 0.2, 16, 601,
                                                 "east_left", 0.0, &p) == ProjStatus::kOk,
                   "CAR plan OK");
         CHECK_MSG(p.domain_valid && p.singularity_free, "CAR 域内且无奇点");
@@ -547,57 +547,57 @@ void test_plan() {
     // RA wrap
     {
         Plan p;
-        astrocs::phase3proj::v6::plan(ProjectionId::kCAR, 0, 0, 1.0, 97, 97,
+        acsd::phase3proj::v6::plan(ProjectionId::kCAR, 0, 0, 1.0, 97, 97,
                                       "east_left", 0.0, &p);
         CHECK_MSG(p.crosses_ra_wrap, "CAR RA=0 ±48° 跨 wrap");
         CHECK_MSG(std::fabs(p.fov_x_deg - 96.0) < 0.5, "wrap 后 span ≈96°");
         Plan q;
-        astrocs::phase3proj::v6::plan(ProjectionId::kCAR, 180, 0, 1.0, 97, 97,
+        acsd::phase3proj::v6::plan(ProjectionId::kCAR, 180, 0, 1.0, 97, 97,
                                       "east_left", 0.0, &q);
         CHECK_MSG(!q.crosses_ra_wrap, "CAR RA=180 不跨 wrap");
         // TAN 中心 RA=0.5° 小场，期望不跨（0.5 ± 1° 全在 0 同侧? x 跨 0）：
         Plan r;
-        astrocs::phase3proj::v6::plan(ProjectionId::kTAN, 0.5, 0, 0.02, 97, 97,
+        acsd::phase3proj::v6::plan(ProjectionId::kTAN, 0.5, 0, 0.02, 97, 97,
                                       "east_left", 0.0, &r);
         CHECK_MSG(r.status == ProjStatus::kOk, "TAN plan OK");
     }
     // 越投影域显式拒绝
     Plan p;
-    CHECK_MSG(astrocs::phase3proj::v6::plan(ProjectionId::kTAN, 0, 0, 2.0, 512, 512,
+    CHECK_MSG(acsd::phase3proj::v6::plan(ProjectionId::kTAN, 0, 0, 2.0, 512, 512,
                                             "east_left", 0.0, &p) ==
                       ProjStatus::kHemisphere &&
                   !p.domain_valid,
               "TAN r≥π/2 -> HEMISPHERE, domain_valid=false");
-    CHECK_MSG(astrocs::phase3proj::v6::plan(ProjectionId::kSIN, 0, 0, 2.0, 512, 512,
+    CHECK_MSG(acsd::phase3proj::v6::plan(ProjectionId::kSIN, 0, 0, 2.0, 512, 512,
                                             "east_left", 0.0, &p) ==
                       ProjStatus::kHemisphere &&
                   !p.domain_valid,
               "SIN ρ>1 -> HEMISPHERE, domain_valid=false");
-    CHECK_MSG(astrocs::phase3proj::v6::plan(ProjectionId::kAIT, 0, 0, 100.0, 64, 64,
+    CHECK_MSG(acsd::phase3proj::v6::plan(ProjectionId::kAIT, 0, 0, 100.0, 64, 64,
                                             "east_left", 0.0, &p) ==
                       ProjStatus::kHemisphere,
               "AIT D²≤0 域外 -> HEMISPHERE");
-    CHECK_MSG(astrocs::phase3proj::v6::plan(ProjectionId::kCAR, 0, 0, 100.0, 64, 64,
+    CHECK_MSG(acsd::phase3proj::v6::plan(ProjectionId::kCAR, 0, 0, 100.0, 64, 64,
                                             "east_left", 0.0, &p) ==
                       ProjStatus::kParam,
               "CAR |δ|>90 -> PARAM（拒绝柱面延伸支）");
     // world2pix 奇点/域界
     const Descriptor dsin = make_case(ProjectionId::kSIN, 0, 20, 0.01, 64, 64);
     double xo, yo;
-    CHECK_MSG(astrocs::phase3proj::v6::world2pix(&dsin, 180.0, 20.0, &xo, &yo) ==
+    CHECK_MSG(acsd::phase3proj::v6::world2pix(&dsin, 180.0, 20.0, &xo, &yo) ==
                   ProjStatus::kHemisphere, "SIN 背面点 -> HEMISPHERE");
     const Descriptor dtan = make_case(ProjectionId::kTAN, 0, 20, 0.01, 64, 64);
-    CHECK_MSG(astrocs::phase3proj::v6::world2pix(&dtan, 10.0, 85.1, &xo, &yo) ==
+    CHECK_MSG(acsd::phase3proj::v6::world2pix(&dtan, 10.0, 85.1, &xo, &yo) ==
                   ProjStatus::kParam, "TAN |dec|>85 -> PARAM");
     // 参数守卫
     Descriptor dd;
-    CHECK_MSG(astrocs::phase3proj::v6::make(ProjectionId::kTAN, 0, 0, 0.1, 8, 8,
+    CHECK_MSG(acsd::phase3proj::v6::make(ProjectionId::kTAN, 0, 0, 0.1, 8, 8,
                                             "NORTH", 0, &dd) == ProjStatus::kParam,
               "parity 非法 -> PARAM");
-    CHECK_MSG(astrocs::phase3proj::v6::make(ProjectionId::kTAN, 0, 0, 0.1, 8, 8,
+    CHECK_MSG(acsd::phase3proj::v6::make(ProjectionId::kTAN, 0, 0, 0.1, 8, 8,
                                             nullptr, 0, nullptr) == ProjStatus::kParam,
               "out=null -> PARAM");
-    CHECK_MSG(astrocs::phase3proj::v6::make((ProjectionId)7, 0, 0, 0.1, 8, 8,
+    CHECK_MSG(acsd::phase3proj::v6::make((ProjectionId)7, 0, 0, 0.1, 8, 8,
                                             nullptr, 0, &dd) ==
                   ProjStatus::kUnsupported,
               "越界 id -> UNSUPPORTED");
@@ -607,14 +607,14 @@ void test_plan() {
 void test_determinism() {
     const Descriptor d = make_case(ProjectionId::kAIT, 0, 0, 0.2, 61, 61);
     std::vector<double> ref(61 * 61, 0.0), again(61 * 61, 0.0);
-    astrocs::phase3proj::v6::solid_angle_grid(&d, ref.data(), nullptr);
-    astrocs::phase3proj::v6::solid_angle_grid(&d, again.data(), nullptr);
+    acsd::phase3proj::v6::solid_angle_grid(&d, ref.data(), nullptr);
+    acsd::phase3proj::v6::solid_angle_grid(&d, again.data(), nullptr);
     CHECK_MSG(std::memcmp(ref.data(), again.data(), ref.size() * 8) == 0,
               "重复 Ω 网格 bitwise 一致");
     auto worker = [&](int b, int e, double* out) {
         for (int j = b; j < e; ++j)
             for (int i = 0; i < 61; ++i)
-                astrocs::phase3proj::v6::pixel_solid_angle(&d, i, j, &out[j * 61 + i]);
+                acsd::phase3proj::v6::pixel_solid_angle(&d, i, j, &out[j * 61 + i]);
     };
     for (int nt : {2, 4, 8}) {
         std::vector<double> par(61 * 61, 0.0);
@@ -637,7 +637,7 @@ void test_fault_injection(const char* mode) {
     if (std::strcmp(mode, "const_omega") == 0) {
         const Descriptor d = make_case(ProjectionId::kCAR, 0, 0, 0.2, 16, 601);
         std::vector<double> om(16 * 601, 0.0);
-        astrocs::phase3proj::v6::solid_angle_grid(&d, om.data(), nullptr);
+        acsd::phase3proj::v6::solid_angle_grid(&d, om.data(), nullptr);
         double mn = om[0], mx = om[0];
         for (double v : om) { mn = std::min(mn, v); mx = std::max(mx, v); }
         // 等价缺陷: 把 Ω 当常数 -> ratio==1.0；正向实现 ratio≈2.0 -> 必败
@@ -647,14 +647,14 @@ void test_fault_injection(const char* mode) {
     } else if (std::strcmp(mode, "legacy_car") == 0) {
         const Descriptor d = make_case(ProjectionId::kCAR, 0, 0, 0.2, 41, 41);
         double ra, dec;
-        astrocs::phase3proj::v6::pix2world(&d, 20, 40, &ra, &dec);
+        acsd::phase3proj::v6::pix2world(&d, 20, 40, &ra, &dec);
         // 等价缺陷: legacy Y=−θ -> dec 反号；正向实现 dec=+Y -> 必败
         const double yd = 0.2 * ((40 + 1) - d.crpix_y);
         CHECK_MSG(std::fabs(dec - (-yd)) < 1e-12, "fault legacy_car: Y=−θ 必败");
     } else if (std::strcmp(mode, "legacy_ait") == 0) {
         const Descriptor d = make_case(ProjectionId::kAIT, 0, 0, 0.2, 61, 61);
         std::vector<double> om(61 * 61, 0.0);
-        astrocs::phase3proj::v6::solid_angle_grid(&d, om.data(), nullptr);
+        acsd::phase3proj::v6::solid_angle_grid(&d, om.data(), nullptr);
         // 等价缺陷: legacy 缺 √2 因子 -> Ω 减半
         const double defective = 0.5 * (0.2 * kRad) * (0.2 * kRad);
         CHECK_MSG(std::fabs(om[0] - defective) / defective < 1e-9,
@@ -665,13 +665,13 @@ void test_fault_injection(const char* mode) {
         double a[15] = {1.0, 0.4, 0.6, 0.0, 0.0, 0.0, 0.1, 0.9, 1.5, 0.0,
                         0.0, 0.0, 0.0, 0.0, 1.5};
         double s[15], rs[3];
-        astrocs::phase3proj::v6::col_normalise(a, m, n, om_in, s);
-        astrocs::phase3proj::v6::matrix_row_sums(s, m, n, rs);
+        acsd::phase3proj::v6::col_normalise(a, m, n, om_in, s);
+        acsd::phase3proj::v6::matrix_row_sums(s, m, n, rs);
         // 等价缺陷: S 当行归一 -> Σ_j S_ij=1；正向 S 为列归一 -> 必败
         CHECK_MSG(std::fabs(rs[0] - 1.0) < 1e-12, "fault swap_norm: R/S 互换必败");
     } else if (std::strcmp(mode, "naive_wrap") == 0) {
         Plan p;
-        astrocs::phase3proj::v6::plan(ProjectionId::kCAR, 0, 0, 1.0, 97, 97,
+        acsd::phase3proj::v6::plan(ProjectionId::kCAR, 0, 0, 1.0, 97, 97,
                                       "east_left", 0.0, &p);
         // 等价缺陷: 不做最短角差/wrap -> wrap=false；正向 wrap=true -> 必败
         CHECK_MSG(!p.crosses_ra_wrap, "fault naive_wrap: 忽略 RA wrap 必败");
@@ -683,7 +683,7 @@ void test_fault_injection(const char* mode) {
 int main(int argc, char** argv) {
     (void)argc;
     (void)argv;
-    const char* fault = std::getenv("ASTROCS_P3PROJ_FAULT");
+    const char* fault = std::getenv("ACSD_P3PROJ_FAULT");
     if (fault && std::strcmp(fault, "0") != 0) {
         test_fault_injection(fault);
         if (failures > 0) {

@@ -6,9 +6,9 @@
  *   - 查询器只暴露 URI/hex 等逻辑字段; 绝不在句柄中保存或暴露文件系统路径。
  *
  * 并发: 无全局状态, reentrant; 句柄非共享。
- * 错误码: 复用 common_abi_v1 的 acs_status 数值 (0=OK, 1=PARAM, 4=IO/解析错误)。
+ * 错误码: 复用 common_abi_v1 的 acsd_status 数值 (0=OK, 1=PARAM, 4=IO/解析错误)。
  */
-#include "astrocs/contracts/artifact_abi_v1.h"
+#include "acsd/contracts/artifact_abi_v1.h"
 
 #include <ctype.h>
 #include <stdio.h>
@@ -16,7 +16,7 @@
 #include <string.h>
 
 /* 本实现内部 C 结构: 字段值直接保存解析得到的字符串; 绝不保存路径。 */
-struct acs_artifact_handle_v1_s {
+struct acsd_artifact_handle_v1_s {
     char* manifest_schema;
     char* artifact_id;
     char* type_id;
@@ -31,7 +31,7 @@ struct acs_artifact_handle_v1_s {
     char* node_id;
     char* config_digest_hex;
     char* created_utc;
-    int status; /* acs_artifact_status 或 -1(未知) */
+    int status; /* acsd_artifact_status 或 -1(未知) */
     size_t input_count;
     char** input_artifact_ids;
     char** input_digests;
@@ -275,7 +275,7 @@ static int hex64_ok(const char* s) {
     return 1;
 }
 
-static void handle_free(acs_artifact_handle_v1* h) {
+static void handle_free(acsd_artifact_handle_v1* h) {
     if (!h) return;
     free(h->manifest_schema);
     free(h->artifact_id);
@@ -300,8 +300,8 @@ static void handle_free(acs_artifact_handle_v1* h) {
     free(h);
 }
 
-int acs_artifact_manifest_parse_v1(const char* json_utf8, size_t json_bytes,
-                                   acs_artifact_handle_v1** out,
+int acsd_artifact_manifest_parse_v1(const char* json_utf8, size_t json_bytes,
+                                   acsd_artifact_handle_v1** out,
                                    char* err, size_t err_cap) {
     if (!json_utf8 || !out) return 1; /* ACS_ERR_PARAM */
     if (err && err_cap) err[0] = '\0';
@@ -313,7 +313,7 @@ int acs_artifact_manifest_parse_v1(const char* json_utf8, size_t json_bytes,
         return 1;
     }
 
-    acs_artifact_handle_v1* h = (acs_artifact_handle_v1*)calloc(1, sizeof(*h));
+    acsd_artifact_handle_v1* h = (acsd_artifact_handle_v1*)calloc(1, sizeof(*h));
     if (!h) return 3; /* ACS_ERR_NOMEM */
     h->status = -1;
 
@@ -323,7 +323,7 @@ int acs_artifact_manifest_parse_v1(const char* json_utf8, size_t json_bytes,
 
     /* manifest_schema (const 校验) */
     if (!find_key_deep(p, end, "manifest_schema", &s, NULL, &has_str, NULL) || !has_str ||
-        strcmp(s, "astrocs.artifact-manifest/v1") != 0) {
+        strcmp(s, "acsd.artifact-manifest/v1") != 0) {
         if (err && err_cap) snprintf(err, err_cap, "missing/bad manifest_schema");
         free(s); handle_free(h); return 1;
     }
@@ -568,60 +568,60 @@ int acs_artifact_manifest_parse_v1(const char* json_utf8, size_t json_bytes,
     return 0; /* ACS_OK */
 }
 
-void acs_artifact_handle_destroy_v1(acs_artifact_handle_v1* h) { handle_free(h); }
+void acsd_artifact_handle_destroy_v1(acsd_artifact_handle_v1* h) { handle_free(h); }
 
 /* ───────────── 查询器 ───────────── */
 
-const char* acs_artifact_query_manifest_schema_v1(const acs_artifact_handle_v1* h) {
+const char* acsd_artifact_query_manifest_schema_v1(const acsd_artifact_handle_v1* h) {
     return h ? h->manifest_schema : NULL;
 }
-const char* acs_artifact_query_artifact_id_v1(const acs_artifact_handle_v1* h) {
+const char* acsd_artifact_query_artifact_id_v1(const acsd_artifact_handle_v1* h) {
     return h ? h->artifact_id : NULL;
 }
-const char* acs_artifact_query_type_id_v1(const acs_artifact_handle_v1* h) {
+const char* acsd_artifact_query_type_id_v1(const acsd_artifact_handle_v1* h) {
     return h ? h->type_id : NULL;
 }
-uint32_t acs_artifact_query_schema_version_v1(const acs_artifact_handle_v1* h) {
+uint32_t acsd_artifact_query_schema_version_v1(const acsd_artifact_handle_v1* h) {
     return h ? h->schema_version : 0;
 }
-const char* acs_artifact_query_storage_uri_v1(const acs_artifact_handle_v1* h) {
+const char* acsd_artifact_query_storage_uri_v1(const acsd_artifact_handle_v1* h) {
     return h ? h->storage_uri : NULL;
 }
-const char* acs_artifact_query_content_digest_hex_v1(const acs_artifact_handle_v1* h) {
+const char* acsd_artifact_query_content_digest_hex_v1(const acsd_artifact_handle_v1* h) {
     return h ? h->content_digest_hex : NULL;
 }
-uint64_t acs_artifact_query_size_v1(const acs_artifact_handle_v1* h) { return h ? h->size : 0; }
-const char* acs_artifact_query_producer_module_id_v1(const acs_artifact_handle_v1* h) {
+uint64_t acsd_artifact_query_size_v1(const acsd_artifact_handle_v1* h) { return h ? h->size : 0; }
+const char* acsd_artifact_query_producer_module_id_v1(const acsd_artifact_handle_v1* h) {
     return h ? h->producer_module_id : NULL;
 }
-const char* acs_artifact_query_producer_build_id_v1(const acs_artifact_handle_v1* h) {
+const char* acsd_artifact_query_producer_build_id_v1(const acsd_artifact_handle_v1* h) {
     return h ? h->producer_build_id : NULL;
 }
-const char* acs_artifact_query_run_id_v1(const acs_artifact_handle_v1* h) { return h ? h->run_id : NULL; }
-const char* acs_artifact_query_phase_v1(const acs_artifact_handle_v1* h) { return h ? h->phase : NULL; }
-const char* acs_artifact_query_node_id_v1(const acs_artifact_handle_v1* h) { return h ? h->node_id : NULL; }
-const char* acs_artifact_query_config_digest_hex_v1(const acs_artifact_handle_v1* h) {
+const char* acsd_artifact_query_run_id_v1(const acsd_artifact_handle_v1* h) { return h ? h->run_id : NULL; }
+const char* acsd_artifact_query_phase_v1(const acsd_artifact_handle_v1* h) { return h ? h->phase : NULL; }
+const char* acsd_artifact_query_node_id_v1(const acsd_artifact_handle_v1* h) { return h ? h->node_id : NULL; }
+const char* acsd_artifact_query_config_digest_hex_v1(const acsd_artifact_handle_v1* h) {
     return h ? h->config_digest_hex : NULL;
 }
-const char* acs_artifact_query_created_utc_v1(const acs_artifact_handle_v1* h) {
+const char* acsd_artifact_query_created_utc_v1(const acsd_artifact_handle_v1* h) {
     return h ? h->created_utc : NULL;
 }
-acs_artifact_status acs_artifact_query_status_v1(const acs_artifact_handle_v1* h) {
-    return h && h->status >= 0 ? (acs_artifact_status)h->status : ACS_ART_STATUS_PENDING;
+acsd_artifact_status acsd_artifact_query_status_v1(const acsd_artifact_handle_v1* h) {
+    return h && h->status >= 0 ? (acsd_artifact_status)h->status : ACS_ART_STATUS_PENDING;
 }
-size_t acs_artifact_query_input_count_v1(const acs_artifact_handle_v1* h) {
+size_t acsd_artifact_query_input_count_v1(const acsd_artifact_handle_v1* h) {
     return h ? h->input_count : 0;
 }
-const char* acs_artifact_query_input_artifact_id_v1(const acs_artifact_handle_v1* h, size_t i) {
+const char* acsd_artifact_query_input_artifact_id_v1(const acsd_artifact_handle_v1* h, size_t i) {
     if (!h || i >= h->input_count) return NULL;
     return h->input_artifact_ids[i];
 }
-const char* acs_artifact_query_input_digest_v1(const acs_artifact_handle_v1* h, size_t i) {
+const char* acsd_artifact_query_input_digest_v1(const acsd_artifact_handle_v1* h, size_t i) {
     if (!h || i >= h->input_count) return NULL;
     return h->input_digests[i];
 }
 
-const char* acs_artifact_status_name_v1(acs_artifact_status s) {
+const char* acsd_artifact_status_name_v1(acsd_artifact_status s) {
     switch (s) {
         case ACS_ART_STATUS_COMPLETE: return "COMPLETE";
         case ACS_ART_STATUS_INCOMPLETE: return "INCOMPLETE";

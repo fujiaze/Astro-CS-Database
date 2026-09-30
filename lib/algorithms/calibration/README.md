@@ -1,16 +1,16 @@
-# lib/algorithms/calibration — astrocs.p1.calibration（P1-CAL）
+# lib/algorithms/calibration — acsd.p1.calibration（P1-CAL）
 
 > 状态: CONTRACT_READY（P1-CAL-DOC 冻结，2026-09-07）｜doc revision: r2
 > **现状复测（LEDGER-DOC，2026-09-17；`python3 eng/tools/quality/check_module_map.py`）**：
-> 本模块生产源 `lib/algorithms/calibration/src/module_entry.cpp` 与 CMake SHARED target `astrocs_p1_calibration`（`lib/algorithms/calibration/CMakeLists.txt:30`）均在位，
-> `astrocs_module_query_v1` 导出存在但**函数体零调用**（检查器 finding `noop_entrypoint`）
+> 本模块生产源 `lib/algorithms/calibration/src/module_entry.cpp` 与 CMake SHARED target `acsd_p1_calibration`（`lib/algorithms/calibration/CMakeLists.txt:30`）均在位，
+> `acsd_module_query_v1` 导出存在但**函数体零调用**（检查器 finding `noop_entrypoint`）
 > ⇒ 机读状态 = **NOT_IMPLEMENTED**。下文旧基线中「仅合同文件/无源码/无 CMake target/
 > entrypoint=MISSING/尚未存在」等表述已被实测反证，以本注记与检查器输出为准；
 > 实现侧整改归 P1-CAL-IMPL。
 > 本 README 由源码逐函数核对后全面重写（P1-CAL-DOC，wave W1）：函数、单位、
 > 坐标、dtype、shape、invalid、错误、并发、内存、I/O 均以
 > `lib/include/astro_calibration.h` + `src/{master_generator,calibrator,
-> cosmetic_corrector,ac_api}.cpp`（CMake `astrocs_calibration`，唯一生产构建）
+> cosmetic_corrector,ac_api}.cpp`（CMake `acsd_calibration`，唯一生产构建）
 > 为准；旧版 README 中与源码不符的黄金分割搜索、Python 封装、GitHub 仓库
 > 等陈述已删除。权威合同：SCI-CAL-001 → ALG-CAL-001..006 → DATA-P1-CAL /
 > API-CAL-001（链接见 §6）。
@@ -19,11 +19,11 @@
 
 | 字段 | 当前值 |
 |---|---|
-| MOD ID / DLL target | `MOD-astrocs-phase1-calibration` / 模块 DLL `astrocs_p1_calibration`（SHARED，lib/algorithms/calibration/CMakeLists.txt:30，**已在位**；同目录另有 legacy 静态库 `astrocs_calibration`）；entrypoint `astrocs_module_query_v1` 在位但零调用 ⇒ MOD-001 检查器判 NOT_IMPLEMENTED（整改归 P1-CAL-IMPL） |
-| module / ABI / doc revision | `astrocs.p1.calibration` / C ABI（AC_API extern "C"，无版本化 query 入口，迁移缺口）/ r2 |
+| MOD ID / DLL target | `MOD-acsd-phase1-calibration` / 模块 DLL `acsd_p1_calibration`（SHARED，lib/algorithms/calibration/CMakeLists.txt:30，**已在位**；同目录另有 legacy 静态库 `acsd_calibration`）；entrypoint `acsd_module_query_v1` 在位但零调用 ⇒ MOD-001 检查器判 NOT_IMPLEMENTED（整改归 P1-CAL-IMPL） |
+| module / ABI / doc revision | `acsd.p1.calibration` / C ABI（AC_API extern "C"，无版本化 query 入口，迁移缺口）/ r2 |
 | owner / phase scope | SA-P1-C14 / phase1（wave W1） |
 | 文档状态 | CONTRACT_READY（实现存在，模块化迁移未开始；不声明 IMPLEMENTED） |
-| 构建 | CMakeLists.txt:321-333（STATIC + OpenMP 可选，链 astrocs_aio/astrocs_common） |
+| 构建 | CMakeLists.txt:321-333（STATIC + OpenMP 可选，链 acsd_aio/acsd_common） |
 
 ## 2. 负责范围
 
@@ -66,7 +66,7 @@ float32 / f64 ABI double。
 | ALG | ALG-CAL-001..006 | docs/science/algorithms/CALIBRATION_ALGORITHMS.md（§3 逐公式源码锚定） |
 | DATA | DATA-P1-CAL | docs/science/DATA_SEMANTICS.md §9 |
 | API | API-CAL-001 / API-P1-001 | docs/engineering/PUBLIC_API.md / docs/engineering/PHASE1_API_V1.md |
-| MOD/SRC | MOD-astrocs-phase1-calibration / SRC-CAL-001 | docs/traceability/TRACEABILITY_MATRIX.json；lib/include/astro_calibration.h（14 AC_API 符号） |
+| MOD/SRC | MOD-acsd-phase1-calibration / SRC-CAL-001 | docs/traceability/TRACEABILITY_MATRIX.json；lib/include/astro_calibration.h（14 AC_API 符号） |
 | TEST | TEST-CAL-DESIGN-001 | docs/science/algorithms/CALIBRATION_ALGORITHMS.md §9（可执行 TEST-P1-CAL-001 由 P1-CAL-TEST 落地） |
 
 ## 5. 实现事实（源码核对）
@@ -108,7 +108,7 @@ float32 / f64 ABI double。
 - phase1_session 键：`master_bias/master_dark/master_flat`（路径或 null）、
   `input_lights[]`、`dark_optimization`（bool）、`dark_scale_factor`
   （float，默认 1.0）。正式版本化 schema 由 P1-CAL-IMPL 冻结
-  （acs_module_descriptor_v1.config_schema_ver）。
+  （acsd_module_descriptor_v1.config_schema_ver）。
 
 ## 6. 并发与资源
 
@@ -143,9 +143,9 @@ SIMD kernel 注册（ISA 迁移由 P1-CAL-IMPL 按约束 C.4-C.8 逐内核 bench
 
 ## 9. 构建与已知限制
 
-构建（唯一生产通道）：根 CMake 目标 `astrocs_calibration`
+构建（唯一生产通道）：根 CMake 目标 `acsd_calibration`
 （STATIC：calibrator/master_generator/cosmetic_corrector/ac_api.cpp +
-include；OpenMP 可选；链 astrocs_aio/astrocs_common）。遗留通道（非生产、
+include；OpenMP 可选；链 acsd_aio/acsd_common）。遗留通道（非生产、
 计划迁移旧符号，P1-CAL-IMPL 决定去留）：build.ps1（MinGW64 g++ 单 DLL，
 -march=native -ffast-math）、Makefile（cpp/cosmetic_corrector.cpp →
 cosmetic_corrector.dll，cc_* 4 导出：cc_correct_median[data,bad_mask,H,W,
@@ -165,8 +165,8 @@ compute_mad 死代码风险。
 
 ## 10. 迁移（P1-CAL-IMPL 目标，不声明完成）
 
-module.yaml（同目录）登记 manifest：id=MOD-astrocs-phase1-calibration、
-module_id=astrocs.p1.calibration、dll_name=astrocs_p1_calibration.dll、
-entrypoint=`astrocs_module_query_v1`（入口符号在位；函数体零调用，检查器 finding=noop_entrypoint ⇒ NOT_IMPLEMENTED）。C ABI adapter、
+module.yaml（同目录）登记 manifest：id=MOD-acsd-phase1-calibration、
+module_id=acsd.p1.calibration、dll_name=acsd_p1_calibration.dll、
+entrypoint=`acsd_module_query_v1`（入口符号在位；函数体零调用，检查器 finding=noop_entrypoint ⇒ NOT_IMPLEMENTED）。C ABI adapter、
 plan/execute/cancel/inspect、ThreadLease 接线、DISP-CAL 清单消化见
 ALG-CAL §8 与 module.yaml 注释。禁止跨 DLL 传 STL/异常/RTTI（约束 F.3）。

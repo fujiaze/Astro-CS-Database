@@ -2,7 +2,7 @@
 """CLI golden 测试（按 CLI-001 §6.2 新树同步）: help 树/版本 JSON/parser 拒绝面/模板/
 配置错误映射/stdout 纪律/crash boundary 70/Unicode/退出码单源 + incomplete manifest。
 
-权威: docs/ASTROCS_DESIGN §6.2（唯一命令树）、§6.3（stdout 纪律 + 退出码表）、§4.5（预检阻断）、
+权威: docs/ACSD_DESIGN §6.2（唯一命令树）、§6.3（stdout 纪律 + 退出码表）、§4.5（预检阻断）、
 docs/engineering/CLI_PROTOCOL_V1.md §1-§3。
 
 退役登记（旧命令面已被 CLI-001 删除，依据 §6.2 + CLI-001 rc 矩阵；原用例前提=命令存在）:
@@ -11,9 +11,9 @@ docs/engineering/CLI_PROTOCOL_V1.md §1-§3。
   * test_06_jsonl_contract（phase1 run 全程事件）→ 事件流全字段/单调 sequence 断言迁往
     eng/tests/cli/test_phase1_inprocess.py（真实会话）; 本文件保留「阻断路径 stdout 无污染」;
   * test_07_cancel_exit_9_no_fake_artifacts → 取消语义迁往 eng/tests/cli/test_phase{1,2,3}_inprocess.py
-    （同一 ASTROCS_TEST_SLEEP_MS 钩子, 真实会话）;
+    （同一 ACSD_TEST_SLEEP_MS 钩子, 真实会话）;
   * test_08_crash_boundary_70_sanitized: test synthetic 已删除 → 改由 normalize + 生产
-    ASTROCS_TEST_CRASH 钩子（subcommand.run 内）触发, 断言 70 + 脱敏 crash report;
+    ACSD_TEST_CRASH 钩子（subcommand.run 内）触发, 断言 70 + 脱敏 crash report;
   * test_09_unicode_path: config init/validate 已删除 → 改为 --template -o 与 --json 的
     非 ASCII 路径解析;
   * TestManifestVerify.test_01..test_07（config validate / show-effective / verify-profile /
@@ -98,7 +98,7 @@ def _exit_code_numeric_leaks(cli_dir):
 
 
 def cli_binary():
-    env = os.environ.get("ASTROCS_CLI_BIN")
+    env = os.environ.get("ACSD_CLI_BIN")
     if env and os.path.isfile(env):
         return env
     for rel in (("build", "acsd"), ("build", "cli", "acsd")):
@@ -130,7 +130,7 @@ class TestGolden(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         assert os.path.isfile(EXE), "先构建 CLI（cmake -S . -B build && ninja -C build acsd）"
-        cls.tmp = tempfile.mkdtemp(prefix="astrocs_proto_")
+        cls.tmp = tempfile.mkdtemp(prefix="acsd_proto_")
         cls.cfg = os.path.join(cls.tmp, "cfg_valid.json")
         with open(cls.cfg, "w", encoding="utf-8") as fh:
             json.dump({"schema_version": "1", "input_lights": [], "output_dir": cls.tmp}, fh)
@@ -181,7 +181,7 @@ class TestGolden(unittest.TestCase):
         for case in cases:
             r = run(*case)
             self.assertEqual(r.returncode, 2, "%s → 期望 2, 得 %s" % (case, r.returncode))
-            # 诊断前缀 = 唯一入口名 acsd（docs/ASTROCS_DESIGN.md §1.2/§7.1；提交 a6f602fe 命名统一）。
+            # 诊断前缀 = 唯一入口名 acsd（docs/ACSD_DESIGN.md §1.2/§7.1；提交 a6f602fe 命名统一）。
             self.assertIn("acsd:", r.stderr, "%s 缺 stderr 诊断" % (case,))
             self.assertEqual(r.stdout, "", "%s stdout 应无输出(污染)" % (case,))
 
@@ -249,12 +249,12 @@ class TestGolden(unittest.TestCase):
         self.assertEqual(r.stdout, "", "--events-jsonl 阻断路径 stdout 不得有非 JSON 文本")
         self.assertIn("[error]", r.stderr)
         for fn in os.listdir(out):
-            self.assertFalse(fn.startswith("astrocs_run_"),
+            self.assertFalse(fn.startswith("acsd_run_"),
                              "预检阻断不得写 run manifest: %s" % fn)
 
     # ── crash boundary → 70 + 脱敏 crash report ──
     def test_07_crash_boundary_70_sanitized(self):
-        r = run("normalize", "--json", self.cfg, "-y", env={"ASTROCS_TEST_CRASH": "1"})
+        r = run("normalize", "--json", self.cfg, "-y", env={"ACSD_TEST_CRASH": "1"})
         self.assertEqual(r.returncode, 70, "未捕获异常 → 70")
         self.assertIn("CRASH", r.stderr)
         self.assertRegex(r.stderr, r"run_id=[0-9a-f]{12}")
@@ -294,7 +294,7 @@ class TestGolden(unittest.TestCase):
                 fh.write('const char* m = "pipeline failed (rc=10): disk full";\n'
                          "// 兜底: rc=10) 归并\n"
                          "/* INTERNAL = 70 归并路径 */\n"
-                         "int rc = astrocs::RESOURCE;\n")
+                         "int rc = acsd::RESOURCE;\n")
             self.assertEqual(_exit_code_numeric_leaks(td), [],
                              "诊断消息文本/注释不得被判为退出码数值表")
             with open(os.path.join(td, "leak.cpp"), "w", encoding="utf-8") as fh:
@@ -311,7 +311,7 @@ class TestGolden(unittest.TestCase):
 class TestManifestIncomplete(unittest.TestCase):
     """预检 fail-closed 数据面: 输入路径不存在 → rc=3, 写 manifest 之前阻断。
 
-    2026-09-18 CLI 预检修复（docs/ASTROCS_DESIGN §4.5 + ENGINEERING_SPEC:122 fail-closed）：
+    2026-09-18 CLI 预检修复（docs/ACSD_DESIGN §4.5 + ENGINEERING_SPEC:122 fail-closed）：
     路径不存在/不可读在 precheck_config 阶段即判 error，`-y` 不可越，进程在
     session_dispatch（任何产品/manifest 落盘）之前返回 rc=3。
     旧断言（落 1 个 incomplete manifest + final 事件 exit_code=3）固化的是修复前的
@@ -322,7 +322,7 @@ class TestManifestIncomplete(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         assert os.path.isfile(EXE), "先构建 CLI"
-        cls.tmp = tempfile.mkdtemp(prefix="astrocs_manifest_")
+        cls.tmp = tempfile.mkdtemp(prefix="acsd_manifest_")
         cls.out = os.path.join(cls.tmp, "out")
         os.makedirs(cls.out)
 
@@ -342,7 +342,7 @@ class TestManifestIncomplete(unittest.TestCase):
                        "output_dir": self.out}, fh)
         r = run("normalize", "--json", cfg, "--events-jsonl", "-y")
         self.assertEqual(r.returncode, 3, r.stderr[-300:])
-        mans = [f for f in os.listdir(self.out) if f.startswith("astrocs_run_")]
+        mans = [f for f in os.listdir(self.out) if f.startswith("acsd_run_")]
         self.assertEqual(mans, [],
                          "预检阻断必须发生在写 manifest 之前（不得落 incomplete 冒充）")
         # 预检阻断路径不进入运行期事件流：stdout 无事件，诊断落 stderr。
@@ -355,7 +355,7 @@ class TestManifestIncomplete(unittest.TestCase):
 # =====================================================================
 # FIX-405 G3-11: verify 能力纳入命令树（doctor 机器旗标 --run-manifest）
 #
-# 权威: docs/ASTROCS_DESIGN §7.1 唯一命令树（无独立 verify 命令；verify* 属已删别名
+# 权威: docs/ACSD_DESIGN §7.1 唯一命令树（无独立 verify 命令；verify* 属已删别名
 # → rc=2）+ docs/engineering/CLI_PROTOCOL_V1.md §1/§3（--json 恰一个 JSON 文档；退出码
 # 2 参数 / 3 输入 / 5 版本 / 8 完整性）。
 # 落位: command_tree.h 把 --run-manifest 登记为 doctor 的**内部/机器旗标**
@@ -367,7 +367,7 @@ class TestDoctorVerifyLocus(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         assert os.path.isfile(EXE), "先构建 CLI（cmake -S . -B build && ninja -C build acsd）"
-        cls.tmp = tempfile.mkdtemp(prefix="astrocs_doctor_verify_")
+        cls.tmp = tempfile.mkdtemp(prefix="acsd_doctor_verify_")
 
     @classmethod
     def tearDownClass(cls):
@@ -381,8 +381,8 @@ class TestDoctorVerifyLocus(unittest.TestCase):
         return json.loads(r.stdout)["version"]
 
     def _manifest(self, name, **over):
-        doc = {"kind": "astrocs_run_manifest", "schema_version": "1",
-               "status": "complete", "astrocs_version": self._cli_version(),
+        doc = {"kind": "acsd_run_manifest", "schema_version": "1",
+               "status": "complete", "acsd_version": self._cli_version(),
                "artifacts": [], "phases": []}
         doc.update(over)
         p = os.path.join(self.tmp, name)
@@ -421,7 +421,7 @@ class TestDoctorVerifyLocus(unittest.TestCase):
         r = run("doctor", "--json")
         self.assertEqual(r.returncode, 0, r.stderr[-300:])
         doc = json.loads(r.stdout)
-        self.assertEqual(doc.get("kind"), "astrocs_doctor",
+        self.assertEqual(doc.get("kind"), "acsd_doctor",
                          "无 --run-manifest 时 doctor 语义不变")
 
     def test_06_doctor_without_json_is_args_error(self):

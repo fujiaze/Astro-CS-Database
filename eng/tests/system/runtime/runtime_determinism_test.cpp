@@ -19,7 +19,7 @@
 
 #include "runtime_contract.h"
 
-using namespace astrocs::v6runtime;
+using namespace acsd::v6runtime;
 
 struct Payload {
     uint64_t n_terms = 0;

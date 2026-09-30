@@ -1,6 +1,6 @@
 {
   "_comment": "PHOTOCURVE-ORCH-01 负例夹具（注入场景）: 名字 'Ghost R' 只作为 provenance.per_filter 的对象键出现, filters 段没有该键。判据: curve_json::load_curve ⇒ kCurveNameOutsideLibrary（显式报错）; 修复前的文本搜索口径会静默取到 filters 段的第一条曲线 'Antlia V Pro Series B'。结构仿 eng/packaging/config/filters.json 的转录版顶层键序 [provenance, lookup, filters]。",
-  "filters_schema": "astrocs.filter-library/v1",
+  "filters_schema": "acsd.filter-library/v1",
   "provenance": {
     "status": "unverified",
     "per_filter": {

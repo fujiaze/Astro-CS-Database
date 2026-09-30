@@ -1,4 +1,4 @@
-/* ACSD CPU 能力探测 C ABI v1 — lib/infrastructure/benchmark/cpu/common/include/astrocs/cpu/capability_v1.h
+/* ACSD CPU 能力探测 C ABI v1 — lib/infrastructure/benchmark/cpu/common/include/acsd/cpu/capability_v1.h
  *
  * 角色: CPU-001 冻结的 AMD64 CPU 能力探测合同。区分
  *   "硬件支持"(CPUID feature 位) 与 "OS 可安全执行"(OSXSAVE + XGETBV/XCR0
@@ -8,7 +8,7 @@
  *
  * 关键约束 (v1 不可变; 扩展须升版本):
  *   1) 纯 C11 可编译 (extern "C" 兼容 C++17); 禁 STL/异常/RTTI; 无第三方依赖。
- *   2) 跨边界结构前两字段 = struct_size + abi_version (同 acs_head 模式); 失配即拒。
+ *   2) 跨边界结构前两字段 = struct_size + abi_version (同 acsd_head 模式); 失配即拒。
  *   3) 全部状态位/枚举数值冻结; 只允许尾部追加新位/新成员。
  *   4) 探测只读 CPUID/XGETBV/OS 接口, 无副作用、无分配、可重入; 调用不执行
  *      任何高级 ISA 指令 (探测自身只用 SSE2 基线可用的 mov/cpuid/xgetbv)。
@@ -19,7 +19,7 @@
  *      host/ThreadBudget 另行管理 (CPU-008), 探测层不决策。
  *
  * 位语义 (对照 15_CPU_PROVIDER_AND_RESOURCE_STANDARD.md §2 与
- * lib/include/astrocs/abi/status_codes.h 错误码):
+ * lib/include/acsd/abi/status_codes.h 错误码):
  *   - os_safe 判定规则:
  *       AVX/AVX2/FMA 可安全执行 ⇔ CPUID 置位 且 OSXSAVE=1 且 XCR0.XMM|YMM
  *         (xcr0 位 1|2 = 0x6) 均置;
@@ -27,8 +27,8 @@
  *         = 0xE0) 均置; AVX-512CD/BW/DQ/VL 各自还需对应 CPUID 叶 7 子位。
  *   - 硬件支持但 OS 不保存 → os_safe 平面清除 (provider 加载拒绝路径)。
  */
-#ifndef ASTROCS_CPU_CAPABILITY_V1_H
-#define ASTROCS_CPU_CAPABILITY_V1_H
+#ifndef ACSD_CPU_CAPABILITY_V1_H
+#define ACSD_CPU_CAPABILITY_V1_H
 
 #include <stddef.h>
 #include <stdint.h>
@@ -45,8 +45,8 @@ extern "C" {
 
 /* ═══════════════════ feature 位 (冻结; 只允许尾部追加) ═══════════════════
  * 本枚举即 C 侧 JSON feature_names 的事实源 (名称映射见 capability_detect.c
- * acs_cap_feature_name_v1); 数值不得复用/重排 (v1 冻结)。 */
-enum acs_cap_feature_bit {
+ * acsd_cap_feature_name_v1); 数值不得复用/重排 (v1 冻结)。 */
+enum acsd_cap_feature_bit {
     ACS_CAP_FEAT_SSE2    = 1u << 0,  /* amd64 基线 (恒置) */
     ACS_CAP_FEAT_SSE4_1  = 1u << 1,
     ACS_CAP_FEAT_SSE4_2  = 1u << 2,
@@ -71,10 +71,10 @@ enum {
         ACS_CAP_FEAT_AVX512BW | ACS_CAP_FEAT_AVX512DQ | ACS_CAP_FEAT_AVX512VL
 };
 
-/* ═══════════════════ 探测结果 (POD; 前两字段 acs_head) ═══════════════════
+/* ═══════════════════ 探测结果 (POD; 前两字段 acsd_head) ═══════════════════
  * 所有权: 全部字段由探测函数填充, 调用方栈上持有; 无指针/无跨边界释放。 */
-typedef struct acs_cap_result_v1 {
-    uint32_t struct_size;    /* sizeof(acs_cap_result_v1) */
+typedef struct acsd_cap_result_v1 {
+    uint32_t struct_size;    /* sizeof(acsd_cap_result_v1) */
     uint32_t abi_version;    /* ACS_CAP_ABI_VERSION_V1 */
     uint32_t schema_version; /* ACS_CAP_SCHEMA_VER (JSON schema_version 对齐) */
     uint32_t reserved;       /* 0; 供尾部对齐, 不得依赖内容 */
@@ -97,16 +97,16 @@ typedef struct acs_cap_result_v1 {
     /* 判定平面 */
     uint64_t hw_features;    /* 硬件支持 (CPUID, 未做 OS 裁剪) */
     uint64_t os_safe;        /* 硬件 ∩ OS 状态 ∩ 层次包含 后可安全执行 */
-} acs_cap_result_v1;
+} acsd_cap_result_v1;
 
 /* ═══════════════════ 探测/判定 API ═══════════════════
  * 全部 reentrant=yes; threadsafe=yes; internal_parallel=none; 无分配。
  * 失败 (非 x86/未知) 返回 ACS_CAP_ERR_UNSUPPORTED (数值 5, 与
- * acs_status ACS_ERR_UNSUPPORTED 一致) 并写空结果。 */
+ * acsd_status ACS_ERR_UNSUPPORTED 一致) 并写空结果。 */
 
-/* 错误码 (数值与 lib/include/astrocs/abi/status_codes.h acs_status 对齐;
+/* 错误码 (数值与 lib/include/acsd/abi/status_codes.h acsd_status 对齐;
  * 本接口不需要 3/4/6..10, 不扩展) */
-enum acs_cap_status {
+enum acsd_cap_status {
     ACS_CAP_OK = 0,
     ACS_CAP_ERR_PARAM = 1,
     ACS_CAP_ERR_ABI_MISMATCH = 2,
@@ -116,7 +116,7 @@ enum acs_cap_status {
 /* 探测本机 AMD64 CPU: 填 *out (非 NULL)。out->abi_version != V1 时先写
  * *out->struct_size 后返回 ACS_CAP_ERR_ABI_MISMATCH。非 x86/探测失败 →
  * ACS_CAP_ERR_UNSUPPORTED。 */
-int acs_cap_detect_v1(acs_cap_result_v1* out);
+int acsd_cap_detect_v1(acsd_cap_result_v1* out);
 
 /* 纯判定: 以调用方填写的原始 CPUID/OS 证据 (leaf1_ecx/edx, leaf7_ebx,
  * xcr0; osxsave 由 leaf1_ecx.bit27 权威派生) 计算 hw_features/os_safe 平面。
@@ -124,31 +124,31 @@ int acs_cap_detect_v1(acs_cap_result_v1* out);
  * 不清除调用方已填的 vendor/brand/family 等事实字段 (原样拷贝)。
  * raw/out 非 NULL 且 raw->abi_version==V1; 失败返回 ACS_CAP_ERR_PARAM/
  * ACS_CAP_ERR_ABI_MISMATCH。reentrant=yes; threadsafe=yes; 无分配。 */
-int acs_cap_classify_v1(const acs_cap_result_v1* raw, acs_cap_result_v1* out);
+int acsd_cap_classify_v1(const acsd_cap_result_v1* raw, acsd_cap_result_v1* out);
 
 /* feature 名称 (feature_names 的事实源; 静态 NUL 串, 永不 NULL)。
  * bit 必须恰为单个 ACS_CAP_FEAT_* 位 (组合/非法 → 返回 NULL)。 */
-const char* acs_cap_feature_name_v1(uint64_t bit);
+const char* acsd_cap_feature_name_v1(uint64_t bit);
 
 /* 判定: required 中的全部位都在 os_safe 平面 (OS 可安全执行)。
  * 任一 required 位非法/未被 os_safe 包含 → 0 (拒绝);
  * required==0 (无要求) → 1 (通过)。 */
-int acs_cap_os_safe_satisfies_v1(const acs_cap_result_v1* cap, uint64_t required);
+int acsd_cap_os_safe_satisfies_v1(const acsd_cap_result_v1* cap, uint64_t required);
 
 /* 判定: required 中的全部位都在 hw_features 平面 (硬件支持, 含 OS 不可执行)。
  * 用于诊断 "硬件有但 OS 拒绝" 的精确原因; 加载判定一律用 os_safe_satisfies。 */
-int acs_cap_hw_satisfies_v1(const acs_cap_result_v1* cap, uint64_t required);
+int acsd_cap_hw_satisfies_v1(const acsd_cap_result_v1* cap, uint64_t required);
 
 /* 判定: OS 是否保存 AVX-512 ZMM/opmask 状态 (xcr0 0xE0)。
  * os_safe 平面已含该判定的聚合结果; 本查询供诊断/报告细分。 */
-int acs_cap_os_saves_avx512_state_v1(const acs_cap_result_v1* cap);
+int acsd_cap_os_saves_avx512_state_v1(const acsd_cap_result_v1* cap);
 
 /* JSON 序列化: 稳定 schema (Windows/Linux 同一 schema; 键序固定, 逐字段
  * 见 cpu_capability.schema.json)。err 可 NULL; err_cap 含 NUL。
  * 返回需要字节数 (含 NUL)。buffer 不足 → 写已可用前缀 + NUL,
  * 返回所需总长 (调用方可重试); out_json==NULL → 只求长度。
  * 本函数只使用标准库 snprintf, 无第三方 JSON 依赖。 */
-size_t acs_cap_serialize_json_v1(const acs_cap_result_v1* cap,
+size_t acsd_cap_serialize_json_v1(const acsd_cap_result_v1* cap,
                                  char* out_json, size_t out_cap,
                                  char* err, size_t err_cap);
 
@@ -156,4 +156,4 @@ size_t acs_cap_serialize_json_v1(const acs_cap_result_v1* cap,
 } /* extern "C" */
 #endif
 
-#endif /* ASTROCS_CPU_CAPABILITY_V1_H */
+#endif /* ACSD_CPU_CAPABILITY_V1_H */

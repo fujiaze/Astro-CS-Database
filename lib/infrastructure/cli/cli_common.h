@@ -13,7 +13,7 @@
 #include <string>
 #include <vector>
 
-namespace astrocs {
+namespace acsd {
 
 // ── JSONL 事件发射器 ──
 class JsonlEmitter;  // 定义见 jsonl.h
@@ -52,7 +52,7 @@ inline size_t utf8_from_wide_alloc_bytes(int n) noexcept {
     return n > 1 ? static_cast<size_t>(n) : 0;
 }
 
-}  // namespace astrocs
+}  // namespace acsd
 
 // ───────────────────────── parser ─────────────────────────
 
@@ -91,7 +91,7 @@ std::string sanitize_path(const std::string& p);
 std::string file_sha256(const std::string& u8path, bool* ok);
 std::string local_cpu_signature();
 
-// ── CLI-MULTIBLOCK（依据 docs/ASTROCS_DESIGN.md §4.3 输入合同「两种形态互斥」）：多数据块配置 ──
+// ── CLI-MULTIBLOCK（依据 docs/ACSD_DESIGN.md §4.3 输入合同「两种形态互斥」）：多数据块配置 ──
 // 一个 JSON 内可并列多个数据块（block）：每块自带一组 input_lights + 一套母版
 // （master_bias/master_dark/master_flat）+ 运行参数 + 块级 output_dir；
 // 一块 = 一次运行（独立 output_dir / 独立 run manifest）。
@@ -140,12 +140,12 @@ int real_main(int argc, char** argv_utf8);
 // 计划/检视实现留在 lib/infrastructure/cli/commands.cpp（薄入口只做参数解析、预检、确认、退出码）。
 // 这里的声明是「命令层 → 会话层」的唯一契约面。
 enum class SessionOp { Run, Validate, Plan, Inspect };
-int session_dispatch(int session, SessionOp op, const Parsed& p, astrocs::JsonlEmitter& ev);
+int session_dispatch(int session, SessionOp op, const Parsed& p, acsd::JsonlEmitter& ev);
 std::string session_config_template(int session);
 std::string session_run_message(int session);
 bool session_has_flag(const Parsed& p, const char* flag);
 
 // 版本生成头（构建期）
-#ifndef ASTROCS_VERSION_STRING
+#ifndef ACSD_VERSION_STRING
 #include "version_generated.h"
 #endif

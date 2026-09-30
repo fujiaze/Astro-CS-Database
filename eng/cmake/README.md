@@ -11,7 +11,7 @@
 
 - cfitsio_sources.cmake —— CFITSIO 源文件清单模块。
 - install_layout.cmake —— 安装目录布局模块。
-- astrocs.product.windows.json.in —— Windows 产品清单模板。
+- acsd.product.windows.json.in —— Windows 产品清单模板。
 - toolchain/ —— 平台工具链 CMake 片段。
 - win32_pthread_shim/ —— Windows pthread 兼容垫片。
 - qa_coverage_report.sh —— 覆盖率报告脚本。
@@ -19,4 +19,4 @@
 
 ## 上游
 
-上游：docs/ASTROCS_DESIGN.md §8.4（顶层结构·eng/cmake）；ENGINEERING_SPEC.md §1（语言、编译器与平台）、§7（目录规范）。
+上游：docs/ACSD_DESIGN.md §8.4（顶层结构·eng/cmake）；ENGINEERING_SPEC.md §1（语言、编译器与平台）、§7（目录规范）。

@@ -340,7 +340,7 @@ class TestNoRawTestdata(unittest.TestCase):
     def test_synthetic_only(self):
         # 全部样例为内存/临时合成事件（A7：无 raw testdata）。
         # 不引用仓库 testdata/ 目录；所有数据均在临时目录/内存构造。
-        self.assertEqual(SCHEMA_ID, "astrocs.log.event.v1")
+        self.assertEqual(SCHEMA_ID, "acsd.log.event.v1")
         self.assertNotIn("/home/", make_event(1).to_jsonl())
         # 仓库 testdata 目录内容被 .gitignore 排除（仅 index.json 入仓库）
         td = REPO / "testdata" / "index.json"

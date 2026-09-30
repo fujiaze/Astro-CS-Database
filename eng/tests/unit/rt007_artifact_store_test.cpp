@@ -4,12 +4,12 @@
 // 3. 唯一 producer：duplicate id 拒绝
 // 4. 消费前完整验证；禁止从文件名猜角色
 // 5. JSON roundtrip
-#include "astrocs/core/artifact_store.h"
+#include "acsd/core/artifact_store.h"
 
 #include <cstdio>
 #include <string>
 
-using namespace astrocs::core;
+using namespace acsd::core;
 
 static int failures = 0;
 #define CHECK(cond)                                                       \
@@ -34,7 +34,7 @@ static ArtifactDescriptor make_p1_output() {
   d.size_bytes = 1024;
   d.content_sha256 = std::string(64, 'a');
   d.producer_node = "cal";
-  d.producer_module = "astrocs.phase1.calibration";
+  d.producer_module = "acsd.phase1.calibration";
   d.producer_version = "1.0.0";
   d.source_commit = std::string(40, '1');
   d.input_ids_hash = std::string(64, 'b');
@@ -56,7 +56,7 @@ static ArtifactDescriptor make_p2_output() {
   d.size_bytes = 4096;
   d.content_sha256 = std::string(64, 'c');
   d.producer_node = "res";
-  d.producer_module = "astrocs.phase2.resample";
+  d.producer_module = "acsd.phase2.resample";
   d.producer_version = "1.0.0";
   d.source_commit = std::string(40, '1');
   d.input_ids_hash = std::string(64, 'd');
@@ -112,7 +112,7 @@ static void test_tamper_detection() {
     d3.data_schema_id = "DATA-X-FORGED";  // 篡改 schema
     CHECK(s3.store(d3).failed());
     auto d4 = make_p1_output();
-    d4.producer_module = "astrocs.acr.evil";  // 换 producer
+    d4.producer_module = "acsd.acr.evil";  // 换 producer
     CHECK(s3.store(d4).failed());
   }
 }

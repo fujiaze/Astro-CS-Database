@@ -1,6 +1,6 @@
 {
   "unified_object": "sparse_snr_layer",
-  "object_schema_id": "https://astrocs.local/schemas/unified/sparse_snr_layer/v1",
+  "object_schema_id": "https://acsd.local/schemas/unified/sparse_snr_layer/v1",
   "schema_version": 1,
   "units": {
     "bunit": "1",

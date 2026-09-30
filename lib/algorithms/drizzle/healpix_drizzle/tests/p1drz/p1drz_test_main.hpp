@@ -5,7 +5,7 @@
 // CTest: p1drz_units / p1drz_properties / p1drz_oracle / p1drz_negative
 //
 // 故障注入 (模板 <prefix>-TEST 验收: "故障注入能让测试失败"):
-//   ASTROCS_P1DRZ_FAULT=<regname>[,<regname>...] → 对应 CHECK 组确定性翻转
+//   ACSD_P1DRZ_FAULT=<regname>[,<regname>...] → 对应 CHECK 组确定性翻转
 //   → rc=1 + stderr "FAULT-INJECT <name>"。注册表:
 //     flux_closure, uniformity, impulse, nonfinite, determinism, variance,
 //     negative_matrix, sip_active, adu_inverse
@@ -124,7 +124,7 @@ inline int run_all_groups(const p1drz::TestGroup* groups, std::size_t n,
         if (a == "--group" && i + 1 < argc) group = argv[++i];
         else if (a.rfind("--", 0) != 0) group = a;
     }
-    if (const char* f = std::getenv("ASTROCS_P1DRZ_FAULT")) {
+    if (const char* f = std::getenv("ACSD_P1DRZ_FAULT")) {
         // 同进程重入 (selfcheck 注入相) 防御: 先清空上次注册, 避免 active
         // 跨相累加 (execve 路径天然全新进程, 此行为纯防御)
         p1drz::FaultRegistry::instance().active.clear();

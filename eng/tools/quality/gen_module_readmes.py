@@ -66,7 +66,7 @@ TEMPLATE = """---
 id: MOD-@@ID_DASH@@
 version: 1.0.0
 status: @@STATUS@@
-owner: astrocs-core
+owner: acsd-core
 source_commit: @@HEAD@@
 upstream: [@@SCI@@, @@ALG@@, @@API@@]
 downstream: [@@TEST@@]
@@ -76,7 +76,7 @@ downstream: [@@TEST@@]
 
 # 模块 @@MID@@
 
-> 上游：docs/ASTROCS_DESIGN.md §8.4（模块与 ABI）
+> 上游：docs/ACSD_DESIGN.md §8.4（模块与 ABI）
 
 ## 职责与明确非职责
 
@@ -379,7 +379,7 @@ def main() -> int:
         print("MODULE_README_GEN_INPUT_MISSING: %s%s" % (err, hint), file=sys.stderr)
         print("MODULE_README_GEN_FAIL: 未写盘（%s 保持原样）" % OUT_DIR_REL, file=sys.stderr)
         return 2
-    prod = [d for d in descs if d["module_id"].startswith("astrocs.phase")]
+    prod = [d for d in descs if d["module_id"].startswith("acsd.phase")]
     if not prod:
         print("MODULE_README_GEN_INPUT_MISSING: %s 解析出 0 个 production descriptor"
               "（零命中不是「清单本来就该是空的」的理由）" % SOURCE_REL, file=sys.stderr)

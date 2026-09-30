@@ -24,7 +24,7 @@
 
 #include "resource_monitor.h"
 
-namespace astrocs {
+namespace acsd {
 
 // ============================================================================
 // 准入决策
@@ -210,4 +210,4 @@ private:
     mutable PressureLevel level_{PressureLevel::NORMAL};
 };
 
-} // namespace astrocs
+} // namespace acsd

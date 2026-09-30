@@ -1,6 +1,6 @@
 # Optimization（真实热点，先 profile）
 
-> 上游：ASTROCS_DESIGN.md §9（CPU 后端与资源）
+> 上游：ACSD_DESIGN.md §9（CPU 后端与资源）
 
 候选（profile 后按 wall time 排序）：
 

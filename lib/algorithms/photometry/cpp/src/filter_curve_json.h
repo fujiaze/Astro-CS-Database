@@ -1,5 +1,5 @@
-#ifndef ASTROCS_PHOTOMETRY_FILTER_CURVE_JSON_H
-#define ASTROCS_PHOTOMETRY_FILTER_CURVE_JSON_H
+#ifndef ACSD_PHOTOMETRY_FILTER_CURVE_JSON_H
+#define ACSD_PHOTOMETRY_FILTER_CURVE_JSON_H
 
 // ============================================================================
 // filter_curve_json.h - 滤镜/QE 响应曲线 JSON 的定位与数组抽取
@@ -22,7 +22,7 @@
 //       ERROR(unknown_filter)。比较为字节精确：不折叠大小写、不折叠空白、
 //       不做 Unicode 归一、不解析别名」+ docs/engineering/CONFIG_CONTRACT.md §4
 //     （同一合同的文档化说明）。本头按该规则**只认曲线库内的对象键**。
-//   - docs/ASTROCS_DESIGN.md §9「aio 是文件级唯一 I/O 边界：任何文件读写必须经 aio」
+//   - docs/ACSD_DESIGN.md §9「aio 是文件级唯一 I/O 边界：任何文件读写必须经 aio」
 //     —— 读取经 aio_file::read_all（aio 内唯一实现, header-only），本头不自持
 //     fopen/ifstream 通道。
 //
@@ -55,7 +55,7 @@
 #include <string>
 #include <vector>
 
-namespace astrocs {
+namespace acsd {
 namespace photometry {
 namespace curve_json {
 
@@ -474,6 +474,6 @@ inline LoadStatus load_curve(const std::string& json_path, const std::string& cu
 
 }  // namespace curve_json
 }  // namespace photometry
-}  // namespace astrocs
+}  // namespace acsd
 
-#endif  // ASTROCS_PHOTOMETRY_FILTER_CURVE_JSON_H
+#endif  // ACSD_PHOTOMETRY_FILTER_CURVE_JSON_H

@@ -1,11 +1,11 @@
 // ACSD CPU baseline provider — lib/infrastructure/benchmark/cpu/baseline/src/baseline_provider.cpp (CPU-002)
 //
 // 职责: AMD64 baseline provider DLL (仅 SSE2, 编译不带 /arch:AVX* / -mavx* 旗标)。
-//   - 唯一导出 astrocs_provider_query_v1 (lib/include/astrocs/abi/module_api_v1.h 冻结;
+//   - 唯一导出 acsd_provider_query_v1 (lib/include/acsd/abi/module_api_v1.h 冻结;
 //     12 §1 / ARC-001 §1.2: provider DLL 不得导出其他符号);
 //   - query 握手: host_abi 失配 → ACS_ERR_ABI_MISMATCH (不降级猜测);
 //     host 必填 allocator; out_api = 静态 provider 表;
-//   - query 期消费 CPU-001 capability 判定 (acs_cap_detect_v1 + os_safe 平面):
+//   - query 期消费 CPU-001 capability 判定 (acsd_cap_detect_v1 + os_safe 平面):
 //     baseline 只需 SSE2 (amd64 恒备); capability 探测失败 (非 amd64) /
 //     SSE2 不在 os_safe → ACS_ERR_UNSUPPORTED (拒绝加载; host 进入无 provider
 //     保守路径 — 15 §2 "硬件支持但 OS 不保存寄存器时拒绝");
@@ -29,8 +29,8 @@
 //   - 逐元素 op: IEEE-754 传播 (NaN 输入 → NaN 输出);
 //   - 排序型 op (noise/rejection): 仅有限帧参与 median/MAD (ALG-CAL §4
 //     "输入含 NaN 仅 finite 参与"); 全非有限像素 → med=0/madσ=0/计数=0。
-#include "astrocs/cpu/baseline_provider_v1.h"
-#include "astrocs/cpu/capability_v1.h"
+#include "acsd/cpu/baseline_provider_v1.h"
+#include "acsd/cpu/capability_v1.h"
 
 #include <algorithm>
 #include <cmath>
@@ -40,39 +40,39 @@
 #include <thread>
 #include <vector>
 
-#if !defined(ASTROCS_NO_EXCEPTIONS)
+#if !defined(ACSD_NO_EXCEPTIONS)
 #include <stdexcept>
 #endif
 
-#if defined(ASTROCS_ABI_SHARED) && !defined(ASTROCS_ABI_EXPORTS)
-#define ASTROCS_ABI_EXPORTS 1
+#if defined(ACSD_ABI_SHARED) && !defined(ACSD_ABI_EXPORTS)
+#define ACSD_ABI_EXPORTS 1
 #endif
 
 /* ───────────────────────── 能力门 (query 期) ─────────────────────────
  * baseline 只需 SSE2 (amd64 恒备)。生产链接真实 capability_detect.c; 能力
  * 不足负测由测试以 stub 探测注入 (eng/tests/cpu/baseline/provider_capability_gate_test.c
- * 链接期替换 acs_cap_detect_v1/acs_cap_os_safe_satisfies_v1)。本函数为
+ * 链接期替换 acsd_cap_detect_v1/acsd_cap_os_safe_satisfies_v1)。本函数为
  * extern "C" 顶层符号 (host/测试可直接判定; 不属 provider 导出白名单)。 */
-extern "C" int acs_cpu_baseline_cap_gate(acs_cap_result_v1* out) {
+extern "C" int acsd_cpu_baseline_cap_gate(acsd_cap_result_v1* out) {
     if (out == nullptr) return ACS_ERR_PARAM;
-    acs_cap_result_v1 c;
+    acsd_cap_result_v1 c;
     std::memset(&c, 0, sizeof(c));
-    c.struct_size = (uint32_t)sizeof(acs_cap_result_v1);
+    c.struct_size = (uint32_t)sizeof(acsd_cap_result_v1);
     c.abi_version = ACS_CAP_ABI_VERSION_V1;
-    const int rc = acs_cap_detect_v1(&c);
+    const int rc = acsd_cap_detect_v1(&c);
     if (rc != ACS_CAP_OK) return ACS_ERR_UNSUPPORTED;
-    if (!acs_cap_os_safe_satisfies_v1(&c, ACS_CAP_FEAT_SSE2))
+    if (!acsd_cap_os_safe_satisfies_v1(&c, ACS_CAP_FEAT_SSE2))
         return ACS_ERR_UNSUPPORTED;   /* OS/平台不保证 SSE2 → 拒绝 (保守) */
     *out = c;
     return ACS_OK;
 }
 
-namespace astrocs_cpu_baseline {
+namespace acsd_cpu_baseline {
 
 /* ───────────────────────── 字符串构造辅助 (静态 init) ───────────────────────── */
-static acs_str_v1 mkstr(const char* s) {
-    acs_str_v1 v;
-    v.head.struct_size = (uint32_t)sizeof(acs_str_v1);
+static acsd_str_v1 mkstr(const char* s) {
+    acsd_str_v1 v;
+    v.head.struct_size = (uint32_t)sizeof(acsd_str_v1);
     v.head.abi_version = ACS_ABI_VERSION_V1;
     v.data = s;
     v.size = s ? (uint64_t)std::strlen(s) : 0u;
@@ -84,38 +84,38 @@ static acs_str_v1 mkstr(const char* s) {
  * 语义一致 (kernel_id = legacy algorithm_id; desc.precision 以实际 f32 数据面
  * 为准 — legacy 部分条目 F64 标注与其 f32 实现不一致, 见 README §4)。
  * determinism_class: 0=bitwise (逐元素独立); 1=fixed_order (帧内固定序累加)。 */
-static const acs_kernel_desc_v1 kKernels[ACS_CPU_BASELINE_KERNEL_COUNT] = {
-    { { (uint32_t)sizeof(acs_kernel_desc_v1), ACS_ABI_VERSION_V1 },
+static const acsd_kernel_desc_v1 kKernels[ACS_CPU_BASELINE_KERNEL_COUNT] = {
+    { { (uint32_t)sizeof(acsd_kernel_desc_v1), ACS_ABI_VERSION_V1 },
       mkstr("calibration-pixel-transform"), mkstr("ALG-001"), ACS_CPU_BASELINE_PREC_F32, ACS_CPU_BASELINE_DET_BITWISE },
-    { { (uint32_t)sizeof(acs_kernel_desc_v1), ACS_ABI_VERSION_V1 },
+    { { (uint32_t)sizeof(acsd_kernel_desc_v1), ACS_ABI_VERSION_V1 },
       mkstr("noise-snr-reductions"), mkstr("ALG-004"), ACS_CPU_BASELINE_PREC_F32, ACS_CPU_BASELINE_DET_BITWISE },
-    { { (uint32_t)sizeof(acs_kernel_desc_v1), ACS_ABI_VERSION_V1 },
+    { { (uint32_t)sizeof(acsd_kernel_desc_v1), ACS_ABI_VERSION_V1 },
       mkstr("wcs-psf-batch"), mkstr("ALG-002"), ACS_CPU_BASELINE_PREC_F32, ACS_CPU_BASELINE_DET_BITWISE },
-    { { (uint32_t)sizeof(acs_kernel_desc_v1), ACS_ABI_VERSION_V1 },
+    { { (uint32_t)sizeof(acsd_kernel_desc_v1), ACS_ABI_VERSION_V1 },
       mkstr("drizzle-overlap"), mkstr("ALG-005"), ACS_CPU_BASELINE_PREC_F32, ACS_CPU_BASELINE_DET_FIXED_ORDER },
-    { { (uint32_t)sizeof(acs_kernel_desc_v1), ACS_ABI_VERSION_V1 },
+    { { (uint32_t)sizeof(acsd_kernel_desc_v1), ACS_ABI_VERSION_V1 },
       mkstr("drizzle-accumulate"), mkstr("ALG-005"), ACS_CPU_BASELINE_PREC_F32, ACS_CPU_BASELINE_DET_FIXED_ORDER },
-    { { (uint32_t)sizeof(acs_kernel_desc_v1), ACS_ABI_VERSION_V1 },
+    { { (uint32_t)sizeof(acsd_kernel_desc_v1), ACS_ABI_VERSION_V1 },
       mkstr("drizzle-normalize"), mkstr("ALG-005"), ACS_CPU_BASELINE_PREC_F32, ACS_CPU_BASELINE_DET_FIXED_ORDER },
-    { { (uint32_t)sizeof(acs_kernel_desc_v1), ACS_ABI_VERSION_V1 },
+    { { (uint32_t)sizeof(acsd_kernel_desc_v1), ACS_ABI_VERSION_V1 },
       mkstr("upm-spmv"), mkstr("ALG-006"), ACS_CPU_BASELINE_PREC_F32, ACS_CPU_BASELINE_DET_BITWISE },
-    { { (uint32_t)sizeof(acs_kernel_desc_v1), ACS_ABI_VERSION_V1 },
+    { { (uint32_t)sizeof(acsd_kernel_desc_v1), ACS_ABI_VERSION_V1 },
       mkstr("upm-residual"), mkstr("ALG-006"), ACS_CPU_BASELINE_PREC_F32, ACS_CPU_BASELINE_DET_BITWISE },
-    { { (uint32_t)sizeof(acs_kernel_desc_v1), ACS_ABI_VERSION_V1 },
+    { { (uint32_t)sizeof(acsd_kernel_desc_v1), ACS_ABI_VERSION_V1 },
       mkstr("upm-weight-update"), mkstr("ALG-006"), ACS_CPU_BASELINE_PREC_F32, ACS_CPU_BASELINE_DET_BITWISE },
-    { { (uint32_t)sizeof(acs_kernel_desc_v1), ACS_ABI_VERSION_V1 },
+    { { (uint32_t)sizeof(acsd_kernel_desc_v1), ACS_ABI_VERSION_V1 },
       mkstr("rejection-statistics"), mkstr("ALG-008"), ACS_CPU_BASELINE_PREC_F32, ACS_CPU_BASELINE_DET_FIXED_ORDER },
-    { { (uint32_t)sizeof(acs_kernel_desc_v1), ACS_ABI_VERSION_V1 },
+    { { (uint32_t)sizeof(acsd_kernel_desc_v1), ACS_ABI_VERSION_V1 },
       mkstr("integration-accumulate"), mkstr("ALG-009"), ACS_CPU_BASELINE_PREC_F32, ACS_CPU_BASELINE_DET_FIXED_ORDER },
-    { { (uint32_t)sizeof(acs_kernel_desc_v1), ACS_ABI_VERSION_V1 },
+    { { (uint32_t)sizeof(acsd_kernel_desc_v1), ACS_ABI_VERSION_V1 },
       mkstr("hips-bulk-transform"), mkstr("ALG-P3-002"), ACS_CPU_BASELINE_PREC_F32, ACS_CPU_BASELINE_DET_BITWISE }
 };
 
 /* ───────────────────────── 槽位解析 / 参数校验 ───────────────────────── */
 
 /* 校验 P->in_off/len 相对缓冲起点 (元素) 越界; 填 S 槽指针。 */
-static int validate_slots(const acs_cpu_baseline_params_v1* P,
-                          const acs_span_u8& in, const acs_span_u8& out) {
+static int validate_slots(const acsd_cpu_baseline_params_v1* P,
+                          const acsd_span_u8& in, const acsd_span_u8& out) {
     if (in.data == nullptr || out.data == nullptr) return ACS_ERR_PARAM;
     if (P->head.struct_size < sizeof(*P) ||
         P->head.abi_version != ACS_ABI_VERSION_V1)
@@ -144,7 +144,7 @@ static int validate_slots(const acs_cpu_baseline_params_v1* P,
 
 /* 元素级长度需求表 (各 op 要求; 返回 ACS_OK 或 ACS_ERR_PARAM)。
  * frames_out: 栈类 op 的帧数 (accumulate/noise/rejection/integration), 成功写回。 */
-static int check_lengths(const acs_cpu_baseline_params_v1* P, uint32_t kidx) {
+static int check_lengths(const acsd_cpu_baseline_params_v1* P, uint32_t kidx) {
     const uint64_t N = (uint64_t)P->w * (uint64_t)P->h;
     uint64_t frames = 0;
     /* 槽启用以 len>0 为准 (validate_slots 已保证 len=0 → off=0) */
@@ -225,7 +225,7 @@ static float median_of_sorted(float* v, size_t n) {
 }
 
 /* 单输出像素带 [i0,i1) 的 kernel 计算。 */
-static void kernel_pixel_range(const acs_cpu_baseline_params_v1* P, uint32_t kidx,
+static void kernel_pixel_range(const acsd_cpu_baseline_params_v1* P, uint32_t kidx,
                                const float* const* in, float* const* out,
                                float* scratch, uint64_t i0, uint64_t i1) {
     const uint64_t N = (uint64_t)P->w * (uint64_t)P->h;
@@ -387,8 +387,8 @@ static void kernel_pixel_range(const acs_cpu_baseline_params_v1* P, uint32_t kid
 }
 
 /* 从 span 槽位取 f32 指针 (元素级偏移已由 validate_slots 校验) */
-static int gather_ptrs(const acs_cpu_baseline_params_v1* P,
-                       const acs_span_u8& in, const acs_span_u8& out,
+static int gather_ptrs(const acsd_cpu_baseline_params_v1* P,
+                       const acsd_span_u8& in, const acsd_span_u8& out,
                        const float** ip, float** op) {
     const uint8_t* ib = in.data;
     uint8_t* ob = out.data;
@@ -404,8 +404,8 @@ static int gather_ptrs(const acs_cpu_baseline_params_v1* P,
 /* ───────────────────────── 并行执行 (host executor 租借) ───────────────────────── */
 
 /* 输出带 [0,N) 按 workers 均分行带; 每线程独立 scratch。返回实际 worker 数。 */
-static uint32_t run_banded(const acs_host_api_v1* host,
-                           const acs_cpu_baseline_params_v1* P, uint32_t kidx,
+static uint32_t run_banded(const acsd_host_api_v1* host,
+                           const acsd_cpu_baseline_params_v1* P, uint32_t kidx,
                            const float* const* ip, float* const* op,
                            uint64_t scratch_needed) {
     const uint64_t N = (uint64_t)P->w * (uint64_t)P->h;
@@ -460,9 +460,9 @@ static uint32_t run_banded(const acs_host_api_v1* host,
 
 /* ───────────────────────── provider vtable 函数 ───────────────────────── */
 
-static acs_status baseline_self_test(const acs_host_api_v1* host) {
+static acsd_status baseline_self_test(const acsd_host_api_v1* host) {
     if (host == nullptr) return ACS_ERR_PARAM;
-    if (host->head.struct_size < sizeof(acs_host_api_v1) ||
+    if (host->head.struct_size < sizeof(acsd_host_api_v1) ||
         host->head.abi_version != ACS_ABI_VERSION_V1)
         return ACS_ERR_ABI_MISMATCH;
     if (host->allocator == nullptr || host->allocator->alloc == nullptr ||
@@ -486,7 +486,7 @@ static acs_status baseline_self_test(const acs_host_api_v1* host) {
     }
     /* kernel 表自洽 */
     for (uint32_t i = 0; i < ACS_CPU_BASELINE_KERNEL_COUNT; ++i) {
-        const acs_kernel_desc_v1& k = kKernels[i];
+        const acsd_kernel_desc_v1& k = kKernels[i];
         if (k.head.abi_version != ACS_ABI_VERSION_V1 ||
             k.kernel_id.data == nullptr || k.kernel_id.size == 0 ||
             k.sci_contract_id.data == nullptr || k.sci_contract_id.size == 0)
@@ -495,9 +495,9 @@ static acs_status baseline_self_test(const acs_host_api_v1* host) {
     return ACS_OK;
 }
 
-static acs_status baseline_kernel_list(const acs_host_api_v1* host,
+static acsd_status baseline_kernel_list(const acsd_host_api_v1* host,
                                        uint32_t* out_count,
-                                       const acs_kernel_desc_v1** out_kernels) {
+                                       const acsd_kernel_desc_v1** out_kernels) {
     (void)host;
     if (out_count == nullptr || out_kernels == nullptr) return ACS_ERR_PARAM;
     *out_count = ACS_CPU_BASELINE_KERNEL_COUNT;
@@ -505,17 +505,17 @@ static acs_status baseline_kernel_list(const acs_host_api_v1* host,
     return ACS_OK;
 }
 
-static acs_status baseline_run_kernel(uint32_t kernel_index,
-                                      const acs_host_api_v1* host,
+static acsd_status baseline_run_kernel(uint32_t kernel_index,
+                                      const acsd_host_api_v1* host,
                                       const void* params, uint32_t params_bytes,
-                                      acs_span_u8 in, acs_span_u8 out) {
+                                      acsd_span_u8 in, acsd_span_u8 out) {
     if (kernel_index >= ACS_CPU_BASELINE_KERNEL_COUNT)
         return ACS_ERR_UNSUPPORTED;   /* host 应退其它 provider / 失败路径 */
     if (host == nullptr || params == nullptr) return ACS_ERR_PARAM;
-    if (host->head.struct_size < sizeof(acs_host_api_v1) ||
+    if (host->head.struct_size < sizeof(acsd_host_api_v1) ||
         host->head.abi_version != ACS_ABI_VERSION_V1)
         return ACS_ERR_ABI_MISMATCH;
-    acs_cpu_baseline_params_v1 P;
+    acsd_cpu_baseline_params_v1 P;
     if (params_bytes < sizeof(P)) return ACS_ERR_PARAM;
     std::memcpy(&P, params, sizeof(P));
     if (P.head.abi_version != ACS_ABI_VERSION_V1 ||
@@ -531,14 +531,14 @@ static acs_status baseline_run_kernel(uint32_t kernel_index,
         return ACS_ERR_CANCELLED;
 
     int rc = validate_slots(&P, in, out);
-    if (rc != ACS_OK) return (acs_status)rc;
+    if (rc != ACS_OK) return (acsd_status)rc;
     rc = check_lengths(&P, kernel_index);
-    if (rc != ACS_OK) return (acs_status)rc;
+    if (rc != ACS_OK) return (acsd_status)rc;
 
     const float* ip[ACS_CPU_BASELINE_MAX_IN_SLOTS] = { nullptr };
     float* op[ACS_CPU_BASELINE_MAX_OUT_SLOTS] = { nullptr };
     rc = gather_ptrs(&P, in, out, ip, op);
-    if (rc != ACS_OK) return (acs_status)rc;
+    if (rc != ACS_OK) return (acsd_status)rc;
 
     /* UPM-SPMV 数据安全: rowptr 单调非减且 ≤ nnz (越界读防护) */
     if (kernel_index == ACS_CPU_KIDX_UPM_SPMV) {
@@ -574,14 +574,14 @@ static acs_status baseline_run_kernel(uint32_t kernel_index,
 }
 
 /* ───────────────────────── provider 静态表 ───────────────────────── */
-static const acs_provider_api_v1 g_provider_api = {
-    { (uint32_t)sizeof(acs_provider_api_v1), ACS_ABI_VERSION_V1 },
+static const acsd_provider_api_v1 g_provider_api = {
+    { (uint32_t)sizeof(acsd_provider_api_v1), ACS_ABI_VERSION_V1 },
     &baseline_self_test,
     &baseline_kernel_list,
     &baseline_run_kernel
 };
 
-}  // namespace astrocs_cpu_baseline
+}  // namespace acsd_cpu_baseline
 
 /* ───────────────────────── 唯一导出 (12 §1) ─────────────────────────
  * host_abi 失配 → ACS_ERR_ABI_MISMATCH (不降级猜测); host 必填 allocator;
@@ -589,7 +589,7 @@ static const acs_provider_api_v1 g_provider_api = {
  * 异常边界: 全部 C++ 异常捕获转 ACS_ERR_EXCEPTION (12 §4)。 */
 extern "C" {
 
-#if !defined(ASTROCS_NO_EXCEPTIONS)
+#if !defined(ACSD_NO_EXCEPTIONS)
 #define ACS_TRY try
 #define ACS_CATCH \
     catch (...) { return ACS_ERR_EXCEPTION; }
@@ -598,19 +598,19 @@ extern "C" {
 #define ACS_CATCH
 #endif
 
-ASTROCS_EXPORT acs_status ASTROCS_CALL
-astrocs_provider_query_v1(uint32_t host_abi,
-                          const acs_host_api_v1* host,
-                          const acs_provider_api_v1** out_api) ACS_TRY {
+ACSD_EXPORT acsd_status ACSD_CALL
+acsd_provider_query_v1(uint32_t host_abi,
+                          const acsd_host_api_v1* host,
+                          const acsd_provider_api_v1** out_api) ACS_TRY {
     if (host_abi != ACS_ABI_VERSION_V1) return ACS_ERR_ABI_MISMATCH;
     if (host == nullptr || host->allocator == nullptr) return ACS_ERR_ABI_MISMATCH;
-    if (host->head.struct_size < sizeof(acs_host_api_v1) ||
+    if (host->head.struct_size < sizeof(acsd_host_api_v1) ||
         host->head.abi_version != ACS_ABI_VERSION_V1)
         return ACS_ERR_ABI_MISMATCH;
     if (out_api == nullptr) return ACS_ERR_PARAM;
-    using namespace astrocs_cpu_baseline;
-    acs_cap_result_v1 cap;
-    const int grc = acs_cpu_baseline_cap_gate(&cap);
+    using namespace acsd_cpu_baseline;
+    acsd_cap_result_v1 cap;
+    const int grc = acsd_cpu_baseline_cap_gate(&cap);
     if (grc != ACS_OK) return ACS_ERR_UNSUPPORTED;   /* 能力不足 → 拒绝加载 */
     *out_api = &g_provider_api;
     return ACS_OK;

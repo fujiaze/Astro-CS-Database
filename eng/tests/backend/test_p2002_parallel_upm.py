@@ -59,7 +59,7 @@ class TestP2002ParallelUpm(unittest.TestCase):
                 os.path.join(AIO, "src", "aio_log.cpp"),
                 os.path.join(AIO, "src", "aio_compressor.cpp"),
                 os.path.join(REPO, "lib", "algorithms", "shared", "healpix", "healpix_core.cpp"),
-                # FIX-201: aio_file_io.h 的 sha256_hex 经 astrocs::crypto::Sha256
+                # FIX-201: aio_file_io.h 的 sha256_hex 经 acsd::crypto::Sha256
                 #（单一实现 lib/algorithms/shared/crypto/sha256.cpp）。
                 os.path.join(REPO, "lib", "algorithms", "shared", "crypto", "sha256.cpp")]
         exe = os.path.join(cls.tmp, "fixture")
@@ -89,11 +89,11 @@ class TestP2002ParallelUpm(unittest.TestCase):
 
     def _run_upm(self, workers, out_dir, save_path):
         cfg = self._make_cfg(workers, out_dir, save_path)
-        # CLI-002 / docs/ASTROCS_DESIGN 6.2: 旧 phase2 run --config 已删(rc=2);
+        # CLI-002 / docs/ACSD_DESIGN 6.2: 旧 phase2 run --config 已删(rc=2);
         # 现行等价命令 = mosaic --json <cfg>(平铺会话格式)。
         return subprocess.run([EXE, "mosaic", "--json", cfg, "--events-jsonl", "-y"],
                               capture_output=True, text=True,
-                              env=dict(os.environ, ASTROCS_REPO=REPO), timeout=600)
+                              env=dict(os.environ, ACSD_REPO=REPO), timeout=600)
 
     def test_01_no_openmp_gate(self):
         """upm.cpp 无 P2_ENABLE_OPENMP / hardware_concurrency 生产调用残留。"""

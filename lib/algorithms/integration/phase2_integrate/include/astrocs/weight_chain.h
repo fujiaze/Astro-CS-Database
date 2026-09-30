@@ -1,16 +1,16 @@
 /* weight_chain.h — Phase2 SNR → 逆方差权重链（科学计算核心）
  *
  * 权威依据（只读，不改；行号为引用时刻的现况）:
- *   - docs/ASTROCS_DESIGN.md §3.1:264「帧级 SNR 与稀疏 SNR 层是两个独立对象…
+ *   - docs/ACSD_DESIGN.md §3.1:264「帧级 SNR 与稀疏 SNR 层是两个独立对象…
  *       稀疏层存控制点处的**绝对** SNR；稀疏层不以帧级 SNR 为尺度基准，消费时
  *       直接由绝对控制点重建为稠密 SNR 场（不经帧级 SNR 乘除）。两者共用同一物理
  *       定义与同一逐帧参考通量 F_ref，权重换算 w = SNR²/F_ref² 对两者一致」
- *   - docs/ASTROCS_DESIGN.md §3.1:263「HiPS 里存的是帧级 SNR 与稀疏控制点上的绝对
+ *   - docs/ACSD_DESIGN.md §3.1:263「HiPS 里存的是帧级 SNR 与稀疏控制点上的绝对
  *       SNR；权重是 Phase2 集成时按天球像素对应的输入帧集合**现场计算的派生量**」
- *   - docs/ASTROCS_DESIGN.md §3.1:267 + §2.4:240「三条 SNR 重建口径
+ *   - docs/ACSD_DESIGN.md §3.1:267 + §2.4:240「三条 SNR 重建口径
  *       （dense / sparse_reconstruct / frame_reconstruct）是**重建方式**的选择，
  *       不是权重口径的选择：三者都产出同一物理量的稠密表示，都走同一条逆方差定权式」
- *   - docs/ASTROCS_DESIGN.md §5.3:439（w = 1/σ² = SNR²/F_ref²，F_ref 逐帧；Zackay & Ofek）
+ *   - docs/ACSD_DESIGN.md §5.3:439（w = 1/σ² = SNR²/F_ref²，F_ref 逐帧；Zackay & Ofek）
  *   - docs/science/PSF_SIGNAL_WEIGHT.md:75/87（w_k = SNR_k²/F_ref,k² ≡ 1/σ_F,k²；
  *       阶段二 w(x,y) = SNR(x,y)²/F_ref²）；docs/science/UNIFIED_SCIENCE_MODEL.md:62
  *       「SNR(x,y) 由稀疏控制点上的**绝对** SNR 重建（控制点值即绝对量本身，
@@ -72,7 +72,7 @@
 #include <string>
 #include <vector>
 
-namespace astrocs {
+namespace acsd {
 namespace v6 {
 namespace p2weight {
 
@@ -394,7 +394,7 @@ WeightChainResult compute_inverse_variance_weights(
  * （docs/science/UNIFIED_SCIENCE_MODEL.md:59、PSF_SIGNAL_WEIGHT.md:87、
  *   docs/detail/algorithms_phase2/13_integration.md §4.0）。
  * **不得**再乘/除帧级 SNR：层与帧级是两个独立对象，共用同一物理定义与同一逐帧
- * F_ref（ASTROCS_DESIGN §3.1:264；冻结 schema 明文「消费时不得乘/除帧级 SNR」）。 */
+ * F_ref（ACSD_DESIGN §3.1:264；冻结 schema 明文「消费时不得乘/除帧级 SNR」）。 */
 struct PixelWeightInput {
   std::string frame_id;                    /* 追溯用（可空） */
   const SparseSnrLayer* layer = nullptr;   /* 必填（非空且 present） */
@@ -463,4 +463,4 @@ WeightChainResult make_equal_weight_baseline(std::size_t n_frames);
 
 }  /* namespace p2weight */
 }  /* namespace v6 */
-}  /* namespace astrocs */
+}  /* namespace acsd */

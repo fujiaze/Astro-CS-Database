@@ -72,9 +72,9 @@ int aio_upm_write_sparse(const char* path, const char* model_json) {
     // 校验 JSON 可解析 + format 字段
     try {
         auto j = nlohmann::json::parse(model_json);
-        if (j.value("format", std::string()) != "astrocs-upm-v1" &&
-            j.value("format", std::string()) != "astrocs-upm-v2") {
-            set_err("format != astrocs-upm-v1/v2");
+        if (j.value("format", std::string()) != "acsd-upm-v1" &&
+            j.value("format", std::string()) != "acsd-upm-v2") {
+            set_err("format != acsd-upm-v1/v2");
             return 1;
         }
     } catch (const std::exception& e) {
@@ -129,9 +129,9 @@ AioUpmSparse* aio_upm_open(const char* path) {
     m->content = ss.str();
     try {
         m->json = nlohmann::json::parse(m->content);
-        if (m->json.value("format", std::string()) != "astrocs-upm-v1" &&
-            m->json.value("format", std::string()) != "astrocs-upm-v2") {
-            set_err("format != astrocs-upm-v1/v2");
+        if (m->json.value("format", std::string()) != "acsd-upm-v1" &&
+            m->json.value("format", std::string()) != "acsd-upm-v2") {
+            set_err("format != acsd-upm-v1/v2");
             return nullptr;
         }
     } catch (const std::exception& e) {
@@ -220,7 +220,7 @@ AioUpmDense* aio_upm_dense_begin(const char* path, const char* source_hash,
     zeros[64] = '\0';
     char header[kDenseHeaderBytes + 2] = {0};
     std::snprintf(header, sizeof(header),
-                  "{\"format\":\"astrocs-upm-dense-v2\",\"source_hash\":\"%s\","
+                  "{\"format\":\"acsd-upm-dense-v2\",\"source_hash\":\"%s\","
                   "\"target_order\":%d,\"precision\":%u,"
                   "\"frame_count\":%llu,\"tile_count\":%llu,"
                   "\"leaf_order\":%d,\"checksum\":\"%s\"}",
@@ -342,7 +342,7 @@ int aio_upm_dense_end(AioUpmDense* d) {
     }
     const std::size_t slot = pos + marker.size();
     for (int i = 0; i < 64; ++i) header[slot + (std::size_t)i] = '0';
-    astrocs::crypto::Sha256 sha;
+    acsd::crypto::Sha256 sha;
     sha.update(header.data(), header.size());
     std::vector<unsigned char> chunk(1 << 20);
     std::size_t got = 0;
@@ -404,8 +404,8 @@ bool dense_read_header(const char* path, const char* source_hash,
         *err = "header parse failed";
         return false;
     }
-    if (out_j->value("format", std::string()) != "astrocs-upm-dense-v2") {
-        *err = "format != astrocs-upm-dense-v2";
+    if (out_j->value("format", std::string()) != "acsd-upm-dense-v2") {
+        *err = "format != acsd-upm-dense-v2";
         return false;
     }
     if (out_j->value("source_hash", std::string()) != source_hash) {
@@ -439,7 +439,7 @@ bool dense_verify_checksum(const char* path, const nlohmann::json& j,
     }
     const std::size_t slot = pos + marker.size();
     for (int i = 0; i < 64; ++i) header[slot + (std::size_t)i] = '0';
-    astrocs::crypto::Sha256 sha;
+    acsd::crypto::Sha256 sha;
     sha.update(header.data(), header.size());
     std::vector<unsigned char> chunk(1 << 20);
     std::size_t got = 0;

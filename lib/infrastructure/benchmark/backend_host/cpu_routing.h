@@ -11,14 +11,14 @@
 //   低收益 (相对冻结噪声门限不足) → 一律 baseline。
 //   决策各阶段证据 (stage/detail/provider/self_test_sha256/gain) 逐项可审计,
 //   运行 trace 以 JSON 路由表输出, 显示每个 kernel 实际 provider。
-#ifndef ASTROCS_CPU_ROUTING_H
-#define ASTROCS_CPU_ROUTING_H
+#ifndef ACSD_CPU_ROUTING_H
+#define ACSD_CPU_ROUTING_H
 
 #include <cstdint>
 #include <string>
 #include <vector>
 
-namespace astrocs::backend_host {
+namespace acsd::backend_host {
 
 // 单 kernel 路由决策
 struct KernelRoute {
@@ -151,6 +151,6 @@ KernelRoute conservative_route(const std::string& kernel_id, uint32_t available_
 // 固定 kernel_id 集 (12 注册 kernel; 与 backend_table.inc / profile_gen_v2 kSpecs 对齐)
 extern const std::vector<std::string>& registered_kernel_ids_v1();
 
-}  // namespace astrocs::backend_host
+}  // namespace acsd::backend_host
 
-#endif  // ASTROCS_CPU_ROUTING_H
+#endif  // ACSD_CPU_ROUTING_H

@@ -1,6 +1,6 @@
 # Astro Celestial Sphere Database（ACSD） Numeric Standard
 
-> 上游：ASTROCS_DESIGN.md §3.3（科学量与星表，「每个科学量写清五件事：单位、坐标系、归一化、精度要求、有效有限域」）、§8.5（模块与 ABI）
+> 上游：ACSD_DESIGN.md §3.3（科学量与星表，「每个科学量写清五件事：单位、坐标系、归一化、精度要求、有效有限域」）、§8.5（模块与 ABI）
 
 ## 每个科学 double/float 必须文档化
 
@@ -12,7 +12,7 @@
 
 ## 量纲与标度（最高设计 §3.3「归一化」一项的细化）
 
-> 依据：`ASTROCS_DESIGN.md` §3.3「每个科学量写清五件事：单位、坐标系、归一化、精度要求、有效有限域」。
+> 依据：`ACSD_DESIGN.md` §3.3「每个科学量写清五件事：单位、坐标系、归一化、精度要求、有效有限域」。
 > 本条只把其中的**单位（量纲）**与**归一化（标度）**两件事写成可判定形式，不新增要求；下级文档在本条上只能细化。
 
 每个科学量的文档化条目必须**同时**写明量纲与标度类别，缺一即条目不完整：
@@ -75,7 +75,7 @@ Var(S) = Var(F) / A_cell²          A_cell = 4π / (12·nside²)   [sr]
 
 ## MUST
 
-- **NaN/Inf 契约（样本级掩膜口径，依据 `ASTROCS_DESIGN.md` §5.5）**：
+- **NaN/Inf 契约（样本级掩膜口径，依据 `ACSD_DESIGN.md` §5.5）**：
   输入校验返回显式 `INVALID_*` 状态。重采样 / 集成的 NaN 处置**唯一口径** =
   **rule_id `NAN-SAMPLE-MASK-COVERAGE-NAN`**（**唯一正本 = `docs/engineering/data/DATA-002_PHASE_PRODUCT_EXCHANGE.md`
   §2a 的 `invalid_handling` 块**；科学正本见 `docs/science/DRIZZLE.md`）：
@@ -122,7 +122,7 @@ Var(S) = Var(F) / A_cell²          A_cell = 4π / (12·nside²)   [sr]
   派生量**，**由 SNR 计算**（`w = 1/σ² = SNR²/F_ref²`；最高设计 §4.3/§4.4）。
 - **阶段一、阶段三不产生、也不消费任何权重**（最高设计 §2.1）。
 - `ivar` 与 `uncertainty` 是**数据对象**（各有正本定义，见 `docs/science/DATA_SEMANTICS.md`），
-  **不是**两个可回退的权重来源档位；不存在「权重模式」（`ASTROCS_DESIGN.md` §3.1）。
+  **不是**两个可回退的权重来源档位；不存在「权重模式」（`ACSD_DESIGN.md` §3.1）。
 - 权重必须**正有限**；全 0 / NaN / Inf 权重 → `ZERO_VALID_WEIGHT` / `INVALID_INPUT`。
 - 权重取值为正有限值；`support` / `coverage` / `validity` / `mask` 与权重各自独立（四概念分离，最高设计 §4.4）。
 

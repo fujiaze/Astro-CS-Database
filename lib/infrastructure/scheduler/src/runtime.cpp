@@ -3,9 +3,9 @@
 // run 经 Scheduler 调度（依赖就绪/取消/失败传播/内存回压）；模块经 IModule 工厂执行。
 // RT-006: 每个节点执行在真实运行点写 trace 事件（NODE_START/MODULE_CALL/NODE_END），
 // 由 executor 记录 WORKER_TASK、模块/provider 观测填写，禁止 config 值冒充。
-#include "astrocs/core/runtime.h"
-#include "astrocs/core/context.h"        // B2-A18: 租约授予观测
-#include "astrocs/core/plan_estimator.h"  // §8.3 静态预算（RT-005 估算器）
+#include "acsd/core/runtime.h"
+#include "acsd/core/context.h"        // B2-A18: 租约授予观测
+#include "acsd/core/plan_estimator.h"  // §8.3 静态预算（RT-005 估算器）
 
 #include <nlohmann/json.hpp>
 
@@ -16,7 +16,7 @@
 #include <mutex>
 #include <utility>
 
-namespace astrocs::core {
+namespace acsd::core {
 
 using nlohmann::json;
 
@@ -58,7 +58,7 @@ std::string utc_now_ms() {
 
 
 // ── 从 IR 节点的**静态声明**构造 plan_estimator 的输入 metadata ──
-// 依据 docs/ASTROCS_DESIGN.md §8.3「静态预算：从输入数据（帧尺寸与类型、配置、模块声明）
+// 依据 docs/ACSD_DESIGN.md §8.3「静态预算：从输入数据（帧尺寸与类型、配置、模块声明）
 // 静态估算每个模块的内存与 CPU 需求」。本函数**不做任何 IO**：只读 IR 节点自带的
 // module_id / resource_class / config_json（含 CLI 展开的 phase 配置）。
 // 键面口径（与生产 config 读取面一致，不新造同义键）：
@@ -116,8 +116,8 @@ class RuntimeImpl final : public Runtime {
         memory_limit_bytes_(rb.memory_limit_bytes),
         memory_source_(std::move(rb.memory_source)) {
     trace_store_ = std::make_shared<TraceStore>();
-    // ── MEMGOV-01: 内存压力治理器（docs/ASTROCS_DESIGN.md §8.3:609-615 编排策略）──
-    // 预算**复用** astrocs::core::resolve_memory_budget 的结果（本层不重算预算、
+    // ── MEMGOV-01: 内存压力治理器（docs/ACSD_DESIGN.md §8.3:609-615 编排策略）──
+    // 预算**复用** acsd::core::resolve_memory_budget 的结果（本层不重算预算、
     // 不发明第二份口径）；压力分子来源由调用方注入。
     MemoryBudget mb;
     mb.limit_bytes = memory_limit_bytes_;
@@ -165,7 +165,7 @@ class RuntimeImpl final : public Runtime {
     // 修复前此处为 Scheduler(budget_, budget_) ⇒ memory_limit_bytes 取默认 0，
     // §8.3「静态预算 / 内存回压 / 内存永不越界」在生产路径整体失效（回压是死代码）。
     // 上限来源 = RuntimeResourceBudget（由调用方按 配置/profile + 实测探测 解析，
-    // 见 astrocs/core/memory_budget.h；本层不发明数值、不硬编码）。
+    // 见 acsd/core/memory_budget.h；本层不发明数值、不硬编码）。
     scheduler_ = std::make_unique<Scheduler>(budget_, budget_, memory_limit_bytes_);
     // MEMGOV-01: 压力感知派发（就绪节点在压力高时不派发；帧轴经线程本地取用同一治理器）。
     scheduler_->set_memory_governor(governor_.get());
@@ -197,7 +197,7 @@ class RuntimeImpl final : public Runtime {
       }
       // estimated_memory_bytes = §8.3「静态预算」的真实估算，
       // 不再硬写 0（硬写 0 会让内存回压恒不触发 —— 0+0 <= limit 恒真）。
-      // 估算器 = astrocs::core::estimate_plan（RT-005，本任务纳入 astrocs_core 构建图），
+      // 估算器 = acsd::core::estimate_plan（RT-005，本任务纳入 acsd_core 构建图），
       // 输入 metadata 全部取自 IR 节点静态声明（module_id / config / resources.class），
       // **不做任何 IO**（帧尺寸若不在 config 中则不可静态估算 —— 见下面 unestimable 登记）。
       {
@@ -381,7 +381,7 @@ class RuntimeImpl final : public Runtime {
 
   Result<std::string> inspect() override {
     json j;
-    j["kind"] = "astrocs.runtime/v1";
+    j["kind"] = "acsd.runtime/v1";
     j["budget"] = budget_;
     // 资源预算观测面（CPU 与内存同源；SCHEDULER_CONTRACT §3）。
     // memory_limit_bytes = **Scheduler 实际生效**的上限（唯一权威：回压按它判定），
@@ -487,4 +487,4 @@ Result<std::unique_ptr<Runtime>> create_runtime(const RuntimeResourceBudget& rb)
       std::make_unique<RuntimeImpl>(rb));
 }
 
-}  // namespace astrocs::core
+}  // namespace acsd::core

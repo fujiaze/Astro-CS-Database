@@ -19,7 +19,7 @@
 #include "profile_gen.h"
 #include "sha256.h"
 
-namespace astrocs::backend_host {
+namespace acsd::backend_host {
 
 namespace {
 
@@ -214,7 +214,7 @@ BenchReportOutcome generate_benchmark_report(const BenchReportOptions& opt) {
         (smt_known && smt_enabled) ? (avail + 1) / 2 : avail;
 
     json j;
-    j["schema"] = "astrocs.benchmark-report/v1";
+    j["schema"] = "acsd.benchmark-report/v1";
     j["report_id"] = "sha256:" + bundle.raw_samples_sha256;
     j["created_utc"] = utc_now();
     j["suite"] = opt.suite;
@@ -275,7 +275,7 @@ BenchReportOutcome generate_benchmark_report(const BenchReportOptions& opt) {
 
     // 规格字段: build/provider/编译器绑定
     j["build"] = {
-        {"astrocs_build", opt.build_id},
+        {"acsd_build", opt.build_id},
         {"source_commit", opt.source_commit},
         {"benchmark_binary_sha256", opt.benchmark_binary_sha256},
     };
@@ -332,8 +332,8 @@ std::string verify_benchmark_report(const std::string& json_text) {
     } catch (const json::parse_error& e) {
         return std::string("malformed JSON: ") + e.what();
     }
-    if (d.value("schema", "") != "astrocs.benchmark-report/v1")
-        return "schema != astrocs.benchmark-report/v1";
+    if (d.value("schema", "") != "acsd.benchmark-report/v1")
+        return "schema != acsd.benchmark-report/v1";
     for (const char* k : {"report_id", "created_utc", "suite", "suite_mode", "measurement",
                           "hardware", "memory_bandwidth", "input_samples_sha256", "build",
                           "kernels", "verdict", "timeout"}) {
@@ -420,4 +420,4 @@ std::string verify_benchmark_report(const std::string& json_text) {
     return "";
 }
 
-}  // namespace astrocs::backend_host
+}  // namespace acsd::backend_host

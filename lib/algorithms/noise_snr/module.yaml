@@ -3,21 +3,21 @@
 # 的 noise_model_impl/fill_impl/free/scale_law/gain_variance + C API
 # snr_noise_model_v1(+_f64/_default_config/_fill/_free)/snr_noise_scale_law/
 # snr_noise_gain_variance，唯一权威签名头 lib/algorithms/noise_snr/cpp/include/
-# snr_estimator.h），模块化迁移（独立模块源 astrocs_p1_noise.dll / C ABI adapter /
+# snr_estimator.h），模块化迁移（独立模块源 acsd_p1_noise.dll / C ABI adapter /
 # plan-execute-cancel-inspect / ThreadLease 接线）由 P1-NOISE-IMPL 执行；
 # 可执行测试由 P1-NOISE-TEST 建立（TEST-NOISE-DESIGN-001 → TEST-P1-NOISE-001）。
 # 字段遵循 11_MODULE_SOURCE_TEST_STANDARD.md §4；source_symbols 为源码核对清单
 # （P1-NOISE-DOC，2026-09-07，7 个 noise 路径生产符号，旧乘法 snr_estimate*/
 # snr_extract_model* 为 legacy diagnostic 不入列），禁止手抄他版。
-# 落位依据：MODULE_MIGRATION_MATRIX.csv P1-NOISE 行 target=astrocs_p1_noise.dll、
-# module_id=astrocs.p1.noise，legacy_paths="lib/algorithms/noise_snr;lib/algorithms/noise_snr/wrapper_phase1"、
+# 落位依据：MODULE_MIGRATION_MATRIX.csv P1-NOISE 行 target=acsd_p1_noise.dll、
+# module_id=acsd.p1.noise，legacy_paths="lib/algorithms/noise_snr;lib/algorithms/noise_snr/wrapper_phase1"、
 # depends_on_int=P1-CAL-INT;P1-PHOT-INT（本目录 lib/algorithms/noise_snr/ 既是生产实现
 # 所在又是迁移落码目标；lib/algorithms/noise_snr/wrapper_phase1/ 旧符号 NoiseModel::estimate/
 # gain_variance 属计划迁移旧符号，去留由 P1-NOISE-IMPL 登记其 TASK_RESULT）。
-# dll_target=astrocs_p1_noise.dll 为迁移目标合同值（尚未存在）。现状构建=
+# dll_target=acsd_p1_noise.dll 为迁移目标合同值（尚未存在）。现状构建=
 # lib/algorithms/noise_snr/cpp/Makefile:5,12（g++ -shared → snr_estimator.dll）+
 # cpp/build.ps1:29（MinGW 通道）；未编入根 CMake 主构建（无 snr_estimator CMake
-# 目标，与 astrocs_hips/astrocs_drizzle 先例不同）——CMake 集成归 P1-NOISE-IMPL。
+# 目标，与 acsd_hips/acsd_drizzle 先例不同）——CMake 集成归 P1-NOISE-IMPL。
 # threading_model=host_executor_lease 为迁移目标合同值（11 号标准 §4 值域）；
 # 现状实现为单线程顺序（noise_model_impl 无 omp pragma），唯一共享可变状态
 # g_model_floor 进程级无锁 unordered_map（DISP-NOISE-001），ThreadLease 接线为
@@ -27,16 +27,16 @@
 # （lib/infrastructure/scheduler/src/module_adapters.cpp:489-503 p1_noise_snr_descriptor 的
 # SCI-P1-SNR-001/ALG-004/DATA-P1-SNR/TEST-P1-SNR-001）由 P1-NOISE-INT 对齐
 # 本 manifest 与 lib/algorithms/noise_snr/README.md（r1），不得反向作为冻结依据。
-schema: astrocs.module-manifest/v1
-id: MOD-astrocs-phase1-noise-snr
-module_id: astrocs.p1.noise
+schema: acsd.module-manifest/v1
+id: MOD-acsd-phase1-noise-snr
+module_id: acsd.p1.noise
 owner: SA-P1-N17
 language: c++17
 module_version: 0.1.0-alpha.1
 abi_version: 1
 phase_scope: phase1
-dll_name: astrocs_p1_noise.dll
-dll_target: astrocs_p1_noise.dll
+dll_name: acsd_p1_noise.dll
+dll_target: acsd_p1_noise.dll
 module_status: CONTRACT_READY
 entrypoint: MISSING
 node_operations: []
@@ -63,7 +63,7 @@ contract_ids:
   alg: ALG-NOISE-001..003
   data: DATA-P1-NOISE
   api: API-NOISE-001
-  mod: MOD-astrocs-phase1-noise-snr
+  mod: MOD-acsd-phase1-noise-snr
   src: SRC-NOISE-001
   test: TEST-NOISE-DESIGN-001
 exports:

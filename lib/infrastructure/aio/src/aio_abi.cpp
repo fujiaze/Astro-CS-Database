@@ -1,12 +1,12 @@
 // ============================================================================
 // aio_abi.cpp — ACSD 唯一 AIO C ABI v1 实现 (AIO-001)
 //
-// 合同: lib/include/astrocs/io/aio_abi_v1.h (v1 冻结) +
+// 合同: lib/include/acsd/io/aio_abi_v1.h (v1 冻结) +
 //       eng/contracts/data/aio_abi_contract_v1.json (唯一事实源)。
-// 归属: astrocs_aio 域 (宪章 §8.5 astrocs_aio 交付单元; AIO 正统归属)。
+// 归属: acsd_aio 域 (宪章 §8.5 acsd_aio 交付单元; AIO 正统归属)。
 //
 // 关键设计:
-//  - SHA-256 原语复用 lib/algorithms/shared/crypto 单一实现 (astrocs::crypto::Sha256;
+//  - SHA-256 原语复用 lib/algorithms/shared/crypto 单一实现 (acsd::crypto::Sha256;
 //    与 AIO UPM 容器/Phase2 模型哈希同源, 禁第二实现)。正确性由 FIPS 180-4
 //    标准向量锚定 (eng/tests/unit/aio_abi_tests.cpp U2, oracle=hashlib 预生成)。
 //  - 内容哈希复核语义: 先验声明格式 (64hex 小写, 否则 AIO_ERR_DECL_INVALID,
@@ -22,14 +22,14 @@
 //  - 无第三方类型泄露; 无 STL 跨边界 (签名全 POD/指针); 禁异常跨边界。
 //
 // 故障注入 (测试专用; 验收 "注入必败"):
-//  ASTROCS_AIO_FAULT=n1_hash_value_flip            → sha256 输出首字符翻转
+//  ACSD_AIO_FAULT=n1_hash_value_flip            → sha256 输出首字符翻转
 //             n2_verify_mismatch_shortcut          → verify_buffer 篡改短路恒 OK
 //             n3_file_size_skip                    → verify_file 跳过 size 核对
 //  每个注册名在首个触发 CHECK 处输出 FAULT-INJECT 行并确定性翻转断言
 //  (eng/tests/unit/aio_abi_test_main.hpp FaultRegistry 报告); 生产 env 为空零开销。
 // ============================================================================
 
-#include "astrocs/io/aio_abi_v1.h"
+#include "acsd/io/aio_abi_v1.h"
 
 #include "crypto/sha256.h"
 
@@ -58,7 +58,7 @@ struct AioFaultRegistry {
 const AioFaultRegistry& aio_fault_registry() {
     static const AioFaultRegistry r = [] {
         AioFaultRegistry reg;
-        const char* env = std::getenv("ASTROCS_AIO_FAULT");
+        const char* env = std::getenv("ACSD_AIO_FAULT");
         if (!env || !*env) return reg;
         std::string s(env);
         auto has = [&s](const char* name) {
@@ -113,7 +113,7 @@ extern "C" int aio_content_hash_buffer_v1(const void* data, uint64_t len, char* 
     if (!out_hex) return AIO_ERR_PARAM;
     if (!data && len != 0) return AIO_ERR_PARAM;
     try {
-        astrocs::crypto::Sha256 h;
+        acsd::crypto::Sha256 h;
         if (len != 0) {
             // 分块 update (Sha256 内部 64B 块; 大输入按 AIO_HASH_FILE_CHUNK 逻辑块
             // 推进, 语义等价单流)
@@ -176,7 +176,7 @@ extern "C" int aio_content_hash_verify_file_v1(const char* path_utf8,
     try {
         std::FILE* f = std::fopen(path_utf8, "rb");
         if (!f) return AIO_ERR_IO;
-        astrocs::crypto::Sha256 h;
+        acsd::crypto::Sha256 h;
         unsigned char buf[AIO_HASH_FILE_CHUNK];
         std::size_t nread = 0;
         std::size_t chunk = static_cast<std::size_t>(AIO_HASH_FILE_CHUNK);

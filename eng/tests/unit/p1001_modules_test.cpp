@@ -2,8 +2,8 @@
 // 验证: calibration/cosmetic/star-psf/wcs-platesolve/photometry/noise-snr/drizzle/
 // writer 全部注册; 每个声明标准 DATA 端口与执行类; factory 可创建; Session 兼容
 // adapter 委托 Runtime(无第二调度顺序——create 的 IModule 走同一 Runtime 执行路径)。
-#include "astrocs/core/module.h"
-#include "astrocs/core/module_adapters.h"
+#include "acsd/core/module.h"
+#include "acsd/core/module_adapters.h"
 
 #include <cstdio>
 #include <string>
@@ -18,21 +18,21 @@ static int failures = 0;
   } while (0)
 
 int main() {
-  astrocs::core::ModuleRegistry reg;
-  auto r = astrocs::core::register_phase_modules(reg);
+  acsd::core::ModuleRegistry reg;
+  auto r = acsd::core::register_phase_modules(reg);
   CHECK(r.ok());
   if (r.failed()) return 1;
 
   // 8 类 Phase1 模块必须全部注册
   const char* p1_ids[] = {
-      "astrocs.phase1.calibration",
-      "astrocs.phase1.cosmetic",
-      "astrocs.phase1.star-psf",
-      "astrocs.phase1.wcs-platesolve",
-      "astrocs.phase1.photometry",
-      "astrocs.phase1.noise-snr",
-      "astrocs.phase1.drizzle",
-      "astrocs.phase1.writer",
+      "acsd.phase1.calibration",
+      "acsd.phase1.cosmetic",
+      "acsd.phase1.star-psf",
+      "acsd.phase1.wcs-platesolve",
+      "acsd.phase1.photometry",
+      "acsd.phase1.noise-snr",
+      "acsd.phase1.drizzle",
+      "acsd.phase1.writer",
   };
   for (const char* id : p1_ids) {
     const auto* d = reg.find(id);
@@ -65,7 +65,7 @@ int main() {
 
   // 端口结构: 每个模块有输入(含 DATA-)与输出(输出端口 is_input=false)
   {
-    const auto* dz = reg.find("astrocs.phase1.drizzle");
+    const auto* dz = reg.find("acsd.phase1.drizzle");
     CHECK(dz != nullptr);
     if (dz) {
       bool has_in = false, has_out = false;

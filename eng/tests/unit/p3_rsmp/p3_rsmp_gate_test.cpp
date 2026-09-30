@@ -7,7 +7,7 @@
 #include "p3_rsmp.h"
 #include "p3_rsmp_test_util.h"
 
-using namespace astrocs::p3rsmp;
+using namespace acsd::p3rsmp;
 
 namespace {
 

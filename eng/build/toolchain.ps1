@@ -18,11 +18,11 @@ param(
 $ErrorActionPreference = "Stop"
 
 # 仓库根 = eng/build/ 的上两级（不写死绝对路径）
-$AstroCS_ROOT   = Split-Path -Parent (Split-Path -Parent $PSScriptRoot)
-$AstroCS_CONFIG = "win-msvc-17.14.39-x64"   # CMakePresets.json 的正式 Windows configure preset
-$AstroCS_BUILD  = "win-rel"                 # buildPresets / testPresets 的同名项
+$ACSD_ROOT   = Split-Path -Parent (Split-Path -Parent $PSScriptRoot)
+$ACSD_CONFIG = "win-msvc-17.14.39-x64"   # CMakePresets.json 的正式 Windows configure preset
+$ACSD_BUILD  = "win-rel"                 # buildPresets / testPresets 的同名项
 
-function Test-AstroCSToolchain {
+function Test-ACSDToolchain {
     Write-Host "===== ACSD 工具链自检 =====" -ForegroundColor Cyan
     $ok = $true
     foreach ($name in @("cmake", "ctest", "git")) {
@@ -46,7 +46,7 @@ function Test-AstroCSToolchain {
         "preset 入口"   = "CMakePresets.json"
     }
     foreach ($k in $vendored.Keys) {
-        $p = Join-Path $AstroCS_ROOT $vendored[$k]
+        $p = Join-Path $ACSD_ROOT $vendored[$k]
         if (Test-Path -LiteralPath $p) {
             Write-Host ("{0,-10} 在位" -f ($k + ":")) -ForegroundColor Green
         } else {
@@ -57,12 +57,12 @@ function Test-AstroCSToolchain {
     if (-not $ok) { exit 1 }
 }
 
-function Build-AstroCSAll {
-    Push-Location $AstroCS_ROOT
+function Build-ACSDAll {
+    Push-Location $ACSD_ROOT
     try {
-        & cmake --preset $AstroCS_CONFIG
+        & cmake --preset $ACSD_CONFIG
         if ($LASTEXITCODE -ne 0) { Write-Host "configure 失败" -ForegroundColor Red; exit 1 }
-        & cmake --build --preset $AstroCS_BUILD
+        & cmake --build --preset $ACSD_BUILD
         if ($LASTEXITCODE -ne 0) { Write-Host "构建失败" -ForegroundColor Red; exit 1 }
         Write-Host "构建完成" -ForegroundColor Green
     } finally {
@@ -70,10 +70,10 @@ function Build-AstroCSAll {
     }
 }
 
-function Test-AstroCSAll {
-    Push-Location $AstroCS_ROOT
+function Test-ACSDAll {
+    Push-Location $ACSD_ROOT
     try {
-        & ctest --preset $AstroCS_BUILD --output-on-failure
+        & ctest --preset $ACSD_BUILD --output-on-failure
         exit $LASTEXITCODE
     } finally {
         Pop-Location
@@ -82,10 +82,10 @@ function Test-AstroCSAll {
 
 if ($MyInvocation.InvocationName -ne ".") {
     switch ($Command.ToLower()) {
-        "check" { Test-AstroCSToolchain }
-        "env"   { Write-Host "[ACSD] 工具链 = 仓库根 CMakePresets.json 的 preset '$AstroCS_CONFIG'；取值落点 = eng/packaging/windows/README.md" }
-        "build" { Build-AstroCSAll }
-        "test"  { Test-AstroCSAll }
+        "check" { Test-ACSDToolchain }
+        "env"   { Write-Host "[ACSD] 工具链 = 仓库根 CMakePresets.json 的 preset '$ACSD_CONFIG'；取值落点 = eng/packaging/windows/README.md" }
+        "build" { Build-ACSDAll }
+        "test"  { Test-ACSDAll }
         default { Write-Host "用法: .\eng\build\toolchain.ps1 {check|env|build|test}" }
     }
 }

@@ -30,7 +30,7 @@ from cli_test_hygiene import run_cwd  # noqa: E402
 
 
 def cli_binary():
-    env = os.environ.get("ASTROCS_CLI_BIN")
+    env = os.environ.get("ACSD_CLI_BIN")
     if env and os.path.isfile(env):
         return env
     for rel in (("build", "acsd"), ("build", "cli", "acsd")):
@@ -135,7 +135,7 @@ class TestMultiBlockNormalize(unittest.TestCase):
         self.assertNotIn("unknown key", r.stderr)
         self.assertNotEqual(r.returncode, 70)
         # 简写 = 单块：manifest 不带 block 子对象（旧形态逐字节兼容）
-        mans = [f for f in os.listdir(out) if f.startswith("astrocs_run_")]
+        mans = [f for f in os.listdir(out) if f.startswith("acsd_run_")]
         self.assertEqual(1, len(mans), "单块简写必须恰一份 run manifest")
         with open(os.path.join(out, mans[0]), encoding="utf-8") as fh:
             self.assertNotIn("block", json.load(fh))
@@ -196,7 +196,7 @@ class TestMultiBlockNormalize(unittest.TestCase):
         self.assertNotEqual(outs[0], outs[1])
         seen = []
         for i, out in enumerate(outs):
-            mans = sorted(f for f in os.listdir(out) if f.startswith("astrocs_run_"))
+            mans = sorted(f for f in os.listdir(out) if f.startswith("acsd_run_"))
             self.assertEqual(1, len(mans),
                              "blocks[%d] 必须恰一份自己的 run manifest（不得混块）" % i)
             with open(os.path.join(out, mans[0]), encoding="utf-8") as fh:
@@ -223,11 +223,11 @@ class TestMultiBlockNormalize(unittest.TestCase):
         self._run("--json", cfg, "-y")
         for i, blk in enumerate(doc["blocks"]):
             files = os.listdir(blk["output_dir"])
-            self.assertTrue(any(f.startswith("astrocs_run_") for f in files), files)
+            self.assertTrue(any(f.startswith("acsd_run_") for f in files), files)
             # 另一块的 manifest 不得出现在本块目录
             other = doc["blocks"][1 - i]["name"]
             for f in files:
-                if f.startswith("astrocs_run_"):
+                if f.startswith("acsd_run_"):
                     with open(os.path.join(blk["output_dir"], f), encoding="utf-8") as fh:
                         self.assertNotEqual(other, json.load(fh)["block"]["name"])
 

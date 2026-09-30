@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -uo pipefail
 cd "/workspace/Astro CS Database"
-export TMPDIR="${TMPDIR:-/var/tmp/astrocs}"
+export TMPDIR="${TMPDIR:-/var/tmp/acsd}"
 D=run/RELEASE-02/fix-p2b
 g++ -std=gnu++17 -O2 -Wall -Wextra -Wpedantic \
   -Ilib/algorithms/integration/phase2_integrate/include \

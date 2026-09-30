@@ -82,7 +82,7 @@ class TestP3004SphericalOracle(unittest.TestCase):
                     os.path.join(AIO, "src", "aio_log.cpp"),
                     os.path.join(AIO, "src", "aio_compressor.cpp"),
                     os.path.join(REPO, "lib", "algorithms", "shared", "healpix", "healpix_core.cpp"),
-                    # FIX-201: aio_file_io.h 的 sha256_hex 经 astrocs::crypto::Sha256
+                    # FIX-201: aio_file_io.h 的 sha256_hex 经 acsd::crypto::Sha256
                     #（单一实现 lib/algorithms/shared/crypto/sha256.cpp）。
                     os.path.join(REPO, "lib", "algorithms", "shared", "crypto", "sha256.cpp")]
             incs = [f"-I{os.path.join(REPO, 'lib', 'include')}",
@@ -112,7 +112,7 @@ class TestP3004SphericalOracle(unittest.TestCase):
     def _run(self, out, ra, dec, scale, w, h, sampler="nearest", hips=None):
         os.makedirs(out, exist_ok=True)
         hp = hips if hips else self.hips
-        # CLI-002 / docs/ASTROCS_DESIGN 6.2: 旧 phase3 run --config 已删(rc=2);
+        # CLI-002 / docs/ACSD_DESIGN 6.2: 旧 phase3 run --config 已删(rc=2);
         # 现行等价命令 = export --json <cfg>, 平铺会话配置形态(见 session_commands.h)。
         cfg = {"schema_version": "1",
                "source": {"hips_dir": hp},

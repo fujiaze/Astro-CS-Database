@@ -31,7 +31,7 @@ COMPILERS = {"gnu": "GNU-14.2.0", "msvc": "MSVC-19.38.33130.0"}
 
 
 class TestProviderFamilyManifest(unittest.TestCase):
-    """第二族（CPU provider 变体族 astrocs_cpuprov_*）的**声明面**端到端。
+    """第二族（CPU provider 变体族 acsd_cpuprov_*）的**声明面**端到端。
 
     为什么单独成文件（不并进 test_manifest_isa_declaration.py）:
       那个文件是「第一族 backend 变体 + 清单↔产物交叉判据（M1-M6）」的正本，另一条线正在
@@ -72,12 +72,12 @@ class TestProviderFamilyManifest(unittest.TestCase):
                             "-I" + os.path.join(cpu, "common", "include"),
                             "-I" + os.path.join(cpu, "baseline", "include"),
                             os.path.join(cpu, "baseline", "src", "baseline_provider.cpp"),
-                            cls.cap, "-o", os.path.join(cls.prov, "astrocs_cpuprov_baseline.so"),
+                            cls.cap, "-o", os.path.join(cls.prov, "acsd_cpuprov_baseline.so"),
                             "-lpthread"], capture_output=True, text=True, timeout=300)
         assert r.returncode == 0, r.stderr
         for variant in ("avx2", "avx512"):
             rc, err = build_cpuprov_variant(
-                variant, os.path.join(cls.prov, f"astrocs_cpuprov_{variant}.so"),
+                variant, os.path.join(cls.prov, f"acsd_cpuprov_{variant}.so"),
                 extra_link_inputs=[cls.cap], ld_extra=["-lpthread"])
             assert rc == 0, err
         cls.manifests = {}

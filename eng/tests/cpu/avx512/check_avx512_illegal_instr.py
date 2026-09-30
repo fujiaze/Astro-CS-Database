@@ -11,7 +11,7 @@ UNSUPPORTED, 无 #UD"):
        (真 EVEX 变体; 若编译器未生成任何 AVX-512 指令则本检查 FAIL,
        防"假旗标"回归);
     2) query 期符号函数体 **零** %zmm → 加载/握手路径 (dlopen 静态 init +
-       astrocs_provider_query_v1 + acs_cpu_avx512_cap_gate) 不执行任何
+       acsd_provider_query_v1 + acsd_cpu_avx512_cap_gate) 不执行任何
        EVEX 指令 → 非支持 CPU 上 dlopen + query 可安全完成, 返回
        ACS_ERR_UNSUPPORTED, 无 #UD (能力门负测证明拒绝路径, 本检查证明
        指令位置合同);
@@ -31,7 +31,7 @@ R-60 TU 级隔离后的口径变化（本判据只加严不放宽）:
     #UD），与 check_variant_isa_disasm.py --require-evex 同一编码层口径。
   · 2) query / cap_gate / .init 的断言由「零 %zmm」**收紧**为「零 EVEX 且零 VEX」——
     门面 TU 零旗标后这才可达（改前门面整 TU 带 -mavx512*，VEX 指令合法存在）。
-  · 3) 计算面符号名随 TU 拆分为 astrocs_cpuprov_kernel_range_v1（唯一跨 TU 桥）；
+  · 3) 计算面符号名随 TU 拆分为 acsd_cpuprov_kernel_range_v1（唯一跨 TU 桥）；
     旧名 kernel_pixel_range 作为历史形态留在匹配表里（不得因改名让断言空转）。
 
 实现: 解析 objdump -d 文本; 函数体 = 上一/下一 "<符号>:" 标签行之间。
@@ -48,8 +48,8 @@ INSN_RE = re.compile(r"^\s*[0-9a-f]+:\s+((?:[0-9a-f]{2}\s+)+)")
 EVEX_PREFIX, VEX_PREFIXES = "62", ("c4", "c5")
 
 # query 期路径符号: 这些函数在 dlopen/query 阶段可达, 必须零 EVEX
-#   - astrocs_provider_query_v1 / acs_cpu_avx512_cap_gate (provider TU);
-#   - acs_cap_detect_v1 / acs_cap_classify_v1 / acs_cap_os_safe_satisfies_v1:
+#   - acsd_provider_query_v1 / acsd_cpu_avx512_cap_gate (provider TU);
+#   - acsd_cap_detect_v1 / acsd_cap_classify_v1 / acsd_cap_os_safe_satisfies_v1:
 #     cap_gate 在判定前调用真实探测链 (生产链接 capability_detect.c)。
 #     capability_detect.c 必须以**无 -mavx512*** 旗标独立编译 (探测自身不
 #     得生成 EVEX —— CPU-001 契约 "探测自身只用 SSE2 可执行指令"), 否则
@@ -63,12 +63,12 @@ EVEX_PREFIX, VEX_PREFIXES = "62", ("c4", "c5")
 # dlopen+query 可安全完成 (返回 UNSUPPORTED 无 #UD), 由下列符号零 %zmm
 # 保证; kernel 数值路径 (query 后可达) 必须含 %zmm 见下方 run_syms 检查。
 QUERY_SYMS = [
-    "astrocs_provider_query_v1",
-    "acs_cpu_avx512_cap_gate",
-    "acs_cap_detect_v1",
-    "acs_cap_classify_v1",
-    "acs_cap_os_safe_satisfies_v1",
-    "acs_cap_hw_satisfies_v1",
+    "acsd_provider_query_v1",
+    "acsd_cpu_avx512_cap_gate",
+    "acsd_cap_detect_v1",
+    "acsd_cap_classify_v1",
+    "acsd_cap_os_safe_satisfies_v1",
+    "acsd_cap_hw_satisfies_v1",
 ]
 
 FAILURES = []
@@ -229,11 +229,11 @@ def main():
                     f"query/握手路径只有 SSE2 级可执行指令)")
 
     # 一致性: run_kernel 可达的计算面符号必须有本档证据 (%zmm 或 EVEX 编码指令)。
-    # 名字: R-60 拆分后计算面入口 = astrocs_cpuprov_kernel_range_v1（唯一跨 TU 桥）;
+    # 名字: R-60 拆分后计算面入口 = acsd_cpuprov_kernel_range_v1（唯一跨 TU 桥）;
     # kernel_pixel_range / avx512_run_kernel / run_banded 保留为历史形态匹配
     # （静态符号可能被内联掉，不得因此让断言空转）。
     run_syms = [s for s in funcs
-                if "astrocs_cpuprov_kernel_range_v1" in s or "kernel_pixel_range" in s or
+                if "acsd_cpuprov_kernel_range_v1" in s or "kernel_pixel_range" in s or
                 "avx512_run_kernel" in s or "run_banded" in s]
     if run_syms:
         with_ev = [s for s in run_syms
@@ -244,7 +244,7 @@ def main():
         else:
             log(f"计算面/执行路径符号含本档证据: {with_ev[:4]}")
     else:
-        fail("未找到计算面/执行路径符号 (astrocs_cpuprov_kernel_range_v1 等) → "
+        fail("未找到计算面/执行路径符号 (acsd_cpuprov_kernel_range_v1 等) → "
              "kernel 执行路径的 EVEX 归属检查未覆盖")
 
     if FAILURES:

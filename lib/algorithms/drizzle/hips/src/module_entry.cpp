@@ -1,9 +1,9 @@
-/* module_entry.cpp - astrocs.p1.hips_writer 模块 C ABI v1 adapter
+/* module_entry.cpp - acsd.p1.hips_writer 模块 C ABI v1 adapter
  *
  * 迁移任务 P1-HIPS-IMPL; 对齐先例 lib/algorithms/drizzle/src/module_entry.cpp
  * (P1-DRZ-IMPL, 2c065ace) 与 lib/infrastructure/gaia_xpsd_client/src/module_entry.cpp
  * (CAT-GAIA-IMPL, babe752d)。TU 以 C++ 编译 (aio_hips.h 为纯 C 头亦兼容),
- * 全部导出面经 extern "C" 保持 C ABI 不变; 唯一导出 astrocs_module_query_v1
+ * 全部导出面经 extern "C" 保持 C ABI 不变; 唯一导出 acsd_module_query_v1
  * (legacy aio_hips_* 九符号经链接 version-script/DEF 降 local, 见 CMakeLists)。
  *
  * 职责: 把 lib/infrastructure/aio/src/hips/aio_hips_writer.cpp 的 legacy C 接口
@@ -62,25 +62,25 @@ static void hips_msleep(long ms) {
     nanosleep(&ts, NULL);
 }
 #endif
-#include "astrocs/abi/module_api_v1.h"
-#include "astrocs/abi/lifecycle_v1.h"
-#include "astrocs/hips/types.h"
-#include "astrocs/hips/publish.h"   /* AIO-002: 原子发布原语 (staging→校验→
+#include "acsd/abi/module_api_v1.h"
+#include "acsd/abi/lifecycle_v1.h"
+#include "acsd/hips/types.h"
+#include "acsd/hips/publish.h"   /* AIO-002: 原子发布原语 (staging→校验→
                                     * fsync→原子 promote; RAII discard) */
 #include "aio_hips.h"             /* legacy C API (extern "C"; 九导出) */
 
 /* ═══════════════════ 1. 基础 helper (对齐 drizzle/gaia 先例) ═══════════════════ */
 
-static const char kModuleId[]  = ASTROCS_HIPS_MODULE_ID;
+static const char kModuleId[]  = ACSD_HIPS_MODULE_ID;
 static const char kVersion[]   = "1.0";
-static const char kBuildId[]   = ASTROCS_HIPS_BUILD_ID;
-static const char kSciId[]     = ASTROCS_HIPS_SCI_ID;
-static const char kAlgId[]     = ASTROCS_HIPS_ALG_ID;
-static const char kApiId[]     = ASTROCS_HIPS_API_ID;
+static const char kBuildId[]   = ACSD_HIPS_BUILD_ID;
+static const char kSciId[]     = ACSD_HIPS_SCI_ID;
+static const char kAlgId[]     = ACSD_HIPS_ALG_ID;
+static const char kApiId[]     = ACSD_HIPS_API_ID;
 
-static acs_str_v1 acs_str_from(const char* s) {
-    acs_str_v1 v;
-    v.head.struct_size = (uint32_t)sizeof(acs_str_v1);
+static acsd_str_v1 acsd_str_from(const char* s) {
+    acsd_str_v1 v;
+    v.head.struct_size = (uint32_t)sizeof(acsd_str_v1);
     v.head.abi_version = ACS_ABI_VERSION_V1;
     v.data = s;
     v.size = s ? (uint64_t)strlen(s) : 0;
@@ -92,11 +92,11 @@ static acs_str_v1 acs_str_from(const char* s) {
  * 本模块统一 thread_local 静态缓冲, 跨实例并发 execute 亦安全)。 */
 static thread_local char hips_err_msg[1024];
 
-static acs_status efill(acs_error_info_v1* err, acs_status st, int32_t domain,
+static acsd_status efill(acsd_error_info_v1* err, acsd_status st, int32_t domain,
                         uint32_t detail, const char* msg) {
     if (!err) return st;
     memset(err, 0, sizeof(*err));
-    err->head.struct_size = (uint32_t)sizeof(acs_error_info_v1);
+    err->head.struct_size = (uint32_t)sizeof(acsd_error_info_v1);
     err->head.abi_version = ACS_ABI_VERSION_V1;
     err->status = st;
     err->domain = domain;
@@ -116,8 +116,8 @@ static const char* hips_msgf(const char* fmt, ...) {
 
 /* strbuf 写 N 字节 (lifecycle_v1.h 冻结截断语义: size=所需; cap=0 且
  * data=NULL 只问尺寸; 不足 → PARAM + BUFFER_TOO_SMALL)。 */
-static acs_status strbuf_write(acs_strbuf_v1* out, const char* data, uint64_t n,
-                               acs_error_info_v1* err) {
+static acsd_status strbuf_write(acsd_strbuf_v1* out, const char* data, uint64_t n,
+                               acsd_error_info_v1* err) {
     if (!out) {
         return efill(err, ACS_ERR_PARAM, ACS_ERR_DOMAIN_CONFIG,
                      ACS_DIAG_ECODE_NULL_CALLBACK, "hips: null output buffer");
@@ -136,8 +136,8 @@ static acs_status strbuf_write(acs_strbuf_v1* out, const char* data, uint64_t n,
     return ACS_OK;
 }
 
-static acs_status strbuf_write_cstr(acs_strbuf_v1* out, const char* s,
-                                    acs_error_info_v1* err) {
+static acsd_status strbuf_write_cstr(acsd_strbuf_v1* out, const char* s,
+                                    acsd_error_info_v1* err) {
     return strbuf_write(out, s, s ? (uint64_t)strlen(s) : 0, err);
 }
 
@@ -322,8 +322,8 @@ static uint32_t hips_ilog2_u32(uint32_t n) {
     return r;
 }
 
-static acs_status hips_cfg_parse(const char* json, hips_cfg* c,
-                                 acs_error_info_v1* err) {
+static acsd_status hips_cfg_parse(const char* json, hips_cfg* c,
+                                 acsd_error_info_v1* err) {
     memset(c, 0, sizeof(*c));
     if (!json || !json[0]) {
         return efill(err, ACS_ERR_PARAM, ACS_ERR_DOMAIN_CONFIG,
@@ -333,7 +333,7 @@ static acs_status hips_cfg_parse(const char* json, hips_cfg* c,
         return efill(err, ACS_ERR_PARAM, ACS_ERR_DOMAIN_CONFIG,
                      ACS_DIAG_ECODE_CONFIG_SCHEMA, "hips: config missing op");
     }
-    if (strcmp(c->op, ASTROCS_HIPS_OP_WRITE_PRODUCT) != 0) {
+    if (strcmp(c->op, ACSD_HIPS_OP_WRITE_PRODUCT) != 0) {
         return efill(err, ACS_ERR_PARAM, ACS_ERR_DOMAIN_CONFIG,
                      HIPS_ECODE_UNKNOWN_OP, "hips: unknown op");
     }
@@ -375,7 +375,7 @@ static acs_status hips_cfg_parse(const char* json, hips_cfg* c,
     json_copy_str(json, HIPS_CFG_KEY_CREATOR_DID, c->creator_did,
                   sizeof(c->creator_did));
     if (!c->creator_did[0])
-        snprintf(c->creator_did, sizeof(c->creator_did), "ivo://astrocs/phase1");
+        snprintf(c->creator_did, sizeof(c->creator_did), "ivo://acsd/phase1");
     json_copy_str(json, HIPS_CFG_KEY_OBS_TITLE, c->obs_title, sizeof(c->obs_title));
     if (!c->obs_title[0])
         snprintf(c->obs_title, sizeof(c->obs_title), "ACSD Phase1");
@@ -433,8 +433,8 @@ static int hips_bitmap_any(const char* man, const char* key, uint64_t n_tiles) {
     return any;
 }
 
-static acs_status hips_rows_parse(const char* manifest, const hips_cfg* c,
-                                  hips_rows* r, acs_error_info_v1* err) {
+static acsd_status hips_rows_parse(const char* manifest, const hips_cfg* c,
+                                  hips_rows* r, acsd_error_info_v1* err) {
     memset(r, 0, sizeof(*r));
     int f = 0;
     uint64_t n_tiles = json_get_u64(manifest, HIPS_M_KEY_N_TILES, &f);
@@ -578,9 +578,9 @@ static acs_status hips_rows_parse(const char* manifest, const hips_cfg* c,
 
 /* ═══════════════════ 4. describe / validate_config / plan ═══════════════════ */
 
-static acs_status hips_describe(const acs_module_api_v1* self,
-                                acs_str_v1 module_id,
-                                acs_module_descriptor_v1* out_desc) {
+static acsd_status hips_describe(const acsd_module_api_v1* self,
+                                acsd_str_v1 module_id,
+                                acsd_module_descriptor_v1* out_desc) {
     (void)self;
     if (!out_desc) return ACS_ERR_PARAM;
     /* MOD-001 加载验证对齐: ABI-003 安全 loader 以 empty module_id 调 describe
@@ -593,28 +593,28 @@ static acs_status hips_describe(const acs_module_api_v1* self,
          memcmp(module_id.data, kModuleId, strlen(kModuleId)) != 0))
         return ACS_ERR_ABI_MISMATCH;
     memset(out_desc, 0, sizeof(*out_desc));
-    out_desc->head.struct_size = (uint32_t)sizeof(acs_module_descriptor_v1);
+    out_desc->head.struct_size = (uint32_t)sizeof(acsd_module_descriptor_v1);
     out_desc->head.abi_version = ACS_ABI_VERSION_V1;
-    out_desc->module_id = acs_str_from(kModuleId);
-    out_desc->version   = acs_str_from(kVersion);
-    out_desc->build_id  = acs_str_from(kBuildId);
-    out_desc->sci_id    = acs_str_from(kSciId);
-    out_desc->alg_id    = acs_str_from(kAlgId);
-    out_desc->api_id    = acs_str_from(kApiId);
+    out_desc->module_id = acsd_str_from(kModuleId);
+    out_desc->version   = acsd_str_from(kVersion);
+    out_desc->build_id  = acsd_str_from(kBuildId);
+    out_desc->sci_id    = acsd_str_from(kSciId);
+    out_desc->alg_id    = acsd_str_from(kAlgId);
+    out_desc->api_id    = acsd_str_from(kApiId);
     out_desc->phase = 1;              /* module.yaml phase_scope: phase1 */
-    out_desc->config_schema_ver = ASTROCS_HIPS_CONFIG_SCHEMA_VER;
+    out_desc->config_schema_ver = ACSD_HIPS_CONFIG_SCHEMA_VER;
     out_desc->execution_class = 0;    /* cpu_heavy (module.yaml resource_class) */
     out_desc->parallel_ok = 0;        /* 单事务串行 (HI-3); 并行度=跨 instance */
     out_desc->flags = 0;
     return ACS_OK;
 }
 
-static acs_status hips_validate_config(const acs_module_api_v1* self,
-                                       acs_str_v1 config_json,
-                                       acs_error_info_v1* err) {
+static acsd_status hips_validate_config(const acsd_module_api_v1* self,
+                                       acsd_str_v1 config_json,
+                                       acsd_error_info_v1* err) {
     (void)self;
     hips_cfg tmp;
-    acs_status st = hips_cfg_parse(config_json.data, &tmp, err);
+    acsd_status st = hips_cfg_parse(config_json.data, &tmp, err);
     hips_cfg_free(&tmp);
     return st;
 }
@@ -628,18 +628,18 @@ static acs_status hips_validate_config(const acs_module_api_v1* self,
  *     signal+coverage, 全覆盖上界; ALG-HIPS-003 层次归并)
  *   io_out_bytes ≈ nside²·dtype_bytes·n_products (FITS 主产物近似) */
 
-static acs_status hips_plan(const acs_module_api_v1* self,
-                            acs_str_v1 node_id,
-                            acs_str_v1 config_json,
-                            acs_strbuf_v1* out_plan_json,
-                            acs_error_info_v1* err) {
+static acsd_status hips_plan(const acsd_module_api_v1* self,
+                            acsd_str_v1 node_id,
+                            acsd_str_v1 config_json,
+                            acsd_strbuf_v1* out_plan_json,
+                            acsd_error_info_v1* err) {
     (void)self;
     if (!out_plan_json) {
         return efill(err, ACS_ERR_PARAM, ACS_ERR_DOMAIN_CONFIG,
                      ACS_DIAG_ECODE_NULL_CALLBACK, "hips: null plan buffer");
     }
     hips_cfg c;
-    acs_status st = hips_cfg_parse(config_json.data, &c, err);
+    acsd_status st = hips_cfg_parse(config_json.data, &c, err);
     if (st != ACS_OK) return st;
 
     uint64_t n_pix_hp = 12ull * (uint64_t)c.nside * (uint64_t)c.nside;
@@ -664,7 +664,7 @@ static acs_status hips_plan(const acs_module_api_v1* self,
     char* w = buf;
     w += snprintf(w, (size_t)(buf + sizeof(buf) - w),
         "{\"plan_version\":%u,\"module_id\":\"%s\",\"node_id\":\"",
-        ASTROCS_HIPS_PLAN_VERSION, kModuleId);
+        ACSD_HIPS_PLAN_VERSION, kModuleId);
     json_append_escaped(&w, node);
     w += snprintf(w, (size_t)(buf + sizeof(buf) - w),
         "\",\"op\":\"%s\",\"work_units\":1,"
@@ -688,12 +688,12 @@ static acs_status hips_plan(const acs_module_api_v1* self,
 
 typedef struct {
     uint32_t state;                /* ACS_LC_STATE_* */
-    const acs_host_api_v1* host;
+    const acsd_host_api_v1* host;
     hips_cfg cfg;                  /* create 期校验副本 (execute 期以传入 config 重解析) */
     int executing;
     int cancel_req;
     uint64_t exec_count;
-    acs_status last_status;
+    acsd_status last_status;
     char last_op[32];
     int legacy_last_code;
     uint32_t last_workers;
@@ -704,11 +704,11 @@ typedef struct {
     int last_prov_set;
 } hips_inst;
 
-static acs_status hips_create(const acs_module_api_v1* self,
-                              acs_str_v1 config_json,
-                              const acs_host_api_v1* host,
-                              acs_module_instance_v1** out,
-                              acs_error_info_v1* err) {
+static acsd_status hips_create(const acsd_module_api_v1* self,
+                              acsd_str_v1 config_json,
+                              const acsd_host_api_v1* host,
+                              acsd_module_instance_v1** out,
+                              acsd_error_info_v1* err) {
     (void)self;
     if (!out) {
         return efill(err, ACS_ERR_PARAM, ACS_ERR_DOMAIN_CONFIG,
@@ -720,7 +720,7 @@ static acs_status hips_create(const acs_module_api_v1* self,
                      ACS_DIAG_ECODE_NULL_CALLBACK, "hips: host allocator required");
     }
     hips_cfg c;
-    acs_status st = hips_cfg_parse(config_json.data, &c, err);
+    acsd_status st = hips_cfg_parse(config_json.data, &c, err);
     if (st != ACS_OK) { hips_cfg_free(&c); return st; }
 
     hips_inst* inst = (hips_inst*)calloc(1, sizeof(hips_inst));
@@ -734,13 +734,13 @@ static acs_status hips_create(const acs_module_api_v1* self,
     inst->cfg = c;
     inst->last_status = ACS_OK;
     inst->legacy_last_code = 0;
-    *out = (acs_module_instance_v1*)inst;
+    *out = (acsd_module_instance_v1*)inst;
     return ACS_OK;
 }
 
-static acs_status hips_inspect(const acs_module_instance_v1* inst_raw,
-                               acs_strbuf_v1* out_json,
-                               acs_error_info_v1* err) {
+static acsd_status hips_inspect(const acsd_module_instance_v1* inst_raw,
+                               acsd_strbuf_v1* out_json,
+                               acsd_error_info_v1* err) {
     const hips_inst* inst = (const hips_inst*)inst_raw;
     if (!inst) return ACS_ERR_PARAM;
     char buf[640];
@@ -767,7 +767,7 @@ static acs_status hips_inspect(const acs_module_instance_v1* inst_raw,
     return strbuf_write_cstr(out_json, buf, err);
 }
 
-static acs_status hips_request_cancel(acs_module_instance_v1* inst_raw) {
+static acsd_status hips_request_cancel(acsd_module_instance_v1* inst_raw) {
     hips_inst* inst = (hips_inst*)inst_raw;
     if (!inst) return ACS_ERR_PARAM;
     if (inst->state == ACS_LC_STATE_DESTROYED) return ACS_ERR_STATE;
@@ -775,7 +775,7 @@ static acs_status hips_request_cancel(acs_module_instance_v1* inst_raw) {
     return ACS_OK;
 }
 
-static void hips_destroy(acs_module_instance_v1* inst_raw) {
+static void hips_destroy(acsd_module_instance_v1* inst_raw) {
     hips_inst* inst = (hips_inst*)inst_raw;
     if (!inst) return;                 /* inst=NULL 空操作 */
     hips_cfg_free(&inst->cfg);
@@ -787,7 +787,7 @@ static void hips_destroy(acs_module_instance_v1* inst_raw) {
 
 /* legacy 错误码 → (ACS_ERR, domain) 映射 (代码原样进 message "legacy_code=%d",
  * 不重解释科学语义; DISP-HIPS-007 错误码无集中枚举为登记缺陷, 不消化) */
-static acs_status hips_legacy_status(int code, int32_t* domain) {
+static acsd_status hips_legacy_status(int code, int32_t* domain) {
     if (code == 0) { *domain = ACS_ERR_DOMAIN_IO; return ACS_OK; }
     /* writer 无集中错误码枚举: 按函数族签名归类 (begin NULL/写盘负值);
      * 域判定: 参数类 (null/视图不匹配/值域) → PARAM+SCIENCE_PRECONDITION,
@@ -808,7 +808,7 @@ static int hips_cancel_requested(const hips_inst* inst) {
 }
 
 /* 事务 sink 产物存在性计数 (输出 manifest artifacts; DRZ 同款手法)。
- * docs/ASTROCS_DESIGN §9「aio 是文件级唯一 I/O 边界」: 原 HIPS_MKDIR
+ * docs/ACSD_DESIGN §9「aio 是文件级唯一 I/O 边界」: 原 HIPS_MKDIR
  * 宏 (Win _mkdir / POSIX mkdir) 是**死宏** (全 TU 零调用点), 已删除 ——
  * 目录创建一律经 aio 机制原语 (aio_atomic::make_dirs / make_dir);
  * 本函数只做只读存在性探测 (access(F_OK)), 不产生文件系统写操作。 */
@@ -819,9 +819,9 @@ static int hips_artifact_exists(const char* dir, const char* sub) {
     return HIPS_ACCESS(p, F_OK) == 0;
 }
 
-static acs_status hips_execute_write_product(
+static acsd_status hips_execute_write_product(
     hips_inst* inst, const char* manifest, const hips_cfg* c,
-    acs_strbuf_v1* out_manifest_json, acs_error_info_v1* err) {
+    acsd_strbuf_v1* out_manifest_json, acsd_error_info_v1* err) {
     if (!out_manifest_json) {
         return efill(err, ACS_ERR_PARAM, ACS_ERR_DOMAIN_CONFIG,
                      ACS_DIAG_ECODE_NULL_CALLBACK, "hips: null output buffer");
@@ -850,7 +850,7 @@ static acs_status hips_execute_write_product(
         return efill(err, ACS_ERR_BUDGET, ACS_ERR_DOMAIN_RESOURCE, 105,
                      "cpu_heavy module requires host executor");
     }
-    const acs_executor_v1* ex = inst->host->executor;
+    const acsd_executor_v1* ex = inst->host->executor;
     if (!ex->acquire || !ex->release ||
         ex->acquire(ex->user_data, 1) != 0) {
         return efill(err, ACS_ERR_BUDGET, ACS_ERR_DOMAIN_RESOURCE, 105,
@@ -859,7 +859,7 @@ static acs_status hips_execute_write_product(
     uint32_t leased = 1;
 
     hips_rows rows;
-    acs_status st = hips_rows_parse(manifest, c, &rows, err);
+    acsd_status st = hips_rows_parse(manifest, c, &rows, err);
     if (st != ACS_OK) {
         ex->release(ex->user_data, leased);
         return st;
@@ -877,7 +877,7 @@ static acs_status hips_execute_write_product(
         hips_rows_free(&rows);
         inst->last_status = ACS_ERR_IO;
         snprintf(inst->last_op, sizeof(inst->last_op), "%s",
-                 ASTROCS_HIPS_OP_WRITE_PRODUCT);
+                 ACSD_HIPS_OP_WRITE_PRODUCT);
         return efill(err, ACS_ERR_IO, ACS_ERR_DOMAIN_IO,
                      HIPS_ECODE_PUBLISH_STAGE,
                      hips_msgf("hips: staging create failed (%d)", prc));
@@ -910,7 +910,7 @@ static acs_status hips_execute_write_product(
         inst->last_status = ACS_ERR_IO;
         inst->legacy_last_code = -1;
         snprintf(inst->last_op, sizeof(inst->last_op), "%s",
-                 ASTROCS_HIPS_OP_WRITE_PRODUCT);
+                 ACSD_HIPS_OP_WRITE_PRODUCT);
         return efill(err, ACS_ERR_IO, ACS_ERR_DOMAIN_IO, HIPS_ECODE_BEGIN_REJECT,
                      hips_msgf("hips: product_begin failed: %s",
                                le && le[0] ? le : "(no detail)"));
@@ -1022,7 +1022,7 @@ static acs_status hips_execute_write_product(
         inst->executing = 0;
         inst->legacy_last_code = fail_rc;
         snprintf(inst->last_op, sizeof(inst->last_op), "%s",
-                 ASTROCS_HIPS_OP_WRITE_PRODUCT);
+                 ACSD_HIPS_OP_WRITE_PRODUCT);
         inst->last_workers = leased;
         if (cancelled_mid) {
             inst->last_status = ACS_ERR_CANCELLED;
@@ -1041,7 +1041,7 @@ static acs_status hips_execute_write_product(
         }
         const char* le = aio_hips_last_error();
         int32_t dom = ACS_ERR_DOMAIN_SCIENCE_PRECONDITION;
-        acs_status cst = hips_legacy_status(fail_rc, &dom);
+        acsd_status cst = hips_legacy_status(fail_rc, &dom);
         inst->last_status = cst;
         return efill(err, cst, dom, HIPS_ECODE_LEGACY_REJECT,
                      hips_msgf("hips: legacy_code=%d at %s: %s", fail_rc,
@@ -1061,7 +1061,7 @@ static acs_status hips_execute_write_product(
     inst->last_n_snr = rows.n_snr;
     hips_rows_free(&rows);
     snprintf(inst->last_op, sizeof(inst->last_op), "%s",
-             ASTROCS_HIPS_OP_WRITE_PRODUCT);
+             ACSD_HIPS_OP_WRITE_PRODUCT);
 
     /* 输出 manifest (统计面 + 事务 sink 产物 URI 存在性探测) */
     uint64_t total = 384u;
@@ -1081,7 +1081,7 @@ static acs_status hips_execute_write_product(
     }
     char* w = buf;
     w += snprintf(w, (size_t)(total + 1 - (size_t)(w - buf)),
-        "{\"op\":\"%s\",\"out_dir\":\"", ASTROCS_HIPS_OP_WRITE_PRODUCT);
+        "{\"op\":\"%s\",\"out_dir\":\"", ACSD_HIPS_OP_WRITE_PRODUCT);
     json_append_escaped(&w, c->out_dir);
     w += snprintf(w, (size_t)(total + 1 - (size_t)(w - buf)),
         "\",\"nside\":%u,\"tile_width\":%u,\"data_type\":%d,\"flags\":%d,"
@@ -1106,17 +1106,17 @@ static acs_status hips_execute_write_product(
     }
     w += snprintf(w, (size_t)(total + 1 - (size_t)(w - buf)), "]");
 
-    acs_status ret = strbuf_write(out_manifest_json, buf, (uint64_t)(w - buf), err);
+    acsd_status ret = strbuf_write(out_manifest_json, buf, (uint64_t)(w - buf), err);
     free(buf);
     inst->last_status = ret;
     return ret;
 }
 
-static acs_status hips_execute(acs_module_instance_v1* inst_raw,
-                               acs_str_v1 input_manifest_json,
-                               acs_str_v1 config_json,
-                               acs_strbuf_v1* out_manifest_json,
-                               acs_error_info_v1* err) {
+static acsd_status hips_execute(acsd_module_instance_v1* inst_raw,
+                               acsd_str_v1 input_manifest_json,
+                               acsd_str_v1 config_json,
+                               acsd_strbuf_v1* out_manifest_json,
+                               acsd_error_info_v1* err) {
     hips_inst* inst = (hips_inst*)inst_raw;
     if (!inst) return ACS_ERR_PARAM;
     if (inst->state != ACS_LC_STATE_CREATED || inst->executing) {
@@ -1129,7 +1129,7 @@ static acs_status hips_execute(acs_module_instance_v1* inst_raw,
                      ACS_DIAG_ECODE_NULL_CONFIG, "hips: empty input manifest");
     }
     hips_cfg c;
-    acs_status st = hips_cfg_parse(config_json.data, &c, err);
+    acsd_status st = hips_cfg_parse(config_json.data, &c, err);
     if (st != ACS_OK) return st;
 
     inst->executing = 1;
@@ -1144,8 +1144,8 @@ static acs_status hips_execute(acs_module_instance_v1* inst_raw,
 
 /* ═══════════════════ 7. 静态 vtable 与唯一导出入口 ═══════════════════ */
 
-static const acs_module_api_v1 g_hips_api = {
-    { (uint32_t)sizeof(acs_module_api_v1), ACS_ABI_VERSION_V1 },
+static const acsd_module_api_v1 g_hips_api = {
+    { (uint32_t)sizeof(acsd_module_api_v1), ACS_ABI_VERSION_V1 },
     hips_describe,
     hips_validate_config,
     hips_plan,
@@ -1158,10 +1158,10 @@ static const acs_module_api_v1 g_hips_api = {
 
 /* 唯一导出入口 (ARC-001 §1.1; ABI-006 全查 exports):
  * host_abi 失配 → ACS_ERR_ABI_MISMATCH, 不降级猜测。 */
-ASTROCS_EXPORT acs_status ASTROCS_CALL
-astrocs_module_query_v1(uint32_t host_abi,
-                        const acs_host_api_v1* host,
-                        const acs_module_api_v1** out_api) {
+ACSD_EXPORT acsd_status ACSD_CALL
+acsd_module_query_v1(uint32_t host_abi,
+                        const acsd_host_api_v1* host,
+                        const acsd_module_api_v1** out_api) {
     (void)host;   /* allocator 必填在 create 期校验 (query 期 host 可 NULL 于探针) */
     if (host_abi != ACS_ABI_VERSION_V1) return ACS_ERR_ABI_MISMATCH;
     if (!out_api) return ACS_ERR_PARAM;

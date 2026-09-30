@@ -168,7 +168,7 @@ int HipsBrowserBackend::open_product(const std::string& out_dir) {
             order_ = std::atoi(props.c_str() + p + 11);
         leaf_order_ = order_ + kTileShift;
         width_ = kTileDim;
-        fp64_ = props_has(props, "astrocs_signal_dtype=float64");
+        fp64_ = props_has(props, "acsd_signal_dtype=float64");
     }
     LOG_INFO("hips_backend", "open_product: order=%d leaf_order=%d fp64=%d tiles=%llu",
              order_, leaf_order_, fp64_ ? 1 : 0,
@@ -198,7 +198,7 @@ uint64_t HipsBrowserBackend::get_n_tiles() const {
 bool HipsBrowserBackend::contains(double ra, double dec) const {
     if (!sig_) return false;
     const uint32_t nside = uint32_t(1) << (uint32_t)leaf_order_;
-    const uint64_t leaf_ipix = astrocs::healpix::ang2pix_nest(nside, ra, dec);
+    const uint64_t leaf_ipix = acsd::healpix::ang2pix_nest(nside, ra, dec);
     const uint64_t tile_ipix = leaf_ipix >> 18;
     const int n = aio_hips_tile_count(sig_);
     for (int i = 0; i < n; ++i) {
@@ -214,10 +214,10 @@ int HipsBrowserBackend::query_pixel(double ra, double dec,
     support = 0.0;
     if (!sig_ || !sup_) return -3;
     const uint32_t nside = uint32_t(1) << (uint32_t)leaf_order_;
-    const uint64_t leaf_ipix = astrocs::healpix::ang2pix_nest(nside, ra, dec);
+    const uint64_t leaf_ipix = acsd::healpix::ang2pix_nest(nside, ra, dec);
     const uint64_t tile_ipix = leaf_ipix >> 18;
     const uint64_t z = leaf_ipix & kTileMask;
-    const uint64_t idx = astrocs::healpix::nested_local_to_fits_index(z, 9u, 512u);
+    const uint64_t idx = acsd::healpix::nested_local_to_fits_index(z, 9u, 512u);
 
     std::vector<double> tile((size_t)kTileDim * kTileDim);
     int rc = read_tile(tile_ipix, tile);

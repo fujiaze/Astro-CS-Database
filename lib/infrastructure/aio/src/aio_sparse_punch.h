@@ -5,7 +5,7 @@
 // aio_sparse_punch.h - 裸形态体积削减「文件系统打洞」机制原语 (header-only; aio 唯一实现)
 //
 // 依据:
-// - docs/ASTROCS_DESIGN.md §10「I/O 与原子产品」(裸形态体积削减两种机制的分工);
+// - docs/ACSD_DESIGN.md §10「I/O 与原子产品」(裸形态体积削减两种机制的分工);
 // - docs/detail/PRODUCT_STORAGE_FORM.md §9.1 (何时 / 对谁 / 失败怎么办 / 如何验证);
 // - docs/engineering/HIPS_STORAGE_FORM_CONTRACT.md §7 表 T1 (冻结规则 + 判据);
 // - ENGINEERING_SPEC.md §11 (打洞在 fsync 之后、算哈希与原子发布之前完成)。
@@ -170,10 +170,10 @@ inline bool& punch_enabled_ref() {
 inline void set_punch_enabled(bool on) { punch_enabled_ref() = on; }
 inline bool punch_enabled() { return punch_enabled_ref(); }
 
-// 注入面（测试专用；未设置时零行为差异）：ASTROCS_SPARSE_PUNCH_FAULT=unsupported
+// 注入面（测试专用；未设置时零行为差异）：ACSD_SPARSE_PUNCH_FAULT=unsupported
 // 等价于「卷不支持打洞」，用于证明降级路径可执行且不 fail-closed。
 inline bool fault_unsupported() {
-    const char* v = std::getenv("ASTROCS_SPARSE_PUNCH_FAULT");
+    const char* v = std::getenv("ACSD_SPARSE_PUNCH_FAULT");
     return v != nullptr && std::strcmp(v, "unsupported") == 0;
 }
 
@@ -392,7 +392,7 @@ inline void volume_supports_punch(const std::string& dir, int* supported,
     int sup = 0;
     std::string why = "probe_failed";
     const std::string probe = aio_atomic::make_tmp_path(
-        (key == "/" ? std::string("/") : key + "/") + ".astrocs_sparse_probe");
+        (key == "/" ? std::string("/") : key + "/") + ".acsd_sparse_probe");
     FILE* f = aio_fopen_utf8(probe.c_str(), "wb");
     if (f) {
         const std::size_t blk = static_cast<std::size_t>(kPunchBlockBytes);

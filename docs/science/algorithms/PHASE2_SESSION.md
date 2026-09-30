@@ -1,4 +1,4 @@
-# Phase2 Session Assembly（P2-SESSION / astrocs.p2.session）
+# Phase2 Session Assembly（P2-SESSION / acsd.p2.session）
 
 > 本文件是 Phase2 进程内装配会话
 > （lib/phase2_session/）的**装配合同唯一权威**：DAG 拓扑 + 端口 +
@@ -8,16 +8,16 @@
 > （PHASE2_SAMPLER.md）、upm=ALG-UPM-001 域（UPM_SOLVER.md）、
 > persist=upm 持久化（SCI-UPM-PERSIST-001 面）；HiPS 马赛克写不进
 > p2 会话（`PUBLIC_API.md`「Phase2 会话装配」节冻结表述）。
-> 上游：ASTROCS_DESIGN.md §5.2（固定科学流程）、§8.2（数据流形态）
+> 上游：ACSD_DESIGN.md §5.2（固定科学流程）、§8.2（数据流形态）
 
 > 上游 SCI（共享引用零改动）: SCI-UPM-001 / SCI-INT-001 / SCI-REJ-001
 > （docs/science/，映射声明见 §11.6）。
 > 下游合同: DATA-P2-SESSION（DATA_SEMANTICS §24，并行任务生成）/ 
 > API-P2-SESSION-001（PUBLIC_API.md，并行任务生成）。
-> 模块: astrocs.p2.session（本任务冻结的合同模块词汇）——迁移目标
-> astrocs_p2_session.dll 为 MODULE_MIGRATION_MATRIX 矩阵合同值，
+> 模块: acsd.p2.session（本任务冻结的合同模块词汇）——迁移目标
+> acsd_p2_session.dll 为 MODULE_MIGRATION_MATRIX 矩阵合同值，
 > **尚未建立**，MISSING 如实登记；现状构建=静态库
-> astrocs_phase2_session（根 `CMakeLists.txt`），编入 acsd
+> acsd_phase2_session（根 `CMakeLists.txt`），编入 acsd
 > 可执行。权威源: `lib/phase2_session/p2_session.h`（39 行）
 > + `lib/phase2_session/p2_session.cpp`（318 行，实测；本文件的锚一律给到文件/符号级）。
 
@@ -45,17 +45,17 @@ budget/allocator）、manifest 状态机与错误映射，供 CLI 直调（CLI-0
 ## 2 层级定位与构建面
 
 - **层级**：assembly（编排），**无独立 DLL**（现状）；MODULE_MIGRATION
-  _MATRIX 的 P2-SESSION 行 dll_target=astrocs_p2_session.dll 为迁移
+  _MATRIX 的 P2-SESSION 行 dll_target=acsd_p2_session.dll 为迁移
   合同值（MISSING，§11.4 差距表）。
-- **构建**（根 `CMakeLists.txt` 实测）：静态库 `astrocs_phase2_session`
+- **构建**（根 `CMakeLists.txt` 实测）：静态库 `acsd_phase2_session`
   =add_library(STATIC lib/phase2_session/p2_session.cpp) +
   target_include_directories（lib/phase2_session 与 lib/algorithms/coverage/include）
-  + target_link_libraries PUBLIC astrocs_contracts astrocs_phase2；
-  编入 acsd 可执行 target_link_libraries（astrocs_phase2_session）；
-  astrocs_module_adapters 亦链接之。
-- **QA-001**：astrocs_phase2_session 列入自有生产 targets
+  + target_link_libraries PUBLIC acsd_contracts acsd_phase2；
+  编入 acsd 可执行 target_link_libraries（acsd_phase2_session）；
+  acsd_module_adapters 亦链接之。
+- **QA-001**：acsd_phase2_session 列入自有生产 targets
   严格警告层 -Wall -Wextra -Wpedantic -Wconversion（MSVC /W4）。
-- **先例同构**：lib/phase1_session/（registry 页 astrocs.phase1.session.md）
+- **先例同构**：lib/phase1_session/（registry 页 acsd.phase1.session.md）
   同址三件套布局；`p2_session.h` 五函数与
   `lib/phase1_session/p1_session.h` 逐一同型（run 无 async_io_depth 参数差异）。
 
@@ -79,10 +79,10 @@ Observations/Model，统一经 p2_coverage_free（RAII）/p2_upm_close
 
 ## 4 端口连接与 descriptor 占位对照
 
-registry 现状**无 astrocs.p2.session module_id 的 descriptor**；五
+registry 现状**无 acsd.p2.session module_id 的 descriptor**；五
 函数经 P2Api（`lib/infrastructure/scheduler/src/module_adapters.cpp` 的五静态委托）被占位
 descriptor 工厂委托：phase2_descriptor()（module_id=
-astrocs.phase2.resample）注册段；P2-006 canonical 7 节点链
+acsd.phase2.resample）注册段；P2-006 canonical 7 节点链
 descriptors（p2_coverage/sample/upm_fit/upm_apply/reject/integrate/
 write）注册段——**无第二调度顺序**（同文件注释冻结）。
 
@@ -93,7 +93,7 @@ write）注册段——**无第二调度顺序**（同文件注释冻结）。
 | 合同 ID：SCI-UPM-001+SCI-INT-001+SCI-REJ-001 / ALG-P2-SESSION-001 / DATA-P2-SESSION / API-P2-SESSION-001 / TEST-P2-SESSION-001 | 占位 api_id 一致同为 API-P2-001（同一文件） | P2-XX-INT |
 
 **注记（冻结边界）**：descriptor 占位 ID 为编排层词汇（P1 registry
-页先例 astrocs.phase1.session.md 同构表述），编排层词汇只作对齐对象，本
+页先例 acsd.phase1.session.md 同构表述），编排层词汇只作对齐对象，本
 文件冻结依据；对齐由 P2-SESSION-INT 执行（台账 V7_1_STATIC_TASK_
 LEDGER.csv 关键词 "module integration descriptor + typed ports"）。
 
@@ -105,7 +105,7 @@ owner=创建者、threadsafe:no（handle 级）、reentrant:yes。
 1. **p2_session_create**（`lib/phase2_session/p2_session.cpp`）：host null/struct_size 不符/
    abi_version≠ACS_ABI_VERSION_V1 → ACS_ERR_ABI_MISMATCH；
    out null → PARAM；new nothrow 失败 → NOMEM；
-   manifest 初始化 kind="astrocs_phase2_session" + stages 空数组。
+   manifest 初始化 kind="acsd_phase2_session" + stages 空数组。
 2. **p2_session_validate**（同文件）：纯读无 IO；span 空/null → PARAM；
    坏 JSON（parse_error）→ PARAM；非 object →
    PARAM；缺必需键 `hips_paths`/`output_dir` → PARAM；
@@ -157,7 +157,7 @@ owner=创建者、threadsafe:no（handle 级）、reentrant:yes。
    调用方经 host free 释放。
 5. **p2_session_destroy**（`lib/phase2_session/p2_session.cpp`）：唯一释放对（delete s）。
 
-诊断：`astrocs::phase2::last_error`（`lib/phase2_session/p2_session.cpp`，脱敏摘要，handle 空→
+诊断：`acsd::phase2::last_error`（`lib/phase2_session/p2_session.cpp`，脱敏摘要，handle 空→
 空串；RT-008 CLI 合同经 P2Api::last_error 暴露，见 `lib/infrastructure/scheduler/src/module_adapters.cpp`）。
 
 **output_dir 注入面**（config 生产者侧）：`lib/infrastructure/cli/parser.cpp` 缺
@@ -168,7 +168,7 @@ passthrough 交会话拒——两道防线，语义一致。
 
 ## 6 trace 语义
 
-- **manifest**（SessionState.manifest，同文件）：kind="astrocs_phase2_
+- **manifest**（SessionState.manifest，同文件）：kind="acsd_phase2_
   session"；stages[] 逐段 name/status + fail 时 rc/err、ok 时
   计数（stage()；coverage ok n_inputs/n_union_cells/target_
   order；sample ok n_obs/n_controls/accepted_obs/overlap_
@@ -257,7 +257,7 @@ pixel / p2_reject_* / p2_upm_apply 族 / hips writer 任何符号——7 节点
 
 | ACS_ERR_* | 触发（精确） | 锚（p2_session.cpp） |
 |---|---|---|
-| ACS_ERR_ABI_MISMATCH | host null / struct_size≠sizeof(astrocs_host_services_v1) / abi_version≠V1 | `lib/phase2_session/p2_session.cpp` |
+| ACS_ERR_ABI_MISMATCH | host null / struct_size≠sizeof(acsd_host_services_v1) / abi_version≠V1 | `lib/phase2_session/p2_session.cpp` |
 | ACS_ERR_PARAM | out/hull、span 空、坏 JSON、非 object、缺必需键、类型错（validate 与 run 前置） | 同上 |
 | ACS_ERR_NOMEM | SessionState new 失败；inspect host alloc 失败 | 同上 |
 | ACS_ERR_CANCELLED | 四段边界取消 | 同上 |
@@ -301,14 +301,14 @@ DATA-P2-SESSION（§24，并行任务生成）；本节为实现现状锚定。
 
 | # | artifact | 现状（实测） | 差距归属 |
 |---|---|---|---|
-| 1 | astrocs_p2_session.dll（独立迁移目标） | 不存在（MISSING）；现状=静态库 astrocs_phase2_session（根 `CMakeLists.txt`）编入 acsd 可执行 | P2-SESSION-IMPL |
+| 1 | acsd_p2_session.dll（独立迁移目标） | 不存在（MISSING）；现状=静态库 acsd_phase2_session（根 `CMakeLists.txt`）编入 acsd 可执行 | P2-SESSION-IMPL |
 | 2 | coverage 域产物（union MOC+target_order，P2CoverageResult 进程内） | 已实现（lib/algorithms/coverage/src/coverage.cpp，ALG-COV-001 域） | 已存在（P2-COV 域） |
 | 3 | sample 域产物（P2ControlObservation/P2ControlNode/P2SampleStats） | 已实现（sampler.cpp，ALG-P2-SMP-001 域） | 已存在（P2-SAMP 域） |
 | 4 | upm 域产物（model 构建/持久化 p2_upm_build/save/info/close） | 已实现（lib/algorithms/coverage/src/upm*.cpp，ALG-UPM-001 域） | 已存在（P2-UPM 域） |
 | 5 | persist 段=HiPS writer 域马赛克写产品 | **不在会话**：p2_session persist 段仅 upm_save 单产物；upm_apply/reject/integrate/write 四域未编排（`PUBLIC_API.md`「Phase2 会话装配」节） | P2-SESSION-IMPL（typed DAG 扩面） |
 | 6 | typed phase2 DAG 全链执行（"full execution no partial facade"） | 现状=4 段 facade 直调（`eng/tests/unit/p2_ir_facade_test.cpp` 契合现状口径） | P2-SESSION-IMPL（台账） |
-| 7 | module integration descriptor + typed ports | registry 无 astrocs.p2.session descriptor；占位 descriptor 工厂委托（§4） | P2-SESSION-INT（台账） |
-| 8 | registry 页 astrocs.phase2.session.md / README / memory | 不存在；归 registry 面登记 | registry 面 |
+| 7 | module integration descriptor + typed ports | registry 无 acsd.p2.session descriptor；占位 descriptor 工厂委托（§4） | P2-SESSION-INT（台账） |
+| 8 | registry 页 acsd.phase2.session.md / README / memory | 不存在；归 registry 面登记 | registry 面 |
 | 9 | TEST-P2-SESSION-001 可执行测试 | MISSING（不冒认） | P2-SESSION-TEST（台账） |
 
 ### 11.5 TEST-P2-SESSION-DESIGN-001 冻结测试设计（可执行 TEST-P2-SESSION-001 由 P2-SESSION-TEST 落地，MISSING 如实登记）
@@ -357,7 +357,7 @@ DATA-P2-SESSION（§24，并行任务生成）；本节为实现现状锚定。
 - SCI 公式语义不在此重复定义；两处冲突以 docs/science/ 为准并回改
   本文档（方向 = 从 docs/science/ 到本文档）。
 - descriptor 占位词汇（SCI-P2-RES-001 等，§4）与本页冲突时以本页为
-  准；本节是唯一冻结依据（编排层词汇只作对齐对象；astrocs.p2.session 由
+  准；本节是唯一冻结依据（编排层词汇只作对齐对象；acsd.p2.session 由
   P2-SESSION-INT 对齐，不作冻结依据）。
 
 ## 12 关联 ID 映射（本文件承接）
@@ -374,19 +374,19 @@ DATA-P2-SESSION（§24，并行任务生成）；本节为实现现状锚定。
   §11.5（双面登记不冒认）。
 - `SRC-P2-SESSION-001` = lib/phase2_session/ 源码实测面（p2_session.h
   39 行 + `lib/phase2_session/p2_session.cpp` 318 行（复测）+ 根 `CMakeLists.txt` 相应段），本文件全部锚的权威。
-- `MOD-astrocs-phase2-session` = lib/phase2_session/module.yaml（本
+- `MOD-acsd-phase2-session` = lib/phase2_session/module.yaml（本
   任务同批建立）+ registry 页（并行任务生成）。
 
 ## 13 追溯
 
 - 实现：lib/phase2_session/p2_session.h（39 行）+ p2_session.cpp
-  （318 行，复测）；构建：静态库 astrocs_phase2_session（CMakeLists.txt
+  （318 行，复测）；构建：静态库 acsd_phase2_session（CMakeLists.txt
   的相应段）→ acsd 可执行 + QA-001 严格警告层
   （同一 `CMakeLists.txt`）。
 - 编排消费面：CLI 直调（CLI-005）与 RT-005/RT-008 SessionModule
   （`lib/infrastructure/scheduler/src/module_adapters.cpp` 的 P2Api 与两处注册段）。
 - 对拍先例：lib/phase1_session/ + registry 页
-  astrocs.phase1.session.md；PHASE2_SAMPLER.md §11/§12 结构。
+  acsd.phase1.session.md；PHASE2_SAMPLER.md §11/§12 结构。
 - 消费域：ALG-COV-001（PHASE2_COVERAGE.md）/ ALG-P2-SMP-001
   （PHASE2_SAMPLER.md）/ ALG-UPM-001（UPM_SOLVER.md）。
 - 差距整改：§11.4（IMPL/INT）+ §11.3 DISP-P2SES-001..008；

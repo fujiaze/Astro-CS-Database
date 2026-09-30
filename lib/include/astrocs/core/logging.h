@@ -1,8 +1,8 @@
 // ACSD Core Contracts — CORE-008 统一日志 + 指标 (JSONL)
 #pragma once
 
-#include "astrocs/core/context.h"
-#include "astrocs/core/contracts.h"
+#include "acsd/core/context.h"
+#include "acsd/core/contracts.h"
 
 #include <atomic>
 #include <cstdint>
@@ -12,7 +12,7 @@
 #include <string>
 #include <vector>
 
-namespace astrocs::core {
+namespace acsd::core {
 
 // 结构化日志条目 (JSONL; CORE-008: 模块只写结构化事件, 格式由 Runtime 决定)
 struct LogEvent {
@@ -100,4 +100,4 @@ class InMemorySink : public LogSink {
   std::vector<LogEvent> events_;
 };
 
-}  // namespace astrocs::core
+}  // namespace acsd::core

@@ -11,31 +11,31 @@
 #        ${CMAKE_CURRENT_SOURCE_DIR}/lib/infrastructure/cli/mosaic
 #        ${CMAKE_CURRENT_SOURCE_DIR}/lib/infrastructure/cli/export
 #   3) 当前实现为 header-only（inline 命令入口），不新增 .cpp，故 add_executable
-#      源清单无需变化；若后续拆分 .cpp，把 astrocs_cli_subcommands 加入
+#      源清单无需变化；若后续拆分 .cpp，把 acsd_cli_subcommands 加入
 #      acsd 的 target_link_libraries。
 #
 # 三个子命令模块各声明一个 INTERFACE target，便于模块化引用与共址测试引用；
-# 不 install、不产出独立二进制（CLI 只有唯一可执行 acsd，docs/ASTROCS_DESIGN §6.2）。
+# 不 install、不产出独立二进制（CLI 只有唯一可执行 acsd，docs/ACSD_DESIGN §6.2）。
 cmake_minimum_required(VERSION 3.16)
 
-add_library(astrocs_cli_subcommands INTERFACE)
-target_include_directories(astrocs_cli_subcommands INTERFACE
+add_library(acsd_cli_subcommands INTERFACE)
+target_include_directories(acsd_cli_subcommands INTERFACE
   ${CMAKE_CURRENT_SOURCE_DIR}
   ${CMAKE_CURRENT_SOURCE_DIR}/normalize
   ${CMAKE_CURRENT_SOURCE_DIR}/mosaic
   ${CMAKE_CURRENT_SOURCE_DIR}/export)
 
-add_library(astrocs_cli_subcommand_normalize INTERFACE)
-target_include_directories(astrocs_cli_subcommand_normalize INTERFACE
+add_library(acsd_cli_subcommand_normalize INTERFACE)
+target_include_directories(acsd_cli_subcommand_normalize INTERFACE
   ${CMAKE_CURRENT_SOURCE_DIR}/normalize)
-target_link_libraries(astrocs_cli_subcommand_normalize INTERFACE astrocs_cli_subcommands)
+target_link_libraries(acsd_cli_subcommand_normalize INTERFACE acsd_cli_subcommands)
 
-add_library(astrocs_cli_subcommand_mosaic INTERFACE)
-target_include_directories(astrocs_cli_subcommand_mosaic INTERFACE
+add_library(acsd_cli_subcommand_mosaic INTERFACE)
+target_include_directories(acsd_cli_subcommand_mosaic INTERFACE
   ${CMAKE_CURRENT_SOURCE_DIR}/mosaic)
-target_link_libraries(astrocs_cli_subcommand_mosaic INTERFACE astrocs_cli_subcommands)
+target_link_libraries(acsd_cli_subcommand_mosaic INTERFACE acsd_cli_subcommands)
 
-add_library(astrocs_cli_subcommand_export INTERFACE)
-target_include_directories(astrocs_cli_subcommand_export INTERFACE
+add_library(acsd_cli_subcommand_export INTERFACE)
+target_include_directories(acsd_cli_subcommand_export INTERFACE
   ${CMAKE_CURRENT_SOURCE_DIR}/export)
-target_link_libraries(astrocs_cli_subcommand_export INTERFACE astrocs_cli_subcommands)
+target_link_libraries(acsd_cli_subcommand_export INTERFACE acsd_cli_subcommands)

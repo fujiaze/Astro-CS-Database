@@ -12,7 +12,7 @@
 #     - 注入离群 recall：thin satellite / cosmic / hot streak（production
 #       kernel 逐像素 stack）
 #   stage2 输出与 kernel 测量使用同一 production config 语义：
-#     method=auto profile=wbpp_2_9_1 normalization=astrocs_median_center_v1
+#     method=auto profile=wbpp_2_9_1 normalization=acsd_median_center_v1
 #     underdetermined_n=2（20 样本 → 本仓冻结路由表 n>=16 档 = LinearFit；
 #     档界取自 WBPP 2.5.9，其 n>15 分支为 ESD，本仓该档对应 WBPP <=2.3.x）。
 #
@@ -32,18 +32,18 @@ from astropy.io import fits
 ROOT = Path(__file__).resolve().parents[3]
 OUT = ROOT / "run" / "temp" / "v17_control_truth"
 STAGE2 = os.environ.get(
-    "ASTROCS_STAGE2",
-    str(ROOT / "lib" / "phase2" / "build" / "astrocs-stage2.exe"))
+    "ACSD_STAGE2",
+    str(ROOT / "lib" / "phase2" / "build" / "acsd-stage2.exe"))
 CLI = os.environ.get(
-    "ASTROCS_REJECTION_CLI",
+    "ACSD_REJECTION_CLI",
     str(ROOT / "lib" / "phase2" / "build" / "rejection_cli.exe"))
 HARNESS = os.environ.get(
-    "ASTROCS_SIRIL_LINEARFIT_HARNESS",
+    "ACSD_SIRIL_LINEARFIT_HARNESS",
     str(ROOT / "run" / "temp" / "p2_v4_evidence" / "siril_harness" /
         "siril_linearfit_oracle.exe"))
 PLAN = {"request": "auto", "nominal": 20, "profile": "wbpp_2_9_1",
         "underdetermined_n": 2,
-        "normalization": "astrocs_median_center_v1"}
+        "normalization": "acsd_median_center_v1"}
 SEED = 20260814
 N_FRAMES = 20
 FRAMES = [OUT / f"frame{n:02d}.hips" for n in range(N_FRAMES)]
@@ -53,8 +53,8 @@ BORDER = 16
 
 
 def ensure_path():
-    mingw = os.environ.get("ASTROCS_MINGW_BIN", r"C:\msys64\mingw64\bin")
-    aio = os.environ.get("ASTROCS_AIO_DIR",
+    mingw = os.environ.get("ACSD_MINGW_BIN", r"C:\msys64\mingw64\bin")
+    aio = os.environ.get("ACSD_AIO_DIR",
                          str(ROOT / "lib" / "astro_image_io"))
     os.environ["PATH"] = mingw + ";" + aio + ";" + \
         os.environ.get("PATH", "")
@@ -121,7 +121,7 @@ def build_masks(truth_json, truth_img):
 
 
 def run_stage2(cfg_name, method, frames, out_name):
-    """运行生产 astrocs-stage2；已存在且较新时跳过。"""
+    """运行生产 acsd-stage2；已存在且较新时跳过。"""
     cfg_path = OUT / f"stage2_{cfg_name}.json"
     out_hips = OUT / out_name
     if out_hips.exists():
@@ -140,7 +140,7 @@ def run_stage2(cfg_name, method, frames, out_name):
                            "rejection": {"method": method,
                                          "profile": "wbpp_2_9_1",
                                          "normalization":
-                                             "astrocs_median_center_v1",
+                                             "acsd_median_center_v1",
                                          "underdetermined_n": 2},
                            # §9.73 裁决 A44：weight_mode 已删除（出现即拒绝）⇒ 不再生成。
                            "acr_route": "cpu"},
@@ -380,7 +380,7 @@ def main():
             "siril_harness_same_case_agreement": siril_agreement,
             "siril_harness_samples": siril_n,
             "siril_same_case_sample_rej_rate": siril_same_case_rej_rate,
-            "astrocs_same_case_sample_rej_rate": astro_same_case_rej_rate,
+            "acsd_same_case_sample_rej_rate": astro_same_case_rej_rate,
             "note": ("零 outlier 合成真值；kernel 级测量用原始 stack"
                      "（UPM 零梯度≈恒等）；auto=wbpp_2_9_1→LinearFit"
                      " median_center")

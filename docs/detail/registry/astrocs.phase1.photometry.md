@@ -1,6 +1,6 @@
-# 模块 astrocs.phase1.photometry
+# 模块 acsd.phase1.photometry
 
-> 上游：docs/ASTROCS_DESIGN.md §8.5（模块与 ABI）、§4.2（Phase1 节点流程）、
+> 上游：docs/ACSD_DESIGN.md §8.5（模块与 ABI）、§4.2（Phase1 节点流程）、
 > §4.4（产品基数不变量）
 > 科学正本：docs/science/PHOTOMETRY.md（SCI-PHOT-001，含 §1 判据与 §5 观测统计量、
 > §16 平移精化判据）、docs/science/algorithms/PHOTOMETRIC_FIT.md（ALG-PHOT-001..002
@@ -11,7 +11,7 @@
 > 数据对象：docs/detail/UNIFIED_MODEL.md §1（观测模型）
 
 模块级事实以 `lib/algorithms/photometry/README.md` + `module.yaml`
-（astrocs.p1.photometry，迁移目标 astrocs_p1_photometry.dll，entrypoint 未落地）
+（acsd.p1.photometry，迁移目标 acsd_p1_photometry.dll，entrypoint 未落地）
 为准。现状构建 = `cpp/Makefile` + `cpp/build.ps1` → `photometric_calib.dll`，
 未编入根 CMake 主构建。缺陷与整改登记 = PHOTOMETRIC_FIT §13.3。
 `lib/algorithms/photometry/wrapper_phase1` 的 Photometer aperture 面为迁移目标面
@@ -123,8 +123,8 @@ borrow，模块不持有；`spec_stars` / `spectra_buf` 在调用内释放；`ou
 
 ## Registry descriptor 与配置 schema
 
-module_id=`astrocs.phase1.photometry`（registry descriptor 口径）；模块合同
-module.yaml 登记 `astrocs.p1.photometry`。execution_class=`cpu_heavy`;
+module_id=`acsd.phase1.photometry`（registry descriptor 口径）；模块合同
+module.yaml 登记 `acsd.p1.photometry`。execution_class=`cpu_heavy`;
 parallel_ok=True。配置 = phase config JSON：
 
 | 字段 | 默认 | 单位 | 说明 |
@@ -216,6 +216,6 @@ Oracle 面：
 - 平场大尺度残差、Gaia XP 合成通量定标误差、光学/大气/差分消光三项误差无实测
   依据，按不加处理；
 - 现状构建产物 `photometric_calib.dll` 未编入根 CMake 主构建；目标交付形态
-  astrocs_p1_photometry.dll 的 entrypoint 未落地；
+  acsd_p1_photometry.dll 的 entrypoint 未落地；
 - `wrapper_phase1` 的 Photometer aperture 面为迁移目标面，仅作诊断/交叉验证；
 - 全局限制登记 = artifacts/evidence/known-limitations-ledger/LIMITATIONS.md。

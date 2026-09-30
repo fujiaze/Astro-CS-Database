@@ -1,6 +1,6 @@
 /* ACSD FITS 流核心实现 — lib/infrastructure/aio/io/fits_core.c (IO-001)
  *
- * 职责: acs_fio_* C ABI (fits_stream_v1.h) 的实现。独立、无 CFITSIO 依赖的
+ * 职责: acsd_fio_* C ABI (fits_stream_v1.h) 的实现。独立、无 CFITSIO 依赖的
  * FITS 基本图像 HDU (NAXIS 0..3, BITPIX 8/16/32/64/-32/-64) 流式读 / 原子写 /
  * DATASUM/CHECKSUM 校验。CFITSIO 等第三方库只允许存在于 acsd_io.dll 内部
  * 其它私有层; 本文件不 include 任何 CFITSIO 头, 也不暴露任何第三方类型。
@@ -20,7 +20,7 @@
 #define _POSIX_C_SOURCE 200809L /* fseeko/ftello/off_t */
 #endif
 
-#include "astrocs/io/fits_stream_v1.h"
+#include "acsd/io/fits_stream_v1.h"
 
 #include <ctype.h>
 #include <errno.h>
@@ -88,17 +88,17 @@ static int fio_check_head(uint32_t struct_size, uint32_t abi_version,
   return ACS_FIO_OK;
 }
 
-static int fio_check_hooks(const acs_fio_trace_hooks_v1* h, char* err, size_t cap) {
+static int fio_check_hooks(const acsd_fio_trace_hooks_v1* h, char* err, size_t cap) {
   if (!h) return ACS_FIO_OK;
   if (h->abi_version != ACS_FIO_ABI_VERSION_V1 ||
-      (h->struct_size != 0 && h->struct_size != (uint32_t)sizeof(acs_fio_trace_hooks_v1))) {
+      (h->struct_size != 0 && h->struct_size != (uint32_t)sizeof(acsd_fio_trace_hooks_v1))) {
     set_err(err, cap, "trace hooks abi/struct mismatch");
     return ACS_FIO_ERR_ABI_MISMATCH;
   }
   return ACS_FIO_OK;
 }
 
-static int fio_cancelled(const acs_fio_trace_hooks_v1* h) {
+static int fio_cancelled(const acsd_fio_trace_hooks_v1* h) {
   return h && h->is_cancelled && h->is_cancelled(h->user_data) != 0;
 }
 
@@ -129,11 +129,11 @@ typedef struct fio_file {
   FILE* fp;
   uint64_t read_bytes;
   uint64_t write_bytes;
-  const acs_fio_trace_hooks_v1* hooks;
+  const acsd_fio_trace_hooks_v1* hooks;
 } fio_file;
 
 static int fio_file_open(fio_file* f, const char* path, const char* mode,
-                         const acs_fio_trace_hooks_v1* hooks, char* err, size_t cap) {
+                         const acsd_fio_trace_hooks_v1* hooks, char* err, size_t cap) {
   f->fp = fopen(path, mode);
   if (!f->fp) {
     int e = errno;
@@ -738,7 +738,7 @@ static void fio_zero_card_value(char* card80, size_t n) {
 /* 读取器                                                              */
 /* ------------------------------------------------------------------ */
 
-struct acs_fio_reader_v1_s {
+struct acsd_fio_reader_v1_s {
   fio_file f;
   fio_header hdr;
   fio_off_t hdr_bytes;  /* header 块字节 (2880 对齐) */
@@ -750,16 +750,16 @@ struct acs_fio_reader_v1_s {
 
 /* 打开 + 解析 header + 截断预检 */
 static int fio_reader_open_impl(const char* path,
-                                const acs_fio_trace_hooks_v1* hooks,
-                                acs_fio_reader_v1** out,
+                                const acsd_fio_trace_hooks_v1* hooks,
+                                acsd_fio_reader_v1** out,
                                 char* err, size_t cap) {
-  acs_fio_reader_v1* rd;
+  acsd_fio_reader_v1* rd;
   int st;
   if (!path || !out) return ACS_FIO_ERR_PARAM;
   *out = NULL;
   st = fio_check_hooks(hooks, err, cap);
   if (st != ACS_FIO_OK) return st;
-  rd = (acs_fio_reader_v1*)calloc(1, sizeof(*rd));
+  rd = (acsd_fio_reader_v1*)calloc(1, sizeof(*rd));
   if (!rd) {
     set_err(err, cap, "nomem");
     return ACS_FIO_ERR_NOMEM;
@@ -822,7 +822,7 @@ static int fio_reader_open_impl(const char* path,
 }
 
 /* 期望声明校验 */
-static int fio_read_check_decl(const acs_fio_reader_v1* rd,
+static int fio_read_check_decl(const acsd_fio_reader_v1* rd,
                                int64_t nx, int64_t ny, int32_t bpix,
                                const char* bunit, char* err, size_t cap) {
   int64_t fnx = rd->hdr.naxis >= 1 ? rd->hdr.naxis_n[0] : 1;
@@ -895,7 +895,7 @@ static void fio_swap_bytes(void* buf, int64_t elems, int32_t bitpix) {
 }
 
 /* 平面偏移与元素数 */
-static int fio_plane_layout(const acs_fio_reader_v1* rd, int plane_index,
+static int fio_plane_layout(const acsd_fio_reader_v1* rd, int plane_index,
                             int64_t* out_off_elems, int64_t* out_elems,
                             char* err, size_t cap) {
   int64_t naxis3 = rd->hdr.naxis >= 3 ? rd->hdr.naxis_n[2] : 1;
@@ -916,15 +916,15 @@ static int fio_plane_layout(const acs_fio_reader_v1* rd, int plane_index,
 
 /* ───────── 读取公共 API ───────── */
 
-int acs_fio_reader_open_v1(const char* path_utf8,
-                           const acs_fio_trace_hooks_v1* hooks,
-                           acs_fio_reader_v1** out,
+int acsd_fio_reader_open_v1(const char* path_utf8,
+                           const acsd_fio_trace_hooks_v1* hooks,
+                           acsd_fio_reader_v1** out,
                            char* err, size_t err_cap) {
   return fio_reader_open_impl(path_utf8, hooks, out, err, err_cap);
 }
 
-int acs_fio_get_header_v1(acs_fio_reader_v1* rd,
-                          acs_fio_header_v1* hdr,
+int acsd_fio_get_header_v1(acsd_fio_reader_v1* rd,
+                          acsd_fio_header_v1* hdr,
                           char* err, size_t err_cap) {
   int i, st;
   if (!rd || !hdr) return ACS_FIO_ERR_PARAM;
@@ -948,14 +948,14 @@ int acs_fio_get_header_v1(acs_fio_reader_v1* rd,
   return ACS_FIO_OK;
 }
 
-int acs_fio_read_plane_v1(acs_fio_reader_v1* rd,
+int acsd_fio_read_plane_v1(acsd_fio_reader_v1* rd,
                           int plane_index,
                           int64_t nx, int64_t ny, int32_t bpix,
                           const char* bunit,
                           void* buf, int64_t buf_elem_capacity,
                           int strict_nan,
                           int64_t* out_got,
-                          acs_fio_trace_hooks_v1* trace,
+                          acsd_fio_trace_hooks_v1* trace,
                           char* err, size_t err_cap) {
   int st;
   int64_t plane_elems, off_elems, bpp, want_bytes;
@@ -1000,13 +1000,13 @@ int acs_fio_read_plane_v1(acs_fio_reader_v1* rd,
   return ACS_FIO_OK;
 }
 
-int acs_fio_read_chunk_v1(acs_fio_reader_v1* rd,
+int acsd_fio_read_chunk_v1(acsd_fio_reader_v1* rd,
                           int plane_index,
                           int64_t first_elem, int64_t count,
                           void* buf, int64_t buf_elem_capacity,
                           int strict_nan,
                           int64_t* out_got,
-                          acs_fio_trace_hooks_v1* trace,
+                          acsd_fio_trace_hooks_v1* trace,
                           char* err, size_t err_cap) {
   int st;
   int64_t plane_elems, off_elems, bpp, avail, n;
@@ -1055,7 +1055,7 @@ int acs_fio_read_chunk_v1(acs_fio_reader_v1* rd,
   return ACS_FIO_OK;
 }
 
-void acs_fio_reader_close_v1(acs_fio_reader_v1* rd) {
+void acsd_fio_reader_close_v1(acsd_fio_reader_v1* rd) {
   if (!rd) return;
   if (!rd->closed) {
     fio_file_close(&rd->f);
@@ -1064,7 +1064,7 @@ void acs_fio_reader_close_v1(acs_fio_reader_v1* rd) {
   free(rd);
 }
 
-uint64_t acs_fio_reader_bytes_read_v1(acs_fio_reader_v1* rd) {
+uint64_t acsd_fio_reader_bytes_read_v1(acsd_fio_reader_v1* rd) {
   return rd ? rd->f.read_bytes : 0;
 }
 
@@ -1072,7 +1072,7 @@ uint64_t acs_fio_reader_bytes_read_v1(acs_fio_reader_v1* rd) {
 /* 写入器                                                              */
 /* ------------------------------------------------------------------ */
 
-struct acs_fio_writer_v1_s {
+struct acsd_fio_writer_v1_s {
   fio_file f;
   char target[ACS_FIO_PATH_MAX];
   char tmp[ACS_FIO_PATH_MAX];
@@ -1151,7 +1151,7 @@ static int fio_write_header_block(fio_file* f, const fio_header* h,
   if (reserve_checksum) {
     checksum_off = total;
     /* 占位卡: 值区 16 个 '0' 是 1's complement 累计的规范零态 (重算基准),
-     * 不是 "已更新" 的校验值 —— 真值在 acs_fio_writer_end_v1 用同一算法
+     * 不是 "已更新" 的校验值 —— 真值在 acsd_fio_writer_end_v1 用同一算法
      * 回填; write_checksum=0 时该卡在提交前被抹空 (见 end 内 M2b-B-09)。
      * comment 必须与 patch 时完全一致 (校验按整卡字节累计, 占位卡与真值卡
      * 除值区外须逐字节相同, 否则写累计 ≠ verify 累计)。 */
@@ -1178,14 +1178,14 @@ static int fio_write_header_block(fio_file* f, const fio_header* h,
   return ACS_FIO_OK;
 }
 
-int acs_fio_writer_begin_v1(const char* path_utf8,
-                            const acs_fio_header_v1* decl,
+int acsd_fio_writer_begin_v1(const char* path_utf8,
+                            const acsd_fio_header_v1* decl,
                             const char* bunit,
                             int overwrite,
-                            const acs_fio_trace_hooks_v1* hooks,
-                            acs_fio_writer_v1** out,
+                            const acsd_fio_trace_hooks_v1* hooks,
+                            acsd_fio_writer_v1** out,
                             char* err, size_t cap) {
-  acs_fio_writer_v1* wr;
+  acsd_fio_writer_v1* wr;
   int st, i;
   if (!path_utf8 || !decl || !out) return ACS_FIO_ERR_PARAM;
   *out = NULL;
@@ -1223,7 +1223,7 @@ int acs_fio_writer_begin_v1(const char* path_utf8,
       return ACS_FIO_ERR_IO;
     }
   }
-  wr = (acs_fio_writer_v1*)calloc(1, sizeof(*wr));
+  wr = (acsd_fio_writer_v1*)calloc(1, sizeof(*wr));
   if (!wr) {
     set_err(err, cap, "nomem");
     return ACS_FIO_ERR_NOMEM;
@@ -1263,7 +1263,7 @@ int acs_fio_writer_begin_v1(const char* path_utf8,
 
 /* 首次数据写入前写 header (恒预留 DATASUM 槽; CHECKSUM 槽预留与否留到 end —
  * 由于布局固定性, 恒预留两个槽, end 时按需改写或保持空白/零值)。 */
-static int fio_writer_ensure_header(acs_fio_writer_v1* wr, char* err, size_t cap) {
+static int fio_writer_ensure_header(acsd_fio_writer_v1* wr, char* err, size_t cap) {
   if (wr->wrote_header) return ACS_FIO_OK;
   {
     int64_t hdr_bytes = 0;
@@ -1281,10 +1281,10 @@ static int fio_writer_ensure_header(acs_fio_writer_v1* wr, char* err, size_t cap
   return ACS_FIO_OK;
 }
 
-int acs_fio_write_plane_v1(acs_fio_writer_v1* wr,
+int acsd_fio_write_plane_v1(acsd_fio_writer_v1* wr,
                            int plane_index,
                            const void* data, size_t data_bytes,
-                           acs_fio_trace_hooks_v1* trace,
+                           acsd_fio_trace_hooks_v1* trace,
                            char* err, size_t cap) {
   int st;
   int64_t plane_elems, plane_bytes, bpp;
@@ -1342,9 +1342,9 @@ int acs_fio_write_plane_v1(acs_fio_writer_v1* wr,
   return ACS_FIO_OK;
 }
 
-int acs_fio_write_chunk_v1(acs_fio_writer_v1* wr,
+int acsd_fio_write_chunk_v1(acsd_fio_writer_v1* wr,
                            const void* data, size_t data_bytes,
-                           acs_fio_trace_hooks_v1* trace,
+                           acsd_fio_trace_hooks_v1* trace,
                            char* err, size_t cap) {
   int st;
   int64_t bpp;
@@ -1386,10 +1386,10 @@ int acs_fio_write_chunk_v1(acs_fio_writer_v1* wr,
   return ACS_FIO_OK;
 }
 
-int acs_fio_writer_end_v1(acs_fio_writer_v1* wr,
+int acsd_fio_writer_end_v1(acsd_fio_writer_v1* wr,
                           int write_datasum, int write_checksum,
                           int verify_before_rename,
-                          acs_fio_trace_hooks_v1* trace,
+                          acsd_fio_trace_hooks_v1* trace,
                           char* err, size_t cap) {
   int st = ACS_FIO_OK;
   int64_t pad;
@@ -1485,7 +1485,7 @@ int acs_fio_writer_end_v1(acs_fio_writer_v1* wr,
   memset(&wr->f, 0, sizeof(wr->f));
   /* 提交前自校验 (结构 + 长度 + DATASUM/CHECKSUM) */
   if (verify_before_rename) {
-    int vst = acs_fio_verify_file_v1(wr->tmp, write_checksum ? 1 : 0, err, cap);
+    int vst = acsd_fio_verify_file_v1(wr->tmp, write_checksum ? 1 : 0, err, cap);
     if (vst != ACS_FIO_OK) {
       st = vst;
       goto fail;
@@ -1510,7 +1510,7 @@ fail:
   return st;
 }
 
-void acs_fio_writer_abort_v1(acs_fio_writer_v1* wr) {
+void acsd_fio_writer_abort_v1(acsd_fio_writer_v1* wr) {
   if (!wr) return;
   if (!wr->ended && wr->f.fp) {
     wr->bytes_written_total += wr->f.write_bytes;
@@ -1522,7 +1522,7 @@ void acs_fio_writer_abort_v1(acs_fio_writer_v1* wr) {
   wr->ended = 1;
 }
 
-uint64_t acs_fio_writer_bytes_written_v1(const acs_fio_writer_v1* wr) {
+uint64_t acsd_fio_writer_bytes_written_v1(const acsd_fio_writer_v1* wr) {
   return wr ? (wr->f.write_bytes + wr->bytes_written_total) : 0;
 }
 
@@ -1530,10 +1530,10 @@ uint64_t acs_fio_writer_bytes_written_v1(const acs_fio_writer_v1* wr) {
 /* verify / datadigest                                                 */
 /* ------------------------------------------------------------------ */
 
-int acs_fio_verify_file_v1(const char* path_utf8,
+int acsd_fio_verify_file_v1(const char* path_utf8,
                            int verify_checksum,
                            char* err, size_t cap) {
-  acs_fio_reader_v1* rd = NULL;
+  acsd_fio_reader_v1* rd = NULL;
   int st;
   if (!path_utf8) return ACS_FIO_ERR_PARAM;
   st = fio_reader_open_impl(path_utf8, NULL, &rd, err, cap);
@@ -1547,7 +1547,7 @@ int acs_fio_verify_file_v1(const char* path_utf8,
     memset(&f2, 0, sizeof(f2));
     st = fio_file_open(&f2, path_utf8, "rb", NULL, err, cap);
     if (st != ACS_FIO_OK) {
-      acs_fio_reader_close_v1(rd);
+      acsd_fio_reader_close_v1(rd);
       return st;
     }
     fio_dsum_init(&s);
@@ -1556,12 +1556,12 @@ int acs_fio_verify_file_v1(const char* path_utf8,
       got = fio_file_read_datasum(&f2, rd->data_off, want, &s, err, cap);
       if (got == (size_t)-1) {
         fio_file_close(&f2);
-        acs_fio_reader_close_v1(rd);
+        acsd_fio_reader_close_v1(rd);
         return ACS_FIO_ERR_IO;
       }
       if (got < (size_t)rd->data_bytes) {
         fio_file_close(&f2);
-        acs_fio_reader_close_v1(rd);
+        acsd_fio_reader_close_v1(rd);
         set_err(err, cap, "truncated: data area short");
         return ACS_FIO_ERR_TRUNCATED;
       }
@@ -1575,7 +1575,7 @@ int acs_fio_verify_file_v1(const char* path_utf8,
       hp = hdr_datasum;
       while (*hp == ' ') hp++;
       if (strcmp(hp, expect) != 0) {
-        acs_fio_reader_close_v1(rd);
+        acsd_fio_reader_close_v1(rd);
         set_err(err, cap, "DATASUM mismatch: header '%s' computed '%s'",
                 hp, expect);
         return ACS_FIO_ERR_CHECKSUM;
@@ -1595,26 +1595,26 @@ int acs_fio_verify_file_v1(const char* path_utf8,
     fio_off_t coff;
     fio_file f2;
     if (hlen > 4 * 2880 * 1024) {
-      acs_fio_reader_close_v1(rd);
+      acsd_fio_reader_close_v1(rd);
       set_err(err, cap, "header too large for checksum");
       return ACS_FIO_ERR_UNSUPPORTED;
     }
     hbuf = (unsigned char*)malloc(hlen ? hlen : 1);
     if (!hbuf) {
-      acs_fio_reader_close_v1(rd);
+      acsd_fio_reader_close_v1(rd);
       return ACS_FIO_ERR_NOMEM;
     }
     memset(&f2, 0, sizeof(f2));
     st = fio_file_open(&f2, path_utf8, "rb", NULL, err, cap);
     if (st != ACS_FIO_OK) {
       free(hbuf);
-      acs_fio_reader_close_v1(rd);
+      acsd_fio_reader_close_v1(rd);
       return st;
     }
     if (fio_file_read(&f2, hbuf, hlen) != hlen) {
       free(hbuf);
       fio_file_close(&f2);
-      acs_fio_reader_close_v1(rd);
+      acsd_fio_reader_close_v1(rd);
       set_err(err, cap, "read header failed");
       return ACS_FIO_ERR_IO;
     }
@@ -1622,7 +1622,7 @@ int acs_fio_verify_file_v1(const char* path_utf8,
     if (coff < 0) {
       free(hbuf);
       fio_file_close(&f2);
-      acs_fio_reader_close_v1(rd);
+      acsd_fio_reader_close_v1(rd);
       set_err(err, cap, "CHECKSUM card not found");
       return ACS_FIO_ERR_BAD_HEADER;
     }
@@ -1638,7 +1638,7 @@ int acs_fio_verify_file_v1(const char* path_utf8,
       if (j == 0) {
         free(hbuf);
         fio_file_close(&f2);
-        acs_fio_reader_close_v1(rd);
+        acsd_fio_reader_close_v1(rd);
         set_err(err, cap, "CHECKSUM card empty");
         return ACS_FIO_ERR_BAD_HEADER;
       }
@@ -1657,7 +1657,7 @@ int acs_fio_verify_file_v1(const char* path_utf8,
         if (zeros >= 15 && others == 0) {
           free(hbuf);
           fio_file_close(&f2);
-          acs_fio_reader_close_v1(rd);
+          acsd_fio_reader_close_v1(rd);
           set_err(err, cap,
                   "CHECKSUM 为全零占位串 (未复算): 交付物必须带真实校验和");
           return ACS_FIO_ERR_CHECKSUM;
@@ -1672,7 +1672,7 @@ int acs_fio_verify_file_v1(const char* path_utf8,
         got = fio_file_read_datasum(&f2, rd->data_off, data_want, &s, err, cap);
         if (got == (size_t)-1 || got < (size_t)rd->data_bytes) {
           fio_file_close(&f2);
-          acs_fio_reader_close_v1(rd);
+          acsd_fio_reader_close_v1(rd);
           if (got != (size_t)-1) set_err(err, cap, "truncated data for checksum");
           return got == (size_t)-1 ? ACS_FIO_ERR_IO : ACS_FIO_ERR_TRUNCATED;
         }
@@ -1685,7 +1685,7 @@ int acs_fio_verify_file_v1(const char* path_utf8,
          * 兼容 sum==0xFFFFFFFF (1's complement 全 1 = 写时累计的规范不动点)。
          * M2b-B-09: 不再豁免 sum==0 —— 全零串已在上方显式拒绝。 */
         if (sum != decoded && sum != 0xFFFFFFFFUL) {
-          acs_fio_reader_close_v1(rd);
+          acsd_fio_reader_close_v1(rd);
           set_err(err, cap, "CHECKSUM mismatch: computed 0x%08lx decoded 0x%08lx",
                   sum, decoded);
           return ACS_FIO_ERR_CHECKSUM;
@@ -1693,15 +1693,15 @@ int acs_fio_verify_file_v1(const char* path_utf8,
       }
     }
   }
-  acs_fio_reader_close_v1(rd);
+  acsd_fio_reader_close_v1(rd);
   return ACS_FIO_OK;
 }
 
-int acs_fio_compute_file_datadigest_v1(const char* path_utf8,
+int acsd_fio_compute_file_datadigest_v1(const char* path_utf8,
                                        char* datasum, size_t datasum_cap,
                                        size_t* out_len,
                                        char* err, size_t cap) {
-  acs_fio_reader_v1* rd = NULL;
+  acsd_fio_reader_v1* rd = NULL;
   int st;
   fio_dsum s;
   size_t want, got;
@@ -1721,22 +1721,22 @@ int acs_fio_compute_file_datadigest_v1(const char* path_utf8,
   if (want > 0) {
     st = fio_file_open(&f2, path_utf8, "rb", NULL, err, cap);
     if (st != ACS_FIO_OK) {
-      acs_fio_reader_close_v1(rd);
+      acsd_fio_reader_close_v1(rd);
       return st;
     }
     got = fio_file_read_datasum(&f2, rd->data_off, want, &s, err, cap);
     fio_file_close(&f2);
     if (got == (size_t)-1) {
-      acs_fio_reader_close_v1(rd);
+      acsd_fio_reader_close_v1(rd);
       return ACS_FIO_ERR_IO;
     }
     if (got < (size_t)rd->data_bytes) {
-      acs_fio_reader_close_v1(rd);
+      acsd_fio_reader_close_v1(rd);
       set_err(err, cap, "truncated");
       return ACS_FIO_ERR_TRUNCATED;
     }
   }
-  acs_fio_reader_close_v1(rd);
+  acsd_fio_reader_close_v1(rd);
   snprintf(buf, sizeof(buf), "%lu", fio_dsum_finish(&s));
   blen = strlen(buf);
   memcpy(datasum, buf, blen + 1);

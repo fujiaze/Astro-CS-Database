@@ -1,16 +1,16 @@
 // ACSD Core — 内存静态预算来源解析实现（纯函数）
-// 层次合同与规范依据见 lib/include/astrocs/core/memory_budget.h。
-#include "astrocs/core/memory_budget.h"
+// 层次合同与规范依据见 lib/include/acsd/core/memory_budget.h。
+#include "acsd/core/memory_budget.h"
 
 #include <string>
 
 // 比例默认值的唯一数值源（CMake 从 eng/packaging/config/runtime_resources.json 生成）。
 #include "runtime_resources_generated.h"
 
-namespace astrocs::core {
+namespace acsd::core {
 
 const std::uint32_t kMemoryBudgetPercentDefault =
-    astrocs::runtime_resources::kMemoryBudgetPercentDefault;
+    acsd::runtime_resources::kMemoryBudgetPercentDefault;
 
 const char* memory_budget_source_name(MemoryBudgetSource s) noexcept {
   switch (s) {
@@ -34,8 +34,8 @@ MemoryBudget resolve_memory_budget(std::uint64_t available_bytes,
   std::uint32_t pct = percent;
   if (pct == 0) pct = kMemoryBudgetPercentDefault;   // 未配置 ⇒ 默认（95）
   b.percent = pct;
-  if (pct < astrocs::runtime_resources::kMemoryBudgetPercentMin ||
-      pct > astrocs::runtime_resources::kMemoryBudgetPercentMax) {
+  if (pct < acsd::runtime_resources::kMemoryBudgetPercentMin ||
+      pct > acsd::runtime_resources::kMemoryBudgetPercentMax) {
     b.limit_bytes = 0;                                // 越界 ⇒ 不静默 clamp
     b.source = MemoryBudgetSource::INVALID_PERCENT;
     return b;
@@ -54,4 +54,4 @@ MemoryBudget resolve_memory_budget(std::uint64_t available_bytes,
   return b;
 }
 
-}  // namespace astrocs::core
+}  // namespace acsd::core

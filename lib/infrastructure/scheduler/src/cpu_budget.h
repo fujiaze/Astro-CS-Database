@@ -20,7 +20,7 @@
 
 #include <cstdint>
 
-namespace astrocs::core {
+namespace acsd::core {
 
 // 进程可用核数（与 CLI 同口径：Linux sched_getaffinity(0)，Windows GetActiveProcessorCount；
 // 不可判定 → std::thread::hardware_concurrency()；下限 1）。
@@ -39,4 +39,4 @@ std::uint32_t process_cpu_budget() noexcept;
 // 否则返回 process_cpu_budget()。
 std::uint32_t node_thread_budget(bool lease_present, std::uint32_t lease_workers) noexcept;
 
-}  // namespace astrocs::core
+}  // namespace acsd::core

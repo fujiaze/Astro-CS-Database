@@ -129,7 +129,7 @@ def rule_r1_mode_routing(ctx: Ctx):
               "route_legacy_weight_mode_int 缺 legacy 0 的 FZ-FIELD-WEIGHTMODE 拒绝分支")
 
 
-# 阶段 ↔ 用户命令名的映射唯一事实源 = docs/ASTROCS_DESIGN §2:317
+# 阶段 ↔ 用户命令名的映射唯一事实源 = docs/ACSD_DESIGN §2:317
 # （「phase1|2|3 仅为内部指代（设计层面），代码与命令名使用 normalize/mosaic/export」）。
 STAGE_COMMANDS = (("phase1", "normalize"), ("phase2", "mosaic"), ("phase3", "export"))
 
@@ -168,7 +168,7 @@ def rule_r2_cli_flags(ctx: Ctx):
     for stage, cmd in STAGE_COMMANDS:
         flags = seen.get(cmd)
         ctx.check("R2-stage-command-present-" + stage, flags is not None,
-                  "命令树缺 %s 阶段命令 %s（docs/ASTROCS_DESIGN §2:317/:439）" % (stage, cmd))
+                  "命令树缺 %s 阶段命令 %s（docs/ACSD_DESIGN §2:317/:439）" % (stage, cmd))
         if flags is None:
             continue
         if stage == "phase2":
@@ -195,11 +195,11 @@ def rule_r2_cli_flags(ctx: Ctx):
     if cmds and gate:
         ctx.check("R2-gate-include", "mode_gate.h" in cmds,
                   "commands.cpp 未 include mode_gate.h")
-        n_calls = len(re.findall(r"astrocs::v6cli::mode_gate\s*\(", cmds))
+        n_calls = len(re.findall(r"acsd::v6cli::mode_gate\s*\(", cmds))
         ctx.check("R2-gate-call-sites", n_calls >= 4,
                   "mode_gate 调用点 %d 处 (<4: run/validate/plan phase2/phase3)" % n_calls)
         ctx.check("R2-gate-fail-closed",
-              "astrocs::ARGS" in gate and "RouteKind::kReject" in gate,
+              "acsd::ARGS" in gate and "RouteKind::kReject" in gate,
               "mode_gate 未对 reject 返回 ARGS(2)（fail-closed 缺失）")
 
 
@@ -213,7 +213,7 @@ def rule_r3_phase_isolation(ctx: Ctx):
       ① 命令树的唯一事实源已迁到 `lib/infrastructure/cli/command_tree.h`
          （parser.cpp:70-81 现为 `kRuleViews()` 对 command_tree 的派生视图，
          不再含字面量路径表 ⇒ 原正则命中 0 条，规则整体空转后 3 条 check 恒红）；
-      ② `docs/ASTROCS_DESIGN.md:317` 明定「`phase1|2|3` 仅为内部指代（设计层面），
+      ② `docs/ACSD_DESIGN.md:317` 明定「`phase1|2|3` 仅为内部指代（设计层面），
          代码与命令名使用 `normalize/mosaic/export`」；`:439` 明定子命令面为
          `normalize/mosaic/export/help/benchmark/doctor`。CLI-001 已按此删除
          `phase1|2|3 *` 用户命令（parser.cpp:31-33 注明这些一律 unknown command → 2）。
@@ -233,11 +233,11 @@ def rule_r3_phase_isolation(ctx: Ctx):
         head = p.split()[0]
         ctx.check("R3-no-aggregate-entry", head not in ("run", "graph", "pipeline", "all"),
                   "CLI 命令树出现聚合式入口: " + p)
-    # 设计权威（docs/ASTROCS_DESIGN §2 :439）的三条阶段命令必须存在
+    # 设计权威（docs/ACSD_DESIGN §2 :439）的三条阶段命令必须存在
     for cmd in ("normalize", "mosaic", "export"):
         ctx.check("R3-stage-command-present", cmd in paths,
                   "缺设计权威阶段命令 " + cmd)
-    # 反向：phase1|2|3 只允许作为内部指代，不得成为用户命令（docs/ASTROCS_DESIGN :317）
+    # 反向：phase1|2|3 只允许作为内部指代，不得成为用户命令（docs/ACSD_DESIGN :317）
     for p in paths:
         toks = p.split()
         ctx.check("R3-no-per-phase-user-command",
@@ -438,7 +438,7 @@ def evaluate(repo: pathlib.Path, rules=None) -> dict:
             continue
         fn(ctx)
     return {
-        "schema": "astrocs.v6.runtime-oracle/v1",
+        "schema": "acsd.v6.runtime-oracle/v1",
         "repo": str(repo),
         "rules": sorted(want) if want else "all",
         "checks": ctx.checks,

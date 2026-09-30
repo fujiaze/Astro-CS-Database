@@ -1,6 +1,6 @@
 # Astro Celestial Sphere Database（ACSD） 运行图渲染工具合同
 
-> 上游：docs/ASTROCS_DESIGN.md §7.2（配置、事件与退出码）、§7.3（错误传播与运行日志）、§8.4（顶层结构）、§10（I/O 与原子产品）
+> 上游：docs/ACSD_DESIGN.md §7.2（配置、事件与退出码）、§7.3（错误传播与运行日志）、§8.4（顶层结构）、§10（I/O 与原子产品）
 
 ## 1. 目的与边界
 
@@ -12,7 +12,7 @@ ACSD 需要一个**运行图渲染工具**：从 plan/trace 生成 DOT/SVG/JSON 
 标出真实入口、数据边、并行轴、workers、provider、耗时、资源、DLL hash、
 artifact hash。运行图的规范形态是每次生成都从当前提交可复现、且机器可验证与 trace 一致。
 
-**验收（依据=`docs/ASTROCS_DESIGN.md` §7.2/§7.3 + 本文件）**：
+**验收（依据=`docs/ACSD_DESIGN.md` §7.2/§7.3 + 本文件）**：
 - 图与 trace 调用计数一致：图节点 `call_count` == replay `call_count` ==
   原始 `module_call` 事件计数（`--verify` exit 0 = GRAPH_CONSISTENT）；
 - 图与 trace 的 DLL hash、artifact hash 一致（从 trace 事件真实字段取；
@@ -28,8 +28,8 @@ artifact hash。运行图的规范形态是每次生成都从当前提交可复�
 
 | 图 | 来源 | 表示 | 取值来源 |
 |---|---|---|---|
-| 静态/声明图 | typed plan（`astrocs.typed-dag/v1` / `astrocs.plan-graph/v1`） | resource_class、数据边、operation | 不表示实际调用/耗时/hash |
-| 真实运行图 | trace JSONL（`astrocs.trace-event/v1`） | 真实入口/调用计数/workers/provider/耗时/DLL/artifact hash | 取值只来自 trace 事件 |
+| 静态/声明图 | typed plan（`acsd.typed-dag/v1` / `acsd.plan-graph/v1`） | resource_class、数据边、operation | 不表示实际调用/耗时/hash |
+| 真实运行图 | trace JSONL（`acsd.trace-event/v1`） | 真实入口/调用计数/workers/provider/耗时/DLL/artifact hash | 取值只来自 trace 事件 |
 
 `eng/tools/graph/render_run_graph.py render --trace <jsonl> [--plan <plan.json>]`
 把二者合成一张运行图：节点=真实执行入口（trace 观测），计划声明属性
@@ -59,11 +59,11 @@ DOT 头注释同步上述字段；SVG `<desc>` 同步 metrics + main_sha。**SVG
 **调用面 = 零外部二进制**（代码中无 subprocess）；只要 DOT/JSON 已生成即满足工具职责，
 缺 SVG 不阻碍不依赖 SVG 的消费方。SVG 是派生展示物，可替换渲染后端而不变审计事实。
 
-## 5. 运行图 JSON 合同（astrocs.graph-json/v1）
+## 5. 运行图 JSON 合同（acsd.graph-json/v1）
 
 ```
 {
-  "schema": "astrocs.graph-json/v1",
+  "schema": "acsd.graph-json/v1",
   "graph_kind": "runtime",
   "generator": {"tool": ".../render_run_graph.py", "version": "<version>"},
   "source": {"main_sha": "<40hex>", "inputs": {"trace": {"path","sha256"},
@@ -121,7 +121,7 @@ DOT 头注释同步上述字段；SVG `<desc>` 同步 metrics + main_sha。**SVG
 
 ## 7. 真实入口与字段语义（与 trace 聚合对齐）
 
-TraceEvent（`lib/include/astrocs/core/contracts.h`）JSONL 字段：type/run_id/
+TraceEvent（`lib/include/acsd/core/contracts.h`）JSONL 字段：type/run_id/
 node_id/module_id/module_version/dll_name/dll_sha256/build_id/entry/
 call_count/workers/granted_workers/provider/kernel_id/status/error/
 artifact_id/artifact_sha256/artifact_size/cpu_ms/wall_ms/seq。聚合语义与
@@ -155,8 +155,8 @@ hash 等观测字段一律只来自 trace 事件。
 
 ## 10. 参考
 
-- 依据：`docs/ASTROCS_DESIGN.md` §7.2（配置、事件与退出码）、§7.3（错误传播与运行日志）
-- trace 事件与聚合：`lib/include/astrocs/core/contracts.h` TraceEvent、
+- 依据：`docs/ACSD_DESIGN.md` §7.2（配置、事件与退出码）、§7.3（错误传播与运行日志）
+- trace 事件与聚合：`lib/include/acsd/core/contracts.h` TraceEvent、
   `lib/infrastructure/pipeline/trace_replay.py`
 - typed DAG 编译：`lib/infrastructure/pipeline/typed_dag.py`、
   `lib/infrastructure/pipeline/typed_dag.schema.json`

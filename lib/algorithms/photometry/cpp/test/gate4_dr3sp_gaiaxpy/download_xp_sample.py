@@ -32,7 +32,7 @@ from astropy.io.votable import parse as votable_parse
 
 TAP_URL = "https://gea.esac.esa.int/tap-server/tap"
 DATALINK_URL = "https://gea.esac.esa.int/data-server/datalink/links"
-UA = {"User-Agent": "AstroCS-Gate4-Oracle/1.0 (Phase1 v2)"}
+UA = {"User-Agent": "ACSD-Gate4-Oracle/1.0 (Phase1 v2)"}
 
 
 def fetch_url(url, timeout=90):

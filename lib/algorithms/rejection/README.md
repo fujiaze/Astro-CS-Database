@@ -1,12 +1,12 @@
-# astrocs.p2.rejection — Phase2 候选栈排异模块（P2-REJ）
+# acsd.p2.rejection — Phase2 候选栈排异模块（P2-REJ）
 
 > P2-REJ-DOC（2026-09-09，SA-P2-R22）新建模块页。合同三件套落位
 > `lib/algorithms/rejection/`（README r1 + module.yaml + memory.md，CONTRACT_READY，
 > entrypoint=MISSING）——迁移目标目录按 `lib/algorithms/integration/`（P2-INT-DOC，
 > 其按 `lib/algorithms/coverage/hips_p2/` P2-HIPS-DOC 先例）新建；`lib/algorithms/coverage/` 三件套已被
-> P2-COV（astrocs.p2.coverage）占用（lib/algorithms/coverage/README.md r1，一目录一套
+> P2-COV（acsd.p2.coverage）占用（lib/algorithms/coverage/README.md r1，一目录一套
 > README/module.yaml/memory.md，不可覆盖）。生产源
-> `lib/algorithms/coverage/src/rejection.cpp`（2076 行，根 CMakeLists astrocs_phase2
+> `lib/algorithms/coverage/src/rejection.cpp`（2076 行，根 CMakeLists acsd_phase2
 > 静态库成员 :336-346/:340）+ 唯一权威签名头
 > `lib/algorithms/coverage/include/astro/phase2/rejection.h`（329 行）；消费链
 > `lib/algorithms/coverage/tools/stage2.cpp`（1762 行，马赛克编排）与
@@ -15,10 +15,10 @@
 
 ## 身份与合同
 
-- MOD ID：`MOD-astrocs-phase2-reject`（registry 行 ID 沿用
-  `MOD-astrocs-phase2-reject`）；module_id：`astrocs.p2.rejection`
+- MOD ID：`MOD-acsd-phase2-reject`（registry 行 ID 沿用
+  `MOD-acsd-phase2-reject`）；module_id：`acsd.p2.rejection`
   （MODULE_MIGRATION_MATRIX P2-REJ 行）；dll_target：
-  `astrocs_p2_rejection.dll`（合同值，尚未存在，迁移归 P2-REJ-IMPL）。
+  `acsd_p2_rejection.dll`（合同值，尚未存在，迁移归 P2-REJ-IMPL）。
 - owner SA-P2-R22；depends_on_int=P2-UPM-INT;CPU-005；
   legacy_paths="lib/algorithms/coverage rejection sources"（均以
   MODULE_MIGRATION_MATRIX.csv P2-REJ 行为权威）。
@@ -30,7 +30,7 @@
   → DATA-P2-REJ（DATA_SEMANTICS §22）/ API-P2-REJ-001
   （PUBLIC_API Phase2 rejection 公共消费面节）→
   TEST-P2-REJ-001（登记面=设计冻结 VERIFIED，承载于
-  docs/detail/registry/astrocs.phase2.reject.md §独立 synthetic
+  docs/detail/registry/acsd.phase2.reject.md §独立 synthetic
   验证节 + ALG 文档 §11.4 TEST-P2-REJ-DESIGN-001 F1-F8 容差；
   可执行测试 MISSING 归 P2-REJ-TEST，不冒认）。
 
@@ -76,7 +76,7 @@
   （eligibility 层消费），不作科学权重；ivar weights 由调用方
   Stage2 外置构造（weight_mode=2），kernel 不知 support/quality
   （rejection.h:7-9 分层）。
-- large_scale astrocs.large_scale_rejection.v1 默认关闭：
+- large_scale acsd.large_scale_rejection.v1 默认关闭：
   enabled=0、min_structure_pixels=8、低/高侧半径 2/2
   （rejection.h:142-148）；DFS 连通 Chebyshev 8 邻域、只增不减
   （mask 1→0 禁止）；cosmic 紧凑结构不生长（min_structure 门 +
@@ -90,7 +90,7 @@
 
 可执行 `TEST-P2-REJ-001` MISSING（P2-REJ-TEST 建立，不冒认）；
 登记面=TEST-P2-REJ-DESIGN-001 设计冻结 VERIFIED，承载于
-docs/detail/registry/astrocs.phase2.reject.md §独立 synthetic
+docs/detail/registry/acsd.phase2.reject.md §独立 synthetic
 验证节 + ALG-P2-REJ-001 §11.4 F1-F8 容差（F1-F6/F8 bitwise/枚举/
 计数精确、F7 rtol 1e-12、large_scale mask 精确）。现状相邻证据
 （引用不冒认）：lib/algorithms/coverage/tests/synthetic_gate.cpp Phase2Rejection
@@ -109,7 +109,7 @@ eng/tests/unit/p2_rejection_test.cpp（P2-005）。
 - DATA：docs/science/DATA_SEMANTICS.md §22（DATA-P2-REJ）
 - API：docs/engineering/PUBLIC_API.md API-P2-REJ-001；
   API-P2-001（编排层既有）
-- 模块页：docs/detail/registry/astrocs.phase2.reject.md
+- 模块页：docs/detail/registry/acsd.phase2.reject.md
 
 ## 已知限制（DISP-P2REJ，登记不改码，整改归 P2-REJ-IMPL/TEST）
 

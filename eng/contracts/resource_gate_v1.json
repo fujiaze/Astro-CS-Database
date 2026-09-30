@@ -1,5 +1,5 @@
 {
-  "schema": "astrocs.resource-gate/v1",
+  "schema": "acsd.resource-gate/v1",
   "gate_id": "G-RES-01",
   "title": "重计算负载资源门（利用率 / 并行宽度 / 无界内存增长）",
   "authority": "docs/detail/infrastructure/21_observability.md#8-重计算负载资源门g-res-01",
@@ -33,7 +33,7 @@
       "granted_workers"
     ],
     "zero_denominator_effect": "利用率类判据不成立 → 记入 recorded（allocated_capacity_undeclared），不参与裁决；分母无关判据（单活跃线程）照常判定。",
-    "note": "本取义与 lib/include/astrocs/core/context.h:93-103「租约授予观测」哨兵纪律同源；与 cgroup v2 cpu.max 的配额语义一致。"
+    "note": "本取义与 lib/include/acsd/core/context.h:93-103「租约授予观测」哨兵纪律同源；与 cgroup v2 cpu.max 的配额语义一致。"
   },
   "compute": {
     "min_active_compute_threads": 2,
@@ -73,7 +73,7 @@
   "enforcement": {
     "in_process_default": "record_only",
     "in_process_hard_fail": "retired",
-    "in_process_hard_fail_retired_by": "GAP_AUDIT(RELEASE-02) §9.74 裁决 10 + docs/ASTROCS_DESIGN.md §4.5/§6.3（一般性资源超限门已取消：内存 / CPU / 线程不设门；真身 = §4.5 运行前预检末条「资源门只管磁盘…内存、CPU、线程不设门」）",
+    "in_process_hard_fail_retired_by": "GAP_AUDIT(RELEASE-02) §9.74 裁决 10 + docs/ACSD_DESIGN.md §4.5/§6.3（一般性资源超限门已取消：内存 / CPU / 线程不设门；真身 = §4.5 运行前预检末条「资源门只管磁盘…内存、CPU、线程不设门」）",
     "adjudication_point": "外部裁决面（CI 重计算检查 CHK-RESOURCE / RESOURCE-GATE-REAL + 发布验收）—— 该面的退出码属外部程序（eng/tools/monitoring/run_monitored.py / eng/tools/quality/resource_monitor.py），**不是** ACSD CLI 的退出码",
     "cli_exit_code_for_resource_utilization": null,
     "cli_exit_code_source": "lib/infrastructure/cli/exit_codes.h",
@@ -86,7 +86,7 @@
     "unbounded_memory_growth_with_unexplained_reclaim"
   ],
   "disk_gate": {
-    "authority": "docs/ASTROCS_DESIGN.md §4.5 运行前预检（资源门只管磁盘）/§6.3（exit 10 = 磁盘写满 / 写盘失败）+ GAP_AUDIT(RELEASE-02) §9.74 裁决 10",
+    "authority": "docs/ACSD_DESIGN.md §4.5 运行前预检（资源门只管磁盘）/§6.3（exit 10 = 磁盘写满 / 写盘失败）+ GAP_AUDIT(RELEASE-02) §9.74 裁决 10",
     "implementation": "lib/infrastructure/cli/disk_gate.h（判据唯一实现；预检面 = subcommand.h，运行期面 = commands.cpp）",
     "precheck": "磁盘余量 < 预估需求下限（= 配置声明输入字节和；阈值自由，不引入经验系数）⇒ warn（**不阻断**，只进预检页）",
     "runtime": "写盘失败 / 磁盘满（ENOSPC / EDQUOT / EFBIG）⇒ error（fail-closed，收尾归并 exit 10）",

@@ -23,7 +23,7 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 
-using namespace astrocs::aio;
+using namespace acsd::aio;
 
 namespace {
 
@@ -106,7 +106,7 @@ bool build_tree(const std::string& stage, const CancelFn&, std::string* err) {
     if (err) *err = "cannot create properties";
     return false;
   }
-  std::fputs("creator_did = ivo://astrocs/probe\n", f);
+  std::fputs("creator_did = ivo://acsd/probe\n", f);
   std::fclose(f);
   return true;
 }

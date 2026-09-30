@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # V17 True Final Freeze 审核包组装（NON_PRODUCTION_TOOL_ONLY）
-# 输出：AstroCS_Review_TrueFinalFreeze_V17.zip（<30MiB）+ SHA256 校验
+# 输出：ACSD_Review_TrueFinalFreeze_V17.zip（<30MiB）+ SHA256 校验
 import csv
 import hashlib
 import json
@@ -26,7 +26,7 @@ def _deduce_root() -> Path:
 
 ROOT = _deduce_root()
 STAGE = ROOT / "run" / "temp" / "pkg_v17_stage"
-ZIP = ROOT / "AstroCS_Review_TrueFinalFreeze_V17.zip"
+ZIP = ROOT / "ACSD_Review_TrueFinalFreeze_V17.zip"
 BASELINE = "1145a28"   # V16 最终提交（V17 diff 基线）
 
 CANONICAL_CORE_DIRS = [
@@ -54,9 +54,9 @@ EXACT_COMMANDS = [
     ("3", "py -3.12 eng/tools/api_doc_consistency.py"),
     ("4", "py -3.12 lib/phase2/tools/controlled_rejection_truth.py"),
     ("5", "py -3.12 lib/phase2/tools/controlled_rejection_metrics.py"),
-    ("6", "astrocs-stage2 real16/stage2_{truth,clean,trail,trail_none}.json (V17 binary rerun)"),
+    ("6", "acsd-stage2 real16/stage2_{truth,clean,trail,trail_none}.json (V17 binary rerun)"),
     ("7", "py -3.12 lib/phase2/tools/satellite_gate_real_metrics.py"),
-    ("8", "astrocs-stage2 v17_control_truth/stage2_{satellite_ls,cosmic_ls}.json (large_scale)"),
+    ("8", "acsd-stage2 v17_control_truth/stage2_{satellite_ls,cosmic_ls}.json (large_scale)"),
     ("9", "cmake --build lib/phase2/build -j 8 && phase2_synthetic_gate.exe (74/74)"),
     ("10", "make (lib/orchestrator/cpp) after legacy-removal build fix"),
     ("11", "py -3.12 eng/tools/phase1_e2e_bench.py --configs stage1_1727_*.json --name before_full_cold --warm 0"),
@@ -91,7 +91,7 @@ RETIRED_NOTICE = (
     "ASSEMBLE_V17_REVIEW_PKG_RETIRED: 本工具（V17 True Final Freeze 审核包组装（zip + SHA256））已退役；任意调用 exit 2（fail-closed，不伪装绿）。\n"
     "  依据: ENGINEERING_SPEC.md §8（不允许「静默坏掉 / 僵尸入口」）；"
     "（结论不得写成源码字面量，结论字段必须从证据源读取，读不到写 NOT_VERIFIED）。\n"
-    "  退役原因: ① 输出根 AstroCS_Review_TrueFinalFreeze_V17.zip（V17 世代交付形态） 在本世代不存在（无生产者/无消费者）；"
+    "  退役原因: ① 输出根 ACSD_Review_TrueFinalFreeze_V17.zip（V17 世代交付形态） 在本世代不存在（无生产者/无消费者）；"
     "② Oracle/矩阵行的 result=「PASS」 与「G1-G10 全部满足」等结论写死，无法从证据源复算 ⇒ 再跑一次就产出假绿。\n"
     "  活动替代: 无（历史版本控制包与审阅胶囊均作废）。\n"
     "  复原命令: git show 822b9c5391a14cc36979a7c550984f6ce363c713:eng/tools/assemble_v17_review_pkg.py\n"
@@ -171,8 +171,8 @@ def _legacy_main() -> int:
         "wbpp_version": "2.9.1",
         "auto_route": "n<6 percentile; 6..15 winsorized; >15 linear_fit (bestRejectionMethod, group-level once)",
         "auto_policy": "wbpp_2_9_1",
-        "rejection_normalization": "astrocs_median_center_v1",
-        "large_scale_policy": "astrocs.large_scale_rejection.v1 (default off; min_structure_pixels=8; low/high grow radius=2)",
+        "rejection_normalization": "acsd_median_center_v1",
+        "large_scale_policy": "acsd.large_scale_rejection.v1 (default off; min_structure_pixels=8; low/high grow radius=2)",
         "wbpp_large_scale_rejection": "SUPPORTED (ACSD implementation; not PixInsight exact)",
         "pixinsight_exact_compatibility": "NOT_CLAIMED",
     }
@@ -270,11 +270,11 @@ def _legacy_main() -> int:
 source/canonical_core（Phase1+Phase2+shared+Browser）+ docs_snapshot。
 
 核心结论（详见 reports/final_status.md）：
-  - ASTROCS_FOUNDATION_FINAL_FREEZE = PASS（G1-G10 全部满足，known P0/P1=0）；
+  - ACSD_FOUNDATION_FINAL_FREEZE = PASS（G1-G10 全部满足，known P0/P1=0）；
   - integration/rejection correctness 清零（C01-C05，74/74 gate）；
   - 受控 clean rejection truth（true FPR=1.88%，Siril 100% 一致；
     satellite/cosmic/streak recall=1.0）；
-  - astrocs.large_scale_rejection.v1 实现+验证；
+  - acsd.large_scale_rejection.v1 实现+验证；
   - legacy 多路径/旧 config aliases 移除（no_legacy PASS）；
   - Phase1 分段 profile + platesolve hint warm 优化（3-runs before/after）；
   - docs/API/config machine 一致性 PASS；

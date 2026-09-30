@@ -1,6 +1,6 @@
 // eng/tests/unit/p3_export_stream_prod_test.cpp — P3-STREAM-01 生产 export 子块流式门
 //
-// 依据：docs/ASTROCS_DESIGN.md §8.3 调度器表 export 行（「子块流式：读子块 → 投影
+// 依据：docs/ACSD_DESIGN.md §8.3 调度器表 export 行（「子块流式：读子块 → 投影
 //   重采样 → 写 FITS，有界队列 + 背压，不整幅驻留；I/O 与计算重叠，内存占用与
 //   子块大小成正比、**与总图大小无关**」）；docs/engineering/SCHEDULER_CONTRACT.md
 //   §2 export 行（同文，FROZEN）；§3（分块/子块大小由配置决定）。
@@ -17,7 +17,7 @@
 //      eng/tools/arch/check_p3_export_stream_prod.py --self-test）
 //   ② 峰值 RSS **随 sub_block_px 变化**（同一 W×H：sub_block 增大 ⇒ 峰值增大）。
 //   ③ 峰值 RSS **与 W×H 无关**（同一 sub_block：面积 4× ⇒ 峰值基本不变）。
-//   ④ 判据非退化（阳性对照）：故障注入 ASTROCS_P3_EXPORT_FAULT=
+//   ④ 判据非退化（阳性对照）：故障注入 ACSD_P3_EXPORT_FAULT=
 //      whole_frame_resident 走整幅驻留参考路径 ⇒ 同一度量必须显示峰值随面积
 //      线性增长（4× 面积 ⇒ ≥2.5× 峰值）。**量的是真实驻留**（内核记账的 VmHWM，
 //      经 /proc/self/clear_refs 归零后读取），不是任何声明值/记账计数器 ——
@@ -27,9 +27,9 @@
 //
 // 隔离：每个 RSS 配置在**独立子进程**（fork+exec 本测试自身）内测量，避免
 //   分配器复用/线程残留污染峰值；子进程只跑本测试，不启动任何产品可执行文件。
-#include "astrocs/core/module.h"
-#include "astrocs/core/module_adapters.h"
-#include "astrocs/core/runtime.h"
+#include "acsd/core/module.h"
+#include "acsd/core/module_adapters.h"
+#include "acsd/core/runtime.h"
 
 #include "healpix_core.h"
 #include "p1sess_fixtures.hpp"
@@ -52,7 +52,7 @@
 #endif
 
 using json = nlohmann::json;
-using namespace astrocs::core;
+using namespace acsd::core;
 
 namespace fs = std::filesystem;
 
@@ -116,8 +116,8 @@ std::string hips_properties_text() {
   s += "hips_version = 1.0\n";
   // FIX-402: 生产 Phase3 输入语义守卫只放行显式面亮度输入（FZ-BUNIT-SEMANTICS）
   s += "BUNIT = ADU/sr\n";
-  s += "ASTROCS_PIXEL_SEMANTICS = surface_brightness\n";
-  s += "ASTROCS_PIXEL_AREA_POWER = -2\n";
+  s += "ACSD_PIXEL_SEMANTICS = surface_brightness\n";
+  s += "ACSD_PIXEL_AREA_POWER = -2\n";
   return s;
 }
 
@@ -168,10 +168,10 @@ Fixture make_fixture(const std::string& tag, int w, int h) {
   char rid[32];
   std::snprintf(rid, sizeof(rid), "%012lx",
                 static_cast<unsigned long>(::getpid()) & 0xffffffffffUL);
-  if (!write_run_context(fx.out, rid, ASTROCS_VERSION_STRING, ASTROCS_COMMIT_SHA).ok())
+  if (!write_run_context(fx.out, rid, ACSD_VERSION_STRING, ACSD_COMMIT_SHA).ok())
     std::fprintf(stderr, "WARN: run_context write failed\n");
   if (!write_signal_hips(fx.hips)) std::fprintf(stderr, "WARN: hips fixture failed\n");
-  astrocs::healpix::pix2ang_nest(512u, 131072ull, fx.ra, fx.dec);
+  acsd::healpix::pix2ang_nest(512u, 131072ull, fx.ra, fx.dec);
   (void)w; (void)h;
   return fx;
 }
@@ -208,9 +208,9 @@ struct ChainResult {
 
 ChainResult run_chain(ModuleRegistry& reg, const std::string& cfg, int sub_block_px) {
   ChainResult cr;
-  const char* kIds[] = {"astrocs.phase3.properties", "astrocs.phase3.wcs",
-                        "astrocs.phase3.resample2", "astrocs.phase3.writer",
-                        "astrocs.phase3.verify"};
+  const char* kIds[] = {"acsd.phase3.properties", "acsd.phase3.wcs",
+                        "acsd.phase3.resample2", "acsd.phase3.writer",
+                        "acsd.phase3.verify"};
   for (const char* id : kIds) {
     auto m = reg.create(id);
     if (m.failed()) { cr.error = std::string(id) + ": create failed"; return cr; }
@@ -225,9 +225,9 @@ ChainResult run_chain(ModuleRegistry& reg, const std::string& cfg, int sub_block
     if (!man.ok()) { cr.error = std::string(id) + ": no manifest"; return cr; }
     json j;
     try { j = json::parse(man.value()); } catch (...) { cr.error = std::string(id) + ": bad manifest"; return cr; }
-    if (std::strcmp(id, "astrocs.phase3.writer") == 0) cr.writer_man = j;
-    if (std::strcmp(id, "astrocs.phase3.resample2") == 0) cr.resample_man = j;
-    if (std::strcmp(id, "astrocs.phase3.verify") == 0) cr.verify_man = j;
+    if (std::strcmp(id, "acsd.phase3.writer") == 0) cr.writer_man = j;
+    if (std::strcmp(id, "acsd.phase3.resample2") == 0) cr.resample_man = j;
+    if (std::strcmp(id, "acsd.phase3.verify") == 0) cr.verify_man = j;
   }
   (void)sub_block_px;
   cr.ok = true;
@@ -279,8 +279,8 @@ struct Meas {
 Meas measure_once(int w, int h, int sb, bool fault) {
   Meas m;
   m.w = w; m.h = h; m.sb = sb; m.fault = fault;
-  if (fault) ::setenv("ASTROCS_P3_EXPORT_FAULT", "whole_frame_resident", 1);
-  else ::unsetenv("ASTROCS_P3_EXPORT_FAULT");
+  if (fault) ::setenv("ACSD_P3_EXPORT_FAULT", "whole_frame_resident", 1);
+  else ::unsetenv("ACSD_P3_EXPORT_FAULT");
   ModuleRegistry reg;
   auto rr = register_phase_modules(reg);
   if (rr.failed()) { m.error = "register failed"; return m; }
@@ -354,8 +354,8 @@ void test_product_identity() {
   std::string sha_stream, sha_frame, canon_stream, canon_frame, bytes_stream, bytes_frame;
   for (int pass = 0; pass < 2; ++pass) {
     const bool fault = (pass == 1);
-    if (fault) ::setenv("ASTROCS_P3_EXPORT_FAULT", "whole_frame_resident", 1);
-    else ::unsetenv("ASTROCS_P3_EXPORT_FAULT");
+    if (fault) ::setenv("ACSD_P3_EXPORT_FAULT", "whole_frame_resident", 1);
+    else ::unsetenv("ACSD_P3_EXPORT_FAULT");
     ModuleRegistry reg;
     CHECK(register_phase_modules(reg).ok());
     Fixture fx = make_fixture(fault ? "ident_f" : "ident_s", W, H);
@@ -402,7 +402,7 @@ void test_product_identity() {
     std::error_code ec;
     fs::remove_all(fx.root, ec);
   }
-  ::unsetenv("ASTROCS_P3_EXPORT_FAULT");
+  ::unsetenv("ACSD_P3_EXPORT_FAULT");
   CHECK_MSG(!sha_stream.empty() && !sha_frame.empty(),
             "both paths must report integrity sha256");
   // 整文件 integrity sha256 **允许不同**：CHECKSUM/DATASUM 卡注释含写入时刻，
@@ -536,8 +536,8 @@ int emit_identity(const std::string& dir) {
   fs::create_directories(dir, ec);
   for (int pass = 0; pass < 2; ++pass) {
     const bool fault = (pass == 1);
-    if (fault) ::setenv("ASTROCS_P3_EXPORT_FAULT", "whole_frame_resident", 1);
-    else ::unsetenv("ASTROCS_P3_EXPORT_FAULT");
+    if (fault) ::setenv("ACSD_P3_EXPORT_FAULT", "whole_frame_resident", 1);
+    else ::unsetenv("ACSD_P3_EXPORT_FAULT");
     ModuleRegistry reg;
     if (register_phase_modules(reg).failed()) return 2;
     Fixture fx = make_fixture(fault ? "emit_f" : "emit_s", 512, 512);
@@ -549,7 +549,7 @@ int emit_identity(const std::string& dir) {
                   fs::copy_options::overwrite_existing, ec);
     fs::remove_all(fx.root, ec);
   }
-  ::unsetenv("ASTROCS_P3_EXPORT_FAULT");
+  ::unsetenv("ACSD_P3_EXPORT_FAULT");
   std::printf("emitted to %s\n", dir.c_str());
   return 0;
 }

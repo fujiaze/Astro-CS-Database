@@ -19,7 +19,7 @@
 #endif
 
 #include "cpu_features.h"
-#include "astrocs/common_abi_v1.h"
+#include "acsd/common_abi_v1.h"
 #include "baseline_kernels.h"
 
 #include <algorithm>
@@ -36,8 +36,8 @@
 #include "backend_variant_kernels.h"
 
 // 唯一跨 TU 桥: kernel 注册表（门面 TU 内）以本符号取用计算面实现。
-extern "C" acs_status astrocs_variant_kernel_dispatch_v1(
-        const astrocs_host_services_v1* host, const void* params, uint32_t params_bytes,
+extern "C" acsd_status acsd_variant_kernel_dispatch_v1(
+        const acsd_host_services_v1* host, const void* params, uint32_t params_bytes,
         const void* in, void* out) {
     return kernel_dispatch(host, params, params_bytes, in, out);
 }

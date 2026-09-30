@@ -7,11 +7,11 @@ DOC = os.path.join(REPO, "docs", "api", "COMMON_ABI_V1.md")
 
 HEADER = r"""
 #include <stdint.h>
-typedef struct { uint32_t struct_size, abi_version; } acs_head;
-typedef struct acs_span_f32 { float* data; uint64_t count; } acs_span_f32;
-typedef enum { ACS_OK=0, ACS_ERR_PARAM=1 } acs_status;
-uint64_t acs_span_count(const acs_span_f32* s){ return s->count; }
-uint32_t acs_status_ok(void){ return (uint32_t)ACS_OK; }
+typedef struct { uint32_t struct_size, abi_version; } acsd_head;
+typedef struct acsd_span_f32 { float* data; uint64_t count; } acsd_span_f32;
+typedef enum { ACS_OK=0, ACS_ERR_PARAM=1 } acsd_status;
+uint64_t acsd_span_count(const acsd_span_f32* s){ return s->count; }
+uint32_t acsd_status_ok(void){ return (uint32_t)ACS_OK; }
 """
 
 class TestCommonAbi(unittest.TestCase):
@@ -20,13 +20,13 @@ class TestCommonAbi(unittest.TestCase):
         cls.s = open(DOC, encoding="utf-8").read()
 
     def test_01_all_host_services_defined(self):
-        for k in ("acs_allocator", "acs_logger", "acs_cancel", "acs_thread_budget",
-                  "acs_status", "acs_span_f32", "acs_handle"):
+        for k in ("acsd_allocator", "acsd_logger", "acsd_cancel", "acsd_thread_budget",
+                  "acsd_status", "acsd_span_f32", "acsd_handle"):
             self.assertIn(k, self.s, f"缺 {k}")
 
     def test_02_struct_size_handshake(self):
-        self.assertGreaterEqual(self.s.count("struct_size, abi_version") + self.s.count("acs_head head;"), 8,
-                              "至少 8 个结构带 handshake(4 直接 + acs_head 定义 + 3 span head)")
+        self.assertGreaterEqual(self.s.count("struct_size, abi_version") + self.s.count("acsd_head head;"), 8,
+                              "至少 8 个结构带 handshake(4 直接 + acsd_head 定义 + 3 span head)")
 
     def test_03_units_and_ownership_annotated(self):
         self.assertIn("count=元素数", self.s)

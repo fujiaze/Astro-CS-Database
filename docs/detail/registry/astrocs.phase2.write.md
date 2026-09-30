@@ -1,6 +1,6 @@
-# 模块 astrocs.p2.hips_writer（MOD-astrocs-phase2-write）
+# 模块 acsd.p2.hips_writer（MOD-acsd-phase2-write）
 
-> 上游：docs/ASTROCS_DESIGN.md §8.5（模块与 ABI）、§10（I/O 与原子产品：原子发布条款）
+> 上游：docs/ACSD_DESIGN.md §8.5（模块与 ABI）、§10（I/O 与原子产品：原子发布条款）
 > 科学正本：docs/science/algorithms/PHASE2_MOSAIC_WRITE.md（ALG-P2-HIPS-001..004；
 > §7 四概念分离、§8/§9 测试设计、§11.4 冻结容差）
 > 共享 FROZEN SCI（零改动）：docs/science/PHASE2_UPM.md（`w_UPM` 唯一冻结式 §5）、
@@ -11,9 +11,9 @@
 
 模块级事实以 `lib/algorithms/coverage/hips_p2/` 三件套（README + module.yaml +
 memory.md，CONTRACT_READY，entrypoint 未落地）为准；module.yaml 登记
-MOD-astrocs-phase2-hips-writer，module_id = `astrocs.p2.hips_writer`，dll_target =
-`astrocs_p2_hips_writer.dll`。唯一生产源 = lib/algorithms/coverage/tools/stage2.cpp
-（`astrocs-stage2` 工具，lib/algorithms/coverage/CMakeLists.txt）+ config 层
+MOD-acsd-phase2-hips-writer，module_id = `acsd.p2.hips_writer`，dll_target =
+`acsd_p2_hips_writer.dll`。唯一生产源 = lib/algorithms/coverage/tools/stage2.cpp
+（`acsd-stage2` 工具，lib/algorithms/coverage/CMakeLists.txt）+ config 层
 lib/algorithms/coverage/include/astro/phase2/stage2_common.h（`P2Stage2Config`）。
 共用 writer 库 lib/infrastructure/aio/src/hips/aio_hips_writer.cpp 属 P1-HIPS
 冻结域（ALG-HIPS-001..005），本模块是**库消费者**；
@@ -36,7 +36,7 @@ owner = SA-P2-I23；depends_on_int = P2-INT / IO-003；legacy_paths =
   （stage2.cpp）；**target_order 禁插值伪装分辨率** —— 高于输入最高 order → rc=3
   （stage2.cpp）。
 - 写出：aio_hips_product_begin（nside=1<<(target_order+9)、dtype
-  、flags 仅 SIGNAL|SUPPORT、creator "ivo://astrocs/phase2"）→
+  、flags 仅 SIGNAL|SUPPORT、creator "ivo://acsd/phase2"）→
   逐 tile 排异+积分（p2_collect_candidate_stack/p2_reject_stack_ex/
   p2_integrate_pixel）→
   逆归一（area=sup×A_cell、flux=signal×area；均 aio_hips_writer.cpp）——
@@ -58,7 +58,7 @@ UPM/排异/积分公式（SCI-UPM-001/SCI-REJ-001/SCI-INT-001
 FROZEN，w_UPM 唯一冻结式 PHASE2_UPM.md §5）；P3 HiPS→FITS。
 
 **阶段二数据面**：帧 HiPS（signal / support / SNR catalogue）；UPM sparse 模型
-（落盘标识 `astrocs-upm-v2`，DATA-UPM-MODEL-001）；马赛克产品 signal / support
+（落盘标识 `acsd-upm-v2`，DATA-UPM-MODEL-001）；马赛克产品 signal / support
 HiPS（variance / ivar 为可选诊断）。
 
 **阶段二配置面**：single JSON（模型 / integration / output），typed parser +
@@ -69,7 +69,7 @@ schema 单一来源。
 | 端口 | DATA | 必/可 | 单位 | 坐标 |
 |---|---|---|---|---|
 | `integrated` | `DATA-P2-INT` | 必 | `UnitId::ADU` | `CoordinateFrame::PIXEL`（descriptor 词汇） |
-| `mosaic` | `DATA-P2-HIPS`（descriptor 端口词汇 `DATA-P2-RES`；权威 = DATA-P2-HIPS） | 可 | `UnitId::SURFACE_BRIGHTNESS`（signal = 面亮度；枚举源 `lib/include/astrocs/core/artifact.h`，phase3 同用） | NESTED 球面（HEALPix nside=2^(target_order+9)，tile 512×512） |
+| `mosaic` | `DATA-P2-HIPS`（descriptor 端口词汇 `DATA-P2-RES`；权威 = DATA-P2-HIPS） | 可 | `UnitId::SURFACE_BRIGHTNESS`（signal = 面亮度；枚举源 `lib/include/acsd/core/artifact.h`，phase3 同用） | NESTED 球面（HEALPix nside=2^(target_order+9)，tile 512×512） |
 
 权威源 = DATA-P2-HIPS（DATA_SEMANTICS §20）；descriptor 端口表（`p2_write_descriptor`，
 坐标记为 PIXEL）为编排词汇，球面端口以 DATA-P2-HIPS（NESTED 球面）为准。
@@ -102,14 +102,14 @@ stage2 配置 schema + 退出码 2/3/4/5/6/7 + diagnostics.json 键集）。
 
 ## Registry descriptor 与配置 schema
 
-module_id=`astrocs.p2.hips_writer`；registry 行 ID = `MOD-astrocs-phase2-write`；
-descriptor（p2_write_descriptor：module_id=astrocs.phase2.write、
+module_id=`acsd.p2.hips_writer`；registry 行 ID = `MOD-acsd-phase2-write`；
+descriptor（p2_write_descriptor：module_id=acsd.phase2.write、
 sci_id=SCI-P2-WR-001/alg_id=ALG-P2-WR-001/test_id=TEST-P2-WR-001）为编排层
 口径，其与 lib/algorithms/coverage/hips_p2/module.yaml 的对齐属迁移目标（未落地）；
 冻结依据 = `docs/science/algorithms/PHASE2_MOSAIC_WRITE.md`（ALG-P2-HIPS-001..004）。
 配置=single JSON
 （P2Stage2Config：reject_profile（工具链默认 wbpp_2_9_1；生产入口默认
-astrocs_adaptive_pixel）、large_scale 默认关、acr_route=auto、
+acsd_adaptive_pixel）、large_scale 默认关、acr_route=auto、
 memory_limit_mb=24576 等，权威=API-P2-HIPS-001）。
 
 ## Execution class、并行轴、ThreadBudget lease、确定性
@@ -132,7 +132,7 @@ signal/support(/ivar) 产品逐 tile 读 + out_hips 单 writer 写 + 可选
 diagnostics.json；所有权=stage2 进程内缓冲，输入由 IO-002 读合同交付。
 
 **缓存**：UPM dense cache（按 model_hash 校验，stale = rc=2 拒绝；详见
-registry/astrocs.phase2.upm-apply.md）。
+registry/acsd.phase2.upm-apply.md）。
 
 ## 错误、日志、指标、取消和 checkpoint
 
@@ -151,7 +151,7 @@ docs/engineering/LOG_AND_ERROR_CONTRACT.md §5。
 SCI-UPM-PERSIST-001、ALG-UPM-FRAME-BIND-001、ALG-REJ-001..008、
 SCI-INT-001/002/004/008、SCI-NOISE-015、SCI-UPM-WEIGHT-001、
 ALG-UPM-CONTROL-IVAR-001、DATA-UPM-CONTROL-UNC-001。`ERR-P2-UPM-001`（畸形模型）
-由 UPM 侧承载（见 registry/astrocs.phase2.upm-fit.md）。
+由 UPM 侧承载（见 registry/acsd.phase2.upm-fit.md）。
 
 ## 独立 synthetic 验证命令与容差
 
@@ -174,5 +174,5 @@ HiPS properties provenance；阶段二直写 `out_hips` 无 staging（原子发�
 不是产品日志，不在产品落盘面内；机器判据见
 `docs/engineering/LOG_AND_ERROR_CONTRACT.md` 判据 R3（落点指向块级 output_dir 之外即判红）。
 
-目标交付形态 astrocs_p2_hips_writer.dll 未落地。全局限制登记 =
+目标交付形态 acsd_p2_hips_writer.dll 未落地。全局限制登记 =
 artifacts/evidence/known-limitations-ledger/LIMITATIONS.md。

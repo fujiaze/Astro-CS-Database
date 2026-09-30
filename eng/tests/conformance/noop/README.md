@@ -10,8 +10,8 @@
 
 | 项 | 值 |
 |---|---|
-| 模块 ID | `astrocs.conformance.noop` |
-| DLL target | `astrocs_noop`（Windows `astrocs_noop.dll`；Linux `libastrocs_noop.so`） |
+| 模块 ID | `acsd.conformance.noop` |
+| DLL target | `acsd_noop`（Windows `acsd_noop.dll`；Linux `libacsd_noop.so`） |
 | module/ABI/doc revision | module 0.1.0-alpha.1 / ABI v1 / BLD-003 |
 | owner | SA-BLD-02（target/布局）；语义 owner SA-ABI-03（ABI-005） |
 | 状态 | `SKELETON` — 可加载性骨架；非完整实现 |
@@ -19,7 +19,7 @@
 ## 2. 负责范围 / 不负责
 
 负责：
-- 提供唯一导出入口 `astrocs_module_query_v1`（12 §1：module DLL 不得导出
+- 提供唯一导出入口 `acsd_module_query_v1`（12 §1：module DLL 不得导出
   其他符号）的独立 SHARED target，供安全 loader（ABI-003）动态加载；
 - query 握手：`host_abi` 失配 → `ACS_ERR_ABI_MISMATCH`；`out_api` =
   模块静态表；
@@ -38,7 +38,7 @@
 
 ## 4. 合同链接
 
-- API：`API-ABI-001`（lib/include/astrocs/abi/module_api_v1.h，ABI-001 冻结）；
+- API：`API-ABI-001`（lib/include/acsd/abi/module_api_v1.h，ABI-001 冻结）；
 - 模块元数据合同：`eng/contracts/config/module_dll_contract.schema.json`
   （ARC-001 冻结）与 module.yaml 字段规范（11_MODULE_SOURCE_TEST_STANDARD.md §4）；
 - 安装树：`eng/packaging/install-tree.contract.json`（BLD-003）。
@@ -48,10 +48,10 @@
 
 | 源 | 内容 |
 |---|---|
-| `src/noop_module.c` | 唯一导出 `astrocs_module_query_v1` + 静态 vtable |
-| `lib/include/astrocs/noop/types.h` | 静态标识常量（三方一致） |
+| `src/noop_module.c` | 唯一导出 `acsd_module_query_v1` + 静态 vtable |
+| `lib/include/acsd/noop/types.h` | 静态标识常量（三方一致） |
 
-导出符号（机器核对见 ABI-006）：仅 `astrocs_module_query_v1`。
+导出符号（机器核对见 ABI-006）：仅 `acsd_module_query_v1`。
 当前 vtable 语义：`describe`=OK；`validate_config/plan/create/execute/inspect`
 =`ACS_ERR_UNSUPPORTED`（SKELETON）；`request_cancel`=OK（空操作）；
 `destroy`=空操作。
@@ -63,16 +63,16 @@ host executor/lease 语义补齐（本文件不预先声明伪并发模型）。
 
 ## 7. 验证
 
-- `cmake --build <build> --target astrocs_noop` → 产物
-  `libastrocs_noop.so`（Linux 技术预览）；
-- `nm -D` 导出表仅 `astrocs_module_query_v1`；
-- 安装后删除 `modules/astrocs_noop.*` → `eng/packaging/verify_install_tree.py`
+- `cmake --build <build> --target acsd_noop` → 产物
+  `libacsd_noop.so`（Linux 技术预览）；
+- `nm -D` 导出表仅 `acsd_module_query_v1`；
+- 安装后删除 `modules/acsd_noop.*` → `eng/packaging/verify_install_tree.py`
   非零退出并明确报缺模块（BLD-003 失败路径演示）；
-- 无宿主静态副本：CLI/宿主二进制符号扫描不含 `astrocs_module_query_v1`
+- 无宿主静态副本：CLI/宿主二进制符号扫描不含 `acsd_module_query_v1`
   定义（仅动态引用/经 loader）。
 
 ## 8. 已知限制 / 未实现项
 
 - `SKELETON`：execute/plan/create 等全部返回 `ACS_ERR_UNSUPPORTED`；
-- Windows `astrocs_noop.dll` 构建/加载留 WIN-* 系列（本任务 Linux_LIGHT）；
+- Windows `acsd_noop.dll` 构建/加载留 WIN-* 系列（本任务 Linux_LIGHT）；
 - loader 动态加载本模块的集成测试属 ABI-003/005；本目录不含 loader。

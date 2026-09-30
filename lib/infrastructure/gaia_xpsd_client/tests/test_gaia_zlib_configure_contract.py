@@ -3,7 +3,7 @@
 """test_gaia_zlib_configure_contract.py — CI-WIN-001 回归门 (module-local)。
 
 权威:
-  - 裁决 R-12: lib/infrastructure/gaia_xpsd_client 段与根 CMakeLists astrocs_cfitsio 段 ZLIB
+  - 裁决 R-12: lib/infrastructure/gaia_xpsd_client 段与根 CMakeLists acsd_cfitsio 段 ZLIB
     消费口径必须对齐 —— 同时消费 ACS_ZLIB_ROOT 与 ACS_ZLIB_LIB, 不得放宽
     REQUIRED;
   - 裁决 R-13: 环境/工具链配置缺陷按配置修, 不得降级门禁 / 不得改 waivable;
@@ -203,7 +203,7 @@ def _make_project(base: Path, source_text: str) -> Path:
         raise AssertionError(
             "lib/infrastructure/gaia_xpsd_client/CMakeLists.txt 缺 cmake_minimum_required, "
             "无法补齐顶层上下文")
-    lines.insert(index + 1, "project(astrocs_gaia_zlib_contract C)\n")
+    lines.insert(index + 1, "project(acsd_gaia_zlib_contract C)\n")
     (src / "CMakeLists.txt").write_text("".join(lines), encoding="utf-8")
     return src
 

@@ -5,7 +5,7 @@
 // hp_drizzle_run, 而静态库链接按 .o 取成员, 导致未被引用的 hp_drizzle_run_hips
 // 被一并拉入 acsd exe (冻结测试 eng/tests/cli/test_p1003_drizzle_path.py 判红)。
 // 拆分后 CLI 只拉 hp_drizzle_api.o, 本 TU 仅由真正调用 run_hips 的目标
-// (模块 astrocs_p1_drizzle / 直接对拍测试) 按需拉取。
+// (模块 acsd_p1_drizzle / 直接对拍测试) 按需拉取。
 //
 // 科学域零改动: 函数签名、参数顺序、write_hips=true 语义、-11 异常屏障、
 // 错误信息文本与迁移前逐字节一致。

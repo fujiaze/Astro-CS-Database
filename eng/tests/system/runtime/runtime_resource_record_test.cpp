@@ -37,9 +37,9 @@ int main(int argc, char** argv) {
     std::error_code ec;
     std::filesystem::create_directories(std::filesystem::u8path(out), ec);
 
-    astrocs::ProcessMonitor mon(0.1);
-    astrocs::ResourceRecorder rec(0.1);
-    rec.set_stage(astrocs::ResStage::Active);
+    acsd::ProcessMonitor mon(0.1);
+    acsd::ResourceRecorder rec(0.1);
+    rec.set_stage(acsd::ResStage::Active);
     rec.set_workers(4, 0);
     rec.set_queue(4);
 
@@ -64,7 +64,7 @@ int main(int argc, char** argv) {
     }
     stop.store(true);
     for (auto& t : pool) t.join();
-    rec.set_stage(astrocs::ResStage::Flush);
+    rec.set_stage(acsd::ResStage::Flush);
     mon.tick();
     rec.record(mon.last_sample());
     const double wall = duration<double>(steady_clock::now() - t0).count();

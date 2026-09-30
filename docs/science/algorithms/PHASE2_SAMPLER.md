@@ -1,8 +1,8 @@
-# Phase2 Sampler Algorithms（P2-SAMP / astrocs.p2.sampling）
+# Phase2 Sampler Algorithms（P2-SAMP / acsd.p2.sampling）
 
 > 本文件是 Phase2 控制点采样模块（control sampler）
 > 算法层**唯一权威**：逐公式源码行号锚定 + 冻结容差 + 实现偏差登记。
-> 上游：ASTROCS_DESIGN.md §5.4（天光平面与统一相对模型）
+> 上游：ACSD_DESIGN.md §5.4（天光平面与统一相对模型）
 
 > 上游 SCI: SCI-UPM-001（docs/science/PHASE2_UPM.md，FROZEN，共享引用
 > 不改动；页头明示"模块: phase2 (upm/sampler)"；
@@ -15,8 +15,8 @@
 > 实现源: lib/algorithms/coverage/src/sampler.cpp（1503 行）+ 唯一权威签名头
 > lib/algorithms/coverage/include/astro/phase2/sampler.h（273 行，实测）；
 > DATA: DATA-P2-SMP（DATA_SEMANTICS §23）；API: API-P2-SMP-001
-> （PUBLIC_API.md）；MOD: astrocs.p2.sampling（合同三件套
-> lib/algorithms/sampling/，迁移目标 astrocs_p2_sampling.dll 为矩阵合同值
+> （PUBLIC_API.md）；MOD: acsd.p2.sampling（合同三件套
+> lib/algorithms/sampling/，迁移目标 acsd_p2_sampling.dll 为矩阵合同值
 > 尚未存在，由 P2-SAMP-IMPL 建立；IMPLEMENTED 词由验收在建立后签发）。
 
 ## 1 目的与非目标
@@ -368,10 +368,10 @@ uncertainty      = sqrt(control_variance)                  # :878
   (iii) 域外回退的**可观测性边界**：`sampler.cpp:575-584` 只在 `pixfrac > 0 且
   尺度 ∉ [300,600]` 时打 `[sampler] k_corr 域外回退` 标；**provenance 键缺失
   （pixfrac 不可解析）时回退是静默的**——本仓 probe 产品的 signal properties 内
-  **不含** `ASTROCS_DRIZZLE_*` 键（同上 properties 文件），即该产品走的是静默回退路径。
+  **不含** `ACSD_DRIZZLE_*` 键（同上 properties 文件），即该产品走的是静默回退路径。
   引用回退状态时**必须**区分「已打标的域外回退」与「未打标的 provenance 缺失回退」。
-  合法 provenance 的键名与量纲：`ASTROCS_DRIZZLE_PIXFRAC`（无量纲，域 (0,1]）、
-  `ASTROCS_DRIZZLE_SCALE_ARCSEC`（**角秒/像素**，域 (0,∞)；写侧
+  合法 provenance 的键名与量纲：`ACSD_DRIZZLE_PIXFRAC`（无量纲，域 (0,1]）、
+  `ACSD_DRIZZLE_SCALE_ARCSEC`（**角秒/像素**，域 (0,∞)；写侧
   `lib/infrastructure/aio/src/hips/aio_hips_writer.cpp:1771-1774`，读侧
   `sampler.cpp:135-140`）。
 - UPMW-004 独立 MC 基线：Var(median) ≈ πσ²/(2N)（先例 `synthetic_gate.cpp`）；
@@ -481,7 +481,7 @@ g_aio_mu（:161 声明，read_tile_pair :166 加锁；并行路径 per-worker �
 **并行路径唯一口径**：`std::thread` 为唯一并行路径（:879-880 注释）；
 lib/algorithms/coverage/CMakeLists.txt:28 的 `P2_ENABLE_OPENMP` option 仅影响
 旧 target 编译面，**禁用**据此启用 OpenMP 路径。
-本节是 `ASTROCS_DESIGN.md` §8（资源与并行的强制条款：确定性合同 = 浮点归约顺序冻结、并行开关不改科学数值、输出不依赖线程调度；线程预算唯一来源）与 §7.1（模块边界）在本模块的**落地细化**，**不另立权威**（§0.1：只有一份权威链）。
+本节是 `ACSD_DESIGN.md` §8（资源与并行的强制条款：确定性合同 = 浮点归约顺序冻结、并行开关不改科学数值、输出不依赖线程调度；线程预算唯一来源）与 §7.1（模块边界）在本模块的**落地细化**，**不另立权威**（§0.1：只有一份权威链）。
 
 ## 7 与 SCI 的对应与偏差（如实登记）
 
@@ -590,7 +590,7 @@ lib/algorithms/coverage/CMakeLists.txt:28 的 `P2_ENABLE_OPENMP` option 仅影�
 | DISP-P2SMP-003 | :641-643/:655/:666-672/:705-713 等 17 处 | 诊断进度日志直写 stderr（fprintf/fflush），未走结构化日志通道，err 缓冲外；生产可观测性债（静默失败排查依赖 stderr 文本） | 实测 |
 | DISP-P2SMP-004 | sampler.h:58-59; sampler.cpp:318-319,513-514,1149 | **配置面口径（约束）**：星掩膜阈值与半径必须由配置面承载——`P2SamplerConfig.star_mask_snr_factor`（默认 10.0）/ `star_mask_radius_deg`（默认 0.012），`sampler.h:58-59` 声明、`sampler.cpp:318-319` 默认值、`:513-514` 配置修补、`:1149` 消费；单位：factor 无量纲（帧 SNR 中位数的倍数）、radius = 度 | 实测 |
 | DISP-P2SMP-005 | :853 | clipping 相对收敛阈值 `1e-12×max(|m0|,1e-12)`：m0≈0 时阈值≈1e-24 过严，实际退化为固定 background_clip_iters 轮全迭代（结果仍确定、单调收缩、min_samples 兜底；无科学输出影响，性能观察级） | 实测 |
-| DISP-P2SMP-006 | :575-584 | **域外回退的可观测性缺口**：`[sampler] k_corr 域外回退` 标只在 `pixfrac > 0 且 尺度 ∉ [300,600]″` 时打；Drizzle provenance 键缺失（pixfrac 不可解析）时回退到 `cfg.control_k_corr` 是**静默**的，provenance 无法区分两条回退路径 | 实测（provenance 无 `ASTROCS_DRIZZLE_*` 键时仍以 1.4 参与生产） |
+| DISP-P2SMP-006 | :575-584 | **域外回退的可观测性缺口**：`[sampler] k_corr 域外回退` 标只在 `pixfrac > 0 且 尺度 ∉ [300,600]″` 时打；Drizzle provenance 键缺失（pixfrac 不可解析）时回退到 `cfg.control_k_corr` 是**静默**的，provenance 无法区分两条回退路径 | 实测（provenance 无 `ACSD_DRIZZLE_*` 键时仍以 1.4 参与生产） |
 | DISP-P2SMP-007 | :864-877 | **零尺度伪方差**：`σ_bg_raw=0` 时以 1e-12 生成有限 control_variance（7.609e-27）与 control_ivar（1.314e26）并随 obs 发布；§5.4 已冻结「无尺度信息」发布口径，**禁用**以 1e-12 之类的占位尺度生成伪有限 control_variance/control_ivar | 实测 |
 
 ### 11.3 TEST-P2-SMP-DESIGN-001 冻结测试设计（可执行 TEST-P2-SMP-001 由 P2-SAMP-TEST 落地，双面登记不冒认）
@@ -626,12 +626,12 @@ fill）。fixture 由固定 seed 合成 HiPS 树生成，不提交大二进制�
   词汇，module_adapters.cpp:657）的语义映射由本节声明——
   **SCI-P2-SMP-001 ⇒ SCI-UPM-001**（docs/science/PHASE2_UPM.md，
   矩阵 science_doc=docs/science/PHASE2_UPM.md，
-  MOD-astrocs-phase2-sample 行）。
+  MOD-acsd-phase2-sample 行）。
   SCI 公式语义不在此重复定义，两处冲突时以 docs/science/ 为准并
   回改本文档（方向 = 从 docs/science/ 到本文档）。辅助语义锚：control_variance 权威=
   SCI-UPM-WEIGHT-001（§5.4 承接）；robust 统计上游=SCI-NOISE-001；
   链位置=SCI-SCOPE-001 §处理链第 5 步。
-- 本节是唯一冻结依据（编排层词汇只作对齐对象；descriptor astrocs.phase2.sample
+- 本节是唯一冻结依据（编排层词汇只作对齐对象；descriptor acsd.phase2.sample
   由 P2-XX-INT 对齐，不作冻结依据）。
 
 ## 12 关联 ID 映射（本文件承接）
@@ -654,11 +654,11 @@ fill）。fixture 由固定 seed 合成 HiPS 树生成，不提交大二进制�
 - 上游 SCI: SCI-UPM-001（共享 FROZEN 零改动）；
 - 本层: ALG-P2-SMP-001（本文件）；ALG-UPM-CONTROL-IVAR-001（子面）；
 - 下游 DATA: DATA-P2-SMP（DATA_SEMANTICS §23）；API: API-P2-SMP-001
-  （PUBLIC_API.md）；MOD: MOD-astrocs-phase2-sample（registry 行，
+  （PUBLIC_API.md）；MOD: MOD-acsd-phase2-sample（registry 行，
   合同三件套 lib/algorithms/sampling/）；TEST: TEST-P2-SMP-DESIGN-001
   （§11.3 设计冻结，registry 页承载）→ TEST-P2-SMP-001（可执行，
   P2-SAMP-TEST 落地前 MISSING）；
-- 矩阵行：MOD-astrocs-phase2-sample（P2-SAMP 行原位融合，
+- 矩阵行：MOD-acsd-phase2-sample（P2-SAMP 行原位融合，
   depends_on_int=P2-COV-INT;CPU-005，MODULE_MIGRATION_MATRIX.csv
   :15 权威）。
 

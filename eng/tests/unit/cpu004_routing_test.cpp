@@ -22,13 +22,13 @@ static std::string make_profile(const std::string& quota, uint32_t avail,
                                 const std::string& kernel_provider,
                                 uint32_t kernel_workers) {
     return
-        "{\"schema\":\"astrocs.cpu-profile/v2\","
+        "{\"schema\":\"acsd.cpu-profile/v2\","
         "\"profile_id\":\"sha256:" + std::string(64, 'a') + "\","
         "\"created_utc\":\"2026-09-01T00:00:00Z\","
         "\"host\":{\"arch\":\"amd64\",\"vendor\":\"x\",\"family\":6,\"model\":1,"
         "\"stepping\":1,\"os_abi\":\"linux\",\"features\":[\"sse2\"],\"xcr0\":\"255\","
         "\"logical_available\":" + std::to_string(avail) + ",\"quota_signature\":\"" + quota + "\"},"
-        "\"build\":{\"astrocs_version\":\"0.10.0-alpha.2\",\"source_commit\":\"" + commit + "\","
+        "\"build\":{\"acsd_version\":\"0.10.0-alpha.2\",\"source_commit\":\"" + commit + "\","
         "\"benchmark_binary_sha256\":\"" + std::string(64, 'b') + "\","
         "\"runtime_build_id\":\"r\",\"provider_build_ids\":{\"baseline\":\"loaded\"}},"
         "\"memory_bandwidth\":{\"copy\":1.0,\"read\":1.0,\"write\":1.0,\"triad\":1.0},"
@@ -54,35 +54,35 @@ int main() {
     // 1) profile 机器一致性: 匹配 → valid
     {
         const std::string prof = make_profile(quota, 4, commit, "baseline", 4);
-        const auto v = astrocs::backend_host::validate_profile_v2_for_machine(prof, commit, hw);
+        const auto v = acsd::backend_host::validate_profile_v2_for_machine(prof, commit, hw);
         CHECK(v.valid);
         CHECK(v.stale_reason.empty());
     }
     // 2) quota_signature 不匹配 → stale
     {
         const std::string prof = make_profile(std::string(64, '0'), 4, commit, "baseline", 4);
-        const auto v = astrocs::backend_host::validate_profile_v2_for_machine(prof, commit, hw);
+        const auto v = acsd::backend_host::validate_profile_v2_for_machine(prof, commit, hw);
         CHECK(!v.valid);
         CHECK(v.stale_reason.find("quota_signature") != std::string::npos);
     }
     // 3) logical_available 不匹配 → stale
     {
         const std::string prof = make_profile(quota, 8, commit, "baseline", 4);
-        const auto v = astrocs::backend_host::validate_profile_v2_for_machine(prof, commit, hw);
+        const auto v = acsd::backend_host::validate_profile_v2_for_machine(prof, commit, hw);
         CHECK(!v.valid);
         CHECK(v.stale_reason.find("logical_available") != std::string::npos);
     }
     // 4) commit 不匹配 → stale(verify_profile_v2 内部)
     {
         const std::string prof = make_profile(quota, 4, std::string(40, '0'), "baseline", 4);
-        const auto v = astrocs::backend_host::validate_profile_v2_for_machine(prof, commit, hw);
+        const auto v = acsd::backend_host::validate_profile_v2_for_machine(prof, commit, hw);
         CHECK(!v.valid);
     }
     // 5) 逐 kernel 路由: provider=baseline workers=4 → 原样
     {
         const std::string prof = make_profile(quota, 4, commit, "baseline", 4);
-        astrocs::backend_host::KernelRoute r;
-        const bool ok = astrocs::backend_host::route_kernel_from_profile(
+        acsd::backend_host::KernelRoute r;
+        const bool ok = acsd::backend_host::route_kernel_from_profile(
             prof, "calibration-pixel-transform", hw, &r);
         CHECK(ok);
         CHECK(r.provider == "baseline");
@@ -93,8 +93,8 @@ int main() {
     // 6) kernel 不在 profile → 保守 baseline + 多线程
     {
         const std::string prof = make_profile(quota, 4, commit, "baseline", 4);
-        astrocs::backend_host::KernelRoute r;
-        const bool ok = astrocs::backend_host::route_kernel_from_profile(
+        acsd::backend_host::KernelRoute r;
+        const bool ok = acsd::backend_host::route_kernel_from_profile(
             prof, "no-such-kernel", hw, &r);
         CHECK(ok);
         CHECK(r.provider == "baseline");
@@ -103,8 +103,8 @@ int main() {
     }
     // 7) 无 profile(空串) → conservative_route baseline + workers=avail
     {
-        astrocs::backend_host::KernelRoute r;
-        const bool ok = astrocs::backend_host::route_kernel_from_profile("", "k", hw, &r);
+        acsd::backend_host::KernelRoute r;
+        const bool ok = acsd::backend_host::route_kernel_from_profile("", "k", hw, &r);
         CHECK(!ok);   // 整体不可用
         CHECK(r.provider == "baseline");
         CHECK(r.workers == 4);
@@ -112,16 +112,16 @@ int main() {
     }
     // 8) conservative_route: available=1 → workers=1; available=2 → workers=2(不退 1)
     {
-        auto r1 = astrocs::backend_host::conservative_route("k", 1);
+        auto r1 = acsd::backend_host::conservative_route("k", 1);
         CHECK(r1.workers == 1);
-        auto r2 = astrocs::backend_host::conservative_route("k", 2);
+        auto r2 = acsd::backend_host::conservative_route("k", 2);
         CHECK(r2.workers == 2);
     }
     // 9) unsupported provider → baseline 但保留多线程(08 §4-7/§4-8)
     {
         const std::string prof = make_profile(quota, 4, commit, "fancy-isa", 4);
-        astrocs::backend_host::KernelRoute r;
-        const bool ok = astrocs::backend_host::route_kernel_from_profile(
+        acsd::backend_host::KernelRoute r;
+        const bool ok = acsd::backend_host::route_kernel_from_profile(
             prof, "calibration-pixel-transform", hw, &r);
         CHECK(ok);
         CHECK(r.provider == "baseline");
@@ -130,8 +130,8 @@ int main() {
     }
     // 10) 损坏 profile JSON → 整体不可用 + 保守多线程
     {
-        astrocs::backend_host::KernelRoute r;
-        const bool ok = astrocs::backend_host::route_kernel_from_profile(
+        acsd::backend_host::KernelRoute r;
+        const bool ok = acsd::backend_host::route_kernel_from_profile(
             "{not json", "k", hw, &r);
         CHECK(!ok);
         CHECK(r.provider == "baseline");

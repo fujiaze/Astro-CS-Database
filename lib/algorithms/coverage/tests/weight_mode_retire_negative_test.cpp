@@ -7,7 +7,7 @@
 // **不是现行对象**，退役。
 //
 // 依据（权威，只读）：
-//   docs/ASTROCS_DESIGN.md §3.1（订正后）：权重只能来自纯净信号与噪声之比（SNR 逆方差）；
+//   docs/ACSD_DESIGN.md §3.1（订正后）：权重只能来自纯净信号与噪声之比（SNR 逆方差）；
 //     跨帧可用、不基于参考帧、绝对标定；PSF 拟合质量代理只作诊断。
 //   docs/science/PSF_SIGNAL_WEIGHT.md §1/§4（§4 为单一权重口径：阶段1 稀疏 SNR 控制点
 //     → 阶段2 重建稠密 SNR 面 → 逆方差定权 → 叠加；无模式选择）。
@@ -101,8 +101,8 @@ TEST(PsfswRetire, RetiredObjectTokenRejectedNotSilentlyAccepted) {
 
 // ── 负例（能红）：运行面路由（CLI 唯一契约点）同步收窄 ──────────────────────
 TEST(PsfswRetire, RuntimeRouteRejectsRetiredMode) {
-    using astrocs::v6runtime::RouteKind;
-    const astrocs::v6runtime::ModeRoute retired = astrocs::v6runtime::route_phase2_weight_token("psfsw_robust");
+    using acsd::v6runtime::RouteKind;
+    const acsd::v6runtime::ModeRoute retired = acsd::v6runtime::route_phase2_weight_token("psfsw_robust");
     EXPECT_EQ(retired.kind, RouteKind::kReject) << "runtime route must reject psfsw_robust";
     EXPECT_NE(retired.rc, 0) << "reject must carry a non-zero rc (fail-closed)";
     EXPECT_TRUE(contains(retired.reason, "FZ-MODE-RETIRED")) << retired.reason;
@@ -113,31 +113,31 @@ TEST(PsfswRetire, RuntimeRouteRejectsRetiredMode) {
     for (const char* m : {"point_information", "surface_gls", "psfsw_robust",
                           "psf_snr_power", "auto", "support_x_snr2", "0", "1", "2",
                           "bogus"}) {
-        const astrocs::v6runtime::ModeRoute r = astrocs::v6runtime::route_phase2_weight_token(m);
+        const acsd::v6runtime::ModeRoute r = acsd::v6runtime::route_phase2_weight_token(m);
         EXPECT_EQ(r.kind, RouteKind::kReject) << "token=" << m;
         EXPECT_EQ(r.rc, 2) << "token=" << m;
     }
     /* 原 documented baseline 面（equal / pixel_ivar → kBaseline，rc=0）
        已删除。其唯一理由是「legacy 整数路由的映射目标登记」；整数路由删除后理由消失，
        且它们是**输入路径**（CLI --mode）上的口径 token ⇒ 与其余 token 同归 fail-closed
-       （docs/ASTROCS_DESIGN.md §3.1:175「没有可选择项」；PSF_SIGNAL_WEIGHT.md §4:72）。 */
+       （docs/ACSD_DESIGN.md §3.1:175「没有可选择项」；PSF_SIGNAL_WEIGHT.md §4:72）。 */
     for (const char* m : {"equal", "pixel_ivar"}) {
-        const astrocs::v6runtime::ModeRoute r = astrocs::v6runtime::route_phase2_weight_token(m);
+        const acsd::v6runtime::ModeRoute r = acsd::v6runtime::route_phase2_weight_token(m);
         EXPECT_EQ(r.kind, RouteKind::kReject) << "token=" << m;
         EXPECT_EQ(r.rc, 2) << "token=" << m;
     }
     /* legacy 整数 weight_mode：纯拒绝面，全值域拒绝。 */
     for (const int v : {0, 1, 2, 7}) {
-        const astrocs::v6runtime::ModeRoute r =
-            astrocs::v6runtime::route_legacy_weight_mode_int(v);
+        const acsd::v6runtime::ModeRoute r =
+            acsd::v6runtime::route_legacy_weight_mode_int(v);
         EXPECT_EQ(r.kind, RouteKind::kReject) << "legacy int=" << v;
         EXPECT_EQ(r.rc, 2) << "legacy int=" << v;
         EXPECT_TRUE(contains(r.reason, "FZ-FIELD-WEIGHTMODE")) << r.reason;
     }
-    const astrocs::v6runtime::ModeRoute deferred =
-        astrocs::v6runtime::route_phase2_weight_token("psf_snr_power");
+    const acsd::v6runtime::ModeRoute deferred =
+        acsd::v6runtime::route_phase2_weight_token("psf_snr_power");
     EXPECT_TRUE(contains(deferred.reason, "FZ-MODE-DEFERRED")) << deferred.reason;
-    EXPECT_TRUE(contains(astrocs::v6runtime::route_phase2_weight_token("bogus").reason,
+    EXPECT_TRUE(contains(acsd::v6runtime::route_phase2_weight_token("bogus").reason,
                          "FZ-WEIGHT-SINGLE-PATH"))
         << "unknown token reject reason must state the single weight path";
 }

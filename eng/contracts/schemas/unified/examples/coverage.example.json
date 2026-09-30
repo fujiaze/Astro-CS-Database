@@ -1,6 +1,6 @@
 {
   "unified_object": "coverage",
-  "object_schema_id": "https://astrocs.local/schemas/unified/coverage/v1",
+  "object_schema_id": "https://acsd.local/schemas/unified/coverage/v1",
   "schema_version": 1,
   "units": {
     "bunit": "1",

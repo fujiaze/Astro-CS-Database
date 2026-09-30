@@ -6,7 +6,7 @@
 //   · IO_003 §4 的生产者序（校验先于 rename）在该窗口没有观测点，无法检出。
 // 这正是 docs/engineering/io/IO_003_ATOMIC_OUTPUT_PUBLISH.md §4.1 所述的"机制层检测面更强"。
 //
-// 启用：仅当 ASTROCS_TEST_CORRUPT_AFTER_RENAME=1；其余情况纯透传（零影响）。
+// 启用：仅当 ACSD_TEST_CORRUPT_AFTER_RENAME=1；其余情况纯透传（零影响）。
 // stderr 事件行（供 runner 判"注入确实发生"，避免判据退化）：
 //   EVENT RENAME <old> -> <new> ok|fail
 //   EVENT CORRUPT-AFTER-RENAME <path>
@@ -34,7 +34,7 @@ void emit(const char* ev, const std::string& arg) {
 __attribute__((constructor)) void aio_corrupt_init(void) {
   g_real_rename =
       (int (*)(const char*, const char*))dlsym(RTLD_NEXT, "rename");
-  g_corrupt = std::getenv("ASTROCS_TEST_CORRUPT_AFTER_RENAME") ? 1 : 0;
+  g_corrupt = std::getenv("ACSD_TEST_CORRUPT_AFTER_RENAME") ? 1 : 0;
 }
 
 }  // namespace

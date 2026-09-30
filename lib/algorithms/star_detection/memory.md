@@ -88,9 +88,9 @@
 P1-STAR-DOC 任务完成模块冻结合同（状态 CONTRACT_READY，禁止宣称 IMPLEMENTED），
 产物与权威链：
 
-- **module.yaml（新建）**：schema astrocs.module-manifest/v1，
-  MOD-astrocs-phase1-star / astrocs.p1.star_detection，dll_target=
-  astrocs_p1_star_detection.dll（合同值，尚未存在），entrypoint=MISSING；
+- **module.yaml（新建）**：schema acsd.module-manifest/v1，
+  MOD-acsd-phase1-star / acsd.p1.star_detection，dll_target=
+  acsd_p1_star_detection.dll（合同值，尚未存在），entrypoint=MISSING；
   contract_ids：SCI-P1-STAR-001 / ALG-STARDET-001 / DATA-P1-STAR /
   API-STAR-001 / SRC-STAR-001 / TEST-STAR-DESIGN-001。
 - **README.md r1（重写）**：SRC-STAR-001 源码实测冻结（sdet_api.cpp 2373 行），

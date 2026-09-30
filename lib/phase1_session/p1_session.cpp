@@ -21,9 +21,9 @@ extern "C" {
 #include "astro_calibration.h"
 }
 #include "astro_image_io.h"
-#include "astrocs/probe.h"  // 探针 (ASTROCS_PROBES=OFF 时宏为空语句)
+#include "acsd/probe.h"  // 探针 (ACSD_PROBES=OFF 时宏为空语句)
 
-// CLEAN-403 (docs/ASTROCS_DESIGN §10「aio 是文件级唯一 I/O 边界」): 产物存在性探测
+// CLEAN-403 (docs/ACSD_DESIGN §10「aio 是文件级唯一 I/O 边界」): 产物存在性探测
 // 经 aio 机制原语 (aio_atomic::path_exists), 本 TU 不再直用 std::filesystem。
 #include "aio_atomic_file.h"
 
@@ -32,7 +32,7 @@ namespace {
 using json = nlohmann::json;
 
 struct SessionState {
-    const astrocs_host_services_v1* host = nullptr;
+    const acsd_host_services_v1* host = nullptr;
     std::string last_error;          // 脱敏摘要(inspect 用)
     json manifest;                   // inspect 输出(逐步填充)
     bool ran = false;
@@ -66,7 +66,7 @@ void ImageDeleter::operator()(AIOImageData* p) const { dispose_image(p); }
 // 禁止裸 free(aio_image*)——结构体含 data/data_f64/keywords 多指针, 裸 free 会泄漏。
 void dispose_image(AIOImageData* p) { if (p) aio_free_image_data(p); }
 
-[[maybe_unused]] acs_status map_aio_err(const char* what, std::string* err) {
+[[maybe_unused]] acsd_status map_aio_err(const char* what, std::string* err) {
     if (err) *err = what;
     return ACS_ERR_IO;
 }
@@ -132,7 +132,7 @@ void fail_trailing_running_stage(SessionState* s) {
 }
 
 // 会话主体 (定义见文件后段, extern "C" 块外的匿名 namespace)
-acs_status run_session(SessionState* s, const json& doc);
+acsd_status run_session(SessionState* s, const json& doc);
 
 }  // namespace
 namespace {
@@ -156,20 +156,20 @@ float* image_px(const AIOImageData* im) { return aio_get_pixel_data(const_cast<A
 
 extern "C" {
 
-acs_status p1_session_create(const astrocs_host_services_v1* host, acs_handle* out) {
-    if (!host || host->struct_size != sizeof(astrocs_host_services_v1) ||
+acsd_status p1_session_create(const acsd_host_services_v1* host, acsd_handle* out) {
+    if (!host || host->struct_size != sizeof(acsd_host_services_v1) ||
         host->abi_version != ACS_ABI_VERSION_V1)
         return ACS_ERR_ABI_MISMATCH;
     if (!out) return ACS_ERR_PARAM;
     auto* s = new (std::nothrow) SessionState();
     if (!s) return ACS_ERR_NOMEM;
     s->host = host;
-    s->manifest = {{"kind", "astrocs_phase1_session"}, {"stages", json::array()}};
-    *out = reinterpret_cast<acs_handle>(s);
+    s->manifest = {{"kind", "acsd_phase1_session"}, {"stages", json::array()}};
+    *out = reinterpret_cast<acsd_handle>(s);
     return ACS_OK;
 }
 
-acs_status p1_session_validate(acs_handle h, const acs_span_u8 config_json) {
+acsd_status p1_session_validate(acsd_handle h, const acsd_span_u8 config_json) {
     auto* s = reinterpret_cast<SessionState*>(h);
     if (!s || !config_json.data || config_json.count == 0) return ACS_ERR_PARAM;
     json doc;
@@ -235,7 +235,7 @@ acs_status p1_session_validate(acs_handle h, const acs_span_u8 config_json) {
 }
 
 
-acs_status p1_session_run(acs_handle h, const acs_span_u8 config_json, int async_io_depth) {
+acsd_status p1_session_run(acsd_handle h, const acsd_span_u8 config_json, int async_io_depth) {
     auto* s = reinterpret_cast<SessionState*>(h);
     if (!s || !config_json.data || config_json.count == 0) return ACS_ERR_PARAM;
     if (async_io_depth < 0 || async_io_depth > 2) return ACS_ERR_PARAM;
@@ -280,7 +280,7 @@ namespace {
 //  - cosmetic 值读取经类型甄别 helper (cosmetic_flag/float/int), 对齐 validate
 //    number|bool 合同, 错型不再抛 type_error.302。
 // 异常合同: 本函数可抛 (json::exception 等), 由 p1_session_run 的 C 边界屏障捕获。
-acs_status run_session(SessionState* s, const json& doc) {
+acsd_status run_session(SessionState* s, const json& doc) {
     // 线程预算注入( 迁移整改点): worker 数=预算快照, 禁硬编码
     ac_set_num_threads(static_cast<int>(s->host->budget.max_workers));
     s->log(ACS_LOG_INFO, "phase1", "session run: omp threads=" +
@@ -326,7 +326,7 @@ acs_status run_session(SessionState* s, const json& doc) {
     ImagePtr bias, dark, flat;
     {
         // [probe] Phase1 阶段边界: calibrate
-        ASTROCS_PROBE_SCOPE("phase1", "calibrate.stage");
+        ACSD_PROBE_SCOPE("phase1", "calibrate.stage");
         s->manifest["stages"].emplace_back(json{{"name", "calibrate"}, {"status", "running"}});
         if (doc.contains("master_bias") && !doc["master_bias"].is_null())
             if (!(bias = read_image(doc["master_bias"].get<std::string>(), &err))) {
@@ -356,13 +356,13 @@ acs_status run_session(SessionState* s, const json& doc) {
         json per_frame = json::array();
         for (const auto& lp : doc["input_lights"]) {
             // [probe] Phase1 逐帧热点: calibrate
-            ASTROCS_PROBE_SCOPE_CTX(_probe_cal_frame, "phase1", "calibrate.frame");
+            ACSD_PROBE_SCOPE_CTX(_probe_cal_frame, "phase1", "calibrate.frame");
             if (s->cancelled()) {
                 s->manifest["stages"].back()["status"] = "cancelled";
                 return ACS_ERR_CANCELLED;   // 帧粒度取消点(API 冻结)
             }
             const std::string path = lp.get<std::string>();
-            ASTROCS_PROBE_TAG(_probe_cal_frame, "frame_key", path.c_str());
+            ACSD_PROBE_TAG(_probe_cal_frame, "frame_key", path.c_str());
             auto light = read_image(path, &err);
             if (!light) { s->last_error = err; s->manifest["error_kind"] = "input"; s->manifest["stages"].back()["status"] = "fail"; return ACS_ERR_IO; }
             if (W >= 0 && (image_w(light.get()) != W || image_h(light.get()) != H)) {
@@ -372,7 +372,7 @@ acs_status run_session(SessionState* s, const json& doc) {
             }
             W = image_w(light.get()); H = image_h(light.get());
             // [probe] 规模 gauge: 每帧像素数
-            ASTROCS_PROBE_GAUGE("phase1", "calibrate.frame_pixels",
+            ACSD_PROBE_GAUGE("phase1", "calibrate.frame_pixels",
                                 static_cast<double>(W) * static_cast<double>(H));
             std::vector<float> out(static_cast<size_t>(W) * static_cast<size_t>(H), 0.0f);
             const int rc = ac_calibrate_frame(
@@ -403,7 +403,7 @@ acs_status run_session(SessionState* s, const json& doc) {
             }
             aio_free_image_data(wim);
             ++frames_ok;
-            ASTROCS_PROBE_COUNT("phase1", "calibrate.frames", 1);
+            ACSD_PROBE_COUNT("phase1", "calibrate.frames", 1);
             per_frame.push_back({{"input", base},
                                  {"output", "calibrated_" + base},
                                  {"dark_scale", dark_opt ? actual_k : k_fixed}});
@@ -437,7 +437,7 @@ acs_status run_session(SessionState* s, const json& doc) {
     //     {"enabled":1} 等错型 config 不得抛 type_error.302 (原 run 期 get<T> 即崩)。
     if (doc.contains("cosmetic") && cosmetic_flag(doc["cosmetic"], "enabled", true)) {
         // [probe] Phase1 阶段边界: cosmetic
-        ASTROCS_PROBE_SCOPE("phase1", "cosmetic.stage");
+        ACSD_PROBE_SCOPE("phase1", "cosmetic.stage");
         json& st = s->manifest["stages"].emplace_back(
             json{{"name", "cosmetic"}, {"status", "running"}});
         const json& c = doc["cosmetic"];
@@ -458,10 +458,10 @@ acs_status run_session(SessionState* s, const json& doc) {
         const int max_structure_size = cosmetic_int(c, "max_structure_size", 4);
         for (const auto& a : s->manifest["artifacts"]) {
             // [probe] Phase1 逐帧热点: cosmetic
-            ASTROCS_PROBE_SCOPE_CTX(_probe_cos_frame, "phase1", "cosmetic.frame");
+            ACSD_PROBE_SCOPE_CTX(_probe_cos_frame, "phase1", "cosmetic.frame");
             if (s->cancelled()) { st["status"] = "cancelled"; return ACS_ERR_CANCELLED; }
             auto im = read_image(a.get<std::string>(), &err);
-            ASTROCS_PROBE_TAG(_probe_cos_frame, "frame_key", a.get<std::string>().c_str());
+            ACSD_PROBE_TAG(_probe_cos_frame, "frame_key", a.get<std::string>().c_str());
             if (!im) { s->last_error = err; st["status"] = "fail"; return ACS_ERR_IO; }
             std::vector<float> fixed(static_cast<size_t>(image_w(im.get())) * static_cast<size_t>(image_h(im.get())));
             int hot = 0, cold = 0;
@@ -498,7 +498,7 @@ acs_status run_session(SessionState* s, const json& doc) {
             // BIAS-001 同口径：检测源参与面显式可见（避免"恒等 pass 却看起来跑过"）
             st["hot_source"] = dark ? "master_dark" : "none";
             st["cold_source"] = bias ? "master_bias" : "none";
-            ASTROCS_PROBE_COUNT("phase1", "cosmetic.frames", 1);
+            ACSD_PROBE_COUNT("phase1", "cosmetic.frames", 1);
         }
         st["status"] = "ok";
         s->log(ACS_LOG_INFO, "phase1", "stage cosmetic ok");
@@ -544,7 +544,7 @@ acs_status run_session(SessionState* s, const json& doc) {
 
 extern "C" {
 
-acs_status p1_session_inspect(acs_handle h, acs_span_u8* out) {
+acsd_status p1_session_inspect(acsd_handle h, acsd_span_u8* out) {
     auto* s = reinterpret_cast<SessionState*>(h);
     if (!s || !out) return ACS_ERR_PARAM;
     if (!s->ran && s->last_error.empty()) {
@@ -563,7 +563,7 @@ acs_status p1_session_inspect(acs_handle h, acs_span_u8* out) {
     return ACS_OK;
 }
 
-acs_status p1_session_destroy(acs_handle h) {
+acsd_status p1_session_destroy(acsd_handle h) {
     auto* s = reinterpret_cast<SessionState*>(h);
     if (!s) return ACS_ERR_PARAM;
     delete s;
@@ -572,9 +572,9 @@ acs_status p1_session_destroy(acs_handle h) {
 
 }  // extern "C"
 
-namespace astrocs::phase1 {
-std::string last_error(acs_handle h) {
+namespace acsd::phase1 {
+std::string last_error(acsd_handle h) {
     auto* s = reinterpret_cast<SessionState*>(h);
     return s ? s->last_error : std::string();
 }
-}  // namespace astrocs::phase1
+}  // namespace acsd::phase1

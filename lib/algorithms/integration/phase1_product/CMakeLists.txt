@@ -6,11 +6,11 @@
 # ============================================================================
 cmake_minimum_required(VERSION 3.16)
 
-if(NOT TARGET astrocs_phase1_product)
+if(NOT TARGET acsd_phase1_product)
   set(P1_REPO "${CMAKE_CURRENT_SOURCE_DIR}/../../../../")
   get_filename_component(P1_REPO "${P1_REPO}" ABSOLUTE)
 
-  add_library(astrocs_phase1_product STATIC
+  add_library(acsd_phase1_product STATIC
     # 本层装配
     src/phase1_product.cpp
     # IMPL-AIO-001
@@ -33,7 +33,7 @@ if(NOT TARGET astrocs_phase1_product)
     "${P1_REPO}/lib/algorithms/drizzle/healpix_drizzle/spherical_overlap.cpp"
     "${P1_REPO}/lib/algorithms/shared/healpix/healpix_core.cpp")
 
-  target_include_directories(astrocs_phase1_product PUBLIC
+  target_include_directories(acsd_phase1_product PUBLIC
     "${CMAKE_CURRENT_SOURCE_DIR}/include"
     "${P1_REPO}/lib/infrastructure/aio/product_io/include"
     # CLEAN-403: phase1_product.cpp 的文本读写经 aio 机制原语
@@ -50,9 +50,9 @@ if(NOT TARGET astrocs_phase1_product)
     "${P1_REPO}/lib/algorithms/shared"
     "${P1_REPO}/lib/algorithms/shared/healpix")
 
-  set_target_properties(astrocs_phase1_product PROPERTIES
+  set_target_properties(acsd_phase1_product PROPERTIES
     CXX_STANDARD 17
     CXX_STANDARD_REQUIRED ON
     POSITION_INDEPENDENT_CODE ON)
-  target_link_libraries(astrocs_phase1_product PUBLIC astrocs_platform_math)
+  target_link_libraries(acsd_phase1_product PUBLIC acsd_platform_math)
 endif()

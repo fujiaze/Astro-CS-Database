@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://astrocs.local/schema/stage1-1.1.json",
+  "$id": "https://acsd.local/schema/stage1-1.1.json",
   "title": "ACSD Stage1 Job",
   "type": "object",
   "additionalProperties": false,

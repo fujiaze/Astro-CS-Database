@@ -4,7 +4,7 @@
 # 控制包任务: P1-STAR-TEST (SA-P1ST-T, queue 49, lock-P1-STAR; 依赖
 # P1-STAR-DOC 闭环)。合同锚: docs/science/algorithms/STAR_DETECTION_ALGORITHMS.md §11.4
 # TEST-STAR-DESIGN-001 (P1-STAR-DOC 冻结, 2026-09-08, wave W3); 矩阵行
-# P1-STAR (MOD astrocs.phase1.star_detection, TEST-P1-STAR-001); 冻结合同
+# P1-STAR (MOD acsd.phase1.star_detection, TEST-P1-STAR-001); 冻结合同
 # lib/algorithms/star_detection/README.md (CONTRACT_READY)。
 #
 # 结构 (模块 eng/tests/{unit,properties,oracle,fixtures,negative,performance} 对应;
@@ -35,7 +35,7 @@
 #                         必败, 三阶段 rc 双向判定, 无 WILL_FAIL 依赖)
 #
 # 域基线: HEAD dc2f5f3e (批次 R sdet malloc 事务化发布, 17 处静默失败全修);
-# 与 eng/tests/unit/p1_stars_test.cpp (P1-003 桥接层 astrocs::phase1::StarDetector)
+# 与 eng/tests/unit/p1_stars_test.cpp (P1-003 桥接层 acsd::phase1::StarDetector)
 # 互补不重复 — 本验证面为生产 sdet_* C API。
 #
 # 注: 生产 5 src 不在根 CMake 构建 (独立 Makefile) — 此处直接编入测试目标,
@@ -57,7 +57,7 @@ set(SDET_SRC
   ${SDET_SRC_DIR}/nls_lm.cpp)
 
 # 拟合后端无外部库依赖, 仅需 libm。
-set(SDET_FIT_LINK astrocs_platform_math)
+set(SDET_FIT_LINK acsd_platform_math)
 
 # core 组可执行 (units/properties/oracle/negative 共享执行器框架;
 # main 与组注册表在 p1star_tests_main.cpp — selfcheck 目标共享 core TUs
@@ -119,12 +119,12 @@ file(GENERATE OUTPUT ${P1STAR_LAUNCHER}
 # LD_PRELOAD 无法携带含空格路径 (glibc ld.so 按空格分词, 无转义机制) →
 # 运行时把 .so 复制到无空格临时目录再预载; 探测子进程 execv 继承该值
 # 临时根不写死 /tmp (Windows 无此路径; 宿主 /tmp 可能不可写 —— AGENTS §3):
-# 依次尝试 ASTROCS_TEST_TMPDIR / TMPDIR / /dev/shm / /tmp, 取第一个可写且无空格的。
+# 依次尝试 ACSD_TEST_TMPDIR / TMPDIR / /dev/shm / /tmp, 取第一个可写且无空格的。
 OOMDIR=\"\"
-for d in \"\$ASTROCS_TEST_TMPDIR\" \"\${TMPDIR:-}\" /dev/shm /tmp; do
+for d in \"\$ACSD_TEST_TMPDIR\" \"\${TMPDIR:-}\" /dev/shm /tmp; do
   [ -n \"\$d\" ] || continue
   case \"\$d\" in *\" \"*) continue;; esac
-  if mkdir -p \"\$d/astrocs_p1star\" 2>/dev/null && [ -w \"\$d/astrocs_p1star\" ]; then OOMDIR=\"\$d/astrocs_p1star\"; break; fi
+  if mkdir -p \"\$d/acsd_p1star\" 2>/dev/null && [ -w \"\$d/acsd_p1star\" ]; then OOMDIR=\"\$d/acsd_p1star\"; break; fi
 done
 [ -n \"\$OOMDIR\" ] || { echo 'p1star_negative: no writable space-free temp dir' >&2; exit 1; }
 cp \"$<TARGET_FILE:p1star_oom_interposer>\" \"\$OOMDIR/sdet_oom_interposer.so\" &&
@@ -169,7 +169,7 @@ set_tests_properties(p1star_performance PROPERTIES
 # 故障注入必败自检 (结构先例 P1-HIPS-TEST c19b4a59: p1hips_selfcheck 单 test
 # 三阶段 — baseline 必 PASS 排除恒 FAIL 侧, 注入 A/B (units/oracle 双注入点)
 # 经 fork+execve /proc/self/exe <group> argv 子进程模式必 FAIL 排除恒 PASS 侧;
-# 共享 core TUs, 注入经 ASTROCS_P1STAR_FAULT FaultRegistry 断言翻转)。
+# 共享 core TUs, 注入经 ACSD_P1STAR_FAULT FaultRegistry 断言翻转)。
 add_executable(p1star_selfcheck_test
   ${P1STAR_DIR}/p1star_tests_selfcheck.cpp
   ${P1STAR_DIR}/p1star_tests_core.cpp
@@ -186,7 +186,7 @@ endif()
 add_test(NAME p1star_selfcheck COMMAND p1star_selfcheck_test)
 set_tests_properties(p1star_selfcheck PROPERTIES
   WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/run
-  ENVIRONMENT "OMP_NUM_THREADS=1;ASTROCS_P1STAR_FAULT="
+  ENVIRONMENT "OMP_NUM_THREADS=1;ACSD_P1STAR_FAULT="
   PASS_REGULAR_EXPRESSION "SELFCHECK PASS")
 
 # ----------------------------------------------------------------------------
@@ -248,7 +248,7 @@ set_tests_properties(p1star_nls_lm PROPERTIES
 
 # ----------------------------------------------------------------------------
 # STARDET-01：星表引导检测（权威路径）判据 —— sdet_detect_guided_ex_f64
-# 规范锚 docs/ASTROCS_DESIGN.md §4.2/§2.1 + docs/detail/algorithms_phase1/
+# 规范锚 docs/ACSD_DESIGN.md §4.2/§2.1 + docs/detail/algorithms_phase1/
 # 03_star_detection.md §4：检测定义域 = 星表位置，只对该位置做质心/PSF 拟合，
 # 失败直接丢弃（不计虚警、不报错）；全图盲检测降级为诊断/初值路径（保留）。
 # 被测源 = 与 p1star_tests 同一 ${SDET_SRC} 生产 TU 集（生产源零改动）。
@@ -284,7 +284,7 @@ target_include_directories(p1stardet_node_gate_test PRIVATE
 target_compile_definitions(p1stardet_node_gate_test PRIVATE
   P1STARDET_REPO_ROOT="${CMAKE_SOURCE_DIR}")
 target_link_libraries(p1stardet_node_gate_test PRIVATE
-  astrocs_module_adapters astrocs_core astrocs_phase1_session)
+  acsd_module_adapters acsd_core acsd_phase1_session)
 add_test(NAME p1stardet_node_gate COMMAND p1stardet_node_gate_test)
 set_tests_properties(p1stardet_node_gate PROPERTIES
   WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/run

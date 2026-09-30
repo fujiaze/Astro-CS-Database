@@ -1,6 +1,6 @@
 # 星检测模块实现细节设计（逐算子论文锚定规格）
 
-> 上游：`docs/ASTROCS_DESIGN.md` §2（科学链）、§4.2（Phase1 节点流程）、
+> 上游：`docs/ACSD_DESIGN.md` §2（科学链）、§4.2（Phase1 节点流程）、
 > `docs/science/algorithms/STAR_DETECTION_ALGORITHMS.md`（算法推导与冻结定义，下称 ALG）、
 > `docs/science/STAR_DETECTION.md`（下称 SCI-P1）
 

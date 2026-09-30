@@ -30,18 +30,18 @@
  *   「持久化未确认」）并允许对父目录重跑 fsync 确认；只有 kNotPublished 才按
  *   「无正式产品」清理/重发。
  *
- * 状态码 0..15/70/71 数值与 lib/algorithms/drizzle/hips/include/astrocs/hips/publish.h
- * aio_publish_status_v1、lib/include/astrocs/io/aio_abi_v1.h 对齐（编译期 static_assert）。
+ * 状态码 0..15/70/71 数值与 lib/algorithms/drizzle/hips/include/acsd/hips/publish.h
+ * aio_publish_status_v1、lib/include/acsd/io/aio_abi_v1.h 对齐（编译期 static_assert）。
  */
-#ifndef ASTROCS_V6_AIO_ATOMIC_PUBLISH_H
-#define ASTROCS_V6_AIO_ATOMIC_PUBLISH_H
+#ifndef ACSD_V6_AIO_ATOMIC_PUBLISH_H
+#define ACSD_V6_AIO_ATOMIC_PUBLISH_H
 
 #include <cstddef>
 #include <cstdint>
 #include <functional>
 #include <string>
 
-namespace astrocs {
+namespace acsd {
 namespace aio {
 
 enum class PublishStatus : int {
@@ -69,7 +69,7 @@ const char* publish_status_name(PublishStatus s);
 
 // P-174 三终态：发布终态的**持久化事实**，与 status 正交。数值域独立于冻结的
 // PublishStatus（0..15/70/71，见文件末尾 static_assert），因此不触碰
-// lib/include/astrocs/io/aio_abi_v1.h 与 lib/algorithms/drizzle/hips/include/astrocs/hips/publish.h。
+// lib/include/acsd/io/aio_abi_v1.h 与 lib/algorithms/drizzle/hips/include/acsd/hips/publish.h。
 enum class PublishDurability : int {
   kDurable = 0,       // 目标可见 + 目录项持久化已确认（rename 后目录 fsync 成功）
   kNotDurable = 1,    // 目标可见（已发布、不可回滚）+ 持久化未确认 => 第三态
@@ -163,6 +163,6 @@ static_assert(static_cast<int>(PublishStatus::kOk) == 0 &&
               "V6 AIO publish status 数值域与 AIO-001/AIO-002 冻结一致");
 
 }  // namespace aio
-}  // namespace astrocs
+}  // namespace acsd
 
-#endif  // ASTROCS_V6_AIO_ATOMIC_PUBLISH_H
+#endif  // ACSD_V6_AIO_ATOMIC_PUBLISH_H

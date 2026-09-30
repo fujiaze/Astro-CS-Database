@@ -3,7 +3,7 @@
 """make_windows_release.py — WIN-009: 生成 Windows amd64 alpha 发布包(09 §5)。
 正式包结构(单一 user exe + 私有运行时 DLL + manifest + SBOM/licenses + hash):
    ACSD-Windows-amd64-<X.Y.Z-alpha.N>.zip
-   └─ astrocs/                    (根目录, 便于解包)
+   └─ acsd/                    (根目录, 便于解包)
       ├─ acsd.exe              (唯一用户可执行; 无旧 phase/benchmark/tool exe)
       ├─ msvcp140.dll              (私有运行时; vcomp/vcruntime 同理)
       ├─ vcomp140.dll
@@ -111,7 +111,7 @@ def main() -> int:
         "dataLicense": "CC0-1.0",
         "SPDXID": "SPDXRef-DOCUMENT",
         "name": f"ACSD-Windows-amd64-{base}",
-        "documentNamespace": f"https://astrocs.local/spdx/{c12}",
+        "documentNamespace": f"https://acsd.local/spdx/{c12}",
         "creationInfo": {"created": "2026-08-30T16:00:00Z",
                          "creators": ["Tool:make_windows_release.py"]},
         "packages": [{
@@ -156,7 +156,7 @@ def main() -> int:
         for fn in sorted(files):
             full = os.path.join(dirpath, fn)
             rel = os.path.relpath(full, root).replace(os.sep, "/")
-            sums.append(f"{sha256_file(full)}  astrocs/{rel}")
+            sums.append(f"{sha256_file(full)}  acsd/{rel}")
     with open(os.path.join(root, "SHA256SUMS"), "w", encoding="utf-8") as f:
         f.write("\n".join(sums) + "\n")
 

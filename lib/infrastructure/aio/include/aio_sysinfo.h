@@ -2,7 +2,7 @@
 // aio_sysinfo.h - AIO 系统信息探测 C API（可用内存）
 //
 // 依据
-//   - docs/ASTROCS_DESIGN.md §10 逐字：「aio 是文件级唯一 I/O 边界：任何文件读写经
+//   - docs/ACSD_DESIGN.md §10 逐字：「aio 是文件级唯一 I/O 边界：任何文件读写经
 //     aio，不得有第二处 I/O 实现」；机器判据「全仓文件打开 / 流式读写 / 文件
 //     系统写操作，除 aio 内部外应为 0」。
 //   - 任务 AIO-SYSINFO-01：把 scheduler 的「可用内存探测」收进 aio 边界。原实现
@@ -20,7 +20,7 @@
 //     「同一 run 内不同节点的并发上限」依赖调用顺序。无跨调用共享可变状态 ⇒
 //     reentrant（多线程并发调用安全）。
 //
-// 平台（口径按平台补全；依据 docs/ASTROCS_DESIGN.md §9「可用 CPU = 亲和性 ∩ cgroup
+// 平台（口径按平台补全；依据 docs/ACSD_DESIGN.md §9「可用 CPU = 亲和性 ∩ cgroup
 //         ∩ Job Object」的同款交叠语义）
 //   - Linux  : ① /proc/meminfo 的 MemAvailable（内核估算的「不触发 swap 即可满足
 //     新分配」的内存，**含可回收 page cache**）。这是本项目既有口径：

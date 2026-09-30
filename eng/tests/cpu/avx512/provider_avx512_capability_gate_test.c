@@ -5,21 +5,21 @@
  *   生产 query 在真实 CPUID/XGETBV 上要求 required = F|CD|BW|DQ|VL 五子集
  *   ⊆ os_safe (CPU-001 classify: OSXSAVE=1 且 XCR0.opmask|ZMM_Hi256|Hi16_ZMM
  *   = 0xE0 全置 且五子集 hw 全置才整体进 os_safe)。非支持路径无法在真实
- *   全 AVX-512 主机触发, 以 stub 探测注入 (链接期替换 acs_cap_detect_v1 /
- *   acs_cap_os_safe_satisfies_v1, 同 baseline/avx2 gate 测试法):
+ *   全 AVX-512 主机触发, 以 stub 探测注入 (链接期替换 acsd_cap_detect_v1 /
+ *   acsd_cap_os_safe_satisfies_v1, 同 baseline/avx2 gate 测试法):
  *   - 探测失败 (非 amd64) → 拒绝 ACS_ERR_UNSUPPORTED;
  *   - 缺任一子集 (F 有但 CD/BW/DQ/VL 缺) → 拒绝 (CPUID negative; 组整体
  *     不在 os_safe —— "不能只看 AVX512F");
  *   - OS 不保存 ZMM state (osxsave=1 但 xcr0 仅 0x6 无 0xE0) → 拒绝
  *     (XGETBV negative; 硬件支持但 OS 不保存 opmask/ZMM → os_safe 清除);
  *   - 全 AVX-512 机 (osxsave=1, xcr0=0xE6, 五子集全) → 通过; out 填充。
- *   - acs_cpu_avx512_cap_gate 是本 provider 的 query 能力门 (命名导出)。
+ *   - acsd_cpu_avx512_cap_gate 是本 provider 的 query 能力门 (命名导出)。
  *
  * 链接: 本 TU + avx512_provider.cpp (不带真实 capability_detect.c)。
  * 纯 C11/C++17 双可编译; 退出码 0=全 PASS。
  */
-#include "astrocs/cpu/avx512_provider_v1.h"
-#include "astrocs/cpu/capability_v1.h"
+#include "acsd/cpu/avx512_provider_v1.h"
+#include "acsd/cpu/capability_v1.h"
 
 #include <stdio.h>
 #include <string.h>
@@ -45,7 +45,7 @@ static int g_failures = 0;
 #ifdef __cplusplus
 extern "C" {
 #endif
-int acs_cpu_avx512_cap_gate(acs_cap_result_v1* out);
+int acsd_cpu_avx512_cap_gate(acsd_cap_result_v1* out);
 #ifdef __cplusplus
 }
 #endif
@@ -54,10 +54,10 @@ int acs_cpu_avx512_cap_gate(acs_cap_result_v1* out);
  * mode: 0=detect 失败  1=缺子集 (F-only)  2=OS 禁 ZMM (xcr0 0x6)
  *       3=全 AVX-512 (xcr0 0xE6)  4=无 AVX-512 硬件 */
 static int g_stub_mode = 0;
-int acs_cap_detect_v1(acs_cap_result_v1* out) {
+int acsd_cap_detect_v1(acsd_cap_result_v1* out) {
     if (out == NULL) return ACS_CAP_ERR_PARAM;
     memset(out, 0, sizeof(*out));
-    out->struct_size = (uint32_t)sizeof(acs_cap_result_v1);
+    out->struct_size = (uint32_t)sizeof(acsd_cap_result_v1);
     out->abi_version = ACS_CAP_ABI_VERSION_V1;
     out->schema_version = ACS_CAP_SCHEMA_VER;
     if (g_stub_mode == 0) return ACS_CAP_ERR_UNSUPPORTED;   /* 非 amd64/探测失败 */
@@ -98,43 +98,43 @@ int acs_cap_detect_v1(acs_cap_result_v1* out) {
 }
 
 /* os_safe 判定 stub: required ⊆ cap->os_safe (等价生产 os_safe_satisfies) */
-int acs_cap_os_safe_satisfies_v1(const acs_cap_result_v1* cap, uint64_t required) {
+int acsd_cap_os_safe_satisfies_v1(const acsd_cap_result_v1* cap, uint64_t required) {
     if (cap == NULL) return 0;
     if (required == 0) return 1;
     return (cap->os_safe & required) == required;
 }
 
 int main(void) {
-    acs_cap_result_v1 cap;
+    acsd_cap_result_v1 cap;
     memset(&cap, 0, sizeof(cap));
     cap.struct_size = (uint32_t)sizeof(cap);
     cap.abi_version = ACS_CAP_ABI_VERSION_V1;
 
     /* 1. 探测失败 (非 amd64) → 拒绝 */
     g_stub_mode = 0;
-    CHECK_ST(ACS_ERR_UNSUPPORTED, acs_cpu_avx512_cap_gate(&cap),
+    CHECK_ST(ACS_ERR_UNSUPPORTED, acsd_cpu_avx512_cap_gate(&cap),
              "cap detect unsupported (非 amd64)");
 
     /* 2. CPUID negative: 缺子集 (AVX512F-only, CD/BW/DQ/VL 缺) → 拒绝
      *    (不能只看 AVX512F=true; 15 §2) */
     g_stub_mode = 1;
-    CHECK_ST(ACS_ERR_UNSUPPORTED, acs_cpu_avx512_cap_gate(&cap),
+    CHECK_ST(ACS_ERR_UNSUPPORTED, acsd_cpu_avx512_cap_gate(&cap),
              "missing subset (F-only) rejected");
 
     /* 3. XGETBV negative: 全子集硬件但 OS 不保存 ZMM state (xcr0 0x6)
      *    → os_safe 清除 AVX-512 组 → 拒绝 */
     g_stub_mode = 2;
-    CHECK_ST(ACS_ERR_UNSUPPORTED, acs_cpu_avx512_cap_gate(&cap),
+    CHECK_ST(ACS_ERR_UNSUPPORTED, acsd_cpu_avx512_cap_gate(&cap),
              "os no zmm state rejected");
 
     /* 4. 无 AVX-512 硬件 (仅 AVX2) → 拒绝 */
     g_stub_mode = 4;
-    CHECK_ST(ACS_ERR_UNSUPPORTED, acs_cpu_avx512_cap_gate(&cap),
+    CHECK_ST(ACS_ERR_UNSUPPORTED, acsd_cpu_avx512_cap_gate(&cap),
              "no avx512 hw rejected");
 
     /* 5. 全 AVX-512 机 (osxsave=1, xcr0=0xE6, 五子集 os_safe) → 通过 */
     g_stub_mode = 3;
-    CHECK_ST(ACS_OK, acs_cpu_avx512_cap_gate(&cap), "full avx512 ok");
+    CHECK_ST(ACS_OK, acsd_cpu_avx512_cap_gate(&cap), "full avx512 ok");
     CHECK((cap.os_safe & ACS_CPU_AVX512_REQUIRED_FEATURES) ==
           ACS_CPU_AVX512_REQUIRED_FEATURES);
     CHECK(cap.xcr0 == 0xE6u);

@@ -1,5 +1,5 @@
 {
-  "psf_schema": "astrocs.v6.psf/v1",
+  "psf_schema": "acsd.v6.psf/v1",
   "schema_version": 1,
   "psf_id": "psf_run3_band_r",
   "psf_family": "moffat4",

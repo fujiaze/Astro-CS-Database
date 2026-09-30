@@ -5,13 +5,13 @@
 // 4. export_index_json 用 JSON 正确转义（含 executable 标志）
 // 5. 每个模块 validate_config / inspect 合同路径（P1-001 后 Phase1=真实
 //    operation 适配器: inspect 未执行显式拒绝; Phase2/3=Session inspect）
-#include "astrocs/core/module_adapters.h"
+#include "acsd/core/module_adapters.h"
 
 #include <cstdio>
 #include <string>
 #include <string_view>
 
-using namespace astrocs::core;
+using namespace acsd::core;
 
 static int failures = 0;
 #define CHECK(cond)                                                       \
@@ -29,20 +29,20 @@ static void test_register_three_phase_modules() {
   if (r.failed()) return;
   // P1-001 (G4): 8 类 Phase1 + Phase2/3 = 10; P2-006 (G5): +7 节点链 = 17
   CHECK(reg.size() == 22);   // P2-006 7 子模块 + P3-006 5 子模块 + 既有 10
-  CHECK(reg.has_factory("astrocs.phase1.calibration"));
-  CHECK(reg.has_factory("astrocs.phase2.resample"));
-  CHECK(reg.has_factory("astrocs.phase3.resample"));
+  CHECK(reg.has_factory("acsd.phase1.calibration"));
+  CHECK(reg.has_factory("acsd.phase2.resample"));
+  CHECK(reg.has_factory("acsd.phase3.resample"));
   // create 全部成功（不接受只注册 metadata）
-  for (const auto& id : {"astrocs.phase1.calibration",
-                         "astrocs.phase2.resample",
-                         "astrocs.phase3.resample",
-                         "astrocs.phase1.cosmetic",
-                         "astrocs.phase1.star-psf",
-                         "astrocs.phase1.wcs-platesolve",
-                         "astrocs.phase1.photometry",
-                         "astrocs.phase1.noise-snr",
-                         "astrocs.phase1.drizzle",
-                         "astrocs.phase1.writer"}) {
+  for (const auto& id : {"acsd.phase1.calibration",
+                         "acsd.phase2.resample",
+                         "acsd.phase3.resample",
+                         "acsd.phase1.cosmetic",
+                         "acsd.phase1.star-psf",
+                         "acsd.phase1.wcs-platesolve",
+                         "acsd.phase1.photometry",
+                         "acsd.phase1.noise-snr",
+                         "acsd.phase1.drizzle",
+                         "acsd.phase1.writer"}) {
     auto m = reg.create(id);
     CHECK(m.ok());
     if (m.ok()) {
@@ -55,7 +55,7 @@ static void test_register_three_phase_modules() {
 static void test_descriptor_contracts() {
   ModuleRegistry reg;
   CHECK(register_phase_modules(reg).ok());
-  const ModuleDescriptor* d1 = reg.find("astrocs.phase1.calibration");
+  const ModuleDescriptor* d1 = reg.find("acsd.phase1.calibration");
   CHECK(d1 != nullptr);
   if (d1) {
     CHECK(d1->sci_id.rfind("SCI-", 0) == 0);
@@ -68,7 +68,7 @@ static void test_descriptor_contracts() {
     CHECK(d1->abi == "c++17");
     CHECK(!d1->version.empty());
   }
-  const ModuleDescriptor* d3 = reg.find("astrocs.phase3.resample");
+  const ModuleDescriptor* d3 = reg.find("acsd.phase3.resample");
   CHECK(d3 != nullptr);
   if (d3) {
     CHECK(d3->ports.size() == 2);
@@ -85,7 +85,7 @@ static void test_rejections() {
   ModuleRegistry reg;
   // heavy+serial 拒绝
   ModuleDescriptor hs;
-  hs.module_id = "astrocs.bad.serial";
+  hs.module_id = "acsd.bad.serial";
   hs.version = "1.0.0";
   hs.abi = "c++17";
   hs.execution_class = "cpu_heavy";
@@ -95,7 +95,7 @@ static void test_rejections() {
   CHECK(r1.failed());
   // ACR production 拒绝
   ModuleDescriptor acr;
-  acr.module_id = "astrocs.acr.whatever";
+  acr.module_id = "acsd.acr.whatever";
   acr.version = "1.0.0";
   acr.abi = "c++17";
   acr.execution_class = "io";
@@ -105,7 +105,7 @@ static void test_rejections() {
   CHECK(r2.failed());
   // 重复端口拒绝
   ModuleDescriptor dup;
-  dup.module_id = "astrocs.bad.dupport";
+  dup.module_id = "acsd.bad.dupport";
   dup.version = "1.0.0";
   dup.abi = "c++17";
   dup.execution_class = "io";
@@ -116,7 +116,7 @@ static void test_rejections() {
   // 重复 ID 拒绝
   ModuleRegistry reg2;
   CHECK(register_phase_modules(reg2).ok());
-  auto d1 = *reg2.find("astrocs.phase1.calibration");
+  auto d1 = *reg2.find("acsd.phase1.calibration");
   auto r4 = reg2.register_module(d1);
   CHECK(r4.failed());
 }
@@ -127,18 +127,18 @@ static void test_export_index_json() {
   std::string idx;
   CHECK(reg.export_index_json(&idx));
   // 正确 JSON（可 parse）+ 转义 + executable 标志
-  CHECK(idx.find("\"schema\":\"astrocs.module-index/v1\"") != std::string::npos);
+  CHECK(idx.find("\"schema\":\"acsd.module-index/v1\"") != std::string::npos);
   CHECK(idx.find("\"executable\":true") != std::string::npos);
-  CHECK(idx.find("astrocs.phase3.resample") != std::string::npos);
+  CHECK(idx.find("acsd.phase3.resample") != std::string::npos);
 }
 
 static void test_factory_execution() {
   ModuleRegistry reg;
   CHECK(register_phase_modules(reg).ok());
   // 每个模块 validate_config 走真实 session（空/最小配置 → 合同路径）
-  for (const auto& id : {"astrocs.phase1.calibration",
-                         "astrocs.phase2.resample",
-                         "astrocs.phase3.resample"}) {
+  for (const auto& id : {"acsd.phase1.calibration",
+                         "acsd.phase2.resample",
+                         "acsd.phase3.resample"}) {
     auto m = reg.create(id);
     CHECK(m.ok());
     if (!m.ok()) continue;
@@ -150,7 +150,7 @@ static void test_factory_execution() {
     // 不伪造空 manifest; 正向/负向面见 p1001_real_nodes_test）; Phase2/3
     // 仍为 SessionModule inspect 合同路径。
     auto insp = m.value()->inspect();
-    if (std::string_view(id).substr(0, 15) == "astrocs.phase1.") {
+    if (std::string_view(id).substr(0, 15) == "acsd.phase1.") {
       CHECK(insp.failed());
     } else {
       CHECK(insp.ok());

@@ -358,7 +358,7 @@ static int build_impl(const P2ControlObservation* obs, std::uint64_t n_obs,
         const std::uint64_t tile = leaf_to_tile(o.leaf_ipix, tile_shift);
         const std::uint64_t local = leaf_local(o.leaf_ipix, tile_shift);
         std::uint32_t x = 0, y = 0;
-        astrocs::healpix::nested_local_to_xy(local, (std::uint32_t)tile_shift,
+        acsd::healpix::nested_local_to_xy(local, (std::uint32_t)tile_shift,
                                              x, y);
         const int gx = (int)(x / (std::uint32_t)m->cell_side);
         const int gy = (int)(y / (std::uint32_t)m->cell_side);
@@ -458,7 +458,7 @@ static int build_impl(const P2ControlObservation* obs, std::uint64_t n_obs,
                 // 粗筛：|Δra|/|Δdec| 先于角距（避免 O(B²) 全角距）
                 if (std::fabs(a.ra_deg - b.ra_deg) > link_deg) continue;
                 if (std::fabs(a.dec_deg - b.dec_deg) > link_deg) continue;
-                if (astrocs::healpix::angular_distance_deg(
+                if (acsd::healpix::angular_distance_deg(
                         a.ra_deg, a.dec_deg, b.ra_deg, b.dec_deg) < link_deg) {
                     m->adj[boundary[i]].push_back(boundary[j]);
                     m->adj[boundary[j]].push_back(boundary[i]);
@@ -1203,7 +1203,7 @@ static int build_impl(const P2ControlObservation* obs, std::uint64_t n_obs,
             for (std::size_t k = 0; k < K; ++k)
                 payload += fmt(m->gauge[k]) + ";";
         }
-        const std::string h = astrocs::crypto::sha256_hex(
+        const std::string h = acsd::crypto::sha256_hex(
             payload.data(), payload.size());
         std::memcpy(m->info.model_hash, h.c_str(), 64);
         m->info.model_hash[64] = '\0';
@@ -1387,7 +1387,7 @@ int p2_upm_save(const void* model, const char* path) {
     // 否则拒绝写盘，防止生成绑定已损坏的模型文件。
     if (m->frame_id_by_index.size() != m->C.size()) return 1;
     nlohmann::json j;
-    j["format"] = "astrocs-upm-v2";
+    j["format"] = "acsd-upm-v2";
     j["version"] = m->info.version;
     j["target_order"] = m->info.target_order;
     j["grid"] = m->grid;
@@ -1522,7 +1522,7 @@ int p2_upm_open(const char* path, void** out_model) {
         return 1;
     }
     delete[] buf;
-    if (j.value("format", std::string()) != "astrocs-upm-v2")
+    if (j.value("format", std::string()) != "acsd-upm-v2")
         return 1;
     Model* m = new Model();
     try {
@@ -1925,7 +1925,7 @@ int p2_upm_calibrate_block(const void* model, std::uint64_t frame_id,
             leaf_ipix[i] >> (2u * (unsigned)tile_shift);
         const std::uint64_t local = leaf_ipix[i] & mask;
         std::uint32_t x = 0, y = 0;
-        astrocs::healpix::nested_local_to_xy(local, (std::uint32_t)tile_shift,
+        acsd::healpix::nested_local_to_xy(local, (std::uint32_t)tile_shift,
                                              x, y);
         // 双线性空间校正场求值（cell 内随位置连续）
         const double c =
@@ -1957,7 +1957,7 @@ double p2_upm_evaluate_c(const void* model, std::uint64_t frame_id,
     const std::uint64_t tile = leaf_ipix >> (2u * (unsigned)tile_shift);
     const std::uint64_t local = leaf_ipix & mask;
     std::uint32_t x = 0, y = 0;
-    astrocs::healpix::nested_local_to_xy(local, (std::uint32_t)tile_shift,
+    acsd::healpix::nested_local_to_xy(local, (std::uint32_t)tile_shift,
                                          x, y);
     return evaluate_c_field(m, fi, tile, (int)x, (int)y);
 }
@@ -2015,7 +2015,7 @@ int p2_upm_geometry_hash(const void* model, char* out, int buf_size) {
         payload += ";";
     }
     const std::string h =
-        astrocs::crypto::sha256_hex(payload.data(), payload.size());
+        acsd::crypto::sha256_hex(payload.data(), payload.size());
     std::strncpy(out, h.c_str(), (std::size_t)buf_size - 1);
     out[buf_size - 1] = '\0';
     return 0;
@@ -2115,7 +2115,7 @@ int p2_upm_materialize_dense_n(const void* model, int target_order,
         };
         for (std::uint64_t local = 0; local < npx; ++local) {
             std::uint32_t x = 0, y = 0;
-            astrocs::healpix::nested_local_to_xy(
+            acsd::healpix::nested_local_to_xy(
                 local, (std::uint32_t)tile_shift, x, y);
             int x0, x1, y0, y1;
             axis((int)x, &x0, &x1, gmin, gmax);
@@ -2781,7 +2781,7 @@ int p2_upm_ma_build(const P2UpmMaObservation* obs, std::uint64_t n_obs,
             p << "|o" << r.fi << "," << r.ci << "," << r.y << "," << r.ivar;
         for (std::size_t j = 0; j < m->n_full; ++j) p << "|t" << j << "=" << m->theta_full[j];
         const std::string payload = p.str();
-        const std::string hx = astrocs::crypto::sha256_hex(payload.data(), payload.size());
+        const std::string hx = acsd::crypto::sha256_hex(payload.data(), payload.size());
         std::memset(m->info.model_hash, 0, sizeof(m->info.model_hash));
         std::memcpy(m->info.model_hash, hx.c_str(), std::min<std::size_t>(64, hx.size()));
     }
@@ -2922,7 +2922,7 @@ int p2_upm_ma_provenance(const void* model, char* out_json, std::size_t buf_size
     j["J_C_theta_JT_present"] = true;
     j["C_theta"] = {{"method", "(J^T W J)^-1"},
                     {"dims", {m->n_free, m->n_free}},
-                    {"digest", astrocs::crypto::sha256_hex(
+                    {"digest", acsd::crypto::sha256_hex(
                                    m->C_theta.data(),
                                    m->C_theta.size() * sizeof(double))}};
     if (cfg.k_corr > 0.0) {

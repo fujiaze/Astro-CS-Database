@@ -2,7 +2,7 @@
 // test_p1phot_passband_identity.cpp - 测光装配期**通带身份门**（生产拟合入口）
 //                                      PASSBAND-IDENTITY-GATE-01
 // ----------------------------------------------------------------------------
-// 被测面 = 生产装配入口 astrocs::photometry::fit_frame_photometry
+// 被测面 = 生产装配入口 acsd::photometry::fit_frame_photometry
 //   （scheduler/module_adapters.cpp 的 photometry 节点 → 本入口 → 冻结 C 入口）。
 // 规范依据:
 //   - docs/science/PHOTOMETRY.md §2a.4「比较不同帧/不同模型的 sigma_residual 时
@@ -47,9 +47,9 @@ void check(bool ok, const std::string& what) {
 
 // 组装一个最小但**合法**的拟合请求：所有"缺项即环境失败"的字段都填好，
 // 使失败点必然落在**通带身份判据**上（而不是缺 gaia_dir / 缺 PSF 数组）。
-astrocs::photometry::FramePhotFitRequest make_request(const std::string& filters_json,
+acsd::photometry::FramePhotFitRequest make_request(const std::string& filters_json,
                                                      const std::string& declared) {
-    astrocs::photometry::FramePhotFitRequest req;
+    acsd::photometry::FramePhotFitRequest req;
     static std::vector<double> px(16 * 16, 1.0);
     static std::vector<double> cx{4.0, 8.0, 12.0};
     static std::vector<double> cy{4.0, 8.0, 12.0};
@@ -122,12 +122,12 @@ int main(int argc, char** argv) {
     std::string v1, v2, v3;
     {
         const auto req = make_request(filters, "Antlia V Pro Series B");
-        const auto res = astrocs::photometry::fit_frame_photometry(req);
+        const auto res = acsd::photometry::fit_frame_photometry(req);
         v1 = res.error;
         std::printf("  [F1] declared='Antlia V Pro Series B' FILTER='Baader R': rc=%d fit_ok=%d\n"
                     "       error=%s\n", res.rc, res.fit_ok ? 1 : 0, res.error.c_str());
         check(!res.fit_ok && res.rc != 0 &&
-                  res.failure_scope == astrocs::photometry::FitFailureScope::kEnvironment,
+                  res.failure_scope == acsd::photometry::FitFailureScope::kEnvironment,
               "[F1] 不一致 ⇒ 拒绝产出标度且作用域 = 环境（配置声明矛盾）");
         check(res.error.find("passband identity mismatch") != std::string::npos &&
                   res.error.find("Antlia V Pro Series B") != std::string::npos &&
@@ -138,7 +138,7 @@ int main(int argc, char** argv) {
     // ── [F2] 绿对照: 声明与 FILTER 一致 ⇒ 不得因**身份判据**拒绝 ─────────────
     {
         const auto req = make_request(filters, "Baader R");
-        const auto res = astrocs::photometry::fit_frame_photometry(req);
+        const auto res = acsd::photometry::fit_frame_photometry(req);
         v2 = res.error;
         std::printf("  [F2] declared='Baader R' FILTER='Baader R': rc=%d fit_ok=%d\n"
                     "       error=%s\n", res.rc, res.fit_ok ? 1 : 0, res.error.c_str());
@@ -153,7 +153,7 @@ int main(int argc, char** argv) {
     // ── [F3] 红: 声明名不是库键（不做归一化）─────────────────────────────────
     {
         const auto req = make_request(filters, "Baader  R");   // 双空格
-        const auto res = astrocs::photometry::fit_frame_photometry(req);
+        const auto res = acsd::photometry::fit_frame_photometry(req);
         v3 = res.error;
         std::printf("  [F3] declared='Baader  R'（双空格, 非库键）: rc=%d fit_ok=%d\n"
                     "       error=%s\n", res.rc, res.fit_ok ? 1 : 0, res.error.c_str());
@@ -172,9 +172,9 @@ int main(int argc, char** argv) {
     // ── [F5] 非空断言: 拒绝路径必须带具名判词与稳定作用域 ────────────────────
     {
         const auto req = make_request(filters, "Antlia V Pro Series B");
-        const auto res = astrocs::photometry::fit_frame_photometry(req);
+        const auto res = acsd::photometry::fit_frame_photometry(req);
         check(res.rc != 0 && !res.error.empty() &&
-                  res.failure_scope == astrocs::photometry::FitFailureScope::kEnvironment &&
+                  res.failure_scope == acsd::photometry::FitFailureScope::kEnvironment &&
                   !res.fit_ok,
               "[F5] 拒绝路径非空: rc!=0 + 非空 error + kEnvironment + fit_ok=false");
     }
@@ -208,7 +208,7 @@ int main(int argc, char** argv) {
         const std::string inj_path = "passband_identity_gate_work/injected_wrong_passband.json";
         check(write_file(inj_path, injected), "[F6] 注入库可写（前置）");
         const auto req = make_request(inj_path, "Baader R");
-        const auto res = astrocs::photometry::fit_frame_photometry(req);
+        const auto res = acsd::photometry::fit_frame_photometry(req);
         std::printf("  [F6] 注入错通带（声明 Baader R, 曲线换成 Antlia V Pro Series B）:\n"
                     "       rc=%d fit_ok=%d error=%s\n", res.rc, res.fit_ok ? 1 : 0,
                     res.error.c_str());

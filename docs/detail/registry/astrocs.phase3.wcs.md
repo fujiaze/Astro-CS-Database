@@ -1,6 +1,6 @@
-# 模块 astrocs.phase3.wcs
+# 模块 acsd.phase3.wcs
 
-> 上游：docs/ASTROCS_DESIGN.md §8.5（模块与 ABI）、§6.2（export 流程）、
+> 上游：docs/ACSD_DESIGN.md §8.5（模块与 ABI）、§6.2（export 流程）、
 > §6.3（投影算法：内置多种）
 > 科学正本：docs/science/PHASE3_HIPS_TO_FITS.md（SCI-P3-001，FROZEN，零改动）
 > 算法正本：docs/science/algorithms/PHASE3_PROJ_IMPL.md（ALG-P3-PROJ-IMPL-001；
@@ -18,15 +18,15 @@
 > 引用文献：Greisen, E. W. & Calabretta, M. R. 2002, A&A 395, 1061（FITS WCS Paper I）；
 > Calabretta, M. R. & Greisen, E. W. 2002, A&A 395, 1077（Paper II）
 
-模块 = `astrocs.p3.projection`（module_id 合同值）；registry 行
-MOD-astrocs-phase3-wcs；dll_target = `astrocs_p3_projection.dll`（迁移合同值，
-未落地，IMPLEMENTED 只由验收签发）；现状构建 = `astrocs_phase3_session` 静态库
+模块 = `acsd.p3.projection`（module_id 合同值）；registry 行
+MOD-acsd-phase3-wcs；dll_target = `acsd_p3_projection.dll`（迁移合同值，
+未落地，IMPLEMENTED 只由验收签发）；现状构建 = `acsd_phase3_session` 静态库
 成员，`p3_wcs.cpp` 为其五源文件之一。owner = SA-P3-P25；language = c++17；
 abi_version = 1；phase_scope = phase3；resource_class = cpu_heavy；
 threading_model = `host_executor_lease`（迁移目标合同值；现状 = 内核纯函数无内部
-线程）。descriptor 词汇（module_id=`astrocs.phase3.wcs`、SCI-P3-WCS-001 /
+线程）。descriptor 词汇（module_id=`acsd.phase3.wcs`、SCI-P3-WCS-001 /
 ALG-P3-002 / API-P3-001 / TEST-P3-WCS-001）与 module_id 合同值
-`astrocs.p3.projection` 的对齐属迁移目标（未落地）。
+`acsd.p3.projection` 的对齐属迁移目标（未落地）。
 
 ## 1 身份与合同落位
 
@@ -38,7 +38,7 @@ ALG-P3-002 / API-P3-001 / TEST-P3-WCS-001）与 module_id 合同值
   ALG-P3-002 本域子面 G1/G2）→ DATA-P3-WCS（DATA_SEMANTICS §28）+
   API-P3-PROJ-001 → TEST-P3-WCS-001（设计冻结 = TEST-P3-WCS-DESIGN-001，见 §9）；
   编排面 API-P3-001（p3_session 五段 FROZEN）镜像不变；ARCH-001（VERIFIED）。
-- 上游依赖: astrocs_phase3_session（采样/重采样/写出编排域同库）；
+- 上游依赖: acsd_phase3_session（采样/重采样/写出编排域同库）；
   depends_on_int=ABI-005;DATA-004;RT-006（ABI-005=模块 C ABI 承接、
   DATA-004=WCS descriptor 数据面、RT-006=线程泄漏守卫由纯函数无状态
   结构性满足，ALG §10）。
@@ -115,7 +115,7 @@ ALG-P3-002 / API-P3-001 / TEST-P3-WCS-001）与 module_id 合同值
 
 ## 5 Registry descriptor 与配置 schema
 
-- descriptor（p3_wcs_descriptor，编排层口径）: module_id=`astrocs.phase3.wcs`；
+- descriptor（p3_wcs_descriptor，编排层口径）: module_id=`acsd.phase3.wcs`；
   execution_class=cpu_heavy；parallel_ok=true（纯函数 const-only
   并发安全，与 §7 结构性一致）；ports props(DATA-P3-PROPS 必)
   +wcs_plan(DATA-P3-WCS 可)；sci_id=SCI-P3-WCS-001、alg_id=
@@ -168,12 +168,12 @@ ALG-P3-002 / API-P3-001 / TEST-P3-WCS-001）与 module_id 合同值
 - 未注册投影 → 拒绝；超适用域（极点 / 奇点）→ 明确处理（wrap 或拒绝），错位
   一律显式登记；轴手性 / CRPIX 单位错误 → fail-closed。
 - PA 未接线: p3_session.cpp rotation_pa_deg 恒 0.0（内核能力无会话消费方）。
-- kMaxSide=20000 可 ASTROCS_P3_MAX_SIDE 编译期覆盖（p3_wcs.cpp）——默认值语义
+- kMaxSide=20000 可 ACSD_P3_MAX_SIDE 编译期覆盖（p3_wcs.cpp）——默认值语义
   如实冻结。
 - 产品声明门 `p3_proj_declare` 对非 TAN 码显式返回 `P3_WCS_UNSUPPORTED`
   （含已支持清单），`p3_wcs.cpp` 经 `p3_proj_is_implemented` 产生该状态；
   8 冻结码 = `TAN/SIN/CAR/AIT/STG/MOL/CEA/ZEA`，声明/实现集当前 = `{TAN}`。
-- astrocs_p3_projection.dll 未建（entrypoint 未落地）；探针/回归为内联编译；
+- acsd_p3_projection.dll 未建（entrypoint 未落地）；探针/回归为内联编译；
   WCSLIB 验收 oracle 与可执行测试待建。
 - 合同边界与缺陷登记 = ALG-P3-PROJ-IMPL-001 §11/§13；全局限制登记 =
   artifacts/evidence/known-limitations-ledger/LIMITATIONS.md。
@@ -204,11 +204,11 @@ ALG-P3-002 / API-P3-001 / TEST-P3-WCS-001）与 module_id 合同值
 - DATA: docs/science/DATA_SEMANTICS.md §28
 - API: docs/engineering/PUBLIC_API.md（API-P3-PROJ-001 节）
 - 合同三件套: lib/algorithms/projection/
-- 会话编排面现行权威 = docs/engineering/RT-001.md + docs/detail/registry/astrocs.phase3.*
+- 会话编排面现行权威 = docs/engineering/RT-001.md + docs/detail/registry/acsd.phase3.*
 
 ## NaN 与输出语义
 
-- NaN 规则（权威 = `ASTROCS_DESIGN.md` §5.5）：**样本级掩膜 + 重归一 + 覆盖级 NaN + 强制计数**；
+- NaN 规则（权威 = `ACSD_DESIGN.md` §5.5）：**样本级掩膜 + 重归一 + 覆盖级 NaN + 强制计数**；
   剔除项逐条进场级计数。无覆盖/无数据 = NaN；0 与 ±Inf 不作有效值。
 - 输出语义守卫：只接受**面亮度**语义输入，端口 `UnitId::SURFACE_BRIGHTNESS`；输出模式
   `surface_brightness` / `point_source_flux` / `visualization` 显式声明（最高设计 §6.3）。

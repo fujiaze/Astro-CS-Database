@@ -34,7 +34,7 @@ PHOT_INC = os.path.join(REPO, "lib", "algorithms", "photometry", "wrapper_phase1
 CORE_INC = os.path.join(REPO, "lib", "include")
 
 # 根目录整合后 aio 落 lib/infrastructure/aio，其 PUBLIC include 面 = include/ + src/
-# （见根 CMakeLists.txt: target_include_directories(astrocs_aio PUBLIC ...)）。
+# （见根 CMakeLists.txt: target_include_directories(acsd_aio PUBLIC ...)）。
 # 测试侧独立编译必须同面，否则 aio_atomic_file.h / aio_file_io.h 找不到
 # （GATE-502：修复根目录整合后测试侧遗留的过时 include 面）。
 AIO_INCS = [
@@ -124,7 +124,7 @@ WCS_DRIVER = r'''
 #include <cstdio>
 #include <cstring>
 #include <cmath>
-using namespace astrocs::phase3;
+using namespace acsd::phase3;
 int main(){
     // 已知天球场: 中心 (30,45), scale 0.0011 deg/px, PA=15°, east_left
     P3WcsDescriptor d;
@@ -165,8 +165,8 @@ PHOT_DRIVER = r'''
 #include <cstdio>
 #include <cmath>
 #include <vector>
-using astrocs::phase1::Photometer;
-using astrocs::phase1::PhotometryResult;
+using acsd::phase1::Photometer;
+using acsd::phase1::PhotometryResult;
 // argv: <cx> <cy> <flux> <sigma> <bg>  (高斯 PSF 合成, 无噪声 → 解析 flux 精确)
 int main(int argc,char**argv){
     const int W=128,H=128;

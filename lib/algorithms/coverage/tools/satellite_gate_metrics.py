@@ -18,7 +18,7 @@ from astropy.io import fits
 ROOT = Path(__file__).resolve().parents[3]
 SAT = ROOT / "run" / "temp" / "satgate"
 CLI = os.environ.get(
-    "ASTROCS_REJECTION_CLI",
+    "ACSD_REJECTION_CLI",
     str(ROOT / "lib" / "phase2" / "build" / "rejection_cli.exe"),
 )
 PLAN = {"request": "auto", "nominal": 20, "profile": "wbpp_2_9_1",
@@ -69,8 +69,8 @@ def pixel_stack(ipix, col, row, frames):
 
 
 def main():
-    mingw = os.environ.get("ASTROCS_MINGW_BIN", r"C:\msys64\mingw64\bin")
-    aio = os.environ.get("ASTROCS_AIO_DIR",
+    mingw = os.environ.get("ACSD_MINGW_BIN", r"C:\msys64\mingw64\bin")
+    aio = os.environ.get("ACSD_AIO_DIR",
                          str(ROOT / "lib" / "astro_image_io"))
     if mingw not in os.environ.get("PATH", ""):
         os.environ["PATH"] = mingw + ";" + aio + ";" + \

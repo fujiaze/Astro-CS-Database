@@ -1,6 +1,6 @@
-# 模块 astrocs.phase1.session
+# 模块 acsd.phase1.session
 
-> 上游：docs/ASTROCS_DESIGN.md §8.5（模块与 ABI）
+> 上游：docs/ACSD_DESIGN.md §8.5（模块与 ABI）
 > 数据正本：docs/science/DATA_SEMANTICS.md §16（DATA-P1-SESSION）
 > API 正本：docs/engineering/PUBLIC_API.md「Phase1 装配会话 C API」节
 > （API-P1-SESSION）、docs/engineering/PHASE1_API_V1.md（API-P1-001，FROZEN）
@@ -11,11 +11,11 @@ Phase1 装配底座（`p1_session` 函数族）登记页。权威签名头
 `lib/phase1_session/p1_session.h`，实现 `lib/phase1_session/p1_session.cpp`。
 模块合同落位 `lib/phase1_session/README.md` + `module.yaml`。
 
-**模块词汇与 registry 关系**：`astrocs.phase1.session` 是 assembly 层的模块名；
+**模块词汇与 registry 关系**：`acsd.phase1.session` 是 assembly 层的模块名；
 现行 registry descriptor 工厂表中**无此 module_id** —— 八个 Phase1 descriptor
 工厂经 `P1Api` 委托本模块的五函数（工厂注册面 =
 lib/infrastructure/scheduler/src/module_adapters.cpp）。层级 = assembly（编排），
-不设独立 DLL；构建 = 静态库 `astrocs_phase1_session`（根 CMakeLists）。
+不设独立 DLL；构建 = 静态库 `acsd_phase1_session`（根 CMakeLists）。
 
 ## 职责与明确非职责
 
@@ -47,7 +47,7 @@ config 键集校验、取消传播、线程预算注入、manifest 产出。科�
 
 ## 公共 header、核心 symbol 与生命周期
 
-五导出 C API + `astrocs::phase1::last_error`；合同 = API-P1-SESSION
+五导出 C API + `acsd::phase1::last_error`；合同 = API-P1-SESSION
 （PUBLIC_API.md「Phase1 装配会话 C API」节）；签名权威 =
 lib/phase1_session/p1_session.h。生命周期 create→validate→run→inspect→destroy。
 

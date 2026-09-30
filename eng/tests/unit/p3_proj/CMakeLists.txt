@@ -31,7 +31,7 @@ target_compile_features(p3_proj_probe PRIVATE cxx_std_17)
 foreach(_m const_omega legacy_car legacy_ait swap_norm naive_wrap)
   add_test(NAME p3_proj_fault_${_m} COMMAND p3_proj_test)
   set_tests_properties(p3_proj_fault_${_m} PROPERTIES
-    ENVIRONMENT "ASTROCS_P3PROJ_FAULT=${_m}")
+    ENVIRONMENT "ACSD_P3PROJ_FAULT=${_m}")
 endforeach()
 
 find_program(PYTHON3_EXECUTABLE python3)

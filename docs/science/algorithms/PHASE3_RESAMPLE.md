@@ -1,6 +1,6 @@
 # Phase3 HiPS→FITS Resample Algorithms (ALG-P3)
 
-> 上游：ASTROCS_DESIGN.md §6.2（export 流程）、§6.3（投影算法）
+> 上游：ACSD_DESIGN.md §6.2（export 流程）、§6.3（投影算法）
 
 > 施工规格（重采样域实现级合同 = `docs/science/algorithms/PHASE3_RSMP_IMPL.md`，投影域 = `docs/science/algorithms/PHASE3_PROJ_IMPL.md`，写出域 = `docs/science/algorithms/PHASE3_FITS_IMPL.md`）；生产源 `lib/algorithms/resample/p3_resample.cpp`（586 行，实测在库）。
 

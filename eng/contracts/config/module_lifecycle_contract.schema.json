@@ -1,10 +1,10 @@
 {
-  "contract_schema": "astrocs.module-lifecycle-contract/v1",
+  "contract_schema": "acsd.module-lifecycle-contract/v1",
   "contract_version": 1,
   "contract_id": "CONTRACT-ABI002-LIFECYCLE-V1",
   "doc_status": "ACTIVE_NORMATIVE",
   "title": "ACSD 模块 C ABI v1 生命周期/错误/版本协商语义合同（ABI-002 冻结数据）",
-  "description": "ABI-002 冻结语义的机器可校验数据形态（权威源 = lib/include/astrocs/abi/lifecycle_v1.h 合同头；本文件与头文件必须一致，一致性由 eng/tests/abi/test_abi002_lifecycle.py 机器校验）。冻结依据：ASTROCS-ALPHA3-MODULAR-REFOUNDATION-V7 控制包 tasks/02_ABI_BUILD_CLI_TASKS.md ABI-002 节、12_DLL_ABI_AND_LOADER_STANDARD.md §2/§4、11_MODULE_SOURCE_TEST_STANDARD.md §6；回调形状 A = module_api_v1.h（ABI-001 冻结）。",
+  "description": "ABI-002 冻结语义的机器可校验数据形态（权威源 = lib/include/acsd/abi/lifecycle_v1.h 合同头；本文件与头文件必须一致，一致性由 eng/tests/abi/test_abi002_lifecycle.py 机器校验）。冻结依据：ACSD-ALPHA3-MODULAR-REFOUNDATION-V7 控制包 tasks/02_ABI_BUILD_CLI_TASKS.md ABI-002 节、12_DLL_ABI_AND_LOADER_STANDARD.md §2/§4、11_MODULE_SOURCE_TEST_STANDARD.md §6；回调形状 A = module_api_v1.h（ABI-001 冻结）。",
   "frozen_at": "2026-09-02T00:00:00Z",
   "owner": "SA-ABI-03",
   "target_version": "0.1.0-alpha.1",
@@ -77,7 +77,7 @@
     "major": 1,
     "minor": 0,
     "rules": [
-      "astrocs_module_query_v1 / astrocs_provider_query_v1 的 host_abi 参数必须 == 1；其他值（未来 major=2、minor 漂移、0、垃圾）一律 → ACS_ERR_ABI_MISMATCH，不降级猜测",
+      "acsd_module_query_v1 / acsd_provider_query_v1 的 host_abi 参数必须 == 1；其他值（未来 major=2、minor 漂移、0、垃圾）一律 → ACS_ERR_ABI_MISMATCH，不降级猜测",
       "对端 struct_size < 自身 sizeof → 拒绝（ACS_ERR_ABI_MISMATCH）；对端 >= 自身 sizeof → 兼容（按自身视图读取，忽略扩展尾字段）",
       "data schema（config_schema_ver / manifest schema_version）与 ABI 分离，协商在 eng/packaging/config/plan 期（DATA-001/002），不属本 ABI 层"
     ]

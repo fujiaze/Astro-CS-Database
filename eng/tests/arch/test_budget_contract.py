@@ -12,7 +12,7 @@ INC = os.path.join(REPO, "lib", "include")
 HOST = os.path.join(REPO, "lib", "infrastructure", "benchmark", "backend_host")  # ARCH-001 迁移: lib/backend_host
 
 _DRV = r'''
-#include "astrocs/common_abi_v1.h"
+#include "acsd/common_abi_v1.h"
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
@@ -20,14 +20,14 @@ _DRV = r'''
 #include <vector>
 #include <atomic>
 extern "C" {
-int astrocs_host_services_default_v1(astrocs_host_services_v1* out, void** state_out);
-void astrocs_host_services_destroy_state_v1(void* state);
-void astrocs_host_state_set_budget_v1(void* state, uint32_t cpus, uint32_t max_workers, astrocs_host_services_v1* out);
+int acsd_host_services_default_v1(acsd_host_services_v1* out, void** state_out);
+void acsd_host_services_destroy_state_v1(void* state);
+void acsd_host_state_set_budget_v1(void* state, uint32_t cpus, uint32_t max_workers, acsd_host_services_v1* out);
 }
 int main(int argc,char**argv){
     int maxw=argc>1?atoi(argv[1]):2, nreq=argc>2?atoi(argv[2]):8;
-    astrocs_host_services_v1 host; void* state=nullptr; astrocs_host_services_default_v1(&host,&state);
-    astrocs_host_state_set_budget_v1(state,(uint32_t)maxw,(uint32_t)maxw,&host);
+    acsd_host_services_v1 host; void* state=nullptr; acsd_host_services_default_v1(&host,&state);
+    acsd_host_state_set_budget_v1(state,(uint32_t)maxw,(uint32_t)maxw,&host);
     std::atomic<int> hold{0}, peak_hold{0}, granted{0};
     std::vector<std::thread> ths;
     for(int i=0;i<nreq;++i){
@@ -46,7 +46,7 @@ int main(int argc,char**argv){
     }
     for(auto&t:ths) t.join();
     printf("BUDGET maxw=%d nreq=%d max_hold=%d granted=%d\n",maxw,nreq,peak_hold.load(),granted.load());
-    astrocs_host_services_destroy_state_v1(state); return 0; }
+    acsd_host_services_destroy_state_v1(state); return 0; }
 '''
 
 

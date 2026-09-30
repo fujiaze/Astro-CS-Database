@@ -3,14 +3,14 @@
 //
 // 变体 DSO 由两个 TU 组成（R-60: 非 GCC 工具链没有函数级指令集覆盖 ⇒ 只能按源文件隔离）:
 //   · 门面 TU   avx2_backend.cpp / avx512_backend.cpp  —— **基线旗标**编译:
-//               astrocs_backend_get_api_v1 / backend_self_test / kernel 注册表；
+//               acsd_backend_get_api_v1 / backend_self_test / kernel 注册表；
 //   · 计算面 TU avx2_backend_kernels.cpp / avx512_backend_kernels.cpp —— **目标 ISA 旗标**编译:
 //               共享 kernel 实现 baseline_kernels_impl.inc。
 // 两侧共享同一份实现源与同一份注册表 .inc（零复制漂移不变）。
-#ifndef ASTROCS_BACKEND_VARIANT_KERNELS_H
-#define ASTROCS_BACKEND_VARIANT_KERNELS_H
+#ifndef ACSD_BACKEND_VARIANT_KERNELS_H
+#define ACSD_BACKEND_VARIANT_KERNELS_H
 
-#include "astrocs/common_abi_v1.h"
+#include "acsd/common_abi_v1.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -25,7 +25,7 @@ extern "C" {
  *
  * ABI 不变: 表项类型/条数/条序/backend_id/precision/determinism 与 baseline 完全一致，
  * 只有函数地址指向另一个 TU 的实现（同一份 impl 源，仅 ISA 旗标不同）。 */
-acs_status astrocs_variant_kernel_dispatch_v1(const astrocs_host_services_v1* host,
+acsd_status acsd_variant_kernel_dispatch_v1(const acsd_host_services_v1* host,
                                               const void* params, uint32_t params_bytes,
                                               const void* in, void* out);
 
@@ -33,4 +33,4 @@ acs_status astrocs_variant_kernel_dispatch_v1(const astrocs_host_services_v1* ho
 } /* extern "C" */
 #endif
 
-#endif /* ASTROCS_BACKEND_VARIANT_KERNELS_H */
+#endif /* ACSD_BACKEND_VARIANT_KERNELS_H */

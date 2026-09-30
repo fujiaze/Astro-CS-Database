@@ -57,7 +57,7 @@ REV = os.path.join(ROOT, "reports", "v19r3")
 EXCLUDED_PARTS = {"build", "build2", "_deps", "CMakeFiles", "archive",
                   "__pycache__", ".git", "worktrees", "third_party"}
 EXCLUDED_ROOTS = {"testdata", "GaiaDR3", "GaiaDR3SP",
-                  "siril-1.4.3", "工程控制", "AstroCS.wiki", "reports",
+                  "siril-1.4.3", "工程控制", "ACSD.wiki", "reports",
                   "self_review", "archive_deliverables", "artifacts"}
 SHIPPING_EXT = {".c", ".cpp", ".h", ".hpp", ".cu", ".cc", ".cxx", ".hh"}
 CODE_EXT = SHIPPING_EXT | {".py", ".f", ".f90"}
@@ -82,9 +82,9 @@ FORBIDDEN = re.compile(
     r"要求|§|轮|改名)|骨架|后续 Task|"
     r"聚焦版|Full Freeze|本轮修复|本轮|历史计划|V1[0-9](?:R\d)?")
 WHITELIST = re.compile(
-    r"(?:FITS|HiPS|IVOA|schema|protocol|astrocs-upm-v\d+|"
-    r"NoiseWeightModelV1|model_hash|format|astrocs-stage2|"
-    r"astrocs_adaptive|wbpp_\d+_\d+_\d+|upm_v\d+|hiss_v\d+|"
+    r"(?:FITS|HiPS|IVOA|schema|protocol|acsd-upm-v\d+|"
+    r"NoiseWeightModelV1|model_hash|format|acsd-stage2|"
+    r"acsd_adaptive|wbpp_\d+_\d+_\d+|upm_v\d+|hiss_v\d+|"
     r"astropy|NIST|Girard|Sutherland|Hodgman|HEALPix|CFITSIO|"
     r"P2PixelStack|P2ControlObservation|V19R3|F-V19R2-|SCI-UPM|ALG-UPM|DATA-UPM|"
     r"UPMW-\d+|PR-UPM|SNR-\d+|DRZ-\d+|T\d|G\d|B0[1-9]|B1[0-6]|"

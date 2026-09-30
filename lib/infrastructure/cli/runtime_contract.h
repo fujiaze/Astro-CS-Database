@@ -8,7 +8,7 @@
 //   * 冻结节点 FZ-WEIGHT-SINGLE-PATH：权重只有一个口径 —— Phase1 产稀疏 SNR 控制点
 //     → Phase2 重建稠密 SNR 面 → 取逆方差（最优功率）定权 → 叠加。没有可选择项 ⇒
 //     phase2 的 --mode <token> 一律 fail-closed 拒绝（不存在任何合法 token）；
-//     FZ-MODE-RETIRED psfsw_robust 不是现行对象（docs/ASTROCS_DESIGN.md §3.1；
+//     FZ-MODE-RETIRED psfsw_robust 不是现行对象（docs/ACSD_DESIGN.md §3.1；
 //     docs/detail/UNIFIED_MODEL.md:58），拒绝消息带迁移提示；
 //     FZ-FIELD-WEIGHTMODE legacy 整数 weight_mode 与 auto / support_x_snr2 / equal /
 //     pixel_ivar **全部**拒绝（无任何合法取值，含原 1|2 → baseline
@@ -32,7 +32,7 @@
 #include <string>
 #include <vector>
 
-namespace astrocs {
+namespace acsd {
 namespace v6runtime {
 
 // =====================================================================
@@ -88,7 +88,7 @@ struct ModeRoute {
     std::string token;    // canonical token（production/baseline 时为规范名）
     std::string surface;  // "phase2_weight" | "phase3_export" | "phase2_legacy_int"
     std::string reason;   // reject 时给出冻结节点 id + 说明
-    int rc = 2;           // reject 时 CLI 退出码（astrocs::ARGS = 2）
+    int rc = 2;           // reject 时 CLI 退出码（acsd::ARGS = 2）
 };
 
 // Phase2 权重口径选择面（FZ-WEIGHT-SINGLE-PATH）。
@@ -102,7 +102,7 @@ struct ModeRoute {
 // 「它们是 route_legacy_weight_mode_int 的映射目标登记」；该整数路由删除后，
 // 该理由消失 ⇒ 二者与其余 token 同归 fail-closed（本注释首句本来就是这条口径，
 // 旧实现与自身冻结说明不一致）。
-// 依据：docs/ASTROCS_DESIGN.md §3.1（权重只能来自纯净信号/噪声之比的逆方差，跨帧绝对
+// 依据：docs/ACSD_DESIGN.md §3.1（权重只能来自纯净信号/噪声之比的逆方差，跨帧绝对
 // 标定，不基于参考帧；全程只有 SNR）+ docs/science/PSF_SIGNAL_WEIGHT.md §4（单一
 // 权重口径，无模式选择）。psfsw_robust_weight 不是现行对象
 // （docs/detail/UNIFIED_MODEL.md:58）⇒ 显式拒绝 + 迁移提示，不得静默接受。
@@ -112,7 +112,7 @@ inline ModeRoute route_phase2_weight_token(const std::string& raw) {
     r.token = raw;
     if (raw == "psfsw_robust") {
         r.reason = "FZ-MODE-RETIRED: 'psfsw_robust' rejected - psfsw_robust_weight is "
-                   "not a current object (docs/ASTROCS_DESIGN.md 3.1; UNIFIED_MODEL.md:58); "
+                   "not a current object (docs/ACSD_DESIGN.md 3.1; UNIFIED_MODEL.md:58); "
                    "migration: Phase2 reconstructs the dense SNR field and derives "
                    "inverse-variance weights w = SNR^2/F_ref^2";
         return r;
@@ -135,7 +135,7 @@ inline ModeRoute route_phase2_weight_token(const std::string& raw) {
         // 原实现把这两个 token 放行为 kBaseline（rc=0），理由是
         // 「legacy 整数映射的目标登记」。整数路由已删除 ⇒ 该理由消失；且它们是
         // **输入路径**（CLI --mode）上的口径 token ⇒ 与其余 token 同归 fail-closed
-        // （docs/ASTROCS_DESIGN.md §3.1:175「没有可选择项」；PSF_SIGNAL_WEIGHT.md §4:72
+        // （docs/ACSD_DESIGN.md §3.1:175「没有可选择项」；PSF_SIGNAL_WEIGHT.md §4:72
         // 「不存在口径选择键、口径枚举、口径配置项或口径产物」）。
         r.reason = "FZ-WEIGHT-SINGLE-PATH: '" + raw + "' rejected - there is no "
                    "selectable weight mode; Phase2 reconstructs the dense SNR field "
@@ -174,7 +174,7 @@ inline ModeRoute route_phase3_mode(const std::string& raw) {
 // 见 eng/ci/check_no_weight_mode_code.py C2「退役对象的拒绝面必须存活」与
 // is_retired_weight_mode_token）。最危险值 0（support x SNR^2，无量纲、非信号/噪声
 // 之比）保留**更具体**的拒绝理由，便于用户按提示改对。
-// 依据：docs/ASTROCS_DESIGN.md §3.1:175「权重的产生链固定为两步、没有可选择项」；
+// 依据：docs/ACSD_DESIGN.md §3.1:175「权重的产生链固定为两步、没有可选择项」；
 // docs/science/PSF_SIGNAL_WEIGHT.md §4:72「不存在口径选择键、口径枚举、口径配置项
 // 或口径产物」；docs/science/DATA_SEMANTICS.md §31.3（legacy weight_mode=0 → REJECT）。
 inline ModeRoute route_legacy_weight_mode_int(int v) {
@@ -403,4 +403,4 @@ inline constexpr const char* kDeterminismRule =
     "byte_identical_product_across_workers_chunking_and_scheduling";
 
 }  // namespace v6runtime
-}  // namespace astrocs
+}  // namespace acsd

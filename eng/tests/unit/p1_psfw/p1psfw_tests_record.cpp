@@ -8,7 +8,7 @@
 #include <string>
 #include <vector>
 
-using namespace astrocs::v6::p1psfw;
+using namespace acsd::v6::p1psfw;
 
 namespace {
 bool has_gate(const RecordValidation& v, const char* gate) {

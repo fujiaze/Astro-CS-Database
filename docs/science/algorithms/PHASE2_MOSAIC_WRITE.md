@@ -1,7 +1,7 @@
 # Phase2 HiPS Mosaic Write Algorithms (ALG-P2-HIPS-001..004)
 
 > 本文件条款为冻结定义，变更走变更流程。
-> 上游：ASTROCS_DESIGN.md §10（I/O 与原子产品）
+> 上游：ACSD_DESIGN.md §10（I/O 与原子产品）
 
 > 上游 SCI（只读引用，全部 FROZEN，共享引用不改动）: SCI-UPM-001（docs/science/PHASE2_UPM.md §5 w_UPM 公式）、
 > SCI-INT-001（docs/science/INTEGRATION.md §5 signal/sup_max 公式）、SCI-REJ-001（docs/science/REJECTION.md，
@@ -13,9 +13,9 @@
 > no root science formula change（w_UPM / signal / sup_max / rejection 判据一律不改）。
 > 下游: DATA-P2-INT / DATA-P2-RES（DATA_SEMANTICS §20 DATA-P2-HIPS）、
 > API-P2-001（docs/engineering/PHASE2_API_V1.md）+ PUBLIC_API Phase2 mosaic write 节、
-> 模块 MOD-astrocs-phase2-hips-writer（registry 现状实测 astrocs.phase2.write.md =
-> MOD-astrocs-phase2-write，二者对齐归 P2-HIPS-INT，见 §11.6）。
-> 矩阵行: docs/traceability/TRACEABILITY_MATRIX.json（module_id=astrocs.phase2.write 现状域）。
+> 模块 MOD-acsd-phase2-hips-writer（registry 现状实测 acsd.phase2.write.md =
+> MOD-acsd-phase2-write，二者对齐归 P2-HIPS-INT，见 §11.6）。
+> 矩阵行: docs/traceability/TRACEABILITY_MATRIX.json（module_id=acsd.phase2.write 现状域）。
 
 ## 1 上游 SCI 与输入输出
 
@@ -38,7 +38,7 @@
   注释 "禁止重新检测星点" :73）。
 - 输出: 单个 Phase2 马赛克 HiPS 目录（`cfg.out_hips`），仅 signal/support 两产品
   （flags=`AIO_HIPS_PRODUCT_SIGNAL | AIO_HIPS_PRODUCT_SUPPORT` :594；DISP-P2HIPS-001），
-  creator="ivo://astrocs/phase2"、title="Astro Celestial Sphere Database（ACSD） Phase2 Mosaic"（:595）、
+  creator="ivo://acsd/phase2"、title="Astro Celestial Sphere Database（ACSD） Phase2 Mosaic"（:595）、
   filter=infos[0].filter_passband（:531/:596）；diagnostics=true 时另写
   diagnostics.json（:1748-1750）与 upm_sparse.json/upm_dense.cache（:472-483）。
 - 下游消费: 编排层 p2_session（lib/phase2_session/p2_session.cpp:81-92 仅验证
@@ -58,7 +58,7 @@
     （:230-236，字段取自 P2HipsInputInfo）。
   - 按 frame_id 升序排序（:238-239）后串接 canonical payload
     `"<fid>|<meta>;"`（:240-242）；
-    `input_manifest_hash = astrocs::crypto::sha256_hex(manifest_payload)`
+    `input_manifest_hash = acsd::crypto::sha256_hex(manifest_payload)`
     （:243-244，log :245）。
   - 该 hash 经 `p2_stage2_make_upm_cfg(cfg, target_order, input_manifest_hash.c_str())`
     （:428-430）进入 UPM 构建 → `minfo.model_hash`（:439-444，log "hash=…12 位…"）；
@@ -80,8 +80,8 @@
     `wbpp_2_9_1`（**对照档；工具链现状默认**）→ group-level 一次解析
     （:639-658，`p2_reject_plan_resolve` :650，nominal_contributors=帧总数
     :646，tile 不重选 :675 采纳 group_plan）；**生产编排入口默认**
-    `astrocs_adaptive_pixel`（自研，逐输出像素几何 n，见 SCI-REJ §5）；
-    `astrocs_adaptive` → tile 级按 nominal geometric depth 解析（:677-690）；
+    `acsd_adaptive_pixel`（自研，逐输出像素几何 n，见 SCI-REJ §5）；
+    `acsd_adaptive` → tile 级按 nominal geometric depth 解析（:677-690）；
     normalization 三态映射（:691-696）+ floor（:697）；typed params 逐字段
     注入（sigma/winsorized/averaged/linear_fit/esd/percentile/median_sigma/
     minmax，:698-720）；`large_scale_rejection.v1` 参数注入（:721-729）；
@@ -368,7 +368,7 @@ main(stage2.json, CLI overrides):
 - 既有可执行测试（实测）:
   lib/algorithms/coverage/tests/ivar_wiring_test.cpp
   `Phase2IvarWiring.WireProductionStage2PerFrameIvar`（:223 起）——
-  直接跑生产 astrocs-stage2（:3 注释，:147 run_stage2），3 帧合成
+  直接跑生产 acsd-stage2（:3 注释，:147 run_stage2），3 帧合成
   signal/support/ivar，验证 WIRE-IVAR-001..005（per-frame ivar 接线、
   invalid compact 不错位、期望 weighted mean 匹配、C 帧 ivar×4 局部生效、
   帧置换不变）+ CON-006 1T/2T 逐层差分（:304-322）+ CON-009 repeat-2T
@@ -414,14 +414,14 @@ main(stage2.json, CLI overrides):
   support=covered_area/A_cell 钳 1.0（:477-479）与 finalize manifest.json
   语义（:1086-1128）；variance 产品（:1060-1066）P2 不启用；P2 登记的
   是 stage2 侧编排与集成语义，writer 域合同不在此重登记）。
-- DATA: DATA-P2-INT（integrated，registry astrocs.phase2.integrate.md:43）、
-  DATA-P2-RES（mosaic，astrocs.phase2.write.md:23）；逐字段唯一权威见
+- DATA: DATA-P2-INT（integrated，registry acsd.phase2.integrate.md:43）、
+  DATA-P2-RES（mosaic，acsd.phase2.write.md:23）；逐字段唯一权威见
   DATA_SEMANTICS §20。
 - API: API-P2-001（docs/engineering/PHASE2_API_V1.md，FROZEN，所有权/并发合同）+
   PUBLIC_API Phase2 mosaic write 节（生产入口 = `acsd phase2 run` 编排；
   本节登记其底层写出实现 lib/algorithms/coverage/tools/stage2.cpp）。
-- 模块: MOD-astrocs-phase2-hips-writer（registry 现状实测
-  astrocs.phase2.write.md，module_id=astrocs.phase2.write，execution_class=io；
+- 模块: MOD-acsd-phase2-hips-writer（registry 现状实测
+  acsd.phase2.write.md，module_id=acsd.phase2.write，execution_class=io；
   对齐归 P2-HIPS-INT，见 §11.6）。
 - IO: IO-002（docs/science/IO_002_HIPS_INPUT_INTERFACE.md，读输入）、
   IO-003（docs/engineering/io/IO_003_ATOMIC_OUTPUT_PUBLISH.md，发布层，
@@ -476,7 +476,7 @@ f32 产品存取粒度所致，f64 oracle 不沿用）；fixture 生成器注记
 
 - 覆盖链全部语义权威已有 FROZEN SCI: SCI-UPM-001、SCI-INT-001、
   SCI-REJ-001、SCI-SCOPE-001。四者均**共享引用不改动**。
-- matrix P2 域 science_id 占位（registry astrocs.phase2.write.md:7
+- matrix P2 域 science_id 占位（registry acsd.phase2.write.md:7
   upstream=SCI-P2-WR-001/ALG-P2-WR-001）无 docs/science 权威页：语义映射
   由本节声明——SCI-P2-WR-001 ⇒ 指向既有 FROZEN 共享 SCI（权威=INTEGRATION.md
   §5 + PHASE2_UPM.md §5 + REJECTION.md + SCIENCE_SCOPE.md）；
@@ -494,17 +494,17 @@ f32 产品存取粒度所致，f64 oracle 不沿用）；fixture 生成器注记
   :989-1004（给定 :1000-1017）；CPU validator :1402-1431；输入关闭
   :1645-1649（给定 :1650-1656）；HIPS_VERIFY :1659-1676（给定 :1665-1683）。
   其余给定锚全部实测吻合。
-- 模块 ID: MOD-astrocs-phase2-hips-writer 在 matrix/registry 无现状
-  （实测 MOD-astrocs-phase2-write / astrocs.phase2.write.md，execution_class=io）。
+- 模块 ID: MOD-acsd-phase2-hips-writer 在 matrix/registry 无现状
+  （实测 MOD-acsd-phase2-write / acsd.phase2.write.md，execution_class=io）。
 - DATA_SEMANTICS 现状止于 §19（DATA-COV-001）；§20 DATA-P2-HIPS 为新增登记位
   （DATA-P2-INT/DATA-P2-RES 现定义于
-  TRACEABILITY_MATRIX.json 与 registry astrocs.phase2.integrate.md:43/
-  astrocs.phase2.write.md:23）。
-- `astrocs-stage2` CLI 条目不在生产入口面；生产入口 = `acsd phase2 run`，
+  TRACEABILITY_MATRIX.json 与 registry acsd.phase2.integrate.md:43/
+  acsd.phase2.write.md:23）。
+- `acsd-stage2` CLI 条目不在生产入口面；生产入口 = `acsd phase2 run`，
   本文档登记其底层写出实现
   lib/algorithms/coverage/tools/stage2.cpp。
 - 测试现状: 无名为 TEST-P2-HIPS-001 的测试；实测基线 = ivar_wiring_test.cpp
-  （直接跑生产 astrocs-stage2）、routing_test.cpp、synthetic_gate.cpp
+  （直接跑生产 acsd-stage2）、routing_test.cpp、synthetic_gate.cpp
   Phase2Integrate/Phase2Robust（reducer 级，:2622/:3360）、
   eng/tests/backend/test_p2004_reject_integrate.py。
 

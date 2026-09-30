@@ -1,9 +1,9 @@
-# Phase2 Integration Algorithms（P2-INT / astrocs.p2.integration）
+# Phase2 Integration Algorithms（P2-INT / acsd.p2.integration）
 
-> 上游：ASTROCS_DESIGN.md §5.3（SNR 重建与逆方差叠加）
+> 上游：ACSD_DESIGN.md §5.3（SNR 重建与逆方差叠加）
 
-> 实现源: lib/algorithms/coverage/src/integrate.cpp（89 行，astrocs_phase2 静态库成员，
-> 根 `CMakeLists.txt` 的 astrocs_phase2 段）+ 唯一权威签名头
+> 实现源: lib/algorithms/coverage/src/integrate.cpp（89 行，acsd_phase2 静态库成员，
+> 根 `CMakeLists.txt` 的 acsd_phase2 段）+ 唯一权威签名头
 > lib/algorithms/coverage/include/astro/phase2/integrate.h（83 行）
 > 权威: 本文档（算法级逐符号锚）。SCI 上游: SCI-INT-001
 > （docs/science/INTEGRATION.md，FROZEN，集合
@@ -155,7 +155,7 @@ eligibility（逐候选 i，候选索引固定序）:
 
 ## 6 消费链与并行语义（parallel reduction tolerance 合同）
 
-- **Stage2（马赛克编排，astrocs.p2.hips_writer 消费者）**:
+- **Stage2（马赛克编排，acsd.p2.hips_writer 消费者）**:
   权重构造 → p2_validate_candidate_weights 预检
   （两处）→ p2_integrate_pixel 三调用点：chunk 并行路径、CPU 串行路径（注释冻结
   "support 唯一 canonical reducer（max accepted support）由
@@ -308,11 +308,11 @@ eligibility（逐候选 i，候选索引固定序）:
 - matrix P2-INT 行 science_id=SCI-P2-INT-001（descriptor 占位词汇）
   的语义映射由本节声明——**SCI-P2-INT-001 ⇒ SCI-INT-001**
   （docs/science/INTEGRATION.md，矩阵 science_doc=
-  docs/science/INTEGRATION.md，MOD-astrocs-phase2-integrate 行）。
+  docs/science/INTEGRATION.md，MOD-acsd-phase2-integrate 行）。
   SCI 公式语义不在此重复定义，
   两处冲突时以 docs/science/ 为准并回改本文档（方向 = 从 docs/science/ 到本文档）。
   ALG-INT-001/002（SCI §12）⇒ 本文档 §3/§5 算法定义承接。
-- 本节是唯一冻结依据（编排层词汇只作对齐对象；descriptor astrocs.phase2.integrate
+- 本节是唯一冻结依据（编排层词汇只作对齐对象；descriptor acsd.phase2.integrate
   由 P2-XX-INT 对齐，不作冻结依据）。
 
 ## 12 关联 ID 映射（本文件承接）
@@ -334,7 +334,7 @@ eligibility（逐候选 i，候选索引固定序）:
 - 合同: DATA-P2-INT（DATA_SEMANTICS §21）/ API-P2-INT-001
   （PUBLIC_API.md）/ TEST-P2-INT-001（MISSING，§11.4 设计冻结）。
 - 交叉: docs/detail/phase2_int.md + lib/algorithms/integration/ 三件套；
-  registry astrocs.phase2.integrate.md。
+  registry acsd.phase2.integrate.md。
 - 消费者: stage2.cpp（DATA_SEMANTICS §20 域）/ acr_kernels.cpp
   （ACR 域）/ `lib/infrastructure/scheduler/src/module_adapters.cpp` descriptor 占位。
 

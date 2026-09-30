@@ -7,12 +7,12 @@ Gate 2 (Phase1 Full Freeze v2): PSF/STAR_MEASURE 外部 Oracle 对比
 
 门的两类地位 (M3b-F-01 整改; **不得混用**):
   [验收门 / ACCEPTANCE] 按**生产路径**定义 —— 初值来自 sdet 检测坐标
-    (astrocs_production_path), 真值 + 0.5 仅用于把 truth 换算到 DPSF 的
+    (acsd_production_path), 真值 + 0.5 仅用于把 truth 换算到 DPSF 的
     像素中心约定后逐星配对, 不改变判据对象。
       centroid_p95_le_0.3px_production  — SCI-P1-STAR-001 §1 冻结绝对验收项
         |Δc| <= 0.3 px @SNR>=20 (FROZEN; 阈值不在本脚本内重定义)。
       fwhm_median_le_1pct / ell_median_le_0.005 / flux_median_le_1pct
-        也一律取 astrocs_production_path 的统计量。
+        也一律取 acsd_production_path 的统计量。
   [旁证门 / NOT ACCEPTANCE] 仅证明"拟合器本征精度", 不得用于宣称验收:
       centroid_p95_le_0.01px_converged — 以 floor(检测坐标) 作整数初始
         (非生产配置) 的收敛对照, 命名与注释显式标注"非验收"。
@@ -75,7 +75,7 @@ def build_synthetic_image(n_stars, width, height, seed, fwhm_px=3.0,
     return img, truths
 
 
-def astrocs_measure(img, fit_radius=8, floor_init=False):
+def acsd_measure(img, fit_radius=8, floor_init=False):
     """调用 star_detector + dynamic_psf DLL 复现 orchestrator PSF 阶段."""
     sdet = ctypes.CDLL(os.path.join(ROOT, "lib", "star_detector", "star_detector.dll"))
     dpsf = ctypes.CDLL(os.path.join(ROOT, "lib", "dynamic_psf", "dynamic_psf.dll"))
@@ -234,7 +234,7 @@ def main():
     from photutils.background import MMMBackground  # noqa: F401 (import trigger)
 
     img, truths = build_synthetic_image(args.n_stars, 1024, 1024, args.seed)
-    out_arr, n_valid = astrocs_measure(img, floor_init=False)
+    out_arr, n_valid = acsd_measure(img, floor_init=False)
     # dpsf_fit_batch_f32 每行 9 列: B,A,cx,cy,sx,sy,theta,fwhm_x,fwhm_y
     # 失败拟合字段为 NaN (无 status 列)
     astro = []
@@ -255,7 +255,7 @@ def main():
     print(f"[gate2] Photutils: {len(ph)} 星")
 
     results = {}
-    for name, meas, off in (("astrocs_production_path", astro, 0.5),
+    for name, meas, off in (("acsd_production_path", astro, 0.5),
                             ("photutils", ph, 0.0)):
         pairs = match_truth(meas, truths, offset=off)
         dx = np.array([m["x"] - (t["x"] + off) for t, m in pairs])
@@ -278,7 +278,7 @@ def main():
               f"| 通量 rel median={stats['flux_median_rel']:.5f} | 椭率 median={stats['ell_median']:.5f}")
 
     # 对照: 整数初始化 (证明拟合器收敛后精度)
-    out_arr2, _ = astrocs_measure(img, floor_init=True)
+    out_arr2, _ = acsd_measure(img, floor_init=True)
     astro2 = []
     for row in out_arr2:
         A, cx, cy = row[1], row[2], row[3]
@@ -292,20 +292,20 @@ def main():
     pairs = match_truth(astro2, truths, offset=0.5)
     dx = np.array([m["x"] - (t["x"] + 0.5) for t, m in pairs])
     dy = np.array([m["y"] - (t["y"] + 0.5) for t, m in pairs])
-    results["astrocs_converged_init"] = {
+    results["acsd_converged_init"] = {
         "n_matched": len(pairs),
         "centroid_median_px": float(np.median(np.hypot(dx, dy))) if len(pairs) else None,
         "centroid_p95_px": float(np.percentile(np.hypot(dx, dy), 95)) if len(pairs) else None,
     }
-    print(f"[gate2] astrocs_converged_init: n={len(pairs)} 质心 median="
-          f"{results['astrocs_converged_init']['centroid_median_px']:.4f}px p95="
-          f"{results['astrocs_converged_init']['centroid_p95_px']:.4f}")
+    print(f"[gate2] acsd_converged_init: n={len(pairs)} 质心 median="
+          f"{results['acsd_converged_init']['centroid_median_px']:.4f}px p95="
+          f"{results['acsd_converged_init']['centroid_p95_px']:.4f}")
 
     # ── 门判定 (M3b-F-01 整改: 验收门 = 生产路径; converged = 旁证) ─────
-    # 验收门全部取 astrocs_production_path (sdet 检测坐标为初值的生产配置);
+    # 验收门全部取 acsd_production_path (sdet 检测坐标为初值的生产配置);
     # converged-init 只作拟合器本征精度旁证, 名称带 _converged_not_acceptance。
-    ac = results["astrocs_converged_init"]
-    ac_p = results["astrocs_production_path"]
+    ac = results["acsd_converged_init"]
+    ac_p = results["acsd_production_path"]
     gates = {
         # [验收门] SCI-P1-STAR-001 §1 冻结绝对质心门 |Δc| <= 0.3px @SNR>=20
         "centroid_p95_le_0.3px_production": (

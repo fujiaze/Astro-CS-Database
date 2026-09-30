@@ -3,7 +3,7 @@
 - **任务**：RETIRE-001（`工程控制/PROJECT-GOVERNANCE-01/tasks/RETIRE-001.md`，层 L1）
 - **执行**：2026-09-16（SubAgent 仅改工作区，**零 git 写**；由前台原子提交）
 - **权威依据**：
-  1. `ASTROCS_DESIGN.md §0`（权威链：**旧世代控制包产物不构成判据**）、`§12`（Alpha 前不含任何版本信息）；
+  1. `ACSD_DESIGN.md §0`（权威链：**旧世代控制包产物不构成判据**）、`§12`（Alpha 前不含任何版本信息）；
   2. `ENGINEERING_SPEC.md §8`（每项检查必须能红能绿；**坏掉即红的门要退役或修好，不允许静默坏掉**）、`§7`（根白名单/落位）；
   3. `docs/engineering/01_CHECKS.md` §1-§5（注册项语义与变更流程）；
   4. 负责人裁决：历史版本控制包全部作废；`artifacts/` 不归档、不保留（commit `b1290525`）；
@@ -122,14 +122,14 @@
 
 ### 4.2 `eng/ci/root_manifest.json`（`registered_local_retention` 7 条悬空登记）
 - **问题**：`registered_local_retention` 仍列 7 条**物理上已不存在**的根条目：`CHANGELOG.md`、`REVIEW.md`、
-  `ASTROCS_PROJECT_CONSTITUTION.md`、`AstroCS_ENGINEERING_CONSTRAINTS.md`、`evidence`、`CS`、`worktrees`。
+  `ACSD_PROJECT_CONSTITUTION.md`、`AstroCS_ENGINEERING_CONSTRAINTS.md`、`evidence`、`CS`、`worktrees`。
   登记悬空即陈旧声明（ENGINEERING_SPEC §8）。依据 GAP-033 附注：「`registered_local_retention` 的 7 条悬空登记由 RETIRE-001 清理」。
 - **订正**：删除上述 7 条（台账**只减不增**方向清理，**非白名单放宽**）；条目数 22 → 15；其余 15 条逐条实测仍存在于根目录
-  （`VERSION`/`FATDUCK_ACCESS.md`/`VISUAL_CHECK_README.md`/`HANDOVER.md`/`问题扫描`/`cli`/`runtime`/`providers`/`modules`/`AstroCS.wiki`/`p8..p15a-files.patch`）；
+  （`VERSION`/`FATDUCK_ACCESS.md`/`VISUAL_CHECK_README.md`/`HANDOVER.md`/`问题扫描`/`cli`/`runtime`/`providers`/`modules`/`ACSD.wiki`/`p8..p15a-files.patch`）；
   并在 `notes.retention_cleanup` 留下清理依据与复原坐标（`json.load` 校验通过）。
 - **复原方法**：
   - 前四条（随 commit `01db973b` ROOT-007 删除）：`git show 01db973b^:CHANGELOG.md > CHANGELOG.md`（其余同理；
-    `REVIEW.md`/`ASTROCS_PROJECT_CONSTITUTION.md`/`AstroCS_ENGINEERING_CONSTRAINTS.md` 均已实测可取回）；
+    `REVIEW.md`/`ACSD_PROJECT_CONSTITUTION.md`/`AstroCS_ENGINEERING_CONSTRAINTS.md` 均已实测可取回）；
   - `evidence/`（树，`01db973b^` 下 624 条 tracked 路径）：`git archive 01db973b^ evidence | tar -x`；
   - `CS/`、`worktrees/`：**从未入库的 0 字节空目录**（`git log -- CS`/`-- worktrees` 无输出）⇒ **无 git 坐标可复原**，如需重建仅能 `mkdir`（无内容）；
   - 整个文件：`git show 01754fab8618:eng/ci/root_manifest.json > eng/ci/root_manifest.json`。

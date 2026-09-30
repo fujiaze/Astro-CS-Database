@@ -30,7 +30,7 @@
 #include <memory>
 #include <optional>
 
-namespace astrocs {
+namespace acsd {
 
 // ============================================================================
 // Stage1 阶段名称常量
@@ -211,4 +211,4 @@ private:
     // 详见 Python 原型 cost_estimator.py CostModelConstants
 };
 
-} // namespace astrocs
+} // namespace acsd

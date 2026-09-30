@@ -4,7 +4,7 @@
 
 #include <cmath>
 
-namespace astrocs::phase1 {
+namespace acsd::phase1 {
 
 // TAN 投影 WCS (简化: 无畸变; 满足合成星场 roundtrip 验证)
 struct WcsTan {
@@ -19,4 +19,4 @@ struct WcsTan {
   void sky2pix(double ra, double dec, double* x, double* y) const;
 };
 
-}  // namespace astrocs::phase1
+}  // namespace acsd::phase1

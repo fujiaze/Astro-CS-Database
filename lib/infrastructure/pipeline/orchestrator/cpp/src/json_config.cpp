@@ -31,7 +31,7 @@ using json = nlohmann::json;
 static const char* STAGE1_SCHEMA_JSON = R"JSON(
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://astrocs.local/schema/stage1-1.1.json",
+  "$id": "https://acsd.local/schema/stage1-1.1.json",
   "title": "ACSD Stage1 Job",
   "type": "object",
   "additionalProperties": false,
@@ -512,7 +512,7 @@ std::string get_stage1_schema_json() {
 }
 
 std::string get_stage1_schema_sha256() {
-    return astrocs::crypto::sha256_hex(STAGE1_SCHEMA_JSON, std::strlen(STAGE1_SCHEMA_JSON));
+    return acsd::crypto::sha256_hex(STAGE1_SCHEMA_JSON, std::strlen(STAGE1_SCHEMA_JSON));
 }
 
 // ============================================================================
@@ -646,7 +646,7 @@ int parse_stage1_config(const std::string& json_path, Stage1Config& config, std:
         return -1;
     }
 
-    config.original_json_sha256 = astrocs::crypto::sha256_hex(content.data(), content.size());
+    config.original_json_sha256 = acsd::crypto::sha256_hex(content.data(), content.size());
     config.original_json_path = abs_json_path.string();
 
     json root;
@@ -836,5 +836,5 @@ std::string compute_config_sha256(const Stage1Config& config) {
     }
 
     std::string canonical = j.dump(-1, ' ', false, nlohmann::detail::error_handler_t::replace);
-    return astrocs::crypto::sha256_hex(canonical.data(), canonical.size());
+    return acsd::crypto::sha256_hex(canonical.data(), canonical.size());
 }

@@ -1,5 +1,5 @@
 {
-  "signal_schema": "astrocs.v6.signal/v1",
+  "signal_schema": "acsd.v6.signal/v1",
   "schema_version": 1,
   "physical_quantity": "signal",
   "product_family": "phase1_drizzle_surface_brightness",

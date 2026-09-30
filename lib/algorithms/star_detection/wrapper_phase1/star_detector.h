@@ -3,13 +3,13 @@
 // 合同: 输入图像 f32 (ADU) + 背景估计; 输出 catalog (坐标/单位/质量字段)。
 #pragma once
 
-#include "astrocs/core/contracts.h"
+#include "acsd/core/contracts.h"
 
 #include <cstdint>
 #include <string>
 #include <vector>
 
-namespace astrocs::phase1 {
+namespace acsd::phase1 {
 
 struct StarSource {
   double x = 0.0;          // 像素坐标 (单位: px, 原点左上)
@@ -51,7 +51,7 @@ class StarDetector {
   explicit StarDetector(double detection_sigma = 5.0);
 
   // image: f32 行主序 w*h; detect 返回 catalog (失败→Result error)。
-  astrocs::core::Result<StarCatalog> detect(const float* image, int w, int h) const;
+  acsd::core::Result<StarCatalog> detect(const float* image, int w, int h) const;
 
   // 工具: 背景/噪声估计 (sigma-clipped median + MAD)
   static bool estimate_background(const float* image, int w, int h,
@@ -61,4 +61,4 @@ class StarDetector {
   double detection_sigma_;
 };
 
-}  // namespace astrocs::phase1
+}  // namespace acsd::phase1

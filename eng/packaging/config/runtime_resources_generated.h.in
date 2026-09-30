@@ -2,45 +2,45 @@
 // 唯一数值源: eng/packaging/config/runtime_resources.json
 // （与 G-RES-01 的 resource_gate_thresholds_generated.h 同款机制：
 //   实现侧不得再出现字面量阈值。）
-// 依据: ASTROCS_DESIGN.md §8.3/§9（静态预算 = 调度准入输入；内存不设资源门）+
+// 依据: ACSD_DESIGN.md §8.3/§9（静态预算 = 调度准入输入；内存不设资源门）+
 //       docs/engineering/SCHEDULER_CONTRACT.md §3（内存上限由配置决定，禁硬编码）。
 #pragma once
 
 #include <cstdint>
 
-namespace astrocs::runtime_resources {
+namespace acsd::runtime_resources {
 
 // 内存预算上限 = 当前可用内存 × kMemoryBudgetPercentDefault / 100。
-inline constexpr std::uint32_t kMemoryBudgetPercentDefault = @ASTROCS_RR_MEMORY_BUDGET_PERCENT@;
+inline constexpr std::uint32_t kMemoryBudgetPercentDefault = @ACSD_RR_MEMORY_BUDGET_PERCENT@;
 
 // 合法区间（合同键约束：整数 1..100）。
 inline constexpr std::uint32_t kMemoryBudgetPercentMin = 1;
 inline constexpr std::uint32_t kMemoryBudgetPercentMax = 100;
 
-// ── 内存压力治理（ASTROCS_DESIGN.md §8.3:609-615 编排策略的实现口径）──────────
+// ── 内存压力治理（ACSD_DESIGN.md §8.3:609-615 编排策略的实现口径）──────────
 // 压力 = 进程树 RSS / 上列预算。水位推导与适用域见 runtime_resources.json 的同名键。
-inline constexpr std::uint32_t kMemoryPressureEnabled = @ASTROCS_RR_MEMORY_PRESSURE_ENABLED@;
-inline constexpr std::uint32_t kMemoryPressureHighPercent = @ASTROCS_RR_MEMORY_PRESSURE_HIGH_PERCENT@;
-inline constexpr std::uint32_t kMemoryPressureLowPercent = @ASTROCS_RR_MEMORY_PRESSURE_LOW_PERCENT@;
-inline constexpr std::uint32_t kMemoryPressureHighDwellSamples = @ASTROCS_RR_MEMORY_PRESSURE_HIGH_DWELL@;
-inline constexpr std::uint32_t kMemoryPressureLowDwellSamples = @ASTROCS_RR_MEMORY_PRESSURE_LOW_DWELL@;
-inline constexpr std::uint32_t kMemoryPressureEvictAfterSamples = @ASTROCS_RR_MEMORY_PRESSURE_EVICT_AFTER@;
-inline constexpr std::uint32_t kMemoryPressureSampleIntervalMs = @ASTROCS_RR_MEMORY_PRESSURE_SAMPLE_INTERVAL_MS@;
+inline constexpr std::uint32_t kMemoryPressureEnabled = @ACSD_RR_MEMORY_PRESSURE_ENABLED@;
+inline constexpr std::uint32_t kMemoryPressureHighPercent = @ACSD_RR_MEMORY_PRESSURE_HIGH_PERCENT@;
+inline constexpr std::uint32_t kMemoryPressureLowPercent = @ACSD_RR_MEMORY_PRESSURE_LOW_PERCENT@;
+inline constexpr std::uint32_t kMemoryPressureHighDwellSamples = @ACSD_RR_MEMORY_PRESSURE_HIGH_DWELL@;
+inline constexpr std::uint32_t kMemoryPressureLowDwellSamples = @ACSD_RR_MEMORY_PRESSURE_LOW_DWELL@;
+inline constexpr std::uint32_t kMemoryPressureEvictAfterSamples = @ACSD_RR_MEMORY_PRESSURE_EVICT_AFTER@;
+inline constexpr std::uint32_t kMemoryPressureSampleIntervalMs = @ACSD_RR_MEMORY_PRESSURE_SAMPLE_INTERVAL_MS@;
 
 // ── 编排参数（docs/engineering/SCHEDULER_CONTRACT.md §3 受控化 / R-27）──────────
 // 唯一数值源同为本文件对应的 JSON（orchestration_params 节）；实现侧零字面量。
 // P2 tile 几何：512×512 标准 HiPS tile = 2^18 leaf。它同时是**产品格式不变量**
 // （P2 产品 manifest 的 tile_leaf_span 与消费侧逐位比对）⇒ 改动等于改产品格式。
-inline constexpr std::uint64_t kP2TileLeafSpan = @ASTROCS_RR_P2_TILE_LEAF_SPAN@;
-inline constexpr std::uint32_t kP2TileShift = @ASTROCS_RR_P2_TILE_SHIFT@;
+inline constexpr std::uint64_t kP2TileLeafSpan = @ACSD_RR_P2_TILE_LEAF_SPAN@;
+inline constexpr std::uint32_t kP2TileShift = @ACSD_RR_P2_TILE_SHIFT@;
 static_assert(kP2TileLeafSpan == (1ULL << kP2TileShift) * (1ULL << kP2TileShift),
               "orchestration_params: p2_tile_leaf_span 必须等于 (2^p2_tile_shift)^2");
 
 // P3 位置写子块几何与队列深度（缺省 + 值域守卫，守卫保留为 fail-closed）。
-inline constexpr int kP3DefaultSubBlockPx = @ASTROCS_RR_P3_DEFAULT_SUB_BLOCK_PX@;
-inline constexpr int kP3MinSubBlockPx = @ASTROCS_RR_P3_MIN_SUB_BLOCK_PX@;
-inline constexpr int kP3MaxSubBlockPx = @ASTROCS_RR_P3_MAX_SUB_BLOCK_PX@;
-inline constexpr int kP3DefaultQueueDepth = @ASTROCS_RR_P3_DEFAULT_QUEUE_DEPTH@;
+inline constexpr int kP3DefaultSubBlockPx = @ACSD_RR_P3_DEFAULT_SUB_BLOCK_PX@;
+inline constexpr int kP3MinSubBlockPx = @ACSD_RR_P3_MIN_SUB_BLOCK_PX@;
+inline constexpr int kP3MaxSubBlockPx = @ACSD_RR_P3_MAX_SUB_BLOCK_PX@;
+inline constexpr int kP3DefaultQueueDepth = @ACSD_RR_P3_DEFAULT_QUEUE_DEPTH@;
 static_assert(kP3MinSubBlockPx >= 1 && kP3MinSubBlockPx <= kP3DefaultSubBlockPx &&
                   kP3DefaultSubBlockPx <= kP3MaxSubBlockPx,
               "orchestration_params: 必须满足 min <= default <= max");
@@ -48,12 +48,12 @@ static_assert(kP3DefaultQueueDepth >= 1,
               "orchestration_params: p3_default_queue_depth 必须 >= 1");
 
 // ── 编排参数（续）：帧并发度上限与预取线程上限（DYN-740 / P4 交接项 2）──────
-// 依据 docs/ASTROCS_DESIGN.md §8.3:652（编排参数含「预取深度、帧并发度、工作窃取策略」，
+// 依据 docs/ACSD_DESIGN.md §8.3:652（编排参数含「预取深度、帧并发度、工作窃取策略」，
 // 基于探针实测迭代）+ docs/engineering/SCHEDULER_CONTRACT.md §3/:38（最终取值由性能门定，
 // 合同保证机制正确）+ §8.3:647（线程池唯一来源是调度器、单进程唯一预算源）。
 // 语义：帧并发度上限只**收紧**、不放大（实现侧 fail-closed）；0 = 策略值。
-inline constexpr std::uint32_t kP1MaxFramesInFlight = @ASTROCS_RR_P1_MAX_FRAMES_IN_FLIGHT@;
-inline constexpr std::uint32_t kSchedulerPrefetchThreadsMax = @ASTROCS_RR_SCHEDULER_PREFETCH_THREADS_MAX@;
+inline constexpr std::uint32_t kP1MaxFramesInFlight = @ACSD_RR_P1_MAX_FRAMES_IN_FLIGHT@;
+inline constexpr std::uint32_t kSchedulerPrefetchThreadsMax = @ACSD_RR_SCHEDULER_PREFETCH_THREADS_MAX@;
 static_assert(kP1MaxFramesInFlight <= 4096u,
               "orchestration_params: p1_max_frames_in_flight 越界（> 4096 无意义，疑似配置错）");
 static_assert(kSchedulerPrefetchThreadsMax <= 256u,
@@ -63,8 +63,8 @@ static_assert(kSchedulerPrefetchThreadsMax <= 256u,
 // （调度器 lease / CLI 注入的可用核），本键只提供上限，不引入第二个数值来源。
 // 依据 docs/engineering/CONCURRENCY_STANDARD.md「默认」节（线程数外部可配置、
 // 默认 min(可用核, 配置上限)、取值来源 = 配置）；消费面 = scheduler/src/cpu_budget.cpp。
-inline constexpr std::uint32_t kCpuBudgetMax = @ASTROCS_RR_CPU_BUDGET_MAX@;
+inline constexpr std::uint32_t kCpuBudgetMax = @ACSD_RR_CPU_BUDGET_MAX@;
 static_assert(kCpuBudgetMax <= 4096u,
               "orchestration_params: cpu_budget_max 越界（> 4096 无意义，疑似配置错）");
 
-}  // namespace astrocs::runtime_resources
+}  // namespace acsd::runtime_resources

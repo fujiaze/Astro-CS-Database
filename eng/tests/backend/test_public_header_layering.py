@@ -9,13 +9,13 @@
    eng/tools/check_ast_api.py::include_flags）。
   规则: 落在公共 include 面的头（*.h / *.hpp）不得 #include "..." 一个位于
   任意 src/ 目录下的头。src/ 是本仓"实现面"的固定约定
-  （docs/ASTROCS_DESIGN.md §8.4「lib/include/ 公共头」、§8.5「每个可独立调度模块
+  （docs/ACSD_DESIGN.md §8.4「lib/include/ 公共头」、§8.5「每个可独立调度模块
   具备…版本化公开头」）; aio 的机制原语头
   lib/infrastructure/aio/src/aio_atomic_file.h 即属基建层内部头。
 
 为什么需要本判据（本次 AST-API 红灯的根因）
 -------------------------------------------
-  CLEAN-403（docs/ASTROCS_DESIGN.md §10「aio 是文件级唯一 I/O 边界」）把
+  CLEAN-403（docs/ACSD_DESIGN.md §10「aio 是文件级唯一 I/O 边界」）把
   ipv/include/ipv_log.h 的日志落盘从 std::ofstream 改为 aio 机制原语，却把
   #include "aio_atomic_file.h"（aio/src 内部头）留在了公共头里 ⇒ AST-API
   （DOC-004）门在公共 include 面下 clang 独立解析 ipv_log.h 及其 5 个下游公共头

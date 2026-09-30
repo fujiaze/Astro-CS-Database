@@ -2,7 +2,7 @@
  *
  * 覆盖 (迁移模板 <prefix>-IMPL 验收):
  *   A. C ABI 入口契约: host_abi 失配 → ACS_ERR_ABI_MISMATCH; out_api=NULL →
- *      ACS_ERR_PARAM; 正常 query → 唯一导出面 astrocs_module_query_v1。
+ *      ACS_ERR_PARAM; 正常 query → 唯一导出面 acsd_module_query_v1。
  *   B. 导出面净化: dlsym(legacy 符号) 必须失败 (GAIA_EXPORT= 本地化, ABI-006)。
  *   C. 生命周期: describe / validate_config(词表+有限值+detail_code) /
  *      plan(真实 work_units 元数据推导) / create / execute / inspect /
@@ -17,7 +17,7 @@
  *
  * 编译: #include "gaia_client.c" (共址直接路径, 不定义 GAIA_ALLOC_TEST —
  * 不需要分配钩子; 与 gaia_cat_test 同型)。DLL 经环境变量
- * ASTROCS_GAIA_DLL_PATH 加载 (CMake test properties 注入)。
+ * ACSD_GAIA_DLL_PATH 加载 (CMake test properties 注入)。
  */
 #include "gaia_client.c"
 
@@ -31,14 +31,14 @@
 #include <dlfcn.h>
 #endif
 
-#include "astrocs/abi/lifecycle_v1.h"
-#include "astrocs/abi/module_api_v1.h"
-#include "astrocs/abi/host_api_v1.h"
-#include "astrocs/gaia/types.h"
+#include "acsd/abi/lifecycle_v1.h"
+#include "acsd/abi/module_api_v1.h"
+#include "acsd/abi/host_api_v1.h"
+#include "acsd/gaia/types.h"
 
 /* 入口函数指针 (头内仅声明, 无 typedef; dlsym 需要) */
-typedef acs_status (*gaia_entry_fn)(uint32_t, const acs_host_api_v1*,
-                                    const acs_module_api_v1**);
+typedef acsd_status (*gaia_entry_fn)(uint32_t, const acsd_host_api_v1*,
+                                    const acsd_module_api_v1**);
 
 /* fixture 参考真值 (构建期生成; 与 gaia_cat_test 同一 include 路径) */
 #include "gaia_cat_manifest.h"
@@ -127,26 +127,26 @@ static uint8_t* b64_decode(const char* s, uint64_t* out_n) {
 }
 
 /* ── strbuf helper: 尺寸查询→分配→二遍 ── */
-static char* exec_collect(acs_status (*fn)(acs_module_instance_v1*, acs_str_v1,
-                                            acs_str_v1, acs_strbuf_v1*,
-                                            acs_error_info_v1*),
-                          acs_module_instance_v1* inst,
-                          const char* cfg, acs_status* rc) {
-    acs_str_v1 cfgs = { { (uint32_t)sizeof(acs_str_v1), ACS_ABI_VERSION_V1 }, cfg, strlen(cfg) };
-    acs_error_info_v1 err;
+static char* exec_collect(acsd_status (*fn)(acsd_module_instance_v1*, acsd_str_v1,
+                                            acsd_str_v1, acsd_strbuf_v1*,
+                                            acsd_error_info_v1*),
+                          acsd_module_instance_v1* inst,
+                          const char* cfg, acsd_status* rc) {
+    acsd_str_v1 cfgs = { { (uint32_t)sizeof(acsd_str_v1), ACS_ABI_VERSION_V1 }, cfg, strlen(cfg) };
+    acsd_error_info_v1 err;
     memset(&err, 0, sizeof(err));
-    err.head.struct_size = (uint32_t)sizeof(acs_error_info_v1);
+    err.head.struct_size = (uint32_t)sizeof(acsd_error_info_v1);
     err.head.abi_version = ACS_ABI_VERSION_V1;
-    acs_strbuf_v1 sb;
+    acsd_strbuf_v1 sb;
     memset(&sb, 0, sizeof(sb));
-    sb.head.struct_size = (uint32_t)sizeof(acs_strbuf_v1);
+    sb.head.struct_size = (uint32_t)sizeof(acsd_strbuf_v1);
     sb.head.abi_version = ACS_ABI_VERSION_V1;
     *rc = fn(inst, cfgs, cfgs, &sb, &err);        /* 一遍: 尺寸 */
     if (*rc != ACS_OK) return NULL;
     sb.data = (char*)malloc((size_t)sb.size + 1);
     sb.cap = sb.size + 1;
     if (!sb.data) { *rc = ACS_ERR_NOMEM; return NULL; }
-    acs_status st2 = fn(inst, cfgs, cfgs, &sb, &err);  /* 二遍: 写入 */
+    acsd_status st2 = fn(inst, cfgs, cfgs, &sb, &err);  /* 二遍: 写入 */
     if (st2 != ACS_OK) { free(sb.data); *rc = st2; return NULL; }
     return sb.data;
 }
@@ -162,23 +162,23 @@ static int ex_acquire(void* ud, uint32_t n) {
 static void ex_release(void* ud, uint32_t n) { ((ex_stub*)ud)->release_calls++; (void)n; }
 static int cancel_always(void* ud) { (void)ud; return 1; }
 
-static const acs_host_api_v1* make_host(ex_stub* ex, acs_cancel_v1* cn, void* cn_ud) {
+static const acsd_host_api_v1* make_host(ex_stub* ex, acsd_cancel_v1* cn, void* cn_ud) {
     /* 返回静态存储 host (测试进程内安全) */
-    static acs_host_api_v1 h;
-    static acs_allocator_v1 al;      /* allocator 不被 gaia adapter 使用 (legacy 自管理) */
-    static acs_executor_v1 exv;
-    static acs_cancel_v1 cnv;
+    static acsd_host_api_v1 h;
+    static acsd_allocator_v1 al;      /* allocator 不被 gaia adapter 使用 (legacy 自管理) */
+    static acsd_executor_v1 exv;
+    static acsd_cancel_v1 cnv;
     memset(&h, 0, sizeof(h));
     memset(&al, 0, sizeof(al));
     memset(&exv, 0, sizeof(exv));
     memset(&cnv, 0, sizeof(cnv));
-    h.head.struct_size = (uint32_t)sizeof(acs_host_api_v1);
+    h.head.struct_size = (uint32_t)sizeof(acsd_host_api_v1);
     h.head.abi_version = ACS_ABI_VERSION_V1;
-    al.head.struct_size = (uint32_t)sizeof(acs_allocator_v1);
+    al.head.struct_size = (uint32_t)sizeof(acsd_allocator_v1);
     al.head.abi_version = ACS_ABI_VERSION_V1;
     h.allocator = &al;
     if (ex) {
-        exv.head.struct_size = (uint32_t)sizeof(acs_executor_v1);
+        exv.head.struct_size = (uint32_t)sizeof(acsd_executor_v1);
         exv.head.abi_version = ACS_ABI_VERSION_V1;
         exv.user_data = ex;
         exv.max_workers = ex->max_workers;
@@ -187,7 +187,7 @@ static const acs_host_api_v1* make_host(ex_stub* ex, acs_cancel_v1* cn, void* cn
         h.executor = &exv;
     }
     if (cn) {
-        cnv.head.struct_size = (uint32_t)sizeof(acs_cancel_v1);
+        cnv.head.struct_size = (uint32_t)sizeof(acsd_cancel_v1);
         cnv.head.abi_version = ACS_ABI_VERSION_V1;
         cnv.user_data = cn_ud;
         cnv.is_cancelled = cancel_always;
@@ -217,24 +217,24 @@ int main(int argc, char** argv) {
     printf("== gaia_adapter_test: catalog_dir=%s ==\n", dir);
 
     /* ── 加载 DLL ── */
-    const char* dll = getenv("ASTROCS_GAIA_DLL_PATH");
-    if (!dll || !dll[0]) { printf("[FAIL] ASTROCS_GAIA_DLL_PATH not set\n"); return 2; }
+    const char* dll = getenv("ACSD_GAIA_DLL_PATH");
+    if (!dll || !dll[0]) { printf("[FAIL] ACSD_GAIA_DLL_PATH not set\n"); return 2; }
 #ifdef _WIN32
     HMODULE so = LoadLibraryA(dll);
-    void* sym_entry = so ? (void*)GetProcAddress(so, "astrocs_module_query_v1") : NULL;
+    void* sym_entry = so ? (void*)GetProcAddress(so, "acsd_module_query_v1") : NULL;
     void* sym_legacy = so ? (void*)GetProcAddress(so, "gaia_client_create") : NULL;
 #else
     void* so = dlopen(dll, RTLD_NOW);
     if (!so) printf("[FAIL] dlopen: %s\n", dlerror());
-    void* sym_entry = so ? dlsym(so, "astrocs_module_query_v1") : NULL;
+    void* sym_entry = so ? dlsym(so, "acsd_module_query_v1") : NULL;
     void* sym_legacy = so ? dlsym(so, "gaia_client_create") : NULL;
 #endif
-    CHECK(so != NULL, "dlopen astrocs_catalog_gaia");
+    CHECK(so != NULL, "dlopen acsd_catalog_gaia");
     if (!so || !sym_entry) return 2;
     gaia_entry_fn entry = (gaia_entry_fn)sym_entry;
 
     /* A. 入口契约 */
-    const acs_module_api_v1* api = NULL;
+    const acsd_module_api_v1* api = NULL;
     CHECK(entry(999u, NULL, &api) == ACS_ERR_ABI_MISMATCH, "entry: host_abi mismatch -> ABI_MISMATCH");
     CHECK(entry(ACS_ABI_VERSION_V1, NULL, NULL) == ACS_ERR_PARAM, "entry: null out_api -> PARAM");
     CHECK(entry(ACS_ABI_VERSION_V1, NULL, &api) == ACS_OK && api != NULL,
@@ -243,32 +243,32 @@ int main(int argc, char** argv) {
     CHECK(sym_legacy == NULL, "exports: legacy gaia_client_create NOT exported");
 
     /* C. describe */
-    acs_module_descriptor_v1 desc;
+    acsd_module_descriptor_v1 desc;
     memset(&desc, 0, sizeof(desc));
-    acs_str_v1 mid = { { (uint32_t)sizeof(acs_str_v1), ACS_ABI_VERSION_V1 },
-                       ASTROCS_GAIA_MODULE_ID, strlen(ASTROCS_GAIA_MODULE_ID) };
+    acsd_str_v1 mid = { { (uint32_t)sizeof(acsd_str_v1), ACS_ABI_VERSION_V1 },
+                       ACSD_GAIA_MODULE_ID, strlen(ACSD_GAIA_MODULE_ID) };
     CHECK(api->describe(api, mid, &desc) == ACS_OK, "describe: ok");
-    CHECK(desc.head.struct_size == sizeof(acs_module_descriptor_v1) &&
-          desc.head.abi_version == ACS_ABI_VERSION_V1, "describe: acs_head filled");
-    CHECK(desc.module_id.size == strlen(ASTROCS_GAIA_MODULE_ID) &&
-          !memcmp(desc.module_id.data, ASTROCS_GAIA_MODULE_ID, desc.module_id.size),
-          "describe: module_id == astrocs.catalog.gaia");
-    CHECK(desc.sci_id.size == strlen(ASTROCS_GAIA_SCI_ID) &&
-          !memcmp(desc.sci_id.data, ASTROCS_GAIA_SCI_ID, desc.sci_id.size),
+    CHECK(desc.head.struct_size == sizeof(acsd_module_descriptor_v1) &&
+          desc.head.abi_version == ACS_ABI_VERSION_V1, "describe: acsd_head filled");
+    CHECK(desc.module_id.size == strlen(ACSD_GAIA_MODULE_ID) &&
+          !memcmp(desc.module_id.data, ACSD_GAIA_MODULE_ID, desc.module_id.size),
+          "describe: module_id == acsd.catalog.gaia");
+    CHECK(desc.sci_id.size == strlen(ACSD_GAIA_SCI_ID) &&
+          !memcmp(desc.sci_id.data, ACSD_GAIA_SCI_ID, desc.sci_id.size),
           "describe: sci_id == SCI-AST-001");
-    CHECK(desc.alg_id.size == strlen(ASTROCS_GAIA_ALG_ID) &&
-          !memcmp(desc.alg_id.data, ASTROCS_GAIA_ALG_ID, desc.alg_id.size),
+    CHECK(desc.alg_id.size == strlen(ACSD_GAIA_ALG_ID) &&
+          !memcmp(desc.alg_id.data, ACSD_GAIA_ALG_ID, desc.alg_id.size),
           "describe: alg_id == ALG-GAIA-001");
-    CHECK(desc.api_id.size == strlen(ASTROCS_GAIA_API_ID) &&
-          !memcmp(desc.api_id.data, ASTROCS_GAIA_API_ID, desc.api_id.size),
+    CHECK(desc.api_id.size == strlen(ACSD_GAIA_API_ID) &&
+          !memcmp(desc.api_id.data, ACSD_GAIA_API_ID, desc.api_id.size),
           "describe: api_id == API-GAIA-001");
 
     /* C. validate_config 负例 (detail_code 冻结) */
-    acs_error_info_v1 err;
+    acsd_error_info_v1 err;
     memset(&err, 0, sizeof(err));
-    err.head.struct_size = (uint32_t)sizeof(acs_error_info_v1);
+    err.head.struct_size = (uint32_t)sizeof(acsd_error_info_v1);
     err.head.abi_version = ACS_ABI_VERSION_V1;
-    acs_str_v1 sj = { { (uint32_t)sizeof(acs_str_v1), ACS_ABI_VERSION_V1 }, NULL, 0 };
+    acsd_str_v1 sj = { { (uint32_t)sizeof(acsd_str_v1), ACS_ABI_VERSION_V1 }, NULL, 0 };
     const char* j;
 
     j = NULL;
@@ -303,15 +303,15 @@ int main(int argc, char** argv) {
              "\"ra\":200.0,\"dec\":0.0,\"radius_deg\":2.0,"
              "\"mag_low\":-100.0,\"mag_high\":100.0}", dir);
     sj.data = plan_cfg; sj.size = strlen(plan_cfg);
-    acs_str_v1 nid = { { (uint32_t)sizeof(acs_str_v1), ACS_ABI_VERSION_V1 }, "n1", 2 };
-    acs_strbuf_v1 pb;
+    acsd_str_v1 nid = { { (uint32_t)sizeof(acsd_str_v1), ACS_ABI_VERSION_V1 }, "n1", 2 };
+    acsd_strbuf_v1 pb;
     memset(&pb, 0, sizeof(pb));
-    pb.head.struct_size = (uint32_t)sizeof(acs_strbuf_v1);
+    pb.head.struct_size = (uint32_t)sizeof(acsd_strbuf_v1);
     pb.head.abi_version = ACS_ABI_VERSION_V1;
     memset(&err, 0, sizeof(err));
-    err.head.struct_size = (uint32_t)sizeof(acs_error_info_v1);
+    err.head.struct_size = (uint32_t)sizeof(acsd_error_info_v1);
     err.head.abi_version = ACS_ABI_VERSION_V1;
-    acs_status pst = api->plan(api, nid, sj, &pb, &err);   /* 尺寸遍 */
+    acsd_status pst = api->plan(api, nid, sj, &pb, &err);   /* 尺寸遍 */
     char* plan_json = NULL;
     if (pst == ACS_OK) {
         plan_json = (char*)malloc((size_t)pb.size + 1);
@@ -342,11 +342,11 @@ int main(int argc, char** argv) {
         "\"mag_low\":-100.0,\"mag_high\":100.0}";
     sj.data = j; sj.size = strlen(j);
     memset(&err, 0, sizeof(err));
-    err.head.struct_size = (uint32_t)sizeof(acs_error_info_v1);
+    err.head.struct_size = (uint32_t)sizeof(acsd_error_info_v1);
     err.head.abi_version = ACS_ABI_VERSION_V1;
-    acs_strbuf_v1 pbad;
+    acsd_strbuf_v1 pbad;
     memset(&pbad, 0, sizeof(pbad));
-    pbad.head.struct_size = (uint32_t)sizeof(acs_strbuf_v1);
+    pbad.head.struct_size = (uint32_t)sizeof(acsd_strbuf_v1);
     pbad.head.abi_version = ACS_ABI_VERSION_V1;
     CHECK(api->plan(api, nid, sj, &pbad, &err) == ACS_ERR_IO, "plan: bad catalog_dir -> IO");
 
@@ -358,7 +358,7 @@ int main(int argc, char** argv) {
     gaia_client_get_spectrum_params(direct, &spec_start, &spec_step, &spec_count);
     CHECK(spec_count == GAIA_CAT_WL, "direct: spec_count == 343");
 
-    const acs_host_api_v1* plain_host = make_host(NULL, NULL, NULL);
+    const acsd_host_api_v1* plain_host = make_host(NULL, NULL, NULL);
 
     /* D1. cone_search bitwise */
     {
@@ -372,14 +372,14 @@ int main(int argc, char** argv) {
         int drc = gaia_client_cone_search(direct, ref->ra, ref->dec, 3.0,
                                           -100.0, 100.0, &ds, &dn);
         CHECK(drc == 0 && dn > 0 && ds != NULL, "cone: direct ok");
-        acs_module_instance_v1* inst = NULL;
+        acsd_module_instance_v1* inst = NULL;
         memset(&err, 0, sizeof(err));
-        err.head.struct_size = (uint32_t)sizeof(acs_error_info_v1);
+        err.head.struct_size = (uint32_t)sizeof(acsd_error_info_v1);
         err.head.abi_version = ACS_ABI_VERSION_V1;
         sj.data = cfg; sj.size = strlen(cfg);
         int create_ok = (api->create(api, sj, plain_host, &inst, &err) == ACS_OK);
         CHECK(create_ok, "cone: create ok");
-        acs_status rc2 = ACS_ERR_INTERNAL;
+        acsd_status rc2 = ACS_ERR_INTERNAL;
         char* out = create_ok ? exec_collect(api->execute, inst, cfg, &rc2) : NULL;
         CHECK(rc2 == ACS_OK && out != NULL, "cone: execute ok");
         if (out) {
@@ -426,13 +426,13 @@ int main(int argc, char** argv) {
         int drc = gaia_client_cone_search_for_solver(direct, ref->ra, ref->dec, 3.0,
                                                      100.0, &dra, &ddec, &dmag, &dn);
         CHECK(drc == 0 && dn > 0, "solver: direct ok");
-        acs_module_instance_v1* inst = NULL;
+        acsd_module_instance_v1* inst = NULL;
         memset(&err, 0, sizeof(err));
-        err.head.struct_size = (uint32_t)sizeof(acs_error_info_v1);
+        err.head.struct_size = (uint32_t)sizeof(acsd_error_info_v1);
         err.head.abi_version = ACS_ABI_VERSION_V1;
         sj.data = cfg; sj.size = strlen(cfg);
         int create_ok = (api->create(api, sj, plain_host, &inst, &err) == ACS_OK);
-        acs_status rc2 = ACS_ERR_INTERNAL;
+        acsd_status rc2 = ACS_ERR_INTERNAL;
         char* out = create_ok ? exec_collect(api->execute, inst, cfg, &rc2) : NULL;
         CHECK(create_ok && rc2 == ACS_OK && out != NULL, "solver: create+execute ok");
         if (out) {
@@ -478,13 +478,13 @@ int main(int argc, char** argv) {
         int drc = gaia_client_cone_search_with_spectrum(direct, ref->ra, ref->dec, 3.0,
                                                         -100.0, 100.0, &ds, &dsp, &dn);
         CHECK(drc == 0 && dn > 0 && ds && dsp, "spectrum: direct ok");
-        acs_module_instance_v1* inst = NULL;
+        acsd_module_instance_v1* inst = NULL;
         memset(&err, 0, sizeof(err));
-        err.head.struct_size = (uint32_t)sizeof(acs_error_info_v1);
+        err.head.struct_size = (uint32_t)sizeof(acsd_error_info_v1);
         err.head.abi_version = ACS_ABI_VERSION_V1;
         sj.data = cfg; sj.size = strlen(cfg);
         int create_ok = (api->create(api, sj, plain_host, &inst, &err) == ACS_OK);
-        acs_status rc2 = ACS_ERR_INTERNAL;
+        acsd_status rc2 = ACS_ERR_INTERNAL;
         char* out = create_ok ? exec_collect(api->execute, inst, cfg, &rc2) : NULL;
         CHECK(create_ok && rc2 == ACS_OK && out != NULL, "spectrum: create+execute ok");
         if (out) {
@@ -542,13 +542,13 @@ int main(int argc, char** argv) {
         int drc = gaia_client_cone_search_with_photometry(direct, ref->ra, ref->dec, 3.0,
                                                           -100.0, 100.0, &ds, &dn);
         CHECK(drc == 0 && dn > 0 && ds, "photometry: direct ok");
-        acs_module_instance_v1* inst = NULL;
+        acsd_module_instance_v1* inst = NULL;
         memset(&err, 0, sizeof(err));
-        err.head.struct_size = (uint32_t)sizeof(acs_error_info_v1);
+        err.head.struct_size = (uint32_t)sizeof(acsd_error_info_v1);
         err.head.abi_version = ACS_ABI_VERSION_V1;
         sj.data = cfg; sj.size = strlen(cfg);
         int create_ok = (api->create(api, sj, plain_host, &inst, &err) == ACS_OK);
-        acs_status rc2 = ACS_ERR_INTERNAL;
+        acsd_status rc2 = ACS_ERR_INTERNAL;
         char* out = create_ok ? exec_collect(api->execute, inst, cfg, &rc2) : NULL;
         CHECK(create_ok && rc2 == ACS_OK && out != NULL, "photometry: create+execute ok");
         if (out) {
@@ -605,13 +605,13 @@ int main(int argc, char** argv) {
                                                    60.0, -100.0, 100.0,
                                                    &ds, &dsp, &didx, &dn);
         CHECK(drc == 0 && dn == NC, "by_coords: direct ok");
-        acs_module_instance_v1* inst = NULL;
+        acsd_module_instance_v1* inst = NULL;
         memset(&err, 0, sizeof(err));
-        err.head.struct_size = (uint32_t)sizeof(acs_error_info_v1);
+        err.head.struct_size = (uint32_t)sizeof(acsd_error_info_v1);
         err.head.abi_version = ACS_ABI_VERSION_V1;
         sj.data = cfg; sj.size = strlen(cfg);
         int create_ok = (api->create(api, sj, plain_host, &inst, &err) == ACS_OK);
-        acs_status rc2 = ACS_ERR_INTERNAL;
+        acsd_status rc2 = ACS_ERR_INTERNAL;
         char* out = create_ok ? exec_collect(api->execute, inst, cfg, &rc2) : NULL;
         CHECK(create_ok && rc2 == ACS_OK && out != NULL, "by_coords: create+execute ok");
         if (out) {
@@ -684,13 +684,13 @@ int main(int argc, char** argv) {
                  "\"ra_list\":[%s],\"dec_list\":[%s],"
                  "\"match_radius_arcsec\":60.0,"
                  "\"mag_low\":-100.0,\"mag_high\":100.0}", dir, ral, del);
-        acs_module_instance_v1* inst = NULL;
+        acsd_module_instance_v1* inst = NULL;
         memset(&err, 0, sizeof(err));
-        err.head.struct_size = (uint32_t)sizeof(acs_error_info_v1);
+        err.head.struct_size = (uint32_t)sizeof(acsd_error_info_v1);
         err.head.abi_version = ACS_ABI_VERSION_V1;
         sj.data = cfg; sj.size = strlen(cfg);
         int create_ok = (api->create(api, sj, plain_host, &inst, &err) == ACS_OK);
-        acs_status rc2 = ACS_ERR_INTERNAL;
+        acsd_status rc2 = ACS_ERR_INTERNAL;
         char* out = create_ok ? exec_collect(api->execute, inst, cfg, &rc2) : NULL;
         CHECK(create_ok && rc2 == ACS_OK && out != NULL,
               "by_coords_partial_miss: DLL create+execute ok");
@@ -731,20 +731,20 @@ int main(int argc, char** argv) {
         ex_stub ex;
         memset(&ex, 0, sizeof(ex));
         ex.max_workers = 2;
-        const acs_host_api_v1* h = make_host(&ex, NULL, NULL);
+        const acsd_host_api_v1* h = make_host(&ex, NULL, NULL);
         const GaiaCatRefStar* ref = find_star(0, 3);
         char cfg[512];
         snprintf(cfg, sizeof(cfg),
                  "{\"op\":\"cone_search\",\"catalog_dir\":\"%s\","
                  "\"ra\":%.17g,\"dec\":%.17g,\"radius_deg\":2.0,"
                  "\"mag_low\":-100.0,\"mag_high\":100.0}", dir, ref->ra, ref->dec);
-        acs_module_instance_v1* inst = NULL;
+        acsd_module_instance_v1* inst = NULL;
         memset(&err, 0, sizeof(err));
-        err.head.struct_size = (uint32_t)sizeof(acs_error_info_v1);
+        err.head.struct_size = (uint32_t)sizeof(acsd_error_info_v1);
         err.head.abi_version = ACS_ABI_VERSION_V1;
         sj.data = cfg; sj.size = strlen(cfg);
         int create_ok = (api->create(api, sj, h, &inst, &err) == ACS_OK);
-        acs_status rc2 = ACS_ERR_INTERNAL;
+        acsd_status rc2 = ACS_ERR_INTERNAL;
         char* out = create_ok ? exec_collect(api->execute, inst, cfg, &rc2) : NULL;
         CHECK(create_ok && rc2 == ACS_OK && out != NULL, "lease: execute ok");
         CHECK(ex.acquire_calls == 2 && ex.release_calls == 2,
@@ -765,24 +765,24 @@ int main(int argc, char** argv) {
         memset(&ex, 0, sizeof(ex));
         ex.max_workers = 2;
         ex.acquire_fail = 1;
-        const acs_host_api_v1* h = make_host(&ex, NULL, NULL);
+        const acsd_host_api_v1* h = make_host(&ex, NULL, NULL);
         const GaiaCatRefStar* ref = find_star(0, 4);
         char cfg[512];
         snprintf(cfg, sizeof(cfg),
                  "{\"op\":\"cone_search\",\"catalog_dir\":\"%s\","
                  "\"ra\":%.17g,\"dec\":%.17g,\"radius_deg\":2.0,"
                  "\"mag_low\":-100.0,\"mag_high\":100.0}", dir, ref->ra, ref->dec);
-        acs_module_instance_v1* inst = NULL;
+        acsd_module_instance_v1* inst = NULL;
         memset(&err, 0, sizeof(err));
-        err.head.struct_size = (uint32_t)sizeof(acs_error_info_v1);
+        err.head.struct_size = (uint32_t)sizeof(acsd_error_info_v1);
         err.head.abi_version = ACS_ABI_VERSION_V1;
         sj.data = cfg; sj.size = strlen(cfg);
         int create_ok = (api->create(api, sj, h, &inst, &err) == ACS_OK);
-        acs_strbuf_v1 sb;
+        acsd_strbuf_v1 sb;
         memset(&sb, 0, sizeof(sb));
-        sb.head.struct_size = (uint32_t)sizeof(acs_strbuf_v1);
+        sb.head.struct_size = (uint32_t)sizeof(acsd_strbuf_v1);
         sb.head.abi_version = ACS_ABI_VERSION_V1;
-        acs_status rc2 = create_ok ? api->execute(inst, sj, sj, &sb, &err) : ACS_ERR_INTERNAL;
+        acsd_status rc2 = create_ok ? api->execute(inst, sj, sj, &sb, &err) : ACS_ERR_INTERNAL;
         CHECK(rc2 == ACS_ERR_BUDGET, "budget: acquire fail -> ACS_ERR_BUDGET");
         CHECK(ex.release_calls == 0, "budget: no release on failed acquire");
         if (inst) api->destroy(inst);
@@ -792,37 +792,37 @@ int main(int argc, char** argv) {
     {
         int cn_state = 0;
         (void)cn_state;
-        const acs_host_api_v1* h = make_host(NULL, (acs_cancel_v1*)1, NULL);
+        const acsd_host_api_v1* h = make_host(NULL, (acsd_cancel_v1*)1, NULL);
         const GaiaCatRefStar* ref = find_star(0, 5);
         char cfg[512];
         snprintf(cfg, sizeof(cfg),
                  "{\"op\":\"cone_search\",\"catalog_dir\":\"%s\","
                  "\"ra\":%.17g,\"dec\":%.17g,\"radius_deg\":2.0,"
                  "\"mag_low\":-100.0,\"mag_high\":100.0}", dir, ref->ra, ref->dec);
-        acs_module_instance_v1* inst = NULL;
+        acsd_module_instance_v1* inst = NULL;
         memset(&err, 0, sizeof(err));
-        err.head.struct_size = (uint32_t)sizeof(acs_error_info_v1);
+        err.head.struct_size = (uint32_t)sizeof(acsd_error_info_v1);
         err.head.abi_version = ACS_ABI_VERSION_V1;
         sj.data = cfg; sj.size = strlen(cfg);
         int create_ok = (api->create(api, sj, h, &inst, &err) == ACS_OK);
-        acs_strbuf_v1 sb;
+        acsd_strbuf_v1 sb;
         memset(&sb, 0, sizeof(sb));
-        sb.head.struct_size = (uint32_t)sizeof(acs_strbuf_v1);
+        sb.head.struct_size = (uint32_t)sizeof(acsd_strbuf_v1);
         sb.head.abi_version = ACS_ABI_VERSION_V1;
-        acs_status rc2 = create_ok ? api->execute(inst, sj, sj, &sb, &err) : ACS_ERR_INTERNAL;
+        acsd_status rc2 = create_ok ? api->execute(inst, sj, sj, &sb, &err) : ACS_ERR_INTERNAL;
         CHECK(rc2 == ACS_ERR_CANCELLED, "cancel: host flag -> ACS_ERR_CANCELLED");
         CHECK(sb.data == NULL, "cancel: no output buffer written (事务性)");
         /* request_cancel 幂等 */
         CHECK(api->request_cancel(inst) == ACS_OK &&
               api->request_cancel(inst) == ACS_OK, "cancel: request_cancel idempotent");
         /* 取消后状态恢复: 无 host cancel 再执行成功 */
-        const acs_host_api_v1* h2 = make_host(NULL, NULL, NULL);
+        const acsd_host_api_v1* h2 = make_host(NULL, NULL, NULL);
         sj.data = cfg; sj.size = strlen(cfg);
         memset(&err, 0, sizeof(err));
-        err.head.struct_size = (uint32_t)sizeof(acs_error_info_v1);
+        err.head.struct_size = (uint32_t)sizeof(acsd_error_info_v1);
         err.head.abi_version = ACS_ABI_VERSION_V1;
         /* 复用同实例: 需重新 create (cancel 后状态机仍 CREATED) — 直接再 execute */
-        acs_status rc3 = api->execute(inst, sj, sj, &sb, &err);
+        acsd_status rc3 = api->execute(inst, sj, sj, &sb, &err);
         CHECK(rc3 == ACS_OK, "cancel: instance reusable after cancel");
         if (inst) api->destroy(inst);
     }
@@ -835,26 +835,26 @@ int main(int argc, char** argv) {
                  "{\"op\":\"cone_search\",\"catalog_dir\":\"%s\","
                  "\"ra\":%.17g,\"dec\":%.17g,\"radius_deg\":1.0,"
                  "\"mag_low\":-100.0,\"mag_high\":100.0}", dir, ref->ra, ref->dec);
-        acs_module_instance_v1* inst = NULL;
+        acsd_module_instance_v1* inst = NULL;
         memset(&err, 0, sizeof(err));
-        err.head.struct_size = (uint32_t)sizeof(acs_error_info_v1);
+        err.head.struct_size = (uint32_t)sizeof(acsd_error_info_v1);
         err.head.abi_version = ACS_ABI_VERSION_V1;
         sj.data = cfg; sj.size = strlen(cfg);
         int create_ok = (api->create(api, sj, plain_host, &inst, &err) == ACS_OK);
-        acs_strbuf_v1 sb;
+        acsd_strbuf_v1 sb;
         memset(&sb, 0, sizeof(sb));
-        sb.head.struct_size = (uint32_t)sizeof(acs_strbuf_v1);
+        sb.head.struct_size = (uint32_t)sizeof(acsd_strbuf_v1);
         sb.head.abi_version = ACS_ABI_VERSION_V1;
-        acs_status rc2 = create_ok ? api->execute(inst, sj, sj, &sb, &err) : ACS_ERR_INTERNAL;
+        acsd_status rc2 = create_ok ? api->execute(inst, sj, sj, &sb, &err) : ACS_ERR_INTERNAL;
         (void)rc2;
-        acs_strbuf_v1 ib;
+        acsd_strbuf_v1 ib;
         memset(&ib, 0, sizeof(ib));
-        ib.head.struct_size = (uint32_t)sizeof(acs_strbuf_v1);
+        ib.head.struct_size = (uint32_t)sizeof(acsd_strbuf_v1);
         ib.head.abi_version = ACS_ABI_VERSION_V1;
         memset(&err, 0, sizeof(err));
-        err.head.struct_size = (uint32_t)sizeof(acs_error_info_v1);
+        err.head.struct_size = (uint32_t)sizeof(acsd_error_info_v1);
         err.head.abi_version = ACS_ABI_VERSION_V1;
-        acs_status ist = api->inspect(inst, &ib, &err);
+        acsd_status ist = api->inspect(inst, &ib, &err);
         char* insp = NULL;
         if (ist == ACS_OK) {
             insp = (char*)malloc((size_t)ib.size + 1);
@@ -863,7 +863,7 @@ int main(int argc, char** argv) {
         }
         CHECK(ist == ACS_OK && insp != NULL, "inspect: ok");
         if (insp) {
-            CHECK(strstr(insp, ASTROCS_GAIA_MODULE_ID) != NULL, "inspect: module_id present");
+            CHECK(strstr(insp, ACSD_GAIA_MODULE_ID) != NULL, "inspect: module_id present");
             double ec = 0;
             CHECK(tjson_num(insp, "exec_count", &ec) && ec >= 1.0, "inspect: exec_count>=1");
             free(insp);

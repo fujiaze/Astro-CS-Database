@@ -2,14 +2,14 @@
 # -*- coding: utf-8 -*-
 """E2E-501 三命令真实数据全链驱动（可复跑、出机器可读证据）。
 
-权威：docs/ASTROCS_DESIGN §6.1（三命令串行 + 阶段间只走磁盘产品 + manifest 链）、§6.2（预检矩阵）、
+权威：docs/ACSD_DESIGN §6.1（三命令串行 + 阶段间只走磁盘产品 + manifest 链）、§6.2（预检矩阵）、
       §4（退出码）；ENGINEERING_SPEC §7（目录纪律）。
 
 流程（每一步都有判据，fail-closed）：
   1. 生成三命令配置（eng/tools/e2e/make_e2e_configs.py，字段全部来自 --help 合同）；
   2. 串行跑 normalize → mosaic → export，任一 rc != 0 即红；
   3. **manifest 链贯通**（口径见 module_adapters.cpp §20.3，不是拿产品自证）：
-     · P2 阶段内自洽：p2_samples.input_manifest_hash == p2_final.provenance.ASTROCS_INPUT_MANIFEST_HASH；
+     · P2 阶段内自洽：p2_samples.input_manifest_hash == p2_final.provenance.ACSD_INPUT_MANIFEST_HASH；
      · P2→P3：用 Python **独立复算** p3n_input_manifest_hash 的公式
        （sha256 over "/signal/properties" + "/signal/Moc.fits" 按序拼接），与 p3_verify/p3_writer 自报值比对；
      · P3 阶段内自洽：p3_writer.input_manifest_hash == p3_verify.input_manifest_hash。
@@ -101,7 +101,7 @@ def run_cmd(cmd, log_path, timeout=5400):
 
 
 def newest_run_manifest(d):
-    fs = sorted(glob.glob(os.path.join(d, "astrocs_run_*.json")), key=os.path.getmtime)
+    fs = sorted(glob.glob(os.path.join(d, "acsd_run_*.json")), key=os.path.getmtime)
     return fs[-1] if fs else None
 
 
@@ -127,7 +127,7 @@ def verify_chain(dataset, timings, findings):
     # 故此处只验**阶段内自洽**：p2_samples.json 与 p2_final.json.provenance 必须报同一个哈希。
     p2f = os.path.join(p2, "p2_final.json")
     if os.path.isfile(p2f):
-        got = (load_json(p2f).get("provenance") or {}).get("ASTROCS_INPUT_MANIFEST_HASH")
+        got = (load_json(p2f).get("provenance") or {}).get("ACSD_INPUT_MANIFEST_HASH")
         ev["p2_input_manifest_hash"] = got
         smp = os.path.join(p2, "p2_samples.json")
         if os.path.isfile(smp):

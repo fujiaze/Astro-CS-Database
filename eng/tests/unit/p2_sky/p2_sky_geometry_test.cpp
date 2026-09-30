@@ -5,7 +5,7 @@
 //
 // 被测面 = lib/algorithms/coverage/include/astro/phase2/stage2_common.h 的
 //   p2_sky_plane_geometry_from_controls（生产编排 module_adapters.cpp 的 upm-fit
-//   节点与工具 astrocs-stage2 的**同一实现路径**），并与冻结的
+//   节点与工具 acsd-stage2 的**同一实现路径**），并与冻结的
 //   p2_sky_plane_derive_node_spacing（sky_plane.h）对接自洽。
 //
 // 判据能红能绿：

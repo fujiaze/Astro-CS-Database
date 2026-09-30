@@ -4,16 +4,16 @@
 // 与 cpu001_provider_selftest.cpp 分离, 避免 avx2/avx512 变体 target 重复链接。
 #include "backend_loader.h"
 #include "cpu_features.h"
-#include "astrocs/common_abi_v1.h"
+#include "acsd/common_abi_v1.h"
 
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
 #include <string>
 
-using astrocs::backend_host::ManifestEntry;
-using astrocs::backend_host::preflight_entry;
-using astrocs::backend_host::LoadResult;
+using acsd::backend_host::ManifestEntry;
+using acsd::backend_host::preflight_entry;
+using acsd::backend_host::LoadResult;
 
 static int failures = 0;
 #define CHECK(cond)                                                       \
@@ -25,7 +25,7 @@ static int failures = 0;
   } while (0)
 
 int main() {
-  const uint64_t detected = astrocs_cpu_detect_features_v1();
+  const uint64_t detected = acsd_cpu_detect_features_v1();
   CHECK((detected & ACS_FEAT_SSE2) != 0);   // amd64 基线恒置位
 
   // 跨平台临时目录 (同 io_adapter_test): Windows 无 TMPDIR 时回退 TEMP/TMP/".",
@@ -48,7 +48,7 @@ int main() {
       std::fclose(f);
     }
   }
-  const std::string real_sha = astrocs::backend_host::file_sha256_hex(fpath);
+  const std::string real_sha = acsd::backend_host::file_sha256_hex(fpath);
   CHECK(real_sha.size() == 64);
 
   // ① required 含检测不到的子集位(如 AVX512BW bit6) → 恒不满足 → 拒绝

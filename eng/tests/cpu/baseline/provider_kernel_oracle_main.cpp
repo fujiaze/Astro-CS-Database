@@ -10,8 +10,8 @@
 //
 // 链接: 本 TU + baseline_provider.cpp + capability_detect.c (真实探测)。
 // 编译: g++ -std=c++17 -O2 (无 -mavx*); 输出退出码 0=运行完成 (判定在 Python)。
-#include "astrocs/abi/module_api_v1.h"
-#include "astrocs/cpu/baseline_provider_v1.h"
+#include "acsd/abi/module_api_v1.h"
+#include "acsd/cpu/baseline_provider_v1.h"
 
 #include <cmath>
 #include <cstdio>
@@ -51,26 +51,26 @@ static void stub_release(void* ud, uint32_t n) {
     (void)ud; (void)n;
 }
 static int stub_cancel(void* ud) { (void)ud; return 0; }
-static void stub_log(void* ud, int level, acs_str_v1 c, acs_str_v1 m) {
+static void stub_log(void* ud, int level, acsd_str_v1 c, acsd_str_v1 m) {
     (void)ud; (void)level; (void)c; (void)m;
 }
 
 /* 构造 host (预算 stub 持 4; acquire 时按 budget 拒绝) */
-static void make_host(acs_host_api_v1* host, BudgetStub* bs) {
-    static acs_allocator_v1 alloc;
-    static acs_executor_v1 exec;
-    static acs_cancel_v1 cancel;
-    static acs_logger_v1 logger;
-    alloc = { { (uint32_t)sizeof(acs_allocator_v1), ACS_ABI_VERSION_V1 },
+static void make_host(acsd_host_api_v1* host, BudgetStub* bs) {
+    static acsd_allocator_v1 alloc;
+    static acsd_executor_v1 exec;
+    static acsd_cancel_v1 cancel;
+    static acsd_logger_v1 logger;
+    alloc = { { (uint32_t)sizeof(acsd_allocator_v1), ACS_ABI_VERSION_V1 },
               stub_alloc, stub_free, nullptr };
-    exec = { { (uint32_t)sizeof(acs_executor_v1), ACS_ABI_VERSION_V1 },
+    exec = { { (uint32_t)sizeof(acsd_executor_v1), ACS_ABI_VERSION_V1 },
              4u, 4u, stub_acquire, stub_release, bs };
-    cancel = { { (uint32_t)sizeof(acs_cancel_v1), ACS_ABI_VERSION_V1 },
+    cancel = { { (uint32_t)sizeof(acsd_cancel_v1), ACS_ABI_VERSION_V1 },
                stub_cancel, nullptr };
-    logger = { { (uint32_t)sizeof(acs_logger_v1), ACS_ABI_VERSION_V1 },
+    logger = { { (uint32_t)sizeof(acsd_logger_v1), ACS_ABI_VERSION_V1 },
                stub_log, nullptr };
     std::memset(host, 0, sizeof(*host));
-    host->head.struct_size = (uint32_t)sizeof(acs_host_api_v1);
+    host->head.struct_size = (uint32_t)sizeof(acsd_host_api_v1);
     host->head.abi_version = ACS_ABI_VERSION_V1;
     host->allocator = &alloc;
     host->executor = &exec;
@@ -120,17 +120,17 @@ int main() {
         { "hips", ACS_CPU_KIDX_HIPS_BULK, 0.5f, 4, 3 }
     };
 
-    acs_host_api_v1 host;
+    acsd_host_api_v1 host;
     BudgetStub bs{ 4, 0, 0 };
     make_host(&host, &bs);
 
-    const acs_provider_api_v1* api = nullptr;
-    if (astrocs_provider_query_v1(ACS_ABI_VERSION_V1, &host, &api) != ACS_OK) {
+    const acsd_provider_api_v1* api = nullptr;
+    if (acsd_provider_query_v1(ACS_ABI_VERSION_V1, &host, &api) != ACS_OK) {
         std::printf("QUERY_FAIL\n");
         return 2;
     }
     uint32_t kcount = 0;
-    const acs_kernel_desc_v1* kdesc = nullptr;
+    const acsd_kernel_desc_v1* kdesc = nullptr;
     if (api->kernel_list(&host, &kcount, &kdesc) != ACS_OK || kcount != 12) {
         std::printf("KERNEL_COUNT %u\n", kcount);
         return 2;
@@ -214,7 +214,7 @@ int main() {
             out_bytes.resize((N + (has_out1 ? N : 0)) * 4);
             std::memset(out_bytes.data(), 0, out_bytes.size());
 
-            acs_cpu_baseline_params_v1 P;
+            acsd_cpu_baseline_params_v1 P;
             std::memset(&P, 0, sizeof(P));
             P.head.struct_size = (uint32_t)sizeof(P);
             P.head.abi_version = ACS_ABI_VERSION_V1;
@@ -227,9 +227,9 @@ int main() {
             P.out_off[0] = 0; P.out_len[0] = N;
             if (has_out1) { P.out_off[1] = N; P.out_len[1] = N; }
 
-            acs_span_u8 sp_in = ACS_SPAN_U8(in_bytes.data(), in_bytes.size());
-            acs_span_u8 sp_out = ACS_SPAN_U8(out_bytes.data(), out_bytes.size());
-            const acs_status rc = api->run_kernel(op.kidx, &host, &P, sizeof(P),
+            acsd_span_u8 sp_in = ACS_SPAN_U8(in_bytes.data(), in_bytes.size());
+            acsd_span_u8 sp_out = ACS_SPAN_U8(out_bytes.data(), out_bytes.size());
+            const acsd_status rc = api->run_kernel(op.kidx, &host, &P, sizeof(P),
                                                   sp_in, sp_out);
             if (rc != ACS_OK) {
                 std::printf("RC %d\n", (int)rc);

@@ -1,7 +1,7 @@
 // eng/tests/unit/export_stream_test.cpp — ARCH-504 export 子块流式调度器回归锁
 //
 // 依据：CONTRACT-501 docs/engineering/SCHEDULER_CONTRACT.md §2/§3/§4/§5；
-//       docs/ASTROCS_DESIGN §6/§8.3。
+//       docs/ACSD_DESIGN §6/§8.3。
 // 判据（每条可证伪）：
 //   A. 与整幅参考路径输出**逐位一致**（同一像素函数、行主序 checksum 相同），且与 worker 数无关；
 //   B. 原子发布：产品文件存在且长度 = WCS 头 + properties + 像素字节；无 .tmp 残留；
@@ -11,7 +11,7 @@
 //   F. RSS 与子块大小成正比、与总图大小无关（4×/16× 像素规模扫描）；
 //   G. 探针：每子块一条 io + 一条 node_wall，stage=export；
 //   H. 取消：能返回、不挂死。
-#include "astrocs/core/export_stream.h"
+#include "acsd/core/export_stream.h"
 
 #include <algorithm>
 #include <cstdio>
@@ -27,7 +27,7 @@
 #include <unistd.h>
 #endif
 
-using namespace astrocs::core;
+using namespace acsd::core;
 
 #ifndef ARCH504_EVIDENCE_DIR
 #define ARCH504_EVIDENCE_DIR "run/RELEASE-05/evidence"
@@ -83,7 +83,7 @@ ExportStreamConfig cfg_for(const std::string& tag, int sub_px, int qd, int worke
   c.manifest_path = std::string(ARCH504_EVIDENCE_DIR) + "/arch504_manifest.json";
   c.output_path = std::string(ARCH504_EVIDENCE_DIR) + "/arch504_" + tag + ".fits";
   c.wcs_header = "SIMPLE  =                    T / TAN (frozen)\nNAXIS   =                    2\n";
-  c.properties = "ASTROCS PROVENANCE\nPROJECT = ACSD\n";
+  c.properties = "ACSD PROVENANCE\nPROJECT = ACSD\n";
   return c;
 }
 
