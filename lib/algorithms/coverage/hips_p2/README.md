@@ -51,7 +51,7 @@
   `p2_stage2_make_upm_cfg` :427-430 进入 UPM 构建（`minfo.model_hash`
   :437-444）→ UPM 持久层与 diagnostics.json :1746。
 - 马赛克编排生命周期：DISCOVER/VALIDATE/COVERAGE_UNION（:172-204，两阶段
-  调用 :173-196；target_order 高于输入最高 order 拒绝 rc=3 "禁止插值伪装
+  调用 :173-196；target_order 高于**输入最低 order（min over inputs）**拒绝 rc=3 "禁止插值伪装
   分辨率" :203-205）→ CONTROL_SAMPLE（:256-317 probe+fill 两阶段）→
   UPM_FIT（:426-444）→ UPM_PERSIST（:445-467，diagnostics=true 时）→
   BLOCK_PLAN（:515-522）→ REJECT+INTEGRATE+HIPS_WRITE（:523-1663）→

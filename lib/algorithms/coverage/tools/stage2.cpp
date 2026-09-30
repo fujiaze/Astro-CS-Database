@@ -211,7 +211,11 @@ int main(int argc, char** argv) {
     const int target_order =
         (cfg.target_order >= 0) ? cfg.target_order : cov.target_order;
     if (target_order > cov.target_order) {
-        log("target_order 高于输入最高 order，禁止插值伪装分辨率");
+        // 文案订正：cov.target_order 是**所有输入里最低**的 order
+        // （coverage.h:8「min(所有输入最高…)」、coverage/README.md:39「min(逐帧 hips_order)」），
+        // 本守卫拒的是「超过该最低值」。原文案写「高于输入**最高** order」与判据方向相反，
+        // 照它去排查会找错帧（任何 target_order 只要不超过最大输入就会被误查）。
+        log("target_order 高于输入最低 order（min over inputs），禁止插值伪装分辨率");
         return 3;
     }
     log("coverage: inputs=" + std::to_string(cov.n_inputs) +
