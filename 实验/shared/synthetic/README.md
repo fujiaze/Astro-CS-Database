@@ -88,3 +88,33 @@ python3 实验/additive-sky-seamless/code/reverse_verify/m16_sampling/run_recons
    `seeing_floor_reached=true`（不假装锐化）；
 3. 像素尺度 ≠ 画布尺度时走三次样条重采样（登记 `resample_order`）；
 4. 真实 drz 噪声**相关化**，本模块生成**逐像素独立**噪声 ⇒ 对相关长度敏感的判据不得用本合成帧定标。
+
+## 一键自检（实验单元复现的公共前置步）
+
+```bash
+bash 实验/shared/synthetic/run_selftests.sh          # 跑全部四项
+bash 实验/shared/synthetic/run_selftests.sh m16      # 只跑名字含 m16 的
+```
+
+全绿约 2 分 24 秒（`noise_selftest` 143 s 是大头），退出码 0；任一组件判红退出码 1；
+组件缺失退出码 2。各组件判据条数与验证对象：
+
+| 组件 | 入口 | 判据条数 | 验证对象 |
+|---|---|---:|---|
+| `m16_mask.py` | `--selftest` | 6 | 自身掩膜生成逻辑 |
+| `m16_scene.py` | `--selftest` | 7 | 自身 + 调用生产 `noise_model.expose()` |
+| `m16_sampling.py` | `--selftest` | —— | 自身 + 调用生产 `noise_model` / `render` / `m16_mask` |
+| `noise_selftest.py` | 直接运行 | 12 | **仅独立重实现**（见下） |
+
+**能力边界（必须照此使用）**：`noise_selftest.py` 的 12 个用例中只有 A2 调用生产实现，
+且 A2 的判词只取独立臂相对解析预测的偏差，生产臂的偏差被记录但不进入判词；其余 11 个
+用例完全不调用生产实现。它验的是**方法**（分布是否正确），不是**生产代码**（代码是否自洽）。
+
+生产面的门禁责任落在 `m16_scene --selftest` 与 `m16_sampling --selftest` 上。因此：
+
+- 实验单元的一键复现**必须调用本脚本（全四项）**，不得只调 `noise_selftest.py`；
+- 只调 `noise_selftest.py` 会被误读为「物理链已验证」，实际只验证了独立重实现。
+
+判别力已实测：往生产 `noise_model.py` 注入「物理臂去掉电子域泊松抽样」与「忽略平场乘性
+响应」两个物理上不成立的缺陷，两次分别被 `m16_scene`+`m16_sampling` 与 `m16_sampling` 捕获，
+汇总退出码正确判 1。完整矩阵见审核包 `run/GOVERN-08/审核包/实验单元评估.md`。
