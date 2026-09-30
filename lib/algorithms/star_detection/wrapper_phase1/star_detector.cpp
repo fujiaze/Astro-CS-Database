@@ -50,11 +50,12 @@ StarDetector::StarDetector(double detection_sigma) : detection_sigma_(detection_
 //             阈值退化为 ≈bg ⇒ 2% NaN 帧产生 6844 个假源（含 239 个非有限字段），
 //             25% NaN ⇒ 8748（3721 非有限），全 NaN ⇒ 15564（全非有限）；
 //             p1_read_image(module_adapters.cpp:1131) → det.detect(:2126) 之间无 isfinite 门。
-//             已实施修法（两道）：① **入口**逐像素 isfinite 归约（与既有 O(n) 转换循环同趟，
+//             已实施修法（三道）：① **入口**逐像素 isfinite 归约（与既有 O(n) 转换循环同趟，
 //             `reduction(|:nonfinite)`），任一非有限 ⇒ return false —— 这是必需的，因为 NaN 占比
 //             <50% 时中位数仍是有限值，只查返回值挡不住；② 返回前
 //             `if (!std::isfinite(*bg) || !std::isfinite(*sigma)) return false;` 且把原
-//             `*sigma < 1e-9` 改为 `!(*sigma > 0.0)`。detect()（:120-123）已对该 false 做
+//             `*sigma < 1e-9` 改为 `!(*sigma > 0.0)`；③ **σ == 0 由「静默置地板」改为显式失败**。
+//             detect()（:132-135）已对该 false 做
 //             fail-closed（ErrorDomain::DATA "background estimation failed"）。有限输入的
 //             逐位结果不变（转换循环的数值路径未改）。
 //             回归锁定：eng/tests/unit/p1_stars_test.cpp 的 noise_sigma 组（NaN ⇒ 必败；
@@ -119,7 +120,23 @@ bool StarDetector::estimate_background(const float* image, int w, int h,
   // CLEAN-401 缺陷修（fail-closed）：原 `if (*sigma < 1e-9)` 对 NaN 判假 ⇒ NaN 帧
   // 会把 NaN 当 σ 放行（假源爆炸，见函数上方保留块「已知缺陷」）。非有限 ⇒ 显式失败。
   if (!std::isfinite(*bg) || !std::isfinite(*sigma)) return false;
-  if (!(*sigma > 0.0)) *sigma = 1e-9;
+  // σ == 0 与 NaN 同处置：**显式失败**，不静默置地板。
+  //
+  // σ 的定义是裁剪后残差的 RMS。RMS 恰为 0 意味着裁剪窗内像素**全为同一常量或全被掩膜**
+  // （常量/掩膜像素占比 ≥ 0.40 时第二阶 MAD 恰为 0，σ 塌成 1e-9）。这不是「噪声极小」，
+  // 而是「该窗没有噪声信息」——真实底口径与天光口径都无从恢复。
+  //
+  // 旧处置 `if (!(*sigma > 0.0)) *sigma = 1e-9;` 是**静默降级**（规范 06 §2 明禁）：
+  // 它把 0 当成「极小但有效」而塞一个地板值。下游 SNR = F/σ 随即得到 ~1e9 的量级，
+  // 而下游守卫（snr_frame_science.cpp:89）只拒 `sigma_sky_adu <= 0`，**1e-9 恰好通过**，
+  // 链上无第二道拦截 ⇒ 实测 SNR 被高估约 2×10¹⁰ 倍（实验侧反例
+  // `实验/absolute-snr/code/redteam/rt_sigma_hat_applicability.py`，const_frac ≥ 0.40 起）。
+  //
+  // CLEAN-401 把判定从 `*sigma < 1e-9` 改成 `!(*sigma > 0.0)` 是为了挡住 NaN；
+  // 但该谓词同时为真于 σ == 0，于是 0 被一并路由进「置地板」分支。
+  // 现按「NaN 与 0 同为不可用」统一为显式失败：调用方（detect() 与 module_adapters 的
+  // catalog_guided 臂）都已有 `ErrorDomain::DATA` 的稳定错误码路径。
+  if (!(*sigma > 0.0)) return false;
   return true;
 }
 
