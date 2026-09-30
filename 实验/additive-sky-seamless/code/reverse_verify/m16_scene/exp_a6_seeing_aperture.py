@@ -77,9 +77,10 @@ import numpy as np
 
 HERE = Path(__file__).resolve().parent
 RV = HERE.parents[1]                          # reverse_verify/
-ROOT = HERE.parents[5]
+ROOT = HERE.parents[4]
 sys.path.insert(0, str(ROOT / "实验" / "shared" / "synthetic"))
-sys.path.insert(0, str(RV / "f_instr"))
+# 孔径测光估计器在 P2 单元的 reverse_verify/f_instr 下（本单元 reverse_verify 内无此件）
+sys.path.insert(0, str(ROOT / "实验" / "absolute-snr" / "code" / "reverse_verify" / "f_instr"))
 import m16_scene as MS                        # noqa: E402
 import f_instr_lib as FL                      # noqa: E402  估计器（复用，不重写）
 

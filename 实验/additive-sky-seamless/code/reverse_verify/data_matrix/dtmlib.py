@@ -33,6 +33,7 @@ import render as R            # noqa: E402
 
 OUT_ROOT = ROOT / "run/reverse_verify/data_matrix"
 RESULT_DIR = OUT_ROOT / "results"
+SCENES = SHARED / "synthetic" / "scenes"
 
 
 # ---------------------------------------------------------------------------

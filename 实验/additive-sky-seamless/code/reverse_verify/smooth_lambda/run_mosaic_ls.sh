@@ -22,7 +22,7 @@ json.dump(d, open(cfg, "w"), indent=1)
 print("cfg", cfg, "n_frames", len(paths), "lambda", ls)
 PYEOF
 echo "[run] lambda=$LS tag=$TAG"
-/usr/bin/time -f "WALL=%e RSS=%M" build/astrocs mosaic --json "$CFG" -y > run/RELEASE-02/smooth-lambda/logs_$TAG.events.jsonl 2> run/RELEASE-02/smooth-lambda/logs_$TAG.stderr || echo "rc=$?"
+/usr/bin/time -f "WALL=%e RSS=%M" build/acsd mosaic --json "$CFG" -y > run/RELEASE-02/smooth-lambda/logs_$TAG.events.jsonl 2> run/RELEASE-02/smooth-lambda/logs_$TAG.stderr || echo "rc=$?"
 tail -2 run/RELEASE-02/smooth-lambda/logs_$TAG.stderr
 python3 "$HERE/seam_product.py" "$OUT" "$TAG" || true
 echo "MOSAIC_DONE $TAG"

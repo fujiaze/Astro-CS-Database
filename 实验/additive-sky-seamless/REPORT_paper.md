@@ -1,14 +1,13 @@
 # 加性天光去除与无接缝叠加：稀疏控制点定权、接缝判据与公共面可表示性边界
 
-**ACSD 科学链第五点（P5 / SCI-C）定稿论文** · 单元：`实验/additive-sky-seamless/`
+**科学链第五点（P5）定稿论文** · 单元：`实验/additive-sky-seamless/`
 
 | 项 | 值 |
 |---|---|
-| 权威依据 | `docs/ASTROCS_DESIGN.md` §2.3/§12.3；`ACCEPTANCE_SPEC.md` §2.3；`docs/science/PHASE2_UPM.md`；`docs/plugins/algorithms_phase2/11_upm.md`（11_upm §4.4 与正本互斥处按分歧台账 A-P5-06 维持禁令） |
-| 事实源 | `独立审计/实验重做/总编对账/分歧台账.md`（D-07/D-08、A-P5-01…A-P5-12）；`五单元成稿简报.md` P5 节 |
-| 证据口径 | 正文每个数字标注 [文献] / [实验:code 文件名] / [推导]；[实验] 读数固化于 `results/audit_rework/`（审计重做三路＋补实验）、本单元 `results/c1–c7*.json`（历史正本，本轮未重跑，其运行 commit 在仓内**不可判定** ⇒ 只作历史读数、不作结论的唯一依据）与 `results/production_e2e_seam_record.json`（生产 49 帧端到端读数的逐字冻结记录：源 run 树是过程产物、产品 FITS 已被回收，故以冻结记录 + 哈希承担可核对面） |
-| 数字可回溯性 | 三腿制：文献腿（refs.md VERIFIED 条目）、实验腿（固定 seed 脚本＋JSON）、推导腿（docs/ 支撑推导） |
-| 复现 | `bash code/audit_rework/run_all.sh`（固定 seed，无网络，零 git 写）；历史正本 `bash code/run_all.sh` |
+| 权威依据 | `docs/ASTROCS_DESIGN.md` §2.3/§12.3；`docs/science/PHASE2_UPM.md`（其 §4.4 的 w∝SNR² 与正本 §5/§10 互斥处，禁令维持，见 §6 第 3 条） |
+| 证据口径 | 正文数字按三类标签标注：`[n]`（外部资料，编号见文末参考文献）、`[实验:code 文件名]`（仓内实测）、`[推导]`（闭式推导）。三类标签互不替代 |
+| 证据可复核面 | 文献腿 `refs.md`（一手 VERIFIED 条目）；实验腿固定 seed 脚本 ＋ `results/**/*.json`；推导腿 `docs/*.md` |
+| 复现 | `bash 实验/shared/synthetic/run_selftests.sh`（物理链自检，公共前置步）→ `bash 实验/additive-sky-seamless/code/audit_rework/run_all.sh`（审计重做三路 ＋ 补实验，读数逐位可复现）→ `bash 实验/additive-sky-seamless/code/run_all.sh`（历史正本 C1–C7 ＋ 归零负例 ＋ 冻结记录自检；退出码的读法见 §6 第 14 条） |
 
 ---
 
@@ -28,7 +27,7 @@ ACSD 科学链的前四点建立了逐帧测光零点（P1）、跨帧绝对信�
 
 ### 1.2 与既有工作的关系
 
-重叠帧相对定标的方法学先例是 SDSS ubercalibration [文献:Padmanabhan et al. 2008, arXiv:astro-ph/0703454]——该文处理的是乘性刻度，本文处理其残留：乘性差必须先在上游（Phase1）吸收，加性面才可分离。drizzle 类线性重建的输出像素噪声相关性质由 Fruchter & Hook 2002 [文献:PASP 114, 144, DOI 10.1086/338393] 给出，本文的控制点方差修正因子 k_corr 正是这一「输出像素非独立」论断在本管线几何下的定量后果；该文不含 k_corr 数值（D-08 全文检索确认），故 k_corr 一律按两因子查表引用而不挂文献数值。多帧叠加的稳健伪迹剔除先例见 SWarp [文献:Gruen et al. 2014, PASP 126, 158, DOI 10.1086/675080]——仅作伪迹剔除对照，不作背景匹配依据（A-P5-09 收窄）。稳健位置估计的 M-估计框架出自 Huber [文献:Ann. Math. Statist. 35, 73, DOI 10.1214/aoms/1177703732]；阈值 δ=1.345 的**归属**为 Holland & Welsch [文献:Comm. Statist. A6, 813, DOI 10.1080/03610927708827533]（A-P5-09 订正）；该文取值表在线不可得，**数值**由本文闭式效率方程独立复算（δ(0.95)=1.3449975）[实验:route2/e5_huber_delta_1345.py]——归属与取值出处是两件事。χ² 期望的自由度公式取自 Andrae et al. [文献:arXiv:1012.3754，式(9) 逐字]。
+重叠帧相对定标的方法学先例是 SDSS ubercalibration [8]——该文处理的是乘性刻度，本文处理其残留：乘性差必须先在上游（Phase1）吸收，加性面才可分离。drizzle 类线性重建的输出像素噪声相关性质由 Fruchter & Hook 2002 [4] 给出，本文的控制点方差修正因子 k_corr 正是这一「输出像素非独立」论断在本管线几何下的定量后果；该文不含 k_corr 数值（D-08 全文检索确认），故 k_corr 一律按两因子查表引用而不挂文献数值。多帧叠加的稳健伪迹剔除先例见 SWarp [5]——仅作伪迹剔除对照，不作背景匹配依据（A-P5-09 收窄）。稳健位置估计的 M-估计框架出自 Huber [7]；阈值 δ=1.345 的**归属**为 Holland & Welsch [6]（A-P5-09 订正）；该文取值表在线不可得，**数值**由本文闭式效率方程独立复算（δ(0.95)=1.3449975）[实验:route2/e5_huber_delta_1345.py]——归属与取值出处是两件事。χ² 期望的自由度公式取自 Andrae et al. [1]。
 
 ### 1.3 贡献
 
@@ -57,7 +56,7 @@ control 点取 patch 内稳健中位，σ_bg = 1.4826·MAD；定权公式（SCI-
 Var(control) = k_corr · (π/2) · σ_bg² / N_retained
 ```
 
-渐近核 π/2·σ²/N 为中位数方差的渐近式 [文献:Serfling 1980，书目级标注；Kendall Vol.1 Example 9.7，二手标注]，高斯渐近在 N_retained ≥ 65 时 MC 偏差 <2% [实验:route1/c1_median_variance.py]。
+渐近核 π/2·σ²/N 为中位数方差的渐近式 [9]（书目级标注；Kendall Vol.1 Example 9.7 为二手标注），高斯渐近在 N_retained ≥ 65 时 MC 偏差 <2% [实验:route1/c1_median_variance.py]。
 
 **N=5 三口径（按台账 D-07 定稿）**。纯公式口径：精确阶统计量积分给出 N=5 个标准正态的中位数方差 0.286834，渐近式 π/2/5 = 0.314159，比值 1.0953 ⇒ **高估 9.53%**（该 +9.53% 取**精确积分**口径 0.3141593/0.2868337；400k 次 iid MC 实现给比值 1.0876，与精确值差 0.7%，在 MC 误差内）[推导]（密度 f₍₃₎(x) = 5!/(2!2!)·Φ²(1−Φ)²·φ，数值积分）；三路独立 MC 与端到端腿一致 [实验:route1/c1_median_variance.py、route2/e1_control_variance_median.py、route3/q3_median_variance.json]；P2 补实验给出定稿三口径：纯公式 +9.5%、端到端 ≤±1.5%、生产链亮端裁剪臂低估 1.3–3.2%，κ 四点 rel −0.86%~+0.19% 均 MC 误差内 [实验:supp_control_variance/finiteN_control_variance.py 等]。方向**保守**（权重偏小），不构成过置信风险。原正本「N=5 低估 8.5%」方向词错误，按 D-07 订正。
 
@@ -71,13 +70,13 @@ k_gauss(N)（**表列口径逐字 = `tables.md` T3 的列头「k_gauss(N) iid �
 
 ### 2.3 接缝判据：确定性下限与统计行为
 
-无接缝交付判据为 `max|rel_step| ≤ 1e-2`，rel_step 为**线性差分比**口径（正本定义 PHASE2_UPM §9a：rel_step(e) = median(img[+d] − img[−d])/bg(e)）。其确定性下限按 §17.3 线性硬界给出：rel_step = Δ/(L+Δ/2) ⇒ |Δ|/L ≤ gate/(1−gate/2) = **1.00503%**，即线性台阶 **1.0050%** 以下判绿为确定性结论 [推导]（详见 docs/seam-gate-floor.md）。<!-- 订正: 检查-行文逻辑 R2（同 检查-跨文档冲突 黄10）——原作「rel_step 为对数口径的跨 patch 背景电平比，下限由对数–线性映射给出：|Δ|/L ≤ e^{1e-2}−1 = 0.0100503」，与正本 §9a 线性差分比定义及 §17.3 下限 gate/(1−gate/2) 矛盾；两式在 g=1e-2 数值巧合一致（e^g−1=0.01005017 vs g/(1−g/2)=0.01005025），地板值结论不受影响，口径归属更正 -->实验腿逐位闭合 [实验:route1/c3_seam_gate.py，seed=20260319]：Δ/L=1.00503% 判红（该档略高于闭式地板 0.010050251256281407 ⇒ 判红是地板的正确落位；固化 JSON 的键名 `0.010050` 是 6 位小数标签，其真值为 0.0100503）、1.0049% 判绿；**精确取 Δ/L = 1.0050% 时解析 rel_step = 0.00999975 < 1e-2 ⇒ 判绿**——红/绿分界在 1.0050251%，不在 1.0050%；H₀ 散布 σ_meas=1.151e-3 vs 判据量散布公式 1.187e-3（比值 0.970），门处虚警 0/4000；多重性检出（解析 1−∏Φ / MC 双口径）@Δ/L=1.05%：n_s=1/2/4 → 解析 0.6462/0.8748/0.9843、MC 0.6518/0.8700/0.9828（两口径在 n_s=1 处差 0.006，属 MC 波动）[文献:Clopper & Pearson 1934，DOI 10.1093/biomet/26.4.404，区间口径]。
+无接缝交付判据为 `max|rel_step| ≤ 1e-2`，rel_step 为**线性差分比**口径（正本定义 PHASE2_UPM §9a：rel_step(e) = median(img[+d] − img[−d])/bg(e)）。其确定性下限按 §17.3 线性硬界给出：rel_step = Δ/(L+Δ/2) ⇒ |Δ|/L ≤ gate/(1−gate/2) = **1.00503%**，即线性台阶 **1.0050%** 以下判绿为确定性结论 [推导]（详见 docs/seam-gate-floor.md）。<!-- 订正: 检查-行文逻辑 R2（同 检查-跨文档冲突 黄10）——原作「rel_step 为对数口径的跨 patch 背景电平比，下限由对数–线性映射给出：|Δ|/L ≤ e^{1e-2}−1 = 0.0100503」，与正本 §9a 线性差分比定义及 §17.3 下限 gate/(1−gate/2) 矛盾；两式在 g=1e-2 数值巧合一致（e^g−1=0.01005017 vs g/(1−g/2)=0.01005025），地板值结论不受影响，口径归属更正 -->实验腿逐位闭合 [实验:route1/c3_seam_gate.py，seed=20260319]：Δ/L=1.00503% 判红（该档略高于闭式地板 0.010050251256281407 ⇒ 判红是地板的正确落位；固化 JSON 的键名 `0.010050` 是 6 位小数标签，其真值为 0.0100503）、1.0049% 判绿；**精确取 Δ/L = 1.0050% 时解析 rel_step = 0.00999975 < 1e-2 ⇒ 判绿**——红/绿分界在 1.0050251%，不在 1.0050%；H₀ 散布 σ_meas=1.151e-3 vs 判据量散布公式 1.187e-3（比值 0.970），门处虚警 0/4000；多重性检出（解析 1−∏Φ / MC 双口径）@Δ/L=1.05%：n_s=1/2/4 → 解析 0.6462/0.8748/0.9843、MC 0.6518/0.8700/0.9828（两口径在 n_s=1 处差 0.006，属 MC 波动）[3]（区间口径）。
 
 三个**结构性失效面**必须随门一并陈述（适用域声明，`docs/science/PHASE2_UPM.md` §17.3 的清单——该清单已按本单元证据补入第 6 条「光滑法向斜坡伪阳」，判据量的梯度项与 d 扫描判别量本身见 §17.1/§17.2）：(i) 平滑过渡——线性剖面下观察台阶按 2d/w 缩减（w=8/16/32 px → ×0.50/0.25/0.125），2% 名义台阶判绿 [实验:route1/c3_seam_gate.py]；(ii) 反号梯度相消——注入 1.005%＋反号梯度（2d·g=Δ）时 rel_step 读 0.06% 判绿（01 D-57：漏检面抬升 ≈1.73%），无梯度对照 1.09% 判红；(iii) **光滑法向斜坡（本单元新增登记）**——判据量 `rel_step = 2d·ρ + Δ/bg`（ρ = 边界处**相对**法向斜率）在真值无台阶时仍非零，ρ ≥ 0.25%/px（= gate/2d）**单独**即把判据推过门：合成夹具 ρ=0.26%/px ⇒ rel_step = 0.0104 判红而真值无接缝（伪阳），ρ=0.10%/px ⇒ rel_step = 0.0040（门的 40%）而 d 扫描诊断量 rel_step_d4x = 0.0160 已超门 1.6×；纯斜坡的 d 扫描比值恒 = 4（真实台阶恒 = 1），据此可判别。负例（无台阶）median rel_step = 0、4000 次 MC 全绿——判据非恒真（真值无效应⇒度量归零）[实验:code/seam_gate_gradient_scan.py，seed=20260928]。
 
 检出门限：注入响应线性（2/5/10/20/50 e⁻ → 0.798/2.325/4.386/8.885/22.425 e⁻），A=10 e⁻ 检出率 0.975，5σ 检测限 **6.98 e⁻** [实验:c4_seam_criterion.py]。另按台账 A-P5-05 限定：「f<1/2 中位数结构性失明」仅在**无噪极限**成立；M42 级噪声下 f=0.3、Δ/L=5% 读数已达 1.03e-2（到门）[实验:route3/exp01_seam_gate.py]。
 
-**判据面收口**。模型级台阶的红位仅存于本接缝门与 Huber δ=1.345（见 §2.5）。原修复规格判据01 的 rel_step_max=0.1 按台账 A-P5-10 **除名**：它不是 IRLS 步长上限（仓库无该参数，grep 全仓库 rel_step 仅命中接缝判据面），按其真实身份（相邻 control 平滑性诊断）不可标定（B0=5 合法场景假红 45–60%、B0=1000 永不红）、判决规则自不自洽（「>20% 邻对判红」对局部缺陷结构性失明：单节点缺陷至多影响 4/112=3.6% 邻对，规格自带 ×10 注入配方实测不判红）、灵敏度比接缝门松约 20× [实验:supp_507_relstep/eb_relstep_calibration.py]。反事实扫描证明任何步长上限只改收敛轮数（20→130 轮）不改终解与判据值。修复规格的 12 项系统性幻觉锚（λ_bend、条件数门 1e12、α/β/h_abs_min、min_cluster_size=3、support_min 错位等）整段回炉，不得作修复依据（A-P5-03）[实验:route1/c10_anchor_forensics.py]。support_min=0.2 降级为出处未定的实现默认；min_cluster_size=3 随规格回炉删除——回炉目标 = `独立审计/08_修复包/③加性天光无缝/05_正向规格.md` §9（自校准栅栏整段，:18 起）与 §10（判据 01–06 规格，:108 起）[实验:route1/c10_anchor_forensics.py]。
+**判据面收口**。模型级台阶的红位仅存于本接缝门与 Huber δ=1.345（见 §2.5）。原修复规格判据01 的 rel_step_max=0.1 按台账 A-P5-10 **除名**：它不是 IRLS 步长上限（仓库无该参数，grep 全仓库 rel_step 仅命中接缝判据面），按其真实身份（相邻 control 平滑性诊断）不可标定（B0=5 合法场景假红 45–60%、B0=1000 永不红）、判决规则自不自洽（「>20% 邻对判红」对局部缺陷结构性失明：单节点缺陷至多影响 4/112=3.6% 邻对，规格自带 ×10 注入配方实测不判红）、灵敏度比接缝门松约 20× [实验:supp_507_relstep/eb_relstep_calibration.py]。反事实扫描证明任何步长上限只改收敛轮数（20→130 轮）不改终解与判据值。修复规格的 12 项系统性幻觉锚（λ_bend、条件数门 1e12、α/β/h_abs_min、min_cluster_size=3、support_min 错位等）整段回炉，不得作修复依据（A-P5-03）[实验:route1/c10_anchor_forensics.py]。support_min=0.2 降级为出处未定的实现默认；min_cluster_size=3 随规格回炉删除——回炉目标 = 修复规格的 §9（自校准栅栏整段）与 §10（判据 01–06 规格）[实验:route1/c10_anchor_forensics.py]。
 
 ### 2.4 诊断量的方差定义与正交性
 
@@ -89,11 +88,11 @@ k_gauss(N)（**表列口径逐字 = `tables.md` T3 的列头「k_gauss(N) iid �
 
 Huber 位置 M-估计的阈值 δ 由「高斯渐近效率 = 95%」的闭式效率方程定义：δ(0.95)=1.3449975（二分解），MC 渐近效率 0.948（路线1）/ 0.9507（路线2）≈95% [实验:route1/c5_huber_efficiency.py、route2/e5_huber_delta_1345.py]；δ=1.345 的文献归属为 Holland & Welsch 1977 [文献]。σ_floor 主导域（σ_eff = max(σ, floor) ≫ σ）中估计量严格退化为 median（方差逐位等于 median 方差），95% 效率结论在该域失效——σ_eff 必须与观测同标度 [实验:route2/e10_sigma_floor_crossscale.py]。
 
-自由度公式 E[χ²] = n_obs − r_eff 为 Andrae et al. 式(9) [文献:arXiv:1012.3754]；gauge 自由 fixture 判红（r_eff 24 < 32）、gauge 固定判绿、E[χ²] = 120 精确成立 [实验:route1/c6_identifiability_dof.py]。按台账 A-P5-01 订正正本方向词：秩亏时以 n_params 为分母使 χ²_red **高估**（实测 1.0714 / 1.0581），规则 4 本身（n−r_eff 为真分母）维持 [实验:route3/exp06_dof_rankeff.py]。H_solve 恒真门（A-P5-08）按现行口径陈述：判决面 = `H_red` 的条件数，唯一阈值 = `rank_rtol`（`identifiable ⟺ r_eff == n_free ⟺ κ(H_red) < 1/τ`），数值岭只剩**派生**角色 `λ_eff = τ·mean(diag(H_red))`、**不参与判决**；`κ(H_solve)` 只作求解稳定性诊断 [实验:route3/exp07_rank_rtol.py、route2/e8_identifiability_rank_rtol.py]。**已退休口径不得再作依据**：绝对条件数常数（`kappa_max` 类）与「生产 λs = 0.1·mean(diag)」这一 fixture 假定（κ≈23 恒绿）同属另一形态，本单元不再引用该假定值，也不得据此反推生产。[实验:route3/q7_rank_rtol.json → 恒真门货架：κ(H_solve)=2.214e10（λ=τ·mean(diag)）vs κ(H_solve)=23.14（fixture 假定的 0.1·mean(diag)），而 r_eff=23 < n_free=24 逐位不变]。
+自由度公式 E[χ²] = n_obs − r_eff 为 Andrae et al. 式(9) [1]；gauge 自由 fixture 判红（r_eff 24 < 32）、gauge 固定判绿、E[χ²] = 120 精确成立 [实验:route1/c6_identifiability_dof.py]。按台账 A-P5-01 订正正本方向词：秩亏时以 n_params 为分母使 χ²_red **高估**（实测 1.0714 / 1.0581），规则 4 本身（n−r_eff 为真分母）维持 [实验:route3/exp06_dof_rankeff.py]。H_solve 恒真门（A-P5-08）按现行口径陈述：判决面 = `H_red` 的条件数，唯一阈值 = `rank_rtol`（`identifiable ⟺ r_eff == n_free ⟺ κ(H_red) < 1/τ`），数值岭只剩**派生**角色 `λ_eff = τ·mean(diag(H_red))`、**不参与判决**；`κ(H_solve)` 只作求解稳定性诊断 [实验:route3/exp07_rank_rtol.py、route2/e8_identifiability_rank_rtol.py]。**已退休口径不得再作依据**：绝对条件数常数（`kappa_max` 类）与「生产 λs = 0.1·mean(diag)」这一 fixture 假定（κ≈23 恒绿）同属另一形态，本单元不再引用该假定值，也不得据此反推生产。[实验:route3/q7_rank_rtol.json → 恒真门货架：κ(H_solve)=2.214e10（λ=τ·mean(diag)）vs κ(H_solve)=23.14（fixture 假定的 0.1·mean(diag)），而 r_eff=23 < n_free=24 逐位不变]。
 
 ### 2.6 权重两级口径与豁免清单
 
-份额式（Σw≈1）与绝对 ivar 口径的公共因子消去在 1.5e-16 成立；份额式的方差放大在异方差极端 fixture 达 ×2500；伪 ivar = 1.314e26 单观测独占解、ivar=0 正确剔除（负例）[实验:route1/c7_share_vs_abs_weight.py]。ivar 跨 control 变化时两口径差 **14.8%**（varying_ivar_max_rel_dtheta = 0.14830）[实验:route2/e6_quality_factor_share_weights.py]。zero_anchor_weight=1e-3 的「弱」性依赖份额式口径，绝对 ivar 权重面下偏置 100%——引用须连同权重口径声明（A-P5-07）[实验:route3/exp09_zero_anchor.py]。w∝SNR²（11_upm §4.4）与正本 §5/§10 禁令互斥，**禁令维持**；本几何下 snr² 泄漏仅比 ivar 高 18%（非正本 16.1.3 的 13×），幅度不可迁移（A-P5-06）[实验:route3/exp10_weight_arms.py]。
+份额式（Σw≈1）与绝对 ivar 口径的公共因子消去在 1.5e-16 成立；份额式的方差放大在异方差极端 fixture 达 ×2500；伪 ivar = 1.314e26 单观测独占解、ivar=0 正确剔除（负例）[实验:route1/c7_share_vs_abs_weight.py]。ivar 跨 control 变化时两口径差 **14.8%**（varying_ivar_max_rel_dtheta = 0.14830）[实验:route2/e6_quality_factor_share_weights.py]。zero_anchor_weight=1e-3 的「弱」性依赖份额式口径，绝对 ivar 权重面下偏置 100%——引用须连同权重口径声明（A-P5-07）[实验:route3/exp09_zero_anchor.py]。w∝SNR² 与正本 §5/§10 的禁令互斥，**禁令维持**；本几何下 snr² 泄漏仅比 ivar 高 18%（非正本 16.1.3 的 13×），幅度不可迁移（A-P5-06）[实验:route3/exp10_weight_arms.py]。
 
 quality_factor_initial=0.5 为归一化规范非科学量：基准值精确抵消（max|Δθ| = 0.0）；科学量是比值 0.1/0.5 与 share/absolute 口径差 14.8%（A-P5-12）[实验:route2/e6、route3/exp12_quality_factor.py]。0.1/0.5 的取值为**项目约定，不注文献出处**（负责人已批）；同属豁免清单的还有 min_samples=5（合同常数）、IRLS tolerance/rtol（工程合同）、σ_floor=1e-3（数值防护，须以 ivar=0 fail-closed 替代语义）、max_nodes（资源参数）。
 
@@ -161,7 +160,7 @@ w∝SNR² 与 ivar 的互斥在本几何下的**污染泄漏偏置**为 ivar 的
 2. **定权体系**：control_variance 公式本体与 N≥65 渐近域成立；N=5 处渐近式高估 ≈9.5%（保守），端到端 ≤±1.5%，生产链亮端裁剪臂低估 1.3–3.2%（D-07）；k_corr 一律按 k_gauss(N_retained)×k_geo 两因子查表并声明标定元组与 N 档（D-08，查表 P3 单元承载；记号统一见 §2.2 订正）；份额式与绝对口径差 14.8%，引用锚必须连同口径声明。
 3. **判据体系**：接缝门 1e-2（确定性下限 1.0050251%＋统计检出曲线＋**三个**已登记结构性失效面，含本单元新增的「光滑法向斜坡」；门的适用域必须写明判据量含 2d·∂L/∂n 项、光滑斜坡可被读成接缝）与 Huber δ=1.345 是判据面仅存的两级锚；rel_step_max=0.1 除名；方差比限定为渲染分块伪影粗筛且条文必须写明方差定义；rel_step 与方差比正交互补。
 4. **前提链**：帧间乘性差必须先在 Phase1 吸收（残差 5.89e-4），否则接缝放大 4.33×；真实数据的分块回归截距不可辨识（动态范围 8.5 ADU），加性偏移必须由天光面承载。
-5. **规格收口**：05_正向规格 §9/§10 的 12 项系统性幻觉锚整段回炉，不得作修复依据；判据面以本文明示的两级锚为准。
+5. **规格收口**：修复规格 §9/§10 的 12 项系统性幻觉锚整段回炉，不得作修复依据；判据面以本文明示的两级锚为准。
 
 ---
 
@@ -169,7 +168,7 @@ w∝SNR² 与 ivar 的互斥在本几何下的**污染泄漏偏置**为 ivar 的
 
 1. **fixture 专属常数不得迁移**：失效边界斜率（0.207–0.80 跨 fixture）、Pearson（0.80–0.90）是边界几何的函数；不引用单一数值作验收依据。端点比 5.07 不复现，任何端点比统计量都不稳健。
 2. **本节处理历史 UNRESOLVED 的终态**：N=5 方向词（D-07 已裁决）、k_corr（D-08 已裁决）、rel_step_max=0.1（A-P5-10 除名）、×5.07（A-P5-11 改写）、dof 方向词（A-P5-01 订正）、方差比定义（A-P5-04 限定）——均已裁决入正文；support_min=0.2（出处未定，降级为实现默认）、min_cluster_size=3（幻觉锚，随 05 回炉）、Tikhonov 1963 题录未核（不作依据）、Serfling/Kendall pinpoint（书目级/二手标注，结论由 MC 独立承担）——登记于 refs.md，不进正文引用面。
-3. **11_upm §4.4 与正本 §5/§10 互斥**：w∝SNR² 禁令维持；本几何泄漏 18% 是几何实测，不得迁移为普适幅度（A-P5-06）。
+3. **w∝SNR² 与正本 §5/§10 互斥**：禁令维持；本几何泄漏 18% 是几何实测，不得迁移为普适幅度（A-P5-06）。
 4. **生产链语义待裁决项**（P2 链残留）：被估量 y 的合同语义（裁剪后中位数 vs 全样本中位数）由负责人裁决，不属本单元。
 5. **k_corr 查表实施**：查表本体与生产接入由 P3 单元与变更流程承载；本单元仅锁定引用义务与两端失保守证据。
 6. **平滑域**：smoothing_lambda=0 时 per-(frame,cell) 自由加性场恰好定解，公共场 M 只是规范选择，「拟合/堆叠权重同源」与「末端残差场扣除」在该域不可检验；final_gauge 在 m_full_frame=1 时近似 no-op（3.7e-3 e⁻）且不能修复子集依赖——这些域内的恒真 PASS 不得充作证据 [实验:c1_additive.py]。
@@ -180,7 +179,9 @@ w∝SNR² 与 ivar 的互斥在本几何下的**污染泄漏偏置**为 ivar 的
 11. **三类数据的分歧（P5-05）**：②类绿、③a 绿、③b（生产 49 帧）就「无接缝」主张**红**；显式登记见 §3(3b) 与 §4.4 末段，本稿不再以「三类一致」表述该主张。生产读数是**冻结记录**（源 run 树为过程产物、产品 FITS 已被回收），可核对面 = 记录内哈希 + 自检器，不构成可现场重跑的证据。
 12. **C7 的边界性质（P5-03）**：C7 的 6 条边界是合成 cell 边界，不等于真实帧足迹边界；真实帧足迹边界的证据只来自 ③b。
 13. **判据量的梯度污染属门的设计面**：接缝门是**有符号电平台阶/局部背景电平**的比，其适用域不含「分离背景梯度与帧间台阶」；本单元不据此改判据，只如实登记（§2.3(iii)、§4.4 末段）。
-14. **历史正本 C1–C7 的读数在 HEAD 上不可复现（订正轮实证，必须连此限定引用）**：在 HEAD=6808a7e4 用 `code/run_all.sh` 重跑全部 7 条腿 ⇒ **rc=1**：C1 的 `A6_subset_invariance`（0.0236→0.4078）与 `A9_final_gauge_near_noop`（0.0037→0.1327）由 PASS 转 FAIL、C5 的 `W1_control_ivar_best`（margin 0.2592→0.1753，门槛 0.20）由 PASS 转 FAIL；C3/C7 的 κ（3.0e6→3.5e3、3.2e7→4.9e3）、C6 的稀疏系数落盘（14001→14849 B）等量值亦变。归因：同一 fixture 下世界构造**逐位一致**（C3 未校正臂接缝 6 读数中 4 个逐位相同、2 个差 ~2e-14）⇒ 差异在**生产求解器侧**（`n_params` 58→49、迭代数与 `model_hash` 变），不是判据或夹具实现。因此本稿中所有 `[实验:c*.py]` / `[实验:c5_weights.py]` 量值一律作**历史读数**引用，不作为当前 HEAD 行为的证据；受影响的定量主张为 §2.4 的 4.80→0.383 e⁻（12.5×）与 §4.2 的三臂数值。证据：`run/FINAL-07/logs/p5_run_all_HEAD.log`、`run/FINAL-07/logs/p5_head_repro_diff.log`（订正报告 §3.2）。
+14. **历史正本 C1–C7 的读数在当前生产构建下不可逐位复现（必须连此限定引用）**：用 `code/run_all.sh` 重跑全部 7 条腿 ⇒ **退出码 1**，成因是**三条门阈值被跨越**，不是脚本报错、路径断裂或缺件：C1 的 `A6_subset_invariance`（0.0236→0.4078，门 `< 0.05` e⁻）与 `A9_final_gauge_near_noop`（0.0037→0.1327，门 `< 0.01` e⁻）由 PASS 转 FAIL、C5 的 `W1_control_ivar_best`（`margin_snr2` 0.2592→0.1753，门 `≥ 0.20`）由 PASS 转 FAIL；C2/C3/C4/C6/C7 五条腿退出码为 0。归因在同一 fixture 下世界构造**逐位一致**（`C1` 未校正臂接缝 `un_med = 4.8023203843169995`、`un_max = 6.544490559400231` 与固化值逐位相同）⇒ 差异在**生产求解器侧**：`n_params` 58→49、`rank` 49→49、`kappa` 3.16e7→4.93e3（C7）/ 3.00e6→3.53e3（C3）、`iterations` 15→20（C7）、`model_hash` 变；C6 的稀疏系数落盘 14,001→14,849 B。
+    **三条红门的共同前提**：固化读数对应的一档里 `n_params = 58 > rank = 49`，求解系统在 9 维零空间上取值（最小范数代表）；当前一档 `n_params = 49 = rank`，零空间消失。`A6`（任意覆盖子集 cell 级加权均值不变）与 `A9`（`final_gauge` 在 `m_full_frame = 1` 上为 no-op）都是**依赖零空间吸收规范自由度**的严格不变性，在秩亏最小范数解下近乎恒真，在满秩解下必须重新推导。**这三门的重新裁决属生产侧**：按新模型重推阈值（须给依据）、改写判据含义、或登记为「当前实现下该要素不可检验」——三者择一，不由实验单元单方面放宽。
+    引用口径：本稿中所有 `[实验:c*.py]` / `[实验:c5_weights.py]` 量值一律作**历史读数**引用，不作为当前生产构建的行为证据；受影响的定量主张为 §4.1 的 4.80→0.383 e⁻（12.5×）与 §4.2 的三臂数值。逐条读数与门阈值见 `REPORT_experiment.md` §6 末条与 §7.2；判据级退出码的读法（退出码 0 ⇏ 读数可复现）见 `README.md` §7.4。
 
 ---
 
@@ -209,33 +210,39 @@ w∝SNR² 与 ivar 的互斥在本几何下的**污染泄漏偏置**为 ivar 的
 
 ## 参考文献
 
-（只列 refs.md 中 VERIFIED 一手条目；标注级条目见 refs.md 末节，不进入正文引用面。）
+（只列 `refs.md` 中 VERIFIED 一手条目；标注级条目见 `refs.md` 末节，不进入正文引用面。编号连续，正文以 `[n]` 标注。）
 
-1. Andrae, R., Schulze-Hartung, T. & Melchior, P. 2010, "Dos and don'ts of reduced chi-squared", arXiv:1012.3754. [式(9) 逐字核验]
-2. Casertano, S. et al. 2000, AJ 120, 2747, arXiv:astro-ph/0010245, DOI 10.1086/316851.
-3. Clopper, C. J. & Pearson, E. S. 1934, Biometrika 26(4), 404–413, DOI 10.1093/biomet/26.4.404.
-4. Fruchter, A. S. & Hook, R. N. 2002, PASP 114, 144, DOI 10.1086/338393; arXiv:astro-ph/9808087. [仅引输出像素非独立论断]
-5. Gruen, D., Seitz, S. & Bernstein, G. M. 2014, PASP 126, 158, DOI 10.1086/675080; arXiv:1401.4169. [仅作稳健叠加伪迹剔除先例]
-6. Holland, P. W. & Welsch, R. E. 1977, Comm. Statist. A6, 813–827, DOI 10.1080/03610927708827533. [δ=1.345 归属]
-7. Huber, P. J. 1964, Ann. Math. Statist. 35(1), 73–101, DOI 10.1214/aoms/1177703732.
-8. Padmanabhan, N. et al. 2008, ApJ 674, 1217, arXiv:astro-ph/0703454, DOI 10.1086/524677. [引用号按 A-P5-09 订正]
-9. Serfling, R. J. 1980, *Approximation Theorems of Mathematical Statistics*, Wiley, DOI 10.1002/9780470316481. [书目级；pinpoint 标注]
+[1] Andrae, R., Schulze-Hartung, T. & Melchior, P. 2010, Dos and don'ts of reduced chi-squared, arXiv:1012.3754. [式(9) 逐字核验]
+[2] Casertano, S. et al. 2000, The Astronomical Journal, 120, 2747, arXiv:astro-ph/0010245, DOI 10.1086/316851.
+[3] Clopper, C. J. & Pearson, E. S. 1934, Biometrika, 26(4), 404–413, DOI 10.1093/biomet/26.4.404.
+[4] Fruchter, A. S. & Hook, R. N. 2002, Drizzle: A Method for the Linear Reconstruction of Undersampled Images, Publications of the Astronomical Society of the Pacific, 114, 144–152, DOI 10.1086/338393; arXiv:astro-ph/9808087. [仅引输出像素非独立论断]
+[5] Gruen, D., Seitz, S. & Bernstein, G. M. 2014, Publications of the Astronomical Society of the Pacific, 126, 158, DOI 10.1086/675080; arXiv:1401.4169. [仅作稳健叠加伪迹剔除先例]
+[6] Holland, P. W. & Welsch, R. E. 1977, Communications in Statistics - Simulation and Computation, A6, 813–827, DOI 10.1080/03610927708827533. [δ=1.345 的归属]
+[7] Huber, P. J. 1964, The Annals of Mathematical Statistics, 35(1), 73–101, DOI 10.1214/aoms/1177703732.
+[8] Padmanabhan, N. et al. 2008, The Astrophysical Journal, 674, 1217, arXiv:astro-ph/0703454, DOI 10.1086/524677.
+[9] Serfling, R. J. 1980, Approximation Theorems of Mathematical Statistics, Wiley, DOI 10.1002/9780470316481. [书目级标注]
 
 ---
 
-## 附：本稿对历史正本的订正登记（按分歧台账）
+## 附：判据口径登记
 
-| 历史表述 | 订正 | 依据 |
+下表登记本稿采用的**现行**判据口径，每行的依据都落在仓内可复核面
+（文献 [n] / 固定 seed 实验 / 闭式推导）上。裁决台账所在的目录已不在仓内，
+故本表只保留结论与依据，不保留裁决流水号。
+
+| 判据口径 | 现行取值 | 依据 |
 |---|---|---|
-| 「尺度 1600→50 px 使残余接缝 ×5.07」「短/长尺度比 5.072」 | 端点比不复现（2.95/2.43/1.78/1.71）；改写为峰值/长尺度比 ≈8＋非单调＋肘点 2h | A-P5-11（补实验 C1） |
-| k_corr=1.4（c3_public_plane.py；「MC 1.3883」） | 两因子公式＋几何查表（P3 单元承载）；1.3883 改写为标定带 1.27–1.43 内一次实现；两端失保守 32%/2× | D-08 |
-| 「N=5 渐近式低估 8.5%」（正本 PHASE2_UPM §5 注） | 高估 ≈9.5%（保守）；端到端 ±1.5%；生产链裁剪臂低估 1.3–3.2% | D-07 |
-| 「秩亏时 (n_obs−n_params) 低估 χ²_red」 | 方向词反：以 n_params 为分母使 χ²_red 高估（1.0714/1.0581） | A-P5-01 |
-| rel_step_max=0.1 判据地位 | 前提改正＋不可标定＋结构性失明 ⇒ 从判据面除名 | A-P5-10（补实验 C2） |
-| 「实测 ΔC_max ≈ 1 ulp」 | 实现依赖声明（朴素累加 fixture 31 ulp）；rtol=1e-12 充分性不变 | A-P5-02 |
-| 方差比失明条文（未写方差定义） | 必须写明方差定义；合并窗口方差以 Δ²/4 泄漏 | A-P5-04 |
-| 05_正向规格 判据01/05 与 §9 栅栏 | 12 项系统性幻觉锚整段回炉 | A-P5-03 |
-| Padmanabhan arXiv:0805.2366 / Gruen 背景匹配用途 / δ=1.345 归 Huber | 三项引用订正（astro-ph/0703454；收窄为伪迹剔除；归 Holland & Welsch） | A-P5-09 |
-| 11_upm §4.4 w∝SNR² | 与正本禁令互斥，禁令维持；本几何泄漏 18% 不得迁移 | A-P5-06 |
+| 残余接缝的尺度标度统计量 | **峰值/长尺度比 ≈8 ＋ 非单调**（峰在 100 px、50 px 回落），肘点 s ≲ 2×节点间距；端点比不复现（2.95/2.43/1.78/1.71） | [实验:`supp_507_relstep/ea_507_scale_scan.py`、route1/c9、route3/exp08] |
+| `k_corr` | `k_gauss(N_retained) × k_geo` 两因子 ＋ 几何查表，引用须声明标定元组与 N 档；`1.3883` 属标定带 1.27–1.43 内一次实现，两端失保守 32% / 约 2 倍 | [实验:`results/audit_rework/p3_kcorr/`]（查表本体由 P3 单元承载） |
+| N=5 处渐近式对中位数方差 | **高估 ≈9.5%（保守）**；端到端 ±1.5%；生产链亮端裁剪臂低估 1.3–3.2% | [推导]（精确阶统计量积分）＋[实验:route1/c1、route2/e1、`supp_control_variance/`] |
+| 秩亏时的 χ²_red 方向词 | 以 `n_params` 为分母使 χ²_red **高估**（实测 1.0714 / 1.0581） | [实验:route1/c6、route3/exp06] |
+| `rel_step_max = 0.1` | **从判据面除名**（非 IRLS 步长上限、不可标定、对局部缺陷结构性失明、灵敏度比本门松约 20×） | [实验:`supp_507_relstep/eb_relstep_calibration.py`、route1/c10] |
+| 「实测 ΔC_max ≈ 1 ulp」 | 实现依赖声明（朴素累加 fixture 给 31 ulp）；`rtol = 1e-12` 的充分性不变 | [实验:route1/c8] |
+| 方差比失明条文 | 必须写明方差定义：逐侧方差下失明成立，合并窗口方差以 Δ²/4 泄漏 | [实验:route1/c4、route2/e4、route3/exp02] |
+| 「修复规格」判据01/05 与自校准栅栏 | 12 项系统性幻觉锚整段回炉，不得作修复依据 | [实验:route1/c10_anchor_forensics.py] |
+| 引用归属订正 | Padmanabhan 用 arXiv:astro-ph/0703454；Gruen 收窄为伪迹剔除对照；δ = 1.345 归 Holland & Welsch | [8]、[5]、[6] |
+| `w ∝ SNR²` | 与正本 §5/§10 互斥，禁令维持；本几何泄漏 18% 不得迁移 | [实验:route3/exp10] |
 
-历史正本（README §4–§12、results/REVIEW.md、results/REVERSE_VERIFY_CANON.md、docs/smooth-lambda.md）保留不改写原文；与本稿冲突处一律以本稿＋台账为准。docs/smooth-lambda.md 已在文首加订正注。
+`results/REVIEW.md`、`results/REVERSE_VERIFY_CANON.md` 与 `docs/smooth-lambda.md`
+保留原判定；与本稿冲突处以本稿与 `REPORT_experiment.md` §8 的证据腿为准。
+

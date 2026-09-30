@@ -36,11 +36,11 @@ from typing import Any, Dict, List, Optional, Tuple
 import numpy as np
 
 HERE = Path(__file__).resolve().parent
-ROOT = HERE.parents[5]
+ROOT = HERE.parents[4]
 sys.path.insert(0, str(ROOT / "实验" / "shared" / "synthetic"))   # 迁移后合成数据生成代码落 实验/shared/synthetic
 import m16_sampling as MS  # noqa: E402
 
-ASTROCS = ROOT / "build" / "astrocs"
+ASTROCS = ROOT / "build" / "acsd"
 TMPDIR = "/var/tmp/astrocs"
 
 
