@@ -1907,3 +1907,87 @@ UTF-8 fopen **4 份且回退语义分叉**；原子替换 2 份；原子发布 3
 **已随 G08-01 删除**，故本次改名**全程无机器门校验**，只能靠上述两轮脚本 + 人工抽查。
 ⇒ G08-10 **必须**重建该门，否则下一次改名会重演同样的漏改。
 **当前门缺失状态下的改名是不可复现的**——这一点比改名本身更值得记住。
+
+---
+
+## 45. G08-07 aio 分片第二轮交叉取证：绕过原子发布 + 4 处恒真门
+
+### 45.1 M2（本片最重）· 在 aio 边界**内部**绕过原子发布（前台已核实）
+
+`lib/infrastructure/aio/src/healpix/aio_healpix_io.cpp:1304` 与 `:1839`：
+
+    FILE* fp = hio_fopen_utf8(path, "wb");     // 直写最终路径：无 tmp、无 fsync、无 rename
+
+⇒ 该文件**在生产静态库 `acsd_hips` 内**（根 `CMakeLists.txt:649`，`add_library(acsd_hips STATIC …）`）。
+同文件另有 **160 处 `fprintf(stderr)`** 旁路（统一日志面被绕过）。
+
+⇒ 这与本模块自己冻结的禁令（`aio_atomic_file.h:18-19`「**不先 remove 后 rename**」）同族，
+但更重：**根本不走原子发布路径**，不是路径次序问题。
+
+### 45.2 M4 · 本片冻结禁令的**第二处**违反，且在 POSIX 上不是死代码
+
+`src/aio_upm.cpp:101-110`：`rename` 失败后 `remove(path)` 再 `rename`。
+车道核实：在 POSIX 上 `EXDEV`/`EACCES` 也会走进该分支 ⇒ **会删掉一个有效既有模型**。
+另：`:86` 临时名 `path + ".tmp"` **无 pid/seq**；`:93` 只 `flush()` **无 fsync**；`:100` `close()` 返回值丢弃。
+
+⇒ 与 §40.2①（`atomic_publish.cpp:431-433` 的 Windows 版）**构成本片冻结禁令的两处违反**。
+
+### 45.3 M5 · 合同头声称与实现不符
+
+`src/aio_abi.cpp:14-18` 合同头逐字称「**全部公共入口** try/catch … 失败绝不外抛」，
+实测 **4 个 `extern "C"` 入口只有 2 个有 try**；`aio_content_hash_verify_buffer_v1`（`:147`）
+无守卫且调用 `aio_fault_registry()`（`:151`），后者 `:63` 做 `std::string s(env)`（可抛分配）。
+
+⇒ 按 §43 的分流：**注释是对的、代码是错的 ⇒ 属代码缺陷，不得当文档债。**
+
+### 45.4 4 处恒真门（测试目录，全部逐条复核）—— 违反 `TEST_STANDARD.md:13` + AGENTS §8
+
+| # | 位置 | 形态 |
+|---|---|---|
+| **T1** | `tests/p2hips/p2hips_unc_prov_test.cpp:229-231` | 两个操作数 `"nrej"/"Norder0"/"Dir0"/"Npix0.fits"` 与 `"nrej"/"Norder0/Dir0/Npix0.fits"` **在 POSIX 上归一到同一条路径** ⇒ `!E ∨ E` **永不可能失败**。同文件 `:31` 自带禁恒真门规则。**前台已逐字核实** |
+| **T2** | `tests/hiss_correctness_test.cpp:430-433` | `support` 是 `vector<uint8_t>`，`s > 255` 整型提升后**不可达** ⇒ `ASSERT_TRUE(out_of_range==0)` 恒真（注释自己都写着「uint8 不可能 >255」） |
+| **T3** | `tests/dataflow_fuzz.cpp:113` | `crashes` 计数**全文件零自增**却作为 `crashes=%u` 打印；文件头声称的「崩溃样本保存 + 复现命令」无实现 |
+| **T4** | `tests/hiss_experiment_suite.cpp:640-641` | `kSubblockDescSize = 40`，而同片冻结常量是 `include/hiss_format.h:278` 的 **42** ⇒ 该实验尺寸推导**每描述符偏 6 B** |
+
+⇒ 这已是本项目**第三批**恒真门（前面：P3「方差二次律」、P5 `N2b`、acr `e16`/`e18`）。
+**恒真门总数已超 10 处，且分散在 5 个分片** ⇒ 属系统性问题而非孤立缺陷。
+
+### 45.5 平台面补 3 条
+
+| # | 内容 |
+|---|---|
+| **W13** | = M4（删-改-重排的第二处实例） |
+| **W14** | `atomic_publish.cpp:322-329,391-397` `classify_fsync_errno` 在 Windows **恒返回 `kErrIo`** ⇒ **`kErrDiskfull` 在 Windows 不可达**，同一公开枚举 `PublishStatus` **两平台取值集不同** |
+| **W15** | `aio_sparse_punch.h:30-31,68-72` 的「Windows 释放粒度 64 KiB 且要求 64 KiB 对齐」**未获一手来源支持**（NTFS 默认簇 4 KiB；`FILE_ZERO_DATA_INFORMATION` 偏移是普通字节偏移，`STATUS_INVALID_PARAMETER` 四种触发条件不含错位）。常量 65536 **本身安全**（4 KiB 整数倍），**错的是理由**；且 `punch_range_at` **从不调 `GetLastError()`** ⇒ 微软明列的 `STATUS_MEDIA_WRITE_PROTECTED` / `STATUS_INSUFFICIENT_RESOURCES` 这两个**硬 I/O 条件**被结构性地当成「不支持」并照常发布 |
+
+**两条经一手来源确认两侧一致、无需动作**（正面）：打洞读回复算判据两侧对称
+（`fallocate(2)` man-pages 6.19：「subsequent reads from this range will return zeros」）；
+`volume_supports_punch()` 探针两侧都成立（ext4/XFS/tmpfs/btrfs 对无已分配块的 PUNCH_HOLE 均返回 0）。
+
+### 45.6 一条与改名直接相关的提醒（车道正确地提出）
+
+车道指出：**改名已使代码注释里大量 `docs/ASTROCS_DESIGN §…` 字面成为失效路径**，
+建议把「18 处 §9→§10 订正」与改名放在同一次改动里，否则改完的节号锚仍落在失效路径上。
+⇒ 前台采纳：**G08-10 重建 CI 时，凡涉及节号锚的订正必须以 `docs/ACSD_DESIGN.md` 为准重新核对**。
+
+### 45.7 一条车道自查的降级（前台采纳）
+
+M1（`include/aio_hips.h:96-99` 的「`SCI-DRZ-001` 冻结输入帧 1–2x 过采样 ⇒ ×2」）：
+车道自查在 `DRIZZLE.md` **全文查无此冻结** ⇒ **×2 是无依据经验值**，
+已把自己的分类从「① 有科学推导，保留」**降级到「④ 无依据经验值」**并留勘误。
+同行 `:99` 把 sampler 的「回退冻结默认 1.4」写成「显式拒绝」，与 `coverage/src/sampler.cpp:100-102`
+实际不符。
+
+### 45.8 悬空锚与风格计数大幅上修
+
+悬空文档从 17 类增至 **30+ 类**，新增包括 **`02_FROZEN_STAGE1_HISS_SPEC.md`（15+ 处，
+整条 HISS 依据链全悬空）**、`00_COMMON_CONTRACTS`（14 处）、`docs/engineering/{ARCHITECTURE,
+IO_AND_ATOMICITY}.md`（迁移后已删）、registry 已迁 `docs/modules/registry/`、
+`eng/ci/{ctest_baseline.json,checks.json}`。
+
+**孤儿条款 ID**：`ALG-P3-008`（**product_io 整个子系统的首要语义锚，`grep -rl` docs/ = 0**）、
+`BLOCKER-DF-001..005`、`ENG-IO-001`、`W1-AIO-001`。
+
+**风格计数上修**：日期 7 处、commit hash 2 个/16 处（`f1cb487c` ×13 在 9 个非测试文件）、
+**任务编号 297 处/49 文件**、历史叙事 117 处/43 文件、超大注释块 58 处（最大
+`include/aio_pipeline.h:273-348` **76 行且整块位于 `#endif` 之后、与文件内任何声明脱钩**）。
