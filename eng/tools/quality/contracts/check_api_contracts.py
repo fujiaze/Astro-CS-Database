@@ -17,7 +17,6 @@ def main():
     args = ap.parse_args()
     repo = pathlib.Path(args.repo)
     api_csv = repo / "docs/contracts/API_CONTRACTS.csv"
-    inv_json = repo / "docs/architecture/api_inventory.json"  # optional cached extract
     # Load API contracts
     if not api_csv.exists():
         print(f"FAIL: missing {api_csv}", file=sys.stderr); return 3
