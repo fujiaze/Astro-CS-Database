@@ -78,7 +78,8 @@ ra_deg / dec_deg = 度（J2000）；snr / support / quality_flags = 无量纲；
   300 s R 帧（raw 像素尺度 0.9890″/px，Ω_px = 2.2991e-11 sr）上 4096 个 17×17 patch
   实测 σ_bg 中位 = 14.826 ADU/px、N_retained 中位 = 287，按 §5.4 公式得
   control_variance = 1.684 (ADU/px)²、control_ivar = 0.5937 (ADU/px)⁻²；按 ADU·sr⁻¹
-  标度换算（因子 (1/Ω_px)² = 1.8919e21）得 control_ivar = **3.14e-22**，与生产代码
+  标度换算（因子 **Ω_px² = 5.2859e-22**；量纲 px²·ADU⁻² × sr²·px⁻² = sr²·ADU⁻²）
+   得 control_ivar = **3.14e-22**，与生产代码
   实测记录 control_ivar 中位 **5.6e-22**（`lib/algorithms/coverage/src/upm.cpp:644-646`）
   同量级（1.78×）。**若单位为裸 ADU，推出值应为 0.594，与生产实测相差 22 dex** ⇒
   单位是 ADU·sr⁻¹，不是 ADU。
