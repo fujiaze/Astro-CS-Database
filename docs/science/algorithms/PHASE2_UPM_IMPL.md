@@ -53,7 +53,7 @@
 | C_i(p) | 每帧空间校正场（centered 双线性 8×8） | 面亮度 ADU·sr⁻¹ | upm.cpp:131-200（`evaluate_field_row`）/ `:202-205`（`evaluate_c_field`） |
 | raw / calibrated | 校准前/后信号 | 面亮度 ADU·sr⁻¹ | upm.cpp:1591-1625 |
 | θ（每帧系数） | C 稀疏矩阵行 = frame 系数 | 面亮度 ADU·sr⁻¹ | upm.cpp:82（`Model::C` [frame][control]） |
-| grid=G | 每 tile cell 网格边长 | 无量纲（=8） | upm.cpp:91 |
+| grid=G | 每 tile cell 网格边长 | 无量纲（=8） | upm.cpp:298 |
 | cell_side | tile 边长/G=512/8=64 | leaf px | upm.cpp:92 |
 | tile_shift | leaf order = target_order+9 → tile 移位 | 无量纲（=9） | upm.cpp:231-233（`leaf_to_tile`）/ `:235-237`（`leaf_local`）；`:2060` |
 | leaf_ipix | NESTED leaf 像素号（cell 中心） | 无量纲 u64 | upm.cpp:66（`ControlNode::leaf_ipix`） |

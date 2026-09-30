@@ -375,7 +375,7 @@
 
 | # | 文档声称 | 源码实际 | 双方锚 |
 |---|---|---|---|
-| DISP-DRZ-001 | hp_drizzle_api.h:93 注释 sip_order "0..4" | hp_drizzle_api.cpp:98-103 校验 [0,5]（6×6 系数组支持 5 阶下标） | hp_drizzle_api.h:93 vs hp_drizzle_api.cpp:98-103 |
+| DISP-DRZ-001 | hp_drizzle_api.h:169 注释 sip_order "0..4" | hp_drizzle_api.cpp:98-103 校验 [0,5]（6×6 系数组支持 5 阶下标） | hp_drizzle_api.h:169 vs hp_drizzle_api.cpp:98-103 |
 | DISP-DRZ-002 | 源码注释 `spherical_overlap.h:15,77` / `spherical_overlap.cpp:11` 写 "Girard 定理" | 面积实现 = S-H 球面裁剪 + Van Oosterom & Strackee 扇形三角剖分，无 Girard 实现；文档侧命名已与实现一致，**禁用** "Girard 定理" 命名 | spherical_overlap.h:15,77; spherical_overlap.cpp:11 vs spherical_overlap.cpp:186-239 |
 | DISP-DRZ-003 | pixfrac∈(0,1] 单一边界 | 文件通道 API 层接受 0.0（<0 才拒），引擎层拒绝——两层双轨 | api.cpp:191 vs lib/algorithms/drizzle/healpix_drizzle/drizzle_engine.cpp:1570 |
 | DISP-DRZ-004 | 值像素 NaN 按 `rule_id NAN-SAMPLE-MASK-COVERAGE-NAN` 处置 = 样本级掩膜 + 重归一 + 覆盖级 NaN + 强制计数（`DRIZZLE.md:116`）：不合格样本剔除并重归一、仅零合格样本输出 `NaN ∧ support≤0`、必须暴露 `n_rejected_nonfinite` | **约束**：主循环按原因分类计数（值/方差/权重三分类，:2000-2027）并聚合暴露 `DrizzleStats::n_rejected_nonfinite*`（:2203-2208）；**禁用**把非有限样本传播进 `F_p`/分母/方差——会污染整像素信号与几何支撑（负例判据：零合格样本必须输出 `NaN ∧ support≤0` 且分类计数非零） | DRIZZLE.md:116 vs drizzle_engine.cpp:2000-2027 / :2203-2208 |
