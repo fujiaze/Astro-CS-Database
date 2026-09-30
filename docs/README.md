@@ -7,7 +7,7 @@
 ## 权威链入口
 
 - 最高设计：`docs/ASTROCS_DESIGN.md`（项目是什么、做到什么、CLI/架构/验收）；
-- 一级工程文档：`AGENTS.md`（机器干活手册）、`ENGINEERING_SPEC.md`（工程规范）、`CONTROL_PACK_SPEC.md`（控制包规范）、`ACCEPTANCE_SPEC.md`（验收规范）、本目录 `docs/engineering/CI_SPEC.md`（CI 规范）；
+- 一级工程文档：`AGENTS.md`（机器干活手册）、`docs/engineering/`（工程规范）、`docs/ASTROCS_DESIGN.md` §13（版本与发布权）（控制包规范）、`docs/ASTROCS_DESIGN.md` §12（验证体系）（验收规范）、本目录 `docs/engineering/CI_SPEC.md`（CI 规范）；
 - 阅读方式：从最高设计起沿各篇末尾的索引指针逐层下钻，`docs/DOCUMENT_INDEX.yaml` 提供全量文档的双向索引。
 
 ## 文档分层
@@ -24,7 +24,7 @@
   承接上两个正本但不复述其定义；只写「怎么落地」，不写「是什么」。
   排障手册入口 = `docs/detail/merged_TROUBLESHOOTING.md`。
 - **追溯与登记**：`docs/traceability/`（需求—文档—代码追溯）；
-  `docs/DOCUMENT_INDEX.yaml` 是全量文档的双向索引，登记规则见 `ENGINEERING_SPEC.md` §8。
+  `docs/DOCUMENT_INDEX.yaml` 是全量文档的双向索引，登记规则见 `docs/DOCUMENT_INDEX.yaml`。
 - **方法选型一手查证与文献**：已并入上面两个正本集（科学正本承载文献与查证结论，
   工程正本承载门禁与验收依据），不再单设研究与参考文献目录。
 

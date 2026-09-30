@@ -7,7 +7,7 @@
 - `eng/ci/checks.json` 是唯一检查注册表；`eng/ci/` 提供确定性执行器；
 - 每项检查必须可"能绿能红"（有正例与负例）；
 - 豁免显式登记 `eng/ci/exemptions.json`，只减不增，需负责人批准；
-- **可执行负例面**（`ENGINEERING_SPEC.md §8`）：每项检查必须提供**机器可执行**的负例入口
+- **可执行负例面**（`docs/DOCUMENT_INDEX.yaml）：每项检查必须提供**机器可执行**的负例入口
   （`--self-test` 或 `--fault-inject`）；仅有人工说明不算。检查器的注册步骤中必须能看到该入口；
 - **fail-closed**：输入缺失 / 路径不存在 / 依赖不可用时必须**判红**，崩溃同样判红，
   「文件不存在」一律按「有违规」处理（`scanned == 0 ⇒ rc != 0`）；
@@ -67,7 +67,7 @@
 | CHK-SECRET-HYGIENE | 安全 | 凭据/密钥卫生（tracked 全域扫描） | `python3 eng/tools/quality/check_secret_hygiene.py --scope tracked` | P0 |
 | CHK-ENV-ADOPTION | 环境 | CI 环境接管基线（工具链策略/锁一致性） | `python3 eng/ci/run_checks.py --check CHK-ENV-ADOPTION --quiet` | P1 |
 | AGENTS-GOV | 治理 | AGENTS.md 硬禁令 / §0 权威链唯一性 / 旧权威回归 | `python3 eng/tools/check_agents_gov.py` | P0 |
-| CHK-RETIRED-CODE | 治理 | 实现处置（`ENGINEERING_SPEC.md` §2：R1 注释旧逻辑 / R2 保留件注释块 / R3 注释块字段完整性 / R4 生产可达性报表 / R5 锚存活；台账 `eng/ci/retired_code_allowlist.json`） | `python3 eng/ci/check_retired_code.py` | P0 |
+| CHK-RETIRED-CODE | 治理 | 实现处置（`docs/engineering/CODE_STANDARD.md`：R1 注释旧逻辑 / R2 保留件注释块 / R3 注释块字段完整性 / R4 生产可达性报表 / R5 锚存活；台账 `eng/ci/retired_code_allowlist.json`） | `python3 eng/ci/check_retired_code.py` | P0 |
 | CHK-RETIRED-CODE-SELFTEST | 治理 | 上项的可执行负例面（9 例 fault-inject） | `python3 eng/ci/check_retired_code.py --self-test` | P0 |
 | CHK-PROD-WIRING | 治理 | 生产接线核对（扫描面 `eng/**`、`lib/**`、`CMakeLists.txt`、`docs/**`） | `python3 eng/ci/run_checks.py --check CHK-PROD-WIRING --quiet` | P0 |
 | VERSION-CONSISTENCY | 文档一致性 | 版本注入链单一真源 + 现行活动文档集完整性 | `python3 eng/ci/check_version.py`（缺省 expected = 根 `VERSION`，不写死字面量） | P1 |
@@ -107,7 +107,7 @@
 | CHK-PSFSW-RETIRED-NEGATIVE | 合同/ABI | 退役对象行为门（无 canonical 正本 / 旧声明显式拒绝 / 迁移提示 / 回流即判红） | `python3 -B -m unittest discover -s eng/tests/contracts -t eng/tests/contracts -p test_unified_object_contract.py -k RetiredObjectContract` | P1 |
 | CHK-FIX208-EVENT-STREAM-DEFAULT | 治理 | 事件流 = 默认输出（无需 `-y`/`--events` 旗标即输出，唯一 schema） | `python3 -B -m unittest discover -s eng/tests/cli -t eng/tests/cli -p test_fix208_event_stream_default.py` | P0 |
 | CHK-FIX208-DISK-GATE | 治理 | 资源门只管磁盘（跑前 warn / 写盘失败 error=rc10；内存/CPU 不设门；缺 `unshare -Ur -m` 时用例显式 skip） | `python3 -B -m unittest discover -s eng/tests/cli -t eng/tests/cli -p test_fix208_disk_gate.py` | P0 |
-| CHK-FIX406-SIGTERM | 治理 | CLI 取消矩阵（POSIX SIGTERM/SIGINT × 三阶段 × 取消点 + Windows 控制台事件；`CTRL_CLOSE_EVENT` 平台限制显式登记（落点 = `ENGINEERING_SPEC.md` §7 证据面），非退化判据 + 结构化登记门为负例面；Linux 节点上 Windows 用例显式 skip ≠ 通过） | `python3 -B -m unittest discover -s eng/tests/cli -t eng/tests/cli -p test_fix406_sigterm_cancel.py` | P0 |
+| CHK-FIX406-SIGTERM | 治理 | CLI 取消矩阵（POSIX SIGTERM/SIGINT × 三阶段 × 取消点 + Windows 控制台事件；`CTRL_CLOSE_EVENT` 平台限制显式登记（落点 = `docs/ASTROCS_DESIGN.md` §10（I/O 与原子产品） 证据面），非退化判据 + 结构化登记门为负例面；Linux 节点上 Windows 用例显式 skip ≠ 通过） | `python3 -B -m unittest discover -s eng/tests/cli -t eng/tests/cli -p test_fix406_sigterm_cancel.py` | P0 |
 | CHK-REGISTRY-VALIDATE | 治理 | 注册表结构校验器（R1–R15）成为真正的门：`eng/ci/checks.json` 唯一注册表结构一致（命令可执行体/路径锚/ID 唯一/迁移映射覆盖/无孤儿 unit/线程数取自 profile） | `python3 eng/ci/validate_registry.py --registry eng/ci/checks.json --strict` | P0 |
 | CHK-CI-PROFILE-COVERAGE | 治理 | CI 档位覆盖闭包门：档位阶梯**从单一来源**（`eng/ci/run_checks.py` 的 `PROFILE_INHERITS`/`PROFILE_GATING_LANES`）取，对每个宿主持久档算出「按继承闭包应被派发」的判据集，凡应被覆盖却**未被任何持久档挂载**者判红并逐条点名（`eng/ci/run.py` 顶层选择点是严格成员判定、零继承展开 ⇒ 只挂 `fast` 的叶判据任何 CI 腿都选不到）；修法在登记面补 `profiles`，**不改执行器**；fail-closed 于注册表/阶梯不可用 | `python3 eng/tools/quality/check_ci_profile_coverage.py` | P0 |
 | CHK-CI-PROFILE-COVERAGE-SELFTEST | 治理 | 上项的可执行负例面（9 例：合成绿/单条只挂 fast 判红且点名/两条都点名/真注册表原样副本绿/**注入负例**把真注册表某条判据改成只挂 `fast` 必须判红（隔离树副本，不碰真登记）/注册表缺失·不可解析·缺 `checks` 键·阶梯模块缺失 4 例 fail-closed rc=2） | `python3 eng/tools/quality/check_ci_profile_coverage.py --self-test` | P0 |
@@ -156,7 +156,7 @@
 
 | CHK-ACTIONS-LOCK | 治理 | 依赖锁交叉核对：action tag 钉完整 40 位 SHA 并与锁文件精确匹配；在线步进 CI 档真连 API 复验 | `eng/ci/verify_actions_lock.py` | P0 |
 | CHK-WORKFLOW-GOVERNANCE | 治理 | workflow 面治理：每个 workflow 必须有注册载体、`permissions` 只给读、每个 job 有 `timeout-minutes` | `eng/ci/check_workflow_governance.py` | P0 |
-| CHK-NAMING-SURFACE | 治理 | 显示名 / 机器契约保留面**类级闭包门**：以 `git grep -w` 扫历史名三族（混写 / 小写 / 全大写；三族字面量的唯一源 = `ENGINEERING_SPEC.md §15`，本节不复述），**每一处命中必须落在 `eng/ci/ledgers/naming_surface.json` 登记的某一保留类内**；落在类外即「显示名漏改」判红。判据 R1 类闭包 / R2 保留类非空（僵尸类判红）/ R3 定义面棘轮（只减不增，防借定义面夹带未登记形态）/ R4 类 `path_globs` 必须真命中（静默失效判红）/ R5 变更集覆盖不可改类即判红；输入缺失或正则非法一律 fail-closed；含 `--self-test` 14 例 | `python3 eng/ci/check_naming_surface.py` | P0 |
+| CHK-NAMING-SURFACE | 治理 | 显示名 / 机器契约保留面**类级闭包门**：以 `git grep -w` 扫历史名三族（混写 / 小写 / 全大写；三族字面量的唯一源 = `docs/engineering/CODE_STANDARD.md §命名，本节不复述），**每一处命中必须落在 `eng/ci/ledgers/naming_surface.json` 登记的某一保留类内**；落在类外即「显示名漏改」判红。判据 R1 类闭包 / R2 保留类非空（僵尸类判红）/ R3 定义面棘轮（只减不增，防借定义面夹带未登记形态）/ R4 类 `path_globs` 必须真命中（静默失效判红）/ R5 变更集覆盖不可改类即判红；输入缺失或正则非法一律 fail-closed；含 `--self-test` 14 例 | `python3 eng/ci/check_naming_surface.py` | P0 |
 | CHK-PRODUCT-CONTRACT | 合同 | 产品级 schema 符合性：交换对象文档在场、平面语义显式声明、逐面幂次与 V6 冻结默认一致 | `eng/ci/check_product_contract.py` | P0 |
 
 ### 2.1 检查器保留项与预留项
@@ -165,7 +165,7 @@
 - **工具入口**：保留工具的 `main` 打印保留标识并 exit 2，原实现保留在 `legacy_main()`；仍被其他检查器消费的函数保持活动语义；
 - **已退役检查器**（重新注册即由注册表↔文档双向一致审查发现并判红）：`TASK-RESULT-SCHEMA`、`WORKSPACE-ADOPTION`、`RECONCILE-STATE`、`TRACEABILITY-CODE`；
 - **未注册的一次性审计脚本**（按本节保留契约处置）：`eng/tools/quality/check_comment_hygiene.py`（注释卫生扫描；无参调用打印保留标识并 exit 2，原实现保留在 `--legacy-scan`）；其判据面原由 `CON-COMMENTS` 步骤（`eng/tools/quality/contracts/check_comments.py`）承接，该步骤随其宿主门一并撤销，注释卫生改由对抗性审查覆盖；
-- 运行产物的落点 = `ENGINEERING_SPEC.md` §7 与 `output_dir` 规则；
+- 运行产物的落点 = `docs/ASTROCS_DESIGN.md` §10（I/O 与原子产品） 与 `output_dir` 规则；
 - 未注册脚本的现行处置面见 §2.1.1。
 - RESERVED（文档登记但无实现，重新注册前须先有实现与可执行负例）：
 
@@ -182,7 +182,7 @@
 
 - **判据面已被在册门承接**：`eng/tools/quality/check_task_result_schema.py` 等入口已完成保留契约改造——
   无参调用打印保留标识并 exit 2，原实现保留在显式入口（`--legacy-check` / `--legacy-gate` / `--legacy-scan`）；
-  每个都带 `--self-test`（保留契约 + 原判据的能红能绿）；运行产物落点按 `ENGINEERING_SPEC.md` §7 执行。
+  每个都带 `--self-test`（保留契约 + 原判据的能红能绿）；运行产物落点按 `docs/ASTROCS_DESIGN.md` §10（I/O 与原子产品） 执行。
 - **无判据语义的枚举/生成器**：`eng/tools/quality/check_source_inventory.py`、
   `eng/tools/quality/check_source_index_v61.py`、`eng/tools/check_p1_symbol_map.py` 不是检查器（无判据、无退出码语义）。
   其处置以「零调用方 + 无文档点名」为前提：`check_source_index_v61.py` 在活动树中零调用方、零文档点名；
@@ -240,3 +240,20 @@ python3 eng/ci/run_checks.py --check CHK-ROOT-CLEAN CHK-UNIT
 # 输出机器可读 JSON 供 CI 消费
 python3 eng/ci/run_checks.py --all --json-out ci_result.json
 ```
+
+## 6. 判据适用域与同名量隔离
+
+同一个量名在不同适用域里出现时，**每个域各自定义，引用处必须带域限定**；不带域限定的裸量名引用判缺陷（按 `DOCUMENT_GOVERNANCE.md` §3 的锚纪律处理）。
+
+已登记的同名异域对：
+
+| 量名 | 域 A | 域 B |
+|---|---|---|
+| `min_samples` | 帧足迹接缝域：`CHK-L4-SEAM-FOOTPRINT` 的适用域前置条件，要求帧边界法向两侧各能放下 `≥ min_samples` 个有效样本；取值与默认参数的唯一数值源 = `eng/tools/e2e/seam_footprint.py` | 天光平面 patch 域：`docs/science/PHASE2_UPM.md` §5 的 UPM patch 保留样本数下界，与 patch 半径共同构成定义域 |
+| `d` / 法向差分半距 | 接缝机器门输入参数（像素），只作诊断量与适用域阶梯，不判红 | 星表查询的坐标维度名 |
+
+规则：
+
+- 换算或比对两个域的同名量之前先确认它们是同一个量；不是同一个量时，禁止直接代入或互相引用；
+- 判据的适用域是**前置约束，不是放松阈值**：被适用域排除的对象逐条落盘（排除原因与余量），不静默丢弃；
+- 同名异域的每一处出现必须能追溯到各自域的正本条款；追溯不到的即按「悬空引用」处理。

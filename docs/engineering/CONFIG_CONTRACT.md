@@ -11,7 +11,7 @@
 | 配置挂载 / 模板 / 机器输出 / 退出码 | `docs/ASTROCS_DESIGN.md` §7.2 |
 | 三类配置严格分离、benchmark 独占 cpu_profile | `docs/detail/UNIFIED_MODEL.md` §3 |
 | CLI 预检与模板职责 | `docs/detail/infrastructure/18_cli.md` §3-§5 |
-| 科学红线（默认容差不可改、cpu_profile 不进科学配置） | `ENGINEERING_SPEC.md` §3 |
+| 科学红线（默认容差不可改、cpu_profile 不进科学配置） | `docs/ASTROCS_DESIGN.md` §0（文档权威与索引） |
 | 字段名族与跨类字段名锚点 | `docs/contracts/config_separation_anchors.json`（DATA-001，只读） |
 
 ## 1 三类配置（现场清单）
@@ -134,7 +134,7 @@ normalize 只接受**多块**与**平铺单块**两形态；CLI 遇到逐帧 `{p
 - **只有 benchmark 可写**：`x-astrocs-writer = "benchmark"`、`x-astrocs-not-writable-by = ["用户","cli --template","phase_config"]`；机器门 `TestCpuProfileMigration::test_writer_is_benchmark_only` + §7 的跨类不相交门。
 - **兼容面（既有检查项不失效）**：顶层 `required` 取两分支共有键 `[build, kernels]`，顶层 `properties` 同时登记两分支顶层键，完整 v1 必填集落在 `$defs.legacy_v1.required`；`properties.kernels.items.required` 保持原访问路径（`eng/tests/backend/test_cpu_profile.py`、`eng/tools/validate_cpu_profile.py`）。
 - **顶层 `properties.kernels.type = ["array","object"]`（双分支兼容）**：该取值同时容纳 v1 数组与 v2 对象，因此 `eng/tools/validate_cpu_profile.py` 的 `rule.get('type')=='array'` 分支对该字段不再生效；v1 kernel 项约束仍由本文件 `items.required` 与 `$defs.legacy_v1` 强制，并由负例 `cpu_profile_v1_missing_required.json` 复跑证明仍能红。
-- **`host.os_abi` 值域冻结**：枚举 `{linux, windows}` = 生产者字面量集合（`lib/infrastructure/benchmark/backend_host/hardware_inspect.cpp` 只写 `windows`/`linux`；`lib/infrastructure/benchmark/backend_host/profile_gen_v2.cpp` 缺 `os` 字段时回落 `linux`），平台面由 `ENGINEERING_SPEC.md` §1（Windows amd64 / Linux amd64）封闭；非该集合一律 REJECT（负例 `eng/tests/config/fixtures/negative/cpu_profile_v2_bad_os_abi.json`）。登记面记 `x-astrocs-frozen-domains`。CFG002-ANCHOR: item4-os-abi-enum → eng/packaging/config/config_registry.json
+- **`host.os_abi` 值域冻结**：枚举 `{linux, windows}` = 生产者字面量集合（`lib/infrastructure/benchmark/backend_host/hardware_inspect.cpp` 只写 `windows`/`linux`；`lib/infrastructure/benchmark/backend_host/profile_gen_v2.cpp` 缺 `os` 字段时回落 `linux`），平台面由 `docs/ASTROCS_DESIGN.md` §11（双平台发行）（Windows amd64 / Linux amd64）封闭；非该集合一律 REJECT（负例 `eng/tests/config/fixtures/negative/cpu_profile_v2_bad_os_abi.json`）。登记面记 `x-astrocs-frozen-domains`。CFG002-ANCHOR: item4-os-abi-enum → eng/packaging/config/config_registry.json
 - **kernel 接线**：`$defs.kernel_v1` 由 `legacy_v1.properties.kernels.items`、`$defs.kernel_v2` 由 `profile_v2.properties.kernels.additionalProperties` 各 `$ref` 一次（refs=1/1）；接线面与 `$defs` 逐字一致，由门 CFG002-10 按 `config_registry.cpu_profile_kernel_link` 的 refs 计数钉死，负例（`cpu_profile_v1_bad_kernel.json` / `cpu_profile_v2_bad_kernel.json`）必红。
 - **v1 兼容口径（canonical 值 + 读取侧归一）**：v1 在 `hardware.feature_bits`、`hardware.xcr0`、`build.backend_sha256`、`kernels[].block_size`、`kernels[].oracle_status` 五处存在文本与生产值两义（`oracle_status` 读取侧大小写归一到 canonical 大写 PASS）；schema 按 canonical 值定义、按两义兼容读取，不新增也不删除既有检查项。
 
@@ -186,7 +186,7 @@ timeout 60 python3 eng/tests/config/run_validation.py eng/contracts/schemas/phas
 - **冲突面**：登记册的 `conflict` 计数必须为 0（门 CFG002-01 判定）。争议项的现行权威取值：①`04_psf.psf_model` = **moffat4**（`docs/science/PSF.md`）；②`08_drizzle.pixfrac` 默认 **0.8** 落 `defaults.json`；③`03_star_detection.detection_threshold` = **全局** `median(img)+5.0·bgnoise`（局部自适应为目标态）；④`06_photometry.flux_zero_point` 行**不存在**（`docs/science/algorithms/PHOTOMETRIC_FIT.md` §1）。
 复跑判据 = 把任一插件文档的声明值改成与 `docs/science/` 权威不符时，该计数必须变正 ⇒ 判据非退化。
 - **module.yaml 面**：20 份 `lib/**/module.yaml` 的顶层键只含契约/端口/构建/证据字段，**无任何旋钮或默认值声明字段**；门 CFG002-06 断言键集闭包——出现 `knobs/knob/params/parameters/config/configs/defaults/tunables/options/settings` 任一键即判红，新增旋钮声明必须先在本册登记归属。
-- **维护规则**：本册是**人工维护**的登记面；文档变化必须由人重新判定归属。绿灯只出自人工判定（生成脚本批量刷新不构成归属判定，ENGINEERING_SPEC §8 fail-closed）；本册不复制科学数值（数值唯一源 = defaults.json / phase_config schema）。
+- **维护规则**：本册是**人工维护**的登记面；文档变化必须由人重新判定归属。绿灯只出自人工判定（生成脚本批量刷新不构成归属判定，`docs/DOCUMENT_INDEX.yaml` fail-closed）；本册不复制科学数值（数值唯一源 = defaults.json / phase_config schema）。
 
 ## 10 滤镜名匹配语义（可执行规则 + 正反例）
 
@@ -207,7 +207,7 @@ negative: "bader r" | "bader v" | "baader r" | "BAADER R" | "Baader  R" | " Baad
 enum:      { "linux", "windows" }
 derivation: lib/infrastructure/benchmark/backend_host/hardware_inspect.cpp（_WIN32 -> "windows"，否则 -> "linux"）
             lib/infrastructure/benchmark/backend_host/profile_gen_v2.cpp（缺 os 字段回落 "linux"）
-platform:   ENGINEERING_SPEC.md §1（Windows 10+ amd64 / Linux amd64）
+platform:   docs/engineering/WINDOWS_BUILD_NODE.md 10+ amd64 / Linux amd64）
 consumer:   lib/infrastructure/benchmark/backend_host/cpu_routing.cpp（与 hw os.name 逐字比较，不等 -> stale_machine）
 negative:   eng/tests/config/fixtures/negative/cpu_profile_v2_bad_os_abi.json（os_abi=freebsd -> REJECT）
 ```

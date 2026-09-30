@@ -1,6 +1,6 @@
 # 档位判词判据书（TIER VERDICT CRITERIA）
 
-> 上游：`docs/ASTROCS_DESIGN.md` §12.4（四层验收与验证层级）、`ACCEPTANCE_SPEC.md` §5/§6（L3/L4）
+> 上游：`docs/ASTROCS_DESIGN.md` §12.4（四层验收与验证层级）、`docs/ASTROCS_DESIGN.md` §12（验证体系） §5/§6（L3/L4）
 > 配套机器实现：`eng/tools/acceptance/tier_verdict_gate.py`（本文件 §3 逐条对应，TV-01..TV-12）
 > 配套盘点与清单：`docs/engineering/FROZEN_GATE_INVENTORY.md`、`docs/engineering/REL790_VISUAL_EVIDENCE_CHECKLIST.md`
 > 纪律：本文件**不改任何科学公式、阈值或冻结定义**，只规定「档位判词这句话怎么写才算有据」；

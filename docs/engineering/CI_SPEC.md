@@ -135,7 +135,7 @@ flowchart LR
 - 只有负责人可批准豁免（写入 `eng/ci/exemptions.json`，只减不增）；
 - 机器门禁通过后自动推进，不设频繁人工 checkpoint；
 - 合成测试不等于真实数据 VERIFIED；真实数据/Windows 复验按阶段由负责人触发；
-- 预览版发布门 = P0 机器门全绿 + `ACCEPTANCE_SPEC.md` 四层验收（L1 合成科学性、L2 合成性能、L3 小批量端到端、L4 M42/Galaxy Center 视觉验收）全部通过，由负责人决定发布。
+- 预览版发布门 = P0 机器门全绿 + `docs/ASTROCS_DESIGN.md` §12（验证体系） 四层验收（L1 合成科学性、L2 合成性能、L3 小批量端到端、L4 M42/Galaxy Center 视觉验收）全部通过，由负责人决定发布。
 
 ---
 
@@ -177,16 +177,16 @@ flowchart TD
 
 | 文档 | 关系 |
 |---|---|
-| ENGINEERING_SPEC.md | 定义"检查什么"（本文执行其 §8/§11） |
+| docs/engineering/ | 定义"检查什么"（本文执行其 §8/§11） |
 | ASTROCS_DESIGN.md | 验收/状态阶梯/发布门禁的上位来源 |
-| CONTROL_PACK_SPEC.md | 控制包验收调用 CI 机器门 |
+| docs/ASTROCS_DESIGN.md §13（版本与发布权） | 控制包验收调用 CI 机器门 |
 | AGENTS.md | 干活纪律（CI 是其硬门禁） |
 
 ---
 
 ## 9. 监控字段语义与 L2 冻结判据（fail-closed）
 
-> 上游：ENGINEERING_SPEC.md §10（fail-closed）、§12（资源与性能）；数值源
+> 上游：docs/engineering/VALIDATION_EVIDENCE_STANDARD.md §1–§4）、§12（资源与性能）；数值源
 > eng/contracts/resource_gate_v1.json。本节是监控字段语义与 L2 冻结判据的唯一正本。
 
 ### 9.1 requires_monitor（**真强制**，不改名）
@@ -246,7 +246,26 @@ flowchart TD
 | C 无输出 | `outputs` 为空且非 waivable | `FAIL(empty_outputs)` |
 
 普查表落 `实验/engineering-evidence/`（机器可读面由检查器现场产出，落点按
-`ENGINEERING_SPEC.md` §7 的运行产物规则）；适用面判绿即假绿风险，检查判红。
+`docs/ASTROCS_DESIGN.md` §10（I/O 与原子产品） 的运行产物规则）；适用面判绿即假绿风险，检查判红。
 显式登记豁免（`SILENT_OK_UNITS`：`UNIT-CLOSURE`）
 在表中标注来源，不冒充已覆盖。文档域检查项已整体撤销、不再参与普查，其原豁免登记随之作废。
+
+---
+
+## 10. MSVC 工具集固定值与实测锚（Windows 驱动）
+
+Windows 正式平台的 MSVC 版本是契约冻结值 **14.44.35207**（工具集族 `19.44`）。不显式指定时，MSBuild 取 `Microsoft.VCToolsVersion.v143.default.props` 的默认值（可落到 `14.40.33807`、cl `19.40.33820.0`），与契约不一致即工具集漂移。
+
+处置方式（Windows 构建驱动，`eng/tools/quality/ci_windows_driver.py` 的 `MSVC_TOOLSET_VERSION`）：
+
+1. **显式 pin**：向 configure 与 build 子进程注入环境变量 `VCToolsVersion`，等价于 `vcvars64 -vcvars_ver=14.44`，也是该 props 文件自身承认的覆盖入口；
+2. **构建后实测**：从构建产物的 `CL.command.1.tlog` 读出实际 cl.exe 所在 toolset 目录，与 pin 值比对；
+3. **fail-closed**：未命中 pin 或测不到证据 → 驱动以固定非零退出码（`exit 7`）失败，不放行。
+
+禁止项：
+
+- 禁止依赖主机默认 toolset 隐式命中；
+- 禁止为让判定转绿而把版本值放宽到实测漂移值。
+
+Windows 侧工具链的其余冻结取值（VS Build Tools 版本、generator、SDK、CMake、CRT、preset 边界）见 `docs/engineering/TOOLCHAIN_AGENT_HOST.md`。
 

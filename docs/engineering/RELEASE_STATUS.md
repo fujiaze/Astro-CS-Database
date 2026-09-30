@@ -55,7 +55,7 @@ psf_snr_power:       DEFERRED（生产拒绝）
 
 - 逐面状态与证据锚以本文（§0 词表 + 分面表）与 `docs/modules/MODULE_MAP.yaml` 为准。
 - **合成测试或历史可用节点不等于真实数据 / Windows `VERIFIED`**（`ASTROCS_DESIGN.md` §12.5 末条）。
-- 最终发布决定只属项目负责人；Agent 至多声明 `READY_FOR_OWNER_REVIEW`（`ASTROCS_DESIGN.md` §12）。版本信息按阶段出现：alpha 阶段之前程序/代码/产物内不存在版本信息；进入 alpha 阶段后按本文 §2 单源条款出现（`ASTROCS_DESIGN.md` §13、`ENGINEERING_SPEC.md` §7）。
+- 最终发布决定只属项目负责人；Agent 至多声明 `READY_FOR_OWNER_REVIEW`（`ASTROCS_DESIGN.md` §12）。版本信息按阶段出现：alpha 阶段之前程序/代码/产物内不存在版本信息；进入 alpha 阶段后按本文 §2 单源条款出现（`ASTROCS_DESIGN.md` §13、`docs/ASTROCS_DESIGN.md` §10（I/O 与原子产品））。
 
 ## 2. 版本与发布面
 
@@ -85,7 +85,7 @@ psf_snr_power:       DEFERRED（生产拒绝）
 | 面 | 状态 | 主要依据（文件锚 / 命令 / rc） |
 |---|---|---|
 | 最高设计 | `CONTRACT_READY` | `docs/ASTROCS_DESIGN.md`（§0 权威链，唯一最高权威） |
-| 最高设计 ↔ 工程规范边界 | `CONTRACT_READY` | `ASTROCS_DESIGN.md` §0 权威链 + `ENGINEERING_SPEC.md`；旧 `AstroCS_ENGINEERING_CONSTRAINTS.md` 与 `eng/tools/doccheck/check_engineering_constraints.py` 已退役（历史条目） |
+| 最高设计 ↔ 工程规范边界 | `CONTRACT_READY` | `ASTROCS_DESIGN.md` §0 权威链 + `docs/engineering/`；旧 `AstroCS_ENGINEERING_CONSTRAINTS.md` 与 `eng/tools/doccheck/check_engineering_constraints.py` 已退役（历史条目） |
 | 文档边界/索引 | `CONTRACT_READY` | `docs/DOCUMENT_INDEX.yaml`（DOC-001 收敛：新文档集补登 + 旧体系移出活动区）；`eng/tools/doccheck/check_doc_index.py --strict` 残留 1 项 `control_archive_dir_readme`（绑定已删除的 `engineering/control/archive/**`），登记 CI-001 迁移 |
 | 内核标准注册表 | `CONTRACT_READY` | `docs/engineering/STANDARDS_REGISTRY.md` + `docs/standards/checks/check_standards_registry.py` → STANDARDS_REGISTRY_PASS（STD-REG-001 `fb7f232a`） |
 | 版本单源 | `CONTRACT_READY` | `VERSION` + 本文 §2；检查器 rc=0 |
@@ -93,7 +93,7 @@ psf_snr_power:       DEFERRED（生产拒绝）
 | 类型化产物 / 三阶段交换 / 不确定度合同 | `CONTRACT_READY` | DATA-001/002 + DATA-UNC-001（`99713034`）+ `eng/contracts/data/*` |
 | Runtime 类型化运行图 + 节点绑定表 | `IMPLEMENTED` | `runtime/pipeline/typed_dag.py` + `module_ports.registry.json`；节点绑定经 ctest 节点化用例复核 |
 | 三 Phase 节点化（`ASTROCS_DESIGN.md` §3.2/§4.2/§5.2 每节点唯一真实 operation；原引「宪章 §F.1」已废止） | `IMPLEMENTED` | `lib/infrastructure/scheduler/src/module_adapters.cpp`:4257/:4282/:4309（P1 8 / P2 7 / P3 5 节点）；ctest `p1001_real_nodes`/`p2001_real_nodes`/`p3002_real_nodes`/`p3002_uncertainty` 4/4 PASS |
-| RT 唯一 executor + 实测资源门（`ASTROCS_DESIGN.md` §8/§10 + `ENGINEERING_SPEC.md` §10；原引「宪章 §10.4/§10.5/§18.2」已废止） | `IMPLEMENTED` | `lib/infrastructure/scheduler/src/executor_runtime.h`、`module_adapters.cpp`:3777-3793、`eng/tools/monitoring/run_monitored.py:evaluate_frozen_gate()`；ctest `rt001_unique_executor` PASS（RT-001 `91440c16`） |
+| RT 唯一 executor + 实测资源门（`ASTROCS_DESIGN.md` §8/§10 + `docs/ASTROCS_DESIGN.md` §9（CPU 后端与资源）；原引「宪章 §10.4/§10.5/§18.2」已废止） | `IMPLEMENTED` | `lib/infrastructure/scheduler/src/executor_runtime.h`、`module_adapters.cpp`:3777-3793、`eng/tools/monitoring/run_monitored.py:evaluate_frozen_gate()`；ctest `rt001_unique_executor` PASS（RT-001 `91440c16`） |
 | Phase3 四投影 registry（TAN/SIN/CAR/AIT） | `IMPLEMENTED` | `lib/algorithms/projection/p3_projection.{h,cpp}`:267-273（registry v1 恰四行）；ctest `p3_projection_units`/`p3_projection_fault` 2/2 PASS；CI `CTEST-P3-PROJECTION-UNITS/FAULT` |
 | MOD 科学模块安装面 + 产品清单 | `INSTALLED` | `eng/cmake/install_layout.cmake`:104-105；`eng/packaging/astrocs.product.json` units=10；`eng/tests/abi/mod001_install_load_check.py` 64/64 PASS（MOD-001 `59fdeab3`；`f74fc20f` 摘出 p1_noise） |
 | CLI 薄命令面（normalize/mosaic/export + doctor/benchmark） | `INSTALLED` | `command_tree.h` 唯一命令树（golden = `docs/engineering/CLI_PROTOCOL_V1.md` §1；`eng/tests/cli/test_cli_protocol.py` test_01/test_07） |

@@ -60,3 +60,25 @@
 2. 缺失 9 项构建/测试工具（cmake、gcc、g++、clang、clang++、ninja、make、ccache、pytest），全部如实登记于 `eng/ci/toolchain.lock.json` 的 `missing_tools`，**未安装任何组件、未重新配置服务器**，符合 `host_reprovisioning=false`。
 3. 版本数据 100% 来自实测输出（`evidence/.../logs/*.log` 原文可复核），无臆造、无占位值；验收脚本 `eng/ci/verify_toolchain.py --policy eng/ci/toolchain.policy.json --actual eng/ci/toolchain.lock.json --scope agent-host` 通过（exit 0）。
 4. Agent 主机与 hosted CI 版本不要求一致（policy `require_exact_hosted_versions=false`）；后续任务若需要本机编译，须由控制面在遵守该策略的前提下另行处理，本文档只负责如实盘点。
+
+## 5 构建档位与可复现判据（文档侧口径）
+
+取值本身以机器源为准（`eng/packaging/schemas/preset-contract.json`、锁文件 `eng/packaging/dependency-lock.json`）；本节只写不落在机器源里的判定口径。
+
+### 编译档位
+
+- 优化档由 `CMAKE_BUILD_TYPE` 决定，不在构建脚本里显式声明 `-O2` / `-O3`：优化档是编译器在给定构建类型下的默认行为，显式声明会与构建类型形成两个取值面；
+- Release 轻验证用 GCC、Debug 与静态分析用 Clang，两侧走同一个 preset；
+- 全仓无未锁定 flag，无全域 `-w`；告警口径见 `CODE_STANDARD.md`；
+- 并行度不写死，取自线程预算（最高设计 §9）。
+
+### 可复现判据
+
+- build id 由根 `VERSION` 派生并附提交短哈希，生成模板 = `lib/infrastructure/cli/version_generated.h.in`（单源条款 = `docs/engineering/RELEASE_STATUS.md` §2）；
+- **同一提交重构建得到相同 build id**：这是工具链面「构建输入无隐藏状态」的判据，任何把机器绝对路径、时间戳或未锁定 flag 引入构建输入的改动都会让它转红；
+- SBOM 输入清单由依赖锁复算时产出，是过程产物、不入库（最高设计 §10）。
+
+### 节点角色
+
+- `linux-control` preset 只覆盖静态检查、轻量编译与小合成实验；**Linux 侧的性能数字不作为 Windows 发布性能结论**；
+- Windows 侧正式工具链取值与禁面见 `docs/engineering/DEPENDENCY_RULES.md` 的读取面表；节点接入实操见 `docs/engineering/WINDOWS_BUILD_NODE.md`。

@@ -30,6 +30,10 @@ doc_index:
   schema_rev: "3"
   coverage: "docs/** 全部 .md 与 .yaml + 仓库根固定条目（AGENTS.md、README.md、VERSION）；目录招牌件按「每目录必有 README」治理，不进规范索引面"
   active:
+    - path: "docs/engineering/WINDOWS_BUILD_NODE.md"
+      status: ACTIVE_NORMATIVE
+      duty: "Windows 构建与验证节点的接入实操：凭据纪律、远端 shell、命令面、时间窗与离线处置"
+      upstream: "docs/ASTROCS_DESIGN.md §11（双平台发行）"
     - path: "eng/contracts/ledgers/ledger_schema.py"
       status: ACTIVE_NORMATIVE
       duty: 合同台账的 schema 校验与加载（fail-closed）
@@ -61,17 +65,14 @@ doc_index:
       duty: "机器干活手册：读文档顺序、工作流、硬禁令与落位速查"
       upstream: "docs/ASTROCS_DESIGN.md §0.1（唯一权威链）、§0（文档权威与索引）"
       downstream: "ACCEPTANCE_SPEC.md、CMakeLists.txt、CONTROL_PACK_SPEC.md 等 276 处"
-    - path: "ENGINEERING_SPEC.md"
       status: ACTIVE_NORMATIVE
       duty: "工程规范：语言/风格/测试/Git/目录/文档集/机器检查"
       upstream: "docs/ASTROCS_DESIGN.md §0.1（唯一权威链）、§7（目录与根条目登记面）"
       downstream: "ACCEPTANCE_SPEC.md、CMakeLists.txt、CONTROL_PACK_SPEC.md 等 170 处"
-    - path: "CONTROL_PACK_SPEC.md"
       status: ACTIVE_NORMATIVE
       duty: "控制包规范：任务卡/回执/收口与清理"
       upstream: "docs/ASTROCS_DESIGN.md §0.1（唯一权威链）、§12.3（创新点实验单元）"
       downstream: "ACCEPTANCE_SPEC.md、ENGINEERING_SPEC.md、README.md 等 38 处"
-    - path: "ACCEPTANCE_SPEC.md"
       status: ACTIVE_NORMATIVE
       duty: "验收规范：四层验收标准与预览版发布门"
       upstream: "docs/ASTROCS_DESIGN.md §0.1（唯一权威链）、§12.4（验证层级与四层验收）、§13（版本与发布权）"
@@ -85,17 +86,14 @@ doc_index:
       status: ACTIVE_INFORMATIVE
       duty: "文档集入口：权威链入口、文档分层与阅读方式"
       upstream: "docs/ASTROCS_DESIGN.md §0.2（详细文档层与双向索引）、§0.3（文档写法）"
-    - path: "DEPENDENCIES.md"
       status: ACTIVE_INFORMATIVE
       duty: "第三方依赖清单与许可登记"
       upstream: "docs/ASTROCS_DESIGN.md §11（双平台发行与安装）"
       downstream: "ENGINEERING_SPEC.md、README.md、README.md 等 34 处"
-    - path: "FATDUCK_ACCESS.md"
       status: ACTIVE_INFORMATIVE
       duty: "外部数据/凭据访问说明（只读引用）"
       upstream: "docs/ASTROCS_DESIGN.md §12.2（三类实验数据）"
       downstream: ".gitignore、test_pack_audit_exclusion.py、pack_audit_package.py 等 22 处"
-    - path: "memory.md"
       status: ACTIVE_INFORMATIVE
       duty: "开发记忆：项目结论与判定留痕（history 命名空间）"
       upstream: "docs/ASTROCS_DESIGN.md §0.3（文档写法）"

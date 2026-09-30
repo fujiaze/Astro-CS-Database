@@ -99,7 +99,7 @@ handler→内部会话 API 追溯(phase 为内部指代): normalize→API-003(�
 
 1–5 为 Linux 可验;6 属 WIN/FAT 域任务。
 
-## 7 配置与 `output_dir`(权威 = `ASTROCS_DESIGN.md` §7.2 配置/退出码 + `ENGINEERING_SPEC.md` §7 目录规范)
+## 7 配置与 `output_dir`(权威 = `ASTROCS_DESIGN.md` §7.2 配置/退出码 + `docs/ASTROCS_DESIGN.md` §10（I/O 与原子产品） 目录规范)
 
 运行产物(每相 run manifest `astrocs_run_*.json`、资源三件套
 `resource_timeseries.csv` / `resource_summary.json` / `worker_balance.csv`、

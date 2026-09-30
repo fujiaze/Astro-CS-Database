@@ -10,7 +10,7 @@
 > 依赖：infrastructure/22_gaia_xpsd_client.md（星表查询与坐标语义合同）
 
 模块级事实以 `lib/algorithms/platesolve/README.md` + `module.yaml`（astrocs.p1.wcs，
-迁移目标 astrocs_p1_wcs.dll）为准；合同三件套（README.md / module.yaml / memory.md）
+迁移目标 astrocs_p1_wcs.dll）为准；合同三件套（README.md / module.yaml ）
 entrypoint 未落地。现状构建 `cpp/ipv/build.ps1` / Makefile → `ipv_solver.dll`，
 未编入根 CMake 主构建。失败-置信度语义冻结：**CD 退化必须 success = 0** 并按失败
 登记。

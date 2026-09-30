@@ -6,7 +6,7 @@
 
 ## 1. 唯一事实源声明
 
-`eng/contracts/schemas/` 是数据合同的**唯一事实源**（ENGINEERING_SPEC §4.7）。对 UNIFIED_MODEL §2 的 **13** 个对象：
+`eng/contracts/schemas/` 是数据合同的**唯一事实源**（`docs/ASTROCS_DESIGN.md` §3.1）。对 UNIFIED_MODEL §2 的 **13** 个对象：
 
 ```text
 canonical 定义 = eng/contracts/schemas/unified/<对象名>.schema.json

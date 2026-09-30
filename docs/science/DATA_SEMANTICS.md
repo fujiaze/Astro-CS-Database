@@ -853,7 +853,7 @@ config 在 run 内二次解析（validate 先行的合同，:155-159 parse 失�
 - `cancel`（:92-97 单向置位）：检查点=io_read 文件粒度（:177-181）、
   calibrate 帧粒度（:228-231）、cosmetic 帧粒度（:289）。
 - `budget`（:100-108）：`max_workers` → `ac_set_num_threads` 注入
-  （:162-165）；`available_cpus` 上限快照。**B2-A18**：Runtime 节点 trace 的 `workers`/`granted_workers` 与 CLI 资源门 U 分母**必须**读 `granted_worker_observation()`（ThreadBudget acquire/release 真实累计的峰值并发租约 token 数）；哨兵 0=未观测时回退 `min(selected_workers, available_cpus)`（阈值不变）；**配置 budget 只作声明面**（权威 = ENGINEERING_SPEC.md §10「一个进程只有一个资源调度器与线程预算源；模块不硬编码 workers、不私建长期线程池」+ 实现锚 `lib/infrastructure/scheduler/src/context.cpp:127`、`lib/infrastructure/cli/commands.cpp:910/788`；**语义不变**）。
+  （:162-165）；`available_cpus` 上限快照。**B2-A18**：Runtime 节点 trace 的 `workers`/`granted_workers` 与 CLI 资源门 U 分母**必须**读 `granted_worker_observation()`（ThreadBudget acquire/release 真实累计的峰值并发租约 token 数）；哨兵 0=未观测时回退 `min(selected_workers, available_cpus)`（阈值不变）；**配置 budget 只作声明面**（权威 = docs/ASTROCS_DESIGN.md §8.3（三个阶段调度器）；模块不硬编码 workers、不私建长期线程池」+ 实现锚 `lib/infrastructure/scheduler/src/context.cpp:127`、`lib/infrastructure/cli/commands.cpp:910/788`；**语义不变**）。
 
 ### 16.3 manifest JSON（p1_session_inspect 输出，dump(2) :348）
 
@@ -2596,7 +2596,7 @@ corrected[i] = input_signal[i] − C(frame_id, leaf_ipix[i])
   态（:35），不产出半成品 descriptor；四角同半球守卫失败
   （:80-88）按首次失败码透传。
 - **未实现投影必须拒绝（B2-A4 冻结口径，01_SCIENCE_AUTHORITY_BASELINE
-  §4「未实现的投影或语义必须拒绝」+ ENGINEERING_SPEC.md §9「错误通过统一状态码+结构化诊断传播；失败时不留可被误认成正式产品的半成品」）**：
+  §4「未实现的投影或语义必须拒绝」+ docs/ASTROCS_DESIGN.md §7.2（机器输出与退出码）；失败时不留可被误认成正式产品的半成品」）**：
   `p3_wcs_validate_request` 是请求层 projection/frame/coverage_output 的
   唯一机器源，节点面（module_adapters p3n_geom/P3NodeModule::validate_config/
   p3n_wcs_from_json）与 CLI 配置面（runtime_client phase_config）共用；

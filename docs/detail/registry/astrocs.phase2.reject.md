@@ -11,7 +11,7 @@
 > API 正本：docs/engineering/PUBLIC_API.md（API-P2-REJ-001）、
 > docs/engineering/PHASE2_API_V1.md（API-P2-001，FROZEN）
 
-LIB 面 = `lib/algorithms/rejection/` 三件套（README / module.yaml / memory.md，
+LIB 面 = `lib/algorithms/rejection/` 三件套（README / module.yaml ，
 CONTRACT_READY）。MOD ID = MOD-astrocs-phase2-reject；module_id 合同值 =
 `astrocs.p2.rejection`（descriptor 词汇 `astrocs.phase2.reject` 为编排层口径，其
 对齐属迁移目标、未落地）；dll_target = `astrocs_p2_rejection.dll`（迁移目标，

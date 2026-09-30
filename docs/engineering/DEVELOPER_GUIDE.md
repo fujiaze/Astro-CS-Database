@@ -1,6 +1,6 @@
 # Astro Celestial Sphere Database（ACSD） 开发者指南
 
-> 上游：docs/ASTROCS_DESIGN.md §8（软件架构）、§10（I/O 与原子产品）、§12（验证体系与四层验收）；AGENTS.md §3（环境与构建）；ENGINEERING_SPEC.md §1（语言/编译器/平台）、§2（代码风格与实现处置）、§5（测试规范）、§6（Git 与提交）。
+> 上游：docs/ASTROCS_DESIGN.md §8（软件架构）、§10（I/O 与原子产品）、§11（双平台发行）、§12（验证体系与四层验收）；AGENTS.md §3（环境与构建）、§8（提交纪律）；docs/engineering/CODE_STANDARD.md（代码风格与实现处置）、docs/engineering/TEST_STANDARD.md（测试规范）。
 
 ## 环境与构建
 
@@ -27,8 +27,8 @@ python3 eng/ci/run_checks.py --check CHK-INVARIANT --quiet  # 科学不变量面
 
 ## 编码与提交
 
-- 编码规范、测试规范与提交纪律的唯一正本 = `ENGINEERING_SPEC.md` §2 / §5 / §6（本指南不复述）；
-- 运行产物只写 `output_dir`；过程产物与日志落点按 `ENGINEERING_SPEC.md` §7 的运行产物规则；
+- 编码规范、测试规范与提交纪律的唯一正本 = `docs/engineering/CODE_STANDARD.md`、`docs/engineering/TEST_STANDARD.md`、`AGENTS.md` §8（本指南不复述）；
+- 运行产物只写 `output_dir`；过程产物与日志落点按 `docs/ASTROCS_DESIGN.md` §10（I/O 与原子产品）的运行产物规则；
 - 修改后必须自测；「完成」以验证通过为前提。
 
 ## 参考面
