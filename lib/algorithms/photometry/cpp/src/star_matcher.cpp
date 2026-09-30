@@ -23,7 +23,7 @@ static constexpr double _MAD_SCALE = 0.6744897501960817;
 static constexpr double _TUKEY_C = 4.685;
 // IRLS 最大迭代次数
 static constexpr int _IRLS_MAX_ITER = 50;
-// IRLS 收敛阈值 (|scale_new - scale_old| < 1e-6)
+// IRLS 收敛阈值 (|location_new - location_old| < 1e-6)
 static constexpr double _IRLS_CONVERGE = 1e-6;
 
 // ============================================================================
