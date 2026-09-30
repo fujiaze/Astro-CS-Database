@@ -59,6 +59,13 @@ CPP_TRIVIAL = [
     (r"\b(?:TEST_)?(?:CHECK|ASSERT|EXPECT|REQUIRE|VERIFY)\s*\(\s*1\s*[,)]", "CHECK/ASSERT(1)"),
     (r"\bstatic_assert\s*\(\s*true\b", "static_assert(true)"),
     (r"\bassert\s*\(\s*true\b", "assert(true)"),
+    # 恒真析取尾：上面 5 条全部要求实参**以字面 true/1 开头**，
+    # 因此 `CHECK(cond) || true` / `CHECK(x == Ok || true)` 一条都匹配不上。
+    # 本仓实测两处最高危恒真（p1_resource_test.cpp:78 的发布门判决、
+    # p1cos_tests_badcol.cpp:412）都是析取尾形态，而本门当时是绿的。
+    # 该形态无论左边是什么，整个表达式恒真 ⇒ 必须判红。
+    (r"\|\|\s*true\b", "析取尾 `|| true`（整个断言恒真）"),
+    (r"\btrue\s*\|\|", "析取尾 `true ||`（整个断言恒真）"),
 ]
 CPP_TRIVIAL_RE = [(re.compile(p), name) for p, name in CPP_TRIVIAL]
 
@@ -98,9 +105,24 @@ def _is_assert_call(node):
 
 
 def _const_value(node):
-    """字面常量 → (True, 值)；非常量 → (False, None)。"""
+    """字面常量 → (True, 值)；非常量 → (False, None)。
+
+    含**恒真析取尾**：`x or True` / `True or x` / `cond and True` 恒真，
+    之前因只认 ast.Constant 而一律返回 (False, None) ⇒ 漏判。
+    本仓实测两处最高危恒真（oracle 的 `all(k in ds or True ...)`、
+    `known_failures_baseline.py:1096`）正落在这个缺口里，而门当时是绿的。
+    """
     if isinstance(node, ast.Constant):
         return True, node.value
+    # 恒真析取尾：or 的右操作数是 truthy 常量 ⇒ 整个表达式恒真；
+    # and 的右操作数是 falsy 常量 ⇒ 整个表达式恒假。
+    if isinstance(node, ast.BoolOp):
+        vals = [v for v in (_const_value(x) for x in node.values) if v[0]]
+        if len(vals) != len(node.values):
+            return False, None          # 非常量，不能判
+        if isinstance(node.op, ast.Or):
+            return True, any(bool(v) for _, v in vals)
+        return True, all(bool(v) for _, v in vals)
     return False, None
 
 
