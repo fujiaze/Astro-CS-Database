@@ -54,7 +54,9 @@ acsd_status backend_self_test(const acsd_host_services_v1* host) {
     if (host->cancel.is_cancelled(host->cancel.user_data)) return ACS_ERR_CANCELLED;
     if (host->budget.acquire(host->budget.user_data, 1) != 0) return ACS_ERR_BUDGET;
     host->budget.release(host->budget.user_data, 1);
-    host->logger.log(host->logger.user_data, ACS_LOG_INFO, "baseline", "self_test ok");
+    // backend_id 取编译期常量而非字面量: 本 .inc 被 baseline/avx2/avx512 三个门面 TU 共用,
+    // 写死 "baseline" 会让变体库的 self_test 日志自报 baseline, 现场排障时被误导。
+    host->logger.log(host->logger.user_data, ACS_LOG_INFO, ACSD_BACKEND_ID, "self_test ok");
     return ACS_OK;
 }
 
@@ -81,7 +83,7 @@ acsd_backend_api_v1* backend_api() {
         g_api.struct_size = static_cast<uint32_t>(sizeof(acsd_backend_api_v1));
         g_api.abi_version = ACS_ABI_VERSION_V1;
         std::strncpy(g_api.backend_id, ACSD_BACKEND_ID, sizeof(g_api.backend_id) - 1);
-std::strncpy(g_api.backend_build_id, ACSD_BACKEND_BUILD_ID, sizeof(g_api.backend_build_id) - 1);
+        std::strncpy(g_api.backend_build_id, ACSD_BACKEND_BUILD_ID, sizeof(g_api.backend_build_id) - 1);
         g_api.required_features = ACSD_BACKEND_REQUIRED_FEATURES;
         g_api.detected_features = 0;
         g_api.alignment_bytes = 64;
