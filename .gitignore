@@ -174,3 +174,6 @@ eng/packaging/config/local.paths.json
 
 # 仓库根不应出现 results/（实验单元的结果只落在各自单元下）
 /results/
+
+# 仓外绝对路径符号链接（文档站工作副本），不随仓库分发
+/site
