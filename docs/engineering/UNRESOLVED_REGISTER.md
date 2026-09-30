@@ -1492,3 +1492,60 @@ scheduler/pipeline 生产代码**零等价判据**（无后端选择/等价比�
 只是错误分类）。全仓唯一近似物 `acr/tests/integration/test_weighted_integration.cpp:173,196`
 是 ACR **自建 gtest**、比较基准是**串行参考**、两端是 ACR 的 `CpuOnly`/`GpuOnly` 两种 `RouteMode`
 —— **不是「ACR 后端 vs CPU 后端」**，且调度器侧无钩子会读它。`19_runtime.md` 零处登记该空判据面。
+
+---
+
+## 39. G08-07 分片四（算法余项 + 对外接口）报回：公式与常数对读 science 正本
+
+`star_detection` 生产 4,688 行、`platesolve` 生产核心逐行读完；其余分片八维度扫描 + 公式对读。
+
+### 39.1 好消息：star_detection 的 24 条公式常数逐条对读基本全对
+
+`sdet_api.cpp` 的 `threshold = median + 5.0·bgnoise`、`σ_smooth = 2.0`、
+`dynrange = min(maxi, 65535) − bg`、`minsatlevel = 0.7·dynrange`、`satrange = 0.1·dynrange`、
+`1.482602218505602`、`√e = 1.6487212707001281468`、`sqrt(2·ln1000)`（**解析式入常量而非字面量，
+符合 CODE_STANDARD 硬编码处置**）、`2.3548200450309493`、LM 雅可比链式展开等**逐项核对一致**。
+
+⇒ 这是本仓第一次拿到「公式面基本干净」的正面证据，与前三片（每片都查出科学口径被写错）不同。
+
+**但两处例外都落在死代码里**：`sdet_api.cpp:941` 的 `dynrange = img_max − bg`
+**漏了 `min(·,65535)` 钳位**（ALG §2 要求有），而该行在 `sdet_detect_saturated_stars` 死函数内；
+同函数 `:1129-1133` 亦无饱和判据。
+
+### 39.2 十二类「无正本出处 / 与正本不一致」（分片点名）
+
+| # | 内容 | 性质 |
+|---|---|---|
+| **A** | `sdet_api.cpp:333-337` `reject_star` 第 5 判式 `fwhm_limit = se_smax·2.3548·(1+0.5·ln(se_smax/2))`，触发 `se_smax > 2.0` | **无正本出处** |
+| **B** | `nls_lm.cpp:434-435` ftol 第三子句用 `rho ≤ 2`，而 MINPACK `ftest` 对应子句是 `ratio ≤ 2` | **与自称依据不符** |
+| **C** | `ipv_wcs.cpp:364-366` 自认「与本数组相差一个 **CD 量纲**」，但 `ipv_api.h:41-42` 的 `sip_a[36]`/`sip_b[36]` 字段注释仍按 SIP 标准量纲 | **对外契约量纲错** |
+| **D** | `ipv_select.cpp:295-296` `img_area_sqdeg ≤ 0` 时**回落为 `query_area_sqdeg`**，而 ALG §4a.2 明确要求「两者同域」 | **静默换域** |
+| **E** | `ipv_select.cpp:343-345` 极限星等初值 `6 + 1.5·log10(f) + 2·log10(t)`，系数 6/1.5/2 无任何 science 出处 | **无正本出处的启发式** |
+| **F** | `ipv_types.h:255-266` 割线迭代 `m_lim_alpha_prior = 0.2885`（10 帧实测中位）、`m_lim_safety = 3.0` 等，代码自认未登记 | **经验值未登记** |
+| **G** | `ipv_types.h:275-277` `MAX_STARS_RESULT = 200000` 是 `gaia_client.c` 的每文件上限的**副本** | **跨模块常量副本** |
+| **H** | `ipv_itertrans.cpp:42-53` `AT_MATCH_*` 共 11 个自适应匹配门常量 | **整套不在正本** |
+| **I** | `star_detector.{h,cpp}` 的 `StarSource.snr` / `fwhm_px` | **未点名的第三口径** |
+| **J** | `ipv_types.h:221-231` `IPVSolverParams` 24 字段**全部不可配置**（自认「生产路径没有任何配置/CLI 面」） | **硬编码全集** |
+| **K** | `ipv_api.h:271` 注释写「生产路径（CLI `phase1 run` → p1_op_wcs…）」，而 `CLI_PROTOCOL_V1.md §1` 明文三个命令是 `normalize`/`mosaic`/`export` | **引用已退役的 CLI 面** |
+| **L** | `ipv_solver.cpp:199` 三处硬编码阈值（0.01″ 收敛、5.0″ 匹配容差、0.002 尺度容差），ALG §9 自认 **UNJUSTIFIED** | **自认无依据的阈值在代码里** |
+
+### 39.3 平台条件编译两侧不一致（G08-09 双平台的前置）
+
+`sdet_log.cpp:31-44` 的 `#ifdef _WIN32` **两侧指向不同目录**：
+Windows = `lib\star_detector\logs`（**缺 `algorithms` 一级**，是模块迁入 `a` 前遗留），
+另一侧为不同路径。
+
+另 `sdet_log.cpp:19` 的日志级别读环境变量 `STAR_DETECTOR_LOG_LEVEL`，该键
+**不在 `CONFIG_SCHEMA.md`** ⇒ 违反 CODE_STANDARD MUST「运行参数优先由 config 读取」。
+
+### 39.4 一条边界缺陷
+
+`ipv_select.cpp:863-865, 880-882` `select_image_stars(flux, mag, saturated, ...)`：
+`n_total = flux.size()`，随后以 `mag[a]`（`a < n_total`）排序 ⇒ **`mag` 比 `flux` 短时越界读**。
+
+### 39.5 覆盖限制（如实登记）
+
+`cli/`、`photometry`+`psf`+`cosmetic`+`fits_output`、`coverage`+`projection`+`sampling`+
+`rejection`+`upm`、`resample`+`shared`+`hips_browser` 四组子分片报告**仍标「待合并」**，
+即这些模块只做了八维度扫描 + 公式对读，**未逐函数读完**。G08-07 的验收
+「代码与 detail 逐条一致」对这批尚未满足。
