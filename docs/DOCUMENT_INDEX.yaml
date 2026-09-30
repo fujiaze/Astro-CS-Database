@@ -17,7 +17,7 @@
 #   1. path 全索引唯一，不跨区段重复；active 区段不含任何 archive 路径；archived 区段全部 ARCHIVED_NON_NORMATIVE；
 #   2. 每份下级文档（docs/**/*.md）在 active 区段登记且抬头有「上游」条款区（覆盖率 100%，机器判红）；
 #      目录招牌件（各目录 README.md）按「每目录必有 README」治理、随目录本身登记；文档集入口与 CI 规范层入口
-#      （docs/README.md、docs/ci/README.md）以条目登记；最高设计与根文档的每个 docs/ 指针必须可达；
+#      （docs/README.md、docs/engineering/checks/README.md）以条目登记；最高设计与根文档的每个 docs/ 指针必须可达；
 #   3. 活动设计档案照实登记在 active 区段、不当作归档：docs/validation/v6/**（QA 矩阵）；
 #   4. 本文件是唯一索引地图：不用 README 合集代替；悬空指针（含代码注释里的 docs/ 路径）由 doc-index 门拦截，
 #      跨域未修项登记于 eng/tools/doccheck/dangling_ledger.json（只减不增）；
