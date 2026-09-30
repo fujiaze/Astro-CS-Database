@@ -113,14 +113,36 @@
 | `N1b_injected_step_is_detected` | 逐帧一致注入 Δ = 12 e⁻ 盒装电平台阶（x = 256） | 该边界 `excess` = **10.893 e⁻**（≥ 注入量的 50%） | 能红 |
 | `N1b_metric_has_scale` | 注入幅度扫描 {0, 6, 12, 24} e⁻ | 读数单调增，斜率 **0.908**（≥ 0.3）⇒ 非恒真门 | 有标度 |
 | `N2a_zero_effect_zeroes_delta` | 生产 `p2_sky_plane_build`，帧间天光差 ≡ 0 | `max\|δ_k\|` = **2.79e-10 e⁻** ≤ 1e-9 ⇒ 逐帧扣除量归零 | 归零 |
-| `N2b_zero_effect_zeroes_seam` | 同上，δ_k 臂残余接缝 | `max\|excess\|` = **9.46e-12 e⁻** | 归零 |
-| `N2c_injected_step_is_detected` | 同上，注入 Δ = 12 e⁻ | `max\|δ_k\|` = **60.66 e⁻**（≠ 0）且该边界 `excess` 翻红 | 能红 |
+| `N2b_apply_field_identity` | 基外盒装台阶 12 e⁻；施加量扫 `α·δ_k`，α ∈ {0.5, 1, 1.5, 2} | 逐像素场级恒等式 `mos(α) = mos(0) − α·δ̄` 的最大相对残差 = **1.32e-15** ≤ 1e-9 | 施加语义闭合 |
+| `N2c_injection_truth_match` | 注入逐帧常数偏置 6.0 / 1.2 / 0.9 e⁻ 三档，同一 α 扫描 | `\|step(1)\|` = **4.92e-12 / 5.23e-12 / 5.63e-12 e⁻**；仿射律残差 = **4.0e-12 / 1.05e-11 / 1.14e-11**（真值锚 `step(1) ≡ 0`） | 量值双侧相符 |
 
-**读法**：`N2a` 与 `N2b` 合起来说明「多退少补把接缝压下去」这条正向结论**不是**度量的
-恒真表现——在帧间天光差为零时，生产求解器给出的扣除量与残余接缝同时归零；
-`N2c` 说明同一构造下注入缺陷必被捕获。`N1b` 的斜率 0.908（而非 1.0）是度量自身的
-低读偏置：基线拟合窗 `base_win = 64 px` 与 cell 边界间距 64 px 同量级，偏置窗必然跨过
-相邻边界 ⇒ `excess` 对孤立盒装台阶按下界解释，检测结论不受影响。
+**读法**：`N2a` 说明帧间天光差为零时生产求解器的扣除量归零；`N2b` 与 `N2c` 承担
+**量值型**判别力——`N2b` 的锚是「同一 δ 未施加路径」的逐像素场，`N2c` 的锚是真值
+（「注入的接缝差被完全消除」），两者都不是存在性、也不是下界。
+
+**判据形态的变更（原 `N2b` 是恒真门、原 `N2c` 是下界型伪判据）**：原 `N2b` 检的是
+「真值是否为 0」这一存在性事实，注入 6 种缺陷 6/6 全绿；原 `N2c` 的两条子判据都是下界
+（`max\|δ_k\| > 1e-6`、`\|excess\| > 1.0`），只在真值本身变小时才红。重写后的两条由
+`code/g08_defect_probe.py` 做缺陷注入自检（10 种缺陷，`results/g08_defect_probe.json`）：
+
+| 缺陷 | `N2b` 相对残差 | `\|step(1)\|` [e⁻] | 仿射残差 | 期望 |
+|---|---:|---:|---:|---|
+| D0 正确实现 | **1.32e-15** | 4.92e-12 | 3.6e-12 | 绿 |
+| D1 求解器返回 `δ + 0.5 e⁻` | **2.32e-2** | 4.92e-12 | 3.6e-12 | `N2a`/`N2b` 红 |
+| D2 δ 算出但不施加 | **2.00** | −2.7232 | 2.000 | 红 |
+| D3 δ 符号反转 | **4.00** | −5.4465 | 4.000 | 红 |
+| D4 δ × 2 | **2.00** | +2.7232 | 2.000 | 红 |
+| D5 δ × 0.25 | **1.50** | −2.0424 | 1.500 | 红 |
+| D6 注入幅度降到 1.2 e⁻ | 1.32e-15 | 5.23e-12 | 1.05e-11 | **绿**（真值变小不是缺陷） |
+| D7 注入幅度降到 0.9 e⁻ | 1.32e-15 | 5.63e-12 | 1.14e-11 | **绿** |
+| D8 δ 施加到错误的帧 | **2.61** | −5.4465 | 4.000 | 红 |
+| D9 施加时用非均匀权重 | **2.00** | +1.3616 | 1.000 | 红 |
+
+⇒ 重写后 `N2b` 对 6 种量值型缺陷 **6/6 判红**、`N2c` 对 5 种（除求解器侧偏置）**5/5 判红**，
+而真值本身变小（D6/D7）**保持绿** ⇒ 两条判据都不再是下界型。
+`N1b` 的斜率 0.908（而非 1.0）是度量自身的低读偏置：基线拟合窗 `base_win = 64 px`
+与 cell 边界间距 64 px 同量级，偏置窗必然跨过相邻边界 ⇒ `excess` 对孤立盒装台阶按下界解释，
+检测结论不受影响。
 
 ## 5. 结论
 
@@ -172,6 +194,8 @@ python3 实验/additive-sky-seamless/code/sky_plane_zero_negative.py
 python3 实验/additive-sky-seamless/code/production_e2e_record_check.py
 python3 实验/additive-sky-seamless/code/production_e2e_record_check.py --no-source   # 只判内部断言
 python3 实验/additive-sky-seamless/code/seam_gate_gradient_scan.py
+python3 实验/additive-sky-seamless/code/seam_gate_coverage.py   # 沿边覆盖率诊断量 + 覆盖率不足显式判红
+python3 实验/additive-sky-seamless/code/g08_defect_probe.py      # N2b′/N2c′ 的缺陷注入自检
 python3 实验/additive-sky-seamless/code/c1_additive.py        # 其余 c2..c7 同理
 python3 实验/additive-sky-seamless/code/make_figures.py
 python3 实验/additive-sky-seamless/code/reverse_verify/data_matrix/exp1_sky_poisson_snr.py
