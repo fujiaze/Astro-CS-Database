@@ -1526,16 +1526,11 @@ Scalar compute_overlap_area_g_ctx_cached(
 // ============================================================================
 // 查询与 drop 多边形可能相交的所有 HEALPix 像素 (不限于 1-ring)
 //
-// 修复: 保守球冠保证不漏选
-// 原实现用 1.5×hp_res 经验缓冲, 在 1°/pixel 极区场景下漏选 8/288 例.
-// 修复方案:
-// 1. drop 包围圆半径 = max(顶点到中心角距离) + drop 对角线半长裕量
-// 2. 缓冲 = HEALPix 像素最大角半径 (中心到最远顶点)
-// HEALPix 像素非正方形, 对角线方向延伸更大:
-// 赤道带对角线 ≈ 1.532 × res, 半长 ≈ 0.766 × res
-// 极区三角形外接圆半径更大
-// 取保守上界 2.0 × hp_res (覆盖所有方向的最坏情况)
-// 3. 额外加 ε = 0.1 × hp_res 防浮点边界
+// 保守球冠保证不漏选。缓冲半径 = 3.0 × hp_res (HP_QUERY_RADIUS_FACTOR,
+// 见下方 buffer_rad 取值), 覆盖: drop 包围圆半径 = max(顶点到中心角距离),
+// 加 HEALPix 像素最大角半径 (中心到最远顶点) 的保守上界与浮点边界余量。
+// 3.0 这一取值由 DRIZZLE.md §5「缓冲三层」的候选保守查询圆条款冻结,
+// 零漏选由 candidate_oracle_test 9003 例矩阵承载。
 // ============================================================================
 template <typename T>
 void query_candidate_pixels(
@@ -1626,7 +1621,8 @@ struct CandBoxState {
 //
 // 保守性: 任何与 drop 相交的 HEALPix 像素, 其中心必然落在
 // "drop 包围圆半径 + 像素外接圆半径" 的圆盘内。
-// 像素外接圆半径上界取 1.2 × hp_res (HEALPix 像素最坏情况外接半径 ≈ 1.19×res)。
+// 像素外接圆半径上界取 HP_CIRCUMRADIUS_FACTOR = 1.25 × hp_res (HEALPix 像素
+// 最坏情况外接半径实测 ≈1.044×res, 解析上界推导见本文件顶部该常量定义)。
 // 直接枚举 NESTED (face, ix, iy) 正方形包围盒内的像素 (整数位操作, 无 BFS/邻居展开),
 // 不做距离剔除 (允许少量 false positives, 由 overlap 精确计算过滤) → 零漏选。
 // ============================================================================
@@ -1702,11 +1698,10 @@ void query_candidate_pixels_fast(
     // - 赤道带内部 (离极冠边界 >0.2Ns): 0.9999 x hp_res (无畸变)
     // - 极冠边界带 (<0.08Ns): 0.874 x hp_res (畸变 1.14x)
     // - 极冠像素: 0.798 x hp_res (畸变 1.25x)
-    // → 快速路径仅用于赤道带, delta 乘 1.25 安全系数 (签字修正
-    // ORACLE_HARDENING: 赤道带 |z|<=2/3 面内畸变解析上界
-    // ds/dx_face=(1/nside)·sqrt(4/9+π²cos²θ/16), 最坏在 z=±2/3:
+    // → 快速路径仅用于赤道带, delta 乘 1.15 安全系数 (解析上界: 赤道带 |z|<=2/3
+    // 面内畸变 ds/dx_face=(1/nside)·sqrt(4/9+π²cos²θ/16), 最坏在 z=±2/3:
     // cosθ=sqrt(5/9), sqrt(4/9+5π²/144)≈0.8872 → 面距离/球面角距
-    // ≤1/0.8872≈1.127; 经验扫描最坏 1.14; 取 1.25 覆盖解析+浮点);
+    // ≤1/0.8872≈1.127; 经验扫描最坏 1.14; 取 1.15 覆盖解析上界 + 浮点裕量);
     // 极冠 (bighp 0-3 的 ix+iy>Ns, bighp 8-11 的 ix+iy<Ns) 回退球面查询
     // (queryDisc 3.0 buffer, 与面内畸变无关, 天然正确)。
     bool in_polar_cap = false;
@@ -1797,7 +1792,8 @@ void query_candidate_pixels_fast(
         }
     }
     // 5. 圆心距离预过滤 (保守: 像素中心在查询圆盘内才保留)
-    // 查询圆盘半径 = max_angle + 1.0×hp_res (像素外接圆半径上界;
+    // 查询圆盘半径 = query_radius_rad = max_angle + HP_CIRCUMRADIUS_FACTOR·hp_res
+    // (缓冲因子见本文件顶部 HP_CIRCUMRADIUS_FACTOR 的解析推导与 9003 例零漏选门;
     // 零漏选由候选 Oracle 矩阵对全部 face/NSIDE 验证)。
     // 过滤掉正方形包围盒的边角, 减少后续 compute_overlap_area 调用。
     // 逐格点积与旧实现同一表达式、同一行主序, 故 survivors 序列逐项相同；

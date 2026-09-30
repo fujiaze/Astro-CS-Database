@@ -1412,8 +1412,8 @@ HP_DRIZZLE_API int hp_drizzle_compute_auto_nside(PipelineFrame* frame,
         result->hp_res_arcsec = info.hp_res_arcsec;
         result->oversample = info.oversample;
         result->clamped = info.clamped ? 1 : 0;
-        fprintf(stderr, "[hp_drizzle_api] compute_auto_nside: nside=%d, finest=%.6f\", "
-                "hp_res=%.6f\", oversample=%.4f, clamped=%d\n",
+        fprintf(stderr, "[hp_drizzle_api] compute_auto_nside: nside=%d, finest=%.6f, "
+                "hp_res=%.6f, oversample=%.4f, clamped=%d\n",
                 nside, info.finest_arcsec, info.hp_res_arcsec, info.oversample,
                 info.clamped ? 1 : 0);
         return 0;

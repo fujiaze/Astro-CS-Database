@@ -12,15 +12,20 @@
 //
 // 核心算法:
 // - 球面向量 (Vec3) 与基本运算 (cross/dot/normalize)
-// - 球面多边形面积 (Girard 定理: 面积 = Σ内角 - (n-2)π)
+// - 球面多边形面积: fan triangulation + Van Oosterom & Strackee (1983) 有向立体角
+//   (实现与取代 Girard 的理由见 spherical_overlap.cpp 顶部的根因与修复段)
 // - 球面多边形裁剪: Sutherland-Hodgman 逐边裁剪在球面上的推广
 //   (大圆弧半空间裁剪, 法向量定义保留侧)。S&H 1974 原文只处理平面多边形与
 //   平面窗口(摘要逐字: "plane-faced volumes"), 球面形式是本模块的推广, 不是原文内容
-// - HEALPix 像素球面边界获取 (4 个角顶点)
+// - HEALPix 像素球面边界获取 (nside>=256 走固定 4 角; 低 nside 走自适应细分,
+//   边数可达 4·2^12, 收敛判据见 spherical_overlap.cpp 的 HP_ADAPTIVE_MAX_DEPTH)
 // - 源像素 drop 与目标 HEALPix 像素的球面重叠面积
 // - 候选像素查询 (基于 drop 多边形球面包围盒, 不限于 1-ring)
 //
-// 精度: float64 内部精度, 球面面积误差 < 1e-6 球面度
+// 精度: 内部运算一律 double 提升 (输入/输出按 Scalar 存储)。面积例程按 drop
+//   角半径分档: θ<1e-3 rad 走切平面 2D 面积 (规避 VOS 三重积相消), 否则走 VOS;
+//   两条例程的偏差、适用性与分档阈值推导见 spherical_overlap.cpp 的
+//   planar_polygon_area_n 注释与 polygon_area_consistent 定义。
 //
 // 参考:
 // - Gorski et al. 2005, HEALPix Framework
@@ -32,7 +37,6 @@
 #include "healpix_core.h"
 #include <array>
 #include <cstdint>
-#include <deque>
 #include <unordered_map>
 #include <vector>
 
@@ -74,13 +78,22 @@ template <typename T>
 T angular_distance(const Vec3T<T>& a, const Vec3T<T>& b);
 
 // ============================================================================
-// 球面多边形面积 (Girard 定理 / 球面 excess 公式)
+// 球面多边形面积 (Van Oosterom & Strackee 1983 有向立体角, fan triangulation)
 //
-// 公式: Area = Σ内角 - (n-2)π
+// 公式: 顶点 V_0 扇出, 每个三角形 Area = 2·atan2(det, 1 + a·b + b·c + c·a),
+//       det = a·(b×c) 含符号, 逐个累加后取绝对值。
+//       Girard 定理 (Σ内角 − (n−2)π) 在极区大像素上 excess ≈ 0 相消,
+//       故不作为本模块的面积例程；取代理由与逐条证据见 spherical_overlap.cpp
+//       球面多边形面积段。
 // 输入: vertices 按顺序排列的球面顶点 (单位向量, 逆时针或顺时针)
 // 输出: 球面面积 (球面度, steradian). 自动取绝对值, 不依赖顶点方向.
+// 返回 NAN: 多边形不包含于开半球 (质心退化, 或存在顶点到质心角距 ≥ π/2) ——
+//       「不支持」的唯一表示, 调用方必须显式拦 (见 drizzle_engine.cpp 的
+//       std::isfinite 检查); 0 只在 n < 3 时返回。
 //
-// 精度: float64, 已知球面多边形面积误差 < 1e-10
+// 精度: 本例程对角跨度 ≳1e-3 rad 的多边形是解析精确的; 对更小的多边形,
+//   det 是 ~θ³ 项相消到 ~θ⁵ 的差, 相对噪声可达 1e-4 量级 —— 这正是
+//   polygon_area_consistent / planar_polygon_area_n 分档存在的原因。
 // ============================================================================
 template <typename T>
 T spherical_polygon_area(const std::vector<Vec3T<T>>& vertices);
@@ -245,7 +258,8 @@ std::vector<Vec3T<T>> build_drop_polygon_adaptive(
 // 1. 获取目标 HEALPix 像素 4 个角顶点 (单位向量)
 // 2. 构造 4 个裁剪平面 (HEALPix 边的大圆法向量, 指向像素内部)
 // 3. 用球面 Sutherland-Hodgman 裁剪 drop 多边形
-// 4. 用 Girard 定理计算交集面积
+// 4. 用 Van Oosterom & Strackee 有向立体角求交集面积 (角跨度 < 1e-3 rad 的
+//    微小多边形改走切平面 2D 面积, 见 polygon_area_consistent)
 // ============================================================================
 template <typename T>
 T compute_overlap_area(
@@ -359,8 +373,10 @@ private:
     std::unordered_map<std::uint64_t, Entry> map_;
 };
 
-// 使用缓存的目标重叠面积（科学语义与 compute_overlap_area_g_ctx 等价；
-// nside<256 低 NSIDE 路径退回逐调用构建并写入缓存）。
+// 使用缓存的目标重叠面积（科学语义与 compute_overlap_area_g_ctx 等价）。
+// nside >= 256 走缓存路径（边界固定 4 角，可缓存）；nside < 256 直接委托
+// compute_overlap_area_g_ctx，**不读写 cache**（自适应细分边界顶点可变，
+// 缓存键只有 ipix 不足以保证等价）。
 template <typename Scalar>
 Scalar compute_overlap_area_g_ctx_cached(
     const DropGeometryT<Scalar>& g, const healpix::HealpixCore& hp,
@@ -383,7 +399,8 @@ long long profile_overlap_path_counts(long long* fully, long long* dropin,
 //
 // 实现:
 // 1. 计算 drop 多边形的球面包围圆 (中心向量 + 最大角半径)
-// 2. 加上 1 个 HEALPix 像素分辨率作为缓冲 (避免边缘漏选)
+// 2. 加上 3.0 × HEALPix 像素分辨率作为保守缓冲 (避免边缘漏选;
+//    系数由 DRIZZLE.md §5「缓冲三层」冻结, 9003 例零漏选门承载)
 // 3. 用 hp.queryDisc 查询圆盘内所有像素
 // 4. 高 NSIDE + 大源像素时, 候选数可远 > 48
 // ============================================================================
@@ -394,8 +411,10 @@ void query_candidate_pixels(
     std::vector<uint64_t>& candidates);
 
 // NESTED 直接候选枚举 (替代 queryDisc BFS)
-// 保守覆盖: drop 包围圆 + 1.2×hp_res 像素外接半径 (零漏选, 允许少量 false positives)
-// 与 query_candidate_pixels 语义一致, 供 pixfrac=1 共享顶点路径使用
+// 保守覆盖: drop 包围圆 + HP_CIRCUMRADIUS_FACTOR×hp_res 像素外接半径
+// (赤道带再乘 1.15 面内畸变系数; 极冠/跨 face 回退 query_candidate_pixels)
+// 零漏选, 允许少量 false positives; 与 query_candidate_pixels 语义一致,
+// 供 pixfrac=1 共享顶点路径使用
 template <typename T>
 void query_candidate_pixels_fast(
     const std::vector<Vec3T<T>>& drop_corners,
