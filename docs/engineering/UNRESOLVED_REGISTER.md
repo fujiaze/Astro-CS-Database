@@ -1292,3 +1292,60 @@ gain 轴分支 → `snr_estimator.h:349` 出参只取 {1,2,3}。
 `lib/infrastructure/aio/tests/p1hips/p1hips_tests_properties.cpp:17` 的注释写
 `variance_p=sumVarNum/D_p²` 并自称「科学层权威」，与 `DRIZZLE.md:218` 的警告矛盾。
 该文件在 `lib/infrastructure/`（aio 分片），车道**只登记未改**。
+
+---
+
+## 36. G08-07 分片二（drizzle + calibration）报回：S-H 固定容量栈溢出被当作「无交叠」（前台独立核实，本片最重）
+
+**归属**：生产实现 `lib/algorithms/drizzle/healpix_drizzle/spherical_overlap.cpp`　**状态**：待修（改返回语义属接口变更）
+
+### 36.1 前台核实的事实
+
+`sutherland_hodgman_spherical_fixed`（`:360-400`）是**固定容量栈**实现（内环无堆分配），
+容量 16：
+
+    if (n_out >= 16) return 0;      // 栈满 ⇒ 返回 0
+    ...
+    dst[n_out++] = ...
+
+调用方 `:1333` 拿到 `ni` 后直接进面积计算：
+
+    int ni = sutherland_hodgman_spherical_fixed(..., intersection, 16);
+    if (g.max_angle < 1e-3) total_overlap = planar_polygon_area_n(intersection, ni, &g.center_d);
+    else                       total_overlap = spherical_polygon_area_n<double>(intersection, ni);
+
+⇒ **`ni = 0` 同时表示两件不同的事**：① 栈满溢出；② 真的无交叠（顶点不足 3）。调用方**无法区分**，
+两者都算出面积 0。⇒ **真实交叠被静默变成零通量贡献**，无计数、无日志、无错误码。
+
+### 36.2 这条路径是可达的（不是「生产不可达」）
+
+`:1345` 的注释逐字写着：
+
+    // 低 NSIDE (细分边界, subject 可 >16 顶点): 保持三角形扇
+
+⇒ **代码自己承认** 细分边界路径下 subject 顶点数可 >16，固定 16 的栈**已知不足**。
+
+### 36.3 与其它发现的形态对照
+
+与 GATE-3、`noise_model.cpp:1339-1350` 同属一类：**失败被算成成功、且失败态与正常态不可区分**。
+本条更隐蔽，因为它连日志都没有 —— 而规范 06 §2 明禁「静默降级」，§2 错误处理要求
+「每个失败产生稳定错误码」。
+
+### 36.4 待裁
+
+改法有两条：① 返回值改为带状态（`std::optional` / 出参 + bool），溢出显式失败或降级并计数；
+② 加大栈容量到覆盖细分边界的上界并加断言。**两者都改接口或性能特征**，属口径变更，
+且会改变「真无交叠」与「溢出」的读数，列待裁。
+
+### 36.5 前台对派单前提的更正（车道驳回前台，采纳）
+
+前台派单时称「代码只有 `saturation_adu=65535` 的饱和硬门」，该说法源自 G08-04 车道对 P1 单元的
+报回，**车道核实后驳回**：`lib/algorithms/calibration/**` 内**零饱和门、零电子数信息** ——
+15 键词表里没有 gain / read_noise / saturation，`ac_calibrate_frame` 的签名里也没有 gain。
+那四处 `saturation_adu=65535` 在 `实验/` 的模拟器里，不在 `lib/`。
+
+电子数只在 `calibration_covariance.*` 里可算（`n_e = r_adu × gain`），但那是另一条链。
+⇒ **阈值无物理依据、无标定来源**，车道未拍数，列待裁。
+
+**教训**：前台把「实验单元模拟器里的门」当成了「生产库里的门」——这两者不是一回事，
+后续派单须先问车道核实，不要直接转述上游车道的报回。
