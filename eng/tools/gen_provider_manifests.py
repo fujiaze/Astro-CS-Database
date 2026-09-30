@@ -155,7 +155,7 @@ def git_commit(repo):
 #                消费者 = lib/infrastructure/pipeline/module_loader/secure_loader；
 #                交付名 providers/astrocs_cpuprov_<id>.so + providers/providers.manifest.json。
 # 两族清单互不混装 (backend 清单里出现 provider 入口 = 预检必然拒绝的游离项) ⇒
-# eng/ci/check_provider_manifests.py 逐条校验入口符号与家族归属。
+# 清单的入口符号与家族归属由门禁在重建时校验。
 FAMILIES = {
     "backend": {
         "kind": "astrocs_backends_manifest",

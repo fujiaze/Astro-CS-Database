@@ -12,6 +12,7 @@
   k_spurious(s1->s2) = 10^( -0.4*(dmag(s2)-dmag(s1)) )
 """
 import os, sys, time
+from pathlib import Path
 import numpy as np
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -19,7 +20,7 @@ from f_instr_lib import (NoiseModel, render_psf, aperture_curve, encircled_energ
                          est_box5, est_iso, est_kron, est_psf_nlsq, est_psf_optimal,
                          robust_loc_scale, save_json, moffat_profile, robust_sky_stats)
 
-ROOT = "/workspace/Astro CS Database"
+ROOT = str(Path(__file__).resolve().parents[5])
 OUT = os.path.join(ROOT, "run/reverse_verify/f_instr")
 BETA = 3.5
 SEEINGS = [1.5, 2.0, 2.5, 3.0, 3.5, 4.0, 5.0]

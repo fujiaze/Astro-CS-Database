@@ -26,12 +26,17 @@ Run:
      --out ../../../../run/reverse_verify/snr_design/audit/audit_exp3_physical.json
 """
 import argparse, glob, json, os, sys, time
+from pathlib import Path
 import numpy as np
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import physnoise as pn
 
-NORM = "../../../../../../run/RELEASE-02/L4-rebuild/norm/t2_m2_red"
+# 仓库根从本文件位置推导（…/code/reverse_verify/snr_design/audit/ → 上溯 6 级），
+# 不依赖调用者的 CWD；真实标定帧树可用 P2_NORM_DIR 覆盖。
+_ROOT = Path(__file__).resolve().parents[6]
+_NORM = os.environ.get("P2_NORM_DIR") or str(_ROOT / "run/RELEASE-02/L4-rebuild/norm")
+NORM = os.path.join(_NORM, "t2_m2_red")
 CUT = (1024, 3072, 1024, 3072)      # central 2048^2 of the 4096^2 real frames
 PB = 32                             # patch size, same as EXP-2 / EXP-3
 STRIDES = (2, 4, 8, 16, 32)         # 64 .. 1024 px control pitch

@@ -1,7 +1,7 @@
 # P2 跨帧绝对 SNR · 实验报告（REPORT_experiment）
 
 **单元**：实验/absolute-snr（SCI-B，科学链创新点 P2）
-**事实源**：独立审计/实验重做/总编对账/分歧台账.md、五单元成稿简报.md；历史正本（存档 docs/LEGACY_README_SCI-B_v1.md、docs/LEGACY_REPORT_paper_v1.md）仍成立部分已吸收，失效部分按台账订正并注明。
+**事实源**：独立审计/实验重做/总编对账/分歧台账.md、五单元成稿简报.md。整理前的历史正本不再随单元保存；其仍成立部分已吸收进本报告与 `REPORT_paper.md`，失效部分按台账订正并逐条注明（明细见 `docs/LEDGER_CORRECTIONS_P2.md`）。
 **正式论文**：REPORT_paper.md（本报告为其实验证据底稿）。
 
 ---
@@ -64,8 +64,28 @@
 6. **控制点方差**：N=5 纯公式高估 9.53%（方向词订正，D-07）；端到端 ±1.5%；生产链裁剪臂低估 1.3–3.2%；偶 N 效应 +5.0%@N=20 [实验:code/audit/supplement_control_variance/*]。
 7. **接口传递**：1.5% 控制点精度穿过 P4（首轮 IDW 代理算子通胀 1.06×；冻结默认算子在真实控制网格上 T ≈ 0.87 衰减、disc 0.1206，见 REPORT_paper §4.9）；SNR_comb²=ΣSNR_k²（2.2×10⁻¹⁶）；对角近似宣称方差仅为实际 32.5% [实验:code/audit/route3/exp04_refmag_chain.py][实验:code/b4_integration.py][实验:code/b5_phase3_transfer.py]。
 8. **适用域**：地面稀疏胜帧级（0.0413–0.0825 vs 0.0506–0.1691 dex）、HST 帧级胜（Δ*≈16 px）、稠密 64 MiB/帧超预算 64 倍（诊断地位）[实验:code/b3_domain_map.py]。
+9. **逐像素绝对 SNR 重建四臂**（解析臂 `D_core`，n=1463，两 seed 同向；seed 20260921 与换 seed 20260922 复跑一致）[实验:code/b7_absolute_snr_recon.py][实验:results/b7_absolute_snr_recon.json]：
+   模型 `I = S_src + S_sky + N_local`，`sigma_slow² = Var[N_local] + S_sky/g`，`sigma_w² = sigma_slow² + S_src/g`，**分子只取源**。
+   - `T_full`（本单元推导出的模型）：中位 `|SNR/SNR_true − 1|` = **0.0054**、p95 = **0.0296** ⇒ 复原真值；方差面比值中位 1.0031。
+   - `T_slow`（漏源项）：中位比值 **1.657**，解析预言 1.645（对拍差 0.70%）⇒ 偏高。
+   - `T_naive_sky`（天光双计）：中位比值 **0.874**，解析预言 0.871（对拍差 0.31%）⇒ 偏低。
+   - `T_traditional`（字面「天光进分子」）：**1.314** ⇒ 偏高（全域 1.4e5 倍，与传统口径失真同源）。
+   - `T_null`（真值无源）：源项 `median(|S_src_hat|/sigma_slow)` = **0**、`T_full ≡ T_slow`（相对差 0.0）；但 `T_naive_sky` **不收敛**（比值 1.36802，与预言相对差 1.1e-16）。有源帧上同一判据 37.31 ≫ 0.05 ⇒ 归零判据非退化。
+   - 边界：盲检测消融臂检测完备性 0.43、端到端 `D_core` 中位相对误差 **0.376**（判红），差距全在**分子侧**（检测 + PSF 尺度）而非方差模型；B 臂（真实 HST M16 星云结构）源项只捕获 **14.2%** ⇒「源是稀疏的」先验在延展发射上失效；M42 臂稳健二阶差分 σ 与生产方差面比值 **0.986**，均值版被星云结构污染 8.64 倍，逐源 SNR 与通量 Spearman ρ = 0.9969，**增益不可自估**（lever_var = 0.024 < 0.15）。
 
-## 5 按分歧台账对既有内容的订正
+## 5 可判定结论
+
+按「成立 / 不成立 / 证据不足」三值对每条假说给出判定；逐条证据见 §1 表格与 §4。
+
+| 判定 | 条目 |
+|---|---|
+| **成立** | H1、H2、H4/H5、H6、H8、H9/H10、H11、H12、H13；A1、A2、A3、A4、A5、A6、A7、A8、A9；§4.9 四臂（`T_full`/`T_slow`/`T_naive_sky`/`T_traditional`/`T_null`）；§4.9 的 m_ref 精度约定 |
+| **有条件成立** | H3：生产口径与 Horne 口径一致，但「经验总 σ + RN 项」臂双计读噪（发现→修复闭环） |
+| **不成立（已证伪并订正）** | ① 「seed 无关闭式」标签——双计偏差存在闭式且逐位复现（2.35×10⁻¹⁴）；② 「方向恒偏绿」符号——自洽口径截断**偏低**；③ control_variance N=5「低估 8.5%」方向词——纯公式口径**高估 9.53%**；④ 「1.06×/0.2287 是重建算子通胀」——那是 IDW 代理算子自身性质，冻结默认算子实为**衰减**（T ≈ 0.87）；⑤ 「帧级未裁剪 MAD 高 31.27% ⇒ 帧级 SNR 偏低 23.8%」——归因错误，两条路径不同源 |
+| **证伪的任务书前提** | ① 「`T_null` 三臂必须收敛」错：`T_full` 与 `T_slow` 恒等、`T_naive_sky` 按预言发散 1.368 倍，照原话写归零判据在两臂恒真、一臂恒假，**不携带信息**，必须逐臂写；② 「本地噪声与天光散粒在空间上缓变」按字面为假——只有**方差图**缓变（散布 2.0%），噪声实现是白的（lag-1 自相关 −0.4985 ≈ −1/2）；③ 「`T_naive_sky` = 把天光加进分子」自相矛盾——按其公式（分子纯源）实测偏低 0.874、按字面（分子含天光）实测偏高 1.314，两个方向相反的变体被当成一个 |
+| **证据不足** | ① 稀疏控制点 sparse_snr_value：口径与 schema 已冻结、Phase2 消费面已接线并红绿验证，但 **Phase1 侧无产者与 HiPS 载体**，生产链当前不产出该层（见 `REPORT_paper.md` §6 的 P2-B2 条）；② 1.152 的标定登记出处待补登（数值已终裁，不影响结论）；③ k_corr 几何查表网格属 P3 交付件；④ 生产链被估量 y 的合同语义待裁决 |
+
+## 6 按分歧台账对既有内容的订正
 
 | 位置 | 原内容 | 订正 | 依据 |
 |---|---|---|---|
@@ -80,24 +100,50 @@
 | 掩膜 k=0.1 | 有文献倾向 | 项目约定，不注文献出处（负责人已批） | 已批事项 |
 | 权重处引用 | 无 | 反方差口径＋Aitken 1935（标注级）进入科学文档 | 已批事项 |
 
-## 6 复现命令
+## 7 复现命令
+
+### 7.1 公共前置步（合成数据物理链自检）
 
 ```bash
-# A. 单元主实验（seed 20260921，约 25–35 min，构建/测试串行加锁）
+bash 实验/shared/synthetic/run_selftests.sh
+```
+
+先证明合成器链本身可信（能红能绿），再让本单元跑真实验。**不得只调
+`noise_selftest.py`**：它只验独立重实现，对生产实现零判别力——生产面的门禁责任在
+`m16_scene --selftest` 与 `m16_sampling --selftest`。任一组件判红时退出码为 1，
+实验读数不得作为证据。
+
+### 7.2 本单元入口
+
+```bash
+# A. 单元主实验（seed 20260921；需构建与网络）
 bash 实验/absolute-snr/code/run_all.sh
 
-# B. 独立审计三路 + 补实验（seed 20260926 / 20260601+05，秒级 ×35）
+# B. 独立审计三路 + 补实验（seed 20260926 / 20260601+05）
 bash 实验/absolute-snr/code/audit/run_all.sh
-# 或分目录：
-for s in 实验/absolute-snr/code/audit/route1/*.py; do python3 "$s"; done
-for s in 实验/absolute-snr/code/audit/route2/*.py; do python3 "$s"; done
-for s in 实验/absolute-snr/code/audit/route3/*.py; do python3 "$s"; done
-for s in 实验/absolute-snr/code/audit/supplement_control_variance/*.py; do python3 "$s"; done
+
+# C. 帧级 SNR 与星点通量口径（解析/物理红线 + 生产盘点）
+bash 实验/absolute-snr/code/reverse_verify/frame_snr/run_all.sh
+
+# D. SNR 设计数值实验（exp1–exp5）
+bash 实验/absolute-snr/code/reverse_verify/snr_design/run_all.sh
+
+# E. SNR 设计审计复算（可从仓库根直接跑，无需切换工作目录）
+bash 实验/absolute-snr/code/reverse_verify/snr_design/audit/run_all_audit.sh
+
+# F. F-INSTR 星点通量口径（需真实标定帧产品树）
+bash 实验/absolute-snr/code/reverse_verify/f_instr/run_all.sh
 ```
+
+所有入口均从**仓库根**执行，脚本内部从自身位置推导仓库根，不依赖调用者的工作目录。
+需要真实标定帧产品树的入口（C 的 P13 项、D 的 exp2/exp3、E 的三项真实数据段、F 全部）
+用环境变量 `P2_NORM_DIR` 指定产品树，默认落点为
+`run/RELEASE-02/L4-rebuild/norm`，布局须为 `<norm>/<tile>/calibrated_*.fts`。
+缺少该产品树时相关项以明确诊断退出（码 2 或列明缺哪一项），不以 `IndexError` 形式失败。
 
 **seed 说明**：主实验 SEED_BASE=20260921（code/sci_b_common.py，无时间/环境随机源）；审计三路 20260926（写死于脚本）；补实验主 20260601、生产链臂 20260605、独立复核 20260602–04。两套 seed、两套实现互为独立复现。
 
-## 7 诚实边界
+## 8 诚实边界
 
 1. **1.152 标定登记出处**待补登（数值已终裁，不影响结论）。
 2. **m_ref=6.0** 为单位制锚点（冻结纪律），无一手文献锚。
@@ -107,4 +153,22 @@ for s in 实验/absolute-snr/code/audit/supplement_control_variance/*.py; do pyt
 6. **对 MC 真值的偏置数字**带 ±3 pp MC 噪声；臂比值 vs 闭式预言（≤1.25 pp）为低噪证据。
 7. **仿真坐标为声明量**；真实数据 hold-out 真值自带 0.0224 dex 噪声，RMSE 为扣除后上界且未触零。
 8. **文献降级项**：Serfling 1980 / Cramér 1946 §28.5 书目级（小节号存疑）；Moffat 1969 bibcode 级；Aitken 1935 标注级（批准引用）。详见 refs.md。
-9. **fail-closed 状态机**为规范转写自检，lib/ 实现侧无对应符号，不构成对实现的验证（历史正本 I2 降级维持）。
+9. **fail-closed 状态机**为规范转写自检，lib/ 实现侧无对应符号，不构成对实现的验证。
+10. **§4.9 四臂的适用域**：盲检测臂判红（检测完备性 0.43），差距在分子侧；B 臂在延展发射上「源稀疏」先验失效（源项捕获 14.2%）。四臂结论只在**检测完备且源确实稀疏**的域内成立，不得外推到延展发射或盲检测场景。
+11. **§4.9 的网格原点**：生产噪声模型控制点在 `(i+0.5)Δ`，与 `cell_center_v1` 差 0.5 px，生产重建算子正确 fail-closed；本实验显式声明 `grid_origin = 0.5` 使两者重合，未改生产代码。
+
+## 9 佐证来源
+
+本单元每条断言由三类证据腿支撑，正文以 `[文献]` / `[实验]` / `[推导]` 标注来源；文献台账见
+`refs.md`，论文参考文献见 `REPORT_paper.md` 文末。
+
+| 腿 | 内容 | 落点 |
+|---|---|---|
+| 文献腿 | 一手出处逐条核验（DOI / bibcode / arXiv + 核验方式），核验层级不足者如实标注，不冒充 VERIFIED | `refs.md` §A（VERIFIED 19 条）、§B（标注级 3 条）；`REPORT_paper.md` 参考文献 1–19 |
+| 实验腿 | 固定 seed 的可复跑脚本，产物落 `results/` 与 `code/audit/results/`，每个度量内置「真值无效应 ⇒ 度量归零/判红」负例，无恒真门 | `code/`（`b1`–`b7`、`exp01`–`exp06`、`audit/`、`reverse_verify/`）与 `results/` |
+| 推导腿 | 解析闭式与结构论证，独立于数值实验自洽 | `docs/DERIVATIONS_P2.md`；正文 `[推导]` 标注 |
+| 生产实现面 | 判据走生产 ABI 的同尺度入口，而非 Python 重实现 | `code/reverse_verify/frame_snr/`（T12/P12 直调 `snr_science.cpp`）、`code/audit/route3/exp11_frozen_operator_transfer.py`（只读编译生产 `SparseSnrReconstructor`） |
+| 外部对拍 | 与成熟天文软件的口径对拍（缺库时登记 UNAVAILABLE，不计失败） | `code/reverse_verify/frame_snr/crosscheck_photutils.py` |
+| 合成器链自检 | 实验读数可作为证据的前置条件：证明的是分布与口径正确，不是代码自洽 | `实验/shared/synthetic/run_selftests.sh`（见 §7.1） |
+
+被拒绝采信的文献主张与未决登记项分别见 `refs.md` §C 与 §D，不进入正文。

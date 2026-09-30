@@ -25,12 +25,16 @@ Run:
      --out ../../../../run/reverse_verify/snr_design/audit/audit_mosaic_shape.json
 """
 import argparse, glob, json, os, sys, time
+from pathlib import Path
 import numpy as np
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import physnoise as pn
 
-NORM = "../../../../../../run/RELEASE-02/L4-rebuild/norm"
+# 仓库根从本文件位置推导（…/code/reverse_verify/snr_design/audit/ → 上溯 6 级），
+# 不依赖调用者的 CWD；真实标定帧树可用 P2_NORM_DIR 覆盖。
+_ROOT = Path(__file__).resolve().parents[6]
+NORM = os.environ.get("P2_NORM_DIR") or str(_ROOT / "run/RELEASE-02/L4-rebuild/norm")
 PB = 32
 
 

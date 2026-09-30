@@ -188,6 +188,13 @@ v6_clause_registry_v1.json:2015–2024 内容实存（条款 FZ-AP1-GLS-QW-RTOL�
 
 **项目约定豁免**（文献腿 UNRESOLVED，登记为约定、不注文献出处）：quality_factor 0.1/0.5 及其比值口径（负责人已批豁免为项目约定；科学量是比值 0.1/0.5 与 share/absolute 口径差，不豁免）；γ<1e-10 与节点容差 1e-9 为数值卫生；Δ=64 为结构派生量。
 
+16. **M16 物理前向仿真腿的适用边界**：帧视场 12.8″×12.8″、Δ = 64 px，真方差跨幅由源项标度 α 在
+    75.8–2.3e4 之间扫描；本腿**不含** IDW 对照档、**不含** 相关长度敏感的任何定标（理由见 §4.8 末段），
+    也**不含** M16 三波段同天区（只跑 F657N）与不同指向/滚转角的多帧几何。
+17. **已声明的有效域判据（真方差动态范围 1.78–235）被本腿否证**：窗口内稠密口径照样失效。
+    该窗口的成立范围收窄为「解析/光滑合成场」；真实结构场的门是亚 Δ 空间功率（§4.8）。
+18. **H4 亮度携带机制在 M16 场上不成立**（帧级口径丢源项反而更好），归为分歧与适用域收窄，不改 H4 结论。
+
 ## 参考文献
 
 1. D. Shepard. A two-dimensional interpolation function for irregularly-spaced data. *Proc. 1968 23rd ACM National Conference*, 517–524, 1968. DOI 10.1145/800186.810616.（核验：Crossref + ACM DL 条目页，路线1/3 逐字；按分歧台账 A-P4-05 订正旧稿出处）
@@ -203,5 +210,5 @@ v6_clause_registry_v1.json:2015–2024 内容实存（条款 FZ-AP1-GLS-QW-RTOL�
 11. C. de Boor. *A Practical Guide to Splines*, Revised ed., Springer, 2001.（标注级：教科书未在线逐字核验；节点复现/C² 性质由实验独立证实，不依赖本引用）
 12. G. Akinshin. *Finite-sample bias-correction factors for the median absolute deviation based on the Harrell–Davis quantile estimator and its trimmed modification*. arXiv:2207.12005, 2022.（核验：arXiv abs 页题名逐字[2026-09 本单元复核]，旧稿题名 "Finite-sample bias correction for the Mean Absolute Deviation" 系转述失真，按 P4-m12 逐字订正；MAD 有限样本偏差语境）
 13. P. Astier & P. Antilogus. The shape of the photon transfer curve of area array CCDs. arXiv:1905.08677.（核验：arXiv abs；PTC 斜率语境）
-15. I. Trujillo, J. A. L. Aguerri, J. Cepa & C. M. Gutiérrez. The effects of seeing on Sérsic profiles – II. The Moffat PSF. *MNRAS* 328, 977–985, 2001. DOI 10.1046/j.1365-8711.2001.04937.x, arXiv:astro-ph/0109067.（核验：Crossref 题名/卷/页逐字段 + arXiv abs 页 journal-ref；**正文 Eq.(1) 逐字**："PSF(r) = (β−1)/(πα²)[1+(r/α)²]^{−β}, with the full width at half maximum, FWHM = 2α√(2^{1/β}−1)"——Moffat 轮廓的 α↔FWHM 关系即为本单元 §4.6 σ 约定讨论的一手文献腿；该文只给 α，未定义 σ）
 14. P. J. Rousseeuw & C. Croux. Alternatives to the median absolute deviation. *JASA* 88(424), 1273–1283, 1993. DOI 10.1080/01621459.1993.10476408.（核验：Crossref 元数据；仅作 MAD 效率语境，数值判据以实验闭环为准）
+15. I. Trujillo, J. A. L. Aguerri, J. Cepa & C. M. Gutiérrez. The effects of seeing on Sérsic profiles – II. The Moffat PSF. *MNRAS* 328, 977–985, 2001. DOI 10.1046/j.1365-8711.2001.04937.x, arXiv:astro-ph/0109067.（核验：Crossref 题名/卷/页逐字段 + arXiv abs 页 journal-ref；**正文 Eq.(1) 逐字**："PSF(r) = (β−1)/(πα²)[1+(r/α)²]^{−β}, with the full width at half maximum, FWHM = 2α√(2^{1/β}−1)"——Moffat 轮廓的 α↔FWHM 关系即为本单元 §4.6 σ 约定讨论的一手文献腿；该文只给 α，未定义 σ）

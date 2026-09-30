@@ -5,7 +5,7 @@
 ## 职责边界
 
 - 放：测试元数据 JSON Schema 校验、test_id 唯一性与 module 标签选择、期望来源审计（生产符号不得生成期望）、故障注入自检。
-- 不放：测试用例本体（在 `eng/tests/`）、检查项注册（在 `eng/ci/checks.json`）、测试元数据规范正文（在 `eng/tests/testkit/`）。
+- 不放：测试用例本体（在 `eng/tests/`）、检查项注册（在门禁注册面）、测试元数据规范正文（在 `eng/tests/testkit/`）。
 
 ## 内容
 
@@ -14,5 +14,5 @@
 
 ## 上游
 
-- 注册于 `eng/ci/checks.json`：`CHK-UNIT` 的步骤 `TESTKIT-LIST`（`python3 eng/tools/testkit/check_testkit.py --list`）。
+- 由门禁在重建时注册为测试登记项（`python3 eng/tools/testkit/check_testkit.py --list`）。
 - 检查项条目见 `docs/engineering/01_CHECKS.md`，门禁分级见 `docs/engineering/03_GATES.md`。
