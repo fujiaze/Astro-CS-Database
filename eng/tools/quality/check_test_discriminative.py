@@ -105,13 +105,29 @@ def strip_cpp_comments(text):
 
 # ── Python AST 面 ────────────────────────────────────────────────────────────
 def _is_assert_call(node):
+    """被调名是否算「判别力断言」。
+
+    房规（FINAL-07 第4轮 `r4-lib-tautology` 独立复算，lib 侧实测 24 条 no_assertion 全是假阳）：
+    lib/ 的测试套件不写 `assert*`，写 `check(cond,msg)` / `_assert(cond,msg)`，
+    另有 numpy 风格的 `assert_allclose` / `assert_array_equal`。
+    **分类依据是「返回值是否最终影响退出码」，不是「有没有计数器」** ——
+    两种形态都闭合到 `sys.exit`：
+      A  `test_pipeline_blocks.py:50-58` -> `:533 return 0 if FAIL == 0 else 1`
+      B  `acceptance_drizzle.py:71-74`（只 print + return cond）-> `:344` 收进 results
+         -> `:349-352` 汇总 -> `:358 return 0 if failed == 0 else 1`
+    「只 print 不计数」不等于「失败不红」—— 读函数体不足以定性，**必须读到退出码**。
+    """
     if not isinstance(node, ast.Call):
         return False
     f = node.func
+    # `pytest.raises(...)` / `numpy.testing.assert_*` 也是判别力断言。
     if isinstance(f, ast.Attribute):
-        return f.attr.startswith("assert") or f.attr == "fail"
+        # f.attr: assertXxx / fail / check / _assert / raises / assert_allclose …
+        if f.attr.startswith("assert") or f.attr in ("fail", "check", "_assert", "raises"):
+            return True
+        return False
     if isinstance(f, ast.Name):
-        return f.id.startswith("assert") or f.id == "fail"
+        return f.id.startswith("assert") or f.id in ("fail", "check", "_assert")
     return False
 
 
