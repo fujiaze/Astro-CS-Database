@@ -2141,3 +2141,74 @@ IO_AND_ATOMICITY}.md`（迁移后已删）、registry 已迁 `docs/modules/regis
 3. `dispatcher.cpp:476` 的硬编码 16 与 CONCURRENCY_STANDARD 的冲突如何裁定？
 4. `dispatcher.cpp:1121` 的成本换算错误是否影响已登记的 **8.5 倍 profile 漂移**
    （§41.5）—— 两者可能同源，建议合并裁。
+
+---
+
+## 48. P-8（**本轮最重**）· ISA 选中的动态库**从未被派发** —— 整套机制只做到「选+装+打印」
+
+**归属**：ISA 动态库 → CLI → 管线的接缝　**状态**：**阻断 G08-08 验收**
+
+### 48.1 前台独立核实的代码
+
+`lib/infrastructure/cli/commands.cpp`：
+
+    const int rrc = acsd::cli::run_pipeline(
+        {phase.back() - '0'}, cfg_text, budget, &fail_reason, nullptr, mb.limit_bytes,
+        acsd::core::memory_budget_source_name(mb.source), mb.available_bytes, mb.percent);
+
+⇒ **`run_pipeline` 的实参表里没有 provider / backend_id / 任何 ISA 选择入口。**
+
+而 `backend_sel` 在 1061 行之后**仅剩两处消费**：
+
+| 位置 | 用途 |
+|---|---|
+| `:1056` | `fprintf(stderr, …, backend_sel.backend_id, backend_sel.provider, …)` —— **打印** |
+| `:1376` 附近的 `emit_backend_event` | 上报事件 —— **记录** |
+
+⇒ **选择结果没有进入执行路径**。科学 kernel 实际仍跑基线核。
+
+### 48.2 与规范 07 §2 的对照
+
+> 运行时检测 CPU 能力，结合 benchmark 结果选取对应指令集动态库**加载**；
+> 不支持或缺库时回退基线，指令集核与基线数学等价。
+
+现状三段都有、但**互不相连**：
+
+| 规范要求的环节 | 现状 |
+|---|---|
+| 检测 CPU 能力 | ✅ 有（`cpu_features.h` + `required_features_bits`） |
+| 结合 benchmark 选取 | ✅ 有（画像 + `cpu_routing.cpp`） |
+| **加载**对应指令集库 | ✅ 有（`backend_loader.cpp` 真实 `LoadLibrary`/`dlopen`） |
+| **让计算核用上它** | ❌ **无接缝** —— 选择结果止于 stderr 与事件 |
+
+⇒ **机制三段齐备但缺最后一段接缝**，等价于「装上了插头但没插进插座」。
+
+这与 §46（A1 授权强度倒挂）是**互补的两半**：
+- §46 是「授权」侧没有强制点（选错了也没人管）
+- 本条是「派发」侧根本没有通路（选对了也用不上）
+
+⇒ **两条都不修，ISA 动态库这一整节规范是不落地的。**
+
+### 48.3 与 P-9 的关系（同一处设计缺口的两面）
+
+**P-9**：逐 kernel 路由在 `commands.cpp:332-346` 被用 rank 取 max 压成**进程级单一 provider**
+⇒ 部分 kernel 走 avx512 时，上报的是高报。
+
+⇒ 即便补上派发接缝，**进程级单值**仍会把部分 kernel 派给它们并不支持的指令集
+⇒ 派发接缝与逐 kernel 路由**必须一并设计**，否则前者一补就可能引入 SIGILL。
+
+⚠ 与「shadow ISA」问题耦合：`acr/backends/cpu/isa/` 四文件全用 `#if defined(__GNUC__)`，
+**MSVC 上静默退化为标量**（§41.7）。
+
+### 48.4 待裁
+
+补派发接缝涉及**改 `run_pipeline` 的公开签名**并把逐 kernel 路由贯穿到各计算核
+⇒ 属接口变更且面大。前台**不擅自改**，列为 G08-08 验收的阻断项。
+
+### 48.5 一条同批的实质缺陷（车道查、前台未单独核实）
+
+**P-6（cgroup 路径解析）**：`lib/infrastructure/aio/src/aio_sysinfo.cpp:71-74` 用**挂载根**
+`/sys/fs/cgroup/…` 而非**本进程 cgroup 路径** ⇒ 嵌套容器下若 `memory.max = "max"`，
+与挂载根取交集**静默不发生** ⇒ **内存预算大幅高估**。
+车道核实 Python 工具 `eng/tools/**/resource_probe.py:199-243` **做对了**
+⇒ 两侧算法不一致，可作对照修。
