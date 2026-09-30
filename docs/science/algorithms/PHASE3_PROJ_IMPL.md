@@ -508,9 +508,13 @@ eng/tests/backend/test_p1002_gaps.py 承载（独立解析解，非生产代码
 - 「LC」= LONPOLE 取 Paper II 标准默认：`δ0 ≥ θ0 ⇒ 0°，否则 180°`；实现等价
   形式见 §15.2。八投影全部落在 Paper II 标准集合内（astropy/WCSLIB 8/8 可构造，
   R-1 §2.4）。
-- max_fov_deg 为 registry **声明字段**（DESIGN §6.3「每种声明适用域」），非 make
-  硬门——FOV 判定属会话层合同（TAN alpha 的 FOV≤20° 强制点在 SCI §4/§9a-12），
-  投影域本身由四角守卫 + 投影域界（§15.4）承载。口径 = **直径**（球面上离参考点的
+- max_fov_deg 为 registry **声明字段**（DESIGN §6.3「每种声明适用域」），**且是 make 期硬门**：
+  `lib/algorithms/projection/p3_wcs.cpp` 的适用性检查内有
+  `if (!(fov <= ap->max_fov_deg)) { … return P3_WCS_PARAM; }`（TAN 侧 `max_fov_deg = 20.0`，
+  同文件标注「SCI §9a-12 alpha 冻结, 禁放宽」）；超限即**拒 make**，不是会话层才判。
+  会话层（`lib/phase3_session/p3_export.*`）只是该 make 的调用方，不是 FOV 判定的所在层。
+  投影域本身另由四角守卫 + 投影域界（§15.4）承载（与 FOV 门是两道独立判据）。
+  口径 = **直径**（球面上离参考点的
   最大合法角距 ×2）：TAN 20°/SIN 60°/CAR 180°/AIT 180°；域界为整球者上限即
   `2×90° = 180°`（改前 AIT=360° 把整球角周长当成了视场直径；R-40/P-081，判据
   `p3_projection_registry_test.cpp` C5b 已锁值与惯例，负例内建）。
