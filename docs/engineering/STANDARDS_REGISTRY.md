@@ -177,7 +177,7 @@
 | 偏差 ID | 严重度 | 指针 | 处置归属 |
 |---|---|---|---|
 | DISP-DRZ-001 | 低 | docs/science/algorithms/DRIZZLE_GEOMETRY.md | P1-DRZ-IMPL（SIP 阶数注释与校验不一致） |
-| DISP-DRZ-002 | 低 | docs/science/algorithms/DRIZZLE_GEOMETRY.md | TRACKED（残留 = 源码注释 `spherical_overlap.h:15,77` / `spherical_overlap.cpp:11` 写「Girard 定理」，实现为 S-H 球面裁剪 + Van Oosterom & Strackee 扇形剖分；文档侧命名已与实现一致） |
+| DISP-DRZ-002 | 低 | docs/science/algorithms/DRIZZLE_GEOMETRY.md | TRACKED（残留 = 源码注释 `spherical_overlap.h` / `spherical_overlap.cpp` 写「Girard 定理」，实现为 S-H 球面裁剪 + Van Oosterom & Strackee 扇形剖分；文档侧命名已与实现一致） |
 | DISP-DRZ-003 | 中 | docs/science/algorithms/DRIZZLE_GEOMETRY.md | P1-DRZ-IMPL（pixfrac 双轨边界） |
 | DISP-DRZ-004 | **高** | docs/science/DRIZZLE.md；docs/science/algorithms/DRIZZLE_GEOMETRY.md；docs/engineering/NUMERIC_STANDARD.md | CLOSED：**唯一口径 = rule_id `NAN-SAMPLE-MASK-COVERAGE-NAN`**（正本 = `docs/engineering/data/DATA-002_PHASE_PRODUCT_EXCHANGE.md` §2a `invalid_handling`：样本级掩膜 + 重归一 + 覆盖级 NaN + 强制计数 `n_rejected_nonfinite`；`NUMERIC_STANDARD.md` §MUST 引用同一份文字）。**禁用**把值 NaN 经 `F_p` 传播（负例判据；实现锚见 `docs/science/algorithms/DRIZZLE_GEOMETRY.md` §5/§10） |
 | DISP-DRZ-005 | 中 | docs/science/algorithms/DRIZZLE_GEOMETRY.md | P1-DRZ-IMPL / P1-DRZ-INT（微小 drop 切平面真路径须守护，**禁用**删除该分支） |
@@ -264,7 +264,7 @@
 | DISP-HIPS-011 | hips | §4.4.1（all-sky map 与 MOC 关系） | 第 5 行 | TRACKED | P1-HIPS-IMPL |
 | DISP-HIPS-012 | hips | §6.3.1（客户端绘制所需的初始视场/像素尺度元数据） | 第 6 行 | TRACKED | P1-HIPS-IMPL |
 | DISP-DRZ-001 | drizzle | §2/§3（SIP 畸变场下的 drop 映射） | 第 6 行 | TRACKED | P1-DRZ-IMPL |
-| DISP-DRZ-002 | drizzle | §3（线性重建 w_jp = a_jp / A_drop 与面亮度语义） | 第 2 行 | TRACKED | 源码注释同步（`spherical_overlap.h:15,77` / `spherical_overlap.cpp:11`） |
+| DISP-DRZ-002 | drizzle | §3（线性重建 w_jp = a_jp / A_drop 与面亮度语义） | 第 2 行 | TRACKED | 源码注释同步（`spherical_overlap.h` / `spherical_overlap.cpp`） |
 | DISP-DRZ-009 | drizzle | §3（线性重建 w_jp = a_jp / A_drop 与面亮度语义） | 第 2 行 | CLOSED | —（口径 = drop 面积归一核 `w=a/A_drop` + 面亮度分母 `N_p=Σ_j w_jp·A_pixel,j`；见 §D.drizzle 偏差表 DISP-DRZ-009） |
 | DISP-DRZ-003 | drizzle | §2（drop 与 pixfrac 收缩因子） | 第 1 行 | TRACKED | P1-DRZ-IMPL |
 | DISP-DRZ-004 | drizzle | §3（方差/权重传播确定性） | 第 5 行 | CLOSED | —（口径 = 样本级掩膜，rule_id `NAN-SAMPLE-MASK-COVERAGE-NAN`；正本 = DATA-002 §2a `invalid_handling`） |

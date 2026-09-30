@@ -24,7 +24,7 @@
   - 标准 WCS（**直接计算生成**）、BUNIT（写端口单位 `UnitId::SURFACE_BRIGHTNESS`，落盘值 = `flux_sum / covered_area` = 面亮度，canonical 串 **`ADU/sr`**）、DATASUM/CHECKSUM；
     **BUNIT 语义**：主 HDU 的 `BUNIT` = 输入 HiPS `signal/properties#BUNIT` 声明的 canonical 串（canonical 值 `ADU/sr`）；缺声明时按 `docs/science/DATA_SEMANTICS.md` §31.2(b) 处理——`BUNIT = "ADU"` 要求 provenance 声明 `pixel_semantics = "surface_brightness"`；`VARIANCE`/`IVAR` 扩展 HDU 的 `BUNIT` = 主 HDU BUNIT 的平方 / 倒数（`FZ-P3-BUNIT-QUADRATIC`）。单位口径唯一权威 = `docs/science/DATA_SEMANTICS.md` §31.1a（单位定义）/ §31.2（BUNIT 语义）；
   - provenance：源 product/hash、软件完整 SHA、配置、投影、核、order、近似、生成时间。
-- **不确定度可得性（fail-closed，唯一出口）**：输入 HiPS 不含 variance/ivar 子产品（或权重非纯逆方差、发生 fallback 等 §30 规则项）时 → **不写** VARIANCE/IVAR 扩展 HDU（禁静默丢弃、禁用常量 0 冒充）+ manifest 写 `uncertainty_available=false` + diagnostics 标红计数；**该键不是失败态**，是 unavailable 显式登记模式。正本：`docs/science/DATA_SEMANTICS.md:2733-2739`（规则）与 `:2837-2839`（显式登记，禁占位/静默缺键/空输出冒充）。
+- **不确定度可得性（fail-closed，唯一出口）**：输入 HiPS 不含 variance/ivar 子产品（或权重非纯逆方差、发生 fallback 等 §30 规则项）时 → **不写** VARIANCE/IVAR 扩展 HDU（禁静默丢弃、禁用常量 0 冒充）+ manifest 写 `uncertainty_available=false` + diagnostics 标红计数；**该键不是失败态**，是 unavailable 显式登记模式。正本：`docs/science/DATA_SEMANTICS.md` 的「规则」条与「显式登记」条（禁占位/静默缺键/空输出冒充）。
 - 节点产物：`output_phase3.fits`、`p3_writer.json`（写侧自述）、`p3_verify.json`（独立复核面）；
 - 所有 HDU shape/WCS 对齐。
 - 参考：`docs/science/DATA_SEMANTICS.md` §27（DATA-P3-FITS：模块输入/输出数据合同正本）。

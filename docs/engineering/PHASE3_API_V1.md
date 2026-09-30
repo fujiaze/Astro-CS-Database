@@ -50,13 +50,13 @@ acs_status p3_session_destroy(acs_handle);
 
 - variance/ivar 子产品输入**不属拒绝项**（SCI-P3 §9a-10 / DATA-P3-UNC-001）：输入 HiPS 含
   variance/ivar 时必须显式消费传播，输出 `VARIANCE`/`IVAR` 扩展 HDU；两者皆无时显式
-  `unavailable`（禁静默）。实现锚：`lib/algorithms/resample/p3_resample.cpp:474`
-  （`p3_uncertainty_open` / `p3_uncertainty_propagate`）、`lib/phase3_session/p3_export.cpp:624-625`
-  （`VARIANCE` HDU 写出）。失败路径错误码（`p3_uncertainty_open`，`p3_resample.cpp:474-520`）：
-  参数 NULL → `P3_RS_PARAM`（:476）；properties 读取失败或 sampler 分配/HiPS 打开失败 →
-  `P3_RS_IO`（:495/:503/:508，fail-closed 不静默跳过）；properties 键集解析失败或 order 与
-  signal 覆盖面错位 → `P3_RS_PARAM`（:499-500，无 silent default）；variance/ivar 两者皆无 →
-  `P3_RS_OK` + `unavailable`（合法非错误，:518-519）。
+  `unavailable`（禁静默）。实现锚：`lib/algorithms/resample/p3_resample.cpp`
+  （`p3_uncertainty_open` / `p3_uncertainty_propagate`）、`lib/phase3_session/p3_export.cpp`
+  （`VARIANCE` HDU 写出）。失败路径错误码（`p3_uncertainty_open`，`p3_resample.cpp`）：
+  参数 NULL → `P3_RS_PARAM`（p3_resample.cpp）；properties 读取失败或 sampler 分配/HiPS 打开失败 →
+  `P3_RS_IO`（p3_resample.cpp 三处，fail-closed 不静默跳过）；properties 键集解析失败或 order 与
+  signal 覆盖面错位 → `P3_RS_PARAM`（p3_resample.cpp，无 silent default）；variance/ivar 两者皆无 →
+  `P3_RS_OK` + `unavailable`（合法非错误，p3_resample.cpp）。
 
 ## 5 逐条追溯
 
@@ -70,4 +70,4 @@ acs_status p3_session_destroy(acs_handle);
 
 ## 6 机器门
 
-eng/tests/api/test_p3_api.py: 生命周期五函数/request 十字段/拒绝清单与 SCI-P3 文本同源交叉核对/锚点齐。
+eng/tests/api/test_p3_api.py：生命周期五函数/request 十字段/拒绝清单与 SCI-P3 文本同源交叉核对/锚点齐。

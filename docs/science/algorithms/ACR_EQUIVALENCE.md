@@ -17,7 +17,7 @@ F3: 逐样本 ivar 权重（Phase2 按该天球像素对应帧集合现场算出
 F4: 容差: float32 max_abs ≤1e-6, float64 ≤1e-12; support/rejection exact
 ```
 
-来源: `acr_kernels.cpp:1-100` `stage2_common.cpp:378-391`
+来源: `lib/algorithms/coverage/src/acr_kernels.cpp` `lib/algorithms/coverage/src/stage2_common.cpp`
 
 ## 3 伪代码
 

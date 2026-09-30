@@ -17,7 +17,7 @@
 ## 1 上游 SCI 与输入输出
 
 - SCI-UPM-001（UPM 共享 SCI）：coverage union 天区 Ω 是 UPM 控制采样
-  （"控制点布置于整个 coverage union"，lib/algorithms/coverage/src/sampler.cpp:4）与联合
+  （"控制点布置于整个 coverage union"，`lib/algorithms/coverage/src/sampler.cpp`）与联合
   加性模型的范围前提；Ω 与逐帧 tile 覆盖数为几何量，不进入任何科学权重。
 - 三概念分离（本模块合同红线，登记为负向条款，见 §7）：`coverage` = 几何
   球面集合量（本模块唯一产物）；`support` = 逐像素覆盖支撑 [0,1]（样本级，
@@ -25,41 +25,40 @@
   reducer `max`，integrator 语义）；`validity` = 数据有效性标志（finite/
   accepted/排异接受掩码语义，SCI-INT-001 §5 valid(i)）。三者各自独立、各自具名，
   本模块不生产 support/validity，也不消费之（coverage.cpp 无任何 support/
-  accepted 输入，实测 inspect_frame :59-140 只读 properties 与 Moc.fits
+  accepted 输入，实测 inspect_frame（`lib/algorithms/coverage/src/coverage.cpp`）只读 properties 与 Moc.fits
   tile 列表）。
 - 输入: N 个 Phase1 单帧 HiPS 目录路径 `const char* const*`（signal 子目录
-  语义，`aio_hips_open(path, AIO_HIPS_RD_SIGNAL)`，:61；signal 子目录下
-  properties + Moc.fits，AIO 侧 aio_hips_reader.cpp:205/:141）。
-- 输出: `P2CoverageResult` POD（coverage.h:46-53）= 逐帧元信息
-  P2HipsInputInfo[N]（coverage.h:32-43）+ union MOC 叶级 cell 数组
-  P2MocCell[K]（coverage.h:27-29）+ target_order + status/error。
-- 下游消费: sampler（p2_sample_controls/:p2_sample_controls_cached，sampler.cpp:1138/:1138
-  （impl :463，消费 n_union_cells :632/union_cells[0] :658/逐 cell ipix
-  :702）、编排 session（lib/phase2_session/p2_session.cpp:119-148 coverage
-  阶段，两次调用 :125/:138，manifest 登记 n_union_cells/target_order
-  :145-147）、stage2 正式入口（lib/algorithms/coverage/tools/stage2.cpp:189-200）、registry descriptor（module_adapters.cpp:627-642）。
-- descriptor astrocs.phase2.coverage（module_adapters.cpp:627-642）为编排层
+  语义，`aio_hips_open(path, AIO_HIPS_RD_SIGNAL)`；signal 子目录下
+  properties + Moc.fits，AIO 侧 `lib/infrastructure/aio/src/hips/aio_hips_reader.cpp`）。
+- 输出: `P2CoverageResult` POD（`lib/algorithms/coverage/include/astro/phase2/coverage.h`）= 逐帧元信息
+  P2HipsInputInfo[N]（同头）+ union MOC 叶级 cell 数组
+  P2MocCell[K]（同头）+ target_order + status/error。
+- 下游消费: sampler（p2_sample_controls / p2_sample_controls_cached，impl 消费 `n_union_cells` / `union_cells[0]` / 逐 cell ipix，
+  `lib/algorithms/coverage/src/sampler.cpp`）、编排 session（`lib/phase2_session/p2_session.cpp` 的 coverage
+  阶段两次调用 + manifest 登记 n_union_cells/target_order）、stage2 正式入口
+  （`lib/algorithms/coverage/tools/stage2.cpp`）、registry descriptor（`lib/infrastructure/scheduler/src/module_adapters.cpp`）。
+- descriptor astrocs.phase2.coverage（`lib/infrastructure/scheduler/src/module_adapters.cpp`）为编排层
   词汇，端口 calibrated→coverage 坐标登记 PIXEL 与球面 MOC 实际语义不符，
   以本合同为准修订，P2-COV-INT 对齐；冻结依据唯一 = 本合同。
 
 ## 2 离散公式
 
-（锚=coverage.cpp 实测行号；公式与源码一一对应，正文按源码逐字照录）
+（锚=coverage.cpp 实测；公式与源码一一对应，正文按源码逐字照录）
 
-- properties 解析（static parse_props :20-45，文件作用域 static，非匿名 ns）: 逐行
-  `key=value`（首个 `=` 分割 :28-31），`#` 开头行跳过 :27，两端空白
-  trim（lambda :32-37）；重复键后值覆盖前值（`kv[k]=v` :38）。
-- 每帧叶级 tile 收集（inspect_frame :60-171，匿名 namespace :56）: `aio_hips_open`（:62，失败
-  → "aio_hips_open failed: %s" + AIO last_error :64-65）；
-  `aio_hips_get_properties` 8192 B 缓冲（:69-74）；
-  `hips_order=geti("hips_order",-1)`（:84，缺失/负→"missing hips_order"
-  :89-93）；tile_width 必须为 512（:85, :106-110，"unsupported
-  tile_width=%d"）；`hips_version` 缺失拒绝（:88, :111-115）；
-  `hips_frame` ∈ {equatorial, icrs}（:86, :116-121，"unsupported
+- properties 解析（static parse_props，文件作用域 static，非匿名 ns，均见 `lib/algorithms/coverage/src/coverage.cpp`）: 逐行
+  `key=value`（首个 `=` 分割），`#` 开头行跳过，两端空白
+  trim（lambda）；重复键后值覆盖前值（`kv[k]=v`）。
+- 每帧叶级 tile 收集（inspect_frame，匿名 namespace，同文件）: `aio_hips_open`（失败
+  → "aio_hips_open failed: %s" + AIO last_error）；
+  `aio_hips_get_properties` 8192 B 缓冲；
+  `hips_order=geti("hips_order",-1)`（缺失/负→"missing hips_order"）；
+  tile_width 必须为 512（"unsupported
+  tile_width=%d"）；`hips_version` 缺失拒绝；
+  `hips_frame` ∈ {equatorial, icrs}（"unsupported
   hips_frame=%s"）。
   **合法集的依据与适用域（正向约束）**：
   (i) `tile_width = 512` 是本仓**产品约定**（与本模块 writer/reader 及
-  `lib/algorithms/shared/healpix/healpix_core.h:40-48` 的 `tile_width = 2^shift`
+  `lib/algorithms/shared/healpix/healpix_core.h` 的 `tile_width = 2^shift`
   （shift=9）一致），**不是** IVOA HiPS 1.0 的强制值——IVOA HiPS 1.0 §4.4.1
   的 `hips_tile_width` 合法值是 2 的幂，允许其它 tile 宽。故本模块合法域的正确
   表述是「本产品线冻结 tile_width=512」；域外（如 256）判红属**产品约定拒绝**，
@@ -70,117 +69,114 @@
   （同一天球系、J2000 参考架），列为两个取值是**输入兼容性**需要，不是两个不同的
   坐标系；下游一律按 ICRS/J2000 消费。域外（galactic/ecliptic）判红属**未实现**，
   **表述口径 = 「未实现」**。
-- filter/passband 身份（inspect_frame :92-104, build :215-225）: `obs_filter`
-  **键缺失 → rc=1 "missing obs_filter property ..."**（:92-104，fail-closed）；
+- filter/passband 身份（inspect_frame 与 build 两段，同文件）: `obs_filter`
+  **键缺失 → rc=1 "missing obs_filter property ..."**（fail-closed）；
   键存在时（含空串）其值进入 `P2HipsInputInfo.filter_passband` 并在 build 层
   做跨帧**全等**比较（§2 filter 公式）；空串参与全等比较，键缺失在 inspect_frame
   层一律拒绝（DISP-COV-003）。
-- tile 编号方案（inspect_frame :126-133）: `hips_ordering` 存在且 ≠ "NESTED"
+- tile 编号方案（inspect_frame，同文件）: `hips_ordering` 存在且 ≠ "NESTED"
   → rc=1 "unsupported hips_ordering=%s (NESTED required)"（fail-closed）；本模块
   union 父聚合 `t>>2s` 与下游 NESTED 消费只在 NESTED 语义下成立。缺省键（AIO
   写侧恒写 NESTED）登记为空串。
 - 每帧最高叶 order: `max_leaf_order = hips_order`（P2HipsInputInfo 回填
-  :119，语义=该 HiPS signal 子目录 properties 声明的叶级 order）。
-- target_order（:194-196，逐帧 min :195-196）:
+  ，语义=该 HiPS signal 子目录 properties 声明的叶级 order）。
+- target_order（`lib/algorithms/coverage/src/coverage.cpp`，逐帧 min 同文件）:
   `target_order = min(f.max_leaf_order, f∈[0,N))`
-  （冻结语义：分辨率取最低输入 order，插值不产生新分辨率，coverage.h:8/:56 注释；全部
+  （冻结语义：分辨率取最低输入 order，插值不产生新分辨率，`lib/algorithms/coverage/include/astro/phase2/coverage.h` 注释；全部
   输入同 order 时即该 order）。
-- filter/passband 一致性（build :215-225）: 基准 = 首帧 `filter_passband`
-  （:215-218，无论空串与否）；后续帧 `filter ≠ filter_ref` →
-  "filter mismatch: %s vs %s" rc=1（:219-225）。**空串参与全等比较**，
+- filter/passband 一致性（build 见 `lib/algorithms/coverage/src/coverage.cpp`）: 基准 = 首帧 `filter_passband`
+  （无论空串与否）；后续帧 `filter ≠ filter_ref` →
+  "filter mismatch: %s vs %s" rc=1。**空串参与全等比较**，
   （键缺失已在 inspect_frame 层拒绝）。
-- 跨帧坐标系一致性（build :227-233）: `hips_frame` 必须逐帧相等；
+- 跨帧坐标系一致性（build，同文件）: `hips_frame` 必须逐帧相等；
   equatorial 与 icrs 混用 → "hips_frame mismatch: %s vs %s" rc=1（逐帧校验
   ∈{equatorial,icrs} 之外还须比较跨帧一致性）。
-- union MOC 父单元聚合（:204-214）:
-  对每帧叶级 tile t（hips_order = f.max_leaf_order，:209-210）与目标
-  order o=target_order，令 `s = f.max_leaf_order − o`（:207），
-  `cell(t) = t >> (2·s)`（:209 `ip >> (2 * shift)`，NESTED 父索引；2·s 为
-  z-order 二维象限移位粒度；s 在 :207 计算）。
+- union MOC 父单元聚合（`lib/algorithms/coverage/src/coverage.cpp`）:
+  对每帧叶级 tile t（hips_order = f.max_leaf_order）与目标
+  order o=target_order，令 `s = f.max_leaf_order − o`，
+  `cell(t) = t >> (2·s)`（实现 `ip >> (2 * shift)`，NESTED 父索引；2·s 为
+  z-order 二维象限移位粒度；s 在同处计算）。
   `Ω_cellset = ⋃_{f∈[0,N)} { t>>(2·s_f) : t ∈ MOC_f(hips_order_f) }`
-  （:204-211 逐帧 append）→ `std::sort`（:212）→ `std::unique` 原地去重
-  （:213-214）→ K=|Ω_cellset|（:218）。
-  输出 cell 的 order 字段统一=target_order（:221），ipix=去重后父索引
-  （:222）；n_inputs/target_order 回填 :216-217。
-  性质: Ω 允许不连通分量（coverage.h:9）；任意两输入重叠区当且仅当
+  （逐帧 append）→ `std::sort` → `std::unique` 原地去重
+  → K=|Ω_cellset|。
+  输出 cell 的 order 字段统一=target_order，ipix=去重后父索引；
+  n_inputs/target_order 同处回填。
+  性质: Ω 允许不连通分量（`lib/algorithms/coverage/include/astro/phase2/coverage.h`）；任意两输入重叠区当且仅当
   父单元索引重合时合并——`constant overlap`（逐 cell 覆盖帧数恒定域）
   由去重后的并集 + 逐帧 tile 集合在下游（sampler/UPM）按需计算，本模块
   不输出 depth/重叠计数（§10 负向条款）。
 - 越界守卫: 首个 union cell ipix 必须 < `12·4^order`（NESTED 象限总数；
-  sampler 侧断言 sampler.cpp:675-681，本模块自身不重复校验）。
+  sampler 侧断言 `lib/algorithms/coverage/src/sampler.cpp`，本模块自身不重复校验）。
 
 ## 3 伪代码
 
-（coverage.cpp p2_coverage_build :144-231 结构直译；两次调用协议，见 §4）
+（coverage.cpp 的 p2_coverage_build 结构直译；两次调用协议，见 §4）
 
 ```text
 p2_coverage_build(hips_paths, n_inputs, out):
-  if out == nullptr: return 1                                 # :147
-  保存调用方 inputs/union_cells 指针 → memset(out) → 恢复指针   # :148-153
+  if out == nullptr: return 1                                 # coverage.cpp
+  保存调用方 inputs/union_cells 指针 → memset(out) → 恢复指针   # coverage.cpp
   if hips_paths == nullptr or n_inputs == 0:
-      error="no inputs"; return 1                             # :154-157（status 未置位，DISP-COV-001）
-  frame_tiles/infos 分配；target_order=-1                      # :159-163
-  for f in 0..n_inputs-1:                                      # :164
-      if path NULL/空: error="empty path at index %llu", rc=1  # :165-170
-      rc=inspect_frame(path, &info_f, &tiles_f)                # :172
-      (失败: error 转述 :176-178)
-      if rc: error 转述, status=1, rc=1                        # :176-178
+      error="no inputs"; return 1                             # coverage.cpp（status 未置位，DISP-COV-001）
+  frame_tiles/infos 分配；target_order=-1                      # coverage.cpp
+  for f in 0..n_inputs-1:                                      # coverage.cpp
+      if path NULL/空: error="empty path at index %llu", rc=1  # coverage.cpp
+      rc=inspect_frame(path, &info_f, &tiles_f)                # coverage.cpp
+      (失败: error 转述)
+      if rc: error 转述, status=1, rc=1                        # coverage.cpp
       f=info_f.filter; fr=info_f.frame_type
-      if 未设基准→基准=f, frame基准=fr           # :215-218 (全等, 无空串豁免)
-      elif f≠基准: status=1, rc=1               # :219-225 filter mismatch
-      elif fr≠frame基准: status=1, rc=1         # :227-233 hips_frame mismatch
-      target_order = min(target_order, info_f.max_leaf_order)  # :194-196
-  if target_order<0: error="no valid inputs", rc=1             # :198-202（防御分支）
-  for f: for t in tiles_f: append t>>(2·(order_f−target_order))# :204-211
-  sort(:212) + unique(:213-214)（升序去重）                     # 
-  n_inputs/target_order/n_union_cells 回填                     # :216-218
-  union_cells 非空时逐 cell 回填(order,ipix)                    # :219-224
-  inputs 非空时回填 infos；status=0; return 0                  # :225-230
+      if 未设基准→基准=f, frame基准=fr           # coverage.cpp (全等, 无空串豁免)
+      elif f≠基准: status=1, rc=1               # coverage.cpp filter mismatch
+      elif fr≠frame基准: status=1, rc=1         # coverage.cpp hips_frame mismatch
+      target_order = min(target_order, info_f.max_leaf_order)  # coverage.cpp
+  if target_order<0: error="no valid inputs", rc=1             # coverage.cpp（防御分支）
+  for f: for t in tiles_f: append t>>(2·(order_f−target_order))# coverage.cpp
+  sort + unique（升序去重）                                     # coverage.cpp
+  n_inputs/target_order/n_union_cells 回填                     # coverage.cpp
+  union_cells 非空时逐 cell 回填(order,ipix)                    # coverage.cpp
+  inputs 非空时回填 infos；status=0; return 0                  # coverage.cpp
 ```
 
 ## 4 两次调用协议（容量查询）与内存所有权
 
 - 第一次调用: `out->union_cells=NULL`（capacity query）→ 返回
-  `n_union_cells=K` 且不写 cell 数组（:219-224 条件回填）；调用方分配
-  `K` 个 P2MocCell 后第二次调用获得数据（头注释 coverage.h:56；实测
-  每次调用完整重新扫描全部输入，无缓存，inputs 指针同理两阶段回填
-  :225-228）。
-- P2CoverageResult/P2MocCell/P2HipsInputInfo 全部为调用方分配（coverage.h
-  :42/:44 注释）；`p2_coverage_free`（:233-237）仅 `memset(out,0)`
-  （:235）清零 POD——不释放任何堆内存，无所有权转移（与 PHASE2_API_V1 §1 所有权
+  `n_union_cells=K` 且不写 cell 数组（条件回填）；调用方分配
+  `K` 个 P2MocCell 后第二次调用获得数据（头注释 `lib/algorithms/coverage/include/astro/phase2/coverage.h`；实测
+  每次调用完整重新扫描全部输入，无缓存，inputs 指针同理两阶段回填）。
+- P2CoverageResult/P2MocCell/P2HipsInputInfo 全部为调用方分配（`lib/algorithms/coverage/include/astro/phase2/coverage.h` 注释）；
+  `p2_coverage_free` 仅 `memset(out,0)` 清零 POD（`lib/algorithms/coverage/src/coverage.cpp`）——不释放任何堆内存，无所有权转移（与 PHASE2_API_V1 §1 所有权
   图行 `Coverage: build/调用方持有/p2_coverage_free/只读借用` 一致，
-  docs/engineering/PHASE2_API_V1.md:15）。
+  `docs/engineering/PHASE2_API_V1.md`）。
 - 重复调用幂等: 同输入两次 build 结果 bitwise 一致（纯函数式扫描，无
-  全局状态；错误路径通过 `aio_hips_reader_last_error()` 转述 AIO 层原因
-  :63-65）。
+  全局状态；错误路径通过 `aio_hips_reader_last_error()` 转述 AIO 层原因）。
 
 ## 5 边界/NaN/Inf/invalid
 
-- `hips_paths=NULL ∨ n_inputs=0` → rc=1 "no inputs"（:154-157；
+- `hips_paths=NULL ∨ n_inputs=0` → rc=1 "no inputs"（`lib/algorithms/coverage/src/coverage.cpp`；
   status 字段未置 1，DISP-COV-001）。
-- 路径 NULL/空 → rc=1 "empty path at index %llu"（:165-170）。
-- AIO 打开/properties 失败 → rc=1，error 含 AIO 层 last_error（:62-71）。
-- `hips_order` 缺失/负 → rc=1（:89-93）；`hips_tile_width≠512` → rc=1
-  （:106-110）；`hips_version` 缺失 → rc=1（:111-115）；`hips_frame∉
-  {equatorial,icrs}` → rc=1（:116-121）。
-- `obs_filter` 键缺失 → rc=1（:92-104，"missing obs_filter property"）。
-- `hips_ordering` 显式声明且 ≠ "NESTED" → rc=1（:126-133）。
-- filter mismatch（全等比较，含空串）→ rc=1（:219-225）；跨帧
-  `hips_frame` 不等 → rc=1（:227-233）。
-- 输出 MOC cell 升序且唯一（sort+unique :212-214）；K=0 仅当全部输入
+- 路径 NULL/空 → rc=1 "empty path at index %llu"（`lib/algorithms/coverage/src/coverage.cpp`）。
+- AIO 打开/properties 失败 → rc=1，error 含 AIO 层 last_error（同文件）。
+- `hips_order` 缺失/负 → rc=1；`hips_tile_width≠512` → rc=1；
+  `hips_version` 缺失 → rc=1；`hips_frame∉
+  {equatorial,icrs}` → rc=1（以上四段同文件）。
+- `obs_filter` 键缺失 → rc=1（"missing obs_filter property"，同文件）。
+- `hips_ordering` 显式声明且 ≠ "NESTED" → rc=1（同文件）。
+- filter mismatch（全等比较，含空串）→ rc=1；跨帧
+  `hips_frame` 不等 → rc=1（两处同文件）。
+- 输出 MOC cell 升序且唯一（sort+unique，同文件）；K=0 仅当全部输入
   MOC 为空（AIO 层 tiles 空数组），无显式错误（如实登记）。
 - 单位/坐标: path 字符串；order/ipix 无量纲整数；NESTED equatorial/ICRS
-  球面索引（frame 校验 :103-108 保证），无角度量。
+  球面索引（frame 校验保证），无角度量。
 
 ## 6 复杂度与误差来源
 
-- 时间: O(Σ|MOC_f|) 每帧读盘 + O(K log K) 排序去重（:212-214）；两次
+- 时间: O(Σ|MOC_f|) 每帧读盘 + O(K log K) 排序去重（`lib/algorithms/coverage/src/coverage.cpp`）；两次
   调用协议下整链 ×2（实测语义，无缓存）；内存 O(max|MOC_f|+K)
   uint64。磁盘 I/O 为唯一外部依赖（properties + Moc.fits，8192 B
-  properties 缓冲 :67-68）。
+  properties 缓冲，同文件）。
 - 误差来源: 无浮点运算——全链路整数集合运算，bitwise 确定；
   target_order 截断（混合 order 输入时低 order 决定全局分辨率）为设计
-  保守选择（禁伪装分辨率，coverage.h:8），不构成数值误差。
+  保守选择（禁伪装分辨率，`lib/algorithms/coverage/include/astro/phase2/coverage.h`），不构成数值误差。
 - 确定性: 固定归约序（输入数组序→逐帧 append→sort），输出与线程数无关
   （单线程实现，无 OpenMP pragma，coverage.cpp 全文实测 0 处）；
   determinism=fixed_reduction_order（module.yaml 合同值）。
@@ -202,17 +198,17 @@ p2_coverage_build(hips_paths, n_inputs, out):
   与 validity（有效/接受标志，SCI-INT-001 §5）不在本模块合同域；任何
   把 union cell 数、n_tiles、覆盖帧数当作 support 数值或 validity
   判定的消费均违反本合同。
-- **不做**: 不重新校准/PlateSolve/PSF/DR3SP/Drizzle（coverage.h:6）；
+- **不做**: 不重新校准/PlateSolve/PSF/DR3SP/Drizzle（`lib/algorithms/coverage/include/astro/phase2/coverage.h`）；
   不读 signal/support/snr 像素数据（只读 properties/Moc.fits）；不做
   帧间交集/差集运算（只 union，§2）；不输出 depth/overlap 计数产品
   （§10）；不输出 HiPS（写盘归 P2-HIPS）；不跨滤镜统一（filter mismatch
-  显式拒绝，:186-192；UPM 侧"不跨滤镜统一（filter 分组由调用方保证）"
+  显式拒绝（`lib/algorithms/coverage/src/coverage.cpp`）；UPM 侧"不跨滤镜统一（filter 分组由调用方保证）"
   SCI-UPM-001 §1 同构）。
 - **registry 端口语义修订**: descriptor 端口 coverage 坐标
-  CoordinateFrame::PIXEL（module_adapters.cpp:637，出端口 coverage DATA-P2-COV/
+  CoordinateFrame::PIXEL（`lib/infrastructure/scheduler/src/module_adapters.cpp`，出端口 coverage DATA-P2-COV/
   DIMENSIONLESS/PIXEL）与 NESTED 球面 MOC 实际不符，以本合同（HEALPix NESTED / equatorial/ICRS）为准，
   P2-COV-INT 对齐修正，不改生产码（入端口 calibrated=DATA-P2-CAL/
-  ADU/PIXEL，:570，像素语义对路径输入仅名义）。
+  ADU/PIXEL，同一文件，像素语义对路径输入仅名义）。
 
 ## 8 参考实现/Oracle
 
@@ -227,11 +223,11 @@ p2_coverage_build(hips_paths, n_inputs, out):
     frame 非法 → rc=1 且 error 载因。
 - 既有可执行测试:
   lib/algorithms/coverage/tests/synthetic_gate.cpp `Phase2Coverage.RealHipsUnion`
-  （:3374-3407，真实 HiPS 三帧 T2/T3/t4_crop union/target_order=7/
+  （真实 HiPS 三帧 T2/T3/t4_crop union/target_order=7/
   filter=Red/两阶段协议/cells[0].order=7）与
-  `Phase2Coverage.FilterMismatchRejected`（:3410-3418，坏路径 rc≠0）；
+  `Phase2Coverage.FilterMismatchRejected`（坏路径 rc≠0）；
   两测试依赖 Fatduck 本地路径 F:/... 环境缺失时 GTEST_SKIP
-  （:3376/:3413）——P2-COV-TEST
+  （均在同一测试文件）——P2-COV-TEST
   必须建立不依赖本机真实数据的合成 fixture（TEST-COV-DESIGN-001 F1）。
 
 ## 9 容差来源
@@ -240,7 +236,7 @@ p2_coverage_build(hips_paths, n_inputs, out):
   相等），无经验容差；任何"近似 union"实现都违反 §2。
 - 数值域容差仅存在于 AIO 读取层（tile 计数完整性由 Moc.fits 决定），
   本模块对 AIO 层的信任边界 = `aio_hips_open` rc 与
-  `aio_hips_reader_last_error` 透传（:62-64）。
+  `aio_hips_reader_last_error` 透传（同一 `coverage.cpp`）。
 - 上述容差在 P2-COV-TEST 落地时逐项写死（TEST-COV-DESIGN-001 §11.4），
   取值一律按本节；fixture 生成器须注记容差来源（本节）。
 
@@ -252,7 +248,7 @@ p2_coverage_build(hips_paths, n_inputs, out):
   与输出 MOC/逐帧元信息的单位/dtype/shape/invalid 唯一权威。
 - API-P2-001（docs/engineering/PHASE2_API_V1.md，FROZEN）: 逐函数
   并发五字段（p2_coverage_build/free: yes/no(独立对象)/none/无/TST-COV-*）
-  + 所有权图（docs/engineering/PHASE2_API_V1.md:28/:15）——编排级合同，与本节
+  + 所有权图（`docs/engineering/PHASE2_API_V1.md`）——编排级合同，与本节
   并行不互斥。
 - ARC-001（CPU 自适应资源合同；现行 CPU 后端设计见 docs/engineering/CPU_BACKEND_ARCH.md）: cpu_heavy 资源类、
   单线程（internal_parallel=none）与 host_executor_lease 合同值依据。
@@ -262,37 +258,37 @@ p2_coverage_build(hips_paths, n_inputs, out):
 
 ### 11.1 ALG-COV-001 逐符号锚
 
-| 符号 | 锚（coverage.cpp） | 角色 |
+| 符号 | 锚 | 角色 |
 |---|---|---|
-| p2_coverage_build | :144-231 | 唯一生产入口（C ABI，coverage.h:57-59 声明） |
-| p2_coverage_free | :274-278 | POD 清零释放语义（null :234，memset :235） |
-| inspect_frame | :59-140 | 匿名 namespace（:55-142）内部链接，每帧校验+tile 收集 |
-| parse_props | :20-45 | 文件作用域 static（:20），properties KV 解析 |
+| p2_coverage_build | `lib/algorithms/coverage/src/coverage.cpp` | 唯一生产入口（C ABI，声明见 `lib/algorithms/coverage/include/astro/phase2/coverage.h`） |
+| p2_coverage_free | `lib/algorithms/coverage/src/coverage.cpp` | POD 清零释放语义（null 与 memset 两处同文件） |
+| inspect_frame | `lib/algorithms/coverage/src/coverage.cpp` | 匿名 namespace 内部链接，每帧校验+tile 收集 |
+| parse_props | `lib/algorithms/coverage/src/coverage.cpp` | 文件作用域 static，properties KV 解析 |
 
 结构事实: 独立 `extern "C"` 块内 `#include "aio_hips_reader.h"`
-  （:47-51，include 行 :50；AIO 头自带 C 链接声明，双保险属维护歧义，
+  （AIO 头自带 C 链接声明，双保险属维护歧义，
 并入 DISP-COV-005 整改域）；
-头文件 aio_hips_reader.h 落位 lib/infrastructure/aio/include/（根 CMake
-astrocs_phase2 include 目录 CMakeLists.txt:346-351 第 3 项，实测）。
+头文件 aio_hips_reader.h 落位 `lib/infrastructure/aio/include/`（根 `CMakeLists.txt` 的
+astrocs_phase2 include 目录第 3 项，实测）。
 
-P2HipsInputInfo 7 字段（coverage.h:32-43）生产消费面: hips_path
-（:111 回填）、frame_id（:113-118，路径基名截断，见 DISP-COV-002）、
-max_leaf_order（:119）、n_tiles（:120 初 0/:136 回填）、filter_passband
-（:121-123）、frame_type（:124-126 回填 hips_frame）；frame_id 64 B /
-filter_passband 64 B / frame_type 32 B 截断上限（coverage.h:32-37 +
+P2HipsInputInfo 7 字段（`lib/algorithms/coverage/include/astro/phase2/coverage.h`）生产消费面（回填与消费均在 `lib/algorithms/coverage/src/coverage.cpp`）: hips_path、
+frame_id（路径基名截断，见 DISP-COV-002）、
+max_leaf_order、n_tiles、filter_passband、
+frame_type（回填 hips_frame）；frame_id 64 B /
+filter_passband 64 B / frame_type 32 B 截断上限（`lib/algorithms/coverage/include/astro/phase2/coverage.h` +
 strncpy 截断语义）。
 
-P2CoverageResult 7 字段（coverage.h:46-53）: n_inputs/inputs/
-n_union_cells/union_cells/target_order/status/error（512 B，:47）。
-status 语义: 0=ok（:229）；错误路径部分分支置 1（:168/:177/:190/:200），
+P2CoverageResult 7 字段（`lib/algorithms/coverage/include/astro/phase2/coverage.h`）: n_inputs/inputs/
+n_union_cells/union_cells/target_order/status/error（512 B）。
+status 语义: 0=ok；错误路径部分分支置 1（`lib/algorithms/coverage/src/coverage.cpp` 四处），
 "no inputs" 分支未置（DISP-COV-001）。
 
 ### 11.2 状态码/返回码语义
 
-- rc: 0=成功（含 K=0 空 union）；1=失败（error[512] 载因，coverage.h:52）。
-- 失败路径 status: 1（:168/:177/:190/:200 显式）或 0（"no inputs" 分支
-  :154-157 未置，DISP-COV-001；memset :151 在该分支之前执行，error
-  strncpy :155 在其后写入——error 字段有效，status 与 rc 不一致的仅此
+- rc: 0=成功（含 K=0 空 union）；1=失败（error[512] 载因，`lib/algorithms/coverage/include/astro/phase2/coverage.h`）。
+- 失败路径 status: 1（`lib/algorithms/coverage/src/coverage.cpp` 四处显式）或 0（"no inputs" 分支
+  未置，DISP-COV-001；memset 在该分支之前执行，error
+  strncpy 在其后写入——error 字段有效，status 与 rc 不一致的仅此
   分支）。
 - 并发合同（API-P2-001 §2 行 1）: reentrant=yes / threadsafe=no
   （独立对象）/ internal_parallel=none / 取消点=无 / TST-COV-*；
@@ -301,9 +297,9 @@ status 语义: 0=ok（:229）；错误路径部分分支置 1（:168/:177/:190/:
 ### 11.3 现状缺陷清单（DISP-COV-001..005，登记不改码，整改归 P2-COV-IMPL/INT）
 
 - DISP-COV-001 `no inputs` 分支 status 不一致: `hips_paths==nullptr ∨
-  n_inputs==0` 时仅 strncpy error 后 return 1（:154-157），`out->status`
-  保持 memset（:151）后的 0——rc=1 与 status=0 并存，
-  违反 status/return 同步惯例（对照 :168/:177/:190/:200 均置 1）；
+  n_inputs==0` 时仅 strncpy error 后 return 1（`lib/algorithms/coverage/src/coverage.cpp`），`out->status`
+  保持 memset 后的 0——rc=1 与 status=0 并存，
+  违反 status/return 同步惯例（对照该文件四处错误分支均置 1）；
   调用方若只看 status 会误判成功。整改: 统一 status=1（P2-COV-IMPL）。
 - **两个 frame_id 的命名区分（各自具名，正向约束）**：
   (i) **coverage frame_id**（本模块，路径基名截断，64 B 上限）：仅作本模块输入
@@ -314,21 +310,21 @@ status 语义: 0=ok（:229）；错误路径部分分支置 1（:168/:177/:190/:
   frame_id 的地方**必须**写明是哪一种；把 (i) 当 (ii) 使用会使持久化绑定在
   重命名/换根目录后失效。
 - DISP-COV-002 frame_id 取基名截断: `base.find_last_of("/\\")` 后
-  substr（:113-118）以 `/` 或 `\` 基名为 frame_id，跨平台
-  分隔符混用时截断点漂移；64 B 上限截断（strncpy + coverage.h:33 `frame_id[64]`）后
+  substr（`lib/algorithms/coverage/src/coverage.cpp`）以 `/` 或 `\` 基名为 frame_id，跨平台
+  分隔符混用时截断点漂移；64 B 上限截断（strncpy + `lib/algorithms/coverage/include/astro/phase2/coverage.h` 的 `frame_id[64]`）后
   唯一性可能退化（两长同名基名碰撞）——UPM frame 绑定/持久化引用该
   id（lib/algorithms/coverage/memory.md「W4 UPM 完整化：真实内容哈希」），碰撞风险
   如实登记；整改: 内容哈希派生 id（P2-COV-IMPL，与 UPM SHA-256 设施
   对齐）。
-- DISP-COV-003（现状）: `obs_filter` **键缺失** fail-closed（inspect_frame :92-104）；
-  build 层对全部帧做**全等**比较（:215-225，含空串）——空 filter 一律不静默放行
-  （违背「同一 filter/passband」兼容前提 coverage.h:7）；
-  (c) 跨帧 `hips_frame` 相等（:227-233）；(d) `hips_ordering` 非 NESTED 拒绝
-  （:126-133）。真实 filter/ordering 负例见 eng/tests/cli/test_phase3_inprocess.py
+- DISP-COV-003（现状）: `obs_filter` **键缺失** fail-closed（inspect_frame，见 `lib/algorithms/coverage/src/coverage.cpp`）；
+  build 层对全部帧做**全等**比较（含空串）——空 filter 一律不静默放行
+  （违背「同一 filter/passband」兼容前提 `lib/algorithms/coverage/include/astro/phase2/coverage.h`）；
+  (c) 跨帧 `hips_frame` 相等；(d) `hips_ordering` 非 NESTED 拒绝
+  （均在 `lib/algorithms/coverage/src/coverage.cpp`）。真实 filter/ordering 负例见 eng/tests/cli/test_phase3_inprocess.py
   `test_10_coverage_requires_filter_and_nested_ordering`。
 - DISP-COV-004 overlap/intersection/missing-tiles 产品缺失（合同范围
   缺口，非公式错误）: matrix P2-COV 专项要求 union/intersection/
-  missing tiles/constant overlap 四语义；现状仅 union（:204-214）+
+  missing tiles/constant overlap 四语义；现状仅 union（`lib/algorithms/coverage/src/coverage.cpp`）+
   target_order，无逐 cell depth map（每 cell 覆盖帧数）、无交集
   Ω_1∩…∩Ω_N、无缺失 tile 列表输出——下游 sampler/UPM 现以逐帧
   tile 集合自行推导，且 UPM 侧 geometric_reliability 权重因子
@@ -339,15 +335,15 @@ status 语义: 0=ok（:229）；错误路径部分分支置 1（:168/:177/:190/:
   P2-COV-IMPL 是否增补 depth/intersection 只读辅助导出由其 TASK_RESULT
   登记（属合同扩展，非本冻结层）。
 - DISP-COV-005 extern "C" 内 include + 两阶段全量重扫: AIO 头包含于
-  独立 extern "C" 块（:47-51，AIO 头自带 C 链接声明，双保险属维护
+  独立 extern "C" 块（`lib/algorithms/coverage/src/coverage.cpp` 的 include 段，AIO 头自带 C 链接声明，双保险属维护
   歧义）；
   两阶段协议每次调用全量重扫全部输入（§4，实测无缓存），大 N 输入
   ×2 I/O 开销——记录为性能/卫生整改项（P2-COV-IMPL），非科学错误。
 - 线程数未接 ThreadBudget: 单线程实现天然满足 determinism，但
   threading_model=host_executor_lease（module.yaml 合同值）的
   ThreadLease/取消检查点无接线（P2-COV-IMPL 整改点，同 DISP-WCS-005
-  先例）；阶段级取消点由编排 session 提供（p2_session.cpp:119-121，
-  取消检查 :120），模块内无取消检查点（API-P2-001 §2 行 1 取消点=无，
+  先例）；阶段级取消点由编排 session 提供（`lib/phase2_session/p2_session.cpp`，
+  含取消检查），模块内无取消检查点（API-P2-001 §2 行 1 取消点=无，
   一致）。
 
 ### 11.4 TEST-COV-DESIGN-001 冻结测试设计（可执行 TEST-P2-COV-001 由 P2-COV-TEST 落地）
@@ -366,7 +362,7 @@ status 语义: 0=ok（:229）；错误路径部分分支置 1（:168/:177/:190/:
   锚（整改后本断言翻转为拒绝——P2-COV-IMPL 同步更新）。
 - F4 边界: 单输入（N=1，union=自身父聚合）；K=0 空 MOC（rc=0 如实）；
   越界断言 ipix < 12·4^target_order（NESTED 象限总数，sampler 侧先例
-  sampler.cpp:675-681）。
+  `lib/algorithms/coverage/src/sampler.cpp`）。
 - F5 负例/错误通道: NULL out/NULL paths/n_inputs=0 → rc=1；rc 与
   status 一致性断言（DISP-COV-001 整改门：整改后 status 必须同步=1）。
 - F6 确定性/资源: 同输入两次调用 bitwise 一致；单线程断言（无

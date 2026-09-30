@@ -57,7 +57,7 @@ C_y = R C_x Rᵀ
 - 扩展 HDU：COVERAGE、VARIANCE/IVAR（语义择一且一致）；**其余候选面（VALIDITY、SUPPORT、REJECTION、POINT_INFORMATION/W、PSF 表/图与 correlation 描述）为待实现项，落盘前须先在 `docs/science/DATA_SEMANTICS.md` §27 立输出行与 HDU 合同**（本节不预设 HDU 清单；现行落盘面 = PRIMARY + COVERAGE + VARIANCE/IVAR + 标准 WCS/BUNIT/DATASUM/CHECKSUM + provenance，口径与 `docs/detail/algorithms_phase3/16_fits_output.md` 同源）；
 - 标准 WCS、BUNIT（面亮度语义，写端口单位 `SURFACE_BRIGHTNESS`）、DATASUM/CHECKSUM；
 - provenance：源 product/hash、软件完整 SHA、配置、投影、核、order、近似和生成时间。
-- **不确定度可得性（fail-closed，唯一出口）**：输入 HiPS 不含 variance/ivar 子产品（或权重非纯逆方差、发生 fallback 等 §30 规则项）时 → **不写** VARIANCE/IVAR 扩展 HDU（禁静默丢弃、禁用常量 0 冒充）+ manifest 写 `uncertainty_available=false` + diagnostics 标红计数；**该键不是失败态**，是 unavailable 显式登记模式。正本：`docs/science/DATA_SEMANTICS.md:2733-2739`（规则）与 `:2837-2839`（显式登记，禁占位/静默缺键/空输出冒充）。
+- **不确定度可得性（fail-closed，唯一出口）**：输入 HiPS 不含 variance/ivar 子产品（或权重非纯逆方差、发生 fallback 等 §30 规则项）时 → **不写** VARIANCE/IVAR 扩展 HDU（禁静默丢弃、禁用常量 0 冒充）+ manifest 写 `uncertainty_available=false` + diagnostics 标红计数；**该键不是失败态**，是 unavailable 显式登记模式。正本：`docs/science/DATA_SEMANTICS.md` 的「规则」条与「显式登记」条（禁占位/静默缺键/空输出冒充）。
 
 所有 HDU shape/WCS 对齐。写临时文件、flush/close/fsync、标准 checksum、原子 rename、重开独立验证；失败/取消无可见半成品。
 

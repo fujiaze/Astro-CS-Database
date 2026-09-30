@@ -3,7 +3,7 @@
 > 上游：ASTROCS_DESIGN.md §5.3（SNR 重建与逆方差叠加）
 
 > 实现源: lib/algorithms/coverage/src/integrate.cpp（89 行，astrocs_phase2 静态库成员，
-> 根 CMakeLists.txt:652-661/:660）+ 唯一权威签名头
+> 根 `CMakeLists.txt` 的 astrocs_phase2 段）+ 唯一权威签名头
 > lib/algorithms/coverage/include/astro/phase2/integrate.h（83 行）
 > 权威: 本文档（算法级逐符号锚）。SCI 上游: SCI-INT-001
 > （docs/science/INTEGRATION.md，FROZEN，集合
@@ -28,17 +28,17 @@
 
 | 符号 | 含义 | 单位/dtype | 锚 |
 |---|---|---|---|
-| `values[i]` | 候选样本科学值 | **像素域校准后标度**：量纲 = ADU（`calibrated_adu`）或 α·ADU（`photo_scaled_adu`）——**不是面亮度 `ADU·sr⁻¹`**（立体角归一 `1/A_cell` 在 writer 层），f64 | integrate.h:46 |
-| `weights[i]` | 数值权重（可空=等权 1.0） | **数值域，量纲 = 1/(`values` 量纲)²**（像素域 ⇒ `1/ADU²`）；物理语义（逐样本 ivar）与策略在调用方，本层不承诺面亮度域，f64 | integrate.h:47 |
-| `support[i]` | 覆盖支撑（可空=1.0） | 无量纲 [0,1]，f64 | integrate.h:48 |
-| `accepted[i]` | 排异接受掩码（可空=全接受） | u8 | integrate.h:49 |
-| `count` | 候选数 | 无量纲 u32 | integrate.h:50 |
-| `signal` | 加权积分输出 | **量纲 = `values` 的量纲**（`Σwᵢxᵢ/Σwᵢ`，本层**不改变标度类别**），f64 | integrate.h:63 |
-| `support`（输出） | canonical reducer 输出 | 无量纲 [0,1]，f64 | integrate.h:64 |
-| `n_used` | 实际参与积分样本数 | 无量纲 u32 | integrate.h:65 |
-| `wsum` | Σ wᵢ（eligible ∧ w>0） | 与 `weights` 同量纲（像素域 ⇒ ADU⁻²） | integrate.cpp:59-60 |
-| `vs` | Σ wᵢxᵢ | `weights`×`values` 量纲（像素域 ⇒ ADU⁻¹） | integrate.cpp:59-60 |
-| `sup_max` | max(accepted support) —— **canonical 语义**（`integrate.cpp:49-50`，位于权重分支之前；约束见 §7/§11.3） | 无量纲 | integrate.cpp:49-50 |
+| `values[i]` | 候选样本科学值 | **像素域校准后标度**：量纲 = ADU（`calibrated_adu`）或 α·ADU（`photo_scaled_adu`）——**不是面亮度 `ADU·sr⁻¹`**（立体角归一 `1/A_cell` 在 writer 层），f64 | `lib/algorithms/coverage/include/astro/phase2/integrate.h` |
+| `weights[i]` | 数值权重（可空=等权 1.0） | **数值域，量纲 = 1/(`values` 量纲)²**（像素域 ⇒ `1/ADU²`）；物理语义（逐样本 ivar）与策略在调用方，本层不承诺面亮度域，f64 | 同上 |
+| `support[i]` | 覆盖支撑（可空=1.0） | 无量纲 [0,1]，f64 | 同上 |
+| `accepted[i]` | 排异接受掩码（可空=全接受） | u8 | 同上 |
+| `count` | 候选数 | 无量纲 u32 | 同上 |
+| `signal` | 加权积分输出 | **量纲 = `values` 的量纲**（`Σwᵢxᵢ/Σwᵢ`，本层**不改变标度类别**），f64 | 同上 |
+| `support`（输出） | canonical reducer 输出 | 无量纲 [0,1]，f64 | 同上 |
+| `n_used` | 实际参与积分样本数 | 无量纲 u32 | 同上 |
+| `wsum` | Σ wᵢ（eligible ∧ w>0） | 与 `weights` 同量纲（像素域 ⇒ ADU⁻²） | `lib/algorithms/coverage/src/integrate.cpp` |
+| `vs` | Σ wᵢxᵢ | `weights`×`values` 量纲（像素域 ⇒ ADU⁻¹） | 同上 |
+| `sup_max` | max(accepted support) —— **canonical 语义**（``lib/algorithms/coverage/src/integrate.cpp``，位于权重分支之前；约束见 §7/§11.3） | 无量纲 | 同上 |
 
 > **单位域订正登记（DISP-P2INT-003）**：本表旧版把 `values`/`signal` 登记为
 > **面亮度 ADU·sr⁻¹**、把权重登记为 (ADU·sr⁻¹)⁻²，与本文档 §5/§8 及权威
@@ -46,99 +46,100 @@
 > 立体角归一在 writer 层）自相矛盾；现按权威统一为**像素域 ADU**（`photo_scaled_adu`
 > 时为 α·ADU），权重随之取 `1/ADU²`。本轮只改本表登记，不动任何公式。
 
-权重语义（integrate.h:7-17 注释冻结）: 权重是 Phase2 按该天球像素
+权重语义（`lib/algorithms/coverage/include/astro/phase2/integrate.h` 注释冻结）: 权重是 Phase2 按该天球像素
 对应帧集合现场算出的派生量——逐样本 `ivar`（`1/ADU²`），由调用方构造
-并先经 `p2_validate_candidate_weights`（stage2.cpp:1106-1140）；
+并先经 `p2_validate_candidate_weights`（`lib/algorithms/coverage/tools/stage2.cpp`）；
 `weights=null` → 等权 1.0。reducer 只消费权重数组本身，本层不编码
 ivar/SNR 策略（SNR 只作 veto/质量门，不直接加权）。
 
 ## 3 逐符号锚（integrate.cpp 89 行 / integrate.h 83 行，实测）
 
-| 符号/段 | 锚（integrate.cpp） | 语义 |
+| 符号/段 | 锚 | 语义 |
 |---|---|---|
-| p2_validate_candidate_weights | :10-17 | 预检：weights=null→0（合规）；任一 !finite 或 w<0→1（违规）；w==0 合法（不违规）。调用方: stage2.cpp:1141/:1402 |
-| p2_integrate_pixel | :19-87 | 唯一生产入口（C ABI；integrate.h:74 声明） |
-| ├ null 防御 | :20-21 | stack==null 或 result==null → rc=1 |
-| ├ 空栈 | :23-26 | count==0 ∨ values==null → NO_CANDIDATES（rc=0） |
-| ├ eligibility 循环 | :30-57 | 候选索引固定序 i=0..count-1 |
-| │ ├ accepted 计数 | :34-36 | accepted 非空且为 0 → skip（不计 n_accepted） |
-| │ ├ values 非 finite | :37 | → invalid_input |
-| │ ├ support 门 | :38-42 | support 非空且（!finite 或 ≤0）→ invalid_input |
-| │ ├ n_finite 计数 | :43 | ++n_finite |
-| │ ├ 权重门 | :44-48 | w=weights?w[i]:1.0；!finite → invalid_input；w<0 → invalid_input |
-| │ ├ 零权重 | :56 | w==0 → continue（合法零贡献；n_accepted/n_finite 已计入） |
-| │ ├ sup_max 更新 | :49-50 | support 非空时 sup_max=max(sup_max,sup)——**位于权重分支（:51-57，含 :56 `w==0 continue`）之前**，作用域 = 通过资格门的全部 accepted 样本（canonical 语义；约束与负例判据见 §7/§11.3） |
-| │ ├ 累加 | :52-53 | vs+=w*x; wsum+=w（double 固定序） |
-| │ └ n_used 计数 | :56 | ++n_used |
-| ├ rc 同步 | :58-63 | invalid_input → INVALID_INPUT（rc=0，n_used=已计数部分） |
-| ├ 无正权重分支 | :70-73 | n_positive_weight==0 → status = (n_accepted==0 ? ALL_REJECTED : ZERO_VALID_WEIGHT)——**wsum==0 不做除法**；ZERO_VALID_WEIGHT 下 support 按 :79-80 照常发布 |
-| ├ signal 计算 | :70 | signal = vs/wsum |
-| ├ support 输出 | :71 | support = support ? sup_max : 1.0（空支撑守恒） |
-| └ OK | :72 | status=OK，rc=0 |
+| p2_validate_candidate_weights | `lib/algorithms/coverage/src/integrate.cpp` | 预检：weights=null→0（合规）；任一 !finite 或 w<0→1（违规）；w==0 合法（不违规）。调用方：`lib/algorithms/coverage/tools/stage2.cpp` 两处 |
+| p2_integrate_pixel | `lib/algorithms/coverage/src/integrate.cpp` | 唯一生产入口（C ABI；声明见 `lib/algorithms/coverage/include/astro/phase2/integrate.h`） |
+| ├ null 防御 | 同上 | stack==null 或 result==null → rc=1 |
+| ├ 空栈 | 同上 | count==0 ∨ values==null → NO_CANDIDATES（rc=0） |
+| ├ eligibility 循环 | 同上 | 候选索引固定序 i=0..count-1 |
+| │ ├ accepted 计数 | 同上 | accepted 非空且为 0 → skip（不计 n_accepted） |
+| │ ├ values 非 finite | 同上 | → invalid_input |
+| │ ├ support 门 | 同上 | support 非空且（!finite 或 ≤0）→ invalid_input |
+| │ ├ n_finite 计数 | 同上 | ++n_finite |
+| │ ├ 权重门 | 同上 | w=weights?w[i]:1.0；!finite → invalid_input；w<0 → invalid_input |
+| │ ├ 零权重 | 同上 | w==0 → continue（合法零贡献；n_accepted/n_finite 已计入） |
+| │ ├ sup_max 更新 | 同上 | support 非空时 sup_max=max(sup_max,sup)——**位于权重分支（其内含 `w==0 continue`）之前**，作用域 = 通过资格门的全部 accepted 样本（canonical 语义；约束与负例判据见 §7/§11.3） |
+| │ ├ 累加 | 同上 | vs+=w*x; wsum+=w（double 固定序） |
+| │ └ n_used 计数 | 同上 | ++n_used |
+| ├ rc 同步 | 同上 | invalid_input → INVALID_INPUT（rc=0，n_used=已计数部分） |
+| ├ 无正权重分支 | 同上 | n_positive_weight==0 → status = (n_accepted==0 ? ALL_REJECTED : ZERO_VALID_WEIGHT)——**wsum==0 不做除法**；ZERO_VALID_WEIGHT 下 support 照常发布（同文件） |
+| ├ signal 计算 | 同上 | signal = vs/wsum |
+| ├ support 输出 | 同上 | support = support ? sup_max : 1.0（空支撑守恒） |
+| └ OK | 同上 | status=OK，rc=0 |
 
-| 头文件段 | 锚（integrate.h） | 语义 |
+| 头文件段 | 锚 | 语义 |
 |---|---|---|
-| 权重策略注释 | :8-11 | stack.support_x_snr2.v1 / stack.equal.v1 |
-| support canonical 语义 | :17 | "output support 唯一 canonical reducer：max(accepted support)" |
-| P2PixelStack | :45-51 | values/weights/support/accepted 可空语义 + count |
-| P2IntegrateStatus | :54-60 | OK=0/NO_CANDIDATES=1/ALL_REJECTED=2/ZERO_VALID_WEIGHT=3/INVALID_INPUT=4 |
-| P2PixelResult | :62-72 | signal/support/n_used/n_candidates/n_accepted/n_finite/n_positive_weight/status |
-| 函数声明 | :58-66 | p2_integrate_pixel(:58-59) / p2_validate_candidate_weights(:62-66) |
+| 权重策略注释 | `lib/algorithms/coverage/include/astro/phase2/integrate.h` | stack.support_x_snr2.v1 / stack.equal.v1 |
+| support canonical 语义 | 同上 | "output support 唯一 canonical reducer：max(accepted support)" |
+| P2PixelStack | 同上 | values/weights/support/accepted 可空语义 + count |
+| P2IntegrateStatus | 同上 | OK=0/NO_CANDIDATES=1/ALL_REJECTED=2/ZERO_VALID_WEIGHT=3/INVALID_INPUT=4 |
+| P2PixelResult | 同上 | signal/support/n_used/n_candidates/n_accepted/n_finite/n_positive_weight/status |
+| 函数声明 | 同上 | p2_integrate_pixel / p2_validate_candidate_weights |
 
 ## 4 状态机与返回码（五态显式、互斥、可达）
 
 | status | 值 | 触发条件（精确） | 锚 | 冻结测试证据 |
 |---|---|---|---|---|
-| OK | 0 | ≥1 正权重 eligible 样本 | :72 | synthetic_gate:2630-2636（signal=10.75 门）；p2004 :69-126 |
-| NO_CANDIDATES | 1 | count==0 ∨ values==null | :23-26 | synthetic_gate:4747-4750 |
-| ALL_REJECTED | 2 | count>0 ∧ n_accepted==0 | :66-69 | synthetic_gate:2639-2643（status==2）；:4751-4756 |
-| ZERO_VALID_WEIGHT | 3 | n_accepted>0 ∧ n_positive_weight==0（全零权重 accepted） | :70-73 | synthetic_gate:4746-4760（计数器 n_candidates=2/n_accepted=2/n_finite=2/n_positive_weight=0/n_used=0）；p2004 :79-80 |
-| INVALID_INPUT | 4 | 任一 accepted 样本：values 非 finite ∨ support 非 finite/≤0 ∨ weights 非 finite/负 | :37/:38-42/:44-48 | synthetic_gate:4718-4738（NaN support）；:4690-4700（负权重）；:4723-4726 |
+| OK | 0 | ≥1 正权重 eligible 样本 | `lib/algorithms/coverage/src/integrate.cpp` | synthetic_gate（signal=10.75 门）；p2004 |
+| NO_CANDIDATES | 1 | count==0 ∨ values==null | 同上 | synthetic_gate |
+| ALL_REJECTED | 2 | count>0 ∧ n_accepted==0 | 同上 | synthetic_gate（status==2，两处断言） |
+| ZERO_VALID_WEIGHT | 3 | n_accepted>0 ∧ n_positive_weight==0（全零权重 accepted） | 同上 | synthetic_gate（计数器 n_candidates=2/n_accepted=2/n_finite=2/n_positive_weight=0/n_used=0）；p2004 |
+| INVALID_INPUT | 4 | 任一 accepted 样本：values 非 finite ∨ support 非 finite/≤0 ∨ weights 非 finite/负 | 同上 | synthetic_gate（NaN support / 负权重 / 三处断言） |
 
-- rc（函数返回）与 status 正交：rc=1 仅 stack/result null（:20）；
-  rc=0 时 status 载全部语义。**wsum==0 不做除法**（:70-73 分支先行），
+- rc（函数返回）与 status 正交：rc=1 仅 stack/result null（``lib/algorithms/coverage/src/integrate.cpp``）；
+  rc=0 时 status 载全部语义。**wsum==0 不做除法**（无正权重分支先行），
   无除零/NaN 泄漏路径。
 - 状态穷尽/互斥为 SCI §11 状态穷尽门冻结面；显式计数器
   （n_candidates/n_accepted/n_finite/n_positive_weight/n_used）供
-  状态判据自证（synthetic_gate:4757-4760 冻结）。
+  状态判据自证（synthetic_gate 冻结）。
 
 ## 5 逐公式定义（算法级，与 SCI §5 同构；单位见 §2）
 
 ```text
 eligibility（逐候选 i，候选索引固定序）:
-  n_accepted += accepted[i]!=0                                  :34-35
-  if (!accepted[i]) continue                                    :36
+  n_accepted += accepted[i]!=0
+  if (!accepted[i]) continue
   invalid ⇔ accepted[i]!=0 ∧ (
-      !finite(values[i])                                        :37
-      ∨ (support 非空 ∧ (!finite(support[i]) ∨ support[i]<=0))  :38-42
-      ∨ (weights 非空 ∧ (!finite(weights[i]) ∨ weights[i]<0))   :52-56
+      !finite(values[i])
+      ∨ (support 非空 ∧ (!finite(support[i]) ∨ support[i]<=0))
+      ∨ (weights 非空 ∧ (!finite(weights[i]) ∨ weights[i]<0))
     )
 聚合（仅通过门的样本，i 固定序）:
-  n_finite += 1                                                 :43
-  sup_max = max(sup_max, support[i])  # canonical max(accepted) :44-50
-  w_i = weights ? weights[i] : 1.0                              :51-53
-  if (w_i == 0) continue            # 零权重合法零贡献           :56
-  vs += w_i * values[i]; wsum += w_i; n_used += 1               :58-61
+  n_finite += 1
+  sup_max = max(sup_max, support[i])  # canonical max(accepted)
+  w_i = weights ? weights[i] : 1.0
+  if (w_i == 0) continue            # 零权重合法零贡献
+  vs += w_i * values[i]; wsum += w_i; n_used += 1
 输出:
-  invalid_input        → status=INVALID_INPUT（n_used=已计数）  :66-69
+  invalid_input        → status=INVALID_INPUT（n_used=已计数）
   n_positive_weight==0 → status = n_accepted==0
-                          ? ALL_REJECTED : ZERO_VALID_WEIGHT    :70-73
-  否则                 → signal = vs / wsum                     :83
-                         support = support ? sup_max : 1.0      :84
-                         status = OK                            :85
+                          ? ALL_REJECTED : ZERO_VALID_WEIGHT
+  否则                 → signal = vs / wsum
+                         support = support ? sup_max : 1.0
+                         status = OK
+（以上各步的源码位置见 `lib/algorithms/coverage/src/integrate.cpp`）
 ```
 
 - 权重语义（调用方构造，本层无知）: **逐样本 `ivar`（1/ADU²），无任何
   fallback** —— 缺失 ivar 是显式科学错误
-  （产品级 stage2.cpp:565-575 rc=7 / 像素级 stage2.cpp:1106-1122 fail=2），
-  与 SCI-UPM §5:54、DATA-UNC-001 §51（「逆方差权重，无 fallback」）、
+  （产品级 `lib/algorithms/coverage/tools/stage2.cpp` rc=7 / 像素级同文件 fail=2），
+  与 SCI-UPM §5、DATA-UNC-001（「逆方差权重，无 fallback」）、
   DESIGN §3.1/§5.3 一致；权重是 Phase2 按该天球像素对应帧集合现场算出
   的派生量，SNR 只作 veto/质量门、不直接加权；
-  等权分支/weights=null → 等权 1.0（stage2.cpp:1139）。
+  等权分支/weights=null → 等权 1.0（`lib/algorithms/coverage/tools/stage2.cpp`）。
   权重面只认逐样本 ivar：降级键 `legacy_allow_weight_fallback` 已从合同删除，
-  其出现在输入中即被拒绝（module_adapters.cpp:11717）；缺 ivar 乘积的样本由
-  `ivar_product_missing` 计数，全部齐备时取 1.0、否则取 0.0（stage2.cpp:1113-1125）
-  ⇒ 缺失一律 fail-closed；该情形下 DATA-UNC-001 §67-68 要求不写 variance/ivar 产品。
+  其出现在输入中即被拒绝（`lib/infrastructure/scheduler/src/module_adapters.cpp`）；缺 ivar 乘积的样本由
+  `ivar_product_missing` 计数，全部齐备时取 1.0、否则取 0.0（`lib/algorithms/coverage/tools/stage2.cpp`）
+  ⇒ 缺失一律 fail-closed；该情形下 DATA-UNC-001 要求不写 variance/ivar 产品。
 - 本层冻结的改动面 = 空（SCI §10 逐条承接，本层为合同）: support 改 mean/sum 二次
   聚合；w==0 改判 INVALID_INPUT；INVALID_INPUT 并入
   ZERO_VALID_WEIGHT；在本层引入 ivar/SNR 策略；改变求和顺序。
@@ -146,47 +147,41 @@ eligibility（逐候选 i，候选索引固定序）:
 ## 6 消费链与并行语义（parallel reduction tolerance 合同）
 
 - **Stage2（马赛克编排，astrocs.p2.hips_writer 消费者）**:
-  权重构造 :1106-1140 → p2_validate_candidate_weights 预检
-  :1141/:1402 → p2_integrate_pixel 三调用点：chunk 并行路径
-  :1213-1223、CPU 串行路径 :1515-1527（注释 :1525-1526 冻结
+  权重构造 → p2_validate_candidate_weights 预检
+  （两处）→ p2_integrate_pixel 三调用点：chunk 并行路径、CPU 串行路径（注释冻结
   "support 唯一 canonical reducer（max accepted support）由
   p2_integrate_pixel 计算，Stage2 只消费"——**调用方的用法 = 只消费该值，不做二次
-  max/mean**）、large_scale 二次积分 :1579-1585。逆归一化
-  `area=support_out×A_cell`、`flux=signal×area`（:1227-1228/
-  :1588-1589）在 Stage2 域（DATA_SEMANTICS §20.3）。
-- **ACR 加速（acr_kernels.cpp）**: process_pixel :189-208
-  （P2PixelStack :189-195、p2_integrate_pixel :196、失败清零
-  :199-208 与 Stage2 `(status==0)?signal:0` 同型）；缓冲布局
-  frame-major（:112/:158）。
-- **并行边界（像素间并行、像素内串行）**: integrate.cpp 无任何
+  max/mean**）、large_scale 二次积分（以上均在 `lib/algorithms/coverage/tools/stage2.cpp`）。逆归一化
+  `area=support_out×A_cell`、`flux=signal×area`（两处，同文件）在 Stage2 域（DATA_SEMANTICS §20.3）。
+- **ACR 加速（`lib/algorithms/coverage/src/acr_kernels.cpp`）**: process_pixel
+  （P2PixelStack 构造、p2_integrate_pixel 调用、失败清零
+  与 Stage2 `(status==0)?signal:0` 同型）；缓冲布局 frame-major。
+- **并行边界（像素间并行、像素内串行）**: `lib/algorithms/coverage/src/integrate.cpp` 无任何
   线程原语——单像素栈归约按候选索引固定序，无跨 worker 浮点
   重结合。像素间并行发生在调用方: Stage2 `#pragma omp parallel
-  num_threads(workers)` :1288（条件 `!large_scale_active &&
-  effective_cpu_workers>1` :1280）+ `omp for schedule(static)`
-  :1298；ACR :218 + :228 schedule(static)。per-thread 统计按
-  thread id 固定顺序定序归并（stage2.cpp:1305-1313 注释冻结）。
+  num_threads(workers)`（条件 `!large_scale_active &&
+  effective_cpu_workers>1`）+ `omp for schedule(static)`；ACR 两处 schedule(static)。per-thread 统计按
+  thread id 固定顺序定序归并（`lib/algorithms/coverage/tools/stage2.cpp` 注释冻结）。
 - **合同表述（matrix 专项 parallel reduction tolerance）**:
   同输入同配置下，结果与 worker 数无关（1..N 线程 bitwise 一致）——
   像素内无并行归约、像素间无共享累加器、统计归并定序；large_scale
   激活强制串行。验证锚: synthetic_gate W9 LegacyLauncherEquivalent
-  :3021-3160（ACR launcher ↔ CPU reference 等价）；冻结容差见 §11.4。
+  （ACR launcher ↔ CPU reference 等价）；冻结容差见 §11.4。
 
 ## 7 与 SCI 的对应与偏差（如实登记）
 
-- SCI §5:55-60 伪码与本文档 §5 逐行同构（eligibility/wsum/vs/
+- SCI §5 伪码与本文档 §5 逐行同构（eligibility/wsum/vs/
   signal/support reducer/状态分支）。
-- **support reducer 唯一口径**: `max_{accepted} support[i]`（SCI §5:58、
-  integrate.h:26-27、SCI §2:21/§5:63/§7:75 同文，**本口径即全部口径**）。
-  `sup_max` 更新必须置于权重分支**之前**（integrate.cpp:49-50），
+- **support reducer 唯一口径**: `max_{accepted} support[i]`（SCI §5、`lib/algorithms/coverage/include/astro/phase2/integrate.h`、SCI §2/§5/§7 同文，**本口径即全部口径**）。
+  `sup_max` 更新必须置于权重分支**之前**（`lib/algorithms/coverage/src/integrate.cpp`），
   作用域 = 通过资格门的全部 accepted 样本；零权重 accepted 样本的
   support 必须进入 max。**禁用**把 `sup_max` 更新置于 `w==0 continue`
   之后——会使零权 accepted 样本的 support 被静默丢弃、低估 coverage 并集
   （负例判据见 §11.3）。回归门
-  eng/tests/unit/p2_output_semantics_test.cpp:85-107
+  `eng/tests/unit/p2_output_semantics_test.cpp`
   （4b/4c；`ctest -R p2_output_semantics`）。
-- SCI §5:63 声称与 "integrate.cpp:10-79" / "integrate.h:1-75"
-  一致——实测文件为 89 行/83 行（行号如实以本文档 §3 为准；
-  语义一致不含该行号范围漂移）。
+- SCI 曾以带行号区间的方式声称与本层实现一致——实测文件长度与该区间不符
+  （行号已随本轮行锚整改删除；语义一致不受影响）。
 
 ## 8 单位与 dtype 登记（唯一权威=DATA_SEMANTICS §21）
 
@@ -201,36 +196,36 @@ eligibility（逐候选 i，候选索引固定序）:
 
 | 条件 | 行为 | 实现锚 |
 |---|---|---|
-| count==0 / values==null | NO_CANDIDATES | :23-26 |
-| stack/result null | rc=1（status 不变） | :20-21 |
-| 非 finite values/support/weights、w<0 | INVALID_INPUT | :37/:38-42/:54-55 |
-| w==0（部分） | 合法零贡献（signal 与移除该样本等价） | :56 |
-| w==0（全部 accepted） | ZERO_VALID_WEIGHT（不做除法） | :56/:70-73 |
-| n_accepted==0 | ALL_REJECTED | :71 |
-| support 全空（null） | support=1.0（空支撑守恒） | :80/:84 |
-| n_used | = n_positive_weight（=通过门正权样本数） | :58/:61 |
+| count==0 / values==null | NO_CANDIDATES | `lib/algorithms/coverage/src/integrate.cpp` |
+| stack/result null | rc=1（status 不变） | 同上 |
+| 非 finite values/support/weights、w<0 | INVALID_INPUT | 同上 |
+| w==0（部分） | 合法零贡献（signal 与移除该样本等价） | 同上 |
+| w==0（全部 accepted） | ZERO_VALID_WEIGHT（不做除法） | 同上 |
+| n_accepted==0 | ALL_REJECTED | 同上 |
+| support 全空（null） | support=1.0（空支撑守恒） | 同上 |
+| n_used | = n_positive_weight（=通过门正权样本数） | 同上 |
 
 ## 10 已冻结禁改清单（本层不可接受变化）
 
-1. 五态枚举 name/value/顺序（integrate.h:45-51）。
-2. support canonical reducer 语义 = max(accepted support)（integrate.h:26-27
-   文本口径；`sup_max` 更新位置 = integrate.cpp:49-50，位于权重分支之前，
+1. 五态枚举 name/value/顺序（`lib/algorithms/coverage/include/astro/phase2/integrate.h`）。
+2. support canonical reducer 语义 = max(accepted support)（`lib/algorithms/coverage/include/astro/phase2/integrate.h`
+   文本口径；`sup_max` 更新位置 = `lib/algorithms/coverage/src/integrate.cpp`，位于权重分支之前，
    **语义解释与更新位置均取上列值**）。
-3. 零权重=合法零贡献（integrate.cpp:56 / SCI §10）。
+3. 零权重=合法零贡献（`lib/algorithms/coverage/src/integrate.cpp` / SCI §10）。
 4. 候选索引固定序归约（确定性合同，§6）。
 5. policy/reducer 分离（本层不引入权重策略；weights 数组外置）。
-6. 调用方对 pr.support 的用法 = 只消费（stage2.cpp:1525-1526
+6. 调用方对 pr.support 的用法 = 只消费（`lib/algorithms/coverage/tools/stage2.cpp`
    注释冻结；ACR 同型）。
 
 ## 11 冻结附录（SRC-P2-INT-001 源码实测）
 
 ### 11.1 逐符号锚
 
-见 §3 表（锚=`grep -n`/read 实测；行号一律照录实测值）。
+见 §3 表（锚=`grep`/read 实测；锚一律给到文件/符号级）。
 
 ### 11.2 返回码/状态码语义
 
-- rc: 0=语义由 status 承载；1=stack/result null（:20-21）。
+- rc: 0=语义由 status 承载；1=stack/result null（`lib/algorithms/coverage/src/integrate.cpp`）。
 - status: §4 表（五态互斥显式；wsum==0 无除法路径）。
 - 并发合同: reentrant=yes（无全局/静态可变状态，纯函数）；
   threadsafe=no（无内部锁，并发由调用方像素划分）；internal_parallel
@@ -239,18 +234,18 @@ eligibility（逐候选 i，候选索引固定序）:
 
 ### 11.3 support reducer 冻结约束与负例判据
 
-- **约束（`DISP-P2INT-001` 面）**：`sup_max` 更新必须位于权重分支**之前**（`integrate.cpp:49-50`；权重分支 =
-  `:51-57`，其中 `:56` 为 `if (w == 0.0) continue;`），作用域 = 通过资格门的全部
-  accepted 样本；零权重 accepted 样本的 support 必须进入 max，与 `integrate.h:26`
+- **约束（`DISP-P2INT-001` 面）**：`sup_max` 更新必须位于权重分支**之前**（``lib/algorithms/coverage/src/integrate.cpp``；权重分支内含
+  `if (w == 0.0) continue;`），作用域 = 通过资格门的全部
+  accepted 样本；零权重 accepted 样本的 support 必须进入 max，与 ``lib/algorithms/coverage/include/astro/phase2/integrate.h``
   的 `max(accepted support)` 冻结语义一致。回归门：
-  `eng/tests/unit/p2_output_semantics_test.cpp:85-107`（4b/4c）。
+  `eng/tests/unit/p2_output_semantics_test.cpp`（4b/4c）。
 - **禁用**把 `sup_max` 更新置于 `w == 0` 分支之后——会使零权 accepted 样本的 support
   被静默丢弃，低估 coverage 并集。**负例判据**：输入 `{support=0.2,0.3,0.9}`、
   `{w=1,1,0}`、全 accepted，必须输出 `support=0.9`；置于分支之后的实现输出
   `support=0.3` ⇒ 判红（证明该判据有判别力）；两臂 `signal` 逐位相同（=11），
   即 support 与 signal 正交。
 - **约束（`DISP-P2INT-002` 面）**：`docs/science/INTEGRATION.md` §5/§7、`docs/science/DATA_SEMANTICS.md` §21.5
-  与 `integrate.h:26-27` 的文本口径必须同为 `max_{accepted} support[i]`，
+  与 ``lib/algorithms/coverage/include/astro/phase2/integrate.h`` 的文本口径必须同为 `max_{accepted} support[i]`，
   **该口径即唯一口径**。
 
 ### 11.4 TEST-P2-INT-DESIGN-001 冻结测试设计（可执行 TEST-P2-INT-001 由 P2-INT-TEST 落地）
@@ -271,7 +266,7 @@ eligibility（逐候选 i，候选索引固定序）:
   零权重 accepted 且 support 不同的样本）→ signal 与移除该样本
   bitwise 等价；n_accepted/n_finite 计入、n_used/n_positive_weight
   不计；全零权重 → ZERO_VALID_WEIGHT 且计数器五元组精确断言
-  （synthetic_gate:4746-4760 先例）。
+  （synthetic_gate 先例）。
 - **F3 状态穷尽门**: 五态互斥覆盖 + p2_validate_candidate_weights
   负/NaN/Inf/null 各一例 + w<0/非 finite values/support/weights
   → INVALID_INPUT + rc=1 null 栈。
@@ -279,14 +274,14 @@ eligibility（逐候选 i，候选索引固定序）:
   （rtol 0）；support=null → 1.0；NaN/≤0 support → INVALID_INPUT。
 - **F5 DISP-P2INT-001 回归门**: 构造零权重 accepted 样本
   （support 高于正权样本）→ 断言输出 support=全局 max（按 header
-  :17 口径）。
+  注释口径）。
 - **F6 Python 参考 Oracle**（SCI §11）: NumPy 对同
   values/weights/support/accepted 复算 signal/support/status/
   全计数器，`rtol 1e-12`。
 - **F7 并行一致性门**（§6）: 同输入 1..N 线程（Stage2 路径
   workers∈{1,2,4}）signal/support bitwise 一致（无 rtol——像素内
   无并行归约）；ACR launcher ↔ CPU reference 等价（W9 先例
-  synthetic_gate:3021-3160）；per-thread 统计 thread id 定序归并
+  synthetic_gate）；per-thread 统计 thread id 定序归并
   幂等。
 - 冻结容差汇总: F1/F1b/F2/F4/F5/F7 = bitwise/rtol 0；F6 = rtol 1e-12
   （NumPy 参考域）；无其他容差（本层禁引入 epsilon）。
@@ -317,10 +312,10 @@ eligibility（逐候选 i，候选索引固定序）:
   algorithm_id）。
 - `ALG-INT-001`（SCI §12, p2_integrate_pixel 加权均值+max reducer）
   ⇒ 本文档 §3/§5；`ALG-INT-002`（p2_validate_candidate_weights）
-  ⇒ 本文档 §3/:10-17。两 ID 为共享 SCI 层 ALG 词汇，本文件不
+  ⇒ 本文档 §3（``lib/algorithms/coverage/src/integrate.cpp``）。两 ID 为共享 SCI 层 ALG 词汇，本文件不
   抢注、不重复登记（INDEX.yaml ALG-INT-001 path 绑定本文件后，
   经 §13 指向语义承接）。
-- `INTEGRATION_ZERO_WEIGHT_CONTRACT`（冻结名，integrate.h:5 注释）
+- `INTEGRATION_ZERO_WEIGHT_CONTRACT`（冻结名，`lib/algorithms/coverage/include/astro/phase2/integrate.h` 注释）
   = §5 零权重条款 + §10.3 冻结项。
 
 ## 13 追溯
@@ -333,7 +328,7 @@ eligibility（逐候选 i，候选索引固定序）:
   registry astrocs.phase2.integrate.md；
   INTEGRATION_ALGORITHMS.md（L2 文档，ID 语义由本文件承接）。
 - 消费者: stage2.cpp（DATA_SEMANTICS §20 域）/ acr_kernels.cpp
-  （ACR 域）/ module_adapters.cpp:723-741 descriptor 占位。
+  （ACR 域）/ `lib/infrastructure/scheduler/src/module_adapters.cpp` descriptor 占位。
 
 ## 参考文献与参考代码库（含许可证）
 

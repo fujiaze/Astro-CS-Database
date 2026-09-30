@@ -18,8 +18,8 @@
   `astrocs_p2_rejection.dll`（合同值，尚未存在；迁移目标未落地）。
 - 合同三件套：`lib/algorithms/rejection/`（README/module.yaml/memory.md；
   落位规则见 docs/detail/README.md）。
-- 生产源：`lib/algorithms/coverage/src/rejection.cpp`（2076 行，根 CMakeLists.txt
-  :336-346 astrocs_phase2 静态库成员，rejection.cpp 列于 :340）+
+- 生产源：`lib/algorithms/coverage/src/rejection.cpp`（2076 行，属根 `CMakeLists.txt` 的
+  astrocs_phase2 静态库成员）+
   签名头正本 `lib/algorithms/coverage/include/astro/phase2/rejection.h`
   （329 行）。模块页=本文件。
 - owner SA-xxx；depends_on_int=P2-UPM;CPU-005（P2-REJ 为 P2-INT 行本域被依赖项，勿混淆）；
@@ -28,7 +28,8 @@
 ## 职责与明确非职责
 
 - 职责：每像素候选栈排异决策——eligibility strided gather 单路径
-  （source_indices 权威映射 PHASE2_IVAR_WIRING，rejection.h:252-255，
+  （source_indices 权威映射 PHASE2_IVAR_WIRING，签名见
+  `lib/algorithms/coverage/include/astro/phase2/rejection.h`，
   compact 后 original slot 只经 source_indices 映射）→ planning 层
   AUTO 一次解析（生产默认 profile astrocs_adaptive_pixel（自研），档位表与阈值
   唯一正本 = `docs/detail/algorithms_phase2/12_rejection.md` §9 与
@@ -37,9 +38,9 @@
   MEDIAN_SIGMA/MINMAX，AUTO=10 永不进 kernel；per-sample reason u8
   0..3 与 stack status int 0..7 分离；判向冻结=低于 lower threshold→
   REJECTED_LOW、高于 upper→REJECTED_HIGH，禁原始值正负号判向，
-  rejection.h:20-21）→ large_scale 结构生长后处理（trail 扩张只增
+  同一 `rejection.h` 的判向冻结注）→ large_scale 结构生长后处理（trail 扩张只增
   不减，compact cosmic 不生长，默认关闭）。
-- 阈值/迭代权威锚定：rejection.cpp:1-12 冻结头注释"本文件为阈值/
+- 阈值/迭代权威锚定：`lib/algorithms/coverage/src/rejection.cpp` 冻结头注释"本文件为阈值/
   迭代权威实现"（阈值/迭代取值以该冻结头为准，漂移即违约）；AUTO 路由只按 N 的几何值选算法（per-pixel n_eff 不参与重选）。
 - 工作域归一 NONE/MEDIAN_CENTER/MEDIAN_SCALE（floor 1e-12，不除零）；
   mask 应用回原始 calibrated 值（经 source_indices 回映射）。
@@ -79,13 +80,13 @@
 ## 公共 header、核心 symbol 与生命周期
 
 - 签名头正本: lib/algorithms/coverage/include/astro/phase2/rejection.h
-  （329 行；方法枚举 :45-57、reason :71-77、status :79-90）。
-- 核心 symbol: p2_reject_plan_resolve（:191，AUTO 路由唯一解析点）、
-  p2_eligibility_filter（:222）、p2_collect_candidate_stack（:263，
-  生产 strided gather）、p2_reject_stack_ex（:287，生产入口）、
-  p2_rejection_semantic_id（:196）、p2_large_scale_apply（:295，
-  生产 stage2 唯一调用点）；compat p2_reject_stack（:325，仅测试路径调用，
-  :299 冻结注释"生产 Stage2 不调用"）。
+  （329 行；方法枚举 / reason / status 三处定义段）。
+- 核心 symbol（全部在 `lib/algorithms/coverage/include/astro/phase2/rejection.h` 声明、
+  `lib/algorithms/coverage/src/rejection.cpp` 定义）: p2_reject_plan_resolve（AUTO 路由唯一解析点）、
+  p2_eligibility_filter、p2_collect_candidate_stack（生产 strided gather）、
+  p2_reject_stack_ex（生产入口）、p2_rejection_semantic_id、p2_large_scale_apply
+  （生产 stage2 唯一调用点）；compat p2_reject_stack（仅测试路径调用，
+  同头文件有冻结注释"生产 Stage2 不调用"）。
 - 生命周期=调用方顺序 plan_resolve→gather→stack_ex→large_scale；
   无 create/destroy，无状态纯函数（reentrant）。
 
@@ -93,19 +94,19 @@
 
 module_id=`astrocs.phase2.reject`（占位）；execution_class=
 `cpu_heavy`；parallel_ok=True（p2_reject_descriptor）。
-配置=stage2_common.h reject_method/reject_profile/
-reject_underdetermined_n/reject_normalization(+floor 1e-12)/
-large_scale_*（stage2_common.h:52-63）+ typed params 唯一默认源=
-cfg（stage2.cpp:698-727）。
+配置=`lib/algorithms/coverage/include/astro/phase2/stage2_common.h` 的
+reject_method/reject_profile/reject_underdetermined_n/reject_normalization
+(+floor 1e-12)/large_scale_* + typed params 唯一默认源=
+cfg（`lib/algorithms/coverage/tools/stage2.cpp`）。
 
 ## Execution class、并行轴、ThreadBudget lease、确定性
 
-- `cpu_heavy`；并行轴=像素间（调用方 OMP: stage2.cpp:1288/:1298
-  schedule(static)、acr_kernels.cpp:218/:228 schedule(static)）；
+- `cpu_heavy`；并行轴=像素间（调用方 OMP：`lib/algorithms/coverage/tools/stage2.cpp`
+  与 `lib/algorithms/coverage/src/acr_kernels.cpp` 均用 schedule(static)）；
   rejection.cpp 无任何线程原语，逐样本独立判定、无跨样本归约 →
   **结果与 worker 数无关（1..N bitwise）**。
-- per-thread 统计 thread id 定序归并（stage2.cpp:1305-1313）；
-  large_scale 激活强制串行（stage2.cpp:1280 条件）。
+- per-thread 统计 thread id 定序归并（同 `stage2.cpp`）；
+  large_scale 激活强制串行（同 `stage2.cpp` 的分支条件）。
 - 确定性合同: 同输入同 plan 同 fid → decision bitwise；ESD
   tie-break=frame_id（1e-15 epsilon）、linear_fit 排序
   (value,orig_index) 字典序。
@@ -116,18 +117,19 @@ cfg（stage2.cpp:698-727）。
 ## 内存/cache/I-O/所有权
 
 无文件 I/O（纯函数）；kernel 内 n≤64 固定 scratch、>64 走堆
-（rejection.h:404）；scratch 所有权=调用方分配（reasons 缓冲等由
+（`lib/algorithms/coverage/include/astro/phase2/rejection.h`）；scratch 所有权=调用方分配（reasons 缓冲等由
 调用方提供，P2CandidateStack/P2RejectionDecision 调用方持有）；
 无内部 cache 与全局状态（reentrant=yes）。
 
 ## 错误、日志、指标、取消和 checkpoint
 
 - 错误面=八态 status（0..7）+ rc=1（null/非法参数；plan_resolve
-  null/出界/非法 profile；large_scale 参数非法 :2054-2060）；rc=0
+  null/出界/非法 profile；large_scale 参数非法，见
+  `lib/algorithms/coverage/src/rejection.cpp`）；rc=0
   时语义全由 status 承载（"科学状态"而非调用错误）。调用方合同:
-  status ∈ {OK, UNDERDETERMINED} 才可继续积分（stage2.cpp:1189-1195
+  status ∈ {OK, UNDERDETERMINED} 才可继续积分（`lib/algorithms/coverage/tools/stage2.cpp`
   冻结门）。
-- 无日志/指标输出（纯函数；编排层日志在 stage2.cpp:730-738）；
+- 无日志/指标输出（纯函数；编排层日志在 `lib/algorithms/coverage/tools/stage2.cpp`）；
   无内部取消检查点/checkpoint（迁移 ThreadLease 接线待落地）。
 - known_defects（登记不改码；正本 = ALG-P2-REJ-001 §7/§11.3）:
   percentile low_fraction 注释「默认 0.1」与实现/SCI 权威 0.2 漂移（整改 =
@@ -145,8 +147,7 @@ small-N 状态穷尽、卫星注入 mask 精确、置换不变性 decision bitwi
 typed params 逐位、Python oracle rtol 1e-12、gather 逐元素精确；
 F1-F6/F8 无 epsilon 门、F7 rtol 1e-12、large_scale mask 精确）。
 现状相邻证据（引用不冒认）: lib/algorithms/coverage/tests/synthetic_gate.cpp
-R1/R2/LinearFit/Rcr/G4（:2639-2725）+ G6（ESD NIST Rosner54
-:2779-2863）+ V15-V17（:4138-4864）；eng/tests/backend/
+R1/R2/LinearFit/Rcr/G4 + G6（ESD NIST Rosner54）+ V15-V17；eng/tests/backend/
 test_p2004_reject_integrate.py（P2-004 生产 Oracle）；eng/tests/unit/
 p2_rejection_test.cpp（P2-005 语义 id/解析面）。
 

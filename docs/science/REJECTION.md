@@ -22,8 +22,8 @@
 | `method` | `None/Sigma/Winsorized/AveragedSigma/LinearFit/GeneralizedESD/RCR` | `P2RejectionMethod` |
 | `profile` | `astrocs_adaptive_pixel`（**生产默认，Astro Celestial Sphere Database（ACSD） 自研**）/ `wbpp_2_9_1`（对照档）/ `wbpp_current`(alias) / `astrocs_adaptive`（可调档） | `plan` |
 | `large_scale` | 结构生长开关及参数 | `P2RejectionLargeScaleConfig` |
-| `P2_REASON_*` | `ACCEPTED/REJECTED_LOW/REJECTED_HIGH/UNDERDETERMINED` | `rejection.h:100-103` |
-| `P2_STATUS_*` | `OK/MIN_SAMPLES/ALL_REJECTED/INVALID_INPUT/UNDERDETERMINED/...` | `rejection.h:108-115` |
+| `P2_REASON_*` | `ACCEPTED/REJECTED_LOW/REJECTED_HIGH/UNDERDETERMINED` | `lib/algorithms/coverage/include/astro/phase2/rejection.h` |
+| `P2_STATUS_*` | `OK/MIN_SAMPLES/ALL_REJECTED/INVALID_INPUT/UNDERDETERMINED/...` | `lib/algorithms/coverage/include/astro/phase2/rejection.h` |
 
 ## 3 物理量和单位
 

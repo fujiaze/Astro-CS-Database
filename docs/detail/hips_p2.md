@@ -6,7 +6,7 @@
 > `lib/algorithms/coverage/hips_p2/`（README + module.yaml + memory.md，CONTRACT_READY，
 > entrypoint 未落地）；落位规则见 docs/detail/README.md。
 > 唯一生产源 `lib/algorithms/coverage/tools/stage2.cpp`（1762 行，astrocs-stage2 工具，
-> lib/algorithms/coverage/CMakeLists.txt:103-110）+ config 层
+> lib/algorithms/coverage/CMakeLists.txt）+ config 层
 > `lib/algorithms/coverage/include/astro/phase2/stage2_common.h`；共用 writer 库
 > `lib/infrastructure/aio/src/hips/aio_hips_writer.cpp` 为 P1-HIPS 冻结域
 > （ALG-HIPS-001..005），本模块为库消费者；`lib/infrastructure/aio/healpix_db` 侧生产参与
@@ -64,5 +64,5 @@
 设计内容与容差来源=
 ALG-P2-HIPS-001..004（PHASE2_MOSAIC_WRITE.md §8/§9）。现状相邻证据：
 phase2_synthetic_gate ACR mosaic_reject_legacy↔CPU 等价
-（synthetic_gate.cpp:3021-3160）、eng/tests/api/test_reject_integration_oracle.py
+（lib/algorithms/coverage/tests/synthetic_gate.cpp）、eng/tests/api/test_reject_integration_oracle.py
 （引用不冒认）。

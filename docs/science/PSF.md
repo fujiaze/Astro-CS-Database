@@ -13,14 +13,14 @@
 
 | 符号 | 含义 | 出现位置 |
 |---|---|---|
-| `I(r)` | 点源强度模型 `B + A/(1+Q)^4` | `dpsf_psf.cpp:13-18` |
-| `Q` | 二次型 `p1·dx²+2p2·dxdy+p3·dy²` | `dpsf_psf.cpp:66-95` |
+| `I(r)` | 点源强度模型 `B + A/(1+Q)^4` | `lib/algorithms/psf/src/dpsf_psf.cpp` |
+| `Q` | 二次型 `p1·dx²+2p2·dxdy+p3·dy²` | 同上 |
 | `dx,dy` | 相对坐标 `x−(cx+x0), y−(cy+y0)` | 同上 |
 | `B,A,x0,y0,sx,sy,θ` | Moffat4 7 参数 | `lm_solve` 7-vector |
 | `σ,sx,sy` | 各向同性 σ / 各向异性轴尺度 (px) | FWHM 推导 |
 | `e` | 离心率 `√(1−(s_min/s_max)²)` | 椭率 |
 | `fwhm_x/y` | 轴向 FWHM `1.230310·s` | `MOFFAT4_FWHM_FACTOR` |
-| `flux` | 解析通量 `2πA·sxsy/3` (β=4) | `dpsf_psf.cpp:651-652` |
+| `flux` | 解析通量 `2πA·sxsy/3` (β=4) | 同上 |
 | `residual_scale` | 10–90% trimmed mean \|residual\| | PSF 块第8列 |
 | `robust_residual_sigma` | `residual_scale/0.7316727929211932` | Gaussian 假设 |
 | `q_psf` | `A/residual_scale` 拟合质量代理 | 剔星/QA |
@@ -48,7 +48,7 @@ PSF 拟合在**像素域小窗口**内进行：相对坐标 `dx,dy=x−(cx+x0),y
 
 ## 4 输入有效域
 
-- 图像 `uint16_t`/`float32`，维度 `w>0,h>0`，拟合窗口 `fitRadius` 使 `rect` 在图像内且面积 `rw*rh > 0`，否则返回 `DPSF_FIT_INVALID_PARAMS`（= 2，`dpsf_psf.cpp:499-504`；非有限像素在采样阶段被跳过，全部非有限时同码返回，`:284-311`）。
+- 图像 `uint16_t`/`float32`，维度 `w>0,h>0`，拟合窗口 `fitRadius` 使 `rect` 在图像内且面积 `rw*rh > 0`，否则返回 `DPSF_FIT_INVALID_PARAMS`（= 2，见 `lib/algorithms/psf/src/dpsf_psf.cpp`；非有限像素在采样阶段被跳过，全部非有限时同码返回，同文件）。
 - 初始幅度 `A0 = max_val − bkg0 > 0`，否则 `LOG_WARN Amplitude<=0` 并拒。
 - `sx>0, sy>0`，否则 `Invalid fit params` 拒；`B` 受 `bkg0` 约束（`Background constraint violated`）。
 
@@ -67,17 +67,17 @@ dx = x−(cx+x0), dy = y−(cy+y0)
 flux = 2πA·sxsy/3   (整平面延伸假设；对任意 sx,sy,θ 成立，见下)
 ```
 
-与 `lib/algorithms/psf/src/dpsf_psf.cpp:24-25,84-118,222-254,426-432` 一致。
+与 `lib/algorithms/psf/src/dpsf_psf.cpp`（`MOFFAT4_FWHM_FACTOR` 定义、二次型 p1/p2/p3、`Q` 组装、统计量定义）一致。
 
 **FWHM 因子的精确值与适用域**
 
 - 精确值 `2√2·√(2^{1/4}−1) = 1.230307652590102`（FP64 闭式，可复算；
   独立数值反解 `(1+r²/α²)^4=2` 得 1.2303072，一致到 4e-7）。
-- 实现常量 `MOFFAT4_FWHM_FACTOR = 1.230310`（`dpsf_psf.cpp:25`）与精确值
+- 实现常量 `MOFFAT4_FWHM_FACTOR = 1.230310`（`lib/algorithms/psf/src/dpsf_psf.cpp`）与精确值
   相对差 **+1.91e-6**（FWHM 相对误差 1.9e-6，远小于 §9 的 1% 容差）。
 - **适用域**：仅对 **β = 4 且各向同性**成立；β≠4 时
   `FWHM = 2α√(2^{1/β}−1)`，各向异性时按轴分别 `FWHM_x = 1.230310·sx`、
-  `FWHM_y = 1.230310·sy`（`dpsf_psf.cpp:393-394`）。
+  `FWHM_y = 1.230310·sy`（`lib/algorithms/psf/src/dpsf_psf.cpp`）。
 - 证据：`run/SCI-FIX-STARPSF-01/results/e1_constants.txt` §A。
 
 **`flux` 的适用域与窗口截断修正**
@@ -90,7 +90,7 @@ flux = 2πA·sxsy/3   (整平面延伸假设；对任意 sx,sy,θ 成立，见�
 - **截断适用域**：上式是**整平面**（r→∞）积分；发布值对应拟合窗口半径 `r_win`
   时，窗口外通量占比有闭式
   `f_out(r_win) = (1 + r_win²/α²)^{−3}`（β=4；各向同性 `α=√2σ`）。
-  典型拟合窗 `r_win = 3.7172·σ`（`sdet_api.cpp:2071-2074` 的 `s_factor`）
+  典型拟合窗 `r_win = 3.7172·σ`（`lib/algorithms/star_detection/src/sdet_api.cpp` 的 `s_factor`）
   ⇒ `r_win/α = 2.629`、`f_out = 2.02e-3`，即发布 flux 相对窗内积分通量
   **偏高 0.20%**。**当 `r_win/α < 1`（`r_win < 1.41σ`）时 `f_out > 3.1%`**，
   该域下 flux 的语义 = 窗内积分通量。
@@ -103,23 +103,23 @@ flux = 2πA·sxsy/3   (整平面延伸假设；对任意 sx,sy,θ 成立，见�
 
 - **FWHM 缩放不变量**：各向同性 Moffat4 的 `FWHM/σ` 比值恒为 `1.230307652590102`（σ = 模型参数口径 √⟨r²⟩，见 §16；实现常量 1.230310 与精确值相对差 +1.91e-6）；σ_g = α/2 口径下该比值为 1.7399178387，两口径恒差 √2，禁止互换。与 `A,B` 无关。
 - **积分一致性**：各向同性 `σ` 的解析 `flux` 在数值积分（足域）内与 `A,σ` 的 `2πAσ²/3` 比例一致（误差仅离散域/截断）。
-- **旋转简并不变量**：`θ` 四候选 `{θ,π/2−θ,π/2+θ,π−θ}` 中以 trimmed-mad 最小者消歧后，`fwhm_x/y` 与方向无关（`dpsf_psf.cpp:634-645`）。
+- **旋转简并不变量**：`θ` 四候选 `{θ,π/2−θ,π/2+θ,π−θ}` 中以 trimmed-mad 最小者消歧后，`fwhm_x/y` 与方向无关（`lib/algorithms/psf/src/dpsf_psf.cpp`）。
 - **平移不变量**：整帧平移 `Δ` 后拟合中心 `cx+x0` 同步平移 `Δ`（子像素插值误差内）。
 
 ## 8 极端/退化条件
 
 | 条件 | 行为 | 证据 |
 |---|---|---|
-| 空 `rect`/越界 | 返回错误 `DPSF_ERR_PARAM` | `dpsf_psf.cpp:786`（`dpsf_fit: empty rect`，`dpsf_fit_batch_*` 同判据见 `:1180`/`:1351`） |
-| `A<=0` / `max<=bkg` | `WARN Invalid fit params` 拒（`DPSF_STAGE_INVALID_PARAMS`） | `dpsf_psf.cpp:609-613` |
-| `sx<=0`/`sy<=0`/非有限 | `WARN Invalid fit params` 拒（同判据含 `sx<=0.3`/`sy<=0.3` 下界）；迭代内的 `sx<=0‖sy<=0` 以 `1e10` 哨兵残差规避 | `dpsf_psf.cpp:609-613`；哨兵 `:237-238` |
-| FWHM 超窗 | `WARN FWHM exceeds rect`（`DPSF_STAGE_FWHM_GT_RECT`） | `dpsf_psf.cpp:619-623` |
-| LM 不收敛 | 返回非零 `status`（`DPSF_FIT_ITERATION_LIMIT`），成本 `cost` 上报；背景约束违反另判 `DPSF_STAGE_BKG_CONSTRAINT` | `dpsf_psf.cpp:411`；`:627-632` |
+| 空 `rect`/越界 | 返回错误 `DPSF_ERR_PARAM` | `lib/algorithms/psf/src/dpsf_psf.cpp`（`dpsf_fit: empty rect`；`dpsf_fit_batch_*` 同判据，同文件） |
+| `A<=0` / `max<=bkg` | `WARN Invalid fit params` 拒（`DPSF_STAGE_INVALID_PARAMS`） | `lib/algorithms/psf/src/dpsf_psf.cpp` |
+| `sx<=0`/`sy<=0`/非有限 | `WARN Invalid fit params` 拒（同判据含 `sx<=0.3`/`sy<=0.3` 下界）；迭代内的 `sx<=0‖sy<=0` | 以 `1e10` 哨兵残差规避 | `lib/algorithms/psf/src/dpsf_psf.cpp`（哨兵同文件） |
+| FWHM 超窗 | `WARN FWHM exceeds rect`（`DPSF_STAGE_FWHM_GT_RECT`） | `lib/algorithms/psf/src/dpsf_psf.cpp` |
+| LM 不收敛 | 返回非零 `status`（`DPSF_FIT_ITERATION_LIMIT`），成本 `cost` 上报；背景约束违反另判 `DPSF_STAGE_BKG_CONSTRAINT` | `lib/algorithms/psf/src/dpsf_psf.cpp` |
 | 无星/密集混淆 | 上游采样为空 → 显式 NO_DATA | 调用方 |
 
 ## 9 精度策略
 
-- FP64 拟合 LM 求解器 `lm_solve`（`dpsf_psf.cpp:292-411`），仅 7 参数 Moffat4 路径；`kTrimMeanToSigma=0.7316727929211932` 解析常数（`noise_model.cpp:95`）用于 `robust_residual_sigma`。
+- FP64 拟合 LM 求解器 `lm_solve`（`lib/algorithms/psf/src/dpsf_psf.cpp`），仅 7 参数 Moffat4 路径；`kTrimMeanToSigma=0.7316727929211932` 解析常数（`lib/algorithms/noise_snr/cpp/src/noise_model.cpp`）用于 `robust_residual_sigma`。
 - **`kTrimMeanToSigma` 的闭式推导（可独立复算）**：设残差 `r ~ N(0, σ²)`，
   `|r|` 服从半正态。10% / 90% 分位点
   `a = Φ⁻¹(0.55) = 0.125661346855·σ`、`b = Φ⁻¹(0.95) = 1.644853626951·σ`；
@@ -132,7 +132,7 @@ flux = 2πA·sxsy/3   (整平面延伸假设；对任意 sx,sy,θ 成立，见�
   0.8648 ⇒ **非高斯残差下偏差可达 ±18%**。残差含未建模源/宇宙线/邻星时
   `robust_residual_sigma` 的语义 = 相对残差尺度（绝对 σ 标度随残差分布而变）。证据同上 §C。
 - **实现截尾边界的有限-m 效应**：`compute_trimmed_mad` 取
-  `lo = int(0.1·m)`、`hi = int(0.9·m)`（`dpsf_psf.cpp:248-249`），两端裁剪
+  `lo = int(0.1·m)`、`hi = int(0.9·m)`（`lib/algorithms/psf/src/dpsf_psf.cpp`），两端裁剪
   **不对称**（`m` 非 10 的整数倍时上端多裁）。实测 `E[该统计量]/σ`：
   `m`=121 → 0.72448（**−0.98%**）、`m`=169 → 0.72822（−0.47%）、
   `m`=441 → 0.72959（−0.28%）、`m`=1024 → 0.73090（−0.11%）、
@@ -168,7 +168,7 @@ flux = 2πA·sxsy/3   (整平面延伸假设；对任意 sx,sy,θ 成立，见�
 ## 13 追溯与测试
 
 - 权威文件: `docs/science/PSF.md` (SCI-PSF-001)
-- 实现: `lib/algorithms/psf/src/dpsf_psf.cpp` (`dpsf_fit/batch, lm_solve, MOFFAT4_FWHM_FACTOR, compute_trimmed_mad`), `lib/algorithms/noise_snr/cpp/src/noise_model.cpp:95`
+- 实现: `lib/algorithms/psf/src/dpsf_psf.cpp` (`dpsf_fit/batch, lm_solve, MOFFAT4_FWHM_FACTOR, compute_trimmed_mad`), `lib/algorithms/noise_snr/cpp/src/noise_model.cpp`
 - 公开 API: `lib/algorithms/psf/include/dynamic_psf.h` (`dpsf_fit, dpsf_fit_batch`)
 - 测试: `TST-PSF-001` 解析一致性、`TST-PSF-INV-*` 三门、`TST-PSF-FAIL-*` 参数校验（新增/映射见 `docs/TRACEABILITY.csv`）
 

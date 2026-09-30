@@ -416,7 +416,7 @@ code/trim_scan.py 对 **1512 个 signal + support 瓦片**计算「有效域包�
 
 复用 MEM-DESIGN-01 的**忠实/代理口径**（code/acc_roundtrip.py，与
 run/MEM-DESIGN-01/verify/compress_faithful.py 同一重建运算）：
-由真实叶级发布面按 aio_hips_writer.cpp:1341-1355 的逐位运算重建祖先 cell 的 f64 累加器：
+由真实叶级发布面按 lib/infrastructure/aio/src/hips/aio_hips_writer.cpp 的逐位运算重建祖先 cell 的 f64 累加器：
 
     z = ((s<<18) | i) >> 2·dk ;  flux = (double)(float)signal × (double)(float)area
     area = (double)(float)area ;  acc[z] += flux / area     （叶按 ipix 升序、i 升序 = 生产同序）

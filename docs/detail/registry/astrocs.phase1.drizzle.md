@@ -33,14 +33,14 @@ master/校准/坏点（P1-CAL/P1-COS）；Phase2 统计合并；线程授予
 > 其对齐属迁移目标（未落地）。
 
 invalid：现行实现为
-值 NaN 经 `F_p` **传播、不掩膜**（`docs/science/DRIZZLE.md:116`；`lib/algorithms/drizzle/healpix_drizzle/drizzle_engine.cpp:1899-1902`；
-回归 `p1drz_tests_core.cpp:518-537`）；pixfrac∈(0,1]
+值 NaN 经 `F_p` **传播、不掩膜**（`docs/science/DRIZZLE.md`；`lib/algorithms/drizzle/healpix_drizzle/drizzle_engine.cpp`；
+回归 `p1drz_tests_core.cpp`）；pixfrac∈(0,1]
 引擎层严格拒绝；仅 NESTED；covered_area≤0 → variance 记 NaN
 （finalize 层合法输出）。
 
 ## 公共 header、核心 symbol 与生命周期
 
-现状 C ABI（lib/algorithms/drizzle/healpix_drizzle/hp_drizzle_api.h:58,78,86,102,131,187）：
+现状 C ABI（lib/algorithms/drizzle/healpix_drizzle/hp_drizzle_api.h，六导出）：
 hp_drizzle_fits_to_ahpx / hp_drizzle_run / hp_drizzle_run_hips /
 hp_drizzle_reverse_run / hp_drizzle_reverse_capability /
 hp_drizzle_reverse_version（API-DRZ-001，PUBLIC_API.md）。编排级
@@ -58,10 +58,10 @@ header KV "PRECISION"）；版本化 schema 由冻结。
 ## Execution class、并行轴、ThreadBudget lease、确定性
 
 `cpu_heavy`；并行轴=源图像行（schedule(static) 条带 + per-thread
-tile 累加器，drizzle_engine.cpp:1671）；**1/N 确定性**=同输入
+tile 累加器，drizzle_engine.cpp）；**1/N 确定性**=同输入
 同线程数 bitwise 可复现（按线程序合并 touched leaf，
-:1762-1785）；跨线程数浮点和序不同不保证 bitwise。ThreadLease
-零命中（omp 内部通道，CMakeLists.txt:379-382）——迁移整改。
+drizzle_engine.cpp）；跨线程数浮点和序不同不保证 bitwise。ThreadLease
+零命中（omp 内部通道，CMakeLists.txt）——迁移整改。
 
 ## 内存/cache/I-O/所有权
 

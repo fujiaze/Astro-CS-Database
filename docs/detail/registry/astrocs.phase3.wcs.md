@@ -54,12 +54,12 @@
 | `wcs_plan` | `DATA-P3-WCS`（§28 实际承载=构造入参/映射面） | 可 | `UnitId::DEGREE` | `CoordinateFrame::ICRS` deg + 0-based px + CD deg/px，FP64 |
 
 - invalid 权威源=DATA-P3-WCS §28：parity 非法/|dec|>85°/scale≤0/
-  W,H∉[1,20000]→P3_WCS_PARAM（p3_wcs.cpp:39-43）；映射空指针→
-  PARAM（:95/:122）；world2pix |dec|>85°→PARAM（:123）、|det|<
-  1e-300→PARAM（:137）；r≥π/2（:104）/denom≤0（:130）→
-  P3_WCS_HEMISPHERE；make 四角守卫失败码透传（:80-88）。
+  W,H∉[1,20000]→P3_WCS_PARAM（p3_wcs.cpp）；映射空指针→
+  PARAM（p3_wcs.cpp 两处）；world2pix |dec|>85°→PARAM（p3_wcs.cpp）、|det|<
+  1e-300→PARAM（p3_wcs.cpp）；r≥π/2/denom≤0→
+  P3_WCS_HEMISPHERE（均 p3_wcs.cpp）；make 四角守卫失败码透传（p3_wcs.cpp）。
 - 坐标冻结: 天球=ICRS deg（RA 归一 [0,360)）；像素=0-based 入参/
-  出参（FITS 1-based=+1，:97-98/:140-141），crpix 本身 FITS
+  出参（FITS 1-based=+1，见 p3_wcs.cpp），crpix 本身 FITS
   1-based pixel-center=(W+1)/2。
 - 端口词汇（props/wcs_plan、DATA-P3-PROPS）为 descriptor 派生
   （p3_wcs_descriptor），其与 DATA-P3-WCS 的对齐属迁移目标（未落地），
@@ -68,17 +68,17 @@
 ## 4 公共 header、核心 symbol 与生命周期
 
 - 内核消费面=API-P3-PROJ-001（p3_wcs.h 签名头正本）:
-  `p3_wcs_make`（h:31-34，实现 :30-90）、`p3_wcs_pix2world`
-  （h:38-39，:93-118）、`p3_wcs_world2pix`（h:42-43，:120-143）、
-  `p3_wcs_fits_keywords`（h:46，:145-163）+ 数据结构
-  P3WcsDescriptor（h:11-20）/P3WcsStatus（h:22-27，OK=0/PARAM=1/
+  `p3_wcs_make`（p3_wcs.h 声明，p3_wcs.cpp 实现）、`p3_wcs_pix2world`
+  、`p3_wcs_world2pix`、
+  `p3_wcs_fits_keywords`（均在 p3_wcs.h 声明 / p3_wcs.cpp 实现）+ 数据结构
+  P3WcsDescriptor（p3_wcs.h）/P3WcsStatus（p3_wcs.h，OK=0/PARAM=1/
   UNSUPPORTED=2 无产生点/HEMISPHERE=3）。
 - 生命周期: 无状态纯函数（无 create/destroy；descriptor 由调用方
   持有，make 一次、映射 N 次）；会话编排面 API-P3-001 FROZEN 五段
-  create→validate→run→inspect→destroy 不变（p3_session.h:16-28），
-  run 内 make（p3_session.cpp:160）→worker 逐像素 pix2world（:232）。
+  create→validate→run→inspect→destroy 不变（p3_session.h），
+  run 内 make（p3_session.cpp）→worker 逐像素 pix2world（p3_session.cpp）。
 - 域际: DATA-P3-FITS 写路径 wcs 字段承载本 descriptor
-  （p3_output.cpp:157-182 关键词写、API-P3-FITS-001 消费面）。
+  （p3_output.cpp 关键词写、API-P3-FITS-001 消费面）。
 - 不新增/不修改任何 C 头/C ABI（本页为既有符号展开冻结）。
 
 ## 5 Registry descriptor 与配置 schema
@@ -95,14 +95,14 @@
 
 ## 6 冻结公式（G1/G2 摘要；权威源=ALG-P3-PROJ-IMPL-001 §6/§7）
 
-- G1（p3_wcs.cpp:51-111）: CRPIX=((W+1)/2,(H+1)/2)；PA=0 对角
+- G1（p3_wcs.cpp）: CRPIX=((W+1)/2,(H+1)/2)；PA=0 对角
   east_left diag(−s,+s)/east_right diag(+s,−s)；PA≠0 推广
   CD=R(−PA)·diag(sgn_x·s, sgn_y·s)，展开式 CD1_1=sgn_x·s·cosPA/
   CD1_2=sgn_y·s·sinPA/CD2_1=−sgn_x·s·sinPA/CD2_2=sgn_y·s·cosPA；
-  det(CD)=−s²<0 手性冻结；P0 缺陷修复已合并（:65-68）。
-- G2 正向（:93-118）: (ξ,η)=CD·(pix−CRPIX)→θ=atan(1/r)→球面角
+  det(CD)=−s²<0 手性冻结；P0 缺陷修复已合并（p3_wcs.cpp）。
+- G2 正向（p3_wcs.cpp）: (ξ,η)=CD·(pix−CRPIX)→θ=atan(1/r)→球面角
   （Calabretta & Greisen 2002 形式）→RA wrap [0,360)。
-- G2 反向（:120-143）: gnomonic (ξ,η)→δ=CD⁻¹·(ξ,η)→0-based 像素。
+- G2 反向（p3_wcs.cpp）: gnomonic (ξ,η)→δ=CD⁻¹·(ξ,η)→0-based 像素。
 - 容差: roundtrip **紧门** <1e-8 px（SCI §7 冻结；适用域与门限由
   `p3_wcs_applicability()` 单一事实源给出，`kTanApplicability`）——
   **适用域 `scale ≥ min_scale_arcsec = 0.9″/px`**，
@@ -114,21 +114,21 @@
 ## 7 执行类、并行轴、ThreadBudget lease、确定性
 
 - execution_class=cpu_heavy；内核纯函数无内部并行轴（0 处
-  thread/mutex/omp/全局可变量，p3_wcs.cpp:12-27）——const-only
+  thread/mutex/omp/全局可变量，p3_wcs.cpp）——const-only
   入口多线程并发安全；RT-006 线程泄漏守卫结构性满足。
-- 并行仅上游 worker 池（p3_session.cpp:247-253，worker=
+- 并行仅上游 worker 池（p3_session.cpp，worker=
   ThreadBudget.max_workers，禁 hardware_concurrency）；本域逐像素
-  调用（:232）失败 continue（半球外像素 NaN）。
+  调用（p3_session.cpp）失败 continue（半球外像素 NaN）。
 - 确定性: 同入参 bitwise（无求和序）；双平台数值合同由测试层
   承载（§9 T6）。
 
 ## 8 实测偏差与现行语义（权威源 = ALG-P3-PROJ-IMPL-001 §11）
 
-- PA 未接线: p3_session.cpp:160 rotation_pa_deg 恒 0.0（内核能力无会话消费方）。
-- kMaxSide=20000 可 ASTROCS_P3_MAX_SIDE 编译期覆盖（:18-22）——默认值语义
+- PA 未接线: p3_session.cpp rotation_pa_deg 恒 0.0（内核能力无会话消费方）。
+- kMaxSide=20000 可 ASTROCS_P3_MAX_SIDE 编译期覆盖（p3_wcs.cpp）——默认值语义
   如实冻结。
 - 产品声明门 `p3_proj_declare` 对非 TAN 码显式返回 `P3_WCS_UNSUPPORTED`
-  （含已支持清单），`p3_wcs.cpp:98-99` 经 `p3_proj_is_implemented` 产生该状态；
+  （含已支持清单），`p3_wcs.cpp` 经 `p3_proj_is_implemented` 产生该状态；
   8 冻结码 = `TAN/SIN/CAR/AIT/STG/MOL/CEA/ZEA`，声明/实现集当前 = `{TAN}`。
 - astrocs_p3_projection.dll 未建（entrypoint 未落地）；探针/回归为内联编译。
 - 其余见 docs/KNOWN_LIMITATIONS.md 与 ALG-P3-PROJ-IMPL-001 §13 合同边界。
@@ -142,7 +142,7 @@
 - 本节承载 TEST-P3-WCS-001 登记面；可执行面待建（验收级 oracle=WCSLIB）。
 - 现状执行测试（相邻证据，引用不冒认）:
   eng/tests/unit/p3_wcs_test.cpp（WCS 完整性/溢出检查）+
-  eng/tests/backend/test_p1002_gaps.py（独立解析解回归 :115-138）+
+  eng/tests/backend/test_p1002_gaps.py（独立解析解回归）+
   eng/tests/backend/p3_wcs_main.cpp（探针 make/p2w/w2p/kw）。
 - 执行证据：NOT_VERIFIED（验收证据待补）。
 

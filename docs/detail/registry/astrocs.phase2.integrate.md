@@ -24,11 +24,12 @@
 
 - 职责：逐像素加权积分 reducer——signal=Σwᵢxᵢ/Σwᵢ（仅 eligible ∧
   正权重样本，候选索引固定序）+ support canonical reducer
-  （integrate.h:26-27 "max(accepted support)" 冻结语义，零权重 accepted
-  样本计入、全零权仍发布，integrate.cpp:44-50/:79-80）+ 五态显式
-  status + p2_validate_candidate_weights 输入预检（:10-17）。
+  （`lib/algorithms/coverage/include/astro/phase2/integrate.h` 冻结
+  "max(accepted support)" 语义，零权重 accepted 样本计入、全零权仍发布，
+  实现见 `lib/algorithms/coverage/src/integrate.cpp`）+ 五态显式
+  status + p2_validate_candidate_weights 输入预检（同上 `integrate.cpp`）。
 - 非职责：权重策略（外部 numeric weights，构造在 Stage2
-  :1106-1140，policy/reducer 分离冻结）、排异/eligibility gather
+  `lib/algorithms/coverage/tools/stage2.cpp`，policy/reducer 分离冻结）、排异/eligibility gather
   （P2-REJ）、马赛克编排/逆归一化（Stage2 域）、内部并行（像素级
   纯函数）。
 
@@ -48,16 +49,15 @@
 输出 P2PixelResult（signal f64 ADU/support f64 [0,1]/五计数器/status
 0..4）。invalid 显式化: 非法输入→INVALID_INPUT、无候选→
 NO_CANDIDATES、全拒→ALL_REJECTED、全零权重→ZERO_VALID_WEIGHT——
-取值 = 上述错误码之一（0/±Inf 属非法值；§4 同源条款；wsum==0 不做除法，integrate.cpp:65-69）。
+取值 = 上述错误码之一（0/±Inf 属非法值；§4 同源条款；wsum==0 不做除法，见 `lib/algorithms/coverage/src/integrate.cpp`）。
 
 ## 公共 header、核心 symbol 与生命周期
 
 - 签名头正本: lib/algorithms/coverage/include/astro/phase2/integrate.h
-  （P2PixelStack :36-42 / P2IntegrateStatus :45-51 / P2PixelResult
-  :53-63 / 函数声明 :58-66）。
-- 核心 symbol: p2_integrate_pixel（integrate.cpp:19-74，唯一生产
-  入口 C ABI）、p2_validate_candidate_weights（:10-17，调用方
-  stage2.cpp:1141/:1402 预检）。
+  （P2PixelStack / P2IntegrateStatus / P2PixelResult 三处结构体定义与函数声明段）。
+- 核心 symbol: p2_integrate_pixel（`lib/algorithms/coverage/src/integrate.cpp`，
+  唯一生产入口 C ABI）、p2_validate_candidate_weights（同上文件，调用方
+  `lib/algorithms/coverage/tools/stage2.cpp` 内两处预检）。
 - 编排生命周期 create→validate→run→inspect→destroy 由 session 工厂承接，
   本内核为无状态纯函数。
 - C API 面: API-P2-INT-001（PUBLIC_API.md 登记）+
@@ -72,11 +72,11 @@ module_id=`astrocs.phase2.integrate`（占位）；execution_class=
 
 ## Execution class、并行轴、ThreadBudget lease、确定性
 
-- `cpu_heavy`；并行轴=像素间（调用方 OMP: stage2.cpp:1288/:1298
-  schedule(static)、acr_kernels.cpp:218/:228 schedule(static)）；
+- `cpu_heavy`；并行轴=像素间（调用方 OMP：`lib/algorithms/coverage/tools/stage2.cpp`
+  与 `lib/algorithms/coverage/src/acr_kernels.cpp` 均用 schedule(static)）；
   像素内候选归约固定序、无跨 worker 浮点重结合 → **结果与 worker
   数无关（1..N bitwise）**；per-thread 统计 thread id 定序归并
-  （stage2.cpp:1305-1313）；large_scale 激活强制串行（:1280 条件）。
+  （同 `stage2.cpp`）；large_scale 激活强制串行（同 `stage2.cpp` 的分支条件）。
 - worker 数=ThreadBudget.max_workers（禁 hardware_concurrency）；
   lease/取消检查点接线属迁移整改面（未落地）。
 - determinism=fixed_reduction_order（module.yaml 合同值）。
@@ -84,18 +84,20 @@ module_id=`astrocs.phase2.integrate`（占位）；execution_class=
 ## 内存/cache/I-O/所有权
 
 无 I/O（纯函数）；scratch buffer 所有权=调用方（P2PixelStack/
-P2PixelResult 调用方分配，integrate.h:36-42/:53-63）；无内部 cache
+P2PixelResult 调用方分配，签名定义见
+  `lib/algorithms/coverage/include/astro/phase2/integrate.h`）；无内部 cache
 与全局状态（reentrant=yes）。
 
 ## 错误、日志、指标、取消和 checkpoint
 
-- 错误面=五态 status + rc=1（null 栈，:20-21）；无日志/指标输出
+- 错误面=五态 status + rc=1（null 栈，见 `lib/algorithms/coverage/src/integrate.cpp`）；无日志/指标输出
   （纯函数）；无内部取消检查点/checkpoint（迁移 ThreadLease 接线属迁移目标，未落地）。
 - 已知缺陷：无未决项。原 `DISP-P2INT-001`/`DISP-P2INT-002` 已落地——sup_max
-  更新位于权重分支之前（integrate.cpp:44-50），零权重 accepted 样本计入 max，
-  全零权（ZERO_VALID_WEIGHT）仍发布该 max（:79-80）、ALL_REJECTED 保持 0（:21）；
-  support 表述已三面同步（INTEGRATION.md:85-90 / integrate.h:26-27 /
-  DATA_SEMANTICS.md §21.2/§21.5）。正本 = PHASE2_INTEGRATION.md §11.3（约束 + 回归门
+  更新位于权重分支之前（`lib/algorithms/coverage/src/integrate.cpp`），零权重 accepted 样本计入 max，
+  全零权（ZERO_VALID_WEIGHT）仍发布该 max、ALL_REJECTED 保持 0（同上文件）；
+  support 表述已三面同步（`docs/science/algorithms/PHASE2_INTEGRATION.md` §3 锚表 /
+  `lib/algorithms/coverage/include/astro/phase2/integrate.h` /
+  `docs/science/DATA_SEMANTICS.md` §21.2/§21.5）。正本 = PHASE2_INTEGRATION.md §11.3（约束 + 回归门
   eng/tests/unit/p2_output_semantics_test.cpp 4b/4c/4d）。
 
 ## 独立 synthetic 验证命令与容差
@@ -104,9 +106,9 @@ P2PixelResult 调用方分配，integrate.h:36-42/:53-63）；无内部 cache
 设计冻结（ALG-P2-INT-001
 §11.4: 常量场 bitwise/零权重惰性/五态穷尽/支撑 max 门/NumPy 参考
 rtol 1e-12/并行 1..N 线程 bitwise+ACR↔CPU 等价）。现状相邻证据
-（引用不冒认）: lib/algorithms/coverage/tests/synthetic_gate.cpp Phase2Integrate
-组 :4690-4760 + weight policy 门 :2941-2990 + ACR↔CPU 等价组
-:3021-3160；eng/tests/backend/test_p2004_reject_integrate.py。
+（引用不冒认）: `lib/algorithms/coverage/tests/synthetic_gate.cpp` 的
+Phase2Integrate 组 + weight policy 门 + ACR↔CPU 等价组；
+`eng/tests/backend/test_p2004_reject_integrate.py`。
 
 ## 已知限制
 

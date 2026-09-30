@@ -80,7 +80,7 @@ avx512 = `avx512f|avx512bw|avx512dq|avx512vl` = 928（声明集 ⊊ 编译所需
 | provider（能力探测/变体查询） | `astrocs_cpuprov_{baseline,avx2,avx512}.so` | `astrocs_provider_query_v1` | `lib/include/astrocs/abi/module_api_v1.h`（冻结） | `lib/infrastructure/pipeline/module_loader/secure_loader.c` | `providers.manifest.json` | `ASTROCS_PROVIDERS_MANIFEST` |
 
 - **入图口径（C-03 判词）**：provider 族是设计文档指定的 provider 实现面
-  （`docs/engineering/cpu/CPU_001_CAPABILITY_PROBE.md:96-98`、`CPU_003_AVX2_PROVIDER.md:13,88`），
+  （`docs/engineering/cpu/CPU_001_CAPABILITY_PROBE.md`、`docs/engineering/cpu/CPU_003_AVX2_PROVIDER.md`），
   且已被 `UT-CPU-BASELINE / UT-CPU-AVX2 / UT-CPU-AVX512` 覆盖，此前只是**未进构建目标**
   （`CHK-RETIRED-CODE` R4 把它列为未引用）⇒ 按裁决「属安装树分发的 ISA provider 集则必须入图」，
   本轮补入构建目标 + 清单校验 + 安装树登记，**不退役**（退役会删掉活的 CI 覆盖面并与 CPU 文档冲突）。

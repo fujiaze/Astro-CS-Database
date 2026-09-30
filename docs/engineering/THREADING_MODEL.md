@@ -56,7 +56,7 @@ W_eff = in_flight × min(inner_omp, K)        // 有效宽度（PERFORMANCE_MODE
 ⇒ **要 `W_eff` 达到帧内轴宽度必须 `K ≥ inner_omp`**；而 `K = inner_omp = num_threads` 时
 同时在飞的 scratch 份数 `= in_flight × inner_omp ≤ lease`（上式不变式）
 ⇒ **`K = num_threads` 是达成满宽的唯一最小取值，且总份数与轴形态无关**。
-故 `kScratchPoolCap` 由帧内轴派生（现行形态 = `drizzle_engine.cpp` 的 per-stripe scratch 池：强制按 stripe 索引升序左折叠归约，见 `:1857-1859` 与归约分支 `:2117-2142`）。
+故 `kScratchPoolCap` 由帧内轴派生（现行形态 = `drizzle_engine.cpp` 的 per-stripe scratch 池：强制按 stripe 索引升序左折叠归约，见其左折叠归约注释与归约分支（同文件内）。
 
 **口径统一（R-30：两轴并行 vs 内核不嵌套 · 唯一预算源 · 三命令进程边界）**
 
@@ -101,8 +101,8 @@ W_eff = in_flight × min(inner_omp, K)        // 有效宽度（PERFORMANCE_MODE
 `p1_max_frames_in_flight` 收紧（唯一数值源 = `eng/packaging/config/runtime_resources.json`
 → 生成头 → `module_adapters.cpp#p1_parallel_for`）；缺省 `0` = 不设上限，派生口径与本节不变，
 且实现侧只收紧不放大（fail-closed：收紧后 `in_flight × inner_u ≤ budget` 不变）。
-依据 `docs/ASTROCS_DESIGN.md` §8.3:652（帧并发度属编排参数，基于探针实测迭代）与
-`docs/engineering/SCHEDULER_CONTRACT.md`:38（最终取值由性能门定，合同只保证机制正确）。
+依据 `docs/ASTROCS_DESIGN.md` §8.3（帧并发度属编排参数，基于探针实测迭代）与
+`docs/engineering/SCHEDULER_CONTRACT.md`（最终取值由性能门定，合同只保证机制正确）。
 同批受控化的还有未接线调度器的预取线程上限 `scheduler_prefetch_threads_max`。
 **工作窃取策略**：生产**无实现**（全仓唯一命中在 ACR，而 ACR 生产不可达）⇒ 键位方案已登记于
 `config_registry.json#orchestration_params.gaps`，不落无读取面的死键，待实现后同批落键。）
@@ -152,9 +152,9 @@ lease 存在时恒等且不被放大；`--self-test` 注入未接线状态必须
 
 ## 确定性锚点
 
-- Phase2 UPM 权重归一：`lib/algorithms/coverage/src/upm.cpp:605` `compute_raw` — `raw_w = quality_factor * control_ivar` 冻结后按 control `sums[ck]` 归一（`raw_w[i]/sums[ck]*reliability`），遍历顺序为观测索引 `i` 固定顺序；确定性契约见 `docs/detail/phase2.md`（SCI-UPM-WEIGHT-001）。
-- Phase2 sampler：`lib/algorithms/coverage/src/sampler.cpp` **std::thread worker 池**（`:924-954`）——worker 数只来自 Runtime lease（`cfg.cpu_workers = budget.max_workers`，模块不取 `hardware_concurrency`）；`workers == 1` 走同一 `pass1_cell` 的串行 reference 分支（`init_shared` 复用 setup 句柄）。cell 由 `next_c.fetch_add(1)` 动态领取，结果写回 `cells[idx]`（`idx = c·grid² + g`，`sampler.cpp:744-745`）固定槽位 ⇒ 归约顺序与线程调度无关，1 worker 与 N worker 逐位一致。`P2_ENABLE_OPENMP`（`lib/algorithms/coverage/CMakeLists.txt:28` 默认 OFF）只保留 compile/link 接线，代码内无 OpenMP 并行区。**读路径无进程级锁**：每 worker 自己的 `AioHipsDataset` 句柄（`:938` `rdr.init_own`），每次 tile 读各自 open→read→close，句柄线程私有、不跨线程转移（见 `docs/engineering/EXECUTION_MODEL.md` §2/§3）。确定性契约见 `docs/detail/phase2.md`（SCI-UPM-WEIGHT-001）。
-- Drizzle 浮点归约：`lib/algorithms/drizzle/healpix_drizzle/drizzle_engine.cpp:1923` 主并行区 `#pragma omp parallel num_threads(num_threads)`（per-stripe scratch 累积，无浮点 reduction 子句）；tile 合并 = **per-stripe scratch pool + 按 stripe 索引升序左折叠归约**（累加与归约解耦：`:1857-1859` 注释「合并仍由 merge_cursor 强制按 stripe 索引升序左折叠」、`:1889-1891` `pendingStripe`/`merge_cursor`、归约分支 `:2117-2142`；与 drizzle 主并行区的 per-stripe 左折叠完全同序 ⇒ 浮点结合树逐位一致，**与线程数/调度顺序无关**）。注：`:2270` 现为 prof 计数器合并（非浮点 tile 合并锚）；`:2279` `#pragma omp parallel reduction(+:n_quick,n_fully,n_dropin,n_sh)` 为整数计数器统计（非浮点归约）与 `atomic` 计时累加 — 浮点累积顺序固定，归约顺序已文档化。
+- Phase2 UPM 权重归一：`lib/algorithms/coverage/src/upm.cpp` `compute_raw` — `raw_w = quality_factor * control_ivar` 冻结后按 control `sums[ck]` 归一（`raw_w[i]/sums[ck]*reliability`），遍历顺序为观测索引 `i` 固定顺序；确定性契约见 `docs/detail/phase2.md`（SCI-UPM-WEIGHT-001）。
+- Phase2 sampler：`lib/algorithms/coverage/src/sampler.cpp` **std::thread worker 池**——worker 数只来自 Runtime lease（`cfg.cpu_workers = budget.max_workers`，模块不取 `hardware_concurrency`）；`workers == 1` 走同一 `pass1_cell` 的串行 reference 分支（`init_shared` 复用 setup 句柄）。cell 由 `next_c.fetch_add(1)` 动态领取，结果写回 `cells[idx]`（`idx = c·grid² + g`，`sampler.cpp`）固定槽位 ⇒ 归约顺序与线程调度无关，1 worker 与 N worker 逐位一致。`P2_ENABLE_OPENMP`（`lib/algorithms/coverage/CMakeLists.txt` 默认 OFF）只保留 compile/link 接线，代码内无 OpenMP 并行区。**读路径无进程级锁**：每 worker 自己的 `AioHipsDataset` 句柄（`rdr.init_own`，sampler.cpp），每次 tile 读各自 open→read→close，句柄线程私有、不跨线程转移（见 `docs/engineering/EXECUTION_MODEL.md` §2/§3）。确定性契约见 `docs/detail/phase2.md`（SCI-UPM-WEIGHT-001）。
+- Drizzle 浮点归约：`lib/algorithms/drizzle/healpix_drizzle/drizzle_engine.cpp` 主并行区 `#pragma omp parallel num_threads(num_threads)`（per-stripe scratch 累积，无浮点 reduction 子句）；tile 合并 = **per-stripe scratch pool + 按 stripe 索引升序左折叠归约**（累加与归约解耦：注释「合并仍由 merge_cursor 强制按 stripe 索引升序左折叠」、`pendingStripe`/`merge_cursor`、归约分支，均在 drizzle_engine.cpp；与 drizzle 主并行区的 per-stripe 左折叠完全同序 ⇒ 浮点结合树逐位一致，**与线程数/调度顺序无关**）。注：drizzle_engine.cpp 的 prof 计数器合并区现非浮点 tile 合并锚；`#pragma omp parallel reduction(+:n_quick,n_fully,n_dropin,n_sh)` 为整数计数器统计（非浮点归约）与 `atomic` 计时累加 — 浮点累积顺序固定，归约顺序已文档化。
 
 ## 契约
 

@@ -18,7 +18,7 @@
 - 合同三件套：`lib/algorithms/sampling/`（README/module.yaml/memory.md；
   落位规则见 docs/detail/README.md）。
 - 生产源：`lib/algorithms/coverage/src/sampler.cpp`（1156 行，根 CMakeLists.txt
-  :337-346 astrocs_phase2 静态库成员，sampler.cpp 列于 :342）+
+  的 astrocs_phase2 静态库成员，sampler.cpp 列于其中）+
   签名头正本 `lib/algorithms/coverage/include/astro/phase2/sampler.h`
   （136 行）。模块页=本文件。
 - owner SA-P2-S20；depends_on_int=P2-COV;CPU-005；
@@ -31,28 +31,28 @@
   迭代 sigma-clipping（median/MAD，保留负值）→ Stage C DBE-like
   局部 tolerance gate（同 tile 邻域基线）→ Stage D
   contamination/retained 双门 → Stage E SNR catalogue veto
-  （sampler.cpp:584-591 冻结注释）。控制点几何由 union 几何与目标
-  角间距决定、**不由 SNR 决定**（sampler.h:6 语义冻结）；每 union
+  （sampler.cpp 冻结注释）。控制点几何由 union 几何与目标
+  角间距决定、**不由 SNR 决定**（sampler.h 语义冻结）；每 union
   tile 8×8 cell 网格，control_id=cells 索引，out_n_controls=
-  n_union×G² 含空覆盖占位（h:118-119）。control estimator 方差
-  权威 = k_corr×(π/2)×σ_bg²/N_retained（:840-842；
+  n_union×G² 含空覆盖占位（sampler.h）。control estimator 方差
+  权威 = k_corr×(π/2)×σ_bg²/N_retained（sampler.cpp；
   ALG-UPM-CONTROL-IVAR-001；k_corr 逐帧 Drizzle provenance 查表
-  :547-555，回退代码默认 1.4 :82）。k_corr 公式面 = 两因子
+  见 sampler.cpp，回退代码默认 1.4）。k_corr 公式面 = 两因子
   k_gauss(N_retained)×k_geo 几何查表（k_gauss 表与 k_geo 域由 实验/healpix-polar
   承载）；冻结单数 1.4 = 声明标定域内的实现记录值（标定元组、实测带与
   偏差面见 实验/healpix-polar）；引用义务 = 标定元组 + N_retained 档位声明，
   不一致时 fail-closed 或现场 MC 重标，见 docs/science/PHASE2_UPM.md §4/§5
   与 docs/science/DATA_SEMANTICS.md §23.1）。
   frame_id 内容稳定身份
-  （truncated-64 canonical SHA-256，h:85-93/DATA-FRAME-ID-001）。
+  （truncated-64 canonical SHA-256，sampler.h/DATA-FRAME-ID-001）。
 - 工作域纪律：value 为 patch median（可负，ADU）；ivar 弃用仅诊断
   （单 leaf Phase1 ivar ≠ Var(control estimator)），科学权重一律
   control_ivar；snr_available=0 时 snr 回退整帧精确中位，禁以 1.0
-  伪装 unknown（upm.h:51-55）。
+  伪装 unknown（upm.h）。
 - 非职责：不做 UPM 拟合/权重归一（P2-UPM 下游）；不做星点检测
-  （SNR 纯查询，h:11-12）；不做 coverage union 计算（上游 P2-COV
+  （SNR 纯查询，sampler.h）；不做 coverage union 计算（上游 P2-COV
   域 DATA-P2-COV）；无 session 依赖（coverage 数据面显式传入）；
-  不产 per-pixel 科学场产品；≥2 clean 帧才入 UPM（:1013-1027，
+  不产 per-pixel 科学场产品；≥2 clean 帧才入 UPM（sampler.cpp，
   单帧区由 UPM Laplacian 延续）。
 
 ## 输入输出端口、DATA、单位、坐标、invalid
@@ -70,7 +70,7 @@
 
 - 输入 P2CoverageResult（n_union 上限 1e6、cells 上限 2e8）+
   hips_paths/frame_ids（cached 版可空=内部重算；0=非法哨兵
-  :512-523）+ P2SamplerConfig 15 字段（默认单一来源 :294-312；
+  见 sampler.cpp）+ P2SamplerConfig 15 字段（默认单一来源 sampler.cpp；
   `<=0→默认` 修补吞显式 0，登记见 ALG-P2-SMP-001 §11.3）。
 - 输出 P2ControlObservation 13 字段（frame_id/control_id/leaf_ipix
   u64、ra_deg/dec_deg/value/uncertainty/snr/ivar/control_variance/
@@ -81,69 +81,68 @@
 - invalid 显式化: bad args/frame_id 0/open failed/n_union>1e6/
   cells>2e8/首 tile 越界/exception → rc=1（err 8KB 文本）；容量
   不足**不报错**（probe/fill 截断拷贝 + out_n_* 真实需求，
-  h:101-102 冻结）；ivar 产品缺失 → o.ivar=0.0 如实降级（UPM 侧
+  sampler.h 冻结）；ivar 产品缺失 → o.ivar=0.0 如实降级（UPM 侧
   回退 1/uncertainty²）；catalogue 缺失 → snr_available=0。
 
 ## 公共 header、核心 symbol 与生命周期
 
 - 签名头正本: lib/algorithms/coverage/include/astro/phase2/sampler.h
-  （136 行；cfg :32-57、stats :63-74、node :77-83、frame_id 冻结注
-  :85-92、stats :95-99、probe/fill 冻结注 :101-102、两入口
-  :103-114/:120-132）。
-- 核心 symbol: p2_sampler_default_config（:60，配置默认单一来源）、
-  p2_frame_id（:93）、p2_stats_median（:97）/p2_stats_mad（:98-99，
-  与 UPM 域共享实现）、p2_sample_controls（:103，基础入口）、
-  p2_sample_controls_cached（:120，生产入口）。
-- 生命周期=调用方（可选 frame_id 预计算 stage2.cpp:219-231）→
-  probe 查容量（out_obs=nullptr :279-281）→ 分配 → fill（:306-311）；
+  （136 行；含 cfg、stats、node、frame_id 冻结注、
+  stats、probe/fill 冻结注与两入口）。
+- 核心 symbol: p2_sampler_default_config（配置默认单一来源）、
+  p2_frame_id、p2_stats_median/p2_stats_mad（与 UPM 域共享实现）、
+  p2_sample_controls（基础入口）、
+  p2_sample_controls_cached（生产入口）。
+- 生命周期=调用方（可选 frame_id 预计算 stage2.cpp）→
+  probe 查容量（out_obs=nullptr）→ 分配 → fill（均 sampler.cpp）；
   无 create/destroy。
 
 ## Registry descriptor 与配置 schema
 
 module_id=`astrocs.phase2.sample`（占位）；execution_class=
 `cpu_heavy`；parallel_ok=True。配置=P2SamplerConfig 15 字段
-（sampler.h:33-57；control_k_corr 默认 1.4 h:47-53——代码实现记录，公式面 =
+（sampler.h；control_k_corr 默认 1.4——代码实现记录，公式面 =
 两因子 k_gauss(N)×k_geo 几何查表，见 §2 注）+ sccfg
-14 字段显式透传（stage2.cpp:256-274；control_k_corr 未透传，零
-初始化经 impl :497-498 修补回退默认）。
+14 字段显式透传（stage2.cpp；control_k_corr 未透传，零
+初始化经 impl 修补回退默认）。
 
 ## Execution class、并行轴、ThreadBudget lease、确定性
 
 - `cpu_heavy`；并行轴=union cell 间（模块内 std::thread 池
-  :886-913，next_c.fetch_add 动态领取、固定槽位写回 cells[idx]
-  :870-872、per-worker 独立 AIO 句柄 :894；=1 串行 reference
-  :916-933）；OpenMP 已从实现移除（:882-883 注释），lib/algorithms/coverage/
-  CMakeLists.txt:28 P2_ENABLE_OPENMP option 保留仅旧 target 编译面。
+  ，next_c.fetch_add 动态领取、固定槽位写回 cells[idx]
+  、per-worker 独立 AIO 句柄；=1 串行 reference；
+  OpenMP 已从实现移除（sampler.cpp 注释），lib/algorithms/coverage/
+  CMakeLists.txt 的 P2_ENABLE_OPENMP option 保留仅旧 target 编译面。
 - **输出 obs 序列 bitwise 与 worker 数无关**（1/N 等价）+ 第三遍
   单线程顺序扫描；验证门=F8
-  sampler_parallel_consistency_test.cpp:29
+  sampler_parallel_consistency_test.cpp
   TEST(Phase2SamplerParallel, OneTvsTwoTDeterminism)。
 - worker 数=Runtime lease（cfg.cpu_workers=ThreadBudget.max_workers
-  经 stage2.cpp:273-274 透传，模块无 hardware_concurrency 自行开
-  线程 :880-883）；lease/取消检查点接线为迁移整改点（与 coverage 域同构，见 ALG-COV-001 §11.3；未落地）。determinism=fixed_reduction_order。
+  经 stage2.cpp 透传，模块无 hardware_concurrency 自行开
+  线程，sampler.cpp）；lease/取消检查点接线为迁移整改点（与 coverage 域同构，见 ALG-COV-001 §11.3；未落地）。determinism=fixed_reduction_order。
 
 ## 内存/cache/I-O/所有权
 
 - I/O=astro_image_io（AIO）HiPS tile 读（signal/support/snr/ivar
-  四产品 :529-546；read_tile_pair :163-180）；观测/节点输出缓冲
-  调用方分配（probe/fill 协议 h:101-102）；cells 中间态模块内
-  持有（:649-654，上限 2e8 :644-648）。
-- 全局态仅 g_aio_mu（:161，read_tile_pair :166 加锁，仅串行路径
+  四产品见 sampler.cpp；read_tile_pair 见 sampler.cpp）；观测/节点输出缓冲
+  调用方分配（probe/fill 协议 sampler.h）；cells 中间态模块内
+  持有（sampler.cpp，上限 2e8）。
+- 全局态仅 g_aio_mu（sampler.cpp，read_tile_pair 内加锁，仅串行路径
   共享句柄）与 frame_id AIO 缓存面；reentrant=yes /
-  threadsafe=no（h 无线程注记，经 impl 实测）。
+  threadsafe=no（头文件无线程注记，经 impl 实测）。
 
 ## 错误、日志、指标、取消和 checkpoint
 
 - 错误面=rc 二值 + err 8KB 文本（细分语义=DATA §23.5/ALG §11.1）；
   无状态机（accept/reason u8 0..5 逐观测承载，DATA §23.3）；
   容量不足不报错（probe/fill）。
-- 诊断进度日志直写 stderr（:641-672 等，结构化通道整改面未落地）；
+- 诊断进度日志直写 stderr（sampler.cpp，结构化通道整改面未落地）；
   无内部取消检查点/
   checkpoint（迁移 ThreadLease 接线待落地）。
 - known_defects（登记不改码；正本 = ALG-P2-SMP-001 §11.2/§11.3）:
-  cfg `<=0→默认` 吞显式 0（:485-502）；insufficient_retained 双计数
-  （:1006+:1022）；stderr 直写；veto 阈值 10×frame_snr_med 与半径
-  0.012° 硬编码（:849-850）；m0≈0 收敛阈值退化全迭代（:818）；
+  cfg `<=0→默认` 吞显式 0；insufficient_retained 双计数
+  （sampler.cpp 两处）；stderr 直写；veto 阈值 10×frame_snr_med 与半径
+  0.012° 硬编码；m0≈0 收敛阈值退化全迭代（均 sampler.cpp）；
   整改面未落地。
 
 ## 独立 synthetic 验证命令与容差
@@ -156,10 +155,10 @@ F4 坐标 atol 1e-9 deg、F5 constant/gradient/impulse cvar rtol
 1e-12、F6 边界/seam exact、F7 missing/invalid exact、F8 串并行
 bitwise、F9 计数守恒现状口径）。现状相邻证据（引用不冒认）:
 lib/algorithms/coverage/tests/synthetic_gate.cpp Phase2Sampler 组
-（RealHipsControlSampling :3423、G6LocalSnrAvailabilityThreeZones
-:3470、G1StatisticsCorrectness :3594、UPMW-004 MC :4001、cvar
-:4089）；lib/algorithms/coverage/tests/sampler_parallel_consistency_test.cpp
-:29；ivar_wiring_test.cpp:223（ivar 面）。
+（RealHipsControlSampling、G6LocalSnrAvailabilityThreeZones
+、G1StatisticsCorrectness、UPMW-004 MC、cvar）；
+lib/algorithms/coverage/tests/sampler_parallel_consistency_test.cpp
+；ivar_wiring_test.cpp（ivar 面）。
 
 ## 已知限制
 

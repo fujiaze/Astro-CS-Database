@@ -54,10 +54,10 @@
 | `resampled` | `DATA-P3-RES` | 可 | `UnitId::SURFACE_BRIGHTNESS` | `CoordinateFrame::PIXEL` |
 
 - invalid 权威源=DATA-P3-RES §29.4：properties 语义不符→
-  P3_RS_PARAM（hips_properties.cpp:113-122；order∈[0,20]、
+  P3_RS_PARAM（hips_properties.cpp；order∈[0,20]、
   tile_width 必须 512、NESTED 唯一）；max_order 越界/scale≤0→
-  P3_RS_PARAM（p3_resample.cpp:84-86）；input_mode 非
-  surface_brightness→P3_RS_UNSUPPORTED（cpp:95-107）；properties
+  P3_RS_PARAM（p3_resample.cpp）；input_mode 非
+  surface_brightness→P3_RS_UNSUPPORTED（p3_resample.cpp）；properties
   解析失败/HiPS 目录或 tile 不可读→P3_RS_IO；**tile 缺失=coverage=0
   数据语义非错误**（§6.6 值语义表：tile 内 NaN→值 NaN+coverage=1
   传播；tile 缺失→NaN+coverage=0；未打开→coverage=0）。
@@ -71,21 +71,20 @@
 ## 4 公共 header、核心 symbol 与生命周期
 
 - 内核消费面=API-P3-RSMP-001（p3_resample.h 签名头正本）:
-  `p3_sampler_open`（h:32-33，实现 :109+）、`p3_sampler_open_ex`
-  （h:36-38，:130-159）、`p3_order_select`（h:21，:82-93）、
-  `p3_resample_check_mode`（h:25，:95-107）、
-  `p3_sampler_set_max_tiles`（h:42，:161-168）、
-  `p3_sample_nearest`（h:46-47，:232-239）、`p3_sample_bilinear`
-  （h:51-52，:196-230）、`p3_sampler_close`（h:54，:170-180）+
-  数据结构 P3ResampleStatus（h:12-17，OK=0/PARAM=1/UNSUPPORTED=2/
-  IO=3）/P3Sampler（h:29-31，impl+last_error[256]）。
+  `p3_sampler_open`、`p3_sampler_open_ex`、`p3_order_select`、
+  `p3_resample_check_mode`、
+  `p3_sampler_set_max_tiles`、
+  `p3_sample_nearest`、`p3_sample_bilinear`、
+  `p3_sampler_close`（均在 p3_resample.h 声明 / p3_resample.cpp 实现）+
+  数据结构 P3ResampleStatus（p3_resample.h，OK=0/PARAM=1/UNSUPPORTED=2/
+  IO=3）/P3Sampler（p3_resample.h，impl+last_error[256]）。
 - 生命周期: open(_ex)→set_max_tiles（可选，≤0 恢复默认 8）→
   逐像素 sample_nearest/sample_bilinear N 次→close（幂等）；
   sampler 自含 TileCache，**单实例非线程安全**（无内部锁）；使用方式 = 每 worker 独立实例，以免
   跨线程共享——每 worker 独立实例（§7）；会话编排面 API-P3-001
   FROZEN 五段 create→validate→run→inspect→destroy 不变，run 内
-  主 sampler open_ex（p3_session.cpp:171）→每 worker 独立
-  open_ex（:222）→逐像素分派（:236-237）→close（:259/:262）。
+  主 sampler open_ex（p3_session.cpp）→每 worker 独立
+  open_ex→逐像素分派→close（均 p3_session.cpp）。
 - 域际: DATA-P3-FITS 写路径 resampled 平面承载本域输出
   （p3_writer_descriptor 端口词汇，API-P3-FITS-001 消费面）。
 - 不新增/不修改任何 C 头/C ABI（本页为既有符号展开冻结）。
@@ -105,16 +104,16 @@
 
 ## 6 冻结公式（G3/G4 摘要；权威源=ALG-P3-RSMP-IMPL-001 §6）
 
-- G3 order 选择（p3_resample.cpp:82-93）: 最小 k∈[0,max_order] 使
+- G3 order 选择（p3_resample.cpp）: 最小 k∈[0,max_order] 使
   pixel_resolution_arcsec(512<<k)/3600 ≤ scale_deg_per_px
   （pixel_resolution_arcsec=sqrt(π/3)/nside rad，healpix_core.cpp
   权威；与 ALG-P3-003 G3 ceil 式 `order=clamp(ceil(log2(sqrt(π/3)/
   (W·s_out))), 0, hips_order)` 数学等价，nside=W·2^k）；无更细层
   →out_order=max_order（欠采样降级，SCI §9a-5）；会话 max_order=
-  输入实际 order（p3_session.cpp:197-199，禁仅写 metadata）。
-- G4 NEAREST（:232-239）: 输出像素中心→pix2ang→ang2pix(nside_leaf)
+  输入实际 order（p3_session.cpp，禁仅写 metadata）。
+- G4 NEAREST（p3_resample.cpp）: 输出像素中心→pix2ang→ang2pix(nside_leaf)
   精确 cell；无插值误差（SCI §9a-12）。
-- G4 BILINEAR（:196-230）: leaf 3×3 邻域（healpix_neighbors）四象限
+- G4 BILINEAR（p3_resample.cpp）: leaf 3×3 邻域（healpix_neighbors）四象限
   最近中心（d² 比较）→切平面双线性（den=dx·dy2−dx2·dy≤0 跳过背面；
   |dx|>1e-300 防 0 除；u,v∈[0,1]）→权重 w00=(1−u)(1−v)/w10=u(1−v)/
   w01=(1−u)v/w11=uv（FP64，Σw=1 精确——SCI §9a-7 不变量）；离散化
@@ -126,11 +125,11 @@
 ## 7 执行类、并行轴、ThreadBudget lease、确定性
 
 - execution_class=cpu_heavy；内核无内部线程（TileCache 每 sampler
-  实例自含，p3_resample.cpp:22-36）；并行=会话 worker 池
-  （p3_session.cpp:211-214 worker 数=ThreadBudget.max_workers，禁
-  hardware_concurrency；>hpx clamp 行带不空；<2 串行；:246-255
-  std::thread 池）——**每 worker 独立 sampler+cache**（:217-244
-  闭包内 open_ex），HiPS tile 文件只读共享无写锁；CPU-005 禁单线程
+  实例自含，p3_resample.cpp）；并行=会话 worker 池
+  （p3_session.cpp，worker 数=ThreadBudget.max_workers，禁
+  hardware_concurrency；>hpx clamp 行带不空；<2 串行；
+  std::thread 池）——**每 worker 独立 sampler+cache**
+  （闭包内 open_ex，p3_session.cpp），HiPS tile 文件只读共享无写锁；CPU-005 禁单线程
   重计算由 worker 池结构性满足。
 - 单一 P3Sampler 实例非线程安全（无内部锁）——合同条款 = 每 worker 独立实例，以免跨线程
   共享（ALG-P3-RSMP-IMPL-001 §7）。
@@ -140,12 +139,12 @@
 
 ## 8 实测偏差与现行语义（权威源 = ALG-P3-RSMP-IMPL-001 §11）
 
-- bilinear 现行为切平面四象限最近中心双线性（cpp:196-230）；G4 施工规格写
+- bilinear 现行为切平面四象限最近中心双线性（p3_resample.cpp）；G4 施工规格写
   「面积重叠分数（投影线性化）」——同族一阶插值、Σw=1 不变量一致。
-- tile cache 逐出为 FIFO（cpp:22-36）；ALG §3 伪代码写「LRU」。
+- tile cache 逐出为 FIFO（p3_resample.cpp）；ALG §3 伪代码写「LRU」。
 - p3_resample_check_mode 在会话编排层无调用点（仅探针
-  p3_resample_probe_main.cpp:31 消费）。
-- provenance.missing_tiles 恒 nullptr（p3_session.cpp:265-277）——缺 tile
+  p3_resample_probe_main.cpp 消费）。
+- provenance.missing_tiles 恒 nullptr（p3_session.cpp）——缺 tile
   聚合上报未接线（SCI §9a-9）。
 - astrocs_p3_resample.dll 未建（entrypoint 未落地）；探针/回归为内联编译。
 - 其余见 docs/KNOWN_LIMITATIONS.md 与 ALG-P3-RSMP-IMPL-001 §13

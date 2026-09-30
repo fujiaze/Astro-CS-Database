@@ -7,7 +7,7 @@
 > DATA-P1-WCS（DATA_SEMANTICS §18）/ API-WCS-001（PUBLIC_API WCS 节）。
 > 模块级事实以 lib/algorithms/platesolve/README.md（CONTRACT_READY）+
 > lib/algorithms/platesolve/module.yaml（astrocs.p1.wcs，迁移目标 astrocs_p1_wcs.dll）
-> 为准；现状构建 cpp/ipv/build.ps1:27 / Makefile:6 → ipv_solver.dll，未编入根
+> 为准；现状构建 cpp/ipv/build.ps1 / Makefile → ipv_solver.dll，未编入根
 > CMake 主构建。测试设计 TEST-WCS-DESIGN-001（PLATESOLVE.md §11.4）已冻结，
 > 可执行测试待建（TEST-P1-WCS-001）。失败-置信度语义冻结：CD 退化必须 success=0
 > 并按失败登记（缺陷登记 = PLATESOLVE.md §11.3）。
@@ -33,19 +33,19 @@ C ABI 12 导出与返回码见 API-WCS-001。不做：重检测（消费调用�
 p1_wcs_descriptor 为准。
 
 invalid = NaN/coverage=0(按 DATA 合同)；求解失败 → PLATESOLVE_FAILED
-不写半成品 WCS 头（orchestrator.cpp:1992/:2015）。
+不写半成品 WCS 头（orchestrator.cpp 两处）。
 
 ## 公共 header、核心 symbol 与生命周期
 
 由 `API-P1-004` 公共 API 定义(phase session extern "C"); 现状 C ABI
 12 导出见 API-WCS-001（生产入口 ipv_solve_from_detections_v1，
-ipv_entry.cpp:524）; 生命周期 create→validate→run→inspect→destroy。
+ipv_entry.cpp）; 生命周期 create→validate→run→inspect→destroy。
 
 ## Registry descriptor 与配置 schema
 
 module_id=`astrocs.phase1.wcs-platesolve`; execution_class=`cpu_heavy`;
 parallel_ok=True; 配置=phase config JSON（initial_ra/initial_dec/
-focal_length/pixel_size 覆盖，orchestrator.cpp:1922-1944）。
+focal_length/pixel_size 覆盖，orchestrator.cpp）。
 
 ## Execution class、并行轴、ThreadBudget lease、确定性
 

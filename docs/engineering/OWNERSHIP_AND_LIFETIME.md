@@ -16,8 +16,8 @@
 ## 生命周期约束点
 
 - p2_upm_open 失败路径统一 delete。
-- dense cache 句柄 AioUpmDense 单出口释放（`lib/infrastructure/aio/src/aio_upm.cpp:298` `std::unique_ptr<AioUpmDense> guard(d)`，所有路径释放）。
-- aio_upm_read_all_dynamic 返回 delete[] 由调用方负责（声明 `lib/infrastructure/aio/include/aio_upm.h:75`；实现 `lib/infrastructure/aio/src/aio_upm.cpp:176` `new char[]`）。
+- dense cache 句柄 AioUpmDense 单出口释放（`lib/infrastructure/aio/src/aio_upm.cpp` `std::unique_ptr<AioUpmDense> guard(d)`，所有路径释放）。
+- aio_upm_read_all_dynamic 返回 delete[] 由调用方负责（声明 `lib/infrastructure/aio/include/aio_upm.h`；实现 `lib/infrastructure/aio/src/aio_upm.cpp` `new char[]`）。
 
 ## 契约
 

@@ -5,11 +5,11 @@
 原子性覆盖全部产品（含 HiPS tile）是最高设计 §10 的强制条款；HiPS tile 写路径统一经 `write_fits_atomic`（临时文件 → 内容 → CHECKSUM 校验 → 原子改名，见下）。产物落点只有两处：产品落块级 `output_dir`，开发与 CI 过程产物落 `run/`（最高设计 §10）。
 
 - science product 写盘协议：temp write → validate → atomic promote（最高设计 §10）。
-- UPM sparse 模型：aio_upm_write_sparse 为 temp+rename（lib/infrastructure/aio/src/aio_upm.cpp:64-116 temp write → validate → atomic promote）。
+- UPM sparse 模型：aio_upm_write_sparse 为 temp+rename（lib/infrastructure/aio/src/aio_upm.cpp：temp write → validate → atomic promote）。
 - **HiPS tile 原子发布**：tile 写统一入口 `write_fits_image` → `write_fits_atomic`
-  （`lib/infrastructure/aio/src/hips/aio_hips_writer.cpp:630/:539`：同目录临时文件 → 内容写出 →
+  （`lib/infrastructure/aio/src/hips/aio_hips_writer.cpp` 两处：同目录临时文件 → 内容写出 →
   CHECKSUM 校验 → fsync → 原子 rename → 父目录 fsync），全部 tile 写调用点
-  （`aio_hips_writer.cpp:1018/:1028/:1082/:1092/:1369/:1377/:1585/:1595/:1747`）与 MOC 写（:657）
+  （`aio_hips_writer.cpp` 九处）与 MOC 写（`aio_hips_writer.cpp`）
   自动经该路径；失败分类（ENOSPC/写失败）在清理前完成（`aio_disk_full.h` 语义）；
   负例可红：`lib/infrastructure/aio/tests/test_hips_atomic_publish.cpp`
   （`tile_diskfull` / `tile_write_fail` 注入）。
@@ -25,7 +25,7 @@
 
 最高设计 §10 把 aio 定为**文件级唯一 I/O 边界**，并**穷举**允许的文件读写点。
 下列符号是穷举点之外的「块 ↔ 文件」读写面，**已降级为非生产 / 诊断接口**
-（代码侧归属声明见 `lib/infrastructure/aio/include/aio_pipeline.h:232-264`）：
+（代码侧归属声明见 `lib/infrastructure/aio/include/aio_pipeline.h`）：
 
 | 符号 | 性质 | 处置 |
 |---|---|---|

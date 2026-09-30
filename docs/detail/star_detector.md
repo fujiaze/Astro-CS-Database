@@ -49,7 +49,7 @@ x,y,flux,mag,saturated,has_saturated）+ star_det_psf_compat FLOAT32 [N,4]。
 ## Ownership
 
 输出十数组模块 malloc，调用方唯一经 `sdet_free_detect_ex` 整组释放
-（sdet_api.cpp:2344-2360），释放一律经该接口整组进行。
+（sdet_api.cpp），释放一律经该接口整组进行。
 
 ## Thread safety
 
@@ -67,7 +67,7 @@ handle 级互斥使用（单 handle 单线程，无内部锁）；OpenMP 四处�
 `n_pred>0` 时同样返回 −1）。节点侧的权威路径 fail-closed 语义（星表缺失/空/部分装载、
 取向先验缺失、0 星存活）见 docs/detail/algorithms_phase1/03_star_detection.md §7.1。拟合级 SDET_FIT_*（非 OK 候选丢弃）；质量门
 reject_star SfError 六码；编排级 det_ret≠0 或 count≤0 → 退出码
-STAR_DETECT_FAILED（orchestrator.cpp:2200-2212）。
+STAR_DETECT_FAILED（orchestrator.cpp）。
 
 ## Science IDs
 
@@ -86,7 +86,7 @@ NON_PRODUCTION_TOOL_ONLY 手工验证程序）。
 
 ## Source files
 
-lib/algorithms/star_detection/（生产源 src/sdet_api.cpp:1570-1943 sdet_detect_impl，
+lib/algorithms/star_detection/（生产源 src/sdet_api.cpp 的 sdet_detect_impl，
 合同头 lib/include/star_detector.h）；lib/algorithms/star_detection/wrapper_phase1/（P1-003 桥接层独立
 sigma-clip 实现，与生产 sdet_api.cpp 非同一算法路径，matrix legacy_paths
 第二路径；迁移目标未落地）。

@@ -1,6 +1,6 @@
 # Astro Celestial Sphere Database（ACSD） Numeric Standard
 
-> 上游：ASTROCS_DESIGN.md §3.3（科学量与星表，:185「每个科学量写清五件事：单位、坐标系、归一化、精度要求、有效有限域」）、§8.5（模块与 ABI）
+> 上游：ASTROCS_DESIGN.md §3.3（科学量与星表，「每个科学量写清五件事：单位、坐标系、归一化、精度要求、有效有限域」）、§8.5（模块与 ABI）
 
 ## 每个科学 double/float 必须文档化
 
@@ -10,9 +10,9 @@
 - precision requirement（FP32/FP64 边界；默认 science=FP64）；
 - valid finite domain。
 
-## 量纲与标度（最高设计 §3.3:185「归一化」一项的细化）
+## 量纲与标度（最高设计 §3.3「归一化」一项的细化）
 
-> 依据：`ASTROCS_DESIGN.md` §3.3:185「每个科学量写清五件事：单位、坐标系、归一化、精度要求、有效有限域」。
+> 依据：`ASTROCS_DESIGN.md` §3.3「每个科学量写清五件事：单位、坐标系、归一化、精度要求、有效有限域」。
 > 本条只把其中的**单位（量纲）**与**归一化（标度）**两件事写成可判定形式，不新增要求；下级文档在本条上只能细化。
 
 每个科学量的文档化条目必须**同时**写明量纲与标度类别，缺一即条目不完整：
@@ -27,8 +27,8 @@
 | token | 定义 | 量纲 | 现行承载面（示例） |
 |---|---|---|---|
 | `raw_adu` | 探测器计数域，物理值 = `BSCALE·样本 + BZERO` | ADU | 输入亮场/母版 |
-| `calibrated_adu` | 校准后、测光归一化**前** | ADU | `cal` 面；帧级噪声节点 `p1_op_noise` 的消费面（`module_adapters.cpp:5648-5653`） |
-| `photo_scaled_adu` | 已施加逐帧测光标度 `x′ = α·x`，`α = frame photscal`（**逐帧量，不是全仓常数**） | α × ADU | `photoapplied_<base>`；drizzle `data`/`variance` 块（`module_adapters.cpp:6457-6460`） |
+| `calibrated_adu` | 校准后、测光归一化**前** | ADU | `cal` 面；帧级噪声节点 `p1_op_noise` 的消费面（`lib/infrastructure/scheduler/src/module_adapters.cpp`） |
+| `photo_scaled_adu` | 已施加逐帧测光标度 `x′ = α·x`，`α = frame photscal`（**逐帧量，不是全仓常数**） | α × ADU | `photoapplied_<base>`；drizzle `data`/`variance` 块（`lib/infrastructure/scheduler/src/module_adapters.cpp`） |
 | `surface_brightness` | 线性量除以像素立体角 `A_cell` [sr] | `<标度量纲>/sr` | HiPS signal/variance/ivar 子产品（`DATA_SEMANTICS` §12.2） |
 | `synthetic_flux` | 模型通带积分辐照度 `F_syn` | `W·m^-2·nm^-1` | 测光定标通道 |
 

@@ -16,7 +16,7 @@
 插值），ALG-COS-001..005（docs/science/algorithms/COSMETIC_ALGORITHMS.md，
 CONTRACT_READY）。不做: master 生成/校准算术
 （P1-CAL）、FITS 读写（astro_image_io）、参数接线决策（调用方）——
-现状生产调用 p1_session.cpp:294-307 未接线母版（检测全禁用、恒等
+现状生产调用 p1_session.cpp 未接线母版（检测全禁用、恒等
 pass，登记见 COSMETIC_ALGORITHMS.md §10）。
 
 ## 输入输出端口、DATA、单位、坐标、invalid
@@ -44,7 +44,7 @@ lib/algorithms/calibration/include/astro_calibration.h）；编排级: API-P1-00
 
 module_id=`astrocs.phase1.cosmetic`; execution_class=`cpu_heavy`;
 parallel_ok=True; 配置=cosmetic JSON（enabled/hot_sigma/cold_sigma/
-method/max_structure_size，p1_session.cpp:132-138 校验；正式版本化
+method/max_structure_size，p1_session.cpp 校验；正式版本化
 schema 待落地）。
 
 ## Execution class、并行轴、ThreadBudget lease、确定性

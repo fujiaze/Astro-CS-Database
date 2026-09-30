@@ -26,11 +26,11 @@
 | P2_STATUS_INTERNAL_ERROR | 7 |
 
 - 唯一事实源: `lib/algorithms/coverage/include/astro/phase2/rejection.h`
-  (`enum P2RejectReason` = `:94-99` / `enum P2RejectStatus` = `:102-111`)；
+  (`enum P2RejectReason` / `enum P2RejectStatus` 两处枚举定义)；
 - `P2_STATUS_MIN_SAMPLES=1` 的语义 = **候选数 < 调用方显式 `min_samples`，或 `count==0`**
-  （`rejection.h:108`、`rejection.cpp:2018/:2251-2261`）；样本不足的判定态用
+  （`rejection.h`、`lib/algorithms/coverage/src/rejection.cpp`）；样本不足的判定态用
   `P2_STATUS_UNDERDETERMINED=4`（`n <= underdetermined_n` ∨ `n < minimum_n`，
-  `rejection.cpp:2065-2074`）。**`underdetermined_n` 的默认值随 profile 而定**（`rejection.cpp:1218-1225`）：
+  `rejection.cpp`）。**`underdetermined_n` 的默认值随 profile 而定**（`rejection.cpp`）：
   生产档 `astrocs_adaptive_pixel` ∧ AUTO ⇒ 3；该档 ∧ `extreme_value_clip_prior_sigma` ⇒ 1；
   `wbpp_2_9_1`/`wbpp_current`/`astrocs_adaptive` ⇒ 2。**本层无 `NO_CANDIDATES` 状态**
   （该名属积分域 `P2IntegrateStatus`，`integrate.h`）。
@@ -40,36 +40,36 @@
 ## 2 离散公式
 
 ```text
-方法集（11 个显式方法 + AUTO，`rejection.h:45-62`）：
+方法集（11 个显式方法 + AUTO，`rejection.h`）：
   NONE=0 / SIGMA=1 / WINSORIZED_SIGMA=2 / AVERAGED_SIGMA=3 / LINEAR_FIT=4 /
   GENERALIZED_ESD=5 / RCR=6 / PERCENTILE=7 / MEDIAN_SIGMA=8 / MINMAX=9 /
   AUTO=10（只在规划层解析，永不进 kernel）/ EXTREME_VALUE_PRIOR_SIGMA=11
   （显式 opt-in，永不参与任何 AUTO 路由）。
 
-F1: plan resolve（N = 该输出像素的几何覆盖帧数，一次解析；`rejection.cpp:1182-1288`）:
-      生产档 astrocs_adaptive_pixel（`rejection.cpp:1154-1176`）:
+F1: plan resolve（N = 该输出像素的几何覆盖帧数，一次解析；`rejection.cpp`）:
+      生产档 astrocs_adaptive_pixel（`rejection.cpp`）:
         1≤N≤3 → none（不排异，直接逆方差加权积分）; 4≤N≤5 → percentile 0.2/0.1;
         N≥6 → winsorized 4/3/8
         （`n ≥ 16` 档同投 winsorized）
-      对照档 wbpp_2_9_1 / wbpp_current / astrocs_adaptive（`rejection.cpp:1275-1283`）:
+      对照档 wbpp_2_9_1 / wbpp_current / astrocs_adaptive（`rejection.cpp`）:
         N<6 → percentile; 6≤N≤15 → winsorized; N>15 → linear_fit
       min/max 不用于生产（AUTO 路由只产出具名自动方法，min/max 与 NoRejection 恒不可达，fail-closed；
-      `rejection.cpp:1167-1179/:1272-1278`）
+      `rejection.cpp`）
       与 WBPP 档界的差异及其依据见 docs/science/REJECTION.md
 F2: sigma: median ws, MAD→σ=1.482602218505602·MAD, thresholds 4.0 low /3.0 high 8iter
-      （低侧阈 4.0 > 高侧阈 3.0 ⇒ **高侧更敏感**，正离群优先被剔；`rejection.cpp:1229`）
+      （低侧阈 4.0 > 高侧阈 3.0 ⇒ **高侧更敏感**，正离群优先被剔；`rejection.cpp`）
 F3: winsorized: winsor at σ阈, 再sigma
-F4: linear_fit: 残差尺度 = **平均绝对残差** mean|stack[i]−fit(i)|（`rejection.cpp:1665-1668`），
+F4: linear_fit: 残差尺度 = **平均绝对残差** mean|stack[i]−fit(i)|（`rejection.cpp`），
       阈值 5.0 low /3.5 high，8 iter；**不是** MAD 尺度
-F5: ESD: Rosner α=0.05 max10；样本标准差用**单次** sqrt（`rejection.cpp:1731-1733`）
+F5: ESD: Rosner α=0.05 max10；样本标准差用**单次** sqrt（`rejection.cpp`）
 F6: RCR: Maples Chauvenet，3-pass 链（Median+DoubleLine → Median+68th → Mean+StdDev，
-      `rejection.cpp:1785-1806`）；large_scale trail 仅扩展结构、compact 不生长
+      `rejection.cpp`）；large_scale trail 仅扩展结构、compact 不生长
 F7: 状态机: n <= underdetermined_n → UNDERDETERMINED（生产档默认 3、对照档 2）；
-      non-finite values/weights → INVALID_INPUT hard fail（`rejection.cpp:2025-2034`）
+      non-finite values/weights → INVALID_INPUT hard fail（`rejection.cpp`）
 ```
 
-来源: `rejection.cpp:1-12`（冻结头）/ `:1182-1288`（规划）/ `:1465-1910`（方法核）/
-`:1996-2201`（生产 kernel）；`rejection.h:45-62,94-118,203-239`
+来源: `lib/algorithms/coverage/src/rejection.cpp`（冻结头 / 规划层 / 方法核 / 生产 kernel）；
+`lib/algorithms/coverage/include/astro/phase2/rejection.h`（方法枚举 / 状态枚举 / 请求与计划结构）
 
 ## 3 伪代码
 
@@ -79,7 +79,7 @@ function p2_reject(stack, plan):
   n_nominal = plan nominal contributors
   method = resolve_profile(n) # 生产默认 astrocs_adaptive_pixel（自研）；对照档 wbpp_2_9_1
   if n <= underdetermined_n or n<minimum_n → status=UNDERDETERMINED, reason=UNDERDETERMINED
-     # underdetermined_n 默认：生产档 3 / 对照档 2（rejection.cpp:1218-1225）
+     # underdetermined_n 默认：生产档 3 / 对照档 2（rejection.cpp）
   switch method:
     None: all ACCEPTED
     Sigma/Winsorized/Averaged: iterative σ clipping low/high 8iter
@@ -101,15 +101,15 @@ function p2_reject(stack, plan):
 | method AUTO | INVALID_METHOD |
 | n<minimum_n | UNDERDETERMINED |
 | 空栈（count==0） | MIN_SAMPLES（值 1；本层无 NO_CANDIDATES） |
-| 全拒且 n≤4 | UNDERDETERMINED 全接受（容错域写死 n≤4；rejection.cpp:2185-2195） |
+| 全拒且 n≤4 | UNDERDETERMINED 全接受（容错域写死 n≤4；`rejection.cpp`） |
 | 全拒且 n>4 | ALL_REJECTED |
 
 ## 5 确定性与归约
 
-- 排序确定性：ESD 等值 tie-break = **较小 frame_id**（`rejection.cpp:1747-1752`）；
-  linear_fit 排序键 = **(value, 原始索引)** 字典序（`rejection.cpp:1647-1653`）；
+- 排序确定性：ESD 等值 tie-break = **较小 frame_id**（`rejection.cpp`）；
+  linear_fit 排序键 = **(value, 原始索引)** 字典序（同文件）；
   minmax 比较器**仅按 value**（`std::sort` 非稳定 ⇒ 等值样本的置换不变性未承诺，
-  `rejection.cpp:1878-1910`）。ESD/RCR 迭代为固定顺序；无跨像素归约。
+  `rejection.cpp`）。ESD/RCR 迭代为固定顺序；无跨像素归约。
 
 ## 6 复杂度
 
@@ -143,27 +143,27 @@ function p2_reject(stack, plan):
   （`P2EligibilityGatherInput`，`rejection.h`）；**帧主序** `value_stride=support_stride=chunk_pixels`
   （stage2 `process_cpu_pixel_parallel`：`gidx=s·stride+pixel`），ACR/kernels 亦共享该布局。
 - 规划层：`p2_reject_plan_resolve` 以 `n`（nominal contributors，一次解析）路由到 method
-  （`rejection.h:227-239` request / `:203-224` plan），路由 = 一次解析的 n；同 n 方法确定性一致。
+  （`rejection.h` 的 request / plan 两处结构），路由 = 一次解析的 n；同 n 方法确定性一致。
 - **布局单位**：`values` = 面亮度 ADU·sr⁻¹、`weights` = (ADU·sr⁻¹)⁻²、`support` 无量纲 [0,1]
   （单位权威 = `docs/science/REJECTION.md` §3 + DATA_SEMANTICS §22）。
 - 输出：reject plan（method+阈值）、per-sample reason（`P2_REASON_*`）、`P2_STATUS_*`；
-  结构生长（trail）/紧凑（cosmic 不生长，`rejection.cpp:2342-2433`）。
+  结构生长（trail）/紧凑（cosmic 不生长，`rejection.cpp`）。
 - 内存：候选栈 O(n)；逐像素拒绝就地；无整帧副本。
 
 ## 12 误差预算
 
 - 阈值冻结：`sigma/winsorized/averaged/median_sigma 4.0/3.0/8`，`linear_fit 5.0/3.5/8`，
   `percentile 0.2/0.1`，ESD alpha 0.05/max 10，minmax 1/1/4
-  （冻结头注释 `rejection.cpp:1-12`；规划层默认值 `rejection.cpp:1226-1251`）。
+  （冻结头注释与规划层默认值均在 `rejection.cpp`）。
 - 数值：FP64 全链路；ESD/RCR 参照 NIST 独立实现验证；归一化 `astrocs_median_center_v1` 默认
-  （`rejection.cpp:1226-1228`）。**正向约束**：ESD 标准差单次 `sqrt`；非有限 values/weights
-  一律 `INVALID_INPUT`，该码即最终读法（`rejection.cpp:2025-2034`）。
+  （`rejection.cpp`）。**正向约束**：ESD 标准差单次 `sqrt`；非有限 values/weights
+  一律 `INVALID_INPUT`，该码即最终读法（同文件）。
 - 归约确定性：按固定顺序归约；`n <= underdetermined_n` 全接受、`recall=0` 显式（不做伪剔除）。
 - 阈值不变量：同 `n` 的 `plan.resolve` 输出 method 唯一（`synthetic_gate`）；非有限
   weights/support → `INVALID_INPUT` hard fail。
 - 误差排序：**数值 FP64 ≪ 统计阈值(冻结) ≪ 门禁容差**；卫星线受控注入 recall=1.0。
-- 各 F 映射：`p2_collect_candidate_stack`→`rejection.cpp:1373-1455`（gather，共享）；
-  `reject_linear_fit_impl`→`rejection.cpp:1615-1709`；`reject_esd_impl`→`rejection.cpp:1712-1782`
+- 各 F 映射：`p2_collect_candidate_stack`→`rejection.cpp`（gather，共享）；
+  `reject_linear_fit_impl`→同文件；`reject_esd_impl`→同文件
   （`rejection_oracle_compare` NIST 对照）；计划路由→`p2_reject_plan_resolve`（`synthetic_gate`）。
 
 ## 参考文献与参考代码库（含许可证）
@@ -182,7 +182,7 @@ function p2_reject(stack, plan):
   （IRAF `pclip` 与本层 `percentile` 同名不同义，并列说明见该文件 §8a）；`sigma` = Astropy `sigma_clip(median+mad_std)` 语义；
   ESD = Rosner 1983 + NIST 实现；RCR = Maples et al. 2018 + 官方 RCR 2.4.7 行为对照。
   **Siril 1.4.3 是次生参考实现**（`percentile` 与 `src/stacking/rejection_float.c:31-44` 逐式等价，见该文件 §8a；
-  `rejection.cpp:1082-1098` 的 `*_SIRIL` id 与核注释 `:1514/1614` 是**冻结的对拍标识**），**不作为核语义归属**
+  `rejection.cpp` 的 `*_SIRIL` id 与核注释是**冻结的对拍标识**），**不作为核语义归属**
   （oracle 保留：用未修改的 Siril 1.4.3 官方源码做掩码逐元素对拍）。
   IRAF `combine`/`imcombine` 共用引擎的参数文件 `noao/imred/ccdred/combine.par`（iraf-community/iraf@main）
   的 `reject` 值域为 `none|minmax|ccdclip|crreject|sigclip|avsigclip|pclip`，另有 `nlow=1`/`nhigh=1`/`nkeep=1`/

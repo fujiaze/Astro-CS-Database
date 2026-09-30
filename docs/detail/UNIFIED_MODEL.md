@@ -45,7 +45,7 @@ flowchart LR
 | sparse_snr_layer | 帧内稀疏控制点上的**绝对** SNR（控制点值 = 该点的通量型信噪比 `F_ref/σ_F`，与帧级 SNR 同口径、同逐帧参考通量 `F_ref`，无量纲；Phase1 标准层，**默认稀疏路径要求默认产出**）。与 `frame_snr` **相互独立**：控制点值是绝对量本身，Phase2 由控制点**直接重建**为稠密 SNR 场（`SNR(x,y)` 由重建算子给出），还原只用控制点值本身；权重换算与帧级一致：`w(x,y)=SNR(x,y)²/F_ref²`。**重建算子与层几何随层显式声明**（`reconstruction_operator` 冻结词表：默认自然边界双三次样条 + 值域钳制；cell 内含未分辨亮源的高对比域按数据来源叠加 3×3 mesh 中值前置滤波；`control_point_geometry`：节点落在所属 cell 中心）——算子定义与选择规则正本见 `docs/detail/algorithms_phase1/07_noise_snr.md` §4.5，合同键见 `docs/engineering/UNIFIED_OBJECTS.md` §4b | 帧内精细参考；Phase2 由它重建稠密 SNR |
 | snr_path（配置，**mosaic 面**） | SNR 重建路径：`dense`（Phase1 稠密面）/ `sparse_reconstruct`（由**绝对**稀疏控制点重建为稠密，**默认**）/ `frame_reconstruct`（帧级标量→稠密）；三条路径产出同一物理量 `SNR=F_ref/σ_F` 的稠密表示，只在重建方式上不同；三者精度对比是论文核心实验（判据 SP-0；稀疏优势由实测判定，不做预设）。（三条路径**没有全局最优、只有适用域**，完整适用域图谱见 `实验/absolute-snr`。**本键属 mosaic 配置**：normalize 配置不含 `snr_path`，权威落点 = `ASTROCS_DESIGN.md` §5.3 + `eng/contracts/schemas/phase_config_mosaic.schema.json`。） | 配置文件 JSON 显式指定（**mosaic**） |
 | star_mask | 星点/饱和/高结构掩膜（天球坐标） | 否；UPM 采样排除用 |
-| sky_samples | 每帧掩膜外的稀疏天光采样点（坐标、值、variance、点 SNR 权重） | 点权重 = `SNR²/F_ref²`（= `1/σ_F²`，**已归一的逆方差**；`F_ref` = 该帧逐帧参考通量，与 `frame_snr`/`sparse_snr_layer` 同口径）——**禁读作裸 `SNR²`**（同 `docs/detail/algorithms_phase2/11_upm.md:76` 禁令）；仅用于天光面拟合 |
+| sky_samples | 每帧掩膜外的稀疏天光采样点（坐标、值、variance、点 SNR 权重） | 点权重 = `SNR²/F_ref²`（= `1/σ_F²`，**已归一的逆方差**；`F_ref` = 该帧逐帧参考通量，与 `frame_snr`/`sparse_snr_layer` 同口径）——**禁读作裸 `SNR²`**（同 `docs/detail/algorithms_phase2/11_upm.md` 禁令）；仅用于天光面拟合 |
 | sky_plane | 稀疏样条表示的天光亮度面（参考面 B_ref 系数 + 每帧梯度 δ_k 系数）；栅格值现场求值 | 否；加性背景模型 |
 | support | 有效输入/面积贡献 | 否 |
 | coverage | 几何/数据有效域 | 否 |

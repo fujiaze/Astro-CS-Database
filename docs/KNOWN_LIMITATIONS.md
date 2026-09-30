@@ -26,7 +26,7 @@
 12. **Phase1 SNR catalogue**：作为诊断保留，不作为科学权重。
 13. **Phase1 不确定度子产品缺失（未关，P0 级）**：CLI `normalize` 产出的 `p1_final.json` 实测 `n_variance_tiles=0` / `n_ivar_tiles=0`；写出器本身具备产出 variance/ivar 子产品的能力，缺口在 p1 节点未向 PipelineFrame 注入 variance 块。**最高设计 §3.1 规定不存在「权重模式」概念（全程只有 SNR）**，故该缺口的影响面 = 绝对 SNR / 不确定度链的可达性。
 15. **接缝残余未随天光面修复消失（未关；证据口径已按 P5-08 改写）**：真实帧足迹域上，「无接缝」主张**不成立**——门内读数 `max|rel_step| = 7.2561e-03` 未超门，但同一次读数块的**三个独立诊断量全部越门**（`rel_step_net_max = 1.2948e-02`、`rel_step_d4x_max = 2.1915e-02`、`legacy_rel_max = 2.6110e-02`），且门只覆盖 **114/196** 条边界（82 条 `not_interior` 不进判据）。**订正**：原登记文字（幅度 1–3%、水平带 +1.06%→−2.39%、"根因不是 sky_plane 回退"）一律撤下——① 该文字记录的是已被后续轮次取代的 M42-E2E-01 产品（legacy 口径随后由 0.10838 降到 0.02611、历史带判 0/17 超门）；② 其数字在仓内**无任何可复核载体**（产品 FITS 已随源 run 树回收）；③ 其归因被 `run/SCI-SEAM-Y2309-01` 的一手结论反证（真因是 node_spacing 取 1.0°，HEAD 已改为几何导出）。现行可核对面 = `实验/additive-sky-seamless/results/production_e2e_seam_record.json`（逐字冻结 + 4 个源 sha256 + 17 项自检，正/负例均可跑）。
-16a. **天光面生效后的负值像素属读取约定（保留原归类）**：加性天光面生效后背景归零 ⇒ 产品出现负值像素，占比 **48.4%**（`full_neg_frac = 0.4839820861816406`；来源 `实验/additive-sky-seamless/code/c3_public_plane.py:131` → `results/c3_public_plane.json` 的 `/product/full_neg_frac`；HEAD 复跑同口径 0.4851）；下游读取与判据须按「允许负像素」的约定解释。**订正**：原条目写的「0.459（46%）」在仓内无来源——0.45988 实为 `实验/additive-sky-seamless/results/c7_realdata.json` 的 `d_step`（δ 臂校正后的**接缝台阶**，单位 e⁻，见 `results/REVIEW.md` 的「step 20.8858 → 0.4599」），与负值像素**占比**是两个量，该数字与「46%」一并撤下。
+16a. **天光面生效后的负值像素属读取约定（保留原归类）**：加性天光面生效后背景归零 ⇒ 产品出现负值像素，占比 **48.4%**（`full_neg_frac = 0.4839820861816406`；来源 `实验/additive-sky-seamless/code/c3_public_plane.py` → `results/c3_public_plane.json` 的 `/product/full_neg_frac`；HEAD 复跑同口径 0.4851）；下游读取与判据须按「允许负像素」的约定解释。**订正**：原条目写的「0.459（46%）」在仓内无来源——0.45988 实为 `实验/additive-sky-seamless/results/c7_realdata.json` 的 `d_step`（δ 臂校正后的**接缝台阶**，单位 e⁻，见 `results/REVIEW.md` 的「step 20.8858 → 0.4599」），与负值像素**占比**是两个量，该数字与「46%」一并撤下。
 16b. **契约面缺陷：请求 δ 而无天光面产物时的降级（未关，major）**：`additive_mode=delta` 且无可用天光面时，`additive_mode_effective` 只能降为 `"c"`（全减、背景归零），而 `docs/detail/algorithms_phase2/11_upm.md` §7 明令该情形**判红**；全减正是本单元判定的**退化路径**（背景近 0 ⇒ 判据量分母病态、`rel_step` 无界）⇒ 负值像素是**退化路径被触发的症状**，不只是约定变更。现状：该降级已改为**具名判红面**（`lib/infrastructure/scheduler/src/module_adapters.cpp` 的 `degraded_reason=no_sky_plane_artifact` + `warning_codes=["P2-ADDITIVE-MODE-DEGRADED-NO-SKY-PLANE"]`，随 `p2_corrected.json` 与节点 manifest 落盘，产品照出、rc 不变），自相矛盾的旧注释已撤下。**仍缺**：① 全仓无任何测试/门禁**读取**该码（grep `lib/ eng/ docs/ 实验/` 只命中生产者）⇒ 判红面**恒绿**，不可判据；② 承载原 46% 数字的 `additive_mode_effective` 落盘证据（源 run 树已回收）⇒ 该数字按「未验证」处理。补可判红负例属 P2 文件域（`module_adapters.cpp` 不在本单元文件域），已在 P5 订正报告中登记。
 17. **`drizzle_scale_arcsec` 合法域**：NaN / ≤0 / >824.52″ 一律 `rc=2` + `set_error`（契约侧登记；去向 `docs/science/DATA_SEMANTICS.md`，由前台合并）。
 
@@ -164,22 +164,22 @@
       与帧级 SNR 相乘：`weight_chain.cpp` 的 `compose_actual_snr` ⇒ `actual = frame_snr × intra`，
       跨域缺陷 P2-N1）。**现行接线**：已删除 `compose_actual_snr`（帧级×帧内合成作废），
       稀疏层的唯一消费面 = 集成侧逐像素权重 API
-      `weight_from_sparse_layer_pixel[_prepared]`（`weight_chain.cpp:225/256`）：
+      `weight_from_sparse_layer_pixel[_prepared]`（`weight_chain.cpp` 两处）：
       `w(x,y) = (SNR_layer(x,y)/F_ref,k)²·g_k²`——层值即**绝对** SNR，**不乘/除**帧级标量；
-      `module_adapters.cpp:12384` 的逐像素面直接调同一生产实现（单一实现 ⇒ 两入口口径不可能分叉）。
+      `module_adapters.cpp` 的逐像素面直接调同一生产实现（单一实现 ⇒ 两入口口径不可能分叉）。
       帧级标量链（`compute_inverse_variance_weights`）**不再消费**稀疏层：层所在帧的权释放到逐像素面
       （`weight_deferred_to_pixel_path[k]=true`、`weights[k]=0`、`weight_source="sparse_snr_layer_absolute_snr"`）。
       判据：ctest `p2_pixel_weight`（量纲/口径一致 + 缺层显式降级 + 误乘帧级标量的可判红反例 +
       两条逐像素入口逐像素一致）与 `p2_pixel_weight_wiring`（生产侧接线核对，带 `--self-test`）。
     - **M05 现象**：`idw_power` 在 `eng/packaging/config/**` **零命中**（`grep -rn idw_power eng/packaging/config` = 0），
-      无法直接登记为受控键：`eng/tests/config/check_cfg002_registry.py:186-191` 要求
+      无法直接登记为受控键：`eng/tests/config/check_cfg002_registry.py` 要求
       `docs/detail/**` 配置项表与 `config_registry.json#plugin_knobs` **一一对应**（文档有、登记册无 ⇒ 红；
-      登记册有、文档无 ⇒ 红），而 `07_noise_snr.md` 只在正文 `:192` 提到 `idw_power`，**无表格行**；
+      登记册有、文档无 ⇒ 红），而 `07_noise_snr.md` 只在正文提到 `idw_power`，**无表格行**；
       且 `defaults.json` 的 `authority.transcription_rule` 要求取值只从 `docs/science/**` 逐字转录 ⇒
       插件文档来源的默认值不能直接进 defaults 数值面。代码侧现状：消费侧已是规范默认 1.0
-      （`lib/algorithms/drizzle/healpix_drizzle/snr_evaluator.h:110`、`snr_evaluator.cpp:212,268`），
-      生产侧仍硬写 2.0（`lib/algorithms/noise_snr/cpp/src/snr_estimator.cpp:593,730,833`）。
-    - **规范依据**：`docs/detail/algorithms_phase1/07_noise_snr.md:192`（插值设置配置化 + 日志输出 `p*`，不随产物落盘）；
+      （`lib/algorithms/drizzle/healpix_drizzle/snr_evaluator.h`、`snr_evaluator.cpp` 两处），
+      生产侧仍硬写 2.0（`lib/algorithms/noise_snr/cpp/src/snr_estimator.cpp` 三处）。
+    - **规范依据**：`docs/detail/algorithms_phase1/07_noise_snr.md`（插值设置配置化 + 日志输出 `p*`，不随产物落盘）；
       `eng/contracts/schemas/unified/sparse_snr_layer.schema.json`（层语义冻结）；`AGENTS.md §6`（不动科学默认值）。
     - **归属/去向**：M06 = **已落地**（集成侧逐像素消费面 + 生产接线 + 双向判据；本条目余下部分已不再是前置）；
       M05 = 文档单元（`07_noise_snr.md` 补表格行
