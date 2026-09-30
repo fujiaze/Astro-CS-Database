@@ -1929,7 +1929,11 @@ worker 数无关、同 worker 数下位精确；dense 物化 bit-identical
 - `P3ResampleStatus p3_sampler_open_ex(const char* hips_dir,
   P3Sampler* out, int* out_order, char* out_bunit, char* err)`
   （h:36-38 声明，实现 :130-159）: 同上校验 + 回填 survey 实际
-  order（int）与 BUNIT（缺省 'ADU'，**绝不 Jy/beam**——SCI §9a-11）；
+  order（int）与 BUNIT（缺省 **canonical `"ADU/sr"`**，**绝不裸 ADU**、**绝不 Jy/beam**——
+  SCI §9a-11；口径来源 `DATA_SEMANTICS.md` §31.1a `FZ-UNIT-SIGNAL-SB`；
+  实现见 `lib/algorithms/resample/p3_resample.h` 的 BUNIT 来源输入合同与 finalize 实参。
+  **注**：`ADU` 是每像素计数、`ADU/sr` 是面亮度，两者差一个立体角、是两个物理量，
+  不得互相代入）；
   失败路径 properties 解析/目录不可读→IO、frame≠ICRS→UNSUPPORTED。
 - `P3ResampleStatus p3_order_select(int max_order, double
   scale_deg_per_px, int* out_order)`（h:21 声明，实现 :82-93）: G3
