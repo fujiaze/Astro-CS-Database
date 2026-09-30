@@ -30,6 +30,9 @@ doc_index:
   schema_rev: "3"
   coverage: "docs/** 全部 .md 与 .yaml + 仓库根固定条目（AGENTS.md、README.md、VERSION）；目录招牌件按「每目录必有 README」治理，不进规范索引面"
   active:
+    - path: "实验/裁决台账.md"
+      status: ACTIVE_NORMATIVE
+      duty: "跨单元裁决台账：五个创新点实验重做的分歧终裁，含依据与落点正本节"
     - path: "docs/engineering/WINDOWS_BUILD_NODE.md"
       status: ACTIVE_NORMATIVE
       duty: "Windows 构建与验证节点的接入实操：凭据纪律、远端 shell、命令面、时间窗与离线处置"

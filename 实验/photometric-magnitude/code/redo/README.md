@@ -1,6 +1,6 @@
 # code/redo · 实验重做三路脚本（统一整理）
 
-**来源**：独立审计/实验重做/P1通量积分拟合/{路线1,路线2,路线3}，原文件名保留；各路线重做报告随附为 `REPORT_route{N}.md`。
+**来源**：三路重做脚本，原文件名保留；各路线重做报告随附为 `REPORT_route{N}.md`。
 **seed**：三路统一固定 `SEED = 20260926`（脚本内写死；路线1 部分脚本派生 `SEED+1…`，路线3 同值）。RNG 一律 `numpy.random.default_rng(SEED)`。
 **纪律**：纯 Python + numpy；不 import 仓库任何 Python；不跑 eng/**；未做 git 写。
 **一键复跑**：`bash 实验/photometric-magnitude/code/redo/run_all.sh`（`quick` 跳过路线2 exp3/exp7）。结果写各 `routeN/results/`，基准读数快照在 `results/redo/route{1,2,3}/`。

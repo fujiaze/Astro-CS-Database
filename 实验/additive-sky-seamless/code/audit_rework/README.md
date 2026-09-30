@@ -1,16 +1,16 @@
 # code/audit_rework — P5 审计重做三路 + 两个补实验的可复现脚本归档
 
-**来源**（只读取证原件，保留于审计目录，本归档为逐字节拷贝）：
+**脚本快照位置**（本目录内，逐字节拷贝，文件名保持原样）：
 
-| 子目录 | 来源 | 内容 |
+| 子目录 | 快照位置 | 内容 |
 |---|---|---|
-| `route1/` | 独立审计/实验重做/P5加性天光去除/路线1/code/ | C1–C10 十个脚本＋其 run_all.sh |
-| `route2/` | 独立审计/实验重做/P5加性天光去除/路线2/code/ | M1–M7 对应 e1–e10 十个脚本 |
-| `route3/` | 独立审计/实验重做/P5加性天光去除/路线3/code/ | Q1–Q12 对应 exp01–exp12 十二个脚本 |
-| `supp_507_relstep/` | 独立审计/实验重做/P5加性天光去除/补实验-5.07与relstep/code/ | ea（×5.07 扫描）、eb（rel_step_max 标定）、p5c_common |
-| `supp_control_variance/` | 独立审计/实验重做/P2跨帧绝对SNR/补实验-control_variance/code/ | 有限 N、生产链、独立 seed 抽检三脚本（D-07 定稿口径） |
+| `route1/` | `route1/` | C1–C10 十个脚本＋其 run_all.sh |
+| `route2/` | `route2/` | M1–M7 对应 e1–e10 十个脚本 |
+| `route3/` | `route3/` | Q1–Q12 对应 exp01–exp12 十二个脚本 |
+| `supp_507_relstep/` | `supp_507_relstep/` | ea（×5.07 扫描）、eb（rel_step_max 标定）、p5c_common |
+| `supp_control_variance/` | `supp_control_variance/` | 有限 N、生产链、独立 seed 抽检三脚本（D-07 定稿口径） |
 
-**k_corr 两因子查表补实验属 P3 单元承载**（分歧台账 D-08，负责人已批），不在本单元复现；
+**k_corr 两因子查表补实验属 P3 单元承载**（`实验/裁决台账.md` D-08，负责人已批），不在本单元复现；
 其固化读数拷贝于 `../../results/audit_rework/p3_kcorr/`（summary.csv、tables.md、g1/g2/g3/g4/g6）。
 
 ## 运行

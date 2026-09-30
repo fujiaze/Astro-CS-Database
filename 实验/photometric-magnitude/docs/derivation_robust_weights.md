@@ -1,7 +1,7 @@
 # 支撑推导 · P1 稳健加权与常数体系（推导腿自足记录）
 
 > **性质**：本单元论文（`REPORT_paper.md`）与实验报告（`REPORT_experiment.md`）正文标注 `[推导]` 的条目在此给出完整推导；文献锚见 `refs.md`；实验复算见 `code/redo/`（seed=20260926）。
-> **权威口径**：`docs/science/PHOTOMETRY.md`（SCI-PHOT-001）。分歧裁决以 `独立审计/实验重做/总编对账/分歧台账.md` 为准。
+> **权威口径**：`docs/science/PHOTOMETRY.md`（SCI-PHOT-001）。分歧裁决以 `实验/裁决台账.md`（D-xx）与 `docs/DISPUTES.md`（A-P1-xx）为准。
 
 ---
 

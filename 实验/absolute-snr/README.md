@@ -1,6 +1,6 @@
 # 实验/absolute-snr — P2 跨帧绝对 SNR（SCI-B）· 单元入口
 
-> **体系化整理定稿（总编对账后）**。唯一事实源：`独立审计/实验重做/总编对账/分歧台账.md` 与 `五单元成稿简报.md`。
+> **体系化整理定稿（总编对账后）**。裁决唯一事实源：`实验/裁决台账.md`（跨单元 D-xx）与 `docs/DISPUTES.md`（本单元 A-P2-xx）；科学正本同步件 `docs/science/DISPUTE_RESOLUTION.md`；成稿口径摘要见本单元 `REPORT_paper.md` 与 `docs/LEDGER_CORRECTIONS_P2.md`。
 > 单元定位：科学链第 2 创新点（最高设计 §2），P1 测光零点 → **P2 绝对 SNR 标尺** → P3/P4/P5。
 
 ## 一句话结论

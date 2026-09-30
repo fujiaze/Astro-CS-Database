@@ -1,7 +1,7 @@
 # 稀疏绝对信噪比控制点的稠密重建：自然三次样条钳制算子、逆方差定权恒等式与亮度携带必要性的三路证据综合
 
 **单元**: 实验/dense-snr-reconstruct · ACSD 科学链创新点 P4（最高设计 §2 第 4 点）
-**成稿依据**: 独立审计/实验重做/总编对账/{分歧台账,五单元成稿简报}（唯一事实源）；证据源 = P4重建稠密SNR 三路 report/refs/code/results（路线1/2/3，互不通信），本单元整合为定稿。
+**裁决依据**: `实验/裁决台账.md`（D-xx）与 `docs/DISPUTES.md`（A-P4-xx），科学正本同步件 `docs/science/DISPUTE_RESOLUTION.md`；证据源 = 三路互不通信的 report/refs/code/results（路线1/2/3），本单元整合为定稿。
 **复现**: 见 REPORT_experiment.md §6 与 code/run_all.sh；全部结果为固定 seed 存档读数，本单元不重跑实验。
 
 ---
