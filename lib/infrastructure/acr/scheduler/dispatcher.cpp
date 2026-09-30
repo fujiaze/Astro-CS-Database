@@ -1100,12 +1100,14 @@ struct Dispatcher::Impl {
         std::size_t total_workers = 0;
         for (std::size_t i = 0; i < n_exec; ++i) {
             if (supported[i]->backend_type() == "cpu") {
-                // ACR 架构冻结（07 E）：Auto+Profile 场景，worker 启动前
-                // 预判 CPU 是否可能缩短总完工时间（用 Profile 值估算）：
-                // CPU 一块完成时间 < GPU 清空剩余的时间 → CPU 才启动。
-                // 否则 CPU 不启动（自然 GPU-only），避免 16 个 CPU worker
-                // 线程创建/调度固定开销拖慢小任务 Auto（实测 512² Auto
-                // 曾慢于 GPU resident 约 11 倍）。
+                // Auto+Profile 场景：worker 启动前先按 Profile 估值预判 CPU
+                // 是否真能缩短总完工时间——CPU 单块完成时间 < GPU 清空剩余的
+                // 时间，CPU 才启动；否则不启动（自然 GPU-only）。
+                // 为什么预判：小任务的 Auto 场景下，一批 CPU worker 的线程
+                // 创建与调度固定开销可能超过它抢到的那点活，注册与采样开销
+                // 反过来拖慢整体，混合执行得不偿失。
+                // 预判门是保守参与门，不是正确性门：判错只影响性能取舍，
+                // 不影响块结果——两条腿算的是同一个 kernel。
                 bool cpu_skip = false;
                 if (cfg.route_mode == RouteMode::AutoMixed &&
                     plan_profile != nullptr &&

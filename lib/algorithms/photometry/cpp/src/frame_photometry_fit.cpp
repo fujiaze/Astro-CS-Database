@@ -7,7 +7,8 @@
 //   1. FILTER 名称映射 (curve_json::map_filter_name, 唯一实现)
 //   2. filters.json / qe_curves.json 曲线加载 (curve_json::load_curve, 唯一实现)
 //   3. gaia_client 锥形搜索光谱参数 → spectrum_wl 网格
-//   4. FOV 半径 = pixel_scale * sqrt(W²+H²)/2 * 1.2, 钳位 [1,10] 度
+//   4. FOV 半径 = pixel_scale * sqrt(W²+H²)/2 * 1.2；越界保护（≤0 或 ≥30 deg）
+//      触发时钳到 [1,10] deg（区间内取值原样透传，非区间外才钳）
 //   5. pc_calibrate_simple_with_gaia_f64_v2_qf（生产星匹配 + IRLS/Tukey）
 //
 // 本文件不改任何科学公式/默认容差; 只把既有生产实现装配成"给定帧 + 配置 →
@@ -162,7 +163,7 @@ FramePhotFitResult fit_frame_photometry(const FramePhotFitRequest& req) {
                              "F_syn 按 Q(lambda)=1 合成 (显式未建模项)\n");
     }
 
-    // FOV 半径（与 orchestrator.cpp:2771-2778 同式同钳位）
+    // FOV 半径（与 Orchestrator::run_stage_photometric 的 "计算 FOV 半径" 段同式同钳位）
     const double cd_det = std::fabs(req.cd11 * req.cd22 - req.cd12 * req.cd21);
     const double pixel_scale_deg = (cd_det > 0.0) ? std::sqrt(cd_det) : 0.0;
     double fov_radius_deg =

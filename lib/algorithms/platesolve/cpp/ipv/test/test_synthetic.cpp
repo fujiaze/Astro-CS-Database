@@ -17,7 +17,6 @@
 // src/ipv_kvector.cpp src/ipv_polygon.cpp src/ipv_ransac.cpp \
 // src/ipv_wcs.cpp -o test_synthetic.exe
 //
-// 日期: 2026-07-02
 // ============================================================================
 
 #include <iostream>

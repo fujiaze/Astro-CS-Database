@@ -15,7 +15,6 @@
 // 编译: g++ -std=c++17 -O1 -g -Iinclude src/*.cpp test/test_last_inlier_reset.cpp
 // 运行: ./a.out; 返回 0=通过
 //
-// 日期: 2026-09-08 (bughunt P1 batchA)
 // ============================================================================
 
 #include "ipv_api.h"

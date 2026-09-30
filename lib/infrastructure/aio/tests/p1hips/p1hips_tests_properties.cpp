@@ -12,9 +12,15 @@
 //     (4b)(4c) hierarchy 逐阶聚合与落盘归一 (I7)、
 //     (2b) 叶级归一 signal=flux/area / support=min(area/A_cell,1) 与
 //     (2e) MOC 面积登记 (I11 的 sup·A_cell 域)。
-//   SCI-DRZ-001 — docs/science/DRIZZLE.md (FROZEN T105, 2026-08-23):
-//     §5 重建式与面亮度 S_p=F_p/D_p、§9a support=D_p→[0,1] 与
-//     variance_p=sumVarNum/D_p² —— 叶/父归一式的科学层权威。
+//   SCI-DRZ-001 — docs/science/DRIZZLE.md:
+//     §5 重建式与面亮度 S_p=F_p/N_p（N_p=Σ_j w_jp·A_pixel,j 面亮度归一分母，
+//     非覆盖面积 D_p；D_p 作分母属 §13 禁用式 DISP-DRZ-009）、§9a support=D_p→[0,1]。
+//   方差归一分母：本组测试沿用的写法是 variance_p=sumVarNum/D_p²。该写法**不是**
+//     无条件成立的正本式 —— DRIZZLE.md §5/§9a 的规范分母是 N_p，DATA_SEMANTICS.md §4a
+//     的 D_p² 写法只在核同步改用等价参数化（w_jp=a_jp/A_pixel,j）时与其逐位同值；
+//     沿用 drop 参数化核而裸写 sumVarNum/D_p² 会漏 k²（k=D_p/N_p=pixfrac²）。
+//     该口径冲突由 science 正本裁定（SCI-DRZ-V1）；裁定前本组断言按现有实现锁定，
+//     不得据本注释把该式当成叶/父归一式的科学层权威。
 //   SCI-SCOPE-001 — docs/science/SCIENCE_SCOPE.md: HiPS 科学产品目标。
 //   I6/I7/I11 的上位覆盖边界 (如实登记, 不伪造 SCI ID):
 //     HIPS_WRITER.md §4 明示 hierarchy 低阶聚合"SCI 层零覆盖"、§5 (5a)

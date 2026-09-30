@@ -20,7 +20,7 @@ public:
     static double computeScale(const std::vector<StarMatch>& matches);
 
     // 图像校正: I_cal = I * scale
-    // OpenMP并行加速 (16线程)
+    // OpenMP 并行（线程数取运行时 OMP 默认，不在模块内固定）
     // 参数:
     // pixels: 原图像素 float32 [H*W]
     // width,height: 图像尺寸

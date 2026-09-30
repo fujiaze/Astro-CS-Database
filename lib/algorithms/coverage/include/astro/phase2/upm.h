@@ -1,7 +1,9 @@
 // lib/algorithms/coverage/include/astro/phase2/upm.h
 //
-// Phase2 Unified Photometric Model (UPM) 公共接口（冻结，
-// AstroCS_Phase2_Implementation_Control_Package_V1，SHA 34A532A2...B2EB308）。
+// Phase2 Unified Photometric Model (UPM) 公共接口。
+//
+// 权威：docs/science/PHASE2_UPM.md（SCI-UPM-001..010）与
+//        docs/science/algorithms/PHASE2_UPM_IMPL.md / UPM_SOLVER.md。
 //
 // 语义（冻结）：
 // - 输入为多个 Phase1 单帧 HiPS；覆盖并集 Ω = MOC union；
@@ -80,8 +82,10 @@ struct P2UpmBuildConfig {
     double zero_anchor_weight;    // 弱零校正锚权重（生产装配显式 1e-3，SCI §9a:133）
     int    max_iterations;        // IRLS 最大迭代（默认 100）
     // 收敛容差（默认 1e-6）。语义由 tolerance_relative 决定：
-    // 0=绝对（legacy，max_dM/max_dC < tolerance）；1=相对
-    // （< tolerance × max(scale,1.0)，scale=max|M| 或 max|C|）。
+    // 0=绝对（legacy，max_dM/max_dC < tolerance）；
+    // 1=相对（< tolerance × max(scale_obs,1.0)）。
+    // scale_obs = control 观测值的稳健尺度（upm.cpp 的 m->scale_obs）；
+    // **不得**用 max|M| 或 max|C|（docs/science/PHASE2_UPM.md §5 明文）。
     double tolerance;
     int    target_order;          // 模型目标 order（-1=auto）
     double sigma_floor;           // uncertainty 下限（默认 1e-3）
@@ -110,8 +114,9 @@ struct P2UpmBuildConfig {
     // 从每帧扣除（使叠加 Σw(y-C-G)/Σw ≡ M ⇒ 任意覆盖子集/权重面无阶跃）；
     // 0 = 关闭（legacy）。见 q2-snr-smooth §5（阶跃恒 0.0000）。
     int    final_gauge = 0;
-    // P2a-3：1 = tolerance 解释为相对判据，阈值 = tolerance × max(scale,1.0)，
-    // scale = max|M| / max|C|；0 = 绝对判据（legacy）。生产显式 1 + 1e-3。
+    // P2a-3：1 = tolerance 解释为相对判据，阈值 = tolerance × max(scale_obs,1.0)，
+    // scale_obs = control 观测值的稳健尺度（**不是** max|M| / max|C|，
+    // docs/science/PHASE2_UPM.md §5 明文）；0 = 绝对判据（legacy）。生产显式 1 + 1e-3。
     // 绝对 1e-6 在 max|M|~3e15 时低于 ULP(0.5) 5-8 个数量级，原理上不可达。
     int    tolerance_relative = 0;
     // M7-C-001: UPM 控制 cell 网格边长 G，必须 == 采样器
@@ -181,7 +186,8 @@ P2_API int p2_upm_raw_weight(const P2ControlObservation* obs,
                              double* out_raw);
 
 // per-control 归一化权重（raw/sum_j(raw) × control_reliability）。
-/* RETIRED 2026-09-25 (CHK-PROD-WIRING W1): p2_upm_normalized_weights 全仓零消费者声明已撤下。 */
+// 声明已撤下：p2_upm_normalized_weights（全仓零消费者；份额式归一由求解器内
+// w_cell 承担，不对外暴露端口）。
 
 // geometry/topology hash（仅 geometry/coverage 决定，不含
 // SNR/quality/support 等观测可信度；权重变化不得改变）。
@@ -355,7 +361,8 @@ P2_API int p2_upm_ma_solution(
 // frame -> 连通分量下标；control -> 连通分量下标。未知 id → 返回 1。
 P2_API int p2_upm_ma_component_of_frame(
     const void* model, std::uint64_t frame_id, std::uint64_t* out_component);
-/* RETIRED 2026-09-25 (CHK-PROD-WIRING W1): p2_upm_ma_component_of_control 全仓零消费者声明已撤下。 */
+// 声明已撤下：p2_upm_ma_component_of_control（全仓零消费者；control 侧分量下标
+// 由帧侧分量映射隐含，不单独暴露端口）。
 // 每分量 gauge 参考帧（分量内最小 frame_id；与构建顺序无关）。
 P2_API int p2_upm_ma_component_ref_frame(
     const void* model, std::uint64_t component, std::uint64_t* out_ref_frame_id);

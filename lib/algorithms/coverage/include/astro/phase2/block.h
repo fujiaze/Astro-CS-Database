@@ -2,7 +2,8 @@
 //
 // Phase2 W6：动态分块（Block Planner）。
 //
-// 语义（冻结， 34A532A2...B2EB308 + wiki Phase2_Block_Integration）：
+// 语义（冻结；权威 = docs/detail/algorithms_phase2/10_sampling.md 与
+// docs/engineering/OWNERSHIP_AND_LIFETIME.md）：
 // - 峰值估算 ≈ P·N_B·B_sample + P·B_scratch + M_AIO + M_UPM + M_ACR；
 // - 从少量相邻 HiPS tiles 增长，保持空间局部性与顺序 I/O；
 // - 使用真实 coverage depth N_B（不按总帧数规划）；

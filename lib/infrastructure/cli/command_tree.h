@@ -1,15 +1,15 @@
-// lib/infrastructure/cli/command_tree.h — 唯一命令树（docs/ASTROCS_DESIGN §6.2）
+// lib/infrastructure/cli/command_tree.h — 唯一命令树（ASTROCS_DESIGN §7.1 + CLI_PROTOCOL_V1 §1）
 //
 // 本文件是「用户可见命令面」的唯一事实源：命令名、旗标白名单、help 文本都从
 // 这里生成；根 lib/infrastructure/cli/parser.cpp 只消费本表，不再自带命令清单（旧表含 phase1/2/3
 // 用户命令，已随 CLI-001 删除）。
 //
 // 三条不可回退的约束（改动本文件前先读）：
-//   1) 命令树只登记 §6.2 的条目：normalize/mosaic/export ×(--json|--template|--help)
+//   1) 命令树只登记 ASTROCS_DESIGN §7.1 的条目：normalize/mosaic/export ×(--json|--template|--help)
 //      + help + --version + doctor + benchmark；旧 phase1/phase2/phase3 及其别名
 //      不得再次出现（用户命令名解析失败 → exit 2）。
 //   2) 三个命令平级独立（§1.2）：本表不表达任何顺序/依赖，禁止隐式串接。
-//   3) 薄入口（§6.1）：本表只描述参数面，不含科学语义。
+//   3) 薄入口（ASTROCS_DESIGN §8.1）：本表只描述参数面，不含科学语义。
 #pragma once
 
 #include <cstddef>

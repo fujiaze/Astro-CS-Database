@@ -1,5 +1,5 @@
-// JSONL 事件协议 v1 冻结合同 — CLI-004 (GUI 可调用进程协议, 控制包 02 CLI-004)
-// 权威: docs/engineering/CLI_PROTOCOL_V1.md §4 (上游 04 §4 字段冻结) + schemas/jsonl_event_v1.schema.json
+// JSONL 事件协议 v1 冻结合同 — CLI-004 (GUI 可调用进程协议)
+// 权威: docs/engineering/CLI_PROTOCOL_V1.md §4 + eng/contracts/schemas/jsonl_event_v1.schema.json
 // 职责: 协议面唯一验证点 —— 外部 harness/GUI 只消费本协议面(禁链接科学库绕过 CLI)。
 // 语义冻结, 发送侧 ValidateEventV1 自检硬闸: 非法事件拒发(stderr 诊断, stdout 纯净),
 // 机器一致性校验(测试/CI)用 ValidateEventV1(读侧, 独立重实现协议文本, 防同源盲区)。

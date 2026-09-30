@@ -1549,3 +1549,148 @@ Windows = `lib\star_detector\logs`（**缺 `algorithms` 一级**，是模块迁�
 `rejection`+`upm`、`resample`+`shared`+`hips_browser` 四组子分片报告**仍标「待合并」**，
 即这些模块只做了八维度扫描 + 公式对读，**未逐函数读完**。G08-07 的验收
 「代码与 detail 逐条一致」对这批尚未满足。
+
+---
+
+## 40. G08-07 分片五（aio）报回：**平台两侧语义不一致 —— G08-09 双平台的直接阻塞**
+
+读了 143 文件 / 61,852 行（生产面 100 文件 / 42,478 行）。守卫点 **114 处 / 30 个文件**。
+
+### 40.1 前台核实：W7 —— 同一分片内目录持久性有两套相反口径
+
+- `product_io/src/atomic_publish.cpp:152` `confirm_dir_durability(...)` —— 报 `kNotDurable`
+- `aio_atomic_file.h` 的 `fsync_path` —— 对目录在 Windows **报成功**
+
+⇒ **同一个「目录是否持久」的问题，本片两个面给相反答案。** 不先统一，任何持久化实现都会被本片自身打架。
+这是 G08-09 双平台编译/验收的**直接阻塞项**。
+
+### 40.2 发布路径上四条真实的平台不一致（分片点名，前台采信）
+
+| # | 位置 | 问题 |
+|---|---|---|
+| ① | `atomic_publish.cpp:431-433` | Windows **先 `remove` 再 `rename`，且返回值整条丢弃** ⇒ 崩溃丢文件窗口真实存在，**违反本片自己在 `aio_atomic_file.h:18-19` 冻结的禁令** |
+| ② | `:519-528` `atomic_publish_directory` | **Windows 整体未实现** |
+| ③ | `:243` / `:267` | 公共头登记的 `remove_tree` / `fsync_tree` 在 Windows 是恒值桩：一个恒失败、一个**假成功** |
+| ④ | `aio_sparse_punch.h:216-232` | Windows 打洞错误**全归「不支持」** ⇒ `PUNCH_IO_ERROR` 不可达；`:316-327` Windows `drop_page_cache` 只 `FlushFileBuffers`、**不丢读缓存** ⇒ 读回复算在 Windows 无判别力；头注 `:32-33` 自述**该 Windows 分支从未实测** |
+
+### 40.3 D2：三份 nside 域上界互斥（前台核实数字）
+
+| 出处 | 上界 |
+|---|---|
+| writer（`hips/src/module_entry.cpp:347`） | `nside ≤ 1<<24` |
+| `aio/include/hiss_format.h:284` `HISS_MAX_NSIDE` | `1u << 22` |
+| `aio/io/include/astrocs/io/hips_input_v1.h:31` `ACS_HIPS_ORDER_MAX 29` | order ≤ 29 ⇒ `2^29`；**注释却称「NSIDE ≤ 2^38 安全域」** |
+
+⇒ `nside ∈ (2^22, 2^24]` 的产品**写出成功、读回被拒，且写时无告警**。
+且 `2^38` 这个注释比实际大了 **9 个数量级**。
+
+**三处同属 aio 分片，可直接授权统一**；但选哪个上界属产品契约变更，待裁。
+
+### 40.4 I/O 维度（本片即边界本身）
+
+**绕过统一 I/O 0 处**（正面）。**未声明写文件 2 处**：
+
+1. `src/aio_log.cpp:40/48/57-63` —— 日志落**源码树** `lib/infrastructure/aio/logs/astro_image_io.log`，
+   且是**进程 CWD 相对路径**（违反 `17_aio.md:134-137` 与 `ASTROCS_DESIGN:463`）；
+   目录不可创建时 `g_aio_log_file = nullptr; return;` 静默降级无信号。
+2. `src/aio_sparse_punch.h:394-395` —— 卷能力探针在**产品输出目录内**建删临时文件。
+
+另有两条自称「机器判据」的检查器 **均不存在**：`eng/ci/check_aio_io_boundary.py`、
+`eng/tools/quality/check_module_map.py` ⇒ 与 §37 同批（**GOV-ERR-4**）。
+
+### 40.5 重复实现里有直接违反本片自身声明的
+
+**SHA-256 2 份** —— 直接违反 `aio_file_io.h:16-17` 自写的「单一实现」声明。
+UTF-8 fopen **4 份且回退语义分叉**；原子替换 2 份；原子发布 3 份；读回哈希 3 份；
+目录遍历/删除 3 份；FITS 卡片宏 2 份；块词表 2 份**手工镜像**。
+
+### 40.6 孤儿 TU：公共头声称它「在位」
+
+`src/aio_pipeline_engine.cpp` 629 行**不在任何 CMakeLists/Makefile**、9 个导出符号零生产调用，
+但公共头 `aio_pipeline.h:241-243` 仍称其为「**唯一在位的内部调用点**」⇒
+**文档声称与构建事实矛盾**（与 §35.2 的 `neighbor_k`、§39.2-K 的退役 CLI 面同类）。
+
+另 `io/hips_core.c`（仓内自述 W1 缺口）、`healpix_db/archive/legacy/healpix_stack/**`
+11,275 行**躺在生产模块目录内且无退役注释块**。
+
+### 40.7 分片刻意未做的部分（如实登记）
+
+**25+ 处可做的纯注释订正刻意没做**（18 处 `ASTROCS_DESIGN §9`→§10、8 处 `ENGINEERING_SPEC` 悬空），
+已逐条列出 file:line 与应为节号，建议前台统一派单收口以免与其它车道撞同一批公共头。
+
+---
+
+## 41. G08-07 分片六（acr）报回：CUDA 桥接 DLL 的 1,426 行**从未被本仓编译过**
+
+### 41.1 前台核实：`p2_acr_block_eligible` 是字面常量返回
+
+`lib/algorithms/coverage/src/stage2_common.cpp:511-528` 函数体只有四条 `(void)形参;`
+加一句 `return false;`，**无任何分支、无任何 `return true`**。
+括号配对实测：`stage2.cpp:1108` 的 `if (use_acr_block) {` 在 **1322 行闭合**，
+而 ACR kernel 实际派发在 `1241/1244/1249`（深度 3–4）⇒ **整段 215 行不可达**。
+
+### 41.2 但「38K 行全是死代码」这个框定被纠正
+
+实测 ACR = **219 文件 / 45,211 行**（非 121/38,382）。**3 个文件被编进生产 `phase2`**：
+`coverage/CMakeLists.txt:54`(`kernel_registry.cpp`,110 行)、`:57`(`cuda_bridge_loader.cpp`,388 行，
+**仅 Windows**)、`:59`(`device_executor.cpp`,173 行) = **671 行 / 1.48%**；
+`:64-67` 还把 acr 的 include 目录挂成 `phase2` 的 **PUBLIC 面**。
+⇒ 准确表述是「**计算面事实不可达、类型面在役**」。
+
+### 41.3 **最需要负责人定的一条（分片改了前台的原排序）**
+
+不是 44,540 行 DORMANT 计算面的删留，而是 **CUDA 桥接 DLL（1,426 行）如何定案**：
+
+- 被生产 `phase2` **依赖**（Windows loader `LoadLibrary`）
+- 却**不在任何构建目标中**
+- `acr_cuda_bridge.h:11-14` 的构建配方指向**不存在的 `acr_cuda_bridge.cu`**
+- 构建证据明写「不入库」
+- 从 **`run\temp\cuda_bridge\`** 加载
+
+⇒ **这解释了为什么 4 条 CUDA 生命周期 HIGH 能存活至今 —— 它们全在从未被本仓编译过的代码里**：
+
+| 位置 | 缺陷 |
+|---|---|
+| `:171-173` | 两个 `cudaEvent_t` 未初始化，且 `cudaEventCreate` 返回码不查 |
+| `:324-345` | destroy 前无 sync 即 free 10 块 device 显存，全部返回码不查 |
+| `:175-179` | stream 轮转 + 只同步当前流 ⇒ `ensure_buffer` 的 `cudaFree` 可释放**上一流仍在用**的内存 |
+| `:120` | `d_count` 分配于 `:936`，却**不在 destroy 的 free 列表**里（泄漏） |
+
+**分片的理由**：删留那条风险面**未打开**（最坏是留一堆没人调的代码）；这条**已经打开**。
+
+### 41.4 四份权威记录同向声明 DORMANT，且全不成立
+
+`RELEASE_STATUS.md:52,124`、`DEPENDENCY_RULES.md:10-11`、`ACR_DORMANT_GUARD.md:8,11`
+均声明「生产源码零 ACR 引用」「产品 CMake 图不引入 ACR」——**两条都被 `coverage/CMakeLists.txt`
+直接推翻**。
+
+而本该抓住它的 `acr/ci/check_acr_dormant.py`（被 6 处文档当机器门引用）
+**在活树里不存在** ⇒ 又是 **GOV-ERR-4** 的一例。
+
+`acr/CMakeLists.txt:29-38` 的 `FATAL_ERROR` 守卫**拦得住整树并入、拦不住逐文件点名，
+而逐文件点名已经发生**。
+
+### 41.5 重复实现已实际漂移
+
+`profile_reader.cpp:390-409`（submit 1000 ns）vs `profile_generator.cpp:497-526`（GPU 8500 ns）
+= **差 8.5 倍**，且该值直接参与 CPU↔GPU 路由定价。
+
+### 41.6 前台派单前提被纠正两处（车道正确）
+
+1. `ISA_VARIANTS.md` 全文 181 行、**0 次提及 acr**，作用域是 `lib/infrastructure/benchmark/`；
+   那批要求在 benchmark 侧**已完整实现** ⇒ §31.3「detail 层零载体」应改挂 **benchmark** 车道。
+2. **「79 条」这个数字与文档实测对不上**：文档实为 32 bullet + 12 表格行 + 4 定义段 ≈ **48 条**。
+   前台转述的数字来源有误，以车道实测为准。
+
+### 41.7 并发
+
+私建池 **2 处**：`scheduler/dispatcher.cpp:1179-1184`（裸 `std::thread`）与
+`core/runtime.cpp:99-101`（首次 submit 自建 TBB `task_arena` + 进程级 `global_control`，
+规模取 `hardware_concurrency()`，**调用方不传预算就静默开池**）。
+嵌套并行 1 处：`examples/.../weighted_integration_kernels.cpp:36-38` OpenMP 区**无深度守卫**。
+无同步共享状态 2 处：`dispatcher.cpp:215`(`bdr_cache`)、
+`cuda_bridge_loader.cpp:357,359`(`views_` 以裸 host 指针为键，**无生命周期 pin**)。
+硬编码 16 处（`dispatcher.cpp:476`，CONCURRENCY_STANDARD 逐字禁止）；4 处无超时硬件等待。
+
+另：`backends/cpu/isa/` 是**影子 ISA 实现**，四文件全用 `#if defined(__GNUC__)`
+⇒ **MSVC（正式 Windows 工具链）上静默退化为标量**，且不满足契约任何一条、连 CMake 都没进。

@@ -1,4 +1,4 @@
-// lib/phase3_session/p3_resample.h — Phase3 重采样: order 选择/tile 查找/nearest/bilinear (ALG-P3-003) — P3-003
+// lib/algorithms/resample/p3_resample.h — Phase3 重采样: order 选择/tile 查找/nearest/bilinear (ALG-P3-003)
 // 覆盖: 跨 tile 采样、coverage/mask(二值)、NaN 语义(S=NaN+C=1, §4)、单位固定 surface brightness、
 // 未支持输入模式(variance/ivar/flux-per-pixel/weight)显式拒(UNSUPPORTED)。
 #ifndef ASTROCS_P3_RESAMPLE_H
@@ -21,7 +21,7 @@ typedef enum {
 P3ResampleStatus p3_order_select(int max_order, double scale_deg_per_px, int* out_order);
 
 /* 未支持输入模式显式拒(§4): input_mode ∈ {surface_brightness}*;
- * DATA-P3-UNC-001 §30.4-4 supersession(上位=宪章 §7.1/§7.3, 2026-09-09 冻结):
+ * DATA-P3-UNC-001 §30.4-4 supersession(上位=宪章 §7.1/§7.3):
  * "variance"/"ivar" 从 UNSUPPORTED 拒绝项移除(转 uncertainty 子产品消费面,
  * 见 p3_uncertainty_open) → 归未知输入模式 PARAM; "weight"/"flux-per-pixel"
  * 拒绝项不变(UNSUPPORTED)。 */
@@ -99,7 +99,7 @@ P3ResampleStatus p3_sample_bilinear(P3Sampler* s, double ra_deg, double dec_deg,
 
 void p3_sampler_close(P3Sampler* s);
 
-/* ── 不确定度传播面 (DATA-P3-UNC-001 §30.4, DATA-UNC-001 2026-09-09 冻结;
+/* ── 不确定度传播面 (DATA-P3-UNC-001 §30.4, DATA-UNC-001;
  * 上位=宪章 §7.1/§7.3; supersession SCI-P3 §9a-10 variance/ivar 拒绝语义) ──
  * 输入 HiPS 含 variance/ 子产品 → u=variance; 否则含 ivar/ → u=1/ivar
  * (ivar==0 像素 = u 无效→NaN 传播态); 两者并存 → variance 优先;

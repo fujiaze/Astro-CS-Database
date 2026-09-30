@@ -36,7 +36,7 @@ inline std::string benchmark_profile_verdict(const nlohmann::json& profile) {
 }
 
 // B13-R13-4: WideCharToMultiByte 两段式换码的目标缓冲计算 (单一实现;
-// main.cpp wmain 与 commands.cpp cli_exe_dir 共用; 共址单测固化数学)。
+// main.cpp wmain 与 commands.cpp cli_install_dir 共用; 共址单测固化数学)。
 // Win32 惯用法: 第一次调用 (cbMultiByte=0) 返回含 NUL 终止符的字节数 n;
 // 第二次转换必须传"恰好 n"的容量 (NUL 一并写入)。历史缺陷: 分配 n-1 字节
 // 却传 cbMultiByte=n → 尾 NUL 越界写 1 字节 (堆损坏/栈粉碎)。

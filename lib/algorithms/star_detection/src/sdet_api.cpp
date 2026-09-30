@@ -967,10 +967,8 @@ bool sdet_detect_saturated_stars(const float* fimg, int width, int height,
     sdet_log(SDET_LOG_INFO, "SDET", "Saturated star connected components: %d", comp_count);
 
     // 对每个连通域计算 edge-walking 几何中心
-    // 放宽过滤条件 (count<=4→<=1, bw/bh<2→<1, ar>2→>3)
-    // 原过滤过严导致 Galaxy_Center 425连通域→28饱和星,
-    // 添加, 过滤小饱和块 (对齐 star_finder.c:271-274,332-333,346)
-
+    // 岛级几何过滤 (与 sdet_mark_sat_islands 的 O4a 判据同族, 但本函数面向
+    // 半阈值 CC, 故按其自身阈值重新定阈, 不共用 O4a 的 sat_threshold)。
     // IPv: meanhigh = 连通域内像素平均值(等价于 3x3 邻域对小连通域)
     int ew_fail_count = 0;
     int meanhigh_filtered = 0;
@@ -993,10 +991,6 @@ bool sdet_detect_saturated_stars(const float* fimg, int width, int height,
             sum_wy += (double)components[i].py[j] * val;
             sum_w += val;
         }
-
-
-        // 需要更精确的 dynrange 计算或改为在 peaker 候选阶段检查
-        // float meanhigh = ...; if (meanhigh - bg < minsatlevel) { meanhigh_filtered++; continue; }
 
         int start_x = (sum_w > 0) ? (int)(sum_wx / sum_w + 0.5) : (components[i].x0 + components[i].x1) / 2;
         int start_y = (sum_w > 0) ? (int)(sum_wy / sum_w + 0.5) : (components[i].y0 + components[i].y1) / 2;
@@ -2033,9 +2027,9 @@ static int sdet_detect_impl(StarDetectorHandle handle,
                     // 先到先留（扫描序）。比较坐标: 非饱和 = O8 峰位 (ix, iy);
                     // 饱和 = O6 行走中心整型化 floor(x-0.5)（对齐旧码 (xr+xl)/2
                     // 整型除法语义）。可达性注记: 冻结 O8 下局部极大互距 >= 6,
-                    // 而正常域 matchradius = floor(0.2*ceil(3.7169*Sr)) < 6 恒成立
+                    // 而正常域 matchradius = floor(0.2*ceil(3.7172*Sr)) < 6 恒成立
                     // （Sr > 8.07 才可能 >= 6, 但 sigma_eff > 4.2 时近距双峰在
-                    // 平滑图融合为单局部极大）——本门为防御性结构（与旧实现同）。
+                    // 平滑图融合为单局部极大）——本门为防御性结构。
                     {
                         const int mr = (c.R > 0) ? std::max(1, (int)(0.2 * (double)c.R)) : 1;
                         const int mcx = c.sat ? (int)std::floor(c.x - 0.5) : c.ix;
