@@ -5,9 +5,10 @@
 
 seed 写死：SEED = 20260927。纯 Python + numpy。
 运行：python3 exp2_mag_window_match.py
-输出：../results/exp2_mag_window_match.json
+输出：../../../results/redo/route1/exp2_mag_window_match.json
 """
 import json
+import os
 import math
 import numpy as np
 
@@ -171,6 +172,9 @@ out = {
     "S8_false_match_theory": theory,
     "chain_case": chain_case,
 }
-with open("../results/exp2_mag_window_match.json", "w") as f:
+_out = os.path.abspath(os.path.join(os.path.dirname(os.path.abspath(__file__)),
+    "..", "..", "..", "results", "redo", "route1"))
+os.makedirs(_out, exist_ok=True)
+with open(os.path.join(_out, "exp2_mag_window_match.json"), "w") as f:
     json.dump(out, f, indent=2)
 print(json.dumps(out, indent=2))

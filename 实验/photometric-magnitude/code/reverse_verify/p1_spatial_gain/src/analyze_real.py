@@ -3,7 +3,7 @@
 """P1-SPATIAL-GAIN ③d 真实数据汇总表: 星覆盖 / 逐帧 m 形态 / before-after 分箱.
 
 用法: python3 analyze_real.py
-输出: ../data/real_analysis.json (+ stdout 表格, 供 report 引用)
+输出: ../../../../results/reverse_verify/p1_spatial_gain/data/real_analysis.json (+ stdout 表格, 供 report 引用)
 """
 import os, sys, json, math
 import numpy as np
@@ -12,7 +12,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import real_gain as R
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-DATA = os.path.abspath(os.path.join(HERE, "..", "data"))
+DATA = os.path.abspath(os.path.join(HERE, "..", "..", "..", "..", "results", "reverse_verify", "p1_spatial_gain", "data"))
 
 
 def coverage(F, nb=3):

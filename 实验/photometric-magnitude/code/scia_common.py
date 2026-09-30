@@ -221,7 +221,7 @@ def f_syn(spectrum, wl_nm, T=None, T_wl=None, Q=None, Q_wl=None, mag_g=None):
     **不得**把带 mag_g 的写法当作通用参考通量公式搬到别处：它会给逐星
     r_i = log10(F_instr/F_syn) 注入 +0.4·G_i (dex) 的加性项，单标量 location 吸收不掉
     （真实 M42 匹配样本实测 MAD-σ = 0.459 dex = 1.147 mag）。
-    订正记录: 实验/photometric-magnitude/RESOLUTION_fsyn_formula.md
+    订正记录: 实验/photometric-magnitude/docs/fsyn_convention.md
     """
     wl = np.asarray(wl_nm, float)
     S = np.asarray(spectrum, float)

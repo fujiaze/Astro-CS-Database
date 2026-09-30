@@ -5,9 +5,10 @@
 
 seed 写死：SEED = 20260930。纯 Python + numpy。
 运行：python3 exp5_integration_gates.py
-输出：../results/exp5_integration_gates.json
+输出：../../../results/redo/route1/exp5_integration_gates.json
 """
 import json
+import os
 import math
 import numpy as np
 
@@ -186,6 +187,9 @@ out = {
     "S16_m_cut_analytic": m_exact,
     "S17_fingerprint_tolerance": fp_rows,
 }
-with open("../results/exp5_integration_gates.json", "w") as f:
+_out = os.path.abspath(os.path.join(os.path.dirname(os.path.abspath(__file__)),
+    "..", "..", "..", "results", "redo", "route1"))
+os.makedirs(_out, exist_ok=True)
+with open(os.path.join(_out, "exp5_integration_gates.json"), "w") as f:
     json.dump(out, f, indent=2)
 print(json.dumps(out, indent=2))

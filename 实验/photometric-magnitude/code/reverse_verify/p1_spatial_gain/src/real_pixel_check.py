@@ -12,7 +12,7 @@
 度量: 重叠区 8x8 分箱中位数的峰峰值; before = 仅帧级标量; after = 标量 + 低阶 m。
 
 用法: python3 real_pixel_check.py [--pairs 6]
-输出: ../data/real_pixel_check.json
+输出: ../../../../results/reverse_verify/p1_spatial_gain/data/real_pixel_check.json
 """
 import os, sys, json, math, argparse, time
 import numpy as np
@@ -20,10 +20,10 @@ from astropy.io import fits
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
-sys.path.insert(0, os.path.abspath(os.path.join(HERE, "..", "..", "..", "synthetic")))
+sys.path.insert(0, os.path.abspath(os.path.join(HERE, "..", "..", "..", "..", "..", "shared", "synthetic")))
 import real_gain as R  # noqa: E402
 
-DATA = os.path.abspath(os.path.join(HERE, "..", "data"))
+DATA = os.path.abspath(os.path.join(HERE, "..", "..", "..", "..", "results", "reverse_verify", "p1_spatial_gain", "data"))
 TAUS = [0.02, 0.005, 0.001]
 
 

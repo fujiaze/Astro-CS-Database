@@ -44,7 +44,8 @@
  "negative_zero_check": {
   "se_on_constant": 0.0,
   "criterion": "无散度 ⇒ SE=0(归零)",
-  "pass": true
+  "pass": true,
+  "discriminating_power": "none (自洽守卫: 常数序列 SE=0, 且 pass 硬编码)"
  },
  "verdict": {
   "H11": true,

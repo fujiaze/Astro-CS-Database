@@ -56,7 +56,7 @@
 - **书目**：P. Montegriffo et al. (2023), "**Gaia Data Release 3:** External calibration of BP/RP low-resolution **spectroscopic data**", *A&A* 674, A3. arXiv: [2206.06205](https://arxiv.org/abs/2206.06205)，DOI: [10.1051/0004-6361/202243880](https://doi.org/10.1051/0004-6361/202243880)。
 - **核验方式**：Crossref/arXiv 书目（题名与 DOI 按 P1-m06 订正：原题名漏 "Gaia Data Release 3:" 与 "spectroscopic data"，未给 DOI）
   ＋ §8.1 原句（XP 外定标 ±2%, λ≳400 nm；Fig. 27 作图重标度原句）。
-- **用途**：绝对刻度系统差量级；佐证 `10^(−0.4·G)` 不入 F_syn（`RESOLUTION_fsyn_formula.md`）。
+- **用途**：绝对刻度系统差量级；佐证 `10^(−0.4·G)` 不入 F_syn（`docs/fsyn_convention.md`）。
 
 ## V9 ESA Gaia DR3 官方文档（XP 采样谱与零点定义）
 
@@ -102,7 +102,7 @@
 ## V12 GaiaXPy 2.1.4（开源实现锚）
 
 - **核验方式**：官方开源实现逐字核验：`src/gaiaxpy/spectrum/sampled_spectrum.py:114` 纯线性组合，无星等因子；`calibrate()` vs 官方 `XP_SAMPLED` 产品比值中位 1.000000。
-- **用途**：F_syn 绝对口径的实现侧旁证（`RESOLUTION_fsyn_formula.md`）。
+- **用途**：F_syn 绝对口径的实现侧旁证（`docs/fsyn_convention.md`）。
 
 ## V13 Akima 1970（F_syn 谱插值基元）
 

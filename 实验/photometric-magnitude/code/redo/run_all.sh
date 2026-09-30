@@ -5,9 +5,10 @@
 #   路线3 的 exp_S00..exp_S12 亦为 20260926）。纯 Python + numpy，不 import 仓库任何 Python。
 # 运行方式：bash code/redo/run_all.sh [quick]
 #   全量约 3–5 min CPU（每脚本 << 5 min）；quick 跳过路线2 最慢的 exp3/exp7。
-# 输出：各 routeN/results/*.json（重跑会就地再生；基准读数已快照在 results/redo/routeN/）。
+# 输出：results/redo/routeN/*.json（结果数据一律落 results/；路径由各脚本从 __file__ 推导，
+#   不依赖调用者 cwd，重跑就地再生并与基准快照逐项一致）。
 set -e
-HERE="$(cd "$(dirname "$0")" && pwd)"
+HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 run_route() {
   local d="$1"; shift

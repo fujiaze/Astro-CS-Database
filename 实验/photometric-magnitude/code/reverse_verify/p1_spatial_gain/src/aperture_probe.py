@@ -11,7 +11,7 @@
 若 after 在各孔径下都显著小于 before ⇒ 是乘法增益; 若 after 只在 r=4 上小 ⇒ 是孔径伪影。
 
 用法: python3 aperture_probe.py [--pairs 3]
-输出: ../data/aperture_probe.json
+输出: ../../../../results/reverse_verify/p1_spatial_gain/data/aperture_probe.json
 """
 import os, sys, json, math, argparse, time
 import numpy as np
@@ -19,11 +19,11 @@ from astropy.io import fits
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
-sys.path.insert(0, os.path.abspath(os.path.join(HERE, "..", "..", "..", "synthetic")))
+sys.path.insert(0, os.path.abspath(os.path.join(HERE, "..", "..", "..", "..", "..", "shared", "synthetic")))
 import real_gain as R          # noqa: E402
 from real_pixel_check import aperture_sum, binned_ptp, cal_path  # noqa: E402
 
-DATA = os.path.abspath(os.path.join(HERE, "..", "data"))
+DATA = os.path.abspath(os.path.join(HERE, "..", "..", "..", "..", "results", "reverse_verify", "p1_spatial_gain", "data"))
 RADII = [(3.0, 6.0, 10.0), (4.0, 6.0, 10.0), (6.0, 10.0, 16.0), (10.0, 16.0, 24.0)]
 
 

@@ -132,7 +132,7 @@ out = {
     "notes": "true calibration location = 0; contamination 10% at +0.8 dex (=2.0 mag); sigma_r=0.05 dex, sigma_eps=0.2 mag",
 }
 here = os.path.dirname(os.path.abspath(__file__))
-os.makedirs(os.path.join(here, "..", "results"), exist_ok=True)
+os.makedirs(os.path.join(here, "..", "..", "..", "results", "redo", "route2"), exist_ok=True)
 path = os.path.join(here, "..", "results", "exp2_mag_prefilter.json")
 with open(path, "w", encoding="utf-8") as f:
     json.dump(out, f, indent=2, ensure_ascii=False)

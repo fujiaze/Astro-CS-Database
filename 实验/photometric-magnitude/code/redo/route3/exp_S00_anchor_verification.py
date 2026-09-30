@@ -95,7 +95,8 @@ def main():
             "pc_api.cpp:290 注释 '2000-10000' 的 10000 上界从未实现。"
         ),
     }
-    res_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "results")
+    res_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "..",
+        "results", "redo", "route3")
     os.makedirs(res_dir, exist_ok=True)
     out_path = os.path.join(res_dir, "exp_S00_anchor_verification.json")
     with open(out_path, "w", encoding="utf-8") as f:

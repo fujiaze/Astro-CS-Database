@@ -16,18 +16,17 @@ reverse_verify/
 │   └── gainlib.py          # 共享: 低阶多项式基 + 加权 Tukey-IRLS 曲面拟合 + 度量
 └── experiments/p1_spatial_gain/
     ├── cpp/p1sg_oracle.cpp # 独立 C++ Oracle (判据内嵌, 退出码 0 = 全 PASS)
-    ├── src/
-    │   ├── real_gain.py         # 真实数据: 逐星匹配 + 帧间差分联合拟合 + before/after
-    │   ├── real_ridge.py        # Tikhonov 先验扫描 + 分半一致性 (可辨识性诊断)
-    │   ├── real_pixel_check.py  # 像素级复核: 真把 m 乘到像素上 (r=6 独立口径)
-    │   ├── aperture_probe.py    # 孔径探针: 空间结构是否与孔径无关 (乘法增益的判据)
-    │   ├── analyze_real.py      # 覆盖 / 逐帧幅度 / 按星数分箱的 before-after 表
-    │   └── wcs_lib.py           # 与生产 wcs_transform.cpp 逐行对齐的 numpy 移植 (自带一份)
-    ├── data/                    # 结果 JSON (入库, 供论文引用)
-    └── logs/                    # 运行日志
+    └── src/
+        ├── real_gain.py         # 真实数据: 逐星匹配 + 帧间差分联合拟合 + before/after
+        ├── real_ridge.py        # Tikhonov 先验扫描 + 分半一致性 (可辨识性诊断)
+        ├── real_pixel_check.py  # 像素级复核: 真把 m 乘到像素上 (r=6 独立口径)
+        ├── aperture_probe.py    # 孔径探针: 空间结构是否与孔径无关 (乘法增益的判据)
+        ├── analyze_real.py      # 覆盖 / 逐帧幅度 / 按星数分箱的 before-after 表
+        └── wcs_lib.py           # 与生产 wcs_transform.cpp 逐行对齐的 numpy 移植 (自带一份)
 ```
 
-大产物/临时文件落 `run/reverse_verify/p1-spatial-gain/`（gitignore）。
+结果 JSON 落 `results/reverse_verify/p1_spatial_gain/data/`（各脚本按 `__file__` 推导该路径，
+不依赖调用者 cwd）；运行日志与大产物/临时文件落 `run/reverse_verify/p1-spatial-gain/`（gitignore）。
 
 ## 复跑
 
@@ -43,7 +42,7 @@ ninja -C run/reverse_verify/build
 # 合成 (150 MC, 约 7 min)
 cd 实验/shared/synthetic && python3 synth_gain.py --nproc 12
 
-# 真实数据 (49 帧)
+# 真实数据 (49 帧)；结果 JSON 落 ../../../../results/reverse_verify/p1_spatial_gain/data/
 cd 实验/photometric-magnitude/code/reverse_verify/p1_spatial_gain/src
 python3 real_gain.py && python3 real_ridge.py && python3 real_pixel_check.py \
   && python3 aperture_probe.py && python3 analyze_real.py

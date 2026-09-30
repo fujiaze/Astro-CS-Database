@@ -5,9 +5,10 @@
 
 seed 写死：SEED = 20260929。纯 Python + numpy。
 运行：python3 exp4_spatial_gain.py
-输出：../results/exp4_spatial_gain.json
+输出：../../../results/redo/route1/exp4_spatial_gain.json
 """
 import json
+import os
 import math
 import numpy as np
 
@@ -112,6 +113,9 @@ out = {
     "S9_amplitude_bound": bound_rows,
     "S12b_gate_statistics": gate_rows,
 }
-with open("../results/exp4_spatial_gain.json", "w") as f:
+_out = os.path.abspath(os.path.join(os.path.dirname(os.path.abspath(__file__)),
+    "..", "..", "..", "results", "redo", "route1"))
+os.makedirs(_out, exist_ok=True)
+with open(os.path.join(_out, "exp4_spatial_gain.json"), "w") as f:
     json.dump(out, f, indent=2)
 print(json.dumps(out, indent=2))

@@ -101,7 +101,8 @@ def main():
     out["verdict"] = {"H5a": out["H5a"]["pass"], "H5b": out["H5b"]["pass"],
                       "H5c_A2_reproduced": out["H5c_A2_defect"]["reproduced"],
                       "negative_gate1": out["negative_gate1"]["pass"]}
-    res = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "results")
+    res = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "..",
+        "results", "redo", "route3")
     os.makedirs(res, exist_ok=True)
     p = os.path.join(res, "exp_S05_gates_inlier.json")
     with open(p, "w", encoding="utf-8") as f:

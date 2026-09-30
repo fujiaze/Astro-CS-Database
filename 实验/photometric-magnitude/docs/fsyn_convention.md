@@ -1,11 +1,9 @@
-# 订正：参考通量 `F_syn` 的合成口径（判定、证据与对本实验单元的影响）
+# 参考通量 `F_syn` 的合成口径（判定与证据）
 
-> **对象**：本实验单元（`实验/photometric-magnitude`）§2.1 所写的"冻结的合成测光约定"
-> `F_syn = ∫S(λ)·T(λ)·Q(λ)·λ dλ × 10^(−0.4·magG)`。
-> **性质**：订正记录（本单元只读；按任务 SCI-PHOT-FORMULA-01 的文件域，本文件是**新增**记录，
-> **未修改** `REPORT_paper.md` / `README.md` / `code/*.py`）。
-> **权威落点**：`docs/science/PHOTOMETRY.md` §2a（变更 claim `PHOT-FSYN-CANON-001`）。
-> **一手证据目录**：`run/SCI-PHOT-FORMULA-01/`（code/ 脚本、evidence/ 结果 JSON、logs/）。
+> **对象**：本实验单元（`实验/photometric-magnitude`）的参考合成通量约定。
+> **性质**：本单元的 `F_syn` 口径判定与支撑证据。正文口径见 `README.md` §2.1、
+> `REPORT_paper.md` §2.1、`REPORT_experiment.md` §2，本文件承载其推导与一手核验。
+> **权威落点**：`docs/science/PHOTOMETRY.md` §2a。
 
 ---
 
@@ -113,7 +111,9 @@ GaiaXPy `Gaia_DR3_Vega` 零点 `−26.4899` 复算合成星等，与同一记录
 
 ## 3 对本实验单元结论的影响（逐条）
 
-1. **§2.1 的公式行不成立**，应读作 `F_syn = ∫F_λ·T·Q·λ dλ`（绝对谱辐照度，无 `magG` 因子）。
+1. **口径行按 §1 书写**：`F_syn = ∫F_λ·T·Q·λ dλ`（绝对谱辐照度，无 `magG` 因子）。
+   `README.md` §2.1、`REPORT_paper.md` §2.1、`REPORT_experiment.md` §2 与
+   `code/scia_common.py::f_syn` 的 docstring 均按此书写。
 2. **本单元的数值结论不受影响**，原因是 `scia_common.f_syn(..., mag_g=…)` 的 `mag_g` 参数在本单元里
    被当作**星等指派重标度**使用，而不是参考通量定义的一部分：
    - `step1_analytic.py:55-62`：显式注释"XP 谱自带其源的绝对通量刻度……正确用法：只用**相对星等偏移**
@@ -124,51 +124,35 @@ GaiaXPy `Gaia_DR3_Vega` 零点 `−26.4899` 复算合成星等，与同一记录
      ⇒ 前向仿真对估计量（IRLS/Tukey、`σ_obs` 双边界判据）的结论**不受口径影响**；
    - `scia_calib.py:257-260`、`step7_negatives.py:202-203`、`step8_real_frame.py:142`：**不传** `mag_g`
      ⇒ 与 §1 口径一致。
-3. **需要修的是文档措辞，不是数值**：`README.md:41`、`REPORT_paper.md:56`、
-   `code/scia_common.py:196` 把带 `magG` 的写法标为"冻结约定"，会被读者误当成生产口径。
-   本记录即为该措辞的订正依据；上述三处**未改**（本单元只读）。
 
 ---
 
-## 4 复现
+## 4 证据的可复核边界
 
-```bash
-cd "<repo root>"
-python3 run/SCI-PHOT-FORMULA-01/code/a1_xpsd_absolute_check.py     # 绝对刻度三假设判别
-python3 run/SCI-PHOT-FORMULA-01/code/a2_bandpass_and_absolute.py   # 分档复核 + 通带失配量级
-g++ -O2 -std=c++17 -I lib/algorithms/photometry/cpp/src \
-    -I lib/algorithms/photometry/cpp/include \
-    run/SCI-PHOT-FORMULA-01/code/probe_fsyn_analytic.cpp \
-    lib/algorithms/photometry/cpp/src/spectrum_integrator.cpp \
-    -o run/SCI-PHOT-FORMULA-01/code/probe_fsyn_analytic
-./run/SCI-PHOT-FORMULA-01/code/probe_fsyn_analytic > run/SCI-PHOT-FORMULA-01/evidence/c1_probe_raw.tsv
-python3 run/SCI-PHOT-FORMULA-01/code/c1_analytic_check.py          # 解析对拍 + 误差分解
-python3 run/SCI-PHOT-FORMULA-01/code/c2_negative_controls.py       # 负例量级
-python3 run/SCI-PHOT-FORMULA-01/code/d1_zp_sigma_rederive.py       # 生产链 ZP_syn 逐位复现
-python3 run/SCI-PHOT-FORMULA-01/code/q1_qe_discriminate.py         # QE +12% 判别 (变体对照)
-python3 run/SCI-PHOT-FORMULA-01/code/q2_qe_mechanism.py            # 回归 + 置换检验
-python3 run/SCI-PHOT-FORMULA-01/code/q3_qe_colour_chain.py         # 颜色链条
-```
+§2 的表格是本判定的支撑读数。它们的采集脚本与结果 JSON 不随仓库入库
+（一次性取证产物），因此**本文件自带全部读数与关键原句**——独立读者据 §2 的原句照抄、
+书目字段与官方文档原句即可独立复核，不必依赖进程产物路径。需要复算同一条链时，
+入口是生产实现本身：`lib/algorithms/photometry/cpp/src/spectrum_integrator.cpp`
+（对拍表见 §2.2 的 A–E 五例，闭式真值已列在表内）。
 
 ---
 
 ## 5 诚实边界
 
-- 本记录**未改**本实验单元的任何文件（`REPORT_paper.md`/`README.md`/`code/*.py` 均只读）。
 - `d1_zp_sigma_rederive.py` 的 `ZP_syn` **逐位复现**（Δ ≤ 4.3e−11），但 `sigma_residual_dex` 的复现
   与落盘差约 **2%**（T2/M1 复算 0.20818 vs 落盘 0.20395 dex；`n_matched` 468 vs 落盘 511），
-  原因是本任务使用单个大锥 + 亚像素边界匹配，与生产逐帧锥搜索有差异；该差异已在
+  原因是该复算使用单个大锥 + 亚像素边界匹配，与生产逐帧锥搜索有差异；该差异已在
   `RESOLUTION_m42_curve_resolve.md` §7 登记。
 - 通带曲线本身 provenance 为 `unverified`（`eng/packaging/config/filters.json → provenance.status`，
-  GAP-025）：本记录的"正确通带"指**配置声明的那一支**（`Baader R`），
+  GAP-025）：本文件的"正确通带"指**配置声明的那一支**（`Baader R`），
   **不**声称该曲线的厂商出处已被核实。
 - `Q(λ)≡1` 与计入 `KAF-16803` QE 的实测散度变化为 **+11.6%（T2/M1）/ +16.0%（T3/M1）**。
-  该 +12% 的归因**已判定**（详见 `docs/science/PHOTOMETRY.md` §2a.4）：
+  该 +12% 的归因已判定（详见 `docs/science/PHOTOMETRY.md` §2a.4）：
   `Q` 曲线形状对不同 SED 给出不同的乘性因子（与颜色 `corr = 0.90`），该因子与既有残差 `r0`
   正相关（`corr = 0.56–0.59`，回归斜率 `k = 0.090/0.100`，`R² = 0.31/0.35`）⇒ `sigma_residual`
   按 **(1+k) 放大**而非独立散度二次合成。判别证据：常数 `Q=0.8`（纯标度）给出 `sigma` **逐位不变**
   （负例对照通过）；独立散度模型只预言 +0.8%/+1.1%（**被证伪**）；置换检验打乱 `Δr`–`r0` 配对后
   比值降到 **0.951/0.976**（效应消失）⇒ 机制是相关性，不是新增散度，也不是 inlier 集合变化
-  （inlier 成员变化 0/448 与 4/515）。证据 `run/SCI-PHOT-FORMULA-01/evidence/{q1_qe_discriminate,q2_qe_mechanism,q3_qe_colour_chain}.json`。
+  （inlier 成员变化 0/448 与 4/515）。
 - 上述判别实验的**剩余未解释量**：`(1+k)` 模型解释 T2/M1 的 87%、T3/M1 的 78%；
-  余量来自 inlier 集合的少量变化与二阶效应，本任务**未**进一步分解。
+  余量来自 inlier 集合的少量变化与二阶效应，**未**进一步分解。

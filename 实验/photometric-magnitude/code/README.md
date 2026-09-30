@@ -5,16 +5,36 @@
 
 ## 一键复跑
 
+**公共前置步（先跑物理链自检，再跑本单元）**：
+
+```bash
+bash 实验/shared/synthetic/run_selftests.sh    # 合成器链自检：4 个组件，全绿约 2.5 min
+```
+
+该脚本是**所有实验单元**的一键复现公共前置步：先证明合成器链本身能红能绿，再让单元去跑真实验。
+退出码 0 = 全绿；1 = 有组件判红（该单元读数不得作为证据）；2 = 有组件缺失。
+
+> **不得只调 `noise_selftest.py`**：它只验「独立重实现 vs 生产实现 vs 解析预测」三方对照，
+> 验的是**方法**（分布与口径正确），对**生产实现本身**零判别力——生产实现坏掉而独立重实现
+> 与解析预测同源地一起坏时，它照样绿。**生产面的门禁责任在 `m16_scene --selftest` 与
+> `m16_sampling --selftest`**（这两个直接打生产渲染/采样面）。`run_selftests.sh` 四个组件
+> 全跑，不要裁剪成单组件。
+
 ```bash
 # 全量（含最慢的 step6 单元消除族，总计约 10–20 分钟，取决于 CPU）
 bash 实验/photometric-magnitude/code/run_all.sh
 
 # 快速（跳过 step6）
 bash 实验/photometric-magnitude/code/run_all.sh quick
+
+# 重做三路（seed 20260926）
+bash 实验/photometric-magnitude/code/redo/run_all.sh
 ```
 
-日志落 `run/SCI-401/logs/step*.log`，结果落 `实验/photometric-magnitude/results/*.json`，
-中间产物（仿真帧、缓存）落 `run/SCI-401/`（不入库）。
+日志落 `run/SCI-401/logs/step*.log`，结果落 `实验/photometric-magnitude/results/*.json`
+（`redo/` 三路落 `results/redo/route{1,2,3}/`，空间增益逆向验收落
+`results/reverse_verify/p1_spatial_gain/data/`），中间产物（仿真帧、缓存）落 `run/SCI-401/`
+（不入库）。**`code/` 下只有代码，不放结果数据。**
 
 ## 文件清单
 
@@ -36,6 +56,8 @@ bash 实验/photometric-magnitude/code/run_all.sh quick
 | `step7_negatives.py` | 6 条非退化负例（N0–N5） |
 | `step8_real_frame.py` | testdata 真实帧（底参照）：帧内仪器参数、引导 vs 盲检、单帧可自算预算 |
 | `step9_collect.py` | 汇总判据表 → `results/GATES.md` / `results/gates.json` |
+| `redo/run_all.sh` | 重做三路统一入口（路线 1/2/3，seed 20260926）→ `results/redo/route{1,2,3}/` |
+| `reverse_verify/p1_spatial_gain/` | 低阶空间乘法增益的逆向验收：`cpp/p1sg_oracle.cpp` 独立 C++ Oracle + `src/` 五个真实数据脚本（结果落 `results/reverse_verify/p1_spatial_gain/data/`） |
 
 ## 依赖
 

@@ -81,7 +81,8 @@ def main():
                            "项目约定, 未见文献给出'定标星族不应亮于 6'的一般性论证 ⇒ 文献腿 UNRESOLVED")
 
     out["verdict"] = {"H9a": out["H9a"]["pass"], "negative_zero": out["negative_zero_check"]["pass"]}
-    res = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "results")
+    res = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "..",
+        "results", "redo", "route3")
     os.makedirs(res, exist_ok=True)
     p = os.path.join(res, "exp_S09_mag_minmax.json")
     with open(p, "w", encoding="utf-8") as f:

@@ -11,7 +11,7 @@
   分半一致性 (用一半星拟合的 m 与另一半比较) 作为"结构是真的还是过拟合"的判据。
 
 用法: python3 real_ridge.py
-输出: ../data/real_ridge.json
+输出: ../../../../results/reverse_verify/p1_spatial_gain/data/real_ridge.json
 """
 import os, sys, json, math, time
 import numpy as np
@@ -21,7 +21,7 @@ import real_gain as R
 from gainlib import mad_sigma
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-DATA = os.path.abspath(os.path.join(HERE, "..", "data"))
+DATA = os.path.abspath(os.path.join(HERE, "..", "..", "..", "..", "results", "reverse_verify", "p1_spatial_gain", "data"))
 TAUS = [None, 0.05, 0.02, 0.01, 0.005]
 ORDERS = [0, 1, 2]
 
