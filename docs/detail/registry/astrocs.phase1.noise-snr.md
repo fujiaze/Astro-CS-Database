@@ -414,7 +414,7 @@ cache/内存按 ALG 合同（bounded）; I-O 单 writer。平面判定与审计�
   拒绝。
 
 取消 = 协作取消（契约：宿主 cancel 通道 → 停止调度新单元 → 等运行中单元完成
-→ exit 9，最高设计 §6.3；接线以实测为准）；模块内无 checkpoint。
+→ exit 9，最高设计 §7.2；接线以实测为准）；模块内无 checkpoint。
 
 ## 独立 synthetic 验证命令与容差
 

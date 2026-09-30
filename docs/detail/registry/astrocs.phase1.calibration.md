@@ -1,6 +1,6 @@
 # 模块 astrocs.phase1.calibration
 
-> 上游：docs/ASTROCS_DESIGN.md §8.5（模块与 ABI）、§4.6（硬约束：校准方差传播）
+> 上游：docs/ASTROCS_DESIGN.md §8.5（模块与 ABI）
 > 科学正本：docs/science/CALIBRATION.md（SCI-CAL-001）、docs/science/NOISE_MODEL.md（噪声模型与方差传播）、
 > docs/science/algorithms/CALIBRATION_ALGORITHMS.md（ALG-CAL-001..006）
 > 数据正本：docs/science/DATA_SEMANTICS.md §9（DATA-P1-CAL）
@@ -132,7 +132,7 @@ Diagnostics：stderr 日志 `ac_log`，`generate_master` / `generate_master_flat
 `actual_k`/`out_hot`/`out_cold` 为可选输出统计。
 
 取消 = 协作取消（契约：宿主 cancel 通道 → 停止调度新单元 → 等运行中单元完成
-→ exit 9，最高设计 §6.3；接线以实测为准）；模块内无 checkpoint（无断点续算）。
+→ exit 9，最高设计 §7.2；接线以实测为准）；模块内无 checkpoint（无断点续算）。
 
 ## 独立 synthetic 验证命令与容差
 

@@ -61,7 +61,7 @@ y_k(x) = s(x) + C_k(x) + epsilon_k(x)      # 纯加性（g_k ≡ 1）
 | 4 ≤ N ≤ 5 | percentile clipping |
 | N ≥ 6 | winsorized sigma clipping |
 
-生产档（`astrocs_adaptive_pixel`）的 **AUTO 路由 = 三档**（`1≤N≤3` none / `4≤N≤5` percentile / `N≥6` winsorized）；`linear fit` 仍是合法**显式**方法（`request=linear_fit`），AUTO 在生产档不产出该档（档界与算法名的唯一正本 = `docs/detail/algorithms_phase2/12_rejection.md` §9，本节不另立）；min/max 极值法**不用于生产**。实际方法、参数与 N 写入 `rejection` provenance（权威表见 `ASTROCS_DESIGN.md` §5.5；算法出处、合法性窗口与合成 Oracle 正负例见 `docs/science/REJECTION.md`）。
+生产档（`astrocs_adaptive_pixel`）的 **AUTO 路由 = 三档**（`1≤N≤3` none / `4≤N≤5` percentile / `N≥6` winsorized）；`linear fit` 仍是合法**显式**方法（`request=linear_fit`），AUTO 在生产档不产出该档（档界与算法名的唯一正本 = `registry/astrocs.phase2.reject.md`（档位表段），本节不另立）；min/max 极值法**不用于生产**。实际方法、参数与 N 写入 `rejection` provenance（权威表见 `ASTROCS_DESIGN.md` §5.5；算法出处、合法性窗口与合成 Oracle 正负例见 `docs/science/REJECTION.md`）。
 
 ## 6. 两类目标产品，不能混用权重
 
@@ -142,4 +142,4 @@ Phase2 产物是**服务面天球数据库**，落盘形态固定为**裸 `<name
 - 不同 seeing/透明度/背景组合优于或等于普通 ivar 图像叠加的点源检测功率；
 - 扩展源常量场、梯度、总通量与方差无偏；
 - UPM 断图/欠定/不可辨识、排异小样本、零信息量和相关噪声失配能红；拟合不收敛或判红时产品**照出**、`warning_codes` 非空、构建 rc **不变**；
-- M42/银心真实数据检查接缝（**有符号**电平台阶门槛 + 适用域，见 `docs/ASTROCS_DESIGN.md` §12（验证体系） §6.2）、背景、星形、卫星线、黑洞和预测/实测噪声。
+- M42/银心真实数据检查接缝（**有符号**电平台阶门槛 + 适用域，见 `docs/ASTROCS_DESIGN.md` §12.4（L4 真实视觉验收））、背景、星形、卫星线、黑洞和预测/实测噪声。

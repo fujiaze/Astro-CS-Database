@@ -1,9 +1,8 @@
 # 排障手册（症状 → 定位 → 修复）
 
-> 上游：`docs/ASTROCS_DESIGN.md` §7.2（配置、事件与退出码）、§7.3（日志落点）、
-> `docs/engineering/LOG_AND_ERROR_CONTRACT.md` §5（错误域）、§7（日志面）。
-> 本手册由原两篇同名排障文档合并而成：症状主表来自「症状 → 定位 → 修复」那篇，
-> 故障场景覆盖门与通用定位顺序来自「高风险错误条目」那篇。
+> 上游：`docs/ASTROCS_DESIGN.md` §7.2（机器输出与退出码）、§7.3（错误传播与运行日志）、
+> `docs/engineering/LOG_AND_ERROR_CONTRACT.md` §5（错误域与退出码映射）、§7（日志面）。
+> 写法：`docs/engineering/DOCUMENT_GOVERNANCE.md` §7（写法判据）与 AGENTS.md 第 5 节。
 
 ## 1 何时用本文
 
@@ -99,5 +98,4 @@ python3 eng/tools/astrocs_diagnose.py <output_dir>/logs --json diag.json
 
 ---
 
-> 本手册只写现行设计，不含裁决记录、订正流水、任务编号与日期
-> （`docs/engineering/DOCUMENT_GOVERNANCE.md` §5）。
+> 本手册的写法判据见 `docs/engineering/DOCUMENT_GOVERNANCE.md` §7。

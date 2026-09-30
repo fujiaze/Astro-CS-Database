@@ -1,7 +1,7 @@
 # 模块 astrocs.phase1.star-psf
 
 > 上游：docs/ASTROCS_DESIGN.md §8.5（模块与 ABI）、§4.2（星表引导检测：候选星来自
-> 星表位置拟合）、§4.6（硬约束：PSF 产品）、§3.1（科学叠加权重的边界）
+> 星表位置拟合）、§3.1（科学叠加权重的边界）
 > 科学正本：docs/science/algorithms/STAR_PSF_ALGORITHMS.md（SCI-P1-PSF-001 §11.5、
 > ALG-STARPSF-001 §11.1）、docs/science/PSF_SIGNAL_WEIGHT.md（PSF 与信息权重）、
 > docs/detail/UNIFIED_MODEL.md §1（观测模型）
@@ -113,7 +113,7 @@ cache/内存按 ALG 合同（bounded）; I-O 单 writer。逐星工作区 RAII�
 权重、不进 Phase2 science weight。
 
 取消 = 协作取消（契约：宿主 cancel 通道 → 停止调度新单元 → 等运行中单元完成
-→ exit 9，最高设计 §6.3；接线以实测为准）；模块内无 checkpoint。
+→ exit 9，最高设计 §7.2；接线以实测为准）；模块内无 checkpoint。
 
 ## 独立 synthetic 验证命令与容差
 

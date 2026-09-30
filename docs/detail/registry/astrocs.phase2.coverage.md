@@ -1,7 +1,6 @@
 # 模块 astrocs.p2.coverage
 
 > 上游：docs/ASTROCS_DESIGN.md §8.5（模块与 ABI）、§5.2（固定科学流程：coverage 重叠图）、
-> §5.6（coverage 不作权重）
 > 科学正本：docs/science/PHASE2_UPM.md §1（覆盖并集）、docs/science/INTEGRATION.md §5
 > （support/validity 分离）、docs/science/SCIENCE_SCOPE.md（处理链第 5 步）、
 > docs/science/UNCERTAINTY_AND_COVARIANCE.md（有效域语义）、

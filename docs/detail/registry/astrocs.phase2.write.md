@@ -1,6 +1,6 @@
 # 模块 astrocs.p2.hips_writer（MOD-astrocs-phase2-write）
 
-> 上游：docs/ASTROCS_DESIGN.md §8.5（模块与 ABI）、§9（原子发布条款）
+> 上游：docs/ASTROCS_DESIGN.md §8.5（模块与 ABI）、§10（I/O 与原子产品：原子发布条款）
 > 科学正本：docs/science/algorithms/PHASE2_MOSAIC_WRITE.md（ALG-P2-HIPS-001..004；
 > §7 四概念分离、§8/§9 测试设计、§11.4 冻结容差）
 > 共享 FROZEN SCI（零改动）：docs/science/PHASE2_UPM.md（`w_UPM` 唯一冻结式 §5）、
@@ -53,7 +53,7 @@ owner = SA-P2-I23；depends_on_int = P2-INT / IO-003；legacy_paths =
 提供）；叶级归一/FITS 写盘/hierarchy/MOC/properties（writer 库
 aio_hips_writer.cpp，P1-HIPS 域 ALG-HIPS-001..005）；HiPS 格式解析
 （IO-002/aio_hips_reader）；原子发布（IO-003 编排层；阶段二直写 out_hips 无
-staging，不满足最高设计 §9 的原子发布条款，属已登记的例外面）。
+staging，不满足最高设计 §10 的原子发布条款，属已登记的例外面）。
 UPM/排异/积分公式（SCI-UPM-001/SCI-REJ-001/SCI-INT-001
 FROZEN，w_UPM 唯一冻结式 PHASE2_UPM.md §5）；P3 HiPS→FITS。
 
@@ -168,7 +168,7 @@ G5 ivar 真值、SNR-015 ablation；eng/tests/api/test_reject_integration_oracle
 缺陷登记 = lib/algorithms/coverage/hips_p2/README.md §7 与 ALG-P2-HIPS-001..004
 缺陷清单（登记不改码，整改面未落地）：无 variance / ivar 输出产品；hash 链未入
 HiPS properties provenance；阶段二直写 `out_hips` 无 staging（原子发布归 IO-003，
-不满足最高设计 §9 的原子发布条款，属已登记的例外面）；O(T·N) 覆盖帧 probe。
+不满足最高设计 §10 的原子发布条款，属已登记的例外面）；O(T·N) 覆盖帧 probe。
 
 **日志落点**：本模块的日志一律落块级 `<output_dir>/logs`。开发与 CI 的过程日志
 不是产品日志，不在产品落盘面内；机器判据见

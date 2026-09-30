@@ -41,7 +41,7 @@
       "token": "snr_path_effective",
       "namespace": "doc_header_kv",
       "evidence": "docs/detail/PHASE2_DETAILED_DESIGN.md:21",
-      "reason": "SNR 重建口径的实际生效路径记录名（头部 KV），非代码符号；现行承载见 docs/engineering/PIPELINE_BLOCK_CONTRACT.md:57 与 docs/detail/algorithms_phase1/07_noise_snr.md:97（原写 PIPELINE_BLOCK_CONTRACT.md:58，该行逐字不含本 token，2026-09-30 核验订正为 :57；evidence 行 :21 逐字命中，锚未动）【证据形态 A：该行逐字含 token —— 行锚即为 token 的真实承载行】"
+      "reason": "SNR 重建口径的实际生效路径记录名（头部 KV），非代码符号；现行承载见 docs/engineering/PIPELINE_BLOCK_CONTRACT.md:57 与 docs/detail/registry/astrocs.phase1.noise-snr.md「SNR 三条路径与稀疏帧内层」（`snr_path_effective` 登记行）（原写 PIPELINE_BLOCK_CONTRACT.md:58，该行逐字不含本 token，2026-09-30 核验订正为 :57；evidence 行 :21 逐字命中，锚未动）【证据形态 A：该行逐字含 token —— 行锚即为 token 的真实承载行】"
     },
     {
       "token": "P1.HIPS_WRITE",
@@ -239,19 +239,19 @@
       "token": "p2_op_coverage",
       "namespace": "module_port_symbol",
       "evidence": "lib/infrastructure/scheduler/src/module_adapters.cpp:9367",
-      "reason": "Phase2 coverage 模块的编排层端口符号（定义行 :9367；派发点 :14088；端口登记面 lib/infrastructure/pipeline/module_ports.registry.json:940/:961；模块→符号映射 eng/tools/quality/check_block_flow_ports_vs_code.py:489）。与既有 p2_write_descriptor / p2_parallel_for 同型：编排层词汇，不进 api_inventory（只登记函数签名），也不在 lib 公开头。行锚 = 定义行 :9367。文档承载 = docs/detail/algorithms_phase2/09_coverage.md【证据形态 A：该行逐字含 token —— 行锚即为 token 的真实承载行】"
+      "reason": "Phase2 coverage 模块的编排层端口符号（定义行 :9367；派发点 :14088；端口登记面 lib/infrastructure/pipeline/module_ports.registry.json:940/:961；模块→符号映射 eng/tools/quality/check_block_flow_ports_vs_code.py:489）。与既有 p2_write_descriptor / p2_parallel_for 同型：编排层词汇，不进 api_inventory（只登记函数签名），也不在 lib 公开头。行锚 = 定义行 :9367。文档承载 = docs/detail/registry/astrocs.phase2.coverage.md「公共 header、核心 symbol 与生命周期」（`p2_op_coverage` 登记行）【证据形态 A：该行逐字含 token —— 行锚即为 token 的真实承载行】"
     },
     {
       "token": "p2_op_reject",
       "namespace": "module_port_symbol",
       "evidence": "lib/infrastructure/scheduler/src/module_adapters.cpp:11068",
-      "reason": "Phase2 rejection 模块的编排层端口符号（定义行 :11068；台账面 eng/ci/ledgers/dead_config_keys.json:112/:129 与 eng/ci/ledgers/design_clauses.json:451 以该符号名记退出条件）。与既有 p2_write_descriptor / p2_parallel_for 同型：编排层词汇，不进 api_inventory，也不在 lib 公开头。行锚 = 定义行 :11068。文档承载 = docs/detail/algorithms_phase2/12_rejection.md【证据形态 A：该行逐字含 token —— 行锚即为 token 的真实承载行】"
+      "reason": "Phase2 rejection 模块的编排层端口符号（定义行 :11068；台账面 eng/ci/ledgers/dead_config_keys.json:112/:129 与 eng/ci/ledgers/design_clauses.json:451 以该符号名记退出条件）。与既有 p2_write_descriptor / p2_parallel_for 同型：编排层词汇，不进 api_inventory，也不在 lib 公开头。行锚 = 定义行 :11068。文档承载 = docs/detail/registry/astrocs.phase2.reject.md「公共 header、核心 symbol 与生命周期」（`p2_op_reject` 登记行）【证据形态 A：该行逐字含 token —— 行锚即为 token 的真实承载行】"
     },
     {
       "token": "sdet_gauss_fit",
       "namespace": "module_internal_symbol",
       "evidence": "lib/algorithms/star_detection/src/sdet_api.cpp:779",
-      "reason": "星检测模块翻译单元内的椭圆高斯拟合函数（模板 sdet_gauss_fit<T>，定义行 :779；调用点 :2076 与 :2331；模块登记面 lib/algorithms/star_detection/module.yaml:103、dormant 台账 eng/ci/ledgers/dormant_algorithms.json:377）。不经导出宏、**不在 lib 公开头语料**（门内 _defined_in_public_header 实测判 False）也不在 api_inventory ⇒ 显式登记命名空间。行锚 = 定义行 :779。文档承载 = docs/detail/algorithms_phase1/03_star_detection.md【证据形态 A：该行逐字含 token —— 行锚即为 token 的真实承载行】"
+      "reason": "星检测模块翻译单元内的椭圆高斯拟合函数（模板 sdet_gauss_fit<T>，定义行 :779；调用点 :2076 与 :2331；模块登记面 lib/algorithms/star_detection/module.yaml:103、dormant 台账 eng/ci/ledgers/dormant_algorithms.json:377）。不经导出宏、**不在 lib 公开头语料**（门内 _defined_in_public_header 实测判 False）也不在 api_inventory ⇒ 显式登记命名空间。行锚 = 定义行 :779。文档承载 = docs/detail/registry/astrocs.phase1.star-detection.md「数值落地口径与实现落点」（两条实现路径表）【证据形态 A：该行逐字含 token —— 行锚即为 token 的真实承载行】"
     },
     {
       "token": "P2_SEMANTIC_",

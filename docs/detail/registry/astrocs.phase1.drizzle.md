@@ -158,7 +158,10 @@ API）+ `.hiss` 输出 + operation_counts.json；stdout 无日志（全部 stder
 run generation 切换清空，原子化替换）。计数新增 `target_boundary_builds` /
 `target_geometry_builds` / `geometry_cache_hits` / `geometry_cache_misses`
 （DrizzleStats + `[ops]` 行）。缓存的科学等价由 candidate oracle、freeze 闭合门
-与 MC 复算结果给出（判据见 DRIZZLE_GEOMETRY.md）；`k_corr` 规范取值 1.4。
+与 MC 复算结果给出（判据见 DRIZZLE_GEOMETRY.md）；`k_corr` 的规范式 = 因子分解式
+`k_corr = k_gauss(N_retained) × k_geo(几何)`、逐帧查表标定
+（`docs/science/UNCERTAINTY_AND_COVARIANCE.md`），标定域两端的冻结单数 1.4 低估，
+不作规范取值。
 
 所有权 = 调用方分配 frame / result / 输出缓冲；模块内 RAII（SNR 控制点 vector，
 以符号名为准）；HiPS 目录树由模块写入、编排层负责 overwrite 清理。

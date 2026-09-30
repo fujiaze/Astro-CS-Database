@@ -1,6 +1,6 @@
 # gaia_xpsd_client（本地星表查询，astrocs.catalog.gaia / CAT-GAIA）
 
-> 上游：docs/ASTROCS_DESIGN.md §8.1（顶层结构）、§8.5（模块与 ABI）、
+> 上游：docs/ASTROCS_DESIGN.md §8.4（顶层结构）、§8.5（模块与 ABI）、
 > §3.3（星表只解析本地星表文件，离线、零网络）、§8.4（`gaia_xpsd_client/` 本地星表
 > 解析）、§9（CPU 后端与资源：缓存复用、编排连续性）
 > 科学正本：docs/science/ASTROMETRY.md（SCI-AST-001）

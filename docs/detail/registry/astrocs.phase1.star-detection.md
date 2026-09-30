@@ -1,7 +1,7 @@
 # 模块 astrocs.phase1.star-detection
 
 > 上游：docs/ASTROCS_DESIGN.md §8.5（模块与 ABI）、§4.2（节点流程：星表引导检测与 WCS 解算）、
-> §4.6（硬约束：星表引导检测细则）、§2.1（创新点一：星点位置由星表逆映射获得）
+§2.1（创新点一：星点位置由星表逆映射获得）
 > 科学正本：docs/science/STAR_DETECTION.md（SCI-P1-STAR-001）、
 > docs/science/algorithms/STAR_DETECTION_ALGORITHMS.md（ALG-STARDET-001）、
 > docs/science/algorithms/GATES_AND_TOLERANCES.md §3（冻结门表）、
@@ -232,7 +232,7 @@ Oracle 面：
 - 节点级判据 `p1stardet_node_gate`（`lib/algorithms/star_detection/tests/p1star/p1stardet_node_gate_test.cpp`）：
   本节 fail-closed 表每条的红例 + `blind_diagnostic` / `auto` 的绿例与降级落档断言
   + 真实帧（testdata）权威路径与盲检测的对照；
-- 节点序与边保真判据 = `eng/ci/check_registry_ir_parity.py`（C4–C7：无幻边 / 序
+- 节点序与边保真判据 = `eng/tools/（registry IR 一致性检查器）`（C4–C7：无幻边 / 序
   为注册表 DAG 拓扑序 / IR 序 == 注册表声明序 / `psf` 在 `wcs` 之后且声明
   `artifact:p1_wcs` 输入 / 非退化），含 4 条负例注入（交换 `psf` / `wcs` 序、恢复
   幻边、移除 `psf` 的 WCS 输入），逐条必判红。
