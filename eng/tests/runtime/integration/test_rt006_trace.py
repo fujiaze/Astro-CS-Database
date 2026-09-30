@@ -16,8 +16,8 @@
 
 方法 (照 eng/tests/runtime/test_rt005_plan_estimator.py 先例):
   Python unittest 内嵌 C++ driver，g++ 真实编译链接 lib/infrastructure/scheduler/src
-  的**最小链接闭包** + lib/include/astrocs/core 头，运行断言；
-  源清单不手抄：目录与权威闭包从构建图解析（根 CMakeLists.txt 的 astrocs_core 目标
+  的**最小链接闭包** + lib/include/acsd/core 头，运行断言；
+  源清单不手抄：目录与权威闭包从构建图解析（根 CMakeLists.txt 的 acsd_core 目标
   + eng/tests/unit/CMakeLists.txt 的 executor_provider_race_test 目标），
   闭包完整性由 nm 差集判据 TestRt006DriverSourceClosure 兜底（缺谁点名谁）；
   另以 Python trace_replay.py 独立实现对照重放语义（双实现互证）。
@@ -44,10 +44,10 @@ from trace_replay import replay_from_jsonl as py_replay_from_jsonl  # noqa: E402
 
 _DRIVER = r'''
 // RT-006 harness: 真实 trace 观测（executor/scheduler/Runtime 真实编译链接验收）
-#include "astrocs/core/executor.h"
-#include "astrocs/core/runtime.h"
-#include "astrocs/core/scheduler.h"
-#include "astrocs/core/trace.h"
+#include "acsd/core/executor.h"
+#include "acsd/core/runtime.h"
+#include "acsd/core/scheduler.h"
+#include "acsd/core/trace.h"
 
 #include <atomic>
 #include <chrono>
@@ -57,7 +57,7 @@ _DRIVER = r'''
 #include <thread>
 #include <vector>
 
-using namespace astrocs::core;
+using namespace acsd::core;
 
 static int g_checks = 0;
 static int g_failures = 0;
@@ -78,8 +78,8 @@ static void test_store_jsonl_roundtrip() {
   e.type = TraceEventType::MODULE_CALL;
   e.run_id = "run-a";
   e.node_id = "coverage";
-  e.module_id = "astrocs.phase2.coverage";
-  e.entry = "astrocs_phase2_coverage_v1";
+  e.module_id = "acsd.phase2.coverage";
+  e.entry = "acsd_phase2_coverage_v1";
   e.call_count = 1;
   e.workers = 2;
   e.provider = "baseline";
@@ -108,15 +108,15 @@ static void test_store_jsonl_roundtrip() {
   a.type = TraceEventType::MODULE_CALL;
   a.run_id = "run-x";
   a.node_id = "coverage";
-  a.module_id = "astrocs.phase2.coverage";
-  a.entry = "astrocs_phase2_session_run";
+  a.module_id = "acsd.phase2.coverage";
+  a.entry = "acsd_phase2_session_run";
   st2.value()->record(a);
   TraceEvent b;
   b.type = TraceEventType::MODULE_CALL;
   b.run_id = "run-x";
   b.node_id = "sample";
-  b.module_id = "astrocs.phase2.sample";
-  b.entry = "astrocs_phase2_session_run";   // 同一完整 session → 隐藏扇出
+  b.module_id = "acsd.phase2.sample";
+  b.entry = "acsd_phase2_session_run";   // 同一完整 session → 隐藏扇出
   st2.value()->record(b);
   auto vio = st2.value()->detect_repeated_calls();
   CHECK(vio.size() >= 1);
@@ -131,11 +131,11 @@ static void test_store_jsonl_roundtrip() {
   c1.type = TraceEventType::MODULE_CALL;
   c1.run_id = "run-y";
   c1.node_id = "coverage";
-  c1.module_id = "astrocs.phase2.coverage";
-  c1.entry = "astrocs_phase2_coverage_v1";
+  c1.module_id = "acsd.phase2.coverage";
+  c1.entry = "acsd_phase2_coverage_v1";
   st3.value()->record(c1);
   TraceEvent c2 = c1;
-  c2.entry = "astrocs_phase2_sample_v1";    // 同节点不同 entry 仍是两次调用
+  c2.entry = "acsd_phase2_sample_v1";    // 同节点不同 entry 仍是两次调用
   st3.value()->record(c2);
   auto vio3 = st3.value()->detect_repeated_calls();
   bool found_rep = false;
@@ -215,9 +215,9 @@ static void test_runtime_p2_7node_trace() {
   // 模块验证 trace 事件归属/计数（观测点真实执行 stub 模块）。
   ModuleRegistry reg;
   const char* ids[] = {
-      "astrocs.phase2.coverage", "astrocs.phase2.sample", "astrocs.phase2.upm-fit",
-      "astrocs.phase2.upm-apply", "astrocs.phase2.reject", "astrocs.phase2.integrate",
-      "astrocs.phase2.write",
+      "acsd.phase2.coverage", "acsd.phase2.sample", "acsd.phase2.upm-fit",
+      "acsd.phase2.upm-apply", "acsd.phase2.reject", "acsd.phase2.integrate",
+      "acsd.phase2.write",
   };
   const char* entries[] = {
       "coverage", "sample", "upm_fit", "upm_apply", "reject", "integrate", "write",
@@ -287,29 +287,29 @@ static void test_runtime_p2_7node_trace() {
   rt.value()->set_run_id("run-p2-7node");
   // 7 节点链 IR（真实依赖：coverage→sample→...→write）
   const char* ir = R"({
-    "schema": "astrocs.pipeline/v1",
+    "schema": "acsd.pipeline/v1",
     "pipeline_id": "p2.seven",
     "version": "1.0.0",
     "nodes": [
-      {"node_id": "coverage", "module_id": "astrocs.phase2.coverage", "module_api": "1.x",
+      {"node_id": "coverage", "module_id": "acsd.phase2.coverage", "module_api": "1.x",
        "config": {}, "inputs": {"in": "artifact:cal"}, "outputs": {"out": "artifact:c1"},
        "resources": {"class": "cpu_heavy", "parallel": true}},
-      {"node_id": "sample", "module_id": "astrocs.phase2.sample", "module_api": "1.x",
+      {"node_id": "sample", "module_id": "acsd.phase2.sample", "module_api": "1.x",
        "config": {}, "inputs": {"in": "artifact:c1"}, "outputs": {"out": "artifact:c2"},
        "resources": {"class": "cpu_heavy", "parallel": true}},
-      {"node_id": "upm_fit", "module_id": "astrocs.phase2.upm-fit", "module_api": "1.x",
+      {"node_id": "upm_fit", "module_id": "acsd.phase2.upm-fit", "module_api": "1.x",
        "config": {}, "inputs": {"in": "artifact:c2"}, "outputs": {"out": "artifact:c3"},
        "resources": {"class": "cpu_heavy", "parallel": true}},
-      {"node_id": "upm_apply", "module_id": "astrocs.phase2.upm-apply", "module_api": "1.x",
+      {"node_id": "upm_apply", "module_id": "acsd.phase2.upm-apply", "module_api": "1.x",
        "config": {}, "inputs": {"in": "artifact:c3"}, "outputs": {"out": "artifact:c4"},
        "resources": {"class": "cpu_heavy", "parallel": true}},
-      {"node_id": "reject", "module_id": "astrocs.phase2.reject", "module_api": "1.x",
+      {"node_id": "reject", "module_id": "acsd.phase2.reject", "module_api": "1.x",
        "config": {}, "inputs": {"in": "artifact:c4"}, "outputs": {"out": "artifact:c5"},
        "resources": {"class": "cpu_heavy", "parallel": true}},
-      {"node_id": "integrate", "module_id": "astrocs.phase2.integrate", "module_api": "1.x",
+      {"node_id": "integrate", "module_id": "acsd.phase2.integrate", "module_api": "1.x",
        "config": {}, "inputs": {"in": "artifact:c5"}, "outputs": {"out": "artifact:c6"},
        "resources": {"class": "cpu_heavy", "parallel": true}},
-      {"node_id": "write", "module_id": "astrocs.phase2.write", "module_api": "1.x",
+      {"node_id": "write", "module_id": "acsd.phase2.write", "module_api": "1.x",
        "config": {}, "inputs": {"in": "artifact:c6"}, "outputs": {"out": "artifact:mosaic"},
        "resources": {"class": "io", "parallel": false}}
     ],
@@ -374,7 +374,7 @@ static void test_runtime_hidden_session_detected() {
   ModuleRegistry reg;
   for (int i = 0; i < 2; ++i) {
     ModuleDescriptor d;
-    d.module_id = i == 0 ? "astrocs.phase2.coverage" : "astrocs.phase2.sample";
+    d.module_id = i == 0 ? "acsd.phase2.coverage" : "acsd.phase2.sample";
     d.version = "1.0." "0";
     d.abi = "c++17";
     d.execution_class = "cpu_heavy";
@@ -408,7 +408,7 @@ static void test_runtime_hidden_session_detected() {
           e.type = TraceEventType::MODULE_CALL;
           e.node_id = ctx.current_node();
           e.module_id = desc_.module_id;
-          e.entry = "astrocs_phase2_session_run";  // 隐藏 session 复用
+          e.entry = "acsd_phase2_session_run";  // 隐藏 session 复用
           e.call_count = 1;
           ctx.record_trace(e);
           return Result<void>::success();
@@ -426,14 +426,14 @@ static void test_runtime_hidden_session_detected() {
   CHECK(rt.ok());
   rt.value()->set_run_id("run-hidden");
   const char* ir = R"({
-    "schema": "astrocs.pipeline/v1",
+    "schema": "acsd.pipeline/v1",
     "pipeline_id": "p2.hidden",
     "version": "1.0.0",
     "nodes": [
-      {"node_id": "coverage", "module_id": "astrocs.phase2.coverage", "module_api": "1.x",
+      {"node_id": "coverage", "module_id": "acsd.phase2.coverage", "module_api": "1.x",
        "config": {}, "inputs": {"in": "artifact:cal"}, "outputs": {"out": "artifact:c1"},
        "resources": {"class": "cpu_heavy", "parallel": true}},
-      {"node_id": "sample", "module_id": "astrocs.phase2.sample", "module_api": "1.x",
+      {"node_id": "sample", "module_id": "acsd.phase2.sample", "module_api": "1.x",
        "config": {}, "inputs": {"in": "artifact:c1"}, "outputs": {"out": "artifact:c2"},
        "resources": {"class": "cpu_heavy", "parallel": true}}
     ],
@@ -475,18 +475,18 @@ _REPLAY_PY = REPO / "lib" / "infrastructure" / "pipeline" / "trace_replay.py"
 
 # ── 驱动源清单的权威来源 = 构建图（不手抄文件名） ──
 # 规范依据（AGENTS §1.1「先到最高文档确定规范」）：
-#   * 根 CMakeLists.txt:302-335 `add_library(astrocs_core STATIC ...)` 是 scheduler
+#   * 根 CMakeLists.txt:302-335 `add_library(acsd_core STATIC ...)` 是 scheduler
 #     运行内核（artifact/module/pipeline/context/runtime/scheduler/checkpoint/
 #     logging/plan_estimator/...）的**唯一权威显式源清单**（根 CMakeLists.txt:4-5
 #     「显式源列表, 禁 GLOB (QA-002)」⇒ 该清单即构建图闭包，不是「惯例」）；
 #   * lib/infrastructure/scheduler/README.md「构建」节：「本目录无独立 CMake 目标，
-#     随根 CMakeLists.txt 编入 astrocs_core / astrocs_module_adapters」；
-#   * `executor.cpp` **刻意不在** astrocs_core（eng/tests/unit/CMakeLists.txt:230-232
-#     明文登记「executor.cpp 不在 astrocs_core 内 (eng/tests/runtime Python harness
+#     随根 CMakeLists.txt 编入 acsd_core / acsd_module_adapters」；
+#   * `executor.cpp` **刻意不在** acsd_core（eng/tests/unit/CMakeLists.txt:230-232
+#     明文登记「executor.cpp 不在 acsd_core 内 (eng/tests/runtime Python harness
 #     独立编译)」），其构建图落点是同文件 :233-237 `executor_provider_race_test`。
 _ROOT_CMAKE = REPO / "CMakeLists.txt"
 _UNIT_CMAKE = REPO / "eng" / "tests" / "unit" / "CMakeLists.txt"
-_CORE_TARGET = "astrocs_core"
+_CORE_TARGET = "acsd_core"
 _EXECUTOR_TARGET = "executor_provider_race_test"
 
 
@@ -531,9 +531,9 @@ def _cmake_target_sources(cmake_file: pathlib.Path, target: str) -> "list[pathli
 
 
 def _build_graph_sources() -> "tuple[list[pathlib.Path], list[pathlib.Path]]":
-    """返回 (astrocs_core 权威源清单, 驱动额外需要的 scheduler TU 清单)。
+    """返回 (acsd_core 权威源清单, 驱动额外需要的 scheduler TU 清单)。
 
-    额外清单 = 单测目标里编译、但**不在** astrocs_core 的 lib/infrastructure/
+    额外清单 = 单测目标里编译、但**不在** acsd_core 的 lib/infrastructure/
     scheduler/src/*.cpp（当前即 executor.cpp）—— 由构建图推出，不手抄。
     """
     core = _cmake_target_sources(_ROOT_CMAKE, _CORE_TARGET)
@@ -543,14 +543,14 @@ def _build_graph_sources() -> "tuple[list[pathlib.Path], list[pathlib.Path]]":
 
 
 # 驱动编译的**最小链接闭包**（种子）：从上面权威清单里按需取用的子集。
-# 为什么不是整份 astrocs_core 清单 —— 用本 harness 的 include 面（-I lib/include
+# 为什么不是整份 acsd_core 清单 —— 用本 harness 的 include 面（-I lib/include
 # -I lib/third_party）逐个实测，清单里有 TU 无法脱离 CMake 独立编译：
 #   * export_stream.cpp / canonical_hash.cpp —— 需要 crypto/sha256.h
-#     （lib/algorithms/shared，astrocs_common 的 include 面）；
+#     （lib/algorithms/shared，acsd_common 的 include 面）；
 #   * memory_budget.cpp —— 需要 CMake configure_file 生成的
 #     runtime_resources_generated.h（根 CMakeLists.txt:102-103，只在构建目录存在）；
 #   * normalize_workflow.cpp / mosaic_window.cpp —— 需要 aio_atomic_file.h
-#     （lib/infrastructure/aio/src，astrocs_core 的 PRIVATE include 面，
+#     （lib/infrastructure/aio/src，acsd_core 的 PRIVATE include 面，
 #      根 CMakeLists.txt:342-346）。
 # 本 harness 刻意脱离 CMake 独立编译（源码级验证，见文件头「方法」节），故取最小子集；
 # 代价是「清单漂移」这一类缺陷，用两条判据兜住：
@@ -571,7 +571,7 @@ def _driver_sources() -> "list[pathlib.Path]":
     missing = [n for n in _DRIVER_CORE_SEED if n not in by_name]
     if missing:
         raise AssertionError(
-            "驱动种子源不在 astrocs_core 权威清单里（构建图已变，需同步 "
+            "驱动种子源不在 acsd_core 权威清单里（构建图已变，需同步 "
             "_DRIVER_CORE_SEED）: " + ", ".join(missing))
     return [by_name[n] for n in _DRIVER_CORE_SEED] + extra
 
@@ -714,7 +714,7 @@ def _link_failure_report(stderr: str, objs, driver_obj, tmp: pathlib.Path) -> st
     head = "link driver failed:\n" + stderr[-2000:]
     try:
         undefined = {s for s in _nm_symbols(list(objs) + [driver_obj], "undefined")
-                     if "astrocs::" in s}
+                     if "acsd::" in s}
         defined = _nm_symbols(list(objs), "defined")
         missing = sorted(undefined - defined)
         if not missing:
@@ -777,7 +777,7 @@ class TestRt006Static(unittest.TestCase):
     def test_replay_py_matches_cpp_semantics(self):
         """Python replay 与 C++ 双实现同构：合法事件类型集合、摘要字段一致。"""
         py = _REPLAY_PY.read_text(encoding="utf-8")
-        self.assertIn('"astrocs.trace-replay/v1"', py)
+        self.assertIn('"acsd.trace-replay/v1"', py)
         self.assertIn("module_call", py)
         self.assertIn("hidden-session-fanout", py)
         self.assertIn("repeated-call", py)
@@ -794,19 +794,19 @@ class TestRt006DriverSourceClosure(unittest.TestCase):
     """机器判据：驱动源清单必须由构建图推出且覆盖链接闭包。
 
     防的缺陷类（本任务实测）：lib/infrastructure/scheduler/src 新增/改动的 TU
-    让 runtime.cpp 等引入新的 astrocs::core:: 外部符号时，手抄源清单要到**链接期**
+    让 runtime.cpp 等引入新的 acsd::core:: 外部符号时，手抄源清单要到**链接期**
     才炸，而链接器只报「undefined reference to <符号>」——不告诉你该补哪个 .cpp，
     一次只报第一条。本类用两条判据把这一类缺陷变成可判、可点名的红：
 
       ① test_seed_sources_come_from_build_graph：种子每个名字必须仍在
-         astrocs_core 权威清单里（防改名/搬目录后清单静默失效）；
+         acsd_core 权威清单里（防改名/搬目录后清单静默失效）；
       ② test_driver_link_closure_complete：nm 对真实目标文件求
-         「未定义 astrocs:: 符号 − 清单已定义符号」差集，非空即判红，
+         「未定义 acsd:: 符号 − 清单已定义符号」差集，非空即判红，
          并把每个未解析符号解析回权威清单里定义它的 .cpp（直接点名）。
 
     判据依赖真实编译（nm 需要目标文件），不是源码文本猜测 —— 因为本缺陷的
     典型形态 estimate_plan(...) 在 runtime.cpp 里是**无限定名调用**
-    （using namespace astrocs::core），纯文本扫 astrocs::core:: 会漏掉它。
+    （using namespace acsd::core），纯文本扫 acsd::core:: 会漏掉它。
     """
 
     def test_seed_sources_come_from_build_graph(self):
@@ -814,7 +814,7 @@ class TestRt006DriverSourceClosure(unittest.TestCase):
         names = {p.name for p in core}
         self.assertTrue(
             names >= set(_DRIVER_CORE_SEED),
-            "驱动种子源已不在 astrocs_core 权威清单里（构建图已变）: "
+            "驱动种子源已不在 acsd_core 权威清单里（构建图已变）: "
             + ", ".join(sorted(set(_DRIVER_CORE_SEED) - names)))
         extra_names = {p.name for p in extra}
         self.assertIn("executor.cpp", extra_names,
@@ -830,7 +830,7 @@ class TestRt006DriverSourceClosure(unittest.TestCase):
                       f"{build['error']}")
         driver_obj = build["driver_obj"]
         undefined = {s for s in _nm_symbols(objs + [driver_obj], "undefined")
-                     if "astrocs::" in s}
+                     if "acsd::" in s}
         defined = _nm_symbols(objs, "defined")
         missing = sorted(undefined - defined)
         if not missing:
@@ -849,7 +849,7 @@ class TestRt006DriverSourceClosure(unittest.TestCase):
 class TestRt006TraceCpp(unittest.TestCase):
     """C++ harness：真实编译链接 lib/infrastructure/scheduler 源码运行 RT-006 全部验收断言。
 
-    源清单来自构建图（_driver_sources()，权威 = 根 CMakeLists.txt 的 astrocs_core
+    源清单来自构建图（_driver_sources()，权威 = 根 CMakeLists.txt 的 acsd_core
     目标 + eng/tests/unit/CMakeLists.txt 的 executor_provider_race_test 目标），
     不再手抄；链接失败时报错会点名「该补哪个 .cpp」（见 _link_failure_report）。
     """
@@ -877,13 +877,13 @@ class TestRt006PythonReplay(unittest.TestCase):
         for i, nid in enumerate(["coverage", "sample", "upm_fit", "upm_apply",
                                  "reject", "integrate", "write"]):
             lines.append(
-                '{"schema":"astrocs.trace-event/v1","type":"module_call",'
+                '{"schema":"acsd.trace-event/v1","type":"module_call",'
                 f'"ts_utc":"2026-09-03T00:00:00.{i:03d}Z","run_id":"r1",'
-                f'"node_id":"{nid}","module_id":"astrocs.phase2.{nid}",'
+                f'"node_id":"{nid}","module_id":"acsd.phase2.{nid}",'
                 f'"entry":"{nid}","call_count":1,"workers":2,'
                 f'"provider":"baseline","seq":{i + 1}}}')
             lines.append(
-                '{"schema":"astrocs.trace-event/v1","type":"node_end",'
+                '{"schema":"acsd.trace-event/v1","type":"node_end",'
                 f'"ts_utc":"2026-09-03T00:00:01.{i:03d}Z","run_id":"r1",'
                 f'"node_id":"{nid}","status":"COMPLETED","wall_ms":1.2,'
                 f'"provider":"baseline","seq":{i + 100}}}')
@@ -900,8 +900,8 @@ class TestRt006PythonReplay(unittest.TestCase):
     def test_replay_hidden_session_and_repeat_detected(self):
         """隐藏 session（同 entry 2 节点）与重复调用（同节点 2 次）必须被抓出。"""
         jsonl = (
-            '{"type":"module_call","node_id":"coverage","entry":"astrocs_phase2_session_run","seq":1}\n'
-            '{"type":"module_call","node_id":"sample","entry":"astrocs_phase2_session_run","seq":2}\n'
+            '{"type":"module_call","node_id":"coverage","entry":"acsd_phase2_session_run","seq":1}\n'
+            '{"type":"module_call","node_id":"sample","entry":"acsd_phase2_session_run","seq":2}\n'
             '{"type":"module_call","node_id":"coverage","entry":"coverage","seq":3}\n'
             '{"type":"module_call","node_id":"coverage","entry":"coverage","seq":4}\n'
         )

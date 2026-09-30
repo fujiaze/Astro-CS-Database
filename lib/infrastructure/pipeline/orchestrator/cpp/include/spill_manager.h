@@ -25,7 +25,7 @@
 #include "resource_monitor.h"
 #include "admission_controller.h"
 
-namespace astrocs {
+namespace acsd {
 
 // ============================================================================
 // 任务优先级
@@ -208,4 +208,4 @@ private:
     SpillManager& spill_manager_;
 };
 
-} // namespace astrocs
+} // namespace acsd

@@ -2,9 +2,9 @@
 // 覆盖: ThreadBudget/ThreadLease/RunContext/ModuleDescriptor/PortDescriptor/
 // DataArtifactDescriptor/Provenance/Error/Result 与 Runtime 工厂签名。
 // GCC/Clang/MSVC 均须通过同一断言（平台无关值）。
-#include "astrocs/core/context.h"
-#include "astrocs/core/module.h"
-#include "astrocs/core/runtime.h"
+#include "acsd/core/context.h"
+#include "acsd/core/module.h"
+#include "acsd/core/runtime.h"
 
 #include <cstddef>
 #include <cstdint>
@@ -24,7 +24,7 @@ static int failures = 0;
 #define CHECK_ALIGN(T, n) CHECK(alignof(T) == (n))
 #define CHECK_OFFSET(T, member, off) CHECK(offsetof(T, member) == (off))
 
-using namespace astrocs::core;
+using namespace acsd::core;
 
 static void test_error_domain_layout() {
   // ErrorDomain enum 值冻结 (API-001 §2.2; ABI 稳定)
@@ -65,7 +65,7 @@ static void test_port_layout() {
 
 static void test_module_descriptor_fields() {
   ModuleDescriptor d;
-  d.module_id = "astrocs.phase1.calibration";
+  d.module_id = "acsd.phase1.calibration";
   d.version = "1.0.0";
   d.abi = "c++17";
   d.execution_class = "cpu_heavy";

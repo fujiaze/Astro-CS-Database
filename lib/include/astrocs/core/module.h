@@ -1,8 +1,8 @@
 // ACSD Core Contracts — CORE-003 ModuleDescriptor + Registry
 #pragma once
 
-#include "astrocs/core/artifact.h"
-#include "astrocs/core/contracts.h"
+#include "acsd/core/artifact.h"
+#include "acsd/core/contracts.h"
 
 #include <cstdint>
 #include <functional>
@@ -11,7 +11,7 @@
 #include <string>
 #include <vector>
 
-namespace astrocs::core {
+namespace acsd::core {
 
 class RunContext;  // 前向声明（context.h 依赖本头；execute 只取引用）
 
@@ -26,7 +26,7 @@ struct PortDescriptor {
 
 // 模块描述 (MOD: 唯一 ID/版本/ABI/端口/config/执行模型/合同引用)
 struct ModuleDescriptor {
-  std::string module_id;      // "astrocs.phase1.calibration"
+  std::string module_id;      // "acsd.phase1.calibration"
   std::string version;        // "1.x"
   std::string abi;            // "c++17" | "c"
   std::vector<PortDescriptor> ports;
@@ -117,4 +117,4 @@ class ModuleRegistry {
   std::map<std::string, std::function<std::unique_ptr<IModule>()>> factories_;
 };
 
-}  // namespace astrocs::core
+}  // namespace acsd::core

@@ -1,15 +1,15 @@
 // lib/algorithms/projection/p3_wcs.h — FITS-WCS 输出描述符 + TAN 投影正反变换 (ALG-P3-002) — P3-002
-// 原址 lib/phase3_session/p3_wcs.h, 按 docs/ASTROCS_DESIGN §7.1「projection」
-// 行迁入本模块 (WCS 属投影域); 命名空间 astrocs::phase3 与全部公共符号名不变
+// 原址 lib/phase3_session/p3_wcs.h, 按 docs/ACSD_DESIGN §7.1「projection」
+// 行迁入本模块 (WCS 属投影域); 命名空间 acsd::phase3 与全部公共符号名不变
 // (架构重构不改科学语义/接口, ENGINEERING_SPEC §3)。
 // 覆盖: CRPIX(pixel-center)/CD 关键字正确性、east_left|east_right、旋转 PA、
 // RA wrap、TAN 半球守卫(输出四角同半球)、abs(dec)<=85° 极点守卫(单一条件)。
-#ifndef ASTROCS_P3_WCS_H
-#define ASTROCS_P3_WCS_H
+#ifndef ACSD_P3_WCS_H
+#define ACSD_P3_WCS_H
 #include <algorithm>
 #include <cmath>
 #include <string>
-namespace astrocs::phase3 {
+namespace acsd::phase3 {
 
 struct P3WcsDescriptor {
     double crval_ra_deg = 0;      // ICRS 中心
@@ -61,7 +61,7 @@ P3WcsStatus p3_wcs_world2pix(const P3WcsDescriptor* d, double ra_deg, double dec
 /* FITS 关键字文本(CTYPE/CRPIX/CRVAL/CD/CUNIT; 含 END 前格式); 每行 80 字节内。 */
 std::string p3_wcs_fits_keywords(const P3WcsDescriptor* d);
 
-/* ---- 适用域声明（docs/ASTROCS_DESIGN.md §6.3「每种投影必须声明适用域…违反 ⇒ 拒绝」）----
+/* ---- 适用域声明（docs/ACSD_DESIGN.md §6.3「每种投影必须声明适用域…违反 ⇒ 拒绝」）----
  * 声明项: |CRVAL2| 上界 / FOV 上界 / 手性 det(CD)<0 / CRPIX 用 FITS 1-based
  * 像素中心 / 往返误差上界(px) 及其**适用域**。未声明适用域的投影 → nullptr（fail-closed）。
  *
@@ -368,6 +368,6 @@ inline P3CropStatus p3_crop_apply_wcs(const P3WcsDescriptor* frame,
     return P3_CROP_OK;
 }
 
-}  // namespace astrocs::phase3
+}  // namespace acsd::phase3
 
-#endif  // ASTROCS_P3_WCS_H
+#endif  // ACSD_P3_WCS_H

@@ -26,11 +26,11 @@
 #if defined(__has_include)
 #  if __has_include("aio_cfitsio_mutex.h")
 #    include "aio_cfitsio_mutex.h"
-#    define ASTROCS_RES_HAVE_CFITSIO_LOCK_STATS 1
+#    define ACSD_RES_HAVE_CFITSIO_LOCK_STATS 1
 #  endif
 #endif
 
-namespace astrocs {
+namespace acsd {
 
 // 阶段枚举: init(启动/加载) / active(节点计算) / flush(落盘/收尾)
 enum class ResStage { Init, Active, Flush };
@@ -136,7 +136,7 @@ public:
         r.runnable_workers = runnable_workers_;
         r.queue_depth = queue_depth_;
         r.progress = progress_;
-#if defined(ASTROCS_RES_HAVE_CFITSIO_LOCK_STATS)
+#if defined(ACSD_RES_HAVE_CFITSIO_LOCK_STATS)
         // 区间增量（进程级累计 → 本样本区间）。实测值，非 nvcsw 代理。
         {
             const aio::CfitsioLockStats ls = aio::cfitsio_lock_stats();
@@ -206,7 +206,7 @@ private:
     uint32_t runnable_workers_ = 0;
     uint64_t queue_depth_ = 0;
     double progress_ = 0.0;
-#if defined(ASTROCS_RES_HAVE_CFITSIO_LOCK_STATS)
+#if defined(ACSD_RES_HAVE_CFITSIO_LOCK_STATS)
     // PERF-401: cfitsio 取锁实测计数（进程级累计的上次快照 → 区间增量）
     uint64_t lock_wait_ns_seen_ = 0;
     uint64_t lock_acquisitions_total_ = 0;
@@ -341,7 +341,7 @@ inline bool ResourceRecorder::write_all(const std::string& out_dir, double wall_
                             s.per_thread_cpu_max_pct_peak, s.per_thread_cpu_sum_pct_mean,
                             s.active_compute_threads_peak, s.io_wait_pct_mean);
         }
-#if defined(ASTROCS_RES_HAVE_CFITSIO_LOCK_STATS)
+#if defined(ACSD_RES_HAVE_CFITSIO_LOCK_STATS)
         // PERF-401: cfitsio 锁等待实测汇总（进程级累计；与 CSV 的 lock_wait_ns
         // 列同源）。wait_ns 为**实际阻塞**纳秒，contended 为需要阻塞的取锁次数。
         {
@@ -375,4 +375,4 @@ inline bool ResourceRecorder::write_all(const std::string& out_dir, double wall_
     return true;
 }
 
-}  // namespace astrocs
+}  // namespace acsd

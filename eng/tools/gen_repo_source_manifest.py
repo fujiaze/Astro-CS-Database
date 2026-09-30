@@ -55,7 +55,7 @@ CLASS_MAP = [
 # 生产 caller 映射（lib 各模块的调用方）
 CALLER_MAP = {
     "ORCHESTRATOR": "production entry: orchestrator.exe",
-    "ASTRO_IMAGE_IO": "orchestrator Phase1 + astrocs-stage2 Phase2 + browser",
+    "ASTRO_IMAGE_IO": "orchestrator Phase1 + acsd-stage2 Phase2 + browser",
     "CALIBRATION": "orchestrator Phase1 CALIBRATE",
     "PLATE_SOLVE": "orchestrator Phase1 PLATESOLVE",
     "PSF": "orchestrator Phase1 PSF",
@@ -67,7 +67,7 @@ CALLER_MAP = {
     "BROWSER": "healpix_browser_qt.exe (consumer only)",
     "ARCHIVED_LEGACY": "NONE (not built/linked/called; archive only)",
     "HEALPIX_DB": "shared / browser / drizzle",
-    "PHASE2": "astrocs-stage2.exe (production) + tests",
+    "PHASE2": "acsd-stage2.exe (production) + tests",
     "ACR": "phase2 backend (KernelRegistry), same contract",
     "SHARED_COMMON": "shared (all modules)",
     "DATA_PIPELINE": "tooling (non-production)",

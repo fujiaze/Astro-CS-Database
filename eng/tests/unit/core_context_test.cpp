@@ -1,10 +1,10 @@
 // CORE-005 单元测试: RunContext 服务接口
-#include "astrocs/core/context.h"
+#include "acsd/core/context.h"
 
 #include <cstdio>
 #include <string>
 
-using namespace astrocs::core;
+using namespace acsd::core;
 
 static int failures = 0;
 #define CHECK(cond)                                                       \

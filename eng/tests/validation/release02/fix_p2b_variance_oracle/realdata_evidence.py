@@ -78,9 +78,9 @@ snrs, frefs, nokey = [], [], 0
 for pf in props:
     fs = ff = None
     for ln in open(pf, encoding="utf-8", errors="replace"):
-        if ln.startswith("ASTROCS_FRAME_SNR="):
+        if ln.startswith("ACSD_FRAME_SNR="):
             fs = float(ln.split("=", 1)[1])
-        elif ln.startswith("ASTROCS_REFERENCE_FLUX="):
+        elif ln.startswith("ACSD_REFERENCE_FLUX="):
             ff = float(ln.split("=", 1)[1])
     if fs is None or ff is None:
         nokey += 1
@@ -88,9 +88,9 @@ for pf in props:
         snrs.append(fs); frefs.append(ff)
 p("  HiPS signal products scanned: %d ; missing keys: %d" % (len(props), nokey))
 if frefs:
-    p("  ASTROCS_REFERENCE_FLUX: min=%.6g median=%.6g max=%.6g  max/min=%.3f"
+    p("  ACSD_REFERENCE_FLUX: min=%.6g median=%.6g max=%.6g  max/min=%.3f"
       % (min(frefs), statistics.median(frefs), max(frefs), max(frefs) / min(frefs)))
-    p("  ASTROCS_FRAME_SNR:      min=%.6g median=%.6g max=%.6g"
+    p("  ACSD_FRAME_SNR:      min=%.6g median=%.6g max=%.6g"
       % (min(snrs), statistics.median(snrs), max(snrs)))
 p("  ⇒ L4 数据违反组内公共 F_ref（46 帧 F_ref 变化 ~6.87x），生成于 2026-09-18 23:53，")
 p("    早于修复提交 4f341b15 (2026-09-19 01:42)；当前代码 module_adapters.cpp:3180-3282")

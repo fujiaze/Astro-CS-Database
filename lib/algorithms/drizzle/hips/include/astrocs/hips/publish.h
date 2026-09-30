@@ -1,6 +1,6 @@
 /* publish.h - HiPS 原子发布原语 v1 合同头 (AIO-002)
  *
- * 任务: AIO-002 (ASTROCS-CONSTITUTION-ALIGNMENT-V1) "实现HiPS原子发布与临时
+ * 任务: AIO-002 (ACSD-CONSTITUTION-ALIGNMENT-V1) "实现HiPS原子发布与临时
  * 目录清理"。对齐 IO-003 发布流水线 (docs/engineering/io/IO_003_ATOMIC_OUTPUT_PUBLISH.md
  * §4: 临时写 → 关闭/fsync → 校验 → 原子 rename → 完成标记) 的
  * C ABI 化最小面; 收口 DISP-HIPS-001 (abort 不清理已写文件) / DISP-HIPS-004
@@ -8,8 +8,8 @@
  * 临时目录 RAII 自愈对齐 V7 历史登记 (make_tmp_dir 无清理, 24G tmpfs 填满
  * 19.94G 致 cfitsio status=107 假败)。
  *
- * 归属与导出面: 本 ABI 是 lib/algorithms/drizzle/hips 模块事务内核 (astrocs.p1.hips_writer DLL
- * 内部支撑, 与 module_entry.cpp 同编; 对外仍唯一导出 astrocs_module_query_v1,
+ * 归属与导出面: 本 ABI 是 lib/algorithms/drizzle/hips 模块事务内核 (acsd.p1.hips_writer DLL
+ * 内部支撑, 与 module_entry.cpp 同编; 对外仍唯一导出 acsd_module_query_v1,
  * 本头符号经 version-script/DEF 保持隐藏)。测试经 eng/tests/unit/p1_hips/
  * adapter_entry_impl.cpp 直链 TU 使用。
  *
@@ -30,8 +30,8 @@
  * 类型。并发: 全部函数 reentrant (无共享全局状态); internal_parallel=none
  * (单流遍历, 确定性)。跨边界不抛异常 (实现层 C 屏障, 失败返回稳定状态码)。
  */
-#ifndef ASTROCS_HIPS_PUBLISH_H
-#define ASTROCS_HIPS_PUBLISH_H
+#ifndef ACSD_HIPS_PUBLISH_H
+#define ACSD_HIPS_PUBLISH_H
 
 #include <stdint.h>
 
@@ -39,15 +39,15 @@
 extern "C" {
 #endif
 
-#define ASTROCS_HIPS_PUBLISH_ABI_VERSION 1u
+#define ACSD_HIPS_PUBLISH_ABI_VERSION 1u
 
 /* staging 目录固定词根 (basename 前缀 '.' + 后缀 '.hips_staging.tmp';
  * 段词法不含 '/', 不与 HiPS 子产品名 signal/support/variance/ivar/snr
  * 冲突)。 */
-#define ASTROCS_HIPS_STAGE_BASENAME ".hips_staging.tmp"
+#define ACSD_HIPS_STAGE_BASENAME ".hips_staging.tmp"
 
 /* ───────── 状态码 (v1 数值冻结) ─────────
- * 0..15 与 70 全域一致于 lib/include/astrocs/io/aio_abi_v1.h aio_status
+ * 0..15 与 70 全域一致于 lib/include/acsd/io/aio_abi_v1.h aio_status
  * (AIO-001 数值冻结; _Static_assert 编译期对齐证明)。 */
 typedef enum aio_publish_status_v1 {
     AIO_PUBLISH_OK = 0,
@@ -66,7 +66,7 @@ typedef enum aio_publish_status_v1 {
     AIO_PUBLISH_ERR_DISKFULL = 13,    /* fsync 落盘失败 errno==ENOSPC/EDQUOT */
     AIO_PUBLISH_ERR_DECL_INVALID = 14,
     AIO_PUBLISH_ERR_HASH_MISMATCH = 15,
-    AIO_PUBLISH_ERR_INTERNAL = 70,    /* 未分类内部错误 (同 acs_status 语义) */
+    AIO_PUBLISH_ERR_INTERNAL = 70,    /* 未分类内部错误 (同 acsd_status 语义) */
     AIO_PUBLISH_STATUS_COUNT = 71     /* 哨兵: 该值及以外均非法 */
 } aio_publish_status_v1;
 
@@ -105,7 +105,7 @@ int aio_publish_promote_v1(const char* out_dir_utf8,
                            const char* stage_path_utf8);
 
 /* ───────── 故障注入 (测试面; 生产零行为差异) ─────────
- * ASTROCS_HIPS_PUBLISH_FAULT=<name> 使对应函数确定性翻转 (返回错误) 并输出
+ * ACSD_HIPS_PUBLISH_FAULT=<name> 使对应函数确定性翻转 (返回错误) 并输出
  * "FAULT-INJECT" 行 (对齐 AIO-001 fault_injection 口径: 注入必败, 不存在
  * 恒 PASS 占位)。注册名:
  *   p1_stage_create_fail  stage_create → IO
@@ -130,7 +130,7 @@ int hips_publish_fault_slow_write_v1(void);
 static_assert(AIO_PUBLISH_OK == 0 && AIO_PUBLISH_ERR_PARAM == 1 &&
                   AIO_PUBLISH_ERR_IO == 4 && AIO_PUBLISH_ERR_STATE == 7 &&
                   AIO_PUBLISH_ERR_TRUNCATED == 8,
-              "AIO-002: aio_publish_status 0..8 与 aio_status/acs_status 一致");
+              "AIO-002: aio_publish_status 0..8 与 aio_status/acsd_status 一致");
 static_assert(AIO_PUBLISH_ERR_DISKFULL == 13 &&
                   AIO_PUBLISH_ERR_INTERNAL == 70 &&
                   AIO_PUBLISH_STATUS_COUNT == 71,
@@ -139,11 +139,11 @@ static_assert(AIO_PUBLISH_ERR_DISKFULL == 13 &&
 _Static_assert(AIO_PUBLISH_OK == 0 && AIO_PUBLISH_ERR_PARAM == 1 &&
                    AIO_PUBLISH_ERR_IO == 4 && AIO_PUBLISH_ERR_STATE == 7 &&
                    AIO_PUBLISH_ERR_TRUNCATED == 8,
-               "AIO-002: aio_publish_status 0..8 与 aio_status/acs_status 一致");
+               "AIO-002: aio_publish_status 0..8 与 aio_status/acsd_status 一致");
 _Static_assert(AIO_PUBLISH_ERR_DISKFULL == 13 &&
                    AIO_PUBLISH_ERR_INTERNAL == 70 &&
                    AIO_PUBLISH_STATUS_COUNT == 71,
                "AIO-002: aio_publish_status 13/70/71 数值冻结");
 #endif
 
-#endif /* ASTROCS_HIPS_PUBLISH_H */
+#endif /* ACSD_HIPS_PUBLISH_H */

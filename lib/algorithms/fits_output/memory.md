@@ -1,4 +1,4 @@
-# memory.md — astrocs.p3.fits_writer（P3-FITS-DOC 冻结）
+# memory.md — acsd.p3.fits_writer（P3-FITS-DOC 冻结）
 
 - 任务: P3-FITS-DOC（MODULE_MIGRATION_MATRIX P3-FITS 行，owner
   SA-P3-F27，2026-09-08）——合同冻结层，不改生产源码，不 commit。
@@ -8,7 +8,7 @@
   lib/algorithms/fits_output/p3_output.cpp + p3_output.h 位于
   lib/phase3_session/——该目录为 Phase3 会话编排域共享源
   （p3_session/p3_resample/p3_wcs/hips_properties 五源同库
-  astrocs_phase3_session，根 CMakeLists.txt:460-465），非整目录
+  acsd_phase3_session，根 CMakeLists.txt:460-465），非整目录
   归属本域（矩阵 legacy_paths="lib/phase3_session fits sources" 只
   圈 fits sources）；按 `lib/algorithms/upm/`（P2-UPM-DOC）→
   `lib/algorithms/sampling/`（P2-SAMP-DOC）→ `lib/algorithms/rejection/`（P2-REJ-DOC）
@@ -16,21 +16,21 @@
   先例新建迁移目标目录，仅合同文件、无源码、不与 legacy 目录重叠；
   legacy 生产源引用不搬家。
 - 矩阵权威（P3-FITS 行，禁止编造）: owner=SA-P3-F27、
-  module_id=astrocs.p3.fits_writer、target_dll=
-  astrocs_p3_fits_writer.dll、legacy_paths="lib/phase3_session fits
+  module_id=acsd.p3.fits_writer、target_dll=
+  acsd_p3_fits_writer.dll、legacy_paths="lib/phase3_session fits
   sources"、depends_on_int=**P3-RSMP-INT;IO-003**、
   science_specific_acceptance="block streaming;SCI/SUPPORT/MASK
   HDUs;BUNIT/WCS/checksum;atomic rename;overwrite policy;memory
   independent of full image size"。
-- module_id 决策: 任务指派文字写 astrocs.p3.fits，与矩阵行
-  astrocs.p3.fits_writer 冲突——MODULE_MIGRATION_MATRIX 为冻结权威
+- module_id 决策: 任务指派文字写 acsd.p3.fits，与矩阵行
+  acsd.p3.fits_writer 冲突——MODULE_MIGRATION_MATRIX 为冻结权威
   依据（照 P2-SAMP 先例：指派文字与矩阵冲突以矩阵为准并显式记录），
-  取 **astrocs.p3.fits_writer**。descriptor 占位
-  module_id=astrocs.phase3.writer（module_adapters.cpp:383-398
+  取 **acsd.p3.fits_writer**。descriptor 占位
+  module_id=acsd.phase3.writer（module_adapters.cpp:383-398
   p3_writer_descriptor）为编排层词汇，由 P3-FITS-INT 对齐，不入合同。
-- MOD ID 决策: registry 现有行 MOD-astrocs-phase3-writer（单
+- MOD ID 决策: registry 现有行 MOD-acsd-phase3-writer（单
   descriptor 域），module.yaml id 与之一致；registry 页手写化
-  （docs/detail/registry/astrocs.phase3.writer.md），模块总页新建
+  （docs/detail/registry/acsd.phase3.writer.md），模块总页新建
   docs/detail/phase3_fits.md。
 - 本任务 ID 决策（唯一方案，避免与既有占位冲突）:
   SCI=SCI-P3-001（docs/science/PHASE3_HIPS_TO_FITS.md 共享 FROZEN
@@ -63,7 +63,7 @@
   fdatasum 32-bit checksum :58-67、make_temp_path :72-84
   （tmp=out+"."+pid+".tmp" :81，同目录保证 rename 原子 :82）、
   R10-C sha256 封装注 :85-91、sha256_file_checked 严格封装
-  :92-114（fopen/ferror/fclose 全检查；ASTROCS_HASH_FAIL_INJECT
+  :92-114（fopen/ferror/fclose 全检查；ACSD_HASH_FAIL_INJECT
   仅测试注入 :105-108）、cfitsio 进程锁 :125（RT-008）、
   make_temp_path 调用+残留清理 :128-130、fits_create_file
   :135-137、bitpix 门 :140-145、fits_create_img :144-147、
@@ -109,13 +109,13 @@
   output_fits_path/sha256/order_sel_used/sampler_used/
   coverage_stats/provenance）。
 - 构建挂载（实测）: 根 CMakeLists.txt:460-465
-  astrocs_phase3_session STATIC（五源: p3_session/p3_wcs/
-  hips_properties/p3_output/p3_resample）；astrocs_aio STATIC
-  :273-296（aio_fits 等 6 源 + astrocs_cfitsio vendored + z）；
+  acsd_phase3_session STATIC（五源: p3_session/p3_wcs/
+  hips_properties/p3_output/p3_resample）；acsd_aio STATIC
+  :273-296（aio_fits 等 6 源 + acsd_cfitsio vendored + z）；
   cfitsio 进程锁单例 lib/infrastructure/aio/src/aio_cfitsio_mutex.h
   :9-15（aio_fits.cpp:529 读路径 + p3_output.cpp:125 写路径共用，
   RT-008）。eng/tests/unit/CMakeLists.txt:442-447 p3_output_test
-  （链 astrocs_phase3_session+astrocs_hips+astrocs_common）。
+  （链 acsd_phase3_session+acsd_hips+acsd_common）。
 - 执行测试锚（eng/tests/unit/p3_output_test.cpp，116 行，4 段）:
   ①原子写+mask（:62-88，64×48 渐变场+分段 mask、prov 全字段、
   BITPIX=-32、res.coverage_ok/reopen_ok/sha256 len==64）、
@@ -133,13 +133,13 @@
 - 实测偏差登记（不改码）:
   - DISP-P3FITS-001: lib/infrastructure/aio/README.md 旧派生内容声称
     "零外部依赖、不依赖 cfitsio"，与现状 vendored
-    third_party/cfitsio（astrocs_cfitsio 静态库 :273-296）矛盾；
+    third_party/cfitsio（acsd_cfitsio 静态库 :273-296）矛盾；
     他域文件只登记不修。
   - DISP-P3FITS-002: tmp 命名冻结注与实现偏差——p3_output.h:41-44
     协议注写 `<dir>/.<base>.<pid>.tmp`（前置点隐藏文件形态），实测
     make_temp_path 生成 `out_path.<pid>.tmp`（p3_output.cpp:81，
     无前置点、保留 .fits 扩展名）；同目录保证 rename 原子性语义
-    不变，但执行测试残留检查前缀 ".astrocs_p3_out_test."
+    不变，但执行测试残留检查前缀 ".acsd_p3_out_test."
     （eng/tests/unit/p3_output_test.cpp:102-103）与实际命名恒不匹配
     → 残留检查弱匹配空转（不误报，也捕不到本实现形态的残留）。
     登记不改码，命名统一归 P3-FITS-IMPL。

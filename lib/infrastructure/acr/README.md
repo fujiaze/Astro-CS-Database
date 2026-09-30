@@ -8,7 +8,7 @@
 
 ## 休眠边界（ACR-001，冻结约束 §C.1）
 
-AstroCS_ENGINEERING_CONSTRAINTS.md §C.1/C.2：ACR 是正式发布后的 CPU/GPU 异构
+ACSD_ENGINEERING_CONSTRAINTS.md §C.1/C.2：ACR 是正式发布后的 CPU/GPU 异构
 更新；本轮保留源码和隔离测试，但**生产构建、加载、路由、benchmark、发布包均
 不得依赖或包含 ACR/CUDA**；当前唯一生产计算后端是纯 CPU。
 
@@ -20,13 +20,13 @@ AstroCS_ENGINEERING_CONSTRAINTS.md §C.1/C.2：ACR 是正式发布后的 CPU/GPU
 2. **实验 target 只能隔离构建**：显式实验 configure 以 ACR 树自身为
    `-S` 根（见下），产出 target 全部位于独立 build 目录，不与产品图交集。
 3. **release preset 不接受 ON**：`win-msvc-17.14.39-x64` 与 `linux-control`
-   preset 冻结 `ASTROCS_ENABLE_ACR=OFF`；`eng/cmake/toolchain/verify_toolchain.py`
+   preset 冻结 `ACSD_ENABLE_ACR=OFF`；`eng/cmake/toolchain/verify_toolchain.py`
    对 formal path 强制 OFF（ON → FAIL）。
 4. **install/product manifest 零 ACR**：唯一 install 源
    `eng/cmake/install_layout.cmake` 与 `eng/packaging/*.json` 均无 ACR/CUDA 条目
    （机器校验见 `lib/infrastructure/acr/ci/check_acr_dormant.py`）。
-5. **生产二进制不加载**：`lib/include/astrocs/core/runtime.h` 声明"ACR 不注册不链接"，
-   `lib/infrastructure/scheduler/src/module.cpp` 拒绝 `astrocs.acr.*` 模块注册；ACR 实验入口
+5. **生产二进制不加载**：`lib/include/acsd/core/runtime.h` 声明"ACR 不注册不链接"，
+   `lib/infrastructure/scheduler/src/module.cpp` 拒绝 `acsd.acr.*` 模块注册；ACR 实验入口
    （eng/tools/qualification/scheduler）仅供独立实验构建。
 
 验收命令（Linux 控制节点）：

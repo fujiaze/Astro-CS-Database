@@ -5,7 +5,7 @@
 # ============================================================================
 cmake_minimum_required(VERSION 3.16)
 if(CMAKE_SOURCE_DIR STREQUAL CMAKE_CURRENT_SOURCE_DIR)
-  project(astrocs_p2_integrate LANGUAGES C CXX)
+  project(acsd_p2_integrate LANGUAGES C CXX)
   enable_testing()
 endif()
 
@@ -17,7 +17,7 @@ add_subdirectory("${P2_REPO}/lib/algorithms/integration/phase2_integrate"
                  "${CMAKE_CURRENT_BINARY_DIR}/phase2_int_lib")
 
 add_executable(p2_integrate_test "${P2_IT_DIR}/p2_integrate_test.cpp")
-target_link_libraries(p2_integrate_test PRIVATE astrocs_phase2_integrate)
+target_link_libraries(p2_integrate_test PRIVATE acsd_phase2_integrate)
 # 单一口径门引用 CLI 契约头（纯头文件）：--mode token 面必须对全部 token fail-closed。
 target_include_directories(p2_integrate_test PRIVATE "${P2_REPO}/lib/infrastructure/cli")
 set_target_properties(p2_integrate_test PROPERTIES
@@ -33,12 +33,12 @@ add_test(NAME p2_halfproduct COMMAND p2_integrate_test halfproduct "${P2_WORK}")
 # 权重来源 token 门的「能红能绿」判据面（PROD-WIRING 曾判它 unbuildable）。
 # 判据 1 链期验证两道门的返回码语义（合法来源 rc=0 / 冻结禁词 rc=1 / 实参错 rc=2）；
 # 判据 2 读接线层源码验证那两个 rc **被消费**（不得再出现丢弃 rc 的裸调用）。
-# 符号由 astrocs_phase2_integrate 提供（它自身已编译 coverage/src/{coverage,rejection}.cpp），
+# 符号由 acsd_phase2_integrate 提供（它自身已编译 coverage/src/{coverage,rejection}.cpp），
 # 只需补 coverage 的公开头路径。
 add_executable(p2_weight_token_gate_negative_test
                "${P2_IT_DIR}/p2_weight_token_gate_negative_test.cpp")
 target_link_libraries(p2_weight_token_gate_negative_test
-                      PRIVATE astrocs_phase2_integrate)
+                      PRIVATE acsd_phase2_integrate)
 target_include_directories(p2_weight_token_gate_negative_test PRIVATE
                            "${P2_REPO}/lib/algorithms/coverage/include")
 set_target_properties(p2_weight_token_gate_negative_test PROPERTIES
@@ -62,7 +62,7 @@ set_tests_properties(p2_oracle PROPERTIES DEPENDS "p2_write" TIMEOUT 600)
 # M06 逐像素权重面判据（稀疏层绝对 SNR 的消费面 + 误乘帧级标量的反例 +
 # 两条逐像素入口逐像素一致）。直接链生产库，不使用测试专用后门。
 add_executable(p2_pixel_weight_test "${P2_IT_DIR}/p2_pixel_weight_test.cpp")
-target_link_libraries(p2_pixel_weight_test PRIVATE astrocs_phase2_integrate)
+target_link_libraries(p2_pixel_weight_test PRIVATE acsd_phase2_integrate)
 set_target_properties(p2_pixel_weight_test PROPERTIES
   CXX_STANDARD 17 CXX_STANDARD_REQUIRED ON)
 add_test(NAME p2_pixel_weight COMMAND p2_pixel_weight_test)

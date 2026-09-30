@@ -3,22 +3,22 @@
  * 任务: P2-INTEGRATE-001 (Wave 8, write_scope = lib/algorithms/coverage/src/integrate.{cpp,h},
  *       lib/algorithms/coverage/src/block.{cpp,h}, lib/algorithms/integration/, lib/phase2_session/,
  *       eng/tests/integration/p2_integrate/)。本层只"接线"，不新增科学公式：
- *   - Phase1 单帧产品消费面 : astrocs::v6::phase1 (P1-INTEGRATE-001)
+ *   - Phase1 单帧产品消费面 : acsd::v6::phase1 (P1-INTEGRATE-001)
  *   - UPM 乘加求解/参数协方差: p2_upm_ma_* (IMPL-P2-UPM-001)
  *   - 分类排异 sigma_eff^2   : p2_reject_classify / p2_reject_calibration (IMPL-P2-REJ-001)
  *   - 空间求值/标量降级/覆盖  : p2_spatial_model_eval|summary、p2_scalar_degrade_gate、
  *                             p2_coverage_support_classify、
  *                             p2_weight_source_token_reject (IMPL-P2-SAMP-001)
- *   - SNR → 逆方差权重链     : astrocs::v6::p2weight (weight_chain.h)
- *   - FITS/原子发布/provenance/BUNIT : astrocs::aio (IMPL-AIO-001)
+ *   - SNR → 逆方差权重链     : acsd::v6::p2weight (weight_chain.h)
+ *   - FITS/原子发布/provenance/BUNIT : acsd::aio (IMPL-AIO-001)
  *
  * 冻结锚（逐条符合，不得放宽）:
  *   FZ-WEIGHT-SINGLE-PATH  权重只有一个口径、没有可选择项：Phase1 产稀疏 SNR 控制点
  *                      → Phase2 重建稠密 SNR 面 → 取逆方差（最优功率）定权 → 叠加；
- *                      w = SNR^2/F_ref^2 = 1/sigma_F^2（docs/ASTROCS_DESIGN.md §3.1；
+ *                      w = SNR^2/F_ref^2 = 1/sigma_F^2（docs/ACSD_DESIGN.md §3.1；
  *                      docs/science/PSF_SIGNAL_WEIGHT.md §4）
  *   FZ-MODE-RETIRED    psfsw_robust 显式拒绝 + 迁移提示：psfsw_robust_weight 不是
- *                      现行对象（docs/ASTROCS_DESIGN.md §3.1；UNIFIED_MODEL.md:58）⇒
+ *                      现行对象（docs/ACSD_DESIGN.md §3.1；UNIFIED_MODEL.md:58）⇒
  *                      产品校验与权重来源拒绝面一律拒绝，不得静默接受
  *   FZ-FIELD-WEIGHTMODE legacy 0=support×snr² / auto / support_x_snr2 REJECT
  *   FZ-FORMULA-Q/WINFO/FHAT   Q_k=a_k P_k^T C_k^-1 d_k; W=a_k^2 P_k^T C_k^-1 P_k;
@@ -40,8 +40,8 @@
  *   weight.{kind,units,group_normalized,normalization.scope,
  *           normalization.median_target,normalization.constants_version,weight_value}
  */
-#ifndef ASTROCS_V6_PHASE2_INTEGRATE_H
-#define ASTROCS_V6_PHASE2_INTEGRATE_H
+#ifndef ACSD_V6_PHASE2_INTEGRATE_H
+#define ACSD_V6_PHASE2_INTEGRATE_H
 
 #include <cstddef>
 #include <cstdint>
@@ -52,9 +52,9 @@
 #include "astro/aio/fits.h"
 #include "astro/aio/provenance.h"
 #include "astro/aio/validation.h"
-#include "astrocs/phase1_product.h"
+#include "acsd/phase1_product.h"
 
-namespace astrocs {
+namespace acsd {
 namespace v6 {
 namespace p2int {
 
@@ -70,14 +70,14 @@ constexpr double kEpsfRtol = 1e-12;       /* FZ-AP2S-EPSF-RTOL */
 constexpr int    kCommonMin = 3;          /* PSFSW-T-NMIN */
 constexpr double kKCorrFrozen = 1.4;      /* FZ-PROV-KCORR-VALUE */
 
-constexpr const char* kPhase2ProductSchema = "astrocs.v6.phase2-product/v1";
+constexpr const char* kPhase2ProductSchema = "acsd.v6.phase2-product/v1";
 constexpr const char* kPhase2RecordFile = "phase2_product.json";
 constexpr const char* kPhase2ScienceFile = "mosaic.fits";
 /* 单一产品身份：点源信息量产品（W_info = 1/Var(F_hat)）。
  * 不存在权重口径的可选择项 ⇒ 没有模式枚举、没有模式路由、没有模式配置键；
  * 科学权重一律由 Phase2 在集成时按天球像素对应的帧集合现场派生为逆方差
  * （FZ-WEIGHT-SINGLE-PATH）。 */
-constexpr const char* kTypePoint = "astrocs.phase2.point_source.v1";
+constexpr const char* kTypePoint = "acsd.phase2.point_source.v1";
 
 /* ------------------------------------------------------------------ */
 /* 最小 FITS 平面读取器（BITPIX=-64；extname 空=PRIMARY）                 */
@@ -186,7 +186,7 @@ struct ProductResult {
   std::vector<double> flux_out;     /* FLUX HDU（ADU） */
   std::vector<std::string> evidence;
 
-  astrocs::aio::PublishResult publish;
+  acsd::aio::PublishResult publish;
 };
 
 /* 运行：磁盘重开 -> 组合 -> 原子写盘 -> 重开校验（失败无半成品）。 */
@@ -203,7 +203,7 @@ struct Phase2OpenResult {
   std::string error;
   std::string output_sha256;
   std::vector<std::string> violations; /* G-xxx / FZ-xxx 逐条 */
-  std::vector<astrocs::aio::FitsHduInfo> hdus;
+  std::vector<acsd::aio::FitsHduInfo> hdus;
   bool has_flux = false, has_effective_psf = false;
 };
 
@@ -242,6 +242,6 @@ UpmRejSampResult run_upm_rej_samp_wiring(const FrameSet& fs,
 
 }  /* namespace p2int */
 }  /* namespace v6 */
-}  /* namespace astrocs */
+}  /* namespace acsd */
 
-#endif  /* ASTROCS_V6_PHASE2_INTEGRATE_H */
+#endif  /* ACSD_V6_PHASE2_INTEGRATE_H */

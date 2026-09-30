@@ -1,6 +1,6 @@
 # 三阶段产品交换合同（Phase Product Exchange）
 
-> 上游：`docs/ASTROCS_DESIGN.md` §1.2（三命令平级独立）、§8.1（一次 CLI 调用只驱动一个阶段）、§10（I/O 与原子产品）、
+> 上游：`docs/ACSD_DESIGN.md` §1.2（三命令平级独立）、§8.1（一次 CLI 调用只驱动一个阶段）、§10（I/O 与原子产品）、
 > `docs/science/DATA_SEMANTICS.md`（跨阶段唯一数据合同）、
 > `docs/science/PHASE3_HIPS_TO_FITS.md`（SCI-P3 units/planes）、
 > `eng/contracts/data/artifact_types.registry.json` 与 `eng/contracts/data/artifact_manifest.schema.json`（类型登记与合并 manifest 形态真源）
@@ -33,9 +33,9 @@ role 与 type 逐一对应（同名必同 type / 同 type 必同 role，无歧�
 
 | product_role | type_id（registry） | registry schema_version | producer_phase | 最小平面集 | content format |
 |---|---|---|---|---|---|
-| `phase1_product_v1` | `astrocs.phase1.frame_hips.v1` | 1 | phase1 | signal, support, variance, mask | hips |
-| `phase2_mosaic_v1` | `astrocs.phase2.mosaic_hips.v1` | 1 | phase2 | signal, support, mask | hips |
-| `phase3_planar_fits_v1` | `astrocs.phase3.planar_fits.v1` | 1 | phase3 | signal, support, mask | fits |
+| `phase1_product_v1` | `acsd.phase1.frame_hips.v1` | 1 | phase1 | signal, support, variance, mask | hips |
+| `phase2_mosaic_v1` | `acsd.phase2.mosaic_hips.v1` | 1 | phase2 | signal, support, mask | hips |
+| `phase3_planar_fits_v1` | `acsd.phase3.planar_fits.v1` | 1 | phase3 | signal, support, mask | fits |
 
 - type_id 本体登记于 `eng/contracts/data/artifact_types.registry.json`，本文档/本 schema
   只做绑定，不重复登记；未知/未登记 type_id 由该 registry 拒绝并传播。
@@ -58,15 +58,15 @@ role 与 type 逐一对应（同名必同 type / 同 type 必同 role，无歧�
 
 ```jsonc
 {
-  "exchange_schema": "astrocs.phase-product-exchange/v1",
+  "exchange_schema": "acsd.phase-product-exchange/v1",
   "exchange_version": 1,
   "product_role": "phase1_product_v1",        // phase2_mosaic_v1 | phase3_planar_fits_v1
-  "type_id": "astrocs.phase1.frame_hips.v1",  // 与 role 绑定一致
+  "type_id": "acsd.phase1.frame_hips.v1",  // 与 role 绑定一致
   "schema_version": 1,                        // 与 registry 一致
-  "origin": "astrocs",                        // astrocs | external_fixture
+  "origin": "acsd",                        // acsd | external_fixture
   "artifact_manifest": { /* 完整 manifest（15 必填字段；形态 = eng/contracts/data/artifact_manifest.schema.json） */ },
   "product_content": {
-    "content_schema": "astrocs.phase-product-content/v1",
+    "content_schema": "acsd.phase-product-content/v1",
     "coordinate": { "frame": "icrs", "ra_unit": "deg", "dec_unit": "deg" },
     "geometry": { "format": "hips", "hips": { "ordering": "nested", "tile_width": 512 } },
     "planes": [
@@ -109,7 +109,7 @@ role 与 type 逐一对应（同名必同 type / 同 type 必同 role，无歧�
 
   - `invalid_policy`：全局 `nan_or_support_le_0`（NaN 或 support<=0 视为无效；
     DATA_SEMANTICS §4）。
-  - `invalid_handling`（**产品内容证据块**；规则依据 `ASTROCS_DESIGN.md` §5.5，drizzle 侧正本见
+  - `invalid_handling`（**产品内容证据块**；规则依据 `ACSD_DESIGN.md` §5.5，drizzle 侧正本见
     `docs/science/DRIZZLE.md`）：
 
     ```jsonc
@@ -128,7 +128,7 @@ role 与 type 逐一对应（同名必同 type / 同 type 必同 role，无歧�
 
     | 术语 | 定义 |
     |---|---|
-    | **合格样本** | 参与聚合的源样本满足：值有限（`isfinite(x_j)`）且几何上覆盖该输出像素（`w_jp > 0`）。**方差是否可用不参与合格性判定**（上游授权 = `ASTROCS_DESIGN.md` §5.5「NaN 采用样本级掩膜」，该条只对 NaN 授权；§0.1「每一层只由它的上一层推出」） |
+    | **合格样本** | 参与聚合的源样本满足：值有限（`isfinite(x_j)`）且几何上覆盖该输出像素（`w_jp > 0`）。**方差是否可用不参与合格性判定**（上游授权 = `ACSD_DESIGN.md` §5.5「NaN 采用样本级掩膜」，该条只对 NaN 授权；§0.1「每一层只由它的上一层推出」） |
     | **方差可用样本** | 合格样本中 `V_j` 有限且 `V_j > 0` 者：其 `V_j` 计入 `Var_p` |
     | **方差不可用样本** | 合格样本中 `V_j` **有限且 `V_j ≤ 0`** 者（"有覆盖但无方差信息"）：**信号与几何权重照常计入 `F_p`、`W_p`**（保信号、保覆盖），方差项**不计入** `Var_p`；`V_j` 一律取原值，常数、地板或哨兵值一律不参与 |
     | **方差面损坏** | `V_j` 非有限（NaN/±Inf）：按 §4a「NaN/负只表示产品损坏」处置 —— 该样本按不合格样本剔除并计入 `n_rejected_nonfinite_variance`，类别恒为「损坏」并与「方差不可用」分列 |
@@ -215,12 +215,12 @@ role 与 type 逐一对应（同名必同 type / 同 type 必同 role，无歧�
     **方差可用性是独立通道**：`V_j` 有限且 `≤ 0` 的合格样本照常贡献 `F_p`/`W_p` 与覆盖，
     方差面写 `variance=0 ∧ ivar=0`（显式不可用，取值与 clamp/常数/地板结果可区分）。
 
-    **口径归属**：NaN 处置以 `rule_id = NAN-SAMPLE-MASK-COVERAGE-NAN` 为准（`ASTROCS_DESIGN.md` §5.5）；
+    **口径归属**：NaN 处置以 `rule_id = NAN-SAMPLE-MASK-COVERAGE-NAN` 为准（`ACSD_DESIGN.md` §5.5）；
     `docs/engineering/NUMERIC_STANDARD.md`（§MUST）与 `docs/engineering/STANDARDS_REGISTRY.md`
     （D.drizzle `DISP-DRZ-004`）引用同一份文字。
     **机器形态**：`invalid_handling` 是本节规则块的名称（`rule_id = NAN-SAMPLE-MASK-COVERAGE-NAN`），
     **不是**交换对象的文档键；机器强制面 = 诊断统计平面的 `diagnostic_planes.n_rejected_nonfinite`
-- **origin**：`astrocs`（本产品任一 Astro Celestial Sphere Database（ACSD） phase run 原子发布产物）或
+- **origin**：`acsd`（本产品任一 Astro Celestial Sphere Database（ACSD） phase run 原子发布产物）或
   `external_fixture`（ACSD 之外生成、完整满足证据要求的合同兼容 HiPS/FITS 测试/审核对象）。
   origin 只描述来源，**不放松任何证据要求**。
 
@@ -292,7 +292,7 @@ Phase3 ──(原子发布: 磁盘 planar FITS + manifest/hash/provenance)──
 文件路径或 storage_uri 尾段**；不访问磁盘内容；storage_uri 仅做合并 manifest 词法校验
 （禁裸路径）。
 
-## 6. 验收映射（依据：本文件 §4 + `ASTROCS_DESIGN.md` §10）
+## 6. 验收映射（依据：本文件 §4 + `ACSD_DESIGN.md` §10）
 
 | 验收 | 实现 |
 |---|---|

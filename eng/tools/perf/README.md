@@ -2,7 +2,7 @@
 
 > 上游：\`run/FINAL-07/pkg/tasks/PERF-760_合成数据性能.md\`（任务书）、
 > \`run/FINAL-07/pkg/standards/05_性能与数值等价标准.md\`（验收标准 §1/§2/§5）、
-> \`docs/ASTROCS_DESIGN.md\` §8.3/§9、\`ACCEPTANCE_SPEC.md\` §4、
+> \`docs/ACSD_DESIGN.md\` §8.3/§9、\`ACCEPTANCE_SPEC.md\` §4、
 > \`docs/detail/infrastructure/21_observability.md\` §8（G-RES-01 语义权威）、
 > \`docs/engineering/CI_SPEC.md\` §9（L2 冻结判据裁决面）、
 > \`eng/contracts/resource_gate_v1.json\`（**唯一**阈值数值源）。
@@ -27,7 +27,7 @@
 |---|---|---|
 | \`实验/shared/data/synthetic/generate.py\` | 按 \`datasets.json\` 生成 DATA-TYPE-MATRIX 数据 | 解析玩具仪器产物：无 TAN WCS、无校准母版 ⇒ normalize 的 WCS/定标链不可用 |
 | \`实验/shared/synthetic/m16_sampling.py\` | 真实信号模板 → 仿真采样帧 + **与探测器模型一致的合成母版** + 真值画布（TAN WCS 一等公民） | 只到「生成数据」为止；不构造三命令配置、不驱动 CLI、不落资源证据 |
-| \`实验/additive-sky-seamless/code/reverse_verify/m16_sampling/run_reconstruct.py\` | 仿真帧 → normalize → mosaic → export → 与真值比对 | 判据是**科学保真度**（互相关峰位/结构残差/测光）；不采样资源、不判 G-RES-01；二进制路径写死已退役的 \`build/astrocs\` |
+| \`实验/additive-sky-seamless/code/reverse_verify/m16_sampling/run_reconstruct.py\` | 仿真帧 → normalize → mosaic → export → 与真值比对 | 判据是**科学保真度**（互相关峰位/结构残差/测光）；不采样资源、不判 G-RES-01；二进制路径写死已退役的 \`build/acsd\` |
 
 ⇒ 规范路径**缺一个合成数据驱动件**。本工具即该接线层：数据生成调 \`m16_sampling\`（唯一事实源），
 三命令串行与输出目录纪律沿用 \`run_e2e_chain\` 的口径，采样与判定调既有预埋面。
@@ -49,8 +49,8 @@ workers/ISA/block（\`eng/contracts/schemas/phase_config_*.schema.json\` 的硬�
 
 | 键 | 作用 | 依据 |
 |---|---|---|
-| \`--cpuset <mask>\` | \`taskset -c\` 改 lease（帧级并发的唯一来源） | \`docs/ASTROCS_DESIGN.md\` §9 可用 CPU = 亲和性 ∩ cgroup |
-| \`--axis-frame\` / \`--axis-inner\` | \`ASTROCS_P1_AXIS_FRAME_WORKERS\` / \`ASTROCS_P1_AXIS_INNER_OMP\`：帧级并发 × 帧内并行两轴分配 | \`module_adapters.cpp\` 标定旋钮；越界（\`frame_w × inner_u > budget\`）被拒绝并留痕 ⇒ 总并行度 ≤ lease 不破 |
+| \`--cpuset <mask>\` | \`taskset -c\` 改 lease（帧级并发的唯一来源） | \`docs/ACSD_DESIGN.md\` §9 可用 CPU = 亲和性 ∩ cgroup |
+| \`--axis-frame\` / \`--axis-inner\` | \`ACSD_P1_AXIS_FRAME_WORKERS\` / \`ACSD_P1_AXIS_INNER_OMP\`：帧级并发 × 帧内并行两轴分配 | \`module_adapters.cpp\` 标定旋钮；越界（\`frame_w × inner_u > budget\`）被拒绝并留痕 ⇒ 总并行度 ≤ lease 不破 |
 | \`--export-scale-arcsec\` | export 输出像素尺度（几何由真值画布 WCS 推出） | 输出画幅是**测量配置**，不是判据 |
 | \`--scale\` | 运行期派生场景倍率（帧尺寸与指向网格步长同乘 k） | 工作量标定；\`k=1\` 与注册件逐字段相同（self-test S6/S7 断言） |
 

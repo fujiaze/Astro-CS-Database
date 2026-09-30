@@ -3,7 +3,7 @@
 // 控制包任务: P1-NOISE-TEST (SA-P1N-T, queue 41, lock-P1-NOISE; 依赖
 // P1-NOISE-DOC 闭环)。合同锚: docs/science/algorithms/NOISE_ESTIMATION.md §13.4
 // TEST-NOISE-DESIGN-001 (P1-NOISE-DOC 冻结, 2026-09-07, wave W1); 矩阵行
-// P1-NOISE (MOD astrocs.p1.noise-snr)。上游 SCI-NOISE-001..015
+// P1-NOISE (MOD acsd.p1.noise-snr)。上游 SCI-NOISE-001..015
 // (docs/science/NOISE_MODEL.md, FROZEN T104 2026-08-23, 不改)。
 //
 // 规则 (对齐 p1cal/p1cos/p1drz 先例):
@@ -15,7 +15,7 @@
 //     p1noise_oracle.hpp 独立推导, 绝不经过被测函数。
 //   - 被测面: 现状唯一生产实现 snr_noise_model_v1(+_f64)/fill/free/
 //     scale_law/gain_variance (lib/algorithms/noise_snr/cpp/src/noise_model.cpp,
-//     独立编译为本测试面链接的 astrocs_p1_noise_prod 静态目标);
+//     独立编译为本测试面链接的 acsd_p1_noise_prod 静态目标);
 //     lib/algorithms/noise_snr/ 为 P1-NOISE 迁移目标目录 (P1-NOISE-IMPL 落码后
 //     本测试面直接复用, 冻结容差不变)。
 #ifndef P1NOISE_FIXTURES_HPP

@@ -10,7 +10,7 @@
 // 层次合同(不复制测量引擎): 本文件是 CPU-003 测量引擎(generate_profile_v2)之上的
 // **审计聚合层**。测量链(能力探测→Oracle 门→warmup→计时→median/MAD→候选选择)全部复用
 // generate_profile_v2 唯一实现; 本层只做规格字段的聚合、阈值判定与可复读校验。
-// 本层从不写生产 profile 文件(结构性: schema 为 astrocs.benchmark-report/v1, 与
+// 本层从不写生产 profile 文件(结构性: schema 为 acsd.benchmark-report/v1, 与
 // cpu-profile/v2 不兼容, verify_profile_v2 必须拒绝 report 文本)。
 //
 // 工程约束落实:
@@ -21,8 +21,8 @@
 //   - 异常值剔除规则预先冻结: kOutlierPolicy(单一出处, report 与 verify 共用)。
 //   - 命令 timeout: BenchReportOptions::deadline_ns(lib 侧预算标注) + 命令层
 //     shell timeout(调用方 CLI/脚本责任, 见 TASK_RESULT 证据)。
-#ifndef ASTROCS_BENCH_REPORT_H
-#define ASTROCS_BENCH_REPORT_H
+#ifndef ACSD_BENCH_REPORT_H
+#define ACSD_BENCH_REPORT_H
 
 #include <cstdint>
 #include <map>
@@ -31,7 +31,7 @@
 
 #include "profile_gen.h"   // RawCandidate / ProfileBundle / generate_profile_v2
 
-namespace astrocs::backend_host {
+namespace acsd::backend_host {
 
 // ── 预冻结规则(唯一出处; CPU-006 验收: 异常值剔除规则预先固定) ──
 // 计时统计: 3 warmup(不计时) + 7 measure(单调钟) → median/MAD/p05/p95。
@@ -91,7 +91,7 @@ BenchVerdict benchmark_report_verdict(
     bool timeout_reached);
 
 struct BenchReportOutcome {
-    std::string json;                          // astrocs.benchmark-report/v1 全文
+    std::string json;                          // acsd.benchmark-report/v1 全文
     std::vector<RawCandidate> raw;             // 全部原始候选(透传, 审计)
     std::map<std::string, std::map<std::string, AggWinner>> kernels;
     std::string raw_samples_sha256;            // 引擎原始候选序列化 hash(输入样本聚合指纹)
@@ -111,6 +111,6 @@ BenchReportOutcome generate_benchmark_report(const BenchReportOptions& opt);
 // 每 size 项 provider/workers/median 合法、build.source_commit 40hex。
 std::string verify_benchmark_report(const std::string& json_text);
 
-}  // namespace astrocs::backend_host
+}  // namespace acsd::backend_host
 
-#endif  // ASTROCS_BENCH_REPORT_H
+#endif  // ACSD_BENCH_REPORT_H

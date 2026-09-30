@@ -1,6 +1,6 @@
 # Photometry Science (SCI-PHOT)
 
-> 上游：ASTROCS_DESIGN.md §2.1（创新点一：测光星等坐标系）、§4.4（输出合同）
+> 上游：ACSD_DESIGN.md §2.1（创新点一：测光星等坐标系）、§4.4（输出合同）
 
 > 本文件条款为冻结定义，变更走变更流程。
 
@@ -170,7 +170,7 @@ Gaia DR3 官方文档 §5.4.1「External Calibration → Zero points」给出合
 
 ## 3 物理量和单位
 
-- `F_instr`: ADU（e⁻ 需 gain，当前不可得；增益 `g` 的**单位语义固定为** e⁻/ADU，换算 `ADU = N_e/g`，与 `ASTROCS_DESIGN.md` §2.2 增益约定同源）；`F_syn`: **W·m⁻²·nm**（`F_syn = ∫F_λ(λ)·T(λ)·Q(λ)·λ dλ`，`F_λ` 单位 W·m⁻²·nm⁻¹、`λ` 与 `dλ` 单位 nm；逐项量纲见 §2a.2）；二者**不同量纲**，其比值的对数即 `location`（见 DATA_SEMANTICS §14.3）；`r, location, S, sigma_residual`: dex（`r_i = log10(F_instr/F_syn)` 是**有量纲比值**的对数，`location` 单位 dex(ADU/[F_syn 单位])，`scale = 10^{−location}` 单位 [F_syn 单位]/ADU）；`delta, sigma_mag`: mag；`sigma_cal_rel`: 相对误差（`sigma_cal_rel = ln10·sigma_residual`）；`qf` 无量纲标志。
+- `F_instr`: ADU（e⁻ 需 gain，当前不可得；增益 `g` 的**单位语义固定为** e⁻/ADU，换算 `ADU = N_e/g`，与 `ACSD_DESIGN.md` §2.2 增益约定同源）；`F_syn`: **W·m⁻²·nm**（`F_syn = ∫F_λ(λ)·T(λ)·Q(λ)·λ dλ`，`F_λ` 单位 W·m⁻²·nm⁻¹、`λ` 与 `dλ` 单位 nm；逐项量纲见 §2a.2）；二者**不同量纲**，其比值的对数即 `location`（见 DATA_SEMANTICS §14.3）；`r, location, S, sigma_residual`: dex（`r_i = log10(F_instr/F_syn)` 是**有量纲比值**的对数，`location` 单位 dex(ADU/[F_syn 单位])，`scale = 10^{−location}` 单位 [F_syn 单位]/ADU）；`delta, sigma_mag`: mag；`sigma_cal_rel`: 相对误差（`sigma_cal_rel = ln10·sigma_residual`）；`qf` 无量纲标志。
 
 ## 3a 坐标 frame
 
@@ -215,7 +215,7 @@ outlier_rate = 1 − |r_inliers|/|r_consistent|
 ## 6 假设
 
 - 参考端 `F_λ` 是 Gaia DR3 XP 采样均值谱的**外部定标**（绝对）谱辐照度，单位 W·m⁻²·nm⁻¹；本合同据此在**模型通带 `T(λ)·Q(λ)·λ` 内**做正向合成（§2a）。
-- **绝对归一化不可辨识，通带形状必须正确**：`F_syn` 与官方「平均通量」只差一个与星无关的分母（§2a.3），该常数被 `location` 吸收，故本合同**不宣称产物处于绝对通量刻度**（数据形态 = 带逐帧相对测光零点的**线性面亮度**；「以星等表达」只发生在**派生/展示**侧、星等不落盘——口径正本 = `ASTROCS_DESIGN.md` §2.1 两条冻结语句与 §4.4 测光输出语义、`docs/science/DATA_SEMANTICS.md` §31.1a）；但通带形状（含 `Q(λ)`）**不被吸收**，其失配直接进入 `sigma_residual`（§2a.5）。
+- **绝对归一化不可辨识，通带形状必须正确**：`F_syn` 与官方「平均通量」只差一个与星无关的分母（§2a.3），该常数被 `location` 吸收，故本合同**不宣称产物处于绝对通量刻度**（数据形态 = 带逐帧相对测光零点的**线性面亮度**；「以星等表达」只发生在**派生/展示**侧、星等不落盘——口径正本 = `ACSD_DESIGN.md` §2.1 两条冻结语句与 §4.4 测光输出语义、`docs/science/DATA_SEMANTICS.md` §31.1a）；但通带形状（含 `Q(λ)`）**不被吸收**，其失配直接进入 `sigma_residual`（§2a.5）。
 - **模型通带不含光学系统透过率与大气消光**（显式未建模项，跨帧会成为帧间系统差）；`Q(λ)` 缺失时按 `Q≡1`（显式未建模项，§2a.4）；大气/仪器零点在观测尺度稳定；饱和判据可靠（`psf_status==0` 且无 `SATURATED` 标志）。
 - **适用域**：
   - 通带必须被 XP 覆盖（330–1050 nm）**完全包含**；官方口径同此（Montegriffo et al. 2023, A&A 674, A3 §8.4："any photometric system whose passbands are fully enclosed in the 330-1050 nm wavelength range covered by Gaia BP and RP spectra"）。本仓消费的采样网格为 336–1020 nm、步长 2 nm、343 点；网格外 `T·Q` 置 0 而**不外推**。
@@ -321,7 +321,7 @@ outlier_rate = 1 − |r_inliers|/|r_consistent|
 
 ## 16 方法链与方法学（不改 §5 公式与常数）
 
-> **上游**：`ASTROCS_DESIGN.md` §2.1（创新点一：测光校准到测光星等坐标系）、§4.2（Phase1 节点流程：星表引导检测 → PSF → WCS 解算 → photometry（**含同一步内的归一化施加**））、§4.4（测光输出语义）；研究包：`docs/science/PHOTOMETRY_RESEARCH_PACK.md`（一手出处与开源对照）。
+> **上游**：`ACSD_DESIGN.md` §2.1（创新点一：测光校准到测光星等坐标系）、§4.2（Phase1 节点流程：星表引导检测 → PSF → WCS 解算 → photometry（**含同一步内的归一化施加**））、§4.4（测光输出语义）；研究包：`docs/science/PHOTOMETRY_RESEARCH_PACK.md`（一手出处与开源对照）。
 > **边界**：本节只写方法链与论证，**不引入新公式、常数或门限**；§5 的 IRLS/Tukey 定义、§7 不变量、§10 不可接受变化全部不变；误差预算的构成与出处见 §16.4。
 
 ### 16.1 方法链（逐步对应最高设计 §4.2 的节点顺序）
@@ -331,17 +331,17 @@ outlier_rate = 1 − |r_inliers|/|r_consistent|
 | ① **Gaia XP 逆映射定位** | 用本帧 WCS（近似指向来自 `wcs.init_source`）把 Gaia DR3 星表（ICRS/J2000，自行/视差传播到观测历元）**逆投影到像素域**，只在星表位置做质心/PSF 拟合；拟合失败直接丢弃（不计虚警、不报错）；上限按亮度取（规模由配置键 `star_detection.max_stars` 导出，数值/合同域正本 = `eng/contracts/schemas/phase_config_normalize.schema.json` 与 `docs/detail/algorithms_phase1/03_star_detection.md` §5.1；本节不复制数值），极限星等按焦距/画幅/曝光**派生估计**（**登记 P1-m12**：该句是**设计意图**；截至本轮，P1 实验单元**没有任何实验锚定该派生链**，其实锚是生产侧固定星等阶梯 {12,13,14,15,16}，且注释宣称的「上界 10000」**未实现**——引用时必须写成「设计意图、未验证」，见 `实验/photometric-magnitude/code/redo/route1/REPORT_route1.md` H6） | `platesolve`（星表匹配 + 稳健迭代精化）+ `star_detection` | `docs/detail/algorithms_phase1/03_star_detection.md` §4、`docs/detail/algorithms_phase1/05_platesolve.md`；研究包 §6（astrometry.net 盲解+精化、SCAMP 星表解算、astropy WCS 逆投影） |
 | ② **星点测光** | 在星表位置做 **PSF 拟合域**测光（全链唯一 `flux` 口径 `flux = 2πA·sx·sy/3`；孔径测光只作显式诊断）；`F_hat = Q/W`、`Var(F_hat)=1/W`；饱和/质量异常不入定标 | `psf` → `photometry` | `docs/detail/algorithms_phase1/06_photometry.md` §4、`docs/science/PSF_SIGNAL_WEIGHT.md` §2；研究包 §6（DAOPHOT/Anderson & King 的星表引导 PSF 测光族、photutils/SEP 的独立对照） |
 | ③ **光谱 × QE × 透过率积分（正向合成期望测光量）** | 用 Gaia DR3 XP 星点光谱 × 系统响应在**模型通带**内积分得 `F_syn`（定义式与量纲见本文件 §2a.1/§2a.2；与官方式 5.41 的对应见 §2a.3）；XP 采样网格 = 336–1020 nm、步长 2 nm、343 点，谱插值按 §14a；`Q(λ)≡1` 与网格外无数据是**显式未建模项**，不外推 | `photometry`（参考侧） | 研究包 §3（Gaia DR3 官方文档 §20.12.3/§20.12.4、Montegriffo 2023、De Angeli 2023）、§4（合成测光标准方法：Bessell 1990、Bessell & Murphy 2012、Sirianni 2005、synphot/pysynphot） |
-| ④ **拟合 `k_photo` 与低阶空间增益 `m(x,y)`** | 逐星 `r_i = log10(F_instr/F_syn)` → 星等一致性预过滤 → IRLS/Tukey 稳健位置（§5）；同时用星点残差在帧内估计**低阶乘性空间增益** `m(x,y)`（平场/光学大尺度响应的低阶残余），与 `k_photo` 一并作为标定面 | `photometry` | 本文件 §5；`ASTROCS_DESIGN.md` §4.2（测光归一化落到像素，photometry 一步完成）；研究包 §7 ④（平场/大尺度残余的预算出处） |
-| ⑤ **应用到像素** | `I_photo = k_photo·m(x,y)·I_cal` 施加到**整帧像素**（不只星点）；其后所有节点与 drizzle 消费归一化后的像素；该步不可用时产品显式记录 `degraded_reason` 并 **fail-closed**。**施加是 `photometry` 节点内的步骤，不是独立节点**（合并成一步省一次中间产物落盘 = 省一次写 + 一次读的 IO 往返） | `photometry`（同一步内的施加步骤） | `ASTROCS_DESIGN.md` §4.2（含 fail-closed 条款） |
-| ⑥ **星等坐标系表达** | 数据形态 = 带逐帧相对测光零点的**线性面亮度**；星等属**表达层**、只按 `m = ZP_k − 2.5·log10 F` 现场派生（不落盘），零点锚在**同一模型通带**的 Gaia XP 合成刻度上；标定系数绝对值无物理意义 | `noise_snr` 及其后 | `ASTROCS_DESIGN.md` §2.1/§4.4；本文件 §1/§6 |
+| ④ **拟合 `k_photo` 与低阶空间增益 `m(x,y)`** | 逐星 `r_i = log10(F_instr/F_syn)` → 星等一致性预过滤 → IRLS/Tukey 稳健位置（§5）；同时用星点残差在帧内估计**低阶乘性空间增益** `m(x,y)`（平场/光学大尺度响应的低阶残余），与 `k_photo` 一并作为标定面 | `photometry` | 本文件 §5；`ACSD_DESIGN.md` §4.2（测光归一化落到像素，photometry 一步完成）；研究包 §7 ④（平场/大尺度残余的预算出处） |
+| ⑤ **应用到像素** | `I_photo = k_photo·m(x,y)·I_cal` 施加到**整帧像素**（不只星点）；其后所有节点与 drizzle 消费归一化后的像素；该步不可用时产品显式记录 `degraded_reason` 并 **fail-closed**。**施加是 `photometry` 节点内的步骤，不是独立节点**（合并成一步省一次中间产物落盘 = 省一次写 + 一次读的 IO 往返） | `photometry`（同一步内的施加步骤） | `ACSD_DESIGN.md` §4.2（含 fail-closed 条款） |
+| ⑥ **星等坐标系表达** | 数据形态 = 带逐帧相对测光零点的**线性面亮度**；星等属**表达层**、只按 `m = ZP_k − 2.5·log10 F` 现场派生（不落盘），零点锚在**同一模型通带**的 Gaia XP 合成刻度上；标定系数绝对值无物理意义 | `noise_snr` 及其后 | `ACSD_DESIGN.md` §2.1/§4.4；本文件 §1/§6 |
 
-- **一次检测、一次通量积分、三处复用**：检测、PSF、测光与 SNR 共用同一份星点绑定行与同一通量口径（`ASTROCS_DESIGN.md` §4.2），本节不另立口径。
+- **一次检测、一次通量积分、三处复用**：检测、PSF、测光与 SNR 共用同一份星点绑定行与同一通量口径（`ACSD_DESIGN.md` §4.2），本节不另立口径。
 - **每帧独立标定**：不同夜/不同透明度的帧 `k_photo` 不同是正常的、正确的；「帧间一致性」是语义目标与报告字段，**不是门禁**（本文件 §1/§10）。
 - **项目约定数值的文献豁免**：FOV 三常数、阶梯档距、亮端 `mag_min`、匹配半径 `match_radius_px=2.0`、`max_stars=5000` 上限、`1.0 dex` 粗筛界、质量因子 `0.1/0.5` 等实现级数值为**项目约定**——文献腿查无出处、登记为约定（敏感性与保守方向的正本见 `实验/photometric-magnitude/`），引用时**不注文献出处**。
 
 ### 16.2 物理单位消除的论证（为什么产物只能是星等）
 
-- 可观测链是 `I_cal = (g·t·A_eff·η·… ) · ∫F_λ T Q λ dλ + 噪声` 形态的**乘积**：增益 `g`（**单位语义固定为 e⁻/ADU**，即 `ADU = N_e/g`，与 `ASTROCS_DESIGN.md` §2.2 增益约定同源；文献倒数形式 `g′ = 1/g` 引用时必须显式换算；本文件只采用**单一单位** e⁻/ADU）、曝光 `t`、有效口径 `A_eff`、光学/大气透过率 `η` 等量在本项目数据面上**不可得**（设计前提：FITS 头拿不到这些量），且它们与模型通带归一常数在数学上**只有乘积可辨识**；
+- 可观测链是 `I_cal = (g·t·A_eff·η·… ) · ∫F_λ T Q λ dλ + 噪声` 形态的**乘积**：增益 `g`（**单位语义固定为 e⁻/ADU**，即 `ADU = N_e/g`，与 `ACSD_DESIGN.md` §2.2 增益约定同源；文献倒数形式 `g′ = 1/g` 引用时必须显式换算；本文件只采用**单一单位** e⁻/ADU）、曝光 `t`、有效口径 `A_eff`、光学/大气透过率 `η` 等量在本项目数据面上**不可得**（设计前提：FITS 头拿不到这些量），且它们与模型通带归一常数在数学上**只有乘积可辨识**；
 - 因此从「仪器计数 + Gaia XP 合成通量」这一组观测里，可辨识量只有**乘性标定面** `k_photo·m(x,y)`；任何对 `(g, t, A_eff, η)` 的拆分都需要引入数据中不存在的外部先验，属**不可辨识**（degenerate）问题；
 - 星等/相对星等表达对这种退化**天然免疫**：乘性因子在 `log10` 下变成加性零点，零点平移不变量（§7）保证残差散度 `sigma_residual` 与判据不变；
 - 故 §3 明确 `F_instr`（ADU）与 `F_syn`（模型通带积分辐照度）**量纲不同**、其比值的对数即 `location`；§6 明确不宣称绝对通量刻度。这与最高设计 §2.1「消除物理单位」与 §4.4「通量以星等/相对星等表达」一致。
@@ -350,7 +350,7 @@ outlier_rate = 1 − |r_inliers|/|r_consistent|
 
 1. **欠定**：单个乘性观测无法同时定出 `g、t、A_eff、η、消光`（未知数多于独立方程），反推必须假定未测量的先验；
 2. **不可证伪**：若为 `k_photo`/`scale` 设绝对数值窗口，该窗口是未知仪器参数的函数，任何取值都能被某组未知参数“解释”，因此**没有证据资格**（AGENTS.md §5「判据必须非退化」）；
-3. **如实性**：把反推值写入产品等于报告**未测量量**（AGENTS.md §6 禁令；`ASTROCS_DESIGN.md` §4.4）；
+3. **如实性**：把反推值写入产品等于报告**未测量量**（AGENTS.md §6 禁令；`ACSD_DESIGN.md` §4.4）；
 4. **唯一有意义的判据是尺度无关的测光一致性**：施加标定后星点**星等**对 Gaia 的残差散度（§5 的 `sigma_residual/sigma_mag`）；门只有一个 = 单帧标定是否可信，与其它帧无关（§1/§10）。
    ⇒ 因此 §10 把「用物理闭合式反推仪器参数」与「为 `k_photo`/`scale` 设绝对窗口」列为**不可接受变化**；本节的论证即该条款的依据，不新增任何阈值。
 

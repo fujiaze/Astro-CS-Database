@@ -68,7 +68,7 @@ say("      n_ivar_tiles=%r n_variance_tiles=%r products=%r uncertainty_available
     % (p1.get("n_ivar_tiles"), p1.get("n_variance_tiles"), p1.get("products"), p1.get("uncertainty_available")))
 
 # weight_mode=2 production run actually fail-closes
-run2 = json.load(open(os.path.join(L4, "mosaic_out/astrocs_run_212e46b74828.json")))
+run2 = json.load(open(os.path.join(L4, "mosaic_out/acsd_run_212e46b74828.json")))
 say()
 say("  Production weight_mode=2 run status=%r" % run2.get("status"))
 say("      summary=%s" % str(run2.get("summary"))[:400])
@@ -88,12 +88,12 @@ for p in cfg["hips_paths"]:
             if "=" in line:
                 k, v = line.rstrip("\n").split("=", 1)
                 d[k] = v
-    rows.append((os.path.basename(p), d.get("ASTROCS_FRAME_SNR"), d.get("ASTROCS_REFERENCE_FLUX")))
+    rows.append((os.path.basename(p), d.get("ACSD_FRAME_SNR"), d.get("ACSD_REFERENCE_FLUX")))
 
 miss = [r for r in rows if r[1] is None or r[2] is None]
 vals = [(r[0], float(r[1]), float(r[2])) for r in rows if r[1] is not None and r[2] is not None]
 snrs = [v[1] for v in vals]; refs = [v[2] for v in vals]
-say("  n_frames=%d  missing ASTROCS_FRAME_SNR/ASTROCS_REFERENCE_FLUX=%d" % (len(rows), len(miss)))
+say("  n_frames=%d  missing ACSD_FRAME_SNR/ACSD_REFERENCE_FLUX=%d" % (len(rows), len(miss)))
 for m in miss:
     say("      MISSING: %s" % m[0])
 say("  frame_snr  min=%.4f max=%.4f median=%.4f  (max/min=%.4f)"

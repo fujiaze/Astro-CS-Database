@@ -1,5 +1,5 @@
 // CPU-001 单元测试: C ABI 边界 (struct_size/version + allocator 合同 + span head)
-#include "astrocs/common_abi_v1.h"
+#include "acsd/common_abi_v1.h"
 
 #include <cstdint>
 #include <cstdio>
@@ -14,29 +14,29 @@ static int failures = 0;
     }                                                                     \
   } while (0)
 
-// 引用 host_services 默认构造 (链接 astrocs_cpu)
-extern "C" int astrocs_host_services_default_v1(astrocs_host_services_v1* out, void** state_out);
-extern "C" void astrocs_host_services_destroy_state_v1(void* state);   // QA-002: LSan 释放
+// 引用 host_services 默认构造 (链接 acsd_cpu)
+extern "C" int acsd_host_services_default_v1(acsd_host_services_v1* out, void** state_out);
+extern "C" void acsd_host_services_destroy_state_v1(void* state);   // QA-002: LSan 释放
 
 static void test_host_services_handshake() {
-  astrocs_host_services_v1 hs;
+  acsd_host_services_v1 hs;
   void* state = nullptr;
-  int rc = astrocs_host_services_default_v1(&hs, &state);
+  int rc = acsd_host_services_default_v1(&hs, &state);
   CHECK(rc == 0);
-  CHECK(hs.struct_size == sizeof(astrocs_host_services_v1));
+  CHECK(hs.struct_size == sizeof(acsd_host_services_v1));
   CHECK(hs.abi_version == ACS_ABI_VERSION_V1);
-  CHECK(hs.allocator.struct_size == sizeof(acs_allocator));
+  CHECK(hs.allocator.struct_size == sizeof(acsd_allocator));
   CHECK(hs.allocator.abi_version == ACS_ABI_VERSION_V1);
-  CHECK(hs.logger.struct_size == sizeof(acs_logger));
-  CHECK(hs.cancel.struct_size == sizeof(acs_cancel));
-  CHECK(hs.budget.struct_size == sizeof(acs_thread_budget));
-  astrocs_host_services_destroy_state_v1(state);   // QA-002: 释放 HostState
+  CHECK(hs.logger.struct_size == sizeof(acsd_logger));
+  CHECK(hs.cancel.struct_size == sizeof(acsd_cancel));
+  CHECK(hs.budget.struct_size == sizeof(acsd_thread_budget));
+  acsd_host_services_destroy_state_v1(state);   // QA-002: 释放 HostState
 }
 
 static void test_allocator_contract() {
-  astrocs_host_services_v1 hs;
+  acsd_host_services_v1 hs;
   void* state = nullptr;
-  CHECK(astrocs_host_services_default_v1(&hs, &state) == 0);
+  CHECK(acsd_host_services_default_v1(&hs, &state) == 0);
   // 对齐合同: align 2 幂; 16 对齐分配
   void* p = hs.allocator.alloc(hs.allocator.user_data, 100, 16);
   CHECK(p != nullptr);
@@ -47,25 +47,25 @@ static void test_allocator_contract() {
   CHECK(bad == nullptr);
   // free(nullptr) 安全
   hs.allocator.free(hs.allocator.user_data, nullptr);
-  astrocs_host_services_destroy_state_v1(state);   // QA-002: 释放 HostState
+  acsd_host_services_destroy_state_v1(state);   // QA-002: 释放 HostState
 }
 
 static void test_span_head() {
   float f[4] = {1, 2, 3, 4};
-  acs_span_f32 s = ACS_SPAN_F32(f, 4);
-  CHECK(s.head.struct_size == sizeof(acs_span_f32));
+  acsd_span_f32 s = ACS_SPAN_F32(f, 4);
+  CHECK(s.head.struct_size == sizeof(acsd_span_f32));
   CHECK(s.head.abi_version == ACS_ABI_VERSION_V1);
   CHECK(s.count == 4);
   CHECK(s.data == f);
-  acs_span_u8 u = ACS_SPAN_U8(nullptr, 0);
-  CHECK(u.head.struct_size == sizeof(acs_span_u8));
+  acsd_span_u8 u = ACS_SPAN_U8(nullptr, 0);
+  CHECK(u.head.struct_size == sizeof(acsd_span_u8));
   CHECK(u.count == 0);
 }
 
 static void test_kernel_entry_head() {
   // kernel_entry 带 struct_size/abi_version (CPU-001)
-  CHECK(offsetof(astrocs_kernel_entry_v1, struct_size) == 0);
-  CHECK(offsetof(astrocs_kernel_entry_v1, abi_version) == 4);
+  CHECK(offsetof(acsd_kernel_entry_v1, struct_size) == 0);
+  CHECK(offsetof(acsd_kernel_entry_v1, abi_version) == 4);
 }
 
 static void test_enum_stability() {

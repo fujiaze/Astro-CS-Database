@@ -106,7 +106,7 @@ class TestDocMachineCheck(unittest.TestCase):
         dst = self._copy_api_specs(os.path.join(self.tmp, "docs", "api"))
         p = os.path.join(dst, "CLI_PROTOCOL_V1.md")
         t = open(p, encoding="utf-8").read()
-        # CLI-001 已按 docs/ASTROCS_DESIGN §6.1/§6.2 唯一命令树重写本文档（phase1/2/3 用户命令删除，
+        # CLI-001 已按 docs/ACSD_DESIGN §6.1/§6.2 唯一命令树重写本文档（phase1/2/3 用户命令删除，
         # 现行为 normalize/mosaic/export + help/--version/doctor/benchmark）；mutation 目标随文档更新，
         # 仍取 §1 命令块内的现行行，并注入 help 中不存在的非法选项。
         old = "acsd normalize (--json <config.json> | --template [-o <path>] | --help)"
@@ -134,9 +134,9 @@ class TestDocMachineCheck(unittest.TestCase):
 class TestApiDocsCommandTreeFailClosed(unittest.TestCase):
     """API-DOCS [A] 命令树必须 fail-closed（TEST-GREEN-001 负例自测）。
 
-    历史缺陷：check_command_tree 只在 build/cli/astrocs 存在时比对，缺失即静默
+    历史缺陷：check_command_tree 只在 build/cli/acsd 存在时比对，缺失即静默
     return —— 命令树门退化为 0 检查（GAP-027 / 问题扫描 M5b-G-01）。现改为：候选
-    产物解析（产品图 build/acsd 优先，兼容图 build/cli/astrocs 回落）+ 全缺 FAIL。
+    产物解析（产品图 build/acsd 优先，兼容图 build/cli/acsd 回落）+ 全缺 FAIL。
     本类在临时沙箱仓库（符号链接真实 docs/lib/include/cli/contracts）里证明该分支
     「能红能绿」：无产物必须红，有产物且 --help 与文档一致必须绿；全程不动真实仓库。
     """
@@ -195,9 +195,9 @@ class TestApiDocsCommandTreeFailClosed(unittest.TestCase):
         self.assertEqual(rc, 0, "有 CLI 产物时应比对通过（证明上例的红不是恒红）:\n" + err)
 
     def test_compat_binary_is_fallback_not_primary(self):
-        """候选优先级：只有兼容图 build/cli/astrocs 时仍可比对（回落可用）。"""
+        """候选优先级：只有兼容图 build/cli/acsd 时仍可比对（回落可用）。"""
         td = self._sandbox()
-        self._install_fake_cli(td, "build/cli/astrocs")
+        self._install_fake_cli(td, "build/cli/acsd")
         rc, out, err = run_check(td)
         self.assertEqual(rc, 0, "兼容图产物作为回落候选应可比对:\n" + err)
 

@@ -1,10 +1,10 @@
-# Astro Celestial Sphere Database（ACSD） P1 Star Detection 模块（astrocs.p1.star_detection）— 冻结合同 README
+# Astro Celestial Sphere Database（ACSD） P1 Star Detection 模块（acsd.p1.star_detection）— 冻结合同 README
 
 > r1（P1-STAR-DOC，2026-09-07）：由 SRC-STAR-001 源码实测冻结，不信任旧 README
 > （旧版 V5.0 性能叙事/匹配率表格为过程记录，归本目录 memory.md，
 > ARCHIVED_NON_NORMATIVE）。
 > 状态 **CONTRACT_READY**：实现与 C API 已存在于 legacy `lib/algorithms/star_detection`
-> （SRC-STAR-001 VERIFIED），独立模块化迁移（`astrocs_p1_star_detection.dll`、
+> （SRC-STAR-001 VERIFIED），独立模块化迁移（`acsd_p1_star_detection.dll`、
 > C ABI adapter、ThreadLease）归 **P1-STAR-IMPL**，可执行测试归 **P1-STAR-TEST**
 > （TEST-STAR-DESIGN-001 → TEST-P1-STAR-001），descriptor 对齐归 **P1-STAR-INT**。
 > 本文件为模块唯一合同入口。
@@ -13,9 +13,9 @@
 
 | 项 | 值 | 依据 |
 |---|---|---|
-| MOD ID | `MOD-astrocs-phase1-star` | registry（matrix 行键） |
-| module_id | `astrocs.p1.star_detection` | MODULE_MIGRATION_MATRIX P1-STAR 行 |
-| DLL target | `astrocs_p1_star_detection.dll`（合同值，尚未存在） | 同上；现状 `star_detector.dll`（Makefile:39） |
+| MOD ID | `MOD-acsd-phase1-star` | registry（matrix 行键） |
+| module_id | `acsd.p1.star_detection` | MODULE_MIGRATION_MATRIX P1-STAR 行 |
+| DLL target | `acsd_p1_star_detection.dll`（合同值，尚未存在） | 同上；现状 `star_detector.dll`（Makefile:39） |
 | module/ABI revision | module_version 0.1.0-alpha.1 / abi_version 1 | module.yaml |
 | owner | SA-P1-S15 | matrix 行 |
 | 状态 | CONTRACT_READY（未 IMPLEMENTED） | 本任务冻结 |
@@ -66,12 +66,12 @@ WCS（ipv/gaia_client，消费 star_det 块禁止重检测 orchestrator.cpp:1748
 | EVIDENCE | EVID-MISSING | MISSING | 待 P1-STAR-TEST |
 
 矩阵现值 descriptor 占位词汇（module_adapters.cpp:430-448，module_id=
-astrocs.phase1.star-psf）由 P1-PSF-INT/P1-STAR-INT 对齐本合同，不得反向作为
+acsd.phase1.star-psf）由 P1-PSF-INT/P1-STAR-INT 对齐本合同，不得反向作为
 冻结依据。
 
 ## 4. module.yaml 与 standards
 
-见本目录 `module.yaml`（schema `astrocs.module-manifest/v1`，字段遵循
+见本目录 `module.yaml`（schema `acsd.module-manifest/v1`，字段遵循
 11_MODULE_SOURCE_TEST_STANDARD.md §4；必填项无删减，未接项显式 `MISSING`；
 entrypoint=MISSING）。
 
@@ -176,7 +176,7 @@ TEST-STAR-DESIGN-001（STAR_DETECTION_ALGORITHMS.md §11.4，P1-STAR-TEST 执行
 - 构建（现状）：`make -C lib/algorithms/star_detection` → `star_detector.dll`
   （Makefile:39，`g++ -shared -fopenmp -O3 -march=native -std=c++17`，lto/pch
   目标可选）。未编入根 CMake 主构建；根 CMakeLists.txt:441 另有
-  `astrocs_phase1_stars` STATIC 库（lib/algorithms/star_detection/wrapper_phase1 P1-003 桥接层，
+  `acsd_phase1_stars` STATIC 库（lib/algorithms/star_detection/wrapper_phase1 P1-003 桥接层，
   独立 sigma-clip 背景+3σ 阈值实现，与 sdet_api.cpp 非同一算法路径——
   matrix legacy_paths 第二路径，如实差距，整合归 P1-STAR-IMPL）。
 - 生产加载：orchestrator.cpp:1539-1549（`lib/algorithms/star_detection/star_detector.dll`
@@ -191,7 +191,7 @@ TEST-STAR-DESIGN-001（STAR_DETECTION_ALGORITHMS.md §11.4，P1-STAR-TEST 执行
   ④ 饱和星 mag 量纲不一致 + has_saturated 列未分化；⑤ 双实现并存（生产
   peaker 路径 vs 旧 CC 路径 :992-1274/:1281-1593）；⑥ ThreadBudget 未接线、
   无取消检查点。
-- **未实现（MISSING，禁止宣称 IMPLEMENTED）**：`astrocs_p1_star_detection.dll`
+- **未实现（MISSING，禁止宣称 IMPLEMENTED）**：`acsd_p1_star_detection.dll`
   模块壳、C ABI adapter、plan-execute-cancel-inspect、ThreadLease、共址测试、
   EVIDENCE 证据链、registry 入口（entrypoint=MISSING）。
 

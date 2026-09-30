@@ -1,10 +1,10 @@
 // CORE-002 DataArtifact + Provenance 实现
-#include "astrocs/core/artifact.h"
+#include "acsd/core/artifact.h"
 
 #include <cstdio>
 #include <cstring>
 
-namespace astrocs::core {
+namespace acsd::core {
 
 namespace {
 
@@ -187,4 +187,4 @@ bool DataArtifactDescriptor::from_json(const std::string& in, DataArtifactDescri
   return true;
 }
 
-}  // namespace astrocs::core
+}  // namespace acsd::core

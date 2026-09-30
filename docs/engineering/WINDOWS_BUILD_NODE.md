@@ -1,6 +1,6 @@
 # Windows 验证节点接入
 
-> 上游：`docs/ASTROCS_DESIGN.md` §11（双平台发行）、§12.4（验证层级与四层验收）。
+> 上游：`docs/ACSD_DESIGN.md` §11（双平台发行）、§12.4（验证层级与四层验收）。
 > 地位：Windows 侧构建与复验节点的接入实操的唯一正本。节点承担 Windows x64 正式工具链的编译、测试与真实数据复验（最高设计 §11、§12.4）；Linux 节点承担开发、静态分析、轻量编译与合成实验，两节点分工见最高设计 §11。
 
 ## 1 节点身份与凭据引用
@@ -87,7 +87,7 @@ ssh -i /home/dsh/.ssh/id_ed25519_fatduck -o BatchMode=yes fujia@100.104.10.71 'c
 
 ## 8 关联
 
-- 双平台发行与工具链分工：`docs/ASTROCS_DESIGN.md` §11；
+- 双平台发行与工具链分工：`docs/ACSD_DESIGN.md` §11；
 - Windows 工具链冻结取值与 preset 边界：`docs/engineering/TOOLCHAIN_AGENT_HOST.md`；
-- 验证层级与四层验收：`docs/ASTROCS_DESIGN.md` §12.4、`docs/engineering/VALIDATION_EVIDENCE_STANDARD.md`；
+- 验证层级与四层验收：`docs/ACSD_DESIGN.md` §12.4、`docs/engineering/VALIDATION_EVIDENCE_STANDARD.md`；
 - 构建与安装：`docs/engineering/BUILD_GRAPH.md`、`docs/engineering/RELEASE_STATUS.md`。

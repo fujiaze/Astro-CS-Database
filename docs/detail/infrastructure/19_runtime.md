@@ -1,6 +1,6 @@
 # 插件文档：scheduler + pipeline（调度与资源）
 
-> 上游：ASTROCS_DESIGN.md §8.1（总原则：阶段独立调度器）、§8.4（顶层结构）
+> 上游：ACSD_DESIGN.md §8.1（总原则：阶段独立调度器）、§8.4（顶层结构）
 
 ## 1. 职责与边界
 
@@ -9,7 +9,7 @@
 
 ## 2. 权威依据
 
-- 最高设计 `ASTROCS_DESIGN.md` §8.4（顶层结构：scheduler + pipeline 职责名全仓唯一）、§9（CPU 后端与资源：内存极简化、编排连续性）
+- 最高设计 `ACSD_DESIGN.md` §8.4（顶层结构：scheduler + pipeline 职责名全仓唯一）、§9（CPU 后端与资源：内存极简化、编排连续性）
 - `docs/engineering/COMMON_ABI_V1.md`（C ABI 规则）、`docs/engineering/ERROR_HANDLING_STANDARD.md`（退出码全集合）
 - `docs/detail/anchors/ANCHOR_CONTRACT.md`（行号锚合同）、`docs/detail/UNIFIED_MODEL.md`（数据对象）
 - `docs/detail/infrastructure/21_observability.md` §8（G-RES-01 资源门）
@@ -33,7 +33,7 @@
   否则出现「预算未用满」的利用率塌陷。
   语义与不变式见 `docs/engineering/execution_options_contract.md` §并行轴分配（冻结口径）；
   冻结标定值见 `docs/engineering/PERFORMANCE_MODEL.md` §1.2（冻结参数）；
-  观测面 `ASTROCS_{LEASE,NODE,P1CAP}_TRACE=1` + `eng/tools/monitoring/node_waterfall.py`。
+  观测面 `ACSD_{LEASE,NODE,P1CAP}_TRACE=1` + `eng/tools/monitoring/node_waterfall.py`。
 
 ### 4.2 编排连续性与数据局部性
 
@@ -123,7 +123,7 @@ flowchart LR
   `lib/infrastructure/scheduler`）+ **`pipeline`**（typed DAG、命名块、内存/数据管线；
   物理位 `lib/infrastructure/pipeline`），依据最高设计 §8.4（顶层结构）与 §7.1（命令树）。
 - 对应登记：`docs/modules/MODULE_MAP.yaml` 条目 `id: scheduler` /
-  `module_id: astrocs.infra.scheduler` / `target_dir: lib/infrastructure/scheduler`；
+  `module_id: acsd.infra.scheduler` / `target_dir: lib/infrastructure/scheduler`；
   `docs/detail/00_INDEX.md` §2 第 2 列 = `scheduler`。
 - `runtime` **不是模块名**，其用途仅限路径；本页文件名 `19_runtime.md` 是 `docs/DOCUMENT_INDEX.yaml` 登记在册的文档路径，仅作路径使用。
 - `pipeline` 在 `docs/modules/MODULE_MAP.yaml` 中登记；本页与 `00_INDEX.md` 已覆盖其名。
@@ -132,12 +132,12 @@ flowchart LR
 
 ## 10. 归属与构建（ORCH-001 落位）
 
-- **职责家 = `lib/infrastructure/scheduler/**`**：与 `ASTROCS_DESIGN.md` 目录树
+- **职责家 = `lib/infrastructure/scheduler/**`**：与 `ACSD_DESIGN.md` 目录树
   scheduler/ 行逐条对应 —— 注册 = `dll_loader.cpp`（模块动态加载 + 函数指针
   注册表）；资源预算 = `admission_controller.h` + `resource_monitor.h`；执行 =
   `orchestrator.cpp` 的 `run_stage_*` 与阶段表；取消 = `request_cancel()` /
-  SIGINT 原子 token（`ASTROCS_CANCELLED`）；checkpoint = `checkpoint.cpp`。
-- `ASTROCS_DESIGN.md` §8.4 顶层结构里的 pipeline 位（typed DAG、块生命周期、
+  SIGINT 原子 token（`ACSD_CANCELLED`）；checkpoint = `checkpoint.cpp`。
+- `ACSD_DESIGN.md` §8.4 顶层结构里的 pipeline 位（typed DAG、块生命周期、
   内存/数据管线）在代码侧的实体是 `lib/infrastructure/scheduler/src/{pipeline,
   artifact,artifact_store}.cpp` 与 `lib/infrastructure/runtime/**`
   （MODULE_MAP `id=runtime`），**不属**编排层实体。
@@ -145,13 +145,13 @@ flowchart LR
   实现，对应顶层设计 §8.4 的「infrastructure/pipeline（typed DAG 编排）」位。
 - ⇒ **位置与职责分离**：归属一律按职责判定，不按目录名推断。检查器、清单与
   文档的归属判据同此口径。
-- **构建 target**：`astrocs_infra_orchestrator`（静态库；编排层
+- **构建 target**：`acsd_infra_orchestrator`（静态库；编排层
   `CMakeLists.txt` 声明，根 `CMakeLists.txt` 经 `add_subdirectory` 注册）；
-  vendored json-schema-validator 独立为 `astrocs_orchestrator_jsv`；入口可执行
+  vendored json-schema-validator 独立为 `acsd_orchestrator_jsv`；入口可执行
   `orchestrator_legacy_cli` 为**非产品**（不进 install 白名单、不进产品 manifest；
   最高设计 §6.2 的唯一命令树仍是产品 `acsd`）。
 - **语言与 ABI 锚点**：C++17（`-std=c++17`，编排层 `Makefile` 的 CXXFLAGS；
-  正式构建入口 = 根 CMake 的 `astrocs_infra_orchestrator`）；C ABI 经 `DllLoader`
+  正式构建入口 = 根 CMake 的 `acsd_infra_orchestrator`）；C ABI 经 `DllLoader`
   纯 C 调用（docs/engineering/COMMON_ABI_V1.md）。
 - **编排层源文件**：`lib/infrastructure/pipeline/orchestrator/cpp/`。
 

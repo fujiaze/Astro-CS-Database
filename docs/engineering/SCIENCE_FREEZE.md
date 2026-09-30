@@ -1,9 +1,9 @@
 # Science Freeze（V17 True Final Freeze）
 
-> 上游：ASTROCS_DESIGN.md §12.1（科学正确性与三重佐证）、§12.5（状态阶梯）
+> 上游：ACSD_DESIGN.md §12.1（科学正确性与三重佐证）、§12.5（状态阶梯）
 
 > 冻结结论：`ACCEPTANCE_GATES.md` G1-G10 全部 PASS、known P0/P1 = 0，
-> `ASTROCS_FOUNDATION_FINAL_FREEZE = PASS`。
+> `ACSD_FOUNDATION_FINAL_FREEZE = PASS`。
 
 ## V17 冻结状态
 
@@ -13,7 +13,7 @@ PHASE2_BASE_ALGORITHMS = FROZEN
 REJECTION_SEMANTICS    = FROZEN（canonical semantic IDs + typed params +
                         eligibility/rejection 分层 + per-sample reason +
                         RejectionNormalizationPolicy）
-ASTROCS_REJECT_PROFILE = FROZEN（生产科学路由 = ASTROCS_DESIGN.md
+ACSD_REJECT_PROFILE = FROZEN（生产科学路由 = ACSD_DESIGN.md
                         §5.5 档位表（M3 裁决 2026-09-25 后为三档），N = 几何覆盖帧数：
                         1≤N≤3→none；4≤N≤5→percentile；N≥6→winsorized sigma
                         （原 N≥16→linear_fit 档改投 winsorized）；min/max 不用于生产）
@@ -23,13 +23,13 @@ WBPP_AUTO_POLICY       = FROZEN（对照档 wbpp_2_9_1 = 本仓冻结解析表�
                          6..15→winsorized；>15→linear_fit（**该档 WBPP 2.4.0+ 为
                          ESD，本仓取 linear_fit = WBPP ≤2.3.x 旧表**）；
                          wbpp_current 为 alias，运行期解析并序列化为 wbpp_2_9_1）
-WBPP_LARGE_SCALE       = SUPPORTED（astrocs.large_scale_rejection.v1：
+WBPP_LARGE_SCALE       = SUPPORTED（acsd.large_scale_rejection.v1：
                         connected-component grow，min structure size，
                         low/high 独立半径；默认关闭 = WBPP
                         largeScaleClipLow/High 默认一致；非 PixInsight
                         exact）
-REJECTION_NORMALIZATION = FROZEN（astrocs_median_center_v1 默认；
-                        astrocs_median_scale_v1；none）
+REJECTION_NORMALIZATION = FROZEN（acsd_median_center_v1 默认；
+                        acsd_median_scale_v1；none）
 SATELLITE_REJECTION_GATE = PASS（受控注入 recall=1.0；n<=2 →
                         REJECTION_UNDERDETERMINED，不宣称可剔除；真实
                         16 帧只报 observed_rejection_rate，不称
@@ -49,7 +49,7 @@ PERFORMANCE_BASELINE   = FINAL（真实 16 帧 Phase1：cold median 145.4s /
                         Browser pan p50 34.7ms）
 FINALIZATION_SELF_REVIEW = PASS（含 clean-tree 74/74 gate + 真实 16 帧
                         E2E + 受控 truth + external browser + no_legacy）
-ASTROCS_FOUNDATION_FINAL_FREEZE = PASS（G1-G10 全部满足）
+ACSD_FOUNDATION_FINAL_FREEZE = PASS（G1-G10 全部满足）
 ```
 
 > 冻结后若发现新 P0/P1，按变更流程（科学等价门）处理。

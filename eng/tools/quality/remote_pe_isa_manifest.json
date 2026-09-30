@@ -28,8 +28,8 @@
             "--config",
             "Release",
             "--target",
-            "astrocs_cpu_avx2",
-            "astrocs_cpu_avx512"
+            "acsd_cpu_avx2",
+            "acsd_cpu_avx512"
           ],
           "expect_exit": 0
         },
@@ -65,7 +65,7 @@
             "dumpbin",
             "/nologo",
             "/disasm",
-            "build/providers/astrocs_cpu_avx512.dll",
+            "build/providers/acsd_cpu_avx512.dll",
             ">",
             "run/pe/avx512_dumpbin.txt"
           ],
@@ -82,7 +82,7 @@
             "--isa",
             "avx512",
             "--hit",
-            "astrocs_variant_kernel_dispatch_v1",
+            "acsd_variant_kernel_dispatch_v1",
             "--require-feature",
             "avx512f",
             "--require-feature",
@@ -98,11 +98,11 @@
             "python3",
             "eng/tools/quality/check_variant_isa_disasm.py",
             "--binary",
-            "build/providers/astrocs_cpu_avx512.dll",
+            "build/providers/acsd_cpu_avx512.dll",
             "--dumpbin",
             "dumpbin",
             "--clean-symbol",
-            "astrocs_backend_get_api_v1",
+            "acsd_backend_get_api_v1",
             "--clean-symbol",
             "backend_self_test"
           ],

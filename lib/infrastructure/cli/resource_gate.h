@@ -1,7 +1,7 @@
 // acsd 资源利用率**观测/判定** (MON-003) — 07 §3/§4/§5 分类+公式+first-10s 诊断+诊断分类
 // ABI 冻结(v1)不改公共 API; 本模块纯 CLI 侧判定。硬编码禁令: 线程数/cpus 由调用方注入。
 //
-// （docs/ASTROCS_DESIGN §4.5/§6.3）: **一般性资源超限门已取消** —— 本模块的
+// （docs/ACSD_DESIGN §4.5/§6.3）: **一般性资源超限门已取消** —— 本模块的
 // 判定结果只作**记录**（resource/resource_gate 事件 + 资源产物），**不产生任何退出码**；
 // 唯一资源门 = 磁盘门（lib/infrastructure/cli/disk_gate.h，exit 10 = 磁盘写满/写盘失败）。
 //
@@ -25,7 +25,7 @@
 // 判据语义权威 = docs/detail/infrastructure/21_observability.md §8）。
 #include "resource_gate_thresholds_generated.h"
 
-namespace astrocs {
+namespace acsd {
 
 // 资源类别(MON-002 StageKind 同义; MON-003 用于门禁分类与公式选择)。
 enum class ResKind { Compute, Memory, Io, Mixed, Unknown };
@@ -249,7 +249,7 @@ inline bool gate_workload_above_floor(const GateConfig& g) {
 // 门禁处置(记录与裁决分离):
 //   RecordOnly —— **唯一**处置。资源判据只记录/报告(resource_gate 事件 severity=warning),
 //                 不改变进程退出码。
-//   Enforced   —— **已退役**(docs/ASTROCS_DESIGN §4.5/§6.3: 一般性资源超限门
+//   Enforced   —— **已退役**(docs/ACSD_DESIGN §4.5/§6.3: 一般性资源超限门
 //                 已取消，内存/CPU/线程不设门)。枚举值保留以免破坏既有 ABI/测试引用，
 //                 但 gate_enforcement() 恒返回 RecordOnly —— CLI 面**不存在**由 CPU/内存
 //                 判据产生 rc=10 的路径（exit 10 只属磁盘写满/写盘失败，见 disk_gate.h）。
@@ -276,7 +276,7 @@ inline const char* gate_enforcement_name(GateEnforcement e) {
 // 取义已在 docs/detail/infrastructure/21_observability.md §8 定稿
 // （写入契约 denominator）:
 //   primary  = granted_workers（真实观测到的租约授予宽度峰值）
-//   sentinel = 0（未观测; **不得**以配置值回填, lib/include/astrocs/core/context.h:93-103）
+//   sentinel = 0（未观测; **不得**以配置值回填, lib/include/acsd/core/context.h:93-103）
 //   fallback = min(selected_workers, available_cpus)
 // 观测是权威分母, 不被 available_cpus 封顶(见 mon001_gate_test 18a)。
 // 禁止以机器有效核单独充当已分配容量（这正是 run_monitored.py --gate-required
@@ -558,4 +558,4 @@ inline std::string diag_message(GateDiag d, const GateConfig& g) {
     }
 }
 
-}  // namespace astrocs
+}  // namespace acsd

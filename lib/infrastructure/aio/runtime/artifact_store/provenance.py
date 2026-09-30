@@ -57,8 +57,8 @@ _ARTIFACT_ID_RE = re.compile(r"^[A-Za-z0-9_-]+$")
 REVISION_CATEGORIES = ("product", "module", "abi", "data_schema")
 
 PROVENANCE_VERSION = 1
-PROVENANCE_SCHEMA = "astrocs.provenance/v1"
-HISTORY_SCHEMA = "astrocs.provenance-history/v1"
+PROVENANCE_SCHEMA = "acsd.provenance/v1"
+HISTORY_SCHEMA = "acsd.provenance-history/v1"
 _KNOWN_HISTORY_KEYS = {
     "history_schema", "history_version", "revision_category", "artifact_id",
     "replaced", "superseded_by", "replaced_at_utc",

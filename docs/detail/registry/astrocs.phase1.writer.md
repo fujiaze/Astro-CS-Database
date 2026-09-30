@@ -1,12 +1,12 @@
-# 模块 astrocs.phase1.writer
+# 模块 acsd.phase1.writer
 
-> 上游：docs/ASTROCS_DESIGN.md §8.5（模块与 ABI）
+> 上游：docs/ACSD_DESIGN.md §8.5（模块与 ABI）
 
 ## 职责与明确非职责
 
 Registry production 模块（唯一源 = module_adapters.cpp 的 p1_writer_descriptor）。
 职责：把叠加产品写为 FITS（WCS/provenance 关键字随写）——实现面 =
-lib/infrastructure/aio 的 `aio_write_fits`，节点登记名 = astrocs_phase1_writer_v1
+lib/infrastructure/aio 的 `aio_write_fits`，节点登记名 = acsd_phase1_writer_v1
 （模块节点绑定表）。不做：像素算法、校准/叠加本身、静默覆盖既有产品。
 
 ## 输入输出端口、DATA、单位、坐标、invalid
@@ -20,13 +20,13 @@ invalid = NaN/coverage=0(按 DATA 合同)。
 
 ## 公共 header、核心 symbol 与生命周期
 
-节点入口 = API-P1-008（phase session extern "C"；节点登记名 astrocs_phase1_writer_v1）；
+节点入口 = API-P1-008（phase session extern "C"；节点登记名 acsd_phase1_writer_v1）；
 写出实现 = lib/infrastructure/aio 的 `aio_write_fits`/`aio_read_fits`（FITS/XISF 唯一
 I/O 层，原子发布按 IO-003 合同）；生命周期 create→validate→run→inspect→destroy。
 
 ## Registry descriptor 与配置 schema
 
-module_id=`astrocs.phase1.writer`; execution_class=`io`;
+module_id=`acsd.phase1.writer`; execution_class=`io`;
 parallel_ok=False; 配置=phase config JSON(按 PHASE API 文档)。
 
 ## Execution class、并行轴、ThreadBudget lease、确定性

@@ -20,16 +20,16 @@ import numpy as np
 
 ROOT = Path(__file__).resolve().parents[3]
 CLI = os.environ.get(
-    "ASTROCS_REJECTION_CLI",
+    "ACSD_REJECTION_CLI",
     str(ROOT / "lib" / "phase2" / "build" / "rejection_cli.exe"),
 )
 HARNESS = os.environ.get(
-    "ASTROCS_SIRIL_LINEARFIT_HARNESS",
+    "ACSD_SIRIL_LINEARFIT_HARNESS",
     str(ROOT / "run" / "temp" / "p2_v4_evidence" / "siril_harness" /
         "siril_linearfit_oracle.exe"),
 )
 OUT = os.environ.get(
-    "ASTROCS_LINEARFIT_OUT",
+    "ACSD_LINEARFIT_OUT",
     str(ROOT / "run" / "phase2" / "linear_fit_oracle"),
 )
 PROVENANCE = {
@@ -71,9 +71,9 @@ SET2 = [7.7110e-2, 4.7330e-1, 5.7340e-1, 3.3310e-1, 5.3160e-1, 3.6550e-1,
 def run_siril_harness(vals, siglow=4.0, sighigh=3.0):
     """运行官方 Siril 1.4.3 源码 harness，返回 (mask, stdout)。"""
     os.environ["PATH"] = (
-        os.environ.get("ASTROCS_MINGW_BIN",
+        os.environ.get("ACSD_MINGW_BIN",
                        r"C:\msys64\mingw64\bin") + ";" +
-        os.environ.get("ASTROCS_AIO_DIR",
+        os.environ.get("ACSD_AIO_DIR",
                        str(ROOT / "lib" / "astro_image_io")) + ";" +
         os.environ.get("PATH", ""))
     txt = "\n".join(repr(float(v)) for v in vals)
@@ -90,9 +90,9 @@ def run_siril_harness(vals, siglow=4.0, sighigh=3.0):
 
 def run_cpp(vals):
     os.environ["PATH"] = (
-        os.environ.get("ASTROCS_MINGW_BIN",
+        os.environ.get("ACSD_MINGW_BIN",
                        r"C:\msys64\mingw64\bin") + ";" +
-        os.environ.get("ASTROCS_AIO_DIR",
+        os.environ.get("ACSD_AIO_DIR",
                        str(ROOT / "lib" / "astro_image_io")) + ";" +
         os.environ.get("PATH", ""))
     txt = "\n".join(repr(float(v)) for v in vals)

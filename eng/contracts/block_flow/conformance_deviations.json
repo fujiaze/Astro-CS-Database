@@ -1,5 +1,5 @@
 {
-  "schema": "astrocs.block-flow-conformance/v1",
+  "schema": "acsd.block-flow-conformance/v1",
   "purpose": "登记「注册表声明的节点端口」与「module_adapters.cpp 真实数据流」之间**尚未消除**的不一致。注册表已按负责人裁决（OQ-9 选①「改表」）对齐代码真实数据流：端口身份 = output_dir 下的真实产物，carrier = 载体种类，跨阶段唯一载体 = HiPS 产品树。本册因此只保留**代码侧**未解决项（改表无法消除的偏差）。每条 evidence 带 文件 + 符号（函数体）+ 必须出现的 token + 行号：token 消失或不再落在声明符号的函数体内即判红；行号仅作定位辅助。",
   "authority": "lib/infrastructure/pipeline/module_ports.registry.json（v2，冻结绑定表）；docs/engineering/PIPELINE_BLOCK_CONTRACT.md",
   "owner_decision_required": true,
@@ -10,7 +10,7 @@
       "id": "BFD-A17",
       "severity": "blocker",
       "kind": "undeclared_input",
-      "registry_ref": "R:astrocs.phase1.cosmetic 输入 p1_calibrated；R:astrocs.phase1.wcs-platesolve 输入 p1_calibrated；R:astrocs.phase1.photometry 输入 p1_calibrated；R:astrocs.phase1.noise-snr 输入 p1_cleaned；R:astrocs.phase1.drizzle 输入 p1_calibrated/p1_photoapplied",
+      "registry_ref": "R:acsd.phase1.cosmetic 输入 p1_calibrated；R:acsd.phase1.wcs-platesolve 输入 p1_calibrated；R:acsd.phase1.photometry 输入 p1_calibrated；R:acsd.phase1.noise-snr 输入 p1_cleaned；R:acsd.phase1.drizzle 输入 p1_calibrated/p1_photoapplied",
       "summary": "静默回退（ARCH-AUDIT-01 B-5）：module_adapters.cpp#p1_calibrated_path 与 #p1_cleaned_input_path 在声明产物缺失时**不报错、不写 degraded_reason**，直接回退到原帧（light）或上游 cal 产物；下游消费点 p1_op_wcs / p1_op_drizzle / p1_op_photometry / p1_op_noise / p1_op_star_psf_impl 的 manifest 也不记录**实际输入路径**。即「注册表声明的输入缺失」这一事实既不进 provenance 也不进 manifest ⇒ 违反 docs/engineering/PIPELINE_BLOCK_CONTRACT.md §4「降级必须显式」。注册表侧已把该输入面声明为真实产物（carrier=output_dir_file）；本条登记的是**代码侧降级显式性缺口**，改表无法消除。降级显式性本身在机器门上无判据（同族登记见 docs/KNOWN_LIMITATIONS.md §E 条目 32）。",
       "evidence": [
         {
@@ -33,18 +33,18 @@
       "severity": "blocker",
       "kind": "undeclared_module",
       "registry_ref": "R:note「未知 module_id/operation 即拒绝」；R 共 20 个 module",
-      "summary": "代码额外注册 astrocs.phase2.resample 与 astrocs.phase3.resample，二者不在注册表的 20 个 module 内；后者自认是占位残留（顶层 astrocs.phase3.resample 占位 descriptor，P2 模板复制残留）。按注册表自述「未知 module_id 即拒绝」，二者一旦被调度即违反 ENGINEERING_SPEC.md §4 第 4 条「单一 entrypoint，不隐藏整阶段 Session」与 docs/ASTROCS_DESIGN.md §8.5「每个生产 DAG 节点映射唯一真实模块/导出入口」。注册表侧**不得**为消除该差异而虚构两个节点（那正是本任务要消除的形态）；处置只能改代码 ⇒ 需单独裁决。",
+      "summary": "代码额外注册 acsd.phase2.resample 与 acsd.phase3.resample，二者不在注册表的 20 个 module 内；后者自认是占位残留（顶层 acsd.phase3.resample 占位 descriptor，P2 模板复制残留）。按注册表自述「未知 module_id 即拒绝」，二者一旦被调度即违反 ENGINEERING_SPEC.md §4 第 4 条「单一 entrypoint，不隐藏整阶段 Session」与 docs/ACSD_DESIGN.md §8.5「每个生产 DAG 节点映射唯一真实模块/导出入口」。注册表侧**不得**为消除该差异而虚构两个节点（那正是本任务要消除的形态）；处置只能改代码 ⇒ 需单独裁决。",
       "evidence": [
         {
           "file": "lib/infrastructure/scheduler/src/module_adapters.cpp",
           "line": 724,
-          "contains": "astrocs.phase2.resample",
+          "contains": "acsd.phase2.resample",
           "symbol": "file"
         },
         {
           "file": "lib/infrastructure/scheduler/src/module_adapters.cpp",
           "line": 743,
-          "contains": "astrocs.phase3.resample",
+          "contains": "acsd.phase3.resample",
           "symbol": "file"
         }
       ],

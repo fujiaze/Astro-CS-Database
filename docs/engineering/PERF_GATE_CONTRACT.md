@@ -1,6 +1,6 @@
 # 性能门判据与监控字段语义合同
 
-> 上游：docs/ASTROCS_DESIGN.md §9（CPU 后端与资源）、§8.3（调度器）；docs/ASTROCS_DESIGN.md §9（CPU 后端与资源）
+> 上游：docs/ACSD_DESIGN.md §9（CPU 后端与资源）、§8.3（调度器）；docs/ACSD_DESIGN.md §9（CPU 后端与资源）
 
 机器 schema：`eng/contracts/schemas/perf_gate_criteria.schema.json`、`eng/contracts/schemas/monitor_field_semantics.schema.json`；判据阈值正本 = 本文件 §1（L2 冻结判据，四条全部为真判红），阈值唯一数值源 = `eng/contracts/resource_gate_v1.json`。
 

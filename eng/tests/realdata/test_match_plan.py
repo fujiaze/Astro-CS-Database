@@ -266,7 +266,7 @@ class TestT1EmptySet:
 
 
 def tmp_tree():
-    return os.path.join(os.environ.get("TMPDIR", "/tmp"), "astrocs_real000_t1")
+    return os.path.join(os.environ.get("TMPDIR", "/tmp"), "acsd_real000_t1")
 
 
 def _t1_only_tree(root):

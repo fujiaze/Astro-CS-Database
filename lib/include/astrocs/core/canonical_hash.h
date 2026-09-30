@@ -1,4 +1,4 @@
-// lib/include/astrocs/core/canonical_hash.h — 规范产品哈希（canonical product hash）
+// lib/include/acsd/core/canonical_hash.h — 规范产品哈希（canonical product hash）
 //
 // 口径（唯一权威定义 = eng/tools/canonical_product_hash.py, 本文件是其 C++ 同构实现;
 // 两者必须逐字节同值, 由 eng/tools/canonical_product_hash.py compare 与 CLI 侧
@@ -22,7 +22,7 @@
 #include <string>
 #include <vector>
 
-namespace astrocs::core {
+namespace acsd::core {
 
 // spec 标识（进入哈希域分隔前缀, 改口径必须升主版本号）
 extern const char* const kCanonicalProductHashSpec;
@@ -40,4 +40,4 @@ struct CanonicalHashResult {
 // 计算单个产品文件的规范哈希。不抛异常; 失败经 result.ok/error 返回。
 CanonicalHashResult canonical_product_hash_file(const std::string& u8path);
 
-}  // namespace astrocs::core
+}  // namespace acsd::core

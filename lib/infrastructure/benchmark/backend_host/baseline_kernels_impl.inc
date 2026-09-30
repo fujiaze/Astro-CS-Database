@@ -16,11 +16,11 @@ using std::size_t;
  * 不外泄异常/STL 类型)——异常若从 std::thread body 逃逸将 std::terminate,
  * 且会穿越 extern "C" kernel fn 边界跨 ABI(冻结约束 F.3 禁止); 置位后由
  * kernel_dispatch 统一返回错误码, worker 数保持不变。 */
-inline acs_status run_body_guarded(
-        const astrocs_host_services_v1* host,
+inline acsd_status run_body_guarded(
+        const acsd_host_services_v1* host,
         const std::function<void(uint32_t, uint32_t, uint32_t)>& body,
         uint32_t y0, uint32_t y1, uint32_t tid) {
-#if defined(ASTROCS_NO_EXCEPTIONS)
+#if defined(ACSD_NO_EXCEPTIONS)
     (void)host;
     body(y0, y1, tid);
     return ACS_OK;  // -fno-exceptions 编译时异常不存在, 直调
@@ -42,9 +42,9 @@ inline acs_status run_body_guarded(
 #endif
 }
 
-uint32_t run_banded(const astrocs_host_services_v1* host, uint32_t n,
+uint32_t run_banded(const acsd_host_services_v1* host, uint32_t n,
                     const std::function<void(uint32_t, uint32_t, uint32_t)>& body,
-                    acs_status* err) {
+                    acsd_status* err) {
     *err = ACS_OK;
     uint32_t cap = host->budget.max_workers;
     if (cap < 1) cap = 1;
@@ -68,15 +68,15 @@ uint32_t run_banded(const astrocs_host_services_v1* host, uint32_t n,
     std::vector<uint32_t> start(workers + 1, 0);
     for (uint32_t t = 0; t < workers; ++t)
         start[t + 1] = start[t] + base + (t < rem ? 1u : 0u);
-    std::atomic<acs_status> band_err{ACS_OK};            // 唯一跨线程共享(原子)
+    std::atomic<acsd_status> band_err{ACS_OK};            // 唯一跨线程共享(原子)
     std::vector<std::thread> ths;
     ths.reserve(workers - 1);
     for (uint32_t t = 1; t < workers; ++t)
         ths.emplace_back([&body, &start, t, host, &band_err]() {
-            const acs_status rc = run_body_guarded(host, body, start[t], start[t + 1], t);
+            const acsd_status rc = run_body_guarded(host, body, start[t], start[t + 1], t);
             if (rc != ACS_OK) band_err.store(rc, std::memory_order_relaxed);
         });
-    const acs_status rc0 = run_body_guarded(host, body, start[0], start[1], 0);  // 主线程承担 tid0
+    const acsd_status rc0 = run_body_guarded(host, body, start[0], start[1], 0);  // 主线程承担 tid0
     if (rc0 != ACS_OK) band_err.store(rc0, std::memory_order_relaxed);
     for (auto& th : ths) th.join();                      // join 同步点: 之后单线程
     host->budget.release(host->budget.user_data, workers);
@@ -91,7 +91,7 @@ inline float median_inplace(std::vector<float>& v) {
     return (n % 2 == 1) ? v[n / 2] : 0.5f * (v[n / 2 - 1] + v[n / 2]);
 }
 
-inline bool spans_ok(const acs_span_f32& s, uint64_t need) {
+inline bool spans_ok(const acsd_span_f32& s, uint64_t need) {
     return s.data != nullptr && s.count >= need;
 }
 
@@ -99,7 +99,7 @@ std::atomic<uint32_t> g_last_workers_used{0};
 
 /* 单元素计算器: 每输出元素独立(确定性关键); tid 仅供诊断 */
 struct OpComputer {
-    const acs_baseline_params_v1* p;
+    const acsd_baseline_params_v1* p;
     uint32_t frames;
 
     void operator()(uint32_t y0, uint32_t y1, uint32_t tid) const {
@@ -232,18 +232,18 @@ struct OpComputer {
 };
 
 /* 分发器: 校验→取消检查→并行行带→workers_used 写回 */
-acs_status kernel_dispatch(const astrocs_host_services_v1* host,
+acsd_status kernel_dispatch(const acsd_host_services_v1* host,
                            const void* params, uint32_t params_bytes,
                            const void* in, void* out) {
     (void)in; (void)out;
-    if (host == nullptr || host->struct_size != sizeof(astrocs_host_services_v1) ||
+    if (host == nullptr || host->struct_size != sizeof(acsd_host_services_v1) ||
         host->abi_version != ACS_ABI_VERSION_V1)
         return ACS_ERR_ABI_MISMATCH;
-    if (params == nullptr || params_bytes != sizeof(acs_baseline_params_v1))
+    if (params == nullptr || params_bytes != sizeof(acsd_baseline_params_v1))
         return ACS_ERR_PARAM;
-    acs_baseline_params_v1 P;
+    acsd_baseline_params_v1 P;
     std::memcpy(&P, params, sizeof(P));
-    if (P.head.struct_size != sizeof(acs_baseline_params_v1) ||
+    if (P.head.struct_size != sizeof(acsd_baseline_params_v1) ||
         P.head.abi_version != ACS_ABI_VERSION_V1)
         return ACS_ERR_ABI_MISMATCH;
     if (host->cancel.is_cancelled && host->cancel.is_cancelled(host->cancel.user_data))
@@ -300,13 +300,13 @@ acs_status kernel_dispatch(const astrocs_host_services_v1* host,
     }
 
     OpComputer comp{&P, frames};
-    acs_status band_err = ACS_OK;
+    acsd_status band_err = ACS_OK;
     const uint32_t used = run_banded(host, N, comp, &band_err);
     if (band_err != ACS_OK) return band_err;   // body 异常已收敛为错误码, 不跨边界
     g_last_workers_used.store(used, std::memory_order_relaxed);
     // workers_used 写回调用方 params(唯一允许的写回字段; 其余保持 const)
-    auto* mp = const_cast<acs_baseline_params_v1*>(
-        static_cast<const acs_baseline_params_v1*>(params));
+    auto* mp = const_cast<acsd_baseline_params_v1*>(
+        static_cast<const acsd_baseline_params_v1*>(params));
     mp->workers_used = used;
     return ACS_OK;
 }

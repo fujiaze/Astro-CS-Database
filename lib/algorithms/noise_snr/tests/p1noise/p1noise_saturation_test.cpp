@@ -4,7 +4,7 @@
 //       docs/science/algorithms/NOISE_ESTIMATION.md §13.2/§13.4
 //       docs/science/DATA_SEMANTICS.md §13.1（data / cfg 行）
 // 被测面: 生产源零改动 lib/algorithms/noise_snr/cpp/src/noise_model.cpp
-//         + 策略头 lib/algorithms/noise_snr/include/astrocs/noise/saturation_policy.h
+//         + 策略头 lib/algorithms/noise_snr/include/acsd/noise/saturation_policy.h
 //
 // 合成帧模型（校准后 ADU，DATA_SEMANTICS §13.1）:
 //   256^2；空背景 N(mu=1000, sigma=5^2) + 单颗 Moffat4(beta=4, FWHM=3) 星
@@ -16,7 +16,7 @@
 //
 // 用法: p1noise_saturation_test [contract|selfcheck]
 #include "snr_estimator.h"
-#include "astrocs/noise/saturation_policy.h"
+#include "acsd/noise/saturation_policy.h"
 
 #include <algorithm>
 #include <cmath>
@@ -161,10 +161,10 @@ RunResult run(const std::vector<double>& img, int h, int w, double sat_level) {
 }
 
 int group_contract() {
-    using astrocs::noise::resolve_saturation_level;
-    using astrocs::noise::resolve_effective_saturation;
-    using astrocs::noise::saturation_filter_state;
-    using astrocs::noise::saturation_level_source;
+    using acsd::noise::resolve_saturation_level;
+    using acsd::noise::resolve_effective_saturation;
+    using acsd::noise::saturation_filter_state;
+    using acsd::noise::saturation_level_source;
 
     // --- G1 电平解析策略（SCI §4 优先级 cfg > SATURATE > DATAMAX）---
     check(std::fabs(resolve_saturation_level("65535", "") - 65535.0) < 1e-9,
@@ -258,7 +258,7 @@ int group_selfcheck() {
     const RunResult off = run(img, h, w, 0.0);
     check(off.plateau_patch_n > 0 && off.plateau_patch_var > 100.0 * TRUE_VAR,
           "S4 有源帧 level=0: 平台 patch 必成污染控制点（G3a 判据可假性已排除）");
-    check(std::strcmp(astrocs::noise::saturation_filter_state(0.0), "DISABLED_NO_METADATA") == 0,
+    check(std::strcmp(acsd::noise::saturation_filter_state(0.0), "DISABLED_NO_METADATA") == 0,
           "S5 降级状态串非空且非 ENABLED（G1j 可假性已排除）");
     return 0;
 }

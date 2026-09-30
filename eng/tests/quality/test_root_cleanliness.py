@@ -5,7 +5,7 @@
 1 正例 + 3 负例：
   * test_positive_clean_tree_is_green                —— 合规根目录 rc=0；
   * test_negative_unregistered_entry_is_red          —— 多出未登记条目 rc!=0；
-  * test_negative_runtime_product_at_root_is_red     —— astrocs_run_* 落根 rc!=0；
+  * test_negative_runtime_product_at_root_is_red     —— acsd_run_* 落根 rc!=0；
   * test_negative_missing_required_entry_is_red      —— §7 要求存在的条目缺失 rc!=0。
 
 以及清单保真度证据：
@@ -97,13 +97,13 @@ class RootCleanlinessNegativeTest(unittest.TestCase):
             root = pathlib.Path(td) / "runtime"
             root.mkdir()
             build_tree(root, load_manifest(),
-                       extra=["astrocs_run_deadbeef1234.json", "run_context.json"])
+                       extra=["acsd_run_deadbeef1234.json", "run_context.json"])
             rc, report = run_checker(root)
             self.assertNotEqual(rc, 0)
             self.assertIn("runtime_product_at_root", reasons(report))
             bad = {v["path"] for v in report["violations"]
                    if v["reason"] == "runtime_product_at_root"}
-            self.assertEqual(bad, {"astrocs_run_deadbeef1234.json", "run_context.json"})
+            self.assertEqual(bad, {"acsd_run_deadbeef1234.json", "run_context.json"})
 
     def test_negative_missing_required_entry_is_red(self):
         with tempfile.TemporaryDirectory() as td:

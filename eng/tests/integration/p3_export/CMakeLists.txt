@@ -19,7 +19,7 @@ set(AIO_PRODUCT_IO_DIR  "${REPO_ROOT}/lib/infrastructure/aio/product_io")
 set(JSON_DIR    "${REPO_ROOT}/lib/third_party")
 
 # AIO v6 生产库（IMPL-AIO-001 提供；不修改其源码，仅链接）。
-if(NOT TARGET astrocs_product_io)
+if(NOT TARGET acsd_product_io)
   add_subdirectory("${AIO_PRODUCT_IO_DIR}" "${CMAKE_CURRENT_BINARY_DIR}/product_io_lib")
 endif()
 
@@ -46,16 +46,16 @@ target_include_directories(p3_export_test PRIVATE
   ${JSON_DIR}
 )
 target_compile_features(p3_export_test PRIVATE cxx_std_17)
-target_link_libraries(p3_export_test PRIVATE astrocs_product_io)
-# 平台系统库面: 引用根 CMakeLists 唯一判定点声明的共用件 astrocs_platform_math。
+target_link_libraries(p3_export_test PRIVATE acsd_product_io)
+# 平台系统库面: 引用根 CMakeLists 唯一判定点声明的共用件 acsd_platform_math。
 # 本文件**可被独立 configure** (行 7 的「当前目录即工程根」守卫 + 独立 project()):
-# 那种情况下没有根入口 ⇒ 共用件未定义, 直接写 astrocs_platform_math 会被 CMake 当
-# 成**普通库名**展开成 -lastrocs_platform_math ⇒ 链接期 ld: cannot find。实测
-# (FINAL-07): 独立 configure 后未守卫时 build rc=1, 链接行含 -lastrocs_platform_math。
+# 那种情况下没有根入口 ⇒ 共用件未定义, 直接写 acsd_platform_math 会被 CMake 当
+# 成**普通库名**展开成 -lacsd_platform_math ⇒ 链接期 ld: cannot find。实测
+# (FINAL-07): 独立 configure 后未守卫时 build rc=1, 链接行含 -lacsd_platform_math。
 # 故按「目标是否存在」守卫, 不按平台守卫 (平台判断仍只在共用件内部一处)。
-# 注: 上一行的 astrocs_product_io 走 add_subdirectory 拉入, 其内部已自带同形守卫。
-if(TARGET astrocs_platform_math)
-  target_link_libraries(p3_export_test PRIVATE astrocs_platform_math)
+# 注: 上一行的 acsd_product_io 走 add_subdirectory 拉入, 其内部已自带同形守卫。
+if(TARGET acsd_platform_math)
+  target_link_libraries(p3_export_test PRIVATE acsd_platform_math)
 endif()
 
 set(P3_ARTIFACT_DIR "${CMAKE_CURRENT_BINARY_DIR}/artifacts")

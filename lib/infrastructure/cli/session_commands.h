@@ -1,7 +1,7 @@
 // lib/infrastructure/cli/session_commands.h — 命令层 ↔ 会话层路由（CLI-001）
 //
 // 「用户命令名 → 内部会话」的机械映射唯一落点。三个用户命令（normalize /
-// mosaic / export）是**平级独立命令**（docs/ASTROCS_DESIGN §1.2）：本表只做名字
+// mosaic / export）是**平级独立命令**（docs/ACSD_DESIGN §1.2）：本表只做名字
 // 映射，不表达顺序、不串接、不共享进程状态；每个命令各起一个进程、各自
 // 校验、各自恢复。
 //
@@ -14,7 +14,7 @@
 
 #include "command_tree.h"
 
-namespace astrocs::cli::cmd {
+namespace acsd::cli::cmd {
 
 struct SessionCommand {
     const char* name;    // 用户可见命令名
@@ -145,7 +145,7 @@ inline const std::vector<ConfigField>& config_fields(SessionId s) {
     // drizzle.precision_mode 必须显式（docs/science/algorithms/DRIZZLE_GEOMETRY.md B2-A12：
     // 0=FP32/1=FP64，缺失即 DATA 拒绝，不 silent 降精度）；模板取 1（FP64）与
     // RESCUE-FD-02 的库边界缺省一致（宁可慢，不静默丢精度）。
-    // CLI-MULTIBLOCK（依据 docs/ASTROCS_DESIGN.md §4.3 输入合同）：normalize 配置 =
+    // CLI-MULTIBLOCK（依据 docs/ACSD_DESIGN.md §4.3 输入合同）：normalize 配置 =
     // 多数据块 JSON。模板 = 两块示例；块内键 = 平铺会话键集（与 parser.cpp
     // session_keys() 同面）。平铺单块简写保留（单块时两种写法等价），两形态互斥。
     static const std::vector<ConfigField> kNormalize = {
@@ -199,7 +199,7 @@ inline const std::vector<ConfigField>& config_fields(SessionId s) {
         // limiting_mag 由焦距画幅曝光派生），不是错误 ⇒ json == nullptr（只进
         // --help 字段说明，不进 --template 骨架；gaia_data_dir 的模板承载仍走 wcs 段）。
         {"star_detection", nullptr,
-         "可选星表引导检测配置段（docs/ASTROCS_DESIGN.md §4.2 权威范式）："
+         "可选星表引导检测配置段（docs/ACSD_DESIGN.md §4.2 权威范式）："
          "mode(auto|catalog_guided|blind_diagnostic)/gaia_data_dir/max_stars(合同域 "
          "[20000,50000])/approx_wcs{crval1,crval2,cd11,cd12,cd21,cd22}/rotation_deg/"
          "parity(pos|neg)/limiting_mag/limiting_mag_safety/query_radius_factor/"
@@ -235,7 +235,7 @@ inline const std::vector<ConfigField>& config_fields(SessionId s) {
          "可选：数据集级覆盖索引 coverage.index.json 的路径（加性可选键；缺省回退 = 由产品级索引现场倒排）"
          "（合同声明 = phase_config_mosaic.schema.json；生产消费点未落地，见死键台账）"},
         {"output_dir", "\".\"", "运行产物唯一落点（必填非空字符串）"},
-        //（docs/ASTROCS_DESIGN §3.3「三命令通用输入合同：键名一律以
+        //（docs/ACSD_DESIGN §3.3「三命令通用输入合同：键名一律以
         // 命令行实际认的键为准」）：合同声明但 CLI 不认的提升键落地。键名**逐字**取合同
         // 声明名（禁止新造同义键）：
         //   eng/contracts/schemas/phase_config_mosaic.schema.json#/$defs/mosaic_config/properties/snr_path
@@ -247,7 +247,7 @@ inline const std::vector<ConfigField>& config_fields(SessionId s) {
          "Phase2 SNR 重建/消费路径 dense|sparse_reconstruct|frame_reconstruct"
          "（默认 sparse_reconstruct = 消费 Phase1 稀疏控制点 SNR 层重建稠密 SNR；"
          "合同声明 = phase_config_mosaic.schema.json；生产消费点未落地，见死键台账）"},
-        // 精度口径（docs/ASTROCS_DESIGN §3.3:256）：阶段二/三 = 位深键 bitpix(-32/-64)，
+        // 精度口径（docs/ACSD_DESIGN §3.3:256）：阶段二/三 = 位深键 bitpix(-32/-64)，
         // 阶段一 = drizzle.precision_mode(0/1)。**不新造 precision(fp32/fp64) 同义键**。
         // 「权重模式」概念不存在: 原 weight_mode / legacy_allow_weight_fallback
         // 两键**已从 CLI 配置面摘除**（模板/help/白名单同撤）。权重是 Phase2 消费 SNR 时的
@@ -272,7 +272,7 @@ inline const std::vector<ConfigField>& config_fields(SessionId s) {
         {"width_px", "1024", "输出宽度（1..20000）"},
         {"height_px", "1024", "输出高度（1..20000）"},
         {"scale_deg_per_px", "0.001", "输出像素尺度（度/像素，必须 > 0）"},
-        //docs/ASTROCS_DESIGN §3.3 键名以 CLI 实际认的键为准：
+        //docs/ACSD_DESIGN §3.3 键名以 CLI 实际认的键为准：
         // 合同声明但 CLI 不认的提升键落地。键名**逐字**取合同声明名（禁止新造同义键）：
         //   eng/contracts/schemas/phase_config_export.schema.json#/$defs/export_wcs/properties/{rotation_deg,crpix_px}
         // 平铺顶层与 CLI export 既有几何键（center / scale_deg_per_px / width_px / height_px）同面
@@ -309,13 +309,13 @@ inline const std::vector<ConfigField>& config_fields(SessionId s) {
          "dec_max_deg}}（ICRS deg 轴对齐矩形，外扩取整为像素窗口）。"
          "越界/宽高非正/两形式同时给/裁剪后为空 ⇒ 具名报错，不静默夹取"
          "（合同 = phase_config_export.schema.json#/$defs/export_crop）"},
-        // 精度口径（docs/ASTROCS_DESIGN §3.3:256）：阶段三精度键 = 位深键 bitpix(-32/-64)
+        // 精度口径（docs/ACSD_DESIGN §3.3:256）：阶段三精度键 = 位深键 bitpix(-32/-64)
         // —— 既有键、已在 session_keys() 白名单且已被生产消费（lib/phase3_session/p3_session.cpp:126,391；
         // module_adapters.cpp:8890/9693），**不是新造键**。这里只把它列进字段说明（json == nullptr
         // ⇒ 不进模板：它有实现缺省 -32，模板不替用户主张数值），补上「合同 precision 键被拒后
         // 用户找不到精度载体」的缺口。
         {"bitpix", nullptr,
-         "可选输出位深 -32(FP32)|-64(FP64)；阶段三计算精度键（docs/ASTROCS_DESIGN §3.3:256），"
+         "可选输出位深 -32(FP32)|-64(FP64)；阶段三计算精度键（docs/ACSD_DESIGN §3.3:256），"
          "缺省按现实现 -32"},
         {"projection", nullptr, "可选投影（当前唯一实现 TAN；缺省 TAN）"},
         {"sampler", nullptr, "可选采样核 nearest|bilinear（缺省 bilinear）"},
@@ -326,7 +326,7 @@ inline const std::vector<ConfigField>& config_fields(SessionId s) {
         // #/$defs/export_config/properties/output_mode 的 description：「默认
         // surface_brightness」；config_registry.json:1238-1241 同源登记「默认
         // surface_brightness 与插件一致」）。缺键即 REJECT（FZ-P3-MODES）⇒ 模板必须
-        // 给出该键（docs/ASTROCS_DESIGN §3.3「模板与 --help 由同一份键表生成」；
+        // 给出该键（docs/ACSD_DESIGN §3.3「模板与 --help 由同一份键表生成」；
         // docs/engineering/CONFIG_CONTRACT.md:81 旧合同 required 即含 output_mode）。
         {"output_mode", "\"surface_brightness\"",
          "输出模式（必填；合同默认 surface_brightness）：surface_brightness / "
@@ -426,4 +426,4 @@ inline std::string render_checks(const std::vector<CheckLine>& checks) {
     return out;
 }
 
-}  // namespace astrocs::cli::cmd
+}  // namespace acsd::cli::cmd

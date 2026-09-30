@@ -1,18 +1,18 @@
 # Phase2 Coverage Union Algorithms (ALG-COV-001)
 
-> 上游：ASTROCS_DESIGN.md §5.2（固定科学流程）
+> 上游：ACSD_DESIGN.md §5.2（固定科学流程）
 
 > 上游 SCI: SCI-UPM-001（docs/science/PHASE2_UPM.md，FROZEN，共享引用不改动）；
 > 三概念分离权威=SCI-INT-001（docs/science/INTEGRATION.md，FROZEN，共享引用不改动）；
 > 处理链位置=SCI-SCOPE-001 §处理链第 5 步（coverage union 为 Phase2 首节点）。
 > 本域零 SCI 层改动（§11.5）。
 > 下游: DATA-COV-001（DATA_SEMANTICS §19）、API-COV-001（PUBLIC_API）、
-> MOD-astrocs-phase2-coverage（registry）
+> MOD-acsd-phase2-coverage（registry）
 > 唯一权威生产源: lib/algorithms/coverage/src/coverage.cpp（455 行，复测）+ 唯一权威签名头
 > lib/algorithms/coverage/include/astro/phase2/coverage.h（172 行，同上）；取值与签名一律以本头文件为唯一来源。
 > 矩阵行: docs/traceability/TRACEABILITY_MATRIX.json
-> MOD-astrocs-phase2-coverage（matrix P2-COV，legacy_paths=lib/algorithms/coverage coverage
-> sources，迁移目标 astrocs_p2_coverage.dll，module_id=astrocs.p2.coverage）。
+> MOD-acsd-phase2-coverage（matrix P2-COV，legacy_paths=lib/algorithms/coverage coverage
+> sources，迁移目标 acsd_p2_coverage.dll，module_id=acsd.p2.coverage）。
 
 ## 1 上游 SCI 与输入输出
 
@@ -37,7 +37,7 @@
   `lib/algorithms/coverage/src/sampler.cpp`）、编排 session（`lib/phase2_session/p2_session.cpp` 的 coverage
   阶段两次调用 + manifest 登记 n_union_cells/target_order）、stage2 正式入口
   （`lib/algorithms/coverage/tools/stage2.cpp`）、registry descriptor（`lib/infrastructure/scheduler/src/module_adapters.cpp`）。
-- descriptor astrocs.phase2.coverage（`lib/infrastructure/scheduler/src/module_adapters.cpp`）为编排层
+- descriptor acsd.phase2.coverage（`lib/infrastructure/scheduler/src/module_adapters.cpp`）为编排层
   词汇，端口 calibrated→coverage 坐标登记 PIXEL 与球面 MOC 实际语义不符，
   以本合同为准修订，P2-COV-INT 对齐；冻结依据唯一 = 本合同。
 
@@ -269,7 +269,7 @@ p2_coverage_build(hips_paths, n_inputs, out):
   （AIO 头自带 C 链接声明，双保险属维护歧义，
 并入 DISP-COV-005 整改域）；
 头文件 aio_hips_reader.h 落位 `lib/infrastructure/aio/include/`（根 `CMakeLists.txt` 的
-astrocs_phase2 include 目录第 3 项，实测）。
+acsd_phase2 include 目录第 3 项，实测）。
 
 P2HipsInputInfo 7 字段（`lib/algorithms/coverage/include/astro/phase2/coverage.h`）生产消费面（回填与消费均在 `lib/algorithms/coverage/src/coverage.cpp`）: hips_path、
 frame_id（路径基名截断，见 DISP-COV-002）、
@@ -383,11 +383,11 @@ status 语义: 0=ok；错误路径部分分支置 1（`lib/algorithms/coverage/s
   SCI-P2-COV-001 ⇒ 指向既有 FROZEN 共享 SCI（权威=PHASE2_UPM.md §1
   覆盖并集 + INTEGRATION.md §5 support/validity 分离 + SCIENCE_SCOPE.md
   §处理链），矩阵 science_doc=docs/science/PHASE2_UPM.md
-  （MOD-astrocs-phase2-coverage 行）。
+  （MOD-acsd-phase2-coverage 行）。
   三概念分离/union 离散公式/负向条款的算法定义权威=ALG-COV-001
   （本文档 §2/§7），SCI 公式语义不在此重复定义，两处冲突时以
   docs/science/ 为准并回改本文档（方向 = 从 docs/science/ 到本文档）。
-- 本节是唯一冻结依据（编排层词汇只作对齐对象；descriptor astrocs.phase2.coverage
+- 本节是唯一冻结依据（编排层词汇只作对齐对象；descriptor acsd.phase2.coverage
   由 P2-COV-INT 对齐，不作冻结依据）。
 
 ## 参考文献与参考代码库（含许可证）

@@ -1,4 +1,4 @@
-// acsd 协作取消令牌 (API-001 acs_cancel 的 CLI 侧宿主实现) — CLI-002
+// acsd 协作取消令牌 (API-001 acsd_cancel 的 CLI 侧宿主实现) — CLI-002
 // POSIX: SIGINT/SIGTERM → 原子置位; Windows: SetConsoleCtrlHandler → 原子置位。
 // 语义: 单向置位, 内核在 ALG 5c 冻结的安全点轮询; 取消后不得产生"看似完整"的产物。
 #pragma once
@@ -10,7 +10,7 @@
 #include <csignal>
 #endif
 
-namespace astrocs {
+namespace acsd {
 
 inline std::atomic<bool>& cancel_flag() {
     static std::atomic<bool> flag{false};
@@ -38,4 +38,4 @@ inline void install_cancel_handlers() {
 }
 #endif
 
-}  // namespace astrocs
+}  // namespace acsd

@@ -1,6 +1,6 @@
 {
   "results": {
-    "astrocs_production_path": {
+    "acsd_production_path": {
       "n_matched": 109,
       "centroid_median_px": 0.7701382981823749,
       "centroid_p95_px": 1.1528986035412487,
@@ -18,7 +18,7 @@
       "fwhm_median_rel": 0.02433045347001398,
       "ell_median": 0.14337048081011947
     },
-    "astrocs_converged_init": {
+    "acsd_converged_init": {
       "n_matched": 109,
       "centroid_median_px": 0.004050294149607052,
       "centroid_p95_px": 0.022787555733850093

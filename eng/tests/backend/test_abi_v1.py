@@ -3,10 +3,10 @@
 import os, subprocess, tempfile, unittest
 
 REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
-HDR = os.path.join(REPO, "lib", "include", "astrocs", "common_abi_v1.h")
+HDR = os.path.join(REPO, "lib", "include", "acsd", "common_abi_v1.h")
 
 # 根目录整合后 aio 落 lib/infrastructure/aio，其 PUBLIC include 面 = include/ + src/
-# （见根 CMakeLists.txt: target_include_directories(astrocs_aio PUBLIC ...)）。
+# （见根 CMakeLists.txt: target_include_directories(acsd_aio PUBLIC ...)）。
 # 测试侧独立编译必须同面，否则 aio_atomic_file.h / aio_file_io.h 找不到
 # （GATE-502：修复根目录整合后测试侧遗留的过时 include 面）。
 AIO_INCS = [
@@ -42,8 +42,8 @@ class TestAbiV1(unittest.TestCase):
         with tempfile.TemporaryDirectory() as td:
             src = os.path.join(td, "c_tu.c")
             with open(src, "w", encoding="utf-8") as f:
-                f.write('#include "astrocs/common_abi_v1.h"\nint main(void){'
-                        'astrocs_backend_api_v1 a; a.abi_version=ACS_ABI_VERSION_V1;'
+                f.write('#include "acsd/common_abi_v1.h"\nint main(void){'
+                        'acsd_backend_api_v1 a; a.abi_version=ACS_ABI_VERSION_V1;'
                         'return a.abi_version==1u?0:1;}\n')
             r = subprocess.run(["gcc", "-std=c11", "-Wall", "-Wextra", "-pedantic",
                                 f"-I{os.path.join(REPO, 'lib', 'include')}", *AIO_INCS, "-c", src, "-o",
@@ -55,7 +55,7 @@ class TestAbiV1(unittest.TestCase):
         """backend TU 可 -fno-exceptions 编译(异常不跨边界的编译面)。"""
         with tempfile.TemporaryDirectory() as td:
             r = subprocess.run(["g++", "-std=c++17", "-Wall", "-Wextra", "-fno-exceptions",
-                                "-DASTROCS_NO_EXCEPTIONS",
+                                "-DACSD_NO_EXCEPTIONS",
                                 f"-I{os.path.join(REPO, 'lib', 'include')}", *AIO_INCS, "-c",
                                 os.path.join(SRC, "baseline_backend.cpp"), "-o",
                                 os.path.join(td, "b.o")],

@@ -21,7 +21,7 @@
 
 #include "ipv_itertrans.h"  // iter_trans_solve (被测: 迭代重投影多项式拟合)
 #include "ipv_solver.h"     // extract_wcs_sip (被测: WCS 提取)
-#include "wcs_tan.h"        // astrocs::phase1::WcsTan (被测: legacy 桥)
+#include "wcs_tan.h"        // acsd::phase1::WcsTan (被测: legacy 桥)
 
 using namespace p1wcs;
 
@@ -143,7 +143,7 @@ int test_units() {
     // ------------------------------------------------------------------
     {
         const SolvedA s = solve_fix_a(kSeedA, 0.0, 0.0);
-        astrocs::phase1::WcsTan wt;
+        acsd::phase1::WcsTan wt;
         wt.crpix1 = s.wcs.crpix[0];
         wt.crpix2 = s.wcs.crpix[1];
         wt.crval1 = s.fx.truth.ra0;

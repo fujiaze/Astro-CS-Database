@@ -113,7 +113,7 @@ def main() -> int:
     session = requests.Session()
     session.trust_env = False
     session.proxies = {"http": None, "https": None}
-    session.headers["User-Agent"] = "AstroCS-BASS-Index-Verify/1.0"
+    session.headers["User-Agent"] = "ACSD-BASS-Index-Verify/1.0"
 
     rng = random.Random(args.seed)
     sample = rng.sample(rows, min(args.sample, len(rows)))

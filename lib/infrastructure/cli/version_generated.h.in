@@ -1,3 +1,3 @@
 // 由 CMake configure_file 生成 — 禁手改
 #pragma once
-#define ASTROCS_VERSION_STRING "@ASTROCS_VERSION_STRING@"
+#define ACSD_VERSION_STRING "@ACSD_VERSION_STRING@"

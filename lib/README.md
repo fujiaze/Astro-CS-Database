@@ -16,11 +16,11 @@
 - phase1_session/ —— normalize 阶段装配会话与端口表（p1_session.cpp/.h、module.yaml、memory.md、tests/）。
 - phase2_session/ —— mosaic 阶段装配会话（p2_session.cpp/.h、module.yaml、memory.md）。
 - phase3_session/ —— export 阶段装配会话与导出接口（p3_session.cpp/.h、p3_export.cpp/.h）。
-- include/ —— 对外公共头（astrocs/）。
+- include/ —— 对外公共头（acsd/）。
 - third_party/ —— 随仓第三方依赖（nlohmann）。
 
 ## 上游
 
-上游：docs/ASTROCS_DESIGN.md §8.4（顶层结构）、§8.5（模块与 ABI）；ENGINEERING_SPEC.md §7（目录规范）。
+上游：docs/ACSD_DESIGN.md §8.4（顶层结构）、§8.5（模块与 ABI）；ENGINEERING_SPEC.md §7（目录规范）。
 
 科学断言以 docs/science/ 为权威，佐证要求见 docs/engineering/DOCUMENT_GOVERNANCE.md §2。

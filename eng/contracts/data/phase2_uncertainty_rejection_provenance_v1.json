@@ -1,5 +1,5 @@
 {
-  "contract_schema": "astrocs.phase2-unc-rej-prov-contract/v1",
+  "contract_schema": "acsd.phase2-unc-rej-prov-contract/v1",
   "contract_version": 1,
   "task_id": "P2-002",
   "title": "Phase2 §30.2 rejection 平面与 §30.3 provenance 键组实现合同（AIO 子产品位分配 + provenance 键通道登记）",
@@ -46,29 +46,29 @@
     "authority": "DATA_SEMANTICS §30.2 冻结位值；AIO_ALL 掩码扩展由实现任务在 AIO 域合同登记（本合同登记位值，掩码扩展待 AIO 域 writer 实现）"
   },
   "provenance_keys": {
-    "ASTROCS_INPUT_MANIFEST_HASH": {
+    "ACSD_INPUT_MANIFEST_HASH": {
       "value": "64hex sha256",
       "source": "DATA_SEMANTICS §20.3 input_manifest_hash 公式（canonical manifest 按 frame_id 排序拼接）"
     },
-    "ASTROCS_MODEL_HASH": {
+    "ACSD_MODEL_HASH": {
       "value": "UPM model_hash（64hex sha256）",
       "source": "P2ModelInfo.model_hash（upm-fit 节点 typed artifact）"
     },
-    "ASTROCS_UNCERTAINTY_AVAILABLE": {
+    "ACSD_UNCERTAINTY_AVAILABLE": {
       "value": "\"true\" | \"false\"",
       "source": "§30.1 unavailable 三规则判定结果（weight_mode≠2 / fallback 发生 / 合成输入非有限达帧级阻断）"
     },
-    "ASTROCS_WEIGHT_MODE": {
+    "ACSD_WEIGHT_MODE": {
       "value": "0 | 1 | 2",
       "source": "cfg.weight_mode（2=逐样本 ivar 逆方差科学默认）"
     },
-    "ASTROCS_REJECT_PROFILE": {
+    "ACSD_REJECT_PROFILE": {
       "value": "版本化 profile 串",
-      "source": "cfg.reject_profile（canonical=astrocs_adaptive_pixel 自研档；wbpp_current / wbpp_2_9_1 为对照档，§20.1 kernel 域禁 AUTO）"
+      "source": "cfg.reject_profile（canonical=acsd_adaptive_pixel 自研档；wbpp_current / wbpp_2_9_1 为对照档，§20.1 kernel 域禁 AUTO）"
     }
   },
   "provenance_dual_write": {
-    "properties_face": "HiPS properties 文本键（ASTROCS_ 前缀同 ASTROCS_DRIZZLE_* 风格）",
+    "properties_face": "HiPS properties 文本键（ACSD_ 前缀同 ACSD_DRIZZLE_* 风格）",
     "manifest_face": "finalize manifest JSON 键同名小写（数据面现由 p2_final.json provenance 对象承载同名键值）",
     "unavailable_rule": "uncertainty_available=false 不是失败态，是宪章 §18.3 unavailable 模式在数据面的落位：键必须仍全写、值为 false（禁命令占位/静默缺键/空输出冒充）",
     "atomicity": "本键写入不改变 §20.3 原子发布归属（IO-003 编排层）"
@@ -87,7 +87,7 @@
     },
     "properties_key_channel": {
       "status": "PENDING_AIO_DOMAIN",
-      "gap": "aio_hips_set_drizzle_provenance（aio_hips.h:144）仅暴露 pixfrac/scale 双浮点，无通用 ASTROCS_* 文本键写入通道；ASTROCS_* 五键无法写 HiPS properties",
+      "gap": "aio_hips_set_drizzle_provenance（aio_hips.h:144）仅暴露 pixfrac/scale 双浮点，无通用 ACSD_* 文本键写入通道；ACSD_* 五键无法写 HiPS properties",
       "transfer": "P2-001 F2 移交；本合同登记键名冻结表为 AIO 域通道扩展唯一事实源输入",
       "current_carrier": "p2_final.json provenance JSON 面（真实值传递, 64hex 与上游 artifact 对拍）"
     }

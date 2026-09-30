@@ -156,7 +156,7 @@ class TestP2003SeamOracle(unittest.TestCase):
                 os.path.join(AIO, "src", "aio_log.cpp"),
                 os.path.join(AIO, "src", "aio_compressor.cpp"),
                 os.path.join(REPO, "lib", "algorithms", "shared", "healpix", "healpix_core.cpp"),
-                # FIX-201: aio_file_io.h 的 sha256_hex 经 astrocs::crypto::Sha256
+                # FIX-201: aio_file_io.h 的 sha256_hex 经 acsd::crypto::Sha256
                 #（单一实现 lib/algorithms/shared/crypto/sha256.cpp）。
                 os.path.join(REPO, "lib", "algorithms", "shared", "crypto", "sha256.cpp")]
         exe = os.path.join(cls.tmp, "fixture")
@@ -192,11 +192,11 @@ class TestP2003SeamOracle(unittest.TestCase):
         cfg_path = os.path.join(cls.tmp, "cfg.json")
         with open(cfg_path, "w") as f:
             json.dump(cfg, f)
-        # CLI-002 / docs/ASTROCS_DESIGN 6.2: 旧 phase2 run --config 已删(rc=2),
+        # CLI-002 / docs/ACSD_DESIGN 6.2: 旧 phase2 run --config 已删(rc=2),
         # 现行等价命令 = mosaic --json <cfg>(平铺会话格式); 判据不变。
         r3 = subprocess.run([EXE, "mosaic", "--json", cfg_path, "--events-jsonl", "-y"],
                             capture_output=True, text=True,
-                            env=dict(os.environ, ASTROCS_REPO=REPO), timeout=600)
+                            env=dict(os.environ, ACSD_REPO=REPO), timeout=600)
         # 验收口径: 科学产物(UPM persist)必须存在 — 资源门拒绝路径(rc=10)同样完成
         assert os.path.isfile(cls.model_path), \
             f"UPM persist 缺失 (rc={r3.returncode}): {r3.stdout[-200:]} {r3.stderr[-200:]}"

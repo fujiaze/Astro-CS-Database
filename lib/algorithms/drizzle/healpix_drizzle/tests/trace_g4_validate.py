@@ -145,7 +145,7 @@ def main():
 
     buf32 = (C.c_float * (512 * 512))()
     buf64 = (C.c_double * (512 * 512))()
-    fp64 = props.get("astrocs_signal_dtype") == "float64"
+    fp64 = props.get("acsd_signal_dtype") == "float64"
     readback_rows = []
     flux_bad = 0
     area_bad = 0

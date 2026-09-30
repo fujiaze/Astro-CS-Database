@@ -1,6 +1,6 @@
 # 生成: eng/tools/gen_cfitsio_list.py (BLD-001 禁止 production GLOB)
 # 证据源: lib/infrastructure/aio/third_party/cfitsio/*.c（命中 60）
-set(ASTROCS_CFITSIO_SOURCES
+set(ACSD_CFITSIO_SOURCES
   lib/infrastructure/aio/third_party/cfitsio/buffers.c
   lib/infrastructure/aio/third_party/cfitsio/cfileio.c
   lib/infrastructure/aio/third_party/cfitsio/checksum.c

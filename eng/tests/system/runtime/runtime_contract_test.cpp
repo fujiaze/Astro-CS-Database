@@ -14,7 +14,7 @@
 
 #include "runtime_contract.h"
 
-using namespace astrocs::v6runtime;
+using namespace acsd::v6runtime;
 
 static int g_fail = 0;
 static int g_checks = 0;

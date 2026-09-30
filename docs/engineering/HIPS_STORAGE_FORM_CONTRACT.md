@@ -1,8 +1,8 @@
 # 落盘形态合同：扩展名、归档布局、索引 schema 与哈希口径
 
-> 上游：ASTROCS_DESIGN.md §10（I/O 与原子产品）、docs/detail/PRODUCT_STORAGE_FORM.md（DESIGN-STORAGE-001）
+> 上游：ACSD_DESIGN.md §10（I/O 与原子产品）、docs/detail/PRODUCT_STORAGE_FORM.md（DESIGN-STORAGE-001）
 
-> 上位：`ASTROCS_DESIGN.md` §10；`docs/detail/PRODUCT_STORAGE_FORM.md`
+> 上位：`ACSD_DESIGN.md` §10；`docs/detail/PRODUCT_STORAGE_FORM.md`
 下游：`docs/science/IO_002_HIPS_INPUT_INTERFACE.md`、`docs/engineering/io/IO_003_ATOMIC_OUTPUT_PUBLISH.md`、`docs/detail/infrastructure/17_aio.md`、`docs/detail/algorithms_phase1/08_drizzle.md`、`docs/detail/algorithms_phase2/09_coverage.md`
 机器事实源：`eng/contracts/schemas/hips_storage_form.schema.json`（索引文件 schema）
 机器检查器：`eng/tools/hipsform/check_hips_storage_form.py`（CI 检查 `CHK-HIPS-STORAGE-FORM`）
@@ -44,7 +44,7 @@
 | A1 | 归档内容 = 一个 tar 流的压缩结果；tar 根 = 产品根的内容（成员名以子产品名开头，不含前导 `./`） |
 | A2 | tar 成员集合 = 裸形态产品树的**全部常规文件**（`properties`、`NorderK/DirD/NpixN.fits`、`Moc.fits`、`metadata.fits`、产品集 `manifest.json` 等），不含目录项之外的额外文件 |
 | A3 | 成员顺序 = 成员路径的**字典序**（确定性）；成员头字段（mtime/uid/gid/uname/gname/mode）取固定值，使同一内容的两次打包字节一致 |
-| A4 | 归档内 `properties` 与裸形态 `properties` **逐字节一致**；`hips_tile_format` 取**两档词表**（P-179）的登记值 —— **Image 产品**子产品（`signal`/`support`/`variance`/`ivar`）= `fits`；**HiPS 目录（catalogue）**子产品 `snr/` = `tsv`（承载 SNR-PREC-001 `%.9g/%.17g` 精度锚，`DATA_SEMANTICS.md` §12.2）。逐子产品档位表 = 机器事实源 `x-astrocs-field-vocabulary.hips_tile_format_two_tiers.by_subproduct`；档位不符（`snr` 写 `fits`、Image 子产品写 `tsv`）或任何非标准 token（`zstd` / `fits.zst` / …）一律判红 |
+| A4 | 归档内 `properties` 与裸形态 `properties` **逐字节一致**；`hips_tile_format` 取**两档词表**（P-179）的登记值 —— **Image 产品**子产品（`signal`/`support`/`variance`/`ivar`）= `fits`；**HiPS 目录（catalogue）**子产品 `snr/` = `tsv`（承载 SNR-PREC-001 `%.9g/%.17g` 精度锚，`DATA_SEMANTICS.md` §12.2）。逐子产品档位表 = 机器事实源 `x-acsd-field-vocabulary.hips_tile_format_two_tiers.by_subproduct`；档位不符（`snr` 写 `fits`、Image 子产品写 `tsv`）或任何非标准 token（`zstd` / `fits.zst` / …）一律判红 |
 | A5 | 产品级索引与数据集级覆盖索引位于归档之外（产品同父目录 / 运行输出根） |
 
 ### 3.2 zstd 层
@@ -64,13 +64,13 @@
 
 ## 4. 索引 schema（MUST）
 
-机器事实源：`eng/contracts/schemas/hips_storage_form.schema.json`。索引文件是 UTF-8 JSON，**不压缩**。同一 schema 还承载形态的输入配置键与输出清单字段（`$defs.frame_storage` / `$defs.coverage_index_ref` / `$defs.manifest_storage`，见 §10）与字段词表 `x-astrocs-field-vocabulary`。
+机器事实源：`eng/contracts/schemas/hips_storage_form.schema.json`。索引文件是 UTF-8 JSON，**不压缩**。同一 schema 还承载形态的输入配置键与输出清单字段（`$defs.frame_storage` / `$defs.coverage_index_ref` / `$defs.manifest_storage`，见 §10）与字段词表 `x-acsd-field-vocabulary`。
 
 ### 4.1 产品级索引 `<name>.hips.index.json`
 
 | 字段 | 类型 | 不变式 |
 |---|---|---|
-| `index_schema` | string | 恒 `astrocs.hips-index/v1` |
+| `index_schema` | string | 恒 `acsd.hips-index/v1` |
 | `product` | string | = `<name>` |
 | `storage_form` | enum | `archive` 或 `bare`，必须与磁盘实际形态一致 |
 | `archive` | object / null | `archive` 形态必填：`name`（= `<name>.hips.zst` 的 basename）、`bytes`、`sha256`、`frame_unit` 恒 `tar_member`；`bare` 形态恒 null |
@@ -91,7 +91,7 @@
 
 | 字段 | 类型 | 不变式 |
 |---|---|---|
-| `index_schema` | string | 恒 `astrocs.coverage-index/v1` |
+| `index_schema` | string | 恒 `acsd.coverage-index/v1` |
 | `granularity.unit` | string | 恒 `hips_leaf_tile`（**块粒度**，值域 = 该单一取值） |
 | `granularity.tile_width` / `hips_order` | int | 与参与产品一致 |
 | `frames[]` | array[string] | 参与本次运行的帧标识，升序且唯一 |
@@ -183,7 +183,7 @@
 
 形态是**输入配置项**，不是运行期开关；产物必须**自报形态与索引路径**，使不同批次 Phase1 的输出 JSON 可以合并而不丢索引。
 
-字段词表唯一源 = `eng/contracts/schemas/hips_storage_form.schema.json#x-astrocs-field-vocabulary`：字段名、取值、段名与文件名后缀只在那里定义一次，本文档与各层文档只引用，**同义名一律以词表为准**。逐层口径一致性由 `CHK-HIPS-STORAGE-FORM --doc-consistency` 机器断言（缺登记词、词表外的同义名、取值口径漂移都判红）。
+字段词表唯一源 = `eng/contracts/schemas/hips_storage_form.schema.json#x-acsd-field-vocabulary`：字段名、取值、段名与文件名后缀只在那里定义一次，本文档与各层文档只引用，**同义名一律以词表为准**。逐层口径一致性由 `CHK-HIPS-STORAGE-FORM --doc-consistency` 机器断言（缺登记词、词表外的同义名、取值口径漂移都判红）。
 
 ### 10.1 Phase1 输入配置键 `storage_form`
 
@@ -257,7 +257,7 @@
 - 额外的「总索引」引用用**加性可选键** `coverage_index`（字符串路径，指向数据集级 `coverage.index.json`）。存在 ⇒ 阶段二启动时载入它做块级查询；缺失 ⇒ 规定回退 = 读入全部产品级索引现场倒排（§4.2）。
 - 该键**不**承载形态选择：Phase2 产物固定裸形态（§10.5）。
 - 机器事实源 = `eng/contracts/schemas/phase_config_mosaic.schema.json#/$defs.coverage_index_path`（**字符串**路径键；P-180 分名后的正名）。
-- **同名异型消歧（P-180）**：本键的 `$defs` 曾与运行级清单引用**同名** `coverage_index_ref`——后者在本文档的机器事实源里是**对象**（`$defs.coverage_index_ref` = `{path, sha256, n_frames, n_blocks}`，见 §10.3），与之同名异型属机器可读面的最坏形态。现两者分名：**输入配置路径** = `phase_config_mosaic...#/$defs.coverage_index_path`（字符串）、**输出清单引用** = 本文件 `$defs.coverage_index_ref`（对象）。属性名 `coverage_index` 两侧不变（唯一词表 `x-astrocs-field-vocabulary.phase2_input_index_ref_key.name`）；引用本键的注释面（`lib/infrastructure/cli/parser.cpp`、`session_commands.h`）与死键台账已同步。
+- **同名异型消歧（P-180）**：本键的 `$defs` 曾与运行级清单引用**同名** `coverage_index_ref`——后者在本文档的机器事实源里是**对象**（`$defs.coverage_index_ref` = `{path, sha256, n_frames, n_blocks}`，见 §10.3），与之同名异型属机器可读面的最坏形态。现两者分名：**输入配置路径** = `phase_config_mosaic...#/$defs.coverage_index_path`（字符串）、**输出清单引用** = 本文件 `$defs.coverage_index_ref`（对象）。属性名 `coverage_index` 两侧不变（唯一词表 `x-acsd-field-vocabulary.phase2_input_index_ref_key.name`）；引用本键的注释面（`lib/infrastructure/cli/parser.cpp`、`session_commands.h`）与死键台账已同步。
 
 ### 10.5 Phase2 / Phase3：形态键必须 REJECT
 

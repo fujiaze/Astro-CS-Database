@@ -1,7 +1,7 @@
 /* phase2_integrate.cpp — V6 Phase2 产品链集成实现（单一权重口径）
  * 见 phase2_integrate.h 的冻结锚。本层只接线 Wave 5/7 实现，不含新科学公式。
  */
-#include "astrocs/phase2_integrate.h"
+#include "acsd/phase2_integrate.h"
 
 #include <algorithm>
 #include <cmath>
@@ -14,7 +14,7 @@
 
 #include <nlohmann/json.hpp>
 
-// CLEAN-403 (docs/ASTROCS_DESIGN §10「aio 是文件级唯一 I/O 边界」): 文本读写与 FITS
+// CLEAN-403 (docs/ACSD_DESIGN §10「aio 是文件级唯一 I/O 边界」): 文本读写与 FITS
 // 平面读取一律经 aio 唯一实现 (aio_file::read_all / aio_atomic::write_file_atomic),
 // 本 TU 不自持 fstream 通道。
 #include "aio_atomic_file.h"
@@ -27,14 +27,14 @@
 #include "astro/phase2/rejection.h"
 #include "astro/phase2/sampler.h"
 #include "astro/phase2/upm.h"
-#include "astrocs/information_weight.h"
-#include "astrocs/psf_information.h"
-#include "astrocs/psfsw.h"
+#include "acsd/information_weight.h"
+#include "acsd/psf_information.h"
+#include "acsd/psfsw.h"
 
 using nlohmann::json;
-using namespace astrocs::aio;
+using namespace acsd::aio;
 
-namespace astrocs {
+namespace acsd {
 namespace v6 {
 namespace p2int {
 
@@ -194,7 +194,7 @@ std::vector<double> derive_psf_alpha(const FrameSet& fs) {
  *        psfsw_robust_weight，必须可诊断地拒绝，不得静默接受。
  * WHY:   「只要纯净信号/噪声的信噪比。要求跨帧可用，不基于参考帧。而是绝对
  *        标定。」⇒ 受 PixInsight PSFSW 启发的稳健复合帧权重 psfsw_robust_weight
- *        **不是现行对象**：docs/ASTROCS_DESIGN.md §3.1「权重只能来自纯净信号与噪声
+ *        **不是现行对象**：docs/ACSD_DESIGN.md §3.1「权重只能来自纯净信号与噪声
  *        之比……任何使偏差随帧而变的量（含 PSF 拟合质量代理）都不得进入科学叠加权重」；
  *        docs/detail/UNIFIED_MODEL.md:58（旧产品若声明该对象 ⇒ 显式拒绝 + 迁移提示，
  *        不得静默接受）；docs/science/PSF_SIGNAL_WEIGHT.md §1/§4（单一权重口径）。
@@ -203,7 +203,7 @@ std::vector<double> derive_psf_alpha(const FrameSet& fs) {
  *        PSF 质量代理（FWHM/残差尺度）只作诊断。 */
 const char* kRetiredWeightModeRejectReason =
     "FZ-MODE-RETIRED: product declares 'psfsw_robust' - psfsw_robust_weight is not "
-    "a current object (docs/ASTROCS_DESIGN.md 3.1; UNIFIED_MODEL.md:58); "
+    "a current object (docs/ACSD_DESIGN.md 3.1; UNIFIED_MODEL.md:58); "
     "there is no selectable weight mode: Phase2 reconstructs the dense SNR field and "
     "derives inverse-variance weights w = SNR^2/F_ref^2 = 1/sigma_F^2; "
     "PSF quality proxies (FWHM/residual) are diagnostics only; "
@@ -431,7 +431,7 @@ Provenance make_phase2_provenance(const Assembly& as, const RunMeta& meta,
   p.sampling.kernel_id = "phase2_combination_operator";
   p.sampling.has_pixfrac = false;
   p.algorithm_ids = as.algorithm_ids;
-  p.module.module_id = "astrocs.phase2.integrate";
+  p.module.module_id = "acsd.phase2.integrate";
   p.module.build_id = meta.build_id;
   p.provider = meta.provider;
   p.approximations = as.approximations;
@@ -581,7 +581,7 @@ PublishOutcome publish_phase2_assembly(const Assembly& as, const RunMeta& meta,
                                      {"constants_version", p1psfw::kCompositeVersion}};
     }
     doc["weight_mode_record"] = {
-        {"weight_mode_schema", "astrocs.v6.weight-mode/v1"},
+        {"weight_mode_schema", "acsd.v6.weight-mode/v1"},
         {"schema_version", 1},
         {"weight_mode", "point_information"},
         {"mode_class", "production"},
@@ -594,7 +594,7 @@ PublishOutcome publish_phase2_assembly(const Assembly& as, const RunMeta& meta,
 
     /* covariance */
     json cov;
-    cov["covariance_schema"] = "astrocs.v6.covariance/v1";
+    cov["covariance_schema"] = "acsd.v6.covariance/v1";
     cov["schema_version"] = 1;
     cov["propagation"] = "C_out = R C_in R^T";
     cov["scalar_form"] = "Var(out) = c^T C_in c = Sum_{i,j} c_i c_j [C_in]_{ij}";
@@ -648,7 +648,7 @@ PublishOutcome publish_phase2_assembly(const Assembly& as, const RunMeta& meta,
     /* point_information */
     if (as.has_point) {
       json pi;
-      pi["point_information_schema"] = "astrocs.v6.point-information/v1";
+      pi["point_information_schema"] = "acsd.v6.point-information/v1";
       pi["schema_version"] = 1;
       pi["authoritative_formula"] =
           "Q_k=a_k P_k^T C_k^-1 d_k; W_info,k=a_k^2 P_k^T C_k^-1 P_k; F_hat=Q/W; Var(F_hat)=1/W";
@@ -675,7 +675,7 @@ PublishOutcome publish_phase2_assembly(const Assembly& as, const RunMeta& meta,
 
     /* effective_psf */
     json ep;
-    ep["effective_psf_schema"] = "astrocs.v6.effective-psf/v1";
+    ep["effective_psf_schema"] = "acsd.v6.effective-psf/v1";
     ep["schema_version"] = 1;
     ep["effective_psf_id"] = as.eff_psf_id;
     ep["definition"] = "impulse_response_of_combination";
@@ -761,7 +761,7 @@ PublishOutcome publish_phase2_assembly(const Assembly& as, const RunMeta& meta,
 
     /* manifest */
     json mf;
-    mf["manifest_schema"] = "astrocs.v6.hips_manifest/v1";
+    mf["manifest_schema"] = "acsd.v6.hips_manifest/v1";
     mf["schema_version"] = 1;
     mf["product_type_id"] = kTypePoint;
     mf["files"] = json::array();
@@ -1573,4 +1573,4 @@ UpmRejSampResult run_upm_rej_samp_wiring(const FrameSet& fs, const RunMeta& meta
 
 }  /* namespace p2int */
 }  /* namespace v6 */
-}  /* namespace astrocs */
+}  /* namespace acsd */

@@ -2,7 +2,7 @@
 // drizzle_trace_concurrency_test.cpp
 //   drizzle_trace 全局量跨帧并发回归 (M42-CONC-FIX-01 / 缺陷 B)
 //
-// 覆盖的不是副本, 而是**生产路径本身**: ASTROCS_DRIZZLE_TRACE 打开后,
+// 覆盖的不是副本, 而是**生产路径本身**: ACSD_DRIZZLE_TRACE 打开后,
 // 每帧 drizzleTiled() 依次触碰 init_from_env / ensure_selection / enabled /
 // selected / push_source / push_leaf / flush / clear_buffers ——
 // 这正是 scheduler/src/module_adapters.cpp 的 p1_parallel_for 多帧并发形态。
@@ -31,7 +31,7 @@
 #include <vector>
 
 /* FINAL-07 WIN-PORT 批次二: 平台专属调用的唯一判定点 ——
- * Windows 侧的 setenv/unsetenv 经 eng/tests/support/astrocs_test_posix_compat.h 统一给等价物。
+ * Windows 侧的 setenv/unsetenv 经 eng/tests/support/acsd_test_posix_compat.h 统一给等价物。
  * 类 UNIX 侧该头整头为空, 上面保留本 TU 原有系统头 => Linux 预处理零 delta。
  *
  * 并发安全性 (B-5 清单登记的未决风险, 本处已核): 垫片 setenv 落到 _putenv, 是
@@ -39,7 +39,7 @@
  * 任何线程创建**之前**执行一次), 之后各帧线程只读该环境变量 => 写先于全部线程发生,
  * 不存在跨线程写-写/读写串扰。若将来把 setenv 移进并发区或加入多线程写, 该结论即失效,
  * 须重新评估。 */
-#include "../../../../../eng/tests/support/astrocs_test_posix_compat.h"
+#include "../../../../../eng/tests/support/acsd_test_posix_compat.h"
 
 using namespace drizzle;
 
@@ -136,7 +136,7 @@ bool jsonl_is_wellformed(const std::string& path, const char* const* required,
 int main(int argc, char** argv) {
     const std::string outdir = (argc > 1) ? argv[1] : ".";
     // 打开 trace 诊断面 —— 这是缺陷 B 的触发前提
-    ::setenv("ASTROCS_DRIZZLE_TRACE", outdir.c_str(), 1);
+    ::setenv("ACSD_DRIZZLE_TRACE", outdir.c_str(), 1);
 
     for (int round = 0; round < kRounds; ++round) {
         std::atomic<int> ok_count{0};

@@ -1,6 +1,6 @@
 # 三阶段调度器接口合同
 
-> 上游：docs/ASTROCS_DESIGN.md §8.1（三命令独立进程、独立调度器）、§8.3（三个阶段调度器）、§9（探针驱动优化）；docs/ASTROCS_DESIGN.md §8.2（命名块内存管线与块生命周期）
+> 上游：docs/ACSD_DESIGN.md §8.1（三命令独立进程、独立调度器）、§8.3（三个阶段调度器）、§9（探针驱动优化）；docs/ACSD_DESIGN.md §8.2（命名块内存管线与块生命周期）
 
 机器 schema：`eng/contracts/schemas/scheduler_probe_event.schema.json`（探针事件的机器取值源）。
 
@@ -10,7 +10,7 @@
 - 调度器是阶段内的**唯一执行者**：按 DAG 调度模块、管理块生命周期、分配线程预算、处理异步预取、响应取消；
 - **统一 entrypoint**：`run(stage, config_json) -> manifest_json`，失败返回非零 rc 与显式错误域；
 - **统一 DAG 声明**：节点 = {id, operation, 入参块集合, 产出块集合, 消费块集合, 线程安全性}；调度器据此推导执行序与块回收点；
-- **模块不私建线程池**：线程数、内存上限、队列深度一律从配置/资源门读取（`docs/ASTROCS_DESIGN.md` §8.2）。
+- **模块不私建线程池**：线程数、内存上限、队列深度一律从配置/资源门读取（`docs/ACSD_DESIGN.md` §8.2）。
 
 ## 2 三阶段调度形态（冻结）
 

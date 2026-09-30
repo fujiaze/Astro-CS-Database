@@ -22,4 +22,4 @@
 
 ## 上游
 
-上游：ENGINEERING_SPEC.md §5（测试规范）；docs/engineering/TEST_MATRIX.md（科学测试矩阵）；docs/ASTROCS_DESIGN.md §12.4（验证层级与四层验收）。
+上游：ENGINEERING_SPEC.md §5（测试规范）；docs/engineering/TEST_MATRIX.md（科学测试矩阵）；docs/ACSD_DESIGN.md §12.4（验证层级与四层验收）。

@@ -3,17 +3,17 @@
 // 控制包任务: P1-NOISE-TEST (SA-P1N-T, queue 41, lock-P1-NOISE; 依赖
 // P1-NOISE-DOC 闭环)。合同锚: docs/science/algorithms/NOISE_ESTIMATION.md §13.4
 // TEST-NOISE-DESIGN-001 (P1-NOISE-DOC 冻结, 2026-09-07, wave W1); 矩阵行
-// P1-NOISE (MOD astrocs.p1.noise-snr, TEST-P1-NOISE-001)。
+// P1-NOISE (MOD acsd.p1.noise-snr, TEST-P1-NOISE-001)。
 //
 // 单跑方式 (每个测试组 == 独立可执行 ctest 名, 二进制内按位置参数单跑):
 //   ./p1noise_tests units|properties|oracle|negative|fill
 //   ./p1noise_tests all
 //
 // 故障注入 (模板 <prefix>-TEST 验收: "故障注入能让测试失败"):
-//   ASTROCS_P1NOISE_FAULT=<regname>[,<regname>...]
+//   ACSD_P1NOISE_FAULT=<regname>[,<regname>...]
 //   每个注册的 fault 使对应 CHECK 组在报告阶段确定性翻转 → 二进制 rc=1,
 //   输出 "FAULT-INJECT <name>" 行。
-//   例: ASTROCS_P1NOISE_FAULT=a1_sigma_rtol ./p1noise_tests units
+//   例: ACSD_P1NOISE_FAULT=a1_sigma_rtol ./p1noise_tests units
 #ifndef P1NOISE_TEST_MAIN_HPP
 #define P1NOISE_TEST_MAIN_HPP
 
@@ -29,7 +29,7 @@ struct FaultRegistry {
         static FaultRegistry r;
         return r;
     }
-    // 由 main() 启动时从 ASTROCS_P1NOISE_FAULT 初始化
+    // 由 main() 启动时从 ACSD_P1NOISE_FAULT 初始化
     std::vector<std::string> active;
 
     bool injected(const char* name) const {
@@ -108,8 +108,8 @@ inline int run_all_groups(const p1noise::TestGroup* groups, std::size_t n, int a
         if (a == "--group" && i + 1 < argc) group = argv[++i];
         else if (a.rfind("--", 0) != 0) group = a;
     }
-    // ASTROCS_P1NOISE_FAULT: 逗号分隔故障注入名单
-    if (const char* f = std::getenv("ASTROCS_P1NOISE_FAULT")) {
+    // ACSD_P1NOISE_FAULT: 逗号分隔故障注入名单
+    if (const char* f = std::getenv("ACSD_P1NOISE_FAULT")) {
         std::string s = f;
         std::size_t pos = 0;
         while (pos < s.size()) {

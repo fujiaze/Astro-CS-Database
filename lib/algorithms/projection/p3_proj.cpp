@@ -8,7 +8,7 @@
 //             ③ 本内核是 p3_projection_registry.h 冻结表 SIN/CAR/AIT = kKernelOnly 的
 //             「实现未声明 = 隐藏能力（禁止）」判据的对照面。
 // STATUS:     内核-only，非产品声明，未接入生产。生产 projection target
-//             astrocs_p3_projection_wcs 只编 p3_wcs.cpp（TAN，lib/algorithms/projection/
+//             acsd_p3_projection_wcs 只编 p3_wcs.cpp（TAN，lib/algorithms/projection/
 //             CMakeLists.txt:19）；本文件仅被 eng/tests/unit/p3_proj、eng/tests/integration/p3_export、
 //             lib/algorithms/projection/tests/p3wcs 三个测试 target 编译。
 //             **已知缺陷**：p3_proj.cpp:195 sin_world2pix 用
@@ -28,7 +28,7 @@
 //             p3_projection_registry_test.cpp、eng/tests/unit/p3_proj/**、
 //             eng/tests/integration/p3_export/**，以及 eng/ci/checks.json 的 p3_proj_* ctest_targets
 //             （DOC-403 文件域）。
-// AUTHORITY:  ENGINEERING_SPEC.md §2（历史实现处置：保留则注释）；docs/ASTROCS_DESIGN.md §6.3
+// AUTHORITY:  ENGINEERING_SPEC.md §2（历史实现处置：保留则注释）；docs/ACSD_DESIGN.md §6.3
 //             （未实现的投影被选择时显式报「不支持」，当前仅 TAN 可用）；
 //             lib/algorithms/projection/p3_projection_registry.h「已知偏差登记」。
 // ──────────────────────────────────────────────────────────────────────
@@ -44,17 +44,17 @@
 #include <cstring>
 #include <limits>
 
-namespace astrocs::phase3proj::v6 {
+namespace acsd::phase3proj::v6 {
 namespace {
 
 constexpr double kDeg = 180.0 / M_PI;
 constexpr double kRad = M_PI / 180.0;
 constexpr double kMaxAbsDec = 85.0;
 constexpr double kHalfPi = M_PI / 2.0;
-#ifndef ASTROCS_P3_MAX_SIDE
+#ifndef ACSD_P3_MAX_SIDE
 constexpr int kMaxSide = 20000;
 #else
-constexpr int kMaxSide = ASTROCS_P3_MAX_SIDE;
+constexpr int kMaxSide = ACSD_P3_MAX_SIDE;
 #endif
 constexpr double kSqrt2 = 1.41421356237309504880168872420969808;
 
@@ -778,4 +778,4 @@ ProjStatus matrix_col_sums(const double* s, int m, int n, double* sums) {
     return ProjStatus::kOk;
 }
 
-}  // namespace astrocs::phase3proj::v6
+}  // namespace acsd::phase3proj::v6

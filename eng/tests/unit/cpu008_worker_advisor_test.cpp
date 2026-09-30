@@ -1,8 +1,8 @@
 // eng/tests/unit/cpu008_worker_advisor_test.cpp — CPU-008 (V7.1) 自适应线程建议单测
 // 覆盖(worker_advisor.h 合同):
 //   正例: limits 派生(affinity∩cgroup/job) / profile 行驱动 workers+block /
-//         无 profile 动态多线程回落 / L2 派生 block / plan(astrocs.resource-plan/v1)
-//         与 granted trace(astrocs.worker-grant/v1, V8-CPU-003 字段)序列化。
+//         无 profile 动态多线程回落 / L2 派生 block / plan(acsd.resource-plan/v1)
+//         与 granted trace(acsd.worker-grant/v1, V8-CPU-003 字段)序列化。
 //   负向样例(全部"不被使用"):
 //     - no fixed cores: fixed_cores/fixed_workers/workers_fixed 声明拒用, 选择不变;
 //       profile workers=32 在 cap=2 下被钳制(不写死 16/32)。
@@ -22,14 +22,14 @@
 
 #include <nlohmann/json.hpp>
 
-using astrocs::backend_host::ResourceLimitsV1;
-using astrocs::backend_host::LimitsResult;
-using astrocs::backend_host::WorkerAdvice;
-using astrocs::backend_host::GrantInput;
-using astrocs::backend_host::derive_limits_v1;
-using astrocs::backend_host::advise_kernel_v1;
-using astrocs::backend_host::build_resource_plan_v1;
-using astrocs::backend_host::worker_grant_trace_v1;
+using acsd::backend_host::ResourceLimitsV1;
+using acsd::backend_host::LimitsResult;
+using acsd::backend_host::WorkerAdvice;
+using acsd::backend_host::GrantInput;
+using acsd::backend_host::derive_limits_v1;
+using acsd::backend_host::advise_kernel_v1;
+using acsd::backend_host::build_resource_plan_v1;
+using acsd::backend_host::worker_grant_trace_v1;
 
 static int failures = 0;
 #define CHECK(cond)                                                        \
@@ -46,7 +46,7 @@ namespace {
 std::string make_hw(uint32_t avail, uint32_t cgroup = 0,
                     const char* extra_key = nullptr, int extra_val = 0) {
     nlohmann::json j;
-    j["kind"] = "astrocs_hardware_inspect";
+    j["kind"] = "acsd_hardware_inspect";
     j["available_logical_cpus"] = avail;
     j["affinity_count"] = avail;
     j["cgroup_cpu_limit"] = cgroup;   // 0=无显式限制
@@ -59,7 +59,7 @@ std::string make_hw(uint32_t avail, uint32_t cgroup = 0,
 // 最小 profile(v2 结构; 本层只读 kernels[id].{workers,block}, 不校验身份)
 std::string make_profile(const std::string& kernel_id, uint32_t workers, uint64_t block) {
     nlohmann::json j;
-    j["schema"] = "astrocs.cpu-profile/v2";
+    j["schema"] = "acsd.cpu-profile/v2";
     j["kernels"][kernel_id] = {
         {"provider", "baseline"},
         {"workers", workers},
@@ -258,7 +258,7 @@ int main() {
   // ── 12. profile 域隔离(负向样例): report/v1 文本作 profile 输入 → 无行回落 ──
   {
     const std::string report = nlohmann::json{
-        {"schema", "astrocs.benchmark-report/v1"},
+        {"schema", "acsd.benchmark-report/v1"},
         {"kernels", {{"calibration-pixel-transform", {{"workers", 32}}}}},
     }.dump();
     ResourceLimitsV1 lim;
@@ -276,7 +276,7 @@ int main() {
     CHECK(c.workers == 4);
   }
 
-  // ── 13. plan: 选择写入 plan(astrocs.resource-plan/v1) ──
+  // ── 13. plan: 选择写入 plan(acsd.resource-plan/v1) ──
   {
     ResourceLimitsV1 lim;
     lim.available_cpus = 8;
@@ -287,7 +287,7 @@ int main() {
     advice.push_back(advise_kernel_v1("", "io-sidecar", "io", "small", lim));
     const std::string plan = build_resource_plan_v1(advice, lim, "0.11.0-alpha.test");
     const nlohmann::json pj = nlohmann::json::parse(plan);
-    CHECK(pj["schema"] == "astrocs.resource-plan/v1");
+    CHECK(pj["schema"] == "acsd.resource-plan/v1");
     CHECK(pj["build_id"] == "0.11.0-alpha.test");
     CHECK(pj["limits"]["available_cpus"] == 8);
     CHECK(pj["limits"]["user_max_workers"] == 4);
@@ -298,8 +298,8 @@ int main() {
     CHECK(pj["resources"][1]["workload_class"] == "io");
     CHECK(pj["resources"][1]["workers"] == 1);  // io 允许 1
     // plan 不是 profile/report: schema 互不渗透
-    CHECK(plan.find("astrocs.cpu-profile/v2") == std::string::npos);
-    CHECK(plan.find("astrocs.benchmark-report/v1") == std::string::npos);
+    CHECK(plan.find("acsd.cpu-profile/v2") == std::string::npos);
+    CHECK(plan.find("acsd.benchmark-report/v1") == std::string::npos);
   }
 
   // ── 12b. tiny/io 无 profile 行 → 单 worker 捆绑(缺省 io 语义) ──
@@ -324,7 +324,7 @@ int main() {
     g.granted_workers = 2;
     g.block = 4096;
     const nlohmann::json tj = nlohmann::json::parse(worker_grant_trace_v1(g));
-    CHECK(tj["schema"] == "astrocs.worker-grant/v1");
+    CHECK(tj["schema"] == "acsd.worker-grant/v1");
     CHECK(tj["build_id"] == "0.11.0-alpha.test");
     CHECK(tj["kernel_id"] == kKernel);
     CHECK(tj["provider"] == "baseline");

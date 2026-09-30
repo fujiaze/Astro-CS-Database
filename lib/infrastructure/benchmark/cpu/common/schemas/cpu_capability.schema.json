@@ -1,8 +1,8 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://astrocs.invalid/schemas/cpu-capability-v1.json",
+  "$id": "https://acsd.invalid/schemas/cpu-capability-v1.json",
   "title": "ACSD CPU capability probe v1 (CPU-001)",
-  "description": "acs_cap_serialize_json_v1 输出的稳定 schema; Windows/Linux 同一 schema (CPU-001 验收)。hw_features = 硬件支持 (CPUID 位); os_safe_features = 硬件 ∩ OS 状态位 (OSXSAVE/XGETBV) ∩ 组包含后可安全执行。加载判定只依据 os_safe。",
+  "description": "acsd_cap_serialize_json_v1 输出的稳定 schema; Windows/Linux 同一 schema (CPU-001 验收)。hw_features = 硬件支持 (CPUID 位); os_safe_features = 硬件 ∩ OS 状态位 (OSXSAVE/XGETBV) ∩ 组包含后可安全执行。加载判定只依据 os_safe。",
   "type": "object",
   "required": [
     "schema_version",
@@ -23,7 +23,7 @@
   "additionalProperties": false,
   "properties": {
     "schema_version": { "const": 1 },
-    "kind": { "const": "astrocs_cpu_capability" },
+    "kind": { "const": "acsd_cpu_capability" },
     "architecture": { "const": "amd64" },
     "vendor": { "type": "string" },
     "brand": { "type": "string" },

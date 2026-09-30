@@ -25,7 +25,7 @@ TraceSnapshotObserver —— 从 RT-006 TraceStore 快照（真实事件流）�
 
 禁止 config 冒充的硬约束：本模块**不读计划/配置 JSON**，只读 trace 事件
 （JSONL 行或 TraceStore 快照 dict 列表）。事件字段名与
-`lib/include/astrocs/core/contracts.h` TraceEvent JSONL 完全一致（type/run_id/
+`lib/include/acsd/core/contracts.h` TraceEvent JSONL 完全一致（type/run_id/
 node_id/module_id/provider/workers/granted_workers/status 等）。
 
 实现还提供 emit_metric_events(): 把采样摘要作为 LOG-001 结构化事件写出
@@ -143,7 +143,7 @@ def emit_metric_event(*, seq: int, run: str, ts: str, phase: str = "monitoring",
 
     复用 lib/infrastructure/observability/logging/log_event.py 的 LogEvent 语义；返回已脱敏 dict，
     供调用方 to_jsonl() 或直接 JSON 落盘。字段集合满足
-    astrocs.log.event.v1 required（缺省 task/node/module 为空串）。
+    acsd.log.event.v1 required（缺省 task/node/module 为空串）。
     """
     from lib.infrastructure.observability.logging.log_event import LogEvent  # 延迟导入避免环
     ev = LogEvent(seq=seq, ts=ts, run=run, level="info", event="metric",

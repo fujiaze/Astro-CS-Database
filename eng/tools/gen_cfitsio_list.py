@@ -52,7 +52,7 @@ def render(root: pathlib.Path) -> tuple[int, str, str]:
                        % len(files))
     out = ["# 生成: %s (BLD-001 禁止 production GLOB)" % GENERATOR_REL,
            "# 证据源: %s/*.c（命中 %d）" % (SRC_REL, len(srcs)),
-           "set(ASTROCS_CFITSIO_SOURCES"]
+           "set(ACSD_CFITSIO_SOURCES"]
     out += ["  %s/%s" % (SRC_REL, s) for s in srcs]
     out.append(")")
     return (0, "\n".join(out) + "\n", "sources=%d" % len(srcs))

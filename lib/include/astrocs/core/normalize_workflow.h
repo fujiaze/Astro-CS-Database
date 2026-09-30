@@ -1,6 +1,6 @@
 // ACSD Core — ARCH-502 normalize 异步工作流调度器
 //
-// 依据：docs/ASTROCS_DESIGN.md §8.1（三命令独立进程、独立调度器）、§8.3（normalize =
+// 依据：docs/ACSD_DESIGN.md §8.1（三命令独立进程、独立调度器）、§8.3（normalize =
 //       异步工作流编排）、§9（探针驱动优化）；ENGINEERING_SPEC.md §4.1（管线纪律）；
 //       CONTRACT-501 docs/engineering/SCHEDULER_CONTRACT.md（统一 entrypoint、DAG 声明、
 //       资源声明、探针事件 schema、取消与原子性）。
@@ -17,7 +17,7 @@
 //   ③ 取消：cancel() 置位后唤醒全部等待，在途块全部销毁、无泄漏（合同 §5）。
 #pragma once
 
-#include "astrocs/core/block_frame.h"
+#include "acsd/core/block_frame.h"
 
 #include <atomic>
 #include <condition_variable>
@@ -30,7 +30,7 @@
 #include <string>
 #include <vector>
 
-namespace astrocs::core {
+namespace acsd::core {
 
 // ── 探针事件（CONTRACT-501 SCHEDULER_CONTRACT §4，字段与 schema 一一对应）──────
 enum class ProbeKind : std::uint8_t {
@@ -217,4 +217,4 @@ class NormalizeWorkflowScheduler {
   std::vector<std::unique_ptr<std::atomic<int>>> probe_claimed_;
 };
 
-}  // namespace astrocs::core
+}  // namespace acsd::core

@@ -14,7 +14,7 @@
 
 #define P1NOISE_OFF(T, F) \
     static_assert(offsetof(T, F) == 0 || offsetof(T, F) == 4, \
-                  #T "." #F " 必须在偏移 0 或 4 (docs/ASTROCS_DESIGN 7.3 版本化 C ABI)")
+                  #T "." #F " 必须在偏移 0 或 4 (docs/ACSD_DESIGN 7.3 版本化 C ABI)")
 #define P1NOISE_HEAD(T)                                                     \
     static_assert(std::is_same<decltype(T::struct_size), uint32_t>::value,  \
                   #T ".struct_size 必须为 uint32_t");                       \

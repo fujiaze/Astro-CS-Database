@@ -8,7 +8,7 @@
     "patch": 0
   },
   "vendor": {
-    "astrocs.org/toolchain/1": {
+    "acsd.org/toolchain/1": {
       "doc": "eng/packaging/windows/README.md",
       "frozen_utc": "2026-09-02T00:00:00Z",
       "contract_schema": "eng/packaging/schemas/preset-contract.schema.json",
@@ -46,7 +46,7 @@
         "CMAKE_CXX_STANDARD_REQUIRED": "ON",
         "CMAKE_C_STANDARD": "11",
         "CMAKE_C_STANDARD_REQUIRED": "ON",
-        "ASTROCS_ENABLE_ACR": "OFF"
+        "ACSD_ENABLE_ACR": "OFF"
       },
       "condition": {
         "type": "equals",
@@ -73,8 +73,8 @@
       "binaryDir": "${sourceDir}/build/linux-control",
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "Release",
-        "ASTROCS_ENABLE_ACR": "OFF",
-        "ASTROCS_BUILD_TESTS": "ON"
+        "ACSD_ENABLE_ACR": "OFF",
+        "ACSD_BUILD_TESTS": "ON"
       },
       "condition": {
         "type": "notEquals",

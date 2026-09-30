@@ -44,7 +44,7 @@ import aio_abi_mirror as abi  # noqa: E402
 AstroSphereTileView = abi.AstroSphereTileView
 AioHipsSnrPoint = abi.AioHipsSnrPoint
 ROOT = _REPO
-AIO_DLL = os.environ.get("ASTROCS_AIO_DLL") or str(
+AIO_DLL = os.environ.get("ACSD_AIO_DLL") or str(
     _REPO / "lib" / "infrastructure" / "aio" / "astro_image_io.dll")
 
 
@@ -75,7 +75,7 @@ def gen(out, dtype, nside, tile_ra_dec, pts):
     if os.path.isdir(out):
         shutil.rmtree(out)
     ps = aio.aio_hips_product_begin(
-        out.encode(), nside, 512, dt, 7, b"ivo://astrocs/g3browser",
+        out.encode(), nside, 512, dt, 7, b"ivo://acsd/g3browser",
         b"V4 Browser backend test", b"L", 300.0, b"2026-08-09", 0)
     if not ps:
         print("begin failed:", aio.aio_hips_last_error().decode())

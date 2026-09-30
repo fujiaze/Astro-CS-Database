@@ -85,7 +85,7 @@ def _module_yaml(m):
     inp = m.get("_fixture_input_ports") or ["in." + str(m["id"])]
     outp = m.get("_fixture_output_ports") or ["out." + str(m["id"])]
     doc = {
-        "id": "MOD-astrocs-" + str(m["id"]).replace("_", "-"),
+        "id": "MOD-acsd-" + str(m["id"]).replace("_", "-"),
         "module_id": m["module_id"],
         "module_version": m["module_version"],
         "abi_version": m["abi_version"],
@@ -111,15 +111,15 @@ def _unit_id_for(m):
 
 
 def _header_text(m):
-    guard = "ASTROCS_" + str(m["id"]).upper() + "_H"
+    guard = "ACSD_" + str(m["id"]).upper() + "_H"
     return (
         "#pragma once\n"
         "/* " + str(m["id"]) + " public header — fixture (MOD-001) */\n"
         "#define " + guard + " 1\n"
-        "#define ASTROCS_" + str(m["id"]).upper() + "_ABI_VERSION 1\n"
-        "typedef struct { unsigned int struct_size; unsigned int abi_version; } astrocs_"
+        "#define ACSD_" + str(m["id"]).upper() + "_ABI_VERSION 1\n"
+        "typedef struct { unsigned int struct_size; unsigned int abi_version; } acsd_"
         + str(m["id"]) + "_desc_v1;\n"
-        "int astrocs_" + str(m["id"]) + "_execute(const void *host, const char *req, void *out);\n"
+        "int acsd_" + str(m["id"]) + "_execute(const void *host, const char *req, void *out);\n"
     )
 
 
@@ -129,20 +129,20 @@ def _source_text(m, body=None):
         default = (
             "int main(int argc, char **argv) {\n"
             "    (void)argc; (void)argv;\n"
-            "    return astrocs_cli_dispatch(argc, argv);\n"
+            "    return acsd_cli_dispatch(argc, argv);\n"
             "}\n"
         )
-        impl = "int astrocs_cli_dispatch(int argc, char **argv) { (void)argc; (void)argv; return 0; }\n"
+        impl = "int acsd_cli_dispatch(int argc, char **argv) { (void)argc; (void)argv; return 0; }\n"
     else:
         default = (
             'extern "C" int ' + ep + '(const void *host, const char *req, void *out) {\n'
-            "    return astrocs_" + str(m["id"]) + "_execute(host, req, out);\n"
+            "    return acsd_" + str(m["id"]) + "_execute(host, req, out);\n"
             "}\n"
         )
-        impl = ("int astrocs_" + str(m["id"]) + "_execute(const void *host, const char *req, void *out) {\n"
-                "    return astrocs_" + str(m["id"]) + "_kernel(host, req, out);\n"
+        impl = ("int acsd_" + str(m["id"]) + "_execute(const void *host, const char *req, void *out) {\n"
+                "    return acsd_" + str(m["id"]) + "_kernel(host, req, out);\n"
                 "}\n"
-                "int astrocs_" + str(m["id"]) + "_kernel(const void *host, const char *req, void *out) {\n"
+                "int acsd_" + str(m["id"]) + "_kernel(const void *host, const char *req, void *out) {\n"
                 "    (void)host; (void)req; (void)out; return 0;\n"
                 "}\n")
     if body is not None:
@@ -235,7 +235,7 @@ def build_repo(root, mutation=None, repo=None):
         if mutation == "facade_session" and m is mods[5]:
             body = ('extern "C" int ' + str(m["entrypoint"])
                     + '(const void *host, const char *req, void *out) {\n'
-                    "    return astrocs_p1_session_run(host, req, out);\n"
+                    "    return acsd_p1_session_run(host, req, out);\n"
                     "}")
         if mutation == "noop_entrypoint" and m is mods[6]:
             body = ('extern "C" int ' + str(m["entrypoint"])
@@ -263,7 +263,7 @@ def build_repo(root, mutation=None, repo=None):
                 "status": "IMPLEMENTED",
             })
 
-    index_lines = ["schema: astrocs.contract-index/v1", "version: 1.0.0", "contracts:"]
+    index_lines = ["schema: acsd.contract-index/v1", "version: 1.0.0", "contracts:"]
     for cid in base_contract_ids:
         index_lines += ["  - id: " + cid, "    type: DATA", "    status: ACTIVE",
                         "    path: docs/engineering/DATA_ARTIFACTS.md"]
@@ -279,7 +279,7 @@ def build_repo(root, mutation=None, repo=None):
     for rel in base_schema_links:
         _write(root / rel, '{"$comment": "MOD-001 fixture schema", "type": "object"}\n')
     _write(root / (doc.get("conventions") or {}).get("product_manifest_file",
-                                                     "eng/packaging/astrocs.product.json"),
+                                                     "eng/packaging/acsd.product.json"),
            json.dumps({"schema_version": 1, "product_version": "0.11.0-alpha.2",
                        "source_commit": "0" * 40, "platform": "linux-amd64",
                        "note": "MOD-001 fixture", "units": units},

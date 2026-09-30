@@ -1,6 +1,6 @@
 # Astro Celestial Sphere Database（ACSD） run manifest 与 verify 合同 v1 (CLI-003 冻结)
 
-> 上游：ASTROCS_DESIGN.md §10（I/O 与原子产品）
+> 上游：ACSD_DESIGN.md §10（I/O 与原子产品）
 
 > ID: API-MANIFEST-001  状态: FROZEN  上游: API-002(final 事件/verify 命令) §4-5  下游: CODE-P*/TST-P*/REL-002
 > 分离原则(硬性): **科学 config(pipeline_config.json)与 CPU profile(cpu_profile.json)是两个独立文件、独立校验、独立 hash**;profile 陈旧→确定错误, 不猜测。
@@ -18,13 +18,13 @@
 ```
 
 validate 校验序(错误码确定, 不猜测): JSON 语法(3)→顶层对象+schema_version=="1"(3)→inputs 四键存在且为字符串数组、路径非空且文件存在(3)→output_dir 存在(3)。已知键白名单外键→3(防拼写静默忽略)。schema_version≠"1"→2(参数/配置错, 与输入缺失区分)。
-cpu profile(独立文件): **契约唯一源 = `eng/contracts/schemas/cpu_profile.schema.json`**（CFG-001 单文件双分支：legacy_v1 `schema_version=1` + profile_v2 `schema=astrocs.cpu-profile/v2`；`x-astrocs-writer` 声明生产者仅 `benchmark`）；校验 oracle = `eng/tools/validate_cpu_profile.py`（schema 最小校验 + stale 判定，消费面 `eng/tests/backend/test_cpu_profile.py`）；无/失配 profile → 回落 generic(baseline) + 动态多线程，不阻塞（`profile_store.h`）。CLI 侧运行时校验入口 `lib/infrastructure/cli/parser.cpp`（`validate_cpu_profile`）当前无生产调用方——消费链接线缺口已在死键台账（`eng/ci/ledgers/dead_config_keys.json`）与开放项清单登记在案，处置排期随该登记推进。
+cpu profile(独立文件): **契约唯一源 = `eng/contracts/schemas/cpu_profile.schema.json`**（CFG-001 单文件双分支：legacy_v1 `schema_version=1` + profile_v2 `schema=acsd.cpu-profile/v2`；`x-acsd-writer` 声明生产者仅 `benchmark`）；校验 oracle = `eng/tools/validate_cpu_profile.py`（schema 最小校验 + stale 判定，消费面 `eng/tests/backend/test_cpu_profile.py`）；无/失配 profile → 回落 generic(baseline) + 动态多线程，不阻塞（`profile_store.h`）。CLI 侧运行时校验入口 `lib/infrastructure/cli/parser.cpp`（`validate_cpu_profile`）当前无生产调用方——消费链接线缺口已在死键台账（`eng/ci/ledgers/dead_config_keys.json`）与开放项清单登记在案，处置排期随该登记推进。
 
 ## 2 run_manifest.json v1(run 结束原子写, ARCH-002 §5)
 
 ```json
-{ "schema_version":"1", "kind":"astrocs_run_manifest", "run_id":"<12hex>",
-  "astrocs_version":"<X.Y.Z-alpha.N+g12hex>", "platform":{"os":"linux|windows","arch":"amd64"},
+{ "schema_version":"1", "kind":"acsd_run_manifest", "run_id":"<12hex>",
+  "acsd_version":"<X.Y.Z-alpha.N+g12hex>", "platform":{"os":"linux|windows","arch":"amd64"},
   "config_path": "<utf-8>", "cpu_profile_path": "<utf-8|null>",
   "config_sha256":"<hex>", "cpu_profile_sha256":"<hex|null>", "phases":[1,2,3],
   "artifacts":[{"role":"phase3_output","path":"<rel>","sha256":"<hex>","size_bytes":N}],
@@ -34,7 +34,7 @@ cpu profile(独立文件): **契约唯一源 = `eng/contracts/schemas/cpu_profil
 - `config_sha256`/`cpu_profile_sha256` 记录**输入文件字节 hash**(verify 重算比对;路径由 `config_path`/`cpu_profile_path` 提供)。
 - 取消/崩溃/not-wired stub → `status:"incomplete"` manifest(**complete manifest 只出自完成的科学运行**——run 命令 stub 亦写 incomplete 并 exit 2);atomic tmp+rename。
 
-### 2.1 provenance 子对象（加性扩展；`ASTROCS_DESIGN.md` §9 manifest 必记项）
+### 2.1 provenance 子对象（加性扩展；`ACSD_DESIGN.md` §9 manifest 必记项）
 
 `run` 命令在 run manifest 顶层追加 `provenance` 对象（additive；v1 校验器/
 `verify` 忽略未知顶层键，向后兼容）。字段全部**由真实节点 manifest 汇总**，
@@ -85,7 +85,7 @@ cpu profile(独立文件): **契约唯一源 = `eng/contracts/schemas/cpu_profil
 独立 `verify` 命令不在命令面上（CLI-001 唯一命令树；verify* 为已删别名 → rc=2，负例锁定于
 `eng/tests/cli/test_cli_protocol.py` test_03）。manifest verify 的现行载体 = **`doctor` 的机器旗标
 `--run-manifest`**（`lib/infrastructure/cli/commands.cpp` → `cmd_verify`）。
-校验序→错误码: manifest 语法/schema(3)→status=="complete"(否则 8)→astrocs_version 与本机一致(5, 版本不同不可 verify)→重算 config/profile hash(3, 输入已变)→逐 artifact 存在性(3)+sha256(8)+size(8)→全部过→0 并输出 JSON `{verify:"ok", checked:N, manifest:<path>}`（stdout 恰一个 JSON 文档）。
+校验序→错误码: manifest 语法/schema(3)→status=="complete"(否则 8)→acsd_version 与本机一致(5, 版本不同不可 verify)→重算 config/profile hash(3, 输入已变)→逐 artifact 存在性(3)+sha256(8)+size(8)→全部过→0 并输出 JSON `{verify:"ok", checked:N, manifest:<path>}`（stdout 恰一个 JSON 文档）。
 
 ## 4 config/profile 分离校验落点
 

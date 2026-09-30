@@ -1,6 +1,6 @@
 /* ACSD CPU 能力探测实现 — lib/infrastructure/benchmark/cpu/common/src/capability_detect.c (CPU-001)
  *
- * 职责: acs_cap_* C ABI (capability_v1.h) 的 AMD64 实现。
+ * 职责: acsd_cap_* C ABI (capability_v1.h) 的 AMD64 实现。
  *   - CPUID 叶 0/1/7.0/80000000-4 只读探测 (feature/厂商/型号);
  *   - OSXSAVE + XGETBV(0) 实测 XCR0 (仅当 CPUID.1:ECX.OSXSAVE=1 才执行
  *     XGETBV, 保证探测自身永不触发非法指令);
@@ -16,7 +16,7 @@
  * 探测自身只用 SSE2 可执行指令 + cpuid/xgetbv; 不触碰任何 AVX* 指令
  * (CPU-002 起的高级 kernel 加载方在调用本探测并确认 os_safe 后才可执行)。
  */
-#include "astrocs/cpu/capability_v1.h"
+#include "acsd/cpu/capability_v1.h"
 
 #include <stdarg.h>
 #include <stdio.h>
@@ -103,7 +103,7 @@ static const uint64_t cap_all_bits[] = {
  *     ZMM_Hi256|Hi16_ZMM (0xE0)。组缺任一子集 → 组全部清除 (缺子集拒绝:
  *     不在 os_safe 平面; 具体缺哪个由 hw/os_safe 位差诊断)。
  * 本机 2 CPU 等线程/核决策不在此 (CPU-008); 本文件不读核心数。 */
-static void cap_classify(const acs_cap_result_v1* raw, acs_cap_result_v1* out) {
+static void cap_classify(const acsd_cap_result_v1* raw, acsd_cap_result_v1* out) {
     *out = *raw; /* 先拷贝全部原始证据/厂商/hw */
     out->hw_features = 0;
     out->os_safe = 0;
@@ -152,7 +152,7 @@ static void cap_classify(const acs_cap_result_v1* raw, acs_cap_result_v1* out) {
     out->os_safe = safe;
 }
 
-int acs_cap_classify_v1(const acs_cap_result_v1* raw, acs_cap_result_v1* out) {
+int acsd_cap_classify_v1(const acsd_cap_result_v1* raw, acsd_cap_result_v1* out) {
     if (raw == NULL || out == NULL) return ACS_CAP_ERR_PARAM;
     if (raw->abi_version != ACS_CAP_ABI_VERSION_V1) {
         return ACS_CAP_ERR_ABI_MISMATCH;
@@ -162,11 +162,11 @@ int acs_cap_classify_v1(const acs_cap_result_v1* raw, acs_cap_result_v1* out) {
 }
 
 /* ───────── 探测主流程 ───────── */
-int acs_cap_detect_v1(acs_cap_result_v1* out) {
+int acsd_cap_detect_v1(acsd_cap_result_v1* out) {
     if (out == NULL) return ACS_CAP_ERR_PARAM;
-    acs_cap_result_v1 r;
+    acsd_cap_result_v1 r;
     memset(&r, 0, sizeof(r));
-    r.struct_size = (uint32_t)sizeof(acs_cap_result_v1);
+    r.struct_size = (uint32_t)sizeof(acsd_cap_result_v1);
     r.abi_version = ACS_CAP_ABI_VERSION_V1;
     r.schema_version = ACS_CAP_SCHEMA_VER;
 
@@ -248,9 +248,9 @@ int acs_cap_detect_v1(acs_cap_result_v1* out) {
 }
 
 /* ───────── 判定辅助 ───────── */
-const char* acs_cap_feature_name_v1(uint64_t bit) { return cap_bit_name(bit); }
+const char* acsd_cap_feature_name_v1(uint64_t bit) { return cap_bit_name(bit); }
 
-int acs_cap_os_safe_satisfies_v1(const acs_cap_result_v1* cap, uint64_t required) {
+int acsd_cap_os_safe_satisfies_v1(const acsd_cap_result_v1* cap, uint64_t required) {
     if (cap == NULL) return 0;
     if (required == 0) return 1;
     /* 非法位 (非任何已知 feature) → 拒绝 */
@@ -260,13 +260,13 @@ int acs_cap_os_safe_satisfies_v1(const acs_cap_result_v1* cap, uint64_t required
     return (cap->os_safe & required) == required;
 }
 
-int acs_cap_hw_satisfies_v1(const acs_cap_result_v1* cap, uint64_t required) {
+int acsd_cap_hw_satisfies_v1(const acsd_cap_result_v1* cap, uint64_t required) {
     if (cap == NULL) return 0;
     if (required == 0) return 1;
     return (cap->hw_features & required) == required;
 }
 
-int acs_cap_os_saves_avx512_state_v1(const acs_cap_result_v1* cap) {
+int acsd_cap_os_saves_avx512_state_v1(const acsd_cap_result_v1* cap) {
     if (cap == NULL) return 0;
     if (cap->osxsave == 0) return 0;
     return (cap->xcr0 & 0xE0u) == 0xE0u;
@@ -323,13 +323,13 @@ static void cap_append_bool(cap_appender* a, int v) {
     cap_append(a, v ? "true" : "false");
 }
 
-size_t acs_cap_serialize_json_v1(const acs_cap_result_v1* cap,
+size_t acsd_cap_serialize_json_v1(const acsd_cap_result_v1* cap,
                                  char* out_json, size_t out_cap,
                                  char* err, size_t err_cap) {
     if (err != NULL && err_cap > 0) err[0] = '\0';
     if (cap == NULL || cap->abi_version != ACS_CAP_ABI_VERSION_V1) {
         if (err != NULL && err_cap > 0) {
-            snprintf(err, err_cap, "acs_cap_serialize_json_v1: bad cap (abi/version)");
+            snprintf(err, err_cap, "acsd_cap_serialize_json_v1: bad cap (abi/version)");
         }
         if (out_json != NULL && out_cap > 0) out_json[0] = '\0';
         return 0;
@@ -346,7 +346,7 @@ size_t acs_cap_serialize_json_v1(const acs_cap_result_v1* cap,
     a.truncated = 0;
     /* 结构需头 0 长度占位: 逐段 append, 最终 need = 全部字符数 + 1 (NUL) */
     cap_append(&a, "{\"schema_version\":%u,", (unsigned)cap->schema_version);
-    cap_append(&a, "\"kind\":\"astrocs_cpu_capability\",");
+    cap_append(&a, "\"kind\":\"acsd_cpu_capability\",");
     cap_append(&a, "\"architecture\":\"amd64\",");
     cap_append(&a, "\"vendor\":\"%s\",", cap->vendor[0] ? cap->vendor : "unknown");
     cap_append(&a, "\"brand\":\"%s\",", cap->brand[0] ? cap->brand : "");

@@ -1,7 +1,7 @@
 // RT-008 CLI Runtime client 实现：preset→IR→Runtime 唯一执行路径。
 #include "runtime_client.h"
 
-#include "astrocs/core/context.h"
+#include "acsd/core/context.h"
 #include "cancel_token.h"
 #include "exit_codes.h"   // P-158: 退出码唯一源（域→码映射不重定义数值）
 // MEMGOV-01: 压力分子（进程树 RSS）唯一实现收在 aio 边界（§10 文件级唯一 I/O 边界）。
@@ -17,13 +17,13 @@
 #include <set>
 #include <thread>
 
-namespace astrocs::cli {
+namespace acsd::cli {
 
-using astrocs::core::ModuleRegistry;
-using astrocs::core::Result;
+using acsd::core::ModuleRegistry;
+using acsd::core::Result;
 
-astrocs::core::Result<void> register_cli_modules(ModuleRegistry& reg) {
-  return astrocs::core::register_phase_modules(reg);
+acsd::core::Result<void> register_cli_modules(ModuleRegistry& reg) {
+  return acsd::core::register_phase_modules(reg);
 }
 
 // P-158: ErrorDomain → 退出码。唯一依据 = docs/engineering/LOG_AND_ERROR_CONTRACT.md §5
@@ -31,19 +31,19 @@ astrocs::core::Result<void> register_cli_modules(ModuleRegistry& reg) {
 // 上游事实：pipeline 解析/静态验证（lib/infrastructure/scheduler/src/pipeline.cpp:55-189
 // 与 runtime.cpp:133-149）一律构造 ErrorDomain::DATA ⇒ 取值 2(ARGS)；
 // 旧实现在 load_pipeline 失败处无条件 return 4（SCIENCE_PRECONDITION）⇒ 域被误判。
-int exit_code_for_error_domain(astrocs::core::ErrorDomain domain) {
-  using astrocs::core::ErrorDomain;
+int exit_code_for_error_domain(acsd::core::ErrorDomain domain) {
+  using acsd::core::ErrorDomain;
   switch (domain) {
-    case ErrorDomain::CONFIG:                return astrocs::ARGS;       // §5: 2（ARGS）
-    case ErrorDomain::DATA:                  return astrocs::ARGS;       // §5: 2（ARGS）
-    case ErrorDomain::SCIENCE_PRECONDITION:  return astrocs::SCIENCE;    // §5: 4（SCIENCE）
-    case ErrorDomain::BACKEND:               return astrocs::BACKEND;    // §5: 5（BACKEND）
-    case ErrorDomain::IO:                    return astrocs::IO;         // §5: 7（IO）
-    case ErrorDomain::RESOURCE:              return astrocs::RESOURCE;   // §5: 10（RESOURCE）
-    case ErrorDomain::CANCELLED:             return astrocs::CANCELLED;  // §5: 9（CANCELLED）
-    case ErrorDomain::INTERNAL:              return astrocs::INTERNAL;   // §5: 70（INTERNAL）
+    case ErrorDomain::CONFIG:                return acsd::ARGS;       // §5: 2（ARGS）
+    case ErrorDomain::DATA:                  return acsd::ARGS;       // §5: 2（ARGS）
+    case ErrorDomain::SCIENCE_PRECONDITION:  return acsd::SCIENCE;    // §5: 4（SCIENCE）
+    case ErrorDomain::BACKEND:               return acsd::BACKEND;    // §5: 5（BACKEND）
+    case ErrorDomain::IO:                    return acsd::IO;         // §5: 7（IO）
+    case ErrorDomain::RESOURCE:              return acsd::RESOURCE;   // §5: 10（RESOURCE）
+    case ErrorDomain::CANCELLED:             return acsd::CANCELLED;  // §5: 9（CANCELLED）
+    case ErrorDomain::INTERNAL:              return acsd::INTERNAL;   // §5: 70（INTERNAL）
   }
-  return astrocs::INTERNAL;   // §5 末条: 未列出的域一律 70
+  return acsd::INTERNAL;   // §5 末条: 未列出的域一律 70
 }
 
 namespace {
@@ -73,7 +73,7 @@ nlohmann::json phase_config(const nlohmann::json& doc, int phase,
     }
     // B2-A4/A5: projection/frame/coverage_output 在此 config 面 fail-closed ——
     // validate/plan/run 三面共用本函数, 故三面一致拒绝非法值; 唯一语义源 =
-    // astrocs::phase3::p3_wcs_validate_request(未实现投影不得静默映射为 TAN)。
+    // acsd::phase3::p3_wcs_validate_request(未实现投影不得静默映射为 TAN)。
     {
       for (const char* k : {"projection", "frame", "coverage_output"}) {
         if (pdoc.contains(k) && !pdoc[k].is_string()) {
@@ -85,11 +85,11 @@ nlohmann::json phase_config(const nlohmann::json& doc, int phase,
       const std::string frame = pdoc.value("frame", std::string("icrs"));
       const std::string cov = pdoc.value("coverage_output", std::string("mask"));
       std::string why;
-      const astrocs::phase3::P3WcsStatus pst = astrocs::phase3::p3_wcs_validate_request(
+      const acsd::phase3::P3WcsStatus pst = acsd::phase3::p3_wcs_validate_request(
           pdoc.contains("projection") ? proj.c_str() : nullptr,
           pdoc.contains("frame") ? frame.c_str() : nullptr,
           pdoc.contains("coverage_output") ? cov.c_str() : nullptr, &why);
-      if (pst != astrocs::phase3::P3_WCS_OK) {
+      if (pst != acsd::phase3::P3_WCS_OK) {
         if (err) *err = std::string("phase3 config rejected: ") + why;
         return {};
       }
@@ -134,7 +134,7 @@ std::string build_pipeline_ir(const std::vector<int>& phases,
   }
   const std::string out_dir = doc.value("output_dir", std::string("."));
   nlohmann::json ir;
-  ir["schema"] = "astrocs.pipeline/v1";
+  ir["schema"] = "acsd.pipeline/v1";
   ir["pipeline_id"] = "cli.run.preset";
   ir["version"] = "1.0.0";
   ir["nodes"] = nlohmann::json::array();
@@ -176,22 +176,22 @@ std::string build_pipeline_ir(const std::vector<int>& phases,
       return n;
     };
     return {
-        mk("cal", "astrocs.phase1.calibration",
+        mk("cal", "acsd.phase1.calibration",
            {{"frames", "artifact:in"}}, {{"calibrated", "artifact:cal"}},
            "cpu_heavy", true),
-        mk("cos", "astrocs.phase1.cosmetic",
+        mk("cos", "acsd.phase1.cosmetic",
            {{"calibrated", "artifact:cal"}}, {{"cleaned", "artifact:cos"}},
            "cpu_heavy", true),
         // wcs 的真实输入 = 校准后像素（注册表 wcs-platesolve 的 p1_calibrated 端口）。
         // 本节点自行做星点检测, 不消费 p1_sources.json ⇒ 排在 star-psf 之前,
         // 二者不构成环（旧 IR 声明的 artifact:p1_sources 输入是**幻边**, 已删）。
-        mk("wcs", "astrocs.phase1.wcs-platesolve",
+        mk("wcs", "acsd.phase1.wcs-platesolve",
            {{"calibrated", "artifact:cal"}}, {{"wcs", "artifact:p1_wcs"}},
            "cpu_heavy", true),
         // 取向先验来自 wcs 节点产物 <frame_dir>/p1_wcs.json（typed 边, 调度器保证
         // wcs 先落盘）。缺该产物时本节点按 star_detection.mode 显式降级或 fail-closed,
         // 不以"北向上/东向左"假设冒充权威（见 docs/detail/algorithms_phase1/03_star_detection.md §4）。
-        mk("psf", "astrocs.phase1.star-psf",
+        mk("psf", "acsd.phase1.star-psf",
            {{"cleaned", "artifact:cos"}, {"wcs", "artifact:p1_wcs"}},
            {{"sources", "artifact:p1_sources"}, {"psf", "artifact:p1_psf"}},
            "cpu_heavy", true),
@@ -205,7 +205,7 @@ std::string build_pipeline_ir(const std::vector<int>& phases,
         // 由调度器保证 wcs 先落盘, 不再依赖并发文件约定。
         // PSF 参数随 p1_sources.json 的 psf_params 行到达（注册表 photometry 的
         // p1_sources/p1_wcs/p1_calibrated 端口）; artifact:p1_psf 边是**幻边**（已删）。
-        mk("phot", "astrocs.phase1.photometry",
+        mk("phot", "acsd.phase1.photometry",
            {{"calibrated", "artifact:cal"}, {"sources", "artifact:p1_sources"},
             {"wcs", "artifact:p1_wcs"}},
            // DET-001 (D5): phot 有第二个真实产物 p1_phot.json (测光 provenance
@@ -216,7 +216,7 @@ std::string build_pipeline_ir(const std::vector<int>& phases,
         // 真实输入 = 逐源行 p1_sources.json + 测光 provenance p1_phot.json +
         // cleaned 像素（注册表 noise-snr 端口）。旧 IR 的 artifact:p1_flux 输入是
         // **幻边**（本节点无 p1_flux.json 读取点）, 已删。
-        mk("snr", "astrocs.phase1.noise-snr",
+        mk("snr", "acsd.phase1.noise-snr",
            {{"sources", "artifact:p1_sources"}, {"photprov", "artifact:p1_phot"},
             {"cleaned", "artifact:cos"}},
            {{"snr", "artifact:p1_snr"}},
@@ -235,13 +235,13 @@ std::string build_pipeline_ir(const std::vector<int>& phases,
         // 的 p1_sources / p1_snr 端口, 锚点见 astro_sphere_sink.cpp write_hips_phase1）。
         // 两条都是 typed 边: 缺 p1_snr 边时 drz 与 snr 并发执行, 读不到 p1_snr.json
         // 只打印警告并**跳过帧级 SNR 键**（静默降级, 产品少键而运行仍报成功）。
-        mk("drz", "astrocs.phase1.drizzle",
+        mk("drz", "acsd.phase1.drizzle",
            {{"calibrated", "artifact:cal"}, {"wcs", "artifact:p1_wcs"},
             {"photprov", "artifact:p1_phot"}, {"sources", "artifact:p1_sources"},
             {"snr", "artifact:p1_snr"}},
            {{"stacked", "artifact:p1_stack"}},
            "cpu_heavy", true),
-        mk("wr", "astrocs.phase1.writer",
+        mk("wr", "acsd.phase1.writer",
            {{"stacked", "artifact:p1_stack"}}, {{"fits", "artifact:p1_hips"}},
            "io", false),
     };
@@ -254,13 +254,13 @@ std::string build_pipeline_ir(const std::vector<int>& phases,
     if (err && !err->empty()) return {};
     // node_id, module_id, input 端口, output 端口
     const std::vector<std::tuple<std::string, std::string, std::string, std::string>> chain = {
-        {"coverage", "astrocs.phase2.coverage", "calibrated", "coverage"},
-        {"sample", "astrocs.phase2.sample", "coverage", "samples"},
-        {"upm_fit", "astrocs.phase2.upm-fit", "samples", "upm_model"},
-        {"upm_apply", "astrocs.phase2.upm-apply", "upm_model", "corrected"},
-        {"reject", "astrocs.phase2.reject", "corrected", "accepted_mask"},
-        {"integrate", "astrocs.phase2.integrate", "accepted_mask", "integrated"},
-        {"write", "astrocs.phase2.write", "integrated", "mosaic"},
+        {"coverage", "acsd.phase2.coverage", "calibrated", "coverage"},
+        {"sample", "acsd.phase2.sample", "coverage", "samples"},
+        {"upm_fit", "acsd.phase2.upm-fit", "samples", "upm_model"},
+        {"upm_apply", "acsd.phase2.upm-apply", "upm_model", "corrected"},
+        {"reject", "acsd.phase2.reject", "corrected", "accepted_mask"},
+        {"integrate", "acsd.phase2.integrate", "accepted_mask", "integrated"},
+        {"write", "acsd.phase2.write", "integrated", "mosaic"},
     };
     std::vector<nlohmann::json> nodes;
     std::string prev = "artifact:cal";
@@ -286,11 +286,11 @@ std::string build_pipeline_ir(const std::vector<int>& phases,
     nlohmann::json pc = phase_config(doc, 3, out_dir, err);
     if (err && !err->empty()) return {};
     const std::vector<std::tuple<std::string, std::string, std::string, std::string>> chain = {
-        {"properties", "astrocs.phase3.properties", "hips", "props"},
-        {"wcs", "astrocs.phase3.wcs", "props", "wcs_plan"},
-        {"resample2", "astrocs.phase3.resample2", "wcs_plan", "resampled"},
-        {"writer", "astrocs.phase3.writer", "resampled", "fits"},
-        {"verify", "astrocs.phase3.verify", "fits", "verified"},
+        {"properties", "acsd.phase3.properties", "hips", "props"},
+        {"wcs", "acsd.phase3.wcs", "props", "wcs_plan"},
+        {"resample2", "acsd.phase3.resample2", "wcs_plan", "resampled"},
+        {"writer", "acsd.phase3.writer", "resampled", "fits"},
+        {"verify", "acsd.phase3.verify", "fits", "verified"},
     };
     std::vector<nlohmann::json> nodes;
     std::string prev = "artifact:hips_in";
@@ -360,13 +360,13 @@ std::vector<std::pair<std::string, std::string>> g_manifests;
 
 // RT-009: 最近一次 run_pipeline 的节点 trace + PipelineIR（供 observed graph）
 std::mutex g_tr_mu;
-std::vector<astrocs::core::Runtime::NodeTrace> g_trace;
+std::vector<acsd::core::Runtime::NodeTrace> g_trace;
 std::string g_ir_json;
 
 }  // namespace
 
 // RT-009: 收集节点 trace
-void collect_node_trace(std::vector<astrocs::core::Runtime::NodeTrace>* out) {
+void collect_node_trace(std::vector<acsd::core::Runtime::NodeTrace>* out) {
   std::lock_guard<std::mutex> lock(g_tr_mu);
   if (out) *out = g_trace;
 }
@@ -386,19 +386,19 @@ int run_pipeline(const std::vector<int>& phases, const std::string& config_json,
   // MON-002 测试钩子(非用户接口): 假 workload(低 CPU 睡眠)供资源门禁 first-10s/
   // RESOURCE(10) 端到端验证; 不设环境变量时零影响。循环响应信号与外部取消源,
   // 保证 gate 快速失败后本钩子立即让路协作取消。
-  if (const char* sl = std::getenv("ASTROCS_TEST_PIPELINE_SLEEP_MS")) {
+  if (const char* sl = std::getenv("ACSD_TEST_PIPELINE_SLEEP_MS")) {
     const long ms = std::strtol(sl, nullptr, 10);
     if (ms > 0) {
       const auto deadline = std::chrono::steady_clock::now() + std::chrono::milliseconds(ms);
       while (std::chrono::steady_clock::now() < deadline) {
-        if (astrocs::is_cancelled() ||
+        if (acsd::is_cancelled() ||
             (cancel_ext && cancel_ext->load(std::memory_order_relaxed)))
           break;
         std::this_thread::sleep_for(std::chrono::milliseconds(20));
       }
     }
   }
-  astrocs::core::Result<void> rt_ret;   // cancel 监视线程作用域外保存 run 结果
+  acsd::core::Result<void> rt_ret;   // cancel 监视线程作用域外保存 run 结果
   ModuleRegistry reg;
   auto rr = register_cli_modules(reg);
   if (rr.failed()) {
@@ -409,11 +409,11 @@ int run_pipeline(const std::vector<int>& phases, const std::string& config_json,
   // 交给 Runtime（旧写法 create_runtime(budget) ⇒ Scheduler memory_limit_bytes=0 ⇒
   // §8.3 内存回压是死代码）。上限来源由调用方解析（commands.cpp: 配置/profile ×
   // 实测可用内存，默认 95%），本层零硬编码。
-  astrocs::core::RuntimeResourceBudget rrb;
+  acsd::core::RuntimeResourceBudget rrb;
   rrb.cpu_budget = budget;
   rrb.memory_limit_bytes = memory_limit_bytes;
   rrb.memory_source = memory_source;
-  // ── MEMGOV-01: 内存压力治理（docs/ASTROCS_DESIGN.md §8.3:612/:613/:615）──────────
+  // ── MEMGOV-01: 内存压力治理（docs/ACSD_DESIGN.md §8.3:612/:613/:615）──────────
   // 压力分子 = 进程树 RSS，唯一实现收在 aio 边界（本层不自持 /proc 读取通道）；
   // 口径与外部看门狗 mem_guard.py 的 --max-rss-gb 一致（两者都按进程树求和），
   // 使「程序自身预算」与「外部上限」可在同一张曲线上比较、阈值关系可自洽核对。
@@ -436,7 +436,7 @@ int run_pipeline(const std::vector<int>& phases, const std::string& config_json,
       std::fflush(stderr);
     }
   }
-  auto rt = astrocs::core::create_runtime(rrb);
+  auto rt = acsd::core::create_runtime(rrb);
   if (rt.failed()) {
     if (fail_reason) *fail_reason = rt.error().message();
     return 70;
@@ -444,9 +444,9 @@ int run_pipeline(const std::vector<int>& phases, const std::string& config_json,
   std::string err;
   std::string ir_json = build_pipeline_ir(phases, config_json, &err);
   // P-158 测试钩子(非用户接口; 不设环境变量时零影响, 与既有
-  // ASTROCS_TEST_PIPELINE_SLEEP_MS 同款): 直接注入 PipelineIR 文本。preset 生成的 IR
+  // ACSD_TEST_PIPELINE_SLEEP_MS 同款): 直接注入 PipelineIR 文本。preset 生成的 IR
   // 结构恒合法 ⇒ load_pipeline 失败面在配置面无入口, 负例需要此注入点。
-  if (const char* ir_inject = std::getenv("ASTROCS_TEST_PIPELINE_IR");
+  if (const char* ir_inject = std::getenv("ACSD_TEST_PIPELINE_IR");
       ir_inject != nullptr && *ir_inject != '\0') {
     ir_json.assign(ir_inject);
     err.clear();
@@ -456,11 +456,11 @@ int run_pipeline(const std::vector<int>& phases, const std::string& config_json,
     return 2;
   }
   // F-EXIT-MAP 可达矩阵测试钩子(非用户接口; 不设环境变量时零影响, 与
-  // ASTROCS_TEST_PIPELINE_SLEEP_MS / ASTROCS_TEST_PIPELINE_IR 同款): 强制一个
+  // ACSD_TEST_PIPELINE_SLEEP_MS / ACSD_TEST_PIPELINE_IR 同款): 强制一个
   // ErrorDomain，用于端到端验证「域 → 退出码」在 run_pipeline 实际可达且等于 §5 表。
-  if (const char* dom_env = std::getenv("ASTROCS_TEST_FORCE_ERROR_DOMAIN");
+  if (const char* dom_env = std::getenv("ACSD_TEST_FORCE_ERROR_DOMAIN");
       dom_env != nullptr && *dom_env != '\0') {
-    using astrocs::core::ErrorDomain;
+    using acsd::core::ErrorDomain;
     const std::string d(dom_env);
     ErrorDomain forced = ErrorDomain::INTERNAL;
     if (d == "CONFIG") forced = ErrorDomain::CONFIG;
@@ -486,7 +486,7 @@ int run_pipeline(const std::vector<int>& phases, const std::string& config_json,
     // SCIENCE_PRECONDITION（科学前置条件）。
     return exit_code_for_error_domain(load.error().domain());
   }
-  astrocs::core::RunContext ctx;
+  acsd::core::RunContext ctx;
   // QA-002/LNX-004: cancel 接线 — SIGINT/SIGTERM 置位 CLI cancel_flag 后，
   // 本监视线程轮询并转发到 Runtime::cancel()（scheduler 安全点协作取消）。
   // 此前 cancel_flag 无人消费 → 信号不达 runtime（真实缺陷，本修复闭合）。
@@ -494,7 +494,7 @@ int run_pipeline(const std::vector<int>& phases, const std::string& config_json,
     std::atomic<bool> stop{false};
     std::thread cancel_watch([rt = rt.value().get(), &stop, cancel_ext]() {
       while (!stop.load(std::memory_order_acquire)) {
-        if (astrocs::is_cancelled() ||
+        if (acsd::is_cancelled() ||
             (cancel_ext && cancel_ext->load(std::memory_order_relaxed))) {
           rt->cancel();
           return;
@@ -522,13 +522,13 @@ int run_pipeline(const std::vector<int>& phases, const std::string& config_json,
     // RT-008: 退出码映射保持 CLI 合同（04）:
     //   失败 manifest 的 error_kind==input → 3(INPUT)；DATA(参数/配置/数据) → 2(ARGS)；
     //   IO → 7；CANCELLED → 9；RESOURCE → 5；其余 → 70
-    // 失败 manifest 的 error_kind==disk_full → 10(RESOURCE, docs/ASTROCS_DESIGN
+    // 失败 manifest 的 error_kind==disk_full → 10(RESOURCE, docs/ACSD_DESIGN
     //   §7.2「10 = 磁盘写满 / 写盘失败」)。磁盘满必须按**失败本身**归类, 不能靠 CLI
     //   事后探针 —— §10 要求失败路径清理临时产物, 清理释放空间后探针必然 fail-open
     //   (实测 rc=7); 探针保留为兜底, 不再是唯一判据 (见 commands.cpp 调用点注释)。
     // 先看失败节点 manifest 是否带 error_kind
-    if (rt_ret.error().domain() == astrocs::core::ErrorDomain::DATA ||
-        rt_ret.error().domain() == astrocs::core::ErrorDomain::IO) {
+    if (rt_ret.error().domain() == acsd::core::ErrorDomain::DATA ||
+        rt_ret.error().domain() == acsd::core::ErrorDomain::IO) {
       bool input_err = false;
       bool disk_full = false;
       {
@@ -580,4 +580,4 @@ std::vector<std::string> collect_node_artifact_paths(
   return paths;
 }
 
-}  // namespace astrocs::cli
+}  // namespace acsd::cli

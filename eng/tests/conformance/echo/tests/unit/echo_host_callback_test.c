@@ -25,16 +25,16 @@
  * 独立断言 (11 §5/§6): 期望值由测试侧常数/行为产生, 不调用生产实现作 oracle。
  * 纯 C11; -Wall -Wextra 零告警; 退出码 0=全 PASS。
  */
-#include "astrocs/abi/lifecycle_v1.h"
-#include "astrocs/abi/module_api_v1.h"
-#include "astrocs/echo/types.h"
+#include "acsd/abi/lifecycle_v1.h"
+#include "acsd/abi/module_api_v1.h"
+#include "acsd/echo/types.h"
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
-/* astrocs_module_query_v1 声明来自 module_api_v1.h; 本 TU 不定义
- * ASTROCS_ABI_SHARED → ASTROCS_EXPORT 为空 → 普通外部符号引用 (链接 .so)。 */
+/* acsd_module_query_v1 声明来自 module_api_v1.h; 本 TU 不定义
+ * ACSD_ABI_SHARED → ACSD_EXPORT 为空 → 普通外部符号引用 (链接 .so)。 */
 
 static int g_failures = 0;
 #define CHECK(cond)                                                       \
@@ -70,13 +70,13 @@ static void t_free(void* ud, void* p) {
     if (p) g_free_calls++;
     free(p);
 }
-static acs_allocator_v1 g_alloc = {
-    { (uint32_t)sizeof(acs_allocator_v1), ACS_ABI_VERSION_V1 },
+static acsd_allocator_v1 g_alloc = {
+    { (uint32_t)sizeof(acsd_allocator_v1), ACS_ABI_VERSION_V1 },
     t_alloc, t_free, NULL
 };
 
 static struct { int calls; int last_level; char comp[64]; char msg[256]; } g_log;
-static void t_log(void* ud, int level, acs_str_v1 comp, acs_str_v1 msg) {
+static void t_log(void* ud, int level, acsd_str_v1 comp, acsd_str_v1 msg) {
     (void)ud;
     g_log.calls++;
     g_log.last_level = level;
@@ -85,8 +85,8 @@ static void t_log(void* ud, int level, acs_str_v1 comp, acs_str_v1 msg) {
     memcpy(g_log.msg, msg.data ? msg.data : "", msg.size < 255 ? msg.size : 255);
     g_log.msg[msg.size < 255 ? (size_t)msg.size : 255] = 0;
 }
-static acs_logger_v1 g_logger = {
-    { (uint32_t)sizeof(acs_logger_v1), ACS_ABI_VERSION_V1 },
+static acsd_logger_v1 g_logger = {
+    { (uint32_t)sizeof(acsd_logger_v1), ACS_ABI_VERSION_V1 },
     t_log, NULL
 };
 
@@ -95,8 +95,8 @@ static int t_is_cancelled(void* ud) {
     (void)ud;
     return g_cancel.flag;
 }
-static acs_cancel_v1 g_cancel_svc = {
-    { (uint32_t)sizeof(acs_cancel_v1), ACS_ABI_VERSION_V1 },
+static acsd_cancel_v1 g_cancel_svc = {
+    { (uint32_t)sizeof(acsd_cancel_v1), ACS_ABI_VERSION_V1 },
     t_is_cancelled, NULL
 };
 
@@ -111,14 +111,14 @@ static void t_release(void* ud, uint32_t n) {
     (void)ud;
     g_exec.acquired -= (int)n;
 }
-static acs_executor_v1 g_exec_svc = {
-    { (uint32_t)sizeof(acs_executor_v1), ACS_ABI_VERSION_V1 },
+static acsd_executor_v1 g_exec_svc = {
+    { (uint32_t)sizeof(acsd_executor_v1), ACS_ABI_VERSION_V1 },
     8u, 8u, t_acquire, t_release, NULL
 };
 
 /* ───────── artifact host fake (服务句柄; 内容=测试自产 manifest) ───────── */
 static const char kArtJson[] =
-    "{\"type_id\":\"astrocs.manifest.echo\",\"schema_version\":3,"
+    "{\"type_id\":\"acsd.manifest.echo\",\"schema_version\":3,"
     "\"producer\":\"echo-unit-test\"}";
 static const char kDigest[] =
     "a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2";
@@ -153,18 +153,18 @@ static const char* own_json_str(const char* js, const char* key, uint64_t* out_n
     return NULL;
 }
 
-static acs_status fake_artifact_open(const acs_artifact_service_v1* self,
-                                     acs_str_v1 uri,
-                                     acs_str_v1 expected_digest_hex,
-                                     acs_artifact_handle_v1** out,
-                                     acs_error_info_v1* err) {
+static acsd_status fake_artifact_open(const acsd_artifact_service_v1* self,
+                                     acsd_str_v1 uri,
+                                     acsd_str_v1 expected_digest_hex,
+                                     acsd_artifact_handle_v1** out,
+                                     acsd_error_info_v1* err) {
     (void)self; (void)expected_digest_hex;
     if (out) *out = NULL;
     if (err) { memset(err, 0, sizeof(*err)); }
     g_art.open_calls++;
     if (uri.data && strstr(uri.data, "missing")) {
         if (err) {
-            err->head.struct_size = (uint32_t)sizeof(acs_error_info_v1);
+            err->head.struct_size = (uint32_t)sizeof(acsd_error_info_v1);
             err->head.abi_version = ACS_ABI_VERSION_V1;
             err->status = ACS_ERR_IO; err->domain = ACS_ERR_DOMAIN_IO;
             err->message_utf8 = "fake: artifact missing"; err->message_bytes = 23;
@@ -179,40 +179,40 @@ static acs_status fake_artifact_open(const acs_artifact_service_v1* self,
         h->uri[uri.size] = 0;
     }
     memcpy(g_art.last_uri, h->uri, sizeof(g_art.last_uri));
-    *out = (acs_artifact_handle_v1*)h;
+    *out = (acsd_artifact_handle_v1*)h;
     return ACS_OK;
 }
-static void fake_artifact_close(acs_artifact_handle_v1* h) {
+static void fake_artifact_close(acsd_artifact_handle_v1* h) {
     free(h);
 }
-static acs_str_v1 svn(const char* s) {
-    acs_str_v1 v;
-    v.head.struct_size = (uint32_t)sizeof(acs_str_v1);
+static acsd_str_v1 svn(const char* s) {
+    acsd_str_v1 v;
+    v.head.struct_size = (uint32_t)sizeof(acsd_str_v1);
     v.head.abi_version = ACS_ABI_VERSION_V1;
     v.data = s;
     v.size = s ? (uint64_t)strlen(s) : 0;
     return v;
 }
-static acs_str_v1 fake_query_uri(const acs_artifact_handle_v1* h) {
+static acsd_str_v1 fake_query_uri(const acsd_artifact_handle_v1* h) {
     const art_handle_s* a = (const art_handle_s*)h;
     return svn(a->uri);
 }
-static acs_str_v1 fake_query_type_id(const acs_artifact_handle_v1* h) {
+static acsd_str_v1 fake_query_type_id(const acsd_artifact_handle_v1* h) {
     (void)h;
-    return svn("astrocs.artifact.echo");
+    return svn("acsd.artifact.echo");
 }
-static acs_str_v1 fake_query_digest(const acs_artifact_handle_v1* h) {
+static acsd_str_v1 fake_query_digest(const acsd_artifact_handle_v1* h) {
     (void)h;
     return svn(kDigest);
 }
-static uint64_t fake_query_size(const acs_artifact_handle_v1* h) {
+static uint64_t fake_query_size(const acsd_artifact_handle_v1* h) {
     (void)h;
     return (uint64_t)strlen(kArtJson);
 }
-static acs_status fake_read_all(const acs_artifact_handle_v1* h,
-                                const acs_allocator_v1* alloc,
-                                acs_span_u8* out_data,
-                                acs_error_info_v1* err) {
+static acsd_status fake_read_all(const acsd_artifact_handle_v1* h,
+                                const acsd_allocator_v1* alloc,
+                                acsd_span_u8* out_data,
+                                acsd_error_info_v1* err) {
     (void)h;
     g_art.read_calls++;
     memset(out_data, 0, sizeof(*out_data));
@@ -228,10 +228,10 @@ static acs_status fake_read_all(const acs_artifact_handle_v1* h,
     out_data->count = n;
     return ACS_OK;
 }
-static acs_status fake_manifest_parse(const acs_artifact_service_v1* self,
-                                      acs_str_v1 json_utf8,
-                                      acs_manifest_handle_v1** out,
-                                      acs_error_info_v1* err) {
+static acsd_status fake_manifest_parse(const acsd_artifact_service_v1* self,
+                                      acsd_str_v1 json_utf8,
+                                      acsd_manifest_handle_v1** out,
+                                      acsd_error_info_v1* err) {
     (void)self;
     g_art.parse_calls++;
     if (out) *out = NULL;
@@ -243,32 +243,32 @@ static acs_status fake_manifest_parse(const acs_artifact_service_v1* self,
     if (!mh->own) { free(mh); return ACS_ERR_NOMEM; }
     memcpy(mh->own, json_utf8.data, (size_t)json_utf8.size);
     mh->own[json_utf8.size] = 0;
-    *out = (acs_manifest_handle_v1*)mh;
+    *out = (acsd_manifest_handle_v1*)mh;
     return ACS_OK;
 }
-static void fake_manifest_destroy(acs_manifest_handle_v1* h) {
+static void fake_manifest_destroy(acsd_manifest_handle_v1* h) {
     if (!h) return;
     man_handle_s* mh = (man_handle_s*)h;
     free(mh->own);
     free(mh);
 }
-static int fake_manifest_get_str(const acs_manifest_handle_v1* h,
-                                 acs_str_v1 key,
-                                 acs_str_v1* out_value) {
+static int fake_manifest_get_str(const acsd_manifest_handle_v1* h,
+                                 acsd_str_v1 key,
+                                 acsd_str_v1* out_value) {
     const man_handle_s* mh = (const man_handle_s*)h;
     g_art.get_str_calls++;
     uint64_t n = 0;
     const char* v = own_json_str(mh->own, key.data, &n);
     if (!v) return 0;
     /* 值借入句柄内 own 缓冲 (所有权=句柄; 有效至 destroy) */
-    out_value->head.struct_size = (uint32_t)sizeof(acs_str_v1);
+    out_value->head.struct_size = (uint32_t)sizeof(acsd_str_v1);
     out_value->head.abi_version = ACS_ABI_VERSION_V1;
     out_value->data = v;
     out_value->size = n;
     return 1;
 }
-static int fake_manifest_get_u64(const acs_manifest_handle_v1* h,
-                                 acs_str_v1 key,
+static int fake_manifest_get_u64(const acsd_manifest_handle_v1* h,
+                                 acsd_str_v1 key,
                                  uint64_t* out_value) {
     const man_handle_s* mh = (const man_handle_s*)h;
     g_art.get_u64_calls++;
@@ -297,8 +297,8 @@ static int fake_manifest_get_u64(const acs_manifest_handle_v1* h,
     }
     return 0;
 }
-static acs_artifact_service_v1 g_arts = {
-    { (uint32_t)sizeof(acs_artifact_service_v1), ACS_ABI_VERSION_V1 },
+static acsd_artifact_service_v1 g_arts = {
+    { (uint32_t)sizeof(acsd_artifact_service_v1), ACS_ABI_VERSION_V1 },
     fake_artifact_open, fake_artifact_close,
     fake_query_uri, fake_query_type_id, fake_query_digest, fake_query_size,
     fake_read_all,
@@ -307,14 +307,14 @@ static acs_artifact_service_v1 g_arts = {
 };
 
 /* config_query fake: 返回 host 侧 module 配置 JSON (所有权=host 静态) */
-static acs_status fake_config_query(const acs_host_api_v1* self,
-                                    acs_str_v1 module_id,
-                                    acs_str_v1 key,
-                                    acs_strbuf_v1* out,
-                                    acs_error_info_v1* err) {
+static acsd_status fake_config_query(const acsd_host_api_v1* self,
+                                    acsd_str_v1 module_id,
+                                    acsd_str_v1 key,
+                                    acsd_strbuf_v1* out,
+                                    acsd_error_info_v1* err) {
     (void)self; (void)module_id; (void)key; (void)err;
     static const char resp[] =
-        "{\"module_id\":\"astrocs.conformance.echo\",\"source\":\"fake-host\"}";
+        "{\"module_id\":\"acsd.conformance.echo\",\"source\":\"fake-host\"}";
     uint64_t n = (uint64_t)strlen(resp);
     out->size = n;
     if (!out->data || out->cap == 0) return ACS_OK;
@@ -324,10 +324,10 @@ static acs_status fake_config_query(const acs_host_api_v1* self,
     out->data[wr] = 0;
     return ACS_OK;
 }
-static acs_status fake_registry_lookup(const acs_host_api_v1* self,
-                                       acs_str_v1 module_id,
-                                       acs_str_v1* out_json_utf8,
-                                       acs_error_info_v1* err) {
+static acsd_status fake_registry_lookup(const acsd_host_api_v1* self,
+                                       acsd_str_v1 module_id,
+                                       acsd_str_v1* out_json_utf8,
+                                       acsd_error_info_v1* err) {
     (void)self; (void)module_id; (void)out_json_utf8;
     if (err) {
         err->status = ACS_ERR_UNSUPPORTED; err->domain = ACS_ERR_DOMAIN_CONFIG;
@@ -335,10 +335,10 @@ static acs_status fake_registry_lookup(const acs_host_api_v1* self,
     return ACS_ERR_UNSUPPORTED;
 }
 
-static acs_host_api_v1 g_host;
+static acsd_host_api_v1 g_host;
 static void host_init(void) {
     memset(&g_host, 0, sizeof(g_host));
-    g_host.head.struct_size = (uint32_t)sizeof(acs_host_api_v1);
+    g_host.head.struct_size = (uint32_t)sizeof(acsd_host_api_v1);
     g_host.head.abi_version = ACS_ABI_VERSION_V1;
     g_host.allocator = &g_alloc;
     g_host.logger = &g_logger;
@@ -355,39 +355,39 @@ static void host_init(void) {
 
 /* 小工具: create 实例 + 执行 + destroy (每次独立实例, host 隔离) */
 typedef struct {
-    acs_module_instance_v1* inst;
-    acs_host_api_v1 host;      /* 快照宿主 (create 引用); 存活至 destroy */
-    acs_status rc;
+    acsd_module_instance_v1* inst;
+    acsd_host_api_v1 host;      /* 快照宿主 (create 引用); 存活至 destroy */
+    acsd_status rc;
     char out[4096];
-    acs_error_info_v1 err;
+    acsd_error_info_v1 err;
 } ctx_s;
 
-static void ctx_init(ctx_s* c, const acs_module_api_v1* api,
-                     const acs_host_api_v1* host) {
+static void ctx_init(ctx_s* c, const acsd_module_api_v1* api,
+                     const acsd_host_api_v1* host) {
     memset(c, 0, sizeof(*c));
     c->host = *host;
-    c->err.head.struct_size = (uint32_t)sizeof(acs_error_info_v1);
+    c->err.head.struct_size = (uint32_t)sizeof(acsd_error_info_v1);
     c->err.head.abi_version = ACS_ABI_VERSION_V1;
     c->rc = api->create(api, svn(""), &c->host,
-                        (acs_module_instance_v1**)&c->inst, &c->err);
+                        (acsd_module_instance_v1**)&c->inst, &c->err);
     c->err.status = 0; c->err.domain = 0; c->err.detail_code = 0;
 }
 
-static void ctx_exec(ctx_s* c, const acs_module_api_v1* api,
+static void ctx_exec(ctx_s* c, const acsd_module_api_v1* api,
                      const char* input, const char* config) {
-    acs_strbuf_v1 sb;
+    acsd_strbuf_v1 sb;
     memset(&sb, 0, sizeof(sb));
-    sb.head.struct_size = (uint32_t)sizeof(acs_strbuf_v1);
+    sb.head.struct_size = (uint32_t)sizeof(acsd_strbuf_v1);
     sb.head.abi_version = ACS_ABI_VERSION_V1;
     sb.data = c->out;
     sb.cap = sizeof(c->out);
     memset(&c->err, 0, sizeof(c->err));
-    c->err.head.struct_size = (uint32_t)sizeof(acs_error_info_v1);
+    c->err.head.struct_size = (uint32_t)sizeof(acsd_error_info_v1);
     c->err.head.abi_version = ACS_ABI_VERSION_V1;
     c->rc = api->execute(c->inst, svn(input), svn(config), &sb, &c->err);
 }
 
-static void ctx_destroy(ctx_s* c, const acs_module_api_v1* api) {
+static void ctx_destroy(ctx_s* c, const acsd_module_api_v1* api) {
     if (c->inst) api->destroy(c->inst);
     c->inst = NULL;
 }
@@ -403,43 +403,43 @@ static void cfg_build(char* dst, size_t cap, const char* action,
 
 int main(void) {
     host_init();
-    const acs_module_api_v1* api = NULL;
+    const acsd_module_api_v1* api = NULL;
 
     /* ═══ 1. query/describe 正/负 (ABI-001 握手 + ABI-005 descriptor 三方一致) ═══ */
-    CHECK_ST(ACS_OK, astrocs_module_query_v1(ACS_ABI_VERSION_V1, &g_host, &api),
+    CHECK_ST(ACS_OK, acsd_module_query_v1(ACS_ABI_VERSION_V1, &g_host, &api),
              "query ok");
     CHECK(api != NULL);
     CHECK_ST(ACS_ERR_ABI_MISMATCH,
-             astrocs_module_query_v1(ACS_ABI_VERSION_V1 + 1, &g_host, &api),
+             acsd_module_query_v1(ACS_ABI_VERSION_V1 + 1, &g_host, &api),
              "query abi mismatch");
     CHECK_ST(ACS_ERR_ABI_MISMATCH,
-             astrocs_module_query_v1(ACS_ABI_VERSION_V1, NULL, &api),
+             acsd_module_query_v1(ACS_ABI_VERSION_V1, NULL, &api),
              "query host null");
     {
-        acs_host_api_v1 h2 = g_host;
+        acsd_host_api_v1 h2 = g_host;
         h2.allocator = NULL;
         CHECK_ST(ACS_ERR_ABI_MISMATCH,
-                 astrocs_module_query_v1(ACS_ABI_VERSION_V1, &h2, &api),
+                 acsd_module_query_v1(ACS_ABI_VERSION_V1, &h2, &api),
                  "query no allocator");
     }
     CHECK_ST(ACS_ERR_PARAM,
-             astrocs_module_query_v1(ACS_ABI_VERSION_V1, &g_host, NULL),
+             acsd_module_query_v1(ACS_ABI_VERSION_V1, &g_host, NULL),
              "query out null");
     CHECK(api != NULL);
 
     if (api) {
-        acs_module_descriptor_v1 desc;
+        acsd_module_descriptor_v1 desc;
         memset(&desc, 0, sizeof(desc));
         CHECK_ST(ACS_OK, api->describe(api, svn(""), &desc), "describe ok");
         CHECK(desc.module_id.data && desc.module_id.size ==
-              strlen(ASTROCS_ECHO_MODULE_ID));
-        CHECK(memcmp(desc.module_id.data, ASTROCS_ECHO_MODULE_ID,
+              strlen(ACSD_ECHO_MODULE_ID));
+        CHECK(memcmp(desc.module_id.data, ACSD_ECHO_MODULE_ID,
                      desc.module_id.size) == 0);
-        CHECK(desc.version.size == strlen(ASTROCS_ECHO_MODULE_VERSION) &&
-              memcmp(desc.version.data, ASTROCS_ECHO_MODULE_VERSION,
+        CHECK(desc.version.size == strlen(ACSD_ECHO_MODULE_VERSION) &&
+              memcmp(desc.version.data, ACSD_ECHO_MODULE_VERSION,
                      desc.version.size) == 0);
-        CHECK(desc.build_id.size == strlen(ASTROCS_ECHO_BUILD_ID) &&
-              memcmp(desc.build_id.data, ASTROCS_ECHO_BUILD_ID,
+        CHECK(desc.build_id.size == strlen(ACSD_ECHO_BUILD_ID) &&
+              memcmp(desc.build_id.data, ACSD_ECHO_BUILD_ID,
                      desc.build_id.size) == 0);
         CHECK(desc.sci_id.size == 8 && memcmp(desc.sci_id.data, "SCI-NONE", 8) == 0);
         CHECK(desc.alg_id.size == 8 && memcmp(desc.alg_id.data, "ALG-NONE", 8) == 0);
@@ -449,22 +449,22 @@ int main(void) {
         CHECK(desc.head.abi_version == ACS_ABI_VERSION_V1);
         /* 未知 module_id → PARAM */
         CHECK_ST(ACS_ERR_PARAM,
-                 api->describe(api, svn("astrocs.phase1.calibration"), &desc),
+                 api->describe(api, svn("acsd.phase1.calibration"), &desc),
                  "describe unknown id");
         CHECK_ST(ACS_ERR_PARAM, api->describe(api, svn(""), NULL),
                  "describe out null");
 
         /* ═══ 2. validate_config 正/负 ═══ */
-        acs_error_info_v1 err;
+        acsd_error_info_v1 err;
         memset(&err, 0, sizeof(err));
-        err.head.struct_size = (uint32_t)sizeof(acs_error_info_v1);
+        err.head.struct_size = (uint32_t)sizeof(acsd_error_info_v1);
         err.head.abi_version = ACS_ABI_VERSION_V1;
         CHECK_ST(ACS_OK, api->validate_config(
                      api, svn("{\"action\":\"echo\"}"), &err),
                  "validate echo ok");
         CHECK_ST(ACS_OK, api->validate_config(
                      api, svn("{\"action\":\"artifact_read\","
-                              "\"storage_uri\":\"astrocs://echo/f\"}"), &err),
+                              "\"storage_uri\":\"acsd://echo/f\"}"), &err),
                  "validate artifact_read ok");
         CHECK_ST(ACS_OK, api->validate_config(
                      api, svn("{\"action\":\"request_error\","
@@ -487,16 +487,16 @@ int main(void) {
         /* ═══ 3. plan 正测 (输出 JSON; 缓冲不足) ═══ */
         {
             char pout[512];
-            acs_strbuf_v1 pb;
+            acsd_strbuf_v1 pb;
             memset(&pb, 0, sizeof(pb));
-            pb.head.struct_size = (uint32_t)sizeof(acs_strbuf_v1);
+            pb.head.struct_size = (uint32_t)sizeof(acsd_strbuf_v1);
             pb.head.abi_version = ACS_ABI_VERSION_V1;
             pb.data = pout; pb.cap = sizeof(pout);
             memset(&err, 0, sizeof(err));
             CHECK_ST(ACS_OK, api->plan(api, svn("node-7"),
                                        svn("{\"action\":\"echo\"}"), &pb, &err),
                      "plan echo ok");
-            CHECK(strstr(pout, ASTROCS_ECHO_MODULE_ID) != NULL);
+            CHECK(strstr(pout, ACSD_ECHO_MODULE_ID) != NULL);
             CHECK(strstr(pout, "\"action\":\"echo\"") != NULL);
             CHECK(strstr(pout, "\"node_id\":\"node-7\"") != NULL);
         }
@@ -511,14 +511,14 @@ int main(void) {
         /* 4b. 缓冲不足 → PARAM + BUFFER_TOO_SMALL (echo action 回显长输入) */
         {
             const char* big = "{\"manifest\":\"0123456789abcdef0123456789abcdef\"}";
-            acs_strbuf_v1 sb;
+            acsd_strbuf_v1 sb;
             memset(&sb, 0, sizeof(sb));
-            sb.head.struct_size = (uint32_t)sizeof(acs_strbuf_v1);
+            sb.head.struct_size = (uint32_t)sizeof(acsd_strbuf_v1);
             sb.head.abi_version = ACS_ABI_VERSION_V1;
             char tiny[8];
             sb.data = tiny; sb.cap = sizeof(tiny);
             memset(&err, 0, sizeof(err));
-            acs_status rc = api->execute(c.inst, svn(big),
+            acsd_status rc = api->execute(c.inst, svn(big),
                                          svn("{\"action\":\"echo\"}"), &sb, &err);
             CHECK_ST(ACS_ERR_PARAM, rc, "execute buffer too small");
             CHECK(err.detail_code == ACS_DIAG_ECODE_BUFFER_TOO_SMALL);
@@ -532,9 +532,9 @@ int main(void) {
         CHECK(strcmp(c.out, "{\"hello\":\"world\",\"n\":1}") == 0);
         {
             char iout[1024];
-            acs_strbuf_v1 ib;
+            acsd_strbuf_v1 ib;
             memset(&ib, 0, sizeof(ib));
-            ib.head.struct_size = (uint32_t)sizeof(acs_strbuf_v1);
+            ib.head.struct_size = (uint32_t)sizeof(acsd_strbuf_v1);
             ib.head.abi_version = ACS_ABI_VERSION_V1;
             ib.data = iout; ib.cap = sizeof(iout);
             memset(&err, 0, sizeof(err));
@@ -542,7 +542,7 @@ int main(void) {
             CHECK(strstr(iout, "\"host_loaded\":1") != NULL);
             CHECK(strstr(iout, "\"exec_count\":1") != NULL);
             CHECK(strstr(iout, "\"action\":\"echo\"") != NULL);
-            CHECK(strstr(iout, ASTROCS_ECHO_MODULE_ID) != NULL);
+            CHECK(strstr(iout, ACSD_ECHO_MODULE_ID) != NULL);
         }
         ctx_destroy(&c, api);
 
@@ -561,9 +561,9 @@ int main(void) {
             CHECK_ST(ACS_OK, cb.rc, "echo bytes ok #2");
             {
                 char iout[1024];
-                acs_strbuf_v1 ib;
+                acsd_strbuf_v1 ib;
                 memset(&ib, 0, sizeof(ib));
-                ib.head.struct_size = (uint32_t)sizeof(acs_strbuf_v1);
+                ib.head.struct_size = (uint32_t)sizeof(acsd_strbuf_v1);
                 ib.head.abi_version = ACS_ABI_VERSION_V1;
                 ib.data = iout; ib.cap = sizeof(iout);
                 memset(&err, 0, sizeof(err));
@@ -607,16 +607,16 @@ int main(void) {
             ctx_s c4;
             ctx_init(&c4, api, &g_host);
             char cfg[512];
-            cfg_build(cfg, sizeof(cfg), ASTROCS_ECHO_CFG_ACTION_ARTIFACT_READ,
-                      "\"storage_uri\":\"astrocs://echo/fixture\"");
+            cfg_build(cfg, sizeof(cfg), ACSD_ECHO_CFG_ACTION_ARTIFACT_READ,
+                      "\"storage_uri\":\"acsd://echo/fixture\"");
             ctx_exec(&c4, api, "", cfg);
             CHECK_ST(ACS_OK, c4.rc, "artifact_read ok");
-            CHECK(strstr(c4.out, "\"type_id\":\"astrocs.manifest.echo\"") != NULL);
+            CHECK(strstr(c4.out, "\"type_id\":\"acsd.manifest.echo\"") != NULL);
             CHECK(strstr(c4.out, "\"schema_version\":3") != NULL);
             CHECK(strstr(c4.out, "\"has_field\":1") != NULL);
             CHECK(strstr(c4.out, "\"bytes\":") != NULL);
             CHECK(g_art.open_calls == 1);
-            CHECK(strcmp(g_art.last_uri, "astrocs://echo/fixture") == 0);
+            CHECK(strcmp(g_art.last_uri, "acsd://echo/fixture") == 0);
             CHECK(g_art.read_calls == 1);
             CHECK(g_art.parse_calls == 1);
             CHECK(g_art.get_str_calls >= 1);
@@ -628,13 +628,13 @@ int main(void) {
         }
         /* 7b. artifacts==NULL 负测 (detail 101) */
         {
-            acs_host_api_v1 hb = g_host;
+            acsd_host_api_v1 hb = g_host;
             hb.artifacts = NULL;
             ctx_s c5;
             ctx_init(&c5, api, &hb);
             char cfg[512];
-            cfg_build(cfg, sizeof(cfg), ASTROCS_ECHO_CFG_ACTION_ARTIFACT_READ,
-                      "\"storage_uri\":\"astrocs://echo/fixture\"");
+            cfg_build(cfg, sizeof(cfg), ACSD_ECHO_CFG_ACTION_ARTIFACT_READ,
+                      "\"storage_uri\":\"acsd://echo/fixture\"");
             ctx_exec(&c5, api, "", cfg);
             CHECK_ST(ACS_ERR_PARAM, c5.rc, "artifact_read no host artifacts");
             CHECK(c5.err.detail_code == ACS_ECHO_ECODE_ARTIFACT_MISSING);
@@ -654,8 +654,8 @@ int main(void) {
             ctx_s c7;
             ctx_init(&c7, api, &g_host);
             char cfg[512];
-            cfg_build(cfg, sizeof(cfg), ASTROCS_ECHO_CFG_ACTION_ARTIFACT_READ,
-                      "\"storage_uri\":\"astrocs://echo/missing\"");
+            cfg_build(cfg, sizeof(cfg), ACSD_ECHO_CFG_ACTION_ARTIFACT_READ,
+                      "\"storage_uri\":\"acsd://echo/missing\"");
             ctx_exec(&c7, api, "", cfg);
             CHECK_ST(ACS_ERR_IO, c7.rc, "artifact_read open failed");
             CHECK(c7.err.domain == ACS_ERR_DOMAIN_IO);
@@ -674,7 +674,7 @@ int main(void) {
             CHECK(g_log.calls == 1);
             CHECK(g_log.last_level == ACS_LOG_WARN);
             CHECK(strstr(g_log.msg, "write not supported") != NULL);
-            CHECK(strstr(g_log.comp, ASTROCS_ECHO_MODULE_ID) != NULL);
+            CHECK(strstr(g_log.comp, ACSD_ECHO_MODULE_ID) != NULL);
             ctx_destroy(&c8, api);
         }
 
@@ -693,7 +693,7 @@ int main(void) {
             ctx_destroy(&c9, api);
         }
         {
-            acs_host_api_v1 hb = g_host;
+            acsd_host_api_v1 hb = g_host;
             hb.cancel = NULL;
             ctx_s c10;
             ctx_init(&c10, api, &hb);
@@ -721,7 +721,7 @@ int main(void) {
             ctx_destroy(&c11, api);
         }
         {
-            acs_host_api_v1 hb = g_host;
+            acsd_host_api_v1 hb = g_host;
             hb.executor = NULL;
             ctx_s c12;
             ctx_init(&c12, api, &hb);
@@ -745,14 +745,14 @@ int main(void) {
             ctx_s c13b;
             ctx_init(&c13b, api, &g_host);
             g_exec.deny = 0;
-            acs_strbuf_v1 sb;
+            acsd_strbuf_v1 sb;
             memset(&sb, 0, sizeof(sb));
-            sb.head.struct_size = (uint32_t)sizeof(acs_strbuf_v1);
+            sb.head.struct_size = (uint32_t)sizeof(acsd_strbuf_v1);
             sb.head.abi_version = ACS_ABI_VERSION_V1;
             char tiny[8];
             sb.data = tiny; sb.cap = sizeof(tiny);
             memset(&err, 0, sizeof(err));
-            acs_status rc = api->execute(
+            acsd_status rc = api->execute(
                 c13b.inst, svn(""), svn("{\"action\":\"executor_lease\","
                                         "\"workers\":1}"), &sb, &err);
             CHECK_ST(ACS_ERR_PARAM, rc, "lease output buffer too small");
@@ -771,7 +771,7 @@ int main(void) {
             ctx_destroy(&c14, api);
         }
         {
-            acs_host_api_v1 hb = g_host;
+            acsd_host_api_v1 hb = g_host;
             hb.config_query = NULL;
             ctx_s c15;
             ctx_init(&c15, api, &hb);
@@ -813,8 +813,8 @@ int main(void) {
             ctx_s c18;
             ctx_init(&c18, api, &g_host);
             char cfg[512];
-            cfg_build(cfg, sizeof(cfg), ASTROCS_ECHO_CFG_ACTION_ARTIFACT_READ,
-                      "\"storage_uri\":\"astrocs://echo/fixture\"");
+            cfg_build(cfg, sizeof(cfg), ACSD_ECHO_CFG_ACTION_ARTIFACT_READ,
+                      "\"storage_uri\":\"acsd://echo/fixture\"");
             ctx_exec(&c18, api, "", cfg);
             CHECK_ST(ACS_OK, c18.rc, "balance artifact_read ok");
             ctx_destroy(&c18, api);
@@ -824,15 +824,15 @@ int main(void) {
 
         /* ═══ 15. create 负测: host NULL / allocator 缺失 → PARAM ═══ */
         {
-            acs_error_info_v1 e2;
+            acsd_error_info_v1 e2;
             memset(&e2, 0, sizeof(e2));
-            acs_module_instance_v1* inst = (acs_module_instance_v1*)0x1;
+            acsd_module_instance_v1* inst = (acsd_module_instance_v1*)0x1;
             CHECK_ST(ACS_ERR_PARAM, api->create(api, svn(""), NULL, &inst, &e2),
                      "create host null");
             CHECK(inst == NULL);
-            acs_host_api_v1 hb = g_host;
+            acsd_host_api_v1 hb = g_host;
             hb.allocator = NULL;
-            inst = (acs_module_instance_v1*)0x1;
+            inst = (acsd_module_instance_v1*)0x1;
             memset(&e2, 0, sizeof(e2));
             CHECK_ST(ACS_ERR_PARAM, api->create(api, svn(""), &hb, &inst, &e2),
                      "create no allocator");
@@ -845,6 +845,6 @@ int main(void) {
         return 1;
     }
     printf("echo_host_callback_test: ALL PASS (module=%s, checks driven "
-           "through all host callbacks)\n", ASTROCS_ECHO_MODULE_ID);
+           "through all host callbacks)\n", ACSD_ECHO_MODULE_ID);
     return 0;
 }

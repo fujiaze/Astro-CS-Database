@@ -1,5 +1,5 @@
 {
-  "schema": "astrocs/doc-anchor-unresolved-registry/v1",
+  "schema": "acsd/doc-anchor-unresolved-registry/v1",
   "task": "DOC-DRIFT-FIX-01",
   "purpose": "未解析锚登记台账（C8 只减不增）：doc_globs 扩到 docs/** 后，全量锚中解析不到仓库跟踪文件的锚必须逐条登记 kind/reason/owner/handoff；新出现的未解析锚 ⇒ C2+C8 判红，登记项不再命中 ⇒ STALE_REGISTRY 判红。",
   "scope": "docs/**/*.md 的全部行号锚；不含 exemptions（另见 anchor_contract.json）",

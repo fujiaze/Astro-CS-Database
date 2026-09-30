@@ -57,7 +57,7 @@ thread_local std::string g_hips_error;
 void set_error(const std::string& msg) { g_hips_error = msg; }
 
 // ---------------------------------------------------------------------------
-// C 边界 ABI 前置校验 (docs/ASTROCS_DESIGN §7.3 / ENGINEERING_SPEC §1: 版本化 C ABI;
+// C 边界 ABI 前置校验 (docs/ACSD_DESIGN §7.3 / ENGINEERING_SPEC §1: 版本化 C ABI;
 // V11-N-01): struct_size/abi_version 必须与调用方编译期布局逐字段一致, 不一致
 // 即 fail-closed (返回 AIO_HIPS_ABI_MISMATCH) + 结构化诊断 —— 永远不按盲步长
 // 读取调用方缓冲区。数组形态 (snr_points/tiles) 由调用方逐元素校验。
@@ -130,9 +130,9 @@ bool abi_ok_legacy_tile(const AioHipsTile* t, int idx) {
     return false;
 }
 
-// 故障注入 (ASTROCS_HIPS_*): 测试专用等价缺陷注入面。未设置环境变量时
+// 故障注入 (ACSD_HIPS_*): 测试专用等价缺陷注入面。未设置环境变量时
 // 逐行零行为差异; 命中时按注入名产生等价缺陷, 使对应断言必败 (判别力证明)。
-// 先例: eng/tests/unit/aio_abi_test_main.hpp ASTROCS_AIO_FAULT / p2002 FAULT=proj|prov。
+// 先例: eng/tests/unit/aio_abi_test_main.hpp ACSD_AIO_FAULT / p2002 FAULT=proj|prov。
 // (原定义在句柄结构之后; AIO-001 起 write_properties 需要同一注入面, 故上移至此。)
 bool fault_injected(const char* var, const char* name) {
     const char* v = std::getenv(var);
@@ -440,7 +440,7 @@ bool write_moc_fits_raw(const std::string& path,
 }
 
 // ---------------------------------------------------------------------------
-// docs/ASTROCS_DESIGN.md §10「I/O 与原子产品」:
+// docs/ACSD_DESIGN.md §10「I/O 与原子产品」:
 // 每个 tile/元数据 FITS 走「本次运行私有临时文件 → 哈希校验 → fsync →
 // 原子 rename」。修复前 write_fits_image 先 std::remove(final) 再
 // fits_create_file(final) **直写正式路径** ⇒ 中途 kill / ENOSPC / 校验失败
@@ -454,12 +454,12 @@ bool write_moc_fits_raw(const std::string& path,
 //     字面全零区域打洞（aio_sparse::punch_all_zero_blocks, verify=true; 读回
 //     不一致 ⇒ 拒发布, 卷不支持 ⇒ 降级 warn 不阻断）。依据
 //     docs/engineering/HIPS_STORAGE_FORM_CONTRACT.md §7 表 T1 与 ENGINEERING_SPEC §11。
-// 注入面 (测试专用, 未设置时逐行零行为差异): ASTROCS_HIPS_TILE_FAULT =
+// 注入面 (测试专用, 未设置时逐行零行为差异): ACSD_HIPS_TILE_FAULT =
 //   tile_write_fail | tile_diskfull | tile_checksum_fail | tile_fsync_fail |
 //   tile_rename_fail。每个注入名必败 (无恒 PASS 占位), 用于负例判别力证明。
 // ---------------------------------------------------------------------------
 bool tile_fault(const char* name) {
-    if (!fault_injected("ASTROCS_HIPS_TILE_FAULT", name)) return false;
+    if (!fault_injected("ACSD_HIPS_TILE_FAULT", name)) return false;
     std::fprintf(stderr, "FAULT-INJECT: %s\n", name);
     return true;
 }
@@ -688,9 +688,9 @@ bool write_moc_fits(const std::string& path,
     return ok;
 }
 
-// properties 写出 (IVOA HiPS + ASTROCS_* provenance 唯一文本载体)。
+// properties 写出 (IVOA HiPS + ACSD_* provenance 唯一文本载体)。
 // M9-G-6/AIO-001: 原实现 fopen 失败即静默 return、fprintf/fclose 不查, 且直写正式路径
-// —— 违反 docs/ASTROCS_DESIGN §9(失败不得留下可被误认为正式产品的半成品)与
+// —— 违反 docs/ACSD_DESIGN §9(失败不得留下可被误认为正式产品的半成品)与
 // ENGINEERING_SPEC §9(错误须经统一状态码传播)。改为: 同目录临时文件 → fflush →
 // fsync → 原子 rename (aio_atomic_file.h), 任一环节失败清理临时文件并返回 false,
 // 由调用方按子产品错误码 (-3..-8) 上报。
@@ -706,7 +706,7 @@ bool write_properties(const std::string& path,
     }
     // 注入点 (测试专用): 等价模拟"临时文件/fsync/rename 环节失败"。修复前本函数对这些
     // 失败一律静默 (void + return), 故该注入正是判别"失败是否传播"的等价缺陷面。
-    if (fault_injected("ASTROCS_HIPS_PROV_FAULT", "properties_write_fail")) {
+    if (fault_injected("ACSD_HIPS_PROV_FAULT", "properties_write_fail")) {
         set_error("properties 原子落盘失败 (injected@atomic): " + path);
         return false;
     }
@@ -722,14 +722,14 @@ bool write_properties(const std::string& path,
 // hierarchy 累加器 (MEM-DESIGN-01: 稀疏分块 + 按需通道 + 完备即流式写出)
 // ---------------------------------------------------------------------------
 // DISP-HIPS-009: 父层累加 (Σflux / Σarea / Σvar_num)
-// **恒在 f64 累加器**进行 (docs/ASTROCS_DESIGN §3.3 默认科学计算双精度); 产品声明位深
+// **恒在 f64 累加器**进行 (docs/ACSD_DESIGN §3.3 默认科学计算双精度); 产品声明位深
 // (bitpix −32/−64) 只在写出时量化一次 (finalize_hierarchy 的 (float)sig 截断)。
 // 修复前 f32 产品走 float 累加 (sumFluxF/sumAreaF/sumVarF): 每步 partial sum 舍入
 // 到 float, 误差随层级加深累积 —— dk=9 实测偏差 2.5e-3 (合成) / 3.95e-4 (真实),
 // 超 HIPS_WRITER.md §9 冻结容差 rtol=1e-6。修法即该文 DISP-HIPS-009 处置建议
 // "f32 产品仍用 double 累加 (存储时再截断)"。
 //
-// MEM-DESIGN-01 (内存结构优化; 权威: docs/ASTROCS_DESIGN §8.3 静态预算/内存占用永不
+// MEM-DESIGN-01 (内存结构优化; 权威: docs/ACSD_DESIGN §8.3 静态预算/内存占用永不
 // 越界 + §3.3 精度口径; 实测见 run/MEM-DESIGN-01/REPORT.md):
 //
 // (A) 稀疏分块 —— 每祖先 cell 的 512×512 面按 64×64 子块**惰性分配**: 没有数据
@@ -754,13 +754,13 @@ bool write_properties(const std::string& path,
 //   (稀疏 vs 稠密注入逐字节一致 / drop_blk0 注入必判红) 与
 //   run/MEM-DESIGN-01/verify 的基线-优化双二进制 sha256 对照。
 //
-// 负例注入面 (测试专用, 与 ASTROCS_HIPS_DIAG_FAULT / ASTROCS_HIPS_PROV_FAULT
+// 负例注入面 (测试专用, 与 ACSD_HIPS_DIAG_FAULT / ACSD_HIPS_PROV_FAULT
 // 同模式, 未设置时逐行零行为差异):
-//   ASTROCS_HIPS_HIER_FAULT=f32_accum     复现修复前 f32 逐步舍入
-//   ASTROCS_HIPS_HIER_FAULT=dense_blocks  每通道一次性分配全部 64 块 = 修复前
+//   ACSD_HIPS_HIER_FAULT=f32_accum     复现修复前 f32 逐步舍入
+//   ACSD_HIPS_HIER_FAULT=dense_blocks  每通道一次性分配全部 64 块 = 修复前
 //                                         稠密分配 + 不流式写出 (等价旧语义);
 //                                         用于"稀疏 ≡ 稠密"逐位对照与内存判据判红
-//   ASTROCS_HIPS_HIER_FAULT=drop_blk0     丢弃落入子块 0 的累加 (模拟"错误跳过
+//   ACSD_HIPS_HIER_FAULT=drop_blk0     丢弃落入子块 0 的累加 (模拟"错误跳过
 //                                         子块") ⇒ 数值判据必须判红
 namespace hier_sparse {
 constexpr size_t kSide    = 64;                  // 子块边长 (元素)
@@ -920,10 +920,10 @@ struct HierLevel {
 // 注入面判定 (测试专用): 生产默认全 false; 见 AncestorAcc 注释。
 HierFaults hier_faults() {
     HierFaults f;
-    f.f32_accum    = fault_injected("ASTROCS_HIPS_HIER_FAULT", "f32_accum");
-    f.dense_blocks = fault_injected("ASTROCS_HIPS_HIER_FAULT", "dense_blocks");
-    f.drop_blk0    = fault_injected("ASTROCS_HIPS_HIER_FAULT", "drop_blk0");
-    f.cross_tile_sum = fault_injected("ASTROCS_HIPS_HIER_FAULT", "cross_tile_sum");
+    f.f32_accum    = fault_injected("ACSD_HIPS_HIER_FAULT", "f32_accum");
+    f.dense_blocks = fault_injected("ACSD_HIPS_HIER_FAULT", "dense_blocks");
+    f.drop_blk0    = fault_injected("ACSD_HIPS_HIER_FAULT", "drop_blk0");
+    f.cross_tile_sum = fault_injected("ACSD_HIPS_HIER_FAULT", "cross_tile_sum");
     return f;
 }
 
@@ -1039,7 +1039,7 @@ static bool write_hierarchy_cell(AioHipsProductSet* ps, int k, uint64_t A,
     if (bitpix == -32) { sigF.reset(new float[n]); supF.reset(new float[n]); }
     else               { sigD.reset(new double[n]); supD.reset(new double[n]); }
     for (size_t i = 0; i < n; ++i) {
-        const uint64_t fi = astrocs::healpix::nested_local_to_fits_index(
+        const uint64_t fi = acsd::healpix::nested_local_to_fits_index(
             (uint64_t)i, 9u, 512u);
         const double area = acc.areaAt(i);
         const double flux = acc.fluxAt(i);
@@ -1087,7 +1087,7 @@ static bool write_hierarchy_cell(AioHipsProductSet* ps, int k, uint64_t A,
         if (bitpix == -32) { varF.reset(new float[n]); ivarF.reset(new float[n]); }
         else               { varD.reset(new double[n]); ivarD.reset(new double[n]); }
         for (size_t i = 0; i < n; ++i) {
-            const uint64_t fi = astrocs::healpix::nested_local_to_fits_index(
+            const uint64_t fi = acsd::healpix::nested_local_to_fits_index(
                 (uint64_t)i, 9u, 512u);
             const double area = acc.areaAt(i);
             const double vnum = acc.varAt(i);
@@ -1232,14 +1232,14 @@ AioHipsProductSet* aio_hips_product_begin(
         // nside 必须恰为 2 的幂(M8d-A-01/AIO-001): 叶级几何基数 nside=2^K 是
         // ALG-HIPS-001 (1a) 的冻结构造前提, 下方 ilog2_u64 是*向下取整*, 非 2 的幂
         // (如 600) 会被静默夹逼到 2^9 并据此写出与调用方声明不一致的 NSIDE/
-        // A_cell/leaf_order 产品 —— 属 docs/ASTROCS_DESIGN §9 禁止的"看似完整产品"。
+        // A_cell/leaf_order 产品 —— 属 docs/ACSD_DESIGN §9 禁止的"看似完整产品"。
         // 上界 2^29(实现域): NESTED 计数 Npix=12·nside² 在 nside=2^29 时为 12·2^58
         // < 2^63(uint64 域内); nside>2^29 时该积将溢出/越出可寻址 tile 域, 且
         // tile_order=leaf_order-9 亦超出 MOC 阶实际可用范围 ⇒ 与非法 nside 同类拒绝。
         // 依据: docs/science/algorithms/HIPS_WRITER.md §1(1a) "叶级 nside=2^K>=512";
         //       API-HIPS-001 契约 aio_hips.h:101 "nside - 叶级 NSIDE (2 的幂, >= 512)";
         //       §9 负面矩阵"nside<512"(扩展到非 2 的幂/越上界同类非法输入);
-        //       docs/ASTROCS_DESIGN.md 附录 B IVOA HiPS 1.0 / Górski 2005 (Npix=12·nside²)。
+        //       docs/ACSD_DESIGN.md 附录 B IVOA HiPS 1.0 / Górski 2005 (Npix=12·nside²)。
         const bool nside_is_pow2 = (nside & (nside - 1u)) == 0u;
         if (!out_dir || !*out_dir || nside < 512 ||
             nside > (1u << 29) || !nside_is_pow2 || tile_width != 512 ||
@@ -1258,7 +1258,7 @@ AioHipsProductSet* aio_hips_product_begin(
         ps->leaf_order = ilog2_u64(nside);
         ps->tile_order = ps->leaf_order - 9;
         ps->A_cell = 4.0 * kPi() / (12.0 * (double)nside * nside);
-        ps->creator_did = creator_did ? creator_did : "ivo://astrocs/phase1";
+        ps->creator_did = creator_did ? creator_did : "ivo://acsd/phase1";
         ps->obs_title = obs_title ? obs_title : "ACSD Phase1";
         ps->obs_filter = obs_filter ? obs_filter : "";
         ps->obs_date = obs_date ? obs_date : "";
@@ -1352,7 +1352,7 @@ int aio_hips_write_signal_support_tile(AioHipsProductSet* ps,
         const auto t_tr0 = std::chrono::steady_clock::now();
         double tile_covered = 0.0;
         for (size_t i = 0; i < n; ++i) {
-            const uint64_t fi = astrocs::healpix::nested_local_to_fits_index(
+            const uint64_t fi = acsd::healpix::nested_local_to_fits_index(
                 (uint64_t)i, 9u, 512u);
             const bool v = valid.empty() || valid[i];
             double flux = 0.0, area = 0.0;
@@ -1566,7 +1566,7 @@ int aio_hips_write_variance_tile(AioHipsProductSet* ps,
         // —— 拒写会让 support>0 的像素在阶段二变成 ivar tile 缺失（fail-closed rc=7）。
         bool any_covered = false;
         for (size_t i = 0; i < n; ++i) {
-            const uint64_t fi = astrocs::healpix::nested_local_to_fits_index(
+            const uint64_t fi = acsd::healpix::nested_local_to_fits_index(
                 (uint64_t)i, 9u, 512u);
             const bool v = valid.empty() || valid[i];
             double vnum = 0.0, area = 0.0;
@@ -1745,9 +1745,9 @@ int aio_hips_write_diag_tile(AioHipsProductSet* ps,
         }
         const size_t n = 512 * 512;
         // §30.2 值域守卫: 计数平面恒 >= 0 (0 即"无"; 禁 −1 哨兵)。
-        // 注入面 ASTROCS_HIPS_DIAG_FAULT=sentinel 故意跳过守卫并写回 −1 占位,
+        // 注入面 ACSD_HIPS_DIAG_FAULT=sentinel 故意跳过守卫并写回 −1 占位,
         // 用于证明下游 verify/断言对"哨兵污染"具备判别力。
-        const bool inj_sentinel = fault_injected("ASTROCS_HIPS_DIAG_FAULT", "sentinel");
+        const bool inj_sentinel = fault_injected("ACSD_HIPS_DIAG_FAULT", "sentinel");
         if (!inj_sentinel) {
             for (int ch = 0; ch < 2; ++ch) {
                 const int32_t* src = ch == 0 ? view->nrej : view->nused;
@@ -1769,7 +1769,7 @@ int aio_hips_write_diag_tile(AioHipsProductSet* ps,
         cards.push_back({"LASTPIX", std::to_string(n - 1)});
         const std::string rel =
             tile_rel_path((int)ps->tile_order, view->parent_ipix, ".fits");
-        const bool inj_skip = fault_injected("ASTROCS_HIPS_DIAG_FAULT", "skip_write");
+        const bool inj_skip = fault_injected("ACSD_HIPS_DIAG_FAULT", "skip_write");
         for (int ch = 0; ch < 2; ++ch) {
             const bool want = ch == 0 ? want_nrej : want_nused;
             if (!want) continue;
@@ -1778,13 +1778,13 @@ int aio_hips_write_diag_tile(AioHipsProductSet* ps,
                 ch == 0 ? ps->scratch_diag_nrej : ps->scratch_diag_nused;
             buf.resize(n);
             for (size_t i = 0; i < n; ++i) {
-                const uint64_t fi = astrocs::healpix::nested_local_to_fits_index(
+                const uint64_t fi = acsd::healpix::nested_local_to_fits_index(
                     (uint64_t)i, 9u, 512u);
                 int32_t v = src[i];
                 if (inj_sentinel && v == 0) v = -1;   // 等价缺陷: 0 → −1 哨兵
                 buf[fi] = v;
             }
-            // 注入面 ASTROCS_HIPS_DIAG_FAULT=skip_write: 登记通道但静默不落盘
+            // 注入面 ACSD_HIPS_DIAG_FAULT=skip_write: 登记通道但静默不落盘
             // (等价缺陷 = "声明了产品却零文件"; 由 verify V4 声明↔事实断言捕获)
             if (ch == 0) ps->diag_nrej_tiles = true;
             else         ps->diag_nused_tiles = true;
@@ -1866,7 +1866,7 @@ static std::string fmt_sky_fraction(double v) {
 // 内部: 写一个子产品的 properties / metadata / MOC / hierarchy
 // ---------------------------------------------------------------------------
 // value_dtype: 该子产品像素值 dtype 标签 ("float32"/"float64"/"int32")
-// is_diag: 诊断统计平面 (int32, §30.2) —— 额外写 astrocs_diag_dtype 登记面
+// is_diag: 诊断统计平面 (int32, §30.2) —— 额外写 acsd_diag_dtype 登记面
 static bool finalize_image_product(AioHipsProductSet* ps,
                                    const std::string& prod,
                                    const std::string& subtype,
@@ -1916,16 +1916,16 @@ static bool finalize_image_product(AioHipsProductSet* ps,
     kv.push_back({"hips_release_date", rel_date});
     kv.push_back({"hips_creation_date", cre_date});
     kv.push_back({"obs_description", "ACSD Phase1 single-frame HiPS product"});
-    kv.push_back({"prov_progenitor", "ivo://astrocs/phase1/drizzle"});
+    kv.push_back({"prov_progenitor", "ivo://acsd/phase1/drizzle"});
     // （K_CORR_DOMAIN）：Drizzle provenance → sampler 按帧 k_corr
     if (ps->drizzle_prov_set) {
         char pf[32], sc[32];
         std::snprintf(pf, sizeof(pf), "%.6f", ps->drizzle_pixfrac);
-        kv.push_back({"ASTROCS_DRIZZLE_PIXFRAC", pf});
+        kv.push_back({"ACSD_DRIZZLE_PIXFRAC", pf});
         // 通道 = 全或无: setter 已把 scale 合法域收紧为 (0, 824.5167388361774"],
         // 故 drizzle_prov_set 为真 ⇒ 两键必须齐备 (禁"接受 0 但静默不写键")。
         std::snprintf(sc, sizeof(sc), "%.4f", ps->drizzle_scale_arcsec);
-        kv.push_back({"ASTROCS_DRIZZLE_SCALE_ARCSEC", sc});
+        kv.push_back({"ACSD_DRIZZLE_SCALE_ARCSEC", sc});
     }
     // 帧级未加权通量型 SNR（F_ref/σ_F）与公共参考通量 F_ref。
     // 唯一消费者 = Phase2 权重链（w = SNR²/F_ref² = 1/σ_F²; weight-chain-report
@@ -1935,8 +1935,8 @@ static bool finalize_image_product(AioHipsProductSet* ps,
         char fs[64], rf[64];
         std::snprintf(fs, sizeof(fs), "%.17g", ps->frame_snr);
         std::snprintf(rf, sizeof(rf), "%.17g", ps->reference_flux);
-        kv.push_back({"ASTROCS_FRAME_SNR", fs});
-        kv.push_back({"ASTROCS_REFERENCE_FLUX", rf});
+        kv.push_back({"ACSD_FRAME_SNR", fs});
+        kv.push_back({"ACSD_REFERENCE_FLUX", rf});
     }
     kv.push_back({"obs_regime", "optical"});
     // META-002: 无真实 passband/系统响应波长范围时不伪造 em_min/em_max
@@ -1944,27 +1944,27 @@ static bool finalize_image_product(AioHipsProductSet* ps,
     kv.push_back({"hips_pixel_scale", buf});
     kv.push_back({"hips_initial_fov", "60"});
     kv.push_back({"moc_sky_fraction", fmt_sky_fraction(moc_frac)});
-    kv.push_back({"astrocs_covered_sky_fraction", std::to_string(covered_frac)});
+    kv.push_back({"acsd_covered_sky_fraction", std::to_string(covered_frac)});
     // M2a-H-3 可观测钳制计数: 叶级 support 钳制像素数 + 层级 Σarea>A_cell_k
     // 像素数 (编码限"不可复原"从不可观测变为可测量)。
-    kv.push_back({"astrocs_support_clamped_pixels", std::to_string(ps->support_clamped_pixels)});
-    kv.push_back({"astrocs_coverage_gt1_pixels", std::to_string(ps->coverage_gt1_pixels)});
-    kv.push_back({"astrocs_signal_dtype", ps->data_type == AIO_HIPS_FLOAT32 ? "float32" : "float64"});
+    kv.push_back({"acsd_support_clamped_pixels", std::to_string(ps->support_clamped_pixels)});
+    kv.push_back({"acsd_coverage_gt1_pixels", std::to_string(ps->coverage_gt1_pixels)});
+    kv.push_back({"acsd_signal_dtype", ps->data_type == AIO_HIPS_FLOAT32 ? "float32" : "float64"});
     // DATA-UNC-001 §30.2: 诊断统计平面固定 int32 (无 precision 开关)
     if (is_diag)
-        kv.push_back({"astrocs_diag_dtype", value_dtype ? value_dtype : "int32"});
+        kv.push_back({"acsd_diag_dtype", value_dtype ? value_dtype : "int32"});
     // DATA-UNC-001 §30.3 (DATA-P2-PROV-001) provenance 四键 (原五键
     // 中的旧「权重模式」键已删除, 见 aio_hips.h)。
     // 全或无 (§30.3 冻结键名): prov_set=false → 四键整体不写 (legacy 面不变);
-    // prov_set=true → 四键齐备, 禁静默缺键 (注入面 ASTROCS_HIPS_PROV_FAULT=
+    // prov_set=true → 四键齐备, 禁静默缺键 (注入面 ACSD_HIPS_PROV_FAULT=
     // missing_key 故意漏写一键, 用于证明"缺键"断言有判别力)。
     if (ps->prov_set) {
-        if (!fault_injected("ASTROCS_HIPS_PROV_FAULT", "missing_key"))
-            kv.push_back({"ASTROCS_INPUT_MANIFEST_HASH", ps->prov_manifest_hash});
-        kv.push_back({"ASTROCS_MODEL_HASH", ps->prov_model_hash});
-        kv.push_back({"ASTROCS_UNCERTAINTY_AVAILABLE",
+        if (!fault_injected("ACSD_HIPS_PROV_FAULT", "missing_key"))
+            kv.push_back({"ACSD_INPUT_MANIFEST_HASH", ps->prov_manifest_hash});
+        kv.push_back({"ACSD_MODEL_HASH", ps->prov_model_hash});
+        kv.push_back({"ACSD_UNCERTAINTY_AVAILABLE",
                       ps->prov_uncertainty_available ? "true" : "false"});
-        kv.push_back({"ASTROCS_REJECT_PROFILE", ps->prov_reject_profile});
+        kv.push_back({"ACSD_REJECT_PROFILE", ps->prov_reject_profile});
     }
     if (!data_range.empty()) kv.push_back({"hips_data_range", data_range});
     // B2-A8: obs_filter 恒写出（含空值）。旧实现仅写非空值，使"未声明
@@ -2044,7 +2044,7 @@ static bool finalize_snr_product(AioHipsProductSet* ps) {
     std::set<uint64_t> cells;
     for (const auto& p : ps->snr) {
         // 共享 HEALPix core: 不再维护 AIO 私有 ang2ipix
-        uint64_t ip = astrocs::healpix::ang2pix_nest(1u << ps->tile_order,
+        uint64_t ip = acsd::healpix::ang2pix_nest(1u << ps->tile_order,
                                                      p.ra_deg, p.dec_deg);
         by_cell[ip].push_back(&p);
         cells.insert(ip);
@@ -2092,7 +2092,7 @@ static bool finalize_snr_product(AioHipsProductSet* ps) {
     kv2.push_back({"hips_release_date", rel_date2});
     kv2.push_back({"hips_creation_date", cre_date2});
     kv2.push_back({"obs_description", "ACSD Phase1 single-frame SNR catalogue HiPS product"});
-    kv2.push_back({"prov_progenitor", "ivo://astrocs/phase1/drizzle"});
+    kv2.push_back({"prov_progenitor", "ivo://acsd/phase1/drizzle"});
     kv2.push_back({"obs_regime", "optical"});
     // META-002: 无真实 passband/系统响应波长范围时不伪造 em_min/em_max
     if (!ps->obs_date.empty()) {
@@ -2207,7 +2207,7 @@ int aio_hips_set_drizzle_provenance(AioHipsProductSet* ps,
     }
 }
 
-// ── 帧级 SNR setter（ASTROCS_FRAME_SNR/REFERENCE_FLUX）─────
+// ── 帧级 SNR setter（ACSD_FRAME_SNR/REFERENCE_FLUX）─────
 // 全或无 + 禁伪造: 任一参数非有限/≤0 → 返回非 0 且不置 frame_snr_set。
 int aio_hips_set_frame_snr(AioHipsProductSet* ps, double frame_snr,
                            double reference_flux)  {
@@ -2454,9 +2454,9 @@ int aio_hips_finalize(AioHipsProductSet* ps)  {
                     "  \"products\": [%s],\n"
                     "  \"n_leaf_tiles\": %zu,\n"
                     "  \"moc_sky_fraction\": %s,\n"
-                    "  \"astrocs_covered_sky_fraction\": %.8f,\n"
-                    "  \"astrocs_support_clamped_pixels\": %llu,\n"
-                    "  \"astrocs_coverage_gt1_pixels\": %llu,\n"
+                    "  \"acsd_covered_sky_fraction\": %.8f,\n"
+                    "  \"acsd_support_clamped_pixels\": %llu,\n"
+                    "  \"acsd_coverage_gt1_pixels\": %llu,\n"
                     "  \"signal_dtype\": \"%s\",\n"
                     "  \"nrej_tiles\": %zu,\n"
                     "  \"nused_tiles\": %zu",
@@ -2477,14 +2477,14 @@ int aio_hips_finalize(AioHipsProductSet* ps)  {
                 // 旧「权重模式」JSON 键已删除 (四键 → 四键)。
                 if (ps->prov_set) {
                     const bool inj_drift =
-                        fault_injected("ASTROCS_HIPS_PROV_FAULT", "value_drift");
+                        fault_injected("ACSD_HIPS_PROV_FAULT", "value_drift");
                     std::fprintf(f,
                         ",\n"
                         "  \"provenance\": {\n"
-                        "    \"astrocs_input_manifest_hash\": \"%s\",\n"
-                        "    \"astrocs_model_hash\": \"%s\",\n"
-                        "    \"astrocs_uncertainty_available\": %s,\n"
-                        "    \"astrocs_reject_profile\": \"%s\"\n"
+                        "    \"acsd_input_manifest_hash\": \"%s\",\n"
+                        "    \"acsd_model_hash\": \"%s\",\n"
+                        "    \"acsd_uncertainty_available\": %s,\n"
+                        "    \"acsd_reject_profile\": \"%s\"\n"
                         "  }\n",
                         ps->prov_manifest_hash.c_str(),
                         // 注入面 value_drift: manifest 与 properties 分叉
@@ -2604,8 +2604,8 @@ bool json_scalar(const std::string& doc, const std::string& key, std::string* ou
 
 // 旧「权重模式」键已从四键表删除 (原 5 → 4)。
 const char* const kProvKeys[4] = {
-    "ASTROCS_INPUT_MANIFEST_HASH", "ASTROCS_MODEL_HASH",
-    "ASTROCS_UNCERTAINTY_AVAILABLE", "ASTROCS_REJECT_PROFILE"};
+    "ACSD_INPUT_MANIFEST_HASH", "ACSD_MODEL_HASH",
+    "ACSD_UNCERTAINTY_AVAILABLE", "ACSD_REJECT_PROFILE"};
 
 int count_prov_keys(const std::map<std::string, std::string>& props) {
     int n = 0;
@@ -2656,16 +2656,16 @@ int aio_hips_verify_product_set(const char* out_dir, AioHipsVerifyReport* out)  
                           std::to_string(out->prov_keys_present) + "/4, §30.3)");
                 return 4;
             }
-            const std::string ua = sprops.at("ASTROCS_UNCERTAINTY_AVAILABLE");
+            const std::string ua = sprops.at("ACSD_UNCERTAINTY_AVAILABLE");
             if (ua == "true") out->uncertainty_available = 1;
             else if (ua == "false") out->uncertainty_available = 0;
             else {
-                set_error("verify: ASTROCS_UNCERTAINTY_AVAILABLE 值非法: " + ua);
+                set_error("verify: ACSD_UNCERTAINTY_AVAILABLE 值非法: " + ua);
                 return 4;
             }
         }
         // 注入面 (测试专用等价缺陷): 短路恒 OK —— 证明下述断言有判别力
-        if (fault_injected("ASTROCS_HIPS_VERIFY_FAULT", "shortcut")) return 0;
+        if (fault_injected("ACSD_HIPS_VERIFY_FAULT", "shortcut")) return 0;
         // V3: uncertainty_available 双向断言 (§30.1/§30.3)
         out->variance_present = file_exists(root + "/variance/properties") ? 1 : 0;
         out->ivar_present = file_exists(root + "/ivar/properties") ? 1 : 0;
@@ -2786,9 +2786,9 @@ int aio_hips_verify_product_set(const char* out_dir, AioHipsVerifyReport* out)  
         // V6: properties ↔ manifest.json 双写面值一致性 (§30.3 双写)
         if (out->prov_keys_present == 4 && !mdoc.empty()) {
             struct { const char* prop; const char* mkey; } pairs[3] = {
-                {"ASTROCS_INPUT_MANIFEST_HASH", "astrocs_input_manifest_hash"},
-                {"ASTROCS_MODEL_HASH", "astrocs_model_hash"},
-                {"ASTROCS_REJECT_PROFILE", "astrocs_reject_profile"},
+                {"ACSD_INPUT_MANIFEST_HASH", "acsd_input_manifest_hash"},
+                {"ACSD_MODEL_HASH", "acsd_model_hash"},
+                {"ACSD_REJECT_PROFILE", "acsd_reject_profile"},
             };
             int mkeys = 0;
             for (const auto& p : pairs) {
@@ -2799,7 +2799,7 @@ int aio_hips_verify_product_set(const char* out_dir, AioHipsVerifyReport* out)  
             }
             {
                 std::string v;
-                if (json_scalar(mdoc, "astrocs_uncertainty_available", &v)) {
+                if (json_scalar(mdoc, "acsd_uncertainty_available", &v)) {
                     ++mkeys;
                     const std::string want =
                         out->uncertainty_available == 1 ? "true" : "false";

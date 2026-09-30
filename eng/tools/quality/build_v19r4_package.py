@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """build_v19r4_package.py — V19R4 证据生成 + 组装
-AstroCS_Review_ProductionWiringClosure_V19R4.zip。
+ACSD_Review_ProductionWiringClosure_V19R4.zip。
 
 证据时序（控制包 §9/§14）：所有代码/docs 修改完成后冻结 final HEAD，
 再一次性生成全部 evidence（head/status/diff、manifest、对账、报告），
@@ -40,7 +40,7 @@ def _deduce_root() -> str:
 
 ROOT = _deduce_root()
 REV = os.path.join(ROOT, "reports", "v19r4")
-PKG_NAME = "AstroCS_Review_ProductionWiringClosure_V19R4"
+PKG_NAME = "ACSD_Review_ProductionWiringClosure_V19R4"
 PKG = os.path.join(ROOT, PKG_NAME + ".zip")
 TMP = os.path.join(ROOT, "run", "temp", "v19r4_pkg")
 
@@ -49,7 +49,7 @@ SKIP_PARTS = {"build", "build2", "_deps", "CMakeFiles", "archive",
 SKIP_EXT = {".dll", ".exe", ".o", ".a", ".pyc", ".bak", ".obj", ".log",
             ".plist", ".zip", ".xpsd", ".hiss", ".hcsd", ".pch"}
 EXCLUDED_ROOTS = {"testdata", "GaiaDR3", "GaiaDR3SP",
-                  "siril-1.4.3", "工程控制", "AstroCS.wiki"}
+                  "siril-1.4.3", "工程控制", "ACSD.wiki"}
 
 
 def git(args: list[str]) -> str:
@@ -89,7 +89,7 @@ def first_party() -> list[str]:
 
 
 RETIRED_NOTICE = (
-    "BUILD_V19R4_PACKAGE_RETIRED: 本工具（V19R4 证据生成 + 审阅包组装（AstroCS_Review_ProductionWiringClosure_V19R4.zip））已退役；任意调用 exit 2（fail-closed，不伪装绿）。\n"
+    "BUILD_V19R4_PACKAGE_RETIRED: 本工具（V19R4 证据生成 + 审阅包组装（ACSD_Review_ProductionWiringClosure_V19R4.zip））已退役；任意调用 exit 2（fail-closed，不伪装绿）。\n"
     "  依据: ENGINEERING_SPEC.md §8（不允许「静默坏掉 / 僵尸入口」）；"
     "（结论不得写成源码字面量，结论字段必须从证据源读取，读不到写 NOT_VERIFIED）。\n"
     "  退役原因: ① 输出根 V19R4 审阅 zip 与证据树（V19 世代交付形态）；② 写出的取证 JSON 里 result=「PASS」是字面量，"
@@ -138,7 +138,7 @@ def _legacy_main() -> int:
     write("evidence/science/phase2_ivar_production_truth.json", json.dumps({
         "gates": "WIRE-IVAR-001..005", "result": "PASS",
         "detail": "3 帧合成 HiPS（不同 spatial ivar pattern + invalid 带）"
-                  "直接跑 astrocs-stage2.exe；production 输出与 UPM 模型"
+                  "直接跑 acsd-stage2.exe；production 输出与 UPM 模型"
                   "求值真值 0.05 容差一致；C 帧 ivar x4 不影响 A/B 区域；"
                   "帧置换输出不变",
         "head": head}, indent=1))
@@ -164,7 +164,7 @@ def _legacy_main() -> int:
              "n_retained": 252, "n_eff": 168.2},
             {"pixfrac": 1.0, "scale_arcsec": 600, "k_corr": 3.2035,
              "n_retained": 932, "n_eff": 290.9}],
-        "implementation": "Phase1 写 ASTROCS_DRIZZLE_PIXFRAC/SCALE_ARCSEC "
+        "implementation": "Phase1 写 ACSD_DRIZZLE_PIXFRAC/SCALE_ARCSEC "
                           "provenance；sampler 按帧双线性标定表；无 "
                           "metadata fallback 1.4",
         "head": head}, indent=1))
@@ -243,7 +243,7 @@ fixed conservative mask 与 least-squares plane 在 header/source/docs 三处
 Stage2 修复：ivarv[depth x chunk_pixels] 逐帧保存；collector 输出
 source_indices（eligible→原 frame slot）；mode2 权重经 source_indices +
 ivar_valid 取该帧该像素 ivar。WIRE-IVAR-001..005 生产集成测试（3 帧合成
-HiPS × 不同 spatial ivar × invalid 带 × 置换 → 直接跑 astrocs-stage2.exe）
+HiPS × 不同 spatial ivar × invalid 带 × 置换 → 直接跑 acsd-stage2.exe）
 全部 PASS。
 """,
         "frame_id_contract.md": """# Frame ID Contract（DATA-FRAME-ID-001）
@@ -258,7 +258,7 @@ docs_machine_consistency.frame_id_contract_exact 全仓校验。
 
 kcorr_matrix_test 实测 pixfrac{0.5,0.8,1.0} x scale{300",600"} 的 k_corr
 （1.21..3.20，最大相对偏差 130%，采样比主导）→ 不能无条件用 1.4。
-实现：Phase1 HiPS 写 ASTROCS_DRIZZLE_PIXFRAC/SCALE_ARCSEC provenance；
+实现：Phase1 HiPS 写 ACSD_DRIZZLE_PIXFRAC/SCALE_ARCSEC provenance；
 sampler 按帧双线性标定表（无 metadata fallback 1.4）。
 """,
         "drizzle_targeted.md": """# Drizzle Final Targeted
@@ -390,7 +390,7 @@ clang analyze + 人工 review）。
 
     write("README.md",
           "# ACSD V19R4 Review — Production Wiring Closure\n\n"
-          "对应控制包 AstroCS_PreRelease_ProductionWiringClosure_V19R4.zip。"
+          "对应控制包 ACSD_PreRelease_ProductionWiringClosure_V19R4.zip。"
           "最终状态：PRE_RELEASE_ENGINEERING_FOUNDATION=PASS，"
           "FINAL_REAL_DATA_VALIDATION=PENDING_V20。\n")
 

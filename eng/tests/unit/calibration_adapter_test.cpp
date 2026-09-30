@@ -18,8 +18,8 @@
  *      budget: acquire 失败 / executor 缺失 → BUDGET+105; 租约 acquire/release
  *      平衡; inspect exec_count; 状态护栏 (create config 缺失)。
  *
- * DLL 经环境变量 ASTROCS_CAL_DLL_PATH (CMake test properties 注入)。
- * direct 通道: #include 生产头 + 链 astrocs_calibration STATIC。
+ * DLL 经环境变量 ACSD_CAL_DLL_PATH (CMake test properties 注入)。
+ * direct 通道: #include 生产头 + 链 acsd_calibration STATIC。
  */
 #include <cmath>
 #include <cstdint>
@@ -40,20 +40,20 @@
 #endif
 
 /* FINAL-07 WIN-PORT 批次二: 平台专属调用的唯一判定点 ——
- * Windows 侧的 dlopen/dlsym/dlerror、RTLD_* 等经 eng/tests/support/astrocs_test_posix_compat.h
+ * Windows 侧的 dlopen/dlsym/dlerror、RTLD_* 等经 eng/tests/support/acsd_test_posix_compat.h
  * 统一给等价物 (本 TU 的加载用例是平台中立的模块加载器契约, 加守卫跳过会丢覆盖面, 故不跳过)。
  * 类 UNIX 侧该头整头为空, 上面保留本 TU 原有系统头 => Linux 预处理零 delta。
  * 无等价语义的能力见该头「无等价物清单」(显式限定 + 明确状态)。 */
-#include "../support/astrocs_test_posix_compat.h"
+#include "../support/acsd_test_posix_compat.h"
 
 #include "astro_calibration.h"
-#include "astrocs/abi/lifecycle_v1.h"
-#include "astrocs/abi/module_api_v1.h"
-#include "astrocs/abi/host_api_v1.h"
-#include "astrocs/calibration/types.h"
+#include "acsd/abi/lifecycle_v1.h"
+#include "acsd/abi/module_api_v1.h"
+#include "acsd/abi/host_api_v1.h"
+#include "acsd/calibration/types.h"
 
-typedef acs_status (*cal_entry_fn)(uint32_t, const acs_host_api_v1*,
-                                   const acs_module_api_v1**);
+typedef acsd_status (*cal_entry_fn)(uint32_t, const acsd_host_api_v1*,
+                                   const acsd_module_api_v1**);
 
 static int g_fail = 0;
 #define CHECK(cond, name) do { \
@@ -62,9 +62,9 @@ static int g_fail = 0;
 } while (0)
 
 /* ── str 构造 helper ── */
-static acs_str_v1 cal_str(const char* s) {
-    acs_str_v1 v;
-    v.head.struct_size = (uint32_t)sizeof(acs_str_v1);
+static acsd_str_v1 cal_str(const char* s) {
+    acsd_str_v1 v;
+    v.head.struct_size = (uint32_t)sizeof(acsd_str_v1);
     v.head.abi_version = ACS_ABI_VERSION_V1;
     v.data = s; v.size = (uint64_t)strlen(s);
     return v;
@@ -73,10 +73,10 @@ static acs_str_v1 cal_str(const char* s) {
 
 /* ── host stub (allocator + executor 计数 + cancel 通道) ── */
 typedef struct {
-    acs_host_api_v1 api;
-    acs_executor_v1 executor;
-    acs_allocator_v1 allocator;
-    acs_cancel_v1   cancel;
+    acsd_host_api_v1 api;
+    acsd_executor_v1 executor;
+    acsd_allocator_v1 allocator;
+    acsd_cancel_v1   cancel;
     int acquire_calls, release_calls;
     int fail_acquire;
     int cancelled;
@@ -107,9 +107,9 @@ static int cal_is_cancelled(void* user) {
 
 static void cal_host_init(cal_test_host* h) {
     memset(h, 0, sizeof(*h));
-    h->api.head.struct_size = (uint32_t)sizeof(acs_host_api_v1);
+    h->api.head.struct_size = (uint32_t)sizeof(acsd_host_api_v1);
     h->api.head.abi_version = ACS_ABI_VERSION_V1;
-    h->executor.head.struct_size = (uint32_t)sizeof(acs_executor_v1);
+    h->executor.head.struct_size = (uint32_t)sizeof(acsd_executor_v1);
     h->executor.head.abi_version = ACS_ABI_VERSION_V1;
     h->executor.available_cpus = 4;
     h->executor.max_workers = 4;
@@ -117,13 +117,13 @@ static void cal_host_init(cal_test_host* h) {
     h->executor.release = cal_release;
     h->executor.user_data = h;
     h->api.executor = &h->executor;
-    h->allocator.head.struct_size = (uint32_t)sizeof(acs_allocator_v1);
+    h->allocator.head.struct_size = (uint32_t)sizeof(acsd_allocator_v1);
     h->allocator.head.abi_version = ACS_ABI_VERSION_V1;
     h->allocator.alloc = cal_alloc;
     h->allocator.free = cal_free;
     h->allocator.user_data = h;
     h->api.allocator = &h->allocator;
-    h->cancel.head.struct_size = (uint32_t)sizeof(acs_cancel_v1);
+    h->cancel.head.struct_size = (uint32_t)sizeof(acsd_cancel_v1);
     h->cancel.head.abi_version = ACS_ABI_VERSION_V1;
     h->cancel.is_cancelled = cal_is_cancelled;
     h->cancel.user_data = h;
@@ -305,17 +305,17 @@ static std::string cal_man_master_f64(const std::vector<double>& s0,
 }
 
 /* ── execute 便捷封装: 返回 ACS_OK 且 out 解码到 plane; 否则返回 status ── */
-static acs_status cal_run(const acs_module_api_v1* api, cal_test_host* host,
-                          acs_module_instance_v1* inst,
+static acsd_status cal_run(const acsd_module_api_v1* api, cal_test_host* host,
+                          acsd_module_instance_v1* inst,
                           const std::string& manifest,
                           const std::string& config,
                           std::vector<uint8_t>* plane,
-                          acs_error_info_v1* err) {
-    acs_strbuf_v1 ob;
+                          acsd_error_info_v1* err) {
+    acsd_strbuf_v1 ob;
     memset(&ob, 0, sizeof(ob));
     char buf[1 << 16];
     ob.data = buf; ob.cap = sizeof(buf);
-    acs_status st = api->execute(inst, cal_str(manifest.c_str()),
+    acsd_status st = api->execute(inst, cal_str(manifest.c_str()),
                                  cal_cfg(config.c_str()), &ob, err);
     if (st != ACS_OK) return st;
     if (plane) {
@@ -333,8 +333,8 @@ static acs_status cal_run(const acs_module_api_v1* api, cal_test_host* host,
 }
 
 int main(void) {
-    const char* dll = getenv("ASTROCS_CAL_DLL_PATH");
-    if (!dll || !dll[0]) { printf("FAIL: ASTROCS_CAL_DLL_PATH not set\n"); return 2; }
+    const char* dll = getenv("ACSD_CAL_DLL_PATH");
+    if (!dll || !dll[0]) { printf("FAIL: ACSD_CAL_DLL_PATH not set\n"); return 2; }
 #ifdef _WIN32
     HMODULE h = LoadLibraryA(dll);
 #else
@@ -342,14 +342,14 @@ int main(void) {
 #endif
     if (!h) { printf("FAIL: dlopen(%s): %s\n", dll, dlerror()); return 2; }
 #ifdef _WIN32
-    cal_entry_fn entry = (cal_entry_fn)GetProcAddress(h, "astrocs_module_query_v1");
+    cal_entry_fn entry = (cal_entry_fn)GetProcAddress(h, "acsd_module_query_v1");
 #else
-    cal_entry_fn entry = (cal_entry_fn)dlsym(h, "astrocs_module_query_v1");
+    cal_entry_fn entry = (cal_entry_fn)dlsym(h, "acsd_module_query_v1");
 #endif
-    CHECK(entry != NULL, "entry astrocs_module_query_v1 exported");
+    CHECK(entry != NULL, "entry acsd_module_query_v1 exported");
 
     if (!entry) return 2;
-    const acs_module_api_v1* api = NULL;
+    const acsd_module_api_v1* api = NULL;
     CHECK(entry(999, NULL, &api) == ACS_ERR_ABI_MISMATCH,
           "A: host_abi mismatch -> ACS_ERR_ABI_MISMATCH");
     CHECK(entry(ACS_ABI_VERSION_V1, NULL, NULL) == ACS_ERR_PARAM,
@@ -381,32 +381,32 @@ int main(void) {
 
     /* A. describe */
     {
-        acs_module_descriptor_v1 desc;
+        acsd_module_descriptor_v1 desc;
         memset(&desc, 0, sizeof(desc));
-        CHECK(api->describe(api, cal_str("astrocs.p1.other"), &desc) ==
+        CHECK(api->describe(api, cal_str("acsd.p1.other"), &desc) ==
               ACS_ERR_ABI_MISMATCH, "A: describe wrong module_id -> MISMATCH");
         memset(&desc, 0, sizeof(desc));
-        CHECK(api->describe(api, cal_str(ASTROCS_CAL_MODULE_ID), &desc) == ACS_OK,
+        CHECK(api->describe(api, cal_str(ACSD_CAL_MODULE_ID), &desc) == ACS_OK,
               "A: describe ok");
         CHECK(desc.phase == 1 && desc.config_schema_ver == 1,
               "A: descriptor phase=1 schema_ver=1");
         CHECK(desc.execution_class == 0 && desc.parallel_ok == 1,
               "A: descriptor cpu_heavy parallel_ok");
-        CHECK(desc.version.size == strlen(ASTROCS_CAL_VERSION) &&
-              memcmp(desc.version.data, ASTROCS_CAL_VERSION, desc.version.size) == 0,
-              "A: descriptor version == ASTROCS_CAL_VERSION (module.yaml module_version)");
+        CHECK(desc.version.size == strlen(ACSD_CAL_VERSION) &&
+              memcmp(desc.version.data, ACSD_CAL_VERSION, desc.version.size) == 0,
+              "A: descriptor version == ACSD_CAL_VERSION (module.yaml module_version)");
         CHECK(desc.sci_id.size == 11 && memcmp(desc.sci_id.data, "SCI-CAL-001", 11) == 0,
               "A: descriptor sci_id");
     }
 
     /* C. validate_config 负例 (冻结 detail 码) */
     {
-        acs_error_info_v1 err;
+        acsd_error_info_v1 err;
         memset(&err, 0, sizeof(err));
         CHECK(api->validate_config(api, cal_cfg(cal_cfg_calib(0, 0).c_str()), NULL)
               == ACS_OK, "C: validate ok config");
         memset(&err, 0, sizeof(err));
-        acs_status st = api->validate_config(api, cal_cfg("{\"op\":\"warp\"}"), &err);
+        acsd_status st = api->validate_config(api, cal_cfg("{\"op\":\"warp\"}"), &err);
         CHECK(st == ACS_ERR_PARAM && err.detail_code == 100,
               "C: unknown op -> PARAM/100");
         memset(&err, 0, sizeof(err));
@@ -447,13 +447,13 @@ int main(void) {
 
     /* D. plan 两阶段 + work_units 事实 */
     {
-        acs_strbuf_v1 pb;
+        acsd_strbuf_v1 pb;
         char pbuf[1024];
         memset(&pb, 0, sizeof(pb));
-        acs_error_info_v1 err;
+        acsd_error_info_v1 err;
         memset(&err, 0, sizeof(err));
         /* master: work_units = frames */
-        acs_status st = api->plan(api, cal_str("node-1"),
+        acsd_status st = api->plan(api, cal_str("node-1"),
                                   cal_cfg(cal_cfg_master("generate_master_bias").c_str()),
                                   &pb, &err);
         /* 两阶段语义 (strbuf_commit 冻结口径, 与 drizzle/gaia 一致):
@@ -492,8 +492,8 @@ int main(void) {
     /* E. direct-vs-plugin BITWISE (10 op + 恒等通道 + 状态机) */
     cal_test_host host;
     cal_host_init(&host);
-    acs_error_info_v1 err;
-    acs_module_instance_v1* inst = NULL;
+    acsd_error_info_v1 err;
+    acsd_module_instance_v1* inst = NULL;
 
     /* fixture 平面 (master 合成帧 base >= bias base + 余量: 减 bias 后为正,
      * 否则 legacy master_flat "median<0 reject" — 通道 fixture 数值要求) */
@@ -525,7 +525,7 @@ int main(void) {
                           &host.api, &inst, &err) == ACS_OK && inst,
               "E: create calibrate inst");
         std::vector<uint8_t> plane;
-        acs_status st = cal_run(api, &host, inst,
+        acsd_status st = cal_run(api, &host, inst,
                                 cal_man_frame(&light, NULL, &bias, NULL, &dark,
                                               NULL, &flat, NULL),
                                 cal_cfg_calib(0, 0), &plane, &err);
@@ -548,7 +548,7 @@ int main(void) {
                           &host.api, &inst, &err) == ACS_OK && inst,
               "E: create calibrate dark_opt inst");
         std::vector<uint8_t> plane;
-        acs_status st = cal_run(api, &host, inst,
+        acsd_status st = cal_run(api, &host, inst,
                                 cal_man_frame(&light, NULL, &bias, NULL, &dark,
                                               NULL, &flat, NULL),
                                 cal_cfg_calib(0, 1), &plane, &err);
@@ -568,7 +568,7 @@ int main(void) {
                           &host.api, &inst, &err) == ACS_OK && inst,
               "E: create identity inst");
         std::vector<uint8_t> plane;
-        acs_status st = cal_run(api, &host, inst,
+        acsd_status st = cal_run(api, &host, inst,
                                 cal_man_frame(&light, NULL, NULL, NULL, NULL,
                                               NULL, NULL, NULL),
                                 cal_cfg_calib(0, 0), &plane, &err);
@@ -588,7 +588,7 @@ int main(void) {
                           &host.api, &inst, &err) == ACS_OK && inst,
               "E: create correct inst");
         std::vector<uint8_t> plane;
-        acs_status st = cal_run(api, &host, inst,
+        acsd_status st = cal_run(api, &host, inst,
                                 cal_man_frame(&light, NULL, NULL, NULL, &dark,
                                               NULL, NULL, NULL),
                                 cal_cfg_correct(0), &plane, &err);
@@ -630,7 +630,7 @@ int main(void) {
             std::vector<uint8_t> plane;
             std::string man = cal_man_master(s0, s1, s2,
                                              ms[i].use_bias ? &bias : NULL);
-            acs_status st = cal_run(api, &host, inst, man,
+            acsd_status st = cal_run(api, &host, inst, man,
                                     cal_cfg_master(ms[i].op), &plane, &err);
             char nm[96];
             snprintf(nm, sizeof(nm), "E: %s BITWISE", ms[i].op);
@@ -650,7 +650,7 @@ int main(void) {
                           &host.api, &inst, &err) == ACS_OK && inst,
               "E: create calibrate f64 inst");
         std::vector<uint8_t> plane;
-        acs_status st = cal_run(api, &host, inst,
+        acsd_status st = cal_run(api, &host, inst,
                                 cal_man_frame(NULL, &light64, NULL, &bias64,
                                               NULL, &dark64, NULL, &flat64),
                                 cal_cfg_calib(1, 1), &plane, &err);
@@ -670,7 +670,7 @@ int main(void) {
                           &host.api, &inst, &err) == ACS_OK && inst,
               "E: create correct f64 inst");
         std::vector<uint8_t> plane;
-        acs_status st = cal_run(api, &host, inst,
+        acsd_status st = cal_run(api, &host, inst,
                                 cal_man_frame(NULL, &light64, NULL, NULL,
                                               NULL, &dark64, NULL, NULL),
                                 cal_cfg_correct(1), &plane, &err);
@@ -693,7 +693,7 @@ int main(void) {
                           &host.api, &inst, &err) == ACS_OK && inst,
               "E: create master f64 inst");
         std::vector<uint8_t> plane;
-        acs_status st = cal_run(api, &host, inst,
+        acsd_status st = cal_run(api, &host, inst,
                                 cal_man_master_f64(d0, d1, d2, NULL),
                                 cal_cfg_master("generate_master_bias_f64"),
                                 &plane, &err);
@@ -710,11 +710,11 @@ int main(void) {
               "E: create cancel inst");
         CHECK(api->request_cancel(inst) == ACS_OK, "E: request_cancel ok");
         host.cancelled = 1;
-        acs_strbuf_v1 ob;
+        acsd_strbuf_v1 ob;
         memset(&ob, 0, sizeof(ob));
         char buf[4096];
         ob.data = buf; ob.cap = sizeof(buf);
-        acs_status st = api->execute(inst,
+        acsd_status st = api->execute(inst,
                                      cal_str(cal_man_frame(&light, NULL, &bias,
                                                            NULL, &dark, NULL,
                                                            &flat, NULL).c_str()),
@@ -741,7 +741,7 @@ int main(void) {
               "E: create budget inst");
         host.fail_acquire = 1;
         memset(&err, 0, sizeof(err));
-        acs_status st = api->execute(inst,
+        acsd_status st = api->execute(inst,
                                      cal_str(cal_man_frame(&light, NULL, &bias,
                                                            NULL, &dark, NULL,
                                                            &flat, NULL).c_str()),
@@ -752,7 +752,7 @@ int main(void) {
         host.fail_acquire = 0;
         api->destroy(inst); inst = NULL;
 
-        const acs_executor_v1* saved = host.api.executor;
+        const acsd_executor_v1* saved = host.api.executor;
         host.api.executor = NULL;
         CHECK(api->create(api, cal_cfg(cal_cfg_calib(0, 0).c_str()),
                           &host.api, &inst, &err) == ACS_OK && inst,
@@ -773,13 +773,13 @@ int main(void) {
         CHECK(api->create(api, cal_cfg(cal_cfg_calib(0, 0).c_str()),
                           &host.api, &inst, &err) == ACS_OK && inst,
               "E: create inspect inst");
-        acs_strbuf_v1 ob;
+        acsd_strbuf_v1 ob;
         char buf[512];
         memset(&ob, 0, sizeof(ob));
         ob.data = buf; ob.cap = sizeof(buf);
         CHECK(api->inspect(inst, &ob, &err) == ACS_OK, "E: inspect ok");
         CHECK(strstr(ob.data, "\"exec_count\":0") != NULL &&
-              strstr(ob.data, ASTROCS_CAL_MODULE_ID) != NULL,
+              strstr(ob.data, ACSD_CAL_MODULE_ID) != NULL,
               "E: inspect fresh exec_count=0");
         std::vector<uint8_t> plane;
         CHECK(cal_run(api, &host, inst,
@@ -798,8 +798,8 @@ int main(void) {
     /* 状态护栏: create 无 config → PARAM/NULL_CONFIG */
     {
         memset(&err, 0, sizeof(err));
-        acs_module_instance_v1* bad = NULL;
-        acs_status st = api->create(api, cal_cfg(""), &host.api, &bad, &err);
+        acsd_module_instance_v1* bad = NULL;
+        acsd_status st = api->create(api, cal_cfg(""), &host.api, &bad, &err);
         CHECK(st == ACS_ERR_PARAM &&
               err.detail_code == ACS_DIAG_ECODE_NULL_CONFIG && bad == NULL,
               "E: create empty config -> PARAM/NULL_CONFIG, out=NULL");

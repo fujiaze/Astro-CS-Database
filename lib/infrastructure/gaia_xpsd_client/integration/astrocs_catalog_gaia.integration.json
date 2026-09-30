@@ -1,8 +1,8 @@
 {
-  "descriptor_schema": "astrocs.module-integration-descriptor/v1",
+  "descriptor_schema": "acsd.module-integration-descriptor/v1",
   "descriptor_owner_task": "CAT-GAIA-INT",
-  "descriptor_note": "模块本地集成面 (MODULE_MIGRATION_TEMPLATE <prefix>-INT)。端口/operation 字段名与 lib/infrastructure/pipeline/module_ports.registry.json v1 消费格式对齐; 本文件是模块侧声明面, 不是全局注册表。global DAG registration (typed DAG node 接线 + module_ports.registry.json 登记 + install manifest) 由 SA-RT-05 assembly task 消费本表执行; 本任务不改全局 registry/graph。所有 ID/键/词表与 lib/infrastructure/gaia_xpsd_client/module.yaml (CAT-GAIA-DOC 冻结)、lib/infrastructure/gaia_xpsd_client/include/astrocs/gaia/types.h (CAT-GAIA-IMPL) 三方一致 (12 §5)。",
-  "module_id": "astrocs.catalog.gaia",
+  "descriptor_note": "模块本地集成面 (MODULE_MIGRATION_TEMPLATE <prefix>-INT)。端口/operation 字段名与 lib/infrastructure/pipeline/module_ports.registry.json v1 消费格式对齐; 本文件是模块侧声明面, 不是全局注册表。global DAG registration (typed DAG node 接线 + module_ports.registry.json 登记 + install manifest) 由 SA-RT-05 assembly task 消费本表执行; 本任务不改全局 registry/graph。所有 ID/键/词表与 lib/infrastructure/gaia_xpsd_client/module.yaml (CAT-GAIA-DOC 冻结)、lib/infrastructure/gaia_xpsd_client/include/acsd/gaia/types.h (CAT-GAIA-IMPL) 三方一致 (12 §5)。",
+  "module_id": "acsd.catalog.gaia",
   "module_version": "0.1.0-alpha.1",
   "abi_version": 1,
   "config_schema_ver": 1,
@@ -16,11 +16,11 @@
     "test_id": "TEST-GAIA-DESIGN-001"
   },
   "dll": {
-    "cmake_target": "astrocs_catalog_gaia",
-    "dll_name_windows": "astrocs_catalog_gaia.dll",
-    "dll_name_linux": "astrocs_catalog_gaia.so",
-    "unique_entry": "astrocs_module_query_v1",
-    "export_contract": "12 §1/ABI-006: 唯一导出 astrocs_module_query_v1; 12 个 legacy gaia_client_* 符号经 GAIA_EXPORT= 本地化不进导出面",
+    "cmake_target": "acsd_catalog_gaia",
+    "dll_name_windows": "acsd_catalog_gaia.dll",
+    "dll_name_linux": "acsd_catalog_gaia.so",
+    "unique_entry": "acsd_module_query_v1",
+    "export_contract": "12 §1/ABI-006: 唯一导出 acsd_module_query_v1; 12 个 legacy gaia_client_* 符号经 GAIA_EXPORT= 本地化不进导出面",
     "loader_rule": "缺 DLL (dlopen/LoadLibrary 失败) 必须失败, 不降级直调 (模板 INT §5)"
   },
   "execution": {
@@ -62,13 +62,13 @@
     }
   ],
   "operations": [
-    { "operation": "cone_search", "config_op": "cone_search", "entry": "astrocs_module_query_v1", "resource_class": "io", "inputs": ["catalog.xpsd_dir"], "outputs": ["catalog.gaia_rows"] },
-    { "operation": "cone_search_for_solver", "config_op": "cone_search_for_solver", "entry": "astrocs_module_query_v1", "resource_class": "io", "inputs": ["catalog.xpsd_dir"], "outputs": ["catalog.gaia_rows"] },
-    { "operation": "cone_search_with_spectrum", "config_op": "cone_search_with_spectrum", "entry": "astrocs_module_query_v1", "resource_class": "io", "inputs": ["catalog.xpsd_dir"], "outputs": ["catalog.gaia_rows"] },
-    { "operation": "cone_search_with_photometry", "config_op": "cone_search_with_photometry", "entry": "astrocs_module_query_v1", "resource_class": "io", "inputs": ["catalog.xpsd_dir"], "outputs": ["catalog.gaia_rows"] },
-    { "operation": "query_spectrum_by_coords", "config_op": "query_spectrum_by_coords", "entry": "astrocs_module_query_v1", "resource_class": "io", "inputs": ["catalog.xpsd_dir"], "outputs": ["catalog.gaia_rows"] }
+    { "operation": "cone_search", "config_op": "cone_search", "entry": "acsd_module_query_v1", "resource_class": "io", "inputs": ["catalog.xpsd_dir"], "outputs": ["catalog.gaia_rows"] },
+    { "operation": "cone_search_for_solver", "config_op": "cone_search_for_solver", "entry": "acsd_module_query_v1", "resource_class": "io", "inputs": ["catalog.xpsd_dir"], "outputs": ["catalog.gaia_rows"] },
+    { "operation": "cone_search_with_spectrum", "config_op": "cone_search_with_spectrum", "entry": "acsd_module_query_v1", "resource_class": "io", "inputs": ["catalog.xpsd_dir"], "outputs": ["catalog.gaia_rows"] },
+    { "operation": "cone_search_with_photometry", "config_op": "cone_search_with_photometry", "entry": "acsd_module_query_v1", "resource_class": "io", "inputs": ["catalog.xpsd_dir"], "outputs": ["catalog.gaia_rows"] },
+    { "operation": "query_spectrum_by_coords", "config_op": "query_spectrum_by_coords", "entry": "acsd_module_query_v1", "resource_class": "io", "inputs": ["catalog.xpsd_dir"], "outputs": ["catalog.gaia_rows"] }
   ],
-  "operations_note": "operation 名=config op 词表 (types.h ASTROCS_GAIA_OP_*); 每 (module_id, operation) 绑定唯一 entry astrocs_module_query_v1 (C ABI 每 DLL 唯一导出面, ABI-001)。SA-RT-05 全局注册时按本表落 module_ports.registry.json; 同 entry 跨 node 的 hidden-session 判定键须用 (module_id, operation), 原始 entry 扇出语义见 lib/infrastructure/scheduler/src/context.cpp detect_repeated_calls (P2 session 时代契约, C ABI 模块下的裁定权在 SA-RT-05/RT-006 演进)。",
+  "operations_note": "operation 名=config op 词表 (types.h ACSD_GAIA_OP_*); 每 (module_id, operation) 绑定唯一 entry acsd_module_query_v1 (C ABI 每 DLL 唯一导出面, ABI-001)。SA-RT-05 全局注册时按本表落 module_ports.registry.json; 同 entry 跨 node 的 hidden-session 判定键须用 (module_id, operation), 原始 entry 扇出语义见 lib/infrastructure/scheduler/src/context.cpp detect_repeated_calls (P2 session 时代契约, C ABI 模块下的裁定权在 SA-RT-05/RT-006 演进)。",
   "plan_contract": {
     "plan_version": 1,
     "work_unit": "leaf_block_bytes",
@@ -77,14 +77,14 @@
   },
   "trace_contract": {
     "event_type": "module_call",
-    "standard": "RT-006 TraceEvent (lib/include/astrocs/core/contracts.h; 观测值禁止 config 冒充, 14 §4)",
+    "standard": "RT-006 TraceEvent (lib/include/acsd/core/contracts.h; 观测值禁止 config 冒充, 14 §4)",
     "real_value_fields": {
       "module_id": "describe().module_id (模块静态输出)",
       "module_version": "describe().version",
       "dll_name": "实际 dlopen/LoadLibrary 路径",
       "dll_sha256": "DLL 文件内容 SHA-256 实测 (安装时计算, 本 descriptor 不预填)",
       "build_id": "describe().build_id = CAT-GAIA-IMPL",
-      "entry": "dlsym 实际解析的导出符号 astrocs_module_query_v1",
+      "entry": "dlsym 实际解析的导出符号 acsd_module_query_v1",
       "call_count": "该 node module_call 累计 (每节点必须=1)",
       "workers": "host executor 实际租借数 (观测, 非 config 预测)",
       "granted_workers": "executor 授权上限观测",
@@ -102,7 +102,7 @@
   "failure_contract": {
     "missing_dll": "loader: 缺 DLL 必须失败 (模板 INT §5)",
     "duplicate_node_id": "静态图重复 node_id -> SA-RT-05 compiler 拒绝 (全局职责)",
-    "wrong_abi": "astrocs_module_query_v1(host_abi != ACS_ABI_VERSION_V1) -> ACS_ERR_ABI_MISMATCH 不降级",
+    "wrong_abi": "acsd_module_query_v1(host_abi != ACS_ABI_VERSION_V1) -> ACS_ERR_ABI_MISMATCH 不降级",
     "wrong_abi_id": "describe(module_id 不匹配) -> ACS_ERR_ABI_MISMATCH",
     "repeated_execute": "执行中同实例重入 → ACS_ERR_STATE (executing 标志); 事务完成后模块 state 保持 CREATED (v1 语义), host 重复驱动为调用方协议违规, 由 RT-006 runtime call counts / 重放违规检测拒绝 (inspect.exec_count 线性递增可巡检)",
     "unknown_op": "ACS_ERR_PARAM + detail=100 (ACS_GAIA_ECODE_OP_UNKNOWN)",
@@ -113,7 +113,7 @@
   "global_dag_registration": {
     "owner": "SA-RT-05",
     "status": "delegated",
-    "delegation": "typed DAG node 接线 (astrocs.typed-dag/v1)、module_ports.registry.json 登记、install manifest、ArtifactStore 端口绑定均由 SA-RT-05 assembly task 执行; 本任务仅交付模块本地集成面 (本 descriptor + 本地集成测试), 不修改 lib/infrastructure/pipeline/*、graph/*、lib/infrastructure/scheduler 全局注册表 (模板 INT §1: 不直接修改全局 pipeline)",
+    "delegation": "typed DAG node 接线 (acsd.typed-dag/v1)、module_ports.registry.json 登记、install manifest、ArtifactStore 端口绑定均由 SA-RT-05 assembly task 执行; 本任务仅交付模块本地集成面 (本 descriptor + 本地集成测试), 不修改 lib/infrastructure/pipeline/*、graph/*、lib/infrastructure/scheduler 全局注册表 (模板 INT §1: 不直接修改全局 pipeline)",
     "consumed_by": ["SA-RT-05 assembly", "typed DAG compiler"]
   }
 }

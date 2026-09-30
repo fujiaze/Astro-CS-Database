@@ -59,7 +59,7 @@ enum AioHipsDataType {
 };
 
 // ============================================================================
-// 跨边界结构 ABI 自描述 (docs/ASTROCS_DESIGN §7.3 / ENGINEERING_SPEC §1/§4:
+// 跨边界结构 ABI 自描述 (docs/ACSD_DESIGN §7.3 / ENGINEERING_SPEC §1/§4:
 // "版本化 C ABI, 结构体带 struct_size/abi_version")。
 //
 // 四个跨边界结构首部两个 uint32_t: struct_size @0 (= 调用方编译期 sizeof),
@@ -216,13 +216,13 @@ AIO_HIPS_EXPORT int aio_hips_write_diag_tile(
 // DATA-UNC-001 §30.3 (DATA-P2-PROV-001) provenance 四键通道
 //
 // 四键 (键名由 DATA_SEMANTICS §30.3 冻结, 值语义同表):
-//   ASTROCS_INPUT_MANIFEST_HASH  64hex sha256 (§20.3 公式)
-//   ASTROCS_MODEL_HASH           UPM model_hash
-//   ASTROCS_UNCERTAINTY_AVAILABLE true/false (§30.1 unavailable 规则判定结果)
-//   ASTROCS_REJECT_PROFILE       版本化 profile 串 (如 wbpp_2_9_1)
+//   ACSD_INPUT_MANIFEST_HASH  64hex sha256 (§20.3 公式)
+//   ACSD_MODEL_HASH           UPM model_hash
+//   ACSD_UNCERTAINTY_AVAILABLE true/false (§30.1 unavailable 规则判定结果)
+//   ACSD_REJECT_PROFILE       版本化 profile 串 (如 wbpp_2_9_1)
 //
 // **已删除的键: 旧「权重模式」provenance 键**。
-//   依据: docs/ASTROCS_DESIGN §2.1 总纲 + §3.1 数据对象（HiPS 含帧级 SNR 与可选稀疏
+//   依据: docs/ACSD_DESIGN §2.1 总纲 + §3.1 数据对象（HiPS 含帧级 SNR 与可选稀疏
 //   控制点层：绝对 SNR 控制点、同一参考通量 F_ref）+ §4.4 输出合同 + §5.5
 //   「先排异、后加权」+ docs/science/CONTROL_WEIGHT_SNR.md §8c「定权路径唯一：
 //   w(x,y) = SNR(x,y)²/F_ref²」—— 阶段二按该位置像素对应集合现场取逆方差定权，
@@ -231,7 +231,7 @@ AIO_HIPS_EXPORT int aio_hips_write_diag_tile(
 //   该键与其取值来源 (旧 int 权重模式形参 / cfg 的权重模式配置) 一并删除。
 //   变量名若要表达权重只能是阶段二现场派生的 weight, 不得再引入"模式"语义。
 //
-// 双写面 (§30.3 冻结): 每个 image 子产品 properties (文本键, ASTROCS_ 前缀)
+// 双写面 (§30.3 冻结): 每个 image 子产品 properties (文本键, ACSD_ 前缀)
 // + finalize 写出的 manifest.json (JSON, 键同名小写)。
 //
 // 通道策略 = 全或无: 未调用本 setter → 四键整体不写 (legacy 产品面, 如 P1);
@@ -263,7 +263,7 @@ AIO_HIPS_EXPORT int aio_hips_set_provenance(
 // 供调用方登记而不必重解析。
 // ═══════════════════════════════════════════════════════════════════════════
 typedef struct {
-    // 跨边界 ABI 自描述 (docs/ASTROCS_DESIGN §7.3 / ENGINEERING_SPEC §1/§4:
+    // 跨边界 ABI 自描述 (docs/ACSD_DESIGN §7.3 / ENGINEERING_SPEC §1/§4:
     // "版本化 C ABI, 结构体带 struct_size/abi_version")。
     // **输出结构同样必须版本化**: 本结构由调用方分配、库写入 ⇒ 库必须先校验
     // 调用方的 struct_size/abi_version, 不匹配即 fail-closed(-9) 且**不写**;
@@ -294,20 +294,20 @@ AIO_HIPS_EXPORT int aio_hips_write_snr_points(
     int n);
 
 // （K_CORR_DOMAIN 选项 B）：设置 Drizzle provenance（pixfrac /
-// 像素角尺度），finalize 时写入 properties（ASTROCS_DRIZZLE_PIXFRAC /
-// ASTROCS_DRIZZLE_SCALE_ARCSEC）。Phase2 sampler 按帧读取以选择
+// 像素角尺度），finalize 时写入 properties（ACSD_DRIZZLE_PIXFRAC /
+// ACSD_DRIZZLE_SCALE_ARCSEC）。Phase2 sampler 按帧读取以选择
 // control-ivar 的 k_corr 标定值。默认未设置时 properties 不写这两键。
 AIO_HIPS_EXPORT int aio_hips_set_drizzle_provenance(
     AioHipsProductSet* ps, double pixfrac, double scale_arcsec);
 
 // ═══════════════════════════════════════════════════════════════════════════
-// 帧级 SNR 键通道（键名冻结: ASTROCS_FRAME_SNR /
-// ASTROCS_REFERENCE_FLUX）:
-//   ASTROCS_FRAME_SNR      = 帧级**未加权通量型**信噪比 SNR_k = F_ref/σ_F
-//                            （docs/ASTROCS_DESIGN §4.4 / 07_noise_snr.md §4.1;
+// 帧级 SNR 键通道（键名冻结: ACSD_FRAME_SNR /
+// ACSD_REFERENCE_FLUX）:
+//   ACSD_FRAME_SNR      = 帧级**未加权通量型**信噪比 SNR_k = F_ref/σ_F
+//                            （docs/ACSD_DESIGN §4.4 / 07_noise_snr.md §4.1;
 //                             信号经独立局部背景扣除、不被加性天光背景虚高,
 //                             天光散粒噪声计入 σ_n）—— 是**信噪比不是权重**。
-//   ASTROCS_REFERENCE_FLUX = 组内公共参考通量 F_ref（Phase2 逆方差换算
+//   ACSD_REFERENCE_FLUX = 组内公共参考通量 F_ref（Phase2 逆方差换算
 //                            w = SNR²/F_ref² = 1/σ_F² 的公共标度）。
 // 全或无: 未调用本 setter → 两键整体不写（legacy/无 SNR 产品面）; 调用后
 // finalize 的每个 image 子产品 properties 必须齐备两键。参数非有限/≤0 →

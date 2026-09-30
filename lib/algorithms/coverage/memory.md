@@ -2,7 +2,7 @@
 
 > **订正（WEIGHTMODE-CLEANUP-01）**：本文件下方若干**带日期**的
 > 历史条目里出现的 `weight_mode` / `weight_mode=2` / `mode0`/`mode1` 等写法，描述的是**当时**
-> 的实现。现状（权威）：**不存在「权重模式」**（`docs/ASTROCS_DESIGN.md` §3.1:171/175；
+> 的实现。现状（权威）：**不存在「权重模式」**（`docs/ACSD_DESIGN.md` §3.1:171/175；
 > `docs/science/PSF_SIGNAL_WEIGHT.md` §4:62/72）。`P2Stage2Config::weight_mode` 与
 > `legacy_allow_weight_fallback` 两个键**已删除**（`stage2_common.h` / `stage2_common.cpp` /
 > `stage2.cpp` / `module_adapters.cpp`：出现即具名 fail-closed 拒绝）；唯一权重口径 =
@@ -12,7 +12,7 @@
 
 ## 模块目标
 
-Phase2（控制包 `AstroCS_Phase2_Implementation_Control_Package_V1`，
+Phase2（控制包 `ACSD_Phase2_Implementation_Control_Package_V1`，
 SHA `34A532A2451C8746BEF7B5DA05C3C4C7D15201D66A9D5F6AB5F8F291BE2EB308`）：
 多个 Phase1 单帧 HiPS 在最大覆盖并集 Ω 上建立**一个** UnifiedPhotometricModel
 （UPM，联合加性校准 + SNR-aware 权重 + robust loss），按内存动态分块把所有覆盖帧
@@ -41,13 +41,13 @@ photometric scale、新 runtime I/O DLL。
   Phase1 SNR Catalogue 邻近星点（不重新检测星点），保留负值。
 - **UPM 完整化**：自包含 SHA-256（FIPS 180-4，`src/sha256.cpp`）、
   frame-control 二分图连通分量、真实内容哈希、JSON sparse 持久化
-  （`p2_upm_save/open`，format `astrocs-upm-v1`）。
+  （`p2_upm_save/open`，format `acsd-upm-v1`）。
 - **dense cache**：头部 JSON（source_hash/target_order/precision/frame
   count/checksum）+ 二进制 controls/frame 块；`p2_upm_dense_info` /
   `p2_upm_dense_read_block` 做 stale 校验（source hash 不匹配返回 2）。
 - **补全**：LinearFit（残差 MAD 尺度稳健版）与 RCR（Maples et al. 2018
   论文独立实现，Chauvenet 判据，weighted/unweighted）。
-- **stage2 正式入口**（`eng/tools/stage2.cpp` → `astrocs-stage2.exe`）：
+- **stage2 正式入口**（`eng/tools/stage2.cpp` → `acsd-stage2.exe`）：
   单 JSON 参数驱动 DISCOVER → VALIDATE → COVERAGE_UNION → CONTROL_SAMPLE →
   UPM_FIT → UPM_PERSIST → BLOCK_PLAN → BLOCK_CALIBRATE → REJECT_INTEGRATE →
   HIPS_WRITE → HIPS_VERIFY；输出 signal/support 两个 Image HiPS；
@@ -111,20 +111,20 @@ photometric scale、新 runtime I/O DLL。
   null-config 未初始化 bug 修复（p2_sampler_default_config）；
 - 全量 gate 59/59（41.8s clean-tree）；oracle（Astropy/NIST/Siril harness/
   rcr 2.4.7/WBPP policy）全 PASS；六轮自审 + clean-tree 终验 PASS；
-- 审核包：AstroCS_Review_FinalSemanticClosure_V15.zip（SHA
+- 审核包：ACSD_Review_FinalSemanticClosure_V15.zip（SHA
   26219370FE0F8758B5482648B3682D85BD90CE4711A62403C87339D479D1A03F，342KB）。
 
 ## 2026-08-14 V16 Final Closure AuditFix（HEAD 1145a28）
 
 - profile 拆分：wbpp_current（integration-group 一次解析）vs
-  astrocs_adaptive（tile nominal-depth，独立命名不冒充 WBPP）；
+  acsd_adaptive（tile nominal-depth，独立命名不冒充 WBPP）；
 - RejectionNormalizationPolicy（none/median_center/median_scale；decision
   作用 working、mask 回原始科学值积分；percentile 负值安全必须
   median_center；rcr 必须 none；违规 INVALID_CONFIGURATION）；
 - MinMax 一次性固定 rank（(3,5)→42 精确）；max_iterations 删除；
 - eligibility 单路径：p2_collect_candidate_stack（strided）CPU/ACR/compat
   同一 policy core；depth 诊断互斥（depth_0/1/ge_2）；
-- averaged_sigma 改名 astrocs.averaged_sigma.v1（IRAF exact=NOT_CLAIMED）；
+- averaged_sigma 改名 acsd.averaged_sigma.v1（IRAF exact=NOT_CLAIMED）；
 - WBPP Light 默认参数对齐（linearFit 5/3.5、percentile 0.2/0.1）；
   large-scale rejection 默认 off → unsupported（feature matrix 如实）；
 - 真实 16-exposure E2E：NGC1727 T2 H-alpha 1200s × 16（Phase1 全成功，
@@ -132,7 +132,7 @@ photometric scale、新 runtime I/O DLL。
   → 卫星门 V2 recall=1.0000、背景/星点无净损伤、sample false reject
   9.45%（真实数据）；
 - ScratchVec heap-mode 修复（n>64 崩溃）；gate 65/65、oracle 全 PASS；
-- 审核包：AstroCS_Review_FinalClosure_V16.zip（SHA
+- 审核包：ACSD_Review_FinalClosure_V16.zip（SHA
   E02B64137B18FCD00AA71C733B79A1BB05CB7CC0AAB7C1870966061EB22D7350，
   111 项清单 0 坏，含 canonical_core + repo_source_manifest.csv）。
 
@@ -160,13 +160,13 @@ photometric scale、新 runtime I/O DLL。
 - 质量门：fresh audit 791/791（carry=0）、clang --analyze 100%（4 CUDA
   例外）、WSL ASan/UBSan 9/9（修复 akima heap-overflow P1）、traceability
   63 contracts（50/50+50/50）、docs 全集合 8/8、comment hygiene 0
-- 审核包 AstroCS_Review_TraceableFoundationCorrection_V19R3.zip
+- 审核包 ACSD_Review_TraceableFoundationCorrection_V19R3.zip
   SHA256=2593d6673809b2c22f7012f5305c88821c7742b494774ea5ef0687e680454409
 - 状态：PRE_RELEASE_ENGINEERING_FOUNDATION=PASS；FINAL_REAL_DATA_VALIDATION=PENDING
 
 ## P2-COV-DOC 冻结（2026-09-07，SA-P2-S20）
 
-- 范围：astrocs.p2.coverage（matrix P2-COV 行）合同冻结——coverage
+- 范围：acsd.p2.coverage（matrix P2-COV 行）合同冻结——coverage
   生产源=本目录 src/coverage.cpp（239 行）+ lib/include/astro/phase2/
   coverage.h（59 行），legacy 即本目录（legacy_paths="lib/algorithms/coverage
   coverage sources"）；sampler/upm/rejection/integrate 归 P2-SAMP/
@@ -177,8 +177,8 @@ photometric scale、新 runtime I/O DLL。
   docs/science/algorithms/PHASE2_COVERAGE.md（§2 逐公式行号锚 + §11.3
   DISP-COV-001..005 + §11.4 TEST-COV-DESIGN-001）；DATA-COV-001=
   DATA_SEMANTICS.md §19；API-COV-001=PUBLIC_API.md；registry 页
-  docs/detail/registry/astrocs.phase2.coverage.md 事实修订 + 矩阵行
-  MOD-astrocs-phase2-coverage 更新（SCI/ALG/SRC/TEST 转 Verified）。
+  docs/detail/registry/acsd.phase2.coverage.md 事实修订 + 矩阵行
+  MOD-acsd-phase2-coverage 更新（SCI/ALG/SRC/TEST 转 Verified）。
 - SCI 层：零改动——SCI-P2-COV-001 指向既有 FROZEN 共享 SCI
   （PHASE2_UPM.md §1 覆盖并集 / INTEGRATION.md §5 support「覆盖并集
   保守下界」/ SCIENCE_SCOPE.md §处理链第 5 步），状态声明=
@@ -200,7 +200,7 @@ photometric scale、新 runtime I/O DLL。
   check_doc_index PASS；pytest eng/tests/traceability 4 passed；生产源
   diff=0。日志 run/local/agent_p2_cov_doc/（不提交）。
 
-### P2-002（2026-09-10，控制包 ASTROCS-CONSTITUTION-ALIGNMENT-V1）
+### P2-002（2026-09-10，控制包 ACSD-CONSTITUTION-ALIGNMENT-V1）
 
 - §30.2/§30.3 白名单内落地：eng/contracts/data/
   phase2_uncertainty_rejection_provenance_v1.json（AIO 子产品位分配
@@ -208,7 +208,7 @@ photometric scale、新 runtime I/O DLL。
   planes（F-UNC-003 零断链，schema/validator 零修改）+ pending AIO 通道
   登记）+ eng/tests/unit/p2002_unc_rej_prov_test.cpp（kernel 语义直调（正确
   gather 契约）+ 集成投影对拍 + §30.3 五键对拍 + unavailable 显式登记 +
-  确定性/1v4 parity + ASTROCS_P2002_FAULT=proj|prov 故障注入必败）。
+  确定性/1v4 parity + ACSD_P2002_FAULT=proj|prov 故障注入必败）。
 - §30.1（P2-001 已落地）不动；本任务生产源零修改（scientific_change=
   false，零代码 diff 于 lib/algorithms/coverage）。
 - findings 移交（域外 lib/infrastructure/scheduler，白名单外不改）：F-P2-002-01（P0，
@@ -219,11 +219,11 @@ photometric scale、新 runtime I/O DLL。
   depth=2 时 kernel 不触发故 P2-001 未暴露）；F-P2-002-02（P1，
   integrate 不剔除 kernel 拒绝样本——逐样本 reason 未持久化，
   n_ineligible 恒等式在部分拒绝场景不成立）；F-P2-002-03（AIO 域，
-  P2-001 F1/F2 维持：writer int32 子产品位 32/64 通道与 ASTROCS_*
+  P2-001 F1/F2 维持：writer int32 子产品位 32/64 通道与 ACSD_*
   properties 键通道未实现，§30.2/§30.3 HiPS 产品面 pending，现由
   integrated bins + p2_final.json 诊断面承载）。
 
-### SCI-F2-001（2026-09-12，控制包 ASTROCS-CONSTITUTION-ALIGNMENT-V1 rev30）
+### SCI-F2-001（2026-09-12，控制包 ACSD-CONSTITUTION-ALIGNMENT-V1 rev30）
 
 - 目标：F-P2-002-02（STD-F2）integrate 剔除 kernel 拒绝样本，使 §30.2
   n_ineligible = depth − nused − nrej 恒等式在部分拒绝场景成立。
@@ -248,7 +248,7 @@ photometric scale、新 runtime I/O DLL。
   （c）lib/algorithms/coverage 库面对照：逐样本掩码 → 恒等式成立（GREEN），像素级塌缩
   → n_ineligible < 0（负向对照，证明缺陷不在本域）；
   （d）depth=3 部分拒绝 fixture 1/4 worker bitwise parity；
-  （e）ASTROCS_P2002_FAULT=identity 等价缺陷注入必败。
+  （e）ACSD_P2002_FAULT=identity 等价缺陷注入必败。
 - 判定基线（主树 = 缺陷在位）：RED，759 条 CHECK 失败，其中 252 像素
   （3 帧 × 每 32px 网格离群点）三面同时违反：
   n_ineligible = 3 − 3 − 1 = −1、nused=3 而 nrej=1、wsum=3.5 而应为 2.5。
@@ -271,28 +271,28 @@ photometric scale、新 runtime I/O DLL。
 
 ### RESCUE-V3 B3-A4（2026-09-13，FIX-CI）
 
-- 根 `CMakeLists.txt` 在 `ASTROCS_BUILD_TESTS` 下新增
+- 根 `CMakeLists.txt` 在 `ACSD_BUILD_TESTS` 下新增
   `add_subdirectory(lib/algorithms/coverage)`：六个 Phase2 gtest 门
   （synthetic_gate/ivar_wiring/execution_options/routing/sampler_parallel/
   async_io）首次进入全量 ctest（173 → 286 项）。CI 供应 libgtest-dev。
 - 六个 `gtest_discover_tests` 统一加 `TEST_PREFIX "phase2_<gate>."`，使
   `ctest -N | grep -i synthetic` 命中 `phase2_synthetic_gate.*`。
-- `phase2_ivar_wiring` 以 `std::system("astrocs-stage2 …")` 驱动 compatibility
-  工具：补 `add_dependencies(phase2_ivar_wiring astrocs-stage2)`（该工具
+- `phase2_ivar_wiring` 以 `std::system("acsd-stage2 …")` 驱动 compatibility
+  工具：补 `add_dependencies(phase2_ivar_wiring acsd-stage2)`（该工具
   EXCLUDE_FROM_ALL）并把命中路径加 `./` 前缀（/bin/sh 走 PATH 不认裸名）。
   修复后 `ctest -R '^phase2_'` 113/113 PASS（0 failed）。
 
 ## 2026-09-25 M3 裁决落地（rejection n≥16 档改投 winsorized）
 
-- **裁决（负责人）**：生产档 astrocs_adaptive_pixel 的 n ≥ 16 档由 linear_fit 改投
-  winsorized_sigma（一行路由，rejection.cpp 的 astrocs_n_map_method）。依据不是检出率
+- **裁决（负责人）**：生产档 acsd_adaptive_pixel 的 n ≥ 16 档由 linear_fit 改投
+  winsorized_sigma（一行路由，rejection.cpp 的 acsd_n_map_method）。依据不是检出率
   （M3 与 M5 打平），而是**干净像素过拒 12.200% → 0.067%**——12% 的干净像素被误拒会压低
   有效信号、偏置测光、抬高有效噪声，污染「从星点推稠密 SNR」主链；且 n≥16 档占全图
   **13.14%** 像素、其等效上阈实测只有 **≈2.1–2.4·σ_robust**（名义 3.5·σ_fit）。
 - **受控评估**（生产 kernel，A 臂与生产掩码 5744/5744 逐点一致）：显著点漏检
   **3.92% → 1.44%**、真·单异常 99.34% → 99.69%、干净像素过拒 **12.200% → 0.067%**、
   n≥16 可测残余 >2.5σ **27/1175 → 0/1175**。证据 = REJECT-DOCFIX-01 实验记录。
-- **对照档未动**：wbpp_2_9_1 / wbpp_current / astrocs_adaptive 仍是 N>15 → linear_fit
+- **对照档未动**：wbpp_2_9_1 / wbpp_current / acsd_adaptive 仍是 N>15 → linear_fit
   （WBPP 档界对照基线）；linear_fit 仍是合法显式方法（request=linear_fit）。
 - **ESD 自查结论（M5 不采用）**：实现**忠实于 Rosner/NIST**（λ1(54)=3.1588 与 NIST 公布值一致、
   NIST 54 点算例复现 3 outliers、每步 α=0.05 实测校准 4.95%；kernel 侧纯高斯栈 G=1500 复跑

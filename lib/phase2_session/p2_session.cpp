@@ -15,14 +15,14 @@
 #include "astro/phase2/sampler.h"
 #include "astro/phase2/upm.h"
 
-#include "astrocs/probe.h"  // 探针 (ASTROCS_PROBES=OFF 时宏为空语句)
+#include "acsd/probe.h"  // 探针 (ACSD_PROBES=OFF 时宏为空语句)
 
 namespace {
 
 using json = nlohmann::json;
 
 struct SessionState {
-    const astrocs_host_services_v1* host = nullptr;
+    const acsd_host_services_v1* host = nullptr;
     std::string last_error;
     json manifest;
     bool ran = false;
@@ -42,7 +42,7 @@ struct SessionState {
     }
 };
 
-acs_status map_rc(int rc, SessionState* s, const char* what) {
+acsd_status map_rc(int rc, SessionState* s, const char* what) {
     if (rc == 0) return ACS_OK;
     s->last_error = std::string(what) + " rc=" + std::to_string(rc);
     s->manifest["error_kind"] = "input";
@@ -55,20 +55,20 @@ acs_status map_rc(int rc, SessionState* s, const char* what) {
 
 extern "C" {
 
-acs_status p2_session_create(const astrocs_host_services_v1* host, acs_handle* out) {
-    if (!host || host->struct_size != sizeof(astrocs_host_services_v1) ||
+acsd_status p2_session_create(const acsd_host_services_v1* host, acsd_handle* out) {
+    if (!host || host->struct_size != sizeof(acsd_host_services_v1) ||
         host->abi_version != ACS_ABI_VERSION_V1)
         return ACS_ERR_ABI_MISMATCH;
     if (!out) return ACS_ERR_PARAM;
     auto* s = new (std::nothrow) SessionState();
     if (!s) return ACS_ERR_NOMEM;
     s->host = host;
-    s->manifest = {{"kind", "astrocs_phase2_session"}, {"stages", json::array()}};
-    *out = reinterpret_cast<acs_handle>(s);
+    s->manifest = {{"kind", "acsd_phase2_session"}, {"stages", json::array()}};
+    *out = reinterpret_cast<acsd_handle>(s);
     return ACS_OK;
 }
 
-acs_status p2_session_validate(acs_handle h, const acs_span_u8 config_json) {
+acsd_status p2_session_validate(acsd_handle h, const acsd_span_u8 config_json) {
     auto* s = reinterpret_cast<SessionState*>(h);
     if (!s || !config_json.data || config_json.count == 0) return ACS_ERR_PARAM;
     json doc;
@@ -99,7 +99,7 @@ acs_status p2_session_validate(acs_handle h, const acs_span_u8 config_json) {
     return ACS_OK;
 }
 
-acs_status p2_session_run(acs_handle h, const acs_span_u8 config_json) {
+acsd_status p2_session_run(acsd_handle h, const acsd_span_u8 config_json) {
     auto* s = reinterpret_cast<SessionState*>(h);
     if (!s || !config_json.data || config_json.count == 0) return ACS_ERR_PARAM;
     json doc;
@@ -121,7 +121,7 @@ acs_status p2_session_run(acs_handle h, const acs_span_u8 config_json) {
     // ── 阶段 1: coverage(取消点=阶段边界) ──
     if (s->cancelled()) { s->manifest["stages"].push_back({{"name", "coverage"}, {"status", "cancelled"}}); return ACS_ERR_CANCELLED; }
     // [probe] Phase2 阶段边界: coverage
-    ASTROCS_PROBE_SCOPE_CTX(_probe_p2_coverage, "phase2", "coverage.stage");
+    ACSD_PROBE_SCOPE_CTX(_probe_p2_coverage, "phase2", "coverage.stage");
     s->stage("coverage", "running");
     P2CoverageResult cov{};
     cov.n_inputs = hips.size();
@@ -151,15 +151,15 @@ acs_status p2_session_run(acs_handle h, const acs_span_u8 config_json) {
                                 {"target_order", cov.target_order}});
     s->log(ACS_LOG_INFO, "phase2", "stage coverage ok: cells=" + std::to_string(cov.n_union_cells));
     // [probe] 规模 gauge + 阶段收尾
-    ASTROCS_PROBE_GAUGE("phase2", "coverage.union_cells", static_cast<double>(cov.n_union_cells));
-    ASTROCS_PROBE_GAUGE("phase2", "coverage.inputs", static_cast<double>(cov.n_inputs));
-    ASTROCS_PROBE_SCOPE_END(_probe_p2_coverage);
+    ACSD_PROBE_GAUGE("phase2", "coverage.union_cells", static_cast<double>(cov.n_union_cells));
+    ACSD_PROBE_GAUGE("phase2", "coverage.inputs", static_cast<double>(cov.n_inputs));
+    ACSD_PROBE_SCOPE_END(_probe_p2_coverage);
 
     // ── 阶段 2: sample(预算绑定 §3 — sampler 走 Runtime lease 多 worker;
     // 1 worker 仅作 reference; 生产 N-worker 并行同生产符号) ──
     if (s->cancelled()) { s->stage("sample", "cancelled"); return ACS_ERR_CANCELLED; }
     // [probe] Phase2 阶段边界: sample
-    ASTROCS_PROBE_SCOPE_CTX(_probe_p2_sample, "phase2", "sample.stage");
+    ACSD_PROBE_SCOPE_CTX(_probe_p2_sample, "phase2", "sample.stage");
     s->stage("sample", "running");
     P2SamplerConfig sc = p2_sampler_default_config();
     sc.cpu_workers = static_cast<int>(s->host->budget.max_workers);
@@ -187,14 +187,14 @@ acs_status p2_session_run(acs_handle h, const acs_span_u8 config_json) {
     s->log(ACS_LOG_INFO, "phase2", "stage sample ok: obs=" + std::to_string(n_obs) +
                " overlap_controls=" + std::to_string(stats.overlap_controls));
     // [probe] 规模 gauge (样本数) + 阶段收尾
-    ASTROCS_PROBE_GAUGE("phase2", "sample.n_obs", static_cast<double>(n_obs));
-    ASTROCS_PROBE_GAUGE("phase2", "sample.n_controls", static_cast<double>(n_controls));
-    ASTROCS_PROBE_SCOPE_END(_probe_p2_sample);
+    ACSD_PROBE_GAUGE("phase2", "sample.n_obs", static_cast<double>(n_obs));
+    ACSD_PROBE_GAUGE("phase2", "sample.n_controls", static_cast<double>(n_controls));
+    ACSD_PROBE_SCOPE_END(_probe_p2_sample);
 
     // ── 阶段 3: upm build(预算绑定: blocks=budget; 取消=整模型不写半成品) ──
     if (s->cancelled()) { s->stage("upm_build", "cancelled"); return ACS_ERR_CANCELLED; }
     // [probe] Phase2 阶段边界: upm_build
-    ASTROCS_PROBE_SCOPE_CTX(_probe_p2_upm, "phase2", "upm_build.stage");
+    ACSD_PROBE_SCOPE_CTX(_probe_p2_upm, "phase2", "upm_build.stage");
     s->stage("upm_build", "running");
     P2UpmBuildConfig uc{};
     uc.robust_loss = 0;              // huber(首版冻结)
@@ -233,7 +233,7 @@ acs_status p2_session_run(acs_handle h, const acs_span_u8 config_json) {
     } else {
         s->stage("upm_build", "ok");
     }
-    ASTROCS_PROBE_SCOPE_END(_probe_p2_upm);
+    ACSD_PROBE_SCOPE_END(_probe_p2_upm);
 
     // ── 阶段 4: persist(可选; 串行 IO; 整模型取消点) ──
     if (doc.value("persist_upm", false) && doc.contains("upm_save_path")) {
@@ -243,7 +243,7 @@ acs_status p2_session_run(acs_handle h, const acs_span_u8 config_json) {
             return ACS_ERR_CANCELLED;
         }
         // [probe] Phase2 阶段边界: persist
-        ASTROCS_PROBE_SCOPE_CTX(_probe_p2_persist, "phase2", "persist.stage");
+        ACSD_PROBE_SCOPE_CTX(_probe_p2_persist, "phase2", "persist.stage");
         s->stage("persist", "running");
         const std::string save_path = doc["upm_save_path"].get<std::string>();
         if (p2_upm_save(model, save_path.c_str()) != 0) {
@@ -256,7 +256,7 @@ acs_status p2_session_run(acs_handle h, const acs_span_u8 config_json) {
         s->manifest["artifacts"] = s->manifest.value("artifacts", json::array());
         s->manifest["artifacts"].push_back(save_path);
         s->stage("persist", "ok", {{"path", save_path}});
-        ASTROCS_PROBE_SCOPE_END(_probe_p2_persist);
+        ACSD_PROBE_SCOPE_END(_probe_p2_persist);
     }
     p2_upm_close(model);   // 所有权合同 §1: session 持有, p2_upm_close 释放
 
@@ -283,7 +283,7 @@ acs_status p2_session_run(acs_handle h, const acs_span_u8 config_json) {
     return ACS_OK;
 }
 
-acs_status p2_session_inspect(acs_handle h, acs_span_u8* out) {
+acsd_status p2_session_inspect(acsd_handle h, acsd_span_u8* out) {
     auto* s = reinterpret_cast<SessionState*>(h);
     if (!s || !out) return ACS_ERR_PARAM;
     if (!s->ran && s->last_error.empty()) s->manifest["status"] = "created";
@@ -301,7 +301,7 @@ acs_status p2_session_inspect(acs_handle h, acs_span_u8* out) {
     return ACS_OK;
 }
 
-acs_status p2_session_destroy(acs_handle h) {
+acsd_status p2_session_destroy(acsd_handle h) {
     auto* s = reinterpret_cast<SessionState*>(h);
     if (!s) return ACS_ERR_PARAM;
     delete s;
@@ -310,9 +310,9 @@ acs_status p2_session_destroy(acs_handle h) {
 
 }  // extern "C"
 
-namespace astrocs::phase2 {
-std::string last_error(acs_handle h) {
+namespace acsd::phase2 {
+std::string last_error(acsd_handle h) {
     auto* s = reinterpret_cast<SessionState*>(h);
     return s ? s->last_error : std::string();
 }
-}  // namespace astrocs::phase2
+}  // namespace acsd::phase2

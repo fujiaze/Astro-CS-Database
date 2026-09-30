@@ -1,6 +1,6 @@
 # HiPS 输入读取接口合同
 
-> 上游：docs/ASTROCS_DESIGN.md §8.5（模块与 ABI）、§10（I/O 与原子产品）、
+> 上游：docs/ACSD_DESIGN.md §8.5（模块与 ABI）、§10（I/O 与原子产品）、
 > `docs/science/IO_001_FITS_STREAM_INTERFACE.md`（tile FITS 平面读取全部复用其 fits_core 契约与错误码）
 
 本合同按 §8.5（模块与 ABI）逐项明确接口的字段/单位/shape/坐标/invalid/所有权，并按 §10（I/O 与原子产品）
@@ -46,7 +46,7 @@ HiPS 输出/原子发布见 `docs/engineering/io/IO_003_ATOMIC_OUTPUT_PUBLISH.md
 | 内容 | 路径 |
 | --- | --- |
 | 本合同 | `docs/science/IO_002_HIPS_INPUT_INTERFACE.md` |
-| HiPS 输入 C ABI | `lib/infrastructure/aio/io/include/astrocs/io/hips_input_v1.h` |
+| HiPS 输入 C ABI | `lib/infrastructure/aio/io/include/acsd/io/hips_input_v1.h` |
 | HiPS 输入核心（C 实现、私有、DLL 内） | `lib/infrastructure/aio/io/hips_core.c` |
 | 契约/负测（Python，astropy/astropy_healpix 可选 oracle） | `eng/tests/io/` |
 | C 层自检驱动 | `lib/infrastructure/aio/io/tests/hips_core_selftest.c` |
@@ -114,7 +114,7 @@ tile FITS 头内卡（存在时校验一致）：
 
 ### 3.4 科学平面（FITS-only）与 dtype
 
-- 只有 `hips_tile_format=fits` 的 tile 被接受；读 plane 走 FITS 流式接口的 `acs_fio_reader_*`。
+- 只有 `hips_tile_format=fits` 的 tile 被接受；读 plane 走 FITS 流式接口的 `acsd_fio_reader_*`。
 - 支持的 dtype：`-32`(f32)/`-64`(f64)（与 `docs/engineering/DATA_ARTIFACTS.md` 的 DATA-HIPS-* 登记一致：signal f32/f64，
   support f32/u8 但 HiPS 标准存 f32/f64；variance/ivar f32/f64）。u8 仅按 BITPIX=8
   读取为字节平面并以 `expected_bitpix=8` 声明（支持域内，不自动转换）。
@@ -139,7 +139,7 @@ tile FITS 头内卡（存在时校验一致）：
 
 ### 3.6 properties 视图
 
-`acs_hips_props_get` 提供 key→value 查询；`acs_hips_props_serialize` 提供整表
+`acsd_hips_props_get` 提供 key→value 查询；`acsd_hips_props_serialize` 提供整表
 `key=value\n` 序列化视图（供上层 manifest/trace 落点）。properties 的 key/value
 均为定长 UTF-8 缓冲（见头文件宏）。
 
@@ -161,37 +161,37 @@ tile FITS 头内卡（存在时校验一致）：
 | 11 | `ACS_HIPS_ERR_TILE_INVALID` | tile 文件存在但布局/头/dtype 非法（含卡冲突、尺寸、截断透传） |
 | 12 | `ACS_HIPS_STATUS_COUNT` | 哨兵 |
 
-错误码 0–7 数值与 FITS 流式接口的 `acs_fio_status`（对齐 common_abi_v1）一致，8–11 为
+错误码 0–7 数值与 FITS 流式接口的 `acsd_fio_status`（对齐 common_abi_v1）一致，8–11 为
 HiPS 输入扩展。错误文本同 FITS 流式接口约定：`char err[96]` 只做日志，不承载状态机。
 
 ## 5. C ABI（hips_input_v1.h 摘要）
 
 ```c
-int acs_hips_open_v1(const char* base_dir_utf8, const char* product,   /* 可 NULL="." */
-                     const acs_fio_trace_hooks_v1* hooks,
-                     acs_hips_handle_v1* out, char* err, size_t err_cap);
-void acs_hips_close_v1(acs_hips_handle_v1 h);
+int acsd_hips_open_v1(const char* base_dir_utf8, const char* product,   /* 可 NULL="." */
+                     const acsd_fio_trace_hooks_v1* hooks,
+                     acsd_hips_handle_v1* out, char* err, size_t err_cap);
+void acsd_hips_close_v1(acsd_hips_handle_v1 h);
 
-int acs_hips_props_get_v1(acs_hips_handle_v1 h, const char* key,
+int acsd_hips_props_get_v1(acsd_hips_handle_v1 h, const char* key,
                           char* out, size_t out_cap, char* err, size_t err_cap);
-int acs_hips_props_serialize_v1(acs_hips_handle_v1 h,
+int acsd_hips_props_serialize_v1(acsd_hips_handle_v1 h,
                                 char* out, size_t out_cap, size_t* out_len,
                                 char* err, size_t err_cap);
 
 /* 布局/元数据查询 */
-int acs_hips_get_order_v1(acs_hips_handle_v1 h, int32_t* out_order);
-int acs_hips_get_tile_width_v1(acs_hips_handle_v1 h, int32_t* out_width);
-int acs_hips_tile_count_v1(acs_hips_handle_v1 h, int64_t* out_count);      /* 有 MOC 才 >0 */
-int acs_hips_tile_ipix_v1(acs_hips_handle_v1 h, int64_t index, uint64_t* out_ipix);
-int acs_hips_tile_exists_v1(acs_hips_handle_v1 h, uint64_t ipix, int* out_exists);
+int acsd_hips_get_order_v1(acsd_hips_handle_v1 h, int32_t* out_order);
+int acsd_hips_get_tile_width_v1(acsd_hips_handle_v1 h, int32_t* out_width);
+int acsd_hips_tile_count_v1(acsd_hips_handle_v1 h, int64_t* out_count);      /* 有 MOC 才 >0 */
+int acsd_hips_tile_ipix_v1(acsd_hips_handle_v1 h, int64_t index, uint64_t* out_ipix);
+int acsd_hips_tile_exists_v1(acsd_hips_handle_v1 h, uint64_t ipix, int* out_exists);
 
 /* tile 状态与科学平面读取 */
-int acs_hips_tile_status_v1(acs_hips_handle_v1 h, uint64_t ipix,
+int acsd_hips_tile_status_v1(acsd_hips_handle_v1 h, uint64_t ipix,
                             int32_t* out_status /*ACS_HIPS_TILE_* */);
-int acs_hips_read_tile_plane_f32_v1(acs_hips_handle_v1 h, uint64_t ipix,
+int acsd_hips_read_tile_plane_f32_v1(acsd_hips_handle_v1 h, uint64_t ipix,
                                     float* out, int64_t out_elem_capacity,
                                     int64_t* out_got, char* err, size_t err_cap);
-int acs_hips_read_tile_plane_f64_v1(acs_hips_handle_v1 h, uint64_t ipix,
+int acsd_hips_read_tile_plane_f64_v1(acsd_hips_handle_v1 h, uint64_t ipix,
                                     double* out, int64_t out_elem_capacity,
                                     int64_t* out_got, char* err, size_t err_cap);
 ```
@@ -208,9 +208,9 @@ int acs_hips_read_tile_plane_f64_v1(acs_hips_handle_v1 h, uint64_t ipix,
 
 ## 6. tile FITS 读取与 FITS 流式接口的复用
 
-本合同 **不重新实现 FITS 解析**：`acs_hips_read_tile_plane_f*` 内部对拼出的
-`<dir>/NorderK/DirD/NpixN.fits` 调用 `acs_fio_reader_open_v1` /
-`acs_fio_read_plane_v1`（期望 shape=TW×TW、BITPIX 0=按文件），失败映射：
+本合同 **不重新实现 FITS 解析**：`acsd_hips_read_tile_plane_f*` 内部对拼出的
+`<dir>/NorderK/DirD/NpixN.fits` 调用 `acsd_fio_reader_open_v1` /
+`acsd_fio_read_plane_v1`（期望 shape=TW×TW、BITPIX 0=按文件），失败映射：
 
 | fits_core 返回 | HiPS 映射 |
 | --- | --- |

@@ -327,7 +327,7 @@ class FrozenGateTest(unittest.TestCase):
             self.assertIn(key, m, v)
         self.assertEqual(m["allocated_source"], "granted_workers")
         contract = rm.RESOURCE_GATE_CONTRACT
-        self.assertEqual(contract["schema"], "astrocs.resource-gate/v1")
+        self.assertEqual(contract["schema"], "acsd.resource-gate/v1")
         comp = contract["compute"]
         self.assertEqual(rm.FROZEN_GATE_MIN_AVG_UTILIZATION,
                          comp["mean_utilization_min_percent"] / 100.0)

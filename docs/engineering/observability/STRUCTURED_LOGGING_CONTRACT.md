@@ -1,6 +1,6 @@
 # Astro Celestial Sphere Database（ACSD） 结构化日志合同
 
-> 上游：docs/ASTROCS_DESIGN.md §7.2（配置、事件与退出码）、§7.3（错误传播与运行日志）、§8.4（顶层结构）
+> 上游：docs/ACSD_DESIGN.md §7.2（配置、事件与退出码）、§7.3（错误传播与运行日志）、§8.4（顶层结构）
 
 ## 1. 目的与边界
 
@@ -24,12 +24,12 @@ ACSD 需要一个跨 run/任务/节点/模块/线程的统一结构化日志接�
 ### 1.1 身份声明：本合同是结构化日志合同
 
 > **消歧（唯一口径）**：本合同的工件身份 = **结构化日志 JSONL**（人可读摘要 + 机器 JSONL
-> 双通道同源，工件名 `astrocs.log.event.v1`），消费方按本合同解析。
+> 双通道同源，工件名 `acsd.log.event.v1`），消费方按本合同解析。
 
 | 面 | 唯一源 | 事件键名 | 事件枚举 | 工件 |
 |---|---|---|---|---|
 | **运行事件流**（run event stream） | `lib/infrastructure/cli/protocol.h`（`ValidateEventV1`，发送侧硬闸）+ `lib/infrastructure/cli/jsonl.h`（`JsonlEmitter`） | `kind` | `progress` / `resource` / `artifact` / `backend` / `final` | CLI JSONL 事件流（默认输出，最高设计 §7.2） |
-| **结构化日志**（本合同） | `lib/infrastructure/observability/logging/log_event_v1.schema.json` + `log_event.py` + `eng/tools/monitoring/check_log_contract.py` | `event` | `start` / `progress` / `end` / `warn` / `error` / `metric` / `checkpoint` / `cancel` / `trace` | 结构化日志 JSONL（`astrocs.log.event.v1`） |
+| **结构化日志**（本合同） | `lib/infrastructure/observability/logging/log_event_v1.schema.json` + `log_event.py` + `eng/tools/monitoring/check_log_contract.py` | `event` | `start` / `progress` / `end` / `warn` / `error` / `metric` / `checkpoint` / `cancel` / `trace` | 结构化日志 JSONL（`acsd.log.event.v1`） |
 
 - **两份流各用不同工件名，各自具名**；
 - **键名 `event`（本合同）与 `kind`（运行事件流）各归各流**：本合同的 `event` 字段
@@ -44,7 +44,7 @@ ACSD 需要一个跨 run/任务/节点/模块/线程的统一结构化日志接�
 | 输出 | 形态 | 消费方 |
 |---|---|---|
 | 中文可读摘要 | 单行文本（前缀时间/seq/level/event + 归属 + 诊断） | 操作员/控制台/报告 |
-| 机器 JSONL | 单行 JSON 对象 + `\n`，符合 `astrocs.log.event.v1` | 工具/监控/回放/运行图 |
+| 机器 JSONL | 单行 JSON 对象 + `\n`，符合 `acsd.log.event.v1` | 工具/监控/回放/运行图 |
 
 摘要与 JSONL 必须同源生成；两个通道的内容出自同一份生成逻辑。
 
@@ -57,7 +57,7 @@ ACSD 需要一个跨 run/任务/节点/模块/线程的统一结构化日志接�
 
 | 字段 | 类型 | 语义 | 约束 |
 |---|---|---|---|
-| `schema` | string | 合同标识 | `const: astrocs.log.event.v1` |
+| `schema` | string | 合同标识 | `const: acsd.log.event.v1` |
 | `seq` | int ≥1 | 进程内单调全局事件序号 | 严格递增、首事件=1、无空洞 |
 | `ts` | string | UTC ISO8601 | `YYYY-MM-DDTHH:MM:SSZ`（秒精度，固定 Z） |
 | `run` | string | run 标识 | 安全字符 `[A-Za-z0-9._-]{1,128}` |
@@ -81,7 +81,7 @@ ACSD 需要一个跨 run/任务/节点/模块/线程的统一结构化日志接�
 | 子字段 | 语义 | 约束示例 |
 |---|---|---|
 | `source` | 错误来源（模块 id 或仓库内相对路径） | 绝对用户路径一律脱敏；`lib/algorithms/noise_snr/cpp/src/noise_model.cpp`（路径形态示例） |
-| `symbol` | 出错符号 | `astrocs::noise::estimate_sigma` |
+| `symbol` | 出错符号 | `acsd::noise::estimate_sigma` |
 | `status` | 稳定错误码 | `ACS_ERR_IO`、`ACS_ERR_CANCELLED`、`ACS_ERR_BUDGET` |
 
 `level=error` 而缺 `error` 对象 = schema 违例；非 error 事件携带 error = 违例。
@@ -128,7 +128,7 @@ ACSD 需要一个跨 run/任务/节点/模块/线程的统一结构化日志接�
 
 ## 6.1 落盘与错误收敛
 
-本合同的 JSONL 行写到哪、什么时候写、写失败怎么办，正本 = `docs/ASTROCS_DESIGN.md` §7.3、
+本合同的 JSONL 行写到哪、什么时候写、写失败怎么办，正本 = `docs/ACSD_DESIGN.md` §7.3、
 `docs/detail/LOG_AND_ERROR_SYSTEM.md` 与 `docs/engineering/LOG_AND_ERROR_CONTRACT.md`：
 
 - 运行日志落 `<output_dir>/logs/run_<run_id>.jsonl`（机器）与 `run_<run_id>.log`（人可读摘要，与 JSONL 同源）；
@@ -144,7 +144,7 @@ ACSD 需要一个跨 run/任务/节点/模块/线程的统一结构化日志接�
   两者**可以并存**（日志面向操作员/审计，事件流面向 GUI/机器消费），消费面各自独立，
   字段名各留在本方工件内。
 
-`lib/include/astrocs/core/logging.h`（`Logger`/`MetricsAggregator`）是本合同事件语义的外部化对象：
+`lib/include/acsd/core/logging.h`（`Logger`/`MetricsAggregator`）是本合同事件语义的外部化对象：
 既有字段 `ts/component/event/message/seq/node_id/run_id/progress/wall_us` 的等价语义映射到
 合同字段表 §2.2（`component→module/phase` 归属、`message→diagnostic` 等）。Runtime 集成以
 本合同为单一事实源做适配，映射与双写细节正本 = `docs/detail/LOG_AND_ERROR_SYSTEM.md`。
@@ -163,7 +163,7 @@ ACSD 需要一个跨 run/任务/节点/模块/线程的统一结构化日志接�
 
 ## 9. 参考
 
-- 依据：`docs/ASTROCS_DESIGN.md` §7.2（配置、事件与退出码）、§7.3（错误传播与运行日志）
-- 依据：`docs/ASTROCS_DESIGN.md` §7.1（命令树）、§8.1（总原则：唯一 CLI 入口、阶段独立调度器）+ `docs/engineering/ARCH-001.md`
+- 依据：`docs/ACSD_DESIGN.md` §7.2（配置、事件与退出码）、§7.3（错误传播与运行日志）
+- 依据：`docs/ACSD_DESIGN.md` §7.1（命令树）、§8.1（总原则：唯一 CLI 入口、阶段独立调度器）+ `docs/engineering/ARCH-001.md`
 - 落点与错误收敛：`docs/detail/LOG_AND_ERROR_SYSTEM.md`、`docs/engineering/LOG_AND_ERROR_CONTRACT.md`
 - 机器事实源：`lib/infrastructure/observability/logging/log_event_v1.schema.json`、`eng/tools/monitoring/check_log_contract.py`

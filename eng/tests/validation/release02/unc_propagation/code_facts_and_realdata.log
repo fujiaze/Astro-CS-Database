@@ -45,18 +45,18 @@
       sky_plane_mode='delta_to_B_ref' sky_plane_applied=True
       p2_integrated.json: weight_mode=1 weight_basis='unit_weight_mode1' weight_source='none' uncertainty_available=False
       p2_final.json: products=['signal', 'support'] uncertainty_available=False
-      p2_rejection.json entry='p2_reject_plan_resolve_n/p2_collect_candidate_stack/p2_reject_stack_ex' plan={"fallback": "none", "method": 4, "minimum_n": 4, "nominal_n": 49, "normalization": 1, "semantic_id": "astrocs.linear_fit_siril_1_4_3.v1", "underdetermined_n": 
+      p2_rejection.json entry='p2_reject_plan_resolve_n/p2_collect_candidate_stack/p2_reject_stack_ex' plan={"fallback": "none", "method": 4, "minimum_n": 4, "nominal_n": 49, "normalization": 1, "semantic_id": "acsd.linear_fit_siril_1_4_3.v1", "underdetermined_n": 
 
   Phase1 input frames carry NO variance/ivar product (so mode-2 has no source):
       n_ivar_tiles=0 n_variance_tiles=0 products=['signal', 'support'] uncertainty_available=False
 
   Production weight_mode=2 run status='incomplete'
-      summary=phase2 failed: node integrate failed: weight_mode=2 requires per-frame ivar products; 49/49 frames missing ivar; frame-SNR weight chain NOT closed (unclosed_invalid_reference_flux): ASTROCS_REFERENCE_FLUX 逐帧不一致（组内公共通量标度要求） (DATA-UNC-001 §30.1: no silent fallback; legacy_allow_weight_fallback=true no longer produces a successful equal-weight degradation)
+      summary=phase2 failed: node integrate failed: weight_mode=2 requires per-frame ivar products; 49/49 frames missing ivar; frame-SNR weight chain NOT closed (unclosed_invalid_reference_flux): ACSD_REFERENCE_FLUX 逐帧不一致（组内公共通量标度要求） (DATA-UNC-001 §30.1: no silent fallback; legacy_allow_weight_fallback=true no longer produces a successful equal-weight degradation)
 
 ========================================================================
 2. REAL FRAME SNR / REFERENCE FLUX PAIRING (49 L4 frames)
 ========================================================================
-  n_frames=49  missing ASTROCS_FRAME_SNR/ASTROCS_REFERENCE_FLUX=3
+  n_frames=49  missing ACSD_FRAME_SNR/ACSD_REFERENCE_FLUX=3
       MISSING: M42_M4_T2_flying_dutchman-20251216_050117-300S-Red
       MISSING: M42_M4_T2_flying_dutchman-20251224_045919-300S-Red
       MISSING: M42_M4_T2_flying_dutchman-20251228_044805-300S-Red

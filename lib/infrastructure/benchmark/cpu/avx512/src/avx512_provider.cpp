@@ -3,7 +3,7 @@
 // 职责: AMD64 AVX-512 provider (本 TU 单独以 -mavx512f -mavx512cd
 // -mavx512bw -mavx512dq -mavx512vl 编译; Windows /arch:AVX512, 15 §6
 // 编译隔离)。
-//   - 唯一导出 astrocs_provider_query_v1 (lib/include/astrocs/abi/module_api_v1.h
+//   - 唯一导出 acsd_provider_query_v1 (lib/include/acsd/abi/module_api_v1.h
 //     冻结; ARC-001 §1.2: provider DLL 不得导出其他符号);
 //   - 只迁移实测可能获益的热点 kernel (ISA-004 台账;
 //     ISA-004 实测在案，测量工件留档 实验/engineering-evidence/prerelease-v5/):
@@ -16,12 +16,12 @@
 //       drizzle-accumulate −22.5% (变体更慢) → NOT_SHIPPED;
 //     防 AVX-512 降频使全局性能变差: 只注册实测获益 kernel, 不机械堆砌
 //     (ISA_VARIANTS.md §1.6 判定 / 15 §3)。
-//   - 参数合同 = baseline provider v1 同一 POD (acs_cpu_baseline_params_v1;
+//   - 参数合同 = baseline provider v1 同一 POD (acsd_cpu_baseline_params_v1;
 //     CPU-002 冻结, include 复用不复制); 数值公式与 baseline/avx2 kernel
 //     实现同式 (ALG-P3-002 离散公式) —— 差异仅编译旗标与注册子集;
 //   - query 握手: host_abi 失配 → ACS_ERR_ABI_MISMATCH; host 必填
 //     allocator; out_api = 静态 provider 表;
-//   - 加载判定 (AVX-512 能力门): acs_cpu_avx512_cap_gate 要求
+//   - 加载判定 (AVX-512 能力门): acsd_cpu_avx512_cap_gate 要求
 //     required = F|CD|BW|DQ|VL 五子集 ⊆ os_safe 平面 (CPU-001 classify:
 //     OSXSAVE + XGETBV opmask|ZMM_Hi256|Hi16_ZMM=0xE0 + 五子集 hw 全置) ——
 //     缺任一子集 / OS 不保存 ZMM state → ACS_ERR_UNSUPPORTED 拒绝加载
@@ -40,9 +40,9 @@
 //     输出逐元素独立 → bitwise 不随 worker 数变化;
 //   - 结论: AVX-512 不改变归约顺序; 可能每元素 ≤ 数十 ULP 舍入差 →
 //     baseline 对照容差 2e-4 相对冻结 (avx512_provider_v1.h 头注释 §6)。
-#include "astrocs/cpu/avx512_provider_v1.h"
-#include "astrocs/cpu/capability_v1.h"
-#include "astrocs/cpu/cpuprov_kernels_v1.h"   /* R-60: 计算面跨 TU 桥 */
+#include "acsd/cpu/avx512_provider_v1.h"
+#include "acsd/cpu/capability_v1.h"
+#include "acsd/cpu/cpuprov_kernels_v1.h"   /* R-60: 计算面跨 TU 桥 */
 
 #include <algorithm>
 #include <cmath>
@@ -52,23 +52,23 @@
 #include <thread>
 #include <vector>
 
-#if !defined(ASTROCS_NO_EXCEPTIONS)
+#if !defined(ACSD_NO_EXCEPTIONS)
 #include <stdexcept>
 #endif
 
-#if defined(ASTROCS_ABI_SHARED) && !defined(ASTROCS_ABI_EXPORTS)
-#define ASTROCS_ABI_EXPORTS 1
+#if defined(ACSD_ABI_SHARED) && !defined(ACSD_ABI_EXPORTS)
+#define ACSD_ABI_EXPORTS 1
 #endif
 
 /* ───────────────────────── 能力门 (query 期) ─────────────────────────
  * 加载判定只使用 os_safe 平面 (15 §2): required = AVX-512 五子集 ⊆ os_safe。
  * 生产链接真实 capability_detect.c; 缺子集/OS 不保存 ZMM 负测由测试 stub
  * 注入 (eng/tests/cpu/avx512/provider_avx512_capability_gate_test.c 链接期替换
- * acs_cap_detect_v1 / acs_cap_os_safe_satisfies_v1)。本函数为 extern "C"
+ * acsd_cap_detect_v1 / acsd_cap_os_safe_satisfies_v1)。本函数为 extern "C"
  * 顶层符号 (host/测试可直接判定; 不属 provider 导出白名单)。
  *
  * 非法指令保护 (CPU-004 验收核心): 本 TU 以 -mavx512* 编译, 编译器默认
- * 会用 512-bit EVEX (vmovdqu64 %zmm 等) 内联实现大结构体 (acs_cap_result_v1
+ * 会用 512-bit EVEX (vmovdqu64 %zmm 等) 内联实现大结构体 (acsd_cap_result_v1
  * 约 200B) 的 memset/整拷 —— cap_gate 恰是"判定本 CPU 是否支持 AVX-512"的
  * 函数, 若函数体含 EVEX, 在缺 AVX-512 的 CPU 上**探测自身前**即 #UD
  * (鸡生蛋)。故本函数以 target attribute 强制禁 AVX-512/EVEX 指令生成
@@ -87,9 +87,9 @@
 #endif
 
 extern "C" ACS_CPU_AVX512_CAP_GATE_NOEVEX
-int acs_cpu_avx512_cap_gate(acs_cap_result_v1* out) {
+int acsd_cpu_avx512_cap_gate(acsd_cap_result_v1* out) {
     if (out == nullptr) return ACS_ERR_PARAM;
-    acs_cap_result_v1 c;
+    acsd_cap_result_v1 c;
     /* HOSTFIX-23④: 本函数带 no-avx512* target attribute。glibc
      * string_fortified.h 的 always_inline memset (-D_FORTIFY_SOURCE>=2 下
      * 由 std::memset 展开的 __builtin___memset_chk) 不继承调用方 target
@@ -104,22 +104,22 @@ int acs_cpu_avx512_cap_gate(acs_cap_result_v1* out) {
 #else
     std::memset(&c, 0, sizeof(c));
 #endif
-    c.struct_size = (uint32_t)sizeof(acs_cap_result_v1);
+    c.struct_size = (uint32_t)sizeof(acsd_cap_result_v1);
     c.abi_version = ACS_CAP_ABI_VERSION_V1;
-    const int rc = acs_cap_detect_v1(&c);
+    const int rc = acsd_cap_detect_v1(&c);
     if (rc != ACS_CAP_OK) return ACS_ERR_UNSUPPORTED;
-    if (!acs_cap_os_safe_satisfies_v1(&c, ACS_CPU_AVX512_REQUIRED_FEATURES))
+    if (!acsd_cap_os_safe_satisfies_v1(&c, ACS_CPU_AVX512_REQUIRED_FEATURES))
         return ACS_ERR_UNSUPPORTED;   /* 缺子集 / OS 不保存 ZMM → 拒绝 */
     *out = c;
     return ACS_OK;
 }
 
-namespace astrocs_cpu_avx512 {
+namespace acsd_cpu_avx512 {
 
 /* ───────────────────────── 字符串构造辅助 (静态 init, 无 SIMD) ───────────────────────── */
-static acs_str_v1 mkstr(const char* s) {
-    acs_str_v1 v;
-    v.head.struct_size = (uint32_t)sizeof(acs_str_v1);
+static acsd_str_v1 mkstr(const char* s) {
+    acsd_str_v1 v;
+    v.head.struct_size = (uint32_t)sizeof(acsd_str_v1);
     v.head.abi_version = ACS_ABI_VERSION_V1;
     v.data = s;
     v.size = s ? (uint64_t)std::strlen(s) : 0u;
@@ -130,8 +130,8 @@ static acs_str_v1 mkstr(const char* s) {
  * kernel_id/sci_contract_id 与 baseline/avx2 (CPU-002/003) 同一科学 kernel
  * 身份 (hips-bulk-transform = ALG-P3-002; host 以 kernel_id 粒度选路)。
  * determinism_class: 0=bitwise (逐元素独立; 无跨线程归约)。 */
-static const acs_kernel_desc_v1 kKernels[ACS_CPU_AVX512_KERNEL_COUNT] = {
-    { { (uint32_t)sizeof(acs_kernel_desc_v1), ACS_ABI_VERSION_V1 },
+static const acsd_kernel_desc_v1 kKernels[ACS_CPU_AVX512_KERNEL_COUNT] = {
+    { { (uint32_t)sizeof(acsd_kernel_desc_v1), ACS_ABI_VERSION_V1 },
       mkstr("hips-bulk-transform"), mkstr("ALG-P3-002"),
       ACS_CPU_BASELINE_PREC_F32, ACS_CPU_BASELINE_DET_BITWISE }
 };
@@ -140,9 +140,9 @@ static const acs_kernel_desc_v1 kKernels[ACS_CPU_AVX512_KERNEL_COUNT] = {
  * hips-bulk (AVX512_KIDX_HIPS_BULK): 1 入 (≥ iw*ih, iw=aux0, ih=aux1 ≥2)
  *                                     1 出 (≥ N=w*h);
  * 未用槽 off=len=0; 越界 → ACS_ERR_PARAM; 未知索引 → ACS_ERR_UNSUPPORTED。 */
-static int avx512_validate(const acs_cpu_baseline_params_v1* P,
+static int avx512_validate(const acsd_cpu_baseline_params_v1* P,
                            uint32_t kidx,
-                           const acs_span_u8& in, const acs_span_u8& out) {
+                           const acsd_span_u8& in, const acsd_span_u8& out) {
     if (in.data == nullptr || out.data == nullptr) return ACS_ERR_PARAM;
     if (P->head.struct_size < sizeof(*P) ||
         P->head.abi_version != ACS_ABI_VERSION_V1)
@@ -179,8 +179,8 @@ static int avx512_validate(const acs_cpu_baseline_params_v1* P,
     }
 }
 
-static void gather_ptrs(const acs_cpu_baseline_params_v1* P,
-                        const acs_span_u8& in, const acs_span_u8& out,
+static void gather_ptrs(const acsd_cpu_baseline_params_v1* P,
+                        const acsd_span_u8& in, const acsd_span_u8& out,
                         const float** ip, float** op) {
     const uint8_t* ib = in.data;
     uint8_t* ob = out.data;
@@ -206,12 +206,12 @@ static void gather_ptrs(const acs_cpu_baseline_params_v1* P,
  * 则应"干净拒绝"，同码则退化成本不该发生的指令集要求。
  * 现计算面在 lib/infrastructure/benchmark/cpu/avx512/src/avx512_kernels.cpp
  * （唯一带 ISA 旗标的 TU），本 TU（门面）零 ISA 旗标，两者只经唯一跨 TU 桥
- * astrocs_cpuprov_kernel_range_v1 相连（见 astrocs/cpu/cpuprov_kernels_v1.h）。
+ * acsd_cpuprov_kernel_range_v1 相连（见 acsd/cpu/cpuprov_kernels_v1.h）。
  * 数值源码逐字符搬移: 公式/项序/容差零变更。 */
 /* ───────────────────────── 并行执行 (host executor 租借) ─────────────────────────
  * 同 baseline/avx2 语义: 行带划分, 每输出独立 → bitwise 确定; 全或无租借。 */
-static uint32_t run_banded(const acs_host_api_v1* host,
-                           const acs_cpu_baseline_params_v1* P, uint32_t kidx,
+static uint32_t run_banded(const acsd_host_api_v1* host,
+                           const acsd_cpu_baseline_params_v1* P, uint32_t kidx,
                            const float* const* ip, float* const* op) {
     const uint64_t N = (uint64_t)P->w * (uint64_t)P->h;
     uint32_t cap = 1;
@@ -245,9 +245,9 @@ static uint32_t run_banded(const acs_host_api_v1* host,
     ths.reserve(workers > 1 ? workers - 1 : 0);
     for (uint32_t t = 1; t < workers; ++t)
         ths.emplace_back([&, t]() {
-            astrocs_cpuprov_kernel_range_v1(P, kidx, ip, op, start[t], start[t + 1]);
+            acsd_cpuprov_kernel_range_v1(P, kidx, ip, op, start[t], start[t + 1]);
         });
-    astrocs_cpuprov_kernel_range_v1(P, kidx, ip, op, start[0], start[1]);
+    acsd_cpuprov_kernel_range_v1(P, kidx, ip, op, start[0], start[1]);
     for (auto& th : ths) th.join();
 
     if (host != nullptr && host->executor != nullptr &&
@@ -258,9 +258,9 @@ static uint32_t run_banded(const acs_host_api_v1* host,
 
 /* ───────────────────────── provider vtable 函数 ───────────────────────── */
 
-static acs_status avx512_self_test(const acs_host_api_v1* host) {
+static acsd_status avx512_self_test(const acsd_host_api_v1* host) {
     if (host == nullptr) return ACS_ERR_PARAM;
-    if (host->head.struct_size < sizeof(acs_host_api_v1) ||
+    if (host->head.struct_size < sizeof(acsd_host_api_v1) ||
         host->head.abi_version != ACS_ABI_VERSION_V1)
         return ACS_ERR_ABI_MISMATCH;
     if (host->allocator == nullptr || host->allocator->alloc == nullptr ||
@@ -282,7 +282,7 @@ static acs_status avx512_self_test(const acs_host_api_v1* host) {
     }
     /* kernel 表自洽 */
     for (uint32_t i = 0; i < ACS_CPU_AVX512_KERNEL_COUNT; ++i) {
-        const acs_kernel_desc_v1& k = kKernels[i];
+        const acsd_kernel_desc_v1& k = kKernels[i];
         if (k.head.abi_version != ACS_ABI_VERSION_V1 ||
             k.kernel_id.data == nullptr || k.kernel_id.size == 0 ||
             k.sci_contract_id.data == nullptr || k.sci_contract_id.size == 0)
@@ -291,9 +291,9 @@ static acs_status avx512_self_test(const acs_host_api_v1* host) {
     return ACS_OK;
 }
 
-static acs_status avx512_kernel_list(const acs_host_api_v1* host,
+static acsd_status avx512_kernel_list(const acsd_host_api_v1* host,
                                      uint32_t* out_count,
-                                     const acs_kernel_desc_v1** out_kernels) {
+                                     const acsd_kernel_desc_v1** out_kernels) {
     (void)host;
     if (out_count == nullptr || out_kernels == nullptr) return ACS_ERR_PARAM;
     *out_count = ACS_CPU_AVX512_KERNEL_COUNT;
@@ -301,17 +301,17 @@ static acs_status avx512_kernel_list(const acs_host_api_v1* host,
     return ACS_OK;
 }
 
-static acs_status avx512_run_kernel(uint32_t kernel_index,
-                                    const acs_host_api_v1* host,
+static acsd_status avx512_run_kernel(uint32_t kernel_index,
+                                    const acsd_host_api_v1* host,
                                     const void* params, uint32_t params_bytes,
-                                    acs_span_u8 in, acs_span_u8 out) {
+                                    acsd_span_u8 in, acsd_span_u8 out) {
     if (kernel_index >= ACS_CPU_AVX512_KERNEL_COUNT)
         return ACS_ERR_UNSUPPORTED;   /* 非热点 kernel → host 退回 avx2/baseline */
     if (host == nullptr || params == nullptr) return ACS_ERR_PARAM;
-    if (host->head.struct_size < sizeof(acs_host_api_v1) ||
+    if (host->head.struct_size < sizeof(acsd_host_api_v1) ||
         host->head.abi_version != ACS_ABI_VERSION_V1)
         return ACS_ERR_ABI_MISMATCH;
-    acs_cpu_baseline_params_v1 P;
+    acsd_cpu_baseline_params_v1 P;
     if (params_bytes < sizeof(P)) return ACS_ERR_PARAM;
     std::memcpy(&P, params, sizeof(P));
     if (P.head.abi_version != ACS_ABI_VERSION_V1 ||
@@ -326,7 +326,7 @@ static acs_status avx512_run_kernel(uint32_t kernel_index,
         return ACS_ERR_CANCELLED;   /* cancel 点 = 调用边界 (v1) */
 
     int rc = avx512_validate(&P, kernel_index, in, out);
-    if (rc != ACS_OK) return (acs_status)rc;
+    if (rc != ACS_OK) return (acsd_status)rc;
 
     const float* ip[ACS_CPU_AVX512_MAX_IN_SLOTS] = { nullptr };
     float* op[ACS_CPU_AVX512_MAX_OUT_SLOTS] = { nullptr };
@@ -336,14 +336,14 @@ static acs_status avx512_run_kernel(uint32_t kernel_index,
 }
 
 /* ───────────────────────── provider 静态表 ───────────────────────── */
-static const acs_provider_api_v1 g_provider_api = {
-    { (uint32_t)sizeof(acs_provider_api_v1), ACS_ABI_VERSION_V1 },
+static const acsd_provider_api_v1 g_provider_api = {
+    { (uint32_t)sizeof(acsd_provider_api_v1), ACS_ABI_VERSION_V1 },
     &avx512_self_test,
     &avx512_kernel_list,
     &avx512_run_kernel
 };
 
-}  // namespace astrocs_cpu_avx512
+}  // namespace acsd_cpu_avx512
 
 /* ───────────────────────── 唯一导出 (12 §1) ─────────────────────────
  * host_abi 失配 → ACS_ERR_ABI_MISMATCH; host 必填 allocator; AVX-512 能力门
@@ -352,7 +352,7 @@ static const acs_provider_api_v1 g_provider_api = {
  * ACS_ERR_EXCEPTION (12 §4)。 */
 extern "C" {
 
-#if !defined(ASTROCS_NO_EXCEPTIONS)
+#if !defined(ACSD_NO_EXCEPTIONS)
 #define ACS_TRY try
 #define ACS_CATCH \
     catch (...) { return ACS_ERR_EXCEPTION; }
@@ -361,19 +361,19 @@ extern "C" {
 #define ACS_CATCH
 #endif
 
-ASTROCS_EXPORT acs_status ASTROCS_CALL
-astrocs_provider_query_v1(uint32_t host_abi,
-                          const acs_host_api_v1* host,
-                          const acs_provider_api_v1** out_api) ACS_TRY {
+ACSD_EXPORT acsd_status ACSD_CALL
+acsd_provider_query_v1(uint32_t host_abi,
+                          const acsd_host_api_v1* host,
+                          const acsd_provider_api_v1** out_api) ACS_TRY {
     if (host_abi != ACS_ABI_VERSION_V1) return ACS_ERR_ABI_MISMATCH;
     if (host == nullptr || host->allocator == nullptr) return ACS_ERR_ABI_MISMATCH;
-    if (host->head.struct_size < sizeof(acs_host_api_v1) ||
+    if (host->head.struct_size < sizeof(acsd_host_api_v1) ||
         host->head.abi_version != ACS_ABI_VERSION_V1)
         return ACS_ERR_ABI_MISMATCH;
     if (out_api == nullptr) return ACS_ERR_PARAM;
-    using namespace astrocs_cpu_avx512;
-    acs_cap_result_v1 cap;
-    const int grc = acs_cpu_avx512_cap_gate(&cap);
+    using namespace acsd_cpu_avx512;
+    acsd_cap_result_v1 cap;
+    const int grc = acsd_cpu_avx512_cap_gate(&cap);
     if (grc != ACS_OK) return ACS_ERR_UNSUPPORTED;   /* 缺子集/ZMM state → 拒绝 */
     *out_api = &g_provider_api;
     return ACS_OK;

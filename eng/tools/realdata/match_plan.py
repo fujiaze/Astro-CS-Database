@@ -59,7 +59,7 @@ from datetime import datetime, timezone
 # ---------------------------------------------------------------------------
 # 冻结常量（修改即破坏确定性契约；本工具外不得重定义这些语义）
 # ---------------------------------------------------------------------------
-SCHEMA_ID = "astrocs.realdata.match_plan.v1"
+SCHEMA_ID = "acsd.realdata.match_plan.v1"
 EXPOSURE_TOL_S = 0.01          # dark 精确匹配容差（秒）
 K_MAX = 10.0                   # K_OUT_OF_RANGE 上界（k<=0 或 >10 视为越界）
 FALLBACK_EXPOSURE_RATIO = "EXPOSURE_RATIO"   # OPTIMAL 失败时的冻结回退
@@ -278,7 +278,7 @@ def cmd_inventory(args) -> int:
     total_lights = sum(groups.values())
 
     summary = {
-        "schema": "astrocs.realdata.inventory.v1",
+        "schema": "acsd.realdata.inventory.v1",
         "generated_at": datetime.now(timezone.utc).isoformat(),
         "testdata_root": args.testdata,
         "count_enumerated": len(entries),
@@ -654,7 +654,7 @@ def cmd_plan(args) -> int:
         filters = sorted({f["filter_norm"] for f in p["frames"]})
         exposures = sorted({f["exposure_s"] for f in p["frames"]})
         cfg = {
-            "schema": "astrocs.phase_config.template.v1",
+            "schema": "acsd.phase_config.template.v1",
             "dataset_id": ds_id,
             "telescopes": tels,
             "sensor": {tel: sensor_by_tel.get(tel) for tel in tels},

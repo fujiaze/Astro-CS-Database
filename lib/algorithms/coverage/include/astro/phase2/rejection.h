@@ -1,7 +1,7 @@
 // lib/algorithms/coverage/include/astro/phase2/rejection.h
 //
 // Phase2 Rejection Framework 公共接口。
-// Trace: ALG-P2-REJ-001（TRACEABILITY_MATRIX MOD-astrocs-phase2-reject 行）。
+// Trace: ALG-P2-REJ-001（TRACEABILITY_MATRIX MOD-acsd-phase2-reject 行）。
 //
 // 语义：
 // - 输入分三层：
@@ -11,7 +11,7 @@
 // 2) RejectionPlan：auto 在 **planning 层**解析为显式方法 +
 // method-specific typed params；profile 语义见
 // p2_reject_plan_resolve（wbpp_current = group-level 一次解析；
-// astrocs_adaptive = tile nominal-depth 自适应，独立命名）；
+// acsd_adaptive = tile nominal-depth 自适应，独立命名）；
 // 3) RejectionNormalizationPolicy（plan.normalization）：判定工作域
 // （working stack）与科学积分域（原始 calibrated values）分离；
 // decision 作用于 working stack，accepted mask 应用于原始值。
@@ -43,19 +43,19 @@ extern "C" {
 #endif
 
 enum P2RejectionMethod {
-    P2_REJECT_NONE = 0,           // astrocs.none.v1
-    P2_REJECT_SIGMA = 1,          // alias → astrocs.robust_mad_clip.v1
-    P2_REJECT_WINSORIZED_SIGMA = 2, // astrocs.winsorized_sigma_siril_1_4_3.v1
-    P2_REJECT_AVERAGED_SIGMA = 3,   // astrocs.averaged_sigma.v1
-    P2_REJECT_LINEAR_FIT = 4,       // astrocs.linear_fit_siril_1_4_3.v1
-    P2_REJECT_GENERALIZED_ESD = 5,  // astrocs.generalized_esd_nist.v1
-    P2_REJECT_RCR = 6,              // astrocs.rcr_2_4_7_ss_median_dl.v1
-    P2_REJECT_PERCENTILE = 7,       // astrocs.percentile_siril.v1
-    P2_REJECT_MEDIAN_SIGMA = 8,     // astrocs.median_std_clip.v1
-    P2_REJECT_MINMAX = 9,           // astrocs.minmax.v1
+    P2_REJECT_NONE = 0,           // acsd.none.v1
+    P2_REJECT_SIGMA = 1,          // alias → acsd.robust_mad_clip.v1
+    P2_REJECT_WINSORIZED_SIGMA = 2, // acsd.winsorized_sigma_siril_1_4_3.v1
+    P2_REJECT_AVERAGED_SIGMA = 3,   // acsd.averaged_sigma.v1
+    P2_REJECT_LINEAR_FIT = 4,       // acsd.linear_fit_siril_1_4_3.v1
+    P2_REJECT_GENERALIZED_ESD = 5,  // acsd.generalized_esd_nist.v1
+    P2_REJECT_RCR = 6,              // acsd.rcr_2_4_7_ss_median_dl.v1
+    P2_REJECT_PERCENTILE = 7,       // acsd.percentile_siril.v1
+    P2_REJECT_MEDIAN_SIGMA = 8,     // acsd.median_std_clip.v1
+    P2_REJECT_MINMAX = 9,           // acsd.minmax.v1
     P2_REJECT_AUTO = 10,            // 只在 planning 层解析，永不进入 kernel
     // 已知先验 σ 的极值检验（FIX-REJ §3；见 P2ExtremeValuePriorSigmaParams）。
-    // **显式 opt-in 方法**：永不参与任何 AUTO 路由（含 astrocs_adaptive_pixel
+    // **显式 opt-in 方法**：永不参与任何 AUTO 路由（含 acsd_adaptive_pixel
     // 的逐几何 n 映射——SD-18 起 n<=3 走 none 保守路径；依据见
     // docs/science/REJECTION.md §5/§16）。
     // API 保留供调用方显式指定并自带外部先验时使用。
@@ -63,24 +63,24 @@ enum P2RejectionMethod {
 };
 
 // canonical semantic id 常量（runtime 不依赖模糊字符串）
-#define P2_SEMANTIC_NONE                  "astrocs.none.v1"
-#define P2_SEMANTIC_ROBUST_MAD_CLIP       "astrocs.robust_mad_clip.v1"
-#define P2_SEMANTIC_WINSORIZED_SIRIL      "astrocs.winsorized_sigma_siril_1_4_3.v1"
-#define P2_SEMANTIC_AVERAGED_SIGMA        "astrocs.averaged_sigma.v1"
-#define P2_SEMANTIC_LINEAR_FIT_SIRIL      "astrocs.linear_fit_siril_1_4_3.v1"
-#define P2_SEMANTIC_GENERALIZED_ESD_NIST  "astrocs.generalized_esd_nist.v1"
-#define P2_SEMANTIC_RCR_2_4_7_SS_MEDIAN_DL "astrocs.rcr_2_4_7_ss_median_dl.v1"
-#define P2_SEMANTIC_PERCENTILE_SIRIL      "astrocs.percentile_siril.v1"
-#define P2_SEMANTIC_MEDIAN_STD_CLIP       "astrocs.median_std_clip.v1"
-#define P2_SEMANTIC_MINMAX                "astrocs.minmax.v1"
+#define P2_SEMANTIC_NONE                  "acsd.none.v1"
+#define P2_SEMANTIC_ROBUST_MAD_CLIP       "acsd.robust_mad_clip.v1"
+#define P2_SEMANTIC_WINSORIZED_SIRIL      "acsd.winsorized_sigma_siril_1_4_3.v1"
+#define P2_SEMANTIC_AVERAGED_SIGMA        "acsd.averaged_sigma.v1"
+#define P2_SEMANTIC_LINEAR_FIT_SIRIL      "acsd.linear_fit_siril_1_4_3.v1"
+#define P2_SEMANTIC_GENERALIZED_ESD_NIST  "acsd.generalized_esd_nist.v1"
+#define P2_SEMANTIC_RCR_2_4_7_SS_MEDIAN_DL "acsd.rcr_2_4_7_ss_median_dl.v1"
+#define P2_SEMANTIC_PERCENTILE_SIRIL      "acsd.percentile_siril.v1"
+#define P2_SEMANTIC_MEDIAN_STD_CLIP       "acsd.median_std_clip.v1"
+#define P2_SEMANTIC_MINMAX                "acsd.minmax.v1"
 #define P2_SEMANTIC_EXTREME_VALUE_PRIOR_SIGMA \
-    "astrocs.extreme_value_clip_prior_sigma.v1"
-#define P2_SEMANTIC_LARGE_SCALE           "astrocs.large_scale_rejection.v1"
+    "acsd.extreme_value_clip_prior_sigma.v1"
+#define P2_SEMANTIC_LARGE_SCALE           "acsd.large_scale_rejection.v1"
 
 // 冻结 profile 名（planning 层路由选择器；kernel 只见显式方法）
 #define P2_PROFILE_WBPP_2_9_1             "wbpp_2_9_1"
 #define P2_PROFILE_WBPP_CURRENT           "wbpp_current"  // = wbpp_2_9_1 alias
-#define P2_PROFILE_ASTROCS_ADAPTIVE       "astrocs_adaptive"
+#define P2_PROFILE_ACSD_ADAPTIVE       "acsd_adaptive"
 // ACSD 自有「按逐输出像素几何 N」内置映射。**档界取自 WBPP 2.5.9
 // bestRejectionMethod()**（WeightedBatchPreprocessing-engine.js:1421-1429，
 // 包 sha1 712cc7c3fdb523643ad0e685104592d511996f82）：N<6 → percentile；
@@ -91,8 +91,8 @@ enum P2RejectionMethod {
 // 「N<6 档的下界是否含 N≤3」是**单一显式决策点**
 // （rejection.cpp 的 kPixelSmallNPolicy；查询见
 // p2_rejection_percentile_band_min_n）。独立命名，不改变 wbpp_2_9_1 /
-// astrocs_adaptive 的冻结 AUTO 路由。
-#define P2_PROFILE_ASTROCS_ADAPTIVE_PIXEL "astrocs_adaptive_pixel"
+// acsd_adaptive 的冻结 AUTO 路由。
+#define P2_PROFILE_ACSD_ADAPTIVE_PIXEL "acsd_adaptive_pixel"
 
 // per-sample reason（RejectionDecision.reasons[]）
 enum P2RejectReason {
@@ -154,7 +154,7 @@ typedef struct {
     int technique;         // 0 = SS_MEDIAN_DL（ 冻结，唯一支持）
 } P2RcrParams;
 
-// astrocs.large_scale_rejection.v1 —— 大尺度结构拒绝（WBPP
+// acsd.large_scale_rejection.v1 —— 大尺度结构拒绝（WBPP
 // Large-Scale Pixel Rejection 的 ACSD 自有实现，PIXINSIGHT_EXACT=
 // NOT_CLAIMED）。语义：对每帧 pixel-level rejection mask 做
 // connected-component grow：
@@ -174,7 +174,7 @@ typedef struct {
     int high_grow_radius_pixels;  // 高侧扩张半径（>=0；默认 2）
 } P2LargeScaleParams;
 
-// astrocs.extreme_value_clip_prior_sigma.v1 —— 已知先验 σ 的极值检验
+// acsd.extreme_value_clip_prior_sigma.v1 —— 已知先验 σ 的极值检验
 // （NIST/SEMATECH e-Handbook §1.3.5.17.1 Grubbs / 已知方差单离群变体；
 // 单趟、无迭代、无 N-r 最小保留闸）。FIX-REJ §3 内置映射的 n=2 档：小栈
 // 无法估计稳健尺度，必须由调用方提供**先验**噪声尺度（方案 A：该帧该 tile
@@ -233,11 +233,11 @@ typedef struct {
     int request;                 // P2RejectionMethod（允许 AUTO）
     std::uint32_t nominal_contributors; // wbpp_current = integration group
                                        // active independent exposure 数
-                                       // （一次解析）；astrocs_adaptive =
+                                       // （一次解析）；acsd_adaptive =
                                        // tile nominal geometric depth
     const char* profile;         // P2_PROFILE_*（nullptr=wbpp_2_9_1）
     std::uint32_t underdetermined_n;   // 0=按 profile 默认：wbpp/adaptive=2（冻结）；
-                                       // astrocs_adaptive_pixel=3（n<=3 保守 none，
+                                       // acsd_adaptive_pixel=3（n<=3 保守 none，
                                        // 不排异）；显式 request=
                                        // EXTREME_VALUE_PRIOR_SIGMA（opt-in）=1
                                        // （使 n=2 进 kernel，n=1 由 minimum_n 拦下）
@@ -245,18 +245,18 @@ typedef struct {
 
 // 在 planning 层把 request（含 AUTO）解析为显式 P2RejectionPlan。
 // 冻结 profile 的 Auto 路由（**本仓解析表**）：
-// 对照档（wbpp_2_9_1 / wbpp_current / astrocs_adaptive）：
+// 对照档（wbpp_2_9_1 / wbpp_current / acsd_adaptive）：
 //   nominal < 6 → percentile；6..15 → winsorized_sigma；>15 → linear_fit。
-// 生产档（astrocs_adaptive_pixel，M3 后；依据 docs/science/REJECTION.md §5）：
+// 生产档（acsd_adaptive_pixel，M3 后；依据 docs/science/REJECTION.md §5）：
 //   nominal < 6 → percentile；**nominal ≥ 6 → winsorized_sigma**。
 // 注：档界与 WBPP 2.5.9 bestRejectionMethod()（engine.js:1421-1429）一致，
 // 但 >15 档两档都不取 WBPP 2.4.0+ 的 ESD（对照档取 ≤2.3.x 旧表 linear_fit）。
 // profile 语义：
 // wbpp_2_9_1（wbpp_current alias）→ 调用方必须传 integration group active
 // count，一次解析；tile/pixel 不重选；局部候选不足 = UNDERDETERMINED。
-// astrocs_adaptive → ACSD 自有策略：允许按 tile nominal geometric depth
+// acsd_adaptive → ACSD 自有策略：允许按 tile nominal geometric depth
 // 自适应；独立命名，不冒充 WBPP exact；AUTO 路由与 wbpp 冻结表一致。
-// astrocs_adaptive_pixel → ACSD 自有「按逐输出像素几何 N」内置映射
+// acsd_adaptive_pixel → ACSD 自有「按逐输出像素几何 N」内置映射
 // （档界取自 WBPP 2.5.9：N<6 percentile；**N≥6 winsorized**（
 // 原 N≥16 → linear_fit 档改投，该档既不取 WBPP 2.4.0+ 的
 // ESD、也不取 ≤2.3.x 的 linear_fit，依据见 docs/science/REJECTION.md §5）；
@@ -498,7 +498,7 @@ enum P2RejectClass {
 #define P2_REJ_CALIB_BSS_MIN  0.10
 
 // 分类 profile 版本（方法/证据门/后验参数版本化，宪章 §6.3）。
-#define P2_REJECT_CLASSIFY_PROFILE "astrocs.rejection.classify.v1"
+#define P2_REJECT_CLASSIFY_PROFILE "acsd.rejection.classify.v1"
 // v1 profile 常量（未版本化改动 → invalid_configuration）
 #define P2_REJ_PROFILE_MOTION_MIN_PX  0.5
 #define P2_REJ_PROFILE_PSF_ANOMALY_MIN 0.2

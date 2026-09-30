@@ -11,7 +11,7 @@
 //     保证「能力预检不过则不加载」在仅 SSE2 的主机上真的能跑到判定那一步
 //     （而不是加载期/查询期撞非法指令）。
 //
-// 平台旗标口径（唯一登记点 = 根 CMakeLists.txt 的 astrocs_cpuprov_avx2_kernels）:
+// 平台旗标口径（唯一登记点 = 根 CMakeLists.txt 的 acsd_cpuprov_avx2_kernels）:
 //   GCC/Clang: -mavx2 -mfma
 //   MSVC     : /arch:AVX2（官方口径: AVX2 档同时许可 FMA 指令面；MSVC 无独立
 //              /mfma 类开关）+ /fp:contract（仅 VS2022 起需要，见根 CMakeLists.txt）
@@ -19,11 +19,11 @@
 // 旗标失效不得静默（R-60 硬约束 2）: 下面的 #error 把「旗标被工具链忽略 / 工具链
 // 过老」从「静默退化成与 baseline 同码」变成**编译期红灯**。
 #if defined(_MSC_VER) && !defined(__AVX2__)
-#error "astrocs_cpuprov_avx2 计算面 TU 未获得 AVX2 许可面: MSVC 需 /arch:AVX2（VS2013 Update 2 / MSVC 1800+ 支持）。工具链不支持时不得以基线同码产物冒充变体，退回基线必须显式改口径。"
+#error "acsd_cpuprov_avx2 计算面 TU 未获得 AVX2 许可面: MSVC 需 /arch:AVX2（VS2013 Update 2 / MSVC 1800+ 支持）。工具链不支持时不得以基线同码产物冒充变体，退回基线必须显式改口径。"
 #endif
 
-#include "astrocs/cpu/avx2_provider_v1.h"
-#include "astrocs/cpu/cpuprov_kernels_v1.h"
+#include "acsd/cpu/avx2_provider_v1.h"
+#include "acsd/cpu/cpuprov_kernels_v1.h"
 
 #include <algorithm>
 #include <cmath>
@@ -42,7 +42,7 @@
  * R-60 拆分说明: 本函数体自 avx2_provider.cpp **逐字符搬移**（只去掉 static、
  * 改名为跨 TU 桥入口，形参/语句/项序一字未动）—— 科学内容零变更，
  * 变的只是它被编译时所在的 TU 与链接可见性。 */
-extern "C" void astrocs_cpuprov_kernel_range_v1(const acs_cpu_baseline_params_v1* P,
+extern "C" void acsd_cpuprov_kernel_range_v1(const acsd_cpu_baseline_params_v1* P,
                                                 uint32_t kidx,
                                                 const float* const* in, float* const* out,
                                                 uint64_t i0, uint64_t i1) {

@@ -1231,6 +1231,6 @@ int fits_detect(const char *path) {
 
 // RT-008: cfitsio 首次初始化 shim — 供 core/CLI 在单线程阶段调用一次，
 // 避免 Runtime 并行 worker 并发首用 cfitsio 时的数据竞争（fits_init_cfitsio 非线程安全）。
-extern "C" void astrocs_cfitsio_ensure_initialized(void) {
+extern "C" void acsd_cfitsio_ensure_initialized(void) {
     fits_init_cfitsio();
 }

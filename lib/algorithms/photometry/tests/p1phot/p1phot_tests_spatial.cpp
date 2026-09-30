@@ -72,7 +72,7 @@ constexpr double kLocation = 16.275;   // ≈ 真实 M42 帧的 location（scale
 constexpr double kSigmaDex = 0.010;    // 逐星内禀散差（实验 §3.1 口径）
 
 struct Sample {
-    std::vector<astrocs::photometry::SpatialGainSample> s;
+    std::vector<acsd::photometry::SpatialGainSample> s;
     std::vector<double> xt, yt;
 };
 
@@ -90,7 +90,7 @@ Sample make_sample(int n, std::uint64_t seed, bool has_field, double sigma) {
         const double yt = (y - 0.5 * (kH - 1)) / (0.5 * (kH - 1));
         const double q = has_field ? quad_eval(kQuad, xt, yt) : 0.0;
         const double noise = (sigma > 0.0) ? sigma * rng.gauss() : 0.0;
-        astrocs::photometry::SpatialGainSample sm;
+        acsd::photometry::SpatialGainSample sm;
         sm.x = x;
         sm.y = y;
         sm.r = kLocation - q + noise;
@@ -116,7 +116,7 @@ Sample make_near_collinear_sample() {
     for (int i = 0; i < 400; ++i) {
         const double x = rng.uniform(0.0, (double)kW);
         const double y = 0.5 * (double)kH + rng.uniform(-2.5, 2.5);
-        astrocs::photometry::SpatialGainSample sm;
+        acsd::photometry::SpatialGainSample sm;
         sm.x = x;
         sm.y = y;
         sm.r = kLocation + 0.010 * rng.gauss();
@@ -127,7 +127,7 @@ Sample make_near_collinear_sample() {
     for (int i = 0; i < 100; ++i) {
         const double x = rng.uniform(0.0, (double)kW);
         const double y = rng.uniform(0.0, (double)kH);
-        astrocs::photometry::SpatialGainSample sm;
+        acsd::photometry::SpatialGainSample sm;
         sm.x = x;
         sm.y = y;
         sm.r = kLocation + ((i % 2 == 0) ? 0.5 : -0.5);
@@ -138,8 +138,8 @@ Sample make_near_collinear_sample() {
     return out;
 }
 
-astrocs::photometry::SpatialGainParams params(int order) {
-    astrocs::photometry::SpatialGainParams p;
+acsd::photometry::SpatialGainParams params(int order) {
+    acsd::photometry::SpatialGainParams p;
     p.order_requested = order;
     p.location_dex = kLocation;
     p.width = kW;
@@ -157,7 +157,7 @@ std::string fmt5(const double* c) {
     return std::string(buf);
 }
 
-double log10_m_fit_at(const astrocs::photometry::SpatialGainField& f, double xt, double yt) {
+double log10_m_fit_at(const acsd::photometry::SpatialGainField& f, double xt, double yt) {
     const int J = calibration::photo_spatial_nterm(f.order);
     double B[5] = {0.0, 0.0, 0.0, 0.0, 0.0};
     calibration::photo_spatial_basis(f.order, xt, yt, B);
@@ -167,7 +167,7 @@ double log10_m_fit_at(const astrocs::photometry::SpatialGainField& f, double xt,
 }
 
 // 视场上的 max|log10 m|（测试侧独立复算: 像素坐标 → 归一化 → 基函数）
-double max_abs_log10_m_over_frame(const astrocs::photometry::SpatialGainField& f) {
+double max_abs_log10_m_over_frame(const acsd::photometry::SpatialGainField& f) {
     double amax = 0.0;
     const int g = 9;
     for (int iy = 0; iy < g; ++iy) {
@@ -188,14 +188,14 @@ double mean_log10_m_true(const Sample& sm, const Quad& q) {
     for (std::size_t i = 0; i < sm.xt.size(); ++i) acc += quad_eval(q, sm.xt[i], sm.yt[i]);
     return acc / (double)sm.xt.size();
 }
-double mean_log10_m_fit(const astrocs::photometry::SpatialGainField& f, const Sample& sm) {
+double mean_log10_m_fit(const acsd::photometry::SpatialGainField& f, const Sample& sm) {
     double acc = 0.0;
     for (std::size_t i = 0; i < sm.xt.size(); ++i) acc += log10_m_fit_at(f, sm.xt[i], sm.yt[i]);
     return acc / (double)sm.xt.size();
 }
 
 // 独立 oracle: m(x,y) 由**本文件重写**的基函数 + exp(−ln10·s) 复算
-double m_oracle(const astrocs::photometry::SpatialGainField& f, double x, double y) {
+double m_oracle(const acsd::photometry::SpatialGainField& f, double x, double y) {
     const double xt = (x - f.x_ref) / f.x_scale;
     const double yt = (y - f.y_ref) / f.y_scale;
     double s = 0.0;
@@ -210,8 +210,8 @@ double m_oracle(const astrocs::photometry::SpatialGainField& f, double x, double
 
 int test_spatial() {
     CheckState& cs = g_cs;
-    using astrocs::photometry::SpatialGainField;
-    using astrocs::photometry::SpatialGainStatus;
+    using acsd::photometry::SpatialGainField;
+    using acsd::photometry::SpatialGainStatus;
     // 跨小节复用的发布场（S1b 的正场在 S2 的判据里当"能红"的对照；S3 的降级场在
     // S4 里做逐位一致性；⇒ 提升到函数作用域）
     SpatialGainField f1, fc, fd, fs;
@@ -238,7 +238,7 @@ int test_spatial() {
     {
         // S1a 无噪声 ⇒ 精确恢复 + 规范（星集合上 log10 m 的均值为 0）
         Sample s0 = make_sample(400, 20260925ULL, true, 0.0);
-        const SpatialGainField f0 = astrocs::photometry::fit_spatial_gain(
+        const SpatialGainField f0 = acsd::photometry::fit_spatial_gain(
             s0.s.data(), (int)s0.s.size(), params(2));
         P1PHOT_CHECK_MSG(cs, f0.order == 2, "s1a_order", "order=%d reason=%s",
                          f0.order, f0.degraded_reason.c_str());
@@ -267,7 +267,7 @@ int test_spatial() {
 
         // S1b 含噪声 ⇒ 最大偏差 ≤ 6×解析噪声底
         Sample s1 = make_sample(1500, 20260926ULL, true, kSigmaDex);
-        f1 = astrocs::photometry::fit_spatial_gain(s1.s.data(), (int)s1.s.size(), params(2));
+        f1 = acsd::photometry::fit_spatial_gain(s1.s.data(), (int)s1.s.size(), params(2));
         P1PHOT_CHECK_MSG(cs, f1.order == 2 && f1.identifiable == 1, "s1b_publish",
                          "order=%d ident=%d reason=%s", f1.order, f1.identifiable,
                          f1.degraded_reason.c_str());
@@ -301,7 +301,7 @@ int test_spatial() {
         // S2 负例②: 真值 m≡1 ⇒ 效应量归零（同一判据必须能红能绿）
         // ══════════════════════════════════════════════════════════════════════
         Sample s2 = make_sample(1500, 20260926ULL, false, kSigmaDex);
-        const SpatialGainField f2 = astrocs::photometry::fit_spatial_gain(
+        const SpatialGainField f2 = acsd::photometry::fit_spatial_gain(
             s2.s.data(), (int)s2.s.size(), params(2));
         // 非退化前提: 同一星分布/噪声下实现**确实发布**了一个二阶场（否则判据恒真）
         P1PHOT_CHECK_MSG(cs, f2.order == 2 && f2.identifiable == 1, "s2a_publishes_field",
@@ -342,15 +342,15 @@ int test_spatial() {
         Sample cov;
         Rng rng(20260927ULL);
         for (int i = 0; i < 600; ++i) {
-            astrocs::photometry::SpatialGainSample sm;
+            acsd::photometry::SpatialGainSample sm;
             sm.x = rng.uniform(0.10 * kW, 0.20 * kW);
             sm.y = rng.uniform(0.10 * kH, 0.20 * kH);
             sm.r = kLocation + kSigmaDex * rng.gauss();
             cov.s.push_back(sm);
         }
-        fc = astrocs::photometry::fit_spatial_gain(cov.s.data(), (int)cov.s.size(), params(2));
+        fc = acsd::photometry::fit_spatial_gain(cov.s.data(), (int)cov.s.size(), params(2));
         std::fprintf(stdout, "[spatial] S3a: status=%s reason=%s blocks=%d bbox=%.3f\n",
-                     astrocs::photometry::spatial_gain_status_name(fc.status),
+                     acsd::photometry::spatial_gain_status_name(fc.status),
                      fc.degraded_reason.c_str(), fc.coverage_blocks, fc.coverage_bbox_frac);
         P1PHOT_CHECK_MSG(cs, fc.order == 0 &&
                                  fc.status == SpatialGainStatus::kDegradedCoverage,
@@ -364,22 +364,22 @@ int test_spatial() {
         Sample deg;
         Rng rng2(20260928ULL);
         for (int i = 0; i < 400; ++i) {
-            astrocs::photometry::SpatialGainSample sm;
+            acsd::photometry::SpatialGainSample sm;
             sm.x = rng2.uniform(0.0, (double)kW);
             sm.y = 0.5 * (double)kH;
             sm.r = kLocation + 0.002 * rng2.gauss();
             deg.s.push_back(sm);
         }
         for (int i = 0; i < 200; ++i) {
-            astrocs::photometry::SpatialGainSample sm;
+            acsd::photometry::SpatialGainSample sm;
             sm.x = rng2.uniform(0.0, (double)kW);
             sm.y = (i % 2 == 0) ? (0.1 * kH) : (0.9 * kH);
             sm.r = kLocation + 0.5;   // 巨大离群 ⇒ Tukey 权重 0
             deg.s.push_back(sm);
         }
-        fd = astrocs::photometry::fit_spatial_gain(deg.s.data(), (int)deg.s.size(), params(2));
+        fd = acsd::photometry::fit_spatial_gain(deg.s.data(), (int)deg.s.size(), params(2));
         std::fprintf(stdout, "[spatial] S3b: status=%s reason=%s n_used=%d/%d\n",
-                     astrocs::photometry::spatial_gain_status_name(fd.status),
+                     acsd::photometry::spatial_gain_status_name(fd.status),
                      fd.degraded_reason.c_str(), fd.n_used, fd.n_stars);
         P1PHOT_CHECK_MSG(cs, fd.order == 0, "s3b_rank_degrade_order", "order=%d reason=%s",
                          fd.order, fd.degraded_reason.c_str());
@@ -400,7 +400,7 @@ int test_spatial() {
         Sample deg_ok = deg;
         for (std::size_t i = 0; i < deg_ok.s.size(); ++i)
             deg_ok.s[i].r = kLocation + 0.002 * ((double)(i % 7) - 3.0) / 3.0;
-        const SpatialGainField fdok = astrocs::photometry::fit_spatial_gain(
+        const SpatialGainField fdok = acsd::photometry::fit_spatial_gain(
             deg_ok.s.data(), (int)deg_ok.s.size(), params(2));
         P1PHOT_CHECK_MSG(cs, fdok.order >= 1 && fdok.identifiable == 1, "s3b_control_publishes",
                          "order=%d ident=%d reason=%s", fdok.order, fdok.identifiable,
@@ -409,9 +409,9 @@ int test_spatial() {
 
         // S3c 星数不足（N=30 < N_min(1)=50）⇒ 只做标量 + degraded_stars
         Sample small = make_sample(30, 20260929ULL, true, kSigmaDex);
-        fs = astrocs::photometry::fit_spatial_gain(small.s.data(), (int)small.s.size(), params(2));
+        fs = acsd::photometry::fit_spatial_gain(small.s.data(), (int)small.s.size(), params(2));
         std::fprintf(stdout, "[spatial] S3c: status=%s reason=%s\n",
-                     astrocs::photometry::spatial_gain_status_name(fs.status),
+                     acsd::photometry::spatial_gain_status_name(fs.status),
                      fs.degraded_reason.c_str());
         P1PHOT_CHECK_MSG(cs, fs.order == 0 && fs.status == SpatialGainStatus::kDegradedStars,
                          "s3c_stars_degrade", "order=%d status=%d", fs.order, (int)fs.status);
@@ -420,13 +420,13 @@ int test_spatial() {
         // S3d 零散度（无信息）⇒ 归零而不是硬拟合
         Sample flat;
         for (int i = 0; i < 400; ++i) {
-            astrocs::photometry::SpatialGainSample sm;
+            acsd::photometry::SpatialGainSample sm;
             sm.x = (double)(i % 20) * 50.0;
             sm.y = (double)(i / 20) * 50.0;
             sm.r = kLocation;   // 逐星残差完全相同 ⇒ MAD=0
             flat.s.push_back(sm);
         }
-        const SpatialGainField ff = astrocs::photometry::fit_spatial_gain(
+        const SpatialGainField ff = acsd::photometry::fit_spatial_gain(
             flat.s.data(), (int)flat.s.size(), params(2));
         P1PHOT_CHECK_MSG(cs, ff.order == 0 &&
                                  ff.status == SpatialGainStatus::kDegradedZeroScatter,
@@ -436,12 +436,12 @@ int test_spatial() {
         // （这是"不得静默发布未受约束的场"的最硬一档：判据看不见的病态由幅度合理性界兜住）
         {
             Sample nc = make_near_collinear_sample();
-            const SpatialGainField fn = astrocs::photometry::fit_spatial_gain(
+            const SpatialGainField fn = acsd::photometry::fit_spatial_gain(
                 nc.s.data(), (int)nc.s.size(), params(2));
             std::fprintf(stdout,
                          "[spatial] S3e: status=%s order=%d frame_fail=%d n_used=%d/%d "
                          "reason=%s coef=%s\n",
-                         astrocs::photometry::spatial_gain_status_name(fn.status), fn.order,
+                         acsd::photometry::spatial_gain_status_name(fn.status), fn.order,
                          (int)fn.frame_fail, fn.n_used, fn.n_stars,
                          fn.degraded_reason.c_str(), fmt5(fn.coef).c_str());
             // 病态几何（窄带内点 + 被剔除的铺开端点）下, 发布的场幅度必须有界
@@ -470,7 +470,7 @@ int test_spatial() {
                     const double y = rng.uniform(0.0, (double)kH);
                     const double xt = (x - 0.5 * (kW - 1)) / (0.5 * (kW - 1));
                     const double yt = (y - 0.5 * (kH - 1)) / (0.5 * (kH - 1));
-                    astrocs::photometry::SpatialGainSample sm;
+                    acsd::photometry::SpatialGainSample sm;
                     sm.x = x;
                     sm.y = y;
                     // 观测式 r = L − log10 m_true ⇒ 真值场 log10 m = amp·x̃
@@ -482,12 +482,12 @@ int test_spatial() {
                 return out;
             };
             Sample big = big_field_sample(2.2);
-            const SpatialGainField fb = astrocs::photometry::fit_spatial_gain(
+            const SpatialGainField fb = acsd::photometry::fit_spatial_gain(
                 big.s.data(), (int)big.s.size(), params(2));
             std::fprintf(stdout,
                          "[spatial] S3f: 2.2 dex 真值 ⇒ status=%s order=%d frame_fail=%d "
                          "reason=%s\n",
-                         astrocs::photometry::spatial_gain_status_name(fb.status), fb.order,
+                         acsd::photometry::spatial_gain_status_name(fb.status), fb.order,
                          (int)fb.frame_fail, fb.degraded_reason.c_str());
             P1PHOT_CHECK_MSG(cs, fb.order == 0 && fb.frame_fail == true, "s3f_fail_closed",
                              "order=%d frame_fail=%d", fb.order, (int)fb.frame_fail);
@@ -498,7 +498,7 @@ int test_spatial() {
                              "s3f_named_reason", "status=%d reason=%s", (int)fb.status,
                              fb.degraded_reason.c_str());
             Sample small = big_field_sample(0.5);
-            const SpatialGainField fsm = astrocs::photometry::fit_spatial_gain(
+            const SpatialGainField fsm = acsd::photometry::fit_spatial_gain(
                 small.s.data(), (int)small.s.size(), params(2));
             P1PHOT_CHECK_MSG(cs, fsm.order >= 1 && fsm.frame_fail == false,
                              "s3f_control_publishes",
@@ -537,7 +537,7 @@ int test_spatial() {
 
         // S4b 拟合入口 order=0 ⇒ disabled、系数全 0、无基函数
         Sample s4b = make_sample(500, 20260925ULL, true, kSigmaDex);
-        const SpatialGainField foff = astrocs::photometry::fit_spatial_gain(
+        const SpatialGainField foff = acsd::photometry::fit_spatial_gain(
             s4b.s.data(), (int)s4b.s.size(), params(0));
         P1PHOT_CHECK_MSG(cs, foff.order == 0 &&
                                  foff.status == SpatialGainStatus::kDisabled &&
@@ -609,11 +609,11 @@ int test_spatial() {
             const double Hsing[4] = {1.0, 1.0, 1.0, 1.0};   // rank 1
             const double g2[2] = {1.0, 1.0};
             double c2[2] = {0.0, 0.0};
-            P1PHOT_CHECK(cs, !astrocs::photometry::spatial_gain_solve_spd(Hsing, g2, 2, c2),
+            P1PHOT_CHECK(cs, !acsd::photometry::spatial_gain_solve_spd(Hsing, g2, 2, c2),
                          "s4e_singular_rejected");
             const double Hpd[4] = {4.0, 1.0, 1.0, 3.0};      // SPD
             const double gpd[2] = {1.0, 2.0};
-            const bool ok = astrocs::photometry::spatial_gain_solve_spd(Hpd, gpd, 2, c2);
+            const bool ok = acsd::photometry::spatial_gain_solve_spd(Hpd, gpd, 2, c2);
             // 手算解: c = (1/11)·(3·1−1·2, −1·1+4·2) = (1/11, 7/11)
             P1PHOT_CHECK_MSG(cs, ok && std::fabs(c2[0] - 1.0 / 11.0) < 1e-12 &&
                                      std::fabs(c2[1] - 7.0 / 11.0) < 1e-12,

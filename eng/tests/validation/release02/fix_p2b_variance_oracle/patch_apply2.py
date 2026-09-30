@@ -14,9 +14,9 @@ reps.append((
                                  int* out_grid, bool include_self,
                                  std::string* why) {"""))
 reps.append((
-"""      ok = astrocs::v6::p2var::normalized_weight_hat_row(w.data(), n, k, false,
+"""      ok = acsd::v6::p2var::normalized_weight_hat_row(w.data(), n, k, false,
                                                          &row, &err) &&""",
-"""      ok = astrocs::v6::p2var::normalized_weight_hat_row(w.data(), n, k,
+"""      ok = acsd::v6::p2var::normalized_weight_hat_row(w.data(), n, k,
                                                          include_self, &row,
                                                          &err) &&"""))
 reps.append((

@@ -15,7 +15,7 @@ import unittest
 
 REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 SESS = os.path.join(REPO, "lib", "phase3_session", "p3_session.cpp")
-# W4-A9 批次 2: p3_resample.cpp 迁 lib/algorithms/resample/ (docs/ASTROCS_DESIGN §7.1)
+# W4-A9 批次 2: p3_resample.cpp 迁 lib/algorithms/resample/ (docs/ACSD_DESIGN §7.1)
 RES = os.path.join(REPO, "lib", "algorithms", "resample", "p3_resample.cpp")
 # W8 (批次 4): hips_properties.{h,cpp} 迁 lib/algorithms/coverage/
 PROPS_H = os.path.join(REPO, "lib", "algorithms", "coverage", "hips_properties.h")

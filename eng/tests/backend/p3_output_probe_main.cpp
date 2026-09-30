@@ -17,7 +17,7 @@
 #include "p3_output.h"
 #include "p3_wcs.h"
 
-using namespace astrocs::phase3;
+using namespace acsd::phase3;
 
 static void fill(int W, int H, int seed, std::vector<float>& sig,
                  std::vector<float>& cov) {
@@ -50,7 +50,7 @@ int main(int argc, char** argv) {
         w.crval_ra_deg = 210.0; w.crval_dec_deg = 34.0;
         w.cd[0][0] = -0.001; w.cd[0][1] = 0; w.cd[1][0] = 0; w.cd[1][1] = 0.001;
         w.width_px = W; w.height_px = H;
-        P3Provenance pv{"ivo://astrocs/test_p3", "deadbeef", nullptr, 0, "0.1.0",
+        P3Provenance pv{"ivo://acsd/test_p3", "deadbeef", nullptr, 0, "0.1.0",
                         "run-1", "0", "bilinear"};
         P3OutputResult r{};
         const P3OutputStatus st = p3_output_write_atomic(

@@ -1,6 +1,6 @@
 # EVIDENCE — P2-INTEGRATE-001 (Wave 8, V6 并行包)
 
-- 任务卡：`工程控制/AstroCS_PARALLEL_SCIENCE_IMPLEMENTATION_V6_20260915/tasks/P2-INTEGRATE-001.md`
+- 任务卡：`工程控制/ACSD_PARALLEL_SCIENCE_IMPLEMENTATION_V6_20260915/tasks/P2-INTEGRATE-001.md`
 - 基线 HEAD：`960d6051731e817a1e7b26330b3716378f3e2a48`（`git rev-parse HEAD` 实测）
 - 写域：`lib/phase2_int/`、`eng/tests/integration/p2_integrate/`（tracked 树零越界修改，见 §5）
 - 运行产物/日志：`run/v6/P2-INTEGRATE-001/`（gitignore）
@@ -83,7 +83,7 @@ point 独立合并、point 联合 GLS、surface GLS、psfsw conventional coadd �
 
 ## 7. 未决 / 移交
 
-1. **AR-033 构建面**：`astrocs_phase2_integrate` 与 `eng/tests/integration/p2_integrate` 未注册进根/公共
+1. **AR-033 构建面**：`acsd_phase2_integrate` 与 `eng/tests/integration/p2_integrate` 未注册进根/公共
    CMakeLists（`cmake -S ... -B ...` 自包含可独立构建）。按 C-004.4 移交 RUNTIME-CI-001/W9。
 2. **session 接线**：`lib/phase2_session/` 未改（其根构建 target 不在本任务可安全接线范围），
    V6 三模式入口待 W9 在 session/runtime 层挂载。

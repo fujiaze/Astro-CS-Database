@@ -1,14 +1,14 @@
 # Astro Celestial Sphere Database（ACSD） CLI 协议合同 v1（API-002 冻结）
 
-> 上游：ASTROCS_DESIGN.md §7.1（命令树）、§7.2（配置、事件与退出码）
+> 上游：ACSD_DESIGN.md §7.1（命令树）、§7.2（配置、事件与退出码）
 
 > ID: API-CLI-001  状态: FROZEN  上游: API-001/ARCH-002  下游: CLI-001/002/003, API-003..005(handler 追溯), BENCH-005
-> 命令树 = `ASTROCS_DESIGN.md` §7.1 的**唯一命令树**：用户命令只有
+> 命令树 = `ACSD_DESIGN.md` §7.1 的**唯一命令树**：用户命令只有
 > normalize/mosaic/export + help/--version/doctor/benchmark；`phase1|2|3` 用户命令与
 > 别名（含 config */modules */selftest/test synthetic/verify*/drizzle/benchmark cpu|
 > verify-profile/hardware inspect）不在命令面上，调用返回 rc=2（phase 仅为内部指代，§7.1）。
 
-## 1 命令树(ASTROCS_DESIGN §7.1 唯一命令树;help 文本 golden 由此生成)
+## 1 命令树(ACSD_DESIGN §7.1 唯一命令树;help 文本 golden 由此生成)
 
 ```text
 acsd --version [--json]
@@ -27,22 +27,22 @@ acsd benchmark
   → 执行并落产品 + manifest；
 - `--template [-o <path>]` 生成可直接改的完整 JSON 模板（缺 `-o` → stdout）；
 - `--help` 子命令帮助与字段说明；
-- 三个命令**平级独立**：各自独立进程、**独立重跑**（**无断点续算**：重跑 = 新运行目录 + 新 manifest）、独立验收，**串接一律显式**（`ASTROCS_DESIGN.md` §1.2）；
+- 三个命令**平级独立**：各自独立进程、**独立重跑**（**无断点续算**：重跑 = 新运行目录 + 新 manifest）、独立验收，**串接一律显式**（`ACSD_DESIGN.md` §1.2）；
 - `benchmark` 生成/更新**安装目录** cpu_profile（后续运行自动读取）。
-  - **适用域（R-52）**："安装目录" = 发行布局概念，输出路径相对发行布局解析；源码树内运行构建期二进制不构成产品契约面，此时落点转用户可写目录并在 stderr 明示原因与实际落点。细则与唯一实现见 `ASTROCS_DESIGN.md` §9「安装目录口径的适用域」；消费点 = `lib/infrastructure/cli/commands.cpp`（`cli_resolve_cpu_profile_path()`）。
+  - **适用域（R-52）**："安装目录" = 发行布局概念，输出路径相对发行布局解析；源码树内运行构建期二进制不构成产品契约面，此时落点转用户可写目录并在 stderr 明示原因与实际落点。细则与唯一实现见 `ACSD_DESIGN.md` §9「安装目录口径的适用域」；消费点 = `lib/infrastructure/cli/commands.cpp`（`cli_resolve_cpu_profile_path()`）。
 
 handler→内部会话 API 追溯(phase 为内部指代): normalize→API-003(会话1)；mosaic→API-004(会话2)；export→API-005(会话3)；benchmark→BENCH-001..004 harness(内部)。
 
 ## 2 退出码(全 11 条冻结,唯一源 `lib/infrastructure/cli/exit_codes.h`)
 
-0 成功且门禁全过 / 2 CLI 参数或配置错 / 3 输入缺失格式 hash 错 / 4 科学验证或不变量失败 / 5 backend ABI 签名 CPU 特征或加载失败 / 6 计算执行失败 / 7 I/O 失败 / 8 输出完整性验证失败 / 9 用户取消或超时 / **10 磁盘写满 / 写盘失败**（`ASTROCS_DESIGN.md` §4.5：内存 / CPU / 线程不设门）/ 70 未分类内部错误(必须出脱敏 crash report)。跨平台同失败同码(golden 双平台断言)。
+0 成功且门禁全过 / 2 CLI 参数或配置错 / 3 输入缺失格式 hash 错 / 4 科学验证或不变量失败 / 5 backend ABI 签名 CPU 特征或加载失败 / 6 计算执行失败 / 7 I/O 失败 / 8 输出完整性验证失败 / 9 用户取消或超时 / **10 磁盘写满 / 写盘失败**（`ACSD_DESIGN.md` §4.5：内存 / CPU / 线程不设门）/ 70 未分类内部错误(必须出脱敏 crash report)。跨平台同失败同码(golden 双平台断言)。
 
 码值与含义**只有一份**，以 `lib/infrastructure/cli/exit_codes.h` 为唯一源。
 
 ## 3 stdout/stderr 纪律
 
 - 人类模式: stdout=简洁结果, stderr=日志/诊断;`--json`: stdout 恰一个 JSON 文档;运行事件流: stdout 每行一个 UTF-8 JSON 事件,禁夹普通文字;JSON 路径全 UTF-8(Windows 内部 Unicode 路径正确处理)。
-- **事件流 = 默认输出**（`ASTROCS_DESIGN.md` §7.2）：**不需要旗标开启**；GUI 用其它语言**直接捕获 CLI 输出**。`--events-jsonl` **保留接受**，语义**等价默认行为**（别名，`lib/infrastructure/cli/commands.cpp`、`command_tree.h`）——**事件流的开启条件 = 默认行为本身**。
+- **事件流 = 默认输出**（`ACSD_DESIGN.md` §7.2）：**不需要旗标开启**；GUI 用其它语言**直接捕获 CLI 输出**。`--events-jsonl` **保留接受**，语义**等价默认行为**（别名，`lib/infrastructure/cli/commands.cpp`、`command_tree.h`）——**事件流的开启条件 = 默认行为本身**。
 - **stdout 无日志污染**为机器测试项(CLI-002 golden)。
 
 ## 4 JSONL 运行事件流 v1（**唯一 schema**）
@@ -53,7 +53,7 @@ handler→内部会话 API 追溯(phase 为内部指代): normalize→API-003(�
 > 冲突时以实现正本为准）。机器 schema = `eng/contracts/schemas/jsonl_event_v1.schema.json`（**派生件**，
 > 定义只有这一份）。
 > **与结构化日志分属两份合同**：`docs/engineering/observability/STRUCTURED_LOGGING_CONTRACT.md`（LOG-001，
-> `astrocs.log.event.v1`）是**结构化日志**合同，**显式声明它不是运行事件流**；其事件键名 `event`
+> `acsd.log.event.v1`）是**结构化日志**合同，**显式声明它不是运行事件流**；其事件键名 `event`
 > 与本流的 `kind` **各自独立**，两份流各用**不同工件名**、**各自具名**。
 
 - 每行必含: `schema_version,event_id,run_id,timestamp_utc,sequence,kind,severity,phase,stage,message`（正本 `protocol.h::kEventFieldsV1`）;`sequence` 从 0 单调递增。
@@ -71,20 +71,20 @@ handler→内部会话 API 追溯(phase 为内部指代): normalize→API-003(�
     逐键语义与必含集见 `docs/detail/infrastructure/21_observability.md` §8.4「事件面登记」；
   - `v6_mode_route`：V6 路由登记（route_kind / token / surface / 来源 / 预算归属）。
   **kind 集合与逐 kind 字段集由机器门 `eng/ci/check_event_field_sets.py`（EVT-FIELD-SETS）守
-  五面一致**（正本 kExt / schema `allOf[].then.required` / schema `x-astrocs-event-kind-registry` /
+  五面一致**（正本 kExt / schema `allOf[].then.required` / schema `x-acsd-event-kind-registry` /
   读侧 CLI-004 / 读侧 FIX208）；本节只给指针与语义，**不重复该判据**。
 - **`artifact` 的 DET-001 附加字段不属冻结必含集**：`integrity_sha256` / `canonical_sha256` /
   `canonical_hash_spec` / `canonical_format` 是实现侧附加字段（正本 `kExt` 的 artifact 必含集
   = role/path/sha256/size_bytes 四项）；必含集即该四项。DET-001 判据：
   sha256=整文件字节摘要(完整性)，canonical_sha256=规范产品哈希(像素数据+科学元数据，排除易变卡/键；
-  口径 spec=astrocs.canonical-product-hash/v1，见 eng/tools/canonical_product_hash.py --spec)；
+  口径 spec=acsd.canonical-product-hash/v1，见 eng/tools/canonical_product_hash.py --spec)；
   可复现性判据 = canonical_sha256；sha256 只表整文件完整性。
 - 重计算 stage 必发 `stage_start/stage_end`+实际 backend 事件;GUI/未来客户端只消费本协议(禁链接科学库绕过 CLI)。
 - schema: `eng/contracts/schemas/jsonl_event_v1.schema.json`(CLI-002 golden 用;**派生件**，定义只有正本这一份)。
 
 ## 5 取消与崩溃
 
-- Ctrl-C/Windows console cancel→协作取消令牌(acs_cancel, API-001 §2);内核在 ALG 5c 冻结的安全点检查。
+- Ctrl-C/Windows console cancel→协作取消令牌(acsd_cancel, API-001 §2);内核在 ALG 5c 冻结的安全点检查。
 - 取消后: 关 writer→写 incomplete manifest→删除/隔离临时产物→exit 9;**取消后的 HiPS/结果一律为 incomplete 形态**(与 ARCH-002 §5/ARCH-005 §3 原子单元一致)。
 - 未捕获异常→70+run_id/阶段/最小脱敏 crash report(不泄露凭据)。
 
@@ -99,9 +99,9 @@ handler→内部会话 API 追溯(phase 为内部指代): normalize→API-003(�
 
 1–5 为 Linux 可验;6 属 WIN/FAT 域任务。
 
-## 7 配置与 `output_dir`(权威 = `ASTROCS_DESIGN.md` §7.2 配置/退出码 + `docs/ASTROCS_DESIGN.md` §10（I/O 与原子产品） 目录规范)
+## 7 配置与 `output_dir`(权威 = `ACSD_DESIGN.md` §7.2 配置/退出码 + `docs/ACSD_DESIGN.md` §10（I/O 与原子产品） 目录规范)
 
-运行产物(每相 run manifest `astrocs_run_*.json`、资源三件套
+运行产物(每相 run manifest `acsd_run_*.json`、资源三件套
 `resource_timeseries.csv` / `resource_summary.json` / `worker_balance.csv`、
 `alloc_samples.csv` / `alloc_report.json`、节点科学产物)**只落 `output_dir`**;
 
@@ -117,7 +117,7 @@ handler→内部会话 API 追溯(phase 为内部指代): normalize→API-003(�
 CLI 的写出位置取自显式配置的目录,进程 CWD(`"."`) 只标识进程自身位置;按 CWD 写出会在工作区根散落产物并触发
 UT-CLI `mutates_workspace=false` 的 dirty 判定。
 
-1. **必填**:`normalize|mosaic|export --json <config.json>` 的运行配置(CLI-001 唯一命令树;`phase1|2|3` 的 `run`/`plan`/`validate`/`inspect` 用户命令不在命令面上,调用返回 rc=2,见 §1 —— 独立 `validate`/`plan`/`inspect` 命令面无载体,运行前预检由 `ASTROCS_DESIGN.md` §4.5 三档页面 + `-y`/`-force` 承接,运行计划由产物 `run-plan.json`/`run-graph.json` 承接),
+1. **必填**:`normalize|mosaic|export --json <config.json>` 的运行配置(CLI-001 唯一命令树;`phase1|2|3` 的 `run`/`plan`/`validate`/`inspect` 用户命令不在命令面上,调用返回 rc=2,见 §1 —— 独立 `validate`/`plan`/`inspect` 命令面无载体,运行前预检由 `ACSD_DESIGN.md` §4.5 三档页面 + `-y`/`-force` 承接,运行计划由产物 `run-plan.json`/`run-graph.json` 承接),
    无论 V1 顶层形态(`inputs`)、平铺会话形态(`input_lights`/`hips_paths`/
    `phase3`)还是 **normalize 多数据块形态**(`blocks[]`),
    都必须显式给出 **非空字符串** `output_dir`。
@@ -134,7 +134,7 @@ UT-CLI `mutates_workspace=false` 的 dirty 判定。
 
 > 权威口径：默认导出要求边框不得裁剪任何有效像素（允许含黑边，到平面域后手动剪裁）；
 > 同时支持手动输入裁剪范围；GUI HiPS 浏览器的框选直接导出依赖此接口，接口须保留。
-> 上游：本文件 §1（命令树）/ §7（配置与 `output_dir`）+ `ASTROCS_DESIGN.md` §6/§7.2。
+> 上游：本文件 §1（命令树）/ §7（配置与 `output_dir`）+ `ACSD_DESIGN.md` §6/§7.2。
 > 设计正本：`docs/detail/PHASE3_DETAILED_DESIGN.md` §8；字段合同：
 > `eng/contracts/schemas/phase_config_export.schema.json` 的 `$defs/export_crop`；
 > 字段说明（`--help` 同源）：`lib/infrastructure/cli/session_commands.h` 的

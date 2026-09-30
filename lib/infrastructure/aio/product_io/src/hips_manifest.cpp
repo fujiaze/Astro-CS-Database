@@ -9,7 +9,7 @@
 
 #include <nlohmann/json.hpp>
 
-namespace astrocs {
+namespace acsd {
 namespace aio {
 namespace {
 
@@ -215,4 +215,4 @@ ValidationReport validate_hips_manifest_json(const json& j) {
 }
 
 }  // namespace aio
-}  // namespace astrocs
+}  // namespace acsd

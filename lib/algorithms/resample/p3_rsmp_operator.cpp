@@ -5,7 +5,7 @@
 #include <algorithm>
 #include <cmath>
 
-namespace astrocs {
+namespace acsd {
 namespace p3rsmp {
 
 bool TileMask::present_at(int ix, int iy) const {
@@ -291,4 +291,4 @@ NeighborhoodSet make_nearest_neighborhood(const InputGrid2D& in, const TileMask&
 }
 
 }  // namespace p3rsmp
-}  // namespace astrocs
+}  // namespace acsd

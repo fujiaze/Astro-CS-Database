@@ -11,7 +11,7 @@
 
 #include <cmath>
 
-extern "C" double astrocs_phase2_kcorr_lookup_for_test(double pixfrac,
+extern "C" double acsd_phase2_kcorr_lookup_for_test(double pixfrac,
                                                        double scale_arcsec);
 
 namespace {
@@ -23,7 +23,7 @@ constexpr double kPf[3] = {0.5, 0.8, 1.0};
 constexpr double kSc[2] = {300.0, 600.0};
 
 double lookup(double pf, double sc) {
-  return astrocs_phase2_kcorr_lookup_for_test(pf, sc);
+  return acsd_phase2_kcorr_lookup_for_test(pf, sc);
 }
 
 }  // namespace

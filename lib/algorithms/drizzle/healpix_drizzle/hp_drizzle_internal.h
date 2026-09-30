@@ -10,7 +10,7 @@
  * hp_drizzle_hips_api.cpp, 两 TU 经本头共享 run_drizzle_internal 与错误写入
  * 辅助; 签名/语义/数值零改动。
  *
- * 符号可见性: run_drizzle_internal 在 astrocs_p1_drizzle.so 内经链接
+ * 符号可见性: run_drizzle_internal 在 acsd_p1_drizzle.so 内经链接
  * version-script (local: *) 降 local, 不进模块导出面。 */
 
 #include "hp_drizzle_api.h"

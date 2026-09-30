@@ -7,11 +7,11 @@
 #include <cstring>
 #include <vector>
 
-using astrocs::backend_host::BenchResult;
-using astrocs::backend_host::bench_kernel;
-using astrocs::backend_host::block_candidates;
-using astrocs::backend_host::select_winner;
-using astrocs::backend_host::worker_candidates;
+using acsd::backend_host::BenchResult;
+using acsd::backend_host::bench_kernel;
+using acsd::backend_host::block_candidates;
+using acsd::backend_host::select_winner;
+using acsd::backend_host::worker_candidates;
 
 static int failures = 0;
 #define CHECK(cond)                                                       \
@@ -71,7 +71,7 @@ int main() {
 
   // 6) benchmark 顺序合同验证: harness 先 Oracle 后计时 (源码级)
   {
-    std::string h = std::string(std::getenv("ASTROCS_REPO") ? std::getenv("ASTROCS_REPO") : "..")
+    std::string h = std::string(std::getenv("ACSD_REPO") ? std::getenv("ACSD_REPO") : "..")
                     + "/lib/infrastructure/benchmark/backend_host/bench_harness.cpp";
     std::FILE* fp = std::fopen(h.c_str(), "r");
     CHECK(fp != nullptr);

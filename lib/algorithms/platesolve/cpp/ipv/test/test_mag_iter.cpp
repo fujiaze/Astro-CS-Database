@@ -10,7 +10,7 @@
 //   6. 参数可覆盖锁: safety / max_iter / alpha_prior / clamp 全部来自 IPVSolverParams
 //   7. 异常路径   : n_target<=0 / 查询失败 / 空回调
 //
-// 编译面: 直接链接生产静态库 astrocs_p1_ipv (被测函数在 ipv_select.cpp, 零改动)。
+// 编译面: 直接链接生产静态库 acsd_p1_ipv (被测函数在 ipv_select.cpp, 零改动)。
 // ============================================================================
 #include "ipv_select.h"
 

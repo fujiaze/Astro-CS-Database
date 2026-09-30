@@ -1,7 +1,7 @@
 /* ACSD 动态模块 Registry 合同头（ABI-004）
  *
  * 文件: lib/infrastructure/pipeline/module_loader/module_registry.h
- * 依赖: astrocs/abi/host_api_v1.h（span/错误类型; 族链 status→artifact→host）;
+ * 依赖: acsd/abi/host_api_v1.h（span/错误类型; 族链 status→artifact→host）;
  *       lib/infrastructure/pipeline/module_loader/secure_loader.h（ABI-003: 安全加载契约）;
  *       本头独立可编译（C11 与 C++17, -fno-exceptions 亦可）。
  *
@@ -23,14 +23,14 @@
  * 目录解析后必须绝对 canonical 且(可选)在 allowed_root 内。
  *
  * 错误/日志纪律(与 loader 一致): 错误消息为编译期静态字面量, 不含路径/sha/内容;
- * registry 不写日志文件; 详细诊断经 acs_error_info_v1 返回调用方。
+ * registry 不写日志文件; 详细诊断经 acsd_error_info_v1 返回调用方。
  * 状态码映射: 结构/参数错误 ACS_ERR_PARAM; JSON/schema/检测失败详见
  * ACS_REG_EC_* detail_code + ACS_ERR_* 主码(见下); 底层 loader 拒绝透传其 err。
  */
-#ifndef ASTROCS_REGISTRY_MODULE_REGISTRY_H
-#define ASTROCS_REGISTRY_MODULE_REGISTRY_H
+#ifndef ACSD_REGISTRY_MODULE_REGISTRY_H
+#define ACSD_REGISTRY_MODULE_REGISTRY_H
 
-#include "astrocs/abi/host_api_v1.h"
+#include "acsd/abi/host_api_v1.h"
 #include "secure_loader.h"
 
 #ifdef __cplusplus
@@ -62,26 +62,26 @@ enum {
 /* ═══════════════ 单条登记记录(registry 输出; 逐字段单位/所有权见注释) ═══════════════
  * 字符串所有权: registry 句柄(allocator 分配), 有效至句柄 close; 调用方不得 free,
  * 不得在 close 后访问。字段内容 = 三方比对后的实际值。 */
-typedef struct acs_registry_entry_v1 {
-    acs_head    head;
-    acs_str_v1  unit_id;            /* manifest unit_id(如 MOD-NOOP) */
-    acs_str_v1  kind;               /* module/provider */
-    acs_str_v1  rel_path;           /* manifest rel_path */
-    acs_str_v1  abs_path;           /* canonical 绝对路径(rel_path 相对 manifest 目录) */
-    acs_str_v1  module_id;          /* manifest 登记 module_id(module kind) */
-    acs_str_v1  module_id_dll;      /* DLL describe.module_id(未加载=空) */
-    acs_str_v1  module_id_yaml;     /* module.yaml module_id(源缺失=空) */
-    acs_str_v1  version_dll;        /* DLL describe.version */
-    acs_str_v1  version_yaml;       /* module.yaml module_version */
-    acs_str_v1  build_id_dll;       /* DLL describe.build_id */
-    acs_str_v1  sha256_registered;  /* manifest 登记 sha256(空=null/SKELETON) */
-    acs_str_v1  sha256_actual;      /* 现场计算实际 sha256(文件存在时) */
-    acs_str_v1  status;             /* manifest status(SKELETON/IMPLEMENTED) */
+typedef struct acsd_registry_entry_v1 {
+    acsd_head    head;
+    acsd_str_v1  unit_id;            /* manifest unit_id(如 MOD-NOOP) */
+    acsd_str_v1  kind;               /* module/provider */
+    acsd_str_v1  rel_path;           /* manifest rel_path */
+    acsd_str_v1  abs_path;           /* canonical 绝对路径(rel_path 相对 manifest 目录) */
+    acsd_str_v1  module_id;          /* manifest 登记 module_id(module kind) */
+    acsd_str_v1  module_id_dll;      /* DLL describe.module_id(未加载=空) */
+    acsd_str_v1  module_id_yaml;     /* module.yaml module_id(源缺失=空) */
+    acsd_str_v1  version_dll;        /* DLL describe.version */
+    acsd_str_v1  version_yaml;       /* module.yaml module_version */
+    acsd_str_v1  build_id_dll;       /* DLL describe.build_id */
+    acsd_str_v1  sha256_registered;  /* manifest 登记 sha256(空=null/SKELETON) */
+    acsd_str_v1  sha256_actual;      /* 现场计算实际 sha256(文件存在时) */
+    acsd_str_v1  status;             /* manifest status(SKELETON/IMPLEMENTED) */
     uint32_t    abi_version;        /* manifest abi_version */
     uint32_t    loaded;             /* 1 = loader query+describe 成功(正式路由) */
     int32_t     finding_mask;       /* 命中检测位组合(0=clean); 位定义见下 */
     uint32_t    detail_code;        /* 最近错误/发现细分(0=clean) */
-} acs_registry_entry_v1;
+} acsd_registry_entry_v1;
 
 /* finding_mask 位(entry 级) */
 enum {
@@ -94,28 +94,28 @@ enum {
 };
 
 /* ═══════════════ registry 级 finding(检测发现; registry 句柄所有) ═══════════════ */
-typedef struct acs_registry_finding_v1 {
-    acs_head    head;
+typedef struct acsd_registry_finding_v1 {
+    acsd_head    head;
     uint32_t    kind;              /* ACS_REG_EC_* (7/8/9/10/11/12/14) */
     int32_t     entry_index;       /* 关联 entry; -1 = registry 级 */
-    acs_str_v1  detail;            /* 静态字面量(无路径/内容) + 定位提示 */
+    acsd_str_v1  detail;            /* 静态字面量(无路径/内容) + 定位提示 */
     uint32_t    aux_index;         /* 第二个关联 entry(-1 无); 重复检测用 */
-} acs_registry_finding_v1;
+} acsd_registry_finding_v1;
 
 /* ═══════════════ options ═══════════════ */
-typedef struct acs_registry_options_v1 {
-    acs_head    head;               /* sizeof/ACS_ABI_VERSION_V1 */
-    acs_str_v1  manifest_abs_path;  /* product manifest 绝对路径(必填) */
-    acs_str_v1  module_yaml_root;   /* 可空: 源 module.yaml 根目录; 非空时按
+typedef struct acsd_registry_options_v1 {
+    acsd_head    head;               /* sizeof/ACS_ABI_VERSION_V1 */
+    acsd_str_v1  manifest_abs_path;  /* product manifest 绝对路径(必填) */
+    acsd_str_v1  module_yaml_root;   /* 可空: 源 module.yaml 根目录; 非空时按
                                        rel_path 逐级找 <dir>/module.yaml(三方比对) */
-    acs_str_v1  allowed_root;       /* 可空: 全部 abs 解析结果必须在该根(防 escape) */
-    const acs_allocator_v1* allocator; /* 必填: 句柄/输出字符串内存归属 */
-    const acs_logger_v1*    logger;    /* 可空(本版未使用; 保留日志纪律位) */
+    acsd_str_v1  allowed_root;       /* 可空: 全部 abs 解析结果必须在该根(防 escape) */
+    const acsd_allocator_v1* allocator; /* 必填: 句柄/输出字符串内存归属 */
+    const acsd_logger_v1*    logger;    /* 可空(本版未使用; 保留日志纪律位) */
     int32_t     scan_unregistered;  /* 1 = 扫描 manifest 目录模块子目录找未登记 DLL */
     uint32_t    reserved;           /* v1 = 0 */
-} acs_registry_options_v1;
+} acsd_registry_options_v1;
 
-typedef struct acs_registry_s acs_registry;
+typedef struct acsd_registry_s acsd_registry;
 
 /* ───────── 打开 registry ─────────
  * 流程:
@@ -131,48 +131,48 @@ typedef struct acs_registry_s acs_registry;
  * 硬失败(返回非 0, *out=NULL): 参数/路径/manifest 读或 JSON/schema 结构性错误。
  * 检测发现不中止: open 成功, findings 由 check/list 暴露。
  * reentrant=yes; threadsafe=no(同句柄构建期独占)。err 可空; out 必填。 */
-ASTROCS_EXPORT acs_status ASTROCS_CALL
-acs_registry_open_v1(const acs_registry_options_v1* opt,
-                     acs_error_info_v1* err,
-                     acs_registry** out);
+ACSD_EXPORT acsd_status ACSD_CALL
+acsd_registry_open_v1(const acsd_registry_options_v1* opt,
+                     acsd_error_info_v1* err,
+                     acsd_registry** out);
 
 /* ───────── 全量校验(list 的判据; 机器可读) ─────────
  * 返回 findings 总数(0=clean); *out_issue_count 同值。registry 级 finding
  * (重复 ID/未登记)与 entry 级(finding_mask)均计数。 */
-ASTROCS_EXPORT acs_status ASTROCS_CALL
-acs_registry_check_v1(acs_registry* r,
-                      acs_error_info_v1* err,
+ACSD_EXPORT acsd_status ACSD_CALL
+acsd_registry_check_v1(acsd_registry* r,
+                      acsd_error_info_v1* err,
                       uint32_t* out_issue_count);
 
 /* ───────── 读取 finding / entry(list/verify 输出实际值) ───────── */
-ASTROCS_EXPORT acs_status ASTROCS_CALL
-acs_registry_get_finding_v1(acs_registry* r, uint32_t index,
-                            acs_registry_finding_v1* out);
-ASTROCS_EXPORT acs_status ASTROCS_CALL
-acs_registry_entry_count_v1(acs_registry* r, uint32_t* out_count);
-ASTROCS_EXPORT acs_status ASTROCS_CALL
-acs_registry_get_entry_v1(acs_registry* r, uint32_t index,
-                          acs_registry_entry_v1* out);
+ACSD_EXPORT acsd_status ACSD_CALL
+acsd_registry_get_finding_v1(acsd_registry* r, uint32_t index,
+                            acsd_registry_finding_v1* out);
+ACSD_EXPORT acsd_status ACSD_CALL
+acsd_registry_entry_count_v1(acsd_registry* r, uint32_t* out_count);
+ACSD_EXPORT acsd_status ACSD_CALL
+acsd_registry_get_entry_v1(acsd_registry* r, uint32_t index,
+                          acsd_registry_entry_v1* out);
 
 /* ───────── 关闭(唯一释放入口) ─────────
  * 释放句柄与全部 registry 分配字符串(entry 字段失效)。r=NULL 为空操作。
  * threadsafe=no(同句柄); close 后不得再访问。 */
-ASTROCS_EXPORT void ASTROCS_CALL
-acs_registry_close_v1(acs_registry* r);
+ACSD_EXPORT void ACSD_CALL
+acsd_registry_close_v1(acsd_registry* r);
 
 /* ───────── 平台自检(无文件) ─────────
  * 校验布局静态断言 + 内部最小 JSON 提取器对已知向量行为正确。 */
-ASTROCS_EXPORT acs_status ASTROCS_CALL
-acs_registry_self_test_v1(void);
+ACSD_EXPORT acsd_status ACSD_CALL
+acsd_registry_self_test_v1(void);
 
 /* 布局静态断言 */
-ACS_STATIC_ASSERT(sizeof(acs_registry_entry_v1) > sizeof(acs_head), "entry payload");
-ACS_STATIC_ASSERT(sizeof(acs_registry_finding_v1) > sizeof(acs_head), "finding payload");
-ACS_STATIC_ASSERT(offsetof(acs_registry_options_v1, head) == 0u, "head first");
-ACS_STATIC_ASSERT(offsetof(acs_registry_entry_v1, head) == 0u, "head first");
+ACS_STATIC_ASSERT(sizeof(acsd_registry_entry_v1) > sizeof(acsd_head), "entry payload");
+ACS_STATIC_ASSERT(sizeof(acsd_registry_finding_v1) > sizeof(acsd_head), "finding payload");
+ACS_STATIC_ASSERT(offsetof(acsd_registry_options_v1, head) == 0u, "head first");
+ACS_STATIC_ASSERT(offsetof(acsd_registry_entry_v1, head) == 0u, "head first");
 
 #ifdef __cplusplus
 } /* extern "C" */
 #endif
 
-#endif /* ASTROCS_REGISTRY_MODULE_REGISTRY_H */
+#endif /* ACSD_REGISTRY_MODULE_REGISTRY_H */

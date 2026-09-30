@@ -1,6 +1,6 @@
-# gaia_xpsd_client（本地星表查询，astrocs.catalog.gaia / CAT-GAIA）
+# gaia_xpsd_client（本地星表查询，acsd.catalog.gaia / CAT-GAIA）
 
-> 上游：docs/ASTROCS_DESIGN.md §8.4（顶层结构）、§8.5（模块与 ABI）、
+> 上游：docs/ACSD_DESIGN.md §8.4（顶层结构）、§8.5（模块与 ABI）、
 > §3.3（星表只解析本地星表文件，离线、零网络）、§8.4（`gaia_xpsd_client/` 本地星表
 > 解析）、§9（CPU 后端与资源：缓存复用、编排连续性）
 > 科学正本：docs/science/ASTROMETRY.md（SCI-AST-001）
@@ -11,7 +11,7 @@
 > 架构正本：docs/engineering/ARCH-001.md
 > 缓存：docs/engineering/CACHE_POLICY.md（Gaia 查询缓存行）
 > XPSD 本地编码合同：docs/engineering/STANDARDS_REGISTRY.md（catalog 行）
-> 消费方：registry/astrocs.phase1.wcs-platesolve.md
+> 消费方：registry/acsd.phase1.wcs-platesolve.md
 > 引用文献：Gaia Collaboration et al. 2023, A&A 674, A1（Gaia DR3 发布与内容综述，
 > DOI: 10.1051/0004-6361/202243940）
 
@@ -41,8 +41,8 @@
   `source_id`，可选 343 点光谱 uint8 / 星）、数据集统计（file_count /
   file_entry_count / fail_count，gaia_client.c 暴露面）。
 - config 键词表冻结于
-  `lib/infrastructure/gaia_xpsd_client/include/astrocs/gaia/types.h`
-  （`ASTROCS_GAIA_CFG_KEY_*`）。
+  `lib/infrastructure/gaia_xpsd_client/include/acsd/gaia/types.h`
+  （`ACSD_GAIA_CFG_KEY_*`）。
 
 ## 3. 查询键、两级内存缓存与剪枝
 
@@ -86,7 +86,7 @@
 
 ## 5. 接口/ABI
 
-- 模块导出面 = `astrocs_module_query_v1`（12 个 legacy 符号经 `-DGAIA_EXPORT=`
+- 模块导出面 = `acsd_module_query_v1`（12 个 legacy 符号经 `-DGAIA_EXPORT=`
   本地化）：`create` / `create_ex` / `destroy` / `cone_search` /
   `cone_search_for_solver` / `get_db_type` / `get_file_count` /
   `get_total_sources` / `cone_search_with_spectrum` / `query_spectrum_by_coords` /
@@ -136,4 +136,4 @@
 
 - `lib/infrastructure/gaia_xpsd_client/src/gaia_client.{h,c}`（唯一生产源）；
 - `lib/infrastructure/gaia_xpsd_client/module.yaml` + `README.md`（CAT-GAIA-DOC
-  冻结）；追溯行 = `MOD-astrocs-catalog-gaia`。
+  冻结）；追溯行 = `MOD-acsd-catalog-gaia`。

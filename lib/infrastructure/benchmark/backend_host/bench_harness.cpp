@@ -8,11 +8,11 @@
 
 #include "sha256.h"
 
-// CLEAN-403 (docs/ASTROCS_DESIGN §10「aio 是文件级唯一 I/O 边界」): /proc 读取也属
+// CLEAN-403 (docs/ACSD_DESIGN §10「aio 是文件级唯一 I/O 边界」): /proc 读取也属
 // 文件读取, 经 aio 唯一实现 (aio_file::read_all), 本 TU 不自持 ifstream 通道。
 #include "aio_file_io.h"
 
-namespace astrocs::backend_host {
+namespace acsd::backend_host {
 
 namespace {
 
@@ -26,12 +26,12 @@ double percentile_sorted(std::vector<double>& sorted, double q) {  // q∈[0,1]
 
 }  // namespace
 
-BenchResult bench_kernel(const astrocs_host_services_v1* host,
+BenchResult bench_kernel(const acsd_host_services_v1* host,
                          const char* backend_id,
-                         acs_status (*fn)(
-                             const astrocs_host_services_v1*, const void*, uint32_t,
+                         acsd_status (*fn)(
+                             const acsd_host_services_v1*, const void*, uint32_t,
                              const void*, void*),
-                         const acs_baseline_params_v1& params,
+                         const acsd_baseline_params_v1& params,
                          const std::vector<double>& expected_ref,
                          double tol_rel, int warmup, int samples) {
     BenchResult r;
@@ -40,9 +40,9 @@ BenchResult bench_kernel(const astrocs_host_services_v1* host,
 
     // ── 1. 正确性筛选(独立 scalar Oracle; 失败=禁用, 不计时) ──
     std::vector<float> out(params.out0.count, 0.0f);
-    acs_baseline_params_v1 p = params;
+    acsd_baseline_params_v1 p = params;
     p.out0 = ACS_SPAN_F32(out.data(), out.size());
-    const acs_status rc = fn(host, &p, sizeof(p), nullptr, nullptr);
+    const acsd_status rc = fn(host, &p, sizeof(p), nullptr, nullptr);
     if (rc != ACS_OK) {
         r.verdict = (rc == ACS_ERR_CANCELLED) ? "ERROR" : "ORACLE_FAIL";
         r.reason = "kernel rc=" + std::to_string(static_cast<int>(rc));
@@ -237,4 +237,4 @@ NoProfilePolicy no_profile_policy(uint32_t available_cpus) {
     return p;
 }
 
-}  // namespace astrocs::backend_host
+}  // namespace acsd::backend_host

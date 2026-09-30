@@ -1,18 +1,18 @@
-// lib/infrastructure/cli/astrocs_process.h — 跨平台子进程创建(argv 数组传参, 零 shell 解析)
+// lib/infrastructure/cli/acsd_process.h — 跨平台子进程创建(argv 数组传参, 零 shell 解析)
 // Bughunt P1 R8-B: 替换 lib/infrastructure/cli/commands.cpp 的 std::system 字符串拼接族。
 //  - std::system 走 shell: 路径空格断裂、引号/元字符注入、timeout 参数未消毒、
 //    Windows cmd.exe 语义差异 → 全部通过 argv 直接传参消除。
 //  - exit code 语义: 正常结束 = 子进程退出码(0..255, Windows 保留低 8 位之外的
 //    位信息不映射); 超时/信号/启动失败 = 负数错误码(见 RunResult)。
 // 平台: POSIX fork/execvpe; Windows CreateProcessA。无第三平台。
-#ifndef ASTROCS_CLI_PROCESS_H
-#define ASTROCS_CLI_PROCESS_H
+#ifndef ACSD_CLI_PROCESS_H
+#define ACSD_CLI_PROCESS_H
 
 #include <map>
 #include <string>
 #include <vector>
 
-namespace astrocs::process {
+namespace acsd::process {
 
 // 一次子进程执行的完整结果。
 struct RunResult {
@@ -40,6 +40,6 @@ RunResult run_process(const std::vector<std::string>& argv,
 // 便捷判断: 子进程正常退出且 exit_code==0。
 bool ok(const RunResult& r);
 
-}  // namespace astrocs::process
+}  // namespace acsd::process
 
-#endif  // ASTROCS_CLI_PROCESS_H
+#endif  // ACSD_CLI_PROCESS_H

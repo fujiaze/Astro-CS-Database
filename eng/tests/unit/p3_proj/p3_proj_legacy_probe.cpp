@@ -9,9 +9,9 @@
 #include <cstdlib>
 #include <cstring>
 
-using astrocs::phase3proj::P3ProjectionDescriptor;
-using astrocs::phase3proj::P3ProjectionId;
-using astrocs::phase3proj::P3ProjectionStatus;
+using acsd::phase3proj::P3ProjectionDescriptor;
+using acsd::phase3proj::P3ProjectionId;
+using acsd::phase3proj::P3ProjectionStatus;
 
 int main(int argc, char** argv) {
     if (argc < 7) {
@@ -29,7 +29,7 @@ int main(int argc, char** argv) {
     else if (std::strcmp(proj, "AIT") == 0) id = P3ProjectionId::AIT;
     P3ProjectionDescriptor d;
     const P3ProjectionStatus mk =
-        astrocs::phase3proj::p3_projection_make(id, ra0, dec0, scale, w, h,
+        acsd::phase3proj::p3_projection_make(id, ra0, dec0, scale, w, h,
                                                 "east_left", 0.0, &d);
     std::printf("V6PROBE proj=%s status_make=%d crval1=%.17g crval2=%.17g scale=%.17g "
                 "w=%d h=%d crpix1=%.17g crpix2=%.17g cd11=%.17g cd12=%.17g cd21=%.17g "
@@ -43,7 +43,7 @@ int main(int argc, char** argv) {
             const double x = (w - 1) * (gn == 1 ? 0.0 : double(ii) / (gn - 1));
             double ra = 0, dec = 0;
             const P3ProjectionStatus st =
-                astrocs::phase3proj::p3_projection_pix2world(&d, x, y, &ra, &dec);
+                acsd::phase3proj::p3_projection_pix2world(&d, x, y, &ra, &dec);
             std::printf("ROW x=%.17g y=%.17g status=%d ra=%.17g dec=%.17g\n", x, y,
                         (int)st, ra, dec);
         }

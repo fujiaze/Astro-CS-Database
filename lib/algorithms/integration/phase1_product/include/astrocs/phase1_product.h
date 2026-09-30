@@ -2,12 +2,12 @@
  *
  * 任务: P1-INTEGRATE-001 (Wave 7)。写域: lib/phase1/, lib/phase1_session/,
  *       eng/tests/integration/p1_integrate/。本层只"接线"，不新增科学公式：
- *   - 校准 covariance  : astrocs::calibration::v6 (IMPL-P1-CAL-001)
- *   - PSF/A_NEA/epsf   : astrocs::v6::p1psfw::psf_information (IMPL-P1-PSFW-001)
- *   - W_info/Q/F_hat   : astrocs::v6::p1psfw::information_weight (IMPL-P1-PSFW-001)
- *   - PSFSW 四分量/复合 : astrocs::v6::p1psfw::psfsw (IMPL-P1-PSFW-001)
- *   - 球面 Drizzle      : astrocs::v6::drizzle (IMPL-P1-DRZ-001)
- *   - FITS/provenance/BUNIT/原子发布/HiPS manifest : astrocs::aio (IMPL-AIO-001)
+ *   - 校准 covariance  : acsd::calibration::v6 (IMPL-P1-CAL-001)
+ *   - PSF/A_NEA/epsf   : acsd::v6::p1psfw::psf_information (IMPL-P1-PSFW-001)
+ *   - W_info/Q/F_hat   : acsd::v6::p1psfw::information_weight (IMPL-P1-PSFW-001)
+ *   - PSFSW 四分量/复合 : acsd::v6::p1psfw::psfsw (IMPL-P1-PSFW-001)
+ *   - 球面 Drizzle      : acsd::v6::drizzle (IMPL-P1-DRZ-001)
+ *   - FITS/provenance/BUNIT/原子发布/HiPS manifest : acsd::aio (IMPL-AIO-001)
  *
  * 冻结锚（逐条符合，不得放宽）:
  *   FZ-UNIT-SIGNAL-SB  signal_sb           = ADU/sr
@@ -19,7 +19,7 @@
  *   FZ-UNIT-FLUX       flux (F_hat)        = ADU
  *   FZ-UNIT-PSFSW      psfsw_robust_weight = 1 —— **已退役**（FZ-MODE-RETIRED），
  *                      产品**不再写出**该单位项（PSFSW-RETIRE-03 合同收口）：
- *                      产品/消费者声明它走显式拒绝 + 迁移提示（docs/ASTROCS_DESIGN.md §3.1；
+ *                      产品/消费者声明它走显式拒绝 + 迁移提示（docs/ACSD_DESIGN.md §3.1；
  *                      UNIFIED_MODEL.md:58），不静默接受。单位串仅为历史产品可判而保留
  *                      在 units_frozen_ok（不构成接受依据）。
  *   FZ-BUNIT-SEMANTICS / FZ-P3-BUNIT-QUADRATIC : BUNIT 量纲可判 + variance=signal^2
@@ -49,26 +49,26 @@
  *   group_normalized=true / scope="group" / median_target=1.0。
  *   PSFSW-RETIRE-03：新产品不写该块；旧产品携带时其形状必须逐条等于上式（否则判红）。
  */
-#ifndef ASTROCS_V6_PHASE1_PRODUCT_H
-#define ASTROCS_V6_PHASE1_PRODUCT_H
+#ifndef ACSD_V6_PHASE1_PRODUCT_H
+#define ACSD_V6_PHASE1_PRODUCT_H
 
 #include <cstdint>
 #include <string>
 #include <vector>
 
-#include "astrocs/calibration/calibration_covariance.h"
-#include "astrocs/information_weight.h"
-#include "astrocs/psf_information.h"
-#include "astrocs/psfsw.h"
+#include "acsd/calibration/calibration_covariance.h"
+#include "acsd/information_weight.h"
+#include "acsd/psf_information.h"
+#include "acsd/psfsw.h"
 #include "drizzle_science.h"
 #include "spherical_overlap_science.h"
 
-namespace astrocs {
+namespace acsd {
 namespace v6 {
 namespace phase1 {
 
-constexpr const char* kPhase1ProductSchema = "astrocs.v6.phase1-product/v1";
-constexpr const char* kPhase1TypeId = "astrocs.phase1.frame_hips.v1";
+constexpr const char* kPhase1ProductSchema = "acsd.v6.phase1-product/v1";
+constexpr const char* kPhase1TypeId = "acsd.phase1.frame_hips.v1";
 constexpr const char* kPhase1ScienceFile = "science.fits";
 constexpr const char* kPhase1RecordFile = "phase1_product.json";
 
@@ -219,7 +219,7 @@ Phase1OpenResult open_phase1_product(const std::string& target_dir);
 
 /* ── Phase2 消费面：psfsw 组内归一权重（**已整体退役**） ──
  * FZ-MODE-RETIRED（PSFSW-RETIRE-03）：本面的唯一产物就是退役对象 psfsw_robust_weight
- * 的组内归一权重 w_psfsw（PSF 拟合质量代理的复合权重），docs/ASTROCS_DESIGN.md §3.1 明确
+ * 的组内归一权重 w_psfsw（PSF 拟合质量代理的复合权重），docs/ACSD_DESIGN.md §3.1 明确
  * 这类量不得进入科学叠加权重 ⇒ **无条件 fail-closed**（ok=false，error 含
  * FZ-MODE-RETIRED + 对象名 + 允许的权重对象 + 迁移提示），不静默接受、不产出 w_psfsw。
  * 保留该符号只为"旧产品声明退役对象"这一情形可判、理由可诊断（不是接受面）。 */
@@ -239,6 +239,6 @@ Phase1GroupConsumption consume_phase1_group_for_psfsw(
 
 }  /* namespace phase1 */
 }  /* namespace v6 */
-}  /* namespace astrocs */
+}  /* namespace acsd */
 
-#endif  /* ASTROCS_V6_PHASE1_PRODUCT_H */
+#endif  /* ACSD_V6_PHASE1_PRODUCT_H */

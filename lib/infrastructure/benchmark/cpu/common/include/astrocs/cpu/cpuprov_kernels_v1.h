@@ -1,5 +1,5 @@
 /* ACSD cpuprov 变体 DSO 的「门面 TU ↔ 计算面 TU」唯一跨 TU 桥 (R-60 配方)
- * lib/infrastructure/benchmark/cpu/common/include/astrocs/cpu/cpuprov_kernels_v1.h
+ * lib/infrastructure/benchmark/cpu/common/include/acsd/cpu/cpuprov_kernels_v1.h
  *
  * 消费者: lib/infrastructure/benchmark/cpu/{avx2,avx512}/src/{avx2,avx512}_provider.cpp
  *         （门面 TU, **零 ISA 旗标**）与
@@ -19,37 +19,37 @@
  *   ⇒ 唯一可控手段: 把计算面移到**另一个源文件**，两者只经本符号相连。
  *
  * ABI 不变: 本符号**不属** provider ABI（module_api_v1.h 的
- * astrocs_provider_query_v1 / 表项类型 / kernel 注册条数条序 / params POD
+ * acsd_provider_query_v1 / 表项类型 / kernel 注册条数条序 / params POD
  * 布局逐条不变），只是 DSO 内部的 TU 间入口；GCC/Clang 下以 hidden visibility
  * 声明 ⇒ 不进 .so 动态符号表（Linux 侧产物导出面逐条不变）。
  * 注意（Windows）: 该 DSO 以 WINDOWS_EXPORT_ALL_SYMBOLS 构建 ⇒ MSVC 会把本符号
- * 一并列入导出表（与第一族 backend 变体的 astrocs_variant_kernel_dispatch_v1
+ * 一并列入导出表（与第一族 backend 变体的 acsd_variant_kernel_dispatch_v1
  * 同款处置，见变体能力面一致性报告 §2；加载器按**名字**取
- * astrocs_provider_query_v1，导出表多一条不改变任何加载/选路语义）。
+ * acsd_provider_query_v1，导出表多一条不改变任何加载/选路语义）。
  *
  * 签名 = 计算面唯一入口（本族门面 TU 的 run_banded 逐行带调用）:
  *   params/kidx/in/out 与 baseline/avx2/avx512 三份 kernel_pixel_range 同型；
  *   [i0,i1) 是 host executor 划分的输出行带（每输出元素独立 ⇒ bitwise 不随
  *   worker 数变化，ARCH-004 §4 语义不变）。 */
-#ifndef ASTROCS_CPU_CPUPROV_KERNELS_V1_H
-#define ASTROCS_CPU_CPUPROV_KERNELS_V1_H
+#ifndef ACSD_CPU_CPUPROV_KERNELS_V1_H
+#define ACSD_CPU_CPUPROV_KERNELS_V1_H
 
 #include <stdint.h>
 
-#include "astrocs/cpu/baseline_provider_v1.h"   /* acs_cpu_baseline_params_v1 (CPU-002 冻结) */
+#include "acsd/cpu/baseline_provider_v1.h"   /* acsd_cpu_baseline_params_v1 (CPU-002 冻结) */
 
 #if defined(_MSC_VER)
-#define ASTROCS_CPUPROV_BRIDGE_API   /* 见上文 Windows 导出面备注 */
+#define ACSD_CPUPROV_BRIDGE_API   /* 见上文 Windows 导出面备注 */
 #else
-#define ASTROCS_CPUPROV_BRIDGE_API __attribute__((visibility("hidden")))
+#define ACSD_CPUPROV_BRIDGE_API __attribute__((visibility("hidden")))
 #endif
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-ASTROCS_CPUPROV_BRIDGE_API
-void astrocs_cpuprov_kernel_range_v1(const acs_cpu_baseline_params_v1* params,
+ACSD_CPUPROV_BRIDGE_API
+void acsd_cpuprov_kernel_range_v1(const acsd_cpu_baseline_params_v1* params,
                                      uint32_t kidx,
                                      const float* const* in, float* const* out,
                                      uint64_t i0, uint64_t i1);
@@ -58,4 +58,4 @@ void astrocs_cpuprov_kernel_range_v1(const acs_cpu_baseline_params_v1* params,
 } /* extern "C" */
 #endif
 
-#endif /* ASTROCS_CPU_CPUPROV_KERNELS_V1_H */
+#endif /* ACSD_CPU_CPUPROV_KERNELS_V1_H */

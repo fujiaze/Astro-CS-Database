@@ -6,10 +6,10 @@
 #include <cstring>
 #include <numeric>
 
-namespace astrocs::phase1 {
+namespace acsd::phase1 {
 
-using astrocs::core::Error;
-using astrocs::core::ErrorDomain;
+using acsd::core::Error;
+using acsd::core::ErrorDomain;
 
 namespace {
 // PSF-BG-001 (P2 性能, 判定值零变化; 依据 ENGINEERING_SPEC.md §12「资源与性能」):
@@ -37,7 +37,7 @@ StarDetector::StarDetector(double detection_sigma) : detection_sigma_(detection_
 //                → 本函数；下游 :82 检测阈值、:183 逐源 SNR、
 //                module_adapters.cpp:2239-2240 写 p1_sources.json frames[].noise_sigma、
 //                :4267 p1_op_noise 读作 cfg.sigma_sky_adu → 帧 SNR/深度 → drizzle → HiCS
-//                ASTROCS_FRAME_SNR。删除它 = 改产品数值，违反数值等价前置。
+//                ACSD_FRAME_SNR。删除它 = 改产品数值，违反数值等价前置。
 //             ② 增益成立（合成星场，固定 seed=20260919，n=210 帧池化，C++ 探针直调生产实现
 //                270/270 帧 σ 逐位一致）：相对冻结式 1.482602218505602·MAD 的 mean|rel err| 增益
 //                **+78.47%**（bootstrap 95% CI [+76.58%, +80.40%]）；偏差 +0.774%（星场）/
@@ -140,14 +140,14 @@ bool StarDetector::estimate_background(const float* image, int w, int h,
   return true;
 }
 
-astrocs::core::Result<StarCatalog> StarDetector::detect(const float* image, int w, int h) const {
+acsd::core::Result<StarCatalog> StarDetector::detect(const float* image, int w, int h) const {
   if (!image || w <= 0 || h <= 0) {
-    return astrocs::core::Result<StarCatalog>::fail(
+    return acsd::core::Result<StarCatalog>::fail(
         Error(ErrorDomain::DATA, "star_detector: bad image dims"));
   }
   StarCatalog cat;
   if (!estimate_background(image, w, h, &cat.background, &cat.noise_sigma)) {
-    return astrocs::core::Result<StarCatalog>::fail(
+    return acsd::core::Result<StarCatalog>::fail(
         Error(ErrorDomain::DATA, "star_detector: background estimation failed"));
   }
   const double thr = cat.background + detection_sigma_ * cat.noise_sigma;
@@ -286,7 +286,7 @@ astrocs::core::Result<StarCatalog> StarDetector::detect(const float* image, int 
     if (s.quality & 2) ++cat.n_edge;
   }
   cat.n_detected = static_cast<uint32_t>(cat.sources.size());
-  return astrocs::core::Result<StarCatalog>::ok(std::move(cat));
+  return acsd::core::Result<StarCatalog>::ok(std::move(cat));
 }
 
-}  // namespace astrocs::phase1
+}  // namespace acsd::phase1

@@ -37,11 +37,11 @@ TP = REPO / "lib" / "third_party"
 
 _DRIVER = r'''
 // RT-007 harness: 取消/错误传播/checkpoint scope/resume 门真实编译链接验收
-#include "astrocs/core/artifact.h"
-#include "astrocs/core/artifact_store.h"
-#include "astrocs/core/checkpoint.h"
-#include "astrocs/core/context.h"
-#include "astrocs/core/scheduler.h"
+#include "acsd/core/artifact.h"
+#include "acsd/core/artifact_store.h"
+#include "acsd/core/checkpoint.h"
+#include "acsd/core/context.h"
+#include "acsd/core/scheduler.h"
 
 #include <atomic>
 #include <chrono>
@@ -56,7 +56,7 @@ _DRIVER = r'''
 #include <utility>
 #include <vector>
 
-using namespace astrocs::core;
+using namespace acsd::core;
 
 static int g_checks = 0;
 static int g_failures = 0;
@@ -285,7 +285,7 @@ static ArtifactDescriptor make_hips(const std::string& id,
   d.size_bytes = 42;
   d.content_sha256 = sha;
   d.producer_node = "hips_gen";
-  d.producer_module = "astrocs.phase2";
+  d.producer_module = "acsd.phase2";
   d.producer_version = "0.1." "0";
   d.source_commit = "b2e3b0af";
   d.created_utc = "2026-09-03T00:00:00.000Z";

@@ -18,12 +18,12 @@ REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.a
 INC = os.path.join(REPO, "lib", "include")
 HOST = os.path.join(REPO, "lib", "infrastructure", "benchmark", "backend_host")
 CLI = os.path.join(REPO, "lib", "infrastructure", "cli")
-# DISPATCH 附录 H（构建隔离）: 被测构建树 = 被测二进制所在目录（ASTROCS_CLI_BIN 覆盖）。
+# DISPATCH 附录 H（构建隔离）: 被测构建树 = 被测二进制所在目录（ACSD_CLI_BIN 覆盖）。
 # resource_gate_thresholds_generated.h 由根 CMake configure_file 落**构建根**
 # （唯一数值源 eng/contracts/resource_gate_v1.json），是 resource_gate.h:26 /
 # memory_report.h:43 的必需包含面 —— 取法与 test_resource_gate.py:58-66 同源。
 BUILD_ROOT = os.path.dirname(os.path.abspath(
-    os.environ.get("ASTROCS_CLI_BIN", os.path.join(REPO, "build", "acsd"))))
+    os.environ.get("ACSD_CLI_BIN", os.path.join(REPO, "build", "acsd"))))
 RG_HEADER = os.path.join(BUILD_ROOT, "resource_gate_thresholds_generated.h")
 
 

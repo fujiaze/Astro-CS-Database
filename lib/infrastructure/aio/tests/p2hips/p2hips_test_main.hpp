@@ -4,7 +4,7 @@
 // 合同锚: DATA-UNC-001 §30.2 (DATA-P2-REJ-001) / §30.3 (DATA-P2-PROV-001),
 // docs/science/DATA_SEMANTICS.md:2259-2305。
 // 被测面: lib/infrastructure/aio/src/hips/aio_hips_writer.cpp +
-//         lib/infrastructure/aio/src/hips/aio_hips_reader.cpp (astrocs_hips)。
+//         lib/infrastructure/aio/src/hips/aio_hips_reader.cpp (acsd_hips)。
 // 结构对齐 P1-HIPS-TEST 先例 (lib/infrastructure/aio/tests/p1hips/)。
 // ============================================================================
 #ifndef P2HIPS_TEST_MAIN_HPP
@@ -35,8 +35,8 @@ inline void check_impl(bool cond, const char* expr, const char* msg,
 
 // 故障注入面 (等价缺陷注入必败): 未设置环境变量时零行为差异。
 // 注入名由被测实现读取 (aio_hips_writer.cpp fault_injected)。
-//   ASTROCS_HIPS_PROV_FAULT = missing_key | value_drift
-//   ASTROCS_HIPS_DIAG_FAULT = sentinel    | skip_write
+//   ACSD_HIPS_PROV_FAULT = missing_key | value_drift
+//   ACSD_HIPS_DIAG_FAULT = sentinel    | skip_write
 inline bool injected(const char* var, const char* name) {
     const char* v = std::getenv(var);
     return v && name && std::strcmp(v, name) == 0;

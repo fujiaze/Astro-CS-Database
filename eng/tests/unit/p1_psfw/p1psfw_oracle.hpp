@@ -10,7 +10,7 @@
 #include <utility>
 #include <vector>
 
-namespace astrocs {
+namespace acsd {
 namespace v6 {
 namespace p1psfw {
 namespace oracle {
@@ -253,6 +253,6 @@ inline std::vector<double> o_mc_coadd_var(
 }  /* namespace oracle */
 }  /* namespace p1psfw */
 }  /* namespace v6 */
-}  /* namespace astrocs */
+}  /* namespace acsd */
 
 #endif /* P1PSFW_ORACLE_HPP */

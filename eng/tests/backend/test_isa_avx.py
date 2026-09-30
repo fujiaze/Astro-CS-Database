@@ -56,7 +56,7 @@ class TestIsaAvx(unittest.TestCase):
         self.assertIn('#include "baseline_kernels_impl.inc"', v)
         self.assertIn('#include "backend_table.inc"', v)
         self.assertNotIn("float calibration_impl", v, "变体不得复制实现")
-        self.assertIn('ASTROCS_BACKEND_ID "avx"', v, "backend_id 须为 avx")
+        self.assertIn('ACSD_BACKEND_ID "avx"', v, "backend_id 须为 avx")
 
     def test_03_bench_and_measurement_artifact(self):
         r = subprocess.run([self.bench, "--variant", self.vso],

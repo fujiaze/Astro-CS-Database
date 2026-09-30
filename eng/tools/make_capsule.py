@@ -6,7 +6,7 @@
 退役 (RETIRED) —— 本工具属旧世代(V5 控制包)逐提交审阅胶囊生成器, 已退役:
   1. 审阅胶囊是旧世代控制包(V5/REV-002)的交付形态（历史版本控制包全部作废）,
      且胶囊产物只能落旧证据树 capsules/(该树已整体删除)
-     —— 新世代不归档 (docs/ASTROCS_DESIGN.md §0 权威链、§12 版本信息下线);
+     —— 新世代不归档 (docs/ACSD_DESIGN.md §0 权威链、§12 版本信息下线);
   2. 实测: 无参调用即未捕获 IndexError; 带参调用虽 rc=0, 但把 zip 写回**已退役的**
      capsules/ —— 属 ENGINEERING_SPEC.md §8 禁止的「静默坏掉/僵尸入口」;
   3. 活动替代: 无。逐提交复核由 git 历史自身承担(git show / git log), 正式证据按 §7 落位;
@@ -26,7 +26,7 @@ def git(*args):
 
 RETIRED_NOTICE = (
     "MAKE_CAPSULE_RETIRED: 本工具（旧世代 V5 逐提交审阅胶囊生成器）已退役。\n"
-    "  依据: docs/ASTROCS_DESIGN.md §0（权威链：旧世代控制包产物不构成判据）"
+    "  依据: docs/ACSD_DESIGN.md §0（权威链：旧世代控制包产物不构成判据）"
     "（历史版本控制包全部作废；不归档不保留）；"
     "ENGINEERING_SPEC.md §8（不允许静默坏掉）。\n"
     "  输入/输出已不存在: 输出目录（旧证据树 capsules/）已删除。\n"

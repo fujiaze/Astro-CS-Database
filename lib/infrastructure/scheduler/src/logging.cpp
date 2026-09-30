@@ -1,10 +1,10 @@
 // CORE-008 统一日志 + 指标实现
-#include "astrocs/core/logging.h"
+#include "acsd/core/logging.h"
 
 #include <cstdio>
 #include <ctime>
 
-namespace astrocs::core {
+namespace acsd::core {
 
 namespace {
 std::string utc_now() {
@@ -117,4 +117,4 @@ std::string MetricsAggregator::export_jsonl() const {
   return out;
 }
 
-}  // namespace astrocs::core
+}  // namespace acsd::core

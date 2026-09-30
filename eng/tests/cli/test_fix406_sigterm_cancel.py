@@ -2,20 +2,20 @@
 """FIX-406: 三阶段 × 三取消点 SIGTERM/SIGINT 取消矩阵（exit 9 + incomplete manifest + 无半成品）。
 
 权威（逐条）:
-  * docs/ASTROCS_DESIGN.md §7.2「取消（Ctrl-C）：协作取消 → 关 writer → 写 incomplete
+  * docs/ACSD_DESIGN.md §7.2「取消（Ctrl-C）：协作取消 → 关 writer → 写 incomplete
     manifest → 删/隔离临时产物 → exit 9」+ 退出码表「9 = 用户取消或超时」；
-  * docs/ASTROCS_DESIGN.md §10「所有产品走临时区 → 校验 → 原子改名发布 → 最后落完成清单；
+  * docs/ACSD_DESIGN.md §10「所有产品走临时区 → 校验 → 原子改名发布 → 最后落完成清单；
     没有完成清单就不算成功对象；失败/取消时清理临时产物」；
   * GAP_AUDIT G3-15「SIGTERM 全阶段 exit 9 路径未覆盖」（本任务闭合）。
 
 取消点定义（三命令同构；钩子均为既有/新增**测试钩子**，生产零影响）:
-  ① startup  进程入口窗 ASTROCS_TEST_SLEEP_MS（subcommand.h；读配置之前）
+  ① startup  进程入口窗 ACSD_TEST_SLEEP_MS（subcommand.h；读配置之前）
               ⇒ 期望: rc=9 + final(status=cancelled) + **不写任何 manifest**（本次
                  运行尚未建立 output_dir/run_context，禁造假清单）+ 无产物;
-  ② compute  Runtime 计算窗 ASTROCS_TEST_PIPELINE_SLEEP_MS（runtime_client.cpp；
+  ② compute  Runtime 计算窗 ACSD_TEST_PIPELINE_SLEEP_MS（runtime_client.cpp；
               取消经 cancel_watch → rt->cancel() 送达调度器安全点）
               ⇒ 期望: rc=9 + incomplete manifest（原因 = cancelled by user）;
-  ③ write    写盘窗 ASTROCS_TEST_WRITE_SLEEP_MS（commands.cpp；产物收集/哈希完成、
+  ③ write    写盘窗 ACSD_TEST_WRITE_SLEEP_MS（commands.cpp；产物收集/哈希完成、
               run manifest/运行图落盘之前）
               ⇒ 期望: rc=9 + incomplete manifest + **artifacts 非空**（证明取消点
                  确实落在产物已写、完成清单未落之间；判据非退化）。
@@ -33,15 +33,15 @@ Windows 等价路径: CTRL_C_EVENT / CTRL_BREAK_EVENT 由 TestWindowsConsoleCtrl
   本文件与 test_phase123_pipeline.py 共用 _aio_srcs(); 它原先手抄源文件列表，漏了
   aio_hips_writer.cpp 经 aio_sparse_punch.h → aio_file_io.h 的 inline sha256_hex 需要的
   lib/algorithms/shared/crypto/sha256.cpp ⇒ setUpClass 夹具链接失败（undefined reference
-  to astrocs::crypto::Sha256::...），整个取消矩阵一个都没跑。现改为**从构建图解析**
-  （根 CMakeLists.txt 的 astrocs_common / astrocs_aio / astrocs_hips 权威显式清单），
-  并新增 nm -C 差集判据 TestAioFixtureSourceClosure（对真实 .o 求「未定义 astrocs::
+  to acsd::crypto::Sha256::...），整个取消矩阵一个都没跑。现改为**从构建图解析**
+  （根 CMakeLists.txt 的 acsd_common / acsd_aio / acsd_hips 权威显式清单），
+  并新增 nm -C 差集判据 TestAioFixtureSourceClosure（对真实 .o 求「未定义 acsd::
   符号 − 已定义符号」，非空 ⇒ 判红并点名该补哪个 .cpp）。判据能红能绿：摘掉
   sha256.cpp 必红且点名该文件（实证见 run/LINUXMAIN-LINK-01/）。
 
 复跑:
   python3 -m unittest tests.cli.test_fix406_sigterm_cancel -v
-  ASTROCS_FIX406_FIXTURES=run/FIX-406/fixtures python3 -m unittest ...  # 复用已建夹具
+  ACSD_FIX406_FIXTURES=run/FIX-406/fixtures python3 -m unittest ...  # 复用已建夹具
 """
 import json
 import os
@@ -65,14 +65,14 @@ from test_phase123_pipeline import (  # noqa: E402
 PHASES = ("normalize", "mosaic", "export")
 # (取消点名, 钩子环境变量) —— 三个取消点各自的**唯一**注入面
 CANCEL_POINTS = (
-    ("startup", "ASTROCS_TEST_SLEEP_MS"),
-    ("compute", "ASTROCS_TEST_PIPELINE_SLEEP_MS"),
-    ("write", "ASTROCS_TEST_WRITE_SLEEP_MS"),
+    ("startup", "ACSD_TEST_SLEEP_MS"),
+    ("compute", "ACSD_TEST_PIPELINE_SLEEP_MS"),
+    ("write", "ACSD_TEST_WRITE_SLEEP_MS"),
 )
 SLEEP_MS = "6000"          # 注入窗（信号在 1.2s 到达，窗内必达）
 SIGNAL_DELAY = 1.2
 EVIDENCE = os.path.join(REPO, "run", "FIX-406", "evidence", "cancel_matrix.json")
-# 临时/半成品文件命名（docs/ASTROCS_DESIGN §10 原子发布；aio/p3_output 实测命名族）
+# 临时/半成品文件命名（docs/ACSD_DESIGN §10 原子发布；aio/p3_output 实测命名族）
 TEMP_PAT = re.compile(r"\.tmp|\.partial|\.tmppool|\.part$|\.incomplete$")
 
 
@@ -205,7 +205,7 @@ def _annotate_p3_input(src, dst):
 
 
 class _FixtureCache:
-    """夹具只建一次（同类/跨方法复用；ASTROCS_FIX406_FIXTURES 可指向已建缓存）。"""
+    """夹具只建一次（同类/跨方法复用；ACSD_FIX406_FIXTURES 可指向已建缓存）。"""
 
     data = None
     root = None
@@ -215,7 +215,7 @@ class _FixtureCache:
     def get(cls):
         if cls.data is not None:
             return cls.data
-        env = os.environ.get("ASTROCS_FIX406_FIXTURES")
+        env = os.environ.get("ACSD_FIX406_FIXTURES")
         if env:
             env = os.path.abspath(env)   # 子进程 cwd = run/test_cli_cwd ⇒ 夹具须绝对路径
         if env and os.path.isfile(os.path.join(env, "READY")):
@@ -306,7 +306,7 @@ class TestFix406SigtermCancel(unittest.TestCase):
         events = [json.loads(l) for l in so.splitlines() if l.strip()]
         manifests = []
         for f in sorted(os.listdir(out)):
-            if f.startswith("astrocs_run_") and f.endswith(".json"):
+            if f.startswith("acsd_run_") and f.endswith(".json"):
                 try:
                     with open(os.path.join(out, f), encoding="utf-8") as fh:
                         manifests.append(json.load(fh))
@@ -374,11 +374,11 @@ class TestFix406SigtermCancel(unittest.TestCase):
     def test_02_sigint_equivalent_paths(self):
         for phase in PHASES:
             with self.subTest(phase=phase, cancel_point="write", sig="SIGINT"):
-                self._assert_cancelled(phase, "write", "ASTROCS_TEST_WRITE_SLEEP_MS",
+                self._assert_cancelled(phase, "write", "ACSD_TEST_WRITE_SLEEP_MS",
                                        signal.SIGINT)
         with self.subTest(phase="normalize", cancel_point="compute", sig="SIGINT"):
             self._assert_cancelled(phase="normalize", point="compute",
-                                   env_var="ASTROCS_TEST_PIPELINE_SLEEP_MS",
+                                   env_var="ACSD_TEST_PIPELINE_SLEEP_MS",
                                    signum=signal.SIGINT)
 
     # ---- 判据非退化: 三取消点证据必须可区分 ----
@@ -436,17 +436,17 @@ class TestAioFixtureSourceClosure(unittest.TestCase):
     现场（2026-09-22 CHK-FIX406-SIGTERM）: aio_hips_writer.cpp:22
     「#include "aio_sparse_punch.h"」→ aio_sparse_punch.h:37
     「#include "aio_file_io.h"」→ aio_file_io.h:240 的 inline
-    aio_file::sha256_hex 调 astrocs::crypto::Sha256；而 _aio_srcs() 当时是手抄清单、
+    aio_file::sha256_hex 调 acsd::crypto::Sha256；而 _aio_srcs() 当时是手抄清单、
     漏了唯一实现 TU lib/algorithms/shared/crypto/sha256.cpp ⇒ 夹具在**链接期**报
-    「undefined reference to astrocs::crypto::Sha256::...」，链接器一次只报第一条、
+    「undefined reference to acsd::crypto::Sha256::...」，链接器一次只报第一条、
     且不告诉你该补哪个 .cpp（本文件 setUpClass 因此 ERROR，矩阵一个都没跑）。
 
     判据与实现与 eng/tests/cli/test_phase123_pipeline.py 同源（单一实现，两处门共用），
     两条互补：
       ① 源清单从构建图解析：_aio_srcs() 的路径全部由根 CMakeLists.txt 的
-         astrocs_common / astrocs_aio / astrocs_hips 权威显式清单解析而来，
+         acsd_common / acsd_aio / acsd_hips 权威显式清单解析而来，
          名字不在清单里即抛错判红（防改名/搬目录后清单静默失效）；
-      ② nm -C 差集：对真实 .o 求「未定义 astrocs:: 符号 − 已定义符号」，
+      ② nm -C 差集：对真实 .o 求「未定义 acsd:: 符号 − 已定义符号」，
          非空即判红，并把每个未解析符号解析回构建图里定义它的 .cpp（直接点名）。
     """
 
@@ -460,7 +460,7 @@ class TestAioFixtureSourceClosure(unittest.TestCase):
         missing, detail = aio_fixture_closure_diagnostics()
         if not missing:
             return
-        self.fail("fixture 源清单未覆盖链接闭包（未定义 astrocs:: 符号差集非空）：\n"
+        self.fail("fixture 源清单未覆盖链接闭包（未定义 acsd:: 符号差集非空）：\n"
                   + detail + "\n  修法：把上面点名的 .cpp 加入 _AIO_SEED"
                   "（eng/tests/cli/test_phase123_pipeline.py）。")
 
@@ -495,7 +495,7 @@ class TestWindowsConsoleCtrl(unittest.TestCase):
                     "master_flat": os.path.join(fx["p1data"], "flat.fits"),
                     "dark_optimization": True, "output_dir": out,
                     "wcs": dict(WCS_EXPLICIT), "drizzle": dict(DRIZZLE)})
-                env = dict(os.environ, ASTROCS_TEST_SLEEP_MS=SLEEP_MS)
+                env = dict(os.environ, ACSD_TEST_SLEEP_MS=SLEEP_MS)
                 p = subprocess.Popen([EXE, "normalize", "--json", cfg, "--events-jsonl", "-y"],
                                      stdout=subprocess.PIPE, stderr=subprocess.PIPE,
                                      text=True, cwd=run_cwd(), env=env,
@@ -508,7 +508,7 @@ class TestWindowsConsoleCtrl(unittest.TestCase):
                 self.assertEqual(events[-1]["kind"], "final")
                 self.assertEqual(events[-1]["status"], "cancelled")
                 for f in os.listdir(out):
-                    if f.startswith("astrocs_run_"):
+                    if f.startswith("acsd_run_"):
                         with open(os.path.join(out, f), encoding="utf-8") as fh:
                             self.assertNotEqual(json.load(fh)["status"], "complete")
         finally:

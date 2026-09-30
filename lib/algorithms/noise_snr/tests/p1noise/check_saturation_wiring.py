@@ -97,7 +97,7 @@ try:
         if token not in orch:
             fail(cid, f"orchestrator.cpp 缺饱和接线要素: {token}")
     # 关键：解析结果必须**真的赋给 cfg**（仅出现函数名不算接线 —— 死接线必须红）
-    if not re.search(r"ncfg\.saturation_level\s*=\s*astrocs::noise::resolve_effective_saturation\s*\(",
+    if not re.search(r"ncfg\.saturation_level\s*=\s*acsd::noise::resolve_effective_saturation\s*\(",
                      orch):
         fail("W3-ASSIGN",
              "orchestrator.cpp 未把 resolve_effective_saturation 的结果赋给 ncfg.saturation_level"
@@ -108,7 +108,7 @@ try:
              "orchestrator.cpp 的过滤状态未由 ncfg.saturation_level 驱动"
              "（saturation_filter_state(ncfg.saturation_level) 缺失）")
     if "saturation_policy.h" not in orch:
-        fail("W3-INCLUDE", "orchestrator.cpp 未包含 astrocs/noise/saturation_policy.h")
+        fail("W3-INCLUDE", "orchestrator.cpp 未包含 acsd/noise/saturation_policy.h")
 except Exception as exc:  # noqa: BLE001
     fail("W3-EXC", f"orchestrator.cpp 读取失败: {exc}")
 

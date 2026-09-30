@@ -25,9 +25,9 @@
 
 namespace {
 
-using astrocs::star_detection::nls::Options;
-using astrocs::star_detection::nls::Report;
-using astrocs::star_detection::nls::Status;
+using acsd::star_detection::nls::Options;
+using acsd::star_detection::nls::Report;
+using acsd::star_detection::nls::Status;
 
 struct Sample {
     double dx;
@@ -253,7 +253,7 @@ int main() {
         Fixture fx = make_field(100.0, 2000.0, 0.3, -0.2, 2.88, 0.9, 0.35, 0.0, 6, 11);
         double x[7] = {90.0, 1800.0, 0.0, 0.0, 3.0, 0.8, 0.0};
         Options opt;
-        Report r = astrocs::star_detection::nls::solve(&resid, &jac, &fx, fx.n(), 7, x, opt, nullptr);
+        Report r = acsd::star_detection::nls::solve(&resid, &jac, &fx, fx.n(), 7, x, opt, nullptr);
         check(r.status == Status::Success, "status == Success");
         std::printf("      chi2 = %.3e (A^2=%.3e)\n", r.cost, 2000.0 * 2000.0);
         check(r.cost <= 1e-16 * 4.0e6, "chi2 达数值零 (<= 1e-16 * A^2)");
@@ -276,7 +276,7 @@ int main() {
         check(kap >= 1e6, "kappa(JᵀJ) >= 1e6（'病态'标签可证伪）");
         double x[7] = {8.0e1, 8.0e4, 0.0, 0.0, 25.0, 0.10, 0.5};
         Options opt;
-        Report r = astrocs::star_detection::nls::solve(&resid, &jac, &fx, fx.n(), 7, x, opt, nullptr);
+        Report r = acsd::star_detection::nls::solve(&resid, &jac, &fx, fx.n(), 7, x, opt, nullptr);
         check(r.status == Status::Success, "status == Success");
         check(std::isfinite(r.cost), "chi2 有限");
         check(r.cost <= 1e-9 * (1e5 * 1e5), "chi2 达数值零 (无噪声 ⇒ 全局最优 0)");
@@ -295,7 +295,7 @@ int main() {
         Fixture fx = make_field(50.0, 500.0, 0.0, 0.0, 2.0, 1.2, 0.6, 0.0, 7, 31);
         double x[7] = {0.0, 100.0, 2.0, -2.0, 12.5, -1.2, -0.6};
         Options opt;
-        Report r = astrocs::star_detection::nls::solve(&resid, &jac, &fx, fx.n(), 7, x, opt, nullptr);
+        Report r = acsd::star_detection::nls::solve(&resid, &jac, &fx, fx.n(), 7, x, opt, nullptr);
         check(r.status == Status::Success, "status == Success");
         const double truth[7] = {50.0, 500.0, 0.0, 0.0, 2.0, 1.2, 0.6};
         double o1[6], o2[6];
@@ -313,7 +313,7 @@ int main() {
         Fixture fx = make_field(120.0, 1500.0, -0.25, 0.4, 2.4, 1.0, 0.2, 8.0, 6, 47);
         double x[7] = {100.0, 1200.0, 0.0, 0.0, 3.0, 0.9, 0.0};
         Options opt;
-        Report r = astrocs::star_detection::nls::solve(&resid, &jac, &fx, fx.n(), 7, x, opt, nullptr);
+        Report r = acsd::star_detection::nls::solve(&resid, &jac, &fx, fx.n(), 7, x, opt, nullptr);
         check(r.status == Status::Success, "status == Success");
         check(r.cost > 0.0, "chi2 > 0（残差非零, 判据非退化）");
         const double drop = gn_predicted_drop(fx, x);
@@ -343,7 +343,7 @@ int main() {
         Fixture fx = make_field(20.0, 800.0, 0.0, 0.0, 3.0, 0.0, 0.5, 0.0, 6, 59);
         double x[7] = {10.0, 700.0, 0.1, -0.1, 3.5, 0.0, 0.0};
         Options opt;
-        Report r = astrocs::star_detection::nls::solve(&resid, &jac, &fx, fx.n(), 7, x, opt, nullptr);
+        Report r = acsd::star_detection::nls::solve(&resid, &jac, &fx, fx.n(), 7, x, opt, nullptr);
         check(r.status == Status::Success, "status == Success（秩亏不导致失败）");
         bool finite = true;
         for (int i = 0; i < 7; ++i) finite = finite && std::isfinite(x[i]);
@@ -372,7 +372,7 @@ int main() {
             Fixture fxe = make_field(20.0, 800.0, 0.0, 0.0, 3.0, 1.5707963, 0.5, 0.0, 6, 59);
             double xe[7] = {10.0, 700.0, 0.1, -0.1, 3.5, 1.5, 0.0};
             Options o2;
-            Report re = astrocs::star_detection::nls::solve(&resid, &jac, &fxe, fxe.n(), 7, xe, o2, nullptr);
+            Report re = acsd::star_detection::nls::solve(&resid, &jac, &fxe, fxe.n(), 7, xe, o2, nullptr);
             double pe[7];
             std::memcpy(pe, xe, sizeof(pe));
             pe[6] = xe[6] + 1.0;

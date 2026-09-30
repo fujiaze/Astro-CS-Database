@@ -2,9 +2,9 @@
 #
 # 唯一产品事实源 = 根 CMakeLists.txt (唯一 project / 唯一 add_executable(acsd))。
 # 本文件仅保留给 lib/algorithms/coverage 模块自测与工具按需构建 (compatibility target):
-#   - phase2 STATIC 库的正式产品源集由根 CMakeLists.txt 的 astrocs_phase2 声明
+#   - phase2 STATIC 库的正式产品源集由根 CMakeLists.txt 的 acsd_phase2 声明
 #     (lib/algorithms/coverage/src/*.cpp 显式列表, 无 GLOB); 本文件不再作为生产 target 事实源;
-#   - astrocs-stage2 / calibrated_pair_diag / rejection_cli 为按需工具
+#   - acsd-stage2 / calibrated_pair_diag / rejection_cli 为按需工具
 #     (EXCLUDE_FROM_ALL, 非正式 ALL target), 不进入默认构建与任何 install;
 #   - 禁止正式 install (BLD-002): 安装/发布规则只允许存在于根 CMakeLists.txt;
 #   - 本文件保留 enable_testing()/GTest 分支仅供模块独立自测 (eng/tests/cli 不依赖)。
@@ -69,12 +69,12 @@ target_include_directories(phase2 PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/../../infra
 # CLEAN-403: sky_plane.cpp 的文件读写经 aio 机制原语 (aio_atomic_file.h /
 # aio_file_io.h, header-only) ⇒ compatibility 目标同样需要 aio/src include 面。
 target_include_directories(phase2 PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/../../infrastructure/aio/src)
-# 性能探针头面 (ASTROCS_PROBES 默认 OFF; 未定义时 astrocs/probe.h 的宏
-# 全部为空语句)。独立 configure 不走根图 astrocs_probes target, 故此处显式登记。
+# 性能探针头面 (ACSD_PROBES 默认 OFF; 未定义时 acsd/probe.h 的宏
+# 全部为空语句)。独立 configure 不走根图 acsd_probes target, 故此处显式登记。
 target_include_directories(phase2 PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/../../infrastructure/observability/probes/include)
 target_include_directories(phase2 PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/../../algorithms/shared)
 # SCI-FIX-AIO (V11-N-01) 连带修: compatibility 目标此前缺 third_party 头路径 ⇒
-# nlohmann/json 落到系统副本 (json_abi_v3_11_3), 而根图目标 (astrocs_hips/aio)
+# nlohmann/json 落到系统副本 (json_abi_v3_11_3), 而根图目标 (acsd_hips/aio)
 # 带 third_party (v3_12_0); 两者混链时 p2_stage2_parse_config 之类的符号
 # mangling 不一致 (旧 astro_image_io.dll 恰好掩盖了该不一致)。统一到仓内
 # vendored json。
@@ -101,10 +101,10 @@ if(GTest_FOUND)
     # 产物 (ELF .so 误名 .dll; 旧 AstroSphereTileView 布局, 无版本化 ABI 头)。
     # 它与本仓当前 aio_hips.h 不一致时字段整体错位 —— 实测 writer 读到的
     # width=0 ⇒ rc=-2 "view 与产品集不匹配", 或更糟: 静默错位写数据。
-    # 根图构建一律走 astrocs_hips/astrocs_aio 静态目标 (与 eng/tests/unit/p1_hips*
+    # 根图构建一律走 acsd_hips/acsd_aio 静态目标 (与 eng/tests/unit/p1_hips*
     # 同口径); 仅模块独立 configure (无根目标) 才回退到该历史产物。
-    if(TARGET astrocs_hips AND TARGET astrocs_aio)
-        set(P2_AIO_LINK astrocs_hips astrocs_aio)
+    if(TARGET acsd_hips AND TARGET acsd_aio)
+        set(P2_AIO_LINK acsd_hips acsd_aio)
     else()
         set(P2_AIO_LINK ${CMAKE_CURRENT_SOURCE_DIR}/../../infrastructure/aio/astro_image_io.dll)
     endif()
@@ -115,12 +115,12 @@ if(GTest_FOUND)
     # SCI-FIX-AIO (V11-N-01): 与 phase2_sampler_parallel 同因同修 —— 源树内
     # 未跟踪的 astro_image_io.dll 是历史构建产物 (旧结构布局, 无版本化 ABI 头),
     # 与本仓当前 aio_hips.h 不一致时读取字段整体错位 (实测 width 读成 0 →
-    # writer rc=-2 "view 与产品集不匹配")。根图构建走 astrocs_hips/astrocs_aio
+    # writer rc=-2 "view 与产品集不匹配")。根图构建走 acsd_hips/acsd_aio
     # 静态目标 (与 eng/tests/unit/p1_hips_writer 同口径); 模块独立 configure 保留
     # DLL 后备。
-    if(TARGET astrocs_hips AND TARGET astrocs_aio)
+    if(TARGET acsd_hips AND TARGET acsd_aio)
         target_link_libraries(phase2_ivar_wiring PRIVATE phase2 GTest::gtest_main
-            astrocs_hips astrocs_aio)
+            acsd_hips acsd_aio)
     else()
         target_link_libraries(phase2_ivar_wiring PRIVATE phase2 GTest::gtest_main
             ${P2_AIO_LINK})
@@ -134,11 +134,11 @@ if(GTest_FOUND)
     # 旧直链 ../../infrastructure/aio/astro_image_io.dll 是源树内**未跟踪**的
     # 历史构建产物（缺版本化 ABI 初始化/新字段布局），与当前 aio_hips.h 不一致
     # 会让 fixture 写入失败（实测 make_synth_frame=false）。根图构建下改走
-    # astrocs_hips/astrocs_aio 静态目标（与 eng/tests/unit/p1_hips_writer 同口径）；
+    # acsd_hips/acsd_aio 静态目标（与 eng/tests/unit/p1_hips_writer 同口径）；
     # 模块独立 configure（无根目标）时保留 DLL 后备。
-    if(TARGET astrocs_hips AND TARGET astrocs_aio)
+    if(TARGET acsd_hips AND TARGET acsd_aio)
         target_link_libraries(phase2_sampler_parallel PRIVATE phase2 GTest::gtest_main
-            astrocs_hips astrocs_aio)
+            acsd_hips acsd_aio)
     else()
         target_link_libraries(phase2_sampler_parallel PRIVATE phase2 GTest::gtest_main
             ${P2_AIO_LINK})
@@ -170,7 +170,7 @@ if(GTest_FOUND)
 
     # ② 退役对象拒绝面（resample variance_from / calibration variance_from /
     #    drizzle 单位符号）：被测生产源直接编译，避免与 phase2 的重复符号面
-    #    （astrocs_p3_rsmp 已链 astrocs_common/aio/hips/hips_properties）。
+    #    （acsd_p3_rsmp 已链 acsd_common/aio/hips/hips_properties）。
     #    注：本任务写域不含 eng/tests/**，故负例登记在 coverage 模块共址测试位。
     add_executable(p3_rsmp_retired_object_negative
         tests/retired_object_reject_negative_test.cpp
@@ -180,7 +180,7 @@ if(GTest_FOUND)
         ${CMAKE_SOURCE_DIR}/lib/algorithms/drizzle/healpix_drizzle
         ${CMAKE_SOURCE_DIR}/lib/algorithms/calibration/include)
     target_link_libraries(p3_rsmp_retired_object_negative PRIVATE
-        astrocs_p3_rsmp GTest::gtest_main)
+        acsd_p3_rsmp GTest::gtest_main)
 
     include(GoogleTest)
     # V3 B3-A4: 每个 Phase2 门的发现测试统一加 TEST_PREFIX "phase2_<gate>."，
@@ -211,23 +211,23 @@ endif()
 
 # BLD-002: 以下工具降级为 compatibility (EXCLUDE_FROM_ALL) —— 非正式 ALL target,
 # 仅按需显式构建 (cmake --build --target ...); 不进入任何 install/发布树。
-add_executable(astrocs-stage2 tools/stage2.cpp)
-target_link_libraries(astrocs-stage2 PRIVATE phase2
+add_executable(acsd-stage2 tools/stage2.cpp)
+target_link_libraries(acsd-stage2 PRIVATE phase2
     ${P2_AIO_LINK})
 if(P2_ENABLE_OPENMP AND OpenMP_CXX_FOUND)
     # CON-006: stage2 工具本身有逐 pixel integration 并行代码，也需要编译宏。
-    target_compile_definitions(astrocs-stage2 PRIVATE P2_ENABLE_OPENMP=1)
+    target_compile_definitions(acsd-stage2 PRIVATE P2_ENABLE_OPENMP=1)
 endif()
-set_target_properties(astrocs-stage2 PROPERTIES EXCLUDE_FROM_ALL TRUE)
-# V3 B3-A4: phase2_ivar_wiring 以 std::system("astrocs-stage2 ...") 驱动本
+set_target_properties(acsd-stage2 PROPERTIES EXCLUDE_FROM_ALL TRUE)
+# V3 B3-A4: phase2_ivar_wiring 以 std::system("acsd-stage2 ...") 驱动本
 # compatibility 工具；该工具 EXCLUDE_FROM_ALL，必须由测试目标显式拉建，
-# 否则全量 ctest 中 sh 报 "astrocs-stage2: not found"(rc=32512) 假红。
+# 否则全量 ctest 中 sh 报 "acsd-stage2: not found"(rc=32512) 假红。
 # FINAL-07 R2：本命令必须与 phase2_ivar_wiring 的**定义守卫**同一条件 —— 该目标只在
 # find_package(GTest) 成功（本文件 :90）且 phase2_ivar_wiring 被定义（:106）时存在；
 # 落在守卫外时，无 GTest / 模块独立 configure / Windows 一律直接报
 # "Cannot add target-level dependencies to non-existent target"（CI 实证）。
 if(TARGET phase2_ivar_wiring)
-  add_dependencies(phase2_ivar_wiring astrocs-stage2)
+  add_dependencies(phase2_ivar_wiring acsd-stage2)
 endif()
 
 add_executable(calibrated_pair_diag tools/calibrated_pair_diag.cpp)
@@ -244,7 +244,7 @@ set_target_properties(rejection_cli PROPERTIES EXCLUDE_FROM_ALL TRUE)
 # （GPU 不可用时 CudaEquivalent 之外其余 CUDA 测试已 GTEST_SKIP）。
 set(_cuda_bridge "${CMAKE_CURRENT_SOURCE_DIR}/../../acr/backends/cuda/bridge/acr_cuda_bridge.dll")
 if(EXISTS "${_cuda_bridge}")
-  foreach(_t phase2_synthetic_gate astrocs-stage2 calibrated_pair_diag rejection_cli)
+  foreach(_t phase2_synthetic_gate acsd-stage2 calibrated_pair_diag rejection_cli)
     add_custom_command(TARGET ${_t} POST_BUILD
       COMMAND ${CMAKE_COMMAND} -E copy_if_different
               "${_cuda_bridge}" "$<TARGET_FILE_DIR:${_t}>")

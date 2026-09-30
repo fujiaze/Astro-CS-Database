@@ -64,7 +64,7 @@ def load_resource_gate_contract(path=None) -> dict:
             doc = json.load(fh)
     except (OSError, ValueError) as exc:
         raise RuntimeError(f"资源门数值契约不可读/非法: {p} ({exc})") from exc
-    if doc.get("schema") != "astrocs.resource-gate/v1":
+    if doc.get("schema") != "acsd.resource-gate/v1":
         raise RuntimeError(f"资源门数值契约 schema 不符: {p}")
     return doc
 

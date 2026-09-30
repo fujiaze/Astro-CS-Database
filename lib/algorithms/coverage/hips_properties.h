@@ -1,13 +1,13 @@
 // lib/phase3_session/hips_properties.h — HiPS properties 严格解析/校验 (ALG-P3-001) — P3-001
 // 原则(06/TASK): 无 silent default —— 必需键缺失/值非法/越界一律拒绝;
 // 安全路径: 拒 ".." / 空段 / NUL / 符号逃逸; 缺 tile 探测 = 声明叶级至少 1 tile 可读路径。
-#ifndef ASTROCS_HIPS_PROPERTIES_H
-#define ASTROCS_HIPS_PROPERTIES_H
+#ifndef ACSD_HIPS_PROPERTIES_H
+#define ACSD_HIPS_PROPERTIES_H
 
 #include <cstddef>
 #include <string>
 
-namespace astrocs::phase3 {
+namespace acsd::phase3 {
 
 struct HipsProperties {
     int order = -1;              // hips_order(必需, 0..kMaxOrder)
@@ -42,6 +42,6 @@ bool hips_product_validate(const std::string& product_dir, HipsProperties* out,
  * 返回规范化的 POSIX 路径(不改文件系统)。 */
 bool path_is_safe(const std::string& p, std::string* err);
 
-}  // namespace astrocs::phase3
+}  // namespace acsd::phase3
 
-#endif  // ASTROCS_HIPS_PROPERTIES_H
+#endif  // ACSD_HIPS_PROPERTIES_H

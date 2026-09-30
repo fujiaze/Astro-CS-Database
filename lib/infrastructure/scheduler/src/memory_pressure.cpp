@@ -1,6 +1,6 @@
 // ACSD Core — 内存压力治理实现。
-// 层次合同、规范依据与全部语义定义见 lib/include/astrocs/core/memory_pressure.h。
-#include "astrocs/core/memory_pressure.h"
+// 层次合同、规范依据与全部语义定义见 lib/include/acsd/core/memory_pressure.h。
+#include "acsd/core/memory_pressure.h"
 
 #include <algorithm>
 #include <chrono>
@@ -14,7 +14,7 @@
 // aio 唯一追加写原语（台账落盘；本 TU 不自持第二条追加写通道）。
 #include "aio_atomic_file.h"
 
-namespace astrocs::core {
+namespace acsd::core {
 
 double memory_pressure_default_clock() noexcept {
   using clock = std::chrono::steady_clock;
@@ -40,12 +40,12 @@ const char* pressure_action_name(PressureAction a) noexcept {
 
 PressurePolicy pressure_policy_from_config() noexcept {
   PressurePolicy p;
-  p.enabled = astrocs::runtime_resources::kMemoryPressureEnabled != 0;
-  p.high_percent = astrocs::runtime_resources::kMemoryPressureHighPercent;
-  p.low_percent = astrocs::runtime_resources::kMemoryPressureLowPercent;
-  p.high_dwell_samples = astrocs::runtime_resources::kMemoryPressureHighDwellSamples;
-  p.low_dwell_samples = astrocs::runtime_resources::kMemoryPressureLowDwellSamples;
-  p.evict_after_samples = astrocs::runtime_resources::kMemoryPressureEvictAfterSamples;
+  p.enabled = acsd::runtime_resources::kMemoryPressureEnabled != 0;
+  p.high_percent = acsd::runtime_resources::kMemoryPressureHighPercent;
+  p.low_percent = acsd::runtime_resources::kMemoryPressureLowPercent;
+  p.high_dwell_samples = acsd::runtime_resources::kMemoryPressureHighDwellSamples;
+  p.low_dwell_samples = acsd::runtime_resources::kMemoryPressureLowDwellSamples;
+  p.evict_after_samples = acsd::runtime_resources::kMemoryPressureEvictAfterSamples;
   return p;
 }
 
@@ -227,7 +227,7 @@ MemoryPressureGovernor::MemoryPressureGovernor(MemoryBudget budget,
   impl_->last.ts = impl_->clock();
   // 采样间隔的唯一数值源（生成头）；不在实现侧写字面量。
   impl_->sample_interval =
-      static_cast<double>(astrocs::runtime_resources::kMemoryPressureSampleIntervalMs) /
+      static_cast<double>(acsd::runtime_resources::kMemoryPressureSampleIntervalMs) /
       1000.0;
 }
 
@@ -536,7 +536,7 @@ bool MemoryPressureGovernor::choose_victim(std::uint64_t* ticket_out,
   s.frames[best->ticket].evicted = true;
   s.evictions++;
   s.event("evict_lowest_progress", PressureAction::EVICT_LOWEST, s.last.ts, &victim,
-          "discard the least-advanced in-flight frame (docs/ASTROCS_DESIGN §8.3 "
+          "discard the least-advanced in-flight frame (docs/ACSD_DESIGN §8.3 "
           "\"drop the lowest-progress workflow and release its occupancy\"); "
           "it will be restarted after pressure subsides");
   if (ticket_out) *ticket_out = victim.ticket;
@@ -653,4 +653,4 @@ GovernorScope::GovernorScope(MemoryPressureGovernor* g) noexcept
 
 GovernorScope::~GovernorScope() { g_current_governor = prev_; }
 
-}  // namespace astrocs::core
+}  // namespace acsd::core

@@ -20,7 +20,7 @@
 用法:
   python3 acceptance_drizzle.py [--exe <path>] [--tests-dir <dir>] [--out <dir>] [--skip-run]
 
-exe 定位 (跨平台): --exe 显式给定 > 环境 ASTROCS_DRIZZLE_ACCEPTANCE_EXE >
+exe 定位 (跨平台): --exe 显式给定 > 环境 ACSD_DRIZZLE_ACCEPTANCE_EXE >
 tests_dir / build 下若干候选 (含/不含 .exe 后缀, 递归 glob)。
 """
 
@@ -96,12 +96,12 @@ def find_exe(explicit, tests_dir):
 
     历史缺陷: 原实现硬编码 tests_dir/drizzle_acceptance_test.exe (Windows 专名),
     在 Linux 上恒为 "exe 不存在"——验收门永远跑不起来。
-    搜索顺序: --exe > $ASTROCS_DRIZZLE_ACCEPTANCE_EXE > tests_dir 及其上溯的
+    搜索顺序: --exe > $ACSD_DRIZZLE_ACCEPTANCE_EXE > tests_dir 及其上溯的
     build/ 树下若干候选 (带/不带 .exe 后缀, 含递归 glob)。
     """
     if explicit:
         return explicit if os.path.exists(explicit) else None
-    env_exe = os.environ.get("ASTROCS_DRIZZLE_ACCEPTANCE_EXE")
+    env_exe = os.environ.get("ACSD_DRIZZLE_ACCEPTANCE_EXE")
     if env_exe and os.path.exists(env_exe):
         return env_exe
     names = ("drizzle_acceptance_test", "drizzle_acceptance_test.exe")

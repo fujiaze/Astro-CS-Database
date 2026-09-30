@@ -35,9 +35,9 @@
 #include <filesystem>
 #include <nlohmann/json.hpp>  // --inspect: 解析 HISS metadata JSON
 
-// ASTROCS_GIT_COMMIT: 编译时可由 -D 传入, 否则使用占位符
-#ifndef ASTROCS_GIT_COMMIT
-#define ASTROCS_GIT_COMMIT "unknown"
+// ACSD_GIT_COMMIT: 编译时可由 -D 传入, 否则使用占位符
+#ifndef ACSD_GIT_COMMIT
+#define ACSD_GIT_COMMIT "unknown"
 #endif
 
 // ============================================================================
@@ -54,7 +54,7 @@ static void print_usage() {
 
 static void print_help() {
     print_usage();
-    printf("\nAstroCS Stage1 Orchestrator (Phase1 JSON entry)\n");
+    printf("\nACSD Stage1 Orchestrator (Phase1 JSON entry)\n");
     printf("\n");
     printf("The only production entry point is:\n");
     printf("  orchestrator.exe path/to/stage1.json\n");
@@ -72,7 +72,7 @@ static void print_help() {
 
 static void print_version() {
     printf("ACSD Orchestrator 2.0 (Phase1 JSON entry)\n");
-    printf("git commit: %s\n", ASTROCS_GIT_COMMIT);
+    printf("git commit: %s\n", ACSD_GIT_COMMIT);
 }
 
 // ============================================================================

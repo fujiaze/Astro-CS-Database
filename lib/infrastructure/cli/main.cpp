@@ -1,6 +1,6 @@
 // acsd CLI — 单一用户入口 (V5, CLI-002)
 // 统一 parser + JSON/JSONL writer + 退出码映射 + 协作取消 + crash boundary。
-// 命令树唯一权威: docs/ASTROCS_DESIGN §7.1 + docs/engineering/CLI_PROTOCOL_V1.md §1
+// 命令树唯一权威: docs/ACSD_DESIGN §7.1 + docs/engineering/CLI_PROTOCOL_V1.md §1
 // （落在 lib/infrastructure/cli/command_tree.h）；
 // 协议/退出码唯一权威: docs/engineering/CLI_PROTOCOL_V1.md + docs/engineering/ERROR_HANDLING_STANDARD.md §7
 // （码值唯一源 = lib/infrastructure/cli/exit_codes.h）。
@@ -51,31 +51,31 @@ static void tune_allocator_for_large_tiles() {
 
 int real_main(int argc, char** argv_utf8) {
     tune_allocator_for_large_tiles();
-    astrocs::install_cancel_handlers();
+    acsd::install_cancel_handlers();
     std::string joined_for_report;
     try {
         Parsed p = parse_args(argc, argv_utf8);
         joined_for_report = p.join();
         if (joined_for_report.empty()) {
             std::fputs(kHelp, stderr);
-            return astrocs::ARGS;   // 04: 无命令 → 2（help 只打印到 stderr）
+            return acsd::ARGS;   // 04: 无命令 → 2（help 只打印到 stderr）
         }
         return dispatch(p);
     } catch (const ParseError& e) {
         std::fprintf(stderr, "acsd: %s\n", e.what());
         std::fputs(kHelp, stderr);
-        return astrocs::ARGS;   // 04: CLI 参数错 → 2
+        return acsd::ARGS;   // 04: CLI 参数错 → 2
     } catch (const std::exception& e) {
         // 04 §5: 未捕获异常 → 70 + run_id + 阶段 + 最小脱敏 crash report, 不泄露凭据
         std::fprintf(stderr,
                      "acsd: CRASH run_id=%s command='%s' detail='%s' (sanitized; no credentials)\n",
-                     astrocs::make_run_id().c_str(),
+                     acsd::make_run_id().c_str(),
                      sanitize(joined_for_report).c_str(), sanitize(e.what()).c_str());
-        return astrocs::INTERNAL;
+        return acsd::INTERNAL;
     } catch (...) {
         std::fprintf(stderr, "acsd: CRASH run_id=%s command='%s' detail='unknown exception'\n",
-                     astrocs::make_run_id().c_str(), sanitize(joined_for_report).c_str());
-        return astrocs::INTERNAL;
+                     acsd::make_run_id().c_str(), sanitize(joined_for_report).c_str());
+        return acsd::INTERNAL;
     }
 }
 
@@ -87,13 +87,13 @@ int wmain(int argc, wchar_t** argv) {
         // B13-R13-4: 修复 1 字节越界写 — 历史代码分配 n-1 却传 cbMultiByte=n。
         // 正确顺序 (缓冲计算见 cli_common.h utf8_from_wide_*): 分配 n → 转 n → 去 NUL。
         const int n = WideCharToMultiByte(CP_UTF8, 0, argv[i], -1, nullptr, 0, nullptr, nullptr);
-        if (!astrocs::utf8_from_wide_should_convert(n)) {
+        if (!acsd::utf8_from_wide_should_convert(n)) {
             u8.emplace_back();
             continue;
         }
-        std::string s(astrocs::utf8_from_wide_alloc_bytes(n), '\0');
+        std::string s(acsd::utf8_from_wide_alloc_bytes(n), '\0');
         WideCharToMultiByte(CP_UTF8, 0, argv[i], -1, s.data(), n, nullptr, nullptr);
-        s.resize(astrocs::utf8_from_wide_final_len(n));
+        s.resize(acsd::utf8_from_wide_final_len(n));
         u8.push_back(std::move(s));
     }
     std::vector<char*> ptrs;

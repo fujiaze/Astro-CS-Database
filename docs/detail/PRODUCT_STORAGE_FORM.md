@@ -1,6 +1,6 @@
 # 产品落盘形态：裸 HiPS 与 zstd 归档包
 
-> 上游：ASTROCS_DESIGN.md §10（I/O 与原子产品）、§4.4 / §5 / §6（三阶段输出合同）、附录 B（外部标准与文献）
+> 上游：ACSD_DESIGN.md §10（I/O 与原子产品）、§4.4 / §5 / §6（三阶段输出合同）、附录 B（外部标准与文献）
 
 形态键的字段词表正本 = `eng/contracts/schemas/hips_storage_form.schema.json`；形态合同 = `docs/engineering/HIPS_STORAGE_FORM_CONTRACT.md`；接口面 = `docs/science/IO_002_HIPS_INPUT_INTERFACE.md`、`docs/engineering/io/IO_003_ATOMIC_OUTPUT_PUBLISH.md`。
 
@@ -102,7 +102,7 @@ flowchart LR
 
 ```text
 {
-  "index_schema": "astrocs.hips-index/v1",
+  "index_schema": "acsd.hips-index/v1",
   "product": "<name>",
   "storage_form": "archive" | "bare",
   "archive": {"name": "<name>.hips.zst", "bytes": N, "sha256": "<64hex>",
@@ -127,7 +127,7 @@ flowchart LR
 
 ```text
 {
-  "index_schema": "astrocs.coverage-index/v1",
+  "index_schema": "acsd.coverage-index/v1",
   "granularity": {"unit": "hips_leaf_tile", "tile_width": 512, "hips_order": 9},
   "frames": ["f00", "f01"],
   "blocks": [{"ipix": 1372036, "frames": [{"f": "f00", "frac": 255}, {"f": "f03", "frac": 64}]}]
@@ -218,7 +218,7 @@ flowchart LR
 
 ## 10. 形态的输入配置与清单登记
 
-形态选择落在**输入 JSON**，产物把形态与索引路径**自报进输出清单**——两者合起来使不同批次 Phase1 的输出 JSON 可以合并而不丢索引（细则与不变式 F0/F1..F4/M1..M4 见 `docs/engineering/HIPS_STORAGE_FORM_CONTRACT.md` §10；字段名与取值的唯一词表 = `eng/contracts/schemas/hips_storage_form.schema.json#x-astrocs-field-vocabulary`）。
+形态选择落在**输入 JSON**，产物把形态与索引路径**自报进输出清单**——两者合起来使不同批次 Phase1 的输出 JSON 可以合并而不丢索引（细则与不变式 F0/F1..F4/M1..M4 见 `docs/engineering/HIPS_STORAGE_FORM_CONTRACT.md` §10；字段名与取值的唯一词表 = `eng/contracts/schemas/hips_storage_form.schema.json#x-acsd-field-vocabulary`）。
 
 ### 10.1 输入：Phase1 的形态切换键
 

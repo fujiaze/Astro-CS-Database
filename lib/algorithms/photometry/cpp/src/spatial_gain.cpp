@@ -32,7 +32,7 @@
 #include <limits>
 #include <vector>
 
-namespace astrocs {
+namespace acsd {
 namespace photometry {
 namespace {
 
@@ -642,4 +642,4 @@ SpatialGainField fit_spatial_gain(const SpatialGainSample* s, int n,
 }
 
 }  // namespace photometry
-}  // namespace astrocs
+}  // namespace acsd

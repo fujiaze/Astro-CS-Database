@@ -9,8 +9,8 @@ if(NOT AIO_PRODUCT_IO_THIRD_PARTY_DIR)
   set(AIO_PRODUCT_IO_THIRD_PARTY_DIR "../../../../lib/third_party")
 endif()
 
-if(NOT TARGET astrocs_product_io)
-  add_library(astrocs_product_io STATIC
+if(NOT TARGET acsd_product_io)
+  add_library(acsd_product_io STATIC
     src/sha256.cpp
     src/bunit.cpp
     src/fits.cpp
@@ -18,19 +18,19 @@ if(NOT TARGET astrocs_product_io)
     src/provenance.cpp
     src/hips_manifest.cpp
     src/product_io.cpp)
-  target_include_directories(astrocs_product_io PUBLIC
+  target_include_directories(acsd_product_io PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}/include
     ${AIO_PRODUCT_IO_THIRD_PARTY_DIR})
-  set_target_properties(astrocs_product_io PROPERTIES
+  set_target_properties(acsd_product_io PROPERTIES
     CXX_STANDARD 17
     CXX_STANDARD_REQUIRED ON)
-  # 平台系统库面: 引用根 CMakeLists 唯一判定点声明的共用件 astrocs_platform_math。
+  # 平台系统库面: 引用根 CMakeLists 唯一判定点声明的共用件 acsd_platform_math。
   # 本目录**可被独立 configure** (eng/tests/unit/aio 的变异 harness 用
   # `cmake -S eng/tests/unit/aio -B build` 把本目录当子目录拉进去); 那种情况下
-  # 没有根入口 ⇒ 共用件未定义, 直接写 astrocs_platform_math 会被 CMake 当成
-  # 普通库名展开成 -lastrocs_platform_math ⇒ ld: cannot find。
+  # 没有根入口 ⇒ 共用件未定义, 直接写 acsd_platform_math 会被 CMake 当成
+  # 普通库名展开成 -lacsd_platform_math ⇒ ld: cannot find。
   # 故按「目标是否存在」守卫, 不按平台守卫 (平台判断仍只在共用件内部一处)。
-  if(TARGET astrocs_platform_math)
-    target_link_libraries(astrocs_product_io PUBLIC astrocs_platform_math)
+  if(TARGET acsd_platform_math)
+    target_link_libraries(acsd_product_io PUBLIC acsd_platform_math)
   endif()
 endif()

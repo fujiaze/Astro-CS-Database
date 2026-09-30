@@ -1,5 +1,5 @@
-#ifndef ASTROCS_DRIZZLE_SCIENCE_H
-#define ASTROCS_DRIZZLE_SCIENCE_H
+#ifndef ACSD_DRIZZLE_SCIENCE_H
+#define ACSD_DRIZZLE_SCIENCE_H
 
 // ============================================================================
 // ACSD v6 Phase1 Drizzle 科学核心（signal 单位 / SB 组合 / variance &
@@ -15,7 +15,7 @@
 //   FZ-UNIT-FLUX        flux F_hat           = ADU
 //   FZ-UNIT-PSFSW       psfsw_robust_weight  = 1 —— **已退役并物理删除**
 //                       （PSFSW-RETIRE-01 退役 / PSFSW-RETIRE-03 物理删除）：
-//                       该对象不是现行对象（docs/ASTROCS_DESIGN.md §3.1；UNIFIED_MODEL.md:58）；
+//                       该对象不是现行对象（docs/ACSD_DESIGN.md §3.1；UNIFIED_MODEL.md:58）；
 //                       冻结单位表不再有它的行、UnitId 不再有它的项（同一对象在权威链上
 //                       只能有一个身份）。拒绝面为**字符串面**：产品/单位声明消费该符号
 //                       ⇒ 显式拒绝 + 迁移提示（is_retired_unit_symbol /
@@ -56,7 +56,7 @@
 #include <string>
 #include <vector>
 
-namespace astrocs {
+namespace acsd {
 namespace v6 {
 namespace drizzle {
 
@@ -109,7 +109,7 @@ UnitDimension inverse_dimension(UnitDimension d);
 bool unit_law_holds(UnitId signal, UnitId variance, UnitId ivar);
 
 // ── 退役对象显式拒绝（PSFSW-RETIRE-01）────────────────────────
-// psfsw_robust_weight **不是现行对象**：docs/ASTROCS_DESIGN.md §3.1（权重只能来自纯净
+// psfsw_robust_weight **不是现行对象**：docs/ACSD_DESIGN.md §3.1（权重只能来自纯净
 // 信号与噪声之比的逆方差，跨帧绝对标定，不基于参考帧；PSF 拟合质量代理只作诊断）、
 // docs/detail/UNIFIED_MODEL.md:58（旧产品声明该对象 ⇒ 显式拒绝 + 迁移提示）。
 // PSFSW-RETIRE-03：该对象已**物理删除**——冻结单位表无其行、UnitId 无其项
@@ -389,6 +389,6 @@ GateVerdict gate_unit_law(UnitId signal, UnitId variance, UnitId ivar);
 
 } // namespace drizzle
 } // namespace v6
-} // namespace astrocs
+} // namespace acsd
 
-#endif // ASTROCS_DRIZZLE_SCIENCE_H
+#endif // ACSD_DRIZZLE_SCIENCE_H

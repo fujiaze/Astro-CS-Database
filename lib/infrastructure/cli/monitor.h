@@ -58,7 +58,7 @@
 #include <unistd.h>
 #endif
 
-namespace astrocs {
+namespace acsd {
 
 // 单调时钟(steady), 与墙钟(UTC)双源: 采集耗时/开销用 steady, 事件时间戳用 UTC。
 using SteadyClock = std::chrono::steady_clock;
@@ -473,4 +473,4 @@ private:
     uint64_t overhead_ns_ = 0;
 };
 
-}  // namespace astrocs
+}  // namespace acsd

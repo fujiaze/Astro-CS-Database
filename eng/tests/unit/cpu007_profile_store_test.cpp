@@ -20,21 +20,21 @@
 
 /* FINAL-07 WIN-PORT 批次二: 平台专属调用的唯一判定点 ——
  * dlopen/dlsym/dlerror、setenv/unsetenv、popen/pclose、目录遍历与文件属性等只在类 UNIX
- * 存在的接口经 eng/tests/support/astrocs_test_posix_compat.h 统一给等价物；本 TU 不再写
+ * 存在的接口经 eng/tests/support/acsd_test_posix_compat.h 统一给等价物；本 TU 不再写
  * 平台分支。无等价语义的能力见该头「无等价物清单」(显式限定 + 明确状态)。 */
-#include "../support/astrocs_test_posix_compat.h"
+#include "../support/acsd_test_posix_compat.h"
 
 #include <nlohmann/json.hpp>
 
 namespace fs = std::filesystem;
 
-using astrocs::backend_host::PathResult;
-using astrocs::backend_host::SaveResult;
-using astrocs::backend_host::ProfileLoadResult;
-using astrocs::backend_host::default_profile_path_v1;
-using astrocs::backend_host::save_profile_atomic_v1;
-using astrocs::backend_host::load_profile_checked_v1;
-using astrocs::backend_host::classify_profile_rejection_v1;
+using acsd::backend_host::PathResult;
+using acsd::backend_host::SaveResult;
+using acsd::backend_host::ProfileLoadResult;
+using acsd::backend_host::default_profile_path_v1;
+using acsd::backend_host::save_profile_atomic_v1;
+using acsd::backend_host::load_profile_checked_v1;
+using acsd::backend_host::classify_profile_rejection_v1;
 
 static int failures = 0;
 #define CHECK(cond)                                                        \
@@ -52,11 +52,11 @@ const char* kCommit2 = "fedcba9876543210fedcba9876543210fedcba98";
 
 std::string hex64(char c) { return std::string(64, c); }
 
-// 最小合法 astrocs.cpu-profile/v2 文本(与 profile_gen_v2 产出结构一致, 过 verify)
+// 最小合法 acsd.cpu-profile/v2 文本(与 profile_gen_v2 产出结构一致, 过 verify)
 std::string make_v2_profile(const char* vendor = "GenuineTest",
                             const char* kernel_verdict = "oracle:pass") {
     nlohmann::json j;
-    j["schema"] = "astrocs.cpu-profile/v2";
+    j["schema"] = "acsd.cpu-profile/v2";
     j["profile_id"] = "sha256:" + hex64('a');
     j["created_utc"] = "2026-09-08T00:00:00Z";
     j["host"] = {
@@ -66,7 +66,7 @@ std::string make_v2_profile(const char* vendor = "GenuineTest",
         {"xcr0", "7"}, {"logical_available", 4}, {"quota_signature", "qs-test"},
     };
     j["build"] = {
-        {"astrocs_version", "0.0.0"},
+        {"acsd_version", "0.0.0"},
         {"source_commit", kCommit},
         {"benchmark_binary_sha256", hex64('b')},
         {"runtime_build_id", "0.0.0+g0123456789ab"},
@@ -116,7 +116,7 @@ std::string temp_dir() {
     const char* t = std::getenv("TMPDIR");
     std::string base = (t && *t) ? t : "/tmp";
     static unsigned seq = 0;
-    const std::string d = base + "/astrocs_cpu007_test_" +
+    const std::string d = base + "/acsd_cpu007_test_" +
                           std::to_string(static_cast<unsigned long>(::getpid())) + "_" +
                           std::to_string(seq++);
     fs::create_directories(d);
@@ -268,7 +268,7 @@ int main() {
     const std::string t = temp_dir() + "/cpu_profile.json";
     CHECK(save_profile_atomic_v1(make_v2_profile(), make_hw_json(), kCommit, t).ok);
     // 坏文本: verify 拒绝(缺 build) → 目标不被覆盖
-    const SaveResult bad = save_profile_atomic_v1("{\"schema\":\"astrocs.cpu-profile/v2\"}",
+    const SaveResult bad = save_profile_atomic_v1("{\"schema\":\"acsd.cpu-profile/v2\"}",
                                                   make_hw_json(), kCommit, t);
     CHECK(!bad.ok);
     CHECK(bad.reason.find("verify_profile_v2") != std::string::npos);
@@ -276,7 +276,7 @@ int main() {
     CHECK(l.valid);   // 旧版原样可用
     // 外域 schema(CPU-006 benchmark-report/v1) → 同一防线拒绝(结构性隔离不破坏)
     const SaveResult foreign = save_profile_atomic_v1(
-        "{\"schema\":\"astrocs.benchmark-report/v1\",\"suite\":\"quick\"}",
+        "{\"schema\":\"acsd.benchmark-report/v1\",\"suite\":\"quick\"}",
         make_hw_json(), kCommit, t);
     CHECK(!foreign.ok);
     CHECK(foreign.reason.find("schema") != std::string::npos);
@@ -312,7 +312,7 @@ int main() {
   // ── 13) 失效归类词表(负向样例与 load 共用同一实现) ──
   {
     CHECK(classify_profile_rejection_v1("malformed JSON: x", "") == "corrupted");
-    CHECK(classify_profile_rejection_v1("schema != astrocs.cpu-profile/v2", "")
+    CHECK(classify_profile_rejection_v1("schema != acsd.cpu-profile/v2", "")
           == "old_schema");
     CHECK(classify_profile_rejection_v1(
               "build.source_commit != expected (0123)", "") == "stale_build");

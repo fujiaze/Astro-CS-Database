@@ -32,17 +32,17 @@
 #include <cstring>
 #include <string>
 
-namespace astrocs::phase3proj {
+namespace acsd::phase3proj {
 
 namespace {
 constexpr double kDeg = 180.0 / M_PI;
 constexpr double kRad = M_PI / 180.0;
 constexpr double kMaxAbsDec = 85.0;   // 四投影统一中心守卫（保守冻结，TAN=SCI 单一条件）
 // 最大尺寸与同目录 p3_wcs.cpp 冻结默认一致（PHASE3_API_V1 §2）。
-#ifndef ASTROCS_P3_MAX_SIDE
+#ifndef ACSD_P3_MAX_SIDE
 constexpr int kMaxSide = 20000;
 #else
-constexpr int kMaxSide = ASTROCS_P3_MAX_SIDE;
+constexpr int kMaxSide = ACSD_P3_MAX_SIDE;
 #endif
 
 void normalize_ra(double* ra) {
@@ -404,4 +404,4 @@ std::string p3_projection_fits_keywords(const P3ProjectionDescriptor* d) {
     return out;
 }
 
-}  // namespace astrocs::phase3proj
+}  // namespace acsd::phase3proj

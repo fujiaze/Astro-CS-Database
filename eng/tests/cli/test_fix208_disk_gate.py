@@ -2,9 +2,9 @@
 """FIX-208 验收 4/5/6：资源门收窄为**磁盘门**；内存/CPU/线程不设门；exit 10 收窄。
 
 权威（逐条）：
-  * docs/ASTROCS_DESIGN.md §4.5 运行前预检「资源门只管磁盘：运行前磁盘余量不足 ⇒ 报 warn（不阻断）；
+  * docs/ACSD_DESIGN.md §4.5 运行前预检「资源门只管磁盘：运行前磁盘余量不足 ⇒ 报 warn（不阻断）；
     运行中写盘失败/磁盘满 ⇒ 报错（fail-closed）；内存 / CPU / 线程不设门」；
-  * docs/ASTROCS_DESIGN.md §6.3 退出码表「10 = 磁盘写满 / 写盘失败（一般性资源超限门已取消）」；
+  * docs/ACSD_DESIGN.md §6.3 退出码表「10 = 磁盘写满 / 写盘失败（一般性资源超限门已取消）」；
   * GAP_AUDIT.md(RELEASE-02) §9.74 裁决 10（负责人逐字：「不应该有资源超限（除非存储不足）。
     那个问题直接在跑前报 warn，写入磁盘满了报错……只考虑磁盘写满这一个问题」）。
 
@@ -33,7 +33,7 @@ from cli_test_hygiene import run_cwd  # noqa: E402
 
 
 def cli_binary():
-    env = os.environ.get("ASTROCS_CLI_BIN")
+    env = os.environ.get("ACSD_CLI_BIN")
     if env and os.path.isfile(env):
         return env
     return os.path.join(REPO, "build", "acsd")
@@ -70,7 +70,7 @@ class TestDiskGateUnit(unittest.TestCase):
 #include <cstdio>
 #include <string>
 int main(int argc, char** argv) {
-    using namespace astrocs;
+    using namespace acsd;
     const std::string mode = (argc > 1) ? argv[1] : "";
     if (mode == "classify") {
         std::printf("enospc=%s\n", write_failure_kind_name(classify_write_failure(ENOSPC)));
@@ -232,7 +232,7 @@ class TestFrameLevelAttributionUnit(unittest.TestCase):
 int main() {
     // T1/T2: 串行两帧（帧 B 开窗 = 旧实现里 aio_hips_product_begin 的 reset 位点）
     aio_disk::FailureEpoch ep_a;
-    const bool a_noted = aio_disk::note_failure("/nonexistent/astrocs/probe_a", ENOSPC);
+    const bool a_noted = aio_disk::note_failure("/nonexistent/acsd/probe_a", ENOSPC);
     const bool a_before = ep_a.failed();
     aio_disk::FailureEpoch ep_b;
     const bool a_after = ep_a.failed();
@@ -245,12 +245,12 @@ int main() {
     int ca = 0, cb = 0;
     std::thread ta([&] {
         aio_disk::FailureEpoch e;
-        aio_disk::note_failure("/nonexistent/astrocs/probe_ta", ENOSPC);
+        aio_disk::note_failure("/nonexistent/acsd/probe_ta", ENOSPC);
         ca = e.failed() ? 1 : 0;
     });
     std::thread tb([&] {
         aio_disk::FailureEpoch e;
-        aio_disk::note_failure("/nonexistent/astrocs/probe_tb", ENOSPC);
+        aio_disk::note_failure("/nonexistent/acsd/probe_tb", ENOSPC);
         cb = e.failed() ? 1 : 0;
     });
     ta.join();
@@ -259,7 +259,7 @@ int main() {
     std::printf("conc_b=%d\n", cb);
     // T4: 阴性对照（文件系统仍有空间的 I/O 失败不得冒充磁盘满）
     aio_disk::FailureEpoch ep_c;
-    const bool c_noted = aio_disk::note_failure("/nonexistent/astrocs/probe_c", EACCES);
+    const bool c_noted = aio_disk::note_failure("/nonexistent/acsd/probe_c", EACCES);
     std::printf("c_noted=%d\n", c_noted ? 1 : 0);
     std::printf("c_failed=%d\n", ep_c.failed() ? 1 : 0);
     return 0;
@@ -299,7 +299,7 @@ class TestDiskGateEndToEnd(unittest.TestCase):
     def setUpClass(cls):
         assert os.path.isfile(EXE), "先构建 CLI（ninja -C build acsd）"
         cls.tmp = tempfile.mkdtemp(prefix="fix208_disk_e2e_")
-        cache = os.environ.get("ASTROCS_FIX208_FIXTURE_DIR")
+        cache = os.environ.get("ACSD_FIX208_FIXTURE_DIR")
         if cache and os.path.isfile(os.path.join(cache, "fixture")) and \
                 os.path.isdir(os.path.join(cache, "data")):
             cls.data = os.path.join(cache, "data")
@@ -394,7 +394,7 @@ class TestDiskGateEndToEnd(unittest.TestCase):
         剂量-反应：单帧 12/12 正确、双帧 58 次中 5 次 rc=7 且无 failure_kind 事件
         （run/FLAKE-01/logs/a_dose.log、a_f2_40.log；宿主 8 个 CPU 自旋时 20/20 正确
         ⇒ 触发条件是帧间调度交错，不是宿主压力）。
-        ⇒ 判据保留（docs/ASTROCS_DESIGN §4.5/§6.3 要求 fail-closed 为 exit 10），
+        ⇒ 判据保留（docs/ACSD_DESIGN §4.5/§6.3 要求 fail-closed 为 exit 10），
         但失败必须**自解释**，不得被当作 flake 忽略。
 
         该竞态已修：磁盘满分类改为**帧级归因窗口**（lib/infrastructure/aio/src/
@@ -416,7 +416,7 @@ class TestDiskGateEndToEnd(unittest.TestCase):
 
     def _dump_failure_evidence(self, tag, out_s, err_s):
         """失败时把 CLI 事件流/stderr 落盘（tmp 会被 tearDownClass 删除）。"""
-        root = os.environ.get("ASTROCS_CI_OUT_ROOT") or os.path.join(REPO, "run")
+        root = os.environ.get("ACSD_CI_OUT_ROOT") or os.path.join(REPO, "run")
         d = os.path.join(root, "fix208_disk_gate_evidence")
         try:
             os.makedirs(d, exist_ok=True)
@@ -503,7 +503,7 @@ class TestDiskGateEndToEnd(unittest.TestCase):
         判据面 = `resource_gate` 事件的**合同冻结扩展字段**（逐字；两处机器面同面：
         lib/infrastructure/cli/protocol.h::missing_required_extension_v1 ↔
         eng/contracts/schemas/jsonl_event_v1.schema.json 的 then.required 与
-        x-astrocs-event-kind-registry.kinds.resource_gate。人类可读合同
+        x-acsd-event-kind-registry.kinds.resource_gate。人类可读合同
         docs/engineering/CLI_PROTOCOL_V1.md §4 只列了 5 类 kind 的扩展字段，未列本 kind）：
           diag / enforcement / strict / enforced / work_core_seconds /
           workload_floor_core_seconds / workload_floor_reached
@@ -520,7 +520,7 @@ class TestDiskGateEndToEnd(unittest.TestCase):
                         [os.path.join(self.data, "light_1.fits"),
                          os.path.join(self.data, "light_2.fits")], out_dir)
         env = dict(os.environ)
-        env["ASTROCS_TEST_PIPELINE_SLEEP_MS"] = "12000"   # 造违规（判据的观测对象）
+        env["ACSD_TEST_PIPELINE_SLEEP_MS"] = "12000"   # 造违规（判据的观测对象）
         r = subprocess.run([EXE, "normalize", "--json", cfg, "-y", "--strict-resource-gate"],
                            capture_output=True, text=True, timeout=600, cwd=run_cwd(), env=env)
         self.assertEqual(r.returncode, 0, r.stderr[-400:])

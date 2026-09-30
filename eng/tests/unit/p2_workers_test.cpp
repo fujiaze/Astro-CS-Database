@@ -6,12 +6,12 @@
 #include <cstdio>
 #include <string>
 
-using astrocs::GateConfig;
-using astrocs::ResKind;
-using astrocs::GateDiag;
-using astrocs::evaluate_gate;
-using astrocs::compute_cores_threshold;
-using astrocs::gate_diag_name;
+using acsd::GateConfig;
+using acsd::ResKind;
+using acsd::GateDiag;
+using acsd::evaluate_gate;
+using acsd::compute_cores_threshold;
+using acsd::gate_diag_name;
 
 static int failures = 0;
 #define CHECK(cond)                                                       \
@@ -85,9 +85,9 @@ int main() {
     const double t2 = compute_cores_threshold(g);
     CHECK(t1 == t2);                 // 确定性
     CHECK(t1 == 0.85 * 2.0);         // 0.85*min(4,2) = 1.7
-    CHECK(astrocs::kCpuMeanMinPercent == 85.0);
-    CHECK(astrocs::kMon001UtilSampleMinPercent == 85.0);
-    CHECK(astrocs::kMon001QueueUtilMinPercent == 60.0);
+    CHECK(acsd::kCpuMeanMinPercent == 85.0);
+    CHECK(acsd::kMon001UtilSampleMinPercent == 85.0);
+    CHECK(acsd::kMon001QueueUtilMinPercent == 60.0);
   }
 
   // 4b) M5a-G-001 回归锁 case_avg_085_boundary: 已分配容量 4 → 核下限 3.4;
@@ -115,13 +115,13 @@ int main() {
     g.available_cpus = 4; g.selected_workers = 4; g.max_active_threads = 4;
     g.granted_workers = 4;                 // 已分配容量 = 4 核(观测权威)
     g.wall_seconds = 30.0; g.has_stage_annotation = true; g.workers_p50 = 4.0;
-    const double mean_pct = astrocs::cpu_percent_of_allocated_capacity(g, 90.0);
+    const double mean_pct = acsd::cpu_percent_of_allocated_capacity(g, 90.0);
     CHECK(std::fabs(mean_pct - 22.5) < 1e-9);                 // 90/4 = 22.5% 容量
-    CHECK(std::fabs(astrocs::utilization_value(g, 90.0) - 0.225) < 1e-9);
-    CHECK(astrocs::allocated_capacity_cores(g) == 4);
+    CHECK(std::fabs(acsd::utilization_value(g, 90.0) - 0.225) < 1e-9);
+    CHECK(acsd::allocated_capacity_cores(g) == 4);
     g.avg_equivalent_cores = 0.9;                             // 远低于 0.85*4
     g.cpu_mean_percent = mean_pct;
-    g.cpu_p50_percent = astrocs::cpu_percent_of_allocated_capacity(g, 380.0);
+    g.cpu_p50_percent = acsd::cpu_percent_of_allocated_capacity(g, 380.0);
     CHECK(evaluate_gate(g) != GateDiag::Ok);                  // 必须 FAIL
   }
 
@@ -136,10 +136,10 @@ int main() {
     g.wall_seconds = 30.0; g.has_stage_annotation = true; g.workers_p50 = 4.0;
     g.cpu_percent = 90.0; g.iowait_percent = 1.0; g.mem_bandwidth_percent = 90.0;
     g.avg_equivalent_cores = 3.6;
-    g.cpu_p50_percent = astrocs::cpu_percent_of_allocated_capacity(g, 380.0);  // 95%
-    g.cpu_mean_percent = astrocs::cpu_percent_of_allocated_capacity(g, 200.0); // 50%
+    g.cpu_p50_percent = acsd::cpu_percent_of_allocated_capacity(g, 380.0);  // 95%
+    g.cpu_mean_percent = acsd::cpu_percent_of_allocated_capacity(g, 200.0); // 50%
     CHECK(evaluate_gate(g) == GateDiag::CpuMeanLow);
-    g.cpu_mean_percent = astrocs::cpu_percent_of_allocated_capacity(g, 360.0); // 90%
+    g.cpu_mean_percent = acsd::cpu_percent_of_allocated_capacity(g, 360.0); // 90%
     CHECK(evaluate_gate(g) == GateDiag::Ok);
   }
 

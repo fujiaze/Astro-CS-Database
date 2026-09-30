@@ -1,6 +1,6 @@
 # WCS / PlateSolve Algorithms (ALG-WCS)
 
-> 上游：ASTROCS_DESIGN.md §4.2（Phase1 节点流程）
+> 上游：ACSD_DESIGN.md §4.2（Phase1 节点流程）
 
 ## 1 上游 SCI 与输入输出
 
@@ -353,7 +353,7 @@ Polar prune: if |dec|>45° use C/C45 disk B(q,C·radius), false_negative=0
 ASTROMETRY §8 ↔ DISP-WCS-001 退化语义（坍缩禁冒充解）；astropy oracle=
 ASTROMETRY §11 ↔ F2。共享 SCI（ASTROMETRY.md SCI-WCS-001，FROZEN）
 不因本附录改动；本节是唯一冻结依据（编排层词汇只作对齐对象；descriptor
-astrocs.phase1.wcs-platesolve 占位 ID SCI-P1-WCS-001/ALG-002/DATA-P1-WCS/
+acsd.phase1.wcs-platesolve 占位 ID SCI-P1-WCS-001/ALG-002/DATA-P1-WCS/
 API-P1-004/TEST-P1-WCS-001，`lib/infrastructure/scheduler/src/module_adapters.cpp`，由 P1-WCS-INT
 对齐本合同，不作冻结依据）。
 

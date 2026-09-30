@@ -19,7 +19,7 @@ class TestResourceGate(unittest.TestCase):
 #include "resource_gate.h"
 #include <cstdio>
 #include <cstdlib>
-using namespace astrocs;
+using namespace acsd;
 static void show(const char* name, GateDiag d){
     std::printf("%s=%s\n", name, gate_diag_name(d));
 }
@@ -57,9 +57,9 @@ int main(int argc, char** argv){
         cls.exe = os.path.join(cls.tmp, "gate")
         # 生成头（resource_gate_thresholds_generated.h，根 CMake configure_file 落构建根）
         # 必须可包含：DISPATCH 附录 H（构建隔离）→ 构建树 = 被测二进制所在目录
-        # （ASTROCS_CLI_BIN 覆盖），不再写死共享 build/。
+        # （ACSD_CLI_BIN 覆盖），不再写死共享 build/。
         build_root = os.path.dirname(os.path.abspath(
-            os.environ.get("ASTROCS_CLI_BIN", os.path.join(REPO, "build", "acsd"))))
+            os.environ.get("ACSD_CLI_BIN", os.path.join(REPO, "build", "acsd"))))
         r = subprocess.run(["g++", "-std=c++17", "-O2", f"-I{CLI}",
                             f"-I{os.path.join(REPO, 'lib', 'third_party')}",
                             f"-I{build_root}",

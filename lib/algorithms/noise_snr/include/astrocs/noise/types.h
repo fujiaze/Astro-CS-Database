@@ -1,6 +1,6 @@
-/* types.h - astrocs.p1.noise 模块常量与词表 (module ABI v1 迁移面)
+/* types.h - acsd.p1.noise 模块常量与词表 (module ABI v1 迁移面)
  *
- * 对齐先例: lib/algorithms/drizzle/hips/include/astrocs/hips/types.h (P1-HIPS-IMPL, 1959dc89)、
+ * 对齐先例: lib/algorithms/drizzle/hips/include/acsd/hips/types.h (P1-HIPS-IMPL, 1959dc89)、
  *           lib/algorithms/cosmetic / lib/algorithms/calibration 同构 (P1-COS-IMPL 948dfcba /
  *           P1-CAL-IMPL adf820ac)。本头只承载 C ABI adapter 层的常量/词表/
  *           诊断码, 不含任何科学常量 (1.482602218505602·MAD robust sigma、
@@ -12,12 +12,12 @@
  *         -> ALG-NOISE-001..003 (NOISE_ESTIMATION.md §13)
  *         -> API-NOISE-001 (docs/engineering/PUBLIC_API.md)
  *         -> lib/algorithms/noise_snr/module.yaml
- *            (module_id=astrocs.p1.noise, dll_name=astrocs_p1_noise.dll,
+ *            (module_id=acsd.p1.noise, dll_name=acsd_p1_noise.dll,
  *             threading_model=host_executor_lease,
  *             determinism=fixed_reduction_order)
  */
-#ifndef ASTROCS_NOISE_TYPES_H
-#define ASTROCS_NOISE_TYPES_H
+#ifndef ACSD_NOISE_TYPES_H
+#define ACSD_NOISE_TYPES_H
 
 #include <stdint.h>
 
@@ -27,26 +27,26 @@ extern "C" {
 
 /* ───────── 模块标识 ───────── */
 
-#define ASTROCS_NOISE_MODULE_ID       "astrocs.p1.noise"
-#define ASTROCS_NOISE_MODULE_VERSION  1u
-#define ASTROCS_NOISE_ABI_VERSION     1u
+#define ACSD_NOISE_MODULE_ID       "acsd.p1.noise"
+#define ACSD_NOISE_MODULE_VERSION  1u
+#define ACSD_NOISE_ABI_VERSION     1u
 /* 构建标识: 迁移任务 P1-NOISE-IMPL (独立 DLL 化, 不改科学域) */
-#define ASTROCS_NOISE_BUILD_ID        "p1-noise-impl-2026-09-09"
+#define ACSD_NOISE_BUILD_ID        "p1-noise-impl-2026-09-09"
 
-/* module.yaml module_id=astrocs.p1.noise (矩阵行 P1-NOISE); SCI 面
+/* module.yaml module_id=acsd.p1.noise (矩阵行 P1-NOISE); SCI 面
  * SCI-NOISE-001..015 为 module.yaml science_contracts[0] 段, describe 的
  * sci_id 槽承载主公式面 SCI-NOISE-001 (blank-sky 稳健方差, 与 HIPS 单槽
  * 模式一致); ALG 面 001..003 中 alg_id 槽承载 ALG-NOISE-001 (产品语义),
  * 002 (fill/free/scale_law) / 003 (gain 诊断) 经 op 词表同链。 */
-#define ASTROCS_NOISE_SCI_ID  "SCI-NOISE-001"
-#define ASTROCS_NOISE_ALG_ID  "ALG-NOISE-001"
-#define ASTROCS_NOISE_API_ID  "API-NOISE-001"
+#define ACSD_NOISE_SCI_ID  "SCI-NOISE-001"
+#define ACSD_NOISE_ALG_ID  "ALG-NOISE-001"
+#define ACSD_NOISE_API_ID  "API-NOISE-001"
 
 /* config schema 版本 (词表见 NOISE_CFG_KEY_*; v1 冻结) */
-#define ASTROCS_NOISE_CONFIG_SCHEMA_VER 1u
+#define ACSD_NOISE_CONFIG_SCHEMA_VER 1u
 
 /* plan 输出词表版本 (词表演进必须升版本号) */
-#define ASTROCS_NOISE_PLAN_VERSION 1u
+#define ACSD_NOISE_PLAN_VERSION 1u
 
 /* ───────── op 词表 (config "op"; v1) ─────────
  * 与 API-NOISE-001 七导出映射 (noise_model.cpp 实现面):
@@ -67,9 +67,9 @@ extern "C" {
  * (snr_phot_cal_quality / snr_psf_fit_quality, P1-PHOT/P1-PSF 合同视角)
  * 不进本模块 op 面; 七个 noise 导出符号仍全量编译进 DLL 且 legacy 导出面
  * 经 version-script/DEF 降 local (ABI-006), ABI 合同不裁剪。 */
-#define ASTROCS_NOISE_OP_ESTIMATE  "estimate_noise_model"
-#define ASTROCS_NOISE_OP_FILL      "fill_noise_field"
-#define ASTROCS_NOISE_OP_DIAG      "noise_diagnostic"
+#define ACSD_NOISE_OP_ESTIMATE  "estimate_noise_model"
+#define ACSD_NOISE_OP_FILL      "fill_noise_field"
+#define ACSD_NOISE_OP_DIAG      "noise_diagnostic"
 
 /* ───────── config 键词表 (NOISE_CFG_KEY; v1; 顶层平铺) ─────────
  * 形状/参数在 config (plan 期可推导 work_units/memory/io, 无魔数),
@@ -201,4 +201,4 @@ typedef enum {
 }
 #endif
 
-#endif /* ASTROCS_NOISE_TYPES_H */
+#endif /* ACSD_NOISE_TYPES_H */

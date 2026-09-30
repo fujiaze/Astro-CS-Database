@@ -5,10 +5,10 @@
 //   ./p1cal_tests all
 //
 // 故障注入 (模板 <prefix>-TEST 验收: "故障注入能让测试失败"):
-//   ASTROCS_P1CAL_FAULT=<regname>[,<regname>...]
+//   ACSD_P1CAL_FAULT=<regname>[,<regname>...]
 //   每个注册的 fault 使对应 CHECK 组在报告阶段确定性翻转 → 二进制 rc=1,
 //   输出 "FAULT-INJECT <name>" 行。可注入 registry 见 p1cal_faults.hpp。
-//   例: ASTROCS_P1CAL_FAULT=darkopt_actual_k ./p1cal_tests negative
+//   例: ACSD_P1CAL_FAULT=darkopt_actual_k ./p1cal_tests negative
 #ifndef P1CAL_TEST_MAIN_HPP
 #define P1CAL_TEST_MAIN_HPP
 
@@ -24,7 +24,7 @@ struct FaultRegistry {
         static FaultRegistry r;
         return r;
     }
-    // 由 main() 启动时从 ASTROCS_P1CAL_FAULT 初始化
+    // 由 main() 启动时从 ACSD_P1CAL_FAULT 初始化
     std::vector<std::string> active;
 
     bool injected(const char* name) const {
@@ -104,8 +104,8 @@ inline int run_all_groups(const p1cal::TestGroup* groups, std::size_t n, int arg
         if (a == "--group" && i + 1 < argc) group = argv[++i];
         else if (a.rfind("--", 0) != 0) group = a;
     }
-    // ASTROCS_P1CAL_FAULT: 逗号分隔故障注入名单
-    if (const char* f = std::getenv("ASTROCS_P1CAL_FAULT")) {
+    // ACSD_P1CAL_FAULT: 逗号分隔故障注入名单
+    if (const char* f = std::getenv("ACSD_P1CAL_FAULT")) {
         std::string s = f;
         std::size_t pos = 0;
         while (pos < s.size()) {

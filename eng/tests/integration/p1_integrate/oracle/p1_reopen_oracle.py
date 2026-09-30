@@ -144,7 +144,7 @@ def main():
 
     # DOC-CONTRACT-MERGE-02：v6 逐件 schema 已并入现行承载面
     # eng/contracts/schemas/product_family_field_constraints.schema.json 的 $defs
-    # （原 eng/contracts/schemas/v6/astrocs.v6.<name>.v1.schema.json 已按
+    # （原 eng/contracts/schemas/v6/acsd.v6.<name>.v1.schema.json 已按
     # CHG-2026-09-22-V6-CONTRACT-MERGE 整体出库；见 docs/science/DATA_SEMANTICS.md §31）。
     pf_path = os.path.join(args.repo, "eng", "contracts", "schemas",
                            "product_family_field_constraints.schema.json")

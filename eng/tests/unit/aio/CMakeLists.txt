@@ -9,7 +9,7 @@ cmake_minimum_required(VERSION 3.16)
 set(AIO_PRODUCT_IO_STANDALONE FALSE)
 if(CMAKE_SOURCE_DIR STREQUAL CMAKE_CURRENT_SOURCE_DIR)
   set(AIO_PRODUCT_IO_STANDALONE TRUE)
-  project(astrocs_product_io_tests CXX)
+  project(acsd_product_io_tests CXX)
 endif()
 
 if(NOT AIO_PRODUCT_IO_LIB_DIR)
@@ -21,16 +21,16 @@ get_filename_component(AIO_PRODUCT_IO_REPO_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/../
 add_subdirectory("${AIO_PRODUCT_IO_LIB_DIR}" "${CMAKE_CURRENT_BINARY_DIR}/product_io_lib")
 
 add_executable(aio_test aio_test.cpp)
-target_link_libraries(aio_test PRIVATE astrocs_product_io)
-# 平台系统库面: 引用根 CMakeLists 唯一判定点声明的共用件 astrocs_platform_math。
+target_link_libraries(aio_test PRIVATE acsd_product_io)
+# 平台系统库面: 引用根 CMakeLists 唯一判定点声明的共用件 acsd_platform_math。
 # 独立 configure 本文件 (AIO_PRODUCT_IO_STANDALONE, 例如 mutations/*.py 的变异
 # harness 用 `cmake -S eng/tests/unit/aio -B build` 重编) 时根入口不存在 ⇒
-# 共用件未定义, 此时若仍写 astrocs_platform_math, CMake 会把它当**普通库名**
-# 展开成 -lastrocs_platform_math ⇒ 链接期 ld: cannot find -lastrocs_platform_math。
+# 共用件未定义, 此时若仍写 acsd_platform_math, CMake 会把它当**普通库名**
+# 展开成 -lacsd_platform_math ⇒ 链接期 ld: cannot find -lacsd_platform_math。
 # 故按「目标是否存在」守卫, 不按平台守卫 —— 平台判断仍只在共用件内部一处。
-# 与 eng/cmake/cfitsio_platform.cmake 同族口径 (IF(TARGET astrocs_platform_math))。
-if(TARGET astrocs_platform_math)
-  target_link_libraries(aio_test PRIVATE astrocs_platform_math)
+# 与 eng/cmake/cfitsio_platform.cmake 同族口径 (IF(TARGET acsd_platform_math))。
+if(TARGET acsd_platform_math)
+  target_link_libraries(aio_test PRIVATE acsd_platform_math)
 endif()
 
 if(AIO_PRODUCT_IO_STANDALONE)
@@ -76,7 +76,7 @@ if(UNIX)
   # 第三态负例依赖 LD_PRELOAD 注入目录 fd 的 fsync 失败 => POSIX-only
   # （Windows 侧第三态恒成立但不可观测，见 17_aio.md §4）。
   add_executable(aio_atomic_durability_probe atomic_durability_probe.cpp)
-  target_link_libraries(aio_atomic_durability_probe PRIVATE astrocs_product_io)
+  target_link_libraries(aio_atomic_durability_probe PRIVATE acsd_product_io)
 
   add_library(aio_fsync_dir_fail_interposer SHARED fsync_dir_fail_interposer.cpp)
   target_link_libraries(aio_fsync_dir_fail_interposer PRIVATE ${CMAKE_DL_LIBS})
@@ -104,7 +104,7 @@ if(UNIX)
   #       （否则 runner exit 2：注入未发生 = 零证据）。
   # 权威依据: docs/engineering/io/IO_003_ATOMIC_OUTPUT_PUBLISH.md §4.1（两序正本）。
   add_executable(aio_verify_order_probe verify_order_probe.cpp)
-  target_link_libraries(aio_verify_order_probe PRIVATE astrocs_product_io)
+  target_link_libraries(aio_verify_order_probe PRIVATE acsd_product_io)
 
   add_library(aio_corrupt_after_rename_interposer SHARED corrupt_after_rename_interposer.cpp)
   target_link_libraries(aio_corrupt_after_rename_interposer PRIVATE ${CMAKE_DL_LIBS})

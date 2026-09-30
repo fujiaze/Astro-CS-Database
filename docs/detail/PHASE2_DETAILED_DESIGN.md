@@ -1,6 +1,6 @@
 # Phase2 目标态详细设计
 
-> 上游：ASTROCS_DESIGN.md §5（mosaic：相对定标·排异·集成）
+> 上游：ACSD_DESIGN.md §5（mosaic：相对定标·排异·集成）
 
 使命：把一组合同兼容的 Phase1 球面产品相对定标、排异并合成为可继续测量的马赛克；对不同科学目标提供明确的最优统计量，而不是一个万能 weight。
 
@@ -18,7 +18,7 @@
 
 每步产物持久或可重建，七个 operation 逐一具名调用。
 
-SNR 重建口径由 JSON 显式指定：`dense`（稠密帧内 SNR）、`sparse_reconstruct`（默认，稀疏控制点插值重建）、`frame_reconstruct`（仅帧级）；实际生效口径记录在 `snr_path_effective`。三条口径都**直接**产出同一物理量 `SNR = F_ref/σ_F` 的稠密表示，只在重建方式上不同：`sparse_reconstruct` 由稀疏**绝对** SNR 控制点重建为稠密场（控制点值即绝对信噪比本身，不再乘/除帧级标量）；叠加权重由 SNR **现场换算**为逆方差 `w = SNR²/F_ref²`（`F_ref` 为逐帧参考通量），不由上游落盘（`ASTROCS_DESIGN.md` §5.3）。
+SNR 重建口径由 JSON 显式指定：`dense`（稠密帧内 SNR）、`sparse_reconstruct`（默认，稀疏控制点插值重建）、`frame_reconstruct`（仅帧级）；实际生效口径记录在 `snr_path_effective`。三条口径都**直接**产出同一物理量 `SNR = F_ref/σ_F` 的稠密表示，只在重建方式上不同：`sparse_reconstruct` 由稀疏**绝对** SNR 控制点重建为稠密场（控制点值即绝对信噪比本身，不再乘/除帧级标量）；叠加权重由 SNR **现场换算**为逆方差 `w = SNR²/F_ref²`（`F_ref` 为逐帧参考通量），不由上游落盘（`ACSD_DESIGN.md` §5.3）。
 
 ## 3. Coverage 与重叠图
 
@@ -33,7 +33,7 @@ y_k(x) = s(x) + C_k(x) + epsilon_k(x)      # 纯加性（g_k ≡ 1）
 ```
 
 - `C_k(x)` 是加性天光背景（校正场）；**不引入乘性 `g_k`**（恒等；乘性残留归 Phase1 低阶空间增益，见 `docs/science/PHASE2_UPM.md` §14a）；
-- 星点掩膜之外每帧取稀疏背景采样点，采样点权重取**噪声逆方差 `control_ivar`**：被估量是变化的背景电平，`SNR²` 在该处不是有效逆方差代理；SNR 只作 veto/质量门（`ASTROCS_DESIGN.md` §5.4）；
+- 星点掩膜之外每帧取稀疏背景采样点，采样点权重取**噪声逆方差 `control_ivar`**：被估量是变化的背景电平，`SNR²` 在该处不是有效逆方差代理；SNR 只作 veto/质量门（`ACSD_DESIGN.md` §5.4）；
 - 约束 gauge，报告**可辨识性判决与读数**（判在**未正则化**的列均衡数据信息矩阵上，唯一相对阈值；欠定与病态是同一条不等式的两种读法）、连通性、残差和参数协方差；
 - 参考天光面的节点间距由**输入几何**导出（上界 = 重叠带宽度与指向间距的一半取小，下界 = 数据自身分辨率极限），并作为自适应回路的**唯一旋钮**；几何量缺失 ⇒ fail-closed，取值只来自输入几何；
 - 控制点避开源、饱和、坏点和高结构区域；
@@ -61,7 +61,7 @@ y_k(x) = s(x) + C_k(x) + epsilon_k(x)      # 纯加性（g_k ≡ 1）
 | 4 ≤ N ≤ 5 | percentile clipping |
 | N ≥ 6 | winsorized sigma clipping |
 
-生产档（`astrocs_adaptive_pixel`）的 **AUTO 路由 = 三档**（`1≤N≤3` none / `4≤N≤5` percentile / `N≥6` winsorized）；`linear fit` 仍是合法**显式**方法（`request=linear_fit`），AUTO 在生产档不产出该档（档界与算法名的唯一正本 = `registry/astrocs.phase2.reject.md`（档位表段），本节不另立）；min/max 极值法**不用于生产**。实际方法、参数与 N 写入 `rejection` provenance（权威表见 `ASTROCS_DESIGN.md` §5.5；算法出处、合法性窗口与合成 Oracle 正负例见 `docs/science/REJECTION.md`）。
+生产档（`acsd_adaptive_pixel`）的 **AUTO 路由 = 三档**（`1≤N≤3` none / `4≤N≤5` percentile / `N≥6` winsorized）；`linear fit` 仍是合法**显式**方法（`request=linear_fit`），AUTO 在生产档不产出该档（档界与算法名的唯一正本 = `registry/acsd.phase2.reject.md`（档位表段），本节不另立）；min/max 极值法**不用于生产**。实际方法、参数与 N 写入 `rejection` provenance（权威表见 `ACSD_DESIGN.md` §5.5；算法出处、合法性窗口与合成 Oracle 正负例见 `docs/science/REJECTION.md`）。
 
 ## 6. 两类目标产品，不能混用权重
 
@@ -100,7 +100,7 @@ Q = Σ_k Q_k,    W = Σ_k W_k,    F_hat = Q/W,    Var(F_hat) = 1/W
 ### 6.3 权重的来源与产生链
 
 Phase2 **不消费**任何来自 Phase1 的相对权重产品：权重一律**按该天球像素对应的帧集合现场算出**（派生量）；
-Phase1 与 Phase3 **不产生、不消费**权重。PSF 拟合质量代理（`q_psf`、残差尺度）**只作诊断**，**权重面排除**该项（`ASTROCS_DESIGN.md` §2、§3.1）。
+Phase1 与 Phase3 **不产生、不消费**权重。PSF 拟合质量代理（`q_psf`、残差尺度）**只作诊断**，**权重面排除**该项（`ACSD_DESIGN.md` §2、§3.1）。
 
 **产生链固定为两步、没有可选择项**：
 
@@ -142,4 +142,4 @@ Phase2 产物是**服务面天球数据库**，落盘形态固定为**裸 `<name
 - 不同 seeing/透明度/背景组合优于或等于普通 ivar 图像叠加的点源检测功率；
 - 扩展源常量场、梯度、总通量与方差无偏；
 - UPM 断图/欠定/不可辨识、排异小样本、零信息量和相关噪声失配能红；拟合不收敛或判红时产品**照出**、`warning_codes` 非空、构建 rc **不变**；
-- M42/银心真实数据检查接缝（**有符号**电平台阶门槛 + 适用域，见 `docs/ASTROCS_DESIGN.md` §12.4（L4 真实视觉验收））、背景、星形、卫星线、黑洞和预测/实测噪声。
+- M42/银心真实数据检查接缝（**有符号**电平台阶门槛 + 适用域，见 `docs/ACSD_DESIGN.md` §12.4（L4 真实视觉验收））、背景、星形、卫星线、黑洞和预测/实测噪声。

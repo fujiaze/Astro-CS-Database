@@ -11,7 +11,7 @@
 #include <string>
 #include <unordered_map>
 
-namespace astrocs {
+namespace acsd {
 namespace v6 {
 namespace drizzle {
 
@@ -35,7 +35,7 @@ DrzError compute_overlap_row(const ::healpix::HealpixCore& hp,
     // ENGINEERING_SPEC §8 可执行负例（故障注入面）: 把首个候选的交叠面积置为
     // NaN，复现「一个面积无效像素」被静默 continue 吞掉的旧行为 ⇒ 本函数必须
     // 以具名错误 overlap_area_invalid 失败（门 p1_drz_area_invalid 判红）。
-    const char* drz_fault = std::getenv("ASTROCS_DRZ_FAULT");
+    const char* drz_fault = std::getenv("ACSD_DRZ_FAULT");
     const bool inject_invalid_area =
         (drz_fault && std::string(drz_fault) == "invalid_area");
     bool injected = false;
@@ -204,4 +204,4 @@ DrzError build_operator_from_sources(const ::healpix::HealpixCore& hp,
 
 } // namespace drizzle
 } // namespace v6
-} // namespace astrocs
+} // namespace acsd

@@ -125,8 +125,8 @@ def build_interposer(tmp):
 
 def run(probe, args, preload=None):
     env = os.environ.copy()
-    env.pop("ASTROCS_HASH_FAIL_INJECT", None)
-    env.pop("ASTROCS_FAIL_FSYNC", None)
+    env.pop("ACSD_HASH_FAIL_INJECT", None)
+    env.pop("ACSD_FAIL_FSYNC", None)
     if preload:
         env["LD_PRELOAD"] = preload
     r = subprocess.run([probe, *[str(a) for a in args]], capture_output=True,

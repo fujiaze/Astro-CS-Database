@@ -16,7 +16,7 @@
 #include <sched.h>
 #endif
 
-namespace astrocs::core {
+namespace acsd::core {
 namespace {
 
 std::atomic<std::uint32_t> g_process_budget{0};
@@ -43,7 +43,7 @@ std::uint32_t affinity_cpu_count() noexcept {
 }
 
 std::uint32_t cpu_budget_cap() noexcept {
-  return static_cast<std::uint32_t>(astrocs::runtime_resources::kCpuBudgetMax);
+  return static_cast<std::uint32_t>(acsd::runtime_resources::kCpuBudgetMax);
 }
 
 void set_process_cpu_budget(std::uint32_t workers) noexcept {
@@ -64,4 +64,4 @@ std::uint32_t node_thread_budget(bool lease_present,
   return process_cpu_budget();
 }
 
-}  // namespace astrocs::core
+}  // namespace acsd::core

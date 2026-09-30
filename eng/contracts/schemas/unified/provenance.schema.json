@@ -1,12 +1,12 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://astrocs.local/schemas/unified/provenance/v1",
+  "$id": "https://acsd.local/schemas/unified/provenance/v1",
   "title": "ACSD 统一对象 provenance —— 输入/配置/软件/哈希来源链",
   "description": "UNIFIED_MODEL §2：provenance = 输入/配置/软件/哈希来源链；可否作权重 = ——（不适用）。provenance 承载来源链，不承载任何数值权重。",
-  "x-astrocs-object": {
+  "x-acsd-object": {
     "name": "provenance",
     "canonical_file": "eng/contracts/schemas/unified/provenance.schema.json",
-    "authority": "docs/detail/UNIFIED_MODEL.md §2；docs/ASTROCS_DESIGN.md §2；ENGINEERING_SPEC.md §3/§4.7",
+    "authority": "docs/detail/UNIFIED_MODEL.md §2；docs/ACSD_DESIGN.md §2；ENGINEERING_SPEC.md §3/§4.7",
     "weight_verdict": "——",
     "weight_eligible": false
   },
@@ -55,7 +55,7 @@
       "description": "对象判别式：本文档声明的 UNIFIED_MODEL §2 对象名（禁止用别的对象名冒充）"
     },
     "object_schema_id": {
-      "const": "https://astrocs.local/schemas/unified/provenance/v1",
+      "const": "https://acsd.local/schemas/unified/provenance/v1",
       "description": "全局唯一 schema ID（eng/contracts/schemas/unified/provenance.schema.json）"
     },
     "schema_version": {
@@ -349,7 +349,7 @@
           "not": {
             "const": 1
           },
-          "x-astrocs": {
+          "x-acsd": {
             "anchor": "FZ-PROV-KCORR; ALG-P2-SURF-UPM §6",
             "domain": "Phase2 UPM control_variance",
             "fail_closed": "k_corr=1 忽略相关 → REJECT；跨域外推 → REJECT",
@@ -384,7 +384,7 @@
               "type": "boolean"
             }
           },
-          "x-astrocs": {
+          "x-acsd": {
             "anchor": "FZ-PROV-KCORR; ADJ-F-OBS-05",
             "domain": "Phase2 UPM",
             "fail_closed": "适用域缺失或跨域外推 -> REJECT",
@@ -410,7 +410,7 @@
               "type": "string"
             }
           },
-          "x-astrocs": {
+          "x-acsd": {
             "anchor": "FZ-PROV-KCORR; ADJ-F-OBS-05",
             "domain": "Phase2 UPM",
             "fail_closed": "标定脚本/固定种子缺失 -> 不可独立复现 REJECT",
@@ -419,13 +419,13 @@
         },
         "lookup_table_ref": {
           "type": "string",
-          "x-astrocs": {
+          "x-acsd": {
             "anchor": "FZ-PROV-KCORR (按尺度查找表)",
             "domain": "Phase2 UPM"
           }
         }
       },
-      "x-astrocs": {
+      "x-acsd": {
         "anchor": "FZ-PROV-KCORR; ADJ-F-OBS-05",
         "domain": "Phase2 UPM control_variance",
         "fail_closed": "k_corr=1 忽略相关或未复跑前跨域外推 -> REJECT",
@@ -459,7 +459,7 @@
           }
         }
       },
-      "x-astrocs-gate": {
+      "x-acsd-gate": {
         "clause_id": "FZ-PROV-KCORR",
         "gate": "G-KCORR-DOMAIN",
         "rule": "k_corr 出现时必须给出 definition/domain/value/calibration，且 value != 1",

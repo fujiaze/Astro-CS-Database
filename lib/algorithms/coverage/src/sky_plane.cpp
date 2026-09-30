@@ -23,11 +23,11 @@
 // 唯一「可辨识性/病态」判据（与 UPM/GLS 侧**同一个函数**；§7a:196-198）。
 #include "astro/phase2/identifiability.h"
 
-#include "astrocs/probe.h"  // 探针 (ASTROCS_PROBES=OFF 时宏为空语句)
+#include "acsd/probe.h"  // 探针 (ACSD_PROBES=OFF 时宏为空语句)
 
 #include "crypto/sha256.h"
 
-// CLEAN-403 (docs/ASTROCS_DESIGN §10「aio 是文件级唯一 I/O 边界」): 文件读写机制
+// CLEAN-403 (docs/ACSD_DESIGN §10「aio 是文件级唯一 I/O 边界」): 文件读写机制
 // 一律经 aio 唯一实现 (header-only 机制面), 本 TU 不自持 fopen/fread/fwrite。
 #include "aio_atomic_file.h"
 #include "aio_file_io.h"
@@ -477,8 +477,8 @@ int p2_sky_plane_build(const P2SkySample* samples, std::uint64_t n,
                        char* err, std::size_t err_size) {
     if (!out_model || !samples || n == 0) return P2_SKY_PLANE_INVALID_ARGS;
     // [probe] Phase2 天光面构建 (整面一次; RAII 覆盖所有 return)
-    ASTROCS_PROBE_SCOPE("phase2", "sky_plane.build");
-    ASTROCS_PROBE_GAUGE("phase2", "sky_plane.build_samples", static_cast<double>(n));
+    ACSD_PROBE_SCOPE("phase2", "sky_plane.build");
+    ACSD_PROBE_GAUGE("phase2", "sky_plane.build_samples", static_cast<double>(n));
     *out_model = nullptr;
     P2SkyPlaneConfig cfg = cfg_in ? *cfg_in : p2_sky_plane_default_config();
     if (cfg.spline_degree != 1 && cfg.spline_degree != 3) cfg.spline_degree = 1;
@@ -1236,7 +1236,7 @@ int p2_sky_plane_build(const P2SkySample* samples, std::uint64_t n,
         add(model->coeff.data(), model->coeff.size() * sizeof(double));
         for (const auto& dk : model->deltas) add(dk.data(), dk.size() * sizeof(double));
         add(&model->gauge_shift, sizeof(double));
-        const std::string hx = astrocs::crypto::sha256_hex(blob.data(), blob.size());
+        const std::string hx = acsd::crypto::sha256_hex(blob.data(), blob.size());
         std::snprintf(info.model_hash, sizeof(info.model_hash), "%s", hx.c_str());
     }
     model->last_weights = w;
@@ -1582,8 +1582,8 @@ int p2_sky_plane_eval_block(const void* model, std::uint64_t frame_id,
                             std::uint8_t* out_status) {
     if (!model || !ra_deg || !dec_deg || !out_values) return P2_SKY_PLANE_INVALID_ARGS;
     // [probe] Phase2 天光面应用 (逐 tile 块; 非逐像素)
-    ASTROCS_PROBE_SCOPE("phase2", "sky_plane.eval_block");
-    ASTROCS_PROBE_GAUGE("phase2", "sky_plane.eval_points", static_cast<double>(n));
+    ACSD_PROBE_SCOPE("phase2", "sky_plane.eval_block");
+    ACSD_PROBE_GAUGE("phase2", "sky_plane.eval_points", static_cast<double>(n));
     int rc = 0;
     for (std::uint64_t i = 0; i < n; ++i) {
         double val = 0.0;
@@ -1705,7 +1705,7 @@ int p2_sky_plane_save(const void* model_in, const char* path) {
     const SkyPlaneModel* m = static_cast<const SkyPlaneModel*>(model_in);
     nlohmann::json j;
     try {
-        j["format"] = "astrocs-sky-plane-v1";
+        j["format"] = "acsd-sky-plane-v1";
         j["ra0_deg"] = m->ra0_deg;
         j["dec0_deg"] = m->dec0_deg;
         j["t0u"] = m->t0u; j["t0v"] = m->t0v; j["h"] = m->h;
@@ -1833,7 +1833,7 @@ int p2_sky_plane_open(const char* path, void** out_model) {
         std::string s;
         if (!aio_file::read_all(path, &s)) return P2_SKY_PLANE_IO_ERROR;
         nlohmann::json j = nlohmann::json::parse(s);
-        if (j.value("format", std::string()) != "astrocs-sky-plane-v1") return P2_SKY_PLANE_IO_ERROR;
+        if (j.value("format", std::string()) != "acsd-sky-plane-v1") return P2_SKY_PLANE_IO_ERROR;
         SkyPlaneModel* m = new (std::nothrow) SkyPlaneModel();
         if (!m) return P2_SKY_PLANE_IO_ERROR;
         m->ra0_deg = j["ra0_deg"].get<double>();

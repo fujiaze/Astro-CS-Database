@@ -1,6 +1,6 @@
-# 模块 astrocs.p2.coverage
+# 模块 acsd.p2.coverage
 
-> 上游：docs/ASTROCS_DESIGN.md §8.5（模块与 ABI）、§5.2（固定科学流程：coverage 重叠图）、
+> 上游：docs/ACSD_DESIGN.md §8.5（模块与 ABI）、§5.2（固定科学流程：coverage 重叠图）、
 > 科学正本：docs/science/PHASE2_UPM.md §1（覆盖并集）、docs/science/INTEGRATION.md §5
 > （support/validity 分离）、docs/science/SCIENCE_SCOPE.md（处理链第 5 步）、
 > docs/science/UNCERTAINTY_AND_COVARIANCE.md（有效域语义）、
@@ -13,11 +13,11 @@
 > docs/engineering/PHASE2_API_V1.md（API-P2-001，FROZEN）
 
 模块级事实以 `lib/algorithms/coverage/README.md` + `module.yaml`
-（MOD-astrocs-phase2-coverage，dll_target=astrocs_p2_coverage.dll）为准；权威签名头
+（MOD-acsd-phase2-coverage，dll_target=acsd_p2_coverage.dll）为准；权威签名头
 `lib/algorithms/coverage/include/astro/phase2/coverage.h`。模块词汇
-`astrocs.p2.coverage`，owner = SA-P2-S20，实现面 = lib/algorithms/coverage；
+`acsd.p2.coverage`，owner = SA-P2-S20，实现面 = lib/algorithms/coverage；
 depends_on_int = IO-003 / DATA-004 / RT-006。目标交付形态
-astrocs_p2_coverage.dll 为合同值，尚未落地。
+acsd_p2_coverage.dll 为合同值，尚未落地。
 
 ## 职责与明确非职责
 
@@ -66,7 +66,7 @@ SCI-INT-001 §2 样本级 [0,1]、validity = §5 有效性标志，均不在本�
 - 记录有效面积（球面交叠面积积分，单位 deg² / sr）与信息量（可推导到
   `point_information` 的域面；该量的定义与推导正本 =
   docs/science/PSF_SIGNAL_WEIGHT.md，模块侧口径见
-  registry/astrocs.phase1.noise-snr.md）；
+  registry/acsd.phase1.noise-snr.md）；
 - 连通分量：在几何有效域上按球面邻接求连通分量，互不相连的分量一律分组件输出，
   **不**按同一零点 / 背景基准合并；分量划分由 `connected_components` 键控制；
 - **假设与适用域**：输入帧的同一零点 / 背景基准只在**连通分量内**成立；几何
@@ -78,7 +78,7 @@ SCI-INT-001 §2 样本级 [0,1]、validity = §5 有效性标志，均不在本�
 入口）/ `p2_coverage_free`（POD memset 清零，不释放堆）/ `parse_props` /
 `inspect_frame`；类型 `P2MocCell` / `P2HipsInputInfo` / `P2CoverageResult`
 （coverage.h）。模块注册 = `lib/infrastructure/pipeline/module_ports.registry.json`
-的 `astrocs.phase2.coverage`。
+的 `acsd.phase2.coverage`。
 
 entrypoint = Phase1 产品组 → 重叠图 + coverage；生产接线 =
 lib/infrastructure/scheduler/src/module_adapters.cpp 的 `p2_op_coverage`。输出可被
@@ -92,7 +92,7 @@ manifest 登记）。
 ### 源文件
 
 `lib/algorithms/coverage/src/coverage.cpp`。层级 = Phase2 生产模块（DAG 首节点）；
-现状构建 = 根 CMakeLists 目标 `astrocs_phase2` STATIC（无独立 DLL target）；
+现状构建 = 根 CMakeLists 目标 `acsd_phase2` STATIC（无独立 DLL target）；
 `lib/algorithms/coverage/CMakeLists.txt` 的 phase2 STATIC 为模块自测
 compatibility target（非产品事实源）。
 
@@ -147,5 +147,5 @@ frame_id 基名截断 / 空 filter 静默放行 / intersection / depth / missing
 产品缺失（四语义仅 union 落地；覆盖度几何非 UPM geometric_reliability 权重因子，
 该乘数恒 1.0，修正归 P2-UPM 域）/ extern "C" include + 两阶段全量重扫 / ThreadLease。
 
-目标交付形态 astrocs_p2_coverage.dll 尚未落地。全局限制登记 =
+目标交付形态 acsd_p2_coverage.dll 尚未落地。全局限制登记 =
 artifacts/evidence/known-limitations-ledger/LIMITATIONS.md。

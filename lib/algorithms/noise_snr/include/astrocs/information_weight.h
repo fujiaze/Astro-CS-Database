@@ -16,13 +16,13 @@
  *       W_info 唯一权威式即 a^2 P^T C^-1 P, 不从任何诊断量反推。
  * 复用: 无 (纯 std + libm)。
  */
-#ifndef ASTROCS_V6_P1PSFW_INFORMATION_WEIGHT_H
-#define ASTROCS_V6_P1PSFW_INFORMATION_WEIGHT_H
+#ifndef ACSD_V6_P1PSFW_INFORMATION_WEIGHT_H
+#define ACSD_V6_P1PSFW_INFORMATION_WEIGHT_H
 
 #include <cstddef>
 #include <vector>
 
-namespace astrocs {
+namespace acsd {
 namespace v6 {
 namespace p1psfw {
 
@@ -122,6 +122,6 @@ FluxEstimate combine_point_estimates(const std::vector<PointEstimate>& points);
 
 }  /* namespace p1psfw */
 }  /* namespace v6 */
-}  /* namespace astrocs */
+}  /* namespace acsd */
 
-#endif /* ASTROCS_V6_P1PSFW_INFORMATION_WEIGHT_H */
+#endif /* ACSD_V6_P1PSFW_INFORMATION_WEIGHT_H */

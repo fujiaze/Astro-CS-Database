@@ -1,7 +1,7 @@
 # ============================================================================
 # P8-SNR-LINUX 回归锁: Linux 生产路径的逐源 SNR
 # ----------------------------------------------------------------------------
-# 被测面 = **真实生产目标** astrocs_phase1_noise (根 CMakeLists.txt 声明),
+# 被测面 = **真实生产目标** acsd_phase1_noise (根 CMakeLists.txt 声明),
 #   即 lib/algorithms/noise_snr/wrapper_phase1/snr_frame_science.cpp +
 #      lib/algorithms/noise_snr/cpp/src/snr_science.cpp
 # 若 snr_science.cpp 未编入该目标, 本可执行文件链接失败 => 构建即红灯
@@ -18,8 +18,8 @@
 #   p1snr_linux_mother_function — fwhm_px 母函数口径（CONFORM-FIX-A ①: 禁止跨块混用）
 # ============================================================================
 add_executable(p1snr_linux_test p1snr_linux_test.cpp)
-target_link_libraries(p1snr_linux_test PRIVATE astrocs_phase1_noise)
-target_link_libraries(p1snr_linux_test PRIVATE astrocs_platform_math)
+target_link_libraries(p1snr_linux_test PRIVATE acsd_phase1_noise)
+target_link_libraries(p1snr_linux_test PRIVATE acsd_platform_math)
 add_test(NAME p1snr_linux_units COMMAND p1snr_linux_test units)
 add_test(NAME p1snr_linux_oracle COMMAND p1snr_linux_test oracle)
 add_test(NAME p1snr_linux_contract COMMAND p1snr_linux_test contract)
@@ -57,7 +57,7 @@ target_include_directories(p1snr_fref_baseline_test PRIVATE
   ${CMAKE_CURRENT_SOURCE_DIR}/../../../../lib/third_party
   ${CMAKE_CURRENT_SOURCE_DIR}/../../../../lib//phase1_session/tests/p1sess)
 target_link_libraries(p1snr_fref_baseline_test PRIVATE
-  astrocs_module_adapters astrocs_core astrocs_phase1_session)
+  acsd_module_adapters acsd_core acsd_phase1_session)
 add_test(NAME p1snr_fref_baseline COMMAND p1snr_fref_baseline_test)
 set_tests_properties(p1snr_fref_baseline PROPERTIES LABELS "p1snr")
 
@@ -67,7 +67,7 @@ target_include_directories(p1snr_frame_parity_test PRIVATE
   ${CMAKE_CURRENT_SOURCE_DIR}/../../../../lib/third_party
   ${CMAKE_CURRENT_SOURCE_DIR}/../../../../lib//phase1_session/tests/p1sess)
 target_link_libraries(p1snr_frame_parity_test PRIVATE
-  astrocs_module_adapters astrocs_core astrocs_phase1_session)
+  acsd_module_adapters acsd_core acsd_phase1_session)
 add_test(NAME p1snr_frame_parity COMMAND p1snr_frame_parity_test)
 set_tests_properties(p1snr_frame_parity PROPERTIES LABELS "p1snr")
 
@@ -83,7 +83,7 @@ target_include_directories(p1snr_noise_cfg_wiring_test PRIVATE
   ${CMAKE_CURRENT_SOURCE_DIR}/../../../../lib/third_party
   ${CMAKE_CURRENT_SOURCE_DIR}/../../../../lib//phase1_session/tests/p1sess)
 target_link_libraries(p1snr_noise_cfg_wiring_test PRIVATE
-  astrocs_module_adapters astrocs_core astrocs_phase1_session)
+  acsd_module_adapters acsd_core acsd_phase1_session)
 add_test(NAME p1snr_noise_cfg_wiring COMMAND p1snr_noise_cfg_wiring_test)
 set_tests_properties(p1snr_noise_cfg_wiring PROPERTIES
   LABELS "p1snr" WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}" TIMEOUT 900)

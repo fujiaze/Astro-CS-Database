@@ -1,12 +1,12 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://astrocs.local/schemas/unified/point_information/v1",
+  "$id": "https://acsd.local/schemas/unified/point_information/v1",
   "title": "ACSD 统一对象 point_information —— 点源严格权重 W = a²PᵀC⁻¹P",
   "description": "UNIFIED_MODEL §2：point_information = a²PᵀC⁻¹P = 1/Var(F_hat)；可否作权重 = 点源目标的严格权重。W_info 由完整 PᵀC⁻¹P 给出，禁止用 source_snr/depth_m5/frame_snr 等诊断量替代。",
-  "x-astrocs-object": {
+  "x-acsd-object": {
     "name": "point_information",
     "canonical_file": "eng/contracts/schemas/unified/point_information.schema.json",
-    "authority": "docs/detail/UNIFIED_MODEL.md §2；docs/ASTROCS_DESIGN.md §2；ENGINEERING_SPEC.md §3/§4.7",
+    "authority": "docs/detail/UNIFIED_MODEL.md §2；docs/ACSD_DESIGN.md §2；ENGINEERING_SPEC.md §3/§4.7",
     "weight_verdict": "点源目标的严格权重",
     "weight_eligible": true
   },
@@ -58,7 +58,7 @@
       "description": "对象判别式：本文档声明的 UNIFIED_MODEL §2 对象名（禁止用别的对象名冒充）"
     },
     "object_schema_id": {
-      "const": "https://astrocs.local/schemas/unified/point_information/v1",
+      "const": "https://acsd.local/schemas/unified/point_information/v1",
       "description": "全局唯一 schema ID（eng/contracts/schemas/unified/point_information.schema.json）"
     },
     "schema_version": {

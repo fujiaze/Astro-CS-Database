@@ -7,7 +7,7 @@
 #include <sstream>
 #include <vector>
 
-namespace astrocs {
+namespace acsd {
 namespace aio {
 namespace {
 
@@ -266,4 +266,4 @@ bool psfsw_unit_forbidden(const std::string& unit) {
 }
 
 }  // namespace aio
-}  // namespace astrocs
+}  // namespace acsd

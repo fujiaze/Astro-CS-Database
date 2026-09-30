@@ -1,5 +1,5 @@
 {
-  "schema": "astrocs/doc-line-anchor-contract/v1",
+  "schema": "acsd/doc-line-anchor-contract/v1",
   "task": "SCI-ANCHOR-001",
   "note": "ALG/SCI 文档源码行号锚冻结合同：解析规则(resolvers)、已知豁免(exemptions)、符号绑定(bindings)。语义与维护义务见同目录 ANCHOR_CONTRACT.md。",
   "doc_globs": [
@@ -127,19 +127,19 @@
       "why": "该节逐行锚 sdet_create/sdet_destroy/sdet_detect/sdet_detect_ex(_f64)/sdet_free_*/SDetParams 只存在于 include/star_detector.h（wrapper_phase1/star_detector.h 无这些符号）"
     },
     {
-      "doc": "docs/detail/registry/astrocs.phase1.noise-snr.md",
+      "doc": "docs/detail/registry/acsd.phase1.noise-snr.md",
       "basename": "build.ps1",
       "path": "lib/algorithms/noise_snr/cpp/build.ps1",
       "why": "页内自述「现行生产实现 lib/algorithms/noise_snr/cpp/（现状构建=cpp/Makefile:5,12 … + cpp/build.ps1:29）」"
     },
     {
-      "doc": "docs/detail/registry/astrocs.phase1.photometry.md",
+      "doc": "docs/detail/registry/acsd.phase1.photometry.md",
       "basename": "build.ps1",
       "path": "lib/algorithms/photometry/cpp/build.ps1",
       "why": "页内自述「现行生产实现 lib/algorithms/photometry/cpp/（现状构建=cpp/Makefile:11 … + cpp/build.ps1:9）」"
     },
     {
-      "doc": "docs/detail/registry/astrocs.phase1.wcs-platesolve.md",
+      "doc": "docs/detail/registry/acsd.phase1.wcs-platesolve.md",
       "basename": "build.ps1",
       "path": "lib/algorithms/platesolve/cpp/ipv/build.ps1",
       "why": "页内自述「现状构建 cpp/ipv/build.ps1:27 / Makefile:6 → ipv_solver.dll」，模块根 lib/algorithms/platesolve/"
@@ -159,14 +159,14 @@
     {
       "doc": "docs/engineering/DATA_ARTIFACTS.md",
       "basename": "resample2.md",
-      "path": "docs/detail/registry/astrocs.phase3.resample2.md",
-      "why": "原文以省略号截断写「…resample2.md:71」，被引文档即 docs/detail/registry/astrocs.phase3.resample2.md"
+      "path": "docs/detail/registry/acsd.phase3.resample2.md",
+      "why": "原文以省略号截断写「…resample2.md:71」，被引文档即 docs/detail/registry/acsd.phase3.resample2.md"
     },
     {
       "doc": "docs/engineering/DATA_ARTIFACTS.md",
       "basename": "properties.md",
-      "path": "docs/detail/registry/astrocs.phase3.properties.md",
-      "why": "原文以省略号截断写「…properties.md:22」，被引文档即 docs/detail/registry/astrocs.phase3.properties.md"
+      "path": "docs/detail/registry/acsd.phase3.properties.md",
+      "why": "原文以省略号截断写「…properties.md:22」，被引文档即 docs/detail/registry/acsd.phase3.properties.md"
     },
     {
       "doc": "docs/science/algorithms/PHASE3_RSMP_IMPL.md",
@@ -394,19 +394,19 @@
       "id": "NOISE-CMAKE",
       "doc": "docs/science/algorithms/NOISE_ESTIMATION.md",
       "target": "CMakeLists.txt",
-      "symbol": "astrocs_phase1_noise"
+      "symbol": "acsd_phase1_noise"
     },
     {
       "id": "CAL-CMAKE",
       "doc": "docs/science/algorithms/CALIBRATION_ALGORITHMS.md",
       "target": "CMakeLists.txt",
-      "symbol": "astrocs_calibration"
+      "symbol": "acsd_calibration"
     },
     {
       "id": "COS-CMAKE",
       "doc": "docs/science/algorithms/COSMETIC_ALGORITHMS.md",
       "target": "CMakeLists.txt",
-      "symbol": "astrocs_calibration"
+      "symbol": "acsd_calibration"
     },
     {
       "id": "DRZ-SIPORDER",

@@ -44,8 +44,8 @@ from production_store import (  # noqa: E402
     utc_now_z,
 )
 
-TYPE_P1 = "astrocs.phase1.frame_hips.v1"
-TYPE_P2 = "astrocs.phase2.mosaic_hips.v1"
+TYPE_P1 = "acsd.phase1.frame_hips.v1"
+TYPE_P2 = "acsd.phase2.mosaic_hips.v1"
 
 
 def base_manifest(artifact_id: str = "frame-000001",
@@ -55,7 +55,7 @@ def base_manifest(artifact_id: str = "frame-000001",
                   status: str = "COMPLETE") -> dict:
     """构造完整 DATA-001 manifest（冻结字段序）。"""
     return {
-        "manifest_schema": "astrocs.artifact-manifest/v1",
+        "manifest_schema": "acsd.artifact-manifest/v1",
         "manifest_version": 1,
         "artifact_id": artifact_id,
         "type_id": type_id,
@@ -64,7 +64,7 @@ def base_manifest(artifact_id: str = "frame-000001",
         "content_digest": {"algorithm": "sha256", "hex": content_hex},
         "size": size,
         "producer": {
-            "module_id": "astrocs.phase1.frame_hips",
+            "module_id": "acsd.phase1.frame_hips",
             "module_build_id": "g46b0d8e-linux-amd64-gcc14",
         },
         "run": {"run_id": "r1", "phase": "phase1", "session_id": "s1"},

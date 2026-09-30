@@ -13,7 +13,7 @@
 //       - "归约: γ_n = n·u/(1−n·u), 门限 C·γ_n·Σ|terms| + atol, C≤4 事前冻结。"
 //       - "并行等价（1/N worker…）判据 = 容差等价，不是逐位一致：…
 //          整数/mask/索引/计数/端口精确一致。"
-//   * docs/ASTROCS_DESIGN.md:569/628「数值结果与并发度无关…归约顺序冻结是达成手段」。
+//   * docs/ACSD_DESIGN.md:569/628「数值结果与并发度无关…归约顺序冻结是达成手段」。
 //
 // 为什么需要本组 (判据缺口):
 //   §13.4 I5 只扫**线程数**，且每个线程跑**完全相同的样本序** ⇒ 天然抓不到
@@ -31,7 +31,7 @@
 //      N1 序相关最近邻 tie-break（精确并列构造）⇒ 必判红
 //      N2 序相关在线稳健位置归约（online IRLS）⇒ 必判红
 //      N1/N2 判红 + T2/T3 判绿 = 判据同时排除恒真与恒假
-//   故障注入名: p1phot_order_invariance（ASTROCS_P1PHOT_FAULT 置位后本组必败）
+//   故障注入名: p1phot_order_invariance（ACSD_P1PHOT_FAULT 置位后本组必败）
 #include "p1phot_test_main.hpp"
 #include "p1phot_field_stub.hpp"
 #include "p1phot_fixtures.hpp"

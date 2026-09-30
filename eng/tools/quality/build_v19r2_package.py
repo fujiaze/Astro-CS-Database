@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""build_v19r2_package.py — 组装 AstroCS_Review_TraceableFoundation_V19R2.zip。
+"""build_v19r2_package.py — 组装 ACSD_Review_TraceableFoundation_V19R2.zip。
 
 打包内容（MASTER_CONTROL_SPEC §22）：
   README.md SHA256SUMS.txt reports/ evidence/ self_review/
@@ -40,7 +40,7 @@ def _deduce_root() -> str:
 
 ROOT = _deduce_root()
 REV = os.path.join(ROOT, "reports", "v19r2")
-PKG_NAME = "AstroCS_Review_TraceableFoundation_V19R2"
+PKG_NAME = "ACSD_Review_TraceableFoundation_V19R2"
 PKG = os.path.join(ROOT, PKG_NAME + ".zip")
 TMP = os.path.join(ROOT, "run", "temp", "v19r2_pkg")
 
@@ -71,7 +71,7 @@ def collect_first_party() -> list[str]:
         if any(x in SKIP_PARTS for x in parts):
             continue
         if parts[0] in ("testdata", "GaiaDR3", "GaiaDR3SP",
-                        "siril-1.4.3", "工程控制", "AstroCS.wiki"):
+                        "siril-1.4.3", "工程控制", "ACSD.wiki"):
             continue
         ext = os.path.splitext(p)[1].lower()
         if ext in SKIP_EXT:

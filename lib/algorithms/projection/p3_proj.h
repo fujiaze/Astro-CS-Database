@@ -8,7 +8,7 @@
 //             ③ 本内核是 p3_projection_registry.h 冻结表 SIN/CAR/AIT = kKernelOnly 的
 //             「实现未声明 = 隐藏能力（禁止）」判据的对照面。
 // STATUS:     内核-only，非产品声明，未接入生产。生产 projection target
-//             astrocs_p3_projection_wcs 只编 p3_wcs.cpp（TAN，lib/algorithms/projection/
+//             acsd_p3_projection_wcs 只编 p3_wcs.cpp（TAN，lib/algorithms/projection/
 //             CMakeLists.txt:19）；本文件仅被 eng/tests/unit/p3_proj、eng/tests/integration/p3_export、
 //             lib/algorithms/projection/tests/p3wcs 三个测试 target 编译。
 //             **已知缺陷**：p3_proj.cpp:195 sin_world2pix 用
@@ -28,7 +28,7 @@
 //             p3_projection_registry_test.cpp、eng/tests/unit/p3_proj/**、
 //             eng/tests/integration/p3_export/**，以及 eng/ci/checks.json 的 p3_proj_* ctest_targets
 //             （DOC-403 文件域）。
-// AUTHORITY:  ENGINEERING_SPEC.md §2（历史实现处置：保留则注释）；docs/ASTROCS_DESIGN.md §6.3
+// AUTHORITY:  ENGINEERING_SPEC.md §2（历史实现处置：保留则注释）；docs/ACSD_DESIGN.md §6.3
 //             （未实现的投影被选择时显式报「不支持」，当前仅 TAN 可用）；
 //             lib/algorithms/projection/p3_projection_registry.h「已知偏差登记」。
 // ──────────────────────────────────────────────────────────────────────
@@ -37,7 +37,7 @@
 //
 // 任务: IMPL-P3-PROJ-001（wave 5, write_scope=lib/algorithms/projection/）
 // 上位冻结:
-//   * docs/ASTROCS_DESIGN.md §6.3（内置多种投影，首批冻结 TAN/SIN/CAR/AIT/STG/MOL/
+//   * docs/ACSD_DESIGN.md §6.3（内置多种投影，首批冻结 TAN/SIN/CAR/AIT/STG/MOL/
 //     CEA/ZEA 八投影；每投影声明适用域/奇点/经度 wrap/轴手性/CRPIX/CRVAL/CD/
 //     PC/CDELT/CTYPE；新增投影经 registry 注册并附独立往返 Oracle）。
 //   * DESIGN-P3-001 §2（WCS 计划）/§3（反向映射、逐像素面积元、禁止平面近似）/
@@ -72,16 +72,16 @@
 //     四项偏差保留为历史对照（ALG-P3-PROJ-IMPL-001 §15.9 v1 偏差表 + 证据门
 //     p3_proj_legacy_deviation.py），禁止新消费方引用；本层不再"保留 legacy 符号
 //     零改动"式回避，legacy 偏差不构成本层行为依据。
-//   * registry 权威冻结集合 = docs/ASTROCS_DESIGN.md §6.3 八投影
+//   * registry 权威冻结集合 = docs/ACSD_DESIGN.md §6.3 八投影
 //     （TAN/SIN/CAR/AIT/STG/MOL/CEA/ZEA）；本层 v3 注册已实现子集（当前 4 项，
 //     STG/MOL/CEA/ZEA 实施归 P3-001，GAP-011）。
-#ifndef ASTROCS_P3_PROJ_V6_H
-#define ASTROCS_P3_PROJ_V6_H
+#ifndef ACSD_P3_PROJ_V6_H
+#define ACSD_P3_PROJ_V6_H
 
 #include <cstddef>
 #include <string>
 
-namespace astrocs::phase3proj::v6 {
+namespace acsd::phase3proj::v6 {
 
 // 版本化 registry 版本（DESIGN §6.3 八投影冻结集 + 变更 claim）。
 // v1 = 首批四投影，CRVAL2 不进映射（**已 RETIRED**，见下）；
@@ -91,7 +91,7 @@ namespace astrocs::phase3proj::v6 {
 // 表内容或语义变化必须递增此版本并在 ALG-P3-PROJ-IMPL-001 §15 登记变更 claim。
 constexpr int kProjectionRegistryVersion = 3;
 
-// registry 权威冻结集合（docs/ASTROCS_DESIGN.md §6.3 首批八投影）。本层 kRegistry 是其
+// registry 权威冻结集合（docs/ACSD_DESIGN.md §6.3 首批八投影）。本层 kRegistry 是其
 // 已实现子集；新增投影必须先落在该集合内并附独立往返 Oracle（DESIGN §6.3）。
 //
 // ⚠ **本层是内核 registry, 不是产品声明**：本表行只表示
@@ -261,6 +261,6 @@ constexpr const char* kUnitSbVarianceOut = "ADU^2/sr^2";
 constexpr const char* kUnitWInfo = "ADU^-2";
 constexpr const char* kUnitPsfswWeight = "1";
 
-}  // namespace astrocs::phase3proj::v6
+}  // namespace acsd::phase3proj::v6
 
-#endif  // ASTROCS_P3_PROJ_V6_H
+#endif  // ACSD_P3_PROJ_V6_H

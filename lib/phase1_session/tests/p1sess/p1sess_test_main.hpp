@@ -12,12 +12,12 @@
 //   ./p1sess_tests all
 //
 // 故障注入 (模板 <prefix>-TEST 验收: "故障注入能让测试失败"):
-//   ASTROCS_P1SESS_FAULT=<regname>[,<regname>...]
+//   ACSD_P1SESS_FAULT=<regname>[,<regname>...]
 //   每个注册的 fault 使对应 CHECK 组在报告阶段确定性翻转 → 二进制 rc=1,
 //   输出 "FAULT-INJECT <name>" 行。selfcheck 可执行对齐 p1hips/p1cos 先例。
 //
 // 被测面: lib/phase1_session/p1_session.cpp 五导出 C API (API-P1-SESSION,
-// p1_session_create/validate/run/inspect/destroy), 静态库 astrocs_phase1_session
+// p1_session_create/validate/run/inspect/destroy), 静态库 acsd_phase1_session
 // (根 CMakeLists.txt:448)。生产源只读, 本任务仅新增测试。
 #ifndef P1SESS_TEST_MAIN_HPP
 #define P1SESS_TEST_MAIN_HPP
@@ -40,7 +40,7 @@ struct FaultRegistry {
         static FaultRegistry r;
         return r;
     }
-    // 由 main() 启动时从 ASTROCS_P1SESS_FAULT 初始化
+    // 由 main() 启动时从 ACSD_P1SESS_FAULT 初始化
     std::vector<std::string> active;
 
     bool injected(const char* name) const {
@@ -56,7 +56,7 @@ struct FaultRegistry {
 // execve 重入, 不经过 run_all_groups, 必须显式调用本函数, 否则注入名单
 // 为空 → 注入静默失效)。
 inline void init_fault_registry_from_env() {
-    const char* f = std::getenv("ASTROCS_P1SESS_FAULT");
+    const char* f = std::getenv("ACSD_P1SESS_FAULT");
     if (!f) return;
     std::string s = f;
     std::size_t pos = 0;
@@ -163,7 +163,7 @@ inline int run_all_groups(const p1sess::TestGroup* groups, std::size_t n, int ar
         if (a == "--group" && i + 1 < argc) group = argv[++i];
         else if (a.rfind("--", 0) != 0) group = a;
     }
-    // ASTROCS_P1SESS_FAULT: 逗号分隔故障注入名单 (主执行器路径)
+    // ACSD_P1SESS_FAULT: 逗号分隔故障注入名单 (主执行器路径)
     init_fault_registry_from_env();
     int total_fail = 0;
     for (std::size_t i = 0; i < n; ++i) {

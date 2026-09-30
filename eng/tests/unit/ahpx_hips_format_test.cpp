@@ -2,7 +2,7 @@
 // FIX-202 / 变更 AHPX-WEIGHT-RETIRE-20260920 — .ahpx 格式内部权重枚举作废回归锁
 //
 // 规范依据:
-//   docs/ASTROCS_DESIGN.md §2.1 (全程只有 SNR, 不存在「权重模式」; HiPS 里存的是
+//   docs/ACSD_DESIGN.md §2.1 (全程只有 SNR, 不存在「权重模式」; HiPS 里存的是
 //     帧级 SNR + 稀疏控制点上的绝对 SNR), §3.4 (稀疏 SNR 层在交换合同里有位置)
 //   GAP_AUDIT.md §9.73 裁决 A44; DESIGN-DRAFT §3.1-D
 //
@@ -15,10 +15,10 @@
 //            块表只有 pixel/snr (无第三块)
 //   N3 写侧 fail-closed: 元数据携带已作废 "weight" 字段 ⇒ write() 拒绝且不落盘
 //
-// 故障注入 (证明"能红", 先例 P2-002/P3-002/AIO-001 的 ASTROCS_*_FAULT):
-//   ASTROCS_AHPX_FAULT=accept_legacy             → N1 红 (读侧守卫被跳过)
-//   ASTROCS_AHPX_FAULT=writer_accept_legacy_meta → N3 红 (写侧守卫被跳过)
-//   ASTROCS_AHPX_FAULT=writer_drop_snr           → P1 红 (snr 块被跳过)
+// 故障注入 (证明"能红", 先例 P2-002/P3-002/AIO-001 的 ACSD_*_FAULT):
+//   ACSD_AHPX_FAULT=accept_legacy             → N1 红 (读侧守卫被跳过)
+//   ACSD_AHPX_FAULT=writer_accept_legacy_meta → N3 红 (写侧守卫被跳过)
+//   ACSD_AHPX_FAULT=writer_drop_snr           → P1 红 (snr 块被跳过)
 //
 // CLI 探针 (验收门用):
 //   --emit-legacy <path>  手工构造旧格式文件 (独立于生产 writer)
@@ -145,9 +145,9 @@ int main(int argc, char** argv) {
     const std::vector<float> pixels = makePixels(W * H * C);
     const std::vector<float> snr = makeSnr(W * H);
 
-    const char* fault = std::getenv("ASTROCS_AHPX_FAULT");
+    const char* fault = std::getenv("ACSD_AHPX_FAULT");
     if (fault && *fault) {
-        std::fprintf(stderr, "[ahpx-format-test] 故障注入激活: ASTROCS_AHPX_FAULT=%s\n", fault);
+        std::fprintf(stderr, "[ahpx-format-test] 故障注入激活: ACSD_AHPX_FAULT=%s\n", fault);
     }
 
     // ---- CLI 探针: 手工构造旧格式文件 ----
@@ -182,7 +182,7 @@ int main(int argc, char** argv) {
 
     namespace fs = std::filesystem;
     std::error_code ec;
-    const fs::path dir = fs::temp_directory_path() / "astrocs_ahpx_fix202";
+    const fs::path dir = fs::temp_directory_path() / "acsd_ahpx_fix202";
     fs::create_directories(dir, ec);
     const std::string legacyPath = (dir / "legacy_weight.ahpx").string();
     const std::string controlPath = (dir / "control_no_weight.ahpx").string();

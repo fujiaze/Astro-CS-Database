@@ -30,12 +30,12 @@
 #include "aio_hips_reader.h"
 #include "hips_properties.h"
 
-// (docs/ASTROCS_DESIGN §10「aio 是文件级唯一 I/O 边界」): 子产品 properties
+// (docs/ACSD_DESIGN §10「aio 是文件级唯一 I/O 边界」): 子产品 properties
 // 的整文件读取经 aio 唯一实现 (aio_file::read_all), 本 TU 不自持 FILE*。
 #include "aio_atomic_file.h"
 #include "aio_file_io.h"
 
-namespace astrocs::phase3 {
+namespace acsd::phase3 {
 
 namespace {
 constexpr uint32_t kTileWidth = 512;
@@ -180,15 +180,15 @@ static bool read_leaf(P3SamplerImpl* s, uint64_t leaf_ipix, float* out) {
     // leaf nside = 512·2^K → tile_order=K 的父 ipix; 局部 512² 由 nested_local 映射
     const int tile_order = s->order;
     const uint32_t leaf_order = static_cast<uint32_t>(tile_order) + 9;
-    const uint64_t tip = astrocs::healpix::leaf_to_tile_nest(leaf_ipix, leaf_order,
+    const uint64_t tip = acsd::healpix::leaf_to_tile_nest(leaf_ipix, leaf_order,
                                                              static_cast<uint32_t>(tile_order));   // 传"阶"非 nside
     const std::shared_ptr<const TileData> tile = fetch_tile(s, tip);
     if (!tile) return false;   // 缺 tile
     // leaf→tile 内标准 HiPS 排列索引
-    const uint64_t first = astrocs::healpix::tile_to_leaf_nest(
+    const uint64_t first = acsd::healpix::tile_to_leaf_nest(
         tip, static_cast<uint32_t>(tile_order), leaf_order);
     const uint64_t local = leaf_ipix - first;
-    const uint64_t fits_index = astrocs::healpix::nested_local_to_fits_index(
+    const uint64_t fits_index = acsd::healpix::nested_local_to_fits_index(
         local, 9, kTileWidth);
     *out = (*tile)[fits_index];   // NaN 是命中(值语义, §4)
     return true;
@@ -199,7 +199,7 @@ P3ResampleStatus p3_order_select(int max_order, double scale_deg_per_px,
     if (!out_order || max_order < 0 || max_order > kMaxOrder || !(scale_deg_per_px > 0))
         return P3_RS_PARAM;
     for (int k = 0; k <= max_order; ++k) {
-        const double res_deg = astrocs::healpix::pixel_resolution_arcsec(
+        const double res_deg = acsd::healpix::pixel_resolution_arcsec(
                                    (512u << k)) / 3600.0;
         if (res_deg <= scale_deg_per_px) { *out_order = k; return P3_RS_OK; }
     }
@@ -296,7 +296,7 @@ P3ResampleStatus p3_sample_nearest_ex(P3Sampler* s, double ra_deg, double dec_de
                                       uint64_t* leaf_ipix) {
     if (!s || !s->impl || !value || !coverage) return P3_RS_PARAM;
     auto* impl = s->impl;
-    const uint64_t leaf = astrocs::healpix::ang2pix_nest(impl->leaf_nside, ra_deg, dec_deg);
+    const uint64_t leaf = acsd::healpix::ang2pix_nest(impl->leaf_nside, ra_deg, dec_deg);
     if (leaf_ipix) *leaf_ipix = leaf;   // 恒输出 (c=0 时供 missing 语义消费)
     float v = 0;
     if (!read_leaf(impl, leaf, &v)) { *value = std::nanf(""); *coverage = 0; return P3_RS_OK; }
@@ -341,9 +341,9 @@ P3ResampleStatus p3_sample_bilinear_nanmask_ex(P3Sampler* s, double ra_deg, doub
     if (!s || !s->impl || !value || !coverage) return P3_RS_PARAM;
     auto* impl = s->impl;
     const uint32_t nside = impl->leaf_nside;
-    const uint64_t ipix = astrocs::healpix::ang2pix_nest(nside, ra_deg, dec_deg);
+    const uint64_t ipix = acsd::healpix::ang2pix_nest(nside, ra_deg, dec_deg);
     // 3×3 邻域(中心+8 邻居)投影到样本点切平面
-    const std::vector<uint64_t> nb = astrocs::healpix::neighbors(nside, ipix);
+    const std::vector<uint64_t> nb = acsd::healpix::neighbors(nside, ipix);
     struct P { uint64_t ipix; double x, y; };   // 切平面坐标(deg)
     P pts[10];
     int np = 0;
@@ -351,7 +351,7 @@ P3ResampleStatus p3_sample_bilinear_nanmask_ex(P3Sampler* s, double ra_deg, doub
     auto add_pt = [&](uint64_t ip) {
         if (np >= 10) return;
         double ra = 0, dec = 0;
-        astrocs::healpix::pix2ang_nest(nside, ip, ra, dec);
+        acsd::healpix::pix2ang_nest(nside, ip, ra, dec);
         const double ar = ra * M_PI / 180.0, dr = dec * M_PI / 180.0;
         const double den = std::sin(d0r) * std::sin(dr) +
                            std::cos(d0r) * std::cos(dr) * std::cos(ar - a0r);
@@ -579,4 +579,4 @@ P3ResampleStatus p3_uncertainty_propagate(P3Sampler* u, const double* weights,
     return P3_RS_OK;
 }
 
-}  // namespace astrocs::phase3
+}  // namespace acsd::phase3

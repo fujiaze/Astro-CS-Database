@@ -1,4 +1,4 @@
-# CMakeLists.txt - astrocs_p1_hips_writer 模块 DLL (P1-HIPS-IMPL 迁移面)
+# CMakeLists.txt - acsd_p1_hips_writer 模块 DLL (P1-HIPS-IMPL 迁移面)
 #
 # 对齐先例: lib/algorithms/drizzle/CMakeLists.txt (P1-DRZ-IMPL, 2c065ace)、
 #           lib/infrastructure/gaia_xpsd_client/CMakeLists.txt (CAT-GAIA-IMPL, babe752d)。
@@ -9,16 +9,16 @@
 #
 # 依赖闭包 (P1-COS-IMPL 教训: 先实证再定 TU 集; 2026-09-07 只读实证):
 #   aio_hips_writer.cpp 编译闭包 = {aio_hips.h, healpix/healpix_core.h,
-#   fitsio.h}; 项目内符号依赖仅 astrocs::healpix::nested_local_to_fits_index
+#   fitsio.h}; 项目内符号依赖仅 acsd::healpix::nested_local_to_fits_index
 #   (writer:487,638,864,901) 与 ang2pix_nest (writer:949)。零依赖剔除:
 #   aio_fits/aio_log/aio_api/aio_healpix_io/hiss_*/aio_hips_reader/aio_upm
 #   全部不进本 DLL (grep 0 命中; g++ -fsyntax-only 实证通过)。
 #   最小闭包 = {aio_hips_writer.cpp, healpix_core.cpp} + cfitsio 源
-#   (ASTROCS_CFITSIO_SOURCES, 根 :66 include; vendored CFITSIO 4.6.4)。
+#   (ACSD_CFITSIO_SOURCES, 根 :66 include; vendored CFITSIO 4.6.4)。
 #
 # 导出面净化 (ABI-006): legacy aio_hips_* 九符号 (aio_hips.h:23-27 宏
 # dllexport/visibility default 携带) 经链接 version-script (Linux/macOS)
-# / /DEF 白名单 (MSVC) 降 local; 唯一导出 astrocs_module_query_v1。
+# / /DEF 白名单 (MSVC) 降 local; 唯一导出 acsd_module_query_v1。
 # 科学域零改动 (scientific_change=false): 生产 TU 原样编译, 无本地副本。
 
 # ── 生产源 (依赖闭包最小集, 全部指向唯一权威源, 无本地副本) ──
@@ -34,7 +34,7 @@ set(HIPS_PROD_SOURCES
     # V3 FD-01 (RESCUE-FD-01): aio_hips_writer.cpp 的 outline/reproject 路径
     # 调用 aio_hips_tile_ipix (writer:1652,1713), 其定义在 aio_hips_reader.cpp
     # (:391) —— 2026-09-07 的「writer 零依赖剔除」实证漏了这条跨 TU 依赖,
-    # dlopen(astrocs_p1_hips_writer.so) 报 undefined symbol aio_hips_tile_ipix
+    # dlopen(acsd_p1_hips_writer.so) 报 undefined symbol aio_hips_tile_ipix
     # (hips_writer_adapter 基线红)。reader TU 的上游闭包同样只需 healpix_core
     # + cfitsio + 共享互斥头, 故纳入最小闭包。
     ${HIPS_PROD_DIR}/src/hips/aio_hips_reader.cpp
@@ -42,47 +42,47 @@ set(HIPS_PROD_SOURCES
     # 打洞机制原语 aio_sparse_punch.h (aio_hips_writer.cpp:22) 为 header-only,
     # 但它依赖的两处**非 inline 定义**必须随源集编入, 否则 .so 载入期报
     # undefined symbol: (a) aio_file_io.h 的 inline aio_file::sha256_hex 调
-    # astrocs::crypto::Sha256 做打洞前后整文件摘要校验 —— 该类型定义在 crypto
+    # acsd::crypto::Sha256 做打洞前后整文件摘要校验 —— 该类型定义在 crypto
     # 唯一实现 TU; (b) aio_log.h 的 aio_log —— 唯一实现 TU aio_log.cpp。
     ${CMAKE_SOURCE_DIR}/lib/algorithms/shared/crypto/sha256.cpp
     ${HIPS_PROD_DIR}/src/aio_log.cpp
 )
-add_library(astrocs_p1_hips_writer SHARED
+add_library(acsd_p1_hips_writer SHARED
     ${HIPS_ADAPTER_SOURCES}
     ${HIPS_PROD_SOURCES}
 )
 # cfitsio 源列表是相对根路径 (BLD-001) → 子目录内需显式前缀变换
 set(HIPS_CFITSIO_SOURCES "")
-foreach(_f ${ASTROCS_CFITSIO_SOURCES})
+foreach(_f ${ACSD_CFITSIO_SOURCES})
     list(APPEND HIPS_CFITSIO_SOURCES "${CMAKE_SOURCE_DIR}/${_f}")
 endforeach()
-target_sources(astrocs_p1_hips_writer PRIVATE ${HIPS_CFITSIO_SOURCES})
+target_sources(acsd_p1_hips_writer PRIVATE ${HIPS_CFITSIO_SOURCES})
 
-# ── 第三方源的平台面: 与根 astrocs_cfitsio **同一份**实现 ────────────────
+# ── 第三方源的平台面: 与根 acsd_cfitsio **同一份**实现 ────────────────
 # 本目标同样把 vendored cfitsio 整套源再编一遍 (含 zcompress.c/zuncompress.c,
 # 二者 #include "zlib.h"), 故必须接上同一份平台垫片与 zlib 依赖包含面。
 # 注: 本目标未定义 _REENTRANT (源集只编 fitsio.h 消费面), 垫片注入在非 MSVC
 # 与不需要时均为空操作, 口径仍与全仓一致 —— 不在调用点另写平台判断。
-if(NOT COMMAND astrocs_cfitsio_apply_platform_shim)
+if(NOT COMMAND acsd_cfitsio_apply_platform_shim)
   include("${CMAKE_SOURCE_DIR}/eng/cmake/cfitsio_platform.cmake")
 endif()
-astrocs_cfitsio_apply_platform_shim(astrocs_p1_hips_writer)
-astrocs_cfitsio_apply_third_party_deps(astrocs_p1_hips_writer)
-# 第三方告警隔离 (与基准目标 astrocs_cfitsio 同一份实现): 本目标编的是 vendored
+acsd_cfitsio_apply_platform_shim(acsd_p1_hips_writer)
+acsd_cfitsio_apply_third_party_deps(acsd_p1_hips_writer)
+# 第三方告警隔离 (与基准目标 acsd_cfitsio 同一份实现): 本目标编的是 vendored
 # cfitsio 源, 不该把 drvrnet.c C4206 / zuncompress.c C4267 之类灌进项目告警面。
-astrocs_cfitsio_isolate_warnings(astrocs_p1_hips_writer)
+acsd_cfitsio_isolate_warnings(acsd_p1_hips_writer)
 
-set_target_properties(astrocs_p1_hips_writer PROPERTIES
+set_target_properties(acsd_p1_hips_writer PROPERTIES
     POSITION_INDEPENDENT_CODE ON
     PREFIX ""
-    OUTPUT_NAME "astrocs_p1_hips_writer"
+    OUTPUT_NAME "acsd_p1_hips_writer"
     C_STANDARD 11
     C_STANDARD_REQUIRED ON
     CXX_STANDARD 17
 )
 
 # ── include 路径 (writer+reader TU 编译闭包实证最小集) ──
-target_include_directories(astrocs_p1_hips_writer PRIVATE
+target_include_directories(acsd_p1_hips_writer PRIVATE
     ${CMAKE_SOURCE_DIR}/lib/include
     ${CMAKE_CURRENT_SOURCE_DIR}/include
     ${HIPS_PROD_DIR}/include
@@ -91,16 +91,16 @@ target_include_directories(astrocs_p1_hips_writer PRIVATE
     ${CMAKE_SOURCE_DIR}/lib/algorithms/shared
     ${CMAKE_SOURCE_DIR}/lib/algorithms/shared/healpix
 )
-target_include_directories(astrocs_p1_hips_writer SYSTEM PRIVATE
+target_include_directories(acsd_p1_hips_writer SYSTEM PRIVATE
     ${HIPS_PROD_DIR}/third_party/cfitsio
 )
 
 # ── 编译宏: ABI 导出开关 ──
 # 注: writer TU 不需要 AIO_ENABLE_* (实证 0 引用); AIO_HIPS_EXPORT 由
 # aio_hips.h:23-27 依 _WIN32 自选, legacy 九符号导出净化由链接面兜底。
-target_compile_definitions(astrocs_p1_hips_writer PRIVATE
-    ASTROCS_ABI_SHARED=1
-    ASTROCS_ABI_EXPORTS=1
+target_compile_definitions(acsd_p1_hips_writer PRIVATE
+    ACSD_ABI_SHARED=1
+    ACSD_ABI_EXPORTS=1
 )
 
 find_package(Threads REQUIRED)
@@ -109,23 +109,23 @@ find_package(ZLIB QUIET)
 # ── 链接依赖 (闭包源已重编译; 只剩系统库) ──
 set(HIPS_LINK_LIBS Threads::Threads)
 if(ZLIB_FOUND)
-    # zlib 仅被 cfitsio 使用 (与根 astrocs_cfitsio 链路面一致)
+    # zlib 仅被 cfitsio 使用 (与根 acsd_cfitsio 链路面一致)
     list(APPEND HIPS_LINK_LIBS ZLIB::ZLIB)
 endif()
-  list(APPEND HIPS_LINK_LIBS astrocs_platform_math)
-target_link_libraries(astrocs_p1_hips_writer PRIVATE ${HIPS_LINK_LIBS})
+  list(APPEND HIPS_LINK_LIBS acsd_platform_math)
+target_link_libraries(acsd_p1_hips_writer PRIVATE ${HIPS_LINK_LIBS})
 
-# ── 导出面净化 (唯一导出 astrocs_module_query_v1; ABI-006) ──
+# ── 导出面净化 (唯一导出 acsd_module_query_v1; ABI-006) ──
 if(WIN32)
     # MSVC: /DEF 白名单 (AIO_HIPS_EXPORT=dllexport 九符号被 def 过滤)
-    set(HIPS_DEF "${CMAKE_CURRENT_SOURCE_DIR}/src/astrocs_p1_hips_writer.def")
-    target_link_options(astrocs_p1_hips_writer PRIVATE "/DEF:${HIPS_DEF}")
+    set(HIPS_DEF "${CMAKE_CURRENT_SOURCE_DIR}/src/acsd_p1_hips_writer.def")
+    target_link_options(acsd_p1_hips_writer PRIVATE "/DEF:${HIPS_DEF}")
 else()
     # Linux/macOS: version-script 白名单 + hidden 可见性预设
     set(HIPS_VERSION_SCRIPT "${CMAKE_CURRENT_SOURCE_DIR}/src/module_exports.map")
-    target_link_options(astrocs_p1_hips_writer PRIVATE
+    target_link_options(acsd_p1_hips_writer PRIVATE
         "-Wl,--version-script=${HIPS_VERSION_SCRIPT}")
-    set_target_properties(astrocs_p1_hips_writer PROPERTIES
+    set_target_properties(acsd_p1_hips_writer PROPERTIES
         C_VISIBILITY_PRESET hidden
         CXX_VISIBILITY_PRESET hidden
         VISIBILITY_INLINES_HIDDEN ON)

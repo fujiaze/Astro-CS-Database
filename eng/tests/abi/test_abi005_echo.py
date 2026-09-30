@@ -9,12 +9,12 @@
      WIN-* 实机承担）;
   2. 每个 host callback 有正/负测试（unit: 经独立 fake host 驱动全部回调）;
   3. 删除/替换 DLL 证明无静态 fallback（registry 加载失败即报缺, 无备用实现）;
-  4. 编译零告警; 唯一导出 astrocs_module_query_v1。
+  4. 编译零告警; 唯一导出 acsd_module_query_v1。
 
 结构:
   - 编译真实 echo 模块源码 (eng/tests/conformance/echo/src/echo_module.c) 为
     .so, 断言 stderr 无 warning（-Wall -Wextra -fno-exceptions）;
-  - exports 检查: nm -D 仅 astrocs_module_query_v1;
+  - exports 检查: nm -D 仅 acsd_module_query_v1;
   - 编译并运行共址单元测试 (eng/tests/unit/echo_host_callback_test.c): 全部 host
     callback（artifact read/write、allocator、logger、cancel、executor、
     config_query、error、metrics inspect）正/负断言 → ALL PASS;
@@ -50,7 +50,7 @@ REG_PROBE_C = os.path.join(REPO, "eng", "tests", "abi", "abi004_registry_probe.c
 TIMEOUT = 300
 CC = os.environ.get("CC", "gcc")
 
-ECHO_MID = "astrocs.conformance.echo"
+ECHO_MID = "acsd.conformance.echo"
 def _repo_version():
     """读根 VERSION 文件（与 cli/CMakeLists.txt 单一版本源一致），防 alpha 漂移。"""
     with open(os.path.join(REPO, "VERSION"), encoding="utf-8") as f:
@@ -89,7 +89,7 @@ def compile_echo(out_so):
     """编译真实 echo .so; 断言零告警（-Wall -Wextra）。"""
     cmd = [CC, "-std=c11", "-Wall", "-Wextra", "-fno-exceptions", "-fPIC",
            "-shared", "-fvisibility=hidden", f"-I{INC}", f"-I{ECHO_INC}",
-           "-DASTROCS_ABI_SHARED=1", "-DASTROCS_ABI_EXPORTS=1",
+           "-DACSD_ABI_SHARED=1", "-DACSD_ABI_EXPORTS=1",
            ECHO_SRC, "-o", out_so]
     r = run(cmd)
     if r.returncode != 0:
@@ -113,7 +113,7 @@ def make_manifest(base, units, product_version=None):
         "note": "ABI-005 test fixture",
         "units": units,
     }
-    with open(os.path.join(base, "astrocs.product.json"), "w") as f:
+    with open(os.path.join(base, "acsd.product.json"), "w") as f:
         json.dump(doc, f, indent=1)
 
 
@@ -129,10 +129,10 @@ def std_unit(unit_id, kind, rel_path, module_id=None, sha=None, abi=1,
 
 def scan_no_static_echo():
     """宿主侧无 echo 静态副本: 产品宿主源码（runtime/lib/cli/providers）不得
-    直调或定义 astrocs_module_query_v1（该入口唯一实现位于 module DLL; loader
-    只经 dlsym 字符串解析）。lib/include/astrocs/abi/module_api_v1.h 是共享声明头
+    直调或定义 acsd_module_query_v1（该入口唯一实现位于 module DLL; loader
+    只经 dlsym 字符串解析）。lib/include/acsd/abi/module_api_v1.h 是共享声明头
     （module 与 host 都 include），非实现，排除; 其余宿主源中出现
-    `astrocs_module_query_v1(`（前导非引号）即静态直调证据。"""
+    `acsd_module_query_v1(`（前导非引号）即静态直调证据。"""
     banned = []
     root_dirs = ["runtime", "lib", "cli", "providers"]
     for d in root_dirs:
@@ -150,7 +150,7 @@ def scan_no_static_echo():
                         fn.endswith(".cpp")):
                     continue
                 # M8-F-001 校正: module_entry.* 是各模块 DLL 对
-                # astrocs_module_query_v1 的**合法唯一实现**(见 docstring),
+                # acsd_module_query_v1 的**合法唯一实现**(见 docstring),
                 # 不属于"宿主静态 echo 副本"; 旧扫描把 lib/<module>/src/
                 # module_entry.* 一并当宿主直调(6 处误报), 使本脚本恒 FAIL 且
                 # 因未被 discover 采集而长期不可见。
@@ -162,7 +162,7 @@ def scan_no_static_echo():
                 except OSError:
                     continue
                 # 直调形态: 标识后紧跟 '(' 且前一个非引号字符（排除 dlsym 字符串）
-                for m in re.finditer(r'astrocs_module_query_v1\s*\(', txt):
+                for m in re.finditer(r'acsd_module_query_v1\s*\(', txt):
                     pre = txt[max(0, m.start() - 1):m.start()]
                     if pre != '"':
                         banned.append(p)
@@ -177,7 +177,7 @@ def main():
         # ── 编译真实 echo .so ──
         so_dir = os.path.join(work, "modules")
         os.makedirs(so_dir)
-        echo_so = os.path.join(so_dir, "astrocs_echo.so")
+        echo_so = os.path.join(so_dir, "acsd_echo.so")
         r = compile_echo(echo_so)
         if not os.path.exists(echo_so):
             print(r.stdout + r.stderr)
@@ -187,14 +187,14 @@ def main():
         # ── 1. 唯一导出验证 ──
         r = run(["nm", "-D", "--defined-only", echo_so])
         exports = [ln for ln in r.stdout.splitlines() if " T " in ln or " D " in ln]
-        dyn = re.findall(r"\bastrocs_module_query_v1\b", r.stdout)
-        check("E1 exports only astrocs_module_query_v1",
+        dyn = re.findall(r"\bacsd_module_query_v1\b", r.stdout)
+        check("E1 exports only acsd_module_query_v1",
               r.returncode == 0 and len(dyn) == 1 and " T " in r.stdout
-              and len([ln for ln in exports if "astrocs_module_query_v1" not in ln]) == 0,
+              and len([ln for ln in exports if "acsd_module_query_v1" not in ln]) == 0,
               r.stdout)
         check("E2 no extra dynamic exports",
               r.returncode == 0 and not
-              [ln for ln in exports if "astrocs_module_query_v1" not in ln],
+              [ln for ln in exports if "acsd_module_query_v1" not in ln],
               r.stdout)
 
         # ── 2. 单元测试: 全部 host callback 正/负 ──
@@ -279,16 +279,16 @@ def main():
 
         base1 = os.path.join(work, "s1_clean")
         os.makedirs(os.path.join(base1, "modules"))
-        shutil.copy(echo_so, os.path.join(base1, "modules", "astrocs_echo.so"))
+        shutil.copy(echo_so, os.path.join(base1, "modules", "acsd_echo.so"))
         make_manifest(base1, [
-            std_unit("MOD-ECHO", "module", "modules/astrocs_echo.so",
+            std_unit("MOD-ECHO", "module", "modules/acsd_echo.so",
                      module_id=ECHO_MID, sha=echo_sha),
         ])
-        r = run([rprobe, "check", os.path.join(base1, "astrocs.product.json"),
+        r = run([rprobe, "check", os.path.join(base1, "acsd.product.json"),
                  yaml_root, base1, "1"])
         check("R3 registry clean open", "CHECK_OK" in r.stdout, r.stdout + r.stderr)
         check("R3 zero findings", "issues=0" in r.stdout, r.stdout)
-        r = run([rprobe, "dump", os.path.join(base1, "astrocs.product.json"),
+        r = run([rprobe, "dump", os.path.join(base1, "acsd.product.json"),
                  yaml_root, base1, "0"])
         check("R3 entry loaded=1 mask=0",
               "entries=1" in r.stdout and "loaded=1" in r.stdout and
@@ -314,15 +314,15 @@ def main():
         os.makedirs(os.path.join(base2, "modules"))
         # manifest 声明 DLL 但目录内不放置文件 → 缺 DLL
         make_manifest(base2, [
-            std_unit("MOD-ECHO", "module", "modules/astrocs_echo.so",
+            std_unit("MOD-ECHO", "module", "modules/acsd_echo.so",
                      module_id=ECHO_MID, sha=echo_sha),
         ])
-        r = run([rprobe, "check", os.path.join(base2, "astrocs.product.json"),
+        r = run([rprobe, "check", os.path.join(base2, "acsd.product.json"),
                  yaml_root, base2, "1"])
         check("N1 deleted DLL detected (loader missing)",
               "CHECK_OK" in r.stdout and "issues=1" in r.stdout and
               "kind=13" in r.stdout, r.stdout)
-        r = run([rprobe, "dump", os.path.join(base2, "astrocs.product.json"),
+        r = run([rprobe, "dump", os.path.join(base2, "acsd.product.json"),
                  yaml_root, base2, "0"])
         check("N1 deleted DLL loaded=0 (no fallback)",
               "loaded=0" in r.stdout and "mask=1" in r.stdout, r.stdout)
@@ -333,16 +333,16 @@ def main():
         base3 = os.path.join(work, "s3_replaced")
         os.makedirs(os.path.join(base3, "modules"))
         # 放入篡改副本（内容 ≠ 登记 sha）
-        shutil.copy(tampered, os.path.join(base3, "modules", "astrocs_echo.so"))
+        shutil.copy(tampered, os.path.join(base3, "modules", "acsd_echo.so"))
         make_manifest(base3, [
-            std_unit("MOD-ECHO", "module", "modules/astrocs_echo.so",
+            std_unit("MOD-ECHO", "module", "modules/acsd_echo.so",
                      module_id=ECHO_MID, sha=echo_sha),
         ])
-        r = run([rprobe, "check", os.path.join(base3, "astrocs.product.json"),
+        r = run([rprobe, "check", os.path.join(base3, "acsd.product.json"),
                  yaml_root, base3, "0"])
         check("N2 replaced DLL hash mismatch finding",
               "CHECK_OK" in r.stdout and "kind=12" in r.stdout, r.stdout)
-        r = run([rprobe, "dump", os.path.join(base3, "astrocs.product.json"),
+        r = run([rprobe, "dump", os.path.join(base3, "acsd.product.json"),
                  yaml_root, base3, "0"])
         check("N2 replaced DLL loaded=0 mask HASH",
               "loaded=0" in r.stdout and "mask=4" in r.stdout, r.stdout)
@@ -354,7 +354,7 @@ def main():
         # loader/registry 对象: 不得有对入口符号的编译期未定义引用（仅 dlsym）
         r = run(["nm", "-u", loader_o, reg_o])
         check("N4 loader/registry objects have no undefined query ref",
-              "astrocs_module_query_v1" not in r.stdout, r.stdout)
+              "acsd_module_query_v1" not in r.stdout, r.stdout)
 
         print(f"\n{'='*60}\nresults: {len(FAILURES)} FAIL / "
               f"{CHECKS[0] - len(FAILURES)} PASS "

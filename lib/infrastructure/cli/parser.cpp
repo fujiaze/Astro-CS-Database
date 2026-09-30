@@ -1,6 +1,6 @@
 // acsd CLI — parser (RT-008 拆分自 main.cpp)
 // 统一 parser + 参数校验帮助器 + CPU 指纹/hash 帮助器。
-// 定义在 namespace astrocs 外(与拆分前一致); 不 include 任何 session/科学内部头 ——
+// 定义在 namespace acsd 外(与拆分前一致); 不 include 任何 session/科学内部头 ——
 // 只 include CLI 自身的单一声明头 session_commands.h（input_contract()，供
 // 三命令同构块结构派生输入判据；块内键集则与平铺形态同源 = 本文件 session_keys()，
 // 禁止在 parser 内手写第二份键集）。
@@ -73,7 +73,7 @@ bool cmd_allows_bare(const std::string& token, const Parsed& p) {
     return false;
 }
 bool cmd_command_has_flag(const std::string& joined, const std::string& token) {
-    const auto* c = astrocs::cli::cmd::find(joined);
+    const auto* c = acsd::cli::cmd::find(joined);
     if (!c) return false;
     for (const auto& f : c->allowed)
         if (f == token) return true;
@@ -86,7 +86,7 @@ struct CmdRuleView { std::string path; std::vector<std::string> allowed; };
 const std::vector<CmdRuleView>& kRuleViews() {
     static const std::vector<CmdRuleView> k = [] {
         std::vector<CmdRuleView> v;
-        for (const auto& c : astrocs::cli::cmd::commands())
+        for (const auto& c : acsd::cli::cmd::commands())
             v.push_back({c.path, c.allowed});
         return v;
     }();
@@ -94,7 +94,7 @@ const std::vector<CmdRuleView>& kRuleViews() {
 }
 
 // help 文本: 由命令树生成（禁止手写副本）。
-const std::string kHelpStorage = astrocs::cli::cmd::help_text();
+const std::string kHelpStorage = acsd::cli::cmd::help_text();
 const char* kHelp = kHelpStorage.c_str();
 
 [[noreturn]] void parse_fail(const std::string& msg) { throw ParseError(msg); }
@@ -111,7 +111,7 @@ Parsed parse_args(int argc, char** argv_utf8) {
         const std::string& a = raw[i];
         if (!a.empty() && a[0] == '-') {
             // 顶层 dash 命令(--version/--help/-h)视作命令本身
-            if (tokens.empty() && astrocs::cli::cmd::is_command(a)) {
+            if (tokens.empty() && acsd::cli::cmd::is_command(a)) {
                 tokens.push_back(a);
                 known_break = true;
             }
@@ -120,11 +120,11 @@ Parsed parse_args(int argc, char** argv_utf8) {
         tokens.push_back(a);
         std::string joined;
         for (const auto& t : tokens) { if (!joined.empty()) joined += ' '; joined += t; }
-        if (astrocs::cli::cmd::is_command(joined)) {
+        if (acsd::cli::cmd::is_command(joined)) {
             // 命中完整命令: 只有当下一 token 能拼出更长的已登记命令时才继续
             // （命令树里没有这种前缀对时立即定案，剩余 token 交旗标循环判定）。
             if (i + 1 < raw.size() && !raw[i + 1].empty() && raw[i + 1][0] != '-' &&
-                astrocs::cli::cmd::count_with_prefix(joined + " " + raw[i + 1]) > 0)
+                acsd::cli::cmd::count_with_prefix(joined + " " + raw[i + 1]) > 0)
                 continue;
             known_break = true;
             break;
@@ -140,7 +140,7 @@ Parsed parse_args(int argc, char** argv_utf8) {
     if (known_break) ++i;  // 越过已消费的最后一个命令 token
     const std::string joined = p.join();
     if (joined.empty()) parse_fail("no command given");
-    const auto* rule = astrocs::cli::cmd::find(joined);
+    const auto* rule = acsd::cli::cmd::find(joined);
     if (!rule) parse_fail("unknown command '" + joined + "'");
     for (; i < raw.size(); ++i) {
         const std::string& a = raw[i];
@@ -216,7 +216,7 @@ std::string sanitize_path(const std::string& p) {
 std::string file_sha256(const std::string& u8path, bool* ok) {
     std::ifstream f(std::filesystem::u8path(u8path), std::ios::binary);
     if (!f) { if (ok) *ok = false; return {}; }
-    astrocs::crypto::Sha256 h;
+    acsd::crypto::Sha256 h;
     char buf[65536];
     while (f) {
         f.read(buf, sizeof(buf));
@@ -253,11 +253,11 @@ std::optional<std::string> git_head_sha() {
 // 本机 CPU 特征指纹(profile stale 判定; 非调度线程数, 不违反 ARCH-003/AGENTS 禁硬编码)
 std::string local_cpu_signature() {
     const std::string seed =
-        "astrocs-cpu-amd64-hw=" + std::to_string(std::thread::hardware_concurrency());
-    return astrocs::crypto::sha256_hex(seed.data(), seed.size());
+        "acsd-cpu-amd64-hw=" + std::to_string(std::thread::hardware_concurrency());
+    return acsd::crypto::sha256_hex(seed.data(), seed.size());
 }
 
-// ── CLI-MULTIBLOCK（依据 docs/ASTROCS_DESIGN.md §4.3 输入合同）：normalize 多数据块 ──
+// ── CLI-MULTIBLOCK（依据 docs/ACSD_DESIGN.md §4.3 输入合同）：normalize 多数据块 ──
 // 语义（逐条依据 §4.3）：
 //   ① 一个 JSON 内可写多个数据块（block），形如「一个 main 下面写很多个函数」；
 //   ② 每块自带：一组 input_lights + 一套母版 + 运行参数 + 块级 output_dir；
@@ -314,7 +314,7 @@ const std::set<std::string>& session_keys() {
         //   默认（mode=auto / max_stars=20000 / parity=pos / limiting_mag 派生），
         //   不是错误。合同声明 =
         //   eng/contracts/schemas/phase_config_normalize.schema.json#/$defs/star_detection_config。
-        //   规范：docs/ASTROCS_DESIGN.md §4.2（星表引导检测 = 权威范式，top 2–5 万）
+        //   规范：docs/ACSD_DESIGN.md §4.2（星表引导检测 = 权威范式，top 2–5 万）
         //   + docs/detail/algorithms_phase1/03_star_detection.md §5.1。
         "star_detection",
         // phase2 平铺 (p2_session / canonical P2 节点链 消费面)
@@ -331,7 +331,7 @@ const std::set<std::string>& session_keys() {
         // 阶段二输入的**加性可选键**，指向数据集级覆盖索引 coverage.index.json；hips_paths 元素保持
         // 字符串（逐帧索引路径由命名规则派生）。同 snr_path：CLI 只识别并透传，消费点在阶段 2 ⇒ 死键台账已登记。
         "coverage_index",
-        //（docs/ASTROCS_DESIGN §3.3「三命令通用输入合同：键名一律以
+        //（docs/ACSD_DESIGN §3.3「三命令通用输入合同：键名一律以
         // 命令行实际认的键为准」）：合同声明但 CLI 白名单缺的提升键落地。键名**逐字**取
         // 合同声明名（禁止新造同义键）：
         //   phase_config_mosaic.schema.json#/$defs/mosaic_config/properties/snr_path
@@ -342,7 +342,7 @@ const std::set<std::string>& session_keys() {
         "source", "center", "scale_deg_per_px", "width_px", "height_px",
         "projection", "sampler", "longitude_parity", "bitpix",
         "coverage_output", "max_tiles", "frame",
-        // P3-STREAM-01（docs/ASTROCS_DESIGN §8.3 export 行 + SCHEDULER_CONTRACT §3）：
+        // P3-STREAM-01（docs/ACSD_DESIGN §8.3 export 行 + SCHEDULER_CONTRACT §3）：
         // 导出**编排参数**（子块边长 / 有界队列深度）——与 max_tiles 同款的资源/
         // 编排键（非科学键，不改任何公式与容差），生产消费点 = module_adapters 的
         // phase3 resample2/writer/verify 节点（p3n_sub_block_px）。
@@ -359,7 +359,7 @@ const std::set<std::string>& session_keys() {
         // （CLI 配置面与节点面共用）；生产消费点 = scheduler 的 p3 wcs/writer/verify
         // 节点（P3NodeModule::validate_config + p3_op_wcs/writer/verify）⇒ 不是死键。
         "crop",
-        // 计算精度口径（docs/ASTROCS_DESIGN §3.3:256）：阶段一 =
+        // 计算精度口径（docs/ACSD_DESIGN §3.3:256）：阶段一 =
         // drizzle.precision_mode(0=FP32/1=FP64)；阶段二/三 = 位深键 bitpix(-32/-64)。
         // **不新造 precision(fp32/fp64) 同义键**——合同旧键 precision 由死键台账登记
         // （eng/ci/ledgers/dead_config_keys.json#dead_config_key:precision），CLI 面拒绝。
@@ -425,7 +425,7 @@ std::string retired_perframe_form_message(const std::string& session_name) {
            "{\"schema_version\":\"1\",\"blocks\":[{\"name\":\"<label>\","
            "\"input_lights\":[...],\"master_bias\":\"...\",\"master_dark\":\"...\","
            "\"master_flat\":\"...\",\"output_dir\":\"...\"}]} — one block per group of "
-           "lights sharing the same masters (docs/ASTROCS_DESIGN.md §3.3)";
+           "lights sharing the same masters (docs/ACSD_DESIGN.md §3.3)";
 }
 
 bool config_has_blocks(const nlohmann::json& doc) {
@@ -455,7 +455,7 @@ std::vector<std::string> session_blocks_errors(const std::string& session_name,
                                                const nlohmann::json& doc, int* exit_code,
                                                bool include_unknown_keys) {
     std::vector<std::string> errs;
-    if (exit_code) *exit_code = astrocs::ARGS;             // 2: 结构/配置错
+    if (exit_code) *exit_code = acsd::ARGS;             // 2: 结构/配置错
     if (!doc.is_object() || !doc.contains("blocks")) {
         errs.push_back("blocks 缺失或配置不是 JSON 对象");
         return errs;
@@ -476,15 +476,15 @@ std::vector<std::string> session_blocks_errors(const std::string& session_name,
     //   * 「权重模式」概念不存在 ⇒ 块面不收 weight_mode /
     //     legacy_allow_weight_fallback（派生量，由 Phase2 消费 SNR 时现场算）。
     //   * schema_version 由两形态各自单列（顶层 kAllowedKeys）⇒ 块内不收。
-    const astrocs::cli::cmd::SessionId sess = astrocs::cli::cmd::session_of(session_name);
+    const acsd::cli::cmd::SessionId sess = acsd::cli::cmd::session_of(session_name);
     std::set<std::string> allowed = block_keys();
     for (const auto& k : session_keys()) allowed.insert(k);
-    const astrocs::cli::cmd::InputContract& ic = astrocs::cli::cmd::input_contract(sess);
+    const acsd::cli::cmd::InputContract& ic = acsd::cli::cmd::input_contract(sess);
     if (config_has_flat_session_keys(doc)) {
         errs.push_back("config mixes 'blocks' with flat single-block keys "
                        "(output_dir/input_lights/master_*/...): the two forms are mutually "
                        "exclusive — keep either blocks[] or the flat single-block shorthand "
-                       "(docs/ASTROCS_DESIGN.md §3.3)");
+                       "(docs/ACSD_DESIGN.md §3.3)");
     }
     const auto& blocks = doc["blocks"];
     if (!blocks.is_array() || blocks.empty()) {
@@ -546,7 +546,7 @@ std::vector<std::string> session_blocks_errors(const std::string& session_name,
             }
         }
     }
-    if (!errs.empty() && exit_code) *exit_code = astrocs::INPUT;   // 3: 未知键
+    if (!errs.empty() && exit_code) *exit_code = acsd::INPUT;   // 3: 未知键
     return errs;
 }
 
@@ -561,7 +561,7 @@ int validate_config_full(const std::string& path, nlohmann::json* doc_out,
     std::ifstream f(std::filesystem::u8path(path), std::ios::binary);
     if (!f) {
         std::fprintf(stderr, "acsd: config not found '%s'\n", path.c_str());
-        return astrocs::INPUT;                       // 04: 输入缺失 → 3
+        return acsd::INPUT;                       // 04: 输入缺失 → 3
     }
     std::stringstream buf; buf << f.rdbuf();
     nlohmann::json doc;
@@ -569,11 +569,11 @@ int validate_config_full(const std::string& path, nlohmann::json* doc_out,
         doc = nlohmann::json::parse(buf.str());
     } catch (const nlohmann::json::parse_error& e) {
         std::fprintf(stderr, "acsd: config malformed JSON: %s\n", sanitize(e.what()).c_str());
-        return astrocs::INPUT;                       // 04: 格式错 → 3
+        return acsd::INPUT;                       // 04: 格式错 → 3
     }
     if (!doc.is_object()) {
         std::fprintf(stderr, "acsd: config is not a JSON object\n");
-        return astrocs::INPUT;
+        return acsd::INPUT;
     }
     static const std::set<std::string> kAllowedKeys = {"schema_version", "inputs",
                                                        "output_dir", "phase3"};
@@ -585,7 +585,7 @@ int validate_config_full(const std::string& path, nlohmann::json* doc_out,
     if (session_mode && config_is_retired_perframe_form(doc)) {
         std::fprintf(stderr, "acsd: %s\n",
                      retired_perframe_form_message(session_name).c_str());
-        return astrocs::INPUT;                       // 3: 配置形态不可用
+        return acsd::INPUT;                       // 3: 配置形态不可用
     }
     for (auto it = doc.begin(); it != doc.end(); ++it) {
         // blocks 只在会话面（phaseN run / 预检）可达；V1 顶层合同（config validate 面）
@@ -595,7 +595,7 @@ int validate_config_full(const std::string& path, nlohmann::json* doc_out,
                               (kSessionKeys.count(it.key()) != 0 || it.key() == "blocks"));
         if (!allowed) {
             std::fprintf(stderr, "acsd: config has unknown key '%s'\n", it.key().c_str());
-            return astrocs::INPUT;                   // 防拼写静默忽略 → 3
+            return acsd::INPUT;                   // 防拼写静默忽略 → 3
         }
     }
     // 平铺会话格式特征: 任一 session 键出现即脱离 V1 顶层必填面
@@ -606,7 +606,7 @@ int validate_config_full(const std::string& path, nlohmann::json* doc_out,
     // （非空 input_lights + 块级 output_dir + 块内未知键 + output_dir 不重复）。
     const bool has_blocks = session_mode && config_has_blocks(doc);
     if (has_blocks) {
-        int bcode = astrocs::ARGS;
+        int bcode = acsd::ARGS;
         const std::vector<std::string> berrs = session_blocks_errors(session_name, doc, &bcode);
         if (!berrs.empty()) {
             for (const auto& e : berrs) std::fprintf(stderr, "acsd: %s\n", e.c_str());
@@ -618,41 +618,41 @@ int validate_config_full(const std::string& path, nlohmann::json* doc_out,
     if (!doc.contains("schema_version")) {
         if (!session_form) {
             std::fprintf(stderr, "acsd: config missing 'schema_version'\n");
-            return astrocs::INPUT;
+            return acsd::INPUT;
         }
     } else if (!doc["schema_version"].is_string() ||
                doc["schema_version"].get<std::string>() != "1") {
         std::fprintf(stderr, "acsd: config schema_version must be \"1\"\n");
-        return astrocs::ARGS;                        // 版本错=配置错 → 2
+        return acsd::ARGS;                        // 版本错=配置错 → 2
     }
     if (!session_form && (!doc.contains("inputs") || !doc["inputs"].is_object())) {
         std::fprintf(stderr, "acsd: config missing 'inputs' object\n");
-        return astrocs::INPUT;
+        return acsd::INPUT;
     }
     if (!session_form) {
         for (const char* k : {"lights", "darks", "flats", "bias"}) {
             auto it = doc["inputs"].find(k);
             if (it == doc["inputs"].end() || !it->is_array()) {
                 std::fprintf(stderr, "acsd: config inputs.%s must be an array\n", k);
-                return astrocs::INPUT;
+                return acsd::INPUT;
             }
             for (const auto& e : *it) {
                 if (!e.is_string() || e.get<std::string>().empty()) {
                     std::fprintf(stderr, "acsd: config inputs.%s has empty path\n", k);
-                    return astrocs::INPUT;
+                    return acsd::INPUT;
                 }
                 std::error_code ec;
                 if (!std::filesystem::exists(std::filesystem::u8path(e.get<std::string>()), ec)) {
                     std::fprintf(stderr, "acsd: config input not found '%s'\n",
                                  e.get<std::string>().c_str());
-                    return astrocs::INPUT;
+                    return acsd::INPUT;
                 }
             }
         }
     }
     if (!session_form && (!doc.contains("output_dir") || !doc["output_dir"].is_string())) {
         std::fprintf(stderr, "acsd: config missing 'output_dir'\n");
-        return astrocs::INPUT;
+        return acsd::INPUT;
     }
     // FIX-E2E B1-A8: 平铺会话同样必须显式给 output_dir —— 取消隐式 CWD "." 默认，
     // 否则 phaseN run 的 manifest/资源三件套落进程 CWD（仓库根产物散落）。
@@ -663,7 +663,7 @@ int validate_config_full(const std::string& path, nlohmann::json* doc_out,
         std::fprintf(stderr,
                      "acsd: config missing 'output_dir' (required for phase run; "
                      "run products are written only under output_dir)\n");
-        return astrocs::ARGS;                        // 2: 配置错
+        return acsd::ARGS;                        // 2: 配置错
     }
     std::error_code ec;
     // 平铺会话格式: session 自建输出目录, CLI 仅要求为字符串; V1 顶层格式仍要求已存在。
@@ -671,10 +671,10 @@ int validate_config_full(const std::string& path, nlohmann::json* doc_out,
     if (!session_form &&
         !std::filesystem::exists(std::filesystem::u8path(doc["output_dir"].get<std::string>()), ec)) {
         std::fprintf(stderr, "acsd: config output_dir not found\n");
-        return astrocs::INPUT;
+        return acsd::INPUT;
     }
     *doc_out = std::move(doc);
-    return astrocs::OK;
+    return acsd::OK;
 }
 
 // cpu profile 独立文件校验(分离原则): 结构(3)/stale(5) — profile hash 不与 config 混算
@@ -682,7 +682,7 @@ int validate_cpu_profile(const std::string& path, nlohmann::json* prof_out) {
     std::ifstream f(std::filesystem::u8path(path), std::ios::binary);
     if (!f) {
         std::fprintf(stderr, "acsd: cpu profile not found '%s'\n", path.c_str());
-        return astrocs::INPUT;
+        return acsd::INPUT;
     }
     std::stringstream buf; buf << f.rdbuf();
     nlohmann::json prof;
@@ -690,17 +690,17 @@ int validate_cpu_profile(const std::string& path, nlohmann::json* prof_out) {
         prof = nlohmann::json::parse(buf.str());
     } catch (const nlohmann::json::parse_error& e) {
         std::fprintf(stderr, "acsd: cpu profile malformed JSON: %s\n", sanitize(e.what()).c_str());
-        return astrocs::INPUT;
+        return acsd::INPUT;
     }
     // CPU-004: v2 profile 校验(结构 + 机器一致性: arch/quota_signature/logical_available)
-    const std::string hw = astrocs::backend_host::hardware_inspect_json_v1(ASTROCS_VERSION_STRING);
-    const auto verdict = astrocs::backend_host::validate_profile_v2_for_machine(
-        buf.str(), ASTROCS_COMMIT_SHA, hw);
+    const std::string hw = acsd::backend_host::hardware_inspect_json_v1(ACSD_VERSION_STRING);
+    const auto verdict = acsd::backend_host::validate_profile_v2_for_machine(
+        buf.str(), ACSD_COMMIT_SHA, hw);
     if (!verdict.valid) {
         std::fprintf(stderr, "acsd: cpu profile invalid: %s — rerun 'acsd benchmark cpu'\n",
                      verdict.stale_reason.c_str());
-        return astrocs::BACKEND;                     // 04: CPU 特征/损坏 → 5
+        return acsd::BACKEND;                     // 04: CPU 特征/损坏 → 5
     }
     *prof_out = std::move(prof);
-    return astrocs::OK;
+    return acsd::OK;
 }

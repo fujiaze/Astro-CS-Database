@@ -18,7 +18,7 @@
      - product_content: 显式声明 coordinate(icrs/deg)/geometry(format 与 role 匹配)/
        planes(每平面 units/dtype/invalid_policy 必填, units 非空)/invalid_policy
        （缺 units → 拒绝；缺 content → 拒绝）；
-     - origin ∈ {astrocs, external_fixture}; external_fixture 允许 run.phase=phase3
+     - origin ∈ {acsd, external_fixture}; external_fixture 允许 run.phase=phase3
        自述但不得携带内部 run 绑定要求。
   3. 无隐式 name binding：本校验器只读交换对象文档字段，绝不读/猜任何文件路径、
      storage_uri 尾段或 artifact_id 派生语义；artifact_id 仅唯一标识。
@@ -43,16 +43,16 @@ REPO = pathlib.Path(__file__).resolve().parents[5]
 # 2026-09-21 根目录整合：contracts/ → eng/contracts/。
 SCHEMA_PATH = REPO / "eng" / "contracts" / "data" / "phase_product_exchange.schema.json"
 MATRIX_PATH = REPO / "eng" / "contracts" / "data" / "phase_product_exchange_matrix.json"
-EXCHANGE_SCHEMA_CONST = "astrocs.phase-product-exchange/v1"
-CONTENT_SCHEMA_CONST = "astrocs.phase-product-content/v1"
+EXCHANGE_SCHEMA_CONST = "acsd.phase-product-exchange/v1"
+CONTENT_SCHEMA_CONST = "acsd.phase-product-content/v1"
 
 sys.path.insert(0, str(REPO / "lib" / "infrastructure" / "aio" / "runtime" / "artifact_store"))
 from artifact_manifest_validator import load_strict_json, load_registry  # noqa: E402
 
 _ROLE_SET = {"phase1_product_v1", "phase2_mosaic_v1", "phase3_planar_fits_v1"}
-_ORIGIN_SET = {"astrocs", "external_fixture"}
+_ORIGIN_SET = {"acsd", "external_fixture"}
 _HEX64 = re.compile(r"^[0-9a-f]{64}$")
-_TYPE_ID_RE = re.compile(r"^astrocs\.[a-z0-9]+\.[a-z0-9_]+\.[v][0-9]+$")
+_TYPE_ID_RE = re.compile(r"^acsd\.[a-z0-9]+\.[a-z0-9_]+\.[v][0-9]+$")
 # 可接受 product_content.plane.plane_id 集合（与 schema $defs.plane enum 一致）
 _PLANE_ID_SET = {"signal", "support", "variance", "ivar", "mask"}
 _DTYPE_SET = {"float32", "float64", "u8"}

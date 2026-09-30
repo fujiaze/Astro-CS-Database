@@ -8,7 +8,7 @@
 // converged 与 query_failed 丢失, 且触顶被记成 converged=true。
 //
 // 被测面: ipv::mag_iter_apply_to_selection (ipv_select.cpp 生产源, 经
-// astrocs_p1_ipv 链接); 生产 4 条 ipv_select 路径都经 gaia_query_mag_iterative
+// acsd_p1_ipv 链接); 生产 4 条 ipv_select 路径都经 gaia_query_mag_iterative
 // 调它 —— 本锁直接验证该唯一映射点。
 // 编译面与 test_mag_iter.cpp 同 (不依赖网络/Gaia 数据/真实图像)。
 // ============================================================================

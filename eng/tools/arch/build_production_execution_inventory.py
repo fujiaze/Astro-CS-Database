@@ -94,7 +94,7 @@ for line in exe:
     tgt, name = m.group(1), m.group(2)
     if name in seen: continue
     seen.add(name)
-    is_prod = name in ("acsd", "astrocs_cli", "astrocsCLI")
+    is_prod = name in ("acsd", "acsd_cli", "acsdCLI")
     add("exe_target", name, tgt, "production" if is_prod else ("test" if name.startswith("test_") else "tool"),
         "yes" if is_prod else "no", "-", "n/a(单exe策略)" if is_prod else "非发布目标", line.split(":",2)[0]+":"+line.split(":",2)[1].split(":")[0])
 

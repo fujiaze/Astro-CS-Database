@@ -4,7 +4,7 @@
 角色（tasks/03_RUNTIME_DATA_IO_TASKS.md RT-006 + 14 §5 运行图 + LOG-003 消费端）:
   - trace JSONL 由 Runtime（lib/core/src/trace.cpp TraceStore::export_jsonl）
     每事件一行输出；本模块把 JSONL 重放为按 node 聚合的可渲染摘要
-    （replay_schema=astrocs.trace-replay/v1），供 LOG-003 图渲染工具直接消费；
+    （replay_schema=acsd.trace-replay/v1），供 LOG-003 图渲染工具直接消费；
   - 与 C++ trace_replay_from_jsonl 双实现同构（字段语义一致）；测试互相对照；
   - 隐藏 session / 重复调用检测：同一 entry 出现在 ≥2 个不同 node 的 module_call
     = 隐藏 session 扇出；同一 node module_call 计数 >1 = 重复调用 —— 均违反
@@ -18,7 +18,7 @@ import pathlib
 import sys
 from typing import Any, Dict, List
 
-REPLAY_SCHEMA_CONST = "astrocs.trace-replay/v1"
+REPLAY_SCHEMA_CONST = "acsd.trace-replay/v1"
 
 # 合法事件类型（与 contracts.h trace_event_type_name 一一对应）
 _EVENT_TYPES = {

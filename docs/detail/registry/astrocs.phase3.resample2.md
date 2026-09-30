@@ -1,6 +1,6 @@
-# 模块 astrocs.phase3.resample2
+# 模块 acsd.phase3.resample2
 
-> 上游：docs/ASTROCS_DESIGN.md §8.5（模块与 ABI）、§6.2（export 流程：反向映射 +
+> 上游：docs/ACSD_DESIGN.md §8.5（模块与 ABI）、§6.2（export 流程：反向映射 +
 > 重采样）、§6.3（投影算法：输入语义守卫与输出模式）
 > 科学正本：docs/science/PHASE3_HIPS_TO_FITS.md（SCI-P3-001，FROZEN，零改动）、
 > docs/science/UNCERTAINTY_AND_COVARIANCE.md（重采样方差传播）
@@ -15,15 +15,15 @@
 > 架构正本：docs/engineering/ARCH-001.md
 > 落地设计：docs/detail/PHASE3_DETAILED_DESIGN.md §3–§4
 
-模块 = `astrocs.p3.resample`（module_id 合同值）；registry 行
-MOD-astrocs-phase3-resample2；dll_target = `astrocs_p3_resample.dll`（迁移合同值，
-未落地，IMPLEMENTED 只由验收签发）；现状构建 = `astrocs_phase3_session` 静态库
+模块 = `acsd.p3.resample`（module_id 合同值）；registry 行
+MOD-acsd-phase3-resample2；dll_target = `acsd_p3_resample.dll`（迁移合同值，
+未落地，IMPLEMENTED 只由验收签发）；现状构建 = `acsd_phase3_session` 静态库
 成员，`p3_resample.cpp` 为其五源文件之一。owner = SA-P3-S26；language = c++17；
 abi_version = 1；phase_scope = phase3；resource_class = cpu_heavy；
 threading_model = `host_executor_lease`（迁移目标合同值；现状 = 内核无内部线程，
 并行由会话 worker 池每 worker 独立 sampler 组织）。descriptor 词汇
-（module_id=`astrocs.phase3.resample2`、SCI-P3-RES-001 / ALG-P3-003 /
-TEST-P3-RES-001）与 module_id 合同值 `astrocs.p3.resample` 的对齐属迁移目标
+（module_id=`acsd.phase3.resample2`、SCI-P3-RES-001 / ALG-P3-003 /
+TEST-P3-RES-001）与 module_id 合同值 `acsd.p3.resample` 的对齐属迁移目标
 （未落地）。
 
 ## 1 身份与合同落位
@@ -36,14 +36,14 @@ TEST-P3-RES-001）与 module_id 合同值 `astrocs.p3.resample` 的对齐属迁�
   API-P3-RSMP-001 → TEST-P3-RES-001（设计冻结 = TEST-P3-RSMP-DESIGN-001，
   见 §9；矩阵 test_status = DORMANT，可执行面待落地）；编排面 API-P3-001 镜像不变；
   ARCH-001（VERIFIED）。
-- 上游依赖: astrocs_phase3_session（properties 校验经
+- 上游依赖: acsd_phase3_session（properties 校验经
   p3_sampler_open 间接消费 + lib/algorithms/shared/healpix 权威球面函数
   `leaf_to_tile_nest` / `tile_to_leaf_nest` / `nested_local_to_fits_index` /
   `ang2pix` / `pix2ang`）；
   depends_on_int=P3-PROJ;IO-003;CPU-005（P3-PROJ=上游 WCS 域对齐、IO-003=tile 文件读路径、CPU-005=worker 池并行
   由每 worker 独立 sampler 结构性满足，ALG-P3-RSMP-IMPL-001 §7）。
-- **相邻占位 descriptor（`astrocs.phase3.resample`）仍存在**：registry 的
-  `phase3_descriptor` 登记的占位 module_id 为 `astrocs.phase3.resample`，端口
+- **相邻占位 descriptor（`acsd.phase3.resample`）仍存在**：registry 的
+  `phase3_descriptor` 登记的占位 module_id 为 `acsd.phase3.resample`，端口
   `hips`（`DATA-HIPS-001`，必）与 `tile`（`DATA-TILE-001`，可），单位
   `UnitId::SURFACE_BRIGHTNESS`，坐标分别 `CoordinateFrame::PIXEL` /
   `CoordinateFrame::HEALPIX`；合同 ID SCI-P3-RES-001 / ALG-P3-003 为模板口径。
@@ -51,7 +51,7 @@ TEST-P3-RES-001）与 module_id 合同值 `astrocs.p3.resample` 的对齐属迁�
   C ABI，**不是**本页的生产面；`execution_class = cpu_heavy`、`parallel_ok = True`、
   配置 = phase config JSON（键集 = API-P3-001）；上游 `props` / `wcs_plan` 非法即
   显式拒（fail-closed，无 silent default），数值 invalid 依 DATA-P3-RES。
-  **对齐该占位 module_id 与合同值 `astrocs.p3.resample` 属迁移目标（未落地）**。
+  **对齐该占位 module_id 与合同值 `acsd.p3.resample` 属迁移目标（未落地）**。
 
 ## 2 职责与明确非职责
 
@@ -114,7 +114,7 @@ TEST-P3-RES-001）与 module_id 合同值 `astrocs.p3.resample` 的对齐属迁�
 ## 5 Registry descriptor 与配置 schema
 
 - descriptor（p3_resample2_descriptor，编排层口径）:
-  module_id=`astrocs.phase3.resample2`；
+  module_id=`acsd.phase3.resample2`；
   execution_class=cpu_heavy；parallel_ok=true（每 worker 独立
   sampler 的进程内并行安全，与 §7 结构性一致；单实例内无并发）；
   ports wcs_plan(DATA-P3-WCS 必)+hips(DATA-HIPS-001 必)+resampled
@@ -124,7 +124,7 @@ TEST-P3-RES-001）与 module_id 合同值 `astrocs.p3.resample` 的对齐属迁�
 - 注册序: phase3_descriptor→p3_wcs_descriptor→p3_resample2_descriptor→
   p3_writer_descriptor（registry 注册序列）；配置=phase config JSON（键集 = API-P3-001）。
 - 模块注册 = `lib/infrastructure/pipeline/module_ports.registry.json` 的
-  `astrocs.phase3.resample2`；生产接线 =
+  `acsd.phase3.resample2`；生产接线 =
   lib/infrastructure/scheduler/src/module_adapters.cpp 的 `p3_op_resample`。
 
 | 字段 | 默认 | 单位 | 说明 |
@@ -186,7 +186,7 @@ TEST-P3-RES-001）与 module_id 合同值 `astrocs.p3.resample` 的对齐属迁�
   p3_resample_probe_main.cpp 消费）。
 - provenance.missing_tiles 恒 nullptr（p3_session.cpp）——缺 tile
   聚合上报未接线（SCI §9a-9）。
-- astrocs_p3_resample.dll 未建（entrypoint 未落地）；探针/回归为内联编译。
+- acsd_p3_resample.dll 未建（entrypoint 未落地）；探针/回归为内联编译。
 - 错误码与退出码唯一源 = lib/infrastructure/cli/exit_codes.h（本页不复制数值表）；
   取消 = 协作取消（宿主 cancel 通道 → 停止调度新单元 → 等运行中单元完成 →
   exit 9，最高设计 §7.2）；模块内无 checkpoint（无断点续算）。
@@ -228,11 +228,11 @@ TEST-P3-RES-001）与 module_id 合同值 `astrocs.p3.resample` 的对齐属迁�
 - DATA: docs/science/DATA_SEMANTICS.md §29
 - API: docs/engineering/PUBLIC_API.md（API-P3-RSMP-001 节）
 - 合同三件套: lib/algorithms/resample/
-- 会话编排面现行权威 = docs/engineering/RT-001.md + docs/detail/registry/astrocs.phase3.*
+- 会话编排面现行权威 = docs/engineering/RT-001.md + docs/detail/registry/acsd.phase3.*
 
 ## NaN 与写端口
 
-- NaN 规则（权威 = `ASTROCS_DESIGN.md` §5.5）：**样本级掩膜 + 重归一 + 覆盖级 NaN + 强制计数**；
+- NaN 规则（权威 = `ACSD_DESIGN.md` §5.5）：**样本级掩膜 + 重归一 + 覆盖级 NaN + 强制计数**；
   剔除项逐条进场级计数。无覆盖/无数据 = NaN；0 与 ±Inf 不作有效值。
 - signal 语义 = **面亮度**，写端口 `UnitId::SURFACE_BRIGHTNESS`；输出模式显式声明
   （`surface_brightness` / `point_source_flux` / `visualization`，最高设计 §6.3）。

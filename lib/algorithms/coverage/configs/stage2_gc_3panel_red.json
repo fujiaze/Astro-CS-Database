@@ -27,7 +27,7 @@
     "rejection": {
       "method": "auto",
       "profile": "wbpp_2_9_1",
-      "normalization": "astrocs_median_center_v1",
+      "normalization": "acsd_median_center_v1",
       "underdetermined_n": 2,
       "large_scale": {
         "enabled": false,

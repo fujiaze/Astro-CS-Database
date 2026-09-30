@@ -40,7 +40,7 @@ import aio_abi_mirror as abi  # noqa: E402
 AstroSphereTileView = abi.AstroSphereTileView
 AioHipsSnrPoint = abi.AioHipsSnrPoint
 ROOT = _REPO
-AIO_DLL = os.environ.get("ASTROCS_AIO_DLL") or str(
+AIO_DLL = os.environ.get("ACSD_AIO_DLL") or str(
     _REPO / "lib" / "infrastructure" / "aio" / "astro_image_io.dll")
 
 
@@ -79,7 +79,7 @@ def main():
     n_tiles = 12 * (4 ** tile_order)
     ps = aio.aio_hips_product_begin(
         args.out.encode(), nside, 512, 1, 1,  # dtype=FP64, 仅 signal (映射测试)
-        b"ivo://astrocs/mapping", b"Mapping Oracle", None, 1.0, None, 0)
+        b"ivo://acsd/mapping", b"Mapping Oracle", None, 1.0, None, 0)
     if not ps:
         print("begin fail:", aio.aio_hips_last_error().decode())
         return 2

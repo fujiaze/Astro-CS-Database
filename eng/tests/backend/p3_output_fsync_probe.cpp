@@ -6,7 +6,7 @@
 //       对不存在/不可读路径 verify → "IO sha_len=<n>" | "BADOK sha_len=<n>"
 //       断言点: 必须报 P3_OUT_IO 且 result.sha256 不携带 64 位假哈希。
 // 失败注入方式:
-//   1) 读失败: 构建时 -Dastrocs_hash_fail_inject + 运行时 ASTROCS_HASH_FAIL_INJECT=1
+//   1) 读失败: 构建时 -Dacsd_hash_fail_inject + 运行时 ACSD_HASH_FAIL_INJECT=1
 //      (p3_output.cpp 的测试钩子: sha256_file_checked 在 final 前注入一次错误)
 //   2) 不存在文件: verify_missing 直接以不存在路径调用 verify。
 #include <cstdio>
@@ -19,7 +19,7 @@
 #include "p3_output.h"
 #include "p3_wcs.h"
 
-using namespace astrocs::phase3;
+using namespace acsd::phase3;
 
 static void fill(int W, int H, int seed, std::vector<float>& sig,
                  std::vector<float>& cov) {
@@ -42,7 +42,7 @@ static int do_write(const char* out, int W, int H, int seed) {
     w.crval_ra_deg = 210.0; w.crval_dec_deg = 34.0;
     w.cd[0][0] = -0.001; w.cd[0][1] = 0; w.cd[1][0] = 0; w.cd[1][1] = 0.001;
     w.width_px = W; w.height_px = H;
-    P3Provenance pv{"ivo://astrocs/test_p3", "deadbeef", nullptr, 0, "0.1.0",
+    P3Provenance pv{"ivo://acsd/test_p3", "deadbeef", nullptr, 0, "0.1.0",
                     "run-1", "0", "bilinear"};
     P3OutputResult r{};
     const P3OutputStatus st = p3_output_write_atomic(

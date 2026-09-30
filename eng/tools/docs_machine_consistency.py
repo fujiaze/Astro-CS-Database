@@ -8,9 +8,9 @@
         现断言「**不得**含 legacy token 解析 ∧ **必须**含 `in.contains("weight_mode")`
         具名 fail-closed 拒绝面 ∧ 必须引用 §9.73」。反转理由：A44 删除 legacy 整数
         权重模式域后，原断言要求 stage2_common.cpp **保留**该域解析 —— 那是把已废除
-        的域钉成合法规格（docs/ASTROCS_DESIGN.md §3.1:175「没有可选择项」）。）
+        的域钉成合法规格（docs/ACSD_DESIGN.md §3.1:175「没有可选择项」）。）
   2. frame_id_contract_exact        — DATA-FRAME-ID-001：SHA-256 truncate，无 FNV/路径派生残留
-  3. error_taxonomy_exit_codes      — ERROR_MODEL 进程退出码段 ↔ exit_codes.h（astrocs::ExitCode）11 码
+  3. error_taxonomy_exit_codes      — ERROR_MODEL 进程退出码段 ↔ exit_codes.h（acsd::ExitCode）11 码
   4. integration_status_full_set    — INTEGRATION_ALGORITHMS ↔ integrate.h（P2_INTEGRATE_*）
   5. rejection_status_full_set      — REJECTION_ALGORITHMS ↔ rejection.h（P2_STATUS_*/P2_REASON_*）
   6. stage_ids_docs_vs_orchestrator — stage ID 面 ↔ orchestrator stage_name_v2
@@ -203,8 +203,8 @@ SOURCES = [
     ("sampler_h", "sampler.h", ("truncated-64",), "lib/algorithms/coverage/include/astro/phase2/sampler.h"),
     ("data_semantics", "DATA_SEMANTICS.md", ("frame_id",), "docs/science/DATA_SEMANTICS.md"),
     ("upm_doc", "PHASE2_UPM.md", ("control cell",), "docs/science/PHASE2_UPM.md"),
-    ("error_model", "ERROR_MODEL.md", ("astrocs::ExitCode",), "docs/engineering/ERROR_MODEL.md"),
-    ("exit_codes_h", "exit_codes.h", ("namespace astrocs",),
+    ("error_model", "ERROR_MODEL.md", ("acsd::ExitCode",), "docs/engineering/ERROR_MODEL.md"),
+    ("exit_codes_h", "exit_codes.h", ("namespace acsd",),
      "lib/infrastructure/cli/exit_codes.h"),
     ("orchestrator_cpp", "orchestrator.cpp", ("stage_name_v2",),
      "lib/orchestrator/cpp/src/orchestrator.cpp"),
@@ -365,7 +365,7 @@ def run_checks(root: str) -> dict:
     _seg = tax[_seg_i:_seg_j] if 0 <= _seg_i < _seg_j else ""
     _pat = r"([A-Z][A-Z0-9_]{1,})\s*=\s*(\d+)"
     doc_exit = {m.group(1): int(m.group(2)) for m in re.finditer(_pat, _seg)}
-    _ns = ec_h.find("namespace astrocs")
+    _ns = ec_h.find("namespace acsd")
     _nse = ec_h.find("}", _ns) if _ns >= 0 else -1
     code_exit = ({m.group(1): int(m.group(2)) for m in re.finditer(_pat, ec_h[_ns:_nse])}
                  if 0 <= _ns < _nse else {})
@@ -373,7 +373,7 @@ def run_checks(root: str) -> dict:
     results.append(check(
         "error_taxonomy_exit_codes",
         bool(doc_exit) and len(code_exit) == 11 and doc_exit == code_exit,
-        "ERROR_MODEL 进程退出码段 == exit_codes.h astrocs::ExitCode 11 码 (doc=%d code=%d)"
+        "ERROR_MODEL 进程退出码段 == exit_codes.h acsd::ExitCode 11 码 (doc=%d code=%d)"
         % (len(doc_exit), len(code_exit))))
 
     int_h = r.read(p["integrate_h"])
@@ -500,7 +500,7 @@ MINI_FILES = {
     "lib/algorithms/coverage/include/astro/phase2/rejection.h":
         _mini_enum("P2RejectReason", MINI_REASON) + _mini_enum("P2RejectStatus", MINI_STATUS),
     "lib/infrastructure/cli/exit_codes.h":
-        "namespace astrocs {\nenum ExitCode {\n    OK = 0,\n    ARGS = 2,\n"
+        "namespace acsd {\nenum ExitCode {\n    OK = 0,\n    ARGS = 2,\n"
         "    INPUT = 3,\n    SCIENCE = 4,\n    BACKEND = 5,\n    COMPUTE = 6,\n"
         "    IO = 7,\n    INTEGRITY = 8,\n    CANCELLED = 9,\n    RESOURCE = 10,\n"
         "    INTERNAL = 70,\n};\n}\n",
@@ -524,7 +524,7 @@ MINI_FILES = {
         "// P2 面 input_manifest_hash 实现：\n"
         "std::string p2_input_manifest_hash(const P2CoverageView& view) {\n"
         "  payload += std::to_string(e.first) + \"|\" + e.second + \";\";\n"
-        "  return astrocs::crypto::sha256_hex(payload);\n"
+        "  return acsd::crypto::sha256_hex(payload);\n"
         "}\n"
         "// P3 面：\n"
         "std::string p3n_input_manifest_hash(const std::string& hips_dir) {\n"
@@ -535,7 +535,7 @@ MINI_FILES = {
     "docs/engineering/ERROR_MODEL.md":
         "## 进程退出码（唯一源）\n> OK=0  ARGS=2  INPUT=3  SCIENCE=4  BACKEND=5  COMPUTE=6\n"
         "> IO=7  INTEGRITY=8  CANCELLED=9  RESOURCE=10  INTERNAL=70\n"
-        "机器判据 = 与 lib/infrastructure/cli/exit_codes.h 的 astrocs::ExitCode 枚举一致\n"
+        "机器判据 = 与 lib/infrastructure/cli/exit_codes.h 的 acsd::ExitCode 枚举一致\n"
         "模块特定非进程退出码：STAR_DETECT_FAILED=20 MODULE_SPECIFIC_BASE=100\n"
         "P1.READ P1.CALIBRATE P1.PLATESOLVE P1.PSF P1.PHOTOMETRIC P1.NOISE "
         "P1.DRIZZLE P1.HIPS_WRITE P2.INTEGRATE P2.HIPS_WRITE\n",
@@ -588,7 +588,7 @@ def self_test() -> int:
         repo = _mini_repo(os.path.join(tmp, "exitmismatch"))
         with open(os.path.join(repo, "lib/infrastructure/cli/exit_codes.h"), "w",
                   encoding="utf-8") as f:
-            f.write("namespace astrocs {\nenum ExitCode {\n    OK = 0,\n    ARGS = 2,\n"
+            f.write("namespace acsd {\nenum ExitCode {\n    OK = 0,\n    ARGS = 2,\n"
                     "    INPUT = 3,\n    SCIENCE = 4,\n    BACKEND = 5,\n    COMPUTE = 6,\n"
                     "    IO = 7,\n    INTEGRITY = 8,\n    CANCELLED = 9,\n    RESOURCE = 99,\n"
                     "    INTERNAL = 70,\n};\n}\n")
@@ -642,7 +642,7 @@ def self_test() -> int:
                      "  char hex[17];\n"
                      "  std::snprintf(hex, sizeof(hex), \"%016llx\", (unsigned long long)e.first);\n"
                      "  payload += std::string(hex) + \"|\" + e.second + \";\";\n"
-                     "  return astrocs::crypto::sha256_hex(payload);\n"
+                     "  return acsd::crypto::sha256_hex(payload);\n"
                      "}\n"
                      "std::string p3n_input_manifest_hash(const std::string& hips_dir) {\n"
                      "  const char* parts[] = {\"/signal/properties\", \"/signal/Moc.fits\"};\n"

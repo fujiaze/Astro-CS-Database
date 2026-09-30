@@ -1,6 +1,6 @@
-# Phase2 UPM Fit/Apply Algorithms（P2-UPM / astrocs.p2.upm）
+# Phase2 UPM Fit/Apply Algorithms（P2-UPM / acsd.p2.upm）
 
-> 上游：ASTROCS_DESIGN.md §5.4（天光平面与统一相对模型）
+> 上游：ACSD_DESIGN.md §5.4（天光平面与统一相对模型）
 
 > 本文件是 Phase2 Unified Photometric Model（UPM）
 > fit+apply+persist+reload 的**实现级算法合同**：逐符号源码行号锚定 +
@@ -10,13 +10,13 @@
 > 实现源: lib/algorithms/coverage/src/upm.cpp（2981 行）+ 唯一权威签名头
 > lib/algorithms/coverage/include/astro/phase2/upm.h（453 行，实测）；
 > API: API-P2-UPM-001（矩阵词汇；PUBLIC_API.md 尚未落页，见 §16）；
-> DATA: DATA-P2-UPM / DATA-P2-COR；MOD: astrocs.p2.upm
+> DATA: DATA-P2-UPM / DATA-P2-COR；MOD: acsd.p2.upm
 > （TRACEABILITY_MATRIX.csv :21/:22 两行）；TEST: TEST-P2-UPM-001/002
 > （设计冻结面=本文档 §13，可执行 MISSING 归 P2-UPM-TEST）。
 
 ## 1 目的与非目标
 
-**目的**（SCI-UPM-001 §1 承接；实现域=astrocs.p2.upm 全链）：
+**目的**（SCI-UPM-001 §1 承接；实现域=acsd.p2.upm 全链）：
 
 - **fit**：从控制观测流（P2ControlObservation[]，上游
   ALG-P2-SMP-001 产出）联合求解 ONE UnifiedPhotometricModel——
@@ -25,8 +25,8 @@
 - **apply**：calibrated = raw − C(frame, leaf)，运行时唯一入口
   p2_upm_calibrate_block（upm.h:12-13 冻结"不暴露 per-frame
   gradient 产品；运行时只经 p2_upm_calibrate_block 使用"）；
-- **persist**：稀疏 json（astrocs-upm-v2）+ 稠密缓存
-  （astrocs-upm-dense-v2）双形态落盘，frame 绑定显式持久化；
+- **persist**：稀疏 json（acsd-upm-v2）+ 稠密缓存
+  （acsd-upm-dense-v2）双形态落盘，frame 绑定显式持久化；
 - **reload**：p2_upm_open 强校验重开，save→open 绑定不变
   （upm.cpp:1022-1247；ALG-UPM-FRAME-BIND-001 / DATA-UPM-MODEL-001）。
 
@@ -151,7 +151,7 @@ function calibrate_block(model, frame_id, leaves, in, out, n):   # :1907-1941（
   - `ALG-P2-UPM-002`（apply 行，TRACEABILITY_MATRIX.csv:21）⇒
     **ALG-UPM-001** + **ALG-P2-UPM-IMPL-001**。
   - SCI/公式语义不在此重复定义，两处冲突时以 docs/science/ 为准并
-    回改本文档（方向 = 从 docs/science/ 到本文档）；descriptor 词汇 astrocs.phase2.upm-fit/
+    回改本文档（方向 = 从 docs/science/ 到本文档）；descriptor 词汇 acsd.phase2.upm-fit/
     upm-apply 端口语义对齐归 P2-XX-INT（DISP-P2UPM-004），不作冻结依据。
 
 ## 6 离散公式 F1-F6（公式语义与 UPM_SOLVER.md §2 一致，逐条实现锚）
@@ -242,12 +242,12 @@ model_hash = SHA-256(payload)                          # :1161-1209
     （`module_adapters.cpp:9642`）⇒ |G 在生产 payload 里**必然存在**、
     model_hash 必须是含 G 的 hash；final_gauge=0 时 m->gauge 为空、
     payload 与 legacy 逐位一致（:1199-1201 注释冻结，既有 model_hash 门不受影响）。
-sparse json: format="astrocs-upm-v2"（:1390），frames[](:1468)+C[](:1490)
+sparse json: format="acsd-upm-v2"（:1390），frames[](:1468)+C[](:1490)
   行序显式持久化，唯一 AIO 出口 aio_upm_write_sparse（原子写）  # :1501-1503
 open 强校验: format(:1525-1526)、frames 存在/数组/无重复/类型、
   controls/C 字段类型与行数、
   任何损坏 → rc=1 稳定错误；异常越界恒不接受（p2_upm_open :1506-1801）
-dense cache: format="astrocs-upm-dense-v2"（aio_upm.cpp），
+dense cache: format="acsd-upm-dense-v2"（aio_upm.cpp），
   source_hash=model_hash 校验（p2_upm_dense_read_block :2201-2216）
 dense/sparse 等价门: 1e-12（UPM_SOLVER.md §8/§9 冻结；§13 T5）
 ```
@@ -483,7 +483,7 @@ PHASE2_SAMPLER.md 承载），本域只引用 control_ivar 消费面，不改不
   p2_upm_calibrate_block :337 注释锚）；测试面 synthetic_gate.cpp
   多处 save→open 幂等门（:325/:380/:391/:1824/:2066/:2257/:2335/
   :5007/:5019/:5082）；
-- **descriptor 面**：astrocs.phase2.upm-fit / astrocs.phase2.upm-apply
+- **descriptor 面**：acsd.phase2.upm-fit / acsd.phase2.upm-apply
   （module_adapters.cpp:665-698；节点链 coverage → sample → upm_fit
   → upm_apply → reject → integrate → write，:557 注释）——端口语义
   占位见 DISP-P2UPM-004。
@@ -501,15 +501,15 @@ PHASE2_SAMPLER.md 承载），本域只引用 control_ivar 消费面，不改不
   尚未落 upm 节，本文件只登记词汇、不冒认条目存在）。
 - TEST：TEST-P2-UPM-001（fit 面）/ TEST-P2-UPM-002（apply 面）
   ——设计冻结=本文档 §12；可执行 MISSING 归 P2-UPM-TEST。
-- MOD：astrocs.p2.upm（fit/apply 两模块页
-  docs/detail/registry/astrocs.phase2.upm-fit.md /
-  astrocs.phase2.upm-apply.md）。
+- MOD：acsd.p2.upm（fit/apply 两模块页
+  docs/detail/registry/acsd.phase2.upm-fit.md /
+  acsd.phase2.upm-apply.md）。
 
 ## 17 追溯
 
-- 矩阵行：MOD-astrocs-phase2-upm-fit（TRACEABILITY_MATRIX.csv:22，
+- 矩阵行：MOD-acsd-phase2-upm-fit（TRACEABILITY_MATRIX.csv:22，
   SCI-P2-UPM-001/ALG-P2-UPM-001/DATA-P2-UPM/TEST-P2-UPM-001）与
-  MOD-astrocs-phase2-upm-apply（:21，SCI-P2-UPM-002/ALG-P2-UPM-002/
+  MOD-acsd-phase2-upm-apply（:21，SCI-P2-UPM-002/ALG-P2-UPM-002/
   DATA-P2-COR/TEST-P2-UPM-002）。
 - 占位 ID 与本文件关系：矩阵 algorithm_id=ALG-P2-UPM-001/002 为
   descriptor 占位词汇，其语义由 §5 映射声明分解为 ALG-UPM-001

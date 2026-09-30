@@ -18,8 +18,8 @@
 //
 // 本文件不发明任何冻结阈值：OPEN 项（CF-T-P3-CORR-EPSILON / SO-07）以「未签字即 fail-closed」
 // 方式实现（GateConfig::epsilon_corr_ratified 默认 false → 近似 covariance 面 UNAVAILABLE）。
-#ifndef ASTROCS_P3_RSMP_H
-#define ASTROCS_P3_RSMP_H
+#ifndef ACSD_P3_RSMP_H
+#define ACSD_P3_RSMP_H
 
 #include <cmath>
 #include <cstddef>
@@ -27,7 +27,7 @@
 #include <string>
 #include <vector>
 
-namespace astrocs {
+namespace acsd {
 namespace p3rsmp {
 
 constexpr double kNaN = std::numeric_limits<double>::quiet_NaN();
@@ -480,7 +480,7 @@ const std::vector<std::string>& forbidden_psfsw_product_keys();
 bool token_is_forbidden_weight_source(const std::string& token);
 
 // 退役对象（PSFSW-RETIRE-01）：psfsw_robust_weight **不是现行对象**
-// （docs/ASTROCS_DESIGN.md §3.1 订正后；docs/detail/UNIFIED_MODEL.md:58；统一对象 14→13）。
+// （docs/ACSD_DESIGN.md §3.1 订正后；docs/detail/UNIFIED_MODEL.md:58；统一对象 14→13）。
 // 旧产品若在 variance_from / weight_sources 声明该对象 ⇒ 显式拒绝 + 迁移提示，
 // 不得静默接受，也不得再把它当作"在役的相对复合权重"。
 // 注意：它同时仍在 forbidden_weight_source_tokens 里（拒绝面），本函数只提供
@@ -496,6 +496,6 @@ GateResult check_failclosed(const ProductRecord& rec, const GateConfig& cfg);
 std::vector<GateResult> check_failclosed_all(const ProductRecord& rec, const GateConfig& cfg);
 
 }  // namespace p3rsmp
-}  // namespace astrocs
+}  // namespace acsd
 
-#endif  // ASTROCS_P3_RSMP_H
+#endif  // ACSD_P3_RSMP_H

@@ -20,7 +20,7 @@
 //
 // 被测面: 现状唯一生产实现 snr_noise_model_v1(+_f64)/fill/free/scale_law/
 // gain_variance (lib/algorithms/noise_snr/cpp/src/noise_model.cpp, 本测试面独立
-// 编译 astrocs_p1_noise_prod); 期望值一律由 p1noise_oracle.hpp 独立 oracle
+// 编译 acsd_p1_noise_prod); 期望值一律由 p1noise_oracle.hpp 独立 oracle
 // 推导, 绝不调用被测函数生成。
 #include <algorithm>
 #include <cmath>
@@ -31,7 +31,7 @@
 #include <vector>
 
 #include "p1noise_fixtures.hpp"
-#include "astrocs/noise/variance_plane_policy.h"   // n12: §4a 三态表的方差面可用性判据
+#include "acsd/noise/variance_plane_policy.h"   // n12: §4a 三态表的方差面可用性判据
 #include "p1noise_oracle.hpp"
 #include "p1noise_test_main.hpp"
 #include "snr_estimator.h"
@@ -962,7 +962,7 @@ int test_negative() {
         }
     }
 
-    // n12 (消费侧方差面可用性策略; 正本 astrocs/noise/variance_plane_policy.h):
+    // n12 (消费侧方差面可用性策略; 正本 acsd/noise/variance_plane_policy.h):
     // §4a 三态表把「有覆盖但方差不可用 ⇒ variance=0 ∧ ivar=0」定为**合法产品态**，
     // 投影侧对 variance<=0 只跳过方差累加、不丢 signal/support ⇒ 消费侧**不得**
     // 因平面含 0 而整张丢弃（那会丢掉可用像素的空间方差结构、退化成常数场）。
@@ -980,13 +980,13 @@ int test_negative() {
         std::vector<float> ivf(static_cast<std::size_t>(fneg.w) * fneg.h, 0.0f);
         P1NOISE_CHECK_EQ(cs, snr_noise_model_v1_fill(&r.model, fneg.h, fneg.w,
                                                      vf.data(), ivf.data()), 0);
-        const astrocs::noise::VariancePlaneVerdict neg =
-            astrocs::noise::classify_variance_plane(vf.data(), vf.size());
+        const acsd::noise::VariancePlaneVerdict neg =
+            acsd::noise::classify_variance_plane(vf.data(), vf.size());
         P1NOISE_CHECK(cs, neg.accepted, "n12_zero_variance_plane_accepted");
         P1NOISE_CHECK(cs, neg.n_unavailable > 0, "n12_zero_variance_plane_accepted");
         P1NOISE_CHECK_EQ(cs, (long long)neg.n_corrupt, 0);
         // 能红: 旧判据（任一像素非正 ⇒ 整面拒绝）在同一输入上必须判**拒绝**
-        P1NOISE_CHECK(cs, !astrocs::noise::legacy_plane_all_strictly_positive(
+        P1NOISE_CHECK(cs, !acsd::noise::legacy_plane_all_strictly_positive(
                               vf.data(), vf.size()),
                       "n12_legacy_criterion_would_discard");
         free_model(&r.model);
@@ -1004,12 +1004,12 @@ int test_negative() {
                                                      vp.data(), nullptr), 0);
         // 逐位中性: 判据只读不写
         const std::vector<float> vp_before = vp;
-        const astrocs::noise::VariancePlaneVerdict pos =
-            astrocs::noise::classify_variance_plane(vp.data(), vp.size());
+        const acsd::noise::VariancePlaneVerdict pos =
+            acsd::noise::classify_variance_plane(vp.data(), vp.size());
         P1NOISE_CHECK(cs, pos.accepted, "n12_positive_plane_accepted");
         P1NOISE_CHECK_EQ(cs, (long long)pos.n_unavailable, 0);
         P1NOISE_CHECK(cs, vp == vp_before, "n12_classify_is_read_only");
-        P1NOISE_CHECK(cs, astrocs::noise::legacy_plane_all_strictly_positive(
+        P1NOISE_CHECK(cs, acsd::noise::legacy_plane_all_strictly_positive(
                               vp.data(), vp.size()),
                       "n12_positive_plane_legacy_agrees");
         // 判据非退化: 档 1 与档 2 的 n_unavailable 必须不同
@@ -1021,18 +1021,18 @@ int test_negative() {
         {
             std::vector<float> vbad(64, 1.0f);
             vbad[7] = -1.0f;
-            const astrocs::noise::VariancePlaneVerdict a =
-                astrocs::noise::classify_variance_plane(vbad.data(), vbad.size());
+            const acsd::noise::VariancePlaneVerdict a =
+                acsd::noise::classify_variance_plane(vbad.data(), vbad.size());
             P1NOISE_CHECK(cs, !a.accepted && a.n_corrupt == 1,
                           "n12_corrupt_plane_rejected");
             vbad[7] = std::numeric_limits<float>::quiet_NaN();
-            const astrocs::noise::VariancePlaneVerdict b =
-                astrocs::noise::classify_variance_plane(vbad.data(), vbad.size());
+            const acsd::noise::VariancePlaneVerdict b =
+                acsd::noise::classify_variance_plane(vbad.data(), vbad.size());
             P1NOISE_CHECK(cs, !b.accepted && b.n_corrupt == 1,
                           "n12_corrupt_plane_rejected");
             vbad[7] = std::numeric_limits<float>::infinity();
-            const astrocs::noise::VariancePlaneVerdict c =
-                astrocs::noise::classify_variance_plane(vbad.data(), vbad.size());
+            const acsd::noise::VariancePlaneVerdict c =
+                acsd::noise::classify_variance_plane(vbad.data(), vbad.size());
             P1NOISE_CHECK(cs, !c.accepted && c.n_corrupt == 1,
                           "n12_corrupt_plane_rejected");
             // 「0 不算损坏」与「全 0 面可挂」是**两个不同命题**，必须分开断言：
@@ -1042,8 +1042,8 @@ int test_negative() {
             //       伪装成"全部合法"（恒真门）；且投影侧对 variance<=0 不累加 vnum
             //       ⇒ 阶段二 variance tile 写入硬失败（rc=-5）⇒ 整个 mosaic exit 7。
             std::vector<float> vzero(64, 0.0f);
-            const astrocs::noise::VariancePlaneVerdict z =
-                astrocs::noise::classify_variance_plane(vzero.data(), vzero.size());
+            const acsd::noise::VariancePlaneVerdict z =
+                acsd::noise::classify_variance_plane(vzero.data(), vzero.size());
             P1NOISE_CHECK_EQ(cs, (long long)z.n_corrupt, 0);   // (a) 0 不是损坏
             P1NOISE_CHECK_EQ(cs, (long long)z.n_usable, 0);
             P1NOISE_CHECK_EQ(cs, (long long)z.n_unavailable, 64);
@@ -1053,19 +1053,19 @@ int test_negative() {
             // 单像素非 0 即转为可接受（与全 0 面结论不同）
             std::vector<float> vone(vzero);
             vone[63] = 1.0f;
-            const astrocs::noise::VariancePlaneVerdict o =
-                astrocs::noise::classify_variance_plane(vone.data(), vone.size());
+            const acsd::noise::VariancePlaneVerdict o =
+                acsd::noise::classify_variance_plane(vone.data(), vone.size());
             P1NOISE_CHECK(cs, o.accepted && o.n_usable == 1 && o.n_unavailable == 63,
                           "n12_criterion_discriminates_all_zero_vs_one_usable");
             // 空面/空指针**不得恒真**: n==0 或 nullptr ⇒ 必须拒绝
             // （否则「对任意空输入都给同一结论」= 无证据资格的恒真门）
-            P1NOISE_CHECK(cs, !astrocs::noise::classify_variance_plane(nullptr, 64).accepted,
+            P1NOISE_CHECK(cs, !acsd::noise::classify_variance_plane(nullptr, 64).accepted,
                           "n12_empty_plane_not_vacuous");
-            P1NOISE_CHECK(cs, !astrocs::noise::classify_variance_plane(vzero.data(), 0).accepted,
+            P1NOISE_CHECK(cs, !acsd::noise::classify_variance_plane(vzero.data(), 0).accepted,
                           "n12_empty_plane_not_vacuous");
             P1NOISE_CHECK(cs,
-                          !astrocs::noise::legacy_plane_all_strictly_positive(nullptr, 64) &&
-                              !astrocs::noise::legacy_plane_all_strictly_positive(vzero.data(), 0),
+                          !acsd::noise::legacy_plane_all_strictly_positive(nullptr, 64) &&
+                              !acsd::noise::legacy_plane_all_strictly_positive(vzero.data(), 0),
                           "n12_empty_plane_not_vacuous");
         }
         std::fprintf(stdout,
@@ -1073,7 +1073,7 @@ int test_negative() {
                      "全正档 accepted=%d unavail=%zu / 旧判据在负梯度档=%d\n",
                      (int)neg.accepted, neg.n_unavailable, (int)pos.accepted,
                      pos.n_unavailable,
-                     (int)astrocs::noise::legacy_plane_all_strictly_positive(
+                     (int)acsd::noise::legacy_plane_all_strictly_positive(
                          vf.data(), vf.size()));
     }
 
@@ -1558,11 +1558,11 @@ int test_adaptive() {
         P1NOISE_CHECK(cs, rel_diff(m.plane_b, pf.b) <= 1e-9, "a3_provenance_consistent");
         P1NOISE_CHECK(cs, rel_diff(m.plane_c, pf.c) <= 1e-9, "a3_provenance_consistent");
         // 消费侧策略: 凸包内负区占比 > 0 ⇒ 不可审计（判据无数值阈值: 0 是约束定义值）
-        P1NOISE_CHECK(cs, astrocs::noise::variance_plane_auditable(m.hull_nonpositive_frac),
+        P1NOISE_CHECK(cs, acsd::noise::variance_plane_auditable(m.hull_nonpositive_frac),
                       "a3_plane_auditable");
-        P1NOISE_CHECK(cs, !astrocs::noise::variance_plane_auditable(0.01), "a3_plane_auditable");
-        P1NOISE_CHECK(cs, !astrocs::noise::variance_plane_auditable(-1.0), "a3_plane_auditable");
-        P1NOISE_CHECK(cs, !astrocs::noise::variance_plane_auditable(
+        P1NOISE_CHECK(cs, !acsd::noise::variance_plane_auditable(0.01), "a3_plane_auditable");
+        P1NOISE_CHECK(cs, !acsd::noise::variance_plane_auditable(-1.0), "a3_plane_auditable");
+        P1NOISE_CHECK(cs, !acsd::noise::variance_plane_auditable(
                               std::numeric_limits<double>::quiet_NaN()), "a3_plane_auditable");
         free_model(&r.model);
     }

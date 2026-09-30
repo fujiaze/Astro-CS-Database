@@ -25,8 +25,8 @@
 #include <stdint.h>
 
 /* CAT-GAIA-IMPL: GAIA_EXPORT 允许构建方预定义覆盖——模块 DLL target
- * astrocs_catalog_gaia 编译本生产源时以 -DGAIA_EXPORT= 将 12 个 legacy
- * 符号本地化（导出面仅 astrocs_module_query_v1，12 §1 / ABI-006）；
+ * acsd_catalog_gaia 编译本生产源时以 -DGAIA_EXPORT= 将 12 个 legacy
+ * 符号本地化（导出面仅 acsd_module_query_v1，12 §1 / ABI-006）；
  * 未定义时保持原语义（legacy 测试/上游 Makefile 不受影响）。 */
 #ifndef GAIA_EXPORT
 #ifdef _WIN32

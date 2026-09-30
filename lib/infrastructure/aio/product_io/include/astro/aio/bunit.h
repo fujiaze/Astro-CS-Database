@@ -17,14 +17,14 @@
  *
  * 本文件只做符号/量纲判定，不发明任何科学数值。
  */
-#ifndef ASTROCS_V6_AIO_BUNIT_H
-#define ASTROCS_V6_AIO_BUNIT_H
+#ifndef ACSD_V6_AIO_BUNIT_H
+#define ACSD_V6_AIO_BUNIT_H
 
 #include <string>
 
 #include "astro/aio/validation.h"
 
-namespace astrocs {
+namespace acsd {
 namespace aio {
 
 // 本模块单位词汇表条目。
@@ -83,6 +83,6 @@ int default_pixel_area_power(Quantity q);
 bool psfsw_unit_forbidden(const std::string& unit);
 
 }  // namespace aio
-}  // namespace astrocs
+}  // namespace acsd
 
-#endif  // ASTROCS_V6_AIO_BUNIT_H
+#endif  // ACSD_V6_AIO_BUNIT_H

@@ -1,11 +1,11 @@
-# astrocs.p2.session — Phase2 进程内装配会话（P2-SESSION）
+# acsd.p2.session — Phase2 进程内装配会话（P2-SESSION）
 
 > P2-SESSION-DOC（2026-09-10，SA-P2-X24）合同冻结新建模块页。合同三件套
 > 落位 `lib/phase2_session/`（README r1 + module.yaml + memory.md，
 > CONTRACT_READY，entrypoint=MISSING）——本目录即生产源所在目录（源码
 > 同目录三件套，与 `lib/phase1_session/` P1-SESSION-DOC 先例同构）。
 > 生产源 `lib/phase2_session/p2_session.cpp`（282 行，根 CMakeLists.txt
-> astrocs_phase2_session 静态库 :454-458 实测）+ 唯一权威签名头
+> acsd_phase2_session 静态库 :454-458 实测）+ 唯一权威签名头
 > `lib/phase2_session/p2_session.h`（39 行）；消费链
 > `lib/infrastructure/scheduler/src/module_adapters.cpp`（P2Api :711-720 工厂委托）与
 > `lib/infrastructure/cli/runtime_client.cpp`（:28 passthrough 不自动补 output_dir、:51
@@ -14,8 +14,8 @@
 
 ## 身份与合同
 
-- MOD ID：`MOD-astrocs-phase2-session`；module_id：`astrocs.p2.session`
-  （本任务冻结的合同模块词汇）；dll_target：`astrocs_p2_session.dll`
+- MOD ID：`MOD-acsd-phase2-session`；module_id：`acsd.p2.session`
+  （本任务冻结的合同模块词汇）；dll_target：`acsd_p2_session.dll`
   （合同值，尚未存在，迁移归 P2-SESSION-IMPL）。
 - owner SA-P2-X24；任务链 P2-SESSION-DOC→TEST（node call-count
   tests: coverage through hips writer each once）→IMPL（assemble typed
@@ -89,20 +89,20 @@
 - 错误面：ACS_ERR_PARAM / ACS_ERR_STATE / ACS_ERR_IO / ACS_ERR_INTERNAL
   / ACS_ERR_ABI_MISMATCH（:57-59）/ ACS_ERR_NOMEM（:61-62/:261）/
   ACS_ERR_CANCELLED（:120/:152/:181/:226）；诊断经 host->logger
-  （:28-31），无 stderr 直写；last_error=astrocs::phase2::last_error
+  （:28-31），无 stderr 直写；last_error=acsd::phase2::last_error
   （:277-282）。
 
 ## Registry 现状（如实登记）
 
-- astrocs.phase2.session 无独立 descriptor（module_adapters.cpp 全文
+- acsd.phase2.session 无独立 descriptor（module_adapters.cpp 全文
   实测）；P2 session 五函数经 `phase2_descriptor()`
-  （module_id=astrocs.phase2.resample 占位，:283-300）与 canonical
+  （module_id=acsd.phase2.resample 占位，:283-300）与 canonical
   Phase2 IR 7 节点链 descriptors（p2_coverage/sample/upm_fit/
   upm_apply/reject/integrate/write，定义 :561-694、注册段 :782-794）
   的工厂 make_session_module<P2Api>（:711-718）委托暴露（与 P1 8
   descriptor 同构，无第二调度顺序）。占位词汇（SCI-P2-RES-001/
   ALG-P2-RES-001/DATA-P2-RES/TEST-P2-RES-001 等）由 P2-XX-INT 对齐
-  astrocs.p2.session，不得反向作为冻结依据。
+  acsd.p2.session，不得反向作为冻结依据。
 
 ## 测试
 

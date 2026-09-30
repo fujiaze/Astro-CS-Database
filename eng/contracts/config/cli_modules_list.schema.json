@@ -1,14 +1,14 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "astrocs://astrocs/contracts/config/cli-modules-list-v1.json",
+  "$id": "acsd://acsd/contracts/config/cli-modules-list-v1.json",
   "title": "acsd modules list --json 输出合同 (CLI-001 冻结)",
-  "description": "稳定机器输出: 从 exe 旁 astrocs.product.json 扫描登记 unit。stdout 恰一个 JSON 文档, 无混杂进度文字。",
+  "description": "稳定机器输出: 从 exe 旁 acsd.product.json 扫描登记 unit。stdout 恰一个 JSON 文档, 无混杂进度文字。",
   "type": "object",
   "additionalProperties": false,
   "required": ["schema_version", "kind", "manifest", "manifest_present", "units", "verdict"],
   "properties": {
     "schema_version": { "const": 1 },
-    "kind": { "const": "astrocs_modules_list" },
+    "kind": { "const": "acsd_modules_list" },
     "manifest": { "type": ["string", "null"], "description": "product manifest 绝对/相对路径; 不存在为 null" },
     "manifest_present": { "type": "boolean", "description": "false → 未发现 product manifest(host 未装配完整安装树)" },
     "units": {

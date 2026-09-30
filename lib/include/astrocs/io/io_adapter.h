@@ -1,17 +1,17 @@
 // ACSD I/O Adapter — IO-001 Artifact 事务 + I/O 边界
 #pragma once
 
-#include "astrocs/core/artifact.h"
-#include "astrocs/core/contracts.h"
+#include "acsd/core/artifact.h"
+#include "acsd/core/contracts.h"
 
 #include <cstdint>
 #include <string>
 #include <vector>
 
-namespace astrocs::io {
-using astrocs::core::Error;
-using astrocs::core::ErrorDomain;
-using astrocs::core::Result;
+namespace acsd::io {
+using acsd::core::Error;
+using acsd::core::ErrorDomain;
+using acsd::core::Result;
 
 // IO-001: I/O adapter 不 include Runtime scheduler 或模块实现 (依赖方向: core <- io)
 
@@ -71,4 +71,4 @@ class FileIoAdapter : public IoAdapter {
   Result<void> atomic_write(const std::string& path, const std::string& content) const override;
 };
 
-}  // namespace astrocs::io
+}  // namespace acsd::io

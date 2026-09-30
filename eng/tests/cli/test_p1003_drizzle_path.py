@@ -11,8 +11,8 @@ import subprocess
 import unittest
 
 REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
-# DISPATCH 附录 H（构建隔离）: 被测构建树 = 被测二进制所在目录; ASTROCS_CLI_BIN 覆盖。
-EXE = os.environ.get("ASTROCS_CLI_BIN", os.path.join(REPO, "build", "acsd"))
+# DISPATCH 附录 H（构建隔离）: 被测构建树 = 被测二进制所在目录; ACSD_CLI_BIN 覆盖。
+EXE = os.environ.get("ACSD_CLI_BIN", os.path.join(REPO, "build", "acsd"))
 BUILD = os.path.dirname(os.path.abspath(EXE))
 # ROOT-008: CLI 命令层源在 lib/infrastructure/cli/（旧 cli/ 已退役）。
 CLI_DIR = os.path.join(REPO, "lib", "infrastructure", "cli")
@@ -33,7 +33,7 @@ class TestP1003DrizzlePath(unittest.TestCase):
     INTERNAL_BANNED = ("spawn_frame_from_fits",)
 
     def _cli_objects(self):
-        root = os.path.join(BUILD, "CMakeFiles", "astrocs.dir")
+        root = os.path.join(BUILD, "CMakeFiles", "acsd.dir")
         objs = []
         for dirpath, _dirs, files in os.walk(root):
             objs += [os.path.join(dirpath, f) for f in files if f.endswith(".o")]
@@ -83,7 +83,7 @@ class TestP1003DrizzlePath(unittest.TestCase):
                 self.assertNotIn(sym, text, f"{os.path.basename(src)} 含 {sym} 直连")
 
     def test_03_drizzle_command_rejects_production(self):
-        """drizzle 用户命令已删除（docs/ASTROCS_DESIGN §6.2 唯一命令树; CLI-001 rc 矩阵）:
+        """drizzle 用户命令已删除（docs/ACSD_DESIGN §6.2 唯一命令树; CLI-001 rc 矩阵）:
         作为生产命令不可达 ⇒ 未知命令 rc=2(ARGS), 错误面指向新命令树。
         旧断言 "stderr 含 preset"（旧 cmd_drizzle 仅测试 preset 的语义）已随命令删除;
         本用例保留其真实意图「drizzle 不得作为生产命令运行」并加强为"命令不存在"。

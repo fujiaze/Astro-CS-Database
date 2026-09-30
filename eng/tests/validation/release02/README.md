@@ -159,9 +159,9 @@ MC 噪声 RMS 等权是 SNR 的 **5.0×**。
 ## 4. 复跑说明
 
 各目录内的脚本以**相对路径**引用 L4 产物（`run/RELEASE-02/L4-rebuild/`）。复跑前请：
-1. `export TMPDIR=/dev/shm/astrocs_<name>`（`/dev/shm` 仅 7.9G，用完清理）；
+1. `export TMPDIR=/dev/shm/acsd_<name>`（`/dev/shm` 仅 7.9G，用完清理）；
 2. 确认 `run/RELEASE-02/L4-rebuild/` 存在（由 `run_l4.sh` 生成）；
-3. Oracle 类（`*_oracle.cpp`）可 `g++` 直接链接 `build/libastrocs_phase2.a` 等静态库。
+3. Oracle 类（`*_oracle.cpp`）可 `g++` 直接链接 `build/libacsd_phase2.a` 等静态库。
 
 **注意**：本目录资产在 RELEASE-02 期间产生，部分脚本引用了当时的工作树路径；
 迁入 `eng/tests/validation/` 后路径已按目录结构保留，若脚本内写死绝对路径需按 §4.1 修正。

@@ -337,7 +337,7 @@ int test_oracle() {
 
     // ── O5: aperture oracle (噪声帧) ─────────────────────────────────────
     {
-        using astrocs::phase1::Photometer;
+        using acsd::phase1::Photometer;
         SplitMix64 rng(0x5EED00000000A90EULL);
         const auto img = fix::fixture_f6_image(48, 48, 100.0, 600.0, 2, 24.0, 24.0, rng);
         Photometer phot(4.0, 6.0, 10.0);

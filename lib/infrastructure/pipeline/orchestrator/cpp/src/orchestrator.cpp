@@ -72,7 +72,7 @@
 // snr_estimator C API (用于 run_stage_snr)
 #include "snr_estimator.h"
 // 饱和电平解析策略（SAT-001 / claim SC-008；SCI NOISE_MODEL §4 饱和域）
-#include "astrocs/noise/saturation_policy.h"
+#include "acsd/noise/saturation_policy.h"
 
 // nlohmann/json: 替代手写 orc_findJsonKey/orc_extractJsonStr/orc_extractJsonNum 解析
 // 已通过 MSYS2 pacman 安装在 mingw64/include, Makefile 默认搜索路径即可找到
@@ -84,7 +84,7 @@
 
 namespace fs = std::filesystem;
 // 曲线解析唯一实现 (P1-PHOT-CURVE-RESOLVE / PHOTOCURVE-ORCH-01)
-namespace curve_json = astrocs::photometry::curve_json;
+namespace curve_json = acsd::photometry::curve_json;
 
 // ============================================================================
 // JSON 字段提取 (基于 nlohmann/json)
@@ -2420,7 +2420,7 @@ bool Orchestrator::run_stage_psf(TaskResult& result) {
         return false;
     }
 
-    // 5. 写入 star_measurements 权威块 (FLOAT64 [N,15], schema astrocs-star-measurements-1)
+    // 5. 写入 star_measurements 权威块 (FLOAT64 [N,15], schema acsd-star-measurements-1)
     // 列含义:
     // [0]=star_id (int64 as double), [1]=x, [2]=y,
     // [3]=flux_inst (PSF integrated flux), [4]=residual_mad
@@ -3850,7 +3850,7 @@ bool Orchestrator::run_stage_hiss_verify(TaskResult& result) {
 // 唯一后端: AIO HiPS Reader (aio_hips_reader.dll 函数, 不经 astropy/CFITSIO)
 // 验证项:
 // 1. signal/support/snr 三产品 properties (hips_version=1.4, order, width)
-// 2. signal/support dtype 与 precision 一致 (manifest astrocs_signal_dtype)
+// 2. signal/support dtype 与 precision 一致 (manifest acsd_signal_dtype)
 // 3. 叶级 tile 全遍历: support∈[0,1], support>0 -> signal 有限,
 // support==0 -> signal NaN; F = signal*support*A_cell 有限非负
 // 4. MOC 覆盖: tile 列表来自 MOC, 且每个 tile FITS 文件存在
@@ -3931,7 +3931,7 @@ bool Orchestrator::run_stage_hips_verify(TaskResult& result) {
                 return false;
             }
             // dtype 严格
-            std::string want = fp64 ? "astrocs_signal_dtype=float64" : "astrocs_signal_dtype=float32";
+            std::string want = fp64 ? "acsd_signal_dtype=float64" : "acsd_signal_dtype=float32";
             if (pr.second == AIO_HIPS_RD_SIGNAL &&
                 props.find(want) == std::string::npos) {
                 result.error_msg = "[HIPS_VERIFY] signal dtype 与 precision 不匹配";
@@ -4725,12 +4725,12 @@ bool Orchestrator::run_stage_snr(TaskResult& result) {
                 fn_kv_get ? fn_kv_get(frame_, "header", "SATURATE") : nullptr;
             const char* datamax_s =
                 fn_kv_get ? fn_kv_get(frame_, "header", "DATAMAX") : nullptr;
-            ncfg.saturation_level = astrocs::noise::resolve_effective_saturation(
+            ncfg.saturation_level = acsd::noise::resolve_effective_saturation(
                 ncfg.saturation_level, saturate_s, datamax_s);
             {
                 const char* sat_state =
-                    astrocs::noise::saturation_filter_state(ncfg.saturation_level);
-                const char* sat_src = astrocs::noise::saturation_level_source(
+                    acsd::noise::saturation_filter_state(ncfg.saturation_level);
+                const char* sat_src = acsd::noise::saturation_level_source(
                     0.0, saturate_s, datamax_s);
                 char satkv[64];
                 std::snprintf(satkv, sizeof(satkv), "%.6f", ncfg.saturation_level);
@@ -4993,7 +4993,7 @@ bool Orchestrator::run_stage_browser_verify(TaskResult& result) {
     int order = 0;
     size_t p = props.find("hips_order=");
     if (p != std::string::npos) order = std::atoi(props.c_str() + p + 11);
-    const bool fp64 = props.find("astrocs_signal_dtype=float64") != std::string::npos;
+    const bool fp64 = props.find("acsd_signal_dtype=float64") != std::string::npos;
     const bool expect_fp64 = (config_.precision == PrecisionMode::FP64);
     if (fp64 != expect_fp64) {
         result.error_msg = std::string("[BROWSER_VERIFY] signal dtype 与 precision 不匹配: manifest=")
@@ -5040,7 +5040,7 @@ bool Orchestrator::run_stage_browser_verify(TaskResult& result) {
     }
     int n_queried = 0, n_ok = 0, n_tile_miss = 0, n_read_fail = 0, n_nonfinite = 0;
     for (int i = 0; i < n_snr; ++i) {
-        const uint64_t leaf_ipix = astrocs::healpix::ang2pix_nest(nside, ra[(size_t)i], dec[(size_t)i]);
+        const uint64_t leaf_ipix = acsd::healpix::ang2pix_nest(nside, ra[(size_t)i], dec[(size_t)i]);
         const uint64_t tile_ipix = leaf_ipix >> 18;
         ++n_queried;
         if (!tile_exists(tile_ipix)) { ++n_tile_miss; continue; }
@@ -5508,11 +5508,11 @@ TaskResult Orchestrator::run_stage2(const std::string& hiss_dir,
     state_ = TaskState::RUNNING;
 
     // legacy Stage2（gradient sphere / stack，healpix_stack）已从
-    // active production 移除；Phase2 唯一生产入口 = astrocs-stage2。
-    // 旧 stage2 config 在此显式失败（要求改用 astrocs-stage2.exe）。
+    // active production 移除；Phase2 唯一生产入口 = acsd-stage2。
+    // 旧 stage2 config 在此显式失败（要求改用 acsd-stage2.exe）。
     bool ok = false;
     result.success = false;
-    result.error_msg = "legacy Stage2 removed in V17; use astrocs-stage2";
+    result.error_msg = "legacy Stage2 removed in V17; use acsd-stage2";
     result.exit_code = AstroCsExitCode::GENERIC_ERROR;
     LOG_ERROR("orchestrator", result.error_msg);
 

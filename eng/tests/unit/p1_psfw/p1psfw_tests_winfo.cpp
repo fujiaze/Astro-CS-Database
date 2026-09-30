@@ -7,7 +7,7 @@
 #include <string>
 #include <vector>
 
-using namespace astrocs::v6::p1psfw;
+using namespace acsd::v6::p1psfw;
 
 namespace {
 /* 构造 SPD 协方差: C = D + rho 相关 (1D, 指数核) */

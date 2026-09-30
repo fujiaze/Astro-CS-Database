@@ -1,7 +1,7 @@
 {
   "layer": "L2",
   "gate": "G-RES-01",
-  "command": "run_monitored.py --gate-required --gate-workers 16 -- ./build/astrocs normalize ...",
+  "command": "run_monitored.py --gate-required --gate-workers 16 -- ./build/acsd normalize ...",
   "verdict": "pass",
   "violations": [],
   "recorded": [

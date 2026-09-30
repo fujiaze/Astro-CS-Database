@@ -32,7 +32,7 @@
 #include <string>
 #include <vector>
 
-namespace astrocs {
+namespace acsd {
 namespace v6 {
 namespace p2var {
 
@@ -83,4 +83,4 @@ double mean_model_naive_over_correct(std::size_t n);
 
 }  /* namespace p2var */
 }  /* namespace v6 */
-}  /* namespace astrocs */
+}  /* namespace acsd */

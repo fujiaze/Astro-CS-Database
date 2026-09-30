@@ -5,7 +5,7 @@
  * 后门（除了独立 oracle 复算）。
  *
  * 权威（只读）：
- *   docs/ASTROCS_DESIGN.md 3.1:263/264/267、2.4:240、5.3:439
+ *   docs/ACSD_DESIGN.md 3.1:263/264/267、2.4:240、5.3:439
  *   docs/science/UNIFIED_SCIENCE_MODEL.md:59/62
  *   docs/science/PSF_SIGNAL_WEIGHT.md:75/87
  *   eng/contracts/schemas/unified/sparse_snr_layer.schema.json
@@ -17,14 +17,14 @@
  *   (C) 两条逐像素入口逐像素一致（direct layer vs prepared reconstructor）
  *   (D) module_adapters 侧逐像素面确实调用同一生产 API（单一实现）
  */
-#include <astrocs/weight_chain.h>
+#include <acsd/weight_chain.h>
 
 #include <cmath>
 #include <cstdio>
 #include <string>
 #include <vector>
 
-namespace p2w = astrocs::v6::p2weight;
+namespace p2w = acsd::v6::p2weight;
 
 static int g_pass = 0, g_fail = 0;
 static void check(bool ok, const std::string& what) {

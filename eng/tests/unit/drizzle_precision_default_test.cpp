@@ -249,7 +249,7 @@ int main() {
   std::error_code ec;
   const std::filesystem::path dir =
       std::filesystem::temp_directory_path(ec) /
-      ("astrocs_fd02_" + std::to_string(FD02_GETPID));
+      ("acsd_fd02_" + std::to_string(FD02_GETPID));
   std::filesystem::remove_all(dir, ec);
   std::filesystem::create_directories(dir, ec);
   char p1[512], p2[512], p3[512], p4[512], p5[512], p6[512];

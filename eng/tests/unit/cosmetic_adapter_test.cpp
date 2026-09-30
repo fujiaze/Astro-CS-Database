@@ -7,7 +7,7 @@
  *      descriptor 三方一致字段 (module_id/version/build_id/sci/alg/api,
  *      phase=1 cpu_heavy parallel_ok=1)。
  *   B. 导出面净化: dlsym(legacy 4 符号) 必须失败 (AC_API= 本地化 +
- *      version-script 双保险, ABI-006); 唯一导出 astrocs_module_query_v1。
+ *      version-script 双保险, ABI-006); 唯一导出 acsd_module_query_v1。
  *   C. validate_config 负例冻结 detail 码: 词表外 op=100 / 缺键=101 /
  *      类型错=102 / 范围错=103 / method 词表外=103 (DISP-COS-003 处置);
  *      空 config → NULL_CONFIG(2); 未知键/重复键 → CONFIG_SCHEMA(3)。
@@ -23,8 +23,8 @@
  *      状态护栏 (create config 缺失 / manifest 尺寸与 dtype)。
  *
  * DLL 经环境变量 ASTROSCOS_DLL_PATH (CMake test properties 注入)。
- * direct 通道: #include 生产头 + 链 astrocs_calibration STATIC。
- * OMP 教训 (P1-CAL-INT 58d20223): 本 TU 链 astrocs_calibration (OMP 符号
+ * direct 通道: #include 生产头 + 链 acsd_calibration STATIC。
+ * OMP 教训 (P1-CAL-INT 58d20223): 本 TU 链 acsd_calibration (OMP 符号
  * 引用) 且注册段显式 LINKER:--no-as-needed, 防 DLL 内 GOMP 晚装载 SEGV。
  */
 #include <cmath>
@@ -42,13 +42,13 @@
 #endif
 
 #include "astro_calibration.h"
-#include "astrocs/abi/lifecycle_v1.h"
-#include "astrocs/abi/module_api_v1.h"
-#include "astrocs/abi/host_api_v1.h"
-#include "astrocs/cosmetic/types.h"
+#include "acsd/abi/lifecycle_v1.h"
+#include "acsd/abi/module_api_v1.h"
+#include "acsd/abi/host_api_v1.h"
+#include "acsd/cosmetic/types.h"
 
-typedef acs_status (*cos_entry_fn)(uint32_t, const acs_host_api_v1*,
-                                   const acs_module_api_v1**);
+typedef acsd_status (*cos_entry_fn)(uint32_t, const acsd_host_api_v1*,
+                                   const acsd_module_api_v1**);
 
 static int g_fail = 0;
 #define CHECK(cond, name) do { \
@@ -57,9 +57,9 @@ static int g_fail = 0;
 } while (0)
 
 /* ── str 构造 helper ── */
-static acs_str_v1 cos_str(const char* s) {
-    acs_str_v1 v;
-    v.head.struct_size = (uint32_t)sizeof(acs_str_v1);
+static acsd_str_v1 cos_str(const char* s) {
+    acsd_str_v1 v;
+    v.head.struct_size = (uint32_t)sizeof(acsd_str_v1);
     v.head.abi_version = ACS_ABI_VERSION_V1;
     v.data = s; v.size = (uint64_t)strlen(s);
     return v;
@@ -68,10 +68,10 @@ static acs_str_v1 cos_str(const char* s) {
 
 /* ── host stub (allocator + executor 计数 + cancel 通道) ── */
 typedef struct {
-    acs_host_api_v1 api;
-    acs_executor_v1 executor;
-    acs_allocator_v1 allocator;
-    acs_cancel_v1   cancel;
+    acsd_host_api_v1 api;
+    acsd_executor_v1 executor;
+    acsd_allocator_v1 allocator;
+    acsd_cancel_v1   cancel;
     int acquire_calls, release_calls;
     int fail_acquire;
     int cancelled;
@@ -102,21 +102,21 @@ static int cos_is_cancelled(void* user) {
 
 static void cos_host_init(cos_test_host* h) {
     memset(h, 0, sizeof(*h));
-    h->api.head.struct_size = (uint32_t)sizeof(acs_host_api_v1);
+    h->api.head.struct_size = (uint32_t)sizeof(acsd_host_api_v1);
     h->api.head.abi_version = ACS_ABI_VERSION_V1;
-    h->executor.head.struct_size = (uint32_t)sizeof(acs_executor_v1);
+    h->executor.head.struct_size = (uint32_t)sizeof(acsd_executor_v1);
     h->executor.head.abi_version = ACS_ABI_VERSION_V1;
     h->executor.available_cpus = 4;
     h->executor.max_workers = 4;
     h->executor.acquire = cos_acquire;
     h->executor.release = cos_release;
     h->executor.user_data = h;
-    h->allocator.head.struct_size = (uint32_t)sizeof(acs_allocator_v1);
+    h->allocator.head.struct_size = (uint32_t)sizeof(acsd_allocator_v1);
     h->allocator.head.abi_version = ACS_ABI_VERSION_V1;
     h->allocator.alloc = cos_alloc;
     h->allocator.free = cos_free;
     h->allocator.user_data = h;
-    h->cancel.head.struct_size = (uint32_t)sizeof(acs_cancel_v1);
+    h->cancel.head.struct_size = (uint32_t)sizeof(acsd_cancel_v1);
     h->cancel.head.abi_version = ACS_ABI_VERSION_V1;
     h->cancel.is_cancelled = cos_is_cancelled;
     h->cancel.user_data = h;
@@ -259,7 +259,7 @@ int main() {
 #else
     void* dl = dlopen(dll_path, RTLD_NOW);
 #endif
-    CHECK(dl != NULL, "A: dlopen astrocs_p1_cosmetic");
+    CHECK(dl != NULL, "A: dlopen acsd_p1_cosmetic");
     if (!dl) {
 #ifdef _WIN32
         printf("  LoadLibrary error=%lu\n", (unsigned long)GetLastError());
@@ -270,16 +270,16 @@ int main() {
     }
 
 #ifdef _WIN32
-    cos_entry_fn q = (cos_entry_fn)GetProcAddress(dl, "astrocs_module_query_v1");
+    cos_entry_fn q = (cos_entry_fn)GetProcAddress(dl, "acsd_module_query_v1");
 #else
-    cos_entry_fn q = (cos_entry_fn)dlsym(dl, "astrocs_module_query_v1");
+    cos_entry_fn q = (cos_entry_fn)dlsym(dl, "acsd_module_query_v1");
 #endif
-    CHECK(q != NULL, "A: dlsym astrocs_module_query_v1");
+    CHECK(q != NULL, "A: dlsym acsd_module_query_v1");
     if (!q) return 1;
 
     /* ── A. 入口契约 ── */
     {
-        const acs_module_api_v1* api = NULL;
+        const acsd_module_api_v1* api = NULL;
         CHECK(q(ACS_ABI_VERSION_V1 + 99u, NULL, &api) == ACS_ERR_ABI_MISMATCH &&
               api == NULL,
               "A: host_abi mismatch -> ABI_MISMATCH, out=NULL");
@@ -288,28 +288,28 @@ int main() {
         CHECK(q(ACS_ABI_VERSION_V1, NULL, &api) == ACS_OK && api != NULL,
               "A: query ok -> vtable");
 
-        acs_module_descriptor_v1 desc;
+        acsd_module_descriptor_v1 desc;
         memset(&desc, 0, sizeof(desc));
-        CHECK(api->describe(api, cos_str("astrocs.p1.wrong"), &desc) ==
+        CHECK(api->describe(api, cos_str("acsd.p1.wrong"), &desc) ==
               ACS_ERR_ABI_MISMATCH,
               "A: describe wrong module_id -> MISMATCH");
-        CHECK(api->describe(api, cos_str(ASTROCS_COS_MODULE_ID), &desc) == ACS_OK,
+        CHECK(api->describe(api, cos_str(ACSD_COS_MODULE_ID), &desc) == ACS_OK,
               "A: describe ok");
-        CHECK(desc.module_id.size == strlen(ASTROCS_COS_MODULE_ID) &&
-              memcmp(desc.module_id.data, ASTROCS_COS_MODULE_ID, desc.module_id.size) == 0,
+        CHECK(desc.module_id.size == strlen(ACSD_COS_MODULE_ID) &&
+              memcmp(desc.module_id.data, ACSD_COS_MODULE_ID, desc.module_id.size) == 0,
               "A: descriptor module_id 三方一致");
-        CHECK(desc.version.size == strlen(ASTROCS_COS_VERSION) &&
-              memcmp(desc.version.data, ASTROCS_COS_VERSION, desc.version.size) == 0,
+        CHECK(desc.version.size == strlen(ACSD_COS_VERSION) &&
+              memcmp(desc.version.data, ACSD_COS_VERSION, desc.version.size) == 0,
               "A: descriptor version == module.yaml module_version");
-        CHECK(desc.build_id.size == strlen(ASTROCS_COS_BUILD_ID) &&
-              memcmp(desc.build_id.data, ASTROCS_COS_BUILD_ID, desc.build_id.size) == 0,
+        CHECK(desc.build_id.size == strlen(ACSD_COS_BUILD_ID) &&
+              memcmp(desc.build_id.data, ACSD_COS_BUILD_ID, desc.build_id.size) == 0,
               "A: descriptor build_id == P1-COS-IMPL");
-        CHECK(desc.sci_id.size == strlen(ASTROCS_COS_SCI_ID) &&
-              memcmp(desc.sci_id.data, ASTROCS_COS_SCI_ID, desc.sci_id.size) == 0 &&
-              desc.alg_id.size == strlen(ASTROCS_COS_ALG_ID) &&
-              memcmp(desc.alg_id.data, ASTROCS_COS_ALG_ID, desc.alg_id.size) == 0 &&
-              desc.api_id.size == strlen(ASTROCS_COS_API_ID) &&
-              memcmp(desc.api_id.data, ASTROCS_COS_API_ID, desc.api_id.size) == 0,
+        CHECK(desc.sci_id.size == strlen(ACSD_COS_SCI_ID) &&
+              memcmp(desc.sci_id.data, ACSD_COS_SCI_ID, desc.sci_id.size) == 0 &&
+              desc.alg_id.size == strlen(ACSD_COS_ALG_ID) &&
+              memcmp(desc.alg_id.data, ACSD_COS_ALG_ID, desc.alg_id.size) == 0 &&
+              desc.api_id.size == strlen(ACSD_COS_API_ID) &&
+              memcmp(desc.api_id.data, ACSD_COS_API_ID, desc.api_id.size) == 0,
               "A: descriptor SCI/ALG/API 合同 ID 三方一致");
         CHECK(desc.phase == 1 && desc.execution_class == 0 &&
               desc.parallel_ok == 1 && desc.config_schema_ver == 1,
@@ -334,12 +334,12 @@ int main() {
         CHECK(all_null, "B: dlsym 4 legacy AC_API 符号全 NULL (ABI-006)");
     }
 
-    const acs_module_api_v1* api = NULL;
+    const acsd_module_api_v1* api = NULL;
     q(ACS_ABI_VERSION_V1, NULL, &api);
 
     /* ── C. validate_config 负例 ── */
     {
-        acs_error_info_v1 err;
+        acsd_error_info_v1 err;
         char cb[256];
 
         CHECK(api->validate_config(api, cos_cfg(""), &err) == ACS_ERR_PARAM &&
@@ -429,9 +429,9 @@ int main() {
     {
         char cb[256];
         snprintf(cb, sizeof(cb), CFG32, 16, 12);
-        acs_strbuf_v1 pb;
+        acsd_strbuf_v1 pb;
         memset(&pb, 0, sizeof(pb));
-        acs_error_info_v1 err;
+        acsd_error_info_v1 err;
         CHECK(api->plan(api, cos_str("node-cos-1"), cos_cfg(cb), &pb, &err) ==
               ACS_OK && pb.size > 0 && pb.data == NULL,
               "D: plan probe phase -> size>0, no write");
@@ -458,7 +458,7 @@ int main() {
         cos_fix fx2;
         fix_build(&fx2, 9, 7);
 
-        acs_error_info_v1 err;
+        acsd_error_info_v1 err;
         char cb[256];
 
         /* E1: f32 带 dark+bias, direct vs plugin memcmp */
@@ -466,17 +466,17 @@ int main() {
             snprintf(cb, sizeof(cb), CFG32, 16, 12);
             cos_test_host host;
             cos_host_init(&host);
-            acs_module_instance_v1* inst = NULL;
+            acsd_module_instance_v1* inst = NULL;
             CHECK(api->create(api, cos_cfg(cb), &host.api, &inst, &err) == ACS_OK &&
                   inst != NULL,
                   "E1: create f32");
             std::string man = make_manifest(fx, false,
                                             fx.dark.data(), fx.bias.data());
-            acs_strbuf_v1 ob;
+            acsd_strbuf_v1 ob;
             memset(&ob, 0, sizeof(ob));
             std::vector<char> obuf(4 << 20);
             ob.data = obuf.data(); ob.cap = obuf.size();
-            const acs_status st = api->execute(inst, cos_str(man.c_str()),
+            const acsd_status st = api->execute(inst, cos_str(man.c_str()),
                                                cos_cfg(""), &ob, &err);
             CHECK(st == ACS_OK, "E1: execute f32 OK");
 
@@ -507,7 +507,7 @@ int main() {
             CHECK(host.acquire_calls == 1 && host.release_calls == 1,
                   "E1: lease acquire/release balanced 1/1");
             char ib[256];
-            acs_strbuf_v1 ibb;
+            acsd_strbuf_v1 ibb;
             ibb.data = ib; ibb.cap = sizeof(ib); ibb.size = 0;
             CHECK(api->inspect(inst, &ibb, &err) == ACS_OK &&
                   strstr(ib, "\"exec_count\":1") != NULL,
@@ -526,12 +526,12 @@ int main() {
             snprintf(cb, sizeof(cb), CFG64, 9, 7);
             cos_test_host host;
             cos_host_init(&host);
-            acs_module_instance_v1* inst = NULL;
+            acsd_module_instance_v1* inst = NULL;
             CHECK(api->create(api, cos_cfg(cb), &host.api, &inst, &err) == ACS_OK,
                   "E2: create f64 (奇数尺寸 9x7)");
             std::string man = make_manifest(fx2, true,
                                             fx2.dark64.data(), fx2.bias64.data());
-            acs_strbuf_v1 ob;
+            acsd_strbuf_v1 ob;
             memset(&ob, 0, sizeof(ob));
             std::vector<char> obuf(4 << 20);
             ob.data = obuf.data(); ob.cap = obuf.size();
@@ -564,11 +564,11 @@ int main() {
             snprintf(cb, sizeof(cb), CFG32, 16, 12);
             cos_test_host host;
             cos_host_init(&host);
-            acs_module_instance_v1* inst = NULL;
+            acsd_module_instance_v1* inst = NULL;
             CHECK(api->create(api, cos_cfg(cb), &host.api, &inst, &err) == ACS_OK,
                   "E3: create (no master keys)");
             std::string man = make_manifest(fx, false, NULL, NULL);
-            acs_strbuf_v1 ob;
+            acsd_strbuf_v1 ob;
             memset(&ob, 0, sizeof(ob));
             std::vector<char> obuf(4 << 20);
             ob.data = obuf.data(); ob.cap = obuf.size();
@@ -594,12 +594,12 @@ int main() {
             cos_test_host host;
             cos_host_init(&host);
             host.cancelled = 1;
-            acs_module_instance_v1* inst = NULL;
+            acsd_module_instance_v1* inst = NULL;
             CHECK(api->create(api, cos_cfg(cb), &host.api, &inst, &err) == ACS_OK,
                   "E4: create");
             std::string man = make_manifest(fx, false,
                                             fx.dark.data(), fx.bias.data());
-            acs_strbuf_v1 ob;
+            acsd_strbuf_v1 ob;
             memset(&ob, 0, sizeof(ob));
             std::vector<char> obuf(4 << 20);
             ob.data = obuf.data(); ob.cap = obuf.size();
@@ -622,11 +622,11 @@ int main() {
             snprintf(cb, sizeof(cb), CFG32, 16, 12);
             cos_test_host host;
             cos_host_no_executor(&host);
-            acs_module_instance_v1* inst = NULL;
+            acsd_module_instance_v1* inst = NULL;
             CHECK(api->create(api, cos_cfg(cb), &host.api, &inst, &err) == ACS_OK,
                   "E5: create (no executor)");
             std::string man = make_manifest(fx, false, NULL, NULL);
-            acs_strbuf_v1 ob;
+            acsd_strbuf_v1 ob;
             memset(&ob, 0, sizeof(ob));
             std::vector<char> obuf(4 << 20);
             ob.data = obuf.data(); ob.cap = obuf.size();
@@ -639,7 +639,7 @@ int main() {
             cos_test_host host2;
             cos_host_init(&host2);
             host2.fail_acquire = 1;
-            acs_module_instance_v1* inst2 = NULL;
+            acsd_module_instance_v1* inst2 = NULL;
             CHECK(api->create(api, cos_cfg(cb), &host2.api, &inst2, &err) == ACS_OK,
                   "E5: create (fail_acquire)");
             CHECK(api->execute(inst2, cos_str(man.c_str()), cos_cfg(""),
@@ -654,10 +654,10 @@ int main() {
             snprintf(cb, sizeof(cb), CFG32, 16, 12);
             cos_test_host host;
             cos_host_init(&host);
-            acs_module_instance_v1* inst = NULL;
+            acsd_module_instance_v1* inst = NULL;
             CHECK(api->create(api, cos_cfg(cb), &host.api, &inst, &err) == ACS_OK,
                   "E6: create");
-            acs_strbuf_v1 ob;
+            acsd_strbuf_v1 ob;
             memset(&ob, 0, sizeof(ob));
             std::vector<char> obuf(4 << 20);
             ob.data = obuf.data(); ob.cap = obuf.size();
@@ -693,7 +693,7 @@ int main() {
         {
             cos_test_host host;
             cos_host_init(&host);
-            acs_module_instance_v1* bad = NULL;
+            acsd_module_instance_v1* bad = NULL;
             CHECK(api->create(api, cos_cfg(""), &host.api, &bad, &err) ==
                   ACS_ERR_PARAM &&
                   err.detail_code == ACS_DIAG_ECODE_NULL_CONFIG && bad == NULL,
@@ -703,7 +703,7 @@ int main() {
             snprintf(cb, sizeof(cb), CFG32, 16, 12);
             cos_test_host host2;
             cos_host_init(&host2);
-            acs_module_instance_v1* inst = NULL;
+            acsd_module_instance_v1* inst = NULL;
             /* create 缺 config, execute 期补齐 (覆盖通道) */
             std::string mk = std::string(cb);
             CHECK(api->create(api, cos_cfg(cb), &host2.api, &inst, &err) == ACS_OK,
@@ -711,7 +711,7 @@ int main() {
             cos_fix fx3;
             fix_build(&fx3, 16, 12);
             std::string man = make_manifest(fx3, false, NULL, NULL);
-            acs_strbuf_v1 ob;
+            acsd_strbuf_v1 ob;
             memset(&ob, 0, sizeof(ob));
             std::vector<char> obuf(4 << 20);
             ob.data = obuf.data(); ob.cap = obuf.size();

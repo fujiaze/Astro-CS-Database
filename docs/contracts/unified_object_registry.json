@@ -1,12 +1,12 @@
 {
-  "registry_schema": "astrocs.unified-object-registry/v1",
+  "registry_schema": "acsd.unified-object-registry/v1",
   "registry_id": "IDX-UNIFIED-OBJECTS",
   "version": 1,
   "task": "DATA-001",
   "baseline_head": "ecf6ad6f",
   "authority": {
     "objects": "docs/detail/UNIFIED_MODEL.md §2（13 个对象与「可否作权重」列）",
-    "separation": "ASTROCS_DESIGN.md §2；ENGINEERING_SPEC.md §3（数据对象按 UNIFIED_MODEL 区分）",
+    "separation": "ACSD_DESIGN.md §2；ENGINEERING_SPEC.md §3（数据对象按 UNIFIED_MODEL 区分）",
     "ports": "ENGINEERING_SPEC.md §4.7（端口引用有效 DATA 合同）",
     "single_source_of_truth": "eng/contracts/schemas/（ENGINEERING_SPEC §4.7）"
   },
@@ -14,7 +14,7 @@
     {
       "object_name": "signal",
       "object_data_id": "DATA-OBJ-SIGNAL-001",
-      "schema_id": "https://astrocs.local/schemas/unified/signal/v1",
+      "schema_id": "https://acsd.local/schemas/unified/signal/v1",
       "canonical_schema_file": "eng/contracts/schemas/unified/signal.schema.json",
       "unit_bunit": "ADU/sr 或 BUNIT(声明)",
       "pixel_semantics": "surface_brightness",
@@ -28,7 +28,7 @@
     {
       "object_name": "variance",
       "object_data_id": "DATA-OBJ-VARIANCE-001",
-      "schema_id": "https://astrocs.local/schemas/unified/variance/v1",
+      "schema_id": "https://acsd.local/schemas/unified/variance/v1",
       "canonical_schema_file": "eng/contracts/schemas/unified/variance.schema.json",
       "unit_bunit": "signal单位^2（面亮度 ADU^2/sr^2）",
       "pixel_semantics": "surface_brightness",
@@ -42,7 +42,7 @@
     {
       "object_name": "ivar",
       "object_data_id": "DATA-OBJ-IVAR-001",
-      "schema_id": "https://astrocs.local/schemas/unified/ivar/v1",
+      "schema_id": "https://acsd.local/schemas/unified/ivar/v1",
       "canonical_schema_file": "eng/contracts/schemas/unified/ivar.schema.json",
       "unit_bunit": "1/signal单位^2（面亮度 sr^2/ADU^2）",
       "pixel_semantics": "surface_brightness",
@@ -56,7 +56,7 @@
     {
       "object_name": "source_snr",
       "object_data_id": "DATA-OBJ-SOURCE-SNR-001",
-      "schema_id": "https://astrocs.local/schemas/unified/source_snr/v1",
+      "schema_id": "https://acsd.local/schemas/unified/source_snr/v1",
       "canonical_schema_file": "eng/contracts/schemas/unified/source_snr.schema.json",
       "unit_bunit": "1（F_hat/sigma_F 无量纲）",
       "pixel_semantics": "dimensionless",
@@ -70,7 +70,7 @@
     {
       "object_name": "depth_m5",
       "object_data_id": "DATA-OBJ-DEPTH-M5-001",
-      "schema_id": "https://astrocs.local/schemas/unified/depth_m5/v1",
+      "schema_id": "https://acsd.local/schemas/unified/depth_m5/v1",
       "canonical_schema_file": "eng/contracts/schemas/unified/depth_m5.schema.json",
       "unit_bunit": "mag",
       "pixel_semantics": "magnitude",
@@ -84,7 +84,7 @@
     {
       "object_name": "frame_snr",
       "object_data_id": "DATA-OBJ-FRAME-SNR-001",
-      "schema_id": "https://astrocs.local/schemas/unified/frame_snr/v1",
+      "schema_id": "https://acsd.local/schemas/unified/frame_snr/v1",
       "canonical_schema_file": "eng/contracts/schemas/unified/frame_snr.schema.json",
       "unit_bunit": "1（真实信号/噪声比）",
       "pixel_semantics": "dimensionless",
@@ -98,7 +98,7 @@
     {
       "object_name": "point_information",
       "object_data_id": "DATA-OBJ-POINT-INFORMATION-001",
-      "schema_id": "https://astrocs.local/schemas/unified/point_information/v1",
+      "schema_id": "https://acsd.local/schemas/unified/point_information/v1",
       "canonical_schema_file": "eng/contracts/schemas/unified/point_information.schema.json",
       "unit_bunit": "ADU^-2（=1/Var(F_hat)，点源通量口径；非面亮度 signal^-2）",
       "pixel_semantics": "dimensionless",
@@ -112,7 +112,7 @@
     {
       "object_name": "sparse_snr_layer",
       "object_data_id": "DATA-OBJ-SPARSE-SNR-LAYER-001",
-      "schema_id": "https://astrocs.local/schemas/unified/sparse_snr_layer/v1",
+      "schema_id": "https://acsd.local/schemas/unified/sparse_snr_layer/v1",
       "canonical_schema_file": "eng/contracts/schemas/unified/sparse_snr_layer.schema.json",
       "unit_bunit": "1",
       "pixel_semantics": "dimensionless",
@@ -126,7 +126,7 @@
     {
       "object_name": "support",
       "object_data_id": "DATA-OBJ-SUPPORT-001",
-      "schema_id": "https://astrocs.local/schemas/unified/support/v1",
+      "schema_id": "https://acsd.local/schemas/unified/support/v1",
       "canonical_schema_file": "eng/contracts/schemas/unified/support.schema.json",
       "unit_bunit": "1（[0,1]）",
       "pixel_semantics": "probability",
@@ -140,7 +140,7 @@
     {
       "object_name": "coverage",
       "object_data_id": "DATA-OBJ-COVERAGE-001",
-      "schema_id": "https://astrocs.local/schemas/unified/coverage/v1",
+      "schema_id": "https://acsd.local/schemas/unified/coverage/v1",
       "canonical_schema_file": "eng/contracts/schemas/unified/coverage.schema.json",
       "unit_bunit": "1（几何有效域）",
       "pixel_semantics": "probability",
@@ -154,7 +154,7 @@
     {
       "object_name": "validity",
       "object_data_id": "DATA-OBJ-VALIDITY-001",
-      "schema_id": "https://astrocs.local/schemas/unified/validity/v1",
+      "schema_id": "https://acsd.local/schemas/unified/validity/v1",
       "canonical_schema_file": "eng/contracts/schemas/unified/validity.schema.json",
       "unit_bunit": "1（状态量）",
       "pixel_semantics": "count",
@@ -168,7 +168,7 @@
     {
       "object_name": "rejection",
       "object_data_id": "DATA-OBJ-REJECTION-001",
-      "schema_id": "https://astrocs.local/schemas/unified/rejection/v1",
+      "schema_id": "https://acsd.local/schemas/unified/rejection/v1",
       "canonical_schema_file": "eng/contracts/schemas/unified/rejection.schema.json",
       "unit_bunit": "1（门/概率）",
       "pixel_semantics": "probability",
@@ -182,7 +182,7 @@
     {
       "object_name": "provenance",
       "object_data_id": "DATA-OBJ-PROVENANCE-001",
-      "schema_id": "https://astrocs.local/schemas/unified/provenance/v1",
+      "schema_id": "https://acsd.local/schemas/unified/provenance/v1",
       "canonical_schema_file": "eng/contracts/schemas/unified/provenance.schema.json",
       "unit_bunit": "1（元数据，无量纲）",
       "pixel_semantics": "dimensionless",
@@ -210,10 +210,10 @@
         "old_contract_face": [
           "docs/science/DATA_SEMANTICS.md:133（§9 ID 定义节，:135 状态 CONTRACT_READY）",
           "docs/engineering/PUBLIC_API.md:102",
-          "docs/detail/registry/astrocs.phase1.calibration.md:23（端口 calibrated）",
-          "docs/detail/registry/astrocs.phase1.cosmetic.md:34（端口 calibrated）",
-          "docs/detail/registry/astrocs.phase1.drizzle.md:35（端口 calibrated）",
-          "docs/detail/registry/astrocs.phase2.resample.md:22（端口 calibrated）",
+          "docs/detail/registry/acsd.phase1.calibration.md:23（端口 calibrated）",
+          "docs/detail/registry/acsd.phase1.cosmetic.md:34（端口 calibrated）",
+          "docs/detail/registry/acsd.phase1.drizzle.md:35（端口 calibrated）",
+          "docs/detail/registry/acsd.phase2.resample.md:22（端口 calibrated）",
           "docs/detail/calibration.md:8/:53"
         ],
         "new_index_added_by_DATA001": [
@@ -234,7 +234,7 @@
         "old_contract_face": [
           "docs/science/DATA_SEMANTICS.md:180（§10 ID 定义节，:182 状态 CONTRACT_READY）",
           "docs/engineering/PUBLIC_API.md:152/:177",
-          "docs/detail/registry/astrocs.phase1.cosmetic.md:35（端口 cleaned）/:38-40（权威名说明）",
+          "docs/detail/registry/acsd.phase1.cosmetic.md:35（端口 cleaned）/:38-40（权威名说明）",
           "docs/detail/calibration.md:12"
         ],
         "new_index_added_by_DATA001": [
@@ -254,15 +254,15 @@
         "kind": "descriptor_port_placeholder",
         "superseded_by": "DATA-P1-COS",
         "old_contract_face": [
-          "docs/detail/registry/astrocs.phase1.cosmetic.md:39（descriptor 占位名说明）",
-          "docs/detail/registry/astrocs.phase1.star-psf.md:33（端口 cleaned）",
-          "docs/detail/registry/astrocs.phase1.star-detection.md:38（端口 image）"
+          "docs/detail/registry/acsd.phase1.cosmetic.md:39（descriptor 占位名说明）",
+          "docs/detail/registry/acsd.phase1.star-psf.md:33（端口 cleaned）",
+          "docs/detail/registry/acsd.phase1.star-detection.md:38（端口 image）"
         ],
         "new_index_added_by_DATA001": [
           "docs/contracts/INDEX.yaml#DATA-OBJ-* 映射段逐行 '# DATA001-LEGACY-ID: DATA-P1-COSMETIC'",
           "docs/contracts/INDEX.yaml#legacy_contract_id_map"
         ],
-        "evidence": "该 ID 在 docs/contracts/{DATA_SEMANTICS.md,PUBLIC_API.md,DATA_ARTIFACTS.md} 中**零命中**（旧契约面无定义）；唯一权威说明在 registry astrocs.phase1.cosmetic.md:38-40「DATA-P1-COSMETIC 为 descriptor 占位名，合同以 DATA-P1-COS 为准」。",
+        "evidence": "该 ID 在 docs/contracts/{DATA_SEMANTICS.md,PUBLIC_API.md,DATA_ARTIFACTS.md} 中**零命中**（旧契约面无定义）；唯一权威说明在 registry acsd.phase1.cosmetic.md:38-40「DATA-P1-COSMETIC 为 descriptor 占位名，合同以 DATA-P1-COS 为准」。",
         "note": "占位名不再单独存在；统一对象面归 signal（cleaned 帧 = ADU 科学估计量）。"
       },
       {
@@ -280,8 +280,8 @@
         "old_contract_face": [
           "docs/science/DATA_SEMANTICS.md:226（§11 ID 定义节，:228 状态 CONTRACT_READY）",
           "docs/engineering/PUBLIC_API.md:214",
-          "docs/detail/registry/astrocs.phase1.drizzle.md:7（upstream 引用）/:39（模块级数据合同说明）",
-          "docs/detail/registry/astrocs.phase1.hips-writer.md:7/:34（端口 stacked）",
+          "docs/detail/registry/acsd.phase1.drizzle.md:7（upstream 引用）/:39（模块级数据合同说明）",
+          "docs/detail/registry/acsd.phase1.hips-writer.md:7/:34（端口 stacked）",
           "docs/detail/healpix_drizzle.md:32/:62"
         ],
         "new_index_added_by_DATA001": [
@@ -321,8 +321,8 @@
           "docs/engineering/PUBLIC_API.md:1447/:1556/:1701",
           "docs/detail/phase2_samp.md:74/:76/:189",
           "docs/detail/phase2_upm.md:52/:73/:90/:101/:249",
-          "docs/detail/registry/astrocs.phase2.sample.md:62/:64/:164",
-          "docs/detail/registry/astrocs.phase2.upm-fit.md:46"
+          "docs/detail/registry/acsd.phase2.sample.md:62/:64/:164",
+          "docs/detail/registry/acsd.phase2.upm-fit.md:46"
         ],
         "new_index_added_by_DATA001": [
           "docs/contracts/INDEX.yaml#DATA-OBJ-* 映射段逐行 '# DATA001-LEGACY-ID: DATA-P2-SMP'",
@@ -374,26 +374,26 @@
       "direction": "input",
       "description": "Phase2 逐像素方差输入端口（消费 variance 平面）",
       "accepts_object": "variance",
-      "accepts_schema_id": "https://astrocs.local/schemas/unified/variance/v1",
+      "accepts_schema_id": "https://acsd.local/schemas/unified/variance/v1",
       "rejects_object": "source_snr",
       "accepts_example": {
         "port_id": "phase2.integrate.pixel_variance_in",
         "direction": "input",
         "accepts_object": "variance",
-        "accepts_schema_id": "https://astrocs.local/schemas/unified/variance/v1",
+        "accepts_schema_id": "https://acsd.local/schemas/unified/variance/v1",
         "connected_object": "variance"
       },
       "rejects_example": {
         "port_id": "phase2.integrate.pixel_variance_in",
         "direction": "input",
         "accepts_object": "variance",
-        "accepts_schema_id": "https://astrocs.local/schemas/unified/variance/v1",
+        "accepts_schema_id": "https://acsd.local/schemas/unified/variance/v1",
         "connected_object": "source_snr"
       }
     }
   ],
   "port_contract_ref": {
-    "schema_id": "https://astrocs.local/schemas/unified/port/v1",
+    "schema_id": "https://acsd.local/schemas/unified/port/v1",
     "canonical_schema_file": "eng/contracts/schemas/unified/port_contract.schema.json",
     "purpose": "端口合同 canonical：跨对象连接只能同对象（UNIFIED_MODEL §2 对象各自具名；ENGINEERING_SPEC §4.7）。本 registry 的 port_contracts 只登记具体端口示例，不重复定义该约束。"
   },
@@ -487,7 +487,7 @@
       "role": "projection_registry_contract",
       "owner": "SCI-FIX-PROJ(W4)",
       "object_class": null,
-      "note": "投影注册表 v3 导出合同（SCI-FIX-PROJ 于 808e7a8d 建立，claim SC-001）；权威=ASTROCS_DESIGN.md §6.3 八投影 + docs/science/algorithms/PHASE3_PROJ_IMPL.md §15；实现导出=lib/algorithms/projection/p3_proj.h registry_frozen_set()。不承载 UNIFIED_MODEL §2 的 13 个数据对象语义。"
+      "note": "投影注册表 v3 导出合同（SCI-FIX-PROJ 于 808e7a8d 建立，claim SC-001）；权威=ACSD_DESIGN.md §6.3 八投影 + docs/science/algorithms/PHASE3_PROJ_IMPL.md §15；实现导出=lib/algorithms/projection/p3_proj.h registry_frozen_set()。不承载 UNIFIED_MODEL §2 的 13 个数据对象语义。"
     },
     {
       "file": "eng/contracts/schemas/dual_line_file_domain.schema.json",
@@ -536,7 +536,7 @@
       "role": "storage_form_contract",
       "owner": "CONTRACT-STORAGE-001",
       "object_class": null,
-      "note": "落盘形态合同（CONTRACT-STORAGE-001；doc_id DOC-CONTRACT-STORAGE-001，doc_status ACTIVE_NORMATIVE）的机器事实源：两形态命名与互斥、归档容器布局、产品级索引与数据集级覆盖索引 schema、形态输入配置键与运行完成清单 storage 段；**不是** UNIFIED_MODEL §2 的 13 个数据对象之一，不定义 unified_object 判别字段。权威 = docs/engineering/HIPS_STORAGE_FORM_CONTRACT.md（上位 ASTROCS_DESIGN.md §10 + docs/detail/PRODUCT_STORAGE_FORM.md）；机器检查器 = eng/tools/hipsform/check_hips_storage_form.py（CI 检查 CHK-HIPS-STORAGE-FORM）。"
+      "note": "落盘形态合同（CONTRACT-STORAGE-001；doc_id DOC-CONTRACT-STORAGE-001，doc_status ACTIVE_NORMATIVE）的机器事实源：两形态命名与互斥、归档容器布局、产品级索引与数据集级覆盖索引 schema、形态输入配置键与运行完成清单 storage 段；**不是** UNIFIED_MODEL §2 的 13 个数据对象之一，不定义 unified_object 判别字段。权威 = docs/engineering/HIPS_STORAGE_FORM_CONTRACT.md（上位 ACSD_DESIGN.md §10 + docs/detail/PRODUCT_STORAGE_FORM.md）；机器检查器 = eng/tools/hipsform/check_hips_storage_form.py（CI 检查 CHK-HIPS-STORAGE-FORM）。"
     }
   ],
   "deprecation": {
@@ -552,13 +552,13 @@
     "legacy_paths_are_compatibility_only": true,
     "no_second_equivalent_schema": true,
     "retire_after_change": "OWNER_DECISION",
-    "retire_note": "依 ASTROCS_DESIGN §12，版本号不得作为退役条件；本项退役须由负责人裁决并登记变更编号。",
+    "retire_note": "依 ACSD_DESIGN §12，版本号不得作为退役条件；本项退役须由负责人裁决并登记变更编号。",
     "object_retirements": {
       "psfsw_robust_weight": {
         "state": "retired",
         "retired_on": "2026-09-20",
         "retired_at_change": "CHG-2026-09-20-PSFSW-RETIRE",
-        "basis": "对象退役（14→13）：权重只能来自纯净信号与噪声之比/逆方差（ASTROCS_DESIGN.md §2.1/§2.2/§2.3）；变更编号 CHG-2026-09-20-PSFSW-RETIRE；§9.73 A44",
+        "basis": "对象退役（14→13）：权重只能来自纯净信号与噪声之比/逆方差（ACSD_DESIGN.md §2.1/§2.2/§2.3）；变更编号 CHG-2026-09-20-PSFSW-RETIRE；§9.73 A44",
         "canonical_object_data_id": "DATA-OBJ-PSFSW-ROBUST-WEIGHT-001",
         "removed": [
           "eng/contracts/schemas/unified/psfsw_robust_weight.schema.json",
@@ -576,7 +576,7 @@
         "kind": "data_dictionary_index",
         "deprecated_at_change": "CHG-2026-09-16-DATA001",
         "retire_after_change": "OWNER_DECISION",
-        "retire_note": "依 ASTROCS_DESIGN §12，版本号不得作为退役条件；本项退役须由负责人裁决并登记变更编号。"
+        "retire_note": "依 ACSD_DESIGN §12，版本号不得作为退役条件；本项退役须由负责人裁决并登记变更编号。"
       },
       {
         "old_path": "eng/contracts/data/v6_weight_vocabulary_v1.json",
@@ -584,7 +584,7 @@
         "kind": "weight_vocabulary",
         "deprecated_at_change": "CHG-2026-09-16-DATA001",
         "retire_after_change": "OWNER_DECISION",
-        "retire_note": "依 ASTROCS_DESIGN §12，版本号不得作为退役条件；本项退役须由负责人裁决并登记变更编号。"
+        "retire_note": "依 ACSD_DESIGN §12，版本号不得作为退役条件；本项退役须由负责人裁决并登记变更编号。"
       },
       {
         "old_path": "eng/contracts/data/v6_migration_map_v1.json",
@@ -592,47 +592,47 @@
         "kind": "migration_map",
         "deprecated_at_change": "CHG-2026-09-16-DATA001",
         "retire_after_change": "OWNER_DECISION",
-        "retire_note": "依 ASTROCS_DESIGN §12，版本号不得作为退役条件；本项退役须由负责人裁决并登记变更编号。"
+        "retire_note": "依 ACSD_DESIGN §12，版本号不得作为退役条件；本项退役须由负责人裁决并登记变更编号。"
       },
       {
-        "old_path": "eng/contracts/schemas/v6/astrocs.v6.signal.v1.schema.json",
+        "old_path": "eng/contracts/schemas/v6/acsd.v6.signal.v1.schema.json",
         "new_path": "eng/contracts/schemas/unified/signal.schema.json",
         "kind": "object_contract",
         "deprecated_at_change": "CHG-2026-09-16-DATA001",
         "retire_after_change": "OWNER_DECISION",
-        "retire_note": "依 ASTROCS_DESIGN §12，版本号不得作为退役条件；本项退役须由负责人裁决并登记变更编号。"
+        "retire_note": "依 ACSD_DESIGN §12，版本号不得作为退役条件；本项退役须由负责人裁决并登记变更编号。"
       },
       {
-        "old_path": "eng/contracts/schemas/v6/astrocs.v6.covariance.v1.schema.json",
+        "old_path": "eng/contracts/schemas/v6/acsd.v6.covariance.v1.schema.json",
         "new_path": "eng/contracts/schemas/unified/variance.schema.json",
         "kind": "object_contract",
         "deprecated_at_change": "CHG-2026-09-16-DATA001",
         "retire_after_change": "OWNER_DECISION",
-        "retire_note": "依 ASTROCS_DESIGN §12，版本号不得作为退役条件；本项退役须由负责人裁决并登记变更编号。"
+        "retire_note": "依 ACSD_DESIGN §12，版本号不得作为退役条件；本项退役须由负责人裁决并登记变更编号。"
       },
       {
-        "old_path": "eng/contracts/schemas/v6/astrocs.v6.covariance.v1.schema.json",
+        "old_path": "eng/contracts/schemas/v6/acsd.v6.covariance.v1.schema.json",
         "new_path": "eng/contracts/schemas/unified/ivar.schema.json",
         "kind": "object_contract",
         "deprecated_at_change": "CHG-2026-09-16-DATA001",
         "retire_after_change": "OWNER_DECISION",
-        "retire_note": "依 ASTROCS_DESIGN §12，版本号不得作为退役条件；本项退役须由负责人裁决并登记变更编号。"
+        "retire_note": "依 ACSD_DESIGN §12，版本号不得作为退役条件；本项退役须由负责人裁决并登记变更编号。"
       },
       {
-        "old_path": "eng/contracts/schemas/v6/astrocs.v6.point-information.v1.schema.json",
+        "old_path": "eng/contracts/schemas/v6/acsd.v6.point-information.v1.schema.json",
         "new_path": "eng/contracts/schemas/unified/point_information.schema.json",
         "kind": "object_contract",
         "deprecated_at_change": "CHG-2026-09-16-DATA001",
         "retire_after_change": "OWNER_DECISION",
-        "retire_note": "依 ASTROCS_DESIGN §12，版本号不得作为退役条件；本项退役须由负责人裁决并登记变更编号。"
+        "retire_note": "依 ACSD_DESIGN §12，版本号不得作为退役条件；本项退役须由负责人裁决并登记变更编号。"
       },
       {
-        "old_path": "eng/contracts/schemas/v6/astrocs.v6.provenance.v1.schema.json",
+        "old_path": "eng/contracts/schemas/v6/acsd.v6.provenance.v1.schema.json",
         "new_path": "eng/contracts/schemas/unified/provenance.schema.json",
         "kind": "object_contract",
         "deprecated_at_change": "CHG-2026-09-16-DATA001",
         "retire_after_change": "OWNER_DECISION",
-        "retire_note": "依 ASTROCS_DESIGN §12，版本号不得作为退役条件；本项退役须由负责人裁决并登记变更编号。"
+        "retire_note": "依 ACSD_DESIGN §12，版本号不得作为退役条件；本项退役须由负责人裁决并登记变更编号。"
       },
       {
         "old_path": "eng/contracts/data/phase2_uncertainty_rejection_provenance_v1.json",
@@ -640,7 +640,7 @@
         "kind": "product_contract",
         "deprecated_at_change": "CHG-2026-09-16-DATA001",
         "retire_after_change": "OWNER_DECISION",
-        "retire_note": "依 ASTROCS_DESIGN §12，版本号不得作为退役条件；本项退役须由负责人裁决并登记变更编号。"
+        "retire_note": "依 ACSD_DESIGN §12，版本号不得作为退役条件；本项退役须由负责人裁决并登记变更编号。"
       },
       {
         "old_path": "eng/contracts/data/phase_product_exchange.schema.json",
@@ -648,7 +648,7 @@
         "kind": "exchange_planes",
         "deprecated_at_change": "CHG-2026-09-16-DATA001",
         "retire_after_change": "OWNER_DECISION",
-        "retire_note": "依 ASTROCS_DESIGN §12，版本号不得作为退役条件；本项退役须由负责人裁决并登记变更编号。"
+        "retire_note": "依 ACSD_DESIGN §12，版本号不得作为退役条件；本项退役须由负责人裁决并登记变更编号。"
       },
       {
         "old_path": "eng/contracts/proposals/v6/data/",
@@ -656,7 +656,7 @@
         "kind": "proposal_design_archive",
         "deprecated_at_change": "CHG-2026-09-16-DATA001",
         "retire_after_change": "OWNER_DECISION",
-        "retire_note": "依 ASTROCS_DESIGN §12，版本号不得作为退役条件；本项退役须由负责人裁决并登记变更编号。"
+        "retire_note": "依 ACSD_DESIGN §12，版本号不得作为退役条件；本项退役须由负责人裁决并登记变更编号。"
       },
       {
         "old_path": "docs/contracts/v6/data/",
@@ -664,7 +664,7 @@
         "kind": "human_readable_design_archive",
         "deprecated_at_change": "CHG-2026-09-16-DATA001",
         "retire_after_change": "OWNER_DECISION",
-        "retire_note": "依 ASTROCS_DESIGN §12，版本号不得作为退役条件；本项退役须由负责人裁决并登记变更编号。"
+        "retire_note": "依 ACSD_DESIGN §12，版本号不得作为退役条件；本项退役须由负责人裁决并登记变更编号。"
       }
     ]
   },

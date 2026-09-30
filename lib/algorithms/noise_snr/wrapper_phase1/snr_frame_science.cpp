@@ -20,7 +20,7 @@
 
 #include "../cpp/include/snr_estimator.h"
 
-namespace astrocs::phase1 {
+namespace acsd::phase1 {
 namespace {
 
 inline double nan_value() { return std::numeric_limits<double>::quiet_NaN(); }
@@ -164,7 +164,7 @@ SnrFrameScienceResult compute_snr_frame_science(
   //
   // WEIGHT-SCI-001（依据 docs/science/CONTROL_WEIGHT_SNR.md §8c「定权路径唯一：
   // w(x,y) = SNR(x,y)²/F_ref²」与 docs/science/PSF_SIGNAL_WEIGHT.md 的参考通量口径）:
-  // F_ref 必须是**组内公共参考通量**，且与存入 HiPS 头的 ASTROCS_FRAME_SNR
+  // F_ref 必须是**组内公共参考通量**，且与存入 HiPS 头的 ACSD_FRAME_SNR
   // **配对**（同一定义参考）。配对性定理:
   //   SNR_f = a_f·F_ref/σ_f  ⇒  SNR_f²/F_ref² = a_f²/σ_f² = w_f
   // 成立当且仅当分母 F_ref 与定义 SNR 时所用参考通量是同一个。
@@ -211,4 +211,4 @@ SnrFrameScienceResult compute_snr_frame_science(
   return out;
 }
 
-}  // namespace astrocs::phase1
+}  // namespace acsd::phase1

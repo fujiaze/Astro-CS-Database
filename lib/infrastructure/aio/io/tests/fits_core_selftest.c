@@ -13,7 +13,7 @@
  *
  * 纯 C11; 无第三方依赖; 退出码 0=全 PASS。
  */
-#include "astrocs/io/fits_stream_v1.h"
+#include "acsd/io/fits_stream_v1.h"
 
 #include <math.h>
 #include <stdint.h>
@@ -64,15 +64,15 @@ static void on_read(void* ud, uint64_t b) { (void)ud; g_cb_read += b; }
 static void on_write(void* ud, uint64_t b) { (void)ud; g_cb_write += b; }
 static int is_cancel(void* ud) { (void)ud; return g_cancel_flag; }
 
-static acs_fio_trace_hooks_v1 g_hooks = ACS_FIO_TRACE_HOOKS(NULL, on_read, on_write, is_cancel);
+static acsd_fio_trace_hooks_v1 g_hooks = ACS_FIO_TRACE_HOOKS(NULL, on_read, on_write, is_cancel);
 
 /* ── 1. 正常往返: F32 2x3 单平面 ── */
 static void test_roundtrip_f32(void) {
   const char* path = tmp_path("rt_f32.fits");
-  acs_fio_writer_v1* wr = NULL;
-  acs_fio_reader_v1* rd = NULL;
-  acs_fio_header_v1 decl;
-  acs_fio_header_v1 hdr;
+  acsd_fio_writer_v1* wr = NULL;
+  acsd_fio_reader_v1* rd = NULL;
+  acsd_fio_header_v1 decl;
+  acsd_fio_header_v1 hdr;
   float data[6] = {1.0f, -2.5f, 3.25f, 4e10f, -1e-30f, 123.456f};
   float back[6] = {0};
   float chunk[2] = {0};
@@ -88,21 +88,21 @@ static void test_roundtrip_f32(void) {
   decl.naxis = 2;
   decl.naxis_n[0] = 3; /* NAXIS1 */
   decl.naxis_n[1] = 2; /* NAXIS2 */
-  st = acs_fio_writer_begin_v1(path, &decl, "ct", 0, &g_hooks, &wr, err, sizeof(err));
+  st = acsd_fio_writer_begin_v1(path, &decl, "ct", 0, &g_hooks, &wr, err, sizeof(err));
   CHECK_ST(ACS_FIO_OK, st, "writer_begin");
-  st = acs_fio_write_plane_v1(wr, 0, data, sizeof(data), &g_hooks, err, sizeof(err));
+  st = acsd_fio_write_plane_v1(wr, 0, data, sizeof(data), &g_hooks, err, sizeof(err));
   CHECK_ST(ACS_FIO_OK, st, "write_plane");
-  st = acs_fio_writer_end_v1(wr, 1, 0, 1, &g_hooks, err, sizeof(err));
+  st = acsd_fio_writer_end_v1(wr, 1, 0, 1, &g_hooks, err, sizeof(err));
   CHECK_ST(ACS_FIO_OK, st, "writer_end");
-  CHECK(acs_fio_writer_bytes_written_v1(wr) >= sizeof(data));
+  CHECK(acsd_fio_writer_bytes_written_v1(wr) >= sizeof(data));
 
   /* header 读回 */
-  st = acs_fio_reader_open_v1(path, &g_hooks, &rd, err, sizeof(err));
+  st = acsd_fio_reader_open_v1(path, &g_hooks, &rd, err, sizeof(err));
   CHECK_ST(ACS_FIO_OK, st, "reader_open");
   memset(&hdr, 0, sizeof(hdr));
   hdr.struct_size = (uint32_t)sizeof(hdr);
   hdr.abi_version = ACS_FIO_ABI_VERSION_V1;
-  st = acs_fio_get_header_v1(rd, &hdr, err, sizeof(err));
+  st = acsd_fio_get_header_v1(rd, &hdr, err, sizeof(err));
   CHECK_ST(ACS_FIO_OK, st, "get_header");
   CHECK(hdr.bitpix == ACS_FIO_BITPIX_F32);
   CHECK(hdr.naxis == 2);
@@ -114,7 +114,7 @@ static void test_roundtrip_f32(void) {
     CHECK(found_bunit);
   }
   /* plane 读回 */
-  st = acs_fio_read_plane_v1(rd, 0, 0, 0, 0, NULL, back, 6, 0, &got, &g_hooks,
+  st = acsd_fio_read_plane_v1(rd, 0, 0, 0, 0, NULL, back, 6, 0, &got, &g_hooks,
                              err, sizeof(err));
   CHECK_ST(ACS_FIO_OK, st, "read_plane");
   CHECK(got == 6);
@@ -122,15 +122,15 @@ static void test_roundtrip_f32(void) {
     int i;
     for (i = 0; i < 6; i++) CHECK(back[i] == data[i]);
   }
-  CHECK(acs_fio_reader_bytes_read_v1(rd) > 0);
+  CHECK(acsd_fio_reader_bytes_read_v1(rd) > 0);
   /* chunk 读回 */
   memset(chunk, 0, sizeof(chunk));
-  st = acs_fio_read_chunk_v1(rd, 0, 2, 2, chunk, 2, 0, &got, &g_hooks, err,
+  st = acsd_fio_read_chunk_v1(rd, 0, 2, 2, chunk, 2, 0, &got, &g_hooks, err,
                              sizeof(err));
   CHECK_ST(ACS_FIO_OK, st, "read_chunk");
   CHECK(got == 2);
   CHECK(chunk[0] == data[2] && chunk[1] == data[3]);
-  acs_fio_reader_close_v1(rd);
+  acsd_fio_reader_close_v1(rd);
   CHECK(g_cb_read > 0 && g_cb_write > 0); /* hook 回调被触发 */
   remove(path);
 }
@@ -138,9 +138,9 @@ static void test_roundtrip_f32(void) {
 /* ── 2. F64 双平面 + plane/chunk 索引语义 ── */
 static void test_roundtrip_f64_2plane(void) {
   const char* path = tmp_path("rt_f64_2p.fits");
-  acs_fio_writer_v1* wr = NULL;
-  acs_fio_reader_v1* rd = NULL;
-  acs_fio_header_v1 decl;
+  acsd_fio_writer_v1* wr = NULL;
+  acsd_fio_reader_v1* rd = NULL;
+  acsd_fio_header_v1 decl;
   double p0[4] = {0.5, -1.25, 2.0, -3.75};
   double p1[4] = {100.0, -200.0, 300.5, -400.25};
   double back0[4] = {0}, back1[4] = {0};
@@ -156,27 +156,27 @@ static void test_roundtrip_f64_2plane(void) {
   decl.naxis_n[0] = 2;
   decl.naxis_n[1] = 2;
   decl.naxis_n[2] = 2;
-  st = acs_fio_writer_begin_v1(path, &decl, NULL, 0, NULL, &wr, err, sizeof(err));
+  st = acsd_fio_writer_begin_v1(path, &decl, NULL, 0, NULL, &wr, err, sizeof(err));
   CHECK_ST(ACS_FIO_OK, st, "begin");
-  st = acs_fio_write_plane_v1(wr, 0, p0, sizeof(p0), NULL, err, sizeof(err));
+  st = acsd_fio_write_plane_v1(wr, 0, p0, sizeof(p0), NULL, err, sizeof(err));
   CHECK_ST(ACS_FIO_OK, st, "w p0");
-  st = acs_fio_write_plane_v1(wr, 1, p1, sizeof(p1), NULL, err, sizeof(err));
+  st = acsd_fio_write_plane_v1(wr, 1, p1, sizeof(p1), NULL, err, sizeof(err));
   CHECK_ST(ACS_FIO_OK, st, "w p1");
-  st = acs_fio_writer_end_v1(wr, 1, 1, 1, NULL, err, sizeof(err));
+  st = acsd_fio_writer_end_v1(wr, 1, 1, 1, NULL, err, sizeof(err));
   CHECK_ST(ACS_FIO_OK, st, "end (datasum+checksum)");
-  st = acs_fio_reader_open_v1(path, NULL, &rd, err, sizeof(err));
+  st = acsd_fio_reader_open_v1(path, NULL, &rd, err, sizeof(err));
   CHECK_ST(ACS_FIO_OK, st, "open");
-  st = acs_fio_read_plane_v1(rd, 0, 0, 0, 0, NULL, back0, 4, 0, &got, NULL, err,
+  st = acsd_fio_read_plane_v1(rd, 0, 0, 0, 0, NULL, back0, 4, 0, &got, NULL, err,
                              sizeof(err));
   CHECK_ST(ACS_FIO_OK, st, "r p0");
   CHECK(got == 4 && back0[0] == p0[0] && back0[3] == p0[3]);
-  st = acs_fio_read_plane_v1(rd, 1, 0, 0, 0, NULL, back1, 4, 0, &got, NULL, err,
+  st = acsd_fio_read_plane_v1(rd, 1, 0, 0, 0, NULL, back1, 4, 0, &got, NULL, err,
                              sizeof(err));
   CHECK_ST(ACS_FIO_OK, st, "r p1");
   CHECK(back1[0] == p1[0] && back1[3] == p1[3]);
-  acs_fio_reader_close_v1(rd);
+  acsd_fio_reader_close_v1(rd);
   /* checksum verify (写了 CHECKSUM) */
-  st = acs_fio_verify_file_v1(path, 1, err, sizeof(err));
+  st = acsd_fio_verify_file_v1(path, 1, err, sizeof(err));
   CHECK_ST(ACS_FIO_OK, st, "verify ok");
   remove(path);
 }
@@ -202,7 +202,7 @@ static void put_card(unsigned char* raw, int card_idx, const char* name,
 
 static void test_bad_header_missing_simple(void) {
   unsigned char raw[2880];
-  acs_fio_reader_v1* rd = NULL;
+  acsd_fio_reader_v1* rd = NULL;
   char err[ACS_FIO_ERR_TEXT_MAX];
   int st;
   memset(raw, ' ', sizeof(raw));
@@ -212,7 +212,7 @@ static void test_bad_header_missing_simple(void) {
   put_card(raw, 3, "NAXIS2", "2");
   memcpy(raw + 4 * 80, "END", 3);
   write_raw(tmp_path("bad_nosimple.fits"), raw, sizeof(raw));
-  st = acs_fio_reader_open_v1(tmp_path("bad_nosimple.fits"), NULL, &rd, err,
+  st = acsd_fio_reader_open_v1(tmp_path("bad_nosimple.fits"), NULL, &rd, err,
                               sizeof(err));
   CHECK_ST(ACS_FIO_ERR_BAD_HEADER, st, "open missing SIMPLE");
   remove(tmp_path("bad_nosimple.fits"));
@@ -220,7 +220,7 @@ static void test_bad_header_missing_simple(void) {
 
 static void test_bad_header_no_end(void) {
   unsigned char raw[2880];
-  acs_fio_reader_v1* rd = NULL;
+  acsd_fio_reader_v1* rd = NULL;
   char err[ACS_FIO_ERR_TEXT_MAX];
   int st;
   memset(raw, ' ', sizeof(raw));
@@ -229,7 +229,7 @@ static void test_bad_header_no_end(void) {
   put_card(raw, 2, "NAXIS", "0");
   /* 无 END */
   write_raw(tmp_path("bad_noend.fits"), raw, sizeof(raw));
-  st = acs_fio_reader_open_v1(tmp_path("bad_noend.fits"), NULL, &rd, err,
+  st = acsd_fio_reader_open_v1(tmp_path("bad_noend.fits"), NULL, &rd, err,
                               sizeof(err));
   CHECK_ST(ACS_FIO_ERR_BAD_HEADER, st, "open no END");
   remove(tmp_path("bad_noend.fits"));
@@ -237,7 +237,7 @@ static void test_bad_header_no_end(void) {
 
 static void test_bad_header_bad_bitpix(void) {
   unsigned char raw[2880];
-  acs_fio_reader_v1* rd = NULL;
+  acsd_fio_reader_v1* rd = NULL;
   char err[ACS_FIO_ERR_TEXT_MAX];
   int st;
   memset(raw, ' ', sizeof(raw));
@@ -246,7 +246,7 @@ static void test_bad_header_bad_bitpix(void) {
   put_card(raw, 2, "NAXIS", "0");
   memcpy(raw + 3 * 80, "END", 3);
   write_raw(tmp_path("bad_bitpix.fits"), raw, sizeof(raw));
-  st = acs_fio_reader_open_v1(tmp_path("bad_bitpix.fits"), NULL, &rd, err,
+  st = acsd_fio_reader_open_v1(tmp_path("bad_bitpix.fits"), NULL, &rd, err,
                               sizeof(err));
   CHECK_ST(ACS_FIO_ERR_UNSUPPORTED, st, "open bad bitpix");
   remove(tmp_path("bad_bitpix.fits"));
@@ -254,9 +254,9 @@ static void test_bad_header_bad_bitpix(void) {
 
 /* ── 4. 负测: 截断 ── */
 static void test_truncated_data(void) {
-  acs_fio_writer_v1* wr = NULL;
-  acs_fio_reader_v1* rd = NULL;
-  acs_fio_header_v1 decl;
+  acsd_fio_writer_v1* wr = NULL;
+  acsd_fio_reader_v1* rd = NULL;
+  acsd_fio_header_v1 decl;
   char err[ACS_FIO_ERR_TEXT_MAX];
   int st;
   const char* path = tmp_path("trunc.fits");
@@ -271,11 +271,11 @@ static void test_truncated_data(void) {
   decl.naxis = 2;
   decl.naxis_n[0] = 8;
   decl.naxis_n[1] = 8;
-  st = acs_fio_writer_begin_v1(path, &decl, NULL, 0, NULL, &wr, err, sizeof(err));
+  st = acsd_fio_writer_begin_v1(path, &decl, NULL, 0, NULL, &wr, err, sizeof(err));
   CHECK_ST(ACS_FIO_OK, st, "begin");
-  st = acs_fio_write_plane_v1(wr, 0, data, sizeof(data), NULL, err, sizeof(err));
+  st = acsd_fio_write_plane_v1(wr, 0, data, sizeof(data), NULL, err, sizeof(err));
   CHECK_ST(ACS_FIO_OK, st, "w");
-  st = acs_fio_writer_end_v1(wr, 0, 0, 0, NULL, err, sizeof(err));
+  st = acsd_fio_writer_end_v1(wr, 0, 0, 0, NULL, err, sizeof(err));
   CHECK_ST(ACS_FIO_OK, st, "end");
   /* 截断: 保留 header + 一半数据 */
   {
@@ -301,7 +301,7 @@ static void test_truncated_data(void) {
       free(buf);
     }
   }
-  st = acs_fio_reader_open_v1(path, NULL, &rd, err, sizeof(err));
+  st = acsd_fio_reader_open_v1(path, NULL, &rd, err, sizeof(err));
   CHECK_ST(ACS_FIO_ERR_TRUNCATED, st, "open truncated");
   remove(path);
 }
@@ -309,9 +309,9 @@ static void test_truncated_data(void) {
 /* ── 5. 负测: dtype / shape / unit mismatch ── */
 static void test_mismatch(void) {
   const char* path = tmp_path("mm.fits");
-  acs_fio_writer_v1* wr = NULL;
-  acs_fio_reader_v1* rd = NULL;
-  acs_fio_header_v1 decl;
+  acsd_fio_writer_v1* wr = NULL;
+  acsd_fio_reader_v1* rd = NULL;
+  acsd_fio_header_v1 decl;
   float data[6] = {1, 2, 3, 4, 5, 6};
   double dbuf[6];
   float fbuf[6];
@@ -326,33 +326,33 @@ static void test_mismatch(void) {
   decl.naxis = 2;
   decl.naxis_n[0] = 3;
   decl.naxis_n[1] = 2;
-  st = acs_fio_writer_begin_v1(path, &decl, "adu", 0, NULL, &wr, err, sizeof(err));
+  st = acsd_fio_writer_begin_v1(path, &decl, "adu", 0, NULL, &wr, err, sizeof(err));
   CHECK_ST(ACS_FIO_OK, st, "begin");
-  acs_fio_write_plane_v1(wr, 0, data, sizeof(data), NULL, err, sizeof(err));
-  acs_fio_writer_end_v1(wr, 0, 0, 0, NULL, err, sizeof(err));
-  st = acs_fio_reader_open_v1(path, NULL, &rd, err, sizeof(err));
+  acsd_fio_write_plane_v1(wr, 0, data, sizeof(data), NULL, err, sizeof(err));
+  acsd_fio_writer_end_v1(wr, 0, 0, 0, NULL, err, sizeof(err));
+  st = acsd_fio_reader_open_v1(path, NULL, &rd, err, sizeof(err));
   CHECK_ST(ACS_FIO_OK, st, "open");
   /* dtype mismatch: 期望 F64 */
-  st = acs_fio_read_plane_v1(rd, 0, 0, 0, ACS_FIO_BITPIX_F64, NULL, dbuf, 6, 0,
+  st = acsd_fio_read_plane_v1(rd, 0, 0, 0, ACS_FIO_BITPIX_F64, NULL, dbuf, 6, 0,
                              &got, NULL, err, sizeof(err));
   CHECK_ST(ACS_FIO_ERR_MISMATCH, st, "dtype mismatch");
   /* shape mismatch: nx=4 */
-  st = acs_fio_read_plane_v1(rd, 0, 4, 0, 0, NULL, fbuf, 6, 0, &got, NULL, err,
+  st = acsd_fio_read_plane_v1(rd, 0, 4, 0, 0, NULL, fbuf, 6, 0, &got, NULL, err,
                              sizeof(err));
   CHECK_ST(ACS_FIO_ERR_MISMATCH, st, "shape mismatch");
   /* unit mismatch: 期望 'e-' */
-  st = acs_fio_read_plane_v1(rd, 0, 0, 0, 0, "e-", fbuf, 6, 0, &got, NULL, err,
+  st = acsd_fio_read_plane_v1(rd, 0, 0, 0, 0, "e-", fbuf, 6, 0, &got, NULL, err,
                              sizeof(err));
   CHECK_ST(ACS_FIO_ERR_MISMATCH, st, "unit mismatch");
-  acs_fio_reader_close_v1(rd);
+  acsd_fio_reader_close_v1(rd);
   remove(path);
 }
 
 /* ── 6. checksum error: 写 DATASUM 后篡改 → verify CHECKSUM ── */
 static void test_checksum_error(void) {
   const char* path = tmp_path("cs.fits");
-  acs_fio_writer_v1* wr = NULL;
-  acs_fio_header_v1 decl;
+  acsd_fio_writer_v1* wr = NULL;
+  acsd_fio_header_v1 decl;
   float data[64];
   char err[ACS_FIO_ERR_TEXT_MAX];
   int st, i;
@@ -365,13 +365,13 @@ static void test_checksum_error(void) {
   decl.naxis = 2;
   decl.naxis_n[0] = 8;
   decl.naxis_n[1] = 8;
-  st = acs_fio_writer_begin_v1(path, &decl, NULL, 0, NULL, &wr, err, sizeof(err));
+  st = acsd_fio_writer_begin_v1(path, &decl, NULL, 0, NULL, &wr, err, sizeof(err));
   CHECK_ST(ACS_FIO_OK, st, "begin");
-  acs_fio_write_plane_v1(wr, 0, data, sizeof(data), NULL, err, sizeof(err));
-  st = acs_fio_writer_end_v1(wr, 1, 0, 0, NULL, err, sizeof(err));
+  acsd_fio_write_plane_v1(wr, 0, data, sizeof(data), NULL, err, sizeof(err));
+  st = acsd_fio_writer_end_v1(wr, 1, 0, 0, NULL, err, sizeof(err));
   CHECK_ST(ACS_FIO_OK, st, "end");
   /* verify 通过 */
-  st = acs_fio_verify_file_v1(path, 0, err, sizeof(err));
+  st = acsd_fio_verify_file_v1(path, 0, err, sizeof(err));
   CHECK_ST(ACS_FIO_OK, st, "verify ok before tamper");
   /* 篡改数据区一个字节 (header 2880 后) */
   {
@@ -387,7 +387,7 @@ static void test_checksum_error(void) {
       fclose(fp);
     }
   }
-  st = acs_fio_verify_file_v1(path, 0, err, sizeof(err));
+  st = acsd_fio_verify_file_v1(path, 0, err, sizeof(err));
   CHECK_ST(ACS_FIO_ERR_CHECKSUM, st, "verify after tamper");
   remove(path);
 }
@@ -398,8 +398,8 @@ static void test_checksum_error(void) {
  * ② 人为构造 CHECKSUM='0000000000000000' 的占位卡 ⇒ verify_checksum=1 必须红。 */
 static void test_checksum_absent_and_placeholder(void) {
   const char* path = tmp_path("cs_absent.fits");
-  acs_fio_writer_v1* wr = NULL;
-  acs_fio_header_v1 decl;
+  acsd_fio_writer_v1* wr = NULL;
+  acsd_fio_header_v1 decl;
   float data[64];
   char err[ACS_FIO_ERR_TEXT_MAX];
   int st, i;
@@ -412,10 +412,10 @@ static void test_checksum_absent_and_placeholder(void) {
   decl.naxis = 2;
   decl.naxis_n[0] = 8;
   decl.naxis_n[1] = 8;
-  st = acs_fio_writer_begin_v1(path, &decl, NULL, 0, NULL, &wr, err, sizeof(err));
+  st = acsd_fio_writer_begin_v1(path, &decl, NULL, 0, NULL, &wr, err, sizeof(err));
   CHECK_ST(ACS_FIO_OK, st, "absent_begin");
-  acs_fio_write_plane_v1(wr, 0, data, sizeof(data), NULL, err, sizeof(err));
-  st = acs_fio_writer_end_v1(wr, 1, 0 /*write_checksum*/, 0, NULL, err, sizeof(err));
+  acsd_fio_write_plane_v1(wr, 0, data, sizeof(data), NULL, err, sizeof(err));
+  st = acsd_fio_writer_end_v1(wr, 1, 0 /*write_checksum*/, 0, NULL, err, sizeof(err));
   CHECK_ST(ACS_FIO_OK, st, "absent_end");
   /* ① 头区不得出现 CHECKSUM 关键字 */
   {
@@ -436,17 +436,17 @@ static void test_checksum_absent_and_placeholder(void) {
     }
   }
   /* ① verify_checksum=1 必须通过 (无声明可校验, 不是失败) */
-  st = acs_fio_verify_file_v1(path, 1, err, sizeof(err));
+  st = acsd_fio_verify_file_v1(path, 1, err, sizeof(err));
   CHECK_ST(ACS_FIO_OK, st, "verify absent-with-checksum-request");
   /* ② 真值校验和产物: 把 CHECKSUM 卡值区改回全零占位串 ⇒ verify 必须红。
    * (直接改值区, 保留卡名与注释, 精确复现 "占位卡被当成交付值" 的形态) */
   remove(path);
-  st = acs_fio_writer_begin_v1(path, &decl, NULL, 0, NULL, &wr, err, sizeof(err));
+  st = acsd_fio_writer_begin_v1(path, &decl, NULL, 0, NULL, &wr, err, sizeof(err));
   CHECK_ST(ACS_FIO_OK, st, "real_begin");
-  acs_fio_write_plane_v1(wr, 0, data, sizeof(data), NULL, err, sizeof(err));
-  st = acs_fio_writer_end_v1(wr, 1, 1 /*write_checksum*/, 0, NULL, err, sizeof(err));
+  acsd_fio_write_plane_v1(wr, 0, data, sizeof(data), NULL, err, sizeof(err));
+  st = acsd_fio_writer_end_v1(wr, 1, 1 /*write_checksum*/, 0, NULL, err, sizeof(err));
   CHECK_ST(ACS_FIO_OK, st, "real_end");
-  st = acs_fio_verify_file_v1(path, 1, err, sizeof(err));
+  st = acsd_fio_verify_file_v1(path, 1, err, sizeof(err));
   CHECK_ST(ACS_FIO_OK, st, "verify real checksum");
   {
     FILE* fp = fopen(path, "r+b");
@@ -478,7 +478,7 @@ static void test_checksum_absent_and_placeholder(void) {
     }
   }
   err[0] = '\0';
-  st = acs_fio_verify_file_v1(path, 1, err, sizeof(err));
+  st = acsd_fio_verify_file_v1(path, 1, err, sizeof(err));
   CHECK_ST(ACS_FIO_ERR_CHECKSUM, st, "verify zero placeholder must fail");
   /* 判别力: 全零占位串必须由**专用拒绝分支**判红 (错误文本点名), 而不是
    * 碰巧落到数值不等的通用 mismatch —— 后者在 sum==0/0xFFFFFFFF 的兼容
@@ -490,9 +490,9 @@ static void test_checksum_absent_and_placeholder(void) {
 /* ── 7. NaN/Inf strict ── */
 static void test_naninf(void) {
   const char* path = tmp_path("nan.fits");
-  acs_fio_writer_v1* wr = NULL;
-  acs_fio_reader_v1* rd = NULL;
-  acs_fio_header_v1 decl;
+  acsd_fio_writer_v1* wr = NULL;
+  acsd_fio_reader_v1* rd = NULL;
+  acsd_fio_header_v1 decl;
   float data[4] = {1.0f, NAN, 3.0f, INFINITY};
   float back[4];
   int64_t got = 0;
@@ -506,30 +506,30 @@ static void test_naninf(void) {
   decl.naxis = 2;
   decl.naxis_n[0] = 2;
   decl.naxis_n[1] = 2;
-  st = acs_fio_writer_begin_v1(path, &decl, NULL, 0, NULL, &wr, err, sizeof(err));
+  st = acsd_fio_writer_begin_v1(path, &decl, NULL, 0, NULL, &wr, err, sizeof(err));
   CHECK_ST(ACS_FIO_OK, st, "begin");
-  acs_fio_write_plane_v1(wr, 0, data, sizeof(data), NULL, err, sizeof(err));
-  acs_fio_writer_end_v1(wr, 0, 0, 0, NULL, err, sizeof(err));
-  st = acs_fio_reader_open_v1(path, NULL, &rd, err, sizeof(err));
+  acsd_fio_write_plane_v1(wr, 0, data, sizeof(data), NULL, err, sizeof(err));
+  acsd_fio_writer_end_v1(wr, 0, 0, 0, NULL, err, sizeof(err));
+  st = acsd_fio_reader_open_v1(path, NULL, &rd, err, sizeof(err));
   CHECK_ST(ACS_FIO_OK, st, "open");
   /* strict=0: 放行 */
-  st = acs_fio_read_plane_v1(rd, 0, 0, 0, 0, NULL, back, 4, 0, &got, NULL, err,
+  st = acsd_fio_read_plane_v1(rd, 0, 0, 0, 0, NULL, back, 4, 0, &got, NULL, err,
                              sizeof(err));
   CHECK_ST(ACS_FIO_OK, st, "read lenient");
   /* strict=1: 拒绝 */
-  st = acs_fio_read_plane_v1(rd, 0, 0, 0, 0, NULL, back, 4, 1, &got, NULL, err,
+  st = acsd_fio_read_plane_v1(rd, 0, 0, 0, 0, NULL, back, 4, 1, &got, NULL, err,
                              sizeof(err));
   CHECK_ST(ACS_FIO_ERR_NANINF, st, "read strict naninf");
-  acs_fio_reader_close_v1(rd);
+  acsd_fio_reader_close_v1(rd);
   remove(path);
 }
 
 /* ── 8. 取消 ── */
 static void test_cancel(void) {
   const char* path = tmp_path("cancel.fits");
-  acs_fio_writer_v1* wr = NULL;
-  acs_fio_reader_v1* rd = NULL;
-  acs_fio_header_v1 decl;
+  acsd_fio_writer_v1* wr = NULL;
+  acsd_fio_reader_v1* rd = NULL;
+  acsd_fio_header_v1 decl;
   float data[6];
   int64_t got = 0;
   char err[ACS_FIO_ERR_TEXT_MAX];
@@ -542,29 +542,29 @@ static void test_cancel(void) {
   decl.naxis = 2;
   decl.naxis_n[0] = 3;
   decl.naxis_n[1] = 2;
-  st = acs_fio_writer_begin_v1(path, &decl, NULL, 0, NULL, &wr, err, sizeof(err));
+  st = acsd_fio_writer_begin_v1(path, &decl, NULL, 0, NULL, &wr, err, sizeof(err));
   CHECK_ST(ACS_FIO_OK, st, "begin");
-  acs_fio_write_plane_v1(wr, 0, data, sizeof(data), NULL, err, sizeof(err));
-  acs_fio_writer_end_v1(wr, 0, 0, 0, NULL, err, sizeof(err));
+  acsd_fio_write_plane_v1(wr, 0, data, sizeof(data), NULL, err, sizeof(err));
+  acsd_fio_writer_end_v1(wr, 0, 0, 0, NULL, err, sizeof(err));
   /* 读时取消 */
-  st = acs_fio_reader_open_v1(path, &g_hooks, &rd, err, sizeof(err));
+  st = acsd_fio_reader_open_v1(path, &g_hooks, &rd, err, sizeof(err));
   CHECK_ST(ACS_FIO_OK, st, "open");
   g_cancel_flag = 1;
-  st = acs_fio_read_plane_v1(rd, 0, 0, 0, 0, NULL, data, 6, 0, &got, &g_hooks,
+  st = acsd_fio_read_plane_v1(rd, 0, 0, 0, 0, NULL, data, 6, 0, &got, &g_hooks,
                              err, sizeof(err));
   CHECK_ST(ACS_FIO_ERR_CANCELLED, st, "read cancelled");
   g_cancel_flag = 0;
-  acs_fio_reader_close_v1(rd);
+  acsd_fio_reader_close_v1(rd);
   /* 写时取消 */
-  st = acs_fio_writer_begin_v1(path, &decl, NULL, 1, &g_hooks, &wr, err,
+  st = acsd_fio_writer_begin_v1(path, &decl, NULL, 1, &g_hooks, &wr, err,
                                sizeof(err));
   CHECK_ST(ACS_FIO_OK, st, "begin2");
   g_cancel_flag = 1;
-  st = acs_fio_write_plane_v1(wr, 0, data, sizeof(data), &g_hooks, err,
+  st = acsd_fio_write_plane_v1(wr, 0, data, sizeof(data), &g_hooks, err,
                               sizeof(err));
   CHECK_ST(ACS_FIO_ERR_CANCELLED, st, "write cancelled");
   g_cancel_flag = 0;
-  acs_fio_writer_abort_v1(wr);
+  acsd_fio_writer_abort_v1(wr);
   remove(path);
 }
 
@@ -572,8 +572,8 @@ static void test_cancel(void) {
 static void test_write_denied(void) {
   const char* dir = tmp_path("ro_dir");
   char path[640];
-  acs_fio_writer_v1* wr = NULL;
-  acs_fio_header_v1 decl;
+  acsd_fio_writer_v1* wr = NULL;
+  acsd_fio_header_v1 decl;
   char err[ACS_FIO_ERR_TEXT_MAX];
   int st;
   snprintf(path, sizeof(path), "%s/out.fits", dir);
@@ -587,7 +587,7 @@ static void test_write_denied(void) {
   decl.abi_version = ACS_FIO_ABI_VERSION_V1;
   decl.bitpix = ACS_FIO_BITPIX_F32;
   decl.naxis = 0;
-  st = acs_fio_writer_begin_v1(path, &decl, NULL, 0, NULL, &wr, err, sizeof(err));
+  st = acsd_fio_writer_begin_v1(path, &decl, NULL, 0, NULL, &wr, err, sizeof(err));
   CHECK(st == ACS_FIO_ERR_IO || st == ACS_FIO_ERR_DISKFULL);
 #if !defined(_WIN32)
   chmod(dir, 0700);
@@ -598,8 +598,8 @@ static void test_write_denied(void) {
 /* ── 10. abort 清理临时文件 ── */
 static void test_abort_cleanup(void) {
   const char* path = tmp_path("abort.fits");
-  acs_fio_writer_v1* wr = NULL;
-  acs_fio_header_v1 decl;
+  acsd_fio_writer_v1* wr = NULL;
+  acsd_fio_header_v1 decl;
   float data[4] = {1, 2, 3, 4};
   char err[ACS_FIO_ERR_TEXT_MAX];
   int st;
@@ -611,10 +611,10 @@ static void test_abort_cleanup(void) {
   decl.naxis = 2;
   decl.naxis_n[0] = 2;
   decl.naxis_n[1] = 2;
-  st = acs_fio_writer_begin_v1(path, &decl, NULL, 0, NULL, &wr, err, sizeof(err));
+  st = acsd_fio_writer_begin_v1(path, &decl, NULL, 0, NULL, &wr, err, sizeof(err));
   CHECK_ST(ACS_FIO_OK, st, "begin");
-  acs_fio_write_plane_v1(wr, 0, data, sizeof(data), NULL, err, sizeof(err));
-  acs_fio_writer_abort_v1(wr);
+  acsd_fio_write_plane_v1(wr, 0, data, sizeof(data), NULL, err, sizeof(err));
+  acsd_fio_writer_abort_v1(wr);
   /* 目标与临时文件均不存在 */
   {
     FILE* t = fopen(path, "rb");

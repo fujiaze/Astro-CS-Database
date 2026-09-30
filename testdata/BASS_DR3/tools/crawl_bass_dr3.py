@@ -83,7 +83,7 @@ def build_session() -> requests.Session:
     session.headers.update(
         {
             "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
-            "AstroCS-BASS-Index/1.0",
+            "ACSD-BASS-Index/1.0",
             "Accept-Encoding": "gzip, deflate",
         }
     )

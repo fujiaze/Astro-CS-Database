@@ -6,7 +6,7 @@
 #   - 从权威公式独立复算: w = SNR^2/F_ref^2 = 1/sigma_F^2 (Horne 1986 通量型口径)；
 #     稀疏层消费面: 层值即**绝对** SNR，w(x,y) = (SNR_layer(x,y)/F_ref)^2 ——
 #     **不乘**帧级标量（冻结 schema sparse_snr_semantics = absolute_flux_type_snr；
-#     docs/ASTROCS_DESIGN.md 3.1:264）。旧「实际 SNR = 帧级 x 帧内」合成已作废；
+#     docs/ACSD_DESIGN.md 3.1:264）。旧「实际 SNR = 帧级 x 帧内」合成已作废；
 #   - 重建算子独立复算：自然边界三次样条用 **numpy.linalg.solve 稠密求解**
 #     （不复用被测 C++ 的 Thomas 消元），值域钳制与 3x3 mesh 中值独立手写；
 #   - C++ 侧对拍由 oracle/weight_chain_selfcheck.cpp 用其自身独立复算路径完成；
@@ -225,7 +225,7 @@ def contract_compute(frames, fref, legacy_allow_weight_fallback=False):
         # 稀疏层（存在时）：层值就是**绝对** SNR 本身 —— 逐像素消费面按
         #   w(x,y) = (SNR_layer(x,y)/F_ref)^2
         # 换算，**不得**再乘/除帧级标量（冻结 schema sparse_snr_semantics =
-        # absolute_flux_type_snr；ASTROCS_DESIGN 3.1:264）。无层时才走帧级标量路径。
+        # absolute_flux_type_snr；ACSD_DESIGN 3.1:264）。无层时才走帧级标量路径。
         layer_snr = 0.0
         if f.get("sparse") is not None:
             L = dict(f["sparse"])

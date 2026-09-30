@@ -3,7 +3,7 @@
 
 #include <cmath>
 
-namespace astrocs::phase1 {
+namespace acsd::phase1 {
 
 void WcsTan::pix2sky(double x, double y, double* ra, double* dec) const {
   const double dx = x - crpix1;
@@ -63,4 +63,4 @@ void WcsTan::sky2pix(double ra, double dec, double* x, double* y) const {
   if (y) *y = crpix2 + (-cd21 * xi_deg + cd11 * eta_deg) / det;
 }
 
-}  // namespace astrocs::phase1
+}  // namespace acsd::phase1

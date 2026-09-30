@@ -25,8 +25,8 @@ int main() {
     std::uint64_t bad_xy = 0, bad_fi = 0, bad_inv = 0;
     for (uint64_t local = 0; local < n; ++local) {
         uint32_t x = 0, y = 0;
-        astrocs::healpix::nested_local_to_xy(local, shift, x, y);
-        const uint64_t back = astrocs::healpix::xy_to_nested_local(x, y, shift);
+        acsd::healpix::nested_local_to_xy(local, shift, x, y);
+        const uint64_t back = acsd::healpix::xy_to_nested_local(x, y, shift);
         if (back != local) {
             ++bad_xy;
             if (bad_xy <= 5)
@@ -34,7 +34,7 @@ int main() {
                             (unsigned long long)local, x, y, (unsigned long long)back);
         }
         const uint64_t expect = (uint64_t)(511u - x) * 512u + (uint64_t)y;
-        const uint64_t fi = astrocs::healpix::nested_local_to_fits_index(local, shift, tw);
+        const uint64_t fi = acsd::healpix::nested_local_to_fits_index(local, shift, tw);
         if (fi != expect) {
             ++bad_fi;
             if (bad_fi <= 5)
@@ -42,7 +42,7 @@ int main() {
                             (unsigned long long)local, x, y,
                             (unsigned long long)expect, (unsigned long long)fi);
         }
-        const uint64_t inv = astrocs::healpix::fits_index_to_nested_local(fi, shift, tw);
+        const uint64_t inv = acsd::healpix::fits_index_to_nested_local(fi, shift, tw);
         if (inv != local) {
             ++bad_inv;
             if (bad_inv <= 5)
@@ -59,16 +59,16 @@ int main() {
     std::uint64_t samples = sizeof(anchors) / sizeof(anchors[0]);
     for (uint64_t a : anchors) {
         uint32_t x = 0, y = 0;
-        astrocs::healpix::nested_local_to_xy(a, shift, x, y);
+        acsd::healpix::nested_local_to_xy(a, shift, x, y);
         const uint64_t expect = (uint64_t)(511u - x) * 512u + (uint64_t)y;
-        if (astrocs::healpix::nested_local_to_fits_index(a, shift, tw) != expect) ++bad_rand;
+        if (acsd::healpix::nested_local_to_fits_index(a, shift, tw) != expect) ++bad_rand;
     }
     for (int i = 0; i < 100000; ++i) {
         const uint64_t local = rng() % n;
         uint32_t x = 0, y = 0;
-        astrocs::healpix::nested_local_to_xy(local, shift, x, y);
+        acsd::healpix::nested_local_to_xy(local, shift, x, y);
         const uint64_t expect = (uint64_t)(511u - x) * 512u + (uint64_t)y;
-        if (astrocs::healpix::nested_local_to_fits_index(local, shift, tw) != expect) {
+        if (acsd::healpix::nested_local_to_fits_index(local, shift, tw) != expect) {
             ++bad_rand;
             break;
         }

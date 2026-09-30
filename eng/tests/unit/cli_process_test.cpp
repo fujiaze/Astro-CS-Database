@@ -1,7 +1,7 @@
-// cli_process_test.cpp — B8-P1: lib/infrastructure/cli/astrocs_process.h(R11 Windows 遮蔽修复: 原名 process.h 在 -I lib/infrastructure/cli/ 下遮蔽 MSVC <thread> 内部 <process.h> → _beginthreadex 未声明 → astrocs_cli_runtime 编译失败 build exit 1) 跨平台子进程封装共址单测。
+// cli_process_test.cpp — B8-P1: lib/infrastructure/cli/acsd_process.h(R11 Windows 遮蔽修复: 原名 process.h 在 -I lib/infrastructure/cli/ 下遮蔽 MSVC <thread> 内部 <process.h> → _beginthreadex 未声明 → acsd_cli_runtime 编译失败 build exit 1) 跨平台子进程封装共址单测。
 // 覆盖: argv 传参(空格路径不断裂/零 shell 解析)、exit code 传递、extra_env、
 // timeout 杀进程、spawn 失败可诊断、devnull_stdio。POSIX 与 Windows 同断言。
-#include "astrocs_process.h"
+#include "acsd_process.h"
 
 #include <cstdio>
 #include <filesystem>
@@ -66,7 +66,7 @@ int main() {
 #else
         argv = {"sh", "-c", "exit 7"};
 #endif
-        const auto r = astrocs::process::run_process(argv);
+        const auto r = acsd::process::run_process(argv);
         CHECK(r.exited && r.exit_code == 7, "exit code 7 传递");
     }
     // extra_env 注入
@@ -76,8 +76,8 @@ int main() {
 #else
         std::vector<std::string> argv = {"sh", "-c", "[ \"$ACS_PROC_TEST_ENV\" = \"1\" ]"};
 #endif
-        const auto r = astrocs::process::run_process(argv, {{"ACS_PROC_TEST_ENV", "1"}});
-        CHECK(astrocs::process::ok(r), "extra_env 注入子进程");
+        const auto r = acsd::process::run_process(argv, {{"ACS_PROC_TEST_ENV", "1"}});
+        CHECK(acsd::process::ok(r), "extra_env 注入子进程");
     }
 
     // ── 2. 含空格路径 argv 传参不断裂(零 shell 解析核心诉求) ──
@@ -89,8 +89,8 @@ int main() {
                                             "#!/bin/sh\nexit 0\n"
 #endif
         );
-        const auto r = astrocs::process::run_process({sp});
-        CHECK(astrocs::process::ok(r),
+        const auto r = acsd::process::run_process({sp});
+        CHECK(acsd::process::ok(r),
               "空格路径作为 argv[0] 直接执行不断裂; rc=" +
                   std::to_string(r.exit_code) + " err=" + r.error);
     }
@@ -102,17 +102,17 @@ int main() {
 #else
         std::vector<std::string> argv = {"sleep", "5"};
 #endif
-        const auto r = astrocs::process::run_process(argv, {}, 0.5);
+        const auto r = acsd::process::run_process(argv, {}, 0.5);
         CHECK(r.timed_out, "0.5s 超时杀 5s 子进程");
-        CHECK(!astrocs::process::ok(r), "超时不算 ok");
+        CHECK(!acsd::process::ok(r), "超时不算 ok");
     }
 
     // ── 4. spawn 失败可诊断(不存在可执行文件) ──
     {
-        const auto r = astrocs::process::run_process({"astrocs_no_such_binary_zz"});
+        const auto r = acsd::process::run_process({"acsd_no_such_binary_zz"});
         CHECK(r.spawn_failed || (r.exited && r.exit_code == 127),
               "spawn 失败或 shell 未找到等效 127");
-        CHECK(!astrocs::process::ok(r), "spawn 失败不算 ok");
+        CHECK(!acsd::process::ok(r), "spawn 失败不算 ok");
     }
 
     // ── 5. devnull_stdio: 子进程 stdout 噪声不外泄 ──
@@ -124,8 +124,8 @@ int main() {
 #else
         std::vector<std::string> argv = {"sh", "-c", "echo noisy-output"};
 #endif
-        const auto r = astrocs::process::run_process(argv, {}, 0.0, {}, true);
-        CHECK(astrocs::process::ok(r), "devnull_stdio 下正常退出");
+        const auto r = acsd::process::run_process(argv, {}, 0.0, {}, true);
+        CHECK(acsd::process::ok(r), "devnull_stdio 下正常退出");
     }
 
     // ── 6. 参数值含 shell 元字符不被解释(注入面消除) ──
@@ -140,7 +140,7 @@ int main() {
         const std::string sp = write_script(
             tmp, "inject_probe",
             "#!/bin/sh\n[ \"$1\" = \"a;b|c\" ] && exit 3 || exit 4\n");
-        const auto r = astrocs::process::run_process({sp, "a;b|c"});
+        const auto r = acsd::process::run_process({sp, "a;b|c"});
         CHECK(r.exited && r.exit_code == 3,
               "元字符参数按单 argv 元素传递(不被 shell 拆分); rc=" +
                   std::to_string(r.exit_code));

@@ -11,7 +11,7 @@
 //       并落盘检测侧（LM 无关）的候选质量字段：矩 FWHM / 椭率 / 检测 SNR /
 //       质量位 —— 用于把「候选本身是不是星」与「拟合器快不快」分开判定。
 // 被测面同源: lib/infrastructure/scheduler/src/module_adapters.cpp 的
-//       p1_op_star_psf_impl 盲路径（astrocs::phase1::StarDetector(5.0).detect()
+//       p1_op_star_psf_impl 盲路径（acsd::phase1::StarDetector(5.0).detect()
 //       → dets[N,6] → dpsf_fit_batch_f64(..., nullptr, ...)）。
 // 注意: 本探针**不是**门；它只落盘测量，不做判据。判据在 p1psf 测试组。
 // ============================================================================
@@ -166,7 +166,7 @@ int main(int argc, char** argv) {
         std::fclose(f);
     } else {
         const double t0 = now_s();
-        astrocs::phase1::StarDetector det(a.det_sigma);
+        acsd::phase1::StarDetector det(a.det_sigma);
         auto r = det.detect(fpx, W, H);
         const double t1 = now_s();
         if (r.failed()) { std::fprintf(stderr, "detect failed\n"); return 3; }

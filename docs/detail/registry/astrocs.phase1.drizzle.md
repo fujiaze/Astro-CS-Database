@@ -1,6 +1,6 @@
-# 模块 astrocs.phase1.drizzle
+# 模块 acsd.phase1.drizzle
 
-> 上游：docs/ASTROCS_DESIGN.md §8.5（模块与 ABI）、§4.4（输出合同：帧级 SNR 入文件头、
+> 上游：docs/ACSD_DESIGN.md §8.5（模块与 ABI）、§4.4（输出合同：帧级 SNR 入文件头、
 > 稀疏层插入）、§2.2（创新点二：跨帧可用的绝对信噪比）、§5.5/§10（无覆盖 = NaN 语义）
 > 科学正本：docs/science/DRIZZLE.md（SCI-DRZ-001/014/015/016，§7 通量守恒因子）、
 > docs/science/algorithms/DRIZZLE_GEOMETRY.md（ALG-DRZ-001，重采样几何与 §9/§10
@@ -118,12 +118,12 @@ entrypoint = 图像组 + WCS + 科学层 → HiPS 产品目录 + 结构化 JSON�
 ### 源文件
 
 `lib/algorithms/drizzle/healpix_drizzle/`（编入根 CMake 静态库
-`astrocs_drizzle`；`poly_clip.cpp` 编入但生产路径零调用，登记见
+`acsd_drizzle`；`poly_clip.cpp` 编入但生产路径零调用，登记见
 DRIZZLE_GEOMETRY.md）。模块合同落位 `lib/algorithms/drizzle/`。
 
 ## Registry descriptor 与配置 schema
 
-module_id=`astrocs.p1.drizzle`; execution_class=`cpu_heavy`; parallel_ok=True。
+module_id=`acsd.p1.drizzle`; execution_class=`cpu_heavy`; parallel_ok=True。
 
 | 字段 | 默认 | 单位 | 说明 |
 |---|---|---|---|
@@ -193,7 +193,7 @@ run generation 切换清空，原子化替换）。计数新增 `target_boundary
   `skipped_degenerate_empty_support`；填充面含非有限 / 非正值 ⇒
   `skipped_fill_failed`（全零方差面会让引擎整像素跳过，抹掉 signal / support，
   故 fail-closed）。凡「逐像素方差已由生产路径产出」的主张**必须**附方差 tile
-  数大于 0 的磁盘证据；双实现分裂项见 registry/astrocs.phase1.noise-snr.md。
+  数大于 0 的磁盘证据；双实现分裂项见 registry/acsd.phase1.noise-snr.md。
 
 取消 = 模块内无检查点（登记限制）；checkpoint 无（HiPS 由编排层 overwrite 清理）。
 

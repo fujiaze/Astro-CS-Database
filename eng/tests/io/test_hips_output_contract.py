@@ -357,7 +357,7 @@ class TestFitsVerifyCrossOracle(unittest.TestCase):
 
     def test_tile_verify_matches_c_verifier(self):
         lib = ctypes.CDLL(str(REPO / "lib" / "infrastructure" / "aio" / "io" / "libfits_core_test.so"))
-        vf = lib.acs_fio_verify_file_v1
+        vf = lib.acsd_fio_verify_file_v1
         vf.restype = ctypes.c_int
         vf.argtypes = [ctypes.c_char_p, ctypes.c_int, ctypes.c_char_p,
                        ctypes.c_size_t]
@@ -392,7 +392,7 @@ class TestProductFilenameWhitelist(unittest.TestCase):
         tmp = pathlib.Path(tempfile.mkdtemp())
         s = store_at(tmp, "run-cov")
         files = standard_hips_files(ipix_list=(0,)) + [
-            ("coverage.index.json", b'{"index_schema": "astrocs.coverage-index/v1"}\n')]
+            ("coverage.index.json", b'{"index_schema": "acsd.coverage-index/v1"}\n')]
         doc = s.publish_directory("signal", files)
         paths = {e["path"] for e in doc["tree"]}
         self.assertIn("coverage.index.json", paths)

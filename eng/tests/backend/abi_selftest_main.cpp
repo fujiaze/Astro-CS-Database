@@ -4,15 +4,15 @@
 #include <cstdio>
 #include <cstring>
 
-#include "astrocs/common_abi_v1.h"
+#include "acsd/common_abi_v1.h"
 
 extern "C" {
-int astrocs_host_services_default_v1(astrocs_host_services_v1* out, void** state_out);
-void astrocs_host_services_destroy_state_v1(void* state);
-void astrocs_host_state_set_budget_v1(void* state, uint32_t cpus, uint32_t max_workers,
-                                      astrocs_host_services_v1* out);
-long astrocs_host_state_alloc_count(void* state);
-long astrocs_host_state_alloc_total(void* state);
+int acsd_host_services_default_v1(acsd_host_services_v1* out, void** state_out);
+void acsd_host_services_destroy_state_v1(void* state);
+void acsd_host_state_set_budget_v1(void* state, uint32_t cpus, uint32_t max_workers,
+                                      acsd_host_services_v1* out);
+long acsd_host_state_alloc_count(void* state);
+long acsd_host_state_alloc_total(void* state);
 }
 
 namespace {
@@ -29,30 +29,30 @@ void check(int cond, const char* what) {
 int main() {
     // ── 编译期布局冻结(双构建必须一致; Python 比对运行时输出) ──
     std::printf("layout %zu %zu %zu %zu %zu %zu %zu %zu\n",
-                sizeof(acs_head), sizeof(acs_span_f64), sizeof(astrocs_host_services_v1),
-                sizeof(acs_allocator), sizeof(acs_logger), sizeof(acs_cancel),
-                sizeof(acs_thread_budget), sizeof(astrocs_backend_api_v1));
-    static_assert(sizeof(acs_head) == 8, "head=2x u32");
-    static_assert(sizeof(astrocs_backend_api_v1) > 128, "api v1 完整");
+                sizeof(acsd_head), sizeof(acsd_span_f64), sizeof(acsd_host_services_v1),
+                sizeof(acsd_allocator), sizeof(acsd_logger), sizeof(acsd_cancel),
+                sizeof(acsd_thread_budget), sizeof(acsd_backend_api_v1));
+    static_assert(sizeof(acsd_head) == 8, "head=2x u32");
+    static_assert(sizeof(acsd_backend_api_v1) > 128, "api v1 完整");
 
-    astrocs_host_services_v1 host;
+    acsd_host_services_v1 host;
     void* state = nullptr;
-    check(astrocs_host_services_default_v1(&host, &state) == ACS_OK, "host services default");
-    check(host.struct_size == sizeof(astrocs_host_services_v1), "host struct_size handshake");
-    astrocs_host_state_set_budget_v1(state, 4, 2, &host);
+    check(acsd_host_services_default_v1(&host, &state) == ACS_OK, "host services default");
+    check(host.struct_size == sizeof(acsd_host_services_v1), "host struct_size handshake");
+    acsd_host_state_set_budget_v1(state, 4, 2, &host);
 
     // ── handshake 拒绝面 ──
-    astrocs_backend_api_v1 api;
+    acsd_backend_api_v1 api;
     std::memset(&api, 0, sizeof(api));
-    check(astrocs_backend_get_api_v1(ACS_ABI_VERSION_V1 + 1, sizeof(astrocs_host_services_v1),
+    check(acsd_backend_get_api_v1(ACS_ABI_VERSION_V1 + 1, sizeof(acsd_host_services_v1),
                                      &host, &api) == ACS_ERR_ABI_MISMATCH,
           "abi_version mismatch rejected");
-    check(astrocs_backend_get_api_v1(ACS_ABI_VERSION_V1, sizeof(astrocs_host_services_v1) - 4,
+    check(acsd_backend_get_api_v1(ACS_ABI_VERSION_V1, sizeof(acsd_host_services_v1) - 4,
                                      &host, &api) == ACS_ERR_ABI_MISMATCH,
           "host struct_size mismatch rejected");
 
     // ── 正常获取 + kernel 表 ──
-    check(astrocs_backend_get_api_v1(ACS_ABI_VERSION_V1, sizeof(astrocs_host_services_v1),
+    check(acsd_backend_get_api_v1(ACS_ABI_VERSION_V1, sizeof(acsd_host_services_v1),
                                      &host, &api) == ACS_OK, "get_api_v1 ok");
     check(api.abi_version == ACS_ABI_VERSION_V1 && api.struct_size == sizeof(api), "api handshake");
     check(api.kernel_count == 12, "kernel table 12 entries (05 §5)");
@@ -62,11 +62,11 @@ int main() {
           "kernel null params explicit PARAM (ABI-003 baseline 实现后)");
 
     // ── self_test + allocator 可验证性 ──
-    const long before_total = astrocs_host_state_alloc_total(state);
+    const long before_total = acsd_host_state_alloc_total(state);
     check(api.self_test(&host) == ACS_OK, "self_test ok");
-    check(astrocs_host_state_alloc_total(state) > before_total,
+    check(acsd_host_state_alloc_total(state) > before_total,
           "self_test went through host allocator (verifiable)");
-    check(astrocs_host_state_alloc_count(state) == 0, "allocator balanced (no leak)");
+    check(acsd_host_state_alloc_count(state) == 0, "allocator balanced (no leak)");
 
     // ── budget: Σ(active) ≤ max_workers=2; 超租失败 ──
     check(host.budget.acquire(host.budget.user_data, 1) == 0, "budget acquire 1");
@@ -77,10 +77,10 @@ int main() {
     host.budget.release(host.budget.user_data, 2);
 
     // ── 异常不跨边界(baseline TU 内 catch→状态码) ──
-    check(astrocs_abi_boundary_probe(0) == ACS_OK, "boundary probe pass-through");
-    check(astrocs_abi_boundary_probe(1) == ACS_ERR_INTERNAL, "exception contained at boundary");
+    check(acsd_abi_boundary_probe(0) == ACS_OK, "boundary probe pass-through");
+    check(acsd_abi_boundary_probe(1) == ACS_ERR_INTERNAL, "exception contained at boundary");
 
-    astrocs_host_services_destroy_state_v1(state);
+    acsd_host_services_destroy_state_v1(state);
     std::printf("%s failures=%d\n", failures == 0 ? "ALL_OK" : "HAS_FAILURES", failures);
     return failures == 0 ? 0 : 1;
 }

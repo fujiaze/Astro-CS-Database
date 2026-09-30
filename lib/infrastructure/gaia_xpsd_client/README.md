@@ -1,9 +1,9 @@
-# lib/infrastructure/gaia_xpsd_client — astrocs.catalog.gaia（CAT-GAIA）
+# lib/infrastructure/gaia_xpsd_client — acsd.catalog.gaia（CAT-GAIA）
 
 > 状态: CONTRACT_READY（CAT-GAIA-DOC 冻结，2026-09-05）｜doc revision: r2
 > **现状复测（LEDGER-DOC，2026-09-17；`python3 eng/tools/quality/check_module_map.py`）**：
-> 本模块生产源 `lib/infrastructure/gaia_xpsd_client/src/module_entry.c` 与 CMake SHARED target `astrocs_catalog_gaia`（`lib/infrastructure/gaia_xpsd_client/CMakeLists.txt:15`）均在位，
-> `astrocs_module_query_v1` 导出存在但**函数体零调用**（检查器 finding `noop_entrypoint`）
+> 本模块生产源 `lib/infrastructure/gaia_xpsd_client/src/module_entry.c` 与 CMake SHARED target `acsd_catalog_gaia`（`lib/infrastructure/gaia_xpsd_client/CMakeLists.txt:15`）均在位，
+> `acsd_module_query_v1` 导出存在但**函数体零调用**（检查器 finding `noop_entrypoint`）
 > ⇒ 机读状态 = **NOT_IMPLEMENTED**。下文旧基线中「仅合同文件/无源码/无 CMake target/
 > entrypoint=MISSING/尚未存在」等表述已被实测反证，以本注记与检查器输出为准；
 > 实现侧整改归 CAT-GAIA-IMPL。
@@ -16,8 +16,8 @@
 
 | 字段 | 当前值 |
 |---|---|
-| MOD ID / DLL target | `MOD-astrocs-catalog-gaia` / 模块 DLL `astrocs_catalog_gaia`（SHARED，lib/infrastructure/gaia_xpsd_client/CMakeLists.txt:15，**已在位**）；entrypoint `astrocs_module_query_v1` 在位但零调用（src/module_entry.c）⇒ MOD-001 检查器判 NOT_IMPLEMENTED（整改归 CAT-GAIA-IMPL） |
-| module / ABI / doc revision | `astrocs.catalog.gaia` / C ABI（无版本化 query 入口，迁移缺口） / r2 |
+| MOD ID / DLL target | `MOD-acsd-catalog-gaia` / 模块 DLL `acsd_catalog_gaia`（SHARED，lib/infrastructure/gaia_xpsd_client/CMakeLists.txt:15，**已在位**）；entrypoint `acsd_module_query_v1` 在位但零调用（src/module_entry.c）⇒ MOD-001 检查器判 NOT_IMPLEMENTED（整改归 CAT-GAIA-IMPL） |
+| module / ABI / doc revision | `acsd.catalog.gaia` / C ABI（无版本化 query 入口，迁移缺口） / r2 |
 | owner / phase scope | SA-P1-W16 / service（wave W1） |
 | 文档状态 | CONTRACT_READY（实现存在，模块化迁移未开始；不声明 IMPLEMENTED） |
 | 上游来源 | PixInsight XPSD 格式客户端（历史上游 Gaia-DR3-DR3SP-Client-C，MIT；仅来源说明，非本合同权威） |
@@ -64,7 +64,7 @@ LZ4 或 zlib+shuffle 压缩块；GaiaDR3 32B 记录 / GaiaDR3SP 384B 记录）�
 - ARCH: `ARCH-001`（docs/engineering/ARCH-001.md）
 - TEST: `TEST-GAIA-DESIGN-001`（GAIA_QUERY.md §5，设计冻结；可执行
   TEST-GAIA-* 由 CAT-GAIA-TEST 建立，当前未实现）
-- 追溯: docs/traceability/TRACEABILITY_MATRIX.json `MOD-astrocs-catalog-gaia`
+- 追溯: docs/traceability/TRACEABILITY_MATRIX.json `MOD-acsd-catalog-gaia`
 
 ## 5. 实现事实（源码核对）
 
@@ -85,7 +85,7 @@ LZ4 或 zlib+shuffle 压缩块；GaiaDR3 32B 记录 / GaiaDR3SP 384B 记录）�
   `get_spectrum_params` `1`=有光谱/`0`=无；`create*` 失败=NULL。
 - 测试钩子（仅测试编译定义生效）：`GAIA_ALLOC_TEST`（malloc/calloc/realloc/
   free 包装注入）、`GAIA_POLAR_PRUNE_DISABLED`（极区剪枝 differential
-  reference mode）；诊断 `ASTROCS_GAIA_TRACE=1`（stderr，per-query 统计）。
+  reference mode）；诊断 `ACSD_GAIA_TRACE=1`（stderr，per-query 统计）。
 - DR3SP 记录布局（源码 1378-1387 / PCL EncodedStarSPData）：32B 头
   （dx@0 u32、dy@4 u32、magG_raw@20 u16、magBP_raw@22 u16、magRP_raw@24 u16、
   dra_raw@26 i16）+ flux_min f32@32 + flux_mul f32@36 + uint8 spectrum[343]@40
@@ -140,7 +140,7 @@ fallback：无（baseline 单路径）；ISA 合同=迁移 bitwise 等价。
 
 - 构建（现状，Linux 技术预览）：
   `make -C lib/infrastructure/gaia_xpsd_client`（gcc -O2 -march=native -fopenmp -lz）；
-  Windows MSVC/MinGW 命令见历史上游说明。CMake target `astrocs_catalog_gaia`
+  Windows MSVC/MinGW 命令见历史上游说明。CMake target `acsd_catalog_gaia`
   （SHARED，lib/infrastructure/gaia_xpsd_client/CMakeLists.txt:15）已在位；
   adapter/版本化 query 入口的函数体仍为零调用（noop_entrypoint，CAT-GAIA-IMPL 整改）。
 - 已知限制/未实现（如实登记，不得静默使用）：

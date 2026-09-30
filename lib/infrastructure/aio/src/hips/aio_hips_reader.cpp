@@ -80,7 +80,7 @@ static bool valid_product_params(int tile_width, int hips_order) {
 }
 
 // ---------------------------------------------------------------------------
-// docs/ASTROCS_DESIGN.md §10「I/O 与原子产品」:
+// docs/ACSD_DESIGN.md §10「I/O 与原子产品」:
 // **完成清单 fail-closed** —— 「没有完成清单就不算成功对象」。产品集根下的
 // manifest.json 由 writer 在**全部 tile 完成之后**最后原子落盘 (aio_hips_finalize);
 // 中途 kill / 失败 / 取消只会留下无清单的 tile 残骸。消费者 (aio_hips_open)
@@ -372,7 +372,7 @@ int read_leaf_t(AioHipsDataset* d, uint64_t leaf_ipix, T* out) {
     }
     const uint64_t tile = leaf_ipix >> 18;
     const uint64_t z = leaf_ipix & ((1ULL << 18) - 1ULL);
-    const uint64_t fi = astrocs::healpix::nested_local_to_fits_index(z, 9u, 512u);
+    const uint64_t fi = acsd::healpix::nested_local_to_fits_index(z, 9u, 512u);
     return read_tile_pixel_t(d, tile, fi, out);
 }
 // ============================================================================

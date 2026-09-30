@@ -4,12 +4,12 @@
 // 同时验证: backend_id 正确、kernel 表非空、feature 声明与 provider 匹配。
 //
 // 用法: cpu001_provider_selftest baseline|avx2|avx512
-//   baseline : 仅链接 astrocs_cpu, 验证 baseline self_test
-//   avx2    : 仅链接 astrocs_cpu_avx2, 验证 AVX2 provider self_test
-//   avx512  : 仅链接 astrocs_cpu_avx512, 验证 AVX512 provider self_test
+//   baseline : 仅链接 acsd_cpu, 验证 baseline self_test
+//   avx2    : 仅链接 acsd_cpu_avx2, 验证 AVX2 provider self_test
+//   avx512  : 仅链接 acsd_cpu_avx512, 验证 AVX512 provider self_test
 // 负例(feature bits 不满足 → 拒绝加载)见独立 cpu001_negative_test.cpp
 #include "cpu_features.h"
-#include "astrocs/common_abi_v1.h"
+#include "acsd/common_abi_v1.h"
 
 #include <cstdio>
 #include <cstring>
@@ -17,13 +17,13 @@
 
 
 extern "C" {
-int astrocs_host_services_default_v1(astrocs_host_services_v1* out, void** state_out);
-void astrocs_host_services_destroy_state_v1(void* state);
-void astrocs_host_state_set_budget_v1(void* state, uint32_t cpus, uint32_t max_workers,
-                                      astrocs_host_services_v1* out);
-long astrocs_host_state_alloc_count(void* state);
-long astrocs_host_state_alloc_total(void* state);
-long astrocs_host_state_active_workers(void* state);
+int acsd_host_services_default_v1(acsd_host_services_v1* out, void** state_out);
+void acsd_host_services_destroy_state_v1(void* state);
+void acsd_host_state_set_budget_v1(void* state, uint32_t cpus, uint32_t max_workers,
+                                      acsd_host_services_v1* out);
+long acsd_host_state_alloc_count(void* state);
+long acsd_host_state_alloc_total(void* state);
+long acsd_host_state_active_workers(void* state);
 }
 
 static int failures = 0;
@@ -45,13 +45,13 @@ int main(int argc, char** argv) {
   // 因此无 AVX-512F 的 host 上 avx512 provider 处于"未激活"分支 — selftest
   // 相应 SKIP (exit 77, ctest SKIP_RETURN_CODE), 而非把宿主环境事实记成 FAIL。
   // gate 必须在 get_api 之前: Release (-O2) 下 avx512 TU 的非 kernel 符号
-  // (astrocs_backend_get_api_v1 等) 会被 clang 自定向量化出 EVEX 指令, 无
+  // (acsd_backend_get_api_v1 等) 会被 clang 自定向量化出 EVEX 指令, 无
   // AVX-512 硬件执行即 SIGILL — 前置检测保证该路径不执行任何 avx512 TU 代码
   // (cpu_features TU 无 ISA 旗标)。检测源与 backend_loader 同为
-  // astrocs_cpu_detect_features_v1, 语义一致。
+  // acsd_cpu_detect_features_v1, 语义一致。
   // avx2/baseline 分支不受影响; 有 AVX-512F 时下方全部断言 (backend_id/
   // required 声明/kernel 表/self_test) 不变, 不放宽。
-  const uint64_t detected_pre = astrocs_cpu_detect_features_v1();
+  const uint64_t detected_pre = acsd_cpu_detect_features_v1();
   if (mode == "avx512" && (detected_pre & ACS_FEAT_AVX512F) == 0) {
     std::printf("cpu001: avx512 provider NOT ACTIVATED on this host "
                 "(detected=0x%016llx lacks ACS_FEAT_AVX512F) "
@@ -60,21 +60,21 @@ int main(int argc, char** argv) {
     return 77;  // ctest SKIP_RETURN_CODE (eng/tests/unit/CMakeLists.txt)
   }
 
-  astrocs_host_services_v1 host;
+  acsd_host_services_v1 host;
   void* state = nullptr;
-  if (astrocs_host_services_default_v1(&host, &state) != ACS_OK) {
+  if (acsd_host_services_default_v1(&host, &state) != ACS_OK) {
     std::fprintf(stderr, "cpu001: host services init failed\n");
     return 2;
   }
-  astrocs_host_state_set_budget_v1(state, 2, 2, &host);
+  acsd_host_state_set_budget_v1(state, 2, 2, &host);
 
   // ── backend_api: 当前 TU 链接的 provider 的静态 API (get_api handshake) ──
-  astrocs_backend_api_v1 api;
+  acsd_backend_api_v1 api;
   std::memset(&api, 0, sizeof(api));
-  CHECK(astrocs_backend_get_api_v1(ACS_ABI_VERSION_V1,
-                                   static_cast<uint32_t>(sizeof(astrocs_host_services_v1)),
+  CHECK(acsd_backend_get_api_v1(ACS_ABI_VERSION_V1,
+                                   static_cast<uint32_t>(sizeof(acsd_host_services_v1)),
                                    &host, &api) == ACS_OK);
-  CHECK(api.struct_size == sizeof(astrocs_backend_api_v1));
+  CHECK(api.struct_size == sizeof(acsd_backend_api_v1));
   CHECK(api.abi_version == ACS_ABI_VERSION_V1);
 
   // ── provider 身份校验 ──
@@ -84,7 +84,7 @@ int main(int argc, char** argv) {
               api.backend_id, api.backend_build_id, api.kernel_count);
 
   // feature 声明: baseline required=0; avx2=AVX2|FMA; avx512=AVX512F(检测面位)
-  const uint64_t detected = astrocs_cpu_detect_features_v1();
+  const uint64_t detected = acsd_cpu_detect_features_v1();
   // 诊断增强 (WIN-TEST-UNIT avx512 环境判定): 无条件打印 detected/required 位面。
   // 检测机制本身已被 baseline/avx2 两 selftest 通过证实 (同份 cpu_features.cpp
   // 的 cpuid/xgetbv 路径) — 若 avx512 模式 detected 缺 ACS_FEAT_AVX512F,
@@ -115,21 +115,21 @@ int main(int argc, char** argv) {
               api.kernels[0].algorithm_id);
 
   // ── self_test: handshake→allocator 往返→cancel 读→budget 租借/归还→logger ──
-  const long alloc_before = astrocs_host_state_alloc_count(state);
-  const long total_before = astrocs_host_state_alloc_total(state);
+  const long alloc_before = acsd_host_state_alloc_count(state);
+  const long total_before = acsd_host_state_alloc_total(state);
   CHECK(api.self_test != nullptr);
   if (api.self_test) {
     CHECK(api.self_test(&host) == ACS_OK);
   }
   // allocator 往返后无泄漏(计数归零)且确有分配发生(可验证性)
-  CHECK(astrocs_host_state_alloc_count(state) == alloc_before);
-  CHECK(astrocs_host_state_alloc_total(state) > total_before);
-  CHECK(astrocs_host_state_active_workers(state) == 0);   // budget 租借已归还
+  CHECK(acsd_host_state_alloc_count(state) == alloc_before);
+  CHECK(acsd_host_state_alloc_total(state) > total_before);
+  CHECK(acsd_host_state_active_workers(state) == 0);   // budget 租借已归还
 
-  // ABI 边界探针(astrocs_abi_boundary_probe)由 baseline 测试覆盖:
+  // ABI 边界探针(acsd_abi_boundary_probe)由 baseline 测试覆盖:
   // 该符号仅定义于 baseline_backend.cpp, avx2/avx512 变体库不重复链接。
 
-  astrocs_host_services_destroy_state_v1(state);
+  acsd_host_services_destroy_state_v1(state);
   if (failures == 0) {
     std::printf("CPU-001 %s SELF_TEST PASS\n", mode.c_str());
     return 0;

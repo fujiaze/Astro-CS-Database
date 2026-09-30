@@ -7,7 +7,7 @@ Gate 4 (Phase1 Full Freeze v2): DR3SP 积分 vs GaiaXPy 官方 Oracle 对比
   2. GaiaXPy generate -> Gaia_DR3_Vega 合成测光 (G/BP/RP)  = Oracle 参考
   3. GaiaXPy 自洽校验: 合成 G/BP/RP 星等 vs Gaia DR3 发布测光 (TAP)
   4. gaiaxpy convert 采样到 XPSD 网格 (336-1020nm @2nm)
-  5. ACSD 参考积分 (fsyn_astrocs.compute_f_syn, λ 加权 + G 归一化)
+  5. ACSD 参考积分 (fsyn_acsd.compute_f_syn, λ 加权 + G 归一化)
      × 官方 Gaia EDR3/DR3 通带 (Riello+2021 passband.dat)
   6. 对比颜色 (m_BP-m_G, m_G-m_RP, m_BP-m_RP): ACSD vs GaiaXPy
   7. numpy 移植 vs 生产 C++ (fsyn_export.exe) 交叉验证 (uint8 光谱)
@@ -27,7 +27,7 @@ import numpy as np
 import pandas as pd
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from fsyn_astrocs import akima_interpolate, compute_f_syn, simpson_integrate, synthetic_band_flux
+from fsyn_acsd import akima_interpolate, compute_f_syn, simpson_integrate, synthetic_band_flux
 
 try:
     from gaiaxpy import convert, generate
@@ -54,7 +54,7 @@ def load_passbands(path):
     return out
 
 
-def astrocs_fsyn(flux, passbands, band):
+def acsd_fsyn(flux, passbands, band):
     """对 XPSD 网格绝对光谱计算合成测光通量 (光子加权平均)."""
     wl, tr = passbands[band]
     return synthetic_band_flux(flux, XPSD_WL, wl, tr)
@@ -141,7 +141,7 @@ def main():
                           dtype=float)
         fsyn = {}
         for band in ("G", "BP", "RP"):
-            fsyn[band] = astrocs_fsyn(flux, passbands, band)
+            fsyn[band] = acsd_fsyn(flux, passbands, band)
         g_ref = fsyn["G"]
         colors = {
             "BP_G": color_mag(g_ref, fsyn["BP"]),
@@ -150,10 +150,10 @@ def main():
         }
         row = {"source_id": int(sid)}
         for band in ("G", "BP", "RP"):
-            row[f"astrocs_fsyn_{band}"] = fsyn[band]
-            row[f"astrocs_mag_{band}"] = -2.5 * np.log10(fsyn[band]) + ZP[band]
+            row[f"acsd_fsyn_{band}"] = fsyn[band]
+            row[f"acsd_mag_{band}"] = -2.5 * np.log10(fsyn[band]) + ZP[band]
         for cname, cval in colors.items():
-            row[f"astrocs_color_{cname}"] = cval
+            row[f"acsd_color_{cname}"] = cval
         if sid in phot.index:
             row["gaiagx_mag_G"] = phot.loc[sid, "GaiaDr3Vega_mag_G"]
             row["gaiagx_mag_BP"] = phot.loc[sid, "GaiaDr3Vega_mag_BP"]
@@ -173,7 +173,7 @@ def main():
     stats = {}
     for cname in ("BP_G", "G_RP", "BP_RP"):
         b1, b2 = {"BP_G": ("BP", "G"), "G_RP": ("G", "RP"), "BP_RP": ("BP", "RP")}[cname]
-        d = ((res[f"astrocs_mag_{b1}"] - res[f"astrocs_mag_{b2}"]) -
+        d = ((res[f"acsd_mag_{b1}"] - res[f"acsd_mag_{b2}"]) -
              (res[f"gaiagx_mag_{b1}"] - res[f"gaiagx_mag_{b2}"])).dropna()
         stats[cname] = {
             "n": int(len(d)),
@@ -187,7 +187,7 @@ def main():
     # 5.1 逐带星等对比 (官方零点)
     mag_stats = {}
     for band in ("G", "BP", "RP"):
-        d = (res[f"astrocs_mag_{band}"] - res[f"gaiagx_mag_{band}"]).dropna()
+        d = (res[f"acsd_mag_{band}"] - res[f"gaiagx_mag_{band}"]).dropna()
         mag_stats[band] = {
             "n": int(len(d)),
             "median_diff_mag": float(np.nanmedian(d)),

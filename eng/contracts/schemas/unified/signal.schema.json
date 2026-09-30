@@ -1,12 +1,12 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://astrocs.local/schemas/unified/signal/v1",
+  "$id": "https://acsd.local/schemas/unified/signal/v1",
   "title": "ACSD 统一对象 signal —— 声明单位和像素语义的科学估计量",
-  "description": "UNIFIED_MODEL §2：signal = 声明单位和像素语义的估计量；可否作权重 = 否。禁止用模糊 weight/value 字段承载 signal 与 variance（docs/ASTROCS_DESIGN §2 对象禁止互相冒充）。",
-  "x-astrocs-object": {
+  "description": "UNIFIED_MODEL §2：signal = 声明单位和像素语义的估计量；可否作权重 = 否。禁止用模糊 weight/value 字段承载 signal 与 variance（docs/ACSD_DESIGN §2 对象禁止互相冒充）。",
+  "x-acsd-object": {
     "name": "signal",
     "canonical_file": "eng/contracts/schemas/unified/signal.schema.json",
-    "authority": "docs/detail/UNIFIED_MODEL.md §2；docs/ASTROCS_DESIGN.md §2；ENGINEERING_SPEC.md §3/§4.7",
+    "authority": "docs/detail/UNIFIED_MODEL.md §2；docs/ACSD_DESIGN.md §2；ENGINEERING_SPEC.md §3/§4.7",
     "weight_verdict": "否",
     "weight_eligible": false
   },
@@ -54,7 +54,7 @@
       "description": "对象判别式：本文档声明的 UNIFIED_MODEL §2 对象名（禁止用别的对象名冒充）"
     },
     "object_schema_id": {
-      "const": "https://astrocs.local/schemas/unified/signal/v1",
+      "const": "https://acsd.local/schemas/unified/signal/v1",
       "description": "全局唯一 schema ID（eng/contracts/schemas/unified/signal.schema.json）"
     },
     "schema_version": {
@@ -441,7 +441,7 @@
           }
         }
       },
-      "x-astrocs-gate": {
+      "x-acsd-gate": {
         "clause_id": "FZ-BUNIT-SEMANTICS",
         "gate": "G-BUNIT-SEMANTICS",
         "rule": "bunit_semantics=written_px_power 且 pixel_area_power!=0 ⇒ BUNIT 必须显式含立体角幂次（量纲可判 (a)）",
@@ -481,7 +481,7 @@
           }
         }
       },
-      "x-astrocs-gate": {
+      "x-acsd-gate": {
         "clause_id": "FZ-BUNIT-SEMANTICS",
         "gate": "G-BUNIT-SEMANTICS",
         "rule": "bunit_semantics=declared_via_provenance ⇒ BUNIT 仅写 ADU，量纲由 pixel_semantics + pixel_area_power 声明（量纲可判 (b)）",
@@ -521,7 +521,7 @@
           }
         }
       },
-      "x-astrocs-gate": {
+      "x-acsd-gate": {
         "clause_id": "FZ-BUNIT-SEMANTICS",
         "gate": "G-BUNIT-SEMANTICS",
         "rule": "declared_via_provenance + surface_brightness ⇒ pixel_area_power=-2",
@@ -561,7 +561,7 @@
           }
         }
       },
-      "x-astrocs-gate": {
+      "x-acsd-gate": {
         "clause_id": "FZ-BUNIT-SEMANTICS",
         "gate": "G-BUNIT-SEMANTICS",
         "rule": "declared_via_provenance + integrated_flux ⇒ pixel_area_power=0",

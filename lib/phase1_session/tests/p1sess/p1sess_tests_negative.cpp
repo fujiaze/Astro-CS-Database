@@ -32,14 +32,14 @@ static void* n_alloc(void*, std::uint64_t n, std::uint64_t) {
 static void n_free(void*, void* p) { std::free(p); }
 static int n_not_cancelled(void*) { return 0; }
 
-static astrocs_host_services_v1 n_make_host() {
-    astrocs_host_services_v1 h{};
-    h.struct_size = sizeof(astrocs_host_services_v1);
+static acsd_host_services_v1 n_make_host() {
+    acsd_host_services_v1 h{};
+    h.struct_size = sizeof(acsd_host_services_v1);
     h.abi_version = ACS_ABI_VERSION_V1;
-    h.allocator = {sizeof(acs_allocator), ACS_ABI_VERSION_V1, n_alloc, n_free, nullptr};
-    h.logger = {sizeof(acs_logger), ACS_ABI_VERSION_V1, nullptr, nullptr};
-    h.cancel = {sizeof(acs_cancel), ACS_ABI_VERSION_V1, n_not_cancelled, nullptr};
-    h.budget = {sizeof(acs_thread_budget), ACS_ABI_VERSION_V1, 1u, 1u, nullptr, nullptr, nullptr};
+    h.allocator = {sizeof(acsd_allocator), ACS_ABI_VERSION_V1, n_alloc, n_free, nullptr};
+    h.logger = {sizeof(acsd_logger), ACS_ABI_VERSION_V1, nullptr, nullptr};
+    h.cancel = {sizeof(acsd_cancel), ACS_ABI_VERSION_V1, n_not_cancelled, nullptr};
+    h.budget = {sizeof(acsd_thread_budget), ACS_ABI_VERSION_V1, 1u, 1u, nullptr, nullptr, nullptr};
     return h;
 }
 
@@ -51,7 +51,7 @@ int run_negative() {
     const char* w2 = std::getenv("TMP");
     const std::string tmp_root = (d ? d : (w ? w : (w2 ? w2 : ".")));
     const std::string base =
-        (fs::path(tmp_root) / "astrocs_p1sess_neg").generic_string();
+        (fs::path(tmp_root) / "acsd_p1sess_neg").generic_string();
     const std::string out_dir = base + "/out";
     std::error_code ec;
     fs::remove_all(base, ec);
@@ -88,17 +88,17 @@ int run_negative() {
         {"n1_cosmetic_method_far_out_of_vocab", std::string("{\"input_lights\":") + L + ",\"output_dir\":" + O + ",\"cosmetic\":{\"method\":999}}"},
     };
     for (const auto& c : cases) {
-        astrocs_host_services_v1 host = n_make_host();
-        acs_handle h = nullptr;
+        acsd_host_services_v1 host = n_make_host();
+        acsd_handle h = nullptr;
         if (p1_session_create(&host, &h) != ACS_OK || !h) return 2;
-        acs_span_u8 cfg = ACS_SPAN_U8(reinterpret_cast<std::uint8_t*>(const_cast<char*>(c.cfg.c_str())),
+        acsd_span_u8 cfg = ACS_SPAN_U8(reinterpret_cast<std::uint8_t*>(const_cast<char*>(c.cfg.c_str())),
                                       static_cast<std::uint64_t>(c.cfg.size()));
-        const acs_status rc = p1_session_validate(h, cfg);
+        const acsd_status rc = p1_session_validate(h, cfg);
         P1SESS_CHECK_MSG(cs, rc == ACS_ERR_PARAM, "n1_validate_reject",
                          "%s: rc=%d (want PARAM=%d)", c.name, static_cast<int>(rc),
                          static_cast<int>(ACS_ERR_PARAM));
         // 失败传播面: last_error 脱敏摘要非空 (README §5)
-        const std::string le = astrocs::phase1::last_error(h);
+        const std::string le = acsd::phase1::last_error(h);
         P1SESS_CHECK_MSG(cs, !le.empty(), "n1_last_error", "%s: last_error empty", c.name);
         P1SESS_CHECK_EQ(cs, p1_session_destroy(h), ACS_OK);
     }
@@ -109,10 +109,10 @@ int run_negative() {
             std::string("{\"input_lights\":") + L + ",\"output_dir\":" + O +
             ",\"master_bias\":null,\"master_dark\":null,\"master_flat\":null" +
             ",\"cosmetic\":{\"enabled\":true,\"hot_sigma\":5},\"dark_optimization\":false}";
-        astrocs_host_services_v1 host = n_make_host();
-        acs_handle h = nullptr;
+        acsd_host_services_v1 host = n_make_host();
+        acsd_handle h = nullptr;
         P1SESS_CHECK_EQ(cs, p1_session_create(&host, &h), ACS_OK);
-        acs_span_u8 cfg = ACS_SPAN_U8(reinterpret_cast<std::uint8_t*>(const_cast<char*>(ok_cfg.c_str())),
+        acsd_span_u8 cfg = ACS_SPAN_U8(reinterpret_cast<std::uint8_t*>(const_cast<char*>(ok_cfg.c_str())),
                                       static_cast<std::uint64_t>(ok_cfg.size()));
         P1SESS_CHECK_EQ(cs, p1_session_validate(h, cfg), ACS_OK);
         P1SESS_CHECK_EQ(cs, p1_session_destroy(h), ACS_OK);
@@ -124,10 +124,10 @@ int run_negative() {
         const std::string ok_cfg =
             std::string("{\"input_lights\":") + L + ",\"output_dir\":" + O +
             ",\"cosmetic\":{\"enabled\":true,\"method\":" + mv + "}}";
-        astrocs_host_services_v1 host = n_make_host();
-        acs_handle h = nullptr;
+        acsd_host_services_v1 host = n_make_host();
+        acsd_handle h = nullptr;
         P1SESS_CHECK_EQ(cs, p1_session_create(&host, &h), ACS_OK);
-        acs_span_u8 cfg = ACS_SPAN_U8(reinterpret_cast<std::uint8_t*>(const_cast<char*>(ok_cfg.c_str())),
+        acsd_span_u8 cfg = ACS_SPAN_U8(reinterpret_cast<std::uint8_t*>(const_cast<char*>(ok_cfg.c_str())),
                                       static_cast<std::uint64_t>(ok_cfg.size()));
         P1SESS_CHECK_MSG(cs, p1_session_validate(h, cfg) == ACS_OK,
                          "n2b_method_in_vocab_accepted", "method=%s must be accepted", mv);
@@ -139,10 +139,10 @@ int run_negative() {
         const std::string cfg =
             std::string("{\"input_lights\":") + L + ",\"output_dir\":" + O +
             ",\"master_dark\":null}";
-        astrocs_host_services_v1 host = n_make_host();
-        acs_handle h = nullptr;
+        acsd_host_services_v1 host = n_make_host();
+        acsd_handle h = nullptr;
         P1SESS_CHECK_EQ(cs, p1_session_create(&host, &h), ACS_OK);
-        acs_span_u8 sp = ACS_SPAN_U8(reinterpret_cast<std::uint8_t*>(const_cast<char*>(cfg.c_str())),
+        acsd_span_u8 sp = ACS_SPAN_U8(reinterpret_cast<std::uint8_t*>(const_cast<char*>(cfg.c_str())),
                                      static_cast<std::uint64_t>(cfg.size()));
         P1SESS_CHECK_EQ(cs, p1_session_validate(h, sp), ACS_OK);
         P1SESS_CHECK_EQ(cs, p1_session_destroy(h), ACS_OK);
@@ -150,8 +150,8 @@ int run_negative() {
 
     // N4: inspect/destroy 参数域 (null out / null handle)
     {
-        astrocs_host_services_v1 host = n_make_host();
-        acs_handle h = nullptr;
+        acsd_host_services_v1 host = n_make_host();
+        acsd_handle h = nullptr;
         P1SESS_CHECK_EQ(cs, p1_session_create(&host, &h), ACS_OK);
         P1SESS_CHECK_EQ(cs, p1_session_inspect(h, nullptr), ACS_ERR_PARAM);
         P1SESS_CHECK_EQ(cs, p1_session_destroy(h), ACS_OK);

@@ -7,11 +7,11 @@
 #include <string>
 #include <vector>
 
-#include "astrocs/information_weight.h"
-#include "astrocs/psf_information.h"
-#include "astrocs/psfsw.h"
+#include "acsd/information_weight.h"
+#include "acsd/psf_information.h"
+#include "acsd/psfsw.h"
 
-namespace astrocs {
+namespace acsd {
 namespace v6 {
 namespace p1psfw {
 namespace fixture {
@@ -128,6 +128,6 @@ inline PsfswRecord good_record() {
 }  /* namespace fixture */
 }  /* namespace p1psfw */
 }  /* namespace v6 */
-}  /* namespace astrocs */
+}  /* namespace acsd */
 
 #endif /* P1PSFW_FIXTURES_HPP */

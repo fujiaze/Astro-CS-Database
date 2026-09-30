@@ -2,7 +2,7 @@
 //
 // 两阶段 (fork + execve /proc/self/exe, 对齐 p1cal/p1cos selfcheck):
 //   baseline: 无注入跑 core 全组 → 必 PASS (排除恒败侧)
-//   injection: ASTROCS_P1DRZ_FAULT=<name> 重跑 → 必 FAIL + FAULT-INJECT 行
+//   injection: ACSD_P1DRZ_FAULT=<name> 重跑 → 必 FAIL + FAULT-INJECT 行
 //              (排除恒 PASS 侧)
 // 注册表 (p1drz_test_main.hpp): flux_closure, uniformity, impulse,
 //   nonfinite, determinism, variance, negative_matrix, sip_active, adu_inverse
@@ -25,10 +25,10 @@
 #include <vector>
 
 /* FINAL-07 WIN-PORT 批次二: 平台专属调用的唯一判定点 ——
- * Windows 侧的 setenv/unsetenv 经 eng/tests/support/astrocs_test_posix_compat.h 统一给等价物。
+ * Windows 侧的 setenv/unsetenv 经 eng/tests/support/acsd_test_posix_compat.h 统一给等价物。
  * 类 UNIX 侧该头整头为空, 上面保留本 TU 原有系统头 (sys/wait.h / unistd.h 已在上面
  * 的 _WIN32 分支里) => Linux 预处理零 delta。 */
-#include "../../../../../../eng/tests/support/astrocs_test_posix_compat.h"
+#include "../../../../../../eng/tests/support/acsd_test_posix_compat.h"
 
 int p1drz_run_core_groups(int argc, char** argv);
 
@@ -47,9 +47,9 @@ const InjectionCase k_injections[] = {
 // 子进程跑 core 组 (注入环境由 execve 传入; execve env 全量替换, baseline
 // 相以空 env 兜底清除注入变量)。setenv/unsetenv 为 POSIX (无 std:: 前缀)
 int run_child_phase(const char* fault) {
-    if (fault && ::setenv("ASTROCS_P1DRZ_FAULT", fault, 1) != 0)
+    if (fault && ::setenv("ACSD_P1DRZ_FAULT", fault, 1) != 0)
         return 126;
-    if (!fault) ::unsetenv("ASTROCS_P1DRZ_FAULT");
+    if (!fault) ::unsetenv("ACSD_P1DRZ_FAULT");
     char arg0[] = "p1drz_selfcheck_phase";
     char* argv2[3] = {arg0, const_cast<char*>("all"), nullptr};
     return p1drz_run_core_groups(2, argv2);
@@ -123,10 +123,10 @@ int main(int argc, char** argv) {
         }
     }
 
-    // -- 注入相: execve 子进程以 env=ASTROCS_P1DRZ_FAULT=<name> 重入, 直接
+    // -- 注入相: execve 子进程以 env=ACSD_P1DRZ_FAULT=<name> 重入, 直接
     //    跑 core 组 (**不得**走 run_child_phase(nullptr) — 那会 unsetenv
     //    清掉注入变量, 使注入失效)
-    if (argc >= 1 && std::getenv("ASTROCS_P1DRZ_FAULT") != nullptr) {
+    if (argc >= 1 && std::getenv("ACSD_P1DRZ_FAULT") != nullptr) {
         char arg0[] = "p1drz_selfcheck_phase";
         char* argv2[3] = {arg0, const_cast<char*>("all"), nullptr};
         return p1drz_run_core_groups(2, argv2);
@@ -146,7 +146,7 @@ int main(int argc, char** argv) {
     // -- injection: 每个注册 fault 必 FAIL --
     int failed = 0;
     for (const auto& c : k_injections) {
-        std::string fault_env = "ASTROCS_P1DRZ_FAULT=" + std::string(c.name);
+        std::string fault_env = "ACSD_P1DRZ_FAULT=" + std::string(c.name);
         std::vector<char> env_buf(fault_env.begin(), fault_env.end());
         env_buf.push_back('\0');
         char* child_env[2] = {env_buf.data(), nullptr};

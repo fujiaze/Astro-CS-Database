@@ -187,7 +187,7 @@ def dot_to_svg(dot: str) -> str:
 
 def build_l0(static: dict, observed: dict | None) -> dict:
     """L0 简图: 从同一静态 IR 派生（节点 + artifact 传递边），不含耗时/详情。"""
-    l0 = {"schema": "astrocs.graph-l0/v1", "nodes": [], "edges": []}
+    l0 = {"schema": "acsd.graph-l0/v1", "nodes": [], "edges": []}
     out_of = {}
     for n in static.get("nodes", []):
         nid = n.get("node_id")
@@ -239,26 +239,26 @@ def render(graph_dir: pathlib.Path) -> int:
 
 def selftest() -> int:
     import tempfile
-    static = {"schema": "astrocs.pipeline/v1", "pipeline_id": "p",
+    static = {"schema": "acsd.pipeline/v1", "pipeline_id": "p",
               "nodes": [
-                  {"node_id": "cal", "module_id": "astrocs.phase1.calibration",
+                  {"node_id": "cal", "module_id": "acsd.phase1.calibration",
                    "inputs": {"frames": "artifact:in"},
                    "outputs": {"calibrated": "artifact:cal"},
                    "resources": {"class": "cpu_heavy"}},
-                  {"node_id": "res", "module_id": "astrocs.phase2.resample",
+                  {"node_id": "res", "module_id": "acsd.phase2.resample",
                    "inputs": {"calibrated": "artifact:cal"},
                    "outputs": {"resampled": "artifact:res"},
                    "resources": {"class": "cpu_heavy"}},
               ]}
-    observed = {"schema": "astrocs.observed-trace/v1", "run_id": "r1",
+    observed = {"schema": "acsd.observed-trace/v1", "run_id": "r1",
                 "nodes": [
-                    {"node_id": "cal", "module_id": "astrocs.phase1.calibration",
+                    {"node_id": "cal", "module_id": "acsd.phase1.calibration",
                      "status": "COMPLETED", "started_utc": "t", "ended_utc": "t",
                      "duration_ms": 12.5, "workers": 2, "provider": "baseline",
                      "inputs": {"frames": "artifact:in"},
                      "outputs": {"calibrated": "artifact:cal"},
                      "resources": {"class": "cpu_heavy"}},
-                    {"node_id": "res", "module_id": "astrocs.phase2.resample",
+                    {"node_id": "res", "module_id": "acsd.phase2.resample",
                      "status": "FAILED", "error": "boom",
                      "duration_ms": 3.2, "workers": 2, "provider": "baseline",
                      "inputs": {"calibrated": "artifact:cal"},

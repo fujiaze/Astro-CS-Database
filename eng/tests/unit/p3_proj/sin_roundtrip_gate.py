@@ -42,20 +42,20 @@ PROBE_SRC = r"""
 #include "p3_proj.h"
 #include <cmath>
 #include <cstdio>
-using astrocs::phase3proj::v6::Descriptor;
-using astrocs::phase3proj::v6::ProjectionId;
-using astrocs::phase3proj::v6::ProjStatus;
+using acsd::phase3proj::v6::Descriptor;
+using acsd::phase3proj::v6::ProjectionId;
+using acsd::phase3proj::v6::ProjStatus;
 
 static double rt(const Descriptor& d, double x, double y) {
     double ra, dec, x2, y2;
-    if (astrocs::phase3proj::v6::pix2world(&d, x, y, &ra, &dec) != ProjStatus::kOk) return -1.0;
-    if (astrocs::phase3proj::v6::world2pix(&d, ra, dec, &x2, &y2) != ProjStatus::kOk) return -1.0;
+    if (acsd::phase3proj::v6::pix2world(&d, x, y, &ra, &dec) != ProjStatus::kOk) return -1.0;
+    if (acsd::phase3proj::v6::world2pix(&d, ra, dec, &x2, &y2) != ProjStatus::kOk) return -1.0;
     return std::hypot(x2 - x, y2 - y);
 }
 
 static double scan(double scale_deg_per_px, double* at_x, double* at_y) {
     Descriptor d{};
-    if (astrocs::phase3proj::v6::make(ProjectionId::kSIN, 150.0, 2.0, scale_deg_per_px,
+    if (acsd::phase3proj::v6::make(ProjectionId::kSIN, 150.0, 2.0, scale_deg_per_px,
                                       64, 64, "east_left", 0.0, &d) != ProjStatus::kOk)
         return -1.0;
     const double cx = 32.5, cy = 32.5;   /* FITS 1-based 中心 ⇒ 0-based 31.5；两侧各扫 */

@@ -47,7 +47,7 @@
 #include <string>
 #include <vector>
 
-namespace cj = astrocs::photometry::curve_json;
+namespace cj = acsd::photometry::curve_json;
 
 namespace {
 

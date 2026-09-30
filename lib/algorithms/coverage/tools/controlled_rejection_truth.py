@@ -40,7 +40,7 @@ def write_moc(path):
 
 def write_properties(d):
     (d / "properties").write_text(
-        "creator_did=ivo://astrocs/phase1\n"
+        "creator_did=ivo://acsd/phase1\n"
         "obs_title=V17 controlled rejection truth\n"
         "obs_filter=Red\n"
         "obs_exptime=1200\n"
@@ -152,7 +152,7 @@ def make_config(method, out):
             "integration": {"precision": "fp32", "memory_limit_mb": 4096,
                             "rejection": {"method": method,
                                           "profile": "wbpp_2_9_1",
-                                          "normalization": "astrocs_median_center_v1",
+                                          "normalization": "acsd_median_center_v1",
                                           "underdetermined_n": 2},
                             # §9.73 裁决 A44：weight_mode 已删除（出现即拒绝）。
                             "acr_route": "cpu"},

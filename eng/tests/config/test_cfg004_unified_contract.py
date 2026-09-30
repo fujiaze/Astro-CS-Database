@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""CFG-004 三命令同构输入合同（GAP_AUDIT §9.71 裁决 2 / docs/ASTROCS_DESIGN.md §3.3）机器门。
+"""CFG-004 三命令同构输入合同（GAP_AUDIT §9.71 裁决 2 / docs/ACSD_DESIGN.md §3.3）机器门。
 
 裁决语义（§9.71 裁决 2 逐字）：「HiPS类似阶段一，因为有不同滤镜，而输出产物是单帧HiPS。
 所以**可以依然用块状结构**，**输出名称，运行参数+输入的一组帧构成一个大括号块**。」

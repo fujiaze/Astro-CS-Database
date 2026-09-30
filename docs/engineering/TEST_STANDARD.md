@@ -1,6 +1,6 @@
 # 测试标准
 
-> 上游：`docs/ASTROCS_DESIGN.md` §12.1（科学正确性与三重佐证）、§12.4（验证层级与四层验收）、
+> 上游：`docs/ACSD_DESIGN.md` §12.1（科学正确性与三重佐证）、§12.4（验证层级与四层验收）、
 > §8.5（模块与 ABI：共址测试）
 > 测试矩阵与逐条用例清单：`docs/engineering/TEST_MATRIX.md`
 

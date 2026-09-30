@@ -37,7 +37,7 @@
   - od 与 funpack 版逐位一致；science/weight 差 ≤1 ULP（fpack 有损量化重建的舍入差异，属预期）；
   - 60 个关键字名与 funpack 版完全一致，WCS(crval/cd)/filter/exptime/frame_type/object 元数据全部吻合；
   - FP64 模式与 header-only 均正常。
-- **说明**：CFITSIO 4.6.4 早已静态编入 AIO DLL（Phase1 Final Closure V3），本次仅把主读取路径接到其 .fz 能力上；因工作区有运行中的 astrocs-stage2 占用 DLL，正式 `make` 待其退出后执行（源码已就绪）。
+- **说明**：CFITSIO 4.6.4 早已静态编入 AIO DLL（Phase1 Final Closure V3），本次仅把主读取路径接到其 .fz 能力上；因工作区有运行中的 acsd-stage2 占用 DLL，正式 `make` 待其退出后执行（源码已就绪）。
 
 ### 2026-08-08 Phase1 Final Closure V3 — HiPS 直写生产链 + CFITSIO (重要)
 - **CFITSIO 4.6.4 vendored** (`third_party/cfitsio`, 上游 libcfitsio 源清单,
@@ -261,7 +261,7 @@
   uncertainty_available, reject_profile)` —— 全或无
   （未调用 → 四键整体不写, legacy P1 产品面零变化）；参数域 fail-closed
   （两 hash 必须 64 hex、profile 非空、uncertainty_available∈{0,1}）。
-  双写面：每个 image 子产品 `properties`（大写 `ASTROCS_*` 键）+
+  双写面：每个 image 子产品 `properties`（大写 `ACSD_*` 键）+
   finalize 的 `manifest.json`（同名小写 + `provenance` 块）。
 - **finalize 双向守卫（fail-closed）**: `uncertainty_available=true` 而
   variance|ivar 位未同时置位 → `-9`；`=false` 而置位 → `-10`（禁占位子产品）。
@@ -275,11 +275,11 @@
   `lib/infrastructure/aio/tests/p1hips/p1hips_tests_diag_prov.cpp`，正向用例并入既有
   `p1hips_units` 组（DP-U1..U6）、负向并入既有 `p1hips_negative` 组
   （DP-N1..N4）、注入自检并入既有 `p1hips_selfcheck` 可执行（4 基线场景 +
-  5 注入点必败：`ASTROCS_HIPS_PROV_FAULT=missing_key|value_drift`、
-  `ASTROCS_HIPS_DIAG_FAULT=sentinel|skip_write`、
-  `ASTROCS_HIPS_VERIFY_FAULT=shortcut`）。另在 `eng/tests/unit/p2002_unc_rej_prov_test.cpp`
+  5 注入点必败：`ACSD_HIPS_PROV_FAULT=missing_key|value_drift`、
+  `ACSD_HIPS_DIAG_FAULT=sentinel|skip_write`、
+  `ACSD_HIPS_VERIFY_FAULT=shortcut`）。另在 `eng/tests/unit/p2002_unc_rej_prov_test.cpp`
   增补 `test_s303_aio_channel_real_values`（真实 Phase2 产物值驱动 AIO 通道 +
-  逐像素回读 + verify 双向；注入面 `ASTROCS_P2002_FAULT=aio` 必败）。
+  逐像素回读 + verify 双向；注入面 `ACSD_P2002_FAULT=aio` 必败）。
 - **登记 finding（域外, 不在本任务写域）**:
   - `F-SCI-F3-001-01`（P1, lib/infrastructure/scheduler）：`lib/infrastructure/scheduler/src/module_adapters.cpp`
     `p2_op_write`（:2931-3015）仍只置 SIGNAL|SUPPORT(/VARIANCE|IVAR) 且不调用

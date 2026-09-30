@@ -1,13 +1,13 @@
 /* ACSD HiPS 输入读取核心实现 — lib/infrastructure/aio/io/hips_core.c (IO-002)
  *
- * 职责: acs_hips_* C ABI (hips_input_v1.h) 的实现。读取磁盘上已发布的 IVOA
+ * 职责: acsd_hips_* C ABI (hips_input_v1.h) 的实现。读取磁盘上已发布的 IVOA
  * HiPS 1.4 兼容子产品目录: properties 解析校验、NESTED tile address 布局
  * (NorderK/DirD/NpixN.fits)、tile width/order 校验、FITS-only 科学平面读取
  * (复用 IO-001 fits_core)、partial tree、MOC optional hint、缺 tile 状态。
  *
  * 关键设计:
  *  - 纯 C11; 无 CFITSIO 依赖 (tile FITS 打开/header/plane 读取经 IO-001
- *    acs_fio_reader_*); 跨边界无托管分配 (out 缓冲由调用方提供); 内部堆仅
+ *    acsd_fio_reader_*); 跨边界无托管分配 (out 缓冲由调用方提供); 内部堆仅
  *    用于句柄与 MOC 列表。
  *  - properties: 逐行 key=value (去首尾空白, '#'/空行跳过, 同 aio reader 语义);
  *    必填键缺失/值非法 → ACS_HIPS_ERR_PROPERTIES。
@@ -26,7 +26,7 @@
 #define _POSIX_C_SOURCE 200809L
 #endif
 
-#include "astrocs/io/hips_input_v1.h"
+#include "acsd/io/hips_input_v1.h"
 
 #include <ctype.h>
 #include <errno.h>
@@ -136,7 +136,7 @@ typedef struct hips_prop {
   char value[ACS_HIPS_PROP_VALUE_MAX];
 } hips_prop;
 
-struct acs_hips_handle_v1_s {
+struct acsd_hips_handle_v1_s {
   char dir[ACS_HIPS_PATH_MAX]; /* 子产品目录 (含 properties/Moc.fits/tiles) */
   int32_t order;               /* hips_order K */
   int32_t tile_width;          /* hips_tile_width TW */
@@ -145,11 +145,11 @@ struct acs_hips_handle_v1_s {
   int32_t prop_count;
   uint64_t* moc_tiles;         /* MOC optional hint: 叶级 NESTED ipix (order==K) */
   int64_t moc_count;
-  acs_fio_trace_hooks_v1 hooks;
+  acsd_fio_trace_hooks_v1 hooks;
   int has_hooks;
 };
 
-static const char* hips_prop_get(acs_hips_handle_v1 h, const char* key) {
+static const char* hips_prop_get(acsd_hips_handle_v1 h, const char* key) {
   int i;
   if (!h || !key) return NULL;
   for (i = 0; i < h->prop_count; ++i)
@@ -197,7 +197,7 @@ static int hips_parse_properties_file(const char* path, hips_prop* props,
 }
 
 /* 必填键校验 (合同 §3.1); 0=OK 否则错误码 */
-static int hips_validate_properties(acs_hips_handle_v1 h, char* err, size_t cap) {
+static int hips_validate_properties(acsd_hips_handle_v1 h, char* err, size_t cap) {
   const char* ver = hips_prop_get(h, "hips_version");
   const char* order_s = hips_prop_get(h, "hips_order");
   const char* tw_s = hips_prop_get(h, "hips_tile_width");
@@ -402,7 +402,7 @@ static int moc_tform_width(const char* tform) {
 
 /* 解析 Moc.fits; 0=OK (optional: 无 MOC/无叶级 hint 均 OK); 非 0=解析失败
  * (同样按 optional 处理, 调用方忽略)。成功且 order 匹配时填充 h->moc_tiles。 */
-static int hips_parse_moc(acs_hips_handle_v1 h, char* err, size_t cap) {
+static int hips_parse_moc(acsd_hips_handle_v1 h, char* err, size_t cap) {
   (void)err; (void)cap;
   char path[ACS_HIPS_PATH_MAX];
   FILE* f = NULL;
@@ -562,7 +562,7 @@ static int hips_join_path(char* path, size_t path_cap,
  * IVOA REC-HIPS-1.0 §4.1: D = (N/10000)*10000 (块起始值), Npix = 完整 tile 号 N
  * (示例 10302@order6 -> Dir10000/Npix10302.fits)。旧实现写 Dir=商/Npix=余数,
  * 与标准相反 (M2b-B-01)。返回 0=OK。 */
-static int hips_tile_rel(acs_hips_handle_v1 h, uint64_t ipix,
+static int hips_tile_rel(acsd_hips_handle_v1 h, uint64_t ipix,
                          char* rel, size_t rel_cap, char* err, size_t cap) {
   uint64_t npix_order = 12ULL * (1ULL << (2ULL * (uint64_t)h->order));
   if (ipix >= npix_order) {
@@ -578,7 +578,7 @@ static int hips_tile_rel(acs_hips_handle_v1 h, uint64_t ipix,
 }
 
 /* 旧版非标准布局 (Dir=商, Npix=余数) —— 只读兼容, M2b-B-01 迁移用。 */
-static int hips_tile_rel_legacy(const acs_hips_handle_v1 h, uint64_t ipix,
+static int hips_tile_rel_legacy(const acsd_hips_handle_v1 h, uint64_t ipix,
                                 char* rel, size_t rel_cap) {
   snprintf(rel, rel_cap, "Norder%d/Dir%llu/Npix%llu.fits", (int)h->order,
            (unsigned long long)(ipix / 10000u),
@@ -588,7 +588,7 @@ static int hips_tile_rel_legacy(const acs_hips_handle_v1 h, uint64_t ipix,
 
 /* 解析实际存在的 tile 相对路径: 标准布局优先, 缺失时回退旧布局;
  * 两者皆缺时返回标准路径 (调用方据此报 "tile 缺失" 并给出标准名)。 */
-static int hips_tile_rel_resolve(acs_hips_handle_v1 h, uint64_t ipix,
+static int hips_tile_rel_resolve(acsd_hips_handle_v1 h, uint64_t ipix,
                                  char* rel, size_t rel_cap,
                                  char* err, size_t cap) {
   char path[ACS_HIPS_PATH_MAX];
@@ -613,12 +613,12 @@ static int hips_tile_rel_resolve(acs_hips_handle_v1 h, uint64_t ipix,
 /* tile FITS 校验 (复用 fits_core 打开 + header):
  * 0=PRESENT (校验全过); 非 0: ACS_HIPS_ERR_TILE_MISSING / TILE_INVALID / ADDRESS。
  * *out_bitpix 返回文件 BITPIX (校验过; 合法时 ∈ {8,-32,-64})。 */
-static int hips_tile_validate(acs_hips_handle_v1 h, uint64_t ipix,
+static int hips_tile_validate(acsd_hips_handle_v1 h, uint64_t ipix,
                               int32_t* out_bitpix, char* err, size_t cap) {
   char path[ACS_HIPS_PATH_MAX];
   char rel[512];
-  acs_fio_reader_v1* rd = NULL;
-  acs_fio_header_v1 hdr;
+  acsd_fio_reader_v1* rd = NULL;
+  acsd_fio_header_v1 hdr;
   int st, i;
   int32_t bitpix;
 
@@ -633,18 +633,18 @@ static int hips_tile_validate(acs_hips_handle_v1 h, uint64_t ipix,
   memset(&hdr, 0, sizeof(hdr));
   hdr.struct_size = (uint32_t)sizeof(hdr);
   hdr.abi_version = ACS_FIO_ABI_VERSION_V1;
-  st = acs_fio_reader_open_v1(path, h->has_hooks ? &h->hooks : NULL, &rd, err, cap);
+  st = acsd_fio_reader_open_v1(path, h->has_hooks ? &h->hooks : NULL, &rd, err, cap);
   if (st != ACS_FIO_OK) {
     hips_set_err(err, cap, "tile 打开失败 (rc=%d): %s", st, rel);
     return ACS_HIPS_ERR_TILE_INVALID;
   }
-  st = acs_fio_get_header_v1(rd, &hdr, err, cap);
+  st = acsd_fio_get_header_v1(rd, &hdr, err, cap);
   if (st != ACS_FIO_OK) {
-    acs_fio_reader_close_v1(rd);
+    acsd_fio_reader_close_v1(rd);
     hips_set_err(err, cap, "tile header 读取失败 (rc=%d): %s", st, rel);
     return ACS_HIPS_ERR_TILE_INVALID;
   }
-  acs_fio_reader_close_v1(rd);
+  acsd_fio_reader_close_v1(rd);
 
   /* 布局: 2D 方阵 TW×TW */
   if (hdr.naxis != 2 || hdr.naxis_n[0] != h->tile_width ||
@@ -711,12 +711,12 @@ static int hips_tile_validate(acs_hips_handle_v1 h, uint64_t ipix,
 /* 公共 API                                                            */
 /* ------------------------------------------------------------------ */
 
-int acs_hips_open_v1(const char* base_dir_utf8,
+int acsd_hips_open_v1(const char* base_dir_utf8,
                      const char* product,
-                     const acs_fio_trace_hooks_v1* hooks,
-                     acs_hips_handle_v1* out,
+                     const acsd_fio_trace_hooks_v1* hooks,
+                     acsd_hips_handle_v1* out,
                      char* err, size_t err_cap) {
-  acs_hips_handle_v1 h;
+  acsd_hips_handle_v1 h;
   int st, n;
   const char* prod = product && product[0] ? product : NULL;
 
@@ -725,7 +725,7 @@ int acs_hips_open_v1(const char* base_dir_utf8,
   if (hooks) {
     if (hooks->abi_version != ACS_FIO_ABI_VERSION_V1 ||
         (hooks->struct_size != 0 &&
-         hooks->struct_size != (uint32_t)sizeof(acs_fio_trace_hooks_v1))) {
+         hooks->struct_size != (uint32_t)sizeof(acsd_fio_trace_hooks_v1))) {
       hips_set_err(err, err_cap, "trace hooks abi/struct mismatch");
       return ACS_HIPS_ERR_ABI_MISMATCH;
     }
@@ -737,7 +737,7 @@ int acs_hips_open_v1(const char* base_dir_utf8,
                  prod);
     return ACS_HIPS_ERR_UNSUPPORTED;
   }
-  h = (acs_hips_handle_v1)calloc(1, sizeof(*h));
+  h = (acsd_hips_handle_v1)calloc(1, sizeof(*h));
   if (!h) return ACS_HIPS_ERR_NOMEM;
   st = hips_dir_join(base_dir_utf8, prod, h->dir, sizeof(h->dir), err, err_cap);
   if (st != ACS_HIPS_OK) { free(h); return st; }
@@ -780,13 +780,13 @@ int acs_hips_open_v1(const char* base_dir_utf8,
   return ACS_HIPS_OK;
 }
 
-void acs_hips_close_v1(acs_hips_handle_v1 h) {
+void acsd_hips_close_v1(acsd_hips_handle_v1 h) {
   if (!h) return;
   free(h->moc_tiles);
   free(h);
 }
 
-int acs_hips_props_get_v1(acs_hips_handle_v1 h, const char* key,
+int acsd_hips_props_get_v1(acsd_hips_handle_v1 h, const char* key,
                           char* out, size_t out_cap,
                           char* err, size_t err_cap) {
   const char* v;
@@ -800,7 +800,7 @@ int acs_hips_props_get_v1(acs_hips_handle_v1 h, const char* key,
   return ACS_HIPS_OK;
 }
 
-int acs_hips_props_serialize_v1(acs_hips_handle_v1 h,
+int acsd_hips_props_serialize_v1(acsd_hips_handle_v1 h,
                                 char* out, size_t out_cap, size_t* out_len,
                                 char* err, size_t err_cap) {
   size_t need = 0;
@@ -830,25 +830,25 @@ int acs_hips_props_serialize_v1(acs_hips_handle_v1 h,
   return ACS_HIPS_OK;
 }
 
-int acs_hips_get_order_v1(acs_hips_handle_v1 h, int32_t* out_order) {
+int acsd_hips_get_order_v1(acsd_hips_handle_v1 h, int32_t* out_order) {
   if (!h || !out_order) return ACS_HIPS_ERR_PARAM;
   *out_order = h->order;
   return ACS_HIPS_OK;
 }
 
-int acs_hips_get_tile_width_v1(acs_hips_handle_v1 h, int32_t* out_width) {
+int acsd_hips_get_tile_width_v1(acsd_hips_handle_v1 h, int32_t* out_width) {
   if (!h || !out_width) return ACS_HIPS_ERR_PARAM;
   *out_width = h->tile_width;
   return ACS_HIPS_OK;
 }
 
-int acs_hips_tile_count_v1(acs_hips_handle_v1 h, int64_t* out_count) {
+int acsd_hips_tile_count_v1(acsd_hips_handle_v1 h, int64_t* out_count) {
   if (!h || !out_count) return ACS_HIPS_ERR_PARAM;
   *out_count = h->moc_count;
   return ACS_HIPS_OK;
 }
 
-int acs_hips_tile_ipix_v1(acs_hips_handle_v1 h, int64_t index, uint64_t* out_ipix) {
+int acsd_hips_tile_ipix_v1(acsd_hips_handle_v1 h, int64_t index, uint64_t* out_ipix) {
   if (!h || !out_ipix) return ACS_HIPS_ERR_PARAM;
   if (index < 0 || index >= h->moc_count) {
     return ACS_HIPS_ERR_PARAM;
@@ -857,7 +857,7 @@ int acs_hips_tile_ipix_v1(acs_hips_handle_v1 h, int64_t index, uint64_t* out_ipi
   return ACS_HIPS_OK;
 }
 
-int acs_hips_tile_exists_v1(acs_hips_handle_v1 h, uint64_t ipix, int* out_exists) {
+int acsd_hips_tile_exists_v1(acsd_hips_handle_v1 h, uint64_t ipix, int* out_exists) {
   char rel[512];
   char path[ACS_HIPS_PATH_MAX];
   int st;
@@ -870,7 +870,7 @@ int acs_hips_tile_exists_v1(acs_hips_handle_v1 h, uint64_t ipix, int* out_exists
   return ACS_HIPS_OK;
 }
 
-int acs_hips_tile_status_v1(acs_hips_handle_v1 h, uint64_t ipix,
+int acsd_hips_tile_status_v1(acsd_hips_handle_v1 h, uint64_t ipix,
                             int32_t* out_status,
                             char* err, size_t err_cap) {
   int st;
@@ -893,14 +893,14 @@ int acs_hips_tile_status_v1(acs_hips_handle_v1 h, uint64_t ipix,
 
 /* 读 plane 到 out (dtype 由调用方决定, 与文件 BITPIX 转换):
  * 文件 -32 → f32; -64 → f64; 8 → 提升。 */
-static int hips_read_plane_impl(acs_hips_handle_v1 h, uint64_t ipix,
+static int hips_read_plane_impl(acsd_hips_handle_v1 h, uint64_t ipix,
                                 int want_f64,
                                 void* out, int64_t out_elem_capacity,
                                 int64_t* out_got, char* err, size_t err_cap) {
   char rel[512];
   char path[ACS_HIPS_PATH_MAX];
   int32_t bitpix = 0;
-  acs_fio_reader_v1* rd = NULL;
+  acsd_fio_reader_v1* rd = NULL;
   int64_t tw = h->tile_width;
   int64_t need = tw * tw;
   int st;
@@ -933,7 +933,7 @@ static int hips_read_plane_impl(acs_hips_handle_v1 h, uint64_t ipix,
     scratch = malloc(bytes);
     if (!scratch) return ACS_HIPS_ERR_NOMEM;
   }
-  st = acs_fio_reader_open_v1(path, h->has_hooks ? &h->hooks : NULL, &rd, err, err_cap);
+  st = acsd_fio_reader_open_v1(path, h->has_hooks ? &h->hooks : NULL, &rd, err, err_cap);
   if (st != ACS_FIO_OK) {
     hips_set_err(err, err_cap, "tile 打开失败 (rc=%d)", st);
     free(scratch);
@@ -941,11 +941,11 @@ static int hips_read_plane_impl(acs_hips_handle_v1 h, uint64_t ipix,
   }
   {
     int64_t got_local = 0;
-    st = acs_fio_read_plane_v1(rd, 0, 0, 0, 0 /* 按文件 */, NULL,
+    st = acsd_fio_read_plane_v1(rd, 0, 0, 0, 0 /* 按文件 */, NULL,
                                scratch, need, 0 /* strict_nan=0 放行 */,
                                &got_local, h->has_hooks ? &h->hooks : NULL,
                                err, err_cap);
-    acs_fio_reader_close_v1(rd);
+    acsd_fio_reader_close_v1(rd);
     if (st != ACS_FIO_OK) {
       hips_set_err(err, err_cap, "tile plane 读取失败 (rc=%d)", st);
       free(scratch);
@@ -994,7 +994,7 @@ static int hips_read_plane_impl(acs_hips_handle_v1 h, uint64_t ipix,
   return ACS_HIPS_OK;
 }
 
-int acs_hips_read_tile_plane_f32_v1(acs_hips_handle_v1 h, uint64_t ipix,
+int acsd_hips_read_tile_plane_f32_v1(acsd_hips_handle_v1 h, uint64_t ipix,
                                     float* out, int64_t out_elem_capacity,
                                     int64_t* out_got,
                                     char* err, size_t err_cap) {
@@ -1002,7 +1002,7 @@ int acs_hips_read_tile_plane_f32_v1(acs_hips_handle_v1 h, uint64_t ipix,
                               err, err_cap);
 }
 
-int acs_hips_read_tile_plane_f64_v1(acs_hips_handle_v1 h, uint64_t ipix,
+int acsd_hips_read_tile_plane_f64_v1(acsd_hips_handle_v1 h, uint64_t ipix,
                                     double* out, int64_t out_elem_capacity,
                                     int64_t* out_got,
                                     char* err, size_t err_cap) {

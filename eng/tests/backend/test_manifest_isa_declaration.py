@@ -3,7 +3,7 @@
 
 三侧口径（R-60 约束 4「清单与声明面同步」的机器化）:
   · 编译许可面: 变体计算面 TU 的旗标（GCC: -mavx512f/-bw/-dq/-vl；MSVC: /arch:AVX512 = F+CD+BW+DQ+VL）；
-  · DSO 自陈声明: avx512_backend.cpp 的 ASTROCS_BACKEND_REQUIRED_FEATURES，按 __AVX512CD__ 平台分支；
+  · DSO 自陈声明: avx512_backend.cpp 的 ACSD_BACKEND_REQUIRED_FEATURES，按 __AVX512CD__ 平台分支；
   · 清单: eng/tools/gen_provider_manifests.py --compiler <id> 产出的 required_features_bits/names。
 
 判据（本测试即负例面）:
@@ -25,7 +25,7 @@ REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.a
 HOST = os.path.join(REPO, "lib", "infrastructure", "benchmark", "backend_host")
 INC = os.path.join(REPO, "lib", "include")
 GEN = os.path.join(REPO, "eng", "tools", "gen_provider_manifests.py")
-# 第二族（CPU provider 变体族 astrocs_cpuprov_*）的声明面端到端在独立文件
+# 第二族（CPU provider 变体族 acsd_cpuprov_*）的声明面端到端在独立文件
 # eng/tests/backend/test_cpuprov_manifest.py（真 cpuprov DSO + 真 provider 清单生成器）。
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from variant_build import build_variant  # noqa: E402
@@ -60,7 +60,7 @@ class TestManifestIsaDeclaration(unittest.TestCase):
         os.makedirs(cls.prov)
         for variant in ("avx2", "avx512"):
             rc, err = build_variant(HOST, INC, variant,
-                                    os.path.join(cls.prov, f"astrocs_cpu_{variant}.so"))
+                                    os.path.join(cls.prov, f"acsd_cpu_{variant}.so"))
             assert rc == 0, err
         cls.manifests = {}
         for leg, compiler in (("gnu", "GNU-14.2.0"), ("msvc", "MSVC-19.38.33130.0")):

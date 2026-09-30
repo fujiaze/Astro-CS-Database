@@ -67,7 +67,7 @@ TELEM_EXACT = {
 MASKED_JSON = {"p1_phot.json", "p1_products.json", "p1_final.json"}
 TELEM_PREFIX = ("graph/",)
 TELEM_SUFFIX = ("/properties",)          # HiPS properties: hips_creation_date 墙钟
-TELEM_RUN_RE = re.compile(r"^astrocs_run_[0-9a-f]+\.json$")   # run-scoped 遥测
+TELEM_RUN_RE = re.compile(r"^acsd_run_[0-9a-f]+\.json$")   # run-scoped 遥测
 
 
 def classify(relpath: str) -> str:
@@ -208,8 +208,8 @@ def cmd_run(a) -> int:
     argv = ["taskset", "-c", a.cpuset, os.path.abspath(a.binary),
             "normalize", "--json", cfg_path, "-y"]
     env = dict(os.environ)
-    env["ASTROCS_P1CAP_TRACE"] = "1"
-    env["ASTROCS_LEASE_TRACE"] = "1"
+    env["ACSD_P1CAP_TRACE"] = "1"
+    env["ACSD_LEASE_TRACE"] = "1"
     t0 = time.monotonic()
     with open(a.stderr, "wb") as errf:
         proc = subprocess.Popen(argv, stdout=subprocess.DEVNULL, stderr=errf, env=env)
@@ -307,7 +307,7 @@ def compare_manifests(base: dict, other: dict):
     #   旧实现一律返回 0（绿），即「没有可比的差异」被当成「没有差异」。
     #   对 A/B 对照而言文件集必须逐项一致（同帧集 ⇒ 同产物集），故 fail-closed 判红。
     res["vacuous"] = (len(common) == 0)
-    # 文件集不一致只在 **must 类**上判红：run-scoped 遥测（如 astrocs_run_<hash>.json）
+    # 文件集不一致只在 **must 类**上判红：run-scoped 遥测（如 acsd_run_<hash>.json）
     # 的文件名本身含 run 哈希 ⇒ 两次运行必然一有一无，那不是产品差异。
     # 口径：只统计 classify()=='must' 的单侧文件（宁可误报，不可漏报科学产品缺失）。
     res["base_only_must"] = [r for r in res["base_only"] if classify(r) == "must"]
@@ -429,7 +429,7 @@ def self_test() -> int:
             ("f/p1_final.json", "telem"),                     # 含 output_dir 路径串
             ("f/signal/properties", "telem"),                 # hips_creation_date
             ("graph/observed_graph.dot", "telem"),
-            ("astrocs_run_ec3dea28e982.json", "telem"),
+            ("acsd_run_ec3dea28e982.json", "telem"),
             ("resource_summary.json", "telem"),
         ]
         bad = [(p, classify(p), e) for p, e in cases if classify(p) != e]
@@ -492,8 +492,8 @@ def self_test() -> int:
         for d in (g5, g6):
             os.makedirs(os.path.join(d, "frame"), exist_ok=True)
             open(os.path.join(d, "frame", "signal.fits"), "wb").write(b"A" * 32)
-        open(os.path.join(g5, "astrocs_run_aaaaaaaaaaaa.json"), "w").write('{"t":1}')
-        open(os.path.join(g6, "astrocs_run_bbbbbbbbbbbb.json"), "w").write('{"t":2}')
+        open(os.path.join(g5, "acsd_run_aaaaaaaaaaaa.json"), "w").write('{"t":1}')
+        open(os.path.join(g6, "acsd_run_bbbbbbbbbbbb.json"), "w").write('{"t":2}')
         r = compare_manifests(build_manifest(g5), build_manifest(g6))
         print("SELFCHECK phase13 单侧只差 run-scoped 遥测: set_mismatch=%s must_diff=%d (期望 False/0)"
               % (r["set_mismatch"], r["n_must_diff"]))

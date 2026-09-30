@@ -3,7 +3,7 @@
 // 控制包任务: P1-WCS-TEST (lock-P1-WCS; 依赖 P1-WCS-DOC 闭环)。
 // 合同锚: docs/science/algorithms/PLATESOLVE.md §11.4 TEST-WCS-DESIGN-001
 // (P1-WCS-DOC 冻结, 2026-09-07, wave W1); 矩阵行 P1-WCS
-// (MOD astrocs.phase1.wcs-platesolve, TEST-P1-WCS-001)。
+// (MOD acsd.phase1.wcs-platesolve, TEST-P1-WCS-001)。
 //
 // 单跑方式 (每个测试组 == 独立 ctest 名, 二进制内按位置参数单跑):
 //   ./p1wcs_tests units|properties|oracle|negative
@@ -11,11 +11,11 @@
 //
 // 故障注入 (模板 <prefix>-TEST 验收: "故障注入能让测试失败"):
 //   双注入点 (对齐任务规格 "fork/execve 双注入点必败自检, argv 子进程模式"):
-//   A) env:  ASTROCS_P1WCS_FAULT=<regname>[,<regname>...]
+//   A) env:  ACSD_P1WCS_FAULT=<regname>[,<regname>...]
 //   B) argv: ./p1wcs_tests <group> --fault=<regname>[,<regname>...]
 //   每个注册 fault 使对应 CHECK 确定性翻转 → rc=1, 输出 "FAULT-INJECT <name>"。
 //   可注入 registry 见 kP1wcsFaultNames[] (各 CHECK 第三参与此表对齐);
-//   注入名示例: ASTROCS_P1WCS_FAULT=u1_f1_cd_relative ./p1wcs_tests units
+//   注入名示例: ACSD_P1WCS_FAULT=u1_f1_cd_relative ./p1wcs_tests units
 // 模式对齐先例: lib/infrastructure/aio/tests/p1hips/p1hips_test_main.hpp
 // (c19b4a59, FaultRegistry + 组 runner + note_injected 一次性报告)。
 #ifndef P1WCS_TEST_MAIN_HPP
@@ -107,10 +107,10 @@ struct FaultRegistry {
     }
 };
 
-// 从 env (ASTROCS_P1WCS_FAULT, 逗号分隔) 初始化注入名单。
+// 从 env (ACSD_P1WCS_FAULT, 逗号分隔) 初始化注入名单。
 // selfcheck execve 重入路径必须显式调用 (先例 c19b4a59 "registry 初始化" 教训)。
 inline void init_fault_registry_from_env() {
-    if (const char* f = std::getenv("ASTROCS_P1WCS_FAULT")) {
+    if (const char* f = std::getenv("ACSD_P1WCS_FAULT")) {
         std::string s = f;
         std::size_t pos = 0;
         while (pos < s.size()) {

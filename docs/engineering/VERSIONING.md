@@ -1,11 +1,11 @@
 # Astro Celestial Sphere Database（ACSD） 版本合同
 
-> 上游：docs/ASTROCS_DESIGN.md §13（版本与发布权）
+> 上游：docs/ACSD_DESIGN.md §13（版本与发布权）
 > 唯一正本：本文件是版本合同的唯一正本；机器门 = `CHK-VERSION-CONSISTENCY-VER001`（`eng/tools/check_version_consistency.py`）。
 
 ## 1. 唯一版本源
 
-- 仓库根 `VERSION` 是产品版本号的**唯一来源**（`docs/ASTROCS_DESIGN.md` §13），内容一行：`MAJOR.MINOR.PATCH-alpha.N`；
+- 仓库根 `VERSION` 是产品版本号的**唯一来源**（`docs/ACSD_DESIGN.md` §13），内容一行：`MAJOR.MINOR.PATCH-alpha.N`；
   本文件不复制版本数值（取值现场读根 `VERSION`）。
 - 大版本号的变更权 = 用户/外部审核指令。
 - `MAJOR/MINOR/PATCH` 只能由用户/外部审核指令变更；`alpha.N` 只能在**最终外部审核通过后**提升或打 tag，Agent 无权自行发布。
@@ -20,7 +20,7 @@
 
 ## 2.1 构建指纹合同
 
-- **configure 期采样**：`ASTROCS_COMMIT_SHA`（`version_generated.h`）由 **CMake configure 期** 的
+- **configure 期采样**：`ACSD_COMMIT_SHA`（`version_generated.h`）由 **CMake configure 期** 的
   `git rev-parse HEAD` 采样一次（`CMakeLists.txt`）。Ninja 的 `RERUN_CMAKE` 规则只依赖 CMake 输入，
   **不含任何 `.cpp/.h`** ⇒ 改源码不重跑 configure ⇒ 二进制里编进去的是新代码，记录里留的是 configure
   时刻的 SHA。故 `run_context.json` / `provenance` 的 `source_sha` **只表示 configure 时刻的 HEAD，

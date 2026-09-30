@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://astrocs.invalid/schemas/hardware-inspect-v1.json",
+  "$id": "https://acsd.invalid/schemas/hardware-inspect-v1.json",
   "title": "ACSD hardware inspect v1 (06 §2, BENCH-001)",
   "type": "object",
   "required": [
@@ -22,7 +22,7 @@
     "page_size",
     "os",
     "compiler",
-    "astrocs_build",
+    "acsd_build",
     "quota_signature"
   ],
   "properties": {
@@ -30,7 +30,7 @@
       "const": 1
     },
     "kind": {
-      "const": "astrocs_hardware_inspect"
+      "const": "acsd_hardware_inspect"
     },
     "architecture": {
       "const": "amd64"
@@ -132,7 +132,7 @@
         "version"
       ]
     },
-    "astrocs_build": {
+    "acsd_build": {
       "type": "string",
       "minLength": 1
     },

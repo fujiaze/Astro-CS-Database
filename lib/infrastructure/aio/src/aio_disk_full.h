@@ -1,8 +1,8 @@
-#ifndef ASTROCS_AIO_DISK_FULL_H
-#define ASTROCS_AIO_DISK_FULL_H
+#ifndef ACSD_AIO_DISK_FULL_H
+#define ACSD_AIO_DISK_FULL_H
 
 // ---------------------------------------------------------------------------
-// (docs/ASTROCS_DESIGN.md §10「I/O 与原子产品」+ §7.2 退出码表
+// (docs/ACSD_DESIGN.md §10「I/O 与原子产品」+ §7.2 退出码表
 //          「10 = 磁盘写满 / 写盘失败」): 磁盘满/配额失败的**失败瞬间**分类。
 //
 // 为什么必须在失败瞬间判定, 而不是事后探针:
@@ -114,4 +114,4 @@ inline void note_full() { ++tl_fail_seq(); }
 
 }  // namespace aio_disk
 
-#endif  // ASTROCS_AIO_DISK_FULL_H
+#endif  // ACSD_AIO_DISK_FULL_H

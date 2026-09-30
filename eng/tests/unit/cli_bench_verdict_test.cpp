@@ -21,12 +21,12 @@ static int fail_count = 0;
 
 int main() {
     using nlohmann::json;
-    using astrocs::benchmark_profile_verdict;
+    using acsd::benchmark_profile_verdict;
 
     // ── 1. 全 pass fixture → PASS ──
     {
         const json d = json::parse(R"({
-            "schema": "astrocs.cpu-profile/v2",
+            "schema": "acsd.cpu-profile/v2",
             "kernels": {
                 "calibration-pixel-transform": {"correctness_test": "oracle:pass"},
                 "upm-spmv": {"correctness_test": "oracle:pass"}
@@ -37,7 +37,7 @@ int main() {
     // ── 2. 全 fail fixture → FAIL ──
     {
         const json d = json::parse(R"({
-            "schema": "astrocs.cpu-profile/v2",
+            "schema": "acsd.cpu-profile/v2",
             "kernels": {
                 "calibration-pixel-transform": {"correctness_test": "oracle:fail",
                                                  "fallback_reason": "no passing provider"}
@@ -84,8 +84,8 @@ int main() {
     // 读侧独立重实现扩展字段名册（与 lib/infrastructure/cli/protocol.h 互为对偶，
     // 防同源盲区）；实现正本 = protocol.h registered_event_kinds_v1()。
     {
-        using astrocs::ValidateEventV1;
-        using astrocs::is_registered_event_kind_v1;
+        using acsd::ValidateEventV1;
+        using acsd::is_registered_event_kind_v1;
         struct KindExt { const char* kind; std::vector<std::string> ext; };
         const std::vector<KindExt> kRegistry = {
             {"progress", {"completed", "total", "unit", "rate", "eta_seconds"}},

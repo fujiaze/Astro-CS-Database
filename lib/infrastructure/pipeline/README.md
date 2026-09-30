@@ -21,4 +21,4 @@
 
 ## 上游
 
-上游：docs/ASTROCS_DESIGN.md §8.2（阶段内命名块内存管线与块生命周期）、§8.4（infrastructure/pipeline 条目）。
+上游：docs/ACSD_DESIGN.md §8.2（阶段内命名块内存管线与块生命周期）、§8.4（infrastructure/pipeline 条目）。

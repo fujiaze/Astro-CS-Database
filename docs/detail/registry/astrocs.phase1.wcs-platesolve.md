@@ -1,6 +1,6 @@
-# 模块 astrocs.phase1.wcs-platesolve
+# 模块 acsd.phase1.wcs-platesolve
 
-> 上游：docs/ASTROCS_DESIGN.md §8.5（模块与 ABI）、§4.2（WCS 解算：近似指向 + 星表匹配精化）、
+> 上游：docs/ACSD_DESIGN.md §8.5（模块与 ABI）、§4.2（WCS 解算：近似指向 + 星表匹配精化）、
 
 > 科学正本：docs/science/ASTROMETRY.md（SCI-WCS-001）、docs/science/algorithms/PLATESOLVE.md
 > （ALG-WCS-001，解算算法推导）、docs/science/PHOTOMETRY.md §16（平移精化判据与读数）
@@ -9,8 +9,8 @@
 > （docs/engineering/PHASE1_API_V1.md）
 > 依赖：infrastructure/22_gaia_xpsd_client.md（星表查询与坐标语义合同）
 
-模块级事实以 `lib/algorithms/platesolve/README.md` + `module.yaml`（astrocs.p1.wcs，
-迁移目标 astrocs_p1_wcs.dll）为准；合同三件套（README.md / module.yaml ）
+模块级事实以 `lib/algorithms/platesolve/README.md` + `module.yaml`（acsd.p1.wcs，
+迁移目标 acsd_p1_wcs.dll）为准；合同三件套（README.md / module.yaml ）
 entrypoint 未落地。现状构建 `cpp/ipv/build.ps1` / Makefile → `ipv_solver.dll`，
 未编入根 CMake 主构建。失败-置信度语义冻结：**CD 退化必须 success = 0** 并按失败
 登记。
@@ -85,8 +85,8 @@ entrypoint = 检测目录 + 星表 → WCS + 匹配 + 残差；与 gaia_xpsd_cli
 
 ## Registry descriptor 与配置 schema
 
-module_id=`astrocs.phase1.wcs-platesolve`（registry descriptor 口径）；模块合同
-module.yaml 登记 `astrocs.p1.wcs`。execution_class=`cpu_heavy`; parallel_ok=True。
+module_id=`acsd.phase1.wcs-platesolve`（registry descriptor 口径）；模块合同
+module.yaml 登记 `acsd.p1.wcs`。execution_class=`cpu_heavy`; parallel_ok=True。
 配置 = phase config JSON：
 
 | 字段 | 默认 | 单位 | 说明 |
@@ -152,5 +152,5 @@ Oracle 面：
   三套 TAN 并存；
 - ThreadLease 未接线；协作取消现状缺失；
 - 合同三件套 entrypoint 未落地；现状构建产物 `ipv_solver.dll` 未编入根 CMake
-  主构建，目标交付形态 astrocs_p1_wcs.dll 未落地；
+  主构建，目标交付形态 acsd_p1_wcs.dll 未落地；
 - 全局限制登记 = artifacts/evidence/known-limitations-ledger/LIMITATIONS.md。

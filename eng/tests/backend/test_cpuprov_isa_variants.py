@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
-"""R-60 产品级回归: CPU provider 变体族（astrocs_cpuprov_*）的 TU 级 ISA 隔离。
+"""R-60 产品级回归: CPU provider 变体族（acsd_cpuprov_*）的 TU 级 ISA 隔离。
 
 配方（与第一族 backend 变体同因同法，见 eng/tools/quality/isa_sites.json 的
 tu_isolation cpuprov-avx2 / cpuprov-avx512）:
-  门面 TU（{v}_provider.cpp: astrocs_provider_query_v1 / acs_cpu_*_cap_gate /
+  门面 TU（{v}_provider.cpp: acsd_provider_query_v1 / acsd_cpu_*_cap_gate /
   *_self_test / kernel 注册表）**零 ISA 旗标**
   + 计算面 TU（{v}_kernels.cpp: 热点 kernel 数值循环）**唯一**带该族旗标,
-  两者只经唯一跨 TU 桥 astrocs_cpuprov_kernel_range_v1 相连。
+  两者只经唯一跨 TU 桥 acsd_cpuprov_kernel_range_v1 相连。
 
 为什么必须有本测试（三层判据之外的角色）:
   · 构建输入层（check_isa_same_source.py S1/S2/S3/S7/S8）证明"旗标挂在哪个 target"，
@@ -24,8 +24,8 @@ tu_isolation cpuprov-avx2 / cpuprov-avx512）:
            必须判红;
   N3 负例: 门面 TU 源码的代码行里出现 ISA 旗标字面量 ⇒ 文本禁令判红;
   S1 静态: 门面 TU 必须走跨 TU 桥（include 桥头 + 调用桥入口）且不复制 kernel 实现;
-  S2 静态: 产物导出面 = provider ABI 白名单（astrocs_provider_query_v1 +
-           acs_cpu_<v>_cap_gate + acs_cap_* 探测面），**跨 TU 桥不进动态符号表**
+  S2 静态: 产物导出面 = provider ABI 白名单（acsd_provider_query_v1 +
+           acsd_cpu_<v>_cap_gate + acsd_cap_* 探测面），**跨 TU 桥不进动态符号表**
            （hidden visibility）⇒ ABI 导出面逐条不变;
   S3 声明面: 声明位 = 站点旗标推导位（eng/tools/isa_sites.py），两族两平台逐组核对。
 
@@ -55,8 +55,8 @@ import isa_sites  # noqa: E402
 FB = isa_feature_bits.FeatureBits.load(repo_root=REPO)
 CHK = os.path.join(REPO, "eng", "tools", "quality", "check_variant_isa_disasm.py")
 # 门面侧必须基线可执行的符号（dlopen 静态 init + query 握手 + cap_gate）。
-FACE_CLEAN_SYMS = {"avx2": ["acs_cpu_avx2_cap_gate", "astrocs_provider_query_v1"],
-                   "avx512": ["acs_cpu_avx512_cap_gate", "astrocs_provider_query_v1"]}
+FACE_CLEAN_SYMS = {"avx2": ["acsd_cpu_avx2_cap_gate", "acsd_provider_query_v1"],
+                   "avx512": ["acsd_cpu_avx512_cap_gate", "acsd_provider_query_v1"]}
 # 各族在产物里必须能找到的本档证据（只用"本档才可能发射"的证据面）:
 #   avx2   = VEX 编码(0xC4/0xC5) + FMA 助记符（FMA 是 AVX2 世代的独占面）;
 #   avx512 = EVEX 编码(0x62)（含标量 EVEX-only 的 VCVTUSI2SS/VRNDSCALESS）。
@@ -111,7 +111,7 @@ class TestCpuProviderIsaIsolation(unittest.TestCase):
         cls.cap = _cap_obj(cls.tmp)
         cls.so = {}
         for v in ("avx2", "avx512"):
-            so = os.path.join(cls.tmp, "astrocs_cpuprov_%s.so" % v)
+            so = os.path.join(cls.tmp, "acsd_cpuprov_%s.so" % v)
             rc, err = build_cpuprov_variant(v, so, extra_link_inputs=[cls.cap],
                                             ld_extra=["-lpthread"])
             assert rc == 0, err
@@ -178,8 +178,8 @@ class TestCpuProviderIsaIsolation(unittest.TestCase):
         # 注入: 把旗标写进一行**代码** ⇒ 同一禁令必须判红（证明禁令不是恒真）。
         src = cpuprov_face_src("avx2")
         text = _read(src)
-        injected = text.replace('#include "astrocs/cpu/cpuprov_kernels_v1.h"',
-                                '#include "astrocs/cpu/cpuprov_kernels_v1.h"\n'
+        injected = text.replace('#include "acsd/cpu/cpuprov_kernels_v1.h"',
+                                '#include "acsd/cpu/cpuprov_kernels_v1.h"\n'
                                 '// c\nconst char* kBad = "-mavx2";', 1)
         self.assertNotEqual(injected, text, "注入未生效（源码形态已变，禁令失真）")
         bad = []
@@ -195,7 +195,7 @@ class TestCpuProviderIsaIsolation(unittest.TestCase):
         for v in ("avx2", "avx512"):
             face = _read(cpuprov_face_src(v))
             kern = _read(cpuprov_kernels_src(v))
-            self.assertIn('#include "astrocs/cpu/cpuprov_kernels_v1.h"', face,
+            self.assertIn('#include "acsd/cpu/cpuprov_kernels_v1.h"', face,
                           f"{v} 门面 TU 必须走跨 TU 桥")
             self.assertIn(BRIDGE_SYMBOL, face, f"{v} 门面 TU 必须调用桥入口")
             self.assertIn(BRIDGE_SYMBOL, kern, f"{v} 计算面 TU 必须定义桥入口")
@@ -211,14 +211,14 @@ class TestCpuProviderIsaIsolation(unittest.TestCase):
     def test_S2_abi_export_surface_unchanged_bridge_hidden(self):
         """静态: 产物导出面 = provider ABI 白名单; 跨 TU 桥**不进**动态符号表。"""
         expect = {
-            "avx2": {"acs_cap_classify_v1", "acs_cap_detect_v1", "acs_cap_feature_name_v1",
-                     "acs_cap_hw_satisfies_v1", "acs_cap_os_safe_satisfies_v1",
-                     "acs_cap_os_saves_avx512_state_v1", "acs_cap_serialize_json_v1",
-                     "acs_cpu_avx2_cap_gate", "astrocs_provider_query_v1"},
-            "avx512": {"acs_cap_classify_v1", "acs_cap_detect_v1", "acs_cap_feature_name_v1",
-                       "acs_cap_hw_satisfies_v1", "acs_cap_os_safe_satisfies_v1",
-                       "acs_cap_os_saves_avx512_state_v1", "acs_cap_serialize_json_v1",
-                       "acs_cpu_avx512_cap_gate", "astrocs_provider_query_v1"},
+            "avx2": {"acsd_cap_classify_v1", "acsd_cap_detect_v1", "acsd_cap_feature_name_v1",
+                     "acsd_cap_hw_satisfies_v1", "acsd_cap_os_safe_satisfies_v1",
+                     "acsd_cap_os_saves_avx512_state_v1", "acsd_cap_serialize_json_v1",
+                     "acsd_cpu_avx2_cap_gate", "acsd_provider_query_v1"},
+            "avx512": {"acsd_cap_classify_v1", "acsd_cap_detect_v1", "acsd_cap_feature_name_v1",
+                       "acsd_cap_hw_satisfies_v1", "acsd_cap_os_safe_satisfies_v1",
+                       "acsd_cap_os_saves_avx512_state_v1", "acsd_cap_serialize_json_v1",
+                       "acsd_cpu_avx512_cap_gate", "acsd_provider_query_v1"},
         }
         for v in ("avx2", "avx512"):
             r = subprocess.run(["nm", "-D", "--defined-only", self.so[v]],

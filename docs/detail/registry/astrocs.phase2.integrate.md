@@ -1,6 +1,6 @@
-# 模块 astrocs.phase2.integrate
+# 模块 acsd.phase2.integrate
 
-> 上游：docs/ASTROCS_DESIGN.md §8.5（模块与 ABI）、§5.2（固定科学流程）、
+> 上游：docs/ACSD_DESIGN.md §8.5（模块与 ABI）、§5.2（固定科学流程）、
 > §5.3（SNR 重建与逆方差叠加）
 > 科学正本：docs/science/INTEGRATION.md（SCI-INT-001，FROZEN，零改动）、
 > docs/science/PSF_SIGNAL_WEIGHT.md（PSF 与信息权重、§8 诊断面不作权重）
@@ -13,13 +13,13 @@
 > 数据对象：docs/detail/UNIFIED_MODEL.md（frame_snr、sparse_snr_layer）
 
 LIB 面 = `lib/algorithms/integration/` 三件套（README / module.yaml ，
-CONTRACT_READY，entrypoint 未落地）。MOD ID = MOD-astrocs-phase2-integrate；
-module_id 合同值 = `astrocs.p2.integration`（descriptor 词汇
-`astrocs.phase2.integrate` 为编排层口径，其对齐属迁移目标、未落地）；dll_target =
-`astrocs_p2_integration.dll`（迁移目标，未落地）。生产源 =
+CONTRACT_READY，entrypoint 未落地）。MOD ID = MOD-acsd-phase2-integrate；
+module_id 合同值 = `acsd.p2.integration`（descriptor 词汇
+`acsd.phase2.integrate` 为编排层口径，其对齐属迁移目标、未落地）；dll_target =
+`acsd_p2_integration.dll`（迁移目标，未落地）。生产源 =
 lib/algorithms/coverage/src/integrate.cpp + 签名头正本
 lib/algorithms/coverage/include/astro/phase2/integrate.h；构建 = 根 CMakeLists 的
-`astrocs_phase2` 静态库成员。owner = SA-P2-I23；depends_on_int = P2-REJ / P1-NOISE /
+`acsd_phase2` 静态库成员。owner = SA-P2-I23；depends_on_int = P2-REJ / P1-NOISE /
 CPU-005；legacy_paths = 「lib/algorithms/coverage integration sources」。
 
 ## 职责与明确非职责
@@ -115,7 +115,7 @@ docs/science/PSF_SIGNAL_WEIGHT.md；本页只记落地方式：
   运算。**重建算子由层显式声明**（`sparse_snr_layer.reconstruction_operator`）；
   实际生效算子标识与重建误差入 manifest（`SparseReconstruction.operator_id` /
   `node_reproduction_max_abs`）；未识别标识或声明与层形态不符 ⇒ fail-closed。冻结
-  词表（算子标识与语义）唯一正本 = registry/astrocs.phase1.noise-snr.md；
+  词表（算子标识与语义）唯一正本 = registry/acsd.phase1.noise-snr.md；
 - `frame_reconstruct` → 帧级 SNR 重建 / 直接参与（等权重面）；
 - 输入**无**稀疏层而路径为默认 / `sparse_reconstruct` → 按帧级执行并**显式记录
   实际路径**（`snr_path_effective = frame_reconstruct` + 计数），**不静默**；
@@ -144,7 +144,7 @@ session 工厂承接。C API 面 = API-P2-INT-001 + 编排级 API-P2-001（FROZE
 
 ## Registry descriptor 与配置 schema
 
-module_id=`astrocs.phase2.integrate`（占位）；execution_class=`cpu_heavy`;
+module_id=`acsd.phase2.integrate`（占位）；execution_class=`cpu_heavy`;
 parallel_ok=True（像素间）。配置 = phase config JSON（权重策略在 Stage2，本内核
 **无策略配置** —— weights 数组外置）。
 
@@ -219,6 +219,6 @@ Oracle 面：
   词表**同源**，任一侧收缩一律走变更流程并在**同一次提交**内同步另一侧；两侧不同步
   会**放宽**冻结科学门（使 `psfsw` 重新成为合法权重来源）。生产权重来源仍是单一
   现场派生量（逐样本 ivar），该受限来源表只负责**拒绝**非法来源，不产生权重；
-- 目标交付形态 astrocs_p2_integration.dll 未落地；descriptor 占位 module_id 与合同
-  值 `astrocs.p2.integration` 的对齐属迁移目标（未落地）；
+- 目标交付形态 acsd_p2_integration.dll 未落地；descriptor 占位 module_id 与合同
+  值 `acsd.p2.integration` 的对齐属迁移目标（未落地）；
 - 全局限制登记 = artifacts/evidence/known-limitations-ledger/LIMITATIONS.md。

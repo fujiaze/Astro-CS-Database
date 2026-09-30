@@ -1,6 +1,6 @@
 # Control-Weight SNR / Frame Quality Science (SCI-CW)
 
-> 上游：ASTROCS_DESIGN.md §2.2（创新点二：跨帧绝对信噪比）、§5.3（SNR 重建与逆方差叠加）
+> 上游：ACSD_DESIGN.md §2.2（创新点二：跨帧绝对信噪比）、§5.3（SNR 重建与逆方差叠加）
 
 > 本文件条款为冻结定义，变更走变更流程。
 
@@ -51,7 +51,7 @@
 
 - **逐源科学 SNR**：由逐源通量不确定度 `σ_F` 定义，`SNR_F = F/σ_F`（PSF 加权最优提取，
   或 CCD 方程 + 孔径改正）。`σ_F` **必须由星点测光产出**：分子 `F` 与分母 `σ_F` 同源于
-  同一份星点绑定行与同一 PSF 模型（`ASTROCS_DESIGN.md` §4.2「一次检测、一次通量积分、三处复用」）。
+  同一份星点绑定行与同一 PSF 模型（`ACSD_DESIGN.md` §4.2「一次检测、一次通量积分、三处复用」）。
   **科学 SNR 的成立条件 = 该帧已产出 `σ_F`**（fail-closed）。
 - **信噪比以星点标定（正向约束）**：本链的 SNR 标定基准**只**来自星点——PSF/孔径测光的
   **精度离散程度**（同一视场多星、或多帧同星的测光散度，按 1.482602218505602·MAD 一类稳健尺度去偏）
@@ -83,7 +83,7 @@
 
 ## 2b 逐像素绝对 SNR 的重建模型（正向规范）
 
-本节是创新点二（`ASTROCS_DESIGN.md` §2.2）在**逐像素**粒度上的规范形式。它与 §2a 的逐源口径同源、粒度不同，二者**各自独立、取值互不代用**。
+本节是创新点二（`ACSD_DESIGN.md` §2.2）在**逐像素**粒度上的规范形式。它与 §2a 的逐源口径同源、粒度不同，二者**各自独立、取值互不代用**。
 
 **观测量分解（正向约束）**：校准后像素测量值（ADU 标度）**必须**按物理来源写成三项之和，"总亮度"单项不构成该分解：
 
@@ -99,7 +99,7 @@ SNR(x,y)          = S_src(x,y) / sigma_w(x,y)                   [1]      分子�
 - **两个方差面**：`sigma_slow^2` 是**背景方差面**（`docs/science/NOISE_MODEL.md` §5：空背景随机分量，含天光散粒、暗流散粒、读出、量化、偏置残差），`sigma_w^2` 是**加权方差面**（同文件 §5c）。两者量纲相同（ADU²）、用途不同，**各自独立、取值互不代用**；本链的方差面 = 这两个。
 - **`sigma_slow^2` 的载体（正向约束）**：缓变面由**稀疏控制点 + 重建**给出、逐像素现场求值（生产 `snr_noise_model_v1` / `snr_noise_model_v1_fill`：8×8 patch 稳健方差 → 平面场；重建路径按 §8c 记录 `snr_path_effective`）。控制点**必须**先通过 `docs/science/NOISE_MODEL.md` §5d 的自校准有效性判据，进入拟合的 patch = 通过该判据者。
 - **`SNR` 的分子只有源（正向约束）**：天光**只**经其散粒噪声 `S_sky/g` 进入分母。**分子面 = 源项**（`S_sky` 与观测电平 `I` 归分母）；固定源通量下天光增大 ⇒ `SNR` 单调下降。
-- **源的估计式（正向约束）**：`S_src_hat(x,y) = Σ_i F_hat_i·P_i(x,y)`，`F_hat_i` 为**星点测光**给出的源通量估计（生产 GLS 估计量 `astrocs::p1psfw::w_info_solve`，FZ-FORMULA-WINFO/Q），`P_i` 为**生产 PSF 轮廓**（`snr_moffat4_profile_f64`，Moffat4）。**源估计式只取上式**（"观测减去天光残差"（`I − S_sky_hat`）与残差相减式属另一路径）；`S_src/g` **必须**是 `sigma_w^2` 与 `sigma_slow^2` 的唯一区别项。
+- **源的估计式（正向约束）**：`S_src_hat(x,y) = Σ_i F_hat_i·P_i(x,y)`，`F_hat_i` 为**星点测光**给出的源通量估计（生产 GLS 估计量 `acsd::p1psfw::w_info_solve`，FZ-FORMULA-WINFO/Q），`P_i` 为**生产 PSF 轮廓**（`snr_moffat4_profile_f64`，Moffat4）。**源估计式只取上式**（"观测减去天光残差"（`I − S_sky_hat`）与残差相减式属另一路径）；`S_src/g` **必须**是 `sigma_w^2` 与 `sigma_slow^2` 的唯一区别项。
 - **分离成立依赖三条支撑先验（正向约束）**：单帧只有均值与方差两个可观测量，源与天光在单帧上不可分解（秩与零空间论证见 `docs/science/NOISE_MODEL.md` §5b），故分离只能靠先验，三条**必须同时**成立，缺一即本模型不适用：
   1. **缓变面可表示**：`S_sky` 落在参考面的张成空间内（生产 `p2_sky_plane_build` / `p2_sky_plane_eval_block`；节点间距按 `docs/science/PHASE2_UPM.md` §7a 由输入几何导出）；
   2. **源稀疏**：`S_src` 由有限个 PSF 模板张成（生产 GLS `w_info_solve` + `snr_moffat4_profile_f64`）；

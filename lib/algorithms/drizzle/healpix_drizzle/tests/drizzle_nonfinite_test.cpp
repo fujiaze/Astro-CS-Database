@@ -29,7 +29,7 @@
 // 编译 (eng/tests/ 目录, Linux):
 // g++ -O2 -std=c++17 -Wall -Wextra -fopenmp -I.. -I../../../astro_image_io/include
 //   -o drizzle_nonfinite_test drizzle_nonfinite_test.cpp
-//   ../../../coverage/src/integrate.cpp -lastrocs_drizzle -lastrocs_phase2 -lm
+//   ../../../coverage/src/integrate.cpp -lacsd_drizzle -lacsd_phase2 -lm
 // ============================================================================
 #include "drizzle_engine.h"
 #include "astro/phase2/integrate.h"

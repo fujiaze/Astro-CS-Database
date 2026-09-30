@@ -19,7 +19,7 @@ param(
     # MSYS2/MinGW 根目录由调用者显式给出（环境变量或参数）: 本脚本不得写死
     # 机器绝对路径（BLD-004 machine_absolute_path=FORBIDDEN, 见
     # packaging/dependency-lock.json policy 与 BLD-004 机器路径扫描）。
-    [string]$MsysRoot = $env:ASTROCS_MSYS_ROOT
+    [string]$MsysRoot = $env:ACSD_MSYS_ROOT
 )
 
 $ErrorActionPreference = "Stop"
@@ -36,7 +36,7 @@ if (![string]::IsNullOrEmpty($MsysRoot)) {
 if (!(Test-Path -LiteralPath $exe)) {
     Write-Host "[start_browser] 未找到 $exe，尝试构建浏览器 ..."
     if ([string]::IsNullOrEmpty($msysBin)) {
-        Write-Error "未设置 -MsysRoot / ASTROCS_MSYS_ROOT：无法定位 MinGW 工具链（本脚本不写死机器路径）。"
+        Write-Error "未设置 -MsysRoot / ACSD_MSYS_ROOT：无法定位 MinGW 工具链（本脚本不写死机器路径）。"
         exit 1
     }
     $env:Path = "$msysBin;$env:Path"

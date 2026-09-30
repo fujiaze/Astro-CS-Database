@@ -217,7 +217,7 @@ def main():
         problems.append({"check": "false_reject_naming", "lines": bad_fr})
 
     # ---- 6. freeze version ----
-    freeze_lit = f"ASTROCS_FOUNDATION_FINAL_FREEZE = {EXPECTED_FREEZE}"
+    freeze_lit = f"ACSD_FOUNDATION_FINAL_FREEZE = {EXPECTED_FREEZE}"
     sf, miss_sf = read_first(
         REQUIRED_FILES["SCIENCE_FREEZE.md"],
         {"check": "science_freeze_missing", "paths":

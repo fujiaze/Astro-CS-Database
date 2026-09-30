@@ -161,7 +161,7 @@ def fill_tile_values(ra, dec):
 
 def write_properties(root: Path, product: str, leaf_order: int, n_tiles: int):
     lines = [
-        "creator_did=ivo://astrocs/geometry-truth",
+        "creator_did=ivo://acsd/geometry-truth",
         "obs_title=Geometry Truth (synthetic)",
         "obs_filter=Synthetic",
         "hips_version=1.4",
@@ -175,9 +175,9 @@ def write_properties(root: Path, product: str, leaf_order: int, n_tiles: int):
         "hips_creator=ACSD geometry truth generator",
         "hips_initial_fov=60",
         "hips_pixel_scale=58.6",
-        "astrocs_signal_dtype=float32",
+        "acsd_signal_dtype=float32",
         "moc_sky_fraction=1.0",
-        "astrocs_covered_sky_fraction=1.0",
+        "acsd_covered_sky_fraction=1.0",
         "",
     ]
     (root / product / "properties").write_text("\n".join(lines), encoding="utf-8")
@@ -194,7 +194,7 @@ def write_manifest(root: Path, leaf_order: int, n_leaf_tiles: int):
         "products": ["signal", "support"],
         "n_leaf_tiles": n_leaf_tiles,
         "moc_sky_fraction": 1.0,
-        "astrocs_covered_sky_fraction": 1.0,
+        "acsd_covered_sky_fraction": 1.0,
         "signal_dtype": "float32",
     }
     (root / "manifest.json").write_text(json.dumps(man, indent=2), encoding="utf-8")

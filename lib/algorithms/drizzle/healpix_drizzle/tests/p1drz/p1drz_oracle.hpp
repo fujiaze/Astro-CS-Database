@@ -5,7 +5,7 @@
 //   - 几何原语: p1drz_geom.hpp (向量旋转 TAN / Van Oosterom-Strackee 立体角
 //     / 切平面 S-H, 与生产 wcs_sip.cpp 球面三角公式路径、spherical_overlap.cpp
 //     Van Oosterom 扇形剖分**不同式**);
-//   - 权威 leaf 地址: astrocs::healpix (lib/algorithms/shared/healpix, astropy-healpix
+//   - 权威 leaf 地址: acsd::healpix (lib/algorithms/shared/healpix, astropy-healpix
 //     交叉验证 mismatch=0 的单权威实现 — 允许引用, 头部注释为证);
 //   - 聚合恒等式 (核心 oracle 手段): F_p=Σ x_j·w_jp、D_p=Σ a_jp、
 //     S_p=F_p/D_p、var_p=Σv_j·w_jp²/D_p² 全部在 oracle 侧按 SCI-DRZ-001
@@ -189,7 +189,7 @@ inline bool oracle_const_adu_inverse(const std::vector<LeafRec>& leafs,
 // ---------------------------------------------------------------------------
 // Oracle O6: FIX-DRZ-D 脉冲期望 — **结构闭合** (逐 leaf overlap 分布依赖
 // 全部 256 源像素 drop 贡献 — 0 值像素的 drop 同样进 D_p, 逐 leaf 期望需
-// 全量 overlap 重建, leaf 边界不可用 astrocs::healpix 获得; 改用两条
+// 全量 overlap 重建, leaf 边界不可用 acsd::healpix 获得; 改用两条
 // 无 leaf 几何的精确闭合):
 //   (i) 通量守恒: Σ_p a_jp = A_drop,j (drop 互斥真覆盖) →
 //       Σ_p F_p = x_pulse·A_drop/A_drop = amp (相对 1e-6, FP64 主域门);

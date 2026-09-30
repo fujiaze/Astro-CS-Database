@@ -20,7 +20,7 @@
 
 #include <sys/stat.h>
 
-using namespace astrocs::aio;
+using namespace acsd::aio;
 
 namespace {
 

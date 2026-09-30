@@ -19,9 +19,9 @@
 // 冲突; 产品形态: host 分别加载 provider DLL)。
 // 编译: g++ -std=c++17 -O2 (本 TU 无 -mavx*; 对照对象 .so 各自旗标)。
 // 输出: 每 op 打印 AVX2A/AVX2B/BASE hex 行 + DET/ACQ/ULP; Python runner 判。
-#include "astrocs/abi/module_api_v1.h"
-#include "astrocs/cpu/baseline_provider_v1.h"
-#include "astrocs/cpu/avx2_provider_v1.h"
+#include "acsd/abi/module_api_v1.h"
+#include "acsd/cpu/baseline_provider_v1.h"
+#include "acsd/cpu/avx2_provider_v1.h"
 
 #include <cmath>
 #include <cstdio>
@@ -31,8 +31,8 @@
 #include <dlfcn.h>
 #include <vector>
 
-typedef acs_status (*query_fn)(uint32_t, const acs_host_api_v1*,
-                               const acs_provider_api_v1**);
+typedef acsd_status (*query_fn)(uint32_t, const acsd_host_api_v1*,
+                               const acsd_provider_api_v1**);
 
 /* ── host stub ── */
 static int g_alloc_balance = 0;
@@ -63,24 +63,24 @@ static int stub_acquire(void* ud, uint32_t n) {
 }
 static void stub_release(void* ud, uint32_t n) { (void)ud; (void)n; }
 static int stub_cancel(void* ud) { (void)ud; return 0; }
-static void stub_log(void* ud, int level, acs_str_v1 c, acs_str_v1 m) {
+static void stub_log(void* ud, int level, acsd_str_v1 c, acsd_str_v1 m) {
     (void)ud; (void)level; (void)c; (void)m;
 }
-static void make_host(acs_host_api_v1* host, BudgetStub* bs) {
-    static acs_allocator_v1 alloc;
-    static acs_executor_v1 exec;
-    static acs_cancel_v1 cancel;
-    static acs_logger_v1 logger;
-    alloc = { { (uint32_t)sizeof(acs_allocator_v1), ACS_ABI_VERSION_V1 },
+static void make_host(acsd_host_api_v1* host, BudgetStub* bs) {
+    static acsd_allocator_v1 alloc;
+    static acsd_executor_v1 exec;
+    static acsd_cancel_v1 cancel;
+    static acsd_logger_v1 logger;
+    alloc = { { (uint32_t)sizeof(acsd_allocator_v1), ACS_ABI_VERSION_V1 },
               stub_alloc, stub_free, nullptr };
-    exec = { { (uint32_t)sizeof(acs_executor_v1), ACS_ABI_VERSION_V1 },
+    exec = { { (uint32_t)sizeof(acsd_executor_v1), ACS_ABI_VERSION_V1 },
              4u, 4u, stub_acquire, stub_release, bs };
-    cancel = { { (uint32_t)sizeof(acs_cancel_v1), ACS_ABI_VERSION_V1 },
+    cancel = { { (uint32_t)sizeof(acsd_cancel_v1), ACS_ABI_VERSION_V1 },
                stub_cancel, nullptr };
-    logger = { { (uint32_t)sizeof(acs_logger_v1), ACS_ABI_VERSION_V1 },
+    logger = { { (uint32_t)sizeof(acsd_logger_v1), ACS_ABI_VERSION_V1 },
                stub_log, nullptr };
     std::memset(host, 0, sizeof(*host));
-    host->head.struct_size = (uint32_t)sizeof(acs_host_api_v1);
+    host->head.struct_size = (uint32_t)sizeof(acsd_host_api_v1);
     host->head.abi_version = ACS_ABI_VERSION_V1;
     host->allocator = &alloc;
     host->executor = &exec;
@@ -106,10 +106,10 @@ static void print_span(const char* tag, const float* v, size_t n) {
 }
 
 /* kernel_id → 索引 (provider 表查询; 查不到返回 UINT32_MAX) */
-static uint32_t find_kernel(const acs_provider_api_v1* api,
-                            const acs_host_api_v1* host, const char* id) {
+static uint32_t find_kernel(const acsd_provider_api_v1* api,
+                            const acsd_host_api_v1* host, const char* id) {
     uint32_t count = 0;
-    const acs_kernel_desc_v1* ks = nullptr;
+    const acsd_kernel_desc_v1* ks = nullptr;
     if (api->kernel_list(host, &count, &ks) != ACS_OK || ks == nullptr)
         return UINT32_MAX;
     for (uint32_t i = 0; i < count; ++i) {
@@ -139,15 +139,15 @@ int main(int argc, char** argv) {
                      hb ? "" : dlerror(), ha ? "" : dlerror());
         return 2;
     }
-    auto qb = (query_fn)dlsym(hb, "astrocs_provider_query_v1");
-    auto qa = (query_fn)dlsym(ha, "astrocs_provider_query_v1");
+    auto qb = (query_fn)dlsym(hb, "acsd_provider_query_v1");
+    auto qa = (query_fn)dlsym(ha, "acsd_provider_query_v1");
     if (!qb || !qa) return 2;
 
-    acs_host_api_v1 host;
+    acsd_host_api_v1 host;
     BudgetStub bs{ 4, 0, 0 };
     make_host(&host, &bs);
-    const acs_provider_api_v1* apib = nullptr;
-    const acs_provider_api_v1* apia = nullptr;
+    const acsd_provider_api_v1* apib = nullptr;
+    const acsd_provider_api_v1* apia = nullptr;
     if (qb(ACS_ABI_VERSION_V1, &host, &apib) != ACS_OK ||
         qa(ACS_ABI_VERSION_V1, &host, &apia) != ACS_OK || !apib || !apia) {
         std::printf("QUERY_FAIL\n");
@@ -214,12 +214,12 @@ int main(int argc, char** argv) {
             }
         }
 
-        const auto run_once = [&](const acs_provider_api_v1* api, uint32_t kidx,
+        const auto run_once = [&](const acsd_provider_api_v1* api, uint32_t kidx,
                                   uint32_t budget, float* out) -> int {
             bs.max_budget = budget;
             bs.granted = 0; bs.last_attempt = 0;
             std::vector<uint8_t> out_bytes(N * 4, 0);
-            acs_cpu_baseline_params_v1 P;
+            acsd_cpu_baseline_params_v1 P;
             std::memset(&P, 0, sizeof(P));
             P.head.struct_size = (uint32_t)sizeof(P);
             P.head.abi_version = ACS_ABI_VERSION_V1;
@@ -230,9 +230,9 @@ int main(int argc, char** argv) {
             }
             P.out_off[0] = 0; P.out_len[0] = N;
             if (op.has_out1) { P.out_off[1] = N; P.out_len[1] = N; }
-            acs_span_u8 sp_in = ACS_SPAN_U8(in_bytes.data(), in_bytes.size());
-            acs_span_u8 sp_out = ACS_SPAN_U8(out_bytes.data(), out_bytes.size());
-            const acs_status rc = api->run_kernel(kidx, &host, &P, sizeof(P),
+            acsd_span_u8 sp_in = ACS_SPAN_U8(in_bytes.data(), in_bytes.size());
+            acsd_span_u8 sp_out = ACS_SPAN_U8(out_bytes.data(), out_bytes.size());
+            const acsd_status rc = api->run_kernel(kidx, &host, &P, sizeof(P),
                                                   sp_in, sp_out);
             if (rc != ACS_OK) {
                 std::printf("RC %d\n", (int)rc);

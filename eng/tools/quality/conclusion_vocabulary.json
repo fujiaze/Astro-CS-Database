@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
-  "authority": "docs/ASTROCS_DESIGN.md 12.5 状态阶梯（唯一口径）；docs/engineering/01_CHECKS.md 1；ENGINEERING_SPEC.md 8",
-  "state_ladder_authority": "docs/ASTROCS_DESIGN.md 12.5「状态阶梯（唯一口径）」表格。本文件的 ladder_snapshot 必须与门现场解析结果逐字相等，否则判红（词汇表不得单方面漂移）。",
+  "authority": "docs/ACSD_DESIGN.md 12.5 状态阶梯（唯一口径）；docs/engineering/01_CHECKS.md 1；ENGINEERING_SPEC.md 8",
+  "state_ladder_authority": "docs/ACSD_DESIGN.md 12.5「状态阶梯（唯一口径）」表格。本文件的 ladder_snapshot 必须与门现场解析结果逐字相等，否则判红（词汇表不得单方面漂移）。",
   "ladder_snapshot": [
     "CONTRACT_READY",
     "IMPLEMENTED",
@@ -24,7 +24,7 @@
     "TIMEOUT": "超出注册表登记的超时预算"
   },
   "denylist": {
-    "DELIVERED": "docs/ASTROCS_DESIGN.md 12.5 阶梯内无此词，判定词表亦无 —— 系 eng/tools/quality/contracts/check_full_integration.py 自造，用于让「存在挂账 P1 债务」也算通过（passed=true）。越词即红：状态只能如实落在阶梯内。"
+    "DELIVERED": "docs/ACSD_DESIGN.md 12.5 阶梯内无此词，判定词表亦无 —— 系 eng/tools/quality/contracts/check_full_integration.py 自造，用于让「存在挂账 P1 债务」也算通过（passed=true）。越词即红：状态只能如实落在阶梯内。"
   },
   "scan_roots": [
     "eng",

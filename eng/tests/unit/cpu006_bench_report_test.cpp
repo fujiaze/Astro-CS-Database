@@ -3,7 +3,7 @@
 //       无合格候选回落 baseline; verify 正负例; 生产 profile 结构性不被触碰;
 //       suite/timeout 负向样例。
 // release suite 全量实跑(12 kernel × 3 规模)耗时数分钟, 由环境变量
-// ASTROCS_CPU006_ENABLE_RELEASE=1 门控: ctest 默认跳过; benchmark 实跑单独执行。
+// ACSD_CPU006_ENABLE_RELEASE=1 门控: ctest 默认跳过; benchmark 实跑单独执行。
 // 用法: cpu006_bench_report_test [output_dir]
 //   output_dir 提供时把生成的 report JSON 落盘(quick_report.json / release_report.json)。
 #include "bench_report.h"
@@ -16,9 +16,9 @@
 
 #include "profile_gen.h"   // RawCandidate
 
-using astrocs::backend_host::AggWinner;
-using astrocs::backend_host::RawCandidate;
-using astrocs::backend_host::aggregate_benchmark_kernels;
+using acsd::backend_host::AggWinner;
+using acsd::backend_host::RawCandidate;
+using acsd::backend_host::aggregate_benchmark_kernels;
 
 static int failures = 0;
 #define CHECK(cond)                                                        \
@@ -57,9 +57,9 @@ void save_report(const std::string& dir, const std::string& name, const std::str
     f << json;
 }
 
-astrocs::backend_host::BenchReportOptions base_opts(const std::string& suite,
+acsd::backend_host::BenchReportOptions base_opts(const std::string& suite,
                                                     const char bin_byte) {
-    astrocs::backend_host::BenchReportOptions opt;
+    acsd::backend_host::BenchReportOptions opt;
     opt.suite = suite;
     opt.build_id = "0.0.0-alpha.0+gabcdef123456";   // 中性占位(与发布版本解耦)
     opt.source_commit = "abcdef1234567890abcdef1234567890abcdef12";
@@ -129,33 +129,33 @@ int main(int argc, char** argv) {
     auto m = agg1({cand(calib, "medium", "baseline", 2, 100.0)});
     m[calib]["medium"].mad_ns = 40.0;   // 40% > 35%
     m[calib]["medium"].dispersion_ok = false;   // 离散度超限(重算)
-    auto vd = astrocs::backend_host::benchmark_report_verdict(m, false);
+    auto vd = acsd::backend_host::benchmark_report_verdict(m, false);
     CHECK(!vd.thresholds_passed);
     CHECK(!vd.eligible_for_profile);
     // 修复离散度(重算 dispersion_ok) + oracle 全过 → eligible
     m[calib]["medium"].mad_ns = 10.0;
     m[calib]["medium"].dispersion_ok = true;   // 10% <= 35%
-    auto vd2 = astrocs::backend_host::benchmark_report_verdict(m, false);
+    auto vd2 = acsd::backend_host::benchmark_report_verdict(m, false);
     CHECK(vd2.all_oracle_passed);
     CHECK(vd2.thresholds_passed);
     CHECK(vd2.eligible_for_profile);
     // timeout → eligible 不可
-    auto vd3 = astrocs::backend_host::benchmark_report_verdict(m, true);
+    auto vd3 = acsd::backend_host::benchmark_report_verdict(m, true);
     CHECK(!vd3.eligible_for_profile);
     // 空 kernels → 全 false
-    auto vd4 = astrocs::backend_host::benchmark_report_verdict(
+    auto vd4 = acsd::backend_host::benchmark_report_verdict(
         std::map<std::string, std::map<std::string, AggWinner>>{}, false);
     CHECK(!vd4.all_oracle_passed && !vd4.thresholds_passed && !vd4.eligible_for_profile);
   }
 
   // 5) suite 映射与非法 suite 负向样例
   {
-    CHECK(astrocs::backend_host::benchmark_suite_mode("quick") == "quick");
-    CHECK(astrocs::backend_host::benchmark_suite_mode("release") == "full");
-    CHECK(astrocs::backend_host::benchmark_suite_mode("full").empty());    // 非法
-    CHECK(astrocs::backend_host::benchmark_suite_mode("").empty());        // 非法
+    CHECK(acsd::backend_host::benchmark_suite_mode("quick") == "quick");
+    CHECK(acsd::backend_host::benchmark_suite_mode("release") == "full");
+    CHECK(acsd::backend_host::benchmark_suite_mode("full").empty());    // 非法
+    CHECK(acsd::backend_host::benchmark_suite_mode("").empty());        // 非法
     auto bad = base_opts("full", 'a');                                      // 非法
-    auto o = astrocs::backend_host::generate_benchmark_report(bad);
+    auto o = acsd::backend_host::generate_benchmark_report(bad);
     CHECK(o.json.empty());                      // 非法 suite → 空 report(负向)
     CHECK(o.kernels.empty());
   }
@@ -163,7 +163,7 @@ int main(int argc, char** argv) {
   // 6) quick report 生成: 规格字段齐全 + verify 正例 + 篡改负向样例
   std::string quick_json;
   {
-    auto o = astrocs::backend_host::generate_benchmark_report(base_opts("quick", 'a'));
+    auto o = acsd::backend_host::generate_benchmark_report(base_opts("quick", 'a'));
     CHECK(!o.json.empty());
     CHECK(!o.production_profile_touched);       // 结构性: 不触碰生产 profile
     CHECK(!o.raw.empty());                      // 原始候选全量保存
@@ -172,7 +172,7 @@ int main(int argc, char** argv) {
     quick_json = o.json;
     save_report(out_dir, "bench_report_quick.json", quick_json);
     // 规格字段(验收关键词 benchmark report)
-    CHECK(o.json.find("\"schema\": \"astrocs.benchmark-report/v1\"") != std::string::npos);
+    CHECK(o.json.find("\"schema\": \"acsd.benchmark-report/v1\"") != std::string::npos);
     CHECK(o.json.find("\"suite\": \"quick\"") != std::string::npos);
     CHECK(o.json.find("\"warmup\": 3") != std::string::npos);
     CHECK(o.json.find("\"samples\": 7") != std::string::npos);
@@ -191,14 +191,14 @@ int main(int argc, char** argv) {
     CHECK(o.json.find("\"eligible_for_profile\"") != std::string::npos);
     CHECK(o.json.find("\"production_profile_touched\": false") != std::string::npos);
     // 独立复读: 正例
-    CHECK(astrocs::backend_host::verify_benchmark_report(o.json).empty());
+    CHECK(acsd::backend_host::verify_benchmark_report(o.json).empty());
     // 篡改 schema → 拒
     {
-      const auto pos = o.json.find("astrocs.benchmark-report/v1");
+      const auto pos = o.json.find("acsd.benchmark-report/v1");
       CHECK(pos != std::string::npos);
       std::string tampered = o.json;
-      tampered.replace(pos, 33, "astrocs.benchmark-report/vX");
-      CHECK(!astrocs::backend_host::verify_benchmark_report(tampered).empty());
+      tampered.replace(pos, 33, "acsd.benchmark-report/vX");
+      CHECK(!acsd::backend_host::verify_benchmark_report(tampered).empty());
     }
     // 篡改 outlier_policy → 拒(预冻结规则一致性)
     {
@@ -207,7 +207,7 @@ int main(int argc, char** argv) {
       CHECK(pos != std::string::npos);
       std::string tampered = o.json;
       tampered[pos + key.size()] = 'X';
-      CHECK(!astrocs::backend_host::verify_benchmark_report(tampered).empty());
+      CHECK(!acsd::backend_host::verify_benchmark_report(tampered).empty());
     }
     // 篡改 production_profile_touched=true → 拒(结构性: 不触碰生产 profile)
     {
@@ -216,7 +216,7 @@ int main(int argc, char** argv) {
       CHECK(pos != std::string::npos);
       std::string tampered = o.json;
       tampered.replace(pos, key.size(), "\"production_profile_touched\": true");
-      CHECK(!astrocs::backend_host::verify_benchmark_report(tampered).empty());
+      CHECK(!acsd::backend_host::verify_benchmark_report(tampered).empty());
     }
     // 篡改 suite → 拒
     {
@@ -225,17 +225,17 @@ int main(int argc, char** argv) {
       CHECK(pos != std::string::npos);
       std::string tampered = o.json;
       tampered.replace(pos, key.size(), "\"suite\": \"full\"");
-      CHECK(!astrocs::backend_host::verify_benchmark_report(tampered).empty());
+      CHECK(!acsd::backend_host::verify_benchmark_report(tampered).empty());
     }
     // 截断 → 拒(malformed)
-    CHECK(!astrocs::backend_host::verify_benchmark_report(o.json.substr(0, 40)).empty());
+    CHECK(!acsd::backend_host::verify_benchmark_report(o.json.substr(0, 40)).empty());
     // 与 cpu-profile/v2 隔离: report 不是合法 v2 profile(生产面拒绝 report 文本)
-    CHECK(!astrocs::backend_host::verify_profile_v2(o.json, "").empty());
+    CHECK(!acsd::backend_host::verify_profile_v2(o.json, "").empty());
   }
 
   // 7) release suite 全量实跑: 12 kernel × 3 规模。耗时数分钟 → 环境变量门控。
-  if (std::getenv("ASTROCS_CPU006_ENABLE_RELEASE") != nullptr) {
-    auto o = astrocs::backend_host::generate_benchmark_report(base_opts("release", 'b'));
+  if (std::getenv("ACSD_CPU006_ENABLE_RELEASE") != nullptr) {
+    auto o = acsd::backend_host::generate_benchmark_report(base_opts("release", 'b'));
     CHECK(!o.json.empty());
     CHECK(o.kernels.size() == 12);
     size_t entries = 0;
@@ -250,19 +250,19 @@ int main(int argc, char** argv) {
       }
     }
     CHECK(entries == 36);
-    CHECK(astrocs::backend_host::verify_benchmark_report(o.json).empty());
+    CHECK(acsd::backend_host::verify_benchmark_report(o.json).empty());
     save_report(out_dir, "bench_report_release.json", o.json);
     std::printf("release: kernels=%zu available=%u thresholds=%d eligible=%d\n",
                 o.kernels.size(), o.available_logical_cpus,
                 o.verdict.thresholds_passed ? 1 : 0,
                 o.verdict.eligible_for_profile ? 1 : 0);
   } else {
-    std::printf("release suite generation skipped (set ASTROCS_CPU006_ENABLE_RELEASE=1 to run)\n");
+    std::printf("release suite generation skipped (set ACSD_CPU006_ENABLE_RELEASE=1 to run)\n");
   }
 
   // 8) quick 覆盖: 1 kernel × 1 规模 + heavy 多线程覆盖(机器无关)
   {
-    auto oq = astrocs::backend_host::generate_benchmark_report(base_opts("quick", 'c'));
+    auto oq = acsd::backend_host::generate_benchmark_report(base_opts("quick", 'c'));
     CHECK(oq.kernels.size() == 1);
     CHECK(oq.kernels.count("calibration-pixel-transform") == 1);
     for (const auto& [sc, w] : oq.kernels.at("calibration-pixel-transform")) {

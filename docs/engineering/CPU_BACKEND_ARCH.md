@@ -1,6 +1,6 @@
 # CPU Backend 架构（C ABI v1 · Loader · Per-Kernel Dispatcher）
 
-> 上游：ASTROCS_DESIGN.md §9（CPU 后端与资源）、§8.5（模块与 ABI）
+> 上游：ACSD_DESIGN.md §9（CPU 后端与资源）、§8.5（模块与 ABI）
 
 ## 1 设计结论
 
@@ -19,7 +19,7 @@
 ## 4 稳定 C ABI v1
 
 - 跨边界面：只传稳定 C ABI 类型；C++ STL / 异常 / RTTI / 编译器分配所有权留在边界内；异常处理限于边界内（测试断言）。
-- 唯一入口：`astrocs_backend_get_api_v1(host_abi_version, host_struct_size, host*, out_api*)`；`struct_size` / version handshake 失配拒绝。
+- 唯一入口：`acsd_backend_get_api_v1(host_abi_version, host_struct_size, host*, out_api*)`；`struct_size` / version handshake 失配拒绝。
 - 结构必含：`abi_version, struct_size`；`backend_id, backend_build_id, backend_sha256`；required/detected feature bits；对齐 / precision / determinism / aliasing 合同；allocator/log/cancel/thread-budget host callbacks；kernel capability 表 + 函数指针；`self_test()/warmup()/shutdown()`；结构化错误码。
 - 内存：分配方释放或全部 host allocator；并发合同逐函数写明（可重入 / 线程安全 / 内部并行 / 嵌套并行）；host 传全局 thread budget，**backend 禁私有线程池**。
 
@@ -32,7 +32,7 @@
 1. 启动前预检失败 → warning / backend event → 回退 baseline → run 开始；
 2. 计算中失败 → **安全中止整个 stage，禁静默换 backend 混合结果**；
 3. profile hash / ABI / kernel version 不匹配 → 该项或整体失效，走保守路线（baseline + 动态 worker）；
-4. baseline 自检失败 → 返回错误并停止执行（退出码唯一源 = `lib/infrastructure/cli/exit_codes.h`，表见 `docs/ASTROCS_DESIGN.md` §7.2；baseline 自检失败映射内部错误码）。
+4. baseline 自检失败 → 返回错误并停止执行（退出码唯一源 = `lib/infrastructure/cli/exit_codes.h`，表见 `docs/ACSD_DESIGN.md` §7.2；baseline 自检失败映射内部错误码）。
 
 ## 7 发布检查
 
@@ -47,5 +47,5 @@
 | §3 六查 + 信任边界 | `docs/engineering/abi/ABI_003_SECURE_LOADER.md`、`eng/tests/backend/test_abi_loader.py`（fake manifest / hash / ISA / path injection 负例） |
 | §4 C ABI v1 | `docs/engineering/abi/ABI_003_SECURE_LOADER.md`、`eng/tests/backend/test_abi_v1.py`（ABI layout 与异常不跨边界） |
 | §5 kernel 表 | `eng/tests/backend/test_abi_kernels.py`（baseline 全 kernel + affinity 多线程） |
-| §6 回退 | `eng/tests/backend/test_cpu_profile.py`（profile 失效 / fallback）+ `docs/ASTROCS_DESIGN.md` §7.2（退出码） |
+| §6 回退 | `eng/tests/backend/test_cpu_profile.py`（profile 失效 / fallback）+ `docs/ACSD_DESIGN.md` §7.2（退出码） |
 | §7 发布 | `eng/packaging/verify_install_tree.py`、`docs/architecture/PRODUCTION_EXECUTION_INVENTORY.csv`（打包面登记） |

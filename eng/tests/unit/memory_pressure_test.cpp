@@ -1,4 +1,4 @@
-// MEMGOV-01 单元判据：内存压力治理（docs/ASTROCS_DESIGN.md §8.3:609-615 编排策略）
+// MEMGOV-01 单元判据：内存压力治理（docs/ACSD_DESIGN.md §8.3:609-615 编排策略）
 //
 // 本文件只判「机制本身」的四条**负例**（负例 = 机制不按设计工作时必须判红），
 // 与生产接线判据（帧轴/调度器集成）分开：
@@ -11,9 +11,9 @@
 //   ⑤ 预算/RSS 不可判定 ⇒ fail-open（放行）且**显式留痕**（红条件：静默变哑）。
 //   ⑥ 调度器集成：压力高 ⇒ 并发节点退化为依次执行且仍跑完（不挂死）；未注入治理器
 //      ⇒ 恢复并发（红绿配对，证明行为差异确实来自本机制）。
-#include "astrocs/core/memory_pressure.h"
-#include "astrocs/core/memory_budget.h"
-#include "astrocs/core/scheduler.h"
+#include "acsd/core/memory_pressure.h"
+#include "acsd/core/memory_budget.h"
+#include "acsd/core/scheduler.h"
 
 #include <atomic>
 #include <chrono>
@@ -24,7 +24,7 @@
 #include <thread>
 #include <vector>
 
-using namespace astrocs::core;
+using namespace acsd::core;
 
 static int failures = 0;
 #define CHECK(cond)                                                          \

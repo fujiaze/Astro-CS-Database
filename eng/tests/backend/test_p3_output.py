@@ -3,7 +3,7 @@
 
 R10-C (bughunt p2 batchL) 增补:
 - test_07..08: fsync 时序断言 (LD_PRELOAD interposer 记录 open/fsync/rename 事件序,
-  断言 flush(数据写出)→fsync→rename; ASTROCS_FAIL_FSYNC=1 注入 fsync 失败 →
+  断言 flush(数据写出)→fsync→rename; ACSD_FAIL_FSYNC=1 注入 fsync 失败 →
   错误传播且无产物发布)。断电/崩溃语义无法真测, 以调用序断言替代。
 - test_09..11: sha256 失败分支 (读失败注入 / 不存在 / 不可读) — 失败必须错误传播,
   绝不写空串/前缀假哈希; 写路径已发布产物哈希失败 → 产物回滚删除。
@@ -12,7 +12,7 @@ import hashlib, math, os, re, shutil, subprocess, tempfile, unittest
 
 REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 HOST = os.path.join(REPO, "lib", "phase3_session")
-# W4-A9 批次 1: p3_wcs.cpp 迁 lib/algorithms/projection/ (docs/ASTROCS_DESIGN §7.1)
+# W4-A9 批次 1: p3_wcs.cpp 迁 lib/algorithms/projection/ (docs/ACSD_DESIGN §7.1)
 PROJ = os.path.join(REPO, "lib", "algorithms", "projection")
 # W4-A9 批次 3: p3_output.cpp 迁 lib/algorithms/fits_output/ (同 §7.1「fits_output」)
 FITS = os.path.join(REPO, "lib", "algorithms", "fits_output")
@@ -79,9 +79,9 @@ class TestP3Output(unittest.TestCase):
                 os.path.join(AIO, "src", "aio_api.cpp"),
                 os.path.join(AIO, "src", "aio_log.cpp")]
         probe = os.path.join(cls.tmp, "fsync_probe")
-        # -Dastrocs_hash_fail_inject: 编入测试钩子; 无 env 时不改变任何行为
+        # -Dacsd_hash_fail_inject: 编入测试钩子; 无 env 时不改变任何行为
         r = subprocess.run(["g++", "-std=c++17", "-O2", "-w", "-DAIO_ENABLE_FITS",
-                            "-Dastrocs_hash_fail_inject", *incs, *srcs,
+                            "-Dacsd_hash_fail_inject", *incs, *srcs,
                             *cls.cfitsio_objs, "-lz", "-lzstd", "-llz4", "-o", probe],
                            capture_output=True, text=True, timeout=600)
         assert r.returncode == 0, r.stderr[-800:]
@@ -105,8 +105,8 @@ class TestP3Output(unittest.TestCase):
     @classmethod
     def _run_fsync_probe(cls, *args, extra_env=None, preload=None):
         env = os.environ.copy()
-        env.pop("ASTROCS_HASH_FAIL_INJECT", None)
-        env.pop("ASTROCS_FAIL_FSYNC", None)
+        env.pop("ACSD_HASH_FAIL_INJECT", None)
+        env.pop("ACSD_FAIL_FSYNC", None)
         if extra_env:
             env.update(extra_env)
         if preload:
@@ -178,7 +178,7 @@ class TestP3Output(unittest.TestCase):
                    "HIPSID","ORDERSEL","SAMPLER","SWVER","HIS"):
             self.assertIn(kw, head, f"missing keyword {kw}")
         # provenance 值
-        self.assertIn("ivo://astrocs/test_p3", head)
+        self.assertIn("ivo://acsd/test_p3", head)
         # P3-002 来源输入合同: 调用方传入的 BUNIT 逐字写出 —— 探针显式传 "ADU"
         # (p3_output_probe_main.cpp:57), 故头内 BUNIT 必须是 'ADU' 本身。
         # 裸 ADU 只在该 (b) 形态(声明了像素语义)下合法; 缺省(未传)串现为 canonical
@@ -297,7 +297,7 @@ class TestP3Output(unittest.TestCase):
     def test_12_publish_order_verify_and_hash_before_rename(self):
         """P-205: 发布序 = fsync → 校验(DATASUM) → sha256 → 原子 rename。
 
-        正本 = IO_003 §4 步骤序 + docs/ASTROCS_DESIGN.md §10「… 校验 → fsync →
+        正本 = IO_003 §4 步骤序 + docs/ACSD_DESIGN.md §10「… 校验 → fsync →
         算哈希 → 原子改名 …」。旧实现是 rename → sha256 → 重开校验（倒置）。
         可观测判据（LD_PRELOAD 事件序，断电语义以调用序替代）:
           (a) RENAME 之前必须存在对 **tmp** 的读打开（校验与 sha256 都读 tmp）;
@@ -370,7 +370,7 @@ class TestP3Output(unittest.TestCase):
         so = self._build_interposer()
         self._build_fsync_probe()
         rc, o, err = self._run_fsync_probe("write", out, 32, 20, 6, preload=so,
-                                           extra_env={"ASTROCS_FAIL_FSYNC": "1"})
+                                           extra_env={"ACSD_FAIL_FSYNC": "1"})
         self.assertNotEqual(rc, 0, "fsync 失败必须错误传播")
         self.assertIn("FAIL 2", o, f"应为 P3_OUT_IO: {o}")  # P3_OUT_IO=2
         self.assertFalse(os.path.exists(out), "fsync 失败不得发布产物")
@@ -386,7 +386,7 @@ class TestP3Output(unittest.TestCase):
         out = os.path.join(self.tmp, "i.fits")
         self._build_fsync_probe()
         rc, o, err = self._run_fsync_probe("write", out, 32, 20, 7,
-                                           extra_env={"ASTROCS_HASH_FAIL_INJECT": "1"})
+                                           extra_env={"ACSD_HASH_FAIL_INJECT": "1"})
         self.assertNotEqual(rc, 0, "哈希失败必须错误传播, 禁止静默成功")
         self.assertIn("FAIL 2", o, f"应为 P3_OUT_IO: {o}")
         self.assertFalse(os.path.exists(out),

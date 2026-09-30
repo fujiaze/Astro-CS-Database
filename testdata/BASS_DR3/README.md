@@ -190,7 +190,7 @@ HiPS 是金字塔：最深级像素尺度决定总量。90Prime 原生 0.455″/
 
 ## 8. 主线项目使用建议（science 是否够用）
 
-**可以只下载 science**。BASS science 帧是已校准（去趋势、含 WCS）的单帧，适合作为主线 AstroCS 的输入测试数据，覆盖：
+**可以只下载 science**。BASS science 帧是已校准（去趋势、含 WCS）的单帧，适合作为主线 ACSD 的输入测试数据，覆盖：
 
 - 单帧读取 / 头部解析 / 格式兼容测试
 - plate solving（头文件 WCS 可作为参考真值）、测光定标、SNR 估算

@@ -4,7 +4,7 @@
 //   · lib/infrastructure/benchmark/backend_host/backend_loader.h（ISA provider 预检/装载）
 //   · lib/infrastructure/benchmark/backend_host/profile_store.h（cpu_profile 原子写）
 // 两份公开头曾各自定义一个**同名同型别 `LoadResult`**（前者=装载裁决，后者=读取裁决），
-// 同一 TU 同时包含即 "redefinition of struct astrocs::backend_host::LoadResult" 编译失败。
+// 同一 TU 同时包含即 "redefinition of struct acsd::backend_host::LoadResult" 编译失败。
 // 读取侧已按语义改名为 `ProfileLoadResult`（见 profile_store.h），两类型
 // 现可在该命名空间共存；本头**不再需要**宏改名收容（原 `#define LoadResult ...` 段已删）。
 #pragma once
@@ -13,7 +13,7 @@
 
 #include <string>
 
-namespace astrocs::cli {
+namespace acsd::cli {
 
 // cpu_profile 落盘结果（命令层可见面；不把 backend_host 的类型语义泄漏给调用方）。
 struct ProfileSaveOutcome {
@@ -28,8 +28,8 @@ inline ProfileSaveOutcome save_cpu_profile_atomic(const std::string& json_text,
                                                  const std::string& hw_json,
                                                  const std::string& current_commit,
                                                  const std::string& target_path) {
-    const astrocs::backend_host::SaveResult sr =
-        astrocs::backend_host::save_profile_atomic_v1(json_text, hw_json, current_commit,
+    const acsd::backend_host::SaveResult sr =
+        acsd::backend_host::save_profile_atomic_v1(json_text, hw_json, current_commit,
                                                      target_path);
     ProfileSaveOutcome out;
     out.ok = sr.ok;
@@ -40,9 +40,9 @@ inline ProfileSaveOutcome save_cpu_profile_atomic(const std::string& json_text,
 
 // 用户级降级落点（CPU-007 口径：XDG / LOCALAPPDATA）。空串 = 不可判定。
 inline std::string user_cpu_profile_path() {
-    const astrocs::backend_host::PathResult pr =
-        astrocs::backend_host::default_profile_path_v1();
+    const acsd::backend_host::PathResult pr =
+        acsd::backend_host::default_profile_path_v1();
     return pr.ok ? pr.path : std::string();
 }
 
-}  // namespace astrocs::cli
+}  // namespace acsd::cli

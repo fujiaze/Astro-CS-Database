@@ -160,7 +160,7 @@ int main() {
     // UPM surface = 帧校正场 C_f (control plane); rejection diagnostics =
     // 每帧 reason 计数; 均不以模糊 "weight" 命名 (P2-001 映射表 §UPM)。
     // GATE-502 空断言普查：原为 CHECK(true) 占位 ⇒ 改为对**生产 API 返回值**断言：
-    // rejection diagnostics 的机器可读语义 id 必须是显式命名（astrocs.*），
+    // rejection diagnostics 的机器可读语义 id 必须是显式命名（acsd.*），
     // 且不得含模糊 token "weight"（§9.73 裁决 A44：权重模式已注销）。
     int ids = 0;
     for (int m = P2_REJECT_NONE; m <= P2_REJECT_MINMAX; ++m) {
@@ -169,7 +169,7 @@ int main() {
       if (!sid) continue;
       ++ids;
       const std::string s(sid);
-      CHECK(s.rfind("astrocs.", 0) == 0);              // 显式命名空间前缀
+      CHECK(s.rfind("acsd.", 0) == 0);              // 显式命名空间前缀
       CHECK(s.find("weight") == std::string::npos);    // 禁模糊 weight 命名
     }
     CHECK(ids >= 10);   // 判据非退化：10 个方法逐个取到语义 id（不是空循环）

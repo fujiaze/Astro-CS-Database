@@ -8,7 +8,7 @@
 #include <string>
 #include <vector>
 
-using namespace astrocs::v6::p1psfw;
+using namespace acsd::v6::p1psfw;
 
 P1PSFW_REGISTER(components) {
     (void)mode;

@@ -27,7 +27,7 @@ constexpr double kStarAmp = 40.0;
 
 inline std::uint64_t leaf_of(std::uint64_t tile, int x, int y) {
     const std::uint64_t local =
-        astrocs::healpix::xy_to_nested_local((std::uint32_t)x, (std::uint32_t)y,
+        acsd::healpix::xy_to_nested_local((std::uint32_t)x, (std::uint32_t)y,
                                              (std::uint32_t)kTileShift);
     return (tile << (2u * (unsigned)kTileShift)) + local;
 }
@@ -36,7 +36,7 @@ inline void cell_center_radec(std::uint64_t tile, int gx, int gy,
     const int x = gx * kCellSide + kCellSide / 2;
     const int y = gy * kCellSide + kCellSide / 2;
     const std::uint64_t leaf = leaf_of(tile, x, y);
-    astrocs::healpix::pix2ang_nest(1u << (unsigned)(kTargetOrder + kTileShift),
+    acsd::healpix::pix2ang_nest(1u << (unsigned)(kTargetOrder + kTileShift),
                                    leaf, *ra, *dec);
 }
 inline double true_sky(double ra_deg, double dec_deg) {

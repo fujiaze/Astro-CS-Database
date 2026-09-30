@@ -364,11 +364,11 @@ static void make_vote_matrix(
     // 一维等价循环: 迭代集合 {(i,j)} 与二维形式逐一对应 (k = i*numB + j), 每轮只写
     // votes[i][j] 这一个互不重叠的元素、只读 local_votes ⇒ 结果逐位不变; 并行度与 GCC
     // 的 collapse(2) 等价 (MSVC 旧行为下只并行外层, 本改动同时修掉该性能回退)。
-    const int acs_total = numA * numB;   // numB == 0 ⇒ 不进入循环, 无除零
+    const int acsd_total = numA * numB;   // numB == 0 ⇒ 不进入循环, 无除零
     #pragma omp parallel for schedule(static)
-    for (int acs_k = 0; acs_k < acs_total; ++acs_k) {
-        const int i = acs_k / numB;
-        const int j = acs_k % numB;
+    for (int acsd_k = 0; acsd_k < acsd_total; ++acsd_k) {
+        const int i = acsd_k / numB;
+        const int j = acsd_k % numB;
         {
             int sum = 0;
             size_t idx = (size_t)i * numB + j;

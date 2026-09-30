@@ -1,6 +1,6 @@
 {
   global:
-    astrocs_module_query_v1;
+    acsd_module_query_v1;
   local:
     *;
 };

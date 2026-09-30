@@ -17,8 +17,8 @@
 
 == P2b-4: F_ref group-common — L4 (stale, pre-4f341b15) vs code state ==
   HiPS signal products scanned: 49 ; missing keys: 3
-  ASTROCS_REFERENCE_FLUX: min=1728.85 median=3457.71 max=11883  max/min=6.873
-  ASTROCS_FRAME_SNR:      min=21.364 median=27.3646 max=47.3882
+  ACSD_REFERENCE_FLUX: min=1728.85 median=3457.71 max=11883  max/min=6.873
+  ACSD_FRAME_SNR:      min=21.364 median=27.3646 max=47.3882
   ⇒ L4 数据违反组内公共 F_ref（46 帧 F_ref 变化 ~6.87x），生成于 2026-09-18 23:53，
     早于修复提交 4f341b15 (2026-09-19 01:42)；当前代码 module_adapters.cpp:3180-3282
     两遍法/显式配置已为整组选定单一公共 F0，写侧 astro_sphere_sink 另加 P2b-4 闸门。

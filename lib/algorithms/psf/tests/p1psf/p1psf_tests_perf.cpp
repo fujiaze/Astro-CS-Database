@@ -2,7 +2,7 @@
 // P1-PSF-TEST · performance 基线组 (独立可执行 p1psf_perf_test)
 // ----------------------------------------------------------------------------
 // 合同锚: ALG STAR_PSF_ALGORITHMS.md §11.4 (TEST-PSF-DESIGN-001 performance
-// 组) + AstroCS_ENGINEERING_CONSTRAINTS §D.7 (多核加速比 ≥1.60, 2 核基准)。
+// 组) + ACSD_ENGINEERING_CONSTRAINTS §D.7 (多核加速比 ≥1.60, 2 核基准)。
 //
 // CI 森严惯例 (对齐 p1cal/p1cos/p1drz_performance): 绝对耗时门槛由专用基准
 // 环境采集, 不在本测试面预设 (防硬件漂移 CI 假红); 本组断言:

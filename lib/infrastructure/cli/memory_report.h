@@ -16,7 +16,7 @@
 // last_alloc_outstanding > 32MiB 且 reclaim_frac_alloc < 0.5 → 仍判
 // UnexplainedResidual。判定为 Reclaimed 而 RSS 仍有残留时显式登记
 // allocator_cache_residual_bytes(收尾 RSS 中不被 live outstanding 解释的部分),
-// 不静默通过。schema 由 astrocs.memory-report/v1 升 v2(新增字段, 旧字段语义不变)。
+// 不静默通过。schema 由 acsd.memory-report/v1 升 v2(新增字段, 旧字段语义不变)。
 // allocator outstanding 探针: Linux glibc mallinfo2(uordblks+hblkhd);
 // 非 glibc 平台保持 0 且 allocator_probe_available=false(显式未采样, 不冒充)。
 // private 探针: /proc/self/smaps_rollup Private_Clean+Private_Dirty; 不可得=0
@@ -42,7 +42,7 @@
 // G-RES-01 阈值唯一数值源（CMake 从 eng/contracts/resource_gate_v1.json 生成）。
 #include "resource_gate_thresholds_generated.h"
 
-namespace astrocs {
+namespace acsd {
 
 // ---- 阈值常量(G-RES-01; 数值唯一源 = eng/contracts/resource_gate_v1.json) ----
 // 增长判定: 稳健斜率(Unbounded)对齐 resource_gate.h GateConfig
@@ -203,11 +203,11 @@ struct AllocSamplePoint {
     uint8_t sampled = 1;                // 0=采样失败哨兵(非法值, 不入统计)
 };
 
-// 报告(astrocs.memory-report/v2; 原始曲线在 alloc_samples.csv, 本结构为摘要)。
+// 报告(acsd.memory-report/v2; 原始曲线在 alloc_samples.csv, 本结构为摘要)。
 // v2 = F-14 新增 reclaim_frac_alloc / allocator_cache_residual_bytes /
 // reclaim_measure(旧字段名与语义不变)。
 struct AllocReport {
-    static constexpr const char* kSchema = "astrocs.memory-report/v2";
+    static constexpr const char* kSchema = "acsd.memory-report/v2";
     std::size_t n_samples = 0;         // 有效样本(哨兵除外)
     std::size_t n_sentinel = 0;        // 采样失败哨兵行数(显式呈现)
     std::size_t n_curve = 0;           // 曲线总行数(有效+哨兵)
@@ -245,7 +245,7 @@ inline bool write_alloc_report_json(const std::string& out_dir, const AllocRepor
     std::FILE* f = std::fopen((out_dir + "/alloc_report.json").c_str(), "w");
     if (!f) return false;
     std::fprintf(f,
-        "{\"schema\":\"astrocs.memory-report/v2\",\"n_samples\":%zu,\"n_sentinel\":%zu,"
+        "{\"schema\":\"acsd.memory-report/v2\",\"n_samples\":%zu,\"n_sentinel\":%zu,"
         "\"n_curve\":%zu,\"wall_seconds\":%.3f,"
         "\"peak_rss_bytes\":%llu,\"last_rss_bytes\":%llu,"
         "\"peak_commit_bytes\":%llu,\"last_commit_bytes\":%llu,"
@@ -593,7 +593,7 @@ inline bool validate_alloc_report(const std::string& dir) {
     (void)frac_alloc;
     (void)cache_residual;
     if (n_curve != t.size() || n_samples != y.size() || n_sentinel != sentinel) return false;
-    if (js.find("astrocs.memory-report/v2") == std::string::npos) return false;
+    if (js.find("acsd.memory-report/v2") == std::string::npos) return false;
     if (y.empty()) {
         if (peak != 0 || last != 0) return false;
         if (frac >= 0.0) return false;   // 未采样必须 -1 哨兵, 不得冒充 0 回落
@@ -621,4 +621,4 @@ inline bool validate_alloc_report(const std::string& dir) {
     return true;
 }
 
-}  // namespace astrocs
+}  // namespace acsd

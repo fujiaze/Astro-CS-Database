@@ -1,6 +1,6 @@
 # PSF Algorithms (ALG-PSF)
 
-> 上游：ASTROCS_DESIGN.md §4.2（Phase1 节点流程）
+> 上游：ACSD_DESIGN.md §4.2（Phase1 节点流程）
 
 ## 1 上游 SCI 与输入输出
 

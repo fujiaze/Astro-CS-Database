@@ -20,12 +20,12 @@ from astropy.io import fits
 ROOT = Path(__file__).resolve().parents[3]
 SAT = ROOT / "run" / "temp" / "satgate" / "e2e" / "real16"
 CLI = os.environ.get(
-    "ASTROCS_REJECTION_CLI",
+    "ACSD_REJECTION_CLI",
     str(ROOT / "lib" / "phase2" / "build" / "rejection_cli.exe"),
 )
 PLAN = {"request": "auto", "nominal": 16, "profile": "wbpp_2_9_1",
         "underdetermined_n": 2,
-        "normalization": "astrocs_median_center_v1"}
+        "normalization": "acsd_median_center_v1"}
 FRAMES = [SAT / f"frame{n:02d}.hips" for n in range(16)]
 TRAIL_FRAME = 8
 SEED = 20260814
@@ -41,10 +41,10 @@ def load_tile(hips, ipix, product="signal"):
 
 
 def kernel_reasons(vals):
-    mingw = os.environ.get("ASTROCS_MINGW_BIN", r"C:\msys64\mingw64\bin")
+    mingw = os.environ.get("ACSD_MINGW_BIN", r"C:\msys64\mingw64\bin")
     if mingw not in os.environ.get("PATH", ""):
         os.environ["PATH"] = mingw + ";" + \
-            os.environ.get("ASTROCS_AIO_DIR",
+            os.environ.get("ACSD_AIO_DIR",
                            str(ROOT / "lib" / "astro_image_io")) + ";" + \
             os.environ.get("PATH", "")
     fd, pf = tempfile.mkstemp(suffix=".json")

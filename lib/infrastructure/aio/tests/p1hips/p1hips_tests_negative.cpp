@@ -118,7 +118,7 @@ int test_negative() {
 
         // M8d-A-01/AIO-001: nside 必须是 2 的幂 (ALG-HIPS-001 (1a) "nside=2^K>=512")。
         // 非 2 的幂会被 ilog2_u64 向下取整静默夹逼并据此写出与调用方声明不一致的
-        // NSIDE/A_cell/leaf_order —— 属 docs/ASTROCS_DESIGN §9 禁止的"看似完整产品"。
+        // NSIDE/A_cell/leaf_order —— 属 docs/ACSD_DESIGN §9 禁止的"看似完整产品"。
         const std::uint32_t kNsideNotPow2[] = {600u, 513u, 768u, 1000u, 1536u};
         for (std::uint32_t bad_nside : kNsideNotPow2) {
             ps = aio_hips_product_begin(dir.c_str(), bad_nside, 512, AIO_HIPS_FLOAT64,
@@ -383,12 +383,12 @@ int test_negative() {
             P1HIPS_CHECK_EQ(cs, aio_hips_write_signal_support_tile(ps, &fx.view), 0);
             P1HIPS_CHECK_EQ(cs, aio_hips_finalize(ps), 0);
             const auto kv = read_properties(dir + "/signal/properties");
-            P1HIPS_CHECK_MSG(cs, kv.count("ASTROCS_DRIZZLE_PIXFRAC") &&
-                                     kv.count("ASTROCS_DRIZZLE_SCALE_ARCSEC"),
+            P1HIPS_CHECK_MSG(cs, kv.count("ACSD_DRIZZLE_PIXFRAC") &&
+                                     kv.count("ACSD_DRIZZLE_SCALE_ARCSEC"),
                              "n5_all_or_none_keys",
                              "provenance 接受后必须两键齐备 (pixfrac=%d scale=%d)",
-                             (int)kv.count("ASTROCS_DRIZZLE_PIXFRAC"),
-                             (int)kv.count("ASTROCS_DRIZZLE_SCALE_ARCSEC"));
+                             (int)kv.count("ACSD_DRIZZLE_PIXFRAC"),
+                             (int)kv.count("ACSD_DRIZZLE_SCALE_ARCSEC"));
         }
     }
 
@@ -474,17 +474,17 @@ int test_negative() {
     // --- N10 (AIO-001/M9-G-6): properties 是 IVOA+provenance 唯一文本载体,
     //     其落盘失败必须传播 (修复前与 write_properties 同为 void/静默 return:
     //     fopen 失败即 return、fprintf/fclose 不查 ⇒ finalize 照常返回 0,
-    //     产出缺 properties 的"完整"产品, 违反 docs/ASTROCS_DESIGN §9)。
+    //     产出缺 properties 的"完整"产品, 违反 docs/ACSD_DESIGN §9)。
     //     同时断言原子落盘纪律: 失败路径不得残留 .tmp.* 临时文件。
     {
-        // 注入面: ASTROCS_HIPS_PROV_FAULT=properties_write_fail (测试专用等价缺陷面,
+        // 注入面: ACSD_HIPS_PROV_FAULT=properties_write_fail (测试专用等价缺陷面,
         // 与既有 missing_key/value_drift/sentinel/skip_write/shortcut 五个注入点同机制)。
-        const char* prev = std::getenv("ASTROCS_HIPS_PROV_FAULT");
+        const char* prev = std::getenv("ACSD_HIPS_PROV_FAULT");
         const std::string prev_s = prev ? std::string(prev) : std::string();
 #ifdef _WIN32
-        _putenv_s("ASTROCS_HIPS_PROV_FAULT", "properties_write_fail");
+        _putenv_s("ACSD_HIPS_PROV_FAULT", "properties_write_fail");
 #else
-        ::setenv("ASTROCS_HIPS_PROV_FAULT", "properties_write_fail", 1);
+        ::setenv("ACSD_HIPS_PROV_FAULT", "properties_write_fail", 1);
 #endif
         const std::string dir = make_tmp_dir("n10");
         AioHipsProductSet* ps = aio_hips_product_begin(
@@ -499,7 +499,7 @@ int test_negative() {
             // 修复前: properties 与 FITS 同一子产品路径均为静默/void
             // (write_properties fopen 失败即 return、fprintf/fclose 不查) ⇒ 即使
             // properties 写不出, finalize 仍按成功返回 0 —— 产出缺 IVOA/provenance
-            // 唯一文本载体的"完整"产品, 违反 docs/ASTROCS_DESIGN §9。
+            // 唯一文本载体的"完整"产品, 违反 docs/ACSD_DESIGN §9。
             // 修复后: properties 原子写失败 → 子产品失败码 −3 上报。
             P1HIPS_CHECK_MSG(cs, frc == -3, "n10_finalize_propagates_properties_failure",
                              "properties 不可写 finalize 期望 −3, got %d", frc);
@@ -512,15 +512,15 @@ int test_negative() {
         // 恢复注入面 (后续用例必须回到未注入语义)
         if (!prev_s.empty()) {
 #ifdef _WIN32
-            _putenv_s("ASTROCS_HIPS_PROV_FAULT", prev_s.c_str());
+            _putenv_s("ACSD_HIPS_PROV_FAULT", prev_s.c_str());
 #else
-            ::setenv("ASTROCS_HIPS_PROV_FAULT", prev_s.c_str(), 1);
+            ::setenv("ACSD_HIPS_PROV_FAULT", prev_s.c_str(), 1);
 #endif
         } else {
 #ifdef _WIN32
-            _putenv_s("ASTROCS_HIPS_PROV_FAULT", "");
+            _putenv_s("ACSD_HIPS_PROV_FAULT", "");
 #else
-            ::unsetenv("ASTROCS_HIPS_PROV_FAULT");
+            ::unsetenv("ACSD_HIPS_PROV_FAULT");
 #endif
         }
     }
@@ -565,7 +565,7 @@ int test_negative() {
                         AIO_HIPS_ABI_MISMATCH);
     }
 
-    // --- N11: 跨边界结构 ABI fail-closed (V11-N-01; docs/ASTROCS_DESIGN §7.3)
+    // --- N11: 跨边界结构 ABI fail-closed (V11-N-01; docs/ACSD_DESIGN §7.3)
     //   无 ABI 头的旧调用方 (struct_size/abi_version=0) 与错尺寸/错版本必须在
     //   公共入口被拒绝 (AIO_HIPS_ABI_MISMATCH=-9) 且 last_error 点名 ABI;
     //   合法 ABI 头不得被误拒 (双向排除)。修复前这些调用会被"按盲步长"读取:

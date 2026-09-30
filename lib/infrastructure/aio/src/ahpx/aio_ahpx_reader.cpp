@@ -14,12 +14,12 @@
 namespace aio::ahpx {
 
 // ============================================================================
-// 测试用故障注入 (先例: P2-002/P3-002/AIO-001 的 ASTROCS_*_FAULT)
+// 测试用故障注入 (先例: P2-002/P3-002/AIO-001 的 ACSD_*_FAULT)
 // 仅供回归锁证明"能红"; 正常实现不读该变量。
 //   accept_legacy - 跳过"旧格式含 weight 字段/块即拒绝"守卫
 // ============================================================================
 static bool ahpxFault(const char* name) {
-    const char* v = std::getenv("ASTROCS_AHPX_FAULT");
+    const char* v = std::getenv("ACSD_AHPX_FAULT");
     return v && std::string(v) == name;
 }
 
@@ -309,7 +309,7 @@ const BlockIndex* AhpxReader::findBlock(const std::string& id) const {
 bool AhpxReader::parseHeader() {
     m_blocks.clear();
 
-    // 旧格式显式拒绝 (变更 AHPX-WEIGHT-RETIRE-20260920; docs/ASTROCS_DESIGN §2.1):
+    // 旧格式显式拒绝 (变更 AHPX-WEIGHT-RETIRE-20260920; docs/ACSD_DESIGN §2.1):
     // 头 JSON 的 "weight" 字段是旧权重模式
     // (SCALAR/GRID/PIXEL) 的载体, 本格式不承载权重 ⇒ fail-closed, 禁静默忽略。
     if (!ahpxFault("accept_legacy") && hasJsonKey(m_headerJson, RETIRED_WEIGHT_FIELD)) {

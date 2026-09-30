@@ -1,6 +1,6 @@
 # 文档体系治理规范（DOCUMENT GOVERNANCE）
 
-> 上游：docs/ASTROCS_DESIGN.md §0（文档权威与索引）、§0.1（文档写法）；docs/DOCUMENT_INDEX.yaml（登记规则见 docs/engineering/DOCUMENT_GOVERNANCE.md））。
+> 上游：docs/ACSD_DESIGN.md §0（文档权威与索引）、§0.1（文档写法）；docs/DOCUMENT_INDEX.yaml（登记规则见 docs/engineering/DOCUMENT_GOVERNANCE.md））。
 > 地位：文档体系的分层模型、准入判据、写法判据、登记面判据、上游抬头与正向书写条款的唯一正本；文档集目录拓扑的正本在 `docs/DOCUMENT_INDEX.yaml`。
 > 判据同源：本文每一条都写成可判定的谓词——给输入面、红条件、计数证据三种要素——执行面是第 6 节的对抗性审查逐条覆盖。
 > 谓词形式：本文每一条都写成可判定的谓词（输入面、红条件、计数证据三要素），但**谓词形式不构成登记为机器门禁的依据**——文档域不设机器门，正确性由对抗性审查逐条覆盖，机器面若出现同义判据视为重复建设（判据边界见 `VALIDATION_EVIDENCE_STANDARD.md` §12.5、§12.6）。
@@ -9,7 +9,7 @@
 
 ```text
 docs/
-  ├── ASTROCS_DESIGN.md         最高设计（权威链顶点）
+  ├── ACSD_DESIGN.md         最高设计（权威链顶点）
   ├── DOCUMENT_INDEX.yaml       全文档机器索引（唯一索引地图）
   ├── GLOSSARY.md               术语表（全局）
   ├── KNOWN_LIMITATIONS.md      已知偏差与限制
@@ -38,7 +38,7 @@ docs/
 | 工程线（`docs/engineering/`；机器合同件留原位：`docs/contracts/`、`docs/standards/`、`docs/architecture/`） | 载有行为合同、命令树、调度/资源/AIO 边界的工程权威正文 | 内容降级为流水说明 ⇒ 并入对应细节面 |
 | 细节与运维（`docs/detail/`；机器件留原位：`docs/modules/`、`docs/traceability/`） | 上层文档的落地细化、模块工作细节、机器合同说明；与上层口径冲突的内容不成立 | 被晋升为上层（须有上层条款承载） |
 
-- 细节面每篇抬头有「上游：〈上层文档 §条〉」区；科学线与工程线每篇抬头有「上游：docs/ASTROCS_DESIGN.md §条」区，书写形态按 §4.5 的号—标题双要素；
+- 细节面每篇抬头有「上游：〈上层文档 §条〉」区；科学线与工程线每篇抬头有「上游：docs/ACSD_DESIGN.md §条」区，书写形态按 §4.5 的号—标题双要素；
 - **科学佐证纪律（全局）**：科学线每篇的一级断言须能被 `实验/` 单元与一手公开资料支撑；非创新点算法（校准、platesolve、cosmetic 等）同样要求「一手文献 + 成熟开源实现 + `实验/` 复算」三支撑，文献与项目版本写入文档头部佐证来源区并进 `docs/DOCUMENT_INDEX.yaml`；
 - **上层文档是权威**：代码与细节面向上层对齐；发现冲突时按 `AGENTS.md` §8 的查证流程处置，再订正文档或改代码并补 Oracle/负例。
 
@@ -53,7 +53,7 @@ docs/
 ### 4.1 通用维护纪律
 
 1. 每条 `docs/` 路径引用与索引条目在同一批改动内闭合：`docs/DOCUMENT_INDEX.yaml` 与 `docs/TRACEABILITY.csv` 同批更新，由第 6 节的对抗性审查确认索引闭合后才算完成；
-2. 引用重写规则：`docs/` 前缀路径按新拓扑改写；markdown 相对链接逐条解析改写；裸名 `ASTROCS_DESIGN.md` 在 `docs/` 外带 `docs/` 前缀、在 `docs/` 内保持裸名；
+2. 引用重写规则：`docs/` 前缀路径按新拓扑改写；markdown 相对链接逐条解析改写；裸名 `ACSD_DESIGN.md` 在 `docs/` 外带 `docs/` 前缀、在 `docs/` 内保持裸名；
 3. 本域改动面不含 `eng/contracts/` 冻结 schema、`实验/` 单元、`testdata/`、`gaia/`；这些面的处置属各自域；
 4. 索引与文件树一致：未登记即缺陷，登记不存在同样是缺陷；判定按 §4.2 的对象集与 §4.7 的排除面执行。
 
@@ -129,7 +129,7 @@ docs/
 
 ### 7.1 分层施加与豁免面
 
-写法判据只作用于**正式文档层**：`docs/**`、仓库根 `*_SPEC.md`、`docs/ASTROCS_DESIGN.md`、`AGENTS.md`。过程层与证据层以过程记录与任务编号为本分，不按正式文档层的写法判据逐字判定——逐字套用会让整批过程件恒判违规，读数失去判别力。
+写法判据只作用于**正式文档层**：`docs/**`、仓库根 `*_SPEC.md`、`docs/ACSD_DESIGN.md`、`AGENTS.md`。过程层与证据层以过程记录与任务编号为本分，不按正式文档层的写法判据逐字判定——逐字套用会让整批过程件恒判违规，读数失去判别力。
 
 - **豁免面（封闭枚举）**：`docs/research/**`、`docs/references/**`、`artifacts/**`、`实验/**/results/**`，退役件的失效标注区，以及本文件 §7.2 词表所在的围栏块。
 - 豁免面内的写法问题改判两种具名判据：**角色错放**——应落在过程层或证据层的件留在正式文档层；**缺处置登记**——采纳、驳回、悬空三类处置没有登记面。

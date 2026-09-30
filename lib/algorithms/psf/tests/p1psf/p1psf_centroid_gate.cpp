@@ -52,7 +52,7 @@
 #include "star_coord_contract.h"
 #include "star_detector.h"
 
-namespace coord = astrocs::p1::coord;
+namespace coord = acsd::p1::coord;
 
 namespace {
 

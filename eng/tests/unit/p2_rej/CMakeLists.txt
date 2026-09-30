@@ -5,7 +5,7 @@
 # 以独立集成提交 add_subdirectory(eng/tests/unit/p2_rej) 即可。
 #
 # 自包含：本 target 直接编译生产源 lib/algorithms/coverage/src/rejection.cpp，不链接
-# astrocs_phase2（避免与既有成员产生重复符号），因此本目录可独立配置/运行
+# acsd_phase2（避免与既有成员产生重复符号），因此本目录可独立配置/运行
 # （shadow build 见 run/v6/IMPL-P2-REJ-001/）。
 # ============================================================================
 set(P2_REJ_V6_SRC ${CMAKE_CURRENT_SOURCE_DIR}/../../../../lib//algorithms/coverage/src/rejection.cpp)
@@ -15,7 +15,7 @@ add_executable(p2_rej_test p2_rej_test.cpp ${P2_REJ_V6_SRC})
 target_include_directories(p2_rej_test PRIVATE
   ${CMAKE_CURRENT_SOURCE_DIR}
   ${P2_REJ_V6_INC})
-target_link_libraries(p2_rej_test PRIVATE astrocs_platform_math)
+target_link_libraries(p2_rej_test PRIVATE acsd_platform_math)
 
 add_test(NAME p2_rej_units       COMMAND p2_rej_test units)
 add_test(NAME p2_rej_oracle      COMMAND p2_rej_test oracle)

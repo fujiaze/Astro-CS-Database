@@ -22,7 +22,7 @@
 
 #include <nlohmann/json.hpp>
 
-namespace bh = astrocs::backend_host;
+namespace bh = acsd::backend_host;
 
 static int failures = 0;
 #define CHECK(cond)                                                           \
@@ -83,7 +83,7 @@ static nlohmann::json base_host_json() {
 static nlohmann::json base_build_json(const std::string& commit,
                                       const std::string& bench_sha = std::string(64, 'e')) {
   nlohmann::json b;
-  b["astrocs_version"] = "0.0.0-alpha.0";   // 合法 semver 占位(N3: verify 不钉死版本)
+  b["acsd_version"] = "0.0.0-alpha.0";   // 合法 semver 占位(N3: verify 不钉死版本)
   b["source_commit"] = commit;
   b["benchmark_binary_sha256"] = bench_sha;
   b["runtime_build_id"] = "r1";
@@ -116,7 +116,7 @@ static std::string make_profile(const std::string& commit = COMMIT,
                                 const std::string& os_abi = "linux",
                                 const std::string& vendor = "x") {
   nlohmann::json p;
-  p["schema"] = "astrocs.cpu-profile/v2";
+  p["schema"] = "acsd.cpu-profile/v2";
   p["profile_id"] = "sha256:" + std::string(64, 'f');
   p["created_utc"] = "2026-09-01T00:00:00Z";
   nlohmann::json h = base_host_json();

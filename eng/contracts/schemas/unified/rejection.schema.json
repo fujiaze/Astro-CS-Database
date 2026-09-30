@@ -1,12 +1,12 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://astrocs.local/schemas/unified/rejection/v1",
+  "$id": "https://acsd.local/schemas/unified/rejection/v1",
   "title": "ACSD 统一对象 rejection —— 污染推断结果",
   "description": "UNIFIED_MODEL §2：rejection = 污染推断结果；可否作权重 = 门/概率，不是 coverage。rejection 必须携带污染推断本体；禁止把 coverage（几何有效域）当作 rejection 提交。",
-  "x-astrocs-object": {
+  "x-acsd-object": {
     "name": "rejection",
     "canonical_file": "eng/contracts/schemas/unified/rejection.schema.json",
-    "authority": "docs/detail/UNIFIED_MODEL.md §2；docs/ASTROCS_DESIGN.md §2；ENGINEERING_SPEC.md §3/§4.7",
+    "authority": "docs/detail/UNIFIED_MODEL.md §2；docs/ACSD_DESIGN.md §2；ENGINEERING_SPEC.md §3/§4.7",
     "weight_verdict": "门/概率，不是 coverage",
     "weight_eligible": false
   },
@@ -54,7 +54,7 @@
       "description": "对象判别式：本文档声明的 UNIFIED_MODEL §2 对象名（禁止用别的对象名冒充）"
     },
     "object_schema_id": {
-      "const": "https://astrocs.local/schemas/unified/rejection/v1",
+      "const": "https://acsd.local/schemas/unified/rejection/v1",
       "description": "全局唯一 schema ID（eng/contracts/schemas/unified/rejection.schema.json）"
     },
     "schema_version": {

@@ -43,7 +43,7 @@ CheckState g_perf_cs;
 void perf_write_worker(const std::string& dir) {
     AioHipsProductSet* ps = aio_hips_product_begin(
         dir.c_str(), FIX_NSIDE, 512, AIO_HIPS_FLOAT64, AIO_HIPS_PRODUCT_ALL_V19,
-        "ivo://astrocs/test/p1hips", "perf", nullptr, 100.0,
+        "ivo://acsd/test/p1hips", "perf", nullptr, 100.0,
         "2026-09-07T00:00:00", 0);
     if (!ps) return;
     FixViewF64 t0 = fix_hips_a_tile(0, 10.0, 0.5, 1.5, true, true);

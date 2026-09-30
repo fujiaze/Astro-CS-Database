@@ -8,7 +8,7 @@
 // 依赖面: 仅 aio_hips.h (无 windows.h / 不链接生产库) => Linux amd64 控制节点
 // 可直接编译。
 //
-// 同时以 static_assert 锁定跨边界结构的 ABI 头部契约 (docs/ASTROCS_DESIGN §7.3):
+// 同时以 static_assert 锁定跨边界结构的 ABI 头部契约 (docs/ACSD_DESIGN §7.3):
 // struct_size 在偏移 0, abi_version 在偏移 4, 且二者均为 uint32_t。
 // ============================================================================
 #include <cstddef>
@@ -21,9 +21,9 @@
 // --- ABI 头部契约 (编译期锁; 任一结构漂移即编译失败) ---
 #define AIO_ABI_HEAD_ASSERT(T)                                                \
     static_assert(offsetof(T, struct_size) == 0,                              \
-                  #T ".struct_size 必须在偏移 0 (docs/ASTROCS_DESIGN 7.3)");       \
+                  #T ".struct_size 必须在偏移 0 (docs/ACSD_DESIGN 7.3)");       \
     static_assert(offsetof(T, abi_version) == 4,                              \
-                  #T ".abi_version 必须在偏移 4 (docs/ASTROCS_DESIGN 7.3)");       \
+                  #T ".abi_version 必须在偏移 4 (docs/ACSD_DESIGN 7.3)");       \
     static_assert(std::is_same<decltype(T::struct_size), uint32_t>::value,    \
                   #T ".struct_size 必须为 uint32_t");                          \
     static_assert(std::is_same<decltype(T::abi_version), uint32_t>::value,    \

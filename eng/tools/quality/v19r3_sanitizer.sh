@@ -8,13 +8,13 @@
 # 无真实大数据；合成驱动 + 已知矩阵。ASAN detect_leaks=1, UBSAN halt。
 #
 # 用法（在 Windows 上）：wsl bash -lc 'bash /mnt/f/.../tools/quality/v19r3_sanitizer.sh'
-# 输出：$HOME/astrocs_san_out/（含 sanitizer_coverage.csv + 逐模块日志）
+# 输出：$HOME/acsd_san_out/（含 sanitizer_coverage.csv + 逐模块日志）
 # =============================================================================
 set -u
 
 REPO_SRC="/mnt/f/Astro dev/Astro CS Normalization Database"
-WORK="$HOME/astrocs_v19r3_san"
-OUT="$HOME/astrocs_san_out"
+WORK="$HOME/acsd_v19r3_san"
+OUT="$HOME/acsd_san_out"
 SAN="-fsanitize=address,undefined -fno-omit-frame-pointer -g -O1"
 export ASAN_OPTIONS="detect_leaks=1:halt_on_error=1"
 export UBSAN_OPTIONS="halt_on_error=1:print_stacktrace=1"

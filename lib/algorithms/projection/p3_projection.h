@@ -15,17 +15,17 @@
 //   D4 AIT 域判据 A<2（正确为 A≤1；接受 |X_v1|>2 rad 的折叠环带）。
 //
 // 权威依据（与 v6 线一致）:
-//   * docs/ASTROCS_DESIGN.md §6.3 八投影冻结集合（TAN/SIN/CAR/AIT/STG/MOL/CEA/ZEA）；
+//   * docs/ACSD_DESIGN.md §6.3 八投影冻结集合（TAN/SIN/CAR/AIT/STG/MOL/CEA/ZEA）；
 //   * Calabretta & Greisen (2002) FITS WCS Paper II §2.1/§2.2（旋转三 Euler 角、
 //     LONPOLE 默认、各投影 native 层）；
 //   * ALG-P3-PROJ-IMPL-001 §15（v1 偏差表 + v3 冻结口径）。
 //   * fail-closed：未知投影码/越界 id/非法参数/空指针显式拒绝，无静默默认。
-#ifndef ASTROCS_P3_PROJECTION_H
-#define ASTROCS_P3_PROJECTION_H
+#ifndef ACSD_P3_PROJECTION_H
+#define ACSD_P3_PROJECTION_H
 
 #include <string>
 
-namespace astrocs::phase3proj {
+namespace acsd::phase3proj {
 
 // ---- registry 版本（版本化 projection registry，DESIGN §6.3）----
 // v1: 首批四投影 TAN/SIN/CAR/AIT（**RETIRED**，见文件头；四项偏差登记于
@@ -111,6 +111,6 @@ P3ProjectionStatus p3_projection_world2pix(const P3ProjectionDescriptor* d,
 // p3_wcs_fits_keywords 同族，每行 ≤80 字节）；空 descriptor → 空串。
 std::string p3_projection_fits_keywords(const P3ProjectionDescriptor* d);
 
-}  // namespace astrocs::phase3proj
+}  // namespace acsd::phase3proj
 
-#endif  // ASTROCS_P3_PROJECTION_H
+#endif  // ACSD_P3_PROJECTION_H

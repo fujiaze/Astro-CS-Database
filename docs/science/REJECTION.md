@@ -1,6 +1,6 @@
 # Rejection / Outlier Science (SCI-REJ)
 
-> 上游：ASTROCS_DESIGN.md §5.5（逐像素排异）
+> 上游：ACSD_DESIGN.md §5.5（逐像素排异）
 
 > 本文件条款为冻结定义，变更走变更流程。
 
@@ -20,7 +20,7 @@
 | `n` | `nominal contributors` 几何可贡献数（一次解析） | `p2_reject_plan_resolve` |
 | `n_eff` | 资格后有效候选数 | 资格层 |
 | `method` | `None/Sigma/Winsorized/AveragedSigma/LinearFit/GeneralizedESD/RCR` | `P2RejectionMethod` |
-| `profile` | `astrocs_adaptive_pixel`（**生产默认，Astro Celestial Sphere Database（ACSD） 自研**）/ `wbpp_2_9_1`（对照档）/ `wbpp_current`(alias) / `astrocs_adaptive`（可调档） | `plan` |
+| `profile` | `acsd_adaptive_pixel`（**生产默认，Astro Celestial Sphere Database（ACSD） 自研**）/ `wbpp_2_9_1`（对照档）/ `wbpp_current`(alias) / `acsd_adaptive`（可调档） | `plan` |
 | `large_scale` | 结构生长开关及参数 | `P2RejectionLargeScaleConfig` |
 | `P2_REASON_*` | `ACCEPTED/REJECTED_LOW/REJECTED_HIGH/UNDERDETERMINED` | `lib/algorithms/coverage/include/astro/phase2/rejection.h` |
 | `P2_STATUS_*` | `OK/MIN_SAMPLES/ALL_REJECTED/INVALID_INPUT/UNDERDETERMINED/...` | `lib/algorithms/coverage/include/astro/phase2/rejection.h` |
@@ -43,14 +43,14 @@
 - `n` 为 planning 层 `nominal contributors`，一次解析；本层路由只由该值决定（`docs/science/REJECTION.md`）。
 - 方法合法且 `method != AUTO` 才进 kernel；`n <= underdetermined_n` 或 `n < minimum_n` ⇒ `UNDERDETERMINED`
   （`rejection.cpp`）。**`underdetermined_n` 的默认值由 profile 与 request 决定**
-  （`rejection.cpp`，实测）：`astrocs_adaptive_pixel` ∧ `request=AUTO` ⇒ **3**（生产默认档）；
-  `astrocs_adaptive_pixel` ∧ `request=extreme_value_clip_prior_sigma` ⇒ 1；其余 profile
-  （`wbpp_2_9_1`/`wbpp_current`/`astrocs_adaptive`）⇒ 2。调用方显式传 `underdetermined_n>0` 时以显式值为准。
+  （`rejection.cpp`，实测）：`acsd_adaptive_pixel` ∧ `request=AUTO` ⇒ **3**（生产默认档）；
+  `acsd_adaptive_pixel` ∧ `request=extreme_value_clip_prior_sigma` ⇒ 1；其余 profile
+  （`wbpp_2_9_1`/`wbpp_current`/`acsd_adaptive`）⇒ 2。调用方显式传 `underdetermined_n>0` 时以显式值为准。
 - **全拒容错域**：`n = 4` ∧ 方法核全拒 ⇒ 降级 `UNDERDETERMINED` 全接受
   （`rejection.cpp`）。该容错的**可达域恰为 n=4**：n≤2 已被白名单截走；
-  奇数 n 的百分位带必含中位样本（不可全拒）；n≥5 全拒仍 `ALL_REJECTED`。**可达域三条件**：① 该输出像素**几何 `n = 4`**（`1 ≤ n ≤ 3` 由内核闸 `underdetermined_n = 3` 判 `UNDERDETERMINED`、永不进方法核——**`plan.method` 对 `N ≤ 3` 的取值随 profile 而定**（`rejection.cpp`，实测）：生产档 `astrocs_adaptive_pixel` 解析为 `none`（method=0），`wbpp_2_9_1`/`wbpp_current`/`astrocs_adaptive` 解析为 `percentile`（method=7）；故「N≤3 ⇒ 不排异」在生产档由**路由**保证、在对照档由**内核闸**保证，两档的排异能力判定 = 路由与内核闸两面的合取；`plan.method` 取值随 profile 而定）；② 路由把 `n = 4` 分派给 `percentile`（本文件 §5 两个 profile 均命中）；③ 百分位带**退化**（近零天光 `median → 0` ∧ `scale = |median|` ⇒ 带宽 → 0，§8a），否则带非空、不可能全拒。**电平依赖**：小 N 段优劣**由电平决定、不由 N 决定**——低/中电平（≲2700 e⁻/pix，含真实数据 NGC1727 1110 ADU、LDN43 2664 ADU）下 `N=3` 强制 percentile **有损**（`ρ−1` = 0.3%–27% ≫ `τ_ρ` = 0.31%）、`N=2` **不可用**（83.5% 像素无输出）；高电平（≳3400 e⁻/pix）对抗轮 R5 实测 `N=3` 占优，翻转边界 ≈3000–3400 e⁻/pix（**超出实验网格上界 1734 e⁻/pix，属外延**）⇒ 生产默认取保守读法 `1 ≤ N ≤ 3 → none`。
+  奇数 n 的百分位带必含中位样本（不可全拒）；n≥5 全拒仍 `ALL_REJECTED`。**可达域三条件**：① 该输出像素**几何 `n = 4`**（`1 ≤ n ≤ 3` 由内核闸 `underdetermined_n = 3` 判 `UNDERDETERMINED`、永不进方法核——**`plan.method` 对 `N ≤ 3` 的取值随 profile 而定**（`rejection.cpp`，实测）：生产档 `acsd_adaptive_pixel` 解析为 `none`（method=0），`wbpp_2_9_1`/`wbpp_current`/`acsd_adaptive` 解析为 `percentile`（method=7）；故「N≤3 ⇒ 不排异」在生产档由**路由**保证、在对照档由**内核闸**保证，两档的排异能力判定 = 路由与内核闸两面的合取；`plan.method` 取值随 profile 而定）；② 路由把 `n = 4` 分派给 `percentile`（本文件 §5 两个 profile 均命中）；③ 百分位带**退化**（近零天光 `median → 0` ∧ `scale = |median|` ⇒ 带宽 → 0，§8a），否则带非空、不可能全拒。**电平依赖**：小 N 段优劣**由电平决定、不由 N 决定**——低/中电平（≲2700 e⁻/pix，含真实数据 NGC1727 1110 ADU、LDN43 2664 ADU）下 `N=3` 强制 percentile **有损**（`ρ−1` = 0.3%–27% ≫ `τ_ρ` = 0.31%）、`N=2` **不可用**（83.5% 像素无输出）；高电平（≳3400 e⁻/pix）对抗轮 R5 实测 `N=3` 占优，翻转边界 ≈3000–3400 e⁻/pix（**超出实验网格上界 1734 e⁻/pix，属外延**）⇒ 生产默认取保守读法 `1 ≤ N ≤ 3 → none`。
 - `support/weights` 有限性在资格层校验，非有限 ⇒ `INVALID_INPUT` hard fail。
-- `profile` 合法集 = {`astrocs_adaptive_pixel`（**生产默认，ACSD 自研**）, `wbpp_2_9_1`（**对照档**，本仓解析表 `rejection.cpp`；档界引自 WBPP 2.5.9 `bestRejectionMethod`，本仓 `n ≥ 16` 档取 `winsorized_sigma`，见 §5）, `wbpp_current`（历史 alias，解析为 `wbpp_2_9_1`）, `astrocs_adaptive`（可调档，与对照档同阈）}；其余值 ⇒ `rc=1` + 显式错误（配置非法）。
+- `profile` 合法集 = {`acsd_adaptive_pixel`（**生产默认，ACSD 自研**）, `wbpp_2_9_1`（**对照档**，本仓解析表 `rejection.cpp`；档界引自 WBPP 2.5.9 `bestRejectionMethod`，本仓 `n ≥ 16` 档取 `winsorized_sigma`，见 §5）, `wbpp_current`（历史 alias，解析为 `wbpp_2_9_1`）, `acsd_adaptive`（可调档，与对照档同阈）}；其余值 ⇒ `rc=1` + 显式错误（配置非法）。
 
 ## 5 连续定义
 
@@ -59,14 +59,14 @@
 
   None / Sigma / Winsorized / AveragedSigma / LinearFit / GeneralizedESD / RCR
 
-生产默认 auto + profile = astrocs_adaptive_pixel (ACSD 自研，按逐输出像素几何 n):
+生产默认 auto + profile = acsd_adaptive_pixel (ACSD 自研，按逐输出像素几何 n):
   1 ≤ n ≤ 3      → none（不排异 + 直接逆方差加权积分；provenance 记 underdetermined_no_rejection。**偏离代价**：不排异的代价 = 污染**泄漏**——注入实验实测 `N=2` 泄漏 **1/2**、`N=3` 泄漏 **1/3**；收益 = **不误剔真信号**——低/中电平（≲2700 e⁻/pix）下强制 percentile 使 `N=3` 精度损失 `ρ−1` = **0.3%–27%**（≫ `τ_ρ` = 0.31%）、`N=2` **83.5% 像素无输出**）
   4 ≤ n ≤ 5      → percentile (low 0.2 / high 0.1, scale=|median|)
   n ≥ 6          → winsorized_sigma (lower 4.0 / upper 3.0 / 8 iter)
                    （`n ≥ 16` 档同走 `winsorized_sigma`：该档的干净像素过拒、显著点漏检与可测残余
                    均落在冻结门内。`linear_fit` 仍是合法显式方法（`request=linear_fit`），
                    只是不再由 AUTO 在生产档产出；
-                   对照档 wbpp_2_9_1 / astrocs_adaptive 保持 linear_fit 档配置。）
+                   对照档 wbpp_2_9_1 / acsd_adaptive 保持 linear_fit 档配置。）
   档界来源（**可核验形式**：版本 + 包 sha1 + 真实 file:line）：
   WBPP **2.5.9**（官方更新包 https://pixinsight.com/update/1.8.9-1/20230203-script.zip ，
   sha1 `712cc7c3fdb523643ad0e685104592d511996f82`，`product-info.txt` 自述版本 2.5.9）
@@ -95,9 +95,9 @@
   （engine.js:1421-1429，sha1 712cc7c3…），本对照档该档取 linear_fit ⇒ **该档与 WBPP 2.4.0+ 不符**，
   对应的是 WBPP ≤2.3.x 旧表。本行只描述**本仓解析表**，不是对 WBPP 行为的转述。
   WBPP ≥2.6 源码随商业安装分发、公开不可核验，故以 **2.5.9** 为可核验基准。
-  astrocs_adaptive (tunable): 同阈但可配置 large_scale 等
+  acsd_adaptive (tunable): 同阈但可配置 large_scale 等
 
-适用域（astrocs_adaptive_pixel）：
+适用域（acsd_adaptive_pixel）：
   像素候选栈域、逐输出像素几何 n；n ≥ 4 才声明排异能力（n ≤ 3 显式不声明，recall=0）；
   空间生长仅 large_scale 结构（trail），compact cosmic 不生长；
   阈值逐档继承本节冻结锚点，不新增阈值。
@@ -129,7 +129,7 @@ large_scale 结构生长:
 
 ## 7 独立不变量
 
-- **阈值不变量**：同 `n` 的 `method` 选择确定性一致（阈值表驱动，逐档继承 §5 冻结锚点），`auto` 路由不依赖 per-pixel `n_eff`；生产默认档 = `astrocs_adaptive_pixel`（自研）。
+- **阈值不变量**：同 `n` 的 `method` 选择确定性一致（阈值表驱动，逐档继承 §5 冻结锚点），`auto` 路由不依赖 per-pixel `n_eff`；生产默认档 = `acsd_adaptive_pixel`（自研）。
 - **状态分离不变量**：`P2_REASON` (per-sample) 与 `P2_STATUS` (stack-level) 分离，`INVALID_*` → hard fail 非可继续集合。
 - **UNDERDETERMINED 单调性**：`n ≤2` 恒 `UNDERDETERMINED`，不做剔除（recall=0 显式）。
 - **全拒容错域（n=4）**：`n=4` 且方法核全拒 ⇒ `UNDERDETERMINED` 全接受
@@ -205,7 +205,7 @@ large_scale 结构生长:
 
 ## 9 精度策略
 
-- FP64 全链路；ESD/RCR 参照 NIST 独立实现验证；归一化默认 `astrocs_median_center_v1`（`normalization=MEDIAN_CENTER`，`rejection.cpp`）。
+- FP64 全链路；ESD/RCR 参照 NIST 独立实现验证；归一化默认 `acsd_median_center_v1`（`normalization=MEDIAN_CENTER`，`rejection.cpp`）。
 - **正向约束**：ESD 的样本标准差用**单次** `sqrt`（`rejection.cpp`）；`NONE` 方法对非有限候选的回读值 = `INVALID_INPUT`（`rejection.cpp`）。
 
 ## 10 不可接受变化
@@ -257,7 +257,7 @@ large_scale 结构生长:
   的序贯 Chauvenet 迭代，经验修正因子表锚 Siril 之外的官方 RCR 实现；
   EXTREME_VALUE_PRIOR_SIGMA=已知先验 σ 的极值检验（显式 opt-in，`rejection.cpp`）。
 - **阈值**：表驱动冻结锚点（冻结头注释 `rejection.cpp`；规划层 typed 默认值 `rejection.cpp`：sigma/winsorized/averaged/median_sigma 4.0/3.0/8；linear_fit 5.0/3.5/8；ESD alpha 0.05/max 10；percentile 0.2/0.1；minmax 1/1/4；large_scale 默认关闭）——**阈值定义只取自该表**。
-- **自动选择可判定性**：`auto` 以 `nominal n` 唯一路由，不依赖 per-pixel `n_eff` 重选（§7 阈值不变量）；生产默认档 `astrocs_adaptive_pixel`（自研）的内置映射见 §5（`1≤n≤3`→none；`4≤n≤5`→percentile；`n≥6`→winsorized_sigma（`n≥16`→linear_fit 档改投 winsorized）；`rejection.cpp` 实测）。
+- **自动选择可判定性**：`auto` 以 `nominal n` 唯一路由，不依赖 per-pixel `n_eff` 重选（§7 阈值不变量）；生产默认档 `acsd_adaptive_pixel`（自研）的内置映射见 §5（`1≤n≤3`→none；`4≤n≤5`→percentile；`n≥6`→winsorized_sigma（`n≥16`→linear_fit 档改投 winsorized）；`rejection.cpp` 实测）。
 - **small-N**：`n ≤ 3` 不声明排异能力（生产档路由 `none`、对照档由内核闸判 `UNDERDETERMINED`）；`4 ≤ n ≤ 5` → percentile（其等效阈值见 §8a）；单帧无排异（§1 非目标）。
 - **frame identity**：每候选携带 `frame_id[i]`；排异只置 `accepted[i]` 掩膜不合并样本，identity 全程保持（integration 侧可追溯，SCI-INT §9a）。
 
@@ -268,7 +268,7 @@ large_scale 结构生长:
    **② 该引用支持本层主张**：论文给出「多离群、按回退准则定 k_out」的广义 ESD 过程与临界值表，正是本层 F8 的判据来源。
    `alpha=0.05`/`max_outliers=10` 为 Project-defined 采纳值，**文献不提供**这两个门值。
 2. **winsorization 概念**：Hoaglin, Mosteller & Tukey (eds.) 1983, *Understanding Robust and Exploratory Data Analysis*, Wiley（ISBN 0-471-09777-2）——书籍级定位；本层 `winsorized_sigma` 的**语义来源 = PixInsight ImageIntegration 官方文档式[18]/[19]**（±1.5σ winsorize、常数 1.134、迭代限 5e-4；概念出处 = Huber & Ronchetti 2009, *Robust Statistics* 2nd ed.，即官方文档式[4] 所指）；Siril 1.4.3 为**次生参考实现**（只用于掩码逐元素对拍，见 §14a），本书只作概念背景。
-3. **`astrocs_adaptive_pixel`（生产默认，ACSD 自研）**：内置映射与低 n 保守档为项目自定（阈值逐档继承 §5 冻结锚点，不新增阈值）；**档界**采纳自 WBPP（可核验版本 = **2.5.9**，见 §5 与 §14a），**逐像素按几何 n 的粒度为本项目自定扩展**；`n ≥ 16` 档取 `winsorized_sigma`，与 WBPP 2.4.0+（该档为 ESD）**不符**——这条偏离的依据见 §5。`linear_fit` 仍是合法显式方法。**对照档** `wbpp_2_9_1` 的 auto 路由与阈值表为本仓解析表（`rejection.cpp`），其 `n > 15` 档取 `linear_fit`（非学术软件来源；`PIXINSIGHT_EXACT_COMPATIBILITY = NOT_CLAIMED`）。
+3. **`acsd_adaptive_pixel`（生产默认，ACSD 自研）**：内置映射与低 n 保守档为项目自定（阈值逐档继承 §5 冻结锚点，不新增阈值）；**档界**采纳自 WBPP（可核验版本 = **2.5.9**，见 §5 与 §14a），**逐像素按几何 n 的粒度为本项目自定扩展**；`n ≥ 16` 档取 `winsorized_sigma`，与 WBPP 2.4.0+（该档为 ESD）**不符**——这条偏离的依据见 §5。`linear_fit` 仍是合法显式方法。**对照档** `wbpp_2_9_1` 的 auto 路由与阈值表为本仓解析表（`rejection.cpp`），其 `n > 15` 档取 `linear_fit`（非学术软件来源；`PIXINSIGHT_EXACT_COMPATIBILITY = NOT_CLAIMED`）。
 4. **RCR**：方法论文 = Maples, M. P., Reichart, D. E., Konz, N. C., et al. 2018, ApJS **238**, 2（DOI [10.3847/1538-4365/aad23d](https://doi.org/10.3847/1538-4365/aad23d)；[arXiv.05276](https://arxiv.org/abs/1807.05276)）；
    **① 引用存在且逐字匹配**：Crossref 与 arXiv 元数据核验题名/作者/卷/页一致。
    **② 该引用支持本层主张**：论文提出序贯更换集中趋势测度的 RCR 过程（本层 3-pass 链）与**经验确定的**拒绝 σ 修正因子（本层查找表来源）。
@@ -287,7 +287,7 @@ large_scale 结构生长:
   （`sigclip`/`avsigclip` 是 σ 裁切，不是 winsorize）。**命名只作方法族命名来源，核语义一律以本层为准**
   （尤其 `pclip`：IRAF 的 `pclip` 是**按秩裁固定比例样本**，与本层 `percentile` 的**乘性判据带同名不同义**，
   两种含义并列见 §8a）。可执行独立对照 = ccdproc.combine（BSD-3-Clause）与 astropy `SigmaClip`（BSD-3-Clause）。
-- **来源归属**：生产默认档 `astrocs_adaptive_pixel` 的**档界**采纳自 WBPP
+- **来源归属**：生产默认档 `acsd_adaptive_pixel` 的**档界**采纳自 WBPP
   （可核验版本/file:line 见 §5、§14a），**逐像素按几何 n 的粒度**与低 n 保守档为项目自定；
   **方法核的语义来源**：`linear_fit` = PixInsight ImageIntegration 官方式[21]/式[22]（横轴 = 排序秩 `0…N−1`、
   带升序约束）+ *Numerical Recipes* 3rd ed. **§15.7.3**（`Fitmed`，L1 稳健拟合；本项目以加权最小二乘实现，
@@ -338,7 +338,7 @@ large_scale 结构生长:
   翻转边界 ≈3000–3400 e⁻/pix（**超出实验网格上界 1734 e⁻/pix，属外延**）。
   **§8a 的 percentile 适用域（阈值随 `|median|/s` 漂移）与上述档位取舍是两件事**，各自独立表述。
 - **档位表归属**：逐像素冻结映射表见 `docs/detail/algorithms_phase2/12_rejection.md` §9（`1≤N≤3` none / `4≤N≤5` percentile /
-  `N≥6` winsorized）；本节 §5 的 `astrocs_adaptive_pixel` 表为**生产 profile 解析面**，两者以 §5 冻结阈值为共同锚。
+  `N≥6` winsorized）；本节 §5 的 `acsd_adaptive_pixel` 表为**生产 profile 解析面**，两者以 §5 冻结阈值为共同锚。
 
 ## 17 沿线排异的口径与分母定义（M42 真实帧面）
 

@@ -1,5 +1,5 @@
-#ifndef ASTROCS_SDET_TEST_PROBE_H
-#define ASTROCS_SDET_TEST_PROBE_H
+#ifndef ACSD_SDET_TEST_PROBE_H
+#define ACSD_SDET_TEST_PROBE_H
 // O11 deblending 判据的测试观察面（仅以 -DSDET_TESTING 编译的目标含此面;
 // 生产编译不含, 行为与 ABI 零影响）。
 //
@@ -23,4 +23,4 @@ extern std::vector<SdetDeblendProbe>* sdet_test_deblend_probe;
 // （同一帧在「枝自身流量」基准下会多分裂出叶, 见 Oracle 用例）
 extern std::vector<int>* sdet_test_deblend_leaves;
 
-#endif  // ASTROCS_SDET_TEST_PROBE_H
+#endif  // ACSD_SDET_TEST_PROBE_H

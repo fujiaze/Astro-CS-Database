@@ -1,8 +1,8 @@
-# Phase2 Rejection Algorithms（P2-REJ / astrocs.p2.rejection）
+# Phase2 Rejection Algorithms（P2-REJ / acsd.p2.rejection）
 
-> 上游：ASTROCS_DESIGN.md §5.5（逐像素排异）
+> 上游：ACSD_DESIGN.md §5.5（逐像素排异）
 
-> 实现源: lib/algorithms/coverage/src/rejection.cpp（2965 行，astrocs_phase2 静态库
+> 实现源: lib/algorithms/coverage/src/rejection.cpp（2965 行，acsd_phase2 静态库
 > 成员，根 CMakeLists.txt:337-344/:340）+ 唯一权威签名头
 > lib/algorithms/coverage/include/astro/phase2/rejection.h（602 行）
 > 权威: 本文档（算法级逐符号锚）。SCI 上游: SCI-REJ-001
@@ -12,11 +12,11 @@
 > （本文件 §12 承接，方法核与数据布局见 §5/§15/§16）。DATA: DATA-P2-REJ（DATA_SEMANTICS §22）。API:
 > API-P2-REJ-001（PUBLIC_API.md）。TEST: TEST-P2-REJ-001（设计冻结
 > 面=本文档 §11.4；可执行落地归 P2-REJ-TEST）。迁移目标
-> astrocs_p2_rejection.dll 为矩阵合同值（MISSING），由 P2-REJ-IMPL
+> acsd_p2_rejection.dll 为矩阵合同值（MISSING），由 P2-REJ-IMPL
 > 建立，本文件不声明 IMPLEMENTED；descriptor 占位
-> module_id=astrocs.phase2.reject（module_adapters.cpp:705-724）由
+> module_id=acsd.phase2.reject（module_adapters.cpp:705-724）由
 > P2-XX-INT 对齐，不作冻结依据。
-> 关联: DATA=DATA-P2-REJ（docs/science/DATA_SEMANTICS.md §22）；API=API-P2-REJ-001（docs/engineering/PUBLIC_API.md 末节）；MOD 页=docs/detail/phase2_rej.md + registry docs/detail/registry/astrocs.phase2.reject.md（手写合同页）；TEST 登记面=registry 页 §独立 synthetic 验证节（TEST-P2-REJ-DESIGN-001 设计冻结 VERIFIED）。
+> 关联: DATA=DATA-P2-REJ（docs/science/DATA_SEMANTICS.md §22）；API=API-P2-REJ-001（docs/engineering/PUBLIC_API.md 末节）；MOD 页=docs/detail/phase2_rej.md + registry docs/detail/registry/acsd.phase2.reject.md（手写合同页）；TEST 登记面=registry 页 §独立 synthetic 验证节（TEST-P2-REJ-DESIGN-001 设计冻结 VERIFIED）。
 
 ## 1 目的与非目标
 
@@ -85,7 +85,7 @@ null → 等权。reducer 只消费权重数组本身（与 ALG-P2-INT-001 §2
 | scratch_median / scratch_mad | :1060-1068 / :1070-1073 | nth_element 中位（偶数均值）；MAD=median(|x−med|)，σ=1.482602218505602·MAD 由调用方乘 |
 | p2_rejection_semantic_id | :1082-1098 | 方法 → canonical semantic id（11 方法全覆盖） |
 | kPixelSmallNPolicy / p2_rejection_percentile_band_min_n | :1138-1146 | 小 N 决策点（kConservativeNone ⇒ 档下界 4）与查询入口 |
-| astrocs_n_map_method | :1154-1180 | 生产档逐几何 N 路由（kConservativeNone 且 1≤N≤3 → none / N<6 → percentile / N≥6 → winsorized_sigma） |
+| acsd_n_map_method | :1154-1180 | 生产档逐几何 N 路由（kConservativeNone 且 1≤N≤3 → none / N<6 → percentile / N≥6 → winsorized_sigma） |
 | auto_method_forbidden | :1167-1179 | AUTO 只落到具名的自动方法；min/max 与 NoRejection 走 fail-closed 守卫 |
 | p2_reject_plan_resolve | :1182-1288 | planning 层 AUTO 解析 + typed 默认值（冻结表，§5 F1） |
 | p2_reject_plan_resolve_n | :1290-1301 | 逐 stack nominal_n 覆盖入口 |
@@ -114,7 +114,7 @@ null → 等权。reducer 只消费权重数组本身（与 ALG-P2-INT-001 §2
 |---|---|---|
 | 三层输入模型注释 | :6-29 | EligibilityPolicy / RejectionPlan / RejectionNormalizationPolicy；Oracle 清单（Astropy mad_std/NIST/Siril 1.4.3 GPL ORACLE ONLY/RCR 2.4.7 ORACLE ONLY :25-28/PIXINSIGHT_EXACT=NOT_CLAIMED :28-29） |
 | P2RejectionMethod | :45-62 | 11 方法枚举 + AUTO=10（:56，kernel 永不接收 AUTO）+ EXTREME_VALUE_PRIOR_SIGMA=11（:61，显式 opt-in） |
-| P2_SEMANTIC_* | :65-77 | canonical semantic id 常量（astrocs.*.v1，运行时映射 p2_rejection_semantic_id :1082-1098） |
+| P2_SEMANTIC_* | :65-77 | canonical semantic id 常量（acsd.*.v1，运行时映射 p2_rejection_semantic_id :1082-1098） |
 | P2RejectReason | :94-99 | ACCEPTED=0/REJECTED_LOW=1/REJECTED_HIGH=2/UNDERDETERMINED=3 |
 | P2RejectStatus | :102-111 | OK=0..INTERNAL_ERROR=7（八态） |
 | P2RejectionNormalization | :114-118 | NONE=0/MEDIAN_CENTER=1/MEDIAN_SCALE=2（floor 默认 1e-12 在 plan 字段 :213） |
@@ -122,7 +122,7 @@ null → 等权。reducer 只消费权重数组本身（与 ALG-P2-INT-001 §2
 | P2LargeScaleParams | :170-175 | enabled/min_structure_pixels=8/low·high_grow_radius_pixels=2（默认关闭 :167-169；语义 :157-166） |
 | P2ExtremeValuePriorSigmaParams | :199-205 | 先验 σ 极值检验参数（alpha/prior_sigma/prior_sky/center_mode） |
 | P2RejectionPlan | :208-229 | 显式计划（method/minimum_n/underdetermined_n/normalization/floor/typed 大成员/nominal_n） |
-| P2RejectionPlanRequest | :232-244 | request（允许 AUTO）/nominal_contributors/profile/underdetermined_n（:234-238 冻结注释：wbpp·adaptive=2、astrocs_adaptive_pixel=3、extreme_prior=1） |
+| P2RejectionPlanRequest | :232-244 | request（允许 AUTO）/nominal_contributors/profile/underdetermined_n（:234-238 冻结注释：wbpp·adaptive=2、acsd_adaptive_pixel=3、extreme_prior=1） |
 | plan_resolve 注释 | :241-259 | 本仓冻结 AUTO 路由表（档界取自 WBPP 2.5.9）+ profile 语义 + AUTO 落点为具名自动方法（fail-closed） |
 | p2_rejection_percentile_band_min_n 注释 | :267-274 | 小 N 决策点下界查询（1=档含 N≤3；4=N≤3 走保守 none） |
 | p2_rejection_applicability | :307-308 | 方法×nominal_n 适用域 WARN 码（advisory，不阻断执行） |
@@ -189,8 +189,8 @@ kernel 外层迭代（ESD=k_out；RCR=3 常量；percentile/minmax=1）。
 ```text
 typed 默认值（冻结阈值表;SCI §5 阈值冻结锚点逐项一致）:
   underdetermined_n = req>0 ? req : <profile 默认>            :1218-1225
-    profile 默认: astrocs_adaptive_pixel ∧ AUTO → 3
-                  astrocs_adaptive_pixel ∧ EXTREME_PRIOR → 1
+    profile 默认: acsd_adaptive_pixel ∧ AUTO → 3
+                  acsd_adaptive_pixel ∧ EXTREME_PRIOR → 1
                   其余 profile → 2
   normalization = MEDIAN_CENTER;  floor = 1e-12              :1226-1228
   sigma/winsorized/averaged = (4.0, 3.0, 8)                  :1229-1233
@@ -203,21 +203,21 @@ typed 默认值（冻结阈值表;SCI §5 阈值冻结锚点逐项一致）:
   large_scale = (enabled 0, min_structure 8, low 2, high 2)  :1243-1246
   extreme_prior = (alpha 0.05, prior_sigma 0=未提供, prior_sky NaN, center_mode 1) :1247-1251
 AUTO 路由（N = 该输出像素的几何覆盖帧数，一次解析；两档共用阈值表）:  :1254-1269
-  生产档 astrocs_adaptive_pixel（:1148-1158 唯一决策点）:
+  生产档 acsd_adaptive_pixel（:1148-1158 唯一决策点）:
     1 ≤ N ≤ 3  → NONE（不排异，直接逆方差加权积分）
     4 ≤ N ≤ 5  → PERCENTILE
     N ≥ 6      → WINSORIZED_SIGMA   （`n ≥ 16` 档同投 winsorized）
-  对照档 wbpp_2_9_1 / wbpp_current / astrocs_adaptive（:1172-1176）:
+  对照档 wbpp_2_9_1 / wbpp_current / acsd_adaptive（:1172-1176）:
     N < 6 → PERCENTILE;  6 ≤ N ≤ 15 → WINSORIZED_SIGMA;  N > 15 → LINEAR_FIT
   min/max 不用于生产（AUTO 只落到具名自动方法，生产路径守卫 fail-closed
   :1167-1179/:1272-1278）
   minimum_n = method_minimum_n(method)                        :1280
-profile 合法集 = {astrocs_adaptive_pixel(生产默认, Astro Celestial Sphere Database（ACSD） 自研),
+profile 合法集 = {acsd_adaptive_pixel(生产默认, Astro Celestial Sphere Database（ACSD） 自研),
                   wbpp_2_9_1(对照档), wbpp_current(别名),
-                  astrocs_adaptive(可调档)}                        :1196-1206
+                  acsd_adaptive(可调档)}                        :1196-1206
   （nullptr → wbpp_2_9_1；其余 rc=1；wbpp_current 解析为 wbpp_2_9_1，
-  仅保留 group active count 一次解析语义；astrocs_adaptive=tile nominal
-  depth；astrocs_adaptive_pixel=逐输出像素几何 N 映射（上表）；与 WBPP
+  仅保留 group active count 一次解析语义；acsd_adaptive=tile nominal
+  depth；acsd_adaptive_pixel=逐输出像素几何 N 映射（上表）；与 WBPP
   档界的差异及其依据见 docs/science/REJECTION.md——canonical/adaptive
   区别仅在 nominal 来源，h:227-239/:241-259 冻结注释。
   生产布局与现行语义详见 DATA_SEMANTICS §22 生产表）
@@ -448,10 +448,10 @@ tally: accepted_count/rejected_low/rejected_high/iterations  :2163-2177
 
 ## 6 消费链与并行语义
 
-- **Stage2（编排，astrocs.p2.hips_writer 消费者）**:
+- **Stage2（编排，acsd.p2.hips_writer 消费者）**:
   group 级 plan resolve（**工具链现状** wbpp_2_9_1；**生产入口
-  p2_op_reject 默认 astrocs_adaptive_pixel（自研）**，nominal=cfg.hips.size()，
-  stage2.cpp:643-658）→ tile 级（astrocs_adaptive，nominal=tile
+  p2_op_reject 默认 acsd_adaptive_pixel（自研）**，nominal=cfg.hips.size()，
+  stage2.cpp:643-658）→ tile 级（acsd_adaptive，nominal=tile
   depth，:677-697）→ typed params 唯一默认源=cfg（:698-729）→
   CPU 像素 lambda: p2_collect_candidate_stack（:1085-1104，
   support_threshold=0.0 :1093）→ p2_reject_stack_ex（:1184）→
@@ -632,9 +632,9 @@ tally: accepted_count/rejected_low/rejected_high/iterations  :2163-2177
   V15AutoPlanResolvesByNominal（n=2/5→PERCENTILE、6/15→
   WINSORIZED、16/20→LINEAR_FIT；非法 profile rc≠0）；
   V16ProfileGroupVsAdaptive（wbpp_current（wbpp_2_9_1 的别名）
-  group 一次 vs astrocs_adaptive tile depth）。容差=方法枚举精确。
+  group 一次 vs acsd_adaptive tile depth）。容差=方法枚举精确。
   **门面缺口（正向约束）**：现有门只覆盖**对照档**的 \`N<6 → percentile\`
-  下界；生产档 \`astrocs_adaptive_pixel\` 的 \`1≤N≤3 → none\` 与 \`4≤N≤5 →
+  下界；生产档 \`acsd_adaptive_pixel\` 的 \`1≤N≤3 → none\` 与 \`4≤N≤5 →
   percentile\` 边界由 \`p2_rejection_percentile_band_min_n\` 查询值锁定，
   该值必须与路由表同源（改一处必须同时改另一处）。
 - **F3 small-N/状态穷尽门**（SCI §7/§8）:
@@ -681,7 +681,7 @@ tally: accepted_count/rejected_low/rejected_high/iterations  :2163-2177
   F7 = rtol 1e-12（Python 参考域）；large_scale=mask 精确。本层
   禁引入其他 epsilon（ESD tie 1e-15、RCR isEqual rel 1e-8、winsor
   收敛 5e-4·σ 为实现内部冻结常数，非门容差）。
-- 登记面: 本节容差同步登记于 docs/detail/registry/astrocs.phase2.reject.md §独立 synthetic 验证节（TEST-P2-REJ-DESIGN-001 设计冻结 VERIFIED，承载 TEST-P2-REJ-001 登记锚）。
+- 登记面: 本节容差同步登记于 docs/detail/registry/acsd.phase2.reject.md §独立 synthetic 验证节（TEST-P2-REJ-DESIGN-001 设计冻结 VERIFIED，承载 TEST-P2-REJ-001 登记锚）。
 
 ### 11.5 SCI 层状态声明（本域零 SCI 改动）
 
@@ -691,7 +691,7 @@ tally: accepted_count/rejected_low/rejected_high/iterations  :2163-2177
 - matrix P2-REJ 行 science_id=SCI-P2-REJ-001（descriptor 占位词汇，
   module_adapters.cpp:715）的语义映射由本节声明——
   **SCI-P2-REJ-001 ⇒ SCI-REJ-001**（docs/science/REJECTION.md，
-  矩阵 science_doc=docs/science/REJECTION.md，MOD-astrocs-phase2-
+  矩阵 science_doc=docs/science/REJECTION.md，MOD-acsd-phase2-
   reject 行）。descriptor 占位
   SCI-P2-REJ-001 不入矩阵（无 docs/science 权威页）；SCI 公式语义
   不在此重复定义，两处冲突时以 docs/science/ 为准并回改本文档
@@ -702,7 +702,7 @@ tally: accepted_count/rejected_low/rejected_high/iterations  :2163-2177
   §22 同名对齐；api_id=API-P2-001（编排层词汇）的 kernel 消费面
   细化=API-P2-REJ-001（PUBLIC_API.md），两 ID 并存（API-P2-001
   编排层仍 VERIFIED）。本节是唯一冻结依据（编排层词汇只作对齐对象；descriptor
-  astrocs.phase2.reject 由 P2-XX-INT 对齐，不作冻结依据）。
+  acsd.phase2.reject 由 P2-XX-INT 对齐，不作冻结依据）。
 
 ## 12 关联 ID 映射（本文件承接）
 
@@ -730,7 +730,7 @@ tally: accepted_count/rejected_low/rejected_high/iterations  :2163-2177
 - 交叉: docs/detail/phase2_rej.md + lib/algorithms/rejection/ 三件套
   （README/module.yaml/memory.md，按 lib/algorithms/integration/ 先例新建；
   lib/algorithms/coverage/ 三件套已被 P2-COV 占用）；registry
-  astrocs.phase2.reject.md。
+  acsd.phase2.reject.md。
 - 消费者: stage2.cpp（§6；DATA_SEMANTICS §20 编排域）/
   acr_kernels.cpp（ACR 域）/ eng/tests/unit/p2_rejection_test.cpp
   （P2-005 语义 id/解析面）/ eng/tests/backend/test_p2004_reject_
@@ -752,14 +752,14 @@ tally: accepted_count/rejected_low/rejected_high/iterations  :2163-2177
 - MOD = docs/detail/phase2_rej.md（模块页）+ lib/algorithms/rejection/
   三件套（README/module.yaml CONTRACT_READY entrypoint=MISSING/
   memory.md，按 lib/algorithms/integration/ 先例）+ registry
-  docs/detail/registry/astrocs.phase2.reject.md（手写合同页
+  docs/detail/registry/acsd.phase2.reject.md（手写合同页
   重写；TEST 登记面承载）。
 - 一致性声明: 本文件（ALG）与上述同批产物冲突时以本文件为
   算法/锚权威，DATA/API 以各自文件为单位/dtype/消费面权威；
   SCI 权威永远在 docs/science/（方向 = 从 docs/science/ 到本文档）。
 - 缺陷联动: DISP-P2REJ-001..004 同时登记于 registry 页与
   module.yaml known_defects；本文件 §7 为权威表述。
-- TRACEABILITY_MATRIX.json MOD-astrocs-phase2-reject 行:
+- TRACEABILITY_MATRIX.json MOD-acsd-phase2-reject 行:
   science_id=SCI-REJ-001（映射 §11.5）/
   algorithm_id=ALG-P2-REJ-001（本文件）/data_id=DATA-P2-REJ/
   api_id=API-P2-REJ-001/src_id=SRC-P2-REJ-001（src_path=lib/
@@ -767,7 +767,7 @@ tally: accepted_count/rejected_low/rejected_high/iterations  :2163-2177
   p2_reject_stack_ex,p2_collect_candidate_stack,
   p2_eligibility_filter,p2_large_scale_apply,
   p2_rejection_semantic_id）/test_id=TEST-P2-REJ-001
-  （test_path=docs/detail/registry/astrocs.phase2.reject.md::
+  （test_path=docs/detail/registry/acsd.phase2.reject.md::
   TEST-P2-REJ-001，设计冻结 VERIFIED + 可执行 MISSING 双
   statement）——由主控写入，本节仅声明预期终态。
 
@@ -793,7 +793,7 @@ tally: accepted_count/rejected_low/rejected_high/iterations  :2163-2177
   | `minmax` | 1 | 1（min_kept = 4） | 1 |
 
   低侧阈高于高侧阈 ⇒ **高侧更敏感**，正离群先被剔。冻结值不随数据分布调整。
-- **数值精度**：kernel 工作域全链路 FP64；归一化取 `astrocs_median_center_v1`（默认）；ESD 与 RCR 的判定经 NIST 独立实现对照。
+- **数值精度**：kernel 工作域全链路 FP64；归一化取 `acsd_median_center_v1`（默认）；ESD 与 RCR 的判定经 NIST 独立实现对照。
 - **ESD 标准差取单次 `sqrt`**；非有限 `values`/`weights` 一律判 `INVALID_INPUT`，该状态码即最终读法。
 - **归约确定性**：按固定顺序归约；`n ≤ underdetermined_n` 判全接受且 `recall = 0`（不做伪剔除）。
 - **阈值不变量**：同一 `n` 的 `plan.resolve` 输出 method 唯一；非有限 `weights`/`support` 判 `INVALID_INPUT` 硬失败。

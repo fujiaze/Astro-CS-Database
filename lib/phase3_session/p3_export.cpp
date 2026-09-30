@@ -22,7 +22,7 @@
 //                eng/ci/ledgers/spec_named_impl_gaps.json 的 SNI-S4-P3X-06 条；
 //             ③ 把 PRODUCTION_EXECUTION_INVENTORY.csv:338 的 production=yes 更正为 retired；
 //             ④ 删除 eng/tests/integration/p3_export/** 与 CMakeLists.txt:980 的 add_subdirectory。
-// AUTHORITY:  ENGINEERING_SPEC.md §2（历史实现处置：保留则注释）；docs/ASTROCS_DESIGN.md §6.3
+// AUTHORITY:  ENGINEERING_SPEC.md §2（历史实现处置：保留则注释）；docs/ACSD_DESIGN.md §6.3
 //             （注册表中未实现的投影被选择时显式报「不支持」，当前仅 TAN 可用）；
 //             eng/ci/spec_named_impls.json SNI-S4-P3X-06。
 // ──────────────────────────────────────────────────────────────────────
@@ -40,7 +40,7 @@
 //     units.bunit == "ADU"  =>  units.pixel_semantics == "surface_brightness"
 //                              且 units.pixel_area_power == -2；
 //     units.bunit 匹配 /sr$ => units.pixel_area_power == -2。
-//   叠加 astrocs.v6.signal.v1.schema.json（integrated_flux => pixel_area_power == 0）后，
+//   叠加 acsd.v6.signal.v1.schema.json（integrated_flux => pixel_area_power == 0）后，
 //   纯积分通量主面在 v6 生产 schema 下不可表达。故 point_source_flux 模式以 schema 合法的
 //   面亮度主面承载重采样 signal，matched-filter 通量/effective PSF 以扩展 HDU 承载
 //   （BUNIT=ADU / ADU^2 / 1，逐层量纲可判）。该交叉张力登记为 finding（详见任务返回）。
@@ -66,7 +66,7 @@
 
 #include "astro/aio/bunit.h"
 
-namespace astrocs {
+namespace acsd {
 namespace phase3 {
 namespace v6 {
 
@@ -253,7 +253,7 @@ aio::Provenance make_provenance(const ExportMode mode, const ExportInputs& in,
                                 const std::string& unavailable_reason) {
   (void)grid;
   aio::Provenance p;
-  p.product.type_id = "astrocs.phase3.product.fits.v1";
+  p.product.type_id = "acsd.phase3.product.fits.v1";
   p.product.schema_version = 1;
   p.software_sha = in.software_sha;
   p.run_id = in.run_id;
@@ -899,4 +899,4 @@ aio::ValidationReport verify_product_on_disk(
 
 }  // namespace v6
 }  // namespace phase3
-}  // namespace astrocs
+}  // namespace acsd

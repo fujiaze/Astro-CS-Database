@@ -1,5 +1,5 @@
 // lib/algorithms/fits_output/p3_output.cpp — 输出原子写/校验 (ALG-P3-004) — P3-004
-// 原址 lib/phase3_session/p3_output.cpp, 按 docs/ASTROCS_DESIGN
+// 原址 lib/phase3_session/p3_output.cpp, 按 docs/ACSD_DESIGN
 // §7.1「fits_output」行迁入本模块; 源逐字节等价 (仅头注 | include 面改锚)。
 #include "p3_output.h"
 
@@ -29,10 +29,10 @@
 #include "astro_image_io.h"
 #include "fitsio.h"
 // 原相对路径 ../infrastructure/aio/src/... 只在旧址 (lib/phase3_session/)
-// 成立; 该目录已由 astrocs_aio 的 PUBLIC include 面提供 ⇒ 扁平引用 (迁址无关)。
+// 成立; 该目录已由 acsd_aio 的 PUBLIC include 面提供 ⇒ 扁平引用 (迁址无关)。
 #include "aio_cfitsio_mutex.h"
 #include "sha256.h"
-// docs/ASTROCS_DESIGN §9「aio 是文件级唯一 I/O 边界」:
+// docs/ACSD_DESIGN §9「aio 是文件级唯一 I/O 边界」:
 // 本模块**不再**自持文件系统原语 —— 临时文件/fsync/原子 rename/删除经 aio
 // 机制原语 (aio_atomic_file.h), 文件内容摘要经 aio 摘要原语
 // (aio_file_io.h)。二者均为 aio 内唯一实现 (header-only 机制面)。
@@ -42,7 +42,7 @@
 #include <memory>
 #include <vector>
 
-namespace astrocs::phase3 {
+namespace acsd::phase3 {
 
 namespace {
 std::string g_last_err;
@@ -213,7 +213,7 @@ bool make_temp_path(const std::string& out, std::string* tmp) {
 // 形态写进 provenance 即为无意义完整性锚。该纪律下沉到 aio
 // (aio_file_io.h): 只有完整读取成功才产出 64hex; 失败返回 false, 调用方必须把错误向上传播
 // (整体输出失败), 禁止把空串/前缀哈希当作结果。
-// ASTROCS_HASH_FAIL_INJECT (仅测试构建, -Dastrocs_hash_fail_inject 编入):
+// ACSD_HASH_FAIL_INJECT (仅测试构建, -Dacsd_hash_fail_inject 编入):
 // 在完整读出后于 final 前注入一次 I/O 错误 → 走失败分支, 供单测断言不写假哈希。
 bool sha256_file_checked(const char* path, std::string* hex_out) {
     hex_out->clear();
@@ -221,8 +221,8 @@ bool sha256_file_checked(const char* path, std::string* hex_out) {
     // aio_file::sha256_hex) —— 本模块不再自持 FILE* 通道。R10-C 语义不变:
     // 只有完整读取成功才产出 64hex, 失败返回 false 且清空输出。
     if (!aio_file::sha256_hex(path, hex_out)) return false;
-#ifdef astrocs_hash_fail_inject
-    if (std::getenv("ASTROCS_HASH_FAIL_INJECT")) { hex_out->clear(); return false; }
+#ifdef acsd_hash_fail_inject
+    if (std::getenv("ACSD_HASH_FAIL_INJECT")) { hex_out->clear(); return false; }
 #endif
     return true;
 }
@@ -442,7 +442,7 @@ P3OutputStatus p3_output_write_atomic_ex(const float* signal, const float* cover
         }
     }
 
-    // 发布序（正本 = IO_003 §4 / ASTROCS_DESIGN.md §10:732）:
+    // 发布序（正本 = IO_003 §4 / ACSD_DESIGN.md §10:732）:
     //   私有临时区 → 关闭/fsync → 校验（结构 + DATASUM/CHECKSUM）→ 算哈希 → 原子改名
     // P-205 (台账 A-4): 原序是 flush → close → fsync → **rename → sha256/校验**
     // —— 哈希与校验落在 rename 之后，与 §10 及 IO_003 §4 的逐步骤序相悖（rename
@@ -756,7 +756,7 @@ P3OutputStatus p3_output_verify_ex(const char* output_path,
 // ══════════════════════════════════════════════════════════════════════════
 // 子块流式写 / 独立重开流式校验（P3-STREAM-01）
 //
-// 规范：docs/ASTROCS_DESIGN §8.3 export 行「子块流式：读子块 → 投影重采样 → 写
+// 规范：docs/ACSD_DESIGN §8.3 export 行「子块流式：读子块 → 投影重采样 → 写
 // FITS，有界队列 + 背压，不整幅驻留；I/O 与计算重叠，内存占用与子块大小成
 // 正比、与总图大小无关」；docs/engineering/SCHEDULER_CONTRACT.md §2 export 行同文。
 // 产品语义与整幅 API 逐条同面（FITS 关键字、BSCALE/BZERO、HISTORY provenance、
@@ -1008,7 +1008,7 @@ P3OutputStatus P3FitsStream::publish(P3OutputResult* result) {
         abort();
         return P3_OUT_IO;
     }
-    // 发布序（正本 = IO_003 §4 / ASTROCS_DESIGN.md §10:732）:
+    // 发布序（正本 = IO_003 §4 / ACSD_DESIGN.md §10:732）:
     //   临时写 → 关闭/fsync → 校验（结构 + DATASUM/CHECKSUM）→ 算哈希 → 原子改名
     // P-205 (台账 A-4): 原序把 rename 排在哈希之前 ⇒ 与 §10/IO_003 §4 相悖。
     // ② 内容已完整写出后再 fsync（机制在 aio）。
@@ -1267,4 +1267,4 @@ P3OutputStatus P3FitsVerifyStream::close(P3OutputResult* result) {
     return P3_OUT_OK;
 }
 
-}  // namespace astrocs::phase3
+}  // namespace acsd::phase3

@@ -1,6 +1,6 @@
 # 产物溯源与版本语义（Product Provenance）
 
-> 上游：`docs/ASTROCS_DESIGN.md` §8.2（阶段内命名块内存管线）、§10（I/O 与原子产品：三阶段仅通过
+> 上游：`docs/ACSD_DESIGN.md` §8.2（阶段内命名块内存管线）、§10（I/O 与原子产品：三阶段仅通过
 > 原子发布、哈希与 provenance 完整的磁盘产品/manifest 交换）、
 > `docs/engineering/data/DATA-002_PHASE_PRODUCT_EXCHANGE.md`（三阶段产品交换合同，R-DISK-ONLY / R-EVIDENCE-REQUIRED）、
 > `docs/engineering/data/DATA-003_PRODUCTION_ARTIFACT_STORE.md`（生产 ArtifactStore：原子发布 + 唯一 producer + manifest hash sidecar）
@@ -28,7 +28,7 @@
    旧数据新 schema 一律拒绝）；
 5. **privacy scan**：provenance 相关文本/诊断不泄露绝对用户路径与凭据。
 
-约束来源：`docs/ASTROCS_DESIGN.md` §8.2（阶段内命名块内存管线）、§10（阶段间只通过原子发布、哈希
+约束来源：`docs/ACSD_DESIGN.md` §8.2（阶段内命名块内存管线）、§10（阶段间只通过原子发布、哈希
 和 provenance 完整的磁盘产品/manifest 交换）；`docs/engineering/data/DATA-002_PHASE_PRODUCT_EXCHANGE.md`
 的 `R-EVIDENCE-REQUIRED`（缺 manifest / 缺 hash / 缺 schema / 缺 units → 拒绝）；
 `docs/engineering/data/DATA-003_PRODUCTION_ARTIFACT_STORE.md` 接线冻结语义（发布物保持严格
@@ -40,7 +40,7 @@ sidecar 旁路持久化，manifest hash 语义不变）。
 | 类别 | 键 | 语义 | 来源/绑定 | 版本示例 |
 |---|---|---|---|---|
 | product | `revision.product` | 产物版本（构建产物标识） | manifest `producer.module_build_id` | `0.1.0-alpha.1-linux-amd64-gcc14` |
-| module | `revision.module` | 模块标识/版本 | manifest `producer.module_id` | `astrocs.phase1.frame_hips` |
+| module | `revision.module` | 模块标识/版本 | manifest `producer.module_id` | `acsd.phase1.frame_hips` |
 | ABI | `revision.abi` | C ABI / 文档形态版本 | `eng/contracts/data/artifact_manifest.schema.json` 形态（v1） | `v1` |
 | data schema | `revision.data_schema` | type_id 数据 schema revision | manifest `type_id.schema_version` → `v{sv}` | `v1` |
 | doc revision | `doc_revision`（旁路） | manifest 文档形态自身修订 | 当前 `v1`；非当前拒绝 | `v1` |
@@ -55,7 +55,7 @@ sidecar 旁路持久化，manifest hash 语义不变）。
   或“旧数据新 schema 静默接收”，一律拒绝；
 - **doc revision 只允许当前值 `v1`**（`assert_doc_revision_is_current`）；无 `doc_revision`
   字段的 manifest（字段集按 `eng/contracts/data/artifact_manifest.schema.json`）放行；
-- **history 结构**（`astrocs.provenance-history/v1`）：
+- **history 结构**（`acsd.provenance-history/v1`）：
   `revision_category`（product/module/abi/data_schema）+ `artifact_id` +
   `replaced[]`（`{version, digest:{algorithm,hex}, reason?}`，按版本升序、非空）+
   `superseded_by`（接替者 = 本次发布的当前版本）+ `replaced_at_utc`。
@@ -66,7 +66,7 @@ provenance digest = sha256(规范 JSON)，公式输入**只**为溯源事实：
 
 ```text
 provenance_digest = sha256(canonical_json({
-  provenance_schema: "astrocs.provenance/v1", version: 1,
+  provenance_schema: "acsd.provenance/v1", version: 1,
   artifact_id, revision{product,module,abi,data_schema},
   source_commit,                      # 40 hex 源码 commit（调用方/运行图给出；绝不自行猜 git）
   config_digest{algorithm,hex},       # 模块运行配置摘要（= manifest.config_digest）
@@ -137,7 +137,7 @@ api_key/credential/private_key 等）→ 命中即报告泄露（不静默改写
 provenance 顶层字段结构上也不携带任何文件系统路径（storage_uri/artifact_id 词法
 层按 `eng/contracts/data/artifact_manifest.schema.json` 拒绝裸路径）——绝对用户路径/凭据在溯源通道不出现。
 
-## 6. 验收映射（依据：本文件 + `docs/ASTROCS_DESIGN.md` §10）
+## 6. 验收映射（依据：本文件 + `docs/ACSD_DESIGN.md` §10）
 
 | 验收 | 实现 | 测试 |
 |---|---|---|

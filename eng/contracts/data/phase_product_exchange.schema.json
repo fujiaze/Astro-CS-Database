@@ -1,8 +1,8 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://astrocs.local/schemas/phase-product-exchange-v1.json",
+  "$id": "https://acsd.local/schemas/phase-product-exchange-v1.json",
   "title": "ACSD Phase Product Exchange v1 (DATA-002 冻结)",
-  "description": "三阶段产品交换合同：定义 phase1_product_v1 / phase2_mosaic_v1 / phase3_planar_fits_v1 的角色↔type 绑定、交换候选对象的强证据要求（manifest/hash/schema/units 缺一拒绝）、origin 语义（astrocs 产品 vs external_fixture）与输入/输出兼容矩阵。权威语义与阶段边界见 docs/engineering/data/DATA-002_PHASE_PRODUCT_EXCHANGE.md；角色↔type 绑定不得与 eng/contracts/data/artifact_types.registry.json 冲突（本 schema 不重复登记 type_id，只绑定 DATA-001 已冻结 type）。跨 Phase 仅磁盘交换：任何阶段进程不得接受另一阶段进程内对象/句柄/run 上下文；本文件描述交换对象文档形态与资格规则，机器执行见 lib/infrastructure/aio/runtime/artifact_store/phase_product_exchange_validator.py（与本文档一一对应，须同步修改）。",
+  "description": "三阶段产品交换合同：定义 phase1_product_v1 / phase2_mosaic_v1 / phase3_planar_fits_v1 的角色↔type 绑定、交换候选对象的强证据要求（manifest/hash/schema/units 缺一拒绝）、origin 语义（acsd 产品 vs external_fixture）与输入/输出兼容矩阵。权威语义与阶段边界见 docs/engineering/data/DATA-002_PHASE_PRODUCT_EXCHANGE.md；角色↔type 绑定不得与 eng/contracts/data/artifact_types.registry.json 冲突（本 schema 不重复登记 type_id，只绑定 DATA-001 已冻结 type）。跨 Phase 仅磁盘交换：任何阶段进程不得接受另一阶段进程内对象/句柄/run 上下文；本文件描述交换对象文档形态与资格规则，机器执行见 lib/infrastructure/aio/runtime/artifact_store/phase_product_exchange_validator.py（与本文档一一对应，须同步修改）。",
   "type": "object",
   "additionalProperties": false,
   "required": [
@@ -17,7 +17,7 @@
   ],
   "properties": {
     "exchange_schema": {
-      "const": "astrocs.phase-product-exchange/v1",
+      "const": "acsd.phase-product-exchange/v1",
       "description": "本交换对象文档的 schema 标识。"
     },
     "exchange_version": {
@@ -30,7 +30,7 @@
     },
     "type_id": {
       "type": "string",
-      "pattern": "^astrocs\\.[a-z0-9]+\\.[a-z0-9_]+\\.v[0-9]+$",
+      "pattern": "^acsd\\.[a-z0-9]+\\.[a-z0-9_]+\\.v[0-9]+$",
       "description": "产物类型；必须与 product_role 绑定一致（role 不允许与 type 解耦）且登记于 artifact_types.registry.json。"
     },
     "schema_version": {
@@ -39,17 +39,17 @@
       "description": "type_id 数据 schema 版本；必须与注册表中该 type_id 的 schema_version 一致。"
     },
     "origin": {
-      "enum": ["astrocs", "external_fixture"],
-      "description": "来源：astrocs=本产品任一 ACSD phase run 的原子发布产物；external_fixture=ACSD 之外生成、但完整满足本交换合同（含 manifest/hash/schema/units）的合同兼容 HiPS/FITS 测试或审核对象。origin 只描述来源，不放松任何证据要求。"
+      "enum": ["acsd", "external_fixture"],
+      "description": "来源：acsd=本产品任一 ACSD phase run 的原子发布产物；external_fixture=ACSD 之外生成、但完整满足本交换合同（含 manifest/hash/schema/units）的合同兼容 HiPS/FITS 测试或审核对象。origin 只描述来源，不放松任何证据要求。"
     },
     "artifact_manifest": {
       "type": "object",
       "description": "DATA-001 冻结合并 manifest（字段约束与校验权威 = eng/contracts/data/artifact_manifest.schema.json + lib/infrastructure/aio/runtime/artifact_store/artifact_manifest_validator.py）。交换资格要求 status=COMPLETE、content_digest=sha256(64hex)。本对象缺任一 DATA-001 必填字段即拒绝（缺 manifest/hash 语义由 DATA-001 严格校验保证）。",
       "properties": {
-        "manifest_schema": { "const": "astrocs.artifact-manifest/v1" },
+        "manifest_schema": { "const": "acsd.artifact-manifest/v1" },
         "manifest_version": { "const": 1 },
         "artifact_id": { "type": "string", "pattern": "^[A-Za-z0-9_-]+$", "minLength": 1, "maxLength": 128 },
-        "type_id": { "type": "string", "pattern": "^astrocs\\.[a-z0-9]+\\.[a-z0-9_]+\\.v[0-9]+$" },
+        "type_id": { "type": "string", "pattern": "^acsd\\.[a-z0-9]+\\.[a-z0-9_]+\\.v[0-9]+$" },
         "schema_version": { "type": "integer", "minimum": 1 },
         "storage_uri": { "type": "string", "minLength": 1 },
         "content_digest": {
@@ -103,7 +103,7 @@
   },
   "then": {
     "properties": {
-      "type_id": { "const": "astrocs.phase1.frame_hips.v1" }
+      "type_id": { "const": "acsd.phase1.frame_hips.v1" }
     }
   },
   "else": {
@@ -112,7 +112,7 @@
     },
     "then": {
       "properties": {
-        "type_id": { "const": "astrocs.phase2.mosaic_hips.v1" }
+        "type_id": { "const": "acsd.phase2.mosaic_hips.v1" }
       }
     },
     "else": {
@@ -121,7 +121,7 @@
       },
       "then": {
         "properties": {
-          "type_id": { "const": "astrocs.phase3.planar_fits.v1" }
+          "type_id": { "const": "acsd.phase3.planar_fits.v1" }
         }
       }
     }
@@ -140,9 +140,9 @@
           },
           "type_id": {
             "enum": [
-              "astrocs.phase1.frame_hips.v1",
-              "astrocs.phase2.mosaic_hips.v1",
-              "astrocs.phase3.planar_fits.v1"
+              "acsd.phase1.frame_hips.v1",
+              "acsd.phase2.mosaic_hips.v1",
+              "acsd.phase3.planar_fits.v1"
             ]
           },
           "registry_schema_version": { "const": 1 },
@@ -178,7 +178,7 @@
       ],
       "properties": {
         "content_schema": {
-          "const": "astrocs.phase-product-content/v1",
+          "const": "acsd.phase-product-content/v1",
           "description": "product_content 块结构标识。"
         },
         "coordinate": {

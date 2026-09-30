@@ -2,10 +2,10 @@
   "port_id": "phase2.integrate.pixel_variance_in",
   "direction": "input",
   "accepts_object": "variance",
-  "accepts_schema_id": "https://astrocs.local/schemas/unified/variance/v1",
+  "accepts_schema_id": "https://acsd.local/schemas/unified/variance/v1",
   "connected_object_document": {
     "unified_object": "source_snr",
-    "object_schema_id": "https://astrocs.local/schemas/unified/source_snr/v1",
+    "object_schema_id": "https://acsd.local/schemas/unified/source_snr/v1",
     "schema_version": 1,
     "units": {
       "bunit": "1",

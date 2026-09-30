@@ -93,7 +93,7 @@ int main(int argc, char** argv) {
         const uint64_t z = rng() & kTileMask;
         const uint64_t leaf_ipix = (tile_ipix << 18) | z;
         double ra = 0, dec = 0;
-        astrocs::healpix::pix2ang_nest(leaf_nside, leaf_ipix, ra, dec);
+        acsd::healpix::pix2ang_nest(leaf_nside, leaf_ipix, ra, dec);
 
         // Browser 后端
         double sig_b = 0, sup_b = 0;
@@ -119,7 +119,7 @@ int main(int argc, char** argv) {
             ref_sig[tile_ipix] = std::move(sig0);
             ref_sup[tile_ipix] = std::move(sup0);
         }
-        const uint64_t idx = astrocs::healpix::nested_local_to_fits_index(z, 9u, 512u);
+        const uint64_t idx = acsd::healpix::nested_local_to_fits_index(z, 9u, 512u);
         const double sig_d = ref_sig[tile_ipix][idx];
         const double sup_d = ref_sup[tile_ipix][idx];
 

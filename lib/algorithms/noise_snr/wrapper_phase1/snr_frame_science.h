@@ -1,6 +1,6 @@
 // ACSD Phase1 — 帧级 SNR 科学聚合 (P8-SNR-LINUX)
 //
-// 职责: 把 Linux 生产路径 (LIBS 节点 astrocs.phase1.noise-snr → NoiseModel::estimate)
+// 职责: 把 Linux 生产路径 (LIBS 节点 acsd.phase1.noise-snr → NoiseModel::estimate)
 //       的 SNR 输出从"整帧标量"改为**逐源科学 SNR** + 帧级 5sigma 深度。
 //
 // 唯一权威实现: lib/algorithms/noise_snr/cpp/src/snr_science.cpp (P5-SNR)
@@ -30,7 +30,7 @@
 #include <string>
 #include <vector>
 
-namespace astrocs::phase1 {
+namespace acsd::phase1 {
 
 // 逐源输入行 (来自 p1_sources.json 的测光有效星; 调用方负责提供)
 struct SnrSourceRow {
@@ -93,4 +93,4 @@ SnrFrameScienceResult compute_snr_frame_science(
     const std::vector<SnrSourceRow>& sources,
     const SnrFrameScienceConfig& cfg);
 
-}  // namespace astrocs::phase1
+}  // namespace acsd::phase1

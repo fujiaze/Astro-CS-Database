@@ -1,6 +1,6 @@
-# ALG-HIPS-001..005 — astrocs.p1.hips_writer HiPS 产品集写出算法
+# ALG-HIPS-001..005 — acsd.p1.hips_writer HiPS 产品集写出算法
 
-> 上游：ASTROCS_DESIGN.md §4.2（Phase1 节点流程）、§10（I/O 与原子产品）
+> 上游：ACSD_DESIGN.md §4.2（Phase1 节点流程）、§10（I/O 与原子产品）
 
 > SCI 上游: SCI-DRZ-001（docs/science/DRIZZLE.md，FROZEN，共享引用不改动；
 > 实现锚 finalize_tile 方差语义与 support=D_p 归一语义两处）
@@ -14,7 +14,7 @@
 > （Górski et al. 2005）——经 SCI-P3-001 收录的文献锚，本文件不另立外部断言。
 > 本文件为逐公式"算法+源码锚点"登记：凡 SCI 层无覆盖而实现自带的语义（HiPS 写出
 > 合同细节），以实现为准登记并标注；凡实现与 SCI 语义冲突处，登记 DISP- 条目。
-> **权威订正原则** = `docs/ASTROCS_DESIGN.md` §0（文档权威与索引）「科学正确性优先」：独立证据（外部标准 /
+> **权威订正原则** = `docs/ACSD_DESIGN.md` §0（文档权威与索引）「科学正确性优先」：独立证据（外部标准 /
 > 文献 / 可复跑实验）证明文档与事实不符时，**订正文档是义务**（SCI 层订正走变更流程并
 > 记录证据与影响面）；文档已被证明正确而实现不符时改实现。
 >
@@ -54,7 +54,7 @@ docs/engineering/io/IO_003_ATOMIC_OUTPUT_PUBLISH.md，本文件仅登记对齐�
 - (1d) 产品集校验：flags 位域 {1,2,4,8,16}，ALL=7/ALL_V19=31
   （`lib/infrastructure/aio/include/aio_hips.h`；begin 拒绝越位）；dtype∈{0=float32,1=float64}
   （同文件）；违规 → 返回 NULL + last_error。
-- (1e) 缺省元数据：creator_did="ivo://astrocs/phase1"、
+- (1e) 缺省元数据：creator_did="ivo://acsd/phase1"、
   obs_title="Astro Celestial Sphere Database（ACSD） Phase1"（可入参覆盖）。
 - (1f) 状态句柄 ProductSet 持有：nside/tile_width/data_type/flags/out_dir/
   properties 元数据、moc_cells（叶级 cell 集）、leaf_ipix_list（写序）、
@@ -166,12 +166,12 @@ add_var 同文件）；finalize 落盘 `finalize_hierarchy`
   support=min(Σarea/A_cell_k,1)（层级面钳制点，`finalize_hierarchy` 内
   `sup = area/A_cell_k; if (sup>1.0) sup=1.0`；叶级另有各自发布面的钳制点
   （同文件）⇒ **每个发布面各钳制一次**，两处计数键不同：叶级
-  `astrocs_support_clamped_pixels`、层级 `astrocs_coverage_gt1_pixels`；
+  `acsd_support_clamped_pixels`、层级 `acsd_coverage_gt1_pixels`；
   Σflux/Σarea 用的是 (4b) 的未钳制面积）、variance/ivar 同 (3a) 用
   Σarea——与叶级公式同构；对齐 IVOA"低阶像素=子像素聚合"。**编码限
   （M2a-H-3）**：support 是 a/A_cell_k 的钳后值，Σa>A_cell_k 时父级真实覆盖
   面积**不可由产物复原**（sup=1 丢失倍数信息）；该情形逐像素计数写入
-  properties 与 manifest（`astrocs_support_clamped_pixels` 叶级钳制像素数
+  properties 与 manifest（`acsd_support_clamped_pixels` 叶级钳制像素数
   （叶级与层级两处计数键，均在同文件）；`docs/science/DATA_SEMANTICS.md` §20.3 同款声明）
   约定。FITS cards ORDERING=NESTED + NSIDE=2^(k+9)（k = 该 hierarchy 阶，
   nside_k = 2^(k+9) 与叶级 ilog2 语义一致；**不是 tile 阶**——tile 宽恒 512=2^9，
@@ -201,7 +201,7 @@ add_var 同文件）；finalize 落盘 `finalize_hierarchy`
   moc_area_sr/4π（finalize）。
 - (5b) properties（write_properties 裸 `key=value\n` 直写，fopen
   失败静默 return；键序 finalize_image_product，均在同文件）：IVOa 关键字
-  creator_did（缺省 ivo://astrocs/phase1）/ obs_title / obs_creator=
+  creator_did（缺省 ivo://acsd/phase1）/ obs_title / obs_creator=
   "ACSD"/ **hips_version="1.4"** / hips_order=K /
   hips_tile_width="512" / hips_frame="equatorial"（IVOA REC-HIPS-1.0 §4.4.1 标准值域 {equatorial, galactic, ecliptic}；
   M1a-B-005 前写非标准值 "equatorial"）/ dataproduct_type="image" /
@@ -209,9 +209,9 @@ add_var 同文件）；finalize 落盘 `finalize_hierarchy`
   variance=variance、ivar=inverse variance，由 finalize 传入）/ hips_tile_format="fits" / **hips_status="private master"（恒值，DISP-HIPS-003）** / hips_creator / hips_builder="ACSD
   aio_hips_writer (CFITSIO 4.6.4)" / **hips_estsize="1000000" 硬编码（DISP-HIPS-002）** / hips_release_date+hips_creation_date=真实 UTC
   （utc_now_date/utc_now_iso，gmtime_r 固定格式不依赖时区；
-  META-001 禁伪造）/ obs_description / prov_progenitor=ivo://astrocs/
-  phase1/drizzle/ [prov_set 时] ASTROCS_DRIZZLE_PIXFRAC（%.6f）/
-  ASTROCS_DRIZZLE_SCALE_ARCSEC（%.4f）（同文件；`set_drizzle_
+  META-001 禁伪造）/ obs_description / prov_progenitor=ivo://acsd/
+  phase1/drizzle/ [prov_set 时] ACSD_DRIZZLE_PIXFRAC（%.6f）/
+  ACSD_DRIZZLE_SCALE_ARCSEC（%.4f）（同文件；`set_drizzle_
   provenance` 亦同文件，**M9-F-3 合法域**：pixfrac∈(0,1] rc=2、
   scale 必须有限且 ∈(0, ACS_HIPS_MAX_FRAME_SCALE_ARCSEC=824.5167388361774″]
   rc=2，**每次拒绝都 set_error 点名原因**；通道全或无——接受即两键齐备落盘，
@@ -227,8 +227,8 @@ add_var 同文件）；finalize 落盘 `finalize_hierarchy`
   strtod 回程精确，§9 的 <1e-9 绝对容差与键值精确两条无条件成立；**禁用**
   properties 与 manifest 各用一套格式化（std::to_string 6dp / %.8f）——
   双面字面量必然分叉，违反逐字符相等）** /
-  astrocs_covered_sky_fraction / astrocs_signal_dtype /
-  **astrocs_support_clamped_pixels + astrocs_coverage_gt1_pixels（properties 与 manifest 两面，
+  acsd_covered_sky_fraction / acsd_signal_dtype /
+  **acsd_support_clamped_pixels + acsd_coverage_gt1_pixels（properties 与 manifest 两面，
   同文件；M2a-H-3 钳制计数，见 (4c) 编码限）** /
   [非空] hips_data_range（sig_min≤sig_max 才写，同文件）/ **hips_ordering=
   "NESTED" 恒写（消费侧 coverage 断言 NESTED）** / **obs_filter
@@ -239,7 +239,7 @@ add_var 同文件）；finalize 落盘 `finalize_hierarchy`
   HIPSTILEWIDTH=512/DATAPRODTYPE，remove+create；同文件）。
 - (5c) SNR Catalogue HiPS：`finalize_snr_product`——无点整体不写；
   点 (ra_deg,dec_deg) 经共享 HEALPix 权威
-  `astrocs::healpix::ang2pix_nest(2^tile_order, ra, dec)` 落 cell
+  `acsd::healpix::ang2pix_nest(2^tile_order, ra, dec)` 落 cell
   （radec_to_xyz→xyz_to_hp→xy_to_nest，`lib/algorithms/shared/healpix/healpix_core.cpp`，
   源 astrometry.net healpix.c，astropy-healpix 百万点 oracle 已对拍）；
   按 cell 聚类写 TSV tile（NorderK/DirD/NpixN.tsv，同文件）：头注释行 +
@@ -254,7 +254,7 @@ add_var 同文件）；finalize 落盘 `finalize_hierarchy`
   （同文件）。
 - (5d) manifest.json（`lib/infrastructure/aio/src/hips/aio_hips_writer.cpp` 的 manifest 写出段）：format_version=1、hips_version="1.4"、
   nside/tile_width/data_type、products 列表、n_leaf_tiles=leaf_ipix_list
-  .size()、moc_sky_fraction、astrocs_covered_sky_fraction、signal_dtype。
+  .size()、moc_sky_fraction、acsd_covered_sky_fraction、signal_dtype。
   **无 COMPLETE 状态字、无 sha256 树哈希**——发布侧语义在 IO-003
   （lib/infrastructure/aio/io/hips_output_store.py 临时写→fsync→fitsverify→sha256→原子
   rename→manifest COMPLETE），C++ writer 与发布层的对齐边界=DATA-P1-HIPS
@@ -280,7 +280,7 @@ add_var 同文件）；finalize 落盘 `finalize_hierarchy`
 - **SCI 缺口（如实登记）**：HiPS 写出合同（tile 切分/hierarchy 聚合/properties
   键集/publish 协议）在 docs/science/ 无 SCI 级条目——由本文件 ALG-HIPS 承接；
   `docs/science/SCIENCE_SCOPE.md` 仅产品级目标，SCI-P3-001 为读侧消费合同。SCI 化候选
-  变更走 SCI 变更流程（`docs/ASTROCS_DESIGN.md` §0：独立证据证明文档有误时订正文档是义务，
+  变更走 SCI 变更流程（`docs/ACSD_DESIGN.md` §0：独立证据证明文档有误时订正文档是义务，
   SCI 层订正须记录证据与影响面并做一致性回归）。
 - `docs/science/DRIZZLE.md` 指向的 DISP-DRZ-007（方差行漂移）涉 `lib/algorithms/drizzle/healpix_drizzle/astro_sphere_sink.cpp`
   与本文件 (3a) 接口，本模块不改传播公式。
@@ -399,9 +399,9 @@ UTC 时间戳致 properties/manifest 字节不跨运行复现（合同，§7）�
 - 下游/合同：DATA-P1-HIPS（DATA_SEMANTICS §12）、API-HIPS-001
   （PUBLIC_API.md）、API-P1-007（编排级 hp_drizzle_run_hips 区间）、
   ARCH-001、IO-003（发布合同，对齐不越权）、SCI-P3-001（读侧消费）。
-- 模块：MOD-astrocs-phase1-hips-writer（lib/algorithms/drizzle/hips/README.md、module.yaml、
-  registry astrocs.phase1.hips-writer.md）；traceability 行
-  MOD-astrocs-phase1-hips-writer。
+- 模块：MOD-acsd-phase1-hips-writer（lib/algorithms/drizzle/hips/README.md、module.yaml、
+  registry acsd.phase1.hips-writer.md）；traceability 行
+  MOD-acsd-phase1-hips-writer。
 - 相邻（不改）：aio_hips_reader.cpp（P3 读链，HIPS_VERIFY 后端）、
   astro_sphere_sink.cpp（P1-DRZ 写通道 sink）、hiss_codec/hiss_stream_writer
   （独立中间容器，legacy_hiss_compare 开关封闭，CFG-002 关闭 HISS_VERIFY

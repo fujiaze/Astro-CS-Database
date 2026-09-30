@@ -11,7 +11,7 @@
 #include <utility>
 #include <vector>
 
-namespace astrocs::core {
+namespace acsd::core {
 
 // 稳定 error domains (API-001 §2.2; 错误码不随实现漂移)
 enum class ErrorDomain : uint8_t {
@@ -204,7 +204,7 @@ struct TraceEvent {
   std::string dll_name;       // 真实 DLL 名（缺失/未知时为空）
   std::string dll_sha256;     // DLL 内容 hash（真实观测）
   std::string build_id;       // build id / 源码 commit（真实）
-  std::string entry;          // 真实导出入口（如 astrocs_phase2_*_v1）
+  std::string entry;          // 真实导出入口（如 acsd_phase2_*_v1）
   uint64_t call_count = 0;    // 累计调用计数（该 node/module）
   uint32_t workers = 0;       // 实际 workers（租约数；node_end/worker_task）
   uint32_t granted_workers = 0; // 授予租约上限（观测）
@@ -228,4 +228,4 @@ struct TraceEvent {
   bool same_call_site(const TraceEvent& o) const noexcept;
 };
 
-}  // namespace astrocs::core
+}  // namespace acsd::core

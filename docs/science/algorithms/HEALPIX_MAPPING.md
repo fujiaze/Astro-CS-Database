@@ -1,6 +1,6 @@
 # HEALPix Mapping
 
-> 上游：ASTROCS_DESIGN.md §6.3（投影算法）、§3.1（数据对象）
+> 上游：ACSD_DESIGN.md §6.3（投影算法）、§3.1（数据对象）
 
 关联：SCI-DRZ-001（科学正本 = `docs/science/DRIZZLE.md`）；core 实现正本 = `lib/algorithms/shared/healpix`（pix2ang/ang2pix/nested_local_to_xy 唯一实现，drizzle 依赖该单源）；tile/leaf 层级拆解实现面 = `lib/algorithms/coverage/src/upm.cpp` 与 `lib/infrastructure/aio/src/aio_upm.cpp`。
 
@@ -8,7 +8,7 @@
 
 RA/Dec 或 NESTED leaf/tile。
 
-**科学量五件事**（`ASTROCS_DESIGN.md` §3.3「单位、坐标系、归一化、精度要求、
+**科学量五件事**（`ACSD_DESIGN.md` §3.3「单位、坐标系、归一化、精度要求、
 有效有限域」）—— 冻结在实现头，本文档只作**指针级承接**：
 
 | 量 | 单位 | 坐标系 | 归一化 | 精度要求 | 有效有限域 | 锚 |

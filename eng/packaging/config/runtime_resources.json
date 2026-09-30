@@ -1,13 +1,13 @@
 {
-  "schema": "astrocs.runtime-resources/v1",
+  "schema": "acsd.runtime-resources/v1",
   "config_class": "program_global",
   "title": "运行时资源预算（调度准入；**不是**资源门）",
-  "authority": "内存预算 = 当前可用内存 × memory_budget_percent/100，交给调度器作为准入输入（在途节点估算峰值之和超预算时就绪节点排队等待）；内存不设资源门（docs/ASTROCS_DESIGN.md §4.5 运行前预检），故本预算不产生退出码、不阻断运行。",
+  "authority": "内存预算 = 当前可用内存 × memory_budget_percent/100，交给调度器作为准入输入（在途节点估算峰值之和超预算时就绪节点排队等待）；内存不设资源门（docs/ACSD_DESIGN.md §4.5 运行前预检），故本预算不产生退出码、不阻断运行。",
   "authority_refs": [
-    "docs/ASTROCS_DESIGN.md §8.3（静态预算：估算是调度决策的输入；编排策略「内存占用永不越界」——越界时按「可中断排队 / 可丢弃重跑」处置，不是拒绝任务）",
-    "docs/ASTROCS_DESIGN.md §9（一个进程一个资源调度器与线程预算源；内存与 CPU 同源）",
+    "docs/ACSD_DESIGN.md §8.3（静态预算：估算是调度决策的输入；编排策略「内存占用永不越界」——越界时按「可中断排队 / 可丢弃重跑」处置，不是拒绝任务）",
+    "docs/ACSD_DESIGN.md §9（一个进程一个资源调度器与线程预算源；内存与 CPU 同源）",
     "docs/engineering/SCHEDULER_CONTRACT.md §3（内存上限（峰值工作集）由配置/资源门决定，禁止硬编码）",
-    "docs/ASTROCS_DESIGN.md §4.5 运行前预检 + ENGINEERING_SPEC.md §12 + eng/contracts/resource_gate_v1.json#disk_gate.no_gate（资源门只管磁盘；内存 / CPU / 线程**不设门** ⇒ 本预算是调度准入输入，不产生退出码、不阻断运行）"
+    "docs/ACSD_DESIGN.md §4.5 运行前预检 + ENGINEERING_SPEC.md §12 + eng/contracts/resource_gate_v1.json#disk_gate.no_gate（资源门只管磁盘；内存 / CPU / 线程**不设门** ⇒ 本预算是调度准入输入，不产生退出码、不阻断运行）"
   ],
   "readers": [
     "CMakeLists.txt（configure_file → runtime_resources_generated.h；实现侧零字面量）",
@@ -15,7 +15,7 @@
     "lib/infrastructure/scheduler/src/memory_pressure.cpp（memory_pressure_* 键的唯一消费点：memory_pressure.cpp:pressure_policy_from_config）"
   ],
   "memory_budget_percent": 95,
-  "memory_budget_percent_constraint": "整数 1..100。含义：内存预算上限 = **当前可用内存 × percent / 100**。默认 95（避免卡死，不是省内存）。运行期可经机器绑定 profile（--cpu-profile 指向的 astrocs.cpu-profile/v2 的 host.memory_budget_percent）覆盖；profile 未声明或取值非法时用本文件的默认值。",
+  "memory_budget_percent_constraint": "整数 1..100。含义：内存预算上限 = **当前可用内存 × percent / 100**。默认 95（避免卡死，不是省内存）。运行期可经机器绑定 profile（--cpu-profile 指向的 acsd.cpu-profile/v2 的 host.memory_budget_percent）覆盖；profile 未声明或取值非法时用本文件的默认值。",
   "memory_budget_percent_source": "默认值 95 冻结于本文件；运行期可经机器绑定 profile 覆盖（见 memory_budget_percent_constraint）",
   "memory_pressure_enabled": 1,
   "memory_pressure_enabled_constraint": "0/1。0 = 关闭内存压力治理（与未启用逐字节等价：恒允许派发、零台账、零计数、零行为变化）；1 = 启用（默认）。关闭面是**受控对照实验**用的开关，不是「内存紧张时把它关掉」的逃生门。",
@@ -29,18 +29,18 @@
   "memory_pressure_high_dwell_samples_constraint": "≥ 1。连续 N 次采样压力 ≥ high_percent 才置高压力态（去抖：单次尖峰不触发）。",
   "memory_pressure_low_dwell_samples_constraint": "≥ 1。连续 N 次采样压力 ≤ low_percent 才解除高压力态。",
   "memory_pressure_evict_after_samples": 3,
-  "memory_pressure_evict_after_samples_constraint": "≥ 1。高压力态**已连续持续** N 次采样后才允许丢弃进度最低的在飞帧（docs/ASTROCS_DESIGN.md §8.3:615「可丢弃重跑」的触发门槛）：先停派发（§8.3:614「可中断排队」），仍不缓解才丢弃（§8.3:615）。取 3 ⇒ 在 1000 ms 采样间隔下 = 约 3 s 的持续高压，足以排除采样尖峰。",
+  "memory_pressure_evict_after_samples_constraint": "≥ 1。高压力态**已连续持续** N 次采样后才允许丢弃进度最低的在飞帧（docs/ACSD_DESIGN.md §8.3:615「可丢弃重跑」的触发门槛）：先停派发（§8.3:614「可中断排队」），仍不缓解才丢弃（§8.3:615）。取 3 ⇒ 在 1000 ms 采样间隔下 = 约 3 s 的持续高压，足以排除采样尖峰。",
   "memory_pressure_sample_interval_ms": 1000,
   "memory_pressure_sample_interval_ms_constraint": "≥ 0，毫秒。压力采样节流间隔（0 = 每次都采样；生产不可为 0，否则派发热点会以每次派发一次的频率读 /proc）。取值依据：单次采样 = 读 /proc/self/status + 一次 /proc 枚举，实测开销在毫秒量级，1 s 间隔下开销占比 < 0.1%，而 1 s 远小于单帧处理时长（秒级）⇒ 不会漏掉一次帧派发窗口。",
-  "memory_pressure_ledger": "run 级 JSONL 台账（每行一个事件对象），由 run 的 output_dir 派生路径；事件含 pressure_high / pressure_low / evict_lowest_progress / rss_unavailable / governance_disabled / governance_unavailable / dispatch_escape_no_inflight。落盘经 aio 唯一追加写原语。台账只增不改，不参与任何判据（docs/ASTROCS_DESIGN.md §4.5 运行前预检：内存不设门）。",
-  "available_memory_probe": "lib/infrastructure/aio/src/aio_sysinfo.cpp#aio_system_available_memory_bytes（aio 是文件级唯一 I/O 边界，docs/ASTROCS_DESIGN.md §10）。Linux 口径 = /proc/meminfo 的 MemAvailable（含可回收 page cache，**不是** MemFree）∩ cgroup 内存余量（v2 memory.max - memory.current；v1 memory.limit_in_bytes - memory.usage_in_bytes）；Windows 口径 = GlobalMemoryStatusEx.ullAvailPhys。返回 0 = 不可判定（fail-closed：不启用回压，如实登记，不冒充有预算）。",
+  "memory_pressure_ledger": "run 级 JSONL 台账（每行一个事件对象），由 run 的 output_dir 派生路径；事件含 pressure_high / pressure_low / evict_lowest_progress / rss_unavailable / governance_disabled / governance_unavailable / dispatch_escape_no_inflight。落盘经 aio 唯一追加写原语。台账只增不改，不参与任何判据（docs/ACSD_DESIGN.md §4.5 运行前预检：内存不设门）。",
+  "available_memory_probe": "lib/infrastructure/aio/src/aio_sysinfo.cpp#aio_system_available_memory_bytes（aio 是文件级唯一 I/O 边界，docs/ACSD_DESIGN.md §10）。Linux 口径 = /proc/meminfo 的 MemAvailable（含可回收 page cache，**不是** MemFree）∩ cgroup 内存余量（v2 memory.max - memory.current；v1 memory.limit_in_bytes - memory.usage_in_bytes）；Windows 口径 = GlobalMemoryStatusEx.ullAvailPhys。返回 0 = 不可判定（fail-closed：不启用回压，如实登记，不冒充有预算）。",
   "enforcement": {
     "in_process": "调度准入（Scheduler 内存回压：在途节点估算峰值之和 > 预算 ⇒ 就绪节点排队等待，不拒绝、不改退出码）",
     "not_a_gate": true,
     "cli_exit_code": null
   },
-  "x-astrocs-writer": "用户（可调）；默认值 95 冻结于本文件",
-  "x-astrocs-not-writable-by": [
+  "x-acsd-writer": "用户（可调）；默认值 95 冻结于本文件",
+  "x-acsd-not-writable-by": [
     "benchmark"
   ],
   "orchestration_params": {
@@ -59,9 +59,9 @@
     "p3_default_queue_depth": 4,
     "p3_default_queue_depth_constraint": "整数 ≥ 1；P3 子块写队列缺省深度。与 p3_default_sub_block_px 共同决定在途内存上界 2·queue_depth·sb²·8 B。",
     "p1_max_frames_in_flight": 0,
-    "p1_max_frames_in_flight_constraint": "整数 ≥ 0；0 = 策略值（帧级并行宽度由 Runtime lease 与内存闸门共同决定，见 docs/engineering/THREADING_MODEL.md「并行轴分配」）。>0 时**只收紧**帧级在飞宽度（实现侧 fail-closed：绝不放大到超预算，也不改帧内轴分配公式）。依据 docs/ASTROCS_DESIGN.md §8.3:652「编排参数（窗口大小、预取深度、帧并发度、工作窃取策略）基于探针实测数据迭代，不靠静态猜测」+ docs/engineering/SCHEDULER_CONTRACT.md:38（最终取值由性能门定，合同只保证机制正确）。",
+    "p1_max_frames_in_flight_constraint": "整数 ≥ 0；0 = 策略值（帧级并行宽度由 Runtime lease 与内存闸门共同决定，见 docs/engineering/THREADING_MODEL.md「并行轴分配」）。>0 时**只收紧**帧级在飞宽度（实现侧 fail-closed：绝不放大到超预算，也不改帧内轴分配公式）。依据 docs/ACSD_DESIGN.md §8.3:652「编排参数（窗口大小、预取深度、帧并发度、工作窃取策略）基于探针实测数据迭代，不靠静态猜测」+ docs/engineering/SCHEDULER_CONTRACT.md:38（最终取值由性能门定，合同只保证机制正确）。",
     "scheduler_prefetch_threads_max": 4,
-    "scheduler_prefetch_threads_max_constraint": "整数 ≥ 0；0 = 不设上限。未接线调度器 lib/infrastructure/scheduler/src/normalize_workflow.cpp 的**预取线程数上限**（NormalizeWorkflowConfig::prefetch_threads 的受控上界）：实现侧把请求值 clamp 到本键并留痕，不再出现无上界的并发预取。依据 docs/ASTROCS_DESIGN.md §8.3:643（normalize「异步启动其他独立工作流（预取下一帧…）；I/O 预取与计算重叠」）+ §8.3:647（线程池唯一来源是调度器、单进程唯一预算源）。",
+    "scheduler_prefetch_threads_max_constraint": "整数 ≥ 0；0 = 不设上限。未接线调度器 lib/infrastructure/scheduler/src/normalize_workflow.cpp 的**预取线程数上限**（NormalizeWorkflowConfig::prefetch_threads 的受控上界）：实现侧把请求值 clamp 到本键并留痕，不再出现无上界的并发预取。依据 docs/ACSD_DESIGN.md §8.3:643（normalize「异步启动其他独立工作流（预取下一帧…）；I/O 预取与计算重叠」）+ §8.3:647（线程池唯一来源是调度器、单进程唯一预算源）。",
     "work_steal_policy": "gap:未落地（键位方案见 config_registry.json#orchestration_params.gaps；生产无实现，不落死键）",
     "cpu_budget_max": 0,
     "cpu_budget_max_constraint": "整数 ≥ 0；0 = 不设上限。进程有效 CPU 预算的**配置上限**（docs/engineering/CONCURRENCY_STANDARD.md「默认」节：「线程数：外部可配置，默认 min(可用核, 配置上限)」）——预算唯一来源仍是运行期配额（调度器 lease / CLI 注入的可用核），本键只提供上限，不引入第二个数值来源。消费面 = lib/infrastructure/scheduler/src/cpu_budget.cpp#process_cpu_budget（生成头 kCpuBudgetMax）。",

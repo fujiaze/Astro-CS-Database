@@ -6,8 +6,8 @@
  * HiPS 属性文件键集遵循 IVOA HiPS 1.0 通用键；本模块只做序列化/结构校验，
  * 不实现科学投影（属 IMPL-P3-PROJ-001）。
  */
-#ifndef ASTROCS_V6_AIO_HIPS_MANIFEST_H
-#define ASTROCS_V6_AIO_HIPS_MANIFEST_H
+#ifndef ACSD_V6_AIO_HIPS_MANIFEST_H
+#define ACSD_V6_AIO_HIPS_MANIFEST_H
 
 #include <cstdint>
 #include <string>
@@ -17,7 +17,7 @@
 
 #include "astro/aio/validation.h"
 
-namespace astrocs {
+namespace acsd {
 namespace aio {
 
 struct HipsProperties {
@@ -52,7 +52,7 @@ struct HipsFileRecord {
 };
 
 struct HipsManifest {
-  std::string manifest_schema = "astrocs.v6.hips_manifest/v1";
+  std::string manifest_schema = "acsd.v6.hips_manifest/v1";
   int schema_version = 1;
   std::string product_type_id;
   int order = 0;
@@ -71,6 +71,6 @@ std::string render_hips_manifest_json(const HipsManifest& m);
 ValidationReport validate_hips_manifest_json(const nlohmann::json& j);
 
 }  // namespace aio
-}  // namespace astrocs
+}  // namespace acsd
 
-#endif  // ASTROCS_V6_AIO_HIPS_MANIFEST_H
+#endif  // ACSD_V6_AIO_HIPS_MANIFEST_H

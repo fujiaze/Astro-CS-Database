@@ -2,7 +2,7 @@
 //
 // 语义权威: docs/engineering/VERSIONING.md「构建指纹合同」；证据: run/RUN-PROVENANCE-01/REPORT.md。
 //
-// 为什么需要它：version_generated.h 里的 ASTROCS_COMMIT_SHA 由 **CMake configure 期**
+// 为什么需要它：version_generated.h 里的 ACSD_COMMIT_SHA 由 **CMake configure 期**
 // 的 git rev-parse HEAD 采样一次，而 Ninja 的 RERUN_CMAKE 规则只依赖 CMake 输入
 // （实测 build/build.ninja:19586 的依赖面里没有任何 .cpp/.h）⇒ 改源码不会重跑
 // configure ⇒ 编译进去的是新代码、provenance 记的却是旧 SHA。同一次 configure 下的
@@ -20,7 +20,7 @@
 
 #include <string>
 
-namespace astrocs::core {
+namespace acsd::core {
 
 struct BuildStamp {
   std::string head_sha;            // 构建期 HEAD（40hex）
@@ -33,4 +33,4 @@ struct BuildStamp {
 // 进程级常量（编译期烙入）；返回引用，无分配、无 IO。
 const BuildStamp& build_stamp();
 
-}  // namespace astrocs::core
+}  // namespace acsd::core

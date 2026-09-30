@@ -1,10 +1,10 @@
 // CORE-003 单元测试: ModuleRegistry duplicate/ABI/合同校验
-#include "astrocs/core/module.h"
+#include "acsd/core/module.h"
 
 #include <cstdio>
 #include <string>
 
-using namespace astrocs::core;
+using namespace acsd::core;
 
 static int failures = 0;
 #define CHECK(cond)                                                       \
@@ -17,7 +17,7 @@ static int failures = 0;
 
 static ModuleDescriptor make_module() {
   ModuleDescriptor m;
-  m.module_id = "astrocs.phase1.calibration";
+  m.module_id = "acsd.phase1.calibration";
   m.version = "1.0";
   m.abi = "c++17";
   m.execution_class = "cpu_heavy";
@@ -66,14 +66,14 @@ static void test_invalid_module() {
 static void test_find_and_export() {
   ModuleRegistry reg;
   reg.register_module(make_module());
-  const ModuleDescriptor* f = reg.find("astrocs.phase1.calibration");
+  const ModuleDescriptor* f = reg.find("acsd.phase1.calibration");
   CHECK(f != nullptr);
   CHECK(f->sci_id == "SCI-CAL-001");
   CHECK(reg.find("nope") == nullptr);
   std::string idx;
   CHECK(reg.export_index_json(&idx));
-  CHECK(idx.find("astrocs.module-index/v1") != std::string::npos);
-  CHECK(idx.find("astrocs.phase1.calibration") != std::string::npos);
+  CHECK(idx.find("acsd.module-index/v1") != std::string::npos);
+  CHECK(idx.find("acsd.phase1.calibration") != std::string::npos);
 }
 
 int main() {

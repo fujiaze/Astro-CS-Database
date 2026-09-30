@@ -20,7 +20,7 @@
 //   SEAM      u+v=1 face 接缝（P3-06 浮点绝对地板位置集）
 //   HST       HST 真实尺度 0.04″/px nside=2^23（接缝 + 赤道对照）
 //
-// 负例（同一可执行、同一判据）: ASTROCS_DRZ_P3_FAULT=legacy_corner_fast
+// 负例（同一可执行、同一判据）: ACSD_DRZ_P3_FAULT=legacy_corner_fast
 //   注入订正前行为（叶多边形顶点全含判定 + 返回解析叶面积 π/(3N²)）：
 //   ① POLE/POLAR 组必须出现破门（否则判 INVALID，证明门对被测对象失明）；
 //   ② EQUATOR 对照组必须仍全绿（证明判据不是恒假）。
@@ -315,13 +315,13 @@ int main(int argc, char** argv) {
         else if (!std::strcmp(argv[i], "--quiet")) verbose = false;
 
     }
-    const char* fault = std::getenv("ASTROCS_DRZ_P3_FAULT");
+    const char* fault = std::getenv("ACSD_DRZ_P3_FAULT");
     const bool injected = fault && std::strcmp(fault, "legacy_corner_fast") == 0;
 
     printf("=== P3 守恒闭合门 (P3-01/P3-06) ===\n");
     printf("  判据: 逐 drop |dA| <= max(%.1e * A_drop, %.1e sr) | 帧级 <= %.1e\n",
            P3_REL_BUDGET, P3_ABS_BUDGET_SR, P3_FRAME_BUDGET);
-    printf("  注入: ASTROCS_DRZ_P3_FAULT=%s\n", fault ? fault : "(未设=生产行为)");
+    printf("  注入: ACSD_DRZ_P3_FAULT=%s\n", fault ? fault : "(未设=生产行为)");
 
     int fail = 0;
     fail += self_test_judge();

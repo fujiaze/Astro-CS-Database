@@ -3,7 +3,7 @@
 # 覆盖: AIO HiPS writer/reader, DR3SP parser, PipelineFrame/cache
 set -e
 ROOT="$(cd "$(dirname "$0")/../../.." && pwd)"
-BUILD="/tmp/astrocs_sanitize"
+BUILD="/tmp/acsd_sanitize"
 rm -rf "$BUILD"
 mkdir -p "$BUILD"
 cd "$BUILD"

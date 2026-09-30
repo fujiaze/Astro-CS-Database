@@ -1,5 +1,5 @@
 {
- "schema": "astrocs.traceability-matrix/v1",
+ "schema": "acsd.traceability-matrix/v1",
  "version": "1.0.0",
  "authoring_task": "DOC-001",
  "authoring_owner": "SA-QA-29",

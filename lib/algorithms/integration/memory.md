@@ -1,9 +1,9 @@
-# memory.md — astrocs.p2.integration（P2-INT-DOC 冻结）
+# memory.md — acsd.p2.integration（P2-INT-DOC 冻结）
 
 - 任务: P2-INT-DOC（MODULE_MIGRATION_MATRIX P2-INT 行，owner SA-P2-I23，
   2026-09-09）——合同冻结层，不改生产源码，不 commit。
 - 落位: `lib/algorithms/integration/` 三件套（本目录）。`lib/algorithms/coverage/` 一目录一套
-  三件套已被 P2-COV（astrocs.p2.coverage）占用，不可覆盖；按
+  三件套已被 P2-COV（acsd.p2.coverage）占用，不可覆盖；按
   `lib/algorithms/coverage/hips_p2/`（P2-HIPS-DOC）先例新建迁移目标目录。生产源
   `lib/algorithms/coverage/src/integrate.cpp`（76 行）引用不搬家。
 - 权威签名头: `lib/algorithms/coverage/include/astro/phase2/integrate.h`（74 行）。
@@ -49,7 +49,7 @@
   eng/tests/backend/test_p2004_reject_integrate.py（DRIVER_SRC :18-141，
   积分段 :66-126: 状态门 :67-101、signal 10.75/support 0.5 :113-126）。
 - descriptor 占位（不改码）: lib/infrastructure/scheduler/src/module_adapters.cpp
-  p2_integrate_descriptor :657-675（module_id=astrocs.phase2.integrate、
+  p2_integrate_descriptor :657-675（module_id=acsd.phase2.integrate、
   ports accepted_mask/corrected/integrated、API-P2-001/
   TEST-P2-INT-001），注册 :785。编排层词汇，P2-XX-INT 对齐。
 - 边界: 禁改 docs/science/ 既有文件（INTEGRATION.md FROZEN）；禁改
@@ -62,7 +62,7 @@
   001/DATA-P2-INT/API-P2-INT-001/TEST-P2-INT-001，双向边一致）④
   check_doc_index PASS 219 条（新文档已登记）⑤自检
   run/local/agent_p2_int_doc/selfcheck.py ALL PASS（38 项）。
-- ID 方案与矩阵行: 矩阵 13 行 MOD-astrocs-phase2-integrate 原位融合
+- ID 方案与矩阵行: 矩阵 13 行 MOD-acsd-phase2-integrate 原位融合
   （无双行）: SCI=SCI-INT-001（共享 FROZEN，占位 SCI-P2-INT-001 不入
   矩阵）ALG=ALG-P2-INT-001 DATA=DATA-P2-INT API=API-P2-INT-001
   SRC=SRC-P2-INT-001（integrate.h 两符号）TEST=TEST-P2-INT-001

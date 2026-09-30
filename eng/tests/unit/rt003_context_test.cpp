@@ -3,7 +3,7 @@
 // 唯一 producer 写 + duplicate 冲突确定；
 // 不暴露容器裸引用（快照语义，编译期即验证）。
 // 本测试在 TSan 下运行（-fsanitize=thread）验证无数据竞争。
-#include "astrocs/core/context.h"
+#include "acsd/core/context.h"
 
 #include <atomic>
 #include <chrono>
@@ -12,7 +12,7 @@
 #include <thread>
 #include <vector>
 
-using namespace astrocs::core;
+using namespace acsd::core;
 
 static int failures = 0;
 #define CHECK(cond)                                                       \

@@ -16,7 +16,7 @@
 #include <string>
 #include <vector>
 
-// docs/ASTROCS_DESIGN §9「aio 是文件级唯一 I/O 边界」:
+// docs/ACSD_DESIGN §9「aio 是文件级唯一 I/O 边界」:
 // 整文件读取机制经 aio 唯一实现 (aio_file::read_all), 本 TU 不自持 ifstream 通道。
 #include "aio_file_io.h"
 
@@ -110,7 +110,7 @@ bool write_hips_direct(const std::vector<TileAccumulatorT<Scalar>>& tiles,
                                         : AIO_HIPS_PRODUCT_ALL;
     AioHipsProductSet* ps = aio_hips_product_begin(
         hips_dir.c_str(), nside, 512, dtype, prod_flags,
-        "ivo://astrocs/phase1", title.c_str(),
+        "ivo://acsd/phase1", title.c_str(),
         meta.filter.empty() ? nullptr : meta.filter.c_str(),
         meta.exposure_s,
         meta.obs_time.empty() ? nullptr : meta.obs_time.c_str(),
@@ -149,12 +149,12 @@ bool write_hips_direct(const std::vector<TileAccumulatorT<Scalar>>& tiles,
     // 直写把 D_p 当归一分母发布 (漏乘 k=D_p/N_p)，pixfrac<1 时 signal 偏
     // 1/pixfrac²、variance 偏 1/pixfrac⁴。产品级门 drizzle_pf_sb_gate 在该注入下
     // 必须判红（负例 ctest: drizzle_pf_sb_gate_legacy_injection）。
-    const char* sb_fault = std::getenv("ASTROCS_DRZ_SB_FAULT");
+    const char* sb_fault = std::getenv("ACSD_DRZ_SB_FAULT");
     const bool legacy_dp_normalization =
         (sb_fault && std::string(sb_fault) == "legacy_dp_normalization");
     if (legacy_dp_normalization) {
         std::fprintf(stderr,
-                     "[sink] *** 故障注入 ASTROCS_DRZ_SB_FAULT=legacy_dp_normalization:"
+                     "[sink] *** 故障注入 ACSD_DRZ_SB_FAULT=legacy_dp_normalization:"
                      " 直写漏乘 k=D_p/N_p (遗留缺陷复现, 产品面必须判红) ***\n");
     }
     // HiPS 直写分段计时（每段一次 clock，低开销）
@@ -344,11 +344,11 @@ bool write_hips_phase1(const std::vector<TileAccumulatorT<Scalar>>& tiles,
     //       不产会让阶段二 ivar_product_missing>0 ⇒ rc=7（已删除 legacy
     //       fallback），把「像素级不可用」升级为「产品级拒绝」。
     //   0 ⇒ 无方差输入，只写 signal+support（与旧 writer 逐字节等价）。
-    // 故障注入面（ENGINEERING_SPEC §8 可执行负例）: ASTROCS_IVAR_FAULT=
+    // 故障注入面（ENGINEERING_SPEC §8 可执行负例）: ACSD_IVAR_FAULT=
     // no_variance_flags 模拟「帧已带方差却不请求 variance/ivar 产品位」
     // 缺陷 → IVAR-001 门必然判红（见 IVAR-001 登记）。
     {
-        const char* sink_fault = std::getenv("ASTROCS_IVAR_FAULT");
+        const char* sink_fault = std::getenv("ACSD_IVAR_FAULT");
         if (sink_fault && std::string(sink_fault) == "no_variance_flags")
             has_variance = 0;
     }
@@ -362,7 +362,7 @@ bool write_hips_phase1(const std::vector<TileAccumulatorT<Scalar>>& tiles,
     AioHipsProductSet* ps = aio_hips_product_begin(
         hips_dir.c_str(), nside, 512, AIO_HIPS_FLOAT32,
         prod_flags,
-        "astrocs/phase1", "ACSD Phase1 single-frame stack",
+        "acsd/phase1", "ACSD Phase1 single-frame stack",
         filter_passband.c_str(), 0.0, nullptr, 0);
     if (!ps) {
         err = "aio_hips_product_begin 失败: " +
@@ -373,7 +373,7 @@ bool write_hips_phase1(const std::vector<TileAccumulatorT<Scalar>>& tiles,
 
     // ── 帧级未加权通量型 SNR → HiPS properties ──────────
     // 值来源 = 上游 snr 节点产物 <output_dir>/p1_snr.json 的该帧
-    // snr_reference.{snr_f,flux_adu}（F_ref/σ_F; docs/ASTROCS_DESIGN §4.4 /
+    // snr_reference.{snr_f,flux_adu}（F_ref/σ_F; docs/ACSD_DESIGN §4.4 /
     // 07_noise_snr.md §4.1）。本帧产品目录 = hips_dir（= <output_dir>/<frame_key>）
     // ⇒ sidecar 在父目录，按 frame_key 匹配本帧。
     // 缺失/不匹配/非有限 → **不写键**（Phase2 权重链据此 fail-closed; 禁伪造,

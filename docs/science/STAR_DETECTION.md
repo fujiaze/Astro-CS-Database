@@ -1,6 +1,6 @@
 # SCI-P1-STAR-001 — Phase1 星点检测（P1-STAR 冻结层）
 
-> 上游：ASTROCS_DESIGN.md §2.1（测光星等坐标系）、§4.2（Phase1 节点流程）
+> 上游：ACSD_DESIGN.md §2.1（测光星等坐标系）、§4.2（Phase1 节点流程）
 
 > 本文件条款为冻结定义，变更走变更流程。
 > 本页只声明共享 SCI（PSF / PHOTOMETRY / ASTROMETRY，`docs/science/` 既有文档）的
@@ -115,7 +115,7 @@
   `sdet_detect_impl()`，`sdet_api.cpp`）。
 - 实现偏差登记：`DISP-STAR-001..005`（ALG-STARDET-001 §11.3）。
 - 本页与 ALG-STARDET-001/DATA-P1-STAR/API-STAR-001 组成 Phase1 星点检测冻结层；
-  词汇流向 = 本层 → 编排层 descriptor（astrocs.phase1.star-psf）单向，改词从本层发起。
+  词汇流向 = 本层 → 编排层 descriptor（acsd.phase1.star-psf）单向，改词从本层发起。
 
 ## 4 测试设计锚
 

@@ -5,7 +5,7 @@
 // 文件 → 哈希校验 → fsync → 原子 rename; 全部 tile 完成后最后落完成清单) +
 // aio_hips_reader.cpp (无完成清单 ⇒ 消费者拒绝, fail-closed)。
 //
-// 权威: docs/ASTROCS_DESIGN.md §10「I/O 与原子产品」。
+// 权威: docs/ACSD_DESIGN.md §10「I/O 与原子产品」。
 //
 // 用例 (每条都能红能绿, 无恒 PASS 占位):
 //   A1 publish_ok            正常发布: 清单齐备 + 每 tile DATASUM/CHECKSUM 校验通过
@@ -201,7 +201,7 @@ static int write_product(const std::string& dir, int n_tiles) {
     AioHipsProductSet* ps = aio_hips_product_begin(
         dir.c_str(), kNSide, 512, AIO_HIPS_FLOAT32,
         AIO_HIPS_PRODUCT_SIGNAL | AIO_HIPS_PRODUCT_SUPPORT,
-        "ivo://astrocs/fix401-test", "FIX-401 test product", nullptr, 0.0, nullptr, 0);
+        "ivo://acsd/fix401-test", "FIX-401 test product", nullptr, 0.0, nullptr, 0);
     if (!ps) return -1;
     const size_t n = 512u * 512u;
     std::vector<float> flux(n), area(n);
@@ -314,7 +314,7 @@ static void case_kill_mid_write() {
     const pid_t pid = fork();
     if (pid == 0) {
         // 子进程: 驻留"内容已进私有临时文件、尚未 rename"的窗口 (400ms/tile)
-        setenv("ASTROCS_HIPS_TILE_FAULT", "tile_slow_write", 1);
+        setenv("ACSD_HIPS_TILE_FAULT", "tile_slow_write", 1);
         const int rc = write_product(dir, 12);
         _exit(rc == 0 ? 0 : 1);
     }
@@ -385,9 +385,9 @@ static void case_fault_injections() {
         const std::string root = make_root("a4");
         const std::string dir = root + "/product";
         fs::create_directories(dir);
-        setenv("ASTROCS_HIPS_TILE_FAULT", f.name, 1);
+        setenv("ACSD_HIPS_TILE_FAULT", f.name, 1);
         const int rc = write_product(dir, 1);
-        unsetenv("ASTROCS_HIPS_TILE_FAULT");
+        unsetenv("ACSD_HIPS_TILE_FAULT");
         EXPECT_MSG(rc != 0, (std::string("注入 ") + f.name + " 必须必败").c_str());
         // 正式目录: 零 tile、零清单、零临时残留
         EXPECT_MSG(count_final_fits(dir) == 0,
@@ -446,7 +446,7 @@ static void case_integrity_has_teeth() {
 }
 
 // ── A6: 磁盘满在**失败瞬间 (清理之前)** 就被分类, 且只有磁盘满类失败被分类 ──
-// 依据: docs/ASTROCS_DESIGN §10「失败/取消路径清理临时产物」+ §7.2「10 = 磁盘写满/
+// 依据: docs/ACSD_DESIGN §10「失败/取消路径清理临时产物」+ §7.2「10 = 磁盘写满/
 // 写盘失败」。CLI 的 exit-10 判定原为事后探针; 清理释放空间后探针必然 fail-open,
 // 故判据必须是失败发生处的分类 (lib/infrastructure/aio/src/aio_disk_full.h)。
 // 能红能绿: 注入 tile_diskfull(ENOSPC 等价) 必须置位; 注入 tile_write_fail
@@ -457,10 +457,10 @@ static void case_disk_full_classified_at_failure() {
         const std::string root = make_root("a6full");
         const std::string dir = root + "/product";
         fs::create_directories(dir);
-        setenv("ASTROCS_HIPS_TILE_FAULT", "tile_diskfull", 1);
+        setenv("ACSD_HIPS_TILE_FAULT", "tile_diskfull", 1);
         aio_disk::FailureEpoch epoch;   // 归因窗口: 开始写产品之前
         const int rc = write_product(dir, 1);
-        unsetenv("ASTROCS_HIPS_TILE_FAULT");
+        unsetenv("ACSD_HIPS_TILE_FAULT");
         EXPECT(rc != 0);
         // 分类必须已经发生 (且发生在清理之前 —— 见 write_fits_atomic 中
         // note_full()/note_failure() 早于 remove_file(tmp) 的次序)。
@@ -475,10 +475,10 @@ static void case_disk_full_classified_at_failure() {
         const std::string root = make_root("a6write");
         const std::string dir = root + "/product";
         fs::create_directories(dir);
-        setenv("ASTROCS_HIPS_TILE_FAULT", "tile_write_fail", 1);
+        setenv("ACSD_HIPS_TILE_FAULT", "tile_write_fail", 1);
         aio_disk::FailureEpoch epoch;
         const int rc = write_product(dir, 1);
-        unsetenv("ASTROCS_HIPS_TILE_FAULT");
+        unsetenv("ACSD_HIPS_TILE_FAULT");
         EXPECT(rc != 0);
         EXPECT_MSG(!epoch.failed(),
                    "非空间类写失败不得被分类为 disk_full (否则 exit 7 被误升为 10)");
@@ -509,14 +509,14 @@ static void case_frame_level_attribution() {
         const std::string dir_b = root + "/B";
         fs::create_directories(dir_a);
         fs::create_directories(dir_b);
-        setenv("ASTROCS_HIPS_TILE_FAULT", "tile_diskfull", 1);
+        setenv("ACSD_HIPS_TILE_FAULT", "tile_diskfull", 1);
         aio_disk::FailureEpoch ep_a;              // 帧 A 的归因窗口
         const int rc_a = write_product(dir_a, 1);
         EXPECT(rc_a != 0);
         EXPECT_MSG(ep_a.failed(), "T1: 帧 A 的窗口必须看到自己的磁盘满分类");
         aio_disk::FailureEpoch ep_b;              // 帧 B 的归因窗口
         const int rc_b = write_product(dir_b, 1); // 内部含 aio_hips_product_begin
-        unsetenv("ASTROCS_HIPS_TILE_FAULT");
+        unsetenv("ACSD_HIPS_TILE_FAULT");
         EXPECT(rc_b != 0);
         EXPECT_MSG(ep_b.failed(), "T2: 帧 B 的窗口必须看到自己的磁盘满分类");
         EXPECT_MSG(ep_a.failed(),
@@ -531,7 +531,7 @@ static void case_frame_level_attribution() {
         const std::string dir_b = root + "/B";
         fs::create_directories(dir_a);
         fs::create_directories(dir_b);
-        setenv("ASTROCS_HIPS_TILE_FAULT", "tile_diskfull", 1);
+        setenv("ACSD_HIPS_TILE_FAULT", "tile_diskfull", 1);
         bool a_failed = false, b_failed = false;
         int rc_a = 0, rc_b = 0;
         std::thread ta([&] {
@@ -546,7 +546,7 @@ static void case_frame_level_attribution() {
         });
         ta.join();
         tb.join();
-        unsetenv("ASTROCS_HIPS_TILE_FAULT");
+        unsetenv("ACSD_HIPS_TILE_FAULT");
         EXPECT(rc_a != 0);
         EXPECT(rc_b != 0);
         EXPECT_MSG(a_failed,
@@ -560,10 +560,10 @@ static void case_frame_level_attribution() {
         const std::string root = make_root("a7write");
         const std::string dir = root + "/product";
         fs::create_directories(dir);
-        setenv("ASTROCS_HIPS_TILE_FAULT", "tile_write_fail", 1);
+        setenv("ACSD_HIPS_TILE_FAULT", "tile_write_fail", 1);
         aio_disk::FailureEpoch epoch;
         const int rc = write_product(dir, 1);
-        unsetenv("ASTROCS_HIPS_TILE_FAULT");
+        unsetenv("ACSD_HIPS_TILE_FAULT");
         EXPECT(rc != 0);
         EXPECT_MSG(!epoch.failed(),
                    "T4: 合成写失败 (文件系统仍有空间) 不得被判为 disk_full ⇒ 仍走 exit 7");

@@ -15,7 +15,7 @@
 
 #include "monitor.h"
 
-namespace astrocs {
+namespace acsd {
 
 // stage 标注(MON-002): 每个 stage 声明资源类别, 无标注的可由 MON-003 判 P1。
 enum class StageKind { Compute, Memory, Io, Mixed, Unknown };
@@ -85,4 +85,4 @@ inline bool is_unannotated_priority(const char* ann, double wall_seconds,
     return classify_stage(ann) == StageKind::Unknown && wall_seconds > threshold_seconds;
 }
 
-}  // namespace astrocs
+}  // namespace acsd

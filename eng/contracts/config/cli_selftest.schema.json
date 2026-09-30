@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "astrocs://astrocs/contracts/config/cli-selftest-v1.json",
+  "$id": "acsd://acsd/contracts/config/cli-selftest-v1.json",
   "title": "acsd selftest --json 输出合同 (CLI-001 冻结)",
   "description": "稳定机器输出: 宿主自检(版本/CPU 基线/退出码表一致性) + 可选 module/provider 装配校验。缺 DLL/未装配 → verdict FAIL, 退出非零(5)。",
   "type": "object",
@@ -8,7 +8,7 @@
   "required": ["schema_version", "kind", "checks", "verdict"],
   "properties": {
     "schema_version": { "const": 1 },
-    "kind": { "const": "astrocs_selftest" },
+    "kind": { "const": "acsd_selftest" },
     "checks": {
       "type": "array",
       "items": {

@@ -12,11 +12,11 @@
 set -e
 HEALPIX_ORACLE="$1"
 FUZZ_ORACLE="$2"
-LOG="${3:-/tmp/astrocs_sanitize_v4.log}"
+LOG="${3:-/tmp/acsd_sanitize_v4.log}"
 exec > >(tee -a "$LOG") 2>&1
 
 ROOT="$(cd "$(dirname "$0")/../../.." && pwd)"
-BUILD="/tmp/astrocs_sanitize_v4"
+BUILD="/tmp/acsd_sanitize_v4"
 rm -rf "$BUILD"
 mkdir -p "$BUILD"
 cd "$BUILD"

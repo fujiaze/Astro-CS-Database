@@ -1,11 +1,11 @@
 /* psf_information.cpp - A_NEA 与 effective PSF 实现 (IMPL-P1-PSFW-001)
  * 合同锚见 psf_information.h。纯 std + libm; 无 session 接线。 */
-#include "astrocs/psf_information.h"
+#include "acsd/psf_information.h"
 
 #include <algorithm>
 #include <cmath>
 
-namespace astrocs {
+namespace acsd {
 namespace v6 {
 namespace p1psfw {
 
@@ -186,4 +186,4 @@ EffectivePsf conventional_effective_psf(
 
 }  /* namespace p1psfw */
 }  /* namespace v6 */
-}  /* namespace astrocs */
+}  /* namespace acsd */

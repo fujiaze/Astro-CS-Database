@@ -34,7 +34,7 @@ static unsigned long long read_xcr0() {
     return cached;
 }
 
-uint64_t astrocs_cpu_detect_features_v1(void) {
+uint64_t acsd_cpu_detect_features_v1(void) {
     uint64_t f = ACS_FEAT_SSE2;   // amd64 基线恒置位
     __builtin_cpu_init();
     if (__builtin_cpu_supports("sse4.1")) f |= ACS_FEAT_SSE4_1;
@@ -71,7 +71,7 @@ static unsigned long long read_xcr0_msvc() {
     return _xgetbv(0);
 }
 
-uint64_t astrocs_cpu_detect_features_v1(void) {
+uint64_t acsd_cpu_detect_features_v1(void) {
     uint64_t f = ACS_FEAT_SSE2;   // amd64 基线恒置位
     int c1[4]; __cpuidex(c1, 1, 0);
     const unsigned int ecx1 = static_cast<unsigned int>(c1[2]);
@@ -106,11 +106,11 @@ uint64_t astrocs_cpu_detect_features_v1(void) {
 
 #else
 
-uint64_t astrocs_cpu_detect_features_v1(void) { return 0; }
+uint64_t acsd_cpu_detect_features_v1(void) { return 0; }
 
 #endif
 
-uint32_t astrocs_cpu_affinity_count_v1(void) {
+uint32_t acsd_cpu_affinity_count_v1(void) {
 #if defined(_WIN32)
     DWORD_PTR proc = 0, sys = 0;
     if (GetProcessAffinityMask(GetCurrentProcess(), &proc, &sys) && proc != 0) {

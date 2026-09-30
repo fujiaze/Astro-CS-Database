@@ -14,8 +14,8 @@
 #include "aio_healpix_io.h"         // HioSnrModel, HioSnrControlPoint (向后兼容宏)
 #include "astro_sphere_sink.h"      // Phase1: Drizzle -> AIO HiPS 直写
 #include "hp_drizzle_internal.h"    // F-13: run_drizzle_internal / setErrorMsg (run_hips 已迁出本 TU)
-#include "astrocs/core/variance_floor.h"  // 按 dtype 导出的方差地板 (NOISE_MODEL §7/§9)
-// docs/ASTROCS_DESIGN §9「aio 是文件级唯一 I/O 边界」+ 原子产品:
+#include "acsd/core/variance_floor.h"  // 按 dtype 导出的方差地板 (NOISE_MODEL §7/§9)
+// docs/ACSD_DESIGN §9「aio 是文件级唯一 I/O 边界」+ 原子产品:
 // 产品面落盘一律经 aio 机制原语 (aio_atomic_file.h), 本 TU 不得自持文件通道。
 #include "aio_atomic_file.h"
 
@@ -1047,14 +1047,14 @@ try {
                 //    原样透传（那是「不可用」与「损坏」，不得由地板伪装）。
                 //    对现行生产面（全正且 f32 可表示）逐位不变。
                 std::vector<double> usable(vd, vd + nv);
-                const astrocs::VarianceFloor vf = astrocs::derive_variance_floor(
-                    astrocs::variance_median_usable(usable),
+                const acsd::VarianceFloor vf = acsd::derive_variance_floor(
+                    acsd::variance_median_usable(usable),
                     /*eps_rel=*/1e-12, /*product_is_f64=*/false);
                 varianceConv.assign(nv, 0.0f);
                 long long n_rescued = 0;
                 for (size_t i = 0; i < nv; ++i) {
                     bool rescued = false;
-                    varianceConv[i] = astrocs::to_product_dtype_keeping_availability(
+                    varianceConv[i] = acsd::to_product_dtype_keeping_availability(
                         vd[i], vf, &rescued);
                     if (rescued) ++n_rescued;
                 }
@@ -1062,7 +1062,7 @@ try {
                 fprintf(stderr, "[hp_drizzle_api] hp_drizzle_run: variance 块 FLOAT64 [%dx%d] → FLOAT32 转换"
                                 " (dtype 导出地板=%s, 下溢救援=%lld)\n",
                         width, height,
-                        astrocs::variance_floor_provenance_json(vf).c_str(), n_rescued);
+                        acsd::variance_floor_provenance_json(vf).c_str(), n_rescued);
             } else {
                 fprintf(stderr, "[hp_drizzle_api] hp_drizzle_run: variance 块类型 %d 不支持, 跳过方差传播\n",
                         (int)vblk->type);
@@ -1226,7 +1226,7 @@ try {
             char ops_buf[1024];
             const int ops_n = std::snprintf(ops_buf, sizeof(ops_buf),
                 "{\n"
-                "  \"format\": \"astrocs-drizzle-operation-counts-v1\",\n"
+                "  \"format\": \"acsd-drizzle-operation-counts-v1\",\n"
                 "  \"nside\": %d,\n"
                 "  \"source_pixels\": %lld,\n"
                 "  \"candidates\": %lld,\n"

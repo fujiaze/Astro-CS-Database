@@ -15,7 +15,7 @@
 //   W5 确定性: resample 节点 1/N worker bitwise parity;
 //   W1/W2 采样器级数值 oracle (nearest var_out==u_in; bilinear var_out==Σc_k²·u_k,
 //      Σc_k²≠1 常数场防错锚) 在实现提供 p3_sample_*_ex 符号后追加于本文件 §S 段;
-//   故障注入: ASTROCS_P3002_FAULT=zero_var|norm_sum|skip_hdu 注入等价缺陷
+//   故障注入: ACSD_P3002_FAULT=zero_var|norm_sum|skip_hdu 注入等价缺陷
 //      (静默 0 伪 variance / Σc_k=1 误归一 / 静默缺 HDU) → 断言必败 rc=1
 //      (P2-002 p2002_unc_rej_prov_test 先例同构)。
 //
@@ -29,11 +29,11 @@
 //   (常数/负/NaN), 绕开 AIO var_num 通道 vnum>0 约束 (负值/NaN 语义面必需)。
 #include "p3_session.h"
 
-#include "astrocs/core/module.h"
-#include "astrocs/core/module_adapters.h"
-#include "astrocs/core/runtime.h"
+#include "acsd/core/module.h"
+#include "acsd/core/module_adapters.h"
+#include "acsd/core/runtime.h"
 
-#include "healpix_core.h"       // astrocs::healpix::pix2ang_nest (数学权威, 测试允许)
+#include "healpix_core.h"       // acsd::healpix::pix2ang_nest (数学权威, 测试允许)
 #include "p1sess_fixtures.hpp"  // p1sess::write_fits_file 手写最小 FITS
 #include "p3_resample.h"        // 采样器级 W1/W2 oracle (§S 段)
 #include "aio_atomic_file.h"    // FIX-401: 完成清单走 aio 原子写原语 (CLEAN-403)
@@ -78,11 +78,11 @@ static int failures = 0;
     }                                                                     \
   } while (0)
 
-// host services 工厂 (lib/infrastructure/benchmark/backend_host/host_services.cpp, astrocs_cpu 库;
+// host services 工厂 (lib/infrastructure/benchmark/backend_host/host_services.cpp, acsd_cpu 库;
 // 与 p1001/p2001/p3_session_probe 同一声明模式)
 extern "C" {
-int astrocs_host_services_default_v1(astrocs_host_services_v1* out, void** state_out);
-void astrocs_host_services_destroy_state_v1(void* state);
+int acsd_host_services_default_v1(acsd_host_services_v1* out, void** state_out);
+void acsd_host_services_destroy_state_v1(void* state);
 }
 
 namespace fs = std::filesystem;
@@ -200,7 +200,7 @@ UncFixture make_fixture(const char* tag, const float* variance_val,
     fx.ok = fx.ok && write_hips_sub(fx.hips, "variance", 0, 0, variance_val, "ADU^2");
   }
   if (ivar_val) fx.ok = fx.ok && write_hips_sub(fx.hips, "ivar", 0, 0, ivar_val, "1/(ADU^2)");
-  // FIX-402: 生产 Phase3 输入语义守卫（docs/ASTROCS_DESIGN §6.3 / FZ-BUNIT-SEMANTICS (b)）
+  // FIX-402: 生产 Phase3 输入语义守卫（docs/ACSD_DESIGN §6.3 / FZ-BUNIT-SEMANTICS (b)）
   // 只放行**显式声明**面亮度语义的输入。本 fixture 的 signal 为 ADU 面亮度 ⇒ 补
   // 像素语义声明（保留 BUNIT=ADU 串, 使 session 路径既有 "ADU^2"/"ADU^-2" 期望
   // 与节点路径的 canonical 归一各得其所）。
@@ -210,8 +210,8 @@ UncFixture make_fixture(const char* tag, const float* variance_val,
     if (!ap) {
       fx.ok = false;
     } else {
-      ap << "ASTROCS_PIXEL_SEMANTICS = surface_brightness\n";
-      ap << "ASTROCS_PIXEL_AREA_POWER = -2\n";
+      ap << "ACSD_PIXEL_SEMANTICS = surface_brightness\n";
+      ap << "ACSD_PIXEL_AREA_POWER = -2\n";
     }
   }
   // FIX-401 §10: 完成清单最后落盘 (声明本根的子产品集合)。
@@ -228,19 +228,19 @@ void cleanup_fixture(UncFixture& fx) {
 // 采样中心: nside512 NESTED leaf 131072 = order0 tile0 中部 (远离 tile 边界,
 // 16x16@0.01deg/px 视场全落 tile0 → signal 覆盖恒充足)
 void sample_center(double* ra, double* dec) {
-  astrocs::healpix::pix2ang_nest(512u, 131072ull, *ra, *dec);
+  acsd::healpix::pix2ang_nest(512u, 131072ull, *ra, *dec);
 }
 
 // 经冻结 C ABI (API-P3-001) 驱动 p3_session_run; 返回 rc + inspect manifest。
-acs_status run_session(const std::string& hips_dir, const std::string& out_dir,
+acsd_status run_session(const std::string& hips_dir, const std::string& out_dir,
                        const char* sampler, json* manifest, std::string* err,
                        double ra_deg, double dec_deg) {
-  astrocs_host_services_v1 host{};
+  acsd_host_services_v1 host{};
   void* state = nullptr;
-  if (astrocs_host_services_default_v1(&host, &state) != 0) return ACS_ERR_INTERNAL;
-  acs_handle h = nullptr;
-  acs_status st = p3_session_create(&host, &h);
-  if (st != ACS_OK) { astrocs_host_services_destroy_state_v1(state); return st; }
+  if (acsd_host_services_default_v1(&host, &state) != 0) return ACS_ERR_INTERNAL;
+  acsd_handle h = nullptr;
+  acsd_status st = p3_session_create(&host, &h);
+  if (st != ACS_OK) { acsd_host_services_destroy_state_v1(state); return st; }
   char req[1024];
   std::snprintf(req, sizeof(req),
                 "{\"source\":{\"hips_dir\":\"%s\"},\"center\":{\"ra_deg\":%.12f,"
@@ -250,15 +250,15 @@ acs_status run_session(const std::string& hips_dir, const std::string& out_dir,
                 "\"output_mode\":\"surface_brightness\",\"output_dir\":\"%s\"}",
                 hips_dir.c_str(), ra_deg, dec_deg, kW, kH, sampler,
                 out_dir.c_str());
-  acs_span_u8 span{};
+  acsd_span_u8 span{};
   span.head.struct_size = sizeof(span);
   span.head.abi_version = ACS_ABI_VERSION_V1;
   span.count = std::strlen(req);
   span.data = reinterpret_cast<uint8_t*>(req);
   if (p3_session_validate(h, span) == ACS_OK) st = p3_session_run(h, span);
-  if (err) *err = astrocs::phase3::last_error(h);
+  if (err) *err = acsd::phase3::last_error(h);
   if (st == ACS_OK && manifest) {
-    acs_span_u8 out{};
+    acsd_span_u8 out{};
     if (p3_session_inspect(h, &out) == ACS_OK && out.data) {
       try {
         *manifest = json::parse(std::string(reinterpret_cast<char*>(out.data),
@@ -270,7 +270,7 @@ acs_status run_session(const std::string& hips_dir, const std::string& out_dir,
     }
   }
   p3_session_destroy(h);
-  astrocs_host_services_destroy_state_v1(state);
+  acsd_host_services_destroy_state_v1(state);
   return st;
 }
 
@@ -353,7 +353,7 @@ static void test_w3_unavailable(double ra, double dec) {
   CHECK(fx.ok);
   json man;
   std::string err;
-  const acs_status st = run_session(fx.hips, fx.out, "nearest", &man, &err, ra, dec);
+  const acsd_status st = run_session(fx.hips, fx.out, "nearest", &man, &err, ra, dec);
   CHECK_MSG(st == ACS_OK, err.c_str());
   // manifest uncertainty 键 (RED: 键缺失)
   CHECK_MSG(man.contains("uncertainty_available") &&
@@ -382,7 +382,7 @@ static void test_w6_available(double ra, double dec) {
   CHECK(fx.ok);
   json man;
   std::string err;
-  const acs_status st = run_session(fx.hips, fx.out, "nearest", &man, &err, ra, dec);
+  const acsd_status st = run_session(fx.hips, fx.out, "nearest", &man, &err, ra, dec);
   CHECK_MSG(st == ACS_OK, err.c_str());
   CHECK_MSG(man.contains("uncertainty_available") &&
                 man["uncertainty_available"].get<bool>() == true,
@@ -449,7 +449,7 @@ static void test_w6b_ivar_only(double ra, double dec) {
   CHECK(fx.ok);
   json man;
   std::string err;
-  const acs_status st = run_session(fx.hips, fx.out, "nearest", &man, &err, ra, dec);
+  const acsd_status st = run_session(fx.hips, fx.out, "nearest", &man, &err, ra, dec);
   CHECK_MSG(st == ACS_OK, err.c_str());
   CHECK_MSG(man.contains("uncertainty_source") &&
                 man["uncertainty_source"].get<std::string>() == "ivar",
@@ -497,7 +497,7 @@ static void test_w4_nan_propagation(double ra, double dec) {
   CHECK(fx.ok);
   json man;
   std::string err;
-  const acs_status st = run_session(fx.hips, fx.out, "nearest", &man, &err, ra, dec);
+  const acsd_status st = run_session(fx.hips, fx.out, "nearest", &man, &err, ra, dec);
   CHECK_MSG(st == ACS_OK, err.c_str());
   const std::string fits = fx.out + "/output_phase3.fits";
   std::vector<float> var_px, cov_px, sig_px;
@@ -525,7 +525,7 @@ static void test_w4_negative_rejected(double ra, double dec) {
   CHECK(fx.ok);
   json man;
   std::string err;
-  const acs_status st = run_session(fx.hips, fx.out, "nearest", &man, &err, ra, dec);
+  const acsd_status st = run_session(fx.hips, fx.out, "nearest", &man, &err, ra, dec);
   CHECK_MSG(st != ACS_OK,
             "negative variance must be rejected (product corruption, §30.4-3)");
   CHECK_MSG(!err.empty(), "rejection must carry diagnostic error");
@@ -540,7 +540,7 @@ static void test_w4_inconsistent(double ra, double dec) {
   CHECK(fx.ok);
   json man;
   std::string err;
-  const acs_status st = run_session(fx.hips, fx.out, "nearest", &man, &err, ra, dec);
+  const acsd_status st = run_session(fx.hips, fx.out, "nearest", &man, &err, ra, dec);
   CHECK_MSG(st == ACS_OK, err.c_str());
   const std::string fits = fx.out + "/output_phase3.fits";
   std::vector<float> var_px, cov_px, sig_px;
@@ -563,7 +563,7 @@ static void test_w4_inconsistent(double ra, double dec) {
   cleanup_fixture(fx);
 }
 
-// ── 故障注入面 (GREEN 后验证): ASTROCS_P3002_FAULT=zero_var|norm_sum|skip_hdu ─
+// ── 故障注入面 (GREEN 后验证): ACSD_P3002_FAULT=zero_var|norm_sum|skip_hdu ─
 // 注入等价缺陷期望 (静默 0 伪 variance / Σc_k=1 误归一 / 静默缺 HDU),
 // 正常实现下断言必败 rc=1 (P2-002 p2002_unc_rej_prov_test 先例同构)。
 static void test_fault_zero_var(double ra, double dec) {
@@ -641,7 +641,7 @@ CHECK_MSG(hi.hdus == 2, "FAULT-INJECT skip_hdu: HDUs must stay at silent 2");
 //   var_out == u·Σc_k² 且 Σc_k²<1 存在 (Σc_k²≠1 防错锚, 禁 Σc_k=1 归一);
 // W4 无覆盖: 缺失 leaf → propagate MISSING → var=NaN。
 static void test_sampler_level_oracles() {
-  using namespace astrocs::phase3;
+  using namespace acsd::phase3;
   float var = kVarVal, iv = kIvarVal;
   UncFixture fx = make_fixture("sampler", nullptr, nullptr, false);
   CHECK(fx.ok);
@@ -753,7 +753,7 @@ static void test_sampler_level_oracles() {
           P3_RS_OK);
     CHECK(p3_uncertainty_open(fx1.hips.c_str(), 0, &src1, &u1) == P3_RS_OK);
     double ra2 = 0, dec2 = 0;
-    astrocs::healpix::pix2ang_nest(512u, 3000000ull, ra2, dec2);
+    acsd::healpix::pix2ang_nest(512u, 3000000ull, ra2, dec2);
     float v = 0;
     int c = -1;
     uint64_t leaf = 0;
@@ -777,7 +777,7 @@ static void test_sampler_level_oracles() {
 // ── W5: 节点级 1/N worker parity (resample 输出 bin bitwise; Runtime lease
 //    权威注入, P2001 worker_parity 同构) ───────────────────────────────────────
 static void test_node_worker_parity() {
-  using namespace astrocs::core;
+  using namespace acsd::core;
   std::string bin1;
   for (int pass = 0; pass < 2; ++pass) {
     float var = kVarVal, iv = kIvarVal;
@@ -811,13 +811,13 @@ static void test_node_worker_parity() {
       return n;
     };
     json ir;
-    ir["schema"] = "astrocs.pipeline/v1";
+    ir["schema"] = "acsd.pipeline/v1";
     ir["pipeline_id"] = pass == 0 ? "p3002.w1" : "p3002.w4";
     ir["version"] = "1.0.0";
     ir["nodes"] = json::array();
-    ir["nodes"].push_back(node("props", "astrocs.phase3.properties", "hips", "artifact:in", "props", "artifact:props"));
-    ir["nodes"].push_back(node("wcs", "astrocs.phase3.wcs", "props", "artifact:props", "wcs_plan", "artifact:wcs"));
-    ir["nodes"].push_back(node("res", "astrocs.phase3.resample2", "wcs_plan", "artifact:wcs", "resampled", "artifact:res"));
+    ir["nodes"].push_back(node("props", "acsd.phase3.properties", "hips", "artifact:in", "props", "artifact:props"));
+    ir["nodes"].push_back(node("wcs", "acsd.phase3.wcs", "props", "artifact:props", "wcs_plan", "artifact:wcs"));
+    ir["nodes"].push_back(node("res", "acsd.phase3.resample2", "wcs_plan", "artifact:wcs", "resampled", "artifact:res"));
     ir["outputs"] = json{{"resampled", "artifact:res"}, {"props", "artifact:props"},
                          {"wcs", "artifact:wcs"}};
     auto rt = create_runtime(pass == 0 ? 1 : 4);
@@ -847,7 +847,7 @@ int main() {
   // 采样中心: nside512 NESTED leaf 131072 (order0 tile0 中部)
   double ra = 0, dec = 0;
   sample_center(&ra, &dec);
-  const char* fault = std::getenv("ASTROCS_P3002_FAULT");
+  const char* fault = std::getenv("ACSD_P3002_FAULT");
   const bool f_zero = fault && std::strcmp(fault, "zero_var") == 0;
   const bool f_norm = fault && std::strcmp(fault, "norm_sum") == 0;
   const bool f_skip = fault && std::strcmp(fault, "skip_hdu") == 0;

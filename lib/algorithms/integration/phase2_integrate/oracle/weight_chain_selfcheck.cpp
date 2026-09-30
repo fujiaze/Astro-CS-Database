@@ -13,7 +13,7 @@
  *
  * 构建（前台统一）: 见 oracle/CMakeLists.txt。
  */
-#include "astrocs/weight_chain.h"
+#include "acsd/weight_chain.h"
 
 #include <algorithm>
 #include <cmath>
@@ -22,16 +22,16 @@
 #include <thread>
 #include <vector>
 
-using astrocs::v6::p2weight::FrameSnrKind;
-using astrocs::v6::p2weight::FrameWeightInput;
-using astrocs::v6::p2weight::SparseReconstruction;
-using astrocs::v6::p2weight::SparseReconOperator;
-using astrocs::v6::p2weight::SparseSnrLayer;
-using astrocs::v6::p2weight::SparseSnrPoint;
-using astrocs::v6::p2weight::SparseSnrReconstructor;
-using astrocs::v6::p2weight::WeightChainPolicy;
-using astrocs::v6::p2weight::WeightClosure;
-using astrocs::v6::p2weight::WeightChainResult;
+using acsd::v6::p2weight::FrameSnrKind;
+using acsd::v6::p2weight::FrameWeightInput;
+using acsd::v6::p2weight::SparseReconstruction;
+using acsd::v6::p2weight::SparseReconOperator;
+using acsd::v6::p2weight::SparseSnrLayer;
+using acsd::v6::p2weight::SparseSnrPoint;
+using acsd::v6::p2weight::SparseSnrReconstructor;
+using acsd::v6::p2weight::WeightChainPolicy;
+using acsd::v6::p2weight::WeightClosure;
+using acsd::v6::p2weight::WeightChainResult;
 
 namespace {
 
@@ -184,7 +184,7 @@ SparseSnrLayer grid2x2() {
   SparseSnrLayer L;
   L.present = true;
   /* 冻结语义：控制点值是**绝对**通量型 SNR（与 frame_snr 同口径、同逐帧 F_ref）。 */
-  L.semantics = astrocs::v6::p2weight::SparseSnrSemantics::kAbsoluteFluxTypeSnr;
+  L.semantics = acsd::v6::p2weight::SparseSnrSemantics::kAbsoluteFluxTypeSnr;
   L.regular_grid = true;
   L.nx = 2; L.ny = 2;
   L.x0 = 0.0; L.y0 = 0.0; L.dx = 1.0; L.dy = 1.0;
@@ -197,7 +197,7 @@ SparseSnrLayer grid2x2() {
 SparseSnrLayer grid4x4() {
   SparseSnrLayer L;
   L.present = true;
-  L.semantics = astrocs::v6::p2weight::SparseSnrSemantics::kAbsoluteFluxTypeSnr;
+  L.semantics = acsd::v6::p2weight::SparseSnrSemantics::kAbsoluteFluxTypeSnr;
   L.regular_grid = true;
   L.nx = 4; L.ny = 4;
   L.dx = 8.0; L.dy = 8.0;
@@ -231,7 +231,7 @@ int main() {
     const double snrs[3] = {200.0, 100.0, 50.0};
     for (double s : snrs) {
       double w = 0.0; std::string e;
-      const bool ok = astrocs::v6::p2weight::weight_from_snr(s, fref, &w, &e);
+      const bool ok = acsd::v6::p2weight::weight_from_snr(s, fref, &w, &e);
       check(ok, "weight_from_snr accepted finite positive SNR");
       check(close(w, oracle_weight_from_snr(s, fref)),
             "w matches independent 1/sigma_F^2 oracle");
@@ -245,7 +245,7 @@ int main() {
     const double fref = 1000.0;
     std::vector<FrameWeightInput> frames = {mk("f0", 200.0), mk("f1", 100.0), mk("f2", 50.0)};
     const WeightChainResult r =
-        astrocs::v6::p2weight::compute_inverse_variance_weights(frames, fref);
+        acsd::v6::p2weight::compute_inverse_variance_weights(frames, fref);
     check(r.ok && r.weight_chain_closed && r.production_allowed,
           "chain closed and production allowed");
     check(r.closure == WeightClosure::kClosed, "closure token = closed");
@@ -277,14 +277,14 @@ int main() {
     const double layer_oracle = oracle_bilinear(L, px, py);   /* 绝对 SNR，单位 [1] */
     const double g = 41.0;
     /* (a) 层逐像素面：唯一消费面 */
-    astrocs::v6::p2weight::PixelWeightInput pin;
+    acsd::v6::p2weight::PixelWeightInput pin;
     pin.frame_id = "f0";
     pin.layer = &L;
     pin.x = px; pin.y = py;
     pin.ref_flux_k = fref;
     pin.gain = &g;
-    const astrocs::v6::p2weight::PixelWeightResult pr =
-        astrocs::v6::p2weight::weight_from_sparse_layer_pixel(pin);
+    const acsd::v6::p2weight::PixelWeightResult pr =
+        acsd::v6::p2weight::weight_from_sparse_layer_pixel(pin);
     check(pr.ok && pr.weight_chain_closed && pr.production_allowed,
           "per-pixel layer weight closed and production allowed");
     check(pr.closure == WeightClosure::kClosed, "closure token = closed");
@@ -309,14 +309,14 @@ int main() {
     /* 非退化：层值确实随像素变化（否则逐像素面无意义）。2x2 网格上样条/双线性
        处处等于同一线性场，故用 4x4 网格验「逐像素」确有区分度。 */
     SparseSnrLayer L4 = grid4x4();
-    astrocs::v6::p2weight::PixelWeightInput pin4 = pin;
+    acsd::v6::p2weight::PixelWeightInput pin4 = pin;
     pin4.layer = &L4;
     pin4.x = 3.5; pin4.y = 3.5;
-    const astrocs::v6::p2weight::PixelWeightResult p4a =
-        astrocs::v6::p2weight::weight_from_sparse_layer_pixel(pin4);
+    const acsd::v6::p2weight::PixelWeightResult p4a =
+        acsd::v6::p2weight::weight_from_sparse_layer_pixel(pin4);
     pin4.x = 11.5; pin4.y = 3.5;
-    const astrocs::v6::p2weight::PixelWeightResult p4b =
-        astrocs::v6::p2weight::weight_from_sparse_layer_pixel(pin4);
+    const acsd::v6::p2weight::PixelWeightResult p4b =
+        acsd::v6::p2weight::weight_from_sparse_layer_pixel(pin4);
     check(p4a.ok && p4b.ok, "4x4 layer per-pixel weights closed at both pixels");
     check(!close(p4a.layer_snr, p4b.layer_snr, 1e-9),
           "layer value varies across pixels (per-pixel face is non-degenerate)");
@@ -327,7 +327,7 @@ int main() {
     FrameWeightInput a = mk("f0", 200.0); a.sparse = &L;
     frames = {a};
     const WeightChainResult r =
-        astrocs::v6::p2weight::compute_inverse_variance_weights(frames, fref);
+        acsd::v6::p2weight::compute_inverse_variance_weights(frames, fref);
     check(r.ok && r.weight_chain_closed, "scalar chain closed with a layer present");
     check(r.weight_source == "sparse_snr_layer_absolute_snr",
           "scalar chain reports the layer as the weight source");
@@ -508,7 +508,7 @@ int main() {
       for (int i = 0; i <= 16; ++i) {
         double a = 0.0, b = 0.0;
         rec.eval((double)i, (double)j, &a, nullptr, &err);
-        astrocs::v6::p2weight::reconstruct_sparse_snr(L, (double)i, (double)j, &b, nullptr, &err);
+        acsd::v6::p2weight::reconstruct_sparse_snr(L, (double)i, (double)j, &b, nullptr, &err);
         same = same && (a == b);   /* 逐位 */
       }
     check(same, "prepared eval and one-shot reconstruct are bitwise identical");
@@ -545,7 +545,7 @@ int main() {
     std::vector<FrameWeightInput> frames = {mk("f0", 200.0)};
     frames[0].has_frame_snr = false;
     const WeightChainResult r =
-        astrocs::v6::p2weight::compute_inverse_variance_weights(frames, fref);
+        acsd::v6::p2weight::compute_inverse_variance_weights(frames, fref);
     check(!r.ok && !r.weight_chain_closed && !r.production_allowed,
           "missing SNR is fail-closed");
     check(r.closure == WeightClosure::kUnclosedMissingFrameSnr, "closure = missing_frame_snr");
@@ -561,7 +561,7 @@ int main() {
     for (double b : bad) {
       std::vector<FrameWeightInput> frames = {mk("f0", b)};
       const WeightChainResult r =
-          astrocs::v6::p2weight::compute_inverse_variance_weights(frames, fref);
+          acsd::v6::p2weight::compute_inverse_variance_weights(frames, fref);
       check(!r.ok && r.closure == WeightClosure::kUnclosedInvalidFrameSnr,
             "invalid SNR is fail-closed (invalid_frame_snr)");
     }
@@ -574,7 +574,7 @@ int main() {
     for (double b : bad) {
       std::vector<FrameWeightInput> frames = {mk("f0", 200.0)};
       const WeightChainResult r =
-          astrocs::v6::p2weight::compute_inverse_variance_weights(frames, b);
+          acsd::v6::p2weight::compute_inverse_variance_weights(frames, b);
       check(!r.ok && r.closure == WeightClosure::kUnclosedInvalidReferenceFlux,
             "invalid F_ref is fail-closed (invalid_reference_flux)");
     }
@@ -586,12 +586,12 @@ int main() {
     const double fref = 1000.0;
     SparseSnrLayer empty;
     empty.present = true; /* present but empty: prepare() must reject it */
-    empty.semantics = astrocs::v6::p2weight::SparseSnrSemantics::kAbsoluteFluxTypeSnr;
-    astrocs::v6::p2weight::PixelWeightInput pin;
+    empty.semantics = acsd::v6::p2weight::SparseSnrSemantics::kAbsoluteFluxTypeSnr;
+    acsd::v6::p2weight::PixelWeightInput pin;
     pin.frame_id = "f0"; pin.layer = &empty; pin.x = 0.5; pin.y = 0.5;
     pin.ref_flux_k = fref;
-    const astrocs::v6::p2weight::PixelWeightResult pr =
-        astrocs::v6::p2weight::weight_from_sparse_layer_pixel(pin);
+    const acsd::v6::p2weight::PixelWeightResult pr =
+        acsd::v6::p2weight::weight_from_sparse_layer_pixel(pin);
     check(!pr.ok, "present-but-empty layer is fail-closed");
     check(pr.closure == WeightClosure::kUnclosedSparseLayerUnreconstructible,
           "closure = sparse_layer_unreconstructible");
@@ -606,11 +606,11 @@ int main() {
     std::printf("[negative] sparse layer out-of-domain -> fail-closed on the per-pixel face\n");
     const double fref = 1000.0;
     SparseSnrLayer L = grid2x2();
-    astrocs::v6::p2weight::PixelWeightInput pin;
+    acsd::v6::p2weight::PixelWeightInput pin;
     pin.frame_id = "f0"; pin.layer = &L; pin.x = 5.0; pin.y = 0.5;   /* 定义域 = [-0.5, 1.5] */
     pin.ref_flux_k = fref;
-    const astrocs::v6::p2weight::PixelWeightResult pr =
-        astrocs::v6::p2weight::weight_from_sparse_layer_pixel(pin);
+    const acsd::v6::p2weight::PixelWeightResult pr =
+        acsd::v6::p2weight::weight_from_sparse_layer_pixel(pin);
     check(!pr.ok && pr.closure == WeightClosure::kUnclosedSparseLayerUnreconstructible,
           "out-of-domain is fail-closed");
     check(pr.error.find("unreconstructible") != std::string::npos &&
@@ -625,7 +625,7 @@ int main() {
     std::vector<FrameWeightInput> frames = {mk("f0", 200.0)};
     frames[0].kind = FrameSnrKind::kRelativeQualityWeight;
     const WeightChainResult r =
-        astrocs::v6::p2weight::compute_inverse_variance_weights(frames, fref);
+        acsd::v6::p2weight::compute_inverse_variance_weights(frames, fref);
     check(!r.ok && r.closure == WeightClosure::kUnclosedWrongSnrSemantics,
           "relative quality weight rejected");
   }
@@ -639,7 +639,7 @@ int main() {
     WeightChainPolicy p;
     p.legacy_allow_weight_fallback = true;
     const WeightChainResult r =
-        astrocs::v6::p2weight::compute_inverse_variance_weights(frames, fref, p);
+        acsd::v6::p2weight::compute_inverse_variance_weights(frames, fref, p);
     check(!r.ok && !r.weight_chain_closed && !r.production_allowed,
           "legacy fallback never reports success");
     check(r.closure == WeightClosure::kUnclosedLegacyFallbackRejected,
@@ -654,7 +654,7 @@ int main() {
   /* ---------- 负例 8: 显式等权基线不得冒充闭合 ---------- */
   {
     std::printf("[negative] explicit equal-weight baseline is not a closure\n");
-    const WeightChainResult r = astrocs::v6::p2weight::make_equal_weight_baseline(3);
+    const WeightChainResult r = acsd::v6::p2weight::make_equal_weight_baseline(3);
     check(!r.ok && !r.weight_chain_closed && !r.production_allowed,
           "baseline never reports a closed chain");
     check(r.closure == WeightClosure::kBaselineEqualWeight, "closure = baseline_equal_weight");
@@ -754,7 +754,7 @@ int main() {
     const double fref = 1000.0;
     std::vector<FrameWeightInput> frames = {mk("f0", 200.0), mk("f1", 50.0)};
     const WeightChainResult r =
-        astrocs::v6::p2weight::compute_inverse_variance_weights(frames, fref);
+        acsd::v6::p2weight::compute_inverse_variance_weights(frames, fref);
     bool differs = false;
     for (double w : r.weights) differs = differs || !close(w, 1.0, 1e-9);
     check(differs, "inverse-variance weights are not all 1.0 (test is non-vacuous)");
@@ -764,29 +764,29 @@ int main() {
   {
     std::printf("[non-vacuity] operator token table is self-consistent\n");
     SparseReconOperator op;
-    check(astrocs::v6::p2weight::parse_sparse_recon_operator(
+    check(acsd::v6::p2weight::parse_sparse_recon_operator(
               "natural_bicubic_spline_clip_v1", &op) &&
-              !astrocs::v6::p2weight::sparse_recon_operator_uses_mesh_median(op) &&
-              astrocs::v6::p2weight::sparse_recon_operator_clips_to_ctrl_range(op),
+              !acsd::v6::p2weight::sparse_recon_operator_uses_mesh_median(op) &&
+              acsd::v6::p2weight::sparse_recon_operator_clips_to_ctrl_range(op),
           "default token: clip ON, mesh median OFF");
-    check(astrocs::v6::p2weight::parse_sparse_recon_operator(
+    check(acsd::v6::p2weight::parse_sparse_recon_operator(
               "natural_bicubic_spline_clip_mesh_median_v1", &op) &&
-              astrocs::v6::p2weight::sparse_recon_operator_uses_mesh_median(op) &&
-              astrocs::v6::p2weight::sparse_recon_operator_clips_to_ctrl_range(op),
+              acsd::v6::p2weight::sparse_recon_operator_uses_mesh_median(op) &&
+              acsd::v6::p2weight::sparse_recon_operator_clips_to_ctrl_range(op),
           "mesh-median token: clip ON, mesh median ON");
-    check(astrocs::v6::p2weight::parse_sparse_recon_operator(
+    check(acsd::v6::p2weight::parse_sparse_recon_operator(
               "bilinear_regular_grid_v1", &op) &&
-              !astrocs::v6::p2weight::sparse_recon_operator_uses_mesh_median(op) &&
-              !astrocs::v6::p2weight::sparse_recon_operator_clips_to_ctrl_range(op),
+              !acsd::v6::p2weight::sparse_recon_operator_uses_mesh_median(op) &&
+              !acsd::v6::p2weight::sparse_recon_operator_clips_to_ctrl_range(op),
           "bilinear token: clip OFF, mesh median OFF (legacy behaviour preserved)");
-    check(std::string(astrocs::v6::p2weight::sparse_recon_operator_default_token()) ==
+    check(std::string(acsd::v6::p2weight::sparse_recon_operator_default_token()) ==
               std::string("natural_bicubic_spline_clip_v1"),
           "frozen default token = natural_bicubic_spline_clip_v1");
-    check(!astrocs::v6::p2weight::parse_sparse_recon_operator("nn", &op),
+    check(!acsd::v6::p2weight::parse_sparse_recon_operator("nn", &op),
           "unknown token is not parsed");
-    check(std::string(astrocs::v6::p2weight::sparse_recon_operator_for_source(false)) ==
+    check(std::string(acsd::v6::p2weight::sparse_recon_operator_for_source(false)) ==
               std::string("natural_bicubic_spline_clip_v1") &&
-              std::string(astrocs::v6::p2weight::sparse_recon_operator_for_source(true)) ==
+              std::string(acsd::v6::p2weight::sparse_recon_operator_for_source(true)) ==
                   std::string("natural_bicubic_spline_clip_mesh_median_v1"),
           "source-based selection rule: ground -> default, high-contrast -> mesh median");
   }
@@ -794,7 +794,7 @@ int main() {
   /* ================================================================
    * M06 判据①：逐像素消费面的量纲/口径一致性 + 「层值缺失 = 显式降级而非乘 1」
    * 依据：docs/science/UNIFIED_SCIENCE_MODEL.md:59（w = SNR^2/F_ref^2 = 1/sigma_F^2）、
-   *       docs/science/PSF_SIGNAL_WEIGHT.md:87、ASTROCS_DESIGN.md 3.1:264（层值是绝对
+   *       docs/science/PSF_SIGNAL_WEIGHT.md:87、ACSD_DESIGN.md 3.1:264（层值是绝对
    *       量本身，不乘/除帧级标量）、eng/contracts/schemas/unified/sparse_snr_layer.schema.json
    * ================================================================ */
   {
@@ -805,11 +805,11 @@ int main() {
     bool all_units = true, all_ident = true, all_sigma = true;
     double worst_rel = 0.0;
     for (const auto& q : qs) {
-      astrocs::v6::p2weight::PixelWeightInput pin;
+      acsd::v6::p2weight::PixelWeightInput pin;
       pin.frame_id = "f0"; pin.layer = &L; pin.x = q[0]; pin.y = q[1];
       pin.ref_flux_k = fref;
-      const astrocs::v6::p2weight::PixelWeightResult pr =
-          astrocs::v6::p2weight::weight_from_sparse_layer_pixel(pin);
+      const acsd::v6::p2weight::PixelWeightResult pr =
+          acsd::v6::p2weight::weight_from_sparse_layer_pixel(pin);
       if (!pr.ok) { all_units = false; continue; }
       /* (a) 单位 token 必须是 [ADU^-2] / [1] / [ADU] */
       all_units = all_units && std::string(pr.weight_units) == "ADU^-2" &&
@@ -832,11 +832,11 @@ int main() {
 
     /* (d) 层值缺失：显式降级（policy 默认）——**不是**「层值 = 1」 */
     {
-      astrocs::v6::p2weight::PixelWeightInput pin;
+      acsd::v6::p2weight::PixelWeightInput pin;
       pin.frame_id = "f0"; pin.layer = nullptr; pin.x = 3.5; pin.y = 3.5;
       pin.ref_flux_k = fref;
-      const astrocs::v6::p2weight::PixelWeightResult pr =
-          astrocs::v6::p2weight::weight_from_sparse_layer_pixel(pin);
+      const acsd::v6::p2weight::PixelWeightResult pr =
+          acsd::v6::p2weight::weight_from_sparse_layer_pixel(pin);
       check(!pr.ok, "absent layer is NOT a successful layer weight");
       check(pr.generated_from_absent_layer,
             "absent layer flags explicit degradation (generated_from_absent_layer)");
@@ -849,13 +849,13 @@ int main() {
     }
     /* (e) 层值缺失：policy 要求层时必须判红（同一函数、另一分支） */
     {
-      astrocs::v6::p2weight::WeightChainPolicy pol;
+      acsd::v6::p2weight::WeightChainPolicy pol;
       pol.require_sparse_layer_for_pixel_weights = true;
-      astrocs::v6::p2weight::PixelWeightInput pin;
+      acsd::v6::p2weight::PixelWeightInput pin;
       pin.frame_id = "f0"; pin.layer = nullptr; pin.x = 3.5; pin.y = 3.5;
       pin.ref_flux_k = fref;
-      const astrocs::v6::p2weight::PixelWeightResult pr =
-          astrocs::v6::p2weight::weight_from_sparse_layer_pixel(pin, pol);
+      const acsd::v6::p2weight::PixelWeightResult pr =
+          acsd::v6::p2weight::weight_from_sparse_layer_pixel(pin, pol);
       check(!pr.ok && !pr.generated_from_absent_layer,
             "policy-required layer missing -> hard fail (no degradation)");
       check(pr.closure == WeightClosure::kUnclosedSparseLayerRequiredMissing,
@@ -866,21 +866,21 @@ int main() {
     /* (f) 相对语义层（非 absolute_flux_type_snr）必须判红 */
     {
       SparseSnrLayer rel = grid4x4();
-      rel.semantics = astrocs::v6::p2weight::SparseSnrSemantics::kRelativeToFrameSnr;
-      astrocs::v6::p2weight::PixelWeightInput pin;
+      rel.semantics = acsd::v6::p2weight::SparseSnrSemantics::kRelativeToFrameSnr;
+      acsd::v6::p2weight::PixelWeightInput pin;
       pin.frame_id = "f0"; pin.layer = &rel; pin.x = 3.5; pin.y = 3.5;
       pin.ref_flux_k = fref;
-      const astrocs::v6::p2weight::PixelWeightResult pr =
-          astrocs::v6::p2weight::weight_from_sparse_layer_pixel(pin);
+      const acsd::v6::p2weight::PixelWeightResult pr =
+          acsd::v6::p2weight::weight_from_sparse_layer_pixel(pin);
       check(!pr.ok && pr.closure == WeightClosure::kUnclosedWrongSnrSemantics,
             "relative-semantics layer is fail-closed (wrong_snr_semantics)");
       check(pr.error.find("absolute_flux_type_snr") != std::string::npos,
             "error names the frozen required semantics");
       SparseSnrLayer unspec = grid4x4();
-      unspec.semantics = astrocs::v6::p2weight::SparseSnrSemantics::kUnspecified;
+      unspec.semantics = acsd::v6::p2weight::SparseSnrSemantics::kUnspecified;
       pin.layer = &unspec;
-      const astrocs::v6::p2weight::PixelWeightResult pu =
-          astrocs::v6::p2weight::weight_from_sparse_layer_pixel(pin);
+      const acsd::v6::p2weight::PixelWeightResult pu =
+          acsd::v6::p2weight::weight_from_sparse_layer_pixel(pin);
       check(!pu.ok && pu.closure == WeightClosure::kUnclosedWrongSnrSemantics,
             "unspecified semantics is fail-closed too (no assumed default at the consumer)");
     }
@@ -900,10 +900,10 @@ int main() {
     const double frame_snr = 200.0;          /* 帧级 SNR（独立对象，不得进入逐像素面） */
     SparseSnrLayer L = grid4x4();
     const double qx = 11.5, qy = 3.5;
-    astrocs::v6::p2weight::PixelWeightInput pin;
+    acsd::v6::p2weight::PixelWeightInput pin;
     pin.frame_id = "f0"; pin.layer = &L; pin.x = qx; pin.y = qy; pin.ref_flux_k = fref;
-    const astrocs::v6::p2weight::PixelWeightResult pr =
-        astrocs::v6::p2weight::weight_from_sparse_layer_pixel(pin);
+    const acsd::v6::p2weight::PixelWeightResult pr =
+        acsd::v6::p2weight::weight_from_sparse_layer_pixel(pin);
     check(pr.ok, "baseline per-pixel layer weight closed (needed for a meaningful counter-example)");
 
     const double layer = pr.layer_snr;
@@ -951,7 +951,7 @@ int main() {
     const double g = 41.0;
     const double fref_k = 812.5;           /* 逐帧 F_ref,k：与组标量不同，验证逐帧耦合 */
     SparseSnrLayer L = grid4x4();
-    astrocs::v6::p2weight::SparseSnrReconstructor rec;
+    acsd::v6::p2weight::SparseSnrReconstructor rec;
     std::string perr;
     check(rec.prepare(L, &perr), std::string("prepared reconstructor: ") + perr);
     check(rec.ready(), "prepared reconstructor ready()");
@@ -961,13 +961,13 @@ int main() {
     for (int j = 0; j < 4; ++j) {
       for (int i = 0; i < 4; ++i) {
         const double x = 3.5 + 8.0 * i, y = 3.5 + 8.0 * j;
-        astrocs::v6::p2weight::PixelWeightInput pin;
+        acsd::v6::p2weight::PixelWeightInput pin;
         pin.frame_id = "f0"; pin.layer = &L; pin.x = x; pin.y = y;
         pin.ref_flux_k = fref_k; pin.gain = &g;
-        const astrocs::v6::p2weight::PixelWeightResult a =
-            astrocs::v6::p2weight::weight_from_sparse_layer_pixel(pin);
-        const astrocs::v6::p2weight::PixelWeightResult b =
-            astrocs::v6::p2weight::weight_from_sparse_layer_pixel_prepared(rec, pin, {});
+        const acsd::v6::p2weight::PixelWeightResult a =
+            acsd::v6::p2weight::weight_from_sparse_layer_pixel(pin);
+        const acsd::v6::p2weight::PixelWeightResult b =
+            acsd::v6::p2weight::weight_from_sparse_layer_pixel_prepared(rec, pin, {});
         ++n_checked;
         if (!a.ok || !b.ok) { ++n_mismatch; continue; }
         const double diff = std::fabs(a.weight - b.weight);
@@ -986,11 +986,11 @@ int main() {
 
     /* 反向：把 prepared 入口指向**语义不符**的层也必须判红（两入口的守卫一致） */
     SparseSnrLayer rel = L;
-    rel.semantics = astrocs::v6::p2weight::SparseSnrSemantics::kRelativeToFrameSnr;
-    astrocs::v6::p2weight::PixelWeightInput bad;
+    rel.semantics = acsd::v6::p2weight::SparseSnrSemantics::kRelativeToFrameSnr;
+    acsd::v6::p2weight::PixelWeightInput bad;
     bad.frame_id = "f0"; bad.layer = &rel; bad.x = 11.5; bad.y = 3.5; bad.ref_flux_k = fref_k;
-    const astrocs::v6::p2weight::PixelWeightResult pb =
-        astrocs::v6::p2weight::weight_from_sparse_layer_pixel_prepared(rec, bad, {});
+    const acsd::v6::p2weight::PixelWeightResult pb =
+        acsd::v6::p2weight::weight_from_sparse_layer_pixel_prepared(rec, bad, {});
     check(!pb.ok && pb.closure == WeightClosure::kUnclosedWrongSnrSemantics,
           "prepared entry rejects wrong semantics too (same guard, same closure token)");
   }

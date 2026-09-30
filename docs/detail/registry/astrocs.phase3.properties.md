@@ -1,6 +1,6 @@
-# 模块 astrocs.phase3.properties
+# 模块 acsd.phase3.properties
 
-> 上游：docs/ASTROCS_DESIGN.md §8.5（模块与 ABI）
+> 上游：docs/ACSD_DESIGN.md §8.5（模块与 ABI）
 
 Registry production 节点（唯一源 = module_adapters.cpp 的 p3_properties_descriptor，
 节点操作 `read_properties`）。职责：从 HiPS 树读出并严格解析 properties
@@ -28,7 +28,7 @@ create→validate→run→inspect→destroy。
 
 ## Registry descriptor 与配置 schema
 
-module_id=`astrocs.phase3.properties`; execution_class=`cpu_heavy`;
+module_id=`acsd.phase3.properties`; execution_class=`cpu_heavy`;
 parallel_ok=True; 配置=phase config JSON（键集 = API-P3-001）。
 
 ## Execution class、并行轴、ThreadBudget lease、确定性

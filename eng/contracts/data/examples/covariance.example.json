@@ -1,5 +1,5 @@
 {
-  "covariance_schema": "astrocs.v6.covariance/v1",
+  "covariance_schema": "acsd.v6.covariance/v1",
   "schema_version": 1,
   "propagation": "C_out = R C_in R^T",
   "scalar_form": "Var(out) = c^T C_in c = Sum_{i,j} c_i c_j [C_in]_{ij}",

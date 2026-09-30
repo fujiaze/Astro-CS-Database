@@ -97,8 +97,8 @@ bool write_hips_direct(const std::vector<TileAccumulatorT<Scalar>>& tiles,
 //   0 = 无方差输入 ⇒ 只写 signal+support (与旧 writer 逐字节等价)。
 //
 // 增补: 本末端额外把**帧级未加权通量型 SNR**写入 HiPS
-// properties（键名冻结 ASTROCS_FRAME_SNR = F_ref/σ_F 与 ASTROCS_REFERENCE_FLUX
-// = F_ref; docs/ASTROCS_DESIGN §4.4 / 07_noise_snr.md §4.1）。值取自本帧产品目录
+// properties（键名冻结 ACSD_FRAME_SNR = F_ref/σ_F 与 ACSD_REFERENCE_FLUX
+// = F_ref; docs/ACSD_DESIGN §4.4 / 07_noise_snr.md §4.1）。值取自本帧产品目录
 // 的父目录（= Phase1 output_dir）中的上游产物 p1_snr.json 的该帧
 // snr_reference.{snr_f,flux_adu}（按 frame_key 匹配）。该文件缺失/不匹配/值非正
 // 时不写两键（Phase2 权重链据此 fail-closed, 禁伪造）——此时产物与旧 writer

@@ -2,7 +2,7 @@
 //
 // 验收 (模板 <prefix>-TEST): "故障注入能让测试失败" + "不得写永远 PASS\n// 的占位"。本可执行两阶段:
 //   1) 基线: 无注入跑 units 组 → 必 PASS (排除恒 FAIL 侧)。
-//   2) 注入: 子进程以 ASTROCS_P1CAL_FAULT=<name> 重跑本二进制 → 必 FAIL
+//   2) 注入: 子进程以 ACSD_P1CAL_FAULT=<name> 重跑本二进制 → 必 FAIL
 //      (排除恒 PASS 侧), stderr 含 FAULT-INJECT 行。
 // 注入名与 faultname 注册处 (p1cal_tests_core.cpp P1CAL_CHECK 第三参) 对齐:
 //   const_field_bitwise / gradient_std_oracle / darkopt_actual_k_identity /
@@ -107,7 +107,7 @@ int run_selfcheck() {
     char* child_argv[] = {arg0, arg1, nullptr};
 
     for (const std::string& name : names) {
-        std::string fault_env = "ASTROCS_P1CAL_FAULT=" + name;
+        std::string fault_env = "ACSD_P1CAL_FAULT=" + name;
         std::vector<char> fbuf(fault_env.begin(), fault_env.end());
         fbuf.push_back('\0');
         char* child_env[] = {fbuf.data(), nullptr};
@@ -159,7 +159,7 @@ int run_selfcheck() {
 
 int main(int argc, char** argv) {
     // 带注入环境重入: 子进程直接跑指定组 (FaultRegistry 已由框架装载)
-    if (std::getenv("ASTROCS_P1CAL_FAULT") != nullptr && argc >= 2) {
+    if (std::getenv("ACSD_P1CAL_FAULT") != nullptr && argc >= 2) {
         return p1cal_run_core_groups(argc, argv);
     }
     return run_selfcheck();

@@ -1,11 +1,11 @@
 # ============================================================================
-# P1-NOISE-TEST (TEST-P1-NOISE-001) — lib/algorithms/noise_snr (astrocs.p1.noise-snr)
+# P1-NOISE-TEST (TEST-P1-NOISE-001) — lib/algorithms/noise_snr (acsd.p1.noise-snr)
 # 可复用验证面
 # ----------------------------------------------------------------------------
 # 控制包任务: P1-NOISE-TEST (SA-P1N-T, queue 41, lock-P1-NOISE; 依赖
 # P1-NOISE-DOC 闭环)。合同锚: docs/science/algorithms/NOISE_ESTIMATION.md §13.4
 # TEST-NOISE-DESIGN-001 (P1-NOISE-DOC 冻结, 2026-09-07, wave W1); 矩阵行
-# P1-NOISE (MOD astrocs.p1.noise-snr); 上游 SCI-NOISE-001..015 (NOISE_MODEL.md
+# P1-NOISE (MOD acsd.p1.noise-snr); 上游 SCI-NOISE-001..015 (NOISE_MODEL.md
 # FROZEN T104 2026-08-23, 不改)。
 #
 # 结构 (模块 eng/tests/{unit,properties,oracle,fixtures,negative,performance} 对应):
@@ -37,7 +37,7 @@
 # 被测面: noise 方差模型唯一生产实现 lib/algorithms/noise_snr/cpp/src/noise_model.cpp
 # (snr_noise_model_v1(+_f64)/fill/free/scale_law/gain_variance; 根构建无
 # snr_estimator CMake 目标 — README §1, 故本测试面从生产源独立编译
-# EXCLUDE_FROM_ALL 静态目标 astrocs_p1_noise_prod, 生产源零改动);
+# EXCLUDE_FROM_ALL 静态目标 acsd_p1_noise_prod, 生产源零改动);
 # lib/algorithms/noise_snr/ 为 P1-NOISE 迁移目标目录 (P1-NOISE-IMPL 落码后本测试面
 # 直接复用, 冻结容差不变)。
 # ============================================================================
@@ -75,11 +75,11 @@ set_target_properties(p1noise_under_test PROPERTIES
 add_executable(p1noise_tests
   ${P1NOISE_DIR}/p1noise_tests_main.cpp
   ${P1NOISE_DIR}/p1noise_tests_core.cpp)
-# n12: 消费侧方差面可用性策略头 astrocs/noise/variance_plane_policy.h
+# n12: 消费侧方差面可用性策略头 acsd/noise/variance_plane_policy.h
 target_include_directories(p1noise_tests PRIVATE
     ${CMAKE_SOURCE_DIR}/lib/algorithms/noise_snr/include)
 target_link_libraries(p1noise_tests PRIVATE p1noise_under_test)
-target_link_libraries(p1noise_tests PRIVATE astrocs_platform_math)
+target_link_libraries(p1noise_tests PRIVATE acsd_platform_math)
 # 单组单跑: ctest -R p1noise_units / p1noise_properties / p1noise_oracle /
 #            p1noise_negative / p1noise_scale_law / p1noise_fill / p1noise_mask
 add_test(NAME p1noise_units COMMAND p1noise_tests units)
@@ -104,7 +104,7 @@ add_test(NAME p1noise_abi_layout
 add_executable(p1noise_perf_test
   ${P1NOISE_DIR}/p1noise_tests_perf.cpp)
 target_link_libraries(p1noise_perf_test PRIVATE p1noise_under_test)
-target_link_libraries(p1noise_perf_test PRIVATE astrocs_platform_math)
+target_link_libraries(p1noise_perf_test PRIVATE acsd_platform_math)
 add_test(NAME p1noise_performance COMMAND p1noise_perf_test)
 
 # 故障注入必败自检 (验收: baseline 必 PASS + 注入必 FAIL 双向排除恒常)
@@ -114,7 +114,7 @@ add_executable(p1noise_selfcheck_test
 target_include_directories(p1noise_selfcheck_test PRIVATE
     ${CMAKE_SOURCE_DIR}/lib/algorithms/noise_snr/include)
 target_link_libraries(p1noise_selfcheck_test PRIVATE p1noise_under_test)
-target_link_libraries(p1noise_selfcheck_test PRIVATE astrocs_platform_math)
+target_link_libraries(p1noise_selfcheck_test PRIVATE acsd_platform_math)
 add_test(NAME p1noise_selfcheck COMMAND p1noise_selfcheck_test)
 # ============================================================================
 # P5-SNR: 逐源 SNR 科学修正回归锁 (TEST-P5-SNR)
@@ -133,7 +133,7 @@ set_target_properties(p5snr_under_test PROPERTIES
     CXX_STANDARD 17
     CXX_STANDARD_REQUIRED ON
     POSITION_INDEPENDENT_CODE ON)
-target_link_libraries(p5snr_under_test PUBLIC astrocs_platform_math)
+target_link_libraries(p5snr_under_test PUBLIC acsd_platform_math)
 
 add_executable(p1snr_science_test ${P1NOISE_DIR}/p1snr_science_test.cpp)
 target_link_libraries(p1snr_science_test PRIVATE p5snr_under_test)
@@ -148,7 +148,7 @@ add_test(NAME p1snr_science_skysource COMMAND p1snr_science_test skysource)
 # ============================================================================
 # SAT-001（claim SC-008）：饱和域门 —— 「饱和过滤在默认配置下必须生效，
 #   若未提供电平则必须显式声明」。被测面 = 生产源 noise_model.cpp（零改动）
-#   + 策略头 astrocs/noise/saturation_policy.h；负例 = 未提供电平（level=0）
+#   + 策略头 acsd/noise/saturation_policy.h；负例 = 未提供电平（level=0）
 #   时必须检出污染控制点与帧权重崩塌（gate 不得恒真）。
 #   selfcheck 组证明判据双向可假（无源帧不报污染 / 有源帧必报污染）。
 # ============================================================================
@@ -156,7 +156,7 @@ add_executable(p1noise_saturation_test ${P1NOISE_DIR}/p1noise_saturation_test.cp
 target_link_libraries(p1noise_saturation_test PRIVATE p1noise_under_test)
 target_include_directories(p1noise_saturation_test PRIVATE
     ${CMAKE_SOURCE_DIR}/lib/algorithms/noise_snr/include)
-target_link_libraries(p1noise_saturation_test PRIVATE astrocs_platform_math)
+target_link_libraries(p1noise_saturation_test PRIVATE acsd_platform_math)
 add_test(NAME p1noise_saturation COMMAND p1noise_saturation_test contract)
 add_test(NAME p1noise_saturation_selfcheck COMMAND p1noise_saturation_test selfcheck)
 

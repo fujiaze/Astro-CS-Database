@@ -3,8 +3,8 @@
 """make_linux_release.py — LNX-005: 生成 Linux amd64 alpha 发布包(09 §5 / 13 § 版本 + 05 §7 manifest)。
 正式包结构(单一 user exe + manifest + SBOM/licenses + hash):
    ACSD-Linux-amd64-<X.Y.Z-alpha.N>.tar.zst
-   └─ astrocs/                     (根目录, 便于解包)
-      ├─ bin/astrocs               (唯一用户可执行; 无旧 phase/benchmark/tool exe)
+   └─ acsd/                     (根目录, 便于解包)
+      ├─ bin/acsd               (唯一用户可执行; 无旧 phase/benchmark/tool exe)
       ├─ MANIFEST.json             (每文件 path,sha256,size,mode; 单源: gen_version.py)
       ├─ backends.manifest.json    (05 §7; builtin baseline 无 shipped DSO → 空 backend 表)
       ├─ SBOM.spdx.json            (SPDX 2.3, 包名 alpha)
@@ -95,7 +95,7 @@ def main() -> int:
         "dataLicense": "CC0-1.0",
         "SPDXID": "SPDXRef-DOCUMENT",
         "name": f"ACSD-Linux-amd64-{base}",
-        "documentNamespace": f"https://astrocs.local/spdx/{c12}",
+        "documentNamespace": f"https://acsd.local/spdx/{c12}",
         "creationInfo": {"created": "2026-08-30T10:45:00Z",
                          "creators": ["Tool:make_linux_release.py"]},
         "packages": [{
@@ -141,7 +141,7 @@ def main() -> int:
         for fn in sorted(files):
             full = os.path.join(dirpath, fn)
             rel = os.path.relpath(full, root).replace(os.sep, "/")
-            sums.append(f"{sha256_file(full)}  astrocs/{rel}")
+            sums.append(f"{sha256_file(full)}  acsd/{rel}")
     with open(os.path.join(root, "SHA256SUMS"), "w", encoding="utf-8") as f:
         f.write("\n".join(sums) + "\n")
 

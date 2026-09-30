@@ -6,14 +6,14 @@
 //     目的是避免卡死，不是省内存；比例的唯一数值源 = eng/packaging/config/
 //     runtime_resources.json（经 CMake configure_file 生成 runtime_resources_generated.h，
 //     实现侧零字面量 —— 与 G-RES-01 的 resource_gate_thresholds_generated.h 同款）。
-//   * docs/ASTROCS_DESIGN.md §8.3「静态预算：从输入数据……静态估算每个模块的内存与 CPU 需求；
+//   * docs/ACSD_DESIGN.md §8.3「静态预算：从输入数据……静态估算每个模块的内存与 CPU 需求；
 //     该估算是调度决策的输入」+ 编排策略「**内存占用永不越界**」；越界处置按该节原文为
 //     「**可中断排队**」/「**可丢弃重跑**」—— 即**回压（节流）**，不是拒绝任务。
 //   * docs/engineering/SCHEDULER_CONTRACT.md §3「内存上限（峰值工作集）……**由配置/资源门
 //     决定**，禁止硬编码」。
-//   * docs/ASTROCS_DESIGN.md §9「一个进程一个资源调度器与线程预算源」—— 内存与 CPU 预算同源
+//   * docs/ACSD_DESIGN.md §9「一个进程一个资源调度器与线程预算源」—— 内存与 CPU 预算同源
 //     （机器绑定配置 + 实测探测）。
-//   * docs/ASTROCS_DESIGN.md §4.5 运行前预检 / ENGINEERING_SPEC.md §12 /
+//   * docs/ACSD_DESIGN.md §4.5 运行前预检 / ENGINEERING_SPEC.md §12 /
 //     eng/contracts/resource_gate_v1.json 的 disk_gate.no_gate = [memory, cpu, threads]
 //     「资源门只管磁盘」⇒ 本预算是**调度准入输入**，**不是门禁判据**：不产生退出码、
 //     不阻断运行、不让 run 失败。
@@ -23,13 +23,13 @@
 // **不含任何内存上限字面量**。
 #pragma once
 
-#ifndef ASTROCS_CORE_MEMORY_BUDGET_H
-#define ASTROCS_CORE_MEMORY_BUDGET_H
+#ifndef ACSD_CORE_MEMORY_BUDGET_H
+#define ACSD_CORE_MEMORY_BUDGET_H
 
 #include <cstdint>
 #include <string>
 
-namespace astrocs::core {
+namespace acsd::core {
 
 // 比例默认值（唯一数值源 = eng/packaging/config/runtime_resources.json；
 // 定义在 memory_budget.cpp，经生成头 runtime_resources_generated.h 引入）。
@@ -68,6 +68,6 @@ struct MemoryBudget {
 MemoryBudget resolve_memory_budget(std::uint64_t available_bytes,
                                    std::uint32_t percent) noexcept;
 
-}  // namespace astrocs::core
+}  // namespace acsd::core
 
-#endif  // ASTROCS_CORE_MEMORY_BUDGET_H
+#endif  // ACSD_CORE_MEMORY_BUDGET_H

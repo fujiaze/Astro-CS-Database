@@ -1,6 +1,6 @@
 # 插件文档：observability（可观测性）
 
-> 上游：ASTROCS_DESIGN.md §7.3（错误传播与运行日志）、§8.4（顶层结构）
+> 上游：ACSD_DESIGN.md §7.3（错误传播与运行日志）、§8.4（顶层结构）
 
 ## 1. 职责与边界
 
@@ -9,7 +9,7 @@
 
 ## 2. 权威依据
 
-- 最高设计 `ASTROCS_DESIGN.md` §7.2（配置、事件与退出码：JSONL 事件流）、§7.3（错误传播与运行日志）、§9（CPU 后端与资源：资源记录与重计算资源门）、§10（I/O 与原子产品：run 产物）
+- 最高设计 `ACSD_DESIGN.md` §7.2（配置、事件与退出码：JSONL 事件流）、§7.3（错误传播与运行日志）、§9（CPU 后端与资源：资源记录与重计算资源门）、§10（I/O 与原子产品：run 产物）
 - `docs/detail/LOG_AND_ERROR_SYSTEM.md`（日志与错误系统详细设计）、`docs/engineering/LOG_AND_ERROR_CONTRACT.md`（日志行/落点/降级/退出码映射合同）
 - `eng/contracts/schemas/jsonl_event_v1.schema.json`（运行事件流唯一 schema）
 - `eng/contracts/resource_gate_v1.json`（G-RES-01 数值唯一源，见 §8）
@@ -17,7 +17,7 @@
 ## 3. 输入/输出数据合同
 
 - **输出**：JSONL 事件流（schema_version/event_id/run_id/kind：progress/resource/artifact/backend/final）、运行图三件（`graph/static_graph.json`、`graph/observed_trace.json`、`graph/graph_sidecar.json`）、`resource_timeseries.csv`、`resource_summary.json`、`worker_balance.csv`；
-- **运行日志工件**：`<output_dir>/logs/run_<run_id>.jsonl`（机器，行格式 = `astrocs.log.event.v1`）与 `<output_dir>/logs/run_<run_id>.log`（人可读摘要，与 JSONL 同源）；两工件在 run manifest 的 `log_artifacts[]` 登记（字段表见 `docs/engineering/LOG_AND_ERROR_CONTRACT.md` §4）。
+- **运行日志工件**：`<output_dir>/logs/run_<run_id>.jsonl`（机器，行格式 = `acsd.log.event.v1`）与 `<output_dir>/logs/run_<run_id>.log`（人可读摘要，与 JSONL 同源）；两工件在 run manifest 的 `log_artifacts[]` 登记（字段表见 `docs/engineering/LOG_AND_ERROR_CONTRACT.md` §4）。
 - 参考：`eng/contracts/schemas/jsonl_event_v1.schema.json`、`eng/contracts/schemas/run_manifest.schema.json`、`eng/contracts/schemas/scheduler_probe_event.schema.json`（探针事件单行；合同说明见 `docs/engineering/SCHEDULER_CONTRACT.md`）、`lib/infrastructure/observability/logging/log_event_v1.schema.json`。
 
 ## 4. 算法与公式要点
@@ -55,7 +55,7 @@
 
 ## 8. 重计算负载资源门（G-RES-01）
 
-> **本节是 G-RES-01 判据的唯一语义权威**（`ASTROCS_DESIGN.md` §0：具体硬约束与细节写入下级文档）。
+> **本节是 G-RES-01 判据的唯一语义权威**（`ACSD_DESIGN.md` §0：具体硬约束与细节写入下级文档）。
 > **数值唯一源 = `eng/contracts/resource_gate_v1.json`**；实现侧（C++ / Python 冻结门 / 外挂 judge）的阈值一律从该文件取。
 > 维护规则：**改数值只改契约，改语义只改本节**；两侧必须同一次提交内保持一致。
 
@@ -104,7 +104,7 @@
 
 ### 8.4 record / enforce 划分与判定点
 
-- **程序内恒 record_only**（`ASTROCS_DESIGN.md` §4.5「资源门只管磁盘…内存、CPU、线程不设门」；数值与判据唯一源 = `eng/contracts/resource_gate_v1.json#enforcement`）：CLI 运行期只记录与报告，**不因资源判据改变退出码**；`--strict-resource-gate` / `--on-resource-gate strict` **保留接受但不改变门结论**（旗标请求事实由事件字段如实登记，见下「事件面登记」）。实现唯一收口 = `lib/infrastructure/cli/resource_gate.h::gate_enforcement`（恒返回 `RecordOnly`；`Enforced` 枚举值仅为既有 ABI/测试引用保留）。
+- **程序内恒 record_only**（`ACSD_DESIGN.md` §4.5「资源门只管磁盘…内存、CPU、线程不设门」；数值与判据唯一源 = `eng/contracts/resource_gate_v1.json#enforcement`）：CLI 运行期只记录与报告，**不因资源判据改变退出码**；`--strict-resource-gate` / `--on-resource-gate strict` **保留接受但不改变门结论**（旗标请求事实由事件字段如实登记，见下「事件面登记」）。实现唯一收口 = `lib/infrastructure/cli/resource_gate.h::gate_enforcement`（恒返回 `RecordOnly`；`Enforced` 枚举值仅为既有 ABI/测试引用保留）。
 - **唯一判定点 = CI 重计算检查 + 发布验收**（判定参数与阈值唯一源 = `eng/contracts/resource_gate_v1.json`），以 `run_monitored.py --gate-required --gate-workers <registry 声明>` 形式执行。**`--gate-workers` 必须由 registry 显式声明**；未声明时利用率类判据不成立（记 `allocated_capacity_undeclared`），只有 ① 生效。
 - **exit 10（RESOURCE）在资源门判定域内的充分条件**：判定域内 ①②③ 任一违约且处于 enforce 面——该路径**只存在于 CI 判定点**，程序内（CLI）无此路径。`NOT_APPLICABLE` 与 record-only 记录项**都不产生 exit 10**。本节只界定资源门判定域内的 exit 10；**磁盘写满 / 写盘失败 ⇒ exit 10** 是独立触发路径（`19_runtime.md` §7 与 `docs/engineering/LOG_AND_ERROR_CONTRACT.md` §5）。
 
@@ -145,9 +145,9 @@ G-RES-01 的采样面是**进程级**的：它能判「利用率低」，不能�
 
 | 开关 | 输出行 | 落点 |
 |---|---|---|
-| `ASTROCS_NODE_TRACE=1` | `[nodetrace] BEGIN <node> <steady_s>` / `END <node> <elapsed_s>` | `module_adapters.cpp` |
-| `ASTROCS_LEASE_TRACE=1` | `[lease] <node> host_workers=… acquired=… cap=… budget_available=…` | `module_adapters.cpp` |
-| `ASTROCS_P1CAP_TRACE=1` | `[p1cap] frame_workers/parallel_for node=… lease=… memory_cap=… frame_workers=… n_units=… inner_omp=…` | `module_adapters.cpp` |
+| `ACSD_NODE_TRACE=1` | `[nodetrace] BEGIN <node> <steady_s>` / `END <node> <elapsed_s>` | `module_adapters.cpp` |
+| `ACSD_LEASE_TRACE=1` | `[lease] <node> host_workers=… acquired=… cap=… budget_available=…` | `module_adapters.cpp` |
+| `ACSD_P1CAP_TRACE=1` | `[p1cap] frame_workers/parallel_for node=… lease=… memory_cap=… frame_workers=… n_units=… inner_omp=…` | `module_adapters.cpp` |
 
 消费者 = `eng/tools/monitoring/node_waterfall.py`：把上述行与 `resource_timeseries.csv`
 （或外挂 `resource_monitor.py` 的 `samples.csv`）按时间轴对齐，输出**节点瀑布 + 逐节点并行宽度**

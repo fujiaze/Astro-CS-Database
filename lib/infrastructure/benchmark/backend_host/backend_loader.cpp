@@ -14,13 +14,13 @@
 #include <dlfcn.h>
 #endif
 
-// CLEAN-403 (docs/ASTROCS_DESIGN §10「aio 是文件级唯一 I/O 边界」): 文件摘要与存在性
+// CLEAN-403 (docs/ACSD_DESIGN §10「aio 是文件级唯一 I/O 边界」): 文件摘要与存在性
 // 探测一律经 aio 唯一实现 (aio_file::sha256_hex / aio_atomic::path_exists),
 // 本 TU 不自持 FILE* / std::filesystem 通道。
 #include "aio_atomic_file.h"
 #include "aio_file_io.h"
 
-namespace astrocs::backend_host {
+namespace acsd::backend_host {
 
 namespace {
 
@@ -59,10 +59,10 @@ bool parse_backends_manifest(const std::string& json_text,
         if (err) *err = std::string("malformed JSON: ") + e.what();
         return false;
     }
-    if (!doc.is_object() || doc.value("kind", std::string()) != "astrocs_backends_manifest" ||
+    if (!doc.is_object() || doc.value("kind", std::string()) != "acsd_backends_manifest" ||
         doc.value("schema_version", std::string()) != "1" || !doc.contains("backends") ||
         !doc["backends"].is_array()) {
-        if (err) *err = "not a v1 astrocs_backends_manifest document";
+        if (err) *err = "not a v1 acsd_backends_manifest document";
         return false;
     }
     for (const auto& b : doc["backends"]) {
@@ -131,19 +131,19 @@ LoadResult preflight_entry(const std::string& backends_dir, const ManifestEntry&
 }
 
 LoadResult load_backend(const std::string& backends_dir, const ManifestEntry& e,
-                        const astrocs_host_services_v1* host,
-                        astrocs_backend_api_v1* out_api, void** handle_out,
+                        const acsd_host_services_v1* host,
+                        acsd_backend_api_v1* out_api, void** handle_out,
                         std::string* reason) {
     std::string why;
-    LoadResult pre = preflight_entry(backends_dir, e, astrocs_cpu_detect_features_v1(), &why);
+    LoadResult pre = preflight_entry(backends_dir, e, acsd_cpu_detect_features_v1(), &why);
     if (pre.decision != LoadResult::OK) {
         if (reason) *reason = why;
         return pre;
     }
     const std::string path = join_private(backends_dir, e.file);
     void* handle = nullptr;
-    using GetApiFn = int (*)(uint32_t, uint32_t, const astrocs_host_services_v1*,
-                             astrocs_backend_api_v1*);
+    using GetApiFn = int (*)(uint32_t, uint32_t, const acsd_host_services_v1*,
+                             acsd_backend_api_v1*);
     GetApiFn get_api = nullptr;
 #if defined(_WIN32)
     // 受限 DLL 搜索(禁 PATH 注入; 05 §3); LOAD_LIBRARY_SEARCH_* 仅当 _WIN32_WINNT>=0x0602 定义
@@ -158,23 +158,23 @@ LoadResult load_backend(const std::string& backends_dir, const ManifestEntry& e,
     handle = static_cast<void*>(mod);
     if (handle)
         get_api = reinterpret_cast<GetApiFn>(
-            static_cast<void*>(GetProcAddress(mod, "astrocs_backend_get_api_v1")));
+            static_cast<void*>(GetProcAddress(mod, "acsd_backend_get_api_v1")));
 #else
     handle = dlopen(path.c_str(), RTLD_NOW | RTLD_LOCAL);
     if (handle)
-        get_api = reinterpret_cast<GetApiFn>(dlsym(handle, "astrocs_backend_get_api_v1"));
+        get_api = reinterpret_cast<GetApiFn>(dlsym(handle, "acsd_backend_get_api_v1"));
 #endif
     if (!handle) {
         if (reason) *reason = "dlopen/LoadLibrary failed: " + e.file;
         return {LoadResult::FALLBACK_BASELINE, reason ? *reason : ""};
     }
     if (!get_api) {
-        if (reason) *reason = "entry symbol missing: astrocs_backend_get_api_v1";
+        if (reason) *reason = "entry symbol missing: acsd_backend_get_api_v1";
         close_backend(handle);
         return {LoadResult::FALLBACK_BASELINE, reason ? *reason : ""};
     }
     const int rc = get_api(ACS_ABI_VERSION_V1,
-                           static_cast<uint32_t>(sizeof(astrocs_host_services_v1)),
+                           static_cast<uint32_t>(sizeof(acsd_host_services_v1)),
                            host, out_api);
     if (rc != ACS_OK) {
         if (reason) *reason = "handshake failed in backend: " + e.file;
@@ -200,4 +200,4 @@ void close_backend(void* handle) {
 #endif
 }
 
-}  // namespace astrocs::backend_host
+}  // namespace acsd::backend_host

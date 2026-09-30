@@ -4,7 +4,7 @@
 
 #include <cmath>
 
-namespace astrocs {
+namespace acsd {
 namespace p3rsmp {
 
 DenseMatrix DenseMatrix::identity(int n) {
@@ -148,4 +148,4 @@ Status cholesky_solve(const DenseMatrix& c, const std::vector<double>& b, std::v
 }
 
 }  // namespace p3rsmp
-}  // namespace astrocs
+}  // namespace acsd

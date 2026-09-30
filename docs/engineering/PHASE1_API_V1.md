@@ -1,6 +1,6 @@
 # Phase1 API 定义 v1 (API-003 冻结 — 逐函数 create/validate/run/inspect)
 
-> 上游：ASTROCS_DESIGN.md §4（normalize）、§8.4（模块与 ABI）
+> 上游：ACSD_DESIGN.md §4（normalize）、§8.4（模块与 ABI）
 
 > ID: API-P1-001  范围: API-P1-001..010  状态: FROZEN；**用户命令面 = `normalize`**  上游: API-001(API-COMMON-001)/API-002  下游: 用户命令 `normalize`(CLI-001;`phase1 run` 不在命令面上, rc=2)/TST-P1-*
 > 模式: Phase1 = 现有 C ABI 模块链(calibration/star_detector/dynamic_psf/ipv/photometric_calib/algorithms/noise_snr/healpix_drizzle)的**编排合同**;每函数按五字段并发合同模板(API-001 §3)登记;既有函数签名以现存头文件为准(不重写,新增仅 orchestrator 侧)。
@@ -9,16 +9,16 @@
 
 > CLI-001 说明: 本节四段式 C ABI **不变**(内部会话 1 的冻结合同);**用户命令名** = `normalize`
 > —— `phase1 run` 不在命令面上并返回 rc=2, 由 `normalize --json <config.json>` 承载
-> (ASTROCS_DESIGN §6.2; phase 仅为内部指代)。
+> (ACSD_DESIGN §6.2; phase 仅为内部指代)。
 
 ```c
 /* 四段式: create→validate→run→inspect;opaque handle, owner=创建者 */
-acs_status p1_session_create(const astrocs_host_services_v1* host, acs_handle* out);  /* host services 单结构注入(budget/cancel/logger/allocator) */
-acs_status p1_session_validate(acs_handle, const acs_span_u8 config_json);        /* 纯读; 无 IO; 幂等 */
-acs_status p1_session_run(acs_handle, const acs_span_u8 config_json,
+acsd_status p1_session_create(const acsd_host_services_v1* host, acsd_handle* out);  /* host services 单结构注入(budget/cancel/logger/allocator) */
+acsd_status p1_session_validate(acsd_handle, const acsd_span_u8 config_json);        /* 纯读; 无 IO; 幂等 */
+acsd_status p1_session_run(acsd_handle, const acsd_span_u8 config_json,
                           int async_io_depth);                                    /* async_io_depth∈{0,1,2}(ARCH-004 §2); 取消点=帧粒度 */
-acs_status p1_session_inspect(acs_handle, acs_span_u8* out_manifest_json);        /* out=host alloc, 调用方释放 */
-acs_status p1_session_destroy(acs_handle);                                        /* 唯一释放对; 内部 join 后台 IO 线程 */
+acsd_status p1_session_inspect(acsd_handle, acsd_span_u8* out_manifest_json);        /* out=host alloc, 调用方释放 */
+acsd_status p1_session_destroy(acsd_handle);                                        /* 唯一释放对; 内部 join 后台 IO 线程 */
 ```
 
 - run 内部阶段序列=stages[](校准→检测/PSF→plate solve→测光定标→SNR→Drizzle→HiPS),与 production_call_paths_stage1.csv 的 7 路径一一对应;每 stage 发 stage_start/stage_end+backend 事件(API-002 §4)。
@@ -38,7 +38,7 @@ acs_status p1_session_destroy(acs_handle);                                      
 | `snr_noise_model_v1(+_f64/_fill/_free)/snr_noise_gain_variance`(snr_estimator.h) | yes | yes(model 对象隔离, g_model_floor 指针 key) | patch 级 | 行带 | TST-NOISE-001..015 |
 | drizzle 引擎(healpix_drizzle) | 帧级 | no(帧序串行) | omp(候选/行带, 固定序归约) | 帧/tile | TST-DRZ-* |
 
-- aliasing: 全部 in/out 不重叠(除标注 in-place 的 normalize_flat);错误码沿用各模块既有枚举(AC_ERR_*/sdet/dpsf/ipv/pc/snr),session 层映射至 acs_status(表由 CLI-002 落地)。
+- aliasing: 全部 in/out 不重叠(除标注 in-place 的 normalize_flat);错误码沿用各模块既有枚举(AC_ERR_*/sdet/dpsf/ipv/pc/snr),session 层映射至 acsd_status(表由 CLI-002 落地)。
 
 ## 3 单位/所有权速查(引 GLOSSARY/COMMON_ABI)
 

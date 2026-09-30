@@ -1,6 +1,6 @@
 # 插件文档：cli（命令行入口）
 
-> 上游：ASTROCS_DESIGN.md §7.1（命令树）、§7.2（配置、事件与退出码）、§7.3（错误传播与运行日志）
+> 上游：ACSD_DESIGN.md §7.1（命令树）、§7.2（配置、事件与退出码）、§7.3（错误传播与运行日志）
 
 ## 1. 职责与边界
 
@@ -8,7 +8,7 @@
 
 ## 2. 权威依据
 
-- 最高设计 `ASTROCS_DESIGN.md` §7（CLI 合同）、§4.5（运行前预检）、§7.3（错误传播与运行日志）
+- 最高设计 `ACSD_DESIGN.md` §7（CLI 合同）、§4.5（运行前预检）、§7.3（错误传播与运行日志）
 - `docs/engineering/LOG_AND_ERROR_CONTRACT.md` §5（错误对象与退出码映射）、§7（日志落点）
 - `eng/contracts/schemas/phase_config*.schema.json`
 

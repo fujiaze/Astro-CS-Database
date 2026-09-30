@@ -3,25 +3,25 @@
 """CLI-CPU-PROFILE-SOURCE：cpu_profile 的来源口径与"缺画像/坏画像"的分别处置（命令面门）。
 
 规范依据（唯一权威链，逐句可核）：
-  * docs/ASTROCS_DESIGN.md §7.1（唯一命令树/命令面）：cpu_profile 的**唯一来源** =
+  * docs/ACSD_DESIGN.md §7.1（唯一命令树/命令面）：cpu_profile 的**唯一来源** =
     `benchmark` 实测写下的那一份；**没跑过 `benchmark`（安装目录没有那份 profile）⇒ 最小
     可用运行**（全部 x64 平台都具备的基线指令集 + 保守并行，照常成功退出）；**画像存在但
     校验不过**（取值非法 / schema 不匹配 / 与本机失配）⇒ 运行以校验器给出的非零退出码失败。
-  * docs/ASTROCS_DESIGN.md §9「画像的来源与缺省行为」；docs/engineering/CLI_PROTOCOL_V1.md §1；
+  * docs/ACSD_DESIGN.md §9「画像的来源与缺省行为」；docs/engineering/CLI_PROTOCOL_V1.md §1；
     docs/engineering/CONFIG_CONTRACT.md「cpu_profile 的来源与缺省口径」；
     docs/engineering/CPU_BACKEND_ARCH.md §6（失败与回退）。
-  * 退出码唯一源 = lib/infrastructure/cli/exit_codes.h（表见 docs/ASTROCS_DESIGN.md §7.2）：
+  * 退出码唯一源 = lib/infrastructure/cli/exit_codes.h（表见 docs/ACSD_DESIGN.md §7.2）：
     ARGS=2 / INPUT=3 / BACKEND=5。
 
 用例矩阵（正例与负例**同数据、同命令、同 cwd**，唯一变量 = 安装目录里那一份画像文件）：
   正例 1（无画像）：安装目录与用户级降级落点都没有 profile ⇒ rc=0，stderr 的
-         `cpu_profile source=none` 且 `backend=astrocs.cpu.baseline`（基线最小可用运行）。
+         `cpu_profile source=none` 且 `backend=acsd.cpu.baseline`（基线最小可用运行）。
   正例 2（有画像）：安装目录放 benchmark 实测产出、并按画像内容声明 avx2 与内存比例的那一份
          ⇒ rc=0，`source=install-dir`，且运行按画像内容取值（`percent=<画像值>`）；当安装树
          带可用 avx2 backend 时 provider=avx2（按画像选核），否则按预检回退 baseline 并如实
          断言该回退（判据不因环境静默放宽）。
   负例 1（取值非法：kernels.*.workers=0）⇒ rc=BACKEND(5)。
-  负例 2（schema 不匹配：schema=astrocs.cpu-profile/v1）⇒ rc=BACKEND(5)。
+  负例 2（schema 不匹配：schema=acsd.cpu-profile/v1）⇒ rc=BACKEND(5)。
   负例 3（结构损坏：非 JSON 文本）⇒ rc=INPUT(3)。
   负例 4（手工指定入口）：normalize/mosaic/export 带 `--cpu-profile <path>` ⇒ rc=ARGS(2)
          且 stderr 报 unknown flag（对外命令面不存在画像手工指定选项）。
@@ -60,7 +60,7 @@ SKIP_FITS = (r"f77_wrap|drvrgsiftp|drvrsmem|smem|vms|windumpexts|iter_[abc]|"
 
 
 def cli_binary():
-    env = os.environ.get("ASTROCS_CLI_BIN")
+    env = os.environ.get("ACSD_CLI_BIN")
     if env and os.path.isfile(env):
         return env
     for rel in (("build", "acsd"), ("build", "cli", "acsd")):
@@ -215,7 +215,7 @@ def _broken_profile(base_path, tmp, kind):
         kid = sorted(doc["kernels"])[0]
         doc["kernels"][kid]["workers"] = 0
     elif kind == "schema":
-        doc["schema"] = "astrocs.cpu-profile/v1"
+        doc["schema"] = "acsd.cpu-profile/v1"
     else:
         raise AssertionError("未知坏画像类别：" + kind)
     with open(out, "w", encoding="utf-8") as fh:
@@ -234,7 +234,7 @@ def _avx2_backend_usable(install_dir):
     except Exception:
         return False
     for ck in doc.get("checks", []):
-        if ck.get("name") in ("backend_preflight:avx2", "backend_preflight:astrocs.cpu.avx2"):
+        if ck.get("name") in ("backend_preflight:avx2", "backend_preflight:acsd.cpu.avx2"):
             return ck.get("status") == "pass"
     return False
 
@@ -314,7 +314,7 @@ class TestCpuProfileSourcePolicy(unittest.TestCase):
         self.assertEqual(r.returncode, 0, r.stderr[-600:])
         self.assertIn("cpu_profile source=none", r.stderr, "来源标记须明示「无 benchmark 画像」")
         self.assertIn("acsd: no cpu_profile at", r.stderr)
-        self.assertIn("backend=astrocs.cpu.baseline", r.stderr, "缺画像 ⇒ 基线最小可用运行")
+        self.assertIn("backend=acsd.cpu.baseline", r.stderr, "缺画像 ⇒ 基线最小可用运行")
         self.assertIn("conservative baseline route", r.stderr,
                       "基线口径须给出逐 kernel 回退事实行（缺画像 = 保守路由，不是坏输入）")
 
@@ -330,7 +330,7 @@ class TestCpuProfileSourcePolicy(unittest.TestCase):
             self.assertIn("provider=avx2", r.stderr, "画像声明 avx2 ⇒ 按画像选核")
             self.assertRegex(r.stderr, r"route table: 12/12 kernels on variant provider")
         else:
-            self.assertIn("backend=astrocs.cpu.baseline", r.stderr,
+            self.assertIn("backend=acsd.cpu.baseline", r.stderr,
                           "安装树无可用 avx2 backend ⇒ 预检回退 baseline（回退如实可见）")
             self.assertRegex(r.stderr, r"route table: 0/12 kernels on variant provider")
 

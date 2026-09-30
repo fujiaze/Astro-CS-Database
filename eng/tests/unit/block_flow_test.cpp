@@ -4,8 +4,8 @@
 //         §1.1（跨阶段唯一载体 = HiPS 产品树；同一产物身份不得在一个阶段产出、在另一阶段被消费）
 //         §2 第 4 条（声明的 lifecycle 与实际消费者跨度不一致 ⇒ 非法）
 //         §3（块被全部声明消费者用完即销毁；阶段结束不得残留任何块）
-//       docs/ASTROCS_DESIGN.md §8.1（三命令独立、阶段间只走磁盘产品）、§8.2（命名块内存管线与块生命周期）
-//       lib/include/astrocs/core/block_flow.h（BlockRole：EXTERNAL_IN/EXTERNAL_OUT/STAGE/SHORT）
+//       docs/ACSD_DESIGN.md §8.1（三命令独立、阶段间只走磁盘产品）、§8.2（命名块内存管线与块生命周期）
+//       lib/include/acsd/core/block_flow.h（BlockRole：EXTERNAL_IN/EXTERNAL_OUT/STAGE/SHORT）
 //       块流规格唯一事实源 eng/contracts/block_flow/stage_block_flow.json
 //       （由 lib/infrastructure/pipeline/module_ports.registry.json 派生，机器门
 //        eng/tools/quality/check_block_flow_spec.py 防漂移）
@@ -29,7 +29,7 @@
 //   E. 数值等价：块流路径与「直接顺序计算」逐位一致（同一算子，冻结容差 = 0），
 //      且比较对输入扰动有判别力（非恒真）；
 //   F. 确定性：同输入重复运行产品 checksum 相同。
-#include "astrocs/core/block_flow.h"
+#include "acsd/core/block_flow.h"
 
 #include <algorithm>
 #include <cstdio>
@@ -50,7 +50,7 @@
 #include <utility>
 #include <vector>
 
-using namespace astrocs::core;
+using namespace acsd::core;
 
 #ifndef ARCH505_EVIDENCE_DIR
 #define ARCH505_EVIDENCE_DIR "run/RELEASE-05/evidence"
@@ -475,7 +475,7 @@ int main() {
     // C1 未声明写（**纯名字级**）：算子只创建一个块，数量与 writes 相同但名字不对
     StageBlockFlowSpec bad = p1;
     for (auto& n : bad.nodes) {
-      if (n.module_id != "astrocs.phase1.calibration") continue;
+      if (n.module_id != "acsd.phase1.calibration") continue;
       n.run = [](BlockFrame& fr) -> bool {
         BlockMeta m; m.name = "not_declared"; m.producer = "x"; m.dtype = BlockDtype::F64;
         fr.create(m, kN);
@@ -486,7 +486,7 @@ int main() {
     inject_all(&fb, inputs);
     BlockFlowOutcome ob = fb.run_unit("u");
     check(!ob.ok && ob.error.find("undeclared_or_missing_write") != std::string::npos &&
-              ob.error.find("astrocs.phase1.calibration") != std::string::npos &&
+              ob.error.find("acsd.phase1.calibration") != std::string::npos &&
               ob.error.find("not_declared") != std::string::npos,
           "C1 undeclared write (name-level, same count) rejected: " + ob.error);
   }
@@ -494,7 +494,7 @@ int main() {
     // C2 缺声明写：算子不创建它声明的写块
     StageBlockFlowSpec bad = p1;
     for (auto& n : bad.nodes) {
-      if (n.module_id != "astrocs.phase1.cosmetic") continue;
+      if (n.module_id != "acsd.phase1.cosmetic") continue;
       n.run = [](BlockFrame&) -> bool { return true; };   // 什么都不写
     }
     StageBlockFlow fb(bad, nullptr);
@@ -539,7 +539,7 @@ int main() {
         break;
       }
     }
-    if (!target.empty()) bad.consumers[target].push_back("astrocs.phase9.ghost");
+    if (!target.empty()) bad.consumers[target].push_back("acsd.phase9.ghost");
     StageBlockFlow fb(bad, nullptr);
     check(!target.empty() && !fb.spec_valid(),
           "C5 invalid block graph (ghost consumer on STAGE block '" + target +

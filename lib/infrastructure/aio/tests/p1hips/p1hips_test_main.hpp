@@ -3,18 +3,18 @@
 // 控制包任务: P1-HIPS-TEST (SA-P1H-T, queue 39, lock-P1-HIPS; 依赖
 // P1-HIPS-DOC 闭环)。合同锚: docs/science/algorithms/HIPS_WRITER.md §9
 // TEST-HIPS-DESIGN-001 (P1-HIPS-DOC 冻结, 2026-09-07); 矩阵行 P1-HIPS
-// (MOD astrocs.phase1.hips-writer, TEST-P1-HIPS-001); 模块登记页
-// docs/detail/registry/astrocs.phase1.hips-writer.md。
+// (MOD acsd.phase1.hips-writer, TEST-P1-HIPS-001); 模块登记页
+// docs/detail/registry/acsd.phase1.hips-writer.md。
 //
 // 单跑方式 (每个测试组 == 独立可执行 ctest 名, 二进制内按 --group 单跑):
 //   ./p1hips_tests units|properties|oracle|negative
 //   ./p1hips_tests all
 //
 // 故障注入 (模板 <prefix>-TEST 验收: "故障注入能让测试失败"):
-//   ASTROCS_P1HIPS_FAULT=<regname>[,<regname>...]
+//   ACSD_P1HIPS_FAULT=<regname>[,<regname>...]
 //   每个注册的 fault 使对应 CHECK 组在报告阶段确定性翻转 → 二进制 rc=1,
 //   输出 "FAULT-INJECT <name>" 行。
-//   例: ASTROCS_P1HIPS_FAULT=i1_leaf_signal_bitwise ./p1hips_tests units
+//   例: ACSD_P1HIPS_FAULT=i1_leaf_signal_bitwise ./p1hips_tests units
 // 模式对齐先例: lib/algorithms/cosmetic/tests/p1cos/p1cos_test_main.hpp (FaultRegistry
 // + 组 runner + note_injected 一次性报告)。
 #ifndef P1HIPS_TEST_MAIN_HPP
@@ -46,10 +46,10 @@
 #endif
 #include <windows.h>
 #include <cstdlib>
-static inline int acs_test_setenv(const char* k, const char* v) { return _putenv_s(k, v); }
-static inline int acs_test_unsetenv(const char* k) { return _putenv_s(k, ""); }
-#define setenv(k, v, o) acs_test_setenv((k), (v))
-#define unsetenv(k) acs_test_unsetenv(k)
+static inline int acsd_test_setenv(const char* k, const char* v) { return _putenv_s(k, v); }
+static inline int acsd_test_unsetenv(const char* k) { return _putenv_s(k, ""); }
+#define setenv(k, v, o) acsd_test_setenv((k), (v))
+#define unsetenv(k) acsd_test_unsetenv(k)
 #define sleep(s) Sleep(static_cast<DWORD>((s) * 1000))
 #endif
 
@@ -60,7 +60,7 @@ struct FaultRegistry {
         static FaultRegistry r;
         return r;
     }
-    // 由 main() 启动时从 ASTROCS_P1HIPS_FAULT 初始化
+    // 由 main() 启动时从 ACSD_P1HIPS_FAULT 初始化
     std::vector<std::string> active;
 
     bool injected(const char* name) const {
@@ -181,9 +181,9 @@ struct TestGroup {
     int (*fn)(void);
 };
 
-// ASTROCS_P1HIPS_FAULT: 逗号分隔故障注入名单 → FaultRegistry
+// ACSD_P1HIPS_FAULT: 逗号分隔故障注入名单 → FaultRegistry
 inline void init_fault_registry_from_env() {
-    const char* f = std::getenv("ASTROCS_P1HIPS_FAULT");
+    const char* f = std::getenv("ACSD_P1HIPS_FAULT");
     if (!f) return;
     std::string s = f;
     std::size_t pos = 0;

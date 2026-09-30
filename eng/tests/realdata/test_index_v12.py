@@ -66,7 +66,7 @@ def disk_counts(index):
 class TestSchemaV12:
     def test_version_and_schema_id(self, index):
         assert index["version"] == "1.2"
-        assert index["$schema"] == "AstroCS testdata inventory v1.2"
+        assert index["$schema"] == "ACSD testdata inventory v1.2"
 
     def test_schema_changes_documented(self, index):
         ch = index["schema_changes_v1_2"]

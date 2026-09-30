@@ -22,7 +22,7 @@
 //                eng/ci/ledgers/spec_named_impl_gaps.json 的 SNI-S4-P3X-06 条；
 //             ③ 把 PRODUCTION_EXECUTION_INVENTORY.csv:338 的 production=yes 更正为 retired；
 //             ④ 删除 eng/tests/integration/p3_export/** 与 CMakeLists.txt:980 的 add_subdirectory。
-// AUTHORITY:  ENGINEERING_SPEC.md §2（历史实现处置：保留则注释）；docs/ASTROCS_DESIGN.md §6.3
+// AUTHORITY:  ENGINEERING_SPEC.md §2（历史实现处置：保留则注释）；docs/ACSD_DESIGN.md §6.3
 //             （注册表中未实现的投影被选择时显式报「不支持」，当前仅 TAN 可用）；
 //             eng/ci/spec_named_impls.json SNI-S4-P3X-06。
 // ──────────────────────────────────────────────────────────────────────
@@ -66,8 +66,8 @@
 //                         + EFFECTIVE_PSF(1) + COVERAGE；Q/W 输出帧重算并写盘。
 //   * visualization     : 仅 SIGNAL（measurement_capable=false，禁写测量 HDU），
 //                         provenance 显式登记 uncertainty unavailable。
-#ifndef ASTROCS_P3_V6_EXPORT_H
-#define ASTROCS_P3_V6_EXPORT_H
+#ifndef ACSD_P3_V6_EXPORT_H
+#define ACSD_P3_V6_EXPORT_H
 
 #include <cstdint>
 #include <string>
@@ -81,7 +81,7 @@
 #include "p3_proj.h"
 #include "p3_rsmp.h"
 
-namespace astrocs {
+namespace acsd {
 namespace phase3 {
 namespace v6 {
 
@@ -196,11 +196,11 @@ struct ExportResult {
   std::string reason;
 
   // 原子发布
-  astrocs::aio::PublishResult publish;
+  acsd::aio::PublishResult publish;
   // P-174：provenance.json 是**第二次独立发布**，其终态此前在本结构里**没有载体** ——
   // 调用点只取 status/message 两个字段，durability 连同 renamed 一起直接蒸发，第三态
   // 在这条路径上不可判。此字段补上载体，使 provenance 的三态与 product.fits 同构可取。
-  astrocs::aio::PublishResult provenance_publish;
+  acsd::aio::PublishResult provenance_publish;
   // P-174 第三态显式留痕：两次发布中任一落在 kNotDurable（产品已可见、不可回滚，但
   // 目录项持久化无证据）时逐条登记；为空 ⇒ 两次发布都已确认落盘（kDurable）。
   // 按 atomic_publish.h:28-31「不得静默当成功、须显式可见」：此处只留痕、**不**改主
@@ -223,8 +223,8 @@ struct ExportResult {
   bool frame_is_output_recompute = false;
 
   // 重开验证（磁盘）
-  astrocs::aio::FitsVerifyResult reopen;
-  astrocs::aio::ValidationReport provenance_reopen_check;
+  acsd::aio::FitsVerifyResult reopen;
+  acsd::aio::ValidationReport provenance_reopen_check;
   bool wrote_variance = false;
   bool wrote_flux = false;
   bool wrote_effective_psf = false;
@@ -235,17 +235,17 @@ struct ExportResult {
 ExportResult export_product(ExportMode mode, const OutputGrid& grid,
                             const ExportInputs& in, const ResamplePlan& plan,
                             const std::string& product_dir,
-                            const astrocs::aio::PublishOptions& opts,
-                            const astrocs::aio::CancelFn& cancel);
+                            const acsd::aio::PublishOptions& opts,
+                            const acsd::aio::CancelFn& cancel);
 
 // 独立重开校验（供下游/测试复用）：verify_fits_file + provenance JSON 门 + BUNIT 二次律。
-astrocs::aio::ValidationReport verify_product_on_disk(
+acsd::aio::ValidationReport verify_product_on_disk(
     const std::string& product_dir,
-    const std::vector<astrocs::aio::ExpectedHdu>& expected,
-    astrocs::aio::FitsVerifyResult* reopen_out);
+    const std::vector<acsd::aio::ExpectedHdu>& expected,
+    acsd::aio::FitsVerifyResult* reopen_out);
 
 }  // namespace v6
 }  // namespace phase3
-}  // namespace astrocs
+}  // namespace acsd
 
-#endif  // ASTROCS_P3_V6_EXPORT_H
+#endif  // ACSD_P3_V6_EXPORT_H

@@ -1,6 +1,6 @@
-# hips_browser（HiPS 浏览器组件，astrocs.hips_browser / healpix_browser_qt）
+# hips_browser（HiPS 浏览器组件，acsd.hips_browser / healpix_browser_qt）
 
-> 上游：docs/ASTROCS_DESIGN.md §8.4（顶层结构：hips_browser 基建目录）、§8.5
+> 上游：docs/ACSD_DESIGN.md §8.4（顶层结构：hips_browser 基建目录）、§8.5
 > （模块与 ABI）、§1.3（非目标：Alpha 不含 GUI）、§6.3（`visualization` 模式标注
 > 「不可测量」）
 > 数据正本：docs/science/DATA_SEMANTICS.md §12（DATA-P1-HIPS，读侧复用；
@@ -23,7 +23,7 @@ OpenGL，STF 显示，可选构建），落地目录 =
 
 ## 2. 权威依据
 
-- 最高设计 `ASTROCS_DESIGN.md` §1.3（非目标：Alpha 不含 GUI）、§8.4（顶层结构：hips_browser 基建目录）
+- 最高设计 `ACSD_DESIGN.md` §1.3（非目标：Alpha 不含 GUI）、§8.4（顶层结构：hips_browser 基建目录）
 - [IVOA HiPS 1.0 Recommendation](https://www.ivoa.net/documents/HiPS/)（IVOA 2017；渲染与层级切分规范）
 
 ## 3. 输入/输出数据合同
@@ -49,7 +49,7 @@ OpenGL，STF 显示，可选构建），落地目录 =
   `STFEngine::get_preset` 由数据 min / max 与分位裁剪点构造显示变换，`normalize()` 归一到 [0,1]；MTF 曲线 `STFEngine::mtf(x, m)`；复杂度 O(n)，用 `std::nth_element` 选分位、不整排序。**显示拉伸不改变数据**（只读）。
 - **Auto Global**（默认）：一次扫描全部 leaf tiles（每 tile 均匀采样，进程内缓存，一次会话只扫一次）后取分位；p99 被极端亮星/卫星线污染时退回 MAD 剔除后重算。**Auto View**（可选）：当前 viewport，debounce + 后台 worker。`--stf-mode global|view` 切换；菜单 Auto Stretch / Reset STF / Lock STF；CLI 另有 `--lock-stf`，诊断用 `--stf-bench` 与 `--stf-lock-probe`。
 - **support 层固定 linear [0,1]**：显示面不走 signal 的 STF。
-- **HEALPix 位置/层级映射全部委托共享 `astrocs::healpix` core**（无第二套手写实现；`query_disc` / `ud_grade` 为构建在 canonical 之上的工具）。
+- **HEALPix 位置/层级映射全部委托共享 `acsd::healpix` core**（无第二套手写实现；`query_disc` / `ud_grade` 为构建在 canonical 之上的工具）。
 - 性能特征：tile cache + 异步 I/O。线程：Qt 主线程 + 后台 tile I/O；GL 单线程。
 
 ## 5. 配置项
@@ -85,7 +85,7 @@ OpenGL，STF 显示，可选构建），落地目录 =
 - STF engine 单测（`lib/infrastructure/hips_browser/healpix_browser_qt/tests/test_stf_engine.cpp`）；
 - 渲染正确性（已知产品 → 期望像素值）；
 - 导航 / 坐标读出测试；
-- 视觉验收按 `docs/ASTROCS_DESIGN.md` §12.4 的 L4 清单执行；
+- 视觉验收按 `docs/ACSD_DESIGN.md` §12.4 的 L4 清单执行；
 - 与科学产品隔离验证（不写产品、不影响测量路径）。
 
 ## 9. 已知限制

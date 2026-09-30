@@ -1,12 +1,12 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://astrocs.local/schemas/unified/frame_snr/v1",
+  "$id": "https://acsd.local/schemas/unified/frame_snr/v1",
   "title": "ACSD 统一对象 frame_snr —— 帧级信噪比（不是权重）",
   "description": "UNIFIED_MODEL §2：frame_snr = 帧级 SNR（信噪比，非权重）：真实信号/噪声比，不受天光影响；可否作权重 = 唯一帧级参考；权重由 Phase2 逆方差叠加从 SNR 计算。frame_snr 本身不是权重，也不是 depth_m5（5σ 深度），二者不得互填。",
-  "x-astrocs-object": {
+  "x-acsd-object": {
     "name": "frame_snr",
     "canonical_file": "eng/contracts/schemas/unified/frame_snr.schema.json",
-    "authority": "docs/detail/UNIFIED_MODEL.md §2；docs/ASTROCS_DESIGN.md §2；ENGINEERING_SPEC.md §3/§4.7",
+    "authority": "docs/detail/UNIFIED_MODEL.md §2；docs/ACSD_DESIGN.md §2；ENGINEERING_SPEC.md §3/§4.7",
     "weight_verdict": "唯一帧级参考；权重由 Phase2 逆方差叠加从 SNR 计算",
     "weight_eligible": false
   },
@@ -56,7 +56,7 @@
       "description": "对象判别式：本文档声明的 UNIFIED_MODEL §2 对象名（禁止用别的对象名冒充）"
     },
     "object_schema_id": {
-      "const": "https://astrocs.local/schemas/unified/frame_snr/v1",
+      "const": "https://acsd.local/schemas/unified/frame_snr/v1",
       "description": "全局唯一 schema ID（eng/contracts/schemas/unified/frame_snr.schema.json）"
     },
     "schema_version": {
@@ -347,7 +347,7 @@
           ]
         },
         "reference_flux_common": {
-          "description": "**物理公共锚** F0（配对性定理的 F_ref）。fixed_magnitude 作用域下 = 10^(-0.4*(m_ref-ZP_syn))，ZP_syn 由 Gaia DR3 XP 绝对谱 (XPSD) 经本帧滤光片/QE 曲线正向合成，只依赖 (filter, QE, 天区星族) ⇒ 跨帧恒等。相位 2 的公共通量闸门（ASTROCS_REFERENCE_FLUX 组内一致，相对容差 1e-9）读此值。禁止用它反推增益/口径/曝光。",
+          "description": "**物理公共锚** F0（配对性定理的 F_ref）。fixed_magnitude 作用域下 = 10^(-0.4*(m_ref-ZP_syn))，ZP_syn 由 Gaia DR3 XP 绝对谱 (XPSD) 经本帧滤光片/QE 曲线正向合成，只依赖 (filter, QE, 天区星族) ⇒ 跨帧恒等。相位 2 的公共通量闸门（ACSD_REFERENCE_FLUX 组内一致，相对容差 1e-9）读此值。禁止用它反推增益/口径/曝光。",
           "type": "number",
           "exclusiveMinimum": 0
         },

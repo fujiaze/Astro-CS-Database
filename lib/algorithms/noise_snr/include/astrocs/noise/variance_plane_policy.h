@@ -26,13 +26,13 @@
 //   「全部合法」，是恒真门。
 //
 // 逐位中性: 全正平面下本策略只读不写，输出面逐字节不变。
-#ifndef ASTROCS_NOISE_VARIANCE_PLANE_POLICY_H
-#define ASTROCS_NOISE_VARIANCE_PLANE_POLICY_H
+#ifndef ACSD_NOISE_VARIANCE_PLANE_POLICY_H
+#define ACSD_NOISE_VARIANCE_PLANE_POLICY_H
 
 #include <cmath>
 #include <cstddef>
 
-namespace astrocs {
+namespace acsd {
 namespace noise {
 
 struct VariancePlaneVerdict {
@@ -134,6 +134,6 @@ inline const char* const* variance_audit_required_fields() {
 inline std::size_t variance_audit_required_field_count() { return 10u; }
 
 }  // namespace noise
-}  // namespace astrocs
+}  // namespace acsd
 
-#endif  // ASTROCS_NOISE_VARIANCE_PLANE_POLICY_H
+#endif  // ACSD_NOISE_VARIANCE_PLANE_POLICY_H

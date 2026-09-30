@@ -4,7 +4,7 @@
 //       bilinear_4quad 须独立 Oracle + 误差界 + 边界定义；高阶核各自注册带 Oracle。
 #include "p3_rsmp.h"
 
-namespace astrocs {
+namespace acsd {
 namespace p3rsmp {
 
 const char* to_string(KernelStatus v) {
@@ -248,4 +248,4 @@ const KernelRegistry& KernelRegistry::frozen() {
 }
 
 }  // namespace p3rsmp
-}  // namespace astrocs
+}  // namespace acsd

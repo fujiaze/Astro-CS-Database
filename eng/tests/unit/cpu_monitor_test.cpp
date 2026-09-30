@@ -7,12 +7,12 @@
 #include <cstdio>
 #include <thread>
 
-using astrocs::ProcessMonitor;
-using astrocs::GateConfig;
-using astrocs::ResKind;
-using astrocs::GateDiag;
-using astrocs::evaluate_gate;
-using astrocs::compute_cores_threshold;
+using acsd::ProcessMonitor;
+using acsd::GateConfig;
+using acsd::ResKind;
+using acsd::GateDiag;
+using acsd::evaluate_gate;
+using acsd::compute_cores_threshold;
 
 static int failures = 0;
 #define CHECK(cond)                                                       \

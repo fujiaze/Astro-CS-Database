@@ -31,9 +31,9 @@ variance 与 ivar 显式不混。公式权威: SCI-NOISE-001。
 |---|---|
 | lib/algorithms/noise_snr/wrapper_phase1/snr_frame_science.h | 帧级 SNR 聚合 API（SnrSourceRow / SnrFrameScienceConfig / SnrFrameScienceResult / compute_snr_frame_science） |
 | lib/algorithms/noise_snr/wrapper_phase1/snr_frame_science.cpp | 聚合实现；**零公式副本**，全部数值调 snr_science.cpp 的 C ABI |
-| lib/algorithms/noise_snr/cpp/src/snr_science.cpp | 唯一权威科学实现（P5；已编入 astrocs_phase1_noise） |
-| CMakeLists.txt（根）astrocs_phase1_noise | sources 增 snr_frame_science.cpp + snr_science.cpp（**仅** sources，未改 lib/include/link/目标结构） |
-| eng/tests/unit/p1snr/p1snr_linux_test.cpp | 回归锁（链接**真实** astrocs_phase1_noise；接线缺失 → 构建期链接失败） |
+| lib/algorithms/noise_snr/cpp/src/snr_science.cpp | 唯一权威科学实现（P5；已编入 acsd_phase1_noise） |
+| CMakeLists.txt（根）acsd_phase1_noise | sources 增 snr_frame_science.cpp + snr_science.cpp（**仅** sources，未改 lib/include/link/目标结构） |
+| eng/tests/unit/p1snr/p1snr_linux_test.cpp | 回归锁（链接**真实** acsd_phase1_noise；接线缺失 → 构建期链接失败） |
 
 **字段语义（p1_snr.json 帧块）**：
 

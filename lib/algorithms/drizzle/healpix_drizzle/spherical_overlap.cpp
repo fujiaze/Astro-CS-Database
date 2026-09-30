@@ -50,10 +50,10 @@ static thread_local long long g_tl_n_dropin = 0;
 static thread_local long long g_tl_n_sh = 0;
 
 // overlap 路径计数器默认关闭（与 fine profiler 同门控；
-// 显式 ASTROCS_DRIZZLE_FINE_PROFILE=1 启用，避免生产路径无谓 ++ 开销）
+// 显式 ACSD_DRIZZLE_FINE_PROFILE=1 启用，避免生产路径无谓 ++ 开销）
 static bool overlap_profile_enabled() {
     static const bool en = [] {
-        const char* v = std::getenv("ASTROCS_DRIZZLE_FINE_PROFILE");
+        const char* v = std::getenv("ACSD_DRIZZLE_FINE_PROFILE");
         return v && v[0] == '1';
     }();
     return en;
@@ -1199,7 +1199,7 @@ Scalar compute_overlap_area_g(const DropGeometryT<Scalar>& g,
 //      使"快路径与裁剪路径同口径"成为构造性事实（不存在第二条路径）。
 //
 // 故障注入（负例门专用，生产默认关闭，标志静态缓存 ⇒ 稳态零开销）:
-//   ASTROCS_DRZ_P3_FAULT=legacy_corner_fast 复现订正前行为
+//   ACSD_DRZ_P3_FAULT=legacy_corner_fast 复现订正前行为
 //   （顶点全含判定 + 返回 π/(3N²)），回归门必须对其判红。
 //
 // 权威条款: docs/science/algorithms/DRIZZLE_GEOMETRY.md §9「面积守恒闭合」
@@ -1209,7 +1209,7 @@ Scalar compute_overlap_area_g(const DropGeometryT<Scalar>& g,
 // ============================================================================
 static bool p3_legacy_corner_fault() {
     static const bool en = [] {
-        const char* v = std::getenv("ASTROCS_DRZ_P3_FAULT");
+        const char* v = std::getenv("ACSD_DRZ_P3_FAULT");
         return v && std::strcmp(v, "legacy_corner_fast") == 0;
     }();
     return en;

@@ -1,11 +1,11 @@
 // CORE-001 单元测试: Result/Error/Cancel 语义
-#include "astrocs/core/contracts.h"
+#include "acsd/core/contracts.h"
 
 #include <cassert>
 #include <cstdio>
 #include <string>
 
-using namespace astrocs::core;
+using namespace acsd::core;
 
 static int failures = 0;
 #define CHECK(cond)                                                       \

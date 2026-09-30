@@ -3,7 +3,7 @@
 // 控制包任务: P1-PHOT-TEST (lock-P1-PHOT; 依赖 P1-PHOT-DOC 闭环)。合同锚:
 // docs/science/algorithms/PHOTOMETRIC_FIT.md §13.4 TEST-PHOT-DESIGN-001 (P1-PHOT-DOC
 // 冻结, 2026-09-07) + docs/science/PHOTOMETRY.md §11 (SCI-PHOT-001, FROZEN
-// T103 2026-08-23); 矩阵行 P1-PHOT (MOD-astrocs-phase1-photometry,
+// T103 2026-08-23); 矩阵行 P1-PHOT (MOD-acsd-phase1-photometry,
 // TEST-PHOT-DESIGN-001 → TEST-P1-PHOT-001); 模块合同
 // lib/algorithms/photometry/README.md r1 (API-PHOT-001 六导出)。
 //
@@ -12,10 +12,10 @@
 //   ./p1phot_tests all
 //
 // 故障注入 (模板 <prefix>-TEST 验收: "故障注入能让测试失败"):
-//   ASTROCS_P1PHOT_FAULT=<regname>[,<regname>...]
+//   ACSD_P1PHOT_FAULT=<regname>[,<regname>...]
 //   每个注册的 fault 使对应 CHECK 在报告阶段确定性翻转 → 二进制 rc=1,
 //   输出 "FAULT-INJECT <name>" 行。
-//   例: ASTROCS_P1PHOT_FAULT=u1_scale_injection ./p1phot_tests units
+//   例: ACSD_P1PHOT_FAULT=u1_scale_injection ./p1phot_tests units
 // 模式对齐先例: lib/infrastructure/aio/tests/p1hips/p1hips_test_main.hpp
 // (FaultRegistry + 组 runner + note_injected 一次性报告, commit c19b4a59)。
 #ifndef P1PHOT_TEST_MAIN_HPP
@@ -36,7 +36,7 @@ struct FaultRegistry {
         static FaultRegistry r;
         return r;
     }
-    // 由 main() 启动时从 ASTROCS_P1PHOT_FAULT 初始化
+    // 由 main() 启动时从 ACSD_P1PHOT_FAULT 初始化
     std::vector<std::string> active;
 
     bool injected(const char* name) const {
@@ -147,9 +147,9 @@ struct TestGroup {
     int (*fn)(void);
 };
 
-// ASTROCS_P1PHOT_FAULT: 逗号分隔故障注入名单 → FaultRegistry
+// ACSD_P1PHOT_FAULT: 逗号分隔故障注入名单 → FaultRegistry
 inline void init_fault_registry_from_env() {
-    const char* f = std::getenv("ASTROCS_P1PHOT_FAULT");
+    const char* f = std::getenv("ACSD_P1PHOT_FAULT");
     if (!f) return;
     std::string s = f;
     std::size_t pos = 0;

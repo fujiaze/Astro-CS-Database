@@ -24,7 +24,7 @@
 #include <string>
 #include <vector>
 
-namespace astrocs::runtime {
+namespace acsd::runtime {
 
 // Phase 标识（约束 A.3；与 artifact manifest run.phase 枚举一致）
 enum class PhaseId : uint8_t { PHASE1 = 1, PHASE2 = 2, PHASE3 = 3 };
@@ -40,8 +40,8 @@ enum class ResourceClass : uint8_t {
 // 端口方向
 enum class PortDirection : uint8_t { INPUT = 0, OUTPUT = 1 };
 
-// 端口类型元数据（DATA-001 typed 字段子集；单位/坐标枚举与 astrocs::core::UnitId/
-// CoordinateFrame 数值一致，见 lib/include/astrocs/core/artifact.h）
+// 端口类型元数据（DATA-001 typed 字段子集；单位/坐标枚举与 acsd::core::UnitId/
+// CoordinateFrame 数值一致，见 lib/include/acsd/core/artifact.h）
 struct TypedPort {
   std::string name;             // 端口名（与 registry 端口一致）
   PortDirection direction = PortDirection::INPUT;
@@ -62,7 +62,7 @@ struct ArtifactRef {
 // 冻结字段顺序不得重排（ABI 冒烟测试锁定 layout 断言）。
 struct TypedDagNode {
   std::string node_id;          // 图内唯一
-  std::string module_id;        // "astrocs.phase2.coverage"（registry 登记）
+  std::string module_id;        // "acsd.phase2.coverage"（registry 登记）
   std::string operation;        // 唯一真实 operation（registry 每 module 恰一）
   std::string entry;            // 真实入口符号名（注册表声明；DLL 绑定属 ABI-00x）
   PhaseId phase = PhaseId::PHASE2;
@@ -76,7 +76,7 @@ struct TypedDagNode {
 
 // 编译通过的类型化计划图（供 scheduler 消费；本轮骨架）。
 struct TypedPlanGraph {
-  std::string schema;           // "astrocs.plan-graph/v1"
+  std::string schema;           // "acsd.plan-graph/v1"
   std::string pipeline_id;
   PhaseId phase = PhaseId::PHASE2;
   std::string version;
@@ -119,4 +119,4 @@ struct TypedDagCompileStatus {
 // 编译期函数（骨架：typed_dag.py 为执行语义；此头冻结 C++ 侧视图）
 // 实现接线（CLI / Runtime 编译入口）在 RT-002 由运行时 owner 接入；本任务只冻结合同。
 
-}  // namespace astrocs::runtime
+}  // namespace acsd::runtime

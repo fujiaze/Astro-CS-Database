@@ -10,7 +10,7 @@
 - 控制包任务 P1-DRZ-DOC：冻结合同与 README（函数/单位/dtype/shape/
   错误/并发/确定性如实登记，以源码为准，不信任旧 README）。
 - 依据 MODULE_MIGRATION_TEMPLATE.md `<prefix>-DOC` 节执行；矩阵行
-  P1-DRZ：module_id=astrocs.p1.drizzle、target=astrocs_p1_drizzle.dll、
+  P1-DRZ：module_id=acsd.p1.drizzle、target=acsd_p1_drizzle.dll、
   depends_on_int=P1-WCS-INT;P1-NOISE-INT;CPU-005。
 
 ### 产物
@@ -23,7 +23,7 @@
 - docs/science/DATA_SEMANTICS.md 追加 §11（DATA-P1-DRZ）。
 - docs/engineering/PUBLIC_API.md 追加 API-DRZ-001 节。
 - docs/detail/healpix_drizzle.md、docs/modules/registry/
-  astrocs.phase1.drizzle.md 事实修订。
+  acsd.phase1.drizzle.md 事实修订。
 - docs/traceability/TRACEABILITY_MATRIX.{json,csv} P1-DRZ 行原地更新
   （七层 VERIFIED + EVID-MISSING，行序不变）。
 - 源码事实采集底稿（不入库）：run/local/agent_p1_drz_doc/
@@ -63,7 +63,7 @@
 
 ### 待后续任务（不阻塞本任务）
 
-- P1-DRZ-IMPL：astrocs_p1_drizzle.dll、ThreadLease 接线（替换 omp
+- P1-DRZ-IMPL：acsd_p1_drizzle.dll、ThreadLease 接线（替换 omp
   遗留通道）、DISP-DRZ 消化、pixfrac 边界统一、错误码集中化。
 - P1-DRZ-TEST：TEST-DRZ-DESIGN-001 → 可执行 TEST-P1-DRZ-001。
 - SCI 层候选变更（走 SCI 变更流程，不在本任务范围）：DRIZZLE.md:63

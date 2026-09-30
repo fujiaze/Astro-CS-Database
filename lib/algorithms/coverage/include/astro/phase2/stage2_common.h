@@ -1,7 +1,7 @@
 // lib/algorithms/coverage/include/astro/phase2/stage2_common.h — Stage2 生产共享函数
 //
 // G2 production wiring gate 要求同一生产 parse+build path。
-// astrocs-stage2 与 gate 测试共用此处的配置解析与 UPM 配置构造。
+// acsd-stage2 与 gate 测试共用此处的配置解析与 UPM 配置构造。
 #pragma once
 
 #include "astro/phase2/upm.h"
@@ -107,17 +107,17 @@ struct P2Stage2Config {
     // eng/contracts/data/phase2_uncertainty_rejection_provenance_v1.json:67 同值）。
     // 旧默认 wbpp_2_9_1 是**对照档**，使工具链与交付 node chain 的排异方法
     // 在 n=3/6..7/≥16 边界全部分叉。
-    std::string reject_profile = P2_PROFILE_ASTROCS_ADAPTIVE_PIXEL;
+    std::string reject_profile = P2_PROFILE_ACSD_ADAPTIVE_PIXEL;
     // CONFORM-FIX-B-008: 0 = 「按 profile/request 默认」，唯一权威 =
     // p2_reject_plan_resolve（rejection.h:230-234 冻结：wbpp/adaptive=2；
-    // astrocs_adaptive_pixel=3；显式 extreme_prior opt-in=1）。
+    // acsd_adaptive_pixel=3；显式 extreme_prior opt-in=1）。
     // 旧默认 2 是本文件对同一默认值的第二份拷贝，且与 resolver 在
     // extreme_prior 档分叉（tool=3 vs resolver=1）。
     std::uint32_t reject_underdetermined_n = 0;
     // RejectionNormalizationPolicy（判定工作域；mask 应用回原始值）
-    std::string reject_normalization = "astrocs_median_center_v1";
+    std::string reject_normalization = "acsd_median_center_v1";
     double reject_normalization_floor = 1e-12;
-    // astrocs.large_scale_rejection.v1（WBPP 大尺度拒绝的 ACSD
+    // acsd.large_scale_rejection.v1（WBPP 大尺度拒绝的 ACSD
     // 自有实现；默认关闭 = WBPP largeScaleClipLow/High 默认一致）
     bool large_scale_enabled = false;
     int large_scale_min_structure_pixels = 8;
@@ -147,7 +147,7 @@ struct P2Stage2Config {
     int minmax_high_count = 1;
     int minmax_min_kept = 4;
     std::string rcr_technique = "ss_median_dl";
-    //（docs/ASTROCS_DESIGN.md §3.1:175「权重的产生链固定为两步、
+    //（docs/ACSD_DESIGN.md §3.1:175「权重的产生链固定为两步、
     // **没有可选择项**」；docs/science/PSF_SIGNAL_WEIGHT.md §4:72「没有可选择的
     // 口径：不存在口径选择键、口径枚举、口径配置项或口径产物」）：
     // 原 legacy 整数权重模式域 int weight_mode{0,1,2} 与其字符串 token
@@ -156,7 +156,7 @@ struct P2Stage2Config {
     // w = SNR^2 / F_ref^2 = 1/sigma_F^2，无模式选择。
     // 原 legacy_allow_weight_fallback 开关**已删除** ——
     // 它允许「ivar 产品缺失时降级 support/equal」，而 support 是无量纲几何量、
-    // equal 是等权，二者都不是信号/噪声之比 ⇒ 与 docs/ASTROCS_DESIGN.md §3.1:173
+    // equal 是等权，二者都不是信号/噪声之比 ⇒ 与 docs/ACSD_DESIGN.md §3.1:173
     // 「权重只能来自纯净信号与噪声之比」及 §3.1:175「没有可选择项」冲突。
     // 唯一降级面 = 帧级 SNR 逆方差链（w = SNR^2/F_ref^2），且**由数据可用性自动决定**，
     // 不是用户可选的开关；权重链未闭合 ⇒ 显式 science 错误（fail-closed）。
@@ -179,7 +179,7 @@ P2UpmBuildConfig p2_stage2_make_upm_cfg(const P2Stage2Config& cfg,
 // 删除 legacy 整数权重模式域后，生产**只剩**一条权重口径
 // （逐样本逆方差，等价于原 weight_mode=2）⇒ ACR-IVAR-001「ivar science 模式
 // 必须走 CPU canonical path」对本仓**恒成立** ⇒ 本函数恒 false（ACR 块生产不可达；
-// docs/ASTROCS_DESIGN.md §2「纯 CPU 生产，ACR 生产不可达」）。
+// docs/ACSD_DESIGN.md §2「纯 CPU 生产，ACR 生产不可达」）。
 // 保留函数与 ACR 接线（不删 kernel）：将来若重开 ACR，必须先按变更流程取得
 // 与逐像素 ivar 等价的证明，不得以本函数返回 true 的方式绕过。
 bool p2_acr_block_eligible(const P2Stage2Config& cfg,
@@ -199,7 +199,7 @@ bool p2_acr_block_eligible(const P2Stage2Config& cfg,
 // 本函数是两条消费路径的**单一来源**（同 CONFORM-FIX-B-009 的「工具与 node chain
 // 同语义」纪律，避免第二份策略副本）：
 //   ① 生产编排 lib/infrastructure/scheduler/src/module_adapters.cpp 的 upm-fit 节点；
-//   ② 工具 lib/algorithms/coverage/tools/stage2.cpp（astrocs-stage2）。
+//   ② 工具 lib/algorithms/coverage/tools/stage2.cpp（acsd-stage2）。
 //
 // 量纲（逐项，全部是角量或像素角尺度；换仪器后度数不变、像素数按比例变）：
 //   pointing_spacing_deg   相邻**指向**（同一天区的一组曝光）中心的天球角距离 [deg]

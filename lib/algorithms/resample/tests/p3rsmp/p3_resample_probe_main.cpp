@@ -15,7 +15,7 @@
 #include "healpix_core.h"
 #include "p3_resample.h"
 
-using namespace astrocs::phase3;
+using namespace acsd::phase3;
 
 int main(int argc, char** argv) {
     if (argc < 3) return 2;
@@ -38,7 +38,7 @@ int main(int argc, char** argv) {
         // 首子像素中心(ipix<<4, 偏移 < 基元尺度 1/16, 处于本 tile 内部 → Oracle 成立)
         const uint64_t sub = (strtoull(argv[2], nullptr, 10) << 4);
         double ra = 0, dec = 0;
-        astrocs::healpix::pix2ang_nest(4, sub, ra, dec);
+        acsd::healpix::pix2ang_nest(4, sub, ra, dec);
         std::printf("OK %.12f %.12f\n", ra, dec);
         return 0;
     }
@@ -56,7 +56,7 @@ int main(int argc, char** argv) {
                 if (cov == 0) {
             // 诊断: 打印样本 leaf/tip 与 reader 错误
             const uint32_t ns = 512;
-            const uint64_t leaf = astrocs::healpix::ang2pix_nest(ns, atof(argv[3]), atof(argv[4]));
+            const uint64_t leaf = acsd::healpix::ang2pix_nest(ns, atof(argv[3]), atof(argv[4]));
             std::printf("dbg leaf=%llu tip=%llu rderr=%s\n",
                         (unsigned long long)leaf, (unsigned long long)(leaf >> 18),
                         aio_hips_reader_last_error());

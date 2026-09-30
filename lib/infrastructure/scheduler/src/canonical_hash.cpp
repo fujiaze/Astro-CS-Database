@@ -5,11 +5,11 @@
 // "%.17g"（C 与 Python 同义）, FITS 卡用**原始 80 字节卡文本**（尾随 0x20/0x00
 // 裁剪后）而非重排版, 因此两种实现不存在格式化漂移面。
 //
-// 依赖: 仅 astrocs::crypto（SHA-256）与 nlohmann::json; **不引入 cfitsio**
-//（core 的依赖图不得被产品 IO 库污染, 见 module_adapters 的 astrocs_cfitsio
+// 依赖: 仅 acsd::crypto（SHA-256）与 nlohmann::json; **不引入 cfitsio**
+//（core 的依赖图不得被产品 IO 库污染, 见 module_adapters 的 acsd_cfitsio
 // 初始化 shim 注释）: FITS 结构用最小头解析（2880 对齐 + BITPIX/NAXIS/PCOUNT/
 // GCOUNT）。
-#include "astrocs/core/canonical_hash.h"
+#include "acsd/core/canonical_hash.h"
 
 #include "crypto/sha256.h"
 
@@ -23,20 +23,20 @@
 #include <string>
 #include <vector>
 
-// CLEAN-403 (docs/ASTROCS_DESIGN §10「aio 是文件级唯一 I/O 边界」): 文件读取/存在性/
+// CLEAN-403 (docs/ACSD_DESIGN §10「aio 是文件级唯一 I/O 边界」): 文件读取/存在性/
 // 头部探测/流式分块读取一律经 aio 唯一实现 (aio_file_io.h / aio_atomic_file.h,
 // 均为 header-only 机制面 —— 不引入 cfitsio 或产品 IO 库链接依赖, core 依赖图
 // 保持原样)。
 #include "aio_atomic_file.h"
 #include "aio_file_io.h"
 
-namespace astrocs::core {
+namespace acsd::core {
 
-const char* const kCanonicalProductHashSpec = "astrocs.canonical-product-hash/v1";
+const char* const kCanonicalProductHashSpec = "acsd.canonical-product-hash/v1";
 
 namespace {
 
-const char kDomain[] = "astrocs.canonical-product-hash/v1\n";
+const char kDomain[] = "acsd.canonical-product-hash/v1\n";
 
 const char* const kExcludedFitsCards[] = {"CHECKSUM", "DATASUM", "DATE", "RUNID"};
 const char* const kExcludedJsonKeys[] = {
@@ -88,7 +88,7 @@ std::string file_name(const std::string& path) {
 }
 
 std::string sha256_str(const std::string& s) {
-  return astrocs::crypto::sha256_hex(s.data(), s.size());
+  return acsd::crypto::sha256_hex(s.data(), s.size());
 }
 
 std::string fits_keyword(const std::string& card) {
@@ -223,7 +223,7 @@ struct FitsCard {
 // 返回 false = 结构非法（调用方按失败处理, 不做静默降级）。
 // P3-STREAM-01：FITS 规范哈希改为**流式**读取 —— 头部按 2880 字节逻辑记录读、
 // 数据单元按 64 KiB 分块喂 SHA-256，峰值内存 = 单块（与文件大小无关）。
-// 判据：docs/ASTROCS_DESIGN §8.3 export 行「内存占用与子块大小成正比、与总图大小
+// 判据：docs/ACSD_DESIGN §8.3 export 行「内存占用与子块大小成正比、与总图大小
 // 无关」—— 整文件 read_all 会让 writer/verify 节点的峰值随产品大小线性增长。
 // 语义不变：canonical 正文与逐 HDU DATA sha256 与整读实现逐字节相同
 //（eng/tools/canonical_product_hash.py 为独立镜像，可交叉核对）。
@@ -319,7 +319,7 @@ bool parse_fits_canonical(const char* path, std::uint64_t total, std::string* ou
         (static_cast<std::size_t>(nbytes) + 2879u) / 2880u * 2880u;
     if (off + unit > total) return false;
     // 数据单元：分块流式 sha256（峰值 = 单块 64 KiB，与文件大小无关）
-    astrocs::crypto::Sha256 data_hash;
+    acsd::crypto::Sha256 data_hash;
     {
       std::uint64_t remaining = unit;
       std::uint64_t doff = off;
@@ -384,7 +384,7 @@ CanonicalHashResult canonical_product_hash_file(const std::string& u8path) {
   // 文件名非 properties」时进入 —— 与旧分支判定逐字节同值（properties 仍需
   // bytes.find('=') 判定, 故一律走下方整读路径）。
   if (head != kSimple && head != kXtension && !is_json && !is_props_name) {
-    astrocs::crypto::Sha256 h_int, h_can;
+    acsd::crypto::Sha256 h_int, h_can;
     h_can.update(kDomain, sizeof(kDomain) - 1);
     static const char kRawTag[] = "RAW\n";
     h_can.update(kRawTag, sizeof(kRawTag) - 1);
@@ -445,7 +445,7 @@ CanonicalHashResult canonical_product_hash_file(const std::string& u8path) {
     r.error = "cannot read: " + u8path;
     return r;
   }
-  r.integrity_sha256 = astrocs::crypto::sha256_hex(bytes.data(), bytes.size());
+  r.integrity_sha256 = acsd::crypto::sha256_hex(bytes.data(), bytes.size());
 
   const bool is_props = is_props_name && bytes.find('=') != std::string::npos;
 
@@ -513,4 +513,4 @@ CanonicalHashResult canonical_product_hash_file(const std::string& u8path) {
   return r;
 }
 
-}  // namespace astrocs::core
+}  // namespace acsd::core

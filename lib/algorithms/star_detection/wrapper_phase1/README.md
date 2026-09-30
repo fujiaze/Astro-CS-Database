@@ -26,7 +26,7 @@ Catalog: 坐标(px)/flux(ADU)/FWHM(px)/SNR/质量位/id。
   (val 降序 → x 升序 → y 升序) 在 (x,y) 唯一时构成**全序**, `std::sort` 输出与
   输入顺序无关 ⇒ catalog 逐位与线程数无关。无 OpenMP 构建时 `#pragma omp` 被
   忽略 → 串行回退, 结果相同。
-- 构建接线: root `CMakeLists.txt` 的 `astrocs_phase1_stars` 链接
+- 构建接线: root `CMakeLists.txt` 的 `acsd_phase1_stars` 链接
   `OpenMP::OpenMP_CXX` (仅 UN*X + OpenMP 可用时)。
 - 调用方口径: Phase1 `star-psf` 节点 (`lib/infrastructure/scheduler/src/module_adapters.cpp`
   `p1_op_star_psf`, P1-003 桥接类) —— **本类不是 lib/algorithms/star_detection 的 sdet**。

@@ -326,7 +326,7 @@ int HissWriter::open(const std::string& output_path,
     //   "ADU/sr" / "ADU^2/sr^2" / "sr^2/ADU^2"。
     // 判红 (HISS_ERR_INVALID_STATE, rc=-2) 三类, 各自具名:
     //   (a) 空串 —— 单位未声明;
-    //   (b) "ASTROCS_RELATIVE_FLUX" —— 非面亮度量纲串：它把「标度已变」写成「量的种类已变」,
+    //   (b) "ACSD_RELATIVE_FLUX" —— 非面亮度量纲串：它把「标度已变」写成「量的种类已变」,
     //       与 §31.1a:2827-2830 相反。订正 = 写 "ADU/sr"，标度交给 PHOTAPPL/PHOTSCAL;
     //   (c) 其它串（含裸 "ADU"）—— §31.2 规定裸 "ADU" 必须配 provenance 声明
     //       pixel_semantics="surface_brightness" + pixel_area_power=-2，HISS 容器无该
@@ -344,7 +344,7 @@ int HissWriter::open(const std::string& output_path,
                     "产品 signal 面亮度 canonical 串 = \"ADU/sr\" (HISS_ERR_INVALID_STATE)\n");
             return -2;
         }
-        if (bunit_str == "ASTROCS_RELATIVE_FLUX") {
+        if (bunit_str == "ACSD_RELATIVE_FLUX") {
             fprintf(stderr,
                     "[hiss][writer] open 失败: BUNIT=%s 不是面亮度口径串。产品 BUNIT 一律取 "
                     "canonical \"ADU/sr\"——测光归一化是线性乘性标度，只改零点、不改量纲类别，"

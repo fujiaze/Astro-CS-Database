@@ -1,23 +1,23 @@
 {
-  "exchange_schema": "astrocs.phase-product-exchange/v1",
+  "exchange_schema": "acsd.phase-product-exchange/v1",
   "exchange_version": 1,
   "product_role": "phase2_mosaic_v1",
-  "type_id": "astrocs.phase2.mosaic_hips.v1",
+  "type_id": "acsd.phase2.mosaic_hips.v1",
   "schema_version": 1,
-  "origin": "astrocs",
+  "origin": "acsd",
   "artifact_manifest": {
-    "manifest_schema": "astrocs.artifact-manifest/v1",
+    "manifest_schema": "acsd.artifact-manifest/v1",
     "manifest_version": 1,
     "artifact_id": "run-r2-phase2-mosaic-000001",
-    "type_id": "astrocs.phase2.mosaic_hips.v1",
+    "type_id": "acsd.phase2.mosaic_hips.v1",
     "schema_version": 1,
     "storage_uri": "run:r2/phase2/mosaic_000001",
     "content_digest": { "algorithm": "sha256", "hex": "1111111111111111111111111111111111111111111111111111111111111111" },
     "size": 524288000,
     "producer": {
-      "module_id": "astrocs.phase2.hips_writer",
+      "module_id": "acsd.phase2.hips_writer",
       "module_build_id": "g065c81d-linux-amd64-gcc14",
-      "entry": "astrocs_phase2_hips_writer_v1",
+      "entry": "acsd_phase2_hips_writer_v1",
       "science_contract_ids": ["SCI-UPM-WEIGHT-001", "SCI-REJ-001"]
     },
     "run": { "run_id": "r2", "phase": "phase2", "session_id": "s2" },
@@ -31,7 +31,7 @@
     "created_utc": "2026-09-02T09:40:00Z"
   },
   "product_content": {
-    "content_schema": "astrocs.phase-product-content/v1",
+    "content_schema": "acsd.phase-product-content/v1",
     "coordinate": { "frame": "icrs", "ra_unit": "deg", "dec_unit": "deg" },
     "geometry": { "format": "hips", "hips": { "ordering": "nested", "tile_width": 512 } },
     "planes": [

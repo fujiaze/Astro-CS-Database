@@ -41,9 +41,9 @@ P1_FX = REPO / "eng" / "contracts" / "data" / "examples" / "phase1_product_v1.ex
 LIFECYCLE_PY = REPO / "lib" / "infrastructure" / "scheduler" / "core" / "phase_lifecycle.py"
 
 # 各 phase 代表模块（真实 registry 登记）
-P1_MOD = "astrocs.phase1.calibration"
-P2_MOD = "astrocs.phase2.coverage"
-P3_MOD = "astrocs.phase3.properties"
+P1_MOD = "acsd.phase1.calibration"
+P2_MOD = "acsd.phase2.coverage"
+P3_MOD = "acsd.phase3.properties"
 
 
 def registry_module_ids() -> list[str]:
@@ -66,7 +66,7 @@ class TestRegistryViewIsolation(unittest.TestCase):
         """phase3 视图绝不含 phase1/2 模块 → phase1 DLL 缺失不影响 phase3 生命周期。"""
         v3 = phase_registry_view("phase3")
         for mid in registry_module_ids():
-            if mid.startswith("astrocs.phase1.") or mid.startswith("astrocs.phase2."):
+            if mid.startswith("acsd.phase1.") or mid.startswith("acsd.phase2."):
                 self.assertNotIn(mid, v3,
                                  f"phase3 视图含他 phase 模块 {mid}（隔离破坏）")
 
@@ -74,7 +74,7 @@ class TestRegistryViewIsolation(unittest.TestCase):
         v3 = phase_registry_view("phase3")
         self.assertEqual(len(v3), 5)   # RT-001 registry: properties/wcs/resample2/writer/verify
         for mid in v3:
-            self.assertTrue(mid.startswith("astrocs.phase3."), mid)
+            self.assertTrue(mid.startswith("acsd.phase3."), mid)
 
     def test_guard_no_leak(self):
         for ph in _PHASES:
@@ -110,10 +110,10 @@ class TestLifecycleObjectsRunPrivate(unittest.TestCase):
 
     def test_lifecycle_registry_only_own_phase(self):
         lc = self.guard.new_lifecycle("phase2", "run-9")
-        self.assertTrue(all(m.startswith("astrocs.phase2.") for m in lc["registry_modules"]))
-        self.assertIn("astrocs.phase2.coverage", lc["registry_modules"])
-        self.assertNotIn("astrocs.phase1.calibration", lc["registry_modules"])
-        self.assertNotIn("astrocs.phase3.properties", lc["registry_modules"])
+        self.assertTrue(all(m.startswith("acsd.phase2.") for m in lc["registry_modules"]))
+        self.assertIn("acsd.phase2.coverage", lc["registry_modules"])
+        self.assertNotIn("acsd.phase1.calibration", lc["registry_modules"])
+        self.assertNotIn("acsd.phase3.properties", lc["registry_modules"])
 
     def test_lifecycle_phase3_independent_of_phase1_factory_absence(self):
         """phase1 DLL 缺失模拟: phase1 模块不在 phase3 registry 视图/工厂。
@@ -124,7 +124,7 @@ class TestLifecycleObjectsRunPrivate(unittest.TestCase):
         self.assertNotIn(P1_MOD, v3)
         self.assertNotIn(P2_MOD, v3)
         lc = self.guard.new_lifecycle("phase3", "run-ext")
-        self.assertTrue(all(m.startswith("astrocs.phase3.") for m in lc["registry_modules"]))
+        self.assertTrue(all(m.startswith("acsd.phase3.") for m in lc["registry_modules"]))
 
 
 class TestPhase3ExternalFixture(unittest.TestCase):
@@ -152,7 +152,7 @@ class TestPhase3ExternalFixture(unittest.TestCase):
 
     def test_phase3_registry_can_consume_external_fixture(self):
         """phase3 模块 (properties/wcs/...) 输入 hips 端口 → DATA-HIPS-001；
-        外部 fixture type_id = astrocs.phase2.mosaic_hips.v1 属 P2_HIPS role，
+        外部 fixture type_id = acsd.phase2.mosaic_hips.v1 属 P2_HIPS role，
         phase3 进程按 DATA-002 交换资格进程外读取 → 不要求 phase1 进程/DLL 在场。"""
         v3 = phase_registry_view("phase3")
         self.assertIn(P3_MOD, v3)
@@ -180,14 +180,14 @@ class TestNoCrossPhaseGraph(unittest.TestCase):
             PhaseIsolationGuard.assert_no_cross_phase_graph([P1_MOD]))
         self.assertIsNone(
             PhaseIsolationGuard.assert_no_cross_phase_graph(
-                ["astrocs.phase3.properties", "astrocs.phase3.writer"]))
+                ["acsd.phase3.properties", "acsd.phase3.writer"]))
 
     def test_cross_phase_graph_rejected(self):
         reason = PhaseIsolationGuard.assert_no_cross_phase_graph([P1_MOD, P3_MOD])
         self.assertIsNotNone(reason)
         self.assertIn("phase", reason.lower())
         reason2 = PhaseIsolationGuard.assert_no_cross_phase_graph(
-            ["astrocs.phase2.coverage", "astrocs.phase1.calibration"])
+            ["acsd.phase2.coverage", "acsd.phase1.calibration"])
         self.assertIsNotNone(reason2)
 
     def test_graph_phase_set(self):

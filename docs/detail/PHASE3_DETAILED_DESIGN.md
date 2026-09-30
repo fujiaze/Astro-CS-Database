@@ -1,6 +1,6 @@
 # Phase3 目标态详细设计
 
-> 上游：ASTROCS_DESIGN.md §6（export：投影导出）
+> 上游：ACSD_DESIGN.md §6（export：投影导出）
 
 使命：把任意合同兼容 HiPS 科学产品按用户指定 WCS 导出为测量意义明确的平面 FITS；Phase3 是坐标/采样/格式变换，不重新发明上游科学权重。
 
@@ -12,7 +12,7 @@
 - `point_source_flux`：Q/W/flux/detection 产品；
 - `visualization`：允许显示型降级，类别字段标为显示型，与测量产品分列。
 
-- 输入 signal **只接受面亮度语义**（写端口单位 `SURFACE_BRIGHTNESS`，落盘值 = `flux_sum / covered_area`）；flux-per-pixel 等其它语义**显式拒绝**（`ASTROCS_DESIGN.md` §6.3 输入语义守卫 / §6.4 硬约束；正本见 `docs/science/PHASE3_HIPS_TO_FITS.md`）。
+- 输入 signal **只接受面亮度语义**（写端口单位 `SURFACE_BRIGHTNESS`，落盘值 = `flux_sum / covered_area`）；flux-per-pixel 等其它语义**显式拒绝**（`ACSD_DESIGN.md` §6.3 输入语义守卫 / §6.4 硬约束；正本见 `docs/science/PHASE3_HIPS_TO_FITS.md`）。
 - 输入的 signal 是**线性**面亮度（Phase1 面亮度产品为 `ADU/sr`）：本阶段只做坐标/采样/格式变换，采样核是输入的**凸组合**，因此**不改量纲类别、不做星等换算**；输出 `BUNIT` 透传输入语义，variance/ivar 按二次律同幂传播（`docs/science/DATA_SEMANTICS.md` §31.1a/§31.2）。
 - 输入产品的落盘形态由落盘名判定，裸 `<name>.hips/` 与归档 `<name>.hips.zst` 语义相同，按天区取瓦片走输入产品的覆盖索引（`docs/detail/PRODUCT_STORAGE_FORM.md`）。
 - **Phase3 产物是交付物**：输出为**裸 FITS 文件，不压缩、不套壳**（用户与外部工具直接打开）；Phase3 不产出 HiPS，因此不使用 `.hips` / `.hips.zst` 命名。输入合同**不设** `storage_form` 键（形态由落盘名判定、对调用方透明），出现即 REJECT。
@@ -21,7 +21,7 @@
 
 ## 2. WCS 计划
 
-用户提供中心、尺度、shape、旋转、投影或足够约束。**冻结清单 = 8 种**（TAN/SIN/CAR/AIT/STG/MOL/CEA/ZEA）；**已实现并可作为产品声明的以实际注册表为准——当前仅 TAN**，**未实现的必须显式报「不支持」**，**支持声明只以该注册表为准**（`ASTROCS_DESIGN.md` §6.3 投影算法）。每种定义适用域、奇点、经度 wrap、轴手性、CRPIX/CRVAL/CD/PC/CDELT 和 CTYPE。采用 FITS 1-based 关键字、内部 0-based 像素中心，转换唯一。
+用户提供中心、尺度、shape、旋转、投影或足够约束。**冻结清单 = 8 种**（TAN/SIN/CAR/AIT/STG/MOL/CEA/ZEA）；**已实现并可作为产品声明的以实际注册表为准——当前仅 TAN**，**未实现的必须显式报「不支持」**，**支持声明只以该注册表为准**（`ACSD_DESIGN.md` §6.3 投影算法）。每种定义适用域、奇点、经度 wrap、轴手性、CRPIX/CRVAL/CD/PC/CDELT 和 CTYPE。采用 FITS 1-based 关键字、内部 0-based 像素中心，转换唯一。
 
 计划阶段：
 
@@ -54,7 +54,7 @@ C_y = R C_x Rᵀ
 ## 5. FITS 产品
 
 - PRIMARY：所选科学 signal/flux/statistic；
-- 扩展 HDU：COVERAGE、VARIANCE/IVAR（语义择一且一致）；**其余候选面（VALIDITY、SUPPORT、REJECTION、POINT_INFORMATION/W、PSF 表/图与 correlation 描述）为待实现项，落盘前须先在 `docs/science/DATA_SEMANTICS.md` §27 立输出行与 HDU 合同**（本节不预设 HDU 清单；现行落盘面 = PRIMARY + COVERAGE + VARIANCE/IVAR + 标准 WCS/BUNIT/DATASUM/CHECKSUM + provenance，口径与 `registry/astrocs.phase3.writer.md` 同源）；
+- 扩展 HDU：COVERAGE、VARIANCE/IVAR（语义择一且一致）；**其余候选面（VALIDITY、SUPPORT、REJECTION、POINT_INFORMATION/W、PSF 表/图与 correlation 描述）为待实现项，落盘前须先在 `docs/science/DATA_SEMANTICS.md` §27 立输出行与 HDU 合同**（本节不预设 HDU 清单；现行落盘面 = PRIMARY + COVERAGE + VARIANCE/IVAR + 标准 WCS/BUNIT/DATASUM/CHECKSUM + provenance，口径与 `registry/acsd.phase3.writer.md` 同源）；
 - 标准 WCS、BUNIT（面亮度语义，写端口单位 `SURFACE_BRIGHTNESS`）、DATASUM/CHECKSUM；
 - provenance：源 product/hash、软件完整 SHA、配置、投影、核、order、近似和生成时间。
 - **不确定度可得性（fail-closed，唯一出口）**：输入 HiPS 不含 variance/ivar 子产品（或权重非纯逆方差、发生 fallback 等 §30 规则项）时 → **不写** VARIANCE/IVAR 扩展 HDU（禁静默丢弃、禁用常量 0 冒充）+ manifest 写 `uncertainty_available=false` + diagnostics 标红计数；**该键不是失败态**，是 unavailable 显式登记模式。正本：`docs/science/DATA_SEMANTICS.md` 的「规则」条与「显式登记」条（禁占位/静默缺键/空输出冒充）。
@@ -76,7 +76,7 @@ C_y = R C_x Rᵀ
 
 ## 8. 导出裁剪范围（crop）
 
-> 上游：`ASTROCS_DESIGN.md` §6（export 按用户指定 WCS 导出平面 FITS）。
+> 上游：`ACSD_DESIGN.md` §6（export 按用户指定 WCS 导出平面 FITS）。
 > 约束：导出**保留全部有效像素**；边界黑边**允许**保留，由用户到平面后自行裁剪；
 > 裁剪范围**可手动输入**；保留 GUI HiPS 浏览器框选导出的接口。
 
@@ -85,7 +85,7 @@ C_y = R C_x Rᵀ
 - **默认不裁剪**：配置里没有 `crop` 键 ⇒ 导出**整幅**请求画幅，行为与既有导出逐位相同。
   请求画幅可以大于数据足迹，此时边框上自然出现**非有限黑边**——这是**设计允许**的
   （导出保留全部有效像素；用户到平面后自行裁剪）。视觉验收判据因此只覆盖**内部空洞**
-  （被有限值包围的非有限像素），不禁边界黑边（`docs/ASTROCS_DESIGN.md` §12.4（L4 真实视觉验收）「无"黑洞"」）。
+  （被有限值包围的非有限像素），不禁边界黑边（`docs/ACSD_DESIGN.md` §12.4（L4 真实视觉验收）「无"黑洞"」）。
 - **裁剪 = 在已定义好的输出画幅上取矩形子窗**。画幅仍由 `center` / `width_px` /
   `height_px` / `scale_deg_per_px` / `longitude_parity` / `projection` 定义；`crop`
   **不改画幅定义、不改投影、不改重采样**，只决定最终写出的 FITS 覆盖画幅的哪一块。
@@ -132,8 +132,8 @@ C_y = R C_x Rᵀ
 
 ## 9. 导出产品的视觉验收判据（V1a / V1b）
 
-工具 = `eng/tools/e2e/render_vis.py`（整幅 PNG + 分块 PNG + 逐块自检）；其接缝度量是**方差比**口径，只作渲染分块伪影的**粗筛**——方差比对电平阶跃**原理性失明**（阶跃不改变方差），**帧间无接缝证据只取**机器门；帧间接缝的机器门 = `CHK-L4-SEAM-FOOTPRINT`（判据与门槛见 `docs/ASTROCS_DESIGN.md` §12.4（L4 真实视觉验收））；
-上游 = `docs/ASTROCS_DESIGN.md` §12.4（L4 真实视觉验收）「无"黑洞"：无异常零值/死区/未填充孔洞」+ §6 L4
+工具 = `eng/tools/e2e/render_vis.py`（整幅 PNG + 分块 PNG + 逐块自检）；其接缝度量是**方差比**口径，只作渲染分块伪影的**粗筛**——方差比对电平阶跃**原理性失明**（阶跃不改变方差），**帧间无接缝证据只取**机器门；帧间接缝的机器门 = `CHK-L4-SEAM-FOOTPRINT`（判据与门槛见 `docs/ACSD_DESIGN.md` §12.4（L4 真实视觉验收））；
+上游 = `docs/ACSD_DESIGN.md` §12.4（L4 真实视觉验收）「无"黑洞"：无异常零值/死区/未填充孔洞」+ §6 L4
 （真实数据端到端视觉验收）+ 本设计 §8（导出保留全部有效像素，**允许**边界黑边）。
 
 ### 9.1 V1a：未覆盖却有值（幻影数据）
@@ -152,7 +152,7 @@ C_y = R C_x Rᵀ
 像素**全部**与画幅边界连通（`boundary_nonfinite_px > 0` ∧ `internal_hole_px = 0`）⇒
 该条件下判红即误报。真正该判的是被**有限值包围**的非有限像素 = 内部空洞。
 
-阈值出处：`docs/ASTROCS_DESIGN.md` §12.4（L4 真实视觉验收） 的「未填充孔洞」逐字对应内部空洞 ⇒ 阈值 **0**
+阈值出处：`docs/ACSD_DESIGN.md` §12.4（L4 真实视觉验收） 的「未填充孔洞」逐字对应内部空洞 ⇒ 阈值 **0**
 （一个像素也算缺陷），与「边界黑边」的合法裕度互不冲突。
 
 **无覆盖平面时的同一口径**：产品没有 COVERAGE 平面时，V1a 不适用，V1b 用**同一条**

@@ -1,12 +1,12 @@
 // ACSD Core — ARCH-505 阶段块流执行器实现
-// 依据：docs/ASTROCS_DESIGN.md §8.2/§8.3；CONTRACT-501 PIPELINE_BLOCK_CONTRACT
-#include "astrocs/core/block_flow.h"
+// 依据：docs/ACSD_DESIGN.md §8.2/§8.3；CONTRACT-501 PIPELINE_BLOCK_CONTRACT
+#include "acsd/core/block_flow.h"
 
 #include <algorithm>
 #include <chrono>
 #include <nlohmann/json.hpp>
 
-namespace astrocs::core {
+namespace acsd::core {
 namespace {
 
 double now_seconds() {
@@ -324,4 +324,4 @@ bool parse_stage_block_flow_spec(const std::string& json_text, const std::string
   return true;
 }
 
-}  // namespace astrocs::core
+}  // namespace acsd::core

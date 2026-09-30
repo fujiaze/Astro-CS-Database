@@ -15,7 +15,7 @@ HOST = os.path.join(REPO, "lib", "infrastructure", "benchmark", "backend_host")
 HW = os.cpu_count() or 1
 
 _DRV = r'''
-#include "astrocs/common_abi_v1.h"
+#include "acsd/common_abi_v1.h"
 #include "baseline_kernels.h"
 #include <cstdio>
 #include <cstdlib>
@@ -24,31 +24,31 @@ _DRV = r'''
 #include <chrono>
 #include <algorithm>
 extern "C" {
-int astrocs_host_services_default_v1(astrocs_host_services_v1* out, void** state_out);
-void astrocs_host_services_destroy_state_v1(void* state);
-void astrocs_host_state_set_budget_v1(void* state, uint32_t cpus, uint32_t max_workers, astrocs_host_services_v1* out);
-int astrocs_backend_get_api_v1(uint32_t, uint32_t, const astrocs_host_services_v1*, astrocs_backend_api_v1*);
+int acsd_host_services_default_v1(acsd_host_services_v1* out, void** state_out);
+void acsd_host_services_destroy_state_v1(void* state);
+void acsd_host_state_set_budget_v1(void* state, uint32_t cpus, uint32_t max_workers, acsd_host_services_v1* out);
+int acsd_backend_get_api_v1(uint32_t, uint32_t, const acsd_host_services_v1*, acsd_backend_api_v1*);
 }
-typedef acs_status (*KernelFn)(const astrocs_host_services_v1*, const void*, uint32_t, const void*, void*);
+typedef acsd_status (*KernelFn)(const acsd_host_services_v1*, const void*, uint32_t, const void*, void*);
 int main(int argc,char**argv){ int budget=argc>1?atoi(argv[1]):1;
-    astrocs_host_services_v1 host; void* state=nullptr; astrocs_host_services_default_v1(&host,&state);
-    astrocs_host_state_set_budget_v1(state,(uint32_t)budget,(uint32_t)budget,&host);
-    astrocs_backend_api_v1 api; std::memset(&api,0,sizeof(api));
-    if(astrocs_backend_get_api_v1(ACS_ABI_VERSION_V1,sizeof(astrocs_host_services_v1),&host,&api)!=ACS_OK) return 2;
+    acsd_host_services_v1 host; void* state=nullptr; acsd_host_services_default_v1(&host,&state);
+    acsd_host_state_set_budget_v1(state,(uint32_t)budget,(uint32_t)budget,&host);
+    acsd_backend_api_v1 api; std::memset(&api,0,sizeof(api));
+    if(acsd_backend_get_api_v1(ACS_ABI_VERSION_V1,sizeof(acsd_host_services_v1),&host,&api)!=ACS_OK) return 2;
     const uint32_t W=1u<<8,H=1u<<8,N=W*H,FR=8;   // 65536 像素 x 8 帧
     std::vector<float> in0(N*(FR+1)),in1(N*(FR+1)),out(N),out1(N);
     float base=0.1234f;
     for(size_t i=0;i<in0.size();++i) in0[i]=base+((i%17)*0.01f);
     for(size_t i=0;i<in1.size();++i) in1[i]=base+((i%23)*0.005f);
-    acs_baseline_params_v1 p; std::memset(&p,0,sizeof(p)); p.head.struct_size=sizeof(p); p.head.abi_version=ACS_ABI_VERSION_V1;
+    acsd_baseline_params_v1 p; std::memset(&p,0,sizeof(p)); p.head.struct_size=sizeof(p); p.head.abi_version=ACS_ABI_VERSION_V1;
     p.op=ACS_KOP_NOISE_REDUCTIONS; p.w=W;p.h=H;p.k=2.0f;p.aux0=FR;
     p.in0=ACS_SPAN_F32(in0.data(),in0.size()); p.in1=ACS_SPAN_F32(in1.data(),in1.size()); p.out0=ACS_SPAN_F32(out.data(),out.size()); p.out1=ACS_SPAN_F32(out1.data(),out1.size());
-    acs_status rc=api.kernels[0].fn(&host,&p,sizeof(p),nullptr,nullptr);
+    acsd_status rc=api.kernels[0].fn(&host,&p,sizeof(p),nullptr,nullptr);
     if(rc!=ACS_OK){printf("RC %d\n",(int)rc);return 2;}
     // 输出前 8 元素 mad + 聚合
     double agg=0; for(uint32_t i=0;i<N;i+=131) agg+=out[i];
     printf("NOISE budget=%d workers=%u med0=%.5f mad0=%.5f agg=%.6f\n",budget,p.workers_used,out[0],out1[0],agg);
-    astrocs_host_services_destroy_state_v1(state); return 0; }
+    acsd_host_services_destroy_state_v1(state); return 0; }
 '''
 
 

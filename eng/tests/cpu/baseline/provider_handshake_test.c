@@ -18,8 +18,8 @@
  * 链接: 本 TU + baseline_provider.cpp + capability_detect.c (真实探测)。
  * 纯 C11; 退出码 0=全 PASS。独立期望断言生成, 不调用生产实现做 oracle。
  */
-#include "astrocs/abi/module_api_v1.h"
-#include "astrocs/cpu/baseline_provider_v1.h"
+#include "acsd/abi/module_api_v1.h"
+#include "acsd/cpu/baseline_provider_v1.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -69,31 +69,31 @@ static int fake_acquire(void* ud, uint32_t n) {
 }
 static void fake_release(void* ud, uint32_t n) { (void)ud; (void)n; }
 static int fake_cancel(void* ud) { (void)ud; return 0; }
-static void fake_log(void* ud, int level, acs_str_v1 comp, acs_str_v1 msg) {
+static void fake_log(void* ud, int level, acsd_str_v1 comp, acsd_str_v1 msg) {
     (void)ud; (void)level; (void)comp; (void)msg;
 }
 
-static acs_allocator_v1 g_alloc = {
-    { (uint32_t)sizeof(acs_allocator_v1), ACS_ABI_VERSION_V1 },
+static acsd_allocator_v1 g_alloc = {
+    { (uint32_t)sizeof(acsd_allocator_v1), ACS_ABI_VERSION_V1 },
     fake_alloc, fake_free, NULL
 };
-static acs_executor_v1 g_exec = {
-    { (uint32_t)sizeof(acs_executor_v1), ACS_ABI_VERSION_V1 },
+static acsd_executor_v1 g_exec = {
+    { (uint32_t)sizeof(acsd_executor_v1), ACS_ABI_VERSION_V1 },
     4, 4, fake_acquire, fake_release, NULL
 };
-static acs_cancel_v1 g_cancel = {
-    { (uint32_t)sizeof(acs_cancel_v1), ACS_ABI_VERSION_V1 },
+static acsd_cancel_v1 g_cancel = {
+    { (uint32_t)sizeof(acsd_cancel_v1), ACS_ABI_VERSION_V1 },
     fake_cancel, NULL
 };
-static acs_logger_v1 g_logger = {
-    { (uint32_t)sizeof(acs_logger_v1), ACS_ABI_VERSION_V1 },
+static acsd_logger_v1 g_logger = {
+    { (uint32_t)sizeof(acsd_logger_v1), ACS_ABI_VERSION_V1 },
     fake_log, NULL
 };
 
-static acs_host_api_v1 g_host;
+static acsd_host_api_v1 g_host;
 static void host_init(void) {
     memset(&g_host, 0, sizeof(g_host));
-    g_host.head.struct_size = (uint32_t)sizeof(acs_host_api_v1);
+    g_host.head.struct_size = (uint32_t)sizeof(acsd_host_api_v1);
     g_host.head.abi_version = ACS_ABI_VERSION_V1;
     g_host.allocator = &g_alloc;
     g_host.executor = &g_exec;
@@ -103,15 +103,15 @@ static void host_init(void) {
 
 int main(void) {
     host_init();
-    const acs_provider_api_v1* api = NULL;
+    const acsd_provider_api_v1* api = NULL;
 
     /* 1. 正测: 合法 query (本机 amd64: SSE2 恒 os_safe) */
     CHECK_ST(ACS_OK,
-             astrocs_provider_query_v1(ACS_ABI_VERSION_V1, &g_host, &api),
+             acsd_provider_query_v1(ACS_ABI_VERSION_V1, &g_host, &api),
              "query ok");
     CHECK(api != NULL);
     if (api) {
-        CHECK(api->head.struct_size == (uint32_t)sizeof(acs_provider_api_v1));
+        CHECK(api->head.struct_size == (uint32_t)sizeof(acsd_provider_api_v1));
         CHECK(api->head.abi_version == ACS_ABI_VERSION_V1);
         CHECK(api->self_test != NULL);
         CHECK(api->kernel_list != NULL);
@@ -120,29 +120,29 @@ int main(void) {
 
     /* 2. 负测: host_abi 失配 */
     CHECK_ST(ACS_ERR_ABI_MISMATCH,
-             astrocs_provider_query_v1(ACS_ABI_VERSION_V1 + 1, &g_host, &api),
+             acsd_provider_query_v1(ACS_ABI_VERSION_V1 + 1, &g_host, &api),
              "abi mismatch");
     /* host NULL */
     CHECK_ST(ACS_ERR_ABI_MISMATCH,
-             astrocs_provider_query_v1(ACS_ABI_VERSION_V1, NULL, &api),
+             acsd_provider_query_v1(ACS_ABI_VERSION_V1, NULL, &api),
              "host null");
     /* host 缺 allocator */
     {
-        acs_host_api_v1 h2 = g_host;
+        acsd_host_api_v1 h2 = g_host;
         h2.allocator = NULL;
         CHECK_ST(ACS_ERR_ABI_MISMATCH,
-                 astrocs_provider_query_v1(ACS_ABI_VERSION_V1, &h2, &api),
+                 acsd_provider_query_v1(ACS_ABI_VERSION_V1, &h2, &api),
                  "no allocator");
     }
     /* out_api NULL */
     CHECK_ST(ACS_ERR_PARAM,
-             astrocs_provider_query_v1(ACS_ABI_VERSION_V1, &g_host, NULL),
+             acsd_provider_query_v1(ACS_ABI_VERSION_V1, &g_host, NULL),
              "out null");
 
     /* 3. kernel_list */
     if (api) {
         uint32_t count = 0;
-        const acs_kernel_desc_v1* ks = NULL;
+        const acsd_kernel_desc_v1* ks = NULL;
         CHECK_ST(ACS_OK, api->kernel_list(&g_host, &count, &ks), "kernel_list");
         CHECK(count == ACS_CPU_BASELINE_KERNEL_COUNT);
         CHECK(ks != NULL);
@@ -182,10 +182,10 @@ int main(void) {
         CHECK_ST(ACS_OK, api->self_test(&g_host), "self_test ok");
         CHECK(g_alloc_balance == 0);   /* alloc/free 平衡 */
         CHECK(g_acquired >= 1);
-        acs_host_api_v1 h2 = g_host;
+        acsd_host_api_v1 h2 = g_host;
         h2.allocator = NULL;
         CHECK_ST(ACS_ERR_PARAM, api->self_test(&h2), "self_test no allocator");
-        acs_host_api_v1 h3 = g_host;
+        acsd_host_api_v1 h3 = g_host;
         h3.executor = NULL;
         CHECK_ST(ACS_OK, api->self_test(&h3), "self_test no executor (可空)");
     }

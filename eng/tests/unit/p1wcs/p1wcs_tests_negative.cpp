@@ -253,7 +253,7 @@ int test_negative() {
     // DISP-WCS-001 同族现状行为锚: WcsTan.sky2pix det 退化 → 返回 CRPIX
     // (wcs_tan.cpp:48-51 冻结现状; 整改归 P1-WCS-IMPL, 本锚锁定漂移)
     {
-        astrocs::phase1::WcsTan bad;
+        acsd::phase1::WcsTan bad;
         bad.crpix1 = 10.0;
         bad.crpix2 = 20.0;
         bad.crval1 = 150.0;
@@ -278,7 +278,7 @@ int test_negative() {
     // 0.075 deg, 舍入 ~1e-15 deg; 1e-9 deg (=3.6e-6") 高出舍入 6 个量级,
     // 又比修复前偏差 (~5.6e-1 deg) 低 8 个量级 ⇒ 非恒真且可检出回归。
     {
-        astrocs::phase1::WcsTan wt;
+        acsd::phase1::WcsTan wt;
         wt.crpix1 = 512.5;
         wt.crpix2 = 512.5;
         wt.crval1 = 150.0;
@@ -303,7 +303,7 @@ int test_negative() {
     // 1 px 量级偏差 (≈1.11e-4 deg @ |CD|≈1.1097e-4 deg/px), 必须被同一
     // 绝对门检出 (≥1e-6 deg; 与声明值差 3 个量级, 非恒真)。
     {
-        astrocs::phase1::WcsTan wt;
+        acsd::phase1::WcsTan wt;
         wt.crpix1 = 512.5;
         wt.crpix2 = 512.5;
         wt.crval1 = 150.0;

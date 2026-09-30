@@ -1,6 +1,6 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "$id": "astrocs.dual-line-file-domain/v1",
+  "$id": "acsd.dual-line-file-domain/v1",
   "title": "RELEASE-05 双线文件域合同",
   "x-doc": "docs/engineering/DUAL_LINE_CONTRACT.md",
   "type": "object",
@@ -10,7 +10,7 @@
   ],
   "properties": {
     "schema": {
-      "const": "astrocs.dual-line-file-domain/v1"
+      "const": "acsd.dual-line-file-domain/v1"
     },
     "lines": {
       "type": "array",

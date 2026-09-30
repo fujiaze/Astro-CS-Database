@@ -3,13 +3,13 @@
 // 失败不留貌似有效的空 catalog。
 #pragma once
 
-#include "astrocs/core/contracts.h"
+#include "acsd/core/contracts.h"
 
 #include <cstdint>
 #include <string>
 #include <vector>
 
-namespace astrocs::phase1 {
+namespace acsd::phase1 {
 
 struct PhotometryResult {
   double flux = 0.0;         // ADU (背景扣除后 aperture 积分)
@@ -28,7 +28,7 @@ class Photometer {
                       double sky_annulus_outer = 10.0);
 
   // measure: image 行主序; (cx,cy) 中心; 返回结果。
-  astrocs::core::Result<PhotometryResult> measure(
+  acsd::core::Result<PhotometryResult> measure(
       const float* image, int w, int h, double cx, double cy) const;
 
  private:
@@ -37,4 +37,4 @@ class Photometer {
   double sky_outer_;
 };
 
-}  // namespace astrocs::phase1
+}  // namespace acsd::phase1

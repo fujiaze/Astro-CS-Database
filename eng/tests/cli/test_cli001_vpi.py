@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
 """CLI 命令面语义（原 CLI-001 validate|plan|inspect 冻结文件，按 §6.2 新树同步）。
 
-权威: docs/ASTROCS_DESIGN §6.2（唯一七行命令树; phase 仅为内部指代）、§4.5（预检阻断）、
+权威: docs/ACSD_DESIGN §6.2（唯一七行命令树; phase 仅为内部指代）、§4.5（预检阻断）、
 §6.3（stdout/退出码）、docs/engineering/CLI_PROTOCOL_V1.md §1-§3。
 
 退役登记（依据 §6.2 唯一命令树 + CLI-001 rc 矩阵）:
   * 原文件冻结的 phase1|2|3 的 validate|plan|inspect 子命令 **已被 CLI-001 整体删除**
-    （rc=2）。原权威 ASTROCS_PROJECT_CONSTITUTION.md 已不存在（仓库零命中），
+    （rc=2）。原权威 ACSD_PROJECT_CONSTITUTION.md 已不存在（仓库零命中），
     其「§8.1 命令面」不再是权威；本文件改写为「这些子命令不存在且被拒」+ 新树
     仍然成立的零 I/O / stdout 纪律断言。
   * 原 test_01(help 列出 validate|plan|inspect)、test_02..test_15（validate/plan/inspect
@@ -25,7 +25,7 @@ from cli_test_hygiene import run_cwd  # noqa: E402
 
 
 def cli_binary():
-    env = os.environ.get("ASTROCS_CLI_BIN")
+    env = os.environ.get("ACSD_CLI_BIN")
     if env and os.path.isfile(env):
         return env
     for rel in (("build", "acsd"), ("build", "cli", "acsd")):
@@ -71,7 +71,7 @@ class TestCliCommandSurface(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         assert os.path.isfile(EXE), "先构建 CLI（cmake -S . -B build && ninja -C build acsd）"
-        cls.tmp = tempfile.mkdtemp(prefix="astrocs_vpi_")
+        cls.tmp = tempfile.mkdtemp(prefix="acsd_vpi_")
         cls.out = os.path.join(cls.tmp, "out")
         os.makedirs(cls.out, exist_ok=True)
 
@@ -124,7 +124,7 @@ class TestCliCommandSurface(unittest.TestCase):
             self.assertEqual(r.returncode, 0, r.stderr)
             self.assertTrue(os.path.isfile(tpl))
         self.assertEqual(tree_snapshot(self.out), snap, "模板/帮助不得写 output_dir")
-        self.assertEqual([f for f in os.listdir(self.out) if f.startswith("astrocs_run_")], [],
+        self.assertEqual([f for f in os.listdir(self.out) if f.startswith("acsd_run_")], [],
                          "模板/帮助不得写 run manifest")
 
     # ── 4. 预检阻断：error 时 rc=2、零产物（-y 也不能越过, §4.5） ──
@@ -135,7 +135,7 @@ class TestCliCommandSurface(unittest.TestCase):
         self.assertEqual(r.returncode, 2, "-y 不得越过预检 error")
         self.assertIn("[error]", r.stderr)
         self.assertEqual(tree_snapshot(self.out), snap, "阻断运行不得写任何产物")
-        self.assertEqual([f for f in os.listdir(self.out) if f.startswith("astrocs_run_")], [])
+        self.assertEqual([f for f in os.listdir(self.out) if f.startswith("acsd_run_")], [])
 
     # ── 5. --json 机器输出恰一 JSON 文档（stdout 无日志污染） ──
     def test_05_json_single_document_discipline(self):

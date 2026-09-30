@@ -6,9 +6,9 @@
   - spawn 'acsd normalize --json <cfg> --events-jsonl -y' 子进程, 流式逐行读 stdout;
   - 每行恰一个 UTF-8 JSON 事件(stdout 纪律), 独立重实现协议合同校验(防生产侧同源盲区);
   - 取消: SIGINT → exit 9, 不落 complete manifest;
-  - run directory: manifest 落 config.output_dir, 文件名 astrocs_run_<run_id>.json;
+  - run directory: manifest 落 config.output_dir, 文件名 acsd_run_<run_id>.json;
   - 无 Qt/HiPS Browser 链接(源码 + 动态依赖双查)。
-依赖: CLI 已构建(build/acsd; ASTROCS_CLI_BIN 可覆盖)。phase1 fixture 同
+依赖: CLI 已构建(build/acsd; ACSD_CLI_BIN 可覆盖)。phase1 fixture 同
 test_phase1_inprocess 编译模式; fixture 源码路径用 ARCH-001 迁移后布局
 (lib/infrastructure/aio), 旧路径回退。
 
@@ -20,7 +20,7 @@ test_phase1_inprocess 编译模式; fixture 源码路径用 ARCH-001 迁移后�
     预检即阻断（rc=2, 无事件流, fail-closed）; 「失败路径仍须发完整合规事件流」改用
     「非空但文件缺失」场景（rc=3）证明;
   * test_03 旧期望 final(status=cancelled) + 事件流 → 改写: 新子命令层的确定性取消窗
-    （ASTROCS_TEST_SLEEP_MS）位于会话启动之前; FIX-406 起该窗内取消也发**恰一个 final
+    （ACSD_TEST_SLEEP_MS）位于会话启动之前; FIX-406 起该窗内取消也发**恰一个 final
     事件**（status=cancelled, exit_code=9, run_manifest=null —— 本次运行尚未建立
     output_dir/run_context，不造假清单），机器侧不再靠空事件流猜状态。断言: rc=9 +
     事件流合规（harness_validate 逐事件）+ 不落 complete manifest。
@@ -40,7 +40,7 @@ SCHEMA = os.path.join(REPO, "eng", "contracts", "schemas", "jsonl_event_v1.schem
 
 
 def cli_binary():
-    env = os.environ.get("ASTROCS_CLI_BIN")
+    env = os.environ.get("ACSD_CLI_BIN")
     if env and os.path.isfile(env):
         return env
     for rel in (("build", "acsd"), ("build", "cli", "acsd")):
@@ -207,11 +207,11 @@ class TestCli004ProcessProtocol(unittest.TestCase):
                             capture_output=True, text=True, timeout=120, cwd=run_cwd())
         self.assertEqual(r0.returncode, 2, "空输入必须预检阻断")
         self.assertEqual(r0.stdout, "", "阻断路径 stdout 不得有非 JSON 文本")
-        self.assertEqual([f for f in os.listdir(out0) if f.startswith("astrocs_run_")], [],
+        self.assertEqual([f for f in os.listdir(out0) if f.startswith("acsd_run_")], [],
                          "预检阻断不得写 manifest")
         # 1b. 输入文件缺失 → 预检 rc=3（写盘前阻断）：无事件流、无 manifest。
         #     2026-09-18 预检 fail-closed 修复后，路径不存在/不可读在 precheck_config
-        #     阶段即判 error（docs/ASTROCS_DESIGN §4.5 + ENGINEERING_SPEC:122），-y 不可越；
+        #     阶段即判 error（docs/ACSD_DESIGN §4.5 + ENGINEERING_SPEC:122），-y 不可越；
         #     旧断言（完整事件流 + incomplete manifest）固化的是修复前 fail-open 行为。
         out = os.path.join(self.tmp, "o1"); os.makedirs(out)
         cfg = self._cfg(out, [os.path.join(self.data, "does_not_exist.fits")])
@@ -220,7 +220,7 @@ class TestCli004ProcessProtocol(unittest.TestCase):
         self.assertEqual(r1.returncode, 3, "输入文件缺失 → 3(INPUT)")
         self.assertEqual(r1.stdout, "",
                          "预检阻断不得发运行期事件流（stdout 纪律）")
-        self.assertEqual([f for f in os.listdir(out) if f.startswith("astrocs_run_")], [],
+        self.assertEqual([f for f in os.listdir(out) if f.startswith("acsd_run_")], [],
                          "预检阻断不得写 manifest")
         self.assertTrue(r1.stderr.strip(), "诊断/日志必须在 stderr")
         self.assertIn("missing/unreadable input path", r1.stderr,
@@ -265,7 +265,7 @@ class TestCli004ProcessProtocol(unittest.TestCase):
     def test_03_harness_cancel_no_complete_manifest(self):
         out = os.path.join(self.tmp, "o3"); os.makedirs(out)
         cfg = self._cfg(out, [os.path.join(self.data, "light_1.fits")])
-        env = dict(os.environ, ASTROCS_TEST_SLEEP_MS="8000")
+        env = dict(os.environ, ACSD_TEST_SLEEP_MS="8000")
         p = subprocess.Popen([EXE, "normalize", "--json", cfg, "--events-jsonl", "-y"],
                              stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True,
                              cwd=run_cwd(), env=env)
@@ -277,7 +277,7 @@ class TestCli004ProcessProtocol(unittest.TestCase):
         for i, ev in enumerate(jsonl_lines(out_s)):
             self.assertIsNone(harness_validate(ev, i), "cancel stream event[%d]" % i)
         for fn in os.listdir(out):
-            if fn.startswith("astrocs_run_"):
+            if fn.startswith("acsd_run_"):
                 with open(os.path.join(out, fn), encoding="utf-8") as fh:
                     man = json.load(fh)
                 self.assertNotEqual(man["status"], "complete",
@@ -298,7 +298,7 @@ class TestCli004ProcessProtocol(unittest.TestCase):
         mf = [e for e in events if e["kind"] == "artifact" and e.get("role") == "run_manifest"][-1]
         self.assertEqual(os.path.dirname(os.path.abspath(mf["path"])),
                          os.path.abspath(out), "manifest 必落 config.output_dir")
-        self.assertRegex(os.path.basename(mf["path"]), r"^astrocs_run_[0-9a-f]{12}\.json$")
+        self.assertRegex(os.path.basename(mf["path"]), r"^acsd_run_[0-9a-f]{12}\.json$")
         fin = events[-1]
         self.assertIn(fin["run_id"], os.path.basename(mf["path"]),
                       "manifest 文件名含 run_id(harness 按 run_id 归档)")
@@ -313,7 +313,7 @@ class TestCli004ProcessProtocol(unittest.TestCase):
                            capture_output=True, text=True, timeout=60, cwd=run_cwd())
         self.assertEqual(r.returncode, 2)
         self.assertEqual(r.stdout, "")
-        # 诊断前缀 = 唯一入口名 acsd（docs/ASTROCS_DESIGN.md §1.2/§7.1）。
+        # 诊断前缀 = 唯一入口名 acsd（docs/ACSD_DESIGN.md §1.2/§7.1）。
         self.assertIn("acsd:", r.stderr)
         # 负向: 运行/模板互斥 → 2
         r_mutex = subprocess.run([EXE, "normalize", "--json", cfg, "--template"],
@@ -327,7 +327,7 @@ class TestCli004ProcessProtocol(unittest.TestCase):
         # 预检阻断（输入缺失）⇒ 无事件、无 manifest（fail-closed，不落看似完整的产物）
         self.assertEqual(r2.stdout, "", "预检阻断不得在 stdout 打印任何文本/事件")
         self.assertIn("acsd:", r2.stderr)
-        self.assertEqual([f for f in os.listdir(out) if f.startswith("astrocs_run_")], [],
+        self.assertEqual([f for f in os.listdir(out) if f.startswith("acsd_run_")], [],
                          "预检阻断不得写 run manifest")
 
     # ── 6. CLI 无 Qt/HiPS Browser 链接(源码 + 动态依赖) ──
@@ -400,7 +400,7 @@ class TestCli004ProcessProtocol(unittest.TestCase):
         for kind, ext in KIND_EXT.items():
             self.assertEqual(branches[kind], ext, "%s 扩展字段集不同面" % kind)
         # (c) 机器注册表块与 enum 同面（防第二份定义漂移）
-        reg = schema["x-astrocs-event-kind-registry"]
+        reg = schema["x-acsd-event-kind-registry"]
         self.assertEqual(set(reg["kinds"]), REGISTERED_KINDS)
         for kind, ext in KIND_EXT.items():
             self.assertEqual(set(reg["kinds"][kind]), ext)

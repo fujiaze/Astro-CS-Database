@@ -2,12 +2,12 @@
 //
 // 验收 (模板 <prefix>-TEST): "故障注入能让测试失败" + "不得写永远 PASS\n// 的占位"。本可执行三阶段:
 //   1) 基线: 无注入跑 units 组 → 必 PASS (排除恒 FAIL 侧)。
-//   2) 注入 A: 子进程以 ASTROCS_P1PHOT_FAULT=u1_scale_injection 重跑 units
+//   2) 注入 A: 子进程以 ACSD_P1PHOT_FAULT=u1_scale_injection 重跑 units
 //      → 必 FAIL (排除恒 PASS 侧), stderr 含 FAULT-INJECT 行。
-//   3) 注入 B: 子进程以 ASTROCS_P1PHOT_FAULT=o1_irls_reference 重跑 oracle
+//   3) 注入 B: 子进程以 ACSD_P1PHOT_FAULT=o1_irls_reference 重跑 oracle
 //      组 → 必 FAIL (第二注入点覆盖)。
 // 注入名与 faultname 注册处 (各测试 TU P1PHOT_CHECK 第三参) 对齐;
-// ASTROCS_P1PHOT_SELFCHECK_FAULT 可覆盖阶段 2 注入名。
+// ACSD_P1PHOT_SELFCHECK_FAULT 可覆盖阶段 2 注入名。
 // 模式对齐 P1-HIPS-TEST 先例 (commit c19b4a59): fork/execve /proc/self/exe
 // argv 子进程模式 (防递归 fork 资源耗尽)。
 #include "p1phot_test_main.hpp"
@@ -41,7 +41,7 @@ namespace {
 // 子进程注入重跑: execve /proc/self/exe <group> + 注入环境
 // 返回子进程 rc (执行失败 → 127)
 int run_injected_child(const char* group, const std::string& fault_name) {
-    const std::string fault_env = "ASTROCS_P1PHOT_FAULT=" + fault_name;
+    const std::string fault_env = "ACSD_P1PHOT_FAULT=" + fault_name;
     std::vector<char> fbuf(fault_env.begin(), fault_env.end());
     fbuf.push_back('\0');
 
@@ -74,7 +74,7 @@ int run_injected_child(const char* group, const std::string& fault_name) {
 }
 
 // 注入子进程入口: execve 重入后 argv[1] = 组名, 直接跑该组并回传 rc
-// (FaultRegistry 由 ASTROCS_P1PHOT_FAULT 初始化, 机制与主执行器一致)。
+// (FaultRegistry 由 ACSD_P1PHOT_FAULT 初始化, 机制与主执行器一致)。
 static int run_injected_group(const char* group) {
     p1phot::init_fault_registry_from_env();
     if (std::strcmp(group, "units") == 0) return p1phot::test_units();
@@ -153,7 +153,7 @@ int run_selfcheck() {
 
     // 阶段 2: 注入 units 组 → 必 FAIL
     {
-        const char* fault = std::getenv("ASTROCS_P1PHOT_SELFCHECK_FAULT");
+        const char* fault = std::getenv("ACSD_P1PHOT_SELFCHECK_FAULT");
         const std::string name = fault ? fault : "u1_scale_injection";
         const int child_rc = run_injected_child("units", name);
         if (child_rc == 0) {

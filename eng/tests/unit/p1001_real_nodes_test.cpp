@@ -15,16 +15,16 @@
 // RED 锚定（改造前）: SessionModule(完整 session 委托) manifest 无 operation/entry
 //   字段 → 断言 1 失败; p1_session manifest 无 availability 且 status=complete
 //   → 断言 4 失败。本测试先于实现提交面运行记录 RED, 再随实现转 GREEN。
-#include "astrocs/core/module.h"
-#include "astrocs/core/module_adapters.h"
-#include "astrocs/core/runtime.h"
+#include "acsd/core/module.h"
+#include "acsd/core/module_adapters.h"
+#include "acsd/core/runtime.h"
 #include "p1_session.h"
 #include "wcs_tan.h"     // B2-A17: linear WCS forward Oracle  // complete 门: API-P1-001 冻结 C ABI
 
 #include "p1sess_fixtures.hpp"  // 最小 FITS writer (手写, 不调生产 symbol)
 
 // B2-A12/A13/A14/A16: 标准 HiPS 读面 + FITS 读面 (Oracle 对拍用; AIO 由
-// astrocs_module_adapters PUBLIC 传递 include 与 AIO_ENABLE_HEALPIX=1)
+// acsd_module_adapters PUBLIC 传递 include 与 AIO_ENABLE_HEALPIX=1)
 #include "astro_image_io.h"
 #include "astro_sphere_sink.h"  // P23: write_hips_phase1 (直写标准 HiPS) 等价夹具
 #include "aio_atomic_file.h"    // 目录枚举/路径机制经 aio (for_each_child; §10 唯一 I/O 边界)
@@ -53,7 +53,7 @@
 #endif
 
 using json = nlohmann::json;
-using namespace astrocs::core;
+using namespace acsd::core;
 
 static int failures = 0;
 #define CHECK(cond)                                                       \
@@ -72,11 +72,11 @@ static int failures = 0;
     }                                                                     \
   } while (0)
 
-// host services 工厂（定义 lib/infrastructure/benchmark/backend_host/host_services.cpp, astrocs_cpu 库;
+// host services 工厂（定义 lib/infrastructure/benchmark/backend_host/host_services.cpp, acsd_cpu 库;
 // 与 lib/infrastructure/scheduler/src/module_adapters.cpp 同一声明模式）
 extern "C" {
-int astrocs_host_services_default_v1(astrocs_host_services_v1* out, void** state_out);
-void astrocs_host_services_destroy_state_v1(void* state);
+int acsd_host_services_default_v1(acsd_host_services_v1* out, void** state_out);
+void acsd_host_services_destroy_state_v1(void* state);
 }
 
 namespace {
@@ -192,12 +192,12 @@ std::string frame_root(const Fixture& fx, const char* light_base = "light_1") {
   return fx.out_dir + "/" + stem;
 }
 
-// 向上探测仓库根（锚: ASTROCS_PROJECT_CONSTITUTION.md）→ GaiaDR3 用户数据区
+// 向上探测仓库根（锚: ACSD_PROJECT_CONSTITUTION.md）→ GaiaDR3 用户数据区
 std::string find_repo_gaia_dir() {
   fs::path probe = fs::current_path();
   for (int i = 0; i < 6 && !probe.empty(); ++i) {
     std::error_code ec;
-    if (fs::exists(probe / "ASTROCS_PROJECT_CONSTITUTION.md", ec)) {
+    if (fs::exists(probe / "ACSD_PROJECT_CONSTITUTION.md", ec)) {
       fs::path g = probe / "GaiaDR3";
       if (fs::exists(g, ec)) return g.string();
     }
@@ -214,14 +214,14 @@ struct NodeExpect {
   const char* entry;
 };
 const NodeExpect kNodeExpects[] = {
-    {"astrocs.phase1.calibration", "calibrate", "astrocs_phase1_calibrate_v1"},
-    {"astrocs.phase1.cosmetic", "cosmetic_correct", "astrocs_phase1_cosmetic_v1"},
-    {"astrocs.phase1.star-psf", "detect_sources", "astrocs_phase1_starpsf_v1"},
-    {"astrocs.phase1.wcs-platesolve", "plate_solve", "astrocs_phase1_wcs_v1"},
-    {"astrocs.phase1.photometry", "measure_flux", "astrocs_phase1_photometry_v1"},
-    {"astrocs.phase1.noise-snr", "estimate_snr", "astrocs_phase1_noisesnr_v1"},
-    {"astrocs.phase1.drizzle", "drizzle_stack", "astrocs_phase1_drizzle_v1"},
-    {"astrocs.phase1.writer", "write_hips", "astrocs_phase1_writer_v1"},
+    {"acsd.phase1.calibration", "calibrate", "acsd_phase1_calibrate_v1"},
+    {"acsd.phase1.cosmetic", "cosmetic_correct", "acsd_phase1_cosmetic_v1"},
+    {"acsd.phase1.star-psf", "detect_sources", "acsd_phase1_starpsf_v1"},
+    {"acsd.phase1.wcs-platesolve", "plate_solve", "acsd_phase1_wcs_v1"},
+    {"acsd.phase1.photometry", "measure_flux", "acsd_phase1_photometry_v1"},
+    {"acsd.phase1.noise-snr", "estimate_snr", "acsd_phase1_noisesnr_v1"},
+    {"acsd.phase1.drizzle", "drizzle_stack", "acsd_phase1_drizzle_v1"},
+    {"acsd.phase1.writer", "write_hips", "acsd_phase1_writer_v1"},
 };
 
 std::string read_file(const std::string& p) {
@@ -324,17 +324,17 @@ json build_p1001_full_chain_ir(const std::string& cfg, const std::string& pipeli
     return n;
   };
   json ir;
-  ir["schema"] = "astrocs.pipeline/v1";
+  ir["schema"] = "acsd.pipeline/v1";
   ir["pipeline_id"] = pipeline_id;
   ir["version"] = "1.0.0";
   ir["nodes"] = json::array();
-  ir["nodes"].push_back(node("cal", "astrocs.phase1.calibration", "frames", "artifact:in", "calibrated", "artifact:cal"));
-  ir["nodes"].push_back(node("cos", "astrocs.phase1.cosmetic", "calibrated", "artifact:cal", "cleaned", "artifact:cos"));
-  ir["nodes"].push_back(node("psf", "astrocs.phase1.star-psf", "cleaned", "artifact:cos", "sources", "artifact:psf"));
-  ir["nodes"].push_back(node("phot", "astrocs.phase1.photometry", "sources", "artifact:psf", "fluxes", "artifact:phot"));
-  ir["nodes"].push_back(node("snr", "astrocs.phase1.noise-snr", "fluxes", "artifact:phot", "snr", "artifact:snr"));
-  ir["nodes"].push_back(node("drz", "astrocs.phase1.drizzle", "calibrated", "artifact:cal", "stacked", "artifact:drz"));
-  ir["nodes"].push_back(node("wr", "astrocs.phase1.writer", "stacked", "artifact:drz", "fits", "artifact:wr"));
+  ir["nodes"].push_back(node("cal", "acsd.phase1.calibration", "frames", "artifact:in", "calibrated", "artifact:cal"));
+  ir["nodes"].push_back(node("cos", "acsd.phase1.cosmetic", "calibrated", "artifact:cal", "cleaned", "artifact:cos"));
+  ir["nodes"].push_back(node("psf", "acsd.phase1.star-psf", "cleaned", "artifact:cos", "sources", "artifact:psf"));
+  ir["nodes"].push_back(node("phot", "acsd.phase1.photometry", "sources", "artifact:psf", "fluxes", "artifact:phot"));
+  ir["nodes"].push_back(node("snr", "acsd.phase1.noise-snr", "fluxes", "artifact:phot", "snr", "artifact:snr"));
+  ir["nodes"].push_back(node("drz", "acsd.phase1.drizzle", "calibrated", "artifact:cal", "stacked", "artifact:drz"));
+  ir["nodes"].push_back(node("wr", "acsd.phase1.writer", "stacked", "artifact:drz", "fits", "artifact:wr"));
   ir["outputs"] = json{{"fits", "artifact:wr"}, {"snr", "artifact:snr"},
                        {"psf", "artifact:psf"},
                        {"cal", "artifact:cal"}, {"cos", "artifact:cos"}};
@@ -405,9 +405,9 @@ static void test_nodes_real_operation() {
   })";
   // calibrate 先行（后续节点消费 calibrated_*.fits）
   RunContext ctx;
-  json man_cal = run_node(reg, "astrocs.phase1.calibration", base_cfg, ctx);
+  json man_cal = run_node(reg, "acsd.phase1.calibration", base_cfg, ctx);
   CHECK(man_cal.value("operation", "") == "calibrate");
-  CHECK(man_cal.value("entry", "") == "astrocs_phase1_calibrate_v1");
+  CHECK(man_cal.value("entry", "") == "acsd_phase1_calibrate_v1");
   CHECK(man_cal.value("status", "") == "ok");
   CHECK(man_cal.contains("artifacts") && man_cal["artifacts"].is_array() &&
         !man_cal["artifacts"].empty());
@@ -415,15 +415,15 @@ static void test_nodes_real_operation() {
     CHECK(fs::exists(fs::path(a.get<std::string>())));
 
   // cosmetic：enabled → 真实 ac_correct_frame 执行
-  json man_cos = run_node(reg, "astrocs.phase1.cosmetic", base_cfg, ctx);
+  json man_cos = run_node(reg, "acsd.phase1.cosmetic", base_cfg, ctx);
   CHECK(man_cos.value("operation", "") == "cosmetic_correct");
-  CHECK(man_cos.value("entry", "") == "astrocs_phase1_cosmetic_v1");
+  CHECK(man_cos.value("entry", "") == "acsd_phase1_cosmetic_v1");
   CHECK(man_cos.value("status", "") == "ok");
 
   // star-psf：StarDetector 真实检测（星点场 → n_detected>=1; PSF 特性来自 StarSource）
-  json man_psf = run_node(reg, "astrocs.phase1.star-psf", base_cfg, ctx);
+  json man_psf = run_node(reg, "acsd.phase1.star-psf", base_cfg, ctx);
   CHECK(man_psf.value("operation", "") == "detect_sources");
-  CHECK(man_psf.value("entry", "") == "astrocs_phase1_starpsf_v1");
+  CHECK(man_psf.value("entry", "") == "acsd_phase1_starpsf_v1");
   CHECK(man_psf.value("status", "") == "ok");
   CHECK(man_psf.contains("sources_artifact") &&
         man_psf["sources_artifact"].is_string());
@@ -459,7 +459,7 @@ static void test_nodes_real_operation() {
     "wcs": {)";
   {
     Result<void> rc;
-    run_node(reg, "astrocs.phase1.wcs-platesolve", wcs_base + "}}", ctx, &rc);
+    run_node(reg, "acsd.phase1.wcs-platesolve", wcs_base + "}}", ctx, &rc);
     CHECK_MSG(rc.failed(), "missing solve params must be rejected (no silent defaults)");
   }
   {
@@ -470,9 +470,9 @@ static void test_nodes_real_operation() {
             "focal_length_mm": 400.0, "pixel_size_um": 3.76,
             "gaia_data_dir": ")" + gaia_dir + R"("}})";
     Result<void> rc;
-    json man_wcs = run_node(reg, "astrocs.phase1.wcs-platesolve", wcs_full, ctx, &rc);
+    json man_wcs = run_node(reg, "acsd.phase1.wcs-platesolve", wcs_full, ctx, &rc);
     CHECK(man_wcs.value("operation", "") == "plate_solve");
-    CHECK(man_wcs.value("entry", "") == "astrocs_phase1_wcs_v1");
+    CHECK(man_wcs.value("entry", "") == "acsd_phase1_wcs_v1");
 #if defined(_WIN32)
     CHECK_MSG(rc.ok(), "Windows: real ipv solve should succeed on valid star field");
 #else
@@ -480,7 +480,7 @@ static void test_nodes_real_operation() {
     // 源内无平台 stub）⇒ 允许「真实成功」或「真实失败」，禁止的是把平台限制
     // 当作失败理由。失败时错误必须是 DATA 域且不得携带 stub/平台不支持语义。
     if (!rc.ok()) {
-      CHECK(rc.error().domain() == astrocs::core::ErrorDomain::DATA);
+      CHECK(rc.error().domain() == acsd::core::ErrorDomain::DATA);
       CHECK_MSG(rc.error().message().find("stub") == std::string::npos,
                 "Linux ipv must not fail as a platform stub (real solver, static C API)");
       CHECK_MSG(rc.error().message().find("not supported") == std::string::npos,
@@ -497,10 +497,10 @@ static void test_nodes_real_operation() {
             "focal_length_mm": 400.0, "pixel_size_um": 3.76,
             "gaia_data_dir": ")" + gaia_dir + R"("}})";
     Result<void> rc;
-    run_node(reg, "astrocs.phase1.wcs-platesolve", cfg, ctx, &rc);
+    run_node(reg, "acsd.phase1.wcs-platesolve", cfg, ctx, &rc);
     CHECK_MSG(rc.failed(),
               "P9: init_source=header_crval must be rejected (帧头 WCS 未授权)");
-    CHECK(rc.error().domain() == astrocs::core::ErrorDomain::DATA);
+    CHECK(rc.error().domain() == acsd::core::ErrorDomain::DATA);
   }
   // P9: header_pointing 在无指向关键字的帧上 fail-closed（该 fixture light 只有
   // SIMPLE/BITPIX/NAXIS*, 无 OBJCTRA/OBJCTDEC/RA/DEC/FOCALLEN/XPIXSZ）。
@@ -509,23 +509,23 @@ static void test_nodes_real_operation() {
     const std::string cfg = wcs_base +
         R"("init_source": "header_pointing", "gaia_data_dir": ")" + gaia_dir + R"("}})";
     Result<void> rc;
-    run_node(reg, "astrocs.phase1.wcs-platesolve", cfg, ctx, &rc);
+    run_node(reg, "acsd.phase1.wcs-platesolve", cfg, ctx, &rc);
     CHECK_MSG(rc.failed(),
               "P9: header_pointing without pointing keywords must fail-closed");
-    CHECK(rc.error().domain() == astrocs::core::ErrorDomain::DATA);
+    CHECK(rc.error().domain() == acsd::core::ErrorDomain::DATA);
   }
 
   // photometry：Photometer aperture 积分（对已检测源）
-  json man_phot = run_node(reg, "astrocs.phase1.photometry", base_cfg, ctx);
+  json man_phot = run_node(reg, "acsd.phase1.photometry", base_cfg, ctx);
   CHECK(man_phot.value("operation", "") == "measure_flux");
-  CHECK(man_phot.value("entry", "") == "astrocs_phase1_photometry_v1");
+  CHECK(man_phot.value("entry", "") == "acsd_phase1_photometry_v1");
   CHECK(man_phot.value("status", "") == "ok");
   CHECK(fs::exists(fs::path(man_phot.value("flux_artifact", ""))));
 
   // noise-snr：NoiseModel 真实估计
-  json man_noise = run_node(reg, "astrocs.phase1.noise-snr", base_cfg, ctx);
+  json man_noise = run_node(reg, "acsd.phase1.noise-snr", base_cfg, ctx);
   CHECK(man_noise.value("operation", "") == "estimate_snr");
-  CHECK(man_noise.value("entry", "") == "astrocs_phase1_noisesnr_v1");
+  CHECK(man_noise.value("entry", "") == "acsd_phase1_noisesnr_v1");
   CHECK(man_noise.value("status", "") == "ok");
   {
     json n;
@@ -549,19 +549,19 @@ static void test_nodes_real_operation() {
             "cd21": 0.0, "cd22": 0.0002777777777777778},
     "drizzle": {"nside": 512, "nested": 1, "pixfrac": 1.0, "precision_mode": 0}
   })";
-  json man_drz = run_node(reg, "astrocs.phase1.drizzle", drz_cfg, ctx);
+  json man_drz = run_node(reg, "acsd.phase1.drizzle", drz_cfg, ctx);
   CHECK(man_drz.value("operation", "") == "drizzle_stack");
-  CHECK(man_drz.value("entry", "") == "astrocs_phase1_drizzle_v1");
+  CHECK(man_drz.value("entry", "") == "acsd_phase1_drizzle_v1");
   CHECK(man_drz.value("status", "") == "ok");
   CHECK(fs::exists(fs::path(man_drz.value("stack_artifact", ""))));
 
   // writer：标准 HiPS 产物校验节点（drizzle 已直写 signal/+support/ 树;
   // 本节点核对 properties/Moc/metadata + 统计 tile 数, 不再消费任何中间容器）
   Result<void> wr_rc;
-  json man_wr = run_node(reg, "astrocs.phase1.writer", drz_cfg, ctx, &wr_rc);
+  json man_wr = run_node(reg, "acsd.phase1.writer", drz_cfg, ctx, &wr_rc);
   if (wr_rc.failed()) std::fprintf(stderr, "DBG writer error: %s\n", wr_rc.error().message().c_str());
   CHECK(man_wr.value("operation", "") == "write_hips");
-  CHECK(man_wr.value("entry", "") == "astrocs_phase1_writer_v1");
+  CHECK(man_wr.value("entry", "") == "acsd_phase1_writer_v1");
   CHECK(man_wr.value("status", "") == "ok");
   CHECK(man_wr.contains("hips_root") && man_wr["hips_root"].is_string());
   CHECK(man_wr.value("n_tiles", 0u) >= 1);
@@ -579,7 +579,7 @@ static void test_nodes_real_operation() {
   // 一律取 canonical 面亮度串）+ :2827-2830（测光归一化只改零点、不改量纲类别，标度由
   // PHOTAPPL/PHOTSCAL 承载）。Phase1 末端由 AstroSphereSink 直写标准 HiPS 树，**不经**
   // HissWriter::open 的元数据校验 ⇒ 守卫落在 declare_hips_surface_brightness_units
-  // （p1_op_writer 调用）。此处注入「ASTROCS_RELATIVE_FLUX 与 ADU/sr 并存」必须判红。
+  // （p1_op_writer 调用）。此处注入「ACSD_RELATIVE_FLUX 与 ADU/sr 并存」必须判红。
   {
     const std::string stack_p = frame_root(fx) + "/p1_stack.json";
     const std::string saved = read_file(stack_p);
@@ -587,11 +587,11 @@ static void test_nodes_real_operation() {
     json sj;
     try { sj = json::parse(saved); } catch (...) { CHECK_MSG(false, "B1: p1_stack.json not JSON"); }
     CHECK_MSG(sj.value("bunit", std::string()) == "ADU/sr",
-              "B1: p1_stack.json bunit must be canonical ADU/sr (not ASTROCS_RELATIVE_FLUX)");
-    sj["bunit"] = "ASTROCS_RELATIVE_FLUX";
+              "B1: p1_stack.json bunit must be canonical ADU/sr (not ACSD_RELATIVE_FLUX)");
+    sj["bunit"] = "ACSD_RELATIVE_FLUX";
     { std::ofstream o(stack_p, std::ios::binary); o << sj.dump(2); }
     Result<void> bad_rc;
-    json man_bad = run_node(reg, "astrocs.phase1.writer", drz_cfg, ctx, &bad_rc);
+    json man_bad = run_node(reg, "acsd.phase1.writer", drz_cfg, ctx, &bad_rc);
     (void)man_bad;
     CHECK_MSG(bad_rc.failed(), "B1: conflicting BUNIT strings must fail-closed");
     if (bad_rc.failed()) {
@@ -603,7 +603,7 @@ static void test_nodes_real_operation() {
     // 恢复 canonical 声明面后重跑 ⇒ 判绿（同一份像素同串）
     { std::ofstream o(stack_p, std::ios::binary); o << saved; }
     Result<void> ok_rc;
-    json man_ok = run_node(reg, "astrocs.phase1.writer", drz_cfg, ctx, &ok_rc);
+    json man_ok = run_node(reg, "acsd.phase1.writer", drz_cfg, ctx, &ok_rc);
     CHECK_MSG(ok_rc.ok(), "B1: restored canonical face must pass again (green)");
     CHECK_MSG(man_ok.value("status", std::string()) == "ok", "B1: restored writer status ok");
   }
@@ -648,17 +648,17 @@ static void test_runtime_chain_call_count_1() {
     return n;
   };
   json ir;
-  ir["schema"] = "astrocs.pipeline/v1";
+  ir["schema"] = "acsd.pipeline/v1";
   ir["pipeline_id"] = "p1001.real.nodes";
   ir["version"] = "1.0.0";
   ir["nodes"] = json::array();
-  ir["nodes"].push_back(node("cal", "astrocs.phase1.calibration", "frames", "artifact:in", "calibrated", "artifact:cal"));
-  ir["nodes"].push_back(node("cos", "astrocs.phase1.cosmetic", "calibrated", "artifact:cal", "cleaned", "artifact:cos"));
-  ir["nodes"].push_back(node("psf", "astrocs.phase1.star-psf", "cleaned", "artifact:cos", "sources", "artifact:psf"));
-  ir["nodes"].push_back(node("phot", "astrocs.phase1.photometry", "sources", "artifact:psf", "fluxes", "artifact:phot"));
-  ir["nodes"].push_back(node("snr", "astrocs.phase1.noise-snr", "fluxes", "artifact:phot", "snr", "artifact:snr"));
-  ir["nodes"].push_back(node("drz", "astrocs.phase1.drizzle", "calibrated", "artifact:cal", "stacked", "artifact:drz"));
-  ir["nodes"].push_back(node("wr", "astrocs.phase1.writer", "stacked", "artifact:drz", "fits", "artifact:wr"));
+  ir["nodes"].push_back(node("cal", "acsd.phase1.calibration", "frames", "artifact:in", "calibrated", "artifact:cal"));
+  ir["nodes"].push_back(node("cos", "acsd.phase1.cosmetic", "calibrated", "artifact:cal", "cleaned", "artifact:cos"));
+  ir["nodes"].push_back(node("psf", "acsd.phase1.star-psf", "cleaned", "artifact:cos", "sources", "artifact:psf"));
+  ir["nodes"].push_back(node("phot", "acsd.phase1.photometry", "sources", "artifact:psf", "fluxes", "artifact:phot"));
+  ir["nodes"].push_back(node("snr", "acsd.phase1.noise-snr", "fluxes", "artifact:phot", "snr", "artifact:snr"));
+  ir["nodes"].push_back(node("drz", "acsd.phase1.drizzle", "calibrated", "artifact:cal", "stacked", "artifact:drz"));
+  ir["nodes"].push_back(node("wr", "acsd.phase1.writer", "stacked", "artifact:drz", "fits", "artifact:wr"));
   // IR 静态验证合同: 每个产物必须被消费或声明为 pipeline 输出
   // (phot→fluxes 供 snr 输入; snr/psf/cal/cos 为本链终态输出面)
   ir["outputs"] = json{{"fits", "artifact:wr"}, {"snr", "artifact:snr"},
@@ -734,17 +734,17 @@ static void test_fail_fast_downstream_zero_calls() {
     return n;
   };
   json ir;
-  ir["schema"] = "astrocs.pipeline/v1";
+  ir["schema"] = "acsd.pipeline/v1";
   ir["pipeline_id"] = "p1001.fail.fast";
   ir["version"] = "1.0.0";
   ir["nodes"] = json::array();
-  ir["nodes"].push_back(node("cal", "astrocs.phase1.calibration", "frames", "artifact:in", "calibrated", "artifact:cal"));
-  ir["nodes"].push_back(node("cos", "astrocs.phase1.cosmetic", "calibrated", "artifact:cal", "cleaned", "artifact:cos"));
-  ir["nodes"].push_back(node("psf", "astrocs.phase1.star-psf", "cleaned", "artifact:cos", "sources", "artifact:psf"));
-  ir["nodes"].push_back(node("phot", "astrocs.phase1.photometry", "sources", "artifact:psf", "fluxes", "artifact:phot"));
-  ir["nodes"].push_back(node("snr", "astrocs.phase1.noise-snr", "fluxes", "artifact:phot", "snr", "artifact:snr"));
-  ir["nodes"].push_back(node("drz", "astrocs.phase1.drizzle", "calibrated", "artifact:cal", "stacked", "artifact:drz"));
-  ir["nodes"].push_back(node("wr", "astrocs.phase1.writer", "stacked", "artifact:drz", "fits", "artifact:wr"));
+  ir["nodes"].push_back(node("cal", "acsd.phase1.calibration", "frames", "artifact:in", "calibrated", "artifact:cal"));
+  ir["nodes"].push_back(node("cos", "acsd.phase1.cosmetic", "calibrated", "artifact:cal", "cleaned", "artifact:cos"));
+  ir["nodes"].push_back(node("psf", "acsd.phase1.star-psf", "cleaned", "artifact:cos", "sources", "artifact:psf"));
+  ir["nodes"].push_back(node("phot", "acsd.phase1.photometry", "sources", "artifact:psf", "fluxes", "artifact:phot"));
+  ir["nodes"].push_back(node("snr", "acsd.phase1.noise-snr", "fluxes", "artifact:phot", "snr", "artifact:snr"));
+  ir["nodes"].push_back(node("drz", "acsd.phase1.drizzle", "calibrated", "artifact:cal", "stacked", "artifact:drz"));
+  ir["nodes"].push_back(node("wr", "acsd.phase1.writer", "stacked", "artifact:drz", "fits", "artifact:wr"));
   ir["outputs"] = json{{"fits", "artifact:wr"}, {"snr", "artifact:snr"},
                        {"psf", "artifact:psf"},
                        {"cal", "artifact:cal"}, {"cos", "artifact:cos"}};
@@ -785,10 +785,10 @@ static void test_fail_fast_downstream_zero_calls() {
 static void test_complete_gate_fail_closed() {
   Fixture fx = make_fixture("gate");
   // 直接经冻结 C ABI（API-P1-001）: host services 缺省构造
-  astrocs_host_services_v1 host{};
+  acsd_host_services_v1 host{};
   void* state = nullptr;
-  CHECK(astrocs_host_services_default_v1(&host, &state) == 0);
-  acs_handle h = nullptr;
+  CHECK(acsd_host_services_default_v1(&host, &state) == 0);
+  acsd_handle h = nullptr;
   CHECK(p1_session_create(&host, &h) == ACS_OK);
 
   const std::string cfg = R"({
@@ -799,14 +799,14 @@ static void test_complete_gate_fail_closed() {
     "master_flat": ")" + fx.flat + R"(",
     "output_dir": ")" + fx.out_dir + R"("
   })";
-  acs_span_u8 span{};
+  acsd_span_u8 span{};
   span.head.struct_size = sizeof(span);
   span.head.abi_version = ACS_ABI_VERSION_V1;
   span.count = cfg.size();
   span.data = const_cast<uint8_t*>(reinterpret_cast<const uint8_t*>(cfg.data()));
   CHECK(p1_session_validate(h, span) == ACS_OK);
   CHECK(p1_session_run(h, span, 0) == ACS_OK);
-  acs_span_u8 out{};
+  acsd_span_u8 out{};
   CHECK(p1_session_inspect(h, &out) == ACS_OK && out.data);
   json man;
   try {
@@ -816,7 +816,7 @@ static void test_complete_gate_fail_closed() {
   }
   host.allocator.free(host.allocator.user_data, out.data);
   p1_session_destroy(h);
-  astrocs_host_services_destroy_state_v1(state);
+  acsd_host_services_destroy_state_v1(state);
 
   // complete 门 fail-closed: Phase1 链不完整（session 仅覆盖 calibrate/cosmetic）
   // → status 不得为 "complete"（PROD-P0-001: 不完整 Phase 禁写 complete）
@@ -847,7 +847,7 @@ static void test_negative_injection() {
 
   // 4a. 缺 output_dir → validate 拒绝（fail-closed, 不执行科学计算）
   {
-    auto m = reg.create("astrocs.phase1.calibration");
+    auto m = reg.create("acsd.phase1.calibration");
     CHECK(m.ok());
     auto v = m.value()->validate_config(R"({"input_lights":["x.fits"]})");
     CHECK(v.failed());
@@ -864,7 +864,7 @@ static void test_negative_injection() {
       "output_dir": ")" + fx.out_dir + R"("
     })";
     Result<void> rc;
-    json man = run_node(reg, "astrocs.phase1.calibration", cfg, ctx, &rc);
+    json man = run_node(reg, "acsd.phase1.calibration", cfg, ctx, &rc);
     CHECK(rc.failed());
     // 无伪产物：失败后不得产出 calibrated_bad.fits
     CHECK(!fs::exists(fs::path(fx.out_dir + "/calibrated_bad.fits")));
@@ -880,7 +880,7 @@ static void test_negative_injection() {
       "drizzle": {"nested": 0, "pixfrac": 1.0}
     })";
     Result<void> rc;
-    json man = run_node(reg, "astrocs.phase1.drizzle", cfg, ctx, &rc);
+    json man = run_node(reg, "acsd.phase1.drizzle", cfg, ctx, &rc);
     CHECK_MSG(rc.failed(), "drizzle without nside must be rejected");
     CHECK(!fs::exists(fs::path(frame_root(fx) + "/p1_stack.json")));
   }
@@ -894,7 +894,7 @@ static void test_negative_injection() {
       "output_dir": ")" + fx.out_dir + R"("
     })";
     Result<void> rc;
-    json man = run_node(reg, "astrocs.phase1.star-psf", cfg, ctx, &rc);
+    json man = run_node(reg, "acsd.phase1.star-psf", cfg, ctx, &rc);
     CHECK_MSG(rc.ok(), "pure-noise frame: empty catalog is legal, must not fail");
     if (man.contains("sources_artifact")) {
       json cat;
@@ -1003,7 +1003,7 @@ static void test_b2a16_photometry_fail_closed() {
       "output_dir": ")" + fx.out_dir + R"("
     })";
     Result<void> rc;
-    json man = run_node(reg, "astrocs.phase1.photometry", cfg, ctx, &rc);
+    json man = run_node(reg, "acsd.phase1.photometry", cfg, ctx, &rc);
     (void)man;
     CHECK_MSG(rc.failed(), "B2-A16: missing p1_sources.json must fail (older code returned success)");
     if (rc.failed()) CHECK(rc.error().domain() == ErrorDomain::DATA);
@@ -1024,7 +1024,7 @@ static void test_b2a16_photometry_fail_closed() {
       "output_dir": ")" + fx.out_dir + R"("
     })";
     Result<void> rc;
-    json man = run_node(reg, "astrocs.phase1.photometry", cfg, ctx, &rc);
+    json man = run_node(reg, "acsd.phase1.photometry", cfg, ctx, &rc);
     (void)man;
     CHECK_MSG(rc.failed(), "B2-A16: frame referenced by p1_sources.json missing must fail");
     CHECK_MSG(!fs::exists(fs::path(fx.out_dir + "/p1_flux.json")),
@@ -1044,7 +1044,7 @@ static void test_b2a16_photometry_fail_closed() {
       "output_dir": ")" + fx.out_dir + R"("
     })";
     Result<void> rc;
-    json man = run_node(reg, "astrocs.phase1.photometry", cfg, ctx, &rc);
+    json man = run_node(reg, "acsd.phase1.photometry", cfg, ctx, &rc);
     CHECK_MSG(rc.ok(), "B2-A16: valid upstream sources must succeed");
     CHECK(man.value("operation", "") == "measure_flux");
     CHECK(fs::exists(fs::path(fx.out_dir + "/p1_flux.json")));
@@ -1073,7 +1073,7 @@ static void test_b2a13_dark_scale_from_exptime() {
       "dark_optimization": true
     })";
     Result<void> rc;
-    json man = run_node(reg, "astrocs.phase1.calibration", cfg, ctx, &rc);
+    json man = run_node(reg, "acsd.phase1.calibration", cfg, ctx, &rc);
     CHECK_MSG(rc.ok(), ("B2-A13: dark_opt K from EXPTIME must succeed: " +
                         (rc.failed() ? rc.error().message() : std::string())).c_str());
     if (rc.ok()) {
@@ -1122,7 +1122,7 @@ static void test_b2a13_dark_scale_from_exptime() {
       "dark_optimization": true
     })";
     Result<void> rc;
-    json man = run_node(reg, "astrocs.phase1.calibration", cfg, ctx, &rc);
+    json man = run_node(reg, "acsd.phase1.calibration", cfg, ctx, &rc);
     (void)man;
     CHECK_MSG(rc.failed(), "B2-A13: dark EXPTIME missing must fail-closed");
     if (rc.failed()) CHECK(rc.error().domain() == ErrorDomain::DATA);
@@ -1143,7 +1143,7 @@ static void test_b2a13_dark_scale_from_exptime() {
       "dark_optimization": true
     })";
     Result<void> rc;
-    json man = run_node(reg, "astrocs.phase1.calibration", cfg, ctx, &rc);
+    json man = run_node(reg, "acsd.phase1.calibration", cfg, ctx, &rc);
     (void)man;
     CHECK_MSG(rc.failed(), "B2-A13: light EXPTIME missing must fail-closed");
     cleanup_fixture(fx);
@@ -1163,7 +1163,7 @@ static void test_b2a13_dark_scale_from_exptime() {
       "dark_scale_factor": 2.0
     })";
     Result<void> rc;
-    json man = run_node(reg, "astrocs.phase1.calibration", cfg, ctx, &rc);
+    json man = run_node(reg, "acsd.phase1.calibration", cfg, ctx, &rc);
     (void)man;
     CHECK_MSG(rc.failed(), "B2-A13: dark_scale_factor disagreeing with EXPTIME K must fail");
     cleanup_fixture(fx);
@@ -1184,7 +1184,7 @@ static void test_b2a13_dark_scale_from_exptime() {
       "dark_optimization": false
     })";
     Result<void> rc;
-    json man = run_node(reg, "astrocs.phase1.calibration", cfg, ctx, &rc);
+    json man = run_node(reg, "acsd.phase1.calibration", cfg, ctx, &rc);
     CHECK_MSG(rc.ok(), ("B2-A13: standard-form K from EXPTIME must succeed: " +
                         (rc.failed() ? rc.error().message() : std::string())).c_str());
     if (rc.ok()) {
@@ -1242,7 +1242,7 @@ static void test_b2a12_precision_default_and_equiv() {
       "drizzle": {"nside": 512, "nested": 1, "pixfrac": 1.0}
     })";
     Result<void> rc;
-    json man = run_node(reg, "astrocs.phase1.drizzle", cfg, ctx, &rc);
+    json man = run_node(reg, "acsd.phase1.drizzle", cfg, ctx, &rc);
     (void)man;
     CHECK_MSG(rc.failed(), "B2-A12: missing precision_mode must be rejected (no silent FP32)");
     if (rc.failed()) CHECK(rc.error().domain() == ErrorDomain::DATA);
@@ -1265,7 +1265,7 @@ static void test_b2a12_precision_default_and_equiv() {
         std::to_string(mode) + R"(}
       })";
       Result<void> rc;
-      json man = run_node(reg2, "astrocs.phase1.drizzle", cfg, ctx, &rc);
+      json man = run_node(reg2, "acsd.phase1.drizzle", cfg, ctx, &rc);
       CHECK_MSG(rc.ok(), (std::string("B2-A12: drizzle ") + tag +
                           " must succeed: " +
                           (rc.failed() ? rc.error().message() : std::string())).c_str());
@@ -1324,7 +1324,7 @@ static void test_b2a14_photappl_provenance() {
       "drizzle": {"nside": 512, "nested": 1, "pixfrac": 1.0, "precision_mode": 1}
     })";
     Result<void> rc;
-    run_node(reg, "astrocs.phase1.drizzle", cfg, ctx, &rc);
+    run_node(reg, "acsd.phase1.drizzle", cfg, ctx, &rc);
     if (rc.failed()) {
       std::fprintf(stderr, "DBG B2-A14 drizzle failed: %s\n", rc.error().message().c_str());
       return false;
@@ -1357,7 +1357,7 @@ static void test_b2a14_photappl_provenance() {
     Fixture fx = make_fixture("b2a14b");
     {
       std::ofstream o(fx.out_dir + "/p1_phot.json", std::ios::binary);
-      o << R"({"schema":"DATA-P1-PHOTPROV-001","node":"astrocs.phase1.photometry",)"
+      o << R"({"schema":"DATA-P1-PHOTPROV-001","node":"acsd.phase1.photometry",)"
            R"("operation":"measure_flux","photometry_applied":true,"photscal":0.5,"pixel_scaling":"applied"})";
     }
     // FIX-REGRESS: applied=true ⇒ 必须真实产出逐帧 photoapplied_<base>
@@ -1490,7 +1490,7 @@ static void test_b2a15_writer_stale_buffer_and_support() {
     "filter_passband": "R"
   })";
   Result<void> wrc;
-  json wman = run_node(reg, "astrocs.phase1.writer", cfg, ctx, &wrc);
+  json wman = run_node(reg, "acsd.phase1.writer", cfg, ctx, &wrc);
   CHECK_MSG(wrc.ok(), ("B2-A15: writer must validate direct HiPS: " +
                        (wrc.failed() ? wrc.error().message() : std::string())).c_str());
   if (wrc.failed()) { cleanup_fixture(fx); return; }
@@ -1589,7 +1589,7 @@ static void test_b2a15_ghost_discontinuous_multiparent() {
     "filter_passband": "R"
   })";
   Result<void> wrc;
-  json wman = run_node(reg, "astrocs.phase1.writer", cfg, ctx, &wrc);
+  json wman = run_node(reg, "acsd.phase1.writer", cfg, ctx, &wrc);
   CHECK_MSG(wrc.ok(), ("A15 ghost: writer must succeed: " +
                        (wrc.failed() ? wrc.error().message() : std::string())).c_str());
   if (wrc.failed()) { cleanup_fixture(fx); return; }
@@ -1756,7 +1756,7 @@ static void test_b2a17_sip_bridge() {
     RunContext ctx;
     const std::string cfg = make_cfg(fx, false);
     Result<void> wrc;
-    const json wman = run_node(reg, "astrocs.phase1.wcs-platesolve", cfg, ctx, &wrc);
+    const json wman = run_node(reg, "acsd.phase1.wcs-platesolve", cfg, ctx, &wrc);
     CHECK_MSG(wrc.ok(), ("B2-A17: explicit linear wcs: " +
                          (wrc.failed() ? wrc.error().message() : std::string())).c_str());
     CHECK(wman.value("wcs_source", "") == "explicit_config");
@@ -1766,7 +1766,7 @@ static void test_b2a17_sip_bridge() {
     CHECK_MSG(!wj["wcs"].contains("sip"), "B2-A17: undistorted path must not emit wcs.sip");
     CHECK(wj["wcs"].value("ctype1", "") == std::string("RA---TAN"));
     Result<void> drc;
-    const json dman = run_node(reg, "astrocs.phase1.drizzle", cfg, ctx, &drc);
+    const json dman = run_node(reg, "acsd.phase1.drizzle", cfg, ctx, &drc);
     CHECK_MSG(drc.ok(), ("B2-A17: linear drizzle: " +
                          (drc.failed() ? drc.error().message() : std::string())).c_str());
     CHECK(dman.value("operation", "") == "drizzle_stack");
@@ -1779,7 +1779,7 @@ static void test_b2a17_sip_bridge() {
   RunContext ctx;
   const std::string cfg = make_cfg(fx, true);
   Result<void> wrc;
-  const json wman = run_node(reg, "astrocs.phase1.wcs-platesolve", cfg, ctx, &wrc);
+  const json wman = run_node(reg, "acsd.phase1.wcs-platesolve", cfg, ctx, &wrc);
   CHECK_MSG(wrc.ok(), ("B2-A17: explicit SIP wcs: " +
                        (wrc.failed() ? wrc.error().message() : std::string())).c_str());
   json wj;
@@ -1823,7 +1823,7 @@ static void test_b2a17_sip_bridge() {
       const double dx = xp - 16.0, dy = yp - 16.0;  // SIP 自变量 = xp − CRPIX
       const double A = 8.0e-5 * dx * dx;
       const double B = -8.0e-5 * dy * dy;
-      astrocs::phase1::WcsTan linear;
+      acsd::phase1::WcsTan linear;
       linear.crpix1 = 16.0; linear.crpix2 = 16.0;
       linear.crval1 = 10.0; linear.crval2 = 20.0;
       linear.cd11 = -0.0002777777777777778; linear.cd12 = 0.0;
@@ -1853,7 +1853,7 @@ static void test_b2a17_sip_bridge() {
   }
   // (3) p1_wcs.json → drizzle frame header 桥接 (A_i_j 读面 = hp_drizzle_api)
   Result<void> drc;
-  const json drz_man = run_node(reg, "astrocs.phase1.drizzle", cfg, ctx, &drc);
+  const json drz_man = run_node(reg, "acsd.phase1.drizzle", cfg, ctx, &drc);
   CHECK_MSG(drc.ok(), ("B2-A17: SIP drizzle must complete: " +
                        (drc.failed() ? drc.error().message() : std::string())).c_str());
   CHECK(fs::exists(fs::path(drz_man.value("stack_artifact", ""))));
@@ -1896,7 +1896,7 @@ static void test_b2a17_sip_bridge() {
       std::error_code ec;
       fs::remove(fs::u8path(frame_root(fxo) + "/p1_wcs.json"), ec);
       Result<void> rc;
-      const json m = run_node(reg2, "astrocs.phase1.drizzle", drz_cfg(wcs_lin), c2, &rc);
+      const json m = run_node(reg2, "acsd.phase1.drizzle", drz_cfg(wcs_lin), c2, &rc);
       CHECK_MSG(rc.ok(), ("B2-A17: exact linear drizzle: " +
                           (rc.failed() ? rc.error().message() : std::string())).c_str());
       const auto sq = hips_exact_signal(frame_root(fxo));
@@ -1921,7 +1921,7 @@ static void test_b2a17_sip_bridge() {
       }
       // (3b) p1_wcs.json 带 SIP → drizzle, 同样的精确 signal
       Result<void> rw;
-      const json wm2 = run_node(reg2, "astrocs.phase1.wcs-platesolve",
+      const json wm2 = run_node(reg2, "acsd.phase1.wcs-platesolve",
                                 drz_cfg(wcs_sip), c2, &rw);
       CHECK_MSG(rw.ok(), ("B2-A17: SIP wcs node for exact: " +
                           (rw.failed() ? rw.error().message() : std::string())).c_str());
@@ -1931,7 +1931,7 @@ static void test_b2a17_sip_bridge() {
       CHECK_MSG(wj2["wcs"].contains("sip"),
                 "B2-A17: p1_wcs.json must ship sip for the frame header bridge");
       Result<void> drc2;
-      const json dm2 = run_node(reg2, "astrocs.phase1.drizzle", drz_cfg(wcs_sip), c2, &drc2);
+      const json dm2 = run_node(reg2, "acsd.phase1.drizzle", drz_cfg(wcs_sip), c2, &drc2);
       CHECK_MSG(drc2.ok(), ("B2-A17: SIP drizzle via p1_wcs.json: " +
                             (drc2.failed() ? drc2.error().message() : std::string())).c_str());
       const auto sq2 = hips_exact_signal(frame_root(fxo));
@@ -1983,7 +1983,7 @@ static void test_determinism() {
       "input_lights": [")" + fx.light1 + R"("],
       "output_dir": ")" + fx.out_dir + R"("
     })";
-    json man = run_node(reg, "astrocs.phase1.star-psf", cfg, ctx);
+    json man = run_node(reg, "acsd.phase1.star-psf", cfg, ctx);
     CHECK(man.value("status", "") == "ok");
     const std::string content = read_file(man.value("sources_artifact", ""));
     if (run == 0) {
@@ -2011,14 +2011,14 @@ static void test_cos_artifact_is_independent() {
   RunContext ctx;
   const std::string cfg = p1001_full_chain_cfg(fx);
 
-  json man_cal = run_node(reg, "astrocs.phase1.calibration", cfg, ctx);
+  json man_cal = run_node(reg, "acsd.phase1.calibration", cfg, ctx);
   CHECK(man_cal.value("status", "") == "ok");
   const std::string cal_art = fx.out_dir + "/calibrated_light_1.fits";
   CHECK(fs::exists(fs::path(cal_art)));
   const std::string cal_before = read_bytes(cal_art);
   CHECK(!cal_before.empty());
 
-  json man_cos = run_node(reg, "astrocs.phase1.cosmetic", cfg, ctx);
+  json man_cos = run_node(reg, "acsd.phase1.cosmetic", cfg, ctx);
   CHECK(man_cos.value("status", "") == "ok");
   CHECK(man_cos.contains("artifacts") && man_cos["artifacts"].is_array() &&
         !man_cos["artifacts"].empty());
@@ -2048,7 +2048,7 @@ static void test_cos_artifact_is_independent() {
   json cfg_off = json::parse(cfg);
   cfg_off["cosmetic"] = json{{"bad_column_enabled", false}};
   const std::string cfg_off_s = cfg_off.dump();   // run_node 收 JSON 文本
-  json man_off = run_node(reg, "astrocs.phase1.cosmetic", cfg_off_s, ctx);
+  json man_off = run_node(reg, "acsd.phase1.cosmetic", cfg_off_s, ctx);
   CHECK(man_off.value("status", "") == "ok");
   CHECK(man_off.contains("artifacts") && man_off["artifacts"].is_array() &&
         !man_off["artifacts"].empty());
@@ -2075,15 +2075,15 @@ static void test_consumer_reads_cos_artifact() {
   RunContext ctx;
   const std::string cfg = p1001_full_chain_cfg(fx);
 
-  json man_cal = run_node(reg, "astrocs.phase1.calibration", cfg, ctx);
+  json man_cal = run_node(reg, "acsd.phase1.calibration", cfg, ctx);
   CHECK(man_cal.value("status", "") == "ok");
-  json man_cos = run_node(reg, "astrocs.phase1.cosmetic", cfg, ctx);
+  json man_cos = run_node(reg, "acsd.phase1.cosmetic", cfg, ctx);
   CHECK(man_cos.value("status", "") == "ok");
   CHECK(!man_cos["artifacts"].empty());
   const std::string cos_art = man_cos["artifacts"][0].get<std::string>();
   const std::string cos_base = cos_art.substr(cos_art.find_last_of("/\\") + 1);
 
-  json man_psf = run_node(reg, "astrocs.phase1.star-psf", cfg, ctx);
+  json man_psf = run_node(reg, "acsd.phase1.star-psf", cfg, ctx);
   CHECK(man_psf.value("status", "") == "ok");
   json cat;
   try { cat = json::parse(read_file(man_psf.value("sources_artifact", ""))); }
@@ -2182,12 +2182,12 @@ static void test_torn_artifact_fault_injection() {
     CHECK(register_phase_modules(reg).ok());
     RunContext ctx;
     const std::string cfg = p1001_full_chain_cfg(fx);
-    json man_cal = run_node(reg, "astrocs.phase1.calibration", cfg, ctx);
+    json man_cal = run_node(reg, "acsd.phase1.calibration", cfg, ctx);
     CHECK(man_cal.value("status", "") == "ok");
     const std::string cal_art = fx.out_dir + "/calibrated_light_1.fits";
     CHECK(p1sess::sess_truncate_file(cal_art, 320) == 0);  // 头 6 卡(480B) 之内截断
     Result<void> rc;
-    run_node(reg, "astrocs.phase1.drizzle", cfg, ctx, &rc);
+    run_node(reg, "acsd.phase1.drizzle", cfg, ctx, &rc);
     CHECK_MSG(rc.failed(), "torn artifact must fail closed");
     // 仅在确实失败时取 error()（共享树上游在途改动使 cal 节点先失败时, error()
     // 会 abort 并吞掉后续全部用例; 判据不放松, 只把 abort 变成可读断言失败）。
@@ -2204,13 +2204,13 @@ static void test_torn_artifact_fault_injection() {
     CHECK(register_phase_modules(reg).ok());
     RunContext ctx;
     const std::string cfg = p1001_full_chain_cfg(fx);
-    json man_cal = run_node(reg, "astrocs.phase1.calibration", cfg, ctx);
+    json man_cal = run_node(reg, "acsd.phase1.calibration", cfg, ctx);
     CHECK(man_cal.value("status", "") == "ok");
     const std::string cos_art = fx.out_dir + "/cleaned_light_1.fits";
     float v = 1.0f;
     CHECK(p1sess::write_fits_file(cos_art, kW, kH, const_pixel, &v) == 0);
     CHECK(p1sess::sess_truncate_file(cos_art, 64) == 0);  // 残缺旧产物（64B）
-    json man_cos = run_node(reg, "astrocs.phase1.cosmetic", cfg, ctx);
+    json man_cos = run_node(reg, "acsd.phase1.cosmetic", cfg, ctx);
     CHECK(man_cos.value("status", "") == "ok");
     std::error_code ec;
     const auto sz = fs::file_size(cos_art, ec);
@@ -2234,7 +2234,7 @@ static void test_torn_artifact_fault_injection() {
     CHECK(register_phase_modules(reg).ok());
     RunContext ctx;
     const std::string cfg = p1001_full_chain_cfg(fx);
-    json man_cal = run_node(reg, "astrocs.phase1.calibration", cfg, ctx);
+    json man_cal = run_node(reg, "acsd.phase1.calibration", cfg, ctx);
     CHECK(man_cal.value("status", "") == "ok");
     const std::string cal_art = fx.out_dir + "/calibrated_light_1.fits";
     const std::string cal_before = read_bytes(cal_art);
@@ -2271,7 +2271,7 @@ static void test_psf_partial_fit_identity() {
   RunContext ctx;
   const std::string cfg = p1001_full_chain_cfg(fx);
 
-  json man_cal = run_node(reg, "astrocs.phase1.calibration", cfg, ctx);
+  json man_cal = run_node(reg, "acsd.phase1.calibration", cfg, ctx);
   CHECK(man_cal.value("status", "") == "ok");
   // 覆盖 cleaned_light_1.fits 为两星场 (第二星窗被 1e9 平台破坏)
   const std::string cleaned1 = fx.out_dir + "/cleaned_light_1.fits";
@@ -2310,7 +2310,7 @@ static void test_psf_partial_fit_identity() {
     }
   }
 
-  json man_psf = run_node(reg, "astrocs.phase1.star-psf", cfg, ctx);
+  json man_psf = run_node(reg, "acsd.phase1.star-psf", cfg, ctx);
   CHECK(man_psf.value("status", "") == "ok");
   json cat, psf;
   try {
@@ -2373,7 +2373,7 @@ static void test_psf_nonfinite_frame_fail_closed() {
   CHECK(register_phase_modules(reg).ok());
   RunContext ctx;
   const std::string cfg = p1001_full_chain_cfg(fx);
-  json man_cal = run_node(reg, "astrocs.phase1.calibration", cfg, ctx);
+  json man_cal = run_node(reg, "acsd.phase1.calibration", cfg, ctx);
   CHECK(man_cal.value("status", "") == "ok");
   const std::string cleaned1 = fx.out_dir + "/cleaned_light_1.fits";
   TwoStarCfg tc{100.0f, 8000.0f, 2000.0f};
@@ -2394,7 +2394,7 @@ static void test_psf_nonfinite_frame_fail_closed() {
     }
   }
   Result<void> rc;
-  json man = run_node(reg, "astrocs.phase1.star-psf", cfg, ctx, &rc);
+  json man = run_node(reg, "acsd.phase1.star-psf", cfg, ctx, &rc);
   CHECK_MSG(!rc.ok(), "含 NaN 的帧必须 fail-closed（CLEAN-401 入口门）");
   if (!rc.ok()) {
     CHECK_MSG(rc.error().domain() == ErrorDomain::DATA,
@@ -2427,7 +2427,7 @@ static void test_psf_fast_cap_and_inactive_precise() {
   ModuleRegistry reg;
   CHECK(register_phase_modules(reg).ok());
   RunContext ctx;
-  json man = run_node(reg, "astrocs.phase1.star-psf", cfg, ctx);
+  json man = run_node(reg, "acsd.phase1.star-psf", cfg, ctx);
   CHECK_MSG(man.value("status", "") == "ok", "FAST psf node must succeed");
   CHECK(man.value("psf_mode", std::string()) == "fast");
   CHECK_MSG(man.value("n_sources", (std::int64_t)0) >= 2,
@@ -2444,7 +2444,7 @@ static void test_psf_fast_cap_and_inactive_precise() {
   CHECK(psf.value("psf_mode", std::string()) == "fast");
   // (b) inactive 精确路径直调 (不经生产注册表): 忽略 psf.max_stars, 全量拟合
   std::string man_precise;
-  auto rc = astrocs::core::p1_op_star_psf_precise_json(cfg, &man_precise);
+  auto rc = acsd::core::p1_op_star_psf_precise_json(cfg, &man_precise);
   CHECK_MSG(rc.ok(), ("inactive precise PSF path must still run: " +
                       (rc.ok() ? std::string() : rc.error().message())).c_str());
   json psf2 = json::parse(read_file(fx.out_dir + "/p1_psf.json"));
@@ -2588,7 +2588,7 @@ static void test_p17_nside_sampling_compliance() {
   // (1) nside 缺省 => 自动 (合规默认), provenance 完整且 1x-2x
   {
     Result<void> rc;
-    json man = run_node(reg, "astrocs.phase1.drizzle",
+    json man = run_node(reg, "acsd.phase1.drizzle",
                         make_cfg(R"({"nested": 1, "pixfrac": 1.0, "precision_mode": 0})"),
                         ctx, &rc);
     CHECK_MSG(rc.ok(), "P17: 缺省 nside 必须自动计算而非拒绝");
@@ -2613,7 +2613,7 @@ static void test_p17_nside_sampling_compliance() {
   // (2) 显式 nside_mode=1x_to_2x_drizzle => 同自动 (合规默认)
   {
     Result<void> rc;
-    json man = run_node(reg, "astrocs.phase1.drizzle",
+    json man = run_node(reg, "acsd.phase1.drizzle",
                         make_cfg(R"({"nside_mode": "1x_to_2x_drizzle", "nested": 1,
                                      "pixfrac": 1.0, "precision_mode": 0})"),
                         ctx, &rc);
@@ -2624,7 +2624,7 @@ static void test_p17_nside_sampling_compliance() {
   // (3) 显式 nside=512 => 欠采样: 成功但冲突可见 (nside_source=explicit)
   {
     Result<void> rc;
-    json man = run_node(reg, "astrocs.phase1.drizzle",
+    json man = run_node(reg, "acsd.phase1.drizzle",
                         make_cfg(R"({"nside": 512, "nested": 1, "pixfrac": 1.0,
                                      "precision_mode": 0})"),
                         ctx, &rc);
@@ -2640,7 +2640,7 @@ static void test_p17_nside_sampling_compliance() {
   // (4) nside_mode 合同外取值 => DATA fail-closed
   {
     Result<void> rc;
-    run_node(reg, "astrocs.phase1.drizzle",
+    run_node(reg, "acsd.phase1.drizzle",
              make_cfg(R"({"nside_mode": "whatever", "nested": 1, "pixfrac": 1.0,
                           "precision_mode": 0})"),
              ctx, &rc);
@@ -2649,7 +2649,7 @@ static void test_p17_nside_sampling_compliance() {
   // (5) auto 模式与显式 nside>0 冲突 => fail-closed (禁静默二选一)
   {
     Result<void> rc;
-    run_node(reg, "astrocs.phase1.drizzle",
+    run_node(reg, "acsd.phase1.drizzle",
              make_cfg(R"({"nside_mode": "1x_to_2x_drizzle", "nside": 4096,
                           "nested": 1, "pixfrac": 1.0, "precision_mode": 0})"),
              ctx, &rc);
@@ -2658,7 +2658,7 @@ static void test_p17_nside_sampling_compliance() {
   // (6) nside_mode=explicit 但缺 nside => fail-closed
   {
     Result<void> rc;
-    run_node(reg, "astrocs.phase1.drizzle",
+    run_node(reg, "acsd.phase1.drizzle",
              make_cfg(R"({"nside_mode": "explicit", "nested": 1, "pixfrac": 1.0,
                           "precision_mode": 0})"),
              ctx, &rc);
@@ -2667,7 +2667,7 @@ static void test_p17_nside_sampling_compliance() {
   // (7) nside 非 2 的幂 (显式) => 引擎层拒绝 (不静默向上取整)
   {
     Result<void> rc;
-    run_node(reg, "astrocs.phase1.drizzle",
+    run_node(reg, "acsd.phase1.drizzle",
              make_cfg(R"({"nside": 300, "nested": 1, "pixfrac": 1.0, "precision_mode": 0})"),
              ctx, &rc);
     CHECK_MSG(rc.failed(), "P17: 非 2 次幂 nside 必须拒绝");
@@ -2675,7 +2675,7 @@ static void test_p17_nside_sampling_compliance() {
   // (8) 显式强制输入同时给出理由 => 允许 (另当别论)
   {
     Result<void> rc;
-    json man = run_node(reg, "astrocs.phase1.drizzle",
+    json man = run_node(reg, "acsd.phase1.drizzle",
                         make_cfg(R"({"nside": 4096, "nside_mode": "explicit",
                                      "nside_reason": "operator preview", "nested": 1,
                                      "pixfrac": 1.0, "precision_mode": 0})"),
@@ -2791,7 +2791,7 @@ static void test_p21_writer_aggregation_buckets() {
     "filter_passband": "R"
   })";
   Result<void> wrc;
-  json wman = run_node(reg, "astrocs.phase1.writer", cfg, ctx, &wrc);
+  json wman = run_node(reg, "acsd.phase1.writer", cfg, ctx, &wrc);
   CHECK_MSG(wrc.ok(), ("P21: writer must validate direct HiPS: " +
                        (wrc.failed() ? wrc.error().message()
                                      : std::string())).c_str());
@@ -2903,7 +2903,7 @@ static void test_p21_writer_aggregation_buckets() {
 // （writer 归约 variance = var_num_sum/covered_area²、ivar = 1/variance, §4a）;
 // 无方差累加量时保持既有 signal+support 两产品面不变。writer 节点
 // p1_final.json 的 products/uncertainty_available 必须来自磁盘事实（禁硬编码）。
-// 故障注入面: ASTROCS_IVAR_FAULT=no_variance_flags（等价缺陷: 有方差却不请求
+// 故障注入面: ACSD_IVAR_FAULT=no_variance_flags（等价缺陷: 有方差却不请求
 // 产品位）⇒ 本门必然判红。
 constexpr uint8_t kIvarSupFull = 255;      // 满覆盖: area = A_cell
 constexpr uint64_t kIvarCover = 512;       // 覆盖叶数
@@ -2990,7 +2990,7 @@ static bool hips_tile_product(const std::string& root, const char* prod,
 static void test_ivar001_phase1_variance_products() {
   ModuleRegistry reg;
   CHECK(register_phase_modules(reg).ok());
-  const char* fault_env = std::getenv("ASTROCS_IVAR_FAULT");
+  const char* fault_env = std::getenv("ACSD_IVAR_FAULT");
   const bool fault_no_flags =
       fault_env && std::string(fault_env) == "no_variance_flags";
   // (a) 无方差累加量 → signal+support 两产品面（基线不变, 无方差目录）
@@ -3005,7 +3005,7 @@ static void test_ivar001_phase1_variance_products() {
       "filter_passband": "R"
     })";
     Result<void> wrc;
-    run_node(reg, "astrocs.phase1.writer", cfg, ctx, &wrc);
+    run_node(reg, "acsd.phase1.writer", cfg, ctx, &wrc);
     CHECK_MSG(wrc.ok(), ("IVAR-001: writer must accept no-variance HiPS: " +
                          (wrc.failed() ? wrc.error().message() : std::string())).c_str());
     json fin;
@@ -3033,7 +3033,7 @@ static void test_ivar001_phase1_variance_products() {
       "filter_passband": "R"
     })";
     Result<void> wrc;
-    json wman = run_node(reg, "astrocs.phase1.writer", cfg, ctx, &wrc);
+    json wman = run_node(reg, "acsd.phase1.writer", cfg, ctx, &wrc);
     CHECK_MSG(wrc.ok(), ("IVAR-001: writer must accept variance HiPS: " +
                          (wrc.failed() ? wrc.error().message() : std::string())).c_str());
     if (wrc.ok()) {
@@ -3091,14 +3091,14 @@ static void test_ivar001_phase1_variance_products() {
     if (fault_no_flags) {
       CHECK_MSG(false,
                 "FAULT-INJECT: variance/ivar product bits must be requested when"
-                " the accumulator carries finite positive variance (ASTROCS_IVAR_"
+                " the accumulator carries finite positive variance (ACSD_IVAR_"
                 "FAULT=no_variance_flags proves this gate is live)");
     }
     cleanup_fixture(fx);
   }
 }
 
-// ── IVAR-002: 逐像素 variance **帧内命名块**接入（定案 2 / docs/ASTROCS_DESIGN §8.2）──
+// ── IVAR-002: 逐像素 variance **帧内命名块**接入（定案 2 / docs/ACSD_DESIGN §8.2）──
 // 登记面 = DATA-P1-DRZ §11.1:295「variance 面（可选，帧内块）| float32 | ADU²」；
 // 生产侧 = drizzle 节点（module_adapters.cpp p1_op_drizzle）用 A
 // （snr_noise_model_v1/_fill）对**即将被积分的同一数组**产块并 add_block；
@@ -3201,7 +3201,7 @@ static void test_ivar002_frame_variance_block_wiring() {
   write_p1_sources(fx, "cleaned_light_1.fits", {{16.0, 16.0, 5000.0, 3.5}});
   RunContext ctx;
   Result<void> rc;
-  json man = run_node(reg, "astrocs.phase1.drizzle", drz_cfg(fx), ctx, &rc);
+  json man = run_node(reg, "acsd.phase1.drizzle", drz_cfg(fx), ctx, &rc);
   CHECK_MSG(rc.ok(), ("IVAR-002(a): drizzle must succeed: " +
                       (rc.failed() ? rc.error().message() : std::string())).c_str());
   CHECK_MSG(man.value("variance_product_status", std::string()) == "attached",
@@ -3264,7 +3264,7 @@ static void test_ivar002_frame_variance_block_wiring() {
     }
   }
   // writer 节点: 产品面事实来自磁盘（DATA-P1-HIPS §12.2 + §4a 成对）
-  json wman = run_node(reg, "astrocs.phase1.writer", wr_cfg(fx), ctx, &rc);
+  json wman = run_node(reg, "acsd.phase1.writer", wr_cfg(fx), ctx, &rc);
   CHECK_MSG(rc.ok(), ("IVAR-002(a): writer must accept variance HiPS: " +
                       (rc.failed() ? rc.error().message() : std::string())).c_str());
   json fin = json::object();
@@ -3286,7 +3286,7 @@ static void test_ivar002_frame_variance_block_wiring() {
     write_p1_sources(fx4, "cleaned_light_1.fits", {{16.0, 16.0, 5000.0, 3.5}});
     RunContext ctx4;
     Result<void> rc4;
-    json man4 = run_node(reg, "astrocs.phase1.drizzle", drz_cfg(fx4), ctx4, &rc4);
+    json man4 = run_node(reg, "acsd.phase1.drizzle", drz_cfg(fx4), ctx4, &rc4);
     CHECK_MSG(rc4.ok(), ("IVAR-002(a2): drizzle must succeed on the x4-noise frame: " +
                          (rc4.failed() ? rc4.error().message() : std::string())).c_str());
     const json vf4 = man4.value("variance_product_frames", json::array());
@@ -3327,7 +3327,7 @@ static void test_ivar002_frame_variance_block_wiring() {
   Fixture fx2 = make_fixture("ivar2neg");
   RunContext ctx2;
   Result<void> rc2;
-  json man2 = run_node(reg, "astrocs.phase1.drizzle", drz_cfg(fx2), ctx2, &rc2);
+  json man2 = run_node(reg, "acsd.phase1.drizzle", drz_cfg(fx2), ctx2, &rc2);
   CHECK_MSG(rc2.ok(), ("IVAR-002(b): drizzle must still succeed without mask input: " +
                        (rc2.failed() ? rc2.error().message() : std::string())).c_str());
   CHECK_MSG(man2.value("variance_product_status", std::string()) == "skipped",
@@ -3342,7 +3342,7 @@ static void test_ivar002_frame_variance_block_wiring() {
             "IVAR-002(b): no variance/ subproduct without the frame block");
   CHECK_MSG(!fs::exists(fs::path(frame_root(fx2) + "/ivar/properties")),
             "IVAR-002(b): no ivar/ subproduct without the frame block");
-  run_node(reg, "astrocs.phase1.writer", wr_cfg(fx2), ctx2, &rc2);
+  run_node(reg, "acsd.phase1.writer", wr_cfg(fx2), ctx2, &rc2);
   CHECK(rc2.ok());
   json fin2 = json::object();
   try { fin2 = json::parse(read_file(frame_root(fx2) + "/p1_final.json")); } catch (...) { CHECK(false); }
@@ -3378,7 +3378,7 @@ static void test_ivar002_frame_variance_block_wiring() {
   }
   RunContext ctx3;
   Result<void> rc3;
-  json man3 = run_node(reg, "astrocs.phase1.drizzle", drz_cfg(fx3), ctx3, &rc3);
+  json man3 = run_node(reg, "acsd.phase1.drizzle", drz_cfg(fx3), ctx3, &rc3);
   CHECK_MSG(rc3.ok(), ("IVAR-002(c): drizzle must survive a degenerate noise model: " +
                        (rc3.failed() ? rc3.error().message() : std::string())).c_str());
   const json vf3 = man3.value("variance_product_frames", json::array());
@@ -3492,7 +3492,7 @@ static json run_writer_node(ModuleRegistry& reg, const Fixture& fx,
   const std::string cfg = std::string("{\n  \"input_lights\": [\"") + fx.light1 +
                           "\"],\n  \"output_dir\": \"" + fx.out_dir +
                           "\",\n  \"filter_passband\": \"R\"\n}";
-  return run_node(reg, "astrocs.phase1.writer", cfg, ctx, rc_out);
+  return run_node(reg, "acsd.phase1.writer", cfg, ctx, rc_out);
 }
 
 // ── W1: §5d 审计字段 + fail-closed（判据能红能绿）──────────────────────────
@@ -3515,7 +3515,7 @@ static void test_chain_wire_w1_varplane_audit_failclosed() {
     write_p1_sources(fx, "cleaned_light_1.fits", {{16.0, 16.0, 5000.0, 3.5}});
     RunContext ctx;
     Result<void> rc;
-    json man = run_node(reg, "astrocs.phase1.drizzle", drz_cfg(fx), ctx, &rc);
+    json man = run_node(reg, "acsd.phase1.drizzle", drz_cfg(fx), ctx, &rc);
     CHECK_MSG(rc.ok(), ("W1(a): drizzle must succeed: " +
                         (rc.failed() ? rc.error().message() : std::string())).c_str());
     const json vf = man.value("variance_product_frames", json::array());
@@ -3546,11 +3546,11 @@ static void test_chain_wire_w1_varplane_audit_failclosed() {
   {
     Fixture fx = make_fixture("chainw1red");
     write_p1_sources(fx, "cleaned_light_1.fits", {{16.0, 16.0, 5000.0, 3.5}});
-    ::setenv("ASTROCS_VARPLANE_FAULT", "force_not_auditable", 1);
+    ::setenv("ACSD_VARPLANE_FAULT", "force_not_auditable", 1);
     RunContext ctx;
     Result<void> rc;
-    json man = run_node(reg, "astrocs.phase1.drizzle", drz_cfg(fx), ctx, &rc);
-    ::unsetenv("ASTROCS_VARPLANE_FAULT");
+    json man = run_node(reg, "acsd.phase1.drizzle", drz_cfg(fx), ctx, &rc);
+    ::unsetenv("ACSD_VARPLANE_FAULT");
     CHECK_MSG(rc.ok(), "W1(b): an unauditable variance plane must not abort the frame"
                        " (signal/support product face is independent)");
     const json vf = man.value("variance_product_frames", json::array());
@@ -3713,7 +3713,7 @@ static void test_chain_wire_w3_mask_radius_scale_invariance() {
     sources(fx);
     RunContext ctx;
     Result<void> rc;
-    json man = run_node(reg, "astrocs.phase1.drizzle", drz_cfg(fx), ctx, &rc);
+    json man = run_node(reg, "acsd.phase1.drizzle", drz_cfg(fx), ctx, &rc);
     CHECK_MSG(rc.ok(), ("W3(a): drizzle must succeed: " +
                         (rc.failed() ? rc.error().message() : std::string())).c_str());
     const json vf = man.value("variance_product_frames", json::array());
@@ -3735,13 +3735,13 @@ static void test_chain_wire_w3_mask_radius_scale_invariance() {
                                   kMaskH, mask_field_pixel, &mf, 0, 60.0) == 0);
     {
       std::ofstream o(fx.out_dir + "/p1_phot.json", std::ios::binary);
-      o << R"({"schema":"DATA-P1-PHOTPROV-001","node":"astrocs.phase1.photometry",)"
+      o << R"({"schema":"DATA-P1-PHOTPROV-001","node":"acsd.phase1.photometry",)"
            R"("operation":"measure_flux","photometry_applied":true,"photscal":)"
         << alpha << R"(,"pixel_scaling":"applied"})";
     }
     RunContext ctx;
     Result<void> rc;
-    json man = run_node(reg, "astrocs.phase1.drizzle", drz_cfg(fx), ctx, &rc);
+    json man = run_node(reg, "acsd.phase1.drizzle", drz_cfg(fx), ctx, &rc);
     CHECK_MSG(rc.ok(), ("W3(b): drizzle must succeed on the photoapplied face: " +
                         (rc.failed() ? rc.error().message() : std::string())).c_str());
     const json vf = man.value("variance_product_frames", json::array());
@@ -3773,7 +3773,7 @@ static void test_chain_wire_w3_mask_radius_scale_invariance() {
   }
 }
 
-// ── P0-21: 一组进一组出（docs/ASTROCS_DESIGN §4.4「输出基数」）────────────────
+// ── P0-21: 一组进一组出（docs/ACSD_DESIGN §4.4「输出基数」）────────────────
 // 缺陷: drizzle/wcs 只取 input_lights[0] ⇒ N 帧只产 1 个 HiPS, 静默丢弃 N-1 帧
 // （L4 实测 49 帧只产 12 个产品）。本用例锁定:
 //   * N=3 帧 ⇒ 恰好 3 个逐帧 HiPS 产品, 内容互不相同（非同一帧写三次）;
@@ -3886,7 +3886,7 @@ static void test_audit_persist_01_s5d_in_products() {
     write_p1_sources(fx, "cleaned_light_1.fits", {{16.0, 16.0, 5000.0, 3.5}});
     RunContext ctx;
     Result<void> rc;
-    json man_drz = run_node(reg, "astrocs.phase1.drizzle", drz_cfg(fx), ctx, &rc);
+    json man_drz = run_node(reg, "acsd.phase1.drizzle", drz_cfg(fx), ctx, &rc);
     CHECK_MSG(rc.ok(), ("AUDIT-PERSIST(a): drizzle must succeed: " +
                         (rc.failed() ? rc.error().message() : std::string())).c_str());
     const std::string froot = frame_root(fx);
@@ -3957,17 +3957,17 @@ static void test_audit_persist_01_s5d_in_products() {
     cleanup_fixture(fx);
   }
 
-  // (b) 红①（生产者自检）：ASTROCS_VARPLANE_FAULT=drop_audit_observables 把 §5d
+  // (b) 红①（生产者自检）：ACSD_VARPLANE_FAULT=drop_audit_observables 把 §5d
   //     可观测量从 provenance 里删掉 ⇒ 挂了 variance 块却给不出可观测量 ⇒ 节点
   //     fail-closed，且 p1_stack.json **不落盘**（不得静默出片）。
   {
     Fixture fx = make_fixture("auditp1drop");
     write_p1_sources(fx, "cleaned_light_1.fits", {{16.0, 16.0, 5000.0, 3.5}});
-    ::setenv("ASTROCS_VARPLANE_FAULT", "drop_audit_observables", 1);
+    ::setenv("ACSD_VARPLANE_FAULT", "drop_audit_observables", 1);
     RunContext ctx;
     Result<void> rc;
-    run_node(reg, "astrocs.phase1.drizzle", drz_cfg(fx), ctx, &rc);
-    ::unsetenv("ASTROCS_VARPLANE_FAULT");
+    run_node(reg, "acsd.phase1.drizzle", drz_cfg(fx), ctx, &rc);
+    ::unsetenv("ACSD_VARPLANE_FAULT");
     CHECK_MSG(rc.failed(), "AUDIT-PERSIST(b): dropping §5d observables must fail-closed");
     const std::string msg = rc.failed() ? rc.error().message() : std::string();
     CHECK_MSG(msg.find("§5d") != std::string::npos && msg.find("r_fence") != std::string::npos,
@@ -3986,7 +3986,7 @@ static void test_audit_persist_01_s5d_in_products() {
     write_p1_sources(fx, "cleaned_light_1.fits", {{16.0, 16.0, 5000.0, 3.5}});
     RunContext ctx;
     Result<void> rc;
-    run_node(reg, "astrocs.phase1.drizzle", drz_cfg(fx), ctx, &rc);
+    run_node(reg, "acsd.phase1.drizzle", drz_cfg(fx), ctx, &rc);
     CHECK_MSG(rc.ok(), "AUDIT-PERSIST(c): drizzle must succeed before the strip");
     const std::string froot = frame_root(fx);
     json sj;
@@ -4016,7 +4016,7 @@ static void test_audit_persist_01_s5d_in_products() {
     write_p1_sources(fx, "cleaned_light_1.fits", {{16.0, 16.0, 5000.0, 3.5}});
     RunContext ctx;
     Result<void> rc;
-    run_node(reg, "astrocs.phase1.drizzle", drz_cfg(fx), ctx, &rc);
+    run_node(reg, "acsd.phase1.drizzle", drz_cfg(fx), ctx, &rc);
     CHECK(rc.ok());
     const std::string froot = frame_root(fx);
     json sj;
@@ -4122,7 +4122,7 @@ static void test_p0_21_multi_frame_one_hips_per_input() {
       "drizzle": {"nside": 512, "nested": 1, "pixfrac": 1.0, "precision_mode": 0}
     })";
     Result<void> rc;
-    json man = run_node(reg, "astrocs.phase1.drizzle", cfg, ctx, &rc);
+    json man = run_node(reg, "acsd.phase1.drizzle", cfg, ctx, &rc);
     CHECK_MSG(rc.failed(),
               "P0-21: drizzle must reject a frame it cannot read (no silent skip)");
     CHECK(man.value("status", "") == "fail");
@@ -4173,7 +4173,7 @@ static void test_fixp1_photometry_apply() {
     }
     const std::string cfg = cfg_for(fx, "\"" + fx.light1 + "\"");
     Result<void> rc;
-    json man = run_node(reg, "astrocs.phase1.photometry", cfg, ctx, &rc);
+    json man = run_node(reg, "acsd.phase1.photometry", cfg, ctx, &rc);
     CHECK_MSG(rc.ok(), "FIX-P1 POS: photometry with photscale sidecar must succeed");
     CHECK_MSG(man.value("photometry_applied", false) == true,
               "FIX-P1 POS: manifest photometry_applied must be true (was hardcoded false)");
@@ -4220,7 +4220,7 @@ static void test_fixp1_photometry_apply() {
     }
     const std::string cfg = cfg_for(fx, "\"" + fx.light1 + "\"");
     Result<void> rc;
-    json man = run_node(reg, "astrocs.phase1.photometry", cfg, ctx, &rc);
+    json man = run_node(reg, "acsd.phase1.photometry", cfg, ctx, &rc);
     CHECK_MSG(rc.ok(), "FIX-P1 NEG: photometry without scale source must still succeed");
     CHECK_MSG(man.value("photometry_applied", false) == false,
               "FIX-P1 NEG: no scale source → photometry_applied=false");
@@ -4256,7 +4256,7 @@ static void test_fixp1_photometry_apply() {
     const std::string cfg =
         cfg_for(fx, "\"" + fx.light1 + "\", \"" + fx.light2 + "\"");
     Result<void> rc;
-    json man = run_node(reg, "astrocs.phase1.photometry", cfg, ctx, &rc);
+    json man = run_node(reg, "acsd.phase1.photometry", cfg, ctx, &rc);
     // FAILSEM-01（语义反转）: 未被标定通道覆盖的帧**该帧 fail**
     // （PHOT_SCALE_MISSING）, 已被覆盖的帧照常施加 —— 不再整组连坐。
     // 判别力: 若把"部分归一化 ⇒ 整组不施加"加回来, frame 1 的 photoapplied
@@ -4343,7 +4343,7 @@ static void test_p1photbroken_scale_guards() {
     }
     const std::string cfg = cfg_for2(fx, "\"" + fx.light1 + "\"");
     Result<void> rc;
-    json man = run_node(reg, "astrocs.phase1.photometry", cfg, ctx, &rc);
+    json man = run_node(reg, "acsd.phase1.photometry", cfg, ctx, &rc);
     CHECK_MSG(rc.ok(), "P1PHOTBROKEN RED-1: 该帧 fail 不中止节点（FAILSEM-01）");
     CHECK_MSG(man.value("n_frames_failed", 0) == 1 &&
                   man.value("photometry_applied", true) == false,
@@ -4382,7 +4382,7 @@ static void test_p1photbroken_scale_guards() {
     const std::string cfg =
         cfg_for2(fx, "\"" + fx.light1 + "\", \"" + fx.light2 + "\"");
     Result<void> rc;
-    json man = run_node(reg, "astrocs.phase1.photometry", cfg, ctx, &rc);
+    json man = run_node(reg, "acsd.phase1.photometry", cfg, ctx, &rc);
     CHECK_MSG(rc.ok(), "P1PHOTBROKEN RED-2: 单帧失败不得中止节点");
     CHECK_MSG(man.value("n_frames_failed", -1) == 1 &&
                   man.value("n_frames_applied", -1) == 1,
@@ -4435,7 +4435,7 @@ static void test_p1photbroken_scale_guards() {
     const std::string cfg =
         cfg_for2(fx, "\"" + fx.light1 + "\", \"" + fx.light2 + "\"");
     Result<void> rc;
-    json man = run_node(reg, "astrocs.phase1.photometry", cfg, ctx, &rc);
+    json man = run_node(reg, "acsd.phase1.photometry", cfg, ctx, &rc);
     CHECK_MSG(rc.ok(), "SPREAD-REPORT-1: node succeeds (frame-independent)");
     CHECK_MSG(man.value("photometry_applied", false) == true,
               "SPREAD-REPORT-1: 帧间 k 散度**不得**阻断施加（§9.49 定案 2：帧间独立）");
@@ -4476,7 +4476,7 @@ static void test_p1photbroken_scale_guards() {
     }
     const std::string cfg = cfg_for2(fx, "\"" + fx.light1 + "\"");
     Result<void> rc;
-    json man = run_node(reg, "astrocs.phase1.photometry", cfg, ctx, &rc);
+    json man = run_node(reg, "acsd.phase1.photometry", cfg, ctx, &rc);
     CHECK_MSG(rc.ok(), "STAR-GATE-REMOVED: 星数少不得作为失败理由（不是门槛）");
     CHECK_MSG(man.value("photometry_applied", false) == true,
               "STAR-GATE-REMOVED: n_matched=1 且声明拟合来源 ⇒ 必须施加（星数门槛已删）");
@@ -4523,7 +4523,7 @@ static void test_p1photbroken_scale_guards() {
         R"(","filter":"Red","filters_json":")" + fx.dir.string() +
         R"(/no_such_filters.json"}}})";
     Result<void> rc;
-    json man = run_node(reg, "astrocs.phase1.photometry", cfg, ctx, &rc);
+    json man = run_node(reg, "acsd.phase1.photometry", cfg, ctx, &rc);
     CHECK_MSG(rc.failed(), "GLOBAL-FAIL: 响应曲线不可读（环境/配置）必须中止运行");
     if (rc.failed()) {
       CHECK_MSG(rc.error().domain() == ErrorDomain::IO,
@@ -4574,7 +4574,7 @@ static void test_p1photbroken_scale_guards() {
     const std::string cfg =
         cfg_for2(fx, "\"" + fx.light1 + "\", \"" + fx.light2 + "\"");
     Result<void> rc;
-    json man = run_node(reg, "astrocs.phase1.photometry", cfg, ctx, &rc);
+    json man = run_node(reg, "acsd.phase1.photometry", cfg, ctx, &rc);
     CHECK_MSG(rc.ok(), "P1PHOTBROKEN GREEN: consistent fitted scales must succeed");
     CHECK_MSG(man.value("photometry_applied", false) == true,
               "P1PHOTBROKEN GREEN: applied=true for a real, consistent fit");
@@ -4662,7 +4662,7 @@ static void test_p1photbroken_scale_guards() {
     const std::string cfg =
         cfg_for2(fx, "\"" + fx.light1 + "\", \"" + fx.light2 + "\"");
     Result<void> rc;
-    json man = run_node(reg, "astrocs.phase1.photometry", cfg, ctx, &rc);
+    json man = run_node(reg, "acsd.phase1.photometry", cfg, ctx, &rc);
     CHECK_MSG(rc.ok(), "SPREAD-REPORT-2: node succeeds (frame-independent)");
     CHECK_MSG(man.value("photometry_applied", false) == true,
               "SPREAD-REPORT-2: 0.107 mag 组间散度**不得**阻断（§9.49 定案 2）");
@@ -4693,7 +4693,7 @@ static void test_p1photbroken_scale_guards() {
         R"(","filter":"Red","filters_json":")" + fx.dir.string() +
         R"(/no_such_filters.json"}},"wcs":{"init_source":"header_pointing","gaia_data_dir":"/nonexistent"}})";
     Result<void> rc;
-    json man = run_node(reg, "astrocs.phase1.photometry", cfg, ctx, &rc);
+    json man = run_node(reg, "acsd.phase1.photometry", cfg, ctx, &rc);
     CHECK_MSG(rc.ok(), "P1PHOTBROKEN RED-4: 帧级失败不得中止节点（FAILSEM-01）");
     CHECK_MSG(man.value("photometry_applied", true) == false,
               "P1PHOTBROKEN RED-4: unusable WCS must NOT yield applied=true");
@@ -4746,7 +4746,7 @@ static void test_p1photbroken_scale_guards() {
 //
 // 递归收集 root 下全部**常规文件**（键 = 相对 root 的 POSIX 相对路径）。
 // 目录枚举经 aio 唯一机制原语（aio_atomic::for_each_child，header-only；
-// docs/ASTROCS_DESIGN §10「aio 是文件级唯一 I/O 边界」+ §9.73 裁决 U5），本 TU 不再
+// docs/ACSD_DESIGN §10「aio 是文件级唯一 I/O 边界」+ §9.73 裁决 U5），本 TU 不再
 // 自持 std::filesystem 遍历通道。kind: 0=常规文件 / 1=目录 / 2=其他（不跟随
 // 符号链接）。与 recursive_directory_iterator 的等价性: 常规目录照常下钻、常规
 // 文件照常采集；kind==2（符号链接/fifo/设备）不采集 —— 夹具产物树由 writer 直接
@@ -4781,23 +4781,23 @@ static std::map<std::string, std::string> p1par_run_chain(const char* tag,
   CHECK_MSG(b.ok(), "create_thread_budget failed");
   if (b.ok()) ctx.set_budget(b.value());
   const std::string cfg = p1001_full_chain_cfg(fx);
-  json man_cal = run_node(reg, "astrocs.phase1.calibration", cfg, ctx);
+  json man_cal = run_node(reg, "acsd.phase1.calibration", cfg, ctx);
   CHECK_MSG(man_cal.value("status", "") == "ok", "calibration node must succeed");
-  json man_cos = run_node(reg, "astrocs.phase1.cosmetic", cfg, ctx);
+  json man_cos = run_node(reg, "acsd.phase1.cosmetic", cfg, ctx);
   CHECK_MSG(man_cos.value("status", "") == "ok", "cosmetic node must succeed");
   // PERF-P1 覆盖扩展: 帧级并行已接线的其余节点全部纳入同一条链
   // （star-psf / photometry / noise-snr / drizzle / writer）。逐节点直调 = 各节点
   // 真实 execute 路径（含 lease ⇒ __workers 注入），帧级并行即在此发生；节点 status
   // 必须为 ok，否则"两边都失败"会让字节比对假绿。
-  json man_psf = run_node(reg, "astrocs.phase1.star-psf", cfg, ctx);
+  json man_psf = run_node(reg, "acsd.phase1.star-psf", cfg, ctx);
   CHECK_MSG(man_psf.value("status", "") == "ok", "star-psf node must succeed");
-  json man_phot = run_node(reg, "astrocs.phase1.photometry", cfg, ctx);
+  json man_phot = run_node(reg, "acsd.phase1.photometry", cfg, ctx);
   CHECK_MSG(man_phot.value("status", "") == "ok", "photometry node must succeed");
-  json man_snr = run_node(reg, "astrocs.phase1.noise-snr", cfg, ctx);
+  json man_snr = run_node(reg, "acsd.phase1.noise-snr", cfg, ctx);
   CHECK_MSG(man_snr.value("status", "") == "ok", "noise-snr node must succeed");
-  json man_drz = run_node(reg, "astrocs.phase1.drizzle", cfg, ctx);
+  json man_drz = run_node(reg, "acsd.phase1.drizzle", cfg, ctx);
   CHECK_MSG(man_drz.value("status", "") == "ok", "drizzle node must succeed");
-  json man_wr = run_node(reg, "astrocs.phase1.writer", cfg, ctx);
+  json man_wr = run_node(reg, "acsd.phase1.writer", cfg, ctx);
   CHECK_MSG(man_wr.value("status", "") == "ok", "writer node must succeed");
   // 收集 out_dir 下全部产物字节（**递归**含 HiPS 产品子目录; 相对路径为键，
   // 字典序固定 ⇒ 与 worker 数无关）。枚举经 aio（p1par_collect_tree）。
@@ -4919,7 +4919,7 @@ static void test_perf_p1_frame_parallel_bitwise_1_vs_n() {
 // 全链判据（能红能绿）:
 //   A 红: 3 帧里 1 帧无标度 ⇒ 该帧无产品; 其余 2 帧 HiPS 照常产出;
 //          运行级显式判红（write_hips 上抛 SCIENCE_PRECONDITION）, 不发布
-//          p1_products.json（docs/ASTROCS_DESIGN §4.4 + P0-21 不产出部分产品却报成功）。
+//          p1_products.json（docs/ACSD_DESIGN §4.4 + P0-21 不产出部分产品却报成功）。
 //   B 绿: 3 帧全有标度 ⇒ 运行成功且恰好 3 个产品（证明 A 的红不是恒真门）。
 // ══════════════════════════════════════════════════════════════════════════
 static void test_failsem01_frame_failure_semantics() {
@@ -5033,7 +5033,7 @@ int main() {
   test_b2a15_ghost_discontinuous_multiparent();
   // IVAR-001: Phase1 生产末端 variance/ivar 子产品 (§12.1/§12.2) + 注入面
   test_ivar001_phase1_variance_products();
-  // IVAR-002: 逐像素 variance 帧内命名块接入（定案 2 / docs/ASTROCS_DESIGN §8.2）
+  // IVAR-002: 逐像素 variance 帧内命名块接入（定案 2 / docs/ACSD_DESIGN §8.2）
   test_ivar002_frame_variance_block_wiring();
   // CHAIN-WIRE-ADAPT-01: 生产编排接线（§5d 审计 + 方差面真值 + 掩膜标度）
   test_chain_wire_w1_varplane_audit_failclosed();

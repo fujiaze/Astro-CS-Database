@@ -1,5 +1,5 @@
 {
-  "manifest_schema": "astrocs.run-manifest/v1",
+  "manifest_schema": "acsd.run-manifest/v1",
   "run_id": "run-20260916-0001",
   "software_sha": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
   "config_hash": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",

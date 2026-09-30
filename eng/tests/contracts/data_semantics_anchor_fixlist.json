@@ -21,7 +21,7 @@
   {
    "anchor": "orchestrator.cpp:2411-2419",
    "registered": "2403-2411",
-   "evidence": "写入 star_measurements 权威块注释（schema astrocs-star-measurements-1）"
+   "evidence": "写入 star_measurements 权威块注释（schema acsd-star-measurements-1）"
   },
   {
    "anchor": "p1_session.cpp:558-566",

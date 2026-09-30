@@ -7,7 +7,7 @@
 #
 # 归属说明（不改 ACR 纪律）: lib/infrastructure/acr/CMakeLists.txt:15/22/33 明令本树
 # **禁止被生产构建 add_subdirectory() 引入**（ACR 生产不可达，根 CMakeLists 的
-# ASTROCS_ENABLE_ACR 默认 OFF）。故本 target 只在 ACR 独立配置 + MSVC 下存在，
+# ACSD_ENABLE_ACR 默认 OFF）。故本 target 只在 ACR 独立配置 + MSVC 下存在，
 # 不进产品构建图。ASan 运行库在 MinGW 上缺失（源文件头 :3-5），因此守卫是 MSVC。
 # ----------------------------------------------------------------------------
 if(NOT ACR_BUILD_TESTS)

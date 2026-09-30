@@ -22,12 +22,12 @@
 #include "jsonl.h"
 #include "runtime_contract.h"
 
-namespace astrocs {
+namespace acsd {
 namespace v6cli {
 
-inline int mode_gate(const Parsed& p, int phase, astrocs::JsonlEmitter& ev) {
-    using namespace astrocs::v6runtime;
-    if (phase != 2 && phase != 3) return astrocs::OK;
+inline int mode_gate(const Parsed& p, int phase, acsd::JsonlEmitter& ev) {
+    using namespace acsd::v6runtime;
+    if (phase != 2 && phase != 3) return acsd::OK;
     const char* flag = (phase == 2) ? "--mode" : "--export-mode";
 
     // 读 config（解析失败不在此报错：常规 validate 路径给出权威诊断）
@@ -73,7 +73,7 @@ inline int mode_gate(const Parsed& p, int phase, astrocs::JsonlEmitter& ev) {
     // 1) phase2 config 的 legacy 整数 weight_mode ——**该键不存在**，
     //    任何形态（整数 / 字符串 / 其它）出现即 fail-closed 具名拒绝（rc=ARGS）。
     //    原实现只对整数形态路由，且 1|2 → baseline 放行；两处一并删除。
-    //    依据：docs/ASTROCS_DESIGN.md §3.1:175「没有可选择项」；PSF_SIGNAL_WEIGHT.md §4:72
+    //    依据：docs/ACSD_DESIGN.md §3.1:175「没有可选择项」；PSF_SIGNAL_WEIGHT.md §4:72
     //    「不存在口径选择键、口径枚举、口径配置项或口径产物」。
     if (phase == 2 && have_doc && doc.contains("weight_mode")) {
         const ModeRoute mr = doc["weight_mode"].is_number_integer()
@@ -82,17 +82,17 @@ inline int mode_gate(const Parsed& p, int phase, astrocs::JsonlEmitter& ev) {
                                         ? doc["weight_mode"].get<std::string>()
                                         : std::string("<non-scalar>"));
         emit_route(mr, "config.weight_mode", "config.weight_mode");
-        if (mr.kind == RouteKind::kReject) return astrocs::ARGS;
+        if (mr.kind == RouteKind::kReject) return acsd::ARGS;
     }
     // 2) 显式 CLI 模式旗标
     if (p.values.count(flag)) {
         const std::string tok = p.values.at(flag);
         const ModeRoute mr = (phase == 2) ? route_phase2_weight_token(tok) : route_phase3_mode(tok);
         emit_route(mr, "cli", flag);
-        if (mr.kind == RouteKind::kReject) return astrocs::ARGS;
+        if (mr.kind == RouteKind::kReject) return acsd::ARGS;
     }
-    return astrocs::OK;
+    return acsd::OK;
 }
 
 }  // namespace v6cli
-}  // namespace astrocs
+}  // namespace acsd

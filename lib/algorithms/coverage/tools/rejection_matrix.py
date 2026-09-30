@@ -16,7 +16,7 @@ from pathlib import Path
 import numpy as np
 
 CLI = os.environ.get(
-    "ASTROCS_REJECTION_CLI",
+    "ACSD_REJECTION_CLI",
     str(Path(__file__).resolve().parents[1] / "build" / "rejection_cli.exe"),
 )
 TIMEOUT_S = 120

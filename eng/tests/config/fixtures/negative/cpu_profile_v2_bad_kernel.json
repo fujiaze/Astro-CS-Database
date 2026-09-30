@@ -1,5 +1,5 @@
 {
-  "schema": "astrocs.cpu-profile/v2",
+  "schema": "acsd.cpu-profile/v2",
   "profile_id": "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
   "created_utc": "2026-09-16T00:00:00Z",
   "host": {
@@ -17,7 +17,7 @@
     "quota_signature": ""
   },
   "build": {
-    "astrocs_version": "0.1.0-alpha.1",
+    "acsd_version": "0.1.0-alpha.1",
     "source_commit": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
     "benchmark_binary_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
     "runtime_build_id": "0.1.0-alpha.1+g1234567890ab",

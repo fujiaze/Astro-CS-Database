@@ -18,11 +18,11 @@
 //     队列满 → enqueue 返回 false（调用方串行降级/重试）。
 //   - 无私有池：本文件是全仓唯一 executor 池实现；worker 只在本文件创建，
 //     scheduler 不再自建 std::thread 池（RT-004 消灭 per-run 池）。
-#include "astrocs/core/executor.h"
+#include "acsd/core/executor.h"
 
 #include <algorithm>
 
-namespace astrocs::core {
+namespace acsd::core {
 
 namespace {
 // 任务体抛出的异常被 worker 吞掉（异常不得杀死 worker，见下方 catch），
@@ -339,4 +339,4 @@ Result<std::unique_ptr<IoExecutor>> create_io_executor(
       std::make_unique<IoExecutor>(max_concurrency, queue_capacity));
 }
 
-}  // namespace astrocs::core
+}  // namespace acsd::core

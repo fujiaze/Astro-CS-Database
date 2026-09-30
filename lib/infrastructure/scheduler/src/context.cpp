@@ -1,6 +1,6 @@
 // CORE-005 RunContext 实现（RT-003 线程安全）
 // RT-006: 追加 trace 事件实现（TraceEvent 序列化/解析、TraceStore、replay）。
-#include "astrocs/core/context.h"
+#include "acsd/core/context.h"
 
 #include <nlohmann/json.hpp>
 
@@ -10,7 +10,7 @@
 #include <set>
 #include <utility>
 
-namespace astrocs::core {
+namespace acsd::core {
 
 using nlohmann::json;
 
@@ -284,7 +284,7 @@ uint64_t ju64(const json& j, const char* key) {
 // ── TraceEvent 序列化 ──
 std::string TraceEvent::to_jsonl() const {
   json j;
-  j["schema"] = "astrocs.trace-event/v1";
+  j["schema"] = "acsd.trace-event/v1";
   j["type"] = trace_event_type_name(type);
   j["ts_utc"] = ts_utc;
   j["run_id"] = run_id;
@@ -527,7 +527,7 @@ TraceReplayResult trace_replay_from_jsonl(const std::string& jsonl) {
 std::string trace_replay_nodes_json(const std::string& jsonl) {
   TraceReplayResult r = trace_replay_from_jsonl(jsonl);
   json j;
-  j["replay_schema"] = "astrocs.trace-replay/v1";
+  j["replay_schema"] = "acsd.trace-replay/v1";
   j["parsed_lines"] = r.parsed_lines;
   j["skipped_lines"] = r.skipped_lines;
   j["nodes"] = json::array();
@@ -551,4 +551,4 @@ Result<std::shared_ptr<TraceStore>> create_trace_store() noexcept {
 }
 
 
-}  // namespace astrocs::core
+}  // namespace acsd::core

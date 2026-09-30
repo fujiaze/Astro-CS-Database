@@ -1,6 +1,6 @@
 # 冻结门处置面盘点（FROZEN GATE INVENTORY）
 
-> 上游：`docs/ASTROCS_DESIGN.md` §12.1（科学正确性）、`docs/engineering/SCIENCE_FREEZE.md`（冻结基线）、
+> 上游：`docs/ACSD_DESIGN.md` §12.1（科学正确性）、`docs/engineering/SCIENCE_FREEZE.md`（冻结基线）、
 > `docs/science/algorithms/GATES_AND_TOLERANCES.md` §1 R1/R2（表内唯一来源、证据必需）
 > 机器实现：`eng/tools/acceptance/frozen_gate_exit_gate.py`（FG-01..FG-06）
 > 盘点表（机器可读）：`eng/tools/acceptance/frozen_gate_inventory.json`

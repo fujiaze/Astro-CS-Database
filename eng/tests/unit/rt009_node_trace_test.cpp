@@ -23,10 +23,10 @@ static void test_trace_after_run() {
   std::string cfg = R"({"input_lights":["/nonexistent/nope.fits"],"output_dir":"/tmp/rt9_unit"})";
   std::string fr;
   // cal 节点 execute 失败（INPUT→3）；trace 仍应捕获节点 FAILED 记录
-  int rc = astrocs::cli::run_pipeline({1}, cfg, 2, &fr);
+  int rc = acsd::cli::run_pipeline({1}, cfg, 2, &fr);
   CHECK(rc == 3);
-  std::vector<astrocs::core::Runtime::NodeTrace> tr;
-  astrocs::cli::collect_node_trace(&tr);
+  std::vector<acsd::core::Runtime::NodeTrace> tr;
+  acsd::cli::collect_node_trace(&tr);
   CHECK(!tr.empty());  // 失败也捕获 trace
   bool saw_cal = false;
   for (const auto& t : tr) {
@@ -41,8 +41,8 @@ static void test_trace_after_run() {
   }
   CHECK(saw_cal);
   // IR 已保留（静态图来源）
-  CHECK(!astrocs::cli::last_pipeline_ir_json().empty());
-  CHECK(astrocs::cli::last_pipeline_ir_json().find("\"cal\"") != std::string::npos);
+  CHECK(!acsd::cli::last_pipeline_ir_json().empty());
+  CHECK(acsd::cli::last_pipeline_ir_json().find("\"cal\"") != std::string::npos);
 }
 
 static void test_validate_failure_no_manifest() {
@@ -51,10 +51,10 @@ static void test_validate_failure_no_manifest() {
   // 节点 FAILED。
   std::string cfg = R"({"input_lights":["/nonexistent/nope.fits"],"output_dir":"/tmp/rt9_unit"})";
   std::string fr;
-  int rc = astrocs::cli::run_pipeline({1}, cfg, 2, &fr);
+  int rc = acsd::cli::run_pipeline({1}, cfg, 2, &fr);
   CHECK(rc == 3);
   std::vector<std::pair<std::string, std::string>> mans;
-  astrocs::cli::collect_node_manifests(&mans);
+  acsd::cli::collect_node_manifests(&mans);
   bool saw_input_kind = false;
   for (const auto& [nid, mtext] : mans) {
     if (nid != "cal") continue;
@@ -62,8 +62,8 @@ static void test_validate_failure_no_manifest() {
   }
   CHECK(!mans.empty());
   CHECK(saw_input_kind);  // 失败 manifest 带 error_kind=input（fail-closed）
-  std::vector<astrocs::core::Runtime::NodeTrace> tr;
-  astrocs::cli::collect_node_trace(&tr);
+  std::vector<acsd::core::Runtime::NodeTrace> tr;
+  acsd::cli::collect_node_trace(&tr);
   bool saw_cal = false;
   for (const auto& t : tr) {
     if (t.node_id == "cal") { saw_cal = true; CHECK(t.status == "FAILED"); }

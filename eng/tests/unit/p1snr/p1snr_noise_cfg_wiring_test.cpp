@@ -19,9 +19,9 @@
 //      （rc=3，禁静默忽略、禁静默夹取）；
 //   D. 确定性: 同一配置两次运行 ⇒ 交付 sigma 逐位相同。
 // ============================================================================
-#include "astrocs/core/module.h"
-#include "astrocs/core/module_adapters.h"
-#include "astrocs/core/context.h"
+#include "acsd/core/module.h"
+#include "acsd/core/module_adapters.h"
+#include "acsd/core/context.h"
 
 #include "p1sess_fixtures.hpp"
 
@@ -43,7 +43,7 @@
 
 using json = nlohmann::json;
 namespace fs = std::filesystem;
-using namespace astrocs::core;
+using namespace acsd::core;
 
 static int g_fail = 0;
 static int g_check = 0;
@@ -131,7 +131,7 @@ static bool run_case(ModuleRegistry& reg, const fs::path& base, const char* name
     json cfg;
     cfg["input_lights"] = json::array({light});
     cfg["output_dir"] = od;
-    if (!run_node(reg, "astrocs.phase1.star-psf", cfg.dump(), nullptr, err)) return false;
+    if (!run_node(reg, "acsd.phase1.star-psf", cfg.dump(), nullptr, err)) return false;
   }
   json cfg;
   cfg["input_lights"] = json::array({light});
@@ -139,7 +139,7 @@ static bool run_case(ModuleRegistry& reg, const fs::path& base, const char* name
   cfg["snr"] = json{{"zero_point_mag", 25.0}, {"gain_e_per_adu", 1.5},
                     {"read_noise_e", 5.0}};
   if (with_noise_block) cfg["noise"] = noise_block;
-  if (!run_node(reg, "astrocs.phase1.noise-snr", cfg.dump(), &out->man, err)) return false;
+  if (!run_node(reg, "acsd.phase1.noise-snr", cfg.dump(), &out->man, err)) return false;
   const json snr = read_json(od + "/p1_snr.json");
   if (!snr.contains("frames") || !snr["frames"].is_array() || snr["frames"].empty()) {
     *err = "p1_snr.json has no frames";

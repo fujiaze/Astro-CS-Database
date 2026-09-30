@@ -2,7 +2,7 @@
 #
 # 校验：
 #   1. official template 通过 production schema（jsonschema）；
-#   2. template parse 通过（astrocs-stage2 配置解析成功，随后因输入路径
+#   2. template parse 通过（acsd-stage2 配置解析成功，随后因输入路径
 #      不存在而 coverage 失败——证明 parse 阶段无异常退出）；
 #   3. 每种 rejection enum parse smoke；
 #   4. 非法 smoothing/类型返回清晰错误而非异常退出。
@@ -14,7 +14,7 @@ import sys
 ROOT = r"F:\Astro dev\Astro CS Normalization Database"
 SCHEMA = os.path.join(ROOT, "工程控制", "schemas", "stage2.schema.json")
 TEMPLATE = os.path.join(ROOT, "工程控制", "configs", "stage2.template.json")
-EXE = os.path.join(ROOT, "lib", "phase2", "build", "astrocs-stage2.exe")
+EXE = os.path.join(ROOT, "lib", "phase2", "build", "acsd-stage2.exe")
 
 
 def load(path):

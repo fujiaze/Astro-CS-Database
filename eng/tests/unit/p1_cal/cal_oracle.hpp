@@ -1,5 +1,5 @@
-#ifndef ASTROCS_V6_P1_CAL_ORACLE_HPP
-#define ASTROCS_V6_P1_CAL_ORACLE_HPP
+#ifndef ACSD_V6_P1_CAL_ORACLE_HPP
+#define ACSD_V6_P1_CAL_ORACLE_HPP
 
 /* 独立 Oracle（不调用被测实现作为真值）
  * ----------------------------------------------------------------------------
@@ -16,7 +16,7 @@
 #include <cstdint>
 #include <vector>
 
-namespace astrocs {
+namespace acsd {
 namespace calibration {
 namespace v6 {
 namespace oracle {
@@ -130,6 +130,6 @@ inline double shared_variance_mc(const std::vector<double>& c, double v_ind,
 }  // namespace oracle
 }  // namespace v6
 }  // namespace calibration
-}  // namespace astrocs
+}  // namespace acsd
 
 #endif

@@ -1,14 +1,14 @@
 // lib/infrastructure/observability/probes/src/probe.cpp
-// 性能探针框架实现 (仅 ASTROCS_PROBES=ON 时参与编译)。
+// 性能探针框架实现 (仅 ACSD_PROBES=ON 时参与编译)。
 //
 // 低开销策略:
 //   - 记录路径: 线程本地 std::string 行缓冲 + 线程本地 count/gauge 聚合, 无锁;
 //   - 每 N 行或 T 毫秒 flush 一次 (N/T 可由环境变量调优), flush 时才取互斥锁写文件;
 //   - 线程退出自动 flush; 进程 atexit 兜底 flush 主线程;
-//   - 未设置 ASTROCS_PROBE_LOG 时 enabled()==false, 所有入口立即返回。
+//   - 未设置 ACSD_PROBE_LOG 时 enabled()==false, 所有入口立即返回。
 //
 // 本文件只观测, 不改变任何科学数值或控制流。
-#include "astrocs/probe.h"
+#include "acsd/probe.h"
 
 #include <atomic>
 #include <chrono>
@@ -20,12 +20,12 @@
 #include <string>
 #include <unordered_map>
 
-// CLEAN-403 (docs/ASTROCS_DESIGN §10「aio 是文件级唯一 I/O 边界」): 探针 sink 的追加写
+// CLEAN-403 (docs/ACSD_DESIGN §10「aio 是文件级唯一 I/O 边界」): 探针 sink 的追加写
 // 经 aio 唯一实现 (aio_atomic::append_open/append_write/append_flush), 本 TU 不
 // 自持 FILE* 通道。
 #include "aio_atomic_file.h"
 
-namespace astrocs {
+namespace acsd {
 namespace probe {
 namespace {
 
@@ -42,13 +42,13 @@ struct RuntimeConfig {
 const RuntimeConfig& config() noexcept {
   static const RuntimeConfig cfg = [] {
     RuntimeConfig c;
-    const char* p = std::getenv("ASTROCS_PROBE_LOG");
+    const char* p = std::getenv("ACSD_PROBE_LOG");
     c.path = (p != nullptr && p[0] != '\0') ? p : nullptr;
-    if (const char* n = std::getenv("ASTROCS_PROBE_FLUSH_LINES")) {
+    if (const char* n = std::getenv("ACSD_PROBE_FLUSH_LINES")) {
       const long v = std::strtol(n, nullptr, 10);
       if (v > 0) c.flush_lines = static_cast<std::size_t>(v);
     }
-    if (const char* m = std::getenv("ASTROCS_PROBE_FLUSH_MS")) {
+    if (const char* m = std::getenv("ACSD_PROBE_FLUSH_MS")) {
       const long v = std::strtol(m, nullptr, 10);
       if (v > 0) c.flush_ms = static_cast<long long>(v);
     }
@@ -369,4 +369,4 @@ void gauge_set(const char* scope, const char* name, double value) noexcept {
 void flush() noexcept { tls().flush_self(); }
 
 }  // namespace probe
-}  // namespace astrocs
+}  // namespace acsd

@@ -89,7 +89,7 @@ import pathlib
 import sys
 from typing import Any, Dict, List, Optional, Tuple
 
-SPEC_ID = "astrocs.canonical-product-hash/v1"
+SPEC_ID = "acsd.canonical-product-hash/v1"
 DOMAIN = (SPEC_ID + "\n").encode("utf-8")
 
 # ── 排除清单（版本化；改条目必须升 SPEC_ID 的主版本号）──────────────────────
@@ -773,7 +773,7 @@ def self_test() -> int:
         p3 = tmp / "p3" / "properties"
         for d in (p2.parent, p3.parent):
             d.mkdir(parents=True, exist_ok=True)
-        body = ("creator_did=astrocs/phase1\nhips_order=0\nhips_pixel_scale=412.25\n"
+        body = ("creator_did=acsd/phase1\nhips_order=0\nhips_pixel_scale=412.25\n"
                 "hips_creation_date=%s\nhips_release_date=%s\nobs_filter=R\n")
         p1.write_text(body % ("2026-01-01T00:00:00Z", "2026-01-01"), encoding="utf-8")
         p2.write_text(body % ("2026-09-17T12:34:56Z", "2026-09-17"), encoding="utf-8")

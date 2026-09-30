@@ -27,7 +27,7 @@ TEST_DIR = os.path.dirname(os.path.abspath(__file__))
 XPSD_WL = 336.0 + 2.0 * np.arange(343, dtype=float)
 
 sys.path.insert(0, TEST_DIR)
-from fsyn_astrocs import akima_interpolate, simpson_integrate  # noqa: E402
+from fsyn_acsd import akima_interpolate, simpson_integrate  # noqa: E402
 
 
 def add_dll_dirs():

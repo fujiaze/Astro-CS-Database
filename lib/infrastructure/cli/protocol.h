@@ -14,7 +14,7 @@
 
 #include "exit_codes.h"
 
-namespace astrocs {
+namespace acsd {
 
 // §4: 每行必含字段表(存在性冻结; kind 扩展字段另册)。字段数经 sizeof 推导,
 // 不写字面量数值(04 §6-3 退出码/协议数值单源纪律)。
@@ -149,4 +149,4 @@ inline bool ValidateEventV1(const nlohmann::json& ev, unsigned long long expect_
     return true;
 }
 
-}  // namespace astrocs
+}  // namespace acsd

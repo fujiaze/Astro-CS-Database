@@ -1,12 +1,12 @@
 # Phase3 HiPS → 平面 WCS FITS 科学合同 (SCI-P3)
 
-> 上游：ASTROCS_DESIGN.md §6.2（export 流程）、§6.3（投影算法）
+> 上游：ACSD_DESIGN.md §6.2（export 流程）、§6.3（投影算法）
 
 > 本文件条款为冻结定义，变更走变更流程。
 
 ## 1 目的与非目标
 
-- **目的**：把符合支持子集的图像 HiPS（HEALPix 层次球面 tile）重投影为用户指定天区/投影/像元尺度/宽高的二维 FITS image，带合法 FITS-WCS header、coverage 与可追溯 metadata（上游规范：`ASTROCS_DESIGN.md` §6（export））。
+- **目的**：把符合支持子集的图像 HiPS（HEALPix 层次球面 tile）重投影为用户指定天区/投影/像元尺度/宽高的二维 FITS image，带合法 FITS-WCS header、coverage 与可追溯 metadata（上游规范：`ACSD_DESIGN.md` §6（export））。
 - **非目标（alpha 显式拒绝项）**：多通道/RGBA HiPS；JPEG/PNG 等 lossy/display-stretch tile；int+BLANK tile；weight/support 输入产品；flux-per-pixel 输入模式；SIN/CAR 等非 TAN 投影；极近极点视场（请求域收窄，理由见 §4）；GUI。**（variance/ivar 子产品输入为例外：按 §9a-10 必须显式消费传播，不属拒绝项。）**
 
 ## 2 符号表
@@ -26,7 +26,7 @@
 ## 3 物理量和单位
 
 - `S`: **`ADU/sr`**（面亮度语义：计数按**立体角**归一，与输出像元尺度无关 ⇒ 跨像元尺度可比；写端口单位 = `SURFACE_BRIGHTNESS`，BUNIT 透传输入 properties，canonical 串 `ADU/sr`，单位口径唯一权威 = `docs/science/DATA_SEMANTICS.md` §31.1a；**非积分通量**，禁 flux-per-pixel 解释）；`s_out`: deg/px；`center/CRVAL/RA,Dec`: deg（ICRS）；坐标: px；coverage: 无量纲 {0,1}。
-  **输入单位的判定来源（正向约束）**：导出侧的单位语义**只由输入 `signal/properties` 的 `BUNIT` 承载**，不做任何推断。合法形态有两种，其余一律显式拒绝（`exit 3/4`，无静默默认）：① 逐字等于 canonical 串 `ADU/sr`；② 逐字等于 `ADU` **且**同时声明 `ASTROCS_PIXEL_SEMANTICS=surface_brightness` 与 `ASTROCS_PIXEL_AREA_POWER=-2`。缺 `BUNIT` ⇒ `P3-INPUT-BUNIT-MISSING`；`BUNIT` 存在但不可判或非面亮度语义 ⇒ `P3-INPUT-BUNIT-UNDECIDABLE` / `P3-INPUT-NOT-SURFACE-BRIGHTNESS` / `P3-INPUT-UNIT-UNSUPPORTED`。
+  **输入单位的判定来源（正向约束）**：导出侧的单位语义**只由输入 `signal/properties` 的 `BUNIT` 承载**，不做任何推断。合法形态有两种，其余一律显式拒绝（`exit 3/4`，无静默默认）：① 逐字等于 canonical 串 `ADU/sr`；② 逐字等于 `ADU` **且**同时声明 `ACSD_PIXEL_SEMANTICS=surface_brightness` 与 `ACSD_PIXEL_AREA_POWER=-2`。缺 `BUNIT` ⇒ `P3-INPUT-BUNIT-MISSING`；`BUNIT` 存在但不可判或非面亮度语义 ⇒ `P3-INPUT-BUNIT-UNDECIDABLE` / `P3-INPUT-NOT-SURFACE-BRIGHTNESS` / `P3-INPUT-UNIT-UNSUPPORTED`。
   **`ADU/px^2` 属拒绝项而非面亮度别名**：FITS 约定下 `pix` 已是**面积**单位，故 `ADU/px^2` 读作「ADU 每（像素面积）²」，既非面亮度量纲，也与写盘数值（按 sr 归一）不符（`docs/science/DATA_SEMANTICS.md` §31.1a 反例条）。实现锚：`lib/infrastructure/scheduler/src/module_adapters.cpp` 的 `p3n_guard_input_units`。
 
 ## 3a 坐标 frame
@@ -34,7 +34,7 @@
 - 输入: ICRS celestial HiPS（NESTED ordering 唯一，GLOSSARY `healpix_ordering`）；其他 frame（galactic/ecliptic）**显式拒绝**（alpha 范围，不做旋转）。
 - 输出: FITS-WCS **TAN**（CTYPE1=`RA---TAN`, CTYPE2=`DEC--TAN`, CUNIT=deg）；像素 1-based FITS 约定（GLOSSARY `pixel_coordinate`）。
   **会话面收窄声明**：alpha 会话只接受 TAN（§1/§9a-3），而 projection
-  registry 冻结集合 = ASTROCS_DESIGN §6.3 **八投影**（TAN/SIN/CAR/AIT/STG/MOL/CEA/
+  registry 冻结集合 = ACSD_DESIGN §6.3 **八投影**（TAN/SIN/CAR/AIT/STG/MOL/CEA/
   ZEA）；registry 已注册 TAN/SIN/CAR/AIT 四条，其余四条注册未实现即显式报不支持，
   会话面只接线 TAN（ALG-P3-PROJ-IMPL-001 §15.1/§15.5）。CRVAL 语义按 Paper I §2.1.1：CRPIX 处 world == CRVAL（含 CRVAL2）。
 
@@ -129,7 +129,7 @@ coverage:
 1. **HiPS 类型/properties/tile**：单通道 image HiPS；必需 keys=`hips_order, hips_tile_width, hips_frame, dataproduct_type=image`（子集见 §4）；NESTED 唯一；tile=HEALPix cell @hips_order 的 W×W FITS float tile；frame=`equatorial`（ICRS）。
 2. **输入坐标系/合法转换**：仅 ICRS 恒等；galactic/ecliptic 显式拒。
 3. **输出投影清单**：**alpha 会话仅 TAN**（`p3_wcs_validate_request` 单值接受）；
-   **registry 冻结集合 = ASTROCS_DESIGN §6.3 八投影**（TAN/SIN/CAR/AIT/STG/MOL/CEA/ZEA），
+   **registry 冻结集合 = ACSD_DESIGN §6.3 八投影**（TAN/SIN/CAR/AIT/STG/MOL/CEA/ZEA），
    registry 已实现 TAN/SIN/CAR/AIT 四条，其余四条（STG/MOL/CEA/ZEA）注册未实现即显式报不支持；
    会话面只接线 TAN（ALG-P3-PROJ-IMPL-001 §15.1）；新增投影必须落在冻结集合内并附独立
    往返 Oracle（支持面 = 冻结集合内的投影）。
@@ -206,14 +206,14 @@ coverage:
 
 ## 16 登记面：§6.3 输入语义守卫与产品 provenance 现状
 
-> 本节是**如实登记**（`ASTROCS_DESIGN.md` §12.5 负向状态如实标注 + §6.3），
+> 本节是**如实登记**（`ACSD_DESIGN.md` §12.5 负向状态如实标注 + §6.3），
 > **不改动**本文件任何公式、阈值、容差与冻结锚点。实现级判据与逐符号锚见
 > `docs/science/algorithms/PHASE3_PROJ_IMPL.md` §16。
 
 | # | 项 | 实测现状 | 结论 |
 |---|---|---|---|
-| C4 | §6.3 输入语义守卫在**生产路径**的接线面 | **调度节点面已接线、会话面未接线**。已接线：守卫内核 `lib/algorithms/resample/p3_rsmp_units.cpp`（`parse_bunit_string`/`resolve_bunit`）随 `astrocs_p3_rsmp` **进生产链接闭包**（`lib/algorithms/resample/CMakeLists.txt`，经根 `CMakeLists.txt` 的 `add_subdirectory`）；`module_adapters.cpp` 的 `p3n_guard_input_units` 在 `p3_op_properties` 与重采样节点两处**先于任何像素读取**调用，失败即 `p3n_guard_fail` fail-closed。未接线：`lib/phase3_session/p3_session.cpp` 只透传 BUNIT、不做语义判定；`lib/phase3_session/p3_export.cpp` 未进构建 | **生效面 = 调度节点面**；会话面归 Phase3 export 域 |
-| C5 | 守卫的逐条裁决判据（输入单位） | `BUNIT` 缺失 ⇒ `P3-INPUT-BUNIT-MISSING`（exit 3）；`ADU/px^2` 类非面亮度单位 ⇒ `P3-INPUT-NOT-SURFACE-BRIGHTNESS`（exit 4）；逐字等于 canonical 串 `ADU/sr` ⇒ `ACCEPT`。产品侧单位声明节点 `declare_hips_surface_brightness_units`（`module_adapters.cpp`，标记键 `ASTROCS_SIGNAL_UNIT`）写入 canonical `ADU/sr` + `ASTROCS_PIXEL_SEMANTICS=surface_brightness` + `ASTROCS_PIXEL_AREA_POWER=-2` | **判据已冻结**；产品侧 provenance 缺口 = 未经该节点直出的产品无任何单位键（登记见 ALG 层 §16） |
+| C4 | §6.3 输入语义守卫在**生产路径**的接线面 | **调度节点面已接线、会话面未接线**。已接线：守卫内核 `lib/algorithms/resample/p3_rsmp_units.cpp`（`parse_bunit_string`/`resolve_bunit`）随 `acsd_p3_rsmp` **进生产链接闭包**（`lib/algorithms/resample/CMakeLists.txt`，经根 `CMakeLists.txt` 的 `add_subdirectory`）；`module_adapters.cpp` 的 `p3n_guard_input_units` 在 `p3_op_properties` 与重采样节点两处**先于任何像素读取**调用，失败即 `p3n_guard_fail` fail-closed。未接线：`lib/phase3_session/p3_session.cpp` 只透传 BUNIT、不做语义判定；`lib/phase3_session/p3_export.cpp` 未进构建 | **生效面 = 调度节点面**；会话面归 Phase3 export 域 |
+| C5 | 守卫的逐条裁决判据（输入单位） | `BUNIT` 缺失 ⇒ `P3-INPUT-BUNIT-MISSING`（exit 3）；`ADU/px^2` 类非面亮度单位 ⇒ `P3-INPUT-NOT-SURFACE-BRIGHTNESS`（exit 4）；逐字等于 canonical 串 `ADU/sr` ⇒ `ACCEPT`。产品侧单位声明节点 `declare_hips_surface_brightness_units`（`module_adapters.cpp`，标记键 `ACSD_SIGNAL_UNIT`）写入 canonical `ADU/sr` + `ACSD_PIXEL_SEMANTICS=surface_brightness` + `ACSD_PIXEL_AREA_POWER=-2` | **判据已冻结**；产品侧 provenance 缺口 = 未经该节点直出的产品无任何单位键（登记见 ALG 层 §16） |
 | C6 | 上游 P1 产品 | 低覆盖像素 `S=F/D` 分母退化 ⇒ 真实 Phase1 `signal` 含极端量级值 | 归 P1 域单独处理 |
 | — | Phase2 `signal` 量纲 | **面亮度**（分辨率不变密度算子：常量场 `R_cross = 1`；链内零单位换算，FLUX-IN 负例逐像元 ×Ω） | 与 §6.3「导出只接受面亮度语义输入」**一致** |
 

@@ -2,7 +2,7 @@
 // p1stardet_node_gate_test.cpp — STARDET-01 节点级门：
 //   star-psf 节点的星表引导检测（权威路径）fail-closed 与"不得静默降级"
 // ----------------------------------------------------------------------------
-// 规范锚: docs/ASTROCS_DESIGN.md §4.2/§2.1 + docs/detail/algorithms_phase1/
+// 规范锚: docs/ACSD_DESIGN.md §4.2/§2.1 + docs/detail/algorithms_phase1/
 //   03_star_detection.md §4 —— 权威路径 = 星表位置逆投影 + 只对该位置拟合；
 //   全图盲检测 = 诊断/初值路径（保留，但不再是权威路径）。
 // 被测面: p1_op_star_psf_precise_json（= p1_op_star_psf_impl(..., n_fit_limit=0)，
@@ -23,14 +23,14 @@
 //   N9b 同一帧 + blind_diagnostic                          → 必绿且 n_detected>0
 //       （N9/N9b 成对 ⇒ 证明"权威路径退化为全图盲检测"会被判红, 判据非退化）
 //   N8/N9/N9b 需要 gaia 数据集（外部只读数据集 gaia/GaiaDR3）；
-//   缺失时打印 SKIP 并在结尾汇总（可用 ASTROCS_STARDET_REQUIRE_GAIA=1 把 SKIP 判红）。
+//   缺失时打印 SKIP 并在结尾汇总（可用 ACSD_STARDET_REQUIRE_GAIA=1 把 SKIP 判红）。
 //
 // 节点调用不启动 acsd CLI（进程内直调测试钩子）。
 // ctest 目标名: p1stardet_node_gate
 // ============================================================================
 
-#include "astrocs/core/module.h"
-#include "astrocs/core/module_adapters.h"
+#include "acsd/core/module.h"
+#include "acsd/core/module_adapters.h"
 
 #include "gaia_client.h"
 #include "wcs_tan.h"
@@ -80,7 +80,7 @@ struct NodeRun {
 NodeRun run_node(const json& cfg) {
     NodeRun r;
     std::string man_json;
-    auto rc = astrocs::core::p1_op_star_psf_precise_json(cfg.dump(), &man_json);
+    auto rc = acsd::core::p1_op_star_psf_precise_json(cfg.dump(), &man_json);
     r.ok = rc.ok();
     if (!r.ok) {
         r.err = rc.error().message();
@@ -144,7 +144,7 @@ json dummy_wcs() {
 
 // gaia 数据集定位（外部只读数据集；缺失 ⇒ N8/N9 SKIP）
 std::string gaia_dir() {
-    const char* env = std::getenv("ASTROCS_GAIA_DIR");
+    const char* env = std::getenv("ACSD_GAIA_DIR");
     if (env && *env) return std::string(env);
 #ifdef P1STARDET_REPO_ROOT
     return std::string(P1STARDET_REPO_ROOT) + "/gaia/GaiaDR3";
@@ -245,7 +245,7 @@ void test_guided_positive_and_degradation(const std::string& gdir) {
     const double s0_arcsec = 2.0;              // ″/px
     const double s_deg = s0_arcsec / 3600.0;
     const double rot = 35.0 * M_PI / 180.0;    // 非平凡取向（检验 CD 传递）
-    astrocs::phase1::WcsTan wcs;
+    acsd::phase1::WcsTan wcs;
     wcs.crpix1 = 0.5 * kW + 0.5;
     wcs.crpix2 = 0.5 * kH + 0.5;
     wcs.crval1 = ra0;
@@ -560,7 +560,7 @@ int main() {
         test_guided_positive_and_degradation(gdir);
         test_real_frame(gdir);
     } else {
-        std::printf("  [SKIP] N8/N9/N9b: gaia 数据集不可用（ASTROCS_GAIA_DIR / "
+        std::printf("  [SKIP] N8/N9/N9b: gaia 数据集不可用（ACSD_GAIA_DIR / "
                     "P1STARDET_REPO_ROOT/gaia/GaiaDR3）\n");
         g_skips += 3;
     }
@@ -568,9 +568,9 @@ int main() {
     fs::remove_all(g_tmp);
     if (g_skips > 0) {
         std::printf("P1STARDET NODE GATE: %d check(s) skipped (external dataset)\n", g_skips);
-        if (std::getenv("ASTROCS_STARDET_REQUIRE_GAIA")) {
+        if (std::getenv("ACSD_STARDET_REQUIRE_GAIA")) {
             std::printf("P1STARDET NODE GATE FAIL (SKIP forced red by "
-                        "ASTROCS_STARDET_REQUIRE_GAIA)\n");
+                        "ACSD_STARDET_REQUIRE_GAIA)\n");
             return 1;
         }
     }

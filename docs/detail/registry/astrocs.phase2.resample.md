@@ -1,11 +1,11 @@
-# 模块 astrocs.phase2.resample
+# 模块 acsd.phase2.resample
 
-> 上游：docs/ASTROCS_DESIGN.md §8.5（模块与 ABI）
+> 上游：docs/ACSD_DESIGN.md §8.5（模块与 ABI）
 
 ## 职责与明确非职责
 
 本页登记 registry 的占位 descriptor（phase2_descriptor：module_id=
-`astrocs.phase2.resample`，端口 `calibrated`/`resampled`、合同 ID SCI-P2-RES-001/
+`acsd.phase2.resample`，端口 `calibrated`/`resampled`、合同 ID SCI-P2-RES-001/
 ALG-P2-RES-001 均为 P2 模板口径），该 descriptor 现状按占位注册（与
 lib/phase2_session 会话面同一调度），实现面无独立模块目标（迁移目标未落地）。
 Phase2 实际重采样路径 = lib/phase2_session 会话面。不做：积分/排异（P2-INT/P2-REJ）、
@@ -27,7 +27,7 @@ extern "C"）；生命周期 create→validate→run→inspect→destroy 由会�
 
 ## Registry descriptor 与配置 schema
 
-module_id=`astrocs.phase2.resample`; execution_class=`cpu_heavy`;
+module_id=`acsd.phase2.resample`; execution_class=`cpu_heavy`;
 parallel_ok=True; 配置=phase config JSON(按 PHASE API 文档)。
 
 ## Execution class、并行轴、ThreadBudget lease、确定性

@@ -1,22 +1,22 @@
 /* ============================================================================
  * ACSD V6 Phase1 calibration covariance 实现 — ALG-P1-CAL-COV-001
- * 头文件: lib/algorithms/calibration/include/astrocs/calibration/calibration_covariance.h
+ * 头文件: lib/algorithms/calibration/include/acsd/calibration/calibration_covariance.h
  *
  * 纪律: 不接线 Phase session；不改 legacy ac_* 实现；不发明 DI-03（共享低秩/
  *       相关核数据面实例化）未冻结的核函数或秩上限；所有 fail-closed 按
  *       docs/science/DATA_SEMANTICS.md 实现。
  *
- * 测试用故障注入: 仅当环境变量 ASTROCS_V6_CAL_FAULT 被显式设置时改变行为，
- *       默认（未设置）为严格正确实现。对齐仓库既有先例 ASTROCS_RT001_FAULT。
+ * 测试用故障注入: 仅当环境变量 ACSD_V6_CAL_FAULT 被显式设置时改变行为，
+ *       默认（未设置）为严格正确实现。对齐仓库既有先例 ACSD_RT001_FAULT。
  * ==========================================================================*/
 
-#include "astrocs/calibration/calibration_covariance.h"
+#include "acsd/calibration/calibration_covariance.h"
 
 #include <cmath>
 #include <cstdlib>
 #include <limits>
 
-namespace astrocs {
+namespace acsd {
 namespace calibration {
 namespace v6 {
 
@@ -24,7 +24,7 @@ namespace {
 
 /* ── 测试用故障注入钩子（默认无） ─────────────────────────────────────── */
 std::string fault_mode() {
-  const char* v = std::getenv("ASTROCS_V6_CAL_FAULT");
+  const char* v = std::getenv("ACSD_V6_CAL_FAULT");
   return (v != nullptr) ? std::string(v) : std::string();
 }
 bool fault_is(const char* name) { return fault_mode() == name; }
@@ -52,7 +52,7 @@ bool is_allowed_variance_from(const std::string& v) {
 }
 
 /* 退役对象（PSFSW-RETIRE-01；口径「只要纯净信号/噪声的信噪比……绝对标定」）：
- * psfsw_robust_weight **不是现行对象**（docs/ASTROCS_DESIGN.md §3.1 订正后；
+ * psfsw_robust_weight **不是现行对象**（docs/ACSD_DESIGN.md §3.1 订正后；
  * docs/detail/UNIFIED_MODEL.md:58；统一对象 14→13，CHG-2026-09-20-PSFSW-RETIRE）。
  * 旧产品若在 variance_from 声明该对象 ⇒ 显式拒绝 + 迁移提示，不得静默接受，
  * 也不得再把它当作"在役的相对复合权重"（它连对象都不存在了）。 */
@@ -68,7 +68,7 @@ constexpr double kSharedDetectionEps = 1e-9;
 }  // namespace
 
 const char* calibration_covariance_contract_id() { return "ALG-P1-CAL-COV-001"; }
-const char* fault_injection_env_var() { return "ASTROCS_V6_CAL_FAULT"; }
+const char* fault_injection_env_var() { return "ACSD_V6_CAL_FAULT"; }
 
 const char* to_string(CalStatus status) {
   switch (status) {
@@ -705,7 +705,7 @@ bool validate_covariance_record(const CovarianceRecord& rec, std::string* error)
   if (is_retired_canonical_object(rec.variance_from)) {
     // 退役对象优先报出（可诊断 + 迁移提示），仍是 fail-closed 的拒绝。
     return fail("variance_from declares retired canonical object 'psfsw_robust_weight' "
-                "(not a current object: docs/ASTROCS_DESIGN.md 3.1; UNIFIED_MODEL.md:58); "
+                "(not a current object: docs/ACSD_DESIGN.md 3.1; UNIFIED_MODEL.md:58); "
                 "migration: variance_from=actual_combination_coefficients with "
                 "C_out = R C_in R^T");
   }
@@ -742,4 +742,4 @@ bool validate_covariance_record(const CovarianceRecord& rec, std::string* error)
 
 }  // namespace v6
 }  // namespace calibration
-}  // namespace astrocs
+}  // namespace acsd

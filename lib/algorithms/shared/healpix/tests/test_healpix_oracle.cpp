@@ -67,7 +67,7 @@ int main(int argc, char** argv) {
         }
         ++lines;
         const uint32_t nside = uint32_t(1) << order;
-        const uint64_t got = astrocs::healpix::ang2pix_nest(nside, ra, dec);
+        const uint64_t got = acsd::healpix::ang2pix_nest(nside, ra, dec);
         if (got != ipix) {
             ++mismatch;
             if (mismatch <= 10) {
@@ -88,9 +88,9 @@ int main(int argc, char** argv) {
         if (std::fabs(dec) >= 89.999999) continue;
         // pix2ang roundtrip: 中心角距容差 = 1.2 × hp_res
         double rra = 0.0, rdec = 0.0;
-        astrocs::healpix::pix2ang_nest(nside, got, rra, rdec);
+        acsd::healpix::pix2ang_nest(nside, got, rra, rdec);
         const double hp_res_deg = std::sqrt(3.141592653589793 / 3.0) / nside * 180.0 / 3.141592653589793;
-        double d = astrocs::healpix::angular_distance_deg(ra, dec, rra, rdec);
+        double d = acsd::healpix::angular_distance_deg(ra, dec, rra, rdec);
         if (d > max_roundtrip_deg) max_roundtrip_deg = d;
         if (d > 1.2 * hp_res_deg + 1e-9) {
             ++bad_roundtrip;

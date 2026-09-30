@@ -1,5 +1,5 @@
 // CORE-004 / RT-004 单元测试: Pipeline IR 解析 + 静态验证 (nlohmann + ModuleRegistry)
-#include "astrocs/core/pipeline.h"
+#include "acsd/core/pipeline.h"
 
 #include <cstdio>
 #include <cstdlib>
@@ -11,7 +11,7 @@
 #include <windows.h>
 #endif
 
-using namespace astrocs::core;
+using namespace acsd::core;
 
 static int failures = 0;
 #define CHECK(cond)                                                       \
@@ -57,7 +57,7 @@ static ModuleRegistry make_registry() {
   ModuleRegistry reg;
   // resample: cpu_heavy, 输入 hips(PIXEL,ADU), 输出 tile(HEALPIX,SURFACE_BRIGHTNESS)
   ModuleDescriptor m1;
-  m1.module_id = "astrocs.phase3.resample";
+  m1.module_id = "acsd.phase3.resample";
   m1.version = "1.0.0";
   m1.abi = "c++17";
   m1.execution_class = "cpu_heavy";
@@ -69,7 +69,7 @@ static ModuleRegistry make_registry() {
   reg.register_module(m1);
   // m: 通用 io 模块, in/out 端口
   ModuleDescriptor m2;
-  m2.module_id = "astrocs.m";
+  m2.module_id = "acsd.m";
   m2.version = "1.0.0";
   m2.abi = "c++17";
   m2.execution_class = "io";
@@ -80,7 +80,7 @@ static ModuleRegistry make_registry() {
   reg.register_module(m2);
   // m_elec: 输入端口要求 ELECTRON（消费 ADU 产物 → 单位冲突）
   ModuleDescriptor m3;
-  m3.module_id = "astrocs.m_elec";
+  m3.module_id = "acsd.m_elec";
   m3.version = "1.0.0";
   m3.abi = "c++17";
   m3.execution_class = "io";
@@ -91,7 +91,7 @@ static ModuleRegistry make_registry() {
   reg.register_module(m3);
   // m_healpix: 输入端口要求 HEALPIX 坐标系（消费 PIXEL 产物 → 坐标冲突）
   ModuleDescriptor m4;
-  m4.module_id = "astrocs.m_healpix";
+  m4.module_id = "acsd.m_healpix";
   m4.version = "1.0.0";
   m4.abi = "c++17";
   m4.execution_class = "io";
@@ -102,7 +102,7 @@ static ModuleRegistry make_registry() {
   reg.register_module(m4);
   // m_data: 输入端口要求 DATA-Y-999 schema（消费 DATA-X-001 产物 → schema 冲突）
   ModuleDescriptor m5;
-  m5.module_id = "astrocs.m_data";
+  m5.module_id = "acsd.m_data";
   m5.version = "1.0.0";
   m5.abi = "c++17";
   m5.execution_class = "io";
@@ -115,12 +115,12 @@ static ModuleRegistry make_registry() {
 }
 
 static const char* VALID = R"({
-  "schema": "astrocs.pipeline/v1",
+  "schema": "acsd.pipeline/v1",
   "pipeline_id": "phase3.synthetic",
   "version": "1.0.0",
   "nodes": [{
     "node_id": "resample",
-    "module_id": "astrocs.phase3.resample",
+    "module_id": "acsd.phase3.resample",
     "module_api": "1.x",
     "config": {"kernel": "bilinear"},
     "inputs": {"hips": "artifact:input.hips"},
@@ -137,7 +137,7 @@ static void test_parse_valid() {
   if (r.ok()) {
     CHECK(r.value().pipeline_id == "phase3.synthetic");
     CHECK(r.value().nodes.size() == 1);
-    CHECK(r.value().nodes[0].module_id == "astrocs.phase3.resample");
+    CHECK(r.value().nodes[0].module_id == "acsd.phase3.resample");
     CHECK(r.value().nodes[0].resource_class == "cpu_heavy");
     CHECK(r.value().nodes[0].parallel);
     CHECK(r.value().nodes[0].config_json.find("bilinear") != std::string::npos);
@@ -147,10 +147,10 @@ static void test_parse_valid() {
 static void test_parse_serial_heavy_rejected() {
   PipelineIRParser parser;
   auto r = parser.parse(R"({
-    "schema": "astrocs.pipeline/v1",
+    "schema": "acsd.pipeline/v1",
     "pipeline_id": "bad",
     "version": "1.0.0",
-    "nodes": [{"node_id": "b", "module_id": "astrocs.m",
+    "nodes": [{"node_id": "b", "module_id": "acsd.m",
       "module_api": "1.x", "config": {},
       "inputs": {"a": "artifact:x"},
       "outputs": {"b": "artifact:y"},
@@ -169,7 +169,7 @@ static void test_parse_bad_schema() {
   auto r2 = parser.parse("not json {");
   CHECK(r2.failed());
   // 缺 nodes
-  auto r3 = parser.parse(R"({"schema":"astrocs.pipeline/v1","pipeline_id":"x","version":"1"})");
+  auto r3 = parser.parse(R"({"schema":"acsd.pipeline/v1","pipeline_id":"x","version":"1"})");
   CHECK(r3.failed());
 }
 
@@ -181,8 +181,8 @@ static void test_validate_unknown_module() {
   CHECK(issues.empty());
   // 未注册模块
   auto r2 = parser.parse(R"({
-    "schema": "astrocs.pipeline/v1", "pipeline_id": "x", "version": "1",
-    "nodes": [{"node_id": "a", "module_id": "astrocs.other", "module_api": "1.x", "config": {},
+    "schema": "acsd.pipeline/v1", "pipeline_id": "x", "version": "1",
+    "nodes": [{"node_id": "a", "module_id": "acsd.other", "module_api": "1.x", "config": {},
       "inputs": {"in": "artifact:x"}, "outputs": {"out": "artifact:y"},
       "resources": {"class": "io", "parallel": true}}],
     "outputs": {"out": "artifact:y"}})");
@@ -196,8 +196,8 @@ static void test_validate_unknown_module() {
 static void test_validate_missing_port() {
   PipelineIRParser parser;
   auto r = parser.parse(R"({
-    "schema": "astrocs.pipeline/v1", "pipeline_id": "x", "version": "1",
-    "nodes": [{"node_id": "a", "module_id": "astrocs.m", "module_api": "1.x", "config": {},
+    "schema": "acsd.pipeline/v1", "pipeline_id": "x", "version": "1",
+    "nodes": [{"node_id": "a", "module_id": "acsd.m", "module_api": "1.x", "config": {},
       "inputs": {"wrong_port": "artifact:x"}, "outputs": {"out": "artifact:y"},
       "resources": {"class": "io", "parallel": true}}],
     "outputs": {"out": "artifact:y"}})");
@@ -211,14 +211,14 @@ static void test_validate_missing_port() {
 static void test_validate_cycle() {
   PipelineIRParser parser;
   auto r = parser.parse(R"({
-    "schema": "astrocs.pipeline/v1",
+    "schema": "acsd.pipeline/v1",
     "pipeline_id": "cycle",
     "version": "1.0.0",
     "nodes": [
-      {"node_id": "a", "module_id": "astrocs.m", "module_api": "1.x", "config": {},
+      {"node_id": "a", "module_id": "acsd.m", "module_api": "1.x", "config": {},
        "inputs": {"in": "artifact:ba"}, "outputs": {"out": "artifact:ab"},
        "resources": {"class": "io", "parallel": true}},
-      {"node_id": "b", "module_id": "astrocs.m", "module_api": "1.x", "config": {},
+      {"node_id": "b", "module_id": "acsd.m", "module_api": "1.x", "config": {},
        "inputs": {"in": "artifact:ab"}, "outputs": {"out": "artifact:ba"},
        "resources": {"class": "io", "parallel": true}}
     ],
@@ -234,14 +234,14 @@ static void test_validate_cycle() {
 static void test_validate_duplicate_producer() {
   PipelineIRParser parser;
   auto r = parser.parse(R"({
-    "schema": "astrocs.pipeline/v1",
+    "schema": "acsd.pipeline/v1",
     "pipeline_id": "dup",
     "version": "1.0.0",
     "nodes": [
-      {"node_id": "a", "module_id": "astrocs.m", "module_api": "1.x", "config": {},
+      {"node_id": "a", "module_id": "acsd.m", "module_api": "1.x", "config": {},
        "inputs": {"in": "artifact:x"}, "outputs": {"out": "artifact:same"},
        "resources": {"class": "io", "parallel": true}},
-      {"node_id": "b", "module_id": "astrocs.m", "module_api": "1.x", "config": {},
+      {"node_id": "b", "module_id": "acsd.m", "module_api": "1.x", "config": {},
        "inputs": {"in": "artifact:y"}, "outputs": {"out": "artifact:same"},
        "resources": {"class": "io", "parallel": true}}
     ],
@@ -256,15 +256,15 @@ static void test_validate_duplicate_producer() {
 
 static void test_validate_unit_mismatch() {
   PipelineIRParser parser;
-  // a 输出 ADU (astrocs.m) → b 输入 ADU 但 b 是 astrocs.m_elec 输出 electron
+  // a 输出 ADU (acsd.m) → b 输入 ADU 但 b 是 acsd.m_elec 输出 electron
   // 构造: a(out ADU) → b(in ADU) 无冲突; 用 c(in electron 输入) 消费 a 的 ADU 产物
   auto r = parser.parse(R"({
-    "schema": "astrocs.pipeline/v1", "pipeline_id": "unit", "version": "1",
+    "schema": "acsd.pipeline/v1", "pipeline_id": "unit", "version": "1",
     "nodes": [
-      {"node_id": "a", "module_id": "astrocs.m", "module_api": "1.x", "config": {},
+      {"node_id": "a", "module_id": "acsd.m", "module_api": "1.x", "config": {},
        "inputs": {"in": "artifact:z"}, "outputs": {"out": "artifact:aduart"},
        "resources": {"class": "io", "parallel": true}},
-      {"node_id": "b", "module_id": "astrocs.m_elec", "module_api": "1.x", "config": {},
+      {"node_id": "b", "module_id": "acsd.m_elec", "module_api": "1.x", "config": {},
        "inputs": {"in": "artifact:aduart"}, "outputs": {"out": "artifact:final"},
        "resources": {"class": "io", "parallel": true}}
     ],
@@ -280,12 +280,12 @@ static void test_validate_unit_mismatch() {
 static void test_validate_coordinate_mismatch() {
   PipelineIRParser parser;
   auto r = parser.parse(R"({
-    "schema": "astrocs.pipeline/v1", "pipeline_id": "coord", "version": "1",
+    "schema": "acsd.pipeline/v1", "pipeline_id": "coord", "version": "1",
     "nodes": [
-      {"node_id": "a", "module_id": "astrocs.m", "module_api": "1.x", "config": {},
+      {"node_id": "a", "module_id": "acsd.m", "module_api": "1.x", "config": {},
        "inputs": {"in": "artifact:z"}, "outputs": {"out": "artifact:pix"},
        "resources": {"class": "io", "parallel": true}},
-      {"node_id": "b", "module_id": "astrocs.m_healpix", "module_api": "1.x", "config": {},
+      {"node_id": "b", "module_id": "acsd.m_healpix", "module_api": "1.x", "config": {},
        "inputs": {"in": "artifact:pix"}, "outputs": {"out": "artifact:final"},
        "resources": {"class": "io", "parallel": true}}
     ],
@@ -301,12 +301,12 @@ static void test_validate_coordinate_mismatch() {
 static void test_validate_data_mismatch() {
   PipelineIRParser parser;
   auto r = parser.parse(R"({
-    "schema": "astrocs.pipeline/v1", "pipeline_id": "data", "version": "1",
+    "schema": "acsd.pipeline/v1", "pipeline_id": "data", "version": "1",
     "nodes": [
-      {"node_id": "a", "module_id": "astrocs.m", "module_api": "1.x", "config": {},
+      {"node_id": "a", "module_id": "acsd.m", "module_api": "1.x", "config": {},
        "inputs": {"in": "artifact:z"}, "outputs": {"out": "artifact:dataart"},
        "resources": {"class": "io", "parallel": true}},
-      {"node_id": "b", "module_id": "astrocs.m_data", "module_api": "1.x", "config": {},
+      {"node_id": "b", "module_id": "acsd.m_data", "module_api": "1.x", "config": {},
        "inputs": {"in": "artifact:dataart"}, "outputs": {"out": "artifact:final"},
        "resources": {"class": "io", "parallel": true}}
     ],
@@ -322,8 +322,8 @@ static void test_validate_data_mismatch() {
 static void test_validate_unproduced_output() {
   PipelineIRParser parser;
   auto r = parser.parse(R"({
-    "schema": "astrocs.pipeline/v1", "pipeline_id": "noout", "version": "1",
-    "nodes": [{"node_id": "a", "module_id": "astrocs.m", "module_api": "1.x", "config": {},
+    "schema": "acsd.pipeline/v1", "pipeline_id": "noout", "version": "1",
+    "nodes": [{"node_id": "a", "module_id": "acsd.m", "module_api": "1.x", "config": {},
       "inputs": {"in": "artifact:z"}, "outputs": {"out": "artifact:made"},
       "resources": {"class": "io", "parallel": true}}],
     "outputs": {"out": "artifact:never_made"}
@@ -338,12 +338,12 @@ static void test_validate_unproduced_output() {
 static void test_validate_unconsumed() {
   PipelineIRParser parser;
   auto r = parser.parse(R"({
-    "schema": "astrocs.pipeline/v1", "pipeline_id": "uncon", "version": "1",
+    "schema": "acsd.pipeline/v1", "pipeline_id": "uncon", "version": "1",
     "nodes": [
-      {"node_id": "a", "module_id": "astrocs.m", "module_api": "1.x", "config": {},
+      {"node_id": "a", "module_id": "acsd.m", "module_api": "1.x", "config": {},
        "inputs": {"in": "artifact:z"}, "outputs": {"out": "artifact:wasted"},
        "resources": {"class": "io", "parallel": true}},
-      {"node_id": "b", "module_id": "astrocs.m", "module_api": "1.x", "config": {},
+      {"node_id": "b", "module_id": "acsd.m", "module_api": "1.x", "config": {},
        "inputs": {"in": "artifact:z"}, "outputs": {"out": "artifact:final"},
        "resources": {"class": "io", "parallel": true}}
     ],
@@ -364,9 +364,9 @@ static void test_pipeline_ir_fixtures() {
   // (硬编码引用必须存在) 与 GAP-036 处置「把 fixtures 以新位置重建」, 夹具已按逐字节等价
   // 内容重建在测试共址位置 eng/tests/unit/fixtures/core_pipeline/ (溯源见该目录 README.md);
   // 判据与断言集未变。
-  // ASTROCS_REPO 由 ctest 注入仓库根 (eng/tests/unit/CMakeLists.txt 的 set_tests_properties);
+  // ACSD_REPO 由 ctest 注入仓库根 (eng/tests/unit/CMakeLists.txt 的 set_tests_properties);
   // 手工直跑时再按 cwd 常见起点探测, 首个命中者生效。
-  const char* repo = std::getenv("ASTROCS_REPO");
+  const char* repo = std::getenv("ACSD_REPO");
   std::string base;
   for (const char* root : {repo, ".", "..", "../..", "../../.."}) {
     if (!root) continue;

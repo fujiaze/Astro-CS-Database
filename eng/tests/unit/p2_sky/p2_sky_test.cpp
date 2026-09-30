@@ -1,7 +1,7 @@
 // eng/tests/unit/p2_sky/p2_sky_test.cpp
 //
 // FIX-A 天光面链共址测试（Oracle 正例 + 负例，fail-closed）。
-// 被测面 = astrocs_phase2（lib/algorithms/coverage/src/sky_plane.cpp）。
+// 被测面 = acsd_phase2（lib/algorithms/coverage/src/sky_plane.cpp）。
 //
 // 用例：
 //   patch       — 局部稳健背景估计（median/MAD/variance/门）
@@ -549,10 +549,10 @@ void test_overflow() {
     for (int k = 0; k < 3; ++k)
         for (int gy = 0; gy < 8; ++gy)
             for (int gx = 0; gx < 8; ++gx) {
-                const std::uint64_t z = astrocs::healpix::xy_to_nested_local(
+                const std::uint64_t z = acsd::healpix::xy_to_nested_local(
                     (std::uint32_t)(gx * 64 + 32), (std::uint32_t)(gy * 64 + 32), 9u);
                 double ra = 0.0, dec = 0.0;
-                astrocs::healpix::pix2ang_nest(512u, z, ra, dec);
+                acsd::healpix::pix2ang_nest(512u, z, ra, dec);
                 P2SkySample sm{};
                 sm.frame_id = (std::uint64_t)k;
                 sm.control_id = (std::uint64_t)(gy * 8 + gx);

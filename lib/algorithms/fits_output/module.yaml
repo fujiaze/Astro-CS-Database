@@ -3,12 +3,12 @@
 # 556 行 + 唯一权威签名头 lib/algorithms/fits_output/p3_output.h 95 行，
 # 行数实测 2026-09-16（wc -l）；编排消费方 lib/phase3_session/p3_session.cpp
 # 441 行 run 段调 p3_output_write_atomic_ex；构建挂载: 根
-# CMakeLists.txt add_library(astrocs_phase3_session ...) 五源文件之一
+# CMakeLists.txt add_library(acsd_phase3_session ...) 五源文件之一
 # （原记 :460-465 已随路径迁移漂移）；
-# 底座=astrocs_aio STATIC :273-296（aio_fits.cpp + vendored
-# lib/third_party/cfitsio astrocs_cfitsio 静态库 + zlib），
+# 底座=acsd_aio STATIC :273-296（aio_fits.cpp + vendored
+# lib/third_party/cfitsio acsd_cfitsio 静态库 + zlib），
 # cfitsio 进程锁 aio_cfitsio_mutex.h:9-15 RT-008），
-# 模块化迁移（独立模块源 astrocs_p3_fits_writer.dll / C ABI adapter /
+# 模块化迁移（独立模块源 acsd_p3_fits_writer.dll / C ABI adapter /
 # plan-execute-cancel-inspect / ThreadLease 接线）由 P3-FITS-IMPL 执行；
 # 可执行测试由 P3-FITS-TEST 建立（TEST-P3-WR-001 MISSING，不冒认；
 # 设计冻结面=ALG-P3-FITS-IMPL-001 TEST-DESIGN 节 + registry 手写页
@@ -18,17 +18,17 @@
 # 源码核对清单（P3-FITS-DOC，2026-09-08，grep 实测 p3_output.h/p3_wcs.h
 # 声明符号，禁抄他版）。
 # module_id 取 MODULE_MIGRATION_MATRIX P3-FITS 行权威值
-# astrocs.p3.fits_writer（任务指派文字 astrocs.p3.fits 与矩阵冲突，
+# acsd.p3.fits_writer（任务指派文字 acsd.p3.fits 与矩阵冲突，
 # 矩阵为冻结依据，决策记录于 memory.md/README）。
-# MOD ID：registry 现有行 MOD-astrocs-phase3-writer（单 descriptor 域，
+# MOD ID：registry 现有行 MOD-acsd-phase3-writer（单 descriptor 域，
 # module_adapters.cpp:383-398 p3_writer_descriptor），本 manifest id
-# 与之一致；descriptor 占位词汇（module_id=astrocs.phase3.writer、
+# 与之一致；descriptor 占位词汇（module_id=acsd.phase3.writer、
 # sci_id=SCI-P3-WR-001、alg_id=ALG-P3-004、test_id=TEST-P3-WR-001）
 # 为编排层词汇，由 P3-FITS-INT 对齐本 manifest 与 README r1，不得
 # 反向作为冻结依据（占位 ID 不入合同；SCI/ALG 映射声明见
 # docs/science/algorithms/PHASE3_FITS_IMPL.md §映射节）。
 # 落位依据：MODULE_MIGRATION_MATRIX.csv P3-FITS 行 owner=SA-P3-F27、
-# target=astrocs_p3_fits_writer.dll、module_id=astrocs.p3.fits_writer、
+# target=acsd_p3_fits_writer.dll、module_id=acsd.p3.fits_writer、
 # legacy_paths="lib/phase3_session fits sources"、depends_on_int=
 # P3-RSMP-INT;IO-003。实测生产源 p3_output.cpp 位于 lib/phase3_session/
 # ——该目录为会话编排域共享源（p3_session/p3_resampler 等非本域），
@@ -36,8 +36,8 @@
 # → lib/algorithms/rejection/ → lib/algorithms/integration/ → lib/algorithms/coverage/hips_p2/ 先例落独立迁移
 # 目标目录 lib/algorithms/fits_output/（本文件所在，仅合同文件、无源码、不与
 # legacy 目录重叠）；legacy 生产源引用不搬家。
-# dll_target=astrocs_p3_fits_writer.dll 为迁移目标合同值（尚未存在）；
-# 现状构建=根 CMakeLists.txt astrocs_phase3_session 静态库成员。
+# dll_target=acsd_p3_fits_writer.dll 为迁移目标合同值（尚未存在）；
+# 现状构建=根 CMakeLists.txt acsd_phase3_session 静态库成员。
 # threading_model=host_executor_lease 为迁移目标合同值（11 号标准
 # §4 值域）；现状实现=写面进程内串行（cfitsio 进程锁 RT-008，
 # p3_output.cpp:125 lock_guard 全程持锁；fits_write_pix 单次全帧
@@ -49,7 +49,7 @@
 # （迁移整改点）；取消语义=cancelled_at_row 参数（h:52，会话层恒 -1）。
 # entrypoint=MISSING：registry 入口未接；descriptor 现状占位 ID
 # （lib/infrastructure/scheduler/src/module_adapters.cpp:383-398 p3_writer_descriptor 的
-# module_id=astrocs.phase3.writer、execution_class=io、
+# module_id=acsd.phase3.writer、execution_class=io、
 # parallel_ok=false、ports resampled(DATA-P3-RES 必)+fits(DATA-P3-FITS
 # 可)、sci_id=SCI-P3-WR-001、alg_id=ALG-P3-004、data_id=DATA-P3-FITS、
 # api_id=API-P3-001、test_id=TEST-P3-WR-001）为编排层词汇，由
@@ -59,16 +59,16 @@
 # 不改 SCI 公式）；Phase3 FITS-WCS 科学实现链（SCI-P3-001..020）为
 # 既冻结构建（V5 SCI-007, 2026-08-28），非本任务新增科学变更；
 # 模块化迁移若引入实现变更由 P3-FITS-IMPL 评估 scientific_change。
-schema: astrocs.module-manifest/v1
-id: MOD-astrocs-phase3-writer
-module_id: astrocs.p3.fits_writer
+schema: acsd.module-manifest/v1
+id: MOD-acsd-phase3-writer
+module_id: acsd.p3.fits_writer
 owner: SA-P3-F27
 language: c++17
 module_version: 0.1.0-alpha.1
 abi_version: 1
 phase_scope: phase3
-dll_name: astrocs_p3_fits_writer.dll
-dll_target: astrocs_p3_fits_writer.dll
+dll_name: acsd_p3_fits_writer.dll
+dll_target: acsd_p3_fits_writer.dll
 module_status: CONTRACT_READY
 entrypoint: MISSING
 node_operations: [fits_write, fits_verify]
@@ -126,8 +126,8 @@ cpu_providers: [baseline]
 determinism: fixed_reduction_order
 scientific_change: false
 depends_on:
-  - astrocs_phase3_session
-  - astrocs_aio
+  - acsd_phase3_session
+  - acsd_aio
 legacy_paths: lib/phase3_session fits sources
 known_defects:
   - DISP-P3FITS-001

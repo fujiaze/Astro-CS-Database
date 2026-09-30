@@ -4,7 +4,7 @@
   "scan_roots": [
     "eng",
     "docs/engineering",
-    "docs/ASTROCS_DESIGN.md",
+    "docs/ACSD_DESIGN.md",
     "ENGINEERING_SPEC.md",
     "ACCEPTANCE_SPEC.md"
   ],

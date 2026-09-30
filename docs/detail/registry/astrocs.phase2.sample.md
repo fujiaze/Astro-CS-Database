@@ -1,6 +1,6 @@
-# 模块 astrocs.phase2.sample
+# 模块 acsd.phase2.sample
 
-> 上游：docs/ASTROCS_DESIGN.md §8.5（模块与 ABI）、§5.2（固定科学流程：控制采样）、
+> 上游：docs/ACSD_DESIGN.md §8.5（模块与 ABI）、§5.2（固定科学流程：控制采样）、
 > §5.4（天光平面与统一相对模型）
 > 科学正本：docs/science/PHASE2_UPM.md（SCI-UPM-001，FROZEN，§1/§4/§5）、
 > docs/science/CONTROL_WEIGHT_SNR.md（控制点定权）、docs/detail/PHASE2_DETAILED_DESIGN.md §4
@@ -12,15 +12,15 @@
 > docs/engineering/PHASE2_API_V1.md（API-P2-001，FROZEN）
 
 LIB 面 = `lib/algorithms/sampling/` 三件套（README / module.yaml ，
-CONTRACT_READY）。MOD ID = MOD-astrocs-phase2-sample；module_id 合同值 =
-`astrocs.p2.sampling`（descriptor 占位 `astrocs.phase2.sample` 为编排层词汇，其
-对齐属迁移目标、未落地）；dll_target = `astrocs_p2_sampling.dll`（合同值，尚未
+CONTRACT_READY）。MOD ID = MOD-acsd-phase2-sample；module_id 合同值 =
+`acsd.p2.sampling`（descriptor 占位 `acsd.phase2.sample` 为编排层词汇，其
+对齐属迁移目标、未落地）；dll_target = `acsd_p2_sampling.dll`（合同值，尚未
 落地）。owner = SA-P2-S20；depends_on_int = P2-COV / CPU-005；legacy_paths =
 「lib/algorithms/coverage sampling sources」。
 
 生产源 = lib/algorithms/coverage/src/sampler.cpp + 签名头正本
 lib/algorithms/coverage/include/astro/phase2/sampler.h；构建 = 根 CMakeLists 的
-`astrocs_phase2` 静态库成员。
+`acsd_phase2` 静态库成员。
 
 ## 职责与明确非职责
 
@@ -110,7 +110,7 @@ validity、是否参与拟合。
 
 **公共面与逐帧梯度的分工**：采样点用于**全部帧联合**拟合公共天光面；每帧只在其
 上拟合平缓梯度，归一施加量为逐帧梯度（**保留公共面**）；全减（含公共面）不是
-默认路径（详见 registry/astrocs.phase2.upm-fit.md）。
+默认路径（详见 registry/acsd.phase2.upm-fit.md）。
 
 ## 公共 header、核心 symbol 与生命周期
 
@@ -132,7 +132,7 @@ entrypoint = 产品组 + coverage + validity + 检测目录 + SNR → star_mask 
 
 ## Registry descriptor 与配置 schema
 
-module_id=`astrocs.phase2.sample`（占位）；execution_class=`cpu_heavy`;
+module_id=`acsd.phase2.sample`（占位）；execution_class=`cpu_heavy`;
 parallel_ok=True。配置 = `P2SamplerConfig` 15 字段（sampler.h；默认
 `p2_sampler_default_config`）+ sccfg 14 字段显式透传（stage2.cpp；`control_k_corr`
 未透传，零初始化经 impl 修补回退默认）。
@@ -147,7 +147,7 @@ parallel_ok=True。配置 = `P2SamplerConfig` 15 字段（sampler.h；默认
 | `local_estimator` | `robust_median` | —— | 局部背景估计器（robust_median / trimmed_mean） |
 
 采样 / 天光面的**施加侧**配置（`additive_mode`、`sky_plane.enabled`）登记在
-registry/astrocs.phase2.upm-fit.md（采样模块只产点表，不施加归一化）。
+registry/acsd.phase2.upm-fit.md（采样模块只产点表，不施加归一化）。
 
 ## Execution class、并行轴、ThreadBudget lease、确定性
 
@@ -221,6 +221,6 @@ Oracle 面：
   改码）：cfg `<=0 → 默认` 吞显式 0；`insufficient_retained` 双计数；stderr 直写；
   veto 阈值与半径硬编码；零背景尺度收敛阈值退化全迭代；整改面未落地；
 - ThreadLease / 取消检查点接线未落地；目标交付形态
-  `astrocs_p2_sampling.dll` 尚未落地；descriptor 占位 module_id 与合同值
-  `astrocs.p2.sampling` 的对齐属迁移目标（未落地）；
+  `acsd_p2_sampling.dll` 尚未落地；descriptor 占位 module_id 与合同值
+  `acsd.p2.sampling` 的对齐属迁移目标（未落地）；
 - 全局限制登记 = artifacts/evidence/known-limitations-ledger/LIMITATIONS.md。

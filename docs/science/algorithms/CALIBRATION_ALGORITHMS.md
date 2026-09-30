@@ -1,6 +1,6 @@
 # Calibration Algorithms (ALG-CAL)
 
-> 上游：ASTROCS_DESIGN.md §4.2（Phase1 节点流程）
+> 上游：ACSD_DESIGN.md §4.2（Phase1 节点流程）
 > 连续数学定义以 `docs/science/CALIBRATION.md`（SCI-CAL-001，FROZEN）为唯一权威；
 > 本文只做离散化与实现事实登记，**本文为下游派生件，SCI 的修改从 SCI 自身发起**。现行源码中不存在
 > 黄金分割搜索、ISA benchmark 注册与取消检查点（§6 登记）。
@@ -15,10 +15,10 @@
   `AC_API` 符号）+ `lib/algorithms/calibration/src/master_generator.cpp`、
   `lib/algorithms/calibration/src/calibrator.cpp`、`lib/algorithms/calibration/src/cosmetic_corrector.cpp`、
   `lib/algorithms/calibration/src/photometry_apply.cpp`（§3.6）、
-  `lib/algorithms/calibration/src/ac_api.cpp`（CMake `astrocs_calibration` 静态库唯一构建
+  `lib/algorithms/calibration/src/ac_api.cpp`（CMake `acsd_calibration` 静态库唯一构建
   清单 = 上述 5 个 cpp，CMakeLists.txt:621-641）。
-- 同模块**独立生产源**（不在 `astrocs_calibration` 清单内）：`lib/algorithms/calibration/src/calibration_covariance.cpp`（745 行）
-  + 公共头 `lib/algorithms/calibration/include/astrocs/calibration/calibration_covariance.h`，
+- 同模块**独立生产源**（不在 `acsd_calibration` 清单内）：`lib/algorithms/calibration/src/calibration_covariance.cpp`（745 行）
+  + 公共头 `lib/algorithms/calibration/include/acsd/calibration/calibration_covariance.h`，
   由三个下游 target 直接编入：`lib/algorithms/integration/phase1_product/CMakeLists.txt:25`、
   `lib/algorithms/integration/phase2_integrate/CMakeLists.txt:44`、
   `lib/algorithms/coverage/CMakeLists.txt:170`；文档正本 = `lib/algorithms/calibration/CALIBRATION_COVARIANCE.md:5`
@@ -275,7 +275,7 @@ F5.4  失败→回退 k_init 且 diagnostics.fell_back=1, fallback_from=
       311-355]
 ```
 
-**现状**: `dark_optimizer.cpp` 不在 CMake `astrocs_calibration` 构建清单
+**现状**: `dark_optimizer.cpp` 不在 CMake `acsd_calibration` 构建清单
 （CMakeLists.txt:607-616），全仓无调用方；`hiss::Stage1Diagnostics` 来自
 `lib/infrastructure/aio/include/hiss_format.h`。登记为待迁移符号
 （P1-CAL-IMPL 决定接线或删除），不声明任何生产语义（DISP-CAL-005）。
@@ -296,7 +296,7 @@ F6.4  in-place 安全（逐元素无依赖）；每次调用向 stderr 输出两
         [60-61,71-72]
 ```
 
-**现状**: 已在 CMake 构建清单（根 `CMakeLists.txt`），**有生产调用方**——Phase1 `astrocs.phase1.photometry` 节点在同一步内做「拟合 → 施加」：读 calibrated 面 → `apply_photometry(px,w,h,k_photo,px)`（in-place）→ 写 `photoapplied_*` 面，并把 `apply_entry` / `photometry_applied` / `photscal` / 逐帧 `k_photo` / 施加后产物路径写进 `p1_phot.json`（`DATA-P1-PHOTPROV-001`）。`lib/algorithms/calibration/tests/test_photometry_apply.cpp` 为其共址测试。
+**现状**: 已在 CMake 构建清单（根 `CMakeLists.txt`），**有生产调用方**——Phase1 `acsd.phase1.photometry` 节点在同一步内做「拟合 → 施加」：读 calibrated 面 → `apply_photometry(px,w,h,k_photo,px)`（in-place）→ 写 `photoapplied_*` 面，并把 `apply_entry` / `photometry_applied` / `photscal` / 逐帧 `k_photo` / 施加后产物路径写进 `p1_phot.json`（`DATA-P1-PHOTPROV-001`）。`lib/algorithms/calibration/tests/test_photometry_apply.cpp` 为其共址测试。
 k_photo 的来源（Gaia 光谱积分定标）不在本模块（登记 DISP-CAL-006）。
 **可核对性**：独立读者可用「calibrated 面 × k」逐像素复算核对施加结果；**该复算判据必须尺度相关**——取无量纲相对差，绝对容差在真实 `k_photo` 量级（~1e-17）下会把"乘两次"判绿。
 
@@ -326,8 +326,8 @@ k_photo 的来源（Gaia 光谱积分定标）不在本模块（登记 DISP-CAL-
 | NaN 语义 | generate_master 统计跳过 NaN、全 NaN→输出 NaN；**generate_master_flat 帧级 median 同样先剔 NaN（DISP-CAL-010），全 NaN 帧/全 NaN 输出 fail-closed**；calibrate/cosmetic 阈值统计**不**过滤 NaN（NaN 算术直传/阈值不可靠） | master_generator.cpp:106-118,214-223,258-267；cosmetic_corrector.cpp:46-54 |
 | 日志 I/O | generate_master/flat 每次调用 2 行 stderr（ac_log）；apply_photometry 2 行 stderr；无文件/网络 I/O | master_generator.cpp:38-45 |
 | 内存 | 输出缓冲调用方分配；模块内 std::vector RAII。峰值额外内存: generate_master O(n_frames/线程)；generate_master_flat O(n_frames·npix·4B)（norm 主缓冲）；calibrate O(1)；cosmetic O(npix)（labels+masks+统计副本）；f64 转接层 O(n_pix) 全帧复制 | 各源文件 |
-| 构建 | CMake 目标 `astrocs_calibration`（STATIC，5 个 cpp，OpenMP 可选）；非生产 MinGW 通道: build.ps1（astro_calibration.dll）、Makefile（cpp/ 版 cosmetic_corrector.dll，cc_* 4 导出，window 奇数 3..15） | CMakeLists.txt:621-641；lib/algorithms/calibration/Makefile |
-| 生产调用方 | **calibrate**：`lib/phase1_session/p1_session.cpp:378` 与 `lib/infrastructure/scheduler/src/module_adapters.cpp:2332`（`p1_op_calibrate`，CLI 路径）；**cosmetic**：`p1_session.cpp:481`（检测源 = `:479-480` 的真实 `dark_plane`/`bias_plane`）与 `module_adapters.cpp:2796`（`p1_op_cosmetic`，检测源 = `:2929-2930` `resolve_master` 解析出的真实母版），**两处都不是 `nullptr, nullptr`**（见 COSMETIC_ALGORITHMS.md §4 与 P-091）；**photometry**：`module_adapters.cpp`（`p1_op_photometry`，§3.6）；**master 生成**（`ac_generate_master_*`）当前无生产调用方——唯一入口 `lib/algorithms/calibration/src/module_entry.cpp:1487` 属 `astrocs_p1_calibration` DLL 适配层，该 entrypoint 零调用（`lib/algorithms/calibration/README.md:22`） | p1_session.cpp:378,481；module_adapters.cpp:2332,2796；lib/algorithms/calibration/src/module_entry.cpp:1487 |
+| 构建 | CMake 目标 `acsd_calibration`（STATIC，5 个 cpp，OpenMP 可选）；非生产 MinGW 通道: build.ps1（astro_calibration.dll）、Makefile（cpp/ 版 cosmetic_corrector.dll，cc_* 4 导出，window 奇数 3..15） | CMakeLists.txt:621-641；lib/algorithms/calibration/Makefile |
+| 生产调用方 | **calibrate**：`lib/phase1_session/p1_session.cpp:378` 与 `lib/infrastructure/scheduler/src/module_adapters.cpp:2332`（`p1_op_calibrate`，CLI 路径）；**cosmetic**：`p1_session.cpp:481`（检测源 = `:479-480` 的真实 `dark_plane`/`bias_plane`）与 `module_adapters.cpp:2796`（`p1_op_cosmetic`，检测源 = `:2929-2930` `resolve_master` 解析出的真实母版），**两处都不是 `nullptr, nullptr`**（见 COSMETIC_ALGORITHMS.md §4 与 P-091）；**photometry**：`module_adapters.cpp`（`p1_op_photometry`，§3.6）；**master 生成**（`ac_generate_master_*`）当前无生产调用方——唯一入口 `lib/algorithms/calibration/src/module_entry.cpp:1487` 属 `acsd_p1_calibration` DLL 适配层，该 entrypoint 零调用（`lib/algorithms/calibration/README.md:22`） | p1_session.cpp:378,481；module_adapters.cpp:2332,2796；lib/algorithms/calibration/src/module_entry.cpp:1487 |
 
 ### 4.1 非生产双实现：`cpp/cosmetic_corrector.cpp`（cc_* 通道）
 
@@ -406,18 +406,18 @@ MinGW `Makefile`，仓内无消费者）。**已退役**：逐条分歧（`mad=0
 
 ## 8 迁移合同（P1-CAL-IMPL 目标，不声明已完成）
 
-- 目标模块边界: `astrocs.p1.calibration` / `astrocs_p1_calibration.dll`
+- 目标模块边界: `acsd.p1.calibration` / `acsd_p1_calibration.dll`
   ——**SHARED 目标已在位**（`lib/algorithms/calibration/CMakeLists.txt:30`
-  `add_library(astrocs_p1_calibration SHARED)`，生产源独立重编译；Linux 产物
-  `astrocs_p1_calibration.so`，Windows 链接脚本 `src/astrocs_p1_calibration.def`），
-  `docs/engineering/MODULE_MAP.md:17` 已登记为 `modules/astrocs_p1_calibration.so`；
-  legacy 静态库 `astrocs_calibration`（CMakeLists.txt:621-641）与非生产 MinGW DLL 并存。
-  **未闭合的是运行期绑定**：entrypoint `astrocs_module_query_v1`
-  （`lib/algorithms/calibration/src/module_entry.cpp:1487`）零调用 ⇒ `astrocs.p1.*` 身份
+  `add_library(acsd_p1_calibration SHARED)`，生产源独立重编译；Linux 产物
+  `acsd_p1_calibration.so`，Windows 链接脚本 `src/acsd_p1_calibration.def`），
+  `docs/engineering/MODULE_MAP.md:17` 已登记为 `modules/acsd_p1_calibration.so`；
+  legacy 静态库 `acsd_calibration`（CMakeLists.txt:621-641）与非生产 MinGW DLL 并存。
+  **未闭合的是运行期绑定**：entrypoint `acsd_module_query_v1`
+  （`lib/algorithms/calibration/src/module_entry.cpp:1487`）零调用 ⇒ `acsd.p1.*` 身份
   在 registry 零命中、MOD-001 判 NOT_IMPLEMENTED（整改归 P1-CAL-IMPL）。
   **悬空引用登记**：原引 `MODULE_MIGRATION_MATRIX.csv` P1-CAL 行 —— 该文件全仓 **0 命中**
   （`git ls-files` 无此路径），属悬空引用（P-065）。
-- 三方一致: `acs_module_descriptor_v1`（lib/include/astrocs/abi/module_api_v1.h:40-53，
+- 三方一致: `acsd_module_descriptor_v1`（lib/include/acsd/abi/module_api_v1.h:40-53，
   字段 module_id/sci_id/alg_id/api_id/execution_class/parallel_ok）与
   module.yaml、运行 manifest 一致校验（12 号标准 §5）。descriptor 取值:
   sci_id=SCI-CAL-001、alg_id=ALG-CAL-001、api_id=API-P1-001、
@@ -567,7 +567,7 @@ oracle 同容差；actual_k 精确相等。
   **不解释 `Image` 元素的 `bounds`（可表示域）**，也不做任何单位换算；`p1_op_calibrate`
   把读到的 float 直接当 ADU 传给 `ac_calibrate_frame`——该路径由 §2 标度声明表与
   U1–U4 四条机器规则 fail-closed 拦截（规则本体
-  `lib/include/astrocs/core/master_unit_guard.h:93-173`；调用与诊断
+  `lib/include/acsd/core/master_unit_guard.h:93-173`；调用与诊断
   `lib/infrastructure/scheduler/src/module_adapters.cpp:2003-2125`；
   声明换算 `:2033,2037,2041`；K 推导 `:2129-2147,2198-2216`；
   `ac_calibrate_frame` 调用 `:2220`）。
@@ -608,7 +608,7 @@ oracle 同容差；actual_k 精确相等。
   `calibrated_*`；门脚本 `eng/tools/quality/check_master_unit_guard.py` 对三条负例显式断言
   「拒绝路径不留 calibrated_* 半成品」。**残留（通用语义，不在本文件域，待裁定）**：
   run 级 incomplete 时上游节点已原子发布的产品如何标记/清理（`.incomplete` 后缀、独立
-  staging、或 run 结束统一回滚）——`docs/ASTROCS_DESIGN.md` §7.2「失败时不留可被误认成正式产品的
+  staging、或 run 结束统一回滚）——`docs/ACSD_DESIGN.md` §7.2「失败时不留可被误认成正式产品的
   半成品」的落地口径；该场景下 output_dir 会留下形状完整、可被误认成正式产品的
   `calibrated_*`/`cleaned_*`（下游节点如 plate_solve 失败时 rc≠0、run manifest
   `status=incomplete`）。
@@ -622,7 +622,7 @@ oracle 同容差；actual_k 精确相等。
 - SCI: SCI-CAL-001（docs/science/CALIBRATION.md，FROZEN）
 - DATA: DATA-P1-CAL（docs/science/DATA_SEMANTICS.md §9）；输入帧端口 DATA-P1-FRAME
 - API: API-P1-001（docs/engineering/PHASE1_API_V1.md，编排合同 §2 已登记 ac_*）；API-CAL-001（docs/engineering/PUBLIC_API.md，现状 C API 合同）
-- MOD/SRC: MOD-astrocs-phase1-calibration；SRC-CAL-001（astro_calibration.h 14 符号）
+- MOD/SRC: MOD-acsd-phase1-calibration；SRC-CAL-001（astro_calibration.h 14 符号）
 - 测试: TEST-CAL-DESIGN-001（本文 §9，P1-CAL-TEST 落地可执行 TEST-P1-CAL-001）；既有共址测试 lib/algorithms/calibration/tests/test_photometry_apply.cpp
 - ARCH: ARCH-001（docs/engineering/ARCH-001.md）
 

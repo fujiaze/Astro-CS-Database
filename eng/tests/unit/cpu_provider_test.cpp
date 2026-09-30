@@ -1,6 +1,6 @@
 // CPU-004 单元测试: AVX2/AVX-512 provider 同 kernel ID/semantics + manifest 匹配
 #include "cpu_features.h"
-#include "astrocs/common_abi_v1.h"
+#include "acsd/common_abi_v1.h"
 
 #include <cstdio>
 #include <cstring>
@@ -15,7 +15,7 @@ static int failures = 0;
     }                                                                     \
   } while (0)
 
-extern "C" uint64_t astrocs_cpu_detect_features_v1(void);
+extern "C" uint64_t acsd_cpu_detect_features_v1(void);
 
 // 复刻 backend_loader 的 feature 匹配 (05 §3): required ⊆ detected
 static bool features_satisfy(uint64_t detected, uint64_t required) {
@@ -34,7 +34,7 @@ int main() {
     // 真需求弱，掩盖了"声明 ⊊ 编译"的缺陷。
     {"avx512", ACS_FEAT_AVX512_PROVIDER_REQUIRED},
   };
-  uint64_t detected = astrocs_cpu_detect_features_v1();
+  uint64_t detected = acsd_cpu_detect_features_v1();
   // baseline 必须恒满足
   CHECK(features_satisfy(detected, entries[0].required));
   // 负例锁定（真值无效应必须判红）：只有 AVX512F、没有 BW/DQ/VL 时，
@@ -67,7 +67,7 @@ int main() {
   // 3) 静态校验: avx2/avx512 backend 与 baseline 共享 kernel 表源
   //    (同 kernel ID/semantics 零复制漂移 — 三 TU include 同一 impl/table)
   {
-    std::string base = std::string(std::getenv("ASTROCS_REPO") ? std::getenv("ASTROCS_REPO") : "..");
+    std::string base = std::string(std::getenv("ACSD_REPO") ? std::getenv("ACSD_REPO") : "..");
     auto check_shared = [&](const std::string& f) {
       std::string p = base + "/lib/infrastructure/benchmark/backend_host/" + f;
       std::FILE* fp = std::fopen(p.c_str(), "r");

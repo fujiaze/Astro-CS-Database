@@ -29,16 +29,16 @@ U_DIR = "eng/contracts/schemas/unified"
 
 # 产品族记录级 $defs（键 -> 合并前原生产 schema 文件名，仅作溯源）
 DEF_FILES = [
-    ("units", "astrocs.v6.units.v1.schema.json"),
-    ("signal", "astrocs.v6.signal.v1.schema.json"),
-    ("covariance", "astrocs.v6.covariance.v1.schema.json"),
-    ("psf", "astrocs.v6.psf.v1.schema.json"),
-    ("effective_psf", "astrocs.v6.effective-psf.v1.schema.json"),
-    ("point_information", "astrocs.v6.point-information.v1.schema.json"),
-    ("weight_mode", "astrocs.v6.weight-mode.v1.schema.json"),
-    ("psfsw", "astrocs.v6.psfsw.v1.schema.json"),
-    ("provenance", "astrocs.v6.provenance.v1.schema.json"),
-    ("phase3", "astrocs.v6.phase3.v1.schema.json"),
+    ("units", "acsd.v6.units.v1.schema.json"),
+    ("signal", "acsd.v6.signal.v1.schema.json"),
+    ("covariance", "acsd.v6.covariance.v1.schema.json"),
+    ("psf", "acsd.v6.psf.v1.schema.json"),
+    ("effective_psf", "acsd.v6.effective-psf.v1.schema.json"),
+    ("point_information", "acsd.v6.point-information.v1.schema.json"),
+    ("weight_mode", "acsd.v6.weight-mode.v1.schema.json"),
+    ("psfsw", "acsd.v6.psfsw.v1.schema.json"),
+    ("provenance", "acsd.v6.provenance.v1.schema.json"),
+    ("phase3", "acsd.v6.phase3.v1.schema.json"),
 ]
 DEF_KEYS = [k for k, _ in DEF_FILES]
 
@@ -146,7 +146,7 @@ class Oracle:
         """canonical schema 的 allOf 分支上登记的条款 id 集合。"""
         out = set()
         for br in self.unified(name).get("allOf", []) or []:
-            g = br.get("x-astrocs-gate") or {}
+            g = br.get("x-acsd-gate") or {}
             if g.get("clause_id"):
                 out.add(g["clause_id"])
         return out
@@ -322,7 +322,7 @@ class Oracle:
             bad.append("product_family $schema")
         if not pf.get("$id") or not pf.get("title"):
             bad.append("product_family $id/title")
-        if (pf.get("x-astrocs-contract") or {}).get("is_object_contract") is not False:
+        if (pf.get("x-acsd-contract") or {}).get("is_object_contract") is not False:
             bad.append("product_family must declare is_object_contract=false")
         for key in DEF_KEYS:
             d = self.schema(key)
@@ -332,9 +332,9 @@ class Oracle:
                 bad.append(key + " $id/title")
             if d.get("type") != "object" or d.get("additionalProperties") is not False:
                 bad.append(key + " root object/additionalProperties")
-            prod = d.get("x-astrocs-production")
+            prod = d.get("x-acsd-production")
             if not prod or prod.get("task") != "SCHEMA-INTEGRATE-001" or prod.get("wave") != 6:
-                bad.append(key + " x-astrocs-production")
+                bad.append(key + " x-acsd-production")
         self._ck("O01-schema-meta", not bad, "; ".join(bad))
 
     def _o02_family(self):
@@ -353,7 +353,7 @@ class Oracle:
                 bad.append("§31 正文缺单位行 %s=%s" % (row["symbol"], row["unit"]))
         # 独立真值：point_information 记录级 schema 的 W_info 单位锚必须与单位表一致
         w_info = next((r["unit"] for r in reg["units_table"] if r["symbol"] == "W_info"), None)
-        anchor = (self.schema("point_information")["properties"]["W_info"].get("x-astrocs") or {}).get("units")
+        anchor = (self.schema("point_information")["properties"]["W_info"].get("x-acsd") or {}).get("units")
         if anchor != w_info:
             bad.append("point_information bunit anchor %r != units_table W_info %r" % (anchor, w_info))
         self._ck("O03-frozen-units-table", not bad, "; ".join(bad))
@@ -432,7 +432,7 @@ class Oracle:
         （禁止先产出后登记）。
         """
         nv = self._prop(self.schema("provenance"), "normalization_version") or {}
-        vd = ((nv.get("x-astrocs") or {}).get("value_domain")) or {}
+        vd = ((nv.get("x-acsd") or {}).get("value_domain")) or {}
         reg = set((vd.get("registered_tokens") or {}).keys())
         if not reg or vd.get("unregistered") != "REJECT" or not (vd.get("open_families") or {}):
             self._ck("O23-norm-version-domain", False,
@@ -520,7 +520,7 @@ class Oracle:
         s = self.schema("point_information")
         bad = []
         for name, unit in (("W_info", "ADU^-2"), ("Q", "ADU^-1"), ("flux", "ADU")):
-            anch = s["properties"][name].get("x-astrocs", {}).get("units")
+            anch = s["properties"][name].get("x-acsd", {}).get("units")
             if anch != unit:
                 bad.append("%s anchor units %r" % (name, anch))
         # canonical 层同锚（对象身份层的单位不得与记录层打架）
@@ -547,7 +547,7 @@ class Oracle:
         need = reg["required_freeze_ids"]
         seen = set()
         for key in DEF_KEYS:
-            seen |= set(self.schema(key)["x-astrocs-production"]["clause_ids"])
+            seen |= set(self.schema(key)["x-acsd-production"]["clause_ids"])
         seen |= {c["clause_id"] for c in reg["fail_closed"]}
         seen |= {p["clause_id"] for p in reg["provenance_minimal_set"]}
         seen |= set(reg["clause_registry"]["ids_by_status"].get("FROZEN", []))
@@ -710,7 +710,7 @@ class Oracle:
         known = {c["id"] for c in self.registry()["clauses"]}
         extra = set()
         for key in DEF_KEYS:
-            extra |= set(self.schema(key)["x-astrocs-production"]["clause_ids"])
+            extra |= set(self.schema(key)["x-acsd-production"]["clause_ids"])
         unknown = sorted(extra - known)
         self._ck("O28-clause-ids-known", not unknown, "unknown clause ids: %s" % unknown)
 
@@ -883,14 +883,14 @@ class Oracle:
         bad = []
         for key in DEF_KEYS:
             d = self.schema(key)
-            for cid in d["x-astrocs-production"].get("pending_owner_signoff_structural_refs", []):
+            for cid in d["x-acsd-production"].get("pending_owner_signoff_structural_refs", []):
                 if status.get(cid) != "PENDING_OWNER_SIGNOFF":
                     bad.append("%s: %s not PENDING in registry" % (key, cid))
         n_common = self.schema("psfsw")["properties"]["common_star_set"]["properties"]["n_common"]
-        if "PENDING_OWNER_SIGNOFF" not in (n_common.get("x-astrocs", {}).get("signoff") or ""):
+        if "PENDING_OWNER_SIGNOFF" not in (n_common.get("x-acsd", {}).get("signoff") or ""):
             bad.append("psfsw n_common not annotated pending")
         kcv = self.schema("provenance")["properties"]["k_corr"]["properties"]["value"]
-        if "PENDING_OWNER_SIGNOFF" not in (kcv.get("x-astrocs", {}).get("signoff") or ""):
+        if "PENDING_OWNER_SIGNOFF" not in (kcv.get("x-acsd", {}).get("signoff") or ""):
             bad.append("provenance k_corr.value not annotated pending")
         self._ck("O32-pending-structural-refs", not bad, "; ".join(bad))
 

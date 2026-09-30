@@ -31,13 +31,13 @@ from typed_dag import (  # noqa: E402
 
 # 真实模块 (module_ports.registry.json 登记) — 确保负测失败原因是图形态而非未知模块
 P2_MODULES = {
-    "coverage": "astrocs.phase2.coverage",
-    "sample": "astrocs.phase2.sample",
-    "upm_fit": "astrocs.phase2.upm-fit",
-    "upm_apply": "astrocs.phase2.upm-apply",
-    "reject": "astrocs.phase2.reject",
-    "integrate": "astrocs.phase2.integrate",
-    "write": "astrocs.phase2.write",
+    "coverage": "acsd.phase2.coverage",
+    "sample": "acsd.phase2.sample",
+    "upm_fit": "acsd.phase2.upm-fit",
+    "upm_apply": "acsd.phase2.upm-apply",
+    "reject": "acsd.phase2.reject",
+    "integrate": "acsd.phase2.integrate",
+    "write": "acsd.phase2.write",
 }
 P2_CHAIN = [
     ("coverage", P2_MODULES["coverage"], "frame_hips", "p2_coverage"),
@@ -120,7 +120,7 @@ def base_phase2_ir() -> dict:
             n["resources"] = {"class": "io", "parallel": False}
         nodes.append(n)
     return {
-        "schema": "astrocs.typed-dag/v1",
+        "schema": "acsd.typed-dag/v1",
         "pipeline_id": "phase2.rt001",
         "phase": "phase2",
         "version": "1.0.0",
@@ -149,7 +149,7 @@ class TestNegative(unittest.TestCase):
         """7 个节点全部声明同一 module_id(同 Session 包装)→ MODULE_REUSED 拒绝。"""
         doc = base_phase2_ir()
         for n in doc["nodes"]:
-            n["module_id"] = "astrocs.phase2.resample"   # 聚合 Session 模块(未入绑定表)
+            n["module_id"] = "acsd.phase2.resample"   # 聚合 Session 模块(未入绑定表)
         res = self.compiler.compile(doc)
         self.assertFalse(res.ok, "7 节点同 session module 应 FAIL")
         self.assertIn(DagError.UNKNOWN_MODULE, codes(res),
@@ -185,20 +185,20 @@ class TestNegative(unittest.TestCase):
         # 构造 type 冲突: wcs 输出 p3_wcs(f64/DEGREE) 同时接 resample2 的 p3_wcs(f64, 对) 与
         # mosaic_hips 输入(f32/SURFACE_BRIGHTNESS) → scalar/unit/coord/schema 冲突; 断言含 TYPE_MISMATCH。
         doc3 = {
-            "schema": "astrocs.typed-dag/v1",
+            "schema": "acsd.typed-dag/v1",
             "pipeline_id": "type.bad",
             "phase": "phase3",
             "version": "1",
             "nodes": [
-                {"node_id": "a", "module_id": "astrocs.phase3.properties",
+                {"node_id": "a", "module_id": "acsd.phase3.properties",
                  "operation": "read_properties", "config": {},
                  "inputs": {"mosaic_hips": "artifact:h"}, "outputs": {"p3_props": "artifact:p"},
                  "resources": {"class": "cpu_heavy", "parallel": True}},
-                {"node_id": "b", "module_id": "astrocs.phase3.wcs",
+                {"node_id": "b", "module_id": "acsd.phase3.wcs",
                  "operation": "build_wcs", "config": {},
                  "inputs": {"p3_props": "artifact:p"}, "outputs": {"p3_wcs": "artifact:w"},
                  "resources": {"class": "cpu_heavy", "parallel": True}},
-                {"node_id": "c", "module_id": "astrocs.phase3.resample2",
+                {"node_id": "c", "module_id": "acsd.phase3.resample2",
                  "operation": "resample_projection", "config": {},
                  "inputs": {"p3_props": "artifact:p", "p3_wcs": "artifact:w",
                             "mosaic_hips": "artifact:w"},
@@ -238,7 +238,7 @@ class TestNegative(unittest.TestCase):
         doc["phase"] = "phase2"
         p1 = {
             "node_id": "p1_writer",
-            "module_id": "astrocs.phase1.writer",
+            "module_id": "acsd.phase1.writer",
             "operation": "write_hips",
             "config": {},
             "inputs": {"stacked": "artifact:stk"},
@@ -248,16 +248,16 @@ class TestNegative(unittest.TestCase):
         # 该 p1 节点与图 phase(phase2) 冲突 → PHASE_SCOPE 先触发; 把图 phase 改 phase1
         # 但链仍是 phase2 module → 大量 PHASE_SCOPE。更干净做法: 双节点图跨 phase。
         doc2 = {
-            "schema": "astrocs.typed-dag/v1",
+            "schema": "acsd.typed-dag/v1",
             "pipeline_id": "cross",
             "phase": "phase3",
             "version": "1",
             "nodes": [
-                {"node_id": "p2_write", "module_id": "astrocs.phase2.write",
+                {"node_id": "p2_write", "module_id": "acsd.phase2.write",
                  "operation": "write_mosaic", "config": {},
                  "inputs": {"p2_integrated": "artifact:i"}, "outputs": {"mosaic_hips": "artifact:m"},
                  "resources": {"class": "io", "parallel": False}},
-                {"node_id": "p3_props", "module_id": "astrocs.phase3.properties",
+                {"node_id": "p3_props", "module_id": "acsd.phase3.properties",
                  "operation": "read_properties", "config": {},
                  "inputs": {"hips": "artifact:m"}, "outputs": {"props": "artifact:p"},
                  "resources": {"class": "cpu_heavy", "parallel": True}},
@@ -274,7 +274,7 @@ class TestNegative(unittest.TestCase):
     def test_cross_phase_same_top_phase(self):
         """顶层 phase=phase2 但 module 混入 phase1/phase3 → PHASE_SCOPE/CROSS_PHASE 拒绝。"""
         doc = base_phase2_ir()
-        doc["nodes"][0]["module_id"] = "astrocs.phase1.calibration"
+        doc["nodes"][0]["module_id"] = "acsd.phase1.calibration"
         doc["nodes"][0]["operation"] = "calibrate"
         res = self.compiler.compile(doc)
         self.assertFalse(res.ok, "混入异 phase module 应 FAIL")
@@ -317,20 +317,20 @@ class TestNegative(unittest.TestCase):
     def test_unit_mismatch(self):
         """p3_wcs(DEGREE) 输出 → resample2 mosaic_hips 输入(SURFACE_BRIGHTNESS) → UNIT_MISMATCH。"""
         doc3 = {
-            "schema": "astrocs.typed-dag/v1",
+            "schema": "acsd.typed-dag/v1",
             "pipeline_id": "unit.bad",
             "phase": "phase3",
             "version": "1",
             "nodes": [
-                {"node_id": "a", "module_id": "astrocs.phase3.properties",
+                {"node_id": "a", "module_id": "acsd.phase3.properties",
                  "operation": "read_properties", "config": {},
                  "inputs": {"mosaic_hips": "artifact:h"}, "outputs": {"p3_props": "artifact:p"},
                  "resources": {"class": "cpu_heavy", "parallel": True}},
-                {"node_id": "b", "module_id": "astrocs.phase3.wcs",
+                {"node_id": "b", "module_id": "acsd.phase3.wcs",
                  "operation": "build_wcs", "config": {},
                  "inputs": {"p3_props": "artifact:p"}, "outputs": {"p3_wcs": "artifact:w"},
                  "resources": {"class": "cpu_heavy", "parallel": True}},
-                {"node_id": "c", "module_id": "astrocs.phase3.resample2",
+                {"node_id": "c", "module_id": "acsd.phase3.resample2",
                  "operation": "resample_projection", "config": {},
                  "inputs": {"p3_props": "artifact:p", "p3_wcs": "artifact:w",
                             "mosaic_hips": "artifact:w"},
@@ -362,7 +362,7 @@ class TestNegative(unittest.TestCase):
             self.assertEqual(len(m.get("operations", [])), 1,
                              f"{mid} 必须唯一绑定一个 operation")
         # 聚合 Session 模块不得出现在绑定表
-        for banned in ("astrocs.phase2.resample", "astrocs.phase3.resample"):
+        for banned in ("acsd.phase2.resample", "acsd.phase3.resample"):
             self.assertIsNone(reg.module(banned),
                               f"聚合 Session 模块 {banned} 不得入绑定表")
 

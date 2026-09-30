@@ -25,7 +25,7 @@ from typing import Any, Dict, List, Optional
 REPO = pathlib.Path(__file__).resolve().parents[4]
 REGISTRY_PATH = REPO / "lib" / "infrastructure" / "pipeline" / "module_ports.registry.json"
 _PHASES = ("phase1", "phase2", "phase3")
-_MODULE_ID_RE = re.compile(r"^astrocs\.phase([123])\.[a-z0-9_.-]+$")
+_MODULE_ID_RE = re.compile(r"^acsd\.phase([123])\.[a-z0-9_.-]+$")
 _HEX64 = re.compile(r"^[0-9a-f]{64}$")
 _MANIFEST_HEX64 = re.compile(r"^sha256:[0-9a-f]{64}$|^[0-9a-f]{64}$")
 
@@ -70,8 +70,8 @@ def phase_filter(modules: List[dict], phase: str) -> List[dict]:
     """按 phase 过滤注册表视图：只保留 phase==phase 的 module 记录（phase registry 视图）。
 
     验收: phase registry 只含本 Phase 模块 —— 例如 phase2 视图绝不包含
-    astrocs.phase1.* / astrocs.phase3.* 记录；聚合 Session 模块（RT-001 未登记
-    astrocs.phaseN.resample 聚合形态）不在本视图内注册可执行操作。
+    acsd.phase1.* / acsd.phase3.* 记录；聚合 Session 模块（RT-001 未登记
+    acsd.phaseN.resample 聚合形态）不在本视图内注册可执行操作。
     """
     if phase not in _PHASES:
         raise ValueError(f"phase must be in {_PHASES}: {phase!r}")

@@ -1,6 +1,6 @@
 {
   "unified_object": "signal",
-  "object_schema_id": "https://astrocs.local/schemas/unified/signal/v1",
+  "object_schema_id": "https://acsd.local/schemas/unified/signal/v1",
   "schema_version": 1,
   "units": {
     "bunit": "ADU",

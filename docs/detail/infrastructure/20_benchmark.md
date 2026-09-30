@@ -1,6 +1,6 @@
 # 插件文档：benchmark（CPU profile）
 
-> 上游：ASTROCS_DESIGN.md §9（CPU 后端与资源）
+> 上游：ACSD_DESIGN.md §9（CPU 后端与资源）
 
 ## 1. 职责与边界
 
@@ -9,7 +9,7 @@
 
 ## 2. 权威依据
 
-- 最高设计 `ASTROCS_DESIGN.md` §7.1（命令树：benchmark）、§9（CPU 后端与资源）
+- 最高设计 `ACSD_DESIGN.md` §7.1（命令树：benchmark）、§9（CPU 后端与资源）
 - `eng/contracts/schemas/cpu_profile.schema.json`
 
 ## 3. 输入/输出数据合同

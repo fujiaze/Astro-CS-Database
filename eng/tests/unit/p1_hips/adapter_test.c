@@ -1,4 +1,4 @@
-/* adapter_test.c - astrocs.p1.hips_writer 模块 C ABI v1 adapter 契约测试
+/* adapter_test.c - acsd.p1.hips_writer 模块 C ABI v1 adapter 契约测试
  *
  * 对齐先例: eng/tests/unit/phase1_session/module_adapter_test.c (九操作)
  *          lib/algorithms/cosmetic/tests/adapter_budget_test.c (BUDGET/租约)
@@ -11,7 +11,7 @@
  *   2. plan() 真实 work_units (禁空转; 单事务串行 max_workers=1)
  *   3. host executor 租约: 缺失/不足 → ACS_ERR_BUDGET detail 105 (禁私建线程)
  *   4. entry cancel / mid-transaction cancel → 事务化 abort (半成品树移除)
- *   5. 导出面: nm -D 唯一 astrocs_module_query_v1; dlsym legacy 九符号全 NULL
+ *   5. 导出面: nm -D 唯一 acsd_module_query_v1; dlsym legacy 九符号全 NULL
  *   6. host allocator 分配失败负面用例 (批次 R 57 处 malloc hardening 合同面)
  */
 #include <stdio.h>
@@ -25,9 +25,9 @@
 #include <dirent.h>
 #include <dlfcn.h>
 
-#include "astrocs/abi/module_api_v1.h"
-#include "astrocs/abi/lifecycle_v1.h"
-#include "astrocs/hips/types.h"
+#include "acsd/abi/module_api_v1.h"
+#include "acsd/abi/lifecycle_v1.h"
+#include "acsd/hips/types.h"
 #include "aio_hips.h"
 
 static int g_fail = 0;
@@ -71,27 +71,27 @@ static void exec_release_ok(void* ud, uint32_t n) { (void)ud; (void)n; }
 
 static int exec_cancelled(void* ud) { return ud ? 1 : 0; }
 
-static const acs_allocator_v1 k_alloc = {
-    { (uint32_t)sizeof(acs_allocator_v1), ACS_ABI_VERSION_V1 },
+static const acsd_allocator_v1 k_alloc = {
+    { (uint32_t)sizeof(acsd_allocator_v1), ACS_ABI_VERSION_V1 },
     halloc, hfree, NULL
 };
-static const acs_executor_v1 k_exec_ok = {
-    { (uint32_t)sizeof(acs_executor_v1), ACS_ABI_VERSION_V1 },
+static const acsd_executor_v1 k_exec_ok = {
+    { (uint32_t)sizeof(acsd_executor_v1), ACS_ABI_VERSION_V1 },
     4, 2, exec_acquire_ok, exec_release_ok, NULL
 };
-static const acs_executor_v1 k_exec_fail = {
-    { (uint32_t)sizeof(acs_executor_v1), ACS_ABI_VERSION_V1 },
+static const acsd_executor_v1 k_exec_fail = {
+    { (uint32_t)sizeof(acsd_executor_v1), ACS_ABI_VERSION_V1 },
     4, 2, exec_acquire_fail, exec_release_ok, NULL
 };
-static const acs_cancel_v1 k_cancel = {
-    { (uint32_t)sizeof(acs_cancel_v1), ACS_ABI_VERSION_V1 },
+static const acsd_cancel_v1 k_cancel = {
+    { (uint32_t)sizeof(acsd_cancel_v1), ACS_ABI_VERSION_V1 },
     exec_cancelled, (void*)1
 };
 
-static void host_fill(acs_host_api_v1* h, const acs_allocator_v1* al,
-                      const acs_executor_v1* ex, const acs_cancel_v1* ca) {
+static void host_fill(acsd_host_api_v1* h, const acsd_allocator_v1* al,
+                      const acsd_executor_v1* ex, const acsd_cancel_v1* ca) {
     memset(h, 0, sizeof(*h));
-    h->head.struct_size = (uint32_t)sizeof(acs_host_api_v1);
+    h->head.struct_size = (uint32_t)sizeof(acsd_host_api_v1);
     h->head.abi_version = ACS_ABI_VERSION_V1;
     h->allocator = al;
     h->executor = ex;
@@ -163,7 +163,7 @@ static int direct_begin(direct_env* e, const char* out_dir) {
     e->flags = AIO_HIPS_PRODUCT_ALL_V19;
     e->ps = aio_hips_product_begin(out_dir, 512, 512, AIO_HIPS_FLOAT32,
                                    AIO_HIPS_PRODUCT_ALL_V19,
-                                   "ivo://astrocs/phase1",
+                                   "ivo://acsd/phase1",
                                    "HIPS adapter channel (P1-HIPS-IMPL adapter "
                                    "test)", NULL, 1200.0, "2026-02-11T00:00:00Z",
                                    0);
@@ -296,7 +296,7 @@ static int manifest_build(char* buf, size_t cap, const tile_bytes* b,
     p += snprintf(p, (size_t)(buf + cap - p),
         "{\"op\":\"write_product\",\"out_dir\":\"%s\",\"nside\":512,"
         "\"tile_width\":%u,\"data_type\":0,\"flags\":31,"
-        "\"creator_did\":\"ivo://astrocs/phase1\","
+        "\"creator_did\":\"ivo://acsd/phase1\","
         "\"obs_title\":\"HIPS adapter channel (P1-HIPS-IMPL adapter test)\","
         "\"obs_filter\":null,\"exposure_s\":1200.0,"
         "\"obs_date\":\"2026-02-11T00:00:00Z\",\"moc_order\":0,"
@@ -526,19 +526,19 @@ static void run_direct_reference(const char* root) {
 
 static void run_adapter_full(const char* root, const char* ref_dir) {
     set_case("adapter_full_lifecycle");
-    const acs_module_api_v1* api = NULL;
-    acs_host_api_v1 host;
+    const acsd_module_api_v1* api = NULL;
+    acsd_host_api_v1 host;
     host_fill(&host, &k_alloc, &k_exec_ok, NULL);
-    EXPECT(astrocs_module_query_v1(ACS_ABI_VERSION_V1, &host, &api) == ACS_OK);
+    EXPECT(acsd_module_query_v1(ACS_ABI_VERSION_V1, &host, &api) == ACS_OK);
     EXPECT(api != NULL);
 
-    char mid[] = ASTROCS_HIPS_MODULE_ID;
-    acs_module_descriptor_v1 desc;
+    char mid[] = ACSD_HIPS_MODULE_ID;
+    acsd_module_descriptor_v1 desc;
     memset(&desc, 0, sizeof(desc));
-    EXPECT(api->describe(api, (acs_str_v1){ sizeof(acs_str_v1),
+    EXPECT(api->describe(api, (acsd_str_v1){ sizeof(acsd_str_v1),
                                            ACS_ABI_VERSION_V1, mid, strlen(mid) },
                          &desc) == ACS_OK);
-    EXPECT_STR(desc.module_id.data, "astrocs.p1.hips_writer");
+    EXPECT_STR(desc.module_id.data, "acsd.p1.hips_writer");
     EXPECT(desc.execution_class == 0);          /* cpu_heavy */
     EXPECT(desc.parallel_ok == 0);              /* 单事务串行 (HI-3) */
     EXPECT(desc.phase == 1);
@@ -546,10 +546,10 @@ static void run_adapter_full(const char* root, const char* ref_dir) {
     /* validate_config: 512/5 非法组合 (HI-1) */
     char bad_cfg[] = "{\"op\":\"write_product\",\"out_dir\":\"x\",\"nside\":512,"
                      "\"tile_width\":5,\"data_type\":0,\"flags\":7}";
-    acs_error_info_v1 err;
+    acsd_error_info_v1 err;
     memset(&err, 0, sizeof(err));
-    acs_status vst = api->validate_config(
-        api, (acs_str_v1){ sizeof(acs_str_v1), ACS_ABI_VERSION_V1,
+    acsd_status vst = api->validate_config(
+        api, (acsd_str_v1){ sizeof(acsd_str_v1), ACS_ABI_VERSION_V1,
                            bad_cfg, strlen(bad_cfg) }, &err);
     EXPECT(vst == ACS_ERR_PARAM);
     EXPECT_STR(err.message_utf8, "tile_width");
@@ -557,7 +557,7 @@ static void run_adapter_full(const char* root, const char* ref_dir) {
 
     char cfg[] = "{\"op\":\"write_product\",\"out_dir\":\"PLACEHOLDER\","
                  "\"nside\":512,\"tile_width\":512,\"data_type\":0,\"flags\":31,"
-                 "\"creator_did\":\"ivo://astrocs/phase1\","
+                 "\"creator_did\":\"ivo://acsd/phase1\","
                  "\"obs_title\":\"HIPS adapter channel (P1-HIPS-IMPL adapter "
                  "test)\",\"exposure_s\":1200.0,"
                  "\"obs_date\":\"2026-02-11T00:00:00Z\",\"moc_order\":0,"
@@ -571,22 +571,22 @@ static void run_adapter_full(const char* root, const char* ref_dir) {
                  (int)(q - cfg), cfg, cfg_dir, q + strlen("PLACEHOLDER"));
     }
 
-    acs_module_instance_v1* inst = NULL;
+    acsd_module_instance_v1* inst = NULL;
     EXPECT(api->create(api,
-                       (acs_str_v1){ sizeof(acs_str_v1), ACS_ABI_VERSION_V1,
+                       (acsd_str_v1){ sizeof(acsd_str_v1), ACS_ABI_VERSION_V1,
                                      cfg_buf, strlen(cfg_buf) },
                        &host, &inst, &err) == ACS_OK);
     EXPECT(inst != NULL);
 
     /* plan: 真实 work_units (单事务串行) */
     char nbuf[2048];
-    acs_strbuf_v1 pb = { sizeof(acs_strbuf_v1), ACS_ABI_VERSION_V1,
+    acsd_strbuf_v1 pb = { sizeof(acsd_strbuf_v1), ACS_ABI_VERSION_V1,
                          nbuf, sizeof(nbuf), 0 };
-    acs_status pst = api->plan(api,
-                               (acs_str_v1){ sizeof(acs_str_v1),
+    acsd_status pst = api->plan(api,
+                               (acsd_str_v1){ sizeof(acsd_str_v1),
                                              ACS_ABI_VERSION_V1, mid,
                                              strlen(mid) },
-                               (acs_str_v1){ sizeof(acs_str_v1),
+                               (acsd_str_v1){ sizeof(acsd_str_v1),
                                              ACS_ABI_VERSION_V1, cfg_buf,
                                              strlen(cfg_buf) },
                                &pb, &err);
@@ -609,13 +609,13 @@ static void run_adapter_full(const char* root, const char* ref_dir) {
     tile_bytes_free(&tb);
 
     static char obuf[4096];
-    acs_strbuf_v1 ob = { sizeof(acs_strbuf_v1), ACS_ABI_VERSION_V1,
+    acsd_strbuf_v1 ob = { sizeof(acsd_strbuf_v1), ACS_ABI_VERSION_V1,
                          obuf, sizeof(obuf), 0 };
-    acs_status est = api->execute(inst,
-                                  (acs_str_v1){ sizeof(acs_str_v1),
+    acsd_status est = api->execute(inst,
+                                  (acsd_str_v1){ sizeof(acsd_str_v1),
                                                 ACS_ABI_VERSION_V1, manifest,
                                                 strlen(manifest) },
-                                  (acs_str_v1){ sizeof(acs_str_v1),
+                                  (acsd_str_v1){ sizeof(acsd_str_v1),
                                                 ACS_ABI_VERSION_V1, cfg_buf,
                                                 strlen(cfg_buf) },
                                   &ob, &err);
@@ -636,7 +636,7 @@ static void run_adapter_full(const char* root, const char* ref_dir) {
 
     /* inspect */
     static char ibuf[2048];
-    acs_strbuf_v1 ib = { sizeof(acs_strbuf_v1), ACS_ABI_VERSION_V1,
+    acsd_strbuf_v1 ib = { sizeof(acsd_strbuf_v1), ACS_ABI_VERSION_V1,
                          ibuf, sizeof(ibuf), 0 };
     EXPECT(api->inspect(inst, &ib, &err) == ACS_OK);
     ibuf[ib.size < sizeof(ibuf) ? ib.size : sizeof(ibuf) - 1] = '\0';
@@ -646,11 +646,11 @@ static void run_adapter_full(const char* root, const char* ref_dir) {
 
     /* cancel 后 execute → ACS_ERR_STATE (请求已置位) */
     EXPECT(api->request_cancel(inst) == ACS_OK);
-    acs_status cst = api->execute(inst,
-                                  (acs_str_v1){ sizeof(acs_str_v1),
+    acsd_status cst = api->execute(inst,
+                                  (acsd_str_v1){ sizeof(acsd_str_v1),
                                                 ACS_ABI_VERSION_V1, manifest,
                                                 strlen(manifest) },
-                                  (acs_str_v1){ sizeof(acs_str_v1),
+                                  (acsd_str_v1){ sizeof(acsd_str_v1),
                                                 ACS_ABI_VERSION_V1, cfg_buf,
                                                 strlen(cfg_buf) },
                                   &ob, &err);
@@ -664,24 +664,24 @@ static void run_adapter_full(const char* root, const char* ref_dir) {
 
 static void run_alloc_fail(void) {
     set_case("alloc_fail");
-    const acs_module_api_v1* api = NULL;
-    acs_host_api_v1 host;
+    const acsd_module_api_v1* api = NULL;
+    acsd_host_api_v1 host;
     host_fill(&host, &k_alloc, &k_exec_ok, NULL);
-    EXPECT(astrocs_module_query_v1(ACS_ABI_VERSION_V1, &host, &api) == ACS_OK);
+    EXPECT(acsd_module_query_v1(ACS_ABI_VERSION_V1, &host, &api) == ACS_OK);
 
     /* create 实证契约 (module_entry.cpp): !host || !host->allocator →
      * ACS_ERR_ABI_MISMATCH (NULL_CALLBACK 域) + inst NULL; inst 本体由
      * calloc 分配, 不走 host allocator → allocator 缺失即 ABI 拒绝。 */
-    acs_host_api_v1 fh = host;
+    acsd_host_api_v1 fh = host;
     fh.allocator = NULL;
 
-    acs_error_info_v1 err;
+    acsd_error_info_v1 err;
     memset(&err, 0, sizeof(err));
     char cfg[] = "{\"op\":\"write_product\",\"out_dir\":\"x\",\"nside\":512,"
                  "\"tile_width\":512,\"data_type\":0,\"flags\":7}";
-    acs_module_instance_v1* inst = NULL;
-    acs_status st = api->create(api,
-                                (acs_str_v1){ sizeof(acs_str_v1),
+    acsd_module_instance_v1* inst = NULL;
+    acsd_status st = api->create(api,
+                                (acsd_str_v1){ sizeof(acsd_str_v1),
                                               ACS_ABI_VERSION_V1, cfg,
                                               strlen(cfg) },
                                 &fh, &inst, &err);
@@ -693,18 +693,18 @@ static void run_alloc_fail(void) {
 
 static void run_schema_reject(void) {
     set_case("schema_reject_512_5");
-    const acs_module_api_v1* api = NULL;
-    acs_host_api_v1 host;
+    const acsd_module_api_v1* api = NULL;
+    acsd_host_api_v1 host;
     host_fill(&host, &k_alloc, &k_exec_ok, NULL);
-    EXPECT(astrocs_module_query_v1(ACS_ABI_VERSION_V1, &host, &api) == ACS_OK);
+    EXPECT(acsd_module_query_v1(ACS_ABI_VERSION_V1, &host, &api) == ACS_OK);
 
-    acs_error_info_v1 err;
+    acsd_error_info_v1 err;
     memset(&err, 0, sizeof(err));
     char cfg[] = "{\"op\":\"write_product\",\"out_dir\":\"x\",\"nside\":512,"
                  "\"tile_width\":5,\"data_type\":0,\"flags\":7}";
-    acs_module_instance_v1* inst = NULL;
-    acs_status st = api->create(api,
-                                (acs_str_v1){ sizeof(acs_str_v1),
+    acsd_module_instance_v1* inst = NULL;
+    acsd_status st = api->create(api,
+                                (acsd_str_v1){ sizeof(acsd_str_v1),
                                               ACS_ABI_VERSION_V1, cfg,
                                               strlen(cfg) },
                                 &host, &inst, &err);
@@ -717,18 +717,18 @@ static void run_schema_reject(void) {
 
 static void run_budget_missing(void) {
     set_case("budget_missing_executor");
-    const acs_module_api_v1* api = NULL;
-    acs_host_api_v1 host;
+    const acsd_module_api_v1* api = NULL;
+    acsd_host_api_v1 host;
     host_fill(&host, &k_alloc, NULL, NULL);
-    EXPECT(astrocs_module_query_v1(ACS_ABI_VERSION_V1, &host, &api) == ACS_OK);
+    EXPECT(acsd_module_query_v1(ACS_ABI_VERSION_V1, &host, &api) == ACS_OK);
 
     char cfg[] = "{\"op\":\"write_product\",\"out_dir\":\"x\",\"nside\":512,"
                  "\"tile_width\":512,\"data_type\":0,\"flags\":7}";
-    acs_error_info_v1 err;
+    acsd_error_info_v1 err;
     memset(&err, 0, sizeof(err));
-    acs_module_instance_v1* inst = NULL;
+    acsd_module_instance_v1* inst = NULL;
     EXPECT(api->create(api,
-                       (acs_str_v1){ sizeof(acs_str_v1), ACS_ABI_VERSION_V1,
+                       (acsd_str_v1){ sizeof(acsd_str_v1), ACS_ABI_VERSION_V1,
                                      cfg, strlen(cfg) },
                        &host, &inst, &err) == ACS_OK);
 
@@ -736,13 +736,13 @@ static void run_budget_missing(void) {
     char manifest[] = "{\"n_tiles\":1,\"tile_width\":512,\"leaf_order\":9,"
                       "\"parent_ipix\":[0],\"count_bit\":1}";
     static char obuf[1024];
-    acs_strbuf_v1 ob = { sizeof(acs_strbuf_v1), ACS_ABI_VERSION_V1,
+    acsd_strbuf_v1 ob = { sizeof(acsd_strbuf_v1), ACS_ABI_VERSION_V1,
                          obuf, sizeof(obuf), 0 };
-    acs_status st = api->execute(inst,
-                                 (acs_str_v1){ sizeof(acs_str_v1),
+    acsd_status st = api->execute(inst,
+                                 (acsd_str_v1){ sizeof(acsd_str_v1),
                                                ACS_ABI_VERSION_V1, manifest,
                                                strlen(manifest) },
-                                 (acs_str_v1){ sizeof(acs_str_v1),
+                                 (acsd_str_v1){ sizeof(acsd_str_v1),
                                                ACS_ABI_VERSION_V1, cfg,
                                                strlen(cfg) },
                                  &ob, &err);
@@ -755,31 +755,31 @@ static void run_budget_missing(void) {
 
 static void run_budget_acquire_fail(void) {
     set_case("budget_acquire_fail");
-    const acs_module_api_v1* api = NULL;
-    acs_host_api_v1 host;
+    const acsd_module_api_v1* api = NULL;
+    acsd_host_api_v1 host;
     host_fill(&host, &k_alloc, &k_exec_fail, NULL);
-    EXPECT(astrocs_module_query_v1(ACS_ABI_VERSION_V1, &host, &api) == ACS_OK);
+    EXPECT(acsd_module_query_v1(ACS_ABI_VERSION_V1, &host, &api) == ACS_OK);
 
     char cfg[] = "{\"op\":\"write_product\",\"out_dir\":\"x\",\"nside\":512,"
                  "\"tile_width\":512,\"data_type\":0,\"flags\":7}";
-    acs_error_info_v1 err;
+    acsd_error_info_v1 err;
     memset(&err, 0, sizeof(err));
-    acs_module_instance_v1* inst = NULL;
+    acsd_module_instance_v1* inst = NULL;
     EXPECT(api->create(api,
-                       (acs_str_v1){ sizeof(acs_str_v1), ACS_ABI_VERSION_V1,
+                       (acsd_str_v1){ sizeof(acsd_str_v1), ACS_ABI_VERSION_V1,
                                      cfg, strlen(cfg) },
                        &host, &inst, &err) == ACS_OK);
 
     char manifest[] = "{\"n_tiles\":1,\"tile_width\":512,\"leaf_order\":9,"
                       "\"parent_ipix\":[0],\"count_bit\":1}";
     static char obuf[1024];
-    acs_strbuf_v1 ob = { sizeof(acs_strbuf_v1), ACS_ABI_VERSION_V1,
+    acsd_strbuf_v1 ob = { sizeof(acsd_strbuf_v1), ACS_ABI_VERSION_V1,
                          obuf, sizeof(obuf), 0 };
-    acs_status st = api->execute(inst,
-                                 (acs_str_v1){ sizeof(acs_str_v1),
+    acsd_status st = api->execute(inst,
+                                 (acsd_str_v1){ sizeof(acsd_str_v1),
                                                ACS_ABI_VERSION_V1, manifest,
                                                strlen(manifest) },
-                                 (acs_str_v1){ sizeof(acs_str_v1),
+                                 (acsd_str_v1){ sizeof(acsd_str_v1),
                                                ACS_ABI_VERSION_V1, cfg,
                                                strlen(cfg) },
                                  &ob, &err);
@@ -796,10 +796,10 @@ static void run_budget_acquire_fail(void) {
 
 static void run_cancel_not_begun(const char* root) {
     set_case("cancel_not_begun");
-    const acs_module_api_v1* api = NULL;
-    acs_host_api_v1 host;
+    const acsd_module_api_v1* api = NULL;
+    acsd_host_api_v1 host;
     host_fill(&host, &k_alloc, &k_exec_ok, &k_cancel);
-    EXPECT(astrocs_module_query_v1(ACS_ABI_VERSION_V1, &host, &api) == ACS_OK);
+    EXPECT(acsd_module_query_v1(ACS_ABI_VERSION_V1, &host, &api) == ACS_OK);
 
     char cfg_dir[512];
     snprintf(cfg_dir, sizeof(cfg_dir), "%s", root);
@@ -811,24 +811,24 @@ static void run_cancel_not_begun(const char* root) {
         snprintf(cfg_buf, sizeof(cfg_buf), "%.*s%s%s",
                  (int)(q - cfg), cfg, cfg_dir, q + strlen("PLACEHOLDER"));
     }
-    acs_error_info_v1 err;
+    acsd_error_info_v1 err;
     memset(&err, 0, sizeof(err));
-    acs_module_instance_v1* inst = NULL;
+    acsd_module_instance_v1* inst = NULL;
     EXPECT(api->create(api,
-                       (acs_str_v1){ sizeof(acs_str_v1), ACS_ABI_VERSION_V1,
+                       (acsd_str_v1){ sizeof(acsd_str_v1), ACS_ABI_VERSION_V1,
                                      cfg_buf, strlen(cfg_buf) },
                        &host, &inst, &err) == ACS_OK);
 
     char manifest[] = "{\"n_tiles\":1,\"tile_width\":512,\"leaf_order\":9,"
                       "\"parent_ipix\":[0],\"count_bit\":1}";
     static char obuf[1024];
-    acs_strbuf_v1 ob = { sizeof(acs_strbuf_v1), ACS_ABI_VERSION_V1,
+    acsd_strbuf_v1 ob = { sizeof(acsd_strbuf_v1), ACS_ABI_VERSION_V1,
                          obuf, sizeof(obuf), 0 };
-    acs_status st = api->execute(inst,
-                                 (acs_str_v1){ sizeof(acs_str_v1),
+    acsd_status st = api->execute(inst,
+                                 (acsd_str_v1){ sizeof(acsd_str_v1),
                                                ACS_ABI_VERSION_V1, manifest,
                                                strlen(manifest) },
-                                 (acs_str_v1){ sizeof(acs_str_v1),
+                                 (acsd_str_v1){ sizeof(acsd_str_v1),
                                                ACS_ABI_VERSION_V1, cfg_buf,
                                                strlen(cfg_buf) },
                                  &ob, &err);
@@ -842,25 +842,25 @@ static void run_cancel_not_begun(const char* root) {
 
 static void run_strbuf_probe(void) {
     set_case("strbuf_probe_plan");
-    const acs_module_api_v1* api = NULL;
-    acs_host_api_v1 host;
+    const acsd_module_api_v1* api = NULL;
+    acsd_host_api_v1 host;
     host_fill(&host, &k_alloc, &k_exec_ok, NULL);
-    EXPECT(astrocs_module_query_v1(ACS_ABI_VERSION_V1, &host, &api) == ACS_OK);
+    EXPECT(acsd_module_query_v1(ACS_ABI_VERSION_V1, &host, &api) == ACS_OK);
 
     char cfg[] = "{\"op\":\"write_product\",\"out_dir\":\"x\",\"nside\":512,"
                  "\"tile_width\":512,\"data_type\":0,\"flags\":7}";
-    char mid[] = ASTROCS_HIPS_MODULE_ID;
-    acs_error_info_v1 err;
+    char mid[] = ACSD_HIPS_MODULE_ID;
+    acsd_error_info_v1 err;
     memset(&err, 0, sizeof(err));
 
     /* 探测: data=NULL, cap=0 → ACS_OK + size=所需 */
-    acs_strbuf_v1 probe = { sizeof(acs_strbuf_v1), ACS_ABI_VERSION_V1,
+    acsd_strbuf_v1 probe = { sizeof(acsd_strbuf_v1), ACS_ABI_VERSION_V1,
                             NULL, 0, 0 };
-    acs_status st = api->plan(api,
-                              (acs_str_v1){ sizeof(acs_str_v1),
+    acsd_status st = api->plan(api,
+                              (acsd_str_v1){ sizeof(acsd_str_v1),
                                             ACS_ABI_VERSION_V1, mid,
                                             strlen(mid) },
-                              (acs_str_v1){ sizeof(acs_str_v1),
+                              (acsd_str_v1){ sizeof(acsd_str_v1),
                                             ACS_ABI_VERSION_V1, cfg,
                                             strlen(cfg) },
                               &probe, &err);
@@ -871,12 +871,12 @@ static void run_strbuf_probe(void) {
 
     /* 缓冲不足 → PARAM + BUFFER_TOO_SMALL + size=所需 */
     char small[32];
-    acs_strbuf_v1 sb = { sizeof(acs_strbuf_v1), ACS_ABI_VERSION_V1,
+    acsd_strbuf_v1 sb = { sizeof(acsd_strbuf_v1), ACS_ABI_VERSION_V1,
                          small, sizeof(small), 0 };
     st = api->plan(api,
-                   (acs_str_v1){ sizeof(acs_str_v1), ACS_ABI_VERSION_V1, mid,
+                   (acsd_str_v1){ sizeof(acsd_str_v1), ACS_ABI_VERSION_V1, mid,
                                  strlen(mid) },
-                   (acs_str_v1){ sizeof(acs_str_v1), ACS_ABI_VERSION_V1, cfg,
+                   (acsd_str_v1){ sizeof(acsd_str_v1), ACS_ABI_VERSION_V1, cfg,
                                  strlen(cfg) },
                    &sb, &err);
     EXPECT(st == ACS_ERR_PARAM);
@@ -888,9 +888,9 @@ static void run_strbuf_probe(void) {
 
 static void run_export_probe(void) {
     set_case("export_probe_dlsym");
-    const char* dll = getenv("ASTROCS_HIPS_DLL_PATH");
+    const char* dll = getenv("ACSD_HIPS_DLL_PATH");
     if (!dll || !dll[0]) {
-        printf("FAIL [%s] ASTROCS_HIPS_DLL_PATH not set\n", g_case);
+        printf("FAIL [%s] ACSD_HIPS_DLL_PATH not set\n", g_case);
         g_fail++;
         return;
     }
@@ -916,7 +916,7 @@ static void run_export_probe(void) {
         void* s = dlsym(h, kLegacy[i]);
         EXPECT(s == NULL);
     }
-    void* q = dlsym(h, "astrocs_module_query_v1");
+    void* q = dlsym(h, "acsd_module_query_v1");
     EXPECT(q != NULL);
     dlclose(h);
 }

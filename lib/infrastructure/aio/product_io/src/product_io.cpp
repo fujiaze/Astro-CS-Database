@@ -3,7 +3,7 @@
 
 #include <cstring>
 
-namespace astrocs {
+namespace acsd {
 namespace aio {
 
 std::vector<ExpectedHdu> expected_from_layers(const std::vector<FitsLayer>& layers) {
@@ -90,4 +90,4 @@ ValidationReport validate_product_record(const Provenance& prov,
 }
 
 }  // namespace aio
-}  // namespace astrocs
+}  // namespace acsd

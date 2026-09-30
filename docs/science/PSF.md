@@ -1,6 +1,6 @@
 # PSF Science (SCI-PSF)
 
-> 上游：ASTROCS_DESIGN.md §2.1（测光星等坐标系）、§4.2（Phase1 节点流程）
+> 上游：ACSD_DESIGN.md §2.1（测光星等坐标系）、§4.2（Phase1 节点流程）
 
 > ID: SCI-PSF-001  状态: FROZEN  上游: SCI-SCOPE-001  下游 ALG: ALG-STARPSF-001..  模块: dynamic_psf
 

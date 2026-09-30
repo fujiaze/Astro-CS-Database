@@ -23,14 +23,14 @@
 #endif
 
 #include "hp_drizzle_api.h"
-#include "astrocs/abi/lifecycle_v1.h"
-#include "astrocs/abi/module_api_v1.h"
-#include "astrocs/abi/host_api_v1.h"
+#include "acsd/abi/lifecycle_v1.h"
+#include "acsd/abi/module_api_v1.h"
+#include "acsd/abi/host_api_v1.h"
 
 /* ── str 构造 helper ── */
-static acs_str_v1 api_desc_str(const char* s) {
-    acs_str_v1 v;
-    v.head.struct_size = (uint32_t)sizeof(acs_str_v1);
+static acsd_str_v1 api_desc_str(const char* s) {
+    acsd_str_v1 v;
+    v.head.struct_size = (uint32_t)sizeof(acsd_str_v1);
     v.head.abi_version = ACS_ABI_VERSION_V1;
     v.data = s; v.size = (uint64_t)strlen(s);
     return v;
@@ -39,9 +39,9 @@ static acs_str_v1 api_desc_str(const char* s) {
 
 /* ── host executor stub (租借计数) ── */
 typedef struct {
-    acs_host_api_v1 api;
-    acs_executor_v1 executor;
-    acs_allocator_v1 allocator;
+    acsd_host_api_v1 api;
+    acsd_executor_v1 executor;
+    acsd_allocator_v1 allocator;
     int acquire_calls, release_calls;
     int fail_acquire;
 } drz_test_host;
@@ -66,9 +66,9 @@ static void drz_release(void* user, uint32_t n) {
 }
 static void drz_host_init(drz_test_host* h) {
     memset(h, 0, sizeof(*h));
-    h->api.head.struct_size = (uint32_t)sizeof(acs_host_api_v1);
+    h->api.head.struct_size = (uint32_t)sizeof(acsd_host_api_v1);
     h->api.head.abi_version = ACS_ABI_VERSION_V1;
-    h->executor.head.struct_size = (uint32_t)sizeof(acs_executor_v1);
+    h->executor.head.struct_size = (uint32_t)sizeof(acsd_executor_v1);
     h->executor.head.abi_version = ACS_ABI_VERSION_V1;
     h->executor.available_cpus = 4;
     h->executor.max_workers = 4;
@@ -76,14 +76,14 @@ static void drz_host_init(drz_test_host* h) {
     h->executor.release = drz_release;
     h->executor.user_data = h;
     h->api.executor = &h->executor;
-    h->allocator.head.struct_size = (uint32_t)sizeof(acs_allocator_v1);
+    h->allocator.head.struct_size = (uint32_t)sizeof(acsd_allocator_v1);
     h->allocator.head.abi_version = ACS_ABI_VERSION_V1;
     h->allocator.alloc = drz_alloc;
     h->allocator.free = drz_free;
     h->allocator.user_data = h;
     h->api.allocator = &h->allocator;
 }
-static const acs_host_api_v1* drz_host_api(drz_test_host* h) { return &h->api; }
+static const acsd_host_api_v1* drz_host_api(drz_test_host* h) { return &h->api; }
 
 /* ── 合成 fixture: 64x64 f32 高斯斑块 + TAN WCS (CRVAL/CRPIX/CD) ── */
 static void drz_make_plane_f32(std::vector<float>& img, int W, int H,
@@ -136,7 +136,7 @@ static std::string drz_build_drizzle_manifest(const std::vector<float>& img,
         "\"PHOTSCAL\":\"1.0\",\"PHOTAPPL\":\"1.0\","
         "\"FILTER\":\"g\",\"EXPTIME\":\"30.0\","
         "\"DATE-OBS\":\"2026-01-01T00:00:00\","
-        "\"OBJECT\":\"unit\",\"TELESCOP\":\"astrocs\",\"INSTRUME\":\"sim\"}}";
+        "\"OBJECT\":\"unit\",\"TELESCOP\":\"acsd\",\"INSTRUME\":\"sim\"}}";
     (void)buf;
     return m;
 }
@@ -192,7 +192,7 @@ static PipelineFrame* drz_direct_frame(const std::vector<float>& img, int W, int
         {"PHOTSCAL", "1.0"}, {"PHOTAPPL", "1.0"},
         {"FILTER", "g"}, {"EXPTIME", "30.0"},
         {"DATE-OBS", "2026-01-01T00:00:00"},
-        {"OBJECT", "unit"}, {"TELESCOP", "astrocs"}, {"INSTRUME", "sim"}
+        {"OBJECT", "unit"}, {"TELESCOP", "acsd"}, {"INSTRUME", "sim"}
     };
     for (size_t i = 0; i < sizeof(kvs)/sizeof(kvs[0]); i++)
         aio_frame_kv_set(f, "header", kvs[i].k, kvs[i].v);
@@ -202,9 +202,9 @@ static PipelineFrame* drz_direct_frame(const std::vector<float>& img, int W, int
 /* BITWISE: drizzle op — direct 统计 vs plugin execute 输出统计。
  * plugin 路径 output_path 指向临时 .hiss (事务 sink 输出), 统计不受
  * 文件 history elapsed 影响。 */
-static int drz_bitwise_drizzle(acs_module_instance_v1* inst,
-                               const acs_host_api_v1* hapi,
-                               const acs_module_api_v1* api) {
+static int drz_bitwise_drizzle(acsd_module_instance_v1* inst,
+                               const acsd_host_api_v1* hapi,
+                               const acsd_module_api_v1* api) {
     const int W = 64, H = 64;
     std::vector<float> img;
     double crval[2] = {202.5, 47.2}, crpix[2] = {32.0, 32.0};
@@ -229,12 +229,12 @@ static int drz_bitwise_drizzle(acs_module_instance_v1* inst,
     /* plugin: 临时 hips_dir (hp_drizzle_run_hips 语义: 直写 HiPS 产品集,
      * hips_dir 必填 (-12); legacy_hiss_path 可选, 不传) */
     /* 临时 hips_dir：不写死 "/tmp"（Windows 无此路径；系统临时目录可能不可写）。
-     * 依次尝试 ASTROCS_TEST_TMPDIR / 系统临时目录 / 当前工作目录。 */
+     * 依次尝试 ACSD_TEST_TMPDIR / 系统临时目录 / 当前工作目录。 */
     char dtmpl[512];
     char* hips_dir = nullptr;
     {
         std::vector<std::string> roots;
-        if (const char* e = std::getenv("ASTROCS_TEST_TMPDIR"); e && *e) roots.push_back(e);
+        if (const char* e = std::getenv("ACSD_TEST_TMPDIR"); e && *e) roots.push_back(e);
         std::error_code ec;
         const auto sys = std::filesystem::temp_directory_path(ec);
         if (!ec) roots.push_back(sys.string());
@@ -253,11 +253,11 @@ static int drz_bitwise_drizzle(acs_module_instance_v1* inst,
     std::string cfg = std::string("{\"op\":\"drizzle\",\"nside\":512,\"nested\":1,"
                                   "\"pixfrac\":1.0,\"precision_mode\":0,"
                                   "\"hips_dir\":\"") + hips_dir + "\"}";
-    acs_strbuf_v1 ob; char obuf[1024];
+    acsd_strbuf_v1 ob; char obuf[1024];
     memset(&ob, 0, sizeof(ob)); ob.data = obuf; ob.cap = sizeof(obuf);
-    acs_error_info_v1 err;
+    acsd_error_info_v1 err;
     memset(&err, 0, sizeof(err));
-    acs_status st = api->execute(inst, api_cfg_str(manifest.c_str()),
+    acsd_status st = api->execute(inst, api_cfg_str(manifest.c_str()),
                                  api_cfg_str(cfg.c_str()), &ob, &err);
     if (st != ACS_OK) {
         printf("  plugin execute st=%d msg=%s\n", (int)st,
@@ -302,9 +302,9 @@ static int drz_bitwise_drizzle(acs_module_instance_v1* inst,
 }
 
 /* BITWISE: reverse op — direct 输出平面 vs plugin 输出平面 base64 解码 memcmp */
-static int drz_bitwise_reverse(acs_module_instance_v1* inst,
-                               const acs_host_api_v1* hapi,
-                               const acs_module_api_v1* api) {
+static int drz_bitwise_reverse(acsd_module_instance_v1* inst,
+                               const acsd_host_api_v1* hapi,
+                               const acsd_module_api_v1* api) {
     const int32_t NSIDE = 64;
     const int W = 32, H = 32;
     /* 合成 leaf: 均匀网格 12*NSIDE^2 太大; 取每 quadrant 首 pixel 子集 256 leaf */
@@ -319,14 +319,14 @@ static int drz_bitwise_reverse(acs_module_instance_v1* inst,
     std::string manifest = drz_build_reverse_manifest(ipix, sig, sup, 0.5);
     std::string cfg = std::string("{\"op\":\"reverse\",\"width\":") +
         std::to_string(W) + ",\"height\":" + std::to_string(H) + "}";
-    acs_strbuf_v1 ob;
+    acsd_strbuf_v1 ob;
     size_t plane_bytes = (size_t)W * H * 4;
     size_t obuf_cap = plane_bytes * 2 * 4 / 3 + 4096;
     std::vector<char> obuf(obuf_cap);
     ob.data = obuf.data(); ob.cap = (uint64_t)obuf_cap;
-    acs_error_info_v1 err;
+    acsd_error_info_v1 err;
     memset(&err, 0, sizeof(err));
-    acs_status st = api->execute(inst, api_cfg_str(manifest.c_str()),
+    acsd_status st = api->execute(inst, api_cfg_str(manifest.c_str()),
                                  api_cfg_str(cfg.c_str()), &ob, &err);
     if (st != ACS_OK) {
         printf("  reverse plugin st=%d msg=%s\n", (int)st,

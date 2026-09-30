@@ -1,5 +1,5 @@
 {
-  "registry_schema": "astrocs.module-ports-registry/v2",
+  "registry_schema": "acsd.module-ports-registry/v2",
   "registry_version": 2,
   "owner": "SA-RT-05",
   "frozen_at": "2026-09-02T00:00:00Z",
@@ -32,12 +32,12 @@
   },
   "modules": [
     {
-      "module_id": "astrocs.phase1.calibration",
+      "module_id": "acsd.phase1.calibration",
       "phase": "phase1",
       "operations": [
         {
           "operation": "calibrate",
-          "entry": "astrocs_phase1_calibrate_v1",
+          "entry": "acsd_phase1_calibrate_v1",
           "resource_class": "cpu_heavy",
           "ports": [
             {
@@ -147,12 +147,12 @@
       ]
     },
     {
-      "module_id": "astrocs.phase1.cosmetic",
+      "module_id": "acsd.phase1.cosmetic",
       "phase": "phase1",
       "operations": [
         {
           "operation": "cosmetic_correct",
-          "entry": "astrocs_phase1_cosmetic_v1",
+          "entry": "acsd_phase1_cosmetic_v1",
           "resource_class": "cpu_heavy",
           "ports": [
             {
@@ -200,12 +200,12 @@
       ]
     },
     {
-      "module_id": "astrocs.phase1.wcs-platesolve",
+      "module_id": "acsd.phase1.wcs-platesolve",
       "phase": "phase1",
       "operations": [
         {
           "operation": "plate_solve",
-          "entry": "astrocs_phase1_wcs_v1",
+          "entry": "acsd_phase1_wcs_v1",
           "resource_class": "cpu_heavy",
           "ports": [
             {
@@ -254,12 +254,12 @@
       ]
     },
     {
-      "module_id": "astrocs.phase1.star-psf",
+      "module_id": "acsd.phase1.star-psf",
       "phase": "phase1",
       "operations": [
         {
           "operation": "detect_sources",
-          "entry": "astrocs_phase1_starpsf_v1",
+          "entry": "acsd_phase1_starpsf_v1",
           "resource_class": "cpu_heavy",
           "ports": [
             {
@@ -350,12 +350,12 @@
       ]
     },
     {
-      "module_id": "astrocs.phase1.photometry",
+      "module_id": "acsd.phase1.photometry",
       "phase": "phase1",
       "operations": [
         {
           "operation": "measure_flux",
-          "entry": "astrocs_phase1_photometry_v1",
+          "entry": "acsd_phase1_photometry_v1",
           "resource_class": "cpu_heavy",
           "ports": [
             {
@@ -508,12 +508,12 @@
       ]
     },
     {
-      "module_id": "astrocs.phase1.noise-snr",
+      "module_id": "acsd.phase1.noise-snr",
       "phase": "phase1",
       "operations": [
         {
           "operation": "estimate_snr",
-          "entry": "astrocs_phase1_noisesnr_v1",
+          "entry": "acsd_phase1_noisesnr_v1",
           "resource_class": "cpu_heavy",
           "ports": [
             {
@@ -597,19 +597,19 @@
                   "token": "/p1_snr.json"
                 }
               ],
-              "note": "唯一消费者是 drizzle 的 HiPS 末端（把帧级 SNR 写进 HiPS properties 的 ASTROCS_FRAME_SNR 键）。"
+              "note": "唯一消费者是 drizzle 的 HiPS 末端（把帧级 SNR 写进 HiPS properties 的 ACSD_FRAME_SNR 键）。"
             }
           ]
         }
       ]
     },
     {
-      "module_id": "astrocs.phase1.drizzle",
+      "module_id": "acsd.phase1.drizzle",
       "phase": "phase1",
       "operations": [
         {
           "operation": "drizzle_stack",
-          "entry": "astrocs_phase1_drizzle_v1",
+          "entry": "acsd_phase1_drizzle_v1",
           "resource_class": "cpu_heavy",
           "ports": [
             {
@@ -781,19 +781,19 @@
                   "token": "/p1_stack.json"
                 }
               ],
-              "note": "nside/精度/SIP/测光 provenance 的编排证据（产品面逐字节可复现，墙钟遥测只进节点 manifest）。carrier 口径修订（FINAL-07/carrier-conformance）：output_dir_file → hips_product_tree，理由二条可机检复核。① 物理位置在 HiPS 树内：p1_op_drizzle 把 fdir 当 HiPS 产品集根传给 hp_drizzle_run_phase1_hips(..., fdir.c_str(), ...)（module_adapters.cpp:8468；该 API 形参 hips_dir 即「HiPS 产品集根目录」，hp_drizzle_hips_api.cpp:31/36），随后用 fdir + '/p1_stack.json' 落盘（module_adapters.cpp:8485），而 fdir = p1_frame_dir(doc,lp) = output_dir + '/' + frame_key（module_adapters.cpp:1434）⇒ 本文件与 signal/support/variance/ivar 同处 <frame_key>/ 根。磁盘实测：run/FINAL-07-e2e/evidence/face/t2_ab_p1_B/<frame_key>/ 目录清单为 ivar/ manifest.json p1_final.json p1_stack.json p1_wcs.json signal/ support/ variance/，p1_stack.json 与四个 HiPS 产品子目录同级。② 合同依据：docs/engineering/PIPELINE_BLOCK_CONTRACT.md §1.1「跨阶段唯一载体 = HiPS 产品树」；同一路径 <frame_key>/p1_stack.json 在 astrocs.phase2.upm-fit 侧本就声明为 frame_hips / hips_product_tree，两处同指一个物理事实却用两种载体口径，按前台裁决对齐事实。边界声明：它不是 manifest.products 成员（那里只列 signal/support/variance/ivar），而是 HiPS 树根的 provenance 旁挂文件；这一点 astrocs.phase2.upm-fit 的同名 note 已有记录，不靠本字段单独承担。"
+              "note": "nside/精度/SIP/测光 provenance 的编排证据（产品面逐字节可复现，墙钟遥测只进节点 manifest）。carrier 口径修订（FINAL-07/carrier-conformance）：output_dir_file → hips_product_tree，理由二条可机检复核。① 物理位置在 HiPS 树内：p1_op_drizzle 把 fdir 当 HiPS 产品集根传给 hp_drizzle_run_phase1_hips(..., fdir.c_str(), ...)（module_adapters.cpp:8468；该 API 形参 hips_dir 即「HiPS 产品集根目录」，hp_drizzle_hips_api.cpp:31/36），随后用 fdir + '/p1_stack.json' 落盘（module_adapters.cpp:8485），而 fdir = p1_frame_dir(doc,lp) = output_dir + '/' + frame_key（module_adapters.cpp:1434）⇒ 本文件与 signal/support/variance/ivar 同处 <frame_key>/ 根。磁盘实测：run/FINAL-07-e2e/evidence/face/t2_ab_p1_B/<frame_key>/ 目录清单为 ivar/ manifest.json p1_final.json p1_stack.json p1_wcs.json signal/ support/ variance/，p1_stack.json 与四个 HiPS 产品子目录同级。② 合同依据：docs/engineering/PIPELINE_BLOCK_CONTRACT.md §1.1「跨阶段唯一载体 = HiPS 产品树」；同一路径 <frame_key>/p1_stack.json 在 acsd.phase2.upm-fit 侧本就声明为 frame_hips / hips_product_tree，两处同指一个物理事实却用两种载体口径，按前台裁决对齐事实。边界声明：它不是 manifest.products 成员（那里只列 signal/support/variance/ivar），而是 HiPS 树根的 provenance 旁挂文件；这一点 acsd.phase2.upm-fit 的同名 note 已有记录，不靠本字段单独承担。"
             }
           ]
         }
       ]
     },
     {
-      "module_id": "astrocs.phase1.writer",
+      "module_id": "acsd.phase1.writer",
       "phase": "phase1",
       "operations": [
         {
           "operation": "write_hips",
-          "entry": "astrocs_phase1_writer_v1",
+          "entry": "acsd_phase1_writer_v1",
           "resource_class": "io",
           "ports": [
             {
@@ -842,7 +842,7 @@
                   "token": "/p1_stack.json"
                 }
               ],
-              "note": "carrier 口径修订（FINAL-07/carrier-conformance）：output_dir_file → hips_product_tree，与生产端 astrocs.phase1.drizzle/p1_stack 同步对齐。本节点从 fdir + \"/p1_stack.json\" 逐字读回（module_adapters.cpp:8737），fdir = p1_frame_dir(doc,lp) = output_dir + \"/\" + frame_key（:1434），与它同处 <frame_key>/ 的 signal/support/variance/ivar 同为 HiPS 树根内容 ⇒ 物理位置在 HiPS 树内；依据 docs/engineering/PIPELINE_BLOCK_CONTRACT.md §1.1「跨阶段唯一载体 = HiPS 产品树」。本节点同时已有 frame_hips/hips_product_tree 输入端口读同一棵树，两个端口是同一棵树的两个读面（tile 校验面 / provenance 面），不是两棵不同的树。"
+              "note": "carrier 口径修订（FINAL-07/carrier-conformance）：output_dir_file → hips_product_tree，与生产端 acsd.phase1.drizzle/p1_stack 同步对齐。本节点从 fdir + \"/p1_stack.json\" 逐字读回（module_adapters.cpp:8737），fdir = p1_frame_dir(doc,lp) = output_dir + \"/\" + frame_key（:1434），与它同处 <frame_key>/ 的 signal/support/variance/ivar 同为 HiPS 树根内容 ⇒ 物理位置在 HiPS 树内；依据 docs/engineering/PIPELINE_BLOCK_CONTRACT.md §1.1「跨阶段唯一载体 = HiPS 产品树」。本节点同时已有 frame_hips/hips_product_tree 输入端口读同一棵树，两个端口是同一棵树的两个读面（tile 校验面 / provenance 面），不是两棵不同的树。"
             },
             {
               "name": "p1_phot",
@@ -912,12 +912,12 @@
       ]
     },
     {
-      "module_id": "astrocs.phase2.coverage",
+      "module_id": "acsd.phase2.coverage",
       "phase": "phase2",
       "operations": [
         {
           "operation": "compute_coverage",
-          "entry": "astrocs_phase2_coverage_v1",
+          "entry": "acsd_phase2_coverage_v1",
           "resource_class": "cpu_heavy",
           "ports": [
             {
@@ -968,12 +968,12 @@
       ]
     },
     {
-      "module_id": "astrocs.phase2.sample",
+      "module_id": "acsd.phase2.sample",
       "phase": "phase2",
       "operations": [
         {
           "operation": "sample_frames",
-          "entry": "astrocs_phase2_sample_v1",
+          "entry": "acsd_phase2_sample_v1",
           "resource_class": "cpu_heavy",
           "ports": [
             {
@@ -1021,12 +1021,12 @@
       ]
     },
     {
-      "module_id": "astrocs.phase2.upm-fit",
+      "module_id": "acsd.phase2.upm-fit",
       "phase": "phase2",
       "operations": [
         {
           "operation": "fit_upm",
-          "entry": "astrocs_phase2_upmfit_v1",
+          "entry": "acsd_phase2_upmfit_v1",
           "resource_class": "cpu_heavy",
           "ports": [
             {
@@ -1122,12 +1122,12 @@
       ]
     },
     {
-      "module_id": "astrocs.phase2.upm-apply",
+      "module_id": "acsd.phase2.upm-apply",
       "phase": "phase2",
       "operations": [
         {
           "operation": "apply_upm",
-          "entry": "astrocs_phase2_upmapply_v1",
+          "entry": "acsd_phase2_upmapply_v1",
           "resource_class": "cpu_heavy",
           "ports": [
             {
@@ -1277,12 +1277,12 @@
       ]
     },
     {
-      "module_id": "astrocs.phase2.reject",
+      "module_id": "acsd.phase2.reject",
       "phase": "phase2",
       "operations": [
         {
           "operation": "reject_outliers",
-          "entry": "astrocs_phase2_reject_v1",
+          "entry": "acsd_phase2_reject_v1",
           "resource_class": "cpu_heavy",
           "ports": [
             {
@@ -1377,12 +1377,12 @@
       ]
     },
     {
-      "module_id": "astrocs.phase2.integrate",
+      "module_id": "acsd.phase2.integrate",
       "phase": "phase2",
       "operations": [
         {
           "operation": "integrate_frames",
-          "entry": "astrocs_phase2_integrate_v1",
+          "entry": "acsd_phase2_integrate_v1",
           "resource_class": "cpu_heavy",
           "ports": [
             {
@@ -1509,12 +1509,12 @@
       ]
     },
     {
-      "module_id": "astrocs.phase2.write",
+      "module_id": "acsd.phase2.write",
       "phase": "phase2",
       "operations": [
         {
           "operation": "write_mosaic",
-          "entry": "astrocs_phase2_write_v1",
+          "entry": "acsd_phase2_write_v1",
           "resource_class": "io",
           "ports": [
             {
@@ -1704,12 +1704,12 @@
       ]
     },
     {
-      "module_id": "astrocs.phase3.properties",
+      "module_id": "acsd.phase3.properties",
       "phase": "phase3",
       "operations": [
         {
           "operation": "read_properties",
-          "entry": "astrocs_phase3_properties_v1",
+          "entry": "acsd_phase3_properties_v1",
           "resource_class": "cpu_heavy",
           "ports": [
             {
@@ -1763,12 +1763,12 @@
       ]
     },
     {
-      "module_id": "astrocs.phase3.wcs",
+      "module_id": "acsd.phase3.wcs",
       "phase": "phase3",
       "operations": [
         {
           "operation": "build_wcs",
-          "entry": "astrocs_phase3_wcs_v1",
+          "entry": "acsd_phase3_wcs_v1",
           "resource_class": "cpu_heavy",
           "ports": [
             {
@@ -1817,12 +1817,12 @@
       ]
     },
     {
-      "module_id": "astrocs.phase3.resample2",
+      "module_id": "acsd.phase3.resample2",
       "phase": "phase3",
       "operations": [
         {
           "operation": "resample_projection",
-          "entry": "astrocs_phase3_resample_v1",
+          "entry": "acsd_phase3_resample_v1",
           "resource_class": "cpu_heavy",
           "ports": [
             {
@@ -1922,12 +1922,12 @@
       ]
     },
     {
-      "module_id": "astrocs.phase3.writer",
+      "module_id": "acsd.phase3.writer",
       "phase": "phase3",
       "operations": [
         {
           "operation": "write_fits",
-          "entry": "astrocs_phase3_writer_v1",
+          "entry": "acsd_phase3_writer_v1",
           "resource_class": "io",
           "ports": [
             {
@@ -2065,12 +2065,12 @@
       ]
     },
     {
-      "module_id": "astrocs.phase3.verify",
+      "module_id": "acsd.phase3.verify",
       "phase": "phase3",
       "operations": [
         {
           "operation": "verify_output",
-          "entry": "astrocs_phase3_verify_v1",
+          "entry": "acsd_phase3_verify_v1",
           "resource_class": "io",
           "ports": [
             {
@@ -2187,7 +2187,7 @@
     }
   ],
   "carrier_contract": {
-    "statement": "阶段内节点间的唯一载体是 output_dir 文件约定：每个端口对应 output_dir 下的一个具体产品（文件或产品目录），生产者按该路径写、消费者按同一路径读；节点间不存在内存块传递。跨阶段的唯一载体是 HiPS 产品树（磁盘目录 + manifest + 哈希）：normalize 产出逐帧 HiPS 树（frame_hips），mosaic 产出马赛克 HiPS 树（mosaic_hips），export 只读 mosaic_hips。命名块（PipelineFrame 的 data/variance）只存在于单节点执行期的内存中，不落盘、不跨节点、不跨阶段。判别式（逐字可判，防重犯）：端口载体由**是否跨阶段**决定——被**其它阶段**消费的产物用 HiPS 产品树载体（hips_product_tree）；**阶段内**节点间流转的产物、以及**无任何消费者**的产物，用 output_dir 文件约定（output_dir_file）。**物理存放位置不构成判据**：产物落在 HiPS 树根目录内（如 <frame_key>/ 下与 signal/support/variance/ivar 同级）并不使其成为 HiPS 产品树成员；判跨阶段只看**消费者所属阶段**。正例：<frame_key>/p1_stack.json 被 astrocs.phase2.upm-fit 消费 ⇒ 跨阶段 ⇒ hips_product_tree；反例：<frame_key>/p1_wcs.json 的生产者与三个消费者（star-psf / photometry / drizzle）**全在 normalize**、<frame_key>/p1_final.json **无任何消费者** ⇒ 阶段内/无消费者 ⇒ output_dir_file（FINAL-07/carrier-conformance：前台曾按「物理同级」判其不符，经对抗复核以消费者证据推翻，裁决已撤销）。",
+    "statement": "阶段内节点间的唯一载体是 output_dir 文件约定：每个端口对应 output_dir 下的一个具体产品（文件或产品目录），生产者按该路径写、消费者按同一路径读；节点间不存在内存块传递。跨阶段的唯一载体是 HiPS 产品树（磁盘目录 + manifest + 哈希）：normalize 产出逐帧 HiPS 树（frame_hips），mosaic 产出马赛克 HiPS 树（mosaic_hips），export 只读 mosaic_hips。命名块（PipelineFrame 的 data/variance）只存在于单节点执行期的内存中，不落盘、不跨节点、不跨阶段。判别式（逐字可判，防重犯）：端口载体由**是否跨阶段**决定——被**其它阶段**消费的产物用 HiPS 产品树载体（hips_product_tree）；**阶段内**节点间流转的产物、以及**无任何消费者**的产物，用 output_dir 文件约定（output_dir_file）。**物理存放位置不构成判据**：产物落在 HiPS 树根目录内（如 <frame_key>/ 下与 signal/support/variance/ivar 同级）并不使其成为 HiPS 产品树成员；判跨阶段只看**消费者所属阶段**。正例：<frame_key>/p1_stack.json 被 acsd.phase2.upm-fit 消费 ⇒ 跨阶段 ⇒ hips_product_tree；反例：<frame_key>/p1_wcs.json 的生产者与三个消费者（star-psf / photometry / drizzle）**全在 normalize**、<frame_key>/p1_final.json **无任何消费者** ⇒ 阶段内/无消费者 ⇒ output_dir_file（FINAL-07/carrier-conformance：前台曾按「物理同级」判其不符，经对抗复核以消费者证据推翻，裁决已撤销）。",
     "carriers": {
       "output_dir_file": "节点产物文件：<output_dir>/<artifact>。生产者写入、消费者按同一路径读取（output_dir 文件约定）。",
       "hips_product_tree": "IVOA HiPS 产品目录树。**树根层**成员 = 产品子目录 signal/ support/ variance/ ivar/（各为 <tree>/*/ 下的一个子目录）与树根 manifest.json；**每个产品子目录层**成员 = <tree>/*/properties、<tree>/*/Moc.fits、<tree>/*/metadata.fits（即 properties / Moc.fits / metadata.fits 是**每子产品各一份**、位于该产品子目录内，树根没有这三者）。层级证据：aio_hips_writer.cpp:1969/1974/2001 一律写 dir + \"/properties\"、dir + \"/metadata.fits\"、dir + \"/Moc.fits\"（dir = 产品子目录），:13 头注释「每个子产品独立 properties / Moc.fits / 低阶 hierarchy tiles」；reader 侧 aio_hips_reader.cpp:423 与 aio_hips_writer.cpp:2620/2652/2716 一律按 <root>/<subdir>/properties 取用。磁盘实测两棵独立树（run/VAR-SEMANTICS-APPLY-01/probe/cur_pos/hips、run/FINAL-07-e2e/evidence/face/t2_ab_p1_B/<frame_key>/）根层均只有 ivar/ manifest.json signal/ support/ variance/，三份每子产品成员均在各自子目录内。声明约定：树根层成员写 <frame_key>/<name>，每子产品层成员写 <frame_key>/*/<name>（通配，不逐子目录列——产品数会变、逐列会漂）。阶段内按目录路径传递；跨阶段时该树本身即交换载体。",

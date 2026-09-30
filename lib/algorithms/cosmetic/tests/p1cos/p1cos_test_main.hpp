@@ -3,17 +3,17 @@
 // 控制包任务: P1-COS-TEST (SA-P1O-T, queue 34, lock-P1-COS; 依赖 P1-COS-DOC 闭环)
 // 合同锚: docs/science/algorithms/COSMETIC_ALGORITHMS.md §9 TEST-COS-DESIGN-001
 //        (P1-COS-DOC 冻结, 2026-09-07, wave W1); 矩阵行 P1-COS (MOD
-//        astrocs.p1.cosmetic, TEST-P1-COS-001)。
+//        acsd.p1.cosmetic, TEST-P1-COS-001)。
 //
 // 单跑方式 (每个测试组 == 独立可执行 ctest 名, 二进制内按 --group 单跑):
 //   ./p1cos_tests units|properties|negative|cosmetic
 //   ./p1cos_tests all
 //
 // 故障注入 (模板 <prefix>-TEST 验收: "故障注入能让测试失败"):
-//   ASTROCS_P1COS_FAULT=<regname>[,<regname>...]
+//   ACSD_P1COS_FAULT=<regname>[,<regname>...]
 //   每个注册的 fault 使对应 CHECK 组在报告阶段确定性翻转 → 二进制 rc=1,
 //   输出 "FAULT-INJECT <name>" 行。
-//   例: ASTROCS_P1COS_FAULT=const_field_bitwise ./p1cos_tests units
+//   例: ACSD_P1COS_FAULT=const_field_bitwise ./p1cos_tests units
 #ifndef P1COS_TEST_MAIN_HPP
 #define P1COS_TEST_MAIN_HPP
 
@@ -29,7 +29,7 @@ struct FaultRegistry {
         static FaultRegistry r;
         return r;
     }
-    // 由 main() 启动时从 ASTROCS_P1COS_FAULT 初始化
+    // 由 main() 启动时从 ACSD_P1COS_FAULT 初始化
     std::vector<std::string> active;
 
     bool injected(const char* name) const {
@@ -109,8 +109,8 @@ inline int run_all_groups(const p1cos::TestGroup* groups, std::size_t n, int arg
         if (a == "--group" && i + 1 < argc) group = argv[++i];
         else if (a.rfind("--", 0) != 0) group = a;
     }
-    // ASTROCS_P1COS_FAULT: 逗号分隔故障注入名单
-    if (const char* f = std::getenv("ASTROCS_P1COS_FAULT")) {
+    // ACSD_P1COS_FAULT: 逗号分隔故障注入名单
+    if (const char* f = std::getenv("ACSD_P1COS_FAULT")) {
         std::string s = f;
         std::size_t pos = 0;
         while (pos < s.size()) {

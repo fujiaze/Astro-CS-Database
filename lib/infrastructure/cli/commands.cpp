@@ -30,7 +30,7 @@
 
 // DET-001: 规范产品哈希（canonical product hash）—— run manifest 的 artifact
 // 行同时登记「完整性」与「可复现」两个哈希, 命名区分（禁一名两义）。
-#include "astrocs/core/canonical_hash.h"
+#include "acsd/core/canonical_hash.h"
 
 #include "hardware_inspect.h"
 #include "profile_gen.h"
@@ -40,16 +40,16 @@
 
 #include "backend_loader.h"
 #include "profile_store_bridge.h"   // R-29: cpu_profile 原子写（收容 profile_store/backend_loader 同名类型冲突）
-#include "astrocs_process.h"
+#include "acsd_process.h"
 #include "protocol.h"
 #include "resource_recorder.h"
 
 extern "C" {
-int astrocs_host_services_default_v1(astrocs_host_services_v1* out, void** state_out);
-void astrocs_host_services_destroy_state_v1(void* state);
-void astrocs_host_state_set_budget_v1(void* state, uint32_t cpus, uint32_t max_workers,
-                                      astrocs_host_services_v1* out);
-uint64_t astrocs_cpu_detect_features_v1(void);
+int acsd_host_services_default_v1(acsd_host_services_v1* out, void** state_out);
+void acsd_host_services_destroy_state_v1(void* state);
+void acsd_host_state_set_budget_v1(void* state, uint32_t cpus, uint32_t max_workers,
+                                      acsd_host_services_v1* out);
+uint64_t acsd_cpu_detect_features_v1(void);
 }
 
 
@@ -61,8 +61,8 @@ uint64_t astrocs_cpu_detect_features_v1(void);
 #include "disk_gate.h"        // 磁盘门 = 唯一资源判据（内存/CPU/线程不设门）
 #include "resource_events.h"
 #include "resource_gate.h"
-#include "astrocs/core/context.h"  // B2-A18: 租约授予观测
-#include "astrocs/core/memory_budget.h"  // 内存静态预算来源解析（§8.3）
+#include "acsd/core/context.h"  // B2-A18: 租约授予观测
+#include "acsd/core/memory_budget.h"  // 内存静态预算来源解析（§8.3）
 #include "aio_sysinfo.h"                 // 可用内存唯一探测实现（aio 边界）
 #include "aio_file_io.h"                 // 文件读取唯一机制原语（aio 边界）
 #include "runtime_contract.h"   // RUNTIME-CI-001: 统一预算/模式路由/SO-05 策略单一来源
@@ -75,9 +75,9 @@ uint64_t astrocs_cpu_detect_features_v1(void);
 
 #include "version_generated.h"
 // RUN-PROVENANCE-01: 构建期指纹（run manifest provenance 的"同一代码"判据）。
-#include "astrocs/core/build_stamp.h"
+#include "acsd/core/build_stamp.h"
 
-#include "astrocs/core/module_adapters.h"  // B2-A10: write_run_context 唯一路径
+#include "acsd/core/module_adapters.h"  // B2-A10: write_run_context 唯一路径
 
 #include "cli_common.h"
 #include "runtime_client.h"
@@ -94,7 +94,7 @@ uint64_t astrocs_cpu_detect_features_v1(void);
 #include "mosaic/mosaic.h"
 #include "export/export.h"
 
-static void emit_backend_event(astrocs::JsonlEmitter&, const std::string&, const std::string&,
+static void emit_backend_event(acsd::JsonlEmitter&, const std::string&, const std::string&,
                                const std::string&, uint32_t, uint32_t,
                                const std::string& reason);
 
@@ -118,14 +118,14 @@ static uint32_t cli_affinity_cpu_count() {
 // 依据（逐条）：
 //   * **不设固定上限**：预算动态取自**当前可用内存** × **可配置比例**（默认 95%）——
 //     该比例可配置、默认 95%，全链不写死内存上限字面量。
-//   * docs/ASTROCS_DESIGN.md §8.3（静态预算 + 内存占用永不越界）、§9（一个进程一个资源
+//   * docs/ACSD_DESIGN.md §8.3（静态预算 + 内存占用永不越界）、§9（一个进程一个资源
 //     调度器与线程预算源）、§4.5（资源门只管磁盘 ⇒ 本预算是调度准入输入，不是门禁）
 //   * docs/engineering/SCHEDULER_CONTRACT.md §3（内存上限由配置/资源门决定，禁止硬编码）
 // 两个输入：
 //   ① 可用内存 = aio_system_available_memory_bytes()（aio 是文件级唯一 I/O 边界；
 //      Linux 口径 = MemAvailable（含可回收 page cache）∩ cgroup 内存余量；
 //      Windows = ullAvailPhys。返回 0 = 不可判定）。
-//   ② 比例 = 机器绑定 profile（--cpu-profile 指向的 astrocs.cpu-profile/v2 的
+//   ② 比例 = 机器绑定 profile（--cpu-profile 指向的 acsd.cpu-profile/v2 的
 //      host.memory_budget_percent）优先；未声明/非法 ⇒ 用 config 默认值（95，唯一数值源
 //      = eng/packaging/config/runtime_resources.json）。
 // 两者都不含硬编码内存上限：比例默认值来自生成头，可用内存来自实测探测。
@@ -140,7 +140,7 @@ static uint32_t cli_memory_budget_percent(const std::string& cpu_profile_path) {
         const nlohmann::json doc = nlohmann::json::parse(text);
         if (!doc.is_object()) return 0;
         // profile 失配（非 v2）⇒ 按 V8-CPU-002 回落，不阻塞、不报错。
-        if (doc.value("schema", std::string()) != "astrocs.cpu-profile/v2") return 0;
+        if (doc.value("schema", std::string()) != "acsd.cpu-profile/v2") return 0;
         if (!doc.contains("host") || !doc["host"].is_object()) return 0;
         const nlohmann::json& h = doc["host"];
         if (!h.contains("memory_budget_percent")) return 0;
@@ -155,13 +155,13 @@ static uint32_t cli_memory_budget_percent(const std::string& cpu_profile_path) {
 }
 
 // ── 安装目录 / cpu_profile 路径 / ISA provider 选取（R-28/R-29）──────────────────
-// 落点依据：docs/ASTROCS_DESIGN.md:524,714（benchmark 生成/更新**安装目录** cpu_profile）+
+// 落点依据：docs/ACSD_DESIGN.md:524,714（benchmark 生成/更新**安装目录** cpu_profile）+
 //           docs/engineering/CLI_PROTOCOL_V1.md:31（同上，「后续运行自动读取」）+
 //           docs/engineering/ISA_VARIANTS.md §0 第 3 条 / §2（DSO 随安装树、运行期检测选取）。
 // 三处路径约定此前各写一套（--cpu-profile 旗标 / benchmark 写死 install_dir+"/cpu_profile.json"
 // / profile_store 的 XDG 口径），口径不统一 ⇒ 这里收敛为**唯一函数面**：
 //   install_dir  = 主 CLI 可执行文件所在目录（benchmark 结果缓存的唯一落点，
-//                  docs/ASTROCS_DESIGN.md:714「输出到安装目录」）
+//                  docs/ACSD_DESIGN.md:714「输出到安装目录」）
 //   providers_dir= install_dir/providers（backend_loader 要求 manifest 与裸文件名同目录）
 //   cpu_profile  = install_dir/cpu_profile.json（benchmark 写、运行期自动读的同一路径）
 // profile_store 的 default_profile_path_v1()（XDG/LOCALAPPDATA）仍是**用户级**口径，
@@ -189,7 +189,7 @@ static std::string cli_providers_dir() {
     return (d == ".") ? std::string("providers") : d + "/providers";
 }
 
-// benchmark 结果缓存的唯一路径（程序安装目录；docs/ASTROCS_DESIGN.md:524）。
+// benchmark 结果缓存的唯一路径（程序安装目录；docs/ACSD_DESIGN.md:524）。
 static std::string cli_default_cpu_profile_path() {
     const std::string d = cli_install_dir();
     return (d == ".") ? std::string("cpu_profile.json") : d + "/cpu_profile.json";
@@ -199,7 +199,7 @@ static std::string cli_default_cpu_profile_path() {
 // **显式降级**路径：CPU-007 的用户级口径（XDG/LOCALAPPDATA）。降级必须显式：
 // 调用方打印事实行并登记，不静默换落点（R-29 第二句）。
 static std::string cli_fallback_cpu_profile_path() {
-    return astrocs::cli::user_cpu_profile_path();
+    return acsd::cli::user_cpu_profile_path();
 }
 
 static bool cli_file_exists(const std::string& p) {
@@ -233,18 +233,18 @@ static std::string cli_resolve_cpu_profile_path(const std::string& explicit_path
 // 缺库/不支持/收益不足一律回退基线（豁免面见 reason）。句柄随本对象释放。
 struct CliBackendSelection {
     std::string provider = "baseline";             // 路由词表 baseline|avx2|avx512
-    std::string backend_id = "astrocs.cpu.baseline";   // 事件面稳定 id
+    std::string backend_id = "acsd.cpu.baseline";   // 事件面稳定 id
     std::string reason = "no manifest";            // 决策/回退原因（诊断，不省）
     std::string route_json;                        // 逐 kernel 路由表（trace 面）
     std::vector<void*> handles;
     ~CliBackendSelection() {
-        for (void* h : handles) astrocs::backend_host::close_backend(h);
+        for (void* h : handles) acsd::backend_host::close_backend(h);
     }
 };
 
 // 把 provider 词表映射到事件 backend_id（唯一映射点，禁第二处拼串）。
 static std::string cli_backend_id_for_provider(const std::string& provider) {
-    return "astrocs.cpu." + provider;   // baseline|avx2|avx512
+    return "acsd.cpu." + provider;   // baseline|avx2|avx512
 }
 
 // CPU-005 决策门限：与 bench_report 的冻结噪声门限同源（唯一拼写点）。
@@ -255,14 +255,14 @@ static constexpr double kCliMinGainRel = 0.03;
 // 生产调用点 = run_with_resource_gate（三命令共同的运行路径），非测试专用。
 static CliBackendSelection cli_select_backend(const std::string& profile_path) {
     CliBackendSelection sel;
-    namespace bh = astrocs::backend_host;
+    namespace bh = acsd::backend_host;
     const std::string prof_text = [&] {
         std::string t;
         if (profile_path.empty()) return t;
         if (!aio_file::read_all(profile_path.c_str(), &t)) t.clear();
         return t;
     }();
-    const std::string hw_json = astrocs::backend_host::hardware_inspect_json_v1(ASTROCS_VERSION_STRING);
+    const std::string hw_json = acsd::backend_host::hardware_inspect_json_v1(ACSD_VERSION_STRING);
 
     // 内置基线恒可用（进程内，不依赖任何 DSO）：它是回退的**语义**终点。
     std::vector<bh::ProviderEvidence> providers;
@@ -283,13 +283,13 @@ static CliBackendSelection cli_select_backend(const std::string& profile_path) {
         std::vector<bh::ManifestEntry> entries;
         std::string merr;
         if (bh::parse_backends_manifest(manifest_text, &entries, &merr)) {
-            astrocs_host_services_v1 host;
+            acsd_host_services_v1 host;
             void* hstate = nullptr;
-            astrocs_host_services_default_v1(&host, &hstate);
+            acsd_host_services_default_v1(&host, &hstate);
             for (const auto& e : entries) {
                 bh::ProviderEvidence pe;
                 pe.id = e.backend_id;
-                astrocs_backend_api_v1 api;   // ABI 类型在全局命名空间（common_abi_v1.h）
+                acsd_backend_api_v1 api;   // ABI 类型在全局命名空间（common_abi_v1.h）
                 std::memset(&api, 0, sizeof(api));
                 void* handle = nullptr;
                 std::string why;
@@ -324,7 +324,7 @@ static CliBackendSelection cli_select_backend(const std::string& profile_path) {
         sel.reason = "no cpu_profile — conservative baseline route"
                      + (reasons.empty() ? std::string() : (" (" + reasons.front() + ")"));
     } else {
-        sel.route_json = bh::build_route_table_v1(prof_text, hw_json, ASTROCS_COMMIT_SHA,
+        sel.route_json = bh::build_route_table_v1(prof_text, hw_json, ACSD_COMMIT_SHA,
                                                   providers, nullptr, kCliMinGainRel, kids);
         try {
             const nlohmann::json rt = nlohmann::json::parse(sel.route_json);
@@ -354,17 +354,17 @@ static CliBackendSelection cli_select_backend(const std::string& profile_path) {
 // 解析出 (上限, 来源) 并落一条可核对的 stderr 事实行（与既有 "session run: budget workers="
 // 同款；不进协议事件字段面，避免改冻结的事件 schema）。
 static void cli_resolve_memory_budget(const std::string& cpu_profile_path,
-                                      astrocs::core::MemoryBudget* out) {
+                                      acsd::core::MemoryBudget* out) {
     const uint64_t avail = aio_system_available_memory_bytes();
     const uint32_t pct = cli_memory_budget_percent(cpu_profile_path);
-    const astrocs::core::MemoryBudget mb = astrocs::core::resolve_memory_budget(avail, pct);
+    const acsd::core::MemoryBudget mb = acsd::core::resolve_memory_budget(avail, pct);
     if (out) *out = mb;   // 完整口径（含来源/可用内存/比例回显）交下游，避免二次解析
     std::fprintf(stderr,
                  "session run: memory budget=%llu B (available=%llu B, percent=%u, source=%s)\n",
                  static_cast<unsigned long long>(mb.limit_bytes),
                  static_cast<unsigned long long>(mb.available_bytes),
                  static_cast<unsigned>(mb.percent),
-                 astrocs::core::memory_budget_source_name(mb.source));
+                 acsd::core::memory_budget_source_name(mb.source));
     std::fflush(stderr);
 }
 
@@ -390,12 +390,12 @@ const char* kConfigTemplate =
 // 同值; 读失败时两者同为空。因此本重载与下方两参版本输出逐字节一致, 仅省掉一次
 // 重复整文件读 + 哈希。
 nlohmann::json with_canonical_hash(const nlohmann::json& row,
-                                   const astrocs::core::CanonicalHashResult& ch) {
+                                   const acsd::core::CanonicalHashResult& ch) {
     nlohmann::json out = row;
     out["integrity_sha256"] = ch.integrity_sha256;
     if (ch.ok) {
         out["canonical_sha256"] = ch.canonical_sha256;
-        out["canonical_hash_spec"] = astrocs::core::kCanonicalProductHashSpec;
+        out["canonical_hash_spec"] = acsd::core::kCanonicalProductHashSpec;
         out["canonical_format"] = ch.format;
     } else {
         out["canonical_sha256"] = nullptr;
@@ -405,7 +405,7 @@ nlohmann::json with_canonical_hash(const nlohmann::json& row,
 }
 
 nlohmann::json with_canonical_hash(const nlohmann::json& row, const std::string& path) {
-    return with_canonical_hash(row, astrocs::core::canonical_product_hash_file(path));
+    return with_canonical_hash(row, acsd::core::canonical_product_hash_file(path));
 }
 
 // CLI-001: 合成测试门与 stub 用户命令已删除（不在 §6.2 唯一命令树内）——
@@ -413,17 +413,17 @@ nlohmann::json with_canonical_hash(const nlohmann::json& row, const std::string&
 // 合成测试直接跑 build 树内测试二进制（eng/tests/unit/**、eng/tests/system/**）。
 // B2-A10（宪章 §4.3/§4.2）: 运行上下文（run_id/source SHA/软件版本）在会话启动
 // 前写入 output_dir，供各 phase 的 provenance 消费端读取（禁节点级占位串）。
-// 生成逻辑唯一实现 = astrocs::core::write_run_context（node 级测试夹具同源复用）；
+// 生成逻辑唯一实现 = acsd::core::write_run_context（node 级测试夹具同源复用）；
 // 本处仅做 Result→CLI exit code 映射，与 run manifest 同序，绝不半写。
 int write_run_context(const std::string& out_dir, const std::string& run_id) {
-    auto rc = astrocs::core::write_run_context(out_dir, run_id, ASTROCS_VERSION_STRING,
-                                               ASTROCS_COMMIT_SHA);
+    auto rc = acsd::core::write_run_context(out_dir, run_id, ACSD_VERSION_STRING,
+                                               ACSD_COMMIT_SHA);
     if (rc.failed()) {
         std::fprintf(stderr, "acsd: cannot write run context: %s\n",
                      rc.error().message().c_str());
-        return astrocs::IO;
+        return acsd::IO;
     }
-    return astrocs::OK;
+    return acsd::OK;
 }
 
 // B2-A10（宪章 §4.3）: run manifest provenance 子对象。
@@ -441,12 +441,12 @@ nlohmann::json build_run_provenance(
     const std::vector<std::pair<std::string, std::string>>& mans,
     const nlohmann::json& artifacts) {
     nlohmann::json p = nlohmann::json::object();
-    p["source_sha"] = ASTROCS_COMMIT_SHA;
-    p["source_version"] = ASTROCS_VERSION_STRING;
+    p["source_sha"] = ACSD_COMMIT_SHA;
+    p["source_version"] = ACSD_VERSION_STRING;
     // RUN-PROVENANCE-01: 构建期指纹（additive；CLI-003 §2.1 的 provenance 是加性
     // 扩展，v1 校验器忽略未知子键）。没有它，两份 provenance 的 source_sha 相等
     // **不蕴含**同一二进制 —— 见 run/RUN-PROVENANCE-01/REPORT.md §A。
-    const astrocs::core::BuildStamp& bstamp = astrocs::core::build_stamp();
+    const acsd::core::BuildStamp& bstamp = acsd::core::build_stamp();
     p["build_head_sha"] = bstamp.head_sha;
     p["build_dirty"] = bstamp.dirty;
     p["build_source_digest"] = bstamp.source_digest;
@@ -493,18 +493,18 @@ nlohmann::json build_run_provenance(
     return p;
 }
 
-// ── 磁盘门运行期臂（docs/ASTROCS_DESIGN §4.5「运行中写盘失败/磁盘满 ⇒ 报错
+// ── 磁盘门运行期臂（docs/ACSD_DESIGN §4.5「运行中写盘失败/磁盘满 ⇒ 报错
 // （fail-closed）」+ §6.3「exit 10 = 磁盘写满 / 写盘失败」）──
 // 判定唯一实现 = lib/infrastructure/cli/disk_gate.h（classify_write_failure / probe_writable）；
 // 本函数只做「落退出码 + 发 error 事件」，不重复实现判据，也不引入任何内存/CPU/线程门。
 // 返回：磁盘写满/写盘失败 ⇒ RESOURCE(10)；其它写失败 ⇒ IO(7)（维持既有 I/O 失败语义）。
 // what = **标签**（如 run_manifest / resource_timeseries.csv / output_dir），不是路径 ——
 // 自由文本不得携带绝对路径（脱敏纪律）；真实落点走结构化字段 output_dir（机器通道）。
-static int disk_write_failure_exit(astrocs::JsonlEmitter& ev, const std::string& phase,
+static int disk_write_failure_exit(acsd::JsonlEmitter& ev, const std::string& phase,
                                    const std::string& out_dir, const std::string& what,
-                                   const astrocs::WriteProbe& pr,
+                                   const acsd::WriteProbe& pr,
                                    const std::string& detail = std::string()) {
-    const std::string kind = astrocs::write_failure_kind_name(pr.kind);
+    const std::string kind = acsd::write_failure_kind_name(pr.kind);
     nlohmann::json payload = {
         {"diag", "disk_write_failure:" + kind},
         {"failure_kind", kind},
@@ -523,20 +523,20 @@ static int disk_write_failure_exit(astrocs::JsonlEmitter& ev, const std::string&
             "disk write failed (" + kind + "): " + what, payload);
     std::fprintf(stderr, "acsd: disk write failed (%s): %s\n", kind.c_str(),
                  sanitize(what).c_str());
-    return astrocs::write_failure_is_resource_exit(pr.kind) ? astrocs::RESOURCE : astrocs::IO;
+    return acsd::write_failure_is_resource_exit(pr.kind) ? acsd::RESOURCE : acsd::IO;
 }
 
 // run manifest v1 原子写(tmp+rename; ARCH-002 §5 单元): stub/not-wired/cancelled 恒 incomplete
-int write_run_manifest(const std::string& out_dir, astrocs::JsonlEmitter& ev, const std::string& status,
+int write_run_manifest(const std::string& out_dir, acsd::JsonlEmitter& ev, const std::string& status,
                        const std::string& summary, const std::string& config_path,
                        const std::string& config_sha, const std::vector<int>& phases,
                        const nlohmann::json& artifacts = nlohmann::json::array(),
                        const nlohmann::json& extra = nlohmann::json()) {
     nlohmann::json m = {
         {"schema_version", "1"},
-        {"kind", "astrocs_run_manifest"},
+        {"kind", "acsd_run_manifest"},
         {"run_id", ev.run_id()},
-        {"astrocs_version", ASTROCS_VERSION_STRING},
+        {"acsd_version", ACSD_VERSION_STRING},
         {"platform", {{"os",
 #ifdef _WIN32
                        "windows"
@@ -552,8 +552,8 @@ int write_run_manifest(const std::string& out_dir, astrocs::JsonlEmitter& ev, co
         {"phases", phases},
         {"artifacts", artifacts},
         {"status", status},
-        {"started_utc", astrocs::iso8601_utc_now()},
-        {"finished_utc", astrocs::iso8601_utc_now()},
+        {"started_utc", acsd::iso8601_utc_now()},
+        {"finished_utc", acsd::iso8601_utc_now()},
         {"summary", summary},
     };
     // SMOKE-001 D7: 失败/取消的 manifest 必须自带失败原因字段，供机器消费者
@@ -566,7 +566,7 @@ int write_run_manifest(const std::string& out_dir, astrocs::JsonlEmitter& ev, co
     }
     std::error_code ec;
     std::filesystem::create_directories(std::filesystem::u8path(out_dir), ec);
-    const std::string final_path = out_dir + "/astrocs_run_" + ev.run_id() + ".json";
+    const std::string final_path = out_dir + "/acsd_run_" + ev.run_id() + ".json";
     const std::string tmp_path = final_path + ".tmp";
     std::string body;
     {
@@ -575,7 +575,7 @@ int write_run_manifest(const std::string& out_dir, astrocs::JsonlEmitter& ev, co
             std::fprintf(stderr, "acsd: cannot write run manifest '%s'\n", tmp_path.c_str());
             // 写盘失败/磁盘满 ⇒ fail-closed（磁盘满 → 10；其它 → 7）。
             return disk_write_failure_exit(ev, "manifest", out_dir, "run_manifest",
-                                           astrocs::probe_writable(out_dir),
+                                           acsd::probe_writable(out_dir),
                                            "run manifest open failed");
         }
         body = m.dump(2) + "\n";
@@ -586,7 +586,7 @@ int write_run_manifest(const std::string& out_dir, astrocs::JsonlEmitter& ev, co
         f.flush();
         if (!f.good()) {
             return disk_write_failure_exit(ev, "manifest", out_dir, "run_manifest",
-                                           astrocs::probe_writable(out_dir),
+                                           acsd::probe_writable(out_dir),
                                            "run manifest write failed");
         }
     }
@@ -595,7 +595,7 @@ int write_run_manifest(const std::string& out_dir, astrocs::JsonlEmitter& ev, co
         const auto tsz = std::filesystem::file_size(std::filesystem::u8path(tmp_path), sec);
         if (sec || static_cast<std::size_t>(tsz) != body.size()) {
             return disk_write_failure_exit(ev, "manifest", out_dir, "run_manifest",
-                                           astrocs::probe_writable(out_dir),
+                                           acsd::probe_writable(out_dir),
                                            "run manifest truncated (size mismatch)");
         }
     }
@@ -603,7 +603,7 @@ int write_run_manifest(const std::string& out_dir, astrocs::JsonlEmitter& ev, co
     if (ec) {
         std::fprintf(stderr, "acsd: cannot finalize run manifest: %s\n", ec.message().c_str());
         return disk_write_failure_exit(ev, "manifest", out_dir, "run_manifest",
-                                       astrocs::probe_writable(out_dir),
+                                       acsd::probe_writable(out_dir),
                                        "run manifest finalize failed: " + ec.message());
     }
     // CLI-004: §4 artifact 冻结词表 {role,path,sha256,size_bytes} — manifest 补 size_bytes。
@@ -618,23 +618,23 @@ int write_run_manifest(const std::string& out_dir, astrocs::JsonlEmitter& ev, co
     }
     // §4 final.run_manifest 回填（SMOKE-001 D8）：登记本次 manifest 路径。
     ev.set_run_manifest(final_path);
-    // （docs/ASTROCS_DESIGN §6.3）：事件流 = **默认输出** ⇒ stdout 只承载
+    // （docs/ACSD_DESIGN §6.3）：事件流 = **默认输出** ⇒ stdout 只承载
     // 机器 JSONL（无日志污染），人可读摘要由 JsonlEmitter 同源写到 stderr。旧「人类模式把
     // manifest 路径打到 stdout」的分支随之退役（manifest 路径 = artifact 事件的 path 字段，
     // final 事件回填 run_manifest）——不得再往 stdout 打非 JSON 文本。
-    return astrocs::OK;
+    return acsd::OK;
 }
 
 // RT-009: 写运行图产物 — 静态 IR JSON + observed trace JSON + sidecar。
 // 每次 run 都生成（静态图与 observed 图同源于同一 IR；L0 由 Python 渲染器派生）。
 // 路径脱敏: 所有绝对路径替换为 <root> 相对占位（sanitize 逻辑在渲染器/JSON 输出统一）。
 // 不失败 run: 图产物损坏只记 warning。
-static void write_run_graphs(const std::string& out_dir, astrocs::JsonlEmitter& ev,
+static void write_run_graphs(const std::string& out_dir, acsd::JsonlEmitter& ev,
                              const std::string& config_path, const std::string& config_sha,
                              const std::vector<int>& phases) {
     std::error_code ec;
     std::filesystem::create_directories(std::filesystem::u8path(out_dir), ec);
-    const std::string ir_json = astrocs::cli::last_pipeline_ir_json();
+    const std::string ir_json = acsd::cli::last_pipeline_ir_json();
     const std::string gdir = out_dir + "/graph";
     std::filesystem::create_directories(std::filesystem::u8path(gdir), ec);
     if (ec) return;
@@ -649,10 +649,10 @@ static void write_run_graphs(const std::string& out_dir, astrocs::JsonlEmitter& 
     }
 
     // 2) observed trace = Runtime 节点 trace + session manifest 摘要（CHK-002 双向比较输入）
-    std::vector<astrocs::core::Runtime::NodeTrace> tr;
-    astrocs::cli::collect_node_trace(&tr);
+    std::vector<acsd::core::Runtime::NodeTrace> tr;
+    acsd::cli::collect_node_trace(&tr);
     std::vector<std::pair<std::string, std::string>> mans;
-    astrocs::cli::collect_node_manifests(&mans);
+    acsd::cli::collect_node_manifests(&mans);
     nlohmann::json ir = nlohmann::json::parse(ir_json, nullptr, false);
     nlohmann::json static_nodes = nlohmann::json::object();
     if (!ir.is_discarded() && ir.contains("nodes") && ir["nodes"].is_array()) {
@@ -712,7 +712,7 @@ static void write_run_graphs(const std::string& out_dir, astrocs::JsonlEmitter& 
         nodes.push_back(std::move(nd));
     }
     nlohmann::json observed = {
-        {"schema", "astrocs.observed-trace/v1"},
+        {"schema", "acsd.observed-trace/v1"},
         {"run_id", ev.run_id()},
         {"pipeline_id", ir.contains("pipeline_id") ? ir["pipeline_id"] : "cli.run.preset"},
         {"nodes", nodes},
@@ -727,7 +727,7 @@ static void write_run_graphs(const std::string& out_dir, astrocs::JsonlEmitter& 
 
     // 3) sidecar: IR hash / source commit / profile ID / input manifest hash
     nlohmann::json side = {
-        {"schema", "astrocs.graph-sidecar/v1"},
+        {"schema", "acsd.graph-sidecar/v1"},
         {"run_id", ev.run_id()},
         {"ir_sha256", [&] { bool ok = false; return file_sha256(static_path, &ok); }()},
         {"source_commit", git_head_sha().value_or("unknown")},
@@ -750,14 +750,14 @@ static void write_run_graphs(const std::string& out_dir, astrocs::JsonlEmitter& 
     // 显式检查子进程 exit code，失败 warning 事件 + stderr（不静默；不失败 run，
     // RT-009 冻结语义保留，但产物缺失必须可诊断）。
     {
-        const char* env_repo = std::getenv("ASTROCS_REPO");
+        const char* env_repo = std::getenv("ACSD_REPO");
         const std::string repo = (env_repo && env_repo[0]) ? env_repo : ".";
         const std::string renderer = repo + "/eng/tools/quality/gen_run_graphs.py";
         std::error_code ec;
         if (std::filesystem::is_regular_file(std::filesystem::u8path(renderer), ec)) {
-            const astrocs::process::RunResult cr = astrocs::process::run_process(
+            const acsd::process::RunResult cr = acsd::process::run_process(
                 {"python3", renderer, "--graph-dir", gdir}, {}, 30.0, {}, true);
-            bool rendered = astrocs::process::ok(cr);
+            bool rendered = acsd::process::ok(cr);
             if (!rendered) {
                 std::string why;
                 if (cr.timed_out) why = "renderer timed out after 30s";
@@ -787,10 +787,10 @@ static void write_run_graphs(const std::string& out_dir, astrocs::JsonlEmitter& 
 // summary 事件内嵌指标; 原始时序只记录留存路径+样本数(不内嵌几十 MB 数据)。
 // GATE-FIX-RES: 分层档 detail 参数与 curve_points 恒空数组已删除;
 // 曲线唯一载体 = raw_dir/resource_timeseries.csv(字段 resource_curve_artifact 声明)。
-static void emit_resource_summary(astrocs::JsonlEmitter& ev, const std::string& phase,
-                                  const astrocs::ProcessMonitor::Summary& s,
+static void emit_resource_summary(acsd::JsonlEmitter& ev, const std::string& phase,
+                                  const acsd::ProcessMonitor::Summary& s,
                                   const std::string& raw_dir, std::size_t raw_n) {
-    const auto p = astrocs::summarize(s);
+    const auto p = acsd::summarize(s);
     nlohmann::json payload = {
         {"n_samples", p.n_samples},
         {"wall_seconds", p.wall_seconds},
@@ -827,7 +827,7 @@ static void emit_resource_summary(astrocs::JsonlEmitter& ev, const std::string& 
 static std::string backend_isa_name() {
     try {
         const auto hw = nlohmann::json::parse(
-            astrocs::backend_host::hardware_inspect_json_v1(ASTROCS_VERSION_STRING));
+            acsd::backend_host::hardware_inspect_json_v1(ACSD_VERSION_STRING));
         const unsigned long long bits = hw.value("feature_bits", 0ull);
         if (bits & (1ull << 5)) return "avx512";   // ACS_FEAT_AVX512F (cpu_features.h 同源)
         if (bits & (1ull << 3)) return "avx2";     // ACS_FEAT_AVX2
@@ -838,7 +838,7 @@ static std::string backend_isa_name() {
     }
 }
 
-static void emit_backend_event(astrocs::JsonlEmitter& ev, const std::string& phase,
+static void emit_backend_event(acsd::JsonlEmitter& ev, const std::string& phase,
                                const std::string& backend_id, const std::string& status,
                                uint32_t workers_used, uint32_t available_cpus,
                                const std::string& reason = std::string("cli affinity lease")) {
@@ -857,10 +857,10 @@ static void emit_backend_event(astrocs::JsonlEmitter& ev, const std::string& pha
 
 // CLI-004: phase 统计 resource 事件(既有载荷保留) + §4 冻结扩展字段
 // {cpu_cores_used,rss_bytes,io_read_bytes,io_write_bytes,threads}(真实 monitor 摘要同源)。
-static void emit_phase_stats_resource(astrocs::JsonlEmitter& ev, const std::string& phase,
+static void emit_phase_stats_resource(acsd::JsonlEmitter& ev, const std::string& phase,
                                       const std::string& message,
                                       const nlohmann::json& stats,
-                                      const astrocs::ProcessMonitor::Summary* ms) {
+                                      const acsd::ProcessMonitor::Summary* ms) {
     nlohmann::json payload = stats;
     if (ms != nullptr) {
         payload["cpu_cores_used"] = ms->avg_equivalent_cores;
@@ -874,7 +874,7 @@ static void emit_phase_stats_resource(astrocs::JsonlEmitter& ev, const std::stri
 
 // MON-002: 无标注 >5s 区间判 P1(供 MON-003 gating; 本函数仅供测试与 stage 落地校验)。
 [[maybe_unused]] static bool is_stage_priority(const char* annotation, double wall_seconds) {
-    return astrocs::is_unannotated_priority(annotation, wall_seconds);
+    return acsd::is_unannotated_priority(annotation, wall_seconds);
 }
 
 // MON-004 资源观测生产接线(lib/infrastructure/cli/resource_gate.h 唯一生产调用点):
@@ -905,10 +905,10 @@ static bool strict_resource_gate_arg(const Parsed& p) {
     throw ParseError("invalid --on-resource-gate '" + v + "' (accept|strict)");
 }
 
-static int run_with_resource_gate(astrocs::JsonlEmitter& ev, const std::string& phase,
+static int run_with_resource_gate(acsd::JsonlEmitter& ev, const std::string& phase,
                                   const std::string& cfg_text, uint32_t budget,
                                   std::string& fail_reason,
-                                  astrocs::ProcessMonitor::Summary* summary_out = nullptr,
+                                  acsd::ProcessMonitor::Summary* summary_out = nullptr,
                                   bool strict_flag_requested = false,
                                   const std::string& cpu_profile_path = std::string()) {
     // 输出落点（磁盘门探测 + 资源产物落点同源；块级 output_dir 由调用方展开进 cfg_text）。
@@ -916,18 +916,18 @@ static int run_with_resource_gate(astrocs::JsonlEmitter& ev, const std::string& 
         try { return nlohmann::json::parse(cfg_text).value("output_dir", std::string(".")); }
         catch (...) { return std::string("."); }
     }();
-    astrocs::ProcessMonitor mon(0.5);
+    acsd::ProcessMonitor mon(0.5);
     // MON-001: 记录器(样本/阶段分段/worker balance)随采样线程写入; interval 与采样
     // 周期一致(0.5s), 保证 cpu_pct=ΔCPU秒/区间墙钟 的 normalized 口径成立。
-    astrocs::ResourceRecorder recorder(0.5);
+    acsd::ResourceRecorder recorder(0.5);
     // MON-002(V7 04_CPU_RESOURCE_TASKS): RSS/allocation report 记录器 —— 同一采样
     // 线程驱动(无新增线程), 定期采样 RSS/private/commit/allocator outstanding,
     // run 结束验证可解释回落并保存原始曲线(alloc_samples.csv + alloc_report.json)。
-    astrocs::AllocationRecorder alloc_rec;
+    acsd::AllocationRecorder alloc_rec;
     std::atomic<bool> sampling{true};
     // MON-002 first-10s gate: 采样线程在 10s 边界调用一次 fast_fail_first10s(07 §4);
     // 失败置位外部协作取消源 → run_pipeline 内 cancel_watch 转发 Runtime::cancel()。
-    std::atomic<int> first10s_diag{static_cast<int>(astrocs::GateDiag::Ok)};
+    std::atomic<int> first10s_diag{static_cast<int>(acsd::GateDiag::Ok)};
     std::atomic<bool> first10s_done{false};
     // RESCUE-FD-08(短 run 观测链): active 阶段标注与起始 worker 容量必须在采样
     // 线程首次 record 之前就绪, 且主线程要等到第一个 active 样本落盘再启动
@@ -936,7 +936,7 @@ static int run_with_resource_gate(astrocs::JsonlEmitter& ev, const std::string& 
     // (无样本时同样 0=哨兵), 把"未观测"误判为"只有一个活跃计算线程"
     // (single_threaded, exit 10)。worker 值取有效配置容量 min(budget,可用核),
     // 与循环内 B2-A18 未观测回退同一口径; 阈值与判据表达式不动。
-    recorder.set_stage(astrocs::ResStage::Active);
+    recorder.set_stage(acsd::ResStage::Active);
     const uint32_t planned_start = std::min(budget, cli_affinity_cpu_count());
     recorder.set_workers(planned_start, planned_start);
     std::atomic<bool> first_sample_done{false};
@@ -952,7 +952,7 @@ static int run_with_resource_gate(astrocs::JsonlEmitter& ev, const std::string& 
             // (哨兵 0) 时回退到有效配置容量 min(budget, 可用核) —— 与
             // utilization_value 同一哨兵纪律, 不以观测名义回填配置。
             {
-                const uint32_t obs_workers = astrocs::core::granted_worker_observation()
+                const uint32_t obs_workers = acsd::core::granted_worker_observation()
                     .peak_active.load(std::memory_order_relaxed);
                 const uint32_t planned =
                     std::min(budget, cli_affinity_cpu_count());
@@ -978,9 +978,9 @@ static int run_with_resource_gate(astrocs::JsonlEmitter& ev, const std::string& 
                         cpus.push_back(r.cpu_pct);
                         io_bytes += r.read_bytes + r.write_bytes;
                     }
-                    astrocs::GateConfig f10;
+                    acsd::GateConfig f10;
                     f10.first10s_low_cpu =
-                        astrocs::percentile_sorted(cpus, 0.50) < 20.0;
+                        acsd::percentile_sorted(cpus, 0.50) < 20.0;
                     const double win = std::max(0.5, recs.back().elapsed_seconds -
                                                           recs.front().elapsed_seconds);
                     // 非 IO 密集: 进程 read+write < 1MB/s
@@ -989,9 +989,9 @@ static int run_with_resource_gate(astrocs::JsonlEmitter& ev, const std::string& 
                     f10.first10s_mem_not_saturated = true;
                     // 资源判据不再接入协作取消（一般性资源超限门已取消）
                     // ⇒ 只登记诊断事实，不置位任何取消源；本判定仍由收尾事件如实呈现。
-                    if (astrocs::fast_fail_first10s(f10)) {
+                    if (acsd::fast_fail_first10s(f10)) {
                         first10s_diag.store(
-                            static_cast<int>(astrocs::GateDiag::FastFailFirst10s),
+                            static_cast<int>(acsd::GateDiag::FastFailFirst10s),
                             std::memory_order_relaxed);
                     }
                 }
@@ -1015,7 +1015,7 @@ static int run_with_resource_gate(astrocs::JsonlEmitter& ev, const std::string& 
     // （cli_affinity_cpu_count，上方 budget），内存取「实测可用内存 × 可配置比例
     // （默认 95%）」。上限只作调度准入（回压/排队），不产生退出码（§4.5 内存不设门）。
     // R-29：cpu_profile 路径唯一口径 —— 显式 --cpu-profile 优先，否则取**安装目录**下的
-    // benchmark 结果缓存（docs/ASTROCS_DESIGN.md:524 / docs/engineering/CLI_PROTOCOL_V1.md:31：
+    // benchmark 结果缓存（docs/ACSD_DESIGN.md:524 / docs/engineering/CLI_PROTOCOL_V1.md:31：
     // benchmark 生成/更新安装目录 cpu_profile，后续运行自动读取）。
     // 缺失/失配**不阻塞**：打印经过并走保守口径（回落语义正本 =
     // docs/engineering/EXECUTION_MODEL.md §5「无 cpu_profile → baseline 后端 + 动态 worker」
@@ -1039,7 +1039,7 @@ static int run_with_resource_gate(astrocs::JsonlEmitter& ev, const std::string& 
             // （基准参数缺失/失配「显示经过、不阻塞运行」：见上条回落语义正本）。
             nlohmann::json prof_doc;
             const int vrc = validate_cpu_profile(prof_path, &prof_doc);
-            if (vrc != astrocs::OK) {
+            if (vrc != acsd::OK) {
                 std::fprintf(stderr,
                              "acsd: cpu_profile '%s' rejected (rc=%d) — conservative baseline\n",
                              prof_path.c_str(), vrc);
@@ -1047,7 +1047,7 @@ static int run_with_resource_gate(astrocs::JsonlEmitter& ev, const std::string& 
             }
         }
     }
-    astrocs::core::MemoryBudget mb;
+    acsd::core::MemoryBudget mb;
     cli_resolve_memory_budget(prof_path, &mb);
     // 运行期 ISA 选取（docs/engineering/ISA_VARIANTS.md §2 / R-28）：能力探测 + benchmark profile + 已装载 provider
     // DSO → 逐 kernel 路由；缺库/不支持/收益不足回退基线。句柄活到本函数返回。
@@ -1058,9 +1058,9 @@ static int run_with_resource_gate(astrocs::JsonlEmitter& ev, const std::string& 
     std::fflush(stderr);
     // MEMGOV-01: 同一份预算同时喂给「回压准入」（limit_bytes）与「压力治理」
     // （available/percent 回显）；压力分子来源在 runtime_client 侧注入 aio 探针。
-    const int rrc = astrocs::cli::run_pipeline(
+    const int rrc = acsd::cli::run_pipeline(
         {phase.back() - '0'}, cfg_text, budget, &fail_reason, nullptr, mb.limit_bytes,
-        astrocs::core::memory_budget_source_name(mb.source), mb.available_bytes, mb.percent);
+        acsd::core::memory_budget_source_name(mb.source), mb.available_bytes, mb.percent);
     // MON-002 reclaim: 多线程重计算节点释放的大块缓冲会滞留在线程 glibc arena
     // 中（真实 T4 运行 live heap(alloc_outstanding) 仅 ~0.2GB 而 RSS 残留 ~2.4GB,
     // 被 reclaim 门判为"不可解释残留"）。run 结束后显式将各 arena 空闲块归还
@@ -1073,20 +1073,20 @@ static int run_with_resource_gate(astrocs::JsonlEmitter& ev, const std::string& 
         const double done_rate = s0.wall_seconds > 0.0 ? 1.0 / s0.wall_seconds : 0.0;
         ev.emit_progress(1, 1, "phases", &done_rate, nullptr);
     }
-    recorder.set_stage(astrocs::ResStage::Flush);
+    recorder.set_stage(acsd::ResStage::Flush);
     sampling.store(false, std::memory_order_relaxed);
     sampler.join();
     // MON-001: run 收尾自动生成 resource_timeseries.csv / resource_summary.json /
     // worker_balance.csv(无需操作者脚本; 管线失败也留资源证据)。开销占比由
     // summary.sample_overhead_ms(真实累计采样 wall / 总 wall 口径的原料)度量。
     {
-        const astrocs::ProcessMonitor::Summary mon_s = mon.summary();
+        const acsd::ProcessMonitor::Summary mon_s = mon.summary();
         const bool wrote = recorder.write_all(res_out_dir, mon_s.wall_seconds,
                                               mon_s.sample_overhead_ms);
         if (!wrote) {
             // 运行期臂: 写盘失败/磁盘满 ⇒ error + fail-closed（磁盘 → 10）。
-            const astrocs::WriteProbe pr = astrocs::probe_writable(res_out_dir);
-            if (astrocs::write_failure_is_resource_exit(pr.kind))
+            const acsd::WriteProbe pr = acsd::probe_writable(res_out_dir);
+            if (acsd::write_failure_is_resource_exit(pr.kind))
                 return disk_write_failure_exit(ev, phase, res_out_dir, "resource_timeseries.csv",
                                                pr, "resource recorder write_all failed");
             std::fprintf(stderr, "acsd: warning: resource files not written to %s\n",
@@ -1096,8 +1096,8 @@ static int run_with_resource_gate(astrocs::JsonlEmitter& ev, const std::string& 
         // 管线失败也留证据, 与 MON-001 三产物同策略)。
         alloc_rec.finalize();
         if (!alloc_rec.write_all(res_out_dir)) {
-            const astrocs::WriteProbe pr = astrocs::probe_writable(res_out_dir);
-            if (astrocs::write_failure_is_resource_exit(pr.kind))
+            const acsd::WriteProbe pr = acsd::probe_writable(res_out_dir);
+            if (acsd::write_failure_is_resource_exit(pr.kind))
                 return disk_write_failure_exit(ev, phase, res_out_dir, "alloc_report.json",
                                                pr, "allocation report write_all failed");
             std::fprintf(stderr, "acsd: warning: alloc report files not written to %s\n",
@@ -1106,17 +1106,17 @@ static int run_with_resource_gate(astrocs::JsonlEmitter& ev, const std::string& 
     }
     // MON-002: first-10s 判定只作**记录事实**（资源判据不设门、不改退出码；
     // 原 fast_fail_first_10s → rc=10 归并路径已随一般性资源超限门取消）。
-    const astrocs::GateDiag f10 =
-        static_cast<astrocs::GateDiag>(first10s_diag.load(std::memory_order_relaxed));
-    if (rrc != astrocs::OK) {
+    const acsd::GateDiag f10 =
+        static_cast<acsd::GateDiag>(first10s_diag.load(std::memory_order_relaxed));
+    if (rrc != acsd::OK) {
         // 主判据（先于探针）: 管线退出码已是 10 ⇒ 失败**本身**已被分类为磁盘满
         // （aio 在清理临时产物之前判定 ENOSPC/EDQUOT → 失败节点 manifest
         // error_kind="disk_full" → runtime_client.cpp::pipeline_exit_code_from_error
         // 映射 10）。此时发与探针兜底**同一形状**的 resource error 事件
         // （failure_kind=disk_full），使事件流消费者拿到同口径判定字段。
-        if (rrc == astrocs::RESOURCE) {
-            astrocs::WriteProbe pr_cls;
-            pr_cls.kind = astrocs::WriteFailureKind::DiskFull;
+        if (rrc == acsd::RESOURCE) {
+            acsd::WriteProbe pr_cls;
+            pr_cls.kind = acsd::WriteFailureKind::DiskFull;
             return disk_write_failure_exit(
                 ev, phase, res_out_dir, "output_dir", pr_cls,
                 "pipeline failed (rc=10): disk full classified at the failure site "
@@ -1126,15 +1126,15 @@ static int run_with_resource_gate(astrocs::JsonlEmitter& ev, const std::string& 
         // 归并为 exit 10（真实探测写判定，不猜 errno）；否则保留管线原退出码。
         //
         // 定位: 本探针是**兜底**，不是判据。它问的是"现在还能不能写"，而
-        // docs/ASTROCS_DESIGN §10 要求失败/取消路径**清理临时产物** —— 清理会释放磁盘满，
+        // docs/ACSD_DESIGN §10 要求失败/取消路径**清理临时产物** —— 清理会释放磁盘满，
         // 探针随后必然成功（fail-open，实测 rc=7 而非 10）。磁盘满的**判据**改为在
         // 失败发生处（aio，清理之前）分类，经失败节点 manifest 的
         // error_kind="disk_full" 由 runtime_client.cpp::pipeline_exit_code_from_error
         // 映射为 10；此处仅兜住"未走该通道且确实仍写不进去"的残余情形。
-        const astrocs::WriteProbe pr = astrocs::probe_writable(res_out_dir);
-        if (astrocs::write_failure_is_resource_exit(pr.kind)) {
+        const acsd::WriteProbe pr = acsd::probe_writable(res_out_dir);
+        if (acsd::write_failure_is_resource_exit(pr.kind)) {
             fail_reason = "disk write failed (" +
-                          std::string(astrocs::write_failure_kind_name(pr.kind)) +
+                          std::string(acsd::write_failure_kind_name(pr.kind)) +
                           "); pipeline rc=" + std::to_string(rrc);
             return disk_write_failure_exit(ev, phase, res_out_dir, "output_dir", pr,
                                            "pipeline failed (rc=" + std::to_string(rrc) +
@@ -1144,12 +1144,12 @@ static int run_with_resource_gate(astrocs::JsonlEmitter& ev, const std::string& 
     }
 
     const auto s = mon.summary();
-    astrocs::GateConfig g;
-    g.kind = astrocs::ResKind::Compute;
+    acsd::GateConfig g;
+    g.kind = acsd::ResKind::Compute;
     g.available_cpus = cli_affinity_cpu_count();
     g.selected_workers = budget;   // 配置基准 (阈值用)
     // B2-A18: U 分母 = 真实观测的租约宽度 (0 = 未观测哨兵)。
-    g.granted_workers = astrocs::core::granted_worker_observation()
+    g.granted_workers = acsd::core::granted_worker_observation()
                             .peak_active.load(std::memory_order_relaxed);
     g.max_active_threads = s.max_threads;
     g.avg_equivalent_cores = s.avg_equivalent_cores;   // 单位=等效核(见 monitor.h)
@@ -1160,7 +1160,7 @@ static int run_with_resource_gate(astrocs::JsonlEmitter& ev, const std::string& 
     // MON-002: active 窗口采样统计 → gate 阈值输入(worker p50/CPU p50/mean)。
     // CPU 判据仅 active window>=10s 时提供(规格前置); rss_slope 供横切 memory_growth。
     const auto stats = recorder.stage_stats();
-    const auto& act = stats[static_cast<std::size_t>(astrocs::ResStage::Active)];
+    const auto& act = stats[static_cast<std::size_t>(acsd::ResStage::Active)];
     if (act.n_samples > 0) {
         g.workers_p50 = act.workers_p50;
         g.active_window_seconds = act.wall_seconds;   // B1-A6 判定域前置
@@ -1170,9 +1170,9 @@ static int run_with_resource_gate(astrocs::JsonlEmitter& ev, const std::string& 
             // (allocated_capacity_cores)归一为百分比, 再交给 evaluate_gate 的
             // 90%/85% 判据; 否则 85%/90% 退化为 0.85/0.90 核绝对下限。
             g.cpu_p50_percent =
-                astrocs::cpu_percent_of_allocated_capacity(g, act.cpu_pct_p50);
+                acsd::cpu_percent_of_allocated_capacity(g, act.cpu_pct_p50);
             g.cpu_mean_percent =
-                astrocs::cpu_percent_of_allocated_capacity(g, act.cpu_pct_mean);
+                acsd::cpu_percent_of_allocated_capacity(g, act.cpu_pct_mean);
         }
         g.rss_slope_measured = true;
         g.rss_slope_mb_per_s =
@@ -1185,10 +1185,10 @@ static int run_with_resource_gate(astrocs::JsonlEmitter& ev, const std::string& 
                                                           : s.wall_seconds;
     g.work_core_seconds = s.avg_equivalent_cores * work_win;
     // MON-002: 结束时 gate 调用; first-10s 已失败而结束判定通过时, 快速失败兜底生效。
-    astrocs::GateDiag d = astrocs::evaluate_gate(g);
-    if (!astrocs::gate_diag_is_violation(d) &&
-        f10 == astrocs::GateDiag::FastFailFirst10s)
-        d = astrocs::GateDiag::FastFailFirst10s;
+    acsd::GateDiag d = acsd::evaluate_gate(g);
+    if (!acsd::gate_diag_is_violation(d) &&
+        f10 == acsd::GateDiag::FastFailFirst10s)
+        d = acsd::GateDiag::FastFailFirst10s;
     // MON-001(V7): 逐样本聚合判定与 evaluate_gate 互补 —— 监控缺失直接 FAIL;
     // >=70% 样本 U>=0.75; 队列有工作时连续>=10s U<0.50。哨兵纪律: 统计不可得
     // (如 mini workload 采样不足)记 -1 跳过对应判定(p2007 先例), 不构成 FAIL
@@ -1197,8 +1197,8 @@ static int run_with_resource_gate(astrocs::JsonlEmitter& ev, const std::string& 
     // 裁决项, 此处不自行放宽(§18.2 冻结值 85%/60%)。
     // NotApplicable(判定域不成立)与 Ok 一样继续走 mon001/mon002 证据面:
     // "未判"不等于"没有监控证据", MonitoringMissing 必须照常抓。
-    if (!astrocs::gate_diag_is_violation(d)) {
-        const auto mon_recs = recorder.records_stage(astrocs::ResStage::Active);
+    if (!acsd::gate_diag_is_violation(d)) {
+        const auto mon_recs = recorder.records_stage(acsd::ResStage::Active);
         g.monitor_present = true;   // ProcessMonitor 采样线程已实际运行并落盘三产物
         if (mon_recs.empty()) {
             g.util_samples_measured = 0.0;
@@ -1212,12 +1212,12 @@ static int run_with_resource_gate(astrocs::JsonlEmitter& ev, const std::string& 
                     // 100%=已分配容量用满; 与 utilization_value 同口径。
                     // §18.2 冻结值: 单样本 85%、队列窗口 60%(常量集中在
                     // resource_gate.h, 不散落硬编码)。
-                    if (astrocs::utilization_value(g, r.cpu_pct) >=
-                        astrocs::kMon001UtilSampleMinPercent / 100.0) ++pass;
+                    if (acsd::utilization_value(g, r.cpu_pct) >=
+                        acsd::kMon001UtilSampleMinPercent / 100.0) ++pass;
                     // 队列有工作(runnable>0)且利用率<60% 的连续 run 长度。
                     if (r.runnable_workers > 0 &&
-                        astrocs::utilization_value(g, r.cpu_pct) <
-                            astrocs::kMon001QueueUtilMinPercent / 100.0) {
+                        acsd::utilization_value(g, r.cpu_pct) <
+                            acsd::kMon001QueueUtilMinPercent / 100.0) {
                         q_low_run += 0.5;  // 采样周期 0.5s(与 sampler interval 一致)
                         if (q_low_run > q_low_best) q_low_best = q_low_run;
                     } else {
@@ -1229,32 +1229,32 @@ static int run_with_resource_gate(astrocs::JsonlEmitter& ev, const std::string& 
             }
             // 单样本: 无法算占比/连续窗口 → 哨兵 -1(未观测, 跳过对应判定)。
         }
-        const astrocs::GateDiag m1 = astrocs::evaluate_mon001(g);
-        if (m1 != astrocs::GateDiag::Ok) d = m1;
+        const acsd::GateDiag m1 = acsd::evaluate_mon001(g);
+        if (m1 != acsd::GateDiag::Ok) d = m1;
     }
     // MON-002(V7): RSS/allocation report 判定与 evaluate_gate/evaluate_mon001 互补 ——
     // 注入 leak(稳健斜率越线)与结束回落不可解释 → FAIL; 面在零有效样本(伪造
     // monitor/全哨兵)同样 FAIL。哨兵纪律: 面未接入/样本不足(斜率未算)跳过对应
     // 判定, 显式呈现不静默。
     {
-        const astrocs::AllocReport ar = alloc_rec.report();
+        const acsd::AllocReport ar = alloc_rec.report();
         g.alloc_report_present = ar.n_curve > 0;
         if (ar.n_curve > 0) {
             g.alloc_samples_measured = static_cast<double>(ar.n_samples);
             g.alloc_growth_mb_per_s = ar.slope_points > 0
                                           ? ar.rss_growth_mb_per_s
-                                          : astrocs::kMon001NotSampled;  // 样本不足未算斜率
+                                          : acsd::kMon001NotSampled;  // 样本不足未算斜率
             g.alloc_reclaim_verdict = ar.reclaim_verdict;
         }
-        const astrocs::GateDiag m2 = astrocs::evaluate_mon002(g);
-        if (m2 != astrocs::GateDiag::Ok) d = m2;
+        const acsd::GateDiag m2 = acsd::evaluate_mon002(g);
+        if (m2 != acsd::GateDiag::Ok) d = m2;
     }
     // RUNTIME-CI-001 (§10.5 work units): 记录本 run 的 typed DAG 节点数（真实 IR，
     // 非配置占位）。IR 构建失败 → 0（哨兵：不臆造工作量）。
     const uint64_t measured_work_units = [&]() -> uint64_t {
         std::string ir_err;
         const std::string irj =
-            astrocs::cli::build_pipeline_ir({phase.back() - '0'}, cfg_text, &ir_err);
+            acsd::cli::build_pipeline_ir({phase.back() - '0'}, cfg_text, &ir_err);
         if (irj.empty()) return 0;
         try {
             return static_cast<uint64_t>(nlohmann::json::parse(irj)["nodes"].size());
@@ -1263,7 +1263,7 @@ static int run_with_resource_gate(astrocs::JsonlEmitter& ev, const std::string& 
         }
     }();
     ev.emit("resource", "info", phase, "resource gate", {
-        {"verdict", astrocs::gate_diag_name(d)},
+        {"verdict", acsd::gate_diag_name(d)},
         {"wall_seconds", s.wall_seconds},
         {"avg_equivalent_cores", s.avg_equivalent_cores},
         {"max_active_threads", s.max_threads},
@@ -1275,11 +1275,11 @@ static int run_with_resource_gate(astrocs::JsonlEmitter& ev, const std::string& 
         {"cpu_mean_percent", g.cpu_mean_percent},
         // P26(负责人 T2/2.A): 工作量下限事实 + 记录/裁决分离处置(见 resource_gate.h)。
         {"work_core_seconds", g.work_core_seconds},
-        {"workload_floor_core_seconds", astrocs::kMon003MinCoreSeconds},
-        {"workload_floor_reached", astrocs::gate_workload_above_floor(g)},
+        {"workload_floor_core_seconds", acsd::kMon003MinCoreSeconds},
+        {"workload_floor_reached", acsd::gate_workload_above_floor(g)},
         {"resource_gate_mode", "record_only"},   // 恒 record-only（无 enforce 路径）
         {"strict_flag_requested", strict_flag_requested},
-        {"first_10s_gate", astrocs::gate_diag_name(f10)},
+        {"first_10s_gate", acsd::gate_diag_name(f10)},
         // MON-001: 逐样本门观测证据(-1=未采样哨兵, 非合法值)。
         {"mon001_util_samples_measured", g.util_samples_measured},
         {"mon001_util_samples_pass_frac", g.util_samples_pass_frac},
@@ -1291,9 +1291,9 @@ static int run_with_resource_gate(astrocs::JsonlEmitter& ev, const std::string& 
         {"alloc_report_n_sentinel", alloc_rec.report().n_sentinel},
         {"alloc_report_growth_mb_per_s", g.alloc_growth_mb_per_s},
         {"alloc_report_growth_verdict",
-         astrocs::alloc_growth_verdict_name(alloc_rec.report().growth_verdict)},
+         acsd::alloc_growth_verdict_name(alloc_rec.report().growth_verdict)},
         {"alloc_report_reclaim_verdict",
-         astrocs::alloc_reclaim_verdict_name(g.alloc_reclaim_verdict)},
+         acsd::alloc_reclaim_verdict_name(g.alloc_reclaim_verdict)},
         {"alloc_report_reclaim_frac", alloc_rec.report().reclaim_frac},
         {"alloc_report_peak_rss_bytes", alloc_rec.report().peak_rss_bytes},
         {"alloc_report_last_rss_bytes", alloc_rec.report().last_rss_bytes},
@@ -1317,36 +1317,36 @@ static int run_with_resource_gate(astrocs::JsonlEmitter& ev, const std::string& 
         {"work_units", measured_work_units},
         // SO-05 记录/裁决分离（04_OPEN_ITEMS_AND_SIGNOFF SO-05；宪章 §10.5/§17.6）:
         // 未签字前资源判据恒为 record_only + 显式 pending，绝不自动升级为硬失败。
-        {"measurement_policy", astrocs::v6runtime::kRecordOnlyPolicy},
-        {"so05_signoff_id", astrocs::v6runtime::kSo05Id},
-        {"so05_signoff_status", astrocs::v6runtime::kSo05Status},
+        {"measurement_policy", acsd::v6runtime::kRecordOnlyPolicy},
+        {"so05_signoff_id", acsd::v6runtime::kSo05Id},
+        {"so05_signoff_status", acsd::v6runtime::kSo05Status},
         {"auto_adjudication_allowed", false},
-        {"auto_adjudication_policy", astrocs::v6runtime::kNoAutoAdjudication},
-        {"one_budget_source_rule", astrocs::v6runtime::kOneBudgetSourceRule},
-        {"determinism_contract", astrocs::v6runtime::kDeterminismContractId},
+        {"auto_adjudication_policy", acsd::v6runtime::kNoAutoAdjudication},
+        {"one_budget_source_rule", acsd::v6runtime::kOneBudgetSourceRule},
+        {"determinism_contract", acsd::v6runtime::kDeterminismContractId},
     });
-    // （docs/ASTROCS_DESIGN §4.5/§6.3）: 一般性资源超限门已取消 ⇒ 资源判据
+    // （docs/ACSD_DESIGN §4.5/§6.3）: 一般性资源超限门已取消 ⇒ 资源判据
     // **恒为 record-only**（完整记录，不改变退出码，无 rc=10 路径）。阈值/判定式一字未改;
     // 工作量下限(负责人 2.A)作为事实字段一并记录。--strict-resource-gate/--on-resource-gate
     // 保留接受（登记现状）: strict_flag_requested 如实入事件，但不再改变裁决。
-    if (astrocs::gate_diag_is_violation(d)) {
-        const astrocs::GateEnforcement enf = astrocs::gate_enforcement(strict_flag_requested, d);
-        const bool enforced = enf == astrocs::GateEnforcement::Enforced;   // 恒 false
+    if (acsd::gate_diag_is_violation(d)) {
+        const acsd::GateEnforcement enf = acsd::gate_enforcement(strict_flag_requested, d);
+        const bool enforced = enf == acsd::GateEnforcement::Enforced;   // 恒 false
         const std::string why = std::string("resource gate recorded (not enforced): ") +
-                                astrocs::gate_diag_name(d) +
-                                " (" + astrocs::diag_message(d, g) + ")";
+                                acsd::gate_diag_name(d) +
+                                " (" + acsd::diag_message(d, g) + ")";
         ev.emit("resource_gate", "warning", phase, why,
-                {{"diag", astrocs::gate_diag_name(d)},
-                 {"enforcement", astrocs::gate_enforcement_name(enf)},
+                {{"diag", acsd::gate_diag_name(d)},
+                 {"enforcement", acsd::gate_enforcement_name(enf)},
                  // strict 是 resource_gate 的**冻结必含扩展字段**（五面同面：protocol.h kExt /
-                 // schema allOf.then.required / schema x-astrocs-event-kind-registry /
+                 // schema allOf.then.required / schema x-acsd-event-kind-registry /
                  // 读侧 CLI-004 / 读侧 FIX208）。原先与之同实参重复的 strict_flag_requested
                  // 已删——一次 emit 不写两个同义键（B4）。
                  {"strict", strict_flag_requested},
                  {"enforced", enforced},
                  {"work_core_seconds", g.work_core_seconds},
-                 {"workload_floor_core_seconds", astrocs::kMon003MinCoreSeconds},
-                 {"workload_floor_reached", astrocs::gate_workload_above_floor(g)},
+                 {"workload_floor_core_seconds", acsd::kMon003MinCoreSeconds},
+                 {"workload_floor_reached", acsd::gate_workload_above_floor(g)},
                  // SO-05 记录/裁决分离（docs/detail/infrastructure/
                  // 21_observability.md §8.3/§8.4）：资源判据**恒 record-only**，CLI 面不存在
                  // enforce 路径（resource_gate.h::gate_enforcement 恒 RecordOnly）。原先写的
@@ -1356,8 +1356,8 @@ static int run_with_resource_gate(astrocs::JsonlEmitter& ev, const std::string& 
                  // 该键是**事件级常量**，无法表达逐判据的 enforce/record 分类，属「不该存在」。
                  // 以下三键是 SO-05 证据面的**必含扩展字段**（B4 登记，五面同面；语义见
                  // 21_observability.md §8.4）。
-                 {"so05_signoff_id", astrocs::v6runtime::kSo05Id},
-                 {"so05_signoff_status", astrocs::v6runtime::kSo05Status},
+                 {"so05_signoff_id", acsd::v6runtime::kSo05Id},
+                 {"so05_signoff_status", acsd::v6runtime::kSo05Status},
                  {"auto_adjudication_allowed", false}});
         std::fprintf(stderr, "acsd: WARNING (recorded, not enforced): %s\n", why.c_str());
     }
@@ -1366,18 +1366,18 @@ static int run_with_resource_gate(astrocs::JsonlEmitter& ev, const std::string& 
     // resource summary / backend 事件在 phase run 路径从未发出——此处补齐。
     // raw 产物目录: recorder.write_all 的 res_out_dir 同源（07 合同 raw 落点）。
     {
-        const astrocs::ProcessMonitor::Summary mon_s2 = mon.summary();
+        const acsd::ProcessMonitor::Summary mon_s2 = mon.summary();
         // CLI-004: 真实 monitor 摘要外带给 phase stats 事件(冻结扩展字段同源填充)。
         if (summary_out != nullptr) *summary_out = mon_s2;
         emit_resource_summary(ev, phase, mon_s2, res_out_dir, recorder.record_count());
         // A-10：backend 事件的 backend_id/reason 必须来自**本次真实选址结果**
-        // （原实现硬写 "astrocs.cpu.baseline" + status="selected"，即使实际选了变体库
+        // （原实现硬写 "acsd.cpu.baseline" + status="selected"，即使实际选了变体库
         // 也一律自报基线 ⇒ 事件不可用于判定「选取是否生效」）。
         emit_backend_event(ev, phase, backend_sel.backend_id,
                            backend_sel.provider == "baseline" ? "fallback" : "selected",
                            budget, budget, backend_sel.reason);
     }
-    return astrocs::OK;
+    return acsd::OK;
 }
 
 // ── CLI-MULTIBLOCK：逐块会话执行的共用返回面 ──
@@ -1387,37 +1387,37 @@ static int run_with_resource_gate(astrocs::JsonlEmitter& ev, const std::string& 
 // config 哈希仍锚在用户实际给的配置上）；cfg_text = 本块实际生效配置 JSON
 // （单块简写本身，或 blocks[i] 展开）。final 事件由调用方统一发一次（一次运行恰一个）。
 struct BlockOutcome {
-    int rc = astrocs::OK;
+    int rc = acsd::OK;
     std::string kind = "ok";
     std::string why = "complete";
 };
 
 // ── 三阶段「写盘阶段」取消窗（测试钩子，非用户接口）───────────────────────
 // 取消点覆盖（三命令同构，缺一不可）:
-//   ① 入口窗     ASTROCS_TEST_SLEEP_MS           (subcommand.h run(), 读配置前)
-//   ② 计算窗     ASTROCS_TEST_PIPELINE_SLEEP_MS  (runtime_client.cpp run_pipeline,
+//   ① 入口窗     ACSD_TEST_SLEEP_MS           (subcommand.h run(), 读配置前)
+//   ② 计算窗     ACSD_TEST_PIPELINE_SLEEP_MS  (runtime_client.cpp run_pipeline,
 //                Runtime 已加载; 置位经 cancel_watch → rt->cancel() 送达调度器)
 //   ③ 写盘窗     本函数（产物收集/哈希完成 → run manifest/运行图落盘之前）
-// 语义: 轮询 astrocs::is_cancelled()（与信号处理器同一原子标志）; 返回 true 时
-// 调用方按 docs/ASTROCS_DESIGN §7.2「取消 → 写 incomplete manifest → exit 9」收尾。
+// 语义: 轮询 acsd::is_cancelled()（与信号处理器同一原子标志）; 返回 true 时
+// 调用方按 docs/ACSD_DESIGN §7.2「取消 → 写 incomplete manifest → exit 9」收尾。
 // 不设环境变量时零影响（单次 getenv，不 sleep、不改判定）。
-// 权威: docs/ASTROCS_DESIGN.md §7.2（退出码 9 / 取消路径）、§10（原子产品：没有完成
+// 权威: docs/ACSD_DESIGN.md §7.2（退出码 9 / 取消路径）、§10（原子产品：没有完成
 // 清单就不算成功对象）。
 bool write_stage_cancel_window() {
-    const char* ms_env = std::getenv("ASTROCS_TEST_WRITE_SLEEP_MS");
+    const char* ms_env = std::getenv("ACSD_TEST_WRITE_SLEEP_MS");
     if (ms_env == nullptr) return false;   // 生产路径: 无钩子
     const long ms = std::strtol(ms_env, nullptr, 10);
     const auto deadline = std::chrono::steady_clock::now() +
                           std::chrono::milliseconds(ms > 0 ? ms : 0);
     while (std::chrono::steady_clock::now() < deadline) {
-        if (astrocs::is_cancelled()) return true;
+        if (acsd::is_cancelled()) return true;
         std::this_thread::sleep_for(std::chrono::milliseconds(20));
     }
-    return astrocs::is_cancelled();
+    return acsd::is_cancelled();
 }
 
 // CLI-MULTIBLOCK：单块 phase2 会话执行（与 phase1 同构）。
-BlockOutcome run_phase2_block(const Parsed& p, astrocs::JsonlEmitter& ev,
+BlockOutcome run_phase2_block(const Parsed& p, acsd::JsonlEmitter& ev,
                               const std::string& cfg, const std::string& cfg_sha,
                               const std::string& cfg_text, const std::string& block_name,
                               int block_index, int block_count) {
@@ -1441,17 +1441,17 @@ BlockOutcome run_phase2_block(const Parsed& p, astrocs::JsonlEmitter& ev,
 
     // RT-008: phase2 走 Runtime 单 phase IR 子图（与 run --phases 2 同一路径）。
     ev.stage("phase2_session", true);
-    if (const char* sleep_ms = std::getenv("ASTROCS_TEST_SLEEP_MS")) {
+    if (const char* sleep_ms = std::getenv("ACSD_TEST_SLEEP_MS")) {
         const long ms = std::strtol(sleep_ms, nullptr, 10);
         const auto deadline = std::chrono::steady_clock::now() + std::chrono::milliseconds(ms);
         while (std::chrono::steady_clock::now() < deadline) {
-            if (astrocs::is_cancelled()) {
+            if (acsd::is_cancelled()) {
                 ev.stage("phase2_session", false);
                 const int wrc = write_run_manifest(cfg_out_dir, ev, "incomplete", "cancelled by user",
                                                    cfg, cfg_sha, {2});
-                if (wrc != astrocs::OK) { out.rc = wrc; out.kind = "phase2_failed"; out.why = "manifest write failed"; return out; }
+                if (wrc != acsd::OK) { out.rc = wrc; out.kind = "phase2_failed"; out.why = "manifest write failed"; return out; }
                 std::fprintf(stderr, "acsd: cancelled%s\n", tag.c_str());
-                out.rc = astrocs::CANCELLED; out.kind = "cancelled"; out.why = "cancelled by user";
+                out.rc = acsd::CANCELLED; out.kind = "cancelled"; out.why = "cancelled by user";
                 return out;
             }
             std::this_thread::sleep_for(std::chrono::milliseconds(20));
@@ -1460,7 +1460,7 @@ BlockOutcome run_phase2_block(const Parsed& p, astrocs::JsonlEmitter& ev,
     // B2-A10: 同 phase3 —— 会话前落 run_context（§4.3 provenance 单一来源）。
     {
         const int ctxrc = write_run_context(cfg_out_dir, ev.run_id());
-        if (ctxrc != astrocs::OK) { out.rc = ctxrc; out.kind = "phase2_failed"; out.why = "run context write failed"; return out; }
+        if (ctxrc != acsd::OK) { out.rc = ctxrc; out.kind = "phase2_failed"; out.why = "run context write failed"; return out; }
     }
     std::string fail_reason;
     const uint32_t budget = cli_affinity_cpu_count();
@@ -1471,7 +1471,7 @@ BlockOutcome run_phase2_block(const Parsed& p, astrocs::JsonlEmitter& ev,
     std::fprintf(stderr, "session run: budget workers=%u (cpus=%u)\n",
                  (unsigned)budget, (unsigned)cli_affinity_cpu_count());
     std::fflush(stderr);
-    astrocs::ProcessMonitor::Summary p2_summary;
+    acsd::ProcessMonitor::Summary p2_summary;
     const int rrc = run_with_resource_gate(ev, "phase2", cfg_text, budget, fail_reason,
                               &p2_summary, strict_resource_gate_arg(p),
                               p.values.count("--cpu-profile") ? p.values.at("--cpu-profile") : std::string());
@@ -1479,7 +1479,7 @@ BlockOutcome run_phase2_block(const Parsed& p, astrocs::JsonlEmitter& ev,
 
     nlohmann::json artifacts = nlohmann::json::array();
     std::vector<std::pair<std::string, std::string>> mans;
-    astrocs::cli::collect_node_manifests(&mans);
+    acsd::cli::collect_node_manifests(&mans);
     // PERF-P2 S2: 逐 artifact **并行**哈希（N = Runtime 预算核数 budget, 非硬编码;
     // 无硬编码线程数/ISA）。每个 artifact 独立读文件、结果写入按 path 下标固定的
     // 槽位; 组装顺序 = apaths 序 ⇒ manifest 字段与串行逐字节同值, 只是更快。
@@ -1488,14 +1488,14 @@ BlockOutcome run_phase2_block(const Parsed& p, astrocs::JsonlEmitter& ev,
     // 内存）, 取代原先「file_sha256 + with_canonical_hash 内再 file_sha256 +
     // canonical_product_hash_file 整读」的 2–3 遍冗余。
     const std::vector<std::string> apaths =
-        astrocs::cli::collect_node_artifact_paths(mans);
-    std::vector<astrocs::core::CanonicalHashResult> chs(apaths.size());
+        acsd::cli::collect_node_artifact_paths(mans);
+    std::vector<acsd::core::CanonicalHashResult> chs(apaths.size());
     std::vector<std::uintmax_t> asizes(apaths.size(), 0);
     std::vector<unsigned char> asize_ok(apaths.size(), 0);
     const uint32_t hash_workers =
         std::max(1u, std::min<uint32_t>(budget, static_cast<uint32_t>(apaths.size())));
     auto hash_one = [&](std::size_t i) {
-        chs[i] = astrocs::core::canonical_product_hash_file(apaths[i]);
+        chs[i] = acsd::core::canonical_product_hash_file(apaths[i]);
         std::error_code ec;
         asizes[i] = std::filesystem::file_size(std::filesystem::u8path(apaths[i]), ec);
         asize_ok[i] = ec ? 0 : 1;
@@ -1555,29 +1555,29 @@ BlockOutcome run_phase2_block(const Parsed& p, astrocs::JsonlEmitter& ev,
     if (multi)
         extra["block"] = {{"name", block_name}, {"index", block_index}, {"count", block_count}};
 
-    // 写盘阶段取消窗（测试钩子；未设 ASTROCS_TEST_WRITE_SLEEP_MS = 零影响）
+    // 写盘阶段取消窗（测试钩子；未设 ACSD_TEST_WRITE_SLEEP_MS = 零影响）
     write_stage_cancel_window();
-    if (astrocs::is_cancelled()) {
+    if (acsd::is_cancelled()) {
         const int wrc = write_run_manifest(out_dir, ev, "incomplete", "cancelled by user",
                                            cfg, cfg_sha, {2}, artifacts, extra);
-        if (wrc != astrocs::OK) { out.rc = wrc; out.kind = "phase2_failed"; out.why = "manifest write failed"; return out; }
+        if (wrc != acsd::OK) { out.rc = wrc; out.kind = "phase2_failed"; out.why = "manifest write failed"; return out; }
         std::fprintf(stderr, "acsd: cancelled%s\n", tag.c_str());
-        out.rc = astrocs::CANCELLED; out.kind = "cancelled"; out.why = "cancelled by user";
+        out.rc = acsd::CANCELLED; out.kind = "cancelled"; out.why = "cancelled by user";
         return out;
     }
-    if (rrc != astrocs::OK) {
+    if (rrc != acsd::OK) {
         const std::string why = fail_reason.empty() ? ("phase2 failed (exit " + std::to_string(rrc) + ")")
                                                     : fail_reason;
         const int wrc = write_run_manifest(out_dir, ev, "incomplete", "phase2 failed: " + why,
                                            cfg, cfg_sha, {2}, artifacts, extra);
-        if (wrc != astrocs::OK) { out.rc = wrc; out.kind = "phase2_failed"; out.why = "manifest write failed"; return out; }
+        if (wrc != acsd::OK) { out.rc = wrc; out.kind = "phase2_failed"; out.why = "manifest write failed"; return out; }
         std::fprintf(stderr, "acsd: phase2 failed%s: %s\n", tag.c_str(), sanitize(why).c_str());
         out.rc = rrc; out.kind = "phase2_failed"; out.why = why;
         return out;
     }
     const int wrc = write_run_manifest(out_dir, ev, "complete", "phase2 ok", cfg, cfg_sha, {2},
                                        artifacts, extra);
-    if (wrc != astrocs::OK) { out.rc = wrc; out.kind = "phase2_failed"; out.why = "manifest write failed"; return out; }
+    if (wrc != acsd::OK) { out.rc = wrc; out.kind = "phase2_failed"; out.why = "manifest write failed"; return out; }
     // RT-008: 从节点 manifest 读真实科学值（session inspect 摘要）。
     // 节点 id 是节点图 id（coverage/sample/…/write），不含 "res"——按内容扫描
     // 任一带 n_obs 键的节点 manifest（旧 "res" 过滤是 CLI-002 拆分前 node id）。
@@ -1593,31 +1593,31 @@ BlockOutcome run_phase2_block(const Parsed& p, astrocs::JsonlEmitter& ev,
     }
     emit_phase_stats_resource(ev, "phase2", "session summary",
                               {{"n_inputs", n_inputs}, {"n_obs", n_obs}}, &p2_summary);
-    out.rc = astrocs::OK;
+    out.rc = acsd::OK;
     out.kind = "ok";
     out.why = multi ? ("phase2 complete" + tag) : std::string("phase2 complete");
     return out;
 }
 
 // CLI-MULTIBLOCK：mosaic 运行入口（形态判定 + 逐块派发；final 恰一个）。
-int cmd_session2_run(const Parsed& p, astrocs::JsonlEmitter& ev) {
+int cmd_session2_run(const Parsed& p, acsd::JsonlEmitter& ev) {
     // RUNTIME-CI-001: 显式模式路由门（--mode；legacy 整数 weight_mode
     // 与 config 的 weight_mode 键均已删除，出现即具名拒绝）；reject → ARGS(2)。
     {
-        const int mrc = astrocs::v6cli::mode_gate(p, 2, ev);
-        if (mrc != astrocs::OK) return mrc;
+        const int mrc = acsd::v6cli::mode_gate(p, 2, ev);
+        if (mrc != acsd::OK) return mrc;
     }
     const std::string cfg = need_value(p, "--json");
     std::ifstream f(std::filesystem::u8path(cfg), std::ios::binary);
     if (!f) {
         std::fprintf(stderr, "acsd: config not found '%s'\n", cfg.c_str());
-        return astrocs::INPUT;
+        return acsd::INPUT;
     }
     std::stringstream buf; buf << f.rdbuf();
     const std::string cfg_text = buf.str();
     bool ok = false;
     const std::string cfg_sha = file_sha256(cfg, &ok);
-    if (!ok) return astrocs::INPUT;
+    if (!ok) return acsd::INPUT;
     nlohmann::json doc;
     try { doc = nlohmann::json::parse(cfg_text); } catch (...) { doc = nlohmann::json(); }
     if (!(doc.is_object() && doc.contains("blocks"))) {
@@ -1625,13 +1625,13 @@ int cmd_session2_run(const Parsed& p, astrocs::JsonlEmitter& ev) {
         // CLI-002: 单 phase 命令复用顶层 config 全量校验(unknown key→3), 与已移除的 run 路径同面。
         nlohmann::json validated;
         const int vrc2 = validate_config_full(cfg, &validated, /*session_mode=*/true, "mosaic");
-        if (vrc2 != astrocs::OK) return vrc2;
+        if (vrc2 != acsd::OK) return vrc2;
         BlockOutcome o = run_phase2_block(p, ev, cfg, cfg_sha, cfg_text, std::string(), 0, 1);
         ev.emit_final(o.rc, o.kind, nullptr, o.why);
         return o.rc;
     }
     // 多块形态：结构校验（唯一实现 = parser.cpp session_blocks_errors，键集 = session_keys() ∪ block_keys()）
-    int bcode = astrocs::ARGS;
+    int bcode = acsd::ARGS;
     const std::vector<std::string> berrs = session_blocks_errors("mosaic", doc, &bcode);
     if (!berrs.empty()) {
         for (const auto& e : berrs) std::fprintf(stderr, "acsd: %s\n", e.c_str());
@@ -1649,8 +1649,8 @@ int cmd_session2_run(const Parsed& p, astrocs::JsonlEmitter& ev) {
         bdoc.erase("name");
         if (!bdoc.contains("schema_version")) bdoc["schema_version"] = "1";
         BlockOutcome o = run_phase2_block(p, ev, cfg, cfg_sha, bdoc.dump(), bname, i, nblocks);
-        if (o.rc != astrocs::OK && !have_fail) { agg = o; have_fail = true; }
-        if (o.rc == astrocs::CANCELLED) break;   // 用户已要求停：后续块不再起
+        if (o.rc != acsd::OK && !have_fail) { agg = o; have_fail = true; }
+        if (o.rc == acsd::CANCELLED) break;   // 用户已要求停：后续块不再起
     }
     if (!have_fail) agg.why = "phase2 complete (blocks=" + std::to_string(nblocks) + ")";
     ev.emit_final(agg.rc, agg.kind, nullptr, agg.why);
@@ -1659,7 +1659,7 @@ int cmd_session2_run(const Parsed& p, astrocs::JsonlEmitter& ev) {
 
 
 // CLI-MULTIBLOCK：单块 phase3 会话执行（与 phase1/2 同构）。
-BlockOutcome run_phase3_block(const Parsed& p, astrocs::JsonlEmitter& ev,
+BlockOutcome run_phase3_block(const Parsed& p, acsd::JsonlEmitter& ev,
                               const std::string& cfg, const std::string& cfg_sha,
                               const std::string& cfg_text, const std::string& block_name,
                               int block_index, int block_count) {
@@ -1682,7 +1682,7 @@ BlockOutcome run_phase3_block(const Parsed& p, astrocs::JsonlEmitter& ev,
                      cfg_out_dir.c_str());
 
     // CLI-002 实现漏迁恢复(原 cmd_run_pipeline 段, test_08 冻结验收): prior
-    // astrocs_run_*.json 记录的 artifact 哈希链任一与磁盘不符 → 8(绝不静默跳过验证)。
+    // acsd_run_*.json 记录的 artifact 哈希链任一与磁盘不符 → 8(绝不静默跳过验证)。
     // 范围收缩(CLI-002 语义): 逐相 phase3 run 是全新 run, 不跨 run resume 编排——
     // 只对「同一 config 重跑」(prior manifest.config_path == 本次 cfg) 的 prior
     // complete manifest 做 resume 预检; 不同 config 的历史 manifest 属于独立 run,
@@ -1705,14 +1705,14 @@ BlockOutcome run_phase3_block(const Parsed& p, astrocs::JsonlEmitter& ev,
         std::filesystem::file_time_type prior_mtime{};
         for (const auto& entry : std::filesystem::directory_iterator(std::filesystem::u8path(scan_dir), dec)) {
             const std::string fn = entry.path().filename().u8string();
-            if (!entry.is_regular_file() || fn.rfind("astrocs_run_", 0) != 0 || fn.size() <= 14 ||
+            if (!entry.is_regular_file() || fn.rfind("acsd_run_", 0) != 0 || fn.size() <= 14 ||
                 fn.substr(fn.size() - 5) != ".json")
                 continue;
             try {
                 std::ifstream pf(entry.path(), std::ios::binary);
                 nlohmann::json pm = nlohmann::json::parse(
                     std::string(std::istreambuf_iterator<char>(pf), {}));
-                if (pm.value("kind", std::string()) != "astrocs_run_manifest") continue;
+                if (pm.value("kind", std::string()) != "acsd_run_manifest") continue;
                 if (pm.value("status", std::string()) != "complete") continue;
                 if (pm.value("config_path", std::string()) != cfg) continue;
             } catch (...) { mismatch = true; break; }
@@ -1742,9 +1742,9 @@ BlockOutcome run_phase3_block(const Parsed& p, astrocs::JsonlEmitter& ev,
             // 用 "." 会把 incomplete manifest 写到 CWD —— B1-A8 禁止）。
             const int wrc = write_run_manifest(cfg_out_dir, ev, "incomplete", "resume hash mismatch",
                                                cfg, cfg_sha, {3});
-            if (wrc != astrocs::OK) { out.rc = wrc; out.kind = "phase3_failed"; out.why = "manifest write failed"; return out; }
+            if (wrc != acsd::OK) { out.rc = wrc; out.kind = "phase3_failed"; out.why = "manifest write failed"; return out; }
             std::fprintf(stderr, "acsd: resume hash mismatch%s\n", tag.c_str());
-            out.rc = astrocs::INTEGRITY;
+            out.rc = acsd::INTEGRITY;
             out.kind = "resume_hash_mismatch";
             out.why = "prior artifact hash mismatch";
             return out;  // 04: 输出完整性验证失败 → 8
@@ -1753,17 +1753,17 @@ BlockOutcome run_phase3_block(const Parsed& p, astrocs::JsonlEmitter& ev,
 
     // RT-008: phase3 走 Runtime 单 phase IR 子图（与 run --phases 3 同一路径）。
     ev.stage("phase3_session", true);
-    if (const char* sleep_ms = std::getenv("ASTROCS_TEST_SLEEP_MS")) {
+    if (const char* sleep_ms = std::getenv("ACSD_TEST_SLEEP_MS")) {
         const long ms = std::strtol(sleep_ms, nullptr, 10);
         const auto deadline = std::chrono::steady_clock::now() + std::chrono::milliseconds(ms);
         while (std::chrono::steady_clock::now() < deadline) {
-            if (astrocs::is_cancelled()) {
+            if (acsd::is_cancelled()) {
                 ev.stage("phase3_session", false);
                 const int wrc = write_run_manifest(cfg_out_dir, ev, "incomplete", "cancelled by user",
                                                    cfg, cfg_sha, {3});
-                if (wrc != astrocs::OK) { out.rc = wrc; out.kind = "phase3_failed"; out.why = "manifest write failed"; return out; }
+                if (wrc != acsd::OK) { out.rc = wrc; out.kind = "phase3_failed"; out.why = "manifest write failed"; return out; }
                 std::fprintf(stderr, "acsd: cancelled%s\n", tag.c_str());
-                out.rc = astrocs::CANCELLED; out.kind = "cancelled"; out.why = "cancelled by user";
+                out.rc = acsd::CANCELLED; out.kind = "cancelled"; out.why = "cancelled by user";
                 return out;
             }
             std::this_thread::sleep_for(std::chrono::milliseconds(20));
@@ -1773,11 +1773,11 @@ BlockOutcome run_phase3_block(const Parsed& p, astrocs::JsonlEmitter& ev,
     // 软件版本/源码 SHA 单一来源；缺上下文 = 节点 DATA fail-closed）。
     {
         const int ctxrc = write_run_context(cfg_out_dir, ev.run_id());
-        if (ctxrc != astrocs::OK) { out.rc = ctxrc; out.kind = "phase3_failed"; out.why = "run context write failed"; return out; }
+        if (ctxrc != acsd::OK) { out.rc = ctxrc; out.kind = "phase3_failed"; out.why = "run context write failed"; return out; }
     }
     std::string fail_reason;
     const uint32_t budget = cli_affinity_cpu_count();
-    astrocs::ProcessMonitor::Summary p3_summary;
+    acsd::ProcessMonitor::Summary p3_summary;
     const int rrc = run_with_resource_gate(ev, "phase3", cfg_text, budget, fail_reason,
                               &p3_summary, strict_resource_gate_arg(p),
                               p.values.count("--cpu-profile") ? p.values.at("--cpu-profile") : std::string());
@@ -1786,7 +1786,7 @@ BlockOutcome run_phase3_block(const Parsed& p, astrocs::JsonlEmitter& ev,
     nlohmann::json artifacts = nlohmann::json::array();
     std::set<std::string> seen_paths;  // 链式节点共享同一 session 产物 → 按 path 去重
     std::vector<std::pair<std::string, std::string>> mans;
-    astrocs::cli::collect_node_manifests(&mans);
+    acsd::cli::collect_node_manifests(&mans);
     for (const auto& [nid, mtext] : mans) {
         // node id 是节点图 id（properties/wcs/resample2/writer/verify…），session
         // manifest 任何节点都可能带 output_fits_path/工件清单——按内容收集，勿按
@@ -1856,29 +1856,29 @@ BlockOutcome run_phase3_block(const Parsed& p, astrocs::JsonlEmitter& ev,
     if (multi)
         extra["block"] = {{"name", block_name}, {"index", block_index}, {"count", block_count}};
 
-    // 写盘阶段取消窗（测试钩子；未设 ASTROCS_TEST_WRITE_SLEEP_MS = 零影响）
+    // 写盘阶段取消窗（测试钩子；未设 ACSD_TEST_WRITE_SLEEP_MS = 零影响）
     write_stage_cancel_window();
-    if (astrocs::is_cancelled()) {
+    if (acsd::is_cancelled()) {
         const int wrc = write_run_manifest(out_dir, ev, "incomplete", "cancelled by user",
                                            cfg, cfg_sha, {3}, artifacts, extra);
-        if (wrc != astrocs::OK) { out.rc = wrc; out.kind = "phase3_failed"; out.why = "manifest write failed"; return out; }
+        if (wrc != acsd::OK) { out.rc = wrc; out.kind = "phase3_failed"; out.why = "manifest write failed"; return out; }
         std::fprintf(stderr, "acsd: cancelled%s\n", tag.c_str());
-        out.rc = astrocs::CANCELLED; out.kind = "cancelled"; out.why = "cancelled by user";
+        out.rc = acsd::CANCELLED; out.kind = "cancelled"; out.why = "cancelled by user";
         return out;
     }
-    if (rrc != astrocs::OK) {
+    if (rrc != acsd::OK) {
         const std::string why = fail_reason.empty() ? ("phase3 failed (exit " + std::to_string(rrc) + ")")
                                                     : fail_reason;
         const int wrc = write_run_manifest(out_dir, ev, "incomplete", "phase3 failed: " + why,
                                            cfg, cfg_sha, {3}, artifacts, extra);
-        if (wrc != astrocs::OK) { out.rc = wrc; out.kind = "phase3_failed"; out.why = "manifest write failed"; return out; }
+        if (wrc != acsd::OK) { out.rc = wrc; out.kind = "phase3_failed"; out.why = "manifest write failed"; return out; }
         std::fprintf(stderr, "acsd: phase3 failed%s: %s\n", tag.c_str(), sanitize(why).c_str());
         out.rc = rrc; out.kind = "phase3_failed"; out.why = why;
         return out;
     }
     const int wrc = write_run_manifest(out_dir, ev, "complete", "phase3 ok", cfg, cfg_sha, {3},
                                        artifacts, extra);
-    if (wrc != astrocs::OK) { out.rc = wrc; out.kind = "phase3_failed"; out.why = "manifest write failed"; return out; }
+    if (wrc != acsd::OK) { out.rc = wrc; out.kind = "phase3_failed"; out.why = "manifest write failed"; return out; }
     // RT-009: phase3 run 成功路径补写运行图产物（static/observed/sidecar + L0 渲染）。
     // 此前 write_run_graphs 定义后无任何调用点（CLI-002 移除 cmd_run_pipeline/
     // cmd_graph 时漏接），RT-009 test_07 期望的 out/graph/* 恒缺失。
@@ -1886,42 +1886,42 @@ BlockOutcome run_phase3_block(const Parsed& p, astrocs::JsonlEmitter& ev,
     write_run_graphs(out_dir, ev, cfg, cfg_sha, {3});
     emit_phase_stats_resource(ev, "phase3", "session summary",
                               {{"outputs", artifacts.size()}}, &p3_summary);
-    out.rc = astrocs::OK;
+    out.rc = acsd::OK;
     out.kind = "ok";
     out.why = multi ? ("phase3 complete" + tag) : std::string("phase3 complete");
     return out;
 }
 
 // CLI-MULTIBLOCK：export 运行入口（形态判定 + 逐块派发；final 恰一个）。
-int cmd_session3_run(const Parsed& p, astrocs::JsonlEmitter& ev) {
+int cmd_session3_run(const Parsed& p, acsd::JsonlEmitter& ev) {
     // RUNTIME-CI-001: 显式输出模式路由门（--export-mode）；reject → ARGS(2)。
     {
-        const int mrc = astrocs::v6cli::mode_gate(p, 3, ev);
-        if (mrc != astrocs::OK) return mrc;
+        const int mrc = acsd::v6cli::mode_gate(p, 3, ev);
+        if (mrc != acsd::OK) return mrc;
     }
     const std::string cfg = need_value(p, "--json");
     std::ifstream f(std::filesystem::u8path(cfg), std::ios::binary);
     if (!f) {
         std::fprintf(stderr, "acsd: config not found '%s'\n", cfg.c_str());
-        return astrocs::INPUT;
+        return acsd::INPUT;
     }
     std::stringstream buf; buf << f.rdbuf();
     const std::string cfg_text = buf.str();
     bool ok = false;
     const std::string cfg_sha = file_sha256(cfg, &ok);
-    if (!ok) return astrocs::INPUT;
+    if (!ok) return acsd::INPUT;
     nlohmann::json doc;
     try { doc = nlohmann::json::parse(cfg_text); } catch (...) { doc = nlohmann::json(); }
     if (!(doc.is_object() && doc.contains("blocks"))) {
         // 平铺单块简写（原路径，向后兼容）
         nlohmann::json validated;
         const int vrc3 = validate_config_full(cfg, &validated, /*session_mode=*/true, "export");
-        if (vrc3 != astrocs::OK) return vrc3;
+        if (vrc3 != acsd::OK) return vrc3;
         BlockOutcome o = run_phase3_block(p, ev, cfg, cfg_sha, cfg_text, std::string(), 0, 1);
         ev.emit_final(o.rc, o.kind, nullptr, o.why);
         return o.rc;
     }
-    int bcode = astrocs::ARGS;
+    int bcode = acsd::ARGS;
     const std::vector<std::string> berrs = session_blocks_errors("export", doc, &bcode);
     if (!berrs.empty()) {
         for (const auto& e : berrs) std::fprintf(stderr, "acsd: %s\n", e.c_str());
@@ -1939,8 +1939,8 @@ int cmd_session3_run(const Parsed& p, astrocs::JsonlEmitter& ev) {
         bdoc.erase("name");
         if (!bdoc.contains("schema_version")) bdoc["schema_version"] = "1";
         BlockOutcome o = run_phase3_block(p, ev, cfg, cfg_sha, bdoc.dump(), bname, i, nblocks);
-        if (o.rc != astrocs::OK && !have_fail) { agg = o; have_fail = true; }
-        if (o.rc == astrocs::CANCELLED) break;   // 用户已要求停：后续块不再起
+        if (o.rc != acsd::OK && !have_fail) { agg = o; have_fail = true; }
+        if (o.rc == acsd::CANCELLED) break;   // 用户已要求停：后续块不再起
     }
     if (!have_fail) agg.why = "phase3 complete (blocks=" + std::to_string(nblocks) + ")";
     ev.emit_final(agg.rc, agg.kind, nullptr, agg.why);
@@ -1955,7 +1955,7 @@ int cmd_session3_run(const Parsed& p, astrocs::JsonlEmitter& ev) {
 //              零科学执行、零 I/O 产物; 深层拒绝与 run 同面(IR 构建失败 → 2)。
 //   plan     = validate 前置 + 确定性 plan 文档(typed DAG 节点/work units/预算/IO 引用;
 //              无 run_id/时间戳 → 同 config 两次运行逐字节一致); --output 落盘同文档。
-//   inspect  = 只读 output_dir 下 astrocs_run_*.json(kind=astrocs_run_manifest, phases
+//   inspect  = 只读 output_dir 下 acsd_run_*.json(kind=acsd_run_manifest, phases
 //              含 N)逐 run 呈现 + products 去重; malformed manifest 呈现不中断; 零写入。
 namespace {
 
@@ -1966,43 +1966,43 @@ int phase_ir_prereq(const Parsed& p, int phase, std::string* cfg_sha_out,
     const std::string cfg_path = need_value(p, "--config");
     nlohmann::json doc;
     const int rc = validate_config_full(cfg_path, &doc, /*session_mode=*/true, "normalize");
-    if (rc != astrocs::OK) return rc;
+    if (rc != acsd::OK) return rc;
     bool ok = false;
     const std::string sha = file_sha256(cfg_path, &ok);
     if (!ok) {
         std::fprintf(stderr, "acsd: cannot hash config '%s'\n", cfg_path.c_str());
-        return astrocs::INPUT;
+        return acsd::INPUT;
     }
     std::string err;
-    const std::string ir = astrocs::cli::build_pipeline_ir({phase}, doc.dump(), &err);
+    const std::string ir = acsd::cli::build_pipeline_ir({phase}, doc.dump(), &err);
     if (ir.empty()) {
         std::fprintf(stderr, "acsd: phase%d rejected: %s\n", phase,
                      sanitize(err).c_str());
-        return astrocs::ARGS;   // 与 run 的 IR 构建失败映射一致(runtime_client → 2)
+        return acsd::ARGS;   // 与 run 的 IR 构建失败映射一致(runtime_client → 2)
     }
     *cfg_sha_out = sha;
     *ir_out = ir;
-    return astrocs::OK;
+    return acsd::OK;
 }
 
 }  // namespace
 
 // phaseN validate: 相级深层校验(不执行科学重算)
-int cmd_phase_validate(const Parsed& p, int phase, astrocs::JsonlEmitter& ev) {
+int cmd_phase_validate(const Parsed& p, int phase, acsd::JsonlEmitter& ev) {
     // RUNTIME-CI-001: 显式模式路由门在 validate 面同样 fail-closed。
     {
-        const int mrc = astrocs::v6cli::mode_gate(p, phase, ev);
-        if (mrc != astrocs::OK) return mrc;
+        const int mrc = acsd::v6cli::mode_gate(p, phase, ev);
+        if (mrc != acsd::OK) return mrc;
     }
     std::string cfg_sha, ir;
     const int rc = phase_ir_prereq(p, phase, &cfg_sha, &ir);
-    if (rc != astrocs::OK) return rc;
+    if (rc != acsd::OK) return rc;
     const auto irj = nlohmann::json::parse(ir);
     const std::size_t n = irj["nodes"].size();
     if (p.flags.count("--json")) {
         const nlohmann::json out = {
             {"schema_version", "1"},
-            {"kind", "astrocs_phase_validate"},
+            {"kind", "acsd_phase_validate"},
             {"phase", phase},
             {"config", {{"path", p.values.at("--config")}, {"sha256", cfg_sha}}},
             {"node_count", n},
@@ -2012,19 +2012,19 @@ int cmd_phase_validate(const Parsed& p, int phase, astrocs::JsonlEmitter& ev) {
     } else {
         std::printf("phase%d validate OK (%zu nodes)\n", phase, n);
     }
-    return astrocs::OK;
+    return acsd::OK;
 }
 
 // phaseN plan: typed DAG/work units/内存-IO/并行计划(确定性文档, 不执行)
-int cmd_phase_plan(const Parsed& p, int phase, astrocs::JsonlEmitter& ev) {
+int cmd_phase_plan(const Parsed& p, int phase, acsd::JsonlEmitter& ev) {
     // RUNTIME-CI-001: 显式模式路由门在 plan 面同样 fail-closed。
     {
-        const int mrc = astrocs::v6cli::mode_gate(p, phase, ev);
-        if (mrc != astrocs::OK) return mrc;
+        const int mrc = acsd::v6cli::mode_gate(p, phase, ev);
+        if (mrc != acsd::OK) return mrc;
     }
     std::string cfg_sha, ir;
     const int rc = phase_ir_prereq(p, phase, &cfg_sha, &ir);
-    if (rc != astrocs::OK) return rc;
+    if (rc != acsd::OK) return rc;
     const auto irj = nlohmann::json::parse(ir);
     nlohmann::json nodes = nlohmann::json::array();
     std::size_t parallel = 0, io = 0;
@@ -2044,11 +2044,11 @@ int cmd_phase_plan(const Parsed& p, int phase, astrocs::JsonlEmitter& ev) {
     }
     const nlohmann::json out = {
         {"schema_version", "1"},
-        {"kind", "astrocs_plan"},
+        {"kind", "acsd_plan"},
         {"phase", phase},
         {"config", {{"path", p.values.at("--config")}, {"sha256", cfg_sha}}},
         {"budget", {{"cpu_cores", cli_affinity_cpu_count()}}},
-        {"pipeline", {{"schema", "astrocs.pipeline/v1"},
+        {"pipeline", {{"schema", "acsd.pipeline/v1"},
                       {"nodes", nodes},
                       {"outputs", irj["outputs"]},
                       {"artifact_refs", artifact_refs}}},
@@ -2066,10 +2066,10 @@ int cmd_phase_plan(const Parsed& p, int phase, astrocs::JsonlEmitter& ev) {
             std::ofstream f(std::filesystem::u8path(op), std::ios::binary | std::ios::trunc);
             if (!f) {
                 std::fprintf(stderr, "acsd: cannot write plan '%s'\n", op.c_str());
-                return astrocs::IO;
+                return acsd::IO;
             }
             f << text << "\n";
-            if (!f.good()) return astrocs::IO;
+            if (!f.good()) return acsd::IO;
         }
         if (!p.flags.count("--json")) std::printf("%s\n", op.c_str());
     }
@@ -2077,31 +2077,31 @@ int cmd_phase_plan(const Parsed& p, int phase, astrocs::JsonlEmitter& ev) {
         std::printf("phase%d plan OK: %zu nodes (%zu parallel, %zu io), budget=%u cores\n",
                     phase, nodes.size(), parallel, io, cli_affinity_cpu_count());
     }
-    return astrocs::OK;
+    return acsd::OK;
 }
 
 // phaseN inspect: 只读已有运行和产品(零写入)
-int cmd_phase_inspect(const Parsed& p, int phase, astrocs::JsonlEmitter& ev) {
+int cmd_phase_inspect(const Parsed& p, int phase, acsd::JsonlEmitter& ev) {
     (void)ev;
     const std::string cfg_path = need_value(p, "--config");
     nlohmann::json doc;
     // inspect 只要求 config 合法(session_mode)以取得 output_dir; 不要求 IR 可构建
     // (错相 config 也允许检视运行历史)。
     const int rc = validate_config_full(cfg_path, &doc, /*session_mode=*/true, "normalize");
-    if (rc != astrocs::OK) return rc;
+    if (rc != acsd::OK) return rc;
     const std::string out_dir = doc.value("output_dir", std::string("."));
     std::error_code ec;
     if (!std::filesystem::exists(std::filesystem::u8path(out_dir), ec)) {
         std::fprintf(stderr, "acsd: output_dir not found '%s'\n", out_dir.c_str());
-        return astrocs::INPUT;
+        return acsd::INPUT;
     }
-    // 仅顶层 astrocs_run_*.json(文件名字典序, journal 语义即 run 顺序)
+    // 仅顶层 acsd_run_*.json(文件名字典序, journal 语义即 run 顺序)
     std::vector<std::string> files;
     for (std::filesystem::directory_iterator it(std::filesystem::u8path(out_dir), ec), end;
          it != end; it.increment(ec)) {
         if (ec) break;
         const std::string fn = it->path().filename().string();
-        if (fn.rfind("astrocs_run_", 0) == 0 && fn.size() > 5 &&
+        if (fn.rfind("acsd_run_", 0) == 0 && fn.size() > 5 &&
             fn.compare(fn.size() - 5, 5, ".json") == 0)
             files.push_back(fn);
     }
@@ -2116,7 +2116,7 @@ int cmd_phase_inspect(const Parsed& p, int phase, astrocs::JsonlEmitter& ev) {
         std::stringstream buf; buf << f.rdbuf();
         nlohmann::json m = nlohmann::json::parse(buf.str(), nullptr, false);
         if (m.is_discarded() || !m.is_object() ||
-            m.value("kind", std::string()) != "astrocs_run_manifest") {
+            m.value("kind", std::string()) != "acsd_run_manifest") {
             // 文档结构一致性: 所有 runs 行恒含 run_id 键(malformed 时 null)
             runs.push_back({{"run_id", nullptr}, {"path", fp}, {"status", "malformed"}});
             continue;
@@ -2159,7 +2159,7 @@ int cmd_phase_inspect(const Parsed& p, int phase, astrocs::JsonlEmitter& ev) {
     if (p.flags.count("--json")) {
         const nlohmann::json out = {
             {"schema_version", "1"},
-            {"kind", "astrocs_phase_inspect"},
+            {"kind", "acsd_phase_inspect"},
             {"phase", phase},
             {"output_dir", out_dir},
             {"total_runs", runs.size()},
@@ -2170,7 +2170,7 @@ int cmd_phase_inspect(const Parsed& p, int phase, astrocs::JsonlEmitter& ev) {
     } else {
         for (const auto& r : runs) {
             if (r.value("status", std::string()) == "malformed") {
-                std::printf("%s: malformed (not a v1 astrocs_run_manifest)\n",
+                std::printf("%s: malformed (not a v1 acsd_run_manifest)\n",
                             r.value("path", std::string()).c_str());
             } else {
                 std::string phases_str;
@@ -2187,13 +2187,13 @@ int cmd_phase_inspect(const Parsed& p, int phase, astrocs::JsonlEmitter& ev) {
         }
         std::printf("%zu run(s), %zu product(s)\n", runs.size(), products.size());
     }
-    return astrocs::OK;
+    return acsd::OK;
 }
 
 
 // CLI-MULTIBLOCK：单块 phase1 会话执行（结构体定义见文件上方）。
 
-BlockOutcome run_phase1_block(const Parsed& p, astrocs::JsonlEmitter& ev,
+BlockOutcome run_phase1_block(const Parsed& p, acsd::JsonlEmitter& ev,
                                     const std::string& cfg_path, const std::string& cfg_sha,
                                     const std::string& block_text,
                                     const std::string& block_name,
@@ -2209,7 +2209,7 @@ BlockOutcome run_phase1_block(const Parsed& p, astrocs::JsonlEmitter& ev,
     // 多块形态校验的是**整个文件**（validate_config_full 逐块判）⇒ 每块调用同一路径。
     nlohmann::json cfg_doc1;
     const int vrc1 = validate_config_full(cfg_path, &cfg_doc1, /*session_mode=*/true, "normalize");
-    if (vrc1 != astrocs::OK) {
+    if (vrc1 != acsd::OK) {
         out.rc = vrc1; out.kind = "phase1_failed"; out.why = "config rejected";
         return out;
     }
@@ -2228,17 +2228,17 @@ BlockOutcome run_phase1_block(const Parsed& p, astrocs::JsonlEmitter& ev,
     // 退出码映射保持旧协议：配置错→2; 输入缺→3; 科学失败→70; IO→7; 取消→9。
     ev.stage("phase1_session", true);
     // 测试钩子(非用户接口): 阶段间等待, 供取消/无子进程证明(与 run/stub 同语义)
-    if (const char* sleep_ms = std::getenv("ASTROCS_TEST_SLEEP_MS")) {
+    if (const char* sleep_ms = std::getenv("ACSD_TEST_SLEEP_MS")) {
         const long ms = std::strtol(sleep_ms, nullptr, 10);
         const auto deadline = std::chrono::steady_clock::now() + std::chrono::milliseconds(ms);
         while (std::chrono::steady_clock::now() < deadline) {
-            if (astrocs::is_cancelled()) {
+            if (acsd::is_cancelled()) {
                 ev.stage("phase1_session", false);
                 const int wrc = write_run_manifest(cfg_out_dir, ev, "incomplete",
                                                    "cancelled by user", cfg_path, cfg_sha, {1});
-                if (wrc != astrocs::OK) { out.rc = wrc; out.kind = "phase1_failed"; out.why = "manifest write failed"; return out; }
+                if (wrc != acsd::OK) { out.rc = wrc; out.kind = "phase1_failed"; out.why = "manifest write failed"; return out; }
                 std::fprintf(stderr, "acsd: cancelled%s\n", tag.c_str());
-                out.rc = astrocs::CANCELLED; out.kind = "cancelled"; out.why = "cancelled by user";
+                out.rc = acsd::CANCELLED; out.kind = "cancelled"; out.why = "cancelled by user";
                 return out;                            // 04: 取消 → 9
             }
             std::this_thread::sleep_for(std::chrono::milliseconds(20));
@@ -2247,11 +2247,11 @@ BlockOutcome run_phase1_block(const Parsed& p, astrocs::JsonlEmitter& ev,
     // B2-A10: 同 phase3 —— 会话前落 run_context（§4.3 provenance 单一来源）。
     {
         const int ctxrc = write_run_context(cfg_out_dir, ev.run_id());
-        if (ctxrc != astrocs::OK) { out.rc = ctxrc; out.kind = "phase1_failed"; out.why = "run context write failed"; return out; }
+        if (ctxrc != acsd::OK) { out.rc = ctxrc; out.kind = "phase1_failed"; out.why = "run context write failed"; return out; }
     }
     std::string fail_reason;
     const uint32_t budget = cli_affinity_cpu_count();
-    astrocs::ProcessMonitor::Summary p1_summary;
+    acsd::ProcessMonitor::Summary p1_summary;
     const int rrc = run_with_resource_gate(ev, "phase1", block_text, budget, fail_reason,
                               &p1_summary, strict_resource_gate_arg(p),
                               p.values.count("--cpu-profile") ? p.values.at("--cpu-profile") : std::string());
@@ -2262,7 +2262,7 @@ BlockOutcome run_phase1_block(const Parsed& p, astrocs::JsonlEmitter& ev,
     nlohmann::json artifacts = nlohmann::json::array();
     std::set<std::string> seen_paths;
     std::vector<std::pair<std::string, std::string>> mans;
-    astrocs::cli::collect_node_manifests(&mans);
+    acsd::cli::collect_node_manifests(&mans);
     for (const auto& [nid, mtext] : mans) {
         (void)nid;
         nlohmann::json m;
@@ -2290,36 +2290,36 @@ BlockOutcome run_phase1_block(const Parsed& p, astrocs::JsonlEmitter& ev,
         p1_extra["block"] = {{"name", block_name}, {"index", block_index}, {"count", block_count}};
     const std::string out_dir = cfg_out_dir;
 
-    // 写盘阶段取消窗（测试钩子；未设 ASTROCS_TEST_WRITE_SLEEP_MS = 零影响）
+    // 写盘阶段取消窗（测试钩子；未设 ACSD_TEST_WRITE_SLEEP_MS = 零影响）
     write_stage_cancel_window();
-    if (astrocs::is_cancelled()) {
+    if (acsd::is_cancelled()) {
         const int wrc = write_run_manifest(out_dir, ev, "incomplete", "cancelled by user",
                                            cfg_path, cfg_sha, {1}, artifacts, p1_extra);
-        if (wrc != astrocs::OK) { out.rc = wrc; out.kind = "phase1_failed"; out.why = "manifest write failed"; return out; }
+        if (wrc != acsd::OK) { out.rc = wrc; out.kind = "phase1_failed"; out.why = "manifest write failed"; return out; }
         std::fprintf(stderr, "acsd: cancelled%s\n", tag.c_str());
-        out.rc = astrocs::CANCELLED; out.kind = "cancelled"; out.why = "cancelled by user";
+        out.rc = acsd::CANCELLED; out.kind = "cancelled"; out.why = "cancelled by user";
         return out;                                  // 04: 取消 → 9, manifest=incomplete
     }
-    if (rrc != astrocs::OK) {
+    if (rrc != acsd::OK) {
         const std::string why = fail_reason.empty() ? ("phase1 failed (exit " + std::to_string(rrc) + ")")
                                                     : fail_reason;
         const int wrc = write_run_manifest(out_dir, ev, "incomplete", "phase1 failed: " + why,
                                            cfg_path, cfg_sha, {1}, artifacts, p1_extra);
-        if (wrc != astrocs::OK) { out.rc = wrc; out.kind = "phase1_failed"; out.why = "manifest write failed"; return out; }
+        if (wrc != acsd::OK) { out.rc = wrc; out.kind = "phase1_failed"; out.why = "manifest write failed"; return out; }
         std::fprintf(stderr, "acsd: phase1 failed%s: %s\n", tag.c_str(), sanitize(why).c_str());
         out.rc = rrc; out.kind = "phase1_failed"; out.why = why;
         return out;  // RT-008: Runtime 退出码映射(Runtime 已按 04 合同映射)
     }
     const int wrc = write_run_manifest(out_dir, ev, "complete", "phase1 ok", cfg_path, cfg_sha, {1},
                                        artifacts, p1_extra);
-    if (wrc != astrocs::OK) { out.rc = wrc; out.kind = "phase1_failed"; out.why = "manifest write failed"; return out; }
+    if (wrc != acsd::OK) { out.rc = wrc; out.kind = "phase1_failed"; out.why = "manifest write failed"; return out; }
     // RT-009/P1-001: phase1 成功路径补写运行图产物（static/observed/sidecar）。
     // 真实节点化后 phase1 trace 含每节点观测; best-effort: 函数内部只 warning
     // 不失败 run（"不失败 run"合同见其注释）。
     write_run_graphs(out_dir, ev, cfg_path, cfg_sha, {1});
     emit_phase_stats_resource(ev, "phase1", "frames processed",
                               {{"frames", artifacts.size()}}, &p1_summary);
-    out.rc = astrocs::OK;
+    out.rc = acsd::OK;
     out.kind = "ok";
     out.why = multi ? ("phase1 complete" + tag) : std::string("phase1 complete");
     return out;
@@ -2331,18 +2331,18 @@ BlockOutcome run_phase1_block(const Parsed& p, astrocs::JsonlEmitter& ev,
 // 否则走平铺单块简写（原路径，向后兼容）。
 // 失败处置：逐块继续（块之间独立，后续块仍产出自己的 manifest），聚合返回**首个**
 // 非零 rc；取消（rc=9）立即停止后续块（用户已要求停）。final 事件恰一个。
-int cmd_session1_run(const Parsed& p, astrocs::JsonlEmitter& ev) {
+int cmd_session1_run(const Parsed& p, acsd::JsonlEmitter& ev) {
     const std::string cfg = need_value(p, "--json");
     std::ifstream f(std::filesystem::u8path(cfg), std::ios::binary);
     if (!f) {
         std::fprintf(stderr, "acsd: config not found '%s'\n", cfg.c_str());
-        return astrocs::INPUT;
+        return acsd::INPUT;
     }
     std::stringstream buf; buf << f.rdbuf();
     const std::string cfg_text = buf.str();
     bool ok = false;
     const std::string cfg_sha = file_sha256(cfg, &ok);
-    if (!ok) return astrocs::INPUT;
+    if (!ok) return acsd::INPUT;
     nlohmann::json doc;
     try { doc = nlohmann::json::parse(cfg_text); } catch (...) { doc = nlohmann::json(); }
     if (!(doc.is_object() && doc.contains("blocks"))) {
@@ -2351,7 +2351,7 @@ int cmd_session1_run(const Parsed& p, astrocs::JsonlEmitter& ev) {
         return o.rc;
     }
     // 多块形态：结构校验（唯一实现 = parser.cpp；含形态互斥/块级 output_dir/未知键）
-    int bcode = astrocs::ARGS;
+    int bcode = acsd::ARGS;
     const std::vector<std::string> berrs = session_blocks_errors("normalize", doc, &bcode);
     if (!berrs.empty()) {
         for (const auto& e : berrs) std::fprintf(stderr, "acsd: %s\n", e.c_str());
@@ -2371,8 +2371,8 @@ int cmd_session1_run(const Parsed& p, astrocs::JsonlEmitter& ev) {
         if (!bdoc.contains("schema_version")) bdoc["schema_version"] = "1";
         const std::string btext = bdoc.dump();
         BlockOutcome o = run_phase1_block(p, ev, cfg, cfg_sha, btext, bname, i, nblocks);
-        if (o.rc != astrocs::OK && !have_fail) { agg = o; have_fail = true; }
-        if (o.rc == astrocs::CANCELLED) break;    // 用户已要求停：后续块不再起
+        if (o.rc != acsd::OK && !have_fail) { agg = o; have_fail = true; }
+        if (o.rc == acsd::CANCELLED) break;    // 用户已要求停：后续块不再起
     }
     if (!have_fail) agg.why = "phase1 complete (blocks=" + std::to_string(nblocks) + ")";
     ev.emit_final(agg.rc, agg.kind, nullptr, agg.why);
@@ -2380,14 +2380,14 @@ int cmd_session1_run(const Parsed& p, astrocs::JsonlEmitter& ev) {
 }
 
 // verify: 04 §3 — manifest→status→version→输入 hash→逐 artifact(存在→sha→size)
-int cmd_verify(const Parsed& p, astrocs::JsonlEmitter& ev) {
+int cmd_verify(const Parsed& p, acsd::JsonlEmitter& ev) {
     (void)ev;
     if (!p.flags.count("--json")) parse_fail("verify requires --json");
     const std::string mp = need_value(p, "--run-manifest");
     std::ifstream f(std::filesystem::u8path(mp), std::ios::binary);
     if (!f) {
         std::fprintf(stderr, "acsd: run manifest not found '%s'\n", mp.c_str());
-        return astrocs::INPUT;
+        return acsd::INPUT;
     }
     std::stringstream buf; buf << f.rdbuf();
     nlohmann::json m;
@@ -2395,22 +2395,22 @@ int cmd_verify(const Parsed& p, astrocs::JsonlEmitter& ev) {
         m = nlohmann::json::parse(buf.str());
     } catch (const nlohmann::json::parse_error& e) {
         std::fprintf(stderr, "acsd: manifest malformed JSON: %s\n", sanitize(e.what()).c_str());
-        return astrocs::INPUT;
+        return acsd::INPUT;
     }
-    if (!m.is_object() || m.value("kind", std::string()) != "astrocs_run_manifest" ||
+    if (!m.is_object() || m.value("kind", std::string()) != "acsd_run_manifest" ||
         m.value("schema_version", std::string()) != "1") {
-        std::fprintf(stderr, "acsd: not a v1 astrocs_run_manifest document\n");
-        return astrocs::INPUT;
+        std::fprintf(stderr, "acsd: not a v1 acsd_run_manifest document\n");
+        return acsd::INPUT;
     }
     if (m.value("status", std::string()) != "complete") {
         std::fprintf(stderr, "acsd: run manifest status='%s' (incomplete run cannot be verified)\n",
                      m.value("status", std::string()).c_str());
-        return astrocs::INTEGRITY;                        // 04: 输出完整性/验证失败 → 8
+        return acsd::INTEGRITY;                        // 04: 输出完整性/验证失败 → 8
     }
-    if (m.value("astrocs_version", std::string()) != ASTROCS_VERSION_STRING) {
+    if (m.value("acsd_version", std::string()) != ACSD_VERSION_STRING) {
         std::fprintf(stderr, "acsd: manifest was produced by version '%s', this is '%s'\n",
-                     m.value("astrocs_version", std::string()).c_str(), ASTROCS_VERSION_STRING);
-        return astrocs::BACKEND;                          // 04 §5(换版本不可 verify 旧 run)
+                     m.value("acsd_version", std::string()).c_str(), ACSD_VERSION_STRING);
+        return acsd::BACKEND;                          // 04 §5(换版本不可 verify 旧 run)
     }
     // FIX-E2E B1-A2: 必需产物角色核验 —— 声明了 Phase 却无该 Phase 的必需产物角色
     // → 8（旧行为: artifacts 恒空仍 PASS, 空过）。role 由生产节点 manifest 定义,
@@ -2427,12 +2427,12 @@ int cmd_verify(const Parsed& p, astrocs::JsonlEmitter& ev) {
                         has_out = true;
                 if (!has_out) {
                     std::fprintf(stderr, "acsd: phase3 manifest declares no phase3_output artifact\n");
-                    return astrocs::INTEGRITY;   // 8
+                    return acsd::INTEGRITY;   // 8
                 }
             } else if (phase == 1 || phase == 2) {
                 if (!arts.is_array() || arts.empty()) {
                     std::fprintf(stderr, "acsd: phase%d manifest declares no artifacts\n", phase);
-                    return astrocs::INTEGRITY;   // 8
+                    return acsd::INTEGRITY;   // 8
                 }
             }
         }
@@ -2443,11 +2443,11 @@ int cmd_verify(const Parsed& p, astrocs::JsonlEmitter& ev) {
         const std::string cur = file_sha256(m["config_path"].get<std::string>(), &ok);
         if (!ok) {
             std::fprintf(stderr, "acsd: config input no longer readable\n");
-            return astrocs::INPUT;
+            return acsd::INPUT;
         }
         if (cur != m.value("config_sha256", std::string())) {
             std::fprintf(stderr, "acsd: config changed since the run (hash mismatch)\n");
-            return astrocs::INPUT;
+            return acsd::INPUT;
         }
         ++checked;
     }
@@ -2456,28 +2456,28 @@ int cmd_verify(const Parsed& p, astrocs::JsonlEmitter& ev) {
         std::error_code ec;
         if (!std::filesystem::exists(std::filesystem::u8path(apath), ec)) {
             std::fprintf(stderr, "acsd: artifact missing '%s'\n", apath.c_str());
-            return astrocs::INPUT;
+            return acsd::INPUT;
         }
         bool ok = false;
         const std::string sha = file_sha256(apath, &ok);
         if (!ok || sha != a.value("sha256", std::string())) {
             std::fprintf(stderr, "acsd: artifact sha256 mismatch '%s'\n", apath.c_str());
-            return astrocs::INTEGRITY;
+            return acsd::INTEGRITY;
         }
         const auto size = std::filesystem::file_size(std::filesystem::u8path(apath), ec);
         if (ec || static_cast<unsigned long long>(size) != a.value("size_bytes", 0ULL)) {
             std::fprintf(stderr, "acsd: artifact size mismatch '%s'\n", apath.c_str());
-            return astrocs::INTEGRITY;
+            return acsd::INTEGRITY;
         }
         ++checked;
     }
     nlohmann::json out = {{"verify", "ok"}, {"checked", checked}, {"manifest", mp}};
     std::printf("%s\n", out.dump().c_str());
-    return astrocs::OK;
+    return acsd::OK;
 }
 
 // config init / config validate / config show-effective 与 verify / verify profile 同属
-// CLI-001 已删命令面（docs/engineering/CLI_PROTOCOL_V1.md §1 已删除别名 → rc=2；docs/ASTROCS_DESIGN
+// CLI-001 已删命令面（docs/engineering/CLI_PROTOCOL_V1.md §1 已删除别名 → rc=2；docs/ACSD_DESIGN
 // §6.2 唯一命令树无 config */verify*）。全仓零调用点，按 ENGINEERING_SPEC §8 显式退役；
 // 现行校验入口 = 会话命令预检（subcommand.h precheck_config）+ doctor --json +
 // export 的 resume/manifest 校验（cmd_session3_run）。
@@ -2486,12 +2486,12 @@ int cmd_verify(const Parsed& p, astrocs::JsonlEmitter& ev) {
 // 服务它们的 cli_exe_dir() 清单/模块发现根）同为已删能力（docs/engineering/CLI_PROTOCOL_V1.md §1
 // 已删除别名 → rc=2）。零调用点死代码按 ENGINEERING_SPEC §8 显式退役，能力去向见下条注释。
 // CLI-001 已删除 modules list/verify/selftest 用户命令（docs/engineering/CLI_PROTOCOL_V1.md §1
-// 明列 modules */selftest 为已删除别名 → rc=2；docs/ASTROCS_DESIGN §6.2 命令树只有
+// 明列 modules */selftest 为已删除别名 → rc=2；docs/ACSD_DESIGN §6.2 命令树只有
 // normalize/mosaic/export/help/--version/doctor/benchmark）。原实现
 // （cmd_modules_list / cmd_modules_verify / cmd_selftest 及 locate_product_manifest /
 // product_manifest_base_dir / unit_file_present / load_product_manifest）为零调用点
 // 死代码，按 ENGINEERING_SPEC §8「锚存活」显式退役；能力去向 = 安装树产品 manifest
-// astrocs.product.json + eng/packaging/verify_install_tree.py + 装载器合同探针
+// acsd.product.json + eng/packaging/verify_install_tree.py + 装载器合同探针
 // （eng/tests/abi/mod001_install_load_check.py S7/S8 逐条验证 units 计数 10 / 逐 unit 在位 /
 // 装配三校验 / 未登记必败 / 缺 DLL 必败）。
 
@@ -2502,28 +2502,28 @@ int cmd_verify(const Parsed& p, astrocs::JsonlEmitter& ev) {
 // phase1|2|3 *）不在表内，解析阶段即 unknown command → exit 2。
 int dispatch(const Parsed& p) {
     const std::string joined = p.join();
-    // （docs/ASTROCS_DESIGN §6.3）：运行事件流 = **默认输出**，不需要旗标
+    // （docs/ACSD_DESIGN §6.3）：运行事件流 = **默认输出**，不需要旗标
     // 开启（GUI 用其它语言直接捕获 CLI 输出）。--events-jsonl 保留接受（等价默认行为，
     // 不再是开启开关）；stdout 恒为纯 JSONL/单 JSON 文档，人可读摘要走 stderr。
-    astrocs::JsonlEmitter ev(astrocs::make_run_id(), joined);
+    acsd::JsonlEmitter ev(acsd::make_run_id(), joined);
 
     if (joined == "--version" || joined == "version") {
         if (p.flags.count("--json")) {
             std::printf("{\"schema_version\":\"1\",\"name\":\"acsd\",\"version\":\"%s\"}\n",
-                        ASTROCS_VERSION_STRING);
+                        ACSD_VERSION_STRING);
         } else {
-            std::printf("acsd %s\n", ASTROCS_VERSION_STRING);
+            std::printf("acsd %s\n", ACSD_VERSION_STRING);
         }
-        return astrocs::OK;
+        return acsd::OK;
     }
     if (joined == "help" || joined == "--help" || joined == "-h") {
         std::fputs(kHelp, stdout);
-        return astrocs::OK;
+        return acsd::OK;
     }
     // 三个平级子命令（§1.2：互不串接，各自独立进程/独立恢复/独立验收）。
-    for (const auto& s : astrocs::cli::cmd::session_commands()) {
+    for (const auto& s : acsd::cli::cmd::session_commands()) {
         if (joined != s.name) continue;
-        const astrocs::cli::cmd::Subcommand sub{s.name, s.session};
+        const acsd::cli::cmd::Subcommand sub{s.name, s.session};
         // P-163: 事件流发布面退出码 —— 事件流（stdout JSONL）是本次运行的默认输出，
         // 「成功」必须包含事件已写出：stdout 管道对端关闭 / 重定向到满盘（ENOSPC）
         // 时 emit 写失败已被 JsonlEmitter 登记，这里把名义 rc=0 改成写失败码
@@ -2535,7 +2535,7 @@ int dispatch(const Parsed& p) {
     if (joined == "doctor") {
         if (!p.flags.count("--json")) parse_fail("doctor requires --json");
         // verify 能力纳入命令树。
-        // 落位 = doctor 的机器旗标 --run-manifest <manifest.json>（docs/ASTROCS_DESIGN
+        // 落位 = doctor 的机器旗标 --run-manifest <manifest.json>（docs/ACSD_DESIGN
         // §7.1 唯一命令树只有 normalize/mosaic/export/help/--version/doctor/
         // benchmark，无独立 verify；verify* 是已删别名 → rc=2，见
         // docs/engineering/CLI_PROTOCOL_V1.md §1 + eng/tests/cli/test_cli_protocol.py
@@ -2544,15 +2544,15 @@ int dispatch(const Parsed& p) {
         // （存在→sha256→size_bytes）；退出码：参数 2 / 输入 3 / 版本 5 /
         // 完整性 8。stdout 恰一个 JSON 文档（--json 纪律）。
         if (p.values.count("--run-manifest")) return cmd_verify(p, ev);
-        const std::string hw = astrocs::backend_host::hardware_inspect_json_v1(ASTROCS_VERSION_STRING);
+        const std::string hw = acsd::backend_host::hardware_inspect_json_v1(ACSD_VERSION_STRING);
         auto hwd = nlohmann::json::parse(hw);
-        astrocs_host_services_v1 host;
+        acsd_host_services_v1 host;
         void* hstate = nullptr;
-        astrocs_host_services_default_v1(&host, &hstate);
-        astrocs_backend_api_v1 api{};
+        acsd_host_services_default_v1(&host, &hstate);
+        acsd_backend_api_v1 api{};
         std::memset(&api, 0, sizeof(api));
-        const int grc = astrocs_backend_get_api_v1(ACS_ABI_VERSION_V1,
-                                                   sizeof(astrocs_host_services_v1), &host, &api);
+        const int grc = acsd_backend_get_api_v1(ACS_ABI_VERSION_V1,
+                                                   sizeof(acsd_host_services_v1), &host, &api);
         nlohmann::json checks = nlohmann::json::array();
         checks.push_back(nlohmann::json{
             {"name", "baseline_selftest"},
@@ -2571,7 +2571,7 @@ int dispatch(const Parsed& p) {
         const bool have_manifest =
             aio_file::read_all((pdir + "/backends.manifest.json").c_str(), &mbuf);
         // 交付面 fail-closed：清单缺失 = ISA 变体分发面不完整（安装树缺 providers/*.so
-        // 或未构建 astrocs_backends_manifest）⇒ 判 fail，不得静默记 skipped/pass。
+        // 或未构建 acsd_backends_manifest）⇒ 判 fail，不得静默记 skipped/pass。
         // 依据：docs/engineering/ISA_VARIANTS.md §0 第 3 条（变体随安装树分发）+ §2；
         // AGENTS.md §9「检查器静默退化算未完成」。
         checks.push_back(nlohmann::json{{"name", "backend_provider_dir"},
@@ -2581,24 +2581,24 @@ int dispatch(const Parsed& p) {
                                                        : (pdir +
                                                           " (backends.manifest.json 缺失：ISA 变体分发面不完整)")}});
         if (have_manifest) {
-            std::vector<astrocs::backend_host::ManifestEntry> entries;
+            std::vector<acsd::backend_host::ManifestEntry> entries;
             std::string merr;
-            if (!astrocs::backend_host::parse_backends_manifest(mbuf, &entries, &merr)) {
+            if (!acsd::backend_host::parse_backends_manifest(mbuf, &entries, &merr)) {
                 checks.push_back(nlohmann::json{{"name", "backends_manifest"},
                                                 {"status", "fail"},
                                                 {"detail", merr}});
             }
             for (const auto& e : entries) {
                 std::string why;
-                auto pr = astrocs::backend_host::preflight_entry(
-                    pdir, e, astrocs_cpu_detect_features_v1(), &why);
+                auto pr = acsd::backend_host::preflight_entry(
+                    pdir, e, acsd_cpu_detect_features_v1(), &why);
                 nlohmann::json ck;
                 ck["name"] = "backend_preflight:" + e.backend_id;
                 // 「能力不支持」是合法回退（exit 0 面）；「文件/hash/ABI 不符」才是缺陷。
                 // 原实现把两者一律记 skipped，缺陷与回退不可区分。
                 const bool unsupported_isa =
                     why.find("unsupported ISA") != std::string::npos;
-                ck["status"] = pr.decision == astrocs::backend_host::LoadResult::OK
+                ck["status"] = pr.decision == acsd::backend_host::LoadResult::OK
                                    ? "pass"
                                    : (unsupported_isa ? "skipped" : "fail");
                 ck["detail"] = why;
@@ -2615,10 +2615,10 @@ int dispatch(const Parsed& p) {
         bool all = true;
         for (const auto& c : checks)
             if (c.value("status", "") == "fail") all = false;
-        nlohmann::json doc = {{"schema_version", 1}, {"kind", "astrocs_doctor"},
+        nlohmann::json doc = {{"schema_version", 1}, {"kind", "acsd_doctor"},
                               {"checks", checks}, {"verdict", all ? "PASS" : "FAIL"}};
         std::printf("%s\n", doc.dump(2).c_str());
-        return all ? astrocs::OK : astrocs::SCIENCE;
+        return all ? acsd::OK : acsd::SCIENCE;
     }
     if (joined == "benchmark") {
         // §6.2: benchmark 生成/更新 cpu_profile（机器绑定配置，运行时自动读取）。
@@ -2634,35 +2634,35 @@ int dispatch(const Parsed& p) {
                 cli_bin += ".exe";
         }
 #endif
-        const std::string cli_sha = astrocs::backend_host::file_sha256_hex(cli_bin);
-        auto pb = astrocs::backend_host::generate_profile_v2(
-            "full", ASTROCS_VERSION_STRING, ASTROCS_COMMIT_SHA, cli_sha, install_dir);
+        const std::string cli_sha = acsd::backend_host::file_sha256_hex(cli_bin);
+        auto pb = acsd::backend_host::generate_profile_v2(
+            "full", ACSD_VERSION_STRING, ACSD_COMMIT_SHA, cli_sha, install_dir);
         // R-52：组装期不变量 fail-closed（唯一判据 = profile_invariant_violation）。
         // 本进程内失败、不写盘、不降级——把违反项落盘再等复读层拒收属"放行式默认值兜底"。
         if (!pb.violations.empty()) {
             std::fprintf(stderr, "acsd: cpu_profile assembly invariant violated (R-52):");
             for (const auto& v : pb.violations) std::fprintf(stderr, " %s;", v.c_str());
             std::fprintf(stderr, "\n");
-            return astrocs::INTERNAL;   // 70: 组装期不变量违反 = 未分类内部软件错误
+            return acsd::INTERNAL;   // 70: 组装期不变量违反 = 未分类内部软件错误
         }
         std::string verdict;
         nlohmann::json doc;
         try {
             doc = nlohmann::json::parse(pb.json);
-            verdict = astrocs::benchmark_profile_verdict(doc);
+            verdict = acsd::benchmark_profile_verdict(doc);
         } catch (...) {
             verdict = "FAIL";
         }
         doc["verdict"] = verdict;
         // R-29：写入必须走唯一原子写实现（写临时→校验→rename；半写文件结构性不可见），
-        // 落点 = 程序安装目录（docs/ASTROCS_DESIGN.md:714）。原先用裸 std::ofstream 直写，进程中途
+        // 落点 = 程序安装目录（docs/ACSD_DESIGN.md:714）。原先用裸 std::ofstream 直写，进程中途
         // 退出即留半截 profile，且绕过校验——属缺陷。
         const std::string hw_json =
-            astrocs::backend_host::hardware_inspect_json_v1(ASTROCS_VERSION_STRING);
+            acsd::backend_host::hardware_inspect_json_v1(ACSD_VERSION_STRING);
         const std::string json_text = doc.dump(2) + "\n";
         const std::string install_path = cli_default_cpu_profile_path();
-        astrocs::cli::ProfileSaveOutcome sr = astrocs::cli::save_cpu_profile_atomic(
-            json_text, hw_json, ASTROCS_COMMIT_SHA, install_path);
+        acsd::cli::ProfileSaveOutcome sr = acsd::cli::save_cpu_profile_atomic(
+            json_text, hw_json, ACSD_COMMIT_SHA, install_path);
         std::string out_path = install_path;
         std::string out_source = "install-dir";
         if (!sr.ok) {
@@ -2675,14 +2675,14 @@ int dispatch(const Parsed& p) {
                          install_path.c_str(), sr.reason.c_str());
             if (fb.empty()) {
                 std::fprintf(stderr, "acsd: no writable cpu_profile location available\n");
-                return astrocs::IO;
+                return acsd::IO;
             }
-            sr = astrocs::cli::save_cpu_profile_atomic(
-                json_text, hw_json, ASTROCS_COMMIT_SHA, fb);
+            sr = acsd::cli::save_cpu_profile_atomic(
+                json_text, hw_json, ACSD_COMMIT_SHA, fb);
             if (!sr.ok) {
                 std::fprintf(stderr, "acsd: cannot write cpu_profile '%s' (%s)\n",
                              fb.c_str(), sr.reason.c_str());
-                return astrocs::IO;
+                return acsd::IO;
             }
             out_path = fb;
             out_source = "user-data-fallback";
@@ -2695,15 +2695,15 @@ int dispatch(const Parsed& p) {
         // 落点来源（install-dir / user-data-fallback）不是结果而是诊断 ⇒ 走 stderr。
         std::printf("%s %s\n", out_path.c_str(), verdict.c_str());
         (void)out_source;
-        if (verdict != "PASS") return astrocs::SCIENCE;
-        return astrocs::OK;
+        if (verdict != "PASS") return acsd::SCIENCE;
+        return acsd::OK;
     }
     parse_fail("unknown command '" + joined + "'");
 }
 
 // ── 会话层分派（命令层 ↔ 会话层唯一契约面，声明见 lib/infrastructure/cli/cli_common.h）──
-// 三个会话各自独立执行、独立恢复，互不共享进程状态（docs/ASTROCS_DESIGN §1.2）。
-int session_dispatch(int session, SessionOp op, const Parsed& p, astrocs::JsonlEmitter& ev) {
+// 三个会话各自独立执行、独立恢复，互不共享进程状态（docs/ACSD_DESIGN §1.2）。
+int session_dispatch(int session, SessionOp op, const Parsed& p, acsd::JsonlEmitter& ev) {
     switch (op) {
         case SessionOp::Run:
             if (session == 1) return cmd_session1_run(p, ev);
@@ -2719,13 +2719,13 @@ int session_dispatch(int session, SessionOp op, const Parsed& p, astrocs::JsonlE
 
 // 命令层共享的会话信息读取器（lib/infrastructure/cli/subcommand.h 只依赖这三个符号）。
 std::string session_config_template(int session) {
-    return astrocs::cli::cmd::config_template(static_cast<astrocs::cli::cmd::SessionId>(session));
+    return acsd::cli::cmd::config_template(static_cast<acsd::cli::cmd::SessionId>(session));
 }
 std::string session_run_message(int session) {
-    switch (static_cast<astrocs::cli::cmd::SessionId>(session)) {
-        case astrocs::cli::cmd::SESSION_NORMALIZE: return "normalize";
-        case astrocs::cli::cmd::SESSION_MOSAIC:    return "mosaic";
-        case astrocs::cli::cmd::SESSION_EXPORT:    return "export";
+    switch (static_cast<acsd::cli::cmd::SessionId>(session)) {
+        case acsd::cli::cmd::SESSION_NORMALIZE: return "normalize";
+        case acsd::cli::cmd::SESSION_MOSAIC:    return "mosaic";
+        case acsd::cli::cmd::SESSION_EXPORT:    return "export";
         default: return "session";
     }
 }

@@ -15,7 +15,7 @@
 //      std::vector<std::thread> 行带池, executor 计数=0 → RED); 1-worker(串行
 //      reference) 与 4-worker(executor 行带) 输出 bitwise 一致 (行带切分不改变
 //      逐行计算, p3002_uncertainty W5 parity 先例)。
-//   4. fail-closed: 行带任务被取消/丢弃 (故障注入 ASTROCS_RT001_FAULT=
+//   4. fail-closed: 行带任务被取消/丢弃 (故障注入 ACSD_RT001_FAULT=
 //      resample_drop_band) → 节点显式失败, 不落任何伪产物 (无 partial 成功)。
 //   5. 实测资源观测: 节点 manifest 记录实测 work_units / 行带活跃峰值
 //      (active threads 实测面, 供资源门消费; 计划值不冒充观测值)。
@@ -23,14 +23,14 @@
 // RED 锚定 (实现前): rt::shared_work_executor 不存在 → 编译期 RED;
 //   实现注册表但未改 acquire 语义 → 用例 1 运行期 RED (峰值=1);
 //   未接 P3 节点 → 用例 3/4 运行期 RED (tasks_executed=0 / 注入不生效)。
-#include "astrocs/core/executor.h"
-#include "astrocs/core/module.h"
-#include "astrocs/core/module_adapters.h"
-#include "astrocs/core/context.h"
+#include "acsd/core/executor.h"
+#include "acsd/core/module.h"
+#include "acsd/core/module_adapters.h"
+#include "acsd/core/context.h"
 
 #include "executor_runtime.h"  // RT-001 内部头 (lib/infrastructure/scheduler/src, 不入安装面)
 
-#include "healpix_core.h"       // astrocs::healpix::pix2ang_nest (数学权威)
+#include "healpix_core.h"       // acsd::healpix::pix2ang_nest (数学权威)
 #include "p1sess_fixtures.hpp"  // p1sess::write_fits_file 手写最小 FITS
 
 #include <nlohmann/json.hpp>
@@ -57,7 +57,7 @@
 #endif
 
 using json = nlohmann::json;
-using namespace astrocs::core;
+using namespace acsd::core;
 
 static int failures = 0;
 #define CHECK(cond)                                                       \
@@ -174,8 +174,8 @@ bool write_signal_hips(const std::string& root) {
   if (!p) return false;
   // FIX-402: 显式面亮度单位声明（见 p3002_real_nodes_test 同注）。
   p << hips_properties_text("ADU/sr");
-  p << "ASTROCS_PIXEL_SEMANTICS = surface_brightness\n";
-  p << "ASTROCS_PIXEL_AREA_POWER = -2\n";
+  p << "ACSD_PIXEL_SEMANTICS = surface_brightness\n";
+  p << "ACSD_PIXEL_AREA_POWER = -2\n";
   p.close();
   float v = kSigVal;
   if (!fix402_write_completion_manifest(root_posix)) return false;
@@ -202,7 +202,7 @@ NodeFixture make_node_fixture(const char* tag) {
   fx.out = (fx.root / "out").generic_string();
   fs::create_directories(fx.out, ec);
   CHECK(write_signal_hips(fx.hips));
-  astrocs::healpix::pix2ang_nest(512u, 131072ull, fx.ra, fx.dec);
+  acsd::healpix::pix2ang_nest(512u, 131072ull, fx.ra, fx.dec);
   return fx;
 }
 
@@ -226,7 +226,7 @@ std::string node_config(const NodeFixture& fx) {
   "sub_block_px": %d,
   "output_dir": "%s"
 })",
-                // P3-STREAM-01: 调度单元 = 输出子块（docs/ASTROCS_DESIGN §8.3 export 行）。
+                // P3-STREAM-01: 调度单元 = 输出子块（docs/ACSD_DESIGN §8.3 export 行）。
                 // 本夹具 16×16，默认 sub_block_px=256 只产生 1 个子块 ⇒ 退化为串行、
                 // work unit 不可观测；取 4 ⇒ 16 个子块，RT-001「工作单元必须走唯一共享
                 // 执行器」才可判（1 vs 4 worker 逐位一致判据不变）。
@@ -246,7 +246,7 @@ std::string read_file(const std::string& p) {
 // P3-002 output_dir 文件约定; 上游缺失 fail-closed DATA 拒绝）。
 Result<void> run_resample(ModuleRegistry& reg, const std::string& cfg,
                           std::shared_ptr<ThreadBudget> budget_in, json* man) {
-  for (const char* upstream : {"astrocs.phase3.properties", "astrocs.phase3.wcs"}) {
+  for (const char* upstream : {"acsd.phase3.properties", "acsd.phase3.wcs"}) {
     auto mu = reg.create(upstream);
     if (mu.failed()) return Result<void>::fail(Error(ErrorDomain::DATA, "create failed"));
     auto vu = mu.value()->validate_config(cfg);
@@ -257,7 +257,7 @@ Result<void> run_resample(ModuleRegistry& reg, const std::string& cfg,
     auto ru = mu.value()->execute(cu);
     if (ru.failed()) return ru;
   }
-  auto m = reg.create("astrocs.phase3.resample2");
+  auto m = reg.create("acsd.phase3.resample2");
   if (m.failed()) return Result<void>::fail(Error(ErrorDomain::DATA, "create failed"));
   auto v = m.value()->validate_config(cfg);
   if (v.failed()) return v;
@@ -351,12 +351,12 @@ void test_p3_resample_drop_band_fail_closed() {
   auto r = register_phase_modules(reg);
   CHECK(r.ok());
 
-  ::setenv("ASTROCS_RT001_FAULT", "resample_drop_band", 1);
+  ::setenv("ACSD_RT001_FAULT", "resample_drop_band", 1);
   auto b = create_thread_budget(4);
   CHECK(b.ok());
   json man;
   Result<void> rc = run_resample(reg, node_config(fx), b.value(), &man);
-  ::unsetenv("ASTROCS_RT001_FAULT");
+  ::unsetenv("ACSD_RT001_FAULT");
   CHECK_MSG(rc.failed(),
             "dropped band work unit must fail the node (fail-closed, no partial success)");
   CHECK(fs::exists(fs::path(fx.out + "/p3_wcs.json")));  // 上游产物仍在

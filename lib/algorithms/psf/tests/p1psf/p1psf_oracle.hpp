@@ -110,7 +110,7 @@ inline void oracle_sigma_axes(const double M[4], double sigma[2]) {
 // 容差表 (README §5 + 11_MODULE_SOURCE_TEST_STANDARD §5 元数据: 每项引用来源)
 // 无噪声解析回收实证 (probe, 2026-09-09): f64 路径 |ΔB|≤7e-9, |ΔA|≤1.5e-6,
 // Δcx/cy≤1e-14, |Δsx/sy|≤4e-9, M 元素 rel ≤2e-9 → 紧容差冻结如下。
-// 容差为测试合同, 不改科学定义 (AstroCS_ENGINEERING_CONSTRAINTS §E)。
+// 容差为测试合同, 不改科学定义 (ACSD_ENGINEERING_CONSTRAINTS §E)。
 //
 // 【B4-6 / M3b-F-02 出处注记 (2026-09-14)】下表容差是"无噪声解析场回收"
 // 专用域合同 (probe 实证), **不是** SCI-P1-STAR-001 §1 / SCI-PSF-001 §11

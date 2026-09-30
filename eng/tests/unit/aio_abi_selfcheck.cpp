@@ -3,11 +3,11 @@
 // 模式对齐: lib/infrastructure/aio/tests/p1hips/p1hips_tests_selfcheck.cpp。
 // 验收 (模板): "故障注入能让测试失败" + "不得写永远 PASS 的占位"。三阶段:
 //   1) 基线: 无注入跑 units+negative → 必 PASS (排除恒 FAIL 侧)。
-//   2) 注入 A: 子进程 ASTROCS_AIO_FAULT=n1_hash_value_flip 重跑 units → 必 FAIL。
-//   3) 注入 B: 子进程 ASTROCS_AIO_FAULT=n2_verify_mismatch_shortcut 重跑
+//   2) 注入 A: 子进程 ACSD_AIO_FAULT=n1_hash_value_flip 重跑 units → 必 FAIL。
+//   3) 注入 B: 子进程 ACSD_AIO_FAULT=n2_verify_mismatch_shortcut 重跑
 //      negative → 必 FAIL; 注入 C: n3_file_size_skip 重跑 negative → 必 FAIL。
 // 注入名与 aio_abi.cpp FaultRegistry 注册处对齐;
-// ASTROCS_AIO_SELFCHECK_FAULT 可覆盖阶段 2 注入名。
+// ACSD_AIO_SELFCHECK_FAULT 可覆盖阶段 2 注入名。
 #include "aio_abi_test_main.hpp"
 
 #ifdef _WIN32
@@ -37,7 +37,7 @@ using ::aio_abi_test::FaultRegistry;
 
 // 子进程注入重跑: execve /proc/self/exe <group> + 注入环境; 返回子进程 rc
 int run_injected_child(const char* group, const std::string& fault_name) {
-    const std::string fault_env = "ASTROCS_AIO_FAULT=" + fault_name;
+    const std::string fault_env = "ACSD_AIO_FAULT=" + fault_name;
     std::vector<char> fbuf(fault_env.begin(), fault_env.end());
     fbuf.push_back('\0');
 
@@ -161,7 +161,7 @@ int run_selfcheck() {
 
     // 阶段 2: 注入 units (sha256 值翻转) → 必 FAIL
     {
-        const char* fault = std::getenv("ASTROCS_AIO_SELFCHECK_FAULT");
+        const char* fault = std::getenv("ACSD_AIO_SELFCHECK_FAULT");
         const std::string name = fault ? fault : "n1_hash_value_flip";
         const int child_rc = run_injected_child("units", name);
         if (child_rc == 0) {

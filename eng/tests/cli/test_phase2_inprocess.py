@@ -3,7 +3,7 @@
 
 按 CLI-001 §6.2 新树同步（原文件用 phase2 run --config）:
   * 命令: mosaic --json <cfg> [--events-jsonl] [-y]（§6.2 / §6.3）;
-  * 二进制: 唯一 exe build/acsd（ASTROCS_CLI_BIN 可覆盖）;
+  * 二进制: 唯一 exe build/acsd（ACSD_CLI_BIN 可覆盖）;
   * fixture 源码路径: ARCH-001 迁移后布局（lib/infrastructure/aio +
     lib/algorithms/shared/healpix），旧路径回退以便迁移中间态两侧可构建。
 
@@ -18,7 +18,7 @@ REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.a
 
 
 def cli_binary():
-    env = os.environ.get("ASTROCS_CLI_BIN")
+    env = os.environ.get("ACSD_CLI_BIN")
     if env and os.path.isfile(env):
         return env
     for rel in (("build", "acsd"), ("build", "cli", "acsd")):
@@ -85,7 +85,7 @@ class TestPhase2InProcess(unittest.TestCase):
                 os.path.join(AIO, "src", "aio_compressor.cpp"),
                 HEALPIX_SRC,
                 # CTESTFULL-01 根因修复：aio_file_io.h 的 inline sha256_hex 依赖
-                # astrocs::crypto::Sha256（生产由 astrocs_common 提供，根
+                # acsd::crypto::Sha256（生产由 acsd_common 提供，根
                 # CMakeLists.txt:379）。fixture 直接 g++ 链接必须一并编译，
                 # 否则 undefined reference to Sha256::update/final_hex。
                 os.path.join(SHARED, "crypto", "sha256.cpp")]
@@ -149,7 +149,7 @@ class TestPhase2InProcess(unittest.TestCase):
         self.assertEqual(res["n_inputs"], 2)
 
     def test_03_no_subprocess(self):
-        env = dict(os.environ, ASTROCS_TEST_SLEEP_MS="2500")
+        env = dict(os.environ, ACSD_TEST_SLEEP_MS="2500")
         p = subprocess.Popen([EXE, "mosaic", "--json", self.cfg, "--events-jsonl", "-y"],
                              stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, env=env,
                              cwd=run_cwd())
@@ -194,7 +194,7 @@ class TestPhase2InProcess(unittest.TestCase):
         cfg = os.path.join(self.tmp, "cancel.json")
         with open(cfg, "w", encoding="utf-8") as fh:
             json.dump(doc, fh)
-        env = dict(os.environ, ASTROCS_TEST_SLEEP_MS="3000")
+        env = dict(os.environ, ACSD_TEST_SLEEP_MS="3000")
         p = subprocess.Popen([EXE, "mosaic", "--json", cfg, "--events-jsonl", "-y"],
                              stdout=subprocess.PIPE, stderr=subprocess.PIPE, env=env,
                              cwd=run_cwd(), text=True)
@@ -204,7 +204,7 @@ class TestPhase2InProcess(unittest.TestCase):
         self.assertEqual(p.returncode, 9, "取消 → 9; got %s (%s)" % (p.returncode, err[-200:]))
         self.assertIn("cancel", err)
         for fn in os.listdir(out):
-            if fn.startswith("astrocs_run_"):
+            if fn.startswith("acsd_run_"):
                 with open(os.path.join(out, fn), encoding="utf-8") as fh:
                     man = json.load(fh)
                 self.assertNotEqual(man["status"], "complete", "取消不得写 complete manifest")

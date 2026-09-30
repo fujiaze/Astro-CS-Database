@@ -13,10 +13,10 @@
 
 #include "p3_wcs.h"   // 只读合同值（p3_wcs_applicability）; 不做任何投影计算
 
-using astrocs::phase3proj::v6::Descriptor;
-using astrocs::phase3proj::v6::Plan;
-using astrocs::phase3proj::v6::ProjectionId;
-using astrocs::phase3proj::v6::ProjStatus;
+using acsd::phase3proj::v6::Descriptor;
+using acsd::phase3proj::v6::Plan;
+using acsd::phase3proj::v6::ProjectionId;
+using acsd::phase3proj::v6::ProjStatus;
 
 namespace {
 
@@ -58,8 +58,8 @@ int main(int argc, char** argv) {
     // 往返容差单一事实源（GATES §3 G-P1-WCS-BRIDGE / -GLOBAL; GATE-WCS-01 裁决 7）:
     // 判定在独立 oracle 侧, 本探针只如实打印生产注册表声明的合同值。
     {
-        const astrocs::phase3::P3WcsApplicability* ap =
-            astrocs::phase3::p3_wcs_applicability("TAN");
+        const acsd::phase3::P3WcsApplicability* ap =
+            acsd::phase3::p3_wcs_applicability("TAN");
         if (ap == nullptr) {
             std::fprintf(stderr, "no TAN applicability declaration\n");
             return 4;
@@ -71,7 +71,7 @@ int main(int argc, char** argv) {
 
     Descriptor d;
     const ProjStatus mk =
-        astrocs::phase3proj::v6::make(id, ra0, dec0, scale, w, h, parity, pa, &d);
+        acsd::phase3proj::v6::make(id, ra0, dec0, scale, w, h, parity, pa, &d);
     std::printf(
         "V6PROBE proj=%s status_make=%d crval1=%.17g crval2=%.17g scale=%.17g "
         "w=%d h=%d crpix1=%.17g crpix2=%.17g cd11=%.17g cd12=%.17g cd21=%.17g "
@@ -86,7 +86,7 @@ int main(int argc, char** argv) {
     // CRPIX↔CRVAL 定义性不变量（Paper I §2.1.1）：CRPIX 处 world 必须 == CRVAL
     {
         double ra_c = 0, dec_c = 0;
-        const ProjStatus stc = astrocs::phase3proj::v6::pix2world(
+        const ProjStatus stc = acsd::phase3proj::v6::pix2world(
             &d, d.crpix_x - 1.0, d.crpix_y - 1.0, &ra_c, &dec_c);
         std::printf("CRPIXW x=%.17g y=%.17g status=%d ra=%.17g dec=%.17g\n",
                     d.crpix_x - 1.0, d.crpix_y - 1.0, (int)stc, ra_c, dec_c);
@@ -94,7 +94,7 @@ int main(int argc, char** argv) {
 
     // 逐像素 Ω 全网格统计 + 交叉（盈余 vs 微分）
     std::vector<double> omega(static_cast<size_t>(w) * h, 0.0);
-    const ProjStatus gst = astrocs::phase3proj::v6::solid_angle_grid(&d, omega.data(), nullptr);
+    const ProjStatus gst = acsd::phase3proj::v6::solid_angle_grid(&d, omega.data(), nullptr);
     double omin = 0, omax = 0;
     int nok = 0;
     for (double v : omega) {
@@ -109,9 +109,9 @@ int main(int argc, char** argv) {
     for (int j = 0; j < h; ++j) {
         for (int i = 0; i < w; ++i) {
             double a = 0, b = 0;
-            if (astrocs::phase3proj::v6::pixel_solid_angle(&d, i, j, &a) != ProjStatus::kOk)
+            if (acsd::phase3proj::v6::pixel_solid_angle(&d, i, j, &a) != ProjStatus::kOk)
                 continue;
-            if (astrocs::phase3proj::v6::pixel_solid_angle_differential(&d, i, j, &b) !=
+            if (acsd::phase3proj::v6::pixel_solid_angle_differential(&d, i, j, &b) !=
                 ProjStatus::kOk)
                 continue;
             const double rel = std::fabs(a - b) / a;
@@ -130,9 +130,9 @@ int main(int argc, char** argv) {
         for (int ii = 0; ii < gn; ++ii) {
             const double x = (w - 1) * (gn == 1 ? 0.0 : double(ii) / (gn - 1));
             double ra = 0, dec = 0, a = 0, b = 0;
-            const ProjStatus st = astrocs::phase3proj::v6::pix2world(&d, x, y, &ra, &dec);
-            const ProjStatus sa = astrocs::phase3proj::v6::pixel_solid_angle(&d, x, y, &a);
-            const ProjStatus sb = astrocs::phase3proj::v6::pixel_solid_angle_differential(&d, x, y, &b);
+            const ProjStatus st = acsd::phase3proj::v6::pix2world(&d, x, y, &ra, &dec);
+            const ProjStatus sa = acsd::phase3proj::v6::pixel_solid_angle(&d, x, y, &a);
+            const ProjStatus sb = acsd::phase3proj::v6::pixel_solid_angle_differential(&d, x, y, &b);
             std::printf("ROW x=%.17g y=%.17g status=%d ra=%.17g dec=%.17g "
                         "omega_excess=%.17g status_omega=%d omega_diff=%.17g "
                         "status_diff=%d\n",
@@ -146,9 +146,9 @@ int main(int argc, char** argv) {
         for (int ii = 0; ii < gn; ++ii) {
             const double x = (w - 1) * (gn == 1 ? 0.0 : double(ii) / (gn - 1));
             double ra = 0, dec = 0, xb = 0, yb = 0;
-            const ProjStatus st = astrocs::phase3proj::v6::pix2world(&d, x, y, &ra, &dec);
+            const ProjStatus st = acsd::phase3proj::v6::pix2world(&d, x, y, &ra, &dec);
             if (st != ProjStatus::kOk) continue;
-            const ProjStatus st2 = astrocs::phase3proj::v6::world2pix(&d, ra, dec, &xb, &yb);
+            const ProjStatus st2 = acsd::phase3proj::v6::world2pix(&d, ra, dec, &xb, &yb);
             std::printf("RT x=%.17g y=%.17g status=%d xb=%.17g yb=%.17g err=%.17g\n",
                         x, y, (int)st2, xb, yb,
                         std::hypot(xb - x, yb - y));
@@ -157,7 +157,7 @@ int main(int argc, char** argv) {
 
     // 计划摘要
     Plan plan;
-    const ProjStatus pst = astrocs::phase3proj::v6::plan(id, ra0, dec0, scale, w, h,
+    const ProjStatus pst = acsd::phase3proj::v6::plan(id, ra0, dec0, scale, w, h,
                                                          parity, pa, &plan);
     std::printf("PLAN status=%d domain_valid=%d singularity_free=%d wrap=%d "
                 "dec_min=%.17g dec_max=%.17g pole_margin=%.17g fov_x=%.17g "
@@ -179,11 +179,11 @@ int main(int argc, char** argv) {
         a[0] = 1.0;  a[1] = 0.4;  a[2] = 0.6;  a[3] = 0.0; a[4] = 0.0;
         a[5] = 0.0;  a[6] = 0.1;  a[7] = 0.9;  a[8] = 1.5; a[9] = 0.0;
         a[10] = 0.0; a[11] = 0.0; a[12] = 0.0;  a[13] = 0.0; a[14] = 1.5;
-        const ProjStatus nr = astrocs::phase3proj::v6::row_normalise(a, m, n, om_out, r);
-        const ProjStatus nc = astrocs::phase3proj::v6::col_normalise(a, m, n, om_in, s);
-        const ProjStatus n2 = astrocs::phase3proj::v6::row_to_col(r, m, n, om_out, om_in, s2);
-        astrocs::phase3proj::v6::matrix_row_sums(r, m, n, rs);
-        astrocs::phase3proj::v6::matrix_col_sums(s, m, n, cs);
+        const ProjStatus nr = acsd::phase3proj::v6::row_normalise(a, m, n, om_out, r);
+        const ProjStatus nc = acsd::phase3proj::v6::col_normalise(a, m, n, om_in, s);
+        const ProjStatus n2 = acsd::phase3proj::v6::row_to_col(r, m, n, om_out, om_in, s2);
+        acsd::phase3proj::v6::matrix_row_sums(r, m, n, rs);
+        acsd::phase3proj::v6::matrix_col_sums(s, m, n, cs);
         std::printf("NORM m=%d n=%d status_row=%d status_col=%d status_rtc=%d\n", m, n,
                     (int)nr, (int)nc, (int)n2);
         for (int i = 0; i < m; ++i) std::printf("NORM_ROWSUM i=%d v=%.17g\n", i, rs[i]);

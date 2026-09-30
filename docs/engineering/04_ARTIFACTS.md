@@ -1,6 +1,6 @@
 # CI 产物与留存（Artifacts & Retention）
 
-> 上游：docs/ASTROCS_DESIGN.md §10（I/O 与原子产品）、§12.4（验证层级与四层验收）
+> 上游：docs/ACSD_DESIGN.md §10（I/O 与原子产品）、§12.4（验证层级与四层验收）
 
 ## 1. 产物清单
 
@@ -8,8 +8,8 @@
 
 | 产物 | 内容 | 用途 |
 |---|---|---|
-| `astrocs-linux-<sha>.tar.gz`（Alpha 前无版本号，见最高设计 §12） | Linux 安装目录（ELF+.so+schemas+manifest） | 复验/发布候选 |
-| `astrocs-win-<sha>.zip`（Alpha 前无版本号，见最高设计 §12） | Windows 安装目录（exe+dll+schemas+manifest） | 复验/发布候选 |
+| `acsd-linux-<sha>.tar.gz`（Alpha 前无版本号，见最高设计 §12） | Linux 安装目录（ELF+.so+schemas+manifest） | 复验/发布候选 |
+| `acsd-win-<sha>.zip`（Alpha 前无版本号，见最高设计 §12） | Windows 安装目录（exe+dll+schemas+manifest） | 复验/发布候选 |
 | `test-results/` | ctest 结果、单元/模块/合成测试日志 | 验收证据 |
 | `checks-report/` | `ci_result.json` + 各检查项证据 | 门禁报告 |
 | `logs/` | 各 job 日志 | 失败诊断 |
@@ -19,7 +19,7 @@
 
 - 产物名含 commit SHA 短 8（Alpha 前无版本号；可发布 Alpha 后按 §12 加版本）；
 - 每产物附 `SHA256SUMS.txt`；
-- 发布候选与普通构建分栏存放；落点登记面 = `docs/ASTROCS_DESIGN.md` §10（I/O 与原子产品）。
+- 发布候选与普通构建分栏存放；落点登记面 = `docs/ACSD_DESIGN.md` §10（I/O 与原子产品）。
 
 ## 3. 留存策略
 

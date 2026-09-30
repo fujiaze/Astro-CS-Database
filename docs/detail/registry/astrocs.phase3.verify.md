@@ -1,6 +1,6 @@
-# 模块 astrocs.phase3.verify
+# 模块 acsd.phase3.verify
 
-> 上游：docs/ASTROCS_DESIGN.md §8.5（模块与 ABI）
+> 上游：docs/ACSD_DESIGN.md §8.5（模块与 ABI）
 
 Registry production 节点（唯一源 = module_adapters.cpp 的 p3_verify_descriptor，
 节点操作 `verify_output`）。职责：对已写 FITS 做独立重开校验（READONLY 重开 →
@@ -30,7 +30,7 @@ create→validate→run→inspect→destroy。
 
 ## Registry descriptor 与配置 schema
 
-module_id=`astrocs.phase3.verify`; execution_class=`io`;
+module_id=`acsd.phase3.verify`; execution_class=`io`;
 parallel_ok=False; 配置=phase config JSON（键集 = API-P3-001）。
 
 ## Execution class、并行轴、ThreadBudget lease、确定性

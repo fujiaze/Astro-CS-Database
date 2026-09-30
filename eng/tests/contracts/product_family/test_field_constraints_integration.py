@@ -64,7 +64,7 @@ class TestFieldConstraintsOracle(unittest.TestCase):
     def test_product_family_schema_is_not_an_object_contract(self):
         """产品族记录级合同不是对象合同：$id 不得与 canonical 对象 schema 撞车，也不得自称为对象类。"""
         pf = _load(PF)
-        self.assertIs(False, pf["x-astrocs-contract"]["is_object_contract"])
+        self.assertIs(False, pf["x-acsd-contract"]["is_object_contract"])
         canonical_ids = {_load(p)["$id"] for p in UNIFIED.glob("*.schema.json")}
         def_ids = [pf["$defs"][k]["$id"] for k in TARGETS.values()]
         self.assertEqual(len(def_ids), len(set(def_ids)), "产品族 $defs 的 $id 必须互不相同")
@@ -234,7 +234,7 @@ class TestCanonicalObjectGates(unittest.TestCase):
     def _gate_ids(self, name):
         out = set()
         for br in _load(UNIFIED / ("%s.schema.json" % name)).get("allOf", []) or []:
-            g = br.get("x-astrocs-gate") or {}
+            g = br.get("x-acsd-gate") or {}
             if g.get("clause_id"):
                 out.add(g["clause_id"])
         return out

@@ -75,10 +75,10 @@ def _fixture_srcs():
     """fixture 直接 g++ 链接所需的全部 TU。
 
     CTESTFULL-01 根因：lib/infrastructure/aio/src/aio_file_io.h 的 inline
-    aio_file::sha256_hex 调用 astrocs::crypto::Sha256（定义在
-    lib/algorithms/shared/crypto/sha256.h）。生产构建由 astrocs_common 提供该
+    aio_file::sha256_hex 调用 acsd::crypto::Sha256（定义在
+    lib/algorithms/shared/crypto/sha256.h）。生产构建由 acsd_common 提供该
     TU（根 CMakeLists.txt:379）；fixture 不走 CMake，直接 g++ 时必须显式带上，
-    否则链接期 "undefined reference to astrocs::crypto::Sha256::update(...)"。
+    否则链接期 "undefined reference to acsd::crypto::Sha256::update(...)"。
     """
     return [
         os.path.join(AIO, "src", "hips", "aio_hips_writer.cpp"),

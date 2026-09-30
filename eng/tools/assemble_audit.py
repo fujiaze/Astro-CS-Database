@@ -7,7 +7,7 @@
 用法: python3 eng/tools/assemble_audit.py
 
 退役 (RETIRED) —— 本工具属旧世代(V5 控制包)审核包装配线, 已退役:
-  1. 权威链 (docs/ASTROCS_DESIGN.md §0): 旧世代控制包产物不构成判据（历史版本控制包全部作废）;
+  1. 权威链 (docs/ACSD_DESIGN.md §0): 旧世代控制包产物不构成判据（历史版本控制包全部作废）;
   2. 唯一输入源（旧控制包目录）已不存在 (tracked 工作区无该目录); 旧证据树已整体删除;
   3. 实测: 运行即未捕获 FileNotFoundError, 并残留空目录 audit_src/
      —— 属 ENGINEERING_SPEC.md §8 禁止的「静默坏掉」(既不能红, 也无显式退役语义);
@@ -30,7 +30,7 @@ import subprocess
 import sys
 
 REPO = pathlib.Path(__file__).resolve().parent.parent.parent
-CP = REPO / "工程控制/RELEASE_V5/AstroCS_MAIN_RELEASE_CONTROL_V5_SINGLE_CLI_AMD64_20260828"
+CP = REPO / "工程控制/RELEASE_V5/ACSD_MAIN_RELEASE_CONTROL_V5_SINGLE_CLI_AMD64_20260828"
 TAB = REPO / "artifacts/evidence/prerelease-v5/tables"
 SRC = REPO / "artifacts/evidence/prerelease-v5/audit_src"
 OUT = REPO / "artifacts/evidence/prerelease-v5/AUDIT_REVIEW"
@@ -74,7 +74,7 @@ def write_rows(path: pathlib.Path, header: list[str], rows: list[list[str]]) -> 
 
 RETIRED_NOTICE = (
     "ASSEMBLE_AUDIT_RETIRED: 本工具（旧世代 V5 审核包装配线）已退役。\n"
-    "  依据: docs/ASTROCS_DESIGN.md §0（权威链：旧世代控制包产物不构成判据）"
+    "  依据: docs/ACSD_DESIGN.md §0（权威链：旧世代控制包产物不构成判据）"
     "（历史版本控制包全部作废；不归档不保留）；\n"
     "        ENGINEERING_SPEC.md §8（不允许静默坏掉）。\n"
     "  输入已不存在: 旧控制包目录 "
@@ -268,7 +268,7 @@ def legacy_main() -> int:
             rel = full.relative_to(SRC).as_posix()
             if allowed(rel):
                 manifest_files.append({"path": rel, "sha256": sha256_file(str(full)), "size": full.stat().st_size})
-    (SRC / "MANIFEST.json").write_text(json.dumps({"schema_version": 1, "package": f"AstroCS-audit-{c12}", "version": base, "commit": commit, "files": manifest_files}, indent=1, ensure_ascii=False), encoding="utf-8")
+    (SRC / "MANIFEST.json").write_text(json.dumps({"schema_version": 1, "package": f"ACSD-audit-{c12}", "version": base, "commit": commit, "files": manifest_files}, indent=1, ensure_ascii=False), encoding="utf-8")
     # 8) package_final(不拷 SHA256SUMS; 之后在输出包内生成)
     def run(args):
         r = subprocess.run(args, cwd=str(REPO), capture_output=True, text=True)

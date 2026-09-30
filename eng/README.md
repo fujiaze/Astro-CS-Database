@@ -21,4 +21,4 @@
 
 ## 上游
 
-上游：docs/ASTROCS_DESIGN.md §8.4（顶层结构·eng 树）；ENGINEERING_SPEC.md §7（目录规范）、§10（机器一致性检查）。
+上游：docs/ACSD_DESIGN.md §8.4（顶层结构·eng 树）；ENGINEERING_SPEC.md §7（目录规范）、§10（机器一致性检查）。

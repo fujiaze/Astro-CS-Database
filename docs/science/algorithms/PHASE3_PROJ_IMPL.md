@@ -1,13 +1,13 @@
 # Phase3 Projection/WCS 实现级算法合同（ALG-P3-PROJ-IMPL-001）
 
-> 上游：ASTROCS_DESIGN.md §6.3（投影算法）
+> 上游：ACSD_DESIGN.md §6.3（投影算法）
 
 > 上游 SCI: SCI-P3-001（docs/science/PHASE3_HIPS_TO_FITS.md，FROZEN，
 > 同步口径见 §14）；承接 ALG-P3-002 本域子面
 > （G1/G2 施工规格，docs/science/algorithms/PHASE3_RESAMPLE.md）。
-> **本域现行口径**：§15 依据 = `ASTROCS_DESIGN.md` §6.3 八投影 +
+> **本域现行口径**：§15 依据 = `ACSD_DESIGN.md` §6.3 八投影 +
 > projection registry（现行集合：CRVAL2 进映射 / AIT A≤1 / CAR 极行 fail-closed）+ 对照口径偏差表（离线对照用）；
-> §14 = 以独立证据判定、不预设谁为准。订正原则见 `docs/ASTROCS_DESIGN.md` §0（文档权威与索引）。
+> §14 = 以独立证据判定、不预设谁为准。订正原则见 `docs/ACSD_DESIGN.md` §0（文档权威与索引）。
 > 本文档为 WCS/投影域**实现级合同**：逐符号源码行号锚定 + 冻结公式 +
 > 错误语义 + 并发/确定性合同 + TEST 设计冻结 + 实测偏差登记。
 > 生产源: lib/algorithms/projection/p3_wcs.h（373 行，唯一权威签名头）+
@@ -21,7 +21,7 @@
   FITS 关键词文本输出、极点/半球/参数守卫——作为 P3-PROJ-IMPL/TEST/
   INT 的合同基线。
 - 非目标: **生产 alpha 路径仍只走 TAN**（lib/algorithms/projection/p3_wcs.cpp，
-  会话合同 SCI-P3 §9a-3 收窄）；registry 冻结集合按 ASTROCS_DESIGN §6.3
+  会话合同 SCI-P3 §9a-3 收窄）；registry 冻结集合按 ACSD_DESIGN §6.3
   八投影（TAN/SIN/CAR/AIT/STG/MOL/CEA/ZEA），已实现 4/8、
   STG/MOL/CEA/ZEA 实施归 P3-001（新增投影必须落在冻结集合内并附独立
   Oracle）；本文件不臆造未实现投影的公式（§15.1/§15.3）；不做重采样
@@ -31,11 +31,11 @@
 
 ## 2 身份与落位
 
-- module_id=astrocs.p3.projection（MODULE_MIGRATION_MATRIX P3-PROJ 行
-  权威值）；registry 行 MOD-astrocs-phase3-wcs；
-  dll_target=astrocs_p3_projection.dll（合同值，尚未存在，由
+- module_id=acsd.p3.projection（MODULE_MIGRATION_MATRIX P3-PROJ 行
+  权威值）；registry 行 MOD-acsd-phase3-wcs；
+  dll_target=acsd_p3_projection.dll（合同值，尚未存在，由
   P3-PROJ-IMPL 建立；IMPLEMENTED 词由验收在建立后签发）；现状构建=
-  astrocs_phase3_session 静态库成员（根 CMakeLists.txt:460-465，
+  acsd_phase3_session 静态库成员（根 CMakeLists.txt:460-465，
   p3_wcs.cpp 为五源文件之一）。
 - 合同落位: lib/algorithms/projection/ 三件套（README r1 + module.yaml
   CONTRACT_READY entrypoint=MISSING + memory.md，迁移目标目录按
@@ -59,7 +59,7 @@
 | eng/tests/backend/p3_wcs_main.cpp | — | 探针（make/p2w/w2p/kw 四模式，printf 协议） |
 | eng/tests/backend/test_p1002_gaps.py | — | 独立解析解回归（内联编译链接 p3_wcs.cpp） |
 | eng/tests/unit/p3_wcs_test.cpp | 90 | 单元测试（WCS 完整性/尺寸溢出检查） |
-| 根 CMakeLists.txt:460-465 | — | 构建挂载（astrocs_phase3_session STATIC） |
+| 根 CMakeLists.txt:460-465 | — | 构建挂载（acsd_phase3_session STATIC） |
 
 - 头部声明锚: p3_wcs.h:12-20（P3WcsDescriptor）/:22-27（P3WcsStatus）
   /:31-34（p3_wcs_make）/:38-39（p3_wcs_pix2world）/:42-43
@@ -71,7 +71,7 @@
   /:570-593（`p3_wcs_fits_keywords`）；适用域与往返门
   `p3_wcs_applicability` / `p3_wcs_check_applicability` / `p3_wcs_roundtrip_*`
   在同文件内，为容差唯一事实源。
-- 命名空间 astrocs::phase3（p3_wcs.cpp:10）；文件头注 :1-2（数学来源
+- 命名空间 acsd::phase3（p3_wcs.cpp:10）；文件头注 :1-2（数学来源
   Calabretta & Greisen (2002) 标准球面三角公式，RA wrap 经 atan2+fmod
   归一）。
 
@@ -150,7 +150,7 @@ std::string p3_wcs_fits_keywords(const P3WcsDescriptor* d);     // h:60
 > 与注册表头三层模型（**D = I = {TAN}**）矛盾。现按注册表头（唯一权威）恢复
 > 三层表述：**产品面受理集 = {TAN}**；内核 4/8 属内部事实，不作产品能力表述。
 > 本节更早版本「projection 仅接受 TAN」的**结论正确、依据缺三层模型**，一并
-> 按注册表重述。`ASTROCS_DESIGN.md` §6.3:493「（当前仅 TAN 可用）」与注册表
+> 按注册表重述。`ACSD_DESIGN.md` §6.3:493「（当前仅 TAN 可用）」与注册表
 > **一致**，不改顶层（原上呈的"跨层冲突"经复核**不成立、已撤销**）。
 
 - 语义冻结: parity 接受 "east_left"（默认，nullptr 归一为
@@ -184,7 +184,7 @@ std::string p3_wcs_fits_keywords(const P3WcsDescriptor* d);     // h:60
 `*out` 零初始化（:101）→ parity∈{east_left,east_right}（:102-104，
 nullptr 归一 east_left）→ |centre_dec_deg|≤85.0°（:105，kMaxAbsDec :20，
 SCI/API/session 单一条件）→ scale_deg_per_px>0 → W,H∈[1,kMaxSide]
-（kMaxSide=20000 默认，可 ASTROCS_P3_MAX_SIDE 编译期覆盖 :23-27，
+（kMaxSide=20000 默认，可 ACSD_P3_MAX_SIDE 编译期覆盖 :23-27，
 如实冻结）。顺序即实现序；任一失败返回 P3_WCS_PARAM（投影门失败返回
 P3_WCS_UNSUPPORTED，见下），out 已被零初始化。
 
@@ -372,19 +372,19 @@ eng/tests/backend/test_p1002_gaps.py 承载（独立解析解，非生产代码
   内核 PA 能力（§6.2 推广 CD）无会话消费方；会话请求 schema 无
   rotation 字段。整改归 P3-PROJ-IMPL（接线）/P3-PROJ-INT（请求词
   汇对齐）。
-- **kMaxSide 编译期可覆盖**: ASTROCS_P3_MAX_SIDE（:18-22）——合同
+- **kMaxSide 编译期可覆盖**: ACSD_P3_MAX_SIDE（:18-22）——合同
   上限 20000 为默认值语义（PHASE3_API_V1 §2 资源/配置合同，
   :16-17 注释锚），覆盖属构建期显式行为，非静默偏差；如实登记。
 - **projection 硬编码**: §6.5——UNSUPPORTED 枚举备而不用；非 TAN
   扩展按 SCI §9a-3 须独立测试并走变更流程。
-- **astrocs_p3_projection.dll 未建**: entrypoint=MISSING；探针/
+- **acsd_p3_projection.dll 未建**: entrypoint=MISSING；探针/
   回归现状内联编译（test_p1002_gaps.py / eng/tests/unit/CMakeLists），
   非 DLL 挂载；由 P3-PROJ-IMPL 建立。
-- descriptor 占位词汇（module_id=astrocs.phase3.wcs、sci_id=
+- descriptor 占位词汇（module_id=acsd.phase3.wcs、sci_id=
   SCI-P3-WCS-001、alg_id=ALG-P3-002、test_id=TEST-P3-WCS-001、
   端口 props(DATA-P3-PROPS 必)+wcs_plan(DATA-P3-WCS 可)）为编排层
   词汇（module_adapters.cpp:411-427），由 P3-PROJ-INT 对齐
-  astrocs.p3.projection；冻结依据唯一 = 本合同。
+  acsd.p3.projection；冻结依据唯一 = 本合同。
 
 ## 12 TEST-P3-WCS-DESIGN-001 设计冻结（登记面 VERIFIED）
 
@@ -429,13 +429,13 @@ eng/tests/backend/test_p1002_gaps.py 承载（独立解析解，非生产代码
 - 边界: 不改 vendored 第三方；不改 SCI 公式（§14）；跨域消费
   （p3_session/p3_output）只登记不修；模块页=
   docs/detail/phase3_proj.md + registry 手写页
-  docs/detail/registry/astrocs.phase3.wcs.md。
+  docs/detail/registry/acsd.phase3.wcs.md。
 
 ## 14 SCI 侧一致性：以独立证据判定，不预设谁为准
 
 - docs/science/PHASE3_HIPS_TO_FITS.md（SCI-P3-001）的 TAN 面（§5 G1/G2、
   §9a-3 TAN-only、§7 容差）仍为 alpha 会话冻结口径，本文件与其一致。
-- **订正原则（`docs/ASTROCS_DESIGN.md` §0（文档权威与索引））**：`docs/science/**` 与
+- **订正原则（`docs/ACSD_DESIGN.md` §0（文档权威与索引））**：`docs/science/**` 与
   `docs/science/algorithms/**` 必须科学正确。当独立证据（外部标准/文献/可复跑实验）
   证明文档与标准或事实不符时，**订正文档是义务**；反之文档已被证明正确而
   实现不符时，改实现。**权威方向 = 从 SCI 到实现**：不接受「以代码为准」式权威
@@ -447,7 +447,7 @@ eng/tests/backend/test_p1002_gaps.py 承载（独立解析解，非生产代码
 
 ## 15 projection registry 与 DESIGN §6.3 八投影冻结集合
 
-> **权威依据**：`ASTROCS_DESIGN.md §6.3`（原文：内置多种投影算法，
+> **权威依据**：`ACSD_DESIGN.md §6.3`（原文：内置多种投影算法，
 > 首批冻结 **TAN / SIN / CAR / AIT / STG / MOL / CEA / ZEA**，每种声明适用域、
 > 奇点、经度 wrap、轴手性、CRPIX/CRVAL/CD/PC/CDELT/CTYPE；新增投影经
 > projection registry 注册并附独立往返 Oracle）+
@@ -462,7 +462,7 @@ eng/tests/backend/test_p1002_gaps.py 承载（独立解析解，非生产代码
 > ② AIT 域界取 **`A≤1`**（A = xp²/4 + yp²；A=1 即 φ=±180° 边界合法）；
 > ③ CAR **native 极行 θ=±90° fail-closed**（整行塌缩：Ω=0、RA 无定义；
 > `|θ|>90` 会放行 `=90`，故判据取 `|θ| ≥ 90°`）。
-> SCI 侧口径见 §14；本层与 SCI 冲突时按 `docs/ASTROCS_DESIGN.md` §0（文档权威与索引） 以独立
+> SCI 侧口径见 §14；本层与 SCI 冲突时按 `docs/ACSD_DESIGN.md` §0（文档权威与索引） 以独立
 > 证据判定谁错、改错的一边。
 
 ### 15.1 registry 冻结集合、实现状态与版本
@@ -581,7 +581,7 @@ eng/tests/backend/test_p1002_gaps.py 承载（独立解析解，非生产代码
   （越界/未实现 → UNSUPPORTED）→ parity∈{east_left,east_right}（nullptr 归一
   east_left）→ |centre_dec_deg|≤85°（已实现四投影统一保守冻结，TAN 侧=SCI
   单一条件）→ scale>0 → W,H∈[1,20000]（kMaxSide 默认，可
-  ASTROCS_P3_MAX_SIDE 编译期覆盖）→ G1 CD 构造（§6.2 逐式，四投影同构）→
+  ACSD_P3_MAX_SIDE 编译期覆盖）→ G1 CD 构造（§6.2 逐式，四投影同构）→
   四角投影域守卫（0-based (0,0)/(W−1,0)/(0,H−1)/(W−1,H−1) 逐一调投影域检查，
   任一失败 → 首败码透传，不产半成品 descriptor）。
   四角守卫对 CAR 即「禁触碰 native 极行 |θ|≥90°」；对 AIT 即「四角 A≤1」。
@@ -640,7 +640,7 @@ eng/tests/backend/test_p1002_gaps.py 承载（独立解析解，非生产代码
     p3_proj_legacy_deviation）: **对照口径偏差表门**（§15.9 四项，
     对照口径实现（RETIRED））⇒ 表内偏差必须复现（缺失即红，须复核），表外新偏差亦红。
 - 故障注入（必败面，测试级注入、生产源零 getenv）:
-  `ASTROCS_P3PROJ_FAULT=const_omega|legacy_car|legacy_ait|swap_norm|naive_wrap`
+  `ACSD_P3PROJ_FAULT=const_omega|legacy_car|legacy_ait|swap_norm|naive_wrap`
   注入等价缺陷，注入模式断言必败并报告捕获（FAULT-EFFECT-CONFIRMED）。
 - 验收级 oracle 升级（WCSLIB 独立实现，§12 T6）仍归 P3-PROJ-TEST，本层不冒认；
   现行注册表已把「绝对对拍 + dec0≠0 + CRPIX 不变量」落到 Oracle 可执行面。
@@ -650,7 +650,7 @@ eng/tests/backend/test_p1002_gaps.py 承载（独立解析解，非生产代码
 - 测试挂载仅动 `eng/tests/unit/CMakeLists.txt` / `eng/tests/unit/p3_proj/CMakeLists.txt`
   （add_executable 直编 p3_proj.cpp 等，先例 aio_abi_tests 同构）；
   根 CMakeLists.txt / lib/phase3_session 零改动——生产构建挂载
-  （astrocs_p3_projection.dll target/adapter 接线/会话消费）归
+  （acsd_p3_projection.dll target/adapter 接线/会话消费）归
   P3-PROJ-IMPL/P3-002（白名单外），本层 out_of_scope_entries=0。
 - registry 现状为**测试目标直编面**：非生产构建成员、非 DLL 入口；
   module.yaml 维持 CONTRACT_READY/entrypoint=MISSING 不冒认
@@ -690,22 +690,22 @@ eng/tests/backend/test_p1002_gaps.py 承载（独立解析解，非生产代码
 
 ## 16 登记面：C1–C9 的实现侧缺口（**只登记，不改码**）
 
-> 依据：`ASTROCS_DESIGN.md` §6.3（导出只接受面亮度语义输入）+ §11.1.1 第 8 条（未满足 ⇒ 如实登记为未验证）；
+> 依据：`ACSD_DESIGN.md` §6.3（导出只接受面亮度语义输入）+ §11.1.1 第 8 条（未满足 ⇒ 如实登记为未验证）；
 > 证据：Phase2 信号量纲判据正本 = `docs/science/PHASE3_HIPS_TO_FITS.md` §16（C1–C9）；
 > 本节**只登记**实现侧缺口与归属，**不改动**任何公式、阈值、容差、锚点与冻结集合；科学侧口径见 `docs/science/PHASE3_HIPS_TO_FITS.md` §16（同一实验单元，文字只有这一份）。
 
 | # | 位置 | 现状（实测） | 归属 |
 |---|---|---|---|
-| C1 | `docs/detail/registry/astrocs.phase2.write.md:51` | `UnitId::ADU（signal surface brightness）` | ✅ 现行 `UnitId::SURFACE_BRIGHTNESS` |
+| C1 | `docs/detail/registry/acsd.phase2.write.md:51` | `UnitId::ADU（signal surface brightness）` | ✅ 现行 `UnitId::SURFACE_BRIGHTNESS` |
 | C1b | 同页 `:63-64` / `lib/algorithms/coverage/hips_p2/README.md:100` / `lib/algorithms/coverage/hips_p2/module.yaml:33` | 行锚 `module_adapters.cpp:1166-1188` / `:677-694` 已漂移 | ✅ 现址 `:1040-1057`（`grep -n p2_write_descriptor → :1040`） |
 | **C1a** | `lib/infrastructure/scheduler/src/module_adapters.cpp:1040-1057`（`p2_write_descriptor`） | `mosaic` 端口仍 `UnitId::ADU`（:1049），`integrated` 亦为 `UnitId::ADU`（:1048）；`UnitId::SURFACE_BRIGHTNESS` 枚举已存在但 phase2 未用 | **lib/** ⇒ FIX / P2-XX-INT（本包只登记） |
-| C2 | `astrocs.phase2.write.md:41` / `docs/detail/hips_p2.md:39` | writer 视图中间量 `flux` 与产品语义混淆 | ✅ 已补「该 `flux` 是 writer 视图中间量、落盘值 = `flux_sum/covered_area`」 |
+| C2 | `acsd.phase2.write.md:41` / `docs/detail/hips_p2.md:39` | writer 视图中间量 `flux` 与产品语义混淆 | ✅ 已补「该 `flux` 是 writer 视图中间量、落盘值 = `flux_sum/covered_area`」 |
 | C3 | `docs/science/DATA_SEMANTICS.md:1113` | `ADU surface brightness` 措辞歧义 | ✅ 已明确为 `ADU/sr` 并登记「产品 tile 无 `BUNIT`、properties 无像素语义 provenance」 |
 | **C4** | `lib/phase3_session/p3_session.cpp:166-172,396` + `CMakeLists.txt:759-760` | export **无**输入语义守卫：只透传 BUNIT（缺省 "ADU"）；守卫内核 `p3_rsmp_units.cpp:137-171` 与会话接线层 `p3_export.cpp` **未进构建**（`grep -c p3_export CMakeLists.txt` = **0**） | **lib/** ⇒ FIX / Phase3 export 域（本包只登记；§6.3 生效与否以接线实测为准） |
 | **C5** | `lib/infrastructure/aio/src/hips/aio_hips_writer.cpp` finalize | signal 产品不写 `BUNIT="ADU/sr"`，properties 无 `pixel_semantics`/`pixel_area_power` ⇒ 即使接线，当前产品会被自己的守卫 REJECT | **lib/** ⇒ FIX（本包只登记） |
 | C6 | 上游 P1 产品 | 真实 Phase1 `signal` 含 `±1e14–1e15` 量级值（低覆盖像素分母退化） | P1 域单独处理（登记） |
 | C7 | 实验内部判据（非生产文档） | 预注册把舍入预算 `τ=2e-6` 用于像素化主导的统计量 | 后续实验（登记） |
-| C8 | `docs/science/DATA_SEMANTICS.md` §20.3 | 未说明「输入 support 恒为 1 时 `astrocs_support_clamped_pixels` 也非零」 | ✅ 已补注（实测常量场 = 262144） |
+| C8 | `docs/science/DATA_SEMANTICS.md` §20.3 | 未说明「输入 support 恒为 1 时 `acsd_support_clamped_pixels` 也非零」 | ✅ 已补注（实测常量场 = 262144） |
 | **C9** | `lib/infrastructure/aio/src/hips/aio_hips_writer.cpp:495-499,776-800` | hierarchy 归约在 **f32** 累加器上做：dk=1 逐位精确、dk=9 偏差 **2.5e-3**（合成）/ **3.95e-4**（真实）；`f32_accum_repro.json` 复现发布值到 1.5e-9，float64 理想值差 2.52e-3 | **lib/** ⇒ FIX（本包只登记；修法 = `sumFluxD/sumAreaD` 分支或 Kahan/分块补偿求和） |
 
 - **判据冻结**：`docs/science/PHASE3_HIPS_TO_FITS.md` §16 结论表 + 实验/engineering-evidence/ 的 `results/PREREGISTRATION*`。

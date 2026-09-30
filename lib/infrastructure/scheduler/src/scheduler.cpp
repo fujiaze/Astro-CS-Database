@@ -12,14 +12,14 @@
 // B13-R13-2 修复: 内存回压等待不得忙等自旋 (修复前 notify_all+continue 于
 //   "ready 非空"谓词下热循环烧 CPU); 回压只压内存超限节点, 不队头阻塞整队
 //   (HoL: ready 中首个满足内存约束的节点即可执行; active==0 时放行队首保证推进)。
-#include "astrocs/core/scheduler.h"
+#include "acsd/core/scheduler.h"
 
 #include <algorithm>
 #include <deque>
 #include <set>
 #include <mutex>
 
-namespace astrocs::core {
+namespace acsd::core {
 
 Scheduler::Scheduler(uint32_t available_cpu, uint32_t budget,
                      uint64_t memory_limit_bytes)
@@ -179,7 +179,7 @@ Result<void> Scheduler::run(
           if (active.load() == 0) return;  // 全部完成
           continue;  // 有在途任务: 回 cv.wait 谓词挂起 (完成路径 notify), 非忙等
         }
-        // ── MEMGOV-01: 压力感知派发门（docs/ASTROCS_DESIGN.md §8.3:613/:614/:615）──
+        // ── MEMGOV-01: 压力感知派发门（docs/ACSD_DESIGN.md §8.3:613/:614/:615）──
         // 「预算充裕时异步启动多个独立工作流」(:613) 的判定必须是**运行期实测**，而不是
         // 一次性的静态快照。压力高 ⇒ 不派发新的异步并发（在途的跑完再考虑，:614）；
         // active==0 时**放行**以保推进 —— 与下方内存回压「无在途可释放时放行队首」
@@ -406,4 +406,4 @@ Result<void> Scheduler::run(
   return Result<void>::success();
 }
 
-}  // namespace astrocs::core
+}  // namespace acsd::core

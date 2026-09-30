@@ -253,7 +253,7 @@ ExecResult exec_with_stdin(const std::string& command_line,
     }
     // stderr 分离文件写在当前工作目录（ctest 的 WORKING_DIRECTORY，保证可写）：
     // 不写死 "/tmp" —— Windows 无此路径，且系统临时目录可能不可写（AGENTS §3 禁止写死绝对路径）。
-    std::string err_file = "astrocs_cli_test_stderr_" +
+    std::string err_file = "acsd_cli_test_stderr_" +
                            std::to_string(::getpid()) + ".log";
     cmd += " 2>" + err_file;
     FILE* pipe = ::popen(cmd.c_str(), "r");
@@ -1919,19 +1919,19 @@ void test_part7_sha256_and_config_hash() {
     // 测试 12: AstroCsExitCode 错误码字符串映射
     {
         ASSERT_EQ(std::string(AstroCsExitCode::error_code_string(AstroCsExitCode::SUCCESS)),
-                  std::string("ASTROCS_SUCCESS"), "SUCCESS -> ASTROCS_SUCCESS");
+                  std::string("ACSD_SUCCESS"), "SUCCESS -> ACSD_SUCCESS");
         ASSERT_EQ(std::string(AstroCsExitCode::error_code_string(AstroCsExitCode::CONFIG_ERROR)),
-                  std::string("ASTROCS_CONFIG_INVALID"), "CONFIG_ERROR -> ASTROCS_CONFIG_INVALID");
+                  std::string("ACSD_CONFIG_INVALID"), "CONFIG_ERROR -> ACSD_CONFIG_INVALID");
         ASSERT_EQ(std::string(AstroCsExitCode::error_code_string(AstroCsExitCode::FILE_IO_ERROR)),
-                  std::string("ASTROCS_FILE_IO_ERROR"), "FILE_IO_ERROR -> ASTROCS_FILE_IO_ERROR");
+                  std::string("ACSD_FILE_IO_ERROR"), "FILE_IO_ERROR -> ACSD_FILE_IO_ERROR");
         ASSERT_EQ(std::string(AstroCsExitCode::error_code_string(AstroCsExitCode::DLL_LOAD_FAILED)),
-                  std::string("ASTROCS_MODULE_MISSING"), "DLL_LOAD_FAILED -> ASTROCS_MODULE_MISSING");
+                  std::string("ACSD_MODULE_MISSING"), "DLL_LOAD_FAILED -> ACSD_MODULE_MISSING");
         ASSERT_EQ(std::string(AstroCsExitCode::error_code_string(AstroCsExitCode::TIMEOUT)),
-                  std::string("ASTROCS_TIMEOUT"), "TIMEOUT -> ASTROCS_TIMEOUT");
+                  std::string("ACSD_TIMEOUT"), "TIMEOUT -> ACSD_TIMEOUT");
         ASSERT_EQ(std::string(AstroCsExitCode::error_code_string(AstroCsExitCode::CANCELLED)),
-                  std::string("ASTROCS_CANCELLED"), "CANCELLED -> ASTROCS_CANCELLED");
+                  std::string("ACSD_CANCELLED"), "CANCELLED -> ACSD_CANCELLED");
         ASSERT_EQ(std::string(AstroCsExitCode::error_code_string(999)),
-                  std::string("ASTROCS_INTERNAL"), "未知码 -> ASTROCS_INTERNAL");
+                  std::string("ACSD_INTERNAL"), "未知码 -> ACSD_INTERNAL");
     }
 }
 

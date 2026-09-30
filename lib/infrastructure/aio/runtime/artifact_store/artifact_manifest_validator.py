@@ -35,12 +35,12 @@ REPO = pathlib.Path(__file__).resolve().parents[5]
 # 2026-09-21 根目录整合：contracts/ → eng/contracts/（REPO = parents[5] = 仓库根）。
 SCHEMA_PATH = REPO / "eng" / "contracts" / "data" / "artifact_manifest.schema.json"
 REGISTRY_PATH = REPO / "eng" / "contracts" / "data" / "artifact_types.registry.json"
-MANIFEST_SCHEMA_CONST = "astrocs.artifact-manifest/v1"
+MANIFEST_SCHEMA_CONST = "acsd.artifact-manifest/v1"
 
 _HEX64 = re.compile(r"^[0-9a-f]{64}$")
-_TYPE_ID_RE = re.compile(r"^astrocs\.[a-z0-9]+\.[a-z0-9_]+\.v[0-9]+$")
+_TYPE_ID_RE = re.compile(r"^acsd\.[a-z0-9]+\.[a-z0-9_]+\.v[0-9]+$")
 _ARTIFACT_ID_RE = re.compile(r"^[A-Za-z0-9_-]+$")
-_MODULE_ID_RE = re.compile(r"^astrocs\.[a-z0-9_.-]+$")
+_MODULE_ID_RE = re.compile(r"^acsd\.[a-z0-9_.-]+$")
 _STORAGE_URI_RE = re.compile(r"^(file|https?)://\S+$|^[a-z][a-z0-9]*:[A-Za-z0-9._/+-]+$")
 _NODE_ID_RE = re.compile(r"^[a-z][a-z0-9_.-]*$")
 _UTC_RE = re.compile(r"^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z$")
@@ -199,7 +199,7 @@ class Validator:
         if extra:
             errors.append(f"producer additional property not allowed: {extra}")
         if "module_id" not in obj or not isinstance(obj["module_id"], str) or not _MODULE_ID_RE.match(obj["module_id"]):
-            errors.append(f"producer.module_id required (astrocs.*): {obj.get('module_id')!r}")
+            errors.append(f"producer.module_id required (acsd.*): {obj.get('module_id')!r}")
         if "module_build_id" not in obj or not isinstance(obj["module_build_id"], str) or not obj["module_build_id"]:
             errors.append("producer.module_build_id required non-empty")
 

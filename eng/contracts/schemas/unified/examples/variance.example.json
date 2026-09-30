@@ -1,6 +1,6 @@
 {
   "unified_object": "variance",
-  "object_schema_id": "https://astrocs.local/schemas/unified/variance/v1",
+  "object_schema_id": "https://acsd.local/schemas/unified/variance/v1",
   "schema_version": 1,
   "units": {
     "bunit": "ADU^2/sr^2",

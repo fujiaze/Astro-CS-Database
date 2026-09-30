@@ -1,13 +1,13 @@
-/* module_entry.cpp - astrocs.p1.drizzle 模块 C ABI v1 adapter
+/* module_entry.cpp - acsd.p1.drizzle 模块 C ABI v1 adapter
  *
  * 迁移任务 P1-DRZ-IMPL; 对齐先例 CAT-GAIA-IMPL (babe752d)。
  * 技术性偏差 T-3: legacy 头 hp_drizzle_api.h:14 include <cstdint> (C++ 头),
  * 纯 C TU 不可 include → 本 TU 以 C++ 编译, 全部导出面经 extern "C"
- * 保持 C ABI 不变 (唯一导出 astrocs_module_query_v1, 符号名不 mangle)。
+ * 保持 C ABI 不变 (唯一导出 acsd_module_query_v1, 符号名不 mangle)。
  *
  * 职责: 把 lib/algorithms/drizzle/healpix_drizzle/ 的 legacy C 接口
  *   (hp_drizzle_api.h 六导出, API-DRZ-001 冻结) 包装成九操作模块 vtable;
- * 唯一导出 astrocs_module_query_v1 (导出面净化经链接 version-script:
+ * 唯一导出 acsd_module_query_v1 (导出面净化经链接 version-script:
  * legacy 六符号降 local, 见 CMakeLists.txt)。
  *
  * 科学纪律: scientific_change=false —— 本文件只做 eng/packaging/config/manifest 解析、
@@ -53,35 +53,35 @@ extern "C" {
 #define DRZ_OMP_GET()    1
 #endif
 
-#include "astrocs/abi/module_api_v1.h"
-#include "astrocs/abi/lifecycle_v1.h"
-#include "astrocs/drizzle/types.h"
+#include "acsd/abi/module_api_v1.h"
+#include "acsd/abi/lifecycle_v1.h"
+#include "acsd/drizzle/types.h"
 #include "hp_drizzle_api.h"       /* legacy C API (extern "C"; C11 可直接 include) */
 #include "aio_pipeline.h"         /* PipelineFrame 组装 (C API) */
 
 /* ═══════════════════ 1. 基础 helper (对齐 gaia 先例) ═══════════════════ */
 
-static const char kModuleId[]  = ASTROCS_DRIZZLE_MODULE_ID;
+static const char kModuleId[]  = ACSD_DRIZZLE_MODULE_ID;
 static const char kVersion[]   = "1.0";
-static const char kBuildId[]   = ASTROCS_DRIZZLE_BUILD_ID;
-static const char kSciId[]     = ASTROCS_DRIZZLE_SCI_ID;
-static const char kAlgId[]     = ASTROCS_DRIZZLE_ALG_ID;
-static const char kApiId[]     = ASTROCS_DRIZZLE_API_ID;
+static const char kBuildId[]   = ACSD_DRIZZLE_BUILD_ID;
+static const char kSciId[]     = ACSD_DRIZZLE_SCI_ID;
+static const char kAlgId[]     = ACSD_DRIZZLE_ALG_ID;
+static const char kApiId[]     = ACSD_DRIZZLE_API_ID;
 
-static acs_str_v1 acs_str_from(const char* s) {
-    acs_str_v1 v;
-    v.head.struct_size = (uint32_t)sizeof(acs_str_v1);
+static acsd_str_v1 acsd_str_from(const char* s) {
+    acsd_str_v1 v;
+    v.head.struct_size = (uint32_t)sizeof(acsd_str_v1);
     v.head.abi_version = ACS_ABI_VERSION_V1;
     v.data = s;
     v.size = s ? (uint64_t)strlen(s) : 0;
     return v;
 }
 
-static void efill(acs_error_info_v1* err, acs_status st, int32_t domain,
+static void efill(acsd_error_info_v1* err, acsd_status st, int32_t domain,
                   uint32_t detail, const char* msg) {
     if (!err) return;
     memset(err, 0, sizeof(*err));
-    err->head.struct_size = (uint32_t)sizeof(acs_error_info_v1);
+    err->head.struct_size = (uint32_t)sizeof(acsd_error_info_v1);
     err->head.abi_version = ACS_ABI_VERSION_V1;
     err->status = st;
     err->domain = domain;
@@ -92,8 +92,8 @@ static void efill(acs_error_info_v1* err, acs_status st, int32_t domain,
 
 /* strbuf 写 N 字节 (lifecycle_v1.h 冻结截断语义: size=所需; cap=0 只问尺寸;
  * 不足 → PARAM + BUFFER_TOO_SMALL) */
-static acs_status strbuf_write(acs_strbuf_v1* out, const char* data, uint64_t n,
-                               acs_error_info_v1* err) {
+static acsd_status strbuf_write(acsd_strbuf_v1* out, const char* data, uint64_t n,
+                               acsd_error_info_v1* err) {
     if (!out) {
         efill(err, ACS_ERR_PARAM, ACS_ERR_DOMAIN_CONFIG,
               ACS_DIAG_ECODE_NULL_CALLBACK, "drizzle: null output buffer");
@@ -113,8 +113,8 @@ static acs_status strbuf_write(acs_strbuf_v1* out, const char* data, uint64_t n,
     return ACS_OK;
 }
 
-static acs_status strbuf_write_cstr(acs_strbuf_v1* out, const char* s,
-                                    acs_error_info_v1* err) {
+static acsd_status strbuf_write_cstr(acsd_strbuf_v1* out, const char* s,
+                                    acsd_error_info_v1* err) {
     return strbuf_write(out, s, s ? (uint64_t)strlen(s) : 0, err);
 }
 
@@ -305,7 +305,7 @@ static void json_append_f64(char** w, double d) {
 /* ═══════════════════ 2. config 解析与校验 ═══════════════════ */
 
 typedef struct {
-    char     op[16];              /* ASTROCS_DRIZZLE_OP_* */
+    char     op[16];              /* ACSD_DRIZZLE_OP_* */
     uint32_t nside;               /* 2 的幂 */
     int      nested;              /* 0/1 */
     double   pixfrac;             /* [0,1] (DISP-DRZ-003 口径, 不改语义) */
@@ -333,8 +333,8 @@ static int is_pow2_u32(uint32_t v) {
 
 /* 解析 + 词表/有限性校验 (validate_config/plan/create/execute 共享;
  * detail 码见 types.h DRZ_ECODE_*) */
-static acs_status drz_cfg_parse(const char* json, drz_cfg* c,
-                                acs_error_info_v1* err) {
+static acsd_status drz_cfg_parse(const char* json, drz_cfg* c,
+                                acsd_error_info_v1* err) {
     memset(c, 0, sizeof(*c));
     if (!json || !json[0]) {
         efill(err, ACS_ERR_PARAM, ACS_ERR_DOMAIN_CONFIG,
@@ -348,8 +348,8 @@ static acs_status drz_cfg_parse(const char* json, drz_cfg* c,
               DRZ_ECODE_MISSING_FIELD, "drizzle: config missing 'op'");
         return ACS_ERR_PARAM;
     }
-    if (strcmp(c->op, ASTROCS_DRIZZLE_OP_DRIZZLE) != 0 &&
-        strcmp(c->op, ASTROCS_DRIZZLE_OP_REVERSE) != 0) {
+    if (strcmp(c->op, ACSD_DRIZZLE_OP_DRIZZLE) != 0 &&
+        strcmp(c->op, ACSD_DRIZZLE_OP_REVERSE) != 0) {
         efill(err, ACS_ERR_PARAM, ACS_ERR_DOMAIN_CONFIG,
               DRZ_ECODE_UNKNOWN_OP, "drizzle: unknown op (v1: drizzle|reverse)");
         return ACS_ERR_PARAM;
@@ -397,7 +397,7 @@ static acs_status drz_cfg_parse(const char* json, drz_cfg* c,
         }
     }
 
-    if (strcmp(c->op, ASTROCS_DRIZZLE_OP_DRIZZLE) == 0) {
+    if (strcmp(c->op, ACSD_DRIZZLE_OP_DRIZZLE) == 0) {
         double nside = json_get_f64(json, DRZ_CFG_KEY_NSIDE, &found);
         if (!found) {
             drz_cfg_free(c);
@@ -495,10 +495,10 @@ typedef struct {
     uint32_t state;                 /* ACS_LC_STATE_* */
     int executing;                  /* 同实例 execute 互斥旗标 (ABI-002) */
     drz_cfg cfg;                    /* create 时解析的 config 副本 */
-    const acs_host_api_v1* host;
+    const acsd_host_api_v1* host;
     volatile int cancel_req;        /* request_cancel 置位; execute 入口检查 */
     uint64_t exec_count;
-    acs_status last_status;
+    acsd_status last_status;
     char last_op[16];
     uint32_t last_workers;
     int legacy_last_code;           /* 上次 legacy 错误码 (0=成功) */
@@ -507,9 +507,9 @@ typedef struct {
 /* ═══════════════════ 4. describe / validate_config ═══════════════════ */
 /* MOD-001: describe 空 module_id 合同见 drz_describe 内注释 (loader empty 调用)。 */
 
-static acs_status drz_describe(const acs_module_api_v1* self,
-                               acs_str_v1 module_id,
-                               acs_module_descriptor_v1* out_desc) {
+static acsd_status drz_describe(const acsd_module_api_v1* self,
+                               acsd_str_v1 module_id,
+                               acsd_module_descriptor_v1* out_desc) {
     (void)self;
     if (!out_desc) return ACS_ERR_PARAM;
     /* MOD-001 加载验证对齐: ABI-003 安全 loader 以 empty module_id 调 describe
@@ -522,28 +522,28 @@ static acs_status drz_describe(const acs_module_api_v1* self,
          memcmp(module_id.data, kModuleId, strlen(kModuleId)) != 0))
         return ACS_ERR_ABI_MISMATCH;
     memset(out_desc, 0, sizeof(*out_desc));
-    out_desc->head.struct_size = (uint32_t)sizeof(acs_module_descriptor_v1);
+    out_desc->head.struct_size = (uint32_t)sizeof(acsd_module_descriptor_v1);
     out_desc->head.abi_version = ACS_ABI_VERSION_V1;
-    out_desc->module_id = acs_str_from(kModuleId);
-    out_desc->version   = acs_str_from(kVersion);
-    out_desc->build_id  = acs_str_from(kBuildId);
-    out_desc->sci_id    = acs_str_from(kSciId);
-    out_desc->alg_id    = acs_str_from(kAlgId);
-    out_desc->api_id    = acs_str_from(kApiId);
+    out_desc->module_id = acsd_str_from(kModuleId);
+    out_desc->version   = acsd_str_from(kVersion);
+    out_desc->build_id  = acsd_str_from(kBuildId);
+    out_desc->sci_id    = acsd_str_from(kSciId);
+    out_desc->alg_id    = acsd_str_from(kAlgId);
+    out_desc->api_id    = acsd_str_from(kApiId);
     out_desc->phase = 1;              /* module.yaml phase_scope: phase1 */
-    out_desc->config_schema_ver = ASTROCS_DRIZZLE_CONFIG_SCHEMA_VER;
+    out_desc->config_schema_ver = ACSD_DRIZZLE_CONFIG_SCHEMA_VER;
     out_desc->execution_class = 0;    /* cpu_heavy (module.yaml resource_class) */
     out_desc->parallel_ok = 1;        /* 帧内 OpenMP; 线程经 host executor 租借 */
     out_desc->flags = 0;
     return ACS_OK;
 }
 
-static acs_status drz_validate_config(const acs_module_api_v1* self,
-                                      acs_str_v1 config_json,
-                                      acs_error_info_v1* err) {
+static acsd_status drz_validate_config(const acsd_module_api_v1* self,
+                                      acsd_str_v1 config_json,
+                                      acsd_error_info_v1* err) {
     (void)self;
     drz_cfg tmp;
-    acs_status st = drz_cfg_parse(config_json.data, &tmp, err);
+    acsd_status st = drz_cfg_parse(config_json.data, &tmp, err);
     drz_cfg_free(&tmp);
     return st;
 }
@@ -558,11 +558,11 @@ static acs_status drz_validate_config(const acs_module_api_v1* self,
  *   io_out_bytes      ≈ 12*nside^2 * dtype_bytes * 3 产品 (signal/support/snr)
  */
 
-static acs_status drz_plan(const acs_module_api_v1* self,
-                           acs_str_v1 node_id,
-                           acs_str_v1 config_json,
-                           acs_strbuf_v1* out_plan_json,
-                           acs_error_info_v1* err) {
+static acsd_status drz_plan(const acsd_module_api_v1* self,
+                           acsd_str_v1 node_id,
+                           acsd_str_v1 config_json,
+                           acsd_strbuf_v1* out_plan_json,
+                           acsd_error_info_v1* err) {
     (void)self;
     if (!out_plan_json) {
         efill(err, ACS_ERR_PARAM, ACS_ERR_DOMAIN_CONFIG,
@@ -570,7 +570,7 @@ static acs_status drz_plan(const acs_module_api_v1* self,
         return ACS_ERR_PARAM;
     }
     drz_cfg c;
-    acs_status st = drz_cfg_parse(config_json.data, &c, err);
+    acsd_status st = drz_cfg_parse(config_json.data, &c, err);
     if (st != ACS_OK) return st;
 
     uint64_t n_pix_hp = 12ull * (uint64_t)c.nside * (uint64_t)c.nside;
@@ -590,7 +590,7 @@ static acs_status drz_plan(const acs_module_api_v1* self,
     char* w = buf;
     w += snprintf(w, (size_t)(buf + sizeof(buf) - w),
         "{\"plan_version\":%u,\"module_id\":\"%s\",\"node_id\":\"",
-        ASTROCS_DRIZZLE_PLAN_VERSION, kModuleId);
+        ACSD_DRIZZLE_PLAN_VERSION, kModuleId);
     json_append_escaped(&w, node);
     w += snprintf(w, (size_t)(buf + sizeof(buf) - w),
         "\",\"op\":\"%s\",\"work_units\":1,"
@@ -599,7 +599,7 @@ static acs_status drz_plan(const acs_module_api_v1* self,
         "\"min_workers\":1,\"max_workers\":%u,"
         "\"determinism\":\"fixed_reduction_order\",",
         c.op, (unsigned)(c.max_workers > 0 ? c.max_workers : 0));
-    if (strcmp(c.op, ASTROCS_DRIZZLE_OP_DRIZZLE) == 0) {
+    if (strcmp(c.op, ACSD_DRIZZLE_OP_DRIZZLE) == 0) {
         w += snprintf(w, (size_t)(buf + sizeof(buf) - w),
             "\"nside\":%u,\"nested\":%d,\"n_healpix_pixels\":%llu,"
             "\"memory_accumulator_bytes\":%llu,\"io_out_estimate_bytes\":%llu,",
@@ -625,11 +625,11 @@ static acs_status drz_plan(const acs_module_api_v1* self,
 
 /* ═══════════════════ 6. create / destroy / inspect / cancel ═══════════════════ */
 
-static acs_status drz_create(const acs_module_api_v1* self,
-                             acs_str_v1 config_json,
-                             const acs_host_api_v1* host,
-                             acs_module_instance_v1** out,
-                             acs_error_info_v1* err) {
+static acsd_status drz_create(const acsd_module_api_v1* self,
+                             acsd_str_v1 config_json,
+                             const acsd_host_api_v1* host,
+                             acsd_module_instance_v1** out,
+                             acsd_error_info_v1* err) {
     (void)self;
     if (!out) {
         efill(err, ACS_ERR_PARAM, ACS_ERR_DOMAIN_CONFIG,
@@ -643,7 +643,7 @@ static acs_status drz_create(const acs_module_api_v1* self,
         return ACS_ERR_ABI_MISMATCH;
     }
     drz_cfg c;
-    acs_status st = drz_cfg_parse(config_json.data, &c, err);
+    acsd_status st = drz_cfg_parse(config_json.data, &c, err);
     if (st != ACS_OK) { drz_cfg_free(&c); return st; }
 
     drz_inst* inst = (drz_inst*)calloc(1, sizeof(drz_inst));
@@ -658,13 +658,13 @@ static acs_status drz_create(const acs_module_api_v1* self,
     inst->cfg = c;                     /* 接管 output_path/hips_dir 所有权 */
     inst->last_status = ACS_OK;
     inst->legacy_last_code = 0;
-    *out = (acs_module_instance_v1*)inst;
+    *out = (acsd_module_instance_v1*)inst;
     return ACS_OK;
 }
 
-static acs_status drz_inspect(const acs_module_instance_v1* inst_raw,
-                              acs_strbuf_v1* out_json,
-                              acs_error_info_v1* err) {
+static acsd_status drz_inspect(const acsd_module_instance_v1* inst_raw,
+                              acsd_strbuf_v1* out_json,
+                              acsd_error_info_v1* err) {
     const drz_inst* inst = (const drz_inst*)inst_raw;
     if (!inst) return ACS_ERR_PARAM;
     char buf[512];
@@ -682,7 +682,7 @@ static acs_status drz_inspect(const acs_module_instance_v1* inst_raw,
     return strbuf_write_cstr(out_json, buf, err);
 }
 
-static acs_status drz_request_cancel(acs_module_instance_v1* inst_raw) {
+static acsd_status drz_request_cancel(acsd_module_instance_v1* inst_raw) {
     drz_inst* inst = (drz_inst*)inst_raw;
     if (!inst) return ACS_ERR_PARAM;
     if (inst->state == ACS_LC_STATE_DESTROYED) return ACS_ERR_STATE;
@@ -690,7 +690,7 @@ static acs_status drz_request_cancel(acs_module_instance_v1* inst_raw) {
     return ACS_OK;
 }
 
-static void drz_destroy(acs_module_instance_v1* inst_raw) {
+static void drz_destroy(acsd_module_instance_v1* inst_raw) {
     drz_inst* inst = (drz_inst*)inst_raw;
     if (!inst) return;                 /* inst=NULL 空操作 */
     drz_cfg_free(&inst->cfg);
@@ -725,8 +725,8 @@ static const char* const kHeaderKeys[] = {
 /* SIP 系数词表: {A,B,AP,BP}_{i}_{j}, i,j ∈ [0,5] (P0-1 order≤5 冻结) */
 #define DRZ_SIP_ORDER_MAX 5
 
-static acs_status drz_frame_set_header(PipelineFrame* frame, const char* manifest,
-                                       acs_error_info_v1* err) {
+static acsd_status drz_frame_set_header(PipelineFrame* frame, const char* manifest,
+                                       acsd_error_info_v1* err) {
     char val[512];
     for (int i = 0; i < DRZ_HEADER_KEY_N; i++) {
         if (json_copy_str(manifest, kHeaderKeys[i], val, sizeof(val))) {
@@ -766,8 +766,8 @@ typedef struct {
 static void drz_rows_free(drz_rows* r) { free(r->data); r->data = NULL; }
 
 /* 解析 manifest 行数据块并 base64 解码 (长度=字节精确校验) */
-static acs_status drz_rows_parse(const char* manifest, drz_rows* r,
-                                 acs_error_info_v1* err) {
+static acsd_status drz_rows_parse(const char* manifest, drz_rows* r,
+                                 acsd_error_info_v1* err) {
     memset(r, 0, sizeof(*r));
     int found = 0;
     double w = json_get_f64(manifest, "width", &found);
@@ -832,8 +832,8 @@ static acs_status drz_rows_parse(const char* manifest, drz_rows* r,
 }
 
 /* 组装 PipelineFrame (typed artifact 输入 → 帧块); 失败时 *out=NULL */
-static acs_status drz_frame_build(const drz_rows* r, const char* manifest,
-                                  PipelineFrame** out, acs_error_info_v1* err) {
+static acsd_status drz_frame_build(const drz_rows* r, const char* manifest,
+                                  PipelineFrame** out, acsd_error_info_v1* err) {
     *out = NULL;
     PipelineFrame* frame = aio_pipeline_frame_create();
     if (!frame) {
@@ -854,16 +854,16 @@ static acs_status drz_frame_build(const drz_rows* r, const char* manifest,
               DRZ_ECODE_FRAME_BUILD, "drizzle: add data block failed");
         return ACS_ERR_IO;
     }
-    acs_status st = drz_frame_set_header(frame, manifest, err);
+    acsd_status st = drz_frame_set_header(frame, manifest, err);
     if (st != ACS_OK) { aio_pipeline_frame_destroy(frame); return st; }
     *out = frame;
     return ACS_OK;
 }
 
-/* legacy 错误码 → 稳定 acs_status (原样转发 message, 不重解释;
+/* legacy 错误码 → 稳定 acsd_status (原样转发 message, 不重解释;
  * DISP-DRZ 缺陷登记在案, 本迁移不消化) */
-static acs_status drz_legacy_status(int code, char* msg, size_t msg_cap,
-                                    acs_error_info_v1* err,
+static acsd_status drz_legacy_status(int code, char* msg, size_t msg_cap,
+                                    acsd_error_info_v1* err,
                                     const char* legacy_err) {
     int32_t domain = ACS_ERR_DOMAIN_SCIENCE_PRECONDITION;
     if (code <= -4 && code >= -8) domain = ACS_ERR_DOMAIN_DATA;
@@ -882,10 +882,10 @@ static int drz_artifact_exists(const char* dir, const char* sub) {
     return DRZ_ACCESS(p, F_OK) == 0;
 }
 
-static acs_status drz_execute_drizzle(drz_inst* inst, const char* manifest,
+static acsd_status drz_execute_drizzle(drz_inst* inst, const char* manifest,
                                       const drz_cfg* c,
-                                      acs_strbuf_v1* out_manifest_json,
-                                      acs_error_info_v1* err) {
+                                      acsd_strbuf_v1* out_manifest_json,
+                                      acsd_error_info_v1* err) {
     if (!c->hips_dir && !c->output_path) {
         efill(err, ACS_ERR_PARAM, ACS_ERR_DOMAIN_CONFIG,
               DRZ_ECODE_MISSING_FIELD,
@@ -899,7 +899,7 @@ static acs_status drz_execute_drizzle(drz_inst* inst, const char* manifest,
     }
 
     drz_rows rows;
-    acs_status st = drz_rows_parse(manifest, &rows, err);
+    acsd_status st = drz_rows_parse(manifest, &rows, err);
     if (st != ACS_OK) return st;
 
     PipelineFrame* frame = NULL;
@@ -914,7 +914,7 @@ static acs_status drz_execute_drizzle(drz_inst* inst, const char* manifest,
     int lease_active = 0;
     int omp_prev = -1;
     if (inst->host && inst->host->executor) {
-        const acs_executor_v1* ex = inst->host->executor;
+        const acsd_executor_v1* ex = inst->host->executor;
         uint32_t want = ex->max_workers;
         if (want == 0) want = ex->available_cpus;
         if (c->max_workers > 0 && c->max_workers < want) want = c->max_workers;
@@ -941,7 +941,7 @@ static acs_status drz_execute_drizzle(drz_inst* inst, const char* manifest,
     drz_rows_free(&rows);
 
     inst->legacy_last_code = rc;
-    snprintf(inst->last_op, sizeof(inst->last_op), "%s", ASTROCS_DRIZZLE_OP_DRIZZLE);
+    snprintf(inst->last_op, sizeof(inst->last_op), "%s", ACSD_DRIZZLE_OP_DRIZZLE);
 
     if (rc != 0) {
         char msg[640];
@@ -1008,7 +1008,7 @@ static acs_status drz_execute_drizzle(drz_inst* inst, const char* manifest,
     }
     w += snprintf(w, (size_t)(total + 1 - (size_t)(w - buf)), "]");
 
-    acs_status ret = strbuf_write(out_manifest_json, buf, (uint64_t)(w - buf), err);
+    acsd_status ret = strbuf_write(out_manifest_json, buf, (uint64_t)(w - buf), err);
     free(buf);
     inst->exec_count++;
     inst->last_status = ret;
@@ -1028,10 +1028,10 @@ static acs_status drz_execute_drizzle(drz_inst* inst, const char* manifest,
  * 输出 manifest: stats + signal_plane_base64 + coverage_plane_base64。
  */
 
-static acs_status drz_execute_reverse(drz_inst* inst, const char* manifest,
+static acsd_status drz_execute_reverse(drz_inst* inst, const char* manifest,
                                       const drz_cfg* c,
-                                      acs_strbuf_v1* out_manifest_json,
-                                      acs_error_info_v1* err) {
+                                      acsd_strbuf_v1* out_manifest_json,
+                                      acsd_error_info_v1* err) {
     if (!out_manifest_json) {
         efill(err, ACS_ERR_PARAM, ACS_ERR_DOMAIN_CONFIG,
               ACS_DIAG_ECODE_NULL_CALLBACK, "drizzle: null output buffer");
@@ -1193,7 +1193,7 @@ static acs_status drz_execute_reverse(drz_inst* inst, const char* manifest,
         int rc = hp_drizzle_reverse_run(&rin, signal_out, coverage_out, &rres);
 
         inst->legacy_last_code = rc;
-        snprintf(inst->last_op, sizeof(inst->last_op), "%s", ASTROCS_DRIZZLE_OP_REVERSE);
+        snprintf(inst->last_op, sizeof(inst->last_op), "%s", ACSD_DRIZZLE_OP_REVERSE);
 
         free(sip_a); free(sip_b); free(sip_ap); free(sip_bp);
         free(sup_raw); free(ipix_raw); free(sig_raw);
@@ -1248,7 +1248,7 @@ static acs_status drz_execute_reverse(drz_inst* inst, const char* manifest,
         w += snprintf(w, (size_t)(total + 1 - (size_t)(w - buf)), "\"}");
         free(signal_out); free(coverage_out);
 
-        acs_status ret = strbuf_write(out_manifest_json, buf, (uint64_t)(w - buf), err);
+        acsd_status ret = strbuf_write(out_manifest_json, buf, (uint64_t)(w - buf), err);
         free(buf);
         inst->exec_count++;
         inst->last_status = ret;
@@ -1267,11 +1267,11 @@ rev_fail_nomem:
 
 /* ═══════════════════ 9. execute 编排 (状态机 + 入口取消) ═══════════════════ */
 
-static acs_status drz_execute(acs_module_instance_v1* inst_raw,
-                              acs_str_v1 input_manifest_json,
-                              acs_str_v1 config_json,
-                              acs_strbuf_v1* out_manifest_json,
-                              acs_error_info_v1* err) {
+static acsd_status drz_execute(acsd_module_instance_v1* inst_raw,
+                              acsd_str_v1 input_manifest_json,
+                              acsd_str_v1 config_json,
+                              acsd_strbuf_v1* out_manifest_json,
+                              acsd_error_info_v1* err) {
     drz_inst* inst = (drz_inst*)inst_raw;
     if (!inst) return ACS_ERR_PARAM;
     if (inst->state != ACS_LC_STATE_CREATED || inst->executing) {
@@ -1295,12 +1295,12 @@ static acs_status drz_execute(acs_module_instance_v1* inst_raw,
         return ACS_ERR_PARAM;
     }
     drz_cfg c;
-    acs_status st = drz_cfg_parse(config_json.data, &c, err);
+    acsd_status st = drz_cfg_parse(config_json.data, &c, err);
     if (st != ACS_OK) return st;
 
     inst->executing = 1;
     inst->state = ACS_LC_STATE_EXECUTING;
-    if (strcmp(c.op, ASTROCS_DRIZZLE_OP_DRIZZLE) == 0)
+    if (strcmp(c.op, ACSD_DRIZZLE_OP_DRIZZLE) == 0)
         st = drz_execute_drizzle(inst, mjson, &c, out_manifest_json, err);
     else
         st = drz_execute_reverse(inst, mjson, &c, out_manifest_json, err);
@@ -1313,8 +1313,8 @@ static acs_status drz_execute(acs_module_instance_v1* inst_raw,
 
 /* ═══════════════════ 10. 静态 vtable 与唯一导出入口 ═══════════════════ */
 
-static const acs_module_api_v1 g_drz_api = {
-    { (uint32_t)sizeof(acs_module_api_v1), ACS_ABI_VERSION_V1 },
+static const acsd_module_api_v1 g_drz_api = {
+    { (uint32_t)sizeof(acsd_module_api_v1), ACS_ABI_VERSION_V1 },
     drz_describe,
     drz_validate_config,
     drz_plan,
@@ -1327,10 +1327,10 @@ static const acs_module_api_v1 g_drz_api = {
 
 /* 唯一导出入口 (ARC-001 §1.1; ABI-006 全查 exports):
  * host_abi 失配 → ACS_ERR_ABI_MISMATCH, 不降级猜测。 */
-ASTROCS_EXPORT acs_status ASTROCS_CALL
-astrocs_module_query_v1(uint32_t host_abi,
-                        const acs_host_api_v1* host,
-                        const acs_module_api_v1** out_api) {
+ACSD_EXPORT acsd_status ACSD_CALL
+acsd_module_query_v1(uint32_t host_abi,
+                        const acsd_host_api_v1* host,
+                        const acsd_module_api_v1** out_api) {
     (void)host;   /* allocator 必填在 create 期校验 (query 期 host 可 NULL 于探针) */
     if (host_abi != ACS_ABI_VERSION_V1) return ACS_ERR_ABI_MISMATCH;
     if (!out_api) return ACS_ERR_PARAM;

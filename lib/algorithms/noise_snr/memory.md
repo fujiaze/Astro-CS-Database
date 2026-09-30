@@ -12,8 +12,8 @@
 
 - 控制包任务 P1-NOISE-DOC：冻结合同与 README（逐符号源码核对新建，不
   信任旧 README；不声明 IMPLEMENTED，迁移落码由 P1-NOISE-IMPL 执行）。
-- matrix 行 P1-NOISE：owner=SA-P1-N17、module_id=astrocs.p1.noise、
-  target=astrocs_p1_noise.dll、legacy_paths="lib/algorithms/noise_snr;lib/algorithms/noise_snr/wrapper_phase1"、
+- matrix 行 P1-NOISE：owner=SA-P1-N17、module_id=acsd.p1.noise、
+  target=acsd_p1_noise.dll、legacy_paths="lib/algorithms/noise_snr;lib/algorithms/noise_snr/wrapper_phase1"、
   depends_on_int=P1-CAL-INT;P1-PHOT-INT。
 
 ### 产物
@@ -27,7 +27,7 @@
 - docs/science/DATA_SEMANTICS.md §13（DATA-P1-NOISE）。
 - docs/engineering/PUBLIC_API.md API-NOISE-001 节（snr_estimator.h 7 noise
   导出现状 C API）。
-- docs/detail/registry/astrocs.phase1.noise-snr.md 事实修订（front-matter
+- docs/detail/registry/acsd.phase1.noise-snr.md 事实修订（front-matter
   upstream 更正 + 引言块，占位 ID 收敛声明）。
 
 ### 源码核对结论（摘要，行号以实测为准）
@@ -37,7 +37,7 @@
   唯一权威 lib/algorithms/noise_snr/cpp/include/snr_estimator.h（**526 行**，旧记
   431 行已过时）；该实现经 cpp/Makefile 产出 snr_estimator.dll，**不在根 CMake 主图**
   （根 CMakeLists.txt:236 的 add_subdirectory 被注释；交付面 SNR 实现 =
-  cpp/src/snr_science.cpp + wrapper_phase1/** 编入 astrocs_phase1_noise）。7 个
+  cpp/src/snr_science.cpp + wrapper_phase1/** 编入 acsd_phase1_noise）。7 个
   noise 导出（头文件行号）：snr_noise_model_v1(:143-149)/_f64(:151-157)/
   _default_config(:115)/_fill(:162-166)/_free(:167-168)/
   snr_noise_scale_law(:173-175)/snr_noise_gain_variance(:178-180)；实现
@@ -67,7 +67,7 @@
   **无** snr_estimator 目标（grep rc=1）；snr_estimator.dll 实际由
   lib/algorithms/noise_snr/cpp/Makefile:5,12（TARGET、g++ -shared）+
   cpp/build.ps1:29（MinGW 通道）构建；未编入根 CMake 主构建，与
-  astrocs_hips/astrocs_drizzle/astrocs_calibration 先例不同——CMake
+  acsd_hips/acsd_drizzle/acsd_calibration 先例不同——CMake
   集成归 P1-NOISE-IMPL。
 - **冻结文档行号锚系统性偏移（实测复核）**：任务书与已冻结文档
   （ALG §13.1 锚表、PUBLIC_API API-NOISE-001、DATA_SEMANTICS §13.1/13.2）
@@ -82,14 +82,14 @@
   为继承任务书口径的误登记——构建事实=Makefile/build.ps1；ALG/trace 行
   修正属文档笔误修订，随 P1-NOISE-DOC 收尾在主会话统一处理，子 agent
   不改 docs/**。
-- lib/algorithms/noise_snr/wrapper_phase1/noise_model.{h,cpp}（39+67 行）=astrocs::phase1::
+- lib/algorithms/noise_snr/wrapper_phase1/noise_model.{h,cpp}（39+67 行）=acsd::phase1::
   NoiseModel::estimate（median+MAD 单值退化子集，无掩膜/patch/平面场）+
-  gain_variance；静态库 astrocs_phase1_noise（CMakeLists.txt:521-524，
+  gain_variance；静态库 acsd_phase1_noise（CMakeLists.txt:521-524，
   主程序链接 :513）；单测 eng/tests/unit/p1_noise_test.cpp（eng/tests/unit/
   CMakeLists.txt:614-618，6 组）为 P1-005 期旧测，由 P1-NOISE-TEST 对齐
   重锚。
 - descriptor 现状：lib/infrastructure/scheduler/src/module_adapters.cpp:489-503
-  p1_noise_snr_descriptor，module_id=astrocs.phase1.noise-snr、
+  p1_noise_snr_descriptor，module_id=acsd.phase1.noise-snr、
   execution_class=cpu_heavy、parallel_ok=true、sci_id=SCI-P1-SNR-001/
   alg_id=ALG-004/data_id=DATA-P1-SNR/test_id=TEST-P1-SNR-001（占位），
   ports: fluxes→DATA-P1-FLUX(ELECTRON/ICRS) 入、snr→DATA-P1-SNR
@@ -106,12 +106,12 @@
 - 无 git commit/push（子 agent 不提交）；写入一律 LF（Windows CRLF
   仓库，core.autocrlf=false，不动 .gitattributes）。
 - 新建/修改仅限 4 文件：lib/algorithms/noise_snr/README.md、module.yaml、
-  memory.md、docs/detail/registry/astrocs.phase1.noise-snr.md（仅
+  memory.md、docs/detail/registry/acsd.phase1.noise-snr.md（仅
   front-matter upstream 更正 + `---` 后插引言块，其余正文不动）。
 
 ### 待后续任务
 
-- P1-NOISE-IMPL：astrocs_p1_noise.dll、C ABI adapter、plan/execute/
+- P1-NOISE-IMPL：acsd_p1_noise.dll、C ABI adapter、plan/execute/
   cancel/inspect、ThreadLease 接线、CMake 主构建集成、版本化 config
   schema、DISP-NOISE-001..009 消化、lib/algorithms/noise_snr/wrapper_phase1 旧符号去留登记。
 - P1-NOISE-TEST：TEST-P1-NOISE-001 可执行测试（FIX-NOISE-A..G +

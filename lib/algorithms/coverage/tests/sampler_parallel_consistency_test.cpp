@@ -17,9 +17,9 @@
 
 namespace {
 // 真实 HiPS fixture 根目录（禁止写死机器绝对路径 —— AGENTS §3）：
-// ASTROCS_PHASE1_FREEZE_DIR 未设置时用仓库相对默认 run/temp/phase1_freeze。
+// ACSD_PHASE1_FREEZE_DIR 未设置时用仓库相对默认 run/temp/phase1_freeze。
 std::string phase1_fixture_root() {
-    const char* e = std::getenv("ASTROCS_PHASE1_FREEZE_DIR");
+    const char* e = std::getenv("ACSD_PHASE1_FREEZE_DIR");
     return (e && *e) ? std::string(e) : std::string("run/temp/phase1_freeze");
 }
 
@@ -43,7 +43,7 @@ TEST(Phase2SamplerParallel, OneTvsTwoTDeterminism) {
     const std::string p0 = base + "/t4_crop_v3.hips";
     const std::string p1 = base + "/t4_full_v3_final.hips";
     if (!std::ifstream(base + "/t4_crop_v3.hips/signal/properties").good())
-        GTEST_SKIP() << "真实 HiPS fixture 不存在：设 ASTROCS_PHASE1_FREEZE_DIR 指向 phase1_freeze 根";
+        GTEST_SKIP() << "真实 HiPS fixture 不存在：设 ACSD_PHASE1_FREEZE_DIR 指向 phase1_freeze 根";
 
     const char* paths[2] = {p0.c_str(), p1.c_str()};
     P2CoverageResult cov{};
@@ -139,7 +139,7 @@ bool make_synth_frame(const std::string& path, float flux,
     AioHipsProductSet* ps = aio_hips_product_begin(
         path.c_str(), kW, kW, AIO_HIPS_FLOAT32,
         AIO_HIPS_PRODUCT_SIGNAL | AIO_HIPS_PRODUCT_SUPPORT,
-        "ivo://astrocs/test", "SCI-FIX-WEIGHT sampler parallel", "R", 60.0,
+        "ivo://acsd/test", "SCI-FIX-WEIGHT sampler parallel", "R", 60.0,
         "2026-09-17T00:00:00Z", 0);
     if (ps == nullptr) {
         std::fprintf(stderr, "make_synth_frame begin failed: %s\n",
@@ -201,7 +201,7 @@ void check_bitwise_same(const P2ControlObservation& a,
 }  // namespace
 
 TEST(Phase2SamplerParallel, SyntheticFixtureBitwiseDeterminism) {
-    const std::string dir = sampler_tmp_dir("astrocs_p2_sampler_par");
+    const std::string dir = sampler_tmp_dir("acsd_p2_sampler_par");
     const std::string p0 = dir + "/F1.hips";
     const std::string p1 = dir + "/F2.hips";
     ASSERT_TRUE(make_synth_frame(p0, 100.0f));
@@ -262,7 +262,7 @@ TEST(Phase2SamplerParallel, SyntheticFixtureBitwiseDeterminism) {
 
 // =====================================================================
 // 诊断计数在 1 worker 与 N worker 下必须**逐位一致**
-// （docs/ASTROCS_DESIGN §8「并行开关不得改变科学数值；输出不得依赖线程调度」）。
+// （docs/ACSD_DESIGN §8「并行开关不得改变科学数值；输出不得依赖线程调度」）。
 //
 // 根因（本任务定位）：pass1_cell() 入口 "cv = 0; ci = 0;" 把调用方传入的
 // 计数器清零；串行路径每 cell 用新局部量接收后立即累加（正确），而并行 worker
@@ -277,7 +277,7 @@ TEST(Phase2SamplerParallel, SyntheticFixtureBitwiseDeterminism) {
 //   ④ 观测序列逐位一致（既有 check_bitwise_same）。
 // =====================================================================
 TEST(Phase2SamplerParallel, SparseSupportStatsBitwiseIdenticalAcrossWorkers) {
-    const std::string dir = sampler_tmp_dir("astrocs_p2_sampler_sparse");
+    const std::string dir = sampler_tmp_dir("acsd_p2_sampler_sparse");
     const std::string p0 = dir + "/F1.hips";
     const std::string p1 = dir + "/F2.hips";
     ASSERT_TRUE(make_synth_frame(p0, 100.0f));
@@ -380,7 +380,7 @@ TEST(Phase2SamplerParallel, SparseSupportStatsBitwiseIdenticalAcrossWorkers) {
 // 负例注入自证：把第三遍的 ++ 加回 ⇒ identity_gap != 0 ⇒ 本门判红。
 // =====================================================================
 TEST(Phase2SamplerParallel, RetainedRejectionCountedExactlyOnce) {
-    const std::string dir = sampler_tmp_dir("astrocs_p2_sampler_retained");
+    const std::string dir = sampler_tmp_dir("acsd_p2_sampler_retained");
     const std::string p0 = dir + "/F1.hips";
     const std::string p1 = dir + "/F2.hips";
     ASSERT_TRUE(make_synth_frame(p0, 100.0f));

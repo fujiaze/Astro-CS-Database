@@ -1,5 +1,5 @@
 // IO-001 Artifact 事务 + FileIoAdapter 实现
-#include "astrocs/io/io_adapter.h"
+#include "acsd/io/io_adapter.h"
 
 #include <atomic>
 #include <cstdio>
@@ -16,7 +16,7 @@
 #define getpid _getpid
 #endif
 
-namespace astrocs::io {
+namespace acsd::io {
 
 namespace {
 std::string err_msg(const std::string& what, const std::string& path) {
@@ -204,4 +204,4 @@ Result<void> FileIoAdapter::atomic_write(const std::string& path,
   return tx.commit();
 }
 
-}  // namespace astrocs::io
+}  // namespace acsd::io

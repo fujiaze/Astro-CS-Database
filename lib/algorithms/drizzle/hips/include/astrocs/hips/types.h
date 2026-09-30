@@ -1,7 +1,7 @@
-/* types.h - astrocs.p1.hips_writer 模块常量与词表 (module ABI v1 迁移面)
+/* types.h - acsd.p1.hips_writer 模块常量与词表 (module ABI v1 迁移面)
  *
- * 对齐先例: lib/infrastructure/gaia_xpsd_client/include/astrocs/gaia/types.h (CAT-GAIA-IMPL,
- * babe752d) 与 lib/algorithms/drizzle/include/astrocs/drizzle/types.h (P1-DRZ-IMPL,
+ * 对齐先例: lib/infrastructure/gaia_xpsd_client/include/acsd/gaia/types.h (CAT-GAIA-IMPL,
+ * babe752d) 与 lib/algorithms/drizzle/include/acsd/drizzle/types.h (P1-DRZ-IMPL,
  * 2c065ace)。本头只承载 C ABI adapter 层的常量/词表/诊断码, 不含任何科学
  * 常量 (surface brightness=flux_sum/covered_area、support=covered_area/A_cell、
  * variance=var_num_sum/covered_area²、MOC UNIQ=4·4^m+(c>>2(K−m)) 等公式全部
@@ -10,11 +10,11 @@
  *
  * 合同链: SCI-DRZ-001 -> ALG-HIPS-001..005 -> API-HIPS-001
  *         (docs/engineering/PUBLIC_API.md) -> lib/algorithms/drizzle/hips/module.yaml
- *         (module_id=astrocs.p1.hips_writer, dll_name=astrocs_p1_hips_writer.dll,
+ *         (module_id=acsd.p1.hips_writer, dll_name=acsd_p1_hips_writer.dll,
  *          threading_model=host_executor_lease, determinism=fixed_reduction_order)
  */
-#ifndef ASTROCS_HIPS_TYPES_H
-#define ASTROCS_HIPS_TYPES_H
+#ifndef ACSD_HIPS_TYPES_H
+#define ACSD_HIPS_TYPES_H
 
 #include <stdint.h>
 
@@ -24,25 +24,25 @@ extern "C" {
 
 /* ───────── 模块标识 ───────── */
 
-#define ASTROCS_HIPS_MODULE_ID       "astrocs.p1.hips_writer"
-#define ASTROCS_HIPS_MODULE_VERSION  1u
-#define ASTROCS_HIPS_ABI_VERSION     1u
+#define ACSD_HIPS_MODULE_ID       "acsd.p1.hips_writer"
+#define ACSD_HIPS_MODULE_VERSION  1u
+#define ACSD_HIPS_ABI_VERSION     1u
 /* 构建标识: 迁移任务 P1-HIPS-IMPL (独立 DLL 化, 不改科学域) */
-#define ASTROCS_HIPS_BUILD_ID        "p1-hips-impl-2026-09-07"
+#define ACSD_HIPS_BUILD_ID        "p1-hips-impl-2026-09-07"
 
 /* SCI-DRZ-001 为共享引用 (module.yaml science_contracts[0]; 本模块不持
  * 独立 SCI); ALG 面 001..005 中 describe 的 alg_id 槽承载主公式面
  * ALG-HIPS-001 (产品语义), 002..005 同链 (ALG-HIPS-002 variance/ivar,
  * 003 hierarchy 聚合, 004 MOC/UNIQ, 005 SNR Catalogue)。 */
-#define ASTROCS_HIPS_SCI_ID  "SCI-DRZ-001"
-#define ASTROCS_HIPS_ALG_ID  "ALG-HIPS-001"
-#define ASTROCS_HIPS_API_ID  "API-HIPS-001"
+#define ACSD_HIPS_SCI_ID  "SCI-DRZ-001"
+#define ACSD_HIPS_ALG_ID  "ALG-HIPS-001"
+#define ACSD_HIPS_API_ID  "API-HIPS-001"
 
 /* config schema 版本 (词表见 HIPS_CFG_KEY_*; v1 冻结) */
-#define ASTROCS_HIPS_CONFIG_SCHEMA_VER 1u
+#define ACSD_HIPS_CONFIG_SCHEMA_VER 1u
 
 /* plan 输出词表版本 (词表演进必须升版本号) */
-#define ASTROCS_HIPS_PLAN_VERSION 1u
+#define ACSD_HIPS_PLAN_VERSION 1u
 
 /* ───────── op 词表 (config "op"; v1) ─────────
  * execute 单事务通道: manifest 携带叶级 tile 行数据 + SNR 点集 + provenance,
@@ -53,7 +53,7 @@ extern "C" {
  * support uint8 0..255 语义映射) 不进模块 v1 op 面: 九导出仍全量编译进
  * DLL 且 legacy 导出面经 version-script/DEF 降 local (ABI-006), ABI 合同
  * 不裁剪; 模块事务面只承载生产链 (astro_sphere_sink.cpp:52-167 同构序列)。 */
-#define ASTROCS_HIPS_OP_WRITE_PRODUCT "write_product"
+#define ACSD_HIPS_OP_WRITE_PRODUCT "write_product"
 
 /* ───────── config 键词表 (HIPS_CFG_KEY; v1) ─────────
  * product_begin 参数在 create 期固化 (config), tile 行数据在 execute 期
@@ -65,7 +65,7 @@ extern "C" {
 #define HIPS_CFG_KEY_TILE_WIDTH  "tile_width"      /* u32, 恒 512 (HiPS 标准) */
 #define HIPS_CFG_KEY_DATA_TYPE   "data_type"       /* 0=AIO_HIPS_FLOAT32 1=FLOAT64 */
 #define HIPS_CFG_KEY_FLAGS       "flags"           /* AioHipsProductFlag 位或 */
-#define HIPS_CFG_KEY_CREATOR_DID "creator_did"     /* 缺省 ivo://astrocs/phase1 */
+#define HIPS_CFG_KEY_CREATOR_DID "creator_did"     /* 缺省 ivo://acsd/phase1 */
 #define HIPS_CFG_KEY_OBS_TITLE   "obs_title"       /* 缺省 "ACSD Phase1" */
 #define HIPS_CFG_KEY_OBS_FILTER  "obs_filter"      /* 可空 */
 #define HIPS_CFG_KEY_EXPOSURE_S  "exposure_s"      /* f64 秒, >=0 */
@@ -153,4 +153,4 @@ typedef enum {
 }
 #endif
 
-#endif /* ASTROCS_HIPS_TYPES_H */
+#endif /* ACSD_HIPS_TYPES_H */

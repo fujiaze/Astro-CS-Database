@@ -1,5 +1,5 @@
 {
-  "matrix_schema": "astrocs.phase-product-exchange-matrix/v1",
+  "matrix_schema": "acsd.phase-product-exchange-matrix/v1",
   "matrix_version": 1,
   "title": "ACSD 三阶段产品交换兼容矩阵 (DATA-002 冻结)",
   "frozen_at": "2026-09-02T00:00:00Z",
@@ -26,7 +26,7 @@
   "roles": [
     {
       "role": "phase1_product_v1",
-      "type_id": "astrocs.phase1.frame_hips.v1",
+      "type_id": "acsd.phase1.frame_hips.v1",
       "registry_schema_version": 1,
       "producer_phase": "phase1",
       "consumer_phases": ["phase2"],
@@ -36,7 +36,7 @@
     },
     {
       "role": "phase2_mosaic_v1",
-      "type_id": "astrocs.phase2.mosaic_hips.v1",
+      "type_id": "acsd.phase2.mosaic_hips.v1",
       "registry_schema_version": 1,
       "producer_phase": "phase2",
       "consumer_phases": ["phase3"],
@@ -46,7 +46,7 @@
     },
     {
       "role": "phase3_planar_fits_v1",
-      "type_id": "astrocs.phase3.planar_fits.v1",
+      "type_id": "acsd.phase3.planar_fits.v1",
       "registry_schema_version": 1,
       "producer_phase": "phase3",
       "consumer_phases": ["external"],

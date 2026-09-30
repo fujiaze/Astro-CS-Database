@@ -6,7 +6,7 @@
 
 **单一权重口径** —— 本配置**不写**任何权重键。
 权重是阶段二按天球像素对应的输入帧集合现场算出的派生量 w = SNR²/F_ref² = 1/σ_F²，
-没有可选择项（docs/ASTROCS_DESIGN.md §3.1:171/175；docs/science/PSF_SIGNAL_WEIGHT.md §4:62/72）。
+没有可选择项（docs/ACSD_DESIGN.md §3.1:171/175；docs/science/PSF_SIGNAL_WEIGHT.md §4:62/72）。
 原 `weight_mode: 2` 与 `legacy_allow_weight_fallback` 两个键**已删除**，出现即配置解析失败。
 """
 import json, sys, glob, os

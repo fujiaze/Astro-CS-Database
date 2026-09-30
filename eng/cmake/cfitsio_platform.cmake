@@ -1,12 +1,12 @@
 # eng/cmake/cfitsio_platform.cmake — vendored 第三方源的平台面共用口径（**唯一实现**）
 #
 # 为什么需要这一份（根站点事实，实测）：
-#   vendored cfitsio 的来源在根图里被**多个目标各自重编译**（根 astrocs_cfitsio 之外的
-#   现行重编译点 = astrocs_phase2_integrate / astrocs_p1_drizzle / astrocs_p1_hips_writer；
+#   vendored cfitsio 的来源在根图里被**多个目标各自重编译**（根 acsd_cfitsio 之外的
+#   现行重编译点 = acsd_phase2_integrate / acsd_p1_drizzle / acsd_p1_hips_writer；
 #   全仓清单与判据见 run/FINAL-07/审核包/工程/Windows构建错误批次一报告.md）。
 #   重编译点必须**逐个**拿到与根目标同一份平台适配，
 #   否则同一份第三方源在不同目标里口径不同 —— Windows 全量构建实测：
-#     · astrocs_phase2_integrate 编入 60 个 cfitsio TU 并定义 _REENTRANT，
+#     · acsd_phase2_integrate 编入 60 个 cfitsio TU 并定义 _REENTRANT，
 #       却没有 pthread 垫片包含面 ⇒ 55 条 C1083 "pthread.h"（fitsio2.h 的
 #       `#ifdef _REENTRANT` / `#include <pthread.h>` 分支）；
 #     · 同一目标自编 zcompress.c/zuncompress.c 却没有 zlib 包含面 ⇒ C1083 "zlib.h"。
@@ -14,7 +14,7 @@
 #   收成共用函数，重编译点只调用函数、不复制路径字面量。
 #
 # 上游：
-#   docs/ASTROCS_DESIGN.md §8.4（顶层结构·eng/cmake 放平台构建片段）
+#   docs/ACSD_DESIGN.md §8.4（顶层结构·eng/cmake 放平台构建片段）
 #   ENGINEERING_SPEC.md §1（语言、编译器与平台：Windows x64 = MSVC / Linux amd64）
 #   eng/packaging/dependency-lock.json（cfitsio: `_REENTRANT`；MSVC 需 zlib → ACS_ZLIB_ROOT）
 #   .github/workflows/ci-windows.yml "Provide zlib (vcpkg)" 步（注入布局的合同声明）
@@ -22,14 +22,14 @@
 # ── 包含面核查判据（included-surface invariant）─────────────────────────────
 #   核查器：eng/ci/check_cfitsio_platform_surface.py（静态、可判定、带正负例）
 #   I1  每个"编入 vendored cfitsio 源清单"的目标，必须经
-#       `astrocs_cfitsio_apply_platform_shim(<target>)` 拿到 pthread 垫片包含面；
+#       `acsd_cfitsio_apply_platform_shim(<target>)` 拿到 pthread 垫片包含面；
 #   I2  每个"编入含 zlib.h 的 vendored cfitsio TU"的目标，必须经
-#       `astrocs_cfitsio_apply_third_party_deps(<target>)` 拿到 zlib 包含面。
+#       `acsd_cfitsio_apply_third_party_deps(<target>)` 拿到 zlib 包含面。
 #   两条都是**静态可判定**的：判据只看 CMakeLists 声明面，不看工具链、也不看
 #   /usr/include 是否存在（Linux 上系统 provider 会掩盖 Windows 的缺失，
 #   故判据显式排除系统默认搜索路径）。
 #   I3（旗标面，同模块同口径）所有 GCC 专有旗标必须与平台门控写在一处 ——
-#       承载点即本文件的 `astrocs_openmp_link_if_unix()`；统计值：
+#       承载点即本文件的 `acsd_openmp_link_if_unix()`；统计值：
 #       `rg -n -- '-fopenmp' --glob '**/CMakeLists.txt' --glob '**/*.cmake' \`
 #       `  -g '!build/**' -g '!run/**'` 只应命中本文件（调用点不再各写一份）。
 
@@ -39,8 +39,8 @@ include_guard(GLOBAL)
 # 为什么收在一处 (同族两处两套口径的又一例):
 #   全仓 7 个调用点改前是**两套口径**:
 #     (a) 只判 `if(UNIX AND OpenMP_CXX_FOUND)` 且**同时**手写 `-fopenmp` 又链
-#         imported target ⇒ 命令行出现两次 `-fopenmp`: 根 MCU 的 astrocs_aio /
-#         astrocs_calibration / astrocs_drizzle 三处 (实测 ninja 边
+#         imported target ⇒ 命令行出现两次 `-fopenmp`: 根 MCU 的 acsd_aio /
+#         acsd_calibration / acsd_drizzle 三处 (实测 ninja 边
 #         `FLAGS = ... -fopenmp -fopenmp`) —— 未泄漏到 Windows, 但把旗标名
 #         在平台探测之外又硬编了一份, 并且比该 imported target 本该给的链接面多写一遍;
 #     (b) lib/algorithms/drizzle/CMakeLists.txt 只判了 OpenMP_CXX_FOUND 就直接
@@ -50,23 +50,23 @@ include_guard(GLOBAL)
 #         —— 不一致正是漏网的土壤。
 # 现口径: 门控与旗标只在本函数内出现一次 (旗标由 OpenMP::OpenMP_CXX 自带,
 #   不另写 `$<$<COMPILE_LANGUAGE:CXX>:-fopenmp>`); 非 UNIX 或没有 OpenMP 时是空操作。
-#   7 个调用点: 根 CMakeLists.txt 的 astrocs_aio / astrocs_calibration /
-#   astrocs_drizzle + lib/algorithms/{calibration,cosmetic,drizzle} + 见 I3 统计命令。
+#   7 个调用点: 根 CMakeLists.txt 的 acsd_aio / acsd_calibration /
+#   acsd_drizzle + lib/algorithms/{calibration,cosmetic,drizzle} + 见 I3 统计命令。
 #   (MSVC 若将来要开 OpenMP, 应在此处补 /openmp, 而不是在调用点各写一份)。
 # ── 第三方告警隔离 (third-party warning surface) ───────────────────────────
 # 为什么收在一处: 根项目用 `add_compile_options(... $<$<NOT:$<STREQUAL:
-#   $<TARGET_PROPERTY:ASTROCS_WARNINGS_OFF>,1>>:/W4>)` 把"第三方源码不进项目
+#   $<TARGET_PROPERTY:ACSD_WARNINGS_OFF>,1>>:/W4>)` 把"第三方源码不进项目
 #   告警面"做成**目标属性**; 但重复编译同一份 cfitsio 源的 3 个目标里,
-#   astrocs_phase2_integrate / astrocs_p1_drizzle / astrocs_p1_hips_writer 都
+#   acsd_phase2_integrate / acsd_p1_drizzle / acsd_p1_hips_writer 都
 #   没有这个属性 ⇒ 同一批第三方 TU 在基准目标里安静、在重复点里把
 #   drvrnet.c C4206、zuncompress.c C4267/C4244 之类灌进项目告警面
 #   (Windows 基线 1274 warnings 里就有这一份)。同族两套口径 ⇒ 收成一处。
-function(astrocs_cfitsio_isolate_warnings tgt)
+function(acsd_cfitsio_isolate_warnings tgt)
   if(NOT TARGET ${tgt})
     message(FATAL_ERROR
-      "astrocs_cfitsio_isolate_warnings: 目标 '${tgt}' 不存在")
+      "acsd_cfitsio_isolate_warnings: 目标 '${tgt}' 不存在")
   endif()
-  set_target_properties(${tgt} PROPERTIES ASTROCS_WARNINGS_OFF 1)
+  set_target_properties(${tgt} PROPERTIES ACSD_WARNINGS_OFF 1)
   if(MSVC)
     # /W0 (不是 /w) 才能被 CMake 翻成 <WarningLevel>TurnOffAllWarnings</WarningLevel>,
     # 否则 MSBuild 默认 /W1 与 AdditionalOptions 里的 /w 相撞报 D9025
@@ -77,10 +77,10 @@ function(astrocs_cfitsio_isolate_warnings tgt)
   endif()
 endfunction()
 
-function(astrocs_openmp_link_if_unix tgt)
+function(acsd_openmp_link_if_unix tgt)
   if(NOT TARGET ${tgt})
     message(FATAL_ERROR
-      "astrocs_openmp_link_if_unix: 目标 '${tgt}' 不存在 (含面/旗标口径见 eng/cmake/cfitsio_platform.cmake 抬头)")
+      "acsd_openmp_link_if_unix: 目标 '${tgt}' 不存在 (含面/旗标口径见 eng/cmake/cfitsio_platform.cmake 抬头)")
   endif()
   if(UNIX AND OpenMP_CXX_FOUND)
     # 只链 imported target: 它自带 INTERFACE 编译旗标 (GCC/Clang 下即 -fopenmp,
@@ -93,21 +93,21 @@ function(astrocs_openmp_link_if_unix tgt)
 endfunction()
 
 # ── 唯一变量：pthread 垫片目录（重编译点不得另写路径字面量）──────────────
-set(ASTROCS_WIN32_PTHREAD_SHIM_DIR "${CMAKE_SOURCE_DIR}/eng/cmake/win32_pthread_shim"
+set(ACSD_WIN32_PTHREAD_SHIM_DIR "${CMAKE_SOURCE_DIR}/eng/cmake/win32_pthread_shim"
     CACHE INTERNAL "vendored 第三方源在 MSVC 下的 pthread 垫片目录（唯一来源）")
 
 # ── I1: pthread 垫片 ───────────────────────────────────────────────────────
 # 语义：仅在 MSVC 下注入（非 MSVC 平台有真 pthread.h，注入反而遮蔽）；
-#   与根 astrocs_cfitsio 段逐条同口径（MSVC: shim 包含面 + kernel32 链接）。
+#   与根 acsd_cfitsio 段逐条同口径（MSVC: shim 包含面 + kernel32 链接）。
 #   非 MSVC 下本函数为空操作 —— 调用点无需自己写平台判断（写了就又是一处两套口径）。
-function(astrocs_cfitsio_apply_platform_shim tgt)
+function(acsd_cfitsio_apply_platform_shim tgt)
   if(NOT TARGET ${tgt})
     message(FATAL_ERROR
-      "astrocs_cfitsio_apply_platform_shim: 目标 '${tgt}' 不存在；"
+      "acsd_cfitsio_apply_platform_shim: 目标 '${tgt}' 不存在；"
       "本函数只对已声明的目标施加平台适配面（含面口径见 eng/cmake/cfitsio_platform.cmake 抬头）")
   endif()
   if(MSVC)
-    target_include_directories(${tgt} PRIVATE "${ASTROCS_WIN32_PTHREAD_SHIM_DIR}")
+    target_include_directories(${tgt} PRIVATE "${ACSD_WIN32_PTHREAD_SHIM_DIR}")
     # 垫片用 MSVC 内建 _InterlockedExchange（无 Windows 头依赖），
     # 但第三方静态库的消费者仍需 kernel32 解析该内建的导入面 —— 与根段同款登记为
     # PUBLIC 依赖，使重编译点的链接闭包与根目标等价。
@@ -133,10 +133,10 @@ endfunction()
 #     c) 都不可用且 ACS_ZLIB_ROOT 已声明 ⇒ FATAL_ERROR，并打印**两条**合同布局的探测结果
 #        （fail-fast：不允许把错误布局静默传给编译期变成 C1083）。
 #   非 MSVC（Linux/macOS）：ACS_ZLIB_ROOT 通常为空 ⇒ 本函数空操作，行为零变化。
-function(astrocs_cfitsio_apply_third_party_deps tgt)
+function(acsd_cfitsio_apply_third_party_deps tgt)
   if(NOT TARGET ${tgt})
     message(FATAL_ERROR
-      "astrocs_cfitsio_apply_third_party_deps: 目标 '${tgt}' 不存在；"
+      "acsd_cfitsio_apply_third_party_deps: 目标 '${tgt}' 不存在；"
       "本函数只对已声明的目标施加依赖包含面")
   endif()
   if(NOT MSVC)
@@ -214,7 +214,7 @@ function(astrocs_cfitsio_apply_third_party_deps tgt)
     #   INTERFACE 关键字 —— 写 PUBLIC 必报「INTERFACE library can only be used with the
     #   INTERFACE keyword of target_link_libraries」, configure 期硬失败。
     #   实际命中: lib/infrastructure/gaia_xpsd_client/CMakeLists.txt:106 的
-    #   astrocs_gaia_zlib_include (INTERFACE) 把它传进本函数。
+    #   acsd_gaia_zlib_include (INTERFACE) 把它传进本函数。
     #   为何 Linux 看不见: 函数体被上方 `if(NOT MSVC) return()` 门控 ⇒ 非 MSVC 主机
     #   根本走不到这一行 (已用 Linux 负对照实验确认: 设了 ACS_ZLIB_ROOT 仍 configure 成功)。
     #   修法: 与包含面**同口径**复用上面已算好的 ${_acs_inc_scope} (它在函数内无条件赋值,

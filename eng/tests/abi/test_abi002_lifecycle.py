@@ -7,7 +7,7 @@ plan/execute/cancel/inspect/destroy/self_test 的调用时序、并发、重复�
 尾部扩展; 错误 ABI major、空回调、double destroy 负面测试）。
 
 权威形态:
-  1. lib/include/astrocs/abi/lifecycle_v1.h        （合同头: 判定函数声明 + 静态断言）
+  1. lib/include/acsd/abi/lifecycle_v1.h        （合同头: 判定函数声明 + 静态断言）
   2. eng/contracts/config/module_lifecycle_contract.schema.json（机器合同权威数据）
   3. eng/tests/abi/abi002_lifecycle_probe.c        （reference 实现 + 自检）
 本测试执行:
@@ -28,7 +28,7 @@ import tempfile
 import unittest
 
 REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
-HDR = os.path.join(REPO, "lib", "include", "astrocs", "abi", "lifecycle_v1.h")
+HDR = os.path.join(REPO, "lib", "include", "acsd", "abi", "lifecycle_v1.h")
 PROBE = os.path.join(REPO, "eng", "tests", "abi", "abi002_lifecycle_probe.c")
 SCHEMA = os.path.join(REPO, "eng", "contracts", "config", "module_lifecycle_contract.schema.json")
 
@@ -52,7 +52,7 @@ INSTANCE_OPS = ("EXECUTE", "INSPECT", "REQUEST_CANCEL", "DESTROY")
 
 
 def lc_allowed(state_name, op_name):
-    """镜像 acs_lc_transition_allowed_v1 的转移表（与探针实现一致）。"""
+    """镜像 acsd_lc_transition_allowed_v1 的转移表（与探针实现一致）。"""
     if op_name not in INSTANCE_OPS:
         return False
     if state_name == "CREATED":
@@ -88,9 +88,9 @@ class TestAbi002Headers(unittest.TestCase):
             for cc, std, ext in (("gcc", "c11", "c"), ("g++", "c++17", "cpp")):
                 tu = os.path.join(td, f"fam.{ext}")
                 with open(tu, "w", encoding="utf-8") as f:
-                    f.write('#include "astrocs/abi/lifecycle_v1.h"\n'
-                            'int main(void){ (void)acs_abi_compat_v1(1u);'
-                            ' return acs_struct_ext_ok_v1(8u,8u)?0:1;}\n')
+                    f.write('#include "acsd/abi/lifecycle_v1.h"\n'
+                            'int main(void){ (void)acsd_abi_compat_v1(1u);'
+                            ' return acsd_struct_ext_ok_v1(8u,8u)?0:1;}\n')
                 # 只编译（链接语义由探针测试覆盖; 避免未定义引用）
                 r = subprocess.run([cc, f"-std={std}", "-Wall", "-Wextra", "-pedantic",
                                     f"-I{INC}", "-c", tu, "-o",
@@ -102,11 +102,11 @@ class TestAbi002Headers(unittest.TestCase):
         with tempfile.TemporaryDirectory() as td:
             for cc, src, std in (("gcc", "c", "c11"), ("g++", "c++", "c++17")):
                 tu = os.path.join(td, f"lc_{src}.{src}")
-                body = ('#include "astrocs/abi/lifecycle_v1.h"\n'
-                        'int main(void){ return acs_lc_op_error_v1(1,7)==ACS_OK?0:1;}\n'
+                body = ('#include "acsd/abi/lifecycle_v1.h"\n'
+                        'int main(void){ return acsd_lc_op_error_v1(1,7)==ACS_OK?0:1;}\n'
                         if src == "c" else
-                        '#include "astrocs/abi/lifecycle_v1.h"\n'
-                        'int main(){ return acs_lc_op_error_v1(1,7)==ACS_OK?0:1;}\n')
+                        '#include "acsd/abi/lifecycle_v1.h"\n'
+                        'int main(){ return acsd_lc_op_error_v1(1,7)==ACS_OK?0:1;}\n')
                 with open(tu, "w", encoding="utf-8") as f:
                     f.write(body)
                 r = subprocess.run([cc, f"-std={std}", "-Wall", "-Wextra", "-pedantic",
@@ -132,7 +132,7 @@ class TestAbi002Headers(unittest.TestCase):
     def test_03_static_assert_header_self_consistent(self):
         """头文件内含布局静态断言与版本常量关系断言（编译即验证）。"""
         text = open(HDR, encoding="utf-8").read()
-        for macro in ("ACS_STATIC_ASSERT(sizeof(acs_version_negotiation_v1) == 32u",
+        for macro in ("ACS_STATIC_ASSERT(sizeof(acsd_version_negotiation_v1) == 32u",
                       "ACS_STATIC_ASSERT(ACS_ABI_MAJOR_V1 == 1u",
                       "ACS_STATIC_ASSERT(ACS_ABI_VERSION_V1 == 1u"):
             self.assertIn(macro, text, f"头缺静态断言: {macro}")
@@ -277,7 +277,7 @@ class TestAbi002SchemaConsistency(unittest.TestCase):
     @staticmethod
     def _status_codes_text():
         """status_codes.h 全文（状态码枚举冻结基础层; schema 引用的 ACS_ERR_* 均定义于此）。"""
-        p = os.path.join(REPO, "lib", "include", "astrocs", "abi", "status_codes.h")
+        p = os.path.join(REPO, "lib", "include", "acsd", "abi", "status_codes.h")
         return open(p, encoding="utf-8").read()
 
     def test_30_schema_states_operations_match_header_enums(self):

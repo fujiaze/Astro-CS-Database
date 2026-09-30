@@ -71,7 +71,7 @@ def _ensure_mon001_fixture():
             shutil.rmtree(FIELD_HIPS, ignore_errors=True)
             shutil.move(os.path.join(tmpd, "FIELD.hips"), FIELD_HIPS)
         if not os.path.isfile(MON001_CFG):
-            # CLI-002 / docs/ASTROCS_DESIGN 6.2: 现行 export 平铺会话配置形态。
+            # CLI-002 / docs/ACSD_DESIGN 6.2: 现行 export 平铺会话配置形态。
             cfg = {
                 "schema_version": "1",
                 "source": {"hips_dir": FIELD_HIPS},
@@ -99,7 +99,7 @@ def _ensure_mon001_fixture():
 def _run_phase3(events=True):
     """现行载体 export(2c 亲和, 恢复 CI 设计语境)。
 
-    CLI-002 / docs/ASTROCS_DESIGN 6.2: 旧 phase3 run --config 已删(rc=2)。
+    CLI-002 / docs/ACSD_DESIGN 6.2: 旧 phase3 run --config 已删(rc=2)。
     """
     argv = [EXE, "export", "--json", MON001_CFG, "-y"]
     if events:
@@ -129,7 +129,7 @@ class TestP1004JointGate(unittest.TestCase):
 
     def test_01_all_p1_oracles_pass(self):
         """所有 P1 Oracle(6 个)在同 commit 下全绿(数值门)。"""
-        env = dict(os.environ, ASTROCS_REPO=REPO)
+        env = dict(os.environ, ACSD_REPO=REPO)
         for name in P1_ORACLES:
             path = os.path.join(REPO, "eng", "tests", "backend", name)
             r = subprocess.run(["python3", path], capture_output=True, text=True,
@@ -164,7 +164,7 @@ class TestP1004JointGate(unittest.TestCase):
         os.makedirs(TMP, exist_ok=True)
         r = _run_phase3()
         self.assertEqual(r.returncode, 0, r.stderr[-300:])
-        manifests = sorted(glob.glob(os.path.join(TMP, "astrocs_run_*.json")))
+        manifests = sorted(glob.glob(os.path.join(TMP, "acsd_run_*.json")))
         self.assertTrue(manifests, "run manifest 缺失")
         m = json.load(open(manifests[-1]))
         self.assertIn("run_id", m, "science manifest 缺 run_id")

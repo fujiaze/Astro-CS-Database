@@ -1,7 +1,7 @@
 // ACSD Core — 内存压力治理（压力可观测 + 滞回派发门 + 「可丢弃重跑」处置）
 //
 // 规范依据（逐条；口径唯一，不复述上级原文）
-//   * **docs/ASTROCS_DESIGN.md §8.3 编排策略**（最高设计，:609-615）规定了调度器的五条策略，
+//   * **docs/ACSD_DESIGN.md §8.3 编排策略**（最高设计，:609-615）规定了调度器的五条策略，
 //     其中三条由本单元落实：
 //       :611「静态预算」   —— 预算值本身（不变量：预算 = 可用内存 × 比例，见下）
 //       :613「异步并行」   —— 「预算充裕时异步启动多个独立工作流」：**充裕**需要可观测判定
@@ -13,15 +13,15 @@
 //                              必须是一个**运行期可读的量**，而不是一次性快照
 //   * **docs/engineering/SCHEDULER_CONTRACT.md:14/:38**：「线程数、内存上限、队列深度一律
 //     从配置/资源门读取」「线程预算、内存上限（峰值工作集）、队列深度……」
-//   * **docs/ASTROCS_DESIGN.md §4.5 运行前预检 + ENGINEERING_SPEC.md §12 +
+//   * **docs/ACSD_DESIGN.md §4.5 运行前预检 + ENGINEERING_SPEC.md §12 +
 //     eng/contracts/resource_gate_v1.json #disk_gate.no_gate**：资源门只管磁盘，
 //     内存/CPU/线程不设门 ⇒ 本单元是**调度准入与编排处置**，不产生退出码、
 //     不阻断运行、不让 run 失败。
-//   * **docs/ASTROCS_DESIGN.md §8.3:616 不变量**：数值结果与并发度无关 ⇒ 丢弃并重跑一帧
+//   * **docs/ACSD_DESIGN.md §8.3:616 不变量**：数值结果与并发度无关 ⇒ 丢弃并重跑一帧
 //     不得改变任何帧的科学结果（丢弃只改变「何时算」，不改变「算什么」）。
 //
 // 预算口径（**唯一来源，不另发明**）
-//   预算 = astrocs::core::resolve_memory_budget(可用内存, 比例)（lib/include/astrocs/core/
+//   预算 = acsd::core::resolve_memory_budget(可用内存, 比例)（lib/include/acsd/core/
 //   memory_budget.h；比例默认 95 的唯一数值源 = eng/packaging/config/runtime_resources.json）。
 //   本单元**不重算预算**，只持有与消费该结果（禁止第二份预算实现）。
 //   「可用内存」的定义沿用该头所链的 aio 探针口径（MemAvailable（含可回收 page cache，
@@ -59,8 +59,8 @@
 //     不冒充「有治理」也不静默。
 #pragma once
 
-#ifndef ASTROCS_CORE_MEMORY_PRESSURE_H
-#define ASTROCS_CORE_MEMORY_PRESSURE_H
+#ifndef ACSD_CORE_MEMORY_PRESSURE_H
+#define ACSD_CORE_MEMORY_PRESSURE_H
 
 #include <cstdint>
 #include <map>
@@ -69,9 +69,9 @@
 #include <string>
 #include <vector>
 
-#include "astrocs/core/memory_budget.h"
+#include "acsd/core/memory_budget.h"
 
-namespace astrocs::core {
+namespace acsd::core {
 
 // 压力分子来源（依赖注入：core 不链接 aio，调用方注入 aio_process_tree_rss_bytes）。
 // 返回 0 = 不可判定。必须 reentrant（可被多线程并发调用）。
@@ -254,6 +254,6 @@ class GovernorScope {
   MemoryPressureGovernor* prev_;
 };
 
-}  // namespace astrocs::core
+}  // namespace acsd::core
 
-#endif  // ASTROCS_CORE_MEMORY_PRESSURE_H
+#endif  // ACSD_CORE_MEMORY_PRESSURE_H

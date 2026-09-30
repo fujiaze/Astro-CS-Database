@@ -50,13 +50,13 @@ PROJ_DRIVER = r'''
 #include <cstdio>
 #include <cstring>
 #include <string>
-using namespace astrocs::phase3proj;
+using namespace acsd::phase3proj;
 int main(int argc, char** argv) {
     if (argc < 7) { std::fprintf(stderr, "usage: <code> <ra0> <dec0> <scale> <W> <H>\n"); return 2; }
     // 往返容差单一事实源（GATES §3 G-P1-WCS-BRIDGE / -GLOBAL; GATE-WCS-01 裁决 7）
     {
-        const astrocs::phase3::P3WcsApplicability* ap =
-            astrocs::phase3::p3_wcs_applicability("TAN");
+        const acsd::phase3::P3WcsApplicability* ap =
+            acsd::phase3::p3_wcs_applicability("TAN");
         if (ap == nullptr) { std::fprintf(stderr, "no TAN applicability declaration\n"); return 4; }
         std::printf("CONTRACT tight=%.17g global=%.17g min_scale=%.17g c_env=%.17g\n",
                     ap->roundtrip_tol_px, ap->roundtrip_tol_global_px,

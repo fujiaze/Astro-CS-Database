@@ -16,7 +16,7 @@
 //
 // 注: 本 TU 不引用 baseline_backend.cpp.o 的任何外链符号, 匿名命名空间实体
 // 均为内部链接, 与 lib 内同名 .inc 实例无 ODR 冲突。
-#include "astrocs/common_abi_v1.h"
+#include "acsd/common_abi_v1.h"
 #include "baseline_kernels.h"
 
 #include <algorithm>
@@ -77,18 +77,18 @@ void counting_log(void* ud, int level, const char*, const char*) {
     if (level >= ACS_LOG_ERROR) lc->errors.fetch_add(1);
 }
 
-astrocs_host_services_v1 make_host(uint32_t max_workers,
+acsd_host_services_v1 make_host(uint32_t max_workers,
                                    int (*acquire)(void*, uint32_t),
                                    LogCount* log_ud) {
-    astrocs_host_services_v1 h{};
+    acsd_host_services_v1 h{};
     h.struct_size = sizeof(h);
     h.abi_version = ACS_ABI_VERSION_V1;
-    h.allocator = {sizeof(acs_allocator), ACS_ABI_VERSION_V1, &fake_alloc,
+    h.allocator = {sizeof(acsd_allocator), ACS_ABI_VERSION_V1, &fake_alloc,
                    &fake_free, nullptr};
-    h.logger = {sizeof(acs_logger), ACS_ABI_VERSION_V1, &counting_log, log_ud};
-    h.cancel = {sizeof(acs_cancel), ACS_ABI_VERSION_V1,
+    h.logger = {sizeof(acsd_logger), ACS_ABI_VERSION_V1, &counting_log, log_ud};
+    h.cancel = {sizeof(acsd_cancel), ACS_ABI_VERSION_V1,
                 [](void*) { return 0; }, nullptr};
-    h.budget = {sizeof(acs_thread_budget), ACS_ABI_VERSION_V1, max_workers,
+    h.budget = {sizeof(acsd_thread_budget), ACS_ABI_VERSION_V1, max_workers,
                 max_workers, acquire, &fake_release, nullptr};
     return h;
 }
@@ -98,7 +98,7 @@ astrocs_host_services_v1 make_host(uint32_t max_workers,
 int run_case(const char* name, uint32_t max_workers,
              int (*acquire)(void*, uint32_t), uint32_t n_rows, int throw_bands) {
     LogCount lc;
-    astrocs_host_services_v1 host = make_host(max_workers, acquire, &lc);
+    acsd_host_services_v1 host = make_host(max_workers, acquire, &lc);
     g_acquired.store(0);
     g_released.store(0);
     std::atomic<int> caught_std{0}, caught_nonstd{0};
@@ -122,7 +122,7 @@ int run_case(const char* name, uint32_t max_workers,
         }
     };
 
-    acs_status err = ACS_OK;
+    acsd_status err = ACS_OK;
     const uint32_t used = run_banded(&host, n_rows, body, &err);  // 若未修复: worker 路径在此 std::terminate
 
     std::printf("  case %-24s throw_bands=%d err=%d workers=%u log_err=%d "
@@ -146,7 +146,7 @@ int run_case(const char* name, uint32_t max_workers,
 }  // namespace
 
 /* ABI 边界回归(家族机制证明): f1cb487c 引入的边界屏障仍在 */
-extern "C" int astrocs_abi_boundary_probe(int mode);
+extern "C" int acsd_abi_boundary_probe(int mode);
 
 int main() {
     std::printf("P1-4 baseline kernels exception-barrier injection tests\n");
@@ -163,9 +163,9 @@ int main() {
     CHECK(run_case("parallel_ok", 4, &fake_acquire, 64, 0) == 0);
     CHECK(run_case("serial_ok", 1, &fake_acquire, 8, 0) == 0);
 
-    // 7) ABI 边界屏障回归: astrocs_abi_boundary_probe(mode=1) 仍收敛 ACS_ERR_INTERNAL
-    CHECK(astrocs_abi_boundary_probe(0) == ACS_OK);
-    CHECK(astrocs_abi_boundary_probe(1) == ACS_ERR_INTERNAL);
+    // 7) ABI 边界屏障回归: acsd_abi_boundary_probe(mode=1) 仍收敛 ACS_ERR_INTERNAL
+    CHECK(acsd_abi_boundary_probe(0) == ACS_OK);
+    CHECK(acsd_abi_boundary_probe(1) == ACS_ERR_INTERNAL);
 
     std::printf("CPU-BACKEND-EXCEPTION TESTS PASS\n");
     return 0;

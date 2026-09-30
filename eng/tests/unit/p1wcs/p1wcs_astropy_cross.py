@@ -142,7 +142,7 @@ def ensure_writable_dir(path, source):
             "work dir not creatable: %s (source: %s)\n"
             "  cause: %s: %s\n"
             "  fix: pass a writable --work-dir DIR or set %s (no silent "
-            "fallback / no skipped work; ASTROCS constitution 14.4)"
+            "fallback / no skipped work; ACSD constitution 14.4)"
             % (path, source, type(exc).__name__, exc, WORK_DIR_ENV))
     if not os.path.isdir(str(path)):
         raise WorkDirError(
@@ -159,7 +159,7 @@ def ensure_writable_dir(path, source):
             "work dir not writable: %s (source: %s)\n"
             "  cause: %s: %s\n"
             "  fix: pass a writable --work-dir DIR or set %s (no silent "
-            "fallback / no skipped work; ASTROCS constitution 14.4)"
+            "fallback / no skipped work; ACSD constitution 14.4)"
             % (path, source, type(exc).__name__, exc, WORK_DIR_ENV))
     return path
 

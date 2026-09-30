@@ -4,7 +4,7 @@
 # 字段语义由 eng/contracts/schemas/contract_index.schema.json 约束；
 # 旧合同 ID 到统一对象 canonical 的判定登记于 legacy_contract_id_map（本文件末段）。
 
-schema: astrocs.contract-index/v1
+schema: acsd.contract-index/v1
 version: 1.0.0
 
 contracts:

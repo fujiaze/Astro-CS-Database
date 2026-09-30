@@ -8,7 +8,7 @@
 # sdet_detect_debug/sdet_free_debug_maps 已随 e891df28 重写注销为死符号），
 # 唯一权威签名头
 # lib/algorithms/star_detection/include/star_detector.h:1-99），模块化迁移（独立模块源
-# astrocs_p1_star_detection.dll / C ABI adapter / plan-execute-cancel-inspect /
+# acsd_p1_star_detection.dll / C ABI adapter / plan-execute-cancel-inspect /
 # ThreadLease 接线）由 P1-STAR-IMPL 执行；可执行测试由 P1-STAR-TEST 建立
 # （TEST-STAR-DESIGN-001 → TEST-P1-STAR-001）。
 # 字段遵循 11_MODULE_SOURCE_TEST_STANDARD.md §4；source_symbols 为源码核对清单
@@ -17,15 +17,15 @@
 # sdet_gauss_fit/sdet_lm_fit/reject_star，均 grep 实测于 sdet_api.cpp），
 # 禁止手抄他版。
 # 落位依据：MODULE_MIGRATION_MATRIX.csv P1-STAR 行 owner=SA-P1-S15、
-# target=astrocs_p1_star_detection.dll、module_id=astrocs.p1.star_detection、
+# target=acsd_p1_star_detection.dll、module_id=acsd.p1.star_detection、
 # legacy_paths="lib/algorithms/star_detection;lib/algorithms/star_detection/wrapper_phase1"、depends_on_int=
 # "IO-003;DATA-004;RT-006"、科学专项=subpixel centroid;completeness/false
 # positive synthetic fields;saturation/blend/edge;deterministic ordering。
-# dll_target=astrocs_p1_star_detection.dll 为迁移目标合同值（尚未存在）。现状
+# dll_target=acsd_p1_star_detection.dll 为迁移目标合同值（尚未存在）。现状
 # 构建=lib/algorithms/star_detection/Makefile:39（g++ -shared -fopenmp -O3 -march=native →
 # star_detector.dll）+ lib/infrastructure/pipeline/orchestrator/cpp/src/orchestrator.cpp:1539-1549
 # （lib/algorithms/star_detection/star_detector.dll 显式加载，失败即错）；根 CMakeLists.txt:441
-# 另有 astrocs_phase1_stars STATIC（lib/algorithms/star_detection/wrapper_phase1 P1-003 桥接层，独立
+# 另有 acsd_phase1_stars STATIC（lib/algorithms/star_detection/wrapper_phase1 P1-003 桥接层，独立
 # sigma-clip 实现，与生产 sdet_api.cpp 非同一算法路径）——整合与 dll 重命名归
 # P1-STAR-IMPL。
 # threading_model=host_executor_lease 为迁移目标合同值（11 号标准 §4 值域）；
@@ -37,13 +37,13 @@
 # DISP-STAR-001..005）。
 # entrypoint=MISSING：registry 入口未接；descriptor 现状占位 ID（lib/infrastructure/scheduler/src/
 # module_adapters.cpp:430-448 p1_star_psf_descriptor：module_id=
-# astrocs.phase1.star-psf、sci_id=SCI-P1-PSF-001、alg_id=ALG-002、
+# acsd.phase1.star-psf、sci_id=SCI-P1-PSF-001、alg_id=ALG-002、
 # data_id=DATA-P1-SOURCES、api_id=API-P1-003、test_id=TEST-P1-PSF-001、
 # ports cleaned/sources/psf）为编排层词汇，由 P1-PSF-INT/P1-STAR-INT 对齐本
 # manifest 与 lib/algorithms/star_detection/README.md（r1），不得反向作为冻结依据。
-schema: astrocs.module-manifest/v1
-id: MOD-astrocs-phase1-star
-module_id: astrocs.p1.star_detection
+schema: acsd.module-manifest/v1
+id: MOD-acsd-phase1-star
+module_id: acsd.p1.star_detection
 owner: SA-P1-S15
 language: c++17
 # module_version 属 module 命名空间（docs/engineering/RELEASE_STATUS.md §2），取值须与
@@ -51,8 +51,8 @@ language: c++17
 module_version: 0.1.0-alpha.1
 abi_version: 1
 phase_scope: phase1
-dll_name: astrocs_p1_star_detection.dll
-dll_target: astrocs_p1_star_detection.dll
+dll_name: acsd_p1_star_detection.dll
+dll_target: acsd_p1_star_detection.dll
 module_status: CONTRACT_READY
 entrypoint: MISSING
 node_operations: [star_detection]
@@ -80,7 +80,7 @@ contract_ids:
   alg: ALG-STARDET-001
   data: DATA-P1-STAR
   api: API-STAR-001
-  mod: MOD-astrocs-phase1-star
+  mod: MOD-acsd-phase1-star
   src: SRC-STAR-001
   test: TEST-STAR-DESIGN-001
 exports:

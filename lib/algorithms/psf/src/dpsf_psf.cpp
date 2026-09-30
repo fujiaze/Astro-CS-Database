@@ -28,7 +28,7 @@
 //       供节点级门（p1stardet_node_gate）900 s 级超时做定量定位。
 // 边界（先例 = lib/algorithms/star_detection/src/sdet_api.cpp 的 #ifdef
 //       SDET_TESTING 审计钩子: 「生产构建不含此定义, ABI/行为零影响」）:
-//   * 生产 target astrocs_p1_dpsf **不定义** DPSF_FIT_DIAG ⇒ 本块整段不编入,
+//   * 生产 target acsd_p1_dpsf **不定义** DPSF_FIT_DIAG ⇒ 本块整段不编入,
 //     生产二进制的数值、状态码、时序与判据逐位不变;
 //   * 编入后仍要运行期 DPSF_DIAG_PATH 非空才记录, 否则每次拟合只多一次
 //     cached 环境查询;
@@ -283,7 +283,7 @@ static constexpr double kDpsfStallRel = 1e-6;        // 相对代价进展阈值
 // 改成 3，从而改变批产物（n_valid / out_status 数组）。
 // p1psf_stall_equiv 的注入相（-DDPSF_BATCH_STALL_ITERS=2）实测必红，非恒真。
 // 因此本机制在生产路径**关闭**；保留仅为 §8 变更流程评估用，生产 target
-// astrocs_p1_dpsf 与 DPSF_FIT_DIAG 均不定义该宏。关闭时全部相关分支不参与
+// acsd_p1_dpsf 与 DPSF_FIT_DIAG 均不定义该宏。关闭时全部相关分支不参与
 // 任何算术语义 ⇒ 与整改前逐位相同（实测证据见报告 §5.5）。
 #ifndef DPSF_BATCH_STALL_ITERS
 #define DPSF_BATCH_STALL_ITERS 0

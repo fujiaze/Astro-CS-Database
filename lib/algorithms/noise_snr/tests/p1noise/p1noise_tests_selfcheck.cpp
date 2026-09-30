@@ -2,7 +2,7 @@
 //
 // 验收 (模板 <prefix>-TEST): "故障注入能让测试失败" + "不得写永远 PASS\n// 的占位"。本可执行两阶段:
 //   1) 基线: 无注入跑 units 组 → 必 PASS (排除恒 FAIL 侧)。
-//   2) 注入: 子进程以 ASTROCS_P1NOISE_FAULT=<name> 重跑本二进制 → 必 FAIL
+//   2) 注入: 子进程以 ACSD_P1NOISE_FAULT=<name> 重跑本二进制 → 必 FAIL
 //      (排除恒 PASS 侧), stderr 含 FAULT-INJECT 行。
 // 注入名与 faultname 注册处 (p1noise_tests_core.cpp P1NOISE_CHECK 第三参)
 // 对齐: a1_sigma_rtol / a2_oracle_bitwise / b1_plane_ls_rtol /
@@ -102,7 +102,7 @@ int run_selfcheck() {
     // 阶段 2: 子进程注入 → 必 FAIL
     const char* fault = std::getenv("P1NOISE_SELFCHECK_FAULT");
     const std::string name = fault ? fault : "a1_sigma_rtol";
-    std::string fault_env = "ASTROCS_P1NOISE_FAULT=" + name;
+    std::string fault_env = "ACSD_P1NOISE_FAULT=" + name;
     std::vector<char> fbuf(fault_env.begin(), fault_env.end());
     fbuf.push_back('\0');
 
@@ -154,7 +154,7 @@ int run_selfcheck() {
         }
         std::fprintf(stdout, "SELFCHECK phase3a: baseline negative PASS (非恒FAIL)\n");
 
-        const std::string n7fault = "ASTROCS_P1NOISE_FAULT=n7_plane_pred_unavailable";
+        const std::string n7fault = "ACSD_P1NOISE_FAULT=n7_plane_pred_unavailable";
         std::vector<char> n7buf(n7fault.begin(), n7fault.end());
         n7buf.push_back('\0');
         char* n7_env[] = {n7buf.data(), nullptr};
@@ -206,7 +206,7 @@ int run_selfcheck() {
                 std::fprintf(stderr, "SELFCHECK: baseline adaptive FAIL — 恒 FAIL 侧不通过\n");
                 return 1;
             }
-            std::string envs = std::string("ASTROCS_P1NOISE_FAULT=") + faults[fi];
+            std::string envs = std::string("ACSD_P1NOISE_FAULT=") + faults[fi];
             std::vector<char> buf(envs.begin(), envs.end());
             buf.push_back('\0');
             char* env[] = {buf.data(), nullptr};
@@ -258,7 +258,7 @@ int run_selfcheck() {
 
 int main(int argc, char** argv) {
     // 带注入环境重入: 子进程直接跑指定组 (FaultRegistry 已由框架装载)
-    if (std::getenv("ASTROCS_P1NOISE_FAULT") != nullptr && argc >= 2) {
+    if (std::getenv("ACSD_P1NOISE_FAULT") != nullptr && argc >= 2) {
         return p1noise_run_core_groups(argc, argv);
     }
     return run_selfcheck();

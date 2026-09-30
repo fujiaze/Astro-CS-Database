@@ -3,7 +3,7 @@
 
 #include <cstring>
 
-namespace astrocs {
+namespace acsd {
 namespace aio {
 namespace {
 
@@ -120,4 +120,4 @@ std::string Sha256::hex_of_string(const std::string& s) {
 }
 
 }  // namespace aio
-}  // namespace astrocs
+}  // namespace acsd

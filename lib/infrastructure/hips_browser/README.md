@@ -14,4 +14,4 @@
 
 ## 上游
 
-上游：docs/ASTROCS_DESIGN.md §8.4（infrastructure/hips_browser：未来 GUI 组件，不进产品清单）。
+上游：docs/ACSD_DESIGN.md §8.4（infrastructure/hips_browser：未来 GUI 组件，不进产品清单）。

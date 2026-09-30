@@ -7,7 +7,7 @@ HOST = os.path.join(REPO, "lib", "infrastructure", "benchmark", "backend_host")
 INC = os.path.join(REPO, "lib", "include")
 
 # 根目录整合后 aio 落 lib/infrastructure/aio，其 PUBLIC include 面 = include/ + src/
-# （见根 CMakeLists.txt: target_include_directories(astrocs_aio PUBLIC ...)）。
+# （见根 CMakeLists.txt: target_include_directories(acsd_aio PUBLIC ...)）。
 # 测试侧独立编译必须同面，否则 aio_atomic_file.h / aio_file_io.h 找不到
 # （GATE-502：修复根目录整合后测试侧遗留的过时 include 面）。
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -68,8 +68,8 @@ class TestIsaVariants(unittest.TestCase):
         chk = subprocess.run(["python3", os.path.join(REPO, "eng", "tools", "quality",
                                                       "check_variant_isa_disasm.py"),
                               "--text", dp, "--isa", "avx2",
-                              "--hit", "astrocs_variant_kernel_dispatch_v1",
-                              "--clean-symbol", "astrocs_backend_get_api_v1",
+                              "--hit", "acsd_variant_kernel_dispatch_v1",
+                              "--clean-symbol", "acsd_backend_get_api_v1",
                               "--clean-symbol", "backend_self_test",
                               "--require-feature", "fma", "--quiet"],
                              capture_output=True, text=True, timeout=120)
@@ -154,14 +154,14 @@ class TestIsaVariants(unittest.TestCase):
         sha = hashlib.sha256(open(self.vso, "rb").read()).hexdigest()
         # 正确变体 → 预检通过(AVX2 主机)
         mf = os.path.join(self.tmp, "m.json")
-        json.dump({"schema_version": "1", "kind": "astrocs_backends_manifest", "backends": [
+        json.dump({"schema_version": "1", "kind": "acsd_backends_manifest", "backends": [
             {"file": "avx2_backend.so", "backend_id": "avx2", "sha256": sha,
              "abi_version": 1, "required_features_bits": (1 << 2) | (1 << 4)}]}, open(mf, "w"))
         run = subprocess.run([exe, self.tmp, mf], capture_output=True, text=True, timeout=60)
         self.assertIn("LOADED backend_id=avx2", run.stdout)
         self.assertIn("SELFTEST_OK", run.stdout)
         # 假 hash 变体 → 拒绝
-        json.dump({"schema_version": "1", "kind": "astrocs_backends_manifest", "backends": [
+        json.dump({"schema_version": "1", "kind": "acsd_backends_manifest", "backends": [
             {"file": "avx2_backend.so", "backend_id": "avx2", "sha256": "0" * 64,
              "abi_version": 1, "required_features_bits": (1 << 2) | (1 << 4)}]}, open(mf, "w"))
         run2 = subprocess.run([exe, self.tmp, mf], capture_output=True, text=True, timeout=60)

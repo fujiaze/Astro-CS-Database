@@ -16,7 +16,7 @@
 
 方法 (照 eng/tests/runtime/test_rt004_executor.py / test_rt003_budget_wiring.py 先例):
   Python unittest 内嵌 C++ driver，g++ 真实编译链接 lib/infrastructure/scheduler/src/plan_estimator.cpp
-  + lib/include/astrocs/core 头，运行断言并输出 ALL PASS / N FAIL。
+  + lib/include/acsd/core 头，运行断言并输出 ALL PASS / N FAIL。
 """
 from __future__ import annotations
 
@@ -33,7 +33,7 @@ CORE = REPO / "lib" / "infrastructure" / "scheduler" / "src"
 
 _DRIVER = r'''
 // RT-005 harness: plan_estimator 独立纯函数库验收（真实编译链接 + 运行断言）
-#include "astrocs/core/plan_estimator.h"
+#include "acsd/core/plan_estimator.h"
 
 #include <cinttypes>
 #include <cmath>
@@ -42,7 +42,7 @@ _DRIVER = r'''
 #include <string>
 #include <vector>
 
-using namespace astrocs::core;
+using namespace acsd::core;
 
 static int g_checks = 0;
 static int g_failures = 0;
@@ -68,7 +68,7 @@ static bool approx_less(uint64_t a, uint64_t b, uint64_t rel_ppm, uint64_t abs_t
 // ══ A. 不同输入 → 不同计划（字段真实函数） ══
 static void test_inputs_vary_plan() {
   PlanInputMetadata a{};
-  a.module_id = "astrocs.phase3.resample2"; a.is_heavy = true;
+  a.module_id = "acsd.phase3.resample2"; a.is_heavy = true;
   a.width_px = 2000; a.height_px = 2000; a.input_order = 8;
   a.scale_deg_per_px = 0.001;
   auto ra = estimate_plan(a);
@@ -105,7 +105,7 @@ static void test_inputs_vary_plan() {
 
   // P2 输入 tiles 变化 → work_units/read/write/peak 全变
   PlanInputMetadata p2a{};
-  p2a.module_id = "astrocs.phase2.integrate"; p2a.is_heavy = true;
+  p2a.module_id = "acsd.phase2.integrate"; p2a.is_heavy = true;
   p2a.n_tiles_input = 100; p2a.n_frames = 8; p2a.input_order = 6;
   auto r2a = estimate_plan(p2a);
   CHECK(r2a.ok());
@@ -118,7 +118,7 @@ static void test_inputs_vary_plan() {
 
   // P1 帧数变化 → work_units/read 变
   PlanInputMetadata p1a{};
-  p1a.module_id = "astrocs.phase1.calibration"; p1a.is_heavy = true;
+  p1a.module_id = "acsd.phase1.calibration"; p1a.is_heavy = true;
   p1a.width_px = 2048; p1a.height_px = 2048; p1a.n_frames = 3;
   auto r1a = estimate_plan(p1a);
   CHECK(r1a.ok());
@@ -132,7 +132,7 @@ static void test_inputs_vary_plan() {
 // ══ B. 字段存在性与一致性 ══
 static void test_fields_present_and_consistent() {
   PlanInputMetadata a{};
-  a.module_id = "astrocs.phase3.resample2"; a.is_heavy = true;
+  a.module_id = "acsd.phase3.resample2"; a.is_heavy = true;
   a.width_px = 2000; a.height_px = 2000; a.input_order = 8;
   a.scale_deg_per_px = 0.001;
   auto r = estimate_plan(a);
@@ -161,7 +161,7 @@ static void test_fields_present_and_consistent() {
 
   // P2 integrate
   PlanInputMetadata p2{};
-  p2.module_id = "astrocs.phase2.integrate"; p2.is_heavy = true;
+  p2.module_id = "acsd.phase2.integrate"; p2.is_heavy = true;
   p2.n_tiles_input = 100; p2.n_frames = 8; p2.input_order = 6;
   auto r2 = estimate_plan(p2);
   CHECK(r2.ok());
@@ -173,7 +173,7 @@ static void test_fields_present_and_consistent() {
 
   // P1 calibration
   PlanInputMetadata p1{};
-  p1.module_id = "astrocs.phase1.calibration"; p1.is_heavy = true;
+  p1.module_id = "acsd.phase1.calibration"; p1.is_heavy = true;
   p1.width_px = 2048; p1.height_px = 2048; p1.n_frames = 3;
   auto r1 = estimate_plan(p1);
   CHECK(r1.ok());
@@ -188,7 +188,7 @@ static void test_fields_present_and_consistent() {
 
   // P3 properties（轻量 metadata 模块）: 显式 tiny/serial_only
   PlanInputMetadata pr{};
-  pr.module_id = "astrocs.phase3.properties";
+  pr.module_id = "acsd.phase3.properties";
   auto rp = estimate_plan(pr);
   CHECK(rp.ok());
   CHECK(rp.plan.tiny_work);
@@ -232,7 +232,7 @@ static bool frozen_bounds_ok(const PlanEstimate& est, uint64_t* lo, uint64_t* hi
 static void test_frozen_peak_bounds() {
   // P3 重投影各尺寸
   PlanInputMetadata a{};
-  a.module_id = "astrocs.phase3.resample2"; a.is_heavy = true;
+  a.module_id = "acsd.phase3.resample2"; a.is_heavy = true;
   a.width_px = 2000; a.height_px = 2000; a.input_order = 8;
   a.scale_deg_per_px = 0.001;
   auto r = estimate_plan(a);
@@ -245,14 +245,14 @@ static void test_frozen_peak_bounds() {
   CHECK(lo2 == lo && hi2 == hi);  // 独立复算与 API 冻结界一致
   // P1/P2 同类
   PlanInputMetadata p2{};
-  p2.module_id = "astrocs.phase2.integrate"; p2.is_heavy = true;
+  p2.module_id = "acsd.phase2.integrate"; p2.is_heavy = true;
   p2.n_tiles_input = 100; p2.n_frames = 8; p2.input_order = 6;
   auto r2 = estimate_plan(p2);
   CHECK(r2.ok());
   CHECK(peak_within_frozen_bounds(r2.plan, &lo, &hi));
   CHECK(r2.plan.peak_memory_bytes >= lo && r2.plan.peak_memory_bytes <= hi);
   PlanInputMetadata p1{};
-  p1.module_id = "astrocs.phase1.calibration"; p1.is_heavy = true;
+  p1.module_id = "acsd.phase1.calibration"; p1.is_heavy = true;
   p1.width_px = 2048; p1.height_px = 2048; p1.n_frames = 3;
   auto r1 = estimate_plan(p1);
   CHECK(r1.ok());
@@ -270,7 +270,7 @@ static void test_frozen_peak_bounds() {
 static void test_heavy_tiny_and_tiny_labels() {
   // heavy 且 work_units==1 且非 tiny → 拒绝（14 标准 §3：不等运行后才发现单线程）
   PlanInputMetadata h{};
-  h.module_id = "astrocs.phase3.resample2"; h.is_heavy = true;
+  h.module_id = "acsd.phase3.resample2"; h.is_heavy = true;
   h.width_px = 4096; h.height_px = 8; h.input_order = 8; h.scale_deg_per_px = 0.001;
   // 输出 32768 px > 128×128 → 非 tiny；H=8 → 单行带 → max useful==1 → 拒绝
   auto rh = estimate_plan(h);
@@ -289,7 +289,7 @@ static void test_heavy_tiny_and_tiny_labels() {
   // heavy P2: 单 tile（512×512=262144px > tiny 阈值 128×128）→ 非 tiny + max==1
   // → HEAVY_TINY 拒绝（计划并行度 1 且非 tiny，14 标准 §3）
   PlanInputMetadata p2{};
-  p2.module_id = "astrocs.phase2.integrate"; p2.is_heavy = true;
+  p2.module_id = "acsd.phase2.integrate"; p2.is_heavy = true;
   p2.n_tiles_input = 1; p2.n_frames = 1; p2.input_order = 0;
   auto r2 = estimate_plan(p2);
   CHECK(!r2.ok());
@@ -300,13 +300,13 @@ static void test_heavy_tiny_and_tiny_labels() {
 static void test_serial_only_labels() {
   // P3 properties 轻量模块: 显式 tiny + serial_only
   PlanInputMetadata pr{};
-  pr.module_id = "astrocs.phase3.properties";
+  pr.module_id = "acsd.phase3.properties";
   auto rp = estimate_plan(pr);
   CHECK(rp.ok());
   CHECK(rp.plan.tiny_work && rp.plan.serial_only);
   // 重投影 64×64 tiny 但可切 4 行带: tiny=true, serial_only=false（并行仍有用）
   PlanInputMetadata a{};
-  a.module_id = "astrocs.phase3.resample2"; a.is_heavy = true;
+  a.module_id = "acsd.phase3.resample2"; a.is_heavy = true;
   a.width_px = 64; a.height_px = 64; a.input_order = 8; a.scale_deg_per_px = 0.001;
   auto ra = estimate_plan(a);
   CHECK(ra.ok());
@@ -332,12 +332,12 @@ static void test_error_paths_checked() {
   auto r = estimate_plan(e0);
   CHECK(!r.ok() && r.error == PlanEstimateError::PARAM);
   // 未知模块
-  PlanInputMetadata u{}; u.module_id = "astrocs.nope"; u.width_px = 100;
+  PlanInputMetadata u{}; u.module_id = "acsd.nope"; u.width_px = 100;
   auto ru = estimate_plan(u);
   CHECK(!ru.ok() && ru.error == PlanEstimateError::UNSUPPORTED_MODULE);
   // P3 resample: W/H = 0 → PARAM（不得产出 work_units=0 伪计划）
   PlanInputMetadata z{};
-  z.module_id = "astrocs.phase3.resample2"; z.is_heavy = true;
+  z.module_id = "acsd.phase3.resample2"; z.is_heavy = true;
   z.width_px = 0; z.height_px = 2000; z.input_order = 8; z.scale_deg_per_px = 0.001;
   auto rz = estimate_plan(z);
   CHECK(!rz.ok() && rz.error == PlanEstimateError::PARAM);
@@ -354,14 +354,14 @@ static void test_error_paths_checked() {
   CHECK(!rz.ok() && rz.error == PlanEstimateError::UNSUPPORTED_PROJECTION);
   // W*H 溢出（u64）→ PARAM（checked 拒绝，不得静默饱和）
   PlanInputMetadata ov{};
-  ov.module_id = "astrocs.phase3.resample2"; ov.is_heavy = true;
+  ov.module_id = "acsd.phase3.resample2"; ov.is_heavy = true;
   ov.width_px = 1ull << 40; ov.height_px = 1ull << 40;
   ov.input_order = 8; ov.scale_deg_per_px = 0.001;
   auto rov = estimate_plan(ov);
   CHECK(!rov.ok() && rov.error == PlanEstimateError::PARAM);
   // P1: 缺尺寸 / frames=0 / 溢出 → PARAM
   PlanInputMetadata p1{};
-  p1.module_id = "astrocs.phase1.calibration"; p1.is_heavy = true;
+  p1.module_id = "acsd.phase1.calibration"; p1.is_heavy = true;
   p1.width_px = 2048; p1.height_px = 2048; p1.n_frames = 3;
   PlanInputMetadata p1n = p1; p1n.width_px = 0;
   auto r1 = estimate_plan(p1n);
@@ -377,7 +377,7 @@ static void test_error_paths_checked() {
   CHECK(!r1.ok() && r1.error == PlanEstimateError::PARAM);
   // P2: n_tiles 溢出 / order 越界 → PARAM
   PlanInputMetadata p2{};
-  p2.module_id = "astrocs.phase2.integrate"; p2.is_heavy = true;
+  p2.module_id = "acsd.phase2.integrate"; p2.is_heavy = true;
   p2.n_tiles_input = 100; p2.n_frames = 8; p2.input_order = 6;
   PlanInputMetadata p2n = p2; p2n.n_tiles_input = 1ull << 50;
   auto r2 = estimate_plan(p2n);
@@ -387,7 +387,7 @@ static void test_error_paths_checked() {
   CHECK(!r2.ok() && r2.error == PlanEstimateError::PARAM);
   // 溢出拒绝路径不得产出 UINT64_MAX 饱和计划（错误返回时 plan 无意义但不得回绕）
   PlanInputMetadata big{};
-  big.module_id = "astrocs.phase3.resample"; big.is_heavy = true;
+  big.module_id = "acsd.phase3.resample"; big.is_heavy = true;
   big.width_px = UINT64_MAX; big.height_px = UINT64_MAX;
   big.input_order = 20; big.scale_deg_per_px = 1e-9;
   auto rbig = estimate_plan(big);
@@ -397,14 +397,14 @@ static void test_error_paths_checked() {
 // ══ G. 序列化（稳定 JSON 可解析） ══
 static void test_json_stable() {
   PlanInputMetadata a{};
-  a.module_id = "astrocs.phase2.reject"; a.is_heavy = true;
+  a.module_id = "acsd.phase2.reject"; a.is_heavy = true;
   a.n_tiles_input = 64; a.n_frames = 4; a.input_order = 5;
   auto r = estimate_plan(a);
   CHECK(r.ok());
   const std::string j1 = plan_estimate_to_json(r.plan);
   const std::string j2 = plan_estimate_to_json(r.plan);
   CHECK(j1 == j2);                            // 确定性
-  CHECK(j1.find("\"module_id\":\"astrocs.phase2.reject\"") != std::string::npos);
+  CHECK(j1.find("\"module_id\":\"acsd.phase2.reject\"") != std::string::npos);
   CHECK(j1.find("\"axis\":\"tile\"") != std::string::npos);
   CHECK(j1.find("\"work_units\":64") != std::string::npos);
   CHECK(j1.find("\"kernel_ids\":[\"rejection-statistics\"]") != std::string::npos);
@@ -429,9 +429,9 @@ int main() {
 '''
 
 # ── Python 静态断言 ──
-# 头文件现役落点 = lib/include/astrocs/core/plan_estimator.h（INC 内的目录名
-# 与 #include 口径都是 astrocs；原字面量 acsd 是改名残留 ⇒ setUpClass FileNotFoundError）。
-_HDR = INC / "astrocs" / "core" / "plan_estimator.h"
+# 头文件现役落点 = lib/include/acsd/core/plan_estimator.h（INC 内的目录名
+# 与 #include 口径都是 acsd；原字面量 acsd 是改名残留 ⇒ setUpClass FileNotFoundError）。
+_HDR = INC / "acsd" / "core" / "plan_estimator.h"
 _SRC = CORE / "plan_estimator.cpp"
 _BACKEND_TABLE = (REPO / "lib" / "infrastructure" / "benchmark" / "backend_host"
                  / "backend_table.inc")
@@ -453,7 +453,7 @@ class TestRt005PlanEstimatorStatic(unittest.TestCase):
             s = line.strip()
             if s.startswith("#include"):
                 self.assertTrue(
-                    s.startswith('#include <') or s.startswith('#include "astrocs/core/plan_estimator.h"'),
+                    s.startswith('#include <') or s.startswith('#include "acsd/core/plan_estimator.h"'),
                     f"plan_estimator.h 引入额外内部头（依赖环风险）: {s}")
 
     def test_source_includes_only_own_header(self):
@@ -462,7 +462,7 @@ class TestRt005PlanEstimatorStatic(unittest.TestCase):
             s = line.strip()
             if s.startswith("#include"):
                 self.assertTrue(
-                    s.startswith('#include <') or '"astrocs/core/plan_estimator.h"' in s,
+                    s.startswith('#include <') or '"acsd/core/plan_estimator.h"' in s,
                     f"plan_estimator.cpp 引入额外内部头: {s}")
 
     def test_frozen_constants_pinned(self):

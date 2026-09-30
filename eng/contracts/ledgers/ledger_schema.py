@@ -14,7 +14,7 @@ from __future__ import annotations
 import json
 import pathlib
 
-LEDGER_SCHEMA = "astrocs.ci-ledger/v1"
+LEDGER_SCHEMA = "acsd.ci-ledger/v1"
 LEDGER_REQUIRED_FIELDS = ("id", "kind", "reason", "owner", "exit_condition")
 
 

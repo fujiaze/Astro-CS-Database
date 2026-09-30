@@ -1,14 +1,14 @@
 // ACSD Core Contracts — CORE-002 DataArtifact + Provenance
 #pragma once
 
-#include "astrocs/core/contracts.h"
+#include "acsd/core/contracts.h"
 
 #include <array>
 #include <cstdint>
 #include <string>
 #include <vector>
 
-namespace astrocs::core {
+namespace acsd::core {
 
 // Artifact ID: 稳定标识 (跨进程/跨平台一致)
 struct ArtifactId {
@@ -114,4 +114,4 @@ struct DataArtifactDescriptor {
   static bool from_json(const std::string& in, DataArtifactDescriptor* out, std::string* err);
 };
 
-}  // namespace astrocs::core
+}  // namespace acsd::core

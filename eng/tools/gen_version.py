@@ -136,7 +136,7 @@ def _self_test():
     if pos.returncode != 0 or not ver.startswith(read_base_version() + "+g"):
         problems.append("正例未产出合同对象: rc=%d stdout=%r" % (pos.returncode, pos.stdout[:120]))
     # 负例 1：临时非 git 树（GIT_CEILING_DIRECTORIES 阻断向上寻找 .git）
-    tmp = tempfile.mkdtemp(prefix="astrocs_genver_")
+    tmp = tempfile.mkdtemp(prefix="acsd_genver_")
     try:
         os.makedirs(os.path.join(tmp, "eng", "tools"))
         shutil.copy2(me, os.path.join(tmp, "eng", "tools", "gen_version.py"))
@@ -158,7 +158,7 @@ def _self_test():
     finally:
         shutil.rmtree(tmp, ignore_errors=True)
     # 负例 2：git 可执行文件不在 PATH（FileNotFoundError 面）
-    empty = tempfile.mkdtemp(prefix="astrocs_nopath_")
+    empty = tempfile.mkdtemp(prefix="acsd_nopath_")
     try:
         env = dict(os.environ, PATH=empty)
         r = _run(me, REPO, env)

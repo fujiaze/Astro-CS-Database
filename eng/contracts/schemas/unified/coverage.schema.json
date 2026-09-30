@@ -1,12 +1,12 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://astrocs.local/schemas/unified/coverage/v1",
+  "$id": "https://acsd.local/schemas/unified/coverage/v1",
   "title": "ACSD 统一对象 coverage —— 几何/数据有效域",
   "description": "UNIFIED_MODEL §2：coverage = 几何/数据有效域；可否作权重 = 否。coverage 不是 rejection：几何有效域不含污染推断（UNIFIED_MODEL §2 末列）。",
-  "x-astrocs-object": {
+  "x-acsd-object": {
     "name": "coverage",
     "canonical_file": "eng/contracts/schemas/unified/coverage.schema.json",
-    "authority": "docs/detail/UNIFIED_MODEL.md §2；docs/ASTROCS_DESIGN.md §2；ENGINEERING_SPEC.md §3/§4.7",
+    "authority": "docs/detail/UNIFIED_MODEL.md §2；docs/ACSD_DESIGN.md §2；ENGINEERING_SPEC.md §3/§4.7",
     "weight_verdict": "否",
     "weight_eligible": false
   },
@@ -54,7 +54,7 @@
       "description": "对象判别式：本文档声明的 UNIFIED_MODEL §2 对象名（禁止用别的对象名冒充）"
     },
     "object_schema_id": {
-      "const": "https://astrocs.local/schemas/unified/coverage/v1",
+      "const": "https://acsd.local/schemas/unified/coverage/v1",
       "description": "全局唯一 schema ID（eng/contracts/schemas/unified/coverage.schema.json）"
     },
     "schema_version": {

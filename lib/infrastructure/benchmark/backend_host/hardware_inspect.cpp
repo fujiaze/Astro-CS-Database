@@ -9,7 +9,7 @@
 
 #include <nlohmann/json.hpp>
 
-// CLEAN-403 (docs/ASTROCS_DESIGN §10「aio 是文件级唯一 I/O 边界」): /proc、/sys 与
+// CLEAN-403 (docs/ACSD_DESIGN §10「aio 是文件级唯一 I/O 边界」): /proc、/sys 与
 // 任意文件读取一律经 aio 唯一实现 (aio_file::read_all / aio_atomic::path_exists),
 // 本 TU 不自持 ifstream / std::filesystem 通道。
 #include "aio_atomic_file.h"
@@ -35,7 +35,7 @@
 #include <unistd.h>
 #endif
 
-namespace astrocs::backend_host {
+namespace acsd::backend_host {
 
 namespace {
 
@@ -216,7 +216,7 @@ std::string hardware_inspect_json_v1(const std::string& build_id) {
 #endif
 #endif
 
-    const uint64_t feats = astrocs_cpu_detect_features_v1();
+    const uint64_t feats = acsd_cpu_detect_features_v1();
     static const struct { uint64_t bit; const char* name; } kFeat[] = {
         {ACS_FEAT_SSE2, "sse2"}, {ACS_FEAT_SSE4_1, "sse4_1"}, {ACS_FEAT_AVX, "avx"},
         {ACS_FEAT_AVX2, "avx2"}, {ACS_FEAT_FMA, "fma"}, {ACS_FEAT_AVX512F, "avx512f"}};
@@ -296,7 +296,7 @@ std::string hardware_inspect_json_v1(const std::string& build_id) {
 #endif
 
     j["schema_version"] = 1;
-    j["kind"] = "astrocs_hardware_inspect";
+    j["kind"] = "acsd_hardware_inspect";
     j["architecture"] = "amd64";
     j["vendor"] = vendor;
     j["brand"] = model_name;
@@ -320,7 +320,7 @@ std::string hardware_inspect_json_v1(const std::string& build_id) {
     j["job_object_limit"] = nullptr;              // Windows Job Object(WIN/FAT 域)
     // CPU-002: quota signature = 有效配额状态的指纹(affinity∩cgroup/job; 禁硬编码)。
     {
-        astrocs::crypto::Sha256 qh;
+        acsd::crypto::Sha256 qh;
         const std::string qsrc =
             std::to_string(aff_count) + "|" + std::to_string(cgroup_limit) +
             "|" + std::to_string(avail) + "|" + std::to_string(feats) + "|" +
@@ -354,10 +354,10 @@ std::string hardware_inspect_json_v1(const std::string& build_id) {
          "msvc"
 #endif
         }};
-    j["astrocs_build"] = build_id;
+    j["acsd_build"] = build_id;
     j["cli_sha256"] = cli_hash;
     j["backend_hashes"] = nlohmann::json::array();   // 与 backends.manifest.json 联动(ABI-002)
     return j.dump(2) + "\n";
 }
 
-}  // namespace astrocs::backend_host
+}  // namespace acsd::backend_host

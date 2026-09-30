@@ -74,10 +74,10 @@ P2_API int p2_coverage_free(P2CoverageResult* out);
 //   FZ-WEIGHT-SINGLE-PATH    : 权重只有一个口径，没有可选择项 ——
 //                              Phase1 产稀疏 SNR 控制点 → Phase2 重建稠密 SNR 面
 //                              → 取逆方差（最优功率）定权 → 叠加；
-//                              w = SNR^2 / F_ref^2（docs/ASTROCS_DESIGN.md §3.1、
+//                              w = SNR^2 / F_ref^2（docs/ACSD_DESIGN.md §3.1、
 //                              docs/science/PSF_SIGNAL_WEIGHT.md §4）；
 //   FZ-MODE-RETIRED          : psfsw_robust 不得进生产路由 —— psfsw_robust_weight
-//                              不是现行对象（docs/ASTROCS_DESIGN.md §3.1；UNIFIED_MODEL.md:58），
+//                              不是现行对象（docs/ACSD_DESIGN.md §3.1；UNIFIED_MODEL.md:58），
 //                              显式拒绝 + 迁移提示（唯一口径 = 逆方差）；
 //   FZ-FIELD-WEIGHTMODE      : legacy 整数 0(=support x snr^2) 不得进科学
 //                              权重面；
@@ -85,7 +85,7 @@ P2_API int p2_coverage_free(P2CoverageResult* out);
 //                              边界状态有确定边界协议；缺失不得静默零填。
 // 语义源：eng/contracts/data/clause_registry.json
 //         （forbidden.weight_source_tokens）
-//         + docs/ASTROCS_DESIGN.md §3.1（权重判据）与
+//         + docs/ACSD_DESIGN.md §3.1（权重判据）与
 //         docs/science/PSF_SIGNAL_WEIGHT.md §1/§4（单一权重口径；退役对象的拒绝面见
 //         coverage.cpp 的 RETIRED-OBJECT-REJECT 注释块）。本头文件不得另造词表（C-004.3）。
 //
@@ -161,7 +161,7 @@ P2_API int p2_deterministic_reduction_order(
 // 注（退役对象拒绝面）：集合里的 psfsw_robust_weight/psfsw 自此
 // 起不再表示"在役的相对复合权重"，而是**退役对象的显式拒绝面**——旧产品若把该
 // 对象写进 weight.sources/variance_from，必须在此判红（不得静默接受）。该两 token
-// 因此不得按"残留清理"删除。依据 docs/ASTROCS_DESIGN.md §3.1（订正后）+
+// 因此不得按"残留清理"删除。依据 docs/ACSD_DESIGN.md §3.1（订正后）+
 // docs/detail/UNIFIED_MODEL.md:58（旧产品声明该对象 ⇒ 显式拒绝 + 迁移提示）。
 // 返回 0=通过；1=命中禁止 token；2=参数错误（tokens==NULL 且 n>0）。
 P2_API int p2_weight_source_token_reject(

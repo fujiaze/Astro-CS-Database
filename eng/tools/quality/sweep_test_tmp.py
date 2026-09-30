@@ -10,13 +10,13 @@
     （实证：RT001 崩 nlohmann json type_error.306，清理后重建 ⇒ PASS）。
 
 同时：**不要把 TMPDIR 指向 tmpfs**（/dev/shm、/tmp 各只有 7.9 GB，且 /dev/shm 吃 RAM）。
-本机磁盘位：/ 218 GB 空闲、/workspace 275 GB 空闲。推荐 TMPDIR=/var/tmp/astrocs。
+本机磁盘位：/ 218 GB 空闲、/workspace 275 GB 空闲。推荐 TMPDIR=/var/tmp/acsd。
 
 用法：
   python3 eng/tools/quality/sweep_test_tmp.py                  # 干跑，只报告
   python3 eng/tools/quality/sweep_test_tmp.py --apply          # 真删
   python3 eng/tools/quality/sweep_test_tmp.py --apply --min-age 2   # 只删 2 分钟前的（默认 5）
-  python3 eng/tools/quality/sweep_test_tmp.py --roots /dev/shm /tmp /var/tmp/astrocs
+  python3 eng/tools/quality/sweep_test_tmp.py --roots /dev/shm /tmp /var/tmp/acsd
 """
 from __future__ import annotations
 
@@ -31,9 +31,9 @@ import time
 PREFIXES = (
     "p1001_", "p1004_", "p2001_", "p2002_", "p2006_", "p2007_", "p3004_", "p3005_",
     "p3006_", "p3rs_", "p1hips_", "p1star_", "p1snr_", "cpu001_", "aio_abi_",
-    "astrocs_", "syn0", "par0", "mon001_", "hstcal", "dz", "fix_p2a", "fix-p2b",
+    "acsd_", "syn0", "par0", "mon001_", "hstcal", "dz", "fix_p2a", "fix-p2b",
 )
-DEFAULT_ROOTS = ("/dev/shm", "/tmp", "/var/tmp/astrocs")
+DEFAULT_ROOTS = ("/dev/shm", "/tmp", "/var/tmp/acsd")
 
 
 def sweep(roots, min_age_s, apply_changes, verbose=True):

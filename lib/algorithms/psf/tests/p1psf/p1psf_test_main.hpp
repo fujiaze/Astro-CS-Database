@@ -6,7 +6,7 @@
 //        p1psf_boundary
 //
 // 故障注入 (模板 <prefix>-TEST 验收: "故障注入能让测试失败"):
-//   ASTROCS_P1PSF_FAULT=<regname>[,<regname>...] → 对应 CHECK 组确定性翻转
+//   ACSD_P1PSF_FAULT=<regname>[,<regname>...] → 对应 CHECK 组确定性翻转
 //   → rc=1 + stderr "FAULT-INJECT <name>"。注册表 (与 core/perf 实际
 //   faultname 一致):
 //     recovery, identity, worker_bitwise, abi_consistency,
@@ -156,7 +156,7 @@ inline int run_all_groups(const p1psf::TestGroup* groups, std::size_t n,
         if (a == "--group" && i + 1 < argc) group = argv[++i];
         else if (a.rfind("--", 0) != 0) group = a;
     }
-    if (const char* f = std::getenv("ASTROCS_P1PSF_FAULT")) {
+    if (const char* f = std::getenv("ACSD_P1PSF_FAULT")) {
         // 同进程重入 (selfcheck 注入相) 防御: 先清空上次注册, 避免 active
         // 跨相累加 (execve 路径天然全新进程, 此行为纯防御)
         p1psf::FaultRegistry::instance().active.clear();

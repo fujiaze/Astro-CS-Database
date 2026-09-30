@@ -3,15 +3,15 @@
 验收(03 L143): 只有一个 user exe; 私有 SO/manifest 完整; 包名 alpha; 解包运行 PASS。
 
 被测对象（输入对象）解析 —— 仓库既有约定，不新造：
-  1. 环境变量 ASTROCS_CLI_BIN（全仓 CLI 测试统一覆盖点）；
+  1. 环境变量 ACSD_CLI_BIN（全仓 CLI 测试统一覆盖点）；
   2. build/acsd（AGENTS.md §3 唯一根 CMake 产物；ROOT-008 后唯一产品二进制）；
-  3. run/ci/build-gcc-release/astrocs（CI 构建目录）。
+  3. run/ci/build-gcc-release/acsd（CI 构建目录）。
   先例（逐字同序）：eng/ci/check_algo_wiring.py:150
-  `for rel in ("build/acsd", "run/ci/build-gcc-release/astrocs")`；
+  `for rel in ("build/acsd", "run/ci/build-gcc-release/acsd")`；
   另见 eng/tools/check_cli_run_preset.py:285、eng/tools/check_legacy_exit.py:36、
   eng/tests/cli/test_phase123_pipeline.py:34（"唯一产品二进制 build/acsd"）。
 
-原实现硬编码 build/lnx_v5_clean_rel/astrocs —— 该路径**全仓无生产者**（仅
+原实现硬编码 build/lnx_v5_clean_rel/acsd —— 该路径**全仓无生产者**（仅
 eng/tools/assemble_audit.py:128 的历史审计行提及），于是类级 @skipUnless 恒假、
 6 个用例恒 skip：LNX-005 这一条版本条款长期没有可执行载体（AGENTS.md §5
 「SKIP 充数算未完成」）。现改为：解析到二进制 ⇒ 6 例真跑；解析不到 ⇒
@@ -28,17 +28,17 @@ MAKER = os.path.join(REPO, "eng", "tools", "make_linux_release.py")
 
 def find_cli_binary():
     """返回 (路径, None) 或 (None, 具名原因)。解析序见模块 docstring。"""
-    env = os.environ.get("ASTROCS_CLI_BIN")
+    env = os.environ.get("ACSD_CLI_BIN")
     if env:
         if os.path.isfile(env):
             return env, None
-        return None, ("ASTROCS_CLI_BIN=%s 指向的文件不存在" % env)
-    for rel in ("build/acsd", "run/ci/build-gcc-release/astrocs"):
+        return None, ("ACSD_CLI_BIN=%s 指向的文件不存在" % env)
+    for rel in ("build/acsd", "run/ci/build-gcc-release/acsd"):
         cand = os.path.join(REPO, *rel.split("/"))
         if os.path.isfile(cand):
             return cand, None
-    return None, ("已探测 ASTROCS_CLI_BIN / build/acsd / "
-                  "run/ci/build-gcc-release/astrocs 均不存在")
+    return None, ("已探测 ACSD_CLI_BIN / build/acsd / "
+                  "run/ci/build-gcc-release/acsd 均不存在")
 
 
 BUILD, BUILD_MISSING = find_cli_binary()
@@ -89,7 +89,7 @@ class TestLinuxRelease(unittest.TestCase):
         if BUILD is None:
             self.fail("MISSING_CLI_BINARY: 未找到被测 acsd CLI 产物（%s）。"
                       "构建: cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release && "
-                      "ninja -C build；或用 ASTROCS_CLI_BIN=<path> 指定。"
+                      "ninja -C build；或用 ACSD_CLI_BIN=<path> 指定。"
                       "本用例不得以 SKIP 通过。" % BUILD_MISSING)
 
     def test_01_package_created(self):
@@ -132,7 +132,7 @@ class TestLinuxRelease(unittest.TestCase):
                     exes.append(os.path.relpath(p, root))
         bin_exes = [e for e in exes if e.startswith("bin/")]
         self.assertEqual(len(bin_exes), 1, f"bin/ 必须恰一个 user exe, got {bin_exes}")
-        self.assertEqual(bin_exes[0].replace(os.sep, "/"), "bin/astrocs")
+        self.assertEqual(bin_exes[0].replace(os.sep, "/"), "bin/acsd")
 
     def test_04_manifest_sbom_licenses_hash_present(self):
         self._require_bin()

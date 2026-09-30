@@ -4,13 +4,13 @@
 // "fork/execve 双注入点必败自检, argv 子进程模式"):
 //   1) 基线: 无注入跑 units 组 → 必 PASS (排除恒 FAIL 侧)。
 //   2) 注入点 A (env): fork + execve(/proc/self/exe, ["p1wcs_selfcheck",
-//      "units"], env=ASTROCS_P1WCS_FAULT=u1_f1_cd_relative) → 必 FAIL。
+//      "units"], env=ACSD_P1WCS_FAULT=u1_f1_cd_relative) → 必 FAIL。
 //   3) 注入点 B (argv): fork + execve(/proc/self/exe, ["p1wcs_selfcheck",
 //      "oracle", "--fault=o1_f2_sip_vs_oracle"], 无 env) → 必 FAIL
 //      (覆盖 --fault= argv 通道)。
 //   4) 正控: 注入名单为空的重入 (units, 无 env 无 fault) → 必 PASS
 //      (排除"任何重入都失败"的假注入)。
-// ASTROCS_P1WCS_SELFCHECK_FAULT_A/B 可覆盖阶段 2/3 注入名。
+// ACSD_P1WCS_SELFCHECK_FAULT_A/B 可覆盖阶段 2/3 注入名。
 #include "p1wcs_test_main.hpp"
 
 #ifdef _WIN32
@@ -61,7 +61,7 @@ int run_child(const std::string& group, const std::string& fault_arg,
     std::string env_pair;
     std::vector<char*> child_env;
     if (!fault_env.empty()) {
-        env_pair = "ASTROCS_P1WCS_FAULT=" + fault_env;
+        env_pair = "ACSD_P1WCS_FAULT=" + fault_env;
         child_env.push_back(env_pair.data());
     }
     child_env.push_back(nullptr);
@@ -167,7 +167,7 @@ int run_selfcheck() {
 
     // 阶段 2: 注入点 A (env) → units 必 FAIL
     {
-        const char* f = std::getenv("ASTROCS_P1WCS_SELFCHECK_FAULT_A");
+        const char* f = std::getenv("ACSD_P1WCS_SELFCHECK_FAULT_A");
         const std::string name = f ? f : "u1_f1_cd_relative";
         const int child_rc = run_child("units", "", name);
         if (child_rc == 0) {
@@ -185,7 +185,7 @@ int run_selfcheck() {
 
     // 阶段 3: 注入点 B (argv --fault=) → oracle 必 FAIL
     {
-        const char* f = std::getenv("ASTROCS_P1WCS_SELFCHECK_FAULT_B");
+        const char* f = std::getenv("ACSD_P1WCS_SELFCHECK_FAULT_B");
         const std::string name = f ? f : "o1_f2_sip_vs_oracle";
         const int child_rc =
             run_child("oracle", "--fault=" + name, "");

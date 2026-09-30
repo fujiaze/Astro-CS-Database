@@ -9,7 +9,7 @@
 
 方法 (独立 harness, 照 eng/tests/arch/test_budget_contract.py 先例):
   Python unittest 内嵌 C++ driver，g++ 真实编译 lib/infrastructure/scheduler 源码(context.cpp/
-  artifact.cpp/scheduler.cpp) + lib/include/astrocs/core 头, 链接运行断言；
+  artifact.cpp/scheduler.cpp) + lib/include/acsd/core 头, 链接运行断言；
   另以源码静态扫描断言生产路径(lib/infrastructure/scheduler/src/**)无 ThreadLease::make 伪授权。
 """
 from __future__ import annotations
@@ -29,8 +29,8 @@ CORE = REPO / "lib" / "infrastructure" / "scheduler" / "src"
 
 _DRIVER = r'''
 // RT-003 harness: ThreadBudget 接入 scheduler→RunContext 验收（真实编译 lib/infrastructure/scheduler 源码）
-#include "astrocs/core/context.h"
-#include "astrocs/core/scheduler.h"
+#include "acsd/core/context.h"
+#include "acsd/core/scheduler.h"
 
 #include <atomic>
 #include <chrono>
@@ -39,7 +39,7 @@ _DRIVER = r'''
 #include <thread>
 #include <vector>
 
-using namespace astrocs::core;
+using namespace acsd::core;
 
 static int failures = 0;
 #define CHECK(cond)                                                       \

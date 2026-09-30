@@ -28,7 +28,7 @@ static bool write_frame(const std::string& path, float flux, bool with_ivar = fa
     AioHipsProductSet* ps = aio_hips_product_begin(
         path.c_str(), TW, TW, AIO_HIPS_FLOAT32,
         flags,
-        "ivo://astrocs/test", "CLI-005 synthetic", "R", 60.0, "2026-08-28T00:00:00Z", 0);
+        "ivo://acsd/test", "CLI-005 synthetic", "R", 60.0, "2026-08-28T00:00:00Z", 0);
     if (!ps) { std::fprintf(stderr, "begin failed: %s\n", aio_hips_last_error()); return false; }
     std::vector<float> sig(TW * TW, flux), area(TW * TW, AREA);
     std::vector<float> vnum(TW * TW, AREA * AREA * 0.01f);
@@ -80,7 +80,7 @@ static bool write_seam_frame(const std::string& path, int mode, int offset) {
                       AIO_HIPS_PRODUCT_VARIANCE | AIO_HIPS_PRODUCT_IVAR;
     AioHipsProductSet* ps = aio_hips_product_begin(
         path.c_str(), TW, TW, AIO_HIPS_FLOAT32, flags,
-        "ivo://astrocs/seam", "P2-003 seam", "R", 60.0, "2026-08-28T00:00:00Z", 0);
+        "ivo://acsd/seam", "P2-003 seam", "R", 60.0, "2026-08-28T00:00:00Z", 0);
     if (!ps) { std::fprintf(stderr, "begin failed: %s\n", aio_hips_last_error()); return false; }
     std::vector<float> sig(TW * TW), area(TW * TW, AREA);
     std::vector<float> vnum(TW * TW, AREA * AREA * 0.01f);
@@ -144,7 +144,7 @@ static bool write_frame_custom(const std::string& path, bool per_tile,
     AioHipsProductSet* ps = aio_hips_product_begin(
         path.c_str(), 512, 512, AIO_HIPS_FLOAT32,
         AIO_HIPS_PRODUCT_SIGNAL | AIO_HIPS_PRODUCT_SUPPORT,
-        "ivo://astrocs/test", "P3 field", "R", 60.0, "2026-08-28T00:00:00Z", 0);
+        "ivo://acsd/test", "P3 field", "R", 60.0, "2026-08-28T00:00:00Z", 0);
     if (!ps) return false;
     std::vector<float> sig(TW * TW), area(TW * TW, AREA);
     for (uint64_t ipix = 0; ipix < 12; ++ipix) {
@@ -172,7 +172,7 @@ static bool write_analytic_frame(const std::string& path) {
     AioHipsProductSet* ps = aio_hips_product_begin(
         path.c_str(), 512, 512, AIO_HIPS_FLOAT32,
         AIO_HIPS_PRODUCT_SIGNAL | AIO_HIPS_PRODUCT_SUPPORT,
-        "ivo://astrocs/test", "P3 analytic cos2dec", "R", 60.0,
+        "ivo://acsd/test", "P3 analytic cos2dec", "R", 60.0,
         "2026-08-28T00:00:00Z", 0);
     if (!ps) return false;
     std::vector<float> sig(TW * TW), area(TW * TW, AREA);
@@ -182,7 +182,7 @@ static bool write_analytic_frame(const std::string& path) {
         for (uint64_t p = 0; p < TW * TW; ++p) {
             const uint64_t leaf = (ipix << 18u) | p;   // order0 tile → leaf 位移 18
             double ra = 0, dec = 0;
-            astrocs::healpix::pix2ang_nest(static_cast<uint32_t>(leaf_nside), leaf, ra, dec);
+            acsd::healpix::pix2ang_nest(static_cast<uint32_t>(leaf_nside), leaf, ra, dec);
             const double v = std::cos(dec * M_PI / 180.0) * std::cos(dec * M_PI / 180.0);
             sig[p] = static_cast<float>(v);
         }
@@ -202,7 +202,7 @@ static bool write_analytic_frame(const std::string& path) {
 }
 
 // FIX-402: 生成后统一补齐 HiPS 子产品单位/像素语义声明 —— 生产 Phase3 输入语义
-// 守卫（docs/ASTROCS_DESIGN §6.3 / FZ-BUNIT-SEMANTICS）只放行**显式声明**的面亮度
+// 守卫（docs/ACSD_DESIGN §6.3 / FZ-BUNIT-SEMANTICS）只放行**显式声明**的面亮度
 // 输入; AIO writer 不写 BUNIT, 故 fixture 侧按冻结单位表补齐
 // （docs/science/DATA_SEMANTICS.md §31.1 §1: signal_sb=ADU/sr,
 //  sb_variance_out=ADU^2/sr^2, sb_ivar_out=sr^2/ADU^2）。幂等。
@@ -236,18 +236,18 @@ static void declare_units_for_all(const std::string& root) {
                     const size_t b = key.find_last_not_of(" \t\r");
                     key = (a == std::string::npos) ? std::string()
                                                    : key.substr(a, b - a + 1);
-                    if (key == "BUNIT" || key == "bunit" || key == "ASTROCS_SIGNAL_UNIT" ||
-                        key == "ASTROCS_PIXEL_SEMANTICS" ||
-                        key == "ASTROCS_PIXEL_AREA_POWER")
+                    if (key == "BUNIT" || key == "bunit" || key == "ACSD_SIGNAL_UNIT" ||
+                        key == "ACSD_PIXEL_SEMANTICS" ||
+                        key == "ACSD_PIXEL_AREA_POWER")
                         continue;
                     kept += line;
                     kept += '\n';
                 }
             }
             kept += std::string("BUNIT=") + s.bunit + "\n";
-            kept += "ASTROCS_SIGNAL_UNIT=ADU/sr\n";
-            kept += "ASTROCS_PIXEL_SEMANTICS=surface_brightness\n";
-            kept += "ASTROCS_PIXEL_AREA_POWER=" + std::to_string(s.power) + "\n";
+            kept += "ACSD_SIGNAL_UNIT=ADU/sr\n";
+            kept += "ACSD_PIXEL_SEMANTICS=surface_brightness\n";
+            kept += "ACSD_PIXEL_AREA_POWER=" + std::to_string(s.power) + "\n";
             std::ofstream out(fs::u8path(pp), std::ios::binary | std::ios::trunc);
             if (out) out << kept;
         }

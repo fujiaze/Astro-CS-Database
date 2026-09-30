@@ -7,7 +7,7 @@ spec = importlib.util.spec_from_file_location("ccg", REPO / "eng" / "tools" / "c
 ccg = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(ccg)
 
-BASE = """schema: astrocs.contract-index/v1
+BASE = """schema: acsd.contract-index/v1
 version: 1.0.0
 contracts:
   - id: SCI-A-001

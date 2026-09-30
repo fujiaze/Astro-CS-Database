@@ -46,7 +46,7 @@ constexpr std::uint64_t kTile = 4;
 constexpr std::uint64_t kFrameA = 10, kFrameB = 20, kFrameC = 30;
 
 std::uint64_t leaf_of(int gx, int gy) {
-    const std::uint64_t local = astrocs::healpix::xy_to_nested_local(
+    const std::uint64_t local = acsd::healpix::xy_to_nested_local(
         static_cast<std::uint32_t>(gx * kCell + kCell / 2),
         static_cast<std::uint32_t>(gy * kCell + kCell / 2), 9u);
     return (kTile << 18u) + local;

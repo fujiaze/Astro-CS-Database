@@ -309,7 +309,7 @@ def main(argv=None):
     nodes, leases, p1caps = parse_trace_lines(lines)
     if not nodes:
         print("node_waterfall: no_nodetrace（日志里没有 [nodetrace] 行；"
-              "请以 ASTROCS_NODE_TRACE=1 运行）", file=sys.stderr)
+              "请以 ACSD_NODE_TRACE=1 运行）", file=sys.stderr)
         return 3
     samples, meta = ([], {"aligned": False, "reason": "no_timeseries"})
     if args.timeseries:

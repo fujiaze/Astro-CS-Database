@@ -7,11 +7,11 @@
 //   1. registry 5 类 Phase3 节点各自唯一真实 operation 委托 (子节点禁止调用
 //      完整 p3_session_run) — 节点 last_manifest 必须携带 operation/entry 标记,
 //      与 lib/infrastructure/pipeline/module_ports.registry.json 冻结绑定表逐一一致:
-//        astrocs.phase3.properties → read_properties   astrocs_phase3_properties_v1
-//        astrocs.phase3.wcs        → build_wcs         astrocs_phase3_wcs_v1
-//        astrocs.phase3.resample2  → resample_projection astrocs_phase3_resample_v1
-//        astrocs.phase3.writer     → write_fits        astrocs_phase3_writer_v1
-//        astrocs.phase3.verify     → verify_output     astrocs_phase3_verify_v1
+//        acsd.phase3.properties → read_properties   acsd_phase3_properties_v1
+//        acsd.phase3.wcs        → build_wcs         acsd_phase3_wcs_v1
+//        acsd.phase3.resample2  → resample_projection acsd_phase3_resample_v1
+//        acsd.phase3.writer     → write_fits        acsd_phase3_writer_v1
+//        acsd.phase3.verify     → verify_output     acsd_phase3_verify_v1
 //   2. typed artifact: 每节点产出 descriptor.data_id 对应的磁盘 artifact 且存在
 //      (p3_props.json / p3_wcs.json / p3_resampled.{json,bin} / output_phase3.fits
 //      + p3_writer.json / p3_verify.json; output_dir 文件约定传递, P2 先例同构)。
@@ -23,11 +23,11 @@
 // RED 锚定 (实现前): Phase3 五子节点工厂委托 P3Api session adapter → 每个子
 //   节点执行完整 p3_session_run (全链重复 5 次), manifest 无 operation/entry
 //   字段 → 断言 1 失败; 节点 artifact 文件约定不存在 → 断言 2 失败。
-#include "astrocs/core/module.h"
-#include "astrocs/core/module_adapters.h"
-#include "astrocs/core/runtime.h"
+#include "acsd/core/module.h"
+#include "acsd/core/module_adapters.h"
+#include "acsd/core/runtime.h"
 
-#include "healpix_core.h"       // astrocs::healpix::pix2ang_nest (数学权威)
+#include "healpix_core.h"       // acsd::healpix::pix2ang_nest (数学权威)
 #include "p1sess_fixtures.hpp"  // p1sess::write_fits_file 手写最小 FITS
 #include "version_generated.h"  // B2-A10: 夹具复用 build 期版本单源 (同 CLI)
 
@@ -51,7 +51,7 @@
 #endif
 
 using json = nlohmann::json;
-using namespace astrocs::core;
+using namespace acsd::core;
 
 static int failures = 0;
 #define CHECK(cond)                                                       \
@@ -117,11 +117,11 @@ bool write_signal_hips(const std::string& root) {
   std::ofstream p(fs::path(root_posix + "/signal/properties"), std::ios::binary);
   if (!p) return false;
   // FIX-402: 生产 Phase3 输入语义守卫只放行**显式声明**的面亮度输入
-  // （docs/ASTROCS_DESIGN §6.3 / FZ-BUNIT-SEMANTICS）: 裸 "ADU" 无像素语义声明
+  // （docs/ACSD_DESIGN §6.3 / FZ-BUNIT-SEMANTICS）: 裸 "ADU" 无像素语义声明
   // 按"单位不可判"拒绝 ⇒ fixture 按冻结单位表写 canonical signal_sb 串。
   p << hips_properties_text("ADU/sr");
-  p << "ASTROCS_PIXEL_SEMANTICS = surface_brightness\n";
-  p << "ASTROCS_PIXEL_AREA_POWER = -2\n";
+  p << "ACSD_PIXEL_SEMANTICS = surface_brightness\n";
+  p << "ACSD_PIXEL_AREA_POWER = -2\n";
   p.close();
   float v = kSigVal;
   if (!fix402_write_completion_manifest(root_posix)) return false;
@@ -148,19 +148,19 @@ NodeFixture make_node_fixture(const char* tag) {
   fx.out = (fx.root / "out").generic_string();
   fs::create_directories(fx.out, ec);
   // B2-A10（宪章 §4.3）: node 级夹具必须提供上游 run_context.json 产物。
-  // 与 CLI run 共用 astrocs::core::write_run_context 唯一生成路径（真实
+  // 与 CLI run 共用 acsd::core::write_run_context 唯一生成路径（真实
   // run_id/software_version/source_sha，非占位）；input_manifest_hash 不在
   // 此处——由 writer 节点从真实输入 HiPS 字节派生。
   {
     char rid[16];
     std::snprintf(rid, sizeof(rid), "%012lx",
                   static_cast<unsigned long>(P3002N_GETPID) & 0xffffffffffUL);
-    CHECK(write_run_context(fx.out, rid, ASTROCS_VERSION_STRING,
-                            ASTROCS_COMMIT_SHA).ok());
+    CHECK(write_run_context(fx.out, rid, ACSD_VERSION_STRING,
+                            ACSD_COMMIT_SHA).ok());
   }
   CHECK(write_signal_hips(fx.hips));
   // 采样中心: nside512 NESTED leaf 131072 = order0 tile0 中部
-  astrocs::healpix::pix2ang_nest(512u, 131072ull, fx.ra, fx.dec);
+  acsd::healpix::pix2ang_nest(512u, 131072ull, fx.ra, fx.dec);
   return fx;
 }
 
@@ -177,11 +177,11 @@ struct NodeExpect {
   const char* entry;
 };
 const NodeExpect kNodeExpects[] = {
-    {"astrocs.phase3.properties", "read_properties", "astrocs_phase3_properties_v1"},
-    {"astrocs.phase3.wcs", "build_wcs", "astrocs_phase3_wcs_v1"},
-    {"astrocs.phase3.resample2", "resample_projection", "astrocs_phase3_resample_v1"},
-    {"astrocs.phase3.writer", "write_fits", "astrocs_phase3_writer_v1"},
-    {"astrocs.phase3.verify", "verify_output", "astrocs_phase3_verify_v1"},
+    {"acsd.phase3.properties", "read_properties", "acsd_phase3_properties_v1"},
+    {"acsd.phase3.wcs", "build_wcs", "acsd_phase3_wcs_v1"},
+    {"acsd.phase3.resample2", "resample_projection", "acsd_phase3_resample_v1"},
+    {"acsd.phase3.writer", "write_fits", "acsd_phase3_writer_v1"},
+    {"acsd.phase3.verify", "verify_output", "acsd_phase3_verify_v1"},
 };
 
 std::string node_config(const NodeFixture& fx) {
@@ -255,7 +255,7 @@ static void test_nodes_real_operation() {
   // 再验证节点链——避免"夹具缺产物"被误判为节点缺陷。
   {
     json ctx = json::parse(read_file(fx.out + "/run_context.json"));
-    CHECK(ctx.value("kind", "") == "astrocs_run_context");
+    CHECK(ctx.value("kind", "") == "acsd_run_context");
     CHECK(!ctx.value("run_id", "").empty());
     CHECK(!ctx.value("software_version", "").empty());
   }
@@ -344,15 +344,15 @@ static void test_runtime_chain_call_count_1() {
     return n;
   };
   json ir;
-  ir["schema"] = "astrocs.pipeline/v1";
+  ir["schema"] = "acsd.pipeline/v1";
   ir["pipeline_id"] = "p3002.real.nodes";
   ir["version"] = "1.0.0";
   ir["nodes"] = json::array();
-  ir["nodes"].push_back(node("props", "astrocs.phase3.properties", "hips", "artifact:in", "props", "artifact:props", "cpu_heavy", true));
-  ir["nodes"].push_back(node("wcs", "astrocs.phase3.wcs", "props", "artifact:props", "wcs_plan", "artifact:wcs", "cpu_heavy", true));
-  ir["nodes"].push_back(node("res", "astrocs.phase3.resample2", "wcs_plan", "artifact:wcs", "resampled", "artifact:res", "cpu_heavy", true));
-  ir["nodes"].push_back(node("wr", "astrocs.phase3.writer", "resampled", "artifact:res", "fits", "artifact:wr", "io", false));
-  ir["nodes"].push_back(node("ver", "astrocs.phase3.verify", "fits", "artifact:wr", "verified", "artifact:ver", "io", false));
+  ir["nodes"].push_back(node("props", "acsd.phase3.properties", "hips", "artifact:in", "props", "artifact:props", "cpu_heavy", true));
+  ir["nodes"].push_back(node("wcs", "acsd.phase3.wcs", "props", "artifact:props", "wcs_plan", "artifact:wcs", "cpu_heavy", true));
+  ir["nodes"].push_back(node("res", "acsd.phase3.resample2", "wcs_plan", "artifact:wcs", "resampled", "artifact:res", "cpu_heavy", true));
+  ir["nodes"].push_back(node("wr", "acsd.phase3.writer", "resampled", "artifact:res", "fits", "artifact:wr", "io", false));
+  ir["nodes"].push_back(node("ver", "acsd.phase3.verify", "fits", "artifact:wr", "verified", "artifact:ver", "io", false));
   ir["outputs"] = json{{"verified", "artifact:ver"}, {"fits", "artifact:wr"},
                        {"res", "artifact:res"}, {"props", "artifact:props"},
                        {"wcs", "artifact:wcs"}};
@@ -397,14 +397,14 @@ static void test_negative_rejection() {
 
   // 3a. 缺 source → validate 拒
   {
-    auto m = reg.create("astrocs.phase3.properties");
+    auto m = reg.create("acsd.phase3.properties");
     CHECK(m.ok());
     auto v = m.value()->validate_config(R"({"output_dir":"/tmp"})");
     CHECK_MSG(v.failed(), "missing source.hips_dir must be rejected");
   }
   // 3b. 缺 center → validate 拒
   {
-    auto m = reg.create("astrocs.phase3.wcs");
+    auto m = reg.create("acsd.phase3.wcs");
     CHECK(m.ok());
     auto v = m.value()->validate_config(R"({
       "source": {"hips_dir": "x"}, "scale_deg_per_px": 0.01,
@@ -416,7 +416,7 @@ static void test_negative_rejection() {
     json c = json::parse(node_config(fx));
     c["scale_deg_per_px"] = 0.0;
     Result<void> rc;
-    run_node(reg, "astrocs.phase3.resample2", c.dump(), ctx, &rc);
+    run_node(reg, "acsd.phase3.resample2", c.dump(), ctx, &rc);
     CHECK_MSG(rc.failed(), "scale<=0 must be rejected at run");
     CHECK(!fs::exists(fs::path(fx.out + "/p3_resampled.bin")));
   }
@@ -425,7 +425,7 @@ static void test_negative_rejection() {
     json c = json::parse(node_config(fx));
     c["source"] = json{{"hips_dir", (fx.root / "no_such_hips").generic_string()}};
     Result<void> rc;
-    run_node(reg, "astrocs.phase3.properties", c.dump(), ctx, &rc);
+    run_node(reg, "acsd.phase3.properties", c.dump(), ctx, &rc);
     CHECK_MSG(rc.failed(), "nonexistent hips_dir must fail deterministically");
     CHECK(!fs::exists(fs::path(fx.out + "/p3_props.json")));
   }
@@ -441,11 +441,11 @@ static void test_determinism() {
     CHECK(register_phase_modules(reg).ok());
     RunContext ctx;
     // 上游节点先行 (properties→wcs→resample typed artifact 链)
-    json man_p = run_node(reg, "astrocs.phase3.properties", node_config(fx), ctx);
+    json man_p = run_node(reg, "acsd.phase3.properties", node_config(fx), ctx);
     CHECK(man_p.value("status", "") == "ok");
-    json man_w = run_node(reg, "astrocs.phase3.wcs", node_config(fx), ctx);
+    json man_w = run_node(reg, "acsd.phase3.wcs", node_config(fx), ctx);
     CHECK(man_w.value("status", "") == "ok");
-    json man = run_node(reg, "astrocs.phase3.resample2", node_config(fx), ctx);
+    json man = run_node(reg, "acsd.phase3.resample2", node_config(fx), ctx);
     CHECK(man.value("status", "") == "ok");
     const std::string content = read_file(fx.out + "/p3_resampled.bin");
     CHECK(!content.empty());

@@ -1,6 +1,6 @@
 # ACR Equivalence Algorithms (ALG-ACR-EQUIV)
 
-> 上游：ASTROCS_DESIGN.md §1.3（非目标）
+> 上游：ACSD_DESIGN.md §1.3（非目标）
 
 ## 1 上游 SCI 与输入输出
 
@@ -75,7 +75,7 @@ Fallback: if 逐样本 ivar 权重 → cpu_only; if !model_trusted → OpenMP fa
 - 浮点语义/归约非结合：IEEE 754-2019；Goldberg 1991, ACM Comput. Surv. 23, 5（DOI 10.1145/103162.103163）。
 - 归约误差界与确定性：Higham 2002, Accuracy and Stability of Numerical Algorithms, 2nd ed., SIAM（ISBN 0-89871-521-0）。
 - 可复现求和：Demmel & Nguyen 2013, Proc. 21st IEEE Symp. Computer Arithmetic (ARITH)。
-- 并行执行语义：OpenMP Application Programming Interface（OpenMP ARB）；ACR 为隔离实验，生产不可达（`ASTROCS_DESIGN.md` §1.3/§8.1）。
+- 并行执行语义：OpenMP Application Programming Interface（OpenMP ARB）；ACR 为隔离实验，生产不可达（`ACSD_DESIGN.md` §1.3/§8.1）。
 - CPU reference = 权威 science semantics：Project-defined（本文件 §7）。
 
 参考代码库（含许可证）正本 = docs/engineering/SCIENTIFIC_REFERENCES.md §M。

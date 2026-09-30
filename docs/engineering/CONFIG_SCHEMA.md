@@ -1,11 +1,11 @@
 # Config / Schema（单一事实来源）
 
-> 上游：ASTROCS_DESIGN.md §8（软件架构）
+> 上游：ACSD_DESIGN.md §8（软件架构）
 
 规则：C++ struct 默认值、parser 默认值、JSON schema、template config、
 docs、tests 必须一致；一致性由 `eng/tools/config_consistency_check.py` 校验。
 
-> **文档范围与 `output_mode` 口径（依 `ASTROCS_DESIGN.md` §0.2「详细层只陈述与本设计一致的细化内容」）**
+> **文档范围与 `output_mode` 口径（依 `ACSD_DESIGN.md` §0.2「详细层只陈述与本设计一致的细化内容」）**
 > - 本文描述的是 **orchestrator 的 Stage2 配置**（parser = `lib/algorithms/coverage/src/stage2_common.cpp`，
 >   struct = `stage2_common.h`），**不是**三命令 `phase_config` 合同；后者的语义与索引唯一权威 =
 >   `docs/engineering/CONFIG_CONTRACT.md` §3。
@@ -36,9 +36,9 @@ model: control_grid_per_tile(8) patch_radius_leaf(2) min_samples(5)
 integration: precision(fp32) memory_limit_mb rejection{method
              none|sigma|winsorized_sigma|averaged_sigma|linear_fit|
              generalized_esd|rcr|percentile|median_sigma|minmax|auto
-             profile(astrocs_adaptive_pixel(生产默认,自研)|wbpp_2_9_1(对照档)|wbpp_current alias|astrocs_adaptive)
+             profile(acsd_adaptive_pixel(生产默认,自研)|wbpp_2_9_1(对照档)|wbpp_current alias|acsd_adaptive)
              underdetermined_n(0=按 profile 解析；pixel=3/其余=2/extreme_prior=1)
-             normalization(none|astrocs_median_center_v1|astrocs_median_scale_v1)
+             normalization(none|acsd_median_center_v1|acsd_median_scale_v1)
              normalization_floor(1e-12)
              large_scale{enabled(false) min_structure_pixels(8)
                          low_grow_radius_pixels(2)
@@ -58,7 +58,7 @@ integration: precision(fp32) memory_limit_mb rejection{method
              weight_mode(auto) acr_route(cpu/auto)   # （已按 §9.73 A44 作废：键不存在；权重是派生量）
 
 rejection.method 说明（V17 冻结）：
-  - 默认 `method=auto` + `profile=astrocs_adaptive_pixel`
+  - 默认 `method=auto` + `profile=acsd_adaptive_pixel`
     （**Astro Celestial Sphere Database（ACSD） 自研**，逐输出像素几何 N 内置映射：1≤N≤3→none；4≤N≤5→
     percentile；N≥6→winsorized_sigma；线性拟合档不参与逐像素自动路由；阈值逐档继承
     SCI-REJ 冻结锚点）；`wbpp_2_9_1` 为**对照档**（`wbpp_current` 为
@@ -69,15 +69,15 @@ rejection.method 说明（V17 冻结）：
     `bestRejectionMethod`，`engine.js:1421-1429`，包 sha1 `712cc7c3…`；
     其 `n>15` 分支为 ESD，本仓该档取 linear_fit = WBPP ≤2.3.x 旧表）：
       nominal<6 → percentile；6..15 → winsorized_sigma；>15 → linear_fit；
-  - `astrocs_adaptive` = ACSD 自有策略（tile nominal depth 自适应，
+  - `acsd_adaptive` = ACSD 自有策略（tile nominal depth 自适应，
     独立命名，不冒充 WBPP exact）；
   - effective 候选数 <= underdetermined_n（**默认 0 = 按 profile 解析**：wbpp/adaptive=2；
-    astrocs_adaptive_pixel=3；显式 request=EXTREME_VALUE_PRIOR_SIGMA（opt-in）=1）或 < 方法 minimum N →
+    acsd_adaptive_pixel=3；显式 request=EXTREME_VALUE_PRIOR_SIGMA（opt-in）=1）或 < 方法 minimum N →
     REJECTION_UNDERDETERMINED（可全接受但必须记录，禁止偷偷换算法）；
   - normalization：判定工作域与科学值域分离（decision 作用于
     working stack，accepted mask 应用回原始 calibrated 值）；
-    percentile 必须 astrocs_median_center_v1（负值安全）；rcr 必须 none；
-  - large_scale：astrocs.large_scale_rejection.v1（8-连通分量 grow，
+    percentile 必须 acsd_median_center_v1（负值安全）；rcr 必须 none；
+  - large_scale：acsd.large_scale_rejection.v1（8-连通分量 grow，
     min_structure_pixels 过滤，low/high 独立半径；默认关闭）；compact
     cosmic/星点不会无限生长；PIXINSIGHT_EXACT=NOT_CLAIMED；
   - percentile: 相对 median 的百分比 clip（low_fraction/high_fraction
@@ -85,7 +85,7 @@ rejection.method 说明（V17 冻结）：
   - median_sigma: median 位置 + SD 尺度迭代 clip（WBPP Median Sigma）；
   - minmax: 一次性固定 rank 剔除最小 reject_low_count 与最大
       reject_high_count 个样本（n−low−high >= min_kept；无 max_iterations）；
-  - sigma = astrocs.robust_mad_clip.v1（median + MAD 迭代 clip；
+  - sigma = acsd.robust_mad_clip.v1（median + MAD 迭代 clip；
       Astropy sigma_clip(mad_std) oracle）；旧字符串 "sigma" 为 alias；
   - winsorized_sigma: robust 版（median 位置 + 1.5σ winsorize 迭代；
       语义来源 = PixInsight ImageIntegration 官方式[18]/[19]（Huber 体系）；
@@ -99,11 +99,11 @@ output.hips / diagnostics
 （parser）为唯一双实现，consistency test 保证一致。
 
 > **排异档位映射**
-> **生产科学路由唯一权威** = `ASTROCS_DESIGN.md` §5.5：`1≤N≤3` none / `4≤N≤5` percentile /
+> **生产科学路由唯一权威** = `ACSD_DESIGN.md` §5.5：`1≤N≤3` none / `4≤N≤5` percentile /
 > `N≥6` winsorized（M3：原 `N≥16` linear fit 档改投）；N = 该输出像素的**几何可贡献帧数**，逐像素自动路由；
 > **min/max 不用于生产**。内核同值见 `lib/algorithms/coverage/src/rejection.cpp`
 > 的 `kPixelSmallNPolicy`。上方 fenced 块是 `eng/tools/config_consistency_check.py` 的 docs 腿输入，
-> 其 `astrocs_adaptive_pixel` 档位与本条同值；WBPP 对照档（`nominal<6 / 6..15 / >15`）只描述
+> 其 `acsd_adaptive_pixel` 档位与本条同值；WBPP 对照档（`nominal<6 / 6..15 / >15`）只描述
 > `wbpp_2_9_1` 对照 profile 自身。
 > `docs/science/DATA_SEMANTICS.md` §22 首注同面。
 

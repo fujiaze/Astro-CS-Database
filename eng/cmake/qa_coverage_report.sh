@@ -11,7 +11,7 @@ BUILD_DIR="$1"
 SRC_DIR="$2"
 COV_DIR="$BUILD_DIR/coverage"
 
-profdata="$COV_DIR/astrocs.profdata"
+profdata="$COV_DIR/acsd.profdata"
 rm -f "$profdata"
 # shellcheck disable=SC2086 — 无引号展开是本脚本契约（多 profraw 多目标）
 llvm-profdata merge -sparse "$COV_DIR"/*.profraw -o "$profdata"

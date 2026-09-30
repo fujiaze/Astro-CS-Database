@@ -5,8 +5,8 @@
 // P1 output 必须成为 P2 input，P2 HiPS 成为 P3 input；篡改 path/hash/unit/schema/换 producer 硬失败。
 #pragma once
 
-#include "astrocs/core/artifact.h"
-#include "astrocs/core/contracts.h"
+#include "acsd/core/artifact.h"
+#include "acsd/core/contracts.h"
 
 #include <cstdint>
 #include <map>
@@ -14,7 +14,7 @@
 #include <string>
 #include <vector>
 
-namespace astrocs::core {
+namespace acsd::core {
 
 // 产物角色（跨阶段绑定语义；禁止从文件名猜）
 enum class ArtifactRole : uint8_t {
@@ -105,4 +105,4 @@ class ArtifactStore {
   mutable std::mutex mu_;
 };
 
-}  // namespace astrocs::core
+}  // namespace acsd::core

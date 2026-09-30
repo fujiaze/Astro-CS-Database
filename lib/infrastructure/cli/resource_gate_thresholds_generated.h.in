@@ -10,35 +10,35 @@
 // （每次 configure 重新生成）。
 #pragma once
 
-namespace astrocs {
+namespace acsd {
 namespace resource_gate_contract {
 
 // ── 适用域（applicability）──
-inline constexpr double kMinEffectiveCpus = @ASTROCS_RG_MIN_EFFECTIVE_CPUS@;
+inline constexpr double kMinEffectiveCpus = @ACSD_RG_MIN_EFFECTIVE_CPUS@;
 inline constexpr double kMinActiveWindowSecondsExclusive =
-    @ASTROCS_RG_MIN_ACTIVE_WINDOW_SECONDS_EXCLUSIVE@;
+    @ACSD_RG_MIN_ACTIVE_WINDOW_SECONDS_EXCLUSIVE@;
 
 // ── 计算面（compute）──
-inline constexpr double kMinActiveComputeThreads = @ASTROCS_RG_MIN_ACTIVE_THREADS@;
-inline constexpr double kMeanUtilizationMinPercent = @ASTROCS_RG_MEAN_UTIL_PERCENT@;
-inline constexpr double kP50UtilizationMinPercent = @ASTROCS_RG_P50_UTIL_PERCENT@;
+inline constexpr double kMinActiveComputeThreads = @ACSD_RG_MIN_ACTIVE_THREADS@;
+inline constexpr double kMeanUtilizationMinPercent = @ACSD_RG_MEAN_UTIL_PERCENT@;
+inline constexpr double kP50UtilizationMinPercent = @ACSD_RG_P50_UTIL_PERCENT@;
 inline constexpr double kPerSampleUtilizationMinPercent =
-    @ASTROCS_RG_PER_SAMPLE_UTIL_PERCENT@;
-inline constexpr double kPerSamplePassFractionMin = @ASTROCS_RG_PER_SAMPLE_PASS_FRACTION@;
-inline constexpr double kQueueLowUtilizationPercent = @ASTROCS_RG_QUEUE_LOW_UTIL_PERCENT@;
-inline constexpr double kQueueLowWindowSecondsMin = @ASTROCS_RG_QUEUE_LOW_WINDOW_SECONDS@;
+    @ACSD_RG_PER_SAMPLE_UTIL_PERCENT@;
+inline constexpr double kPerSamplePassFractionMin = @ACSD_RG_PER_SAMPLE_PASS_FRACTION@;
+inline constexpr double kQueueLowUtilizationPercent = @ACSD_RG_QUEUE_LOW_UTIL_PERCENT@;
+inline constexpr double kQueueLowWindowSecondsMin = @ACSD_RG_QUEUE_LOW_WINDOW_SECONDS@;
 
 // ── 内存面（memory；单位 MiB/s = 1048576 B/s，判据方向 >=）──
-inline constexpr double kMemoryGrowthLimitMibPerS = @ASTROCS_RG_MEM_GROWTH_MIB_PER_S@;
+inline constexpr double kMemoryGrowthLimitMibPerS = @ACSD_RG_MEM_GROWTH_MIB_PER_S@;
 inline constexpr double kAllocationReclaimMinFraction =
-    @ASTROCS_RG_ALLOC_RECLAIM_MIN_FRACTION@;
+    @ACSD_RG_ALLOC_RECLAIM_MIN_FRACTION@;
 inline constexpr double kAllocationReclaimMinWallSeconds =
-    @ASTROCS_RG_ALLOC_RECLAIM_MIN_WALL_SECONDS@;
+    @ACSD_RG_ALLOC_RECLAIM_MIN_WALL_SECONDS@;
 inline constexpr unsigned long long kReclaimResidualToleranceBytes =
-    @ASTROCS_RG_RECLAIM_RESIDUAL_TOL_BYTES@ull;
+    @ACSD_RG_RECLAIM_RESIDUAL_TOL_BYTES@ull;
 
 // ── 工作量下限（事实标记, 不参与裁决）──
-inline constexpr double kWorkloadFloorCoreSeconds = @ASTROCS_RG_WORKLOAD_FLOOR_CORE_SECONDS@;
+inline constexpr double kWorkloadFloorCoreSeconds = @ACSD_RG_WORKLOAD_FLOOR_CORE_SECONDS@;
 
 }  // namespace resource_gate_contract
-}  // namespace astrocs
+}  // namespace acsd

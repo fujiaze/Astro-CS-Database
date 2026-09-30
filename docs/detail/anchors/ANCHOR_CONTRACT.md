@@ -1,6 +1,6 @@
 # 文档—代码锚合同（ANCHOR CONTRACT）
 
-> 上游：docs/ASTROCS_DESIGN.md §0（文档权威与索引）、§8.5（模块与 ABI）
+> 上游：docs/ACSD_DESIGN.md §0（文档权威与索引）、§8.5（模块与 ABI）
 > 状态面：AGENTS.md 第 8 节（SubAgent 无 git 写权限）与
 > docs/engineering/DOCUMENT_GOVERNANCE.md（准入判据、登记面判据、上游抬头）。
 > 写法：docs/engineering/DOCUMENT_GOVERNANCE.md §7（写法判据的封闭词表与分层施加）；

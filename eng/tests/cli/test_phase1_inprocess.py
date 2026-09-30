@@ -3,7 +3,7 @@
 
 按 CLI-001 §6.2 新树同步（原文件用 phase1 run --config）:
   * 命令: normalize --json <cfg> [--events-jsonl] [-y]（§6.2 / §6.3）;
-  * 二进制: 唯一 exe build/acsd（ASTROCS_CLI_BIN 可覆盖）;
+  * 二进制: 唯一 exe build/acsd（ACSD_CLI_BIN 可覆盖）;
   * fixture 源码路径: ARCH-001 迁移后的 lib/infrastructure/aio（旧 lib/astro_image_io
     已不存在; 保留旧路径回退以便迁移中间态两侧都能构建）。
 
@@ -23,7 +23,7 @@ REGISTRY = os.path.join(REPO, "lib", "infrastructure", "pipeline", "module_ports
 
 
 def cli_binary():
-    env = os.environ.get("ASTROCS_CLI_BIN")
+    env = os.environ.get("ACSD_CLI_BIN")
     if env and os.path.isfile(env):
         return env
     for rel in (("build", "acsd"), ("build", "cli", "acsd")):
@@ -159,7 +159,7 @@ class TestPhase1InProcess(unittest.TestCase):
 
     def test_03_no_subprocess_during_run(self):
         """验收核心: 运行中进程树无子进程(取消钩子窗口内检查 /proc/<pid>/task/*/children)。"""
-        env = dict(os.environ, ASTROCS_TEST_SLEEP_MS="2500")
+        env = dict(os.environ, ACSD_TEST_SLEEP_MS="2500")
         p = subprocess.Popen([EXE, "normalize", "--json", self.cfg, "--events-jsonl", "-y"],
                              stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, env=env,
                              cwd=run_cwd())
@@ -222,7 +222,7 @@ class TestPhase1InProcess(unittest.TestCase):
         cfg = os.path.join(self.tmp, "cancel.json")
         with open(cfg, "w", encoding="utf-8") as fh:
             json.dump(doc, fh)
-        env = dict(os.environ, ASTROCS_TEST_SLEEP_MS="3000")
+        env = dict(os.environ, ACSD_TEST_SLEEP_MS="3000")
         p = subprocess.Popen([EXE, "normalize", "--json", cfg, "--events-jsonl", "-y"],
                              stdout=subprocess.PIPE, stderr=subprocess.PIPE, env=env,
                              cwd=run_cwd(), text=True)
@@ -232,7 +232,7 @@ class TestPhase1InProcess(unittest.TestCase):
         self.assertEqual(p.returncode, 9, "取消 → 9; got %s (%s)" % (p.returncode, err_s[-200:]))
         self.assertIn("cancel", err_s)
         for fn in os.listdir(out):
-            if fn.startswith("astrocs_run_"):
+            if fn.startswith("acsd_run_"):
                 with open(os.path.join(out, fn), encoding="utf-8") as fh:
                     man = json.load(fh)
                 self.assertNotEqual(man["status"], "complete", "取消不得写 complete manifest")
@@ -250,7 +250,7 @@ class TestPhase1InProcess(unittest.TestCase):
         r = self._run("normalize", "--json", cfg, "--events-jsonl", "-y")
         self.assertNotEqual(r.returncode, 0, "空 input_lights 必须非零退出")
         for f in os.listdir(out):
-            if f.startswith("astrocs_run_"):
+            if f.startswith("acsd_run_"):
                 with open(os.path.join(out, f), encoding="utf-8") as fh:
                     man = json.load(fh)
                 self.assertNotEqual(man["status"], "complete")
@@ -345,7 +345,7 @@ class TestPhase1InProcess(unittest.TestCase):
                           "%s: stderr 须指明非法 master_flat\n%s" % (name, rr.stderr[-300:]))
             files = os.listdir(out)
             for f in files:
-                if f.startswith("astrocs_run_"):
+                if f.startswith("acsd_run_"):
                     with open(os.path.join(out, f), encoding="utf-8") as fh:
                         man = json.load(fh)
                     self.assertNotEqual(man["status"], "complete",

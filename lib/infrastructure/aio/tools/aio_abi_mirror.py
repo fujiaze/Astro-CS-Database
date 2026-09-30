@@ -44,7 +44,7 @@ class AstroSphereTileView(ctypes.Structure):
     """aio_hips.h::AstroSphereTileView 的逐字段镜像 (顺序 = C 声明顺序)。"""
 
     _fields_ = [
-        # --- ABI 自描述 (docs/ASTROCS_DESIGN 7.3; 偏移 0/4) ---
+        # --- ABI 自描述 (docs/ACSD_DESIGN 7.3; 偏移 0/4) ---
         ("struct_size", ctypes.c_uint32),      # = sizeof(AstroSphereTileView)
         ("abi_version", ctypes.c_uint32),      # = AIO_HIPS_TILE_VIEW_ABI_VERSION
         # --- 视图 ---

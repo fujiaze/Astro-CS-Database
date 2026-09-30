@@ -17,8 +17,8 @@ class TestIsaBitManip(unittest.TestCase):
         # 用 -mbmi2 -mpopcnt 编译 baseline 同源, 验证指令层无位操作(非只读断言)
         cls.src = os.path.join(cls.tmp, "bmi2_backend.cpp")
         with open(cls.src, "w") as f:
-            f.write('#define ASTROCS_BACKEND_ID "bmi2"\n'
-                    '#include "astrocs/common_abi_v1.h"\n'
+            f.write('#define ACSD_BACKEND_ID "bmi2"\n'
+                    '#include "acsd/common_abi_v1.h"\n'
                     '#include "baseline_kernels.h"\n'
                     '#include <algorithm>\n#include <atomic>\n#include <cmath>\n'
                     '#include <cstdio>\n#include <cstring>\n#include <functional>\n'

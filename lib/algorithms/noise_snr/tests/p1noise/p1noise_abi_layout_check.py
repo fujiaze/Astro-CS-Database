@@ -26,7 +26,7 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 def _repo_root(start):
     cur = start
     while True:
-        if (os.path.isfile(os.path.join(cur, "docs/ASTROCS_DESIGN.md"))
+        if (os.path.isfile(os.path.join(cur, "docs/ACSD_DESIGN.md"))
                 and os.path.isfile(os.path.join(cur, "CMakeLists.txt"))):
             return cur
         parent = os.path.dirname(cur)

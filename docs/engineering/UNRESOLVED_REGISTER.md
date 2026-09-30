@@ -1,6 +1,6 @@
 # 未决事项登记面
 
-> 上游：docs/ASTROCS_DESIGN.md §12（验证体系）、§13（版本与发布权）；docs/engineering/DOCUMENT_GOVERNANCE.md §8.3（登记面交付形状）；AGENTS.md §8（提交纪律）。
+> 上游：docs/ACSD_DESIGN.md §12（验证体系）、§13（版本与发布权）；docs/engineering/DOCUMENT_GOVERNANCE.md §8.3（登记面交付形状）；AGENTS.md §8（提交纪律）。
 > 地位：需要项目负责人裁定的方向裁决、来源核实与已裁事项的唯一登记面；本面只登记未决项本身，裁决由负责人给出。
 
 ## 1. 分层与读法
@@ -997,7 +997,7 @@ detail 车道按规范 05 §3「detail 不引入无上游依据的科学口径�
 
 | 出处 | 口径 |
 |---|---|
-| `docs/ASTROCS_DESIGN.md` §3.3「精度归属」 | 稠密大面默认**单精度**；稀疏与元数据全程**双精度** ⇒ **按面分派** |
+| `docs/ACSD_DESIGN.md` §3.3「精度归属」 | 稠密大面默认**单精度**；稀疏与元数据全程**双精度** ⇒ **按面分派** |
 | `docs/engineering/NUMERIC_STANDARD.md:10` | 「precision requirement（FP32/FP64 边界；**默认 science=FP64**）」⇒ **第三个口径** |
 | `docs/detail/common.md:34` | detail 自行给出调和读法：计算路径经 `aio_set_precision_mode` 跨 DLL 传递、全局 `AstroScalarType` 是**计算路径**的精度开关、**发布面** dtype 另按 §3.3 与 NUMERIC_STANDARD |
 
@@ -1007,9 +1007,9 @@ detail 车道按规范 05 §3「detail 不引入无上游依据的科学口径�
 ### 31.3 R11 · ISA 变体在 detail 完全无载体（一级 79 条实施要求）
 
 `docs/engineering/ISA_VARIANTS.md` 的 79 条实施要求在 detail 全树 grep
-`ISA_VARIANTS|backends.manifest|astrocs_cpuprov_|check_isa_same_source` **零命中**。
+`ISA_VARIANTS|backends.manifest|acsd_cpuprov_|check_isa_same_source` **零命中**。
 `infrastructure/20_benchmark.md` 只有 53 行、仅覆盖画像生成，不覆盖 backend/provider 两族 DSO 的
-独立冻结 C ABI 与入口符号（`astrocs_backend_get_api_v1` / `astrocs_provider_query_v1`）、
+独立冻结 C ABI 与入口符号（`acsd_backend_get_api_v1` / `acsd_provider_query_v1`）、
 `backends.manifest.json`/`providers.manifest.json` 同目录安装、能力位唯一源 `cpu_features.h`、
 门面 TU / 计算面 TU 两 TU 拆分与 MSVC 无函数级指令集覆盖的隔离理由、
 `check_isa_same_source.py` 的 `tu_isolation`、`check_variant_isa_disasm.py` 的产物级判据、
@@ -1200,7 +1200,7 @@ gain 轴分支 → `snr_estimator.h:349` 出参只取 {1,2,3}。
 - `snr_frame_science.cpp:59→117→134-137`：内部异常被**静默重解释**成「flux/fwhm 退化」。
 - `module_entry.cpp:706` 是 8 个 catch 里唯一丢诊断的（该函数签名无 err 出参）。
 - `weight_closure_token()` 把两个枚举映射到同一 token ⇒ closure 不可唯一反解。
-- 两片对 `exit_codes.h` **零引用**；仓内实为三层码空间（CLI `ExitCode` / 模块 ABI `acs_status` /
+- 两片对 `exit_codes.h` **零引用**；仓内实为三层码空间（CLI `ExitCode` / 模块 ABI `acsd_status` /
   模块局部 `NOISE_ECODE_*`）。
 
 ### 34.4 并发（规范 06 §2）
@@ -1579,7 +1579,7 @@ Windows = `lib\star_detector\logs`（**缺 `algorithms` 一级**，是模块迁�
 |---|---|
 | writer（`hips/src/module_entry.cpp:347`） | `nside ≤ 1<<24` |
 | `aio/include/hiss_format.h:284` `HISS_MAX_NSIDE` | `1u << 22` |
-| `aio/io/include/astrocs/io/hips_input_v1.h:31` `ACS_HIPS_ORDER_MAX 29` | order ≤ 29 ⇒ `2^29`；**注释却称「NSIDE ≤ 2^38 安全域」** |
+| `aio/io/include/acsd/io/hips_input_v1.h:31` `ACS_HIPS_ORDER_MAX 29` | order ≤ 29 ⇒ `2^29`；**注释却称「NSIDE ≤ 2^38 安全域」** |
 
 ⇒ `nside ∈ (2^22, 2^24]` 的产品**写出成功、读回被拒，且写时无告警**。
 且 `2^38` 这个注释比实际大了 **9 个数量级**。
@@ -1591,7 +1591,7 @@ Windows = `lib\star_detector\logs`（**缺 `algorithms` 一级**，是模块迁�
 **绕过统一 I/O 0 处**（正面）。**未声明写文件 2 处**：
 
 1. `src/aio_log.cpp:40/48/57-63` —— 日志落**源码树** `lib/infrastructure/aio/logs/astro_image_io.log`，
-   且是**进程 CWD 相对路径**（违反 `17_aio.md:134-137` 与 `ASTROCS_DESIGN:463`）；
+   且是**进程 CWD 相对路径**（违反 `17_aio.md:134-137` 与 `ACSD_DESIGN:463`）；
    目录不可创建时 `g_aio_log_file = nullptr; return;` 静默降级无信号。
 2. `src/aio_sparse_punch.h:394-395` —— 卷能力探针在**产品输出目录内**建删临时文件。
 
@@ -1615,7 +1615,7 @@ UTF-8 fopen **4 份且回退语义分叉**；原子替换 2 份；原子发布 3
 
 ### 40.7 分片刻意未做的部分（如实登记）
 
-**25+ 处可做的纯注释订正刻意没做**（18 处 `ASTROCS_DESIGN §9`→§10、8 处 `ENGINEERING_SPEC` 悬空），
+**25+ 处可做的纯注释订正刻意没做**（18 处 `ACSD_DESIGN §9`→§10、8 处 `ENGINEERING_SPEC` 悬空），
 已逐条列出 file:line 与应为节号，建议前台统一派单收口以免与其它车道撞同一批公共头。
 
 ---
@@ -1836,3 +1836,74 @@ UTF-8 fopen **4 份且回退语义分叉**；原子替换 2 份；原子发布 3
   **正是 P2 稀疏控制点所依赖的布局，而全仓无任何成文声明**。
 
 另：禁止词规模从约 150 修正为**约 200**；清扫须避开 `ACK-ACR-001..007` 与 ADR 引用等合法注册 ID。
+
+---
+
+## 44. G08-08 步骤 1：品牌统一为 ACSD（负责人裁定范围 = 全部，含冻结 C ABI）
+
+**负责人裁定**（本轮问答）：改名范围取「**全部统一到 ACSD**」；冻结 C ABI 的 `acs_*` 前缀
+**一并改为 `acsd_`**。⇒ 这是一次**破坏性 ABI 变更**，按 AGENTS §8 登记如下。
+
+### 44.1 实际规模（比前台预估的大一倍）
+
+前台初估约 600 文件，实测脚本化清单为 **1,857 份跟踪文件 / 约 24,000 处**，分两轮执行：
+
+| 轮 | 改写 | 命中形态 |
+|---|---:|---|
+| 第一轮 | 1,285 份 | `ASTROCS_DESIGN.md`、`\bAstroCS\b`、`\bASTROCS_[A-Z0-9_]+`、`\bastrocs::`、`\bacs_[a-z]…`、`\bastrocs\b` |
+| 第二轮（补形态） | 572 份 | **裸子串** `ASTROCS` / `AstroCS` / `astrocs` |
+
+### 44.2 第一轮漏掉的四种形态（与本项目已登记的「批量替换六形态」教训同源）
+
+第二轮之所以必要，是因为第一轮全部用 `\b` 词边界，而 `_` 是**词字符**：
+
+| 漏掉的形态 | 实例 | 后果 |
+|---|---|---|
+| 前缀是 `-D` | `CMakeLists.txt:1546 -DASTROCS_ENABLE_TSAN` | CMake 选项名未改，构建开关失效 |
+| 标识符内嵌（前有 `_`） | `P2_PROFILE_ASTROCS_ADAPTIVE_PIXEL` | 宏名未改 |
+| 后面接非大写字母 | `ASTROCS_*`（通配散文）、`"ASTROCS_"`（**运行期字面量**） | `p1hips_tests_diag_prov.cpp:517` 的 `line.rfind("ASTROCS_", 0)` 会与已改名为 `ACSD_*` 的写出侧**永不相等** |
+| `astrocs_` 前缀族 | `acsd_cfitsio` 之外的 `astrocs_module_query_v1`、`astrocs_cpu_avx2` 等 | 冻结 ABI 符号与 ISA 目标名未改 |
+
+⇒ **前台第一轮的「复扫零残留」结论是错的**：复扫脚本用了同样的词边界模式，
+与改写脚本犯的是**同一个错误**，因而自查没能发现它。
+**这是本项目第三次因「词边界形态」漏改**（前两次见各自登记）。
+
+### 44.3 明确排除、不改的部分
+
+| 项 | 理由 |
+|---|---|
+| `artifacts/evidence/**`（18 处） | **冻结证据是时点事实**（GOV-ERR-2 教训），改写它等于伪造历史记录 |
+| `.gitignore`（7 处） | `AstroCS_Database_Context.zip` 等是**本机历史产物文件名**，非产品标识 |
+| `ASTROCS-CONSTITUTION-001`（59 处）、`ASTROCS-REFERENCES-001`（24 处） | **登记 ID**，其文件已不存在；按 P-175 裁定「保留＝合同·门禁·实验·探针 registration IDs」 |
+| `C:/AstroCS/toolchains/…`、`D:\AstroCSRunner\…`（16 处） | **冻结的宿主安装路径**（CODE_STANDARD 第 7 行），在 preset 与依赖锁中冻结；改名会打断 Windows 工具链定位 |
+
+⇒ 排除手段：前两类按**路径排除**，后两类用**占位符暂存—改写—回填**保护。
+
+### 44.4 破坏性 ABI 变更的登记（AGENTS §8）
+
+冻结 C ABI 前缀 `acs_*` → `acsd_*`，涉及 `acs_status`（77+）、`acs_str_v`、`acs_head`、
+`acs_module_api_v`、`acs_artifact_handle_v`、`acs_span_u`、`acs_error_info_v`、`acs_handle` 等。
+连同 C++ 命名空间 `astrocs::` → `acsd::`（2,920 处 / 375 文件）与构建目标
+`astrocs_*` → `acsd_*`（69 个目标）。
+
+**影响**：任何已按旧符号构建的二进制不再兼容；`COMMON_ABI_V1.md` 须同步改写；
+`astrocs_backend_get_api_v1` 等**两族入口符号**亦在其内。
+
+### 44.5 G08-09 的验证方法（本轮已备好）
+
+⚠ **治理完成前不得编译**（AGENTS §9），因此这次 1,857 文件的改动**在 G08-09 之前无法验证**。
+
+为使 G08-09 能区分「改名引入的失败」与「本来就有的失败」，前台已存下**改名前的全仓基线哈希**：
+
+    run/GOVERN-08/审核包/改名/基线哈希.json   （2,989 份跟踪文件的 SHA256 前 16 位）
+    run/GOVERN-08/审核包/改名/改动清单.json   （逐文件逐形态的命中计数）
+
+⇒ G08-09 编译失败时，先用基线哈希判断该文件是否本轮被改过；
+未被改过的文件的失败**必然是原有问题**，可按 UNRESOLVED 登记处理。
+
+### 44.6 一条留给 G08-10 的门（随改名一并登记）
+
+`CODE_STANDARD.md` 第 81 行原引的 `CHK-NAMING-SURFACE` 门（`eng/ci/check_naming_surface.py`）
+**已随 G08-01 删除**，故本次改名**全程无机器门校验**，只能靠上述两轮脚本 + 人工抽查。
+⇒ G08-10 **必须**重建该门，否则下一次改名会重演同样的漏改。
+**当前门缺失状态下的改名是不可复现的**——这一点比改名本身更值得记住。

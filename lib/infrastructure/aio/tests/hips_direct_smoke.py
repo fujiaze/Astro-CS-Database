@@ -10,7 +10,7 @@ SCI-FIX-AIO #2 (V11-N-01) 订正:
     写数据的根因);
   * 修复 ARCH-001 迁移后失效的硬编码 DLL 路径 (旧
     ROOT + "\\lib\\astro_image_io\\astro_image_io.dll" 已不存在), 改为
-    ASTROCS_AIO_DLL 环境变量 + 仓内候选路径解析, 并显式设置 ABI 自描述头
+    ACSD_AIO_DLL 环境变量 + 仓内候选路径解析, 并显式设置 ABI 自描述头
     (aio_abi_mirror 的工厂函数已自动填 struct_size/abi_version)。
 """
 
@@ -32,14 +32,14 @@ import aio_abi_mirror as abi  # noqa: E402
 
 
 def dll_candidates():
-    env = os.environ.get("ASTROCS_AIO_DLL")
+    env = os.environ.get("ACSD_AIO_DLL")
     if env:
         yield env
     for rel in (
         os.path.join("lib", "infrastructure", "aio", "astro_image_io.dll"),
         os.path.join("build", "astro_image_io.dll"),
-        os.path.join("build", "libastrocs_aio.so"),
-        os.path.join("build", "libastrocs_hips.so"),
+        os.path.join("build", "libacsd_aio.so"),
+        os.path.join("build", "libacsd_hips.so"),
     ):
         yield os.path.join(REPO, rel)
 
@@ -48,7 +48,7 @@ def load_aio():
     for p in dll_candidates():
         if p and os.path.isfile(p):
             return ctypes.CDLL(p), p
-    raise SystemExit("找不到 AIO 动态库; 设 ASTROCS_AIO_DLL 指向 astro_image_io.dll")
+    raise SystemExit("找不到 AIO 动态库; 设 ACSD_AIO_DLL 指向 astro_image_io.dll")
 
 
 def main():
@@ -79,7 +79,7 @@ def main():
 
     ps = aio.aio_hips_product_begin(
         out.encode(), nside, 512, 0, 7,
-        b"ivo://astrocs/test", b"Smoke HiPS", b"L", 300.0, b"2026-08-08", 0)
+        b"ivo://acsd/test", b"Smoke HiPS", b"L", 300.0, b"2026-08-08", 0)
     if not ps:
         print("begin failed:", aio.aio_hips_last_error().decode())
         return 1

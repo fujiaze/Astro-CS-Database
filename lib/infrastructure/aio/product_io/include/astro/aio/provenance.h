@@ -14,8 +14,8 @@
  * 机器形状与 eng/contracts/schemas/product_family_field_constraints.schema.json#/$defs/provenance
  * required 集一致；required 列表由独立 Oracle 从 schema 反查交叉校验。
  */
-#ifndef ASTROCS_V6_AIO_PROVENANCE_H
-#define ASTROCS_V6_AIO_PROVENANCE_H
+#ifndef ACSD_V6_AIO_PROVENANCE_H
+#define ACSD_V6_AIO_PROVENANCE_H
 
 #include <cstdint>
 #include <map>
@@ -26,7 +26,7 @@
 
 #include "astro/aio/validation.h"
 
-namespace astrocs {
+namespace acsd {
 namespace aio {
 
 struct ProductRef {
@@ -103,7 +103,7 @@ struct KCorr {
 };
 
 struct Provenance {
-  std::string provenance_schema = "astrocs.v6.provenance/v1";
+  std::string provenance_schema = "acsd.v6.provenance/v1";
   int schema_version = 1;
   ProductRef product;
   std::string software_sha;
@@ -157,6 +157,6 @@ ValidationReport validate_bunit_law(
     const std::string& variance_unit, const std::string& ivar_unit);
 
 }  // namespace aio
-}  // namespace astrocs
+}  // namespace acsd
 
-#endif  // ASTROCS_V6_AIO_PROVENANCE_H
+#endif  // ACSD_V6_AIO_PROVENANCE_H

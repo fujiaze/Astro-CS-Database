@@ -1,16 +1,16 @@
 # Star Detection Algorithms (ALG-STARDET-001)
 
-> 上游：ASTROCS_DESIGN.md §4.2（Phase1 节点流程）
+> 上游：ACSD_DESIGN.md §4.2（Phase1 节点流程）
 
 > 上游 SCI: SCI-PSF-001（docs/science/PSF.md，FROZEN 共享引用不改动）；本域冻结层
 > SCI-P1-STAR-001（§11.5，ALG 内冻结层，共享 SCI 不改动）
 > 下游: DATA-P1-STAR（DATA_SEMANTICS §17）、API-STAR-001（PUBLIC_API）、
-> MOD-astrocs-phase1-star（registry）
+> MOD-acsd-phase1-star（registry）
 > 唯一权威生产源: lib/algorithms/star_detection/src/sdet_api.cpp（2497 行；源文件唯一在役副本）；合同头
 > lib/algorithms/star_detection/include/star_detector.h（139 行）；取值与签名一律以本头文件为唯一来源。
-> 矩阵行: docs/traceability/TRACEABILITY_MATRIX.json MOD-astrocs-phase1-star
+> 矩阵行: docs/traceability/TRACEABILITY_MATRIX.json MOD-acsd-phase1-star
 > （matrix P1-STAR，legacy_paths=lib/algorithms/star_detection;lib/algorithms/star_detection/wrapper_phase1，
-> 迁移目标 astrocs_p1_star_detection.dll）。
+> 迁移目标 acsd_p1_star_detection.dll）。
 
 ## 1 上游 SCI 与输入输出
 
@@ -23,7 +23,7 @@
 - 生产调用: `lib/infrastructure/pipeline/orchestrator/cpp/src/orchestrator.cpp` 的 run_stage_psf（PSF/STAR_MEASURE 阶段，一帧一次
   权威检测）→ 同文件内 sdet_detect_ex / sdet_detect_ex_f64 / sdet_free_detect_ex
   函数指针 → star_det 权威块 FLOAT64[N,6]（同一文件）。
-- descriptor astrocs.phase1.star-psf（`lib/infrastructure/scheduler/src/module_adapters.cpp`）为编排层词汇，
+- descriptor acsd.phase1.star-psf（`lib/infrastructure/scheduler/src/module_adapters.cpp`）为编排层词汇，
   不含独立 star_detection descriptor；本模块合同以 ALG-STARDET-001/DATA-P1-STAR/
   API-STAR-001 为准。
 
@@ -214,7 +214,7 @@ sdet_detect_impl(image, w, h, params):            # sdet_api.cpp（模板双实�
 
 - 纯 CPU；自研信赖域 LM（nls_lm，替代外部 GSL gsl_multifit_nlinear，
   `sdet_api.cpp` 的 nls_lm 声明段）；OpenMP 线程级并行；无 SIMD 内联/ISA 分派（-march=native 于
-  `lib/algorithms/star_detection/Makefile`，非代码分支）；V7 迁移目标 astrocs_p1_star_detection.dll
+  `lib/algorithms/star_detection/Makefile`，非代码分支）；V7 迁移目标 acsd_p1_star_detection.dll
   （provider/cpu_providers 见 module.yaml）。
 
 ## 8 参考实现/Oracle
@@ -416,7 +416,7 @@ SDetParams 9 字段（`lib/algorithms/star_detection/include/star_detector.h`）
 blend/edge=§2 饱和双条件+edge-walking+dedup 保饱和+§4 边界丢弃；deterministic
 ordering=§5 全序确定（mag 升序+NaN 末尾+串行 dedup/sort）。共享 SCI（PSF/
 PHOTOMETRY/ASTROMETRY）不因本附录改动；本节是唯一冻结依据（编排层词汇只作对齐对象）
-（descriptor astrocs.phase1.star-psf 由 P1-PSF-INT 对齐，不作冻结依据）。
+（descriptor acsd.phase1.star-psf 由 P1-PSF-INT 对齐，不作冻结依据）。
 
 > 本域门与容差的量测域/统计量/SNR 定义/阈值来源见 `docs/science/algorithms/GATES_AND_TOLERANCES.md`（F-2 冻结门表；门值来源只此一表）。
 

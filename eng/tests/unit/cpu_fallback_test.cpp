@@ -8,10 +8,10 @@
 #include <fstream>
 #include <string>
 
-using astrocs::backend_host::LoadResult;
-using astrocs::backend_host::ManifestEntry;
-using astrocs::backend_host::parse_backends_manifest;
-using astrocs::backend_host::preflight_entry;
+using acsd::backend_host::LoadResult;
+using acsd::backend_host::ManifestEntry;
+using acsd::backend_host::parse_backends_manifest;
+using acsd::backend_host::preflight_entry;
 
 static int failures = 0;
 #define CHECK(cond)                                                       \
@@ -40,10 +40,10 @@ static void write_file(const std::string& p, const std::string& content) {
 }
 
 int main() {
-  std::string dir = tmp_dir() + "/astrocs_cpu005";
+  std::string dir = tmp_dir() + "/acsd_cpu005";
   system(("mkdir -p " + dir).c_str());
 
-  uint64_t detected = astrocs_cpu_detect_features_v1();
+  uint64_t detected = acsd_cpu_detect_features_v1();
 
   // 1) 损坏 provider: sha256 不匹配 → FALLBACK_BASELINE (安全回退)
   {
@@ -108,7 +108,7 @@ int main() {
     CHECK(!err.empty());
     // 合法 manifest 但条目缺 sha256
     CHECK(!parse_backends_manifest(
-        R"({"schema_version":"1","kind":"astrocs_backends_manifest","backends":[
+        R"({"schema_version":"1","kind":"acsd_backends_manifest","backends":[
              {"file":"a.so","backend_id":"b","sha256":"short","abi_version":1}]})",
         &out, &err));
   }

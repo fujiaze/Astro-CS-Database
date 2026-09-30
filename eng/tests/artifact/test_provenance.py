@@ -69,7 +69,7 @@ from production_store import (  # noqa: E402
     utc_now_z,
 )
 
-TYPE_P1 = "astrocs.phase1.frame_hips.v1"
+TYPE_P1 = "acsd.phase1.frame_hips.v1"
 COMMIT = "0d32c07d65c6d7489fa408cbafaa98ddf9ecf4da"
 
 
@@ -83,13 +83,13 @@ def base_manifest(artifact_id: str = "frame-000001",
                   inputs: list | None = None) -> dict:
     """构造完整 DATA-001 manifest（冻结字段序；DATA-004 复用 producer 字段）。"""
     producer: dict = {
-        "module_id": "astrocs.phase1.frame_hips",
+        "module_id": "acsd.phase1.frame_hips",
         "module_build_id": product_version,
     }
     if science_ids:
         producer["science_contract_ids"] = science_ids
     return {
-        "manifest_schema": "astrocs.artifact-manifest/v1",
+        "manifest_schema": "acsd.artifact-manifest/v1",
         "manifest_version": 1,
         "artifact_id": artifact_id,
         "type_id": type_id,
@@ -214,7 +214,7 @@ class TestDocRevisionHistory(unittest.TestCase):
 
     def test_build_history_ok(self):
         h = sample_history()
-        self.assertEqual(h["history_schema"], "astrocs.provenance-history/v1")
+        self.assertEqual(h["history_schema"], "acsd.provenance-history/v1")
         self.assertEqual(h["revision_category"], "product")
         self.assertEqual([e["version"] for e in h["replaced"]],
                          ["1.0.0", "1.1.0"])
@@ -549,7 +549,7 @@ class TestMakeProvenanceDoc(unittest.TestCase):
 
     def test_doc_schema_fields(self):
         doc = make_provenance_doc(**prov_kwargs())
-        self.assertEqual(doc["provenance_schema"], "astrocs.provenance/v1")
+        self.assertEqual(doc["provenance_schema"], "acsd.provenance/v1")
         self.assertEqual(doc["version"], 1)
         self.assertEqual(doc["source_commit"], COMMIT)
         self.assertEqual(doc["science_ids"], ["SCI-CW-001", "SCI-DRZ-014"])
@@ -587,7 +587,7 @@ class TestStoreProvenanceIntegration(unittest.TestCase):
         self.assertEqual(prov["revision"]["data_schema"], "v1")
         self.assertEqual(prov["revision"]["product"],
                          _repo_version() + "-linux-amd64-gcc14")
-        self.assertEqual(prov["revision"]["module"], "astrocs.phase1.frame_hips")
+        self.assertEqual(prov["revision"]["module"], "acsd.phase1.frame_hips")
         self.assertEqual(prov["revision"]["abi"], "v1")
         self.assertEqual(prov["science_ids"], ["SCI-CW-001"])
         # sidecar 落盘

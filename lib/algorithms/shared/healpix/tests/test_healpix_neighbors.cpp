@@ -32,7 +32,7 @@
 #include <stdexcept>
 #include <vector>
 
-using namespace astrocs::healpix;
+using namespace acsd::healpix;
 
 namespace {
 

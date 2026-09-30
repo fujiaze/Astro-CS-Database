@@ -19,13 +19,13 @@
   `ac_calibrate_frame`(:378) 与 `ac_correct_frame`(:481，master 实参 =
   resolve_master 载入的 dark/bias 平面 :479-480，**不是** nullptr；
   旧记"nullptr→DISP-COS-009 恒等 pass"已作废注销)。
-- 五导出 C API（p1_session.h:16-28）+ `astrocs::phase1::last_error`
+- 五导出 C API（p1_session.h:16-28）+ `acsd::phase1::last_error`
   （p1_session.cpp:368-371）；create 校验 host struct_size/ABI（:91-93）；
   validate 键集 input_lights/output_dir 必需 + master_*/cosmetic/
   dark_optimization 可选（:115-143）；run 校验 async_io_depth∈{0,1,2}
   （:152）；线程注入 `ac_set_num_threads(budget.max_workers)`（:162-165）；
   取消=文件粒度（io_read :177-181）/帧粒度（calibrate :228-231、cosmetic
-  :289）；manifest kind=astrocs_phase1_session（:98），stage 记
+  :289）；manifest kind=acsd_phase1_session（:98），stage 记
   name/status/files/frames/per_frame/artifacts（:170-192/:277-279/:274-275/
   :333-334）；inspect 输出 host alloc（:349-357）。
 - registry（P1-001 后更新，2026-09-10）：8 个 Phase1 descriptor 工厂已
@@ -44,11 +44,11 @@
   AstroSphereTileView→aio_hips_product_begin/write/finalize（NESTED 聚合
   IVOA 1.4 标准 512×512 HiPS，covered_area_model=hiss_support_ratio_x_A_cell，
   nside>=512 合同）。主链测试 7 节点（wcs 旁支平台化单测）+ 下游零调用
-  负向用例（口径⑨）。构建面：astrocs_p1_dpsf/astrocs_p1_ipv/
-  astrocs_p1_sdet 三个 STATIC + GSL(gsl gslcblas) + AIO_ENABLE_HEALPIX
+  负向用例（口径⑨）。构建面：acsd_p1_dpsf/acsd_p1_ipv/
+  acsd_p1_sdet 三个 STATIC + GSL(gsl gslcblas) + AIO_ENABLE_HEALPIX
   编译定义；cli/CMakeLists.txt compat 面同步（源集+include+链接 gsl）。
   CLI 键白名单 parser.cpp 补 drizzle/wcs。
-- 构建：根 CMakeLists.txt:448-452 STATIC astrocs_phase1_session；
+- 构建：根 CMakeLists.txt:448-452 STATIC acsd_phase1_session；
   :496/:514/:530 编入主可执行。
 - 如实差距：API-P1-001（docs/engineering/PHASE1_API_V1.md FROZEN）冻结 7-stage
   序列 vs 现状 4 段——README §3 声明，不宣称 session 完成 7-stage；
@@ -68,11 +68,11 @@
   （不设 ALG-P1-SESSION：assembly 无新算法推导，ALG 引用既有冻结 ALG；
   归档映射表 ALG-P1-SESSION-001 为 P1-001 旧词汇，不进现行 INDEX）。
 - docs/detail/phase1_session.md 新建（模块页摘要，指向 co-located 合同）；
-  docs/detail/registry/astrocs.phase1.session.md 新建（手写合同页；
+  docs/detail/registry/acsd.phase1.session.md 新建（手写合同页；
   gen_module_readmes.py 以 module_adapters.cpp 为源会生成 calibration 等
   8 页，本页 registry 无 descriptor 源，重生成时须排除/保留）。
 - docs/traceability/TRACEABILITY_MATRIX.json 新增
-  MOD-astrocs-phase1-session 行（JSON/CSV 经 gen_traceability_csv.py
+  MOD-acsd-phase1-session 行（JSON/CSV 经 gen_traceability_csv.py
   同步重生成）。
 
 ### 验收锚
@@ -90,7 +90,7 @@
 
 ### 任务
 
-- 控制包任务 P1-001（ASTROCS-CONSTITUTION-ALIGNMENT-V1，ARCH-P0-001 +
+- 控制包任务 P1-001（ACSD-CONSTITUTION-ALIGNMENT-V1，ARCH-P0-001 +
   PROD-P0-001 Phase1 侧整改）：B 线 registry 8 个 Phase1 节点唯一真实
   operation 化 + complete 门 fail-closed。
 
@@ -105,9 +105,9 @@
   （cosmetic enabled=false 时 0 帧直通，产物语义不变）。
 - lib/infrastructure/cli/commands.cpp：phase1 成功路径补接 write_run_graphs（对齐 phase3
   先例；observed trace 现含 phase1 节点观测）。
-- 根 CMakeLists.txt（白名单越界登记）：astrocs_phase1_session PUBLIC
+- 根 CMakeLists.txt（白名单越界登记）：acsd_phase1_session PUBLIC
   链接追加 4 个 lib/phase1 静态库（wcs/phot/noise/stars，源零修改只读
-  委托）+ astrocs_module_adapters 追加 astrocs_drizzle（hp_drizzle_run
+  委托）+ acsd_module_adapters 追加 acsd_drizzle（hp_drizzle_run
   直链）；V7 残留追加块零触碰。
 - 测试：eng/tests/unit/p1001_real_nodes_test.cpp 新增（RED 锚定→GREEN；
   operation/entry/artifact/call_count=1/complete 门/负向/确定性）；

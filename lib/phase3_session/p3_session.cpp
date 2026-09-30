@@ -18,10 +18,10 @@
 
 using nlohmann::json;
 
-namespace astrocs::phase3 {
+namespace acsd::phase3 {
 namespace {
 struct SessionState {
-    const astrocs_host_services_v1* host = nullptr;
+    const acsd_host_services_v1* host = nullptr;
     std::string last_error;
     json result;
     bool ran = false;
@@ -37,20 +37,20 @@ struct SessionState {
 };
 }  // namespace
 
-std::string last_error(acs_handle h) {
+std::string last_error(acsd_handle h) {
     if (!h) return "";
     auto* s = reinterpret_cast<SessionState*>(h);
     return s->last_error;
 }
 
-}  // namespace astrocs::phase3
+}  // namespace acsd::phase3
 
-using namespace astrocs::phase3;
+using namespace acsd::phase3;
 
 extern "C" {
 
-acs_status p3_session_create(const astrocs_host_services_v1* host, acs_handle* out) {
-    if (!host || host->struct_size != sizeof(astrocs_host_services_v1) ||
+acsd_status p3_session_create(const acsd_host_services_v1* host, acsd_handle* out) {
+    if (!host || host->struct_size != sizeof(acsd_host_services_v1) ||
         host->abi_version != ACS_ABI_VERSION_V1)
         return ACS_ERR_ABI_MISMATCH;
     if (!out) return ACS_ERR_PARAM;
@@ -58,11 +58,11 @@ acs_status p3_session_create(const astrocs_host_services_v1* host, acs_handle* o
     if (!s) return ACS_ERR_NOMEM;
     s->host = host;
     s->result = json::object();
-    *out = reinterpret_cast<acs_handle>(s);
+    *out = reinterpret_cast<acsd_handle>(s);
     return ACS_OK;
 }
 
-acs_status p3_session_destroy(acs_handle h) {
+acsd_status p3_session_destroy(acsd_handle h) {
     auto* s = reinterpret_cast<SessionState*>(h);
     if (!s) return ACS_ERR_PARAM;
     delete s;
@@ -70,7 +70,7 @@ acs_status p3_session_destroy(acs_handle h) {
 }
 
 // 请求解析 + 显式拒清单 (纯校验, 无 IO)
-static acs_status parse_request(SessionState* s, const acs_span_u8 req, json* out) {
+static acsd_status parse_request(SessionState* s, const acsd_span_u8 req, json* out) {
     if (!s || !req.data || req.count == 0) return ACS_ERR_PARAM;
     json doc;
     try {
@@ -131,18 +131,18 @@ static acs_status parse_request(SessionState* s, const acs_span_u8 req, json* ou
     return ACS_OK;
 }
 
-acs_status p3_session_validate(acs_handle h, const acs_span_u8 request_json) {
+acsd_status p3_session_validate(acsd_handle h, const acsd_span_u8 request_json) {
     auto* s = reinterpret_cast<SessionState*>(h);
     if (!s) return ACS_ERR_PARAM;
     json doc;
     return parse_request(s, request_json, &doc);
 }
 
-acs_status p3_session_run(acs_handle h, const acs_span_u8 request_json) {
+acsd_status p3_session_run(acsd_handle h, const acsd_span_u8 request_json) {
     auto* s = reinterpret_cast<SessionState*>(h);
     if (!s) return ACS_ERR_PARAM;
     json doc;
-    const acs_status prc = parse_request(s, request_json, &doc);
+    const acsd_status prc = parse_request(s, request_json, &doc);
     if (prc != ACS_OK) return prc;
     s->ran = true;
 
@@ -364,13 +364,13 @@ acs_status p3_session_run(acs_handle h, const acs_span_u8 request_json) {
 
     // provenance
     const std::string order_sel_str = std::to_string(order_sel);
-    const std::string version_str = ASTROCS_VERSION_STRING;
-    const std::string run_id_str = std::string("p3-") + ASTROCS_COMMIT_SHA;
+    const std::string version_str = ACSD_VERSION_STRING;
+    const std::string run_id_str = std::string("p3-") + ACSD_COMMIT_SHA;
     const char* unc_src_str = (unc_src == P3_UNC_VARIANCE) ? "variance"
                               : (unc_src == P3_UNC_IVAR)   ? "ivar"
                                                            : nullptr;
     P3Provenance prov{};
-    prov.hips_id = "ivo://astrocs/phase3";
+    prov.hips_id = "ivo://acsd/phase3";
     prov.manifest_hash = nullptr;
     prov.missing_tiles = nullptr;
     prov.missing_count = 0;
@@ -405,7 +405,7 @@ acs_status p3_session_run(acs_handle h, const acs_span_u8 request_json) {
     // inspect result
     long covn = 0;
     for (long i = 0; i < nelem; ++i) if (cov[(size_t)i] > 0.5f) ++covn;
-    s->result = {{"kind", "astrocs_phase3_session"},
+    s->result = {{"kind", "acsd_phase3_session"},
                  {"run_id", run_id_str},
                  {"exit_code", 0},
                  {"output_fits_path", opath},
@@ -417,14 +417,14 @@ acs_status p3_session_run(acs_handle h, const acs_span_u8 request_json) {
                  {"uncertainty_missing_pixels", (long long)missing_px.load()},
                  {"coverage_stats", {{"covered_px", covn}, {"total_px", nelem}}},
                  {"provenance",
-                  {{"hips_id", "ivo://astrocs/phase3"},
+                  {{"hips_id", "ivo://acsd/phase3"},
                    {"missing_tiles", json::array()},
                    {"software_version", version_str}}}};
     s->last_error.clear();
     return ACS_OK;
 }
 
-acs_status p3_session_inspect(acs_handle h, acs_span_u8* out_result_json) {
+acsd_status p3_session_inspect(acsd_handle h, acsd_span_u8* out_result_json) {
     auto* s = reinterpret_cast<SessionState*>(h);
     if (!s || !out_result_json) return ACS_ERR_PARAM;
     const std::string txt = s->result.dump();

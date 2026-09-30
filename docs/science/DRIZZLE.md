@@ -1,6 +1,6 @@
 # Drizzle / Spherical Resampling Science (SCI-DRIZZLE)
 
-> 上游：ASTROCS_DESIGN.md §5.2（固定科学流程）、§6.3（投影算法）
+> 上游：ACSD_DESIGN.md §5.2（固定科学流程）、§6.3（投影算法）
 
 > 本文件条款为冻结定义，变更走变更流程。
 

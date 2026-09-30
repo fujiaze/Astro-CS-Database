@@ -30,7 +30,7 @@
 #include <unistd.h>
 #endif
 
-using namespace astrocs::aio;
+using namespace acsd::aio;
 using nlohmann::json;
 
 static int g_checks = 0;
@@ -125,7 +125,7 @@ std::vector<FitsLayer> make_three_layer_product() {
 
 Provenance make_positive_provenance() {
   Provenance p;
-  p.product.type_id = "astrocs.phase1.product.fits.v1";
+  p.product.type_id = "acsd.phase1.product.fits.v1";
   p.product.schema_version = 1;
   p.software_sha = std::string(40, 'a');
   p.run_id = "run-aio-001";
@@ -182,7 +182,7 @@ Provenance make_positive_provenance() {
 
 HipsProperties make_positive_props() {
   HipsProperties hp;
-  hp.creator_did = "ivo://astrocs/test";
+  hp.creator_did = "ivo://acsd/test";
   hp.obs_collection = "ACSD V6";
   hp.release_date = "2026-09-15T00:00:00Z";
   hp.frame = "equatorial";  // P0-19: HiPS 1.0 §4.4.1 标准值 (icrs 非法)
@@ -601,7 +601,7 @@ int test_manifest() {
   CHECK_MSG(pr.ok(), ("properties rejected: " + pr.summary()).c_str());
 
   HipsManifest m;
-  m.product_type_id = "astrocs.phase1.product.fits.v1";
+  m.product_type_id = "acsd.phase1.product.fits.v1";
   m.order = 6;
   m.order_min = 3;
   m.tile_format = "fits";

@@ -24,7 +24,7 @@
 #include <cstring>
 #include <limits>
 
-namespace sd = astrocs::star_detector;
+namespace sd = acsd::star_detector;
 
 static int g_fail = 0;
 

@@ -16,7 +16,7 @@
  *   其后每行 = "i j value"（field）或 "x y value"（point）
  * 求值失败的行写 "ERR <message>"。
  */
-#include "astrocs/weight_chain.h"
+#include "acsd/weight_chain.h"
 
 #include <cstdio>
 #include <cstdlib>
@@ -27,10 +27,10 @@
 #include <string>
 #include <vector>
 
-using astrocs::v6::p2weight::SparseReconstruction;
-using astrocs::v6::p2weight::SparseSnrLayer;
-using astrocs::v6::p2weight::SparseSnrPoint;
-using astrocs::v6::p2weight::SparseSnrReconstructor;
+using acsd::v6::p2weight::SparseReconstruction;
+using acsd::v6::p2weight::SparseSnrLayer;
+using acsd::v6::p2weight::SparseSnrPoint;
+using acsd::v6::p2weight::SparseSnrReconstructor;
 
 int main(int argc, char** argv) {
   if (argc < 3) {

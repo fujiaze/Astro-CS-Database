@@ -22,9 +22,9 @@
 // fixture: Phase1 真实链节点（drizzle→writer）产出单帧 HiPS（无 ivar 产品,
 // 驱动 §30.1 unavailable 语义面）+ AIO 生产写链直接构造带 ivar/variance 的
 // 两帧 HiPS（驱动 §30.1 数值 oracle 面）。
-#include "astrocs/core/module.h"
-#include "astrocs/core/module_adapters.h"
-#include "astrocs/core/runtime.h"
+#include "acsd/core/module.h"
+#include "acsd/core/module_adapters.h"
+#include "acsd/core/runtime.h"
 #include "p2_session.h"  // complete 门: API-P2-001 冻结 C ABI
 
 #include "p1sess_fixtures.hpp"  // 最小 FITS writer (手写, 不调生产 symbol)
@@ -52,7 +52,7 @@
 #endif
 
 using json = nlohmann::json;
-using namespace astrocs::core;
+using namespace acsd::core;
 
 static int failures = 0;
 #define CHECK(cond)                                                       \
@@ -71,16 +71,16 @@ static int failures = 0;
     }                                                                     \
   } while (0)
 
-// host services 工厂（lib/infrastructure/benchmark/backend_host/host_services.cpp, astrocs_cpu 库）
+// host services 工厂（lib/infrastructure/benchmark/backend_host/host_services.cpp, acsd_cpu 库）
 extern "C" {
-int astrocs_host_services_default_v1(astrocs_host_services_v1* out, void** state_out);
-void astrocs_host_services_destroy_state_v1(void* state);
+int acsd_host_services_default_v1(acsd_host_services_v1* out, void** state_out);
+void acsd_host_services_destroy_state_v1(void* state);
 
-acs_status p2_session_create(const astrocs_host_services_v1* host, acs_handle* out);
-acs_status p2_session_validate(acs_handle h, const acs_span_u8 config_json);
-acs_status p2_session_run(acs_handle h, const acs_span_u8 config_json);
-acs_status p2_session_inspect(acs_handle h, acs_span_u8* out_manifest_json);
-acs_status p2_session_destroy(acs_handle h);
+acsd_status p2_session_create(const acsd_host_services_v1* host, acsd_handle* out);
+acsd_status p2_session_validate(acsd_handle h, const acsd_span_u8 config_json);
+acsd_status p2_session_run(acsd_handle h, const acsd_span_u8 config_json);
+acsd_status p2_session_inspect(acsd_handle h, acsd_span_u8* out_manifest_json);
+acsd_status p2_session_destroy(acsd_handle h);
 }
 
 namespace {
@@ -138,7 +138,7 @@ P1Fixture make_p1_fixture(const char* tag) {
               "cd21": 0.0, "cd22": 0.0002777777777777778},
       "drizzle": {"nside": 512, "nested": 1, "pixfrac": 1.0, "precision_mode": 0}
     })";
-    auto drz = reg.create("astrocs.phase1.drizzle");
+    auto drz = reg.create("acsd.phase1.drizzle");
     CHECK(drz.ok());
     CHECK(drz.value()->validate_config(cfg).ok());
     CHECK(drz.value()->plan(("p1drz_" + std::to_string(i)), cfg).ok());
@@ -146,7 +146,7 @@ P1Fixture make_p1_fixture(const char* tag) {
     if (rd.failed())
       std::fprintf(stderr, "P1 drizzle failed: %s\n", rd.error().message().c_str());
     CHECK(rd.ok());
-    auto wr = reg.create("astrocs.phase1.writer");
+    auto wr = reg.create("acsd.phase1.writer");
     CHECK(wr.ok());
     CHECK(wr.value()->validate_config(cfg).ok());
     CHECK(wr.value()->plan(("p1wr_" + std::to_string(i)), cfg).ok());
@@ -184,7 +184,7 @@ bool write_ivar_frame(const std::string& path, double ivar, float offset) {
       path.c_str(), kNside, kTw, AIO_HIPS_FLOAT32,
       AIO_HIPS_PRODUCT_SIGNAL | AIO_HIPS_PRODUCT_SUPPORT |
           AIO_HIPS_PRODUCT_VARIANCE | AIO_HIPS_PRODUCT_IVAR,
-      "ivo://astrocs/test", "P2-001 ivar fixture", "R", 60.0,
+      "ivo://acsd/test", "P2-001 ivar fixture", "R", 60.0,
       "2026-09-09T00:00:00Z", 0);
   if (!ps) {
     std::fprintf(stderr, "fixture begin failed: %s\n", aio_hips_last_error());
@@ -197,7 +197,7 @@ bool write_ivar_frame(const std::string& path, double ivar, float offset) {
     for (uint32_t x = 0; x < kTw; ++x) {
       const uint32_t fi = y * kTw + x;
       const uint32_t local = static_cast<uint32_t>(
-          astrocs::healpix::fits_index_to_nested_local(fi, 9u, kTw));
+          acsd::healpix::fits_index_to_nested_local(fi, 9u, kTw));
       sig[local] = ivar_sig1(x, y) + offset;
       if (x >= 448u && y >= 448u) area[local] = 0.0f;   // 无覆盖角落 → NaN 语义面
     }
@@ -266,13 +266,13 @@ struct NodeExpect {
   const char* artifact_key;   // manifest 中的 typed artifact 路径键
 };
 const NodeExpect kP2NodeExpects[] = {
-    {"astrocs.phase2.coverage",   "compute_coverage", "astrocs_phase2_coverage_v1",  "coverage_artifact"},
-    {"astrocs.phase2.sample",     "sample_frames",    "astrocs_phase2_sample_v1",    "samples_artifact"},
-    {"astrocs.phase2.upm-fit",    "fit_upm",          "astrocs_phase2_upmfit_v1",    "upm_model_artifact"},
-    {"astrocs.phase2.upm-apply",  "apply_upm",        "astrocs_phase2_upmapply_v1",  "corrected_artifact"},
-    {"astrocs.phase2.reject",     "reject_outliers",  "astrocs_phase2_reject_v1",    "rejection_artifact"},
-    {"astrocs.phase2.integrate",  "integrate_frames", "astrocs_phase2_integrate_v1", "integrated_artifact"},
-    {"astrocs.phase2.write",      "write_mosaic",     "astrocs_phase2_write_v1",     "final_artifact"},
+    {"acsd.phase2.coverage",   "compute_coverage", "acsd_phase2_coverage_v1",  "coverage_artifact"},
+    {"acsd.phase2.sample",     "sample_frames",    "acsd_phase2_sample_v1",    "samples_artifact"},
+    {"acsd.phase2.upm-fit",    "fit_upm",          "acsd_phase2_upmfit_v1",    "upm_model_artifact"},
+    {"acsd.phase2.upm-apply",  "apply_upm",        "acsd_phase2_upmapply_v1",  "corrected_artifact"},
+    {"acsd.phase2.reject",     "reject_outliers",  "acsd_phase2_reject_v1",    "rejection_artifact"},
+    {"acsd.phase2.integrate",  "integrate_frames", "acsd_phase2_integrate_v1", "integrated_artifact"},
+    {"acsd.phase2.write",      "write_mosaic",     "acsd_phase2_write_v1",     "final_artifact"},
 };
 
 std::string read_file(const std::string& p) {
@@ -380,10 +380,10 @@ static void test_ivar_chain_real_operation() {
 
   // 逐节点 manifest 标记 + typed artifact（重跑 coverage 单节点核对 manifest）
   RunContext ctx2;
-  json man_cov = run_node(reg, "astrocs.phase2.coverage", ivar_cfg(fx), ctx2);
+  json man_cov = run_node(reg, "acsd.phase2.coverage", ivar_cfg(fx), ctx2);
   CHECK(man_cov.value("operation", "") == "compute_coverage");
-  CHECK(man_cov.value("entry", "") == "astrocs_phase2_coverage_v1");
-  CHECK(man_cov.value("kind", "") == "astrocs.phase2.node");
+  CHECK(man_cov.value("entry", "") == "acsd_phase2_coverage_v1");
+  CHECK(man_cov.value("kind", "") == "acsd.phase2.node");
   CHECK(man_cov.value("status", "") == "ok");
   CHECK(fs::exists(fs::path(man_cov.value("coverage_artifact", ""))));
   {
@@ -396,9 +396,9 @@ static void test_ivar_chain_real_operation() {
     CHECK(cov.value("n_union_cells", 0u) >= 1);
   }
   // 其余 6 节点标记/entry（全链已跑, 单独复跑 sample 核对 manifest 键）
-  json man_smp = run_node(reg, "astrocs.phase2.sample", ivar_cfg(fx), ctx2);
+  json man_smp = run_node(reg, "acsd.phase2.sample", ivar_cfg(fx), ctx2);
   CHECK(man_smp.value("operation", "") == "sample_frames");
-  CHECK(man_smp.value("entry", "") == "astrocs_phase2_sample_v1");
+  CHECK(man_smp.value("entry", "") == "acsd_phase2_sample_v1");
   CHECK(man_smp.value("status", "") == "ok");
   CHECK(man_smp.value("n_obs", 0ull) > 0);
   CHECK(man_smp.value("overlap_controls", 0ull) > 0);
@@ -416,10 +416,10 @@ static void test_ivar_chain_real_operation() {
   // SCI 冻结弱零锚 λ0=1e-3（生产缺省）会使其 IRLS 达 max_iterations 且
   // objective 4235（λ0=0 时 2 次收敛、objective 0）——见 B3 REPORT leftover。
   // 本用例只验证 node 接线，显式关闭 λ0 以隔离；生产缺省仍为 1e-3。
-  json man_fit = run_node(reg, "astrocs.phase2.upm-fit",
+  json man_fit = run_node(reg, "acsd.phase2.upm-fit",
                           ivar_cfg(fx, R"(,"upm":{"zero_anchor_weight":0.0})"), ctx2);
   CHECK(man_fit.value("operation", "") == "fit_upm");
-  CHECK(man_fit.value("entry", "") == "astrocs_phase2_upmfit_v1");
+  CHECK(man_fit.value("entry", "") == "acsd_phase2_upmfit_v1");
   CHECK(fs::exists(fs::path(man_fit.value("upm_model_bin", ""))));
   {
     json umd;
@@ -430,9 +430,9 @@ static void test_ivar_chain_real_operation() {
     CHECK(umd.value("observation_count", 0ull) > 0);
     CHECK(umd.value("use_ivar_weight", 0) == 1);   // production 权重冻结
   }
-  json man_apply = run_node(reg, "astrocs.phase2.upm-apply", ivar_cfg(fx), ctx2);
+  json man_apply = run_node(reg, "acsd.phase2.upm-apply", ivar_cfg(fx), ctx2);
   CHECK(man_apply.value("operation", "") == "apply_upm");
-  CHECK(man_apply.value("entry", "") == "astrocs_phase2_upmapply_v1");
+  CHECK(man_apply.value("entry", "") == "acsd_phase2_upmapply_v1");
   CHECK(man_apply.value("n_pixels_total", 0ull) == 2ull * 512ull * 512ull);
   {
     json cor;
@@ -467,10 +467,10 @@ static void test_ivar_chain_real_operation() {
          std::to_string(mean_after) + ")").c_str());
     (void)before;
   }
-  json man_rej = run_node(reg, "astrocs.phase2.reject", ivar_cfg(fx), ctx2);
+  json man_rej = run_node(reg, "acsd.phase2.reject", ivar_cfg(fx), ctx2);
   CHECK(man_rej.value("operation", "") == "reject_outliers");
-  CHECK(man_rej.value("entry", "") == "astrocs_phase2_reject_v1");
-  CHECK(std::string(man_rej.value("reject_semantic_id", "")).find("astrocs.") == 0);
+  CHECK(man_rej.value("entry", "") == "acsd_phase2_reject_v1");
+  CHECK(std::string(man_rej.value("reject_semantic_id", "")).find("acsd.") == 0);
   {
     json rej;
     try { rej = json::parse(read_file(man_rej.value("rejection_artifact", ""))); }
@@ -481,10 +481,10 @@ static void test_ivar_chain_real_operation() {
     CHECK(rej.value("n_pixels", 0ull) == 512ull * 512ull);
   }
   // integrate: 逐样本 ivar 齐备 → uncertainty_available=true
-  json man_int = run_node(reg, "astrocs.phase2.integrate", ivar_cfg(fx), ctx2);
+  json man_int = run_node(reg, "acsd.phase2.integrate", ivar_cfg(fx), ctx2);
   CHECK(man_int.value("operation", "") == "integrate_frames");
-  CHECK(man_int.value("entry", "") == "astrocs_phase2_integrate_v1");
-  // FIX-405 G3-12（docs/ASTROCS_DESIGN §3.1）: 产物/manifest 不再承载「权重模式」键;
+  CHECK(man_int.value("entry", "") == "acsd_phase2_integrate_v1");
+  // FIX-405 G3-12（docs/ACSD_DESIGN §3.1）: 产物/manifest 不再承载「权重模式」键;
   // 方差面状态由语义键如实表达（非退化: 替代键必须在位）。
   CHECK(man_int.find("weight_mode") == man_int.end());
   CHECK(man_int.value("weight_basis", std::string()) == "per_sample_ivar");
@@ -587,9 +587,9 @@ static void test_ivar_chain_real_operation() {
     }
   }
   // write: variance/ivar 产品 + §30.1 数值面（读回 2.5/0.4 + NaN 角落）
-  json man_wr = run_node(reg, "astrocs.phase2.write", ivar_cfg(fx), ctx2);
+  json man_wr = run_node(reg, "acsd.phase2.write", ivar_cfg(fx), ctx2);
   CHECK(man_wr.value("operation", "") == "write_mosaic");
-  CHECK(man_wr.value("entry", "") == "astrocs_phase2_write_v1");
+  CHECK(man_wr.value("entry", "") == "acsd_phase2_write_v1");
   CHECK(man_wr.value("n_tiles_written", 0ll) >= 1);
   CHECK(fs::exists(fs::path(fx.out + "/signal/properties")));
   CHECK(fs::exists(fs::path(fx.out + "/variance/properties")));
@@ -603,11 +603,11 @@ static void test_ivar_chain_real_operation() {
     CHECK(prods.size() == 4);
     CHECK(fin.value("uncertainty_available", false) == true);
     // §30.3 provenance 键（artifact 面; properties 通道缺口如实登记）
-    CHECK(fin["provenance"].value("ASTROCS_INPUT_MANIFEST_HASH", "").size() == 64);
-    CHECK(fin["provenance"].value("ASTROCS_MODEL_HASH", "").size() == 64);
-    CHECK(fin["provenance"].value("ASTROCS_UNCERTAINTY_AVAILABLE", "") == "true");
-    // A44（GAP_AUDIT §9.73 / docs/ASTROCS_DESIGN §2.1）：全程只有 SNR，不存在
-    // 「权重模式」⇒ 原 ASTROCS_WEIGHT_MODE 契约断言已删（键已不存在）。
+    CHECK(fin["provenance"].value("ACSD_INPUT_MANIFEST_HASH", "").size() == 64);
+    CHECK(fin["provenance"].value("ACSD_MODEL_HASH", "").size() == 64);
+    CHECK(fin["provenance"].value("ACSD_UNCERTAINTY_AVAILABLE", "") == "true");
+    // A44（GAP_AUDIT §9.73 / docs/ACSD_DESIGN §2.1）：全程只有 SNR，不存在
+    // 「权重模式」⇒ 原 ACSD_WEIGHT_MODE 契约断言已删（键已不存在）。
     // ── AUDIT-PERSIST-01: §7a 审计块必须能从**产品**里读出来 ──────────────
     // 依据 docs/science/PHASE2_UPM.md §7a:190-192（节点间距的逐次尝试与生效值必须
     // 写入 provenance）、§7a:204（κ 与 χ²_red 必须可观测）、§7a:219（provenance
@@ -771,17 +771,17 @@ static void test_runtime_chain_call_count_1() {
     return n;
   };
   json ir;
-  ir["schema"] = "astrocs.pipeline/v1";
+  ir["schema"] = "acsd.pipeline/v1";
   ir["pipeline_id"] = "p2001.real.nodes";
   ir["version"] = "1.0.0";
   ir["nodes"] = json::array();
-  ir["nodes"].push_back(node("cov", "astrocs.phase2.coverage", "calibrated", "artifact:in", "coverage", "artifact:cov"));
-  ir["nodes"].push_back(node("smp", "astrocs.phase2.sample", "coverage", "artifact:cov", "samples", "artifact:smp"));
-  ir["nodes"].push_back(node("fit", "astrocs.phase2.upm-fit", "samples", "artifact:smp", "upm_model", "artifact:fit"));
-  ir["nodes"].push_back(node("app", "astrocs.phase2.upm-apply", "upm_model", "artifact:fit", "corrected", "artifact:app"));
-  ir["nodes"].push_back(node("rej", "astrocs.phase2.reject", "corrected", "artifact:app", "accepted_mask", "artifact:rej"));
-  ir["nodes"].push_back(node("int", "astrocs.phase2.integrate", "accepted_mask", "artifact:rej", "integrated", "artifact:int"));
-  ir["nodes"].push_back(node("wr", "astrocs.phase2.write", "integrated", "artifact:int", "mosaic", "artifact:wr"));
+  ir["nodes"].push_back(node("cov", "acsd.phase2.coverage", "calibrated", "artifact:in", "coverage", "artifact:cov"));
+  ir["nodes"].push_back(node("smp", "acsd.phase2.sample", "coverage", "artifact:cov", "samples", "artifact:smp"));
+  ir["nodes"].push_back(node("fit", "acsd.phase2.upm-fit", "samples", "artifact:smp", "upm_model", "artifact:fit"));
+  ir["nodes"].push_back(node("app", "acsd.phase2.upm-apply", "upm_model", "artifact:fit", "corrected", "artifact:app"));
+  ir["nodes"].push_back(node("rej", "acsd.phase2.reject", "corrected", "artifact:app", "accepted_mask", "artifact:rej"));
+  ir["nodes"].push_back(node("int", "acsd.phase2.integrate", "accepted_mask", "artifact:rej", "integrated", "artifact:int"));
+  ir["nodes"].push_back(node("wr", "acsd.phase2.write", "integrated", "artifact:int", "mosaic", "artifact:wr"));
   ir["outputs"] = json{{"mosaic", "artifact:wr"}};
 
   auto rt = create_runtime(2);
@@ -838,13 +838,13 @@ static void test_fail_fast_downstream_zero_calls() {
     return n;
   };
   json ir;
-  ir["schema"] = "astrocs.pipeline/v1";
+  ir["schema"] = "acsd.pipeline/v1";
   ir["pipeline_id"] = "p2001.fail.fast";
   ir["version"] = "1.0.0";
   ir["nodes"] = json::array();
-  ir["nodes"].push_back(node("cov", "astrocs.phase2.coverage", "calibrated", "artifact:in", "coverage", "artifact:cov"));
-  ir["nodes"].push_back(node("smp", "astrocs.phase2.sample", "coverage", "artifact:cov", "samples", "artifact:smp"));
-  ir["nodes"].push_back(node("wr", "astrocs.phase2.write", "integrated", "artifact:int", "mosaic", "artifact:wr"));
+  ir["nodes"].push_back(node("cov", "acsd.phase2.coverage", "calibrated", "artifact:in", "coverage", "artifact:cov"));
+  ir["nodes"].push_back(node("smp", "acsd.phase2.sample", "coverage", "artifact:cov", "samples", "artifact:smp"));
+  ir["nodes"].push_back(node("wr", "acsd.phase2.write", "integrated", "artifact:int", "mosaic", "artifact:wr"));
   ir["outputs"] = json{{"mosaic", "artifact:wr"}, {"samples", "artifact:smp"}};
 
   auto rt = create_runtime(2);
@@ -876,13 +876,13 @@ static void test_fail_fast_downstream_zero_calls() {
 // ── 3. complete 门: p2_session fail-closed（链不完整 → partial+availability）──
 static void test_complete_gate_fail_closed() {
   IvarFixture fx = make_ivar_fixture("gate");
-  astrocs_host_services_v1 host{};
+  acsd_host_services_v1 host{};
   void* state = nullptr;
-  CHECK(astrocs_host_services_default_v1(&host, &state) == 0);
-  acs_handle h = nullptr;
+  CHECK(acsd_host_services_default_v1(&host, &state) == 0);
+  acsd_handle h = nullptr;
   CHECK(p2_session_create(&host, &h) == ACS_OK);
 
-  acs_span_u8 span{};
+  acsd_span_u8 span{};
   span.head.struct_size = sizeof(span);
   span.head.abi_version = ACS_ABI_VERSION_V1;
   const std::string cfg = ivar_cfg(fx);
@@ -890,7 +890,7 @@ static void test_complete_gate_fail_closed() {
   span.data = const_cast<uint8_t*>(reinterpret_cast<const uint8_t*>(cfg.data()));
   CHECK(p2_session_validate(h, span) == ACS_OK);
   CHECK(p2_session_run(h, span) == ACS_OK);
-  acs_span_u8 out{};
+  acsd_span_u8 out{};
   CHECK(p2_session_inspect(h, &out) == ACS_OK && out.data);
   json man;
   try {
@@ -900,7 +900,7 @@ static void test_complete_gate_fail_closed() {
   }
   host.allocator.free(host.allocator.user_data, out.data);
   p2_session_destroy(h);
-  astrocs_host_services_destroy_state_v1(state);
+  acsd_host_services_destroy_state_v1(state);
 
   // complete 门 fail-closed: session 仅覆盖 coverage/sample/upm_fit（+persist）
   // → status 不得为 "complete"（PROD-P0-001: 不完整 Phase 禁写 complete）
@@ -931,7 +931,7 @@ static void test_negative_and_fallback() {
 
   // 4a. validate: 缺 output_dir / 空 hips_paths / 非字符串项 / weight_mode 错型
   {
-    auto m = reg.create("astrocs.phase2.coverage");
+    auto m = reg.create("acsd.phase2.coverage");
     CHECK(m.ok());
     CHECK(m.value()->validate_config(R"({"hips_paths":["a"]})").failed());
     CHECK(m.value()->validate_config(R"({"hips_paths":[],"output_dir":"x"})").failed());
@@ -942,20 +942,20 @@ static void test_negative_and_fallback() {
   // 4b. sample 缺上游 coverage artifact → DATA fail-closed
   {
     Result<void> rc;
-    run_node(reg, "astrocs.phase2.sample", ivar_cfg(fx), ctx, &rc);
+    run_node(reg, "acsd.phase2.sample", ivar_cfg(fx), ctx, &rc);
     CHECK_MSG(rc.failed(), "missing upstream artifact must fail closed");
     CHECK(!fs::exists(fs::path(fx.out + "/p2_samples.json")));
   }
   // 4c. §9.73 裁决 A44：weight_mode **已删除** ⇒ 任何取值在配置准入面即被拒绝
   //     （含原「合法值」2 与字符串形态）。判据较原实现收紧：原来只拒域外整数。
   for (const char* v : {"0", "2", "99", "-3", "\"2\"", "\"equal\"", "\"auto\""}) {
-    expect_config_rejected(reg, "astrocs.phase2.integrate",
+    expect_config_rejected(reg, "acsd.phase2.integrate",
                            ivar_cfg(fx, std::string(",\"weight_mode\":") + v),
                            "weight_mode");
   }
   // 非退化对照：键缺席时同一配置必须放行（否则上面的拒绝不构成判据）。
   {
-    auto m = reg.create("astrocs.phase2.integrate");
+    auto m = reg.create("acsd.phase2.integrate");
     CHECK(m.ok());
     if (m.ok())
       CHECK_MSG(m.value()->validate_config(ivar_cfg(fx)).ok(),
@@ -1003,8 +1003,8 @@ static void test_negative_and_fallback() {
         "output_dir": ")" + out + R"(",
         "legacy_allow_weight_fallback": true
       })";
-      for (const char* mid : {"astrocs.phase2.coverage", "astrocs.phase2.integrate",
-                              "astrocs.phase2.write"})
+      for (const char* mid : {"acsd.phase2.coverage", "acsd.phase2.integrate",
+                              "acsd.phase2.write"})
         expect_config_rejected(reg, mid, cfg_revive, "legacy_allow_weight_fallback");
       // 非退化对照：去掉该键后同一配置必须放行。
       const std::string cfg_clean = R"({
@@ -1012,14 +1012,14 @@ static void test_negative_and_fallback() {
                       (root2 / "F2.hips").string() + R"("],
         "output_dir": ")" + out + R"("
       })";
-      auto mc = reg.create("astrocs.phase2.integrate");
+      auto mc = reg.create("acsd.phase2.integrate");
       CHECK(mc.ok());
       if (mc.ok())
         CHECK_MSG(mc.value()->validate_config(cfg_clean).ok(),
                   "legacy key absent must be admitted (non-degenerate control)");
     }
-    //  (ii) 该键**缺席**且缺 ivar、无 HiPS 帧级 SNR 键（ASTROCS_FRAME_SNR/
-    //       ASTROCS_REFERENCE_FLUX）⇒ 权重链未闭合，同样 fail-closed。
+    //  (ii) 该键**缺席**且缺 ivar、无 HiPS 帧级 SNR 键（ACSD_FRAME_SNR/
+    //       ACSD_REFERENCE_FLUX）⇒ 权重链未闭合，同样 fail-closed。
     {
       const std::string cfg_fb = R"({
         "hips_paths": [")" + (root2 / "F1.hips").string() + R"(", ")" +
@@ -1066,7 +1066,7 @@ static void test_negative_and_fallback() {
     catch (...) { CHECK(false); }
     CHECK(smp.value("n_obs", 0ull) == 0);   // 星场 fixture 覆盖占比 → 无 control 观测
     Result<void> ff3;
-    run_node(reg, "astrocs.phase2.upm-fit", cfg, ctx, &ff3);
+    run_node(reg, "acsd.phase2.upm-fit", cfg, ctx, &ff3);
     CHECK_MSG(ff3.failed(), "n_obs=0 upm-fit must fail closed");
     CHECK(!fs::exists(fs::path(out + "/p2_upm_model.bin")));
     std::error_code ec;
@@ -1088,7 +1088,7 @@ static void test_determinism() {
     CHECK_MSG(ff.ok(), ff.ok() ? "" : ff.error().message().c_str());
     const std::string intj = read_file(fx.out + "/p2_integrated.json");
     const std::string finj = read_file(fx.out + "/p2_final.json");
-    // FIX-405 G3-12（docs/ASTROCS_DESIGN §3.1「全程只有 SNR，不存在『权重模式』」）：
+    // FIX-405 G3-12（docs/ACSD_DESIGN §3.1「全程只有 SNR，不存在『权重模式』」）：
     // 真实 Phase2 产物不得再承载 weight_mode 键；方差面状态由语义键承接
     // （非退化：替代键必须同时在位，缺键 fail-closed 面不因删键而消失）。
     // BLD-401 空断言充数修复（AGENTS.md §9）：产物文件缺失 ⇒ intj/finj 为空 ⇒
@@ -1144,17 +1144,17 @@ static void test_worker_parity() {
       return n;
     };
     json ir;
-    ir["schema"] = "astrocs.pipeline/v1";
+    ir["schema"] = "acsd.pipeline/v1";
     ir["pipeline_id"] = pass == 0 ? "p2001.w1" : "p2001.w4";
     ir["version"] = "1.0.0";
     ir["nodes"] = json::array();
-    ir["nodes"].push_back(node("cov", "astrocs.phase2.coverage", "calibrated", "artifact:in", "coverage", "artifact:cov"));
-    ir["nodes"].push_back(node("smp", "astrocs.phase2.sample", "coverage", "artifact:cov", "samples", "artifact:smp"));
-    ir["nodes"].push_back(node("fit", "astrocs.phase2.upm-fit", "samples", "artifact:smp", "upm_model", "artifact:fit"));
-    ir["nodes"].push_back(node("app", "astrocs.phase2.upm-apply", "upm_model", "artifact:fit", "corrected", "artifact:app"));
-    ir["nodes"].push_back(node("rej", "astrocs.phase2.reject", "corrected", "artifact:app", "accepted_mask", "artifact:rej"));
-    ir["nodes"].push_back(node("int", "astrocs.phase2.integrate", "accepted_mask", "artifact:rej", "integrated", "artifact:int"));
-    ir["nodes"].push_back(node("wr", "astrocs.phase2.write", "integrated", "artifact:int", "mosaic", "artifact:wr"));
+    ir["nodes"].push_back(node("cov", "acsd.phase2.coverage", "calibrated", "artifact:in", "coverage", "artifact:cov"));
+    ir["nodes"].push_back(node("smp", "acsd.phase2.sample", "coverage", "artifact:cov", "samples", "artifact:smp"));
+    ir["nodes"].push_back(node("fit", "acsd.phase2.upm-fit", "samples", "artifact:smp", "upm_model", "artifact:fit"));
+    ir["nodes"].push_back(node("app", "acsd.phase2.upm-apply", "upm_model", "artifact:fit", "corrected", "artifact:app"));
+    ir["nodes"].push_back(node("rej", "acsd.phase2.reject", "corrected", "artifact:app", "accepted_mask", "artifact:rej"));
+    ir["nodes"].push_back(node("int", "acsd.phase2.integrate", "accepted_mask", "artifact:rej", "integrated", "artifact:int"));
+    ir["nodes"].push_back(node("wr", "acsd.phase2.write", "integrated", "artifact:int", "mosaic", "artifact:wr"));
     ir["outputs"] = json{{"mosaic", "artifact:wr"}};
     auto rt = create_runtime(pass == 0 ? 1 : 4);
     CHECK(rt.ok());
@@ -1185,12 +1185,12 @@ static void test_worker_parity() {
 // （ivar 缺失 ⇒ fail-closed；唯一自动降级面 = 帧级 SNR 链，且由数据可用性决定，
 // 不是用户开关；该面下 uncertainty_available=false）+ SCI-CW-001 §5（生产无 fallback）+
 // DATA-P2-HIPS §20.1（读端 AIO_HIPS_RD_IVAR 强制打开）。
-// 故障注入面: ASTROCS_IVAR_FAULT=silent_fallback（等价缺陷: 缺 ivar 静默等权
+// 故障注入面: ACSD_IVAR_FAULT=silent_fallback（等价缺陷: 缺 ivar 静默等权
 // 降级且不标降级）⇒ 本门必然判红。
 static void test_ivar001_weight_mode_domain_and_audit() {
   ModuleRegistry reg;
   CHECK(register_phase_modules(reg).ok());
-  const char* fault_env = std::getenv("ASTROCS_IVAR_FAULT");
+  const char* fault_env = std::getenv("ACSD_IVAR_FAULT");
   const bool fault_silent = fault_env && std::string(fault_env) == "silent_fallback";
   // 缺 ivar 输入夹具（复制 ivar fixture 后删除 ivar/ 子产品, signal/support 保留）
   IvarFixture src = make_ivar_fixture("audsrc");
@@ -1218,7 +1218,7 @@ static void test_ivar001_weight_mode_domain_and_audit() {
   {
     IvarFixture fx = make_ivar_fixture("domain");
     auto mode_fail = [&](const std::string& extra) {
-      expect_config_rejected(reg, "astrocs.phase2.integrate", ivar_cfg(fx, extra),
+      expect_config_rejected(reg, "acsd.phase2.integrate", ivar_cfg(fx, extra),
                              "weight_mode");
     };
     mode_fail(R"(,"weight_mode":0)");       // 原域外值
@@ -1229,7 +1229,7 @@ static void test_ivar001_weight_mode_domain_and_audit() {
     mode_fail(R"(,"weight_mode":"equal")"); // legacy 口径 token
     // 非整数形态同样由 validate_config 拒绝（禁隐式字符串转换）
     {
-      auto m = reg.create("astrocs.phase2.integrate");
+      auto m = reg.create("acsd.phase2.integrate");
       CHECK(m.ok());
       const Result<void> v = m.value()->validate_config(ivar_cfg(fx, R"(,"weight_mode":"auto")"));
       CHECK_MSG(v.failed(), "weight_mode string must be rejected by validate_config");
@@ -1259,7 +1259,7 @@ static void test_ivar001_weight_mode_domain_and_audit() {
       // 等价缺陷注入: 静默等权降级（不 fail-closed）⇒ 门必红。
       CHECK_MSG(false,
                 "FAULT-INJECT: missing ivar under the single weight path must fail closed"
-                " (ASTROCS_IVAR_FAULT=silent_fallback proves this gate is live)");
+                " (ACSD_IVAR_FAULT=silent_fallback proves this gate is live)");
     } else {
       CHECK_MSG(ff.failed(), "missing ivar under the single weight path must fail closed");
       CHECK_MSG(!fs::exists(fs::path(out2 + "/p2_integrated.json")),
@@ -1286,7 +1286,7 @@ static void test_ivar001_weight_mode_domain_and_audit() {
       "output_dir": ")" + out2 + R"(",
       "legacy_allow_weight_fallback": true
     })";
-    expect_config_rejected(reg, "astrocs.phase2.integrate", cfg_revive,
+    expect_config_rejected(reg, "acsd.phase2.integrate", cfg_revive,
                            "legacy_allow_weight_fallback");
     CHECK_MSG(!fs::exists(fs::path(out2 + "/p2_integrated.json")),
               "rejected config must not leave a pseudo integrated artifact");
@@ -1338,7 +1338,7 @@ static void test_ivar001_weight_mode_domain_and_audit() {
       json d1 = intj; d1.erase("uncertainty_available");
       { std::ofstream f(ip, std::ios::binary); f << d1.dump(2); }
       Result<void> w1;
-      run_node(reg, "astrocs.phase2.write", ivar_cfg(fx), ctx, &w1);
+      run_node(reg, "acsd.phase2.write", ivar_cfg(fx), ctx, &w1);
       CHECK_MSG(w1.failed(),
                 "write must fail closed when integrated artifact lacks uncertainty_available");
       CHECK_MSG(!fs::exists(fs::path(fx.out + "/p2_final.json")),
@@ -1349,7 +1349,7 @@ static void test_ivar001_weight_mode_domain_and_audit() {
       d2["snr_chain_used"] = true;
       { std::ofstream f(ip, std::ios::binary); f << d2.dump(2); }
       Result<void> w2;
-      run_node(reg, "astrocs.phase2.write", ivar_cfg(fx), ctx, &w2);
+      run_node(reg, "acsd.phase2.write", ivar_cfg(fx), ctx, &w2);
       CHECK_MSG(w2.failed(),
                 "write must reject uncertainty_available without a per-sample weight surface");
       // d3: 有 ivar 缺帧（ivar_product_missing_frames>0）却声明可用 → 拒（§30.1 规则 1）
@@ -1358,7 +1358,7 @@ static void test_ivar001_weight_mode_domain_and_audit() {
       d3["ivar_product_missing_frames"] = 1;
       { std::ofstream f(ip, std::ios::binary); f << d3.dump(2); }
       Result<void> w3;
-      run_node(reg, "astrocs.phase2.write", ivar_cfg(fx), ctx, &w3);
+      run_node(reg, "acsd.phase2.write", ivar_cfg(fx), ctx, &w3);
       CHECK_MSG(w3.failed(),
                 "write must reject uncertainty_available with missing ivar frames");
     }
@@ -1370,8 +1370,8 @@ static void test_ivar001_weight_mode_domain_and_audit() {
 }
 
 // ── RELEASE-02 SD-15: Phase1 写侧帧级 SNR 键 ────────────────────────────────
-// ASTROCS_FRAME_SNR（帧级**未加权通量型** SNR = F_ref/σ_F; 信噪比不是权重）与
-// ASTROCS_REFERENCE_FLUX（组内公共 F_ref）必须写入 HiPS signal properties ——
+// ACSD_FRAME_SNR（帧级**未加权通量型** SNR = F_ref/σ_F; 信噪比不是权重）与
+// ACSD_REFERENCE_FLUX（组内公共 F_ref）必须写入 HiPS signal properties ——
 // 这是 Phase2 权重链 w = SNR²/F_ref² = 1/σ_F² 的唯一数据源（键缺失 ⇒ fail-closed）。
 // 本测试用真实 Phase1 drizzle+writer 节点链 + 上游 p1_snr.json sidecar 驱动,
 // 并含负例（snr_reference 非正 ⇒ 两键整体不写, 禁伪造/占位）。
@@ -1405,14 +1405,14 @@ static void test_p1_frame_snr_keys() {
       )" + wcs + R"(
       "drizzle": {"nside": 512, "nested": 1, "pixfrac": 1.0, "precision_mode": 0}})";
     RunContext ctx;
-    auto drz = reg.create("astrocs.phase1.drizzle");
+    auto drz = reg.create("acsd.phase1.drizzle");
     if (drz.failed()) return false;
     if (drz.value()->validate_config(cfg).failed()) return false;
     if (drz.value()->plan("p1snr_drz", cfg).failed()) return false;
     const Result<void> rd = drz.value()->execute(ctx);
     if (rd.failed()) { std::fprintf(stderr, "P1 snr drizzle failed: %s\n",
                                     rd.error().message().c_str()); return false; }
-    auto wr = reg.create("astrocs.phase1.writer");
+    auto wr = reg.create("acsd.phase1.writer");
     if (wr.failed()) return false;
     if (wr.value()->validate_config(cfg).failed()) return false;
     if (wr.value()->plan("p1snr_wr", cfg).failed()) return false;
@@ -1430,11 +1430,11 @@ static void test_p1_frame_snr_keys() {
                                R"({"snr_f":42.5,"flux_adu":1000.0}})",
                            &props);
     CHECK(ok);
-    CHECK_MSG(props.find("ASTROCS_FRAME_SNR=42.5") != std::string::npos,
-              ("Phase1 must write ASTROCS_FRAME_SNR=F_ref/sigma_F; props=" +
+    CHECK_MSG(props.find("ACSD_FRAME_SNR=42.5") != std::string::npos,
+              ("Phase1 must write ACSD_FRAME_SNR=F_ref/sigma_F; props=" +
                props).c_str());
-    CHECK_MSG(props.find("ASTROCS_REFERENCE_FLUX=1000") != std::string::npos,
-              ("Phase1 must write ASTROCS_REFERENCE_FLUX=F_ref; props=" +
+    CHECK_MSG(props.find("ACSD_REFERENCE_FLUX=1000") != std::string::npos,
+              ("Phase1 must write ACSD_REFERENCE_FLUX=F_ref; props=" +
                props).c_str());
   }
   // 负例: snr_reference 非正/缺失 → 两键整体不写（禁伪造; Phase2 fail-closed）
@@ -1445,8 +1445,8 @@ static void test_p1_frame_snr_keys() {
                                R"({"snr_f":0.0,"flux_adu":0.0}})",
                            &props);
     CHECK(ok);
-    CHECK_MSG(props.find("ASTROCS_FRAME_SNR") == std::string::npos &&
-                  props.find("ASTROCS_REFERENCE_FLUX") == std::string::npos,
+    CHECK_MSG(props.find("ACSD_FRAME_SNR") == std::string::npos &&
+                  props.find("ACSD_REFERENCE_FLUX") == std::string::npos,
               "invalid snr_reference must NOT write fabricated frame-SNR keys");
   }
   fs::remove_all(root, ec);

@@ -4,13 +4,13 @@
 
 Astro Celestial Sphere Database（ACSD） **唯一可执行入口** `acsd`（Windows 交付名 `acsd.exe`）的命令编排层：
 
-- **职责**（薄入口，docs/ASTROCS_DESIGN §6.1）：命令解析、配置预检、模板生成、运行确认、
+- **职责**（薄入口，docs/ACSD_DESIGN §6.1）：命令解析、配置预检、模板生成、运行确认、
   机器输出（`--json` 下 stdout 恰一个 JSON 文档）、JSONL 事件、取消与退出码；
 - **非职责**：科学公式（唯一家在 `lib/algorithms/`）、FITS/HiPS 读写（`infrastructure/aio`）、
   线程池（scheduler/runtime）。本目录**不实现**任何科学计算，只把已校验的配置交给
   `lib/infrastructure/cli/runtime_client`（CLI runtime client）→ Runtime/pipeline。
 
-## 2. 命令树（唯一，docs/ASTROCS_DESIGN §6.2）
+## 2. 命令树（唯一，docs/ACSD_DESIGN §6.2）
 
 ```text
 normalize --json <config.json> | --template [-o <path>] | --help
@@ -20,7 +20,7 @@ help / --version / doctor / benchmark
 ```
 
 三个命令**平级独立**：各自独立进程、独立恢复、独立验收；**禁止**隐式串接
-（docs/ASTROCS_DESIGN §1.2）。`normalize`/`mosaic`/`export` 与内部会话阶段
+（docs/ACSD_DESIGN §1.2）。`normalize`/`mosaic`/`export` 与内部会话阶段
 （`phase_scope`）的对应是**机械映射**，只用于路由到既有会话实现，外部命令名
 与用户可见输出一律使用 `normalize`/`mosaic`/`export`。
 

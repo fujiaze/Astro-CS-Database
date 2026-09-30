@@ -28,14 +28,14 @@ constexpr double kSigma = 4.0e10;            // 生产 control uncertainty 中�
 constexpr double kIvar = 1.0 / (kSigma * kSigma);
 
 inline std::uint64_t leaf_of(std::uint64_t tile, int x, int y) {
-    const std::uint64_t local = astrocs::healpix::xy_to_nested_local(
+    const std::uint64_t local = acsd::healpix::xy_to_nested_local(
         (std::uint32_t)x, (std::uint32_t)y, (std::uint32_t)kTileShift);
     return (tile << (2u * (unsigned)kTileShift)) + local;
 }
 inline void center_radec(int gx, int gy, double* ra, double* dec) {
     const int x = gx * kCell + kCell / 2, y = gy * kCell + kCell / 2;
     const std::uint64_t leaf = leaf_of(kTile, x, y);
-    astrocs::healpix::pix2ang_nest(
+    acsd::healpix::pix2ang_nest(
         1u << (unsigned)(kOrder + kTileShift), leaf, *ra, *dec);
 }
 // 公共天光（生产尺度）

@@ -1,23 +1,23 @@
-# lib/algorithms/resample — astrocs.p3.resample（HiPS 重采样域合同）
+# lib/algorithms/resample — acsd.p3.resample（HiPS 重采样域合同）
 
 > P3-RSMP-DOC 冻结（2026-09-12，SA-P3-R）。本目录为 Phase3 HiPS 重采样域
 > 迁移合同落位（三件套：README + module.yaml + memory.md），照
 > lib/algorithms/projection→phase3_fits 迁移目录先例新建。**现状**（行数实测
 > 2026-09-16：`timeout 60 wc -l lib/algorithms/resample/p3_resample.h
 > lib/algorithms/resample/p3_resample.cpp`）：生产源实际位于 lib/phase3_session/
-> （p3_resample.h 150 行 + p3_resample.cpp 519 行，astrocs_phase3_session
-> 静态库成员，根 CMakeLists.txt `add_library(astrocs_phase3_session …)`）；
-> dll_target=astrocs_p3_resample.dll 为矩阵合同值，尚未存在
+> （p3_resample.h 150 行 + p3_resample.cpp 519 行，acsd_phase3_session
+> 静态库成员，根 CMakeLists.txt `add_library(acsd_phase3_session …)`）；
+> dll_target=acsd_p3_resample.dll 为矩阵合同值，尚未存在
 > （entrypoint=MISSING，DISP-P3RSMP-005，由 P3-RSMP-IMPL 建立，
 > 禁止声明 IMPLEMENTED）。
 
 ## 1 身份
 
-- module_id: **astrocs.p3.resample**（MODULE_MIGRATION_MATRIX P3-RSMP 行
-  权威值；registry descriptor 占位 module_id=astrocs.phase3.resample2
+- module_id: **acsd.p3.resample**（MODULE_MIGRATION_MATRIX P3-RSMP 行
+  权威值；registry descriptor 占位 module_id=acsd.phase3.resample2
   由 P3-RSMP-INT 对齐，不作冻结依据）。
-- registry 行: MOD-astrocs-phase3-resample2；dll_target:
-  astrocs_p3_resample.dll（合同值，未建）。
+- registry 行: MOD-acsd-phase3-resample2；dll_target:
+  acsd_p3_resample.dll（合同值，未建）。
 - 域: HiPS tile 重采样（NEAREST 精确 cell / BILINEAR 一阶插值显式两核；
   第三种采样核非本合同）。
 
@@ -95,7 +95,7 @@
 - DATA: [docs/science/DATA_SEMANTICS.md](../../docs/science/DATA_SEMANTICS.md) §29
 - API: [docs/engineering/PUBLIC_API.md](../../docs/engineering/PUBLIC_API.md)
 - 模块页: [docs/detail/phase3_rsmp.md](../../docs/detail/phase3_rsmp.md)；
-  registry 手写页: docs/detail/registry/astrocs.phase3.resample2.md
+  registry 手写页: docs/detail/registry/acsd.phase3.resample2.md
 
 ## 6 实测偏差登记（不改码，详见 ALG-P3-RSMP-IMPL-001 §11）
 
@@ -110,4 +110,4 @@
   （能力在内核，探针消费）。
 - DISP-P3RSMP-004: provenance.missing_tiles 恒 nullptr（缺 tile 聚合
   上报未接线，`p3_session.cpp` 中 `prov.missing_tiles` 赋值点）。
-- DISP-P3RSMP-005: astrocs_p3_resample.dll 未建（entrypoint 缺失）。
+- DISP-P3RSMP-005: acsd_p3_resample.dll 未建（entrypoint 缺失）。

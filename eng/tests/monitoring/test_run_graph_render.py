@@ -10,7 +10,7 @@
      原始 module_call 事件计数（verify 机器比对 exit 0 GRAPH_CONSISTENT）；
   G3 DLL hash / artifact hash 与 trace 事件真实字段一致；禁止 config 冒充
      （缺失观测不得编造 hash）；
-  G4 JSON 中间表示结构：astrocs.graph-json/v1 含 nodes/edges/metrics/
+  G4 JSON 中间表示结构：acsd.graph-json/v1 含 nodes/edges/metrics/
      source.main_sha/输入 hash；
   G5 SVG 为合法最小结构（零第三方直出；派生展示物）；DOT 含 generator 头与
      全部节点/边；工具不依赖 dot 二进制（dot/graphviz 不可用仍 PASS）；
@@ -70,7 +70,7 @@ DLL_SHA = "d" * 64
 
 def artifact_content(art: str) -> bytes:
     """样例产物的字节内容：以 artifact 身份为种子的确定性载荷（真实产品不入库）。"""
-    return ("astrocs.phase2.fixture-artifact:%s\n" % art).encode("utf-8")
+    return ("acsd.phase2.fixture-artifact:%s\n" % art).encode("utf-8")
 
 
 # 期望哈希**由产物内容推导**（sha256(artifact_content)），不是手抄常量表：
@@ -89,20 +89,20 @@ def make_trace_jsonl(*, tamper_node: str = "", zero_dll: bool = False,
     for i, nid in enumerate(NODES):
         provider = "io-backend" if nid == "write" else "avx2"
         workers = 1 if nid == "write" else 2
-        entry = "astrocs_phase2_%s_v1" % nid.replace("-", "")
+        entry = "acsd_phase2_%s_v1" % nid.replace("-", "")
         nid_field = nid if not no_node_id else ""
         lines.append(json.dumps({
-            "schema": "astrocs.trace-event/v1", "type": "node_start",
+            "schema": "acsd.trace-event/v1", "type": "node_start",
             "ts_utc": "2026-09-04T00:00:00.%03dZ" % i, "run_id": "run-g7",
-            "node_id": nid_field, "module_id": "astrocs.phase2." + nid,
+            "node_id": nid_field, "module_id": "acsd.phase2." + nid,
             "status": "RUNNING", "granted_workers": workers, "seq": i * 10 + 1}))
         mc = {
-            "schema": "astrocs.trace-event/v1", "type": "module_call",
+            "schema": "acsd.trace-event/v1", "type": "module_call",
             "ts_utc": "2026-09-04T00:00:00.%03dZ" % i, "run_id": "run-g7",
-            "node_id": nid, "module_id": "astrocs.phase2." + nid,
+            "node_id": nid, "module_id": "acsd.phase2." + nid,
             "module_version": "1.0." + "0", "entry": entry,
             "call_count": 1, "workers": workers, "provider": provider,
-            "dll_name": ("astrocs_phase2_%s.dll" % nid if not zero_dll else ""),
+            "dll_name": ("acsd_phase2_%s.dll" % nid if not zero_dll else ""),
             "dll_sha256": (DLL_SHA if not zero_dll else ""),
             "seq": i * 10 + 2}
         lines.append(json.dumps(mc))
@@ -110,15 +110,15 @@ def make_trace_jsonl(*, tamper_node: str = "", zero_dll: bool = False,
         # 因此都有真实发布观测；无观测的边只能标空（G3/G6，见另一用例）。
         for k, art in enumerate(NODE_ARTIFACTS[nid]):
             lines.append(json.dumps({
-                "schema": "astrocs.trace-event/v1", "type": "artifact_publish",
+                "schema": "acsd.trace-event/v1", "type": "artifact_publish",
                 "ts_utc": "2026-09-04T00:00:01.%03dZ" % i, "run_id": "run-g7",
-                "node_id": nid, "module_id": "astrocs.phase2." + nid,
+                "node_id": nid, "module_id": "acsd.phase2." + nid,
                 "artifact_id": art,
                 "artifact_sha256": ART_SHA[art],
                 "artifact_size": 4096 * (i + 1) + k,
                 "seq": i * 10 + 3 + k}))
         ne = {
-            "schema": "astrocs.trace-event/v1", "type": "node_end",
+            "schema": "acsd.trace-event/v1", "type": "node_end",
             "ts_utc": "2026-09-04T00:00:01.%03dZ" % i, "run_id": "run-g7",
             "node_id": nid, "status": "COMPLETED", "wall_ms": 10.0 + i,
             "workers": workers, "granted_workers": workers,
@@ -172,7 +172,7 @@ class TestGraphRenderTool(unittest.TestCase):
             gj = json.loads((td / "g.json").read_text(encoding="utf-8"))
             dot = (td / "g.dot").read_text(encoding="utf-8")
             svg = (td / "g.svg").read_text(encoding="utf-8")
-            self.assertEqual(gj["schema"], "astrocs.graph-json/v1")
+            self.assertEqual(gj["schema"], "acsd.graph-json/v1")
             ET.fromstring(svg)  # 合法 XML
             self.assertIn("<svg", svg)
             for nid in NODES:
@@ -236,7 +236,7 @@ class TestGraphConsistency(unittest.TestCase):
         by_id = {n["id"]: n for n in g["nodes"]}
         for nid in NODES:
             n = by_id[nid]
-            self.assertEqual(n["dll_name"], "astrocs_phase2_%s.dll" % nid)
+            self.assertEqual(n["dll_name"], "acsd_phase2_%s.dll" % nid)
             self.assertEqual(n["dll_sha256"], DLL_SHA)
             self.assertEqual(n["artifacts"][0]["id"], OUT_ART[nid])
             self.assertEqual(n["artifacts"][0]["sha256"], ART_SHA[OUT_ART[nid]])

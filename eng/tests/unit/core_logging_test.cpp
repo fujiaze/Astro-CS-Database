@@ -1,10 +1,10 @@
 // CORE-008 单元测试: 统一日志 + 指标
-#include "astrocs/core/logging.h"
+#include "acsd/core/logging.h"
 
 #include <cstdio>
 #include <string>
 
-using namespace astrocs::core;
+using namespace acsd::core;
 
 static int failures = 0;
 #define CHECK(cond)                                                       \

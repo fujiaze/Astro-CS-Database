@@ -1,17 +1,17 @@
 # 配置合同（全局默认值 · 滤镜库 · 三命令 phase_config · cpu_profile · run_manifest）
 
-> 上游：docs/ASTROCS_DESIGN.md §3.2（三类配置）、§7.2（配置、事件与退出码）
+> 上游：docs/ACSD_DESIGN.md §3.2（三类配置）、§7.2（配置、事件与退出码）
 
 ## 0 权威链
 
 | 事项 | 权威 |
 |---|---|
-| 输入合同（JSON 数据块：`blocks[]` 多块 + 平铺单块简写） | `docs/ASTROCS_DESIGN.md` §4.3 |
-| 运行前预检（绿/橙/红、error 强制阻断；**打印报错 + 详细预估；无 error 时须用户输入 `yes` 确认（stdin 确认，非 GUI 弹窗）**） | `docs/ASTROCS_DESIGN.md` §4.5（**三命令通用预检**：① 打印有没有报错 + ② 详细预估（含资源与磁盘预估）；确认 = stdin 输入 `yes`，`-y`/`-yes` 跳过确认、存在 error 时不可越过，`-force` 跳过整个检查步骤） |
-| 配置挂载 / 模板 / 机器输出 / 退出码 | `docs/ASTROCS_DESIGN.md` §7.2 |
+| 输入合同（JSON 数据块：`blocks[]` 多块 + 平铺单块简写） | `docs/ACSD_DESIGN.md` §4.3 |
+| 运行前预检（绿/橙/红、error 强制阻断；**打印报错 + 详细预估；无 error 时须用户输入 `yes` 确认（stdin 确认，非 GUI 弹窗）**） | `docs/ACSD_DESIGN.md` §4.5（**三命令通用预检**：① 打印有没有报错 + ② 详细预估（含资源与磁盘预估）；确认 = stdin 输入 `yes`，`-y`/`-yes` 跳过确认、存在 error 时不可越过，`-force` 跳过整个检查步骤） |
+| 配置挂载 / 模板 / 机器输出 / 退出码 | `docs/ACSD_DESIGN.md` §7.2 |
 | 三类配置严格分离、benchmark 独占 cpu_profile | `docs/detail/UNIFIED_MODEL.md` §3 |
 | CLI 预检与模板职责 | `docs/detail/infrastructure/18_cli.md` §3-§5 |
-| 科学红线（默认容差不可改、cpu_profile 不进科学配置） | `docs/ASTROCS_DESIGN.md` §0（文档权威与索引） |
+| 科学红线（默认容差不可改、cpu_profile 不进科学配置） | `docs/ACSD_DESIGN.md` §0（文档权威与索引） |
 | 字段名族与跨类字段名锚点 | `docs/contracts/config_separation_anchors.json`（DATA-001，只读） |
 
 ## 1 三类配置（现场清单）
@@ -22,11 +22,11 @@
 | cpu_profile | `eng/contracts/schemas/cpu_profile.schema.json` | **仅 benchmark** | ISA/workers/block + CPU/OS/软件版本/provider hash 机器绑定 | phase_config 的 `sci_*`/`algorithm_*` 字段 |
 | run_manifest | `eng/contracts/schemas/run_manifest.schema.json` | 运行时（每次运行冻结） | 源码 SHA / 配置哈希 / 输入输出哈希 / 工具链版本 | 科学参数与硬件调优字段 |
 
-- **cpu_profile 落点口径与适用域（R-52 裁决，2026-09-29）**：落点 = 发行布局（程序安装目录）；输出路径相对发行布局解析，**源码树内运行构建期二进制不构成产品契约面**。安装目录不可写或落在版本控制工作树内时转用户可写落点（Linux `$XDG_DATA_HOME/ACSD`，Windows `%LOCALAPPDATA%\ACSD`）并在 stderr 明示，**不静默换落点、不把 profile 或原始样本写入版本控制工作树**。本条与"运行产物不入库"守卫（`AGENTS.md` §6）**不冲突**：守卫拒绝的是写入版本控制工作树，口径给出的是合法替代落点。正本 = `docs/ASTROCS_DESIGN.md` §9；接口登记 = `docs/engineering/CLI_PROTOCOL_V1.md` §2；唯一实现 = `lib/infrastructure/cli/commands.cpp`（`cli_resolve_cpu_profile_path()`）与 `lib/infrastructure/benchmark/backend_host/profile_store.cpp`（原子写 + 校验）。
+- **cpu_profile 落点口径与适用域（R-52 裁决，2026-09-29）**：落点 = 发行布局（程序安装目录）；输出路径相对发行布局解析，**源码树内运行构建期二进制不构成产品契约面**。安装目录不可写或落在版本控制工作树内时转用户可写落点（Linux `$XDG_DATA_HOME/ACSD`，Windows `%LOCALAPPDATA%\ACSD`）并在 stderr 明示，**不静默换落点、不把 profile 或原始样本写入版本控制工作树**。本条与"运行产物不入库"守卫（`AGENTS.md` §6）**不冲突**：守卫拒绝的是写入版本控制工作树，口径给出的是合法替代落点。正本 = `docs/ACSD_DESIGN.md` §9；接口登记 = `docs/engineering/CLI_PROTOCOL_V1.md` §2；唯一实现 = `lib/infrastructure/cli/commands.cpp`（`cli_resolve_cpu_profile_path()`）与 `lib/infrastructure/benchmark/backend_host/profile_store.cpp`（原子写 + 校验）。
 
 - phase_config 由**三份 phase 专属 schema** 定义：`eng/contracts/schemas/phase_config_normalize.schema.json`、`eng/contracts/schemas/phase_config_mosaic.schema.json`、`eng/contracts/schemas/phase_config_export.schema.json`；**不存在**同名聚合文件（唯一正本，`docs/detail/UNIFIED_MODEL.md` §3）。回归锁：`eng/tests/config/test_cfg001_contracts.py::TestPhaseConfigFamily::test_no_aggregate_second_definition`。
 
-## 2 `eng/packaging/config/defaults.json`（`astrocs.config-defaults/v1`）
+## 2 `eng/packaging/config/defaults.json`（`acsd.config-defaults/v1`）
 
 - 结构：`fields[]`，每项 `{key, value, unit, constraint, authority_status, source, source_ref, pending_task, note}`；
   字段总数与分组计数的权威 = `eng/packaging/config/defaults.json` 的 `field_count`，由机器门实时对账（`TestDefaultsContract`）；本节不复制科学数值。
@@ -58,7 +58,7 @@
 
 | key | unit | 取值来源 | 依据 |
 |---|---|---|---|
-| `sparse_snr.density` | `点/度²` | 待 `docs/science/**` 给出数值来源 | `docs/ASTROCS_DESIGN.md` §4.3 点名（`defaults.json` 默认参数含「稀疏控制点间隔」）；`docs/science/**`、`docs/science/algorithms/**` 全库无数值；单位见 `docs/detail/algorithms_phase1/07_noise_snr.md` §5 配置表。**本键不承载生产取值**（生产用像素域 `sparse_snr.spacing_px`，默认 64 px）；两者是**同一几何量的两种表述**，换算恒等式（强制，两者取值由恒等式绑定）：`density[点/度²] = 1 / (Δ_px · s_pixel_scale[度/px])²`，其中 `s_pixel_scale = (180/π)·√(π/3)/nside`（IVOA REC-HIPS-1.0 §4.4.1 定义的同名键单位为**度**）。换算责任方 = 任何同时登记两者的消费者；只声明其一即可 |
+| `sparse_snr.density` | `点/度²` | 待 `docs/science/**` 给出数值来源 | `docs/ACSD_DESIGN.md` §4.3 点名（`defaults.json` 默认参数含「稀疏控制点间隔」）；`docs/science/**`、`docs/science/algorithms/**` 全库无数值；单位见 `docs/detail/algorithms_phase1/07_noise_snr.md` §5 配置表。**本键不承载生产取值**（生产用像素域 `sparse_snr.spacing_px`，默认 64 px）；两者是**同一几何量的两种表述**，换算恒等式（强制，两者取值由恒等式绑定）：`density[点/度²] = 1 / (Δ_px · s_pixel_scale[度/px])²`，其中 `s_pixel_scale = (180/π)·√(π/3)/nside`（IVOA REC-HIPS-1.0 §4.4.1 定义的同名键单位为**度**）。换算责任方 = 任何同时登记两者的消费者；只声明其一即可 |
 | `scalar_gate.rd` | unspecified | 待 `docs/science/**` 给出数值来源 | `docs/detail/algorithms_phase1/07_noise_snr.md` §5 配置表的 `rd` 字段名，默认/单位列均为 —— |
 | `scalar_gate.trend` | unspecified | 待 `docs/science/**` 给出数值来源 | 同上（同表 `trend` 行） |
 
@@ -69,7 +69,7 @@
 
 ## 3 三命令 phase_config 与模板
 
-结构 = `ASTROCS_DESIGN.md` §4.3 的 JSON 数据块。**两种形态，互斥**：
+结构 = `ACSD_DESIGN.md` §4.3 的 JSON 数据块。**两种形态，互斥**：
 ① **多块形态**（normalize）= 顶层 `{schema_version, blocks[]}`，每块自带一组 `input_lights` + 一套母版 + 运行参数 + **块级 `output_dir`**；
    一块 = 一次运行（独立 `output_dir` / 独立 run manifest / 块级 `name` 归属），多块按序各自成一次运行；
 ② **平铺单块简写**（normalize 单块时的等价写法，向后兼容）= 顶层 `{schema_version, input_lights, master_*, output_dir, ...}`。
@@ -78,13 +78,13 @@ normalize 只接受**多块**与**平铺单块**两形态；CLI 遇到逐帧 `{p
 
 | phase | 模板 | 必填 | 可选算法选择（逐项权威） | 输入项 |
 |---|---|---|---|---|
-| normalize（多块） | `eng/packaging/config/templates/normalize.phase_config.json` | 块级 `input_lights` + `output_dir`；顶层 `schema_version` + `blocks` | `algorithm_psf_model`（`docs/science/PSF.md`，当前唯一实现 Moffat4）；`sparse_snr_layer`（`ASTROCS_DESIGN.md` §4.4）；**`algorithm_drizzle_pixfrac`** 与 **`drizzle.pixfrac`**（语义/值域权威 `docs/science/DRIZZLE.md` + `docs/science/algorithms/DRIZZLE_GEOMETRY.md`，schema 机器强制 `0 < pixfrac <= 1`；数值默认 0.8 落 defaults.json 的 `drizzle.pixfrac`）；`drizzle.precision_mode`（0=FP32/1=FP64，**必须显式**） | 块级 `input_lights[]`（每帧一个 FITS 路径）+ 块级母版 `master_bias/master_dark/master_flat` + `filter_passband`（必须命中滤镜库；空串 = 显式无 filter）。**命中后的解析责任（强制）**：`resolve(name)` 必须按 §4 的三条冻结条款执行——① 匹配语义（字节精确、无归一、无别名）；② **曲线身份核对**（对象 `name` / `n_points` / `curve_stats` 逐项对账，缺字段即 fail-closed）；③ **`channel` 非空校验**（`channel == ""` 的曲线只走不依赖通带类别的路径；`F_syn` 通带积分需要通带类别）。**取错通带的后果与判据**：通带错配表现为 `F_syn` 的跨星散度 ⇒ 单帧测光一致性残差是通带声明正确性的机器判据（正本 = `docs/science/PHOTOMETRY.md` §2a，读数见其证据面）。**适用域**：本条只约束 `filter_passband` → 曲线的解析与消费，不改变滤镜库内容 |
+| normalize（多块） | `eng/packaging/config/templates/normalize.phase_config.json` | 块级 `input_lights` + `output_dir`；顶层 `schema_version` + `blocks` | `algorithm_psf_model`（`docs/science/PSF.md`，当前唯一实现 Moffat4）；`sparse_snr_layer`（`ACSD_DESIGN.md` §4.4）；**`algorithm_drizzle_pixfrac`** 与 **`drizzle.pixfrac`**（语义/值域权威 `docs/science/DRIZZLE.md` + `docs/science/algorithms/DRIZZLE_GEOMETRY.md`，schema 机器强制 `0 < pixfrac <= 1`；数值默认 0.8 落 defaults.json 的 `drizzle.pixfrac`）；`drizzle.precision_mode`（0=FP32/1=FP64，**必须显式**） | 块级 `input_lights[]`（每帧一个 FITS 路径）+ 块级母版 `master_bias/master_dark/master_flat` + `filter_passband`（必须命中滤镜库；空串 = 显式无 filter）。**命中后的解析责任（强制）**：`resolve(name)` 必须按 §4 的三条冻结条款执行——① 匹配语义（字节精确、无归一、无别名）；② **曲线身份核对**（对象 `name` / `n_points` / `curve_stats` 逐项对账，缺字段即 fail-closed）；③ **`channel` 非空校验**（`channel == ""` 的曲线只走不依赖通带类别的路径；`F_syn` 通带积分需要通带类别）。**取错通带的后果与判据**：通带错配表现为 `F_syn` 的跨星散度 ⇒ 单帧测光一致性残差是通带声明正确性的机器判据（正本 = `docs/science/PHOTOMETRY.md` §2a，读数见其证据面）。**适用域**：本条只约束 `filter_passband` → 曲线的解析与消费，不改变滤镜库内容 |
 | mosaic | `eng/packaging/config/templates/mosaic.phase_config.json` | 块级 `output_dir` + 块级 `hips_paths`（平铺单块简写 = `schema_version` + 同名两键；`{phase_name, config, inputs}` 形态的 `config` 键 = `{output_dir, precision}`） | `algorithm_rejection_method`（method/profile 词表与默认路由见 `docs/science/REJECTION.md`）、`algorithm_upm_gauge`（`docs/detail/algorithms_phase2/11_upm.md`）。权重是阶段二现场算出的派生量，**不存在** `algorithm_weight_mode` / `weight_mode` 键（该键已按 §9.73 A44 作废；点源默认语义 `docs/science/PSF_SIGNAL_WEIGHT.md`） | 块级 `hips_paths[]`（一组输入 HiPS）；`{phase_name, config, inputs}` 形态的 `inputs[]` 项 = `{product, filter?}` |
-| export | `eng/packaging/config/templates/export.phase_config.json` | 块级 `output_dir` + 块级 `source`（一个输入产品）+ **`output_mode`（**必须显式**，缺键即 REJECT）**；平铺单块简写 = `schema_version` + 同名三键；`{phase_name, config, inputs}` 形态的 `config` 键 = `{output_dir, precision, output_mode, wcs}` | `wcs.projection`（`docs/ASTROCS_DESIGN.md` §6.3：首批 8 种、缺省 TAN；`docs/detail/algorithms_phase3/14_projection.md`）、`wcs.{rotation_deg, crpix_px}`（同一 `14_projection.md`）、**`crop`（导出裁剪范围，可选，缺省 = 不裁剪；在**已定义好的输出画幅**上取矩形子窗，不改画幅定义/投影/重采样）**：两种**互斥**形式 —— `pixels`（平面像素矩形，FITS 1-based 闭区间，用户到平面后手动裁剪）/ `sky`（天球轴对齐矩形 ICRS deg，GUI 的 HiPS 浏览器框选导出走这一形式）；键形固定可机器生成、GUI 直接填；判别键名取 `crop_form`（避开 `cpu_profile` 的 `mode`，UNIFIED_MODEL §3 同名即同义，与 `output_mode` 同一处置）；fail-closed 全部具名报错（越界 / 宽高非正 / 两形式同时给 / 裁剪后为空 / `sky` 越出 TAN 半球），**禁静默夹取**；写出 FITS 的 WCS = 原画幅 WCS 在窗口上的**精确限制**（`CRVAL`/`CD` 逐位不变、`CRPIX` 减**整数**窗口原点）⇒ 窗口内像素与不裁剪时**逐位相同**。正本 = `docs/detail/PHASE3_DETAILED_DESIGN.md` §8；字段合同 = `eng/contracts/schemas/phase_config_export.schema.json#/$defs/export_crop`；几何唯一实现 = `lib/algorithms/projection/p3_wcs.h`（CLI 配置面与节点面共用）；接口登记 = `docs/engineering/CLI_PROTOCOL_V1.md` §7.1；生产消费点 = scheduler p3 节点链 wcs/writer/verify（非死键）；`crop` 不进 `--template` 骨架（模板不替用户主张裁剪）；**`output_mode` 不在本列**（它**必填**：值域 `surface_brightness`/`point_source_flux`/`visualization`；合同登记的 `surface_brightness` **只作 `--template` 骨架值**，`--json` 运行的取值只走显式声明——见 §3 末条） | 块级 `source.hips_dir`（单值 = 一个输入产品；多产品 = 多块）；`{phase_name, config, inputs}` 形态的 `inputs[]` 项 = `{product}` |
+| export | `eng/packaging/config/templates/export.phase_config.json` | 块级 `output_dir` + 块级 `source`（一个输入产品）+ **`output_mode`（**必须显式**，缺键即 REJECT）**；平铺单块简写 = `schema_version` + 同名三键；`{phase_name, config, inputs}` 形态的 `config` 键 = `{output_dir, precision, output_mode, wcs}` | `wcs.projection`（`docs/ACSD_DESIGN.md` §6.3：首批 8 种、缺省 TAN；`docs/detail/algorithms_phase3/14_projection.md`）、`wcs.{rotation_deg, crpix_px}`（同一 `14_projection.md`）、**`crop`（导出裁剪范围，可选，缺省 = 不裁剪；在**已定义好的输出画幅**上取矩形子窗，不改画幅定义/投影/重采样）**：两种**互斥**形式 —— `pixels`（平面像素矩形，FITS 1-based 闭区间，用户到平面后手动裁剪）/ `sky`（天球轴对齐矩形 ICRS deg，GUI 的 HiPS 浏览器框选导出走这一形式）；键形固定可机器生成、GUI 直接填；判别键名取 `crop_form`（避开 `cpu_profile` 的 `mode`，UNIFIED_MODEL §3 同名即同义，与 `output_mode` 同一处置）；fail-closed 全部具名报错（越界 / 宽高非正 / 两形式同时给 / 裁剪后为空 / `sky` 越出 TAN 半球），**禁静默夹取**；写出 FITS 的 WCS = 原画幅 WCS 在窗口上的**精确限制**（`CRVAL`/`CD` 逐位不变、`CRPIX` 减**整数**窗口原点）⇒ 窗口内像素与不裁剪时**逐位相同**。正本 = `docs/detail/PHASE3_DETAILED_DESIGN.md` §8；字段合同 = `eng/contracts/schemas/phase_config_export.schema.json#/$defs/export_crop`；几何唯一实现 = `lib/algorithms/projection/p3_wcs.h`（CLI 配置面与节点面共用）；接口登记 = `docs/engineering/CLI_PROTOCOL_V1.md` §7.1；生产消费点 = scheduler p3 节点链 wcs/writer/verify（非死键）；`crop` 不进 `--template` 骨架（模板不替用户主张裁剪）；**`output_mode` 不在本列**（它**必填**：值域 `surface_brightness`/`point_source_flux`/`visualization`；合同登记的 `surface_brightness` **只作 `--template` 骨架值**，`--json` 运行的取值只走显式声明——见 §3 末条） | 块级 `source.hips_dir`（单值 = 一个输入产品；多产品 = 多块）；`{phase_name, config, inputs}` 形态的 `inputs[]` 项 = `{product}` |
 
-- **落盘形态键 `storage_form`（Phase1 专属）**：Phase1 产品落盘形态由**输入配置**选定 —— 块级（或平铺顶层）`storage_form` ∈ {`archive`（默认）, `bare`}；**键缺失、空串或 `null` ⇒ 取默认 `archive` 并报一条 `level=warn` 事件**（取默认与 warn 事件成对出现），形态来源记入 `manifest.json#storage.form_source`；显式给出则不报 warn。键名与取值的唯一词表 = `eng/contracts/schemas/hips_storage_form.schema.json#x-astrocs-field-vocabulary`；合同与不变式 F0/F1..F4/M1..M4 = `docs/engineering/HIPS_STORAGE_FORM_CONTRACT.md` §10，设计 = `docs/detail/PRODUCT_STORAGE_FORM.md` §10。**mosaic / export 的输入合同不设该键**（Phase2 固定裸服务面、Phase3 固定裸 FITS 不套壳），出现即 REJECT —— schema 面（`additionalProperties:false` / `propertyNames`）与 CLI 面（`validate_config_full` 的块内未知键门）双双生效。生产写出侧消费点属分阶段实现计划阶段 2；CLI 当前只识别并透传，写出侧尚未消费该键。
+- **落盘形态键 `storage_form`（Phase1 专属）**：Phase1 产品落盘形态由**输入配置**选定 —— 块级（或平铺顶层）`storage_form` ∈ {`archive`（默认）, `bare`}；**键缺失、空串或 `null` ⇒ 取默认 `archive` 并报一条 `level=warn` 事件**（取默认与 warn 事件成对出现），形态来源记入 `manifest.json#storage.form_source`；显式给出则不报 warn。键名与取值的唯一词表 = `eng/contracts/schemas/hips_storage_form.schema.json#x-acsd-field-vocabulary`；合同与不变式 F0/F1..F4/M1..M4 = `docs/engineering/HIPS_STORAGE_FORM_CONTRACT.md` §10，设计 = `docs/detail/PRODUCT_STORAGE_FORM.md` §10。**mosaic / export 的输入合同不设该键**（Phase2 固定裸服务面、Phase3 固定裸 FITS 不套壳），出现即 REJECT —— schema 面（`additionalProperties:false` / `propertyNames`）与 CLI 面（`validate_config_full` 的块内未知键门）双双生效。生产写出侧消费点属分阶段实现计划阶段 2；CLI 当前只识别并透传，写出侧尚未消费该键。
 - **索引引用键 `coverage_index`（Phase2 专属，加性可选）**：块级（或平铺顶层）`coverage_index` 是字符串路径，指向数据集级 `coverage.index.json`；存在 ⇒ 阶段二载入它做块级查询，缺失 ⇒ 规定回退 = 读入全部产品级索引现场倒排。`hips_paths` 的元素**保持字符串**（不做元素对象化），逐帧产品级索引路径由命名规则派生（`<name>.hips` / `<name>.hips.zst` → `<name>.hips.index.json`）。生产消费点同属阶段 2。
-- **精度显式声明**：mosaic/export 用位深键显式声明（fp32/fp64；模板填 `fp64`，`docs/science/SCIENCE_SCOPE.md` 默认 FP64）；normalize 用块级 `drizzle.precision_mode`（0=FP32 / 1=FP64，**必须显式**，缺失即拒绝）。CLI 精度键集只有上述键：键集外字段（含 `config.precision` 形态）一律拒绝（键集权威 = `docs/ASTROCS_DESIGN.md` §4.3）。
+- **精度显式声明**：mosaic/export 用位深键显式声明（fp32/fp64；模板填 `fp64`，`docs/science/SCIENCE_SCOPE.md` 默认 FP64）；normalize 用块级 `drizzle.precision_mode`（0=FP32 / 1=FP64，**必须显式**，缺失即拒绝）。CLI 精度键集只有上述键：键集外字段（含 `config.precision` 形态）一律拒绝（键集权威 = `docs/ACSD_DESIGN.md` §4.3）。
 - **精度的科学不变量（强制，跨三命令同面）**：精度选择只改变**表示误差**，任何科学量的**标度类别**（`docs/engineering/NUMERIC_STANDARD.md` 标度词表）与**量纲**保持不变。判据（非退化）：同一输入在 fp32 与 fp64 下，各产品面的标度类别与单位串必须逐项相同；数值差异只允许落在该面事前冻结的浮点容差内（`docs/engineering/SCHEDULER_CONTRACT.md` §2.1）。**标度换算与精度无关**；`BUNIT` 与缺失编码在 fp32/fp64 下取值相同。三命令的精度键名不同（`precision` / `drizzle.precision_mode`）但**语义与不变量同面**；键名差异不构成两套口径。
 - export 几何字段名与值域取自科学权威：`center_deg`/[`s_out_deg`]/`width_px`/`height_px`（`docs/science/PHASE3_HIPS_TO_FITS.md` §3 符号表：W/s_out/center/W_out,H_out）；约束 `docs/science/PHASE3_HIPS_TO_FITS.md` 的几何有效域条款：abs(dec) ≤ 85°、W_out/H_out ∈ [1,20000]、s_out > 0）。原 `projection` 插件文档的 `mode` 在 phase_config 中命名为 `output_mode`，以避开 legacy cpu_profile v1 的 `mode` 字段名（UNIFIED_MODEL §3 同名即同义，见 §7 门表）。
 - **`output_mode` 的必填与默认值口径（三条分支同面，fail-closed）**：
@@ -99,11 +99,11 @@ normalize 只接受**多块**与**平铺单块**两形态；CLI 遇到逐帧 `{p
 - 硬约束：normalize 块内（`additionalProperties:false`）、`drizzle`/`wcs` 两级与顶层 `propertyNames` 都拒绝任何未登记字段；mosaic/export 的 `config`/`inputs` 两级 `additionalProperties:false` ⇒ cpu_profile 的 `workers`/`isa`/`block_size` 混入必失败（负例 ④）。
 - 内存/流式预算类字段（`docs/detail/algorithms_phase3/16_fits_output.md` 的 `band_height`/`tile_cache_mb`）**不进** phase_config：它们不可跨机器复现，属实现策略，按 UNIFIED_MODEL §3 只入 `runtime_policy` 面。登记面把它们登记为 `runtime_policy` 类（权威 = 插件文档；机器门断言此类旋钮只出现在 `runtime_policy` 面（phase_config 属性面零命中）），见 §9。CFG002-ANCHOR: item2-knob-ownership → eng/packaging/config/config_registry.json
 
-## 4 `eng/packaging/config/filters.json`（`astrocs.filter-library/v1`）
+## 4 `eng/packaging/config/filters.json`（`acsd.filter-library/v1`）
 
 - **逐字转录** `lib/algorithms/photometry/data/response_curves/filters.json`（45 条；字段 `name/channel/wavelength_nm/value/n_points`），未重采样、未插值、未改数值。**`channel` 是转录字段之一**，因此其角色与空值语义按本节下文的冻结条款判定（见「`channel`（通带类别列）的角色与空值语义」）；转录保真只保证「值与源文件逐字相同」，**不**主张曲线物理正确（provenance 见下条）；机器门逐条与源文件比对（`TestFiltersLibrary::test_verbatim_transcription`）。
 - **provenance**：指向 `lib/algorithms/photometry/cpp/test/filter_qe_provenance.json`；其 source 自述 `unverified: original curve source not recorded in repository`，本库 **45/45 如实标注** `status=unverified`、`verified=false`、`url=null`、`gap_id=GAP-025`；曲线统计量（`curve_stats`）由机器门与曲线逐条对账。**适用域与验证方式（严格自洽说明）**：曲线数据只以「与源文件逐字相同的转录」身份入库，其物理正确性未经外部来源核对；任何「与标准滤光片/文献一致」的主张必须另附独立可核验出处（原始曲线来源 + 版本 + 获取方式 + 校验和）。**缺口登记**：原始曲线来源未入库，登记在册（`gap_id=GAP-025`，登记面 = `eng/packaging/config/config_registry.json`）。
-- **未知滤镜 → error**：`lookup.unknown_filter = "error"`（`ASTROCS_DESIGN.md` §4.3 滤镜型号逐字匹配、§4.5 红级 error）；三份 phase_config schema 都保留 45 键 `$defs.filter_name` 枚举（normalize 由块级 `filter_passband` 消费：`anyOf[{const:""}, {$ref: filter_name}]`；mosaic 由 `inputs[].filter` 消费），并由机器门锁定 `enum == eng/packaging/config/filters.json 的 filters 键`（`test_filter_enum_equals_library_keys`）。
+- **未知滤镜 → error**：`lookup.unknown_filter = "error"`（`ACSD_DESIGN.md` §4.3 滤镜型号逐字匹配、§4.5 红级 error）；三份 phase_config schema 都保留 45 键 `$defs.filter_name` 枚举（normalize 由块级 `filter_passband` 消费：`anyOf[{const:""}, {$ref: filter_name}]`；mosaic 由 `inputs[].filter` 消费），并由机器门锁定 `enum == eng/packaging/config/filters.json 的 filters 键`（`test_filter_enum_equals_library_keys`）。
 - **不含每滤镜零点**（合同口径）：零点 `location` 是**逐次运行估计量**且满足**零点平移不变量**——`docs/science/PHOTOMETRY.md`（估计零点 location、尺度因子 scale…）与 `docs/science/PHOTOMETRY.md` 的零点平移不变量条款：F_instr 同乘 k ⇒ location 增 log10 k，scale 除 k，sigma_residual 不变）。**适用域（正向约束）**：该不变量成立的条件是 `r_i = log10(F_instr,i/F_syn,i)` 取**同一 scale 口径**（同一参考通量单位与同一 `F_syn` 定义）且 `k` 是**纯乘性**变换（线性区，无饱和/无截断）。跨运行比较 `location` 时，`F_syn` 口径变化会整体平移 `location` ⇒ **数值不可跨运行直接比较**；量纲与换算见 `docs/science/DATA_SEMANTICS.md` §14.3 的量纲条；`docs/science/algorithms/PHOTOMETRIC_FIT.md` §1 明确 `zero_point` 字段因「无定义式、结构体无字段」被删除。故滤镜库**不出现**任何零点列/占位/null 字段；机器门 `test_no_zero_point_column_anywhere` 对**键路径与全文**双向断言（大小写不敏感）。若将来需要每滤镜零点，属**新科学定义**，须走变更流程另立条款。
 - **匹配语义（冻结）**：`lookup = {unknown_filter: error, match: exact, case_sensitive: true, normalization: none, aliases: {}}` ⇒ `resolve(name) = filters[name] if name ∈ keys(filters) else ERROR(unknown_filter)`；不做大小写/空白/Unicode 归一，不解析别名（`aliases` 为空对象 = 显式声明「本库不解析任何别名」）。冻结理由：库内品牌大小写不一致（`Optolong B/G/R` 与 `OPTOLONG L-PRO Light Pollution` 并存），品牌级归一化会引入歧义；当前 45 键在「大小写 + 空白」折叠下无重名（机器门断言），但该事实不替代显式规则。
 - **曲线身份核对（装配期 fail-closed，冻结）**：`resolve(name)` 命中键后，装载器**必须**再核对「取到的曲线对象就是该键声明的曲线」，四项同时成立才算通过：① 对象 `name` 字段与库键**逐字节相等**；② 对象 `n_points` 与实际 `wavelength_nm` 数组长度相等；③ 对象自述与 `provenance.per_filter[<键>].curve_stats` 的 `n_points`/`wl_min`/`wl_max`/`val_min`/`val_max` 一致；④ 同上的 `wl_sum`/`val_sum`/`val_sumsq`（逐元素和）与**实际数组**算出的值一致。任一项不成立 ⇒ 具名错误 `curve_identity_mismatch`（作用域 = 环境/配置），装载器只返回该具名错误。
@@ -113,7 +113,7 @@ normalize 只接受**多块**与**平铺单块**两形态；CLI 遇到逐帧 `{p
   - 判据锚：`lib/infrastructure/pipeline/orchestrator/cpp/tests/test_photometry_curve_resolve.cpp`（`[I0..I9]`，含恒真自检）与 `test_p1phot_passband_identity.cpp`（`[F1..F6]`）。正本 = `docs/science/PHOTOMETRY.md` §2a.7。
 - **反例串的权威锚点**：`"bader r"`/`"bader v"` 的**唯一权威锚点 = 本文件 §10 负例表**（`eng/packaging/config/filters.json#lookup.non_key_examples[].where` 指向它）。最高设计全篇不含 `bader`，因此这两个串的锚点只落在本文件 §10 负例表。两个串仍登记为 `lookup.non_key_examples`（`kind=design_doc_negative_example`、`resolution=ERROR`，值与判据未变）——它们不是合法库键，也不能靠归一化变成合法键（`bader` ≠ `Baader`；且库内不存在 Baader V 曲线）。`non_key_examples` 只把反例与合法值分开，**不**把反例升级为别名。正反例与门见 §10。CFG002-ANCHOR: item3-filter-name-policy → eng/packaging/config/config_registry.json
 - **死定义已登记**：三份 schema 都保留 `$defs/filter_name`；被字段 `$ref` 的只有 normalize（块级 `filter_passband`，§9.68 后取代逐帧 `inputs[].filter`）与 mosaic（`inputs[].filter` 可选、模板未用）；export 无字段引用它（导出以 HiPS 产品为单位、滤镜在上游分离）⇒ `config_registry.filter_name_policy.dead_filter_enum_phases` 登记，机器门断言该集合的每次变化都显式登记。
-- **`channel`（通带类别列）的角色与空值语义（冻结）**：`docs/ASTROCS_DESIGN.md` §4.3 冻结 `filters.json` 承载**三列**——「型号、通带、波长」；`channel` 即其中的**通带类别**列，与 `wavelength_nm`（波长轴，nm）配合。本文件**不新增取值**，只冻结其角色与空值语义：
+- **`channel`（通带类别列）的角色与空值语义（冻结）**：`docs/ACSD_DESIGN.md` §4.3 冻结 `filters.json` 承载**三列**——「型号、通带、波长」；`channel` 即其中的**通带类别**列，与 `wavelength_nm`（波长轴，nm）配合。本文件**不新增取值**，只冻结其角色与空值语义：
   - 值域 = `{B,G,R,L,HA,OIII,PAN,""}`；空值组 = `Johnson I`、`Johnson U`、`SDSS g`、`SDSS i`、`SDSS r`、`SDSS u`、`SDSS z`。**复算方法（就地，不依赖外部目录）**：读 `eng/packaging/config/filters.json`，对每个滤镜条目取 `channel` 字段
 （缺字段按 `""` 计），按取值分组计数；判据 = 按上述方法就地复算出的分组计数与空值组型号清单恒与 `eng/packaging/config/filters.json` 一致，空值组恰为列出的 7 个型号名。
 反例（负对照）：把任一空值条目的 `channel` 填成合法类别后重跑，计数与空值清单必须同时变化 ⇒ 判据非退化。
@@ -129,12 +129,12 @@ normalize 只接受**多块**与**平铺单块**两形态；CLI 遇到逐帧 `{p
 
 - **单一事实源**：定义以 `oneOf` 给出两个分支
   - `$defs.legacy_v1`：v1 形态（`schema_version=1`，`kernels` 数组，`hardware/build/memory_benchmark/verdict`）；
-  - `$defs.profile_v2`：**当前实现** `schema="astrocs.cpu-profile/v2"`（`lib/infrastructure/benchmark/backend_host/profile_gen_v2.cpp`，`verify_profile_v2` 同文件）。
-- **绑定**：CPU（`host.vendor/family/model/stepping/xcr0`）· OS（`host.os_abi` ∈ {`linux`,`windows`}，见 §11）· 软件版本（`build.astrocs_version/source_commit/runtime_build_id`）· provider hash（`build.provider_build_ids`、`benchmark_binary_sha256`、`kernels.*.self_test_sha256`）· ISA/workers/block（`kernels.*.provider ∈ {baseline,avx2,avx512}`、`workers ≥ 1`、`block ≥ 1`）。身份绑定字段与 `check_profile_identity_v1`（`lib/infrastructure/benchmark/backend_host/cpu_routing.cpp`）逐项一致。
-- **只有 benchmark 可写**：`x-astrocs-writer = "benchmark"`、`x-astrocs-not-writable-by = ["用户","cli --template","phase_config"]`；机器门 `TestCpuProfileMigration::test_writer_is_benchmark_only` + §7 的跨类不相交门。
+  - `$defs.profile_v2`：**当前实现** `schema="acsd.cpu-profile/v2"`（`lib/infrastructure/benchmark/backend_host/profile_gen_v2.cpp`，`verify_profile_v2` 同文件）。
+- **绑定**：CPU（`host.vendor/family/model/stepping/xcr0`）· OS（`host.os_abi` ∈ {`linux`,`windows`}，见 §11）· 软件版本（`build.acsd_version/source_commit/runtime_build_id`）· provider hash（`build.provider_build_ids`、`benchmark_binary_sha256`、`kernels.*.self_test_sha256`）· ISA/workers/block（`kernels.*.provider ∈ {baseline,avx2,avx512}`、`workers ≥ 1`、`block ≥ 1`）。身份绑定字段与 `check_profile_identity_v1`（`lib/infrastructure/benchmark/backend_host/cpu_routing.cpp`）逐项一致。
+- **只有 benchmark 可写**：`x-acsd-writer = "benchmark"`、`x-acsd-not-writable-by = ["用户","cli --template","phase_config"]`；机器门 `TestCpuProfileMigration::test_writer_is_benchmark_only` + §7 的跨类不相交门。
 - **兼容面（既有检查项不失效）**：顶层 `required` 取两分支共有键 `[build, kernels]`，顶层 `properties` 同时登记两分支顶层键，完整 v1 必填集落在 `$defs.legacy_v1.required`；`properties.kernels.items.required` 保持原访问路径（`eng/tests/backend/test_cpu_profile.py`、`eng/tools/validate_cpu_profile.py`）。
 - **顶层 `properties.kernels.type = ["array","object"]`（双分支兼容）**：该取值同时容纳 v1 数组与 v2 对象，因此 `eng/tools/validate_cpu_profile.py` 的 `rule.get('type')=='array'` 分支对该字段不再生效；v1 kernel 项约束仍由本文件 `items.required` 与 `$defs.legacy_v1` 强制，并由负例 `cpu_profile_v1_missing_required.json` 复跑证明仍能红。
-- **`host.os_abi` 值域冻结**：枚举 `{linux, windows}` = 生产者字面量集合（`lib/infrastructure/benchmark/backend_host/hardware_inspect.cpp` 只写 `windows`/`linux`；`lib/infrastructure/benchmark/backend_host/profile_gen_v2.cpp` 缺 `os` 字段时回落 `linux`），平台面由 `docs/ASTROCS_DESIGN.md` §11（双平台发行）（Windows amd64 / Linux amd64）封闭；非该集合一律 REJECT（负例 `eng/tests/config/fixtures/negative/cpu_profile_v2_bad_os_abi.json`）。登记面记 `x-astrocs-frozen-domains`。CFG002-ANCHOR: item4-os-abi-enum → eng/packaging/config/config_registry.json
+- **`host.os_abi` 值域冻结**：枚举 `{linux, windows}` = 生产者字面量集合（`lib/infrastructure/benchmark/backend_host/hardware_inspect.cpp` 只写 `windows`/`linux`；`lib/infrastructure/benchmark/backend_host/profile_gen_v2.cpp` 缺 `os` 字段时回落 `linux`），平台面由 `docs/ACSD_DESIGN.md` §11（双平台发行）（Windows amd64 / Linux amd64）封闭；非该集合一律 REJECT（负例 `eng/tests/config/fixtures/negative/cpu_profile_v2_bad_os_abi.json`）。登记面记 `x-acsd-frozen-domains`。CFG002-ANCHOR: item4-os-abi-enum → eng/packaging/config/config_registry.json
 - **kernel 接线**：`$defs.kernel_v1` 由 `legacy_v1.properties.kernels.items`、`$defs.kernel_v2` 由 `profile_v2.properties.kernels.additionalProperties` 各 `$ref` 一次（refs=1/1）；接线面与 `$defs` 逐字一致，由门 CFG002-10 按 `config_registry.cpu_profile_kernel_link` 的 refs 计数钉死，负例（`cpu_profile_v1_bad_kernel.json` / `cpu_profile_v2_bad_kernel.json`）必红。
 - **v1 兼容口径（canonical 值 + 读取侧归一）**：v1 在 `hardware.feature_bits`、`hardware.xcr0`、`build.backend_sha256`、`kernels[].block_size`、`kernels[].oracle_status` 五处存在文本与生产值两义（`oracle_status` 读取侧大小写归一到 canonical 大写 PASS）；schema 按 canonical 值定义、按两义兼容读取，不新增也不删除既有检查项。
 
@@ -155,7 +155,7 @@ timeout 60 python3 eng/tests/config/run_validation.py eng/contracts/schemas/phas
 
 | 门 | 断言 | 测试 |
 |---|---|---|
-| 三模板通过对应 schema | 逐模板 `validate()==[]`；phase 身份：mosaic/export 由 `phase_name`、normalize 由 `x-astrocs-phase` + 非空 `blocks[]` | `TestPhaseConfigFamily::test_templates_pass_their_schema` |
+| 三模板通过对应 schema | 逐模板 `validate()==[]`；phase 身份：mosaic/export 由 `phase_name`、normalize 由 `x-acsd-phase` + 非空 `blocks[]` | `TestPhaseConfigFamily::test_templates_pass_their_schema` |
 | 负例必败 | 未知滤镜/缺 output_dir/precision_mode 越界/硬件字段混入/多块与平铺互斥/块内未知键/逐帧 `inputs[]` 形态被拒，各自命中预期错误串 | `TestNegativeFixturesMustFail::test_negative_01..04`、`TestMultiBlockForm::test_03..06` |
 | defaults 计数 | 字段数 == 带 unit 数 == 带 source 或 pending 数；来源不明 == 0 | `TestDefaultsContract::test_counts_and_no_unknown_source` |
 | 转录保真 | 11 个关键 source 锚点（文件 + 值文本 + 内容指纹）成立；全部 `source_ref` 内容锚存活；pending 值必为 null | `test_every_source_ref_resolves_and_key_anchors_hold`、`test_pending_items_are_the_adjudicated_gap_set` |
@@ -175,7 +175,7 @@ timeout 60 python3 eng/tests/config/run_validation.py eng/contracts/schemas/phas
 | CFG002-11 科学锚 | `contract_doc_citations.token_anchors` 每条 = 内容锚（`{id,path,quote,sha256,value_text}`，零行号）：引文唯一命中、`value_text` 落在引文内、本文件在**文件级**仍引用该 path | 同上 CFG002-11 |
 | CFG002-12 锚形态与区分力 | ① 登记面递归扫描**零 文件:行**；② 四个锚面（defaults/token_anchors/filters.non_key_examples/declared_negatives）全过内容锚判据；③ `plugin_knobs[].anchor` = 「模块.字段」复合键路径 + 16 位指纹；④ `retired_knobs` 行**只减不增**（复活即判红：既不在 `plugin_knobs` 也不在文档配置表）；⑤ 非白名单表头的 `字段` 表必须显式登记在 `non_config_tables`（悬空声明亦判红） | 同上 CFG002-12 |
 
-## 9 旋钮与默认登记册 `eng/packaging/config/config_registry.json`（`astrocs.config-registry/v1`）
+## 9 旋钮与默认登记册 `eng/packaging/config/config_registry.json`（`acsd.config-registry/v1`）
 
 - **覆盖面**：`docs/detail/*/*.md` 的**配置项表**（表头白名单见 §8 门表 CFG002-01）**全集**逐行登记，一行一个 `(module, field)`，字段：`doc/declared_default/unit/owner_class/registration/registered_at/registered_key/finding/note/conflict/anchor`；`anchor = {id, sha256}` 是**内容锚**（`id` = 复合键路径 `模块.字段`，`sha256` = 对应文档表行按 `ANCHOR_CONTRACT.md` §9 归一化后的内容指纹），**位置不入册**——行号由锚实时解析，文档重排不再让登记失效，而表行**内容**一改指纹即不符。行数与分组计数由登记册与机器门按登记行实时给出，本节不复制计数。
 - **退役面**：`retired_knobs[]` 保留「无对应文档行的存量登记」这一事实（`reason/evidence/retired_at/review`），门 CFG002-12 断言该集合与 `plugin_knobs`／文档配置表**无交集**——退役留痕，不删事实。

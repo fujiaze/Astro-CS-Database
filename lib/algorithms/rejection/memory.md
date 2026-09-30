@@ -1,16 +1,16 @@
-# memory.md — astrocs.p2.rejection（P2-REJ-DOC 冻结）
+# memory.md — acsd.p2.rejection（P2-REJ-DOC 冻结）
 
 - 任务: P2-REJ-DOC（MODULE_MIGRATION_MATRIX P2-REJ 行，owner SA-P2-R22，
   2026-09-09）——合同冻结层，不改生产源码，不 commit。本目录
   `lib/algorithms/rejection/` 三件套（README r1 + module.yaml + memory.md）由
   P2-REJ-DOC 建立。
 - 落位: `lib/algorithms/rejection/`（本目录）。`lib/algorithms/coverage/` 一目录一套三件套已被
-  P2-COV（astrocs.p2.coverage）占用（lib/algorithms/coverage/README.md r1，
+  P2-COV（acsd.p2.coverage）占用（lib/algorithms/coverage/README.md r1，
   2026-09-07），不可覆盖；按 `lib/algorithms/integration/`（P2-INT-DOC，其按
   `lib/algorithms/coverage/hips_p2/` P2-HIPS-DOC 先例）新建迁移目标目录，仅合同文件、
   无源码、不与 legacy 目录重叠。生产源引用不搬家。
 - 矩阵权威（P2-REJ 行，禁止编造）: owner=SA-P2-R22、
-  module_id=astrocs.p2.rejection、target_dll=astrocs_p2_rejection.dll、
+  module_id=acsd.p2.rejection、target_dll=acsd_p2_rejection.dll、
   legacy_paths="lib/algorithms/coverage rejection sources"、depends_on_int=
   **P2-UPM-INT;CPU-005**（注: P2-REJ-INT 是 P2-INT 行的 depends_on_int
   本域被依赖项，勿混淆）、science_specific_acceptance="sigma/winsor/
@@ -44,7 +44,7 @@
   定序归并 :1305-1313、large_scale 两遍 :1544-1605（调用 :1549）。
   acr_kernels.cpp（361 行）OMP :218/:228 schedule(static)。
 - descriptor 占位（不改码）: lib/infrastructure/scheduler/src/module_adapters.cpp
-  p2_reject_descriptor :638-655（module_id=astrocs.phase2.reject、
+  p2_reject_descriptor :638-655（module_id=acsd.phase2.reject、
   sci_id=SCI-P2-REJ-001/alg_id=ALG-P2-REJ-001/data_id=DATA-P2-REJ/
   api_id=API-P2-001/test_id=TEST-P2-REJ-001、ports corrected（in，
   DATA-P2-COR/ADU/PIXEL）与 accepted_mask（out，DATA-P2-REJ/
@@ -74,9 +74,9 @@
   test_p2004_reject_integrate.py（P2-004 生产 Oracle）与
   eng/tests/unit/p2_rejection_test.cpp（P2-005）。可执行 TEST-P2-REJ-001
   MISSING（P2-REJ-TEST 建立）；登记面=TEST-P2-REJ-DESIGN-001 设计
-  冻结 VERIFIED（registry 页 astrocs.phase2.reject.md §独立
+  冻结 VERIFIED（registry 页 acsd.phase2.reject.md §独立
   synthetic 验证节 :126-129 + ALG §11.4 F1-F8 容差 :554-609）。
-- 后续任务锚: P2-REJ-IMPL=迁移到独立 astrocs_p2_rejection.dll
+- 后续任务锚: P2-REJ-IMPL=迁移到独立 acsd_p2_rejection.dll
   （C ABI adapter/plan-execute-cancel-inspect/ThreadLease 接线）；
   P2-REJ-TEST=建立可执行 TEST-P2-REJ-001 与负面/串并行/资源测试；
   P2-REJ-INT=descriptor 对齐注册与 Phase DAG 接入；P2-XX-INT=编排层
@@ -103,7 +103,7 @@
     median SNR/FWHM/residual/psfsw/psf_snr_power/auto/0 进权重面。
   - `p2_reject_plan_thresholds_inherited`：继承阈值逐项校验
     （FZ-REJ-INHERITED-THRESH；改动 → INVALID_CONFIGURATION）。
-- profile: `astrocs.rejection.classify.v1`（版本化常量：motion_min 0.5 px、
+- profile: `acsd.rejection.classify.v1`（版本化常量：motion_min 0.5 px、
   psf_anomaly_min 0.2、prior 0.05、kappa 4.0；非冻结排异阈值）。
   说明见本目录 `CLASSIFY_V1_PROFILE.md`。
 - fail-closed 映射（ALG-P2S-REJ.5）: 缺 Phase1 或 UPM 声明 / 非 finite /

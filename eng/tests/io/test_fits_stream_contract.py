@@ -90,40 +90,40 @@ class TraceHooks(ctypes.Structure):
 
 def bind():
     lib = LIB
-    lib.acs_fio_reader_open_v1.restype = ctypes.c_int
-    lib.acs_fio_reader_open_v1.argtypes = [ctypes.c_char_p, ctypes.POINTER(TraceHooks),
+    lib.acsd_fio_reader_open_v1.restype = ctypes.c_int
+    lib.acsd_fio_reader_open_v1.argtypes = [ctypes.c_char_p, ctypes.POINTER(TraceHooks),
                                            ctypes.POINTER(ctypes.POINTER(Reader)),
                                            ctypes.c_char_p, ctypes.c_size_t]
-    lib.acs_fio_get_header_v1.restype = ctypes.c_int
-    lib.acs_fio_get_header_v1.argtypes = [ctypes.POINTER(Reader), ctypes.POINTER(FioHeader),
+    lib.acsd_fio_get_header_v1.restype = ctypes.c_int
+    lib.acsd_fio_get_header_v1.argtypes = [ctypes.POINTER(Reader), ctypes.POINTER(FioHeader),
                                           ctypes.c_char_p, ctypes.c_size_t]
-    lib.acs_fio_read_plane_v1.restype = ctypes.c_int
-    lib.acs_fio_read_plane_v1.argtypes = [ctypes.POINTER(Reader), ctypes.c_int,
+    lib.acsd_fio_read_plane_v1.restype = ctypes.c_int
+    lib.acsd_fio_read_plane_v1.argtypes = [ctypes.POINTER(Reader), ctypes.c_int,
                                           ctypes.c_int64, ctypes.c_int64, ctypes.c_int32,
                                           ctypes.c_char_p,
                                           ctypes.c_void_p, ctypes.c_int64, ctypes.c_int,
                                           ctypes.POINTER(ctypes.c_int64), ctypes.c_void_p,
                                           ctypes.c_char_p, ctypes.c_size_t]
-    lib.acs_fio_reader_close_v1.restype = None
-    lib.acs_fio_reader_close_v1.argtypes = [ctypes.POINTER(Reader)]
-    lib.acs_fio_writer_begin_v1.restype = ctypes.c_int
-    lib.acs_fio_writer_begin_v1.argtypes = [ctypes.c_char_p, ctypes.POINTER(FioHeader),
+    lib.acsd_fio_reader_close_v1.restype = None
+    lib.acsd_fio_reader_close_v1.argtypes = [ctypes.POINTER(Reader)]
+    lib.acsd_fio_writer_begin_v1.restype = ctypes.c_int
+    lib.acsd_fio_writer_begin_v1.argtypes = [ctypes.c_char_p, ctypes.POINTER(FioHeader),
                                             ctypes.c_char_p, ctypes.c_int, ctypes.c_void_p,
                                             ctypes.POINTER(ctypes.POINTER(Writer)),
                                             ctypes.c_char_p, ctypes.c_size_t]
-    lib.acs_fio_write_plane_v1.restype = ctypes.c_int
-    lib.acs_fio_write_plane_v1.argtypes = [ctypes.POINTER(Writer), ctypes.c_int, ctypes.c_void_p,
+    lib.acsd_fio_write_plane_v1.restype = ctypes.c_int
+    lib.acsd_fio_write_plane_v1.argtypes = [ctypes.POINTER(Writer), ctypes.c_int, ctypes.c_void_p,
                                            ctypes.c_size_t, ctypes.c_void_p,
                                            ctypes.c_char_p, ctypes.c_size_t]
-    lib.acs_fio_writer_end_v1.restype = ctypes.c_int
-    lib.acs_fio_writer_end_v1.argtypes = [ctypes.POINTER(Writer), ctypes.c_int, ctypes.c_int,
+    lib.acsd_fio_writer_end_v1.restype = ctypes.c_int
+    lib.acsd_fio_writer_end_v1.argtypes = [ctypes.POINTER(Writer), ctypes.c_int, ctypes.c_int,
                                           ctypes.c_int, ctypes.c_void_p,
                                           ctypes.c_char_p, ctypes.c_size_t]
-    lib.acs_fio_verify_file_v1.restype = ctypes.c_int
-    lib.acs_fio_verify_file_v1.argtypes = [ctypes.c_char_p, ctypes.c_int,
+    lib.acsd_fio_verify_file_v1.restype = ctypes.c_int
+    lib.acsd_fio_verify_file_v1.argtypes = [ctypes.c_char_p, ctypes.c_int,
                                            ctypes.c_char_p, ctypes.c_size_t]
-    lib.acs_fio_compute_file_datadigest_v1.restype = ctypes.c_int
-    lib.acs_fio_compute_file_datadigest_v1.argtypes = [ctypes.c_char_p, ctypes.c_char_p,
+    lib.acsd_fio_compute_file_datadigest_v1.restype = ctypes.c_int
+    lib.acsd_fio_compute_file_datadigest_v1.argtypes = [ctypes.c_char_p, ctypes.c_char_p,
                                                        ctypes.c_size_t,
                                                        ctypes.POINTER(ctypes.c_size_t),
                                                        ctypes.c_char_p, ctypes.c_size_t]
@@ -164,14 +164,14 @@ def write_fits(path, bitpix, shape, arr, bunit=None, datasum=1, checksum=0):
     h = make_header(bitpix, shape, bunit)
     wr = ctypes.POINTER(Writer)()
     err = errbuf()
-    st = LIB_.acs_fio_writer_begin_v1(str(path).encode(), ctypes.byref(h), None, 1, None,
+    st = LIB_.acsd_fio_writer_begin_v1(str(path).encode(), ctypes.byref(h), None, 1, None,
                                       ctypes.byref(wr), err, len(err))
     assert st == ACS_FIO_OK, f"begin: {st} {err.value}"
     data = np.ascontiguousarray(arr)
-    st = LIB_.acs_fio_write_plane_v1(wr, 0, data.ctypes.data_as(ctypes.c_void_p),
+    st = LIB_.acsd_fio_write_plane_v1(wr, 0, data.ctypes.data_as(ctypes.c_void_p),
                                      data.nbytes, None, err, len(err))
     assert st == ACS_FIO_OK, f"write: {st} {err.value}"
-    st = LIB_.acs_fio_writer_end_v1(wr, datasum, checksum, 0, None, err, len(err))
+    st = LIB_.acsd_fio_writer_end_v1(wr, datasum, checksum, 0, None, err, len(err))
     assert st == ACS_FIO_OK, f"end: {st} {err.value}"
     return path
 
@@ -180,14 +180,14 @@ def read_plane(path, bitpix, shape, dtype, strict=0, bunit=None):
     """用 fits_core 读一个平面返回 numpy。"""
     rd = ctypes.POINTER(Reader)()
     err = errbuf()
-    st = LIB_.acs_fio_reader_open_v1(str(path).encode(), None, ctypes.byref(rd), err, len(err))
+    st = LIB_.acsd_fio_reader_open_v1(str(path).encode(), None, ctypes.byref(rd), err, len(err))
     assert st == ACS_FIO_OK, f"open: {st} {err.value}"
     try:
         n = int(np.prod(shape))
         npbuf = np.empty(n, dtype=dtype)
         got = ctypes.c_int64(0)
         nb = bunit.encode() if bunit else None
-        st = LIB_.acs_fio_read_plane_v1(rd, 0, shape[0] if shape else 0,
+        st = LIB_.acsd_fio_read_plane_v1(rd, 0, shape[0] if shape else 0,
                                         shape[1] if len(shape) > 1 else 0,
                                         bitpix, nb,
                                         npbuf.ctypes.data_as(ctypes.c_void_p),
@@ -197,7 +197,7 @@ def read_plane(path, bitpix, shape, dtype, strict=0, bunit=None):
         assert got.value == n
         return npbuf
     finally:
-        LIB_.acs_fio_reader_close_v1(rd)
+        LIB_.acsd_fio_reader_close_v1(rd)
 
 
 class TestFitsCoreContract(unittest.TestCase):
@@ -264,7 +264,7 @@ class TestFitsCoreContract(unittest.TestCase):
         ds_buf = ctypes.create_string_buffer(32)
         got_len = ctypes.c_size_t(0)
         err = errbuf()
-        st = LIB_.acs_fio_compute_file_datadigest_v1(str(p).encode(), ds_buf, len(ds_buf),
+        st = LIB_.acsd_fio_compute_file_datadigest_v1(str(p).encode(), ds_buf, len(ds_buf),
                                                      ctypes.byref(got_len), err, len(err))
         self.assertEqual(st, ACS_FIO_OK)
         ours = ds_buf.value.decode()
@@ -285,13 +285,13 @@ class TestFitsCoreContract(unittest.TestCase):
         p = self.path("cs.fits")
         write_fits(p, -64, (10, 10), arr, datasum=1, checksum=1)
         err = errbuf()
-        st = LIB_.acs_fio_verify_file_v1(str(p).encode(), 1, err, len(err))
+        st = LIB_.acsd_fio_verify_file_v1(str(p).encode(), 1, err, len(err))
         self.assertEqual(st, ACS_FIO_OK, f"verify ok: {err.value}")
         # 篡改数据区一字节
         raw = bytearray(p.read_bytes())
         raw[2880] ^= 0x01
         p.write_bytes(bytes(raw))
-        st = LIB_.acs_fio_verify_file_v1(str(p).encode(), 1, err, len(err))
+        st = LIB_.acsd_fio_verify_file_v1(str(p).encode(), 1, err, len(err))
         self.assertEqual(st, ACS_FIO_ERR_CHECKSUM, f"tamper rejected: {err.value}")
 
     # ---- NaN/Inf ----
@@ -301,15 +301,15 @@ class TestFitsCoreContract(unittest.TestCase):
         write_fits(p, -32, (5, 1), arr)
         rd = ctypes.POINTER(Reader)()
         err = errbuf()
-        st = LIB_.acs_fio_reader_open_v1(str(p).encode(), None, ctypes.byref(rd), err, len(err))
+        st = LIB_.acsd_fio_reader_open_v1(str(p).encode(), None, ctypes.byref(rd), err, len(err))
         self.assertEqual(st, ACS_FIO_OK)
         buf = np.empty(5, dtype=np.float32)
         got = ctypes.c_int64(0)
-        st = LIB_.acs_fio_read_plane_v1(rd, 0, 5, 1, -32, None,
+        st = LIB_.acsd_fio_read_plane_v1(rd, 0, 5, 1, -32, None,
                                         buf.ctypes.data_as(ctypes.c_void_p), 5, 1,
                                         ctypes.byref(got), None, err, len(err))
         self.assertEqual(st, ACS_FIO_ERR_NANINF, "strict naninf rejected")
-        LIB_.acs_fio_reader_close_v1(rd)
+        LIB_.acsd_fio_reader_close_v1(rd)
 
     # ---- 非法 header / 截断 ----
     def test_bad_header_no_simple(self):
@@ -327,7 +327,7 @@ class TestFitsCoreContract(unittest.TestCase):
         p.write_bytes(bytes(raw))
         rd = ctypes.POINTER(Reader)()
         err = errbuf()
-        st = LIB_.acs_fio_reader_open_v1(str(p).encode(), None, ctypes.byref(rd), err, len(err))
+        st = LIB_.acsd_fio_reader_open_v1(str(p).encode(), None, ctypes.byref(rd), err, len(err))
         self.assertEqual(st, ACS_FIO_ERR_BAD_HEADER)
 
     def test_truncated(self):
@@ -338,7 +338,7 @@ class TestFitsCoreContract(unittest.TestCase):
         p.write_bytes(raw[:2880 + 100])  # header + 部分数据
         rd = ctypes.POINTER(Reader)()
         err = errbuf()
-        st = LIB_.acs_fio_reader_open_v1(str(p).encode(), None, ctypes.byref(rd), err, len(err))
+        st = LIB_.acsd_fio_reader_open_v1(str(p).encode(), None, ctypes.byref(rd), err, len(err))
         self.assertEqual(st, ACS_FIO_ERR_TRUNCATED)
 
     # ---- dtype/shape/unit mismatch ----
@@ -348,27 +348,27 @@ class TestFitsCoreContract(unittest.TestCase):
         write_fits(p, -32, (3, 2), arr, bunit="adu")
         rd = ctypes.POINTER(Reader)()
         err = errbuf()
-        st = LIB_.acs_fio_reader_open_v1(str(p).encode(), None, ctypes.byref(rd), err, len(err))
+        st = LIB_.acsd_fio_reader_open_v1(str(p).encode(), None, ctypes.byref(rd), err, len(err))
         self.assertEqual(st, ACS_FIO_OK)
         buf = np.empty(6, dtype=np.float64)
         got = ctypes.c_int64(0)
         # dtype mismatch: 期望 -64
-        st = LIB_.acs_fio_read_plane_v1(rd, 0, 0, 0, -64, None,
+        st = LIB_.acsd_fio_read_plane_v1(rd, 0, 0, 0, -64, None,
                                         buf.ctypes.data_as(ctypes.c_void_p), 6, 0,
                                         ctypes.byref(got), None, err, len(err))
         self.assertEqual(st, ACS_FIO_ERR_MISMATCH)
         # shape mismatch: nx=4
         fb = np.empty(6, dtype=np.float32)
-        st = LIB_.acs_fio_read_plane_v1(rd, 0, 4, 0, 0, None,
+        st = LIB_.acsd_fio_read_plane_v1(rd, 0, 4, 0, 0, None,
                                         fb.ctypes.data_as(ctypes.c_void_p), 6, 0,
                                         ctypes.byref(got), None, err, len(err))
         self.assertEqual(st, ACS_FIO_ERR_MISMATCH)
         # unit mismatch
-        st = LIB_.acs_fio_read_plane_v1(rd, 0, 0, 0, 0, b"e-",
+        st = LIB_.acsd_fio_read_plane_v1(rd, 0, 0, 0, 0, b"e-",
                                         fb.ctypes.data_as(ctypes.c_void_p), 6, 0,
                                         ctypes.byref(got), None, err, len(err))
         self.assertEqual(st, ACS_FIO_ERR_MISMATCH)
-        LIB_.acs_fio_reader_close_v1(rd)
+        LIB_.acsd_fio_reader_close_v1(rd)
 
 
 if __name__ == "__main__":

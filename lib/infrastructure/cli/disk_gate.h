@@ -1,9 +1,9 @@
 // lib/infrastructure/cli/disk_gate.h — 磁盘门（**唯一资源判据**）
 //
 // 规范依据（逐条）：
-//   * docs/ASTROCS_DESIGN.md §4.5 运行前预检「资源门只管磁盘：运行前磁盘余量不足 ⇒ 报 warn（不阻断）；
+//   * docs/ACSD_DESIGN.md §4.5 运行前预检「资源门只管磁盘：运行前磁盘余量不足 ⇒ 报 warn（不阻断）；
 //     运行中写盘失败/磁盘满 ⇒ 报错（fail-closed）；内存 / CPU / 线程不设门」；
-//   * docs/ASTROCS_DESIGN.md §6.3 退出码表「10 = 磁盘写满 / 写盘失败（一般性资源超限门已取消）」；
+//   * docs/ACSD_DESIGN.md §6.3 退出码表「10 = 磁盘写满 / 写盘失败（一般性资源超限门已取消）」；
 //   * 资源门口径：「不应该有资源超限（除非存储不足）。
 //     跑前报 warn，写入磁盘满了报错——只考虑磁盘写满这一个问题）；
 //   * 运行事件流唯一 schema = protocol.h/jsonl.h。
@@ -36,7 +36,7 @@
 #include <sys/statvfs.h>
 #endif
 
-namespace astrocs {
+namespace acsd {
 
 // ── 磁盘余量探测（唯一实现；output_dir 可尚未创建 → 向上找最近已存在目录）──
 struct DiskSpace {
@@ -210,7 +210,7 @@ inline const char* write_failure_kind_name(WriteFailureKind k) {
     }
 }
 
-// 「磁盘写满 / 写盘失败」的唯一退出码（docs/ASTROCS_DESIGN §6.3 exit 10；数值源 = exit_codes.h）。
+// 「磁盘写满 / 写盘失败」的唯一退出码（docs/ACSD_DESIGN §6.3 exit 10；数值源 = exit_codes.h）。
 inline bool write_failure_is_resource_exit(WriteFailureKind k) {
     return k == WriteFailureKind::DiskFull || k == WriteFailureKind::WriteFailed;
 }
@@ -227,7 +227,7 @@ inline WriteProbe probe_writable(const std::string& dir) {
     if (dir.empty()) { pr.kind = WriteFailureKind::IoFailure; pr.err = ENOENT; return pr; }
     std::error_code ec;
     std::filesystem::create_directories(std::filesystem::u8path(dir), ec);   // best effort
-    const std::string probe = dir + "/.astrocs_write_probe";
+    const std::string probe = dir + "/.acsd_write_probe";
     std::FILE* f = std::fopen(probe.c_str(), "wb");
     if (f == nullptr) { pr.err = errno; pr.kind = classify_write_failure(pr.err); return pr; }
     char buf[4096] = {0};
@@ -271,4 +271,4 @@ inline std::string disk_estimate_line(const DiskSpace& sp, const DiskEstimate& e
            (est.truncated ? "，目录扫描已达上限" : "") + "）";
 }
 
-}  // namespace astrocs
+}  // namespace acsd

@@ -2,7 +2,7 @@
 //
 // 合同锚: docs/science/algorithms/PLATESOLVE.md §11.4 TEST-WCS-DESIGN-001
 // (P1-WCS-DOC 冻结, 2026-09-07, wave W1); 矩阵行 P1-WCS (MOD
-// astrocs.p1.plate_solve, TEST-WCS-001/INV/FAIL)。
+// acsd.p1.plate_solve, TEST-WCS-001/INV/FAIL)。
 //
 // 规则 (模板 <prefix>-TEST §2, 对齐 p1cal 谱系):
 //   - 全 fixture 由固定 seed + 参数确定生成, 零随机硬件依赖, 不提交大二进制。

@@ -1,12 +1,12 @@
 /* ACSD CPU AVX-512 provider — 公共 kernel 参数合同 v1 (热点子集)
- * lib/infrastructure/benchmark/cpu/avx512/include/astrocs/cpu/avx512_provider_v1.h (CPU-004)
+ * lib/infrastructure/benchmark/cpu/avx512/include/acsd/cpu/avx512_provider_v1.h (CPU-004)
  *
  * 角色: CPU-004 冻结的 AMD64 AVX-512 provider (target 单独
  * -mavx512f -mavx512cd -mavx512bw -mavx512dq -mavx512vl; Windows
  * /arch:AVX512) 的 kernel 注册合同。provider 本体导出唯一入口
- * astrocs_provider_query_v1 (lib/include/astrocs/abi/module_api_v1.h 冻结;
+ * acsd_provider_query_v1 (lib/include/acsd/abi/module_api_v1.h 冻结;
  * ARC-001 §1.2 / 15 §1), 消费 CPU-001 capability 判定
- * (lib/infrastructure/benchmark/cpu/common/include/astrocs/cpu/capability_v1.h) 完成
+ * (lib/infrastructure/benchmark/cpu/common/include/acsd/cpu/capability_v1.h) 完成
  * "所需 AVX-512 子集 ∈ os_safe" (OSXSAVE + XGETBV XMM|YMM|opmask|ZMM 状态)
  * 平面检查后才提供 kernel 服务; 缺任何子集 / OS 不保存 ZMM state → 拒绝
  * 加载 (ACS_ERR_UNSUPPORTED), host 回落 baseline/AVX2
@@ -19,19 +19,19 @@
  *     同档) —— 唯一实测可能获益 kernel; calibration +3.8% (远低 avx2
  *     +11.7%) 与 drizzle-accumulate −22.5% 均 NOT_SHIPPED (防 AVX-512 降频
  *     使全局性能变差 —— 只注册实测获益 kernel, 不机械堆砌);
- *   - lib/include/astrocs/abi/module_api_v1.h (provider ABI: acs_provider_api_v1 /
- *     acs_kernel_desc_v1 / run_kernel 签名; ABI-001);
- *   - lib/include/astrocs/abi/lifecycle_v1.h (self_test 语义 / host_abi 协商; ABI-002);
- *   - lib/infrastructure/benchmark/cpu/common/include/astrocs/cpu/capability_v1.h (CPU-001 os_safe
+ *   - lib/include/acsd/abi/module_api_v1.h (provider ABI: acsd_provider_api_v1 /
+ *     acsd_kernel_desc_v1 / run_kernel 签名; ABI-001);
+ *   - lib/include/acsd/abi/lifecycle_v1.h (self_test 语义 / host_abi 协商; ABI-002);
+ *   - lib/infrastructure/benchmark/cpu/common/include/acsd/cpu/capability_v1.h (CPU-001 os_safe
  *     平面: AVX-512 组须 F/CD/BW/DQ/VL 五子集 hw 全置 + XCR0.0xE0 全置);
- *   - lib/infrastructure/benchmark/cpu/baseline/include/astrocs/cpu/baseline_provider_v1.h
+ *   - lib/infrastructure/benchmark/cpu/baseline/include/acsd/cpu/baseline_provider_v1.h
  *     (CPU-002 冻结参数 POD —— 本 provider 只迁移热点 kernel 的 ISA 变体,
  *     **不复制** baseline 的科学 kernel 实现; 参数/槽位/缓冲合同同源复用);
  *   - ALG-P3-002 hips-bulk-transform 离散公式 (docs/science/algorithms/)。
  *
  * 关键约束 (v1 不可变; 扩展须升版本):
  *   1) 纯 C11 可编译 (extern "C" 兼容 C++17); 禁 STL/异常跨边界; 无第三方依赖。
- *   2) 跨边界结构前两字段 = struct_size + abi_version (同 acs_head 模式); 失配即拒。
+ *   2) 跨边界结构前两字段 = struct_size + abi_version (同 acsd_head 模式); 失配即拒。
  *   3) 本 provider 只注册实测可能获益的热点 kernel (函数入口由 provider 表查询,
  *      不复制科学模块 — 15 §1 / CPU_PROVIDER_QUALIFICATION_CONTRACT); 其余
  *      kernel 索引 → ACS_ERR_UNSUPPORTED (host 按 kernel_id 退回 baseline/avx2;
@@ -53,19 +53,19 @@
  *      重排), 每输出独立无跨线程归约 → AVX-512 向量化/FMA 收缩**不改变
  *      归约顺序**; 可能引入每元素 ≤ 数十 ULP 舍入差 (容差 2e-4 相对冻结)。
  *
- * 缓冲合同 (run_kernel 的 in/out 为 acs_span_u8 字节缓冲; 同 baseline v1):
- *   - 参数 POD = acs_cpu_baseline_params_v1 (CPU-002 冻结; 本头只是宿主声明,
+ * 缓冲合同 (run_kernel 的 in/out 为 acsd_span_u8 字节缓冲; 同 baseline v1):
+ *   - 参数 POD = acsd_cpu_baseline_params_v1 (CPU-002 冻结; 本头只是宿主声明,
  *     不重定义结构, 防止双定义漂移);
  *   - 槽位语义逐 op 同 baseline_provider_v1.h 头注释 (hips: 1 入 1 出;
  *     未用槽 off=len=0; 越界 → ACS_ERR_PARAM);
  *   - in/out 不得别名 (aliasing_contract=0); out 由调用方预分配。
  */
-#ifndef ASTROCS_CPU_AVX512_PROVIDER_V1_H
-#define ASTROCS_CPU_AVX512_PROVIDER_V1_H
+#ifndef ACSD_CPU_AVX512_PROVIDER_V1_H
+#define ACSD_CPU_AVX512_PROVIDER_V1_H
 
-#include "astrocs/abi/module_api_v1.h"   /* acs_head/status/provider 表 (ABI-001/002) */
-#include "astrocs/cpu/capability_v1.h"    /* ACS_CAP_FEAT_* (CPU-001; required_features) */
-#include "astrocs/cpu/baseline_provider_v1.h" /* 参数 POD 宿主声明 (CPU-002, 只复用不复制) */
+#include "acsd/abi/module_api_v1.h"   /* acsd_head/status/provider 表 (ABI-001/002) */
+#include "acsd/cpu/capability_v1.h"    /* ACS_CAP_FEAT_* (CPU-001; required_features) */
+#include "acsd/cpu/baseline_provider_v1.h" /* 参数 POD 宿主声明 (CPU-002, 只复用不复制) */
 
 #ifdef __cplusplus
 extern "C" {
@@ -77,7 +77,7 @@ extern "C" {
 #define ACS_CPU_AVX512_MAX_OUT_SLOTS 2u
 
 /* provider 标识 (query 期 self_test/诊断) */
-#define ACS_CPU_AVX512_PROVIDER_ID "astrocs.cpu.avx512"
+#define ACS_CPU_AVX512_PROVIDER_ID "acsd.cpu.avx512"
 #define ACS_CPU_AVX512_BUILD_ID     "CPU-004"
 
 /* provider 加载所需能力 (os_safe 平面子集; 15 §2 / C §C6):
@@ -96,20 +96,20 @@ extern "C" {
  *   calibration-pixel-transform +3.8% (远低 avx2 +11.7%),
  *   drizzle-accumulate −22.5% (变体更慢; AVX-512 降频风险 → 不注册防全局
  *   性能变差)。 */
-enum acs_cpu_avx512_kernel_index {
+enum acsd_cpu_avx512_kernel_index {
     ACS_CPU_AVX512_KIDX_HIPS_BULK = 0   /* ALG-P3-002 hips-bulk-transform */
 };
 
-/* 参数 POD: 与 baseline 完全同一结构 (CPU-002 acs_cpu_baseline_params_v1)。
+/* 参数 POD: 与 baseline 完全同一结构 (CPU-002 acsd_cpu_baseline_params_v1)。
  * 本 provider 不定义第二份 params —— 跨 ISA 变体共享参数合同 (同 avx2). */
-typedef acs_cpu_baseline_params_v1 acs_cpu_avx512_params_v1;
+typedef acsd_cpu_baseline_params_v1 acsd_cpu_avx512_params_v1;
 
-ACS_STATIC_ASSERT(sizeof(acs_cpu_avx512_params_v1) ==
-                      sizeof(acs_cpu_baseline_params_v1),
+ACS_STATIC_ASSERT(sizeof(acsd_cpu_avx512_params_v1) ==
+                      sizeof(acsd_cpu_baseline_params_v1),
                   "avx512 params POD = baseline params POD (不复制科学合同)");
 
 #ifdef __cplusplus
 } /* extern "C" */
 #endif
 
-#endif /* ASTROCS_CPU_AVX512_PROVIDER_V1_H */
+#endif /* ACSD_CPU_AVX512_PROVIDER_V1_H */

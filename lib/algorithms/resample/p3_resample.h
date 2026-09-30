@@ -1,13 +1,13 @@
 // lib/algorithms/resample/p3_resample.h — Phase3 重采样: order 选择/tile 查找/nearest/bilinear (ALG-P3-003)
 // 覆盖: 跨 tile 采样、coverage/mask(二值)、NaN 语义(S=NaN+C=1, §4)、单位固定 surface brightness、
 // 未支持输入模式(variance/ivar/flux-per-pixel/weight)显式拒(UNSUPPORTED)。
-#ifndef ASTROCS_P3_RESAMPLE_H
-#define ASTROCS_P3_RESAMPLE_H
+#ifndef ACSD_P3_RESAMPLE_H
+#define ACSD_P3_RESAMPLE_H
 
 #include <cstdint>
 #include <string>
 
-namespace astrocs::phase3 {
+namespace acsd::phase3 {
 
 typedef enum {
     P3_RS_OK = 0,
@@ -197,6 +197,6 @@ P3ResampleStatus p3_uncertainty_propagate(P3Sampler* u, const double* weights,
                                           const uint64_t* leaf_ipix, int npts,
                                           double* u_out, P3UncPixelState* st);
 
-}  // namespace astrocs::phase3
+}  // namespace acsd::phase3
 
-#endif  // ASTROCS_P3_RESAMPLE_H
+#endif  // ACSD_P3_RESAMPLE_H

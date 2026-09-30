@@ -1,12 +1,12 @@
 // CPU-003 单元测试: CPUID/OSXSAVE/XGETBV 核验 + feature 匹配降级
 #include "cpu_features.h"
-#include "astrocs/common_abi_v1.h"
+#include "acsd/common_abi_v1.h"
 
 #include <cstdio>
 #include <cstring>
 #include <string>
 
-extern "C" uint32_t astrocs_cpu_affinity_count_v1(void);
+extern "C" uint32_t acsd_cpu_affinity_count_v1(void);
 
 static int failures = 0;
 #define CHECK(cond)                                                       \
@@ -24,7 +24,7 @@ static bool features_satisfy(uint64_t detected, uint64_t required) {
 
 int main() {
   // 1) CPUID 实测: SSE2 基线恒置位 (amd64)
-  uint64_t feats = astrocs_cpu_detect_features_v1();
+  uint64_t feats = acsd_cpu_detect_features_v1();
   CHECK((feats & ACS_FEAT_SSE2) != 0);
   // SSE4.1 是 amd64 普及但非恒有; 记录当前实测供一致性
   printf("CPU-003 detected: SSE2=%d SSE4_1=%d AVX=%d AVX2=%d FMA=%d AVX512F=%d\n",
@@ -55,7 +55,7 @@ int main() {
   // 4) 伪造 XCR0 场景: AVX 系必须 OSXSAVE 保存状态 (逻辑验证, 非注入)
   //    实测 xcr0 位: AVX2 置位即 OS 保存 XMM|YMM (探测已核验)
   // 5) affinity: 可用 CPU 数 > 0 且 ≤ 机器核数 (本机 2)
-  uint32_t aff = astrocs_cpu_affinity_count_v1();
+  uint32_t aff = acsd_cpu_affinity_count_v1();
   CHECK(aff >= 1);
   CHECK(aff <= 64);
   printf("CPU-003 affinity_count=%u\n", aff);

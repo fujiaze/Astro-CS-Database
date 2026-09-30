@@ -3,7 +3,7 @@
 > 任务：`IMPL-P1-CAL-001`（write_scope = `lib/algorithms/calibration/`, `eng/tests/unit/p1_cal/`）。
 > 状态：实现完成，**未接线 Phase session**（`lib/phase1/`、`lib/phase1_session/` 未改）。
 > 生产入口：`lib/algorithms/calibration/src/calibration_covariance.cpp`；公共头：
-> `lib/algorithms/calibration/include/astrocs/calibration/calibration_covariance.h`。
+> `lib/algorithms/calibration/include/acsd/calibration/calibration_covariance.h`。
 
 ## 1. 权威锚（冻结，逐条符合）
 
@@ -51,4 +51,4 @@
 
 - `DI-03` 共享低秩/相关核数据面实例化 = OPEN（owner 含 IMPL-P1-CAL-001）：本实现不冻结秩上限/核函数形式；
 - `OI-02`（同 master 折叠 vs DESIGN §4.2）/ `OI-03`（SCI-CAL-001 §9a 取代）只登记，归 W4/负责人；
-- 故障注入钩子 `ASTROCS_V6_CAL_FAULT` 仅为测试用；未设置时行为严格正确。
+- 故障注入钩子 `ACSD_V6_CAL_FAULT` 仅为测试用；未设置时行为严格正确。

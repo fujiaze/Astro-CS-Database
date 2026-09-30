@@ -5,8 +5,8 @@
  * FZ-BUNIT-SEMANTICS + FZ-P3-BUNIT-QUADRATIC + ALG-P3-008 §7.4 provenance 最小集。
  * 本模块不接线任何 Phase session（任务正文要求"不接线"）。
  */
-#ifndef ASTROCS_V6_AIO_PRODUCT_IO_H
-#define ASTROCS_V6_AIO_PRODUCT_IO_H
+#ifndef ACSD_V6_AIO_PRODUCT_IO_H
+#define ACSD_V6_AIO_PRODUCT_IO_H
 
 #include <cstdint>
 #include <string>
@@ -18,7 +18,7 @@
 #include "astro/aio/provenance.h"
 #include "astro/aio/validation.h"
 
-namespace astrocs {
+namespace acsd {
 namespace aio {
 
 // 一层 HDU：规格 + 原始数据（big-endian 由写出器负责？否：调用方提供已按
@@ -43,6 +43,6 @@ ValidationReport validate_product_record(const Provenance& prov,
                                          const HipsProperties& props);
 
 }  // namespace aio
-}  // namespace astrocs
+}  // namespace acsd
 
-#endif  // ASTROCS_V6_AIO_PRODUCT_IO_H
+#endif  // ACSD_V6_AIO_PRODUCT_IO_H

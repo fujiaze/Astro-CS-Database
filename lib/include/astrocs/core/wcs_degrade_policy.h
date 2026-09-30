@@ -25,14 +25,14 @@
 //     iter_trans order 3→2→1 回退，全部保持原样；
 //   · 阶梯默认第 0 级 = 生产现行参数（零行为变化），只有失败后才进入更宽的第 1 级。
 // ============================================================================
-#ifndef ASTROCS_CORE_WCS_DEGRADE_POLICY_H
-#define ASTROCS_CORE_WCS_DEGRADE_POLICY_H
+#ifndef ACSD_CORE_WCS_DEGRADE_POLICY_H
+#define ACSD_CORE_WCS_DEGRADE_POLICY_H
 
 #include <cmath>
 #include <string>
 #include <vector>
 
-namespace astrocs {
+namespace acsd {
 namespace core {
 
 // ── 稳健化阶梯：一级 = 一次求解尝试的采集广度。数值全部是**采集面**参数，
@@ -91,7 +91,7 @@ struct WcsSolveEvidence {
 // **刻意不写 degraded_reason**：docs/detail/LOG_AND_ERROR_SYSTEM.md:209 与
 // docs/detail/PHASE1_DETAILED_DESIGN.md:73 明文「帧级失败不是降级, 不写
 // degraded_reason」；本节点对未解出帧**从不**编造替代 WCS（改变科学语义的降级
-// 不是降级 ⇒ docs/ASTROCS_DESIGN.md:563-564），故它是帧级失败而非降级。
+// 不是降级 ⇒ docs/ACSD_DESIGN.md:563-564），故它是帧级失败而非降级。
 // 「不阻塞运行」是**节点行为**（continue，不 return fail），由 status 之外的
 // 节点返回值承载, 不靠 degraded_reason 冒充。
 struct WcsFrameVerdict {
@@ -178,6 +178,6 @@ inline WcsFrameVerdict WcsMakeVerdict(bool solved, const WcsSolveEvidence& ev,
 }
 
 }  // namespace core
-}  // namespace astrocs
+}  // namespace acsd
 
-#endif  // ASTROCS_CORE_WCS_DEGRADE_POLICY_H
+#endif  // ACSD_CORE_WCS_DEGRADE_POLICY_H

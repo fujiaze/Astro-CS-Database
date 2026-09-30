@@ -1,6 +1,6 @@
-# 模块 astrocs.phase1.calibration
+# 模块 acsd.phase1.calibration
 
-> 上游：docs/ASTROCS_DESIGN.md §8.5（模块与 ABI）
+> 上游：docs/ACSD_DESIGN.md §8.5（模块与 ABI）
 > 科学正本：docs/science/CALIBRATION.md（SCI-CAL-001）、docs/science/NOISE_MODEL.md（噪声模型与方差传播）、
 > docs/science/algorithms/CALIBRATION_ALGORITHMS.md（ALG-CAL-001..006）
 > 数据正本：docs/science/DATA_SEMANTICS.md §9（DATA-P1-CAL）
@@ -17,11 +17,11 @@ dark_opt 双分支）——生产源 lib/algorithms/calibration/src/。
 分组匹配（orchestrator 层）；`K=t_light/t_dark` 的计算（调用方职责）；天光背景
 扣除（Phase2）与宇宙线剔除（Phase2 排异）。
 
-cosmetic 域的合同已独立冻结为 astrocs.p1.cosmetic（`ALG-COS-001..005` =
+cosmetic 域的合同已独立冻结为 acsd.p1.cosmetic（`ALG-COS-001..005` =
 docs/science/algorithms/COSMETIC_ALGORITHMS.md，`DATA-P1-COS` =
 DATA_SEMANTICS §10，`API-COS-001` = PUBLIC_API.md），与本页 P1-CAL 合同共享同一
 编译目标与头文件；本页只保留 P1-CAL 视角，cosmetic 域见
-registry/astrocs.phase1.cosmetic.md。
+registry/acsd.phase1.cosmetic.md。
 
 ## 输入输出端口、DATA、单位、坐标、invalid
 
@@ -69,15 +69,15 @@ create→validate→run→inspect→destroy。
 
 ### 源文件
 
-`lib/algorithms/calibration/{include,src}/`（CMake 目标 `astrocs_calibration`：
+`lib/algorithms/calibration/{include,src}/`（CMake 目标 `acsd_calibration`：
 `calibrator.cpp` / `master_generator.cpp` / `cosmetic_corrector.cpp` / `ac_api.cpp`）。
 未挂接 CMake 的源：`dark_optimizer.cpp`、`photometry_apply.cpp`；双实现通道
 `cpp/cosmetic_corrector.cpp`（`cc_*`）。
 
 ## Registry descriptor 与配置 schema
 
-module_id=`astrocs.phase1.calibration`; execution_class=`cpu_heavy`;
-parallel_ok=True; 目标交付形态 astrocs_p1_calibration.dll。配置 = phase config JSON
+module_id=`acsd.phase1.calibration`; execution_class=`cpu_heavy`;
+parallel_ok=True; 目标交付形态 acsd_p1_calibration.dll。配置 = phase config JSON
 （签名与默认值见 docs/engineering/PHASE1_API_V1.md），字段面：
 
 | 字段 | 默认 | 单位 | 说明 |

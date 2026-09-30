@@ -1,5 +1,5 @@
-#ifndef ASTROCS_CALIBRATION_V6_CALIBRATION_COVARIANCE_H
-#define ASTROCS_CALIBRATION_V6_CALIBRATION_COVARIANCE_H
+#ifndef ACSD_CALIBRATION_V6_CALIBRATION_COVARIANCE_H
+#define ACSD_CALIBRATION_V6_CALIBRATION_COVARIANCE_H
 
 /* ============================================================================
  * ACSD V6 Phase1 calibration covariance — ALG-P1-CAL-COV-001
@@ -35,13 +35,13 @@
 #include <string>
 #include <vector>
 
-namespace astrocs {
+namespace acsd {
 namespace calibration {
 namespace v6 {
 
 /* 合同/任务标识（只读；不改变 module.yaml 的 legacy 标识）。 */
 const char* calibration_covariance_contract_id();  /* "ALG-P1-CAL-COV-001" */
-const char* fault_injection_env_var();             /* "ASTROCS_V6_CAL_FAULT" (test-only) */
+const char* fault_injection_env_var();             /* "ACSD_V6_CAL_FAULT" (test-only) */
 
 /* ────────────────────────────── 枚举与语义 ────────────────────────────── */
 
@@ -299,6 +299,6 @@ bool validate_covariance_record(const CovarianceRecord& rec, std::string* error)
 
 }  // namespace v6
 }  // namespace calibration
-}  // namespace astrocs
+}  // namespace acsd
 
-#endif /* ASTROCS_CALIBRATION_V6_CALIBRATION_COVARIANCE_H */
+#endif /* ACSD_CALIBRATION_V6_CALIBRATION_COVARIANCE_H */

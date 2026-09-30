@@ -1,9 +1,9 @@
 // AIO-001 · 唯一 AIO C ABI v1 与内容哈希复核 · units/negative 测试组
 //
-// 合同锚: lib/include/astrocs/io/aio_abi_v1.h + eng/contracts/data/aio_abi_contract_v1.json。
+// 合同锚: lib/include/acsd/io/aio_abi_v1.h + eng/contracts/data/aio_abi_contract_v1.json。
 // 独立 oracle: FIPS 180-4 标准向量 (python hashlib 预生成, 非被测代码生成)
-// + astrocs::crypto::Sha256 (lib/algorithms/shared 单一实现, 与 AIO UPM 同源) 交叉对拍。
-// 状态码对齐: 与 acs_fio_status (fits_stream_v1.h) 0..13 全域编译期交叉断言。
+// + acsd::crypto::Sha256 (lib/algorithms/shared 单一实现, 与 AIO UPM 同源) 交叉对拍。
+// 状态码对齐: 与 acsd_fio_status (fits_stream_v1.h) 0..13 全域编译期交叉断言。
 //
 // 组:
 //   units    U1 ABI 握手 / U2 NIST 向量+双实现对拍 / U3 复核正向 /
@@ -12,9 +12,9 @@
 //            N4 文件复核 (不存在/截断/篡改/大小核对) / N5 文件边界
 #include "aio_abi_test_main.hpp"
 
-#include "astrocs/io/aio_abi_v1.h"
+#include "acsd/io/aio_abi_v1.h"
 #include "crypto/sha256.h"
-#include "astrocs/io/fits_stream_v1.h"
+#include "acsd/io/fits_stream_v1.h"
 
 #include <sys/stat.h>
 #include <sys/types.h>
@@ -23,12 +23,12 @@
 // 用 CRT _mktemp_s 生成唯一名 + _mkdir 建目录（POSIX 侧保持 mkdtemp 语义）。
 #include <direct.h>
 #include <io.h>
-static inline char* acs_mkdtemp(char* tmpl) {
+static inline char* acsd_mkdtemp(char* tmpl) {
     if (_mktemp_s(tmpl, std::strlen(tmpl) + 1) != 0) return nullptr;
     if (_mkdir(tmpl) != 0) return nullptr;
     return tmpl;
 }
-#define mkdtemp(p) acs_mkdtemp(p)
+#define mkdtemp(p) acsd_mkdtemp(p)
 #else
 #include <unistd.h>
 #endif
@@ -45,10 +45,10 @@ static inline char* acs_mkdtemp(char* tmpl) {
 
 namespace {
 
-using astrocs::crypto::Sha256;
+using acsd::crypto::Sha256;
 using namespace ::aio_abi_test;
 
-// AIO_* (enum aio_status) 与 ACS_FIO_* (enum acs_fio_status) 在 C++ 下是两个
+// AIO_* (enum aio_status) 与 ACS_FIO_* (enum acsd_fio_status) 在 C++ 下是两个
 // **互不相同的枚举类型**。直接写 `AIO_OK == ACS_FIO_OK` 既是跨枚举类型比较
 // (-Wenum-compare), 在类型语义上也不成立 (不同枚举类型之间不可比)。
 // 本测试要断言的是两家族**数值 (ABI 值域)** 逐项对齐, 故显式取各自底层整型后
@@ -191,7 +191,7 @@ int test_units(CheckState& cs) {
 
     // U3: 复核正向 (声明=重算值)
     {
-        const char* content = "astrocs-aio-content-hash-review";
+        const char* content = "acsd-aio-content-hash-review";
         char hex[AIO_DIGEST_HEX_LEN + 1] = {0};
         AIO_CHECK(cs, aio_content_hash_buffer_v1(content, std::strlen(content), hex) == AIO_OK,
                   "u3_hash_rc");

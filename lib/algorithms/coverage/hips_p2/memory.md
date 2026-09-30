@@ -2,7 +2,7 @@
 
 ## 模块目标（P2-HIPS-DOC，2026-09-09）
 
-冻结 `astrocs.p2.hips_writer`（MOD-astrocs-phase2-hips-writer）合同三件套：
+冻结 `acsd.p2.hips_writer`（MOD-acsd-phase2-hips-writer）合同三件套：
 Phase2 马赛克写出编排——把多帧 UPM 校准 + 排异 + 加权积分结果写为标准
 IVOA HiPS 马赛克（signal + support 两个 Image HiPS），登记输入哈希链、
 ivar 权重门、四概念分离（signal/variance/support/mask）、ACR/CPU 路由、
@@ -12,13 +12,13 @@ wave W1，owner SA-P2-I23，lock-P2-HIPS），不是实现/迁移/测试任务�
 ## 落位决策（实测依据，防后续误改）
 
 - 矩阵 legacy_paths="lib/algorithms/coverage write sources;lib/infrastructure/aio/healpix_db"；实测唯一
-  生产源 = lib/algorithms/coverage/tools/stage2.cpp（1762 行，astrocs-stage2 工具，
+  生产源 = lib/algorithms/coverage/tools/stage2.cpp（1762 行，acsd-stage2 工具，
   lib/algorithms/coverage/CMakeLists.txt:103-110）+ 共用 writer 库
   lib/infrastructure/aio/src/hips/aio_hips_writer.cpp（P1-HIPS 冻结域）。
-- lib/algorithms/coverage/ 三件套已被 P2-COV（astrocs.p2.coverage）占用（README r1，
+- lib/algorithms/coverage/ 三件套已被 P2-COV（acsd.p2.coverage）占用（README r1，
   2026-09-07），一目录一套合同不可覆盖；lib/algorithms/drizzle/hips/ 是 P1-HIPS 迁移目标。
   故按 P1-HIPS 先例新建迁移目标目录 **lib/algorithms/coverage/hips_p2/**（本目录，仅合同
-  三件套，无源码；astrocs_p2_hips_writer.dll 落码归 P2-HIPS-IMPL）。
+  三件套，无源码；acsd_p2_hips_writer.dll 落码归 P2-HIPS-IMPL）。
 - lib/infrastructure/aio/healpix_db 侧生产参与仅 astro_sphere_sink.cpp（P1 写通道），
   引用不重归属。
 - ID 方案：ALG-P2-HIPS-001..004（新文档 docs/science/algorithms/
@@ -26,8 +26,8 @@ wave W1，owner SA-P2-I23，lock-P2-HIPS），不是实现/迁移/测试任务�
   API-P2-HIPS-001（PUBLIC_API 新节）；TEST-P2-HIPS-001（登记面=ALG 文档 §11.4 设计冻结 VERIFIED，COV 先例；
   可执行测试 MISSING 归 P2-HIPS-TEST）；
   SRC-PP2HIPS-001（stage2.cpp 编排 + stage2_common.h config，grep 实测）。
-  追溯行沿用既有行 ID MOD-astrocs-phase2-write（module_anchor 指
-  registry 页 astrocs.phase2.write.md），不新增行、不改行序。
+  追溯行沿用既有行 ID MOD-acsd-phase2-write（module_anchor 指
+  registry 页 acsd.phase2.write.md），不新增行、不改行序。
 
 ## 关键源码事实（全部 grep/sed 实测，2026-09-09）
 
@@ -41,9 +41,9 @@ wave W1，owner SA-P2-I23，lock-P2-HIPS），不是实现/迁移/测试任务�
   缺 ivar **恒** rc=7 显式科学错误（原「true 才降级 support 标红」的降级分支已删除）；
   唯一自动降级面 = 帧级 SNR 逆方差链。
 - product_begin :592-597：flags 仅 SIGNAL|SUPPORT（:594）、creator
-  ivo://astrocs/phase2、title "Astro Celestial Sphere Database（ACSD） Phase2 Mosaic"、filter=infos[0] :531。
+  ivo://acsd/phase2、title "Astro Celestial Sphere Database（ACSD） Phase2 Mosaic"、filter=infos[0] :531。
 - tile 循环 :659-1655：覆盖帧 probe :663-671；rejection 解析
-  （wbpp group-level :641-659 / astrocs_adaptive tile 级 :674-696）；
+  （wbpp group-level :641-659 / acsd_adaptive tile 级 :674-696）；
   ACR 路由 :733-776（p2_acr_block_eligible 调用 :744-746，仅显式 sigma 且 !large_scale）；p2_block_plan micro-chunk :778-817（safety_factor :784）。
 - 逐像素：p2_collect_candidate_stack :1084-1098/:1330-1353（source_indices
   稳定映射）；权重 mode2=ivar/mode0=support×snr²（:1136）/mode1=等权（:1139），
@@ -67,10 +67,10 @@ wave W1，owner SA-P2-I23，lock-P2-HIPS），不是实现/迁移/测试任务�
 - 交付：lib/algorithms/coverage/hips_p2/ 三件套（本目录）；docs/science/algorithms/
   PHASE2_MOSAIC_WRITE.md（ALG-P2-HIPS-001..004 + DISP-P2HIPS-001..004）；
   DATA_SEMANTICS §20 DATA-P2-HIPS；PUBLIC_API API-P2-HIPS-001 节；
-  registry 页 astrocs.phase2.write.md 重写；INDEX.yaml 新增 4 ID 条目
+  registry 页 acsd.phase2.write.md 重写；INDEX.yaml 新增 4 ID 条目
   （ALG-P2-HIPS-001..004/DATA-P2-HIPS/API-P2-HIPS-001，上游=共享 SCI，
   下游互链）；DOCUMENT_INDEX.yaml 注册；TRACEABILITY_MATRIX json/csv
-  MOD-astrocs-phase2-write 行转 VERIFIED；selfcheck.py（run/local，
+  MOD-acsd-phase2-write 行转 VERIFIED；selfcheck.py（run/local，
   不提交）。SCI 层零改动；根科学公式零改动；生产源 diff=0。
 - known_defects：DISP-P2HIPS-001（无 variance/ivar 输出产品）、002
   （hash 链未入 properties provenance）、003（直写无 staging，IO-003
@@ -84,13 +84,13 @@ wave W1，owner SA-P2-I23，lock-P2-HIPS），不是实现/迁移/测试任务�
 
 - 控制包任务 AIO-002 在 lib/algorithms/drizzle/hips 模块事务面（C ABI adapter execute/
   write_product）交付 staging→校验→fsync→原子 promote + staging RAII
-  （lib/algorithms/drizzle/hips/include/astrocs/hips/publish.h v1 + lib/algorithms/drizzle/hips/src/aio_publish.cpp
+  （lib/algorithms/drizzle/hips/include/acsd/hips/publish.h v1 + lib/algorithms/drizzle/hips/src/aio_publish.cpp
   唯一实现；验证面 eng/tests/unit/p1_hips/publish_atomic_test.c，
   TEST-P1-HIPS-PUBLISH-001）。生产 writer（aio_hips_writer.cpp）与 P2 写编排
   生产源（lib/algorithms/coverage/tools/stage2.cpp）零改动——两者均在 AIO-002 写域之外。
 - 对 DISP-P2HIPS-003（stage2 直写 out_hips :592 无 staging）的影响：整改
   语义参考面已就绪（非空目标拒绝/staging 自愈/ENOSPC discard 收敛），接线
-  仍归 P2-HIPS-IMPL（astrocs_p2_hips_writer.dll 落码时消费同构原语，或
+  仍归 P2-HIPS-IMPL（acsd_p2_hips_writer.dll 落码时消费同构原语，或
   P2-XX-INT 编排层经 IO-003 发布合同承接）。本登记不改 README/module.yaml
   合同面（DISP-P2HIPS-003 登记状态不变）。
 - 写域纪律：本任务未触碰 lib/algorithms/coverage/**（域外生产源）。
