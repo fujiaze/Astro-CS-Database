@@ -9848,7 +9848,8 @@ Result<void> p2_op_upm_fit(const Json& doc, Json* man) {
   if (upm_cfg.contains("zero_anchor_weight"))
     uc.zero_anchor_weight = upm_cfg["zero_anchor_weight"].get<double>();
   // P2a 显式可配置（缺省 = 上面的生产值；便于对照/回归与
-  // 负责人按 c-delta-ruling 裁决切换）。
+  // 负责人按 additive_mode 裁决切换；原注所引 `c-delta-ruling` 指向已退役的
+  // `reports/`，该目录两读法皆无 —— 裁决现以 oracle 实测为准，见本文件 P2a-1 段）。
   if (upm_cfg.contains("tolerance"))
     uc.tolerance = upm_cfg["tolerance"].get<double>();
   if (upm_cfg.contains("tolerance_relative"))
@@ -10501,10 +10502,22 @@ Result<void> p2_op_upm_apply(const Json& doc, Json* man) {
   }
 
   // ── P2a-1：单次加性扣除（去掉有害的双重扣除）────────────────
-  // 生产原为 corrected = (raw − C_k) − δ_k，两次逐帧加性扣除。实测帧间失配
-  //   raw−C = 0.131% / raw−δ = 2.799% / raw−C−δ = 13.974%（比不校正的
-  //   13.454% 还差）——C 已把每帧对齐到公共面，δ 是在已对齐场上的第二次
-  //   扣除（c-delta-ruling §2）。
+  // 生产原为 corrected = (raw − C_k) − δ_k，两次逐帧加性扣除。C 已把每帧对齐到
+  // 公共面，δ 是在已对齐场上的第二次扣除。
+  //
+  // 实测帧间失配（百分比，组合失配/未归一化场景、λs=0、>=2 帧 control）：
+  //   raw 6.4904% / raw−δ 5.0762% / **raw−C 0.0130%** / raw−C−δ 1.4013%
+  // 出处：`eng/tests/validation/release02/fix_p2a_seam_oracle/oracle_out.txt`
+  //   （两读法确认在版本库内；计算脚本 `p2a_oracle.cpp`）。
+  // **⇒ 方向性结论不变：单扣 C 最优（0.0130%），双重扣除最差。**
+  //
+  // ⚠ 订正记录（2026-09-30）：本注释原写「raw−C 0.131% / raw−δ 2.799% /
+  // raw−C−δ 13.974% / 不校正 13.454%」并引 `c-delta-ruling §2` ——
+  //   该出处指向 `reports/RELEASE-02/c-delta-ruling.md`，而 **`reports/` 目录
+  //   两读法皆无**（已随控制包清理退役），且数字与在库 oracle 输出逐项不符
+  //   （raw 差 2.07×，raw−C 与 raw−C−δ 各差约 10×）。现按在库 oracle 输出订正。
+  //   **该 oracle 未被任何门登记执行**（validation 层 160 件在 424 个门中零登记），
+  //   故上述数字目前无自动回归保护。
   // 配置 doc["seam"]["additive_mode"] ∈ {"delta"(默认), "c", "both"}：
   //   delta = raw − δ_k         （**默认**；多退少补到公共天光面，保留 B_ref）
   //   c     = raw − C_k         （全减，含 B_ref ⇒ 背景被剪掉；仅对照）
@@ -10514,8 +10527,9 @@ Result<void> p2_op_upm_apply(const Json& doc, Json* man) {
   //   `raw−C` 把整张背景减掉后各帧都 ≈0，两帧相减自然 ≈0 ⇒ **接缝小是因为背景没了，
   //   不是因为对齐做好了**。用「接缝」当判据必然收敛到「全减光」。
   //   负责人定案：`calibrated_k = raw_k − δ_k`，**保留公共天光面 B_ref**。
-  //   实测（旧判据口径）：raw 13.454% / raw−δ 2.799% / raw−C 0.131%；
-  //   `raw−δ` 的 2.799% 是 **δ 拟合不足**（工程问题），不是概念错。
+  //   实测（组合失配/未归一化场景，oracle 出处见上方 P2a-1 段）：
+  //   raw 6.4904% / raw−δ 5.0762% / raw−C **0.0130%**；
+  //   `raw−δ` 的 5.0762% 是 **δ 拟合不足**（工程问题），不是概念错。
   const Json seam_cfg = (doc.contains("seam") && doc["seam"].is_object())
                             ? doc["seam"] : Json::object();
   std::string additive_mode =
@@ -10920,8 +10934,9 @@ Result<void> p2_op_upm_apply(const Json& doc, Json* man) {
                        // CONFORM-FIX-B-012: applied(实扣) 与 loaded(仅载入) 分离
                        {"sky_plane_applied", sky_applied},
                        {"sky_plane_loaded", sky_loaded},
-                       // P2a-1：单次加性扣除（默认 raw−C；双重扣除已
-                       // 证有害：13.974% vs 0.131%，c-delta-ruling §2）。
+                       // P2a-1：单次加性扣除（默认 raw−C；双重扣除已证有害：
+                       // oracle 实测 raw−C−δ 1.4013% vs raw−C 0.0130%，
+                       // 出处 fix_p2a_seam_oracle/oracle_out.txt）。
                        {"additive_mode_requested", additive_mode},
                        {"additive_mode_effective", additive_mode_effective},
                        {"additive_combination", combo},
