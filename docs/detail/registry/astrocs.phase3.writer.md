@@ -89,7 +89,7 @@
   字节与 worker 数无关（1..N bitwise）。
 - 并行仅上游采样（p3_session.cpp:247-253 std::thread 池，worker
   数=budget.max_workers，:209 注释禁 hardware_concurrency；
-  本域源码 0 处 #pragma omp——aio_fits.cpp:1154 唯一 omp 循环属
+  本域源码 0 处 #pragma omp——lib/infrastructure/aio/src/aio_fits.cpp:1154 唯一 omp 循环属
   AIO 域非本域）。ThreadLease/取消检查点无接线（迁移整改点）。
 - 确定性: 固定顺序输出（fits_write_pix 定序 + sha256/fdatasum
   纯函数）；取消点=行（kernel cancelled_at_row h:52；session 层

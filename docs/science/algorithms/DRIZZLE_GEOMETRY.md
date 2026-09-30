@@ -5,7 +5,7 @@
 > 本文档由源码逐函数核对后登记。实现唯一生产源 =
 > `lib/algorithms/drizzle/healpix_drizzle/`（CMake 目标 `astrocs_drizzle`，
 > CMakeLists.txt:701-711；C ABI 导出 `lib/algorithms/drizzle/healpix_drizzle/
-> hp_drizzle_api.h:58,78,86,102,131,187`）；迁移目标目录 `lib/algorithms/drizzle/`。科学定义见
+> lib/algorithms/drizzle/healpix_drizzle/hp_drizzle_api.h:58,78,86,102,131,187`）；迁移目标目录 `lib/algorithms/drizzle/`。科学定义见
 > `docs/science/DRIZZLE.md`（SCI-DRZ-001，FROZEN，集合 SCI-DRZ-001/014/015/016）。
 > 本文档只登记离散算法与实现事实；源码与 SCI 的差异全部登记于 §10（DISP-DRZ-*）。
 > **权威订正原则** = `ENGINEERING_SPEC.md` §3「科学正确性优先」：独立证据（外部标准 /
@@ -104,7 +104,7 @@
   lib/infrastructure/aio/src/hips/aio_hips_writer.cpp:566-631）——与
   drizzle_engine.cpp:2-3 锚注释一致。
 - 单位/dtype: 累加器 Scalar = float（precision_mode=0）或 double（=1）
-  显式模板双实例（drizzle_engine.cpp:2177-2184）；a_jp/面积几何全程
+  显式模板双实例（lib/algorithms/drizzle/healpix_drizzle/drizzle_engine.cpp:2177-2184）；a_jp/面积几何全程
   double，FP32 仅发生在累加存储层（逐项舍入，容差门见 §9）。
 
 ## 2 几何管线（drop footprint → 候选 → 交叠面积）
@@ -198,7 +198,7 @@
 
 | 条件 | 行为 | 锚 |
 |---|---|---|
-| pixfrac ≤0 或 >1（引擎层） | 拒绝（不夹逼） | drizzle_engine.cpp:1570-1577 |
+| pixfrac ≤0 或 >1（引擎层） | 拒绝（不夹逼） | lib/algorithms/drizzle/healpix_drizzle/drizzle_engine.cpp:1570-1577 |
 | pixfrac==0.0（文件通道 API 层） | 放行后进引擎再拒（双轨） | api.cpp:191（DISP-DRZ-003） |
 | RING（nested=0） | 硬拒绝 | :1578-1582；shim throw |
 | channels≠1 多通道 | 拒绝 | :1583-1591 |
@@ -377,7 +377,7 @@
 |---|---|---|---|
 | DISP-DRZ-001 | hp_drizzle_api.h:93 注释 sip_order "0..4" | hp_drizzle_api.cpp:98-103 校验 [0,5]（6×6 系数组支持 5 阶下标） | hp_drizzle_api.h:93 vs hp_drizzle_api.cpp:98-103 |
 | DISP-DRZ-002 | 源码注释 `spherical_overlap.h:15,77` / `spherical_overlap.cpp:11` 写 "Girard 定理" | 面积实现 = S-H 球面裁剪 + Van Oosterom & Strackee 扇形三角剖分，无 Girard 实现；文档侧命名已与实现一致，**禁用** "Girard 定理" 命名 | spherical_overlap.h:15,77; spherical_overlap.cpp:11 vs spherical_overlap.cpp:186-239 |
-| DISP-DRZ-003 | pixfrac∈(0,1] 单一边界 | 文件通道 API 层接受 0.0（<0 才拒），引擎层拒绝——两层双轨 | api.cpp:191 vs drizzle_engine.cpp:1570 |
+| DISP-DRZ-003 | pixfrac∈(0,1] 单一边界 | 文件通道 API 层接受 0.0（<0 才拒），引擎层拒绝——两层双轨 | api.cpp:191 vs lib/algorithms/drizzle/healpix_drizzle/drizzle_engine.cpp:1570 |
 | DISP-DRZ-004 | 值像素 NaN 按 `rule_id NAN-SAMPLE-MASK-COVERAGE-NAN` 处置 = 样本级掩膜 + 重归一 + 覆盖级 NaN + 强制计数（`DRIZZLE.md:116`）：不合格样本剔除并重归一、仅零合格样本输出 `NaN ∧ support≤0`、必须暴露 `n_rejected_nonfinite` | **约束**：主循环按原因分类计数（值/方差/权重三分类，:2000-2027）并聚合暴露 `DrizzleStats::n_rejected_nonfinite*`（:2203-2208）；**禁用**把非有限样本传播进 `F_p`/分母/方差——会污染整像素信号与几何支撑（负例判据：零合格样本必须输出 `NaN ∧ support≤0` 且分类计数非零） | DRIZZLE.md:116 vs drizzle_engine.cpp:2000-2027 / :2203-2208 |
 | DISP-DRZ-005 | `max_angle < 1e-3` 切平面分支是**实际执行路径，必须保留**：微小 drop（角跨度 < 1e-3 rad ≈ 206″）用切平面面积 | 三处活分支：:1099 `g.drop_area` 微小 drop 用切平面面积、:1337-1339 nb=4 重叠 `<1e-3` 用 `planar_polygon_area_n`（否则球面 `spherical_polygon_area_n`）、:1380-1383 三角形扇重叠同策略（与 g.drop_area 表示一致，避免 weight 偏差） | spherical_overlap.cpp:1099,1337-1339,1380-1383（注释 :1074,:1913-1914）；θ=1e-3 时切平面偏差 ≈ −θ_max²/2 = −5.0e-7（恒负、单向下偏；θ_max 按 drop 最远顶点角距约定；旧注 "<4e-8" 缺符号且偏小 12.5 倍，撤换），球面 double 相消噪声 ~1e-4~5e-5 |
 | DISP-DRZ-006 | TileLeafAccumulatorT release 仅 3 字段（drizzle_engine.h:62-63 注释） | 实际 4 字段（sumVarNum 为正式产品） | drizzle_engine.h:62-63 vs 64-71 |

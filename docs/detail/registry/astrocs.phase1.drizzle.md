@@ -33,14 +33,14 @@ master/校准/坏点（P1-CAL/P1-COS）；Phase2 统计合并；线程授予
 > 其对齐属迁移目标（未落地）。
 
 invalid：现行实现为
-值 NaN 经 `F_p` **传播、不掩膜**（`docs/science/DRIZZLE.md:116`；`drizzle_engine.cpp:1899-1902`；
+值 NaN 经 `F_p` **传播、不掩膜**（`docs/science/DRIZZLE.md:116`；`lib/algorithms/drizzle/healpix_drizzle/drizzle_engine.cpp:1899-1902`；
 回归 `p1drz_tests_core.cpp:518-537`）；pixfrac∈(0,1]
 引擎层严格拒绝；仅 NESTED；covered_area≤0 → variance 记 NaN
 （finalize 层合法输出）。
 
 ## 公共 header、核心 symbol 与生命周期
 
-现状 C ABI（hp_drizzle_api.h:58,78,86,102,131,187）：
+现状 C ABI（lib/algorithms/drizzle/healpix_drizzle/hp_drizzle_api.h:58,78,86,102,131,187）：
 hp_drizzle_fits_to_ahpx / hp_drizzle_run / hp_drizzle_run_hips /
 hp_drizzle_reverse_run / hp_drizzle_reverse_capability /
 hp_drizzle_reverse_version（API-DRZ-001，PUBLIC_API.md）。编排级

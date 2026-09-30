@@ -24,7 +24,7 @@ lease，CMakeLists.txt:379-382；ThreadLease 接线为迁移目标（未落地�
 
 ## Public API
 
-hp_drizzle_api 六导出（extern "C"，hp_drizzle_api.h:58,78,86,102,
+hp_drizzle_api 六导出（extern "C"，lib/algorithms/drizzle/healpix_drizzle/hp_drizzle_api.h:58,78,86,102,
 131,187；合同 API-DRZ-001，docs/engineering/PUBLIC_API.md）；球面
 几何接口（spherical_overlap.h: compute_overlap_area_g_ctx_cached、
 radec_to_vec、HP_CIRCUMRADIUS_FACTOR=1.25）。
@@ -55,7 +55,7 @@ geometry cache：per-thread LRU 8192 + per-run generation 原子清空
 
 几何退化/无 WCS/非法参数 → 拒绝（文件通道正值 1..12（+12=C 边界内部异常）；帧通道正负
 混用 -1..-8/-9/-12/-13，无集中枚举——登记缺陷）；**值像素 NaN/Inf 经 `F_p=Σx_j·w_jp` 直接传播、drizzle 层不掩膜**
-（实现 `drizzle_engine.cpp:1899-1902` 对值像素直接传播；
+（实现 `lib/algorithms/drizzle/healpix_drizzle/drizzle_engine.cpp:1899-1902` 对值像素直接传播；
 科学锚 `docs/science/DRIZZLE.md:116`，回归
 finalize 层，covered_area≤0 → variance NaN）。
 

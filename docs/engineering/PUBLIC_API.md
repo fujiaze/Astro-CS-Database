@@ -274,7 +274,7 @@
   帧/tile 粒度为编排层合同）。
 - stderr 约定：全部诊断/进度日志直写 stderr（[hp_drizzle_api]/
   [drizzle_engine]/[sink] 前缀），不污染 stdout；G4 trace 由 env
-  ASTROCS_DRIZZLE_TRACE 控制（drizzle_engine.cpp:39-330）。
+  ASTROCS_DRIZZLE_TRACE 控制（lib/algorithms/drizzle/healpix_drizzle/drizzle_engine.cpp:39-330）。
 - 接受面与诊断面边界：错误码值像素 NaN 经 `F_p` 传播、不掩膜
   （`docs/science/DRIZZLE.md:116`；实现
   `lib/algorithms/drizzle/healpix_drizzle/drizzle_engine.cpp:1899-1902`；回归
@@ -770,7 +770,7 @@ sdet_detect_debug/sdet_free_debug_maps 四条 CC 路径符号不在导出面内�
 |---|---|---|
 | `sdet_create` | star_detector.h:31 / sdet_api.cpp:990 | handle 创建；params=NULL→默认（structureLayers=5/hotPixelFilterRadius=1/iterativeClipSigma=9.0/iterativeMaxRounds=5/medianFilterDetail=1/maxStars=2000/fitRadius=6/fwhmClipSigma=3.0/maxAxisRatio=2.0，:977-989）；生产实参 orchestrator.cpp:1593-1612（fitRadius=0=自动半径） |
 | `sdet_destroy` | star_detector.h:32 / sdet_api.cpp:1020 | 唯一释放对 |
-| `sdet_detect_ex` | star_detector.h:38-43 / sdet_api.cpp:2305 | 生产 FP32 入口（uint16→float 转换后 impl<float>；10 数组输出 + extras） |
+| `sdet_detect_ex` | star_detector.h:38-43 / lib/algorithms/star_detection/src/sdet_api.cpp:2305 | 生产 FP32 入口（uint16→float 转换后 impl<float>；10 数组输出 + extras） |
 | `sdet_detect_ex_f64` | star_detector.h:47-52 / sdet_api.cpp:2330 | 生产 FP64 入口（全程 double 不降级，PREC-105；out_flux/out_mag 仍 float32 ABI 协议） |
 | `sdet_free_detect_ex` | star_detector.h:54-56 / sdet_api.cpp:2344 | 10 数组唯一释放（extras 同组；释放单位 = 整组） |
 | `sdet_detect_guided_ex_f64` | star_detector.h:84-93 / sdet_api.cpp:2281 | 星表引导检测权威路径入口（SDetGuidedStats 六计数；n_pred=0 返回 rc=0 + count=0） |
