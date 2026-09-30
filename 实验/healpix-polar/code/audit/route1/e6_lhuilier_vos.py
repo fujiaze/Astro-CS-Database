@@ -22,6 +22,11 @@ import json
 import os
 import math
 import numpy as np
+from pathlib import Path
+
+# 落盘锚点：从脚本自身位置向上定位本单元目录（实验/healpix-polar），
+# 不依赖 dirname 的层数；找不到即抛错，避免静默写到错误位置。
+UNIT = next(p for p in Path(__file__).resolve().parents if p.name == "healpix-polar")
 
 PI = math.pi
 SEED = 20050709
@@ -136,7 +141,7 @@ OUT["hemisphere_domain"] = {
 
 OUT["triangle_cross_check"] = res
 
-with open(os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), "results", "audit", "route1", "e6_lhuilier_vos.json"), "w") as fh:
+with open(os.path.join(UNIT, "results", "audit", "route1", "e6_lhuilier_vos.json"), "w") as fh:
     json.dump(OUT, fh, indent=1)
 
 L = ["E6 VOS x l'Huilier cross-check (seed=%d)" % SEED, ""]
@@ -154,6 +159,6 @@ L.append("[DOMAIN] triangles with side >= pi/2-1e-12: %d/%d (documented explicit
 L.append("[HONEST BOUNDARY] l'Huilier conditioning: arccos cancellation (tiny triangles) and")
 L.append("  tan(s/2) blow-up (near-hemisphere) degrade its relative accuracy; VOS (atan2 form) robust.")
 txt = "\n".join(L)
-with open(os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), "results", "audit", "route1", "e6_lhuilier_vos.txt"), "w") as fh:
+with open(os.path.join(UNIT, "results", "audit", "route1", "e6_lhuilier_vos.txt"), "w") as fh:
     fh.write(txt + "\n")
 print(txt)

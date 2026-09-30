@@ -3,6 +3,12 @@
 固定随机种子：`20260921`（`scia_common.SCIA_SEED`，所有 RNG 由 `scia_common.rng(tag)`
 以 SHA256 派生，跨机器/跨进程可复现）。
 
+## 反例取证件（`redteam/`）
+
+`redteam/rt_gate_attribution.py` 只读 import 本单元的 `scia_calib` / `scia_common` / `scia_sim`，
+检验双边界门对未建模乘性残差「可见但成因失明」以及下包络的失效域；输出只到 stdout，
+**不写 `results/**`**。入口：`python3 实验/photometric-magnitude/code/redteam/rt_gate_attribution.py`。
+
 ## 一键复跑
 
 **公共前置步（先跑物理链自检，再跑本单元）**：

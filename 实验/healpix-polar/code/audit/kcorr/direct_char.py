@@ -12,6 +12,11 @@ import json
 import os
 
 import numpy as np
+from pathlib import Path
+
+# 落盘锚点：从脚本自身位置向上定位本单元目录（实验/healpix-polar），
+# 不依赖 dirname 的层数；找不到即抛错，避免静默写到错误位置。
+UNIT = next(p for p in Path(__file__).resolve().parents if p.name == "healpix-polar")
 
 MAD_C = 1.482602218505602
 NMC = 400000
@@ -35,6 +40,6 @@ for n in (5, 9, 25):
     ))
     print(rows[-1])
 out = dict(group="direct_characterization_iid_gaussian", seed=SEED, nmc=NMC, rows=rows)
-p = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), "results", "audit", "kcorr", "direct_char.json")
+p = os.path.join(UNIT, "results", "audit", "kcorr", "direct_char.json")
 json.dump(out, open(p, "w"), indent=1)
 print("written", p)

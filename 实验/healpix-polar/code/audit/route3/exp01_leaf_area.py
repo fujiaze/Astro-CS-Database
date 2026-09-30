@@ -9,6 +9,11 @@
 import json, sys
 import os
 import numpy as np
+from pathlib import Path
+
+# 落盘锚点：从脚本自身位置向上定位本单元目录（实验/healpix-polar），
+# 不依赖 dirname 的层数；找不到即抛错，避免静默写到错误位置。
+UNIT = next(p for p in Path(__file__).resolve().parents if p.name == "healpix-polar")
 
 SEED = 20260926
 np.random.seed(SEED)
@@ -124,7 +129,7 @@ def main():
                           sum_closure_le_1e12=bool(max(abs(r['sum_res']) for r in out['rows']) <= 1e-12),
                           mean_le_1e12=bool(max(abs(r['mean_res']) for r in out['rows']) <= 1e-12))
     print("VERDICT:", json.dumps(out["verdict"]))
-    with open(os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), "results", "audit", "route3", "exp01_leaf_area.json"), "w") as f:
+    with open(os.path.join(UNIT, "results", "audit", "route3", "exp01_leaf_area.json"), "w") as f:
         json.dump(out, f, indent=1)
 
 if __name__ == "__main__":

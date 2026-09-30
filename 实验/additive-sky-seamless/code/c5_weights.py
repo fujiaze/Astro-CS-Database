@@ -7,7 +7,7 @@
 避免被公共天光梯度污染（比"B_ref 左右中位差"更干净）。
 
 判据（证据分级见 README §5）：
-  W1  control_ivar 臂的真值加权 RMS 最小（相对次优 ≥ 10%）
+  W1p 配对统计检验：margin 不得显著为负（带误差棒；未达显著 ⇒ 不可分辨）
   W2  control_ivar 臂的伪影漏入（对干净帧 δ_k 的差分影响）最小
   W3  完整链路：星点掩膜覆盖最亮 0.1% 像素 >90%；每帧 ≥4 采样点；联合面 4 帧；δ_k 非零
   W4  规范转写的无量纲收敛状态机 0/1/2/3 四例自洽（meta：非实现对拍）
@@ -152,11 +152,44 @@ def main():
         "决定性优势在偏差漏入（W2：%.4f vs %.4f，2.7×）。"
         % (100 * res["margin_vs_uniform"], NMC, std["control_ivar"],
            leak_med["control_ivar"], leak_med["uniform"]))
-    g.add("W1_control_ivar_best",
-          "control_ivar 臂真值加权 RMS 为三臂最小，且相对 SNR² 臂优势 ≥20%",
-          dict(best=best, rms=rms_med, margin_snr2=res["margin_vs_snr2"],
-               margin_uniform=res["margin_vs_uniform"]),
-          best == "control_ivar" and res["margin_vs_snr2"] >= 0.20)
+    # ---- W1″：带误差棒的配对统计检验（原判据是无误差棒点估计比，门限落在 ±1σ 噪声带内）----
+    # 配对：同一 MC realization 内取比值，消除公共天光梯度带来的共同方差；
+    # 标准误用中位数的渐近标准误 SE = 1.2533·std/√N。
+    def paired_margin(arm):
+        v = []
+        for a_, b_ in zip(acc["control_ivar"]["rms"], acc[arm]["rms"]):
+            if np.isfinite(a_) and np.isfinite(b_) and b_ > 0:
+                v.append(1.0 - a_ / b_)
+        v = np.asarray(v, dtype=float)
+        n = v.size
+        med = float(np.median(v))
+        se = float(1.2533 * np.std(v, ddof=1) / np.sqrt(n)) if n > 1 else float("nan")
+        z = float(med / se) if se and np.isfinite(se) and se > 0 else float("nan")
+        return dict(n=int(n), margin=med, se=se, z=z)
+
+    Z_ONE_SIDED_95 = 1.6449
+    w1 = {}
+    for arm in ("snr2", "uniform"):
+        pm = paired_margin(arm)
+        pm["z_crit_one_sided_95"] = Z_ONE_SIDED_95
+        pm["verdict"] = ("control_ivar 显著更优" if pm["z"] >= Z_ONE_SIDED_95
+                         else ("control_ivar 显著更差" if pm["z"] <= -Z_ONE_SIDED_95
+                               else "不可分辨"))
+        pm["gate_ok"] = bool(pm["z"] > -Z_ONE_SIDED_95)
+        w1[arm] = pm
+    res["W1_prime"] = dict(
+        estimator="配对 margin_i = 1 - rms_i[control_ivar]/rms_i[arm]（同一 MC realization 内）",
+        se_rule="SE(median) = 1.2533*std(ddof=1)/sqrt(N)",
+        z_crit=Z_ONE_SIDED_95, per_arm=w1,
+        note="结论层：在**噪声项**上三臂是否可分辨由带误差棒的检验给出，"
+             "不再用无误差棒点估计比的硬门限；决定性证据限定在 W2 的偏差漏入")
+    g.add("W1p_arms_statistically_indistinguishable",
+          "配对统计检验：control_ivar 相对各臂的 margin 不得显著为负"
+          "（margin >= -z*SE，z=1.6449 单侧 95%；未达显著 ⇒ 判词「不可分辨」而非 FAIL）",
+          {k: dict(margin=round(v["margin"], 6), se=round(v["se"], 6),
+                   z=round(v["z"], 4), verdict=v["verdict"])
+           for k, v in w1.items()},
+          all(v["gate_ok"] for v in w1.values()))
     lbest = min(leak_med, key=lambda k: leak_med[k])
     g.add("W2_leakage_min", "control_ivar 臂伪影漏入（干净帧 δ_k 差分）最小",
           dict(best=lbest, leak=leak_med), lbest == "control_ivar")

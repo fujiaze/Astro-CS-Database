@@ -86,4 +86,14 @@ P2_NORM_DIR=/path/to/norm bash 实验/absolute-snr/code/reverse_verify/snr_desig
 
 ## 诚实边界速览
 
-1.152 标定登记出处待补登；m_ref=6.0 为单位制锚点（冻结纪律）；k_corr 查表网格属 P3 交付件；P-CST-23 声称系列生成配置欠定；生产链被估量 y 的合同语义待负责人裁决；对 MC 真值的偏置数字带 ±3 pp MC 噪声（低噪证据是臂比值 vs 闭式预言 ≤1.25 pp）。详见 `REPORT_paper.md` §6 与 `REPORT_experiment.md` §8。
+1.152 标定登记出处待补登；m_ref=6.0 为单位制锚点（冻结纪律）；k_corr 查表网格属 P3 交付件；P-CST-23 声称系列生成配置欠定；生产链被估量 y 的合同语义待负责人裁决；对 MC 真值的偏置数字带 ±3 pp MC 噪声（低噪证据是臂比值 vs 闭式预言 ≤1.25 pp）。
+
+帧级 `sigma_sky` 估计器的适用域以 `docs/frame-snr-canon.md` §2.7 表为唯一登记面，三条失效域：
+
+- **饱和**：跨膝点时单调性严格反转（`sigma_hat` 124.6→3.9 ADU，`SNR_frame` 升一个量级以上）⇒ 处置是**整帧 fail-closed 拒收**，不是剔除饱和像素后继续（原处方本身产生反转）。
+- **结构主导**：判据应是「`sigma_sky` 估计器对天光单调」，且只在结构 rms / 天光噪声 rms **≲ 2** 时成立——实测 `d ln sigma_hat / d ln B` 为 `r=0 → 0.4898`、`r=1 → 0.2459`、`r=3 → 0.0782`、`r=10 → 0.0101`、`r=30 → 0.0011`；真实 M42 亮帧的 `sigma_hat_prod/sigma_hat_fix = 2.44–3.66` 正在该衰减带内 ⇒ 整帧标量口径在该域**不适用**，须改区域化 `sigma_sky`。
+- **常量（掩膜 / 零填充 / 过曝置零）像素 ≥ 0.40**：第 2 轮 `MAD` 恰为 0 ⇒ 只留等值像素 ⇒ 生产估计器把 `sigma_hat` **静默置成地板 1e-9** ⇒ `SNR_frame` 高估 **2×10¹⁰ 倍**，链上无守卫；0.30–0.38 另有无告警退化带（SNR 高估 1.8×–8.9×）。处置同为整帧 fail-closed 拒收；**修法属生产码治理**（`lib/`，本单元只登记）。
+
+其余口径的反例核查为阴性：源主导、`F_instr` 正性截断、掩膜边界 `r_i` 收缩、逐像素 vs 整帧口径——前三条未找到违反，第四条是定义性恒等式而非实验结论，但两口径必须在正文标注。
+
+复现：`python3 code/redteam/rt_sigma_hat_applicability.py`（逐条镜像生产裁剪循环，不调用生产二进制、不写 `results/`）。详见 `REPORT_paper.md` §6 与 `docs/frame-snr-canon.md` §2.7。

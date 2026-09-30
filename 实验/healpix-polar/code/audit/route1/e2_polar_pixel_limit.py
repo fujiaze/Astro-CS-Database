@@ -32,6 +32,11 @@ import json
 import os
 import math
 import numpy as np
+from pathlib import Path
+
+# 落盘锚点：从脚本自身位置向上定位本单元目录（实验/healpix-polar），
+# 不依赖 dirname 的层数；找不到即抛错，避免静默写到错误位置。
+UNIT = next(p for p in Path(__file__).resolve().parents if p.name == "healpix-polar")
 
 SEED = 20050709
 np.random.seed(SEED)
@@ -217,7 +222,7 @@ for N, f, i0, j0 in [(64, 4, 32, 32), (128, 5, 70, 20)]:
                "richsonson_residual": (a2K - aK) / A_t})
 out["negative_control_true_curve"] = tc
 
-with open(os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), "results", "audit", "route1", "e2_polar_pixel_limit.json"), "w") as fh:
+with open(os.path.join(UNIT, "results", "audit", "route1", "e2_polar_pixel_limit.json"), "w") as fh:
     json.dump(out, fh, indent=1)
 
 lines = ["E2 polar-pixel closed-form deficit  (seed=%d)" % SEED, ""]
@@ -240,6 +245,6 @@ for r in tc:
     lines.append("  N=%-4d K=64 rel dev = %.3e ; Richardson residual = %.3e"
                  % (r["nside"], r["true_curve_rel_dev_K64"], r["richsonson_residual"]))
 txt = "\n".join(lines)
-with open(os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), "results", "audit", "route1", "e2_polar_pixel_limit.txt"), "w") as fh:
+with open(os.path.join(UNIT, "results", "audit", "route1", "e2_polar_pixel_limit.txt"), "w") as fh:
     fh.write(txt + "\n")
 print(txt)

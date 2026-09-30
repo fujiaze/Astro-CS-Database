@@ -12,10 +12,12 @@
   A3  多退少补臂（raw−δ_k）：同一曲线斜率 |slope| < 0.05（阶跃归零）
   A4  raw−δ_k 残余接缝 < 0.25 × 未校正接缝
   A5  全减臂（raw−b_k）产品中位 ≈ 0（对照：背景被整体拿走）
-  A6  UPM 任意覆盖子集 cell 级加权均值不变（max dev < 0.05 e-）
+  A6p 校正场的子集加权均值偏差 + gauge 帧无关性，取大者 <= 2·σ_control
+  A6  子集项单列（A6p 的第一项；对逐帧公共 gauge 代数恒等于 0）
   A7  阻尼要素：同一收敛门（相对 1e-3）下 α=1 不收敛 / α=0.5 收敛
   A8  权重同源要素：堆叠权重换异源后子集不变性退化 ≥ 10×
-  A9  final_gauge 在 m_full_frame=1 收敛解上恒为 0（要素为 no-op，登记）
+  A9p 末端 gauge 更新量 max|G| <= 求解器当次使用的 M 收敛门 tol_M
+  A9q final_gauge 对求解零影响（fg=0/1 收敛统计与 C 场逐位相同）
   A10 基外分量扫描：残余接缝随基外 RMS 单调增长（Pearson > 0.9）
   A11 加性校正不破坏星 flux（< 1%）
 """
@@ -66,6 +68,37 @@ def sky_scenario(world, tag, cfg=None):
              probe=dict(ra_deg=ra.tolist(), dec_deg=dec.tolist())), tag)
     nF = len(world["names"])
     return out, D.reshape(nF, S.TILE_PX, S.TILE_PX), B.reshape(nF, S.TILE_PX, S.TILE_PX)
+
+
+def sigma_control(world, k_corr=S.K_CORR):
+    """control 估计器自身的不确定度 σ_control [e-]（本单元自有的定权合同式）。
+
+    σ_control = sqrt(k_corr·(π/2)·σ_bg²/N_retained)，与 `sci_c_common.control_ivar`
+    同一式；这里返回**最大值**（最严的那个 cell），用于 2σ 判带。
+    """
+    v = [np.sqrt(1.0 / S.control_ivar(c["sigma"], c["n_retained"], k_corr))
+         for c in world["ctrl"].values() if c["n_retained"] > 0]
+    return (float(np.max(v)), float(np.median(v))) if v else (np.nan, np.nan)
+
+
+def scale_obs(world):
+    """求解器声明的观测尺度 scale_obs = median|obs.value|（相对容差档用它）。"""
+    return float(np.median(np.abs([o["value"] for o in world["obs"]])))
+
+
+def gauge_field(corr, cf):
+    """末端 gauge 场 G = (C+G) − C，直接由探针的两路输出相减得到。
+
+    `corr` 是 `calibrate_block(input=0)` 的校正场（C+G），`cf` 是
+    `p2_upm_evaluate_c` 的 C 场（不含 G）。
+    """
+    return corr - cf
+
+
+def tol_M_of(cfg, scale):
+    """求解器**当次实际使用**的 M 收敛门（upm 的两条约定之一）。"""
+    t = float(cfg["tolerance"])
+    return t * max(float(scale), 1.0) if int(cfg.get("tolerance_relative", 0)) else t
 
 
 def subset_dev(world, corr, weights=None, max_subsets=256):
@@ -232,6 +265,7 @@ def main():
     for k, cfg in arms.items():
         o, corr, cf = S.run_upm_probe(scenario(world, cfg), "c1_" + k)
         corr_store[k] = corr
+        corr_store[k + "_cf"] = cf
         mos = S.stack_mosaic(world["frames"], world["names"], corr, wts)
         st = np.abs([s["step"] for s in S.seam_steps(mos)])
         res["upm_arms"][k] = dict(
@@ -242,9 +276,92 @@ def main():
             subset_diff_weights=subset_dev(world, corr, weights={kk: 1.0 for kk in wts}),
             seam_med=float(np.median(st)), seam_max=float(np.max(st)))
     ua = res["upm_arms"]
-    g.add("A6_subset_invariance",
-          "UPM 四要素：任意覆盖子集 cell 级加权均值 max dev < 0.05 e-",
-          ua["full_4elem"]["subset"]["max_dev"], ua["full_4elem"]["subset"]["max_dev"] < 0.05)
+    # ================= B'. 末端 gauge 场的两条新判据 =================
+    # A6′：子集加权均值一致性 **与** gauge 的帧无关性，取两项的大者比 σ_control。
+    #       第一项对**逐帧公共**的 gauge 在代数上恒等于零（V(S) 与 V(full) 同减 G），
+    #       所以只有第二项能看见 gauge —— 这一点在 res["A6_prime"] 里显式落盘。
+    # A9′：末端待施加的 gauge 更新量必须落在求解器**自己声明**的 M 收敛门内。
+    sig_max, sig_med = sigma_control(world)
+    sc_obs = scale_obs(world)
+    g_full = gauge_field(corr_store["full_4elem"], corr_store["full_4elem_cf"])
+    dev_subset = ua["full_4elem"]["subset"]["max_dev"]
+    dev_gauge = float(max(np.max(np.abs(g_full[i] - g_full[0]))
+                          for i in range(len(g_full)))) if len(g_full) > 1 else 0.0
+    worst_dev = max(dev_subset, dev_gauge)
+    tol_A6 = 2.0 * sig_max
+    res["A6_prime"] = dict(
+        max_dev_subset=dev_subset, sigma_control_max=sig_max,
+        sigma_control_median=sig_med, subset_term_sigma=float(dev_subset / sig_max),
+        max_dev_gauge_frame_common=dev_gauge,
+        gauge_term_sigma=float(dev_gauge / sig_max),
+        worst_dev=worst_dev, worst_dev_sigma=float(worst_dev / sig_max),
+        tol_sigma=2.0,
+        note="第一项（子集加权均值）对**逐帧公共**的 gauge 代数恒等于 0，"
+             "因此只有第二项（gauge 的帧无关性）对 gauge 有判别力；"
+             "两项合成一条门，报告值取大者")
+    g.add("A6p_subset_and_gauge_consistency",
+          "校正场的子集加权均值偏差与 gauge 帧无关性，取大者 <= 2·σ_control"
+          "（σ_control 取本单元 SCI-UPM-WEIGHT-001 定权式；正确实现下 gauge 项恒 0）",
+          dict(worst_sigma=res["A6_prime"]["worst_dev_sigma"],
+               subset_sigma=res["A6_prime"]["subset_term_sigma"],
+               gauge_sigma=res["A6_prime"]["gauge_term_sigma"]),
+          worst_dev <= tol_A6)
+    tol_full = tol_M_of(CFG_FULL, sc_obs)
+    max_G = float(np.max(np.abs(g_full)))
+    res["A9_prime"] = dict(
+        max_abs_G=max_G, scale_obs=sc_obs, tol_M=tol_full,
+        tol_M_rule="relative: tolerance × max(scale_obs,1)" if CFG_FULL.get("tolerance_relative")
+        else "absolute: tolerance",
+        margin_ratio=float(max_G / tol_full),
+        mechanism="迭代次序 权重→M(旧 C)→C(新 M)；G 逐字是 M 的**终端 Gauss–Seidel 滞后残差**"
+                  "（= 下一次迭代会产生的 M 更新量），不是规范自由度；"
+                  "final_gauge 对求解零影响（objective/iterations/max_abs_C 逐位相同）",
+        note="判据含义是**一致性检查**：求解器宣告收敛时，终端待施加的 M 更新量"
+             "必须落在它自己声明的容差之内。单侧：gauge 被整体关掉时读数为 0 ⇒ 本判据绿"
+             "（那一支由 A6p 的 gauge 项与 §6 的边界承担）")
+    g.add("A9p_terminal_gauge_margin",
+          "终端 gauge 更新量 max|G| <= 求解器当次使用的 M 收敛门 tol_M"
+          "（相对档 tolerance × max(scale_obs,1) / 绝对档 tolerance）",
+          dict(max_abs_G=max_G, tol_M=tol_full), max_G <= tol_full)
+    # ---- 判别力：注入缺陷必须判红 ----
+    disc = []
+    for tag, cfg, note in (
+            ("abs_tolerance_arm", dict(CFG_FULL, tolerance=1e-6, tolerance_relative=0),
+             "绝对容差档：求解器 300 轮未达它自己声明的 1e-6，"
+             "终端 gauge 仍是它的 309 倍 ⇒ 收敛声明与实际残量不符"),
+            ("fg_disabled", dict(CFG_FULL, final_gauge=0),
+             "final_gauge 关闭 ⇒ G≡0，本判据为单侧（登记为已知盲区）")):
+        o_x, corr_x, cf_x = S.run_upm_probe(scenario(world, cfg), "c1_disc_" + tag)
+        gx = gauge_field(corr_x, cf_x)
+        mx = float(np.max(np.abs(gx)))
+        tx = tol_M_of(cfg, sc_obs)
+        disc.append(dict(arm=tag, note=note, converged=o_x.get("converged"),
+                         iterations=o_x.get("iterations"), max_abs_G=mx, tol_M=tx,
+                         red=bool(mx > tx)))
+    # A6p 的红例：注入逐帧不同的 gauge（真实存在的实现缺陷：gauge 用了逐帧残差）
+    eps = 3.0 * sig_max
+    base_corr = corr_store["full_4elem"]
+    base_cf = corr_store["full_4elem_cf"]
+    g_base = base_corr - base_cf
+    corr_f = base_corr + np.stack(
+        [np.full_like(base_corr[0], eps * (i + 1)) for i in range(len(base_corr))])
+    g_f = corr_f - base_cf
+    dev_g_f = float(max(np.max(np.abs(g_f[i] - g_f[0])) for i in range(len(g_f))))
+    disc.append(dict(arm="gauge_frame_dependent_injection",
+                     note="注入逐帧不同的 gauge（每帧 +%g e- 的整数倍）" % eps,
+                     max_dev_gauge_frame_common=dev_g_f,
+                     tol_2sigma=2.0 * sig_max, red=bool(dev_g_f > 2.0 * sig_max)))
+    res["A6p_A9p_discrimination"] = disc
+    g.add("A6p_A9p_discrimination",
+          "A9p 对绝对容差档判红（终端 gauge > 其自声明门限）；"
+          "A6p 的 gauge 项对逐帧 gauge 注入判红（> 2σ_control）",
+          {d["arm"]: d.get("red") for d in disc},
+          bool(disc[0]["red"] and disc[-1]["red"]))
+
+    g.add("A6_subset_invariance_scale",
+          "任意覆盖子集 cell 级加权均值 max dev <= 2·σ_control"
+          "（子集项单列，见 A6p 的合成门）",
+          ua["full_4elem"]["subset"]["max_dev"], dev_subset <= tol_A6)
     # A7/A8：阻尼与"权重同源"两要素在本实验域内**非必要**——如实登记为边界，
     # 不做迁就性断言（q2-snr-smooth 的振荡/异源重现发生在另一 formulation）。
     res["element_necessity"] = dict(
@@ -268,14 +385,30 @@ def main():
     g.add("A8b_weight_choice_no_effect_in_exact_regime",
           "精确拟合域内异源堆叠权重不改变 V(S) 偏差（|Δ| < 20%）",
           dict(same=same, diff=diff), abs(diff - same) < 0.2 * max(same, 1e-12))
-    # final_gauge 是否 no-op：比较 fg=0/1 的 C 场
-    o0, c0, _ = S.run_upm_probe(scenario(world, dict(CFG_FULL, final_gauge=0)), "c1_fg0")
-    dev_fg = float(np.max(np.abs(c0 - corr_store["full_4elem"])))
-    res["final_gauge_noop"] = dict(max_abs_diff=dev_fg,
-                                   note="m_full_frame=1 时 M 更新即全帧加权均值 ⇒ G≡0")
-    g.add("A9_final_gauge_near_noop",
-          "final_gauge 在 m_full_frame=1 收敛解上近 no-op（|Δ(C+G)| < 0.01 e- ≈ 3e-5 相对）",
-          dev_fg, dev_fg < 0.01)
+    # final_gauge 对**求解**零影响：fg=0/1 两档的收敛统计与 C 场逐位比较
+    o0, c0, _cf0 = S.run_upm_probe(scenario(world, dict(CFG_FULL, final_gauge=0)), "c1_fg0")
+    dev_fg = float(np.max(np.abs(corr_store["full_4elem"] - c0)))
+    res["final_gauge_effect"] = dict(
+        max_abs_diff_corr=dev_fg,
+        max_abs_diff_C=float(np.max(np.abs(corr_store["full_4elem_cf"] - _cf0))),
+        objective_fg1=ua["full_4elem"]["objective"],
+        objective_fg0=o0.get("objective"),
+        iterations_fg1=ua["full_4elem"]["iterations"],
+        iterations_fg0=o0.get("iterations"),
+        max_abs_C_fg1=ua["full_4elem"]["max_abs_C"], max_abs_C_fg0=o0.get("max_abs_C"),
+        note="final_gauge **对求解零影响**：fg=0/1 的 objective / iterations / max_abs_C 逐位相同，"
+             "C 场逐位相同，只有校正场 (C+G) 相差 max|G|；"
+             "「m_full_frame=1 ⇒ G≡0」不成立")
+    g.add("A9q_final_gauge_zero_effect_on_solve",
+          "final_gauge 对求解零影响（fg=0/1 的 objective/iterations/max_abs_C 逐位相同，"
+          "|ΔC| <= 1e-12 e-）",
+          dict(obj_same=res["final_gauge_effect"]["objective_fg1"]
+               == res["final_gauge_effect"]["objective_fg0"],
+               dC=res["final_gauge_effect"]["max_abs_diff_C"],
+               d_corr=dev_fg),
+          res["final_gauge_effect"]["objective_fg1"]
+          == res["final_gauge_effect"]["objective_fg0"]
+          and res["final_gauge_effect"]["max_abs_diff_C"] <= 1e-12)
 
     # ================= C. 基外分量扫描 =================
     sweep = []

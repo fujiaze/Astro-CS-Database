@@ -1,0 +1,1123 @@
+{
+  "seed": 20260930,
+  "gate": 0.01,
+  "d": 2.0,
+  "ctrl_shift": 200.0,
+  "min_samples": 20,
+  "k_cov": 3.0,
+  "cov_min": 0.5,
+  "cov_min_derivation": "median 沿 f=0.5 转移；与台阶幅度无关",
+  "mirror_selfcheck": [
+    {
+      "frac": 1.0,
+      "amp": 0.04,
+      "prod_step": -12.0,
+      "repro_step": -12.0,
+      "d_step": 0.0,
+      "prod_rel": -0.04,
+      "prod_bg": 300.0,
+      "n": 1200,
+      "interior": true,
+      "exclude": null
+    },
+    {
+      "frac": 0.5,
+      "amp": 0.04,
+      "prod_step": -3.002502085071228,
+      "repro_step": -3.002502085071228,
+      "d_step": 0.0,
+      "prod_rel": -0.01000834028357076,
+      "prod_bg": 300.0,
+      "n": 1200,
+      "interior": true,
+      "exclude": null
+    },
+    {
+      "frac": 1.0,
+      "amp": 0.0,
+      "prod_step": 0.0,
+      "repro_step": 0.0,
+      "d_step": 0.0,
+      "prod_rel": 0.0,
+      "prod_bg": 300.0,
+      "n": 1200,
+      "interior": true,
+      "exclude": null
+    }
+  ],
+  "mirror_max_abs_dstep": 0.0,
+  "coverage_amplitude_grid": [
+    {
+      "frac": 1.0,
+      "amp": 0.02,
+      "n": 1200,
+      "interior": true,
+      "exclude": null,
+      "step": -6.0,
+      "bg": 300.0,
+      "rel_step": -0.02,
+      "cov": 0.9991666666666666,
+      "cov_null": 0.0,
+      "zone": "majority",
+      "cov_margin_sigma": 34.58328112445858,
+      "prod_verdict": "FAIL",
+      "verdict": "FAIL"
+    },
+    {
+      "frac": 1.0,
+      "amp": 0.04,
+      "n": 1200,
+      "interior": true,
+      "exclude": null,
+      "step": -12.0,
+      "bg": 300.0,
+      "rel_step": -0.04,
+      "cov": 0.9991666666666666,
+      "cov_null": 0.0,
+      "zone": "majority",
+      "cov_margin_sigma": 34.58328112445858,
+      "prod_verdict": "FAIL",
+      "verdict": "FAIL"
+    },
+    {
+      "frac": 1.0,
+      "amp": 0.08,
+      "n": 1200,
+      "interior": true,
+      "exclude": null,
+      "step": -24.0,
+      "bg": 300.0,
+      "rel_step": -0.08,
+      "cov": 0.9991666666666666,
+      "cov_null": 0.0,
+      "zone": "majority",
+      "cov_margin_sigma": 34.58328112445858,
+      "prod_verdict": "FAIL",
+      "verdict": "FAIL"
+    },
+    {
+      "frac": 1.0,
+      "amp": 0.16,
+      "n": 1200,
+      "interior": true,
+      "exclude": null,
+      "step": -48.0,
+      "bg": 300.0,
+      "rel_step": -0.16,
+      "cov": 0.9991666666666666,
+      "cov_null": 0.0,
+      "zone": "majority",
+      "cov_margin_sigma": 34.58328112445858,
+      "prod_verdict": "FAIL",
+      "verdict": "FAIL"
+    },
+    {
+      "frac": 1.0,
+      "amp": 0.32,
+      "n": 1200,
+      "interior": true,
+      "exclude": null,
+      "step": -96.0,
+      "bg": 300.0,
+      "rel_step": -0.32,
+      "cov": 0.9991666666666666,
+      "cov_null": 0.0,
+      "zone": "majority",
+      "cov_margin_sigma": 34.58328112445858,
+      "prod_verdict": "FAIL",
+      "verdict": "FAIL"
+    },
+    {
+      "frac": 0.8,
+      "amp": 0.02,
+      "n": 1200,
+      "interior": true,
+      "exclude": null,
+      "step": -6.0,
+      "bg": 300.0,
+      "rel_step": -0.02,
+      "cov": 0.7991666666666667,
+      "cov_null": 0.0,
+      "zone": "majority",
+      "cov_margin_sigma": 20.726874663907566,
+      "prod_verdict": "FAIL",
+      "verdict": "FAIL"
+    },
+    {
+      "frac": 0.8,
+      "amp": 0.04,
+      "n": 1200,
+      "interior": true,
+      "exclude": null,
+      "step": -12.0,
+      "bg": 300.0,
+      "rel_step": -0.04,
+      "cov": 0.8,
+      "cov_null": 0.0,
+      "zone": "majority",
+      "cov_margin_sigma": 20.784609690826528,
+      "prod_verdict": "FAIL",
+      "verdict": "FAIL"
+    },
+    {
+      "frac": 0.8,
+      "amp": 0.08,
+      "n": 1200,
+      "interior": true,
+      "exclude": null,
+      "step": -24.0,
+      "bg": 300.0,
+      "rel_step": -0.08,
+      "cov": 0.8,
+      "cov_null": 0.0,
+      "zone": "majority",
+      "cov_margin_sigma": 20.784609690826528,
+      "prod_verdict": "FAIL",
+      "verdict": "FAIL"
+    },
+    {
+      "frac": 0.8,
+      "amp": 0.16,
+      "n": 1200,
+      "interior": true,
+      "exclude": null,
+      "step": -48.0,
+      "bg": 300.0,
+      "rel_step": -0.16,
+      "cov": 0.8,
+      "cov_null": 0.0,
+      "zone": "majority",
+      "cov_margin_sigma": 20.784609690826528,
+      "prod_verdict": "FAIL",
+      "verdict": "FAIL"
+    },
+    {
+      "frac": 0.8,
+      "amp": 0.32,
+      "n": 1200,
+      "interior": true,
+      "exclude": null,
+      "step": -96.0,
+      "bg": 300.0,
+      "rel_step": -0.32,
+      "cov": 0.8,
+      "cov_null": 0.0,
+      "zone": "majority",
+      "cov_margin_sigma": 20.784609690826528,
+      "prod_verdict": "FAIL",
+      "verdict": "FAIL"
+    },
+    {
+      "frac": 0.6,
+      "amp": 0.02,
+      "n": 1200,
+      "interior": true,
+      "exclude": null,
+      "step": -6.0,
+      "bg": 300.0,
+      "rel_step": -0.02,
+      "cov": 0.6,
+      "cov_null": 0.0,
+      "zone": "majority",
+      "cov_margin_sigma": 6.928203230275507,
+      "prod_verdict": "FAIL",
+      "verdict": "FAIL"
+    },
+    {
+      "frac": 0.6,
+      "amp": 0.04,
+      "n": 1200,
+      "interior": true,
+      "exclude": null,
+      "step": -12.0,
+      "bg": 300.0,
+      "rel_step": -0.04,
+      "cov": 0.6,
+      "cov_null": 0.0,
+      "zone": "majority",
+      "cov_margin_sigma": 6.928203230275507,
+      "prod_verdict": "FAIL",
+      "verdict": "FAIL"
+    },
+    {
+      "frac": 0.6,
+      "amp": 0.08,
+      "n": 1200,
+      "interior": true,
+      "exclude": null,
+      "step": -24.0,
+      "bg": 300.0,
+      "rel_step": -0.08,
+      "cov": 0.6,
+      "cov_null": 0.0,
+      "zone": "majority",
+      "cov_margin_sigma": 6.928203230275507,
+      "prod_verdict": "FAIL",
+      "verdict": "FAIL"
+    },
+    {
+      "frac": 0.6,
+      "amp": 0.16,
+      "n": 1200,
+      "interior": true,
+      "exclude": null,
+      "step": -48.0,
+      "bg": 300.0,
+      "rel_step": -0.16,
+      "cov": 0.6,
+      "cov_null": 0.0,
+      "zone": "majority",
+      "cov_margin_sigma": 6.928203230275507,
+      "prod_verdict": "FAIL",
+      "verdict": "FAIL"
+    },
+    {
+      "frac": 0.6,
+      "amp": 0.32,
+      "n": 1200,
+      "interior": true,
+      "exclude": null,
+      "step": -96.0,
+      "bg": 300.0,
+      "rel_step": -0.32,
+      "cov": 0.6,
+      "cov_null": 0.0,
+      "zone": "majority",
+      "cov_margin_sigma": 6.928203230275507,
+      "prod_verdict": "FAIL",
+      "verdict": "FAIL"
+    },
+    {
+      "frac": 0.5,
+      "amp": 0.02,
+      "n": 1200,
+      "interior": true,
+      "exclude": null,
+      "step": -1.501251042535614,
+      "bg": 300.0,
+      "rel_step": -0.00500417014178538,
+      "cov": 0.5,
+      "cov_null": 0.0,
+      "zone": "diluted",
+      "cov_margin_sigma": 0.0,
+      "prod_verdict": "PASS",
+      "verdict": "FAIL_COVERAGE"
+    },
+    {
+      "frac": 0.5,
+      "amp": 0.04,
+      "n": 1200,
+      "interior": true,
+      "exclude": null,
+      "step": -3.002502085071228,
+      "bg": 300.0,
+      "rel_step": -0.01000834028357076,
+      "cov": 0.5,
+      "cov_null": 0.0,
+      "zone": "diluted",
+      "cov_margin_sigma": 0.0,
+      "prod_verdict": "FAIL",
+      "verdict": "FAIL_COVERAGE"
+    },
+    {
+      "frac": 0.5,
+      "amp": 0.08,
+      "n": 1200,
+      "interior": true,
+      "exclude": null,
+      "step": -6.005004170142456,
+      "bg": 300.0,
+      "rel_step": -0.02001668056714152,
+      "cov": 0.5,
+      "cov_null": 0.0,
+      "zone": "diluted",
+      "cov_margin_sigma": 0.0,
+      "prod_verdict": "FAIL",
+      "verdict": "FAIL_COVERAGE"
+    },
+    {
+      "frac": 0.5,
+      "amp": 0.16,
+      "n": 1200,
+      "interior": true,
+      "exclude": null,
+      "step": -12.010008340284912,
+      "bg": 300.0,
+      "rel_step": -0.04003336113428304,
+      "cov": 0.5,
+      "cov_null": 0.0,
+      "zone": "diluted",
+      "cov_margin_sigma": 0.0,
+      "prod_verdict": "FAIL",
+      "verdict": "FAIL_COVERAGE"
+    },
+    {
+      "frac": 0.5,
+      "amp": 0.32,
+      "n": 1200,
+      "interior": true,
+      "exclude": null,
+      "step": -24.020016680569825,
+      "bg": 300.0,
+      "rel_step": -0.08006672226856608,
+      "cov": 0.5,
+      "cov_null": 0.0,
+      "zone": "diluted",
+      "cov_margin_sigma": 0.0,
+      "prod_verdict": "FAIL",
+      "verdict": "FAIL_COVERAGE"
+    },
+    {
+      "frac": 0.48,
+      "amp": 0.02,
+      "n": 1200,
+      "interior": true,
+      "exclude": null,
+      "step": 0.0,
+      "bg": 300.0,
+      "rel_step": 0.0,
+      "cov": 0.48,
+      "cov_null": 0.0,
+      "zone": "diluted",
+      "cov_margin_sigma": -1.385640646055103,
+      "prod_verdict": "PASS",
+      "verdict": "FAIL_COVERAGE"
+    },
+    {
+      "frac": 0.48,
+      "amp": 0.04,
+      "n": 1200,
+      "interior": true,
+      "exclude": null,
+      "step": 0.0,
+      "bg": 300.0,
+      "rel_step": 0.0,
+      "cov": 0.48,
+      "cov_null": 0.0,
+      "zone": "diluted",
+      "cov_margin_sigma": -1.385640646055103,
+      "prod_verdict": "PASS",
+      "verdict": "FAIL_COVERAGE"
+    },
+    {
+      "frac": 0.48,
+      "amp": 0.08,
+      "n": 1200,
+      "interior": true,
+      "exclude": null,
+      "step": 0.0,
+      "bg": 300.0,
+      "rel_step": 0.0,
+      "cov": 0.48,
+      "cov_null": 0.0,
+      "zone": "diluted",
+      "cov_margin_sigma": -1.385640646055103,
+      "prod_verdict": "PASS",
+      "verdict": "FAIL_COVERAGE"
+    },
+    {
+      "frac": 0.48,
+      "amp": 0.16,
+      "n": 1200,
+      "interior": true,
+      "exclude": null,
+      "step": 0.0,
+      "bg": 300.0,
+      "rel_step": 0.0,
+      "cov": 0.48,
+      "cov_null": 0.0,
+      "zone": "diluted",
+      "cov_margin_sigma": -1.385640646055103,
+      "prod_verdict": "PASS",
+      "verdict": "FAIL_COVERAGE"
+    },
+    {
+      "frac": 0.48,
+      "amp": 0.32,
+      "n": 1200,
+      "interior": true,
+      "exclude": null,
+      "step": 0.0,
+      "bg": 300.0,
+      "rel_step": 0.0,
+      "cov": 0.48,
+      "cov_null": 0.0,
+      "zone": "diluted",
+      "cov_margin_sigma": -1.385640646055103,
+      "prod_verdict": "PASS",
+      "verdict": "FAIL_COVERAGE"
+    },
+    {
+      "frac": 0.4,
+      "amp": 0.02,
+      "n": 1200,
+      "interior": true,
+      "exclude": null,
+      "step": 0.0,
+      "bg": 300.0,
+      "rel_step": 0.0,
+      "cov": 0.4,
+      "cov_null": 0.0,
+      "zone": "diluted",
+      "cov_margin_sigma": -6.928203230275507,
+      "prod_verdict": "PASS",
+      "verdict": "FAIL_COVERAGE"
+    },
+    {
+      "frac": 0.4,
+      "amp": 0.04,
+      "n": 1200,
+      "interior": true,
+      "exclude": null,
+      "step": 0.0,
+      "bg": 300.0,
+      "rel_step": 0.0,
+      "cov": 0.4,
+      "cov_null": 0.0,
+      "zone": "diluted",
+      "cov_margin_sigma": -6.928203230275507,
+      "prod_verdict": "PASS",
+      "verdict": "FAIL_COVERAGE"
+    },
+    {
+      "frac": 0.4,
+      "amp": 0.08,
+      "n": 1200,
+      "interior": true,
+      "exclude": null,
+      "step": 0.0,
+      "bg": 300.0,
+      "rel_step": 0.0,
+      "cov": 0.4,
+      "cov_null": 0.0,
+      "zone": "diluted",
+      "cov_margin_sigma": -6.928203230275507,
+      "prod_verdict": "PASS",
+      "verdict": "FAIL_COVERAGE"
+    },
+    {
+      "frac": 0.4,
+      "amp": 0.16,
+      "n": 1200,
+      "interior": true,
+      "exclude": null,
+      "step": 0.0,
+      "bg": 300.0,
+      "rel_step": 0.0,
+      "cov": 0.4,
+      "cov_null": 0.0,
+      "zone": "diluted",
+      "cov_margin_sigma": -6.928203230275507,
+      "prod_verdict": "PASS",
+      "verdict": "FAIL_COVERAGE"
+    },
+    {
+      "frac": 0.4,
+      "amp": 0.32,
+      "n": 1200,
+      "interior": true,
+      "exclude": null,
+      "step": 0.0,
+      "bg": 300.0,
+      "rel_step": 0.0,
+      "cov": 0.4,
+      "cov_null": 0.0,
+      "zone": "diluted",
+      "cov_margin_sigma": -6.928203230275507,
+      "prod_verdict": "PASS",
+      "verdict": "FAIL_COVERAGE"
+    },
+    {
+      "frac": 0.2,
+      "amp": 0.02,
+      "n": 1200,
+      "interior": true,
+      "exclude": null,
+      "step": 0.0,
+      "bg": 300.0,
+      "rel_step": 0.0,
+      "cov": 0.2,
+      "cov_null": 0.0,
+      "zone": "diluted",
+      "cov_margin_sigma": -20.784609690826525,
+      "prod_verdict": "PASS",
+      "verdict": "FAIL_COVERAGE"
+    },
+    {
+      "frac": 0.2,
+      "amp": 0.04,
+      "n": 1200,
+      "interior": true,
+      "exclude": null,
+      "step": 0.0,
+      "bg": 300.0,
+      "rel_step": 0.0,
+      "cov": 0.2,
+      "cov_null": 0.0,
+      "zone": "diluted",
+      "cov_margin_sigma": -20.784609690826525,
+      "prod_verdict": "PASS",
+      "verdict": "FAIL_COVERAGE"
+    },
+    {
+      "frac": 0.2,
+      "amp": 0.08,
+      "n": 1200,
+      "interior": true,
+      "exclude": null,
+      "step": 0.0,
+      "bg": 300.0,
+      "rel_step": 0.0,
+      "cov": 0.2,
+      "cov_null": 0.0,
+      "zone": "diluted",
+      "cov_margin_sigma": -20.784609690826525,
+      "prod_verdict": "PASS",
+      "verdict": "FAIL_COVERAGE"
+    },
+    {
+      "frac": 0.2,
+      "amp": 0.16,
+      "n": 1200,
+      "interior": true,
+      "exclude": null,
+      "step": 0.0,
+      "bg": 300.0,
+      "rel_step": 0.0,
+      "cov": 0.2,
+      "cov_null": 0.0,
+      "zone": "diluted",
+      "cov_margin_sigma": -20.784609690826525,
+      "prod_verdict": "PASS",
+      "verdict": "FAIL_COVERAGE"
+    },
+    {
+      "frac": 0.2,
+      "amp": 0.32,
+      "n": 1200,
+      "interior": true,
+      "exclude": null,
+      "step": 0.0,
+      "bg": 300.0,
+      "rel_step": 0.0,
+      "cov": 0.2,
+      "cov_null": 0.0,
+      "zone": "diluted",
+      "cov_margin_sigma": -20.784609690826525,
+      "prod_verdict": "PASS",
+      "verdict": "FAIL_COVERAGE"
+    },
+    {
+      "frac": 0.05,
+      "amp": 0.02,
+      "n": 1200,
+      "interior": true,
+      "exclude": null,
+      "step": 0.0,
+      "bg": 300.0,
+      "rel_step": 0.0,
+      "cov": 0.05,
+      "cov_null": 0.0,
+      "zone": "diluted",
+      "cov_margin_sigma": -31.17691453623979,
+      "prod_verdict": "PASS",
+      "verdict": "FAIL_COVERAGE"
+    },
+    {
+      "frac": 0.05,
+      "amp": 0.04,
+      "n": 1200,
+      "interior": true,
+      "exclude": null,
+      "step": 0.0,
+      "bg": 300.0,
+      "rel_step": 0.0,
+      "cov": 0.05,
+      "cov_null": 0.0,
+      "zone": "diluted",
+      "cov_margin_sigma": -31.17691453623979,
+      "prod_verdict": "PASS",
+      "verdict": "FAIL_COVERAGE"
+    },
+    {
+      "frac": 0.05,
+      "amp": 0.08,
+      "n": 1200,
+      "interior": true,
+      "exclude": null,
+      "step": 0.0,
+      "bg": 300.0,
+      "rel_step": 0.0,
+      "cov": 0.05,
+      "cov_null": 0.0,
+      "zone": "diluted",
+      "cov_margin_sigma": -31.17691453623979,
+      "prod_verdict": "PASS",
+      "verdict": "FAIL_COVERAGE"
+    },
+    {
+      "frac": 0.05,
+      "amp": 0.16,
+      "n": 1200,
+      "interior": true,
+      "exclude": null,
+      "step": 0.0,
+      "bg": 300.0,
+      "rel_step": 0.0,
+      "cov": 0.05,
+      "cov_null": 0.0,
+      "zone": "diluted",
+      "cov_margin_sigma": -31.17691453623979,
+      "prod_verdict": "PASS",
+      "verdict": "FAIL_COVERAGE"
+    },
+    {
+      "frac": 0.05,
+      "amp": 0.32,
+      "n": 1200,
+      "interior": true,
+      "exclude": null,
+      "step": 0.0,
+      "bg": 300.0,
+      "rel_step": 0.0,
+      "cov": 0.05,
+      "cov_null": 0.0,
+      "zone": "diluted",
+      "cov_margin_sigma": -31.17691453623979,
+      "prod_verdict": "PASS",
+      "verdict": "FAIL_COVERAGE"
+    }
+  ],
+  "coverage_scan_amp4pct": [
+    {
+      "frac": 1.0,
+      "n": 1200,
+      "interior": true,
+      "exclude": null,
+      "step": -12.0,
+      "bg": 300.0,
+      "rel_step": -0.04,
+      "cov": 0.9991666666666666,
+      "cov_null": 0.0,
+      "zone": "majority",
+      "cov_margin_sigma": 34.58328112445858,
+      "prod_verdict": "FAIL",
+      "verdict": "FAIL"
+    },
+    {
+      "frac": 0.8,
+      "n": 1200,
+      "interior": true,
+      "exclude": null,
+      "step": -12.0,
+      "bg": 300.0,
+      "rel_step": -0.04,
+      "cov": 0.8,
+      "cov_null": 0.0,
+      "zone": "majority",
+      "cov_margin_sigma": 20.784609690826528,
+      "prod_verdict": "FAIL",
+      "verdict": "FAIL"
+    },
+    {
+      "frac": 0.6,
+      "n": 1200,
+      "interior": true,
+      "exclude": null,
+      "step": -12.0,
+      "bg": 300.0,
+      "rel_step": -0.04,
+      "cov": 0.6,
+      "cov_null": 0.0,
+      "zone": "majority",
+      "cov_margin_sigma": 6.928203230275507,
+      "prod_verdict": "FAIL",
+      "verdict": "FAIL"
+    },
+    {
+      "frac": 0.5,
+      "n": 1200,
+      "interior": true,
+      "exclude": null,
+      "step": -3.002502085071228,
+      "bg": 300.0,
+      "rel_step": -0.01000834028357076,
+      "cov": 0.5,
+      "cov_null": 0.0,
+      "zone": "diluted",
+      "cov_margin_sigma": 0.0,
+      "prod_verdict": "FAIL",
+      "verdict": "FAIL_COVERAGE"
+    },
+    {
+      "frac": 0.48,
+      "n": 1200,
+      "interior": true,
+      "exclude": null,
+      "step": 0.0,
+      "bg": 300.0,
+      "rel_step": 0.0,
+      "cov": 0.48,
+      "cov_null": 0.0,
+      "zone": "diluted",
+      "cov_margin_sigma": -1.385640646055103,
+      "prod_verdict": "PASS",
+      "verdict": "FAIL_COVERAGE"
+    },
+    {
+      "frac": 0.4,
+      "n": 1200,
+      "interior": true,
+      "exclude": null,
+      "step": 0.0,
+      "bg": 300.0,
+      "rel_step": 0.0,
+      "cov": 0.4,
+      "cov_null": 0.0,
+      "zone": "diluted",
+      "cov_margin_sigma": -6.928203230275507,
+      "prod_verdict": "PASS",
+      "verdict": "FAIL_COVERAGE"
+    },
+    {
+      "frac": 0.2,
+      "n": 1200,
+      "interior": true,
+      "exclude": null,
+      "step": 0.0,
+      "bg": 300.0,
+      "rel_step": 0.0,
+      "cov": 0.2,
+      "cov_null": 0.0,
+      "zone": "diluted",
+      "cov_margin_sigma": -20.784609690826525,
+      "prod_verdict": "PASS",
+      "verdict": "FAIL_COVERAGE"
+    },
+    {
+      "frac": 0.05,
+      "n": 1200,
+      "interior": true,
+      "exclude": null,
+      "step": 0.0,
+      "bg": 300.0,
+      "rel_step": 0.0,
+      "cov": 0.05,
+      "cov_null": 0.0,
+      "zone": "diluted",
+      "cov_margin_sigma": -31.17691453623979,
+      "prod_verdict": "PASS",
+      "verdict": "FAIL_COVERAGE"
+    }
+  ],
+  "coverage_scan_noisy": {
+    "sigma_pix": 20.0,
+    "bg": 300.0,
+    "rows": [
+      {
+        "frac": 1.0,
+        "rel_step": -0.040014492579267744,
+        "cov": 0.0075,
+        "cov_null": 0.0025,
+        "zone": "diluted",
+        "prod_verdict": "FAIL",
+        "verdict": "FAIL_COVERAGE"
+      },
+      {
+        "frac": 0.6,
+        "rel_step": -0.030192612546205477,
+        "cov": 0.004166666666666667,
+        "cov_null": 0.0025,
+        "zone": "none",
+        "prod_verdict": "FAIL",
+        "verdict": "FAIL"
+      },
+      {
+        "frac": 0.5,
+        "rel_step": -0.01794450081466253,
+        "cov": 0.009166666666666667,
+        "cov_null": 0.006666666666666667,
+        "zone": "none",
+        "prod_verdict": "FAIL",
+        "verdict": "FAIL"
+      },
+      {
+        "frac": 0.48,
+        "rel_step": -0.0180662711960881,
+        "cov": 0.0033333333333333335,
+        "cov_null": 0.0025,
+        "zone": "none",
+        "prod_verdict": "FAIL",
+        "verdict": "FAIL"
+      },
+      {
+        "frac": 0.4,
+        "rel_step": -0.014346936104815734,
+        "cov": 0.010833333333333334,
+        "cov_null": 0.0075,
+        "zone": "none",
+        "prod_verdict": "FAIL",
+        "verdict": "FAIL"
+      },
+      {
+        "frac": 0.3,
+        "rel_step": -0.009171838988364565,
+        "cov": 0.0075,
+        "cov_null": 0.005,
+        "zone": "none",
+        "prod_verdict": "PASS",
+        "verdict": "PASS"
+      },
+      {
+        "frac": 0.2,
+        "rel_step": -0.010590823704516568,
+        "cov": 0.008333333333333333,
+        "cov_null": 0.006666666666666667,
+        "zone": "none",
+        "prod_verdict": "FAIL",
+        "verdict": "FAIL"
+      }
+    ]
+  },
+  "control_cases": [
+    {
+      "case": "no_step_full",
+      "rel_step": 0.0,
+      "cov": 0.0,
+      "cov_null": 0.0,
+      "zone": "none",
+      "prod_verdict": "PASS",
+      "verdict": "PASS"
+    },
+    {
+      "case": "step_full",
+      "rel_step": -0.04,
+      "cov": 0.9991666666666666,
+      "cov_null": 0.0,
+      "zone": "majority",
+      "prod_verdict": "FAIL",
+      "verdict": "FAIL"
+    },
+    {
+      "case": "step_full_16pct",
+      "rel_step": -0.16,
+      "cov": 0.9991666666666666,
+      "cov_null": 0.0,
+      "zone": "majority",
+      "prod_verdict": "FAIL",
+      "verdict": "FAIL"
+    },
+    {
+      "case": "no_step_noisy",
+      "rel_step": 0.0005610201718432576,
+      "cov": 0.005,
+      "cov_null": 0.005,
+      "zone": "none",
+      "prod_verdict": "PASS",
+      "verdict": "PASS"
+    }
+  ],
+  "gates": [
+    {
+      "id": "COV1_mirror_faithful",
+      "desc": "本脚本重算的样本数组复现生产 edge_metric 的 step（|Δ| <= 1e-9 e-）",
+      "ok": true,
+      "value": 0.0
+    },
+    {
+      "id": "COV2_dilution_is_real",
+      "desc": "f < 0.5 时生产门读数恰为 0（稀释面存在，4 个档位）",
+      "ok": true,
+      "value": [
+        0.48,
+        0.4,
+        0.2,
+        0.05
+      ]
+    },
+    {
+      "id": "COV3_production_blind_verdict_green",
+      "desc": "同一批 f < 0.5 的档位生产门全部判绿（门不知道自己测不了）",
+      "ok": true,
+      "value": [
+        "PASS",
+        "PASS",
+        "PASS",
+        "PASS"
+      ]
+    },
+    {
+      "id": "COV4_coverage_reads_fraction",
+      "desc": "覆盖率读数随 f 单调且 |cov − f| <= 0.03",
+      "ok": true,
+      "value": [
+        [
+          1.0,
+          0.9992
+        ],
+        [
+          0.8,
+          0.8
+        ],
+        [
+          0.6,
+          0.6
+        ],
+        [
+          0.5,
+          0.5
+        ],
+        [
+          0.48,
+          0.48
+        ],
+        [
+          0.4,
+          0.4
+        ],
+        [
+          0.2,
+          0.2
+        ],
+        [
+          0.05,
+          0.05
+        ]
+      ]
+    },
+    {
+      "id": "COV5_gate_fails_closed_on_low_coverage",
+      "desc": "0 < cov ≤ 0.5 的档位本脚本的门**显式判红**（FAIL_COVERAGE）",
+      "ok": true,
+      "value": [
+        [
+          1.0,
+          "FAIL"
+        ],
+        [
+          0.8,
+          "FAIL"
+        ],
+        [
+          0.6,
+          "FAIL"
+        ],
+        [
+          0.5,
+          "FAIL_COVERAGE"
+        ],
+        [
+          0.48,
+          "FAIL_COVERAGE"
+        ],
+        [
+          0.4,
+          "FAIL_COVERAGE"
+        ],
+        [
+          0.2,
+          "FAIL_COVERAGE"
+        ],
+        [
+          0.05,
+          "FAIL_COVERAGE"
+        ]
+      ]
+    },
+    {
+      "id": "COV6_gate_green_on_no_step_control",
+      "desc": "完整覆盖的**无台阶**对照（含带噪臂）本脚本的门判绿（不误伤）",
+      "ok": true,
+      "value": [
+        [
+          "no_step_full",
+          "PASS"
+        ],
+        [
+          "step_full",
+          "FAIL"
+        ],
+        [
+          "step_full_16pct",
+          "FAIL"
+        ],
+        [
+          "no_step_noisy",
+          "PASS"
+        ]
+      ]
+    },
+    {
+      "id": "COV7_gate_red_on_full_amplitude",
+      "desc": "完整覆盖的真台阶（4% / 16%）判红（门仍能看见真接缝）",
+      "ok": true,
+      "value": [
+        [
+          "no_step_full",
+          "PASS"
+        ],
+        [
+          "step_full",
+          "FAIL"
+        ],
+        [
+          "step_full_16pct",
+          "FAIL"
+        ],
+        [
+          "no_step_noisy",
+          "PASS"
+        ]
+      ]
+    },
+    {
+      "id": "COV8_coverage_diagnostic_noise_limited",
+      "desc": "带噪臂（σ_pix=20 @300）下 cov 与 f 无关（极差 ≤ 0.01）⇒ 4% 台阶低于逐样本可分辨限，覆盖率诊断量本身被噪声限制（登记为该诊断量的适用域）",
+      "ok": true,
+      "value": {
+        "cov_by_frac": {
+          "1.0": 0.0075,
+          "0.6": 0.0042,
+          "0.5": 0.0092,
+          "0.48": 0.0033,
+          "0.4": 0.0108,
+          "0.3": 0.0075,
+          "0.2": 0.0083
+        },
+        "cov_null_by_frac": {
+          "1.0": 0.0025,
+          "0.6": 0.0025,
+          "0.5": 0.0067,
+          "0.48": 0.0025,
+          "0.4": 0.0075,
+          "0.3": 0.005,
+          "0.2": 0.0067
+        },
+        "verdict_by_frac": {
+          "1.0": "FAIL_COVERAGE",
+          "0.6": "FAIL",
+          "0.5": "FAIL",
+          "0.48": "FAIL",
+          "0.4": "FAIL",
+          "0.3": "PASS",
+          "0.2": "FAIL"
+        }
+      }
+    },
+    {
+      "id": "COV9_amplitude_independence",
+      "desc": "cov 与台阶幅度无关（每档 f 的 5 个幅度读数极差 <= 0.01）",
+      "ok": true,
+      "value": {
+        "1.0": 0.0,
+        "0.8": 0.0008,
+        "0.6": 0.0,
+        "0.5": 0.0,
+        "0.48": 0.0,
+        "0.4": 0.0,
+        "0.2": 0.0,
+        "0.05": 0.0
+      }
+    }
+  ]
+}

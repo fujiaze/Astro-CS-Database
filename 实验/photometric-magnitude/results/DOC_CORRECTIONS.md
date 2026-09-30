@@ -154,14 +154,16 @@
 - **订正**（变更 claim `PHOT-SIGMAFLAT-INDEP-001`）：
   ① 仿真帧取**真值**逐像素平场散度经 `N_eff` 折算——`σ_flat = (2.5/ln10)·s_flat/√N_eff`，
      `N_eff = 1/ΣP_i²`（`code/scia_common.py → sigma_flat_independent`），只依赖仪器/仿真真值与 PSF 形状；
-  ② 真实帧取权威预算常数 `σ_flat,hf = 0.0007 mag`（`docs/plugins/algorithms_phase1/06_photometry.md` §4.1，L4 高空间频项）；
+  ② 真实帧取**仓内约定常数** `σ_flat,hf = 0.0007 mag`（活出处 `code/scia_calib.py:31` 的字面量 `SIGMA_FLAT_HF_CANONICAL`；**一手出处未取得**，被归给的 `docs/plugins/algorithms_phase1/06_photometry.md` §4.1 与 `docs/science/PHOTOMETRY.md` §16.4 对应行在当前树均不存在）；
   ③ `delta_after_m` 降级为**诊断字段** `delta_after_m_diagnostic` / `delta_after_m_role = diagnostic_only`（JSON 中显式标注），**不得**再进 `σ_ceiling`。
 - **后果（如实）**：真实 M42 帧判定由 **PASS 翻为 `ABOVE_CEILING`**：
   `σ_obs = 0.026520 mag` vs `σ_ceiling = 0.020561 mag`（n=157，inlier 151；`σ_floor = 0.006008`）；
   仿真口径（σ_flat = 0.000881）下 `σ_ceiling` 收紧为 0.04847/0.07010/0.14815，三帧仍 PASS。
-  使真实帧翻绿的临界 `σ_flat = 0.013057 mag` = 权威值的 **18.7 倍**。
-  ⇒ 本单元三类数据结论**不一致**，按审查标准 §6 记创新点**不成立（待修）**；该判红与 `06_photometry.md` §4.1 的 L4 49 帧「PASS 1/49」**同归因**（未消系统项超预算），不是判据不可用。
-- **诚实边界**：权威常数 0.0007 mag 是 L4 高空间频项的**折算**口径，其向本单元逐星预算的换算链**未独立核证**；
+  使真实帧翻绿的临界 `σ_flat = 0.013057 mag` = 该约定值的 **18.7 倍**。
+  ⇒ 本单元三类数据结论**不一致**，按审查标准 §6 记创新点**不成立（待修）**；该判红只可归到「未消系统项超预算」这一层，
+  **具体归因（平场 / PSF / 颜色 / 探测器非线性）不可由该门给出**——`sigma_obs_mag` 在 `m(x,y)` 之前算，门对成因失明（见 `README.md` §6 第 20 条）。
+- **诚实边界**：0.0007 mag 的一手出处**未取得**（仓内唯一活着处是代码字面量），只能作仓内约定常数引用、不得称权威常数；
+  它是 L4 高空间频项的**折算**口径，其向本单元逐星预算的换算链**未独立核证**；
   但取仿真口径（0.000881 mag）判定同样为红，结论对该换算不敏感。
 
 ---

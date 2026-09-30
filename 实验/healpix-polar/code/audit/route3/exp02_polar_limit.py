@@ -9,6 +9,11 @@ import json
 import os
 import numpy as np
 from exp01_leaf_area import pixel_corners, to_vec, vos_quad, ring_layout
+from pathlib import Path
+
+# 落盘锚点：从脚本自身位置向上定位本单元目录（实验/healpix-polar），
+# 不依赖 dirname 的层数；找不到即抛错，避免静默写到错误位置。
+UNIT = next(p for p in Path(__file__).resolve().parents if p.name == "healpix-polar")
 
 LIMIT = 2.0*np.sqrt(2.0)/np.pi - 1.0          # -0.099683683838434
 DEFICIT_C = (np.pi/3.0)*(1.0 - 2.0*np.sqrt(2.0)/np.pi)  # coefficient of 1/N^2
@@ -60,7 +65,7 @@ def main():
         count16=bool(all(r["n_abs_rel_gt_1pct"] == 16 for r in out["rows"][-4:])),
         belt_o1_over_N2=[float(x) for x in b])
     print("VERDICT:", json.dumps(out["verdict"]))
-    with open(os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), "results", "audit", "route3", "exp02_polar_limit.json"), "w") as f:
+    with open(os.path.join(UNIT, "results", "audit", "route3", "exp02_polar_limit.json"), "w") as f:
         json.dump(out, f, indent=1)
 
 if __name__ == "__main__":
