@@ -225,6 +225,6 @@ negative:   eng/tests/config/fixtures/negative/cpu_profile_v2_bad_os_abi.json（
 | 文档事实源 | `docs/engineering/CONFIG_CONTRACT.md`（本文件） | 语义与索引 | CFG002-07（DOCUMENT_INDEX 恰一次 + ACTIVE_NORMATIVE） |
 | 文档索引 | `docs/DOCUMENT_INDEX.yaml` | docs/** 与根治理文档 | `eng/tools/doccheck/check_doc_index.py` |
 | 测试登记 | `eng/tests/test_index.csv` | eng/tests/** 子目录 | CFG002-07（登记 eng/tests/config；未登记集合 ⊆ 已登记缺口清单） |
-| CI 注册表 | `eng/ci/checks.json` ↔ `docs/engineering/01_CHECKS.md` §2 | 检查项双向对齐 | config 域的 `UT-CONFIG` 步骤登记在 CI 侧（正本 = `docs/engineering/01_CHECKS.md` §2） |
+| CI 注册表 | 门禁注册面（G08-10 重建） ↔ `docs/engineering/VALIDATION_EVIDENCE_STANDARD.md §12` §2 | 检查项双向对齐 | config 域的 `UT-CONFIG` 步骤登记在 CI 侧（正本 = `docs/engineering/VALIDATION_EVIDENCE_STANDARD.md §12` §2） |
 
 CFG002-ANCHOR: item5-index-ownership → eng/packaging/config/config_registry.json

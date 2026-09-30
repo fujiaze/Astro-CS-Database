@@ -7,7 +7,7 @@
 ## 权威链入口
 
 - 最高设计：`docs/ASTROCS_DESIGN.md`（项目是什么、做到什么、CLI/架构/验收）；
-- 一级工程文档：`AGENTS.md`（机器干活手册）、`docs/engineering/`（工程规范）、`docs/ASTROCS_DESIGN.md` §13（版本与发布权）（控制包规范）、`docs/ASTROCS_DESIGN.md` §12（验证体系）（验收规范）、本目录 `docs/engineering/CI_SPEC.md`（CI 规范）；
+- 一级工程文档：`AGENTS.md`（机器干活手册）、`docs/engineering/`（工程规范）、`docs/ASTROCS_DESIGN.md` §13（版本与发布权）（控制包规范）、`docs/ASTROCS_DESIGN.md` §12（验证体系）（验收规范）、本目录 `docs/engineering/TEST_STANDARD.md`（CI 规范）；
 - 阅读方式：从最高设计起沿各篇末尾的索引指针逐层下钻，`docs/DOCUMENT_INDEX.yaml` 提供全量文档的双向索引。
 
 ## 文档分层

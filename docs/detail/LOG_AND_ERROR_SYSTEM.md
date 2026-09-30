@@ -193,7 +193,7 @@ flowchart LR
 | R3 日志落点 | 生产面日志落点必须派生自 `output_dir` 或登记 | 同上 | 注入 `run/` 字面量 ⇒ 判红 |
 | R4 台账完整 | 台账锚存活、只减不增、扫描面非空（fail-closed） | 同上 | 抹掉锚/清空扫描面 ⇒ 判红 |
 
-判据的机器入口、负例命令与验收点见合同 §9 与 `docs/engineering/01_CHECKS.md` 的 `CHK-LOG-SYS`。
+判据的机器入口、负例命令与验收点见合同 §9 与 `docs/engineering/VALIDATION_EVIDENCE_STANDARD.md §12` 的 `CHK-LOG-SYS`。
 
 ---
 

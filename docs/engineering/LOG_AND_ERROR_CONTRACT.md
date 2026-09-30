@@ -175,7 +175,7 @@ python3 eng/tools/quality/check_log_system.py --json-out run/ci/log-system/log_s
 python3 eng/tools/quality/check_log_system.py --self-test
 ```
 
-注册项 = `CHK-LOG-SYS`（`eng/ci/checks.json`、`docs/engineering/01_CHECKS.md` §2）。
+注册项 = `CHK-LOG-SYS`（门禁注册面（G08-10 重建）、`docs/engineering/VALIDATION_EVIDENCE_STANDARD.md §12` §2）。
 
 R3 的落点扫描按字面量执行：源码中出现写死的落点路径字面量（不限于 §7 列举的落点之外位置）
 即判红，注入样例取仓库过程产物目录下的日志路径。该判据只允许一处声明，即本节。
