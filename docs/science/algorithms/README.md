@@ -29,3 +29,16 @@
 上游：docs/ASTROCS_DESIGN.md §1.4（非目标）、§2.1–§2.2（创新点）、§3.3（科学量与星表）、§4.2（Phase1 节点流程）、§4.4（输出合同）、§5（mosaic 各节）、§6（export 各节）、§10（I/O 与原子产品）、§12.1（科学正确性与三重佐证）。
 
 科学断言以 docs/science/ 为权威，佐证要求见 docs/engineering/DOCUMENT_GOVERNANCE.md §2。
+
+
+对应正本（`docs/science/` 顶层；算法层条目若与正本不一致，以正本为准）：
+
+- 噪声模型与 5d 自校准判据 / 相对加权非负平面 —— docs/science/NOISE_MODEL.md
+- 测光与零点标准误 —— docs/science/PHOTOMETRY.md
+- 集成与 SNR 口径 —— docs/science/INTEGRATION.md、docs/science/CONTROL_WEIGHT_SNR.md
+- Drizzle 几何与守恒映射 —— docs/science/DRIZZLE.md
+- 数据语义（DATA-001 等产物合同）—— docs/science/DATA_SEMANTICS.md
+- 天测解算 —— docs/science/ASTROMETRY.md
+- 相位二 UPM / 覆盖 —— docs/science/PHASE2_UPM.md
+- HiPS 写出 —— docs/science/PHASE3_HIPS_TO_FITS.md
+- ACR 等价性 —— docs/science/ACR_EQUIVALENCE.md
