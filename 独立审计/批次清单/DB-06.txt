@@ -1,2 +1,0 @@
-docs/contracts/CONFIG_CONTRACT.md
-docs/contracts/DATA_ARTIFACTS.md
