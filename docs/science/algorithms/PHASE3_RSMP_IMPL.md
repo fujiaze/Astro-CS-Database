@@ -23,7 +23,7 @@
   NEAREST/BILINEAR 逐输出像素采样（含跨 tile 邻域读取）、tile 缓存——
   作为 P3-RSMP-IMPL/TEST/INT 的合同基线。
 - 非目标: 不把 variance/weight/ivar 作为 **signal 的输入模式**（`p3_resample_check_mode`
-  拒：`weight`/`flux_per_pixel` ⇒ `P3_RS_UNSUPPORTED`（SCI §9a-8）；`variance`/`ivar`
+  拒：`weight`/`flux-per-pixel` ⇒ `P3_RS_UNSUPPORTED`（SCI §9a-8）；`variance`/`ivar`
   依 DATA-P3-UNC-001 §30.4-4 已**转 uncertainty 子产品消费面**
   `p3_uncertainty_open/close/propagate`，故非「不实现」）；support 输入与
   flux-per-pixel 面积换算仍不实现（SCI §9a-10/§9a-8）；不做 alpha channel/BLANK int tile
@@ -175,7 +175,7 @@ kMaxOrder=20 来自 hips_properties.h:23（ARCH-P3 §3）。
 ### 6.2 输入模式守卫——`p3_resample_check_mode`（cpp:95-107）
 
 `input_mode == "surface_brightness"` 唯一返回 `P3_RS_OK`；`nullptr`/空串 ⇒ `P3_RS_PARAM`；
-`weight`/`flux_per_pixel` ⇒ `P3_RS_UNSUPPORTED`（SCI §9a-8）；其余（含 `flux`/`variance`/`ivar`）
+`weight`/`flux-per-pixel` ⇒ `P3_RS_UNSUPPORTED`（SCI §9a-8）；其余（含 `flux`/`variance`/`ivar`）
 ⇒ `P3_RS_PARAM`——**「未支持模式」≠「显式拒」**：`variance`/`ivar` 依 DATA-P3-UNC-001 §30.4-4 已转 uncertainty 子产品消费面（§3 符号表 `p3_uncertainty_*`；cpp:221-222 逐字注记）。
 实测偏差: 会话编排层未接线（DISP-P3RSMP-003）。
 
