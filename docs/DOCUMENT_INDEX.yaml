@@ -30,6 +30,14 @@ doc_index:
   schema_rev: "3"
   coverage: "docs/** 全部 .md 与 .yaml + 仓库根固定条目（AGENTS.md、README.md、VERSION）；目录招牌件按「每目录必有 README」治理，不进规范索引面"
   active:
+    - path: "eng/contracts/ledgers/ledger_schema.py"
+      status: ACTIVE_NORMATIVE
+      duty: 合同台账的 schema 校验与加载（fail-closed）
+      upstream: "docs/engineering/CONFIG_SCHEMA.md"
+    - path: "eng/tools/source_scan.py"
+      status: ACTIVE_NORMATIVE
+      duty: 源码扫描工具：注释剥离与源文件遍历
+      upstream: "docs/engineering/DOCUMENT_GOVERNANCE.md"
     - path: "docs/science/CCD_LINEAR_DEFECT_LITERATURE.md"
       status: ACTIVE_INFORMATIVE
       duty: CCD/CMOS 线性缺陷检测与修复的一手文献证据件（逐条原文位置+摘录）
@@ -666,12 +674,10 @@ doc_index:
       duty: "异构计算运行时：kernel registry、CPU/GPU 调度、device executor、"
       upstream: "docs/ASTROCS_DESIGN.md §8.4（模块与 ABI）"
       downstream: ""
-    - path: "docs/detail/astro_image_io.md"
       status: ACTIVE_INFORMATIVE
       duty: "唯一 I/O 层：FITS/XISF/ahpx 读写、zstd/lz4 压缩、HiPS 读/写（signal/"
       upstream: "docs/ASTROCS_DESIGN.md §8.4（模块与 ABI）"
       downstream: "aio_upm.h"
-    - path: "docs/detail/calibration.md"
       status: ACTIVE_INFORMATIVE
       duty: "masterBias/Dark/Flat 生成（sigma-clip + median/mean 合并）、单帧图像校准"
       upstream: "docs/ASTROCS_DESIGN.md §8.4（模块与 ABI）"
@@ -681,88 +687,71 @@ doc_index:
       duty: "共享权威基础库：HEALPix 核心（NESTED 唯一实现）+ SHA-256 + 标量精度抽象。作为全链路通用基础设施，被上层科学/IO/浏览器复用，不承载业务科学语义"
       upstream: "docs/ASTROCS_DESIGN.md §8.4（模块与 ABI）"
       downstream: ""
-    - path: "docs/detail/dynamic_psf.md"
       status: ACTIVE_INFORMATIVE
       duty: "Moffat4 动态 PSF 建模与拟合质量代理（q_psf/residual_scale）"
       upstream: "docs/ASTROCS_DESIGN.md §8.4（模块与 ABI）"
       downstream: ""
-    - path: "docs/detail/gaia_xpsd_client.md"
       status: ACTIVE_INFORMATIVE
       duty: "解析 PixInsight XPSD 格式本地星表（Gaia DR3 / DR3SP，离线、零网络）"
       upstream: "docs/ASTROCS_DESIGN.md §8.4（模块与 ABI）"
       downstream: "unified_object_compatibility_map_v1.json、memory.md"
-    - path: "docs/detail/healpix_browser_qt.md"
       status: ACTIVE_INFORMATIVE
       duty: "HiPS/HEALPix 球面浏览器（Qt6 + OpenGL，STF 显示，可选构建）"
       upstream: "docs/ASTROCS_DESIGN.md §8.4（模块与 ABI）"
       downstream: "CMakeLists.txt、README.md、main.cpp 等 13 处"
-    - path: "docs/detail/healpix_drizzle.md"
       status: ACTIVE_INFORMATIVE
       duty: "球面 Drizzle：HEALPix NESTED 网格重投影（tiled）+ 通量守恒累加"
       upstream: "docs/ASTROCS_DESIGN.md §8.4（模块与 ABI）"
       downstream: "unified_object_compatibility_map_v1.json、memory.md"
-    - path: "docs/detail/hips_p2.md"
       status: ACTIVE_INFORMATIVE
       duty: "输入哈希链：p2_frame_id → canonical manifest（frame_id|filter=;order="
       upstream: "docs/ASTROCS_DESIGN.md §8.4（模块与 ABI）"
       downstream: ""
-    - path: "docs/detail/orchestrator.md"
       status: ACTIVE_INFORMATIVE
       duty: "Phase1 编排：stage1.json 驱动 READ/CALIBRATE/STAR/PSF/PLATESOLVE/"
       upstream: "docs/ASTROCS_DESIGN.md §8.4（模块与 ABI）"
       downstream: "update_audit_status.py、PENDING.md、CMakeLists.txt、orchestrator.h"
-    - path: "docs/detail/phase1_session.md"
       status: ACTIVE_INFORMATIVE
       duty: "Phase1 装配/编排：四段 io_read→calibrate→cosmetic→io_write 的进程内"
       upstream: "docs/ASTROCS_DESIGN.md §8.4（模块与 ABI）"
       downstream: "memory.md"
       notes: "冻结点：`API-P1-001`"
-    - path: "docs/detail/phase2.md"
       status: ACTIVE_INFORMATIVE
       duty: "Phase2 多帧统一模型：coverage → sampler → UPM → block calibrate →"
       upstream: "docs/ASTROCS_DESIGN.md §8.4（模块与 ABI）"
       downstream: "update_audit_status.py、README.md"
-    - path: "docs/detail/phase2_int.md"
       status: ACTIVE_INFORMATIVE
       duty: "逐像素加权积分 reducer：`signal = Σ wᵢxᵢ / Σ wᵢ`（仅 eligible ∧"
       upstream: "docs/ASTROCS_DESIGN.md §8.4（模块与 ABI）"
       downstream: "README.md、memory.md"
-    - path: "docs/detail/phase2_rej.md"
       status: ACTIVE_INFORMATIVE
       duty: "每像素候选栈排异决策——eligibility strided gather 单路径"
       upstream: "docs/ASTROCS_DESIGN.md §8.4（模块与 ABI）"
       downstream: ""
-    - path: "docs/detail/phase2_samp.md"
       status: ACTIVE_INFORMATIVE
       duty: "三阶段 background-clean 控制点采样——Stage A 候选 patch"
       upstream: "docs/ASTROCS_DESIGN.md §8.4（模块与 ABI）"
       downstream: "unified_object_compatibility_map_v1.json、README.md"
-    - path: "docs/detail/phase2_upm.md"
       status: ACTIVE_INFORMATIVE
       duty: "fit 职责：消费 DATA-P2-SMP 控制观测（P2ControlObservation[]"
       upstream: "docs/ASTROCS_DESIGN.md §8.4（模块与 ABI）"
       downstream: "unified_object_compatibility_map_v1.json"
-    - path: "docs/detail/phase3_fits.md"
       status: ACTIVE_INFORMATIVE
       duty: "signal 主 HDU + COVERAGE 扩展 HDU 的 FITS 单文件写出——"
       upstream: "docs/ASTROCS_DESIGN.md §8.4（模块与 ABI）"
       downstream: "README.md、memory.md"
-    - path: "docs/detail/phase3_proj.md"
       status: ACTIVE_INFORMATIVE
       duty: "TAN(gnomonic) 投影正/反映射（G2，pixel↔world，RA wrap 归一）"
       upstream: "docs/ASTROCS_DESIGN.md §8.4（模块与 ABI）"
       downstream: "README.md、memory.md"
-    - path: "docs/detail/phase3_rsmp.md"
       status: ACTIVE_INFORMATIVE
       duty: "HiPS tile 重采样（G4）：NEAREST 精确 cell / BILINEAR 一阶插值"
       upstream: "docs/ASTROCS_DESIGN.md §8.4（模块与 ABI）"
       downstream: "README.md"
-    - path: "docs/detail/photometric_calib.md"
       status: ACTIVE_INFORMATIVE
       duty: "测光定标（合成星表相对流量）→ PhotometricCalibrationQuality"
       upstream: "docs/ASTROCS_DESIGN.md §8.4（模块与 ABI）"
       downstream: "anchor_contract.json、photometric_calib.h"
-    - path: "docs/detail/plate_solve.md"
       status: ACTIVE_INFORMATIVE
       duty: "星表匹配 + TAN/SIP plate solve → WCS（含 SIP A/B/AP/BP 与质量指标"
       upstream: "docs/ASTROCS_DESIGN.md §8.4（模块与 ABI）"
@@ -892,7 +881,6 @@ doc_index:
       upstream: "docs/ASTROCS_DESIGN.md §8.4（模块与 ABI）"
       downstream: "anchor_contract.json"
       notes: "eng/tools/quality/gen_module_readmes.py 生成"
-    - path: "docs/detail/registry/astrocs.phase3.resample.md"
       status: GENERATED
       duty: "Registry production 模块(唯一源=module_adapters.cpp descriptor)。职责由"
       upstream: "docs/ASTROCS_DESIGN.md §8.4（模块与 ABI）"
@@ -927,13 +915,11 @@ doc_index:
       duty: "docs/modules/registry/module_id_migration_baseline.json"
       upstream: "docs/ASTROCS_DESIGN.md §8.4（模块与 ABI）"
       downstream: "文档现状审计台账.csv、迁移合并清单.md、derived.json 等 21 处"
-    - path: "docs/detail/snr_estimator.md"
       status: ACTIVE_INFORMATIVE
       duty: "三层噪声模型：PhotometricCalibrationQuality / PsfFitQuality /"
       upstream: "docs/ASTROCS_DESIGN.md §8.4（模块与 ABI）"
       downstream: ""
       notes: "`eng/tools/quality/gen_module_readmes.py` 生成"
-    - path: "docs/detail/star_detector.md"
       status: ACTIVE_INFORMATIVE
       duty: "Phase1 单帧 light **全图盲检测**（本实现 = 最高设计 §4.2"
       upstream: "docs/ASTROCS_DESIGN.md §8.4（模块与 ABI）"
@@ -971,82 +957,66 @@ doc_index:
       upstream: "docs/ASTROCS_DESIGN.md §0.2（详细文档层与双向索引）"
       downstream: "CONTROL_PACK_SPEC.md、ENGINEERING_SPEC.md、README.md 等 5 处"
       notes: "插件文档总索引（§0 权威链 ⑥）"
-    - path: "docs/detail/algorithms_phase1/01_calibration.md"
       status: ACTIVE_NORMATIVE
       duty: "把原始 light 帧转换为定标后的信号（减偏置、暗流、平场），并传播不确定度"
       upstream: "docs/ASTROCS_DESIGN.md §4.2（Phase1 节点流程）"
       downstream: "config_registry.json"
-    - path: "docs/detail/algorithms_phase1/02_cosmetic.md"
       status: ACTIVE_NORMATIVE
       duty: "生成/应用坏点、热像素、宇宙线与异常像素的修正与 validity 标志"
       upstream: "docs/ASTROCS_DESIGN.md §4.2（Phase1 节点流程）"
       downstream: "config_registry.json"
-    - path: "docs/detail/algorithms_phase1/03_star_detection.md"
       status: ACTIVE_NORMATIVE
       duty: "检测图像中的源（星点/延展源），输出位置、质心/矩、源身份与 selection function 参数"
       upstream: "docs/ASTROCS_DESIGN.md §4.2（Phase1 节点流程）"
       downstream: "ACCEPTANCE_SPEC.md、phase_config_normalize.schema.json、config_registry.json 等 7 处"
-    - path: "docs/detail/algorithms_phase1/04_psf.md"
       status: ACTIVE_NORMATIVE
       duty: "估计空间变化的 PSF 模型 `P_k(u,v;x,y)` 及其参数、残差与适用域"
       upstream: "docs/ASTROCS_DESIGN.md §4.2（Phase1 节点流程）"
       downstream: "config_registry.json"
-    - path: "docs/detail/algorithms_phase1/05_platesolve.md"
       status: ACTIVE_NORMATIVE
       duty: "从检测源与参考星表（Gaia/离线）解算天体测量解，生成 ICRS WCS 并验证"
       upstream: "docs/ASTROCS_DESIGN.md §4.2（Phase1 节点流程）"
       downstream: "config_registry.json"
-    - path: "docs/detail/algorithms_phase1/06_photometry.md"
       status: ACTIVE_NORMATIVE
       duty: "对检测源做 **PSF 拟合域**测光（孔径测光**仅作显式声明的诊断/交叉验证**，非生产口径——依据 `docs/ASTROCS_DESIGN.md`「全链只有一个 `flux` 口径」），把本帧 signal 映射到统一线性"
       upstream: "docs/ASTROCS_DESIGN.md §4.2（Phase1 节点流程）"
       downstream: "config_registry.json、check_cfg002_registry.py、p1phot_tests_spatial.cpp"
-    - path: "docs/detail/algorithms_phase1/07_noise_snr.md"
       status: ACTIVE_NORMATIVE
       duty: "从校准方差、背景、PSF 与光度响应估计逐像素噪声、逐源 SNR、深度 `m5`、点源信息量 `point_information` 与**帧级 SNR**（写入 HiPS 文件头的唯一帧级参考）。**Phase1 的 "
       upstream: "docs/ASTROCS_DESIGN.md §4.2（Phase1 节点流程）"
       downstream: "phase_config_mosaic.schema.json、phase_config_normalize.schema.json、sparse_snr_layer.schema.json 等 11 处"
-    - path: "docs/detail/algorithms_phase1/08_drizzle.md"
       status: ACTIVE_NORMATIVE
       duty: "把定标后单帧图像按 WCS 重采样到球面 HEALPix/HiPS 格点，输出标准化单帧产品（HiPS + 结构化 JSON）"
       upstream: "docs/ASTROCS_DESIGN.md §4.2（Phase1 节点流程）"
       downstream: "config_registry.json"
-    - path: "docs/detail/algorithms_phase2/09_coverage.md"
       status: ACTIVE_NORMATIVE
       duty: "建立输入帧/区域的重叠图与几何有效域，输出 coverage 产品与连通分量"
       upstream: "docs/ASTROCS_DESIGN.md §5.2（固定科学流程）"
       downstream: "config_registry.json"
-    - path: "docs/detail/algorithms_phase2/10_sampling.md"
       status: ACTIVE_NORMATIVE
       duty: "为 UPM 拟合提供两类稀疏采样——① 光度控制点（定每帧**加性**校正场；本期 `g_k ≡ 1`，不做乘性响应）；② **天光背景采样点**（定加性天光面 `C_k(x)`）；同时生成星点掩膜，保证模型可辨识"
       upstream: "docs/ASTROCS_DESIGN.md §5.2（固定科学流程）"
       downstream: "config_registry.json、sampler.h、sky_plane.h、sampler.cpp"
-    - path: "docs/detail/algorithms_phase2/11_upm.md"
       status: ACTIVE_NORMATIVE
       duty: "对重叠区域拟合**加性天光亮度平面**的统一相对模型（UPM）：全部帧联合构建**公共天光面 `B_ref(x)`**，每帧只拟合自己的**平缓梯度 `δ_k(x)`**，并把各帧**「多退少补」对齐到该公共面**（`c"
       upstream: "docs/ASTROCS_DESIGN.md §5.2（固定科学流程）"
       downstream: "phase_config_mosaic.schema.json、config_registry.json、sky_plane.h 等 6 处"
-    - path: "docs/detail/algorithms_phase2/12_rejection.md"
       status: ACTIVE_NORMATIVE
       duty: "估计潜在污染状态（cosmic ray、卫星线、坏列、移动源、云/梯度、失焦/拖线），输出 mask/count/reason/probability"
       upstream: "docs/ASTROCS_DESIGN.md §5.2（固定科学流程）"
       downstream: "ACCEPTANCE_SPEC.md、config_registry.json"
-    - path: "docs/detail/algorithms_phase2/13_integration.md"
       status: ACTIVE_NORMATIVE
       duty: "按明确科学目标把归一化+排异后的帧集成为马赛克：扩展源 GLS、点源 Q/W、PSF 信号权重复合分量的诊断/基线对照"
       upstream: "docs/ASTROCS_DESIGN.md §5.2（固定科学流程）"
       downstream: "phase_config_mosaic.schema.json、config_registry.json、test_unified_object_contract.py 等 8 处"
-    - path: "docs/detail/algorithms_phase3/14_projection.md"
       status: ACTIVE_NORMATIVE
       duty: "管理 export 支持的 WCS 投影 registry（**内置多种投影算法**：TAN/SIN/CAR/AIT/STG/MOL/CEA/ZEA），定义适用域、奇点、坐标语义与正反变换合同"
       upstream: "docs/ASTROCS_DESIGN.md §6.2（export 流程）"
       downstream: "dead_config_keys.json、phase_config_export.schema.json、projection_registry.schema.json 等 6 处"
-    - path: "docs/detail/algorithms_phase3/15_resample.md"
       status: ACTIVE_NORMATIVE
       duty: "对每个输出像素中心做 WCS inverse 定位输入 HEALPix，按产品语义采样核重采样，并传播不确定度/相关描述"
       upstream: "docs/ASTROCS_DESIGN.md §6.2（export 流程）"
       downstream: "config_registry.json"
-    - path: "docs/detail/algorithms_phase3/16_fits_output.md"
       status: ACTIVE_NORMATIVE
       duty: "把重采样后的平面产品流式写出为测量意义明确的 FITS 文件（PRIMARY + 扩展 HDU + WCS + provenance）"
       upstream: "docs/ASTROCS_DESIGN.md §6.2（export 流程）"

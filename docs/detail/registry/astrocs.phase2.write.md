@@ -1,16 +1,27 @@
 # 模块 astrocs.p2.hips_writer（MOD-astrocs-phase2-write）
 
-> 上游：docs/ASTROCS_DESIGN.md §8.5（模块与 ABI）
+> 上游：docs/ASTROCS_DESIGN.md §8.5（模块与 ABI）、§9（原子发布条款）
+> 科学正本：docs/science/algorithms/PHASE2_MOSAIC_WRITE.md（ALG-P2-HIPS-001..004；
+> §7 四概念分离、§8/§9 测试设计、§11.4 冻结容差）
+> 共享 FROZEN SCI（零改动）：docs/science/PHASE2_UPM.md（`w_UPM` 唯一冻结式 §5）、
+> docs/science/INTEGRATION.md（signal / sup_max）、docs/science/REJECTION.md（排异判据）
+> 数据正本：docs/science/DATA_SEMANTICS.md §20（DATA-P2-HIPS）
+> API 正本：docs/engineering/PUBLIC_API.md（API-P2-HIPS-001，Phase2 mosaic write 节）
+> I/O：docs/detail/infrastructure/17_aio.md（IO-002 读合同、IO-003 原子发布）
 
-> 合同：科学/算法正本 = docs/science/algorithms/PHASE2_MOSAIC_WRITE.md
-> （ALG-P2-HIPS-001..004）；数据合同 = DATA-P2-HIPS（DATA_SEMANTICS §20）；
-> C API = API-P2-HIPS-001（PUBLIC_API Phase2 mosaic write 节）。模块级事实以
-> lib/algorithms/coverage/hips_p2/README.md（CONTRACT_READY）+ module.yaml
-> （MOD-astrocs-phase2-hips-writer，module_id=astrocs.p2.hips_writer，
-> dll_target=astrocs_p2_hips_writer.dll）为准；合同三件套落位规则见
-> docs/detail/README.md。唯一生产源 lib/algorithms/coverage/tools/stage2.cpp
-> （astrocs-stage2 工具，lib/algorithms/coverage/CMakeLists.txt）+ config 层
-> lib/algorithms/coverage/include/astro/phase2/stage2_common.h（P2Stage2Config）。
+模块级事实以 `lib/algorithms/coverage/hips_p2/` 三件套（README + module.yaml +
+memory.md，CONTRACT_READY，entrypoint 未落地）为准；module.yaml 登记
+MOD-astrocs-phase2-hips-writer，module_id = `astrocs.p2.hips_writer`，dll_target =
+`astrocs_p2_hips_writer.dll`。唯一生产源 = lib/algorithms/coverage/tools/stage2.cpp
+（`astrocs-stage2` 工具，lib/algorithms/coverage/CMakeLists.txt）+ config 层
+lib/algorithms/coverage/include/astro/phase2/stage2_common.h（`P2Stage2Config`）。
+共用 writer 库 lib/infrastructure/aio/src/hips/aio_hips_writer.cpp 属 P1-HIPS
+冻结域（ALG-HIPS-001..005），本模块是**库消费者**；
+`lib/infrastructure/aio/healpix_db` 侧的生产参与仅
+`healpix_drizzle/astro_sphere_sink.cpp`（P1 写通道，引用不归属本模块）。
+
+owner = SA-P2-I23；depends_on_int = P2-INT / IO-003；legacy_paths =
+「lib/algorithms/coverage write sources; lib/infrastructure/aio/healpix_db」。
 
 ## 职责与明确非职责
 
@@ -22,7 +33,8 @@
   → UPM 持久层 + diagnostics.json（均 stage2.cpp）。
 - 马赛克编排：DISCOVER/COVERAGE_UNION/CONTROL_SAMPLE/UPM_FIT/
   UPM_PERSIST/BLOCK_PLAN/REJECT+INTEGRATE+HIPS_WRITE/HIPS_VERIFY
-  （stage2.cpp）；target_order 高于输入最高 order 拒绝（stage2.cpp）。
+  （stage2.cpp）；**target_order 禁插值伪装分辨率** —— 高于输入最高 order → rc=3
+  （stage2.cpp）。
 - 写出：aio_hips_product_begin（nside=1<<(target_order+9)、dtype
   、flags 仅 SIGNAL|SUPPORT、creator "ivo://astrocs/phase2"）→
   逐 tile 排异+积分（p2_collect_candidate_stack/p2_reject_stack_ex/
@@ -37,12 +49,20 @@
 - ivar 权重门：缺 ivar 产品（默认）→ rc=7 显式科学错误（stage2.cpp，rc=7 在其内）；
   禁 support 冒充 ivar。
 
-**不负责**：叶级归一/FITS 写盘/hierarchy/MOC/properties（writer 库
+**不负责**：单帧校准 / 星点检测 / PSF 建模 / plate solve（输入由 Phase1 帧 HiPS
+提供）；叶级归一/FITS 写盘/hierarchy/MOC/properties（writer 库
 aio_hips_writer.cpp，P1-HIPS 域 ALG-HIPS-001..005）；HiPS 格式解析
 （IO-002/aio_hips_reader）；原子发布（IO-003 编排层；阶段二直写 out_hips 无
 staging，不满足最高设计 §9 的原子发布条款，属已登记的例外面）。
 UPM/排异/积分公式（SCI-UPM-001/SCI-REJ-001/SCI-INT-001
 FROZEN，w_UPM 唯一冻结式 PHASE2_UPM.md §5）；P3 HiPS→FITS。
+
+**阶段二数据面**：帧 HiPS（signal / support / SNR catalogue）；UPM sparse 模型
+（落盘标识 `astrocs-upm-v2`，DATA-UPM-MODEL-001）；马赛克产品 signal / support
+HiPS（variance / ivar 为可选诊断）。
+
+**阶段二配置面**：single JSON（模型 / integration / output），typed parser +
+schema 单一来源。
 
 ## 输入输出端口、DATA、单位、坐标、invalid
 
@@ -53,20 +73,32 @@ FROZEN，w_UPM 唯一冻结式 PHASE2_UPM.md §5）；P3 HiPS→FITS。
 
 权威源 = DATA-P2-HIPS（DATA_SEMANTICS §20）；descriptor 端口表（`p2_write_descriptor`，
 坐标记为 PIXEL）为编排词汇，球面端口以 DATA-P2-HIPS（NESTED 球面）为准。
-invalid = NaN signal + support=0（writer 库 aio_hips_writer.cpp）；ivar 缺产品=rc=7
-science/degraded（stage2.cpp）。四概念分离红线：signal/variance/support/
-mask 严格分离，mask 不输出产品不入权重式（ALG-P2-HIPS §7）。
+invalid = NaN signal + support = 0（writer 库 aio_hips_writer.cpp）；ivar 缺产品 =
+rc=7 science / degraded（stage2.cpp）。
+
+**四概念分离红线（ALG-P2-HIPS §7）**：signal（SCI-INT §5 加权积分）、
+variance / ivar（输入侧逐帧产品权重语义）、support（sup_max 几何覆盖 [0,1]）、
+mask（rejection reasons + large_scale grow，**不输出产品、不入权重式**）严格分离；
+**禁 support 冒充 ivar**。
 
 ## 公共 header、核心 symbol 与生命周期
 
-生产入口 stage2.cpp `main`（CLI --cpu-workers/--io-workers/
---gpu-route/--deterministic CON-002 见 stage2.cpp）；config 层
-stage2_common.h（p2_stage2_parse_config/p2_stage2_make_upm_cfg
-/p2_acr_block_eligible）；编排消费 p2_collect_candidate_stack/
-p2_reject_stack_ex/p2_integrate_pixel/p2_large_scale_apply/p2_block_plan
-（lib/algorithms/coverage 冻结接口）；库消费 aio_hips.h 9 C ABI 符号（P1 冻结面）。
+生产入口 stage2.cpp `main`（CLI `--cpu-workers` / `--io-workers` / `--gpu-route` /
+`--deterministic`，CON-002）；阶段二头文件族 = `astro/phase2/{upm, stage2_common,
+coverage, sampler, rejection, block, integrate, acr_kernels}.h`（`P2_API` /
+`extern "C"`）；config 层 stage2_common.h（`p2_stage2_parse_config` /
+`p2_stage2_make_upm_cfg` / `p2_acr_block_eligible`）；编排消费
+`p2_collect_candidate_stack` / `p2_reject_stack_ex` / `p2_integrate_pixel` /
+`p2_large_scale_apply` / `p2_block_plan`（lib/algorithms/coverage 冻结接口）；库消费
+aio_hips.h 的 9 个 C ABI 符号（P1 冻结面）。源文件 =
+`lib/algorithms/coverage/{src, include/astro/phase2, tools, tests}/`。
+
 公共 API 登记 = API-P2-HIPS-001（PUBLIC_API Phase2 mosaic write 节，
 stage2 配置 schema + 退出码 2/3/4/5/6/7 + diagnostics.json 键集）。
+
+**ivar 与 ACR 的强制口径**：`use_ivar_weight` 由 stage2 显式透传（默认 1）；
+`weight_policy = ivar` 时 ACR 块**强制走 CPU**（ACR-IVAR-001）；ivar 产品整体缺失
+= 硬科学错误（rc=7），禁 support 冒充 ivar。
 
 ## Registry descriptor 与配置 schema
 
@@ -89,6 +121,8 @@ per-worker scratch + thread id 固定顺序定序归并；均 stage2.cpp），la
 确定性=同输入同 config 同 mosaic（tile 序固定、归并定序、单 writer；
 UTC 时间戳字段除外——writer 合同 ALG-HIPS-005）。
 
+性能特征：block planner 做内存估算并据此切块；dense cache 加速面求值。
+
 ## 内存/cache/I-O/所有权
 
 memory_limit_mb 经 p2_block_plan（safety_factor=0.75）产出
@@ -97,27 +131,49 @@ chunk_pixels micro-chunk；large_scale 全帧 cap 缓冲
 signal/support(/ivar) 产品逐 tile 读 + out_hips 单 writer 写 + 可选
 diagnostics.json；所有权=stage2 进程内缓冲，输入由 IO-002 读合同交付。
 
+**缓存**：UPM dense cache（按 model_hash 校验，stale = rc=2 拒绝；详见
+registry/astrocs.phase2.upm-apply.md）。
+
 ## 错误、日志、指标、取消和 checkpoint
 
-退出码 2=eng/packaging/config/CLI、3=coverage/target_order、4=frame_id/sampler、
-5=UPM、6=tile 读写/块不可行/finalize、7=ivar 门/HIPS_VERIFY；日志
-run/logs/phase2/<YYYYMMDD>/stage2.log + stderr；指标=
-diagnostics.json（rejection_resolved_methods/reject_hist/pixels_depth_*/
-acr_* route/model_hash 等；stage2.cpp）；取消=无（长 run 无检查点，
-如实登记）；跨模块：orchestrator cleanup_partial_output 已
-fs::remove_all 修复（orchestrator.cpp，失败清理 HiPS 目录树）。
+退出码 2 = eng/packaging/config/CLI、3 = coverage / target_order、4 = frame_id /
+sampler、5 = UPM、6 = tile 读写 / 块不可行 / finalize、7 = ivar 门 / HIPS_VERIFY。
+日志落点 = 块级 `log_dir`（默认 `<output_dir>/logs`），节点事件经 observability
+汇聚（最高设计 §7.3，阶段二工具侧同时输出 stderr）。指标 = diagnostics.json
+（`rejection_resolved_methods` / `reject_hist` / `pixels_depth_*` / `acr_*` route /
+model_hash 等；stage2.cpp）。取消 = 无（长 run 无检查点，如实登记）。跨模块：
+orchestrator 的 `cleanup_partial_output` 用 `fs::remove_all` 修复（orchestrator.cpp，
+失败时清理 HiPS 目录树）。错误码与退出码唯一源 =
+lib/infrastructure/cli/exit_codes.h；域→码映射唯一源 =
+docs/engineering/LOG_AND_ERROR_CONTRACT.md §5。
+
+**阶段二冻结科学合同 ID 集合**（零改动）：SCI-UPM-001..010、
+SCI-UPM-PERSIST-001、ALG-UPM-FRAME-BIND-001、ALG-REJ-001..008、
+SCI-INT-001/002/004/008、SCI-NOISE-015、SCI-UPM-WEIGHT-001、
+ALG-UPM-CONTROL-IVAR-001、DATA-UPM-CONTROL-UNC-001。`ERR-P2-UPM-001`（畸形模型）
+由 UPM 侧承载（见 registry/astrocs.phase2.upm-fit.md）。
 
 ## 独立 synthetic 验证命令与容差
 
 `TEST-P2-HIPS-001` 待建；设计冻结 = ALG-P2-HIPS-001..004
-（PHASE2_MOSAIC_WRITE.md §8/§9：NumPy 参考 signal/sup_max rtol=1e-12、序转换
-恒等往返、ivar 门负例）。现状相邻证据：phase2_synthetic_gate ACR
-mosaic_reject_legacy↔CPU 等价（synthetic_gate.cpp）、
-eng/tests/api/test_reject_integration_oracle.py。
+（PHASE2_MOSAIC_WRITE.md §8/§9：NumPy 参考 signal / sup_max rtol = 1e-12、序转换
+恒等往返、ivar 门负例）。现状相邻证据：phase2_synthetic_gate 的 ACR
+`mosaic_reject_legacy` ↔ CPU 等价（synthetic_gate.cpp）、synthetic_gate UPMW 组、
+G5 ivar 真值、SNR-015 ablation；eng/tests/api/test_reject_integration_oracle.py。
 
 ## 已知限制
 
-缺陷登记 = lib/algorithms/coverage/hips_p2/README.md §7：无 variance/ivar 输出产品；
-hash 链未入 HiPS properties provenance；阶段二直写 out_hips 无 staging
-（原子发布归 IO-003）；O(T·N) 覆盖帧 probe。迁移目标
-astrocs_p2_hips_writer.dll（未落地）；见 docs/KNOWN_LIMITATIONS.md。
+- ACR 仅有 `mosaic_reject_legacy` CPU launcher（**无 CUDA kernel**）；输出仅
+  signal / support；
+缺陷登记 = lib/algorithms/coverage/hips_p2/README.md §7 与 ALG-P2-HIPS-001..004
+缺陷清单（登记不改码，整改面未落地）：无 variance / ivar 输出产品；hash 链未入
+HiPS properties provenance；阶段二直写 `out_hips` 无 staging（原子发布归 IO-003，
+不满足最高设计 §9 的原子发布条款，属已登记的例外面）；O(T·N) 覆盖帧 probe。
+
+**日志落点越界登记**：阶段二工具面曾以 `run/logs/phase2/<YYYYMMDD>/` 为日志
+落点，该面属不在处置面内的位置（开发 / CI 过程日志），机器判据见
+docs/engineering/LOG_AND_ERROR_CONTRACT.md（判据 R3：注入 `run/logs/...` 字面量
+即判红）；合法落点只有块级 `<output_dir>/logs`。
+
+目标交付形态 astrocs_p2_hips_writer.dll 未落地。全局限制登记 =
+artifacts/evidence/known-limitations-ledger/LIMITATIONS.md。

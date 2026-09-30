@@ -1,35 +1,57 @@
 # 模块 astrocs.phase3.resample2
 
-> 上游：docs/ASTROCS_DESIGN.md §8.5（模块与 ABI）
+> 上游：docs/ASTROCS_DESIGN.md §8.5（模块与 ABI）、§6.2（export 流程：反向映射 +
+> 重采样）、§6.3（投影算法：输入语义守卫与输出模式）
+> 科学正本：docs/science/PHASE3_HIPS_TO_FITS.md（SCI-P3-001，FROZEN，零改动）、
+> docs/science/UNCERTAINTY_AND_COVARIANCE.md（重采样方差传播）
+> 算法正本：docs/science/algorithms/PHASE3_RSMP_IMPL.md（ALG-P3-RSMP-IMPL-001；
+> §5 映射声明、§6 公式与值语义表、§7 线程合同、§11 实测偏差、§12 测试设计、
+> §13 合同边界）；承接 docs/science/algorithms/PHASE3_RESAMPLE.md（ALG-P3-003 的
+> G3/G4 施工规格 + 采样核定义/误差/边界/适用域，公式零改动）
+> 数据正本：docs/science/DATA_SEMANTICS.md §29（DATA-P3-RES；§29.4 invalid、
+> §3 tile 内 leaf local 坐标 CDS oracle、§30 规则项）
+> API 正本：docs/engineering/PUBLIC_API.md（API-P3-RSMP-001，重采样公共消费面节）、
+> docs/engineering/PHASE3_API_V1.md（API-P3-001，p3_session 五段 FROZEN 镜像）
+> 架构正本：docs/engineering/ARCH-001.md
+> 落地设计：docs/detail/PHASE3_DETAILED_DESIGN.md §3–§4
 
-> 合同：SCI-P3-001（docs/science/PHASE3_HIPS_TO_FITS.md，FROZEN）/ ALG-P3-003
-> （docs/science/algorithms/PHASE3_RESAMPLE.md 的 G3/G4 施工规格）/
-> ALG-P3-RSMP-IMPL-001（docs/science/algorithms/PHASE3_RSMP_IMPL.md）/ DATA-P3-RES
-> （DATA_SEMANTICS §29）/ API-P3-RSMP-001（PUBLIC_API 重采样消费面）。
-> descriptor 词汇（module_id=astrocs.phase3.resample2、SCI-P3-RES-001/ALG-P3-003/
-> TEST-P3-RES-001）与 module_id 合同值 `astrocs.p3.resample` 的对齐属迁移目标（未落地）。
+模块 = `astrocs.p3.resample`（module_id 合同值）；registry 行
+MOD-astrocs-phase3-resample2；dll_target = `astrocs_p3_resample.dll`（迁移合同值，
+未落地，IMPLEMENTED 只由验收签发）；现状构建 = `astrocs_phase3_session` 静态库
+成员，`p3_resample.cpp` 为其五源文件之一。owner = SA-P3-S26；language = c++17；
+abi_version = 1；phase_scope = phase3；resource_class = cpu_heavy；
+threading_model = `host_executor_lease`（迁移目标合同值；现状 = 内核无内部线程，
+并行由会话 worker 池每 worker 独立 sampler 组织）。descriptor 词汇
+（module_id=`astrocs.phase3.resample2`、SCI-P3-RES-001 / ALG-P3-003 /
+TEST-P3-RES-001）与 module_id 合同值 `astrocs.p3.resample` 的对齐属迁移目标
+（未落地）。
 
 ## 1 身份与合同落位
 
-- 模块: astrocs.p3.resample（module_id 合同值；dll_target=astrocs_p3_resample.dll
-  为迁移合同值，未落地，IMPLEMENTED 只由验收签发；现状构建 =
-  astrocs_phase3_session 静态库成员，p3_resample.cpp 为其五源文件之一）。
-- 合同落位: lib/algorithms/resample/ 三件套（CONTRACT_READY；落位规则见
-  docs/detail/README.md）。
+- 合同落位: lib/algorithms/resample/ 三件套（CONTRACT_READY）。
 - 生产源: lib/algorithms/resample/p3_resample.cpp + 权威签名头 p3_resample.h。
-  签名头 p3_resample.h（202 行）。
-- 合同链: SCI-P3-001（docs/science/PHASE3_HIPS_TO_FITS.md，FROZEN）→
-  ALG-P3-003（docs/science/algorithms/PHASE3_RESAMPLE.md G3/G4 施工规格，
-  公式零改动）+ ALG-P3-RSMP-IMPL-001（PHASE3_RSMP_IMPL.md 实现级合同）→
-  DATA-P3-RES（DATA_SEMANTICS §29）+ API-P3-RSMP-001（PUBLIC_API 重采样
-  公共消费面节）→ TEST-P3-RES-001（设计冻结 = TEST-P3-RSMP-DESIGN-001，
-  见 §9）；编排面 API-P3-001（p3_session 五段 FROZEN）镜像不变。
+- 合同链: SCI-P3-001（FROZEN；映射声明 SCI-P3-RES-001 ⇒ SCI-P3-001 见 ALG §5）
+  → ALG-P3-003（PHASE3_RESAMPLE.md G3/G4 施工规格，公式零改动）+
+  ALG-P3-RSMP-IMPL-001 → DATA-P3-RES（DATA_SEMANTICS §29）+
+  API-P3-RSMP-001 → TEST-P3-RES-001（设计冻结 = TEST-P3-RSMP-DESIGN-001，
+  见 §9；矩阵 test_status = DORMANT，可执行面待落地）；编排面 API-P3-001 镜像不变；
+  ARCH-001（VERIFIED）。
 - 上游依赖: astrocs_phase3_session（properties 校验经
-  p3_sampler_open 间接消费 + lib/algorithms/shared/healpix 权威球面函数）；
+  p3_sampler_open 间接消费 + lib/algorithms/shared/healpix 权威球面函数
+  `leaf_to_tile_nest` / `tile_to_leaf_nest` / `nested_local_to_fits_index` /
+  `ang2pix` / `pix2ang`）；
   depends_on_int=P3-PROJ;IO-003;CPU-005（P3-PROJ=上游 WCS 域对齐、IO-003=tile 文件读路径、CPU-005=worker 池并行
   由每 worker 独立 sampler 结构性满足，ALG-P3-RSMP-IMPL-001 §7）。
-- 相邻占位 descriptor 注记: phase3_descriptor（module_id=
-  astrocs.phase3.resample）登记在 astrocs.phase3.resample.md，与本页不同源。
+- **相邻占位 descriptor（`astrocs.phase3.resample`）仍存在**：registry 的
+  `phase3_descriptor` 登记的占位 module_id 为 `astrocs.phase3.resample`，端口
+  `hips`（`DATA-HIPS-001`，必）与 `tile`（`DATA-TILE-001`，可），单位
+  `UnitId::SURFACE_BRIGHTNESS`，坐标分别 `CoordinateFrame::PIXEL` /
+  `CoordinateFrame::HEALPIX`；合同 ID SCI-P3-RES-001 / ALG-P3-003 为模板口径。
+  该 descriptor 现状按会话委托注册（工厂委托 P3Api session adapter），无独立
+  C ABI，**不是**本页的生产面；`execution_class = cpu_heavy`、`parallel_ok = True`、
+  配置 = phase config JSON（键集 = API-P3-001）；上游 `props` / `wcs_plan` 非法即
+  显式拒（fail-closed，无 silent default），数值 invalid 依 DATA-P3-RES。
+  **对齐该占位 module_id 与合同值 `astrocs.p3.resample` 属迁移目标（未落地）**。
 
 ## 2 职责与明确非职责
 
@@ -101,6 +123,15 @@
   lib/algorithms/resample/module.yaml 的对齐属迁移目标（未落地），不作冻结依据。
 - 注册序: phase3_descriptor→p3_wcs_descriptor→p3_resample2_descriptor→
   p3_writer_descriptor（registry 注册序列）；配置=phase config JSON（键集 = API-P3-001）。
+- 模块注册 = `lib/infrastructure/pipeline/module_ports.registry.json` 的
+  `astrocs.phase3.resample2`；生产接线 =
+  lib/infrastructure/scheduler/src/module_adapters.cpp 的 `p3_op_resample`。
+
+| 字段 | 默认 | 单位 | 说明 |
+|---|---|---|---|
+| `sampler` | `bilinear` | —— | 重采样核（权威名 `sampler`，取值 `nearest\|bilinear`，语义与适用域正本 = docs/science/algorithms/PHASE3_RESAMPLE.md） |
+| `correlation_output` | true | —— | 是否输出相关核 |
+| `order_limits` | —— | —— | 输入 order 选择约束（Nyquist） |
 
 ## 6 冻结公式（G3/G4 摘要；权威源=ALG-P3-RSMP-IMPL-001 §6）
 
@@ -121,6 +152,15 @@
 - tile 寻址: tile_ipix=leaf_ipix>>18（leaf_to_tile_nest(leaf,9)，
   W=512→shift=9，SCI §9a-1）；fits_index=(511−x)·512+y
   （DATA_SEMANTICS §3）；值语义表（NaN/C）=ALG §6.6。
+- **采样核是产品语义**（核定义、误差 / 边界与适用域正本 =
+  docs/science/algorithms/PHASE3_RESAMPLE.md；验证方式见 §9）：nearest 仅用于
+  离散 mask / 诊断或显式用户选择；bilinear / 高阶核用于连续场，但必须说明
+  通量 / 面亮度语义；**point-source Q/W/PSF 参数按各自语义插值，与普通 signal
+  插值分属两套口径**（普通 signal 插值规则**不得**机械套用于点源）。
+- 科学模式要求球面几何一致，**距离一律取球面量**；线性采样的输出协方差由输入
+  协方差经该算子双向作用得到，**仅输出对角 variance 时必须给相关核 / 近似误差**
+  （方差传播推导正本 = docs/science/UNCERTAINTY_AND_COVARIANCE.md）。
+  **coverage 与 variance 各自独立、互不代用**。
 
 ## 7 执行类、并行轴、ThreadBudget lease、确定性
 
@@ -147,8 +187,17 @@
 - provenance.missing_tiles 恒 nullptr（p3_session.cpp）——缺 tile
   聚合上报未接线（SCI §9a-9）。
 - astrocs_p3_resample.dll 未建（entrypoint 未落地）；探针/回归为内联编译。
-- 其余见 docs/KNOWN_LIMITATIONS.md 与 ALG-P3-RSMP-IMPL-001 §13
-  合同边界。
+- 错误码与退出码唯一源 = lib/infrastructure/cli/exit_codes.h（本页不复制数值表）；
+  取消 = 协作取消（宿主 cancel 通道 → 停止调度新单元 → 等运行中单元完成 →
+  exit 9，最高设计 §6.3）；模块内无 checkpoint（无断点续算）。
+- **错误与边界补充**：缺 tile / 非有限 → validity 标记，**不以零填充**；
+  无覆盖 / 无数据 = NaN（与支撑度 ≤ 0 一致），不用 0 或 ±Inf 冒充无效；NaN 采用
+  **样本级掩膜**（被掩除的样本不参与该输出像素，剩余样本权重**重归一**），
+  整个输出像素无有效覆盖则置 NaN 并**强制计数**（最高设计 §5.5/§10）；
+  point-source 模式缺 Q/W/PSF → fail-closed（普通 signal 插值属另一口径）；
+  采样核语义未声明 → 拒绝。
+- 合同边界与缺陷登记 = ALG-P3-RSMP-IMPL-001 §11/§13；全局限制登记 =
+  artifacts/evidence/known-limitations-ledger/LIMITATIONS.md。
 
 ## 9 验证与测试面（TEST-P3-RSMP-DESIGN-001 设计冻结 VERIFIED）
 
@@ -164,6 +213,10 @@
   eng/tests/backend/test_p3003_parallel_resampler.py +
   eng/tests/unit/p3_interp_test.cpp / p3_coverage_test.cpp（独立参考实现，
   非生产自证）。
+- Oracle 面补充：常量面亮度、点源通量、variance / correlation 传播与注入源恢复；
+  输出协方差与高精度矩阵 oracle 对比；HEALPix / HiPS 外部实现交叉；跨 tile
+  连续场无缝；不同 block / cache / worker 输出科学值一致；Q/W 重采样保持信息
+  解释（注入源验证）。
 - 执行证据：NOT_VERIFIED（验收证据待补）。
 
 ## 10 合同链接
@@ -174,8 +227,8 @@
   零改动）
 - DATA: docs/science/DATA_SEMANTICS.md §29
 - API: docs/engineering/PUBLIC_API.md（API-P3-RSMP-001 节）
-- 模块总页: docs/detail/phase3_rsmp.md；合同三件套:
-  lib/algorithms/resample/（落位规则见 docs/detail/README.md）
+- 合同三件套: lib/algorithms/resample/
+- 会话编排面现行权威 = docs/engineering/RT-001.md + docs/detail/registry/astrocs.phase3.*
 
 ## NaN 与写端口
 

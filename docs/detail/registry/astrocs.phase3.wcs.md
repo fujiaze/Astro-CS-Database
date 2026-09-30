@@ -1,29 +1,43 @@
 # 模块 astrocs.phase3.wcs
 
-> 上游：docs/ASTROCS_DESIGN.md §8.5（模块与 ABI）
+> 上游：docs/ASTROCS_DESIGN.md §8.5（模块与 ABI）、§6.2（export 流程）、
+> §6.3（投影算法：内置多种）
+> 科学正本：docs/science/PHASE3_HIPS_TO_FITS.md（SCI-P3-001，FROZEN，零改动）
+> 算法正本：docs/science/algorithms/PHASE3_PROJ_IMPL.md（ALG-P3-PROJ-IMPL-001；
+> §5 映射声明、§6/§7 公式、§11 实测偏差、§12 测试设计 T1–T7、§13 合同边界、
+> §15 registry 冻结表 + 逐投影六要素）；承接
+> docs/science/algorithms/PHASE3_RESAMPLE.md（ALG-P3-002 G1/G2 施工规格，零改动）
+> 数据正本：docs/science/DATA_SEMANTICS.md §28（DATA-P3-WCS）、
+> eng/contracts/schemas/projection_registry.schema.json（registry 冻结集合，
+> 机器可校验导出 schema）
+> API 正本：docs/engineering/PUBLIC_API.md（API-P3-PROJ-001，Phase3 投影公共消费面节；
+> API-P3-001 = p3_session 五段编排面 FROZEN 镜像）
+> 架构正本：docs/engineering/ARCH-001.md
+> 门表事实源：docs/science/algorithms/GATES_AND_TOLERANCES.md §3
+> 落地设计：docs/detail/PHASE3_DETAILED_DESIGN.md §2
+> 引用文献：Greisen, E. W. & Calabretta, M. R. 2002, A&A 395, 1061（FITS WCS Paper I）；
+> Calabretta, M. R. & Greisen, E. W. 2002, A&A 395, 1077（Paper II）
 
-> 合同：SCI-P3-001（docs/science/PHASE3_HIPS_TO_FITS.md，FROZEN）/
-> ALG-P3-PROJ-IMPL-001（docs/science/algorithms/PHASE3_PROJ_IMPL.md，承接
-> ALG-P3-002 本域 G1/G2）/ DATA-P3-WCS（DATA_SEMANTICS §28）/ API-P3-PROJ-001
-> （PUBLIC_API Phase3 投影公共消费面节）。descriptor 词汇
-> （module_id=astrocs.phase3.wcs、SCI-P3-WCS-001/ALG-P3-002/API-P3-001/
-> TEST-P3-WCS-001）与 module_id 合同值 `astrocs.p3.projection` 的对齐属迁移目标（未落地）。
+模块 = `astrocs.p3.projection`（module_id 合同值）；registry 行
+MOD-astrocs-phase3-wcs；dll_target = `astrocs_p3_projection.dll`（迁移合同值，
+未落地，IMPLEMENTED 只由验收签发）；现状构建 = `astrocs_phase3_session` 静态库
+成员，`p3_wcs.cpp` 为其五源文件之一。owner = SA-P3-P25；language = c++17；
+abi_version = 1；phase_scope = phase3；resource_class = cpu_heavy；
+threading_model = `host_executor_lease`（迁移目标合同值；现状 = 内核纯函数无内部
+线程）。descriptor 词汇（module_id=`astrocs.phase3.wcs`、SCI-P3-WCS-001 /
+ALG-P3-002 / API-P3-001 / TEST-P3-WCS-001）与 module_id 合同值
+`astrocs.p3.projection` 的对齐属迁移目标（未落地）。
 
 ## 1 身份与合同落位
 
-- 模块: astrocs.p3.projection（module_id 合同值；dll_target=
-  astrocs_p3_projection.dll 为迁移合同值，未落地，IMPLEMENTED 只由验收签发；
-  现状构建 = astrocs_phase3_session 静态库成员，p3_wcs.cpp 为其五源文件之一）。
-- 合同落位: lib/algorithms/projection/ 三件套（CONTRACT_READY；落位规则见
-  docs/detail/README.md）。
+- 合同落位: lib/algorithms/projection/ 三件套（CONTRACT_READY）。
 - 生产源: lib/algorithms/projection/p3_wcs.cpp + 同目录签名头正本 p3_wcs.h；
   同批迁入共址测试 eng/tests/p3wcs/（ctest p3_wcs）。
-- 合同链: SCI-P3-001（docs/science/PHASE3_HIPS_TO_FITS.md，FROZEN）→
-  ALG-P3-PROJ-IMPL-001（docs/science/algorithms/PHASE3_PROJ_IMPL.md，兼承接
+- 合同链: SCI-P3-001（docs/science/PHASE3_HIPS_TO_FITS.md，FROZEN；映射声明
+  SCI-P3-WCS-001 ⇒ SCI-P3-001 见 ALG §5）→ ALG-P3-PROJ-IMPL-001（兼承接
   ALG-P3-002 本域子面 G1/G2）→ DATA-P3-WCS（DATA_SEMANTICS §28）+
-  API-P3-PROJ-001（PUBLIC_API Phase3 投影公共消费面节）→ TEST-P3-WCS-001
-  （设计冻结 = TEST-P3-WCS-DESIGN-001，见 §9）；编排面 API-P3-001（p3_session
-  五段 FROZEN）镜像不变。
+  API-P3-PROJ-001 → TEST-P3-WCS-001（设计冻结 = TEST-P3-WCS-DESIGN-001，见 §9）；
+  编排面 API-P3-001（p3_session 五段 FROZEN）镜像不变；ARCH-001（VERIFIED）。
 - 上游依赖: astrocs_phase3_session（采样/重采样/写出编排域同库）；
   depends_on_int=ABI-005;DATA-004;RT-006（ABI-005=模块 C ABI 承接、
   DATA-004=WCS descriptor 数据面、RT-006=线程泄漏守卫由纯函数无状态
@@ -39,12 +53,30 @@
   解析与编排（p3_session run 段）、**除 TAN 以外的投影**、不改 SCI 公式
   （SCI-P3 FROZEN 零改动）。
 - **投影集口径（最高设计 §6.3）**：**设计冻结 8 种**
-  （`TAN/SIN/CAR/AIT/STG/MOL/CEA/ZEA`）；**当前登记：仅 `TAN` 已实现**
-  （声明集 D = 实现集 I = `{TAN}`，`p3_projection_registry.h`）；
-  **支持声明以注册表登记为准：未实现者报「不支持」**（`p3_proj_declare` →
-  `P3_WCS_UNSUPPORTED` + 请求码 + 原因 + 已支持清单）。
+  （`TAN/SIN/CAR/AIT/STG/MOL/CEA/ZEA`）；每种投影必须声明六要素：适用域、奇点、
+  经度 wrap、轴手性、CRPIX/CRVAL/CD/PC/CDELT、CTYPE。**当前登记：仅 `TAN` 已
+  实现**（声明集 D = 实现集 I = `{TAN}`，`p3_projection_registry.h`；
+  **在役 registry = `p3_proj.cpp`**）；**支持声明以注册表登记为准：未实现者报
+  「不支持」**（`p3_proj_declare` → `P3_WCS_UNSUPPORTED` + 请求码 + 原因 +
+  已支持清单）；`registry_find` 未命中返回 nullptr = fail-closed。
 
-  新增投影须同时进实现集与声明集（`p3_proj_registry_selfcheck` 判红）+ 独立往返 Oracle + 追溯条目。
+  新增投影须同时进实现集与声明集（`p3_proj_registry_selfcheck` 判红）+ 独立
+  往返 Oracle + 追溯条目；**注册面与会话面分离**。
+
+  **实现集口径冲突登记**：文档面曾记「已实现 TAN/SIN/CAR/AIT（4/8），STG/MOL/
+  CEA/ZEA 待实现」，与在役注册表不符 —— 口径**以在役注册表为准**（当前
+  D = I = {TAN}）。
+
+  registry 冻结要点（FITS WCS Paper II）：CAR / AIT 把 CRVAL2（含 LONPOLE 默认
+  0/180）纳入三 Euler 角映射；AIT 椭圆域要求半长轴 ≤ 1；CAR native 极行
+  |θ| ≥ 90° fail-closed。冻结表与逐投影六要素的正本 = ALG-P3-PROJ-IMPL-001 §15
+  与 `lib/algorithms/projection/` 的 `Spec` 六要素字段与 `registry_frozen_set()`
+  导出（schema 不复制公式）。
+
+- **输入输出数据合同补充**：输入 = 用户 WCS 计划（中心、尺度、shape、旋转、
+  投影或足够约束）；输出 = 注册的投影定义（CTYPE、正反变换、适用域、奇点处理、
+  CRPIX/CRVAL/CD/PC/CDELT）。FITS 1-based 关键字与内部 0-based 像素中心的转换
+  唯一；正反变换必须互逆（误差 < 合同阈值）。
 
 ## 3 输入输出端口、DATA、单位、坐标、invalid
 
@@ -92,6 +124,15 @@
   lib/algorithms/projection/module.yaml 的对齐属迁移目标（未落地），不作冻结依据。
 - 注册序: phase3_descriptor→p3_wcs_descriptor→p3_resample2_descriptor→
   p3_writer_descriptor（registry 注册序列）；配置=phase config JSON（键集 = API-P3-001）。
+- 用户 WCS 计划面：
+
+| 字段 | 默认 | 单位 | 说明 |
+|---|---|---|---|
+| `projection` | `tan` | —— | tan / sin / car / ait / stg / mol / cea / zea |
+| `crpix` | 中心 | px | 参考像素 |
+| `crval` | —— | deg | 参考天球坐标 |
+| `cd_matrix` / `cdelt` | —— | deg/px | 尺度 |
+| `rotation` | 0 | deg | 旋转（用 CD 时） |
 
 ## 6 冻结公式（G1/G2 摘要；权威源=ALG-P3-PROJ-IMPL-001 §6/§7）
 
@@ -124,14 +165,18 @@
 
 ## 8 实测偏差与现行语义（权威源 = ALG-P3-PROJ-IMPL-001 §11）
 
+- 未注册投影 → 拒绝；超适用域（极点 / 奇点）→ 明确处理（wrap 或拒绝），错位
+  一律显式登记；轴手性 / CRPIX 单位错误 → fail-closed。
 - PA 未接线: p3_session.cpp rotation_pa_deg 恒 0.0（内核能力无会话消费方）。
 - kMaxSide=20000 可 ASTROCS_P3_MAX_SIDE 编译期覆盖（p3_wcs.cpp）——默认值语义
   如实冻结。
 - 产品声明门 `p3_proj_declare` 对非 TAN 码显式返回 `P3_WCS_UNSUPPORTED`
   （含已支持清单），`p3_wcs.cpp` 经 `p3_proj_is_implemented` 产生该状态；
   8 冻结码 = `TAN/SIN/CAR/AIT/STG/MOL/CEA/ZEA`，声明/实现集当前 = `{TAN}`。
-- astrocs_p3_projection.dll 未建（entrypoint 未落地）；探针/回归为内联编译。
-- 其余见 docs/KNOWN_LIMITATIONS.md 与 ALG-P3-PROJ-IMPL-001 §13 合同边界。
+- astrocs_p3_projection.dll 未建（entrypoint 未落地）；探针/回归为内联编译；
+  WCSLIB 验收 oracle 与可执行测试待建。
+- 合同边界与缺陷登记 = ALG-P3-PROJ-IMPL-001 §11/§13；全局限制登记 =
+  artifacts/evidence/known-limitations-ledger/LIMITATIONS.md。
 
 ## 9 验证与测试面（TEST-P3-WCS-DESIGN-001 设计冻结 VERIFIED）
 
@@ -144,6 +189,10 @@
   eng/tests/unit/p3_wcs_test.cpp（WCS 完整性/溢出检查）+
   eng/tests/backend/test_p1002_gaps.py（独立解析解回归）+
   eng/tests/backend/p3_wcs_main.cpp（探针 make/p2w/w2p/kw）。
+- Oracle 面补充：Astropy / WCSLIB 独立正负投影**绝对对拍**（不只用往返 —— 往返
+  对 CRVAL2 类缺陷零区分力）+ 往返（中心、边、wrap、极点、奇点）+ CRPIX ↔ CRVAL
+  定义性不变量 + `dec0 ≠ 0` 用例；**八投影全覆盖测试**（每投影必须带独立 Oracle
+  才可注册）。
 - 执行证据：NOT_VERIFIED（验收证据待补）。
 
 ## 10 合同链接
@@ -154,8 +203,8 @@
   零改动）
 - DATA: docs/science/DATA_SEMANTICS.md §28
 - API: docs/engineering/PUBLIC_API.md（API-P3-PROJ-001 节）
-- 模块总页: docs/detail/phase3_proj.md；合同三件套:
-  lib/algorithms/projection/（落位规则见 docs/detail/README.md）
+- 合同三件套: lib/algorithms/projection/
+- 会话编排面现行权威 = docs/engineering/RT-001.md + docs/detail/registry/astrocs.phase3.*
 
 ## NaN 与输出语义
 
