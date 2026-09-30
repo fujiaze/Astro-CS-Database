@@ -1,22 +1,25 @@
-# SCI-C 加性天光与无接缝叠加 —— 实验单元报告
+# 加性天光与无接缝叠加 —— 实验单元
 
-任务：`/tmp/astrocs_pkg/extracted/AstroCS工程包_RELEASE-04/tasks/SCI-403.md`（控制包只读）
-标准：最高设计 §12.3；文件域：本目录 + `docs/science/PHASE2_UPM.md` +
-`docs/plugins/algorithms_phase2/{10_sampling.md,11_upm.md}`（**零生产代码改动**，缺陷只登记）。
+标准：最高设计 `docs/ASTROCS_DESIGN.md` §12.3；科学正本 `docs/science/PHASE2_UPM.md`。
+**零生产代码改动**，缺陷只登记（登记面见 §10）。
 
-## 定稿入口（独立审计重做收口，2026-09）
+## 单元构成
 
-本单元已完成体系化整理，事实源为 `独立审计/实验重做/总编对账/{分歧台账.md,五单元成稿简报.md}`：
-
-- **REPORT_paper.md** — 正式论文定稿（整合历史正本＋三路重做＋补实验；正文数字全标注 [文献]/[实验]/[推导]）。
-- **REPORT_experiment.md** — 实验报告（假说/方法/数据/结果/结论/诚实边界/复现命令）。
+- **REPORT_paper.md** — 定稿小论文（论文式；正文数字按 `[n]` / `[实验:文件名]` / `[推导]` 三类标签标注，参考文献编号连续）。
+- **REPORT_experiment.md** — 实验报告（可证伪假说 / 方法与判据 / 数据来源 / 结果含不确定度与正负对照 / 可判定结论 / 诚实边界 / 复现命令 / 佐证来源）。
 - **refs.md** — 文献核验台账（只收一手 VERIFIED 条目）。
-- **code/audit_rework/** — 三路＋补实验可复现脚本归档（统一 `run_all.sh`，固定 seed 说明见其 README）。
-- **results/audit_rework/** — 审计重做固化读数；**results/audit_rework_summary.json** 为关键结果汇总（注明来源路线）。
-- **docs/control-variance-adjudication.md** / **docs/seam-gate-floor.md** — D-07/D-08 与接缝门下限的支撑推导。
+- **data/README.md** — 数据来源与生成方式（本单元**不自带数据副本**，全部输入为仓内既有真实数据 ＋ 固定 seed 的合成）。
+- **docs/** — 支撑推导正文（见 `docs/README.md`）。
+- **code/** — 固定 seed、可复跑的实验代码；一键入口见 §7。
+- **results/** — 固化读数、图表与冻结记录；`results/audit_rework_summary.json` 为关键结果汇总（每个数字注明来源路线）。
 
-**按台账订正的失效表述**（本 README 下文历史正文保留原文，冲突处以上述定稿为准）：
-×5.07→峰值/长尺度比 ≈8＋非单调（A-P5-11）；k_corr=1.4→两因子查表（D-08）；N=5 方向词→高估 ≈9.5% 保守（D-07）；rel_step_max=0.1 判据面除名（A-P5-10）；dof 方向词（A-P5-01）；方差比须写明方差定义（A-P5-04）；05 规格 12 项幻觉锚回炉（A-P5-03）；§9 验收表 C2 行「1%@24 px；PSD k=4（预期 5.33±2）」→ 与 §4.2 M5 同步（恢复 0.693±0.005 下界；PSD 峰 k=26 vs 预期 21.33±6 bin；1% 未检出，3σ 检测限 0.069）——M5 PSD 单位错位（分块后每样本 4 px）整改后的交付面残留（<!-- 订正: 检查-行文逻辑 R3 -->）。
+## 判据面上的三条收口结论
+
+1. 端点比 ×5.07 不跨实现复现；跨实现稳健的标度统计量是**峰值/长尺度比 ≈8 ＋ 非单调**，肘点 s ≲ 2×节点间距。
+2. `k_corr = 1.4` 不是普适常数，须按 `k_gauss(N_retained) × k_geo` 两因子查表并声明标定元组与 N 档。
+3. N=5 处渐近式对中位数方差为**高估 ≈9.5%（保守）**；`rel_step_max = 0.1` 从判据面除名（不可标定且对局部缺陷结构性失明）；dof 方向词以 `n_params` 为分母时 χ²_red **高估**；方差比诊断量必须写明方差定义；「修复规格」中 12 项系统性幻觉锚整段回炉，不得作修复依据。
+
+裁决台账所在的目录已不在仓内；上述结论的可复核面是仓内读数与推导，见 REPORT_experiment.md §8。
 
 ---
 
@@ -307,27 +310,139 @@ rank 49 = n_nodes，χ²_red 0.771，δ_k 非零。
 14. **C5 W5 的 "stalled" 臂实际跑满 300 轮**，不是真 stall ⇒ FIX-2 目前只有**代码事实**
     （`upm.cpp:1527-1536` 只有 0/1），没有实验证据。
 
+### 6.A 判据级的噪声相关长度敏感度
+
+共享物理链的诚实边界（`实验/shared/synthetic/README.md`「诚实边界（drz 合成品）」与
+「M16-SAMPLING 附加」第 4 条）：真实 drz 噪声已被压低并**相关化**，而
+`m16_sampling` / `m16_scene` 生成的是**逐像素独立**噪声，两者的噪声功率谱不同 ⇒
+**对相关长度敏感的判据不得用合成帧定标**。下表把本单元的每条判据逐条落到这句话上。
+
+敏感度分三档：**敏感**（判据的数值或判决直接吃噪声的空间相关结构）、
+**弱敏感**（只吃噪声幅度或有效样本数，不吃相关长度）、
+**不敏感**（代数恒等式、纯几何量或真实数据腿）。
+
+| 判据 | 是否对噪声相关长度敏感 | 依据 | 现在用什么数据定标 |
+|---|:-:|---|---|
+| `rel_step` / `excess` 接缝度量的**确定性地板** 1.0050251% | 不敏感 | 解析闭式 `gate/(1−gate/2)`，无噪声项 | 纯解析（`route1/c3`、`route2/e3`） |
+| `rel_step` 接缝门的**虚警率 / 检出率曲线** | **敏感** | null 分布宽度 = 噪声在 y 向相关长度决定的有效样本数 | 逐像素独立噪声的解析合成（`route1/c3` 0/4000）⇒ **不得用合成帧标定真实 drz 下的虚警与检出数值** |
+| `rel_step` 的**梯度项** `2d·ρ`（光滑法向斜坡伪阳面） | 不敏感 | ρ 是几何量（相对法向斜率），与噪声无关 | 合成夹具 + 生产门本体（`seam_gate_gradient_scan.py`） |
+| `C4` 非退化判据的 **5σ 检测限 6.98 e⁻ / 样本外假阳性 0/60 / 分离度 36.4σ** | **敏感** | 三者都由 null 分布的 μ/σ 标定，σ 吃相关长度 | 120 次 Poisson 独立实现 ⇒ **不得用合成帧标定真实 drz 下的检测限与假阳性** |
+| `C4 N1` 退化判据 0.09σ | **敏感**（恒真反证） | 注入被代数抵消，只说明定义 | 定义层证据（`meta`），不作数值依据 |
+| `control_ivar = k_corr·(π/2)·σ_bg²/N_retained`（σ_bg = 1.4826·MAD，patch 64×64 px） | **敏感** | patch 内有效样本数 = 64²/L²；L ≳ 几 px 时 MAD 被相关长度压低 | 解析合成 + Poisson 独立噪声 ⇒ **不得用合成帧标定 σ_bg 或绝对定权** |
+| `C5 W1/W2` 三臂比较（漏入 0.0245/0.0651/0.3203 e⁻、比次优 8.5%） | **敏感** | 三臂读数都由上行的 σ_bg 决定 | 同上 ⇒ **相对序可用，绝对量值不可迁移** |
+| `k_corr` 的 `k_geo` 因子（1.27–1.45，drizzle 输出像素相关） | **敏感** | k_geo 的定义就是「输出像素非独立」的几何后果 | 受控 MC（`results/audit_rework/p3_kcorr/`）⇒ 查表本体由 P3 单元承载 |
+| `A10` 基外 RMS 代理量（σ=64 px 一维高通） | **敏感** | 高通残差里含噪声底，噪声底随相关长度变 | 解析合成 ⇒ **代理量只能在逐像素独立噪声下读**；跨实现的「峰值/长尺度比 ≈8」才是稳健量 |
+| `A10` 的**肘点 2h**（≈256 px） | 弱敏感 | h 是显式配置量（不标定）；但拟合权重来自 `control_ivar`，间接吃 σ_bg | 实验显式配置 `node_spacing_deg=0.0355` ⇒ 结构结论（肘点 ≈ 2×节点间距）可用，绝对斜率不可迁移 |
+| `A2/A3` 阶跃–注入幅度曲线（比值 0.975、δ_k 臂平坦 0.0087 e⁻） | 弱敏感 | 斜率由散布加权拟合，噪声只贡献散布不贡献尺度 | 解析合成 + Poisson 独立噪声 |
+| `A11` 星孔径通量守恒（相对最大 6.6e-6） | 弱敏感 | 孔径内噪声求和，弱相关只改有效项数 | 解析合成 |
+| `m16_sampling` / `m16_scene` 的**方差闭合**（`exp_variance_closure.py`） | **敏感（最敏感）** | `Var_pred` 是逐像素独立泊松+读出噪声的解析式；真实 drz 相关化后该式本身失效 | **只验证生成器实现自洽**，⇒ **不得用这些读数标定任何真实数据的噪声尺度或相关长度** |
+| `m16_scene` 的 **seeing/孔径**、**base-rate 传输**（`exp_a6` 等） | **敏感** | seeing 估计与孔径测光吃 PSF 与噪声的联合分布 | 同上，只作生成器自洽证据 |
+| `A6/A9` 子集不变性与 `final_gauge` no-op | 不敏感（但吃求解器形态） | 纯代数/求解器行为，与噪声无关 | 生产求解器（与噪声相关长度无关，但随生产模型形态变，见 §7.4） |
+| `B2` `b_k − δ_k` 帧间一致性（5.68e-14）、`B6` gauge 零点（5.33e-15） | 不敏感 | 代数恒等式（`meta` 证据） | 定义层 |
+| `B3` 产品中位 vs B_ref 中位、`B4/B5` 全减臂与负值占比 | 不敏感 | 512 样本的中位数聚合，逐像素符号与相关长度无关 | 解析合成 |
+| `C6 E1` 稀疏/稠密等价（3.11e-15）、`E2/E3` 体积与 RSS | 不敏感 | 代数恒等式 + 工程量 | 无噪声 |
+| `Huber δ=1.345` 效率（0.948/0.9507）、`σ_floor` 主导域退化 | 不敏感 | 效率是估计量的**边际**性质，与空间相关无关 | 解析合成 |
+| `χ²_red` / dof / `rank` / `H_solve` κ / 尺度容差 ULP | 不敏感（数值层面） | 纯代数（权重矩阵与浮点精度） | 无噪声 |
+| `quality_factor` / share-vs-abs 口径 / `zero_anchor` | 不敏感 | 权重口径代数 | 无噪声 |
+| `C7` 真实 M42 的 `level_ratio` / 斜率 / `R2` 天光面 / `R3` 接缝 | 不敏感 | **真实数据腿**，drz 的相关长度已在数据里 | 真实 testdata |
+| `production_e2e_seam_record`（生产 49 帧 `rel_step` 与三个诊断量） | 不敏感 | 同上（真实产品） | 真实生产产品 + 逐字冻结记录 |
+
+**结论（可执行口径）**：本单元被判为**敏感**的判据共 6 组
+（接缝门虚警/检出曲线、`C4` 检测限与假阳性、`C4 N1`、`control_ivar` 与 `C5 W1/W2`、
+`k_geo`、`A10` 代理量）＋ 2 组只作生成器自洽证据的 M16 物理腿。
+这 6 组**没有一个**是用 `m16_sampling`/`m16_scene` 合成帧定标的——它们全部用
+逐像素独立噪声的解析合成或 Poisson 实现定标；M16 物理腿的读数只用来验证
+生成器自身的物理链自洽，不承载任何定标量。**接缝判据与天光平面尺度这两条主线
+（§2.3 的地板与漏检面、§5.1 的节点间距肘点）都落在「不敏感」或「弱敏感」档，
+因此不受这条边界约束**；受影响的是统计检出类数值与定权绝对量值。
+
+
 ---
 
 ## 7. 复现命令
 
-    # 一键（编译探针 + c1..c7 + 出图；固定 seed，无网络，零 git 写）
-    bash 实验/additive-sky-seamless/code/run_all.sh
+全部命令**从仓库根执行**，路径一律相对仓库根，seed 固定在脚本内，无网络，无 git 写。
 
-    # 分步
-    bash 实验/additive-sky-seamless/code/build_probes.sh                      # 需 flock /tmp/astrocs_build.lock
-    python3 实验/additive-sky-seamless/code/c1_additive.py                    # → results/c1_additive.json
-    python3 实验/additive-sky-seamless/code/c2_multiplicative.py
-    python3 实验/additive-sky-seamless/code/c3_public_plane.py
-    python3 实验/additive-sky-seamless/code/c4_seam_criterion.py
-    python3 实验/additive-sky-seamless/code/c5_weights.py
-    python3 实验/additive-sky-seamless/code/c6_sparse_dense.py
-    python3 实验/additive-sky-seamless/code/c7_realdata.py
-    python3 实验/additive-sky-seamless/code/make_figures.py
+### 7.0 公共前置步（物理链自检）
 
-环境：Python 3.13 + numpy 2.2.4 / scipy 1.15.3 / astropy 7.0.1 / matplotlib 3.11.2。
-运行时间（本机）：C1 ~4 min、C2 ~12 min、C3 ~3 min、C4 ~6 min、C5 ~20 min、
-C6 ~2 min、C7 ~3 min；探针编译 ~2 min。
+```bash
+bash 实验/shared/synthetic/run_selftests.sh
+```
+
+四个组件全跑（`m16_mask` / `m16_scene` / `m16_sampling` / `noise_selftest`），
+全绿退出码 0、任一组件判红 1、组件缺失 2；全绿约 2 分 30 秒。
+
+**不得只调 `noise_selftest.py`**：它的 12 个用例里只有 A2 调用生产实现
+`noise_model.expose()`，且 A2 的判词只取独立臂相对解析预测的偏差；其余 11 个
+完全不碰生产代码。单跑它验的是**方法**（分布是否正确），不是**生产代码**
+（代码是否自洽），对生产实现**零判别力**。生产面的门禁责任落在
+`m16_scene --selftest` 与 `m16_sampling --selftest` 上。本单元是共享物理链的
+第一个真实消费者，该脚本已作为 `code/run_all.sh` 的第 0 步接入（`SKIP_SELFTEST=1`
+可跳过，但跳过后本入口的读数不得作为证据）。
+
+### 7.1 一键入口
+
+```bash
+bash 实验/additive-sky-seamless/code/run_all.sh              # 自检 + 探针 + c1..c7 + 负例 + 自检器 + 出图
+bash 实验/additive-sky-seamless/code/run_all.sh              # 等价于上面这条
+bash 实验/additive-sky-seamless/code/audit_rework/run_all.sh # 审计重做三路 + 两个补实验（纯 python+numpy）
+```
+
+`code/run_all.sh` 是**非破坏性**的：跑前把固化读数备份到 `run/SCI-403/results_prior/`，
+跑后把本次新读数另存到 `run/SCI-403/results_head/`，再把固化读数原样放回 `results/`。
+重跑不会改写仓库内的证据面，新旧差异由比对者自己在 `run/` 下做。
+
+### 7.2 逐条入口与当前状态
+
+| 命令 | 依赖 | 当前状态 |
+|---|---|---|
+| `bash 实验/shared/synthetic/run_selftests.sh` | 纯 python | 可跑，全绿，退出码 0 |
+| `bash 实验/additive-sky-seamless/code/audit_rework/run_all.sh` | 纯 python3+numpy | 可跑，37 个脚本全过，退出码 0 |
+| `python3 实验/additive-sky-seamless/code/sky_plane_zero_negative.py` | `sky_probe` | 可跑（探针已在库），退出码 0 |
+| `python3 实验/additive-sky-seamless/code/production_e2e_record_check.py` | 冻结记录 + 源日志 | 可跑，退出码 0；`--record`/`--no-source` 供负例用 |
+| `python3 实验/additive-sky-seamless/code/seam_gate_gradient_scan.py` | 生产门本体 | 可跑，退出码 0，读数与固化拷贝一致 |
+| `bash 实验/additive-sky-seamless/code/build_probes.sh` | 生产静态库 | 可跑（库已在库）；缺失时先 `flock /tmp/astrocs_build.lock ninja -C build` |
+| `bash 实验/additive-sky-seamless/code/run_all.sh` | `build_probes.sh` | 可跑；**判据层退出码随生产求解器行为变化**，见 §7.4 |
+| `python3 实验/additive-sky-seamless/code/c1..c7_*.py`、`make_figures.py` | 探针二进制 | 逐条可跑，退出码 = 该脚本的判据失败数是否为 0 |
+| `python3 实验/additive-sky-seamless/code/reverse_verify/data_matrix/exp1_sky_poisson_snr.py` | 纯 python | 可跑，退出码 0 |
+| `python3 实验/additive-sky-seamless/code/reverse_verify/m16_sampling/run_reconstruct.py --dataset … --out …` | `build/acsd` + 生成器输出 | 前置生成器输出后可跑；缺输入时显式 SKIP |
+| `python3 实验/additive-sky-seamless/code/reverse_verify/m16_scene/exp_*.py` | 共享链 `m16_scene.render_m16_frame` | **被共享链阻塞**，见 §7.4 |
+| `python3 实验/additive-sky-seamless/code/reverse_verify/data_matrix/exp{2,3}_*.py` | `run/RELEASE-02/L4-rebuild/` 帧树 | 该树已回收 ⇒ 报 SKIP，不冒充已验证 |
+| `bash 实验/additive-sky-seamless/code/reverse_verify/smooth_lambda/run_mosaic_ls.sh` | 同上 + 49 帧 L4 产品 | 同上 ⇒ 不可跑 |
+
+`run_reconstruct.py` 的完整两步走法（先生成仿真采样帧，再重建）：
+
+```bash
+export TMPDIR=/var/tmp/astrocs
+python3 实验/shared/synthetic/m16_sampling.py \
+    --scene 实验/shared/synthetic/scenes/m16_sampling_mosaic_diff_pointing.json \
+    --out  run/reverse_verify/m16_sampling/mosaic_diff_pointing
+python3 实验/additive-sky-seamless/code/reverse_verify/m16_sampling/run_reconstruct.py \
+    --dataset run/reverse_verify/m16_sampling/mosaic_diff_pointing \
+    --out     run/reverse_verify/m16_sampling/recon/mosaic_diff_pointing
+```
+
+### 7.3 环境
+
+Python 3.13 + numpy 2.2.4 / scipy 1.15.3 / astropy 7.0.1 / matplotlib 3.11.2；
+`eng/tools/monitoring/mem_guard.py` 逐进程看门狗。
+单腿耗时（本机）：C1 ≈ 1 min、C2 ≈ 1 min、C3 ≈ 1 min、C4 ≈ 30 min、C5 ≈ 17 min、
+C6 ≈ 1 min、C7 ≈ 1 min；审计重做三路＋补实验全量 ≈ 10 min；物理链自检 ≈ 2.5 min。
+
+### 7.4 「不可逐位复现」的准确口径
+
+`code/run_all.sh` 的**退出码不等于**「读数与 `results/*.json` 一致」：
+每条腿的退出码只表示「该腿的判据有没有失败」，而 `results/*.json` 里的固化读数
+是生产求解器**上一形态**下的读数。两者必须分开读：
+
+- 判据层：当前生产构建下 `C1` 的 `A6_subset_invariance`、`A9_final_gauge_near_noop`
+  与 `C5` 的 `W1_control_ivar_best` 三门为红 ⇒ `rc=1`；
+- 一致性层：固化读数**不逐位可复现**，差异集中在生产求解器的输出量
+  （`n_params` / `rank` / `kappa` / `iterations` / `model_hash`），
+  而世界构造侧逐位一致（`C1` 未校正臂接缝 `un_med`、`un_max` 与固化值逐位相同）。
+- 因此引用 `results/c1–c7*.json` 的任何量值都必须连同本节限定一并给出，
+  详见 REPORT_paper.md §6 第 14 条。
+
 
 ---
 
@@ -367,7 +482,7 @@ C6 ~2 min、C7 ~3 min；探针编译 ~2 min。
 ### 8.3 仓内实测
 
 全部数字见 `results/*.json`（机器可读，含 `gates.rows` 每门的 id/判据/实测值/是否通过）。
-上游证据：`实验/absolute-snr/results/*.json`（SCI-402：帧 SNR = F_signal/σ_F；天光只进噪声；
+上游证据：`实验/absolute-snr/results/*.json`（P2 单元：帧 SNR = F_signal/σ_F；天光只进噪声；
 天光扫描斜率 −0.4879/−0.4972 vs 理论 −0.5；三孔径域图；`SNR_comb² = ΣSNR_k²`（2.2e-16）；
 **天光采样权重必须用 control_ivar**）。本单元 C5 独立复现了该权重结论。
 

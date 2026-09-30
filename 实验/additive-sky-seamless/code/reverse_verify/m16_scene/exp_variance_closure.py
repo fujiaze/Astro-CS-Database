@@ -45,7 +45,7 @@ import numpy as np
 
 HERE = Path(__file__).resolve().parent
 RV = HERE.parents[1]
-ROOT = HERE.parents[5]
+ROOT = HERE.parents[4]
 sys.path.insert(0, str(ROOT / "实验" / "shared" / "synthetic"))
 
 import noise_model as NM      # noqa: E402

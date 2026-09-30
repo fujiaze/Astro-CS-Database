@@ -61,7 +61,7 @@ rel_step = ln(B_R / B_L)；|Δ|/L = |e^{rel_step} − 1| ≤ e^{1e-2} − 1 = 0.
 ## 4. rel_step_max=0.1 已除名（按台账 A-P5-10 / 补实验 C2）
 
 判据面上**仅存**的模型级台阶红位是本门 max|rel_step| ≤ 1e-2 与 Huber δ=1.345。
-原 05_正向规格 判据01 的 rel_step_max=0.1（相邻 control 平滑性诊断阈值）经补实验
+原修复规格判据01 的 rel_step_max=0.1（相邻 control 平滑性诊断阈值）经补实验
 `code/audit_rework/supp_507_relstep/eb_relstep_calibration.py` 证明：非 IRLS 步长上限
 （仓库无此参数）、不可标定（B0=5 假红 45–60%、B0=1000 永不红）、对局部缺陷结构性失明
 （单节点缺陷 ≤4/112 邻对，×10 注入配方实测不红）、灵敏度比本门松约 20×——
