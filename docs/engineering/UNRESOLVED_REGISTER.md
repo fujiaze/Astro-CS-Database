@@ -1090,3 +1090,63 @@ engineering 83 份中 **31 份未完成抽取**，含 `PUBLIC_API.md`（420 条�
   （不再可能收到 1e-9），但**对 config 供值路径仍必要** ⇒ 保留，不删。
 - 0.35–0.38 的**无告警退化带**本身未处理：`σ/true` 到 0.11 仍判绿。这需要给 σ 一个
   **下界以上的合理性门槛**而非仅 `>0`，属口径变更，待负责人裁定阈值来源。
+
+---
+
+## 33. SCI-DRZ-V1 · drizzle 方差归一分母口径冲突：范围比已登记的更广，根在 science 正本
+
+**归属**：science 正本（跨层）　**状态**：待裁决（需读 DRIZZLE §5 完整推导才能定，前台不擅改 science 正本）
+
+### 33.1 前台自查发现：同一错误有**五处**，不只已登记的三处
+
+§31.1 记的是三处（GLOSSARY、detail PHASE1_DETAILED_DESIGN、DATA-002）。前台按规范 06 §2
+「功能一致」全库扫描后发现实际有五处，且**根在 science 正本**：
+
+| # | 位置 | 层级 | 写的式子 |
+|---|---|---|---|
+| 1 | `docs/GLOSSARY.md:12` | engineering | `Σ v_j·w_jp²/D_p²` —— **已在 G08-05 订正** |
+| 2 | **`docs/science/DATA_SEMANTICS.md:43`** | **science** | `variance_p = Σ_j v_j·w_jp² / D_p²`（标注来源 SCI-DRZ-014） |
+| 3 | `docs/engineering/NUMERIC_STANDARD.md:87` | engineering | 同上（**引 `DATA_SEMANTICS §4a / §31.1a`**） |
+| 4 | `docs/engineering/data/DATA-002_PHASE_PRODUCT_EXCHANGE.md:146` | engineering | 同上（**引 `DATA_SEMANTICS §4a / §31.1a`**） |
+| 5 | `lib/infrastructure/aio/tests/p1hips/p1hips_tests_properties.cpp:17` | **代码注释** | 注释写 `variance_p=sumVarNum/D_p²`，自称「叶/父归一式的科学层权威」 |
+
+### 33.2 核心问题：DATA_SEMANTICS 引用的条款与该条款的实际内容不符
+
+`DATA_SEMANTICS.md:43` 标注来源为 **SCI-DRZ-014**，而 SCI-DRZ-014 定义在
+`docs/science/DRIZZLE.md:89-91`：
+
+    方差传播 (SCI-DRZ-014):
+        variance_p = sumVarNum / N_p²
+
+且 `DRIZZLE.md:218` 逐字警告：
+
+    与等价参数化写法 `sumVarNum·k²/D_p²`（k := D_p/N_p = pixfrac²）逐位同值；
+    **注意**裸写 `sumVarNum/D_p²` 漏掉 k²，两者仅在 pixfrac=1 时同值，
+    pixfrac<1 时后者偏低 pixfrac⁴ 倍（pf=0.8 ⇒ 0.4096，即 2.44x）
+
+⇒ **science 层内部自相矛盾**：`DATA_SEMANTICS` 引 SCI-DRZ-014，却写了 SCI-DRZ-014 明令禁止的写法。
+两处 engineering 正本引的是 `DATA_SEMANTICS §4a`，因此错误**沿引用链扩散**；代码注释再复述一次。
+
+### 33.3 为什么前台不擅改
+
+`DRIZZLE.md:36` 写 `N_p = Σ_j w_jp·A_pixel,j` 且 `N_p = D_p/pixfrac²`；
+而 `DATA_SEMANTICS.md:43` 写 `w_jp = a_jp/A_pixel,j`、`D_p = Σ_j a_jp`。
+若代入 `N_p = Σ_j (a_jp/A_pixel,j)·A_pixel,j = Σ_j a_jp = D_p`，则与
+`N_p = D_p/pixfrac²` **矛盾** ⇒ 说明 `DRIZZLE` 用的「核」与 `DATA_SEMANTICS` 用的 `w_jp`
+**不是同一个量的同一个定义**，或二者之一有笔误。
+
+**这必须回 science 正本读 `DRIZZLE` §5 的完整推导才能定**，前台不在此单自行裁定。
+按 AGENTS §3「文档冲突时以更高一层为准」，但**两处都在 science 层**，该规则不适用。
+
+### 33.4 对下游的约束
+
+- `NUMERIC_STANDARD.md:87` 与 `DATA-002:146` 的修改**必须等 science 层定案**，否则会在两个
+  engineering 正本里再引入第三种写法；
+- `p1hips_tests_properties.cpp:17` 的代码注释自称「科学层权威」但引的是错误写法 ⇒ G08-07
+  在该模块分片时应一并订正；
+- G08-10 若重建「文档与代码机器一致性」门，本条是现成的**真实反例**（引用链一致、引用内容不符）。
+
+### 33.5 一条纪律
+
+本条是本轮**第二次**遇到「引用链一致但引用内容不符」（第一次是 §31.1 的 GLOSSARY 自称唯一术语权威）。
+⇒ 机器可查的「引用路径存在」**不等于**「引用内容正确」。一致性门必须能识别这一类。
