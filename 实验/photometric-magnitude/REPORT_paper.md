@@ -141,14 +141,14 @@ PASS ⟺ sigma_floor ≤ sigma_obs ≤ sigma_ceiling
 ### 5.2 Oracle 与三类数据上的判据行为（历史正本轮，seed 20260921）
 
 - Oracle（`m≡1`）：估计器与真值一致到机器精度（rtol = 0.0，k 相对误差 3.33×10⁻¹⁵）[实验:code/step1_analytic.py]。
-- **仿真腿**：三帧物理前向仿真全 PASS，σ_obs = 0.045344 / 0.057457 / 0.051718 mag，观测/预算比 1.009 / 0.727 / 0.390 [实验:code/step2_hst_sim.py, step5_calibration_gate.py]。这三帧的 σ_flat 取**注入真值**（独立于被测样本），且帧 A/B 用裸通量中位统计（**不**依赖 `m(x,y)`，见 `step5_calibration_gate.py` 作者约定），故该 PASS 不受 P1-B01 自指缺陷影响。
+- **仿真腿**：三帧物理前向仿真全 PASS，σ_obs = 0.045344 / 0.057457 / 0.051718 mag，观测/预测总项比 1.154 / 1.008 / 0.417（`results/step5_calibration_gate.json → obs_over_predicted`） [实验:code/step2_hst_sim.py, step5_calibration_gate.py]。这三帧的 σ_flat 取**注入真值**（独立于被测样本），且帧 A/B 用裸通量中位统计（**不**依赖 `m(x,y)`，见 `step5_calibration_gate.py` 作者约定），故该 PASS 不受 P1-B01 自指缺陷影响。
 - **真实帧腿（订正 P1-B01，判红）**：testdata M42 帧 n=157、inlier=151，σ_obs = **0.026520** mag，σ_floor = 0.006008 mag。
   历史实现把 `calibrate()['delta_after_m']`（= 被测样本多项式拟合**后**的残差散度，σ_obs 自身的函数）当作 σ_flat = 0.019561 mag，
-  占上界方差 59.4%，得 σ_ceiling = 0.032456 ⇒ PASS（自指上界，见 §7 订正项 5）。
+  占上界方差 47.6%，得 σ_ceiling = 0.028366 ⇒ PASS（自指上界，见 §7 订正项 5）。
   改用独立项后取权威常数 `06_photometry.md` §4.1 的 σ_flat,hf = **0.0007 mag** ⇒ σ_ceiling = **0.020561** mag；
   σ_obs = 0.026520 **> σ_ceiling ⇒ ABOVE_CEILING（判红）**。翻转临界 σ_flat = **0.013057** mag（= 权威值的 **18.7 倍**）
   [实验:code/step8_real_frame.py, results/step8_real_frame.json]。
-  取仿真口径（σ_flat = 0.000881 mag，同帧族真值折算）时 σ_ceiling 更小，判定同为红 ⇒ 结论对该口径选择不敏感。
+  取仿真口径（σ_flat = 0.000881 mag，同帧族真值折算）时 σ_ceiling 略大（0.0205733 vs 0.0205608 mag），判定同为红 ⇒ 结论对该口径选择不敏感。
 - 负例（判据非退化）：真值无效应 ⇒ sigma_obs = 0 且判红；乘性空间残差注入 ⇒ sigma_obs 单调上升并判红；散粒噪声敏感（Poisson 天光抬升 2.91×，4× 判红）而确定性加性图样不敏感（1.08×）⇒ 判据**不能认证天光扣除质量** [实验:code/step7_negatives.py]。
 - 低样本失效模式（**订正 P1-M07**）：`rho_lo = 1 − 3·1.166/√n ≤ 0` ⟺ `n ≤ 12.236` 时下包络**不存在**（n = 5 实测 σ_floor = −0.004911）。历史按 `max(rho_lo, 0)·σ_fit` 夹逼 ⇒ 下界恒 0 而 σ_obs ≥ 0 恒真 ⇒ **过裁剪样本反而 PASS，属恒真门**。现改显式最小样本规则：作用域降级 `upper_only`、状态词 `LOWER_BOUND_UNDEFINED`（**不记 PASS**）⇒ 对「把样本裁到只剩同质星」的判别力来自上界与状态词 [实验:code/step7_negatives.py → N5, code/scia_common.py][推导:D5]。
 - **三类数据不一致 ⇒ 创新点成立性判定（按审查标准 §6）**：仿真腿与解析腿绿、真实帧腿红 ⇒ 记 **不成立（待修）**。真实帧判红与 `06_photometry.md` §4.1 的 L4「PASS 1/49」同归因（未消系统项超预算）。
@@ -191,14 +191,14 @@ bash 实验/photometric-magnitude/code/redo/run_all.sh     # 重做三路 route1
 2. **绝对刻度核对范围**：窄带（等效宽度 29–39 nm）XP 绝对刻度与 HST PHOTFLAM 中位差 −0.147/−0.263/−0.080 mag [实验:code/step3_forward_vs_photflam.py]；**宽带未测**。
 3. **判据能力边界**：对散粒噪声敏感、对确定性加性图样不敏感 ⇒ 不能认证天光扣除质量；真实帧上 σ_color/σ_gaia 不可自算 ⇒ 上界不完整。
 4. **低样本域**：`rho_lo ≤ 0` ⟺ `n ≤ 12.236` 下包络不存在（历史用 `max(rho_lo,0)` 夹逼等于把下界做成恒真门，已按 P1-M07 撤回）；n=3 帧零点不确定度被低估（MAD 有限样本偏差 1.49×，渐近式高估 SE 8.03%）——下游消费约定见 §3。
-5. **σ_flat 自指（P1-B01，已订正）**：历史把 `delta_after_m`（被测样本拟合后残差）当预算项，使上界随被测统计量膨胀；**已订正**为独立项（仿真取注入真值、真实帧取 `06_photometry.md` §4.1 的 `σ_flat,hf = 0.0007 mag`），`delta_after_m` 降级为诊断字段。该订正使真实帧判定由 PASS 翻为 **ABOVE_CEILING**——本单元**不再声称**真实帧残差落在本帧预算内。**残余不确定度（如实）**：权威值 0.0007 mag 是 L4 高空间频项的**折算**口径，其向本单元逐星预算的换算链**未独立核证**；即便取仿真口径（0.008333 mag）判定同样为红，故结论对该换算不敏感。
-5. **循环性**：仿真中引导匹配的定位输入即注入真值；非循环证据来自真实帧。
-6. **项目约定（不注文献出处）**：FOV 三常数（缓冲 1.2/钳位 1.0/10.0）、自适应阶梯 {12..16}/2000/5、mag_min 亮端、1.0 dex 界、匹配半径 2.0 px、max_stars=5000（σ_ZP(N) 曲线支撑的工程上限，统一式下 σ_ZP(5000) = 8.86×10⁻⁴ mag，见 §3）均为项目约定，敏感性与危害量化已给出；**注意**：本单元**未**验证「极限星等按焦距/画幅/曝光派生估计」这一上游设计意图（实锚是固定阶梯 {12..16}，注释宣称的上界 10000 未实现，见 §3）；`quality_factor` 0.1/0.5 的豁免（负责人已批，文档写明"项目约定，不注文献出处"）由 P5 单元承载。
-7. **条款一致性缺陷**：`frame_photometry_fit.cpp:292` 的 1.4826 四位截断（A-P1-08）**已闭环**（HEAD 为全精度字面量，修于 `8f15c9fc`）；`mag_max_arr` 长度与 i<5 循环上限耦合使第 6 档改动静默失效（A-P1-08）**仍开**；B13 接线整改（门语义换轨，路线1 S15）**仍开**。均为文档/实现整改项，不改判据方向。
-8. **文献边界**：Beaton & Tukey 1974（V3，原文无 OA 全文）与 Aitken 1935（V11）只能作**二手归属**，不得声称已核原文；Croux & Rousseeuw 1992/1993 有限样本表值原文未取得（MC 佐证 ≤0.93%），不列 VERIFIED，作"待补"脚注；Huber & Ronchetti 2009 §6.5 页码未核，正文改引 Kafadar 1983；Lindergren 2021 亮端数字仍开放（不阻成稿）。**已订正**：V4 期号 6(8)→**6(9)**、V8 题名+DOI、V10 适用域改成**两级域**（原文出处蒙特格里福 2023 附录 B）、V2 路径 `robust/_tables.py`。
-9. **σ_flat 口径换算链**：见第 5 条——权威常数向逐星预算的换算未独立核证，判定对该换算不敏感（两种独立口径同判红）。
-10. **Red-team 审查标准 §7「恒真门无证据资格」的自查（P1-M07 家族）**：本单元已按该条撤回/降级 4 处退化判据——①低样本下界 `max(rho_lo,0)·σ_fit`（现 `LOWER_BOUND_UNDEFINED`，不记 PASS）；②`exp_S06` 的 `H6a/H6b`（对 F_syn 量纲与星等因子的**自洽**检查，非可证伪门）；③`exp_S02/exp_S11` 的 `negative_zero_check`（常数序列 ⇒ 度量恒 0，**无判别力**）；④N5 的历史 PASS 语义。②③的现有 JSON 字段保留作实现守卫，但**不得**再作为证据引用，已在对应报告文中标注。
-11. **本轮订正的证据边界（如实）**：真实帧 σ_obs = 0.026520 mag 与 σ_psfsys 的**独立复算**由审查员完成（`run/FINAL-07/审核包/科研审查/evidence-P1/`）；订正者复用的是同一代码路径的**重跑读数**，两者相对差 ≤1.7×10⁻⁷。σ_floor 依赖「白噪星通量分布」的 σ_fit 口径，其逐星换算同样未独立核证。
+5. **σ_flat 自指（P1-B01，已订正）**：历史把 `delta_after_m`（被测样本拟合后残差）当预算项，使上界随被测统计量膨胀；**已订正**为独立项（仿真取注入真值、真实帧取 `06_photometry.md` §4.1 的 `σ_flat,hf = 0.0007 mag`），`delta_after_m` 降级为诊断字段。该订正使真实帧判定由 PASS 翻为 **ABOVE_CEILING**——本单元**不再声称**真实帧残差落在本帧预算内。**残余不确定度（如实）**：权威值 0.0007 mag 是 L4 高空间频项的**折算**口径，其向本单元逐星预算的换算链**未独立核证**；即便取仿真口径（0.000881 mag）判定同样为红，故结论对该换算不敏感。
+6. **循环性**：仿真中引导匹配的定位输入即注入真值；非循环证据来自真实帧。
+7. **项目约定（不注文献出处）**：FOV 三常数（缓冲 1.2/钳位 1.0/10.0）、自适应阶梯 {12..16}/2000/5、mag_min 亮端、1.0 dex 界、匹配半径 2.0 px、max_stars=5000（σ_ZP(N) 曲线支撑的工程上限，统一式下 σ_ZP(5000) = 8.86×10⁻⁴ mag，见 §3）均为项目约定，敏感性与危害量化已给出；**注意**：本单元**未**验证「极限星等按焦距/画幅/曝光派生估计」这一上游设计意图（实锚是固定阶梯 {12..16}，注释宣称的上界 10000 未实现，见 §3）；`quality_factor` 0.1/0.5 的豁免（负责人已批，文档写明"项目约定，不注文献出处"）由 P5 单元承载。
+8. **条款一致性缺陷**：`frame_photometry_fit.cpp:292` 的 1.4826 四位截断（A-P1-08）**已闭环**（HEAD 为全精度字面量）；`mag_max_arr` 长度与 i<5 循环上限耦合使第 6 档改动静默失效（A-P1-08）**仍开**；B13 接线整改（门语义换轨，路线1 S15）**仍开**。均为文档/实现整改项，不改判据方向。
+9. **文献边界**：Beaton & Tukey 1974（V3，原文无 OA 全文）与 Aitken 1935（V11）只能作**二手归属**，不得声称已核原文；Croux & Rousseeuw 1992/1993 有限样本表值原文未取得（MC 佐证 ≤0.93%），不列 VERIFIED，作"待补"脚注；Huber & Ronchetti 2009 §6.5 页码未核，正文改引 Kafadar 1983；Lindegren 2021 亮端数字仍开放（不阻成稿）。**已订正**：V4 期号 6(8)→**6(9)**、V8 题名+DOI、V10 适用域改成**两级域**（原文出处 Montegriffo 2023 附录 B）、V2 路径 `robust/_tables.py`、V9 官方文档永久链接（`Data_analysis/…` 路径已 404，改为 `Data_processing/…`）与 1% 句的节号（§5.4.1，非 §5.4.2）、V5 Rousseeuw & Croux 1993 全文与 Table 2 值本轮未能独立复核。
+10. **σ_flat 口径换算链**：见第 5 条——权威常数向逐星预算的换算未独立核证，判定对该换算不敏感（两种独立口径同判红）。
+11. **Red-team 审查标准 §7「恒真门无证据资格」的自查（P1-M07 家族）**：本单元已按该条撤回/降级 4 处退化判据——①低样本下界 `max(rho_lo,0)·σ_fit`（现 `LOWER_BOUND_UNDEFINED`，不记 PASS）；②`exp_S06` 的 `H6a/H6b`（对 F_syn 量纲与星等因子的**自洽**检查，非可证伪门）；③`exp_S02/exp_S11` 的 `negative_zero_check`（常数序列 ⇒ 度量恒 0，**无判别力**）；④N5 的历史 PASS 语义。②③的现有 JSON 字段保留作实现守卫，但**不得**再作为证据引用，已在对应报告文中标注。
+12. **本轮订正的证据边界（如实）**：真实帧 σ_obs = 0.026520 mag 与 σ_psfsys 的**独立复算**由审查员完成（`run/FINAL-07/审核包/科研审查/evidence-P1/`）；订正者复用的是同一代码路径的**重跑读数**，两者相对差 ≤1.7×10⁻⁷。σ_floor 依赖「白噪星通量分布」的 σ_fit 口径，其逐星换算同样未独立核证。
 
 ---
 
@@ -212,12 +212,12 @@ bash 实验/photometric-magnitude/code/redo/run_all.sh     # 重做三路 route1
 4. P. W. Holland, R. E. Welsch (1977). Robust regression using iteratively reweighted least-squares. *Comm. Statist. – Theory Methods* **6(9)**, 813–827. [DOI:10.1080/03610927708827533](https://doi.org/10.1080/03610927708827533)（**期号订正 P1-m06**：Crossref/OpenAlex 两库一致为 6(9)，原写 6(8)）
 5. K. Kafadar (1983). The Efficiency of the Biweight as a Robust Estimator of Location. *J. Res. Natl. Bur. Stand.* 88(2), 105–116. [DOI:10.6028/jres.088.006](https://doi.org/10.6028/jres.088.006)（全文 [PMC6768164](https://pmc.ncbi.nlm.nih.gov/articles/PMC6768164/)；锚有效性按台账 D-06）
 6. P. Montegriffo et al. (2023). **Gaia Data Release 3:** External calibration of BP/RP low-resolution **spectroscopic data**. *A&A* 674, A3. [arXiv:2206.06205](https://arxiv.org/abs/2206.06205)、[DOI:10.1051/0004-6361/202243880](https://doi.org/10.1051/0004-6361/202243880)（**题名与 DOI 订正 P1-m06**）
-7. Gaia Collaboration, P. Montegriffo et al. (2023). Gaia DR3: Synthetic photometry from Gaia low-resolution spectra. *A&A* 674, A33. [arXiv:2206.06215](https://arxiv.org/abs/2206.06215)
-8. ESA Gaia DR3 官方文档 §5.4.1（零点定义式 5.41）、§20.12.4（`xp_sampled_mean_spectrum`）
-9. Gaia DR3 XP **可用域（两级）**：采样表示 `xp_sampled_mean_spectrum` 的额外子集以 **G = 15 mag** 为界、**连续表示到 G < 17.65**；原始出处 = Montegriffo et al. (2023) 附录 B（非 ESA 文档）（**适用域订正 P1-M02**：[arXiv:2206.06205](https://arxiv.org/abs/2206.06205) 附录 B 原句 "only sources brighter than G = 15 mag … also provided in the sampled representation"）
+7. Gaia Collaboration, P. Montegriffo, M. Bellazzini, F. De Angeli, R. Andrae, et al. (2023). Gaia Data Release 3: The Galaxy in your preferred colours. Synthetic photometry from Gaia low-resolution spectra. *A&A* 674, A33. [arXiv:2206.06215](https://arxiv.org/abs/2206.06215)，[DOI:10.1051/0004-6361/202243709](https://doi.org/10.1051/0004-6361/202243709)
+8. ESA Gaia DR3 官方文档，§5.4.1（零点定义式 5.41 与绝对刻度 1%）、§20.12.4（`xp_sampled_mean_spectrum`，343 点 @2 nm，336–1020 nm）。[§5.4.1 *Zero points*](https://gea.esac.esa.int/archive/documentation/GDR3/Data_processing/chap_cu5pho/cu5pho_sec_photProc/cu5pho_ssec_photCal.html)、[§20.12.4](https://gea.esac.esa.int/archive/documentation/GDR3/Gaia_archive/chap_datamodel/sec_dm_spectroscopic_tables/ssec_dm_xp_sampled_mean_spectrum.html)
+9. Gaia DR3 XP **可用域（两级）**：采样表示 `xp_sampled_mean_spectrum` 的额外子集以 **G = 15 mag** 为界、**连续表示到 G < 17.65**（连续表示 219 197 643 源）。原始出处 = P. Montegriffo et al. (2023), *A&A* 674, A3, **附录 B**，非 ESA 文档；[arXiv:2206.06205](https://arxiv.org/abs/2206.06205) 附录 B 原句 "For a subset of sources with BP and RP spectral data including only sources brighter than G = 15 mag … BP and RP spectra are also provided in the sampled representation"、"BP and RP mean spectra are published for 219,197,643 sources. This list includes mostly sources with G-band magnitude brighter than 17.65 mag"、[DOI:10.1051/0004-6361/202243880](https://doi.org/10.1051/0004-6361/202243880)
 10. P. J. Rousseeuw, C. Croux (1993). Alternatives to the Median Absolute Deviation. *JASA* 88(424), 1273–1283. [DOI:10.1080/01621459.1993.10476408](https://doi.org/10.1080/01621459.1993.10476408)
 11. statsmodels `robust/_tables.py`（开源逐字锚，4.685065）
 12. GaiaXPy 2.1.4（官方开源实现，`sampled_spectrum.py:114`）
 13. H. Akima (1970). A New Method of Interpolation and Smooth Curve Fitting Based on Local Procedures. *J. ACM* **17(4)**, 589–602. [DOI:10.1145/321607.321609](https://doi.org/10.1145/321607.321609)（**页域订正 P1-m06**：历史题录只给首页 589）
 
-*待补脚注*：Croux & Rousseeuw (1992, 1993) 有限样本表值——原文未取得，MC 佐证 ≤0.93%，不列 VERIFIED（见 §7-8）。
+*待补脚注*：Croux & Rousseeuw (1992, 1993) 有限样本表值——原文未取得，MC 佐证 ≤0.93%，不列 VERIFIED（见 §7-9）。

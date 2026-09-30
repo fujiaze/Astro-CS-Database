@@ -88,7 +88,7 @@ k_gauss(N)（**表列口径逐字 = `tables.md` T3 的列头「k_gauss(N) iid �
 
 Huber 位置 M-估计的阈值 δ 由「高斯渐近效率 = 95%」的闭式效率方程定义：δ(0.95)=1.3449975（二分解），MC 渐近效率 0.948（路线1）/ 0.9507（路线2）≈95% [实验:route1/c5_huber_efficiency.py、route2/e5_huber_delta_1345.py]；δ=1.345 的文献归属为 Holland & Welsch 1977 [文献]。σ_floor 主导域（σ_eff = max(σ, floor) ≫ σ）中估计量严格退化为 median（方差逐位等于 median 方差），95% 效率结论在该域失效——σ_eff 必须与观测同标度 [实验:route2/e10_sigma_floor_crossscale.py]。
 
-自由度公式 E[χ²] = n_obs − r_eff 为 Andrae et al. 式(9) [1]；gauge 自由 fixture 判红（r_eff 24 < 32）、gauge 固定判绿、E[χ²] = 120 精确成立 [实验:route1/c6_identifiability_dof.py]。按台账 A-P5-01 订正正本方向词：秩亏时以 n_params 为分母使 χ²_red **高估**（实测 1.0714 / 1.0581），规则 4 本身（n−r_eff 为真分母）维持 [实验:route3/exp06_dof_rankeff.py]。H_solve 恒真门（A-P5-08）按现行口径陈述：判决面 = `H_red` 的条件数，唯一阈值 = `rank_rtol`（`identifiable ⟺ r_eff == n_free ⟺ κ(H_red) < 1/τ`），数值岭只剩**派生**角色 `λ_eff = τ·mean(diag(H_red))`、**不参与判决**；`κ(H_solve)` 只作求解稳定性诊断 [实验:route3/exp07_rank_rtol.py、route2/e8_identifiability_rank_rtol.py]。**已退休口径不得再作依据**：绝对条件数常数（`kappa_max` 类）与「生产 λs = 0.1·mean(diag)」这一 fixture 假定（κ≈23 恒绿）同属另一形态，本单元不再引用该假定值，也不得据此反推生产。[实验:route3/q7_rank_rtol.json → 恒真门货架：κ(H_solve)=2.214e10（λ=τ·mean(diag)）vs κ(H_solve)=23.14（fixture 假定的 0.1·mean(diag)），而 r_eff=23 < n_free=24 逐位不变]。
+自由度公式 E[χ²] = n_obs − r_eff 为 Andrae et al. [1]：其式(9) 给出自由度 K = N − P_eff（式(8)：P_eff = tr(H) = rank(X)），式(15) 给出 ⟨χ²⟩ = K，两者相接即 E[χ²] = n_obs − r_eff；gauge 自由 fixture 判红（r_eff 24 < 32）、gauge 固定判绿、E[χ²] = 120 精确成立 [实验:route1/c6_identifiability_dof.py]。按台账 A-P5-01 订正正本方向词：秩亏时以 n_params 为分母使 χ²_red **高估**（实测 1.0714 / 1.0581），规则 4 本身（n−r_eff 为真分母）维持 [实验:route3/exp06_dof_rankeff.py]。H_solve 恒真门（A-P5-08）按现行口径陈述：判决面 = `H_red` 的条件数，唯一阈值 = `rank_rtol`（`identifiable ⟺ r_eff == n_free ⟺ κ(H_red) < 1/τ`），数值岭只剩**派生**角色 `λ_eff = τ·mean(diag(H_red))`、**不参与判决**；`κ(H_solve)` 只作求解稳定性诊断 [实验:route3/exp07_rank_rtol.py、route2/e8_identifiability_rank_rtol.py]。**已退休口径不得再作依据**：绝对条件数常数（`kappa_max` 类）与「生产 λs = 0.1·mean(diag)」这一 fixture 假定（κ≈23 恒绿）同属另一形态，本单元不再引用该假定值，也不得据此反推生产。[实验:route3/q7_rank_rtol.json → 恒真门货架：κ(H_solve)=2.214e10（λ=τ·mean(diag)）vs κ(H_solve)=23.14（fixture 假定的 0.1·mean(diag)），而 r_eff=23 < n_free=24 逐位不变]。
 
 ### 2.6 权重两级口径与豁免清单
 
@@ -212,14 +212,14 @@ w∝SNR² 与 ivar 的互斥在本几何下的**污染泄漏偏置**为 ivar 的
 
 （只列 `refs.md` 中 VERIFIED 一手条目；标注级条目见 `refs.md` 末节，不进入正文引用面。编号连续，正文以 `[n]` 标注。）
 
-[1] Andrae, R., Schulze-Hartung, T. & Melchior, P. 2010, Dos and don'ts of reduced chi-squared, arXiv:1012.3754. [式(9) 逐字核验]
-[2] Casertano, S. et al. 2000, The Astronomical Journal, 120, 2747, arXiv:astro-ph/0010245, DOI 10.1086/316851.
-[3] Clopper, C. J. & Pearson, E. S. 1934, Biometrika, 26(4), 404–413, DOI 10.1093/biomet/26.4.404.
+[1] Andrae, R., Schulze-Hartung, T. & Melchior, P. 2010, Dos and don'ts of reduced chi-squared, arXiv:1012.3754. [式(9) 逐字核验：K = N − P_eff，式(8)：P_eff = tr(H) = rank(X)；E[χ²] = K 见式(15)]
+[2] Casertano, S. et al. 2000, WFPC2 Observations of the Hubble Deep Field-South, The Astronomical Journal, 120, 2747, arXiv:astro-ph/0010245, DOI 10.1086/316851.
+[3] Clopper, C. J. & Pearson, E. S. 1934, The use of confidence or fiducial limits illustrated in the case of the binomial, Biometrika, 26(4), 404–413, DOI 10.1093/biomet/26.4.404.
 [4] Fruchter, A. S. & Hook, R. N. 2002, Drizzle: A Method for the Linear Reconstruction of Undersampled Images, Publications of the Astronomical Society of the Pacific, 114, 144–152, DOI 10.1086/338393; arXiv:astro-ph/9808087. [仅引输出像素非独立论断]
-[5] Gruen, D., Seitz, S. & Bernstein, G. M. 2014, Publications of the Astronomical Society of the Pacific, 126, 158, DOI 10.1086/675080; arXiv:1401.4169. [仅作稳健叠加伪迹剔除先例]
-[6] Holland, P. W. & Welsch, R. E. 1977, Communications in Statistics - Simulation and Computation, A6, 813–827, DOI 10.1080/03610927708827533. [δ=1.345 的归属]
-[7] Huber, P. J. 1964, The Annals of Mathematical Statistics, 35(1), 73–101, DOI 10.1214/aoms/1177703732.
-[8] Padmanabhan, N. et al. 2008, The Astrophysical Journal, 674, 1217, arXiv:astro-ph/0703454, DOI 10.1086/524677.
+[5] Gruen, D., Seitz, S. & Bernstein, G. M. 2014, Implementation of robust image artifact removal in SWarp through clipped mean stacking, Publications of the Astronomical Society of the Pacific, 126, 158, DOI 10.1086/675080; arXiv:1401.4169. [仅作稳健叠加伪迹剔除先例]
+[6] Holland, P. W. & Welsch, R. E. 1977, Robust regression using iteratively reweighted least-squares, Communications in Statistics - Theory and Methods, 6(9), 813–827, DOI 10.1080/03610927708827533. [δ=1.345 的归属；刊名与期号以 Crossref 与 Kafadar (1983) 自引为准]
+[7] Huber, P. J. 1964, Robust Estimation of a Location Parameter, The Annals of Mathematical Statistics, 35(1), 73–101, DOI 10.1214/aoms/1177703732.
+[8] Padmanabhan, N. et al. 2008, An Improved Photometric Calibration of the Sloan Digital Sky Survey Imaging Data, The Astrophysical Journal, 674, 1217, arXiv:astro-ph/0703454, DOI 10.1086/524677.
 [9] Serfling, R. J. 1980, Approximation Theorems of Mathematical Statistics, Wiley, DOI 10.1002/9780470316481. [书目级标注]
 
 ---

@@ -11,7 +11,7 @@
 ### V1. Górski et al. 2005（HEALPix 等面积离散化）
 
 - **标识**：ApJ 622, 759；DOI [10.1086/427976](https://doi.org/10.1086/427976)；arXiv:[astro-ph/0409513](https://arxiv.org/abs/astro-ph/0409513)。
-- **核验方式**：arXiv 全文实取（路线1/2/3 三路独立抓取，关键句逐字摘录一致）；分节号按 arXiv PDF 版（arXiv:astro-ph/0409513v1）逐节定位复核（§5 = "5. The HEALPix Grid"、§5.3 = "5.3. Pixel Boundaries"、§6 = "6. Spherical Harmonic Transforms"），ar5iv HTML 渲染版逐节交叉一致。
+- **核验方式**：arXiv 全文实取（路线1/2/3 三路独立抓取，关键句逐字摘录一致）；逐节定位复核：arXiv 预印本（astro-ph/0409513v1）正文用**罗马数字**分节（"V The HEALPix Grid"、"V.3 Pixel Boundaries"、"VI Spherical Harmonic Transforms"），论文与参考文献所记的 §5 / §5.3 / §6 是 **ApJ 发表版（ApJ 622, 759）的阿拉伯数字**编号；两者内容一一对应，ar5iv HTML 渲染版与 PDF 逐节交叉一致。
 - **核验到的锚句**：
   - §5："A HEALPix map has Npix = 12 N_side² pixels of the same area Ωpix = π/(3N_side²)"（A_leaf 文献腿）。
   - §5.3 首句："Pixel boundaries are non-geodesic"；式(19)–(22)："cos θ = a + b×φ in the equatorial zone, and cos θ = a + b/φ² in the polar caps"（极冠边在 (φ,z) 平面为 φ 的二次型——矢高口径判定的依据）。
@@ -27,7 +27,7 @@
   - **权重公式＝§2 式(2)–(5)**（D-03 终裁）：式(2)/(3) 迭代含原句 "where a factor of s² is introduced to conserve surface intensity"；式(4)/(5) 权重和 W = Σ a·w。路线1 曾标"§7.2 式(7) 后"，系取错节，**撤换**。
   - **方差/相关＝§7 式(6)–(10)**（与权重分列引用）：§7.1 "Drizzle frequently divides the power from a given input pixel between several output pixels. As a result, the noise in adjacent pixels will be correlated."；§7.2 式(6)(7) 单输出像素方差（"where axy is the fractional area overlap of the drop of input data pixel dxy with the output pixel o"）；式(8)–(10) R=σc/σp 定义与闭式，唯一数值例 R=1.662（p=0.6, s=0.5）。**§7.2 为原文实有子节（标题 "7.2. The Calculation"）**，一手复核：arXiv PDF（astro-ph/9808087v2）与 ar5iv HTML 双路均含 "7. NOISE IN DRIZZLED IMAGES" → "7.1. The Nature of the Problem" → "7.2. The Calculation" 三级标题，式(6)(7) 居 §7.2 内；审查报告 P3-12 之②「原文 §7 内部无 §7.2 编号」经核不成立，本条此节号维持不改。
   - 子串级检索：全文不含 1.3883 / 1.4 / k_corr / covariance（k_corr 补实验，D-08）。
-- **用途**：w_jp = a_jp/A_drop 的 s² 表面亮度守恒（§2）；k_corr 的必要性论证只可引其 §7.1 相关论断，k_corr 数值本身不是 F&H 内容（D-08）。
+- **用途**：w_jp = a_jp/A_drop 所属的面积交叠加权线性重建族的出处（§2 式(2)–(5)，含原句 "where a factor of s² is introduced to conserve surface intensity"）。**机制归属（对抗审查 R02 订正）**：F&H 的表面亮度守恒由 s² 尺度因子承担，本算子的守恒由 A_drop 归一承担（权重式不含 s²）；两者为同族构造、非同一守恒因子。k_corr 的必要性论证只可引其 §7.1 相关论断，k_corr 数值本身不是 F&H 内容（D-08）。
 
 ### V3. Van Oosterom & Strackee 1983（球面三角形立体角）
 
@@ -48,15 +48,16 @@
 - **核验到的锚句/式**：§5.1.3 式(54) R_θ = (180°/π)·cot θ、式(55) 逆变换；"Since the projection is from the center of the sphere, all great circles are projected as straight lines"。
 - **用途**：drop 足迹的 TAN 正逆投影；gnomonic 面积预算的投影出处（Snyder 的公式级 pinpoint 未取得前由本条承担）。
 
-### V6. Calabretta & Roukema 2007（Mapping on the HEALPix projection）
+### V6. Calabretta & Roukema 2007（Mapping on the HEALPix grid）
 
-- **标识**：MNRAS 381, 865–872；DOI [10.1111/j.1365-2966.2007.12297.x](https://doi.org/10.1111/j.1365-2966.2007.12297.x)；单作者预印本 arXiv:[astro-ph/0412607](https://arxiv.org/abs/astro-ph/0412607)（2004）。
+- **标识**：MNRAS 381(2), 865–872；DOI [10.1111/j.1365-2966.2007.12297.x](https://doi.org/10.1111/j.1365-2966.2007.12297.x)；单作者预印本 arXiv:[astro-ph/0412607](https://arxiv.org/abs/astro-ph/0412607)（2004，Calabretta 单作者）。
+- **题名**（Crossref `works/10.1111/j.1365-2966.2007.12297.x` 逐字）："Mapping on the HEALPix **grid**"（作者 Calabretta M. R. / Roukema B. D.，MNRAS 381(2), 865–872，2007-10）。原文题名不含 "projection" 一词。
 - **核验方式**：Crossref API 核 DOI（路线2/3；注意 10.1111/j.1365-2966.2007.12289.x 是 Ross 2007 2dF 论文，初稿曾误写、已记录订正）。
 - **用途**：HPX 支结构（赤道带/极冠分支）的独立参照；chart 分支一致性的旁证。
 
 ### V7. Fernique et al. 2015（MOC 1.0，IVOA Recommendation）
 
-- **标识**：IVOA Recommendation 1.0；arXiv:[1505.02937](https://arxiv.org/abs/1505.02937)。
+- **标识**：IVOA Recommendation，**MOC – HEALPix Multi-Order Coverage Map, Version 1.0（Recommendation 日期 2014-06-02）**；arXiv:[1505.02937](https://arxiv.org/abs/1505.02937)。版本号是文档的 "Version 1.0"，不是 IVOA Recommendation 编号。
 - **核验方式**：arXiv 页级（EXP-07-POLAR §5 引用；"叶侧 chart 精确边界 + drop 侧自适应细化"的同构性对照）。
 - **用途**：chart 原生路径设计定位（EXP-07 正本历史内容）。
 

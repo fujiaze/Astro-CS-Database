@@ -36,14 +36,14 @@
 ## V5 Rousseeuw & Croux 1993（MAD 效率 37% / 标准化方差 1.361）
 
 - **书目**：P. J. Rousseeuw, C. Croux (1993), "Alternatives to the Median Absolute Deviation", *JASA* 88(424), 1273–1283. DOI: [10.1080/01621459.1993.10476408](https://doi.org/10.1080/01621459.1993.10476408)。
-- **核验方式**：Crossref 书目 ＋ KU Leuven 官方镜像 PDF 全文 OCR；关键原句照抄："the MAD is only 37% efficient"；Table 2 n=∞ 行 MAD 标准化方差 = **1.361**。
+- **核验方式**：Crossref 书目 ＋ KU Leuven 官方镜像 PDF 全文 OCR；关键原句照抄："the MAD is only 37% efficient"；Table 2 n=∞ 行 MAD 标准化方差 = **1.361**。**本单元复核（对抗审查 R02）**：Crossref 逐字段可解析，OpenAlex 记 `oa_status=closed`，期刊页与台账所称的 KU Leuven 镜像本轮均不可达 ⇒ **该两条原句本轮未能独立复核**，登记为「未能核实（原因：付费墙 + 无 OA 全文）」；1.166 的数值判据由本单元解析闭式与 exp08 类 MC 实验承担，不依赖该表页。
 - **用途**：判据因子 1.166 = √1.361 的文献锚（**按台账 A-P1-01 订正解释标签**：1.361 是 MAD 尺度估计量的**标准化方差**，1.166 = √1.361 是 σ̂ 的相对标准差因子）。
 
 ## V6 Gaia DR3 总览（源计数与密度归一）
 
 - **书目**：Gaia Collaboration et al. (2023), *A&A* 674, A1. arXiv: [2208.00211](https://arxiv.org/abs/2208.00211)。
 - **核验方式**：arXiv 摘要页 ＋ 1.8e9 源计数原句（路线1）；**arXiv 号自纠**：审查引文 2205.11321 被证伪（实为计量论文），正确号 2208.00211。
-- **用途**：FOV/阶梯实验的天空密度归一（820/deg²，G<16 全天平均）。
+- **用途**：FOV/阶梯实验的天空密度归一（**820/deg²，G<16 全天平均——该数值本单元复核未能在 arXiv:2208.00211 全文中核到**：arXiv 预印本 23 页正文与 Crossref 书目均无该密度数值，A&A 发表版全文本轮未取 ⇒ 登记为「未能核实」，不得作为该文献的已核数值引用；正文亦未以该文献支撑 820/deg² 这一数字）。
 
 ## V7 Montegriffo et al. 2023a — Gaia XP 合成测光（F_syn 口径）
 
@@ -60,21 +60,19 @@
 
 ## V9 ESA Gaia DR3 官方文档（XP 采样谱与零点定义）
 
-- **核验方式**：官方文档一手原句：§20.12.4 `xp_sampled_mean_spectrum` flux 字段 "Externally-calibrated combined BP and RP flux"，343 点 @2 nm，336–1020 nm；§5.4.1 式 (5.41) ⟨f_λ⟩ = ∫f_λ S λ dλ / ∫S λ dλ；绝对刻度 "1 % is thought to be the current state-of-the art…"。
-- **一手原句（P1-m11 闭环，证据随单元入库）**：零点不可用于合成测光的原句在
-  [§5.4.1 *Zero points*](https://gea.esac.esa.int/archive/documentation/GDR3/Data_analysis/chap_cu5pho/sec_cu5pho_calibr/ssec_cu5pho_photCal.html)
+- **核验方式**：官方文档一手原句：§20.12.4 `xp_sampled_mean_spectrum` flux 字段 "Externally-calibrated combined BP and RP flux"，343 点 @2 nm，336–1020 nm（官方表述逐字："All mean spectra are sampled to the same set of absolute wavelength positions, viz. 343 values from 336 to 1020 nm with a step of 2 nm"）；§5.4.1 式 (5.41) ⟨f_λ⟩ = ∫f_λ S λ dλ / ∫S λ dλ；§5.4.1 绝对刻度 "Thus 1 % is thought to be the current state-of-the art uncertainty on the ‘absolute’ calibration scales."。**节号订正（本单元复核）**：1 % 那句位于 **§5.4.1 正文、Zero points 小节之前**，不在 §5.4.2（§5.4.2 是 Validation）。
+- **一手原句（本单元随文件入库）**：零点不可用于合成测光的原句在
+  [§5.4.1 *Zero points*](https://gea.esac.esa.int/archive/documentation/GDR3/Data_processing/chap_cu5pho/cu5pho_sec_photProc/cu5pho_ssec_photCal.html)
   **Table 5.4 之后的 Note** 段，原文照抄：
 
   > "Note however that as seen in Section 5.4.1 Gaia fluxes are published as *photo-electrons s⁻¹*
   > and are not normalised by the telescope pupil area, so **the given zero points are intended only
   > to be applied to Gaia fluxes and are not suitable for synthetic photometry computations**."
 
-  - 抓取记录（2026-09-28，本轮）：HTTP 200，正文 27 886 字符，命中偏移 26 298；原始落盘
-    `run/FINAL-07/logs/p1-m11-photcal-quote.txt`（`run/` 不入库 ⇒ **原句已按上引随本文件入库**，
-    不再依赖进程产物路径，闭环 P1-m10）。
+  - **链接订正（本单元复核）**：上条 Note 原引路径 `Data_analysis/chap_cu5pho/sec_cu5pho_calibr/ssec_cu5pho_photCal.html` 现返回 **404**；现行有效路径为 `Data_processing/chap_cu5pho/cu5pho_sec_photProc/cu5pho_ssec_photCal.html`（本轮实测 HTTP 200，抽取正文 28 270 字符，Note 原句逐字命中）。
   - 该句是 **Note**（不是正文条文），且限定语是"给定零点"（`the given zero points`）而非"全部 XP 通量"；
     本单元据此只声明"官方未给商用合成测光的零点"，**不得**引伸成"XP 通量不可用于合成测光"。
-    §5.4.2 另给绝对刻度 1% 上限（V9 上一行）。
+  - §20.12.4 表页永久链接（现行有效）：[ESA Gaia DR3 文档 §20.12.4](https://gea.esac.esa.int/archive/documentation/GDR3/Gaia_archive/chap_datamodel/sec_dm_spectroscopic_tables/ssec_dm_xp_sampled_mean_spectrum.html)。
 
 ## V10 Gaia DR3 XP 可用域（两级域；出处 = Montegriffo 2023 附录 B）
 

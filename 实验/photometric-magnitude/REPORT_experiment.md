@@ -55,7 +55,7 @@
 - S5：FOV 三常数为项目约定；B12 危害路径量化 −0.146 dex；奇异 CD 可通过 |r_consistent|≥3 门 [实验:route1/exp3]。
 - S6：阶梯"宁多查一档也不空手"；早停只在 >5× 平均密度场生效；"上界 10000"注释宣称未实现（实锚 pc_api.cpp:290 vs :297-301）[实验:route1/exp3]。
 - S7：星等窗 → ZP 平移最高 −0.0318 mag（两消费面口径分裂量化）[实验:route1/exp2]。
-- S12：空间增益阶数是科学量；S15：ZP_syn 下限 3 的有限样本偏差量化；S16/S17 豁免论证；H1 锚 STALE（PHOTOMETRY.md:227/:356 → A-P1-04<!-- 订正: 检查-跨文档冲突 黄9——原 :355，⑥ 行实为 :356 -->）[实验:route1/exp4, exp5]。
+- S12：空间增益阶数是科学量；S15：ZP_syn 下限 3 的有限样本偏差量化；S16/S17 豁免论证；H1 锚 STALE（PHOTOMETRY.md:227/:356 → A-P1-04作为判别时准确、作为预算项时含噪声（`sigma_psfsys_noise_expect`）须双读）[实验:route1/exp4, exp5]。
 
 **路线2（S1–S14）**：
 - S1：ARE(4.685)=0.9499974；c*=4.6850649 ≡ statsmodels 4.685065；两套求积互证 7 位；负例 ψ=x 偏差 1.4e-12 [实验:route2/exp1]。
@@ -110,7 +110,7 @@
 | 5 | Gaia DR3 arXiv 号 2205.11321 | 正确号 2208.00211 | 路线1 文献腿自纠 |
 | 6 | `frame_photometry_fit.cpp:292` 1.4826 截断、mag_max_arr 耦合、B13 接线 | 登记为条款一致性/接线整改项（不改判据方向） | **按分歧台账 A-P1-08 订正** |
 | 7 | 旧 REPORT_paper 精读版（保留其仍成立的三类数据结论） | 本报告与其重写版并存；两轮数字均标注 seed 来源 | 本轮成稿纪律 |
-| 8 | **σ_flat 取 `calibrate()['delta_after_m']`**（自指：被测样本拟合后的残差散度充当预算项，真实帧占上界方差 59.4%） | 仿真帧改取**真值**平场散度经 `N_eff` 折算、真实帧取 `06_photometry.md` §4.1 的 `σ_flat,hf = 0.0007 mag`；`delta_after_m` 降级为诊断字段 | **审查 P1-B01（blocker）**；变更 claim `PHOT-SIGMAFLAT-INDEP-001`；反例化 = `step7_negatives.json → N6`；同一订正使真实帧由 PASS 翻为 ABOVE_CEILING（如实改判「不成立（待修）」） |
+| 8 | **σ_flat 取 `calibrate()['delta_after_m']`**（自指：被测样本拟合后的残差散度充当预算项，真实帧占上界方差 47.6%） | 仿真帧改取**真值**平场散度经 `N_eff` 折算、真实帧取 `06_photometry.md` §4.1 的 `σ_flat,hf = 0.0007 mag`；`delta_after_m` 降级为诊断字段 | **审查 P1-B01（blocker）**；变更 claim `PHOT-SIGMAFLAT-INDEP-001`；反例化 = `step7_negatives.json → N6`；同一订正使真实帧由 PASS 翻为 ABOVE_CEILING（如实改判「不成立（待修）」） |
 | 9 | 低样本下界建议 `max(rho_lo, 0)·σ_fit` | **撤回**；改显式最小样本规则：`n ≤ 12.236` ⇒ 作用域 `upper_only` + 状态词 `LOWER_BOUND_UNDEFINED`（不记 PASS），并报出 `n`/`gate_scope` | **审查 P1-M07**（恒真门无证据资格，标准 §7）；`docs/science/PHOTOMETRY.md` §16.5 第 3 条已同步 |
 | 10 | 预筛窗写作 `|r − median(r)| ≤ 3.0`（r 为 dex）却注「= 1.2 dex」 | 量纲显式：`|delta − median(delta)| ≤ 3.0 mag` ⟺ `|r − median(r)| ≤ 1.2 dex`，实现 = `delta_i := −2.5·log10 F_instr,i − G_i` | **审查 P1-M03**；`docs/derivation_robust_weights.md` D1 |
 | 11 | n=3 渐近式「高估 7.4%」 | **8.03%**（精确 SE 0.6698291607404144σ / 渐近 0.7235930923753581σ − 1） | **审查 P1-M04** |

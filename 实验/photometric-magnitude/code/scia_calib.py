@@ -22,7 +22,7 @@ from scia_common import (Budget, MAD_TO_SIGMA, PHOTON_MAG, fit_psf, gate_verdict
 SELF_REFERENTIAL_ITEM_NOTE = (
     "diagnostic_only：与被测统计量 sigma_obs 同源（同一批逐星残差上的同一估计量，"
     "只差去掉的模型：多项式 vs 常数）⇒ 不得作为 sigma_ceiling 的独立预算项。"
-    "原实现把它当 sigma_flat 使用（真实帧占上界方差 59.9%），已按变更 claim"
+    "原实现把它当 sigma_flat 使用（真实帧占上界方差 47.6%），已按变更 claim"
     " PHOT-SIGMAFLAT-INDEP-001 订正为独立口径。"
 )
 

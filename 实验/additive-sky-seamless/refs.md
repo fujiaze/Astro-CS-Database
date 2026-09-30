@@ -14,13 +14,14 @@
 - **用途**: 稳健位置 M-估计总纲；论文判据面中 Huber 框架的出处。**不含 δ=1.345 数值归属**（该归属在 R2）。
 
 ### R2 · Holland, P. W. & Welsch, R. E. 1977
-- **锚**: *Robust regression using iteratively reweighted least-squares*, Comm. Statist. **A6**, 813–827. **DOI 10.1080/03610927708827533**
+- **锚**: *Robust regression using iteratively reweighted least-squares*, Comm. Statist. – **Theory and Methods 6(9)**, 813–827. **DOI 10.1080/03610927708827533**
+- **刊名与期号订正（本轮实测）**: Crossref `works/10.1080/03610927708827533` 的 container-title 逐字为 "Communications in Statistics - Theory and Methods"、volume 6、issue **9**、page 813–827；Kafadar (1983) 自身参考文献 [19] 亦写作 "Comm. Statist. **A6(9)**, 813–827"。本条与正文参考文献 [6] 原写的 "Simulation and Computation, A6" 是**刊名张冠李戴**，按 Crossref 更正。
 - **核验方式**: Crossref 元数据级（路线2）；取值表原文在线不可得，但 **δ=1.345 的数值由路线2 e5 以闭式渐近效率方程独立复算**（δ(0.95)=1.3449975），不依赖该表逐页。
 - **用途**: δ=1.345 的归属锚（A-P5-09 订正：不归 Huber 1964）。
 
 ### R3 · Andrae, R., Schulze-Hartung, T. & Melchior, P. 2010
 - **锚**: *Dos and don'ts of reduced chi-squared*. **arXiv:1012.3754**
-- **核验方式**: arXiv abs + PDF 全文直取，式 (9) K = N − P_eff = N − rank(X) **逐字核验**（路线1/路线2 双路）。
+- **核验方式**: arXiv abs + PDF 全文直取，式 (8) `P_eff = tr(H) = rank(X)`、式 (9) `K = N − P_eff ≥ N − P`、式 (15) `⟨χ²⟩ = ∫₀^∞ χ² prob(χ²;K) dχ² = K` **逐字核验**（路线1/路线2 双路）。
 - **用途**: E[χ²] = n_obs − r_eff 的文献腿；A-P5-01 方向词订正（χ²_red 以 n_params 为分母时**高估**）的理论依据。
 
 ### R4 · Fruchter, A. S. & Hook, R. N. 2002
