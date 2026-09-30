@@ -7,12 +7,14 @@
   "ratio_drop_lambda": 0.0015757612953688556,
   "photon_weighted_lambda_eff_nm": 634.6138865949993,
   "ratio_lambda2": 638.5902398109847,
-  "pass": true
+  "pass": true,
+  "discriminating_power": "none (代数恒等 + 定义式)"
  },
  "H6b": {
   "ratio": 0.39810717055349726,
   "expected": 0.3981071705534972,
-  "pass": true
+  "pass": true,
+  "discriminating_power": "none (积分线性性恒等)"
  },
  "H6c": {
   "rel_err_by_step_nm": {

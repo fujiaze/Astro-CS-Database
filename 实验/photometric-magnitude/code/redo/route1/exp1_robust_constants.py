@@ -5,9 +5,10 @@
 独立审计路线1 standalone 脚本。纯 Python + numpy，不 import 仓库任何 Python。
 seed 写死：SEED = 20260926。单次运行 CPU << 5 分钟。
 运行：python3 exp1_robust_constants.py
-输出：../results/exp1_robust_constants.json
+输出：../../../results/redo/route1/exp1_robust_constants.json
 """
 import json
+import os
 import math
 import struct
 import numpy as np
@@ -185,6 +186,9 @@ out = {
         "shift_dex": robust_shift, "gate_lt_0.1dex_pass": bool(abs(robust_shift) < 0.1),
     },
 }
-with open("../results/exp1_robust_constants.json", "w") as f:
+_out = os.path.abspath(os.path.join(os.path.dirname(os.path.abspath(__file__)),
+    "..", "..", "..", "results", "redo", "route1"))
+os.makedirs(_out, exist_ok=True)
+with open(os.path.join(_out, "exp1_robust_constants.json"), "w") as f:
     json.dump(out, f, indent=2)
 print(json.dumps(out, indent=2))

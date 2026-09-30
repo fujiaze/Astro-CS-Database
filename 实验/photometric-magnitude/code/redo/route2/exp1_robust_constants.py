@@ -9,7 +9,7 @@ Items covered:
   S10 finite-sample bias of MAD-type scale (Croux & Rousseeuw 1992 table)
 
 All seeds are fixed. Pure python + numpy. No repo imports.
-Run:  python3 exp1_robust_constants.py    (writes ../results/exp1_robust_constants.json)
+Run:  python3 exp1_robust_constants.py    (writes ../../../results/redo/route2/exp1_robust_constants.json)
 """
 import json
 import math
@@ -202,7 +202,7 @@ out = {
 }
 
 here = os.path.dirname(os.path.abspath(__file__))
-os.makedirs(os.path.join(here, "..", "results"), exist_ok=True)
+os.makedirs(os.path.join(here, "..", "..", "..", "results", "redo", "route2"), exist_ok=True)
 path = os.path.join(here, "..", "results", "exp1_robust_constants.json")
 with open(path, "w", encoding="utf-8") as f:
     json.dump(out, f, indent=2, ensure_ascii=False)

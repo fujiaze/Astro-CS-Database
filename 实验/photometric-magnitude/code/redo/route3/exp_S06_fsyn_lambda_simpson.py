@@ -135,7 +135,8 @@ def main():
     }
 
     out["verdict"] = {k: out[k]["pass"] for k in ("H6a", "H6b", "H6c", "H6d_B11")}
-    res = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "results")
+    res = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "..",
+        "results", "redo", "route3")
     os.makedirs(res, exist_ok=True)
     p = os.path.join(res, "exp_S06_fsyn_lambda_simpson.json")
     with open(p, "w", encoding="utf-8") as f:

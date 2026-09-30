@@ -98,7 +98,8 @@ def main():
     out["verdict"] = {"H3a": out["H3a"]["pass"], "H3b": out["H3b"]["pass"],
                       "negative": out["negative_zero_check"]["pass"],
                       "v8_replay": out["v8_replay"]["pass"]}
-    res = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "results")
+    res = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "..",
+        "results", "redo", "route3")
     os.makedirs(res, exist_ok=True)
     p = os.path.join(res, "exp_S03_irls_convergence.json")
     with open(p, "w", encoding="utf-8") as f:

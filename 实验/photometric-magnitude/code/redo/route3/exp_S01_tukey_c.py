@@ -114,7 +114,8 @@ def main():
                   f"MC 效率 n=20: {out['mc_efficiency_by_n']['20']:.4f}, "
                   f"n=200: {eff:.4f} (seed={SEED})",
     }
-    res = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "results")
+    res = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "..",
+        "results", "redo", "route3")
     os.makedirs(res, exist_ok=True)
     p = os.path.join(res, "exp_S01_tukey_c.json")
     with open(p, "w", encoding="utf-8") as f:

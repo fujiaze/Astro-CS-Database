@@ -44,7 +44,8 @@
   "metric": "sigma_hat_on_constant_data",
   "max_value": 0.0,
   "criterion": "真值无散度 ⇒ σ̂=0(归零)",
-  "pass": true
+  "pass": true,
+  "discriminating_power": "none (自洽守卫: MAD(const)=0 恒成立)"
  },
  "c_over_madscale": 6.945991393698745,
  "verdict": {

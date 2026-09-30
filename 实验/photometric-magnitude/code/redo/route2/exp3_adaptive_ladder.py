@@ -107,7 +107,7 @@ out = {
     "S6_no_effect_negative": neg,
 }
 here = os.path.dirname(os.path.abspath(__file__))
-os.makedirs(os.path.join(here, "..", "results"), exist_ok=True)
+os.makedirs(os.path.join(here, "..", "..", "..", "results", "redo", "route2"), exist_ok=True)
 path = os.path.join(here, "..", "results", "exp3_adaptive_ladder.json")
 with open(path, "w", encoding="utf-8") as f:
     json.dump(out, f, indent=2, ensure_ascii=False)

@@ -85,7 +85,8 @@ def main():
         "detail": f"Φ⁻¹(3/4)={q:.16f}; n=3 缺损因子={out['n3_deficit_factor']:.3f} "
                   f"(02 断言 ≈1.49); c·S 闭式系数={out['c_over_madscale']:.6f} (02 记 6.945)",
     }
-    res = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "results")
+    res = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "..",
+        "results", "redo", "route3")
     os.makedirs(res, exist_ok=True)
     p = os.path.join(res, "exp_S02_mad_consistency.json")
     with open(p, "w", encoding="utf-8") as f:

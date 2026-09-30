@@ -61,7 +61,7 @@ F_λ   = byte·flux_mul + flux_min         # 绝对谱辐照度 W·m⁻²·nm⁻
 > 本单元中 `step2_hst_sim.py` 对注入与模型使用同一因子 ⇒ 在 `r_i` 中**精确相消**，结论不受影响；
 > `scia_calib.py`/`step7_negatives.py`/`step8_real_frame.py` 不传该参数。
 > **不得把它当作通用参考通量公式搬用到别处**（会给逐星 `r_i` 注入 `+0.4·G_i` dex，单标量零点吸收不掉）。
-> 完整订正见 `RESOLUTION_fsyn_formula.md`。
+> 完整订正见 `docs/fsyn_convention.md`。
 
 ### 2.2 零点估计（IRLS/Tukey）
 
@@ -125,7 +125,63 @@ gate_scope   = "two_sided" if rho_lo > 0 else "upper_only"
 | ② 纯解析代数合成 | 600 星，SED 取真实 XP；无噪声组 + 多噪声组；`m(x,y)` 解析已知 | Oracle / 收敛性 / 负例 | `step1_analytic.py` |
 | ③ testdata 真实帧 | FLI M42 M1 T2 Red 300 s（4096², uint16+BZERO） | 底参照（无真值） | `step8_real_frame.py` |
 
+### 3.1 输入清单（来源 · 性质 · 用途）
+
+本单元**不新增受版本控制的数据文件**：输入全部来自仓库内既有资产或公开服务，中间产物落
+`run/SCI-401/`（gitignore，不入库），结果落 `results/`。
+
+**D1 · HST M16 真实信号模板（真实观测）**
+
+- 路径：`testdata/HST_M16/hlsp_heritage_hst_wfc3-uvis_m16_f657n_v1_drz.fits`
+- 性质：HST/WFC3-UVIS F657N HLSP drz，单 HDU，8400×8000 float32，`BUNIT=ELECTRONS/S`，
+  `EXPTIME=9600`，`PHOTFLAM=2.2290223e-18`，`PHOTPLAM=6566.60545`，`PHOTBW=41.015`
+- 用途：提供**真实的大尺度天光/星云结构**作为仿真背景；仅取 24×24 分块平均后的
+  ~0.95″/px 模板（与 testdata FLI/KAF-16803 系统同量级采样）。本单元**只读**，不修改
+
+**D2 · Gaia DR3 XP 光谱（真实天体 SED）**
+
+- 来源：仓库内 `lib/infrastructure/gaia_xpsd_client`（本地 DR3SP 库）+ 仓库内 `gaia_client.c`
+  （`code/gaia_xp_dump.c` 直接链接它，只读）
+- 查询：M16 场 `(274.7216, −13.8415)` r=0.075°，G<21.5 → 208 源；
+  真实帧场 `(83.2833557851, −6.37428025059)` r=0.30°，G<18.0
+- XP 采样：343 点、336–1020 nm @ 2 nm，uint8 + `flux_min`/`flux_mul`；
+  `F(λ) = byte·flux_mul + flux_min` [W m⁻² nm⁻¹]
+- 用途：注入星场的**真实 SED 形状**（星等为已知真值，SED 形状取自真实天体）
+
+**D3 · testdata 真实帧（底参照）**
+
+- 路径：`testdata/` 内 FLI 相机帧（M42 M1 T2 Red 300 s 等），uint16 + `BZERO=32768`
+- 用途：真实数据底参照——帧内仪器参数、WCS 二轮精化、引导 vs 盲检、单帧可自算预算。
+  本单元**只读**，不修改
+
+**D4 · 外部通带曲线（唯一需要网络）**
+
+- 来源：SVO Filter Profile Service，`HST/WFC3_UVIS2.{F657N,F673N,F502N}` 总系统透过率
+- 复现：`bash 实验/photometric-magnitude/code/step0_fetch_refs.sh`（脚本内钉死 SHA256，不匹配即失败）
+
+| 曲线 | SHA256 |
+|---|---|
+| `svo_HST_WFC3_UVIS2_F657N.txt` | `2af43d2dec10904ca2a3207cbc74a9ca1f83fe02d35b7bfd97832d032ad745cf` |
+| `svo_HST_WFC3_UVIS2_F673N.txt` | `fdb18eb39936094323b90e20f06cc88c88412ce9a989c43f22e13cf8fdfa598a` |
+| `svo_HST_WFC3_UVIS2_F502N.txt` | `587ef650b0660cb060af58b0267768ecb05d06ef06f17f9d7d19aa8912ac5e3c` |
+
+- **离线复现边界（诚实说明）**：无网络时 step0 直接用缓存；缓存缺失且无网络则 step3 无法复跑。
+  缓存不入库，因此首次复跑需要一次网络访问
+
+**D5 · 本单元生成的仿真帧（非受控数据）**
+
+| 文件 | 内容 | 生成命令 |
+|---|---|---|
+| `frame_A.npz` | HST 模板 + Gaia XP 注入，透明度 1.0 | `code/step2_hst_sim.py` |
+| `frame_B.npz` | 同上，透明度 0.62 | 同上 |
+| `frame_C.npz` | 同模板 + 500 星解析合成位置场 | 同上 |
+
+每个 npz 内含：`img`（ADU 图像）、`m`（真实空间增益图）、`sky_map_adu`、
+`mu`（期望电子数图，供精确方差用）、真值 `x/y/ra/dec/mag_gaia/mag_eff`、
+模型与注入两侧的合成通量 `f_syn`/`f_syn_inject`、`inject_scale`。
+
 外部绝对刻度交叉核对：SVO HST/WFC3_UVIS2 F657N/F673N/F502N 总系统透过率曲线 + 头部 PHOTFLAM/PHOTPLAM。
+不删改 `testdata/` 与 `testdata/HST_M16/` 内任何文件。
 
 **三类数据的分工与互证**：① 提供真实的天光/星云结构与完整噪声物理（检验"真实条件下的判据行为"）；
 ② 提供精确 Oracle（检验实现正确性、积分约定、IRLS 稳健性）；③ 提供真实探测器数据
@@ -404,10 +460,34 @@ N0/N4/N5 是退化输入与错误门禁反例。
 
 ## 7. 复现命令
 
+**公共前置步（先跑，再跑本单元）**：
+
+```bash
+cd <repo root>
+bash 实验/shared/synthetic/run_selftests.sh     # 合成器物理链自检：4 组件，全绿约 2.5 min
+```
+
+`run_selftests.sh` 是**所有实验单元**的一键复现公共前置步：先证明合成器链本身能红能绿
+（能证伪），再让单元去跑真实验。退出码 0 = 全绿；1 = 有组件判红（本单元读数不得作为证据）；
+2 = 有组件缺失（自检面不完整）。
+
+> **不得只调 `noise_selftest.py`**：它只验「独立重实现 vs 生产实现 vs 解析预测」三方对照，
+> 验的是**方法**（分布与口径是否正确），对**生产实现本身**零判别力——生产实现坏掉而独立
+> 重实现与解析预测同源一起坏时，它照样绿。**生产面的门禁责任在 `m16_scene --selftest` 与
+> `m16_sampling --selftest`**（这两个直接打生产渲染面/采样面）。四个组件全跑，不要裁剪成
+> 单组件。
+>
+> 本单元另有一处**本地**物理链自校验入口：`code/scia_sim.py` 的采样段与共享链
+> `noise_model.expose()` 的逐条对照写在 `code/scia_sim.py` 的模块 docstring
+> 「与共享物理链的关系」一节——那是**说明性对拍**，不是可执行门禁；可执行门禁在上面前置步里。
+
+本单元：
+
 ```bash
 cd <repo root>
 bash 实验/photometric-magnitude/code/run_all.sh          # 全量；日志落 run/SCI-401/logs/
 bash 实验/photometric-magnitude/code/run_all.sh quick    # 跳过 step6
+bash 实验/photometric-magnitude/code/redo/run_all.sh     # 重做三路 seed 20260926
 ```
 
 单步：
@@ -457,7 +537,7 @@ python3 实验/photometric-magnitude/code/step9_collect.py            # → resu
 - sep 1.4.1 `sep.pyx:387`（`cdef class Background`）
 - GaiaXPy 2.1.4 `src/gaiaxpy/generator/generator.py:17`（`generate()`）、`sampled_spectrum.py:114`（`return coefficients @ design_matrix`）
 - SExtractor 2.28.2 `src/analyse.c:310`（`obj->fluxerr = sigtv;`）、`:561`（`sqrt()`）
-- SVO Filter Profile Service：`HST/WFC3_UVIS2.{F657N,F673N,F502N}` 总系统透过率（SHA256 见 §4.5 与 `data/README.md`）
+- SVO Filter Profile Service：`HST/WFC3_UVIS2.{F657N,F673N,F502N}` 总系统透过率（SHA256 见 §3.1 D4 与 §4.5）
 
 ### 8.3 独立审稿（非作者，两轮）
 
@@ -476,6 +556,12 @@ python3 实验/photometric-magnitude/code/step9_collect.py            # → resu
 
 全部结果 JSON 在 `results/`；判据表 `results/GATES.md`；
 文档订正建议 `results/DOC_CORRECTIONS.md`；独立审稿 `results/REVIEW.md`。
+
+合成器物理链的可执行自校验（公共前置步，四个组件全绿）：
+`bash 实验/shared/synthetic/run_selftests.sh` →
+`m16_mask` / `m16_scene` / `m16_sampling` / `noise_selftest` 全 PASS，退出码 0。
+本单元的采样段与共享链的逐条口径对照见 `code/scia_sim.py` 模块 docstring
+「与共享物理链的关系」一节。
 
 ---
 

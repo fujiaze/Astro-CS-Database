@@ -1,6 +1,6 @@
 # 实验报告 · P1 通量积分拟合（测光星等坐标系）
 
-**单元**：`实验/photometric-magnitude`（SCI-A，SCI-401）。本报告是实验重做轮的成稿实验报告：整合历史正本轮实验（step0–step9，seed=20260921）与三路独立重做（路线1/2/3，seed=20260926）；既有历史文档（`README.md`、`RESOLUTION_fsyn_formula.md`、`RESOLUTION_m42_curve_resolve.md`、`results/REVIEW.md`、`results/DOC_CORRECTIONS.md`、`results/GATES.md`）保留，失效处按台账订正并在文内注明。
+**单元**：`实验/photometric-magnitude`（SCI-A，SCI-401）。本报告是实验重做轮的成稿实验报告：整合历史正本轮实验（step0–step9，seed=20260921）与三路独立重做（路线1/2/3，seed=20260926）；既有历史文档（`README.md`、`docs/fsyn_convention.md`、`RESOLUTION_m42_curve_resolve.md`、`results/REVIEW.md`、`results/DOC_CORRECTIONS.md`、`results/GATES.md`）保留，失效处按台账订正并在文内注明。
 **裁决依据**：`独立审计/实验重做/总编对账/分歧台账.md`（D-xx/A-xx）与 `五单元成稿简报.md`。本单元无 P1 专属补实验目录（`补实验-control_variance / -k_corr / -5.07` 分别由 P2/P3/P5 承载）。
 **论文版**：`REPORT_paper.md`；文献台账：`refs.md`；推导：`docs/derivation_robust_weights.md`。
 
@@ -15,7 +15,7 @@
 
 ## 2 方法
 
-- **参考通量**：`F_syn = ∫F_λ·T·Q·λ dλ`（W·m⁻²·nm，官方 343 点 @2 nm，336–1020 nm；G<15 域）；Akima 子样条 + 复合 Simpson 1/3（奇区间 3/8、n==1 退梯形）；**不含 `10^(−0.4·G)`**（`RESOLUTION_fsyn_formula.md` 判定，生产实现逐位一致）。插值/求积设置配置化 + 运行日志不落盘（负责人已批）。
+- **参考通量**：`F_syn = ∫F_λ·T·Q·λ dλ`（W·m⁻²·nm，官方 343 点 @2 nm，336–1020 nm；G<15 域）；Akima 子样条 + 复合 Simpson 1/3（奇区间 3/8、n==1 退梯形）；**不含 `10^(−0.4·G)`**（`docs/fsyn_convention.md` 判定，生产实现逐位一致）。插值/求积设置配置化 + 运行日志不落盘（负责人已批）。
 - **稳健零点**：`r_i = log10(F_instr/F_syn)` [dex]；固定尺度 Tukey biweight IRLS（c=4.685，tol=1e-6，max_iter=50）；`k_photo = 10^(−location)`；`sigma_residual = MAD(r_inliers)/0.6744897501960817`。
 - **预筛窗（订正 P1-M03）**：`|delta_i − median(delta)| ≤ 3.0 mag`，`delta_i := −2.5·log10 F_instr,i − G_i`（量纲 mag）；严格等价于 `|r_i − median(r)| ≤ 1.2 dex`（3.0/2.5）。两域容差不得混用。
 - **求积退化分支（订正 P1-m02）**：`n_int == 3` 时 1/3 前段区间数 `n_13 = 0` ⇒ 该段必须为 0；历史多计 `2·y[0]·h/3`，常数被积函数得 3.6667 vs 真值 3.0（+22.2%）。生产端与实验参考实现已按 claim `PHOT-SIMPSON-N3-001` 同步订正并补闭式期望 + 故障注入。
@@ -129,16 +129,97 @@
 
 ## 9 复现命令
 
+**公共前置步（先跑，再跑本单元）**：
+
 ```bash
 cd <repo root>
-# 历史正本轮（seed 20260921）
+bash 实验/shared/synthetic/run_selftests.sh     # 合成器物理链自检：4 组件，全绿约 2.5 min
+```
+
+退出码 0 = 全绿；1 = 有组件判红（本单元读数不得作为证据）；2 = 有组件缺失。
+**不得只调 `noise_selftest.py`**：它只验「独立重实现 vs 生产实现 vs 解析预测」三方对照，
+验的是方法（分布与口径），对**生产实现本身**零判别力——生产实现坏掉而独立重实现与解析
+预测同源一起坏时它照样绿。**生产面的门禁责任在 `m16_scene --selftest` 与
+`m16_sampling --selftest`**。四个组件全跑，不要裁剪成单组件。
+
+本单元：
+
+```bash
+cd <repo root>
+# 主实验轮（seed 20260921）
 bash 实验/photometric-magnitude/code/run_all.sh            # step0–step9（quick 跳过最慢 step6）
 bash 实验/photometric-magnitude/code/step0_fetch_refs.sh   # 唯一需网络（脚本内钉死 SHA256）
-# 实验重做三路（seed 20260926）
+# 重做三路（seed 20260926）
 bash 实验/photometric-magnitude/code/redo/run_all.sh       # route1–route3；quick 跳过 route2 exp3/exp7
 # 单脚本示例
 python3 实验/photometric-magnitude/code/redo/route2/exp1_robust_constants.py
-# 基准读数：results/step1..step8*.json、results/redo/route{1,2,3}/*.json；汇总 results/redo_summary.json
+# 基准读数：results/step1..step8*.json、results/redo/route{1,2,3}/*.json；
+#           空间增益逆向验收 results/reverse_verify/p1_spatial_gain/data/*.json
+# 汇总 results/redo_summary.json
 ```
 
-固定 seed 说明：历史轮 `20260921`（`scia_common.rng(tag)` SHA256 派生）；重做三路统一 `20260926`（脚本内写死；路线1 部分脚本派生 SEED+1…）。RNG 一律 `numpy.random.default_rng(SEED)`。重跑读数与基准快照逐项一致（固定 seed 保证）。
+固定 seed 说明：主实验轮 `20260921`（`scia_common.rng(tag)` SHA256 派生）；重做三路统一
+`20260926`（脚本内写死；路线1 部分脚本派生 SEED+1…）。RNG 一律
+`numpy.random.default_rng(SEED)`。重跑读数与基准快照逐项一致（固定 seed 保证）。
+**结果数据一律落 `results/`，`code/` 下只放代码**；各脚本的写出路径由脚本自身位置推导，
+不依赖调用者 cwd。
+
+---
+
+## 10 佐证来源
+
+本节把三类支撑分列：**一手文献**（书目/DOI 可解析，原句照抄）、**开源实现**
+（项目 + 版本 + 文件:行）、**仓内实测**（复现命令 + 产物路径）。完整台账见 `refs.md`。
+
+### 10.1 一手文献（核验途径与关键原句见 `refs.md`）
+
+| 用于支撑的结论 | 文献 | 核验层级 |
+|---|---|---|
+| `F_syn = ∫F_λ·T·Q·λ dλ` 的物理刻度与通带定义 | Gaia Collaboration & Montegriffo et al. 2023, A&A 674, A33（arXiv:2206.06215） | 摘要/正文原句照抄 |
+| `F_syn` **不含** `10^(−0.4·G)`；XP 外定标 ±2% | Montegriffo et al. 2023, A&A **674, A3**（DOI 10.1051/0004-6361/202243880） | Crossref/arXiv 书目 + §8.1 原句 |
+| XP 采样谱 343 点 @2 nm、零点定义式 (5.41)、绝对刻度 ≈1% | ESA Gaia DR3 官方文档 §5.4.1 / §20.12.4 | 官方文档原句 |
+| XP 可用域（采样表示 G=15；连续表示 G<17.65，**两级域不得合并**） | Montegriffo et al. 2023 附录 B（arXiv:2206.06205） | 一手原句照抄 |
+| `c = 4.685` ⇔ 正态 95% 渐近效率 | Kafadar 1983, J. Res. Natl. Bur. Stand. 88(2), 105–116 | PMC 全文原句照抄 |
+| MAD 尺度估计量的 37% 效率与标准化方差 **1.361**（⇒ `1.166 = √1.361`） | Rousseeuw & Croux 1993, JASA 88(424), 1273–1283 | 官方镜像 PDF 全文 + Table 2 |
+| Tukey biweight 出处 | Beaton & Tukey 1974, Technometrics 16, 147–185 | **仅二手归属**（原文无 OA 全文） |
+| IRLS 权重常数表 | Holland & Welsch 1977, Comm. Statist. 6(9), 813–827 | Crossref/OpenAlex 书目级 |
+| 反方差加权口径 | Aitken 1935, Proc. R. Soc. Edinb. 55, 42–48 | **仅二手归属**（原文无 OA 全文） |
+| 谱插值基元（Akima 子样条） | Akima 1970, J. ACM 17(4), 589–602 | Crossref 书目级 |
+| PHOTFLAM/PHOTPLAM/PHOTBW 定义 | STScI WFC3 Data Handbook §9.1；Bohlin, Hubeny & Rauch 2020, AJ **160, 21** | 官方手册 + Crossref |
+
+### 10.2 开源实现（项目 + 版本 + 文件:行）
+
+| 实现 | 锚 | 支撑的结论 |
+|---|---|---|
+| astropy 8.0.1 `astropy/stats/funcs.py:945` | `mad_std` 返回 `MAD × 1.482602218505602` | 与本实验 `1/0.6744897501960817` 同源。**本机运行版本是 astropy 7.0.1**，语义相同、行号可能不同，未在 7.0.1 上核对该行号 |
+| statsmodels `robust/_tables.py` L16–L27 | L24 逐字 `0.95: (4.685065, 0.119414),` | `c = 4.685` 的第三方数值锚（与本实验解析解 4.6850649 六位一致） |
+| photutils 3.0.0 `detection/daofinder.py:26,:210` | 文档逐字 "If `xycoords` are input, the algorithm will skip the source-finding step." | 星表引导可跳过源查找的一手语义证据 |
+| photutils 3.0.0 `psf/photometry.py:217`、`aperture/photometry.py:30` | `PSFPhotometry` / `aperture_photometry` | PSF 测光与孔径测光的口径对照 |
+| sep 1.4.1 `sep.pyx:387` | `cdef class Background` | 背景估计对照 |
+| SExtractor 2.28.2 `src/analyse.c:310,:561` | `obj->fluxerr = sigtv;` / `sqrt()` | 误差传播对照 |
+| GaiaXPy 2.1.4 `src/gaiaxpy/spectrum/sampled_spectrum.py:114` | 纯线性组合 `coefficients @ design_matrix` | F_syn 绝对口径的实现侧旁证（不乘任何星等因子） |
+| SVO Filter Profile Service | `HST/WFC3_UVIS2.{F657N,F673N,F502N}` | 总系统透过率曲线，SHA256 见 README §3.1 D4 |
+
+> 本单元**未**在本环境安装运行 photutils / sep；上表行号来自文献与上游源码核对，不是本机
+> 安装版本（诚实边界，见 §8 与 `README.md` §6.7）。
+
+### 10.3 仓内实测（复现命令 + 产物路径）
+
+| 证据 | 复现命令 | 产物 |
+|---|---|---|
+| 主实验轮 step1–step9 | `bash code/run_all.sh` | `results/step1..step8*.json`、`results/GATES.md`、`results/gates.json` |
+| 重做三路（seed 20260926） | `bash code/redo/run_all.sh` | `results/redo/route{1,2,3}/*.json`、`results/redo_summary.json` |
+| 低阶空间增益逆向验收 | `code/reverse_verify/p1_spatial_gain/src/*.py` + `cpp/p1sg_oracle.cpp` | `results/reverse_verify/p1_spatial_gain/data/*.json` |
+| **合成器物理链自检（公共前置步）** | `bash 实验/shared/synthetic/run_selftests.sh` | 四组件全 PASS，退出码 0 |
+| 判据表汇总 | `python3 code/step9_collect.py` | `results/GATES.md` / `results/gates.json` |
+| 独立审稿（非作者，两轮） | — | `results/REVIEW.md`（22 条意见；5 条真实硬伤的处置见 `REPORT_experiment.md` §7） |
+
+### 10.4 合成器物理链与共享链的口径对照
+
+本单元的采样段（`code/scia_sim.py` 的 `forward()` / `stamp_photometry()`）与共享物理链
+`实验/shared/synthetic/noise_model.py` 的 `expose()` 执行同一条链
+`λ_e = (源+天光+暗流)·m(x,y) → Poisson(λ_e) + N(0,σ_R) → 饱和·取整(n_e/g)`。
+两者三处差异（平场是否乘暗流、量化方差 1/12、偏置基座）及其量级上界，
+以及本单元**不能**由共享链替代的四项（已知系数空间增益、逐星真值位置渲染、逐星加权 PSF
+最小二乘测光、纯解析代数合成臂）逐条写在 `code/scia_sim.py` 的模块 docstring
+「与共享物理链的关系」一节。采样段收敛到共享链需以「重跑并重新落盘全部归档 JSON」为前置。

@@ -5,9 +5,10 @@ max_stars=5000 星数上限（S11）。
 
 seed 写死：SEED = 20260928。纯 Python + numpy。
 运行：python3 exp3_fov_ladder.py
-输出：../results/exp3_fov_ladder.json
+输出：../../../results/redo/route1/exp3_fov_ladder.json
 """
 import json
+import os
 import math
 import numpy as np
 
@@ -140,6 +141,9 @@ out = {
     "S6_sigma_zp_at_early_stop_mag": sigma_zp_at_2000,
     "S11_cap_curve": cap_rows,
 }
-with open("../results/exp3_fov_ladder.json", "w") as f:
+_out = os.path.abspath(os.path.join(os.path.dirname(os.path.abspath(__file__)),
+    "..", "..", "..", "results", "redo", "route1"))
+os.makedirs(_out, exist_ok=True)
+with open(os.path.join(_out, "exp3_fov_ladder.json"), "w") as f:
     json.dump(out, f, indent=2)
 print(json.dumps(out, indent=2))

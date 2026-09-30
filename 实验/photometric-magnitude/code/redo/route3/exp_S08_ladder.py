@@ -145,7 +145,8 @@ def main():
     out["verdict"] = {"H8a": out["H8a"]["pass"], "H8b": out["H8b"]["pass"],
 
                        "H8d": out["H8d"]["pass"]}
-    res = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "results")
+    res = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "..",
+        "results", "redo", "route3")
     os.makedirs(res, exist_ok=True)
     p = os.path.join(res, "exp_S08_ladder.json")
     with open(p, "w", encoding="utf-8") as f:

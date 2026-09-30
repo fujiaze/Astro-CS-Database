@@ -9,7 +9,7 @@
 
 ## 摘要
 
-将仪器计数（ADU）逐帧标定到一个可跨帧比较的星等坐标系上，是测光流水线的根基问题；当 FITS 头不携带增益、曝光与透过率信息时，标定因子的绝对值在数学上不可辨识，只有其与参考通量的比值携带科学内容。本文建立并验证一套以 Gaia DR3 XP 绝对分光采样谱锚定的测光星等坐标系：参考合成通量取 `F_syn = ∫ F_λ(λ)·T(λ)·Q(λ)·λ dλ`（W·m⁻²·nm，336–1020 nm @2 nm 官方网格）[文献:V7/V9]，逐星残差 `r_i = log10(F_instr,i/F_syn,i)` 经固定尺度 Tukey biweight IRLS（c = 4.685）稳健聚合成逐帧零点。常数体系三腿闭合：c = 4.685 使 biweight 位置估计量达到正态 95% 渐近效率（解析积分 ARE = 0.9499974，反解 c* = 4.6850649，与 statsmodels 4.685065 六位一致，一手锚 Kafadar 1983）[实验:code/redo/route2/exp1_robust_constants.py][文献:V1/V2]；MAD→σ 常数 0.6744897501960817 = Φ⁻¹(3/4) 为解析恒等式（二分复算相对差 1.6×10⁻¹⁶）[推导:D3][实验:route2/exp1]；零点平移不变量逐位成立，标定系数因此被证明不含绝对数值窗口 [推导:D2][实验:route3/exp_S04]。误差预算判据的包络因子 1.166 = √1.361 系 MAD 尺度估计量标准化方差（1.361，Rousseeuw & Croux 1993 Table 2）的平方根 [文献:V5][推导:D5]（解释标签按分歧台账 A-P1-01 订正）。独立重做轮进一步把主系统差源量化：星等窗选择使合成零点系统平移最高 0.032 mag（比统计误差大一个量级以上）[实验:route1/exp2]；预过滤窗在 IRLS 就位后对零点精度的边际保护 ≈ 0，其真实作用面是控制进入拟合的样本族 [实验:route1/exp2]。三类数据（纯解析 Oracle、含真实 HST M16 星云结构的物理前向仿真、testdata 真实帧）的结论**并不一致**（订正 P1-B01，2026-10）：仿真与解析两类在预算完整、判据非退化下自洽且可复现（判据在真值无效应时归零、在乘性空间残差注入下单调上升并判红）；**testdata 真实帧腿在把 σ_flat 换成独立于被测样本的预算项后判 ABOVE_CEILING（σ_obs = 0.026520 mag > σ_ceiling = 0.020561 mag）**，本单元因此按审查标准 §6「三类结论一致才判定创新点成立」记**不成立（待修）**。该判红与生产文档 `docs/plugins/algorithms_phase1/06_photometry.md` §4.1 的 L4 49 帧「PASS 1/49」**同归因**：真实帧的未消系统项确实超预算，不是判据不可用。
+将仪器计数（ADU）逐帧标定到一个可跨帧比较的星等坐标系上，是测光流水线的根基问题；当 FITS 头不携带增益、曝光与透过率信息时，标定因子的绝对值在数学上不可辨识，只有其与参考通量的比值携带科学内容。本文建立并验证一套以 Gaia DR3 XP 绝对分光采样谱锚定的测光星等坐标系：参考合成通量取 `F_syn = ∫ F_λ(λ)·T(λ)·Q(λ)·λ dλ`（W·m⁻²·nm，336–1020 nm @2 nm 官方网格）[7,8]，逐星残差 `r_i = log10(F_instr,i/F_syn,i)` 经固定尺度 Tukey biweight IRLS（c = 4.685）稳健聚合成逐帧零点。常数体系三腿闭合：c = 4.685 使 biweight 位置估计量达到正态 95% 渐近效率（解析积分 ARE = 0.9499974，反解 c* = 4.6850649，与 statsmodels 4.685065 六位一致，一手锚 Kafadar 1983）[实验:code/redo/route2/exp1_robust_constants.py][5,11]；MAD→σ 常数 0.6744897501960817 = Φ⁻¹(3/4) 为解析恒等式（二分复算相对差 1.6×10⁻¹⁶）[推导:D3][实验:route2/exp1]；零点平移不变量逐位成立，标定系数因此被证明不含绝对数值窗口 [推导:D2][实验:route3/exp_S04]。误差预算判据的包络因子 1.166 = √1.361 系 MAD 尺度估计量标准化方差（1.361，Rousseeuw & Croux 1993 Table 2）的平方根 [10][推导:D5]（解释标签按分歧台账 A-P1-01 订正）。独立重做轮进一步把主系统差源量化：星等窗选择使合成零点系统平移最高 0.032 mag（比统计误差大一个量级以上）[实验:route1/exp2]；预过滤窗在 IRLS 就位后对零点精度的边际保护 ≈ 0，其真实作用面是控制进入拟合的样本族 [实验:route1/exp2]。三类数据（纯解析 Oracle、含真实 HST M16 星云结构的物理前向仿真、testdata 真实帧）的结论**并不一致**（订正 P1-B01，2026-10）：仿真与解析两类在预算完整、判据非退化下自洽且可复现（判据在真值无效应时归零、在乘性空间残差注入下单调上升并判红）；**testdata 真实帧腿在把 σ_flat 换成独立于被测样本的预算项后判 ABOVE_CEILING（σ_obs = 0.026520 mag > σ_ceiling = 0.020561 mag）**，本单元因此按审查标准 §6「三类结论一致才判定创新点成立」记**不成立（待修）**。该判红与生产文档 `docs/plugins/algorithms_phase1/06_photometry.md` §4.1 的 L4 49 帧「PASS 1/49」**同归因**：真实帧的未消系统项确实超预算，不是判据不可用。
 本单元输出的每 dex 精度直接构成下游跨帧绝对 SNR 链（P2）的误差底座。
 
 ---
@@ -34,7 +34,7 @@ I_cal = (g · t · A_eff · η · …) · ∫ F_λ(λ)·T(λ)·Q(λ)·λ dλ + �
 
 ### 1.3 相关工作定位
 
-Tukey biweight 位置估计与其 IRLS 解法源自 Beaton & Tukey (1974) [文献:V3] 与 Holland & Welsch (1977) 的权重常数表 [文献:V4]；c = 4.685 与正态 95% 渐近效率的显式联系由 Kafadar (1983) 给出 [文献:V1]（台账 D-06 判该锚有效）。MAD 尺度估计量的 37% 高斯效率与标准化方差 1.361 由 Rousseeuw & Croux (1993) 建立 [文献:V5]。Gaia DR3 XP 外定标采样谱的物理刻度、通带定义与 ±2% 外定标精度见官方文档与 Montegriffo et al. (2023) [文献:V7/V8/V9]。反方差加权估计的经典框架为 Aitken (1935) [文献:V11]——本项目统一采用反方差口径；本单元 IRLS 使用的是稳健权（§2.2），反方差口径经量纲变换 `ivar′ = ivar/α²` 进入下游（§3 链条位置）。
+Tukey biweight 位置估计与其 IRLS 解法源自 Beaton & Tukey (1974) [2] 与 Holland & Welsch (1977) 的权重常数表 [4]；c = 4.685 与正态 95% 渐近效率的显式联系由 Kafadar (1983) 给出 [5]（台账 D-06 判该锚有效）。MAD 尺度估计量的 37% 高斯效率与标准化方差 1.361 由 Rousseeuw & Croux (1993) 建立 [10]。Gaia DR3 XP 外定标采样谱的物理刻度、通带定义与 ±2% 外定标精度见官方文档与 Montegriffo et al. (2023) [6,7,8]。反方差加权估计的经典框架为 Aitken (1935) [1]——本项目统一采用反方差口径；本单元 IRLS 使用的是稳健权（§2.2），反方差口径经量纲变换 `ivar′ = ivar/α²` 进入下游（§3 链条位置）。
 
 ---
 
@@ -47,7 +47,7 @@ F_syn = ∫ F_λ(λ)·T(λ)·Q(λ)·λ dλ        # 单位 W·m⁻²·nm；不�
 F_λ(λ_i) = byte_i·flux_mul + flux_min   # 绝对谱辐照度 W·m⁻²·nm⁻¹（XPSD 量化解码）
 ```
 
-通带 = 滤镜透过率 T 与探测器 QE Q 的组合 [文献:V7 正文原句]；λ 网格为官方 343 点 @2 nm（336–1020 nm）[文献:V9 §20.12.4]；插值 Akima 子样条（区间外填 0）[文献:V13]，求积复合 Simpson 1/3（末尾奇数区间 3/8，`n==1` 退梯形）。**退化分支（订正 P1-m02）**：`n_int == 3`（4 点）时前段 1/3 的区间数 `n_13 = n_int − 3 = 0`，**1/3 部分必须为 0**——历史实现在该分支把 `y[0]` 计入两次，常数被积函数得 3.6667 vs 解析真值 3.0（+22.2%）。生产端（`lib/algorithms/photometry/cpp/src/spectrum_integrator.cpp`）与实验参考实现（`code/scia_common.py::simpson_integrate`）已按变更 claim `PHOT-SIMPSON-N3-001` 同步订正，`n_int ∈ {3}` 的失效域已由 `p1phot` O3 组的闭式期望（常数 3.0、三次式 6.75、n_int=5 组合分支 12.5）与故障注入名 `o3_simpson_n3_reference` 锁定。官方 343 点 XPSD 网格 `n_int = 342` 为偶，不触发该分支。历史上本单元曾把 `×10^(−0.4·magG)` 写成"冻结约定"；该写法不成立——官方定义式带 λ、不带任何星等因子 [文献:V9 式 5.41]，逐星乘 `10^(−0.4·G_i)` 会给 `r_i` 注入 +0.4·G_i dex 的加性项，单标量零点吸收不掉 [实验:RESOLUTION_fsyn_formula.md 负例，dlog10(ratio)/dG = 0.400]。生产实现与订正后公式逐位一致（两真实帧零点复算差 9.5×10⁻¹³ / 4.3×10⁻¹¹）[实验:RESOLUTION_fsyn_formula.md §2.3]。完整判定见 `RESOLUTION_fsyn_formula.md`（历史订正记录，保留不改，本节在其上引用）。**工程配套（负责人已批）**：插值/求积设置配置化，运行日志输出不落盘。
+通带 = 滤镜透过率 T 与探测器 QE Q 的组合 [7 正文原句]；λ 网格为官方 343 点 @2 nm（336–1020 nm）[8 §20.12.4]；插值 Akima 子样条（区间外填 0）[13]，求积复合 Simpson 1/3（末尾奇数区间 3/8，`n==1` 退梯形）。**退化分支（订正 P1-m02）**：`n_int == 3`（4 点）时前段 1/3 的区间数 `n_13 = n_int − 3 = 0`，**1/3 部分必须为 0**——历史实现在该分支把 `y[0]` 计入两次，常数被积函数得 3.6667 vs 解析真值 3.0（+22.2%）。生产端（`lib/algorithms/photometry/cpp/src/spectrum_integrator.cpp`）与实验参考实现（`code/scia_common.py::simpson_integrate`）已按变更 claim `PHOT-SIMPSON-N3-001` 同步订正，`n_int ∈ {3}` 的失效域已由 `p1phot` O3 组的闭式期望（常数 3.0、三次式 6.75、n_int=5 组合分支 12.5）与故障注入名 `o3_simpson_n3_reference` 锁定。官方 343 点 XPSD 网格 `n_int = 342` 为偶，不触发该分支。历史上本单元曾把 `×10^(−0.4·magG)` 写成"冻结约定"；该写法不成立——官方定义式带 λ、不带任何星等因子 [8 式 5.41]，逐星乘 `10^(−0.4·G_i)` 会给 `r_i` 注入 +0.4·G_i dex 的加性项，单标量零点吸收不掉 [实验:docs/fsyn_convention.md 负例，dlog10(ratio)/dG = 0.400]。生产实现与订正后公式逐位一致（两真实帧零点复算差 9.5×10⁻¹³ / 4.3×10⁻¹¹）[实验:docs/fsyn_convention.md §2.3]。完整判定见 `docs/fsyn_convention.md`（历史订正记录，保留不改，本节在其上引用）。**工程配套（负责人已批）**：插值/求积设置配置化，运行日志输出不落盘。
 
 ### 2.2 逐星残差与稳健零点
 
@@ -61,7 +61,7 @@ sigma_residual = MAD(r_inliers)/0.6744897501960817;   sigma_obs = 2.5·sigma_res
 
 预筛（**订正 P1-M03**：量纲显式、与实现一致 [推导:D1]）：`|delta_i − median(delta)| ≤ 3.0 mag`，其中 `delta_i := −2.5·log10 F_instr,i − G_i`（G 已在该定义内减去一次）；因 `delta_i = −2.5·r_i − C`，该窗**严格等价于** `|r_i − median(r)| ≤ 1.2 dex`（3.0/2.5 = 1.2）。实现 = `code/scia_calib.py:123-126`（阈值 3.0 mag）。历史写法 `|r − median(r)| ≤ 3.0`（r 为 dex）与之同句注「= 1.2 dex」自相矛盾，**已订正**。
 
-**权重语义分立**（按负责人已批的反方差口径条款）：IRLS 的 w_i 是稳健权，吸收错配与污染、服务无偏性，不是反方差权；反方差加权（Aitken 1935 [文献:V11]）在本单元体现为施加链的量纲变换 `x′ = α·x ⇒ Var′ = α²·Var ⇒ ivar′ = ivar/α²`（α = k_photo·m(x,y)），交下游 P5 消费。两族权重不得混写 [推导:D7]。
+**权重语义分立**（按负责人已批的反方差口径条款）：IRLS 的 w_i 是稳健权，吸收错配与污染、服务无偏性，不是反方差权；反方差加权（Aitken 1935 [1]）在本单元体现为施加链的量纲变换 `x′ = α·x ⇒ Var′ = α²·Var ⇒ ivar′ = ivar/α²`（α = k_photo·m(x,y)），交下游 P5 消费。两族权重不得混写 [推导:D7]。
 
 **求解器设置的豁免依据**：tol/max_iter 是数值收敛档而非物理量——tol 自 1e-2 收紧至 1e-12，中位 location 变化仅 ~2×10⁻⁴ dex，50 步上限最多 17 步即达 [实验:code/redo/route2/exp1_robust_constants.py]；登记为"求解器设置 + 不变性实验为凭"（豁免清单见实验报告）。
 
@@ -76,7 +76,7 @@ PASS ⟺ sigma_floor ≤ sigma_obs ≤ sigma_ceiling
 
 预算项各计一次：光子噪声、PSF 拟合不确定度（精确 Fisher，含自由背景简并项）、平场残余、天光扣除残余、颜色项、参考侧、量化；仿真帧上逐项由本帧推导，真实帧上 σ_color/σ_gaia 不可自算、如实标 `null`（上界不完整）。**仿真帧的 `σ_gaia = 0.002 mag` 未被激活（订正 P1-m04）**：注入与模型共用同一 `mag_eff`，参考侧扰动在 `r_i` 中精确相消（复算相对差 0）⇒ 该项在仿真上不构成可检验的误差源，其计入使上界**偏松**；不影响本单元任何判红的结论（偏松方向仍判红）。
 **σ_flat 的独立性与权威口径（订正 P1-B01，2026-10）**：σ_flat 是**平场/大尺度响应残差**的物理预算项，**不是**被测样本在多项式拟合**之后**的残差散度。历史实现用 `calibrate()['delta_after_m']` 充当 σ_flat——那是 `σ_obs` 自身的函数（自指），使上界随被测统计量一起膨胀；把它换成独立项后同一真实帧由 PASS 翻为 ABOVE_CEILING。现约定：①仿真帧取**真值**（注入的已知平场残差）折算；②真实帧取权威预算常数 `σ_flat,hf = 0.0007 mag`（`docs/plugins/algorithms_phase1/06_photometry.md` §4.1 的 L4/高空间频项，落在 `docs/science/PHOTOMETRY.md` §16.4 的同一行）；③`delta_after_m` 只作**诊断字段**输出，**不得**再进入 `σ_ceiling`。
-**判据作用域与状态词（订正 P1-M07）**：`rho_lo = 1 − 3·1.166/√n ≤ 0` ⟺ `n ≤ 12.236` 时下包络在数学上不存在，作用域降级为 `upper_only`、状态词返回 `LOWER_BOUND_UNDEFINED`（不记 PASS）；**禁止**用 `max(rho_lo, 0)` 夹逼（那会让下界恒不触发，属恒真门）。**因子标签订正**：1.166 = √1.361，其中 1.361 是 MAD 尺度估计量在高斯数据下的渐近标准化方差 [文献:V5 Table 2]——即 1.166 是 σ̂ 的相对标准差因子，`3·1.166/√n` 为"σ 估计量自身抽样涨落"的 3σ 包络（**按分歧台账 A-P1-01 订正**；历史正本"1.166 = SD(MAD)/MAD"的标签不准确）。判据形态逐字来源 `docs/plugins/algorithms_phase1/06_photometry.md` §4.1。
+**判据作用域与状态词（订正 P1-M07）**：`rho_lo = 1 − 3·1.166/√n ≤ 0` ⟺ `n ≤ 12.236` 时下包络在数学上不存在，作用域降级为 `upper_only`、状态词返回 `LOWER_BOUND_UNDEFINED`（不记 PASS）；**禁止**用 `max(rho_lo, 0)` 夹逼（那会让下界恒不触发，属恒真门）。**因子标签订正**：1.166 = √1.361，其中 1.361 是 MAD 尺度估计量在高斯数据下的渐近标准化方差 [10 Table 2]——即 1.166 是 σ̂ 的相对标准差因子，`3·1.166/√n` 为"σ 估计量自身抽样涨落"的 3σ 包络（**按分歧台账 A-P1-01 订正**；历史正本"1.166 = SD(MAD)/MAD"的标签不准确）。判据形态逐字来源 `docs/plugins/algorithms_phase1/06_photometry.md` §4.1。
 
 ### 2.4 施加与降级
 
@@ -91,7 +91,7 @@ PASS ⟺ sigma_floor ≤ sigma_obs ≤ sigma_ceiling
 | 输入 | 口径 | 来源 |
 |---|---|---|
 | `F_instr` [ADU] | PSF 域解析通量；5×5 盒和与 N-25 口径禁止 | 前级检测/测光 |
-| `F_syn` [W·m⁻²·nm] | ∫F_λ·T·Q·λ dλ；XP 336–1020 nm @2 nm；域限制**两级、不得合并成一句**（订正 P1-M02）[文献:V10]：①**采样表示** `xp_sampled_mean_spectrum`（本单元 `*.xpsd` 解码所需那一支）的额外子集以 **G = 15 mag** 为界；②**连续表示**到 **G < 17.65**。本单元 M16 锥 208 源中 G<15 仅 58 源、G ≥ 17.65 有 6 源 ⇒ 样本跨越采样表示的子集界，绝对刻度改由实测锚定（`PHOTOMETRY.md` §16.5 第 7 条：median 偏差 −0.0037 mag、MAD 0.0033，n=11272） | `spectrum_integrator` |
+| `F_syn` [W·m⁻²·nm] | ∫F_λ·T·Q·λ dλ；XP 336–1020 nm @2 nm；域限制**两级、不得合并成一句**（订正 P1-M02）[9]：①**采样表示** `xp_sampled_mean_spectrum`（本单元 `*.xpsd` 解码所需那一支）的额外子集以 **G = 15 mag** 为界；②**连续表示**到 **G < 17.65**。本单元 M16 锥 208 源中 G<15 仅 58 源、G ≥ 17.65 有 6 源 ⇒ 样本跨越采样表示的子集界，绝对刻度改由实测锚定（`PHOTOMETRY.md` §16.5 第 7 条：median 偏差 −0.0037 mag、MAD 0.0033，n=11272） | `spectrum_integrator` |
 | `G_Gaia` | 仅进 delta/ZP 诊断，不入 F_syn | Gaia DR3 |
 | 质量位 | 饱和预排除 | 探测级 |
 
@@ -120,7 +120,7 @@ PASS ⟺ sigma_floor ≤ sigma_obs ≤ sigma_ceiling
 2. **物理前向仿真**（真实信号模板）：HST M16 F657N HLSP drz 真实观测结构 24×24 分块平均（~0.95″/px），注入星取真实 XP SED；逐像素 Poisson（源+天光+暗流）→读出→增益→饱和→量化。检验真实结构下判据行为。[实验:code/step2_hst_sim.py]
 3. **testdata 真实帧**：FLI M42 M1 T2 Red 300 s（4096²，uint16+BZERO）。检验帧内参数、WCS 二轮精化与引导检测的可用性；无真值，作底参照。[实验:code/step8_real_frame.py]
 
-外部交叉核对：SVO HST/WFC3_UVIS2 通带曲线 + 头部 PHOTFLAM/PHOTPLAM；GaiaXPy 官方实现 [文献:V12]。
+外部交叉核对：SVO HST/WFC3_UVIS2 通带曲线 + 头部 PHOTFLAM/PHOTPLAM；GaiaXPy 官方实现 [12]。
 
 ---
 
@@ -130,13 +130,13 @@ PASS ⟺ sigma_floor ≤ sigma_obs ≤ sigma_ceiling
 
 | 常数 | 读数 | 三腿 |
 |---|---|---|
-| `c = 4.685` | ARE = 0.9499974；反解 c* = 4.6850649 ≡ statsmodels 4.685065（六位） | [文献:V1/V2][实验:route2/exp1][推导:D4]（订正 P1-m05：数值锚只归 route2；route3 `exp_S01` 自身数值根 4.6853179 仅 4 位小数一致，不作数值锚） |
+| `c = 4.685` | ARE = 0.9499974；反解 c* = 4.6850649 ≡ statsmodels 4.685065（六位） | [5,11][实验:route2/exp1][推导:D4]（订正 P1-m05：数值锚只归 route2；route3 `exp_S01` 自身数值根 4.6853179 仅 4 位小数一致，不作数值锚） |
 | `0.6744897501960817` | = Φ⁻¹(3/4)，二分复算相对差 1.6×10⁻¹⁶ | [推导:D3][实验:route2/exp1, route3/exp_S02] |
 | `1.482602218505602` | 倒数恒等式；**发现** `frame_photometry_fit.cpp:292` 曾用 4 位截断 1.4826（相对差 1.496×10⁻⁶），违反 `NOISE_ESTIMATION.md:213` 冻结条款；**已闭环 P1-m01**：HEAD 现为全精度字面量 `1.482602218505602`（修于 `8f15c9fc`，`git log -S 1.482602218505602` 可追） | [推导:D3][实验:route2/exp1]（订正项 A-P1-08 **已闭环**） |
-| `1.166` | = √1.361（MAD 标准化方差，R&C 1993 Table 2）；路线1 推导腿闭合 √1.361 = 1.1666；MC 渐近 1.170（+0.3% 登记） | [文献:V5][实验:route1/exp1][推导:D5]（标签订正 A-P1-01） |
+| `1.166` | = √1.361（MAD 标准化方差，R&C 1993 Table 2）；路线1 推导腿闭合 √1.361 = 1.1666；MC 渐近 1.170（+0.3% 登记） | [10][实验:route1/exp1][推导:D5]（标签订正 A-P1-01） |
 | 平移不变量 | F_instr 整体乘常数 ⇒ location 平移精确、内点集逐元素相同 | [推导:D2][实验:route3/exp_S04, route2/exp2 负例] |
 
-**锚体系核验**（重做轮对审查"幻觉锚"指控的独立复核）：路线3 逐锚抽验 15/15 真实 [实验:route3/exp_S00]；路线2 复核 24 处科学量锚，唯一判"内容不符"者为 PMC6768164——经台账 D-06 直验原文（含 c=4.685 原句）判**锚有效**，误判撤回。三处定位偏差（PHOTOMETRY.md:126/:400 等）按台账 A-P1-04/09 改记"行号漂移"而非内容伪造：正本在 :13/:15–17。Gaia DR3 的 arXiv 号自纠为 2208.00211（原引 2205.11321 证伪）[文献:V6]。
+**锚体系核验**（重做轮对审查"幻觉锚"指控的独立复核）：路线3 逐锚抽验 15/15 真实 [实验:route3/exp_S00]；路线2 复核 24 处科学量锚，唯一判"内容不符"者为 PMC6768164——经台账 D-06 直验原文（含 c=4.685 原句）判**锚有效**，误判撤回。三处定位偏差（PHOTOMETRY.md:126/:400 等）按台账 A-P1-04/09 改记"行号漂移"而非内容伪造：正本在 :13/:15–17。Gaia DR3 的 arXiv 号自纠为 2208.00211（原引 2205.11321 证伪）[3]。
 
 ### 5.2 Oracle 与三类数据上的判据行为（历史正本轮，seed 20260921）
 
@@ -155,7 +155,7 @@ PASS ⟺ sigma_floor ≤ sigma_obs ≤ sigma_ceiling
 
 ### 5.3 系统差源量化（重做轮）
 
-- **星等窗 → ZP_syn 系统平移**：窗 {6–16, 6–12, 12–16, 10–15} 实测平移 0 / +0.0153 / **−0.0318** / −0.0144 mag [实验:route1/exp2]——比零点统计不确定度（~10⁻³ mag）大 30 倍，与 XP 外定标 ±2% ≈ 0.022 mag [文献:V8] 同量级。两个消费面的星族口径分裂是可量化的系统差源，必须统一或如实标注。
+- **星等窗 → ZP_syn 系统平移**：窗 {6–16, 6–12, 12–16, 10–15} 实测平移 0 / +0.0153 / **−0.0318** / −0.0144 mag [实验:route1/exp2]——比零点统计不确定度（~10⁻³ mag）大 30 倍，与 XP 外定标 ±2% ≈ 0.022 mag [6] 同量级。两个消费面的星族口径分裂是可量化的系统差源，必须统一或如实标注。
 - **预过滤窗的真实作用面**：在 IRLS/Tukey 就位后，`mag_tolerance = 3.0` 对 ZP 偏差的边际保护 ≈ 0（实测 −7.3×10⁻⁶~0 dex）；其真实作用是控制进入拟合的样本族（保护尺度初值 S 不被错配污染）[实验:route1/exp2]。文献腿登记为项目冻结值（正本明言不引文献背书）。
 - **FOV 三常数的危害量化**：缓冲 1.2 与钳位界 1.0/10.0 的优先语义冲突实测确认（0.3″/px 全幅被上抬 ×3.02，10″/px 广角被压低 ×0.69）；错配对经预过滤 + IRLS 后 location 系统偏移 −0.146 dex 且 `|r_consistent| ≥ 3` 门可被满足 ⇒ 奇协方差阵下拟合照常产出错误标度 [实验:route1/exp3]。按台账 A-P1-12，`05 A-4b` 须写明缓冲与钳位的优先语义。
 - **1.0 dex 粗筛界非恒真**：干净/污染场通过率 0.055/1.110 对照，能红 [实验:route3/exp_S12]；空间增益阶数（order ≤ 2 + 六降级门槛）确认为科学量而非结构性选择 [实验:route1/exp4 独立复核]。
@@ -204,18 +204,20 @@ bash 实验/photometric-magnitude/code/redo/run_all.sh     # 重做三路 route1
 
 ## 参考文献
 
-1. A. C. Aitken (1935). On Least Squares and Linear Combination of Observations. *Proc. R. Soc. Edinb.* 55, 42–48. [DOI:10.1017/S0370164600014346](https://doi.org/10.1017/S0370164600014346) [文献:V11]
-2. A. E. Beaton, J. W. Tukey (1974). The Fitting of Power Series, Meaning Polynomials, Illustrated on Band-Spectroscopic Data. *Technometrics* 16, 147–185. [DOI:10.1080/00401706.1974.10489171](https://doi.org/10.1080/00401706.1974.10489171) [文献:V3]
-3. Gaia Collaboration et al. (2023). Gaia Data Release 3: Summary of the content and survey properties. *A&A* 674, A1. [arXiv:2208.00211](https://arxiv.org/abs/2208.00211) [文献:V6]
-4. P. W. Holland, R. E. Welsch (1977). Robust regression using iteratively reweighted least-squares. *Comm. Statist. – Theory Methods* **6(9)**, 813–827. [DOI:10.1080/03610927708827533](https://doi.org/10.1080/03610927708827533) [文献:V4]（**期号订正 P1-m06**：Crossref/OpenAlex 两库一致为 6(9)，原写 6(8)）
-5. K. Kafadar (1983). The Efficiency of the Biweight as a Robust Estimator of Location. *J. Res. Natl. Bur. Stand.* 88(2), 105–116. [DOI:10.6028/jres.088.006](https://doi.org/10.6028/jres.088.006)（全文 [PMC6768164](https://pmc.ncbi.nlm.nih.gov/articles/PMC6768164/)；锚有效性按台账 D-06）[文献:V1]
-6. P. Montegriffo et al. (2023). **Gaia Data Release 3:** External calibration of BP/RP low-resolution **spectroscopic data**. *A&A* 674, A3. [arXiv:2206.06205](https://arxiv.org/abs/2206.06205)、[DOI:10.1051/0004-6361/202243880](https://doi.org/10.1051/0004-6361/202243880) [文献:V8]（**题名与 DOI 订正 P1-m06**）
-7. Gaia Collaboration, P. Montegriffo et al. (2023). Gaia DR3: Synthetic photometry from Gaia low-resolution spectra. *A&A* 674, A33. [arXiv:2206.06215](https://arxiv.org/abs/2206.06215) [文献:V7]
-8. ESA Gaia DR3 官方文档 §5.4.1（零点定义式 5.41）、§20.12.4（`xp_sampled_mean_spectrum`）[文献:V9]
-9. Gaia DR3 XP **可用域（两级）**：采样表示 `xp_sampled_mean_spectrum` 的额外子集以 **G = 15 mag** 为界、**连续表示到 G < 17.65**；原始出处 = Montegriffo et al. (2023) 附录 B（非 ESA 文档）[文献:V10]（**适用域订正 P1-M02**：[arXiv:2206.06205](https://arxiv.org/abs/2206.06205) 附录 B 原句 "only sources brighter than G = 15 mag … also provided in the sampled representation"）
-10. P. J. Rousseeuw, C. Croux (1993). Alternatives to the Median Absolute Deviation. *JASA* 88(424), 1273–1283. [DOI:10.1080/01621459.1993.10476408](https://doi.org/10.1080/01621459.1993.10476408) [文献:V5]
-11. statsmodels `robust/_tables.py`（开源逐字锚，4.685065）[文献:V2]
-12. GaiaXPy 2.1.4（官方开源实现，`sampled_spectrum.py:114`）[文献:V12]
-13. H. Akima (1970). A New Method of Interpolation and Smooth Curve Fitting Based on Local Procedures. *J. ACM* **17(4)**, 589–602. [DOI:10.1145/321607.321609](https://doi.org/10.1145/321607.321609) [文献:V13]（**页域订正 P1-m06**：历史题录只给首页 589）
+正文方括号数字对应本节条目。本节与文献台账 `refs.md` 的 V 编号对应：V11→1、V3→2、V6→3、V4→4、V1→5、V8→6、V7→7、V9→8、V10→9、V5→10、V2→11、V12→12、V13→13。
+
+1. A. C. Aitken (1935). On Least Squares and Linear Combination of Observations. *Proc. R. Soc. Edinb.* 55, 42–48. [DOI:10.1017/S0370164600014346](https://doi.org/10.1017/S0370164600014346)
+2. A. E. Beaton, J. W. Tukey (1974). The Fitting of Power Series, Meaning Polynomials, Illustrated on Band-Spectroscopic Data. *Technometrics* 16, 147–185. [DOI:10.1080/00401706.1974.10489171](https://doi.org/10.1080/00401706.1974.10489171)
+3. Gaia Collaboration et al. (2023). Gaia Data Release 3: Summary of the content and survey properties. *A&A* 674, A1. [arXiv:2208.00211](https://arxiv.org/abs/2208.00211)
+4. P. W. Holland, R. E. Welsch (1977). Robust regression using iteratively reweighted least-squares. *Comm. Statist. – Theory Methods* **6(9)**, 813–827. [DOI:10.1080/03610927708827533](https://doi.org/10.1080/03610927708827533)（**期号订正 P1-m06**：Crossref/OpenAlex 两库一致为 6(9)，原写 6(8)）
+5. K. Kafadar (1983). The Efficiency of the Biweight as a Robust Estimator of Location. *J. Res. Natl. Bur. Stand.* 88(2), 105–116. [DOI:10.6028/jres.088.006](https://doi.org/10.6028/jres.088.006)（全文 [PMC6768164](https://pmc.ncbi.nlm.nih.gov/articles/PMC6768164/)；锚有效性按台账 D-06）
+6. P. Montegriffo et al. (2023). **Gaia Data Release 3:** External calibration of BP/RP low-resolution **spectroscopic data**. *A&A* 674, A3. [arXiv:2206.06205](https://arxiv.org/abs/2206.06205)、[DOI:10.1051/0004-6361/202243880](https://doi.org/10.1051/0004-6361/202243880)（**题名与 DOI 订正 P1-m06**）
+7. Gaia Collaboration, P. Montegriffo et al. (2023). Gaia DR3: Synthetic photometry from Gaia low-resolution spectra. *A&A* 674, A33. [arXiv:2206.06215](https://arxiv.org/abs/2206.06215)
+8. ESA Gaia DR3 官方文档 §5.4.1（零点定义式 5.41）、§20.12.4（`xp_sampled_mean_spectrum`）
+9. Gaia DR3 XP **可用域（两级）**：采样表示 `xp_sampled_mean_spectrum` 的额外子集以 **G = 15 mag** 为界、**连续表示到 G < 17.65**；原始出处 = Montegriffo et al. (2023) 附录 B（非 ESA 文档）（**适用域订正 P1-M02**：[arXiv:2206.06205](https://arxiv.org/abs/2206.06205) 附录 B 原句 "only sources brighter than G = 15 mag … also provided in the sampled representation"）
+10. P. J. Rousseeuw, C. Croux (1993). Alternatives to the Median Absolute Deviation. *JASA* 88(424), 1273–1283. [DOI:10.1080/01621459.1993.10476408](https://doi.org/10.1080/01621459.1993.10476408)
+11. statsmodels `robust/_tables.py`（开源逐字锚，4.685065）
+12. GaiaXPy 2.1.4（官方开源实现，`sampled_spectrum.py:114`）
+13. H. Akima (1970). A New Method of Interpolation and Smooth Curve Fitting Based on Local Procedures. *J. ACM* **17(4)**, 589–602. [DOI:10.1145/321607.321609](https://doi.org/10.1145/321607.321609)（**页域订正 P1-m06**：历史题录只给首页 589）
 
 *待补脚注*：Croux & Rousseeuw (1992, 1993) 有限样本表值——原文未取得，MC 佐证 ≤0.93%，不列 VERIFIED（见 §7-8）。

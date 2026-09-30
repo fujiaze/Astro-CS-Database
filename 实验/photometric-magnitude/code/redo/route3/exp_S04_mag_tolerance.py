@@ -111,7 +111,8 @@ def main():
 
     out["verdict"] = {"H4a": out["H4a"]["pass"], "H4b_clean": out["H4b_clean"]["pass"],
                       "H4b_contaminated": out["H4b_contaminated"]["pass"]}
-    res = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "results")
+    res = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "..",
+        "results", "redo", "route3")
     os.makedirs(res, exist_ok=True)
     p = os.path.join(res, "exp_S04_mag_tolerance.json")
     with open(p, "w", encoding="utf-8") as f:

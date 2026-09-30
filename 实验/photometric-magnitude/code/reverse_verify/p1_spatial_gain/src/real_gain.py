@@ -17,7 +17,7 @@
   => 逐帧 m_k(p) = 10^(-(surf_k(p) - mean_surf_k))   (星集合上几何均值 1)
      k_photo_k   = 10^(-mean_surf_k)                 (order=0 时严格退化为标量)
 
-输出: ../data/real_gain.json  (逐帧 m 形态/幅度, before/after 度量, 交叉验证)
+输出: ../../../../results/reverse_verify/p1_spatial_gain/data/real_gain.json  (逐帧 m 形态/幅度, before/after 度量, 交叉验证)
 """
 import os, sys, json, math, time, argparse, glob
 import numpy as np
@@ -27,10 +27,10 @@ from scipy.sparse.linalg import lsqr
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)                                            # wcs_lib.py
-sys.path.insert(0, os.path.abspath(os.path.join(HERE, "..", "..", "..", "synthetic")))  # gainlib.py
+sys.path.insert(0, os.path.abspath(os.path.join(HERE, "..", "..", "..", "..", "..", "shared", "synthetic")))  # gainlib.py
 from gainlib import basis_terms, mad_sigma, TUKEY_C  # noqa: E402
 
-DATA = os.path.abspath(os.path.join(HERE, "..", "data"))
+DATA = os.path.abspath(os.path.join(HERE, "..", "..", "..", "..", "results", "reverse_verify", "p1_spatial_gain", "data"))
 
 
 def _find_root(start):

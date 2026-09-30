@@ -77,7 +77,8 @@ def main():
     out["verdict"] = {"H11": out["H11"]["pass"], "negative_zero": True,
                       "asymptotic_formula_check": bool(
                           abs(table["30"]["se_median_mc"] - 1.2533 / np.sqrt(30)) < 0.02)}
-    res = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "results")
+    res = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "..",
+        "results", "redo", "route3")
     os.makedirs(res, exist_ok=True)
     p = os.path.join(res, "exp_S11_zp_sample_floor.json")
     with open(p, "w", encoding="utf-8") as f:

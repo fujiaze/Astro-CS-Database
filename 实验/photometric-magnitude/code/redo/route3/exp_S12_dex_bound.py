@@ -70,7 +70,8 @@ def main():
 
     out["verdict"] = {"H12a": out["H12a"]["pass"], "H12b": out["H12b"]["pass"],
                       "negative_zero": True}
-    res = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "results")
+    res = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "..",
+        "results", "redo", "route3")
     os.makedirs(res, exist_ok=True)
     p = os.path.join(res, "exp_S12_dex_bound.json")
     with open(p, "w", encoding="utf-8") as f:

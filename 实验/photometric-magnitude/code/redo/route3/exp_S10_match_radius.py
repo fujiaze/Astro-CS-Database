@@ -76,7 +76,8 @@ def main():
 
     out["verdict"] = {"H10a": out["H10a"]["pass"], "H10b": out["H10b"]["pass"],
                       "negative_zero": out["negative_zero_check"]["pass"]}
-    res = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "results")
+    res = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "..",
+        "results", "redo", "route3")
     os.makedirs(res, exist_ok=True)
     p = os.path.join(res, "exp_S10_match_radius.json")
     with open(p, "w", encoding="utf-8") as f:
