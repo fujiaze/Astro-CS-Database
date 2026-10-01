@@ -12,7 +12,7 @@
 //             DOC-403 文件域，本任务（CLEAN-401）无权同步，故本轮不能删。
 // STATUS:     未接入生产。产品可执行 acsd 的 target_link_libraries（根 CMakeLists.txt:834-842）
 //             不含 acsd_infra_orchestrator；orchestrator_legacy_cli 为非发布目标
-//             （docs/engineering/docs/engineering/BUILD_GRAPH.md:93-95 记 production=no）。
+//             （docs/engineering/BUILD_GRAPH.md:90 记 production=no，该行在 §2 非生产闭包面内）。
 //             本目录职责已由 lib/infrastructure/scheduler/** 生产实现承接：注册=module 注册表、
 //             资源预算=executor/plan_estimator、执行=Runtime/Executor、取消=取消令牌、
 //             checkpoint=src/checkpoint.cpp。
@@ -21,11 +21,13 @@
 //             ② DOC-403 从 eng/ci/checks.json 移除上述 6 个 ctest_targets 及 CHK-CONTRACT-TEST
 //                的对应 step；
 //             ③ 同步移除 CMakeLists.txt:347-359 与 :952-954 两处 add_subdirectory，
-//                并更新 docs/detail/orchestrator.md、eng/ci/id_migration_map.json 登记项。
+//                并更新 docs/detail/orchestrator.md（原登记页已删除，现无正本可查）与
+//                eng/ci/id_migration_map.json 登记项。
 // AUTHORITY:  ENGINEERING_SPEC.md §2（历史实现处置：保留则注释）；docs/ACSD_DESIGN.md §8.1/§8.2
 //             （生产链路由 scheduler 注册与编排、pipeline 提供 typed DAG 与命名块）；
 //             lib/infrastructure/pipeline/PENDING.md:10（orchestrator/ 属 §7.1 退役计划内）；
-//             docs/detail/orchestrator.md §归属与构建（ORCH-001 落位 / ORCH-HOME-01）。
+//             docs/detail/orchestrator.md §归属与构建（ORCH-001 落位 / ORCH-HOME-01）——
+//             该页已随 docs 资产清理删除，全仓无同题正本可查，故此处不另指。
 // ──────────────────────────────────────────────────────────────────────
 // ============================================================================
 // orchestrator.h - 编排器核心类

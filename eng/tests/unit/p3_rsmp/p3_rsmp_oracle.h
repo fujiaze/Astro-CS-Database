@@ -1,7 +1,8 @@
 // eng/tests/unit/p3_rsmp/p3_rsmp_oracle.h
 //
 // 独立 Oracle（IMPL-P3-RSMP-001）。
-// 独立性约束（docs/engineering/v6/ORACLE_AND_ZERO_CASE_POLICY.md §1）：
+// 独立性约束（原对齐 docs/engineering/v6/ORACLE_AND_ZERO_CASE_POLICY.md §1；该件已随
+// docs 资产清理删除，全仓无同名或同题正本可查，故此处不另指，约束以下文自述为准）：
 //   * 本头文件只使用 C++ 标准库，**不 include / 不链接 / 不执行任何生产实现**
 //     （不 include lib/algorithms/resample 的头，不调用 acsd::p3rsmp::*）。
 //   * 真值来源：解析式（双线性误差界、面积重叠归一）与固定种子 Monte Carlo
