@@ -3077,3 +3077,64 @@ CMake 侧组名目前与表一致，所以 **CI 当前未触发，属潜伏缺�
 
 ⇒ 同一文件里既有「OK/INVALID 分不开」的 F1，又有 `:287-307` 的合格自检 ——
 **又是「同文件内已有正确写法、邻近处漏改」**。
+
+---
+
+## 62. 判据专线 s03 首批：前台逐条复核成立三条（含一条恒红与一条元问题）
+
+### 62.1 恒红：`substr(0, 15) == "acsd.phase1."` —— 字面量只有 12 个字符
+
+`eng/tests/unit/rt005_registry_test.cpp:153`：
+
+    if (std::string_view(id).substr(0, 15) == "acsd.phase1.") {
+
+**前台实测**：`"acsd.phase1."` 实长 **12**；`"acsd.phase1.calibration".substr(0,15)` = `"acsd.phase1.cal"`
+⇒ 条件**恒假** ⇒ `:154` 的 `CHECK(insp.failed())` 是**永不执行的死代码**，三个 id 全落 `else`。
+
+而 `module_adapters.cpp:13967-13968`：`P1NodeModule::inspect()` 在 `manifest_.empty()` 时
+`return fail(DATA, "...no manifest (execute not run)")`；而测试循环 `:139-158` **只调 `plan()`、从不调 execute()**
+⇒ `manifest_` 必空 ⇒ `:156 CHECK(insp.ok())` **必红**。
+
+⇒ **一行修复**：`substr(0, 15)` → `substr(0, 12)`。
+
+### 62.2 未注册：判别力最强的文件从未编译
+
+`lib/infrastructure/aio/tests/CMakeLists.txt:14-17` **自己写明了**（前台已读原文）：
+
+    # 未注册者（构建或断言未通过，另行登记，不混入绿门）：
+    #   hiss_writer_smoke     断言失败「MAGIC 不匹配」
+    #   hiss_correctness_test 缺 astro_calibration.h（跨模块依赖未接线）
+    #   pipeline_frame_contract_test  需 aio_pipeline_frame_* 符号
+
+⇒ **CMake 自己承认这些是红的，于是把它们排除在绿门之外** ——
+这套「不混入绿门」的纪律是好的，但代价是**这些判据永远不会被执行，也就永远不会被修**。
+
+同类：`eng/tests/unit/CMakeLists.txt:1838` 段标题写「编入 + 注册」，
+但 `w34_p1_apply_oracle` / `w34_p1_qf_oracle` **只有 `add_executable` 没有 `add_test`**，
+而紧邻上方的 `w34_gaia_race` **有正确样板没贴过去**。
+⇒ **这两个 oracle 是本片判别力最强的文件，对 CI 零贡献。**
+
+### 62.3 元问题：`eng/ci/` 不存在 ⇒ **所有判据即使修好也不会被执行**
+
+`CMakeLists.txt:1506` 写着「`eng/ci/checks.json` 注册条目由前台单写者登记」，
+但 `ls -d eng/ci` → **没有那个文件或目录**（前台实测）；
+`docs_machine_consistency.py:34-35` 也自陈「本工具尚未登记进 `eng/ci/checks.json`」。
+
+⇒ `eng/tools/` 下 **17 个工具全部无自动执行面**（含被文档称作「L4 机器门」的 `seam_footprint.py`），
+以及 `rel790_pack_check.py`、`render_vis.py`、`run_e2e_chain.py`、`audit_intake.py`、`acsd_diagnose.py`、
+`api_doc_consistency.py`、`config_consistency_check.py`、`contract_doc_sync.py`、`cmake_graph.py`、
+`canonical_product_hash.py` 等全部未注册。
+
+**这是 §60（GOV-ERR-7）的第三方独立确认**，且给出了**具体后果**：
+判据写对了也不会被执行 ⇒ 修判据的收益在恢复执行器之前是 0。
+⇒ **G08-10 恢复执行器的优先级应高于修判据。**
+
+### 62.4 另两条前台独立复核的恒真
+
+- `eng/tests/unit/cpu_features_test.cpp:45` `CHECK(features_satisfy(detected, detected));  // 自身满足`
+  —— 函数是 `(d&r)==r`，**两侧同变量** ⇒ 恒真
+- `eng/tests/unit/p2_upm_synthetic_test.cpp` 全文件**零生产头、零 `p2_` 符号**；
+  `C_B`/`C_C` 是测试自己在 `:78-79` 算的，`:81` 断言的是**测试自己的算术**。
+  名为「P2-003 单元测试: 三块重叠面 UPM」却**不触碰任何 UPM 代码**。
+  另 `:131 CHECK(dAB_single == dAB)` 几何上必然相等（污染区 `x∈[0,16)`、读取区 `x∈[16,32)` 不相交），
+  `:122-124` 注释宣称的「双向对照实测」**第一臂是空转**。
