@@ -102,7 +102,7 @@
   2.354820/1.230310 = 1.9140×`（DISP-STAR-007）。
 - SCI-PHOT-001（PHOTOMETRY）：正常星 mag=−2.5·log10(Σ_box(pixel−B_fit))
   为粗测光（检测侧自估），最终测光归 PHOTOMETRY 域；饱和星 mag 量纲差异
-  饱和星 mag 的量纲差异归 `DISP-STAR-004` 登记面（ALG-STARDET-001 §11.3）。
+  归 `DISP-STAR-004` 登记面（ALG-STARDET-001 §11.3）。
 - SCI-AST-001（ASTROMETRY）：像素中心=索引+0.5 约定
   （ALG-STARDET-001 §2 残差坐标），star_det 权威块消费方（plate solve
   fallback）按此约定解析坐标（DATA_SEMANTICS §17）。
