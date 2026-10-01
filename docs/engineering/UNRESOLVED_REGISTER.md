@@ -2752,3 +2752,119 @@ CPU affinity，经 `runtime_resources.json` 的 `kCpuBudgetMax` 封顶，**零�
 - **注册 22 个 descriptor 无遗漏无重复，但与 registry(20 个) 差 2 个孤儿**
   （`acsd.phase2.resample` / `acsd.phase3.resample`，后者有注释登记待处置、前者**无任何登记**）
 - `DATA-P2-CAL` 与 `DATA-P1-FITS` **既不在 registry 也不在 `DATA_ARTIFACTS.md`**，却在生产端口面上
+
+---
+
+## 56. P5 代码面（车道 25）：恒真 18 / 恒红 5 / 判据重写新问题 20
+
+P5 代码面累计 **54/122 份 ≈ 44%**。归档 JSON **37 份全部可由当前代码逐位重建**（seed 写死），
+真正的问题是 **12 处语义失配**（字段名承诺的量与落盘值不符）+ **5 处旧判据残留**。
+
+### 56.1 「缺失目标被报成 FOUND」——取证脚本自己造假
+
+`c10_anchor_forensics.py:68` 缺目标时返回**非空 dict**，`:89` 用 `if hits` 判真
+⇒ **target missing 被报成 FOUND**。
+**归档 JSON 里已经有 3 条这样的记录**（check 1/15/21，`docs/plugins/algorithms_phase2` 不存在）；
+另 check 6 指向品牌改名前的 `docs/ASTROCS_DESIGN.md`。
+
+同脚本 25 条 CHECK 中 **≥13 条的正则不含其声称核验的常数**：
+check 30 与 34 的 target+pattern **完全相同**，却声称核验两个互斥的 `0.1` 与 `1e-2`。
+
+**更硬的两条**：
+- `e7:38-43` 与 `e8:98-103` 的「幻觉锚审计结论」**整块硬编码**，
+  而 docstring 写「grep of docs/ shows ZERO occurrences」——**脚本内无任何 grep 或文件读取**
+- `q7_rank_rtol.py:115-117` 的「判决等价性 200 例零错位」是**代数恒等式**
+  （`r_eff==n_free` ⟺ `kappa<1/tau` 是同一不等式）
+
+### 56.2 恒红 5 条：数学上为真却被自己的门判假
+
+- `c6:90` 用**浮点逐位相等**判 κ 不变性 ⇒ 归档实测 `kappa_identical: false`
+- `e8:58` 的 `kappa_changes` 被两个 `inf` 相减**毒化成 nan** ⇒ 恒 false
+- `exp01` 虚警率 `k_sigma=8.43` ⇒ 20000 次**恒 0.0**
+
+### 56.3 判据重写引入的新问题（20 条，含 cov 误判的 9 处同类）
+
+最重三条：
+
+1. **`e7:81-82` 索引错位 2.5 档与 1 档** ⇒ `lambda_0.01_mse` 存的是 λ=3.16e-5、
+   `lambda_0.1_mse` 存的是 λ=0.01，**两个字段都不含其名字承诺的 λ** ——
+   而它们正是用来对「幻觉锚 [0.01,0.1]」的。
+2. **`exp10:118` 的 `ordering_matches_doc_16.1.3` 实测 `False`**
+   （实测 uniform 6.50 > snr2 3.09 > ivar 2.61，正本要求 snr2 最大），
+   且 `fit_delta_and_plane` 注释声称的 gauge **未实现**
+   ⇒ **B 未被识别，「污染泄漏」实为全局 gauge 常数**。
+   ⚠ **若 REPORT 仍引用它作 §16.1.3 的证实腿，则一份自测为红的归档在支撑正本条款。**
+3. **`e2` 的 drizzle 在 `pixfrac=0.8 < 1` 时退化为块复制、无插值**
+   （相邻输入足印有 0.2 空隙，任何输出像素至多落入一个足印），
+   实测 `k_corr = 2.53 / 5.78 / 10.22`，比冻结常数 1.4 **高 1.8–7.3×**，脚本无任何比较
+   ⇒ **三路一致地不复现 1.4/1.3883**。
+
+另：`exp09:43` 的「绝对 ivar ~1e-24」是**硬编码**，
+而归档内三处真算 `control_ivar` 给出 **O(1)–O(100)**（`e1` ivar=29.56、`c7` ivar=131.4）
+⇒ **Q9 核心结论可能方向反转**。
+`c8` 的 FP 非结合实测 **31 ULP** 而正本称 ~1 ULP（差 3.2×10⁶）。
+
+### 56.4 `audit_rework` 三路口径不一致（**严重**）
+
+- **五个主题结论相反**：N=5 中位数方差方向、dof 偏差方向
+  （`e8` docstring 写 UNDERESTIMATE 而自己算出的 `underestimate_factor=1.018 > 1` 实为**高估**）、
+  k_corr 复现（三路一致不复现）、**D-01 伪 ivar 1.314e26 vs 1e24 差 130×**、
+  σ_floor 失效方向（C5 测 σ_eff≪σ、E5 测 σ_eff≫σ，同挂 D-04）
+- **七个量化口径各有两到三种实现**：MAD 常数（`1.4826` vs `1.482602218505602`，
+  **`exp10` 一个文件两种**）、σ_bg、bg 定义、检出概率单边/双边、方差比（B_ref 表示 **4 种**）
+- **6 处「对照/证实」在代码里从不发生**
+- **23 份脚本的 seed 与 README 声明失配**：route3 全部 12 份是 `20260926`
+  而 README:28 与 `run_all.sh:39` 都写 `20250926`（**数字转置**）；
+  route1 的 c1/c2/c5/c6/c7/c8 是 `20260317–20260324`；supp_control_variance 用 `20260601` 完全未登记
+
+**正面**：`ea_507` 用 keyed-RNG 做 CRN，且有唯一一组**会真红**的结构门
+（如实记 `monotonic=False`、`argmax=100`）；
+`smooth_lambda/CRITERIA.md` 是唯一符合 AGENTS §8 形态的判据文档（写了 C6 红例），
+**但它唯一依据的 `reverse_verify/README.md` 不存在** ⇒ **写对了却从未执行**。
+
+---
+
+## 57. 文献对读的车道主动更正（δ=1.345 的归属，第二次修订）
+
+车道 17 在补做时**推翻了自己先前的指引方向**，此处以后者为准：
+
+### 57.1 先前指引本身是错的，且方向反了
+
+先前它说「效率表见 H&W 1977 §2」。**决定 Gaussian 效率的 k-网格数据就在 Huber 1964 自己手里**：
+
+- **Table I（p.84）** 列头逐字 `k | E_Φψ′ | E_Φψ² | ε_min | ε = 0, 0.001, …, 0.500`，
+  k 网格 0.0…1.9，**同时给出效率 `E_Φψ′²/E_Φψ²` 的两个因子**，由 §6（p.82）引入
+- **Table IV（p.99）**：「Sharp upper bounds for the asymptotic variance of √n T_n…」，
+  k = 1.0…2.0 × ε ∈ {0.000…0.200}
+
+⇒ 三处正本那句「要去 H&W 1977 §2 查效率表」是**误导**，应改指回 **Huber 1964 自己的 Table I + Table IV**。
+
+### 57.2 Huber 1964 全文的唯一 k 是 1.5，且与效率无关
+
+全文唯一被他自己实际承诺使用的 k 是 **k = 1.5**（p.99），
+且只用于**迭代收敛速度**：「For k = 1.5, sample sizes up to 100 … the stationary value
+is on the average reached after 1-2 steps」。**与效率无关。**
+⇒ `PLATESOLVE.md:191` 把「ψ_k 族在 k=1.345 处对 Gaussian 渐近效率 95%」挂在 Huber 1964 名下
+是**确证误引**（`1.345` 全文命中 0 次）。
+
+### 57.3 修法（已闭合，不必登记 UNRESOLVED）
+
+改引 **Coleman, Holland, Kaden, Klema & Peters (1980), ACM TOMS 6(3):327–336**：
+Table I 行逐字 "Huber H = 1.345"、脚注逐字 "designed to have 95 percent asymptotic efficiency …
+when the disturbances come from the normal or Gaussian distribution"。
+
+**可公开核验，不必等 H&W 1977 的机构订阅。**
+
+### 57.4 两条**不得**写进台账（车道明确要求）
+
+① 「δ=1.345 与 95% 无一手文本可引 ⇒ 登记 UNRESOLVED」**已被 Coleman et al. 1980 覆盖，勿采纳**。
+② **Kafadar 1983 全文也不含 `1.345`**，且那句 95% 效率**没有脚注**、
+Kafadar 未说明 4.685/95% 出自何处 ⇒ **不能用 Kafadar 把 1.345 归属钉到 H&W 1977**。
+相应地，**A-P5-09 的 R2「δ=1.345 归 H&W 1977」也只是推断**，
+**R1「不归 Huber 1964」才是被一手证实的那半。**
+
+### 57.5 留痕不主张
+
+Huber 1967–68 关于「asymptotic efficiency of a robust estimator of location」的独立论文，
+Crossref 与 OpenAlex 标题检索**均未命中**；Project Euclid vol 38 issue 3 的 p.802–806 实为 Efron。
+⇒ **不做任何存在性断言。**
