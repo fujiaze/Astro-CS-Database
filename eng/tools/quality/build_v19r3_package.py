@@ -167,6 +167,9 @@ def _legacy_main() -> int:
         "cache_hit_rate": 0.917}, indent=1))
 
     # ---- exact commands ----
+    # 下列命令串是 V19R3 审核包的**历史执行记录**，只被写进 exact_commands.csv
+    # （见上方 write），从不执行。其中 s9 行的 eng/tools/docs_machine_consistency.py
+    # 已随 G08-01 门禁删除 —— 保留原样是因为改写即伪造当时的执行记录。
     write("evidence/exact_commands.csv", (
         "phase,command\n"
         "s1,git commit fix(phase2-v19r3-s1): UPM control-variance science weight\n"

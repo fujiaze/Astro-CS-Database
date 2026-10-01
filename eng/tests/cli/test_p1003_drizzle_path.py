@@ -96,43 +96,10 @@ class TestP1003DrizzlePath(unittest.TestCase):
         self.assertIn("unknown command 'drizzle'", r.stderr)
         self.assertIn("acsd normalize", r.stderr, "错误面必须给出 §6.2 命令树")
 
-    def test_04_prod_callgraph_no_hp_drizzle(self):
-        """生产可达性检查: CLI 生产路径无 hp_drizzle 直连(REACH_PASS)。"""
-        checker = os.path.join(REPO, "eng", "tools", "quality", "check_prod_reachability.py")
-        if not os.path.isfile(checker):
-            self.skipTest("reachability checker 缺失")
-        # checker 需要 compile_commands.json 做 TU 级调用图; 纯 CMake 构建产物
-        # 不含 CMAKE_EXPORT_COMPILE_COMMANDS 时该环境证据缺失, skip 而非 fail
-        # (可达性本身由 test_01/02 的 nm/源码断言独立覆盖)。
-        cc = os.path.join(BUILD, "compile_commands.json")
-        if not os.path.isfile(cc):
-            # 跨域缺口（不在 CLI-002 改动面）: ① CI 构建步未开
-            # CMAKE_EXPORT_COMPILE_COMMANDS（登记面 V17-N-03 / 归属 CI-001）；
-            # ② eng/tools/quality/check_prod_reachability.py:92 锚点仍指向已退役 cli/
-            # （tools 域）。二者修好后本用例自动转为实跑；此处不放宽判据。
-            self.skipTest("compile_commands.json 缺失：CI 构建步未开 "
-                          "CMAKE_EXPORT_COMPILE_COMMANDS (V17-N-03/CI-001)")
-        # FIX-UTCLI-HYGIENE: checker 把可达图证据硬写到
-        # <repo>/evidence/v6_1_rework/tasks/CHK-001/（tracked 受控文件，
-        # eng/tools/quality/check_prod_reachability.py:140）。UT-CLI 以
-        # mutates_workspace=false 执行，重写 tracked evidence 即 dirty 违规，而
-        # checker 无输出目录开关（产品域禁改）。测试侧用 run/ 下 scratch repo 视图：
-        # 只读符号链接 lib/infrastructure/cli/include/lib（checker 扫描面与真 repo 逐字节一致）+
-        # 本地 evidence/ 输出目录；checker 的读取与判定完全不变，仅证据落点进入
-        # gitignore 的 run/。
-        scratch = os.path.join(run_cwd(), "reach_scratch")
-        shutil.rmtree(scratch, ignore_errors=True)
-        os.makedirs(scratch)
-        for sub in ("cli", "include", "lib"):
-            os.symlink(os.path.join(REPO, sub), os.path.join(scratch, sub))
-        r = subprocess.run(
-            ["python3", checker, "--repo", scratch, "--binary", EXE,
-             "--compile-commands", cc],
-            capture_output=True, text=True, timeout=180)
-        self.assertEqual(r.returncode, 0, r.stdout + r.stderr)
-        self.assertIn("REACH_PASS", r.stdout)
-        self.assertIn("acr=0", r.stdout)
-
+    # 原 test_04_prod_callgraph_no_hp_drizzle 随 G08-01 移除：其唯一判据
+    # eng/tools/quality/check_prod_reachability.py 已删，缺 checker 时整例永久
+    # skipTest —— 那是一条永不判红的静默通道（规范 08 §4「恒真门无效」）。
+    # 可达性由本文件 test_01/test_02 的 nm/源码断言独立覆盖（原 :106 注释口径）。
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)

@@ -70,7 +70,24 @@ if str(MON) not in sys.path:
 if str(ROOT / "实验" / "shared" / "synthetic") not in sys.path:
     sys.path.insert(0, str(ROOT / "实验" / "shared" / "synthetic"))
 sys.path.insert(0, str(ROOT / "eng" / "ci"))
-import l2_frozen_gate as L2                   # noqa: E402  L2 冻结判据 fail-closed 判定面（CI_SPEC §9.2）
+# L2 冻结判据 fail-closed 判定面（原 eng/ci/l2_frozen_gate.py，随 eng/ci/ 于 G08-01
+# 的门禁删除一并消失）。原先是模块级裸 import ⇒ 整文件 import 期 ModuleNotFoundError，
+# 连 precheck/validity 等不依赖 L2 的子命令也一起起不来。改为按需加载：真正要裁决
+# L2 冻结门时才取，取不到就显式报错退出（fail-closed，绝不静默跳过 L2 判红）。
+try:
+    import l2_frozen_gate as L2               # noqa: E402
+except ImportError as _l2_exc:               # eng/ci/ 已删 => 冻结判据载体不在
+    L2 = None
+    _L2_IMPORT_ERROR = _l2_exc
+
+
+def _require_l2():
+    """取 L2 冻结判据面；缺失即硬失败（不得静默跳过冻结门裁决）。"""
+    if L2 is None:
+        sys.stderr.write(
+            "FROZEN_GATE_MISSING: L2 冻结判据载体不可用（%s）—— 拒绝在无冻结判据下产出"
+            " 通过结论；门禁按 G08-01 重建后此处重新接线\n" % _L2_IMPORT_ERROR)
+        raise SystemExit(2)
 import resource_probe as RP                  # noqa: E402  机器有效核/内存探测（既有件）
 import run_monitored as RM                   # noqa: E402  外挂监控 + G-RES-01 冻结门实现
 import m16_sampling as MS                    # noqa: E402  合成数据唯一事实源
@@ -79,8 +96,9 @@ CONTRACT = ROOT / "eng" / "contracts" / "resource_gate_v1.json"
 BINARY = ROOT / "build" / "acsd"     # 缺省；--binary 可指向自建 build-perf（隔离协议 4）
 MEM_GUARD = ROOT / "eng" / "tools" / "monitoring" / "mem_guard.py"
 WATERFALL = ROOT / "eng" / "tools" / "monitoring" / "node_waterfall.py"
-VERIFY_CSV = ROOT / "eng" / "tools" / "monitoring" / "verify_monitor_csv.py"
 RUN_MON = ROOT / "eng" / "tools" / "monitoring" / "run_monitored.py"
+# 原此处有 VERIFY_CSV = eng/tools/monitoring/verify_monitor_csv.py：随 G08-01 删除后
+# 全文件再无第二处引用（grep 只命中定义行本身），是纯悬空常量，移除以免留下死指针。
 
 # ── 受控编排键（**只有这些**允许出现在本工具的命令面；值来自 benchmark profile 或实测扫描）
 # ACSD 的并发由调度器从「Runtime lease（= CPU 亲和掩码核数）」与「内存闸门」派生，phase 配置
@@ -705,10 +723,12 @@ def run_stage(tag: str, stage: str, cfg, *, run_dir, workers: int, axis_frame=No
 # 判定面两层，都不改判据、不放宽阈值：
 #  ① 生产侧 G-RES-01 判定（eng/tools/monitoring/run_monitored.py::evaluate_frozen_gate，
 #     阈值读 eng/contracts/resource_gate_v1.json）—— 判据 ①②③（硬失败面）与 ④⑤⑥（记录面）；
-#  ② CI 裁决面 L2 冻结判据（eng/ci/l2_frozen_gate.py::adjudicate，CI_SPEC §9.2 唯一正本）
-#     —— 四条判据（平均/p50/达标占比/无低利用窗）**违规必红**，分母未声明或门不适用按红。
+#  ② CI 裁决面 L2 冻结判据（原 eng/ci/l2_frozen_gate.py::adjudicate，随 G08-01
+#     门禁删除消失）—— 四条判据（平均/p50/达标占比/无低利用窗）**违规必红**。
+#     判据载体缺失时硬失败：不得在无冻结判据的情况下产出「通过」结论。
 def adjudicate(tag: str, run_dir, stages: list, *, workers: int, contract: dict,
                compute_intervals=None, mem_budget_bytes=None) -> dict:
+    _require_l2()
     thresholds = L2.load_thresholds(str(ROOT))
     rows, hard_stages, l2_rows = [], [], []
     for st in stages:
@@ -755,6 +775,8 @@ def adjudicate(tag: str, run_dir, stages: list, *, workers: int, contract: dict,
         l2["stage"] = st["stage"]
         l2_rows.append(l2)
     l2_red = [r for r in l2_rows if r["verdict"] == L2.V_RED]
+    # l2_authority 里的「判定面 eng/ci/l2_frozen_gate.py」随 G08-01 门禁删除（同上 ②）；
+    # 该字段按原样留作历史记录，不改写：它记录的是该判据面本来的归属，不是现役入口。
     return {"tag": tag, "allocated_workers": workers, "gate_id": contract["gate_id"],
             "authority": contract["authority"],
             "l2_authority": "docs/engineering/CI_SPEC.md §9.2（判定面 eng/ci/l2_frozen_gate.py）",
@@ -1159,24 +1181,32 @@ def cmd_selftest(a) -> int:
         cases.append(("S7-derived-scene-k2-scaling", False))
         print("S6/S7 error: %s" % e)
     cases.append(("S8-gate-not-tautological", r1["verdict"] != g["verdict"]))
-    # S9/S10：CI 裁决面（eng/ci/l2_frozen_gate.py）——满载证据必须绿、单线程证据必须红
-    th = L2.load_thresholds(str(ROOT))
-    def _l2(mon, workers=16, interval=20.0):
-        ev = dict(mon)
-        ev["allocated_workers"] = workers
-        g2 = RM.evaluate_frozen_gate(mon, effective_cpus=16, allocated_workers=workers,
-                                     compute_interval_seconds=interval)
-        ev["frozen_gate"] = {"verdict": "pass" if not g2["violations"] else "fail",
-                             "metrics": g2.get("metrics") or {}}
-        return L2.adjudicate(ev, thresholds=th, require_applicable=True,
-                             require_evaluable=True, source="selftest")
-    cases.append(("S9-l2-frozen-gate-green", _l2(green)["verdict"] == L2.V_PASS))
-    cases.append(("S10-l2-frozen-gate-red", _l2(red1)["verdict"] == L2.V_RED))
-    # S11：分母未声明 ⇒ L2 验收证据按红（CI_SPEC §9.2 l2_denominator_undeclared）
-    ev_nod = dict(green); ev_nod["allocated_workers"] = 0
-    ev_nod["frozen_gate"] = {"verdict": "pass", "metrics": {}}
-    cases.append(("S11-l2-denominator-undeclared-red",
-                  L2.adjudicate(ev_nod, thresholds=th)["verdict"] == L2.V_RED))
+    # S9/S10/S11：CI 裁决面（原 eng/ci/l2_frozen_gate.py，随 G08-01 门禁删除消失）。
+    # 载体缺失时这三例必须判红（记 False），不得因为「跑不了」就当通过 —— 否则
+    # selftest 会在冻结判据缺席时给出全绿，构成恒真自证（规范 08 §4）。
+    if L2 is None:
+        print("FROZEN_GATE_MISSING: S9/S10/S11 无法执行，按红记（冻结判据载体已随 G08-01 删除）")
+        cases.append(("S9-l2-frozen-gate-green", False))
+        cases.append(("S10-l2-frozen-gate-red", False))
+        cases.append(("S11-l2-denominator-undeclared-red", False))
+    else:
+        th = L2.load_thresholds(str(ROOT))
+        def _l2(mon, workers=16, interval=20.0):
+            ev = dict(mon)
+            ev["allocated_workers"] = workers
+            g2 = RM.evaluate_frozen_gate(mon, effective_cpus=16, allocated_workers=workers,
+                                         compute_interval_seconds=interval)
+            ev["frozen_gate"] = {"verdict": "pass" if not g2["violations"] else "fail",
+                                 "metrics": g2.get("metrics") or {}}
+            return L2.adjudicate(ev, thresholds=th, require_applicable=True,
+                                 require_evaluable=True, source="selftest")
+        cases.append(("S9-l2-frozen-gate-green", _l2(green)["verdict"] == L2.V_PASS))
+        cases.append(("S10-l2-frozen-gate-red", _l2(red1)["verdict"] == L2.V_RED))
+    # S11：分母未声明 ⇒ L2 验收证据按红（原 CI_SPEC §9.2 l2_denominator_undeclared）
+        ev_nod = dict(green); ev_nod["allocated_workers"] = 0
+        ev_nod["frozen_gate"] = {"verdict": "pass", "metrics": {}}
+        cases.append(("S11-l2-denominator-undeclared-red",
+                      L2.adjudicate(ev_nod, thresholds=th)["verdict"] == L2.V_RED))
     # S12（回归）：`adjudicate` 把监控证据喂 L2 时，**有效核必须按 int 传入**。
     # 缺陷形态（本轮修）：host_probe.effective_cpu_cores 是 float（16.0），
     # evaluate_frozen_gate 的 cpus_ok 判定是 isinstance(int) ⇒ 整份证据退化成
@@ -1189,6 +1219,8 @@ def cmd_selftest(a) -> int:
         fx = dict(green)
         fx["host_probe"] = {"effective_cpu_cores": 16.0}   # float，正是缺陷触发形态
         write_json(fix_dir / "evidence" / "s12_normalize_monitor.json", fx)
+        if L2 is None:
+            raise RuntimeError("FROZEN_GATE_MISSING: 无 L2 判据面，S12 不可判")
         ga = adjudicate("s12", fix_dir, [{"stage": "normalize"}], workers=16,
                         contract=contract, compute_intervals={"normalize": 20.0})
         l2a = ga["l2_criteria"][0]

@@ -16,7 +16,7 @@ import sys
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
 
-# 生产入口登记表（唯一源：eng/tools/arch/spec_named_impls.json 的 production_entry）。
+# 生产入口的唯一权威面是根 CMakeLists.txt 自身的 add_executable（见下方常量注释）。
 def read_text(path, label=None) -> str:
     """读文本文件；失败时把路径带上，便于判据点名。"""
     try:
@@ -31,8 +31,14 @@ def read_json(path, label=None):
     return json.loads(read_text(path, label))
 
 
-ENTRY_REGISTRY = "eng/tools/arch/spec_named_impls.json"
+# 生产入口的唯一权威面是根 CMakeLists.txt 自身的 add_executable（AGENTS §1：
+# 三个平级命令共用唯一 CLI 入口；根 CMakeLists.txt:1315 明写「唯一 add_executable(acsd)
+# 仍在本文件」）。原 ENTRY_REGISTRY 指向 eng/tools/arch/spec_named_impls.json，
+# 而该登记表随 eng/ci/spec_named_impls.json 于 e5f589a6 被删且新路径从未建立 ⇒ 指针悬空。
+# 改为从真实构建图反解，读不到/不唯一一律 GateError（fail-closed，不静默回退默认名）。
+ENTRY_REGISTRY = None
 DEFAULT_ENTRY_TARGET = "acsd"
+ROOT_BUILD_FILE = "CMakeLists.txt"
 # 安装规则唯一源（BLD-003：子目录 CMakeLists 禁止 install，根 CMake include 本文件）。
 INSTALL_RULES = "eng/cmake/install_layout.cmake"
 
@@ -297,15 +303,27 @@ def production_closure(graph: dict, entry: str):
 
 # ------------------------------------------------------------------ 派生读取面 ----
 def production_entry(repo: pathlib.Path, default: str = DEFAULT_ENTRY_TARGET) -> str:
-    """生产入口 target 名，取自登记表（唯一源）。登记表缺失/为空 ⇒ GateError。"""
+    """生产入口 target 名，唯一权威面 = 根 CMakeLists.txt 的 add_executable。
+
+    fail-closed：根图解析不出 target、或根图里 add_executable 不唯一，
+    一律 GateError；不得回退到 default 静默判绿（规范 08 §4「恒真门无效」）。
+    """
     repo = pathlib.Path(repo)
-    doc = read_json(repo / ENTRY_REGISTRY, ENTRY_REGISTRY)
-    if not isinstance(doc, dict):
-        raise gc.GateError("ENTRY_REGISTRY_INVALID: %s 不是对象" % ENTRY_REGISTRY)
-    entry = doc.get("production_entry") or default
-    if not isinstance(entry, str) or not entry.strip():
-        raise gc.GateError("ENTRY_REGISTRY_EMPTY: %s 的 production_entry 为空" % ENTRY_REGISTRY)
-    return entry
+    graph = parse_cmake_graph(repo)
+    root_exes = sorted(
+        name for name, info in graph.get("targets", {}).items()
+        if info.get("kind") == "add_executable"
+        and info.get("file") == ROOT_BUILD_FILE
+    )
+    if not root_exes:
+        raise gc.GateError(
+            "ENTRY_REGISTRY_EMPTY: 根 %s 未解析出任何 add_executable（不得回退默认值 %s）"
+            % (ROOT_BUILD_FILE, default))
+    if len(root_exes) > 1:
+        raise gc.GateError(
+            "ENTRY_REGISTRY_AMBIGUOUS: 根 %s 有多个 add_executable: %s"
+            % (ROOT_BUILD_FILE, ", ".join(root_exes)))
+    return root_exes[0]
 
 
 def executable_targets(graph: dict) -> dict:

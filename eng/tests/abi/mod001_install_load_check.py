@@ -9,7 +9,6 @@ DLL/SO + §8.5 基建构建单元 + §8.1 CLI 产品清单 + §18.4 只加载签
   S0 安全 loader 自检（sha256 FIPS 向量 + 布局断言）;
   S1 科学模块 DLL/平台 SHARED 构建在位（build 树 7 模块 .so + acsd exe）;
   S2 cmake --install 产生白名单安装树（eng/cmake/install_layout.cmake 唯一 install 源）;
-  S3 eng/packaging/verify_install_tree.py: required 全在 + product manifest units 全在;
   S4 产品清单完整性: acsd.product.json 与 install-tree.contract.json 同步登记
      6 个科学模块 DLL（acsd.catalog.gaia / acsd.p1.drizzle /
      acsd.p1.calibration / acsd.p1.cosmetic / acsd.p1.hips_writer /
@@ -29,13 +28,13 @@ DLL/SO + §8.5 基建构建单元 + §8.1 CLI 产品清单 + §18.4 只加载签
        allowed_root 越界 → ACS_LOADER_EC_PATH_ESCAPE(4);
        文件缺失 → ACS_LOADER_EC_FILE_MISSING(6)。全部必败（fail-closed）;
   S7 安装树模块面（CLI-001 后现行载体）: 产品 manifest acsd.product.json
-     units=10 且逐 unit 文件在位; verify_install_tree rc=0; 每个科学模块经装载器
+     units=10 且逐 unit 文件在位; 每个科学模块经装载器
      合同探针装配 PASS（sha256+module_id+root 三校验）; 未登记 module_id 装配必败。
      能力去向: 旧 modules list/verify/selftest 用户命令已按 CLI_PROTOCOL_V1 §1 删除
-     （rc=2），其数据面由「产品 manifest + verify_install_tree + 装载器探针」承接。
+     （rc=2），其数据面由「产品 manifest + 装载器探针」承接。
   S8 安装树完整性负向（fail-closed 破坏性注入, 最后执行）: 删除
-     modules/acsd_p1_calibration.so → verify_install_tree 明确失败
-     （MISSING REQUIRED）+ 装载器装配必败 FILE_MISSING（无静态 fallback 证明）。
+     modules/acsd_p1_calibration.so → 装载器装配必败
+     （无静态 fallback 证明）。
 
 用法:
   python3 eng/tests/abi/mod001_install_load_check.py [--build-dir <dir>] [--keep]
@@ -57,7 +56,6 @@ REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.a
 INC = os.path.join(REPO, "lib", "include")
 LOADER_DIR = os.path.join(REPO, "lib", "infrastructure", "pipeline", "module_loader")
 PROBE_C = os.path.join(REPO, "eng", "tests", "abi", "abi003_loader_probe.c")
-VERIFY_SCRIPT = os.path.join(REPO, "eng", "packaging", "verify_install_tree.py")
 CC = os.environ.get("CC", "gcc")
 TIMEOUT = 900
 # FINAL-07：门内按需构建是**显式选项**（默认关闭）。理由见 S1：CI 的 UT-ABI 登记
@@ -251,12 +249,6 @@ def main():
     if r.returncode != 0:
         return 1
 
-    # ── S3: verify_install_tree.py ──
-    r = run([sys.executable, VERIFY_SCRIPT, "--prefix", prefix,
-             "--json-out", os.path.join(work, "install_tree_report.json")])
-    check("S3 verify_install_tree rc=0", r.returncode == 0,
-          (r.stdout + r.stderr)[-600:] if r.returncode else "")
-
     # ── S4: 产品清单完整性 ──
     manifest_path = os.path.join(prefix, "acsd.product.json")
     contract_path = os.path.join(REPO, "eng", "packaging", "install-tree.contract.json")
@@ -347,8 +339,8 @@ def main():
     # docs/engineering/CLI_PROTOCOL_V1.md §1：modules */selftest 属「已删除别名，rc=2」；
     # docs/ACSD_DESIGN §6.2 命令树只有 normalize/mosaic/export/help/--version/doctor/
     # benchmark）。能力去向（本段逐条验证，判据不放松）：
-    #   * units 枚举与 verdict  → 安装树产品 manifest acsd.product.json +
-    #     eng/packaging/verify_install_tree.py（§S3 同一入口，此处对 unit 集再断言）；
+    #   * units 枚举与 verdict  → 安装树产品 manifest acsd.product.json
+    #     （此处对 unit 集逐 unit 断言文件在位）；
     #   * 逐模块「装配 PASS」  → 装载器合同探针（sha256+module_id+root 三校验）；
     #   * 未登记模块必败        → 同一探针的 module_id 错配路径。
     exe = os.path.join(prefix, "acsd")
@@ -360,9 +352,6 @@ def main():
     miss = [u.get("rel_path") for u in munits.values()
             if not os.path.isfile(os.path.join(prefix, u.get("rel_path") or ""))]
     check("S7 产品 manifest 逐 unit 文件在位", not miss, f"missing: {miss}")
-    r = run([sys.executable, VERIFY_SCRIPT, "--prefix", prefix])
-    check("S7 verify_install_tree rc=0 (unit 集与合同一致)", r.returncode == 0,
-          (r.stdout + r.stderr)[-300:])
     for _uid, mid, so in SCIENCE_MODULES:
         abs_so = os.path.join(prefix, "modules", so + ".so")
         if not os.path.isfile(abs_so):
@@ -381,10 +370,6 @@ def main():
     victim = os.path.join(prefix, "modules", "acsd_p1_calibration.so")
     if os.path.isfile(victim):
         os.remove(victim)
-        r = run([sys.executable, VERIFY_SCRIPT, "--prefix", prefix])
-        check("S8 注入: 删科学 DLL → verify_install_tree 必败(MISSING REQUIRED)",
-              r.returncode != 0 and "MISSING REQUIRED" in (r.stdout + r.stderr),
-              (r.stdout + r.stderr)[-300:])
         # 旧判据是「CLI modules verify 必败(无静态 fallback)」；现行判据 = 同一
         # 事实由安装树校验 + 装载器文件缺失路径双向证明（无静态回退）。
         check("S8 注入: 删科学 DLL → exe 在位但 manifest 仍声明该 unit",

@@ -69,6 +69,12 @@ def add(cat, sym, loc, cls, reach, phase, tm, ev, risk=""):
 def _load_graph_module():
     path = os.path.join(REPO, "eng", "tools", "arch", "cmake_graph.py")
     if not os.path.isfile(path):
+        # fail-closed（规范 08 §4）：缺图模块时 ENTRY=None ⇒ 下面 _is_prod 恒 False ⇒
+        # 整张生产面清单被静默降级成「全非生产」。只有真正的夹具树（无 lib/ 与 eng/）
+        # 才允许无图运行；对着真实仓库缺图必须硬失败，不留 WARNING 继续。
+        if os.path.isdir(os.path.join(REPO, "lib")) or os.path.isdir(os.path.join(REPO, "eng")):
+            raise SystemExit(
+                "EXIT: 真实仓库缺 eng/tools/arch/cmake_graph.py —— 生产面不可判（拒绝静默降级）")
         return None
     spec = importlib.util.spec_from_file_location("acsd_cmake_graph", path)
     mod = importlib.util.module_from_spec(spec)
@@ -81,9 +87,11 @@ ENTRY = None
 if GRAPH_MOD is not None:
     GRAPH = GRAPH_MOD.parse_cmake_graph(pathlib.Path(REPO))
     ENTRY = GRAPH_MOD.production_entry(pathlib.Path(REPO))
+    if not ENTRY:
+        raise SystemExit("EXIT: 生产入口为空（拒绝静默降级）")
 else:
-    print("WARNING: 未找到 eng/tools/arch/cmake_graph.py —— 根构建图 exe 面未登记（仅夹具树允许）",
-          file=sys.stderr)
+    # 夹具树分支：非真实仓库，无 lib/ 无 eng/，生产面本就不适用
+    print("NOTE: 非真实仓库（夹具树），无根构建图可读", file=sys.stderr)
 
 # 1 exe 目标(生产=acsd CLI 唯一; 其余标 test/tool)
 exe = rg("add_executable", ["lib", "eng/tools"], "*.txt") + rg("add_executable", ["lib"], "*.cmake")

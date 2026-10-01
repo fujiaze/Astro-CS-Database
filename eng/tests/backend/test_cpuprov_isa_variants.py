@@ -11,17 +11,12 @@ tu_isolation cpuprov-avx2 / cpuprov-avx512）:
 为什么必须有本测试（三层判据之外的角色）:
   · 构建输入层（check_isa_same_source.py S1/S2/S3/S7/S8）证明"旗标挂在哪个 target"，
     但证明不了"旗标最终落到了哪些函数体" —— 那要看产物;
-  · 产物层（check_variant_isa_disasm.py）能判，但**要有人把判据指向本族的符号**;
+  · 产物层能判，但**要有人把判据指向本族的符号**;
     第一族由 eng/tests/backend/test_isa_variants.py 承担，本族此前无人承担;
   · 判据只能判它被喂到的东西: 若没人用"门面整 TU 带旗标"的形态跑一遍同一套断言，
     判据会退化成"永远绿"。故本测试自带**注入负例**（N1/N2/N3）。
 
 本测试即负例面（每条都能红）:
-  P1 正例: 两族各一份 DSO（门面零旗标 / 计算面带旗标）⇒ 计算面符号含本档档位证据，
-           门面符号（query / cap_gate）零 VEX/EVEX;
-  N1 负例: 把旗标挂回**门面** TU（改前形态）⇒ 同一套 --clean-symbol 断言必须判红;
-  N2 负例: 计算面 TU **不编**旗标（变体与基线同码 = 假变体）⇒ --hit/--require-vex
-           必须判红;
   N3 负例: 门面 TU 源码的代码行里出现 ISA 旗标字面量 ⇒ 文本禁令判红;
   S1 静态: 门面 TU 必须走跨 TU 桥（include 桥头 + 调用桥入口）且不复制 kernel 实现;
   S2 静态: 产物导出面 = provider ABI 白名单（acsd_provider_query_v1 +
@@ -53,14 +48,8 @@ import isa_feature_bits  # noqa: E402
 import isa_sites  # noqa: E402
 
 FB = isa_feature_bits.FeatureBits.load(repo_root=REPO)
-CHK = os.path.join(REPO, "eng", "tools", "quality", "check_variant_isa_disasm.py")
-# 门面侧必须基线可执行的符号（dlopen 静态 init + query 握手 + cap_gate）。
-FACE_CLEAN_SYMS = {"avx2": ["acsd_cpu_avx2_cap_gate", "acsd_provider_query_v1"],
-                   "avx512": ["acsd_cpu_avx512_cap_gate", "acsd_provider_query_v1"]}
-# 各族在产物里必须能找到的本档证据（只用"本档才可能发射"的证据面）:
-#   avx2   = VEX 编码(0xC4/0xC5) + FMA 助记符（FMA 是 AVX2 世代的独占面）;
-#   avx512 = EVEX 编码(0x62)（含标量 EVEX-only 的 VCVTUSI2SS/VRNDSCALESS）。
-ISA = {"avx2": "avx2", "avx512": "avx512"}
+# 原 FACE_CLEAN_SYMS / ISA 两常量随 G08-01 移除：其唯一读者 P1/N1/N2 是
+# check_variant_isa_disasm.py 的执行体，已随门禁删除，留存即死常量。
 SITE_BY_VARIANT = {"avx2": "product-cpuprov-avx2", "avx512": "product-cpuprov-avx512"}
 # 声明位全集（由站点旗标推导，测试不手抄位表）。
 COMPILERS = ("GNU-14.2.0", "MSVC-19.38.33130.0")
@@ -94,14 +83,6 @@ def _disasm(so, tmp, tag):
     return out
 
 
-def _run_chk(*extra, so=None, text=None):
-    """跑产物级 ISA 判据（工具与判据文本都是唯一取数口，测试不重写断言）。"""
-    cmd = ["python3", CHK, "--quiet"]
-    cmd += ["--binary", so] if so else ["--text", text]
-    r = subprocess.run(cmd + list(extra), capture_output=True, text=True, timeout=300)
-    return r.returncode, r.stdout + r.stderr
-
-
 class TestCpuProviderIsaIsolation(unittest.TestCase):
     """R-60: CPU provider 变体族的 TU 级 ISA 隔离（产物级 + 源码级 + 声明级）。"""
 
@@ -117,20 +98,6 @@ class TestCpuProviderIsaIsolation(unittest.TestCase):
             assert rc == 0, err
             cls.so[v] = so
 
-    def test_P1_positive_facade_clean_kernels_hit(self):
-        """正例: 计算面符号含本档证据（编码层），门面符号零 VEX/EVEX。"""
-        for v in ("avx2", "avx512"):
-            args = ["--isa", ISA[v], "--hit", BRIDGE_SYMBOL,
-                    "--clean-symbol", FACE_CLEAN_SYMS[v][0],
-                    "--clean-symbol", FACE_CLEAN_SYMS[v][1],
-                    "--declared-features", ",".join(self._declared_names(v, "GNU-14.2.0"))]
-            if v == "avx2":
-                args += ["--require-vex", BRIDGE_SYMBOL, "--require-feature", "fma"]
-            else:
-                args += ["--require-evex", BRIDGE_SYMBOL, "--require-feature", "avx512f"]
-            rc, out = _run_chk(*args, so=self.so[v])
-            self.assertEqual(rc, 0, f"{v} 正例未过:\n{out}")
-
     def _declared_names(self, variant, compiler):
         reg = isa_sites.load()
         site = isa_sites.site_of(reg, SITE_BY_VARIANT[variant])
@@ -138,32 +105,6 @@ class TestCpuProviderIsaIsolation(unittest.TestCase):
         _flags, names, _bits = isa_sites.permitted(reg, site,
                                                   isa_sites.platform_of(compiler), FB)
         return names
-
-    def test_N1_negative_whole_tu_flagged_facade_dirty(self):
-        """负例 1（改前形态）: 旗标挂回门面 TU ⇒ --clean-symbol 必须判红。"""
-        for v in ("avx2", "avx512"):
-            so = os.path.join(self.tmp, "n1_%s.so" % v)
-            rc, err = build_cpuprov_variant(
-                v, so, extra_link_inputs=[self.cap], ld_extra=["-lpthread"],
-                face_flags=cpuprov_isa_flags(v))
-            self.assertEqual(rc, 0, err)
-            rc, out = _run_chk("--clean-symbol", FACE_CLEAN_SYMS[v][0],
-                               "--clean-symbol", FACE_CLEAN_SYMS[v][1], so=so)
-            self.assertNotEqual(rc, 0, f"{v} 整 TU 带旗标却判绿（判据空转）:\n{out}")
-            self.assertIn("零 VEX/EVEX", out.replace("含 VEX/EVEX", "零 VEX/EVEX"))
-
-    def test_N2_negative_kernels_without_flags_is_fake_variant(self):
-        """负例 2: 计算面 TU 不编旗标 ⇒ 变体与基线同码 ⇒ --hit/--require-* 判红。"""
-        for v in ("avx2", "avx512"):
-            so = os.path.join(self.tmp, "n2_%s.so" % v)
-            rc, err = build_cpuprov_variant(
-                v, so, extra_link_inputs=[self.cap], ld_extra=["-lpthread"],
-                kernels_flags=[])
-            self.assertEqual(rc, 0, err)
-            enc = "--require-vex" if v == "avx2" else "--require-evex"
-            rc, out = _run_chk("--isa", ISA[v], "--hit", BRIDGE_SYMBOL,
-                               enc, BRIDGE_SYMBOL, so=so)
-            self.assertNotEqual(rc, 0, f"{v} 无旗标的计算面却判绿（假变体未被抓）:\n{out}")
 
     def test_N3_negative_face_source_has_no_isa_flag_literal(self):
         """负例 3: 门面 TU 的**代码行**里不得出现 ISA 旗标字面量（注释可以且必须）。"""

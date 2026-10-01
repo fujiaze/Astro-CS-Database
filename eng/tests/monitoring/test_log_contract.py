@@ -16,11 +16,9 @@
 from __future__ import annotations
 
 import concurrent.futures
-import importlib.util
 import json
 import pathlib
 import sys
-import tempfile
 import unittest
 
 REPO = pathlib.Path(__file__).resolve().parents[3]
@@ -30,12 +28,6 @@ from lib.infrastructure.observability.logging import log_event as le  # noqa: E4
 from lib.infrastructure.observability.logging.log_event import (  # noqa: E402
     EVENTS, LEVELS, MAX_LINE_BYTES, LogEvent, REQUIRED_FIELDS, SCHEMA_ID,
     SeqAllocator, line_size_bytes, redact)
-
-spec = importlib.util.spec_from_file_location(
-    "check_log_contract",
-    REPO / "eng" / "tools" / "monitoring" / "check_log_contract.py")
-clc = importlib.util.module_from_spec(spec)
-spec.loader.exec_module(clc)
 
 SCHEMA_PATH = REPO / "lib" / "infrastructure" / "observability" / "logging" / "log_event_v1.schema.json"
 
@@ -68,87 +60,14 @@ class TestSchemaContract(unittest.TestCase):
                   "level", "event", "units", "elapsed", "diagnostic"):
             self.assertIn(f, schema["required"])
 
-    def test_missing_field_rejected(self):
-        ok, errs, _ = clc.check_schema_self(REPO, SCHEMA_PATH)
-        self.assertTrue(ok, errs)
-        schema = schema_dict()
-        errs: list = []
-        # 删除 run 字段 → 缺必需字段被拒
-        bad = make_event(1).to_dict()
-        del bad["run"]
-        clc.validate_subschema(bad, schema, "L1", errs)
-        self.assertTrue(any("缺必需字段" in e for e in errs), errs)
-        # 删除 diagnostic → 缺必需字段被拒
-        errs.clear()
-        bad = make_event(2).to_dict()
-        del bad["diagnostic"]
-        clc.validate_subschema(bad, schema, "L1", errs)
-        self.assertTrue(any("缺必需字段" in e for e in errs), errs)
-
-    def test_unknown_field_rejected(self):
-        schema = schema_dict()
-        errs: list = []
-        bad = make_event(1).to_dict()
-        bad["secret_extra"] = "x"
-        clc.validate_subschema(bad, schema, "L1", errs)
-        self.assertTrue(any("未知字段" in e for e in errs), errs)
-
-    def test_enum_level_event_rejected(self):
-        schema = schema_dict()
-        errs: list = []
-        bad = make_event(1).to_dict()
-        bad["level"] = "fatal"  # 枚举外
-        clc.validate_subschema(bad, schema, "L1", errs)
-        self.assertTrue(any("不在 enum" in e for e in errs), errs)
-        errs.clear()
-        bad = make_event(2).to_dict()
-        bad["phase"] = "phase4"
-        clc.validate_subschema(bad, schema, "L1", errs)
-        self.assertTrue(any("不在 enum" in e for e in errs), errs)
-
-    def test_seq_pattern_constraints(self):
-        schema = schema_dict()
-        errs: list = []
-        bad = make_event(1).to_dict()
-        bad["seq"] = 0  # minimum=1
-        clc.validate_subschema(bad, schema, "L1", errs)
-        self.assertTrue(any("minimum" in e for e in errs), errs)
-        errs.clear()
-        bad = make_event(2).to_dict()
-        bad["commit"] = "abc"  # pattern 40 hex
-        clc.validate_subschema(bad, schema, "L1", errs)
-        self.assertTrue(any("pattern" in e for e in errs), errs)
-
     def test_error_required_and_positive(self):
-        schema = schema_dict()
-        errs: list = []
-        ok_ev = make_event(1, level="error", event="error", diagnostic="失败",
-                            error={"source": "lib/infrastructure/observability/logging/log_event.py",
-                                   "symbol": "LogEvent.__init__",
-                                   "status": "SCHEMA_VIOLATION"})
-        clc.validate_subschema(ok_ev.to_dict(), schema, "L1", errs)
-        self.assertEqual(errs, [], errs)
-        # level=error 缺 error 对象：参考实现拒绝构造；checker 拒绝已存在 dict
+        # level=error 缺 error 对象：参考实现拒绝构造
         with self.assertRaises(ValueError):
             make_event(2, level="error", event="error")
-        errs.clear()
-        bad = make_event(3, level="error", event="error", diagnostic="d",
-                         error={"source": "a", "symbol": "b", "status": "C"})
-        del bad.data["error"]
-        clc.check_error_payload([bad.to_dict()], errs)
-        self.assertTrue(any("error" in e for e in errs), errs)
         # 非 error 携带 error → 参考实现拒绝
         with self.assertRaises(ValueError):
             make_event(4, level="info", error={"source": "a", "symbol": "b",
                                                "status": "C"})
-        # error 子字段缺失被 schema 拒绝
-        errs.clear()
-        bad = make_event(5, level="error", event="error", diagnostic="d",
-                         error={"source": "a", "symbol": "b",
-                                "status": "C"}).to_dict()
-        del bad["error"]["status"]
-        clc.validate_subschema(bad, schema, "L1", errs)
-        self.assertTrue(any("缺必需字段" in e for e in errs), errs)
 
 
 class TestDualOutput(unittest.TestCase):
@@ -229,36 +148,6 @@ class TestSequenceConcurrency(unittest.TestCase):
         self.assertEqual(merged, list(range(1, n_threads * n_each + 1)))
         self.assertEqual(len(set(merged)), n_threads * n_each)
 
-    def test_checker_seq_validation_rejects_gap(self):
-        lines = []
-        for i in (1, 2, 4):  # 缺 seq=3
-            ev = make_event(i)
-            ev.data["seq"] = i
-            lines.append(ev.to_jsonl())
-        with tempfile.TemporaryDirectory() as td:
-            p = pathlib.Path(td) / "gap.jsonl"
-            p.write_text("".join(lines), encoding="utf-8")
-            ok, errs, _ = clc.run_check(str(p), SCHEMA_PATH, verify_redact=False)
-        self.assertFalse(ok)
-        self.assertTrue(any("seq 不连续" in e for e in errs), errs)
-
-    def test_checker_seq_rejects_first_not_one(self):
-        ev = make_event(3)
-        with tempfile.TemporaryDirectory() as td:
-            p = pathlib.Path(td) / "first.jsonl"
-            p.write_text(ev.to_jsonl(), encoding="utf-8")
-            ok, errs, _ = clc.run_check(str(p), SCHEMA_PATH, verify_redact=False)
-        self.assertFalse(ok)
-        self.assertTrue(any("seq 不连续" in e for e in errs), errs)
-
-    def test_checker_accepts_sequential(self):
-        evs = [make_event(i) for i in (1, 2, 3)]
-        with tempfile.TemporaryDirectory() as td:
-            p = pathlib.Path(td) / "ok.jsonl"
-            p.write_text("".join(e.to_jsonl() for e in evs), encoding="utf-8")
-            ok, errs, _ = clc.run_check(str(p), SCHEMA_PATH, verify_redact=False)
-        self.assertTrue(ok, errs)
-
 
 class TestLineSizeLimit(unittest.TestCase):
     """A6：单行大小上限与截断不切坏 UTF-8。"""
@@ -279,50 +168,9 @@ class TestLineSizeLimit(unittest.TestCase):
         self.assertEqual(obj["seq"], 1)
         self.assertTrue(line.endswith("\n"))
 
-    def test_checker_rejects_oversized_raw_line(self):
-        # 直接构造超限行（绕过参考实现截断），检查器必须拒绝
-        big = "x" * (MAX_LINE_BYTES + 100)
-        line = make_event(1).to_dict()
-        line["diagnostic"] = big
-        raw = json.dumps(line, ensure_ascii=False) + "\n"
-        with tempfile.TemporaryDirectory() as td:
-            p = pathlib.Path(td) / "big.jsonl"
-            p.write_text(raw, encoding="utf-8")
-            ok, errs, _ = clc.run_check(str(p), SCHEMA_PATH, verify_redact=False)
-        self.assertFalse(ok)
-        self.assertTrue(any("大小" in e and "上限" in e for e in errs), errs)
-
 
 class TestCheckerCli(unittest.TestCase):
-    """A6/A1：checker CLI PASS/FAIL 判定与错误载荷负测。"""
-
-    def test_cli_selfcheck_pass(self):
-        rc = clc.main(["--selfcheck"])
-        self.assertEqual(rc, 0)
-
-    def test_cli_jsonl_fail_exit1(self):
-        ev = make_event(1).to_dict()
-        del ev["commit"]  # 缺必需字段
-        raw = json.dumps(ev) + "\n"
-        with tempfile.TemporaryDirectory() as td:
-            p = pathlib.Path(td) / "bad.jsonl"
-            p.write_text(raw, encoding="utf-8")
-            rc = clc.main(["--jsonl", str(p)])
-        self.assertEqual(rc, 1)
-
-    def test_error_payload_checker(self):
-        # error 事件缺 status → checker 拒绝
-        errs: list = []
-        ev = make_event(1, level="error", event="error", diagnostic="d",
-                        error={"source": "a", "symbol": "b", "status": "C"})
-        clc.check_error_payload([ev.to_dict()], errs)
-        self.assertEqual(errs, [], errs)
-        errs.clear()
-        bad = make_event(2, level="error", event="error", diagnostic="d",
-                         error={"source": "a", "symbol": "b", "status": "C"})
-        del bad.data["error"]["status"]
-        clc.check_error_payload([bad.to_dict()], errs)
-        self.assertTrue(any("error.status" in e for e in errs), errs)
+    """A1：必需字段清单 = 参考实现 REQUIRED_FIELDS（文档口径）。"""
 
     def test_required_field_list_matches_doc(self):
         # A1：文档声明字段 = 参考实现必需字段

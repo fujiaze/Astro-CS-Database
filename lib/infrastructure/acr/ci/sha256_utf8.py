@@ -155,13 +155,17 @@ def main():
         root_dir = sys.argv[2]
         output_file = sys.argv[3] if len(sys.argv) > 3 else 'sha256_manifest.json'
         stats = generate_manifest(root_dir, output_file)
+        # generate_manifest 返回的 stats 用 'errors' 列表承载读盘失败；
+        # 'error_count' 是写入 manifest 的键，不在 stats 上，按 stats 取会恒得 0
+        # （恒真判据，见 规范 08 §4）。
+        errors = stats.get('errors') or []
         print(f"Generated: {stats['total_files']} files, {stats['total_bytes']} bytes")
-        print(f"Errors: {stats.get('error_count', 0)}")
+        print(f"Errors: {len(errors)}")
         print(f"Output: {stats['output_json']} + {stats['output_text']}")
-        if stats.get('errors'):
-            for e in stats['errors'][:5]:
+        if errors:
+            for e in errors[:5]:
                 print(f"  ERROR: {e['path']}: {e['error']}")
-        sys.exit(0 if stats.get('error_count', 0) == 0 else 1)
+        sys.exit(1 if errors else 0)
 
     elif mode == 'verify':
         manifest_file = sys.argv[2]
@@ -188,6 +192,14 @@ def main():
         output_file = sys.argv[3] if len(sys.argv) > 3 else 'sha256_manifest.json'
         stats = generate_manifest(root_dir, output_file)
         print(f"Generated: {stats['total_files']} files")
+        # 生成期读盘失败必须先判红：清单本身就不完整，后续 verify 只核已入清单的条目，
+        # 会把缺读的文件当作「不在清单」而全绿（fail-open，见 规范 08 §4）。
+        errors = stats.get('errors') or []
+        if errors:
+            print(f"FAILED: 生成期 {len(errors)} 个文件读盘失败，清单不完整")
+            for e in errors[:5]:
+                print(f"  ERROR: {e['path']}: {e['error']}")
+            sys.exit(1)
         results = verify_manifest(stats['output_json'], root_dir)
         print(f"Verified: {results['passed']}/{results['total']} passed")
         if results['failed'] > 0 or results['missing'] > 0:

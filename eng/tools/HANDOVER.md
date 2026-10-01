@@ -158,7 +158,7 @@ python3 eng/tools/audit_intake.py <报告文件.md|.csv> --out run/ONEPAGER/work
 | 26 | 不变量断言与命题反向 | `5f8c237b` |
 | 29 | 生产入口零登记且缺失被写成断言 | `5f8c237b` |
 | 24 | 缺件即 skip 让整类校验归零 | `5f8c237b`（声明输入面机制） |
-| B 组 | 状态越词（造词状态词，不在 `docs/ACSD_DESIGN.md` §12.5 阶梯内）/ 豁免载体悬空引用（真实载体 `eng/ci/exemptions.json`）/ 分母 713 无定义 / 快照失配 | `5f8c237b`（越词词元与悬空名见 `eng/tools/quality/conclusion_vocabulary.json` 的 `denylist`、`eng/tools/quality/authority_surfaces.json` 的 `aliases`） |
+| B 组 | 状态越词（造词状态词，不在 `docs/ACSD_DESIGN.md` §12.5 阶梯内）/ 豁免载体悬空引用（真实载体 `eng/ci/exemptions.json`）/ 分母 713 无定义 / 快照失配 | `5f8c237b`（越词词元与悬空名见 `eng/tools/quality/conclusion_vocabulary.json` 的 `denylist`、`eng/tools/quality/authority_surfaces.json` 的 `aliases`；两者已随门禁清退删除，词元现只在 `conclusion_vocabulary.json` 可查） |
 | C 组 | ISA 声明与编译不同源、门只读根 CMake | `5f8c237b` |
 | E 组 | 内存结论由构造恒真、两个并存分母 | `5f8c237b` |
 | F 组 | 产品过不了自己的合同 | `5f8c237b`（新门）；**产品本身仍有 153 条问题** |

@@ -61,8 +61,7 @@ lib/infrastructure/acr/
 ├── docs/                   # ADR + 审计报告 + 禁止路径 + dependency-lock
 ├── schemas/                # route_profile schema
 ├── examples/               # minimal_parallel_for 等
-└── eng/ci/path_guard.ps1       # 提交前路径检查
-```
+└── ci/sha256_utf8.py       # 归档内容寻址校验
 
 ## 构建
 

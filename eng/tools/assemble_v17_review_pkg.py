@@ -48,6 +48,10 @@ CANONICAL_CORE_DIRS = [
 SRC_SUFFIXES = {".cpp", ".h", ".hpp", ".c", ".cc", ".py", ".js", ".md",
                 ".json", ".txt", ".csv", ".xml", ".ps1", ".in", ".cmake"}
 
+# 下列命令串是 V17 审核包的**历史执行记录**，只被写进 exact_commands.csv
+# （:155 writerows），从不执行。其中 :52-:54 引用的三个检查器已随 G08-01 门禁删除；
+# :55/:56/:58 引用的 lib/phase2/tools/ 早已不在树内。保留原样是因为改写即伪造
+# 当时的执行记录，不是留下可执行的门禁入口。
 EXACT_COMMANDS = [
     ("1", "py -3.12 eng/tools/no_legacy_production_reference.py"),
     ("2", "py -3.12 eng/tools/config_consistency_check.py"),

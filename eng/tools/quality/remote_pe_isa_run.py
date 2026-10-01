@@ -42,6 +42,11 @@ DOC = {
     "status": "NOT_RUN",
     "not_run_means": "NOT_RUN != PASS。本清单任何条目在本机一次都没有执行；未跑过的判据"
                      "不得在交付说明、门禁报表或台账中按「通过」引用。",
+    "retired_steps_note": "下方 phase 条目中，cmd 引用 eng/tools/quality/check_variant_isa_disasm.py 与 "
+                          "check_manifest_isa_artifact.py 的几步，其判据脚本已随 G08-01 门禁删除一并移除。"
+                          "此处按远端清单的**历史记录原样保留**（改写即伪造当时的执行记录），它们不是本机"
+                          "执行面：仅在显式 --phase gate 时才由 subprocess 发起，且 status 恒为 NOT_RUN。"
+                          "门禁重建（G08-10）时以新判据重写本清单。",
     "why_remote_only": [
         "MSVC 真实代码生成需 Windows SDK/cl 环境，本机无（Linux 开发节点）。",
         "dumpbin 是 Windows 自带工具，本机无（已实测 which dumpbin = MISSING）。",

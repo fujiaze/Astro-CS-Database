@@ -1,9 +1,11 @@
 {
   "schema_version": 1,
   "policy": "每个被登记的门必须在 eng/ci/checks.json 有注册承载（零登记即红）；其对外快照必须与现役输出逐项相等。历史记录面里的旧快照只有两种合法处置：(a) 与现役相等，或 (b) 显式标注 superseded_by 并把 *_live 写成现役真值。残留未标注的旧值即红。",
+  "ledger_state": "本台账当前无任何仓内消费者（消费它的 check_conclusion_truth.py 已随门禁清退删除），policy 所依赖的登记面 eng/ci/checks.json 亦已不在树内，故该 policy 现无人执行。台账内的 recorded 值作为审计记录保留原样，不因无人比对而改写。",
   "snapshots": [
     {
       "id": "docs_machine_consistency",
+      "producer_status": "RETIRED —— producer 脚本 eng/tools/docs_machine_consistency.py 已随门禁清退删除，本条 live_command 当前不可执行；其 recorded 值（version/checks）是删除当时的真实读数，保留作审计记录。",
       "producer": "eng/tools/docs_machine_consistency.py",
       "live_command": [
         "python3",

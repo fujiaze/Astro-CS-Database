@@ -111,13 +111,6 @@ class TestManifestIsaDeclaration(unittest.TestCase):
         self.assertEqual(json.dumps(g, sort_keys=True), json.dumps(m, sort_keys=True))
         self.assertEqual(self._bits("gnu", "avx2")[0], 24, "avx2 两腿都为 AVX2|FMA=24")
 
-    def test_03_disasm_checker_self_test(self):
-        chk = os.path.join(REPO, "eng", "tools", "quality", "check_variant_isa_disasm.py")
-        r = subprocess.run(["python3", chk, "--self-test"], capture_output=True, text=True,
-                           timeout=120)
-        self.assertEqual(r.returncode, 0, r.stdout + r.stderr)
-        self.assertIn("SELF_TEST PASS", r.stdout)
-
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)

@@ -183,18 +183,11 @@ add_test(NAME p1wcs_std_f1_bridge_cross
 set_tests_properties(p1wcs_std_f1_bridge_cross PROPERTIES LABELS "p1wcs")
 
 # ---------------------------------------------------------------------------
-# G-P1-WCS-CLOSURE v1 冻结口径的可复现门
+# G-P1-WCS-CLOSURE v1：闭包指标的可执行实现保留在
+# eng/tools/astrometry/closure_metric.py（docs/science/ASTROMETRY.md §11a 指定的
+# 唯一可执行实现），但其 selftest 门禁注册随 G08-01 一并移除：门禁重建前不保留
+# 在跑的机器判据（规范 08 §2）。指标计算口径本身不受影响。
 # ---------------------------------------------------------------------------
-# 合同锚: docs/science/ASTROMETRY.md §11a (SCI-WCS-001);
-# docs/science/algorithms/GATES_AND_TOLERANCES.md §3 行 G-P1-WCS-CLOSURE-REPRO (发布门=Y)
-# 与 §2 行 SNR_det。判据: 同输入同口径两次运行 median 完全相等 (容差 0 px,
-# 实测漂移 0) + 记录必须能由自带残差向量与声明半径重新导出 + params 逐项等于
-# 冻结口径。本目标跑合成场自检: 两口径各两跑必绿, 7 类负例注入必红, 缺输入
-# fail-closed 必红; 不依赖真实数据, 只用 astropy/numpy/scipy (独立 oracle,
-# 不导入生产代码)。
-add_test(NAME p1wcs_closure_metric_gate
-  COMMAND python3 ${CMAKE_SOURCE_DIR}/eng/tools/astrometry/closure_metric.py selftest)
-set_tests_properties(p1wcs_closure_metric_gate PROPERTIES LABELS "p1wcs")
 
 # ---------------------------------------------------------------------------
 # R-58-3-1 回归锁: 报告残差统计与解自身 sigma-clip 规则一致 (缺陷 ①)
