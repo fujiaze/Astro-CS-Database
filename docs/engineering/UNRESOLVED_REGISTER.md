@@ -3012,3 +3012,68 @@ OCR 流里紧邻 p.42 页首前的「(Issued separately February 25, 1935.)」�
 `eng/tests/**` **672 真实文件 / 235,028 行**；`eng/contracts/**` 90 / 23,494 行；
 `eng/tools/**` 149 真实文件（263 含 114 个 `.pyc`）/ 33,331 行。
 三条子代理分担，本车道合并判据发现。
+
+---
+
+## 61. 判据专线铺开到 8 片并行（1,153 条）；s04 首批结果已前台复核成立
+
+### 61.1 铺开方式
+
+前两批判据专线在 **34 / 1,180**（2.9%）的覆盖率上收工。本批把
+`/tmp/bin*.txt` 去重成 **1,153 条**，切成 **8 片（每片 124–161 条）**，
+每片一条车道、目标是 **100% 覆盖**。
+
+### 61.2 s04 车道首批三条 —— 前台逐条复核成立
+
+**F1｜恒红（长尾类第 3 条）：负例门在注册边界上零判别力**
+
+`lib/algorithms/drizzle/healpix_drizzle/tests/p3_conservation_gate.cpp:388` 注入模式下 `++fail;` 无条件自增，
+而注入分支 `:373-384` 分出 `[OK]` / `[INVALID]` 两种情形，
+但**两者 fail 都 >0、退出码都是 1**；
+`tests/CMakeLists.txt:367-371` 用 `WILL_FAIL TRUE`，
+ctest 的判据是**退出码非零** ⇒ `[OK]` 与 `[INVALID]` **都算这条测试通过**。
+
+⇒ 若有人删掉 `spherical_overlap.cpp:1210` 的 `p3_legacy_corner_fault()` 注入点，
+门只会打印 `[INVALID]` 并仍然退出 1 ⇒ **`WILL_FAIL` 依旧「绿」**。
+
+**注入本身是真的**（`spherical_overlap.cpp:1210-1216` 读 env 并改写叶面积路径），
+**问题不在假注入，而在 OK/INVALID 的区分没有接到 ctest 的判定信号上** ——
+这是「判据写了但信号没接上」的典型新形态。
+
+**F2｜恒真：三个测试执行器框架，组名拼错 ⇒ 跑 0 个组仍报 PASS**
+
+`p1cal_test_main.hpp:120-135`、`p1drz_test_main.hpp:143-159`、`p1cos_test_main.hpp:124-140`
+共用形态 `if (group != "all" && group != groups[i].name) continue;`，
+**无「命中组数」校验** ⇒ 组名不匹配任何注册组时循环全跳过、
+`total_fail` 保持 0 ⇒ 打印 PASS、return 0。
+
+`p1drz` 版更重：`:157-158` 直接把 `(int)n - total_fail` 当「通过数」打印
+⇒ **跑 0 组也报「4 通过, 0 失败」**。
+
+**已可达**（前台已复核）：`p1cal_test_main.hpp:4` 的用法注释写着
+`./p1cal_tests units|properties|negative|cosmetic|perf`，
+而 `p1cal_tests_core.cpp:666-671` 注册的组只有 `units/properties/negative/cosmetic`，
+**没有 `perf`** ⇒ 按注释跑 `./p1cal_tests perf` 得到 **0 组执行 + 「P1CAL TESTS PASS」**。
+
+CMake 侧组名目前与表一致，所以 **CI 当前未触发，属潜伏缺陷**。
+
+**F3｜未注册：两个 pytest 文件从未被任何东西执行**
+
+`test_drizzle.py`（774 行）与 `test_pipeline_adapter.py`（247 行）——
+全仓**无** `pytest.ini` / `setup.cfg` / `pyproject.toml` / `tox.ini` / 根 `conftest.py`；
+全部 CMakeLists/cmake 中 **0 处**提到 pytest；两者也不在任何 `add_test` 里
+（同目录的 `acceptance_drizzle.py` 是注册了的 ⇒ **缺的就是这两个**）。
+附带指向缺失：`test_pipeline_adapter.py:20` 写
+`python -m pytest eng/tests/test_pipeline_adapter.py`，该路径在仓内不存在，
+且与同文件 `:19` 的 `cd` 自相矛盾。
+
+### 61.3 本片提供的三个「正确样板」（整改时应作为比对基准）
+
+- `check_bias_influence.py:105-108` 变异模式未命中即判红（**fail-closed**，禁止「找不到就放行」）
+- `bias_influence_harness.cpp:33-44` 期望值全是**手算字面量**（349.625/399.875/899.5/249.5/350.0），
+  **不复用实现**
+- `p3_conservation_gate.cpp:92-118` 参考面积用 **double-double 独立重算**，不走被测路径；
+  `:287-307` 判据自检含正例**与**负例
+
+⇒ 同一文件里既有「OK/INVALID 分不开」的 F1，又有 `:287-307` 的合格自检 ——
+**又是「同文件内已有正确写法、邻近处漏改」**。
