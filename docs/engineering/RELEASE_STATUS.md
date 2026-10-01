@@ -59,14 +59,14 @@ psf_snr_power:       DEFERRED（生产拒绝）
 
 ## 2. 版本与发布面
 
-- 产品版本唯一源：根 `VERSION` = `0.1.0-alpha.1`，内容一行 `MAJOR.MINOR.PATCH-alpha.N`（禁 stable/rc/beta）。
+- 产品版本唯一源：根 `VERSION`，内容一行 `MAJOR.MINOR.PATCH-alpha.N`（禁 stable/rc/beta）；本文件不复制版本数值，取值现场读根 `VERSION`（不复制口径同 `VERSIONING.md` §1）。
 - **本条款管"谁是唯一源"，不规定版本信息何时开始出现**（后者见 `ACSD_DESIGN.md` §13）：进入 alpha 阶段后，
   程序/代码/产物中的产品版本一律由根 `VERSION` 派生或与其一致；alpha 阶段之前不出现版本信息。
 - **版本命名空间**（生命周期独立，号段只在各自命名空间内递增）：
 
 | 命名空间 | 权威定义点 | 当前值 | 递增规则 / 生命周期 |
 |---|---|---|---|
-| product | 仓库根 `VERSION`（唯一事实源） | `0.1.0-alpha.1` | `MAJOR.MINOR.PATCH` 只由负责人指令变更，`alpha.N` 只在外部审核通过后提升 |
+| product | 仓库根 `VERSION`（唯一事实源） | 现场读根 `VERSION`（本表不复制数值） | `MAJOR.MINOR.PATCH` 只由负责人指令变更，`alpha.N` 只在外部审核通过后提升 |
 | module | 各模块 `module.yaml` 的 `module_version` | 逐模块独立（以 manifest 为准） | 模块接口/产物变更时由模块 owner 递增，与产品版本无关 |
 | ABI | `lib/include/acsd/common_abi_v1.h` 的 `ACS_ABI_VERSION_V1` 与 CLI 暴露的 `abi_version` | ABI v1（头常量 `1u`） | 任何破坏二进制兼容的变更必须递增 |
 | data-schema | `eng/contracts/data/artifact_types.registry.json` 的 `schema_version` 与各 schema 文件的 `$schema` 版本 | type_id schema_version = 1 | 数据产品结构变更时按 registry 递增 |
@@ -75,8 +75,8 @@ psf_snr_power:       DEFERRED（生产拒绝）
 
 - 非产品版本的数字三元组只作格式/组件标识，产品版本一律取自根 `VERSION`：FITS 4.0（格式规范）、HiPS 1.0/1.4（IVOA 格式版本）、DatabaseVersion（Gaia 库标识）、`schema_version` / ABI v1（见上表定义点）、外部组件版本（CFITSIO 4.6.4、gcc/cmake 等）、`X.Y.Z` / `MAJOR.MINOR.PATCH` 占位表述。
 - **生成链**（CMake/CLI/打包从根 `VERSION` 派生，字面量只有一个来源）：根 `CMakeLists.txt` 的 `file(READ …/VERSION)` + `git rev-parse HEAD` → `ACSD_VERSION_STRING`（`X.Y.Z-alpha.N+g<sha>`）→ `configure_file` 生成 `lib/infrastructure/cli/version_generated.h`；`eng/tools/gen_version.py --json` 输出 version/prerelease/commit/dirty/build_id/abi_version/cli_schema_version 合同对象；CLI `--version[ --json]` 与 doctor/hardware/verify 共用同一生成串。
-- 生成串形态：clean main 为 `0.1.0-alpha.1+g<commit12>`，dirty 工作树追加 `.dirty`。
-- **机器检查入口**：`eng/tools/doccheck/check_version_namespaces.py`（唯一源格式 + 生成链 + 允许路径扫描 + 反误报断言 + 伪造版本必须判红）；既有版本扫描 `eng/tools/check_version_consistency.py`。
+- 生成串形态：clean main 为 `X.Y.Z-alpha.N+g<commit12>`，dirty 工作树追加 `.dirty`；其中 `X.Y.Z-alpha.N` 取自根 `VERSION`（本文件不复制版本数值）。
+- **机器检查入口**：版本命名空间判据（唯一源格式 + 生成链 + 允许路径扫描 + 反误报断言 + 伪造版本必须判红）与既有版本字面量扫描，两者载体见 门禁注册面（G08-10 重建）。
 - Windows 正式发布候选：**未产生**（`NOT_VERIFIED`）。DLL 化安装树的 **Linux 技术预览安装面已 `INSTALLED`**（五科学模块 + noop 入 `modules/`，产品清单 10 units，安全 loader 实测 64/64 PASS），Windows 侧复验未执行。
 - 已知他人路径遗留：`docs/engineering/VERSIONING.md`、CMake `project(... VERSION)` 字面量、若干 eng/tests/tools 硬编码旧版本号 —— 由版本检查器 `known_legacy_reported` 输出登记（见检查器 `out_of_scope` 列表）。
 
@@ -85,9 +85,9 @@ psf_snr_power:       DEFERRED（生产拒绝）
 | 面 | 状态 | 主要依据（文件锚 / 命令 / rc） |
 |---|---|---|
 | 最高设计 | `CONTRACT_READY` | `docs/ACSD_DESIGN.md`（§0 权威链，唯一最高权威） |
-| 最高设计 ↔ 工程规范边界 | `CONTRACT_READY` | `ACSD_DESIGN.md` §0 权威链 + `docs/engineering/`；旧 `ACSD_ENGINEERING_CONSTRAINTS.md` 与 `eng/tools/doccheck/check_engineering_constraints.py` 已退役（历史条目） |
-| 文档边界/索引 | `CONTRACT_READY` | `docs/DOCUMENT_INDEX.yaml`（DOC-001 收敛：新文档集补登 + 旧体系移出活动区）；`eng/tools/doccheck/check_doc_index.py --strict` 残留 1 项 `control_archive_dir_readme`（绑定已删除的 `engineering/control/archive/**`），登记 CI-001 迁移 |
-| 内核标准注册表 | `CONTRACT_READY` | `docs/engineering/STANDARDS_REGISTRY.md` + `docs/standards/checks/check_standards_registry.py` → STANDARDS_REGISTRY_PASS（STD-REG-001 `fb7f232a`） |
+| 最高设计 ↔ 工程规范边界 | `CONTRACT_READY` | `ACSD_DESIGN.md` §0 权威链 + `docs/engineering/` |
+| 文档边界/索引 | `CONTRACT_READY` | `docs/DOCUMENT_INDEX.yaml`（DOC-001 收敛：新文档集补登 + 旧体系移出活动区）；文档索引判据以 `--strict` 复核活动/归档边界（载体见 门禁注册面（G08-10 重建）） |
+| 内核标准注册表 | `CONTRACT_READY` | `docs/engineering/STANDARDS_REGISTRY.md` + 标准注册表判据 C1–C9（载体见 门禁注册面（G08-10 重建））→ STANDARDS_REGISTRY_PASS |
 | 版本单源 | `CONTRACT_READY` | `VERSION` + 本文 §2；检查器 rc=0 |
 | C ABI v1 / DLL 边界 / 安全 loader 合同 | `CONTRACT_READY` | `lib/include/acsd/abi/*.h`（ABI-001）、`eng/contracts/config/module_dll_contract.schema.json`（ARC-001）、`runtime/module_loader/secure_loader.h`（ABI-003） |
 | 类型化产物 / 三阶段交换 / 不确定度合同 | `CONTRACT_READY` | DATA-001/002 + DATA-UNC-001（`99713034`）+ `eng/contracts/data/*` |
@@ -102,7 +102,12 @@ psf_snr_power:       DEFERRED（生产拒绝）
 | Windows 工具链 preset | `CONTRACT_READY` | BLD-001 + `eng/packaging/schemas/preset-contract.json` |
 | 唯一根 CMake 构建图 | `IMPLEMENTED` | BLD-002；根 `ninja -C build` 本提交实测 rc=0（全量 28 步） |
 | FITS 流式接口 | `IMPLEMENTED` | IO-001（接口 + 实现 + 契约测试）；**未接入 Phase3 writer**（见 §4） |
-| L0 负责人入口 | `CONTRACT_READY` | `docs/engineering/{SCIENCE_OVERVIEW,PIPELINE_OVERVIEW,ARCHITECTURE_OVERVIEW,RELEASE_STATUS}.md` + `docs/DOCUMENT_INDEX.yaml`（根 `REVIEW.md` 与旧轮次评审副本已删除）；`eng/tools/check_l0_docs.py` 现行绑定 `docs/engineering/{SCIENCE_OVERVIEW,PIPELINE_OVERVIEW,ARCHITECTURE_OVERVIEW,RELEASE_STATUS}.md`（DOC-001 后实测 rc=0，GAP-001/GAP-016 关闭）|
+| L0 负责人入口 | `CONTRACT_READY` | `docs/engineering/ARCH-001.md`（整体架构与阶段管线）、`docs/science/SCIENCE_SCOPE.md`（科学范围）、`docs/engineering/RELEASE_STATUS.md` + `docs/DOCUMENT_INDEX.yaml`；L0 入口完整性判据绑定同一组文档（载体见 门禁注册面（G08-10 重建））|
+
+> L0 入口组的原 4 篇中 3 篇（`ARCHITECTURE_OVERVIEW` / `PIPELINE_OVERVIEW` / `SCIENCE_OVERVIEW`）已删，
+> 上表按各自主题改指现存正本：`ARCHITECTURE_OVERVIEW` 与 `PIPELINE_OVERVIEW` 的内容并入
+> `ARCH-001.md`（架构总览与阶段管线同篇承接），`SCIENCE_OVERVIEW` 的科学范围条款以
+> `docs/science/SCIENCE_SCOPE.md` 为权威（`SCIENCE_OVERVIEW` §1 原本即指向该件）。
 
 > 本表"实测"级证据（IMPLEMENTED/INSTALLED）全部来自 BASE=`da3c4b4a` 的命令日志
 > `run/docconv001/logs/{focused_rebuild_test.log,mod001_install_check.log,cli001_vpi.log}`；

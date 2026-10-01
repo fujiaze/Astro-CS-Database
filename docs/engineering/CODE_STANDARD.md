@@ -1,6 +1,6 @@
 # Astro Celestial Sphere Database（ACSD） Code Standard
 
-> 上游：ACSD_DESIGN.md §8.4（模块与 ABI）
+> 上游：ACSD_DESIGN.md §8.5（模块与 ABI）
 
 权威来源：`docs/ACSD_DESIGN.md` §11（双平台发行）（C++17 双平台工具链：**Windows = MSVC v143**；Linux = GCC 或 Clang）
 与 §4（每模块必备项）+ `ACSD_DESIGN.md` §11（官方 Windows 工具链 = MSVC）。本文件是这些要求的实现级展开。
@@ -82,5 +82,5 @@
 
 ## 关联
 
-- docs/engineering/NUMERIC_STANDARD.md、C_ABI_STANDARD.md、
-  CONCURRENCY_STANDARD.md、ERROR_HANDLING_STANDARD.md、IO_STANDARD.md。
+- docs/engineering/NUMERIC_STANDARD.md、API-001.md、
+  CONCURRENCY_STANDARD.md、ERROR_HANDLING_STANDARD.md、io/IO_003_ATOMIC_OUTPUT_PUBLISH.md。

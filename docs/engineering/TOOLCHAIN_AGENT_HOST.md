@@ -37,7 +37,14 @@
 | `CMakeLists.txt` | `cmake_minimum_required(VERSION 3.24)`；`CMAKE_CXX_STANDARD 17` + `REQUIRED`；sanitizer 仅 GCC/Clang（MSVC 不支持）；MSVC `/utf-8` 分支；OpenMP 在 UNIX 且找到时链接；版本单源 `VERSION`（VER-001） |
 | `AGENTS.md` | Linux amd64 = Agent 执行与控制节点（控制、静态分析、轻量编译、小合成实验），bash+git+Linux 工具链；Windows x64 = 正式开发/客户端/发布平台，经远程节点执行，离线不阻塞 Linux 任务；外部命令须带 timeout 并保存日志 |
 | `eng/build/build.sh` | BLD-001 根级 Linux configure/build/test 入口；依赖 `cmake`（默认生成器）与 `nproc`；以 `P2_ENABLE_OPENMP=ON` 构建 `lib/algorithms/coverage` 各测试目标 |
-| `eng/build/toolchain.ps1` | Windows 侧统一工具链入口（MSYS2 MinGW64 `C:\msys64\mingw64\bin`、正式 Python 3.12 路径、gh CLI；`check`/`build` 用 g++/make）。属 Windows 主机关注点，不适用于本 Linux Agent 主机盘点 |
+| `eng/build/toolchain.ps1` | Windows 侧统一工具链入口，**走 MSVC 不走 MinGW**：注释自述「只用仓内 vendored 依赖与系统工具链（MSVC + 仓库根 CMake）」（:5），取 `CMakePresets.json` 的正式 Windows configure preset `win-msvc-17.14.39-x64`（:22），`build` 实际执行 `cmake --preset` / `cmake --build --preset`（:63/:65）。该脚本显式记 `msys2_mingw=FORBIDDEN`（:10），与 preset 合同 `eng/packaging/schemas/preset-contract.json` 的 `windows.formal_generator = Visual Studio 17 2022` / `toolset v143 14.44.35207` 与 `forbidden.mingw_msys = [mingw, msys]` 一致。属 Windows 主机关注点，不适用于本 Linux Agent 主机盘点 |
+
+> **合同已声明、执行器缺位（UNRESOLVED）**：`eng/packaging/schemas/preset-contract.json` 自述
+> 由 `eng/cmake/toolchain/verify_toolchain.py` 读取并对漂移 fail-fast，但该执行器在仓内不存在
+> （`eng/cmake/toolchain/` 路径无此文件）。即 Windows 工具链的「禁 MinGW/MSYS」约束目前**只有合同文本、
+> 无机器执行**。约束本身不因此失效——`CMakePresets.json` 仅暴露 MSVC 预设、`toolchain.ps1` 显式走
+> 该预设且记 `msys2_mingw=FORBIDDEN`，四者口径一致；但缺执行器意味着换用 MinGW 不会自动判红。
+> 需负责人决定是恢复执行器还是改由 CI 侧承担。
 
 ## 3. 与 hosted CI 版本策略的关系
 
