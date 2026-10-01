@@ -2917,3 +2917,58 @@ Crossref 与 OpenAlex 标题检索**均未命中**；Project Euclid vol 38 issue
 「本报告每条发现均未经测试判据交叉验证」。本车道读完后的结论是：
 **那 35 条生产缺陷中，被这里的测试抓到的是少数**——
 理由不是测试写得不好，而是 (a) **660 个站点从未执行**、(b) 注入机制不触及生产代码。
+
+---
+
+## 59. Aitken 项已完全闭合，并带出可直接粘贴的重锚文本（车道 17 收口）
+
+两路独立 OCR 全取 archive.org `dli.ernet.7410` pp.42–48 逐字核对。
+**仓内三条主张，两条不成立**：
+
+| 仓内主张 | 判定 |
+|---|---|
+| 「广义最小二乘 / BLUE 的**原始推导**」 | ❌ **不成立** —— 结果不在该文；§4 Lemma 还 credited 给 Henderson (1932)，**非原创**；它只是 §3 正规方程 `F'V⁻¹Fa = F'V⁻¹u` 令 `F = 1` 的**一行特例**，原文从未取 |
+| 「反方差加权的 **provenance 锚**」 | ⚠️ **只对「引用惯例」成立**，对「论文内容」不成立，且是**被传播的错误归属** —— Wikipedia "Generalized least squares" 就写 "first described by Aitken in 1935" 并脚注到本 DOI；Luati & Proietti 2011 AISM 63, 851 形式化为 "Aitken theorem" ⇒ **在科学文档里写「provenance 锚」＝把 Wikipedia 级惯例当一手依据** |
+| 「`Var = 1/Σ(1/σ_i²)`」 | ❌ **不成立** —— 该式全文不出现 |
+
+### 59.1 重锚（已实测原文，今天可落地）
+
+**Gauss (1809), *Theoria motus corporum coelestium*, Liber II Sectio III §§172–181**
+（archive.org 免费：拉丁本 `bub_gb_ORUOAAAAQAAJ`；Davis 1857 英译本 `theorymotionhea00gausgoog`）。
+逐字核对（Sect. III §181，印刷 p.263）：
+
+> "the most probable value of p will be **A = (am + a'm' + a"m" + etc.)/(aa + a'a' + a"a" + etc.)**"
+> + "the same degree of accuracy … **as √(aa + a'a' + a"a" + etc.) to unity**"
+
+### 59.2 可直接粘贴的改写文本
+
+> "Inverse-variance weighting of a linear combination follows from the generalised-least-squares
+> normal equations `F'V⁻¹Fa = F'V⁻¹u`, derived by Aitken (1935) for correlated data
+> (DOI 10.1017/S0370164600014346); the single-parameter case `F = 1` gives weights proportional to
+> `V⁻¹1` with variance `1/(1'V⁻¹1)`, reducing for independent observations to `w_i ∝ 1/σ_i²` and
+> `Var = 1/Σ(1/σ_i²)`. The variance formula and the single-parameter estimate date to
+> **Gauss (1809), *Theoria motus*, Liber II, Sect. III, §§172–181**."
+
+### 59.3 三条**不要做的引用**（车道明确要求，前台不得另起一轮去找）
+
+1. **不要给 Gauss (1821) *Theoria combinationis…* 标页码** —— 该文未能取得原文。
+   需要相关情形时只按上面改写文本引 Aitken 的 `V⁻¹` 机件。
+2. **不要引 GUM / JCGM 100:2008 作逆方差加权出处** —— 已下载全文 grep，
+   唯一 "weight" 命中是「按自由度合并方差」与「实验室均值取平均」。
+   **✔ 本仓无此误用**（`DATA_SEMANTICS.md:3137` 只用 GUM 讲单位层）。
+3. 若书目必须留在 Aitken 一侧，用 **Aitken & Silverstone (1942), PRSE Sect. A 61(2), 186–194,
+   DOI 10.1017/s008045410000618x**（全文已取，p.186 有干净的 BLUE 假定逐字），
+   但它**仍无 `w = C⁻¹1` 的式子**。
+
+**两条「幽灵引文」已自查确认为全仓 0 命中**：
+① "Aitken & Silverstone (1942), *The Central Reduction of Data*, JRSS"（**不存在的题名/刊物**）；
+② Aitken 的另两篇 PRSE vol.54 论文（`10.1017/s0370164600015996`、`…1600x`）——
+后者全文也 `unbiased`/`inverse variance`/`weighted mean`/`Gauss` 各 0 命中
+⇒ **改引那两篇救不了这个主张**。
+
+### 59.4 复核陷阱留痕（供后续车道不再踩）
+
+OCR 流里紧邻 p.42 页首前的「(Issued separately February 25, 1935.)」属于**上一篇 Turnbull pp.35–41**，
+不属 Aitken（已渲染印刷 p.41 确认）。
+而 `PHOTOMETRY.md:292`「取 1935」**是对的**（p.48 末行逐字 "Issued separately March 6, 1935."，
+卷 CONTENTS 亦系于该日）。
