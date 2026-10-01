@@ -17,7 +17,7 @@
 
 - **参考通量**：`F_syn = ∫F_λ·T·Q·λ dλ`（W·m⁻²·nm，官方 343 点 @2 nm，336–1020 nm；G<15 域）；Akima 子样条 + 复合 Simpson 1/3（奇区间 3/8、n==1 退梯形）；**不含 `10^(−0.4·G)`**（`docs/fsyn_convention.md` 判定，生产实现逐位一致）。插值/求积设置配置化 + 运行日志不落盘（负责人已批）。
 - **稳健零点**：`r_i = log10(F_instr/F_syn)` [dex]；固定尺度 Tukey biweight IRLS（c=4.685，tol=1e-6，max_iter=50）；`k_photo = 10^(−location)`；`sigma_residual = MAD(r_inliers)/0.6744897501960817`。
-- **预筛窗（订正 P1-M03）**：`|delta_i − median(delta)| ≤ 3.0 mag`，`delta_i := −2.5·log10 F_instr,i − G_i`（量纲 mag）；严格等价于 `|r_i − median(r)| ≤ 1.2 dex`（3.0/2.5）。两域容差不得混用。
+- **预筛窗（订正 P1-M03）**：`|delta_i − median(delta)| ≤ 3.0 mag`，`delta_i := −2.5·log10 F_instr,i − G_i`（量纲 mag）。两域容差不得混用。**与 `|r_i − median(r)| ≤ 1.2 dex` 不等价（订正 P1-M03-b，G08-04 G2 独立复核）**：`delta_i = −2.5·r_i − C_i` 中的 `C_i ≡ G_i + 2.5·log10 F_syn,i` 是**逐星量**（`F_syn,i` 为逐星 SED 积分 `I_i = ∫F_λ,i·T·Q·λ dλ`，`code/scia_common.py:205-233`；`10^(−0.4·m)` 只是额外相乘的星等指派重标度，`docs/fsyn_convention.md` §1 判「不含 `10^(−0.4·G)`」），非常数 ⇒ 两窗不等价；`3.0/2.5 = 1.2` 仅为阈值换算。
 - **求积退化分支（订正 P1-m02）**：`n_int == 3` 时 1/3 前段区间数 `n_13 = 0` ⇒ 该段必须为 0；历史多计 `2·y[0]·h/3`，常数被积函数得 3.6667 vs 真值 3.0（+22.2%）。生产端与实验参考实现已按 claim `PHOT-SIMPSON-N3-001` 同步订正并补闭式期望 + 故障注入。
 - **双边界判据**：`σ_floor/σ_ceiling = (1 ∓ 3·1.166/√n)·(下/上界)`；1.166 = √1.361（MAD 标准化方差，**按台账 A-P1-01 订正标签**）；预算项各计一次。
 - **判据作用域（订正 P1-M07）**：`rho_lo = 1 − 3·1.166/√n ≤ 0` ⟺ `n ≤ 12.236` ⇒ 作用域降级 `upper_only`、状态词 `LOWER_BOUND_UNDEFINED`（**不记 PASS**）；**撤回** `max(rho_lo,0)` 夹逼（恒真门）。
@@ -112,7 +112,7 @@
 | 7 | 旧 REPORT_paper 精读版（保留其仍成立的三类数据结论） | 本报告与其重写版并存；两轮数字均标注 seed 来源 | 本轮成稿纪律 |
 | 8 | **σ_flat 取 `calibrate()['delta_after_m']`**（自指：被测样本拟合后的残差散度充当预算项，真实帧占上界方差 47.6%） | 仿真帧改取**真值**平场散度经 `N_eff` 折算、真实帧取 `docs/detail/registry/astrocs.phase1.photometry.md`「测光一致性判据（单帧、尺度无关、双边界）」 的 `σ_flat,hf = 0.0007 mag`；`delta_after_m` 降级为诊断字段 | **审查 P1-B01（blocker）**；变更 claim `PHOT-SIGMAFLAT-INDEP-001`；反例化 = `step7_negatives.json → N6`；同一订正使真实帧由 PASS 翻为 ABOVE_CEILING（如实改判「不成立（待修）」） |
 | 9 | 低样本下界建议 `max(rho_lo, 0)·σ_fit` | **撤回**；改显式最小样本规则：`n ≤ 12.236` ⇒ 作用域 `upper_only` + 状态词 `LOWER_BOUND_UNDEFINED`（不记 PASS），并报出 `n`/`gate_scope` | **审查 P1-M07**（恒真门无证据资格，标准 §7）；`docs/science/PHOTOMETRY.md` §16.5 第 3 条已同步 |
-| 10 | 预筛窗写作 `|r − median(r)| ≤ 3.0`（r 为 dex）却注「= 1.2 dex」 | 量纲显式：`|delta − median(delta)| ≤ 3.0 mag` ⟺ `|r − median(r)| ≤ 1.2 dex`，实现 = `delta_i := −2.5·log10 F_instr,i − G_i` | **审查 P1-M03**；`docs/derivation_robust_weights.md` D1 |
+| 10 | 预筛窗写作 `|r − median(r)| ≤ 3.0`（r 为 dex）却注「= 1.2 dex」 | 量纲显式：`|delta − median(delta)| ≤ 3.0 mag`（`delta_i := −2.5·log10 F_instr,i − G_i`）；**该窗与 `|r − median(r)| ≤ 1.2 dex` 不等价**（`C_i` 逐星、非常数，见 §2 第 3 条与 P1-M03-b），`1.2` 仅为阈值换算 | **审查 P1-M03** + **G08-04 G2 复核 P1-M03-b**；`docs/derivation_robust_weights.md` D1（该文件「严格等价」表述同源，**不在本单写入面，待派单**） |
 | 11 | n=3 渐近式「高估 7.4%」 | **8.03%**（精确 SE 0.6698291607404144σ / 渐近 0.7235930923753581σ − 1） | **审查 P1-M04** |
 | 12 | σ_ZP(5000) = 6.36e-4 mag（route1 `0.045/√N`）与 route3 的 `1.2533·σ/√N` 并存 | 统一为 `1.2533·σ_star/√N`（单位随输入域）⇒ **8.86e-4 mag**；route1 变体登记为**被取代** | **审查 P1-M05**；`route3/exp_S08 → H8b/H8d` |
 | 13 | Simpson 退化分支 `n_int == 3` 多计 `2·y[0]·h/3`（常数被积函数 3.6667 vs 3.0，+22.2%） | 该段置 0；生产端与实验参考实现同步订正 | **审查 P1-m02**；变更 claim `PHOT-SIMPSON-N3-001`；`p1phot` O3 组闭式期望 + 故障注入 `o3_simpson_n3_reference` |

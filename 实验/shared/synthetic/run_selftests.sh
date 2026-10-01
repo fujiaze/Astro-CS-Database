@@ -1,10 +1,23 @@
 #!/usr/bin/env bash
-# 合成数据物理链自检 —— 五个组件的独立方法自校验。
+# 合成数据物理链自检 —— 四个组件（m16_mask / m16_scene / m16_sampling / noise_selftest）。
 #
 # 本脚本是实验单元「一键复现」的公共前置步：它先证明合成器链本身可信
-# （能红能绿），再让单元去跑真实验。每个组件都自实现独立随机数原语或独立参考
-# 实现，与被测实现三方对照，因此「自检通过」证明的是分布与口径正确，而不是
-# 代码自洽。
+# （能红能绿），再让单元去跑真实验。
+#
+# 各组件「自检通过」各自意味着什么（口径随判据面变化，勿沿用旧说法）：
+#   * noise_selftest = 18 个用例。**A/B 系列用独立随机数原语重实现**，验的是**方法**
+#     （分布/口径是否正确），**不经过生产代码**；**C1–C6 直接调生产实现**
+#     （NM.expose / NM.sky_surface_e_per_s / 解析一阶矩），验的是**代码**。
+#     两者不可互相替代 ⇒ 全绿**不等于**「生产代码已被验证」，生产面的证据只来自
+#     C 系列与两个 m16 组件。
+#   * m16_mask / m16_scene / m16_sampling --selftest 直接跑本模块的生产函数；其中
+#     m16_sampling 的 **V6（存活底图残差预算）走生产平滑 `_smooth_canvas`**、
+#     **V10 走真实 FITS 加载路径 `load_canvas`**；m16_scene 的 **V7 覆盖面亮度出口**。
+#   * 故「自检通过」= 生产面与独立面同时自洽，不是「代码自洽」这一 weaker 命题。
+#
+# 运行前提：m16_sampling 的 V6/V10 读真实模板 testdata/HST_M16/*.drz.fits，该目录被
+# .gitignore 排除。模板缺失时这两条**记红**（不静默跳过、不设 waiver 开关）——
+# 这是「前提不成立」的正确读数，由运行者补齐数据。
 #
 # 用法：
 #   bash 实验/shared/synthetic/run_selftests.sh          # 跑全部
@@ -54,7 +67,7 @@ run_one m16_scene           "$PY" "$HERE/m16_scene.py" --selftest
 echo "[3/3] 真实信号模板 → 仿真采样帧"
 run_one m16_sampling        "$PY" "$HERE/m16_sampling.py" --selftest
 
-echo "[独立] 噪声合成器的独立方法自校验（独立 RNG 原语三方对照）"
+echo "[独立+生产] 噪声合成器自校验（A/B 验方法 12 例 + C1–C6 验代码 6 例）"
 if [ -f "$HERE/noise_selftest.py" ]; then
   run_one noise_selftest   "$PY" "$HERE/noise_selftest.py"
 else

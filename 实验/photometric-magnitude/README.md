@@ -68,7 +68,8 @@ F_λ   = byte·flux_mul + flux_min         # 绝对谱辐照度 W·m⁻²·nm⁻
 `r_i = log10(F_instr,i / F_syn,i)`；`S = MAD(r)/0.6744897501960817`；`c = 4.685`；
 `tol = 1e-6`；`max_iter = 50`；`location = Σw·r/Σw`；`k_photo = 10^(-location)`；
 `sigma_residual = MAD(r_inliers)/0.6744897501960817`；`sigma_obs = 2.5·sigma_residual`。
-预筛（**订正 P1-M03**）：`|delta_i − median(delta)| ≤ 3.0 mag`，`delta_i := −2.5·log10 F_instr,i − G_i`（G 已在该定义内减去一次，实现 `.py:123-126`）；因 `delta_i = −2.5·r_i − C`，**严格等价于** `|r_i − median(r)| ≤ 1.2 dex`（3.0/2.5 = 1.2）。历史写法 `|r − median(r)| ≤ 3.0`（r 为 dex）与同句「= 1.2 dex」自相矛盾，已订正。
+预筛（**订正 P1-M03**）：`|delta_i − median(delta)| ≤ 3.0 mag`，`delta_i := −2.5·log10 F_instr,i − G_i`（G 已在该定义内减去一次，实现 `.py:123-126`）。历史写法 `|r − median(r)| ≤ 3.0`（r 为 dex）与同句「= 1.2 dex」自相矛盾，已订正。
+**该窗与 `|r_i − median(r)| ≤ 1.2 dex` 不等价**（**订正 P1-M03-b**，G08-04 G2 独立复核推翻前一轮的等价判词）：代数上确有 `delta_i = −2.5·r_i − C_i`、`C_i ≡ G_i + 2.5·log10 F_syn,i`，但 `C_i` 是**逐星量、不是常数**——生产 `F_syn,i` 是逐星 SED 积分 `I_i = ∫F_λ,i·T(λ)·Q(λ)·λ dλ`（`code/scia_common.py:205-233`），随每颗星自己的 XP 谱形与色变化（`10^(−0.4·m)` 只是**额外相乘**的星等指派重标度，不属参考通量定义；本单元正本 `docs/fsyn_convention.md` §1 判「**不含 `10^(−0.4·G)`，`G` 既不进入 `F_syn`**」，与本节 §2.1 上方的引文同源）。两窗的中心与展宽因此不同源，**不等价**。`3.0/2.5 = 1.2` 只是**阈值换算**，**不是**两窗的等价性陈述；等价性成立的前提是 `F_syn,i` 只依赖 `G_i`（`C_i` 退化为星无关常数），该前提不成立。
 
 ### 2.3 双边界判据（`docs/detail/registry/astrocs.phase1.photometry.md`「测光一致性判据（单帧、尺度无关、双边界）」，逐字）
 

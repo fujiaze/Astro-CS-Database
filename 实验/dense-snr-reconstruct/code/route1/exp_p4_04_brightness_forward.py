@@ -264,21 +264,103 @@ def main():
     res["sky_fit_twofaces"] = sky_fit_usecase(frame, SEED + 2, rec_full)
 
     # information test at oracle level: the weight formula is exactly optimal IFF the
-    # SNR carries the source term. E(algebraic w=1/sw2) must be machine zero;
-    # E(bglim weights) > 0 quantifies what dropping the source term costs.
+    # SNR carries the source term. E(bglim weights) > 0 quantifies what dropping the
+    # source term costs.
+    #
+    # G08-04 整改 T6 —— E(algebraic w=1/sw2) **不是**判据，是代数恒等式：
+    #   w_oracle_full = 1/v_pix，而 efficiency() 的 v_true 收到的**就是同一个 v_pix**，
+    #   故 var_w = Σ(1/v)/(Σ1/v)² = 1/Σ(1/v) = var_opt ⇒ E ≡ 0 对**任意**正方差数组成立。
+    #   该等式对 w 的全局缩放还不变（efficiency 齐次），所以整条射线 {c/v} 都给 0。
+    #   它只验证公式自洽，**不携带**任何关于 sw2_map 是否正确的信息。
+    #   原 :294-295 的 gate `oracle_full_is_optimal` 因而是恒真门（实测注入 sw2_map
+    #   面积×2/×0.5/×1e9/×1e18、抹平、量纲颠倒，E 恒为 0 或 1 ulp，门恒绿），
+    #   已从 gates 中**撤下**，改记入 algebraic_identity_checks（仅作恒等式自检）。
+    #   真正有判别力的替代表述见下方 gates：手算闭式 + 非均匀扰动灵敏度。
     rng = np.random.default_rng(SEED + 5)
     pick = rng.choice(np.arange(GRID * GRID), size=4000, replace=False)
     v_pix = agg["sw2_map"].ravel()[pick]
     w_oracle_full = 1.0 / v_pix
     w_oracle_bglim = 1.0 / agg["ss_cell"].repeat(DELTA, axis=0).repeat(DELTA, axis=1).ravel()[pick]
+    E_oracle_full = efficiency(w_oracle_full, v_pix, np.ones(len(pick), bool))
+    E_bglim = efficiency(w_oracle_bglim, v_pix, np.ones(len(pick), bool))
+    E_equal = efficiency(np.ones(len(pick)), v_pix, np.ones(len(pick), bool))
+    # 独立闭式（不与 efficiency 共享中间量）：E = mean(v)*mean(1/v) - 1（等权情形）
+    E_equal_closed = float(np.mean(v_pix) * np.mean(1.0 / v_pix) - 1.0)
+    # 非均匀、零均值扰动的 oracle 权重：E 不再是恒等式，可预测、可证伪
+    delta = 0.02 * np.cos(np.arange(len(pick)) * (2.0 * np.pi / 16.0))   # 确定性、零均值
+    w_oracle_pert = w_oracle_full * (1.0 + delta)
+    E_oracle_pert = efficiency(w_oracle_pert, v_pix, np.ones(len(pick), bool))
+    S0 = float(np.sum(1.0 / v_pix)); S1 = float(np.sum(delta / v_pix))
+    S2 = float(np.sum(delta * delta / v_pix))
+    E_oracle_pert_closed = float(S0 * (S0 + 2.0 * S1 + S2) / (S0 + S1) ** 2 - 1.0)
     res["oracle_information_test"] = {
-        "E_oracle_full": efficiency(w_oracle_full, v_pix, np.ones(len(pick), bool)),
-        "E_oracle_bglim": efficiency(w_oracle_bglim, v_pix, np.ones(len(pick), bool)),
-        "E_equal": efficiency(np.ones(len(pick)), v_pix, np.ones(len(pick), bool)),
+        "E_oracle_full": E_oracle_full,
+        "E_oracle_bglim": E_bglim,
+        "E_equal": E_equal,
+        "E_oracle_perturbed": E_oracle_pert,
+        "E_oracle_perturbed_closed_form": E_oracle_pert_closed,
+        "E_equal_closed_form": E_equal_closed,
+        "perturbation_delta_rms": float(np.sqrt(np.mean(delta * delta))),
+        "dilute_limit_prediction_mean_delta2": float(np.mean(delta * delta)),
+        "portability": (
+            "E_oracle_full 已撤出 gates：它是 w=1/v 与 v_true=v 的代数恒等式，"
+            "只验证公式自洽，不构成 sw2_map 正确性的证据。代价量化由 E_oracle_bglim 承担。"),
+    }
+    res["algebraic_identity_checks"] = {
+        "E_oracle_full_machine_zero": E_oracle_full,
+        "tolerance": 1e-12,
+        "note": ("代数恒等式自检：w=1/v 且 v_true=v ⇒ var_w ≡ var_opt ⇒ E ≡ 0，"
+                 "对任意正方差数组成立、且对 w 的全局缩放不变（efficiency 齐次）。"
+                 "**不得**作为实现正确性的证据；保留它只为确认公式定义无误。"),
+    }
+
+    # --- 手算闭式：对 efficiency() 本身做单元校验（与被测代码零共享） ---
+    # v = [1,1,1,4]，n=4。等权时 E = mean(v)*mean(1/v) - 1 = 1.75*0.8125 - 1 = 0.421875
+    # 反最优 w = v 时 E = (Σv³)(Σ1/v)/(Σv)² - 1 = 67*3.25/49 - 1 = 3.443877551020408
+    hand_v = np.array([1.0, 1.0, 1.0, 4.0])
+    hand_E_equal = efficiency(np.ones(4), hand_v, np.ones(4, bool))
+    hand_E_anti = efficiency(hand_v, hand_v, np.ones(4, bool))
+    hand_E_oracle = efficiency(1.0 / hand_v, hand_v, np.ones(4, bool))
+    res["efficiency_metric_handcheck"] = {
+        "v": hand_v.tolist(),
+        "E_equal_meas": float(hand_E_equal), "E_equal_hand": 0.421875,
+        "E_antioptimal_meas": float(hand_E_anti),
+        "E_antioptimal_hand": 3.443877551020408,
+        "E_oracle_identity_meas": float(hand_E_oracle), "E_oracle_identity_hand": 0.0,
+        "criterion": "手算闭式：等权 0.421875、反最优 3.443877551020408、oracle 恒等式 0",
+    }
+
+    # --- 走 E 的判据对 sw2_map 的两类结构性盲区，补一条**不走 E**的物理自洽判据 ---
+    # E 对 v 齐次（var_w 与 var_opt 同比例放大，比值不变），且 E_equal 对 v -> 1/v
+    # 不变（mean(v)*mean(1/v) 是对称的）。故 sw2_map 的「全局缩放」与「量纲颠倒」
+    # 在 oracle 段**原理上不可观测**。这里直接按物理式独立重算 sw2_map 并比对。
+    s_cell_chk = frame["src"].reshape(N_CELLS, DELTA, N_CELLS, DELTA).mean(axis=(1, 3))
+    ss_cell_chk = frame["sigma_slow2"].reshape(N_CELLS, DELTA, N_CELLS, DELTA).mean(axis=(1, 3))
+    sw2_recomputed = np.repeat(
+        np.repeat(ss_cell_chk + s_cell_chk / GAIN, DELTA, axis=0), DELTA, axis=1)
+    sw2_scale = float(np.mean(sw2_recomputed))
+    sw2_rel_dev = float(np.max(np.abs(agg["sw2_map"] - sw2_recomputed)) / sw2_scale)
+    res["variance_map_selfcheck"] = {
+        "definition": "sw2_map = blockmean(sigma_slow2) + blockmean(src)/GAIN，按 DELTA×DELTA 铺开",
+        "recomputed_independently_from_frame": True,
+        "mean_sw2": sw2_scale,
+        "max_rel_dev": sw2_rel_dev,
+        "criterion": "max|sw2_map - 独立重算| / mean < 1e-12（不走 E，避开 E 的齐次盲区）",
     }
 
     a_full = res["arms"]["A_full"]
     res["gates"] = {
+        # **构造性恒真门（G08-04 整改 R2 订正归因）**：本 gate **不得**引用为
+        # 「sw2_map 缺陷被抓」的证据。零源臂里 with_sources=False ⇒ src ≡ 0 ⇒
+        # s_cell ≡ 0 ⇒ sw_cell ≡ ss_cell ⇒ snr_cell 与 snr_cell_bglim **逐位相同**
+        # ⇒ 两臂经**同一个** reconstruct() 输出的差恒 0、E_full ≡ E_bglim。
+        # 实测（8 个注入变体）：凡缺陷落在**两臂共享的输入**上（sigma_slow2 x2、
+        # GAIN 取倒数、sw2 整体缩放/抹平/取倒数的上游量），本 gate **恒绿**且
+        # full_equals_bglim_max_abs_dev 逐位为 0.0；只有当注入**只改 sw_cell 一侧**
+        # （使 snr_cell 与 snr_cell_bglim 的分母不再同源）时它才翻转。
+        # ⇒ 它只能作「两臂同源」的构造回归守卫；sw2_map 的判别力由本文件里
+        # 不走 E 的 variance_map_matches_physical_model 承担。
+        # 归因订正见 实验/dense-snr-reconstruct/REPORT_paper.md §7.23b。
         "no_source_benefit_collapses":
             res["arms"]["A_zerosource"]["benefit_collapsed"]
             and abs(res["arms"]["A_zerosource"]["E_full"]
@@ -291,10 +373,38 @@ def main():
         "sky_fit_snr_weight_tracks_bg_ivar":
             max(res["sky_fit_twofaces"]["snr_weight"]["b0_rel_err"], 1e-12)
             < 10.0 * max(res["sky_fit_twofaces"]["true_bg_ivar"]["b0_rel_err"], 1e-12),
-        "oracle_full_is_optimal":
-            abs(res["oracle_information_test"]["E_oracle_full"]) < 1e-12,
         "oracle_bglim_suboptimal": res["oracle_information_test"]["E_oracle_bglim"] > 5e-4,
+        # --- G08-04 T6 替换进来的三条真判据（替代恒真的 oracle_full_is_optimal）---
+        # (1) efficiency() 本身对手算闭式的单元校验：能抓度量实现的错（分母用错、
+        #     v 取错、平方漏掉…），且与被测代码零共享计算路径。
+        "efficiency_metric_handcheck":
+            abs(hand_E_equal - 0.421875) < 1e-12
+            and abs(hand_E_anti - 3.443877551020408) < 1e-12
+            and abs(hand_E_oracle) < 1e-12,
+        # (2) 等权在**实际** sw2_map 上必须次优，且等于闭式。该量对 sw2_map 的
+        #     **内容**敏感：方差面被抹平（v 变常数）时 E_equal → 0（判红）；
+        #     源项被丢掉（方差面反差消失）时 E_equal 明显变小（判红）。
+        "equal_weights_suboptimal_on_actual_variance_map":
+            E_equal > 1e-3 and abs(E_equal - E_equal_closed) < 1e-9 * max(1.0, abs(E_equal)),
+        # (3) oracle 权重的**非均匀**扰动必须被度量捕捉，且幅值等于闭式预测。
+        #     恒等式只在 w ∝ 1/v 时成立；一旦逐像素偏离，E 立刻变成可预测的非零量。
+        "oracle_weight_perturbation_detected":
+            E_oracle_pert > 0.0
+            and abs(E_oracle_pert - E_oracle_pert_closed)
+                < 1e-6 * max(1.0, abs(E_oracle_pert_closed))
+            and 0.5 * float(np.mean(delta * delta)) <= E_oracle_pert
+                <= 2.0 * float(np.mean(delta * delta)),
+        # (4) 方差面物理自洽（不走 E）：E 对 v 齐次、且 E_equal 对 v->1/v 不变，
+        #     故「全局缩放」「量纲颠倒」在 oracle 段原理上不可观测；此条按物理式
+        #     独立重算 sw2_map 来抓这两类缺陷。
+        "variance_map_matches_physical_model": sw2_rel_dev < 1e-12,
     }
+    res["gates_note"] = (
+        "G08-04 T6：原 gate `oracle_full_is_optimal`（|E(1/v)| < 1e-12）是代数恒等式、"
+        "恒真且无判别力，已撤下并改记入 algebraic_identity_checks。"
+        "现由 efficiency_metric_handcheck / equal_weights_suboptimal_on_actual_variance_map / "
+        "oracle_weight_perturbation_detected 三条承担 oracle 段的判别力；"
+        "原 oracle_bglim_suboptimal 判别力真实，保留不变。")
     res["all_gates_pass"] = bool(all(res["gates"].values()))
     res["runtime_s"] = time.time() - t0
     with open(OUT, "w") as f:

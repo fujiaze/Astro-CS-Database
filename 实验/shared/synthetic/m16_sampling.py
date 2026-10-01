@@ -169,11 +169,37 @@ def canvas_source_path(band: str) -> Path:
     return ROOT / "testdata" / "HST_M16" / BANDS[band]["file"]
 
 
+def _smooth_canvas(fill: np.ndarray, sig_k: float
+                   ) -> Tuple[np.ndarray, np.ndarray, float]:
+    """画布平滑的生产实现：返回 (smooth, resid, resid_frac_theory)。
+
+    * ``smooth``            = 高斯平滑后的场（``sig_k <= 0`` 时不做滤波，原样返回）；
+    * ``resid = fill - smooth`` = 被平滑**移除**的量；
+    * ``resid_frac_theory`` = Σg² = 1/(4πσ_k²)：高斯核连续极限下平滑后**存活**的噪声
+      方差份额（σ_k ≤ 0 即不滤波 ⇒ 份额 1）。
+
+    G08-04 整改 R2：此段此前**内联**在 ``load_canvas`` 里，而自检 V6 只能在函数外用
+    自己 import 的 scipy **另算一份**来核对 1/(4πσ²) —— 那是「验 scipy」而非「验本模块」，
+    实测删掉生产平滑 / σ 翻倍 / theory 分母 4π→2π 三处缺陷 V6 全部判绿。抽成本函数后
+    V6 走的就是 ``load_canvas`` 真正调用的这条实现。
+    """
+    from scipy.ndimage import gaussian_filter
+
+    if sig_k > 0:
+        smooth = gaussian_filter(fill, sigma=sig_k, mode="nearest")
+        resid = fill - smooth
+        resid_frac_theory = 1.0 / (4.0 * math.pi * sig_k * sig_k)
+    else:
+        smooth = fill
+        resid = np.zeros_like(fill)
+        resid_frac_theory = 1.0
+    return smooth, resid, resid_frac_theory
+
+
 def load_canvas(cfg: Dict[str, Any], *, verbose: bool = False
                 ) -> Tuple[np.ndarray, np.ndarray, Dict[str, Any]]:
     """真实帧 -> (期望率面 [e-/s], 有效掩膜 bool, meta)。**不重采样**，全帧。"""
     from astropy.io import fits
-    from scipy.ndimage import gaussian_filter
 
     ccfg = dict(cfg["canvas"])
     band = str(cfg["band"])
@@ -209,15 +235,8 @@ def load_canvas(cfg: Dict[str, Any], *, verbose: bool = False
     pct = float(ccfg.get("subtract_percentile", 5.0))
     ped = float(np.percentile(fill[valid], pct))
     sig_k = float(ccfg.get("smooth_sigma_px", 0.8))
-    if sig_k > 0:
-        smooth = gaussian_filter(fill, sigma=sig_k, mode="nearest")
-        rate = smooth - ped
-        resid_frac_theory = 1.0 / (4.0 * math.pi * sig_k * sig_k)
-        resid = fill - smooth
-    else:
-        rate = fill - ped
-        resid_frac_theory = 1.0
-        resid = np.zeros_like(fill)
+    smooth, resid, resid_frac_theory = _smooth_canvas(fill, sig_k)
+    rate = smooth - ped
     rate = rate * float(ccfg.get("flux_scale", 1.0))
     rate = np.where(valid, rate, 0.0)
 
@@ -1026,8 +1045,246 @@ def _selftest_render_end_to_end() -> Dict[str, Any]:
             "noise_budget_share": outs[0][1]["noise_budget"]["base_residual_variance_share"]}
 
 
+def _selftest_real_canvas() -> Dict[str, Any]:
+    """走**真实 FITS 加载路径** load_canvas（读 testdata 里的真实 M16 drz 板）。
+
+    G08-04 整改 T5：本自检此前只用 ``_fake_canvas``（96×96 合成画布），
+    ``load_canvas`` 从不被调用 —— 实测把 ``load_canvas`` 打成永远 raise，
+    ``--selftest`` 仍全绿 ⇒ 对真实模板恒真。判据必须覆盖真实路径，否则
+    「真实 M16 模板可用」这一前提从未被验证过。
+
+    **模板缺失时记红，不静默跳过**（不设 waiver 开关）：真实模板
+    ``testdata/HST_M16/hlsp_..._<band>_drz.fits`` 被 .gitignore 排除
+    （.gitignore:167），干净 clone 上必然缺失 ⇒ 此时本判据红是**正确**的
+    「前提不成立」读数，由运行者补齐数据，而不是把门悄悄放过。
+    """
+    out: Dict[str, Any] = {
+        "name": "V10_real_canvas_load",
+        "production_call": "m16_sampling.load_canvas (真实 FITS)",
+        "template_available": False,
+    }
+    band = "F657N"
+    try:
+        src = canvas_source_path(band)
+    except ValueError as exc:                       # 负例：未知 band 必须被拒
+        out["unknown_band_rejected"] = True
+        out["unknown_band_error"] = str(exc)
+        src = None
+    if src is None or not src.exists():
+        out["verdict"] = False
+        out["reason"] = (
+            "真实 M16 模板缺失：%s —— load_canvas 的真实路径无法被验证。"
+            "按 AGENTS §8「不以 waiver 静默覆盖红灯」，此处记红；"
+            "请补齐 testdata/HST_M16/ 后重跑，不要用开关跳过。"
+            % (str(src) if src is not None else "band 未知"))
+        out["verdict_reason"] = "模板缺失 = 真实加载路径未被覆盖"
+        return out
+    out["template_available"] = True
+    out["template_path"] = str(src)
+    out["template_bytes"] = int(src.stat().st_size)
+    # 负例：未知 band 必须抛错 ⇒ 证明 band 表真的被查、不是桩函数
+    try:
+        canvas_source_path("__NOT_A_BAND__")
+        out["unknown_band_rejected"] = False
+    except ValueError as exc:
+        out["unknown_band_rejected"] = True
+        out["unknown_band_error"] = str(exc)
+    # 真实场景配方（取第一个可用 scene；没有则退回默认配置）→ 一并覆盖 load_scene
+    scenes = sorted(SCENES_DIR.glob("m16_sampling_*.json"))
+    cfg = load_scene(scenes[0].name) if scenes else copy.deepcopy(SAMPLING_DEFAULTS)
+    cfg["band"] = band
+    out["scene_used"] = scenes[0].name if scenes else None
+    rate, valid, cmeta = load_canvas(cfg, verbose=False)
+    phot = cmeta["photometric"]
+    wcs = cmeta["wcs"]
+    st = cmeta["rate_stats_e_per_s"]
+    checks = {
+        # 形状与掩膜
+        "shape_matches_fits": tuple(rate.shape) == tuple(cmeta["shape"]),
+        "valid_is_bool_mask": valid.dtype == bool and valid.shape == rate.shape,
+        "rate_all_finite": bool(np.all(np.isfinite(rate))),
+        # 一手定标：PHOTFLAM/PHOTPLAM 必须真的从真实头读出且为正
+        "photflam_positive_finite": bool(np.isfinite(phot["photflam"]) and phot["photflam"] > 0.0),
+        "photplam_positive_finite": bool(np.isfinite(phot["photplam"]) and phot["photplam"] > 0.0),
+        # WCS：板比例必须是真实的 0.04 arcsec/px（合成画布可以随便填，必须能区分）
+        "wcs_scale_matches_board": abs(wcs["scale_arcsec_per_px"] - CANVAS_ARCSEC_PER_PX) < 1.0e-3,
+        "wcs_ctype_tan": wcs["ctype1"].startswith("RA---TAN") and wcs["ctype2"].startswith("DEC--TAN"),
+        # 真实星云模板必须有真实结构：亮尾远超中位（合成常数画布过不了这一关）
+        "has_real_nebula_structure": bool(st["p99_99"] > 10.0 * max(st["median"], 1e-12)),
+        "median_rate_positive": bool(st["median"] > 0.0),
+        # 底图噪声：真实 drz 的存活残差必须为正且被如实登记
+        "residual_noise_measured_positive":
+            bool(cmeta["residual_base_noise_sigma_e_per_s_measured"] > 0.0),
+        "residual_fraction_theory_positive":
+            bool(cmeta["residual_base_noise_variance_fraction_theory"] > 0.0),
+        # provenance 溯源：路径必须回指真实文件。cmeta["path"] 是**相对 ROOT** 的
+        # 相对路径，故必须相对 ROOT 解析（不能依赖进程 CWD —— run_selftests.sh 会 cd）。
+        "provenance_points_to_real_fits":
+            Path(cmeta["path"]).name == src.name and (ROOT / cmeta["path"]).exists(),
+    }
+    # --- 独立读头交叉核对（不经 load_canvas） ---
+    # 只查「是否为正」太弱：把 PHOTFLAM 写死成任意正数也能过。这里绕过 load_canvas，
+    # 直接用 astropy 再读一次同一个 FITS 的头，与 cmeta **逐位**比对 —— 这样
+    # 「读错关键字 / 写死常数 / 矩阵转置」都会立刻判红，且不需要任何硬编码期望值。
+    try:
+        from astropy.io import fits as _fits
+        with _fits.open(src, memmap=True) as _h:
+            _hdr = _h[0].header
+            _shape = tuple(np.asarray(_h[0].data).shape)
+            _cd_max = max(abs(float(wcs["cd"][i][j]) - float(_hdr["CD%d_%d" % (i + 1, j + 1)]))
+                          for i in range(2) for j in range(2))
+            checks["hdr_photflam_bit_exact"] = bool(phot["photflam"] == float(_hdr["PHOTFLAM"]))
+            checks["hdr_photplam_bit_exact"] = bool(phot["photplam"] == float(_hdr["PHOTPLAM"]))
+            checks["hdr_exptime_bit_exact"] = bool(cmeta["real_exptime_s"] == float(_hdr["EXPTIME"]))
+            checks["hdr_ndrizim_exact"] = bool(int(cmeta["ndrizim"]) == int(_hdr["NDRIZIM"]))
+            checks["hdr_crpix_bit_exact"] = bool(
+                wcs["crpix1"] == float(_hdr["CRPIX1"]) and wcs["crpix2"] == float(_hdr["CRPIX2"]))
+            checks["hdr_cd_matrix_bit_exact"] = bool(_cd_max == 0.0)
+            checks["data_shape_matches_direct_read"] = bool(tuple(rate.shape) == _shape)
+            checks["bunit_is_electrons_per_s"] = bool(
+                str(cmeta.get("bunit", "")).upper().startswith("ELECTRONS/S"))
+        out["independent_header_readback"] = {
+            "source": "astropy 直接重读同一 FITS（不经 load_canvas）",
+            "photflam_direct": float(_hdr["PHOTFLAM"]),
+            "exptime_direct_s": float(_hdr["EXPTIME"]),
+            "data_shape_direct": list(_shape),
+        }
+    except Exception as exc:                       # 读不了真实头 => 判红，不放过
+        checks["independent_header_readback_ok"] = False
+        out["independent_header_readback"] = {"error": str(exc)}
+    out["checks"] = checks
+    out["readings"] = {
+        "shape": list(rate.shape),
+        "valid_fraction": float(valid.mean()),
+        "photflam": phot["photflam"], "photplam": phot["photplam"],
+        "zp_ab_mag": phot["zp_ab"], "zp_st_mag": phot["zp_st"],
+        "scale_arcsec_per_px": wcs["scale_arcsec_per_px"],
+        "rate_stats_e_per_s": st,
+        "pedestal_e_per_s": cmeta["pedestal_e_per_s"],
+        "smooth_sigma_px": cmeta["smooth_sigma_px"],
+        # **请求值**（来自传给 load_canvas 的 cfg）：V6 用它核对 load_canvas 实际用的
+        # σ_k —— 若生产把 σ 翻倍/改写，cmeta 里的 σ 与请求值就不一致（V10 的判词不依赖
+        # 这一项，它只把读数交给 V6 判）。
+        "requested_smooth_sigma_px": float(cfg["canvas"].get("smooth_sigma_px", 0.8)),
+        "residual_fraction_theory": cmeta["residual_base_noise_variance_fraction_theory"],
+        "residual_sigma_meas_e_per_s": cmeta["residual_base_noise_sigma_e_per_s_measured"],
+        "raw_sigma_meas_e_per_s": cmeta["raw_pixel_sigma_e_per_s_measured"],
+        "removed_sigma_meas_e_per_s": cmeta["removed_by_smoothing_sigma_e_per_s_measured"],
+        "mask": cmeta["mask"],
+        "real_exptime_s": cmeta["real_exptime_s"], "ndrizim": cmeta["ndrizim"],
+        "bunit": cmeta["bunit"],
+    }
+    out["failed_checks"] = [k for k, v in checks.items() if not v]
+    out["verdict"] = bool(all(checks.values()))
+    out["criterion"] = ("真实 M16 FITS 经 load_canvas 加载后：形状/掩膜/有限性、PHOTFLAM>0、"
+                        "板比例=0.04 arcsec/px、TAN CTYPE、p99.99 > 10×median（真实星云结构）、"
+                        "残差噪声>0、provenance 回指真实文件；且未知 band 被拒")
+    return out
+
+
+def _selftest_canvas_smoothing_budget(v10: Dict[str, Any]) -> Dict[str, Any]:
+    """V6 —— 画布「存活底图残差预算」的**生产实现**核对（走 ``_smooth_canvas``）。
+
+    G08-04 整改 R2：本条此前是**结构恒真门** —— 它在 ``selftest()`` 里自己
+    ``from scipy.ndimage import gaussian_filter``、拿白噪声自测
+    ``var(smoothed)/var(white) ≈ 1/(4πσ²)``，**完全不碰** ``load_canvas`` 的生产平滑
+    （旧版生产平滑在 ``load_canvas`` 内联）。复核实测注入三处生产缺陷
+    （删掉生产平滑 / σ 翻倍 / ``resid_frac_theory`` 分母 ``4π``→``2π``）**3/3 全绿**。
+    现在拆成三臂，期望值全部由**测试端**现场算出，不取自生产返回值：
+
+    (a) **白噪声探针走生产实现**：用 ``_smooth_canvas``（生产平滑本体）滤波白噪声，
+        要求存活方差份额 = ``1/(4πσ_req²)``（5% 内），且生产声明的 ``resid_frac_theory``
+        与测试端闭式**逐位**一致。⇒ 删掉生产平滑（份额变 1.0）、theory 分母写错
+        （声明值翻倍）都判红。
+    (b) **结构守恒**：同一生产实现作用在解析高斯斑块上，峰值与积分保持不变（±1%）。
+    (c) **真实模板交叉核对**：复用 V10 已经读进来的 ``cmeta``（**不重复读 268MB FITS**），
+        要求 ``load_canvas`` **实际用的** σ 等于**请求的** σ（⇒ 生产侧把 σ 翻倍判红）、
+        真实帧上的 theory 分母与测试端闭式一致、且「被移除的 σ」实测 > 0
+        （⇒ 生产平滑根本没跑判红）。
+
+    真实模板缺失时本条**记红**（与 V10 同因，不静默跳过、不设 waiver）。
+    """
+    out: Dict[str, Any] = {"name": "V6_canvas_smoothing_budget",
+                           "production_call": "m16_sampling._smooth_canvas (load_canvas 的平滑段本体)",
+                           "readings": {}, "checks": {}, "verdict": False}
+    sig_req = float(v10.get("readings", {}).get("requested_smooth_sigma_px", 0.8))
+    out["readings"]["requested_sigma_px"] = sig_req
+    if not v10.get("template_available", False):
+        out["checks"]["real_template_available"] = False
+        out["verdict_reason"] = (
+            "真实模板缺失（与 V10_real_canvas_load 同因）：存活残差预算的真实路径"
+            "无法被核对 ⇒ 记红，不跳过。")
+        return out
+    out["checks"]["real_template_available"] = True
+    # --- (a) 白噪声探针走生产实现 ---
+    white = np.random.default_rng(23).normal(0.0, 1.0, size=(512, 512))
+    sm, resid_w, frac_prod = _smooth_canvas(white, sig_req)
+    frac_meas = float(np.var(sm) / np.var(white))
+    frac_test = 1.0 / (4.0 * math.pi * sig_req * sig_req)     # 测试端闭式（期望）
+    rel_dev = float(abs(frac_meas - frac_test) / frac_test)
+    frac_prod_dev = float(abs(frac_prod - frac_test) / frac_test)
+    resid_var_meas = float(np.var(resid_w))
+    out["readings"].update({
+        "surviving_fraction_measured": frac_meas,
+        "surviving_fraction_declared_by_production": float(frac_prod),
+        "surviving_fraction_test_closed_form": frac_test,
+        "rel_dev_meas_vs_test": rel_dev,
+        "rel_dev_prod_declared_vs_test": frac_prod_dev,
+        "removed_fraction_measured": float(resid_var_meas / np.var(white)),
+    })
+    out["checks"]["white_probe_surviving_fraction_matches_test_closed_form"] = bool(rel_dev < 0.05)
+    out["checks"]["production_declared_fraction_matches_test_closed_form"] = bool(frac_prod_dev < 1e-12)
+    # --- (b) 结构守恒（同一生产实现） ---
+    yy, xx = np.mgrid[0:512, 0:512]
+    blob = np.exp(-(((yy - 256.0) ** 2 + (xx - 256.0) ** 2) / (2 * 30.0 ** 2)))
+    blobs, _rb, _fp = _smooth_canvas(blob, sig_req)
+    peak_ratio = float(blobs.max() / blob.max())
+    flux_ratio = float(blobs.sum() / blob.sum())
+    out["readings"].update({"blob_peak_ratio": peak_ratio, "blob_flux_ratio": flux_ratio})
+    out["checks"]["structure_conserved_peak"] = bool(abs(peak_ratio - 1.0) < 0.01)
+    out["checks"]["structure_conserved_flux"] = bool(abs(flux_ratio - 1.0) < 0.01)
+    # --- (c) 真实模板交叉核对 ---
+    r = v10["readings"]
+    sig_used = float(r["smooth_sigma_px"])
+    frac_real = float(r["residual_fraction_theory"])
+    frac_real_test = 1.0 / (4.0 * math.pi * sig_req * sig_req)
+    removed = float(r["removed_sigma_meas_e_per_s"])
+    resid_sig = float(r["residual_sigma_meas_e_per_s"])
+    raw_sig = float(r["raw_sigma_meas_e_per_s"])
+    out["readings"].update({
+        "real_sigma_used_px": sig_used, "real_sigma_requested_px": sig_req,
+        "real_fraction_declared": frac_real,
+        "real_fraction_test_closed_form": frac_real_test,
+        "real_removed_sigma_e_per_s": removed,
+        "real_residual_sigma_e_per_s": resid_sig,
+        "real_raw_sigma_e_per_s": raw_sig,
+    })
+    out["checks"]["real_sigma_used_equals_requested"] = bool(sig_used == sig_req)
+    out["checks"]["real_fraction_matches_test_closed_form"] = bool(
+        abs(frac_real - frac_real_test) <= 1e-12 * frac_real_test)
+    out["checks"]["real_smoothing_removed_noise_measured_positive"] = bool(removed > 0.0)
+    out["checks"]["real_surviving_noise_below_raw"] = bool(0.0 < resid_sig < raw_sig)
+    out["failed_checks"] = [k for k, v in out["checks"].items() if not v]
+    out["verdict"] = bool(all(out["checks"].values()))
+    out["verdict_reason"] = (
+        "白噪声存活份额 %.6g vs 测试端闭式 %.6g（rel_dev %.3g）；生产声明份额 rel_dev %.3g；"
+        "真实帧 σ 用/请求 %g/%g px，移除 σ 实测 %.6g e-/s，存活 σ/原始 σ = %.6g"
+        % (frac_meas, frac_test, rel_dev, frac_prod_dev, sig_used, sig_req,
+           removed, resid_sig / raw_sig if raw_sig else float("nan")))
+    return out
+
+
 def selftest(verbose: bool = True) -> Dict[str, Any]:
-    """噪声物理 + 采样几何 + 底图残差 + 负例（纯加性）自检。**不读真实帧**（快）。"""
+    """噪声物理 + 采样几何 + 底图残差 + 负例（纯加性）+ **真实 M16 模板加载**自检。
+
+    G08-04 整改 T5：V1–V9 用 ``_fake_canvas`` 合成画布跑（快、几何可控），
+    但它们**不覆盖** ``load_canvas`` 的真实 FITS 路径；V10 补该覆盖。
+    真实模板缺失时 V10 记红（不静默跳过，见 ``_selftest_real_canvas`` docstring）。
+
+    G08-04 整改 R2：V6 此前在 ``selftest`` 内**另算一份** scipy 滤波来核对
+    1/(4πσ²)（零生产耦合的恒真门）；现改为走生产实现 ``_smooth_canvas``，并复用
+    V10 已载入的真实模板读数做「实际 σ = 请求 σ」「被移除 σ 实测 > 0」的交叉核对。
+    """
     res: Dict[str, Any] = {"criteria": {}, "verdicts": {}}
     shape = (128, 128)
     det = NM.Detector(gain_e_per_adu=1.5, read_noise_e=5.0, bias_adu=1000.0,
@@ -1141,27 +1398,16 @@ def selftest(verbose: bool = True) -> Dict[str, Any]:
         and abs(res["criteria"]["scale2_step"][1] - 2.0) < 1e-6
         and res["criteria"]["rot90_max_dev"] < 1e-4
         and res["criteria"]["scale2_jacobian_max_dev"] < 1e-4)
-    # V6 画布平滑：**存活**噪声方差份额必须 = sum(g^2) = 1/(4*pi*sigma_k^2)（结构守恒）
-    from scipy.ndimage import gaussian_filter
-    white = np.random.default_rng(23).normal(0.0, 1.0, size=(512, 512))
-    sk = 0.8
-    sm = gaussian_filter(white, sigma=sk, mode="nearest")
-    frac_meas = float(np.var(sm) / np.var(white))
-    frac_theory = 1.0 / (4.0 * math.pi * sk * sk)
-    yy, xx = np.mgrid[0:512, 0:512]
-    blob = np.exp(-(((yy - 256.0) ** 2 + (xx - 256.0) ** 2) / (2 * 30.0 ** 2)))
-    blobs = gaussian_filter(blob, sigma=sk, mode="nearest")
-    res["criteria"]["canvas_smoothing"] = {
-        "surviving_fraction_measured": frac_meas,
-        "surviving_fraction_theory": float(frac_theory),
-        "rel_dev": float(abs(frac_meas - frac_theory) / frac_theory),
-        "removed_fraction_measured": float(np.var(white - sm) / np.var(white)),
-        "blob_peak_ratio": float(blobs.max() / blob.max()),
-        "blob_flux_ratio": float(blobs.sum() / blob.sum())}
-    res["verdicts"]["V6_canvas_smoothing_budget"] = bool(
-        abs(frac_meas - frac_theory) / frac_theory < 0.05
-        and abs(blobs.max() / blob.max() - 1.0) < 0.01
-        and abs(blobs.sum() / blob.sum() - 1.0) < 0.01)
+    # --- 真实模板先载入：V6 的「真实路径」臂复用这里的读数（不重复读 268MB FITS） ---
+    v10 = _selftest_real_canvas()
+    # V6 画布平滑：**存活**噪声方差份额必须 = Σg² = 1/(4*pi*sigma_k^2)（结构守恒）。
+    # G08-04 整改 R2：旧版在 selftest 内**自己** import scipy、用写死的 sk=0.8 **另算
+    # 一份**来核对 1/(4πσ²) —— 纯「验 scipy」，零生产耦合。实测删掉生产平滑 / σ 翻倍 /
+    # theory 分母 4π→2π 三个缺陷，V6 **3/3 全绿**。本版接上生产路径 `_smooth_canvas`
+    # （load_canvas 的平滑段本体），并用 V10 已载入的真实模板读数做交叉核对。
+    v6 = _selftest_canvas_smoothing_budget(v10)
+    res["criteria"]["canvas_smoothing"] = v6
+    res["verdicts"]["V6_canvas_smoothing_budget"] = bool(v6["verdict"])
     # V7 **端到端采样渲染**（合成画布，不读真实帧）：天光 Poisson 通道 + 抖动几何 + 加性负例
     v7 = _selftest_render_end_to_end()
     res["criteria"]["end_to_end_render"] = v7
@@ -1204,6 +1450,11 @@ def selftest(verbose: bool = True) -> Dict[str, Any]:
                          / t9["sampling"]["scale_factor"] ** 2)}
     res["verdicts"]["V9_flux_conservation_over_pixel_area"] = bool(
         res["criteria"]["flux_conservation"]["rel_err"] < 1e-3)
+    # V10 **真实 M16 FITS 加载路径**（G08-04 T5）：此前自检从不调 load_canvas，
+    #     对真实模板恒真。模板缺失时本条记红（不静默跳过、不设 waiver 开关）。
+    #     载入动作在 V6 之前执行（见上），此处只落读数与判词。
+    res["criteria"]["real_canvas_load"] = v10
+    res["verdicts"]["V10_real_canvas_load"] = bool(v10["verdict"])
     res["all_pass"] = bool(all(res["verdicts"].values()))
     if verbose:
         print(json.dumps(res, indent=2, ensure_ascii=False, default=float))

@@ -292,8 +292,20 @@ def test_A2_sky_poisson_series(levels: List[float], n_pix: int, det: NM.Detector
                                t: float) -> Dict[str, Any]:
     """A2 —— **天光泊松序列**：B↑ 必须**同时**带来 sigma↑（负责人 §9.41 核心）。
 
-    独立臂：SplitMix64 泊松；生产臂：numpy Generator 泊松；两者配对同参数。
+    独立臂：SplitMix64 泊松；生产臂：numpy Generator 泊松（**直接调 NM.expose**）；两者配对同参数。
     每档用**两帧配对差分**测方差（静态结构逐位抵消），与解析预测比。
+
+    两条臂的职责**不可互相替代**，故判词拆成两项并分别具名：
+      * ``verdict_independent``  验**方法**：分布/口径是否正确（与生产代码无关）。
+      * ``verdict_production``   验**代码**：被交付的实现是否真的实现了该方法。
+    G08-04 整改 T2：旧版判词 ``bool(mono and max(devs) < 0.05)`` 的 ``devs`` **只取独立臂**，
+    ``rel_dev_prod`` 虽被计算并记录却不进入判词 —— 实测向 NM.expose 删掉泊松后生产臂
+    rel_dev_prod 达 -0.911…-1.0（物理上完全错）而 verdict 仍为 true ⇒ 恒真门。
+    本版把生产臂纳入判词；两臂仍各自独立出词，不合并成一条混合判据。
+
+    饱和档的处理：生产臂在整帧被硬钳位的档位上方差恒 0，闭合检验在该档**无定义**（不是
+    「红」也不是「绿」）。该档由饱和判据 C3 单独覆盖，并在此显式登记后从生产臂判词中排除。
+    排除依据是**实测的饱和像素计数**（``NM.expose`` 自产的 provenance），不是硬编码档号。
     """
     rows = []
     for B in levels:
@@ -315,36 +327,63 @@ def test_A2_sky_poisson_series(levels: List[float], n_pix: int, det: NM.Detector
         var_pred = NM.predicted_variance_adu2(src_e=0.0, sky_e=sky_e, dark_e=0.0, det=det)
         sat = det.saturation_adu
         n_sat_ind = int(np.count_nonzero(o1["adu"] >= sat))
+        n_sat_prod = int(f1.provenance.get("saturated_pixels", 0))
         rows.append({
             "sky_e_per_s": float(B), "sky_e": sky_e, "n_pix": nn,
             "saturated_pixels_indep": n_sat_ind,
             "saturated_fraction_indep": n_sat_ind / float(o1["adu"].size),
+            "saturated_pixels_prod": n_sat_prod,
+            "saturated_fraction_prod": n_sat_prod / float(f1.adu.size),
             "var_indep": v_ind, "var_prod": v_prod, "var_pred": var_pred,
             "sigma_indep_adu": sigma_of_var(v_ind),
+            "sigma_prod_adu": sigma_of_var(v_prod),
             "sigma_pred_adu": sigma_of_var(var_pred),
             "rel_dev_indep": v_ind / var_pred - 1.0,
             "rel_dev_prod": v_prod / var_pred - 1.0,
             "rel_dev_indep_vs_prod": v_ind / v_prod - 1.0 if v_prod > 0 else None,
             "mc_1sigma_err_of_var": mc_sigma_error_of_variance(var_pred, nn),
         })
-    sig = [r["sigma_indep_adu"] for r in rows]
-    mono = all(sig[i] < sig[i + 1] for i in range(len(sig) - 1))
-    devs = [abs(r["rel_dev_indep"]) for r in rows]
+    # ---- 独立臂判词（验方法）：全部档位参与（独立臂不钳位） ----
+    sig_ind = [r["sigma_indep_adu"] for r in rows]
+    mono_ind = all(sig_ind[i] < sig_ind[i + 1] for i in range(len(sig_ind) - 1))
+    devs_ind = [abs(r["rel_dev_indep"]) for r in rows]
+    max_dev_ind = max(devs_ind)
+    # ---- 生产臂判词（验代码）：仅对**未饱和**档位参与 ----
+    elig = [r for r in rows if r["saturated_fraction_prod"] == 0.0 and r["var_prod"] > 0.0]
+    excl = [r for r in rows if r not in elig]
+    sig_prod = [r["sigma_prod_adu"] for r in elig]
+    mono_prod = all(sig_prod[i] < sig_prod[i + 1] for i in range(len(sig_prod) - 1))
+    max_dev_prod = max((abs(r["rel_dev_prod"]) for r in elig), default=float("inf"))
     # **诚实登记**：最高天光档若饱和，方差被硬钳位压到 0，闭合检验在该档失效。
     sat_any = [r["sky_e_per_s"] for r in rows if r["saturated_fraction_indep"] > 0.0]
     prod_broken = [r["sky_e_per_s"] for r in rows if r["var_prod"] == 0.0]
     return {
         "name": "A2_sky_poisson_series",
         "detector": det.as_dict(), "exptime_s": t, "levels": rows,
-        "monotone_increasing_sigma": bool(mono),
-        "max_abs_rel_dev_indep_vs_pred": max(devs),
-        "verdict": bool(mono and max(devs) < 0.05),
+        # --- 独立臂（验方法） ---
+        "monotone_increasing_sigma": bool(mono_ind),
+        "max_abs_rel_dev_indep_vs_pred": max_dev_ind,
+        "verdict_independent": bool(mono_ind and max_dev_ind < 0.05),
+        # --- 生产臂（验代码） ---
+        "production_levels_evaluated": [r["sky_e_per_s"] for r in elig],
+        "production_levels_excluded_saturated": [r["sky_e_per_s"] for r in excl],
+        "monotone_increasing_sigma_production": bool(mono_prod),
+        "max_abs_rel_dev_prod_vs_pred": max_dev_prod,
+        "verdict_production": bool(len(elig) >= 2 and mono_prod and max_dev_prod < 0.05),
+        # --- 总判词：两臂**同时**成立 ---
+        "verdict": bool(mono_ind and max_dev_ind < 0.05
+                        and len(elig) >= 2 and mono_prod and max_dev_prod < 0.05),
+        "arm_separation_note":
+            "独立臂验「方法」（分布口径），生产臂验「代码」（交付实现）。两者不可互相替代："
+            "独立臂全绿不能证明生产代码正确，生产臂全绿也不能证明方法口径正确。"
+            "G08-04 T2：旧判词只取独立臂 ⇒ 生产臂删掉泊松仍判绿；本版生产臂进入判词。",
         "saturation_registry": {
             "levels_with_any_saturated_pixel_e_per_s": sat_any,
             "levels_where_production_arm_fully_saturated_e_per_s": prod_broken,
             "note": "满阱 70000 e- / g=1.5 ⇒ 饱和 47666.7 ADU。天光 1000 e-/s × 100 s = 1e5 e- "
                     "**超过满阱** ⇒ 生产臂整帧钳位、方差恒 0（闭合检验在该档无意义）。"
-                    "该档**不参与**判据，仅作饱和路径的行为登记。",
+                    "该档**不参与生产臂判词**（排除依据 = 生产臂自报的饱和像素计数 > 0），"
+                    "仅作饱和路径的行为登记；其物理行为由 C3_saturation_clamp 单独判据覆盖。",
         },
         "note": "sigma 必须随 B 严格单调增 —— 这正是「纯加性天光」做不到的（见 B1）",
     }
@@ -744,6 +783,467 @@ def test_B4_additive_sky_gradient_null(det: NM.Detector, t: float) -> Dict[str, 
 
 
 # ===========================================================================
+# 3b. C 系列 —— **生产面**判据：直接调用 NM.expose / NM.sky_surface_e_per_s
+# ===========================================================================
+# 为什么要有 C 系列（G08-04 整改 T1）：
+#   A/B 系列的「实测」量全部由**独立原语**（SplitMix64 + 自写 Box-Muller/Knuth/PTRS）
+#   产生，验的是「物理方法/分布口径」；它们**不经过**被交付的 noise_model.py，
+#   因此对生产代码零判别力。实测：向 NM.expose 注入 7 类物理缺陷（删泊松、删读出噪声、
+#   删量化、删饱和钳位、平场不乘源、抹平天空梯度…）后，全四个组件自检**全部仍判绿**。
+#   C 系列补的正是这个缺口：每条判据**直接调用生产函数**，用**独立写出的闭式**或
+#   **配对差分恒等式**做对照，因此注入对应缺陷时必然判红。
+#   代价：C 系列只能验「代码实现了公式」，不能验「公式描述了真实物理」——后者由 A 系列负责。
+#   两者职责分离，不可互相替代。
+
+def test_C1_read_noise_production(n_pix: int, det: NM.Detector) -> Dict[str, Any]:
+    """C1 —— **读出噪声（生产面）**：``n_e += Normal(0, sigma_R)`` 必须在 NM.expose 里真实生效。
+
+    主判据（两点差分，无零点歧义）：零曝光、零源、零天光下，把读出噪声从 0 提到 sigma_R，
+    实测方差的增量必须等于 sigma_R^2/g^2。差分形式**消掉**量化项 1/12 与任何加性底噪，
+    故对「读出噪声整段被删」给出满量程响应（增量将为 0）。
+    辅判据（绝对闭合）：Var = sigma_R^2/g^2 + 1/12 本身也要闭合到 2%。
+
+    注入对照：删除 ``n_e = n_e + rng.normal(0.0, det.read_noise_e, size=shape)``
+      -> 增量判据 rel_dev = -1（判红），绝对闭合 rel_dev = -0.981（判红）。
+    """
+    zero = np.zeros(n_pix)
+    t = 0.0
+    out: Dict[str, Any] = {"name": "C1_read_noise_PRODUCTION",
+                           "production_call": "NM.expose", "n_pix": int(n_pix)}
+    kw = dict(src_e_per_s=zero, sky_e_per_s=zero, exptime_s=t)
+    g = det.gain_e_per_adu
+    # --- 两点配对（关掉量化，使配对差成为精确的线性关系）---
+    #  numpy 的 rng.normal(0, s, n) 在同 seed 下给同一批标准正态再乘 s（实测
+    #  max|s^-1·x(s) - x(1)| ~ 4e-16），故两臂**逐位相减**即得 (s1-s2)·z/g。
+    #  置 quantize=False 是为了不把 round() 的非线性混进来：量化项由 C2 单独、精确地检验。
+    sig_lo, sig_hi = 1.0, 5.0
+    d_lo = _det(read_noise_e=sig_lo, quantize=False, saturate=False)
+    d_hi = _det(read_noise_e=sig_hi, quantize=False, saturate=False)
+    seed = 4242
+    f_lo = NM.expose(det=d_lo, rng=np.random.default_rng(seed), **kw)
+    f_hi = NM.expose(det=d_hi, rng=np.random.default_rng(seed), **kw)
+    resid = f_lo.adu - f_hi.adu                     # = (s_lo - s_hi)·z/g
+    v_pair = float(np.var(resid, ddof=1))
+    v_pair_pred = (sig_hi - sig_lo) ** 2 / (g * g)
+    # --- 绝对闭合（含量化项，量化的独立检验见 C2）---
+    d_abs = _det(read_noise_e=det.read_noise_e)
+    f_a = NM.expose(det=d_abs, rng=np.random.default_rng(seed), **kw)
+    f_b = NM.expose(det=d_abs, rng=np.random.default_rng(seed + 1), **kw)
+    v_abs, nn = pair_diff_variance(f_a.adu, f_b.adu)
+    v_abs_pred = det.read_noise_e ** 2 / (g * g) + QUANT_VAR
+    out["two_point_paired_difference"] = {
+        "sigma_R_lo_e": sig_lo, "sigma_R_hi_e": sig_hi, "quantize": False,
+        "var_paired_diff_meas_adu2": v_pair,
+        "var_paired_diff_pred_adu2": v_pair_pred,
+        "rel_dev": v_pair / v_pair_pred - 1.0,
+        "mean_paired_diff_adu": float(np.mean(resid)),
+        "n_pix": int(n_pix),
+        "mc_1sigma_err_of_var": mc_sigma_error_of_variance(v_pair_pred, n_pix),
+        "note": "同 seed 配对：lam≡0 ⇒ 泊松项恒 0；两臂只差 sigma_R 且 rng.normal 同 seed "
+                "给同一批 z，故差分精确等于 (s_hi-s_lo)·z/g。该估计量**无零点歧义**，"
+                "读出噪声整段被删时差分恒 0 ⇒ rel_dev = -1。",
+    }
+    out["absolute_closure"] = {
+        "sigma_R_e": det.read_noise_e,
+        "var_meas_adu2": v_abs, "var_pred_adu2": v_abs_pred,
+        "rel_dev": v_abs / v_abs_pred - 1.0,
+        "sigma_meas_adu": sigma_of_var(v_abs), "sigma_pred_adu": sigma_of_var(v_abs_pred),
+        "n_pix": nn, "mc_1sigma_err_of_var": mc_sigma_error_of_variance(v_abs_pred, nn),
+    }
+    out["verdict"] = bool(abs(v_pair / v_pair_pred - 1.0) < 0.01
+                          and abs(v_abs / v_abs_pred - 1.0) < 0.05)
+    out["criterion"] = ("|Var(f_lo-f_hi)/((Δsigma_R)²/g²) - 1| < 1%（配对两点，精确线性）"
+                        "且 |Var/(sigma_R²/g²+1/12) - 1| < 5%（绝对闭合）")
+    return out
+
+
+def test_C2_quantization_production(n_pix: int, det: NM.Detector, t: float) -> Dict[str, Any]:
+    """C2 —— **ADU 量化（生产面）**：``if det.quantize: adu = np.round(adu)`` 必须在生效。
+
+    判据用**配对恒等式**而非方差闭合：量化开关不消耗随机数，故同种子下两臂的 n_e 逐位相同，
+    两帧之差**恰好**是量化残差 ``round(x) - x``，其方差必须是 1/12 ADU^2。
+    该估计量无其它方差项污染（不依赖读出噪声/泊松的标定是否正确），是量化项的**直接**检验。
+
+    注入对照：删除 np.round  -> 残差恒 0 -> rel_dev = -1（判红）；
+              改成 floor     -> 残差均值 -0.5、方差 1/12 仍过 ⇒ 由 bias 判据兜住（见下）。
+    """
+    out: Dict[str, Any] = {"name": "C2_quantization_PRODUCTION",
+                           "production_call": "NM.expose(..., det.quantize=True/False)"}
+    rows = []
+    ok = True
+    for B, seed in ((3.0, 4310), (10.0, 4320), (30.0, 4330)):
+        sky = np.full(n_pix, float(B))
+        zero = np.zeros(n_pix)
+        # 满阱放大到不饱和；其余参数两臂完全一致
+        dq = _det(quantize=True, full_well_e=1e12)
+        dn = _det(quantize=False, full_well_e=1e12)
+        assert dq.as_dict()["saturation_adu"] == dn.as_dict()["saturation_adu"]
+        fq = NM.expose(src_e_per_s=zero, sky_e_per_s=sky, det=dq, exptime_s=t,
+                       rng=np.random.default_rng(seed))
+        fn = NM.expose(src_e_per_s=zero, sky_e_per_s=sky, det=dn, exptime_s=t,
+                       rng=np.random.default_rng(seed))
+        resid = fq.adu - fn.adu                       # = round(x) - x，理论 U(-1/2, 1/2]
+        v = float(np.var(resid, ddof=1))
+        m = float(np.mean(resid))
+        rows.append({"sky_e_per_s": B, "seed": seed, "n_pix": int(n_pix),
+                     "resid_var_meas_adu2": v, "resid_var_theory_adu2": QUANT_VAR,
+                     "resid_mean_adu": m,
+                     "rel_dev": v / QUANT_VAR - 1.0,
+                     "mc_1sigma_err_of_var": mc_sigma_error_of_variance(QUANT_VAR, n_pix)})
+        ok = ok and abs(v / QUANT_VAR - 1.0) < 0.02 and abs(m) < 0.02
+    out["levels"] = rows
+    out["median_rel_dev"] = float(np.median([abs(r["rel_dev"]) for r in rows]))
+    out["max_abs_resid_mean_adu"] = max(abs(r["resid_mean_adu"]) for r in rows)
+    out["criterion"] = "同种子配对残差 Var(round(x)-x) 与 1/12 的相对偏差 < 2%，且残差均值 |m| < 0.02 ADU"
+    out["verdict"] = bool(ok)
+    return out
+
+
+def test_C3_saturation_production(det: NM.Detector) -> Dict[str, Any]:
+    """C3 —— **饱和硬钳位（生产面）**：钳位电平公式与钳位动作都必须在 NM.expose 里生效。
+
+    三段判据：
+      (a) 电平公式闭式：Detector.saturation_adu == full_well_e/g + bias_adu（位精确）；
+      (b) 钳位动作：用**同种子配对**比较 saturate=True / False 两臂 —— 钳位只改电子域之上的
+          一步、**不消耗随机数**，故两臂 n_e 逐位相同，差值必须逐位 <= 0 且在亮像素处严格 < 0；
+      (c) 钳位后整帧上界 = saturation_adu，且**饱和像素方差恒 0**（这正是 A2 生产臂把饱和档
+          排除的依据，也是「钳位确实发生」的正面证据）。
+
+    注入对照：删 ``adu = np.minimum(adu, sat)`` -> (b) 差值恒 0、(c) 上界越界（双判红）；
+              公式写成 full_well*g+bias -> (a) 判红。
+    """
+    out: Dict[str, Any] = {"name": "C3_saturation_clamp_PRODUCTION",
+                           "production_call": "NM.expose(..., det.saturate=True/False)"}
+    g = det.gain_e_per_adu
+    # (a) 电平公式
+    sat_prop = det.saturation_adu
+    sat_formula = det.full_well_e / g + det.bias_adu
+    # (b)(c) 用一个很小的满阱，确保大部分像素过曝
+    ds = _det(full_well_e=1500.0, read_noise_e=5.0)
+    ds_on = _det(full_well_e=1500.0, read_noise_e=5.0, saturate=True)
+    ds_off = _det(full_well_e=1500.0, read_noise_e=5.0, saturate=False)
+    n = 200_000
+    src = np.full(n, 1.0e6)
+    zero = np.zeros(n)
+    f_on = NM.expose(src_e_per_s=src, sky_e_per_s=zero, det=ds_on, exptime_s=1.0,
+                     rng=np.random.default_rng(5150))
+    f_off = NM.expose(src_e_per_s=src, sky_e_per_s=zero, det=ds_off, exptime_s=1.0,
+                      rng=np.random.default_rng(5150))
+    d = f_on.adu - f_off.adu
+    sat_adu = ds.saturation_adu
+    n_sat = int(np.count_nonzero(f_on.adu >= sat_adu))
+    # 饱和像素的方差：两帧配对差分（钳位后逐位相同 ⇒ 方差 0）
+    f_on2 = NM.expose(src_e_per_s=src, sky_e_per_s=zero, det=ds_on, exptime_s=1.0,
+                      rng=np.random.default_rng(5151))
+    mask_sat = f_on.adu >= sat_adu
+    v_sat, _ = pair_diff_variance(f_on.adu[mask_sat], f_on2.adu[mask_sat])
+    out["level_formula"] = {
+        "saturation_adu_property": float(sat_prop),
+        "saturation_adu_closed_form": float(sat_formula),
+        "full_well_e": float(det.full_well_e), "gain_e_per_adu": float(g),
+        "bias_adu": float(det.bias_adu),
+        "abs_diff_adu": float(abs(sat_prop - sat_formula)),
+        "criterion": "|saturation_adu - (full_well_e/g + bias_adu)| < 1e-9",
+        "verdict": bool(abs(sat_prop - sat_formula) < 1e-9),
+    }
+    out["clamp_action"] = {
+        "saturation_adu": float(sat_adu), "n_total": int(n),
+        "max_adu_saturate_on": float(f_on.adu.max()),
+        "max_adu_saturate_off": float(f_off.adu.max()),
+        "n_at_saturation": n_sat,
+        "fraction_at_saturation": float(n_sat / n),
+        "clamp_delta_max_adu": float(d.max()),
+        "clamp_delta_min_adu": float(d.min()),
+        "n_delta_strictly_negative": int(np.count_nonzero(d < -1e-12)),
+        "criterion": "saturate=True 时 max(adu) == saturation_adu（位精确）；配对差值逐位 <= 0 "
+                     "且在过曝像素处严格 < 0",
+        "verdict": bool(abs(float(f_on.adu.max()) - sat_adu) < 1e-9
+                        and float(d.max()) <= 0.0
+                        and n_sat > 0.99 * n
+                        and float(d.min()) < -1.0),
+    }
+    out["saturated_pixels_variance"] = {
+        "var_of_saturated_pixels_adu2": float(v_sat),
+        "n_saturated_pixels_used": int(np.count_nonzero(mask_sat)),
+        "criterion": "钳位后饱和像素的配对差分方差恒 0（钳位是硬钳位、无溢出建模）",
+        "verdict": bool(v_sat == 0.0),
+        "note": "该读数是 A2 生产臂把整帧饱和档排除出闭合检验的**物理依据**："
+                "钳位像素方差恒 0，闭合比值无定义，不是「红」也不是「绿」。",
+    }
+    out["verdict"] = bool(out["level_formula"]["verdict"] and out["clamp_action"]["verdict"]
+                          and out["saturated_pixels_variance"]["verdict"])
+    return out
+
+
+def test_C4_source_flat_production(n_pix: int, det: NM.Detector, t: float) -> Dict[str, Any]:
+    """C4 —— **源侧平场（生产面）**：平场必须**乘源**，不只是乘天光。
+
+    这是 G08-04 整改 T4 直指的死角：m16_sampling --selftest 的 V3 用 ``MODE_MEAN_ONLY``
+    且 ``src_e_per_s = 0``（只喂天光），实测把 ``src_e = t*src*m`` 改成 ``src_e = t*src``
+    后全树仍全绿。本判据把**非零源**直接送进 NM.expose，并做三段：
+      (a) 精确臂（无噪声/无量化/无饱和）：(adu - bias)/m 必须**逐像素恒等于** t*src
+          （容差 1e-9 相对）—— 平场若没乘源，去平场后残留 1/m 的空间起伏，立刻判红；
+      (b) 源+天光臂：两者都必须被 m 调制（分别用 src-only / sky-only / 两者 三帧对照）；
+      (c) 物理臂（散粒主导）：源的**逐块方差**必须按 m^2 缩放（sqrt(Var)/m ≈ 常数），
+          即平场对源的物理效果是乘性的、不是加性的。
+    另给负例：把源当加性（不乘 m）时同一去平场操作**不**闭合（判据能红）。
+    """
+    out: Dict[str, Any] = {"name": "C4_source_side_flat_PRODUCTION",
+                           "production_call": "NM.expose(..., flat=m, src_e_per_s=非零)"}
+    shape = (128, 128)
+    ny, nx = shape
+    yy, xx = np.mgrid[0:ny, 0:nx]
+    src = 3.0 + 60.0 * np.exp(-(((yy - 40.0) ** 2 + (xx - 50.0) ** 2) / (2 * 9.0 ** 2)))  # e-/s
+    sky = np.full(shape, 2.0)
+    m = NM.flat_response(shape, np.random.default_rng(77), prnu_rms=0.02, low_order=0.2,
+                         tilt_x=1.0, tilt_y=0.5, vignette=0.05)
+    # (a) 精确臂。**在电子域比对**：adu = n_e/g + bias ⇒ (adu-bias)·g 才是电子数。
+    d_exact = NM.Detector(gain_e_per_adu=1.5, read_noise_e=0.0, bias_adu=1000.0,
+                          full_well_e=1e12, dark_current_e_per_s=0.0,
+                          quantize=False, saturate=False)
+    g = d_exact.gain_e_per_adu
+    fa = NM.expose(src_e_per_s=src, sky_e_per_s=np.zeros(shape), det=d_exact, exptime_s=t,
+                   rng=np.random.default_rng(610), flat=m, mode=NM.MODE_MEAN_ONLY)
+    demod = (fa.adu - d_exact.bias_adu) * g            # 电子域：= t·src·m
+    pred_net = t * src                                  # 解析：每像素 t·src（未乘 m）
+    rel_spread = float(np.std(demod / (pred_net * m) - 1.0))
+    out["exact_source_only_arm"] = {
+        "flat_min": float(m.min()), "flat_max": float(m.max()),
+        "flat_profile_pk_pct": float(np.max(np.abs(m / np.median(m) - 1.0))),
+        "demod_rel_spread": rel_spread,
+        "demod_mean_ratio": float(np.mean(demod / (pred_net * m))),
+        "net_meas_e_per_s": float(np.mean(demod)),
+        "net_pred_e_per_s": float(np.mean(pred_net * m)),
+        "criterion": "std[(adu-bias)·g/(t·src·m) - 1] < 1e-9（逐像素恒等于 t·src·m）",
+        "verdict": bool(rel_spread < 1e-9),
+    }
+    # (b) 源 + 天光分别被 m 调制（同样在电子域）
+    f_src = NM.expose(src_e_per_s=src, sky_e_per_s=np.zeros(shape), det=d_exact, exptime_s=t,
+                      rng=np.random.default_rng(610), flat=m, mode=NM.MODE_MEAN_ONLY)
+    f_sky = NM.expose(src_e_per_s=np.zeros(shape), sky_e_per_s=sky, det=d_exact, exptime_s=t,
+                      rng=np.random.default_rng(610), flat=m, mode=NM.MODE_MEAN_ONLY)
+    f_both = NM.expose(src_e_per_s=src, sky_e_per_s=sky, det=d_exact, exptime_s=t,
+                       rng=np.random.default_rng(610), flat=m, mode=NM.MODE_MEAN_ONLY)
+    net = lambda f: (f.adu - d_exact.bias_adu) * g      # noqa: E731 电子域净电荷
+    r_src = float(np.max(np.abs(net(f_src) - t * src * m)))
+    r_sky = float(np.max(np.abs(net(f_sky) - t * sky * m)))
+    r_both = float(np.max(np.abs(net(f_both) - t * (src + sky) * m)))
+    scale_e = float(t * float(np.max(src + sky)) * float(np.max(m)))
+    out["src_sky_both_multiplied"] = {
+        "max_abs_resid_source_only_e": r_src,
+        "max_abs_resid_sky_only_e": r_sky,
+        "max_abs_resid_both_e": r_both,
+        "rel_resid_both": r_both / scale_e,
+        "peak_net_e": scale_e,
+        "criterion": "三帧的 (adu-bias)·g 与 t·(分量)·m 的最大相对残差 < 1e-12（位精确）",
+        "verdict": bool(max(r_src, r_sky, r_both) / scale_e < 1e-12),
+    }
+    # (c) 物理臂：源的散粒方差按 m^2 缩放。块要够大才压得住有限样本误差（sqrt(2/n)）。
+    d_phys = _det(quantize=False, saturate=False)
+    pshape = (256, 256)
+    mp = NM.flat_response(pshape, np.random.default_rng(78), prnu_rms=0.0, low_order=0.2,
+                          tilt_x=1.0, tilt_y=0.0, vignette=0.0)
+    src_hot = np.full(pshape, 200.0)     # 散粒主导：t·src >> sigma_R
+    a1 = NM.expose(src_e_per_s=src_hot, sky_e_per_s=np.zeros(pshape), det=d_phys, exptime_s=t,
+                   rng=np.random.default_rng(620), flat=mp)
+    a2f = NM.expose(src_e_per_s=src_hot, sky_e_per_s=np.zeros(pshape), det=d_phys, exptime_s=t,
+                    rng=np.random.default_rng(621), flat=mp)
+    b1 = NM.expose(src_e_per_s=src_hot, sky_e_per_s=np.zeros(pshape), det=d_phys, exptime_s=t,
+                   rng=np.random.default_rng(620), flat=None)
+    b2f = NM.expose(src_e_per_s=src_hot, sky_e_per_s=np.zeros(pshape), det=d_phys, exptime_s=t,
+                    rng=np.random.default_rng(621), flat=None)
+    nb = 16
+    blk = pshape[0] // nb                # 16 行 × 256 列 = 4096 样本 ⇒ 相对误差 2.2%
+    vm, v1, mm = [], [], []
+    for k in range(nb):
+        sl = slice(k * blk, (k + 1) * blk)
+        vm.append(0.5 * float(np.var((a1.adu - a2f.adu)[sl], ddof=1)))
+        v1.append(0.5 * float(np.var((b1.adu - b2f.adu)[sl], ddof=1)))
+        mm.append(float(np.mean(mp[sl])))
+    vm = np.asarray(vm); v1 = np.asarray(v1); mm = np.asarray(mm)
+    ratio_rel = np.abs((vm / v1) / (mm ** 2) - 1.0)
+    out["physical_shot_noise_scales_m2"] = {
+        "n_blocks": nb, "block_samples": int(blk * pshape[1]),
+        "expected_stat_rel_err_per_block": float(math.sqrt(2.0 / (blk * pshape[1] - 1))),
+        "median_rel_dev_var_ratio_vs_m2": float(np.median(ratio_rel)),
+        "p90_rel_dev": float(np.percentile(ratio_rel, 90)),
+        "median_measured_ratio": float(np.median(vm / v1)),
+        "median_predicted_ratio_m2": float(np.median(mm ** 2)),
+        "criterion": "median|Var_m/Var_1 / m^2 - 1| < 0.05（源的散粒方差按 m^2 缩放；"
+                     "有限样本期望误差 %.3f）" % math.sqrt(2.0 / (blk * pshape[1] - 1)),
+        "verdict": bool(float(np.median(ratio_rel)) < 0.05),
+    }
+    # 负例：源被当加性（不乘 m）时，同一去平场操作不闭合
+    f_add = NM.expose(src_e_per_s=src, sky_e_per_s=np.zeros(shape), det=d_exact, exptime_s=t,
+                      rng=np.random.default_rng(610), mode=NM.MODE_MEAN_ONLY)   # 不传 flat
+    net_add = (f_add.adu - d_exact.bias_adu) * g / m
+    out["additive_source_negative_control"] = {
+        "demod_rel_spread_no_flat": float(np.std(net_add / pred_net - 1.0)),
+        "criterion": "负例：未传 flat 时同一去平场的相对散布 > 1e-3（判据能红）",
+        "verdict": bool(float(np.std(net_add / pred_net - 1.0)) > 1e-3),
+    }
+    out["verdict"] = bool(out["exact_source_only_arm"]["verdict"]
+                          and out["src_sky_both_multiplied"]["verdict"]
+                          and out["physical_shot_noise_scales_m2"]["verdict"]
+                          and out["additive_source_negative_control"]["verdict"])
+    return out
+
+
+def test_C5_sky_gradient_production(n_pix: int, det: NM.Detector, t: float) -> Dict[str, Any]:
+    """C5 —— **天空梯度（生产面）**：梯度必须由 NM.sky_surface_e_per_s 正确构造，
+    且必须**进泊松**（逐列方差随局部天光电平单调增）。
+
+    G08-04 整改：实测把 grad_x/grad_y 系数乘 0、theta 置 0、幅值压到 10%，全树仍全绿；
+    m16_sampling --selftest 的两帧 sky 也只有 level_e_per_s，梯度分支从未被赋值。
+    A8 用独立臂测梯度，不经 NM.sky_surface_e_per_s，同样对生产面零判别力。
+
+    两段判据：
+      (a) 构造保真：把生产函数返回的场与**独立写出的闭式**逐像素比对（位精确）。
+          期望值由入参 level/grad_x/grad_y/grad_quad/theta 现场解析算出，**不取自返回值**，
+          故「梯度被抹平/压幅/忽略 theta」都会立刻判红。
+      (b) 消费通道：逐列方差必须随解析局部天光电平单调增，且闭合到
+          predicted_variance_adu2(<解析局部 sky_e>) < 5%。
+    """
+    out: Dict[str, Any] = {"name": "C5_sky_gradient_PRODUCTION",
+                           "production_call": "NM.sky_surface_e_per_s + NM.expose"}
+    shape = (512, 512)
+    ny, nx = shape
+    # 梯度幅值取得足够大（PTP 明显非零）但**不**把电平压到 0 ⇒ 不触发非负截断，
+    # 使 (a) 的闭式比对与 (b) 的方差闭合都在纯泊松区进行。
+    level, gx, gy, gq, th_deg = 60.0, 45.0, 22.0, 0.0, 31.0
+    surf = NM.sky_surface_e_per_s(shape, level_e_per_s=level, grad_x_e_per_s=gx,
+                                  grad_y_e_per_s=gy, grad_quad_e_per_s=gq, theta_deg=th_deg)
+    # --- (a) 独立闭式（**不取自生产返回值**） ---
+    yy, xx = np.mgrid[0:ny, 0:nx]
+    u = xx / (nx - 1) - 0.5
+    v = yy / (ny - 1) - 0.5
+    th = math.radians(th_deg)
+    closed = (level + gx * (math.cos(th) * u + math.sin(th) * v)
+              + gy * (-math.sin(th) * u + math.cos(th) * v) + gq * (u * u + v * v))
+    clamped = bool(np.any(closed < 0.0))
+    closed = np.maximum(closed, 0.0)        # 生产面同样做非负截断，闭式必须同此约定
+    max_dev = float(np.max(np.abs(surf - closed)))
+    ptp = float(surf.max() - surf.min())
+    out["surface_construction_fidelity"] = {
+        "level_e_per_s": level, "grad_x_e_per_s": gx, "grad_y_e_per_s": gy,
+        "grad_quad_e_per_s": gq, "theta_deg": th_deg,
+        "surface_ptp_e_per_s": ptp,
+        "max_abs_dev_vs_independent_closed_form_e_per_s": max_dev,
+        "closed_form_had_negative_region": clamped,
+        "criterion": "max|sky_surface_e_per_s - 独立闭式（含非负截断）| < 1e-9 e-/s，"
+                     "且 PTP > 50 e-/s（梯度必须真的非零，防止「恒为常数」蒙过比对）",
+        "verdict": bool(max_dev < 1e-9 and ptp > 50.0),
+    }
+    # --- (b) 梯度进泊松：逐列方差随解析局部电平单调增 ---
+    zero = np.zeros(shape)
+    o1 = NM.expose(src_e_per_s=zero, sky_e_per_s=surf, det=det, exptime_s=t,
+                   rng=np.random.default_rng(730))
+    o2 = NM.expose(src_e_per_s=zero, sky_e_per_s=surf, det=det, exptime_s=t,
+                   rng=np.random.default_rng(731))
+    d = o1.adu - o2.adu
+    ncol = 4                                          # 4 组 × 128 行 × 512 列 = 65536 样本/组
+    cols = np.array_split(np.arange(nx), ncol)
+    rows = []
+    for c in cols:
+        v_meas = 0.5 * float(np.var(d[:, c], ddof=1))
+        sky_e_local = float(np.mean(closed[:, c])) * t      # 解析局部电平（独立闭式）
+        v_pred = NM.predicted_variance_adu2(src_e=0.0, sky_e=sky_e_local, dark_e=0.0, det=det)
+        rows.append({"x_center": float(np.mean(c)), "sky_e_local_analytic": sky_e_local,
+                     "var_meas": v_meas, "var_pred": v_pred, "rel_dev": v_meas / v_pred - 1.0,
+                     "n_samples": int(d[:, c].size)})
+    vs = [r["var_meas"] for r in rows]
+    lv = [r["sky_e_local_analytic"] for r in rows]
+    mono = all((lv[i + 1] - lv[i]) * (vs[i + 1] - vs[i]) > 0.0 for i in range(len(vs) - 1))
+    max_rel = max(abs(r["rel_dev"]) for r in rows)
+    out["gradient_enters_poisson"] = {
+        "columns": rows,
+        "var_follows_local_sky_level": bool(mono),
+        "max_abs_rel_dev_vs_pred": max_rel,
+        "sky_e_local_span": [float(min(lv)), float(max(lv))],
+        "criterion": "逐列方差与解析局部天光电平**同向单调**（相邻差乘积 > 0），"
+                     "且闭合到 predicted_variance_adu2 的 5% 以内",
+        "verdict": bool(mono and max_rel < 0.05),
+    }
+    out["verdict"] = bool(out["surface_construction_fidelity"]["verdict"]
+                          and out["gradient_enters_poisson"]["verdict"])
+    return out
+
+
+def test_C6_photon_first_moment_closure(n_pix: int, t: float) -> Dict[str, Any]:
+    """C6 —— **光子一阶矩闭合**（绝对口径）：采样出来的电子数均值必须 = 解析期望光子数。
+
+    G08-04 整改 R2（补全局泊松增益盲区）：复核实测 ``n_e = 1.01 * Poisson(lam)``
+    （等效整体量子效率错 1%）在**全部 17 个用例上全绿**。机理：C1 用 ``lam≡0``
+    完全不经过泊松；C4(a)(b) 走 ``MODE_MEAN_ONLY`` 跳过泊松；C4(c) 的 m² 比值对
+    同乘缩放不变；唯一能看见绝对光子上限的 A2 生产臂与 C5(b) 闭合都吃 5% 容差
+    ⇒ 存在 **≤2.5% 的全局泊松增益盲区**（``1.06x`` 才判红）。
+
+    为什么只有**一阶矩**能看见它：把泊松抽样整体乘 k（``n_e = k*Poisson(lam)``）时
+    ``E[n_e] = k*lam``、``Var[n_e] = k*lam``，**Var/E ≡ 1** 恒成立 ⇒ 任何纯方差类
+    判据（比值、闭合、二阶矩对预测）在数学上都看不见 k。唯一不变量是**均值本身**：
+    它必须等于 ``lam_e = t*(src + sky)*m + t*D(T)`` 这个**独立解析期望**。
+
+    两段判据（期望值全部由测试端按入参现场算出，**不取自生产返回值**）：
+      (a) 一阶矩：``mean[(adu - bias)*g]`` 闭合到 ``t*(src+sky) + t*D_ref``（< 0.2%）。
+          这是能看见全局泊松增益的那一条；``k=1.01`` ⇒ 偏差 1% ⇒ 判红。
+      (b) 二阶矩：``Var[(adu - bias)*g]`` 闭合到 ``lam + sigma_R^2``（泊松的 Var=E
+          是散粒噪声的定义式）。容差按 MC 统计误差给：``max(0.002, 5*sqrt(2/N))``。
+      (c) 温度暗电流：``provenance`` 自报的 ``dark_current_e_per_s_used`` 必须等于
+          参考温度下的 ``dark_current_e_per_s``（位精确）。
+    """
+    det = _det(dark_current_e_per_s=0.05, quantize=False, saturate=False)
+    g = det.gain_e_per_adu
+    src = np.zeros(n_pix)
+    rows = []
+    for B in (1.0, 30.0, 300.0):
+        sky = np.full(n_pix, float(B))
+        f = NM.expose(src_e_per_s=src, sky_e_per_s=sky, det=det, exptime_s=t,
+                      rng=np.random.default_rng(9100 + int(B)), temp_c=det.dark_ref_temp_c)
+        n_meas = (f.adu - det.bias_adu) * g                  # 回到电子域（未量化、未钳位）
+        # --- 独立解析期望（测试端）：m ≡ 1（flat=None）、T ≡ T_ref ⇒ D = D_ref ---
+        lam_expect = float(t) * (0.0 + float(B)) + float(t) * det.dark_current_e_per_s
+        mean_meas = float(np.mean(n_meas))
+        var_meas = float(np.var(n_meas, ddof=1))
+        var_expect = lam_expect + det.read_noise_e ** 2
+        rows.append({
+            "sky_e_per_s": float(B), "n_pix": int(n_meas.size),
+            "lam_expect_e": lam_expect,
+            "mean_meas_e": mean_meas,
+            "rel_dev_first_moment": abs(mean_meas - lam_expect) / lam_expect,
+            "var_meas_e2": var_meas, "var_expect_e2": var_expect,
+            "rel_dev_second_moment": abs(var_meas - var_expect) / var_expect,
+            "mc_1sigma_first_moment": math.sqrt(var_expect) / (math.sqrt(n_meas.size) * lam_expect),
+            "mc_1sigma_second_moment": math.sqrt(2.0 / max(int(n_meas.size) - 1, 1)),
+            "dark_used_e_per_s": float(f.provenance["dark_current_e_per_s_used"]),
+            "dark_ref_e_per_s": float(det.dark_current_e_per_s),
+            "dark_bit_exact": bool(f.provenance["dark_current_e_per_s_used"]
+                                   == det.dark_current_e_per_s),
+            "mode_physical": bool(f.provenance.get("physical", False)),
+        })
+    max_first = max(r["rel_dev_first_moment"] for r in rows)
+    max_second = max(r["rel_dev_second_moment"] for r in rows)
+    tol_first = 2.0e-3
+    tol_second = max(2.0e-3, 5.0 * math.sqrt(2.0 / max(int(n_pix) - 1, 1)))
+    return {
+        "name": "C6_photon_first_moment_closure",
+        "production_call": "NM.expose (mode=physical, flat=None, quantize/saturate off)",
+        "detector": det.as_dict(), "exptime_s": t, "levels": rows,
+        "max_abs_rel_dev_first_moment": max_first,
+        "max_abs_rel_dev_second_moment": max_second,
+        "tol_first_moment": tol_first,
+        "tol_second_moment": tol_second,
+        "tol_note": "一阶矩容差固定 0.2%（一阶矩的 MC 误差 ~1/sqrt(N*lam) <= 3.1e-5，"
+                    "余量 60 倍）；二阶矩容差按 MC 统计误差给 max(0.002, 5*sqrt(2/N))，"
+                    "因为 Var=E 本身的估计量就有 sqrt(2/N) 的散布。",
+        "why_first_moment": "全局乘性增益 k 作用在抽样上时 E=k*lam 且 Var=k*lam，"
+                            "Var/E ≡ 1 ⇒ 二阶矩类判据在数学上**不可能**看见 k；"
+                            "只有与独立解析期望 lam_e 的**一阶矩**闭合能看见。",
+        "verdict": bool(max_first < tol_first and max_second < tol_second
+                        and all(r["dark_bit_exact"] and r["mode_physical"] for r in rows)),
+    }
+
+
+# ===========================================================================
 # 4. 驱动
 # ===========================================================================
 def run_all(quick: bool = False, verbose: bool = True) -> Dict[str, Any]:
@@ -756,6 +1256,14 @@ def run_all(quick: bool = False, verbose: bool = True) -> Dict[str, Any]:
         "suite": "P7-noise-selftest",
         "independent_rng": "SplitMix64 + Box-Muller + Knuth/PTRS (自实现, 不用 numpy 分布采样器)",
         "quick": bool(quick),
+        "series_note": (
+            "A/B 系列 = 独立臂，验**方法**（分布/口径），不经过生产代码；"
+            "C 系列 = 生产臂，直接调 NM.expose / NM.sky_surface_e_per_s，验**代码**。"
+            "G08-04 整改 T1：原 12 个用例中仅 A2 调用生产实现且判词只取独立臂，"
+            "对生产代码零判别力；C 系列补该缺口。"
+            "G08-04 整改 R2：新增 C6（光子一阶矩闭合），补上「全局泊松增益 ≤2.5% 全绿」"
+            "这一盲区——乘性增益 k 使 Var/E ≡ 1，只有与独立解析期望的**一阶矩**闭合能看见。"
+            "现存用例数：12（A/B）+ 6（C1–C6）= 18。"),
         "tests": {},
     }
     tests = [
@@ -771,6 +1279,13 @@ def run_all(quick: bool = False, verbose: bool = True) -> Dict[str, Any]:
         ("B2", lambda: test_B2_additive_sky_effect_present(det, t)),
         ("B3", lambda: test_B3_buggy_sky_injection(det, t)),
         ("B4", lambda: test_B4_additive_sky_gradient_null(det, t)),
+        # --- C 系列：生产面判据（直接调用生产实现） ---
+        ("C1", lambda: test_C1_read_noise_production(n_pix, det)),
+        ("C2", lambda: test_C2_quantization_production(n_pix, det, t)),
+        ("C3", lambda: test_C3_saturation_production(det)),
+        ("C4", lambda: test_C4_source_flat_production(n_pix, det, t)),
+        ("C5", lambda: test_C5_sky_gradient_production(n_pix, det, t)),
+        ("C6", lambda: test_C6_photon_first_moment_closure(n_pix, t)),
     ]
     for key, fn in tests:
         ts = time.time()
