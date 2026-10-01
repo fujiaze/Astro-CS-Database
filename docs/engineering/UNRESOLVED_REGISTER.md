@@ -2542,3 +2542,117 @@ G08-06 悬空引用车道当时写的 `docs/detail/registry/astrocs.phaseN.*` �
 
 车道复算 `Var(1.4826·MAD) = 1.3612σ²/N` ⇒ **1.166 为准**；
 `NOISE_MODEL` 那个 1.152 是把中位数方差又乘了一次 `√(π/2)=1.2533` 造成的二次计数。
+
+---
+
+## 54. 第三轮补读（补车道自报的最大空洞）：三条硬结论
+
+### 54.1 坐标系列表 `CoordinateFrame::ICRS` 被用了两种不兼容含义（车道 23 裁定，前台点名）
+
+`lib/include/acsd/core/artifact.h:54-55` 只有一行枚举：
+`PIXEL=0, ICRS=1, CONTROL_CELL=2, HEALPIX=3`，**没有任何字面定义**。
+
+按 `module_ports.registry.json` 的 `unit` + `shape_hint` 列把标 ICRS 的条目劈开：
+
+| DATA ID | unit | shape_hint | 按「赤道天球」读 |
+|---|---|---|---|
+| `DATA-P1-WCS` | DIMENSIONLESS | `[1]` | ✅ WCS 解 |
+| `DATA-P3-WCS` | **DEGREE** | `[1]` | ✅ RA/Dec |
+| `DATA-P3-WRITER` | DIMENSIONLESS | `n/a` | ⚠ 勉强（产品元数据） |
+| `DATA-P1-SOURCES` | DIMENSIONLESS | `[N,2]` | ❓ **二义**（可读 RA/Dec 也可读 x,y） |
+| `DATA-P1-FLUX` / `-SNR` | ADU / DIMENSIONLESS | `[N]` | ❌ **不成立**（一维向量没有坐标系） |
+| `DATA-P1-PHOTSCALE-001` | DIMENSIONLESS | `n/a` | ❌ **不成立** |
+
+⇒ 第二车道报的「8 处坐标系/unit 错」**多数不是词表歧义，是同一个 `ICRS` 值被贴到了
+本来不该有坐标系的数据上**。
+
+**尖锐点（前台待查）**：`pipeline.cpp:288-292` 显示 `coordinate` 是**机器强制**的
+（生产者/消费者不一致即 `COORDINATE_MISMATCH`，`runtime.cpp:142-149` 对非 NONE issue 硬失败）。
+那上一车道报的那些错配**为什么没有让 874/874 的构建或静态校验亮红？**
+两种可能：(a) 那些端口在图上并未连通；
+(b) C++ descriptor 的 `coordinate` 字段与 registry 的值**并非同一来源**，机器强制的是前者。
+**这决定 8 处里几处是真错。**
+
+### 54.2 两份 FROZEN 正本在 `ivar==0` 的落盘编码上互斥（车道 5，待裁定）
+
+见 §53.6 ①。**直接决定 `TEST-P3-UNC-DESIGN-001` 的 W4/W4' 两条负向门各是绿是红。**
+
+### 54.3 文献对读（车道 17）推翻了三条承重引用
+
+唯一 DOI 150（解析 149，唯一 404 是本仓已弃用的）、arXiv 54 全解析；
+语义层逐条取一手原文。**文献不存在 0 条，但「内容不符」42 条、「适用域写宽」18 条。**
+
+三条落在创新点主链上：
+
+1. **`δ=1.345` 的文献锚错**（P0）：`PLATESOLVE.md:191`、`PHASE2_SESSION.md:130`、
+   `PHASE2_UPM.md:167` 都归给 **Huber 1964**，但该文 29 页全文 OCR 中 **`1.345` 命中 0 次、
+   全文无 95% 效率表述**；唯一 k 建议是 "any value between 1.0 and 2.0"。
+   ⇒ 正确锚是 **Coleman, Holland, Kaden, Klema & Peters (1980), ACM TOMS 6(3):327–336**
+   （可公开核验："Huber H = 1.345" + "95 percent asymptotic efficiency"）。
+2. **`−26.4899` 被错误降级**：`PHOTOMETRY.md:302` 登记为「出处待补、不得当一手引用」，
+   实为 **ESA Gaia DR3 §5.4.1 Table 5.5 `S_ZP_VEG(G) = −26.48986`** 的 4 位舍入
+   （HTTP 200 / 121,601 字符实取）。该值是 `F_syn` 绝对刻度验证的**唯一承重零点**。
+3. **P2「跨帧绝对 SNR」的定义挂在不含它的引用上**：`SNR_F = F/σ_F` 归给 **Horne 1986**，
+   而该文 9 页全文 `S/N`、`SNR` token **命中 0 次**；正确锚是 **Naylor 1998**（式 9/10/12）。
+   波及 `CONTROL_WEIGHT_SNR.md:81`、`GATES_AND_TOLERANCES.md:36`。
+   ⇒ **P2 是本项目的核心创新点之一，它的定义目前挂错文献。**
+
+另：**Aitken 1935 不含反方差加权结果**（合卷 OCR 全文 10,255 字符，
+`inverse variance`/`unbiased`/`best linear`/`Gauss`/`Markov`/`covariance` **各 0 次**，
+它给的是 graduation 算子）；但仓内「取 1935 而非 1936」**是对的**（原文末行逐字
+"Issued separately March 6, 1935"）。
+
+### 54.4 ACR 测试面：唯一做到 100% 覆盖的车道（车道 21）
+
+28 份 cpp / 10,024 行 / **387 个 TEST**，逐行读完一份未跳。
+恒真 5、恒红 **0**、自证式 3、空壳/硬编码 PASS 4、名义判据 12。
+
+**执行面**：默认配置下 **346/387 = 89.4% 真会执行**；
+**产品构建 0%**（根 CMakeLists 从不 `add_subdirectory` ACR，`ACSD_ENABLE_ACR` 声明后从未被消费）。
+
+**对三条 HIGH 的可测性回答**：
+- **HIGH1**（`runtime.cpp:653` 合取导致失败转成功）—— **无任何测试能抓到**：
+  唯一走 Event 失败路径的 `api.cpp:277-283` 在无 GPU 进程里走 CPU 分支，永不进 `:653`；
+  「all_done=false 且 failed_chunks=0」这个组合**从未被构造**。
+- **HIGH2**（`dispatcher.cpp:1536-1660` 泄漏 + 无超时等待 ⇒ `join()` 永不返回）——
+  **无任何测试能抓到**：入口需 `backend_type()` 前缀 cuda，而本目录预算用例的 `cfg.devices`
+  全是单 CPU ⇒ 分支不可达。
+  ⚠ 补测试时注意：这是三条里唯一「缺陷发作 = **挂死**而非变红」的，必须自带看门狗。
+- **HIGH3**（`dispatcher.cpp:2472` 证据伪造）—— **仅部分覆盖**，
+  且 `dispatcher_bdr.cpp:395` 的期望值与生产表达式**同源** ⇒ 改成决策的字面复制照样通过。
+
+**正面基线（整改时须保留）**：`resource_control.cpp:149-154` 显式记录 hook 全仓生产调用点为 0
+并据此补「生产真实形态」用例 —— 这是对 HIGH3 的直接防御写法；
+`runtime_shutdown_reduce_concurrency.cpp:85-86/105-106` 显式反空转守卫
+（与 `tests/classic/e16:93` 正好相反）。
+
+### 54.5 判据专线批次 2（车道 22）：**推翻车道 15「恒红 0 条」的结论**
+
+34 个文件里找到 **恒红 2 条**，而车道 15 曾判「恒红 0 条」并称恒红是漏检风险最高的长尾类：
+
+1. **恒红** `eng/tests/glossary/test_glossary.py:6-8` —— 导入期加载 `eng/tools/check_glossary.py`，
+   该文件已被 `e5f589a6`（G08-01 物理删除旧门禁与 CI）删除且未被 git 跟踪
+   ⇒ **5 条测试在导入期整体报错，永不可能运行**；
+   它守的 `GLOSSARY.md` 别名词表契约门已随之失效。
+2. **恒红** `lib/infrastructure/aio/tests/hips_mapping_oracle.py:30` ——
+   `_HERE = Path(__file__)` 而全文无 `from pathlib import Path` ⇒ `NameError`。
+   这是 HiPS tile 排列对 CDS Hipsgen 外部标准的**最后一道外部对照**。
+
+⇒ 按此外推，剩余 1,146 个未读文件里可能还有数十条恒红。
+
+**并加强了对车道 15 的修正**：判别力缺失**不是文件级属性而是判据级属性** ——
+`test_glossary.py` 的 test_02/03/04/05 全是合格负例注入（质量最高之一），
+而**同一文件的 test_01 是自证式恒真**。故处方不能停在「把样板推广到文件」，**必须落到逐条判据**。
+
+### 54.6 两套 kernel 注册表的最终定性（车道 12，推翻前台两次表述）
+
+前台先后说过「互不引用」与「5 条指向同一 dispatch」，**两次都不准**。准确表述：
+
+- **不是互不引用，但只交叉了一半**：唯一代码级 join 是
+  `profile_gen_v2.cpp:539-546` 的 backend 表 ↔ profile 规格；
+  **backend 表（`acsd_kernel_entry_v1`）与 provider 表（`acsd_kernel_desc_v1`）零交叉**。
+- **backend 表 12/12 条全部指向同一 `&kernel_dispatch`**（不是 5 条），靠 `params.op` 二次分发
+  ⇒ **注册表对调用方不携带任何 kernel 身份**，12 条记录的差异只在 sci_id/精度/确定性三个元数据。
+- **同一组 12 个 kernel 身份在仓内存在 4 处**
+  （backend `.inc` / provider `.cpp` / `profile_gen_v2 kSpecs` / `gen_provider_manifests.py KERNEL_TABLE`），
+  **只有一处有真实 join**，其余靠人工同步。
