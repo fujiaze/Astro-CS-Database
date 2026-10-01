@@ -3875,3 +3875,45 @@ validator 验证的是「文件是否声称自己可信」，**不是「这个�
 没有一个问题是「同一件事在文档与代码里是否都执行了同一个裁决」。
 
 ⇒ **这就是「遍」与「题」的区别。**
+
+---
+
+## 76. G08-01 第 3 步已执行：悬空门禁引用 **46 → 1 处**；但连带查出 **19 条同类悬空**
+
+### 76.1 第 3 步结果（车道执行，前台已核）
+
+清点 **66 处 / 26 文件**，判定 **A 口径吸收 34 / B 该判据作废 6 / C 历史叙事 5 / A 挂起 1**。
+改了 **24 份文件**，消除 41 处命中。
+
+前台复核：两个 JSON `JSON.parse` 通过；悬空门禁引用从 46 处降到 **1 处**
+（剩余 1 处是 `TOOLCHAIN_AGENT_HOST.md:61`，该车道判 C 但判为「整份是主机快照，
+四处主语就是被删文件，单删会残句，正确处置是整份退役/降级，超出本步授权」）。
+
+### 76.2 连带查出：`doc_symbol_namespaces.json` 的 41 条 `evidence` 里 **19 条指向不存在的文件**
+
+前台逐条 `test -f` + 行号校验，19 条不合格，分布在：
+
+- `docs/algorithms/anchors/anchor_contract.json:188/:212`
+- `docs/algorithms/anchors/check_doc_line_anchors.py:66/:75/:79/:82`
+- `docs/algorithms/anchors/unresolved_registry.json:23`
+- `docs/engineering/ERROR_MODEL.md:21/:22`
+- `docs/standards/checks/check_standards_registry.py:63/:108/:581`
+- `eng/tools/acceptance/tier_verdict_gate.py:41/:53`
+- `eng/tools/quality/check_module_map.py:106/:107`
+- `eng/tools/quality/check_p3_rejection_count.py:157`
+- `eng/tools/traceability/check_traceability_matrix.py:9/:1019`
+
+**归属（前台核实）**：逐个回 `git show adb97eb8~1:<path>` 确认 ——
+**这 9 个文件在改动前就不在树上**，即全部是 **G08-01 / G08-03 遗留的悬空**，
+**不是第 3 步车道引入的**。
+
+⇒ **但第 3 步车道把 `eng/ci/*` 转成了这些同样悬空的路径** —— 它换了载体，
+**却没发现新载体同样不存在**。这说明第 3 步的 A 类转换缺少「目标路径必须存在」这道自检。
+
+### 76.3 前台自陈：又一次「先提交后核」
+
+车道改动被我的 `git add -A -- docs/` 一并提交，**提交后才核**。这是本会话第二次。
+（第一次是深读车道的路径订正。）
+
+⇒ **执行纪律补充**：凡是子代理改了受版本控制的文件，
+**必须先 `git diff` 逐条看过再 `git add`**，不许用 `git add -A` 连带提交。
