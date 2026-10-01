@@ -28,7 +28,7 @@
 ### 1.1 C ABI 动态装载通道（未启用面声明）
 
 本节声明**未启用面**（不是能力宣称），判据门 = `CHK-PROD-WIRING`
-（`eng/ci/check_prod_wiring.py`）的 `W6 plugin_entry_unreachable` 与
+（注册面见 门禁注册面（G08-10 重建））的 `W6 plugin_entry_unreachable` 与
 `W1 declared_unreachable:manifest.entrypoint / integration.{op_entry,unique_entry}`。
 
 - **声明事实**：`acsd_registry_open_v1`（`lib/infrastructure/pipeline/module_loader/module_registry.c`）

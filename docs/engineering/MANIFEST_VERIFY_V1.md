@@ -18,7 +18,7 @@
 ```
 
 validate 校验序(错误码确定, 不猜测): JSON 语法(3)→顶层对象+schema_version=="1"(3)→inputs 四键存在且为字符串数组、路径非空且文件存在(3)→output_dir 存在(3)。已知键白名单外键→3(防拼写静默忽略)。schema_version≠"1"→2(参数/配置错, 与输入缺失区分)。
-cpu profile(独立文件): **契约唯一源 = `eng/contracts/schemas/cpu_profile.schema.json`**（CFG-001 单文件双分支：legacy_v1 `schema_version=1` + profile_v2 `schema=acsd.cpu-profile/v2`；`x-acsd-writer` 声明生产者仅 `benchmark`）；校验 oracle = `eng/tools/validate_cpu_profile.py`（schema 最小校验 + stale 判定，消费面 `eng/tests/backend/test_cpu_profile.py`）；无/失配 profile → 回落 generic(baseline) + 动态多线程，不阻塞（`profile_store.h`）。CLI 侧运行时校验入口 `lib/infrastructure/cli/parser.cpp`（`validate_cpu_profile`）当前无生产调用方——消费链接线缺口已在死键台账（`eng/ci/ledgers/dead_config_keys.json`）与开放项清单登记在案，处置排期随该登记推进。
+cpu profile(独立文件): **契约唯一源 = `eng/contracts/schemas/cpu_profile.schema.json`**（CFG-001 单文件双分支：legacy_v1 `schema_version=1` + profile_v2 `schema=acsd.cpu-profile/v2`；`x-acsd-writer` 声明生产者仅 `benchmark`）；校验 oracle = `eng/tools/validate_cpu_profile.py`（schema 最小校验 + stale 判定，消费面 `eng/tests/backend/test_cpu_profile.py`）；无/失配 profile → 回落 generic(baseline) + 动态多线程，不阻塞（`profile_store.h`）。CLI 侧运行时校验入口 `lib/infrastructure/cli/parser.cpp`（`validate_cpu_profile`）当前无生产调用方——消费链接线缺口已在死键台账（`eng/contracts/ledgers/dead_config_keys.json`）与开放项清单登记在案，处置排期随该登记推进。
 
 ## 2 run_manifest.json v1(run 结束原子写, ARCH-002 §5)
 
@@ -75,8 +75,9 @@ cpu profile(独立文件): **契约唯一源 = `eng/contracts/schemas/cpu_profil
 （本文件只登记键的存在与归属，不复写字段）；**唯一机器事实源** =
 `eng/contracts/schemas/hips_storage_form.schema.json` 的 `$defs.manifest_storage`；CFG-001
 `eng/contracts/schemas/run_manifest.schema.json` 只登记该键位与类型。
-缺失 ⇒ 无形态事实（**不判红**）；出现 ⇒ 必须逐条满足 M1..M4（`eng/ci/check_run_manifest_schema.py`
-的 `REGISTERED_ADDITIVE` 已登记）。**产品级**完成 manifest（`products/{user_path}/manifest.json`）
+缺失 ⇒ 无形态事实（**不判红**）；出现 ⇒ 必须逐条满足 M1..M4（运行清单 schema 校验项的加性键
+白名单须已登记 `storage`；注册面见 门禁注册面（G08-10 重建））。**产品级**完成 manifest
+（`products/{user_path}/manifest.json`）
 **不承载**该键——其形态事实只在 `tree`/`tree_hash`/`fitsverify` 三项
 （`docs/engineering/io/IO_003_ATOMIC_OUTPUT_PUBLISH.md` §5）。
 

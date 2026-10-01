@@ -9,7 +9,7 @@
 | 事件 | 范围 | 说明 |
 |---|---|---|
 | 本地 / agent 默认运行 | `changed`（增量） | 无参数即增量：只跑与改动集相交的检查 |
-| `push` 到 `main` | profile 全档 | 合并后整档全量：`ci-linux.yml` 跑 `python3 eng/ci/run.py --profile linux-main`、`ci-windows.yml` 跑 `--profile windows-main`，杜绝"增量假绿"进入 main |
+| `push` 到 `main` | profile 全档 | 合并后整档全量：`ci-linux.yml` 跑 `linux-main` profile、`ci-windows.yml` 跑 `windows-main` profile（profile → 检查集映射见 门禁注册面（G08-10 重建）），杜绝"增量假绿"进入 main |
 | `workflow_dispatch` | 手动 | `ci-linux.yml` 提供 `profile` 选择（`linux-main` / `linux-deep`，默认 `linux-main`）；`ci-windows.yml` 固定 `windows-main` |
 | `schedule` | 每日一次全档 | `ci-linux.yml` cron `17 19 * * *`（UTC）复跑整档，兜底无提交日 |
 | 提交前（本地 / agent） | `fast` + `integration` 两档 | `fast` 只含秒级一致性门；真起子进程 / 真跑 CLI / 真实测量窗的步骤在 `integration` 档，**必须另跑** |
@@ -21,8 +21,8 @@
 
 ## 2. Job 结构
 
-两平台各一个独立 workflow、各一个 job，无 `needs` 依赖链；检查项的编排由
-`eng/ci/run.py --profile <profile>` 在 job 内完成（profile → 检查集见 门禁注册面（G08-10 重建））。
+两平台各一个独立 workflow、各一个 job，无 `needs` 依赖链；检查项的编排按 `<profile>`
+在 job 内完成（profile → 检查集见 门禁注册面（G08-10 重建））。
 
 | Workflow | Job（依赖） | 内容 | 证据锚 |
 |---|---|---|---|

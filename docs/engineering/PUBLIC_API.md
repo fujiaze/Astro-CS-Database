@@ -10,7 +10,7 @@
   供同库其它入口、诊断工具、契约/Oracle 测试与下游消费；声明本身不构成「三个生产命令
   （`cmd_session{1,2,3}_run`）在运行期必然调用该符号」的承诺；生产路径使用 `*_ex` /
   `*_v1` / `*_wcs` 等变体入口时，裸名声明仍在合同面内。
-- **零消费者声明的处置**：`eng/ci/ledgers/prod_wiring.json` 中的豁免项以「具名在仓消费者 +
+- **零消费者声明的处置**：生产接线台账中的豁免项以「具名在仓消费者 +
   具名退出条件」为门槛，不满足门槛的符号只能接线或撤下声明。
 - **消费者名册**：① 本模块诊断/工具面（`lib/algorithms/coverage/tools/stage2.cpp`、
   `rejection_cli.cpp`、`tests/synthetic_gate.cpp`、`tests/sanitize_driver.cpp`）；

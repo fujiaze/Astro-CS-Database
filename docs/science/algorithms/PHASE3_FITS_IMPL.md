@@ -418,10 +418,8 @@ function p3_output_verify(path, wcs, signal, coverage, W, H, out result):
   / `docs/traceability/TRACEABILITY_MATRIX.csv` 的 P3-FITS 行）；合同落位=lib/algorithms/fits_output/ 三件套 + 本文件
   + DATA_SEMANTICS §27 + PUBLIC_API API-P3-FITS-001 节 + registry
   手写页 + docs/detail/phase3_fits.md。
-- 零改动声明：docs/science/（SCI-P3 FROZEN）、docs/science/algorithms/
-  PHASE3_RESAMPLE.md（公式/容差零改动）、lib/ 生产源、third_party/
-  cfitsio、eng/ci/、eng/tools/、eng/tests/ 本任务零触碰；发现的实现偏差全部
-  登记（§14）不反向修改 SCI（模板红线）。
+- 冻结红线：SCI-P3 冻结面（`docs/science/`、`PHASE3_RESAMPLE.md` 的公式与容差）
+  不得因实现偏差被反向修改；实现偏差一律登记（§14）不改 SCI。
 
 ## 参考文献与参考代码库（含许可证）
 

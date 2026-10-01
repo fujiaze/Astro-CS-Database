@@ -84,7 +84,7 @@ avx512 = `avx512f|avx512bw|avx512dq|avx512vl` = 928（声明集 ⊊ 编译所需
   且已被 `UT-CPU-BASELINE / UT-CPU-AVX2 / UT-CPU-AVX512` 覆盖，此前只是**未进构建目标**
   （`CHK-RETIRED-CODE` R4 把它列为未引用）⇒ 按裁决「属安装树分发的 ISA provider 集则必须入图」，
   本轮补入构建目标 + 清单校验 + 安装树登记，**不退役**（退役会删掉活的 CI 覆盖面并与 CPU 文档冲突）。
-- **校验**：`eng/ci/check_provider_manifests.py`（`CHK-PROVIDER-MANIFESTS`）逐条校验清单自洽、
+- **校验**：`CHK-PROVIDER-MANIFESTS`（注册面见 门禁注册面（G08-10 重建））逐条校验清单自洽、
   实测 sha256、声明的入口符号**确实可由 dlopen 解析**、`providers/*.so|*.dll` 与清单条目一一对应
   （游离或双登记判红）、能力位与 `features_defined` 一致；配 `--self-test`（5 红 1 绿）作负例面。
 - **隔离**：两族都在 `acsd` 链接闭包之外（`check_isa_leak.py` 的报错面不变）；主程序保持基线指令集。

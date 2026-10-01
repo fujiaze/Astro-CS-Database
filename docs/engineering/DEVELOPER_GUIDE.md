@@ -21,9 +21,10 @@ ctest --test-dir build --output-on-failure
 
 ```bash
 ctest --test-dir build -R <target> --output-on-failure      # 单个矩阵
-python3 eng/ci/run_checks.py --check CHK-ORACLE --quiet     # 科学 Oracle 面
-python3 eng/ci/run_checks.py --check CHK-INVARIANT --quiet  # 科学不变量面
 ```
+
+科学 Oracle 面（`CHK-ORACLE`）与科学不变量面（`CHK-INVARIANT`）按门 ID 注册执行，
+执行入口随 门禁注册面（G08-10 重建） 落盘。
 
 ## 编码与提交
 

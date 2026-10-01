@@ -24,7 +24,7 @@
   `git rev-parse HEAD` 采样一次（`CMakeLists.txt`）。Ninja 的 `RERUN_CMAKE` 规则只依赖 CMake 输入，
   **不含任何 `.cpp/.h`** ⇒ 改源码不重跑 configure ⇒ 二进制里编进去的是新代码，记录里留的是 configure
   时刻的 SHA。故 `run_context.json` / `provenance` 的 `source_sha` **只表示 configure 时刻的 HEAD，
-  不是构建指纹**；两份产物的 `source_sha` 相等**不蕴含**同一二进制。验证面 = `eng/ci/check_build_provenance.py`。
+  不是构建指纹**；两份产物的 `source_sha` 相等**不蕴含**同一二进制。验证面 = 构建溯源判据（本节「机器判据」条；注册面见 门禁注册面（G08-10 重建））。
 - **构建指纹**（判「同一代码 / 同一二进制」的唯一依据）由 `eng/tools/gen_build_stamp.py`
   在**构建期**采样、经 `build_stamp_generated.h` 烙进产物，随 `run_context.json` 与
   `run_manifest.provenance` 落盘：
@@ -41,7 +41,7 @@
 - **代价约束**：指纹只由 `git ls-files` 给出的显式清单 + 改动文件的对象 id 决定
   （干净工作树零读盘，判据 = 指纹计算只用显式清单；耗时读数落 `实验/engineering-evidence/`）；生成头内容不变时不落盘，故不触发下游重编译；
   生成头只被一个 TU（`build_stamp.cpp`）消费，指纹变化的重编译面 = 1 个小 TU。
-- **机器判据**：`eng/ci/check_build_provenance.py` —— 记录指纹 ≠ 当前工作树重算 ⇒
+- **机器判据**（`CHK-BUILD-PROVENANCE`，注册面见 门禁注册面（G08-10 重建））—— 记录指纹 ≠ 当前工作树重算 ⇒
   具名判红（`SOURCE_DIGEST_MISMATCH`，有构建树逐文件清单时精确点名差异文件）；
   产物缺指纹 ⇒ `BUILD_STAMP_ANCHOR_MISSING`（rc=2，**不可锚定 ≠ 通过**）。
 
@@ -51,7 +51,7 @@
 |---|---|---|
 | CLI `--version`/`--version --json` | 构建期由 gen_version 注入 | schema 校验 + DOCCHK |
 | alpha 包名/清单 | 打包脚本必须调用 gen_version | 打包校验器 |
-| run_manifest.json | 运行期调 gen_version | 运行清单 schema 校验器（`eng/ci/check_run_manifest_schema.py`） |
+| run_manifest.json | 运行期调 gen_version | 运行清单 schema 校验器（门禁注册面（G08-10 重建）） |
 | run_manifest.provenance / run_context.json 的构建指纹 | 构建期由 gen_build_stamp.py 烙入（§2.1） | CHK-BUILD-PROVENANCE |
 | 文档 | 只允许出现当前基础号 | 本 checker |
 

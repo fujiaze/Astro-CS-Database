@@ -10,7 +10,7 @@
 
 ## 1 生产构建图（生产入口的传递闭包）
 
-生产入口取自 eng/ci/spec_named_impls.json 的 production_entry。下表 = 该入口沿
+生产入口取自规范点名实现登记表的 production_entry。下表 = 该入口沿
 target_link_libraries 的传递闭包内的全部 target；唯一事实源 = 根 CMakeLists.txt
 沿未注释 add_subdirectory 递归。src_fingerprint = 该 target 源集（排序后逐行连接）的 sha256 前 12 位，4-4-4 分组书写。
 
@@ -117,4 +117,4 @@ target_link_libraries 的传递闭包内的全部 target；唯一事实源 = 根
 
 - 安装树：eng/cmake/install_layout.cmake + eng/packaging/install-tree.contract.json；
 - 执行面登记：docs/architecture/PRODUCTION_EXECUTION_INVENTORY.csv；
-- 规范点名实现的生产可达性：eng/ci/check_spec_named_impl.py。
+- 规范点名实现的生产可达性：规范点名实现必须落在生产入口沿 `target_link_libraries` 的传递闭包内（§1）；封闭性核对随 门禁注册面（G08-10 重建）落盘。

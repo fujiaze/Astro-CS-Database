@@ -175,7 +175,7 @@
           "type": "object",
           "authority": "docs/engineering/HIPS_STORAGE_FORM_CONTRACT.md §10.3（运行完成清单 manifest.json#storage；字段词表与不变式 M1..M4 的唯一正本）",
           "machine_source": "eng/contracts/schemas/hips_storage_form.schema.json#/$defs.manifest_storage",
-          "note": "加性可选键（R-42/P-181）：运行级形态事实，不属本类哈希/版本字段名族，也不承载科学参数；CFG-001 schema 只登记键位与 type:object（不复写字段），真实产出 manifest 的键登记面 = docs/engineering/MANIFEST_VERIFY_V1.md §2.2 + eng/ci/check_run_manifest_schema.py#REGISTERED_ADDITIVE；缺失 ⇒ 不判红"
+          "note": "加性可选键（R-42/P-181）：运行级形态事实，不属本类哈希/版本字段名族，也不承载科学参数；CFG-001 schema 只登记键位与 type:object（不复写字段），真实产出 manifest 的键登记面 = docs/engineering/MANIFEST_VERIFY_V1.md §2.2 + 门禁注册面（G08-10 重建）运行清单 schema 校验项的加性键白名单；缺失 ⇒ 不判红"
         }
       ],
       "forbidden_field_names": [

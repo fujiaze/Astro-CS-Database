@@ -93,7 +93,7 @@ CREATED --(所有声明消费者执行完毕)--> CONSUMED --(调度器回收)-->
 
 ### 7.1 机器判据（注册表 ↔ 管线 IR 的节点序与边保真）
 
-`eng/ci/check_registry_ir_parity.py`（CHK-REGISTRY-IR-PARITY）在模块集合双向一致（P1–P3）之外，
+`CHK-REGISTRY-IR-PARITY`（注册面见 门禁注册面（G08-10 重建））在模块集合双向一致（P1–P3）之外，
 断言管线 IR 与注册表端口图的**序**与**边**一致（C4–C7；**不走台账豁免**——幻边与序错一律按判红处理）：
 
 | 判据 | 内容 |

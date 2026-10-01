@@ -105,7 +105,7 @@
 
 - **指定生产者** = 写出产品集清单的**同一条命令（`mosaic`）的发布步**：在运行输出**根层**写出 `coverage.index.json`，与产品集清单一并**同一次原子发布**（同批、同原子序，见 §9）。
 - **裁决口径不变**：仍**单判据**（本轮只裁 `coverage.index.json` 一项，兄弟面不随之进入白名单）、**不设豁免名单**；`IO_003` §4「发布清单必含 `properties`」**不得放宽**，产品集判定**不得**改为白名单。
-- **现状（2026-09-28）= 未实现（零生产者）**：登记面 = `docs/KNOWN_LIMITATIONS.md` §C 第 49 条 + `eng/ci/ledgers/dead_config_keys.json#dead_config_key:coverage_index`；**不得静默留白**。
+- **未实现（零生产者）**：登记面 = `eng/contracts/ledgers/dead_config_keys.json#dead_config_key:coverage_index` 与 `docs/KNOWN_LIMITATIONS.md` §C 第 49 条；**不得静默留白**。
 - **落地判据（R-47.4）**：该发布路径实现时，须同时提供**正例**（索引存在且同批清单含 `properties`、随清单原子落盘）与**负例**（索引缺失或与清单不同批 ⇒ 判红）并进机器门；在此之前不得声称覆盖索引可用。
 
 ### 4.3 查询语义

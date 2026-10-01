@@ -110,7 +110,7 @@
 
 **事件面登记（`resource` / `resource_gate`）**
 
-`resource_gate`（severity=warning，仅判定为违规时发出）的**冻结必含扩展字段**（五面一致；机器门 = `eng/ci/check_event_field_sets.py`，正本 = `lib/infrastructure/cli/protocol.h::missing_required_extension_v1`）：
+`resource_gate`（severity=warning，仅判定为违规时发出）的**冻结必含扩展字段**（五面一致；正本 = `lib/infrastructure/cli/protocol.h::missing_required_extension_v1`，注册面见 门禁注册面（G08-10 重建））：
 
 | 字段 | 承载事实 |
 |---|---|

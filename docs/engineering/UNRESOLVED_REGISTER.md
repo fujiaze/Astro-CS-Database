@@ -3816,3 +3816,62 @@ validator 验证的是「文件是否声称自己可信」，**不是「这个�
 第 1 轮划分见 `run/GOVERN-08/审核包/审稿/轮次台账.md`。
 **每轮结束时在台账登记：本轮新增发现数、各车道覆盖率、连续零发现轮数。**
 连续三轮为零之前，不得宣布该面收敛。
+
+---
+
+## 75. 第 1 轮首遍就挖出 blocker：§9.73 A44 裁决「键已删除」，但**代码只删了一半**
+
+### 75.1 正本内部的直接矛盾（轮1-片08 报出，前台逐字复核成立）
+
+`docs/science/DATA_SEMANTICS.md:1303-1305`（§20.3 红线）：
+
+> 禁 support 冒充 ivar —— 权重为逐样本 ivar 且 ivar 产品缺失帧 → 默认 rc=7 显式科学错误；
+> **唯一例外 = 显式 legacy 降级键 `legacy_allow_weight_fallback=true`**
+> （降级 support 并 diagnostics 标红，stage2.cpp:792-805），**禁**静默互换。
+
+而**同一份正本**的 `:1217` 写「`legacy_allow_weight_fallback`（键不存在）……**禁用键**」，
+`:3261`、`:3333` 同样写「已按 §9.73 A44 作废」。
+
+⇒ **红线条款给出的唯一例外，本身是一个已作废的键**
+且同一错误在 `:2744-2746` 与 `:2970-2972`（§30.5 冻结门 V2 的负例输入）复现
+⇒ **该回归门的负例输入本身非法 ⇒ 门恒不可达。**
+
+### 75.2 更重的一层：这不是「正本写错」，是**裁决已作出但代码未全删**
+
+前台实测该键在 `docs/` + `lib/` 共 **20 份文件、50 处**出现，分成两派：
+
+**已删派（14 份）** —— 出现即硬拒：
+- `lib/algorithms/coverage/src/stage2_common.cpp:459-467`：`in.contains(...)` 即
+  `return false`，错误文案逐字引 `docs/ACSD_DESIGN.md §3.1:173/:175`
+- `lib/infrastructure/cli/parser.cpp:325`「**已摘除**」
+- `scheduler/src/module_adapters.cpp:11959` 与 `:14045` 两处硬拒
+- `lib/algorithms/coverage/tools/stage2.cpp:785`/`:797-804`：原降级分支已删，
+  ivar 缺失**恒** fail-closed
+
+**仍实现派（3 份）—— 开关本身还活着**：
+- `lib/algorithms/integration/phase2_integrate/include/acsd/weight_chain.h:342`
+  `bool legacy_allow_weight_fallback = false;`　← **字段还在**
+- `lib/algorithms/integration/phase2_integrate/src/weight_chain.cpp:37`
+  `if (!policy.legacy_allow_weight_fallback) return …`　← **仍在控制实际行为**
+- `…/oracle/weight_chain_oracle.py:256` `if legacy_allow_weight_fallback:`
+- `…/oracle/weight_chain_selfcheck.cpp:633-640` 还把它当**负例 7** 在测
+
+⇒ **Phase2 的权重链仍有一个被裁决作废、却仍在代码里生效的开关。**
+而正本 `:1304` 把这个开关写成红线的「唯一例外」——
+**文档与代码在此互相印证了一个已被裁决作废的东西。**
+
+### 75.3 严重度
+
+`weight_chain.cpp:37` 的分支仍在生效 ⇒ 有人（配置或调用方）一旦置真，
+**support 就能冒充 ivar 进入加权** —— 而这正是 §20.3 红线禁止的行为。
+
+⇒ 裁决 A44 的**执行未完成**：删了配置面的键、删了 orchestrator 的硬拒，
+**没删权重链本体的字段与分支。**
+
+### 75.4 这条证明了什么
+
+第 1 轮**首遍**就挖出这条 blocker。
+而它此前从未被任何一轮登记过 —— 因为前十轮是**十个不同的问题**，
+没有一个问题是「同一件事在文档与代码里是否都执行了同一个裁决」。
+
+⇒ **这就是「遍」与「题」的区别。**
