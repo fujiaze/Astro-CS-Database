@@ -93,6 +93,10 @@ def main() -> int:
     diff = git(["diff", "c0753e33add3022e756c7bb57088414d3acf822f", "HEAD"])
     open(os.path.join(ev, "diff.patch"), "w", encoding="utf-8").write(diff)
 
+    # 下列命令串是 V19R2 审核包的**历史执行记录**，只被写进 exact_commands.csv
+    # （见下方 writerows），从不执行：唯一的 subprocess 是 git()。其中 4 条引用的
+    # 检查器已随 G08-01 门禁删除 —— 保留原样是因为改写即伪造当时的执行记录，
+    # 不是留下可执行的门禁入口。
     cmds = [
         ["git", "fetch", "origin", "refs/pull/1/head"],
         ["git", "checkout", "fix/upm-frame-order"],

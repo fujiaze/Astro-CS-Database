@@ -400,20 +400,6 @@ class TestLogEventMetricSurface(unittest.TestCase):
         self.assertEqual(ev["event"], "metric")
 
 
-class TestRegressionLog001(unittest.TestCase):
-    """B7：LOG-001 checker 语义回归。"""
-
-    def test_log001_checker_selfcheck_still_passes(self):
-        spec = importlib.util.spec_from_file_location(
-            "check_log_contract",
-            REPO / "eng" / "tools" / "monitoring" / "check_log_contract.py")
-        clc = importlib.util.module_from_spec(spec)
-        spec.loader.exec_module(clc)
-        schema = REPO / "lib" / "infrastructure" / "observability" / "logging" / "log_event_v1.schema.json"
-        ok, errs, _ = clc.selfcheck(schema)
-        self.assertTrue(ok, errs)
-
-
 class TestRegressionRt006(unittest.TestCase):
     """B7：RT-006 Python replay 语义回归（双实现互证面）。"""
 

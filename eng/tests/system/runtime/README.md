@@ -32,12 +32,3 @@ eng/tests/system/runtime/；根/公共 CMakeLists 注册由控制器在 W9 之�
 | runtime_contract_negative | 违规注入逐条被检出 |
 | runtime_determinism_positive | 规范归约跨 worker/调度逐字节一致 |
 | runtime_determinism_negative | 共享累积（结合序=调度序）必被检出 |
-
-## 相关工具（eng/tools/quality/）
-
-- runtime_oracle.py —— 独立结构 Oracle（源码/配置静态判定，非自证）。
-- runtime_mutation_driver.py —— 负向 mutation：违反资源门/预算/确定性/CLI 路由必红。
-- determinism_driver.py —— V6 三模式入口 + Phase1/2/3 写盘路径的 taskset 预算逐字节一致回归。
-- ctest_driver.py —— 逐名 CTest 门（目标未注册时清晰 FAIL，不静默通过）。
-- cli_mode_matrix.py —— 真实二进制 CLI 模式路由矩阵。
-- check_runtime_closure.py —— CI 统一入口（closure / cli-mode / resource-gate / mutations / budget）。

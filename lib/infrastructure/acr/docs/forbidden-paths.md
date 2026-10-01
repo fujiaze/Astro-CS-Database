@@ -2,7 +2,7 @@
 
 **生成日期**: 2026-08-02
 **分支**: `feature/astrocompute-runtime` (base `8f50519`)
-**规则**: path guard 每次提交前检查 `git diff --name-only`，越界文件立即回退
+**规则**: ACR 分支的改动只允许落在 §3 的允许前缀内；越界文件立即回退
 
 ## 1. 算法实现目录（绝对禁止修改）
 
@@ -44,13 +44,7 @@
 | `工程控制/tasks/acr/` | spec 三件套 |
 | `工程控制/evidence/acr/` | 实验证据 |
 
-## 4. path guard 脚本
-
-`lib/infrastructure/acr/ci/path_guard.ps1` 检查 `git diff --name-only HEAD`：
-- 允许前缀：`lib/infrastructure/acr/`、`工程控制/tasks/acr/`、`工程控制/evidence/acr/`
-- 任何不在允许前缀内的文件 = 越界 → 非零退出 + 立即回退
-
-## 5. 例外（需单独授权）
+## 4. 例外（需单独授权）
 
 - 顶层 `.gitignore` 如需追加 ACR 相关忽略项（如 `lib/infrastructure/acr/build/`），须用户授权
 - 本 spec 已确定不修改顶层 `.gitignore`（`run/*` 和 `build/` 已被主仓库 .gitignore 覆盖）

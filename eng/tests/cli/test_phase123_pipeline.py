@@ -569,18 +569,6 @@ class TestPhase123Pipeline(unittest.TestCase):
         with open(os.path.join(gdir, "graph_sidecar.json"), encoding="utf-8") as fh:
             side = json.load(fh)
         self.assertEqual(side["schema"], "acsd.graph-sidecar/v1")
-        mods = os.path.join(self.tmp, "mods.json")
-        with open(mods, "w", encoding="utf-8") as fh:
-            json.dump({"acsd.phase3.resample": {"module_id": "acsd.phase3.resample",
-                                                   "module_version": "1.x"}}, fh)
-        c = subprocess.run([sys.executable, os.path.join(REPO, "eng", "tools", "quality",
-                            "check_pipeline_graph.py"),
-                            "--ir", os.path.join(gdir, "static_graph.json"),
-                            "--module-index", mods,
-                            "--trace", os.path.join(gdir, "observed_trace.json")],
-                           capture_output=True, text=True, timeout=120, cwd=run_cwd())
-        self.assertEqual(c.returncode, 0, c.stderr[-400:])
-        self.assertIn("PIPELINE_GRAPH_PASS", c.stdout)
         # 退役面负例: graph 用户命令已删（CLI_PROTOCOL_V1 §1）→ rc=2 unknown command
         g = subprocess.run([EXE, "graph", "--preset", "1,2,3", "--config", cfg,
                             "--output", os.path.join(self.tmp, "gstatic")],

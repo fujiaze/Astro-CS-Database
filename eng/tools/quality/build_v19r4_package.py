@@ -115,6 +115,9 @@ def _legacy_main() -> int:
     # ---- git evidence ----
     write("evidence/git/head.txt", head + "\n")
     write("evidence/git/status.txt", git(["status", "--porcelain"]))
+    # 下列命令串是 V19R4 审核包的**历史执行记录**，只被写进 exact_commands.csv
+    # （见下方 write），从不执行。其中 verify 行末的 eng/tools/docs_machine_consistency.py
+    # 已随 G08-01 门禁删除 —— 保留原样是因为改写即伪造当时的执行记录。
     write("evidence/exact_commands.csv", (
         "phase,command\n"
         "s1,git commit fix(v19r4-s1): Noise default config + per-frame ivar wiring\n"

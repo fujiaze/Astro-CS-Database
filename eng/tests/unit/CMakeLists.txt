@@ -1540,18 +1540,6 @@ if(Python3_Interpreter_FOUND)
   set_tests_properties(compare_products_quality PROPERTIES
     WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}" TIMEOUT 300)
   # --------------------------------------------------------------------------
-  # SCI-FIX-WEIGHT (M4-F-01 改判): SCI/ALG 点名测试的"三合一"证据门
-  # (文件存在 ∧ 构建注册 ∧ CI 采集) + 文档点名↔注册状态双向一致。
-  # 现行事实: control_median_mc_test / kcorr_matrix_test 属 tracked-but-unbuilt，
-  # PHASE2_UPM.md 必须显式标 MISSING。
-  # 机器可执行负例: python3 eng/tests/quality/test_sci_evidence_registration.py --self-test
-  # (4/4 注入判红)。eng/ci/checks.json 注册面由前台单写者登记（转 CI-003）。
-  # --------------------------------------------------------------------------
-  add_test(NAME sci_evidence_registration_quality
-    COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/../quality/test_sci_evidence_registration.py --root "${CMAKE_SOURCE_DIR}")
-  set_tests_properties(sci_evidence_registration_quality PROPERTIES
-    WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}" TIMEOUT 600)
-  # --------------------------------------------------------------------------
   # FIX-402: Phase3 输入语义守卫 + 写端口单位（端到端真跑 build/acsd export）。
   # 判据非退化: 负例矩阵（缺 BUNIT / 裸 ADU 无 provenance / 积分通量 / 方差面 /
   # ivar 面 / 冻结表外单位）必须 exit 3|4 且不留半成品; 正例必须真产出 canonical

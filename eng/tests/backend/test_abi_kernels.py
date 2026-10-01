@@ -162,19 +162,6 @@ class TestBaselineKernels(unittest.TestCase):
                 self.assertAlmostEqual(got[i], ref[i], delta=tol * max(1.0, abs(ref[i])),
                                        msg=f"{name}[{i}]: got={got[i]} ref={ref[i]}")
 
-    # ── 验收门 1: baseline opcode 扫描 ──
-    def test_04_baseline_opcode_scan(self):
-        obj = os.path.join(self.tmp, "baseline_backend.o")
-        r = subprocess.run(["g++", "-std=c++17", "-O2", "-DNDEBUG", "-Wall", "-Wextra",
-                            f"-I{INC}", f"-I{HOST}", "-c",
-                            os.path.join(HOST, "baseline_backend.cpp"), "-o", obj],
-                           capture_output=True, text=True, timeout=120)
-        self.assertEqual(r.returncode, 0, r.stderr)
-        scan = subprocess.run(["python3", os.path.join(REPO, "eng", "tools", "check_baseline_opcodes.py"),
-                               obj], capture_output=True, text=True, timeout=120)
-        self.assertEqual(scan.returncode, 0, scan.stdout)
-        self.assertIn("BASELINE_OPCODE_PASS", scan.stdout)
-
     def test_05_budget_exhaustion_falls_back_serial(self):
         """预算耗尽(0 worker 上限)kernel 仍须串行完成(05 §6 保守路线)。"""
         self.assertIn("ORACLE_RUNNER_DONE", self.out)

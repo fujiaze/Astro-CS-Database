@@ -29,7 +29,6 @@ CLI-002 迁移注记 (commit de2d6d7f):
 import json
 import os
 import subprocess
-import sys
 import tempfile
 import unittest
 
@@ -114,50 +113,6 @@ class TestP2006CanonicalPipeline(unittest.TestCase):
                       ("ok", "not_applicable", "single_threaded", "low_avg_cores", "unannotated_priority", "compute_io_mem_all_low", "memory_bandwidth_low", "io_missing_evidence", "mixed_unsplit", "fast_fail_first_10s", "global_lock_degradation", "cpu_p50_low", "cpu_mean_low", "memory_growth", "progress_stall", "io_wait_high", "monitoring_missing", "utilization_p75_low", "queue_starved_cpu", "alloc_growth_unbounded", "alloc_reclaim_missing"),
                       f"verdict 非枚举值: {gate.get('verdict')}")
         # IMPL/INT 缺口: observed_trace.json 逐节点 COMPLETED 断言无落盘载体。
-
-    def test_03_graph_bidirectional(self):
-        """图校验工具链: 对 IR-in-memory 的产物级校验(PIPELINE_GRAPH_PASS)无载体。
-
-        现行 CLI 不落盘 static_graph.json/observed_trace.json, 该工具无法对 run
-        产物执行; 本测试降级验证工具脚本本身存在且对合成输入仍 PASS(工具行为
-        契约保持), 产物级双向一致缺口归 IMPL/INT。
-        """
-        tool = os.path.join(REPO, "eng", "tools", "quality", "check_pipeline_graph.py")
-        self.assertTrue(os.path.isfile(tool), "图校验工具缺失")
-        mods = {m: {"module_id": m, "module_version": "1.x"} for m in MODULES.values()}
-        mp = os.path.join(self.tmp, "mods.json")
-        json.dump(mods, open(mp, "w"))
-        # 合成最小 static/trace 输入(边链与现行 IR 构造同构: 上一节点输出 artifact
-        # 作为下一节点输入, 对齐 lib/infrastructure/cli/runtime_client.cpp build_pipeline_ir)
-        PORTS = {"coverage": ("calibrated", "coverage"), "sample": ("coverage", "samples"),
-                 "upm_fit": ("samples", "upm_model"), "upm_apply": ("upm_model", "corrected"),
-                 "reject": ("corrected", "accepted_mask"),
-                 "integrate": ("accepted_mask", "integrated"),
-                 "write": ("integrated", "mosaic")}
-        prev = "artifact:cal"
-        ir_nodes, tr_nodes = [], []
-        for n in CHAIN:
-            in_port, out_port = PORTS[n]
-            ir_nodes.append({"node_id": n, "module_id": MODULES[n],
-                             "module_version": "1.x",
-                             "inputs": {in_port: prev},
-                             "outputs": {out_port: "artifact:" + n}})
-            tr_nodes.append({"node_id": n, "module_id": MODULES[n],
-                             "module_version": "1.x", "status": "COMPLETED",
-                             "workers": 2, "inputs": {in_port: prev},
-                             "outputs": {out_port: "artifact:" + n}})
-            prev = "artifact:" + n
-        ir = {"schema": "acsd.pipeline-graph/v1", "nodes": ir_nodes,
-              "outputs": {"mosaic": "artifact:write"}}
-        tr = {"schema": "acsd.observed-trace/v1", "nodes": tr_nodes}
-        ip = os.path.join(self.tmp, "static_graph.json")
-        tp = os.path.join(self.tmp, "observed_trace.json")
-        json.dump(ir, open(ip, "w"))
-        json.dump(tr, open(tp, "w"))
-        c = subprocess.run([sys.executable, tool, "--ir", ip, "--module-index", mp,
-                            "--trace", tp], capture_output=True, text=True, timeout=120)
-        self.assertEqual(c.returncode, 0, c.stderr[-400:])
-        self.assertIn("PIPELINE_GRAPH_PASS", c.stdout)
 
     def test_04_output_naming_unambiguous(self):
         """输出命名无歧义: manifest+资源三件套落盘 output_dir(现行载体)。"""

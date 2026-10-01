@@ -157,10 +157,10 @@ class TestP3006ProductionPipeline(unittest.TestCase):
 #      登记表不预写状态"; 台账式状态标记已被设计废止, 重钉等于复活废止载体。
 # 现在由谁守(名字+行号):
 #   (a) docs/traceability/TRACEABILITY_MATRIX.json:555 起 phase3 模块行(MOD-acsd-phase3-
-#       properties 等的 SRC/TEST/EVIDENCE 状态) + 检查器
-#       eng/tools/traceability/check_traceability_matrix.py(注册于 eng/ci/checks.json
-#       CHK-CONTRACT-TEST)+ 试金石 eng/tests/traceability/test_traceability_matrix.py:50
-#       (test_01_real_matrix_passes: 真实矩阵必须 PASS);
+#       properties 等的 SRC/TEST/EVIDENCE 状态)在位; 但**该矩阵当前无仓内机器判据** ——
+#       其检查器 eng/tools/traceability/check_traceability_matrix.py 与试金石
+#       eng/tests/traceability/test_traceability_matrix.py:50 (test_01_real_matrix_passes)
+#       均已退场, 登记面 eng/ci/checks.json 同样不存在 ⇒ 矩阵状态列现由人读, 不判红;
 #   (b) 本文件 test_01_ir_chain_5_nodes:73 / test_02_production_route_ge10s:98 /
 #       test_03_science_valid:106 / test_04_resource_gate:120 —— 生产链**实测**证据;
 #   (c) 遗留缺口已登记在册: docs/engineering/TEST_MATRIX.md:45

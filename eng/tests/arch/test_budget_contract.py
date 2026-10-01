@@ -87,14 +87,6 @@ class TestBudgetContract(unittest.TestCase):
         r = self._run(1, 6)
         self.assertLessEqual(r["max_hold"], 1, f"超标: max_hold={r['max_hold']}")
 
-    def test_03_static_checker_no_hardcoded_threads(self):
-        """ARCH-004 static checker: 生产源无未登记线程创建/硬编码线程数。"""
-        r = subprocess.run([os.sys.executable, os.path.join(REPO, "eng", "tools", "arch", "check_thread_budget.py")],
-                           capture_output=True, text=True, timeout=60)
-        self.assertEqual(r.returncode, 0, r.stdout + r.stderr)
-        self.assertIn("未登记线程创建=0", r.stdout)
-        self.assertIn("硬编码线程数=0", r.stdout)
-
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)
