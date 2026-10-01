@@ -31,9 +31,9 @@ B 域 19 篇：
 
 来源：原 `ci/` 5 篇 ＋ `contracts/` 的说明文档 14 篇。
 
-shared 域 60 篇：
+shared 域（篇数待归属裁决后重算）：
 
-`docs/engineering/{ARCHITECTURE,ARCHITECTURE_OVERVIEW,ASYNC_IO_CONTRACT,BUILD_GRAPH,CACHE_POLICY,COMPATIBILITY_POLICY,CPU_BACKEND_ARCH,DATA_FLOW,DEPENDENCY_RULES,ERROR_MODEL,EXECUTION_MODEL,IO_AND_ATOMICITY,ISA_BIT_MANIP_VARIANTS,ISA_VARIANTS,MODULE_MAP,OWNERSHIP_AND_LIFETIME,PERFORMANCE_MODEL,PHASE3_MODULE_ARCH,PIPELINE,THREADING_MODEL,THREAD_BUDGET_ARCH,PIPELINE_OVERVIEW,PROJECT_SPEC,RELEASE_STATUS,SCIENCE_OVERVIEW}.md`
+`docs/engineering/{ASYNC_IO_CONTRACT,BUILD_GRAPH,CACHE_POLICY,COMPATIBILITY_POLICY,CPU_BACKEND_ARCH,DATA_FLOW,DEPENDENCY_RULES,EXECUTION_MODEL,ISA_BIT_MANIP_VARIANTS,ISA_VARIANTS,MODULE_MAP,OWNERSHIP_AND_LIFETIME,PERFORMANCE_MODEL,PHASE3_MODULE_ARCH,PROJECT_SPEC,RELEASE_STATUS}.md`
 
 `docs/engineering/{abi/ABI_003_SECURE_LOADER,cpu/CPU_001_CAPABILITY_PROBE,cpu/CPU_003_AVX2_PROVIDER,execution_options_contract,observability/RESOURCE_MONITORING_CONTRACT,observability/RUN_GRAPH_CONTRACT,observability/STRUCTURED_LOGGING_CONTRACT}.md`
 
@@ -43,9 +43,18 @@ shared 域 60 篇：
 
 来源：原 `architecture/` 27 篇 ＋ `owner/` 5 篇 ＋ `plugins/` 24 篇 ＋ `docs/detail/` 四目录各 1 篇目录招牌。
 
+本行原含 9 个已删名（`ARCHITECTURE` / `ARCHITECTURE_OVERVIEW` / `ERROR_MODEL` /
+`IO_AND_ATOMICITY` / `PIPELINE` / `PIPELINE_OVERVIEW` / `SCIENCE_OVERVIEW` /
+`THREADING_MODEL` / `THREAD_BUDGET_ARCH`），已从点名清单移除：这些文件在仓内不存在，
+点名清单按可达性判定，留着即产生悬空。其内容的后继正本为 `ARCH-001.md`（架构与阶段管线）、
+`ERROR_HANDLING_STANDARD.md`（错误模型与退出码）、`execution_options_contract.md`
+（线程预算与并行轴分配）、`io/IO_003_ATOMIC_OUTPUT_PUBLISH.md`（原子发布）；
+**后继正本是否计入 shared 域属归属问题，待裁**（同本节下方 `DATA_SEMANTICS.md` 一条的既有处置），
+本单不擅自扩大域范围。清单标称「60 篇」的计数随本行移除同步失效，篇数待归属裁决后重算。
+
 docs/contracts/ 与 docs/architecture/ 留在表内：两处各有在位机器可读件（4 件 / 6 件）。
 
-本节的生效文件域只有上面两份点名清单的反引号行（B 域 19 篇 1 条、shared 域 60 篇 4 条，共五条）；其余各行（含「来源」行与旧目录溯源说明）是溯源散文，不参与归属判定。
+本节的生效文件域只有上面两份点名清单的反引号行（B 域 19 篇 1 条、shared 域 4 条，共五条）；其余各行（含「来源」行与旧目录溯源说明）是溯源散文，不参与归属判定。
 
 （`DATA_SEMANTICS.md` 现位于 `docs/science/DATA_SEMANTICS.md`，随 `docs/science/` 计入 shared 域；其迁移前的 `contracts/` 位置已无此文件，归属待裁。）
 

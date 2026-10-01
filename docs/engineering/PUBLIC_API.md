@@ -719,9 +719,8 @@ manifest 字段 dtype 逐项登记；坐标/单位词汇沿用 GLOSSARY（ADU/0-
   cosmetic→ac_correct_frame、star-psf→StarDetector、wcs→WcsTan、
   photometry→Photometer、noise-snr→NoiseModel、drizzle→hp_drizzle_run、
   writer→aio_write_fits；子节点不调完整 phase_session_run）；P1Api/SessionModule
-  为兼容面。CLI/测试之外无其他直接调用方（生产可达性锚 =
-  eng/tools/quality/check_prod_reachability.py:42 与
-  eng/tools/check_pipeline_trace.py:16）。
+  为兼容面。CLI/测试之外无其他直接调用方（生产可达性锚 = 生产可达性判据与
+  管线追踪判据，载体见 门禁注册面（G08-10 重建））。
 - star-psf 走 lib/algorithms/star_detection 生产检测（sdet C 头，StarDetector C++ 类
   为薄包装）+ lib/algorithms/psf `dpsf_fit_batch_f64`（Moffat4 FP64 批量 PSF 拟合，
   DATA-P1-PSF 携 psf_params:FLOAT64[N,9]）。
@@ -1131,16 +1130,32 @@ registry descriptor 像素登记面）。
 单位/dtype/shape/序合同唯一权威 = DATA_SEMANTICS §20
 （DATA-P2-HIPS）；本表仅为消费面副本，冲突以 §20 为准。
 
-### 退出码表（stage2 进程级）
+### `acsd-stage2` 工具返回值（工具局部，非 `acsd::ExitCode`）
 
-| 退出码 | 域 | 锚（stage2.cpp） |
+> 进程退出码正本 = `docs/engineering/ERROR_HANDLING_STANDARD.md` §7（唯一源 =
+> `lib/infrastructure/cli/exit_codes.h` 的 `acsd::ExitCode` 枚举）。本表**不是**那份表的
+> 接口面副本：`acsd-stage2` 是诊断/工具二进制，未 include `exit_codes.h`、不使用
+> `acsd::ExitCode`（`stage2.cpp:11-29` 的 include 面无该头；全文件无 `ExitCode` 引用），
+> 其 `main()`（`stage2.cpp:120`）以裸整数 `return` 收敛。下列取值逐条取自实现返回点，
+> 只对本二进制有效；**不得**按 ERROR_HANDLING_STANDARD §7 的表反查，也不得据此推断
+> 三个生产命令的退出码语义。
+
+| 工具返回值 | 域 | 锚（stage2.cpp） |
 |---|---|---|
+| 0 | 成功 | :2009 |
+| 1 | 未捕获异常兜底（`std::exception` / `...`） | :2013/:2017 |
 | 2 | config 解析/CLI 参数错误 | :133/:140/:146/:153/:160-165 |
 | 3 | coverage 构建 / target_order 校验 | :195/:201/:207 |
 | 4 | frame_id / sampler 域 | :227/:283/:288/:292/:298/:303/:310/:315/:319 |
 | 5 | UPM 构建/持久化 | :437/:456/:477/:488 |
 | 6 | 写路径/集成块（rejection resolve、tile 写、large_scale 等） | :517/:546/:589/:601/:653/:687/:793/:1055 等 |
 | 7 | ivar 门（ivar 产品缺失且未显式降级）/ HIPS_VERIFY 回读失败 | :574/:1665 |
+
+**与 `acsd::ExitCode` 的码值重叠**（UNRESOLVED，待负责人裁决）：3–7 五个值在本工具内
+指上表所列的工具局部语义，而在 `acsd::ExitCode` 中分别为 `INPUT` / `SCIENCE` /
+`BACKEND` / `COMPUTE` / `IO`。同一数值在两个命名空间下语义不同，按任一面判读
+`acsd-stage2` 的返回值都会取到另一面的错值。缺陷根因在实现侧（工具以裸整数占用
+枚举码值空间），不在文档侧；`acsd-stage2` 未 include `exit_codes.h`，无法在本单范围内修正。
 
 ### diagnostics.json 键集（stage2.cpp:1697-1749，diagnostics=true 时落 `<out_hips>/diagnostics.json`）
 

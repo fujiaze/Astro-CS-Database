@@ -1,12 +1,19 @@
 # Build Graph
 
-> 上游：ACSD_DESIGN.md §8（软件架构）；ARCHITECTURE.md §1（总览与单一入口）、§7 不变量 1。
+> 上游：ACSD_DESIGN.md §8（软件架构）；ARCH-001.md §1（唯一全局执行平面）、§8 不变量 1。
 
 > **本文的构建图机器块由生成器从根 CMake 构建图导出**：
 > 命令 = python3 eng/tools/arch/gen_build_graph_doc.py（根 CMakeLists 或子目录源集变动后重跑）。
-> 门 = CON-BUILD-GRAPH（python3 eng/tools/quality/contracts/check_build_graph.py）：
+> 门 = CON-BUILD-GRAPH（载体见 门禁注册面（G08-10 重建））：
 > 逐行比对目标集（与生产闭包的双向差集）、类型、定义文件与源集摘要；判据的输入是构建图本身。
 > 判别力自证 = 同一条命令加 --self-test。
+
+> **生成器残留（待裁决）**：§2 与 §3 两张机器表内的「ARCHITECTURE §1 迁移冻结」字样，
+> 其唯一来源是生成器 `eng/tools/arch/gen_build_graph_doc.py:48/:49/:60/:62` 的硬编码理由串，
+> 指向已由 `ARCH-001.md` 承接的 `ARCHITECTURE.md`（本单已改指）。生成器不在本单可写范围，
+> 且这两张表受 `<!-- BUILD-GRAPH-NONPROD -->` / `<!-- BUILD-GRAPH-NONROOT -->` 标记保护、
+> 每次重跑即由生成器覆盖，故此处**只登记不改写**；须由前台改生成器常量后重跑
+> `python3 eng/tools/arch/gen_build_graph_doc.py` 同步。
 
 ## 1 生产构建图（生产入口的传递闭包）
 
@@ -110,8 +117,8 @@ target_link_libraries 的传递闭包内的全部 target；唯一事实源 = 根
 ## 5 复算
 
     python3 eng/tools/arch/gen_build_graph_doc.py            # 从构建图导出机器块
-    python3 eng/tools/quality/contracts/check_build_graph.py # 门（PASS / FAIL）
-    python3 eng/tools/quality/contracts/check_build_graph.py --self-test
+
+构建图门（CON-BUILD-GRAPH，载体见 门禁注册面（G08-10 重建））判定 PASS / FAIL；判别力自证 = 同一判据加 `--self-test`。
 
 ## 6 关联
 
