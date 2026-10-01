@@ -5,7 +5,7 @@
 > 本文件条款为冻结定义，变更走变更流程。
 
 > `local_snr` 与 `frame quality` 的权威定义 = 本文件；code 与
-> `docs/engineering/docs/engineering/EXECUTION_MODEL.md` 中的表述不构成 science authority。
+> `docs/engineering/EXECUTION_MODEL.md` 中的表述不构成 science authority。
 
 > **权重场口径**：
 > **本文件（Phase2 stage2 内部）**所称 `local_snr` / `frame_snr` 是**相对质量权重场**（规范写法

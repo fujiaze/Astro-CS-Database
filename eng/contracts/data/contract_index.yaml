@@ -759,7 +759,7 @@ contracts:
     status: ACTIVE
     owner: ACSD
     version: 1.0.0
-    path: docs/contracts/API_CONTRACTS.csv
+    path: docs/engineering/PUBLIC_API.md
     upstream: []
     downstream: []
   - id: API-001
@@ -1002,4 +1002,4 @@ legacy_contract_id_map:
     canonical_objects: []
     relation: external_catalog_service_contract
     canonical_schema_files: []
-  # 判定 rule 与逐条证据: docs/contracts/unified_object_registry.json#legacy_contract_ids
+  # 判定 rule 与逐条证据: eng/contracts/data/unified_object_registry.json#legacy_contract_ids

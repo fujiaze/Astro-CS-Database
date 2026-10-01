@@ -10,20 +10,24 @@
 ```text
 docs/
   ├── ACSD_DESIGN.md         最高设计（权威链顶点）
+  ├── README.md              docs 入口导航
   ├── DOCUMENT_INDEX.yaml       全文档机器索引（唯一索引地图）
   ├── GLOSSARY.md               术语表（全局）
-  ├── KNOWN_LIMITATIONS.md      已知偏差与限制
   ├── science/                  科学正本：公式、常数、判据与算法推导（只读权威）
   │   └── algorithms/              算法推导与逐符号实现锚定
   ├── engineering/              工程正本：合同、架构、标准、CI 门禁规范
-  │   └── abi/ checks/ cpu/ data/ io/ observability/ v6/
+  │   └── abi/ cpu/ data/ io/ observability/
   ├── detail/                   细节实施：模块页、算法与插件实现设计、阶段详细设计、锚契约
   │   └── registry/                模块登记与注册表说明
 ```
 
 `docs/` 下**只有人读文档**。机读的合同 schema、合同数据与配置一律落 `eng/contracts/**`、
 `eng/packaging/config/**` 等工程目录，由代码按固定路径读取；文档域不承载机读资产
-（`docs/` 下的 `.yaml` / `.csv` / `.json` 台账一律不新建，已存在的按本条迁出）。
+（`docs/` 下的 `.csv` / `.json` 台账一律不新建，已存在的按本条迁出）。
+**豁免**：`docs/DOCUMENT_INDEX.yaml` 是文档集自身的索引地图，按本文件 §4.4 与
+`docs/ACSD_DESIGN.md` §0 作为唯一索引载体保留在 `docs/`，不适用本条迁出。
+另：已知限制台账的人读面为 `artifacts/evidence/known-limitations-ledger/LIMITATIONS.md`，
+不在 `docs/` 根层。
 
 - 每层由上层推出；下层可补充细节，但与上层一致、不遗漏上层的实施项；
 - 每个目录配中文 `README.md` 说明职责边界与内容；目录招牌件按"每目录必有 README"治理，登记于目录本身、不入规范索引段（`docs/DOCUMENT_INDEX.yaml`）；

@@ -11,10 +11,10 @@
 
 ## 1. 目的与范围
 
-为每个模块建立**机器可执行**的八层追溯合同，缺口必须**显式表达**（`MISSING`），
-空缺一律写显式值；空串、占位符与静默缺列即判红。矩阵的“事实”是**本文件的人读表格**：§2 分层定义、§9 逐模块台账、§10 需求登记册。
+为每个模块建立**可逐格核对**的八层追溯合同，缺口必须**显式表达**（`MISSING`），
+空缺一律写显式值；空串、占位符与静默缺列即判红。矩阵的“事实”是**本文件的人读表格**：§2 分层定义、§9 逐模块台账、§9.1 逐模块层状态、§10 需求登记册。
 追溯面不再有 JSON/CSV 矩阵文件，也不由机器读取；跨层一致性与断链由人逐轮目视核对，
-核对项见 §2 的必填列与取值域，结论回写本文件表格。
+核对项见 §7，结论回写本文件表格。
 
 ## 2. 追溯链与分层
 
@@ -54,8 +54,7 @@ parent→child 链：
     （例如 `SCI-MISSING`、`TEST-MISSING`）。
   - SRC 的 source symbol 表达：`<src_path>::MISSING`（占位无符号）。
 - 文档/路径空缺 → 列写 `MISSING`（空串即判红）。
-- 任何单元格为 `""`、纯空白、`-`、`?`、`TBD`、`TODO` → 机器检查器判
-  `EMPTY_CELL_VIOLATION`（FAIL，报告具体行/列）。
+- 任何单元格为 `""`、纯空白、`-`、`?`、`TBD`、`TODO` → 按 §7 人读核对记 `EMPTY_CELL_VIOLATION`（记录具体行/列）。
 
 ## 3. ID 格式（机器正则）
 
@@ -131,26 +130,47 @@ EVID     ^EVID-[A-Z0-9]+(-[A-Z0-9]+)*$         例如 EVID-P1-CAL-001
 `MISSING`，有实现有测试的行用真实 id/path/符号（`VERIFIED`）；空缺从不为空串。
 模块清单的“机器可发现”方法记录于第 7 节。
 
-## 7. 机器闭环（检查器行为契约）
+### 6.1 模块 ID 归一化基线（烧毁式阈值）
 
-运行（载体见 门禁注册面（G08-10 重建）；接受 `--root .` / `--json-out <out.json>` / `--strict`；Python 3.10+ 标准库；
-无网络；不依赖 cwd 之外路径；`timeout 120` 内完成）。
+模块 ID 归一化以「模块清单规模」与「登记页覆盖」两面对账。规模登记值与三类错误的允许上限如下；
+**上限只许下降不许上升**（烧毁式基线），下调只能在对应落地批内手改并写明依据。
 
-必须实现且失败时给出**具体断链**（模块 + 层 + 路径 + 期望/实际）；崩溃即判红：
+| 项 | 值 | 口径 |
+|---|---:|---|
+| 文档集模块数登记值 `index_module_count` | 23 | 取代交付状态判据中的硬编码模块数；断言「索引解析出的模块数 == 本值」且「映射表 ID 集合 == 索引 ID 集合」。未登记时退化为「索引规模 == 映射表规模」 |
+| `PAGE_MISSING_MODULE_ID` | 20 | 登记页缺 `module_id`（上次实测 14） |
+| `MODULE_WITHOUT_PAGE` | 17 | 模块无登记页（上次实测 11） |
+| `AUTHORITY_MISSING` | 0 | 模块无权威文档（上次实测 0） |
 
-| 检查 | 失败输出前缀 | 说明 |
+**基线规则（逐字）**：
+
+> 烧毁式基线：每类只许下降不许上升；下调只能在 MOD-002 落地批内手改，并在自证摘要记明「本批下调 X→Y，依据=落地了哪几条」；两类归零后删除本文件 ⇒ 门转全量强制（任何 error 即 rc=1）。负例注入（--fault-inject）一律绕过基线、全量强制。
+
+规则的实质是那最后一次下调的**不对称**：实测已降到 14/11，但**没有**下调阈值，保持基线保守 ——
+实际计数低于基线仍判通过，阈值只作上限。负例注入一律绕过基线、按全量强制判。
+
+> 归一化判据的载体见 门禁注册面（G08-10 重建）；逐类计数按各类错误在输出中的频次统计。
+
+## 7. 追溯核对（人读检查清单）
+
+**本节无机器检查器。** §1 已定：追溯面不再有 JSON/CSV 矩阵文件，追溯正本是人读正文。
+下表因此是**人读核对项**：逐轮打开本文件 §9 / §9.1 / §10 逐格核对，发现缺陷当场订正并记入留证区；
+**不产生机器 PASS 记录，不注册检查项。**
+
+发现问题时按下表的缺陷代号分类记录，代号只用于留证与统计，不表示有任何程序在产出该输出：
+
+| 核对项 | 缺陷代号 | 人读核对动作与记录内容 |
 |---|---|---|
-| 文件存在且被 Git 跟踪 | `MISSING_FILE` | JSON/CSV/LAYERS/schema 缺一即 FAIL |
-| JSON schema 合法（列存在/取值/附加字段） | `SCHEMA_VIOLATION` | 用内置轻量校验，缺列/坏值报路径 |
-| 空单元格（空串/空白/`-`/`?`/`TBD`/`TODO`） | `EMPTY_CELL_VIOLATION` | 报 模块+列 |
-| ID 格式不合法 | `ID_FORMAT_VIOLATION` | 报 模块+列+值 |
-| 同层真实 ID 重复 | `DUPLICATE_ID` | 报 层+ID |
-| 前导链断裂（见 §4 规则 1/4） | `CHAIN_BREAK` | 报 module_id+层对 |
-| 文档/路径/SOURCE SYMBOL 引用悬空（文件不存在/未跟踪/符号不可见） | `DANGLING_REF` | 报 模块+列+路径+期望符号 |
-| 引用越界（API/TEST/EVID 允许外部注册表缺失但必须逐条列 WARN） | `REF_OUT_OF_SCOPE` | 报 具体 ID（strict 下为 FAIL） |
+| 空单元格（空串/空白/`-`/`?`/`TBD`/`TODO`） | `EMPTY_CELL_VIOLATION` | 记 模块+列 |
+| ID 格式不合法（见 §3） | `ID_FORMAT_VIOLATION` | 记 模块+列+值 |
+| 同层真实 ID 重复 | `DUPLICATE_ID` | 记 层+ID |
+| 前导链断裂（见 §4 规则 1/4/5） | `CHAIN_BREAK` | 记 module_id+层对+期望/实际状态 |
+| 文档/路径/SOURCE SYMBOL 引用悬空（文件不存在/未跟踪/符号不可见） | `DANGLING_REF` | 记 模块+列+路径+期望符号 |
+| 引用越界（API/TEST/EVID 允许外部注册表缺失但必须逐条列 WARN） | `REF_OUT_OF_SCOPE` | 记 具体 ID |
+| 层状态缺失或与 §2 取值域不符 | `STATUS_DOMAIN_VIOLATION` | 记 模块+层+实际值（状态面见 §9.1） |
 
-追溯面不设机器检查器。逐轮审查按上表三类问题（`CHAIN_BREAK` / `DANGLING_REF` /
-`REF_OUT_OF_SCOPE`）逐模块目视核对，结论与计数回写本文件；不产生机器 PASS 记录。
+前导链与状态面是本节的**主核对对象**：§4 的链规则与 §2 的状态必填都以状态为操作对象，
+§9.1 是状态面的唯一落点；状态缺失或取值越域即按 `CHAIN_BREAK` / `STATUS_DOMAIN_VIOLATION` 处置。
 
 ## 8. 状态与演进
 
@@ -163,7 +183,8 @@ EVID     ^EVID-[A-Z0-9]+(-[A-Z0-9]+)*$         例如 EVID-P1-CAL-001
 ## 9. 逐模块追溯台账（人读正本）
 
 本节是**人读**的逐模块追溯台账：每模块一行，给出九层（SCI/ALG/DATA/API/ARCH/MOD/SRC/TEST/EVIDENCE）
-的 ID、落点文件与状态。空缺按合同显式写 `MISSING` / `NONE`，不写空串。
+的 ID 与落点文件；各层**状态**单列于 §9.1（状态不能由 ID 推断，故不并入本表）。
+空缺按合同显式写 `MISSING` / `NONE`，不写空串。
 模块行键 = `module_id`；`module_anchor` 列给出该模块的登记页。
 
 | module_id | module_kind | 登记页(module_anchor) | SCI | ALG | DATA | API | ARCH | SRC | TEST | EVIDENCE |
@@ -198,6 +219,48 @@ EVID     ^EVID-[A-Z0-9]+(-[A-Z0-9]+)*$         例如 EVID-P1-CAL-001
 | MOD-acsd-catalog-gaia | service | lib/infrastructure/gaia_xpsd_client/src/gaia_client.h | SCI-AST-001 | ALG-GAIA-001 | DATA-GAIA-001 | API-GAIA-001 | ARCH-001 | SRC-CAT-GAIA-001 @ lib/infrastructure/gaia_xpsd_client/src/gaia_client.c::gaia_client_create_ex,gaia_client_destroy,gaia_client_cone_search,gaia_client_cone_search_for_solver,gaia_client_cone_search_with_spectrum,gaia_client_query_spectrum_by_coords,gaia_client_cone_search_with_photometry,gaia_client_get_spectrum_params | TEST-GAIA-DESIGN-001 @ docs/science/algorithms/GAIA_QUERY.md | EVID-MISSING |
 | MOD-acsd-phase1-session | phase1 | docs/detail/registry/acsd.phase1.session.md | SCI-CAL-001 | ALG-CAL-001 | DATA-P1-SESSION | API-P1-SESSION | ARCH-001 | SRC-P1-SESSION-001 @ lib/phase1_session/p1_session.cpp::p1_session_create,p1_session_validate,p1_session_run,p1_session_inspect,p1_session_destroy | TEST-P1-SESSION-001 @ eng/tests/unit/p1_ir_facade_test.cpp | EVID-MISSING |
 | MOD-acsd-phase1-star | phase1 | docs/detail/registry/acsd.phase1.star-detection.md | SCI-P1-STAR-001 | ALG-STARDET-001 | DATA-P1-STAR | API-STAR-001 | ARCH-001 | SRC-STAR-001 @ lib/algorithms/star_detection/src/sdet_api.cpp::sdet_detect_impl,sdet_gauss_fit,sdet_lm_fit,sdet_detect_ex,sdet_detect_ex_f64,sdet_create,sdet_free_detect_ex | TEST-STAR-DESIGN-001 @ docs/science/algorithms/STAR_DETECTION_ALGORITHMS.md::TEST-STAR-DESIGN-001 | EVID-MISSING |
+
+
+### 9.1 逐模块层状态（人读正本）
+
+上表给的是各层的 ID 与落点；**§2 规定每层必带状态列**，状态取值域见 §2 表、显式空缺表达见 §2.1。
+状态**不能由 ID 推断** —— 例如 `SCI-P1-WR-001` 的 SCI 状态是 `MISSING`（ID 已预留命名空间，
+但权威文档尚未落地）；故状态单列成表，与 §9 按 `module_id` 一一对应。
+
+`MOD` 层状态按 §2「由行存在即满足」恒为 `VERIFIED`，不由数据推导，仅作完整性对照。
+
+| module_id | SCI | ALG | DATA | API | ARCH | MOD | SRC | TEST | EVIDENCE |
+|---|---|---|---|---|---|---|---|---|---|
+| MOD-acsd-conformance-noop | MISSING | MISSING | NONE | VERIFIED | VERIFIED | VERIFIED | VERIFIED | VERIFIED | VERIFIED |
+| MOD-acsd-services-io | MISSING | MISSING | VERIFIED | VERIFIED | VERIFIED | VERIFIED | VERIFIED | VERIFIED | VERIFIED |
+| MOD-acsd-providers-cpu | MISSING | MISSING | NONE | VERIFIED | VERIFIED | VERIFIED | VERIFIED | VERIFIED | VERIFIED |
+| MOD-acsd-phase1-calibration | VERIFIED | VERIFIED | VERIFIED | VERIFIED | VERIFIED | VERIFIED | VERIFIED | VERIFIED | VERIFIED |
+| MOD-acsd-phase1-cosmetic | VERIFIED | VERIFIED | VERIFIED | VERIFIED | VERIFIED | VERIFIED | VERIFIED | VERIFIED | MISSING |
+| MOD-acsd-phase1-drizzle | VERIFIED | VERIFIED | VERIFIED | VERIFIED | VERIFIED | VERIFIED | VERIFIED | VERIFIED | MISSING |
+| MOD-acsd-phase1-hips-writer | VERIFIED | VERIFIED | VERIFIED | VERIFIED | VERIFIED | VERIFIED | VERIFIED | VERIFIED | MISSING |
+| MOD-acsd-phase1-noise-snr | VERIFIED | VERIFIED | VERIFIED | VERIFIED | VERIFIED | VERIFIED | VERIFIED | VERIFIED | VERIFIED |
+| MOD-acsd-phase1-photometry | VERIFIED | VERIFIED | VERIFIED | VERIFIED | VERIFIED | VERIFIED | VERIFIED | VERIFIED | VERIFIED |
+| MOD-acsd-phase1-star-psf | VERIFIED | VERIFIED | VERIFIED | VERIFIED | VERIFIED | VERIFIED | VERIFIED | VERIFIED | VERIFIED |
+| MOD-acsd-phase1-wcs-platesolve | VERIFIED | VERIFIED | VERIFIED | VERIFIED | VERIFIED | VERIFIED | VERIFIED | VERIFIED | MISSING |
+| MOD-acsd-phase1-writer | MISSING | MISSING | VERIFIED | VERIFIED | VERIFIED | VERIFIED | MISSING | MISSING | MISSING |
+| MOD-acsd-phase2-coverage | VERIFIED | VERIFIED | VERIFIED | VERIFIED | VERIFIED | VERIFIED | VERIFIED | VERIFIED | MISSING |
+| MOD-acsd-phase2-integrate | VERIFIED | VERIFIED | VERIFIED | VERIFIED | VERIFIED | VERIFIED | VERIFIED | VERIFIED | MISSING |
+| MOD-acsd-phase2-reject | VERIFIED | VERIFIED | VERIFIED | VERIFIED | VERIFIED | VERIFIED | VERIFIED | VERIFIED | MISSING |
+| MOD-acsd-phase2-resample | MISSING | MISSING | VERIFIED | VERIFIED | VERIFIED | VERIFIED | MISSING | MISSING | MISSING |
+| MOD-acsd-phase2-session | VERIFIED | VERIFIED | VERIFIED | VERIFIED | VERIFIED | VERIFIED | VERIFIED | VERIFIED | MISSING |
+| MOD-acsd-phase2-sample | MISSING | MISSING | VERIFIED | VERIFIED | VERIFIED | VERIFIED | MISSING | MISSING | MISSING |
+| MOD-acsd-phase2-upm-apply | VERIFIED | VERIFIED | VERIFIED | VERIFIED | VERIFIED | VERIFIED | MISSING | MISSING | MISSING |
+| MOD-acsd-phase2-upm-fit | VERIFIED | VERIFIED | VERIFIED | VERIFIED | VERIFIED | VERIFIED | MISSING | MISSING | MISSING |
+| MOD-acsd-phase2-write | VERIFIED | VERIFIED | VERIFIED | VERIFIED | VERIFIED | VERIFIED | VERIFIED | VERIFIED | MISSING |
+| MOD-acsd-phase3-properties | MISSING | MISSING | VERIFIED | VERIFIED | VERIFIED | VERIFIED | MISSING | MISSING | MISSING |
+| MOD-acsd-phase3-resample | MISSING | MISSING | VERIFIED | VERIFIED | VERIFIED | VERIFIED | MISSING | MISSING | MISSING |
+| MOD-acsd-phase3-resample2 | VERIFIED | VERIFIED | VERIFIED | VERIFIED | VERIFIED | VERIFIED | VERIFIED | VERIFIED | MISSING |
+| MOD-acsd-phase3-verify | MISSING | MISSING | VERIFIED | VERIFIED | VERIFIED | VERIFIED | MISSING | MISSING | MISSING |
+| MOD-acsd-phase3-wcs | VERIFIED | VERIFIED | VERIFIED | VERIFIED | VERIFIED | VERIFIED | VERIFIED | VERIFIED | MISSING |
+| MOD-acsd-phase3-writer | VERIFIED | VERIFIED | VERIFIED | VERIFIED | VERIFIED | VERIFIED | VERIFIED | VERIFIED | MISSING |
+| MOD-acsd-catalog-gaia | VERIFIED | VERIFIED | VERIFIED | VERIFIED | VERIFIED | VERIFIED | VERIFIED | VERIFIED | MISSING |
+| MOD-acsd-phase1-session | VERIFIED | VERIFIED | VERIFIED | VERIFIED | VERIFIED | VERIFIED | VERIFIED | VERIFIED | MISSING |
+| MOD-acsd-phase1-star | VERIFIED | VERIFIED | VERIFIED | VERIFIED | VERIFIED | VERIFIED | VERIFIED | VERIFIED | MISSING |
 
 ## 10. 需求→实现→测试 登记册（人读正本）
 

@@ -216,7 +216,7 @@
 - UPM：`acsd-upm-v2` JSON（sparse）+ dense cache（checksum 校验）。
 - Manifest：`manifest.json` / `diagnostics.json` / `controls_accept.json`。
 
-详见 `docs/engineering/docs/engineering/PUBLIC_API.md`（API 机器单源清单，与 `check_api_contracts` 的
+详见 `docs/engineering/PUBLIC_API.md`（API 机器单源清单，与 `check_api_contracts` 的
 `docs/engineering/PUBLIC_API.md` 一致；完整分类清单）。
 
 ## drizzle C API（API-DRZ-001）
