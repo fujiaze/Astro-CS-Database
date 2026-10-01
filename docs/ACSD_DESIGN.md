@@ -28,19 +28,27 @@ flowchart TD
 - `docs/DOCUMENT_INDEX.yaml` 是全文档集唯一索引地图，与文件树一致：未登记或登记不存在均为缺陷。
 - 同一主题只有一份正本，库内只保留最新版本。
 
+**下级索引**：下级正本见 `docs/engineering/DOCUMENT_GOVERNANCE.md`、`docs/engineering/PROJECT_SPEC.md`。
+
 ### 0.1 文档写法
 
 - 只写现行设计要怎样，用自然语言讲清楚，配必要的流程图。
 - 已经退役的设计与实现不出现在正式文档里；文档随代码持续维护，保持自解释。
 - 引用外部资料按论文引用格式：正文用编号标注，文末列参考文献。
 
+**下级索引**：下级正本见 `docs/engineering/DOCUMENT_GOVERNANCE.md`。
+
 ---
 
 ## 1. 项目定位
 
+**下级索引**：下级正本见 `docs/science/SCIENCE_SCOPE.md`。
+
 ### 1.1 是什么
 
 ACSD 是天文 CCD/CMOS 图像校准与标准化数据库系统：把单帧观测转换为可独立消费、带不确定度与来源链的球面科学产品（HiPS），再按明确科学目标合成马赛克、导出测量意义明确的平面 WCS FITS。
+
+**下级索引**：下级正本见 `docs/science/SCIENCE_SCOPE.md`。
 
 ### 1.2 三个命令，三个独立产品
 
@@ -66,6 +74,8 @@ flowchart LR
 - 阶段间只通过磁盘产品、manifest 交换数据；用户可依次运行三个命令，但这不是产品内部状态机。
 - 每阶段输出附结构化 JSON，声明产物路径与必需字段，符合下一阶段输入格式，可串行衔接。
 
+**下级索引**：下级正本见 `docs/engineering/CLI_PROTOCOL_V1.md`、`docs/engineering/PUBLIC_API.md`。
+
 ### 1.3 非目标
 
 - GPU 与 CPU/GPU 混合生产路由（相关实验源码隔离保留，生产不可达）；
@@ -73,6 +83,8 @@ flowchart LR
 - ARM 及非 amd64 架构；
 - 从任意路径加载未经产品清单授权的第三方插件；
 - 为未发生的假设故障堆叠回退、重试、兼容层与重复校验。
+
+**下级索引**：下级正本见 `docs/science/ACR_EQUIVALENCE.md`、`docs/science/algorithms/ACR_EQUIVALENCE_ALGORITHMS.md`。
 
 ---
 
@@ -92,6 +104,8 @@ flowchart LR
 
 五个创新点各自是一个独立实验单元（§12.3），由定稿小论文支撑，发布前全部经实验证实并跑通。
 
+**下级索引**：下级正本见 `docs/science/DISPUTE_RESOLUTION.md`、`docs/science/SCIENCE_SCOPE.md`、`docs/science/UNIFIED_SCIENCE_MODEL.md`。
+
 ### 2.1 P1 通量积分拟合：测光校准到测光星等坐标系
 
 - 只对图像中的星点测光，不做全图像素测光；星点位置由 Gaia DR3 XP 星表逆映射到本帧像素域获得，把计算量集中在星表位置。
@@ -100,6 +114,8 @@ flowchart LR
 - 施加标度后，帧像素与 HiPS signal 仍是线性面亮度；星等只在派生展示时按 `m = ZP − 2.5·log10 F` 换算，不作为数据形态落盘，因为星等对数量不可相加。
 - 每帧独立标定到同一坐标系，不同夜、不同透明度的帧标定系数不同是正常的。
 - 测光标定不设固定星数门槛：任何可解析帧都执行，精度按本帧实测匹配星数与误差预算如实标注；可辨识条件不成立时走拟合失败路径，产品显式声明未测光。
+
+**下级索引**：下级正本见 `docs/science/PHOTOMETRY.md`、`docs/science/PHOTOMETRY_RESEARCH_PACK.md`、`docs/science/PSF.md`、`docs/science/STAR_DETECTION.md`、`docs/science/algorithms/PHOTOMETRIC_FIT.md`。
 
 ### 2.2 P2 跨帧绝对信噪比
 
@@ -111,6 +127,8 @@ flowchart LR
 - 叠加权重在 mosaic 消费时才由信噪比现场换算：`w = SNR²/F_ref² = 1/σ_F²`，采用含源光子散粒项的逐像素总方差；Phase1 与 Phase3 不产生、不存储权重。
 - 方法学对标 PixInsight 公开文档的 PSFSNR；其 PSF Signal Weight 是已形成的叠加权重，ACSD 入库的是未加权的原始信噪比。
 
+**下级索引**：下级正本见 `docs/science/CONTROL_WEIGHT_SNR.md`、`docs/science/NOISE_MODEL.md`、`docs/science/PSF_SIGNAL_WEIGHT.md`、`docs/science/algorithms/NOISE_ESTIMATION.md`。
+
 ### 2.3 P3 守恒映射算子：平面到 HEALPix 的通量守恒映射
 
 - P1 的信号平面与 P2 的稀疏控制点都要从帧域搬到球面域，本创新点提供这一算子：对连续信号是通量绝对守恒的平面到球面 drizzle；对稀疏控制点是同一几何框架下的点分配，绝对信噪比值原样带到球面对应位置。
@@ -120,6 +138,8 @@ flowchart LR
 - face 角点、极面折线、赤道带对角线与面缝是 chart 的分支奇点，被精确定位、检测与回退处理；面积口径不受分支影响。
 - 核权重 `w_jp = a_jp/A_drop,j`（交叠面积比落点面积）满足归一与通量守恒，并进入方差传播。
 
+**下级索引**：下级正本见 `docs/science/DRIZZLE.md`、`docs/science/algorithms/DRIZZLE_GEOMETRY.md`、`docs/science/algorithms/HEALPIX_MAPPING.md`。
+
 ### 2.4 P4 重建稠密信噪比
 
 - P3 把控制点搬上球面后，叠加定权需要每个天球像素都有信噪比；本创新点把稀疏控制点重建为稠密信噪比场，供信号层拟合与叠加使用。
@@ -127,6 +147,8 @@ flowchart LR
 - 重建算子（如自然边界样条与值域钳制、高对比域的中值前置、双线性对照）返回预测方差；算子标识、重建误差与层几何随层入 manifest。
 - dense、sparse_reconstruct、frame_reconstruct 是三种重建方式，产出同一物理量的稠密表示，都走同一条逆方差定权式。
 - 工程上按输出像素现场求值，不预计算、不整体驻留，按需权衡 CPU 与内存。
+
+**下级索引**：下级正本见 `docs/science/CONTROL_WEIGHT_SNR.md`、`docs/science/algorithms/PHASE2_INTEGRATION.md`。
 
 ### 2.5 P5 加性天光去除与无接缝叠加
 
@@ -139,9 +161,13 @@ flowchart LR
 
 **下级索引**：科学推导见 `docs/science/` 各分册（测光、噪声模型与信噪比、drizzle、天光与叠加），算法推导见 `docs/science/algorithms/`，实验单元编排见 §12.3。
 
+**下级索引**：下级正本见 `docs/science/PHASE2_UPM.md`、`docs/science/algorithms/PHASE2_UPM_IMPL.md`。
+
 ---
 
 ## 3. 数据对象与配置
+
+**下级索引**：下级正本见 `docs/engineering/UNIFIED_OBJECTS.md`、`docs/science/DATA_SEMANTICS.md`。
 
 ### 3.1 数据对象
 
@@ -150,11 +176,15 @@ flowchart LR
 - HiPS 里存的是帧级信噪比与稀疏控制点；权重是 mosaic 集成时现场计算的派生量，全链没有「权重模式」这一可选概念。
 - 帧级信噪比与稀疏层是两个独立对象，共用同一物理定义与逐帧参考通量，消费时由绝对控制点重建稠密场，不做相对归一。
 
+**下级索引**：下级正本见 `docs/engineering/UNIFIED_OBJECTS.md`、`docs/science/DATA_SEMANTICS.md`、`docs/science/UNCERTAINTY_AND_COVARIANCE.md`、`docs/science/UNIFIED_SCIENCE_MODEL.md`、`docs/science/algorithms/HEALPIX_MAPPING.md`。
+
 ### 3.2 三类配置
 
 - 阶段配置 JSON：科学配置，可跨机迁移；
 - 机器画像：机器绑定，由 benchmark 生成；
 - 运行 manifest：冻结本次运行。
+
+**下级索引**：下级正本见 `docs/engineering/CONFIG_CONTRACT.md`。
 
 ### 3.3 精度归属
 
@@ -165,13 +195,19 @@ flowchart LR
 
 每个科学量写清单位、坐标系、归一化、精度要求与有效有限域。统一观测模型与数据对象字段正本见 `docs/detail/`，配置合同见 `docs/engineering/`。
 
+**下级索引**：下级正本见 `docs/science/CALIBRATION.md`、`docs/science/algorithms/GAIA_QUERY.md`。
+
 ---
 
 ## 4. normalize：单帧标准化
 
+**下级索引**：下级正本见 `docs/engineering/PHASE1_API_V1.md`、`docs/science/ACR_EQUIVALENCE.md`、`docs/science/CCD_LINEAR_DEFECT_LITERATURE.md`。
+
 ### 4.1 使命
 
 把一帧传感器观测变成可独立消费的观测模型：光度与天球坐标已定义、噪声可传播、PSF 可解释、帧级信噪比可靠独立，使 mosaic 不回读原始帧即可做方差正确的扩展源合并与 PSF 感知的点源检测测光。
+
+**下级索引**：下级正本见 `docs/engineering/PHASE1_API_V1.md`、`docs/science/algorithms/CALIBRATION_ALGORITHMS.md`。
 
 ### 4.2 节点流程
 
@@ -195,6 +231,8 @@ flowchart TD
 - 星表引导检测用本帧权威 WCS 把 Gaia 逆投影到像素域，只对星表位置做质心/PSF 拟合，拟合成功即星点、失败丢弃；星点上限由配置承载、极限星等按焦距画幅曝光派生。
 - 测光与归一化在同一节点完成：施加 `I_photo = k_photo·m(x,y)·I_cal`（`m(x,y)` 为低阶空间增益），省掉一次中间产物落盘；溯源记录使该乘法可由独立读者逐像素复算。
 - 检测、PSF、测光、信噪比共用同一份星点绑定行，全链一个通量口径。
+
+**下级索引**：下级正本见 `docs/science/ASTROMETRY.md`、`docs/science/CALIBRATION.md`、`docs/science/NOISE_MODEL.md`、`docs/science/PSF.md`、`docs/science/STAR_DETECTION.md`，另 8 份。
 
 ### 4.3 输入合同
 
@@ -221,12 +259,16 @@ flowchart TD
 - 一块 = 一组亮场 + 一套母版校准帧 + 一个波段 + 块级参数 = 一次独立运行。
 - 滤镜型号与滤镜库逐字匹配，未知滤镜报 error；计算精度显式声明，缺失时按 §3.3 归属取值。
 
+**下级索引**：下级正本见 `docs/engineering/CLI_PROTOCOL_V1.md`、`docs/engineering/CONFIG_CONTRACT.md`。
+
 ### 4.4 输出合同
 
 一组输入 light 对应一组 HiPS，每一帧输入对应一个 HiPS，另加列出全部产品路径的结构化 JSON；任何一帧未处理、跳过或失败显式判红。
 
 1. HiPS 文件：帧级信噪比写入文件头，PSF 有效面积一并落盘；可选稀疏控制点层（默认开启）作为标准层插入，存绝对信噪比控制点，不启用时只输出帧级。
 2. 结构化 JSON：声明产物路径与必需字段，符合 mosaic 输入格式，可直接串行衔接。
+
+**下级索引**：下级正本见 `docs/science/ASTROMETRY.md`、`docs/science/IVOA_HIPS_TILE_FORMAT_RESEARCH_PACK.md`、`docs/science/PHOTOMETRY.md`、`docs/science/PSF_SIGNAL_WEIGHT.md`、`docs/science/algorithms/GATES_AND_TOLERANCES.md`，另 1 份。
 
 ### 4.5 运行前预检（三个命令通用）
 
@@ -251,13 +293,19 @@ flowchart TD
 - 无论结果如何都显示检查页面；无 error 时 correct 与 warn 都需输入 yes 才运行，`-y`/`-yes` 跳过确认；存在 error 时 `-y` 不可越过；`-force` 跳过整个检查步骤。
 - 资源门只管磁盘：余量不足报 warn，写盘失败报错；内存、CPU、线程不设预检门。
 
+**下级索引**：下级正本见 `docs/engineering/CLI_PROTOCOL_V1.md`、`docs/engineering/CONFIG_CONTRACT.md`。
+
 ---
 
 ## 5. mosaic：相对定标 · 排异 · 集成
 
+**下级索引**：下级正本见 `docs/engineering/PHASE2_API_V1.md`。
+
 ### 5.1 使命
 
 把一组兼容的球面产品相对定标、排异并合成为可继续测量的马赛克，对不同科学目标提供明确的最优统计量。
+
+**下级索引**：下级正本见 `docs/engineering/PHASE2_API_V1.md`、`docs/science/PHASE2_UPM.md`。
 
 ### 5.2 固定科学流程
 
@@ -273,12 +321,16 @@ flowchart TD
     V --> O["原子发布马赛克"]
 ```
 
+**下级索引**：下级正本见 `docs/science/DRIZZLE.md`、`docs/science/algorithms/DRIZZLE_GEOMETRY.md`、`docs/science/algorithms/PHASE2_COVERAGE.md`、`docs/science/algorithms/PHASE2_SESSION.md`。
+
 ### 5.3 信噪比重建与逆方差叠加
 
 - 三种重建方式由 JSON 指定：`dense`（帧内稠密）、`sparse_reconstruct`（默认，稀疏控制点插值）、`frame_reconstruct`（仅帧级）；实际生效方式记入溯源。
 - 三者都产出同一物理量 `SNR = F_ref/σ_F` 的稠密表示，只在重建方式上不同；叠加权重现场换算为逆方差 `w = SNR²/F_ref² = 1/σ_F²`，是 point information 最优集成，不是直接用信噪比加权。
 - 拟合权重与堆叠权重是两个量：拟合用逆方差（可加稳健项），堆叠用含拟合参数协方差的残差方差。
 - 稠密信噪比是数学表示，工程上按输出像素现场求值、不驻留。
+
+**下级索引**：下级正本见 `docs/science/CONTROL_WEIGHT_SNR.md`、`docs/science/INTEGRATION.md`、`docs/science/UNCERTAINTY_AND_COVARIANCE.md`、`docs/science/algorithms/PHASE2_INTEGRATION.md`。
 
 ### 5.4 天光平面（UPM）
 
@@ -287,19 +339,27 @@ flowchart TD
 - 参考平面用其他帧的加权组合（排除自身）、迭代求解，使任意覆盖子集上的加权阶跃为零。
 - 接缝判据取有符号电平台阶，方差比只作诊断；参考面节点间距由输入几何导出，是自适应的唯一旋钮。
 
+**下级索引**：下级正本见 `docs/science/PHASE2_UPM.md`、`docs/science/algorithms/PHASE2_SAMPLER.md`、`docs/science/algorithms/PHASE2_UPM_IMPL.md`、`docs/science/algorithms/UPM_SOLVER.md`。
+
 ### 5.5 逐像素排异
 
 - 叠加在数学上逐像素进行；高信噪比帧上的卫星线、宇宙线、热像素会被加权放大，因此先排异、后加权，排异结果作为独立溯源落盘。
 - 路由依据 `N` = 该输出像素几何可贡献帧数，按 N 自动选择排异算法；生产算法集为 none、percentile、winsorized、linear fit。
 - 排异字段留空或 auto 时逐像素路由，显式指定时按指定执行；NaN 采用样本级掩膜，覆盖级缺数置 NaN 并计数。
 
+**下级索引**：下级正本见 `docs/science/REJECTION.md`、`docs/science/algorithms/PHASE2_REJECTION.md`。
+
 ---
 
 ## 6. export：投影导出
 
+**下级索引**：下级正本见 `docs/engineering/PHASE3_API_V1.md`。
+
 ### 6.1 使命
 
 把任一兼容 HiPS 按指定 WCS 导出为测量意义明确的平面 FITS：上游已完成叠加，这里只做投影与重采样，直接计算生成 WCS，并按输出有效 PSF 与完整协方差重算点源信息量。
+
+**下级索引**：下级正本见 `docs/engineering/PHASE3_API_V1.md`、`docs/science/PHASE3_HIPS_TO_FITS.md`。
 
 ### 6.2 流程
 
@@ -312,15 +372,21 @@ flowchart TD
     V --> O["原子发布"]
 ```
 
+**下级索引**：下级正本见 `docs/science/PHASE3_HIPS_TO_FITS.md`、`docs/science/algorithms/PHASE3_FITS_IMPL.md`、`docs/science/algorithms/PHASE3_RESAMPLE.md`、`docs/science/algorithms/PHASE3_RSMP_IMPL.md`。
+
 ### 6.3 投影算法
 
 - 内置多种投影，首批为 TAN、SIN、CAR、AIT、STG、MOL、CEA、ZEA；每种声明适用域、奇点、经度 wrap 与手性；未实现的投影被选择时显式报不支持。
 - 新增投影经投影注册表注册并附独立往返测试；缺省 TAN。
 - 导出只接受面亮度语义输入，方差/逆方差显式消费并传播，其余语义拒绝；输出模式（面亮度/点源通量/可视化）显式声明，可视化模式标注不可测量。
 
+**下级索引**：下级正本见 `docs/science/DRIZZLE.md`、`docs/science/PHASE3_HIPS_TO_FITS.md`、`docs/science/algorithms/DRIZZLE_GEOMETRY.md`、`docs/science/algorithms/HEALPIX_MAPPING.md`、`docs/science/algorithms/PHASE3_PROJ_IMPL.md`，另 1 份。
+
 ---
 
 ## 7. 命令行合同
+
+**下级索引**：下级正本见 `docs/engineering/PUBLIC_API.md`。
 
 ### 7.1 命令树
 
@@ -342,11 +408,15 @@ benchmark                           生成/更新机器画像
 - 命令行是薄入口：解析、预检、运行控制、机器输出、取消与退出码；科学公式在算法库，读写在统一 I/O，线程池在调度器。
 - normalize/mosaic/export 是命令名，phase1/2/3 仅为内部指代，不出现在命令与算法目录命名中。
 
+**下级索引**：下级正本见 `docs/engineering/CLI_PROTOCOL_V1.md`。
+
 ### 7.2 机器输出与退出码
 
 - `--json` 时 stdout 恰为一个 JSON 文档；运行事件默认走 JSONL 事件流（progress、resource、artifact、backend、final），stdout 无日志污染。
 - 退出码按失败类型区分：成功、参数或配置错误、输入缺失、科学不变量失败、后端加载失败、执行失败、I/O 失败、输出验证失败、用户取消、磁盘写满、未分类内部错误；退出码唯一定义在工程正本。
 - 取消（Ctrl-C）：协作取消、关 writer、写未完成 manifest、隔离临时产物。
+
+**下级索引**：下级正本见 `docs/engineering/CLI_PROTOCOL_V1.md`、`docs/engineering/CONFIG_CONTRACT.md`。
 
 ### 7.3 错误传播与日志
 
@@ -354,9 +424,13 @@ benchmark                           生成/更新机器画像
 - 降级在显式、可溯、不改科学语义三要件齐备时合法，否则 fail-closed；未捕获异常产生脱敏 crash report。
 - 每次运行在输出目录下产出完整日志，机器日志与可读摘要同源；日志写入失败即运行失败；日志不含凭据与绝对用户路径。
 
+**下级索引**：下级正本见 `docs/engineering/LOG_AND_ERROR_CONTRACT.md`。
+
 ---
 
 ## 8. 软件架构
+
+**下级索引**：下级正本见 `docs/engineering/ARCH-001.md`、`docs/engineering/ASYNC_IO_CONTRACT.md`、`docs/engineering/BUILD_GRAPH.md`、`docs/engineering/CACHE_POLICY.md`、`docs/engineering/CODE_STYLE.md`，另 15 份。
 
 ### 8.1 总原则：唯一入口、阶段独立调度器
 
@@ -375,12 +449,16 @@ flowchart LR
     H2 -->|磁盘| P3
 ```
 
+**下级索引**：下级正本见 `docs/engineering/PIPELINE_BLOCK_CONTRACT.md`、`docs/engineering/SCHEDULER_CONTRACT.md`。
+
 ### 8.2 命名块内存管线与块生命周期
 
 - 一个运行帧承载一组命名块，每个块冻结元数据：名字、形状、类型、单位、生产者、消费者、生命周期。
 - 模块标准动作：读入参块、计算、写新块；块被其全部消费者用完后由管线显式销毁，内存立即归还。
 - 长生命周期块（WCS、PSF、星表匹配、帧级信噪比）随帧存活到导出；短生命周期块（raw、calibrated 等中间面）在下游块产出后立即消耗。
 - 峰值内存由在途块集合与分块大小决定；可缺块缺省语义无害，缺块时显式降级并写溯源。
+
+**下级索引**：下级正本见 `docs/engineering/DUAL_LINE_CONTRACT.md`、`docs/engineering/PIPELINE_BLOCK_CONTRACT.md`、`docs/engineering/data/DATA-002_PHASE_PRODUCT_EXCHANGE.md`、`docs/science/algorithms/PHASE2_SESSION.md`。
 
 ### 8.3 三个阶段调度器
 
@@ -393,6 +471,8 @@ flowchart LR
 - 一个进程一个资源预算源，线程池唯一来源是调度器，科学内核单层并行。
 - 编排基于静态预算与探针校正：预埋探针记录墙钟、排队、块生命周期、RSS、I/O、worker 均衡、缓存命中，用实测校正静态模型；编排参数据探针迭代，不靠静态猜测。
 - 预算充裕时异步并行，预算紧张时可中断排队，仍不足时丢弃可重跑工作流；数值结果与并发度无关，1/N worker 在事前冻结的浮点容差内等价。
+
+**下级索引**：下级正本见 `docs/engineering/COMPRESSION_CODEC_RESEARCH_PACK.md`、`docs/engineering/SCHEDULER_CONTRACT.md`。
 
 ### 8.4 顶层结构
 
@@ -429,11 +509,15 @@ testdata/                  真实数据与只读数据集索引
 - 科学模块不读全局配置、不建无预算线程池、不直接退出、不写未声明文件、不绕过统一 I/O。
 - 动态库加载前检查 CPU 特征、manifest、ABI，只认清单授权路径，失败报错、不搜索回退。
 
+**下级索引**：下级正本见 `docs/engineering/RT-001.md`、`docs/engineering/observability/RESOURCE_MONITORING_CONTRACT.md`、`docs/engineering/observability/RUN_GRAPH_CONTRACT.md`、`docs/engineering/observability/STRUCTURED_LOGGING_CONTRACT.md`。
+
 ### 8.5 模块与 ABI
 
 - 每个可独立调度模块具备：README、模块声明、版本化公开头、单一入口、独立构建目标、共址测试（单测、合同、负例）。
 - 跨动态库不传 STL、异常、RTTI 与编译器私有类型，第三方库隔离在动态库内部。
 - 每个生产 DAG 节点映射唯一真实模块入口，模块对块的读写集合与生命周期声明一致。
+
+**下级索引**：下级正本见 `docs/engineering/API-001.md`、`docs/engineering/BENCHMARK_STANDARD.md`、`docs/engineering/CODE_STANDARD.md`、`docs/engineering/COMMENT_STANDARD.md`、`docs/engineering/COMMON_ABI_V1.md`，另 12 份。
 
 ---
 
@@ -448,6 +532,8 @@ testdata/                  真实数据与只读数据集索引
 - 并行度沿帧级并发与帧内并行两轴分配，取两轴之积最大的组合；串行段由帧级并发重叠，不以加大帧内宽度替代。
 - 浮点归约顺序冻结，跨 worker 无共享浮点累加器；并行开关不改科学数值，等价判据是事前冻结、声明适用量级域的浮点容差，不要求逐位一致。
 
+**下级索引**：下级正本见 `docs/engineering/BASELINE.md`、`docs/engineering/COMPRESSION_CODEC_RESEARCH_PACK.md`、`docs/engineering/OPTIMIZATION.md`、`docs/engineering/PERF_GATE_CONTRACT.md`、`docs/engineering/SCHEDULER_CONTRACT.md`，另 5 份。
+
 ---
 
 ## 10. I/O 与原子产品
@@ -458,6 +544,8 @@ testdata/                  真实数据与只读数据集索引
 - 无覆盖、无数据用 NaN，不用 0 或 Inf 冒充无效；请求 tile 缺失如实报缺失，不返回父层冒充。
 - manifest 记录产品类型、软件来源、运行标识、输入标识、科学配置、像素语义、算法标识、实际后端；单位、坐标、无效值策略由产品证据块显式声明，缺失即不许消费。
 - 产品与运行日志只落块级 output_dir；资源监控伴随重计算运行，监控数据不可事后编造。
+
+**下级索引**：下级正本见 `docs/engineering/04_ARTIFACTS.md`、`docs/engineering/COMPRESSION_CODEC_RESEARCH_PACK.md`、`docs/engineering/DATA_ARTIFACTS.md`、`docs/engineering/DEVELOPER_GUIDE.md`、`docs/engineering/HIPS_STORAGE_FORM_CONTRACT.md`，另 12 份。
 
 ---
 
@@ -478,15 +566,21 @@ flowchart LR
     W --> R["发布候选 · 负责人终审"]
 ```
 
+**下级索引**：下级正本见 `docs/engineering/TOOLCHAIN_AGENT_HOST.md`、`docs/engineering/WINDOWS_BUILD_NODE.md`、`docs/engineering/abi/ABI_003_SECURE_LOADER.md`。
+
 ---
 
 ## 12. 验证体系
+
+**下级索引**：下级正本见 `docs/engineering/DEVELOPER_GUIDE.md`、`docs/engineering/VALIDATION_EVIDENCE_STANDARD.md`。
 
 ### 12.1 科学正确性与三重佐证
 
 - 科学定义先于算法、算法先于实现；每个模型有独立解析、高精度或 Monte Carlo Oracle，不以当前程序输出生成唯一 expected。
 - 每个科学结论具备三类一手证据：论文或标准（DOI/arXiv 可解析）、开源库代码（项目 + 版本 + 文件:行，并回到其文献核对）、仓内实测（复现命令 + 输出）。
 - 实现、测试与科学文档冲突时以独立证据为准订正，既不盲从文档也不盲从代码。
+
+**下级索引**：下级正本见 `docs/engineering/CRITERION_QUALITY.md`、`docs/engineering/FROZEN_GATE_INVENTORY.md`、`docs/engineering/SCIENCE_FREEZE.md`、`docs/science/DISPUTE_RESOLUTION.md`、`docs/science/algorithms/GATES_AND_TOLERANCES.md`。
 
 ### 12.2 三类实验数据
 
@@ -495,6 +589,8 @@ flowchart LR
 3. testdata 真实数据：M42 与银心的实际端到端验证（含视觉验收）。
 
 每个度量具备非退化判据，恒真门没有证据资格。
+
+**下级索引**：下级正本见 `docs/engineering/CRITERION_QUALITY.md`、`docs/science/CCD_LINEAR_DEFECT_LITERATURE.md`。
 
 ### 12.3 创新点实验单元
 
@@ -509,6 +605,8 @@ flowchart LR
 - 单元目录含 README、实验报告、`code/`（固定 seed、可复跑）、`results/`、文献台账；不保留可重新生成的中间大数据。
 - 实验报告含：可证伪假说、方法与判据、数据来源与生成方式、结果（数字 + 不确定度 + 对照）、可判定结论、诚实边界、复现命令、佐证来源。
 - 每个单元经独立 SubAgent 多轮审稿，审稿者不是结论作者；材料随仓库维护、可独立复核。
+
+**下级索引**：下级正本见 `docs/engineering/SCIENCE_FREEZE.md`、`docs/science/DISPUTE_RESOLUTION.md`。
 
 ### 12.4 验证层级与四层验收
 
@@ -533,6 +631,8 @@ flowchart TD
 - 容差在写测试前冻结，NaN/Inf/缺失的位置与语义精确一致；受影响验证范围由改动集算出，只扩大不缩小。
 - L4 通过且关键机器门全绿后由负责人决定发布预览版。
 
+**下级索引**：下级正本见 `docs/engineering/02_PIPELINE.md`、`docs/engineering/04_ARTIFACTS.md`、`docs/engineering/TEST_MATRIX.md`、`docs/engineering/TRACEABILITY_SPEC.md`、`docs/engineering/complexity_baseline_v1.md`，另 1 份。
+
 ### 12.5 状态阶梯
 
 | 状态 | 语义 |
@@ -546,6 +646,8 @@ flowchart TD
 
 状态由检查与验收现场计算，登记表不预写状态；合成测试或历史节点不等于真实数据 VERIFIED。
 
+**下级索引**：下级正本见 `docs/engineering/02_PIPELINE.md`、`docs/engineering/RELEASE_STATUS.md`、`docs/engineering/SCIENCE_FREEZE.md`。
+
 ---
 
 ## 13. 版本与发布权
@@ -555,14 +657,20 @@ flowchart TD
 - 发布候选满足：合同冻结无冲突、追溯无断链、模块可独立加载验证、无硬编码线程与无界内存增长、双平台 CI 通过、四层验收通过（L4 含真实数据目检）、发行包白名单与哈希通过。
 - 最终发布决定只属项目负责人；agent 至多声明 READY_FOR_OWNER_REVIEW；负责人目视认可后执行发布收口，标记 alpha 预览版。
 
+**下级索引**：下级正本见 `docs/engineering/COMPRESSION_CODEC_RESEARCH_PACK.md`、`docs/engineering/RELEASE_STATUS.md`、`docs/engineering/UNRESOLVED_REGISTER.md`、`docs/engineering/VERSIONING.md`。
+
 ---
 
 ## 附录 A. 术语
 
 signal、variance、ivar、frame_snr、sparse_snr_layer、support、coverage、validity、rejection、provenance、UPM、PSF、HiPS、HEALPix、WCS、projection、stacking、drizzle、机器画像、运行 manifest、control_ivar —— 定义见 `docs/detail/` 与 `docs/GLOSSARY.md`。
 
+**下级索引**：下级正本见 `docs/GLOSSARY.md`。
+
 ## 附录 B. 外部标准与文献
 
 - IVOA HiPS、HEALPix（Górski 2005）、FITS WCS 系列、FITS 标准、Drizzle（Fruchter & Hook 2002）；
 - 测光标定、PSF 信噪比、逆方差叠加的专项文献与开源对照（Horne 1986；Zackay & Ofek；Gaia DR3 XP 文档；SExtractor、photutils、SEP、Siril、SWarp、SCAMP、DrizzlePac、Astropy、HEALPix 等）。
 - 文献正本与编号见 `docs/engineering/SCIENTIFIC_REFERENCES.md` 与各实验单元文献台账。
+
+**下级索引**：下级正本见 `docs/engineering/SCIENTIFIC_REFERENCES.md`、`docs/science/IVOA_HIPS_TILE_FORMAT_RESEARCH_PACK.md`、`docs/science/PHOTOMETRY_RESEARCH_PACK.md`。

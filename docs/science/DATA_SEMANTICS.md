@@ -72,7 +72,7 @@ FITS index = (511 - x) * 512 + y
 - HiPS 子产品位：`AIO_HIPS_PRODUCT_VARIANCE=8`、`AIO_HIPS_PRODUCT_IVAR=16`。
 - **Phase1 逐帧 variance/ivar 产品的逐像素三态**：
   依据 = `docs/science/NOISE_MODEL.md` §7（「不可用一律 `ivar=0`、**取值为显式不可用，与 clamp 结果可区分**；该值由显式降级判定
-  产生**」+「NaN 保留给产品损坏」）与「与 signal 同态」原则（`ACSD_DESIGN.md` §0.1：
+  产生**」+「NaN 保留给产品损坏」）与「与 signal 同态」原则（`ACSD_DESIGN.md` §0.1（文档写法）：
   科学公式与算法推导的唯一权威是 `docs/science/`）。下表是**唯一口径**：
 
   | 态 | 判据（writer 输入） | `variance` | `ivar` |
@@ -244,7 +244,7 @@ free）；`out_spectra` 为 `out_count × global_spec_count` 字节（global_spe
 
 **审计口径（与实现一致，UNIT-001 批次 B 实测）**：
 - **拒绝路径（已落盘）**：结构化诊断（token + 点名文件 + 观测中位数 + 缺失声明项）随
-  `ErrorDomain::DATA` 进入 run manifest 的 `error.message`（机检：`eng/tools/quality/check_master_unit_guard.py`），
+  `ErrorDomain::DATA` 进入 run manifest 的 `error.message`（机检：标度/归一化门判据，载体见 门禁注册面（G08-10 重建）），
   且该路径不产出任何 `calibrated_*`。
 - **接受路径（部分落盘，登记残留）**：`p1_op_calibrate` 把声明、观测中位数、实际换算因子、
   平场归一前后 median 写入**节点 manifest**（`stages.calibrate.master_unit_guard` + 顶层
@@ -377,7 +377,7 @@ phase1_session 将 out 写为 `calibrated_<原名>.fits`（float32 ADU）；母�
 > `orchestrator_saturation_wiring_gate` 机器核验）；**放行集 = 标准表 + 显式注册**——
 > 块名 ∉ 标准表且未经 `aio_block_name_register` 显式注册 ⇒ `aio_frame_add_block` /
 > `aio_frame_add_block_move` 拒绝（返回 9），KV 自动创建与缓存回读同口径；
-> 机器判据 = `eng/tools/quality/check_module_map.py`（标准表↔`kStandardBlockNames` 逐名一致 +
+> 机器判据 = 块名放行判据（载体见 门禁注册面（G08-10 重建）；标准表↔`kStandardBlockNames` 逐名一致 +
 > 生产调用点白名单，含 dlsym 别名形态）。语义正本 = `docs/detail/UNIFIED_MODEL.md` §2
 > （canonical 对象 variance / ivar）+ `eng/contracts/schemas/unified/{variance,ivar}.schema.json`。
 
@@ -394,7 +394,7 @@ phase1_session 将 out 写为 `calibrated_<原名>.fits`（float32 ADU）；母�
 | pixfrac | double | drop 与源像素之比（无量纲） | 引擎层 (0,1] 严格拒绝 ≤0/>1（:1567-1574，不夹逼）；文件通道 API 层接受 0.0 的双轨（两层参数校验各自具名） |
 | "variance" 块（可选，帧内块；**标准块定义表已登记**，见本节首注） | float32，随 data 布局 | **像素域**量纲 `ADU^2`（§31.1 `pixel_variance_in`；UNIFIED_MODEL §2 variance 对象）；**标度 = 与同帧 `data` 块同一数组、同一 dtype**（数组为 `photo_scaled_adu` ⇒ 随 α² 一并缩放；本节点不二次缩放。标度词表 = `docs/engineering/NUMERIC_STANDARD.md`）。**输入块（`ADU^2`，像素域）与输出产品（`ADU^2/sr^2`，面亮度域，§12.2）量纲不同**；换算责任方 = writer 归一（因子 `1/covered_area^2`，§4a） | 非有限或 ≤0 → 跳过该像素（:1727-1729）；无 variance 输入 → 不产 variance/ivar 产品 |
 | "ivar" 块（可选，帧内块；**标准块定义表已登记**，见本节首注） | float32，随 data 布局 | ADU⁻²（= 1/variance，有限域互为倒数） | variance 缺失/≤0 → ivar=0（显式不可用，禁 1/0→Inf；§4a）；非有限或 ≤0 → 跳过该像素 |
-| weight 面（文件通道 FITS） | — | — | **禁用面**：阶段一/阶段三**不产生也不消费**权重；HiPS 只存**帧级 SNR** + **稀疏控制点上的绝对 SNR**，权重是**阶段二按天球像素对应帧集合现场算出的派生量**（`ACSD_DESIGN.md` §2.1）。legacy 文件通道 API `hp_drizzle_run(…, weight_path, …)` 的该形参（`hp_drizzle_api.h:55,49`；**零生产调用者**，GAP_AUDIT A-04；生产末端 = `hp_drizzle_run_hips`）**输入通道即生产末端** |
+| weight 面（文件通道 FITS） | — | — | **禁用面**：阶段一/阶段三**不产生也不消费**权重；HiPS 只存**帧级 SNR** + **稀疏控制点上的绝对 SNR**，权重是**阶段二按天球像素对应帧集合现场算出的派生量**（`ACSD_DESIGN.md` §2.1（P1 通量积分拟合：测光校准到测光星等坐标系））。legacy 文件通道 API `hp_drizzle_run(…, weight_path, …)` 的该形参（`hp_drizzle_api.h:55,49`；**零生产调用者**，GAP_AUDIT A-04；生产末端 = `hp_drizzle_run_hips`）**输入通道即生产末端** |
 | snr 面（可选，文件通道 FITS） | float32 `[H][W]` | 无量纲 | 读失败 rc=8/9；尺寸不匹配 rc=7/9；非有限/≤0 跳过 |
 
 ### 11.2 输出（HEALPix NESTED tile 产品 + 统计）
@@ -823,7 +823,7 @@ docs/science/NOISE_MODEL.md:313）；
 > DATA-P1-COS（§10）等冻结节。编排级合同 API-P1-001
 > （docs/engineering/PHASE1_API_V1.md，FROZEN）；入口符号合同 API-P1-SESSION
 > （PUBLIC_API.md）。本节是该会话数据面单位/dtype/shape/invalid 的**依据**（上位 =
-> `ACSD_DESIGN.md` §0/§0.1；科学公式与算法推导以 `docs/science/`、`docs/science/algorithms/` 为准），
+> `ACSD_DESIGN.md` §0（文档权威与索引）/§0.1（文档写法）；科学公式与算法推导以 `docs/science/`、`docs/science/algorithms/` 为准），
 > 本节词汇的改写方向 = 由上游发起；本节权威等级由上位文档授予（依 §0.1：下级文档不另立权威链）。
 
 ### 16.1 config JSON（p1_session_validate 键集，p1_session.cpp:115-143）
@@ -831,8 +831,8 @@ docs/science/NOISE_MODEL.md:313）；
 > **多数据块形态（GAP_AUDIT §9.68）**：CLI 的 `normalize --json` 顶层可以是
 > `{schema_version, blocks[]}`（每块 = 一组 light + 一套母版 + 运行参数 + 块级 `output_dir`）；
 > CLI 逐块把 `blocks[i]` 展开为**本节的单块键集**后各起一次运行（独立 `output_dir` / 独立 run manifest，
-> manifest 带 `block{name,index,count}` 归属）。本节因此仍是**会话层**配置数据面的依据（上位 = `ACSD_DESIGN.md` §0/§0.1；本节不自称「唯一权威」）：
-> 会话永远只看到单块键集，多块只是它的外壳（形态定义见 `ACSD_DESIGN.md` §3.3）。
+> manifest 带 `block{name,index,count}` 归属）。本节因此仍是**会话层**配置数据面的依据（上位 = `ACSD_DESIGN.md` §0（文档权威与索引）/§0.1（文档写法）；本节不自称「唯一权威」）：
+> 会话永远只看到单块键集，多块只是它的外壳（形态定义见 `ACSD_DESIGN.md` §3.3（精度归属））。
 
 | 键 | 必/可 | dtype | 默认 | 消费段 / 错误 |
 |---|---|---|---|---|
@@ -943,7 +943,7 @@ config 在 run 内二次解析（validate 先行的合同，:155-159 parse 失�
   **检测范式**：`sdet_api.cpp` 的全局阈值路径是**全图盲检测**的实现
   （全图盲检测 → 匹配 → 解算；该路径的星表**不是**权威科学产品）。
   **权威检测范式 = 星表引导拟合**（检测定义域是星表位置，用本帧 WCS
-  反向投影 Gaia 星表；拟合成功即星点、失败直接丢弃）——见 `ACSD_DESIGN.md` §4.2。
+  反向投影 Gaia 星表；拟合成功即星点、失败直接丢弃）——见 `ACSD_DESIGN.md` §4.2（节点流程）。
   全图盲检测连通域路径 **不是**权威路径（如保留只能作**显式标注的可选诊断**）。
 
 ### 17.3 排序/截断/精度规则（汇总）
@@ -1213,7 +1213,7 @@ P2Stage2Config 公共关键字段（唯一签名源 stage2_common.h:16-99，行�
 | reject_method / reject_profile / reject_underdetermined_n | P2_REJECT_AUTO / "acsd_adaptive_pixel"（**生产默认**，自研）/ 2（:52-54；工具链默认 "wbpp_2_9_1" 为对照档，分歧已登记） | 无量纲 | planning 层解析为显式方法；profile 版本化（自研档逐输出像素几何 n；对照档 = 本仓冻结解析表，档界取自 WBPP 2.5.9 bestRejectionMethod） |
 | reject_normalization | "acsd_median_center_v1"（:56） | 无量纲 | 判定工作域归一；mask 应用回原始 calibrated 值 |
 | large_scale_enabled（及 min_structure_pixels/low_grow/high_grow） | false / 8 / 2 / 2（:60-63） | 无量纲 | acsd.large_scale_rejection.v1，默认关闭（WBPP largeScaleClip 默认一致） |
-| weight_mode（键不存在；**已按 §9.73 A44 作废**） | — | 无量纲 | **禁用键**：不存在「权重模式」概念（ACSD_DESIGN.md §2.1）；逆方差权重由阶段二按该天球像素对应的帧集合**现场算出**（派生量，非配置项）；配置中出现该键 ⇒ 具名 fail-closed 拒绝（§31.8） |
+| weight_mode（键不存在；**已按 §9.73 A44 作废**） | — | 无量纲 | **禁用键**：不存在「权重模式」概念（ACSD_DESIGN.md §2.1（P1 通量积分拟合：测光校准到测光星等坐标系））；逆方差权重由阶段二按该天球像素对应的帧集合**现场算出**（派生量，非配置项）；配置中出现该键 ⇒ 具名 fail-closed 拒绝（§31.8） |
 | legacy_allow_weight_fallback（键不存在） | — | — | **禁用键**：缺 ivar 的失败语义由「权重现场算」条款承载 —— ivar 产品缺失 → rc=7 显式科学错误（stage2.cpp:792-805）；配置中出现该键 ⇒ 具名 fail-closed 拒绝（§31.8） |
 | acr_route | "auto"（:95） | 无量纲 | 集成执行路由 |
 | out_hips | —（:97） | 文件系统路径 | 输出 HiPS 产品集根目录 |
@@ -1837,7 +1837,7 @@ u64。out_n_controls = n_union×G² **全几何节点含空覆盖占位**
   `aio_hips_read_tile_*` 调用各自 open→read→close，句柄只在该调用栈帧内
   （线程私有、不跨线程转移），并发安全由 cfitsio `_REENTRANT` 构建保证
   —— 依据与机器判据见 `docs/engineering/EXECUTION_MODEL.md` §2/§3 与
-  `check_execution_contracts.py::EXEC-AIO-READ-NO-GLOBAL-LOCK`。
+  `EXEC-AIO-READ-NO-GLOBAL-LOCK`（执行合同判据，载体见 门禁注册面（G08-10 重建））。
   并行路径 per-worker 独立 AIO 句柄（:938 `rdr.init_own`）无共享可变
   全局态，reentrant yes；无取消检查点（ThreadLease 接线不在本层）。
 - 取值面与硬编码登记（不改码）: cfg `<=0→默认` 不保留显式 0（:485-502）；
@@ -3097,9 +3097,7 @@ ivar_out = var_out 同态  (var_out=0 → 0 显式不可用; NaN → NaN)
   等于 `n_rejected_nonfinite`；②校验载体存在且长度 == `height_px × width_px × 4`；
   ③校验 `n_rejected_nonfinite_total` == Σ 逐像素计数。任一不符 ⇒ **非零失败**
   （禁静默缺省、禁按 0 补齐）。判据实现 =
-  `eng/tools/quality/check_p3_rejection_count.py`（六条 G1–G6 + `--self-test`
-  1 正例 7 负例），CI 可见载体 =
-  `eng/tests/quality/test_p3_rejection_count.py`（UT-QUALITY 自动 discover）。
+  强制剔除计数合同判据（六条 G1–G6 + `--self-test` 1 正例 7 负例，载体见 门禁注册面（G08-10 重建））。
 
 - **未冻结面**: Phase3 产物是否另落 FITS 诊断 HDU、以及
   `output_phase3.fits` 侧的计数通道，本节**不冻结**（科学平面的 FITS HDU 序
@@ -3107,7 +3105,7 @@ ivar_out = var_out 同态  (var_out=0 → 0 显式不可用; NaN → NaN)
 
 ## 31. V6 合同层数据合同（DATA-V6-SCHEMA）
 
-> **语义权威 = 本 §31 正文**（`ACSD_DESIGN.md` §0.1/§0.2）。机器可读登记表 =
+> **语义权威 = 本 §31 正文**（`ACSD_DESIGN.md` §0.1（文档写法）/§0（文档权威与索引））。机器可读登记表 =
 > `eng/contracts/data/clause_registry.json`：登记表承载定义与映射，**不自声为权威**；
 > **不存在第二条权威链**，任何文档的权威顺序与"唯一口径"均取自该链。
 > 条款注册表见 **§31.10**；Phase3 逐像素立体角与采样核版本化 registry 见 **§28.6**。
@@ -3254,10 +3252,10 @@ HiPS signal 仍是**线性面亮度**，只是零点换成**逐帧相对测光�
 | 生产科学模式 | `point_information` / `surface_gls` | 配置显式选择，模式切换只经配置；各自权威式见 §31.4/§31.5 与 `eng/contracts/data/clause_registry.json#weight_vocabulary` |
 | 文档基线模式 | `equal` / `pixel_ivar` | 仅基线比较，**非**科学最优声明 |
 | 延迟模式 | `psf_snr_power` | DEFERRED/NOT_IMPLEMENTED（`FZ-MODE-DEFERRED`），**不进**生产路由 |
-| 排除 token | `psfsw_robust` | **禁用 token**：它是对象 `psfsw_robust_weight` 的声明 token，**不在**生产接受集（`FZ-MODE-PRODUCTION = {point_information, surface_gls}`）；产品声明该 token ⇒ **显式拒绝 + 迁移提示**（`FZ-MODE-RETIRED`）；接受面 = 空。依据：`docs/ACSD_DESIGN.md` §3.1（权重只能来自纯净信号与噪声之比/逆方差，PSF 拟合质量代理只作诊断）、`docs/detail/UNIFIED_MODEL.md:58`。机器登记：`eng/contracts/data/clause_registry.json#weight_modes.retired`。 |
+| 排除 token | `psfsw_robust` | **禁用 token**：它是对象 `psfsw_robust_weight` 的声明 token，**不在**生产接受集（`FZ-MODE-PRODUCTION = {point_information, surface_gls}`）；产品声明该 token ⇒ **显式拒绝 + 迁移提示**（`FZ-MODE-RETIRED`）；接受面 = 空。依据：`docs/ACSD_DESIGN.md` §3.1（数据对象）（权重只能来自纯净信号与噪声之比/逆方差，PSF 拟合质量代理只作诊断）、`docs/detail/UNIFIED_MODEL.md:58`。机器登记：`eng/contracts/data/clause_registry.json#weight_modes.retired`。 |
 
 **legacy 整数处置**（`FZ-FIELD-WEIGHTMODE`；迁移映射见 `eng/contracts/data/clause_registry.json#migration_map.legacy_weight_mode_disposition`；该字段不存在——权重是阶段二按该天球像素对应帧集合现场算出的派生量）：
-**全值域一律拒绝**：`0=support×snr²`（support/coverage 只作门，`FZ-GATE-SUPPORT-COVERAGE`）、`1=equal`、`2=pixel_ivar` **三者同等拒绝** —— 该字段不存在任何合法取值（`ACSD_DESIGN.md` §3.1:175「没有可选择项」；`docs/science/PSF_SIGNAL_WEIGHT.md` §4:72）。实现事实源：`stage2_common.cpp` / `module_adapters.cpp`（键出现即拒绝）、`runtime_contract.h` 的 `route_legacy_weight_mode_int`（纯拒绝面）。
+**全值域一律拒绝**：`0=support×snr²`（support/coverage 只作门，`FZ-GATE-SUPPORT-COVERAGE`）、`1=equal`、`2=pixel_ivar` **三者同等拒绝** —— 该字段不存在任何合法取值（`ACSD_DESIGN.md` §3.1（数据对象）:175「没有可选择项」；`docs/science/PSF_SIGNAL_WEIGHT.md` §4:72）。实现事实源：`stage2_common.cpp` / `module_adapters.cpp`（键出现即拒绝）、`runtime_contract.h` 的 `route_legacy_weight_mode_int`（纯拒绝面）。
 生产枚举（**输入路径**）出现 `psf_snr_power` / `auto` / `support_x_snr2` / `equal` / `pixel_ivar` / 整数 `0`|`1`|`2` / `weight_mode` 键 / `legacy_allow_weight_fallback` 键（两键均不存在，**已按 §9.73 A44 作废**；权重是阶段二按天球像素对应帧集合现场算出的派生量） / 未知值 → REJECT。`ACSD_WEIGHT_MODE` 整数（§30.3）与 ACR `{auto,ivar,equal,support_x_snr2}` 一律标 ARCHIVED，生产枚举定义只取本节。
 
 **登记面 vs 输入路径（本节判据形态）**：「登记面」= 描述**既有数据对象**的形态，是**名词**；「输入路径」= 决定生产**接受什么**，是**动词**。冻结（`FZ-WEIGHT-SINGLE-PATH`）适用面 = **后者**；前者不受约束 —— 故本节与 `eng/contracts/data/clause_registry.json#weight_modes`、`eng/contracts/schemas/product_family_field_constraints.schema.json#/$defs/weight_mode` 的**词表登记保留**，但必须正面写清它**不是**接受集。判据（唯一可判定式）：**凡出现在「配置读取 / 路由 / 解析」路径上的 legacy 权重域 token 一律 fail-closed 具名拒绝**；仅用于描述既有对象形态的枚举与映射不构成输入面，生产可用的判据 = 接受集本身。
@@ -3315,7 +3313,7 @@ HiPS signal 仍是**线性面亮度**，只是零点换成**逐帧相对测光�
 单位一致性：`signal/noise/background` 共享组内常量 `component_flux_unit`（显式声明），
 **`concentration` 单位以 `component_flux_unit/px^2` 为唯一权威**（`A_NEA = 1/ΣP²`，单位 `px^2`）。
 concentration 写作 `ADU/px` 属**登记在案的文本错误**：`ADU/px²` 是唯一合法写法（依据 `FZ-FIELD-PSFSW-4COMP` + `ALG-P2-PSFSW-001` 单位一致性规则 + `eng/contracts/schemas/product_family_field_constraints.schema.json#/$defs/psfsw` 的 `concentration.units` 收紧 pattern，`A_NEA=px²`）；合法域**不含** `ADU/px`；该禁用形态的登记见 `eng/contracts/data/clause_registry.json#concentration_unit_authority`。生产正例 `eng/contracts/data/examples/psfsw.example.json` 的写法为 `ADU/px^2`。PSFSW 复合权重 `W_psfsw` 由组内比值定义，严格无量纲（`units="1"`，`group_normalized=true`，`normalization.scope="group"`），写法只取组内比值式（`ivar/variance/sigma/fisher/w_info/w_psf/…` 等键由 schema `propertyNames` 守卫排除）。
-**禁用面**：`W_psfsw` 的**对象身份** `psfsw_robust_weight` 不在生产接受集（§31.3 排除 token 行；`docs/ACSD_DESIGN.md` §3.1：权重只能来自纯净信号与噪声之比/逆方差，PSF 拟合质量代理只作诊断）。因此本节的四分量与复合式**只作诊断面**：Phase1 产品**不携带**该对象声明（`eng/contracts/schemas/product_family_field_constraints.schema.json#/$defs/psfsw` 的 `weight_mode`（**已按 §9.73 A44 作废**）/`weight` **不在** `required` 内），产品仍携带者**显式拒绝 + 迁移提示**（`FZ-MODE-RETIRED`），`W_psfsw` **的落点 = 诊断面**。
+**禁用面**：`W_psfsw` 的**对象身份** `psfsw_robust_weight` 不在生产接受集（§31.3 排除 token 行；`docs/ACSD_DESIGN.md` §3.1（数据对象）：权重只能来自纯净信号与噪声之比/逆方差，PSF 拟合质量代理只作诊断）。因此本节的四分量与复合式**只作诊断面**：Phase1 产品**不携带**该对象声明（`eng/contracts/schemas/product_family_field_constraints.schema.json#/$defs/psfsw` 的 `weight_mode`（**已按 §9.73 A44 作废**）/`weight` **不在** `required` 内），产品仍携带者**显式拒绝 + 迁移提示**（`FZ-MODE-RETIRED`），`W_psfsw` **的落点 = 诊断面**。
 
 ### 31.8 fail-closed 摘要（完整表见 `eng/contracts/data/clause_registry.json#fail_closed`）
 
@@ -3340,7 +3338,7 @@ concentration 写作 `ADU/px` 属**登记在案的文本错误**：`ADU/px²` �
   `_PLANE_ID_SET`（`{signal, support, variance, ivar, mask}`）必须同一提交修订；诊断统计平面
   （nused/nrej/`n_rejected_nonfinite`）不进该枚举；`sparse_snr_layer` 是 HiPS 文件内标准层，
   不是 exchange `planes` 成员（§30.2/§30.7）。
-- 上游：`docs/ACSD_DESIGN.md` §0/§1/§2/§9/§11/§12；`docs/engineering/PROJECT_SPEC.md`
+- 上游：`docs/ACSD_DESIGN.md` §0（文档权威与索引）/§1（项目定位）/§2（核心科学方法：五个创新点）/§9（CPU 后端与资源）/§11（双平台发行）/§12（验证体系）；`docs/engineering/PROJECT_SPEC.md`
   §3/§4/§5/§7/§11；`docs/detail/PHASE{1,2,3}_DETAILED_DESIGN.md`；
   `docs/science/UNIFIED_SCIENCE_MODEL.md`；`docs/science/PSF_SIGNAL_WEIGHT.md`；`docs/detail/UNIFIED_MODEL.md`。
 - 消费面（配置/CLI 语义）见 `docs/engineering/PUBLIC_API.md` 的权重与模式配置节；兼容期映射与归属登记见
@@ -3414,5 +3412,5 @@ concentration 写作 `ADU/px` 属**登记在案的文本错误**：`ADU/px²` �
 枚举扩展条目 `DI-06` 按 §31.9 的联动约束处置，未冻结，生产判据面 = 空）；签字项 `SO-01` 见
 `eng/contracts/data/clause_registry.json#clause_registry.signoff_items`。
 
-**上游**：`docs/ACSD_DESIGN.md` §0/§12；`docs/detail/UNIFIED_MODEL.md` §2；`docs/science/PSF_SIGNAL_WEIGHT.md`；
+**上游**：`docs/ACSD_DESIGN.md` §0（文档权威与索引）/§12（验证体系）；`docs/detail/UNIFIED_MODEL.md` §2；`docs/science/PSF_SIGNAL_WEIGHT.md`；
 `docs/engineering/UNIFIED_OBJECTS.md` §4。
