@@ -179,7 +179,7 @@ role 与 type 逐一对应（同名必同 type / 同 type 必同 role，无歧�
        `n_rejected_nonfinite`、`per_pixel=true`）+ `n_rejected_nonfinite_total`。
        **不进** science planes 枚举（沿用 §30.2 阶段二 `nused`/`nrej` 诊断平面
        先例：诊断平面由 artifact manifest 声明描述，science 枚举零改动）。
-       判据 = `eng/tools/quality/check_p3_rejection_count.py`.
+       判据 = 强制剔除计数合同判据（六条 G1–G6，载体见 门禁注册面（G08-10 重建））。
 
     4. **帧间集成**：某帧在该像素的输出非有限时，该帧作为**候选被剔除并计数**；
        判 `INVALID_INPUT` 的条件 = 全部候选非有限，单帧非有限只剔除该帧（`integrate.cpp` 合同：仅

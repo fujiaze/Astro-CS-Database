@@ -88,7 +88,7 @@ handler→内部会话 API 追溯(phase 为内部指代): normalize→API-003(�
 - 取消后: 关 writer→写 incomplete manifest→删除/隔离临时产物→exit 9;**取消后的 HiPS/结果一律为 incomplete 形态**(与 ARCH-002 §5/ARCH-005 §3 原子单元一致)。
 - 未捕获异常→70+run_id/阶段/最小脱敏 crash report(不泄露凭据)。
 
-## 6 机器化一致性检查器合同(API-002 建立；现行落地 = `eng/tools/check_api_docs.py`)
+## 6 机器化一致性检查器合同(API-002 建立；判据载体见 门禁注册面（G08-10 重建）)
 
 1. `--help` golden 树与 §1 逐行一致;
 2. JSON/JSONL 样例对 schema 有效(jsonschema 或 stdlib 等价校验);

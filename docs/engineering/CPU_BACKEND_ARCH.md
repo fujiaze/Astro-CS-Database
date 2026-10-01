@@ -48,4 +48,4 @@
 | §4 C ABI v1 | `docs/engineering/abi/ABI_003_SECURE_LOADER.md`、`eng/tests/backend/test_abi_v1.py`（ABI layout 与异常不跨边界） |
 | §5 kernel 表 | `eng/tests/backend/test_abi_kernels.py`（baseline 全 kernel + affinity 多线程） |
 | §6 回退 | `eng/tests/backend/test_cpu_profile.py`（profile 失效 / fallback）+ `docs/ACSD_DESIGN.md` §7.2（退出码） |
-| §7 发布 | `eng/packaging/verify_install_tree.py`、`docs/architecture/PRODUCTION_EXECUTION_INVENTORY.csv`（打包面登记） |
+| §7 发布 | `docs/architecture/PRODUCTION_EXECUTION_INVENTORY.csv`（打包面登记）；安装树校验项载体见 门禁注册面（G08-10 重建） |

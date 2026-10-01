@@ -2,7 +2,7 @@
 
 > 上游：`docs/ACSD_DESIGN.md` §12.1（科学正确性）、`docs/engineering/SCIENCE_FREEZE.md`（冻结基线）、
 > `docs/science/algorithms/GATES_AND_TOLERANCES.md` §1 R1/R2（表内唯一来源、证据必需）
-> 机器实现：`eng/tools/acceptance/frozen_gate_exit_gate.py`（FG-01..FG-06）
+> 机器判据：FG-01..FG-06（裁决器载体见 门禁注册面（G08-10 重建））
 > 盘点表（机器可读）：`eng/tools/acceptance/frozen_gate_inventory.json`
 > 盘点时点 commit：`e9fa20d9`
 
@@ -34,10 +34,10 @@
 触发事件在轮次报告里有记，**产品面（manifest / 判词记录）无记录**，等价于「停工且无登记面」：
 只看产品面的人无法区分本档是「首帧中止」还是「全批失败」。
 
-登记面定义见 `eng/tools/acceptance/tier_verdict_gate.py` 的 TV-03 / TV-06 / TV-12。
+登记面定义见 TV-03 / TV-06 / TV-12（档位判词记录面，载体见 门禁注册面（G08-10 重建））。
 
 **处置方案（本轮已落地一半）**：
-1. 登记面 = 档位判词记录（`eng/tools/acceptance/tier_verdict_gate.py` TV-03/TV-06/TV-12）；
+1. 登记面 = 档位判词记录（TV-03/TV-06/TV-12）；
 2. 拒绝记录必带门 ID / 原文原因 / 分类（产品行为 or 缺陷）/ 出口 / 确定性复现；
 3. 存在未消命中时，档位判词写 `VERIFIED` 即判红（TV-12）。
 
@@ -62,10 +62,7 @@
 
 ## 3 可执行证据
 
-~~~bash
-python3 eng/tools/acceptance/frozen_gate_exit_gate.py --self-test   # 正例 1/1 + 注入负例 6/6
-python3 eng/tools/acceptance/frozen_gate_exit_gate.py               # 裁决真实盘点表
-~~~
+裁决入口随 门禁注册面（G08-10 重建） 落盘（`--self-test` = 正例 1/1 + 注入负例 6/6）。
 
 实测：`FROZEN_GATE_EXIT_PASS: gates=7 无出口=2 已声明未运行缺口=1 red_rules=0`。
 「无出口=2」= A6-GATE-PHOT + CPU-PROFILE-BIND，二者均已带 `remediation`；

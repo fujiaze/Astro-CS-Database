@@ -5,7 +5,7 @@
 ## 1. 目的与边界
 
 机器可读事实源：`lib/infrastructure/observability/monitoring/monitor.py`（列合同、指纹链与
-校验的唯一权威）、`eng/tools/monitoring/verify_monitor_csv.py`（检查器）、
+校验的唯一权威）、CSV 校验项（检查器，载体见 门禁注册面（G08-10 重建））、
 `lib/infrastructure/observability/monitoring/linux_procfs.py`（Linux 采集）、
 `lib/infrastructure/observability/monitoring/windows_pdh_etw.py`（Windows 隔离 stub）。
 
@@ -115,7 +115,7 @@ fp(seq=n)    = sha256(salt | fp(seq=n-1) | json(行字符串形态) | n)
 
 ## 5. 机器校验（verify_csv）
 
-`eng/tools/monitoring/verify_monitor_csv.py --csv <file> [--run-id R] [--stats]`：
+CSV 校验（接受 `--csv <file>` / `--run-id R` / `--stats`；载体见 门禁注册面（G08-10 重建））：
 exit 0 = PASS；违例 => 非 0 + machine JSON verdict=FAIL。检查：
 
 1. header 精确等于合同 HEADER；

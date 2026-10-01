@@ -13,7 +13,7 @@
 > ALG-WCS-001 §11.4（docs/science/algorithms/PLATESOLVE.md）。
 > 标定证据面: 本表各行「来源」列所引 SCI/ALG 条款与对应 `ctest` 目标
 > （探针直链本树 sdet+dpsf 静态库 + scipy 独立复算）。
-> 机器校验: `eng/tools/check_gates_and_tolerances.py`（本表即机器可校验事实源）。
+> 机器校验: 门表登记校验项（本表即机器可校验事实源；载体见 门禁注册面（G08-10 重建））。
 
 ## 1 规则（冻结）
 

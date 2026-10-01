@@ -26,8 +26,8 @@
 
 | Workflow | Job（依赖） | 内容 | 证据锚 |
 |---|---|---|---|
-| `ci-linux.yml` | `linux`（单 job，ubuntu） | run.py --profile linux-main（workflow_dispatch 可选 linux-deep）；失败路径 wf_step.py --step LINUX-BOOTSTRAP-DIAG | `linux-ci-<sha>` ← `artifacts/ci/`（always） |
-| `ci-windows.yml` | `windows`（单 job） | run.py --profile windows-main；失败调 wf_step.py --step WINDOWS-BOOTSTRAP-DIAG | `acsd-windows-candidate-<sha>`、`windows-ci-<sha>` ← artifacts/（success/always） |
+| `ci-linux.yml` | `linux`（单 job，ubuntu） | linux-main profile（workflow_dispatch 可选 linux-deep）；失败路径走 LINUX-BOOTSTRAP-DIAG 诊断步 | `linux-ci-<sha>` ← `artifacts/ci/`（always） |
+| `ci-windows.yml` | `windows`（单 job） | windows-main profile；失败走 WINDOWS-BOOTSTRAP-DIAG 诊断步 | `acsd-windows-candidate-<sha>`、`windows-ci-<sha>` ← artifacts/（success/always） |
 
 增量档不跑整条链：只执行与改动集相交的检查（`TEST_STANDARD.md` §8），构建/测试 target 由构建图反查得出；
 任一 fail-closed 条件命中即判红。

@@ -12,8 +12,8 @@
 #   - eng/contracts/config/module_dll_contract.schema.json（entrypoint_abi 统一 acsd_module_query_v1）
 #
 # 本表是**期望映射**：不含任何模块状态声明。模块状态一律由
-# eng/tools/quality/check_module_map.py 现场计算，状态词只取 §12.5 词表；
-# status 字段的取值源 = check_module_map.py 的现场计算（防「表内自证绿」）。
+# 交付状态现场计算（载体见 门禁注册面（G08-10 重建）），状态词只取 §12.5 词表；
+# status 字段的取值源 = 交付状态判据的现场计算（防「表内自证绿」）。
 #
 # 诚实性约定：legacy_paths 保存**迁移前**的路径（历史键），只作 ARCH-001 的定位线索，
 # **不参与实现/安装判定**；实现只认 target_dir 下的生产源。迁移完成后这些路径在树中
@@ -25,7 +25,7 @@
 # 修改本表必须同时过 CHK-MODULE-MANIFEST（引用刷新）。
 
 schema_version: 1
-tool: eng/tools/quality/check_module_map.py
+tool: 门禁注册面（G08-10 重建）
 authorities:
   module_index: docs/detail/00_INDEX.md §1/§2/§3/§5
   engineering_spec: ENGINEERING_SPEC.md §4/§8
@@ -746,7 +746,7 @@ modules:
 #   * 文件已移动的 ⇒ 直接更新声明路径、不登记缺口；
 #   * owner 必须命中下方 gap_owners；kind=task 的 owner 必须有对应任务书文件，
 #     否则机器判红（fail-closed）。
-# 校验：python3 eng/tools/quality/check_module_map.py
+# 校验：交付状态判据（载体见 门禁注册面（G08-10 重建））
 #   * 声明缺失且**未登记** ⇒ FAIL(fake_path)；
 #   * 登记缺口的路径/target **已存在/已定义** ⇒ FAIL(stale_declared_absent)；
 #   * owner 未登记 / 任务书缺失 ⇒ FAIL(gap_owner_unknown)；
@@ -844,7 +844,7 @@ declared_absent_paths:
 # 公开头 ABI 标记、module.yaml 字段一致、产品清单 unit、共址测试文件）逐条登记 owner。
 # 登记 ⇒ GAP（逐条出机器表并计数）；未登记 ⇒ FAIL；登记了却不再出现 ⇒ FAIL（棘轮反向自证）。
 # 这些缺口的实现不在登记侧改动面内，转 owner 承接。
-# 校验：python3 eng/tools/quality/check_module_map.py（capability_gap_count 必须与实测条数一致）
+# 校验：交付状态判据（载体见 门禁注册面（G08-10 重建）；capability_gap_count 必须与实测条数一致）
 # ===========================================================================
 declared_absent_capabilities:
   note: >-

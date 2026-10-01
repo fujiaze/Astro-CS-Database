@@ -87,7 +87,7 @@ avx512 = `avx512f|avx512bw|avx512dq|avx512vl` = 928（声明集 ⊊ 编译所需
 - **校验**：`CHK-PROVIDER-MANIFESTS`（注册面见 门禁注册面（G08-10 重建））逐条校验清单自洽、
   实测 sha256、声明的入口符号**确实可由 dlopen 解析**、`providers/*.so|*.dll` 与清单条目一一对应
   （游离或双登记判红）、能力位与 `features_defined` 一致；配 `--self-test`（5 红 1 绿）作负例面。
-- **隔离**：两族都在 `acsd` 链接闭包之外（`check_isa_leak.py` 的报错面不变）；主程序保持基线指令集。
+- **隔离**：两族都在 `acsd` 链接闭包之外（ISA 泄漏判据的报错面不变）；主程序保持基线指令集。
 
 ## 3 ISA 污染防线
 
@@ -99,11 +99,11 @@ avx512 = `avx512f|avx512bw|avx512dq|avx512vl` = 928（声明集 ⊊ 编译所需
   `acsd_variant_kernel_dispatch_v1`（`backend_variant_kernels.h`）相连。
   **为什么按源文件隔离**：MSVC 没有函数级指令集覆盖（无 `#pragma GCC target` 对应物），若自检/握手
   入口与计算面同 TU，则「能力预检不过 ⇒ 干净拒绝」会退化成「加载即撞非法指令」。
-  机器判据：`eng/tools/quality/check_isa_same_source.py` 的 `tu_isolation`（S7，门面 TU 带旗标即红）
+  机器判据：`tu_isolation`（S7，门面 TU 带旗标即红；载体见 门禁注册面（G08-10 重建））
   + 站点登记 `eng/tools/quality/isa_sites.json`。
 - 变体 TU：门面走基线旗标，计算面 TU 局部旗标（GCC/Clang：`-mavx2 -mfma` /
   `-mavx512f -mavx512bw -mavx512vl -mavx512dq`）。**产物级双向判据** =
-  `eng/tools/quality/check_variant_isa_disasm.py`（工具无关，吃 objdump / llvm-objdump / dumpbin 文本）：
+  产物级反汇编判据（工具无关，吃 objdump / llvm-objdump / dumpbin 文本；载体见 门禁注册面（G08-10 重建））：
   计算面必须含该档宽指令（`--hit`），自检/握手入口必须**零 VEX/EVEX**（`--clean-symbol`），
   且每条**有使用证据的声明位**都要在产物里找到证据（`--require-feature`；
   `--declared-features` 逐位登记"许可面 vs 实际发射面"的差异，不得静默）。
@@ -154,10 +154,10 @@ avx512 = `avx512f|avx512bw|avx512dq|avx512vl` = 928（声明集 ⊊ 编译所需
   - `eng/tests/cpu/avx2/run_provider_avx2_checks.py` 与
     `eng/tests/cpu/avx512/run_provider_avx512_checks.py` 改走**同一份**编译配方
     (`eng/tests/backend/variant_build.py`)，测试产物形态 = 发行产物形态。
-  - `check_isa_same_source.py --fault-inject` 新增 4 条本族注入：
+  - `tu_isolation` 判据的故障注入入口新增 4 条本族注入：
     `cpuprov-tu-isolation` / `cpuprov-kernels-unflagged` / `cpuprov-arch-flag-drift` /
     `cpuprov-declaration-cd`（逐条必红，见 `--fault-inject all`）。
-- **已登记差异（产品缺陷，非判据缺陷）**：▭check_manifest_isa_artifact.py 的 M5 对本族判红一处，
+- **已登记差异（产品缺陷，非判据缺陷）**：▭ISA 清单产物判据的 M5 对本族判红一处，
   登记如下，不得用改判据消红：
 
   | 项 | 实测 | 判定 |

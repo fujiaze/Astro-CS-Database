@@ -1,10 +1,10 @@
 {
   "baseline_id": "module-id-migration-baseline-v1",
   "generated_at": "2026-09-17T06:15:00+08:00",
-  "method": "python3 eng/tools/quality/check_module_id_normalization.py --root . --json-out <out>（逐类计数 = errors[].split()[0] 频次）",
+  "method": "模块 ID 归一化判据（--root . --json-out <out>，载体见 门禁注册面（G08-10 重建）；逐类计数 = errors[].split()[0] 频次）",
   "scope": "docs/modules/MODULE_MAP.yaml（规范面）+ docs/modules/registry/*.md front-matter（登记页）",
   "index_module_count": 23,
-  "index_module_count_rule": "文档集规模登记值（取代 check_module_map.py 中的硬编码 23）：门断言 docs/detail/00_INDEX.md §2 解析出的模块数 == 本值，且 set(map_ids) == set(index_ids)。只许在落地批内手改并在自证摘要写明依据；未登记时退化为「索引规模 == 映射表规模」。",
+  "index_module_count_rule": "文档集规模登记值（取代交付状态判据中的硬编码模块数）：门断言 docs/detail/00_INDEX.md §2 解析出的模块数 == 本值，且 set(map_ids) == set(index_ids)。只许在落地批内手改并在自证摘要写明依据；未登记时退化为「索引规模 == 映射表规模」。",
   "classes": {
     "PAGE_MISSING_MODULE_ID": 20,
     "MODULE_WITHOUT_PAGE": 17,

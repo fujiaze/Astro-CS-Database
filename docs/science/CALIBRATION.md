@@ -344,7 +344,7 @@ cal_pipe − cal_true = (t_light/t_d)·(b_light − b0) = −K·Δb          Δb
   缺 EXPTIME 时必须 fail-closed 而非静默取 `K=1`。
 - **失败注入**：空指针/零维度/NaN 输入显式错误码 `AC_ERR_PARAM`（见 `TST-CAL-FAIL-*`）；
   **ignore-bias 变异注入**：把实现里的 bias 项去掉后，上面两道门必须判红（可执行负例入口）。
-- **标度/归一化门（可执行正负例入口 `eng/tools/quality/check_master_unit_guard.py --self-test`）**：
+- **标度/归一化门判据（U1–U4，载体见 门禁注册面（G08-10 重建））；可执行正负例入口 `--self-test`**：
   以真实数据的独立统计为判据（不依赖文件名/目录名）：
   (a) **单位门（U1）**：亮场观测中位数 > 1 ADU 而某 bias/dark 母版观测中位数 ≤ 1.0 且未声明
       `master_units=normalized` + `master_scale` ⇒ 判红（拒绝）。**适用域与两个已实测盲区
@@ -383,14 +383,14 @@ cal_pipe − cal_true = (t_light/t_d)·(b_light − b0) = −K·Δb          Δb
       （值 5、**单位 s**、语义 = 暗场/亮场**曝光时长**容差）与
       `calibration.master_flat_median_range`（无量纲、平场归一化判定带）；
       **s 量纲的键与 ADU 量纲的一致性容差各自具名**。当前生产门脚本按每例
-      1e-2..3e-2 的相对差判定（`eng/tools/quality/check_master_unit_guard.py`），
+      1e-2..3e-2 的相对差判定（标度/归一化门判据），
       该数值**未登记**，属待定项：本判据的数值面在登记前，冻结主张的成立条件 = 登记完成。
       T2 NGC1727（曝光 600 s）逐像素 oracle `median[(raw−bias−K·(dark−bias))/flat_norm]` =
       **436.2 ADU**，现行错误实现 7048.6 ADU ⇒ **16.2×**；T4（曝光 180 s）361.2 vs 3650.4 ADU ⇒ 10.1×）；
       ② 母版本就 ADU（观测中位数 > 1）+ 平场本就归一（`median(flat)` ∈ 带内）+ 约定已声明
       ⇒ **无需任何标度声明**即通过（回归锚：门不是「一律拒绝」）。
   四条负例（a/b/c/e）必须能同时判红，两条正例（f①②）必须同时判绿（红→绿对照由
-  `eng/tools/quality/check_master_unit_guard.py --self-test` 给出）。
+  标度/归一化门判据的 `--self-test` 给出）。
 
 - **暗场线性门（非退化，可执行）**：`median(master_dark)` 对曝光档的线性拟合必须同时满足
   (i) **至少 3 个不同曝光档**（2 档判据退化，判绿条件 = ≥ 3 档）；
@@ -479,10 +479,10 @@ cal_pipe − cal_true = (t_light/t_d)·(b_light − b0) = −K·Δb          Δb
 - §11 **bias 参与门**与 **K 参与门**全过，且 ignore-bias 变异注入可判红；
 - §11 **标度/归一化门**四条负例（单位混用 / 平场未归一 / dark bias 约定未声明 / 声明自洽）与
   两条正例（显式声明组合 / 本就合规组合=防过度拒绝）全过，
-  且负例为**真实二进制端到端**判红（`eng/tools/quality/check_master_unit_guard.py --self-test`）；
+  且负例为**真实二进制端到端**判红（标度/归一化门判据 `--self-test`）；
 - §11 **暗场线性门**（≥3 曝光档 + 斜率正 + 残差 ≤ 噪声量级）与 **曝光容差门**（`|K·Δb| ≤ ε·σ_frame`）
   在真实母版上可判：T4 组判绿（残差 0.034 ADU）、T2 组判红（斜率 −0.03824 ADU/s）、T3 组判「不可判定」；
   判据的负例（`Δb ≡ 0`）残留逐位为 0，非退化性由 §6a 表给出；
-- 单位经 `eng/tools/check_glossary.py`（GLOSSARY_PASS）且本文件无被禁 alias；
+- 单位经术语权威校验项（GLOSSARY_PASS，载体见 门禁注册面（G08-10 重建））且本文件无被禁 alias；
 - §9a 专属问题逐项有锚点回答，无 TBD/二选一（`eng/tools/science_contract_lint.py` PASS）；
 - 解析不变量可转 SYN-001：常量场→SYN-001 constant/ramp 用例；NaN/饱和→SYN-001 invalid 边界用例（映射登记于 SYN-001 任务）。
