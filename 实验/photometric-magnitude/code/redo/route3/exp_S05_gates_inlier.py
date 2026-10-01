@@ -96,11 +96,16 @@ def main():
         "expected": "NO_DATA: scale 保持 1.0, sigma_residual 保持 0.0, 不进 IRLS",
         "scale_stays_1": True, "sigma_stays_0": True, "metric_is_zero": True,
         "pass": True,
+        "discriminating_power": "none (**三个字段与 pass 全是硬编码字面量 True**，没有任何计算，也就没有任何观测面)",
+        "evidence_status": "registered-only: 自洽/零效应守卫，不计判别力证据、不进 verdict",
     }
 
+    # negative_gate1 的三个字段与 pass 全是硬编码字面量 True（discriminating_power=none）
+    # ⇒ 不进 verdict；读数原样保留在该块里。H5a 另有 class D 问题：用**本地克隆**的
+    # robust() 论证「生产门②对 n≥3 不可达」，见登记表 §2.2，此处只登记不动其结论。
     out["verdict"] = {"H5a": out["H5a"]["pass"], "H5b": out["H5b"]["pass"],
-                      "H5c_A2_reproduced": out["H5c_A2_defect"]["reproduced"],
-                      "negative_gate1": out["negative_gate1"]["pass"]}
+                      "H5c_A2_reproduced": out["H5c_A2_defect"]["reproduced"]}
+    out["registered_not_counted"] = ["negative_gate1"]
     res = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "..",
         "results", "redo", "route3")
     os.makedirs(res, exist_ok=True)

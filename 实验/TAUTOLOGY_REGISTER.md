@@ -25,6 +25,79 @@ healpix-polar、m42-realdata、engineering-evidence、shared。
 **三条硬纪律**：不得为了让门变绿而放宽阈值、加 epsilon、引入恒真路径或吞异常；
 判红就如实报红；只改表述不改数据，真实读数一律保留（移出判定不等于删读数）。
 
+## 0.5 计数口径（整改量的分母在这里，先读本节再看任何计数）
+
+前一轮留下的「absolute-snr 108 条」与「可核 36 条」相差 3 倍，是因为两者**不是同一个口径**。
+本节把口径钉死，之后本表所有数字都必须注明用的是哪一个。
+
+### 0.5.1 三个口径的定义
+
+| 口径 | 定义 | 去重键 | 用途 |
+|---|---|---|---|
+| **I 门实例**<br>`gate-instance` | 每一次「产生一个布尔量并把它放进某个门位」的**源码出现点**计 1。同一逻辑门写在 `for`/多个臂/多张 JSON 里，各计一次 | 无（就是出现次数） | 衡量**代码面积**，**不可用作整改量** |
+| **II 去重门**<br>`deduplicated-gate` | 同一**逻辑门**只计 1 | `(文件, 归一化门名)` | 衡量**有多少扇独立的门** |
+| **III 整改分母**<br>`remediation-denominator` | 口径 II 中**承担证据位**（进 `gates`/`pass`/`all_pass`/`n_pass`/`verdict` 汇总，或被报告当判别力证据）**且结构上不可能给出真实判决**者 | 同上，再按类筛选 | ✅ **整改量的唯一分母** |
+
+**为什么分母必须是 III 而不是 I**：口径 I 把「一条门被 24 个分箱循环各写一次」
+与「24 条互相独立的门」算成同一个数；又把已诚实隔离的 **A 类**（自带标注、已移出计数）
+与纯诊断量同样进 I。**用 I 当分母会把整改量高估约 3 倍**，前车实测的
+`absolute-snr 108` 与 `36` 的差正是这个量级。
+
+### 0.5.2 实测数字（AST 扫描，只读，不改任何文件）
+
+扫描规则（可复现）：`ast` 遍历 `实验/**/*.py`，取
+①`dict` 字面量的字符串键、②`x["k"]=` 与 `x.k=` 的赋值，
+其值为 `Compare` / `BoolOp` / `Not` / `IfExp` / 布尔字面量 / `bool|all|any|isclose|isfinite|allclose|all_pass(…)` 调用者，
+记为一个门位。两种键名规则都报，避免口径随规则漂移：
+
+| 单元 | 窄键名·实例 | 窄键名·去重 | 宽键名·实例 | 宽键名·去重 |
+|---|---|---|---|---|
+| absolute-snr | **108** | 64 | 368 | 206 |
+| additive-sky-seamless | 38 | 32 | 121 | 84 |
+| dense-snr-reconstruct | 86 | 47 | 166 | 101 |
+| engineering-evidence | 0 | 0 | 3 | 1 |
+| healpix-polar | 16 | 16 | 50 | 36 |
+| m42-realdata | 0 | 0 | 2 | 0 |
+| photometric-magnitude | 43 | 21 | 94 | 54 |
+| shared | 42 | 11 | 164 | 93 |
+| **合计** | **333** | **191** | **968** | **575** |
+
+- **窄键名规则** = 键名匹配 `pass|ok|all_pass|verdict|*_pass|*_ok|*_gate|*_holds|*_zero|…`
+  且不含 `level|value|dev|rel|ratio|resid|err|bias|max|min|mean|…`（排除纯诊断量）。
+  该规则下 **`absolute-snr` 实例数 = 108，与前一轮派单引用的「108 条」逐位相同** ——
+  证实那个数字是**口径 I**，不是整改量。
+- **宽键名规则** = 任意布尔值门位（不筛键名）。它把每个布尔标志位都算进来 ⇒ **968 实例**，
+  明显过宽。**报告口径时必须同时给出键名规则，否则数字不可比。**
+
+### 0.5.3 「3 倍差」的精确分解（absolute-snr）
+
+| 步骤 | 口径 | 数值 | 相对上一行 |
+|---|---|---|---|
+| 起点 | I 门实例 | **108** | — |
+| 去重 | II 去重门 | **64** | ÷1.69 |
+| 剔 A/D/诊断量，只留 B∪C∪恒红 | **III 整改分母** | **36** | ÷1.78 |
+| 合计 | | | **÷3.00** |
+
+⇒ **「108 与 36 差 3 倍」已完全解释**：1.69 倍来自重复计数（口径 I→II），
+1.78 倍来自把已诚实隔离的 A 类与非门量算进分母（口径 II→III）。**两者都不是缺陷，是口径差。**
+
+### 0.5.4 本表的计数约定（此后强制）
+
+- 本表 §2 各单元的 A/B/C/D 计数**一律是口径 III**（整改分母），并在该单元表头注明。
+- **任何对外引用本表数字的地方，必须写明「口径 III / 整改分母」**；
+  只写「共 N 处恒真门」而不写口径的，视为未完成登记。
+- 口径 I 只用于描述代码面积，**不得出现在整改量、工作量估算或完成度声明里**。
+
+### 0.5.5 本节已知局限（如实登记）
+
+1. 窄规则**会漏掉以编号命名的门**（`H11`、`A1`、`CHK-ANA-06` 等），例如
+   `absolute-snr/code/audit/` 在窄规则下去重门仅 7、在宽规则下 27，
+   而前车按派单口径称该目录含 **64** 条 ⇒ **口径 II 的 191 是下界，不是精确值**。
+2. 前一轮的「全域 246 条」在本节两个规则下都**复现不出**（窄 333 / 宽 968）。
+   该数字的原始定义已不可考，**本表不再引用它**，改用上表两个可复现规则。
+3. 口径 III 的 36（B 类绝对 SNR 部分）是**语义分类**结果，不由 AST 自动判定；
+   AST 只负责口径 I/II。分类依据是 `file:line` + 操作数同源性论证 + 实测读数。
+
 ## 1 三型分类
 
 | 型 | 特征 | 本域计数（估） |
@@ -99,6 +172,59 @@ moffat4 调用的逐字相同值，`:49` 的 `frame` 算后从未使用 ⇒ 该�
 
 **PM 未引用 absolute-snr 的门作证据**：全仓 grep 确认，PM 引用 P2 的只有接口值传递
 与一处**前置条件指针**。这一点无需处置。
+
+
+**扫描末端补登（B14–B20，只登记未改代码）**
+
+| # | file:line | 门 | 型 | 类 | 说明 | 报告引用 |
+|---|---|---|---|---|---|---|
+| B14★ | `redo/route3/exp_S00_anchor_verification.py:86-89` | 「幻觉锚」排除条件**按作者自己写的 `note` 字符串内容**判定（`"条件钳位" not in note and "锚漂移" not in note`）⇒ 15 个锚里 **3 个由手写注预置豁免**；配合 `:73` `"anchor_real": True` 是字面量起点（只有 `:78-80` 的 `except OSError` 才置 False，而那个方向是正确的 fail-closed）⇒ **幻觉检查本身有 3 处由作者手写注释放行，结论被预置** | 1/2 | **B** + D | **危害较高**，建议前台优先。修法：改显式白名单并公开 | `REPORT_route3.md:189`「15/15 锚真实存在」、`:189-194`「幻觉仅限 2 处文档行号漂移」 |
+| B15 | `redo/route3/exp_S08_ladder.py:62` | `np.max(queries_ladder) <= 5`，而 `:49` `np.argmax` 作用在 5 元素 `LADDER` 上 ⇒ 元素恒 ∈ [1,5] ⇒ 由循环边界保证。**`:61` 的 criterion 字段自己写了「（结构性）」⇒ 有标注但仍在 `:145` 的 `verdict` 里**（「声明了但仍留在汇总」比「未声明」更危险） | 2 | **B** | 建议移出 `verdict` | `REPORT_route3.md:139` 带 ✔ |
+| B16 | `redo/route3/exp_S08_ladder.py:76` | 两项都由**同一条闭式** `1.2533·σ_res/√N` 生成 ⇒ 比值 ≡ `√(2000/200)=√10≈3.1623`，**与 `1.2533` 与 `σ_res` 的取值无关** ⇒ 门实际只测「两个硬编码 N 之间的比值落在 (2.5,4)」 | 1 | **B** | — | `REPORT_experiment.md:117`、`REPORT_paper.md:108` |
+| B17 | `redo/route3/exp_S07_fov_constants.py:57` | `1.2 * 1.0 > 10 * wcs_err_deg`：左边是字面量、右边 `wcs_err_deg` 配 `:56` 自陈的写死常数 5.6e-4 ⇒ **无数据、无随机、无代码路径**。同文件 `:70` 的 4 个构型是**作者手挑且全部落在 `[1.2,10]` 内** ⇒ 恒真 | 1/2 | **B** | — | `REPORT_route3.md:131` 带 ✔ |
+| B18 | `redo/route2/exp3_adaptive_ladder.py:79` | `:69` 模拟器自己的哨兵 `or i==4` 强制在 i=4 返回 ⇒ 判据只能取 0。`:40` docstring 自陈「**Emulate** `pc_api.cpp:977-1008`」而该 C++ **从未被打开** ⇒ 本地桩冒充生产 | 2 | **B + D** | — | `REPORT_route2.md:132`「G=17 档可达性 = 0（**复现** …）」 |
+| B19 | `redo/route2/exp5_match_radius.py:92` | `false_match_count_metric: 0` 是字面量；ρ→0 的孤立场**从未被仿真**（`:30-35` 的 `recovery_prob`/`false_match_prob` 是本文件自写闭式，生产 KD-tree 匹配器未调用） | 2 | **B + D** | — | `REPORT_route2.md:153` 带 ✅ |
+| B20 | `redo/route3/exp_S04_mag_tolerance.py:82-83/:94` | `:112` 汇总的 3 项中 **2 项永真**：`H4a` 两个合取项**都是**代数恒等式（`scale=10^-location` ⇒ `scale(k)/scale(1)=1/k` 精确；残差同量平移 ⇒ MAD 严格不变）；`H4b_clean` 的「无效应」由**注入幅度 0.015 dex ≪ 最窄窗宽 0.5 mag** 保证，是算术后果不是检验结果。全文件 `grep discriminating_power` **零命中** | 1 | **B** | 同文件 `:109` `H4b_contaminated` 是唯一真判据，**勿动** | 无独立引用；**P1-m09 自查未覆盖 S04** |
+
+#### 可机械执行的整改（7 文件 / 9 门位，只加标记 + 移出 `verdict`，不动实现）
+
+| 文件 | 门位 | 现状 |
+|---|---|---|
+| `exp_S03_irls_convergence.py:81-87` | `negative_zero_check` | `:84` `"delta_location": 0.0` 字面量 + `:85` `pass = it == 0`，而本地 `irls:24-25` 对 `s<=0` 直接 return ⇒ 恒真 |
+| `exp_S05_gates_inlier.py:94-99` | `negative_gate1` | `:96-97` 三字段**全是字面量 `True`** + `:98` `"pass": True`；声称验「n=2 ⇒ NO_DATA」但 n=2 根本没进任何函数 |
+| `exp_S09_mag_minmax.py:73-77` | `negative_zero_check` | `:74` `"same_family_delta": zp_16 - zp_16` **自己减自己** + `:76` 字面量 `True` |
+| `exp_S10_match_radius.py:70-75` | `negative_zero_check` | `:73` `"value": 0.0` + `:74` `"pass": True` 均字面量 |
+| `exp_S12_dex_bound.py:64-69` | `negative_zero_check` | **字面量 `"negative_zero": True` 直接写进 `:72` 的 `verdict`** |
+| `exp_S11_zp_sample_floor.py:68-75` | `negative_zero_check` | 隔离标记**有效**，但 `:77` 的 `verdict` 仍写字面量 `True` |
+| `exp_S04_mag_tolerance.py:82-94` | `H4a` / `H4b_clean` | 见 B20 |
+
+**样板（勿误改）**：`exp_S09_mag_minmax.py:72` `H9b.pass` —— 登记 + 已移出 `:83` 的 `verdict`
+两件都做了，`docs/DISPUTES.md:104-106` 明写「恒真门无证据资格」⇒ **全仓最标准的一处隔离**。
+
+#### 最高杠杆的一处：撤回声明没有落到结果行
+
+P1 单元**已经写了**撤回声明，但**没有一条落到 route2/route3 报告的结果行上**：
+
+| 撤回声明位置 | 声明内容 | 仍带 ✔ 的结果行 |
+|---|---|---|
+| `REPORT_experiment.md:79,:122`；`REPORT_paper.md:201` | `exp_S06` H6a/H6b + `exp_S02`/`exp_S11` 的 `negative_zero_check`「无判别力、不得当证据」 | `REPORT_route3.md:84`、`:122`、`:166` |
+| `docs/DISPUTES.md:104-106` | S09 `H9b`「恒真」、`negative_zero_check` 是字面量 | `REPORT_route3.md:148` |
+| 主链 `step9_collect.py:148-163` | G2 的 (a)(b) 降级为 `same_source_self_checks` | `results/GATES.md:9` 仍是隔离**之前**的旧证据串 |
+
+⇒ **只改这 3 张表即可消除本单元一半的「声称有证据实则恒真」，不动任何实现。**
+本单窗口内未做完，登记为待办。
+
+#### 结构性缺口
+
+`results/GATES.md` 的 G1–G9 **完全不含 `route1`/`route2`/`route3`/`reverse_verify` 的任何一条门**
+（只有 `step5/step7/step8` 链）⇒ **33 个 `.py` 的门没有任何机器可执行的总账**。
+而 `REPORT_route3.md:231` 写「13 个实验脚本全部运行通过（**verdict 全绿**）」，
+那个 `verdict` 里含至少 10 条永真或字面量行。
+另：`reverse_verify/p1_spatial_gain/` 有 3 处可复现性断裂——`real_gain.py:43` 的仓根定位器
+找 `docs/ASTROCS_DESIGN.md` 而仓内是 `docs/ACSD_DESIGN.md`（8 次循环全落空）；
+`real_ridge.py:157`/`real_pixel_check.py:171`/`analyze_real.py:112` 三处写文件前缺 `os.makedirs`；
+`cpp/p1sg_oracle.cpp` 是本单元**唯一带真退出码的真门**（阈值写在看结果之前，含 3 个负例），
+但 `grep p1sg_oracle` 在所有 `.py` 中**零命中** ⇒ **没有任何 Python 驱动它**。
 
 ### 2.3 m42-realdata
 
@@ -251,3 +377,171 @@ moffat4 调用的逐字相同值，`:49` 的 `frame` 算后从未使用 ⇒ 该�
   ②在本表登记 `file:line`、型别、类；③检查报告是否仍引它作判别力证据。
 - 登记表的计数口径：**按门定义处计**。恒红门与恒真门同等无效，均须登记。
 - 本表不替代各单元的 `REPORT_*.md`；报告引用的判据必须在报告里注明其证据等级。
+
+## 2.8 `reverse_verify/data_matrix/` 与 `m16_scene/`（口径 III，本批次补完）
+
+> 本节补上前一轮 §2.7 声明「逐行穷举表未完成」的缺口。
+> **口径**：§0.5 的**口径 III（整改分母）**；类标为 B/C/D/fail-open，`open_red` 即真实主张门当前为红。
+
+**规模**：`data_matrix/` 4 个 `.py`（1050 行，3 个 runner + `dtmlib.py`）、
+`m16_scene/` 3 个 `.py`（623 行）。`aux` 簇**不存在**——
+`reverse_verify/` 顶层只有 4 个子目录，无散落 `.py`/`.sh`。
+
+### 2.8.1 `data_matrix/`（12 条）
+
+| # | file:line | 门 | 型 | 类 | 机制 | 计入 | 报告引用 |
+|---|---|---|---|---|---|---|---|
+| 1 | `exp1_sky_poisson_snr.py:154→168` | `C1_sky_snr_monotone_decreasing` | — | **D（真门）** | 8 档实测 SNR 中位 84.7…14.6 单调；可红 | 是 | 无 |
+| 2 | `exp1:157→170` | `C2_ratio_matches_poisson_prediction` | 3 | **B + D** | 期望 σ 取自**生成了被测帧的同一个** `noise_model.py`（`rng.poisson`）⇒ 自洽但错误的噪声模型照样通过。实测 rel_dev 0.0061 / 阈 0.05 | 是 | 无 |
+| 3 | `exp1:185` | `C3_low_snr_regime_reached` | — | **D（真门）** | 实测 0.78 < 15 | 是 | 无 |
+| 4 | `exp1:196-212→217` | `N1_additive_only_metric_vanishes` | 1+2 | **B（逐位恒等）** | `:202-207` 把**同一个** `delta_adu` 加到配对的两帧上 ⇒ 差分逐位相消、`b_hat = median(annulus)` 再相消一次。存档 `max|SNR_ctrl/SNR_ref − 1| = 0.000e+00` | 是 | 无 |
+| 5 | `exp1:236`/`:245→253` 支 1 | `N2_…` 配对半 | 1+2 | **B + C** | 同 seed、同 `frame_index`；`MODE_MEAN_ONLY` 下 `n_e = lam_e.copy()`（**不消耗 RNG**）、`sweep_sky.json` 的 `cosmic_ray: null` ⇒ `rng.normal` 逐位相同 ⇒ 两臂只差一个被 `b_hat` 消掉的确定性基座。存档 `paired_ratios = [1.0]×6` | 是 | 无 |
+| 6 | `exp1:246→253` 支 2 | `N2_…` 非配对半 | — | 真门（**唯一负载**） | 实测 0.0396 / 阈 0.05 ⇒ **只剩 21 % 余量**；且同时改 seed **与** `frame_index`，不是受控对照 | 是 | 无 |
+| 7 | `exp2_mosaic_shape_difference.py:233-236` | `G2_common_mode_negative_vanishes` | 2 | **B（逐位恒等）** | `common_mode_overlap.json` 的 6 帧**不带任何逐帧参数**，`frame_weights()`（`:60-65`）纯由确定性量构成 ⇒ 6 张权重图逐位相同 ⇒ `std(delta,axis=0)` **精确 0.0**、`R` **精确 1.0**。任何 seed、任何噪声下都不可能非零 | 是 | 无 |
+| 8 | `exp2:237-240` | `G3_contrast` | — | **B + fail-open（无条件绿）** | `ratio = (d_real/d_com) if d_com > 0 else float("inf")`；G7 的恒等式强制 `d_com ≡ 0.0` ⇒ **`else inf` 恒触发** ⇒ `inf > 10.0` **恒真**。零信息量 | 是 | 无 |
+| 9 | `exp2:229-232` | `G1_material_penalty_real_different_pointing` | — | **D + 臂与文档不符** | `mosaic_diff_pointing_realbase.json` 六帧 `pointing: null` ⇒ 完全共指、`glob_index: 0` ⇒ `render.py:299 p = hits[0]` 取**同一块**真实板块；docstring `:20` 却称「6 个**不同真实板块**…不同指向」 | 是 | 无 |
+| 10 | `exp2:241-247` | `G4_synthetic_different_pointing_detectable` | — | 真门、fail-closed | 错误路径 `{"error":…}` ⇒ `.get(…,0)` = 0 ⇒ 红 | 是 | 无 |
+| 11 | `exp2:248-252` | `G5_measurable_from_frames` | — | 真门 | 独立测量的块 σ | 是 | 无 |
+| 12 | `exp2:253-257` vs `:258-261` | `G6_conditions_only_change_not_material` | — | 真门 + **元数据自相矛盾** | G6 门住 `dark[...]["R_SP0_median"] < 1.05`，同一个数又被存进 `reference_dark_samefield` 并注「参考值，**非判据**」 | 是 | 无 |
+| 13 | `exp3_variance_closure.py:163-165→169` | `E3_additive_arm_no_effect` | 1 | **B（纯代数）** | `((f1+δ) − (f2+δ))` vs `(f1 − f2)`：同一个标量加在减法的两个操作数上 | 是 | 无 |
+| 14 | `exp3:154-156` | —（死代码） | — | 死代码 | `for b in base["blocks"]: dv.append(0.0)`；**`dv` 从不被读**。读起来像逐块方差变化计算，实则追加字面量 0.0 | 否 | 无 |
+| 15 | `exp3:173-186` | `E4_closure_test_has_power` | — | **B（弱）+ 文档/臂不符** | 拿 mean_only 臂的读噪声底方差去比一个乘了 `B7/B0 = 250` 的预测（`:176`），且 `src_e` 写死 0.0（`:178`）⇒ 结构上远大于 0.5。docstring `:19` 写「纯加性臂」，代码跑的是 `MODE_MEAN_ONLY` | 是 | 无 |
+| 16 | `exp3:67-68→114`/`:138` | `E1_physical_arm_variance_closure`、`E2_spatially_structured_sky_closure` | 3 | **B + D** | `var_pred_pix` 的 `lam_e` 直接取自**渲染器自己的真值面** ⇒ 期望值由产生被测值的同一来源重算；只能验证渲染器实现了它自己声明的模型 | 是 | 无 |
+| 17 | `exp3:203-206` | `E5_production_estimator_bias_quantified` | — | **B（反向门）** | `abs(prod_bias) > 0.5×0.1`：**估计器正确时判红**。docstring `:22` 还称偏差是单向的（「偏高」），实测项却是 `abs()` | 是 | 无 |
+| 18 | `dtmlib.py:283-284` | `missing_real_base_inputs()` | — | **A + fail-open** | `pats = [q for q in pats if any(ch in q for ch in "*?[")]`：**不含通配符**的 `real_base.path` 被滤掉、永不检查 ⇒ 守卫报 `ok: True`，失败改为在 `render.real_base_surface` 里抛 `FileNotFoundError` | 喂 SKIP | 无 |
+| 19 | `dtmlib.py:277-280` | 损坏 recipe | — | **A + fail-open**（已文档化） | `except Exception: continue` | 否 | 无 |
+
+### 2.8.2 `m16_scene/`（11 条）
+
+| # | file:line | 门 | 型 | 类 | 机制 | 计入 | 报告引用 |
+|---|---|---|---|---|---|---|---|
+| 1 | `exp_a6_seeing_aperture.py:228-231` | `P1_psf_domain_seesing_independent` | — | 真门（D） | 实测 0.00297 / 0.00943 | 是 | `m16_scene/README.md:11` |
+| 2 | `:232-235` | `P2_box5_seesing_dependent` | — | 真门（D） | 实测 0.3449 / 阈 0.30（15 % 余量）。但对生产缺陷 `star_detector.cpp:151` 的论证走的是 `FL.est_box5`（`:10-11`、`:38`）——**本地重实现**，产品从不运行 | 是 | `README.md:11` |
+| 3 | `:260-263` | `P3a_negative_control_identical` | 2+3 | **B（逐位恒等）** | 同一 scene dict 用**同一 seed 渲染两次**（`:251-252`），`est_psf_optimal` 无 RNG，`dmag(x,x) = −2.5·log10(1) = −0.0`。这是渲染器确定性测试；docstring `:50` 归给它的「证明臂间差异来自 PSF 核而非噪声重抽」**是 P3b 的命题** | 是 | **`README.md:11`「负例逐位归零」** |
+| 4 | `:272-275` | `P3b_negative_control_noise_only` | — | **C** | 合取第 2 支 `mad_noise < box_span`：拿 ~1e-2 mag 的 MAD 比 ~0.3 mag 的 `box_span`（P2 已独立强制 ≥0.30）⇒ 约松 30 倍，现实不可能红 | 是 | `README.md:11` |
+| 5 | `exp_variance_closure.py:129`/`:161` | `C3_pass` | 2 | **B + fail-open** | `np.all(a1[~v1] == 0.0)`，而 `:80` 已经做过 `a1 = np.where(v1, f1.adu, 0.0)` ⇒ **断言 `np.where` 把自己的 0 归零了**；无无效像素时 `else True` 空过 | 是 | **`README.md:12`「C3 掩膜传播」计入 9/9 PASS** |
+| 6 | 同上 `:32`（docstring） | C3 声称 | 过度声称 | — | 「无效像素必须为 0，**且与 HDU MASK 一致**」——后半段**全文件未实现**（从不读 mask HDU） | 是 | `README.md:12` |
+| 7 | `:159` | `C1_pass` | 3 | **B + D** | 期望值取自渲染器自己的真值面 | 是 | `README.md:12` |
+| 8 | `:160` | `C2_pass` | — | 真门但**容差自指** | `tol = 3√2·sig_v`，`sig_v = v_on·sqrt(8/n_pairs)` ⇒ 方差被放大 10 倍，容差同步放大 10 倍仍能过。诚实的归一化是同文件 `:136` 的 `C2_z_score` | 是 | `README.md:12` |
+| 9 | `:158` | `C4_pass` | — | 真门 | bulk [p1,p99] 区间 \|rel\| ≤ 2 %，依据充分 | 是 | `README.md:12` |
+| 10 | `:65-67` | —（死桩） | — | 死代码 | `def flat_blocks(...): """…""" return None` — 有 docstring 的桩，从不被调用 | 否 | 无 |
+| 11 | `exp_realbase_consistency.py:99-103` | `C1_max_abs_rel_dev_implied_base_rate` | 1 | **B（自陈恒等式却仍计分）** | `implied = truth_e/(t·m) − sky − dark/m` 是渲染器自己链条 `truth_e = t(src+sky)m + tD` 的**精确逆**，docstring `:26` 自陈「故是恒等式」，却坐在 `rec["pass"]` 里并打印 PASS/FAIL。**反证**：`README.md:13` 记它在修复前真红过（`C1 = 0.99990 = 1 − 1/t`）⇒ 它是 P9 ×t 缺陷的**真回归守卫**，不是捏造的门 | 是 | **`README.md:13`** |
+| 12 | `:117-118` | `C2_sigma_ratio` | — | 真门、fail-closed（**不是 D**） | `isfinite(sig_ratio) and 0.5 <= ratio <= 2.0`；NaN ⇒ 红。**真读真实 HST FITS**（`:72` `from astropy.io import fits`） | 是 | `README.md:13` |
+| 13 | `:114`/`:119` | `C3_pearson_r` | — | 真门但**不完整** | docstring `:31` 把「剔除合成饱和像素后再算一次」写进判据，但 `r_unsat` 算了（`:115`）、报了（`:127`），**从未进入任何 pass 表达式** | 是 | `README.md:13` |
+
+### 2.8.3 簇级类 D 结论与两个新的「无产物被当有产物」
+
+`grep -nE 'subprocess|astropy|fits\.open|open\(|scia_|sci_c_common|lib/|upm_probe|sky_probe|acsd'`
+在两簇内只有 **4 处命中**：三个 `open(…,"w")` 写盘 + 一个 `from astropy.io import fits`。
+⇒ **无一条门读 `lib/**`、无一条 shell 到 `acsd` 二进制、无一条触 `sky_probe`/`upm_probe`/`sci_c_common`**
+⇒ **整簇为类 D**（已在 `README.md:420-421` 用文字披露，但仍以 `level=data` 留在 `all_pass` 内）。
+
+**两条比恒真门更严重的新发现**：
+
+1. **`exp2` 与 `exp3` 从未产出过任何判决。** 两个脚本的固化 JSON 都写着
+   `"status": "SKIP"`, `"all_pass": null` ⇒ **G1–G6 与 E1–E5 共 11 条门的阈值在本仓一次都没被求值过**。
+   （缺输入守卫本身是诚实的：`dtmlib.py:289-299` 写 `status: SKIP, all_pass: null`、返回 rc=2，
+   由 `exp2:213-215`／`exp3:96-98` 消费，**没有假通过**。）
+2. **`m16_scene/README.md:12-13` 的「9/9 PASS」有两行引的是根本不存在的结果文件**：
+   `closure/variance_closure.json` 与 `M16FIX/regression.json` 都不存在，且
+   `REPORT_experiment.md:164` 记 `m16_scene.py:550-552` 的 `AssertionError` 让三个脚本全部跑不动。
+   ⇒ **「没跑过」被写成「全过」**，与 `c10_anchor_forensics.py` 的「找不到被记成找到」同型。
+
+### 2.8.4 两簇小结（口径 III）
+
+| 口径 | `data_matrix` | `m16_scene` | 合计 |
+|---|---|---|---|
+| B（含 B+D、B+fail-open） | 10 | 4 | **14** |
+| C（部分恒真合取） | 1（N2，另计 B） | 2（P3b、C2_pass，另计 B） | **3** |
+| A（已诚实隔离） | 1（rc=2 跳过守卫） | 0 | **1** |
+| D（整簇） | 全部 10 条实验门 + 输入守卫 | 7 | **17** |
+| fail-open | 3 | 2 | **5** |
+| 恒红 | **0** | **0** | **0** |
+| 真门（无判别力问题） | 6 | 6 | **12** |
+
+⇒ 两簇的失效方向是**恒绿**，不是恒红；本域此前的恒红集中在 `audit_rework/`（见 §2.7 与 §7.3）。
+
+
+## 6 本批次（第二批）的代码侧处置
+
+> 口径与总量见交付件 `run/GOVERN-08/审核包-R2/G08-05-整改-恒真门批次2.md`。
+> 本节只登记**已落到代码的**处置；纯登记未改代码的条目不在此列。
+
+### 6.1 `additive-sky-seamless/code/seam_gate_coverage.py`：「测不了」被写成「真无台阶」
+
+**危害等级：全域最高**——这是**主动出具错误的肯定结论**，不是恒真门。
+
+| 项 | 内容 |
+|---|---|
+| 原位置 | `:172` `if c["cov"] <= c["cov_null_hi"]: coverage_zone = "none"`，注释「真无台阶：中位读数 0 是有效结论」 |
+| 实测漏绿 | 真实 4 % 台阶（12 ADU）、`frac = 0.30`、σ_pix=20 ⇒ `rel_step = −0.0091718`（低于门阈 0.01）⇒ 生产 `PASS`；覆盖率层 `cov = 0.0075 ≤ cov_null_hi` ⇒ `zone = none` ⇒ **原样保留 PASS** |
+| 根因（定量） | `cov` 是逐样本判据 ⇒ 最小可检相对幅度是 `thr/bg`。无噪时 `thr = 0.5·gate·bg = 1.5 ADU` ⇒ 检出限 0.005 = **0.5×门阈**（比门灵敏 2 倍）；带噪时 `thr ≈ 3·MAD(ctrl) ≈ 66–70 ADU` ⇒ 检出限 **≈0.22 = 门阈的 21.6–23.0 倍**。**比门瞎 22 倍的诊断量给出的是「看不见」，代码却写成「没有」** |
+| 处置 | `coverage()` 新增 `detection_floor_rel = thr/bg` 与 `blind_to_gate`；`edge_with_coverage()` 增第四区 `unresolved`；新增判决值 `UNRESOLVED`（证据不足，**不计通过也不谎称有台阶**）；`n == 0` 退化分支由 `cov=0.0` 改为 fail-closed 的 `blind_to_gate=True` |
+| 顺带纠正（反方向） | 原实现在 `frac = 1.0` 带噪臂上把生产的 `FAIL` 覆盖成 `FAIL_COVERAGE`（真实台阶被改记成「覆盖率不足」）。现定优先级 `FAIL > FAIL_COVERAGE > UNRESOLVED > PASS`：**生产已测到台阶时一律记 `FAIL`** |
+| 注入验证 | 正确实现 **10 门全 PASS、退出码 0**；注入 A（撤掉检出限前置、退回三区逻辑）⇒ **COV5/COV8/COV10 三门红、退出码 1**，且 `frac=0.30` 判决由 `UNRESOLVED` **退回 `PASS`** |
+
+同文件内一并处置的恒真/空过门：
+
+| 门 | 判定 | 处置 |
+|---|---|---|
+| `COV1_mirror_faithful` | **B（结构对称）**：`edge_samples` 与生产 `edge_metric` 走**同一条 `bilinear` 采样路径**、同选边规则、同 `median` ⇒ 实测差**逐位 0.0** | **移出门计数**，改入 `selfchecks`；读数保留 |
+| `COV3/5/6/7/9` | **B（空过）**：原为 `all(... for r in ... if <filter>)`，过滤器选到 0 行时 `all([])` 返回 **True** | 改为「先断言分母非空」 |
+| `COV5` | 只扫**无噪**臂、从不走带噪路径 ⇒ 9 门全 OK 却没抓到 | 两臂都扫 |
+| `COV9_amplitude_independence` | **B（夹具的解析后果）**：无噪时 `thr` 恒为兜底项 ⇒ `cov ≡ f`，极差实测 0.0 | **路线①**：加带噪二维网格后该命题**实测不成立**（极差 0.045–0.887）。未放宽阈值（0.01 未动），把无噪那条移入自检、带噪实测写成方向相反的可判红断言 |
+
+### 6.2 `photometric-magnitude/code/redo/route3/`：六个文件的 `discriminating_power` 标记
+
+按 `exp_S09:72` `H9b`（全仓最干净样板）给六个文件补标记并**移出 `verdict`**，读数一律保留：
+
+| 文件 | 移出门位 | 判定 |
+|---|---|---|
+| `exp_S03_irls_convergence.py` | `negative_zero_check` | 常值场 ⇒ Δ 恒 0 是构造使然；且 `delta_location` 原是**写死的字面量 0.0**，不是算出来的 |
+| `exp_S04_mag_tolerance.py` | `H4b_clean` | 零效应守卫：清洁场下窗宽本就不截断，不能证明窗宽无关性（真负载是 `H4b_contaminated`） |
+| `exp_S05_gates_inlier.py` | `negative_gate1` | **三个字段与 `pass` 全是硬编码字面量 `True`**，没有任何计算 |
+| `exp_S09_mag_minmax.py` | `negative_zero_check` | `zp_16 − zp_16` 自减 |
+| `exp_S10_match_radius.py` | `negative_zero_check` | `value` 写死 0.0、`pass` 写死 True |
+| `exp_S12_dex_bound.py` | `negative_zero_check` | `m ≡ 1` 是构造；`verdict` 里原本是**字面量 `True`** 直接写入 |
+
+⇒ 六处 `verdict` 现在只含真实门（实测 H3a/H3b/v8_replay、H4a/H4b_contaminated、
+H5a/H5b/H5c、H9a、H10a/H10b、H12a/H12b），并在 JSON 里新增 `registered_not_counted` 字段。
+
+### 6.3 `additive-sky-seamless/code/audit_rework/`：门汇总器（修「已判红的门被静默吞掉」）
+
+**根因**：本子树 38 个脚本**无一 `sys.exit(1)`、无一 `exit(1)`**（`grep` 零命中），
+而 `run_all.sh` 用 `set -eu` 并在 `run()` 里向上传子壳退出码
+⇒ **红灯在物理上无法传播到退出码**：任何判红都不会让 `run_all.sh` 失败，
+违反规范 08 §5「红灯不以 waiver 覆盖，SKIP 不计通过」。
+
+**为什么不能「见 false 就红」**：固化正本里有 **101 个 `false`**、落在 **20** 个 `(文件, 叶名)`
+组合上，四类语义完全不同——`demonstration`（负例演示，为假**正是**被演示的内容）、
+`diagnostic`（诊断读数）、`table_cell`（网格逐格分类标记）、`open_red`（真实主张门当前为红）。
+一刀切会产生大量假警报，而**假警报会让汇总器恒红**——恒红与恒真同等无效。
+
+**处置**：
+- 新增 `rollup.py`（tracked）+ `GATE_DISCLOSURE.json`（32 条逐点披露，tracked）；
+- 键为 `<结果文件名>|<归一点路径>`（数组下标归一为 `[]`）——
+  工作副本是平铺的（`c3_seam_gate.json`）、固化正本带路由前缀（`route1/c3_seam_gate.json`），
+  按相对路径会让同一条门算两次；
+- **fail-closed**：任何 `false` 未被披露 ⇒ 记 `UNDECLARED` ⇒ **判红**；
+- `open_red` **不豁免**，照样让汇总器红；
+- 与 `results/_gate_rollup.json`（另一汇总器的产物）做**交叉核对**：
+  任何一方标红而本表未列 `open_red` ⇒ 判红；
+- 两个来源都扫（工作副本 + 固化正本），只扫其一都会静默漏判。
+
+**实测**：真实状态下 32 个 `false` 全部已披露、0 未披露、**6 条 `open_red`** ⇒ **退出码 1**。
+注入验证（在 `/tmp` 副本把 6 条 `open_red` 翻绿并同步更新披露）⇒ **退出码 0**
+⇒ 汇总器**双向可判**，不是恒红门。
+
+**6 条 `open_red`（不豁免，保持红）**：
+
+| # | 位置 | 性质 |
+|---|---|---|
+| 1 | `route1/c6_identifiability_dof.json` `global_weight_invariance.kappa_identical` | **结构性恒红**：对角均衡 `D⁻¹HD⁻¹` 对全局标量缩放精确不变 ⇒ `k_c ≡ k_f` 数学恒等，但代码用**逐位 `==`** ⇒ 红不红由浮点最后一位决定（实测 reldiff 1.10e-15） |
+| 2 | `route1/c7_share_vs_abs_weight.json` `fake_ivar_domination.exclusive` | **恒红门被当作正面证据引用**：`share > 1.0 − 1e-20` 在 binary64 下**坍回精确 1.0** ⇒ 实为 `share > 1.0`，对任意输入无解；而文件里真实的 `share` 恰好就是 1.0 |
+| 3 | `route2/e8_identifiability_rank_rtol.json` `column_equilibration_invariance.kappa_changes` | **`inf − inf = NaN` 吞红**：`nan > 1.0` 为 False ⇒ 门静默报「kappa 未变」，同段 note 却称「kappa 变 12 个量级」——自相矛盾 |
+| 4 | `route3/q10_weight_arms.json` `ordering_matches_doc_16.1.3` | 与文档 §16.1.3 声明的排序不符的真实主张门，报告仍当通过项引用 |
+| 5-6 | `supp_507_relstep/eb_relstep_calibration.json` `part2a_spec_recipe_x10.spec_red` / `.mean_gt_02` | **05 规格自己的注入配方（单节点系数 ×10）不使规格变红**：`frac_gt_01=0.0357`、`mean_rel=0.0388`、`max_rel=0.901`，两判据皆 false ⇒ 缺陷注入未被检出 |
+
+⚠ **本次只让这六条红灯变得可见，没有改任何阈值、没有把它们改绿。**
+按规范 08 §5，红色不以 waiver 覆盖；按派单「不得为了让门变绿而放宽阈值」的纪律，
+在门本身的缺陷修好之前，红就是正确状态。

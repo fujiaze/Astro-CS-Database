@@ -99,17 +99,31 @@ inliers_base = np.array(inlier_idx_base)[wmask]
 
 k = 10.0 ** 0.5        # all F_instr multiplied by 10^0.5  => r shifts +0.5 dex
 r2 = r + 0.5           # log10 domain equivalent of multiplying F_instr by k
-loc2 = loc + 0.5       # analytic prediction
-inliers2 = np.array(inlier_idx_base)[wmask]   # predicted identical set
-scale_ratio = (10.0 ** (-loc2)) * (10.0 ** loc)  # predicted 10^-0.5
+loc2, S2, it2, _ = irls_tukey(r2[inlier_idx_base])          # G08-05: 真正重跑
+wmask2 = np.abs((r2[inlier_idx_base] - loc2) / (TUKEY_C * S2)) < 1.0
+inliers2 = np.array(inlier_idx_base)[wmask2]                # 由观测 loc2 重新导出
+loc_pred = loc + 0.5                       # 解析预测，只用于对比
+shift_observed = loc2 - loc                # 观测量
+scale_ratio = (10.0 ** (-loc2)) * (10.0 ** loc)  # 由观测 loc2 算出
 invariance = {
+    # G08-05 订正：本块原为五个恒真式——`loc2` 曾被直接赋成解析预测 `loc + 0.5`
+    # （变量名带 2 读作 observed 但不是），下面全是**预测减预测**；且 `r2` 从未送进估计器，
+    # 「把 F_instr 同乘 k 后重跑标定看 location 是否平移」这个本该唯一的真判据一次都没执行。
+    # 而 REPORT_route2.md 却打 ✔ 并称「证明」。现全部改为观测口径，
+    # 与主链 step9_collect.py:148-163（已降级为 same_source_self_checks）对齐。
     "location_shift_applied_dex": 0.5,
-    "location_shift_observed_dex": loc2 - (loc + 0.5),   # 0 exactly by construction
+    "location_shift_observed_dex": float(shift_observed),
+    "location_shift_predicted_dex": float(loc_pred - loc),
+    "location_shift_vs_prediction_dev": float(abs(shift_observed - 0.5)),
     "inlier_set_identical": bool(np.array_equal(inliers_base, inliers2)),
+    "n_inliers_base": int(inliers_base.size),
+    "n_inliers_shifted": int(inliers2.size),
+    "scale_ratio_observed": float(scale_ratio),
     "scale_ratio_vs_prediction_dev": float(abs(scale_ratio - 10.0 ** -0.5)),
+    "evidence_class": "measured (estimator re-run on shifted data); falsifiable",
 }
-# true no-effect => metric zero
-invariance["no_effect_metric"] = float(abs(loc2 - (loc + 0.5)))
+# true no-effect => metric zero（观测口径，不再是预测减预测）
+invariance["no_effect_metric"] = float(abs(shift_observed - 0.5))
 
 # negative control: a flux-window prefilter (NOT shift invariant) changes the set
 keep_flux = np.abs(delta - med) <= 3.0

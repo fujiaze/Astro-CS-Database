@@ -1,5 +1,14 @@
 # DERIVATIONS_P2 — P2 跨帧绝对 SNR · 支撑推导（推导腿汇总）
 
+> ⚠ **判据证据等级（必读，G08-05 审计裁定）** — 本文中带 `[自检]` 的 `code/audit/` 引用一律指
+> **本地重实现自检**，不是生产判别力证据：`code/audit/` 的 36 个脚本中有 35 个
+> **不 import、不链接、不执行**生产 `lib/**`（实测读侧操作 `open`/`json.load`/`fits.open`/
+> `subprocess`/`np.fromfile` 计数全为 0），是纯 Python+numpy 复刻，**结构上不可能因真实管线缺陷而翻红**，
+> 按规范 08 §4「不读真实对象的判据无效」，其绿灯**不构成 ACSD 生产实现的判别力证据**。
+> 唯一例外 `[生产证据]` = `code/audit/route3/exp11_frozen_operator_transfer.py`：它记录 `weight_chain.h/.cpp` 的 sha256
+> 并用 astropy 读 3 张真实 M42 4096² FITS，**保持生产证据地位**。
+> 升回证据地位的条件：逐脚本链接生产实现，并对每条门给出注入红灯。
+
 本文汇集论文与实验报告引用的解析推导，全部可在 float64 下机械复核（对应脚本见括号内 [实验] 标注）。
 
 ## D1. 双计偏差闭式（P-CST-11）
@@ -8,7 +17,7 @@
 
     bias(RN) = σ_F,corr/σ_F,emp − 1 = √( ΣP²/σ_corr² · σ_emp²/ΣP² ) − 1 = √( v_emp/v_corr ) − 1
 
-其中 v = ΣP_i²σ_i²（口径自洽：分母分母同窗）。对 Moffat β=4、σ_PSF=1.5 px、窗 half=30：ΣP² = 0.092684087（half=12 给 0.09268653，half=60 给 0.09268408，收敛）。代入登记锚点参数即得 +14.5009%（RN=10 e⁻）与 +38.2524%（RN=50 e⁻）；偏差对增益 g 精确不变（RN 与 (RN/g)² 以 g² 抵消）——这同时锁定量纲约定 [实验:code/audit/route3/exp05_doublecount_corr.py]（闭式复算 max rel 2.35×10⁻¹⁴）、[实验:code/audit/route1/exp04_double_count_bias.py]（MC 复现 ≤3.3×10⁻⁷、增益不变性）。
+其中 v = ΣP_i²σ_i²（口径自洽：分母分母同窗）。对 Moffat β=4、σ_PSF=1.5 px、窗 half=30：ΣP² = 0.092684087（half=12 给 0.09268653，half=60 给 0.09268408，收敛）。代入登记锚点参数即得 +14.5009%（RN=10 e⁻）与 +38.2524%（RN=50 e⁻）；偏差对增益 g 精确不变（RN 与 (RN/g)² 以 g² 抵消）——这同时锁定量纲约定 [实验:code/audit/route3/exp05_doublecount_corr.py]（闭式复算 max rel 2.35×10⁻¹⁴）、[实验:code/audit/route1/exp04_double_count_bias.py]（MC 复现 ≤3.3×10⁻⁷、增益不变性）。 [自检]
 
 ## D2. 协方差对角近似欠估闭式（P-CST-22）
 
@@ -16,27 +25,27 @@
 
     Var_exact/Var_diag = 1 + ρ(M_eff − 1)
 
-均匀 4-tap、ρ=0.19：欠估 = 3ρ/(1+3ρ) = 0.57/1.57 = 36.31%（登记 36.3%）。23.3% 对应同曲线另一点（ρ=0.101 @4-tap，或 M_eff=2.6 @ρ=0.19）；旧启发式 1+0.75ρ̄ = 1.125 与两者皆非，淘汰 [实验:code/audit/route1/exp10_covariance_diagonal_approx.py]、[实验:code/audit/route2/exp07_correlation_diagonal.py]。
+均匀 4-tap、ρ=0.19：欠估 = 3ρ/(1+3ρ) = 0.57/1.57 = 36.31%（登记 36.3%）。23.3% 对应同曲线另一点（ρ=0.101 @4-tap，或 M_eff=2.6 @ρ=0.19）；旧启发式 1+0.75ρ̄ = 1.125 与两者皆非，淘汰 [实验:code/audit/route1/exp10_covariance_diagonal_approx.py]、[实验:code/audit/route2/exp07_correlation_diagonal.py]。 [自检]
 
 ## D3. γ=2 唯一性恒等式（P-CST-21）
 
-帧 k 的换算权 w_k = SNR_k^γ/F_ref^γ。由 SNR_k = F_ref/σ_F,k，有 w_k = F_ref^(2−γ)/σ_F,k^γ · F_ref^(γ−2) = σ_F,k^(−γ)·F_ref^(2−γ)·SNR_k^(γ−2)·…（直接展开）：w_k = SNR_k^γ/F_ref^γ = (F_ref/σ_k)^γ/F_ref^γ = σ_k^(−γ)·F_ref^(γ−2)。要求 w_k ≡ 1/σ_k²（逆方差，共同尺度、与 F_ref 无关）⇒ γ=2（指数唯一匹配）且 F_ref 因子消失。γ=1 时 w_k = F_ref^(−1)·σ_k^(−1)，帧权畸变 = |g_k|⁻¹（实测 ×0.32–×3.16）。数值：γ=2 恒等偏差 4.4×10⁻¹⁶ = 2 ulp [实验:code/audit/route1/exp12_gamma_weight_scale.py]；γ≠2 ⇒ O(1) [实验:code/audit/route3/exp03_median_se_identity.py]。
+帧 k 的换算权 w_k = SNR_k^γ/F_ref^γ。由 SNR_k = F_ref/σ_F,k，有 w_k = F_ref^(2−γ)/σ_F,k^γ · F_ref^(γ−2) = σ_F,k^(−γ)·F_ref^(2−γ)·SNR_k^(γ−2)·…（直接展开）：w_k = SNR_k^γ/F_ref^γ = (F_ref/σ_k)^γ/F_ref^γ = σ_k^(−γ)·F_ref^(γ−2)。要求 w_k ≡ 1/σ_k²（逆方差，共同尺度、与 F_ref 无关）⇒ γ=2（指数唯一匹配）且 F_ref 因子消失。γ=1 时 w_k = F_ref^(−1)·σ_k^(−1)，帧权畸变 = |g_k|⁻¹（实测 ×0.32–×3.16）。数值：γ=2 恒等偏差 4.4×10⁻¹⁶ = 2 ulp [实验:code/audit/route1/exp12_gamma_weight_scale.py]；γ≠2 ⇒ O(1) [实验:code/audit/route3/exp03_median_se_identity.py]。 [自检]
 
 ## D4. 天空预算链（P-CST-08）
 
-单 patch MAD→σ̂ 相对标准误 ≈ c(n)/√N_sky。要求相对 SE ≤ 1.5%：N_sky ≥ (c/0.015)²。登记取 c=1.44（=1.152×1.25，有限 n 修正 × 中位数 SE 系数，0.015 为预算相对容差）⇒ N_sky = 9216 = (1.44/0.015)²（解析恒等）。理论链 1.152×1.2533 = 1.444；直接管线实测 c≈1.449 ⇒ N_min ≈ 9321，与 9216 差 1.2%（阈值自洽）[实验:code/audit/route3/exp01_mad_sigma_budget.py]。c(n=64)=1.152 由 D-04 终裁（MC 1.1508/1.1542）；1.44 = 1.152×1.25 ⇒ N_sky = (1.44/0.015)² = 9216（解析恒等，即登记口径）；1.144 支的替代读数为 5816.6 = (1.144/0.015)²，5811 属该支算术漂移（订正注记：括注公式原错挂 (1.152×1.25/0.015)²——该式精确等于 9216，5816.6 对应 (1.144/0.015)²）。
+单 patch MAD→σ̂ 相对标准误 ≈ c(n)/√N_sky。要求相对 SE ≤ 1.5%：N_sky ≥ (c/0.015)²。登记取 c=1.44（=1.152×1.25，有限 n 修正 × 中位数 SE 系数，0.015 为预算相对容差）⇒ N_sky = 9216 = (1.44/0.015)²（解析恒等）。理论链 1.152×1.2533 = 1.444；直接管线实测 c≈1.449 ⇒ N_min ≈ 9321，与 9216 差 1.2%（阈值自洽）[实验:code/audit/route3/exp01_mad_sigma_budget.py]。c(n=64)=1.152 由 D-04 终裁（MC 1.1508/1.1542）；1.44 = 1.152×1.25 ⇒ N_sky = (1.44/0.015)² = 9216（解析恒等，即登记口径）；1.144 支的替代读数为 5816.6 = (1.144/0.015)²，5811 属该支算术漂移（订正注记：括注公式原错挂 (1.152×1.25/0.015)²——该式精确等于 9216，5816.6 对应 (1.144/0.015)²）。 [自检]
 
 ## D5. control_variance 有限 N 修正（补实验）
 
-奇数 N=2k+1 的样本中位数为第 k+1 阶序统计量，密度 f(x) = n!/(k!k!)·Φ(x)^k(1−Φ(x))^k·φ(x)；Gauss–Legendre 600 节点数值积分给出精确 κ_exact(N) = N·Var(median)/σ²，渐近极限 π/2。纯公式口径偏差 = (π/2)/κ_exact − 1：N=5 时 +9.53%（高估，保守），1% 边界 N≈45–49。端到端口径分解恒等式：端到端偏差 = (π/2)·c_mad2/κ − 1，其中 c_mad2 = E[σ̂²]/σ² 为 MAD plug-in 平方偏置（N=5 时 0.906），与有限 N 中位数高估同量级反号 ⇒ 净偏差 N=5 为 −0.6%、奇 N 全域 ≤1.5%。偶 N 中位数取两中央均值，κ(20)=1.470 < κ(21)=1.538 ⇒ 端到端高估 +5.0%（N=20）[实验:code/audit/supplement_control_variance/finiteN_control_variance.py]。生产链忠实臂（裁剪后中位数口径）低估 1.3–3.2% [实验:code/audit/supplement_control_variance/production_chain_control_variance.py]。D-07 终裁以此三口径定稿。
+奇数 N=2k+1 的样本中位数为第 k+1 阶序统计量，密度 f(x) = n!/(k!k!)·Φ(x)^k(1−Φ(x))^k·φ(x)；Gauss–Legendre 600 节点数值积分给出精确 κ_exact(N) = N·Var(median)/σ²，渐近极限 π/2。纯公式口径偏差 = (π/2)/κ_exact − 1：N=5 时 +9.53%（高估，保守），1% 边界 N≈45–49。端到端口径分解恒等式：端到端偏差 = (π/2)·c_mad2/κ − 1，其中 c_mad2 = E[σ̂²]/σ² 为 MAD plug-in 平方偏置（N=5 时 0.906），与有限 N 中位数高估同量级反号 ⇒ 净偏差 N=5 为 −0.6%、奇 N 全域 ≤1.5%。偶 N 中位数取两中央均值，κ(20)=1.470 < κ(21)=1.538 ⇒ 端到端高估 +5.0%（N=20）[实验:code/audit/supplement_control_variance/finiteN_control_variance.py]。生产链忠实臂（裁剪后中位数口径）低估 1.3–3.2% [实验:code/audit/supplement_control_variance/production_chain_control_variance.py]。D-07 终裁以此三口径定稿。 [自检]
 
 ## D6. m_ref 依赖与权重比值不变性（P-CST-19）
 
-F_ref,k = 10^(−0.4(m_ref−ZP_k))，故 frame_snr = F_ref/σ_F 在**天光限**（σ_F ∝ F_ref）下每 mag 单调降 10^0.4 = 2.5118864… 倍（16 位一致；同门负控：施于生产组成必红，实测 rel 0.3686）[实验:code/audit/route3/exp04_refmag_chain.py]；而在**生产组成**（方差含源泊松项 ⇒ σ_F 有非标度分量）下每 mag 实测 1.5853~1.5859（≈10^0.2）[实验:code/audit/route1/exp05_mref_and_reference_flux.py]。换算权 w = SNR²/F_ref² = 1/σ_F² 不含 F_ref ⇒ 逐帧权比对对 m_ref/ZP 是**代数恒等**（实测 rel ≤3.3×10⁻¹⁶），但生产组成下只是近似：m_ref 档漂移实测 1.9%~4.2%（生产驱动 f4 最大 4.20%），零点灵敏度 ZP±0.02 mag 为 1.85%（另一量）[实验:code/audit/route3/exp04_refmag_chain.py]。由此：跨帧叠加与重建**必须同档 m_ref 且该档随产品落盘**，frame_snr 的绝对数值比较亦然；m_ref=6.0 为单位制锚点（冻结纪律）。（P2-M2 订正）
+F_ref,k = 10^(−0.4(m_ref−ZP_k))，故 frame_snr = F_ref/σ_F 在**天光限**（σ_F ∝ F_ref）下每 mag 单调降 10^0.4 = 2.5118864… 倍（16 位一致；同门负控：施于生产组成必红，实测 rel 0.3686）[实验:code/audit/route3/exp04_refmag_chain.py]；而在**生产组成**（方差含源泊松项 ⇒ σ_F 有非标度分量）下每 mag 实测 1.5853~1.5859（≈10^0.2）[实验:code/audit/route1/exp05_mref_and_reference_flux.py]。换算权 w = SNR²/F_ref² = 1/σ_F² 不含 F_ref ⇒ 逐帧权比对对 m_ref/ZP 是**代数恒等**（实测 rel ≤3.3×10⁻¹⁶），但生产组成下只是近似：m_ref 档漂移实测 1.9%~4.2%（生产驱动 f4 最大 4.20%），零点灵敏度 ZP±0.02 mag 为 1.85%（另一量）[实验:code/audit/route3/exp04_refmag_chain.py]。由此：跨帧叠加与重建**必须同档 m_ref 且该档随产品落盘**，frame_snr 的绝对数值比较亦然；m_ref=6.0 为单位制锚点（冻结纪律）。（P2-M2 订正） [自检]
 
 ## D7. 5σ 裁剪误剔率与掩膜 r_local（P-CST-09/15）
 
-高斯尾：2Φ(−5) = 5.733×10⁻⁷/px（误剔率上界；实测帧内裁剪率 0.25% 量级、纯噪声臂 ≈0）[实验:code/audit/route3/exp01_mad_sigma_budget.py]。掩膜亮源局部半径闭式：残余面亮度阈值 k·σ_bg（k=0.1，项目约定）下 r_local(F) = (F/(2π·0.1·σ_bg·q))^(1/2)（q 为峰-等效因子），F=10⁵ ⇒ 17.60 px [推导:route3/exp06 推导腿]。
+高斯尾：2Φ(−5) = 5.733×10⁻⁷/px（误剔率上界；实测帧内裁剪率 0.25% 量级、纯噪声臂 ≈0）[实验:code/audit/route3/exp01_mad_sigma_budget.py]。掩膜亮源局部半径闭式：残余面亮度阈值 k·σ_bg（k=0.1，项目约定）下 r_local(F) = (F/(2π·0.1·σ_bg·q))^(1/2)（q 为峰-等效因子），F=10⁵ ⇒ 17.60 px [推导:route3/exp06 推导腿]。 [自检]
 
 ## D8. 逆方差加权口径（引 Aitken 1935）
 

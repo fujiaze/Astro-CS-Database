@@ -1,5 +1,14 @@
 # 实验/absolute-snr — P2 跨帧绝对 SNR（SCI-B）· 单元入口
 
+> ⚠ **判据证据等级（必读，G08-05 审计裁定）** — 本文中带 `[自检]` 的 `code/audit/` 引用一律指
+> **本地重实现自检**，不是生产判别力证据：`code/audit/` 的 36 个脚本中有 35 个
+> **不 import、不链接、不执行**生产 `lib/**`（实测读侧操作 `open`/`json.load`/`fits.open`/
+> `subprocess`/`np.fromfile` 计数全为 0），是纯 Python+numpy 复刻，**结构上不可能因真实管线缺陷而翻红**，
+> 按规范 08 §4「不读真实对象的判据无效」，其绿灯**不构成 ACSD 生产实现的判别力证据**。
+> 唯一例外 `[生产证据]` = `code/audit/route3/exp11_frozen_operator_transfer.py`：它记录 `weight_chain.h/.cpp` 的 sha256
+> 并用 astropy 读 3 张真实 M42 4096² FITS，**保持生产证据地位**。
+> 升回证据地位的条件：逐脚本链接生产实现，并对每条门给出注入红灯。
+
 > **体系化整理定稿（总编对账后）**。裁决唯一事实源：`实验/裁决台账.md`（跨单元 D-xx）与 `docs/DISPUTES.md`（本单元 A-P2-xx）；科学正本同步件 `docs/science/DISPUTE_RESOLUTION.md`；成稿口径摘要见本单元 `REPORT_paper.md` 与 `docs/LEDGER_CORRECTIONS_P2.md`。
 > 单元定位：科学链第 2 创新点（最高设计 §2），P1 测光零点 → **P2 绝对 SNR 标尺** → P3/P4/P5。
 
@@ -16,7 +25,7 @@
 | `refs.md` | 文献核验台账（只收一手 VERIFIED；标注级与拒绝采信项单列） |
 | `results/AUDIT_KEY_RESULTS.json` | 关键结果 JSON 汇总（逐条注明来源路线与台账裁决号） |
 | `code/` | 单元主实验 b1–b7（seed 20260921，`run_all.sh`）+ exp01–06 + reverse_verify |
-| `code/audit/` | 独立审计三路重做 + 补实验脚本与结果快照（seed 20260926 / 20260601，`run_all.sh`，见其 README） |
+| `code/audit/` | 独立审计三路重做 + 补实验脚本与结果快照（seed 20260926 / 20260601，`run_all.sh`，见其 README） [自检] |
 | `docs/` | 支撑推导、分册实验报告、定案与调研（见 `docs/README.md`） |
 | `results/` | 单元主实验 JSON（b*.json、exp0*.json）+ `figs/` |
 | `data/` | 数据指针（只读声明，本单元不新增、不复制数据） |
@@ -47,7 +56,7 @@ bash 实验/shared/synthetic/run_selftests.sh
 | # | 命令 | 产物落点 | 耗时 / 构建 / 网络 |
 |---|---|---|---|
 | A | `bash 实验/absolute-snr/code/run_all.sh` | 单元 `results/`（b*.json、`figs/`、`tables/`）+ `run/SCI-402/`（逐步日志） | 约 25–35 min；**需先构建**（`cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release && ninja -C build`）；第 1 步 `fetch_evidence.py` **需联网** |
-| B | `bash 实验/absolute-snr/code/audit/run_all.sh` | `code/audit/results/<route>/*.json`（就地覆盖）；`EXP11_SKIP=1` 可跳 route3/exp11 | 全量约 55 min；`route3/exp11` 另需 g++ 与 testdata M42 帧；无构建、无网络 |
+| B | `bash 实验/absolute-snr/code/audit/run_all.sh` | `code/audit/results/<route>/*.json`（就地覆盖）；`EXP11_SKIP=1` 可跳 route3/exp11 | 全量约 55 min；`route3/exp11` 另需 g++ 与 testdata M42 帧；无构建、无网络 [自检] |
 | C | `bash 实验/absolute-snr/code/reverse_verify/frame_snr/run_all.sh` | `run/reverse_verify/frame_snr/*.json` | 约 82 s；无构建（T12/P12 内用 `g++` 直编只读生产 TU） |
 | D | `bash 实验/absolute-snr/code/reverse_verify/snr_design/run_all.sh` | `run/reverse_verify/snr_design/exp*.{json,log}`，并回拷覆盖 `code/reverse_verify/snr_design/exp*.json` | 约 50 s；无构建 |
 | E | `bash 实验/absolute-snr/code/reverse_verify/snr_design/audit/run_all_audit.sh` | `run/reverse_verify/snr_design/audit/*.{json,log}` | 约 10 min；无构建 |
@@ -70,7 +79,7 @@ P2_NORM_DIR=/path/to/norm bash 实验/absolute-snr/code/reverse_verify/snr_desig
 `testdata/M42_T2T3_mosaic_Flying_dutchman/`）。
 
 注：入口 D 会把产物**回拷覆盖**单元内既有 `code/reverse_verify/snr_design/*.json` 快照——
-复核时建议先备份或在副本内运行。入口 B 就地覆盖 `code/audit/results/`。`run/reverse_verify/**`
+复核时建议先备份或在副本内运行。入口 B 就地覆盖 `code/audit/results/`。`run/reverse_verify/**` [自检]
 未被产物保留清单登记，可能被 `run_gc` 回收。
 
 ### 已知缺口

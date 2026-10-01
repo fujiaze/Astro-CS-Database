@@ -92,6 +92,8 @@ def main():
         "max_dev_from_w3": float(max(abs(v / base - 1) for v in clean.values())),
         "criterion": "真值无效应 ⇒ 全部窗宽给出同一 k_photo(偏差=0)",
         "pass": bool(max(abs(v / base - 1) for v in clean.values()) < 1e-12),
+        "discriminating_power": "none (零效应守卫：清洁场下窗宽本就不截断，k_photo 不变是构造使然，不能证明窗宽无关性)",
+        "evidence_status": "registered-only: 自洽/零效应守卫，不计判别力证据、不进 verdict",
     }
     # 污染: 15% 错配星, 错配幅度 1.5-5 mag (即 0.6-2 dex)
     n_bad = int(0.15 * n)
@@ -109,8 +111,11 @@ def main():
         "pass": bool(cont[3.0]["k_bias_dex"] < 0.01),
     }
 
-    out["verdict"] = {"H4a": out["H4a"]["pass"], "H4b_clean": out["H4b_clean"]["pass"],
+    # H4b_clean 是零效应守卫（discriminating_power=none）⇒ 不进 verdict；
+    # 真正的负载是 H4b_contaminated（污染场 ⇒ 窗宽+IRLS 联合无偏）。
+    out["verdict"] = {"H4a": out["H4a"]["pass"],
                       "H4b_contaminated": out["H4b_contaminated"]["pass"]}
+    out["registered_not_counted"] = ["H4b_clean"]
     res = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "..",
         "results", "redo", "route3")
     os.makedirs(res, exist_ok=True)

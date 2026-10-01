@@ -83,6 +83,8 @@ def main():
         "iterations": it, "delta_location": 0.0, "S": s,
         "criterion": "真值无效应(常值场) ⇒ 迭代数=0, 位移=0",
         "pass": bool(it == 0),
+        "discriminating_power": "none (常值场 ⇒ Δ 恒为 0 是**构造使然**；且 delta_location 原本是写死的字面量 0.0，不是算出来的)",
+        "evidence_status": "registered-only: 自洽/零效应守卫，不计判别力证据、不进 verdict",
     }
 
     # V-8 负例复算: 注入需 8 步收敛的场, tol=1e-2 vs 1e-6 系数必变
@@ -95,9 +97,11 @@ def main():
         "pass": bool(abs(l_a - l_b) > 1e-5),
     }
 
+    # negative_zero_check 是自洽守卫（discriminating_power=none）⇒ 不进 verdict，
+    # 读数仍保留在 negative_zero_check 块里。
     out["verdict"] = {"H3a": out["H3a"]["pass"], "H3b": out["H3b"]["pass"],
-                      "negative": out["negative_zero_check"]["pass"],
                       "v8_replay": out["v8_replay"]["pass"]}
+    out["registered_not_counted"] = ["negative_zero_check"]
     res = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "..",
         "results", "redo", "route3")
     os.makedirs(res, exist_ok=True)

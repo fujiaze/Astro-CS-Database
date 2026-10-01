@@ -48,4 +48,31 @@ run supp_507_relstep ea_507_scale_scan.py eb_relstep_calibration.py
 run supp_control_variance finiteN_control_variance.py production_chain_control_variance.py \
     spotcheck_independent_seed.py
 
-echo "ALL DONE. k_corr 查表补实验（P3 单元）不在本单元复现清单内，见 results/audit_rework/p3_kcorr/ 固化读数。"
+# ---------------------------------------------------------------------------
+# 判据 rollup —— 修「已判红的门被静默吞掉」
+#
+# 本子树 38 个脚本**无一 sys.exit(1)**（实测 grep "sys.exit|exit(1)" 零命中），
+# 所以上面 run() 里的 `|| exit 1` 只能抓到「脚本崩溃」，抓不到「门判红」。
+# 后果：固化 JSON 里已记 false 的门照样被引用，而本脚本照旧打印 ALL DONE。
+# 这违反 08 规范 §5「红灯不以 waiver 覆盖，SKIP 不计通过」。
+#
+# rollup.py 按 GATE_DISCLOSURE.json 逐点显式披露并判决：
+#   0 无 open_red 且无未披露 false / 1 有 open_red / 2 披露文件自身陈旧或冲突
+# 未披露的 false 一律记 UNDECLARED 并判红（fail-closed），open_red 不豁免。
+# 落盘 JSON 里的 false 有四种语义（demonstration/diagnostic/table_cell/open_red），
+# 一刀切「见 false 就红」会产生大量假警报而使本汇总器恒红，故必须逐点披露、不能猜。
+# ---------------------------------------------------------------------------
+set +e
+python3 "$HERE/rollup.py"
+rollup_rc=$?
+set -e
+
+if [ "$rollup_rc" -ne 0 ]; then
+  echo ""
+  echo "!! 判据 rollup 未通过（rollup.py 退出码 $rollup_rc）"
+  echo "!! 各脚本本身不因门判红而失败，故此处必须显式拦下。"
+  echo "!! **不得**据本轮结果宣称 audit_rework 子树全绿。"
+  exit "$rollup_rc"
+fi
+
+echo "ALL DONE + 判据 rollup 全绿。k_corr 查表补实验（P3 单元）不在本单元复现清单内，见 results/audit_rework/p3_kcorr/ 固化读数。"
