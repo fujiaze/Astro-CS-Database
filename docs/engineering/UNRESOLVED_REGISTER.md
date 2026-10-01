@@ -3860,21 +3860,37 @@ validator 验证的是「文件是否声称自己可信」，**不是「这个�
 而正本 `:1304` 把这个开关写成红线的「唯一例外」——
 **文档与代码在此互相印证了一个已被裁决作废的东西。**
 
-### 75.3 严重度
+### 75.3 ⚠ 本条已被后续车道推翻，前台已核实并下调严重度（见轮1新-片11）
 
-`weight_chain.cpp:37` 的分支仍在生效 ⇒ 有人（配置或调用方）一旦置真，
-**support 就能冒充 ivar 进入加权** —— 而这正是 §20.3 红线禁止的行为。
+前台打开 `weight_chain.cpp:30-46` 逐字：
 
-⇒ 裁决 A44 的**执行未完成**：删了配置面的键、删了 orchestrator 的硬拒，
-**没删权重链本体的字段与分支。**
+    WeightChainResult fail_with_policy(const WeightChainPolicy& policy, ...) {
+      if (!policy.legacy_allow_weight_fallback) return fail(closure, underlying);
+      WeightChainResult r = fail(WeightClosure::kUnclosedLegacyFallbackRejected,
+          "weight chain NOT closed (权重链未闭合): " + underlying +
+          "; legacy equal-weight fallback rejected "
+          "(legacy_allow_weight_fallback=true does not produce a valid scientific weight chain)");
+      r.legacy_equal_weight_used = true;
+      r.diagnostic_equal_weights.assign(n_frames, 1.0);
+      return r;
+    }
 
-### 75.4 这条证明了什么
+⇒ **该分支在置真时返回的是 `fail(...)`，不是降级权重。**
+**A44 的语义面已执行到底：置真买到的不是 support 冒充 ivar，而是显式拒绝。**
 
-第 1 轮**首遍**就挖出这条 blocker。
-而它此前从未被任何一轮登记过 —— 因为前十轮是**十个不同的问题**，
-没有一个问题是「同一件事在文档与代码里是否都执行了同一个裁决」。
+**前台撤回本条原判「support 就能冒充 ivar 进入加权」—— 该表述不成立。**
 
-⇒ **这就是「遍」与「题」的区别。**
+**但仍残留两处真问题（严重度已下调）**：
+
+1. **正本 `:1304` 的话现在是双重错的**：它说该键是红线「禁 support 冒充 ivar」的
+   「唯一例外」，而实际是 ① 该键已按 A44 作废 ② 即使置真也只得到显式拒绝、
+   **不构成任何例外** ⇒ 该句必须删，不只是改路径。
+2. **开关本身仍在 API 面活着**：`weight_chain.h:342` 的字段仍在，
+   `weight_chain_oracle.py:256` 与 `weight_chain_selfcheck.cpp:633-640` 仍在测它
+   ⇒ **API 面应彻底删除该字段**，而不是让它「置真即失败」。
+
+另查出**第三处正本**（`PHASE2_MOSAIC_WRITE.md:212/282/365`）与
+测试内注释（`ivar_wiring_test.cpp:440` vs `:475`）矛盾。
 
 ---
 
