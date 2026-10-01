@@ -197,17 +197,21 @@ for 每个控制星 s（半径内）:
 1. **定义已被物理 MC 证实**：固定真实源通量、只抬升天光时，`SNR=F_signal/σ_F` 单调下降，天光主导段 log-log 斜率 −0.4879（亮源）/−0.4972（暗源）（理论 −1/2），`SNR(10⁶)/SNR(0)=2.11%/1.07%`；定义式与 MC 经验散度 max|z|=2.06（26 点）。
 2. **"信号含天光"的传统口径失真可量化**：同一天光范围内传统口径上升 3 个数量级（B=10⁶ 时相对真值 ×3419 亮源 / ×1.0e5 暗源）；不扣局部背景的帧级臂 ×8040 ⇒ **必须独立估计并扣除局部背景**（1% SNR 偏差对应背景偏差 δB*=2.78 e⁻ ≈ 0.28% 天光；实测 1% 交叉 3.44 e⁻）。
 3. **跨帧可比性硬约束**：逐帧 `F_ref,k`、同帧配对、`m_ref=6.0`（`m_ref` 为**记录参考
-   电平约定**而非标定量：`w = SNR²/F_ref²` 对 `m_ref` **逐位不变**——SNR 与 `F_ref` 的
-   归一互相抵消，变更 `m_ref` 只改记账口径不改权重）；`SNR_combined²=ΣSNR_k²` 相对偏差 2.2e-16，Q/W 信息量 `Var=1/ΣW` 实测 1275 vs 解析 1260（+1.2%）；逆方差组合严格优于等权与 `w∝SNR`。
-   **⚠ 适用域限定**：上一条「对 `m_ref` 逐位不变」**只在天光受限臂成立**。
+   电平约定**而非标定量）。权重换算式 `w = SNR²/F_ref² = 1/σ_F²` 是**代数恒等**：分子 `F_ref`
+   与分母 `σ_F` 随 `m_ref` 同步变化，归一在 `SNR` 中相消，恒等式在任何噪声组成下精确成立。
+   `SNR_combined²=ΣSNR_k²` 相对偏差 2.2e-16，Q/W 信息量 `Var=1/ΣW` 实测 1275 vs 解析 1260（+1.2%）；逆方差组合严格优于等权与 `w∝SNR`。
+   **`w` 的适用域**：`w` 对 `m_ref` 不变当且仅当 `σ_F` 与 `F_ref` 无关。
    实测 `实验/absolute-snr/code/audit/results/route3/exp04_refmag_chain.json` 的
    `H2_pairing_and_cross_frame.cross_frame_invariance`：
-   - `sky_limited_arm.mref_drift_rel` = **4.44e-16**（机器精度级）
-   - `source_dominated_arm.mref_drift_rel` = **0.0383（3.83%）**
-   **机理**：σ_F² 含源光子散粒项，源主导时 F_ref 的归一不再与 SNR 完全抵消。
+   - `sky_limited_arm`（`gain = 0`）`mref_drift_rel` = **4.44e-16**（机器精度级）
+   - `source_dominated_arm`（`gain = 1.3`）`mref_drift_rel` = **0.0383（3.83%）**
+   **机理**：逐像素方差 `σ_i² = σ_sky² + F·P_i/g` 含源光子散粒项，故 `σ_F² = 1/Σ(P_i²/σ_i²)`
+   是 `F_ref` 的函数；同件 `sigma_F_adu` 随 `F_ref` 由 14044.18 降到 1408.98（99.35×，对应
+   `F_ref` 的 100.00×），`w = 1/σ_F²` 因而随参考电平单调变。
+   **漂移是被加权量随源亮度变化的结果，不是归一相消被破坏。**
    **⇒ 跨帧比对须限「同一 m_ref 档」，且天光受限与源主导两档不可混比。**
-   （读数正本：`实验/absolute-snr/`；其中 `SNR_combined²` 的偏差腿属**代数恒等**，实验侧已自标 `evidence_eligible=false`，
-   故「2.2e-16」只作定义性结论，不作独立证据腿。）
+   （读数正本：`实验/absolute-snr/`；恒等式与 `SNR_combined²` 的偏差腿属**代数恒等**，实验侧已自标
+   `is_tautology: true`、`evidence_eligible: false`，故恒等式本身与「2.2e-16」只作定义性结论，不作独立证据腿。）
 4. **量纲区隔复核**：`quality_weight`（无量纲相对质量）与 `variance/ivar`（ADU²）不混用——§5/§6 的不变量在本单元以数值方式复核（权重换算恒等、组合方差解析对拍）。
 5. **读噪口径必须由 `sigma_sky_source` 显式声明**：`SnrSourceParams.sigma_sky_source` 取 `SHOT_ONLY` / `EMPIRICAL_TOTAL_RMS` 之一，生产调用点声明 `EMPIRICAL_TOTAL_RMS`（`noise_sigma` = `StarDetector::estimate_background` 的**整帧 2 轮裁剪 RMS**，含读噪的经验总 rms；噪声模型 A 的 `1.482602218505602×MAD` 稳健尺度是另一生产者，承载逐像素 `variance`）；`sigma_sky_source_effective` 落 provenance。**禁用**把**含读噪**的经验空天总 rms 填入 `sigma_sky_adu` 后又在 gain>0 时叠加 `(RN/g)²`（`snr_science.cpp`）——会高估 σ_F（基准点 +12.8%、RN=50 时 +34.0%，天光主导时消失；负例判据）。**保护测试** `p1snr_science_skysource`：正确口径与独立 MC 真值 zA=1.27（≤3σ）绿、双计臂 zB=25.6（>3σ）红、legacy 缺省与双计臂逐位一致（向后兼容）。PSF 行路径（`snr_estimator.cpp`，gain 未知不加 RN 项）不受影响。量化见 `实验/absolute-snr/results/DOC_CORRECTIONS.md` D1。
 6. **误差预算常数单位**：`NOISE_MODEL.md` 的 `1.44/√N` 是**相对**标准误（实测 1.166/√N），换算到 dex 为 `1.44/ln10/√N`；直接当 dex 常数用会高估 2.303 倍（`DOC_CORRECTIONS.md` D2）。

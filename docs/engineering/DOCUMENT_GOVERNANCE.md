@@ -29,6 +29,16 @@ docs/
 另：已知限制台账的人读面为 `artifacts/evidence/known-limitations-ledger/LIMITATIONS.md`，
 不在 `docs/` 根层。
 
+**规则 6（跨域豁免登记）**：`docs/DOCUMENT_INDEX.yaml` 的登记面是**人读件**。
+落在 `docs/**` 之外的件只在下面两类里具名豁免登记，每条豁免须在该条目的 `notes` 里写明它凭什么被登记：
+
+1. **跨域人读件**：它是所属域唯一的人读正本面，删掉后无处可查。当前两条：`实验/裁决台账.md`（实验域分歧终裁面，`docs/ACSD_DESIGN.md` §12.1 点名的终裁载体）、`artifacts/evidence/known-limitations-ledger/LIMITATIONS.md`（已知限制台账的人读面）。
+2. **人读正本所直接依赖的判据实现**：该件是某份人读正本明定的判据载体或纪律实现，去掉它正本的反向指针不可达。当前两条：`eng/contracts/ledgers/ledger_schema.py`（`docs/engineering/CONFIG_SCHEMA.md` 明定的台账 schema 载体）、`eng/tools/source_scan.py`（本文件 §7 写作纪律所依赖的扫描实现）。
+
+机器源（`.json` / `.csv` / `.py` 等结构化或可执行件）**不因跨域而自动取得登记资格**：只有落进第 2 类、且有人读正本对它有直接指针时才登记，并且必须具名写进本条。反过来，索引 `coverage` 字段的措辞必须与本条一致，不得一边声明某类件不登记、一边把它们登记在册。
+
+引用本规则的规则号必须在本文可读到定义；**只被引用而无处定义的规则号本身即缺陷**（见 §4.4 的 C3-5：词表读空后按全部合规处理是最危险的失真）。
+
 - 每层由上层推出；下层可补充细节，但与上层一致、不遗漏上层的实施项；
 - 每个目录配中文 `README.md` 说明职责边界与内容；目录招牌件按"每目录必有 README"治理，登记于目录本身、不入规范索引段（`docs/DOCUMENT_INDEX.yaml`）；
 - 科学公式与算法推导的权威在 `docs/science/`（含 `algorithms/`）；架构权威在最高设计 §8。

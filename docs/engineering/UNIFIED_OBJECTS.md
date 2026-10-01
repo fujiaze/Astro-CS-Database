@@ -2,7 +2,7 @@
 
 > 上游：docs/ACSD_DESIGN.md §3.1（数据对象）。
 > 上位正本：`docs/detail/UNIFIED_MODEL.md` §2（对象集与逐对象语义）。本文是**索引与语义登记**，不改任何科学定义、公式、阈值、容差或推导；对象身份/单位/无效值/精度/可否作权重一律以 canonical schema 为准。
-> 现行对象集 = **13 个**；`weight_mode` 家族（**已按 §9.73 A44 作废**）与 `sci_weight_mode` 键**不存在**（权重是阶段二现场派生量）。
+> 现行对象集 = **13 个**；全链没有「权重模式」这一可选概念，`weight_mode` 家族与 `sci_weight_mode` 键**不存在**（叠加权重是阶段二按该天球像素对应帧集合现场换算的派生量，见 `docs/ACSD_DESIGN.md` §3.1（数据对象））。
 
 ## 1. 唯一事实源声明
 
@@ -34,7 +34,7 @@ canonical 定义 = eng/contracts/schemas/unified/<对象名>.schema.json
 | `ivar` | `https://acsd.local/schemas/unified/ivar/v1` | `eng/contracts/schemas/unified/ivar.schema.json` | **1/signal单位^2**：面亮度域 = `sr^2/ADU^2`；像素域帧面 = `ADU^-2`（无 sr 幂）；与同承载面的 variance 严格互倒（有限域） | `0` = 显式不可用（禁 `1/0→Inf`）；`null` = 缺失；无覆盖 = `NaN`（同 signal） | float32|float64 | 对该估计目标可以 | `DATA-OBJ-IVAR-001` |
 | `source_snr` | `https://acsd.local/schemas/unified/source_snr/v1` | `eng/contracts/schemas/unified/source_snr.schema.json` | 1（F_hat/sigma_F 无量纲） | null | float32|float64 | 不直接作帧权重 | `DATA-OBJ-SOURCE-SNR-001` |
 | `depth_m5` | `https://acsd.local/schemas/unified/depth_m5/v1` | `eng/contracts/schemas/unified/depth_m5.schema.json` | mag | null | float32|float64 | 摘要，不作权重 | `DATA-OBJ-DEPTH-M5-001` |
-| `frame_snr` | `https://acsd.local/schemas/unified/frame_snr/v1` | `eng/contracts/schemas/unified/frame_snr.schema.json` | 1（真实信号/噪声比，`SNR = F_signal/σ_F`，**无量纲**）。**对象身份的两个必要条件（正向约束）**：① `F_signal` **必须已扣独立估计的局部背景**，天光**只作为噪声项**进入 `σ_F`（红线见 `docs/detail/algorithms_phase1/07_noise_snr.md` §4.1）——未扣背景的比值**不是** `frame_snr`，本对象只接受已扣背景的比值；② 本对象是**点源（PSF）**量，与面亮度 SNR **各自独立、互不宣称等价**。参考通量基准（`reference_baseline`）见 `DATA_SEMANTICS.md` §13.4 | null | float32|float64 | 唯一帧级参考；权重由 Phase2 逆方差叠加从 SNR 计算（SNR 本身**不是**权重） | `DATA-OBJ-FRAME-SNR-001` |
+| `frame_snr` | `https://acsd.local/schemas/unified/frame_snr/v1` | `eng/contracts/schemas/unified/frame_snr.schema.json` | 1（真实信号/噪声比，`SNR = F_ref/σ_F`，**无量纲**；分子 `F_ref` 取**逐帧参考通量**，不是逐源实测通量，口径定义处是 `docs/ACSD_DESIGN.md` §2.2（P2 跨帧绝对信噪比））。**对象身份的两个必要条件（正向约束）**：① 分子**必须已扣独立估计的局部背景**，天光**只作为噪声项**进入 `σ_F`（红线见 `docs/detail/algorithms_phase1/07_noise_snr.md` §4.1）——未扣背景的比值**不是** `frame_snr`，本对象只接受已扣背景的比值；② 本对象是**点源（PSF）**量，与面亮度 SNR **各自独立、互不宣称等价**。参考通量基准（`reference_baseline`）见 `DATA_SEMANTICS.md` §13.4 | null | float32|float64 | 唯一帧级参考；权重由 Phase2 逆方差叠加从 SNR 计算（SNR 本身**不是**权重） | `DATA-OBJ-FRAME-SNR-001` |
 | `point_information` | `https://acsd.local/schemas/unified/point_information/v1` | `eng/contracts/schemas/unified/point_information.schema.json` | ADU^-2（=1/Var(F_hat)，点源通量口径；**不是**面亮度 `signal^-2`——后者为 sr^2/ADU^2，见 `DATA_SEMANTICS.md` §31.1a）。**标度 = 与 `F_hat` 同承载面**（帧面为 `photo_scaled_adu` 时随 1/α² 换算） | null | float32|float64 | 点源目标的严格权重。**估计域（正向约束）**：`Var(F_hat)` 是**PSF 拟合域**内的通量估计方差（`F_hat` 单位 ADU），**不含**像素间相关核的贡献；把本对象当权重消费前，消费侧必须确认 ① 估计域与目标一致（点源、非面亮度）、② 是否已含相关核（未含时按 `DATA_SEMANTICS.md` §31.5 的 `k_corr ≠ 1` 条款补核或拒绝）、③ 与 `W_info` 消费面（`DATA_SEMANTICS.md` §28.6）的量纲一致。三条缺一即 fail-closed，默认代入一律判红 | `DATA-OBJ-POINT-INFORMATION-001` |
 | `sparse_snr_layer` | `https://acsd.local/schemas/unified/sparse_snr_layer/v1` | `eng/contracts/schemas/unified/sparse_snr_layer.schema.json` | 1 | null | float32|float64 | 帧内精细参考 | `DATA-OBJ-SPARSE-SNR-LAYER-001` |
 | `support` | `https://acsd.local/schemas/unified/support/v1` | `eng/contracts/schemas/unified/support.schema.json` | 1（[0,1]） | 0=无覆盖 | float32|float64|integer | 否 | `DATA-OBJ-SUPPORT-001` |

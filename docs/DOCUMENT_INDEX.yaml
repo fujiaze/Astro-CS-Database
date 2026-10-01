@@ -31,7 +31,7 @@
 #
 doc_index:
   schema_rev: "3"
-  coverage: "docs/** 全部 .md 与 .yaml + 仓库根固定条目（AGENTS.md、README.md、VERSION）；目录招牌件按「每目录必有 README」治理，不进规范索引面。覆盖面以人读件为界：机器源（.json/.csv 等）不登记；跨域人读件按规则 6 以 notes 豁免登记，当前豁免 4 条（实验/裁决台账.md、eng/contracts/ledgers/ledger_schema.py、eng/tools/source_scan.py、artifacts/evidence/known-limitations-ledger/LIMITATIONS.md）"
+  coverage: "docs/** 全部 .md 与 .yaml + 仓库根固定条目（AGENTS.md、README.md、VERSION）；目录招牌件按「每目录必有 README」治理，不进规范索引面。覆盖面以人读件为界：机器源（.json/.csv/.py 等）不因跨域而自动取得登记资格；跨域件按 docs/engineering/DOCUMENT_GOVERNANCE.md 规则 6 以 notes 具名豁免登记，当前豁免 4 条（跨域人读件 2 条：实验/裁决台账.md、artifacts/evidence/known-limitations-ledger/LIMITATIONS.md；人读正本直接依赖的判据实现 2 条：eng/contracts/ledgers/ledger_schema.py、eng/tools/source_scan.py）"
   active:
     - path: "docs/detail/infrastructure/acr.md"
       status: ACTIVE_NORMATIVE

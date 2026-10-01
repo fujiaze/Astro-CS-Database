@@ -1213,7 +1213,7 @@ P2Stage2Config 公共关键字段（唯一签名源 stage2_common.h:16-99，行�
 | reject_method / reject_profile / reject_underdetermined_n | P2_REJECT_AUTO / "acsd_adaptive_pixel"（**生产默认**，自研）/ 2（:52-54；工具链默认 "wbpp_2_9_1" 为对照档，分歧已登记） | 无量纲 | planning 层解析为显式方法；profile 版本化（自研档逐输出像素几何 n；对照档 = 本仓冻结解析表，档界取自 WBPP 2.5.9 bestRejectionMethod） |
 | reject_normalization | "acsd_median_center_v1"（:56） | 无量纲 | 判定工作域归一；mask 应用回原始 calibrated 值 |
 | large_scale_enabled（及 min_structure_pixels/low_grow/high_grow） | false / 8 / 2 / 2（:60-63） | 无量纲 | acsd.large_scale_rejection.v1，默认关闭（WBPP largeScaleClip 默认一致） |
-| weight_mode（键不存在；**已按 §9.73 A44 作废**） | — | 无量纲 | **禁用键**：不存在「权重模式」概念（ACSD_DESIGN.md §2.1（P1 通量积分拟合：测光校准到测光星等坐标系））；逆方差权重由阶段二按该天球像素对应的帧集合**现场算出**（派生量，非配置项）；配置中出现该键 ⇒ 具名 fail-closed 拒绝（§31.8） |
+| weight_mode（键不存在） | — | 无量纲 | **禁用键**：全链不存在「权重模式」这一可选概念（`docs/ACSD_DESIGN.md` §3.1（数据对象））；逆方差权重由阶段二按该天球像素对应的帧集合**现场算出**（派生量，非配置项）；配置中出现该键 ⇒ 具名 fail-closed 拒绝（§31.8） |
 | legacy_allow_weight_fallback（键不存在） | — | — | **禁用键**：缺 ivar 的失败语义由「权重现场算」条款承载 —— ivar 产品缺失 → rc=7 显式科学错误（stage2.cpp:792-805）；配置中出现该键 ⇒ 具名 fail-closed 拒绝（§31.8） |
 | acr_route | "auto"（:95） | 无量纲 | 集成执行路由 |
 | out_hips | —（:97） | 文件系统路径 | 输出 HiPS 产品集根目录 |
@@ -3255,8 +3255,8 @@ HiPS signal 仍是**线性面亮度**，只是零点换成**逐帧相对测光�
 | 排除 token | `psfsw_robust` | **禁用 token**：它是对象 `psfsw_robust_weight` 的声明 token，**不在**生产接受集（`FZ-MODE-PRODUCTION = {point_information, surface_gls}`）；产品声明该 token ⇒ **显式拒绝 + 迁移提示**（`FZ-MODE-RETIRED`）；接受面 = 空。依据：`docs/ACSD_DESIGN.md` §3.1（数据对象）（权重只能来自纯净信号与噪声之比/逆方差，PSF 拟合质量代理只作诊断）、`docs/detail/UNIFIED_MODEL.md:58`。机器登记：`eng/contracts/data/clause_registry.json#weight_modes.retired`。 |
 
 **legacy 整数处置**（`FZ-FIELD-WEIGHTMODE`；迁移映射见 `eng/contracts/data/clause_registry.json#migration_map.legacy_weight_mode_disposition`；该字段不存在——权重是阶段二按该天球像素对应帧集合现场算出的派生量）：
-**全值域一律拒绝**：`0=support×snr²`（support/coverage 只作门，`FZ-GATE-SUPPORT-COVERAGE`）、`1=equal`、`2=pixel_ivar` **三者同等拒绝** —— 该字段不存在任何合法取值（`ACSD_DESIGN.md` §3.1（数据对象）:175「没有可选择项」；`docs/science/PSF_SIGNAL_WEIGHT.md` §4:72）。实现事实源：`stage2_common.cpp` / `module_adapters.cpp`（键出现即拒绝）、`runtime_contract.h` 的 `route_legacy_weight_mode_int`（纯拒绝面）。
-生产枚举（**输入路径**）出现 `psf_snr_power` / `auto` / `support_x_snr2` / `equal` / `pixel_ivar` / 整数 `0`|`1`|`2` / `weight_mode` 键 / `legacy_allow_weight_fallback` 键（两键均不存在，**已按 §9.73 A44 作废**；权重是阶段二按天球像素对应帧集合现场算出的派生量） / 未知值 → REJECT。`ACSD_WEIGHT_MODE` 整数（§30.3）与 ACR `{auto,ivar,equal,support_x_snr2}` 一律标 ARCHIVED，生产枚举定义只取本节。
+**全值域一律拒绝**：`0=support×snr²`（support/coverage 只作门，`FZ-GATE-SUPPORT-COVERAGE`）、`1=equal`、`2=pixel_ivar` **三者同等拒绝** —— 该字段不存在任何合法取值（`docs/ACSD_DESIGN.md` §3.1（数据对象）「全链没有「权重模式」这一可选概念」；`docs/science/PSF_SIGNAL_WEIGHT.md` §4「**没有可选择的口径**」）。实现事实源：`stage2_common.cpp` / `module_adapters.cpp`（键出现即拒绝）、`runtime_contract.h` 的 `route_legacy_weight_mode_int`（纯拒绝面）。
+生产枚举（**输入路径**）出现 `psf_snr_power` / `auto` / `support_x_snr2` / `equal` / `pixel_ivar` / 整数 `0`|`1`|`2` / `weight_mode` 键 / `legacy_allow_weight_fallback` 键（两键均不存在；`docs/ACSD_DESIGN.md` §3.1（数据对象）：权重是阶段二按天球像素对应帧集合现场算出的派生量） / 未知值 → REJECT。`ACSD_WEIGHT_MODE` 整数（§30.3）与 ACR `{auto,ivar,equal,support_x_snr2}` 一律标 ARCHIVED，生产枚举定义只取本节。
 
 **登记面 vs 输入路径（本节判据形态）**：「登记面」= 描述**既有数据对象**的形态，是**名词**；「输入路径」= 决定生产**接受什么**，是**动词**。冻结（`FZ-WEIGHT-SINGLE-PATH`）适用面 = **后者**；前者不受约束 —— 故本节与 `eng/contracts/data/clause_registry.json#weight_modes`、`eng/contracts/schemas/product_family_field_constraints.schema.json#/$defs/weight_mode` 的**词表登记保留**，但必须正面写清它**不是**接受集。判据（唯一可判定式）：**凡出现在「配置读取 / 路由 / 解析」路径上的 legacy 权重域 token 一律 fail-closed 具名拒绝**；仅用于描述既有对象形态的枚举与映射不构成输入面，生产可用的判据 = 接受集本身。
 
@@ -3313,7 +3313,7 @@ HiPS signal 仍是**线性面亮度**，只是零点换成**逐帧相对测光�
 单位一致性：`signal/noise/background` 共享组内常量 `component_flux_unit`（显式声明），
 **`concentration` 单位以 `component_flux_unit/px^2` 为唯一权威**（`A_NEA = 1/ΣP²`，单位 `px^2`）。
 concentration 写作 `ADU/px` 属**登记在案的文本错误**：`ADU/px²` 是唯一合法写法（依据 `FZ-FIELD-PSFSW-4COMP` + `ALG-P2-PSFSW-001` 单位一致性规则 + `eng/contracts/schemas/product_family_field_constraints.schema.json#/$defs/psfsw` 的 `concentration.units` 收紧 pattern，`A_NEA=px²`）；合法域**不含** `ADU/px`；该禁用形态的登记见 `eng/contracts/data/clause_registry.json#concentration_unit_authority`。生产正例 `eng/contracts/data/examples/psfsw.example.json` 的写法为 `ADU/px^2`。PSFSW 复合权重 `W_psfsw` 由组内比值定义，严格无量纲（`units="1"`，`group_normalized=true`，`normalization.scope="group"`），写法只取组内比值式（`ivar/variance/sigma/fisher/w_info/w_psf/…` 等键由 schema `propertyNames` 守卫排除）。
-**禁用面**：`W_psfsw` 的**对象身份** `psfsw_robust_weight` 不在生产接受集（§31.3 排除 token 行；`docs/ACSD_DESIGN.md` §3.1（数据对象）：权重只能来自纯净信号与噪声之比/逆方差，PSF 拟合质量代理只作诊断）。因此本节的四分量与复合式**只作诊断面**：Phase1 产品**不携带**该对象声明（`eng/contracts/schemas/product_family_field_constraints.schema.json#/$defs/psfsw` 的 `weight_mode`（**已按 §9.73 A44 作废**）/`weight` **不在** `required` 内），产品仍携带者**显式拒绝 + 迁移提示**（`FZ-MODE-RETIRED`），`W_psfsw` **的落点 = 诊断面**。
+**禁用面**：`W_psfsw` 的**对象身份** `psfsw_robust_weight` 不在生产接受集（§31.3 排除 token 行；`docs/ACSD_DESIGN.md` §3.1（数据对象）：权重只能来自纯净信号与噪声之比/逆方差，PSF 拟合质量代理只作诊断）。因此本节的四分量与复合式**只作诊断面**：Phase1 产品**不携带**该对象声明（`eng/contracts/schemas/product_family_field_constraints.schema.json#/$defs/psfsw` 的 `weight_mode` / `weight` **不在** `required` 内；口径见 `docs/ACSD_DESIGN.md` §3.1（数据对象）：全链无「权重模式」可选概念），产品仍携带者**显式拒绝 + 迁移提示**（`FZ-MODE-RETIRED`），`W_psfsw` **的落点 = 诊断面**。
 
 ### 31.8 fail-closed 摘要（完整表见 `eng/contracts/data/clause_registry.json#fail_closed`）
 
@@ -3327,8 +3327,8 @@ concentration 写作 `ADU/px` 属**登记在案的文本错误**：`ADU/px²` �
 | 缺 effective PSF（只给 FWHM 标量） | REJECT | `G-EPSF-PRESENT` |
 | `k_corr=1` / 跨域外推 | REJECT | `G-KCORR-DOMAIN` |
 | `variance_from` 为权重标量 / `Var=1/W_psfsw` | REJECT | `G-COV-VARIANCE-FROM`/`G-PSFSW-COV` |
-| legacy `weight_mode`（键不存在；**已按 §9.73 A44 作废**）整数 `0`|`1`|`2`（**全值域**一律拒绝） | REJECT | `G-LEGACY-MIGRATION` |
-| 键 `weight_mode` / `legacy_allow_weight_fallback`（两键均不存在，**已按 §9.73 A44 作废**）出现于配置（任何取值/形态） | REJECT（具名 fail-closed） | `FZ-FIELD-WEIGHTMODE`；`FZ-WEIGHT-SINGLE-PATH` |
+| legacy `weight_mode` 键不存在，其整数 `0`|`1`|`2`（**全值域**一律拒绝；口径见 `docs/ACSD_DESIGN.md` §3.1（数据对象）） | REJECT | `G-LEGACY-MIGRATION` |
+| 键 `weight_mode` / `legacy_allow_weight_fallback`（两键均不存在；`docs/ACSD_DESIGN.md` §3.1（数据对象））出现于配置（任何取值/形态） | REJECT（具名 fail-closed） | `FZ-FIELD-WEIGHTMODE`；`FZ-WEIGHT-SINGLE-PATH` |
 
 ### 31.9 边界与登记
 
