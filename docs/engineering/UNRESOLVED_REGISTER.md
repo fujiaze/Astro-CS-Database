@@ -3966,3 +3966,57 @@ validator 验证的是「文件是否声称自己可信」，**不是「这个�
 发现该检查器「载体在，但自身 15 个 canonical 全指向已删 `eng/ci/*`」。
 ⇒ **两条独立任务交叉对质才暴露了派单口径的漏** —— 也是「遍」的价值：
 单看任何一侧都以为自己做完了。
+
+---
+
+## 78. 第 1 轮继续产出：三条阻断 + 一条被证伪的追问
+
+### 78.1 provenance schema 的两种写法互斥 ⇒ `declared_via_provenance` 永不可能通过
+
+`eng/contracts/schemas/unified/provenance.schema.json:76-170`：
+- `bunit` 是 `const "1"` 使 `allOf[0]` **恒不触发**
+- `allOf[1]` 要 `pixel_semantics="surface_brightness"` 而基础层 `const "dimensionless"`
+  ⇒ **两者互斥**
+
+⇒ `declared_via_provenance` **永远校验失败**，而唯一能过的 `written_px_power` **语义为假**。
+
+⚠ **同块逐字复制进 coverage / rejection / support / validity 四份 schema**
+⇒ 一处错、四处同错。
+
+### 78.2 `validate_cpu_profile.py` 对 v2 画像必然崩溃，且退出码不可区分
+
+- `eng/tools/validate_cpu_profile.py:101-105`：v2 profile 的 `kernels` 是 object，
+  而 `:102` 用 `k.get()` ⇒ **无条件 AttributeError**
+- `:110`/`:122` 又硬编码 v1 的 `d["hardware"]`/`d["build"]["commit"]`
+- 该文件是 schema 标为 current 的 v2 的**唯一校验 oracle**（`MANIFEST_VERIFY_V1.md:21` 登记）
+
+⇒ **崩溃退出码 1 与 SCHEMA_FAIL / STALE 的 1 不可区分** ⇒ CI 拿到 1 分不清是「格式陈旧」还是「脚本崩了」。
+
+### 78.3 `test_root_cleanliness.py` 的三条依赖全缺
+
+`eng/tests/quality/test_root_cleanliness.py:26,27,123` 依赖
+`check_root_cleanliness.py`、`eng/ci/root_manifest.json`、仓根 `ENGINEERING_SPEC.md` —— **三条全缺**
+⇒ 5 个「能绿能红」测试**不可执行**，失败态是 FileNotFoundError 而非 FAIL。
+
+### 78.4 一条被证伪的追问（车道自己提的，前台核实后回答）
+
+轮1-片12 追问：「`check_log_system.py` 等三个脚本**不在删除清单中**，
+若从未登记为删除，性质从「已删载体」变「凭空引用」，结论更重。」
+
+**前台逐个核实，结论是该追问不成立**：
+
+| 检查器 | e5f589a6 删它 | 在删除清单-分类.md |
+|---|---|---|
+| `check_log_system.py` | ✅ | ✅ 2 处 |
+| `check_log_contract.py` | ✅ | ✅ 1 处 |
+| `check_block_flow_ports_vs_code.py` | ✅ | ✅ 2 处 |
+| `check_module_map.py` | ✅ | ✅ 4 处 |
+| `check_registration_anchors.py` | ✅ | ✅ 1 处 |
+| `check_ctest_registration.py` / `check_isa_same_source.py` / `check_doc_symbols.py` 等 | ✅ | ✅ 均有 |
+
+⇒ **全部是「已删载体」，不是「凭空引用」**。该追问由车道提出、由前台核实后**否定**。
+
+**唯一例外**：`check_cfg002_registry.py` **不在 e5f589a6 的删除列表里**，
+但**在删除清单-分类.md 中有 1 条登记** ⇒ 是**另一次提交删的**，不是凭空。
+（`git log --diff-filter=D -- "*check_cfg002_registry.py"` 无输出，
+说明它可能是随目录整体删除而未被 git 单独记录，**这一点待查**。）
