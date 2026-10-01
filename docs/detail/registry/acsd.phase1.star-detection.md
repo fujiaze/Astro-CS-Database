@@ -91,7 +91,7 @@ WCS 作逆投影先验。
 `sdet_create` / `sdet_destroy` / `sdet_detect_ex` / `sdet_detect_ex_f64` /
 `sdet_detect_guided_ex_f64` / `sdet_free_detect_ex`。编排级 API = API-P1-003
 （PHASE1_API_V1 §2，一帧一次权威检测）。全量签名清单见
-docs/engineering/docs/engineering/PUBLIC_API.md。
+docs/engineering/PUBLIC_API.md。
 
 `n_pred = 0` 返回 rc = 0 + count = 0（空定义域非错误）；指针参数非法返回 −1。
 

@@ -196,7 +196,7 @@
   ],
   "legacy_contract_ids": {
     "task": "DATA-001",
-    "trigger": "MOD-001 的 docs/modules/MODULE_MAP.yaml 引用 22 个 DATA ID，其中 7 个在统一对象权威面上无解析；负责人裁决：权威=统一对象合同，MODULE_MAP 引用的 ID 一律取自权威面。",
+    "trigger": "MOD-001 的 docs/engineering/MODULE_MAP.md 引用 22 个 DATA ID，其中 7 个在统一对象权威面上无解析；负责人裁决：权威=统一对象合同，MODULE_MAP 引用的 ID 一律取自权威面。",
     "decision_rule": "(a) 有 canonical 映射 = 旧 ID → 统一对象（或组件对象组合）canonical schema ID；(b) 无 canonical 对应 = 明确判定并附旧合同面证据（结论只取 mapped / no_canonical 二值）。",
     "entries": [
       {
@@ -217,8 +217,8 @@
           "docs/detail/calibration.md:8/:53"
         ],
         "new_index_added_by_DATA001": [
-          "docs/contracts/INDEX.yaml#DATA-OBJ-* 映射段逐行 '# DATA001-LEGACY-ID: DATA-P1-CAL'",
-          "docs/contracts/INDEX.yaml#legacy_contract_id_map"
+          "eng/contracts/data/contract_index.yaml#DATA-OBJ-* 映射段逐行 '# DATA001-LEGACY-ID: DATA-P1-CAL'",
+          "eng/contracts/data/contract_index.yaml#legacy_contract_id_map"
         ],
         "evidence": "DATA_SEMANTICS §9.1 输入 light（ADU，NaN 直传）+ §9.2 输出 out（ADU，可负不 clamp）= 声明单位与像素语义的科学估计量本身 → UNIFIED_MODEL §2 的 signal；§9.4 明确本层不出 variance/ivar/coverage。",
         "note": "master_bias/master_dark/master_flat 属标定参考帧（flat 为无量纲归一参考），不是 13 个科学对象之一；本 ID 的契约主体（calibrated frame）归 signal。"
@@ -238,8 +238,8 @@
           "docs/detail/calibration.md:12"
         ],
         "new_index_added_by_DATA001": [
-          "docs/contracts/INDEX.yaml#DATA-OBJ-* 映射段逐行 '# DATA001-LEGACY-ID: DATA-P1-COS'",
-          "docs/contracts/INDEX.yaml#legacy_contract_id_map"
+          "eng/contracts/data/contract_index.yaml#DATA-OBJ-* 映射段逐行 '# DATA001-LEGACY-ID: DATA-P1-COS'",
+          "eng/contracts/data/contract_index.yaml#legacy_contract_id_map"
         ],
         "evidence": "DATA_SEMANTICS §10.2 输出 out（修复帧，ADU，可负不 clamp）+ §10.3「mask 为模块内部产物，不作为产品输出；variance/ivar/coverage 不在本层」→ 契约主体是 signal；坏点掩码不是 validity/rejection 产品。",
         "note": "本 ID 是 DATA-P1-COSMETIC 的权威名（后者为 descriptor 占位）；registry :38-40 明写「DATA-P1-COSMETIC 为 descriptor 占位名，合同以 DATA-P1-COS 为准」。"
@@ -259,10 +259,10 @@
           "docs/detail/registry/acsd.phase1.star-detection.md:38（端口 image）"
         ],
         "new_index_added_by_DATA001": [
-          "docs/contracts/INDEX.yaml#DATA-OBJ-* 映射段逐行 '# DATA001-LEGACY-ID: DATA-P1-COSMETIC'",
-          "docs/contracts/INDEX.yaml#legacy_contract_id_map"
+          "eng/contracts/data/contract_index.yaml#DATA-OBJ-* 映射段逐行 '# DATA001-LEGACY-ID: DATA-P1-COSMETIC'",
+          "eng/contracts/data/contract_index.yaml#legacy_contract_id_map"
         ],
-        "evidence": "该 ID 在 docs/contracts/{DATA_SEMANTICS.md,PUBLIC_API.md,DATA_ARTIFACTS.md} 中**零命中**（旧契约面无定义）；唯一权威说明在 registry acsd.phase1.cosmetic.md:38-40「DATA-P1-COSMETIC 为 descriptor 占位名，合同以 DATA-P1-COS 为准」。",
+        "evidence": "该 ID 在 docs/engineering/{DATA_SEMANTICS.md,PUBLIC_API.md,DATA_ARTIFACTS.md} 中**零命中**（旧契约面无定义）；唯一权威说明在 registry acsd.phase1.cosmetic.md:38-40「DATA-P1-COSMETIC 为 descriptor 占位名，合同以 DATA-P1-COS 为准」。",
         "note": "占位名不再单独存在；统一对象面归 signal（cleaned 帧 = ADU 科学估计量）。"
       },
       {
@@ -285,8 +285,8 @@
           "docs/detail/healpix_drizzle.md:32/:62"
         ],
         "new_index_added_by_DATA001": [
-          "docs/contracts/INDEX.yaml#DATA-OBJ-* 映射段逐行 '# DATA001-LEGACY-ID: DATA-P1-DRZ'",
-          "docs/contracts/INDEX.yaml#legacy_contract_id_map"
+          "eng/contracts/data/contract_index.yaml#DATA-OBJ-* 映射段逐行 '# DATA001-LEGACY-ID: DATA-P1-DRZ'",
+          "eng/contracts/data/contract_index.yaml#legacy_contract_id_map"
         ],
         "evidence": "§11.2 输出：sumFlux（HiPS SIGNAL 底数）→ signal；sumVarNum→variance 产品 + ivar=1/variance → variance/ivar；sumArea（HiPS SUPPORT 底数，sr）→ support；§11.3 面亮度归一 S=F/D 与 NaN 语义 → coverage 归属 finalize 层。§11.1 输入侧 data 块（ADU）同属 signal。",
         "note": "组合映射：一个模块级合同覆盖 5 个对象；组件各自 canonical，不是新对象。"
@@ -302,11 +302,11 @@
           "docs/science/DATA_SEMANTICS.md:471（§14 端口链 psf→sources→fluxes）",
           "docs/science/DATA_SEMANTICS.md:531（§15 端口链）",
           "docs/engineering/PUBLIC_API.md:634（photometry descriptor 端口编目，带data_id=DATA-P1-SOURCES）",
-          "docs/modules/MODULE_MAP.yaml:151（psf 模块）"
+          "docs/engineering/MODULE_MAP.md:151（psf 模块）"
         ],
-        "evidence": "全仓无独立定义节：只出现在编排/descriptor 端口编目与交叉引用链中，指向「PSF 拟合结果中的 sources 列（star_id/x/y/flux）」。DATA_SEMANTICS §15.2 明确该块列语义由 P1-STAR-INT 承接，且要求「下游必须经 star_id 连接」，未定义为跨阶段产品合同；基线 docs/engineering/DATA_ARTIFACTS.md 与基线 docs/contracts/INDEX.yaml（ecf6ad6f）对该 ID 均为零命中。",
+        "evidence": "全仓无独立定义节：只出现在编排/descriptor 端口编目与交叉引用链中，指向「PSF 拟合结果中的 sources 列（star_id/x/y/flux）」。DATA_SEMANTICS §15.2 明确该块列语义由 P1-STAR-INT 承接，且要求「下游必须经 star_id 连接」，未定义为跨阶段产品合同；基线 docs/engineering/DATA_ARTIFACTS.md 与基线 eng/contracts/data/contract_index.yaml（ecf6ad6f）对该 ID 均为零命中。",
         "new_index_added_by_DATA001": [
-          "docs/contracts/INDEX.yaml#legacy_contract_id_map（本任务新增；基线无该 ID）"
+          "eng/contracts/data/contract_index.yaml#legacy_contract_id_map（本任务新增；基线无该 ID）"
         ],
         "note": "判定：旧契约面无 canonical 对应（属编排端口编目名，非 13 个科学数据对象之一）。其携带的 flux 物理量在 signal 面（§15.2 flux=ADU 解析积分），但 catalog 行集合本身不构成单一对象合同。"
       },
@@ -325,8 +325,8 @@
           "docs/detail/registry/acsd.phase2.upm-fit.md:46"
         ],
         "new_index_added_by_DATA001": [
-          "docs/contracts/INDEX.yaml#DATA-OBJ-* 映射段逐行 '# DATA001-LEGACY-ID: DATA-P2-SMP'",
-          "docs/contracts/INDEX.yaml#legacy_contract_id_map"
+          "eng/contracts/data/contract_index.yaml#DATA-OBJ-* 映射段逐行 '# DATA001-LEGACY-ID: DATA-P2-SMP'",
+          "eng/contracts/data/contract_index.yaml#legacy_contract_id_map"
         ],
         "evidence": "DATA_SEMANTICS §23 冻结的是 P2ControlObservation / 逐样本列与 accept/reason 值域（§23.3 u8 reason），即 control 观测表与采样决定，不是 13 个对象中的任何一个：既不是 signal/variance/ivar（无单位与像素语义的科学估计量），也不是 validity/rejection（§23.3 的 accept/reason 是采样态，UPM 权重由 §22 rejection 与 §25 UPM 承接）。",
         "note": "判定：无 canonical 对象对应；采样列的最终科学产品归 §25 UPM（DATA-P2-UPM，control cell 参数）与 §30 产品合同，两者都不在 UNIFIED_MODEL §2 的 13 对象内。"
@@ -341,14 +341,14 @@
           "docs/science/DATA_SEMANTICS.md:86（§8 ID 定义节，:88 状态 CONTRACT_READY）",
           "docs/engineering/PUBLIC_API.md:71",
           "docs/engineering/DATA_ARTIFACTS.md:29（登记行）",
-          "docs/traceability/TRACEABILITY_MATRIX.csv 第 2 行（DATA=DATA-GAIA-001, VERIFIED）",
+          "docs/engineering/TRACEABILITY_SPEC.md §9/§9.1 第 2 行（DATA=DATA-GAIA-001, VERIFIED）",
           "docs/detail/gaia_xpsd_client.md:23/:40"
         ],
         "new_index_added_by_DATA001": [
-          "docs/contracts/INDEX.yaml#legacy_contract_id_map（本任务新增；基线无该 ID）"
+          "eng/contracts/data/contract_index.yaml#legacy_contract_id_map（本任务新增；基线无该 ID）"
         ],
         "evidence": "DATA_SEMANTICS §8 = Gaia XPSD 星表输入与星表行（三个变体）；单位 deg/mag/W·m⁻²·nm⁻¹，坐标 ICRS J2000，dtype f64/i32/u8[]，in-memory 不落盘。它是外部星表服务的 C ABI 行契约，不含 13 个对象中任何一个的单位/像素语义（无 ADU 估计量、无方差/逆方差、无 coverage/validity 产品）。",
-        "note": "判定：无 canonical 对象对应；旧面命中在 DATA_SEMANTICS.md:86（§8）、PUBLIC_API.md:71、DATA_ARTIFACTS.md:29、docs/detail/gaia_xpsd_client.md:23/:40 与 TRACEABILITY_MATRIX.csv 第 2 行；基线 docs/contracts/INDEX.yaml（ecf6ad6f）对该 ID 零命中，继续作为星表服务合同存在，不进统一对象链。"
+        "note": "判定：无 canonical 对象对应；旧面命中在 DATA_SEMANTICS.md:86（§8）、PUBLIC_API.md:71、DATA_ARTIFACTS.md:29、docs/detail/gaia_xpsd_client.md:23/:40 与 TRACEABILITY_MATRIX.csv 第 2 行；基线 eng/contracts/data/contract_index.yaml（ecf6ad6f）对该 ID 零命中，继续作为星表服务合同存在，不进统一对象链。"
       }
     ],
     "summary": {
@@ -417,7 +417,7 @@
       "role": "contract_index_meta_schema",
       "owner": "GOV-001",
       "object_class": null,
-      "note": "docs/contracts/INDEX.yaml 的元 schema（索引不承载对象语义）。"
+      "note": "eng/contracts/data/contract_index.yaml 的元 schema（索引不承载对象语义）。"
     },
     {
       "file": "eng/contracts/schemas/traceability_matrix.schema.json",
@@ -431,7 +431,7 @@
       "role": "config_contract",
       "owner": "CFG-001",
       "object_class": null,
-      "note": "既有 cpu_profile 合同；配置 schema 与 eng/packaging/config/** 归 CFG-001（DATA-001 只留锚点，见 docs/contracts/config_separation_anchors.json）。"
+      "note": "既有 cpu_profile 合同；配置 schema 与 eng/packaging/config/** 归 CFG-001（DATA-001 只留锚点，见 eng/contracts/data/config_separation_anchors.json）。"
     },
     {
       "file": "eng/contracts/schemas/hardware_inspect.schema.json",
@@ -459,7 +459,7 @@
       "role": "config_contract",
       "owner": "CFG-001",
       "object_class": null,
-      "note": "CFG-001 产物：normalize 的 phase_config 科学参数合同（锚点见 docs/contracts/config_separation_anchors.json）。GAP_AUDIT §9.68（2026-09-20）改写为多数据块形态：顶层 blocks[]（每块一组 light + 一套母版 + 运行参数 + 块级 output_dir）+ 平铺单块简写（互斥）；逐帧 {phase_name, config, inputs[]} 已删除。"
+      "note": "CFG-001 产物：normalize 的 phase_config 科学参数合同（锚点见 eng/contracts/data/config_separation_anchors.json）。GAP_AUDIT §9.68（2026-09-20）改写为多数据块形态：顶层 blocks[]（每块一组 light + 一套母版 + 运行参数 + 块级 output_dir）+ 平铺单块简写（互斥）；逐帧 {phase_name, config, inputs[]} 已删除。"
     },
     {
       "file": "eng/contracts/schemas/phase_config_mosaic.schema.json",
@@ -494,35 +494,35 @@
       "role": "release05_dual_line_contract",
       "owner": "CONTRACT-501",
       "object_class": null,
-      "note": "RELEASE-05 CONTRACT-501 双线合同机器 schema；不是 UNIFIED_MODEL §2 的 13 个数据对象之一。文档化说明见 docs/contracts/（双向对应由 eng/tools/contract_doc_sync.py 校验）。"
+      "note": "RELEASE-05 CONTRACT-501 双线合同机器 schema；不是 UNIFIED_MODEL §2 的 13 个数据对象之一。文档化说明见 docs/engineering/（双向对应由 eng/tools/contract_doc_sync.py 校验）。"
     },
     {
       "file": "eng/contracts/schemas/pipeline_block.schema.json",
       "role": "release05_pipeline_block_contract",
       "owner": "CONTRACT-501",
       "object_class": null,
-      "note": "RELEASE-05 CONTRACT-501 双线合同机器 schema；不是 UNIFIED_MODEL §2 的 13 个数据对象之一。文档化说明见 docs/contracts/（双向对应由 eng/tools/contract_doc_sync.py 校验）。"
+      "note": "RELEASE-05 CONTRACT-501 双线合同机器 schema；不是 UNIFIED_MODEL §2 的 13 个数据对象之一。文档化说明见 docs/engineering/（双向对应由 eng/tools/contract_doc_sync.py 校验）。"
     },
     {
       "file": "eng/contracts/schemas/scheduler_probe_event.schema.json",
       "role": "release05_scheduler_probe_event",
       "owner": "CONTRACT-501",
       "object_class": null,
-      "note": "RELEASE-05 CONTRACT-501 双线合同机器 schema；不是 UNIFIED_MODEL §2 的 13 个数据对象之一。文档化说明见 docs/contracts/（双向对应由 eng/tools/contract_doc_sync.py 校验）。"
+      "note": "RELEASE-05 CONTRACT-501 双线合同机器 schema；不是 UNIFIED_MODEL §2 的 13 个数据对象之一。文档化说明见 docs/engineering/（双向对应由 eng/tools/contract_doc_sync.py 校验）。"
     },
     {
       "file": "eng/contracts/schemas/perf_gate_criteria.schema.json",
       "role": "release05_perf_gate_criteria",
       "owner": "CONTRACT-501",
       "object_class": null,
-      "note": "RELEASE-05 CONTRACT-501 双线合同机器 schema；不是 UNIFIED_MODEL §2 的 13 个数据对象之一。文档化说明见 docs/contracts/（双向对应由 eng/tools/contract_doc_sync.py 校验）。"
+      "note": "RELEASE-05 CONTRACT-501 双线合同机器 schema；不是 UNIFIED_MODEL §2 的 13 个数据对象之一。文档化说明见 docs/engineering/（双向对应由 eng/tools/contract_doc_sync.py 校验）。"
     },
     {
       "file": "eng/contracts/schemas/monitor_field_semantics.schema.json",
       "role": "release05_monitor_field_semantics",
       "owner": "CONTRACT-501",
       "object_class": null,
-      "note": "RELEASE-05 CONTRACT-501 双线合同机器 schema；不是 UNIFIED_MODEL §2 的 13 个数据对象之一。文档化说明见 docs/contracts/（双向对应由 eng/tools/contract_doc_sync.py 校验）。"
+      "note": "RELEASE-05 CONTRACT-501 双线合同机器 schema；不是 UNIFIED_MODEL §2 的 13 个数据对象之一。文档化说明见 docs/engineering/（双向对应由 eng/tools/contract_doc_sync.py 校验）。"
     },
     {
       "file": "eng/contracts/schemas/product_family_field_constraints.schema.json",
@@ -588,7 +588,7 @@
       },
       {
         "old_path": "eng/contracts/data/v6_migration_map_v1.json",
-        "new_path": "docs/contracts/unified_object_registry.json#deprecation",
+        "new_path": "eng/contracts/data/unified_object_registry.json#deprecation",
         "kind": "migration_map",
         "deprecated_at_change": "CHG-2026-09-16-DATA001",
         "retire_after_change": "OWNER_DECISION",
@@ -644,7 +644,7 @@
       },
       {
         "old_path": "eng/contracts/data/phase_product_exchange.schema.json",
-        "new_path": "docs/contracts/unified_object_registry.json#port_contract",
+        "new_path": "eng/contracts/data/unified_object_registry.json#port_contract",
         "kind": "exchange_planes",
         "deprecated_at_change": "CHG-2026-09-16-DATA001",
         "retire_after_change": "OWNER_DECISION",
@@ -670,7 +670,7 @@
   },
   "u02_criterion": {
     "id": "U-02",
-    "statement": "单一合同链的唯一性判定标准：对 UNIFIED_MODEL §2 的 13 个对象，eng/contracts/schemas/unified/<对象名>.schema.json 是唯一 canonical 定义（每对象恰 1 个 $id，全局不重复）；任何其它 schema 只能是「产品族专用投影」或「兼容期映射」，其对象判别字段与 canonical 分立（除 schema_version 外 required/properties 词表两两不重叠），且 eng/contracts/schemas/** 下每个 schema 文件都必须在 docs/contracts/unified_object_registry.json 的 canonical_object_classes 中被登记归属。",
+    "statement": "单一合同链的唯一性判定标准：对 UNIFIED_MODEL §2 的 13 个对象，eng/contracts/schemas/unified/<对象名>.schema.json 是唯一 canonical 定义（每对象恰 1 个 $id，全局不重复）；任何其它 schema 只能是「产品族专用投影」或「兼容期映射」，其对象判别字段与 canonical 分立（除 schema_version 外 required/properties 词表两两不重叠），且 eng/contracts/schemas/** 下每个 schema 文件都必须在 eng/contracts/data/unified_object_registry.json 的 canonical_object_classes 中被登记归属。",
     "machine_assertions": [
       "eng/tests/contracts/test_unified_object_contract.py::TestCanonicalObjectSchemas::test_every_schema_loads_and_has_unique_global_id",
       "eng/tests/contracts/test_unified_object_contract.py::TestCanonicalObjectSchemas::test_object_name_has_exactly_one_canonical_file",

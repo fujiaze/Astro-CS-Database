@@ -1207,7 +1207,7 @@ gain 轴分支 → `snr_estimator.h:349` 出参只取 {1,2,3}。
 
 | 类别 | 数量 | 要点 |
 |---|---:|---|
-| **私建线程池** | **1** | `oracle/weight_chain_selfcheck.cpp:524-535`：`hardware_concurrency()` + `vector<thread>` + worker clamp 到**无出处的硬编码 `[2,8]`**；两份并发正本均无 oracle/test 豁免条款，而 `docs/engineering/BUILD_GRAPH.md:353-354` 把该文件归为 **`production`** |
+| **私建线程池** | **1** | `oracle/weight_chain_selfcheck.cpp:524-535`：`hardware_concurrency()` + `vector<thread>` + worker clamp 到**无出处的硬编码 `[2,8]`**；两份并发正本均无 oracle/test 豁免条款，而当时的 `PRODUCTION_EXECUTION_INVENTORY.csv:353-354` 把该文件归为 **`production`**；该机读清单已按裁决删除，`docs/engineering/BUILD_GRAPH.md` 全文不含 `weight_chain_selfcheck`、也未承载此分类 ⇒ 此项现无现行正本可查 |
 | **worker 不受预算约束** | 2 | `snr_estimator.cpp` 11 处 omp pragma 零 `num_threads`；`snr_frame_science.cpp:113` 取 OpenMP 默认（该目标确实链 OMP ⇒ 生产会执行，并行性论证通过，无归约、按下标固定写回） |
 | **死并行区** | 11 | pragma 无 `_OPENMP` 守卫且所在目标不链 OMP，**当前所有构建都不执行** |
 | 嵌套并行 | **0** | — |
@@ -1982,7 +1982,7 @@ M1（`include/aio_hips.h:96-99` 的「`SCI-DRZ-001` 冻结输入帧 1–2x 过�
 
 悬空文档从 17 类增至 **30+ 类**，新增包括 **`02_FROZEN_STAGE1_HISS_SPEC.md`（15+ 处，
 整条 HISS 依据链全悬空）**、`00_COMMON_CONTRACTS`（14 处）、`docs/engineering/{ARCHITECTURE,
-IO_AND_ATOMICITY}.md`（迁移后已删）、registry 已迁 `docs/detail/registry/`、
+IO_AND_ATOMICITY}.md`（迁移后已删）、registry 已迁 `docs/modules/registry/`、
 `eng/ci/{ctest_baseline.json,checks.json}`。
 
 **孤儿条款 ID**：`ALG-P3-008`（**product_io 整个子系统的首要语义锚，`grep -rl` docs/ = 0**）、
@@ -2363,8 +2363,8 @@ G08-06 悬空引用车道当时写的 `docs/detail/registry/astrocs.phaseN.*` �
 
 最狠的一处是 `artifacts/evidence/doc-hygiene/baseline.json`：
 
-    -   "docs/detail/registry/astrocs.phase1.cosmetic.md": [
-    +   "docs/detail/registry/acsd.phase1.cosmetic.md": [
+    -   "docs/modules/registry/astrocs.phase1.cosmetic.md": [
+    +   "docs/modules/registry/acsd.phase1.cosmetic.md": [
 
 该基线**以文件路径为键**，改键的后果是双重的：
 ① **旧名事实被销毁**（再也查不出「这里曾经叫 astrocs」）；
@@ -3483,15 +3483,15 @@ s04 车道实测：全仓 `check_*.pyc` 有 `.pyc` 但**无对应 `.py` 源**的
 
 #### ⚠ 前台已**推翻**其头号发现
 
-该车道报：「提交 `dc5a2122` 一次把 `docs/api/` 与 `docs/engineering/` 的 9 份 `.md`
+该车道报：「提交 `dc5a2122` 一次把 `docs/api/` 与 `docs/architecture/` 的 9 份 `.md`
 迁到 `docs/engineering/`，12 个测试文件仍指向旧路径 ⇒ **48 条永久红**」。
 
 **前台逐项复核，三处均不成立：**
 
 | 该车道声称 | 前台实测 |
 |---|---|
-| `dc5a2122` 是那次迁移 | `dc5a2122` 实为「最高设计迁入 `docs/` 根并全仓重写引用」；同批迁移的是 `docs/plugins/`、`docs/browser/`、`docs/design/`、`docs/detail/registry/` → `docs/detail/` |
-| `docs/architecture/` 被迁走 | **该目录仍在**，且 6 份数据文件齐全（`PRODUCTION_EXECUTION_INVENTORY.csv`、`api_inventory.csv`、`production_call_paths_stage1.csv`、`production_call_paths_stage2.csv` 等） |
+| `dc5a2122` 是那次迁移 | `dc5a2122` 实为「最高设计迁入 `docs/` 根并全仓重写引用」；同批迁移的是 `docs/plugins/`、`docs/browser/`、`docs/design/`、`docs/modules/` → `docs/detail/` |
+| `docs/architecture/` 被迁走 | （`dc5a2122` 当时的实测）**该目录当时仍在**，且 6 份数据文件齐全（`PRODUCTION_EXECUTION_INVENTORY.csv`、`api_inventory.csv`、`production_call_paths_stage1.csv`、`production_call_paths_stage2.csv` 等）；该目录现已按负责人裁决整体删除，见下一行 |
 | （现状）`docs/architecture/` 已按负责人裁决整体删除 | 该目录**不再存在**；其 6 份机读清单的引用面已改指人读正本（`docs/engineering/BUILD_GRAPH.md`、`docs/engineering/PUBLIC_API.md`），`docs/` 下不留机读资产 |
 | 12 个测试文件指向不存在的旧路径 | `eng/**` 中引 `docs/architecture/` 的 6 份逐个打开，**引用的目标全部存在**；引 `docs/api/` 的**0 份** |
 
@@ -3906,7 +3906,7 @@ validator 验证的是「文件是否声称自己可信」，**不是「这个�
 （剩余 1 处是 `TOOLCHAIN_AGENT_HOST.md:61`，该车道判 C 但判为「整份是主机快照，
 四处主语就是被删文件，单删会残句，正确处置是整份退役/降级，超出本步授权」）。
 
-### 76.2 连带查出：`docs/engineering/MODULE_MAP.md` 的 41 条 `evidence` 里 **19 条指向不存在的文件**
+### 76.2 连带查出：`doc_symbol_namespaces.json` 的 41 条 `evidence` 里 **19 条指向不存在的文件**
 
 前台逐条 `test -f` + 行号校验，19 条不合格，分布在：
 

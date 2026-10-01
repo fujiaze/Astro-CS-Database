@@ -55,7 +55,7 @@ integration: precision(fp32) memory_limit_mb rejection{method
              rcr{technique ss_median_dl}
              （low/high/max_iterations/min_samples 不是现行键（出现即硬错误），
               旧 config 必须 eng/tools/migrate_stage2_config.py 迁移）}
-             weight_mode(auto) acr_route(cpu/auto)   # （已按 §9.73 A44 作废：键不存在；权重是派生量）
+             weight_mode(auto) acr_route(auto/cpu)   # acr_route 是**活键**：parser 读取并校验（stage2_common.cpp），仅接受 auto/cpu；默认值 auto。权重仍是派生量，见下方 note
 
 rejection.method 说明（V17 冻结）：
   - 默认 `method=auto` + `profile=acsd_adaptive_pixel`
@@ -106,6 +106,47 @@ output.hips / diagnostics
 > 其 `acsd_adaptive_pixel` 档位与本条同值；WBPP 对照档（`nominal<6 / 6..15 / >15`）只描述
 > `wbpp_2_9_1` 对照 profile 自身。
 > `docs/science/DATA_SEMANTICS.md` §22 首注同面。
+
+## 生产调用链（入口符号 → 配置门 → 实现符号 → 诊断字段）
+
+本节登记两个命令的生产调用链：每个生产入口由哪条**配置门**控制、落到哪个实现符号、以何种
+执行模式运行、写出哪个**诊断字段**、由哪个测试 ID 守护。配置门的键名与诊断字段名是写 config
+时实际要敲的键，不可从别处推断，故在此逐条登记。
+
+字段口径：`entry_symbol` 生产入口符号；`config_gate` 控制该入口的配置门（`*` 表示该节点由
+一组门共同控制）；`target` 目标模块域；`source_symbol` 实现符号；`execution_mode` 执行模式；
+`diagnostic_field` 该入口落盘/回传的诊断字段；`test_id` 守护该行的测试 ID。
+
+### stage1（`normalize` 子命令）
+
+| 入口符号 | 配置门 | 目标 | 实现符号 | 执行模式 | 诊断字段 | 测试 ID |
+|---|---|---|---|---|---|---|
+| normalize --json <config.json> (唯一 CLI 子命令) | phase_config_normalize.schema.json | acsd(cli) | normalize_subcommand (lib/infrastructure/cli/normalize/normalize.h) + session_dispatch (commands.cpp:2404) | serial | exit_code | TEST-CLI-001 |
+| Orchestrator::run_stage_calibrate | stage1.calibrate.enabled | astro_calibration | ac_calibrate_frame / calibrate | parallel_cpu (OpenMP 16) | calibrate.t_ms | TEST-CAL-001 |
+| Orchestrator::run_stage_platesolve | stage1.platesolve.enabled | ipv_solver | ipv_solve_from_detections_v1 / build_wcs | serial | platesolve.rms_px | TEST-IPV-001 |
+| Orchestrator::run_stage_photometric | stage1.photometric.enabled | photometric_calib | pc_calibrate_simple | serial | photometric.zero_point | TEST-SPEC-001 |
+| Orchestrator::run_stage_drizzle | stage1.drizzle.enabled | healpix_drizzle | drizzleTiled / processPixelSharedTiled | parallel_cpu (OpenMP) | drizzle.n_tiles | TEST-DRZ-CAND-001 |
+| Orchestrator::run_stage_snr | stage1.snr.enabled | snr_estimator | snr_noise_model_v1 | parallel_cpu | snr.sigma_bg | TEST-SNR-001 |
+| aio_hips_write_signal_support_tile | stage1.output.hips | astro_image_io | aio_hips_product_begin | serial+async_io | hips.nside | TEST-HIPS-001 |
+
+### stage2（`mosaic` 子命令）
+
+| 入口符号 | 配置门 | 目标 | 实现符号 | 执行模式 | 诊断字段 | 测试 ID |
+|---|---|---|---|---|---|---|
+| mosaic --json <config.json> (唯一 CLI 子命令) | phase_config_mosaic.schema.json | acsd(cli) | mosaic_subcommand (lib/infrastructure/cli/mosaic/mosaic.h) + session_dispatch (commands.cpp:2404) | serial | exit_code | TEST-CLI-002 |
+| coverage_union | stage2.inputs.hips | phase2/coverage | p2_coverage_union | serial | coverage.n_frames | TEST-COV-001 |
+| control_sample | stage2.model.* | phase2/sampler | p2_sample_controls | serial (P2_ENABLE_OPENMP OFF) / parallel_cpu if ON | sampler.n_controls | TEST-UPMW-004 |
+| upm_build | stage2.model.* | phase2/upm | p2_upm_build | serial | upm.n_components | TEST-UPMW-001 |
+| upm_persist | stage2.output.upm | astro_image_io | aio_upm_write_sparse | serial | upm.sha256 | UpmPersistAllPermutations |
+| block_calibrate | stage2.integration.* | phase2/block | p2_upm_calibrate_block | parallel_cpu | block.t_ms | TEST-P2-CALIB-001 |
+| rejection | stage2.integration.rejection.* | phase2/rejection | p2_reject_stack_ex (7 档自动选择 SD-18: 1-3 none/4-5 percentile/N>=6 winsorized) | tile 级并行 (p2_parallel_for,  std::thread) | rejection.n_rejected_low/high | TEST-REJ-* |
+| integration | stage2.integration.* | phase2/integrate | p2_integrate_pixel | tile 级并行 (p2_parallel_for,  std::thread) | integrate.signal/support | V17StatusesExplicit |
+| acr_routing(DORMANT，非生产) | stage2.integration.acr_route | acr/dispatcher | Dispatcher::decide / register_phase2_acr_kernels | DORMANT（保留源码与隔离测试；生产构建/加载/路由/benchmark/发布不含 ACR/CUDA，最高设计 §8） | diagnostics.route | TEST-ACR-001 |
+| hips_write | stage2.output.hips | astro_image_io | aio_hips_writer | serial+async_io | hips.nside | TEST-HIPS-001 |
+
+> `acr_routing` 一行为 **DORMANT**：保留源码与隔离测试，生产构建、加载、路由、benchmark 与
+> 发布均不含 ACR/CUDA（最高设计 §8）；`stage2.integration.acr_route` 只接受 `auto`/`cpu`，
+> 默认 `auto`（`lib/algorithms/coverage/src/stage2_common.cpp` 的 parser 与校验）。
 
 ## Stage1 config
 

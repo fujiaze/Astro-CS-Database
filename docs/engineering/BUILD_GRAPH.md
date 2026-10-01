@@ -123,5 +123,5 @@ target_link_libraries 的传递闭包内的全部 target；唯一事实源 = 根
 ## 6 关联
 
 - 安装树：eng/cmake/install_layout.cmake + eng/packaging/install-tree.contract.json；
-- 执行面登记：docs/engineering/docs/engineering/BUILD_GRAPH.md；
+- 执行面登记：docs/engineering/BUILD_GRAPH.md；
 - 规范点名实现的生产可达性：规范点名实现必须落在生产入口沿 `target_link_libraries` 的传递闭包内（§1）；封闭性核对随 门禁注册面（G08-10 重建）落盘。
