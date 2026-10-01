@@ -53,7 +53,7 @@ ACR（CPU/GPU 异构）: DORMANT（不进生产构建/加载/路由/发布）
 psf_snr_power:       DEFERRED（生产拒绝）
 ~~~
 
-- 逐面状态与证据锚以本文（§0 词表 + 分面表）与 `docs/modules/MODULE_MAP.yaml` 为准。
+- 逐面状态与证据锚以本文（§0 词表 + 分面表）与 `docs/engineering/MODULE_MAP.md` 为准。
 - **合成测试或历史可用节点不等于真实数据 / Windows `VERIFIED`**（`ACSD_DESIGN.md` §12.5 末条）。
 - 最终发布决定只属项目负责人；Agent 至多声明 `READY_FOR_OWNER_REVIEW`（`ACSD_DESIGN.md` §12）。版本信息按阶段出现：alpha 阶段之前程序/代码/产物内不存在版本信息；进入 alpha 阶段后按本文 §2 单源条款出现（`ACSD_DESIGN.md` §13、`docs/ACSD_DESIGN.md` §10（I/O 与原子产品））。
 

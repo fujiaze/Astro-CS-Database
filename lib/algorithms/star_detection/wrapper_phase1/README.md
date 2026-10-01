@@ -1,6 +1,6 @@
 # phase1/stars — StarDetector (L2 模块 README)
 
-- 合同: `P1-003` / SCI-PSF-001 / SCI-PHOT-001 (docs/contracts/INDEX.yaml)
+- 合同: `P1-003` / SCI-PSF-001 / SCI-PHOT-001 (eng/contracts/data/contract_index.yaml)
 - Header: `lib/algorithms/star_detection/wrapper_phase1/star_detector.h`
 - Source: `lib/algorithms/star_detection/wrapper_phase1/star_detector.cpp`
 - Test: `eng/tests/unit/p1_stars_test.cpp` (7 组: 孤立/重叠/饱和/边缘/纯噪声/tie-breaker/catalog)

@@ -34,7 +34,7 @@
   留给 P3-RSMP-INT 对齐处理；registry 页手写化
   （docs/detail/registry/acsd.phase3.resample2.md，原 GENERATED
   风格改 ACTIVE_INFORMATIVE 手写合同页，照 acsd.phase3.writer.md/
-  acsd.phase3.wcs.md 先例），模块总页新建 docs/modules/
+  acsd.phase3.wcs.md 先例），模块总页新建 docs/detail/registry/
   phase3_rsmp.md。
 - 本任务 ID 决策（唯一方案，避免与既有占位冲突）:
   SCI=SCI-P3-001（docs/science/PHASE3_HIPS_TO_FITS.md 共享 FROZEN

@@ -81,10 +81,10 @@ cpu = C.load_json(CPU)
 inter_v2 = phase_names & C.property_names(cpu["$defs"]["profile_v2"])
 inter_all = phase_names & C.property_names(cpu)
 inter_manifest = phase_names & C.property_names(C.load_json(MANIFEST))
-# 已登记的跨类同名键集合（唯一事实源 = docs/contracts/config_separation_anchors.json
+# 已登记的跨类同名键集合（唯一事实源 = eng/contracts/data/config_separation_anchors.json
 # cross_class_forbidden.documented_same_name；不硬编码清单）。
 documented_same_name = set(C.load_json(
-    "docs/contracts/config_separation_anchors.json"
+    "eng/contracts/data/config_separation_anchors.json"
 )["cross_class_forbidden"].get("documented_same_name", {}).keys())
 gate("G4 cpu_profile ∩ phase_config == ∅",
      not inter_v2 and not inter_manifest and inter_all == documented_same_name,

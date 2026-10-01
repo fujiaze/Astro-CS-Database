@@ -26,7 +26,7 @@ TEMPLATES = {
 }
 CPU_SCHEMA = "eng/contracts/schemas/cpu_profile.schema.json"
 MANIFEST_SCHEMA = "eng/contracts/schemas/run_manifest.schema.json"
-ANCHORS = "docs/contracts/config_separation_anchors.json"
+ANCHORS = "eng/contracts/data/config_separation_anchors.json"
 DEFAULTS = "eng/packaging/config/defaults.json"
 FILTERS = "eng/packaging/config/filters.json"
 FIELDS_TRANSCRIBED = ["name", "channel", "wavelength_nm", "value", "n_points"]
@@ -138,7 +138,7 @@ class TestCrossClassDisjointness(unittest.TestCase):
         self.manifest = set(C.property_names(C.load_json(MANIFEST_SCHEMA)))
 
     def _documented_same_name(self):
-        """已登记的跨类同名键集合（唯一事实源 = docs/contracts/config_separation_anchors.json
+        """已登记的跨类同名键集合（唯一事实源 = eng/contracts/data/config_separation_anchors.json
         cross_class_forbidden.documented_same_name；本方法不硬编码清单）。"""
         anchors = C.load_json(ANCHORS)
         return set(anchors["cross_class_forbidden"].get("documented_same_name", {}).keys())

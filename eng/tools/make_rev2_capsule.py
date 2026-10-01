@@ -65,7 +65,7 @@ def collect_files() -> list[tuple[str, str]]:
                     continue
                 out.append((os.path.join(dest_dir, rel), os.path.relpath(full, REPO)))
 
-    add("*.md", os.path.join(REPO, "docs", "architecture"), "docs/architecture")
+    add("*.md", os.path.join(REPO, "docs", "engineering"), "docs/engineering")
     add("*.md", os.path.join(REPO, "docs", "engineering"), "docs/engineering")
 
     # 头文件(lib/**/include + cli + include)

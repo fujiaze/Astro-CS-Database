@@ -64,14 +64,14 @@
   键集/host services/manifest schema/artifact 命名与 dtype）。
 - docs/engineering/PUBLIC_API.md 追加 API-P1-SESSION 节（五入口符号/生命周期
   时序/错误码映射/并发合同）。
-- docs/contracts/INDEX.yaml 新增 DATA-P1-SESSION / API-P1-SESSION 条目
+- eng/contracts/data/contract_index.yaml 新增 DATA-P1-SESSION / API-P1-SESSION 条目
   （不设 ALG-P1-SESSION：assembly 无新算法推导，ALG 引用既有冻结 ALG；
   归档映射表 ALG-P1-SESSION-001 为 P1-001 旧词汇，不进现行 INDEX）。
 - docs/detail/phase1_session.md 新建（模块页摘要，指向 co-located 合同）；
   docs/detail/registry/acsd.phase1.session.md 新建（手写合同页；
   gen_module_readmes.py 以 module_adapters.cpp 为源会生成 calibration 等
   8 页，本页 registry 无 descriptor 源，重生成时须排除/保留）。
-- docs/traceability/TRACEABILITY_MATRIX.json 新增
+- docs/engineering/TRACEABILITY_SPEC.md §9 新增
   MOD-acsd-phase1-session 行（JSON/CSV 经 gen_traceability_csv.py
   同步重生成）。
 

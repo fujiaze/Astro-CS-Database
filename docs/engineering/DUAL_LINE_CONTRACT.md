@@ -13,8 +13,8 @@
 | 线 | 文件域（glob） | 内容 |
 |---|---|---|
 | A（代码架构） | `lib/**`、`实验/**/code`、`实验/**/results` | 命名块机制、三阶段调度器、节点改写、探针性能优化 |
-| B（门禁测试合同） | `eng/ci/**`、`eng/tests/**`、`eng/contracts/**`、`docs/contracts/**`、§2.1 B 域 19 篇 | 门禁与测试的合理性审计与补充、合同预先约定、双向对应 |
-| shared（共享面） | `docs/science/**`、`docs/architecture/**`、§2.1 shared 域 60 篇 | 改动走登记，串行合并 |
+| B（门禁测试合同） | `eng/ci/**`、`eng/tests/**`、`eng/contracts/**`、`docs/engineering/**`、§2.1 B 域 19 篇 | 门禁与测试的合理性审计与补充、合同预先约定、双向对应 |
+| shared（共享面） | `docs/science/**`、`docs/engineering/**`、§2.1 shared 域 60 篇 | 改动走登记，串行合并 |
 | report（实验报告面） | `实验/**/REPORT_paper.md` | 只增不改 |
 
 glob 记法：`X/**` = 该目录下全部跟踪文件；`{a,b}` = 并集。§2.1 的两份点名清单是本表的组成部分。
@@ -52,7 +52,7 @@ shared 域（篇数待归属裁决后重算）：
 **后继正本是否计入 shared 域属归属问题，待裁**（同本节下方 `DATA_SEMANTICS.md` 一条的既有处置），
 本单不擅自扩大域范围。清单标称「60 篇」的计数随本行移除同步失效，篇数待归属裁决后重算。
 
-docs/contracts/ 与 docs/architecture/ 留在表内：两处各有在位机器可读件（4 件 / 6 件）。
+docs/engineering/ 与 docs/engineering/ 留在表内：两处各有在位机器可读件（4 件 / 6 件）。
 
 本节的生效文件域只有上面两份点名清单的反引号行（B 域 19 篇 1 条、shared 域 4 条，共五条）；其余各行（含「来源」行与旧目录溯源说明）是溯源散文，不参与归属判定。
 

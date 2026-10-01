@@ -45,7 +45,7 @@ module_id: acsd.p1.photometry
 owner: SA-P1-N17
 language: c++17
 # module_version 属 module 命名空间（docs/engineering/RELEASE_STATUS.md §2），取值须与
-# docs/modules/MODULE_MAP.yaml 登记值一致。
+# docs/engineering/MODULE_MAP.md 登记值一致。
 module_version: 0.1.0-alpha.1
 abi_version: 1
 phase_scope: phase1

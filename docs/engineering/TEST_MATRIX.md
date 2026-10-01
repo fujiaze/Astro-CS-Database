@@ -61,7 +61,7 @@
 
 ## 6. 验收
 
-- 每个 ACTIVE SCI/ALG 在 `docs/TRACEABILITY.csv` 有 TEST 映射（断链由追溯门校验）；
+- 每个 ACTIVE SCI/ALG 在 `docs/engineering/TRACEABILITY_SPEC.md §10` 有 TEST 映射（断链由追溯门校验）；
 - 全部容差事前冻结于本合同；无跑后调阈值。
 
 ## 7. 测试侧独立 Oracle 与工具依赖

@@ -414,8 +414,8 @@ function p3_output_verify(path, wcs, signal, coverage, W, H, out result):
 
 ## 17 追溯
 
-- MATRIX 行：MOD-acsd-phase3-writer（`docs/traceability/TRACEABILITY_MATRIX.json`
-  / `docs/traceability/TRACEABILITY_MATRIX.csv` 的 P3-FITS 行）；合同落位=lib/algorithms/fits_output/ 三件套 + 本文件
+- MATRIX 行：MOD-acsd-phase3-writer（`docs/engineering/TRACEABILITY_SPEC.md §9`
+  / `docs/engineering/TRACEABILITY_SPEC.md §9` 的 P3-FITS 行）；合同落位=lib/algorithms/fits_output/ 三件套 + 本文件
   + DATA_SEMANTICS §27 + PUBLIC_API API-P3-FITS-001 节 + registry
   手写页 + docs/detail/phase3_fits.md。
 - 冻结红线：SCI-P3 冻结面（`docs/science/`、`PHASE3_RESAMPLE.md` 的公式与容差）

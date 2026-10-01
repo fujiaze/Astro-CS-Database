@@ -64,7 +64,7 @@ LZ4 或 zlib+shuffle 压缩块；GaiaDR3 32B 记录 / GaiaDR3SP 384B 记录）�
 - ARCH: `ARCH-001`（docs/engineering/ARCH-001.md）
 - TEST: `TEST-GAIA-DESIGN-001`（GAIA_QUERY.md §5，设计冻结；可执行
   TEST-GAIA-* 由 CAT-GAIA-TEST 建立，当前未实现）
-- 追溯: docs/traceability/TRACEABILITY_MATRIX.json `MOD-acsd-catalog-gaia`
+- 追溯: docs/engineering/TRACEABILITY_SPEC.md §9 `MOD-acsd-catalog-gaia`
 
 ## 5. 实现事实（源码核对）
 

@@ -21,7 +21,7 @@ acsd_status p1_session_inspect(acsd_handle, acsd_span_u8* out_manifest_json);   
 acsd_status p1_session_destroy(acsd_handle);                                        /* 唯一释放对; 内部 join 后台 IO 线程 */
 ```
 
-- run 内部阶段序列=stages[](校准→检测/PSF→plate solve→测光定标→SNR→Drizzle→HiPS),与 production_call_paths_stage1.csv 的 7 路径一一对应;每 stage 发 stage_start/stage_end+backend 事件(API-002 §4)。
+- run 内部阶段序列=stages[](校准→检测/PSF→plate solve→测光定标→SNR→Drizzle→HiPS),与 docs/engineering/PHASE1_API_V1.md 的 7 路径一一对应;每 stage 发 stage_start/stage_end+backend 事件(API-002 §4)。
 
 ## 2 底层模块函数登记(现存头文件为签名权威;此处登记并发合同+测试 ID)
 

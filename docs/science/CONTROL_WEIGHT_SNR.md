@@ -5,7 +5,7 @@
 > 本文件条款为冻结定义，变更走变更流程。
 
 > `local_snr` 与 `frame quality` 的权威定义 = 本文件；code 与
-> `docs/architecture/execution_inventory.csv` 中的表述不构成 science authority。
+> `docs/engineering/docs/engineering/EXECUTION_MODEL.md` 中的表述不构成 science authority。
 
 > **权重场口径**：
 > **本文件（Phase2 stage2 内部）**所称 `local_snr` / `frame_snr` 是**相对质量权重场**（规范写法
@@ -186,7 +186,7 @@ for 每个控制星 s（半径内）:
 - 实现：`lib/algorithms/coverage/tools/stage2.cpp`（`frame_snr_medians`、`frame_snr_by_id`、
   `local_snr_unavailable`）、`lib/algorithms/coverage/src/sampler.cpp`（`kSnrCatalogMax`、
   `out_qual`）。
-- 公开 API：见 `docs/TRACEABILITY.csv`；测试：见 `lib/algorithms/coverage/tests/synthetic_gate.cpp`
+- 公开 API：见 `docs/engineering/TRACEABILITY_SPEC.md §10`；测试：见 `lib/algorithms/coverage/tests/synthetic_gate.cpp`
   （UPMW-* 权重相关）。
 - 权威文件：本文件 `docs/science/CONTROL_WEIGHT_SNR.md`（SCI-CW-001..008）。
 

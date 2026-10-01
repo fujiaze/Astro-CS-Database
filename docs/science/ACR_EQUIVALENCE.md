@@ -161,7 +161,7 @@
 - 权威文件: `docs/science/ACR_EQUIVALENCE.md` (SCI-ACR-EQUIV-001)
 - 实现: `lib/algorithms/coverage/src/acr_kernels.cpp` (`kOpMosaicReject, mosaic_reject_legacy`), `lib/algorithms/coverage/src/stage2_common.cpp` (`ACR-IVAR-001`), `lib/infrastructure/acr/scheduler/*` (Dispatcher/Profile)
 - 公开 API: `register_phase2_acr_kernels, kOpMosaicReject`
-- 测试: `TST-ACR-001` CPU/GPU等价、`TST-ACR-INV-001` 分块不变量、`TST-ACR-FAIL-001` 极端回退（新增/映射见 `docs/TRACEABILITY.csv`）。
+- 测试: `TST-ACR-001` CPU/GPU等价、`TST-ACR-INV-001` 分块不变量、`TST-ACR-FAIL-001` 极端回退（新增/映射见 `docs/engineering/TRACEABILITY_SPEC.md §10`）。
 - 用例锚（`lib/algorithms/coverage/tests/synthetic_gate.cpp`）：`Phase2Acr.LegacyLauncherEquivalent`()、`Phase2Acr.CudaEquivalent`()、`Phase2Acr.CudaWeightedSupportEquivalent`()、`Phase2Acr.G9CompactFrameSubset`()、`Phase2Acr.G9WinsorizedCpuRoute`()、`Phase2AcrParallel.LegacyCpuOneVsTwoTDetermine`()。
 - **执行域（逐条具名）**：CUDA bridge 不可用时 CUDA 侧用例走 `GTEST_SKIP`（`synthetic_gate.cpp`）；`LegacyCpuOneVsTwoTDetermine` 的并行分支依赖 `P2_ENABLE_OPENMP` 编译宏，未定义时两档都在串行路径上运行 ⇒ **报告必须区分「通过」与「该门未行使」**，等价证据面只含真正行使的门。
 

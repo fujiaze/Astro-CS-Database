@@ -136,5 +136,5 @@
 | cli/CMakeLists.txt（43 处旧路径命中） | CLI-001 文件域 | **明确结论：该文件属「兼容图」，不参与任何构建目标**（根 CMakeLists.txt 无 `add_subdirectory(cli)`，cli 相关 target 由根 CMake 直接以显式源清单声明）。其路径同步归 CLI-001/INT-001 收口，**不计入 ARCH-001 的「旧路径零命中」验收门**。 |
 | eng/ci/**（checks.json、ci_repair_round.py 等） | 前台令：只登记不改 | CI-001 订正 |
 | docs/science/algorithms/**、anchor_contract.json | 前台令：等 TEST-GREEN-001 交棒 | 锚点同步（6 条已红需订正）归本任务后续 |
-| docs/modules/MODULE_MAP.yaml、eng/tools/quality/**、eng/tests/quality/** | MOD-001 事实源/前台禁改 | legacy_paths 应同步为 target_dir |
+| docs/engineering/MODULE_MAP.md、eng/tools/quality/**、eng/tests/quality/** | MOD-001 事实源/前台禁改 | legacy_paths 应同步为 target_dir |
 

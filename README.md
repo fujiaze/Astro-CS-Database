@@ -53,7 +53,7 @@ acsd benchmark                          # 生成/更新安装目录 cpu_profile�
 | [`docs/detail/00_INDEX.md`](docs/detail/00_INDEX.md) | 逐模块工作细节 |
 
 与上述入口并列的下级权威：`docs/science/`（科学公式与定义式）、`docs/science/algorithms/`（算法推导与符号表）、
-`docs/detail/UNIFIED_MODEL.md`（数据对象与三类配置）、`docs/contracts/`（合同说明，与 `eng/contracts/`
+`docs/detail/UNIFIED_MODEL.md`（数据对象与三类配置）、`docs/engineering/`（合同说明，与 `eng/contracts/`
 机器 schema 双向对应）；科学佐证纪律见 `docs/engineering/DOCUMENT_GOVERNANCE.md`。
 
 | 要读什么 | 去哪读 |
@@ -61,10 +61,10 @@ acsd benchmark                          # 生成/更新安装目录 cpu_profile�
 | 数据对象、三类配置、逐阶段详细设计 | `docs/detail/UNIFIED_MODEL.md`、`docs/detail/PHASE{1,2,3}_DETAILED_DESIGN.md` |
 | 科学定义式、单位、适用域 | `docs/science/` |
 | 算法推导、符号表、算法级边界 | `docs/science/algorithms/` |
-| 产品字段、键集、值域（文档侧） | `docs/contracts/` |
+| 产品字段、键集、值域（文档侧） | `docs/engineering/` |
 | 机器校验 schema（机器侧唯一事实源） | `eng/contracts/` |
-| 模块工作细节 | `docs/detail/`、`docs/modules/` |
-| 架构与不变量 | `docs/architecture/` |
+| 模块工作细节 | `docs/detail/`、`docs/detail/registry/` |
+| 架构与不变量 | `docs/engineering/` |
 | 跨阶段产品交换与 ABI | `docs/engineering/io/`、`docs/science/IO_001_FITS_STREAM_INTERFACE.md`、`docs/science/IO_002_HIPS_INPUT_INTERFACE.md` |
 | CLI/API 协议 | `docs/engineering/CLI_PROTOCOL_V1.md` |
 | 机器门清单与运行方式 | `docs/engineering/CI_SPEC.md`、`docs/engineering/01_CHECKS.md` |
@@ -82,7 +82,7 @@ acsd benchmark                          # 生成/更新安装目录 cpu_profile�
 ## 状态与版本
 
 状态词表唯一口径 = `docs/ACSD_DESIGN.md` §12.5；逐模块状态与证据锚见 `docs/engineering/RELEASE_STATUS.md`
-与 `docs/modules/MODULE_MAP.yaml`。产品版本唯一事实源 = 仓库根 `VERSION`，CMake、CLI、产品 manifest
+与 `docs/engineering/MODULE_MAP.md`。产品版本唯一事实源 = 仓库根 `VERSION`，CMake、CLI、产品 manifest
 由该源派生。已知限制台账：`docs/KNOWN_LIMITATIONS.md`。
 
 ## 参考项目与文献

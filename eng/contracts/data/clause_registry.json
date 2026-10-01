@@ -3607,7 +3607,7 @@
     "write_scope": [
       "eng/contracts/schemas/",
       "eng/contracts/data/",
-      "docs/contracts/",
+      "docs/engineering/",
       "eng/tests/contracts/product_family/"
     ],
     "not_reintroduced": [

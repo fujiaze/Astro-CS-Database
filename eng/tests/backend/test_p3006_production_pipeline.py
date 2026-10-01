@@ -6,8 +6,8 @@
      (IR 5 节点, 端口/Artifact ID 正确);
   B) 完整合成运行 ≥10s 且科学(输出 FITS 有效)/资源(workers≥2, cpu 高)/trace(事件链)同时过;
   C) SCI/ALG/MOD 状态标记: 原载体 = 控制包台账 evidence/v6_1_rework/TASK_LEDGER.csv,
-     该台账已退役(evidence/ 不在树内); 现行载体 = docs/traceability/
-     TRACEABILITY_MATRIX.json(状态现场计算, docs/ACSD_DESIGN §12.5) + 本文件
+     该台账已退役(evidence/ 不在树内); 现行载体 = docs/engineering/TRACEABILITY_SPEC.md
+     docs/engineering/TRACEABILITY_SPEC.md §9(状态现场计算, docs/ACSD_DESIGN §12.5) + 本文件
      test_01..test_04 的实测证据。原 test_05 已删除(依据见文件尾注)。
 
 CLI-002 迁移注记 (commit de2d6d7f):
@@ -156,7 +156,7 @@ class TestP3006ProductionPipeline(unittest.TestCase):
 #   3) 规范已改口径 —— docs/ACSD_DESIGN §12.5 状态阶梯: "状态由检查与验收现场计算,
 #      登记表不预写状态"; 台账式状态标记已被设计废止, 重钉等于复活废止载体。
 # 现在由谁守(名字+行号):
-#   (a) docs/traceability/TRACEABILITY_MATRIX.json:555 起 phase3 模块行(MOD-acsd-phase3-
+#   (a) docs/engineering/TRACEABILITY_SPEC.md §9:555 起 phase3 模块行(MOD-acsd-phase3-
 #       properties 等的 SRC/TEST/EVIDENCE 状态)在位; 但**该矩阵当前无仓内机器判据** ——
 #       其检查器 eng/tools/traceability/check_traceability_matrix.py 与试金石
 #       eng/tests/traceability/test_traceability_matrix.py:50 (test_01_real_matrix_passes)

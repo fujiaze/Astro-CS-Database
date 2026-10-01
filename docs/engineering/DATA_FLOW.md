@@ -57,4 +57,4 @@
 
 ## 数据契约
 
-见 `docs/science/DATA_SEMANTICS.md` 与 `docs/TRACEABILITY.csv` 的 `DATA-*` 行。
+见 `docs/science/DATA_SEMANTICS.md` 与 `docs/engineering/TRACEABILITY_SPEC.md §10` 的 `DATA-*` 行。

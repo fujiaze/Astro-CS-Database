@@ -3007,7 +3007,7 @@ ivar_out = var_out 同态  (var_out=0 → 0 显式不可用; NaN → NaN)
   （P3 现状注记）。
 - 登记面: docs/engineering/DATA_ARTIFACTS.md §1 四行（DATA-P2-VAR-001/
   DATA-P2-REJ-001/DATA-P2-PROV-001/DATA-P3-UNC-001）；
-  docs/contracts/INDEX.yaml DATA-UNC-001 四条目。
+  eng/contracts/data/contract_index.yaml DATA-UNC-001 四条目。
 - **逐像素编码（唯一口径）**: variance/ivar 三态以 **§4a 三态表为唯一
   权威**——无覆盖 ⇒ `NaN`（与 `signal=NaN ∧ support=0` 同态）；有覆盖但
   方差不可用 ⇒ `variance=0 ∧ ivar=0`（显式不可用，禁写 NaN）；损坏 ⇒

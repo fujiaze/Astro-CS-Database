@@ -88,7 +88,7 @@ C API（现行 6 导出，头 lib/algorithms/star_detection/include/star_detecto
 | `sdet_free_detect_ex` | :54-56 | :2344 | 十数组唯一释放（extras 同组） |
 | `sdet_detect_guided_ex_f64` | :87-96 | :2281 | **权威路径**：星表逆投影预测位置上的引导检测（拟合/质量门失败的位置直接丢弃，不计虚警），输出十数组 + `SDetGuidedStats` |
 
-注：`sdet_detect`、`sdet_detect_debug`、`sdet_free_coords`、`sdet_free_debug_maps` 为历史导出，现行源码已无定义、导出表已注销（`docs/architecture/api_inventory.csv` 记 `export=RETIRED`），不计入现行 6 导出。
+注：`sdet_detect`、`sdet_detect_debug`、`sdet_free_coords`、`sdet_free_debug_maps` 为历史导出，现行源码已无定义、导出表已注销（`docs/engineering/docs/engineering/PUBLIC_API.md` 记 `export=RETIRED`），不计入现行 6 导出。
 
 内部核心（static/template，同文件）：`sdet_detect_impl<T>`（:1599-2353，
 float/double 双实例生产核心）、`sdet_compute_bgnoise`（:440-476，FnNoise1

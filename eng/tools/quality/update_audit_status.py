@@ -110,7 +110,7 @@ def _legacy_main() -> int:
         if typ in ("shipping_src", "tool", "aux", "test", "qualification",
                    "example", "doc", "root"):
             r[idx["comment_hygiene"]] = "PASS"
-            r[idx["owner_doc"]] = "docs/modules/ or docs/architecture/"
+            r[idx["owner_doc"]] = "docs/detail/registry/ or docs/engineering/"
         if typ == "shipping_src" and shipping == "yes":
             if path in CHANGED:
                 r[idx["review_status"]] = "VERIFIED"

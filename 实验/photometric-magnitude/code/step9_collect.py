@@ -70,7 +70,14 @@ def main():
         repro=f"{CMD}（或 python3 {CODE_REL}/step5_calibration_gate.py）",
         files=["results/step5_calibration_gate.json"]))
     # ---- G1b 预算逐项由本帧推导：由实测证据计算，不用字面量 ----
-    # 判据四件套：(a) 被点名的 7 个预算项逐项存在、有限、严格为正（缺项/NaN ⇒ 判红）；
+    # 判据四件套：(a) 被点名的 7 个预算项逐项**在本帧解析出有限、严格为正的数**——
+    #               解析路径固定为 items_measured 优先、budget 兜底；任一项在两侧都
+    #               取不到有限正数（含 None / NaN / Inf / <= 0）⇒ 判红。
+    #   G08-05 R2 第 5 条：**fail-open 已修**。原式
+    #       `it.get(k) is None and k in bg or (...)`
+    #   对「items_measured 里根本没有该键、budget 里有」的项短路为真，于是
+    #   sigma_skyres_median 与 sigma_q_median 这 2 项**从未被检查过**；
+    #   把 budget 里的值改成 None / -5.0 / NaN 仍然判绿（实测）。
     #               (b) obs/pred 落在本帧**自己声明**的接受带 [rho_lo, rho_hi] 内；
     #               (c) 平场项确实按本帧 N_eff 折算过（独立项严格小于未折算的逐像元散度）
     #               ——若忘了 sqrt(N_eff) 折叠，两者会相等，判红；
@@ -80,11 +87,23 @@ def main():
     G1B_ITEMS = ("sigma_pix_white_e", "structure_factor", "sigma_psfsys_inframe",
                  "sigma_color_from_truth", "sigma_flat_independent",
                  "sigma_skyres_median", "sigma_q_median")
-    g1b_items_ok = all(
-        it.get(k) is None and k in bg or
-        (isinstance(it.get(k, bg.get(k)), (int, float))
-         and np.isfinite(it.get(k, bg.get(k))) and float(it.get(k, bg.get(k))) > 0.0)
-        for k in G1B_ITEMS)
+
+    def _resolve_budget_item(k):
+        """返回 (值, 来源)。解析失败一律返回 (None, 'unresolved') ⇒ 判红。"""
+        for src_name, blob in (("items_measured", it), ("budget", bg)):
+            if k in blob:
+                v = blob[k]
+                if isinstance(v, (int, float)) and np.isfinite(v) and float(v) > 0.0:
+                    return float(v), src_name
+                return None, ("non_finite_or_non_positive@" + src_name)
+        return None, "absent_from_both"
+
+    g1b_item_detail, g1b_items_ok = {}, True
+    for k in G1B_ITEMS:
+        val, src = _resolve_budget_item(k)
+        g1b_item_detail[k] = {"value": val, "source": src,
+                              "in_items_measured": k in it, "in_budget": k in bg}
+        g1b_items_ok = g1b_items_ok and (val is not None)
     g1b_rho = bg["rho_lo"] <= fA["obs_over_predicted"] <= bg["rho_hi"]
     g1b_fold = float(it["sigma_flat_independent"]) < float(it["sigma_flat_flat_pix_sigma_true"])
     g1b_quad = float(bg["sigma_sys_quadrature"]) <= float(bg["sigma_ceiling"])
@@ -125,13 +144,23 @@ def main():
         # (c) sigma_residual 必须严格不变；
         # (d) 非平凡性：三个成员的 k_photo **不得**逐位相等——若相等说明标定根本没有
         #     跟着退化族传播，本判据就是空转（这是防恒真的必要条件，不是放宽）。
+        #
+        # G08-05 R2 第 5 条（同源自证）：(a) 与 (b) 是**往返自证型**（恒真门三型③），
+        # 移出判定、降级为 same_source_self_checks：
+        #   (a) 退化族正是**按 A·t/g 相同构造**出来的，「三者 ptp==0」只是构造条件的
+        #       复述；实测把三个 A_t_over_g 改成互不相同的值，g2_a 仍为 True
+        #       （它只比三者之间的 ptp，不与任何外部目标比较）。
+        #   (b) location_delta 与 location_delta_expected 来自 step6 里同一次平移
+        #       仿射的两次**同源**计算。
+        # G2 的判定因此只由 (c)(d) 承担：(c) sigma_residual 严格不变（真值无效应⇒归零）、
+        # (d) k_photo 沿退化族**非平凡**传播（防空转）。实测 (c)(d) 均为 True。
         zps = ue["zero_point_shift_invariance"]
         g2_a = bool(np.ptp([f["A_t_over_g"] for f in fam]) == 0.0)
         g2_b = bool(abs(zps["location_delta"] - zps["location_delta_expected"]) <= 1e-9
                     and abs(zps["k_photo_ratio"] - zps["k_photo_ratio_expected"]) <= 1e-9)
         g2_c = bool(abs(zps["sigma_residual_delta"]) <= 1e-12)
         g2_d = bool(np.ptp([f["k_photo"] for f in fam]) > 0.0)
-        g2_ok = bool(g2_a and g2_b and g2_c and g2_d)
+        g2_ok = bool(g2_c and g2_d)   # (a)(b) 同源自证，已移出判定
         rows.append(dict(
             id="G2", item="物理单位消除（定标坐标系=星等域、像素承载面=线性标度面 photo_scaled_adu；"
                        "标定系数无绝对窗口；不可反解仪器参数）",
@@ -144,9 +173,11 @@ def main():
                          fmt(zps["location_delta"], 10),
                          fmt(zps["location_delta_expected"], 10),
                          fmt(zps["sigma_residual_delta"], 3)))
-             + "。判据：A·t/g 三成员逐位相等=%s；Δlocation/Δk 与解析期望一致(≤1e-9)=%s；"
-               "Δσ_residual=0=%s；k_photo 非平凡(未逐位雷同)=%s"
-               % (g2_a, g2_b, g2_c, g2_d),
+             + "。判据（判定项）：Δσ_residual=0=%s；k_photo 非平凡(未逐位雷同)=%s"
+               "。同源自证（**不参与判定**）：A·t/g 三成员逐位相等=%s；"
+               "Δlocation/Δk 与解析期望一致(≤1e-9)=%s —— 二者是构造条件与同源计算的复述"
+               "（恒真门三型③），保留作诊断"
+               % (g2_c, g2_d, g2_a, g2_b),
             repro=f"python3 {CODE_REL}/step6_apply_and_units.py",
             files=["results/step6_apply_and_units.json"]))
     fi = s5["frame_independence"]
@@ -171,30 +202,64 @@ def main():
                       fmt(ks.get("pvalue"), 4), g3_ks, g3_both, g3_nogate),
         repro=CMD, files=["results/step5_calibration_gate.json"]))
     gA = [f for f in s4["frames"] if f["tag"] == "A"][0]
-    # ---- G4 由实测证据计算。判据五件套，其中「粗 WCS 鲁棒性」按**本行自己点名的
+    # ---- G4 由实测证据计算。判据四件套，其中「粗 WCS 鲁棒性」按**本行自己点名的
     #      3 px 残余**来判：≥3 px 的粗 WCS 偏移下，引导匹配率必须至少保留标称值的一半。
     #      该条在归档读数下**不成立**（3 px 起匹配率塌到 1.4%），故本行判红。
     #      这是实测结论，不是阈值挑选：50% 下限已属宽松（标称 0.986）。
+    #
+    # ==== G08-05 R2 第 6 条：口径声明（**先改口径，再改实现**）====================
+    # 本行「粗 WCS 鲁棒性」子判据量的是 **fit_psf 的位置搜索框**，不是物理鲁棒性。
+    # 证据（本单元 README.md:268/284/398/437 与 scia_common.py:384-385）：
+    #   粗 WCS 残余 0/1/2 px 时匹配率恒为 0.9859，3 px 立刻塌到 0.0140845
+    #   （= 1/71，恰为 71 个引导候选里只剩 1 个）；
+    #   而 scia_common.fit_psf 把位置参数硬约束在 lo=x0−2.0、hi=x0+2.0（±2 px）。
+    #   残余 2 px 恰在搜索框边界、3 px 恰在框外 ⇒ 「3 px 崩到 0.0141」**完全由
+    #   fit_psf 的 ±2 px 实现常量决定**，不是一个独立的物理鲁棒性发现。
+    # 因此本子判据的**成立域**是：它约束「WCS 精化必须把残余压到 ≤2 px，否则引导
+    # 路径因拟合框越界而全灭」，即断言的其实是 **fit_psf 搜索框 ≥ 3 px**。
+    # 把实现常量当科学阈值使用不成立，故按两步走：
+    #   第 1 步（本单，已完成）：在判据处显式声明成立域。不改阈值、不改实现、
+    #         不为了让判据变绿而放宽 —— 本行仍如实判红。
+    #   第 2 步（移交，见交付件）：要让它承载物理内容，必须先扩宽 fit_psf 搜索框
+    #         并重跑，使 ≥3 px 的读数脱离实现边界。该实现改动不在本单写入面。
+    # ============================================================================
     cwr = gA["coarse_wcs_robustness"]
     nominal = float(gA["guided"]["match_rate"])
+    blind_nominal = float(gA["blind"]["match_rate"])
     far = [r for r in cwr
            if max(abs(float(v)) for v in r["coarse_wcs_offset_px"]) >= 3.0]
     g4_far_min = min((float(r["match_rate"]) for r in far), default=float("nan"))
     g4_rob = bool(far) and g4_far_min >= 0.5 * nominal
-    g4_lift = float(gA["guided"]["match_rate"]) > float(gA["blind"]["match_rate"])
-    g4_gain = float(gA["match_rate_gain"]) > 0.5
+    g4_lift = nominal > blind_nominal
+    # G08-05 R2 第 5 条：match_rate_gain 原先直接取**归档里缓存的派生量**，
+    # 不从两个实测匹配率重算 ⇒ 缓存被污染也判绿（实测：缓存 0.7606，而
+    # guided/blind−1 = 3.375，差 2.61）。现改为现场重算，缓存值降级为诊断。
+    g4_gain_recomputed = (nominal / blind_nominal - 1.0) if blind_nominal > 0 else float("nan")
+    g4_gain = bool(np.isfinite(g4_gain_recomputed) and g4_gain_recomputed > 0.5)
+    g4_gain_cached = gA.get("match_rate_gain")
+    # G08-05 R2 第 5 条：硬编码下标 coarse_wcs_robustness[3]（上轮新引入）
+    # 在归档缺行/删行时指向错行或直接 IndexError。改为**按偏移量查行**：
+    # 取第一个偏移 ≥3 px 的行；查不到即登记 None 并显示 n/a，不崩。
+    g4_3px_row = next((r for r in cwr
+                       if max(abs(float(v)) for v in r["coarse_wcs_offset_px"]) >= 3.0
+                       - 1e-9), None)
+    g4_3px_rate = float(g4_3px_row["match_rate"]) if g4_3px_row else None
     g4_fa = int(gA["guided"]["false_alarms"]) == 0
     g4_ok = bool(g4_lift and g4_gain and g4_fa and g4_rob)
     rows.append(dict(
         id="G4", item="星表引导检测（匹配率提升 + 算力节省量化 + 粗 WCS 鲁棒性）",
         verdict=verdict_of(g4_ok),
-        evidence=("仿真帧 A：引导匹配率 %s vs 盲检 %s（提升 %s）；盲检虚警 %d、引导 0；"
-                  "粗 WCS 残余 3 px 时引导匹配率降至 %s。真实 M42 帧（4096²）：盲检 %d 个检出"
+        evidence=("仿真帧 A：引导匹配率 %s vs 盲检 %s（提升 **现场重算** %s；"
+                  "归档缓存值 %s 仅作诊断、不参与判定）；盲检虚警 %d、引导 0；"
+                  "粗 WCS 残余 %s px 时引导匹配率降至 %s。真实 M42 帧（4096²）：盲检 %d 个检出"
                   "仅 %s%% 对应星表星，引导 %d 个候选（%s%% 被盲检独立确认）"
                   "⇒ 若逐个拟合盲检源需 %s× 的 PSF 拟合次数"
                   % (fmt(gA["guided"]["match_rate"], 4), fmt(gA["blind"]["match_rate"], 4),
-                     fmt(gA["match_rate_gain"], 4), gA["blind"]["n_false_alarms"],
-                     fmt(gA["coarse_wcs_robustness"][3]["match_rate"], 4),
+                     fmt(g4_gain_recomputed, 4), fmt(g4_gain_cached, 4),
+                     gA["blind"]["n_false_alarms"],
+                     (fmt([float(v) for v in g4_3px_row["coarse_wcs_offset_px"]], 3)
+                      if g4_3px_row else "n/a"),
+                     fmt(g4_3px_rate, 4),
                      (s8 or {}).get("guided_vs_blind_real", {}).get("blind_detections", 0),
                      fmt(100 * (s8 or {}).get("guided_vs_blind_real", {}).get(
                          "blind_precision_vs_guided", 0), 3),
@@ -207,7 +272,11 @@ def main():
                              "guided_candidates", 1), 1), 3)))
                  + "。判据：引导优于盲检=%s；提升>0.5=%s；引导零虚警=%s；"
                    "**粗 WCS 鲁棒性**（≥3 px 偏移下最差匹配率 %s vs 标称 %.4g 的一半）=%s"
-                   % (g4_lift, g4_gain, g4_fa, fmt(g4_far_min, 4), nominal, g4_rob),
+                   % (g4_lift, g4_gain, g4_fa, fmt(g4_far_min, 4), nominal, g4_rob)
+                 + "。**成立域声明**：粗 WCS 鲁棒性子判据量的是 fit_psf 的 ±2 px "
+                   "位置搜索框（scia_common.py:384-385），不是物理鲁棒性——3 px 崩到 "
+                   "0.0141 恰是拟合框越界（README.md:268/284/398/437 已如此记载）。"
+                   "本轮只做口径声明，实现改动（扩宽搜索框后重跑）登记移交。",
         repro=f"python3 {CODE_REL}/step4_guided_vs_blind.py",
         files=["results/step4_guided_vs_blind.json"]))
     ap = None if s6 is None else s6["apply"]

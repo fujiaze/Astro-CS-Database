@@ -80,7 +80,7 @@ kernel 词汇（各域冻结 ALG 以"冻结合同"列为准，由各 INT 任务�
 | 8 | `acsd.phase1.writer`（:527） | `stacked`(DATA-P1-STACK) → `fits`(DATA-P1-FITS/ADU/ICRS) | SCI-P1-WR-001 / ALG-P1-WR-001 / API-P1-008 / TEST-P1-WR-001 | HiPS 写出域：ALG-HIPS-001..005（HIPS_WRITER.md）；DATA-P1-HIPS（DATA_SEMANTICS §12）；API-HIPS-001（PUBLIC_API）；writer/hips registry 无独立 descriptor（hips 页 docs/detail/registry/acsd.phase1.hips-writer.md 为手写合同页） | P1-001 attempt 2 后=aio_hiss_inspect/read_tile_* → AstroSphereTileView → `aio_hips_product_begin/write_signal_support_tile/finalize`（消费 p1_stack.hiss；NESTED 聚合 → IVOA 1.4 标准 512×512 HiPS signal/+support/+properties/MOC；covered_area_model=hiss_support_ratio_x_A_cell 单帧语义） | TEST-HIPS-DESIGN-001（HIPS_WRITER.md §9） |
 
 **A 线（CLI 生产编排，现行唯一 7-stage 全链）**：
-docs/architecture/production_call_paths_stage1.csv 登记 7 条生产调用路径
+docs/engineering/docs/engineering/PHASE1_API_V1.md 登记 7 条生产调用路径
 （calibrate→platesolve→photometric→drizzle→snr→HiPS 写出，唯一入口
 `Orchestrator::run`，DIAGNOSTIC_FIELD/退出码/test ID 逐行登记）。A 线经
 DLL 显式加载（dll_loader），与本库（B 线静态库）并存；两条装配线的算法
@@ -208,7 +208,7 @@ module_adapters.cpp:61-91）：
   列为 p1 生产锚。
 - 本合同验收：DATA-P1-SESSION=docs/science/DATA_SEMANTICS.md §16；
   API-P1-SESSION=docs/engineering/PUBLIC_API.md「Phase1 装配会话」节；
-  矩阵行=MOD-acsd-phase1-session（docs/traceability/）。
+  矩阵行=MOD-acsd-phase1-session（docs/engineering/TRACEABILITY_SPEC.md）。
   TEST-P1-SESSION-001 锚 eng/tests/unit/p1_ir_facade_test.cpp（可执行测试
   已接线登记）。
 - complete 门 fail-closed（P1-001, 2026-09-10）：run 成功路径 manifest
@@ -262,5 +262,5 @@ module_adapters.cpp:61-91）：
 - 数据语义：docs/science/DATA_SEMANTICS.md §16（DATA-P1-SESSION）。
 - 公共 API：docs/engineering/PUBLIC_API.md（API-P1-SESSION 节）。
 - 架构：docs/engineering/ARCH-001.md；生产路径表
-  docs/architecture/production_call_paths_stage1.csv。
+  docs/engineering/docs/engineering/PHASE1_API_V1.md。
 - 旧映射（历史）：归档映射表 P1_SYMBOL_MAP.md（已删，见 git 历史）。

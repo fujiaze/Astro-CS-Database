@@ -62,7 +62,7 @@
 **已知缺口登记**：mosaic 阶段直写输出目录、无 staging 环节，缺口登记面 =
 `docs/detail/registry/acsd.phase2.write.md`。该缺口的闭合条件与判定口径以该登记面为准。
 
-**契约登记**：原子 I/O 与发布契约 = `ENG-IO-001`（登记面 = `docs/TRACEABILITY.csv`）。
+**契约登记**：原子 I/O 与发布契约 = `ENG-IO-001`（登记面 = `docs/engineering/TRACEABILITY_SPEC.md §10`）。
 
 ## 3. 唯一目标与 run 隔离
 
@@ -243,7 +243,7 @@
 | `aio_frame_export_all_xml` | 全块导出 XML | 同上 |
 | `aio_pipeline_export_xml` | 旧名包装（= `aio_frame_export_all_xml`） | 同上 |
 
-- 符号签名登记面 = `docs/architecture/api_inventory.csv`（该表**只登记函数签名**，不含生产性分级）；
+- 符号签名登记面 = `docs/engineering/docs/engineering/PUBLIC_API.md`（该表**只登记函数签名**，不含生产性分级）；
   **生产性分级以本表为准**；
 - 本表是文档侧登记面；生产可用性判据以各符号在役调用链为准。
 

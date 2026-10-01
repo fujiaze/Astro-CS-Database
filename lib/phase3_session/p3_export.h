@@ -10,7 +10,7 @@
 //                DOC-403 文件域，本任务无权同步；
 //             ② eng/ci/spec_named_impls.json SNI-S4-P3X-06/P3X-12 与 eng/ci/ledgers/spec_named_impl_gaps.json
 //                以本文件为锚（删除须同提交改表，属 CI 登记面，需与 DOC-403 同批）；
-//             ③ docs/architecture/PRODUCTION_EXECUTION_INVENTORY.csv:338 仍点名本文件（属该清单域）。
+//             ③ docs/engineering/docs/engineering/BUILD_GRAPH.md:338 仍点名本文件（属该清单域）。
 // STATUS:     未接入生产。不在任何生产 target 的源列表内（grep -c p3_export CMakeLists.txt = 0），
 //             仅被 eng/tests/integration/p3_export 编译；生产 export 路径 = lib/phase3_session/p3_session.cpp
 //             → lib/algorithms/projection/p3_wcs.cpp（TAN），不依赖本文件任何符号
@@ -20,7 +20,7 @@
 //                V6-CTEST-INTEGRATION step 的三条 --expect；
 //             ② 同提交删除 eng/ci/spec_named_impls.json 的 SNI-S4-P3X-06/SNI-S4-P3X-12 两条与
 //                eng/ci/ledgers/spec_named_impl_gaps.json 的 SNI-S4-P3X-06 条；
-//             ③ 把 PRODUCTION_EXECUTION_INVENTORY.csv:338 的 production=yes 更正为 retired；
+//             ③ 把 docs/engineering/BUILD_GRAPH.md:338 的 production=yes 更正为 retired；
 //             ④ 删除 eng/tests/integration/p3_export/** 与 CMakeLists.txt:980 的 add_subdirectory。
 // AUTHORITY:  ENGINEERING_SPEC.md §2（历史实现处置：保留则注释）；docs/ACSD_DESIGN.md §6.3
 //             （注册表中未实现的投影被选择时显式报「不支持」，当前仅 TAN 可用）；

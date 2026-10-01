@@ -5,7 +5,7 @@
 `src/module_adapters.cpp`：CLI 只做薄入口，科学计算由这里的 `p1_op_*` /
 `p2_op_*` / `p3_op_*` 委托到各模块库。
 
-> 科学定义与合同权威在 `docs/science/`、`docs/contracts/`；本 README 只登记
+> 科学定义与合同权威在 `docs/science/`、`docs/engineering/`；本 README 只登记
 > **编排层**（节点配置键、来源、审计字段）语义，不得反向改写合同。
 
 ## Phase1 WCS 节点：初始指向来源（`p1_op_wcs`）

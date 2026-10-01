@@ -250,7 +250,7 @@ Y-up → Y-down 转换 (FITS 1-based 输出):
 - 权威文件: `docs/science/ASTROMETRY.md` (SCI-WCS-001 / SCI-AST-001)
 - 实现: `lib/algorithms/platesolve/cpp/ipv/src/ipv_wcs.cpp` (`build_wcs, CRPIX, cd_inv, SIP A/B/AP/BP, Y-down`), `lib/algorithms/platesolve/cpp/ipv/src/ipv_entry.cpp` (`ipv_solve_from_detections_v1`), `lib/infrastructure/gaia_xpsd_client/src/gaia_client.c` (`polar_plane_intersects, bbox_intersects`)
 - 公开 API: `lib/algorithms/platesolve/cpp/ipv/include/ipv_api.h` (`ipv_solve_from_detections_v1`), `lib/algorithms/platesolve/cpp/ipv/include/ipv_wcs.h` (`build_wcs`)
-- 测试: `TST-WCS-001` Astropy 比对、`TST-WCS-INV-001` 往返/`TST-WCS-FAIL-001` 参数拒（新增/映射见 `docs/TRACEABILITY.csv`）
+- 测试: `TST-WCS-001` Astropy 比对、`TST-WCS-INV-001` 往返/`TST-WCS-FAIL-001` 参数拒（新增/映射见 `docs/engineering/TRACEABILITY_SPEC.md §10`）
 
 ## 14 Primary literature（引用定位声明）
 

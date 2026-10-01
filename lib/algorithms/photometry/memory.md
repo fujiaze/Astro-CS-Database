@@ -429,11 +429,11 @@ static constexpr double _IRLS_CONVERGE = 1e-6;   // IRLS 收敛阈值
 - docs/science/algorithms/PHOTOMETRIC_FIT.md §13 冻结增补（ALG-PHOT-001..002 逐
   符号源码锚定 + §13.2 实现事实修订 + §13.3 DISP-PHOT-001..009 +
   §13.4 TEST-PHOT-DESIGN-001 冻结容差 + §13.5 legacy 通道与迁移旧符号）；
-  docs/science/DATA_SEMANTICS.md §14（DATA-P1-PHOT）；docs/contracts/
-  PUBLIC_API.md API-PHOT-001（6 导出符号头锚）；docs/contracts/INDEX.yaml
-  新 ID 条目与互指；docs/DOCUMENT_INDEX.yaml notes；docs/modules/
+  docs/science/DATA_SEMANTICS.md §14（DATA-P1-PHOT）；docs/engineering/
+  PUBLIC_API.md API-PHOT-001（6 导出符号头锚）；eng/contracts/data/contract_index.yaml
+  新 ID 条目与互指；docs/DOCUMENT_INDEX.yaml notes；docs/detail/registry/
   photometric_calib.md + docs/detail/registry/acsd.phase1.photometry.md
-  事实修订；docs/traceability/TRACEABILITY_MATRIX.json photometry 行原位
+  事实修订；docs/engineering/TRACEABILITY_SPEC.md §9 photometry 行原位
   更新 + CSV 重生成。
 
 ### 纪律记录

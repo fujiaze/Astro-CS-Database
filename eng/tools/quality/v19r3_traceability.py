@@ -11,7 +11,7 @@
 - seeded deterministic 随机抽样：50 个生产符号 code→contract→test→
   diagnostic；50 个契约 contract→code→test。
 
-输出：docs/TRACEABILITY.csv（覆盖原文件）、reports/v19r3/evidence/quality/
+输出：docs/engineering/TRACEABILITY_SPEC.md §10（覆盖原文件）、reports/v19r3/evidence/quality/
 contract_inventory.csv + traceability_check.json、reports/v19r3/
 traceability_summary.md。
 """

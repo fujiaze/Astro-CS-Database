@@ -144,7 +144,7 @@
   p3_projection_units/p3_projection_fault（直编生产源，先例同构）。
 - 故障注入: ACSD_P3PROJ_FAULT=tan|sin|car|ait|registry 五模式注入等价
   缺陷必败实测（FAULT-EFFECT-CONFIRMED ×5）；测试级注入、生产源零 getenv。
-- 边界: 根 CMakeLists.txt/lib/phase3_session/docs/contracts 零改动
+- 边界: 根 CMakeLists.txt/lib/phase3_session/docs/engineering 零改动
   （out_of_scope_entries=0）；生产构建挂载（dll/adapter/会话消费）归
   P3-PROJ-IMPL/P3-002；module.yaml 维持 CONTRACT_READY/entrypoint=MISSING
   不冒认；WCSLIB 验收级 oracle 升级归 P3-PROJ-TEST。

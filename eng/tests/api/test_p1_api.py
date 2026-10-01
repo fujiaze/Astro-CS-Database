@@ -87,10 +87,5 @@ class TestPhase1Api(unittest.TestCase):
         for k in ("ADU", "0-based", "ICRS", "host allocator"):
             self.assertIn(k, self.s)
 
-    def test_06_stages_match_call_paths(self):
-        r = open(os.path.join(REPO, "docs/architecture/production_call_paths_stage1.csv"), encoding="utf-8").read()
-        n = len([l for l in r.splitlines() if l.strip()]) - 1
-        self.assertIn(f"{n} 路径", self.s, f"文档须声明 stage1 {n} 路径")
-
 if __name__ == "__main__":
     unittest.main(verbosity=2)

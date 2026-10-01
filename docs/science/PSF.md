@@ -170,7 +170,7 @@ flux = 2πA·sxsy/3   (整平面延伸假设；对任意 sx,sy,θ 成立，见�
 - 权威文件: `docs/science/PSF.md` (SCI-PSF-001)
 - 实现: `lib/algorithms/psf/src/dpsf_psf.cpp` (`dpsf_fit/batch, lm_solve, MOFFAT4_FWHM_FACTOR, compute_trimmed_mad`), `lib/algorithms/noise_snr/cpp/src/noise_model.cpp`
 - 公开 API: `lib/algorithms/psf/include/dynamic_psf.h` (`dpsf_fit, dpsf_fit_batch`)
-- 测试: `TST-PSF-001` 解析一致性、`TST-PSF-INV-*` 三门、`TST-PSF-FAIL-*` 参数校验（新增/映射见 `docs/TRACEABILITY.csv`）
+- 测试: `TST-PSF-001` 解析一致性、`TST-PSF-INV-*` 三门、`TST-PSF-FAIL-*` 参数校验（新增/映射见 `docs/engineering/TRACEABILITY_SPEC.md §10`）
 
 ## 14 Primary literature（引用定位声明）
 

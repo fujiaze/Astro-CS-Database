@@ -173,7 +173,7 @@ def main() -> int:
         "",
         "- 入口：reports/final_status.md、reports/full_repo_audit_summary.md",
         "- PR#1 门禁：evidence/pr1/gate_summary.md",
-        "- 追溯：docs/TRACEABILITY.csv（docs_snapshot/docs/）",
+        "- 追溯：docs/engineering/TRACEABILITY_SPEC.md §10（docs_snapshot/docs/）",
         "- 自审：self_review/round0..6",
     ]
     open(os.path.join(TMP, "README.md"), "w", encoding="utf-8").write(

@@ -21,7 +21,7 @@
   （DOC-004）门在公共 include 面下 clang 独立解析 ipv_log.h 及其 5 个下游公共头
   （ipv_distortion.h / ipv_select.h / ipv_sip.h / ipv_solver.h / ipv_wcs.h）全部
   fatal error: aio_atomic_file.h file not found（6/45 头判红）。
-  DOC-004 只在 docs/contracts/API_CONTRACTS.csv 登记的头族上、以"clang 解析失败"
+  DOC-004 只在 docs/engineering/PUBLIC_API.md 登记的头族上、以"clang 解析失败"
   的间接形式表达这条规则; 本判据把它写成直接判据并覆盖全部公共头，使"公共头
   依赖基建层内部头"在公共 include 面之外也立刻判红。
 

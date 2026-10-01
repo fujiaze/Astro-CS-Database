@@ -68,7 +68,7 @@ DATA-TILE-001（HiPS properties/tile 输入面）"）、生产 descriptor
 lib/infrastructure/pipeline/module_ports.registry.json 两处、
 端口合同页（`docs/detail/phase3_rsmp.md`、`docs/detail/phase3_proj.md`）、
 eng/tests/unit/core_pipeline_test.cpp 在用，并在
-docs/traceability/TRACEABILITY_MATRIX.csv 两行登记为 `VERIFIED`。
+docs/engineering/TRACEABILITY_SPEC.md §9 两行登记为 `VERIFIED`。
 
 登记行与冻结正文逐条对应，不新增/修改任何公式、单位、
 坐标系、精度或 invalid 规则。逐行正文锚点：

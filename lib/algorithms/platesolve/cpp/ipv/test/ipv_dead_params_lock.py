@@ -364,7 +364,7 @@ def main(argv=None):
         print("=> 死字段清单与实现不一致。请同步更新:")
         print("   lib/algorithms/platesolve/cpp/ipv/test/ipv_dead_params_manifest.json")
         print("   run/perf-fix/P27-dead-params/REPORT.md (逐字段核对表)")
-        print("   docs/contracts/ (公共头/合同标注)")
+        print("   docs/engineering/ (公共头/合同标注)")
         return 1
     print()
     print("P27_DEAD_PARAMS_LOCK PASS: 死字段清单与生产路径实现一致")

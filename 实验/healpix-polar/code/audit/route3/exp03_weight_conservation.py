@@ -241,6 +241,11 @@ def run_field(N, theta_arcsec, npix_side=24, inject=False, norm_pixel=False, fie
     comp_max = 0.0; ksum = 0.0; kquad = 0.0; kgauss = 0.0; pair_red = 0.0
     acc = {}
     inj_done = False
+    # G08-05 R2 第 2 条：逐 drop 判据必须作用在**实测**的 (Σa, A_drop) 上。
+    # 这里 tot 就是该 drop 内所有真曲线叶多边形面积的实测和，A_drop = quad_area(Dq)
+    # 是同一 drop 的实测球面面积 —— 二者都不是构造出来的常量。
+    drop_closure = {"n": 0, "n_ok": 0, "n_out_of_domain": 0,
+                    "max_rel_tolerance_pos": 0.0, "max_resid_rel": 0.0}
     for idx in range(npix_side*npix_side):
         i, k = idx // npix_side, idx % npix_side
         xi0 = (i - (npix_side-1)/2.0)*theta
@@ -284,6 +289,15 @@ def run_field(N, theta_arcsec, npix_side=24, inject=False, norm_pixel=False, fie
             sumF += wgt*xj
         comp = tot/A_drop - 1.0
         comp_max = max(comp_max, abs(comp))
+        # 实测逐 drop 闭合：把**实测** (tot, A_drop) 送进正本判据 + 适用域守卫。
+        _ok, _d = drop_closure_ok(tot, A_drop)
+        drop_closure["n"] += 1
+        drop_closure["n_ok"] += int(bool(_ok))
+        drop_closure["n_out_of_domain"] += int(not bool(_d["within_applicable_domain"]))
+        drop_closure["max_rel_tolerance_pos"] = max(
+            drop_closure["max_rel_tolerance_pos"], float(_d["rel_tolerance_pos"]))
+        drop_closure["max_resid_rel"] = max(
+            drop_closure["max_resid_rel"], abs(comp))
         ksum += tot/A_pix
         kquad += quad_area(Dq)/(PF*PF*quad_area(Pq))
         kgauss += gauss_area(half_d)/(PF*PF*gauss_area(half_p))
@@ -295,7 +309,8 @@ def run_field(N, theta_arcsec, npix_side=24, inject=False, norm_pixel=False, fie
                 kmean=ksum/(npix_side*npix_side),
                 kquad=kquad/(npix_side*npix_side),
                 kgauss=kgauss/(npix_side*npix_side),
-                mean_res=mean_res, n_leaves_touched=len(acc))
+                mean_res=mean_res, n_leaves_touched=len(acc),
+                drop_closure=drop_closure)
 
 def control_points(N, npts=8):
     rng = np.random.default_rng(SEED + 1)
@@ -362,12 +377,25 @@ def main():
 
     # ---- G08-05 B6：逐 drop 守恒的适用域守卫（真空带探针 + 判据） ----
     sb_rows, sb_vacuum = seam_blind_band_probe()
-    # 用**真实**守恒读数 r1 的 drop 尺度走一遍合取判据，确认正常档位不被误伤
+    # G08-05 R2 第 2 条（实测接线）与第 7 条（量化订正）：
+    #   (a) 原代码把 drop_closure_ok() 的返回值写成 `_, ok = ...`，而该函数返回的是
+    #       (bool, detail_dict) —— 于是 ok 取到的是 **detail 字典**，三条 verdict
+    #       退化成对字典真值性的常量自检：keeps_real 恒 True、blocks_blind_band 恒 False、
+    #       100pct_loss_caught 恒 False（实测：把判据喂任何输入都得到同样的三条）。
+    #       现改为显式解包 (bool, detail)，并把三条 verdict 接到**实测**读数上。
+    #   (b) 原代码只把 run_field 的 comp_max 当乘性因子塞进**构造出来的** total_a，
+    #       新「逐 drop 判据」从未作用于任何实测逐 drop 的 |Σa − A_drop|。
+    #       现由 run_field 在像素循环内部直接对实测 (tot, A_drop) 逐 drop 判定。
     _theta300 = math.radians(300.0 / 3600.0)
     a_drop_300 = (PF * _theta300) ** 2
-    _, ok_canon = drop_closure_ok(a_drop_300 * (1.0 + r1["comp_max"]), a_drop_300)
-    _, ok_zero = drop_closure_ok(0.0, a_drop_300)
-    _, ok_small = drop_closure_ok(0.0, (PF * 0.005 * RAD_PER_ARCSEC) ** 2)
+    ok_canon, d_canon = drop_closure_ok(a_drop_300 * (1.0 + r1["comp_max"]), a_drop_300)
+    ok_zero, d_zero = drop_closure_ok(0.0, a_drop_300)
+    ok_small, d_small = drop_closure_ok(0.0, (PF * 0.005 * RAD_PER_ARCSEC) ** 2)
+    # ---- 第 7 条：真实闭合残差用**归档实测**的 max_abs_pixel_completeness 换算 ----
+    a_drop_real = a_drop_300
+    resid_rel = r1["comp_max"]
+    resid_abs_sr = resid_rel * a_drop_real
+    review_target_sr = 1.0e-20
     out["seam_absolute_floor_B6"] = {
         "criterion": ("|Σa − A_drop| <= max(τ_rel·A_drop, ε_abs) [正本口径，未改] "
                       "AND A_drop >= APPLICABLE_MIN_ADROP [实验侧 fail-closed 适用域守卫]"),
@@ -377,11 +405,42 @@ def main():
         "blind_band_rows": sb_rows,
         "n_rows_pos_criterion_alone_green": len(sb_vacuum),
         "n_rows_combined_green": sum(1 for r in sb_rows if r["combined_criterion_ok"]),
+        # ---- 实测逐 drop（不是构造常量）----
+        "measured_per_drop_closure": {
+            "theta_arcsec_per_px": 300.0, "pixfrac": PF,
+            "n_drops": r1["drop_closure"]["n"],
+            "n_drops_ok": r1["drop_closure"]["n_ok"],
+            "n_drops_out_of_applicable_domain": r1["drop_closure"]["n_out_of_domain"],
+            "max_resid_rel": r1["drop_closure"]["max_resid_rel"],
+            "max_rel_tolerance_pos": r1["drop_closure"]["max_rel_tolerance_pos"],
+            "note": ("run_field 在像素循环内对每个 drop 的**实测** (Σ_j a_jp, A_drop) "
+                     "调用 drop_closure_ok；n_drops = npix_side**2。"),
+        },
         "real_reading_300as_pf08": {
             "A_drop_sr": a_drop_300,
             "comp_max_measured": r1["comp_max"],
             "combined_ok_on_real_reading": bool(ok_canon),
             "combined_ok_on_100pct_loss": bool(ok_zero),
+            "criterion_detail_real": d_canon,
+            "criterion_detail_100pct_loss": d_zero,
+        },
+        # ---- 第 7 条量化订正 ----
+        "true_residual_recomputed": {
+            "source": "归档实测 max_abs_pixel_completeness（本脚本 r1 实跑同值）",
+            "max_abs_pixel_completeness": resid_rel,
+            "A_drop_sr": a_drop_real,
+            "resid_abs_sr": resid_abs_sr,
+            "previous_claim_sr": 9.477e-17,
+            "previous_claim_error": ("上轮 9.477e-17 sr 是把**自取** comp_max=7e-11 "
+                                     "乘 A_drop 得来的，不是归档实测读数；"
+                                     "改用归档实测值后为 %.4e sr，差 %.2f×。"
+                                     % (resid_abs_sr, 9.477e-17 / max(resid_abs_sr, 1e-300))),
+            "review_target_sr": review_target_sr,
+            "verdict_on_review_target": (
+                "审稿提出的 %.0e sr 绝对残差目标**仍不成立**：本单元真实可达残差是 "
+                "%.4e sr，是该目标的 %.0f×。方向不变（上轮结论成立），数值订正。"
+                % (review_target_sr, resid_abs_sr,
+                   resid_abs_sr / review_target_sr)),
         },
         "handover": ("正本侧 ε_abs=1e-15 sr 在 A_drop ≲1e-14 sr 的域里吞掉整条判据，"
                      "而按正本 :362-364 该域的可达成残差已是 ~1e-16 sr 的几何/表示地板，"
@@ -389,6 +448,7 @@ def main():
                      "须提到扩展精度表示才能移动该地板（冻结口径、需变更流程）。"
                      "正本容差定义不在本单写入面，只登记移交。"),
     }
+    _md = r1["drop_closure"]
     out["verdict"] = dict(
         conservation=bool(r1["comp_max"] < 1e-10 and abs(r1["sumF"]/r1["sumX"] - 1.0) < 1e-12),
         delta_theta2_ok=bool(abs((r2a["kgauss"] - 1.0)/d2 - 1.0) < 0.02),
@@ -398,10 +458,21 @@ def main():
         injection_sum_green=bool(abs(r3["sumF"]/r3["sumX"] - 1.0) < 1e-12),
         mean_estimator_zero=bool(r4["mean_res"] < 1e-10),
         control_points=bool(worst < 1.05),
-        # B6：适用域守卫必须既不误伤真实读数、又确实把盲带内的 100% 丢失挡下
-        seam_domain_guard_keeps_real_reading=bool(ok_canon),
-        seam_domain_guard_blocks_blind_band=bool(not ok_small),
+        # B6 三条：全部接在**实测**对象上。
+        #  (1) 真实档位的逐 drop 判据必须全部通过，且不得有 drop 落在适用域外；
+        #  (2) 100% 通量丢失（Σa=0）在**真实 drop 尺度**上必须被判红
+        #      （正本项单独即可抓住：resid=A_drop ≫ τ_rel·A_drop）；
+        #  (3) 真空带内（θ=0.005″/px，tol/A_drop>1）100% 丢失必须由**适用域守卫**
+        #      抓住 —— 这一条正本项原理上抓不住（见 handover），靠守卫 fail-closed。
+        seam_domain_guard_keeps_real_reading=bool(
+            ok_canon and _md["n"] > 0 and _md["n_ok"] == _md["n"]
+            and _md["n_out_of_domain"] == 0),
         seam_real_scale_100pct_loss_caught=bool(not ok_zero),
+        seam_domain_guard_blocks_blind_band=bool(not ok_small),
+        # 逐 drop 实测闭合率（非构造常量）：576 个 drop 全部通过正本判据 + 守卫
+        seam_measured_per_drop_all_ok=bool(
+            _md["n"] > 0 and _md["n_ok"] == _md["n"]),
+        seam_measured_per_drop_n=int(_md["n"]),
         elapsed_s=time.time()-t0)
     print("VERDICT:", json.dumps(out["verdict"]))
     with open(os.path.join(UNIT, "results", "audit", "route3", "exp03_weight_conservation.json"), "w") as f:
