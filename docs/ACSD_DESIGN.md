@@ -28,7 +28,7 @@ flowchart TD
 - `docs/DOCUMENT_INDEX.yaml` 是全文档集唯一索引地图，与文件树一致：未登记或登记不存在均为缺陷。
 - 同一主题只有一份正本，库内只保留最新版本。
 
-**下级索引**：下级正本见 `docs/engineering/DOCUMENT_GOVERNANCE.md`、`docs/engineering/PROJECT_SPEC.md`。
+**下级索引**：下级正本见 `docs/engineering/DOCUMENT_GOVERNANCE.md`、`docs/engineering/PROJECT_SPEC.md`；细节文档全树索引见 `docs/detail/00_INDEX.md`，文档—代码锚合同面见 `docs/detail/anchors/ANCHOR_CONTRACT.md`。
 
 ### 0.1 文档写法
 
@@ -104,13 +104,13 @@ flowchart LR
 
 五个创新点各自是一个独立实验单元（§12.3），由定稿小论文支撑，发布前全部经实验证实并跑通。
 
-**下级索引**：下级正本见 `docs/science/DISPUTE_RESOLUTION.md`、`docs/science/SCIENCE_SCOPE.md`、`docs/science/UNIFIED_SCIENCE_MODEL.md`。
+**下级索引**：下级正本见 `docs/science/DISPUTE_RESOLUTION.md`、`docs/science/SCIENCE_SCOPE.md`、`docs/science/UNIFIED_SCIENCE_MODEL.md`；星检测的逐算子落地规格见 `docs/detail/STAR_DETECTION_IMPL_DESIGN.md`。
 
 ### 2.1 P1 通量积分拟合：测光校准到测光星等坐标系
 
 - 只对图像中的星点测光，不做全图像素测光；星点位置由 Gaia DR3 XP 星表逆映射到本帧像素域获得，把计算量集中在星表位置。
 - 用 Gaia XP 星点光谱 × CCD 量子效率曲线 × 滤镜透过率曲线积分，正向合成该星点在本系统中的期望测光量，与实测通量拟合，得到本帧测光标定。
-- 拟合结果以线性乘性标度 `k_photo` 应用到整帧（`I_photo = k_photo·I_cal`），把图像校准到统一测光星等坐标系；吸收、增益、口径、曝光时间等未知量不需要、也不可被反推。
+- 拟合结果以线性乘性标度 `k_photo` 应用到整帧（`I_photo = k_photo·I_cal`），把图像校准到统一测光星等坐标系；吸收、增益、口径、曝光时间等未知量不需要、也不可被反推。低阶空间乘性增益 `m(x,y)` 与 `k_photo` 并列构成同一个标度面，其启用条件与适用域见 §4.2。
 - 施加标度后，帧像素与 HiPS signal 仍是线性面亮度；星等只在派生展示时按 `m = ZP − 2.5·log10 F` 换算，不作为数据形态落盘，因为星等对数量不可相加。
 - 每帧独立标定到同一坐标系，不同夜、不同透明度的帧标定系数不同是正常的。
 - 测光标定不设固定星数门槛：任何可解析帧都执行，精度按本帧实测匹配星数与误差预算如实标注；可辨识条件不成立时走拟合失败路径，产品显式声明未测光。
@@ -121,10 +121,12 @@ flowchart LR
 
 - 像素测量值的参考分解为 `I = O + N_e/g + N_read`，其中 `N_e = N_src + N_sky + N_dark`；偏置、目标源、天光、暗流、读出噪声各为独立项。
 - 增益 `g` 采用电子/ADU 约定；引用文献公式时先确认其增益约定并换算，各噪声项的物理来源、量纲、方差形式与空间尺度逐项标注文献出处与适用域。
-- 交付物是 PSF 信号信噪比：由星点 PSF 测光给出逐源 `SNR_F = F/σ_F`，`F` 为已扣独立局部背景的拟合域通量，`σ_F` 为逐源通量不确定度。
+- 交付物是 PSF 信号信噪比：`SNR = F_ref/σ_F`，分子是逐帧参考通量 `F_ref`，不是逐源实测通量。参考轮廓取星点目录的中位 FWHM 加本帧 `sigma_sky`；`σ_F` 是该轮廓的 PSF 加权通量不确定度（`σ_F⁻² = Σ_i P_i²/σ_i²`，含源光子散粒项），与分子同帧同源。口径定义处见 §5.3。
+- 逐源目录另存 `source_snr = F/σ_F`（`F` 为已扣独立局部背景的拟合域通量，`σ_F` 为该源通量不确定度），它是诊断量、不进权重链。把它当成 `frame_snr` 或稀疏层值会使权重偏一个量级因子，端口接错判红。
 - 信噪比由两个相互独立、同物理口径与同参考通量 `F_ref` 的对象承载：帧级标量 `frame_snr`（写入 HiPS 文件头）与帧内稀疏控制点层 `sparse_snr_layer`（存控制点处的绝对信噪比）。
-- 信号经独立局部背景估计与扣除，天光只通过其散粒噪声进入噪声项；天光越亮信噪比越低、趋于零，从而不把天光计入信号。
-- 叠加权重在 mosaic 消费时才由信噪比现场换算：`w = SNR²/F_ref² = 1/σ_F²`，采用含源光子散粒项的逐像素总方差；Phase1 与 Phase3 不产生、不存储权重。
+- 信号经独立局部背景估计与扣除，天光只通过其散粒噪声进入噪声项，从而不把天光计入信号。
+- 帧级信噪比对天光的单调性有成立域：固定源通量下天光越亮、信噪比越低并趋于零，成立于 `sigma_sky` 由天光散粒噪声主导、探测器未饱和、常量像素占比低于 0.40 的帧。天光饱和、展源结构主导裁剪残差、常量像素占比越限三条都破坏该单调性，后两条是静默破坏，门不报错。域外的判据是 `σ̂` 估计量是否仍由天光散粒噪声主导，不是信噪比随天光的斜率。
+- 叠加权重在 mosaic 消费时才由信噪比现场换算：`w = SNR²/F_ref² = 1/σ_F²`，其中 `SNR` 取上述 `F_ref/σ_F`，与 §5.3 同一口径；采用含源光子散粒项的逐像素总方差；Phase1 与 Phase3 不产生、不存储权重。
 - 方法学对标 PixInsight 公开文档的 PSFSNR；其 PSF Signal Weight 是已形成的叠加权重，ACSD 入库的是未加权的原始信噪比。
 
 **下级索引**：下级正本见 `docs/science/CONTROL_WEIGHT_SNR.md`、`docs/science/NOISE_MODEL.md`、`docs/science/PSF_SIGNAL_WEIGHT.md`、`docs/science/algorithms/NOISE_ESTIMATION.md`。
@@ -153,7 +155,7 @@ flowchart LR
 ### 2.5 P5 加性天光去除与无接缝叠加
 
 - 设计猜想：信号校准到测光星等坐标系后，真实信号强度在帧间连续；帧间亮度阶跃来自天光，而天光是可加性去除的。
-- P1 已统一信号平面、P2/P4 已给出稠密精确信噪比，因此天光平面拟合与叠加定权使用逆方差权重 `w = 1/σ_F²`。
+- P1 已统一信号平面、P2/P4 已给出稠密精确信噪比，因此天光平面拟合与叠加定权使用 §2.2 的同一逆方差权重 `w = 1/σ_F²`；该式等价于 §5.3 的 `w = SNR²/F_ref²`，`σ_F` 的定义与适用前提以 §2.2 为准。
 - 星点掩膜之外每帧取稀疏背景采样点，采样点带噪声逆方差权重；全部帧联合构建一张连续的天光参考平面，使加权残差 RMS 最小；平面稀疏表示、栅格值现场求值。
 - 每帧估计相对参考平面的平缓梯度，按多退少补用加法扣除偏差 `δ_k`，保留公共天光面 `B_ref`；叠加后的马赛克仍带真实背景。
 - 各帧对齐到同一连续平面后，叠加结果在帧集变化处连续；接缝判据在保留背景前提下取有符号电平台阶，只对两侧都有数据的边界计入。
@@ -171,12 +173,13 @@ flowchart LR
 
 ### 3.1 数据对象
 
-- signal、variance、ivar、frame_snr、sparse_snr_layer、depth_m5、support、coverage、validity、rejection、provenance 各是独立对象，全仓一份正本定义，其余 schema 是其派生投影。
+- 现行统一数据对象集共 13 个：signal、variance、ivar、source_snr、depth_m5、frame_snr、point_information、sparse_snr_layer、support、coverage、validity、rejection、provenance，各是独立对象，全仓一份正本定义，其余 schema 是其派生投影。
+- `source_snr` 是逐源通量型信噪比，分子取该源实测通量，只作诊断；`point_information` 是点源通量估计的逆方差，是点源目标的严格权重。两者都不能与 `frame_snr`、`sparse_snr_layer` 互换（分子口径见 §2.2，权重换算见 §5.3）。
 - 字段名携带对象全名，端口只接同一种对象，接错判红。
-- HiPS 里存的是帧级信噪比与稀疏控制点；权重是 mosaic 集成时现场计算的派生量，全链没有「权重模式」这一可选概念。
+- HiPS 里存的是帧级信噪比与稀疏控制点；由帧级与稀疏层出发的叠加权重是 mosaic 集成时现场换算的派生量（§2.2、§5.3），全链没有「权重模式」这一可选概念。点源信息量 `point_information` 是 normalize 落盘的独立产品对象，export 消费而不重算。
 - 帧级信噪比与稀疏层是两个独立对象，共用同一物理定义与逐帧参考通量，消费时由绝对控制点重建稠密场，不做相对归一。
 
-**下级索引**：下级正本见 `docs/engineering/UNIFIED_OBJECTS.md`、`docs/science/DATA_SEMANTICS.md`、`docs/science/UNCERTAINTY_AND_COVARIANCE.md`、`docs/science/UNIFIED_SCIENCE_MODEL.md`、`docs/science/algorithms/HEALPIX_MAPPING.md`。
+**下级索引**：下级正本见 `docs/engineering/UNIFIED_OBJECTS.md`、`docs/science/DATA_SEMANTICS.md`、`docs/science/UNCERTAINTY_AND_COVARIANCE.md`、`docs/science/UNIFIED_SCIENCE_MODEL.md`、`docs/science/algorithms/HEALPIX_MAPPING.md`；13 个对象的统一观测模型与逐对象语义见 `docs/detail/UNIFIED_MODEL.md`。
 
 ### 3.2 三类配置
 
@@ -201,7 +204,7 @@ flowchart LR
 
 ## 4. normalize：单帧标准化
 
-**下级索引**：下级正本见 `docs/engineering/PHASE1_API_V1.md`、`docs/science/ACR_EQUIVALENCE.md`、`docs/science/CCD_LINEAR_DEFECT_LITERATURE.md`。
+**下级索引**：下级正本见 `docs/engineering/PHASE1_API_V1.md`、`docs/science/ACR_EQUIVALENCE.md`、`docs/science/CCD_LINEAR_DEFECT_LITERATURE.md`；阶段详细设计见 `docs/detail/PHASE1_DETAILED_DESIGN.md`。
 
 ### 4.1 使命
 
@@ -229,7 +232,7 @@ flowchart TD
 - 节点序由真实数据流决定：WCS 解算在前（按校准后像素做星点匹配），星表引导检测与 PSF 建模在后；节点序与依赖边由注册表端口图唯一确定。
 - WCS 解算在给定近似指向下完成星表匹配与稳健迭代精化，近似指向来自帧头、配置或邻居产品，不设独立盲解节点。
 - 星表引导检测用本帧权威 WCS 把 Gaia 逆投影到像素域，只对星表位置做质心/PSF 拟合，拟合成功即星点、失败丢弃；星点上限由配置承载、极限星等按焦距画幅曝光派生。
-- 测光与归一化在同一节点完成：施加 `I_photo = k_photo·m(x,y)·I_cal`（`m(x,y)` 为低阶空间增益），省掉一次中间产物落盘；溯源记录使该乘法可由独立读者逐像素复算。
+- 测光与归一化在同一节点完成：施加 `I_photo = k_photo·m(x,y)·I_cal`，省掉一次中间产物落盘；溯源记录使该乘法可由独立读者逐像素复算。`m(x,y)` 是与 `k_photo` 并列的低阶乘性空间增益场，阶数由配置请求、缺省为 `m ≡ 1`（此时标度面就是 §2.1 的 `k_photo·I_cal`）；星数、覆盖或可辨识性不满足时按声明降阶，降到 `m ≡ 1` 并把原因写入降级字段，不发布未被数据约束的场。空间项在真实数据上的有效性未获验证，其判据与数据见 §12.3 的 P1 实验单元。
 - 检测、PSF、测光、信噪比共用同一份星点绑定行，全链一个通量口径。
 
 **下级索引**：下级正本见 `docs/science/ASTROMETRY.md`、`docs/science/CALIBRATION.md`、`docs/science/NOISE_MODEL.md`、`docs/science/PSF.md`、`docs/science/STAR_DETECTION.md`，另 8 份。
@@ -299,7 +302,7 @@ flowchart TD
 
 ## 5. mosaic：相对定标 · 排异 · 集成
 
-**下级索引**：下级正本见 `docs/engineering/PHASE2_API_V1.md`。
+**下级索引**：下级正本见 `docs/engineering/PHASE2_API_V1.md`；阶段详细设计见 `docs/detail/PHASE2_DETAILED_DESIGN.md`。
 
 ### 5.1 使命
 
@@ -326,7 +329,7 @@ flowchart TD
 ### 5.3 信噪比重建与逆方差叠加
 
 - 三种重建方式由 JSON 指定：`dense`（帧内稠密）、`sparse_reconstruct`（默认，稀疏控制点插值）、`frame_reconstruct`（仅帧级）；实际生效方式记入溯源。
-- 三者都产出同一物理量 `SNR = F_ref/σ_F` 的稠密表示，只在重建方式上不同；叠加权重现场换算为逆方差 `w = SNR²/F_ref² = 1/σ_F²`，是 point information 最优集成，不是直接用信噪比加权。
+- 三者都产出同一物理量 `SNR = F_ref/σ_F` 的稠密表示，只在重建方式上不同；叠加权重现场换算为逆方差 `w = SNR²/F_ref² = 1/σ_F²`，是 point information 最优集成，不是直接用信噪比加权。本节是 `F_ref` 与 `σ_F` 口径的定义处，§2.2 的逐源 SNR 是另一个对象（§3.1）；该恒等式要求 `SNR` 的分子与 `F_ref` 是同一参考通量，分子换成逐源实测通量后 `1/σ_F²` 不成立。
 - 拟合权重与堆叠权重是两个量：拟合用逆方差（可加稳健项），堆叠用含拟合参数协方差的残差方差。
 - 稠密信噪比是数学表示，工程上按输出像素现场求值、不驻留。
 
@@ -353,7 +356,7 @@ flowchart TD
 
 ## 6. export：投影导出
 
-**下级索引**：下级正本见 `docs/engineering/PHASE3_API_V1.md`。
+**下级索引**：下级正本见 `docs/engineering/PHASE3_API_V1.md`；阶段详细设计见 `docs/detail/PHASE3_DETAILED_DESIGN.md`。
 
 ### 6.1 使命
 
@@ -408,7 +411,7 @@ benchmark                           生成/更新机器画像
 - 命令行是薄入口：解析、预检、运行控制、机器输出、取消与退出码；科学公式在算法库，读写在统一 I/O，线程池在调度器。
 - normalize/mosaic/export 是命令名，phase1/2/3 仅为内部指代，不出现在命令与算法目录命名中。
 
-**下级索引**：下级正本见 `docs/engineering/CLI_PROTOCOL_V1.md`。
+**下级索引**：下级正本见 `docs/engineering/CLI_PROTOCOL_V1.md`；命令行入口落地见 `docs/detail/infrastructure/18_cli.md`。
 
 ### 7.2 机器输出与退出码
 
@@ -416,7 +419,7 @@ benchmark                           生成/更新机器画像
 - 退出码按失败类型区分：成功、参数或配置错误、输入缺失、科学不变量失败、后端加载失败、执行失败、I/O 失败、输出验证失败、用户取消、磁盘写满、未分类内部错误；退出码唯一定义在工程正本。
 - 取消（Ctrl-C）：协作取消、关 writer、写未完成 manifest、隔离临时产物。
 
-**下级索引**：下级正本见 `docs/engineering/CLI_PROTOCOL_V1.md`、`docs/engineering/CONFIG_CONTRACT.md`。
+**下级索引**：下级正本见 `docs/engineering/CLI_PROTOCOL_V1.md`、`docs/engineering/CONFIG_CONTRACT.md`；机器输出与排障落地见 `docs/detail/merged_TROUBLESHOOTING.md`。
 
 ### 7.3 错误传播与日志
 
@@ -424,7 +427,7 @@ benchmark                           生成/更新机器画像
 - 降级在显式、可溯、不改科学语义三要件齐备时合法，否则 fail-closed；未捕获异常产生脱敏 crash report。
 - 每次运行在输出目录下产出完整日志，机器日志与可读摘要同源；日志写入失败即运行失败；日志不含凭据与绝对用户路径。
 
-**下级索引**：下级正本见 `docs/engineering/LOG_AND_ERROR_CONTRACT.md`。
+**下级索引**：下级正本见 `docs/engineering/LOG_AND_ERROR_CONTRACT.md`；日志与错误系统落地见 `docs/detail/LOG_AND_ERROR_SYSTEM.md`、`docs/detail/infrastructure/21_observability.md`。
 
 ---
 
@@ -449,7 +452,7 @@ flowchart LR
     H2 -->|磁盘| P3
 ```
 
-**下级索引**：下级正本见 `docs/engineering/PIPELINE_BLOCK_CONTRACT.md`、`docs/engineering/SCHEDULER_CONTRACT.md`。
+**下级索引**：下级正本见 `docs/engineering/PIPELINE_BLOCK_CONTRACT.md`、`docs/engineering/SCHEDULER_CONTRACT.md`；调度器与管线运行时落地见 `docs/detail/infrastructure/19_runtime.md`。
 
 ### 8.2 命名块内存管线与块生命周期
 
@@ -509,7 +512,7 @@ testdata/                  真实数据与只读数据集索引
 - 科学模块不读全局配置、不建无预算线程池、不直接退出、不写未声明文件、不绕过统一 I/O。
 - 动态库加载前检查 CPU 特征、manifest、ABI，只认清单授权路径，失败报错、不搜索回退。
 
-**下级索引**：下级正本见 `docs/engineering/RT-001.md`、`docs/engineering/observability/RESOURCE_MONITORING_CONTRACT.md`、`docs/engineering/observability/RUN_GRAPH_CONTRACT.md`、`docs/engineering/observability/STRUCTURED_LOGGING_CONTRACT.md`。
+**下级索引**：下级正本见 `docs/engineering/RT-001.md`、`docs/engineering/observability/RESOURCE_MONITORING_CONTRACT.md`、`docs/engineering/observability/RUN_GRAPH_CONTRACT.md`、`docs/engineering/observability/STRUCTURED_LOGGING_CONTRACT.md`；各基建组件的落地设计见 `docs/detail/infrastructure/README.md`。
 
 ### 8.5 模块与 ABI
 
@@ -517,7 +520,7 @@ testdata/                  真实数据与只读数据集索引
 - 跨动态库不传 STL、异常、RTTI 与编译器私有类型，第三方库隔离在动态库内部。
 - 每个生产 DAG 节点映射唯一真实模块入口，模块对块的读写集合与生命周期声明一致。
 
-**下级索引**：下级正本见 `docs/engineering/API-001.md`、`docs/engineering/BENCHMARK_STANDARD.md`、`docs/engineering/CODE_STANDARD.md`、`docs/engineering/COMMENT_STANDARD.md`、`docs/engineering/COMMON_ABI_V1.md`，另 12 份。
+**下级索引**：下级正本见 `docs/engineering/API-001.md`、`docs/engineering/BENCHMARK_STANDARD.md`、`docs/engineering/CODE_STANDARD.md`、`docs/engineering/COMMENT_STANDARD.md`、`docs/engineering/COMMON_ABI_V1.md`，另 12 份；每个生产模块的登记正本见 `docs/detail/registry/README.md`，共享基础库落地见 `docs/detail/common.md`。
 
 ---
 
@@ -532,7 +535,7 @@ testdata/                  真实数据与只读数据集索引
 - 并行度沿帧级并发与帧内并行两轴分配，取两轴之积最大的组合；串行段由帧级并发重叠，不以加大帧内宽度替代。
 - 浮点归约顺序冻结，跨 worker 无共享浮点累加器；并行开关不改科学数值，等价判据是事前冻结、声明适用量级域的浮点容差，不要求逐位一致。
 
-**下级索引**：下级正本见 `docs/engineering/BASELINE.md`、`docs/engineering/COMPRESSION_CODEC_RESEARCH_PACK.md`、`docs/engineering/OPTIMIZATION.md`、`docs/engineering/PERF_GATE_CONTRACT.md`、`docs/engineering/SCHEDULER_CONTRACT.md`，另 5 份。
+**下级索引**：下级正本见 `docs/engineering/BASELINE.md`、`docs/engineering/COMPRESSION_CODEC_RESEARCH_PACK.md`、`docs/engineering/OPTIMIZATION.md`、`docs/engineering/PERF_GATE_CONTRACT.md`、`docs/engineering/SCHEDULER_CONTRACT.md`，另 5 份；机器画像落地见 `docs/detail/infrastructure/20_benchmark.md`。
 
 ---
 
@@ -545,7 +548,7 @@ testdata/                  真实数据与只读数据集索引
 - manifest 记录产品类型、软件来源、运行标识、输入标识、科学配置、像素语义、算法标识、实际后端；单位、坐标、无效值策略由产品证据块显式声明，缺失即不许消费。
 - 产品与运行日志只落块级 output_dir；资源监控伴随重计算运行，监控数据不可事后编造。
 
-**下级索引**：下级正本见 `docs/engineering/04_ARTIFACTS.md`、`docs/engineering/COMPRESSION_CODEC_RESEARCH_PACK.md`、`docs/engineering/DATA_ARTIFACTS.md`、`docs/engineering/DEVELOPER_GUIDE.md`、`docs/engineering/HIPS_STORAGE_FORM_CONTRACT.md`，另 12 份。
+**下级索引**：下级正本见 `docs/engineering/04_ARTIFACTS.md`、`docs/engineering/COMPRESSION_CODEC_RESEARCH_PACK.md`、`docs/engineering/DATA_ARTIFACTS.md`、`docs/engineering/DEVELOPER_GUIDE.md`、`docs/engineering/HIPS_STORAGE_FORM_CONTRACT.md`，另 12 份；产品落盘形态见 `docs/detail/PRODUCT_STORAGE_FORM.md`，AIO 与原子提交落地见 `docs/detail/infrastructure/17_aio.md`。
 
 ---
 
@@ -663,7 +666,7 @@ flowchart TD
 
 ## 附录 A. 术语
 
-signal、variance、ivar、frame_snr、sparse_snr_layer、support、coverage、validity、rejection、provenance、UPM、PSF、HiPS、HEALPix、WCS、projection、stacking、drizzle、机器画像、运行 manifest、control_ivar —— 定义见 `docs/detail/` 与 `docs/GLOSSARY.md`。
+signal、variance、ivar、source_snr、depth_m5、frame_snr、point_information、sparse_snr_layer、support、coverage、validity、rejection、provenance、UPM、PSF、HiPS、HEALPix、WCS、projection、stacking、drizzle、机器画像、运行 manifest、control_ivar —— 定义见 `docs/detail/` 与 `docs/GLOSSARY.md`。
 
 **下级索引**：下级正本见 `docs/GLOSSARY.md`。
 
