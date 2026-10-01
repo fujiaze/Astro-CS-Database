@@ -187,7 +187,7 @@ def gate_decision_with_coverage(per_edge, max_rel_excess=GATE, min_samples=MIN_S
     「真无台阶」区（cov 与配对零台阶对照不可分辨）保留生产的 PASS；
     「多数成立」区照常按 `max|rel_step|` 判决；
     「检出但不足多数」区（`0 < cov ≤ 0.5`）⇒ `FAIL_COVERAGE`，
-    因为中位数落���无台阶一侧，此时读 0 判绿是**无效结论**。
+    因为中位数落在无台阶一侧，此时读 0 判绿是**无效结论**。
     """
     base = gate_decision(per_edge, max_rel_excess, min_samples)
     sel = [p for p in per_edge if p.get("exclude") is None and p.get("rel_step") is not None]
