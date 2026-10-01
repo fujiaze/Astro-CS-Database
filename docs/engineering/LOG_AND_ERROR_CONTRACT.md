@@ -3,7 +3,7 @@
 > 上游：`docs/ACSD_DESIGN.md` §7.2（机器输出与退出码）、§7.3（错误传播与日志：顶层约束）
 > 详细设计：`docs/detail/LOG_AND_ERROR_SYSTEM.md`
 > 机器事实源：`lib/infrastructure/observability/logging/log_event_v1.schema.json`（日志行格式正本）、
-> `eng/ci/ledgers/log_system_ledger.json`（登记台账）、`eng/tools/quality/check_log_system.py`（判据）
+> 登记台账（日志系统偏差登记面）与判据的载体见 门禁注册面（G08-10 重建）
 
 ---
 
@@ -108,7 +108,7 @@ run manifest 增列 `log_artifacts[]`（**每次运行必填，可为空数组�
 
 - **数值表只有一份**：本合同只做「域 → 码」映射，不复写码值含义；
 - 未列出的域一律 70，并在 `status` 里给出可定位的稳定错误码；
-- 现行实现的域映射偏差登记在 `eng/ci/ledgers/log_system_ledger.json#findings`（登记不改码）。
+- 现行实现的域映射偏差在日志系统登记台账的 `findings` 面登记（台账载体见 门禁注册面（G08-10 重建）；登记不改码）。
 
 ---
 

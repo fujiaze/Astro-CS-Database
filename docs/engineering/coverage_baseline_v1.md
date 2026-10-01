@@ -14,7 +14,7 @@
 
 ## 基线获取方式
 
-- 检查入口：`eng/ci/run.py --profile linux-deep`（DEEP-COV，见 门禁注册面（G08-10 重建））。
+- 检查入口：linux-deep profile 的 DEEP-COV 检查（见 门禁注册面（G08-10 重建））。
 - 驱动：`eng/tools/quality/ci_coverage_runner.py`（pytest-cov 薄封装，
   `--cov=lib --cov=cli --cov=tools --cov-branch`，分支覆盖）。
 - 产物：`run/ci/coverage/coverage.xml`、`coverage.json`、

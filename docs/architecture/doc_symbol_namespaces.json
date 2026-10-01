@@ -160,20 +160,20 @@
     {
       "token": "ANCHOR_STALE",
       "namespace": "verdict_id",
-      "evidence": "eng/ci/check_algo_wiring.py:73",
-      "reason": "「锚存活」失效的具名失败判词（ENGINEERING_SPEC §8 锚存活，rc=2 fail-closed；全仓 40 余个检查器共用同一字面量，本条登记钉其中一个代表性抛出点，测试侧断言见 eng/tests/traceability/test_traceability_matrix.py）。判词不是 API 符号 ⇒ 显式登记命名空间。文档承载 = docs/engineering/01_CHECKS.md §1 与 docs/engineering/STANDARDS_REGISTRY.md 锚存活节【证据形态 A：该行逐字含 token —— 行锚即为 token 的真实承载行】"
+      "evidence": "docs/engineering/VALIDATION_EVIDENCE_STANDARD.md:408",
+      "reason": "「锚存活」失效的具名失败判词（判据 = 判据中硬编码引用的仓库路径必须存在；失效 ⇒ stderr 打印 ANCHOR_STALE 并 exit 2，不 traceback、不静默降级）。判词不是 API 符号 ⇒ 显式登记命名空间。行锚 = 判据条文行 :408。文档承载 = docs/engineering/VALIDATION_EVIDENCE_STANDARD.md 锚存活条与 docs/engineering/STANDARDS_REGISTRY.md §5【证据形态 C：仓内无该判词的代码抛出点载体，仅判据条文逐字承载 token；条文改写本门不判红 —— 已知代价，如实标注】"
     },
     {
       "token": "SOURCE_DIGEST_MISMATCH",
       "namespace": "verdict_id",
-      "evidence": "eng/ci/check_build_provenance.py:21",
-      "reason": "构建溯源门 N1 的判红名（记录 build_source_digest ≠ 按当前工作树重算 ⇒ rc=1；emit 点同文件 :166/:237/:245）。判词不是 API 符号 ⇒ 显式登记命名空间。行锚 = 判据表行 :21。文档承载 = docs/engineering/VERSIONING.md 构建溯源节【证据形态 A：该行逐字含 token —— 行锚即为 token 的真实承载行】"
+      "evidence": "docs/engineering/VERSIONING.md:45",
+      "reason": "构建溯源判据 N1 的判红名（记录 build_source_digest ≠ 按当前工作树重算；有构建树逐文件清单时精确点名差异文件）。判词不是 API 符号 ⇒ 显式登记命名空间。行锚 = 判据条文行 :45。文档承载 = docs/engineering/VERSIONING.md §2.1 构建指纹合同【证据形态 C：仓内无该判词的代码抛出点载体，仅判据条文逐字承载 token；条文改写本门不判红 —— 已知代价，如实标注】"
     },
     {
       "token": "BUILD_STAMP_ANCHOR_MISSING",
       "namespace": "verdict_id",
-      "evidence": "eng/ci/check_build_provenance.py:19",
-      "reason": "构建溯源门 N4 的判红名（目标里没有构建期指纹 ⇒ rc=2，fail-closed 语义「不可锚定 ≠ 通过」；emit 点同文件 :68/:74/:93/:259）。判词不是 API 符号 ⇒ 显式登记命名空间。行锚 = 判据表行 :19。文档承载 = docs/engineering/VERSIONING.md 构建溯源节【证据形态 A：该行逐字含 token —— 行锚即为 token 的真实承载行】"
+      "evidence": "docs/engineering/VERSIONING.md:46",
+      "reason": "构建溯源判据 N4 的判红名（目标里没有构建期指纹；fail-closed 语义「不可锚定 ≠ 通过」）。判词不是 API 符号 ⇒ 显式登记命名空间。行锚 = 判据条文行 :46。文档承载 = docs/engineering/VERSIONING.md §2.1 构建指纹合同【证据形态 C：仓内无该判词的代码抛出点载体，仅判据条文逐字承载 token；条文改写本门不判红 —— 已知代价，如实标注】"
     },
     {
       "token": "NON_CONFORMANT",
@@ -186,24 +186,6 @@
       "namespace": "standards_conformance_status",
       "evidence": "docs/standards/checks/check_standards_registry.py:108",
       "reason": "「符合状态」轴的取值之一（标准未规定或本实现显式偏离标准之处，按 Project-defined 冻结；取值域同 LEGAL_STATUS，见 :108）。与交付状态阶梯是**两个独立轴**。文档承载 = docs/engineering/RELEASE_STATUS.md §0 与 docs/engineering/STANDARDS_REGISTRY.md 符合状态列【证据形态 A：该行逐字含 token —— 行锚即为 token 的真实承载行】"
-    },
-    {
-      "token": "PROFILE_INHERITS",
-      "namespace": "checker_constant",
-      "evidence": "eng/ci/run_checks.py:92",
-      "reason": "CI 档位继承表的单源常量（档位阶梯的唯一实现点；eng/tools/quality/check_ci_profile_coverage.py:17 要求从本处 import 而非复制第二份路径语义，消费点 eng/ci/run_checks.py:123）。Python 模块常量不是 API 符号 ⇒ 显式登记命名空间。行锚 = 定义行 :92。文档承载 = docs/engineering/01_CHECKS.md CHK-CI-PROFILE-COVERAGE 行【证据形态 A：该行逐字含 token —— 行锚即为 token 的真实承载行】"
-    },
-    {
-      "token": "PROFILE_GATING_LANES",
-      "namespace": "checker_constant",
-      "evidence": "eng/ci/run_checks.py:107",
-      "reason": "CI 档位门控名单的单源常量（同上「从单一来源取」要求；消费点 eng/ci/run_checks.py:118/:1830 与 eng/tools/quality/check_ci_profile_coverage.py:75）。Python 模块常量不是 API 符号 ⇒ 显式登记命名空间。行锚 = 定义行 :107。文档承载 = docs/engineering/01_CHECKS.md CHK-CI-PROFILE-COVERAGE 行【证据形态 A：该行逐字含 token —— 行锚即为 token 的真实承载行】"
-    },
-    {
-      "token": "SILENT_OK_UNITS",
-      "namespace": "checker_constant",
-      "evidence": "eng/ci/run_checks.py:182",
-      "reason": "「按设计静默成功」执行单元的显式登记表（failclosed_survey 消费面：eng/ci/failclosed_survey.py:128-131 生成 N/A(SILENT_OK_UNITS 显式登记)；派发面 eng/ci/run_checks.py:394/:403）。Python frozenset 常量不是 API 符号 ⇒ 显式登记命名空间。行锚 = 定义行 :182。文档承载 = docs/engineering/03_GATES.md 适用面节【证据形态 A：该行逐字含 token —— 行锚即为 token 的真实承载行】"
     },
     {
       "token": "REQUIRED_ANCHORS",
@@ -245,13 +227,13 @@
       "token": "p2_op_reject",
       "namespace": "module_port_symbol",
       "evidence": "lib/infrastructure/scheduler/src/module_adapters.cpp:11068",
-      "reason": "Phase2 rejection 模块的编排层端口符号（定义行 :11068；台账面 eng/ci/ledgers/dead_config_keys.json:112/:129 与 eng/ci/ledgers/design_clauses.json:451 以该符号名记退出条件）。与既有 p2_write_descriptor / p2_parallel_for 同型：编排层词汇，不进 api_inventory，也不在 lib 公开头。行锚 = 定义行 :11068。文档承载 = docs/detail/registry/acsd.phase2.reject.md「公共 header、核心 symbol 与生命周期」（`p2_op_reject` 登记行）【证据形态 A：该行逐字含 token —— 行锚即为 token 的真实承载行】"
+      "reason": "Phase2 rejection 模块的编排层端口符号（定义行 :11068；台账面 eng/contracts/ledgers/dead_config_keys.json 以该符号名记退出条件）。与既有 p2_write_descriptor / p2_parallel_for 同型：编排层词汇，不进 api_inventory，也不在 lib 公开头。行锚 = 定义行 :11068。文档承载 = docs/detail/registry/acsd.phase2.reject.md「公共 header、核心 symbol 与生命周期」（`p2_op_reject` 登记行）【证据形态 A：该行逐字含 token —— 行锚即为 token 的真实承载行】"
     },
     {
       "token": "sdet_gauss_fit",
       "namespace": "module_internal_symbol",
       "evidence": "lib/algorithms/star_detection/src/sdet_api.cpp:779",
-      "reason": "星检测模块翻译单元内的椭圆高斯拟合函数（模板 sdet_gauss_fit<T>，定义行 :779；调用点 :2076 与 :2331；模块登记面 lib/algorithms/star_detection/module.yaml:103、dormant 台账 eng/ci/ledgers/dormant_algorithms.json:377）。不经导出宏、**不在 lib 公开头语料**（门内 _defined_in_public_header 实测判 False）也不在 api_inventory ⇒ 显式登记命名空间。行锚 = 定义行 :779。文档承载 = docs/detail/registry/acsd.phase1.star-detection.md「数值落地口径与实现落点」（两条实现路径表）【证据形态 A：该行逐字含 token —— 行锚即为 token 的真实承载行】"
+      "reason": "星检测模块翻译单元内的椭圆高斯拟合函数（模板 sdet_gauss_fit<T>，定义行 :779；调用点 :2076 与 :2331；模块登记面 lib/algorithms/star_detection/module.yaml:103）。不经导出宏、**不在 lib 公开头语料**（门内 _defined_in_public_header 实测判 False）也不在 api_inventory ⇒ 显式登记命名空间。行锚 = 定义行 :779。文档承载 = docs/detail/registry/acsd.phase1.star-detection.md「数值落地口径与实现落点」（两条实现路径表）【证据形态 A：该行逐字含 token —— 行锚即为 token 的真实承载行】"
     },
     {
       "token": "P2_SEMANTIC_",

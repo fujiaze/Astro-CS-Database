@@ -70,7 +70,7 @@ handler→内部会话 API 追溯(phase 为内部指代): normalize→API-003(�
   - `resource_gate`：资源门判定记录（诊断 / 强制口径 / 工作量下界 / SO-05 签字证据）；
     逐键语义与必含集见 `docs/detail/infrastructure/21_observability.md` §8.4「事件面登记」；
   - `v6_mode_route`：V6 路由登记（route_kind / token / surface / 来源 / 预算归属）。
-  **kind 集合与逐 kind 字段集由机器门 `eng/ci/check_event_field_sets.py`（EVT-FIELD-SETS）守
+  **kind 集合与逐 kind 字段集由机器门 EVT-FIELD-SETS（注册面见 门禁注册面（G08-10 重建））守
   五面一致**（正本 kExt / schema `allOf[].then.required` / schema `x-acsd-event-kind-registry` /
   读侧 CLI-004 / 读侧 FIX208）；本节只给指针与语义，**不重复该判据**。
 - **`artifact` 的 DET-001 附加字段不属冻结必含集**：`integrity_sha256` / `canonical_sha256` /

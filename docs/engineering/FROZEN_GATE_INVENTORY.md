@@ -19,7 +19,7 @@
 | 门 | 在跑？ | 机器证据（详见盘点表） | 通知面 | 出口 |
 |---|---|---|---|---|
 | **F9-WCS-ABS**（DISP-WCS-001 / RESCUE F-9） | **是** | `lib/algorithms/platesolve/cpp/ipv/src/ipv_wcs.cpp`；ctest `p1wcs_negative` / `p1wcs_apbp` | product_log | 停工 + 登记面=档位判词记录 |
-| **G-RES-01**（L2 资源四条） | **裁决器在跑，当轮不跑** | `eng/ci/l2_frozen_gate.py`；CI 只有 `L2-FROZEN-GATE-SELFTEST` / `L2-FROZEN-GATE-REPLAY` | run_artifact | record_and_justify |
+| **G-RES-01**（L2 资源四条） | **裁决器在跑，当轮不跑** | 资源门判定域 = `docs/detail/infrastructure/21_observability.md` §8；CI 侧只登记 `L2-FROZEN-GATE-SELFTEST` / `L2-FROZEN-GATE-REPLAY`（注册面见 门禁注册面（G08-10 重建）） | run_artifact | record_and_justify |
 | **G-P1-GATETABLE**（P1 检测/PSF/WCS 20 行门表） | **是** | `CHK-GATES-AND-TOLERANCES(-SELFTEST)`；20 行中 18 行的 `ctest:` 证据 ID 实测全部解析成功 | ci_step | 降级为诊断 |
 | **A6-GATE-PHOT**（P1 测光 σ 双边界） | **不在跑**（已声明缺口） | `checks.json` 161 条中 `实验/` 只出现在 `changed_paths`，0 条作为执行面；插件文档自述「判据尚未在代码中生效」 | **none** | **none** |
 | **L4-SEAM-FOOTPRINT**（接缝门） | 注册在跑，零产品时跳过 | `CHK-L4-SEAM-FOOTPRINT`；其 PRODUCT 步的 `optional_inputs` 实测不存在 | ci_step | 降级为诊断 |
