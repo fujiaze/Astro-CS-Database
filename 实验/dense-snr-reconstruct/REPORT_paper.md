@@ -116,11 +116,11 @@ IDW 保留为备选口径（生产算子词表无 IDW 档）；其参数按分�
 
 | 权来源 | E（Oracle 信息检验，真方差含源项） |
 |---|---|
-| 含源项 SNR ⇒ w = 1/σ_w² | **2.22e-16（机器零）** |
+| 含源项 SNR ⇒ w = 1/σ_w² | **2.22e-16（机器零）——代数恒等式自检，非实验证据，见 §7.23a** |
 | 丢源项（背景受限）⇒ w = 1/σ_slow² | 1.31e-3 |
 | 等权 | 1.78e-2 |
 
-重建臂（2-dex cell-SNR 对比度主场景）：A_full E = 7.4e-4、μ̂ 相对误差 4.5e-3、动态范围保持 0.989；丢源项 A_bglimit E = 1.7e-3；帧级常数口径 A_frame_recon E = 1.8e-2、动态范围保持比 0.99 → 0.75。极端对比场景（4-dex）：A_full E = 0.037 vs A_bglimit E = 0.433——**丢源项的最劣效率损失 12 倍**，且对比度越大代价越爆炸。负例（零源）：含源项/背景受限两控制格逐像素恒等（max dev = 0.0）、两臂 E 精确相等——须注意这是**同式构造的结构断言**（真值无源时两臂表达式恒等，任何算子都会判绿），不能单独承担"度量非退化"的证据；改成两臂各自经真实 S_src 估计流程的**估计器版零源判据**（零源帧逐臂逐位相等判绿 / 有源帧丢源项判红）与**算子敏感**的亮度跟随判据（全局常量臂必须判红）见 [实验:code/fix/fix01_metric_E_and_gates.py → results/fix/fix01_metric_E_and_gates.json::C_rebuilt_gates/C1_luminance_gate_rebuilt]。
+重建臂（2-dex cell-SNR 对比度主场景）：A_full E = 7.4e-4、μ̂ 相对误差 4.5e-3、动态范围保持 0.989；丢源项 A_bglimit E = 1.7e-3；帧级常数口径 A_frame_recon E = 1.8e-2、动态范围保持比 0.99 → 0.75。极端对比场景（4-dex）：A_full E = 0.037 vs A_bglimit E = 0.433——**丢源项的最劣效率损失 12 倍**，且对比度越大代价越爆炸。负例（零源）：含源项/背景受限两控制格逐像素恒等（max dev = 0.0）、两臂 E 精确相等——须注意这是**同式构造的结构断言**（真值无源时两臂表达式恒等，任何算子都会判绿），不能单独承担"度量非退化"的证据；**该门 `no_source_benefit_collapses` 已在 §7.23b 与 `oracle_full_is_optimal` 同级降级为结构恒真门**；改成两臂各自经真实 S_src 估计流程的**估计器版零源判据**（零源帧逐臂逐位相等判绿 / 有源帧丢源项判红）与**算子敏感**的亮度跟随判据（全局常量臂必须判红）见 [实验:code/fix/fix01_metric_E_and_gates.py → results/fix/fix01_metric_E_and_gates.json::C_rebuilt_gates/C1_luminance_gate_rebuilt]。
 
 端到端独立佐证（路线2 迷你链，512²、8 源、Δ=64 控制点 ±2% 噪声）[实验:route2/exp_P4R2_07_luminance_chain.py]：重建 RMSE 0.0795 dex、Pearson r = 0.9952；亮度跟随（通量 ×10 ⇒ 真 SNR 比 3.1968、重建场比 3.19698，理论 √10 = 3.1623，+1.1% 来自控制点噪声）——重建场跟随亮度而非复制方差图；零源负例稠密场 max|SNR| = 0.0 精确归零；P5 消费段 P4-SNR 定权堆叠方差/等权 = 1.0428（实测）vs 同口径理论 1.0444（0.15% 内闭合）；同存档第三个口径（逐像素均值）= 1.1199，三值并列见 [results/route2/exp07_luminance_chain_negative.json::P5_consumption_inverse_variance]，本文取**与实测同归约方式**的合并口径（逐像素均值口径对同一量换了归约）。
 
@@ -146,12 +146,12 @@ P4 把分母当缓变方差面处理的物理前提获得解析与实验双支�
 | E3 过冲与钳制 | 无钳制样条在钉刺（spike）网格上的振荡 | 钉刺档（Δ=32）：无钳制 min = −161.474、3.24% 像素非正、5.66% 越界；钳制后越界/非正 = 0。常规档最大非正比 0.387%（Δ=64）、最大越界比 9.76%（Δ=128） | results/route1/exp_p4_02_interpolators.json::adversarial_spike（`unclamped_min`/`unclamped_nonpos_frac`/`unclamped_overshoot_frac`）；`::runs/delta_64/spline_noclip`、`::runs/delta_128/spline_noclip` |
 | E4 节点相位 | 生产 cell_center_v1（31.5）与实验约定（31/32）差半像素 | 审查件独立复算 Δ=64：E 0.12017（生产 31.5）/0.12076（31）/0.48910（角点）⇒ 半像素差 0.49%、角点差 4 倍；本单元同构复核（`results/fix/fix02_boundaries_estimator_phase.json::C_node_phase`）：rmse-dex 0.15751/0.15791/0.15712/0.19364 ⇒ 同结论 | run/FINAL-07/审核包/科研审查/evidence-P4/R7_phase.out；本单元 results/fix/fix02…json |
 | E5 辅助常数 | Moffat4 FWHM 因子六位小数圆整 | 相对 1.91e-6（对 E 的二阶影响 <4e-6） | results/route2/exp09_moffat4_factor.json；§4.6 |
-| E6 控制值估计量偏差 | ① 丢源项（背景受限口径）；② 生产配方（8×8 patch 稳健方差 + 平面拟合取节点值）与 cell 均值的偏差（P4-M01） | ① Oracle 隔离：`E_oracle_full = 2.2e-16`（机器零）、`E_oracle_bglim = 1.3138e-3`；2-dex 重建臂 `A_bglimit = 1.6842e-3`；4-dex 极端档 `extreme_A_bglimit = 0.38046` vs `extreme_A_full = 0.030158`（12.6 倍）；② 已量化（`results/fix/fix02_boundaries_estimator_phase.json`）：结构场合并偏差 E_eff = 0.0232 / dex 0.0424，平坦场对照 1.6e-4 / 0.0038（≪0.02 门）⇒ 控制点无偏是**前提**而非事实（§2.1）。**读数口径**：极端档以 `results/route1/exp_p4_04_brightness_forward.json::arms/extreme_*` 存档为准（A_full 0.0301577、A_bglimit 0.3804647，比值 12.6）；`results/summary.json::key_results/luminance_carrying/extreme_4dex` 与之一致 | results/route1/exp_p4_04_brightness_forward.json::oracle_information_test；`::arms/extreme_A_bglimit/stack_usecase/E`；`::arms/extreme_A_full/stack_usecase/E`；results/fix/fix02_boundaries_estimator_phase.json::A_control_point_estimator_bias |
+| E6 控制值估计量偏差 | ① 丢源项（背景受限口径）；② 生产配方（8×8 patch 稳健方差 + 平面拟合取节点值）与 cell 均值的偏差（P4-M01） | ① Oracle 隔离：`E_oracle_full = 2.2e-16` —— **该读数是代数恒等式自检，不是实验证据**（`w_oracle_full` 按 `1.0/v_pix` 构造、传入度量的 `v_true` 正是同一 `v_pix`，故 `var_w ≡ var_opt`、`E ≡ 0` 对任意正方差数组恒成立；`oracle_full_is_optimal` 门**不具实验证据资格**（自证恒等式，作「`w=1/v` 抄录自检」仍有窄判别力；判别力定性见 §7.23a））。同段 `E_oracle_bglim = 1.3138e-3` 的权重不等于 `1/v_pix`，是真实读数、承担本项代价量化；2-dex 重建臂 `A_bglimit = 1.6842e-3`；4-dex 极端档 `extreme_A_bglimit = 0.38046` vs `extreme_A_full = 0.030158`（12.6 倍）；② 已量化（`results/fix/fix02_boundaries_estimator_phase.json`）：结构场合并偏差 E_eff = 0.0232 / dex 0.0424，平坦场对照 1.6e-4 / 0.0038（≪0.02 门）⇒ 控制点无偏是**前提**而非事实（§2.1）。**读数口径**：极端档以 `results/route1/exp_p4_04_brightness_forward.json::arms/extreme_*` 存档为准（A_full 0.0301577、A_bglimit 0.3804647，比值 12.6）；`results/summary.json::key_results/luminance_carrying/extreme_4dex` 与之一致 | results/route1/exp_p4_04_brightness_forward.json::oracle_information_test；`::arms/extreme_A_bglimit/stack_usecase/E`；`::arms/extreme_A_full/stack_usecase/E`；results/fix/fix02_boundaries_estimator_phase.json::A_control_point_estimator_bias |
 | E7 MC 统计 | 有限子网格/有限重复 | 审查件按有效样本量（25×20 ≈ 500 点）估 E 相对不确定度 ~±5%；k 常数本单元实测 n_rep = 2000 × 4000 px | run/FINAL-07/审核包/科研审查/SCI-704…md::§7.3-P4-m06；results/route2/exp08_mad_sigma_budget.json |
 | E8 增益误设 | g 未知或错设（真值 g = 1.3 e⁻/ADU） | **已独立复算并与审查件一致（差 ≤0.7%）**：+10% ⇒ 6.04e-4（审查 6.07e-4）、−10% ⇒ 7.18e-4（7.22e-4）、−23% ⇒ 4.36e-3、+54% ⇒ 1.30e-2、0.5× ⇒ 2.89e-2、2× ⇒ 3.50e-2；δ=0 ⇒ 0（机器零）。**解析律**：E_eff = ⟨a⟩_s⟨1/a⟩_s−1（a = v/v̂、s = 1/v̂）⇒ E_eff = 0 ⟺ v̂ ∝ v；增益误设下 v̂ ∝ v ⟺ σ_slow = 0 ⇒ **源主导区增益误设 E 中性**（实测 σ_slow=0 时 ≤4.4e-16），代价只来自 σ_slow² 与 S/g 的混合比离散度；|δ|≤0.15 时 E ≈ 0.06·δ² | run/FINAL-07/审核包/科研审查/P4_订正/evidence/F6_gain_sensitivity.json；[推导:docs/derivations.md §7]｜审查侧对照 evidence-P4/R8_redteam.out::R10_gain_misspecification_sensitivity |
 | E9 判据盲区（非误差源） | E_eff 对 σ̂ 乘性缩放严格免疫 | 免疫偏差 ≤1.3e-14 ⇒ 乘性偏差只能由 dex 判据发现 | [推导:docs/derivations.md §7]；results/route3/exp02_metric_E_properties.json |
 
-未量化项（如实登记，不假装闭合）：E8（增益误设）、E4（半像素相位，仅有审查件复算）、饱和像素/天光梯度/拥挤星场（本单元无实验）。
+未量化项（如实登记，不假装闭合）：**饱和像素 / 天光梯度 / 拥挤星场**（本单元无实验）。**E4（半像素节点相位）与 E8（增益误设）已量化，不是未量化项**——两者的完整读数、解析律与源码/正本路径分别列于上表 E4 行与 E8 行，此处此前列入「未量化项」系与上表自相矛盾，已按实测量状态删除该表述（G08-04 整改 P0-5）。
 
 ## 5 讨论
 
@@ -165,7 +165,7 @@ v6_clause_registry_v1.json:2015–2024 内容实存（条款 FZ-AP1-GLS-QW-RTOL�
 
 ## 6 结论
 
-(1) 定权恒等式 w = SNR²/F_ref² = 1/σ_F² 以机器精度成立且 γ=2 由定义唯一确定，不是可标定参数；(2) 生产默认重建算子为 natural_bicubic_spline_clip_v1（节点复现 ≤3.6e-15、可分辨域内最优、收敛阶 −4 闭合），双线性为对照/回退档；(3) IDW 为备选口径，终裁默认 idw_power = 1.0（含噪最优带上端），目标形态为配置化并日志输出实测 p*；drizzle 侧求值器已落地 1.0、Phase1 估计器路径仍为 2.0（现状 §7.9）；(4) **逐像素**定权面上控制值必须携带源项亮度，丢源项使下游效率最劣损失 12.6 倍（适用域 = 场在 Δ 尺度上平滑；帧级常数口径上方向相反，§7.18）；(5) 稀疏控制格不表示 PSF 尺度结构（偏差中位 3.8 dex）；稠密重建的有效域是**方差场在 Δ 格上可表示**（`J_Δ ≪ 1`）且**不含 cell 内未分辨结构**的场，两者合起来即正本 §8b 的三因子联合判据；PSF 尺度与胞内未分辨结构归逐源测光（P1）与结构感知估计器管辖。真方差动态范围**不是**有效域判据（§7.17）。P4 的重建质量决定 P5 叠加与天光拟合的效率上限。
+(1) 定权恒等式 w = SNR²/F_ref² = 1/σ_F² 以机器精度成立且 γ=2 由定义唯一确定，不是可标定参数；(2) 生产默认重建算子为 natural_bicubic_spline_clip_v1（节点复现 ≤3.6e-15、可分辨域内最优、收敛阶 −4 闭合），双线性为对照/回退档；(3) IDW 为备选口径，终裁默认 idw_power = 1.0（含噪最优带上端），目标形态为配置化并日志输出实测 p*；drizzle 侧求值器已落地 1.0、Phase1 估计器路径仍为 2.0（现状 §7.9）；(4) **逐像素**定权面上控制值必须携带源项亮度，丢源项使下游效率最劣损失 12.6 倍（适用域 = 场在 Δ 尺度上平滑；帧级常数口径上方向相反，§7.18）。**该结论另有两处适用域限制，引用时必须同带**：源核尺度 ≪ Δ（胞内未分辨点源，FWHM/Δ = 0.047）时误差**方向翻转**为乐观偏置、亮像素被过度加权 2×–1.5×10⁴ 倍，量级比 12.6 倍大 3 个数量级（§7.21）；控制点退化（单节点轴 / 共线 / 全噪声主导）时稠密臂退化为常数场、与帧级臂逐位相等且无任何错误信号（§7.19）。承载该 12.6 倍的极端档读数是 `extreme_A_bglimit/A_full` 的**堆叠效率分量**，不是 §4.4 表中已降级的恒等式自检腿（§7.23）；(5) 稀疏控制格不表示 PSF 尺度结构（偏差中位 3.8 dex）；稠密重建的有效域是**方差场在 Δ 格上可表示**（`J_Δ ≪ 1`）且**不含 cell 内未分辨结构**的场，两者合起来即正本 §8b 的三因子联合判据；PSF 尺度与胞内未分辨结构归逐源测光（P1）与结构感知估计器管辖。真方差动态范围**不是**有效域判据（§7.17）。P4 的重建质量决定 P5 叠加与天光拟合的效率上限。
 
 ## 7 诚实边界
 
@@ -194,6 +194,28 @@ v6_clause_registry_v1.json:2015–2024 内容实存（条款 FZ-AP1-GLS-QW-RTOL�
 16. **M16 物理前向仿真腿的适用边界**：帧视场 12.8″×12.8″、Δ = 64 px，真方差跨幅由源项标度 α 在
     75.8–2.3e4 之间扫描；本腿**不含** IDW 对照档、**不含** 相关长度敏感的任何定标（理由见 §4.8 末段），
     也**不含** M16 三波段同天区（只跑 F657N）与不同指向/滚转角的多帧几何。
+    **掩膜静默降级（未披露边界，G08-04 整改补披露）**：本腿的期望率面取自
+    `code/sim/exp_sim01_m16_forward_snr_truth.py:243` 的 `MS.load_canvas(scene, verbose=False)`，其掩膜目录
+    `DEFAULT_MASK_DIR = "run/reverse_verify/m16_scene/masks"` 在当前树**不存在**（`run/` 已被 `.gitignore` 忽略）。
+    `实验/shared/synthetic/m16_sampling.py:189` 的缺省是 `valid = np.ones(sci.shape, dtype=bool)`，
+    `:203-204` 捕获 `FileNotFoundError` 后只置 `mask_meta = {"used": False, "reason": ...}`，告警**仅在 `verbose=True` 时打印**，
+    本腿显式传 `verbose=False` ⇒ **掩膜缺失时静默降级为全像素有效（`valid_fraction = 1.00000`），无 fail-closed、无告警**。
+    同构模式见 `m16_scene.py:246` 与 `:261-264`（该模块打印 `[m16_scene] WARNING: mask not found ... -> all pixels treated valid`，同样受 `verbose` 门控）。
+    后果：真实帧的饱和/坏像元/星云外缘**未被排除**，本腿的期望率面含这些像元；且
+    `code/sim/exp_sim01_m16_forward_snr_truth.py:247` 虽把 `cmeta` 收进内存态 `canvas["meta"]`，**未写入存档**
+    （`results/sim/exp_sim01_m16_forward_snr_truth.json` 实测无 `mask`/`valid`/`cmeta` 任何键）
+    ⇒ 读存档无法回溯掩膜是否生效，**该降级在本轮之前未被任何报告披露**。
+    ⇒ 本腿全部读数（α 扫描、`E_frame < E_cell < E_dense` 排序、v_dr 窗口否证）均按「全像素有效」口径解释；
+    要在排除饱和/坏像元后复算，必须先由 G1 车道生成 `run/reverse_verify/m16_scene/masks/`（`m16_mask.py:572` 的 `--outdir`）并重跑，
+    **在掩膜生效复跑前，不得把本腿读数表述为「已排除坏像元」**。
+    **泊松实现与文档失真（同轮登记，代码侧移交）**：`实验/shared/synthetic/noise_model.py` 模块 docstring `:10` 写
+    「源 / 天光 / 暗电流**各自独立**」、`:281` 的 provenance 记 `"poisson_terms": ["src","sky","dark"]`、
+    `m16_sampling.py:29` 写「**各自 Poisson**（电子域）」；而实现是 `:270` `lam_e = src_e + sky_e + dark_e` 求和后
+    **单次抽样** `:296` `n_e = rng.poisson(lam_e)`，**不是三次独立抽样**。统计上二者等价（独立同参 Poisson 之和仍为 Poisson），
+    故本单元任何方差/散粒读数**不受影响**；失真的是**文档表述与 provenance 字段**。存档 `results/sim/…json::poisson_terms`
+    原样转录了 `["src","sky","dark"]`，会把「三次独立抽样」误读成实现事实。
+    ⇒ 修法属 `实验/shared/synthetic/**` 代码与文档面（不在本单元文件域内），登记移交；本单元报告一律按
+    「电子域对合速率**单次** Poisson 抽样（与逐项独立抽样统计等价）」引用。
 17. **「真方差动态范围 1.78–235」不是有效域判据**（被否证假设）：该窗口内稠密口径照样失效，窗口外失效量级相当 ⇒ 它**既非充分也非必要**；它只是 `calibers/exp_P4CAL_02` 6 档对比度扫描里两条「dense 胜出」行的 v 跨幅极值，属 fixture 偶然量。替代口径 = **Δ-格可表示性 `J_Δ = E_eff(cell-oracle)`**（只用真值、与算子无关、与方差动态范围无关、随 Δ 单调增）。盲复算（M16 物理前向、生产默认算子含值域钳制）：`J_Δ` = 0.161(Δ=16) / 0.177(Δ=32) / 0.204(Δ=64) / 0.250(Δ=128) / 0.283(Δ=256)，而 `v_true` 跨幅在五档恒为 2.29e4（不随 α 变）⇒ 门随 Δ 走、不随动态范围走。**`J_Δ` 的已知盲区**：cell 内未分辨**点源**（源项在分子侧）几乎不抬高 `J_Δ`（点源场 0.046 vs 光滑场 0.0397），胞内阶跃边缘则抬高到 0.419 ⇒ `J_Δ` 单独**不是**完整判据，完整口径是正本 §8b 的三因子联合判据「`Δ/ℓ` × σ 场幅度 × 未分辨结构污染」，第三因子按数据来源显式开启 mesh 中值档、不可由控制网格自身推断。
 18. **H4 的适用域是「场在 Δ 尺度上平滑」**（本单元读数）：M16 物理前向场上帧级口径丢源项反而更好（E = 1.77e−4 vs 3.54e−1，方向相反），归为 informative-only 分歧。机理是同一腿的排序读数——真实结构场上 `E_frame < E_cell < E_dense`，**跟踪得越少越好**；而 H4 的 12.6 倍结论是在有效域内的光滑解析场上证的（丢源项 1.31e−3 vs 机器零 2.22e−16、极端对比 12.6 倍）。⇒ H4 的**机制陈述**（权形状须与 `σ_w² = σ_slow² + S_src/g` 一致）在其适用域内成立；**「控制值必须携带源项亮度」的普适性**只在逐像素口径成立，在帧级常数口径下**不成立**（帧级口径下源项变化只改标量，形状不受影响）。论文与 README 不宣称 H4 跨口径普遍成立。
 19. **控制点退化 ⇒ 稠密臂退化为常数场、与帧级臂逐位相等且无任何错误信号**（`code/redteam/rt06_reconstruction_redteam.py` 的 C1/C2/C3 组，本单元自带脚本、盲复算自检 7 项全过后进反例）：
@@ -222,6 +244,24 @@ v6_clause_registry_v1.json:2015–2024 内容实存（条款 FZ-AP1-GLS-QW-RTOL�
 
     ⇒ 重建峰**恒停在 `max(node)`**：可分离自然样条在胞内**不外插出控制点之上的值**，于是有胞内源的整幅区域退化为常数平台，P5 消费的 `w = SNR²/F_ref²` 在该区是**空间常数**。**误差方向是乐观的**——亮像素被**过度加权** 2×–1.5×10⁴ 倍，与 §4.4「丢源项 ⇒ 效率最劣损失 12.6 倍」的**保守方向相反**；§4.4 的 12.6 倍是「有效域内光滑解析场」上的读数，一旦源尺度 < Δ（FWHM/Δ = 0.047）损失量级大 3 个数量级且方向翻转。**钳制不是机制**：本构型下钳制 ON/OFF 的重建峰相对差 7.8×10⁻⁴（§7-2/§7-17 关于「钳制把 HST 前向腿 E 由 2.57e5 降到 43.2」的正例治的是欠冲，与本条不相干）。**判读**：源核尺度 ≪ Δ 时，稠密重建对亮区是**乐观偏置**，不是保守损失；第 17 条的三因子判据在分子侧仍是空的。
 22. **重建量自身预测方差 `Σa_k²·Var_k` 的独立性前提与邻域平均低估**：`Var_opt` 的独立性前提见 `docs/derivations.md` §7「成立前提」段（相关噪声下 GLS 可达方差 / `Var_opt` = 1.31/1.67/1.72，ρ = 0.1/0.3/0.6）。**另一个量此前未登记**：重建量自身的预测方差同样以独立为前提——等权 K 邻居平均下 真值/预测 = `(1−ρ) + ρK`，本单元实测的控制场 lag-1 **ρ = 0.195** 下 **K = 16 低估 3.93×、K = 64 低估 13.3×**；在**控制格边缘**有效邻居更少、权更尖（`Σw²` = 0.3959 vs 等权 0.2000，1.98×），**再叠加 1.4–2.0×**，两者相乘使边缘区低估可达 5–8 倍。生产正本的边缘语义（最外半个 cell 由端点节点常数延拓）使该区在生产上确实存在。⇒ **重建量预测方差的绝对值不可用，只可用相对序**（本单元取舍正确，此前只登记在实验报告、未进承载定理的推导文件）。
+23. **两条同族的结构恒真门（`oracle_full_is_optimal` 与 `no_source_benefit_collapses`）不得作实验证据；二者判别力定性不同**（G08-04 整改 P0-1 + G2 复核订正 P0-1b/P0-1c）：
+
+    **(a) `oracle_information_test.E_oracle_full` 是代数恒等式自检、不得作实验证据**：`code/route1/exp_p4_04_brightness_forward.py:272` 把权重构造成 `w_oracle_full = 1.0 / v_pix`，`:275` 把**同一个** `v_pix` 作为 `v_true` 传入 `:123-128` 的 `efficiency(w_used, v_true, ·)`。代数上 `var_w = Σw²v/Σw² = Σ(1/v)/Σ(1/v)² = 1/Σ(1/v) = var_opt` ⇒ **`E ≡ 0` 对任意正方差数组成立**，与数组内容无关；代码自己的注释即写明 `E(algebraic w=1/sw2) must be machine zero`（`:266-268`）。⇒ 本条已从 §4.4 表与 §4.7 E6 的证据位**降级为恒等式自检**。
+    **但「无判别力」是说过头的表述，已撤回**（G08-04 G2 独立复核）：该门是 `|E| < 1e-12`（`:294-295`），**注入 `w` 公式缺陷时会转红**。本轮独立复算（`efficiency()` 逐字取自 `:123-128`，`seed 0`，异质方差场 `v = 10^U(−3,3)`、n = 4000，**未写回 `results/`**）：
+
+    | 注入的权重律 | `E` | 门 `<1e-12` |
+    |---|---:|:-:|
+    | `w = 1/v`（正确实现） | `0.0` | True |
+    | `w = 1` | `5.23e+3` | **False** |
+    | `w = 1/√v` | `2.44` | **False** |
+    | `w = v` | `3.59e+5` | **False** |
+    | `w = 1/v^0.99`（幂次错 1%） | `1.01e−4` | **False** |
+    | `w = 1/v^1.01`（幂次错 1%） | `9.68e−5` | **False** |
+
+    ⇒ **正确定性**：该门作为「**`w=1/v` 公式抄录自检**」有**窄判别力**（能抓住幂次/指数抄错），作为「**实验证据**」是**空洞的 GLS 定理重述**（自证恒等式，非测量）。前一轮把它写成「对正确实现与注入缺陷同样绿、无判别力」并据此暗示缺陷注入无效，**是错的**：那一轮注入的缺陷只改 `v` 而 `w` 仍由同一 `v` 导出，代数上**不可能**改变 `E`，属**同义反复注入**，不构成缺陷注入；真正应注入的是 `w` 的**公式**（如上表），此时门判红。该腿的**代价量化由 `E_oracle_bglim = 1.3138e-3` 承担**（其权重 `1.0/ss_cell` ≠ `1/v_pix`，非恒等），**12.6 倍头条结论由 `extreme_A_*` 的真实读数承担，均不受影响**。
+    代码侧处置属 `实验/**/code/**` 域，不在本单元文件域内，登记移交（U1/U1b）。
+
+    **(b) `gates.no_source_benefit_collapses` 是同类结构恒真门，一并降级**：`build_frame(..., with_sources=False)`（`:63-73`）令 `src ≡ 0` ⇒ `cell_aggregate`（`:76-91`）中 `s_cell ≡ 0` ⇒ `sw_cell = ss_cell + 0/GAIN ≡ ss_cell` ⇒ `snr_cell = FREF/√sw_cell` 与 `snr_cell_bglim = FREF/√ss_cell`（`:85-86`）**逐位相同**（IEEE-754 下加 `+0.0` 精确）⇒ 两控制格相同 ⇒ 同一 `reconstruct()` 的输出 `rec_f`/`rec_b`（`:205-206`）**逐位相同** ⇒ `full_equals_bglim_max_abs_dev ≡ 0.0`、`E_full ≡ E_bglim`，门（`:282-285`）**对任何实现都必绿**。归档实测与之逐位相符：`A_zerosource` 与 `extreme_A_zerosource` 两组均 `full_equals_bglim_max_abs_dev = 0.0`、`E_full = E_bglim = 0.0003346823811962718`（`results/route1/exp_p4_04_brightness_forward.json::arms/{,extreme_}A_zerosource`）。代码 `:200-202` 的注释已自述该构造「两臂表达式恒等，任何算子都会判绿」。⇒ **该门只能作「控制格构造一致性」的回归守卫，不得承担「度量非退化 / 判据有判别力」的证据位**；§4.4 的负例行（`REPORT_paper.md:123`）已有散文警示，本条把它提升为与 (a) 同级的登记项。**本单元的有效反例由重建版判据承担**（零源帧逐臂逐位相等判绿 / 有源帧丢源项判红、算子敏感的亮度跟随判据，见 `code/fix/fix01_metric_E_and_gates.py` → `results/fix/fix01_metric_E_and_gates.json::C_rebuilt_gates/C1_luminance_gate_rebuilt`）。代码侧处置同属 U1b。
 
 ## 参考文献
 

@@ -702,18 +702,83 @@ def list_scenes() -> List[str]:
 # 6. 自检
 # ---------------------------------------------------------------------------
 def selftest(verbose: bool = True) -> Dict[str, Any]:
-    """自检：星等尺度自洽 + 掩膜传播 + 天光泊松（B 升 => sigma 升）+ 纯加性负例。"""
+    """自检：星等尺度绝对口径 + 面亮度出口 + 掩膜传播 + 天光泊松（B 升 => sigma 升）+ 纯加性负例。
+
+    G08-04 整改 R2：V2 由「互逆往返」（恒真）改为星等尺度**定义**与 **ST 零点**双锚点；
+    V7 新增，给 surface_brightness_mag_per_arcsec2 补判别力（此前零判据引用）。
+    """
     res: Dict[str, Any] = {"criteria": {}, "verdicts": {}}
     zp = photometric_scale(2.2290223e-18, 6566.60545, -21.10)
     res["criteria"]["zp_ab_F657N"] = zp["zp_ab"]
     res["criteria"]["zp_st_F657N"] = zp["zp_st"]
     res["criteria"]["zp_ab_from_st"] = zp["zp_ab_from_st"]
     res["verdicts"]["V1_ab_st_consistent"] = bool(abs(zp["zp_ab"] - zp["zp_ab_from_st"]) < 0.01)
-    # 星等往返
-    m0 = 20.0
-    r0 = ab_mag_to_rate_e_per_s(m0, zp["zp_ab"])
-    res["criteria"]["roundtrip_mag"] = float(rate_to_ab_mag(r0, zp["zp_ab"]))
-    res["verdicts"]["V2_mag_roundtrip"] = bool(abs(float(rate_to_ab_mag(r0, zp["zp_ab"])) - m0) < 1e-9)
+    # V2 **星等尺度的绝对口径**（G08-04 整改 R2 换掉往返恒真门）。
+    # 旧判据是 `rate_to_ab_mag(ab_mag_to_rate_e_per_s(m)) == m` 的**互逆往返**：两个函数
+    # 互为代数逆，往返恒等于输入 ⇒ 任何「成对一致但口径错」的替换都测不出。实测把整套
+    # AB 口径换成 exp/ln（每星等效灵敏度错 ln(10)/0.4 = 5.76 倍），旧 V2 仍 exit 0 全绿。
+    # 新 V2 不再用这对互逆函数自证，改用两个**外部锚点**：
+    #   (a) 定义臂：星等尺度的**定义**就是「1 mag ≡ 物理量 ×10^0.4」。期望值由测试端
+    #       自己用 log10 算出（10^(-0.4Δm)），**不问被测函数**；正向映射与反向映射
+    #       各自独立比对，故只改一侧也会判红。
+    #   (b) ST 零点臂：m_AB = m_ST - 5log10(λ) + 2.5log10(c) - 27.50 与两个被测函数
+    #       **零共享**。先用它把同一速率换算成 AB 星等，再要求两个被测函数各自还原它
+    #       （正向还原星等、反向还原速率）。该臂**不假装**两条路线逐位相等：
+    #       ST→AB 换算本身带 5.18e-5 mag 的常数残差（干净态实测，V1 的容差是 0.01 mag），
+    #       故本臂检查两件可判别的事：残差**幅值**在 0.01 mag 内，且残差是**常数**
+    #       （随速率的峰峰 < 1e-9）——换底数或丢 2.5 系数都会让残差随速率发散。
+    dms2 = (1.0, 5.0, 8.75)
+    ra2 = float(ab_mag_to_rate_e_per_s(20.0, zp["zp_ab"]))
+    scale_rows = []
+    for dm in dms2:
+        rb2 = float(ab_mag_to_rate_e_per_s(20.0 + dm, zp["zp_ab"]))
+        expect_ratio = 10.0 ** (-0.4 * dm)                 # 星等尺度的定义（测试端独立算）
+        dm_back = (float(rate_to_ab_mag(rb2, zp["zp_ab"]))
+                   - float(rate_to_ab_mag(ra2, zp["zp_ab"])))
+        scale_rows.append({
+            "delta_mag": dm,
+            "rate_ratio_meas_inverse_map": rb2 / ra2,
+            "rate_ratio_expected_10pow_neg04dm": expect_ratio,
+            "rel_dev_ratio": abs(rb2 / ra2 - expect_ratio) / expect_ratio,
+            "delta_mag_back_via_forward_map": dm_back,
+            "rel_dev_delta_mag": abs(dm_back - dm) / dm})
+    st_shift2 = (-5.0 * math.log10(zp["photplam"])
+                 + 2.5 * math.log10(C_LIGHT_ANGSTROM_PER_S) - 27.50)
+    st_rows = []
+    for rate2 in (0.5, 3.0, 11.3124, 250.0):
+        m_via_st = (-2.5 * math.log10(rate2) + zp["zp_st"]) + st_shift2
+        fwd2 = float(rate_to_ab_mag(rate2, zp["zp_ab"]))
+        inv2 = float(ab_mag_to_rate_e_per_s(m_via_st, zp["zp_ab"]))
+        st_rows.append({
+            "rate_e_per_s": rate2, "m_ab_via_st_route": m_via_st,
+            "m_ab_via_forward_map": fwd2, "dev_forward_map_mag": fwd2 - m_via_st,
+            "rate_back_via_inverse_map": inv2, "rel_dev_inverse_map": inv2 / rate2 - 1.0})
+    dev_f = np.array([r["dev_forward_map_mag"] for r in st_rows])
+    rel_i = np.array([r["rel_dev_inverse_map"] for r in st_rows])
+    res["criteria"]["ab_scale_absolute"] = {
+        "definition_arm_rows": scale_rows,
+        "definition_arm_max_rel_dev": max(max(r["rel_dev_ratio"], r["rel_dev_delta_mag"])
+                                           for r in scale_rows),
+        "st_anchor_rows": st_rows,
+        "st_anchor_max_abs_dev_mag": float(np.abs(dev_f).max()),
+        "st_anchor_dev_ptp_mag": float(dev_f.max() - dev_f.min()),
+        "st_anchor_max_rel_dev_rate": float(np.abs(rel_i).max()),
+        "st_anchor_rel_dev_ptp": float(rel_i.max() - rel_i.min()),
+        "st_shift_mag": st_shift2,
+        "criterion": "(a) 速率比必须 = 10^(-0.4Δm)（星等尺度的定义，测试端独立算），"
+                     "正向/反向映射各自比对，相对偏差 < 1e-9；"
+                     "(b) 与 ST 零点路线的偏差幅值 < 0.01 mag（V1 同款容差，"
+                     "干净态 5.18e-5）且该偏差随速率的峰峰 < 1e-9 mag（残差必须是常数）；"
+                     "反向映射的速率相对残差同理（< 1e-4 且峰峰 < 1e-9）",
+        "why_not_roundtrip": "旧 V2 是互逆往返（恒真）：两个代数逆函数必然往返，"
+                             "整套换成 exp/ln 仍全绿。本条不依赖被测函数的自洽。",
+    }
+    res["verdicts"]["V2_ab_magnitude_scale_absolute"] = bool(
+        res["criteria"]["ab_scale_absolute"]["definition_arm_max_rel_dev"] < 1e-9
+        and res["criteria"]["ab_scale_absolute"]["st_anchor_max_abs_dev_mag"] < 0.01
+        and res["criteria"]["ab_scale_absolute"]["st_anchor_dev_ptp_mag"] < 1e-9
+        and res["criteria"]["ab_scale_absolute"]["st_anchor_max_rel_dev_rate"] < 1e-4
+        and res["criteria"]["ab_scale_absolute"]["st_anchor_rel_dev_ptp"] < 1e-9)
     # 掩膜传播：造一个 64x64 的假场景（不走真实帧）
     ny, nx = 64, 64
     valid = np.ones((ny, nx), dtype=bool)
@@ -772,6 +837,33 @@ def selftest(verbose: bool = True) -> Dict[str, Any]:
         good["max_abs_rel_dev"] <= 1e-9
         and abs(bad["max_abs_rel_dev"] - (1.0 - 1.0 / t6)) < 1e-9
         and abs(star_e - 1000.0) < 1e-9)
+    # V7 **面亮度出口**（G08-04 整改 R2 补零覆盖）：surface_brightness_mag_per_arcsec2
+    # 此前**没有任何判据引用它**——把 `/pixscale_arcsec ** 2` 整项去掉（0.04 arcsec/px 下
+    # 错 625 倍 = 6.98 mag），`m16_scene --selftest` 仍 exit 0 全绿。判据按面亮度定义的
+    # 直接后果写：通量在**速率空间**相加，星等只差**面积**的对数项，
+    #     mu_px = m_block + 2.5*log10(A_block)，A_block = (k*pixscale)^2 [arcsec^2]。
+    # 期望值由测试端用 log10 现场算出，不取自被测函数。
+    ps7, k7, r7 = PIXSCALE_ARCSEC, 4, 7.0
+    area7 = (k7 * ps7) ** 2
+    mu_px7 = float(surface_brightness_mag_per_arcsec2(r7, zp["zp_ab"], ps7))
+    m_blk7 = float(rate_to_ab_mag(k7 * k7 * r7, zp["zp_ab"]))
+    mu_expect7 = m_blk7 + 2.5 * math.log10(area7)
+    mu_half = float(surface_brightness_mag_per_arcsec2(r7, zp["zp_ab"], 2.0 * ps7))
+    res["criteria"]["surface_brightness_per_arcsec2"] = {
+        "pixscale_arcsec": ps7, "block_px": k7, "rate_e_per_s_per_px": r7,
+        "block_area_arcsec2": area7, "block_rate_e_per_s": k7 * k7 * r7,
+        "m_ab_block": m_blk7,
+        "mu_per_arcsec2_measured": mu_px7,
+        "mu_per_arcsec2_expected": mu_expect7,
+        "abs_dev_mag": abs(mu_px7 - mu_expect7),
+        "mu_at_2x_pixscale": mu_half,
+        "expected_shift_for_2x_pixsec": 2.5 * math.log10(4.0),
+        "abs_dev_shift_mag": abs((mu_half - mu_px7) - 2.5 * math.log10(4.0)),
+        "criterion": "单像素面亮度 = 块内总速率的 AB 星等 + 2.5log10(块面积 [arcsec^2])，"
+                     "偏差 < 1e-9 mag；且板比例翻倍时面亮度必须恰好亮 2.5log10(4) mag",
+    }
+    res["verdicts"]["V7_surface_brightness_per_arcsec2"] = bool(
+        abs(mu_px7 - mu_expect7) < 1e-9 and abs((mu_half - mu_px7) - 2.5 * math.log10(4.0)) < 1e-9)
     res["all_pass"] = bool(all(res["verdicts"].values()))
     if verbose:
         print(json.dumps(res, indent=2, ensure_ascii=False, default=float))

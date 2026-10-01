@@ -23,7 +23,7 @@
 | H9 | 辅助常数链：1.4826 解析恒等、9216 预算自洽、Moffat4=1.230310 闭式（σ 口径 = 模型参数口径 `σ=α/√2`） | **成立** | 1/Φ⁻¹(3/4)=1.4826022185056023（1.50e-16）；9216=(1.44/0.015)² 精确，n_min 带 8905–9494；闭式 1.2303076526 / 独立数值积分 1.2303076507 vs 登记 1.230310（**1.91e-6** = 六位小数圆整量）。他域口径 `σ_g=α/2` ⇒ 1.7399178，恒差 √2、禁止互换 | route2/exp_P4R2_08 → exp08_mad_sigma_budget.json；route2/exp_P4R2_09 → exp09_moffat4_factor.json；[推导:docs/derivations.md §6] |
 | H10 | Δ=64 是可实验证伪的科学量 | **豁免（结构性）** | tile_width=512 冻结、512/8 密度口径自洽；科学后果由 Δ/ℓ 判据承载（零噪偏置 128/64=4.06 vs 理论 4，随 Δ² 增长） | route2/exp_P4R2_03 → exp03_delta_grid.json；台账 A-P4-01 |
 
-负例纪律：19 个实验全部含"真值无效应 ⇒ 度量归零/判据失效"负例（等 σ 方案差归零、平坦场全算子归零、零源稠密场 max|SNR|=0、常数数据 MAD=0、高斯轮廓对照 1.6651 等），对应错误臂均判红——无恒真门。**例外与订正（P4-M03）**："无源两臂逐位恒等"属**同式构造的结构断言**（任何算子都判绿），不具判别力；另两条被点名的门（亮度跟随门、有源对照）经反例检验同样对算子不敏感。替代判据（算子敏感亮度门 + 逐臂估计器版零源门 + 偏 10% 源模型对照）见 `code/fix/fix01_metric_E_and_gates.py` → `results/fix/fix01_metric_E_and_gates.json`（正例绿、全局常量/打乱臂红）。
+负例纪律：19 个实验全部含"真值无效应 ⇒ 度量归零/判据失效"负例（等 σ 方案差归零、平坦场全算子归零、零源稠密场 max|SNR|=0、常数数据 MAD=0、高斯轮廓对照 1.6651 等），对应错误臂均判红——无恒真门。**例外与订正（P4-M03）**："无源两臂逐位恒等"属**同式构造的结构断言**（任何算子都判绿），不具判别力；**该门 `no_source_benefit_collapses`（`code/route1/exp_p4_04_brightness_forward.py:282-285`）已在 `REPORT_paper.md` §7.23b 与 `oracle_full_is_optimal` 同级登记为结构恒真门（G08-04 G2 整改 P0-1c）**；另两条被点名的门（亮度跟随门、有源对照）经反例检验同样对算子不敏感。替代判据（算子敏感亮度门 + 逐臂估计器版零源门 + 偏 10% 源模型对照）见 `code/fix/fix01_metric_E_and_gates.py` → `results/fix/fix01_metric_E_and_gates.json`（正例绿、全局常量/打乱臂红）。
 
 ## 2 方法
 
@@ -149,6 +149,31 @@ v_dr 一一对应）：
     结果 JSON 的 `negative_control.NC-C_lost_source_term.discrepancy`。
 15. **M16 仿真腿的覆盖范围**：只跑 F657N 单帧、单一指向、无滚转角、无 IDW 对照档、无 M16 三波段同天区、
     无不同指向/滚转角的多帧几何；不含任何相关长度敏感量的定标。
+15b. **掩膜静默降级（本轮新披露的边界，G08-04 整改补披露）**：本腿期望率面取自
+    `code/sim/exp_sim01_m16_forward_snr_truth.py:243` 的 `MS.load_canvas(scene, verbose=False)`。其掩膜目录
+    `DEFAULT_MASK_DIR = "run/reverse_verify/m16_scene/masks"`（`m16_sampling.py:105`）在当前树**不存在**
+    （`run/` 被 `.gitignore` 忽略；实测 `ls` 报「没有那个文件或目录」）。缺省路径为
+    `m16_sampling.py:189` 的 `valid = np.ones(sci.shape, dtype=bool)`，`:203-204` 捕获 `FileNotFoundError`
+    后仅置 `mask_meta = {"used": False, "reason": ...}`，告警**只在 `verbose=True` 时打印**，而本腿显式传 `verbose=False`
+    ⇒ **掩膜缺失 ⇒ 静默降级为全像素有效（`valid_fraction = 1.00000`），无 fail-closed、无告警**。
+    同构模式见 `m16_scene.py:246`（缺省 `np.ones`）与 `:261-264`（`[m16_scene] WARNING: mask not found ... -> all pixels treated valid`，同样受 `verbose` 门控）。
+    后果：真实帧的饱和/坏像元与星云外缘**未被排除**，全部进入期望率面。
+    另：`:247` 虽把 `cmeta` 收进内存态 `canvas["meta"]`，**未写入存档**——实测
+    `results/sim/exp_sim01_m16_forward_snr_truth.json` 的键集为
+    `[experiment, data_class, scene, frame_id, seed, band, line, exposure_s, detector_scale_arcsec_per_px, delta_px, patch_px, delta_arcsec, alphas, truth_definition, domain_criterion, physical_arm, poisson_terms, quantization, saturation, flat_applied_to, contrast_sweep, A_in_domain, A_out_of_domain, negative_control, noise_correlation_probe, excluded_criteria, elapsed_s, verdict]`，
+    **无 `mask` / `valid` / `cmeta` / `valid_fraction` 任何键** ⇒ 读存档无法回溯掩膜是否生效。
+    ⇒ 本腿全部读数（α 扫描、`E_frame < E_cell < E_dense`、v_dr 窗口否证）按「全像素有效」口径解释；
+    **在掩膜生效复跑前，不得表述为「已排除坏像元」**。复跑前置：由 G1 车道用 `m16_mask.py:572` 的 `--outdir`
+    生成 `run/reverse_verify/m16_scene/masks/` 后重跑本腿；修法（缺掩膜即 fail-closed 或至少无条件告警）属
+    `实验/shared/synthetic/**` 代码面，不在本单元文件域内，登记移交。
+15c. **泊松实现与文档失真（同轮登记，代码侧移交）**：`实验/shared/synthetic/noise_model.py:10` 写
+    「源 / 天光 / 暗电流**各自独立**」、`:281` provenance 记 `"poisson_terms": ["src","sky","dark"]`、
+    `m16_sampling.py:29` 写「**各自 Poisson**（电子域）」；实现却是 `:270` 先求和
+    `lam_e = src_e + sky_e + dark_e` 再 `:296` **单次抽样** `n_e = rng.poisson(lam_e)`，非三次独立抽样。
+    统计等价（独立同参 Poisson 之和仍为 Poisson）⇒ **本腿任何方差/散粒读数不受影响**，失真的只是文档表述与
+    provenance 字段；存档 `results/sim/…json::poisson_terms = ["src","sky","dark"]` 原样转录了该 docstring，
+    易被读成「三次独立抽样」的实现事实。⇒ 本单元一律按「电子域对合速率**单次** Poisson 抽样（与逐项独立抽样统计等价）」引用；
+    文档与 provenance 字段的订正属 `实验/shared/synthetic/**` 域，登记移交。
 16. **本腿的 dense 臂不是生产默认算子（算子口径缺口）**：`calibers()` 里 `rec = spline2d(npl, Δ, q)` 后直接
     `w_dense = 1/rec`，**未施加生产默认算子 `natural_bicubic_spline_clip_v1` 的「钳到控制值值域 [min,max]」**；
     `dense_guard_clamp` 臂用 `clip(0.25·min(rec), 4·max(node))` 启发式钳制（因 `min(rec) < 0`，其下界为负、

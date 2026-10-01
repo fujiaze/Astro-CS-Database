@@ -34,9 +34,14 @@ run() { name="$1"; script="$2";
         fi; }
 
 # 公共前置步：合成数据物理链自检。必须跑**全四项**（m16_mask / m16_scene /
-# m16_sampling / noise_selftest），不得只调 noise_selftest.py —— 后者只验独立
-# 重实现，对生产实现零判别力；生产面的门禁责任在 m16_scene --selftest 与
-# m16_sampling --selftest。任一组件判红则本腿读数不可作为证据。
+# m16_sampling / noise_selftest），不得只调 noise_selftest.py 的 A/B 系列 ——
+# 后者用独立原语重实现，只验「方法」，不经过生产代码；生产面的门禁责任在
+# m16_scene --selftest、m16_sampling --selftest，以及 noise_selftest 的
+# **C 系列**（C1–C6 直接调 NM.expose / NM.sky_surface_e_per_s / 解析一阶矩）。
+# 任何组件判红则本腿读数不可作为证据。
+# 注：m16_sampling 的 V6（存活底图残差预算）与 V10（真实 FITS 加载）读真实模板
+# testdata/HST_M16/，该目录被 .gitignore 排除；模板缺失时这两条记红（不静默跳过）
+# —— 需先备齐数据再跑本入口。
 echo "== [0/5] 合成数据物理链自检（公共前置步）=="
 if [ -f "$REPO/实验/shared/synthetic/run_selftests.sh" ]; then
   TMPDIR="${TMPDIR:-/var/tmp/astrocs}" bash "$REPO/实验/shared/synthetic/run_selftests.sh" \
