@@ -80,9 +80,11 @@ kernel 词汇（各域冻结 ALG 以"冻结合同"列为准，由各 INT 任务�
 | 8 | `acsd.phase1.writer`（:527） | `stacked`(DATA-P1-STACK) → `fits`(DATA-P1-FITS/ADU/ICRS) | SCI-P1-WR-001 / ALG-P1-WR-001 / API-P1-008 / TEST-P1-WR-001 | HiPS 写出域：ALG-HIPS-001..005（HIPS_WRITER.md）；DATA-P1-HIPS（DATA_SEMANTICS §12）；API-HIPS-001（PUBLIC_API）；writer/hips registry 无独立 descriptor（hips 页 docs/detail/registry/acsd.phase1.hips-writer.md 为手写合同页） | P1-001 attempt 2 后=aio_hiss_inspect/read_tile_* → AstroSphereTileView → `aio_hips_product_begin/write_signal_support_tile/finalize`（消费 p1_stack.hiss；NESTED 聚合 → IVOA 1.4 标准 512×512 HiPS signal/+support/+properties/MOC；covered_area_model=hiss_support_ratio_x_A_cell 单帧语义） | TEST-HIPS-DESIGN-001（HIPS_WRITER.md §9） |
 
 **A 线（CLI 生产编排，现行唯一 7-stage 全链）**：
-docs/engineering/docs/engineering/PHASE1_API_V1.md 登记 7 条生产调用路径
-（calibrate→platesolve→photometric→drizzle→snr→HiPS 写出，唯一入口
-`Orchestrator::run`，DIAGNOSTIC_FIELD/退出码/test ID 逐行登记）。A 线经
+docs/engineering/PHASE1_API_V1.md:24 记 run 内部阶段序列（校准→检测/PSF→plate solve→
+测光定标→SNR→Drizzle→HiPS）与该文 7 路径一一对应。原登记件另称「唯一入口
+`Orchestrator::run`、DIAGNOSTIC_FIELD/退出码/test ID 逐行登记」——该三项在现行
+PHASE1_API_V1.md 全文内无对应登记（grep Orchestrator|DIAGNOSTIC_FIELD|退出码 = 0 命中），
+现无正本可查，故不作引用。A 线经
 DLL 显式加载（dll_loader），与本库（B 线静态库）并存；两条装配线的算法
 委托不产生第二套调度顺序——B 线 session 对 3..8 号节点只提供 registry
 注册与兼容 adapter，不提供算法实现（§3 差距声明）。
@@ -262,5 +264,5 @@ module_adapters.cpp:61-91）：
 - 数据语义：docs/science/DATA_SEMANTICS.md §16（DATA-P1-SESSION）。
 - 公共 API：docs/engineering/PUBLIC_API.md（API-P1-SESSION 节）。
 - 架构：docs/engineering/ARCH-001.md；生产路径表
-  docs/engineering/docs/engineering/PHASE1_API_V1.md。
+  docs/engineering/PHASE1_API_V1.md:24（生产路径表）。
 - 旧映射（历史）：归档映射表 P1_SYMBOL_MAP.md（已删，见 git 历史）。
