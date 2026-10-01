@@ -3917,3 +3917,52 @@ validator 验证的是「文件是否声称自己可信」，**不是「这个�
 
 ⇒ **执行纪律补充**：凡是子代理改了受版本控制的文件，
 **必须先 `git diff` 逐条看过再 `git add`**，不许用 `git add -A` 连带提交。
+
+---
+
+## 77. G08-01 第 4 步交付：**152 个被删检查器的覆盖对照表**（G08-10 的唯一依据）
+
+### 77.1 四类分布（车道逐条判定，前台抽验通过）
+
+| 状态 | 条数 | 重建时的动作 |
+|---|---:|---|
+| 1 有新载体 | 22 | 引用新载体，**但需先接线** |
+| 2 口径已入正本 | 80 | 据正本条款写**新**门 |
+| **3 无人管** | **16** | **登记为 G08-10 必须补的判据** |
+| 4 该判据作废 | 34 | 不重建（须写明作废依据） |
+
+### 77.2 「无人管」16 条里最重的三条
+
+- `check_block_flow_ports_vs_code.py`（块流端口↔代码双向一致）——
+  而 `UNRESOLVED_REGISTER.md` §6 ENG-B1 **已实测 12 处声明与实现不符（7 条阻塞级）**，
+  它是唯一能持续抓住这类偏差的门
+- `check_design_clause_wiring.py`（最高设计逐条 bullet↔生产实现映射）——
+  台账与校验器同批消失后，**设计↔实现再无任何机器连接**
+- `check_registration_anchors.py` —— 载体 `authority_surfaces.json` 在，
+  但**自身 15 个 canonical 全指向已删 `eng/ci/*`**
+
+### 77.3 车道给 G08-10 的两条硬提醒（已登记）
+
+1. `ENGINEERING_SPEC.md`、`ACCEPTANCE_SPEC.md` **已不在仓内**，
+   `ASTROCS_DESIGN.md` 已改名 `docs/ACSD_DESIGN.md`
+   ⇒ **不要照抄被删脚本 docstring 里的旧引用**
+2. 状态 1 的 22 件新载体**没有一个是 CI 注册门**（前台实测 `.github/` 不存在）
+   ⇒ **不接线就等于「有载体但不执行」**，与现存 23 处 subprocess 悬空引用同类
+
+### 77.4 前台自陈：第 3 步的派单口径有漏洞
+
+前台派第 3 步时**只让它清 `eng/ci/` 一类引用**，实测范围应是 `eng/(ci|tools|packaging)/`。
+
+**前台实测**：`docs/` 引用的 py 路径共 **92 个，存在 15 / 不存在 77**
+⇒ **第 3 步只清了其中的一类**，剩下 `eng/tools/quality/check_*.py`、
+`acr/ci/check_acr_dormant.py`、`docs/algorithms/anchors/*`、`docs/standards/checks/*`
+等**仍指向已删文件**。
+
+清单已存 `/tmp/g0801_step3_missed.txt`（77 条），已派补漏车道。
+
+### 77.5 这次漏洞是怎么暴露的
+
+**不是第 3 步车道报的，是覆盖对照表车道报的** —— 它在核 `check_registration_anchors` 时
+发现该检查器「载体在，但自身 15 个 canonical 全指向已删 `eng/ci/*`」。
+⇒ **两条独立任务交叉对质才暴露了派单口径的漏** —— 也是「遍」的价值：
+单看任何一侧都以为自己做完了。
