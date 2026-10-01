@@ -53,6 +53,61 @@ BETA = 2.5
 FREF = 100.0
 N_CELLS = GRID // DELTA
 
+# ---------------------------------------------------------------- G08-05 B1/B4
+# **增益 g 在本实验内部不可辨识**（可辨识性论证，不是阈值问题）：
+# 本文件存储的每一个量都只是 (sigma_slow², S/g) 的函数——S [ADU] 与 g [e-/ADU]
+# 只以比值 S/g 出现。任何「独立重算」（含 variance_map_matches_physical_model）
+# 都只独立于 aggregation 步骤，**不独立于 g 这个物理常量本身**：两侧同错。
+# 能打破该盲区的只有**外部参照**。下面两条外部参照都与本文件的 GAIN 常量不同源：
+#   ARCHIVE_SELF —— 本单元已固化的归档一手读数（另一次执行的产物，运行时从磁盘读，
+#                   不在本进程重算，故不共享 GAIN）；
+#   ARCHIVE_GAIN —— 另一实验单元（absolute-snr / EXP-06）归档的一手增益读数。
+# 两者任一缺失 ⇒ 对应判据判红（fail-closed），不得静默转绿。
+_HERE = os.path.dirname(os.path.abspath(__file__))
+ARCHIVE_SELF = os.path.join(_HERE, "..", "..", "results", "route1",
+                            "exp_p4_04_brightness_forward.json")
+ARCHIVE_GAIN = os.path.join(_HERE, "..", "..", "..", "absolute-snr", "results",
+                            "exp06_e4_gates.json")
+# 归档重放的相对容差。实测注入（g -> 1/g）使各读数偏移 0.58%~76%（见
+# gain_inversion_sensitivity），比该容差宽 4 个数量级以上 ⇒ 判据对注入稳健判红。
+REPLAY_TOL = 1e-6
+
+
+def load_json(p):
+    try:
+        with open(p, encoding="utf-8") as f:
+            return json.load(f)
+    except Exception:
+        return None
+
+
+def dynrange_T_at_gain(frame, em, gain):
+    """给定增益下 A_full 的 dynrange_T —— 与 arm_metrics() 的 q(1,T[em])/q(99,T[em])
+    逐字同口径（同 DELTA 铺开、同 em 掩膜、同分位），只把 g 参数化。
+    供灵敏度探针使用：保证「注入下的读数」与「重放判据比对的读数」是同一个量。"""
+    s_cell = frame["src"].reshape(N_CELLS, DELTA, N_CELLS, DELTA).mean(axis=(1, 3))
+    ss_cell = frame["sigma_slow2"].reshape(N_CELLS, DELTA, N_CELLS, DELTA).mean(axis=(1, 3))
+    T = FREF / np.sqrt(ss_cell + s_cell / gain)
+    Tt = np.repeat(np.repeat(T, DELTA, axis=0), DELTA, axis=1)
+    return [float(np.percentile(Tt[em], 1)), float(np.percentile(Tt[em], 99))]
+
+
+def absolute_readings(arm):
+    """臂的**绝对**读数（携带绝对尺度与增益信息的量；不含任何归一化/齐次量）。
+    缺失键按缺登记、不静默补值——A_frame_recon 没有 max_abs_dev_vs_T。"""
+    keys = ("dynrange_T_p1", "dynrange_T_p99", "dynrange_recon_p1", "dynrange_recon_p99",
+            "rmse_dex_vs_T", "max_abs_dev_vs_T", "E_stacking", "dr_ratio_preserved")
+    src = {}
+    src["dynrange_T_p1"] = arm.get("dynrange_T", [None])[0]
+    src["dynrange_T_p99"] = arm.get("dynrange_T", [None, None])[1]
+    src["dynrange_recon_p1"] = arm.get("dynrange_recon", [None])[0]
+    src["dynrange_recon_p99"] = arm.get("dynrange_recon", [None, None])[1]
+    src["rmse_dex_vs_T"] = arm.get("rmse_dex_vs_T")
+    src["max_abs_dev_vs_T"] = arm.get("max_abs_dev_vs_T")
+    src["E_stacking"] = arm.get("E_stacking")
+    src["dr_ratio_preserved"] = arm.get("dr_ratio_preserved")
+    return {k: (float(src[k]) if src[k] is not None else None) for k in keys}
+
 
 def moffat(dy, dx, fwhm, beta):
     alpha = fwhm / (2.0 * np.sqrt(2.0 ** (1.0 / beta) - 1.0))
@@ -349,6 +404,82 @@ def main():
     }
 
     a_full = res["arms"]["A_full"]
+
+    # ---------------- G08-05 B1/B4：外部参照判据（打破增益盲区） ----------------
+    # ① 归档重放：逐条比对本进程重算的**绝对**读数与归档一手读数。
+    #    参照量在磁盘上、来自另一次执行，不在本进程重算 ⇒ 不共享 GAIN。
+    arch = load_json(ARCHIVE_SELF)
+    replay_rows, replay_ok = [], True
+    if arch is None:
+        replay_ok = False
+        replay_rows.append({"error": "archive_unreadable", "path": ARCHIVE_SELF})
+    else:
+        for arm_name in ("A_full", "A_bglimit", "A_frame_recon"):
+            live, ref = absolute_readings(res["arms"][arm_name]), \
+                absolute_readings(arch["arms"][arm_name])
+            for k in live:
+                if live[k] is None or ref[k] is None:
+                    replay_rows.append({"arm": arm_name, "key": k, "skipped": "absent_in_one_side",
+                                        "live": live[k], "archived": ref[k]})
+                    continue
+                d = abs(live[k] - ref[k]) / max(abs(ref[k]), 1e-300)
+                replay_rows.append({"arm": arm_name, "key": k, "live": live[k],
+                                    "archived": ref[k], "rel_dev": d,
+                                    "ok": bool(d <= REPLAY_TOL)})
+                replay_ok = replay_ok and d <= REPLAY_TOL
+    res["absolute_scale_replay_vs_archive"] = {
+        "archive_path": ARCHIVE_SELF,
+        "archive_gain_e_per_adu": (arch or {}).get("gain_e_per_adu"),
+        "archive_gate_names": sorted((arch or {}).get("gates", {}).keys()),
+        "tolerance_rel": REPLAY_TOL,
+        "reference_independence": "参照量取自磁盘归档（另一次执行），不在本进程重算，"
+                                  "因此不共享本文件的 GAIN 常量；E 对 v 齐次、对绝对尺度无判别力，"
+                                  "故重放对象只取携带绝对尺度的读数。",
+        "rows": replay_rows,
+        "pass": bool(replay_ok),
+        "fail_closed_note": "归档缺失或不可读 ⇒ 判红，不静默转绿。",
+    }
+
+    # ② 增益常量溯源：与**另一实验单元**归档的一手增益读数对拍。
+    ga = load_json(ARCHIVE_GAIN)
+    g7 = ((ga or {}).get("detail", {}) or {}).get("G7_gain_recovery") or []
+    g_ref = sorted({float(r["gain_true"]) for r in g7 if "gain_true" in r})
+    gain_ok = bool(len(g_ref) == 1 and abs(GAIN - g_ref[0]) <= 1e-12 * g_ref[0])
+    res["gain_constant_provenance"] = {
+        "reference_archive": ARCHIVE_GAIN,
+        "reference_gain_e_per_adu": g_ref,
+        "script_gain_e_per_adu": float(GAIN),
+        "rel_dev": (abs(GAIN - g_ref[0]) / g_ref[0]) if len(g_ref) == 1 else None,
+        "what_this_is": "冻结常量的**跨单元溯源对拍**，不是从第一性原理导出增益。"
+                        "本实验内部不可辨识 g（见文件头论证），外部一手读数是唯一能定住它的东西。",
+        "pass": gain_ok,
+        "fail_closed_note": "参照归档缺失或不含恰好一个增益值 ⇒ 判红。",
+    }
+
+    # ③ 灵敏度/覆盖门：审稿注入 g -> 1/g（量纲颠倒）必须被上面的重放判据抓住。
+    #    这条门自身不判「数值对不对」，只判「整套判据对该缺陷是活的」——
+    #    未加①②时它恒红（实测 0 条重放读数超差），是覆盖面被高估的机器证据。
+    T_inv = dynrange_T_at_gain(frame, em, 1.0 / GAIN)
+    live_t = res["arms"]["A_full"]["dynrange_T"]
+    ref_t = absolute_readings(arch["arms"]["A_full"]) if arch else None
+    inv_devs = ([abs(T_inv[0] - live_t[0]) / max(abs(live_t[0]), 1e-300),
+                 abs(T_inv[1] - live_t[1]) / max(abs(live_t[1]), 1e-300)] if ref_t else
+                [float("inf"), float("inf")])
+    sens_ok = bool(max(inv_devs) > REPLAY_TOL)
+    res["gain_inversion_sensitivity"] = {
+        "injection": "GAIN -> 1/GAIN（把 S/g 当成 S·g，量纲颠倒）",
+        "gain_injected": float(1.0 / GAIN),
+        "dynrange_T_live": list(map(float, live_t)),
+        "dynrange_T_under_injection": T_inv,
+        "rel_dev_live_vs_injected": inv_devs,
+        "tolerance_rel": REPLAY_TOL,
+        "margin_ratio": (max(inv_devs) / REPLAY_TOL) if sens_ok else None,
+        "pass": sens_ok,
+        "meaning": "True ⇒ 重放判据所比对的 dynrange_T 读数在量纲颠倒注入下偏移超出容差 "
+                   "（即该注入必然使 absolute_scale_matches_archived_first_hand 判红）。"
+                   "这是覆盖面门（判据是否活），不是物理正确性门。",
+    }
+
     res["gates"] = {
         # **构造性恒真门（G08-04 整改 R2 订正归因）**：本 gate **不得**引用为
         # 「sw2_map 缺陷被抓」的证据。零源臂里 with_sources=False ⇒ src ≡ 0 ⇒
@@ -397,14 +528,55 @@ def main():
         # (4) 方差面物理自洽（不走 E）：E 对 v 齐次、且 E_equal 对 v->1/v 不变，
         #     故「全局缩放」「量纲颠倒」在 oracle 段原理上不可观测；此条按物理式
         #     独立重算 sw2_map 来抓这两类缺陷。
+        #     **G08-05 B1 覆盖范围订正**：本条的「独立」只独立于 aggregation 步骤，
+        #     **不独立于 GAIN 常量本身**——重算用的是同一个 GAIN 与同一个 frame，
+        #     与聚合侧逐项同构，属「两侧同错」。实测注入 g -> 1/g 时 max_rel_dev 逐位
+        #     为 0.0、本条恒绿。**不得**再引用本条作为「抓得住量纲颠倒/增益错误」的
+        #     证据；该职责已移交本文件末尾的 absolute_scale_matches_archived_first_hand
+        #     与 gain_matches_independent_archived_reading（外部参照，与 GAIN 不同源）。
         "variance_map_matches_physical_model": sw2_rel_dev < 1e-12,
+        # --- G08-05 B1/B4：三条**外部参照**判据（打破增益/绝对尺度盲区）---
+        # 上面的 variance_map_matches_physical_model 虽「独立重算」，但用的是**同一个
+        # GAIN 常量**与同一个 frame，与聚合侧逐项同构 ⇒ 两侧同错，只能抓 aggregation
+        # 步骤的错误，抓不到 g 本身。审稿注入 g -> 1/g 时本文件原 10 条门全绿（实测 0/10）。
+        # 下面三条用**磁盘上的外部一手参照**补上这块（参照量与被检验量不同源）：
+        "absolute_scale_matches_archived_first_hand": bool(replay_ok),
+        "gain_matches_independent_archived_reading": bool(gain_ok),
+        "gain_injection_is_detected_by_this_suite": bool(sens_ok),
+    }
+    # B4②：归档与脚本脱钩的**登记**（不重跑、不改 results/）。归档 JSON 是另一次
+    # 执行的产物，其门集合/键集合与本脚本当前不同；报告侧若按「逐叶全同」表述，
+    # 对 exp04 不成立。此处只登记事实，处置由归档车道负责。
+    script_keys = sorted(res.keys())
+    res["archive_decoupling_registration"] = {
+        "archive_path": ARCHIVE_SELF,
+        "archive_exists": arch is not None,
+        "archive_top_level_key_count": len(arch) if arch else None,
+        "script_top_level_key_count": len(script_keys),
+        "archive_only_keys": sorted(set(arch.keys()) - set(script_keys)) if arch else None,
+        "script_only_keys": sorted(set(script_keys) - set(arch.keys())) if arch else None,
+        "archive_only_gates": sorted(set((arch or {}).get("gates", {}).keys())
+                                     - set(res["gates"].keys())),
+        "script_only_gates": sorted(set(res["gates"].keys())
+                                    - set((arch or {}).get("gates", {}).keys())),
+        "withdrawn_gate_still_in_archive": bool(
+            arch and "oracle_full_is_optimal" in arch.get("gates", {})),
+        "note": "results/ 不在本单写入面，故只登记不重跑。归档与脚本已脱钩：归档缺 "
+                "variance_map_matches_physical_model 等新门，且仍含已撤回的 "
+                "oracle_full_is_optimal。报告侧「19/19 逐叶全同」对 exp04 不成立。",
     }
     res["gates_note"] = (
         "G08-04 T6：原 gate `oracle_full_is_optimal`（|E(1/v)| < 1e-12）是代数恒等式、"
         "恒真且无判别力，已撤下并改记入 algebraic_identity_checks。"
         "现由 efficiency_metric_handcheck / equal_weights_suboptimal_on_actual_variance_map / "
         "oracle_weight_perturbation_detected 三条承担 oracle 段的判别力；"
-        "原 oracle_bglim_suboptimal 判别力真实，保留不变。")
+        "原 oracle_bglim_suboptimal 判别力真实，保留不变。"
+        "G08-05 B1/B4：variance_map_matches_physical_model 与前三条**都不独立于 GAIN**"
+        "（重算复用同一 GAIN 常量与同一 frame，两侧同错），故它们对 g -> 1/g 恒绿；"
+        "该盲区由三条外部参照判据承担：absolute_scale_matches_archived_first_hand（归档重放，"
+        "参照量在磁盘上、来自另一次执行）、gain_matches_independent_archived_reading"
+        "（跨单元增益溯源）、gain_injection_is_detected_by_this_suite（覆盖面门：断言前两条"
+        "对量纲颠倒注入是活的）。")
     res["all_gates_pass"] = bool(all(res["gates"].values()))
     res["runtime_s"] = time.time() - t0
     with open(OUT, "w") as f:

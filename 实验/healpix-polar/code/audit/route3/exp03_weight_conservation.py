@@ -21,7 +21,7 @@
 #       direction-to-leaf-center distance <= 1.05*hp_res (ties to exp04 circumradius 1.0415).
 #   Candidate leaves searched within angular distance <= max_angle + 1.25*hp_res
 #   (HP_CIRCUMRADIUS_FACTOR margin); metric (1) certifies that search is complete.
-import json, os, sys, time
+import json, math, os, sys, time
 import os
 import numpy as np
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -37,6 +37,68 @@ SEED = 20260926
 PF = 0.8
 RA0, DEC0 = np.radians(30.0), np.radians(30.0)
 NSEG = 8
+
+# ---- G08-05 B6：逐 drop 守恒闭合的**适用域守卫** + 真空带登记 ----
+# 正本 docs/science/algorithms/DRIZZLE_GEOMETRY.md:350-351 的逐 drop 判据是
+#     |Σ_j a_jp − A_drop,p| <= max(τ_rel·A_drop,p, ε_abs)，τ_rel=1e-6、ε_abs=1e-15 sr。
+# 该式的**绝对项在小 drop 上吞掉整条判据**：A_drop ≲ ε_abs 时 max() 取 ε_abs，
+# 相对容差 tol/A_drop >= 1 ⇒ **100% 通量丢失（Σa=0）仍判绿**。实测（本单元几何）：
+#   θ=0.005″/px，pf=1  → A_drop=5.876e-16 sr、tol/A_drop=1.70、判红边界 0.00652″/px
+#   θ=0.005″/px，pf=0.8→ A_drop=3.761e-16 sr、tol/A_drop=2.66、判红边界 0.00815″/px
+# **但这条地板不可用「换一个更小的绝对下限」消掉**：正本 :362-364 自己写明，可达成的
+# 绝对残差是 ~1e-16 sr 的**几何/表示地板**（4 角弦 + S-H 近退化求交），且 long double
+# 不降 ⇒ 在双精度下 A_drop ≲1e-14 sr 的域里，逐 drop 判据**原理上**分不开
+# 「100% 通量丢失」与「几何地板」。正本 :369-371 明说要移动该地板必须把叶边界生成与
+# 面积记账提到扩展精度表示（改变冻结口径、需变更流程）。
+# 因此本单元**不伪造一个达不到的绝对下限**（实测：本单元 θ=300″/pf=0.8 的真实闭合残差
+# 已是 9.48e-17 sr，任何 <1e-16 的绝对下限都会误伤正确实现），改为加一条
+# **fail-closed 适用域守卫**：一旦工作尺度落进盲带，本门判红而不是静默判绿。
+TAU_REL = 1e-6             # 正本 τ_rel
+EPS_ABS_POS = 1e-15        # 正本 ε_abs [sr]（登记，不修改正本）
+# 几何/表示地板量级（正本 :363-364 自述 ~1e-16 sr）；用它定「相对判据仍然可用」的
+# 适用域下限：要求 tol_pos <= A_drop/2，即 τ_rel·A_drop 压过绝对项一个量级。
+EPS_GEOM_FLOOR = 1e-16     # [sr] 几何/表示地板（正本 :363-364）
+APPLICABLE_MIN_ADROP = max(2.0 * EPS_ABS_POS, 2.0 * EPS_GEOM_FLOOR)
+RAD_PER_ARCSEC = math.pi / (180.0 * 3600.0)
+
+
+def drop_closure_ok(total_a, a_drop):
+    """正本逐 drop 判据（不改口径）＋**适用域守卫**。返回 (ok, detail)。
+
+    正本项：resid <= max(τ_rel·A_drop, ε_abs)。
+    守卫项：a_drop 必须 >= APPLICABLE_MIN_ADROP，否则判据落在真空带内、
+            无法区分真实丢失与几何地板 ⇒ fail-closed 判红。
+    """
+    resid = abs(float(total_a) - float(a_drop))
+    tol_pos = max(TAU_REL * float(a_drop), EPS_ABS_POS)
+    canon_ok = resid <= tol_pos
+    in_domain = float(a_drop) >= APPLICABLE_MIN_ADROP
+    return bool(canon_ok and in_domain), {
+        "sum_a": float(total_a), "A_drop": float(a_drop), "resid_abs_sr": resid,
+        "tolerance_pos_sr": tol_pos, "pos_criterion_ok": bool(canon_ok),
+        "applicable_min_a_drop_sr": APPLICABLE_MIN_ADROP,
+        "within_applicable_domain": bool(in_domain),
+        "rel_tolerance_pos": tol_pos / max(float(a_drop), 1e-300),
+    }
+
+
+def seam_blind_band_probe(scale_arcsec=(0.005, 0.00652, 0.02, 0.04, 0.2, 0.967, 1.8),
+                          pixfrac=(1.0, 0.8)):
+    """100% 通量丢失（Σa=0）代入正本逐 drop 判据，量出「真空带」与其边界。"""
+    rows = []
+    for s in scale_arcsec:
+        for pf in pixfrac:
+            a_drop = (pf * s * RAD_PER_ARCSEC) ** 2
+            canon, d = drop_closure_ok(0.0, a_drop)
+            rows.append({"scale_arcsec_per_px": s, "pixfrac": pf, "A_drop_sr": a_drop,
+                         "resid_abs_sr_100pct_loss": a_drop,
+                         "rel_tolerance_pos": d["rel_tolerance_pos"],
+                         "pos_criterion_alone_green": bool(d["pos_criterion_ok"]),
+                         "in_applicable_domain": bool(d["within_applicable_domain"]),
+                         "combined_criterion_ok": bool(canon)})
+    vacuum = [r for r in rows if r["pos_criterion_alone_green"]]
+    return rows, vacuum
+
 
 def tan_rotation(ra0, dec0):
     return np.array([[-np.sin(ra0), np.cos(ra0), 0.0],
@@ -297,6 +359,36 @@ def main():
     pts, worst = control_points(512)
     out["control_points"] = dict(points=pts, max_ang_over_hp_res=worst, bound=1.05)
     print("control points worst ang/hp_res =", worst, flush=True)
+
+    # ---- G08-05 B6：逐 drop 守恒的适用域守卫（真空带探针 + 判据） ----
+    sb_rows, sb_vacuum = seam_blind_band_probe()
+    # 用**真实**守恒读数 r1 的 drop 尺度走一遍合取判据，确认正常档位不被误伤
+    _theta300 = math.radians(300.0 / 3600.0)
+    a_drop_300 = (PF * _theta300) ** 2
+    _, ok_canon = drop_closure_ok(a_drop_300 * (1.0 + r1["comp_max"]), a_drop_300)
+    _, ok_zero = drop_closure_ok(0.0, a_drop_300)
+    _, ok_small = drop_closure_ok(0.0, (PF * 0.005 * RAD_PER_ARCSEC) ** 2)
+    out["seam_absolute_floor_B6"] = {
+        "criterion": ("|Σa − A_drop| <= max(τ_rel·A_drop, ε_abs) [正本口径，未改] "
+                      "AND A_drop >= APPLICABLE_MIN_ADROP [实验侧 fail-closed 适用域守卫]"),
+        "tau_rel": TAU_REL, "eps_abs_pos": EPS_ABS_POS,
+        "eps_geom_floor_pos": EPS_GEOM_FLOOR,
+        "applicable_min_a_drop_sr": APPLICABLE_MIN_ADROP,
+        "blind_band_rows": sb_rows,
+        "n_rows_pos_criterion_alone_green": len(sb_vacuum),
+        "n_rows_combined_green": sum(1 for r in sb_rows if r["combined_criterion_ok"]),
+        "real_reading_300as_pf08": {
+            "A_drop_sr": a_drop_300,
+            "comp_max_measured": r1["comp_max"],
+            "combined_ok_on_real_reading": bool(ok_canon),
+            "combined_ok_on_100pct_loss": bool(ok_zero),
+        },
+        "handover": ("正本侧 ε_abs=1e-15 sr 在 A_drop ≲1e-14 sr 的域里吞掉整条判据，"
+                     "而按正本 :362-364 该域的可达成残差已是 ~1e-16 sr 的几何/表示地板，"
+                     "故**不可**用更小的绝对下限消掉（会误伤正确实现）；正本 :369-371 已写明"
+                     "须提到扩展精度表示才能移动该地板（冻结口径、需变更流程）。"
+                     "正本容差定义不在本单写入面，只登记移交。"),
+    }
     out["verdict"] = dict(
         conservation=bool(r1["comp_max"] < 1e-10 and abs(r1["sumF"]/r1["sumX"] - 1.0) < 1e-12),
         delta_theta2_ok=bool(abs((r2a["kgauss"] - 1.0)/d2 - 1.0) < 0.02),
@@ -306,6 +398,10 @@ def main():
         injection_sum_green=bool(abs(r3["sumF"]/r3["sumX"] - 1.0) < 1e-12),
         mean_estimator_zero=bool(r4["mean_res"] < 1e-10),
         control_points=bool(worst < 1.05),
+        # B6：适用域守卫必须既不误伤真实读数、又确实把盲带内的 100% 丢失挡下
+        seam_domain_guard_keeps_real_reading=bool(ok_canon),
+        seam_domain_guard_blocks_blind_band=bool(not ok_small),
+        seam_real_scale_100pct_loss_caught=bool(not ok_zero),
         elapsed_s=time.time()-t0)
     print("VERDICT:", json.dumps(out["verdict"]))
     with open(os.path.join(UNIT, "results", "audit", "route3", "exp03_weight_conservation.json"), "w") as f:
