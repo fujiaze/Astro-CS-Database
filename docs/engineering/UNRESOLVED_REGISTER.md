@@ -2656,3 +2656,99 @@ G08-06 悬空引用车道当时写的 `docs/detail/registry/astrocs.phaseN.*` �
 - **同一组 12 个 kernel 身份在仓内存在 4 处**
   （backend `.inc` / provider `.cpp` / `profile_gen_v2 kSpecs` / `gen_provider_manifests.py KERNEL_TABLE`），
   **只有一处有真实 join**，其余靠人工同步。
+
+---
+
+## 55. P2/P3 仍带 P1 已修的「幻边」缺陷（车道 23，100% 覆盖后定案）
+
+`module_adapters.cpp` 16,251 行**现已 100% 覆盖**（原 6,885 行缺口闭合）。
+
+### 55.1 坐标系词表裁清（前台点名问题的定论）
+
+**`CoordinateFrame::ICRS` = ICRS/J2000 赤道天球（RA-Dec 世界坐标），不是「ICRS 像素系」。**
+依据：`artifact.h:55` 中 `PIXEL` 是**独立枚举值**；`NUMERIC_STANDARD.md:8` 把 pixel 与 WCS RA-Dec 并列。
+
+**但实现面把它贴到了本不该有坐标系的数据上** —— registry 标 ICRS 的 9 个 DATA ID 里：
+
+| 成立 | 不成立 | 二义 |
+|---|---|---|
+| `DATA-P1-WCS[1]`、`DATA-P3-WCS[1]/DEGREE` | `DATA-P1-FLUX[N]`、`DATA-P1-SNR[N]`、`DATA-P1-STACK[H,W]`、`PHOTSCALE`/`PHOTPROV`/`PRODUCTS`（无 shape） | `DATA-P1-SOURCES[N,2]` |
+
+且 `DATA-P1-SOURCES` **三源分裂**：代码 + registry = ICRS，
+`docs/detail/registry/acsd.phase1.wcs-platesolve.md:33` = PIXEL。
+
+⇒ **第二车道报的「8 处坐标系错误」应改记为「1 条词表缺陷（U1）⇒ N 条症状」**；
+只有指向 WCS/角度载荷的才成立。另两条**可独立判红**：
+① `:1061` 的 `fits` = ICRS vs `:850` 的 `fits` = PIXEL（**同文件同语义角色赋两个值**）；
+② `:15665`/`:15710` 的 `"equatorial"` 字符串与枚举 ICRS 是**两套无互校词表**。
+
+### 55.2 幻边缺陷在 P2/P3 未修复（**最可行动的一条**）
+
+`runtime_client.cpp:224-233/187` 明写 **P1 曾因幻边踩过 F-8（rc=7「header 缺少 WCS」）并逐条补齐 typed 边**。
+**而 P2/P3 仍是纯线性单入单出链**，新增 15 处端口不一致（不与前车道 13 处重复），高危：
+
+| 模块 | 缺的生产端口 | 后果 |
+|---|---|---|
+| coverage | 实读 `doc["hips_paths"]`（HiPS 目录）而声明 `calibrated/DATA-P2-CAL` | 声明与实读完全脱节 |
+| upm-apply | 缺 `p2_sky_plane` / `p2_coverage` / `p2_samples` / `frame_hips`（4 处） | — |
+| reject | 缺 `frame_hips`（`:11161` 几何 n 的唯一来源） | — |
+| integrate | 缺 `frame_hips`（4 处调用） | — |
+| resample2 | 缺 `p3_props`（`:14878`，且是**硬门**） | — |
+| writer | 缺 `p3_wcs` / `run_context` / `mosaic_hips` / `p3_writer` | — |
+| verify | 缺 `p3_resampled` / `p3_writer` / `p3_wcs` | — |
+
+**根因**：`ModuleDescriptor::ports` 的端口名/集合与 op 真实依赖脱节，
+而生产 IR（`runtime_client.cpp:256-264/288-294`）跟随的是 **C++ 短名**
+⇒ `pipeline.cpp` 的 `MISSING_PORT` **不触发**。
+
+**且 `frame_hips` / `run_context` 在整张图里无生产者边**，
+而 `pipeline.cpp:326-344` **不查「消费了无生产者」**
+⇒ 链首 `artifact:cal` / `artifact:hips_in` 无生产者也不报。
+
+⇒ **建议门禁**：生产 IR 端口集 ⊇ registry 同名模块端口集。**现状必红 15 处。**
+
+**时序侥幸**：当前靠传递性满足而侥幸正确，但这是**未修的定时炸弹**，
+与 P1 的 F-8 同源。
+
+### 55.3 P3 的「失败记成成功」（唯一一条）
+
+`:15022-15024`：resample worker 的 **signal sampler** 打开失败时**静默 return、无 corrupt 标记**，
+而同 worker 的 **uncertainty** 打开失败却 `corrupt.store(-2)`（`:15034`）；
+且 `band_executed` 照增（`:15147`）⇒ `:15184` 的 fail-closed 通过
+⇒ **整条子块带全空仍被原子发布** `p3_resampled.bin`，下游逐子块读回**当成真实像素**。
+
+同组四条：
+- `:15835` verify 独立重算的 `canonical_match=false` **只落盘不判红** ——
+  而同函数内 bunit / output_mode / measurement_capable 三处分叉**全 fail-closed**
+  ⇒ **verify 唯一的存在理由被放过**
+- `:15252` BUNIT 漂移检查**排在** `:15235` 的 `atomic_replace` 发布**之后**
+- writer 自带重开对拍在 publish **之后**，失败不 `fs.abort()`
+- `:9411` 空 union 时 `n_union_cells=0`，但 `:9440` 遍历 padding 落 1 个幽灵
+  `{order:0,ipix:0}`，下游 `:9339` 按数组长度重建容量
+
+### 55.4 并行不分层的核实结论（**正面**）
+
+`p2_parallel_for` **与帧轴不嵌套**。并行度三级权威链 = 节点 `__workers` lease → 进程配额 →
+CPU affinity，经 `runtime_resources.json` 的 `kCpuBudgetMax` 封顶，**零硬编码线程数**
+（`:2236-2249` + `cpu_budget.cpp:61-65`）。三处调用的内部函数
+（`p2_upm_calibrate_block` / `p2_reject_stack_ex` / `p2_integrate_pixel`）**全部无内建并行**；
+`g_rd_error` 是 thread_local ⇒ 并发安全。
+⇒ **单层无嵌套，预算不会平方放大。**
+
+两处口径缺陷：reject/integrate 的 per-worker reader 按 `workers` 而非
+`min(workers, n_tasks)` 分配（`:11256`/`:12428`）；
+**P2 读 `doc["__workers"]`、P3 读 Runtime lease，回退口径不同**（前者落进程配额、后者落 1）。
+
+### 55.5 其他
+
+- **8 处 `const Json&` 上裸 `operator[]`** —— nlohmann 在 `NDEBUG` 下 `assert` 变 no-op
+  ⇒ 解引用 `end()` = **UB，不是抛异常**
+- `:10740` 错误路径漏关 vds + **不删已直写的** `p2_corrected_f*.bin`
+- `:10696` 逐帧 bin **无 temp+rename**（与 P3 的原子发布形成反差）
+- `:9818-9884` `upm.*` 九个覆盖键**无类型/域校验**（同语义 `model.smoothing` 有三判）
+- `:11272` `depth>255` 守卫与「u16 计数」自相矛盾且过严 ⇒ **300 帧覆盖的合法 tile 被误拒为产品损坏**
+- `:12124` 内容哈希 vs `:12596` 数组下标 —— **同帧两套身份**
+- reject/integrate 的 bin 表 `n_tiles × depth` **线性放大无预算守卫**（P3 有 `max_tiles`，P2 没有）
+- **注册 22 个 descriptor 无遗漏无重复，但与 registry(20 个) 差 2 个孤儿**
+  （`acsd.phase2.resample` / `acsd.phase3.resample`，后者有注释登记待处置、前者**无任何登记**）
+- `DATA-P2-CAL` 与 `DATA-P1-FITS` **既不在 registry 也不在 `DATA_ARTIFACTS.md`**，却在生产端口面上
