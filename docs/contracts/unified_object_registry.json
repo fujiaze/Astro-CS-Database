@@ -424,7 +424,7 @@
       "role": "traceability_contract",
       "owner": "GOV-001",
       "object_class": null,
-      "note": "可追溯矩阵形状；由 eng/tools/traceability/check_traceability_matrix.py 消费。"
+      "note": "可追溯矩阵形状；由可追溯矩阵判据消费（载体见 门禁注册面（G08-10 重建））。"
     },
     {
       "file": "eng/contracts/schemas/cpu_profile.schema.json",
@@ -452,7 +452,7 @@
       "role": "task_result_contract",
       "owner": "CI-001",
       "object_class": null,
-      "note": "任务结果合同；由 eng/tools/quality/check_task_result_schema.py 消费。"
+      "note": "任务结果合同；由任务结果 schema 判据消费（载体见 门禁注册面（G08-10 重建））。"
     },
     {
       "file": "eng/contracts/schemas/phase_config_normalize.schema.json",
@@ -536,7 +536,7 @@
       "role": "storage_form_contract",
       "owner": "CONTRACT-STORAGE-001",
       "object_class": null,
-      "note": "落盘形态合同（CONTRACT-STORAGE-001；doc_id DOC-CONTRACT-STORAGE-001，doc_status ACTIVE_NORMATIVE）的机器事实源：两形态命名与互斥、归档容器布局、产品级索引与数据集级覆盖索引 schema、形态输入配置键与运行完成清单 storage 段；**不是** UNIFIED_MODEL §2 的 13 个数据对象之一，不定义 unified_object 判别字段。权威 = docs/engineering/HIPS_STORAGE_FORM_CONTRACT.md（上位 ACSD_DESIGN.md §10 + docs/detail/PRODUCT_STORAGE_FORM.md）；机器检查器 = eng/tools/hipsform/check_hips_storage_form.py（CI 检查 CHK-HIPS-STORAGE-FORM）。"
+      "note": "落盘形态合同（CONTRACT-STORAGE-001；doc_id DOC-CONTRACT-STORAGE-001，doc_status ACTIVE_NORMATIVE）的机器事实源：两形态命名与互斥、归档容器布局、产品级索引与数据集级覆盖索引 schema、形态输入配置键与运行完成清单 storage 段；**不是** UNIFIED_MODEL §2 的 13 个数据对象之一，不定义 unified_object 判别字段。权威 = docs/engineering/HIPS_STORAGE_FORM_CONTRACT.md（上位 ACSD_DESIGN.md §10 + docs/detail/PRODUCT_STORAGE_FORM.md）；机器检查器 = 落盘形态判据（CI 检查 CHK-HIPS-STORAGE-FORM，载体见 门禁注册面（G08-10 重建））。"
     }
   ],
   "deprecation": {

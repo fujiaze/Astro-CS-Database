@@ -29,7 +29,7 @@
 |---|---|
 | 字段表、语义、枚举、error 载荷 | `docs/engineering/observability/STRUCTURED_LOGGING_CONTRACT.md` §2 |
 | JSON Schema（draft-07） | `lib/infrastructure/observability/logging/log_event_v1.schema.json` |
-| 参考实现与校验器 | `lib/infrastructure/observability/logging/log_event.py`、`eng/tools/monitoring/check_log_contract.py` |
+| 参考实现与校验器 | `lib/infrastructure/observability/logging/log_event.py`（参考实现）；校验面 = 日志行 schema / 字段 / 枚举 / 单行大小（正本 `lib/infrastructure/observability/logging/log_event_v1.schema.json`，校验项载体见 门禁注册面（G08-10 重建）） |
 | 诊断工具 | `eng/tools/acsd_diagnose.py <run_dir>`，由一次运行的日志工件汇总输出小 bundle |
 
 - 每行 = 一个 JSON 对象 + `\n`；单行（含换行）≤ **4096 字节**；
@@ -162,18 +162,13 @@ run manifest 增列 `log_artifacts[]`（**每次运行必填，可为空数组�
 
 | 判据 | 机器入口 | 正例（绿） | 负例（红） |
 |---|---|---|---|
-| R1 错误不吞 | `check_log_system.py` | 生产收敛面无未登记吞错点 | 注入 `catch (...) {}` ⇒ FAIL |
+| R1 错误不吞 | `CHK-LOG-SYS`（注册面见 门禁注册面（G08-10 重建）） | 生产收敛面无未登记吞错点 | 注入 `catch (...) {}` ⇒ FAIL |
 | R2 降级显式 | 同上 | 条件回退点已登记且写 `degraded_reason` | 注入静默回退函数 ⇒ FAIL |
 | R3 日志落点 | 同上 | 落点均派生自 `output_dir` 或已登记 | 落点字面量指向 `output_dir` 之外 ⇒ FAIL |
 | R4 台账完整 | 同上 | 锚存活、条目只减不增、扫描面非空 | 抹掉锚 / 清空扫描面 ⇒ FAIL |
 | R5 合同锚 | 同上 | 台账落点默认值与本合同、最高设计一致 | 改台账默认值 ⇒ FAIL |
 
-命令：
-
-```bash
-python3 eng/tools/quality/check_log_system.py --json-out run/ci/log-system/log_system.json
-python3 eng/tools/quality/check_log_system.py --self-test
-```
+机器入口与负例命令随 门禁注册面（G08-10 重建） 落盘（注册项 = `CHK-LOG-SYS`，见下）。
 
 注册项 = `CHK-LOG-SYS`（门禁注册面（G08-10 重建）、`docs/engineering/VALIDATION_EVIDENCE_STANDARD.md §12` §2）。
 

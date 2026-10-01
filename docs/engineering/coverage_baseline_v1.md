@@ -10,12 +10,12 @@
 **第一次 deep CI 只测量并记录覆盖基线，不虚构覆盖率阈值**（deep profile 检查
 见 门禁注册面（G08-10 重建））。本文件即该基线的登记处；覆盖率阈值
 （per-module `--cov-fail-under` 或全局 gate）待冻结，冻结前
-`eng/tools/quality/ci_coverage_runner.py` 的 `threshold` 字段保持 `null`。
+覆盖率驱动的 `threshold` 字段保持 `null`（驱动载体见 门禁注册面（G08-10 重建））。
 
 ## 基线获取方式
 
 - 检查入口：linux-deep profile 的 DEEP-COV 检查（见 门禁注册面（G08-10 重建））。
-- 驱动：`eng/tools/quality/ci_coverage_runner.py`（pytest-cov 薄封装，
+- 驱动：pytest-cov 薄封装（载体见 门禁注册面（G08-10 重建）；
   `--cov=lib --cov=cli --cov=tools --cov-branch`，分支覆盖）。
 - 产物：`run/ci/coverage/coverage.xml`、`coverage.json`、
   `coverage-summary.json`（含 pytest 退出码透传）。

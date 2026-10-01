@@ -20,7 +20,7 @@ L5 模块文档        docs/detail/registry/**（module 页 + MODULE_MAP.yaml + 
 历史（非权威）      docs/**/v6/**（V6 产品族冻结/设计档案，仍在活动索引）；其余历史由 git 承载
 ~~~
 
-- 活动/归档边界与机器索引：`docs/DOCUMENT_INDEX.yaml` + `python3 eng/tools/doccheck/check_doc_index.py --strict`。
+- 活动/归档边界与机器索引：`docs/DOCUMENT_INDEX.yaml`；文档索引判据以 `--strict` 复核（载体见 门禁注册面（G08-10 重建））。
 - 机器一致性检查器以 门禁注册面（G08-10 重建） 为唯一注册表（`docs/engineering/VALIDATION_EVIDENCE_STANDARD.md §12`）。
 
 - 每份 science 文档：目的、科学定义、公式、变量/单位、假设、有效域、

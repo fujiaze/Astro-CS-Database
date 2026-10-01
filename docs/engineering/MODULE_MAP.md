@@ -3,7 +3,7 @@
 > 上游：`docs/ACSD_DESIGN.md` §8（软件架构）、§12.5（状态阶梯）
 
 状态词口径 = `docs/ACSD_DESIGN.md` §12.5（不另立阶梯）；本文件的表格**不写状态字段**——
-各面状态由 `eng/tools/quality/check_module_map.py` **现场计算**并落在
+各面状态由交付状态**现场计算**（载体见 门禁注册面（G08-10 重建））并落在
 `docs/modules/MODULE_MAP.yaml`，本文件只承载映射与可核证据锚。
 每行按 `lib/` 实际目录登记，`docs/modules/<module>.md` 为对应 L5 详细文档。
 
@@ -49,7 +49,7 @@
     （HASH_MISMATCH / MODULE_ID_MISMATCH / PATH_ESCAPE / FILE_MISSING）必败；
   - `eng/tests/abi/test_module_registry.py` 与 `eng/tests/abi/test_abi005_echo.py`
     （module 合同与三方一致正测）；
-  - `eng/packaging/verify_install_tree.py`（安装树产品清单核对）。
+  - 安装树产品清单核对（载体见 门禁注册面（G08-10 重建））。
 - **缺口登记**：运行期宿主接线未落地一项登记于 `docs/KNOWN_LIMITATIONS.md`，
   其收敛按 `docs/modules/MODULE_MAP.yaml` 与 `CHK-PROD-WIRING` 的现场计算结论判定；
   收缩声明面须经 `docs/modules/registry/**` 变更单按最高设计 §8.1 走变更流程。

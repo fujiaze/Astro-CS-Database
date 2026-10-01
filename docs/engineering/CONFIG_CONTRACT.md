@@ -223,7 +223,7 @@ negative:   eng/tests/config/fixtures/negative/cpu_profile_v2_bad_os_abi.json（
 | 模块/CLI 契约 schema | `eng/contracts/config/**` | cli_modules_list / cli_selftest / module_dll_contract / module_lifecycle_contract | CFG002-07（全为 schema；与 eng/packaging/config/** 各自具名） |
 | phase_config schema | `eng/contracts/schemas/phase_config_{normalize,mosaic,export}.schema.json` | 三份 phase 专属；无聚合第二定义 | `test_no_aggregate_second_definition` |
 | 文档事实源 | `docs/engineering/CONFIG_CONTRACT.md`（本文件） | 语义与索引 | CFG002-07（DOCUMENT_INDEX 恰一次 + ACTIVE_NORMATIVE） |
-| 文档索引 | `docs/DOCUMENT_INDEX.yaml` | docs/** 与根治理文档 | `eng/tools/doccheck/check_doc_index.py` |
+| 文档索引 | `docs/DOCUMENT_INDEX.yaml` | docs/** 与根治理文档 | 文档索引判据（载体见 门禁注册面（G08-10 重建）） |
 | 测试登记 | `eng/tests/test_index.csv` | eng/tests/** 子目录 | CFG002-07（登记 eng/tests/config；未登记集合 ⊆ 已登记缺口清单） |
 | CI 注册表 | 门禁注册面（G08-10 重建） ↔ `docs/engineering/VALIDATION_EVIDENCE_STANDARD.md §12` §2 | 检查项双向对齐 | config 域的 `UT-CONFIG` 步骤登记在 CI 侧（正本 = `docs/engineering/VALIDATION_EVIDENCE_STANDARD.md §12` §2） |
 

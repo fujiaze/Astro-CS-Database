@@ -2,7 +2,7 @@
 
 > 上游权威: `ACSD_DESIGN.md` §6.3（冻结八投影；本节号为本轮订正，原写 §5.3 = 「SNR 重建与逆方差叠加」）/附录 B（基础科学与格式参考）+ `docs/DOCUMENT_INDEX.yaml`（本注册表为标准登记，不在 §0 权威链上）
 > 条款锚的现行落点：投影集合 = `ACSD_DESIGN.md` §6.3（八投影）；资源门 = 同文 §8 + `eng/contracts/resource_gate_v1.json`
-> 机器检查: `docs/standards/checks/check_standards_registry.py`（exit 0 = PASS / 1 = FAIL / 2 = ANCHOR_STALE；见 §5 与 §5 负向注入）
+> 机器检查: 标准注册表判据 C1–C9（载体见 门禁注册面（G08-10 重建）；exit 0 = PASS / 1 = FAIL / 2 = ANCHOR_STALE；见 §5 与 §5 负向注入）
 > 登记: `docs/DOCUMENT_INDEX.yaml` doc_index.active（status = ACTIVE_NORMATIVE）
 
 ---
@@ -314,7 +314,7 @@
 
 ---
 
-## 5. 机器检查合同（docs/standards/checks/check_standards_registry.py）
+## 5. 机器检查合同（标准注册表判据 C1–C9）
 
 | 检查 | 断言 |
 |---|---|
@@ -329,9 +329,7 @@
 | C8 | §3 偏差索引与偏差登记面双向一致：定义域为空 ⇒ 索引必须有显式「（无）」行；定义域非空 ⇒ 索引各行均为真实偏差 ID（「（无）」行的适用范围 = 定义域为空） |
 | C9 | **[W4-A3]** 域清单「偏差」列 → 域 DEVIATION 字段**反向一致**：清单行偏差列里出现的每个 STD-F*/DISP-* 词元必须在本域 DEVIATION 字段中有定义。C4 只判该列非空、C7 只判 §3 索引 → DEVIATION；补上反向后"清单行写着 STD-F1 而 DEVIATION 字段删掉它"不再可能整体绿 |
 
-用法（PASS 时 exit 0；FAIL 为 1；锚失效为 2）：
-
-    python3 docs/standards/checks/check_standards_registry.py --root .
+用法（PASS 时 exit 0；FAIL 为 1；锚失效为 2）：域内手工复跑，判据载体随 门禁注册面（G08-10 重建） 落盘。
 
 锚存活（`docs/DOCUMENT_INDEX.yaml`，fail-closed）：`REQUIRED_ANCHORS`（本注册表 +
 docs/DOCUMENT_INDEX.yaml）在启动时校验 os.path.exists + `git ls-files --error-unmatch`；
@@ -349,11 +347,9 @@ docs/DOCUMENT_INDEX.yaml）在启动时校验 os.path.exists + `git ls-files --e
 > 须先在 门禁注册面（G08-10 重建） 登记（`changed_paths=["docs/standards/**"]`，参照 DOC-INDEX 形态）；
 > 补登记完成后方可把本节改回强制口径。
 
-    for s in drop-domain-section drop-checklist-table illegal-status version-drift \
-             drop-wcs003f1-pointer dangling-deviation-id \
-             drop-governance-deviation add-none-marker-row anchor-stale; do
-      python3 docs/standards/checks/check_standards_registry.py --root . --fault-inject "$s"
-    done
+逐个场景以 `--fault-inject <场景名>` 复跑（场景名 = drop-domain-section / drop-checklist-table /
+illegal-status / version-drift / drop-wcs003f1-pointer / dangling-deviation-id /
+drop-governance-deviation / add-none-marker-row / anchor-stale）。
 
 前 8 场景恒退出 0（注入协议：判定看 verdict）；`anchor-stale` 为例外 —— 锚失效按 §8
 必须非零退出，退出 2 并打印 `ANCHOR_STALE`。
@@ -365,12 +361,12 @@ docs/DOCUMENT_INDEX.yaml）在启动时校验 os.path.exists + `git ls-files --e
 
 人工复现生产路径（不经 --fault-inject）：
 
-    ACSD_STD_REG_ANCHOR_OVERRIDE='REGISTRY_REL=docs/standards/__missing__.md' \
-      python3 docs/standards/checks/check_standards_registry.py --root .; echo rc=$?   # rc=2
+以 `ACSD_STD_REG_ANCHOR_OVERRIDE='REGISTRY_REL=docs/standards/__missing__.md'` 指向缺席锚复跑，
+观察退出码（预期 rc=2）。
 
 > CI 登记状态：本检查器为**治理文档检查器**
 > （非 CTest 目标、非 add_test 注册面）。**已登记**：门禁注册面（G08-10 重建） 的 `STD-REG` 项
-> （主判据 `check_standards_registry.py --root .`）+ 2 个负向注入场景
+> （主判据 C1–C9）+ 2 个负向注入场景
 > （`STD-REG-FI-DANGLING`、`STD-REG-FI-VERSION-DRIFT`）。
 > **未登记（PLANNED）**：其余 7 个注入场景 + 空转守卫；该登记属 门禁注册面（G08-10 重建） 写入面，
 > 超出本文件域（参照 DOC-INDEX 检查项形态：changed_paths=["docs/standards/**"]）。
@@ -388,7 +384,7 @@ docs/DOCUMENT_INDEX.yaml）在启动时校验 os.path.exists + `git ls-files --e
   docs/science/algorithms/PLATESOLVE.md、docs/science/algorithms/PHASE3_PROJ_IMPL.md、docs/science/algorithms/HIPS_WRITER.md、
   docs/science/algorithms/HEALPIX_MAPPING.md、docs/science/algorithms/DRIZZLE_GEOMETRY.md、docs/science/algorithms/GAIA_QUERY.md、
   docs/science/IO_001_FITS_STREAM_INTERFACE.md、docs/science/IO_002_HIPS_INPUT_INTERFACE.md。
-- 机器检查：docs/standards/checks/check_standards_registry.py；docs/DOCUMENT_INDEX.yaml（DOC-INDEX 检查项）。
+- 机器检查：标准注册表判据 C1–C9（载体见 门禁注册面（G08-10 重建））；docs/DOCUMENT_INDEX.yaml（DOC-INDEX 检查项）。
 - 本文件不修改任何 SCI/ALG 公式、默认容差或冻结门；冲突一律登记偏差（§1.2/§1.5）。
 
 ---
@@ -397,8 +393,8 @@ docs/DOCUMENT_INDEX.yaml）在启动时校验 os.path.exists + `git ls-files --e
 
 > 依据：`ACSD_DESIGN.md` §0.2（登记表/映射表的状态字段一律留空）、§12.5（状态必须现场计算）。
 
-- 本表**不写**交付状态阶梯（§12.5 的 `CONTRACT_READY`/`IMPLEMENTED`/…）——那是模块/交付物的状态，由 `eng/tools/quality/check_module_map.py` 现场计算；文档活动分类一律以 `docs/DOCUMENT_INDEX.yaml` + `eng/tools/doccheck/check_doc_index.py` 为准。
+- 本表**不写**交付状态阶梯（§12.5 的 `CONTRACT_READY`/`IMPLEMENTED`/…）——那是模块/交付物的状态，由交付状态现场计算（载体见 门禁注册面（G08-10 重建））；文档活动分类一律以 `docs/DOCUMENT_INDEX.yaml` 为准，文档索引判据载体见 门禁注册面（G08-10 重建）。
 - 本表保留的两列**不是**交付状态，且都由机器校验，不构成「表内自证绿」：
-  - `符合状态`（`CONFORMANT`/`PARTIAL`/`NON_CONFORMANT`/`PROJECT_DEFINED`）= 与**外部标准条款**的关系轴，取值域与证据指针存在性由 `check_standards_registry.py` C4/C5 现场判（`docs/engineering/RELEASE_STATUS.md` §0 已声明两轴独立）；
+  - `符合状态`（`CONFORMANT`/`PARTIAL`/`NON_CONFORMANT`/`PROJECT_DEFINED`）= 与**外部标准条款**的关系轴，取值域与证据指针存在性由 C4/C5 现场判（`docs/engineering/RELEASE_STATUS.md` §0 已声明两轴独立）；
   - §3 偏差索引的 `状态`（`TRACKED`/`CLOSED`）= 偏差处置登记，定义域与索引一致性由 C6/C7 现场判。
-- 若后续要求连这两列也改为「检查器现场计算」，须先改 `docs/standards/checks/check_standards_registry.py` 的 C4/C6 判据并同步 门禁注册面（G08-10 重建） 的 STD-REG 项——属门禁改造，不在本文件域内。
+- 若后续要求连这两列也改为「检查器现场计算」，须先改 C4/C6 判据并同步 门禁注册面（G08-10 重建） 的 STD-REG 项——属门禁改造，不在本文件域内。

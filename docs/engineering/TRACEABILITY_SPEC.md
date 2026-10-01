@@ -21,7 +21,7 @@ Schema：
 - `schemas/traceability_matrix.schema.json`（JSON 合同）
 - `docs/traceability/TRACEABILITY_LAYERS.csv`（CSV 合同：列定义 + 每层必填规则 + 取值域）
 
-检查器：`eng/tools/traceability/check_traceability_matrix.py`（exit 0 = `TRACEABILITY_MATRIX_PASS`；
+检查器（载体见 门禁注册面（G08-10 重建））：exit 0 = `TRACEABILITY_MATRIX_PASS`；
 任何断链输出**具体模块 + 层 + 缺失/悬空引用路径**并以非 0 退出，绝不崩溃吞异常）。
 
 ## 2. 追溯链与分层
@@ -85,8 +85,8 @@ EVID     ^EVID-[A-Z0-9]+(-[A-Z0-9]+)*$         例如 EVID-P1-CAL-001
   EVIDENCE 层 id（非占位）全矩阵唯一。SCI/ALG/DATA/API/ARCH/TEST 是**合同层**，
   ID 可被多个模块行共享（如 `API-P2-001` 被 8 个 phase2 模块共同承载、
   `TEST-P3-RES-001` 由 phase3.resample/resample2 共享——registry 文档既定事实），
-  其**真实唯一性以合同注册表为准**（`docs/contracts/INDEX.yaml` +
-  `eng/tools/check_contract_graph.py`），本矩阵对共享引用只登记不判重。
+  其**真实唯一性以合同注册表为准**（`docs/contracts/INDEX.yaml`；注册表与合同图的双向一致判据见 门禁注册面（G08-10 重建）），
+  本矩阵对共享引用只登记不判重。
 - 状态 `MISSING` 的层允许保留 **descriptor/registry 已预留的真实 ID**（ID 占用
   命名空间但独立 authority 文档/实现尚未落地），也允许占位符 ID；空串判红。
 - 状态 `VERIFIED` 的层必须满足：id 非占位，且锚可机器解析（见 §4/§5 与 §7）。
@@ -115,7 +115,7 @@ EVID     ^EVID-[A-Z0-9]+(-[A-Z0-9]+)*$         例如 EVID-P1-CAL-001
   5. TEST 层 `VERIFIED` 时该行 SRC 层必须也 `VERIFIED`（有实现才有测试证据），
      SRC `MISSING` 而 TEST `VERIFIED` 判 `CHAIN_BREAK`（给出 module_id）。
 - 说明：矩阵是**模块↔锚**机器合同；`docs/TRACEABILITY.csv` 的逐条细粒度
-  （authority/anchor/oracle）仍由 `eng/tools/check_traceability.py` 负责，二者互补不冲突。
+  （authority/anchor/oracle）仍由逐条追溯判据负责（载体见 门禁注册面（G08-10 重建）），二者互补不冲突。
 
 ## 5. SOURCE SYMBOL 表达
 
@@ -141,8 +141,8 @@ EVID     ^EVID-[A-Z0-9]+(-[A-Z0-9]+)*$         例如 EVID-P1-CAL-001
 
 ## 7. 机器闭环（检查器行为契约）
 
-运行：`python3 eng/tools/traceability/check_traceability_matrix.py --root . [--json-out out.json] [--strict]`
-（Python 3.10+ 标准库；无网络；不依赖 cwd 之外路径；`timeout 120` 内完成）。
+运行（载体见 门禁注册面（G08-10 重建）；接受 `--root .` / `--json-out <out.json>` / `--strict`；Python 3.10+ 标准库；
+无网络；不依赖 cwd 之外路径；`timeout 120` 内完成）。
 
 必须实现且失败时给出**具体断链**（模块 + 层 + 路径 + 期望/实际）；崩溃即判红：
 

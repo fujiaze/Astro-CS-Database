@@ -1,7 +1,7 @@
 # Astro Celestial Sphere Database（ACSD） 版本合同
 
 > 上游：docs/ACSD_DESIGN.md §13（版本与发布权）
-> 唯一正本：本文件是版本合同的唯一正本；机器门 = `CHK-VERSION-CONSISTENCY-VER001`（`eng/tools/check_version_consistency.py`）。
+> 唯一正本：本文件是版本合同的唯一正本；机器门 = `CHK-VERSION-CONSISTENCY-VER001`（载体见 门禁注册面（G08-10 重建））。
 
 ## 1. 唯一版本源
 
@@ -57,7 +57,7 @@
 
 ## 4. 机器检查
 
-`eng/tools/check_version_consistency.py`：
+版本一致性判据（载体见 门禁注册面（G08-10 重建））：
 - `VERSION` 格式必须为 `X.Y.Z-alpha.N`；出现 `stable/rc/beta` 预发布标记即 FAIL。
 - 扫描 `docs/ schemas/ eng/tools/ launch/ eng/tests/` 与根级 README/CHANGELOG/build.sh/toolchain.ps1：任何 `X.Y.Z` 字面量必须等于唯一源（豁免：hips_version、DatabaseVersion、schema_version、外部组件版本、`X.Y.Z`/`MAJOR.MINOR.PATCH` 占位写法）。
 - **mutation 合同：任何一处伪造/漂移版本字面量必须使本 checker FAIL**（`eng/tests/version/**` 有固定试金石）。

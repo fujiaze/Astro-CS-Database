@@ -76,7 +76,7 @@ CREATED --(所有声明消费者执行完毕)--> CONSUMED --(调度器回收)-->
 
 ## 7 机器判据（端口 ↔ 代码双向一致）
 
-`eng/tools/quality/check_block_flow_ports_vs_code.py` 把注册表的端口面与
+端口↔代码双向一致判据（C1–C6，载体见 门禁注册面（G08-10 重建））把注册表的端口面与
 `lib/infrastructure/scheduler/src/module_adapters.cpp` 的真实数据流做**双向**核对：
 
 | 判据 | 内容 |
@@ -100,7 +100,7 @@ CREATED --(所有声明消费者执行完毕)--> CONSUMED --(调度器回收)-->
 |---|---|
 | C4 无幻边 | IR 声明的每条边必须由注册表端口图支持：该产物身份对应的注册表端口必须是生产模块的**输出**端口、且是消费模块的**输入**端口；IR 产物身份须在 `PHASE1_ARTIFACT_TO_PORT` 桥表中登记（未登记即判红，新增产物必须同步该桥） |
 | C5 序为拓扑序 | 注册表端口图 DAG 的每条边必须满足 `pos(上游) < pos(下游)`；IR 自身声明的边也必须与节点数组序一致 |
-| C5b 声明序一致 | IR 的 phase1 节点序必须等于注册表 `modules` 数组里同阶段模块的出现序（块流规格 `stage_block_flow.json` 的 declared order 与 `check_block_flow_spec.py` 的 R4 同源） |
+| C5b 声明序一致 | IR 的 phase1 节点序必须等于注册表 `modules` 数组里同阶段模块的出现序（块流规格 `stage_block_flow.json` 的 declared order 与 R4 同源） |
 | C6 psf 在 wcs 之后 | `pos(psf) > pos(wcs)`，且 `psf` 节点必须声明 `artifact:p1_wcs` 输入边（取向先验的真实来源） |
 | C8 IR 端口 ∈ descriptor | IR 每个节点的输入/输出端口名必须出现在 `module_adapters.cpp` 对应 descriptor 的端口表里（运行期 `MISSING_PORT` 静态验证的 CI 侧等价判据；不启动产品二进制即可发现 IR ↔ descriptor 漂移） |
 | C7 非退化 | phase1 节点数 / IR 边数 / 注册表端口边数均有下界；解析不到即 fail-closed（判据 = 解析成功；解析不到一律判红） |

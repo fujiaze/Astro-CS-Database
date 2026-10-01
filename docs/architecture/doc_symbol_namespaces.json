@@ -1,6 +1,6 @@
 {
   "schema": "acsd/doc-symbol-namespaces/v1",
-  "note": "check_doc_symbols.py 的**非 API 符号命名空间**登记表。判据：文档反引号里的 token 必须能解析到**已登记命名空间之一** —— API inventory / lib·include 公开头 / 文档词干 / 术语词典 / 本表。本表不是豁免表：每条登记的 token 必须在 evidence 所指文件里**逐字出现**（否则 DOC-SYMBOL-REGISTRY-EVIDENCE 判红），且必须在扫描面里**真实出现过**（否则 DOC-SYMBOL-REGISTRY-STALE 判红 ⇒ 登记只减不增）。",
+  "note": "**非 API 符号命名空间**登记表（登记面见 门禁注册面（G08-10 重建））。判据：文档反引号里的 token 必须能解析到**已登记命名空间之一** —— API inventory / lib·include 公开头 / 文档词干 / 术语词典 / 本表。本表不是豁免表：每条登记的 token 必须在 evidence 所指文件里**逐字出现**（否则 DOC-SYMBOL-REGISTRY-EVIDENCE 判红），且必须在扫描面里**真实出现过**（否则 DOC-SYMBOL-REGISTRY-STALE 判红 ⇒ 登记只减不增）。",
   "auto_domains": [
     {
       "id": "document_stems",
@@ -9,7 +9,7 @@
     },
     {
       "id": "glossary_terms",
-      "note": "docs/GLOSSARY.md = 唯一术语权威（冻结定义，18 术语，机器门 eng/tools/check_glossary.py）",
+      "note": "docs/GLOSSARY.md = 唯一术语权威（冻结定义，18 术语，术语权威校验项载体见 门禁注册面（G08-10 重建））",
       "source": "docs/GLOSSARY.md"
     },
     {
@@ -58,20 +58,14 @@
     {
       "token": "COUNT_FIELD_MISSING",
       "namespace": "verdict_id",
-      "evidence": "eng/tools/quality/check_p3_rejection_count.py:157",
-      "reason": "DATA-P3-REJ-001 的判据名（产品缺 diagnostic_planes.n_rejected_nonfinite 时判红；「0 与字段缺失必须可区分」，DATA-002 §2a 规则 3）。判据由 eng/tools/quality/check_p3_rejection_count.py 产出，非 API 符号 ⇒ 显式登记命名空间；文档承载 = docs/engineering/DATA_ARTIFACTS.md【证据形态 A：该行逐字含 token —— 行锚即为 token 的真实承载行】"
+      "evidence": "docs/engineering/DATA_ARTIFACTS.md:37",
+      "reason": "DATA-P3-REJ-001 的判据名（产品缺 diagnostic_planes.n_rejected_nonfinite 时判红；「0 与字段缺失必须可区分」，DATA-002 §2a 规则 3）。非 API 符号 ⇒ 显式登记命名空间。判据载体见 门禁注册面（G08-10 重建）。文档承载 = docs/engineering/DATA_ARTIFACTS.md DATA-P3-REJ-001 行。【证据形态 C：仓内无该判词的代码抛出点载体（产出该判词的检查器已物理删除，载体随 门禁注册面（G08-10 重建） 重建），仅判据条文逐字承载 token；条文被改写时本门不判红 —— 已知代价，如实标注】"
     },
     {
       "token": "PHOT_PASSBAND_IDENTITY_INCONSISTENT",
       "namespace": "verdict_id",
       "evidence": "lib/infrastructure/scheduler/src/module_adapters.cpp:6024",
       "reason": "组内模型通带唯一性的帧级失败码（某帧解析出的通带与组内首帧不一致 ⇒ 该帧判此码；帧间独立，不阻塞其他帧）。全仓唯一产生点 = module_adapters.cpp:6024 的 mark_frame_fail 调用（帧间通带比较的 else-if 分支体内），同函数 p1_op_photometry 定义行 :5309。原锚 :5856 逐字是 `if (!sip_ok) {`，虽同在 p1_op_photometry 体内但属**另一判据分支**（→ PHOT_WCS_SIP_INVALID），不含本 token ⇒ 2026-09-30 逐条核验改到逐字命中行【证据形态 A：该行逐字含 token —— 行锚即为 token 的真实承载行】"
-    },
-    {
-      "token": "ARCHIVE_MARKERS",
-      "namespace": "checker_constant",
-      "evidence": "docs/algorithms/anchors/check_doc_line_anchors.py:82",
-      "reason": "锚合同 checker 的归档标记目录常量（resolver 第 4 步 basename-unique 的排除面清单），ANCHOR_CONTRACT.md §3 规则 4 逐字转述其取值；Python 常量非 API 符号 ⇒ 显式登记命名空间。行锚 = 定义行 :82（该文件在飞改动中，行号按 grep 实测刷新）【证据形态 A：该行逐字含 token —— 行锚即为 token 的真实承载行】"
     },
     {
       "token": "FROZEN_SCI_CLAIM",
@@ -106,50 +100,50 @@
     {
       "token": "CONTRACT_READY",
       "namespace": "delivery_status",
-      "evidence": "eng/tools/quality/check_module_map.py:106",
-      "reason": "模块/交付物状态阶梯取值（ENGINEERING_SPEC §12.5 词表；同文件 :822 逐条判 status ∈ STATUS_VOCABULARY，不在词表内即判红）。取值由模块映射表现场计算，不是公开 API 符号 ⇒ api_inventory（只登记函数签名）与 lib 公开头都不收。行锚 = 词表元组行 :106，阶梯判据释义见同文件 :63。文档承载 = docs/engineering/RELEASE_STATUS.md §0【证据形态 A：该行逐字含 token —— 行锚即为 token 的真实承载行】"
+      "evidence": "docs/modules/MODULE_MAP.yaml:34",
+      "reason": "模块/交付物状态阶梯取值（ACSD_DESIGN §12.5 词表；文档映射表现场计算 status ∈ status_vocabulary，不在词表内即判红）。取值由模块映射表现场计算，不是公开 API 符号 ⇒ api_inventory（只登记函数签名）与 lib 公开头都不收。判据载体见 门禁注册面（G08-10 重建）。文档承载 = docs/engineering/RELEASE_STATUS.md §0。【证据形态 C：仓内无该判词的代码抛出点载体（产出该判词的检查器已物理删除，载体随 门禁注册面（G08-10 重建） 重建），仅判据条文逐字承载 token；条文被改写时本门不判红 —— 已知代价，如实标注】"
     },
     {
       "token": "NOT_IMPLEMENTED",
       "namespace": "delivery_status",
-      "evidence": "eng/tools/quality/check_module_map.py:107",
-      "reason": "模块/交付物状态阶梯取值（同上词表元组行 :107；判据释义「目标目录或实现缺失，或 entrypoint 为 facade/no-op」见同文件 :62）。文档状态词、非 API 符号 ⇒ 需显式登记命名空间。文档承载 = docs/engineering/RELEASE_STATUS.md §0 与 docs/engineering/PIPELINE_OVERVIEW.md【证据形态 A：该行逐字含 token —— 行锚即为 token 的真实承载行】"
+      "evidence": "docs/engineering/RELEASE_STATUS.md:19",
+      "reason": "模块/交付物状态阶梯取值（同 §12.5 词表；释义「能力不在当前基线（符号/路径不存在）」见 docs/engineering/RELEASE_STATUS.md §0）。非 API 符号 ⇒ 需显式登记命名空间。判据载体见 门禁注册面（G08-10 重建）。文档承载 = docs/engineering/RELEASE_STATUS.md §0。【证据形态 C：仓内无该判词的代码抛出点载体（产出该判词的检查器已物理删除，载体随 门禁注册面（G08-10 重建） 重建），仅判据条文逐字承载 token；条文被改写时本门不判红 —— 已知代价，如实标注】"
     },
     {
       "token": "NOT_VERIFIED",
       "namespace": "delivery_status",
-      "evidence": "eng/tools/quality/check_module_map.py:107",
-      "reason": "模块/交付物状态阶梯取值（词表元组行 :107）。本 token 有**两个独立承载面**：① 映射表 verification_status（同文件 :1096 由主状态派生）；② 验收 tier 判词（eng/tools/acceptance/tier_verdict_gate.py:41 TIER_VERDICTS）。两面的封闭词表都不在 api_inventory 与 lib 公开头 ⇒ 显式登记命名空间；本条 evidence 钉交付阶梯那一面。文档承载 = docs/engineering/RELEASE_STATUS.md §0 与 docs/engineering/TIER_VERDICT_CRITERIA.md【证据形态 A：该行逐字含 token —— 行锚即为 token 的真实承载行】"
+      "evidence": "docs/engineering/RELEASE_STATUS.md:20",
+      "reason": "模块/交付物状态阶梯取值（同 §12.5 词表；释义「能力可能存在但当前提交未复跑执行验收」见 docs/engineering/RELEASE_STATUS.md §0）。两面的封闭词表都不在 api_inventory 与 lib 公开头 ⇒ 显式登记命名空间。文档承载 = docs/engineering/RELEASE_STATUS.md §0 与 §4。【证据形态 C：仓内无该判词的代码抛出点载体（产出该判词的检查器已物理删除，载体随 门禁注册面（G08-10 重建） 重建），仅判据条文逐字承载 token；条文被改写时本门不判红 —— 已知代价，如实标注】"
     },
     {
       "token": "NOT_ATTEMPTED",
       "namespace": "verdict_id",
-      "evidence": "eng/tools/acceptance/tier_verdict_gate.py:41",
-      "reason": "验收 tier 判词的封闭词表取值（同文件 :40 注释「改词表 = 改判据，须走变更流程；本文件是唯一实现点」）。判词不是 API 符号，判据实现点是 .py 而非 lib 公开头 ⇒ 显式登记命名空间。行锚 = 词表字面量行 :41。文档承载 = docs/engineering/TIER_VERDICT_CRITERIA.md 判据表【证据形态 A：该行逐字含 token —— 行锚即为 token 的真实承载行】"
+      "evidence": "docs/engineering/VALIDATION_EVIDENCE_STANDARD.md:487",
+      "reason": "验收 tier 判词的封闭词表取值（判据口径：0 帧被求值且 not_attempted_reasons 非空）。判词不是 API 符号 ⇒ 显式登记命名空间。判据载体见 门禁注册面（G08-10 重建）。文档承载 = docs/engineering/VALIDATION_EVIDENCE_STANDARD.md 帧级判词表。【证据形态 C：仓内无该判词的代码抛出点载体（产出该判词的检查器已物理删除，载体随 门禁注册面（G08-10 重建） 重建），仅判据条文逐字承载 token；条文被改写时本门不判红 —— 已知代价，如实标注】"
     },
     {
       "token": "NOT_EVALUATED",
       "namespace": "verdict_id",
-      "evidence": "eng/tools/acceptance/tier_verdict_gate.py:53",
-      "reason": "帧级判词三值之一（FRAME_VERDICTS = ACCEPT / REJECT / NOT_EVALUATED，消费点同文件 :88 与 :166；同形枚举另见 eng/tools/acceptance/rel790_checklist.json:41 的 enum ACCEPT|REJECT|NOT_EVALUATED）。判词不是 API 符号 ⇒ 显式登记命名空间。文档承载 = docs/engineering/TIER_VERDICT_CRITERIA.md（与 counts.not_attempted 对账）与 docs/engineering/REL790_VISUAL_EVIDENCE_CHECKLIST.md 帧级 schema【证据形态 A：该行逐字含 token —— 行锚即为 token 的真实承载行】"
+      "evidence": "docs/engineering/VALIDATION_EVIDENCE_STANDARD.md:473",
+      "reason": "帧级判词三值之一（ACCEPT / REJECT / NOT_EVALUATED）。判词不是 API 符号 ⇒ 显式登记命名空间。文档承载 = docs/engineering/VALIDATION_EVIDENCE_STANDARD.md 帧级判词表（与 counts.not_attempted 对账）。【证据形态 C：仓内无该判词的代码抛出点载体（产出该判词的检查器已物理删除，载体随 门禁注册面（G08-10 重建） 重建），仅判据条文逐字承载 token；条文被改写时本门不判红 —— 已知代价，如实标注】"
     },
     {
       "token": "FAULT_INJECT_NOOP",
       "namespace": "verdict_id",
-      "evidence": "docs/standards/checks/check_standards_registry.py:581",
-      "reason": "注入空转守卫的失败判词：注入锚被 _replace_once 替换命中次数 ≠ 1 ⇒ 抛 InjectedNoOp 并 exit 3（抛出点 :580-583、另两处 :607）。产出者是 docs/ 下的 .py 检查器，既不在 lib 公开头语料也不在 api_inventory ⇒ 显式登记命名空间。文档承载 = docs/engineering/STANDARDS_REGISTRY.md 注入协议节【证据形态 A：该行逐字含 token —— 行锚即为 token 的真实承载行】"
+      "evidence": "docs/engineering/STANDARDS_REGISTRY.md:341",
+      "reason": "注入空转守卫的失败判词：注入锚被确定性替换命中次数 ≠ 1 ⇒ 抛 InjectedNoOp 并 exit 3。产出者既不在 lib 公开头语料也不在 api_inventory ⇒ 显式登记命名空间。判据载体见 门禁注册面（G08-10 重建）。文档承载 = docs/engineering/STANDARDS_REGISTRY.md 注入协议节。【证据形态 C：仓内无该判词的代码抛出点载体（产出该判词的检查器已物理删除，载体随 门禁注册面（G08-10 重建） 重建），仅判据条文逐字承载 token；条文被改写时本门不判红 —— 已知代价，如实标注】"
     },
     {
       "token": "TRACEABILITY_MATRIX_PASS",
       "namespace": "verdict_id",
-      "evidence": "eng/tools/traceability/check_traceability_matrix.py:1019",
-      "reason": "追溯矩阵检查器 exit 0 的成功判词（打印面；判据 C1–C6 见同文件 :7-13）。判词不是 API 符号 ⇒ 显式登记命名空间。行锚 = 打印语句行 :1019。文档承载 = docs/engineering/TRACEABILITY_SPEC.md 检查器节【证据形态 A：该行逐字含 token —— 行锚即为 token 的真实承载行】"
+      "evidence": "docs/engineering/TRACEABILITY_SPEC.md:24",
+      "reason": "追溯矩阵检查 exit 0 的成功判词（打印面；判据 C1–C7 见 docs/engineering/TRACEABILITY_SPEC.md §7）。判词不是 API 符号 ⇒ 显式登记命名空间。判据载体见 门禁注册面（G08-10 重建）。文档承载 = docs/engineering/TRACEABILITY_SPEC.md 检查器节。【证据形态 C：仓内无该判词的代码抛出点载体（产出该判词的检查器已物理删除，载体随 门禁注册面（G08-10 重建） 重建），仅判据条文逐字承载 token；条文被改写时本门不判红 —— 已知代价，如实标注】"
     },
     {
       "token": "EMPTY_CELL_VIOLATION",
       "namespace": "verdict_id",
-      "evidence": "eng/tools/traceability/check_traceability_matrix.py:9",
-      "reason": "追溯矩阵 C3 判据名（任何单元格为空/纯空白/'-'/'?'/'TBD'/'TODO' ⇒ FAIL 并报具体行/列；emit 点同文件 :421/:437/:442）。判据名不是 API 符号 ⇒ 显式登记命名空间。行锚 = 判据释义行 :9。文档承载 = docs/engineering/TRACEABILITY_SPEC.md【证据形态 A：该行逐字含 token —— 行锚即为 token 的真实承载行】"
+      "evidence": "docs/engineering/TRACEABILITY_SPEC.md:66",
+      "reason": "追溯矩阵 C3 判据名（任何单元格为空/纯空白/'-'/'?'/'TBD'/'TODO' ⇒ FAIL 并报具体行/列）。判据名不是 API 符号 ⇒ 显式登记命名空间。文档承载 = docs/engineering/TRACEABILITY_SPEC.md。【证据形态 C：仓内无该判词的代码抛出点载体（产出该判词的检查器已物理删除，载体随 门禁注册面（G08-10 重建） 重建），仅判据条文逐字承载 token；条文被改写时本门不判红 —— 已知代价，如实标注】"
     },
     {
       "token": "ABOVE_CEILING",
@@ -178,50 +172,32 @@
     {
       "token": "NON_CONFORMANT",
       "namespace": "standards_conformance_status",
-      "evidence": "docs/standards/checks/check_standards_registry.py:108",
-      "reason": "「符合状态」轴（与外部标准条款的关系，取值域由 LEGAL_STATUS 四值封闭，与交付状态阶梯是**两个独立轴**，docs/engineering/RELEASE_STATUS.md §0 已声明两轴独立）的取值之一。取值域的判据实现点在 docs/ 下的 .py 检查器，不在 lib 公开头语料也不在 api_inventory ⇒ 显式登记命名空间。行锚 = 词表字面量行 :108。文档承载 = docs/engineering/RELEASE_STATUS.md §0 与 docs/engineering/STANDARDS_REGISTRY.md 符合状态列【证据形态 A：该行逐字含 token —— 行锚即为 token 的真实承载行】"
+      "evidence": "docs/engineering/STANDARDS_REGISTRY.md:26",
+      "reason": "「符合状态」轴（与外部标准条款的关系，取值域由四值封闭，与交付状态阶梯是**两个独立轴**，docs/engineering/RELEASE_STATUS.md §0 已声明两轴独立）的取值之一。取值域判据不在 lib 公开头语料也不在 api_inventory ⇒ 显式登记命名空间。判据载体见 门禁注册面（G08-10 重建）。文档承载 = docs/engineering/RELEASE_STATUS.md §0 与 docs/engineering/STANDARDS_REGISTRY.md 符合状态列。【证据形态 C：仓内无该判词的代码抛出点载体（产出该判词的检查器已物理删除，载体随 门禁注册面（G08-10 重建） 重建），仅判据条文逐字承载 token；条文被改写时本门不判红 —— 已知代价，如实标注】"
     },
     {
       "token": "PROJECT_DEFINED",
       "namespace": "standards_conformance_status",
-      "evidence": "docs/standards/checks/check_standards_registry.py:108",
-      "reason": "「符合状态」轴的取值之一（标准未规定或本实现显式偏离标准之处，按 Project-defined 冻结；取值域同 LEGAL_STATUS，见 :108）。与交付状态阶梯是**两个独立轴**。文档承载 = docs/engineering/RELEASE_STATUS.md §0 与 docs/engineering/STANDARDS_REGISTRY.md 符合状态列【证据形态 A：该行逐字含 token —— 行锚即为 token 的真实承载行】"
+      "evidence": "docs/engineering/STANDARDS_REGISTRY.md:27",
+      "reason": "「符合状态」轴的取值之一（标准未规定或本实现显式偏离标准之处，按 Project-defined 冻结；取值域同 NON_CONFORMANT 所述封闭词表）。与交付状态阶梯是**两个独立轴**。文档承载 = docs/engineering/RELEASE_STATUS.md §0 与 docs/engineering/STANDARDS_REGISTRY.md 符合状态列。【证据形态 C：仓内无该判词的代码抛出点载体（产出该判词的检查器已物理删除，载体随 门禁注册面（G08-10 重建） 重建），仅判据条文逐字承载 token；条文被改写时本门不判红 —— 已知代价，如实标注】"
     },
     {
       "token": "REQUIRED_ANCHORS",
       "namespace": "checker_constant",
-      "evidence": "docs/standards/checks/check_standards_registry.py:63",
-      "reason": "STD-REG 门禁的必需锚清单常量（REGISTRY_REL / INDEX_REL，fail-closed：文件不存在或未跟踪 ⇒ ANCHOR_STALE + exit 2；校验点同文件 :194）。产出者是 docs/ 下的 .py 检查器，既不在 lib 公开头语料也不在 api_inventory ⇒ 显式登记命名空间。行锚 = 定义行 :63。文档承载 = docs/engineering/STANDARDS_REGISTRY.md 锚存活节【证据形态 A：该行逐字含 token —— 行锚即为 token 的真实承载行】"
-    },
-    {
-      "token": "CONT_RE",
-      "namespace": "checker_constant",
-      "evidence": "docs/algorithms/anchors/check_doc_line_anchors.py:66",
-      "reason": "锚合同检查器的续锚续行正则常量（ANCHOR_RE 只吃「文件名 + 首个行号段」，同 token 里 ,N 与 / :N 形态的续锚由本常量在 :139 的 while 循环逐 token 展开）。产出者是 docs/ 下的 .py 检查器，既不在 lib 公开头语料也不在 api_inventory ⇒ 显式登记命名空间。行锚 = 定义行 :66。文档承载 = docs/detail/anchors/ANCHOR_CONTRACT.md 续锚订正段【证据形态 A：该行逐字含 token —— 行锚即为 token 的真实承载行】"
-    },
-    {
-      "token": "SCALE_RE",
-      "namespace": "checker_constant",
-      "evidence": "docs/algorithms/anchors/check_doc_line_anchors.py:75",
-      "reason": "C7 规模声明的规范句式正则常量（回读点同文件 :198；往返自检 :351-352）。产出者是 docs/ 下的 .py 检查器，不在 lib 公开头语料也不在 api_inventory ⇒ 显式登记命名空间。行锚 = 定义行 :75。文档承载 = docs/detail/anchors/ANCHOR_CONTRACT.md C7 规模声明【证据形态 A：该行逐字含 token —— 行锚即为 token 的真实承载行】"
-    },
-    {
-      "token": "SCALE_LINE",
-      "namespace": "checker_constant",
-      "evidence": "docs/algorithms/anchors/check_doc_line_anchors.py:79",
-      "reason": "C7 规范句式的成句模板常量（--self-test 夹具与正例回读共用：同文件 :320 与 :351）。产出者是 docs/ 下的 .py 检查器，不在 lib 公开头语料也不在 api_inventory ⇒ 显式登记命名空间。行锚 = 定义行 :79。文档承载 = docs/detail/anchors/ANCHOR_CONTRACT.md C7 规模声明【证据形态 A：该行逐字含 token —— 行锚即为 token 的真实承载行】"
+      "evidence": "docs/engineering/STANDARDS_REGISTRY.md:334",
+      "reason": "STD-REG 门禁的必需锚清单常量（REGISTRY_REL / INDEX_REL，fail-closed：文件不存在或未跟踪 ⇒ ANCHOR_STALE + exit 2）。产出者既不在 lib 公开头语料也不在 api_inventory ⇒ 显式登记命名空间。判据载体见 门禁注册面（G08-10 重建）。文档承载 = docs/engineering/STANDARDS_REGISTRY.md 锚存活节。【证据形态 C：仓内无该判词的代码抛出点载体（产出该判词的检查器已物理删除，载体随 门禁注册面（G08-10 重建） 重建），仅判据条文逐字承载 token；条文被改写时本门不判红 —— 已知代价，如实标注】"
     },
     {
       "token": "ACSD_ENABLE_ACR",
       "namespace": "cmake_variable",
       "evidence": "CMakeLists.txt:18",
-      "reason": "根 CMake option（构建 dormant ACR 树，默认 OFF；状态回显 :1580，preset 面 CMakePresets.json:49/:76，正式路径必须 OFF 由 eng/cmake/toolchain/verify_toolchain.py:209-211 断言）。CMake 变量不是 API 符号 ⇒ 显式登记命名空间。行锚 = option() 定义行 :18。文档承载 = docs/engineering/ARCHITECTURE_OVERVIEW.md 构建面表【证据形态 A：该行逐字含 token —— 行锚即为 token 的真实承载行】"
+      "reason": "根 CMake option（构建 dormant ACR 树，默认 OFF；状态回显 :1580，preset 面 CMakePresets.json:49/:76，正式路径必须 OFF 由 工具链锁定判据（正式路径必须 OFF 的断言，载体见 门禁注册面（G08-10 重建）） 断言）。CMake 变量不是 API 符号 ⇒ 显式登记命名空间。行锚 = option() 定义行 :18。文档承载 = docs/engineering/ARCHITECTURE_OVERVIEW.md 构建面表【证据形态 A：该行逐字含 token —— 行锚即为 token 的真实承载行】"
     },
     {
       "token": "p2_op_coverage",
       "namespace": "module_port_symbol",
       "evidence": "lib/infrastructure/scheduler/src/module_adapters.cpp:9367",
-      "reason": "Phase2 coverage 模块的编排层端口符号（定义行 :9367；派发点 :14088；端口登记面 lib/infrastructure/pipeline/module_ports.registry.json:940/:961；模块→符号映射 eng/tools/quality/check_block_flow_ports_vs_code.py:489）。与既有 p2_write_descriptor / p2_parallel_for 同型：编排层词汇，不进 api_inventory（只登记函数签名），也不在 lib 公开头。行锚 = 定义行 :9367。文档承载 = docs/detail/registry/acsd.phase2.coverage.md「公共 header、核心 symbol 与生命周期」（`p2_op_coverage` 登记行）【证据形态 A：该行逐字含 token —— 行锚即为 token 的真实承载行】"
+      "reason": "Phase2 coverage 模块的编排层端口符号（定义行 :9367；派发点 :14088；端口登记面 lib/infrastructure/pipeline/module_ports.registry.json:940/:961；模块→符号映射 端口↔代码双向一致判据（载体见 门禁注册面（G08-10 重建）））。与既有 p2_write_descriptor / p2_parallel_for 同型：编排层词汇，不进 api_inventory（只登记函数签名），也不在 lib 公开头。行锚 = 定义行 :9367。文档承载 = docs/detail/registry/acsd.phase2.coverage.md「公共 header、核心 symbol 与生命周期」（`p2_op_coverage` 登记行）【证据形态 A：该行逐字含 token —— 行锚即为 token 的真实承载行】"
     },
     {
       "token": "p2_op_reject",
@@ -239,7 +215,7 @@
       "token": "P2_SEMANTIC_",
       "namespace": "prefix_family_token",
       "evidence": "lib/algorithms/coverage/include/astro/phase2/rejection.h:66",
-      "reason": "**前缀族 token 形态**（以 _ 结尾的族名）：族成员是同头 :66-78 的 12 条 #define（P2_SEMANTIC_NONE / _ROBUST_MAD_CLIP / _WINSORIZED_SIRIL / …）。门的 lib 公开头判据是词界匹配（eng/tools/quality/contracts/check_doc_symbols.py:54 的 \\b+token+\\b），P2_SEMANTIC_ 后接字母时不存在词界 ⇒ 族名形态解析不到族内任一具体成员，而族名本身也不是 API 符号 ⇒ 必须显式登记该形态，否则文档写「前缀族」这一合法形态即被判红。行锚 = 族内首条 #define 行 :66。文档承载 = docs/detail/anchors/ANCHOR_CONTRACT.md L3 三形态（本形/前缀族/形态族）判别力用例【证据形态 A：该行逐字含 token —— 行锚即为 token 的真实承载行】"
+      "reason": "**前缀族 token 形态**（以 _ 结尾的族名）：族成员是同头 :66-78 的 12 条 #define（P2_SEMANTIC_NONE / _ROBUST_MAD_CLIP / _WINSORIZED_SIRIL / …）。门的 lib 公开头判据是词界匹配（词的 lib 公开头判据是词界匹配（`\\b+token+\\b`）），P2_SEMANTIC_ 后接字母时不存在词界 ⇒ 族名形态解析不到族内任一具体成员，而族名本身也不是 API 符号 ⇒ 必须显式登记该形态，否则文档写「前缀族」这一合法形态即被判红。行锚 = 族内首条 #define 行 :66。文档承载 = docs/detail/anchors/ANCHOR_CONTRACT.md L3 三形态（本形/前缀族/形态族）判别力用例【证据形态 A：该行逐字含 token —— 行锚即为 token 的真实承载行】"
     },
     {
       "token": "__AVX512CD__",
@@ -263,7 +239,7 @@
       "token": "RICE_1",
       "namespace": "external_upstream_symbol",
       "evidence": "lib/infrastructure/aio/third_party/cfitsio/fitsio.h:296",
-      "reason": "FITS 标准 tile-compression 算法码（CFITSIO 宏，随 CFITSIO vendored 进仓；同族 GZIP_1 :297、PLIO_1 :299）。本仓消费面：读取路径接 CFITSIO 的 .fz 自动检测/解压（lib/infrastructure/aio/src/aio_fits.cpp:552）。**门的 lib 公开头语料显式排除 third_party**（eng/tools/quality/contracts/check_doc_symbols.py:42）⇒ 该宏不在 public_headers 命名空间，也不是本仓 API 符号 ⇒ 显式登记命名空间。行锚 = #define 行 :296。文档承载 = docs/science/IVOA_HIPS_TILE_FORMAT_RESEARCH_PACK.md 与 docs/engineering/COMPRESSION_CODEC_RESEARCH_PACK.md【证据形态 A：该行逐字含 token —— 行锚即为 token 的真实承载行】"
+      "reason": "FITS 标准 tile-compression 算法码（CFITSIO 宏，随 CFITSIO vendored 进仓；同族 GZIP_1 :297、PLIO_1 :299）。本仓消费面：读取路径接 CFITSIO 的 .fz 自动检测/解压（lib/infrastructure/aio/src/aio_fits.cpp:552）。**门的 lib 公开头语料显式排除 third_party**（词的 lib 公开头语料显式排除 third_party）⇒ 该宏不在 public_headers 命名空间，也不是本仓 API 符号 ⇒ 显式登记命名空间。行锚 = #define 行 :296。文档承载 = docs/science/IVOA_HIPS_TILE_FORMAT_RESEARCH_PACK.md 与 docs/engineering/COMPRESSION_CODEC_RESEARCH_PACK.md【证据形态 A：该行逐字含 token —— 行锚即为 token 的真实承载行】"
     },
     {
       "token": "COADD_WEIGHTED",
