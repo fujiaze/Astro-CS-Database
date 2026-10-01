@@ -103,7 +103,7 @@ PhotometricMosaic（PMM）的使用面 = 只读方法研究：可读源码做方
 
 模块级 API = API-PHOT-001（docs/engineering/PUBLIC_API.md 测光节；头
 `lib/algorithms/photometry/cpp/include/photometric_calib.h`，6 导出符号，
-生产入口 `pc_calibrate_simple_with_gaia_f64_v2` / `_v2`）；编排级 API =
+生产入口 `pc_calibrate_simple_with_gaia_f64` / `_v2`）；编排级 API =
 API-P1-005（phase session extern "C"）；生命周期 create→validate→run→inspect→
 destroy。
 
