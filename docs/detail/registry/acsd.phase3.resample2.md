@@ -207,7 +207,7 @@ TEST-P3-RES-001）与 module_id 合同值 `acsd.p3.resample` 的对齐属迁移�
   Σw=1 与背面跳过/⑦max_tiles FIFO 逐出/⑧open 守卫负面清单）。
 - 本节承载 TEST-P3-RES-001 登记面；可执行面待建。
 - 现状执行测试（相邻证据，引用不冒认）:
-  eng/tests/backend/p3_resample_probe_main.cpp（探针六模式）+
+  lib/algorithms/resample/tests/p3rsmp/p3_resample_probe_main.cpp（探针六模式）+
   eng/tests/backend/test_p3_resample.py（test_05_nan_semantics/
   test_06_no_silent_default_open/seam 域界 1e8-1..12e8+1 连续性 1e-5°）+
   eng/tests/backend/test_p3003_parallel_resampler.py +

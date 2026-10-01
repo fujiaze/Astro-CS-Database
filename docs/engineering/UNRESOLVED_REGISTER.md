@@ -3589,3 +3589,91 @@ validator 验证的是「文件是否声称自己可信」，**不是「这个�
 **样板未推广 40 处**，最可立即行动的三组**都在同文件内**：
 `test_dispatcher_bdr.cpp:633-642`、`p1star_tests_core.cpp:127 vs :202`、
 `dispatcher.cpp:517-521` 被**同文件 `:2429` 自己违反**。
+
+---
+
+## 71. 三条语义深读车道（全部 100% 覆盖）：science-algorithms 26 份 / detail-registry 26 册 / engineering-rest 55 份
+
+合计 **107 份正本逐行读完**。三片合计：正本间矛盾 12 条 / 内部矛盾 12 条 / **正本与代码不一致 23 条** /
+判据不可满足 12 条 / 已删载体引用 45 处 / 引用失真 45 处 / 规范 02 违规 32 处。
+
+### 71.1 detail-registry（26 册 4,484 行，100%）
+
+**① `acsd.phase1.star-detection` 这个 module_id 在代码里不存在**（前台复核）
+
+`star-detection.md:13` 与 `:117` 声称它是「registry descriptor 单源」。前台实测：
+
+- `module_ports.registry.json` 含该串 **0 次**
+- `module_adapters.cpp` 含该串 **0 次**；含 `acsd.phase1.star-psf` **2 次**
+- 全仓 `lib/**` 下含该 module_id 的文件 **0 个**；全仓分布只在 docs(11) / artifacts(1) / eng(1)
+
+⇒ 真实登记面是 `acsd.phase1.star-psf`。这是「三源分裂」的母本。
+（该册符号层是干净的：`sdet_detect_guided_ex_f64` 确有生产调用点 `module_adapters.cpp:4051`）
+
+**② 一行内写了两个互相矛盾的 module_id**
+
+`phase2.write.md:105` 的 `module_id=` 位写合同值 `acsd.p2.hips_writer`，
+同一行括号里却写着 descriptor 真值 `acsd.phase2.write`；文件名是第三套名。
+另 `drizzle.md:126` 写 `acsd.p1.drizzle` 而代码写 `acsd.phase1.drizzle`。
+
+**③ 已解决的冲突仍登记为活限制**
+
+`upm-apply.md:98` 称「现网默认取 `c`」，而代码 `module_adapters.cpp:10057` 注释明记
+「负责人按 `additive_mode` 裁决切换；原默认 c 的依据是接缝判据…定案改为 `delta`」，
+卡片却仍把旧结论保留为活限制。
+
+**该车道还推翻了我转述给它的一条**：我 brief 里写的 photometry「README 反称逐字取自」
+**在本车道未获证据** —— registry README 全文 4 行不含该措辞（`grep "逐字取自" docs/` 零命中），
+且 photometry.md 的「未生效」表述**与代码相符**
+（`photscale_spread_gate` 实现字段真实存在于 `module_adapters.cpp:6187-6219`）。
+
+⇒ **这条我记错了，撤回。** 又是「前台把上游车道报告当事实转述」的老问题。
+
+### 71.2 engineering-rest（55 份 5,599 行，100%）
+
+**① 正本排除的东西，代码恰好就是它**（前台复核）
+
+`docs/engineering/execution_options_contract.md` 声明兜底面排除
+`hardware_concurrency` / `cpu_workers/2`；而
+`lib/algorithms/coverage/include/astro/phase2/execution_options.h:16-17,23-26` 正是：
+
+    inline int default_cpu_workers() {
+        const unsigned hc = std::thread::hardware_concurrency();
+        return hc > 0 ? static_cast<int>(hc) : 1;
+    }
+    // io_workers = 0 => auto (cpu_workers/2, 至少 1)
+
+⇒ **合同排除的两种做法，写在了预算对象的定义里。**
+
+**② `parallel_min_work` 全仓只出现 1 次，且只在正本里**
+
+前台实测：全仓命中**仅 `ARCH-001.md:127` 一处**，**代码里零实现**
+⇒ 正本规定了一个**不存在的旋钮**。该行原文：
+「生产重计算路径的并行度取自 profile：固定 `workers=1` 一律判红；
+可用 CPU≥2 且工作量超 `parallel_min_work`…」
+
+**③ 前台修正了该车道一处判定**
+
+该车道称 `command_tree.h` 指向「**不存在的** §6.2/§6.3」。前台复核：
+**§6.2「流程」（:304）与 §6.3「投影算法」（:315）都存在**。
+但**指向存在却指错**才是真缺陷：
+
+| 位置 | 它写的 | 目标实际是 |
+|---|---|---|
+| `command_tree.h:36` | §6.3：机器输出（stdout 恰一个 JSON 文档） | §6.3 = **投影算法**；机器输出与退出码在 **§7.2**（:345） |
+| `command_tree.h:37-38` | §6.2：生成配置模板 / 子命令帮助与字段说明 | §6.2 = **export 流程**；这些属 **§7.1 命令树**（:325） |
+
+⇒ **「指到不存在的节」与「指到存在但不相干的节」是两类缺陷，处置方式不同。**
+车道报的形态不准确，但**缺陷本身是真的**。
+
+### 71.3 science-algorithms（26 份）
+
+这些是**实现级逐行锚合同** —— 声明正本公式在代码里的确切落点，
+故「正本 ↔ 代码不一致」是主战场。
+
+### 71.4 三车道共同确认的一条硬事实
+
+**正本与代码的端口/默认值不一致已达 23 条**，且形态高度一致：
+正本写的旋钮在代码里没有实现（`parallel_min_work`）、
+正本排除的做法就写在预算对象定义里（`execution_options.h`）、
+正本声明的单源在代码里查无此物（`acsd.phase1.star-detection`）。

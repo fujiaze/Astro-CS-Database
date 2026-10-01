@@ -18,11 +18,10 @@ F1: w_UPM = quality·control_ivar（绝对式，ADU⁻²，唯一生产式）或
     生产一律取 control_ivar，SNR 只作 veto/质量门（docs/science/PHASE2_UPM.md §5）
     control_ivar=1/(k_corr·π/2·σ²/N_retained)，定义域 1 < k_corr
     （k_corr=1 ⇔ 忽略相关，p2_upm_control_variance 显式拒 rc=2；k_corr<1 拒 rc=1
-    <!-- 订正: 检查-行文逻辑 Y1——原作「定义域 1 ≤ k_corr」，k_corr=1 恰是实现显式拒绝（rc=2）的点，
-    与 PHASE2_SAMPLER.md §5.4 的冻结拒绝规则对齐。旧对照：定义域 1 ≤ k_corr -->）
-F2: w_cell = w_UPM / Σ_cell w_UPM · control_reliability（份额式，无量纲，实锚 `lib/algorithms/coverage/src/upm.cpp` 归一化注释<!-- 订正: 检查-跨文档冲突 黄8 连带——原注的 upm.cpp 锚点落在 lambda_s/zero_anchor 区，已改指该文件归一化注释处；行号随本轮行锚整改一并退役 -->），
-    Σ_cell w_cell = control_reliability；求解器实际消费的就是它）<!-- 订正: 检查-跨文档冲突 黄8 连带——删除行尾失效锚（实锚见上行订正注） -->
-F3: Huber IRLS (标准无量纲残差, 对齐 `lib/algorithms/coverage/src/upm.cpp` 的 Huber rho/IRLS 段<!-- 订正: 检查-科学性 Y-3c 行漂移连带——原注的两处 upm.cpp 锚点实为双线性插值区与 joint-LS 归约区，均非 Huber，已改指 Huber rho/IRLS 段；行号随本轮行锚整改一并退役 -->):
+    ）
+F2: w_cell = w_UPM / Σ_cell w_UPM · control_reliability（份额式，无量纲，实锚 `lib/algorithms/coverage/src/upm.cpp` 归一化注释），
+    Σ_cell w_cell = control_reliability；求解器实际消费的就是它）
+F3: Huber IRLS (标准无量纲残差, 对齐 `lib/algorithms/coverage/src/upm.cpp` 的 Huber rho/IRLS 段):
     z = r/sigma_eff; r = value − M − C; sigma_eff=max(|uncertainty|,sigma_floor)
     loss(z)=0.5z² if |z|≤δ else δ(|z|−0.5δ);  w(z)=1 if |z|≤δ else δ/|z|
     δ=1.345 (无量纲, 单位=sigma_eff), iterative reweight + 弱零锚 + 平滑

@@ -259,7 +259,7 @@ Polar prune: if |dec|>45° use C/C45 disk B(q,C·radius), false_negative=0
   （`lib/algorithms/platesolve/cpp/ipv/include/ipv_api.h`：cd[4]/crval[2]/crpix[2](1-based)/sip_a·b·ap·bp[36]/
   rms_px/rms_arcsec/n_pairs/trans_order/ctype[2]）为唯一权威输出。
 - 求解器层：三角形匹配 0 匹配或 iter_trans_solve 全阶失败
-  （lib/algorithms/platesolve/cpp/ipv/src/ipv_solver.cpp`）→ fail_result（trans_order=0, success=false）
+  （`lib/algorithms/platesolve/cpp/ipv/src/ipv_solver.cpp`）→ fail_result（trans_order=0, success=false）
   显式返回，不抛异常不崩溃。
 - 编排层（`lib/infrastructure/pipeline/orchestrator/cpp/src/orchestrator.cpp`）：DLL 未加载；data 块缺失 →
   BLOCK_MISSING；star_measurements 缺失/格式错 → BLOCK_MISSING；
