@@ -3264,3 +3264,113 @@ Laplace 1812 p.349 是单一代理未独立复核，引用前须自核。
 ⇒ **无实跑时的浮点噪声量级解析估算不可靠** ——
 故该片 §8 的 20 条「需实跑」应视为**线索非结论**，
 而能确证的 §2.1 之所以能确证，正是因为**产物已存在**。
+
+---
+
+## 65. 判据专线 s07（**100% 覆盖 138/138、64,316 行**）：恒红 23，前两批的「0 条」彻底推翻
+
+前台逐条打开原文复核三条最重，**全部成立**。
+
+### 65.1 恒红 + 校验器向用户承诺不存在的能力
+
+`lib/infrastructure/pipeline/orchestrator/cpp/src/orchestrator.cpp`：
+
+    964:    bool require_temp = false;        ← 全文件唯一的赋值
+    1101:    if (require_temp && has_dark && has_ccd_temp && dark_img != nullptr) {
+    1126:        result.error_msg = "[CALIBRATE] Master 文件验证失败 (尺寸/曝光/温度不匹配)";
+
+**前台实测：`require_temp` 全文件只出现 2 处（964 定义、1101 读取），赋值语句数 = 1，无任何重写**
+⇒ **恒为 `false` ⇒ master_dark 的 CCD-TEMP 温度匹配验证整块是死代码**。
+
+而 `:1126` 的**用户可见错误文案**仍把「温度」列为三项判据之一
+⇒ **校验器声明检查 X 而从不检查 X，并向用户承诺不存在的能力。**
+
+同形的还有 `:961 require_size = true;`（恒真）与 `:966 allow_no_calib = false;`（恒真）
+⇒ `orchestrator.cpp` 一处就有 **3 条恒真 + 1 条恒红**。
+
+### 65.2 「把门的存在本身当证据」两例
+
+**① `lib/infrastructure/aio/tests/v5_maptile_oracle.py`**
+`docstring:8` 宣传给下游读的三个键是 `tile_missing / tile_extra / pixel_mismatch`，
+而 `:299` 把它们写成**字面常量**：
+
+    "hard_gate": {"tile_missing": 0, "tile_extra": 0, "pixel_mismatch": 0},
+
+**前台实测：`hard_gate` 全文件只出现这 1 处**，从不从实际比较结果导出
+⇒ **任何消费者读这三个自然键名都得出「门通过」，而门从未真正比较过。**
+
+**② `p3_export` 的 fail-closed 门数学上不可触发**
+前件 `prov.diagonal_variance_only && …` 被 `:313` 的字面量 `false` + `:285` 的字面量
+`"correlation_kernel"` 焊死。
+
+**③ 第二个 stdout JSONL 写出器绕过冻结协议闸门**
+`cli_command.cpp:158` 无条件绕过协议闸门，它发出的 kind（accepted/completed/failed）
+**全不在 `protocol.h:44-55` 冻结名册内**，10 个必含字段缺 8 个，
+而 `main.cpp:321/361/376` **每次 run 都无条件触发**。
+
+⇒ 三者都是同一个形态：**门看起来在，实际不在。**
+
+### 65.3 「判别力是判据级属性」最干净的一次演示
+
+同一形态的三条 `static_assert`，判别力差一个量级：
+
+| 位置 | 期望值来源 | 判别力 |
+|---|---|---|
+| `orchestrator.cpp:1444` | `snprintf` **格式串**（与被测对象独立） | ✅ 可判别（缩小 kSipHeaderKeyCap 即打红） |
+| `module_registry.h:171-172` | 被测对象**自身字段** | ❌ 恒真 |
+| `secure_loader.c:721-723` | **语言保证** | ❌ 恒真 |
+
+同文件正反样板并存：`test_tile_model.cpp:305-312`（手算常量，对）
+vs `:377-378`（**生产表达式逐字复制**，错）。
+
+### 65.4 「问题不是没有样板，是样板没推广」——26 处，本批头号模板 3 个
+
+- `mosaic_window.cpp:305-367`：上界来自**独立解析公式** `:295-303` 而非被测值 +
+  `:345-346` 明写「『严格』是反恒真的关键」+ 绿侧喂生产实测 peak +
+  **两个负例把 peak 换成 32B/0 要求同函数判红** ⇒ 应作全仓模板
+- `p2hips_unc_prov_test.py`：裸 CFITSIO 直读、**从不调被测 reader**
+  ⇒ **本片唯一自证式 0 条的文件**
+- `secure_loader.c:706-720`：期望值来自 **FIPS 180-4 外部向量**
+
+未推广清单含 `cli_command.cpp:158` 仍用源级断言、三个浏览器测试用 `assert()`
+（在强制 Release 下编译为空）、`test_export_fits_fix.py` 的 `check()` 不 raise
+⇒ **pytest 下 23 条判据恒绿**。
+
+### 65.5 恒红的两种可批量排查形态（车道给出的可操作结论）
+
+23 条恒红**集中在两类**：
+① **前置校验把守卫变成不可满足条件**（`orchestrator.cpp:1101` 等 6 条）；
+② **注册残缺导致已注册测试必红**（`test_geometry_truth.cpp:44`、
+   `test_p1_batchB_fixes.cpp:198`、`test_gaia_race.c:262`）。
+
+⇒ 建议后续排查直接 grep `bool X = <literal>;` 后无重写、且被 `if (X…)` 读取的模式。
+
+---
+
+## 66. 三条本轮的方法论结论（比单条缺陷更值钱）
+
+### 66.1 恒红确属长尾，但形态可批量排查
+
+统计：s00 片 5 条 / s03 片 3 条 / s07 片 **23 条** ⇒ **前两批的「恒红 0 条」不成立**，
+且比例随判据密度上升而放大。
+
+### 66.2 判别力缺失是**判据级**属性，不是文件级
+
+同一文件的 test_02/03/04/05 全是合格负例注入，而 test_01 是自证式恒真；
+`orchestrator.cpp` 同一形态的三条 `static_assert` 判别力差一个量级。
+
+⇒ **处方必须落到逐条判据**，「把样板推广到文件」是不够的。
+
+### 66.3 判据写对了也不会被执行（§60/§62 的第三次独立确认）
+
+s04 车道实测：全仓 `check_*.pyc` 有 `.pyc` 但**无对应 `.py` 源**的孤儿 **77 个**，
+其中 **61 个是 `check_*.pyc`**；`eng/ci/` 整目录不存在；`git ls-files eng/tools | grep check_` 为 **0**。
+
+**三条车道各自独立查到同一现象**（s04 的 G1/G2/G3、s03、车道 24）⇒ 该结论已可定案。
+
+**待负责人裁定一件事实**：这 61 个 `check_*.py` 是「本轮治理有意删除」还是「误删」？
+- 若是**误删**，本片至少 4 处恒红会随之复活；
+- 若是**已裁决作废**，则 `eng/tools/quality/README.md`（声称 34 个 check_*.py / 13 个 contracts）、
+  `eng/tools/quality/authority_surfaces.json`、`p1drz/CMakeLists.txt:56-58` 引用的
+  `eng/ci/ctest_baseline.json` + `check_ctest_registration.py` **三处文档/注释必须同步订正**，
+  否则「文档说 34 个门、实际 0 个」会长期误导后续派单。
