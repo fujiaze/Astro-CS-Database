@@ -1,6 +1,6 @@
 # CPU 能力探测与安全矩阵
 
-> 上游：docs/ACSD_DESIGN.md §9（CPU 后端与资源）/ docs/ACSD_DESIGN.md §9（CPU 后端与资源））
+> 上游：docs/ACSD_DESIGN.md §9（CPU 后端与资源）
 
 ## 1. 目标与验收
 

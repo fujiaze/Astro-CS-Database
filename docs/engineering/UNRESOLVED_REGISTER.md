@@ -3539,3 +3539,53 @@ s04 车道实测：全仓 `check_*.pyc` 有 `.pyc` 但**无对应 `.py` 源**的
 
 恒真合计 **≈ 573 条**、恒红合计 **≈ 121 条**（0 → 5 → 16 → 14 → 23 → 17 → 46 → 0(半片)）
 ⇒ **「恒红 0 条」这个结论已被彻底推翻，且它是全仓最被低估的一类。**
+
+---
+
+## 70. SCI-ROUTE-TRUST：路由画像的 validator 读的是**文件自报的标志位**（s06 报，前台复核成立）
+
+### 70.1 缺陷
+
+`lib/infrastructure/acr/routing/route_profile_v2.cpp:617-628`，validator 计算 `op_qualified`：
+
+    const bool op_qualified =
+        std::all_of(required.begin(), required.end(),
+                    [&](const std::string& rid) {
+                        … return it != op.scenarios.end() &&
+                                 (it->routing_trusted || it->scenario_qualified);
+                    });
+
+⇒ 判定的输入 `routing_trusted` / `scenario_qualified` **两个都是画像文件自报的字段**。
+
+### 70.2 后果
+
+**手写一份 JSON、把 `routing_trusted: true` 写上，就能绕过生产 Auto 路由门。**
+validator 验证的是「文件是否声称自己可信」，**不是「这个场景是否真的可信」**。
+
+⇒ 与 §64.5 的「5 条反向恒红」、§65.2 的「把门的存在本身当证据」同族，
+但这一条更硬：**它不是没比较，而是比较的两端来自同一份被验证的数据。**
+
+### 70.3 同片另外三处同形态（车道报，前台核了后两处的代码存在）
+
+| 位置 | 形态 |
+|---|---|
+| `operation_profile.cpp:264-267` | 两个误差字段**全程一次也没比较** |
+| `lib/infrastructure/aio/io/fits_core.c:1488` | 提交前自校验与写卡**共用同一对 DATASUM 函数** ⇒ 同错同绿（前台已确认调用结构） |
+| `focused_benchmark.cpp:369-415` | `if (!cpu_errs.empty())` 不成立时误差留默认 `0.0` ⇒ **「没算出误差」当「误差为零」** |
+
+⇒ **「门由被测对象自己重算」是本轮新确认的一类，四处独立同形态。**
+
+### 70.4 本片（s06，**100%**：144/144 条）其余要点
+
+恒真 29 / **恒红 4 + 1 潜伏** / 自证式 38 / 名义·空壳·硬编码 80 / 未注册 19 /
+**有样板未推广 40 处** / 需实跑 15 项。
+
+**两处最刺眼的自证恒真**：
+- `p1star_mad_check.cpp:85` 消息自称「非恒真」，**实为两个测试内 `constexpr` 比较**
+- `sha256_utf8.py:164` **键名错配 ⇒ 任何读文件失败仍退出 0**
+- benchmark 唯一 CI 信号 `correctness_pass` **只在容量不足处置假**，且**无 `add_test`**
+  ⇒ 要真正红必须**先修这两条**
+
+**样板未推广 40 处**，最可立即行动的三组**都在同文件内**：
+`test_dispatcher_bdr.cpp:633-642`、`p1star_tests_core.cpp:127 vs :202`、
+`dispatcher.cpp:517-521` 被**同文件 `:2429` 自己违反**。
