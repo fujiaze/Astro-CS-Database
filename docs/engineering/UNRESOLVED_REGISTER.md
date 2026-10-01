@@ -3138,3 +3138,129 @@ CMake 侧组名目前与表一致，所以 **CI 当前未触发，属潜伏缺�
   名为「P2-003 单元测试: 三块重叠面 UPM」却**不触碰任何 UPM 代码**。
   另 `:131 CHECK(dAB_single == dAB)` 几何上必然相等（污染区 `x∈[0,16)`、读取区 `x∈[16,32)` 不相交），
   `:122-124` 注释宣称的「双向对照实测」**第一臂是空转**。
+
+---
+
+## 63. δ=1.345 的**量纲错**（P0）：文档称 95% 效率，代码实得 **88.65%**
+
+**车道 17 报出，前台独立复算确认。**
+
+### 63.1 缺陷
+
+`docs/science/algorithms/PLATESOLVE.md:191-197` 写「`ψ_k` 族在 `k = 1.345` 处对 Gaussian 的
+渐近效率为 **95%**」；代码 `lib/algorithms/platesolve/cpp/ipv/src/ipv_sip.cpp:241` 是
+`double delta = 1.345 * median_abs_r;`。
+
+**δ=1.345 是以 σ 为单位的调参常数，代码把它乘在 MAD 上。**
+而高斯下 `median|r| = Φ⁻¹(3/4)·σ = 0.6744897501960817·σ`
+⇒ **实际生效的 k 只有 `1.345 × 0.6745 = 0.9072 σ`**。
+
+### 63.2 前台独立复算（4×10⁵ 点数值积分，`ARE(k) = (E ψ′)²/E ψ²`）
+
+| k（σ 单位） | E[ψ′] | E[ψ²] | ARE |
+|---|---:|---:|---:|
+| **1.3450** | 0.821375 | 0.710165 | **0.950000（95.00%）** ← 复现文献标称值，证明实现正确 |
+| **0.907189**（代码实际值） | 0.635693 | 0.455861 | **0.886466（88.65%）** |
+
+⇒ **与文档自称的 95% 差 6.35 个百分点。**
+缺口恰是仓内自己冻结的 `1.482602218505602 = 1/0.6745` 那个因子。
+
+### 63.3 判定 = **适用域写宽了**
+
+文档的「适用域」只声明了「对称性 + MAD 稳健」，
+**漏掉了最关键的一条：δ 必须以 σ 为单位、不能直接乘 MAD。**
+
+### 63.4 是孤例不是通病（同仓反证）
+
+`PHASE2_UPM.md:164` 写「`Huber(δ=1.345)` 作用于**无量纲 z**」，`z = r/sigma_eff` ✔；
+`UPM_SOLVER.md:28` 写「`δ=1.345`（无量纲，**单位=sigma_eff**）」✔
+⇒ **只有 `PLATESOLVE.md` + `ipv_sip.cpp` 错。**
+
+### 63.5 修法二选一（P0，待负责人定）
+
+① 实现改成 `delta = 1.345 * sigma_eff`（σ 单位）；
+② 文档的「95%」改成「88.65%」并在适用域补「δ 以 MAD 为单位 ⇒ 效率按 `ARE(1.345 × 0.6745)` 计」。
+
+**影响面受限**：该路径是 `DISP-WCS-003` 登记的**非生产**实现（生产走 `extract_wcs_sip`），
+但文档与代码不一致会让「有文献依据」这句话**在后续轮次误导读者**，仍须修。
+
+### 63.6 Aitken 重锚再升级：正本是 **Gauss–Markov** 两条一手
+
+- **Gauss (1809)**《Theoria motus》Liber II Sect. III §§172–181（Davis 1857 英译本，
+  Sect. III §181 印刷 p.263）：独立观测、单参数，给出 `A = Σa_i m_i / Σa_i²` 与 `Var(A) = 1/Σ(1/σ_i²)`
+- **Gauss (1823)**《Theoria combinationis observationum erroribus minimis obnoxiae》，
+  Commentarii Soc. Reg. Sci. Gottingensis **1, Art. 21, 印刷 pp.27–28**（`bub_gb_ZQ8OAAAAQAAJ`）：
+  相关情形。p.27 逐字「**pondus = 1/(xx + x'x' + …)** … **x = alpha, x' = alpha', …** … **Pondus = 1/[alpha alpha]**」
+  —— `[alpha alpha]` 是 Gauss 的 **minors/余子式**，即最优组合乘子**就是余子式向量**（逆协方差定权），
+  给出 `Var(x̂) = 1/(a'V⁻¹a)`；p.28 逐字「quod principium in **Theoria Motus Corporum Coelestium**
+  longe alia via stabiliveramus」——**Gauss 自己按书名回指 1809**。
+
+⚠ **archive.org 偏移陷阱**：`page/nN` 比印刷页**大 1**（`n32` = 印刷 27）。
+
+⇒ **推翻该车道先前的「不要给 Gauss 1821 标页码」**：该文可取、页码可标，
+但**出版年是 1823**（读于 1821，印于 Göttingen: Dieterich 1823）。
+Aitken 1935 保留为「独立导出 `F'V⁻¹Fa = F'V⁻¹u` 的机件出处」，**不再承担 `Var = 1/Σ(1/σ_i²)`**。
+
+⛔ 另两条不给页码：Harville & Fedorov / Searle（教科书未取原文）；
+Laplace 1812 p.349 是单一代理未独立复核，引用前须自核。
+
+---
+
+## 64. 判据专线片 1（s00，**100% 覆盖**）：恒真 97 / 恒红 5 / 反向恒红 5
+
+**124 条全读，30,084 行，0 抽样。** 本车道亲读 4 条 + 11 个并行车道逐行读完 120 条
+（每车道返回逐文件 `READ-FULL (n/n)` 覆盖表）。
+
+### 64.1 恒红，且有**产物实证**
+
+`实验/absolute-snr/code/audit/route3/exp03_median_se_identity.py:64`
+`"within_gate": bool(rel_dev.max() <= 2.22e-16)` ——
+它守的是 `1/σ_F²` vs `SNR²/F_ref²` 的**代数恒等式**（σ_F := f_ref/snr），
+1e6 样本峰值必然差数 ulp。
+**仓内产物 `results/route3/exp03_median_se_identity.json` 已写死**
+`"max_rel_dev": 6.661338147750939e-16`（=3 ulp）、**`"within_gate": false`**。
+
+⇒ **不消费、不挡路、只误导** —— 产物里躺着一个红灯而没有任何机制读它。
+
+### 64.2 「有样板未推广」的最高价值实例：**route1 修了，route3 没修**
+
+`route1/exp07:31` 是 `≤ 4 ulp`（实测 2.5 ulp，绿），
+治理动作见 `REPORT_paper.md:78`（1 ulp → 4 ulp，附 A-P2-10 依据）；
+**兄弟车道 `route3/exp03:64` 原封 1 ulp，红灯留在产物里。**
+
+⇒ **同一批重做的两条车道，同一判据，一个修一个没修。**
+
+### 64.3 结构性：**28 个文件零可执行判据**
+
+`audit/route1`(12) + `route2`(11) + `route3`(5) 合计
+`assert` / `raise` / `sys.exit` / `np.testing` **= 0 处**（车道实测）。
+`run_all.sh` 用 `set -euo pipefail`，但**无任何判据能抛异常**。
+
+⇒ 与 `REPORT_paper.md:48`「能红能绿，无恒真门」**直接冲突**。
+**文件级未注册 = 0 条 —— 问题不是没跑，是跑了不判。**
+
+### 64.4 【新形态】**5 条「反向恒红」**
+
+把「缺陷仍在」编码成 PASS（`c1:382`、`c1:355-359`、`c1:387`、`c5:266-267`、`c4:100-103`）。
+
+⇒ **今天全绿；修好生产即集体翻红挡路。**
+建议改 **xfail 式登记**，否则「修 bug」这个动作会撞上一堵自己造的墙。
+
+### 64.5 另两条
+
+- `g08_defect_probe.py:105` `applied = defect(aux["delta_true"])` ——
+  上一行 `production_arm(...)` **没传 `apply=`**，马赛克已用正确 δ 算完，
+  缺陷在返回后才作用于真值场。对照 `:113-114` 的 `eval_n2b` 真把缺陷接进 `delta_of_alpha`
+  ⇒ **N2b/N2c 是真注入，N2a 是空壳**
+- `production_e2e_record_check.py:92-94` `if _i not in _traces: continue` ——
+  源日志缺失/正则不匹配 ⇒ `_traces` 空 ⇒ **零条 `ck()` 注册、仍 `VERDICT=PASS` 退出 0**。
+  该检查正是为验证 P5 订正点而加。已复核当前未触发 ⇒ **属潜伏态**
+
+### 64.6 该车道推翻了一条子代理的判定（方法学价值）
+
+子代理解析估出 `b5_phase3_transfer.py:120` 疑似恒红（≈0.14 > 0.10）；
+车道读产物 `results/b5_phase3_transfer.json` 得 `"H1_rel_frobenius_band": 0.0751` ⇒ **不是恒红**。
+
+⇒ **无实跑时的浮点噪声量级解析估算不可靠** ——
+故该片 §8 的 20 条「需实跑」应视为**线索非结论**，
+而能确证的 §2.1 之所以能确证，正是因为**产物已存在**。
