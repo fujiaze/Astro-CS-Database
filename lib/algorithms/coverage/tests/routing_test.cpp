@@ -78,9 +78,9 @@ TEST(Phase2Routing, AcrBlockNeverEligibleUnderSingleWeightPath) {
 }
 
 // ── 负例（能红）：legacy 整数权重模式域的任何形态都必须被拒绝 ────────────────
-// 权威：docs/ACSD_DESIGN.md §3.1:175「权重的产生链固定为两步、没有可选择项」；
-// docs/science/PSF_SIGNAL_WEIGHT.md §4:72「没有可选择的口径：不存在口径选择键、
-// 口径枚举、口径配置项或口径产物」。
+// 权威：docs/ACSD_DESIGN.md §3.1（数据对象）「全链没有「权重模式」这一可选概念」；
+// docs/science/PSF_SIGNAL_WEIGHT.md §4（单一权重口径）「没有可选择的口径：不存在口径选择键、
+// 口径枚举、口径配置项或口径产物」。拒绝文案必须点名这一现行依据（可追溯性守卫）。
 TEST(Phase2Routing, LegacyWeightModeDomainRejected) {
     // 字符串 token（原 auto/ivar/equal/support_x_snr2 四值域）。
     for (const char* tok : {"auto", "ivar", "equal", "support_x_snr2", "snr2", ""}) {
@@ -90,7 +90,7 @@ TEST(Phase2Routing, LegacyWeightModeDomainRejected) {
         std::string err;
         EXPECT_FALSE(p2_stage2_parse_config(j, &cfg, &err))
             << "token must be rejected: " << tok;
-        EXPECT_NE(err.find("§9.73"), std::string::npos) << err;
+        EXPECT_NE(err.find("ACSD_DESIGN.md §3.1"), std::string::npos) << err;
     }
     // 整数形态（原 0/1/2 域，含 legacy support×snr² 与 equal）。
     for (const int v : {0, 1, 2, 3}) {

@@ -21,7 +21,7 @@ Phase1 侧同源: light 帧用 --make-noisy（确定性噪声，校准后 σ≈1
   有合格 patch（σ>0）⇒ normalize 产出 variance/ivar 子产品 ⇒ normalize→mosaic
   默认逐帧逆方差链可闭合（--make 的常量域帧 σ=0 ⇒ 整帧退化 ⇒ 默认链 fail-closed）。
 
-权重口径（docs/ACSD_DESIGN §2.1 + GAP_AUDIT §9.73 裁决 A44「不存在权重模式」）:
+权重口径（docs/ACSD_DESIGN.md §3.1（数据对象）「全链没有「权重模式」这一可选概念」）:
   HiPS 里**存**的是**帧级 SNR**（与稀疏控制点上的绝对 SNR）; 权重是阶段二消费 SNR 时
   按覆盖该像素的帧集合**现场算出的派生量**，不是配置键 ⇒ 配置面**不得**出现
   weight_mode / legacy_allow_weight_fallback（CLI 白名单已摘除，出现即 rc=3）。
@@ -228,7 +228,7 @@ class TestPhase123Pipeline(unittest.TestCase):
         cls.p1data = os.path.join(cls.tmp, "p1data")
         os.makedirs(cls.p1data)
         # --make-noisy（非 --make）：常量域 light 帧 σ=0 ⇒ 噪声模型整帧退化 ⇒
-        # Phase1 产品无 variance/ivar、无帧级 SNR ⇒ A44 后的默认（唯一）逐帧逆方差
+        # Phase1 产品无 variance/ivar、无帧级 SNR ⇒ 现行默认（唯一）逐帧逆方差
         # 权重链按 DATA-UNC-001 §30.1 fail-closed（mosaic rc=2，禁静默等权）。
         # §2.1 要求 HiPS 存帧级 SNR，故端到端正例必须喂非退化噪声面。
         r = subprocess.run([cls.p1, "--make-noisy", cls.p1data], capture_output=True,
@@ -240,7 +240,7 @@ class TestPhase123Pipeline(unittest.TestCase):
         for m in ("--make", "--make-field", "--make-nan"):
             subprocess.run([cls.p2, m, cls.hips], capture_output=True, text=True, timeout=120,
                            cwd=run_cwd())
-        # 无 ivar 的 Phase2 fixture (默认逐帧逆方差负例; §2.1 / §9.73 A44)
+        # 无 ivar 的 Phase2 fixture (默认逐帧逆方差负例; ACSD_DESIGN §3.1)
         cls.noivar = os.path.join(cls.tmp, "noivar")
         os.makedirs(cls.noivar)
         subprocess.run([cls.p2, "--make-noivar", cls.noivar], capture_output=True,
@@ -381,7 +381,7 @@ class TestPhase123Pipeline(unittest.TestCase):
     def test_02_mosaic_consumes_normalize_products(self):
         # P0-21 §3.4: normalize 产品 = 逐帧目录；mosaic 直接消费 p1_products.json
         # 的 hips_paths（可串行衔接）。
-        # §2.1 / §9.73 裁决 A44: **无 weight_mode 配置键** —— 权重是阶段二消费帧级
+        # ACSD_DESIGN §3.1（数据对象）: **无 weight_mode 配置键** —— 权重是阶段二消费帧级
         # SNR 时按覆盖该像素的帧集合现场算出的派生量；生产路径恒为逐帧逆方差
         # （normalize 产品已含 variance/ivar）。
         cfg = self._p2_cfg(self.p2out,
@@ -432,7 +432,7 @@ class TestPhase123Pipeline(unittest.TestCase):
         os.makedirs(d, exist_ok=True)
         r = self._run("mosaic", self._p2_cfg(d, ["/nonexistent/does_not_exist.hips"]))
         self.assertEqual(r.returncode, 3, r.stderr[-400:])
-        # 红必须是「缺输入」，不得是配置键被 CLI 白名单摘除（§9.73 A44）
+        # 红必须是「缺输入」，不得是配置键被 CLI 白名单摘除（ACSD_DESIGN §3.1：权重模式键不存在）
         self.assertNotIn("unknown key", r.stderr)
         # d) mosaic 默认逐帧逆方差对无 ivar 的产品 → 2, 不写 complete
         #    定案 2（逐像素方差接入）后 normalize 产品**已含** variance/ivar ⇒

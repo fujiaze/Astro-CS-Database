@@ -161,7 +161,7 @@ int main() {
     // 每帧 reason 计数; 均不以模糊 "weight" 命名 (P2-001 映射表 §UPM)。
     // GATE-502 空断言普查：原为 CHECK(true) 占位 ⇒ 改为对**生产 API 返回值**断言：
     // rejection diagnostics 的机器可读语义 id 必须是显式命名（acsd.*），
-    // 且不得含模糊 token "weight"（§9.73 裁决 A44：权重模式已注销）。
+    // 且不得含模糊 token "weight"（ACSD_DESIGN §3.1：权重模式键不存在）。
     int ids = 0;
     for (int m = P2_REJECT_NONE; m <= P2_REJECT_MINMAX; ++m) {
       const char* sid = p2_rejection_semantic_id(m);

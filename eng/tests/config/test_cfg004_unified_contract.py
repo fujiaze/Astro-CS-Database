@@ -10,7 +10,8 @@
   ① 三份 schema 同构三分支：blocks[] / 平铺单块简写 / 旧合同分支（mosaic·export 保留；normalize 由 §9.68 退役）
   ② 块内键集 = 该会话 config_fields()（唯一声明 session_commands.h）+ parser.cpp block_keys()
      —— **禁止第二份键名清单**：本测试从 CLI 源码现场派生并逐字比对
-  ③ 按 §9.73 裁决 A44 排除 weight_mode / legacy_allow_weight_fallback / algorithm_weight_mode
+  ③ 按 ACSD_DESIGN §3.1（数据对象：全链没有「权重模式」这一可选概念）排除
+    weight_mode / legacy_allow_weight_fallback / algorithm_weight_mode
   ④ 排异 min/max 禁用（§9.71 裁决 3 + DESIGN-DRAFT §1.8）⇒ 旧 enum 的 minmax 已删、新分支不收
   ⑤ 新分支不出现 phase_name / config / inputs[].product / inputs[].filter
   ⑥ 模板 = 块形态且键集与同一份键表同源（只允许省略已登记死键）
@@ -45,8 +46,12 @@ DEFAULTS = "eng/packaging/config/defaults.json"
 LEDGER = "eng/contracts/ledgers/dead_config_keys.json"
 PROJ_REGISTRY = "eng/contracts/schemas/projection_registry.schema.json"
 
-# §9.73 裁决 A44（负责人 2026-09-20）：「权重模式」概念不存在 ⇒ 三套键名一并作废。
-A44_KEYS = {"weight_mode", "legacy_allow_weight_fallback", "algorithm_weight_mode"}
+# 「权重模式」概念不存在 ⇒ 三套键名一并作废。现行依据 = docs/ACSD_DESIGN.md §3.1（数据对象）
+# 「全链没有「权重模式」这一可选概念」；docs/science/PSF_SIGNAL_WEIGHT.md §4「没有可选择的口径」。
+# （当时的裁决锚是「§9.73 裁决 A44」（负责人 2026-09-20），该锚已随审计件注销，
+#  故此处保留事件记载而改指在册条款。）
+RETIRED_WEIGHT_MODE_KEYS = {"weight_mode", "legacy_allow_weight_fallback",
+                            "algorithm_weight_mode"}
 # §9.68 已退役的逐帧形态判别键（normalize 侧由 §9.68 删除；mosaic/export 侧按 §9.71 定案 4 保留在旧分支）。
 RETIRED_NORMALIZE_KEYS = {"phase_name", "config", "inputs"}
 # 块面禁现的「逐帧形态」键（§3.3：命令名就是阶段身份；滤镜身份由 HiPS properties.obs_filter 承载）。
@@ -150,7 +155,7 @@ FLAT_ONLY_RESIDUE = {
 
 def expected_block_keys(phase):
     fields = cli_config_fields()[phase]
-    keys = {k for k in fields if k not in A44_KEYS and k != "schema_version"}
+    keys = {k for k in fields if k not in RETIRED_WEIGHT_MODE_KEYS and k != "schema_version"}
     return keys | cli_block_keys()
 
 
@@ -278,7 +283,8 @@ class TestBlockKeySetSingleSource(unittest.TestCase):
                         "模板值判定（json != nullptr）必须真的区分出骨架键")
 
     def test_04_a44_keys_excluded_from_new_branches(self):
-        """§9.73 裁决 A44：三份 schema **任何分支**都不收 weight_mode / legacy_allow_weight_fallback / algorithm_weight_mode。
+        """「权重模式」概念不存在（ACSD_DESIGN §3.1）：三份 schema **任何分支**都不收
+        weight_mode / legacy_allow_weight_fallback / algorithm_weight_mode。
 
         config 面收口（本任务同批）：config_registry.json 的 weight_mode 登记注销、
         eng/packaging/config/defaults.json#weight.default_mode 组删除、phase_config_mosaic 旧合同的
@@ -286,11 +292,11 @@ class TestBlockKeySetSingleSource(unittest.TestCase):
         """
         for phase, rel in PHASE_SCHEMAS.items():
             s = C.load_json(rel)
-            self.assertEqual(set(), A44_KEYS & block_props(s, phase), "%s 块面出现 A44 键" % rel)
-            self.assertEqual(set(), A44_KEYS & set(flat_branch(s)["propertyNames"]["enum"]),
-                             "%s 平铺面出现 A44 键" % rel)
-            self.assertEqual(set(), A44_KEYS & C.property_names(s),
-                             "%s 出现 A44 键属性（任何分支都不允许）" % rel)
+            self.assertEqual(set(), RETIRED_WEIGHT_MODE_KEYS & block_props(s, phase), "%s 块面出现已删除的权重模式键" % rel)
+            self.assertEqual(set(), RETIRED_WEIGHT_MODE_KEYS & set(flat_branch(s)["propertyNames"]["enum"]),
+                             "%s 平铺面出现已删除的权重模式键" % rel)
+            self.assertEqual(set(), RETIRED_WEIGHT_MODE_KEYS & C.property_names(s),
+                             "%s 出现已删除的权重模式键属性（任何分支都不允许）" % rel)
         # 登记面与默认值面同批无残留（唯一事实源不得再登记不存在的键）
         reg = C.load_json(REGISTRY)
         self.assertFalse([r for r in reg["plugin_knobs"]
@@ -304,12 +310,12 @@ class TestBlockKeySetSingleSource(unittest.TestCase):
                          "defaults.json field_count 与实际字段数不一致")
         for phase, rel in PHASE_SCHEMAS.items():
             s = C.load_json(rel)
-            for key in sorted(A44_KEYS):
+            for key in sorted(RETIRED_WEIGHT_MODE_KEYS):
                 doc = C.load_json(POS + "%s_blocks.phase_config.json" % phase)
                 doc["blocks"][0][key] = 1
-                self.assertTrue(C.validate(s, doc), "%s 块内 %s 必须判红（A44）" % (phase, key))
+                self.assertTrue(C.validate(s, doc), "%s 块内 %s 必须判红（已删除键）" % (phase, key))
         errs = errs_for("mosaic", C.load_json(NEG + "mosaic_block_weight_mode.phase_config.json"))
-        self.assertTrue(errs, "A44 负例夹具必须判红")
+        self.assertTrue(errs, "已删除权重模式键的负例夹具必须判红")
         self.assertIn("weight_mode", messages(errs))
 
     def test_05_minmax_rejection_path_is_deleted(self):

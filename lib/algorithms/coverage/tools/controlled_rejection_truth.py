@@ -154,7 +154,8 @@ def make_config(method, out):
                                           "profile": "wbpp_2_9_1",
                                           "normalization": "acsd_median_center_v1",
                                           "underdetermined_n": 2},
-                            # §9.73 裁决 A44：weight_mode 已删除（出现即拒绝）。
+                            # 「权重模式」概念不存在（docs/ACSD_DESIGN.md §3.1（数据对象））
+                            # ⇒ weight_mode 已删除（出现即拒绝）。
                             "acr_route": "cpu"},
             "output": {"hips": out}, "diagnostics": {"enabled": True}}
 

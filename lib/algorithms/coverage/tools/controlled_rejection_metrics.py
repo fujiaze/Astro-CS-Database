@@ -142,7 +142,8 @@ def run_stage2(cfg_name, method, frames, out_name):
                                          "normalization":
                                              "acsd_median_center_v1",
                                          "underdetermined_n": 2},
-                           # §9.73 裁决 A44：weight_mode 已删除（出现即拒绝）⇒ 不再生成。
+                           # 「权重模式」概念不存在（docs/ACSD_DESIGN.md §3.1（数据对象））
+                           # ⇒ weight_mode 已删除（出现即拒绝），不再生成。
                            "acr_route": "cpu"},
            "output": {"hips": f"run/temp/v17_control_truth/{out_name}"},
            "diagnostics": {"enabled": True}}

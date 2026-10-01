@@ -38,7 +38,7 @@ FIELDS_MIN = {
     "normalize": ("schema_version", "blocks", "blocks[].input_lights", "blocks[].master_bias",
                   "blocks[].master_dark", "blocks[].master_flat", "blocks[].output_dir",
                   "blocks[].drizzle", "blocks[].wcs"),
-    # §9.73 裁决 A44: weight_mode 已从配置面摘除（模板/help/白名单同撤），
+    # 「权重模式」概念不存在（docs/ACSD_DESIGN.md §3.1（数据对象））: weight_mode 已从配置面摘除（模板/help/白名单同撤），
     # 故 mosaic 的 --help 不再列该键；此处只断言**仍在**的必列键。
     # FIX-203（GAP_AUDIT G05/N03）: 合同声明但 CLI 缺失的提升键落地 ⇒ 进必列集
     # （snr_path = mosaic；rotation_deg/crpix_px = export；键名逐字取合同声明名）。

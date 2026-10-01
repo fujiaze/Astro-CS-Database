@@ -23,7 +23,7 @@
   ],
   "x-acsd-notes": [
     "形态三分支（互斥，用 if/then/else 而非 oneOf：jsonschema_min.py 的 oneOf 只报「0 branches matched」，会吞掉分支级诊断，与 normalize 同口径）：① blocks[] —— {\"schema_version\",\"blocks\":[mosaic_block, ...]}；② 平铺单块简写 —— 顶层 hips_paths/output_dir/运行参数（= 一个块去掉 name 的等价写法）；③ 旧合同 —— {phase_name:\"mosaic\", config, inputs[]}（保留，见下条）。",
-    "块内键集（唯一声明，禁止第二份副本）= lib/infrastructure/cli/session_commands.h 的 config_fields(SESSION_MOSAIC) 键 − schema_version − A44 键 + parser.cpp block_keys() = {name, output_dir}；与 parser.cpp session_blocks_errors() 的块内允许键集逐字同面（schema 通过 ⇒ CLI 通过）。块面**不含** weight_mode / legacy_allow_weight_fallback / algorithm_weight_mode。",
+    "块内键集（唯一声明，禁止第二份副本）= lib/infrastructure/cli/session_commands.h 的 config_fields(SESSION_MOSAIC) 键 − schema_version − 已删除的权重模式键 + parser.cpp block_keys() = {name, output_dir}；与 parser.cpp session_blocks_errors() 的块内允许键集逐字同面（schema 通过 ⇒ CLI 通过）。块面**不含** weight_mode / legacy_allow_weight_fallback / algorithm_weight_mode。",
     "块内运行参数的**值域不另写一份**：凡旧合同 $defs.mosaic_config 已定义的键（snr_path / algorithm_rejection_method），块内属性以 $ref 指向该唯一定义（防漂移；同时保住 config_registry.json 的登记点与 CFG002 的值域判据）。仅 CLI 独有、旧合同未定义的键（hips_paths / upm / reject）新增 $defs。",
     "旧合同分支**保留**的机器理由：① config_registry.json 的 3 条登记点（#/$defs/mosaic_config/properties/{snr_path,algorithm_upm_gauge,algorithm_rejection_method}）与 eng/packaging/config/defaults.json 的 enum_target（snr.path → snr_path）必须继续可解析；② 跨类不相交门（phase_config ∩ cpu_profile == {precision}）由 $defs.precision 承载；③ 旧合同不退役。CLI 会话面不消费该分支（显式拒绝 + 迁移提示）。",
     "平铺简写分支按设计「与多块形态等价」取块内键集 ⇒ 比 CLI 的平铺门**严**：CLI 平铺门 = parser.cpp session_keys() 全局并集（含其他命令的键与 config_fields 未列的会话键，如 reject_profile / bitpix / max_tiles）。方向是 fail-closed（schema 通过 ⇒ CLI 通过）；CLI 平铺门收敛为按会话的 config_fields 属 lib/** 后续项。",

@@ -25,8 +25,10 @@ NEGS = [
     ("multi_block_mixed_forms", "phase_config_normalize", "normalize_mixed_forms.phase_config.json"),
     ("multi_block_unknown_key", "phase_config_normalize", "normalize_block_unknown_key.phase_config.json"),
     ("retired_perframe_inputs", "phase_config_normalize", "normalize_perframe_inputs.phase_config.json"),
-    # FIX-207（§9.71 裁决 2 + §9.73 A44，2026-09-20）：三命令同构块结构的三类新负例
-    # （blocks 与平铺键互斥 / 块内 A44 键 / 新分支出现阶段判别键）。
+    # FIX-207（2026-09-20）：三命令同构块结构的三类新负例
+    # （blocks 与平铺键互斥 / 块内已删除的权重模式键 / 新分支出现阶段判别键）。
+    # 当时的裁决锚「§9.71 裁决 2 + §9.73 A44」已随审计件注销；块内权重模式键不存在
+    # 的现行依据 = docs/ACSD_DESIGN.md §3.1（数据对象）：全链没有「权重模式」这一可选概念。
     ("mosaic_blocks_mixed_flat", "phase_config_mosaic", "mosaic_blocks_mixed_flat.phase_config.json"),
     ("export_blocks_mixed_flat", "phase_config_export", "export_blocks_mixed_flat.phase_config.json"),
     ("mosaic_block_weight_mode", "phase_config_mosaic", "mosaic_block_weight_mode.phase_config.json"),

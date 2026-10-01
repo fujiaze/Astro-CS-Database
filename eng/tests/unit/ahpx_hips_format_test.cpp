@@ -2,9 +2,9 @@
 // FIX-202 / 变更 AHPX-WEIGHT-RETIRE-20260920 — .ahpx 格式内部权重枚举作废回归锁
 //
 // 规范依据:
-//   docs/ACSD_DESIGN.md §2.1 (全程只有 SNR, 不存在「权重模式」; HiPS 里存的是
-//     帧级 SNR + 稀疏控制点上的绝对 SNR), §3.4 (稀疏 SNR 层在交换合同里有位置)
-//   GAP_AUDIT.md §9.73 裁决 A44; DESIGN-DRAFT §3.1-D
+//   docs/ACSD_DESIGN.md §3.1 (数据对象; 全链没有「权重模式」这一可选概念; HiPS 里存的是
+//     帧级 SNR + 稀疏控制点上的绝对 SNR)
+//   docs/science/PSF_SIGNAL_WEIGHT.md §4 (单一权重口径; 没有可选择的口径)
 //
 // 组:
 //   N1 负例: 旧格式文件 (头 JSON 含 "weight":{"mode":2,...} 且带 "weight" 块)

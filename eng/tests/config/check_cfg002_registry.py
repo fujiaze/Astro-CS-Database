@@ -1412,7 +1412,8 @@ INJECTIONS = [
                                  {"registration": "phase_config",
                                   "registered_at": PHASE_SCHEMAS["export"] + "#/$defs/export_config",
                                   "registered_key": "export.config.band_height"}))),
-    # §9.73 裁决 A44（2026-09-20）：weight.default_mode 组已注销（config 面收口），
+    # 当时的裁决锚「§9.73 裁决 A44」（2026-09-20）已随审计件注销；weight.default_mode 组
+    # 已注销（config 面收口），现行依据 = docs/ACSD_DESIGN.md §3.1（数据对象）：全链没有「权重模式」这一可选概念。
     # 注入靶点改为现存唯一 enum_target 登记（snr.path → phase_config_mosaic#snr_path）。
     ("defaults_enum_token_illegal", "CFG002-03",
      lambda root: _edit_json(root, DEFAULTS, lambda d: [
