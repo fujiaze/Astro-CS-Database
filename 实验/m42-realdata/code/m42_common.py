@@ -230,11 +230,22 @@ class Gates:
     def __init__(self):
         self.rows = []
 
-    def add(self, gid, desc, value, ok, source="", level="data", note=""):
+    def add(self, gid, desc, value, ok, source="", level="data", note="", degenerate=False):
         self.rows.append(dict(id=gid, desc=desc, value=value, ok=bool(ok),
-                              source=source, level=level, note=note))
+                              source=source, level=level, note=note,
+                              degenerate=bool(degenerate)))
         return ok
 
     def summary(self):
-        return dict(n=len(self.rows), n_pass=int(sum(r["ok"] for r in self.rows)),
-                    n_fail=int(sum(not r["ok"] for r in self.rows)), rows=self.rows)
+        # 规范 08 §4：恒真、空断言、不读真实对象的判据无效。带 degenerate 标记的行
+        # 不计入 n/n_pass/n_fail——判据结构上永不判红，恒计通过或恒计失败都没有信息，
+        # 而且恒红的那几条会把真实缺陷永久藏在红灯里。读数原样保留在 rows 里。
+        rows = self.rows
+        deg = [r for r in rows if r.get("degenerate")]
+        live = [r for r in rows if not r.get("degenerate")]
+        return dict(n=len(live),
+                    n_pass=int(sum(r["ok"] for r in live)),
+                    n_fail=int(sum(not r["ok"] for r in live)),
+                    n_degenerate=len(deg),
+                    degenerate_ids=[r["id"] for r in deg],
+                    rows=rows)

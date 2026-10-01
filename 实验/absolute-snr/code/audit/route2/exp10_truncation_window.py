@@ -21,8 +21,12 @@ B experiment leg  : analytic sensitivity curve of the truncation window
          f_W^2 sqrt(sum_all P^2 / sum_W P^2) - 1                      (<= 0)
     S2 flux exact (P1 photometry), truncated weights: SNR bias =
          sqrt(sum_all P^2 / sum_W P^2) - 1                            (<= 0)
-  Checked: V-7 ("sum P^2 stable from 5th digit for half 12 -> 60 FWHM units")
-  and the 05 series +4e-6 / +2.4e-4 / +1.33% (NOT reproduced under S1 or S2;
+  Checked: V-7 ("sum P^2 stable from 5th digit for half 12 -> 60 FWHM units").
+  The V-7 positive case is structurally always-true (half = 12 FWHM = 28.3 sigma, the
+  truncated tail exp(-h^2/sigma^2) = exp(-800) underflows to 0 in IEEE-754 double), so it
+  carries no discriminating power on its own; the half = 0.5 FWHM negative control that
+  ships alongside it is what shows the ratio can be red.  The 05 series
+  +4e-6 / +2.4e-4 / +1.33% (NOT reproduced under S1 or S2;
   sign and magnitude differ -> anchor UNRESOLVED, our curve replaces it).
 C seed             : SEED = 20260926 (deterministic analytic evaluation).
 D outputs          : results/route2/exp10_truncation_window.json
@@ -79,12 +83,29 @@ def main():
                 "snr_bias_S2_flux_exact": float(sqrt(s2_all / s2_w) - 1.0)})
     res["sensitivity_curve"] = rows
 
-    # V-7 check (Gaussian, FWHM=3): sum P^2 ratio for half 36 -> 60 -> 180 -> 720
+    # V-7 check (Gaussian, FWHM=3): sum P^2 ratio for half 36 -> 60 -> 180 -> 720.
+    #
+    # 参照量必须取自**同一轮廓、同一 FWHM** 的无穷窗口。早前版本在此直接沿用上方
+    # `cases` 循环末尾泄漏的 `s2_all`——那是最后一个算例 moffat2p5_260（Moffat beta=2.5、
+    # FWHM=260）的值，不是 FWHM=3 的高斯值。高斯分子除以 Moffat 分母，四个窗口的读数
+    # 于是逐位相同（14484.233240），既非 1.0 也无窗口间差异，V-7 实际未被检验。
+    # 现由本检查自行计算参照量。
+    _, s2_all_ref, _ = gauss_terms(3.0, BIG)
     v7 = {}
     for half in (36, 60, 180, 720):
         _, _, s2_w = gauss_terms(3.0, half)
-        v7[f"half{half}_px"] = float(s2_w / s2_all)
+        v7[f"half{half}_px"] = float(s2_w / s2_all_ref)
     res["v7_check_gauss_fwhm3"] = v7
+
+    # V-7 判别力负例。正例（half ≥ 12 FWHM = 28.3 sigma，尾部比例 exp(-h^2/sigma^2)
+    # = exp(-800) 在 IEEE-754 双精度下下溢为 0）在代数上必然为 1.000000，**永远绿**，
+    # 因此正例单独不构成判据（规范 08 §4「恒真判据无效」）。这里把窗口缩到 0.5 FWHM
+    # = 1.18 sigma，截断比例必须显著偏离 1；该负例证明这个比值有分辨力，两者成对随附。
+    _, _, s2_w_tiny = gauss_terms(3.0, 1.5)
+    res["v7_negative_control_half0p5fwhm"] = {
+        "half_px": 1.5,
+        "sumP2_ratio_w_over_all": float(s2_w_tiny / s2_all_ref),
+        "deviates_from_unity": bool(abs(s2_w_tiny / s2_all_ref - 1.0) > 1e-4)}
 
     print(json.dumps(res, indent=2))
     with open(OUT, "w") as f:

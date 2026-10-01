@@ -422,19 +422,41 @@ def _out_of_range_negative(exe: str) -> dict:
 
     生产 `snr_science.cpp:157-160`：sigma 非有限或 <=0 ⇒ status=1 拒绝；本函数要求两条越界
     用例都被拒（判据由此获得"越界必红"的一面）。
+
+    fail-closed：探针**无判决**与生产**明确拒绝**是两回事。早前版本把解析失败
+    （探针崩溃 / 超时 / stdout 空 / 非 JSON）塞进 `{"ok": False, "parse_error": True}`，
+    于是 `not prod.get("ok")` 为真 ⇒ 一个跑不起来的探针被记成"生产正确拒绝"，门照样绿。
+    吞异常转绿在本项目反复出现，这里改为：只有拿到**可解析的生产判决**才允许记 rejected；
+    探针无判决 ⇒ 该用例判 `rejected=False` 并附 `probe_inconclusive` 与 stderr，整体 pass=False。
     """
     cases = []
     for label, fwhm, sigma in (("fwhm_px=0 & sigma_px=0", 0.0, 0.0),
                                ("fwhm_px=0 & sigma_px<0", 0.0, -1.0)):
         r = subprocess.run([exe, repr(F_S_E), repr(100.0 + DARK_E), repr(READ_E), repr(GAIN),
                             repr(fwhm), repr(sigma)], capture_output=True, text=True, timeout=120)
+        prod, parse_err = None, None
         try:
             prod = json.loads(r.stdout.strip().splitlines()[-1])
-        except Exception:                                    # noqa: BLE001
-            prod = {"ok": False, "parse_error": True}
+        except Exception as exc:                                # noqa: BLE001
+            parse_err = "%s: %s" % (type(exc).__name__, exc)
+        if not isinstance(prod, dict) or "ok" not in prod:
+            cases.append({"case": label, "prod_ok": None, "prod_rc": None,
+                          "rejected": False, "probe_inconclusive": True,
+                          "probe_returncode": r.returncode,
+                          "probe_stderr_tail": (r.stderr or "")[-400:],
+                          "parse_error": parse_err})
+            continue
         cases.append({"case": label, "prod_ok": bool(prod.get("ok")),
-                      "prod_rc": prod.get("rc"), "rejected": (not prod.get("ok"))})
-    return {"cases": cases, "pass": all(c["rejected"] for c in cases)}
+                      "prod_rc": prod.get("rc"),
+                      "rejected": (not prod.get("ok")),
+                      "probe_inconclusive": False,
+                      "probe_returncode": r.returncode})
+    inconclusive = [c["case"] for c in cases if c["probe_inconclusive"]]
+    return {"cases": cases,
+            "probe_inconclusive_cases": inconclusive,
+            "pass": (all(c["rejected"] for c in cases) and not inconclusive),
+            "status": ("FAIL: 探针对以下越界用例无判决，不得记为生产拒绝：%s"
+                       % ", ".join(inconclusive)) if inconclusive else "OK: 两条越界用例均被生产明确拒绝"}
 
 
 def test_P12(repo_root: str, tmpdir: str) -> dict:

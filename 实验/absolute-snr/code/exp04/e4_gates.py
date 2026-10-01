@@ -3,8 +3,8 @@
 """EXP-04 负例与判据非退化审查（红/绿必须都能出现）。
 
 负例清单：
-  G1 真值无效应⇒归零（**绿**）：平坦 σ 场 + oracle 控制值 ⇒ 任一算子 E=0、
-     空间增益 G=E_frame−E_op=0（数值容差 1e-9）。
+  G1 真值无效应⇒归零（**绿**）：平坦 σ 场 + oracle 控制值 ⇒ 任一算子逐点复原真值 2.5，
+     E=0、rmse_log_rho=0、**level_bias_dex=0**（三者缺一不可，见 note）。
   G2 平坦场排序判据退化登记（**登记，不作证据**）：s=0 时帧级常数臂 RMSE≡0，
      "空间臂严格更优"在数学上不可能出现 ⇒ 恒真门。
   G3 对抗洗牌（**红**）：结构化真值场 + 把控制值随机洗牌 ⇒ 最优算子必须劣于帧级臂
@@ -13,7 +13,9 @@
      恒真（K 足够大），在对抗洗牌场下仍绿 ⇒ 不得充当证据。
   G5 最近邻基线非退化：在可分辨结构域上 nn 必须严格劣于至少一个光滑算子（E 或 RMSE），
      否则判据对"算子质量"不敏感 ⇒ 判红。
-  G6 零效应⇒零（帧级臂自证）：平坦真值场下 frame_median 臂 E=0、rmse=0。
+  G6 零效应⇒零（帧级臂自证）：**恒真门，移出判定、仅登记**。帧级臂输出按构造是常量场，
+     而 E 与 rmse_log_rho 先除以自身中位数 ⇒ 常量场对常量场恒 0，与实现无关。
+     同时它对水平偏差也免疫（实测 30% 乘性偏置下 level_bias_dex=0.113 仍全绿）。
 
 输出：results/exp04_e4_gates.json
 """
@@ -57,15 +59,29 @@ def main():
         dense, _, _ = O.run_operator(op, ctrl_or, D, (H, H))
         m = E.metrics(dense, flat_truth, np.ones((H, H), bool))
         g1.append(dict(op=op, eff_loss=m["eff_loss"], rmse=m["rmse_log_rho"],
+                       level_bias_dex=m["level_bias_dex"],
                        max_abs_dev=float(np.max(np.abs(dense - 2.5))),
-                       ok=bool(abs(m["eff_loss"]) <= 1e-9 and m["rmse_log_rho"] <= 1e-9)))
+                       ok=bool(abs(m["eff_loss"]) <= 1e-9 and m["rmse_log_rho"] <= 1e-9
+                               and abs(m["level_bias_dex"]) <= 1e-9)))
     frame_flat = E.metrics(np.full((H, H), float(np.median(ctrl_est))), flat_truth, np.ones((H, H), bool))
-    out["G1_zero_effect_zero"] = dict(rows=g1, all_ok=bool(all(r["ok"] for r in g1)),
-                                      note="平坦真值场 + oracle 控制值 ⇒ 每算子 E=0、RMSE=0、G=0")
+    out["G1_zero_effect_zero"] = dict(
+        rows=g1, all_ok=bool(all(r["ok"] for r in g1)),
+        note=("平坦真值场 + oracle 控制值（控制值即真值 2.5 本身）⇒ 每算子必须逐点复原 2.5。"
+              "门禁含 level_bias_dex：本项不过中位数归一，直接比 est/truth 的绝对水平，"
+              "E 与 rmse_log_rho 都按构造对全局乘性因子免疫（sci_b_common.py:377），"
+              "只看这两项时 30% 乘性偏置全绿而 max|out-2.5| 已达 0.75"))
     out["G6_frame_arm_selfzero"] = dict(eff_loss=frame_flat["eff_loss"],
                                         rmse=frame_flat["rmse_log_rho"],
-                                        ok=bool(abs(frame_flat["eff_loss"]) <= 1e-9
-                                                and frame_flat["rmse_log_rho"] <= 1e-9))
+                                        level_bias_dex=frame_flat["level_bias_dex"],
+                                        max_abs_dev=float(np.max(np.abs(
+                                            np.full((H, H), float(np.median(ctrl_est))) - 2.5))),
+                                        degenerate=True,
+                                        note=("恒真门，移出判定、仅登记：帧级臂输出按构造是**常量场**，"
+                                              "而 E 与 rmse_log_rho 都先除以自身中位数，常量场对常量场"
+                                              "归一后逐点相等 ⇒ 恒 0，与实现无关。"
+                                              "另注：本臂水平取自含噪估计 median(ctrl_est)，"
+                                              "无偏时 level_bias_dex 已达 -5.7e-4，若加 1e-9 判据将"
+                                              "**恒红**——恒红门会把真实缺陷永久藏在红灯里，故不加判据。"))
     # G2：排序判据退化登记（帧级臂 RMSE 精确为 0 ⇒ 任何空间臂都不可能严格更优）
     viol = [r["op"] for r in g1 if r["rmse"] < 0.0]
     out["G2_DEGENERATE_flat_field_ranking_never_true"] = dict(
@@ -103,7 +119,7 @@ def main():
         ok=bool(all(x["worse_than_frame"] for x in g3)),
         note="洗牌破坏空间结构后，每个算子都必须劣于帧级常数臂；否则判据识别不出错误重建")
     out["G4_tautology_recheck"] = dict(
-        rows=g4, all_true=bool(all(x["tautology_true"] for x in g4)),
+        rows=g4, all_true=bool(all(x["tautology_true"] for x in g4)), degenerate=True,
         note=("'帧级臂 RMSE <= K*s_field' 在对抗洗牌场（E 高达 %.2f）下仍恒真 ⇒ "
               "该判据无证据资格（复核 §8b b6_gates_audit.json::tautology_demo）"
               % max(x["eff_loss_shuffled"] for x in g4)))
@@ -122,15 +138,26 @@ def main():
         ok=bool(sum(x["better"] for x in g5) >= len(g5) // 2),
         note="最近邻必须被光滑算子稳定击败，否则判据对算子质量不敏感")
 
+    # 恒真门不进 gates_summary（规范 08 §4：恒真判据无效）。它们的读数原样保留在
+    # results 里，只是不再作为"判据能红"的证据出现。
+    always_true = {k: v for k, v in out.items()
+                   if isinstance(v, dict) and v.get("degenerate") is True}
     obj = dict(experiment="SCI-B / EXP-04 负例与判据非退化审查", frozen_config=dict(
         delta_px=D, crop=H, seed_base=E.SEED_BASE), **out,
         gates_summary={k: v.get("ok", v.get("all_ok", None))
-                       for k, v in out.items() if isinstance(v, dict)},
+                       for k, v in out.items()
+                       if isinstance(v, dict) and v.get("degenerate") is not True},
+        always_true_checks=sorted(always_true),
+        always_true_note=("以下检查按代数构造即不可能判红，不计入 gates_summary："
+                          + ", ".join(sorted(always_true))
+                          + "。读数保留，供报告引用为「诊断」而非「判别力证据」。"),
         generated_at=E.now(), wall_s=time.time() - t0)
     E.jdump(obj, a.out)
     for k, v in out.items():
         if isinstance(v, dict) and "ok" in v:
             print("%-34s ok=%s" % (k, v["ok"]))
+    for k in sorted(always_true):
+        print("%-34s DEGENERATE（恒真，仅登记，不计入 gates_summary）" % k)
     print("wrote", a.out, "wall=%.0fs" % (time.time() - t0))
 
 

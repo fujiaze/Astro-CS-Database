@@ -11,6 +11,19 @@
     不再是字面常数 ⇒ H1/H2 变成可假判据。
   * 每一判据配**正例（必绿）与负例（必红）**，两侧读数一并落 JSON。
 
+判据的证据资格（按标准 08 §4「恒真判据无效」逐条核过，此处如实标注哪些绿是结构性的）：
+  * **G2a 天空受限臂的绿是解析可证的**，不是实测得来的。gain<=0 时本文件按定义不计入源项
+    （见 sigma_f_optimal），故 σ_F = σ_sky/√(ΣP²) 与 F_ref **恒等无关**，
+    SNR = F_ref/σ_F ∝ F_ref ⇒ 每 mag 比值 = 10^0.4 是模型定义的直接推论。
+    实测确为逐位相同：f_ref = 1 / 100 / 1e4 三点返回同一 34.469626656179656
+    （十六进制 0x1.13c1cb9eccf8cp+5）。该门仍是**有效**判据——若给天空受限臂塞进任何本不该有的
+    F_ref 依赖，drift 立刻升到 2.18e-4（实测注入），远高于阈值 1e-15，门判红。
+  * **G3' 天空受限臂读到的 drift = 4.44e-16 是纯 IEEE-754 舍入**，来自
+    `(F/σ)²/F²` 不逐位等于 `1/σ²`，**不是物理效应**。阈值 1e-15 只高出该舍入底噪 2.3 倍，
+    裕度偏薄：若换编译器或换 FMA 收缩，舍入底噪本身可能触阈。该臂的判别力主要来自
+    源主导臂负例（实测 drift 3.83e-2），不来自这条 4.44e-16。
+  * 其余判据（G1 单调性、G2a' 负例、G2b、G4 负例）两侧读数均随输入变化，见 results。
+
 判据（全部能红能绿）：
   G1  单调性        : frame_snr(m_ref) 严格单调降              —— 天空受限臂与源主导臂均须绿
   G2a 天空受限臂    : 每 mag 比值 == 10^0.4 (|dev|<=1e-9)      —— 正例绿
@@ -119,6 +132,8 @@ h1 = {
         "G1_monotone_both_arms": bool(sky_arm["is_monotonic_decreasing"]
                                       and src_arm["is_monotonic_decreasing"]),
         "G2a_sky_limited_10p0.4": {
+            # 绿是**解析可证**的：gain<=0 ⇒ σ_F 与 F_ref 恒等无关 ⇒ SNR ∝ F_ref。
+            # 仍是有效判据——注入伪 F_ref 依赖后本条判红（见文件头证据资格说明）。
             "measured": sky_arm["per_mag_ratio_measured"],
             "rel_dev": abs(sky_arm["per_mag_ratio_measured"] / MAG_PER_MAG_SKY - 1.0),
             "verdict": "GREEN" if abs(sky_arm["per_mag_ratio_measured"] / MAG_PER_MAG_SKY - 1.0) < 1e-9 else "RED"},
@@ -181,7 +196,13 @@ h2 = {
         "sky_limited_arm": sky_w,
         "source_dominated_arm": src_w,
         "gate_G3p_sky_limited_1e-15": {
+            # drift 的理论值是 0：gain<=0 ⇒ σ_F = σ_sky/√(ΣP²) 与 F_ref 恒等无关 ⇒
+            # w = SNR²/F_ref² = 1/σ_F² 与 m_ref 无关。实测的 4.44e-16 是 (F/σ)²/F² 与
+            # 1/σ² 的浮点舍入差，**不是物理量**。该臂判别力由注入验证（给天空受限臂塞进
+            # 不该有的 F_ref 依赖 ⇒ drift 2.18e-4，门红）；阈值 1e-15 距舍入底噪仅 2.3 倍。
             "drift": sky_w["mref_drift_rel"],
+            "drift_is_float_roundoff": True,
+            "analytic_drift": 0.0,
             "verdict": "GREEN" if sky_w["mref_drift_rel"] < 1e-15 else "RED"},
         "gate_G3p_negative_control_source_dominated": {
             "drift": src_w["mref_drift_rel"],
