@@ -2972,3 +2972,43 @@ OCR 流里紧邻 p.42 页首前的「(Issued separately February 25, 1935.)」�
 不属 Aitken（已渲染印刷 p.41 确认）。
 而 `PHOTOMETRY.md:292`「取 1935」**是对的**（p.48 末行逐字 "Issued separately March 6, 1935."，
 卷 CONTENTS 亦系于该日）。
+
+---
+
+## 60. GOV-ERR-7：G08-01 把 CI 执行器本身删了，而「重建 CI」是 G08-10 的任务（车道 24 定案）
+
+### 60.1 根因提交与删除清单
+
+`e5f589a6`（2026-09-30）「G08-01 物理删除旧门禁与 CI（344 件 / −136,676 行）」：
+
+| 桶 | 删除数 |
+|---|---|
+| `eng/ci/**`（机器门注册表 `checks.json` + **执行器 `run_checks.py`** + 全部 `check_*.py`） | **139** |
+| `eng/tools/quality/check_*.py` | 46 |
+| `eng/tools/check_*.py`（顶层） | 31 |
+| `eng/tools/acceptance/`（`frozen_gate_exit_gate.py` / `tier_verdict_gate.py` …） | 3 |
+| `eng/tools/arch/check_*.py` | 2 |
+| **`eng/tests/**` 里的 12 个门禁脚本** | 12 |
+| `eng/packaging/**` 验证器（`check_packaging_consistency.py` / `gen_sbom_input.py` / `verify_install_tree.py`） | 3 |
+| **`.github/workflows/ci-linux.yml`（188 行）、`ci-windows.yml`（155 行）** | 4 |
+
+实证：`ls -d .github` → 不存在；`git ls-tree HEAD .github` → 空；
+`git ls-files eng/tools | grep check_` → **0**。
+
+### 60.2 决定性后果
+
+`eng/ci/run_checks.py` 是**仓内唯一的门禁执行器**。删掉它之后，
+`eng/tests/**` 里除 CMake 驱动的部分外**没有任何自动执行面**。
+
+⇒ **这解释了此前几乎所有「载体不存在」现象的根因**，而不只是「正本引用过期」：
+不是正本写错了载体，是**载体连同它的执行器一起被删了**，
+而正本仍把它们当作现行机器判据。
+
+⇒ **G08-10「重建 CI」必须先决定：重建执行器，还是重建执行器 + 恢复检查器集合。**
+只恢复执行器而不恢复检查器，则执行器无事可做、仍然全绿。
+
+### 60.3 覆盖率（车道自报，如实）
+
+`eng/tests/**` **672 真实文件 / 235,028 行**；`eng/contracts/**` 90 / 23,494 行；
+`eng/tools/**` 149 真实文件（263 含 114 个 `.pyc`）/ 33,331 行。
+三条子代理分担，本车道合并判据发现。
