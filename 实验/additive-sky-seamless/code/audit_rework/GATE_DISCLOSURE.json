@@ -1,0 +1,133 @@
+{
+ "_note": "audit_rework 落盘 JSON 中每个 `false` 的逐点披露。键 = `<结果文件名>|<归一点路径>`（数组下标归一为 []）。class ∈ demonstration / diagnostic / table_cell / open_red。open_red 不豁免；未在本文件出现的 false 一律判 UNDECLARED 并使汇总器红（fail-closed）。`_gate_rollup.json` 是门状态清单不是门读数，由 rollup.py 另做交叉核对。",
+ "entries": {
+  "c3_seam_gate.json|deterministic_floor.0.010049.red": {
+   "class": "demonstration",
+   "why": "负例演示：该字段为假**正是**被演示的内容（漏检面/恒绿门/相消），不是失败判据；脚本自带 verdict 串「判绿 => 已知漏检面复现」"
+  },
+  "c3_seam_gate.json|smooth_transition.w=8px.red": {
+   "class": "demonstration",
+   "why": "负例演示：该字段为假**正是**被演示的内容（漏检面/恒绿门/相消），不是失败判据；脚本自带 verdict 串「判绿 => 已知漏检面复现」"
+  },
+  "c3_seam_gate.json|smooth_transition.w=16px.red": {
+   "class": "demonstration",
+   "why": "负例演示：该字段为假**正是**被演示的内容（漏检面/恒绿门/相消），不是失败判据；脚本自带 verdict 串「判绿 => 已知漏检面复现」"
+  },
+  "c3_seam_gate.json|smooth_transition.w=32px.red": {
+   "class": "demonstration",
+   "why": "负例演示：该字段为假**正是**被演示的内容（漏检面/恒绿门/相消），不是失败判据；脚本自带 verdict 串「判绿 => 已知漏检面复现」"
+  },
+  "c3_seam_gate.json|gradient_cancellation.cancelled_injection.red": {
+   "class": "demonstration",
+   "why": "负例演示：该字段为假**正是**被演示的内容（漏检面/恒绿门/相消），不是失败判据（梯度项 2d·g = dL·bg 相消）"
+  },
+  "c4_variance_ratio.json|cases.A_level_step.var_ratio_red_demo": {
+   "class": "demonstration",
+   "why": "负例演示：该字段为假**正是**被演示的内容（漏检面/恒绿门/相消），不是失败判据"
+  },
+  "c4_variance_ratio.json|cases.B_variance_artifact.rel_step_red": {
+   "class": "demonstration",
+   "why": "负例演示：该字段为假**正是**被演示的内容（漏检面/恒绿门/相消），不是失败判据；:77 的 conclusions 显式要求它为假"
+  },
+  "c4_variance_ratio.json|cases.C_null.rel_step_red": {
+   "class": "demonstration",
+   "why": "负例演示：该字段为假**正是**被演示的内容（漏检面/恒绿门/相消），不是失败判据；:79 的 conclusions 显式要求它为假"
+  },
+  "c4_variance_ratio.json|cases.C_null.var_ratio_red_demo": {
+   "class": "demonstration",
+   "why": "负例演示：该字段为假**正是**被演示的内容（漏检面/恒绿门/相消），不是失败判据"
+  },
+  "c6_identifiability_dof.json|verdicts.gauge_free.identifiable": {
+   "class": "diagnostic",
+   "why": "诊断读数：为假是被如实记录的事实，不承担通过/失败语义：gauge 自由度不可辨识是被记录的事实（claim_check 自述）"
+  },
+  "c6_identifiability_dof.json|global_weight_invariance.kappa_identical": {
+   "class": "open_red",
+   "why": "**结构性恒红门**：对角均衡 D⁻¹HD⁻¹ 对全局标量缩放精确不变 ⇒ k_c ≡ k_f 数学恒等，但代码用逐位 `==` ⇒ 由浮点最后一位决定（实测 reldiff 1.10e-15）⇒ 恒红。真实门恒红比恒真更坏：它把 kappa 变化的真实缺陷永久藏在红灯里。建议改 `abs(k_c-k_f)/k_f < 1e-12` 或直接删（本次不改阈值、不改数据）"
+  },
+  "c6_identifiability_dof.json|always_green_gate_on_Hsolve.detail.lambda_x1e+00.identifiable_on_Hsolve": {
+   "class": "demonstration",
+   "why": "自标 always_green 的演示块：为假正是「该门恒绿」的证据"
+  },
+  "c7_share_vs_abs_weight.json|fake_ivar_domination.exclusive": {
+   "class": "open_red",
+   "why": "**恒红门被当作正面证据引用**：`exclusive = bool(share > 1.0 - 1e-20)`，而 share 是份额对任意非负 x,y 恒 ≤1；1.0-1e-20 在 binary64 下坍回精确 1.0（实测 repr(1.0-1e-20)==1.0）⇒ 实为 share > 1.0，对任意输入无解。文件里真实的 share 恰好就是 1.0。`:76-77` 的 claim 字段与 REPORT_paper.md:100 都按它成立引用。改法见登记表 §7.3 P1：改成真正低于 1 的阈，不要只调 1e-20 的量级（那个量级无效）。"
+  },
+  "e4_variance_ratio_blindness.json|cases[].seam_gate_1e-2_verdict_red": {
+   "class": "demonstration",
+   "why": "负例演示：该字段为假**正是**被演示的内容（漏检面/恒绿门/相消），不是失败判据"
+  },
+  "e8_identifiability_rank_rtol.json|column_equilibration_invariance.kappa_changes": {
+   "class": "open_red",
+   "why": "**inf − inf = NaN 吞红**：`kappa_changes = abs(kap_s - kap) > 1.0`，而两者在 `... if ev[-1]>0 else inf` 下皆为 inf ⇒ `nan > 1.0` 为 False ⇒ 门静默报「kappa 未变」，而同段 note 却声称「kappa 变 12 个量级」——自相矛盾。本次只让红灯可见，不改阈值（改了就是伪造一个绿色结论）"
+  },
+  "q10_weight_arms.json|ordering_matches_doc_16.1.3": {
+   "class": "open_red",
+   "why": "**与文档 §16.1.3 声明的排序不符的真实主张门**。固化 JSON 记 false，报告仍当通过项引用。须由前台裁决：是文档错还是实现错；在此之前该门保持红"
+  },
+  "q11_scale_invariance.json|sigma_floor_regimes[].floor_active": {
+   "class": "demonstration",
+   "why": "floor_active=False 是被演示的内容：`:53` 的 `floor_dead_production` 显式断言 rows[0] 的该项为假"
+  },
+  "q11_scale_invariance.json|relative_floor_active.in_delta_region": {
+   "class": "diagnostic",
+   "why": "诊断读数：为假是被如实记录的事实，不承担通过/失败语义"
+  },
+  "q11_scale_invariance.json|convergence_demo.abs_gate_fires": {
+   "class": "demonstration",
+   "why": "演示绝对容差不可达：max_dM = SCALE_OBS*1e-9 恒大于 ABS_TOL ⇒ 该门为假正是「绝对容差永不触发」的证据"
+  },
+  "q1_seam_gate.json|cases.median_blindness_step5pct[].noiseless_blind": {
+   "class": "demonstration",
+   "why": "负例演示：该字段为假**正是**被演示的内容（漏检面/恒绿门/相消），不是失败判据"
+  },
+  "q2_variance_ratio.json|rows[].side_blind_vs_pool_sensitive": {
+   "class": "demonstration",
+   "why": "负例演示：该字段为假**正是**被演示的内容（漏检面/恒绿门/相消），不是失败判据"
+  },
+  "q8_node_spacing.json|rows[].significant_by_2h_rule": {
+   "class": "cell",
+   "why": "网格逐格分类标记，本就不是门（不进入任何 pass/verdict 汇总）：`lam_h <= 2.0` 的逐行分类标记（λ/h>2 = 该行不显著），不是判决"
+  },
+  "ea_507_scale_scan.json|monotonic_seam_max_noisy": {
+   "class": "diagnostic",
+   "why": "诊断读数：为假是被如实记录的事实，不承担通过/失败语义：脚本自带 note「series non-monotonic (400, 50 px)」已如实记录该事实"
+  },
+  "ea_507_scale_scan.json|monotonic_seam_max_quiet": {
+   "class": "diagnostic",
+   "why": "诊断读数：为假是被如实记录的事实，不承担通过/失败语义：同上"
+  },
+  "eb_relstep_calibration.json|part1_false_positive_scan[].spec_red": {
+   "class": "cell",
+   "why": "网格逐格分类标记，本就不是门（不进入任何 pass/verdict 汇总）：健康场景假阳性扫描的逐格标记（21 格中 5 格为真），不是单个门"
+  },
+  "eb_relstep_calibration.json|part1_false_positive_scan[].mean_gt_02": {
+   "class": "cell",
+   "why": "网格逐格分类标记，本就不是门（不进入任何 pass/verdict 汇总）"
+  },
+  "eb_relstep_calibration.json|part2a_spec_recipe_x10.spec_red": {
+   "class": "open_red",
+   "why": "**05 规格自己的注入配方（单节点系数 ×10）不使规格变红**：frac_gt_01=0.0357、mean_rel=0.0388、max_rel=0.901，spec_red 与 mean_gt_02 皆为 false ⇒ 该缺陷注入未被检出。这是 A-P5 端点比重算的负例腿之一（REPORT_paper.md:144）"
+  },
+  "eb_relstep_calibration.json|part2a_spec_recipe_x10.mean_gt_02": {
+   "class": "open_red",
+   "why": "同上：`mean_gt_02` 与 `spec_red` 在同一行判据上同源，一次记两条"
+  },
+  "eb_relstep_calibration.json|part2b_additive_scan_postfit[].spec_red": {
+   "class": "cell",
+   "why": "网格逐格分类标记，本就不是门（不进入任何 pass/verdict 汇总）：健康场景假阳性扫描的逐格标记（21 格中 5 格为真），不是单个门"
+  },
+  "eb_relstep_calibration.json|part2b_additive_scan_postfit[].mean_gt_02": {
+   "class": "cell",
+   "why": "网格逐格分类标记，本就不是门（不进入任何 pass/verdict 汇总）"
+  },
+  "eb_relstep_calibration.json|part2c_truth_injection_refit[].spec_red": {
+   "class": "cell",
+   "why": "网格逐格分类标记，本就不是门（不进入任何 pass/verdict 汇总）：健康场景假阳性扫描的逐格标记（21 格中 5 格为真），不是单个门"
+  },
+  "eb_relstep_calibration.json|part2c_truth_injection_refit[].mean_gt_02": {
+   "class": "cell",
+   "why": "网格逐格分类标记，本就不是门（不进入任何 pass/verdict 汇总）"
+  }
+ }
+}

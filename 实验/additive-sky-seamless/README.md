@@ -374,12 +374,27 @@ rank 49 = n_nodes，χ²_red 0.771，δ_k 非零。
     `interior = True`、`exclude = None` ⇒ **门不知道自己测不了**。
     本单元补的**覆盖率诊断量** `cov`（沿边 `|seam − median(ctrl)| > max(3·MAD(ctrl), 半门阈)`
     的样本占比）读 **0.9992 / 0.80 / 0.60 / 0.50 / 0.48 / 0.40 / 0.20 / 0.05**，
-    与 f 的偏差 ≤ 0.0008，且**与台阶幅度无关**（2 %→32 % 五档极差 ≤ 0.0008）。
-    门在三区判定：与**配对零台阶对照**不可分辨（真无台阶）⇒ 照常；`0 < cov ≤ 0.5`（检出偏离但
-    不足多数）⇒ **显式判红 `FAIL_COVERAGE`**；`cov > 0.5` ⇒ 照 `rel_step` 判决。
-    ⇒ **阈值：沿边真接缝覆盖率必须 > 50 %，否则「无接缝」这一读数无效。**
-    适用域限制：σ_pix = 20 @ 300 的带噪臂下 4 % 台阶低于逐样本可分辨限，`cov` 退化为噪声底
-    （读数与 f 无关，极差 ≤ 0.0075）⇒ **覆盖率诊断量本身带噪时被噪声限制**。
+    与 f 的偏差 ≤ 0.0008；在**无噪**夹具上与台阶幅度无关（2 %→32 % 五档极差 ≤ 0.0008），
+    但该性质是夹具的**解析后果**（无噪时 `thr` 恒等于兜底项 `0.5·gate·bg` ⇒ `cov ≡ f`），
+    不是实测结论；在**带噪**网格上实测极差 0.045–0.887，`cov` **强烈依赖**台阶幅度。
+    门在**四区**判定：
+    - 检出限 `thr/bg` **≥** 门阈 `gate` 且与配对零台阶对照不可分辨 ⇒ `unresolved`＝**测不了**，
+      判 `UNRESOLVED`，**不保留 PASS**（不得谎称「真无台阶」）；
+    - 检出限足够且与配对零台阶对照不可分辨 ⇒ `none`＝真无台阶，保留 PASS；
+    - `0 < cov ≤ 0.5`（检出偏离但不足多数）⇒ **显式判红 `FAIL_COVERAGE`**；
+    - `cov > 0.5` ⇒ 照 `rel_step` 判决。
+
+    判决聚合优先级 `FAIL > FAIL_COVERAGE > UNRESOLVED > PASS`：**生产已测到台阶时一律记
+    `FAIL`**，覆盖率层只作旁注（不得把已成立的红色判决改记成「覆盖率不足」）。
+    ⇒ **阈值：沿边真接缝覆盖率必须 > 50 %，否则「无接缝」这一读数无效；
+    且诊断量的最小可检相对幅度 `thr/bg` 必须 < 门阈，否则连「无接缝」都不能断言。**
+    适用域限制：σ_pix = 20 @ 300 的带噪臂下 `ctrl_mad ≈ 22` ⇒ `thr ≈ 66–70 ADU` ⇒
+    检出限 `thr/bg ≈ 0.22`，是门阈的 **21.6–23.0 倍**。此时 4 % 台阶低于逐样本可分辨限，
+    `cov` 退化为噪声底（读数与 f 无关，极差 ≤ 0.0108）⇒ **该诊断量比门更盲，带噪臂一律判
+    `UNRESOLVED`，不得出具任何肯定结论**。曾实测漏绿：真实 4 % 台阶、`frac = 0.30`、
+    `rel_step = −0.00917`（低于门阈）下该层曾归入 `none` 并**保留 `PASS`**
+    ⇒ 主动出具「真无台阶」的肯定结论，违反本节第 2 条；现由检出限前置条件堵住
+    （回归门 `COV8`／`COV10`，退回旧规则即判红）。
 
 ### 6.C 未决项（如实登记，不充作结论）
 
@@ -420,7 +435,7 @@ rank 49 = n_nodes，χ²_red 0.771，δ_k 非零。
 | `m16_sampling` / `m16_scene` 的**方差闭合**（`exp_variance_closure.py`） | **敏感（最敏感）** | `Var_pred` 是逐像素独立泊松+读出噪声的解析式；真实 drz 相关化后该式本身失效 | **只验证生成器实现自洽**，⇒ **不得用这些读数标定任何真实数据的噪声尺度或相关长度** |
 | `m16_scene` 的 **seeing/孔径**、**base-rate 传输**（`exp_a6` 等） | **敏感** | seeing 估计与孔径测光吃 PSF 与噪声的联合分布 | 同上，只作生成器自洽证据 |
 | `A6p` 校正场的子集加权均值偏差 + gauge 帧无关性（≤ 2·σ_control）、`A9p` 末端 gauge 收敛余量（≤ 求解器自声明 `tol_M`） | 不敏感（但吃求解器形态） | 纯代数/求解器行为，与噪声无关；阈值分别取本单元自有的 `σ_control` 定权式与求解器自己声明的 M 收敛门 | 生产求解器（与噪声相关长度无关，但随生产模型形态变，见 §7.4 与 §11.3） |
-| `rel_step` 沿边**覆盖率诊断量** `cov` 与「不足多数 ⇒ 显式判红」 | **敏感** | `cov` 的判别阈含 `3·MAD(ctrl)`，直接吃噪声在沿边方向的散布 | 只在本单元的**无噪/受控**夹具上判 `0 < cov ≤ 0.5` ⇒ `FAIL_COVERAGE`；真实 drz 相关化噪声下 `cov` 的灵敏度未标定（§6 第 19 条） |
+| `rel_step` 沿边**覆盖率诊断量** `cov` 与「不足多数 ⇒ 显式判红」「检出限不足 ⇒ `UNRESOLVED`」 | **敏感** | `cov` 的判别阈含 `3·MAD(ctrl)`，直接吃噪声在沿边方向的散布 | 只在本单元的**无噪/受控**夹具上判 `0 < cov ≤ 0.5` ⇒ `FAIL_COVERAGE`；σ_pix=20 带噪臂检出限 `thr/bg ≈ 0.22` = 门阈的 21.6–23.0 倍 ⇒ 一律判 `UNRESOLVED`，**不出具肯定结论**（§6 第 19 条）；真实 drz 相关化噪声下 `cov` 的灵敏度仍未标定 |
 | `B2` `b_k − δ_k` 帧间一致性（5.68e-14）、`B6` gauge 零点（5.33e-15） | 不敏感 | 代数恒等式（`meta` 证据） | 定义层 |
 | `B3` 产品中位 vs B_ref 中位、`B4/B5` 全减臂与负值占比 | 不敏感 | 512 样本的中位数聚合，逐像素符号与相关长度无关 | 解析合成 |
 | `C6 E1` 稀疏/稠密等价（3.11e-15）、`E2/E3` 体积与 RSS | 不敏感 | 代数恒等式 + 工程量 | 无噪声 |
@@ -482,7 +497,7 @@ bash 实验/additive-sky-seamless/code/audit_rework/run_all.sh # 审计重做三
 | `bash 实验/shared/synthetic/run_selftests.sh` | 纯 python | 可跑，全绿，退出码 0 |
 | `bash 实验/additive-sky-seamless/code/audit_rework/run_all.sh` | 纯 python3+numpy | 可跑，37 个脚本全过，退出码 0 |
 | `python3 实验/additive-sky-seamless/code/sky_plane_zero_negative.py` | `sky_probe` | 可跑（探针已在库），退出码 0 |
-| `python3 实验/additive-sky-seamless/code/seam_gate_coverage.py` | 无（只读导入生产门本体） | 可跑，9 门，退出码 0 |
+| `python3 实验/additive-sky-seamless/code/seam_gate_coverage.py` | 无（只读导入生产门本体） | 可跑，**10 门**（`COV2`–`COV10`）+ 1 项不计门数的镜像自检，退出码 0 |
 | `python3 实验/additive-sky-seamless/code/g08_defect_probe.py` | `sky_probe` | 可跑，6 门，退出码 0 |
 | `python3 实验/additive-sky-seamless/code/production_e2e_record_check.py` | 冻结记录 + 源日志 | 可跑，退出码 0；`--record`/`--no-source` 供负例用 |
 | `python3 实验/additive-sky-seamless/code/seam_gate_gradient_scan.py` | 生产门本体 | 可跑，退出码 0，读数与固化拷贝一致 |
@@ -698,7 +713,7 @@ FIX-2 按 `docs/algorithms` 的 0/1/2/3 语义补 `stalled` 分支；FIX-3 提�
 | `实验/additive-sky-seamless/code/{upm_probe,sky_probe}.cpp` + `build_probes.sh` | 生产代码只读驱动 |
 | `实验/additive-sky-seamless/code/c1..c7_*.py` | 七个实验（固定 seed） |
 | `实验/additive-sky-seamless/code/{make_figures.py,run_all.sh}` | 出图 / 一键复跑 |
-| `实验/additive-sky-seamless/code/seam_gate_coverage.py` | 接缝门沿边覆盖率诊断量 + 覆盖率不足显式判红（只读生产门本体） |
+| `实验/additive-sky-seamless/code/seam_gate_coverage.py` | 接缝门沿边覆盖率诊断量 + 覆盖率不足显式判红 + 检出限不足显式记 `UNRESOLVED`（只读生产门本体） |
 | `实验/additive-sky-seamless/code/g08_defect_probe.py` | N2b′/N2c′ 的缺陷注入自检（10 种缺陷，能红能绿） |
 | `实验/additive-sky-seamless/results/*.json` | 机器可读结果 + `gates.rows` |
 | `实验/additive-sky-seamless/results/evidence_{lit,code}.json` | 文献/开源证据（含核验状态） |

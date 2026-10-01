@@ -63,9 +63,18 @@ def iter_texts(base):
 
 
 def grep_file(path, pattern):
+    """返回 {"hits": [...]}；目标不存在时额外带 "error"，**不**返回裸字典当结果。
+
+    背景（修复）：原实现在目标缺失时 `return {"error": "target missing"}`，
+    而调用侧只判真假 `st = "FOUND" if hits else "NOT_FOUND"` ——
+    非空字典为真 ⇒ **缺失文件被判成 FOUND**。实测 `bool({'error': ...}) = True`，
+    重跑结果里有 3 条 `hits={'error': 'target missing'}` 却记 `status: FOUND`。
+    本函数是 A-P5-03「12 项幻觉锚回炉」裁决的取证底座，
+    取证工具把「找不到」系统性记成「找到」必须 fail-closed 修正。
+    """
     p = ROOT / path
     if not p.exists():
-        return {"error": "target missing"}
+        return {"hits": [], "error": "target missing"}
     rx = re.compile(pattern)
     hits = []
     for q in iter_texts(p):
@@ -78,25 +87,51 @@ def grep_file(path, pattern):
                 hits.append({"file": str(q.relative_to(ROOT)), "line": i,
                              "text": line.strip()[:160]})
                 if len(hits) >= 5:
-                    return hits
-    return hits
+                    return {"hits": hits}
+    return {"hits": hits}
 
 
 def main():
-    out = {"repo_root": str(ROOT), "checks": []}
+    out = {"repo_root": str(ROOT), "checks": [],
+           "evidence_qualification": (
+               "本表是 A-P5-03 裁决的取证底座。status=TARGET_MISSING 表示"
+               "「检索目标本身不存在」⇒ **证据不足**，既不记 FOUND 也不记 NOT_FOUND；"
+               "只有真正在目标里检索到文本才记 FOUND。"),
+           "rollup": {}}
+    counts = {"FOUND": 0, "NOT_FOUND": 0, "TARGET_MISSING": 0}
     for claim, target, pattern in CHECKS:
-        hits = grep_file(target, pattern)
-        st = "FOUND" if hits else "NOT_FOUND"
+        r = grep_file(target, pattern)
+        hits = r["hits"]
+        if r.get("error"):
+            st = "TARGET_MISSING"
+        else:
+            st = "FOUND" if hits else "NOT_FOUND"
+        counts[st] += 1
         out["checks"].append({"claim": claim, "target": target, "pattern": pattern,
-                              "hits": hits, "status": st})
+                              "hits": hits, "status": st,
+                              "error": r.get("error")})
         w = "-"
         if isinstance(hits, list) and hits:
             w = hits[0]["file"] + ":" + str(hits[0]["line"])
-        print(f"[{st:9s}] {claim[:52]:52s} {w}")
+        print(f"[{st:15s}] {claim[:52]:52s} {w}")
+    # 判据合计：TARGET_MISSING（证据不足）与 NOT_FOUND 都是「未取证成功」，
+    # 二者都**不得**被当成正面证据；FOUND 数与总数一并落盘供下游判读。
+    out["rollup"] = {
+        "n_checks": len(CHECKS),
+        "n_found": counts["FOUND"],
+        "n_not_found": counts["NOT_FOUND"],
+        "n_target_missing": counts["TARGET_MISSING"],
+        "anchors_confirmed": counts["FOUND"],
+        "unresolved": counts["NOT_FOUND"] + counts["TARGET_MISSING"],
+        "all_anchors_confirmed": counts["FOUND"] == len(CHECKS),
+        "note": "NOT_FOUND/TARGET_MISSING 记入 unresolved ⇒ 不构成「锚真实存在」的证据。",
+    }
     os.makedirs(os.path.dirname(OUT), exist_ok=True)
     with open(OUT, "w") as f:
         json.dump(out, f, indent=2, ensure_ascii=False)
+    print(f"rollup: {json.dumps(out['rollup'], ensure_ascii=False)}")
+    return 0 if out["rollup"]["all_anchors_confirmed"] else 1
 
 
 if __name__ == "__main__":
-    main()
+    raise SystemExit(main())

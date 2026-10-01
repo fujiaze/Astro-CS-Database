@@ -1,5 +1,14 @@
 # DISPUTES · P2 跨帧绝对信噪比的逐单元裁决
 
+> ⚠ **判据证据等级（必读，G08-05 审计裁定）** — 本文中带 `[自检]` 的 `code/audit/` 引用一律指
+> **本地重实现自检**，不是生产判别力证据：`code/audit/` 的 36 个脚本中有 35 个
+> **不 import、不链接、不执行**生产 `lib/**`（实测读侧操作 `open`/`json.load`/`fits.open`/
+> `subprocess`/`np.fromfile` 计数全为 0），是纯 Python+numpy 复刻，**结构上不可能因真实管线缺陷而翻红**，
+> 按规范 08 §4「不读真实对象的判据无效」，其绿灯**不构成 ACSD 生产实现的判别力证据**。
+> 唯一例外 `[生产证据]` = `code/audit/route3/exp11_frozen_operator_transfer.py`：它记录 `weight_chain.h/.cpp` 的 sha256
+> 并用 astropy 读 3 张真实 M42 4096² FITS，**保持生产证据地位**。
+> 升回证据地位的条件：逐脚本链接生产实现，并对每条门给出注入红灯。
+
 本文件是科学链 P2（`实验/absolute-snr`）的**逐单元裁决落点**。
 跨单元裁决 `D-xx` 见 `实验/裁决台账.md`；改变科学正本公式、常数取值或判据口径的部分，
 同步件见 `docs/science/DISPUTE_RESOLUTION.md`。
@@ -96,6 +105,6 @@
 - 订正执行记录见 `docs/LEDGER_CORRECTIONS_P2.md`；
 - 支撑推导见 `docs/DERIVATIONS_P2.md`；帧级口径正本见 `docs/frame-snr-canon.md`、
   `docs/f-instr-canon.md`；
-- 三路重做脚本与结果快照在 `code/audit/`，一键复现 `bash code/audit/run_all.sh`；
+- 三路重做脚本与结果快照在 `code/audit/`，一键复现 `bash code/audit/run_all.sh`； [自检]
 - 跨单元相邻条款：`c = 1.152`（D-04）、`N = 5` 有限 N 偏差方向（D-07）、
   `k_corr` 身份与口径（D-08）、IDW 默认指数（D-05）。

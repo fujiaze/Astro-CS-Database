@@ -74,13 +74,16 @@ def main():
         "same_family_delta": zp_16 - zp_16,
         "criterion": "两面同族 ⇒ 差恒 0(结构性恒等)",
         "pass": True,
+        "discriminating_power": "none (zp_16 − zp_16 自减，恒等式；已随 H9b 一并登记)",
+        "evidence_status": "registered-only: 自洽/零效应守卫，不计判别力证据、不进 verdict",
     }
 
     # mag_min=6.0: Gaia 自身亮端 G=3..21(Lindegren 2021 摘要), 6.0 不在饱和区
     out["mag_min_note"] = ("G=6.0 在 Gaia 星表范围 [3,21] 内(非饱和端); 亮端截断的依据属"
                            "项目约定, 未见文献给出'定标星族不应亮于 6'的一般性论证 ⇒ 文献腿 UNRESOLVED")
 
-    out["verdict"] = {"H9a": out["H9a"]["pass"], "negative_zero": out["negative_zero_check"]["pass"]}
+    out["verdict"] = {"H9a": out["H9a"]["pass"]}
+    out["registered_not_counted"] = ["negative_zero_check", "H9b"]
     res = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "..",
         "results", "redo", "route3")
     os.makedirs(res, exist_ok=True)

@@ -72,10 +72,12 @@ def main():
         "value": 0.0,
         "criterion": "密度→0 ⇒ 误配率=0(半径此时只影响漏检, 归零)",
         "pass": True,
+        "discriminating_power": "none (value 写死 0.0、pass 写死 True，是负例的**声明**而不是负例的测量)",
+        "evidence_status": "registered-only: 自洽/零效应守卫，不计判别力证据、不进 verdict",
     }
 
-    out["verdict"] = {"H10a": out["H10a"]["pass"], "H10b": out["H10b"]["pass"],
-                      "negative_zero": out["negative_zero_check"]["pass"]}
+    out["verdict"] = {"H10a": out["H10a"]["pass"], "H10b": out["H10b"]["pass"]}
+    out["registered_not_counted"] = ["negative_zero_check"]
     res = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "..",
         "results", "redo", "route3")
     os.makedirs(res, exist_ok=True)

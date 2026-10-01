@@ -66,10 +66,14 @@ def main():
         "value": 0.0,
         "criterion": "真值无效应(m≡1) ⇒ max|log10 m|=0",
         "pass": True,
+        "discriminating_power": "none (m≡1 是构造，|log10 m|≡0 是代数恒等；pass 原为写死 True)",
+        "evidence_status": "registered-only: 自洽/零效应守卫，不计判别力证据、不进 verdict",
     }
 
-    out["verdict"] = {"H12a": out["H12a"]["pass"], "H12b": out["H12b"]["pass"],
-                      "negative_zero": True}
+    # negative_zero 原为**字面量 True** 直接写进 verdict；现已按实测登记为
+    # discriminating_power=none 的自洽守卫并移出 verdict（读数保留）。
+    out["verdict"] = {"H12a": out["H12a"]["pass"], "H12b": out["H12b"]["pass"]}
+    out["registered_not_counted"] = ["negative_zero_check"]
     res = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "..",
         "results", "redo", "route3")
     os.makedirs(res, exist_ok=True)
