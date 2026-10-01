@@ -139,9 +139,33 @@ def main() -> int:
     rel_ok = X.cross_frame_ratio_dev([sp, sp2 * (c2 / c2)], [sp, sp2], ref=0)
     xf_ok = X.cross_frame_ratio_dev([sp * c1, sp2 * c2], [sp, sp2], ref=0)
     xf_bad = X.cross_frame_ratio_dev([sp * c2, sp2 * c1], [sp, sp2], ref=0)
-    X.gate(gates, "G6a_abs_cross_frame_immune_to_frame_scalar_swap",
-           abs(float(np.median(sp / sp2) - np.median(sp / sp2))) == 0.0,
-           "绝对表示的跨帧比值不含帧级标量 ⇒ 交换帧级标量对其零影响", 0.0, "== 0")
+    # ---- G6a 绝对表示的跨帧比值不含帧级标量 ----
+    # 原判据是字面恒等式：abs(float(np.median(sp / sp2) - np.median(sp / sp2))) == 0.0
+    # 即 x − x ≡ 0，且 X.gate() 的 value 直接写死 0.0 —— 任何输入都判绿，属恒真门三型
+    # ①（代数恒等式型）。已替换为**两侧对比**判据，参照量与被检验量不同源：
+    #   绝对臂：把绝对表示反解回等效 sigma 场（sigma_from_abs = 1/recon_absolute），
+    #           其跨帧比值相对真值必须**恰好**为 1 —— 帧级标量在整条链路上无处可乘；
+    #   相对臂（配对负例）：等效 sigma = effective_sigma_relative = sigma·c_eff，
+    #           跨帧比值被 c_eff 污染，必须显著偏离 1（实测偏离 0.228）。
+    # 两侧期望相反 ⇒ 绝对臂一旦被误接成相对表示（同族最可能的实现缺陷），绝对臂立刻
+    # 偏离 1 而判红；相对臂若不再被污染也会判红。本门因此不可能恒真。
+    def _sigma_from_abs(x):
+        return 1.0 / np.asarray(X.recon_absolute(x), dtype=np.float64)
+    abs_ratio = X.cross_frame_ratio_dev([_sigma_from_abs(sp), _sigma_from_abs(sp2)],
+                                        [sp, sp2], ref=0)["frame_1_over_0"]["median_ratio"]
+    rel_ratio = X.cross_frame_ratio_dev([X.effective_sigma_relative(sp, sf),
+                                         X.effective_sigma_relative(sp2, sf2)],
+                                        [sp, sp2], ref=0)["frame_1_over_0"]["median_ratio"]
+    abs_dev = abs(float(abs_ratio) - 1.0)
+    rel_dev = abs(float(rel_ratio) - 1.0)
+    X.gate(gates, "G6a_abs_cross_frame_immune_to_frame_scalar",
+           bool(abs_dev <= 1e-12 and rel_dev > 0.05),
+           "绝对表示反解出的等效 sigma 的跨帧比值必须精确等于 1（帧级标量零影响），"
+           "且同一注入下相对表示必须显著偏离 1（配对负例）；实测 |abs−1|=%.3e、|rel−1|=%.4f",
+           {"abs_median_ratio": float(abs_ratio), "abs_dev_from_1": abs_dev,
+            "rel_median_ratio": float(rel_ratio), "rel_dev_from_1": rel_dev,
+            "c1": c1, "c2": c2, "rel_expected_c2_over_c1": float(c2 / c1)},
+           "abs 精确 =1（≤1e-12）且 rel 偏离 > 0.05")
     X.gate(gates, "G6b_rel_cross_frame_corrupted_by_c_spread",
            abs(float(xf_bad["frame_1_over_0"]["median_ratio"]
                      / xf_ok["frame_1_over_0"]["median_ratio"] - 1.0)) > 0.05,
