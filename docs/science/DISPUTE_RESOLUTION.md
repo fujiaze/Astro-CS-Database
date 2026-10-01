@@ -288,14 +288,22 @@
 ## §27 `m_ref` 的定位（A-P4-06）
 
 - **终裁**：`m_ref` 只作**记录参考电平约定**，不是需标定的量 ——
-  `w` 对 `m_ref` 的不变性是**代数恒等**（SNR 与 `F_ref` 同源，归一在 `w = SNR²/F_ref²` 中相消）：
-  天光受限臂实测逐位不变（相对偏差 ≈ 4e-16），**生产组成臂（σ_F² 含源光子散粒项）只近似成立**，
-  实测 `m_ref` 档漂移 1.9%–4.2%；亮端 1 mag ⇒ SNR × 2.512 仅是记录口径。
+  权重换算式 `w = SNR²/F_ref² = 1/σ_F²` 是**代数恒等**，在任意噪声组成下都精确成立
+  （分子 `F_ref` 与分母 `σ_F` 随 `m_ref` 同步变化，归一在 `SNR` 中相消）。
+  但 `w` **不是**对 `m_ref` 不变的量：逐像素方差含源光子散粒项 `σ_i² = σ_sky² + F·P_i/g`，
+  故 `σ_F² = 1/Σ(P_i²/σ_i²)` 是 `F_ref` 的函数，`w = 1/σ_F²` 随参考电平单调变。
+  天光受限臂（`gain = 0`，`σ_i²` 与 `F` 无关）实测 `w` 逐位不变（相对偏差 4.44e-16）；
+  源主导臂（`gain = 1.3`）实测 `m_ref` 档漂移 3.83%（档区间读数 1.9%–4.2%）。
+  漂移是**被加权量随源亮度变化**的结果，不是恒等式破裂。
   ⇒ 跨帧比较必须限「同一 `m_ref` 档」，且该档随产品落盘。
-- **依据**：天光受限臂 `mref_drift_rel = 4.44e-16`、源主导臂 `0.0383`
-  （`实验/absolute-snr/code/audit/results/route3/exp04_refmag_chain.json`）；
+- **依据**：恒等式的两项独立复算均落在浮点舍入量级——`SNR` 与 `F_ref/σ_F` 逐位相同（相对误差 0），
+  `SNR²/F_ref² ÷ 1/σ_F² − 1` 最大 1 ulp；天光受限臂 `mref_drift_rel = 4.44e-16`、源主导臂 `0.0383`
+  （`实验/absolute-snr/code/audit/results/route3/exp04_refmag_chain.json`；
+  该件把配对恒等式自标 `is_tautology: true`、`evidence_eligible: false`，故恒等式本身不承载证据，
+  漂移量由跨帧比值给出而非由恒等式给出）；同件 `sigma_F_adu` 随 `F_ref` 由 14044.18 降到 1408.98
+  （99.35×），与 `F_ref` 的 100.00× 同量级，直接印证 `σ_F` 的源亮度依赖；
   档漂移区间读数正本 = `实验/absolute-snr/REPORT_experiment.md` §精度约定。
-- **正本落点**：`docs/science/CONTROL_WEIGHT_SNR.md` §8a 第 3 条（限定已入正本）。
+- **正本落点**：`docs/science/CONTROL_WEIGHT_SNR.md` §8a 第 3 条。
 
 ## §28 「默认档总是最优」的适用域（A-P4-07）
 

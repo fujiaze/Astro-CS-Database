@@ -1122,7 +1122,7 @@ registry descriptor 像素登记面）。
 | reject_method / reject_profile / reject_underdetermined_n | P2_REJECT_AUTO / "acsd_adaptive_pixel"（**生产默认**，自研）/ 2（:52-54；**工具链默认仍 "wbpp_2_9_1"（对照档），分歧已登记**） | 无量纲 | planning 层 rejection 解析（profile 版本化；自研档 `underdetermined_n` 默认 3） |
 | reject_normalization | "acsd_median_center_v1"（:56） | 无量纲 | 判定工作域归一（mask 应用回原始值） |
 | large_scale_enabled（+ min_structure_pixels/low_grow/high_grow） | false / 8 / 2 / 2（:60-63） | 无量纲 | acsd.large_scale_rejection.v1，默认关闭 |
-| 键面 | — | — | 不含 `weight_mode`（**已按 §9.73 A44 作废**） / `legacy_allow_weight_fallback` 键；ivar 产品缺失时按 rc=7 失败（stage2.cpp:565-578） |
+| 键面 | — | — | 不含 `weight_mode` / `legacy_allow_weight_fallback` 键（`docs/ACSD_DESIGN.md` §3.1（数据对象）：全链没有「权重模式」这一可选概念）；ivar 产品缺失时按 rc=7 失败（stage2.cpp:565-578） |
 | acr_route | "auto"（:95） | cpu/auto/cuda 族 | 集成执行路由 |
 | out_hips | —（:97） | 路径 | 输出 HiPS 产品集根目录 |
 | diagnostics | true（:98） | bool | true → 落 diagnostics.json（本节键集） |
@@ -2020,21 +2020,21 @@ worker 数无关、同 worker 数下位精确；dense 物化 bit-identical
 > 词表与映射：`eng/contracts/data/clause_registry.json#weight_vocabulary` / `#migration_map`。
 > 本节只定义**消费面语义**，不实现公式、不改既有 API/ABI 布局。
 
-### 1. 权重来源配置面（`weight_mode` 键不存在：**已按 §9.73 A44 作废**）
+### 1. 权重来源配置面（`weight_mode` 键不存在；`docs/ACSD_DESIGN.md` §3.1（数据对象）：全链没有「权重模式」这一可选概念）
 
 | 项 | 内容 |
 |---|---|
 | 有效来源 | `point_information` / `surface_gls`（显式声明，切换只经配置） |
 | 拒绝来源 | `psfsw_robust` / `auto` / `support_x_snr2` / `psf_snr_power` / legacy 整数 `0` / `1` / `2` / 未知串：声明即**显式拒绝并返回迁移提示**（迁移到 `point_information` / `surface_gls`），接受集 = 空 |
 | 文档基线值 | `equal` / `pixel_ivar`（仅作基线对照，非科学最优声明） |
-| 键面 | Phase2 mosaic write 消费面 `P2Stage2Config` 不含 `weight_mode`（**已按 §9.73 A44 作废**）字段（`stage2_common.h`）；`integration.weight_mode` 出现即拒绝（本文「Phase2 mosaic write 公共消费面」；`DATA_SEMANTICS` §20/§30.3） |
+| 键面 | Phase2 mosaic write 消费面 `P2Stage2Config` 不含 `weight_mode` 字段（`stage2_common.h`；`docs/ACSD_DESIGN.md` §3.1（数据对象））；`integration.weight_mode` 出现即拒绝（本文「Phase2 mosaic write 公共消费面」；`DATA_SEMANTICS` §20/§30.3） |
 | 词表落点 | `eng/contracts/data/clause_registry.json#weight_vocabulary`（`canonical_fields` + `dual_mapping` + `legacy_integer`） |
 
 **legacy 整数处置（reader 规则，唯一）**：**全值域一律拒绝** —— `0=support×snr²`、`1=equal`、`2=pixel_ivar` **三者同等拒绝**。
 
-判据依据：该字段**不存在任何合法取值** ⇒ 出现即 fail-closed 具名拒绝（`docs/ACSD_DESIGN.md` §3.1:267「权重的产生链固定为两步、**没有可选择项**」；`docs/science/PSF_SIGNAL_WEIGHT.md` §4:72「**没有可选择的口径**：不存在口径选择键、口径枚举、口径配置项或口径产物」）。实现事实源：`lib/algorithms/coverage/src/stage2_common.cpp` 与 `lib/infrastructure/scheduler/src/module_adapters.cpp`（键出现即拒绝）；CLI 面 `lib/infrastructure/cli/runtime_contract.h` 的 `route_legacy_weight_mode_int` 是**纯拒绝面**（0/1/2 与任意整数 → `kReject`）。
+判据依据：该字段**不存在任何合法取值** ⇒ 出现即 fail-closed 具名拒绝（`docs/ACSD_DESIGN.md` §3.1（数据对象）「全链没有「权重模式」这一可选概念」；`docs/science/PSF_SIGNAL_WEIGHT.md` §4「**没有可选择的口径**：不存在口径选择键、口径枚举、口径配置项或口径产物」）。实现事实源：`lib/algorithms/coverage/src/stage2_common.cpp` 与 `lib/infrastructure/scheduler/src/module_adapters.cpp`（键出现即拒绝）；CLI 面 `lib/infrastructure/cli/runtime_contract.h` 的 `route_legacy_weight_mode_int` 是**纯拒绝面**（0/1/2 与任意整数 → `kReject`）。
 
-**登记面与输入路径的分界**：「登记面」= 描述既有数据对象形态的名词；「输入路径」= 决定生产接受什么的动词。冻结适用面 = 后者；`eng/contracts/data/clause_registry.json#weight_modes` 与 `eng/contracts/schemas/product_family_field_constraints.schema.json#/$defs/weight_mode` 的词表登记不构成接受集。判据（唯一可判定式）：**凡出现在「配置读取 / 路由 / 解析」路径上的 legacy 权重域 token（`auto` / `ivar` / `equal` / `support_x_snr2` / 整数 `0`|`1`|`2` / `weight_mode`（**已按 §9.73 A44 作废**）键 / `legacy_allow_weight_fallback` 键）一律 fail-closed 具名拒绝**；仅用于描述既有对象形态的枚举与映射不构成输入面，生产可用的判据 = 接受集本身。生产 writer 只写显式字符串来源。
+**登记面与输入路径的分界**：「登记面」= 描述既有数据对象形态的名词；「输入路径」= 决定生产接受什么的动词。冻结适用面 = 后者；`eng/contracts/data/clause_registry.json#weight_modes` 与 `eng/contracts/schemas/product_family_field_constraints.schema.json#/$defs/weight_mode` 的词表登记不构成接受集。判据（唯一可判定式）：**凡出现在「配置读取 / 路由 / 解析」路径上的 legacy 权重域 token（`auto` / `ivar` / `equal` / `support_x_snr2` / 整数 `0`|`1`|`2` / `weight_mode` 键 / `legacy_allow_weight_fallback` 键）一律 fail-closed 具名拒绝**；仅用于描述既有对象形态的枚举与映射不构成输入面，生产可用的判据 = 接受集本身。生产 writer 只写显式字符串来源。
 
 ### 2. 权重对象的归属
 
