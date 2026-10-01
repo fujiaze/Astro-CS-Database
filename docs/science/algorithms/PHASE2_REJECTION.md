@@ -759,7 +759,7 @@ tally: accepted_count/rejected_low/rejected_high/iterations  :2163-2177
   SCI 权威永远在 docs/science/（方向 = 从 docs/science/ 到本文档）。
 - 缺陷联动: DISP-P2REJ-001..004 同时登记于 registry 页与
   module.yaml known_defects；本文件 §7 为权威表述。
-- TRACEABILITY_MATRIX.json MOD-acsd-phase2-reject 行:
+- docs/engineering/TRACEABILITY_SPEC.md §9 MOD-acsd-phase2-reject 行:
   science_id=SCI-REJ-001（映射 §11.5）/
   algorithm_id=ALG-P2-REJ-001（本文件）/data_id=DATA-P2-REJ/
   api_id=API-P2-REJ-001/src_id=SRC-P2-REJ-001（src_path=lib/

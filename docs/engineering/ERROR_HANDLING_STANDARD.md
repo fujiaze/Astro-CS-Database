@@ -138,7 +138,7 @@ MODULE_SPECIFIC_BASE=100
 
 ## 9. `ERR-*` 登记与追溯
 
-稳定错误码族 `ERR-*` 的登记面 = `docs/TRACEABILITY.csv` 的 `error_codes` 列。
+稳定错误码族 `ERR-*` 的登记面 = `docs/engineering/TRACEABILITY_SPEC.md §10` 的 `error_codes` 列。
 
 以 `ERR-P2-UPM-001`（UPM 模型文件畸形）为例：`frames` 非数组、`frames` 内重复、
 帧数与 C 行数不等，都在模型打开时判错，并沿 `p2_upm_open` 上行

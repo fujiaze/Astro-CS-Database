@@ -116,7 +116,7 @@
 | 匹配星数 N < 3 | **完全退化到现有行为**（NO_DATA，k_photo=1.0，不施加） | 主线冻结门 SCI-PHOT-001 §4/§8，**不动** |
 | 3 ≤ N < N_min(order) | **只做标量**（order 0），m ≡ 1，provenance 记 `spatial_gain=degraded_scalar` | 见下 |
 | 覆盖不足（3×3 分块中 <6 块含 ≥5 星，或星位置包围盒 <50% 帧幅） | **只做标量**，provenance 记 `spatial_gain=degraded_coverage` | 聚集分布实验（§3.5） |
-| 曲面拟合失败 / 系数非有限 / sigma_residual 超门 | **该帧判 fail**：`status=fail` + `error_domain`/`error_status`/`error`（稳定错误码 `PHOT_FIT_IMPLAUSIBLE_SCATTER`），不施加空间增益、不产出该帧产品；**其余帧照常拟合与施加**（帧级失败作用域，运行不中止） | 帧级失败语义：`docs/design/LOG_AND_ERROR_SYSTEM.md` §10「该帧不产出产品，其余帧照常完成」；`docs/contracts/LOG_AND_ERROR_CONTRACT.md` §6；`docs/detail/registry/astrocs.phase1.photometry.md`「错误、日志、指标、取消和 checkpoint」。**不得**降级为「只做标量」：空间增益与帧级标量是同一乘性标度的两段，只施加一半即部分归一化 |
+| 曲面拟合失败 / 系数非有限 / sigma_residual 超门 | **该帧判 fail**：`status=fail` + `error_domain`/`error_status`/`error`（稳定错误码 `PHOT_FIT_IMPLAUSIBLE_SCATTER`），不施加空间增益、不产出该帧产品；**其余帧照常拟合与施加**（帧级失败作用域，运行不中止） | 帧级失败语义：`docs/design/LOG_AND_ERROR_SYSTEM.md` §10「该帧不产出产品，其余帧照常完成」；`docs/engineering/LOG_AND_ERROR_CONTRACT.md` §6；`docs/detail/registry/astrocs.phase1.photometry.md`「错误、日志、指标、取消和 checkpoint」。**不得**降级为「只做标量」：空间增益与帧级标量是同一乘性标度的两段，只施加一半即部分归一化 |
 
 **N_min 的定量依据（合成负例噪声底 vs N，σ_int=0.010 dex）**：
 
@@ -429,7 +429,7 @@ gauge：对每个基函数 j 令 Σ_k c_k,j = 0。**生产链不存在这个局�
 | 7 | `lib/infrastructure/scheduler/src/module_adapters.cpp:3234-3245`（`p1_op_photometry` 取 k 处） | 除 `fr.k_photo` 外，取 `fr.m_order/m_coef/m_norm`；存入 `P1FrameScale`（增 `int m_order; std::vector<double> m_coef; double m_norm[4];`） | 逐帧携带空间场 |
 | 8 | `module_adapters.cpp:3313-3315`（施加处） | `m_order>0 ? apply_photometry_spatial(...) : apply_photometry(...)` | **唯一**的像素施加改动点 |
 | 9 | `module_adapters.cpp:3338-3356`（`p1_phot.json`） | 新增 `spatial_gain` 块：逐帧 `{order, coef, norm, mean_surf, n_inlier}`；新增 `spatial_gain_mode`（`applied`/`degraded_scalar`/`degraded_coverage`/`absent`）；`pixel_scaling` 增枚举值 `applied_spatial` | 如实 provenance（DATA-P1-PHOTPROV-001 增量） |
-| 10 | `module_adapters.cpp:4022-4024,4122`（drizzle） | **零改动**（继续读 `photoapplied_<base>`；bunit 为 canonical 面亮度串 `ADU/sr`（`docs/contracts/DATA_SEMANTICS.md` §31.1a:2808-2810）） | 产物路径/语义未变 |
+| 10 | `module_adapters.cpp:4022-4024,4122`（drizzle） | **零改动**（继续读 `photoapplied_<base>`；bunit 为 canonical 面亮度串 `ADU/sr`（`docs/engineering/DATA_SEMANTICS.md` §31.1a:2808-2810）） | 产物路径/语义未变 |
 | 11 | `p1_stack.json` / HISS 头 | 可增 `SPATIALG`(0/1) 与 `SPATORD`(阶数)，`PHOTSCAL` 语义不变（仍为帧级标量） | 下游可判别是否含空间项 |
 | 12 | 配置 | `photometry.fit.spatial_gain_order`（默认 **1**；0=关闭）；`photometry.fit.spatial_gain_min_stars`（默认 **50**）；`photometry.fit.spatial_gain_min_blocks`（默认 **6**） | 与 §2.5 的阈值一致 |
 

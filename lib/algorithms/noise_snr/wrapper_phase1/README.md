@@ -1,6 +1,6 @@
 # phase1/noise — NoiseModel (L2 模块 README)
 
-- 合同: `P1-005` / SCI-NOISE-001 (docs/contracts/INDEX.yaml)
+- 合同: `P1-005` / SCI-NOISE-001 (eng/contracts/data/contract_index.yaml)
 - Header: `lib/algorithms/noise_snr/wrapper_phase1/snr_frame_science.h`
 - Source: `lib/algorithms/noise_snr/wrapper_phase1/snr_frame_science.cpp`
   > 2026-09-20 订正（CHK-MODULE-MANIFEST / MODULE-READMES 悬空引用）：原文指向

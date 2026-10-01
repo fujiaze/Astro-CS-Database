@@ -13,7 +13,8 @@
 | ivar | 逆方差=1/variance;variance=0/缺失 → ivar=0(显式不可用,状态显式标注);NaN/负 variance=产品损坏 | ADU⁻² | - | docs/science/DATA_SEMANTICS.md §4a |
 | pixel_weight | 像素级科学权重=ivar(UPM/integration);snr² 权重只用于 ablation 对照 | 无量纲 | snr²-weight → pixel_weight(ivar) | docs/science/DATA_SEMANTICS.md §4a |
 | frame_quality_weight | 帧质量权重=support×snr_v²（SCI-CW 域专用，非生产；权重是阶段二按天球像素对应帧集合现场算出的派生量）；生产=逐样本 ivar；snr=1.0 一律按 unknown 显式标注 | 无量纲 | - | docs/science/CONTROL_WEIGHT_SNR.md §2a |
-| support | 覆盖/有效支持度,连续 [0,1];0=无覆盖 | 无量纲 | coverage → support | docs/science/DATA_SEMANTICS.md §4 |
+| support | 有效输入/面积贡献度,连续 [0,1];0=无覆盖;只作门,不作权重 | 无量纲 | - | docs/engineering/UNIFIED_OBJECTS.md §2；docs/detail/UNIFIED_MODEL.md §2 |
+| coverage | 几何/数据有效域,连续 [0,1];0=无覆盖(空域);与 support 是**各自独立的 canonical 对象**,语义不同且互不替代;也不是 rejection | 无量纲 | - | docs/engineering/UNIFIED_OBJECTS.md §2；docs/detail/UNIFIED_MODEL.md §2 |
 | invalid | 非法样本判定:NaN 或 support<=0;有效样本=finite 且 support>0 | 布尔判定 | - | docs/science/DATA_SEMANTICS.md §4 |
 | nan | 非法值唯一载体;无有效样本必须有明确 status,0 或 ±Inf 不作非法值载体 | 浮点值 | - | docs/science/DATA_SEMANTICS.md §4 |
 | bad_mask | 校准域坏点掩膜(char 数组):**1=坏点(需修复/替换),0=好点(保留)** | 极性:1=bad | mask(裸用) → 必须写 bad_mask | lib/algorithms/calibration/src/cosmetic_corrector.cpp#158 |

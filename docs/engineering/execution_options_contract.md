@@ -322,4 +322,4 @@ lease 存在时恒等且不被放大；`--self-test` 注入未接线状态必须
 - `docs/engineering/SCHEDULER_CONTRACT.md`：调度机制正确性；
 - `docs/engineering/OWNERSHIP_AND_LIFETIME.md`：生命周期与所有权；
 - `docs/engineering/observability/RESOURCE_MONITORING_CONTRACT.md`：资源监控面；
-- `docs/TRACEABILITY.csv`：线程模型契约 `ENG-THREAD-001` 的登记面。
+- `docs/engineering/TRACEABILITY_SPEC.md §10`：线程模型契约 `ENG-THREAD-001` 的登记面。

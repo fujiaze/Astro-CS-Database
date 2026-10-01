@@ -237,7 +237,7 @@ def _legacy_main() -> int:
             "test" if ("eng/tests/" in p or p.endswith("_test.cpp")) else
             ("production" if category in ("module", "tool") else "doc"),
             "loc": chk["size_bytes"], "owner_doc":
-            "docs/modules/" if category == "module" else "docs/",
+            "docs/detail/registry/" if category == "module" else "docs/",
             "science_ids": "", "algorithm_ids": "", "api_ids": "",
             "review_status": "V19R3-FRESH-VERIFIED" if chk["F01_exists_readable"]
             else "UNREVIEWED",

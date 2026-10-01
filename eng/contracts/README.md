@@ -5,8 +5,8 @@
 ## 职责边界
 
 - 放：机读 schema（schemas/）、数据与工件合同的机读形态（data/）、配置与模块合同（config/）、阶段块流合同（block_flow/）、合同提案存放位（proposals/）、资源门合同（resource_gate_v1.json）。
-- 不放：合同条款正文与说明（docs/contracts/，与本目录 schema 双向对应）；科学公式（docs/science/、docs/science/algorithms/）。
-- 合同字段发生变化时，本目录 schema、docs/contracts/ 说明与相应检查器同步更新。
+- 不放：合同条款正文与说明（docs/engineering/，与本目录 schema 双向对应）；科学公式（docs/science/、docs/science/algorithms/）。
+- 合同字段发生变化时，本目录 schema、docs/engineering/ 说明与相应检查器同步更新。
 
 ## 内容
 
@@ -19,4 +19,4 @@
 
 ## 上游
 
-上游：docs/ACSD_DESIGN.md §8.4（eng/contracts：机器校验的合同 schema 唯一事实源）；一级·工程正本内的行为合同篇族（API-001 / ARCH-001 / RT-001 / DATA_ARTIFACTS / PUBLIC_API / SCHEDULER_CONTRACT / TEST_MATRIX / CONFIG_CONTRACT / HIPS_STORAGE_FORM_CONTRACT / PIPELINE_BLOCK_CONTRACT / UNIFIED_OBJECTS / DUAL_LINE_CONTRACT / LOG_AND_ERROR_CONTRACT / PERF_GATE_CONTRACT）承担合同说明与 schema 的对应关系；docs/contracts/INDEX.yaml 是合同条款 ↔ 承载路径的机器索引。
+上游：docs/ACSD_DESIGN.md §8.4（eng/contracts：机器校验的合同 schema 唯一事实源）；一级·工程正本内的行为合同篇族（API-001 / ARCH-001 / RT-001 / DATA_ARTIFACTS / PUBLIC_API / SCHEDULER_CONTRACT / TEST_MATRIX / CONFIG_CONTRACT / HIPS_STORAGE_FORM_CONTRACT / PIPELINE_BLOCK_CONTRACT / UNIFIED_OBJECTS / DUAL_LINE_CONTRACT / LOG_AND_ERROR_CONTRACT / PERF_GATE_CONTRACT）承担合同说明与 schema 的对应关系；eng/contracts/data/contract_index.yaml 是合同条款 ↔ 承载路径的机器索引。

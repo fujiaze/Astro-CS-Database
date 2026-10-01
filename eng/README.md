@@ -5,7 +5,7 @@
 ## 职责边界
 
 - 放：可被机器执行的工程事实源——门禁注册表与检查器（ci/）、机器校验的合同 schema（contracts/）、测试套件（tests/）、CMake 模块（cmake/）、构建脚本（build/）、打包与全局配置（packaging/）、工具与质量检查器（tools/）、本地运行工作区（run/）。
-- 不放：产品科学代码（lib/）、合同条款正文（docs/contracts/，与本目录 schema 双向对应）、CI 与验收的产物和证据（artifacts/、run/）。
+- 不放：产品科学代码（lib/）、合同条款正文（docs/engineering/，与本目录 schema 双向对应）、CI 与验收的产物和证据（artifacts/、run/）。
 - CMake 入口本体（根 CMakeLists.txt、CMakePresets.json）留在仓库根，本目录只提供模块与脚本。
 
 ## 内容

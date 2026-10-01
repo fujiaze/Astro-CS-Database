@@ -12,11 +12,11 @@
 canonical 定义 = eng/contracts/schemas/unified/<对象名>.schema.json
                 $id = https://acsd.local/schemas/unified/<对象名>/v1   （每对象恰 1 个，全局唯一）
 其它 schema     = 只能是「产品族专用投影」或「兼容期映射」，必须在
-                  docs/contracts/unified_object_registry.json#canonical_object_classes 登记归属，
+                  eng/contracts/data/unified_object_compatibility_map_v1.json#entries 登记归属，
                   且不得与 canonical 重复定义对象判别字段（除 schema_version 外 required/properties 词表不得重叠）。
 ```
 
-**唯一性判定标准**：对 UNIFIED_MODEL §2 的 13 个对象，eng/contracts/schemas/unified/<对象名>.schema.json 是唯一 canonical 定义（每对象恰 1 个 $id，全局不重复）；任何其它 schema 只能是「产品族专用投影」或「兼容期映射」，其对象判别字段与 canonical 分立（除 schema_version 外 required/properties 词表两两不重叠），且 eng/contracts/schemas/** 下每个 schema 文件都必须在 docs/contracts/unified_object_registry.json 的 canonical_object_classes 中被登记归属。
+**唯一性判定标准**：对 UNIFIED_MODEL §2 的 13 个对象，eng/contracts/schemas/unified/<对象名>.schema.json 是唯一 canonical 定义（每对象恰 1 个 $id，全局不重复）；任何其它 schema 只能是「产品族专用投影」或「兼容期映射」，其对象判别字段与 canonical 分立（除 schema_version 外 required/properties 词表两两不重叠），且 eng/contracts/schemas/** 下每个 schema 文件都必须在 eng/contracts/data/unified_object_compatibility_map_v1.json 的 entries 中被登记归属。
 
 机器可复跑断言（`python3 -m unittest discover -s eng/tests/contracts -t eng/tests/contracts`）：
 
@@ -60,13 +60,13 @@ UNIFIED_MODEL §2 末条：**一个字段只承载一个含义**（模糊名 `we
 | ① 模糊字段 `weight` | `eng/contracts/schemas/unified/negative/n1_bare_weight.schema-violation.json` | `signal.schema.json` 的 `propertyNames` |
 | ② `snr` 冒充 `variance` | `eng/contracts/schemas/unified/negative/n2_source_snr_as_variance.schema-violation.json` | `variance.schema.json` 的 `unified_object` / `variance_value` / `object_schema_id` |
 | ③ `coverage` 当 `rejection` | `eng/contracts/schemas/unified/negative/n3_coverage_as_rejection.schema-violation.json` | `rejection.schema.json` 的 `unified_object` / `pollution_inference` |
-| ④ 跨对象错误连接（`source_snr` 接进要求 `variance` 的端口） | `eng/contracts/schemas/unified/negative/n4_source_snr_into_variance_port.schema-violation.json` | `unified_object_registry.json#port_contract` 的 `accepts_object` / `accepts_schema_id` / `connected_object_document` |
+| ④ 跨对象错误连接（`source_snr` 接进要求 `variance` 的端口） | `eng/contracts/schemas/unified/negative/n4_source_snr_into_variance_port.schema-violation.json` | `eng/contracts/schemas/unified/port_contract.schema.json` 的 `accepts_object` / `accepts_schema_id` / `connected_object_document` |
 
 ## 4. 归属归一与产品族字段级约束落点
 
 `eng/contracts/schemas/` 是数据合同的**唯一事实源**。对象身份/单位/无效值/精度/可否作权重一律以
 `eng/contracts/schemas/unified/` 的 13 个 canonical 对象 schema 为准；任何其它 schema 只能是
-「产品族专用投影」或「兼容期映射」，必须在 `docs/contracts/unified_object_registry.json#canonical_object_classes`
+「产品族专用投影」或「兼容期映射」，必须在 `eng/contracts/data/unified_object_compatibility_map_v1.json#entries`
 登记归属，且对象判别字段与 canonical 分立（除 `schema_version` 外 required/properties 词表两两不重叠）。
 
 合同条款的字段级判据按两层落点承载：
@@ -106,7 +106,7 @@ UNIFIED_MODEL §2 末条：**一个字段只承载一个含义**（模糊名 `we
 
 ## 4a. 合同 ID → 统一对象映射（MODULE_MAP 引用面）
 
-`docs/modules/MODULE_MAP.yaml` 引用 22 个 DATA ID，其中 7 个在统一对象权威面上无法直接解析，本节逐条给出其统一对象映射；`MODULE_MAP` 引用的 ID 一律取自统一对象权威面。逐条结论：
+`docs/engineering/MODULE_MAP.md` 引用 22 个 DATA ID，其中 7 个在统一对象权威面上无法直接解析，本节逐条给出其统一对象映射；`MODULE_MAP` 引用的 ID 一律取自统一对象权威面。逐条结论：
 
 | 合同 ID | 结论 | canonical 映射 | 关系 | 合同面（条款位置） |
 |---|---|---|---|---|
@@ -114,17 +114,17 @@ UNIFIED_MODEL §2 末条：**一个字段只承载一个含义**（模糊名 `we
 | `DATA-P1-COS` | mapped | `eng/contracts/schemas/unified/signal.schema.json` | single_object | `docs/science/DATA_SEMANTICS.md` §10（ID 定义节）；`docs/engineering/PUBLIC_API.md`（cosmetic 条款）；`docs/detail/registry/acsd.phase1.cosmetic.md`（端口 cleaned、权威名说明）；`docs/detail/calibration.md` |
 | `DATA-P1-COSMETIC` | mapped | `eng/contracts/schemas/unified/signal.schema.json` | superseded_placeholder | `docs/detail/registry/acsd.phase1.cosmetic.md`（descriptor 占位名说明）；`docs/detail/registry/acsd.phase1.star-psf.md`（端口 cleaned）；`docs/detail/registry/acsd.phase1.star-detection.md`（端口 image） |
 | `DATA-P1-DRZ` | mapped | `eng/contracts/schemas/unified/signal.schema.json`；`eng/contracts/schemas/unified/variance.schema.json`；`eng/contracts/schemas/unified/ivar.schema.json`；`eng/contracts/schemas/unified/support.schema.json`；`eng/contracts/schemas/unified/coverage.schema.json` | composite | `docs/science/DATA_SEMANTICS.md` §11（ID 定义节）；`docs/engineering/PUBLIC_API.md`（drizzle 条款）；`docs/detail/registry/acsd.phase1.drizzle.md`（upstream 引用、模块级数据合同说明）；`docs/detail/registry/acsd.phase1.hips-writer.md`（端口 stacked）；`docs/detail/healpix_drizzle.md` |
-| `DATA-P1-SOURCES` | no_canonical | **无 canonical 对应**（descriptor_port_catalog） | orchestration_port_catalog_name | `docs/science/DATA_SEMANTICS.md` §14（下游计数行 n_sources 的引用、端口链 psf→sources→fluxes）、§15（端口链）；`docs/engineering/PUBLIC_API.md`（photometry descriptor 端口编目，带 data_id）；`docs/modules/MODULE_MAP.yaml`（psf 模块） |
+| `DATA-P1-SOURCES` | no_canonical | **无 canonical 对应**（descriptor_port_catalog） | orchestration_port_catalog_name | `docs/science/DATA_SEMANTICS.md` §14（下游计数行 n_sources 的引用、端口链 psf→sources→fluxes）、§15（端口链）；`docs/engineering/PUBLIC_API.md`（photometry descriptor 端口编目，带 data_id）；`docs/engineering/MODULE_MAP.md`（psf 模块） |
 | `DATA-P2-SMP` | no_canonical | **无 canonical 对应**（module_io_contract） | module_io_contract_without_object_semantics | `docs/science/DATA_SEMANTICS.md` §23（ID 定义节）；`docs/engineering/PUBLIC_API.md`（sampling 条款）；`docs/detail/phase2_samp.md`；`docs/detail/phase2_upm.md`；`docs/detail/registry/acsd.phase2.sample.md`；`docs/detail/registry/acsd.phase2.upm-fit.md` |
-| `DATA-GAIA-001` | no_canonical | **无 canonical 对应**（external_catalog_contract） | external_catalog_service_contract | `docs/science/DATA_SEMANTICS.md` §8（ID 定义节）；`docs/engineering/PUBLIC_API.md`（目录访问条款）；`docs/engineering/DATA_ARTIFACTS.md`（登记行）；`docs/traceability/TRACEABILITY_MATRIX.csv`（DATA 行）；`docs/detail/gaia_xpsd_client.md` |
+| `DATA-GAIA-001` | no_canonical | **无 canonical 对应**（external_catalog_contract） | external_catalog_service_contract | `docs/science/DATA_SEMANTICS.md` §8（ID 定义节）；`docs/engineering/PUBLIC_API.md`（目录访问条款）；`docs/engineering/DATA_ARTIFACTS.md`（登记行）；`docs/engineering/TRACEABILITY_SPEC.md §9`（DATA 行）；`docs/detail/gaia_xpsd_client.md` |
 
-逐条判定依据（含证据原文与逐行锚）：`docs/contracts/unified_object_registry.json#legacy_contract_ids`；机器可读副本：`eng/contracts/data/unified_object_compatibility_map_v1.json#legacy_contract_id_map`；`docs/contracts/INDEX.yaml#legacy_contract_id_map`（逐行 `# DATA001-LEGACY-ID: <合同ID> -> ...`）。
+逐条判定依据（含证据原文与逐行锚）：本节 §4a 表与 `eng/contracts/data/unified_object_compatibility_map_v1.json#legacy_contract_id_map`（7 条，含 `decision` / `relation` / `canonical_objects` / `contract_faces`）。
 
 小结：**mapped = 4**（DATA-P1-CAL / DATA-P1-COS / DATA-P1-COSMETIC / DATA-P1-DRZ），**无 canonical 对应 = 3**（DATA-P1-SOURCES / DATA-P2-SMP / DATA-GAIA-001）。机器断言：`eng/tests/contracts/test_unified_object_contract.py::TestRegistryIndex::test_legacy_ids_are_decided_not_pending` 与 `::test_legacy_id_map_written_into_index_and_compat_map`。
 
 ## 5. 三类配置分离锚点（配置 schema 本体归 CFG-001）
 
-机器索引：`docs/contracts/config_separation_anchors.json`（`IDX-CONFIG-SEPARATION`）。`eng/packaging/config/**` 与 phase_config schema 的建立见 `docs/engineering/CONFIG_CONTRACT.md`。
+人读正本 = 本节表格；机器可读副本：`eng/contracts/data/config_separation_anchors.json`（`IDX-CONFIG-SEPARATION`）。`eng/packaging/config/**` 与 phase_config schema 的建立见 `docs/engineering/CONFIG_CONTRACT.md`。
 
 | 配置类 | 语义 | schema owner | 字段名命名空间 | 混入即 REJECT 的字段 |
 |---|---|---|---|---|

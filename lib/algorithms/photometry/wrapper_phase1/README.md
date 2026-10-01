@@ -1,6 +1,6 @@
 # phase1/photometry — Photometer (L2 模块 README)
 
-- 合同: `P1-004` / SCI-PHOT-001 (docs/contracts/INDEX.yaml)
+- 合同: `P1-004` / SCI-PHOT-001 (eng/contracts/data/contract_index.yaml)
 - Header: `lib/algorithms/photometry/wrapper_phase1/photometer.h`
 - Source: `lib/algorithms/photometry/wrapper_phase1/photometer.cpp`
 - Test: `eng/tests/unit/p1_wcs_phot_test.cpp` (已知通量解析恢复 20%; 失败显式)

@@ -15,7 +15,7 @@
     "docs/detail/UNIFIED_MODEL.md §3（cpu_profile：ISA·workers·block·机器绑定；仅 benchmark 生成；缓存于程序安装目录；无 profile -> 保守运行不阻塞）",
     "docs/ACSD_DESIGN.md §6.2:310,313（benchmark 直接输出 profile 到安装目录，后续运行时自动读取）",
     "ENGINEERING_SPEC.md §3:30（cpu_profile 只影响并行/ISA，不进入科学配置）",
-    "docs/contracts/config_separation_anchors.json（cpu_profile 字段名族与禁止名）",
+    "eng/contracts/data/config_separation_anchors.json（cpu_profile 字段名族与禁止名）",
     "lib/infrastructure/benchmark/backend_host/profile_gen_v2.cpp:561-613（v2 生产字段）、:648-710（verify_profile_v2）、lib/infrastructure/benchmark/backend_host/cpu_routing.cpp:216-300（check_profile_identity_v1 身份绑定字段）"
   ],
   "x-acsd-notes": [

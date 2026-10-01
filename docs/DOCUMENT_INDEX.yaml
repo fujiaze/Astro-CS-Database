@@ -94,12 +94,7 @@ doc_index:
       duty: "全项目术语与别名唯一性登记（词典锚点）"
       upstream: "docs/ACSD_DESIGN.md 附录 A（术语）"
       downstream: "README.md、文档现状审计台账.csv、文档现状审计台账.md 等 36 处"
-    - path: "docs/TRACEABILITY.csv"
-      status: ACTIVE_NORMATIVE
-      duty: "需求—权威文档—算法—模块—API—实现文件与符号—测试—诊断码—错误码—发布门的逐条细粒度追溯台账，每行一条 requirement_id"
-      upstream: "docs/ACSD_DESIGN.md §0（文档权威与索引）"
-      downstream: "build_v19r2_package.py、v19r3_traceability.py、文档现状审计台账.csv 等 73 处"
-    - path: "docs/detail/merged_TROUBLESHOOTING.md"
+        - path: "docs/detail/merged_TROUBLESHOOTING.md"
       status: ACTIVE_INFORMATIVE
       duty: "常见故障的现象—诊断—处置对照（由原两篇同名排障手册合并：症状速查 + 高风险故障覆盖门）"
       upstream: "docs/ACSD_DESIGN.md §7.2（机器输出与退出码）"
@@ -350,24 +345,12 @@ doc_index:
       duty: "Phase3 模块架构 (HiPS reader → WCS → resampler → FITS writer)"
       upstream: "docs/ACSD_DESIGN.md §8（软件架构）"
       downstream: "test_cfg004_unified_contract.py"
-    - path: "docs/architecture/PRODUCTION_EXECUTION_INVENTORY.csv"
-      status: GENERATED
-      duty: "生产可达执行目标清单：每个可执行目标与符号的位置、分类、是否生产可达、所属阶段、线程模型与证据行"
-      upstream: "docs/ACSD_DESIGN.md §8（软件架构）"
-      downstream: "build_production_execution_inventory.py、orchestrator.h、p3_export.cpp 等 44 处"
-      notes: "机器生成清单（api/execution/production inventory）"
-    - path: "docs/engineering/abi/ABI_003_SECURE_LOADER.md"
+        - path: "docs/engineering/abi/ABI_003_SECURE_LOADER.md"
       status: ACTIVE_NORMATIVE
       duty: "Secure Module Loader (ABI-003)"
       upstream: "docs/ACSD_DESIGN.md §8.5（模块与 ABI）、§11（双平台发行）"
       downstream: ""
-    - path: "docs/architecture/api_inventory.csv"
-      status: GENERATED
-      duty: "对外导出符号清单：符号、声明头、签名与导出面；标 RETIRED 的行保留作符号解析白名单，不计入现行导出计数"
-      upstream: "docs/ACSD_DESIGN.md §8（软件架构）"
-      downstream: "api_doc_consistency.py、README.md、文档现状审计台账.csv 等 45 处"
-      notes: "机器生成清单（api/execution/production inventory）"
-    - path: "docs/engineering/cpu/CPU_001_CAPABILITY_PROBE.md"
+        - path: "docs/engineering/cpu/CPU_001_CAPABILITY_PROBE.md"
       status: ACTIVE_NORMATIVE
       duty: "CPU 能力探测与安全矩阵 (CPU-001)"
       upstream: "docs/ACSD_DESIGN.md §9（CPU 后端与资源）"
@@ -377,18 +360,7 @@ doc_index:
       duty: "CPU AVX2/FMA provider（热点 kernel 后端）(CPU-003)"
       upstream: "docs/ACSD_DESIGN.md §9（CPU 后端与资源）"
       downstream: "profile_gen_v2.cpp、avx2_provider_v1.h"
-    - path: "docs/architecture/doc_symbol_namespaces.json"
-      status: GENERATED
-      duty: "文档反引号 token 的非 API 符号命名空间登记表：自动域与人工登记域，每条须在扫描面真实出现并在 evidence 文件逐字出现"
-      upstream: "docs/ACSD_DESIGN.md §8（软件架构）"
-      downstream: "文档现状审计台账.csv、迁移合并清单.md、derived.json 等 19 处"
-    - path: "docs/architecture/execution_inventory.csv"
-      status: GENERATED
-      duty: "阶段执行面清单：逐阶段的入口与循环符号、复杂度、历史墙钟、并行机制、线程归属、I/O 形态、共享状态与调用链证据"
-      upstream: "docs/ACSD_DESIGN.md §8（软件架构）"
-      downstream: "文档现状审计台账.csv、文档现状审计台账.md、迁移合并清单.md 等 33 处"
-      notes: "机器生成清单（api/execution/production inventory）"
-    - path: "docs/engineering/execution_options_contract.md"
+            - path: "docs/engineering/execution_options_contract.md"
       status: ACTIVE_NORMATIVE
       duty: "CON-002 全局 worker 预算合同 (ExecutionOptions)"
       upstream: "docs/ACSD_DESIGN.md §8（软件架构）"
@@ -409,19 +381,7 @@ doc_index:
       duty: "ACSD 结构化日志合同（LOG-001）"
       upstream: "docs/ACSD_DESIGN.md §8.4（顶层结构）、§9（CPU 后端与资源）"
       downstream: "README.md"
-    - path: "docs/architecture/production_call_paths_stage1.csv"
-      status: GENERATED
-      duty: "normalize 阶段的生产调用路径：入口符号到目标模块的路径，含配置门、源符号、执行模式、诊断字段与测试 ID"
-      upstream: "docs/ACSD_DESIGN.md §8（软件架构）"
-      downstream: "test_p1_api.py、README.md、文档现状审计台账.csv 等 25 处"
-      notes: "机器生成清单（api/execution/production inventory）"
-    - path: "docs/architecture/production_call_paths_stage2.csv"
-      status: GENERATED
-      duty: "mosaic 阶段的生产调用路径：入口符号到目标模块的路径，含配置门、源符号、执行模式、诊断字段与测试 ID；行内描述为检测时点快照，现行执行面以 PRODUCTION_EXECUTION_INVENTORY.csv 为准"
-      upstream: "docs/ACSD_DESIGN.md §8（软件架构）"
-      downstream: "文档现状审计台账.csv、迁移合并清单.md、special_lists.md 等 19 处"
-      notes: "机器生成清单（api/execution/production inventory）"
-    - path: "docs/engineering/02_PIPELINE.md"
+            - path: "docs/engineering/02_PIPELINE.md"
       status: ACTIVE_NORMATIVE
       duty: "CI 流水线与 profile 定义"
       upstream: "docs/ACSD_DESIGN.md §12.4（验证层级与四层验收）、§12.5（状态阶梯）"
@@ -436,12 +396,7 @@ doc_index:
       duty: "C ABI 与模块接口合同"
       upstream: "docs/ACSD_DESIGN.md §8.5（模块与 ABI）"
       downstream: ""
-    - path: "docs/contracts/API_CONTRACTS.csv"
-      status: ACTIVE_NORMATIVE
-      duty: "对外 API 的逐符号合同字段表：签名、单位、值域、可空、所有权、生命周期、可变性、阻塞、线程安全、重入、异步、错误模型、确定性、精度与配置键"
-      upstream: "docs/ACSD_DESIGN.md §3.1（数据对象）、§10（I/O 与原子产品）"
-      downstream: "test_public_header_layering.py、extract_cpp_api.py、文档现状审计台账.csv 等 59 处"
-    - path: "docs/engineering/ARCH-001.md"
+        - path: "docs/engineering/ARCH-001.md"
       status: ACTIVE_NORMATIVE
       duty: "架构合同"
       upstream: "docs/ACSD_DESIGN.md §8（软件架构）"
@@ -497,12 +452,7 @@ doc_index:
       duty: "数据语义唯一正本（逐 DATA-* 条款与标准块表）"
       upstream: "docs/ACSD_DESIGN.md §3.1（数据对象）、§10（I/O 与原子产品）"
       downstream: "ACCEPTANCE_SPEC.md、anchor_contract.json、clause_registry.json 等 133 处"
-    - path: "docs/contracts/INDEX.yaml"
-      status: ACTIVE_NORMATIVE
-      duty: "ACSD Contract Index (DOC-001)"
-      upstream: "docs/ACSD_DESIGN.md §3.1（数据对象）、§10（I/O 与原子产品）"
-      downstream: "README.md、unified_object_compatibility_map_v1.json、test_unified_object_contract.py 等 53 处"
-    - path: "docs/engineering/PUBLIC_API.md"
+        - path: "docs/engineering/PUBLIC_API.md"
       status: ACTIVE_NORMATIVE
       duty: "对外 API 合同（API-* 条款）"
       upstream: "docs/ACSD_DESIGN.md §7（命令行合同）、§8.5（模块与 ABI）"
@@ -522,17 +472,7 @@ doc_index:
       duty: "统一对象注册表与兼容映射"
       upstream: "docs/ACSD_DESIGN.md §3.1（数据对象）"
       downstream: "clause_registry.json、test_unified_object_contract.py、module_adapters.cpp"
-    - path: "docs/contracts/config_separation_anchors.json"
-      status: GENERATED
-      duty: "三类配置严格分离的锚台账：逐配置键登记其归属层与所属正本条款的机器对照（IDX-CONFIG-SEPARATION）"
-      upstream: "docs/ACSD_DESIGN.md §3.1（数据对象）、§10（I/O 与原子产品）"
-      downstream: "cpu_profile.schema.json、phase_config_normalize.schema.json、run_manifest.schema.json 等 24 处"
-    - path: "docs/contracts/unified_object_registry.json"
-      status: GENERATED
-      duty: "统一数据对象注册表（IDX-UNIFIED-OBJECTS）：canonical 对象、对应 schema、可否作权重，以及旧合同 ID 的映射判定与证据"
-      upstream: "docs/ACSD_DESIGN.md §3.1（数据对象）、§10（I/O 与原子产品）"
-      downstream: "unified_object_compatibility_map_v1.json、port_contract.schema.json、test_unified_object_contract.py 等 40 处"
-    - path: "docs/detail/PHASE1_DETAILED_DESIGN.md"
+            - path: "docs/detail/PHASE1_DETAILED_DESIGN.md"
       status: ACTIVE_NORMATIVE
       duty: "normalize 阶段的目标态详细设计"
       upstream: "docs/ACSD_DESIGN.md §4（normalize：单帧标准化）"
@@ -618,13 +558,7 @@ doc_index:
       duty: "原子输出发布冻结合同"
       upstream: "docs/ACSD_DESIGN.md §10（I/O 与原子产品）"
       downstream: "ENGINEERING_SPEC.md、hips_storage_form.schema.json、test_hips_output_contract.py 等 19 处"
-    - path: "docs/modules/MODULE_MAP.yaml"
-      status: ACTIVE_INFORMATIVE
-      duty: "ACSD 模块一致性映射表（MOD-001 / CHK-MODULE-MANIFEST）"
-      upstream: "docs/ACSD_DESIGN.md §8.5（模块与 ABI）"
-      downstream: "README.md、ARCH-001-migration-manifest.md、unified_object_compatibility_map_v1.json 等 53 处"
-      notes: "模块八元组映射（MOD-001）"
-    - path: "docs/detail/common.md"
+        - path: "docs/detail/common.md"
       status: ACTIVE_INFORMATIVE
       duty: "共享权威基础库：HEALPix 核心（NESTED 唯一实现）+ SHA-256 + 标量精度抽象。作为全链路通用基础设施，被上层科学/IO/浏览器复用，不承载业务科学语义"
       upstream: "docs/ACSD_DESIGN.md §8.5（模块与 ABI）"
@@ -775,13 +709,7 @@ doc_index:
       upstream: "docs/ACSD_DESIGN.md §8.5（模块与 ABI）"
       downstream: "README.md、memory.md"
       notes: "冻结点：`SCI-P3-001`、`ALG-P3-FITS-IMPL-001`、`API-P3-FITS-001`、`API-P3-001`、`TEST-P3-WR-DESIGN-001`、`TEST-P3-WR-001`、`DISP-P3FITS-001`、`SCI-P3-WR-001`、`ALG-P3-004`"
-    - path: "docs/modules/registry/module_id_migration_baseline.json"
-      status: GENERATED
-      duty: "模块 ID 归一化的迁移基线：文档集模块数规模登记值与旧 ID→新 ID 对照，供门断言与映射复算"
-      upstream: "docs/ACSD_DESIGN.md §8.5（模块与 ABI）"
-      downstream: "文档现状审计台账.csv、迁移合并清单.md、derived.json 等 21 处"
-      notes: "`eng/tools/quality/gen_module_readmes.py` 生成"
-    - path: "docs/engineering/TOOLCHAIN_AGENT_HOST.md"
+        - path: "docs/engineering/TOOLCHAIN_AGENT_HOST.md"
       status: ACTIVE_INFORMATIVE
       duty: "工具链与 agent 宿主环境的接管说明"
       upstream: "docs/ACSD_DESIGN.md §11（双平台发行）"
@@ -1023,32 +951,12 @@ doc_index:
       duty: "ACSD Test Standard"
       upstream: "docs/ACSD_DESIGN.md §8.5（模块与 ABI）"
       downstream: "test_checksum.cpp、test_transform.cpp"
-    - path: "docs/traceability/TRACEABILITY_LAYERS.csv"
-      status: ACTIVE_NORMATIVE
-      duty: "八层追溯的层定义表：层代码、列组、合法状态取值集合与每模块必填面"
-      upstream: "docs/ACSD_DESIGN.md §12.4（验证层级与四层验收）"
-      downstream: "bad_id_format.json、chain_break.json、dangling_ref.json 等 25 处"
-    - path: "docs/traceability/TRACEABILITY_MATRIX.csv"
-      status: ACTIVE_NORMATIVE
-      duty: "模块化八层追溯矩阵的 CSV 面：每模块一行，逐层给出 ID、承载文档、状态、源码路径与符号、测试与证据"
-      upstream: "docs/ACSD_DESIGN.md §12.4（验证层级与四层验收）"
-      downstream: "unified_object_compatibility_map_v1.json、gen_traceability_csv.py、文档现状审计台账.csv 等 46 处"
-    - path: "docs/traceability/TRACEABILITY_MATRIX.json"
-      status: ACTIVE_NORMATIVE
-      duty: "模块化八层追溯矩阵的结构化正本：覆盖全部已注册模块，逐层锚以 JSON 表达，供检查器消费"
-      upstream: "docs/ACSD_DESIGN.md §12.4（验证层级与四层验收）"
-      downstream: "test_p3006_production_pipeline.py、testkit.spec.md、test_traceability_matrix.py 等 49 处"
-    - path: "docs/engineering/TRACEABILITY_SPEC.md"
+                - path: "docs/engineering/TRACEABILITY_SPEC.md"
       status: ACTIVE_NORMATIVE
       duty: "八层追溯矩阵的机器合同（ID 格式/唯一性/跨层链）"
       upstream: "docs/ACSD_DESIGN.md §12.4（验证层级与四层验收）"
       downstream: "registry.example.json、registry.json、testkit.spec.md"
-    - path: "docs/traceability/traceability_warn_baseline.json"
-      status: GENERATED
-      duty: "追溯检查 WARN 的烧毁式基线：只降不升，基线条目匹配不到即 BASELINE_STALE 判红；基线归零后 --strict 全量强制"
-      upstream: "docs/ACSD_DESIGN.md §12.4（验证层级与四层验收）"
-      downstream: "文档现状审计台账.csv、迁移合并清单.md、special_lists.md 等 17 处"
-    - path: "docs/engineering/FROZEN_GATE_INVENTORY.md"
+        - path: "docs/engineering/FROZEN_GATE_INVENTORY.md"
       status: ACTIVE_NORMATIVE
       duty: "冻结门台账（表内唯一来源与证据必需的正本登记）"
       upstream: "docs/ACSD_DESIGN.md §12.1（科学正确性与三重佐证）、docs/engineering/SCIENCE_FREEZE.md（冻结基线）、docs/science/algorithms/GATES_AND_TOLERANCES.md §1 R1/R2（表内唯一来源、证据必需）"

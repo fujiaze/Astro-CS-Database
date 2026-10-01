@@ -10,7 +10,7 @@
 > → `docs/design/UNIFIED_MODEL.md` §2、`docs/design/PHASE1_DETAILED_DESIGN.md` §8.2、`docs/design/PHASE2_DETAILED_DESIGN.md` §2
 > → `docs/detail/registry/astrocs.phase1.noise-snr.md`「帧级 SNR（frame_snr）」/「SNR 三条路径与稀疏帧内层」/「σ_sky 口径冻结（防读出噪声双计）」/「稀疏帧内层几何与重建算子」/「错误、日志、指标、取消和 checkpoint」、`docs/detail/registry/astrocs.phase2.integrate.md`「输入输出端口、DATA、单位、坐标、invalid」/「SNR 重建与逆方差权重（单一权重口径，没有可选择项）」
 > → `docs/science/CONTROL_WEIGHT_SNR.md` §0 注记/§2a/§4/§8a/§8b、`docs/science/NOISE_MODEL.md`
-> → `docs/contracts/**`、`eng/contracts/schemas/unified/sparse_snr_layer.schema.json`、`docs/interfaces/data/DATA-002_PHASE_PRODUCT_EXCHANGE.md`
+> → `docs/engineering/**`、`eng/contracts/schemas/unified/sparse_snr_layer.schema.json`、`docs/interfaces/data/DATA-002_PHASE_PRODUCT_EXCHANGE.md`
 > → `实验/absolute-snr/docs/{frame-snr-canon.md, EXP-01..EXP-04}`
 >
 > **只读边界（硬约束遵守情况）**：**未改**任何生产代码、schema、权威文档；**零 git 写操作**；

@@ -2473,7 +2473,7 @@
         "SDSS u",
         "SDSS z"
       ],
-      "bandwidth_semantics": "本库以 wavelength_nm[]/value[] 承载通带响应曲线（逐字转录自 lib/algorithms/photometry/data/response_curves/filters.json），无带宽标量列；docs/contracts/** 内不存在滤镜命名/带宽条款（唯一提及为 CONFIG_CONTRACT §4），故不存在旧名残留或别名冲突；channel 列语义与空值域未在任何权威文档定义 -> 登记为缺口（归属测光文档域）。"
+      "bandwidth_semantics": "本库以 wavelength_nm[]/value[] 承载通带响应曲线（逐字转录自 lib/algorithms/photometry/data/response_curves/filters.json），无带宽标量列；docs/engineering/** 内不存在滤镜命名/带宽条款（唯一提及为 CONFIG_CONTRACT §4），故不存在旧名残留或别名冲突；channel 列语义与空值域未在任何权威文档定义 -> 登记为缺口（归属测光文档域）。"
     }
   },
   "os_abi": {

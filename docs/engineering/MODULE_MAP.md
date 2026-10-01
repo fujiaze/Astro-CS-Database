@@ -4,8 +4,8 @@
 
 状态词口径 = `docs/ACSD_DESIGN.md` §12.5（不另立阶梯）；本文件的表格**不写状态字段**——
 各面状态由交付状态**现场计算**（载体见 门禁注册面（G08-10 重建））并落在
-`docs/modules/MODULE_MAP.yaml`，本文件只承载映射与可核证据锚。
-每行按 `lib/` 实际目录登记，`docs/modules/<module>.md` 为对应 L5 详细文档。
+`docs/engineering/MODULE_MAP.md`，本文件只承载映射与可核证据锚。
+每行按 `lib/` 实际目录登记，`docs/detail/registry/<module>.md` 为对应 L5 详细文档。
 
 ## 1 交付面（进构建 / 安装树）
 
@@ -51,8 +51,8 @@
     （module 合同与三方一致正测）；
   - 安装树产品清单核对（载体见 门禁注册面（G08-10 重建））。
 - **缺口登记**：运行期宿主接线未落地一项登记于 `docs/KNOWN_LIMITATIONS.md`，
-  其收敛按 `docs/modules/MODULE_MAP.yaml` 与 `CHK-PROD-WIRING` 的现场计算结论判定；
-  收缩声明面须经 `docs/modules/registry/**` 变更单按最高设计 §8.1 走变更流程。
+  其收敛按 `docs/engineering/MODULE_MAP.md` 与 `CHK-PROD-WIRING` 的现场计算结论判定；
+  收缩声明面须经 `docs/detail/registry/**` 变更单按最高设计 §8.1 走变更流程。
 - 相邻事实：`eng/packaging/acsd.product.json` 的 note 自述 PLATFORM-RUNTIME / IO
   仍未落实现；`lib/infrastructure/pipeline/module_loader/README.md` 自述 host(registry)
   接线属平台运行时工单。
@@ -98,4 +98,4 @@
 
 ## 5 每模块详细文档
 
-`docs/modules/<module>.md`（L5 模板）；模块清单以本表 §1–§4 为准。
+`docs/detail/registry/<module>.md`（L5 模板）；模块清单以本表 §1–§4 为准。

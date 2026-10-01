@@ -15,7 +15,7 @@
 > API-P2-001（docs/engineering/PHASE2_API_V1.md）+ PUBLIC_API Phase2 mosaic write 节、
 > 模块 MOD-acsd-phase2-hips-writer（registry 现状实测 acsd.phase2.write.md =
 > MOD-acsd-phase2-write，二者对齐归 P2-HIPS-INT，见 §11.6）。
-> 矩阵行: docs/traceability/TRACEABILITY_MATRIX.json（module_id=acsd.phase2.write 现状域）。
+> 矩阵行: docs/engineering/TRACEABILITY_SPEC.md §9（module_id=acsd.phase2.write 现状域）。
 
 ## 1 上游 SCI 与输入输出
 
@@ -498,7 +498,7 @@ f32 产品存取粒度所致，f64 oracle 不沿用）；fixture 生成器注记
   （实测 MOD-acsd-phase2-write / acsd.phase2.write.md，execution_class=io）。
 - DATA_SEMANTICS 现状止于 §19（DATA-COV-001）；§20 DATA-P2-HIPS 为新增登记位
   （DATA-P2-INT/DATA-P2-RES 现定义于
-  TRACEABILITY_MATRIX.json 与 registry acsd.phase2.integrate.md:43/
+  docs/engineering/TRACEABILITY_SPEC.md §9 与 registry acsd.phase2.integrate.md:43/
   acsd.phase2.write.md:23）。
 - `acsd-stage2` CLI 条目不在生产入口面；生产入口 = `acsd phase2 run`，
   本文档登记其底层写出实现

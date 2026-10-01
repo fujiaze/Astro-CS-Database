@@ -416,7 +416,7 @@ cal_pipe − cal_true = (t_light/t_d)·(b_light − b0) = −K·Δb          Δb
 - 权威文件: `docs/science/CALIBRATION.md` (SCI-CAL-001)
 - 实现: `lib/algorithms/calibration/src/calibrator.cpp` (`normalize_flat, calibrate, calibrate_d`), `lib/algorithms/calibration/src/master_generator.cpp` (`generate_master`), `lib/algorithms/calibration/src/cosmetic_corrector.cpp`
 - 公开 API: `lib/algorithms/calibration/include/astro_calibration.h`（`ac_generate_master_bias/dark/flat`、`ac_calibrate_frame`、`ac_correct_frame` 及其 `_f64` 变体；坏列家族 6 导出：`ac_correct_columns`、`ac_detect_bad_columns_from_master`、`ac_correct_columns_ex`、`ac_correct_columns_ex2`、`ac_column_variance_inflate`、`ac_correct_columns_f64`）
-- 测试: `TST-CAL-001` 常量场、`TST-CAL-INV-001` 幂等归一、`TST-CAL-FAIL-001` 参数校验（映射见 `docs/TRACEABILITY.csv`）
+- 测试: `TST-CAL-001` 常量场、`TST-CAL-INV-001` 幂等归一、`TST-CAL-FAIL-001` 参数校验（映射见 `docs/engineering/TRACEABILITY_SPEC.md §10`）
 
 ## 14 Primary literature（引用均已核对原文定位）
 

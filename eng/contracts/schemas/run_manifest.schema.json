@@ -12,7 +12,7 @@
   ],
   "x-acsd-authority": [
     "docs/detail/UNIFIED_MODEL.md §3（run_manifest：本次运行冻结：源码/配置/输入输出哈希）",
-    "docs/contracts/config_separation_anchors.json（run_manifest 字段名族与禁止名）",
+    "eng/contracts/data/config_separation_anchors.json（run_manifest 字段名族与禁止名）",
     "docs/ACSD_DESIGN.md §6.3:322（运行事件与机器输出）"
   ],
   "x-acsd-notes": [

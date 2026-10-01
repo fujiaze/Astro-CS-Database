@@ -66,7 +66,7 @@ float32 / f64 ABI double。
 | ALG | ALG-CAL-001..006 | docs/science/algorithms/CALIBRATION_ALGORITHMS.md（§3 逐公式源码锚定） |
 | DATA | DATA-P1-CAL | docs/science/DATA_SEMANTICS.md §9 |
 | API | API-CAL-001 / API-P1-001 | docs/engineering/PUBLIC_API.md / docs/engineering/PHASE1_API_V1.md |
-| MOD/SRC | MOD-acsd-phase1-calibration / SRC-CAL-001 | docs/traceability/TRACEABILITY_MATRIX.json；lib/include/astro_calibration.h（14 AC_API 符号） |
+| MOD/SRC | MOD-acsd-phase1-calibration / SRC-CAL-001 | docs/engineering/TRACEABILITY_SPEC.md §9；lib/include/astro_calibration.h（14 AC_API 符号） |
 | TEST | TEST-CAL-DESIGN-001 | docs/science/algorithms/CALIBRATION_ALGORITHMS.md §9（可执行 TEST-P1-CAL-001 由 P1-CAL-TEST 落地） |
 
 ## 5. 实现事实（源码核对）

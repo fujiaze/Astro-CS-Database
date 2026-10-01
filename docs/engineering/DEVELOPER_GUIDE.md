@@ -35,4 +35,4 @@ ctest --test-dir build -R <target> --output-on-failure      # 单个矩阵
 ## 参考面
 
 - 标准与锚合同：`docs/standards/`、`docs/detail/anchors/ANCHOR_CONTRACT.md`；
-- 追溯：`docs/traceability/TRACEABILITY_MATRIX.json`（机器真相）、`docs/engineering/TRACEABILITY_SPEC.md`（合同）。
+- 追溯：`docs/engineering/TRACEABILITY_SPEC.md §9`（机器真相）、`docs/engineering/TRACEABILITY_SPEC.md`（合同）。

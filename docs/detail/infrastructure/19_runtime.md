@@ -122,11 +122,11 @@ flowchart LR
 - 模块名只有一份：**`scheduler`**（注册、资源预算、执行、取消、checkpoint；物理位
   `lib/infrastructure/scheduler`）+ **`pipeline`**（typed DAG、命名块、内存/数据管线；
   物理位 `lib/infrastructure/pipeline`），依据最高设计 §8.4（顶层结构）与 §7.1（命令树）。
-- 对应登记：`docs/modules/MODULE_MAP.yaml` 条目 `id: scheduler` /
+- 对应登记：`docs/engineering/MODULE_MAP.md` 条目 `id: scheduler` /
   `module_id: acsd.infra.scheduler` / `target_dir: lib/infrastructure/scheduler`；
   `docs/detail/00_INDEX.md` §2 第 2 列 = `scheduler`。
 - `runtime` **不是模块名**，其用途仅限路径；本页文件名 `19_runtime.md` 是 `docs/DOCUMENT_INDEX.yaml` 登记在册的文档路径，仅作路径使用。
-- `pipeline` 在 `docs/modules/MODULE_MAP.yaml` 中登记；本页与 `00_INDEX.md` 已覆盖其名。
+- `pipeline` 在 `docs/engineering/MODULE_MAP.md` 中登记；本页与 `00_INDEX.md` 已覆盖其名。
 
 ---
 

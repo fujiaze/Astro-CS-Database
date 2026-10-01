@@ -279,7 +279,7 @@ outlier_rate = 1 − |r_inliers|/|r_consistent|
 - 权威文件: `docs/science/PHOTOMETRY.md` (SCI-PHOT-001)
 - 实现: `lib/algorithms/photometry/cpp/src/star_matcher.cpp` (`location/S/scale, mag_tolerance, IRLS`), `lib/algorithms/photometry/cpp/src/pc_api.cpp` (`pc_calibrate_simple`)
 - 公开 API: `lib/algorithms/photometry/cpp/include/photometric_calib.h` (`pc_calibrate_simple, pc_calibrate_simple_with_gaia`)
-- 测试: `TST-PHOT-001` 合成零点、`TST-PHOT-INV-001` 鲁棒性、`TST-PHOT-FAIL-001` 饱和拒（新增/映射见 `docs/TRACEABILITY.csv`）
+- 测试: `TST-PHOT-001` 合成零点、`TST-PHOT-INV-001` 鲁棒性、`TST-PHOT-FAIL-001` 饱和拒（新增/映射见 `docs/engineering/TRACEABILITY_SPEC.md §10`）
 
 ## 14 Primary literature（引用定位声明）
 

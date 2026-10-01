@@ -128,7 +128,7 @@ eng/tests/testkit/
 
 ## 8. 与其他文件关系
 
-- 追溯：TEST 层 test_id 进入 `docs/traceability/TRACEABILITY_MATRIX.json`
+- 追溯：TEST 层 test_id 进入 `docs/engineering/TRACEABILITY_SPEC.md §9`
   （DOC-001 建立，后续模块任务补 VERIFIED 行）；
 - 类型目录 eng/tests/properties|oracle|negative|performance 由各任务按 11 号文 §6 填充，
   testkit 只提供合同与 harness。

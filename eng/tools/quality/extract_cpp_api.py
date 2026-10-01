@@ -45,7 +45,7 @@ HEADER_RE_F = re.compile(r'^\s*(?:P2_API|AC_API|CC_EXPORT|DPSF_EXPORT|SNR_API)?\
 FUNC_LINE_RE = re.compile(r'^\s*(?:extern\s+"C"\s*\{\s*)?(?:P2_API|AC_API|CC_EXPORT|DPSF_EXPORT|SNR_API|extern)?\s*([^\n;]*\b(\w+)\s*\([^;]*\)\s*;)', re.M)
 
 # ── 契约表登记面 = 函数 **+ 类 + 成员方法** ─────────────────────────────
-# 事由： docs/contracts/API_CONTRACTS.csv 的 kind 列有 C（类）与 M（方法）两类行，
+# 事由： docs/engineering/PUBLIC_API.md 的 kind 列有 C（类）与 M（方法）两类行，
 # 其 symbol 是**类名**（signature 是构造声明，常带 `public:` 前缀）或**成员方法名**
 # （声明在 class 体内部，带 explicit/virtual/const/noexcept、默认实参含 `{}`）。
 # 而抽取器原实现只认"顶格、行首即返回类型、参数里不许有 {"的自由函数声明 ⇒

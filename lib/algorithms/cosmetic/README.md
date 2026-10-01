@@ -71,7 +71,7 @@ out_hot/out_cold 可 NULL。
 | ALG | ALG-COS-001..005 | docs/science/algorithms/COSMETIC_ALGORITHMS.md（逐公式源码锚定） |
 | DATA | DATA-P1-COS | docs/science/DATA_SEMANTICS.md §10（上游 DATA-P1-CAL §9） |
 | API | API-COS-001 / API-P1-002 | docs/engineering/PUBLIC_API.md / docs/engineering/PHASE1_API_V1.md §2 |
-| MOD/SRC | MOD-acsd-phase1-cosmetic / SRC-COS-001 | docs/traceability/TRACEABILITY_MATRIX.json；实现源 cosmetic_corrector.cpp + ac_api.cpp（签名源 astro_calibration.h:97-103,142-148） |
+| MOD/SRC | MOD-acsd-phase1-cosmetic / SRC-COS-001 | docs/engineering/TRACEABILITY_SPEC.md §9；实现源 cosmetic_corrector.cpp + ac_api.cpp（签名源 astro_calibration.h:97-103,142-148） |
 | TEST | TEST-COS-DESIGN-001 | docs/science/algorithms/COSMETIC_ALGORITHMS.md §9（可执行 TEST-P1-COS-001 由 P1-COS-TEST 落地） |
 
 ## 5. 实现事实（源码核对）

@@ -2,15 +2,23 @@
 
 不调用生产二进制、不编译；按 `lib/algorithms/star_detection/wrapper_phase1/star_detector.cpp`
 中 `estimate_background` 的两轮 `median ± 3·1.4826·MAD` 裁剪 → 末轮 RMS 的语义
-逐行重写（含裁剪窗地板 `3.0·(s>0 ? s : 1e-9)` 与末端 `if (!(*sigma>0)) *sigma = 1e-9;`）。
-输出只到 stdout，**不写 results/**。
+逐行重写（裁剪窗地板 `3.0·(s>0 ? s : 1e-9)` = `star_detector.cpp:108`，仍属现行行为）。
+
+**末端分支是反例夹具，不是现行行为。** 本脚本复现的是 CLEAN-401 之前那版被退役的静默
+置地板门 `if (!(*sigma > 0.0)) *sigma = 1e-9;`——生产码把该写法逐字判为静默降级
+（见 `star_detector.cpp:129`），保留它只为把该门造成的 `SNR_frame` 高估量级测出来。
+现行生产末端是 `if (!(*sigma > 0.0)) return false;`（`star_detector.cpp:139`）：σ == 0
+与 NaN 同处置为**显式失败**，`detect()` 以 `ErrorDomain::DATA` fail-closed
+（`star_detector.cpp:149-152`）⇒ 现行行为下该帧根本不产出 `SNR_frame`，也不存在
+2×10¹⁰ 倍高估。口径正本见 `实验/absolute-snr/docs/frame-snr-canon.md` §2.7。
 
 检验两件事：
   (A) 结构/噪声比 `r = sigma_struct / sigma_sky` 对 `sigma_hat` 对天光灵敏度
       （`d ln sigma_hat / d ln B`）的衰减——决定「sigma_hat 对天光单调」这条判据
       的定量成立域；
   (B) 常量（掩膜 / 零填充 / 过曝置零）像素占比对 `sigma_hat` 的影响，以及
-      `sigma_hat` 被静默置成地板后 `SNR_frame` 的高估倍数。
+      **若** `sigma_hat` 走那条被退役的静默置地板门，`SNR_frame` 会被高估的倍数。
+输出只到 stdout，**不写 results/**。
 """
 import numpy as np
 
@@ -19,7 +27,11 @@ NX = 256
 
 
 def sigma_hat(img):
-    """`StarDetector::estimate_background` 的两轮裁剪 RMS（逐条镜像）。"""
+    """`StarDetector::estimate_background` 的两轮裁剪 + 末轮残差 RMS（逐条镜像）。
+
+    末端的置地板分支是**反例夹具**：镜像的是被退役的静默降级写法；现行生产在该处
+    直接 `return false`（`star_detector.cpp:139`）。改动此分支会改变 §2.7 的实测数字。
+    """
     keep = np.asarray(img, float).copy()
     for _ in range(2):
         med = np.median(keep)
@@ -31,7 +43,7 @@ def sigma_hat(img):
     bg = np.median(keep)
     sig = float(np.sqrt(np.sum((keep - bg) ** 2) / max(keep.size, 1)))
     if not (sig > 0.0):
-        sig = 1e-9                       # star_detector.cpp:122
+        sig = 1e-9                       # 反例量级读法：复现已退役的静默置地板门（量级 1e-9 供 §2.7 的高估倍数换算）；现行 star_detector.cpp:139 为显式失败
     return sig
 
 

@@ -195,7 +195,7 @@ def _legacy_main() -> int:
         for r in deps:
             w.writerow(r)
     api = public_api_inventory()
-    with open(os.path.join(QDIR, "public_api_inventory.csv"), "w", newline="",
+    with open(os.path.join(QDIR, "public_docs/engineering/PUBLIC_API.md"), "w", newline="",
               encoding="utf-8") as f:
         w = csv.DictWriter(f, fieldnames=["dll", "export"])
         w.writeheader()

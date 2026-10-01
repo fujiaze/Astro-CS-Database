@@ -82,14 +82,76 @@ def load_json(p):
 
 
 def dynrange_T_at_gain(frame, em, gain):
-    """给定增益下 A_full 的 dynrange_T —— 与 arm_metrics() 的 q(1,T[em])/q(99,T[em])
-    逐字同口径（同 DELTA 铺开、同 em 掩膜、同分位），只把 g 参数化。
-    供灵敏度探针使用：保证「注入下的读数」与「重放判据比对的读数」是同一个量。"""
+    """保留：给定增益下 A_full 的 dynrange_T 的**同口径**闭式，供灵敏度线性化用。
+
+    G08-05 R2 第 2 条：本函数**不再**充当覆盖面门 ③ 的证据来源 —— 它是本文件内
+    另写一遍的公式，与 arm_metrics 走两条路，自比自恒真（实测 8 个注入变体 0/8 判红）。
+    覆盖面门 ③ 现已改为**走真实流水线**（见 gain_inversion_sensitivity：
+    replay_arm_readings_at_gain 用 cell_aggregate/run_scene/arm_metrics 重算）。
+    本函数只用来从一个**已实测**的偏移量线性化出检测地板。"""
     s_cell = frame["src"].reshape(N_CELLS, DELTA, N_CELLS, DELTA).mean(axis=(1, 3))
     ss_cell = frame["sigma_slow2"].reshape(N_CELLS, DELTA, N_CELLS, DELTA).mean(axis=(1, 3))
     T = FREF / np.sqrt(ss_cell + s_cell / gain)
     Tt = np.repeat(np.repeat(T, DELTA, axis=0), DELTA, axis=1)
     return [float(np.percentile(Tt[em], 1)), float(np.percentile(Tt[em], 99))]
+
+
+# ---- G08-05 R2 第 2/3 条：重放判据的**期望键集**（schema，fail-closed 用）----
+# A_frame_recon 没有 max_abs_dev_vs_T 是**定义使然**（frame_reconstruct 口径下
+# 「相对 cell 目标的最大偏差」无定义），不是缺项。除此之外，任何 arm 缺 key、
+# 或值不是有限数，都必须 fail-closed 判红 —— 原实现对缺失一律 skip，
+# 比较 0 项时 replay_ok 仍为 True（fail-open）。
+REPLAY_SCHEMA = {
+    "A_full": ("dynrange_T_p1", "dynrange_T_p99", "dynrange_recon_p1",
+               "dynrange_recon_p99", "rmse_dex_vs_T", "max_abs_dev_vs_T",
+               "E_stacking", "dr_ratio_preserved"),
+    "A_bglimit": ("dynrange_T_p1", "dynrange_T_p99", "dynrange_recon_p1",
+                  "dynrange_recon_p99", "rmse_dex_vs_T", "max_abs_dev_vs_T",
+                  "E_stacking", "dr_ratio_preserved"),
+    "A_frame_recon": ("dynrange_T_p1", "dynrange_T_p99", "dynrange_recon_p1",
+                      "dynrange_recon_p99", "rmse_dex_vs_T", "E_stacking",
+                      "dr_ratio_preserved"),
+}
+
+
+def schema_violations(live: dict, arch: dict):
+    """列出两侧**期望键**的缺失/非有限，返回 violations。
+
+    入参是**经 absolute_readings 归一后**的读数（dynrange_T 这类列表键已在
+    absolute_readings 里摊平成 p1/p99），不是原始 arm dict —— 否则会把
+    「键在归档里以列表形式存在」误判成缺项。
+    """
+    bad = []
+    for arm, keys in REPLAY_SCHEMA.items():
+        for side, blob in (("live", live), ("archived", arch)):
+            if arm not in blob or not isinstance(blob.get(arm), dict):
+                bad.append({"arm": arm, "side": side, "error": "arm_missing"})
+                continue
+            for k in keys:
+                val = blob[arm].get(k)
+                if val is None:
+                    bad.append({"arm": arm, "side": side, "key": k,
+                                "error": "required_key_missing"})
+                elif not (isinstance(val, (int, float)) and np.isfinite(val)):
+                    bad.append({"arm": arm, "side": side, "key": k,
+                                "error": "required_key_not_finite", "value": repr(val)})
+    return bad
+
+
+def replay_arm_readings_at_gain(frame, frame0, em, seed, res, gain):
+    """把**真实流水线**（cell_aggregate -> run_scene -> arm_metrics）跑在指定增益下，
+    返回逐臂的绝对读数。覆盖面门 ③ 的参照量来自这里，不再来自本文件的旁路公式。"""
+    old = GAIN
+    try:
+        globals()["GAIN"] = gain
+        a = cell_aggregate(frame)
+        a0 = cell_aggregate(frame0)
+        rr = {"arms": {}}
+        run_scene(a, a0, em, seed, rr, "")
+        return {arm: absolute_readings(rr["arms"][arm])
+                for arm in REPLAY_SCHEMA}
+    finally:
+        globals()["GAIN"] = old
 
 
 def absolute_readings(arm):
@@ -128,11 +190,16 @@ def build_frame(seed, n_src=25, with_sources=True, flux_hi_dex=4.0):
     return {"xx": xx, "yy": yy, "src": src, "sigma_slow2": sigma_slow2}
 
 
-def cell_aggregate(frame):
-    """Cell-aggregated model quantities (the representation domain of the control grid)."""
+def cell_aggregate(frame, gain=None):
+    """Cell-aggregated model quantities (the representation domain of the control grid).
+
+    ``gain`` 只为把**真实流水线**跑在指定增益下（覆盖面门 ③ 与独立性范围实测），
+    默认取文件级 GAIN；不改任何生产口径。
+    """
+    g = GAIN if gain is None else float(gain)
     s_cell = frame["src"].reshape(N_CELLS, DELTA, N_CELLS, DELTA).mean(axis=(1, 3))
     ss_cell = frame["sigma_slow2"].reshape(N_CELLS, DELTA, N_CELLS, DELTA).mean(axis=(1, 3))
-    sw_cell = ss_cell + s_cell / GAIN
+    sw_cell = ss_cell + s_cell / g
     # Control-point semantics (sparse_snr_semantics = absolute_flux_type_snr):
     # the stored value is the ABSOLUTE reference-flux SNR  SNR_c = F_ref / sigma_F,c,
     # with sigma_F^2 = sigma_slow^2 + S_src/g  (source term INCLUDED). Brightness
@@ -395,9 +462,34 @@ def main():
         np.repeat(ss_cell_chk + s_cell_chk / GAIN, DELTA, axis=0), DELTA, axis=1)
     sw2_scale = float(np.mean(sw2_recomputed))
     sw2_rel_dev = float(np.max(np.abs(agg["sw2_map"] - sw2_recomputed)) / sw2_scale)
+    # G08-05 R2 第 5 条 N3：原字段 "recomputed_independently_from_frame": True 是一个
+    # **过强的字面布尔** —— 它声称「独立于 frame 重算」，与本文件自己的结论
+    # （本判据**不**独立于 GAIN：重算用同一个 GAIN 常量与同一个 frame，两侧同错）
+    # 直接矛盾。字面布尔无判别力，任何注入都改不动它。改为**实测**独立性范围：
+    # 同一个重算表达式在 g -> 1/g 下与聚合侧一起平移 ⇒ max_rel_dev 逐位不变，
+    # 这个**实测数**才是「两侧同错、本判据恒绿」的证据；boolean 字段删除。
+    agg_inv = cell_aggregate(frame, 1.0 / GAIN)
+    _sw2_inv = np.repeat(np.repeat(ss_cell_chk + s_cell_chk / (1.0 / GAIN), DELTA, axis=0),
+                         DELTA, axis=1)
+    sw2_scale_inv = float(np.mean(_sw2_inv))
+    sw2_rel_dev_gain_inverted = float(
+        np.max(np.abs(agg_inv["sw2_map"] - _sw2_inv)) / max(sw2_scale_inv, 1e-300))
+    sw2_field_shift_under_inversion = abs(sw2_scale_inv / max(sw2_scale, 1e-300) - 1.0)
     res["variance_map_selfcheck"] = {
         "definition": "sw2_map = blockmean(sigma_slow2) + blockmean(src)/GAIN，按 DELTA×DELTA 铺开",
-        "recomputed_independently_from_frame": True,
+        "independence_scope": {
+            "independent_of": ["cell_aggregation_step"],
+            "NOT_independent_of": ["GAIN_constant", "frame_object"],
+            "basis": "measured_not_asserted",
+            "measured_max_rel_dev_under_gain_inversion": sw2_rel_dev_gain_inverted,
+            "measured_variance_field_shift_under_gain_inversion": sw2_field_shift_under_inversion,
+            "note": ("本字段取代原来的字面布尔 recomputed_independently_from_frame=True。"
+                     "该布尔声称「独立于 frame」却与本文件结论矛盾，且任何注入都改不动它。"
+                     "实测：把 g 换成 1/g 后方差面本身明显变化，"
+                     "但聚合侧与重算侧之差仍为 0 ⇒ 两者同错，本判据对量纲颠倒**恒绿**、无判别力。"
+                     "该盲区由 absolute_scale_matches_archived_first_hand 与 "
+                     "gain_matches_independent_archived_reading（外部参照，与 GAIN 不同源）承担。"),
+        },
         "mean_sw2": sw2_scale,
         "max_rel_dev": sw2_rel_dev,
         "criterion": "max|sw2_map - 独立重算| / mean < 1e-12（不走 E，避开 E 的齐次盲区）",
@@ -409,35 +501,65 @@ def main():
     # ① 归档重放：逐条比对本进程重算的**绝对**读数与归档一手读数。
     #    参照量在磁盘上、来自另一次执行，不在本进程重算 ⇒ 不共享 GAIN。
     arch = load_json(ARCHIVE_SELF)
+    live_all = {arm: absolute_readings(res["arms"][arm]) for arm in REPLAY_SCHEMA}
+    # 防御式归一：归档缺 arm / 值不可转 float 时**不抛异常**，而是留 None，
+    # 交给 schema_violations 判红（G08-05 R2 第 3 条：宁可干净地判红，
+    # 不要在归一阶段崩掉、把「判红」变成「没产物」）。
+    arch_all = {}
+    if arch and isinstance(arch.get("arms"), dict):
+        for arm in REPLAY_SCHEMA:
+            try:
+                arch_all[arm] = absolute_readings(arch["arms"][arm])
+            except Exception:
+                arch_all[arm] = {k: None for k in REPLAY_SCHEMA[arm]}
     replay_rows, replay_ok = [], True
+    schema_bad, compared = [], 0
     if arch is None:
         replay_ok = False
+        schema_bad.append({"side": "archive", "error": "archive_unreadable",
+                           "path": ARCHIVE_SELF})
         replay_rows.append({"error": "archive_unreadable", "path": ARCHIVE_SELF})
     else:
-        for arm_name in ("A_full", "A_bglimit", "A_frame_recon"):
-            live, ref = absolute_readings(res["arms"][arm_name]), \
-                absolute_readings(arch["arms"][arm_name])
-            for k in live:
-                if live[k] is None or ref[k] is None:
-                    replay_rows.append({"arm": arm_name, "key": k, "skipped": "absent_in_one_side",
-                                        "live": live[k], "archived": ref[k]})
-                    continue
-                d = abs(live[k] - ref[k]) / max(abs(ref[k]), 1e-300)
-                replay_rows.append({"arm": arm_name, "key": k, "live": live[k],
-                                    "archived": ref[k], "rel_dev": d,
-                                    "ok": bool(d <= REPLAY_TOL)})
-                replay_ok = replay_ok and d <= REPLAY_TOL
+        # fail-closed：先验 schema 校验。任一**期望键**缺失/非有限 ⇒ 直接判红，
+        # 不进入比较（G08-05 R2 第 3 条：原实现对缺失一律 skip，
+        # 「比较 0 项仍判绿」是 fail-open）。
+        schema_bad = schema_violations(live_all, arch_all)
+        if schema_bad:
+            replay_ok = False
+            replay_rows.append({"error": "schema_mismatch", "violations": schema_bad})
+        else:
+            for arm_name in REPLAY_SCHEMA:
+                live = live_all[arm_name]
+                ref = arch_all[arm_name]
+                for k in REPLAY_SCHEMA[arm_name]:
+                    d = abs(live[k] - ref[k]) / max(abs(ref[k]), 1e-300)
+                    compared += 1
+                    replay_rows.append({"arm": arm_name, "key": k, "live": live[k],
+                                        "archived": ref[k], "rel_dev": d,
+                                        "margin_ratio": d / REPLAY_TOL,
+                                        "ok": bool(d <= REPLAY_TOL)})
+                    replay_ok = replay_ok and d <= REPLAY_TOL
+            # 比较项数为 0 也必须 fail-closed（即使 schema 恰好为空 dict）。
+            if compared == 0:
+                replay_ok = False
+                replay_rows.append({"error": "zero_comparisons"})
     res["absolute_scale_replay_vs_archive"] = {
         "archive_path": ARCHIVE_SELF,
         "archive_gain_e_per_adu": (arch or {}).get("gain_e_per_adu"),
         "archive_gate_names": sorted((arch or {}).get("gates", {}).keys()),
         "tolerance_rel": REPLAY_TOL,
+        "n_compared": compared,
+        "expected_key_count": sum(len(v) for v in REPLAY_SCHEMA.values()),
+        "schema_violations": schema_bad,
         "reference_independence": "参照量取自磁盘归档（另一次执行），不在本进程重算，"
                                   "因此不共享本文件的 GAIN 常量；E 对 v 齐次、对绝对尺度无判别力，"
                                   "故重放对象只取携带绝对尺度的读数。",
         "rows": replay_rows,
         "pass": bool(replay_ok),
-        "fail_closed_note": "归档缺失或不可读 ⇒ 判红，不静默转绿。",
+        "fail_closed_note": ("fail-closed 三条：归档缺失或不可读 ⇒ 判红；schema 不匹配"
+                             "（期望键缺失或非有限）⇒ 判红；比较项数为 0 ⇒ 判红。"
+                             "A_frame_recon 无 max_abs_dev_vs_T 是定义使然，已写入 "
+                             "REPLAY_SCHEMA 的期望键集，不算缺项。"),
     }
 
     # ② 增益常量溯源：与**另一实验单元**归档的一手增益读数对拍。
@@ -456,28 +578,81 @@ def main():
         "fail_closed_note": "参照归档缺失或不含恰好一个增益值 ⇒ 判红。",
     }
 
-    # ③ 灵敏度/覆盖门：审稿注入 g -> 1/g（量纲颠倒）必须被上面的重放判据抓住。
-    #    这条门自身不判「数值对不对」，只判「整套判据对该缺陷是活的」——
-    #    未加①②时它恒红（实测 0 条重放读数超差），是覆盖面被高估的机器证据。
-    T_inv = dynrange_T_at_gain(frame, em, 1.0 / GAIN)
+    # ③ 覆盖面门：审稿注入 g -> 1/g（量纲颠倒）必须被上面的重放判据抓住。
+    #    G08-05 R2 第 2 条：本门原先拿 dynrange_T_at_gain（**本文件另写一遍的公式**）
+    #    与 arm_metrics 的读数自比，两条路同源同式 ⇒ 自比自恒真，8 个注入变体 0/8
+    #    判红，是常量自检。现改为把**真实流水线**跑在注入增益下（cell_aggregate →
+    #    run_scene → arm_metrics），逐条比对**重放判据实际比对的那些读数**，
+    #    判定口径与门①完全一致 ⇒ 门①若被重新指向不敏感的读数，本门立刻判红。
     live_t = res["arms"]["A_full"]["dynrange_T"]
-    ref_t = absolute_readings(arch["arms"]["A_full"]) if arch else None
-    inv_devs = ([abs(T_inv[0] - live_t[0]) / max(abs(live_t[0]), 1e-300),
-                 abs(T_inv[1] - live_t[1]) / max(abs(live_t[1]), 1e-300)] if ref_t else
-                [float("inf"), float("inf")])
-    sens_ok = bool(max(inv_devs) > REPLAY_TOL)
+    T_inv = dynrange_T_at_gain(frame, em, 1.0 / GAIN)
+    inv_read = replay_arm_readings_at_gain(frame, frame0, em, SEED, res, 1.0 / GAIN)
+    inv_devs, margin_rows = [], []
+    for arm_name in REPLAY_SCHEMA:
+        for k in REPLAY_SCHEMA[arm_name]:
+            lv = live_all[arm_name][k]
+            rv = inv_read[arm_name][k]
+            if lv is None or rv is None:
+                continue
+            d = abs(rv - lv) / max(abs(lv), 1e-300)
+            margin_rows.append({"arm": arm_name, "key": k, "rel_dev": d,
+                                "margin_ratio": d / REPLAY_TOL})
+            inv_devs.append(d)
+    inv_devs = inv_devs or [float("inf")]
+    max_inv = max(inv_devs)
+    # 判据级口径：**最小非零裕度**（原实现只报 max，且报的 max 只是 sens 探针两个
+    # 分位里的 max，不是 23 条重放读数里的 max —— 口径本身就写错了）。
+    nonzero = [m for m in margin_rows if m["margin_ratio"] > 0.0]
+    dead = [{"arm": m["arm"], "key": m["key"]} for m in margin_rows
+            if m["margin_ratio"] == 0.0]
+    min_nz = min((m["margin_ratio"] for m in nonzero), default=None)
+    sens_ok = bool(max_inv > REPLAY_TOL)
+    # 真实检测地板：由**实测**灵敏度线性化。取一个小的相对增益扰动 δ0，跑真实
+    # 流水线，量出最敏感读数的灵敏度 s_max = max_k |Δreading|/δ0，
+    # 则「使门①翻红所需的最小相对增益误差」≈ REPLAY_TOL / s_max。
+    d0 = 1.0e-3
+    probe = replay_arm_readings_at_gain(frame, frame0, em, SEED, res, GAIN * (1.0 + d0))
+    s_max = 0.0
+    for arm_name in REPLAY_SCHEMA:
+        for k in REPLAY_SCHEMA[arm_name]:
+            lv, pv = live_all[arm_name][k], probe[arm_name][k]
+            if lv is None or pv is None:
+                continue
+            s_max = max(s_max, abs(pv - lv) / max(abs(lv), 1e-300) / d0)
+    det_floor = (REPLAY_TOL / s_max) if s_max > 0 else None
     res["gain_inversion_sensitivity"] = {
         "injection": "GAIN -> 1/GAIN（把 S/g 当成 S·g，量纲颠倒）",
         "gain_injected": float(1.0 / GAIN),
+        "evaluation_path": ("真实流水线 cell_aggregate -> run_scene -> arm_metrics "
+                            "在注入增益下重跑，逐条取重放判据实际比对的读数；"
+                            "不再使用本文件的旁路公式 dynrange_T_at_gain 作为参照量"),
         "dynrange_T_live": list(map(float, live_t)),
-        "dynrange_T_under_injection": T_inv,
-        "rel_dev_live_vs_injected": inv_devs,
+        "dynrange_T_under_injection_closed_form": T_inv,
+        "n_readings_compared": len(inv_devs),
+        "max_rel_dev_live_vs_injected": max_inv,
         "tolerance_rel": REPLAY_TOL,
-        "margin_ratio": (max(inv_devs) / REPLAY_TOL) if sens_ok else None,
+        # ---- 裕度登记：最小非零口径 ----
+        "margin_convention": ("判据级最小**非零**裕度 = min over readings (rel_dev/REPLAY_TOL)；"
+                              "裕度为 0 的读数在本注入下**不位移**，对这条注入是死读数，"
+                              "单列、不参与最小值、也不得当作覆盖证据。"),
+        "margin_max_ratio": max((m["margin_ratio"] for m in margin_rows), default=None),
+        "margin_min_nonzero_ratio": min_nz,
+        "n_margin_nonzero": len(nonzero),
+        "dead_readings_under_this_injection": dead,
+        "n_dead_readings": len(dead),
+        "overstatement_if_max_used_instead_of_min_nonzero": (
+            (max(m["margin_ratio"] for m in nonzero) / min_nz)
+            if (nonzero and min_nz) else None),
+        "per_reading_margin": margin_rows,
+        # ---- 真实检测地板（实测灵敏度线性化）----
+        "detection_floor_rel_gain_error": det_floor,
+        "detection_floor_method": ("在 GAIN*(1+1e-3) 上跑真实流水线，量出最敏感读数的"
+                                   "相对灵敏度 s_max，再取 REPLAY_TOL/s_max"),
+        "s_max_per_rel_gain": s_max,
         "pass": sens_ok,
-        "meaning": "True ⇒ 重放判据所比对的 dynrange_T 读数在量纲颠倒注入下偏移超出容差 "
-                   "（即该注入必然使 absolute_scale_matches_archived_first_hand 判红）。"
-                   "这是覆盖面门（判据是否活），不是物理正确性门。",
+        "meaning": ("True ⇒ 在量纲颠倒注入下，重放判据所比对的读数中至少有一条的偏移"
+                    "超出容差（门①必然判红）。这是覆盖面门（判据是否活），不是物理"
+                    "正确性门。判红路径是**实测**的，不再是自比自恒真。"),
     }
 
     res["gates"] = {

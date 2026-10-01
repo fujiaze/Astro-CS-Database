@@ -360,7 +360,7 @@ DSNU、PRNU、列固定图案、高光通量方差亏损、重采样相关**在�
 - 权威文件: `docs/science/NOISE_MODEL.md` (SCI-NOISE-001..015)
 - 实现: `lib/algorithms/noise_snr/cpp/src/noise_model.cpp` (`snr_noise_model_v1, _f64, _fill, _free, snr_noise_gain_variance, g_model_floor`), `lib/algorithms/noise_snr/cpp/include/snr_estimator.h`
 - 公开 API: `snr_noise_model_v1, snr_noise_model_v1_f64, snr_noise_model_v1_fill, snr_noise_model_v1_free, snr_noise_gain_variance, snr_noise_model_v1_default_config`
-- 测试: `TST-NOISE-001..015` (`noise_model_science_test.cpp`), `TST-NOISE-INV-*` 四门、不变量，`TST-NOISE-FAIL-*` 空 patch/NaN 拒绝；**平面场自适应约束组**（自校准 `R` 判据 + 凸包非负平面拟合，`p1noise_*`）（新增/映射见 `docs/TRACEABILITY.csv`）
+- 测试: `TST-NOISE-001..015` (`noise_model_science_test.cpp`), `TST-NOISE-INV-*` 四门、不变量，`TST-NOISE-FAIL-*` 空 patch/NaN 拒绝；**平面场自适应约束组**（自校准 `R` 判据 + 凸包非负平面拟合，`p1noise_*`）（新增/映射见 `docs/engineering/TRACEABILITY_SPEC.md §10`）
 
 ## 14 Primary literature（引用定位声明）
 

@@ -69,7 +69,7 @@ wave W1，owner SA-P2-I23，lock-P2-HIPS），不是实现/迁移/测试任务�
   DATA_SEMANTICS §20 DATA-P2-HIPS；PUBLIC_API API-P2-HIPS-001 节；
   registry 页 acsd.phase2.write.md 重写；INDEX.yaml 新增 4 ID 条目
   （ALG-P2-HIPS-001..004/DATA-P2-HIPS/API-P2-HIPS-001，上游=共享 SCI，
-  下游互链）；DOCUMENT_INDEX.yaml 注册；TRACEABILITY_MATRIX json/csv
+  下游互链）；DOCUMENT_INDEX.yaml 注册；TRACEABILITY_SPEC §9 json/csv
   MOD-acsd-phase2-write 行转 VERIFIED；selfcheck.py（run/local，
   不提交）。SCI 层零改动；根科学公式零改动；生产源 diff=0。
 - known_defects：DISP-P2HIPS-001（无 variance/ivar 输出产品）、002

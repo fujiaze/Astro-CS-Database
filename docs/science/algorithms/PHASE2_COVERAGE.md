@@ -10,7 +10,7 @@
 > MOD-acsd-phase2-coverage（registry）
 > 唯一权威生产源: lib/algorithms/coverage/src/coverage.cpp（455 行，复测）+ 唯一权威签名头
 > lib/algorithms/coverage/include/astro/phase2/coverage.h（172 行，同上）；取值与签名一律以本头文件为唯一来源。
-> 矩阵行: docs/traceability/TRACEABILITY_MATRIX.json
+> 矩阵行: docs/engineering/TRACEABILITY_SPEC.md §9
 > MOD-acsd-phase2-coverage（matrix P2-COV，legacy_paths=lib/algorithms/coverage coverage
 > sources，迁移目标 acsd_p2_coverage.dll，module_id=acsd.p2.coverage）。
 

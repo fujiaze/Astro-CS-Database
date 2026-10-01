@@ -125,7 +125,7 @@ notes: >-
   源内已无平台 stub；explicit_config 仅为显式八参数旁路）、writer=aio_hips
   标准 HiPS 写链（p1_stack.hiss→IVOA 1.4 512×512 signal/support/
   properties/MOC）；
-  A 线 CLI 生产 7-stage 全链=production_call_paths_stage1.csv（DLL 显式
+  A 线 CLI 生产 7-stage 全链=docs/engineering/PHASE1_API_V1.md（DLL 显式
   加载，与本静态库并存，无第二调度顺序）。session 内 7-stage 段补齐归
   后续 P1-SESSION-IMPL/INT。
   已知限制：cosmetic master 实参 nullptr→检测禁用恒等 pass（:295-296，

@@ -1,6 +1,6 @@
 # phase1/wcs — WCS TAN (L2 模块 README)
 
-- 合同: `P1-004` / SCI-WCS-001 (docs/contracts/INDEX.yaml)
+- 合同: `P1-004` / SCI-WCS-001 (eng/contracts/data/contract_index.yaml)
 - Header: `lib/algorithms/platesolve/wrapper_phase1/wcs_tan.h`
 - Source: `lib/algorithms/platesolve/wrapper_phase1/wcs_tan.cpp`
 - Test: `eng/tests/unit/p1_wcs_phot_test.cpp` (roundtrip <1e-6 deg)

@@ -12,7 +12,7 @@
 | 三类配置严格分离、benchmark 独占 cpu_profile | `docs/detail/UNIFIED_MODEL.md` §3 |
 | CLI 预检与模板职责 | `docs/detail/infrastructure/18_cli.md` §3-§5 |
 | 科学红线（默认容差不可改、cpu_profile 不进科学配置） | `docs/ACSD_DESIGN.md` §0（文档权威与索引） |
-| 字段名族与跨类字段名锚点 | `docs/contracts/config_separation_anchors.json`（DATA-001，只读） |
+| 字段名族与跨类字段名锚点 | `eng/contracts/data/config_separation_anchors.json`（DATA-001，只读） |
 
 ## 1 三类配置（现场清单）
 

@@ -36,7 +36,7 @@ SCHEMAS = REPO / "eng/contracts/schemas"
 UNIFIED = SCHEMAS / "unified"
 EXAMPLES = UNIFIED / "examples"
 NEGATIVE = UNIFIED / "negative"
-REGISTRY_REL = "docs/contracts/unified_object_registry.json"
+REGISTRY_REL = "eng/contracts/data/unified_object_registry.json"
 
 # UNIFIED_MODEL §2 的 13 个对象名（逐字）
 OBJECTS = ["signal", "variance", "ivar", "source_snr", "depth_m5", "frame_snr",
@@ -648,7 +648,7 @@ class TestConfigSeparationAnchors(unittest.TestCase):
     """E. 三类配置不得共用字段名承载不同含义（schema 本体归 CFG-001）。"""
 
     def setUp(self):
-        self.reg = load(REPO / "docs/contracts/config_separation_anchors.json")
+        self.reg = load(REPO / "eng/contracts/data/config_separation_anchors.json")
 
     def test_three_classes_present_and_owned_by_cfg001(self):
         classes = self.reg["config_classes"]
@@ -752,7 +752,7 @@ class TestRegistryIndex(unittest.TestCase):
             self.assertRegex(i, r"^DATA-OBJ-[A-Z0-9-]+-\d{3}$")
 
     def test_index_yaml_lists_object_ids_and_new_paths(self):
-        text = (REPO / "docs/contracts/INDEX.yaml").read_text(encoding="utf-8")
+        text = (REPO / "eng/contracts/data/contract_index.yaml").read_text(encoding="utf-8")
         reg = load(REPO / REGISTRY_REL)
         for c in reg["canonical_object_classes"]:
             self.assertIn(c["object_data_id"], text, "INDEX.yaml 缺对象登记: %s" % c["object_data_id"])
@@ -814,18 +814,18 @@ class TestRegistryIndex(unittest.TestCase):
         reg = load(REPO / REGISTRY_REL)
         m = load(REPO / "eng/contracts/data/unified_object_compatibility_map_v1.json")
         rows = {r["legacy_id"]: r for r in m["legacy_contract_id_map"]}
-        # docs/detail/ 是 docs/modules/ 的迁入面：registry 的 old_contract_face 已被迁移改写到
+        # docs/detail/ 是 docs/detail/registry/ 的迁入面：registry 的 old_contract_face 已被迁移改写到
         # docs/detail/*.md 与 docs/detail/registry/*，白名单未同步 ⇒ 70 条证据里 36 条不匹配（假红）。
-        # docs/modules/MODULE_MAP.yaml 保留：MODULE_MAP.yaml 是 .yaml，未随 .md 迁出，仍真实存在于旧位。
+        # docs/engineering/MODULE_MAP.md 保留：docs/engineering/MODULE_MAP.md 是 .yaml，未随 .md 迁出，仍真实存在于旧位。
         allowed = ("docs/science/DATA_SEMANTICS.md", "docs/engineering/PUBLIC_API.md",
                    "docs/engineering/DATA_ARTIFACTS.md", "docs/detail/",
-                   "docs/modules/MODULE_MAP.yaml",
-                   "docs/modules/registry/", "docs/modules/", "docs/traceability/TRACEABILITY_MATRIX")
+                   "docs/engineering/MODULE_MAP.md",
+                   "docs/detail/registry/", "docs/detail/registry/", "docs/engineering/TRACEABILITY_SPEC.mdTRACEABILITY_SPEC §9")
         for e in reg["legacy_contract_ids"]["entries"]:
             lid = e["legacy_id"]
             self.assertTrue(e["new_index_added_by_DATA001"], "%s: 缺 new_index_added_by_DATA001 字段" % lid)
             for src in list(e["old_contract_face"]) + list(rows[lid]["old_contract_face"]):
-                self.assertFalse(src.startswith("docs/contracts/INDEX.yaml"),
+                self.assertFalse(src.startswith("eng/contracts/data/contract_index.yaml"),
                                  "%s: old_contract_face 引用本任务新增的 INDEX.yaml 属循环自证: %r" % (lid, src))
                 self.assertTrue(any(src.startswith(a) for a in allowed),
                                 "%s: old_contract_face 非基线旧面证据: %r" % (lid, src))
@@ -834,9 +834,9 @@ class TestRegistryIndex(unittest.TestCase):
             self.assertEqual(e["new_index_added_by_DATA001"], rows[lid]["new_index_added_by_DATA001"])
 
     def test_legacy_id_map_written_into_index_and_compat_map(self):
-        """映射必须同时落在 docs/contracts/INDEX.yaml 与 eng/contracts/data/unified_object_compatibility_map_v1.json。"""
+        """映射必须同时落在 eng/contracts/data/contract_index.yaml 与 eng/contracts/data/unified_object_compatibility_map_v1.json。"""
         reg = load(REPO / REGISTRY_REL)
-        idx = (REPO / "docs/contracts/INDEX.yaml").read_text(encoding="utf-8")
+        idx = (REPO / "eng/contracts/data/contract_index.yaml").read_text(encoding="utf-8")
         m = load(REPO / "eng/contracts/data/unified_object_compatibility_map_v1.json")
         rows = {r["legacy_id"]: r for r in m["legacy_contract_id_map"]}
         for e in reg["legacy_contract_ids"]["entries"]:

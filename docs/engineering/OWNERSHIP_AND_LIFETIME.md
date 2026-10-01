@@ -21,4 +21,4 @@
 
 ## 契约
 
-所有权与生命周期契约 = `ENG-OWN-001`（登记面 = `docs/TRACEABILITY.csv`）。
+所有权与生命周期契约 = `ENG-OWN-001`（登记面 = `docs/engineering/TRACEABILITY_SPEC.md §10`）。
