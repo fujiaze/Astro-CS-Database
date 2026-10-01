@@ -49,12 +49,12 @@
       {
         "name": "drizzle_correlated_noise",
         "rel_sigma_error": 0.202,
-        "evidence": "UNCERTAINTY_AND_COVARIANCE.md: diagonal-only propagation underestimates variance by ~1+0.75*rho; rho=0.19 (nside=512 MC) => variance low by 36.3%, sigma low by 20.2%"
+        "evidence": "MEASURED: docs/science/UNCERTAINTY_AND_COVARIANCE.md, section 'Phase3 resampled-variance propagation' -- diagonal-only propagation underestimates the output variance by the factor 1+rho*(M_eff-1) (nearest-neighbour approximation; 4-tap bilinear => M_eff=4 => 1+3rho); rho=0.19 (nside=512 MC, SNR-012) => variance low by 1-1/1.57 = 36.3%, sigma low by 1-1/sqrt(1.57) = 20.2%; the same doc carries an independent MC value 0.39415 against the 0.39250 closed form.  The published variance product is the diagonal of C_y only, so this term is in EVERY row"
       },
       {
         "name": "master_frame_variance",
         "rel_sigma_error": 0.0,
-        "evidence": "CALIBRATION.md:236 registers the master-variance gap as UNRESOLVED with no project formula; a finite-master model gives sigma_master/sigma_sky ~ 1/sqrt(N_master) per master frame"
+        "evidence": "NOT MEASURED: docs/science/CALIBRATION.md:459 registers the master-variance gap as UNRESOLVED -- this layer does not propagate master variance into cal, and the project has no formula for the term.  A finite-master model would give sigma_master/sigma_sky ~ 1/sqrt(N_master), but N_master is not calibrated anywhere in this unit, so the 0.0 below is a structural zero standing for 'unmeasured', not for 'no error'"
       }
     ],
     "scenarios": [
@@ -64,8 +64,11 @@
         "eps_sparse": 0.0,
         "eps_theta": 0.0,
         "eps_g": 0.0,
-        "eps_total": 1.3127,
-        "snr_error_pct": 131.27
+        "eps_drizzle": 0.202,
+        "eps_master": 0.0,
+        "eps_total": 1.3281510795086529,
+        "snr_error_pct": 132.8151079508653,
+        "eps_master_measured": false
       },
       {
         "scenario": "scalar sigma fixed + C_theta propagated (well conditioned)",
@@ -73,8 +76,11 @@
         "eps_sparse": 0.0,
         "eps_theta": 0.034,
         "eps_g": 0.0,
-        "eps_total": 0.03716180835212409,
-        "snr_error_pct": 3.716180835212409
+        "eps_drizzle": 0.202,
+        "eps_master": 0.0,
+        "eps_total": 0.20538987316808005,
+        "snr_error_pct": 20.538987316808004,
+        "eps_master_measured": false
       },
       {
         "scenario": "scalar sigma fixed + C_theta propagated (ill conditioned)",
@@ -82,8 +88,11 @@
         "eps_sparse": 0.0,
         "eps_theta": 2.2,
         "eps_g": 0.0,
-        "eps_total": 2.200051135769349,
-        "snr_error_pct": 220.0051135769349
+        "eps_drizzle": 0.202,
+        "eps_master": 0.0,
+        "eps_total": 2.2093050943679104,
+        "snr_error_pct": 220.93050943679106,
+        "eps_master_measured": false
       },
       {
         "scenario": "+ sparse layer at 64 px pitch (UPM control pitch)",
@@ -91,8 +100,11 @@
         "eps_sparse": 0.092,
         "eps_theta": 0.034,
         "eps_g": 0.0,
-        "eps_total": 0.09922197337283713,
-        "snr_error_pct": 9.922197337283713
+        "eps_drizzle": 0.202,
+        "eps_master": 0.0,
+        "eps_total": 0.22505332701384356,
+        "snr_error_pct": 22.505332701384358,
+        "eps_master_measured": false
       },
       {
         "scenario": "+ sparse layer at 512 px pitch (Phase1 8x8 patch grid)",
@@ -100,8 +112,11 @@
         "eps_sparse": 0.135,
         "eps_theta": 0.034,
         "eps_g": 0.0,
-        "eps_total": 0.14002142693173786,
-        "snr_error_pct": 14.002142693173786
+        "eps_drizzle": 0.202,
+        "eps_master": 0.0,
+        "eps_total": 0.2457844584183467,
+        "snr_error_pct": 24.57844584183467,
+        "eps_master_measured": false
       },
       {
         "scenario": "+ g enabled with 1% gain uncertainty",
@@ -109,10 +124,15 @@
         "eps_sparse": 0.092,
         "eps_theta": 0.034,
         "eps_g": 0.01,
-        "eps_total": 0.09972462083156797,
-        "snr_error_pct": 9.972462083156797
+        "eps_drizzle": 0.202,
+        "eps_master": 0.0,
+        "eps_total": 0.22527538702663458,
+        "snr_error_pct": 22.527538702663456,
+        "eps_master_measured": false
       }
     ],
-    "drizzle_term_always_present": 0.202
+    "eps_drizzle_always_present": 0.202,
+    "eps_master_measured": false,
+    "eps_master_note": "carried as a structural zero: CALIBRATION.md:459 registers the gap UNRESOLVED, so eps_total excludes an unquantified master-variance term"
   }
 }

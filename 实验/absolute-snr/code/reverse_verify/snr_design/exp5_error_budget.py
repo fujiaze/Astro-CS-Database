@@ -11,12 +11,24 @@ Two DIFFERENT questions, kept separate on purpose:
 (B) Error of the REPORTED SNR/variance itself -- "is the number right?"
       eps_tot^2 = eps_P1^2 + eps_sparse^2 + eps_theta^2 + eps_g^2
                 + eps_drizzle^2 + eps_master^2
-    Each term is a RELATIVE error on the local sigma (equivalently on the
-    published SNR), evaluated from independent evidence; the script prints the
-    composition and the dominant term.
+    All SIX terms enter the sum.  Each term is a RELATIVE error on the local
+    sigma (equivalently on the published SNR), evaluated from independent
+    evidence; the script prints the composition and the dominant term.
 
-All inputs are either measured in EXP-2/EXP-3 on real RELEASE-02 frames or
-quoted from a frozen project constant with its source; nothing is invented.
+    Measurement status of the two always-on terms differs and must not be
+    conflated:
+      * eps_drizzle is MEASURED.  Source and MC cross-check in the term table
+        below.  It is present in EVERY scenario, because the published variance
+        product is the diagonal of C_y only.
+      * eps_master is NOT MEASURED.  CALIBRATION.md:459 registers the
+        master-variance gap as UNRESOLVED and the project has no formula for
+        it, so it is carried as a structural zero.  The six-term formula is
+        only as complete as the measurements behind it: eps_master == 0.0 means
+        "unmeasured", NOT "no error".  Do not read the total as a bound that
+        already covers master-frame variance.
+
+All other inputs are either measured in EXP-2/EXP-3 on real RELEASE-02 frames
+or quoted from a frozen project constant with its source; nothing is invented.
 
 Run: TMPDIR=/dev/shm/astrocs_snrd python3 exp5_error_budget.py --out exp5_error_budget.json
 """
@@ -86,14 +98,28 @@ def main():
          "term is structurally zero TODAY; it becomes the dominant term the "
          "moment g is enabled without an uncertainty on g"),
         ("drizzle_correlated_noise", 0.202,
-         "UNCERTAINTY_AND_COVARIANCE.md: diagonal-only propagation "
-         "underestimates variance by ~1+0.75*rho; rho=0.19 (nside=512 MC) "
-         "=> variance low by 36.3%, sigma low by 20.2%"),
+         "MEASURED: docs/science/UNCERTAINTY_AND_COVARIANCE.md, section 'Phase3 "
+         "resampled-variance propagation' -- diagonal-only propagation underestimates "
+         "the output variance by the factor 1+rho*(M_eff-1) (nearest-neighbour "
+         "approximation; 4-tap bilinear => M_eff=4 => 1+3rho); rho=0.19 (nside=512 MC, "
+         "SNR-012) => variance low by 1-1/1.57 = 36.3%, sigma low by "
+         "1-1/sqrt(1.57) = 20.2%; the same doc carries an independent MC value 0.39415 "
+         "against the 0.39250 closed form.  The published variance product is the "
+         "diagonal of C_y only, so this term is in EVERY row"),
         ("master_frame_variance", 0.0,
-         "CALIBRATION.md:236 registers the master-variance gap as UNRESOLVED "
-         "with no project formula; a finite-master model gives "
-         "sigma_master/sigma_sky ~ 1/sqrt(N_master) per master frame"),
+         "NOT MEASURED: docs/science/CALIBRATION.md:459 registers the master-variance "
+         "gap as UNRESOLVED -- this layer does not propagate master variance into cal, "
+         "and the project has no formula for the term.  A finite-master model would "
+         "give sigma_master/sigma_sky ~ 1/sqrt(N_master), but N_master is not "
+         "calibrated anywhere in this unit, so the 0.0 below is a structural zero "
+         "standing for 'unmeasured', not for 'no error'"),
     ]
+
+    # The two always-on terms are read back out of the term table above, so the
+    # sum and the evidence table cannot drift apart again.
+    _t = {n: e for n, e, _ev in terms}
+    eps_drizzle = _t["drizzle_correlated_noise"]   # measured, in every row
+    eps_master = _t["master_frame_variance"]       # NOT measured -> structural 0
 
     # scenario table: how the composition changes with the two live choices
     scen = []
@@ -111,15 +137,22 @@ def main():
             ("+ g enabled with 1% gain uncertainty",
              0.015, 0.092, 0.034, 0.010),
     ):
-        tot = float(np.sqrt(eps_p1**2 + eps_sparse**2 + eps_theta**2 + eps_g**2))
+        tot = float(np.sqrt(eps_p1**2 + eps_sparse**2 + eps_theta**2 + eps_g**2
+                            + eps_drizzle**2 + eps_master**2))
         scen.append(dict(scenario=label, eps_phase1=eps_p1,
                          eps_sparse=eps_sparse, eps_theta=eps_theta,
-                         eps_g=eps_g, eps_total=tot,
-                         snr_error_pct=100.0 * tot))
+                         eps_g=eps_g, eps_drizzle=eps_drizzle,
+                         eps_master=eps_master, eps_total=tot,
+                         snr_error_pct=100.0 * tot,
+                         eps_master_measured=False))
     B = dict(terms=[dict(name=n, rel_sigma_error=e, evidence=ev)
                     for n, e, ev in terms],
              scenarios=scen,
-             drizzle_term_always_present=0.202)
+             eps_drizzle_always_present=eps_drizzle,
+             eps_master_measured=False,
+             eps_master_note="carried as a structural zero: CALIBRATION.md:459 "
+                             "registers the gap UNRESOLVED, so eps_total excludes "
+                             "an unquantified master-variance term")
 
     out = dict(
         exp="EXP-5 final-product SNR error budget",
@@ -143,8 +176,10 @@ def main():
     for s in scen:
         print("%-42s %12.3f" % (s["scenario"], s["snr_error_pct"]))
     print()
-    print("   (drizzle correlated-noise term %.1f%% is present in every row)"
-          % (100 * 0.202))
+    print("   eps_drizzle %.1f%% is summed into every row above (measured, "
+          "MC cross-checked)" % (100 * eps_drizzle))
+    print("   eps_master  is carried as %.1f%% -- UNMEASURED structural zero, "
+          "not 'no error'" % (100 * eps_master))
     print("\nwrote", a.out)
 
 
