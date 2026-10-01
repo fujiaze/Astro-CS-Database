@@ -58,7 +58,7 @@ static void test_modes() {
     // 单一口径锚：未知 token 的拒绝理由必须给出正向口径陈述。
     CHECK(route_phase2_weight_token("bogus").reason.find("FZ-WEIGHT-SINGLE-PATH") != std::string::npos,
           "unknown phase2 token reject reason cites FZ-WEIGHT-SINGLE-PATH");
-    // §9.73 裁决 A44（FZ-WEIGHT-SINGLE-PATH）：phase2 的 --mode 面**没有**合法 token。
+    // 「权重模式」概念不存在（docs/ACSD_DESIGN.md §3.1（数据对象）；FZ-WEIGHT-SINGLE-PATH）：phase2 的 --mode 面**没有**合法 token。
     // 原 equal / pixel_ivar → kBaseline 的非生产放行面已删除：它们的唯一理由是
     // 「legacy 整数路由的映射目标登记」，整数路由删除后理由消失 ⇒ 全 token 一律拒绝。
     for (const char* t : {"equal", "pixel_ivar", "auto", "support_x_snr2",

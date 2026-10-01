@@ -10,7 +10,7 @@
   ③ <cmd> --template 输出（补齐真实输入路径后）同样走到「只差确认」——往返一致
   ④ eng/packaging/config/templates/*.json（仓库模板文件）补齐路径后同样被 CLI 接受
   ⑤ 旧合同形态 {phase_name, config, inputs[]} ⇒ rc=3 + 迁移提示（三命令，§9.71 裁决 2 定案 3/4）
-  ⑥ 块内 weight_mode ⇒ rc=3（§9.73 裁决 A44）
+  ⑥ 块内 weight_mode ⇒ rc=3（ACSD_DESIGN §3.1：权重模式键不存在）
   ⑦ blocks[] 与平铺单块简写同时出现 ⇒ rc=2「mutually exclusive」（不静默取一）
 
 跑法：python3 -B -m unittest discover -s eng/tests/cli -t eng/tests/cli -p "test_unified_blocks_templates.py"
@@ -267,7 +267,7 @@ class TestUnifiedBlocksCli(unittest.TestCase):
                             "%s 旧形态必须给迁移提示：%s" % (cmd, r.stderr))
             self.assertIn("blocks", r.stderr, "%s 迁移提示必须指向块形态" % cmd)
 
-    # ── ⑥ A44 ──
+    # ── ⑥ 已删除的权重模式键 ──
     def test_06_weight_mode_in_block_is_rejected(self):
         for cmd in SCHEMAS:
             doc = self._blocks_doc(cmd, "a44_" + cmd)

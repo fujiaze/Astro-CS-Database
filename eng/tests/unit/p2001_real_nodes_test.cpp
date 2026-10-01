@@ -15,7 +15,7 @@
 //      variance=1/W, 经 AIO variance 通道 §12.3/§12.4 归约）; ivar 产品缺失
 //      fail-closed（禁静默）—— 由 HiPS 头帧级 SNR 现场换算权重
 //      （w = SNR²/F_ref², weight-chain-report §6），键缺失同样 fail-closed;
-//      §9.73 A44 起 legacy_allow_weight_fallback **已删除**（出现即拒绝），不再产生成功
+//      「权重模式」概念不存在（docs/ACSD_DESIGN.md §3.1（数据对象））起 legacy_allow_weight_fallback **已删除**（出现即拒绝），不再产生成功
 //      等权降级（只登记 provenance），故 4e/(c) 断言 fail-closed。
 //   6. 负向/确定性/1-N worker parity/fail-fast 下游 call_count=0。
 //
@@ -282,9 +282,11 @@ std::string read_file(const std::string& p) {
   return s;
 }
 
-// §9.73 裁决 A44：已删除键的**出现面**必须直接判 validate_config（配置准入面）。
+// 「权重模式」概念不存在（docs/ACSD_DESIGN.md §3.1（数据对象）：
+// 「全链没有「权重模式」这一可选概念」；docs/science/PSF_SIGNAL_WEIGHT.md §4
+// 「没有可选择的口径」）⇒ 已删除键的**出现面**必须直接判 validate_config（配置准入面）。
 // 不能经 run_node 断言 —— run_node 在 validate 失败时提前 return 且**不回填** rc，
-// 会把「被拒绝」误报成 ok（恒真判据）。本助手同时要求拒绝理由点名该键并引用裁决条款。
+// 会把「被拒绝」误报成 ok（恒真判据）。本助手同时要求拒绝理由点名该键并引用现行依据。
 void expect_config_rejected(ModuleRegistry& reg, const std::string& module_id,
                             const std::string& config_json, const std::string& key) {
   auto m = reg.create(module_id);
@@ -296,9 +298,8 @@ void expect_config_rejected(ModuleRegistry& reg, const std::string& module_id,
     const std::string msg = v.error().message();
     CHECK_MSG(msg.find(key) != std::string::npos,
               ("reject must name the deleted key '" + key + "': " + msg).c_str());
-    CHECK_MSG(msg.find("§9.73") != std::string::npos &&
-                  msg.find("A44") != std::string::npos,
-              ("reject must cite §9.73 裁决 A44: " + msg).c_str());
+    CHECK_MSG(msg.find("ACSD_DESIGN.md §3.1") != std::string::npos,
+              ("reject must cite its current basis ACSD_DESIGN.md §3.1: " + msg).c_str());
   }
 }
 
@@ -606,7 +607,7 @@ static void test_ivar_chain_real_operation() {
     CHECK(fin["provenance"].value("ACSD_INPUT_MANIFEST_HASH", "").size() == 64);
     CHECK(fin["provenance"].value("ACSD_MODEL_HASH", "").size() == 64);
     CHECK(fin["provenance"].value("ACSD_UNCERTAINTY_AVAILABLE", "") == "true");
-    // A44（GAP_AUDIT §9.73 / docs/ACSD_DESIGN §2.1）：全程只有 SNR，不存在
+    // ACSD_DESIGN §3.1（数据对象）：全程只有 SNR，不存在
     // 「权重模式」⇒ 原 ACSD_WEIGHT_MODE 契约断言已删（键已不存在）。
     // ── AUDIT-PERSIST-01: §7a 审计块必须能从**产品**里读出来 ──────────────
     // 依据 docs/science/PHASE2_UPM.md §7a:190-192（节点间距的逐次尝试与生效值必须
@@ -946,7 +947,7 @@ static void test_negative_and_fallback() {
     CHECK_MSG(rc.failed(), "missing upstream artifact must fail closed");
     CHECK(!fs::exists(fs::path(fx.out + "/p2_samples.json")));
   }
-  // 4c. §9.73 裁决 A44：weight_mode **已删除** ⇒ 任何取值在配置准入面即被拒绝
+  // 4c. 「权重模式」概念不存在（docs/ACSD_DESIGN.md §3.1（数据对象））：weight_mode **已删除** ⇒ 任何取值在配置准入面即被拒绝
   //     （含原「合法值」2 与字符串形态）。判据较原实现收紧：原来只拒域外整数。
   for (const char* v : {"0", "2", "99", "-3", "\"2\"", "\"equal\"", "\"auto\""}) {
     expect_config_rejected(reg, "acsd.phase2.integrate",
@@ -991,7 +992,8 @@ static void test_negative_and_fallback() {
     // 而非判红; 判据本身不放松, 只是把 abort 变成可读的断言失败）。
     if (ff.failed())
       CHECK(ff.error().message().find("ivar") != std::string::npos);
-    // 4e. legacy_allow_weight_fallback **已按 §9.73 裁决 A44 删除**（同批清理）。
+    // 4e. legacy_allow_weight_fallback **已删除**（ACSD_DESIGN §3.1：全链没有「权重模式」
+    //     这一可选概念；同批清理）。
     //     两面都必须失败且不留任何伪产物；旧断言 "等权降级成功 +
     //     weight_basis=unit_weight_degraded" 编码的正是被删除的 L3 假绿路径。
     //  (i) 该键**出现** ⇒ 配置准入面即具名 fail-closed 拒绝（既不能被设、也不能被读）。
@@ -1180,7 +1182,7 @@ static void test_worker_parity() {
 }
 
 // ── IVAR-001: 单一路径/审计面 + 缺 ivar 的 fail-closed 门 ───────────────────
-// 依据: §9.73 裁决 A44（weight_mode 与 legacy_allow_weight_fallback 均已删除；
+// 依据: 「权重模式」概念不存在（weight_mode 与 legacy_allow_weight_fallback 均已删除；
 // 唯一权重口径 = 逐样本 ivar 逆方差，无可选择项）+ DATA-UNC-001 §30.1 规则 2
 // （ivar 缺失 ⇒ fail-closed；唯一自动降级面 = 帧级 SNR 链，且由数据可用性决定，
 // 不是用户开关；该面下 uncertainty_available=false）+ SCI-CW-001 §5（生产无 fallback）+
@@ -1212,7 +1214,8 @@ static void test_ivar001_weight_mode_domain_and_audit() {
   RunContext ctx;
 
   // (a) weight_mode 域门（ivar 齐备夹具 → 失败只可能归因于该键本身）
-  //     §9.73 裁决 A44：该键**已删除** ⇒ 任何取值都必须 fail-closed 具名拒绝。
+  //     「权重模式」概念不存在（ACSD_DESIGN §3.1（数据对象））：该键**已删除**
+  //     ⇒ 任何取值都必须 fail-closed 具名拒绝。
   //     判据较原实现**收紧**：原来只拒绝域外整数（0/99/-3），把 2 当合法；
   //     现在键不存在，原「合法值 2」与字符串形态同样拒绝。
   {
@@ -1222,7 +1225,7 @@ static void test_ivar001_weight_mode_domain_and_audit() {
                              "weight_mode");
     };
     mode_fail(R"(,"weight_mode":0)");       // 原域外值
-    mode_fail(R"(,"weight_mode":2)");       // 原「合法值」：A44 后同样拒绝
+    mode_fail(R"(,"weight_mode":2)");       // 原「合法值」：该键删除后同样拒绝
     mode_fail(R"(,"weight_mode":99)");      // SMOKE-001 D10 回归锚
     mode_fail(R"(,"weight_mode":-3)");
     mode_fail(R"(,"weight_mode":"2")");     // 字符串形态（禁隐式转换）
@@ -1275,7 +1278,8 @@ static void test_ivar001_weight_mode_domain_and_audit() {
     }
   }
 
-  // (c) legacy_allow_weight_fallback **已按 §9.73 裁决 A44 删除**（禁静默/禁假绿）
+  // (c) legacy_allow_weight_fallback **已删除**（ACSD_DESIGN §3.1：全链没有「权重模式」
+  //     这一可选概念；禁静默/禁假绿）
   //     两面: (i) 键复活 ⇒ 具名拒绝; (ii) 键缺席 + 缺 ivar + 无帧级 SNR 键 ⇒
   //     权重链 fail-closed。均不写 p2_integrated.json / p2_final.json,
   //     不存在 unit_weight_degraded 面。

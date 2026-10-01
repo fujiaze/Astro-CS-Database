@@ -11904,8 +11904,8 @@ static P2SparseLayerProbe p2_sparse_layer_probe(AioHipsDataset* ds,
 
 // ── op: integrate_frames（唯一真实入口 p2_validate_candidate_weights +
 //      p2_integrate_pixel; 权重面 = DATA-UNC-001 §30.1 目标态合同 +
-//      **单一权重口径**（docs/ACSD_DESIGN.md §3.1:175
-//      「权重的产生链固定为两步、没有可选择项」；PSF_SIGNAL_WEIGHT.md §4）:
+//      **单一权重口径**（docs/ACSD_DESIGN.md §3.1（数据对象）
+//      「全链没有「权重模式」这一可选概念」；换算式见 §5.3；PSF_SIGNAL_WEIGHT.md §4）:
 //      逐样本 ivar 逆方差。ivar 产品缺失 → 不再等权降级:
 //      由 HiPS 头帧级 SNR 现场换算逆方差权重（w = SNR²/F_ref² = 1/σ_F²,
 //      weight-chain-report §6）; 权重链未闭合 → DATA 错误 + closure token
@@ -11933,12 +11933,13 @@ Result<void> p2_op_integrate(const Json& doc, Json* man) {
   const uint64_t tile_span = cor_doc.value("tile_leaf_span", kP2TileLeafSpan);
 
   // ── legacy 整数权重模式域（0/1/2）已删除 ─────────────────
-  // 规范依据（权威，只读）：
-  //   · docs/ACSD_DESIGN.md §3.1:171「全程只有 SNR，没有"权重模式"这个概念」；
-  //   · docs/ACSD_DESIGN.md §3.1:175「权重的产生链固定为两步、**没有可选择项**」；
-  //   · docs/science/PSF_SIGNAL_WEIGHT.md §4:62/72「单一权重口径（无模式选择）」
-  //     「**没有可选择的口径**：不存在口径选择键、口径枚举、口径配置项或口径产物」；
-  //   · docs/engineering/01_CHECKS.md CHK-NO-WEIGHT-MODE-CODE（FZ-WEIGHT-SINGLE-PATH）。
+  // 规范依据（权威，只读）。只引节号、不引行锚：正文增删会让行锚漂移，
+  // 行锚漂移后锚点即悬空，读者回不到任何在册条款。
+  //   · docs/ACSD_DESIGN.md §3.1（数据对象）「全链没有「权重模式」这一可选概念」；
+  //   · docs/ACSD_DESIGN.md §5.3（信噪比重建与逆方差叠加）承载换算式
+  //     w = SNR²/F_ref² = 1/σ_F²（该节只作引用，F_ref/σ_F 口径定义处是 §2.2）；
+  //   · docs/science/PSF_SIGNAL_WEIGHT.md §4（单一权重口径）：
+  //     「**没有可选择的口径**：不存在口径选择键、口径枚举、口径配置项或口径产物」。
   // 原实现读整数 doc["weight_mode"]∈{1,2}：1=equal（等权、unit_weight_mode1）、
   // 2=ivar。equal 是一个**可选择的非逆方差口径**，与「没有可选择项」直接冲突。
   // ⇒ 该键既不能被设、也不能被读：出现即 fail-closed 拒绝（退役对象的拒绝面
@@ -11946,22 +11947,24 @@ Result<void> p2_op_integrate(const Json& doc, Json* man) {
   //   走帧级 SNR 逆方差链（w = SNR²/F_ref²），权重链未闭合则 DATA 错误。
   if (doc.contains("weight_mode"))
     return Result<void>::fail(Error(ErrorDomain::DATA,
-        "weight_mode 已按 §9.73 裁决 A44 删除：不存在「权重模式」"
-        "（docs/ACSD_DESIGN.md §3.1:175「权重的产生链固定为两步、没有可选择项」；"
-        "docs/science/PSF_SIGNAL_WEIGHT.md §4「单一权重口径（无模式选择）」）。"
+        "weight_mode 已删除：不存在「权重模式」"
+        "（docs/ACSD_DESIGN.md §3.1（数据对象）：全链没有「权重模式」这一可选概念；"
+        "docs/science/PSF_SIGNAL_WEIGHT.md §4（单一权重口径）：没有可选择的口径）。"
         "权重是阶段二按天球像素对应的输入帧集合现场算出的派生量 "
-        "w = SNR^2/F_ref^2 = 1/sigma_F^2；请删除该键。"));
+        "w = SNR^2/F_ref^2 = 1/sigma_F^2（docs/ACSD_DESIGN.md §5.3）；请删除该键。"));
   // legacy_allow_weight_fallback **已删除**。
   // 该键曾允许「ivar 缺失 → 降级 support/equal」；support 是无量纲几何量、equal 是等权，
-  // 二者都不是信号/噪声之比（docs/ACSD_DESIGN.md §3.1:173/175）⇒ 既不能被设、也不能被读，
+  // 二者都不是信号/噪声之比（docs/ACSD_DESIGN.md §3.1：权重是纯信号与噪声之比的派生量）
+  // ⇒ 既不能被设、也不能被读，
   // 出现即 fail-closed 具名拒绝。唯一降级面 = 帧级 SNR 逆方差链 w = SNR^2/F_ref^2，
-  // 由数据可用性自动决定（不是用户开关）；权重链未闭合即 DATA 错误。
+  // 由数据可用性自动决定（不是用户开关；docs/ACSD_DESIGN.md §5.3）；
+  // 权重链未闭合即 DATA 错误。
   if (doc.contains("legacy_allow_weight_fallback"))
     return Result<void>::fail(Error(ErrorDomain::DATA,
-        "legacy_allow_weight_fallback 已按 §9.73 裁决 A44 删除：它允许用无量纲 "
-        "support 或等权降级冒充逆方差权重，与 docs/ACSD_DESIGN.md §3.1:173「权重只能"
-        "来自纯净信号与噪声之比」及 §3.1:175「没有可选择项」冲突。唯一降级面 = "
-        "帧级 SNR 逆方差链 w = SNR^2/F_ref^2；请删除该键。"));
+        "legacy_allow_weight_fallback 已删除：它允许用无量纲 "
+        "support 或等权降级冒充逆方差权重，与 docs/ACSD_DESIGN.md §3.1（数据对象）"
+        "「权重只能来自纯净信号与噪声之比」、全链没有「权重模式」这一可选概念冲突。唯一降级面 = "
+        "帧级 SNR 逆方差链 w = SNR^2/F_ref^2（docs/ACSD_DESIGN.md §5.3）；请删除该键。"));
 
   // ── snr_path：三条 SNR 重建路径的**唯一生产读取/消费点**（此前为死键）──────
   // 正本：docs/ACSD_DESIGN.md §5.3（design_clauses 条目 DESIGN-5.3-SNR-PATH-JSON）、
@@ -12217,7 +12220,8 @@ Result<void> p2_op_integrate(const Json& doc, Json* man) {
             std::to_string(ivar_missing) + "/" + std::to_string(frames.size()) +
             " frames missing ivar; frame-SNR weight chain NOT closed (" + tok +
             "): " + detail + " (DATA-UNC-001 §30.1: no silent fallback; the legacy"
-            " exit legacy_allow_weight_fallback=true is deleted per §9.73 A44 and"
+            " exit legacy_allow_weight_fallback=true is deleted per ACSD_DESIGN §3.1"
+            " (no selectable weight-mode concept) and"
             " no longer produces any equal-weight degradation)"));
       }
       use_snr_chain = true;
@@ -12245,7 +12249,7 @@ Result<void> p2_op_integrate(const Json& doc, Json* man) {
                     " frames missing ivar -> HiPS frame-SNR inverse-variance"
                     " weights (source=" + weight_source + "; closure=" +
                     snr_chain_closure + "; legacy_allow_weight_fallback deleted"
-                    " per §9.73 A44)\n")
+                    " per ACSD_DESIGN §3.1)\n")
                        .c_str());
     } else {
       uncertainty_available = true;
@@ -14038,14 +14042,15 @@ struct P2NodeModule : public IModule {
     // 出现在节点配置里即 fail-closed 拒绝（不得静默忽略，也不得做类型校验后放行）。
     if (doc.contains("weight_mode"))
       return Result<void>::fail(Error(ErrorDomain::DATA,
-          "weight_mode 已按 §9.73 裁决 A44 删除：不存在「权重模式」"
-          "（docs/ACSD_DESIGN.md §3.1:175「没有可选择项」；"
-          "docs/science/PSF_SIGNAL_WEIGHT.md §4「单一权重口径（无模式选择）」）。"));
+          "weight_mode 已删除：不存在「权重模式」"
+          "（docs/ACSD_DESIGN.md §3.1（数据对象）：全链没有「权重模式」这一可选概念；"
+          "docs/science/PSF_SIGNAL_WEIGHT.md §4（单一权重口径）：没有可选择的口径）。"));
     // 该键已删除 ⇒ 出现即拒绝（不再做类型校验后放行）。
     if (doc.contains("legacy_allow_weight_fallback"))
       return Result<void>::fail(Error(ErrorDomain::DATA,
-          "legacy_allow_weight_fallback 已按 §9.73 裁决 A44 删除：它允许用无量纲 "
-          "support 或等权降级冒充逆方差权重（docs/ACSD_DESIGN.md §3.1:173/175）。"));
+          "legacy_allow_weight_fallback 已删除：它允许用无量纲 "
+          "support 或等权降级冒充逆方差权重（docs/ACSD_DESIGN.md §3.1（数据对象）："
+          "权重只能来自纯净信号与噪声之比、全链没有「权重模式」这一可选概念）。"));
     return Result<void>::success();
   }
 

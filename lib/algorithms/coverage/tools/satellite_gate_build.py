@@ -197,7 +197,8 @@ def main():
                 "memory_limit_mb": 16384,
                 "rejection": {"method": "auto", "profile": "wbpp_current",
                               "underdetermined_n": 2},
-                # §9.73 裁决 A44：weight_mode 已删除（出现即拒绝）⇒ 不再生成。
+                # 「权重模式」概念不存在（docs/ACSD_DESIGN.md §3.1（数据对象））
+                # ⇒ weight_mode 已删除（出现即拒绝），不再生成。
                 "acr_route": "cpu"
             },
             "output": {"hips": out_hips},

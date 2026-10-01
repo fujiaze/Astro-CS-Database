@@ -137,7 +137,7 @@ inline float base_signal(uint32_t x, uint32_t y) {
 }
 
 // frame_snr/ref_flux > 0 ⇒ 写 RELEASE-02 SD-15 帧级 SNR 键（ACSD_FRAME_SNR /
-// ACSD_REFERENCE_FLUX）。§9.73 裁决 A44 后，这是「ivar 缺失 ⇒ 方差面不可用」
+// ACSD_REFERENCE_FLUX）。「权重模式」概念不存在（docs/ACSD_DESIGN.md §3.1（数据对象））后，这是「ivar 缺失 ⇒ 方差面不可用」
 // 的**唯一合法出口**（帧级 SNR 逆方差链; §30.1 规则 2），不再是 legacy 等权降级。
 bool write_ivar3_frame(const std::string& path, double ivar, float offset,
                        bool with_outliers, double frame_snr = 0.0,
@@ -183,7 +183,7 @@ bool write_ivar3_frame(const std::string& path, double ivar, float offset,
     aio_hips_abort(ps);
     return false;
   }
-  // §9.73 A44: 帧级 SNR 键是「ivar 缺失 ⇒ 方差面不可用」的唯一合法出口。
+  // ACSD_DESIGN §3.1（数据对象）: 帧级 SNR 键是「ivar 缺失 ⇒ 方差面不可用」的唯一合法出口。
   if (frame_snr > 0.0 || ref_flux > 0.0) {
     if (aio_hips_set_frame_snr(ps, frame_snr, ref_flux) != 0) {
       std::fprintf(stderr, "fixture frame-snr set failed: %s\n", aio_hips_last_error());
@@ -329,7 +329,9 @@ json run_p2_chain(ModuleRegistry& reg, const std::string& cfg, RunContext& ctx,
   return last;
 }
 
-// §9.73 裁决 A44：已删除键的**出现面**必须直接判 validate_config（配置准入面）。
+// 「权重模式」概念不存在（docs/ACSD_DESIGN.md §3.1（数据对象）：
+// 「全链没有「权重模式」这一可选概念」；docs/science/PSF_SIGNAL_WEIGHT.md §4
+// 「没有可选择的口径」）⇒ 已删除键的**出现面**必须直接判 validate_config（配置准入面）。
 // 不能经 run_node 断言 —— run_node 在 validate 失败时提前 return 且**不回填** rc，
 // 会把「被拒绝」误报成 ok（恒真判据）。
 void expect_config_rejected(ModuleRegistry& reg, const std::string& module_id,
@@ -343,9 +345,8 @@ void expect_config_rejected(ModuleRegistry& reg, const std::string& module_id,
     const std::string msg = v.error().message();
     CHECK_MSG(msg.find(key) != std::string::npos,
               ("reject must name the deleted key '" + key + "': " + msg).c_str());
-    CHECK_MSG(msg.find("§9.73") != std::string::npos &&
-                  msg.find("A44") != std::string::npos,
-              ("reject must cite §9.73 裁决 A44: " + msg).c_str());
+    CHECK_MSG(msg.find("ACSD_DESIGN.md §3.1") != std::string::npos,
+              ("reject must cite its current basis ACSD_DESIGN.md §3.1: " + msg).c_str());
   }
 }
 
@@ -1395,7 +1396,7 @@ static void test_s303_provenance_keys(bool fault_inject) {
   catch (...) { CHECK(false); }
   CHECK(fin.value("schema", "") == "DATA-P2-RES");
   const json& prov = fin["provenance"];
-  // 四键全在（键名冻结; 禁静默缺键）。A44（§9.73 / DESIGN §2.1）：全程只有
+  // 四键全在（键名冻结; 禁静默缺键）。ACSD_DESIGN §3.1（数据对象）：全程只有
   // SNR、不存在「权重模式」⇒ ACSD_WEIGHT_MODE 已从契约面删除（原五键）。
   static const char* keys[] = {"ACSD_INPUT_MANIFEST_HASH", "ACSD_MODEL_HASH",
                                "ACSD_UNCERTAINTY_AVAILABLE",
@@ -1496,14 +1497,14 @@ static void test_s303_aio_channel_real_values(bool fault_inject) {
   const bool unc = intj.value("uncertainty_available", false);
   CHECK_MSG(mhash.size() == 64 && modhash.size() == 64 && !profile.empty(),
             "Phase2 artifacts must carry real 64hex hashes + profile");
-  // FIX-201 / §9.73 A44: 原断言 CHECK_MSG(wmode == 2, "weight_mode must be 2")
-  // 锁定的是已作废的「权重模式」概念（docs/ACSD_DESIGN §2.1「全程只有 SNR,
-  // 不存在权重模式」）⇒ 该断言与其取值来源 (wmode) 一并删除。
-  // 替代锁（更严, 且不依赖被删概念）: 产品面**不得**携带 A44 provenance 键。
+  // FIX-201: 原断言 CHECK_MSG(wmode == 2, "weight_mode must be 2")
+  // 锁定的是已作废的「权重模式」概念（docs/ACSD_DESIGN.md §3.1（数据对象）
+  // 「全链没有「权重模式」这一可选概念」）⇒ 该断言与其取值来源 (wmode) 一并删除。
+  // 替代锁（更严, 且不依赖被删概念）: 产品面**不得**携带已删除的权重模式 provenance 键。
   // 生产侧残留（module_adapters.cpp 仍向 p2_integrated.json / manifest 写小写
   // weight_mode）属域外, 登记给前台/FIX-204。
   CHECK_MSG(!intj.contains("ACSD_WEIGHT_MODE"),
-            "A44: p2_integrated.json 禁携带权重模式 provenance 键");
+            "p2_integrated.json 禁携带已删除的权重模式 provenance 键");
   CHECK_MSG(unc, "fixture carries ivar products → uncertainty_available=true");
 
   const int target_order = cov.value("target_order", 0);
@@ -1660,7 +1661,7 @@ static void test_s303_aio_channel_real_values(bool fault_inject) {
     const int vrc = aio_hips_verify_product_set(aio_dir.c_str(), &rep);
     CHECK_MSG(vrc == 0, ("aio verify must pass on real Phase2 product (rc=" +
                          std::to_string(vrc) + " : " + aio_hips_last_error() + ")").c_str());
-    // FIX-201 / §9.73 A44 收窄锁: 四键 (原五键中的「权重模式」键已删除)。
+    // FIX-201 收窄锁: 四键 (原五键中的「权重模式」键已删除; ACSD_DESIGN §3.1)。
     CHECK_EQ_INT(rep.prov_keys_present, 4);
     CHECK_EQ_INT(rep.uncertainty_available, unc ? 1 : 0);
     CHECK_EQ_INT(rep.variance_present, unc ? 1 : 0);
@@ -1677,7 +1678,7 @@ static void test_s303_aio_channel_real_values(bool fault_inject) {
 }
 
 // ── 4. §30.3 unavailable 面 ────────────────────────────────────────────────
-// §9.73 裁决 A44 后本面重建（判据强度不降）：
+// 「权重模式」概念不存在（docs/ACSD_DESIGN.md §3.1（数据对象））后本面重建（判据强度不降）：
 //   legacy_allow_weight_fallback **已删除**（出现即拒绝）；weight_mode=1 亦然。
 //   故 unavailable 面的**唯一合法出口** = 帧级 SNR 逆方差链（§30.1 规则 2：
 //   ivar 缺失 + ACSD_FRAME_SNR/ACSD_REFERENCE_FLUX 齐备 ⇒ 积分仍有权重、
@@ -1687,7 +1688,7 @@ static void test_s303_aio_channel_real_values(bool fault_inject) {
 //   4a') 键缺席 + 缺 ivar + 无帧级 SNR 键 ⇒ 权重链 fail-closed（无伪产物）；
 //   4b) 帧级 SNR 链闭合 ⇒ §30.3 unavailable 面五键全写 + 磁盘一致。
 static void test_s303_unavailable_explicit() {
-  // 4a) 已删除键出现 ⇒ 配置准入面拒绝（§9.73 A44）
+  // 4a) 已删除键出现 ⇒ 配置准入面拒绝（ACSD_DESIGN §3.1（数据对象））
   {
     Fixture3 fx = make_fixture3("unav_fb");
     ModuleRegistry reg;
@@ -1828,7 +1829,7 @@ static void test_f_unc_003_no_plane_drift() {
       }
       CHECK(c.contains("provenance_keys"));
       if (c.contains("provenance_keys")) {
-        // FIX-201 / §9.73 A44 收窄锁: 只锁四键 (帧级 SNR 与稀疏控制点上的绝对 SNR
+        // FIX-201 收窄锁: 只锁四键 (帧级 SNR 与稀疏控制点上的绝对 SNR
         // 之外无 provenance 面)。原断言把已作废的「权重模式」键当契约
         // (与 docs/ACSD_DESIGN §2.1「全程只有 SNR」相反) —— 该键名不再出现在
         // 断言里, 也不得由任何人重新引入。

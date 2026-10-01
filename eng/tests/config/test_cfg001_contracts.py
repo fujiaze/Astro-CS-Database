@@ -44,7 +44,7 @@ KEY_ANCHORS = [
     ("noise.variance_floor", "docs/science/NOISE_MODEL.md", "1e-12", "dabe6c0944595306"),
     ("rejection.sigma.lower_sigma", "docs/science/REJECTION.md", "4.0", "8464bc8325f7cc48"),
     ("photometry.mag_tolerance", "docs/science/PHOTOMETRY.md", "3.0", "d97a4b7e39573a0a"),
-    # §9.73 裁决 A44（不存在「权重模式」）：weight.default_mode 组与
+    # 「权重模式」概念不存在（docs/ACSD_DESIGN.md §3.1（数据对象））：weight.default_mode 组与
     # phase_config_mosaic 的 algorithm_weight_mode 已同批注销（eng/packaging/config/defaults.json
     # field_count 53→52；config_registry.json 登记注销），故此处不再登记其权威锚点。
     ("precision.default", "docs/science/SCIENCE_SCOPE.md", "FP64", "fe438f8e0e1b5535"),

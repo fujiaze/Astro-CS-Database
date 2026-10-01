@@ -79,7 +79,8 @@ def main():
     bad_type = json.loads(json.dumps(template))
     bad_type["integration"]["precision"] = "int8"
     run_parse(json.dumps(bad_type), expect_parse_ok=False)
-    # §9.73 裁决 A44：两个已删除键**出现即拒绝**（负例面; 值形态不改变判定）。
+    # 「权重模式」概念不存在（docs/ACSD_DESIGN.md §3.1（数据对象）：全链没有「权重模式」
+    # 这一可选概念）⇒ 两个已删除键**出现即拒绝**（负例面; 值形态不改变判定）。
     for dead_key, dead_val in (("weight_mode", "snr2"),
                                ("weight_mode", 0),
                                ("legacy_allow_weight_fallback", True)):

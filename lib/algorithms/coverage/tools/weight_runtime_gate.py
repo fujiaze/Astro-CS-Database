@@ -13,6 +13,10 @@
 #   现改为正向断言单一 ivar 口径 + **已删键出现即判红**（防止降级面悄悄复活），
 #   并加 `--self-test`（能红能绿 + fail-closed）。
 #
+# 现态依据（上述「§9.73 裁决 A44」是当时的裁决锚，该锚已随审计件注销；改引在册条款）：
+#   docs/ACSD_DESIGN.md §3.1（数据对象）「全链没有「权重模式」这一可选概念」；
+#   docs/science/PSF_SIGNAL_WEIGHT.md §4（单一权重口径）「没有可选择的口径」。
+#
 # 用法：
 #   python3 lib/algorithms/coverage/tools/weight_runtime_gate.py \
 #       --hips <phase1 .hips> --diag <mosaic .hips>/diagnostics.json
@@ -25,8 +29,9 @@ import tempfile
 
 import numpy as np
 
-# §9.73 裁决 A44：这些键在 diagnostics 里**出现即判红**（已删除的权重模式域
-# 与已删除的降级面；复活 = 单一权重口径被破坏）。
+# 「权重模式」概念不存在（docs/ACSD_DESIGN.md §3.1（数据对象）：全链没有「权重模式」
+# 这一可选概念；docs/science/PSF_SIGNAL_WEIGHT.md §4：没有可选择的口径）⇒ 这些键在
+# diagnostics 里**出现即判红**（已删除的权重模式域与已删除的降级面；复活 = 单一权重口径被破坏）。
 DELETED_DIAG_KEYS = (
     "weight_mode",
     "legacy_allow_weight_fallback",
@@ -97,8 +102,10 @@ def check_single_weight_path(diag):
         return 1
     revived = [k for k in DELETED_DIAG_KEYS if k in d]
     if revived:
-        print("FAIL: diagnostics 出现已按 §9.73 A44 删除的键 %s "
-              "⇒ 单一权重口径被破坏（降级面/模式号复活）" % revived)
+        print("FAIL: diagnostics 出现已删除的权重模式/降级面键 %s "
+              "⇒ 单一权重口径被破坏（降级面/模式号复活；"
+              "docs/ACSD_DESIGN.md §3.1（数据对象）：全链没有「权重模式」这一可选概念）"
+              % revived)
         return 1
     if "local_ivar_used" not in d:
         print("FAIL: diagnostics 缺 local_ivar_used ⇒ 无法证明 ivar 口径被使用")
