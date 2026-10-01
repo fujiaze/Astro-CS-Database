@@ -1,12 +1,12 @@
 # Astro Celestial Sphere Database（ACSD） 最高设计细节规范
 
-> 上游：ACSD_DESIGN.md §0.1（唯一权威链）、§0.2（详细文档层与双向索引）
+> 上游：ACSD_DESIGN.md §0（文档权威与索引）、§0.1（文档写法）
 
 定位：`ACSD_DESIGN.md` 之下，项目目标态设计的细节总入口。本文描述 ACSD 必须做到什么，不描述某次工程修复流水账。
 
 ## 1. 权威体系
 
-1. 最高权威是根 `ACSD_DESIGN.md`（§0 权威链）；本文是其下的项目目标态细节总入口。
+1. 最高权威是根 `ACSD_DESIGN.md` §0（文档权威与索引）；本文是其下的项目目标态细节总入口。
 2. 本文冻结产品目标、科学目标、Phase 边界和目标态组成。
 3. 三阶段详细设计分别位于：
    - `docs/detail/PHASE1_DETAILED_DESIGN.md`
