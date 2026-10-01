@@ -72,7 +72,7 @@ invalid = NaN/coverage=0（按 DATA 合同）；求解失败 → `PLATESOLVE_FAI
 ## 公共 header、核心 symbol 与生命周期
 
 模块级 API = API-WCS-001（docs/engineering/PUBLIC_API.md；签名头正本
-`lib/include/ipv_api.h`，12 导出，生产入口 `ipv_solve_from_detections_v1`）；
+`lib/algorithms/platesolve/cpp/ipv/include/ipv_api.h`，12 导出，生产入口 `ipv_solve_from_detections_v1`）；
 编排级 API = API-P1-004（phase session extern "C"）；生命周期
 create→validate→run→inspect→destroy。
 

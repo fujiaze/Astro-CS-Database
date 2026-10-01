@@ -43,7 +43,7 @@ y_ik/σ_ik/snr_ik/support_ik/quality_ik，产出 UPM 联合加性校准的
 |---|---|---|---|
 | Ω | coverage union（上游 MOC） | — | coverage.h（P2-COV 域） |
 | tile_ipix | union tile 的 NESTED 像素号（order=target_order） | 无量纲 | coverage.h P2CoverageCell.ipix |
-| grid=G | 每 tile 的 cell 网格边长（默认 8） | 无量纲 | sampler.cpp:303-304/:519（<!-- 订正: 检查-跨文档冲突 黄7——原锚 :303/:509，:509 现为 background_contamination_sigma 赋值；grid 默认 8 在 :304、再默认 :519。旧对照：sampler.cpp:303/:509 -->） |
+| grid=G | 每 tile 的 cell 网格边长（默认 8） | 无量纲 | sampler.cpp:303-304/:519（锚：grid 默认 8 在 :304、再默认 :519） |
 | cell_side | tile 边长/G=64（kTileWidth=512） | leaf 像素 | sampler.cpp:76/:630 |
 | cell (t,gx,gy) | 控制点拓扑 = tile × 网格坐标 | — | sampler.cpp:771-780 |
 | leaf_ipix | cell 中心 leaf 像素（order+9） | 无量纲 | sampler.cpp:773-774 |
@@ -124,7 +124,7 @@ ra_deg / dec_deg = 度（J2000）；snr / support / quality_flags = 无量纲；
 `background_contamination_sigma=3.0`/
 `background_min_retained_fraction=0.60`/`background_tolerance=3.0`/
 `background_neighbor_radius=2`/`background_catalog_veto=1`/
-`control_k_corr=1.4`/`cpu_workers=1`（sampler.cpp:303-320；<!-- 订正: 检查-跨文档冲突 黄7——原区间 303-317 未覆盖 cpu_workers=1 实际赋值行 :320。旧对照：sampler.cpp:303-317 -->）。
+`control_k_corr=1.4`/`cpu_workers=1`（sampler.cpp:303-320；cpu_workers=1 实际赋值行 :320）。
 显式 cfg 覆盖路径：sampler.cpp:501（`if (cfg_in) cfg = *cfg_in;`）。
 
 ## 4 算法结构：三阶段 background-clean 采样管线

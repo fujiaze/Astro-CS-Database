@@ -186,9 +186,9 @@ ALG-P3-002 / API-P3-001 / TEST-P3-WCS-001）与 module_id 合同值
   回归）。
 - 本节承载 TEST-P3-WCS-001 登记面；可执行面待建（验收级 oracle=WCSLIB）。
 - 现状执行测试（相邻证据，引用不冒认）:
-  eng/tests/unit/p3_wcs_test.cpp（WCS 完整性/溢出检查）+
+  lib/algorithms/projection/tests/p3wcs/p3_wcs_test.cpp（WCS 完整性/溢出检查）+
   eng/tests/backend/test_p1002_gaps.py（独立解析解回归）+
-  eng/tests/backend/p3_wcs_main.cpp（探针 make/p2w/w2p/kw）。
+  lib/algorithms/projection/tests/p3wcs/p3_wcs_main.cpp（探针 make/p2w/w2p/kw）。
 - Oracle 面补充：Astropy / WCSLIB 独立正负投影**绝对对拍**（不只用往返 —— 往返
   对 CRVAL2 类缺陷零区分力）+ 往返（中心、边、wrap、极点、奇点）+ CRPIX ↔ CRVAL
   定义性不变量 + `dec0 ≠ 0` 用例；**八投影全覆盖测试**（每投影必须带独立 Oracle
