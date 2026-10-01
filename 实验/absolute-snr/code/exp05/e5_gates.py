@@ -418,9 +418,29 @@ def main() -> int:
     out = {"meta": {"seed": SEED, "n_gates": len(gates),
                     "all_pass": X.all_pass(gates),
                     "n_algebraic_identity_checks": len(identity_checks) - 1,
-                    "elapsed_s": time.time() - t0},
+                    "elapsed_s": time.time() - t0,
+                    "supersedes": "results/exp05_e5_gates.json（旧存档，判决已过期，见下）"},
            "gates": gates,
-           "algebraic_identity_checks": identity_checks}
+           "algebraic_identity_checks": identity_checks,
+           "stale_archive_notice": {
+               "path": "results/exp05_e5_gates.json",
+               "status": "EXPIRED — 判决已过期，不得作为证据引用",
+               "reason": ("该存档的 meta.n_gates=28 / meta.all_pass=true 描述的是**当前代码里"
+                          "已不存在的门集合**。存档中 7 条纯恒等门（G5a/G5b/G5c/G6a/G7/G7b/G8，"
+                          "读数 0 或逐位恒等）已移入本文件的 identity_checks，不再计入门数；"
+                          "另有 6 条真门（G5a/G5b/G5c/G5e/G6/G7 的新名）在本代码里却不在存档里。"),
+               "obsolete_gate_names": [
+                   "G5a_frame_scalar_fault_leaves_absolute_bitwise",
+                   "G5b_frame_scalar_fault_moves_relative_linearly",
+                   "G5c_relative_equals_absolute_times_common_factor",
+                   "G6a_abs_cross_frame_immune_to_frame_scalar_swap",
+                   "G6b_rel_cross_frame_corrupted_by_c_spread",
+                   "G7_level_metric_zero_on_identity",
+                   "G7b_level_metric_live_on_injected_offset",
+                   "G8_degenerate_bitwise_identity"],
+               "remediation": ("由前台统一重跑本脚本覆盖生成新存档；本单不得自行覆写 results/。"
+                               "在新存档产生前，引用本单元判决一律以本文件的门定义为准，"
+                               "不得引用旧存档的 all_pass。")}}
     for g in gates:
         print("%-4s %-52s %s" % (g["verdict"], g["gate"],
                                  json.dumps(g["value"], ensure_ascii=False)[:90]))

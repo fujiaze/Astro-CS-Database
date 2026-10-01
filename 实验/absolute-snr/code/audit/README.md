@@ -1,5 +1,34 @@
 # code/audit — 独立审计三路重做 + 补实验（P2 跨帧绝对 SNR）
 
+> ## ⚠ 证据地位裁定：本目录**不是** ACSD 生产实现的判别力证据
+>
+> 按 `run/GOVERN-08/工作包-GOVERN-08原件/standards/08_编译与CI重做规范.md` §4
+> 「恒真、空断言、**不读真实对象的判据无效**」，对本目录 36 个 `.py` 逐个统计读侧操作
+> （`open(...,'r')` / `json.load` / `fits.open` / `subprocess` / `np.fromfile`）：
+>
+> | 子树 | 文件数 | 真读 `lib/**` 生产实现的 |
+> |---|---|---|
+> | `route1/` + `route2/` + `route3/`（除 exp11）+ `supplement_control_variance/` | **35** | **0** |
+> | `route3/exp11_frozen_operator_transfer.py` | 1 | 是（`phase2_integrate` 的 `weight_chain.h/.cpp`，记 sha256） |
+>
+> ⇒ 除 exp11 外，本目录 35 个脚本的判据比较的是**脚本内本地重实现**，
+> **在结构上不可能因 ACSD 生产管线的缺陷翻红**。它们验的是「本脚本的重写是否自洽」，
+> 不是「生产实现是否正确」。
+>
+> **裁定**：
+> - 本目录整体降级为**本地重实现自检**（local re-implementation self-check）。
+>   数值读数照旧保留、照旧可复现，但**不得**被引作生产实现的判别力证据。
+> - **唯一例外**：`route3/exp11_frozen_operator_transfer.py` 保持证据地位。
+> - 命名陷阱：`supplement_control_variance/production_chain_control_variance.py`
+>   文件名带 `production`，但其 docstring `:2` 自承「逐句复刻 sampler.cpp:837-878」，
+>   `:47-83` 是手写 numpy 移植、`:92` 用合成数据 ⇒ **不读生产**，与其他 34 个同级。
+> - 把本目录的「绿」读成「生产正确」的引用，一律属无效引用；逐条见
+>   `run/GOVERN-08/审核包-R2/G08-05-整改-恒真门.md`。
+>
+> 若要把本目录升回证据地位，条件是**逐个文件链接生产实现**
+> （编译 `lib/**` 源或经生产驱动调用），并对每条门给出注入缺陷的实测红灯。
+> 本次治理**未做**此改造，如实登记为未完成项。
+
 本目录是 P2 三路重做与补实验的可复现脚本与结果快照（脚本文件名保持原名，逐字复制，未改算法）：
 
 | 子目录 | 脚本快照位置 | 内容 | 固定 seed |

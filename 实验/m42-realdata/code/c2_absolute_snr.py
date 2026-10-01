@@ -365,6 +365,15 @@ def main():
                 continue
             vv.append(float(np.median(Ve[m])))
             if W.size:
+                # ⚠ 缺陷登记（G08-05）：此处取的是**全数组**中位数 np.median(W)，与本箱无关。
+                # 于是 wbv 是 nb 个逐位相同的常数（实测 n_unique=1，值 9.540794265738839e-10）；
+                # 而 weight_efficiency 对 w 是 0 次齐次（Var_w=Σw²v/(Σw)²），故
+                # E(常数 w) 与 E(全 1) 逐位相同 ⇒ ratio_e ≡ 1.0 ⇒ 下面两条门结构上不可判红。
+                # 根因不止于此：empirical_noise 的 (De,Ve) 与 product_weights 的 W 取自
+                # **不同的 rng 种子与不同的 tile 抽样**（见两函数各自的 M.derive_rng），
+                # 二者根本不是逐样本配对，无法按 D 分箱求「箱内 W 中位」。
+                # 修法：让两条链共用同一批 (tile, frame, pixel) 抽样，使 W 与 (D,V) 逐样本对齐。
+                # 本仓现成产物 run/RELEASE-05/vis/out/ 不在，无法实测复跑，故按诊断项登记。
                 ww.append(float(np.median(W)))
             cc.append(float(m.sum()))
         vb = np.clip(np.array(vv), 1e-300, None)
@@ -386,9 +395,11 @@ def main():
           "产品权重（per_sample_ivar）的 E <= %.0e（EXP-06 phys_auto 量级）" % E_GATE,
           ep["eff_loss"] if ep else None, bool(ep and ep["eff_loss"] <= E_GATE),
           source="实验/absolute-snr/code/exp05/exp05_common.py:393-408",
-          level="external-consistency",
-          note="EXP-06 参考：phys_auto %.3e / naive_pixel %.3e / frame_scalar %.3e；"
-               "实测 E(常数权重)=%.6f，var_true 跨 %.2f 倍"
+          level="external-consistency", degenerate=True,
+          note="【与 C2-G3c 同源，移出判定、仅登记】EXP-06 参考：phys_auto %.3e /"
+               " naive_pixel %.3e / frame_scalar %.3e；实测 E(常数权重)=%.6f，"
+               "var_true 跨 %.2f 倍。被测臂 wbv 恒为常数（见下方缺陷登记），"
+               "本门量到的其实是 E(常数权重)，不是产品权重的 E。"
                % (EXP06_E["phys_auto"], EXP06_E["naive_pixel"], EXP06_E["frame_scalar"],
                   ec0["eff_loss"] if ec0 else float("nan"),
                   (max(vb) / min(vb)) if vb.size else float("nan")))
@@ -398,8 +409,13 @@ def main():
           "产品权重的 E 必须 < 0.5 * E(常数权重)（权重确实随噪声变化而变）",
           ratio_e, bool(ratio_e is not None and ratio_e < 0.5),
           source="E 的定义 + 实验/absolute-snr/code/exp05/exp05_common.py:393-408",
-          level="data",
-          note="E(product)/E(const)=%s（=1.0 表示权重在信号维上完全不变）"
+          level="data", degenerate=True,
+          note="【恒红门，移出判定、仅登记】ratio_e 恒 ≡ 1.0，与产品权重怎么变无关："
+               "wbv 取自全数组 np.median(W)（见上缺陷登记，24 箱 n_unique=1），"
+               "而 weight_efficiency 对 w 0 次齐次 ⇒ E(常数 w) ≡ E(全 1) 逐位相同。"
+               "E(product)/E(常数)=%s（=1.0 是**构造产物**，不是「权重在信号维上不变」的观测）。"
+               "同一产物 weight_efficiency.w_stats 的实测产品 ivar 为 min=4.837e-10 /"
+               " max=1.914e-09（max/min=3.96≠1.0），与本门读数矛盾。"
                % ("%.6f" % ratio_e if ratio_e is not None else "n/a"))
     # 正例控制：合成 w ∝ var_true^-0.9 -> E 必须很小（判据能绿）
     if vb.size:
@@ -425,7 +441,9 @@ def main():
     g.add("C2-G3b-optimal-degenerate",
           "退化对照：w = 1/var_true 时 E 必须为 0（该臂恒真，无证据资格）",
           eo["eff_loss"] if eo else None, bool(eo and abs(eo["eff_loss"]) < 1e-12),
-          source="E 的定义", level="degenerate-control")
+          source="E 的定义", level="degenerate-control", degenerate=True,
+          note="恒真门（Cauchy–Schwarz 取等）：E(1/v, v) ≡ 0 对任意正数组成立，"
+               "实测 %.3e。移出判定、仅登记，不计入 n_pass。" % (eo["eff_loss"] if eo else float("nan")))
 
     out["gates"] = g.summary()
     p = M.json_dump(out, "c2_absolute_snr.json")
