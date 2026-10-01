@@ -121,4 +121,4 @@ HEALPix NESTED；PIXEL 一侧属端口词汇漂移（§29.5 已声明端口表�
 ## 3. 机器校验
 
 - `eng/tools/check_data_artifacts.py`（DATA-001 新增）：校验本表 schema_id 唯一、
-  DATA-SEMANTICS.md 中声明的 DATA-* ID 全部在本表登记、无重复。
+  DATA_SEMANTICS.md 中声明的 DATA-* ID 全部在本表登记、无重复。

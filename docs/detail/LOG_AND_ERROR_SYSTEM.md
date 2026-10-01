@@ -4,7 +4,7 @@
 
 > 机器事实源：`lib/infrastructure/observability/logging/log_event_v1.schema.json`（日志行，LOG-001 正本）、
 > `eng/run/ledgers/log_system_ledger.json`（显式降级/吞错/落点登记台账）、
-> `eng/tools/quality/check_log_system.py（判据检查器落点）`（判据检查器）。
+> `eng/tools/quality/check_log_system.py`（判据检查器落点）。
 
 本文件回答"日志系统具体怎么设计"：有哪些对象、落在哪、怎么走完一生、与 manifest/provenance 和
 observability 各面是什么关系。字段级格式合同在 `docs/engineering/LOG_AND_ERROR_CONTRACT.md`。
@@ -188,7 +188,7 @@ flowchart LR
 
 | 判据 | 内容 | 检查器 | 负例面 |
 |---|---|---|---|
-| R1 错误不吞 | 生产收敛面 catch 吞错点必须登记（台账只减不增） | `eng/tools/quality/check_log_system.py（判据检查器落点）` | 注入空 catch ⇒ 判红 |
+| R1 错误不吞 | 生产收敛面 catch 吞错点必须登记（台账只减不增） | `eng/tools/quality/check_log_system.py`（判据检查器落点） | 注入空 catch ⇒ 判红 |
 | R2 降级显式 | 生产面条件回退点必须登记且函数体内记录 `degraded_reason` | 同上 | 注入静默回退 ⇒ 判红 |
 | R3 日志落点 | 生产面日志落点必须派生自 `output_dir` 或登记 | 同上 | 注入 `run/` 字面量 ⇒ 判红 |
 | R4 台账完整 | 台账锚存活、只减不增、扫描面非空（fail-closed） | 同上 | 抹掉锚/清空扫描面 ⇒ 判红 |
@@ -210,5 +210,5 @@ flowchart LR
 帧级失败改变的是「这一帧有没有合格的科学结果」，因此不写 `degraded_reason`，并以帧级失败状态上报（L3 行为边界项）。
 反之，**通道整体缺席**（例如测光标定通道未配置、产品以未归一化的中性标度继续）是降级：写 `degraded_reason` 并在元数据如实登记标度。
 
-**逐帧判决表是唯一真相**：组级摘要（如 `photometry_applied`）只表示「至少一帧成立」，下游节点必须按逐帧表选择输入面，
-下游节点按逐帧表选择输入面；下游对上游判 fail 的帧**显式跳过**并在自己的 manifest 记跳过原因与上游错误码，记录完整。
+**逐帧判决表是唯一真相**：组级摘要（如 `photometry_applied`）只表示「至少一帧成立」，下游节点必须按逐帧表选择输入面；
+下游对上游判 fail 的帧**显式跳过**并在自己的 manifest 记跳过原因与上游错误码，记录完整。

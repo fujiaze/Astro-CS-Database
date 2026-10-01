@@ -2315,3 +2315,90 @@ IO_AND_ATOMICITY}.md`（迁移后已删）、registry 已迁 `docs/modules/regis
 ⚠ 最后一行是本轮补改带来的**新风险面**：registry 分册改名后，
 G08-06 悬空引用车道当时写的 `docs/detail/registry/astrocs.phaseN.*` 路径已全部改名为 `acsd.*`
 （内容层改名覆盖了引用），但**需确认没有别处按字面拼路径**（如 CMakeLists、脚本、索引键）。
+
+---
+
+## 51. GOV-ERR-5（前台自陈，对抗审查第二轮查出）：改名三处自伤，全部已核实
+
+**性质**：前台本人在 G08-08 步骤 1 的改名中造成。**两条独立车道各自查出同一族问题。**
+
+### 51.1 冻结 C ABI 的**大写族根本没改**，而 §44 声称已完成
+
+`docs/engineering/UNRESOLVED_REGISTER.md` §44.4 声称「冻结 C ABI 前缀 `acs_*` → `acsd_*` ……涉及
+`acs_status`(77+)、`acs_str_v`、…… 已按旧符号构建的二进制不再兼容」。
+
+**实测（前台亲自复核）**：
+
+| 族 | 命中 | 状态 |
+|---|---:|---|
+| 小写 `acs_*` | 14 处 | **已改** |
+| **大写 `ACS_*`** | **3,589 处 / 91 文件** | **一行未改** |
+
+`lib/include/acsd/abi/status_codes.h` 里仍是 `ACS_OK` / `ACS_ERR_*` / `ACS_ABI_VERSION_*`
+（如 `ACS_ABI_PTR_BITS`、`ACS_ERR_ABI_MISMATCH`、`ACS_ERR_BUDGET`）。
+
+**根因**：改名脚本的正则是 `\bacs_([a-z][a-z0-9_]*)` —— **要求 `acs_` 之后是小写字母**。
+`ACS_OK` 的 `ACS_` 后是大写 ⇒ 从未命中。而我的「旧串归零」复扫同样用了这个模式，
+**与改写脚本犯的是同一个错误**，所以自查没发现。
+
+⇒ **推论（必须明说）**：§50 记录的「874/874 构建通过、0 error 0 编译警告」是**在旧的大写 ABI 下取得的**，
+**不构成 ABI 改名的编译级实证**。ABI 改名**至今未发生**。
+
+### 51.2 `CODE_STANDARD.md:60` 的判定规则被改成**恒等式**（本轮已复原）
+
+改前：「把该处的 **`AstroCS`** 族字面量换成显示名 `ACSD`」
+改后：「把该处的 **`ACSD`** 族字面量换成显示名 `ACSD`」 ⇒ 恒等，判据失效。
+
+⇒ 这是 §51.3 的**根因**：判定规则一旦恒等，「该不该改」就失去依据，
+于是本该排除在外的冻结面也被改了。
+
+**已复原为 `AstroCS`。**
+
+### 51.3 `artifacts/evidence/**` 实际被改了 **121 行 / 9 文件**（本轮已回滚）
+
+我在 §44.3 声称「明确排除、不改的部分：`artifacts/evidence/**`（18 处）」。**该声称为假。**
+
+**根因**：排除逻辑**只加在第二轮**。第一轮（1,285 文件）对全部跟踪文件执行，**含 `artifacts/`**。
+当时那轮的脚本没有任何路径排除。
+
+最狠的一处是 `artifacts/evidence/doc-hygiene/baseline.json`：
+
+    -   "docs/modules/registry/astrocs.phase1.cosmetic.md": [
+    +   "docs/modules/registry/acsd.phase1.cosmetic.md": [
+
+该基线**以文件路径为键**，改键的后果是双重的：
+① **旧名事实被销毁**（再也查不出「这里曾经叫 astrocs」）；
+② **42 个键现在全部指向不存在的文件** ⇒ 该基线自身失效。
+
+另两处：`truthful-conclusion-01/file_audit.json:74` 把工具真实输出的 `unscanned` 改成当时不存在的文件；
+`artifacts/acceptance/L2/G-RES-01.json:4` 验收命令改成 `./build/acsd` ——
+**该 exe 由本轮改名产生，记录时并不存在**，而未动的实测指标（`avg_cpu_percent` 1302.11 等）
+是 `./build/astrocs` 跑出来的 ⇒ **验收记录与实测数据自相矛盾**。
+
+**已 `git checkout -- artifacts/` 全部回滚。**
+
+### 51.4 另一条车道独立查出的冻结面损伤（同族，本轮一并回滚）
+
+`eng/tests/validation/release02/**` 5 文件 / 95 行被改 —— 其中
+`ma_cmd.txt:1` 把**编译转录**里的 `-DASTROCS_PROBES=1` 改成 `-DACSD_PROBES=1`，
+而编译器当时收的就是前者 ⇒ 转录失真。
+
+`testdata/**` 6 文件被改 —— 其中 3 处是 HTTP UA token，而 `CODE_STANDARD.md:74` 第 9 类
+逐字写着「改名是对外行为改变，**不属命名统一的范围**」。
+
+### 51.5 前台对「旧串已归零」这一结论的撤回
+
+我在 §44.6 写「旧串机械扫描已归零（`AstroCS` / `ASTROCS` / `astrocs` / `acs_*` / `astrocs/`）」。
+**该结论不成立**，至少三处反例：大写 `ACS_*` 3,589 处、`实验/**` 整树 142 文件
+（含 3 处 `#include "astrocs/…"` 指向已改名目录 ⇒ **驱动实验编译不过**）、
+`.gitignore:127 astrocs_run_*.json` 与 `commands.cpp:569 acsd_run_` 已失配。
+
+⇒ **撤回该结论。** 教训与 §44.2 同源但更重：
+**复扫脚本与改写脚本共用同一个错误假设时，复扫必然给出假的「零残留」。**
+这是本项目**第四次**因「模式覆盖不全」漏改（前三次见 §44.2、本条、以及 `实验/**` 整树漏扫）。
+
+### 51.6 待负责人裁定
+
+`ACS_*` 大写族（3,589 处 / 91 文件）是否改为 `ACSD_*`。
+按 §44 记录的裁定（「一并改为 `acsd_`」），这是**尚未执行的破坏性 ABI 变更**；
+但它规模大、且已发生过一次不完整执行，**须重新走一轮「三层核对 + 编译实证」**。
