@@ -23,7 +23,30 @@
 | H9 | 辅助常数链：1.4826 解析恒等、9216 预算自洽、Moffat4=1.230310 闭式（σ 口径 = 模型参数口径 `σ=α/√2`） | **成立** | 1/Φ⁻¹(3/4)=1.4826022185056023（1.50e-16）；9216=(1.44/0.015)² 精确，n_min 带 8905–9494；闭式 1.2303076526 / 独立数值积分 1.2303076507 vs 登记 1.230310（**1.91e-6** = 六位小数圆整量）。他域口径 `σ_g=α/2` ⇒ 1.7399178，恒差 √2、禁止互换 | route2/exp_P4R2_08 → exp08_mad_sigma_budget.json；route2/exp_P4R2_09 → exp09_moffat4_factor.json；[推导:docs/derivations.md §6] |
 | H10 | Δ=64 是可实验证伪的科学量 | **豁免（结构性）** | tile_width=512 冻结、512/8 密度口径自洽；科学后果由 Δ/ℓ 判据承载（零噪偏置 128/64=4.06 vs 理论 4，随 Δ² 增长） | route2/exp_P4R2_03 → exp03_delta_grid.json；台账 A-P4-01 |
 
-负例纪律：19 个实验全部含"真值无效应 ⇒ 度量归零/判据失效"负例（等 σ 方案差归零、平坦场全算子归零、零源稠密场 max|SNR|=0、常数数据 MAD=0、高斯轮廓对照 1.6651 等），对应错误臂均判红——无恒真门。**例外与订正（P4-M03）**："无源两臂逐位恒等"属**同式构造的结构断言**（任何算子都判绿），不具判别力；**该门 `no_source_benefit_collapses`（`code/route1/exp_p4_04_brightness_forward.py:282-285`）已在 `REPORT_paper.md` §7.23b 与 `oracle_full_is_optimal` 同级登记为结构恒真门（G08-04 G2 整改 P0-1c）**；另两条被点名的门（亮度跟随门、有源对照）经反例检验同样对算子不敏感。替代判据（算子敏感亮度门 + 逐臂估计器版零源门 + 偏 10% 源模型对照）见 `code/fix/fix01_metric_E_and_gates.py` → `results/fix/fix01_metric_E_and_gates.json`（正例绿、全局常量/打乱臂红）。
+负例纪律：19 个实验全部含"真值无效应 ⇒ 度量归零/判据失效"负例（等 σ 方案差归零、平坦场全算子归零、零源稠密场 max|SNR|=0、常数数据 MAD=0、高斯轮廓对照 1.6651 等），对应错误臂均判红。**例外与订正（P4-M03）**："无源两臂逐位恒等"属**同式构造的结构断言**（任何算子都判绿），不具判别力；**该门 `no_source_benefit_collapses`（`code/route1/exp_p4_04_brightness_forward.py:282-285`）已在 `REPORT_paper.md` §7.23b 与 `oracle_full_is_optimal` 同级登记为结构恒真门（G08-04 G2 整改 P0-1c）**；另两条被点名的门（亮度跟随门、有源对照）经反例检验同样对算子不敏感。替代判据（算子敏感亮度门 + 逐臂估计器版零源门 + 偏 10% 源模型对照）见 `code/fix/fix01_metric_E_and_gates.py` → `results/fix/fix01_metric_E_and_gates.json`（正例绿、全局常量/打乱臂红）。
+
+### ⚠ G08-05 R2 B2 订正：本单元**并非**「无恒真门」——「无恒真门」这句话是错的
+
+原文写「对应错误臂均判红——**无恒真门**」，随后只把**两条 exp_p4_04 的门**列为例外。该例外表**严重不全**。经 `code/calibers/`、`code/sim/`、`code/route1–3/` 全量逐处核实，本单元的**结构性恒真门（永不判红）实测计数为 22 处**，其中 **14 处**就在 `calibers/`（7）与 `sim/`（7）——比第二轮复核给出的「7 处」**多一倍**。三条实测恒等式（/tmp 内数值验证，仓内未改动）：
+
+| 恒等式 | 断言 | 实测上界 |
+|---|---|---|
+| `E_eff(1/v, v) ≡ 0` | 对**任意**正数组 `v` 成立 | 2000 例随机 `v`，`max|E| = 4.44e-16` |
+| `E_eff(c·w, v) = E_eff(w, v)` | `E_eff` 对 `w` **按构造齐次** | 3000 例，`worst rel_dev = 1.8e-15`（门容差 1e-8） |
+| `E_eff ≥ 0` | Cauchy–Schwarz，`v>0` 恒成立 | 50000 例对抗抽样，`min = +5.8e-7`，从未为负 |
+
+⇒ 凡形如 `E(1/v_true)`、`E(c·w, v)`、`E_dense ≥ E_frame`（`E_frame ≡ 0`）的门**在数学上不可能判红**。代表门（完整 24 处清单见 `docs/TAUTOLOGY_REGISTER.md`）：
+
+- `calibers/exp_P4CAL_01_three_calibers.py:160` `G1_oracle_dense_zero`、`:191` `G3_flat_no_fake_advantage`
+- `calibers/exp_P4CAL_02_three_calibers_guarded.py:158,165,173` `G1_oracle_dense_zero`（3 处）、`:166` `G3_flat_frame_zero`、`:167` `G3_flat_dense_no_fake_advantage`
+- `sim/exp_sim01_m16_forward_snr_truth.py:303,317` `G1_oracle_dense_zero(_outside)`、`:310` `R2_metric_scale_invariant`、`:337` **`NC-A1_all_calibers_zero`**、`:338,350,351` `NC-A1/A2_oracle_zero`、`NC-A2_frame_zero`
+- `route1/exp_p4_01:88` `identity_machine_precision`；`route2/exp_P4R2_01:93`、`exp_P4R2_06:87`、`exp_P4R2_07:126`、`exp_P4R2_08:109`；`route3/exp01:37,80,106,120`、`route3/exp04:106`
+
+**其中 `sim/exp_sim01_m16_forward_snr_truth.py:337` `NC-A1_all_calibers_zero` 最严重**：该臂从不调用 `calibers()`／`patch_mad_var`／`cell_nodes`／`spline2d`，`:331-332` 算出**一个**数 `z = E_eff(1/v_flat, v_flat)`，`:334` 把**同一个变量 `z`** 赋给 `E_eff_frame / E_eff_cell / E_eff_dense / E_eff_shuffled` 四个字段——所谓「四口径对照」是一个数与自己比。估计器在该门下**不可达**。
+
+**实测（10 个注入缺陷：MAD ×1.35／×0.02、nodes +40／×7／符号翻转、spline ×1000／+1e9／常数填充）**：上述恒真门集合 **10/10 全绿**（对注入结构性免疫）；同文件中真正有判别力的门 `G2_dense_beats_frame` **7/10 判红**，`G3_flat_spline_no_undershoot` 在符号翻转下判红——证明这不是「实现有 bug」，而是「这些门按定义就没有判别力」。
+
+**处置（不在本轮代劳，登记为待办）**：把上述 22 处**移出判决、登记为诊断项**，或改接**真实参照量**（对 `calibers()`/`spline2d()`/`patch_mad_var()` 的输出做独立重算，而不是让门去比 `E_eff` 的恒等式）。本轮**未删除任何一条真实读数**，也**未放宽任何阈值**；本节只把「无恒真门」这句不实表述改成如实计数。**删除这些门不是本单能做的**——它们被多条报告引作判别力证据，删除属跨篇改动，须由前台裁决后统一执行。完整 24 处清单（含逐处 file:line、型别与判别力实测）见 `docs/TAUTOLOGY_REGISTER.md`。
 
 ## 2 方法
 

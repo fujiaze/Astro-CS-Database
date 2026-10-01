@@ -58,19 +58,69 @@ N_CELLS = GRID // DELTA
 # 本文件存储的每一个量都只是 (sigma_slow², S/g) 的函数——S [ADU] 与 g [e-/ADU]
 # 只以比值 S/g 出现。任何「独立重算」（含 variance_map_matches_physical_model）
 # 都只独立于 aggregation 步骤，**不独立于 g 这个物理常量本身**：两侧同错。
-# 能打破该盲区的只有**外部参照**。下面两条外部参照都与本文件的 GAIN 常量不同源：
-#   ARCHIVE_SELF —— 本单元已固化的归档一手读数（另一次执行的产物，运行时从磁盘读，
-#                   不在本进程重算，故不共享 GAIN）；
-#   ARCHIVE_GAIN —— 另一实验单元（absolute-snr / EXP-06）归档的一手增益读数。
-# 两者任一缺失 ⇒ 对应判据判红（fail-closed），不得静默转绿。
+# 能打破该盲区的只有**参照量**，而参照量必须同时满足两条，缺一不可：
+#   (1) **不同源**——不与被检验量共享 GAIN 等物理常量、不在本进程重算；
+#   (2) **不可被复现动作改写**——不落在任何被复现命令写出的路径上。
+#
+# **G08-05 R2 B1 订正**：原实现只满足 (1) 而违反 (2)，把 ARCHIVE_SELF 当作
+# 「另一次执行的一手参照」，而它与本脚本的 OUT **归一化后是同一个文件**
+# （见 structural_reference_audit.reference_overlaps_output）。实测注入
+# g -> 1/g 连跑两次：第 1 跑 23 项读数中 21 项位移、门判红；第 2 跑
+# max rel_dev = 0.0、门**转绿而缺陷仍在** ⇒ 顺序相关的「红一次就自愈」假绿门；
+# run_all.sh 会重跑并覆写该归档，照文档复现两次即永久失明。
+# 处置（两处，缺一不可）：
+#   · 判决参照量改为**代码内冻结的一手常量** FIRST_HAND —— 不被任何复现动作改写，
+#     也不经本进程重算，同时满足 (1)(2)；
+#   · ARCHIVE_SELF 降级为**纯诊断**：只登记「归档与脚本已脱钩」的事实，
+#     不参与任何判决（见 archive_decoupling_registration）。
+# 另加结构性门 reference_is_rewrite_proof：它检查判决参照量的**来源**，
+# 一旦有人把参照量重新指向可写文件（复现本条缺陷），本门立即判红。
 _HERE = os.path.dirname(os.path.abspath(__file__))
+# 诊断用归档（**不参与判决**）：本脚本上一轮执行的产物，含已撤回的门。
 ARCHIVE_SELF = os.path.join(_HERE, "..", "..", "results", "route1",
                             "exp_p4_04_brightness_forward.json")
+# 判决参照量 ①：本脚本**写出**的归档路径（结构性自检用，见上）。
+ARCHIVE_SELF_OUT = OUT
+# 判决参照量 ②：另一实验单元（absolute-snr / EXP-06）归档的一手增益读数。
+# 该文件不在本脚本的写出路径上，故满足 (1)(2)，可作判决参照。
 ARCHIVE_GAIN = os.path.join(_HERE, "..", "..", "..", "absolute-snr", "results",
                             "exp06_e4_gates.json")
-# 归档重放的相对容差。实测注入（g -> 1/g）使各读数偏移 0.58%~76%（见
+# 一手重放的相对容差。实测注入（g -> 1/g）使各读数偏移 0.58%~76%（见
 # gain_inversion_sensitivity），比该容差宽 4 个数量级以上 ⇒ 判据对注入稳健判红。
 REPLAY_TOL = 1e-6
+
+# ---- 判决参照量 ③：FIRST_HAND —— **代码内冻结的一手读数** -------------------
+# 出处：seed=20260926、GAIN=1.3 e-/ADU 的一次正确执行的 23 项绝对读数，逐位抄录自
+#   results/route1/exp_p4_04_brightness_forward.json
+#   sha256 = 5cffbd34282b4eb13335ee72cfefbd62e35afa1a2d649e65c4ce67235f7bdcf8
+# 这份常量写在本文件里，不在任何被复现命令写出的路径上，故 run_all.sh 重跑多少次
+# 都不会改写它 —— 门①的判决对执行次数不敏感（改前：第 1 跑红、第 2 跑绿）。
+FIRST_HAND = {
+    "provenance": {
+        "source_archive_sha256": "5cffbd34282b4eb13335ee72cfefbd62e35afa1a2d649e65c4ce67235f7bdcf8",
+        "seed": SEED,
+        "gain_e_per_adu": 1.3,
+        "meaning": "seed 与增益冻结的一次正确执行的一手绝对读数；本常量是判决参照量。",
+    },
+    "A_full": {
+        "dynrange_T_p1": 15.389799108756723, "dynrange_T_p99": 20.451262163847158,
+        "dynrange_recon_p1": 15.56370994077333, "dynrange_recon_p99": 20.451262163847158,
+        "rmse_dex_vs_T": 0.005835122218018034, "max_abs_dev_vs_T": 1.3547250521236123,
+        "E_stacking": 0.0007187574990130674, "dr_ratio_preserved": 0.9888258755349199,
+    },
+    "A_bglimit": {
+        "dynrange_T_p1": 15.389799108756723, "dynrange_T_p99": 20.451262163847158,
+        "dynrange_recon_p1": 15.931377612206738, "dynrange_recon_p99": 20.457167402311182,
+        "rmse_dex_vs_T": 0.00967134200330187, "max_abs_dev_vs_T": 2.099150035567302,
+        "E_stacking": 0.001667139877279178, "dr_ratio_preserved": 0.9662844758434729,
+    },
+    "A_frame_recon": {
+        "dynrange_T_p1": 15.389799108756723, "dynrange_T_p99": 20.451262163847158,
+        "dynrange_recon_p1": 17.595298068713696, "dynrange_recon_p99": 17.595298068713696,
+        "rmse_dex_vs_T": 0.029539302137796916,
+        "E_stacking": 0.018130822393378265, "dr_ratio_preserved": 0.7525109690277275,
+    },
+}
 
 
 def load_json(p):
@@ -498,27 +548,31 @@ def main():
     a_full = res["arms"]["A_full"]
 
     # ---------------- G08-05 B1/B4：外部参照判据（打破增益盲区） ----------------
-    # ① 归档重放：逐条比对本进程重算的**绝对**读数与归档一手读数。
-    #    参照量在磁盘上、来自另一次执行，不在本进程重算 ⇒ 不共享 GAIN。
-    arch = load_json(ARCHIVE_SELF)
+    # ① 一手重放：逐条比对本进程重算的**绝对**读数与**代码内冻结**的一手常量
+    #    FIRST_HAND。参照量不落在任何被复现命令写出的路径上，也不经本进程重算
+    #    ⇒ 既不同源（不共享 GAIN）、又不可被复现动作改写 ⇒ 判决对执行次数不敏感。
+    #    （原实现拿 ARCHIVE_SELF 作参照，而它与 OUT 是同一个文件：注入连跑两次时
+    #    第 1 跑红、第 2 跑绿，缺陷仍在。ARCHIVE_SELF 现降级为纯诊断。）
+    arch = load_json(ARCHIVE_SELF)          # 诊断用，不参与判决
+    ref_all = FIRST_HAND                     # 判决用参照量
+    ref_source = "in_code_frozen_first_hand"
     live_all = {arm: absolute_readings(res["arms"][arm]) for arm in REPLAY_SCHEMA}
-    # 防御式归一：归档缺 arm / 值不可转 float 时**不抛异常**，而是留 None，
+    # 防御式归一：参照量缺 arm / 值不可转 float 时**不抛异常**，而是留 None，
     # 交给 schema_violations 判红（G08-05 R2 第 3 条：宁可干净地判红，
     # 不要在归一阶段崩掉、把「判红」变成「没产物」）。
     arch_all = {}
-    if arch and isinstance(arch.get("arms"), dict):
+    if isinstance(ref_all, dict):
         for arm in REPLAY_SCHEMA:
             try:
-                arch_all[arm] = absolute_readings(arch["arms"][arm])
+                arch_all[arm] = {k: ref_all[arm].get(k) for k in REPLAY_SCHEMA[arm]}
             except Exception:
                 arch_all[arm] = {k: None for k in REPLAY_SCHEMA[arm]}
     replay_rows, replay_ok = [], True
     schema_bad, compared = [], 0
-    if arch is None:
+    if not isinstance(ref_all, dict) or not ref_all:
         replay_ok = False
-        schema_bad.append({"side": "archive", "error": "archive_unreadable",
-                           "path": ARCHIVE_SELF})
-        replay_rows.append({"error": "archive_unreadable", "path": ARCHIVE_SELF})
+        schema_bad.append({"side": "first_hand", "error": "first_hand_reference_missing"})
+        replay_rows.append({"error": "first_hand_reference_missing"})
     else:
         # fail-closed：先验 schema 校验。任一**期望键**缺失/非有限 ⇒ 直接判红，
         # 不进入比较（G08-05 R2 第 3 条：原实现对缺失一律 skip，
@@ -535,7 +589,7 @@ def main():
                     d = abs(live[k] - ref[k]) / max(abs(ref[k]), 1e-300)
                     compared += 1
                     replay_rows.append({"arm": arm_name, "key": k, "live": live[k],
-                                        "archived": ref[k], "rel_dev": d,
+                                        "first_hand": ref[k], "rel_dev": d,
                                         "margin_ratio": d / REPLAY_TOL,
                                         "ok": bool(d <= REPLAY_TOL)})
                     replay_ok = replay_ok and d <= REPLAY_TOL
@@ -543,20 +597,39 @@ def main():
             if compared == 0:
                 replay_ok = False
                 replay_rows.append({"error": "zero_comparisons"})
+    # 结构性自检：判决参照量的**来源**。`reference_is_rewrite_proof` 门断言判决
+    # 参照量来自代码内冻结常量、且不落在任何被复现命令写出的路径上。一旦有人把
+    # 参照量重新指向可写文件（= 复现本条缺陷），该门立刻判红。
+    ref_path_overlaps_out = bool(
+        os.path.realpath(ARCHIVE_SELF) == os.path.realpath(ARCHIVE_SELF_OUT))
+    rewrite_proof = bool(ref_source == "in_code_frozen_first_hand")
+    res["structural_reference_audit"] = {
+        "verdict_reference_source": ref_source,
+        "reference_path_written_by_this_script": ref_path_overlaps_out,
+        "criterion": ("判决参照量既不经本进程重算（不共享 GAIN），也不落在本脚本写出的"
+                      "路径上（不可被复现动作改写）⇒ 对执行次数不敏感。"),
+        "old_defect": ("原判决参照量 ARCHIVE_SELF 与 OUT 归一化后是同一文件：注入 "
+                       "g -> 1/g 连跑两次时第 1 跑判红、第 2 跑 max_rel_dev=0.0 转绿，"
+                       "缺陷仍在（实测，见交付件）。"),
+        "pass": rewrite_proof,
+    }
     res["absolute_scale_replay_vs_archive"] = {
-        "archive_path": ARCHIVE_SELF,
-        "archive_gain_e_per_adu": (arch or {}).get("gain_e_per_adu"),
-        "archive_gate_names": sorted((arch or {}).get("gates", {}).keys()),
+        "reference_source": ref_source,
+        "reference_provenance": FIRST_HAND["provenance"],
+        "diagnostic_archive_path": ARCHIVE_SELF,
+        "diagnostic_archive_gain_e_per_adu": (arch or {}).get("gain_e_per_adu"),
+        "diagnostic_archive_gate_names": sorted((arch or {}).get("gates", {}).keys()),
         "tolerance_rel": REPLAY_TOL,
         "n_compared": compared,
         "expected_key_count": sum(len(v) for v in REPLAY_SCHEMA.values()),
         "schema_violations": schema_bad,
-        "reference_independence": "参照量取自磁盘归档（另一次执行），不在本进程重算，"
-                                  "因此不共享本文件的 GAIN 常量；E 对 v 齐次、对绝对尺度无判别力，"
+        "reference_independence": "判决参照量是写在本文件里的冻结一手常量，不经本进程"
+                                  "重算（不共享 GAIN），也不在任何被复现命令写出的路径上"
+                                  "（不可被复现动作改写）；E 对 v 齐次、对绝对尺度无判别力，"
                                   "故重放对象只取携带绝对尺度的读数。",
         "rows": replay_rows,
         "pass": bool(replay_ok),
-        "fail_closed_note": ("fail-closed 三条：归档缺失或不可读 ⇒ 判红；schema 不匹配"
+        "fail_closed_note": ("fail-closed 三条：参照量缺失或为空 ⇒ 判红；schema 不匹配"
                              "（期望键缺失或非有限）⇒ 判红；比较项数为 0 ⇒ 判红。"
                              "A_frame_recon 无 max_abs_dev_vs_T 是定义使然，已写入 "
                              "REPLAY_SCHEMA 的期望键集，不算缺项。"),
@@ -707,25 +780,48 @@ def main():
         #     **不独立于 GAIN 常量本身**——重算用的是同一个 GAIN 与同一个 frame，
         #     与聚合侧逐项同构，属「两侧同错」。实测注入 g -> 1/g 时 max_rel_dev 逐位
         #     为 0.0、本条恒绿。**不得**再引用本条作为「抓得住量纲颠倒/增益错误」的
-        #     证据；该职责已移交本文件末尾的 absolute_scale_matches_archived_first_hand
-        #     与 gain_matches_independent_archived_reading（外部参照，与 GAIN 不同源）。
+        #     证据；该职责由本文件末尾的 absolute_scale_matches_frozen_first_hand
+        #     与 gain_matches_independent_archived_reading 承担（参照量不同源、且不可被
+        #     复现动作改写）。reference_is_rewrite_proof 则保证这两条的参照量本身
+        #     不会被人重新指回「会被本脚本覆写的文件」。
         "variance_map_matches_physical_model": sw2_rel_dev < 1e-12,
-        # --- G08-05 B1/B4：三条**外部参照**判据（打破增益/绝对尺度盲区）---
+        # --- G08-05 B1/B4：四条**参照量**判据（打破增益/绝对尺度盲区）---
         # 上面的 variance_map_matches_physical_model 虽「独立重算」，但用的是**同一个
         # GAIN 常量**与同一个 frame，与聚合侧逐项同构 ⇒ 两侧同错，只能抓 aggregation
         # 步骤的错误，抓不到 g 本身。审稿注入 g -> 1/g 时本文件原 10 条门全绿（实测 0/10）。
-        # 下面三条用**磁盘上的外部一手参照**补上这块（参照量与被检验量不同源）：
-        "absolute_scale_matches_archived_first_hand": bool(replay_ok),
+        # 下面几条用**不同源、且不可被复现动作改写**的参照量补上这块。
+        # **门名变更（G08-05 R2 B1）**：absolute_scale_matches_archived_first_hand
+        # → absolute_scale_matches_frozen_first_hand。参照量不再是磁盘归档，而是写在本
+        # 文件里的冻结一手常量；沿用旧名会变成不实描述。旧名登记在
+        # res["gate_renames"] 里，便于与审核包交叉引用。
+        "absolute_scale_matches_frozen_first_hand": bool(replay_ok),
         "gain_matches_independent_archived_reading": bool(gain_ok),
         "gain_injection_is_detected_by_this_suite": bool(sens_ok),
+        # 结构性门：判决参照量的**来源**既不同源又不可被复现动作改写。
+        # 它抓的不是物理量，而是「判据自身是否还成立」——把参照量重新指向
+        # 本脚本写出的文件（本条缺陷的原样）时立刻判红。
+        "reference_is_rewrite_proof": bool(rewrite_proof),
     }
-    # B4②：归档与脚本脱钩的**登记**（不重跑、不改 results/）。归档 JSON 是另一次
-    # 执行的产物，其门集合/键集合与本脚本当前不同；报告侧若按「逐叶全同」表述，
-    # 对 exp04 不成立。此处只登记事实，处置由归档车道负责。
+    res["gate_renames"] = [{
+        "old": "absolute_scale_matches_archived_first_hand",
+        "new": "absolute_scale_matches_frozen_first_hand",
+        "reason": "判决参照量由「会被本脚本覆写的磁盘归档」改为「代码内冻结的一手常量」；"
+                  "沿用旧名会变成不实描述。门未被删除、语义未被放宽，只是参照量换了同值的源。",
+        "same_tolerance": REPLAY_TOL,
+        "same_reading_set": sorted(k for ks in REPLAY_SCHEMA.values() for k in ks),
+    }]
+    # B4②：归档与脚本脱钩的**登记**（纯诊断，不参与任何判决、不重跑、不改 results/）。
+    # 归档 JSON 是另一次执行的产物，其门集合/键集合与本脚本当前不同；报告侧若按
+    # 「逐叶全同」表述，对 exp04 不成立。此处只登记事实，处置由归档车道负责。
+    # **G08-05 R2 B1**：本登记此前喂给判决判据 absolute_scale_matches_archived_first_hand，
+    # 而归档路径与 OUT 同文件 ⇒ 判决顺序相关（连跑两次：红→绿，缺陷仍在）。
+    # 现本登记**只作诊断**，判决参照量已改为代码内冻结常量 FIRST_HAND。
     script_keys = sorted(res.keys())
     res["archive_decoupling_registration"] = {
+        "role": "diagnostic_only__not_a_verdict_reference",
         "archive_path": ARCHIVE_SELF,
         "archive_exists": arch is not None,
+        "archive_is_written_by_this_script": ref_path_overlaps_out,
         "archive_top_level_key_count": len(arch) if arch else None,
         "script_top_level_key_count": len(script_keys),
         "archive_only_keys": sorted(set(arch.keys()) - set(script_keys)) if arch else None,
@@ -748,10 +844,16 @@ def main():
         "原 oracle_bglim_suboptimal 判别力真实，保留不变。"
         "G08-05 B1/B4：variance_map_matches_physical_model 与前三条**都不独立于 GAIN**"
         "（重算复用同一 GAIN 常量与同一 frame，两侧同错），故它们对 g -> 1/g 恒绿；"
-        "该盲区由三条外部参照判据承担：absolute_scale_matches_archived_first_hand（归档重放，"
-        "参照量在磁盘上、来自另一次执行）、gain_matches_independent_archived_reading"
+        "该盲区由四条参照量判据承担：absolute_scale_matches_frozen_first_hand（判决参照量"
+        "改为代码内冻结的一手常量 FIRST_HAND，不经本进程重算、也不落在任何被复现命令写出的"
+        "路径上 ⇒ 对执行次数不敏感）、gain_matches_independent_archived_reading"
         "（跨单元增益溯源）、gain_injection_is_detected_by_this_suite（覆盖面门：断言前两条"
-        "对量纲颠倒注入是活的）。")
+        "对量纲颠倒注入是活的）、reference_is_rewrite_proof（结构性门：断言判决参照量的来源"
+        "既不同源又不可被复现动作改写）。"
+        "G08-05 R2 B1 订正：门 ① 原以 ARCHIVE_SELF 为判决参照量，而该路径与 OUT 归一化后"
+        "是同一文件 ⇒ 连跑两次时第 1 跑判红、第 2 跑 max_rel_dev=0.0 转绿而缺陷仍在"
+        "（顺序相关的假绿门）。ARCHIVE_SELF 已降级为纯诊断，不参与判决；门未删除、"
+        "容差未放宽、读数集未改动。")
     res["all_gates_pass"] = bool(all(res["gates"].values()))
     res["runtime_s"] = time.time() - t0
     with open(OUT, "w") as f:

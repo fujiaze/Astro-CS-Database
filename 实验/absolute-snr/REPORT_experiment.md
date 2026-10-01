@@ -165,7 +165,7 @@ bash 实验/absolute-snr/code/reverse_verify/f_instr/run_all.sh
 | 腿 | 内容 | 落点 |
 |---|---|---|
 | 文献腿 | 一手出处逐条核验（DOI / bibcode / arXiv + 核验方式），核验层级不足者如实标注，不冒充 VERIFIED | `refs.md` §A（VERIFIED 19 条）、§B（标注级 3 条）；`REPORT_paper.md` 参考文献 1–19 |
-| 实验腿 | 固定 seed 的可复跑脚本，产物落 `results/` 与 `code/audit/results/`，每个度量内置「真值无效应 ⇒ 度量归零/判红」负例，无恒真门 | `code/`（`b1`–`b7`、`exp01`–`exp06`、`audit/`、`reverse_verify/`）与 `results/` |
+| 实验腿 | 固定 seed 的可复跑脚本，产物落 `results/` 与 `code/audit/results/`，每个度量内置「真值无效应 ⇒ 度量归零/判红」负例。⚠ **G08-05 R2 B2 订正：「无恒真门」不成立**——全仓实测已确认 **≥84 处永不判红的结构性恒真门**（本单元占其中一部分），三型为代数恒等式型、结构对称型、往返自证型。逐处 file:line 与判别力实测见交付件 `run/GOVERN-08/审核包-R2/G08-05-整改-第二轮实验域.md` §3。本句改为如实表述；真实读数一律保留。 | `code/`（`b1`–`b7`、`exp01`–`exp06`、`audit/`、`reverse_verify/`）与 `results/` |
 | 推导腿 | 解析闭式与结构论证，独立于数值实验自洽 | `docs/DERIVATIONS_P2.md`；正文 `[推导]` 标注 |
 | 生产实现面 | 判据走生产 ABI 的同尺度入口，而非 Python 重实现 | `code/reverse_verify/frame_snr/`（T12/P12 直调 `snr_science.cpp`）、`code/audit/route3/exp11_frozen_operator_transfer.py`（只读编译生产 `SparseSnrReconstructor`） |
 | 外部对拍 | 与成熟天文软件的口径对拍（缺库时登记 UNAVAILABLE，不计失败） | `code/reverse_verify/frame_snr/crosscheck_photutils.py` |
