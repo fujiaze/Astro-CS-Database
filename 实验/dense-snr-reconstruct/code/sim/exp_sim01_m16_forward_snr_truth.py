@@ -129,10 +129,21 @@ def cell_nodes(vp, delta=DELTA, patch=PATCH):
 
 
 def spline2d(grid, delta, q):
-    """natural_bicubic_spline_clip_v1（生产默认算子）。
+    """natural_bicubic_spline_clip_v1 的**样条段**（生产默认算子）。
 
-    函数体逐字取自同单元 `code/calibers/exp_P4CAL_02_three_calibers_guarded.py`
-    的 `spline2d`（本单元约定脚本之间不互相 import，故此处复刻并注明出处）。
+    系数与同单元 `calibers/exp_P4CAL_01`、`calibers/exp_P4CAL_02`、
+    `realdata/exp_P4RD_01` 三份副本的 `coeffs`/`nat_cubic` **逐字一致**（三份互为
+    副本，本单元约定脚本之间不互相 import，故此处复刻并注明出处）。自然三次样条的
+    Hermite 条件给出 b_j = [y_{j+1}-y_j]/h_j - h_j(2c_j+c_{j+1})/3；其中 h_j 与
+    首项同量纲（斜率），缺它算子不过自己的节点。生产 C++ 实现
+    `lib/algorithms/integration/phase2_integrate/src/weight_chain.cpp:398` 在
+    M=S'' 记法下取 b = (y1-y0) - (2M0+M1)/6，与本式等价。
+
+    ⚠️ 本函数**只含样条段，不含值域钳制**。生产 `natural_bicubic_spline_clip_v1`
+    另把结果钳到有效控制值值域 [min,max]；本腿 `dense` 臂是未钳制样条，
+    `dense_guard_clamp` 臂用的是启发式 clip(0.25·min, 4·max)，**两者都不是**生产
+    钳制语义（见 REPORT_experiment.md §6 第 16 条）。故本腿稠密读数是「未钳制样条」
+    的读数，不得直接当作生产默认算子的读数。
     """
     m = grid.shape[0]
     knots = np.arange(m) * delta + (delta - 1) / 2.0
@@ -150,7 +161,7 @@ def spline2d(grid, delta, q):
         b, c, d = np.zeros((n, k)), np.zeros((n, k)), np.zeros((n, k))
         for j in range(n - 2, -1, -1):
             c[j] = z[j] - mu[j] * c[j + 1]
-            b[j] = (y[j + 1] - y[j]) / h[j] - (c[j + 1] + 2 * c[j]) / 3
+            b[j] = (y[j + 1] - y[j]) / h[j] - h[j] * (c[j + 1] + 2 * c[j]) / 3
             d[j] = (c[j + 1] - c[j]) / (3 * h[j])
         return b, c, d
 
