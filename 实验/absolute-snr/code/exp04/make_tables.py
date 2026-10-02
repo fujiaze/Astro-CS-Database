@@ -205,7 +205,8 @@ def main():
         L.append("")
 
     txt = "\n".join(L)
-    out = os.path.join(R, "EXP04_TABLES.md")
+    os.makedirs(C.DOCS, exist_ok=True)
+    out = os.path.join(C.DOCS, "EXP04_TABLES.md")
     with open(out, "w", encoding="utf-8") as fh:
         fh.write("# EXP-04 汇总表（由 code/exp04/make_tables.py 生成）\n\n" + txt + "\n")
     print("wrote", out, len(txt), "chars")

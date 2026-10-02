@@ -9,7 +9,8 @@ cd "$(dirname "$0")"
 
 LOG_DIR="${EXP06_LOG_DIR:-../../../../run/EXP-06-SNR-PHYS/logs}"
 mkdir -p "$LOG_DIR"
-OUT="${EXP06_OUT:-../../results}"
+OUT="${EXP06_OUT:-../../results}"   # 运行产物，不入库
+DOCS="${EXP06_DOCS:-../../docs}"     # 报告档案，入库
 mkdir -p "$OUT"
 
 FAILED=0
@@ -33,7 +34,7 @@ run e3_real     e3_real.py               --out "$OUT/exp06_e3_real.json"
 run e4_gates    e4_gates.py              --out "$OUT/exp06_e4_gates.json"
 run e5_scope    e5_scope.py --seeds 3    --out "$OUT/exp06_e5_scope.json"
 run e6_ablation e6_ablation.py           --out "$OUT/exp06_e6_ablation.json"
-run make_tables make_tables.py           --out "$OUT/EXP06_TABLES.md"
+run make_tables make_tables.py           --out "$DOCS/EXP06_TABLES.md"
 
 # 端到端判定：门与消融的 ALL_PASS 必须为真（写入日志，供复核者直接引用）
 python3 - "$OUT" <<'PY'

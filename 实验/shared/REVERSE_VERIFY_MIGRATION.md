@@ -93,9 +93,9 @@ run/reverse_verify/p1_spatial_gain/p1sg_oracle        # 退出码 0 = 全部 PAS
 
 | 单元 | 定案结论落位 | 论文雏形原文 |
 |---|---|---|
-| SCI-A | `实验/photometric-magnitude/results/REVERSE_VERIFY_CANON.md` | `实验/photometric-magnitude/docs/p1-spatial-gain.md` |
-| SCI-B | `实验/absolute-snr/results/REVERSE_VERIFY_CANON.md` | `实验/absolute-snr/docs/{frame-snr-canon,f-instr-canon,snr-propagation-design}.md` |
-| SCI-C | `实验/additive-sky-seamless/results/REVERSE_VERIFY_CANON.md` | `实验/additive-sky-seamless/docs/smooth-lambda.md` |
+| SCI-A | `实验/photometric-magnitude/../absolute-snr/docs/REVERSE_VERIFY_CANON.md` | `实验/photometric-magnitude/docs/p1-spatial-gain.md` |
+| SCI-B | `实验/absolute-snr/../absolute-snr/docs/REVERSE_VERIFY_CANON.md` | `实验/absolute-snr/docs/{frame-snr-canon,f-instr-canon,snr-propagation-design}.md` |
+| SCI-C | `实验/additive-sky-seamless/../absolute-snr/docs/REVERSE_VERIFY_CANON.md` | `实验/additive-sky-seamless/docs/smooth-lambda.md` |
 
 ## 6. 运行产物命名空间
 

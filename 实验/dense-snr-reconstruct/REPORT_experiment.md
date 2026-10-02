@@ -15,15 +15,15 @@
 | H1 | w = SNR²/F_ref² = 1/σ_F² 逐位恒等（幂次 2 非自由参数，γ=2 = GLS 逆方差最优） | **成立（四路验证）** | 恒等偏差 5.55e-16 / 4.44e-16 / 3.7e-16 / 4.4e-16（2 ulp）；γ=2 方差最小，γ=0 差 26.3×，γ=1 效率 3.73，等权 104.58 | route1/exp_p4_01 → exp_p4_01_weight_optimality.json；route2/exp_P4R2_01 → exp01_weight_identity_gamma.json；route3/exp01 → exp01_weight_identity.json；P2 路线1 exp12（台账 A-P2-11 转写） |
 | H2 | 生产默认算子 = natural_bicubic_spline_clip_v1，节点精确复现、收敛阶 −4、钳制必要、正齐次性可红 | **成立** | 节点残差 ≤3.6e-15（门 1e-9）；样条内部阶 −3.97/−4.18；去钳制 min=−161.5 / 出现负 σ；公理偏差 ≤2.8e-15、收缩反例 0.54 | route1/exp_p4_02 → exp_p4_02_interpolators.json；route3/exp03 → exp03_sparse_dense_reconstruction.json；route3/exp05 → exp05_operator_axioms.json |
 | H3 | IDW 默认 idw_power=2.0 有标定支撑 | **推翻 → 按 D-05 终裁默认 1.0（配置级；实现侧未落地）** | 含噪（2%/6%）最优 p≈0.5–1（rmse_rel 6.827e-3 / 1.414e-2），p=2 差 2–3×；无噪 p=2 最优（1.639e-3）；误差面光滑无尖峰、p→∞ 退化为最近点。**实现侧现状（P4-M05）**：drizzle 侧求值器已落地 1.0（`snr_evaluator.h:110`、`snr_evaluator.cpp:212,268`）；仍硬写 2.0 的只有 `snr_estimator.cpp:593,730,833`（Phase1 输出模型路径）。配置键与 p* 日志未实现 | route2/exp_P4R2_02 → exp02_idw_params.json；route3/exp04 → exp04_idw_parameters.json；route1/exp_p4_02；缺口清单见 REPORT_paper.md §7.9 |
-| H4 | **逐像素**定权面上控制值必须携带源项亮度，否则下游效率损失 | **成立（适用域 = 场在 Δ 尺度上平滑；帧级常数口径上方向相反，§6 第 14 条）** | Oracle：含源项 E=2.22e-16（机器零）、丢源项 1.31e-3、等权 1.78e-2；极端对比 A_full 0.0301577 vs A_bglimit 0.3804647（12.6×，以 `results/route1/exp_p4_04_brightness_forward.json::arms/extreme_*` 存档为准）；零源负例两臂逐位恒等 | route1/exp_p4_04 → exp_p4_04_brightness_forward.json；route2/exp_P4R2_07 → exp07_luminance_chain_negative.json |
+| H4 | **逐像素**定权面上控制值必须携带源项亮度，否则下游效率损失 | **成立（适用域 = 场在 Δ 尺度上平滑；帧级常数口径上方向相反，§6 第 14 条）** | Oracle：含源项 E=2.22e-16（机器零）、丢源项 1.31e-3、等权 1.78e-2；极端对比 A_full 0.0301577 vs A_bglimit 0.3804647（12.6×，以 `【复现：bash 实验/dense-snr-reconstruct/code/run_all.sh 重跑后读 exp_p4_04_brightness_forward.json 的 arms/extreme_；该读数需重跑取得，当前不可离线核验】*` 存档为准）；零源负例两臂逐位恒等 | route1/exp_p4_04 → exp_p4_04_brightness_forward.json；route2/exp_P4R2_07 → exp07_luminance_chain_negative.json |
 | H5 | 三口径（dense/sparse_reconstruct/frame_reconstruct）是同一物理量的三种还原粒度，不构成三种权 | **口径表示成立（同一权公式）；「dense 一律最优」被本轮对照实验否证（P4-M10 已闭环）** | route1 的 frame 臂按**帧级常数铺满**实现（退化的上界对照）：dex-RMSE 0.0295 vs 样条 0.0058、动态范围保持比 0.7525 vs 0.9888，权重公式不变；w 对 m_ref 不变逐位。`dense` 口径本轮已补对照实验（`code/calibers/exp_P4CAL_02_three_calibers_guarded.py`，三类数据 + 对比度扫描 + 守卫臂 `all_pass = true`）：结构场 `E_cell = 0.00903 < E_dense = 0.577 < E_frame = 1.159`，HST 物理前向 `E_cell = 0.206 < E_frame = 0.416 ≪ E_dense = 2.57e5`（样条欠冲），真实帧 `E_cell = 0.171 ≪ E_frame = 11.8 ≪ E_dense = 6.46e4`；该扫描曾给出的「v 跨幅 1.78–235 窗口」已被 M16 物理前向腿否证（窗口内稠密口径照样失效），**不是有效域判据**；替代口径见 §6 第 13 条 ⇒ **dense 口径不是一律最优**；生产帧级口径（帧级 SNR 逆方差链）在单帧内即空间常数权场 = 本实验 `frame` 臂。 **与 route1/exp04 的关系（关键区分）**：exp04 的控制值是**精确的 cell 模型量**（表示上限测试，无估计量噪声）⇒ 其 `E_full = 7.43e-4` 是**表示上限**（控制值精确时的可达下界）；本实验 `dense` 臂的控制值走**生产配方**（8×8 patch `1.4826·MAD` 平方 + cell 内平面拟合）⇒ 估计量噪声使同一算子的 `E` 升到 `0.577`（平滑场）/`2.57e5`（亮源前向）。两者不矛盾：**真实可达效率由控制值精度支配**，`7.43e-4` 不是端到端可达值。 | route1/exp_p4_04（`::arms/A_frame_recon`、`::arms/A_full`）；route3/exp01（H1d：w 比 = 1.0 逐位） |
 | H6 | λlo/λhi ≥ 1/16 是保守良态守卫（κ=√(λhi/λlo)=轴比） | **成立** | 放大 1.007/2.025/3.956/7.980 vs 理论 1/2/4/8（0.5% 内）；共线触发率 1.000；各向同性最小 0.330 永不误红 | route2/exp_P4R2_04 → exp04_plane_conditioning.json；route1/exp_p4_03 → exp_p4_03_plane_geometry.json |
-| H7 | 分母方差面缓变：白性 lag-1=−1/2、relspread 散粒 1×/PRNU 2×、指纹斜率 1/2/0；分子纯度（无源⇒臂逐位相等） | **成立（但“无源⇒臂逐位相等”是结构断言、非估计器断言，P4-M03）** | lag-1 −0.5007/−0.4995/−0.4984 与 −0.49963±0.00078；散粒比 **0.9240（route2 实测）**/0.99999999（route3 解析档）、PRNU 比 **1.9113（route2 实测）**/1.99067（route3 解析档）；斜率 1.000/2.000/0.000；无源 SNR≡0 精确（两臂同式构造，任何算子都判绿 ⇒ 判别力改由 `code/fix/fix01_metric_E_and_gates.py` 的逐臂估计器版承担） | route2/exp_P4R2_05 → exp05_whiteness_variance_map.json；route3/exp06 → exp06_white_noise_and_purity.json；results/fix/fix01_metric_E_and_gates.json::C_rebuilt_gates/C2_zero_source_per_arm_estimator |
+| H7 | 分母方差面缓变：白性 lag-1=−1/2、relspread 散粒 1×/PRNU 2×、指纹斜率 1/2/0；分子纯度（无源⇒臂逐位相等） | **成立（但“无源⇒臂逐位相等”是结构断言、非估计器断言，P4-M03）** | lag-1 −0.5007/−0.4995/−0.4984 与 −0.49963±0.00078；散粒比 **0.9240（route2 实测）**/0.99999999（route3 解析档）、PRNU 比 **1.9113（route2 实测）**/1.99067（route3 解析档）；斜率 1.000/2.000/0.000；无源 SNR≡0 精确（两臂同式构造，任何算子都判绿 ⇒ 判别力改由 `code/fix/fix01_metric_E_and_gates.py` 的逐臂估计器版承担） | route2/exp_P4R2_05 → exp05_whiteness_variance_map.json；route3/exp06 → exp06_white_noise_and_purity.json；【复现：实验/dense-snr-reconstruct/code/fix/fix01_metric_E_and_gates.py 生成的 fix01_metric_E_and_gates.json 的 C_rebuilt_gates/C2_zero_source_per_arm_estimator】 |
 | H8 | 判据 `E_eff = Var_w/Var_opt − 1`（**唯一口径** `Var_opt = 1/Σ(1/σ_true²)`）有证据资格（能红）且乘性免疫 | **成立（口径按 P4-B02 定案；被否口径 `1/Σw` 登记为无效定义）** | 乘性 σ̂=3.17σ 时 E=−1.1e-16（尺度不变偏差 0，机器零）；平坦+平坦 E=0 精确；错误臂 0.314 判红；打乱 0.6335；被否口径在同臂上判负（−0.9005）且尺度不变偏差 3.75 | route3/exp02 → exp02_metric_E_properties.json；results/fix/fix01…json::A_metric_definition；定义与证明 [推导:docs/derivations.md §7] |
 | H9 | 辅助常数链：1.4826 解析恒等、9216 预算自洽、Moffat4=1.230310 闭式（σ 口径 = 模型参数口径 `σ=α/√2`） | **成立** | 1/Φ⁻¹(3/4)=1.4826022185056023（1.50e-16）；9216=(1.44/0.015)² 精确，n_min 带 8905–9494；闭式 1.2303076526 / 独立数值积分 1.2303076507 vs 登记 1.230310（**1.91e-6** = 六位小数圆整量）。他域口径 `σ_g=α/2` ⇒ 1.7399178，恒差 √2、禁止互换 | route2/exp_P4R2_08 → exp08_mad_sigma_budget.json；route2/exp_P4R2_09 → exp09_moffat4_factor.json；[推导:docs/derivations.md §6] |
 | H10 | Δ=64 是可实验证伪的科学量 | **豁免（结构性）** | tile_width=512 冻结、512/8 密度口径自洽；科学后果由 Δ/ℓ 判据承载（零噪偏置 128/64=4.06 vs 理论 4，随 Δ² 增长） | route2/exp_P4R2_03 → exp03_delta_grid.json；台账 A-P4-01 |
 
-负例纪律：19 个实验全部含"真值无效应 ⇒ 度量归零/判据失效"负例（等 σ 方案差归零、平坦场全算子归零、零源稠密场 max|SNR|=0、常数数据 MAD=0、高斯轮廓对照 1.6651 等），对应错误臂均判红。**例外与订正（P4-M03）**："无源两臂逐位恒等"属**同式构造的结构断言**（任何算子都判绿），不具判别力；**该门 `no_source_benefit_collapses`（`code/route1/exp_p4_04_brightness_forward.py:282-285`）已在 `REPORT_paper.md` §7.23b 与 `oracle_full_is_optimal` 同级登记为结构恒真门（G08-04 G2 整改 P0-1c）**；另两条被点名的门（亮度跟随门、有源对照）经反例检验同样对算子不敏感。替代判据（算子敏感亮度门 + 逐臂估计器版零源门 + 偏 10% 源模型对照）见 `code/fix/fix01_metric_E_and_gates.py` → `results/fix/fix01_metric_E_and_gates.json`（正例绿、全局常量/打乱臂红）。
+负例纪律：19 个实验全部含"真值无效应 ⇒ 度量归零/判据失效"负例（等 σ 方案差归零、平坦场全算子归零、零源稠密场 max|SNR|=0、常数数据 MAD=0、高斯轮廓对照 1.6651 等），对应错误臂均判红。**例外与订正（P4-M03）**："无源两臂逐位恒等"属**同式构造的结构断言**（任何算子都判绿），不具判别力；**该门 `no_source_benefit_collapses`（`code/route1/exp_p4_04_brightness_forward.py:282-285`）已在 `REPORT_paper.md` §7.23b 与 `oracle_full_is_optimal` 同级登记为结构恒真门（G08-04 G2 整改 P0-1c）**；另两条被点名的门（亮度跟随门、有源对照）经反例检验同样对算子不敏感。替代判据（算子敏感亮度门 + 逐臂估计器版零源门 + 偏 10% 源模型对照）见 `code/fix/fix01_metric_E_and_gates.py` → `【复现：实验/dense-snr-reconstruct/code/fix/fix01_metric_E_and_gates.py 生成的 fix01_metric_E_and_gates.json】`（正例绿、全局常量/打乱臂红）。
 
 ### ⚠ G08-05 R2 B2 订正：本单元**并非**「无恒真门」——「无恒真门」这句话是错的
 
@@ -53,7 +53,7 @@
 - **三腿模型**：文献腿（一手核验，见 refs.md）/ 实验腿（固定 seed、含负例）/ 理论腿（docs/derivations.md：定权恒等式与 Cauchy–Schwarz 最优性、条件数放大、收敛阶、IDW p→∞ 极限、Δ² 偏置律、白性 −1/2 恒等式）。
 - **算子实现**：样条按标准分段基独立实现（路线3，节点复现 1.8e-15 + 收敛阶双重验证）；IDW 含 K 近邻截断与 γ=1e-10 重合点守卫、大 p 对数归一化防溢出；双线性为规则网格对照档。
 - **合成数据**：HST 信号模板性质的 Moffat(β=2.5/4) 源面 + 完整物理前向（散粒/读噪/PRNU 项构成同 NOISE_MODEL §5b）、纯解析代数合成（平面 + 弱曲率、GRF）、负例（平坦场、零源、等 σ、常数数据）。
-- **度量**：`E_eff = Var_w/Var_opt − 1`（**唯一口径** `Var_opt = 1/Σ(1/σ_true²)`；被否口径 `1/Σw` 登记为无效定义，见 [推导:docs/derivations.md §7] 与 `results/fix/fix01_metric_E_and_gates.json`）、dex-RMSE、动态范围保持比、log-log 指纹斜率；E 对 σ̂ 的乘性缩放严格免疫 ⇒ 必须与 dex 水平判据成对使用（H8）。
+- **度量**：`E_eff = Var_w/Var_opt − 1`（**唯一口径** `Var_opt = 1/Σ(1/σ_true²)`；被否口径 `1/Σw` 登记为无效定义，见 [推导:docs/derivations.md §7] 与 `【复现：实验/dense-snr-reconstruct/code/fix/fix01_metric_E_and_gates.py 生成的 fix01_metric_E_and_gates.json】`）、dex-RMSE、动态范围保持比、log-log 指纹斜率；E 对 σ̂ 的乘性缩放严格免疫 ⇒ 必须与 dex 水平判据成对使用（H8）。
 
 ## 3 数据来源
 
@@ -65,7 +65,7 @@
 
 | sim | sim/exp_sim01_m16_forward_snr_truth.py（1） | sim/*.json（1） | 20261010（共享场景配方内） |
 
-三路互不通信、全仓库只读、纯 Python+numpy、单实验 CPU ≤5 min；seed 写死于脚本（route1 统一 SEED=20260926 + 偏移派生；route2 按实验日递增；route3 统一 20260926）。results/summary.json 为关键读数汇总（注明来源路线与字段）。
+三路互不通信、全仓库只读、纯 Python+numpy、单实验 CPU ≤5 min；seed 写死于脚本（route1 统一 SEED=20260926 + 偏移派生；route2 按实验日递增；route3 统一 20260926）。【复现：eng/tools/quality/resource_monitor.py 生成的 summary.json】 为关键读数汇总（注明来源路线与字段）。
 
 **哈勃物理仿真腿（第 1 类数据）**：真实 HST M16 F657N drz 帧作**纯信号模板**，经共享物理链
 `实验/shared/synthetic/m16_sampling.py → noise_model.expose()` 生成仿真采样帧（768² 帧、0.2″/px、
@@ -87,7 +87,7 @@ m16_scene / m16_sampling / noise_selftest），实测 4/4 PASS、rc=0、约 2 �
 3. **IDW 默认值（H3）**：**按台账 D-05 终裁 idw_power=1.0**（含噪最优带 0.5–1 上端），K=16 折中、γ<1e-10 数值守卫；**目标形态**为配置化 + 运行日志输出实测 p*（不落盘产品）。**实现侧现状（P4-M05，如实登记）**：drizzle 侧求值器**已与终裁一致**（`snr_evaluator.h:110` 成员初值 1.0；`snr_evaluator.cpp:212,268` 的 ≤0 兜底回落 1.0）；仍硬写 2.0 的只有 `snr_estimator.cpp:593,730,833` 三处 `out_model->idw_power` 初始化（Phase1 输出模型路径，与 Phase2 逐像素消费面不是同一条链）。配置键与 p* 日志未实现；`lib/**` 不在本单元文件域内，只登记不落码。p=2 降级为无噪/光滑极限最优读数。
 4. **亮度携带（H4）**：丢源项 Oracle E=1.31e-3（机器零对照 2.22e-16），极端对比 12 倍效率损失；端到端链亮度跟随 √10 闭合（3.1970 vs 3.1623，+1.1% 来自 2% 控制噪声）；P5 定权增益 1.0428 vs 理论 1.0444。
 5. **三口径（H5）**：同一物理量表示约定（台账 X3/A-P4 口径）；m_ref 降格为记录参考电平（A-P4-06）。
-6. **几何与常数链（H6/H9）**：1/16 判据为带余量保守守卫；组成常数 `c(n=64)=1.152` 的出处是**跨单元分歧台账 D-04**（其 MC 落盘件未随本单元收录，**本单元不可复算**）；本单元可复算的自身读数为同一常数的实测 `k = 1.1614111`（n_rep=2000×4000 px，理论 1.1664237），**比 1.152 高 0.82%**、比理论低 0.43%（`results/route2/exp08_mad_sigma_budget.json::part_B_mad_sigma_estimator`）。引用 1.152 时须一并标注其为台账值。
+6. **几何与常数链（H6/H9）**：1/16 判据为带余量保守守卫；组成常数 `c(n=64)=1.152` 的出处是**跨单元分歧台账 D-04**（其 MC 落盘件未随本单元收录，**本单元不可复算**）；本单元可复算的自身读数为同一常数的实测 `k = 1.1614111`（n_rep=2000×4000 px，理论 1.1664237），**比 1.152 高 0.82%**、比理论低 0.43%（`【复现：实验/dense-snr-reconstruct/code/route2/exp_P4R2_08_mad_sigma_budget.py 生成的 exp08_mad_sigma_budget.json 的 part_B_mad_sigma_estimator】`）。引用 1.152 时须一并标注其为台账值。
 7. **诚实边界主数**：稀疏控制格不表示 PSF 尺度——偏差中位 3.8 dex（p99 5.7 dex）[实验:route1/exp_p4_04]；有效域为 ≥Δ 尺度平滑场。
 
 ### 4.1 M16 物理前向仿真腿（H-sim）—— 12 门全绿，实测耗时 11.5 s
@@ -182,7 +182,7 @@ v_dr 一一对应）：
     同构模式见 `m16_scene.py:246`（缺省 `np.ones`）与 `:261-264`（`[m16_scene] WARNING: mask not found ... -> all pixels treated valid`，同样受 `verbose` 门控）。
     后果：真实帧的饱和/坏像元与星云外缘**未被排除**，全部进入期望率面。
     另：`:247` 虽把 `cmeta` 收进内存态 `canvas["meta"]`，**未写入存档**——实测
-    `results/sim/exp_sim01_m16_forward_snr_truth.json` 的键集为
+    `【复现：实验/dense-snr-reconstruct/code/sim/exp_sim01_m16_forward_snr_truth.py 生成的 exp_sim01_m16_forward_snr_truth.json】` 的键集为
     `[experiment, data_class, scene, frame_id, seed, band, line, exposure_s, detector_scale_arcsec_per_px, delta_px, patch_px, delta_arcsec, alphas, truth_definition, domain_criterion, physical_arm, poisson_terms, quantization, saturation, flat_applied_to, contrast_sweep, A_in_domain, A_out_of_domain, negative_control, noise_correlation_probe, excluded_criteria, elapsed_s, verdict]`，
     **无 `mask` / `valid` / `cmeta` / `valid_fraction` 任何键** ⇒ 读存档无法回溯掩膜是否生效。
     ⇒ 本腿全部读数（α 扫描、`E_frame < E_cell < E_dense`、v_dr 窗口否证）按「全像素有效」口径解释；

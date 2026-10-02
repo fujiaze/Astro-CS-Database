@@ -64,10 +64,14 @@ if [ "$MODE" = "full" ]; then
   run p4_hst_n23 ./p4 all 8388608
 fi
 
-# 快照必须在所有探针跑完之后生成（否则 code/ 的哈希会与实际不一致）
-cp "$LOGS"/*.out "$LOGS"/*.csv "$UNIT/results/" 2>/dev/null
-( cd "$UNIT" && sha256sum code/*.h code/*.cpp results/*.out results/*.csv > results/SNAPSHOT.sha256 )
-( cd "$UNIT" && sha256sum -c results/SNAPSHOT.sha256 > /dev/null && echo "[snapshot] SNAPSHOT.sha256 校验通过（$(grep -c . results/SNAPSHOT.sha256) 项）" )
+# 运行产物不再归档：探针输出留在 "$LOGS"（运行期暂存），不复制进 results/，不入库。
+#
+# 为什么删掉原来的 SNAPSHOT 块：原实现在此先生成 results/SNAPSHOT.sha256（覆盖
+# code/*.h code/*.cpp 与 results/*.out results/*.csv），下一行立刻 sha256sum -c 自校验。
+# 锚是在被校验的同一批文件写完之后才生成的，因此**结构上恒绿、无任何检出力** ——
+# 无论代码被改成什么、读数是什么，它都会在最后一步被刷新成当前值。产物自己证明不了
+# 自己，这种"归档同步门"正是本轮治理要否掉的方向。判据实现的完整性由人工对抗性审核
+# 重新推导与反例构造来保证，不靠常驻机器门。
 
 echo "---- 关键判据 ----"
 grep -h "SUMMARY" "$LOGS"/p3_t12.out "$LOGS"/p3_t13.out "$LOGS"/p4_hst.out "$LOGS"/p4_hst_n23.out 2>/dev/null

@@ -1,7 +1,8 @@
 # -*- coding: utf-8 -*-
 """SCI-A 步骤 9 · 汇总验收判据表（逐项结论 + 复现命令 + 实测数字）
 
-产出：results/GATES.md（人读）+ results/gates.json（机读）
+产出：docs/GATES.md（人读，报告档案，入库）+ results/gates.json（机读，运行产物，不入库）
+输入：results/step*.json（由本单元 code/ 下各步骤脚本生成；缺失时相应项记 null）
 """
 from __future__ import annotations
 
@@ -386,7 +387,8 @@ def main():
     for r in rows:
         lines.append(f"| {r['id']} | {r['item']} | **{r['verdict']}** | {r['evidence']} | {r['repro']} |")
     lines += ["", f"合计：{out['n_pass']}/{out['n_gates']} 项 PASS。", ""]
-    with open(os.path.join(sc.RESULTS, "GATES.md"), "w", encoding="utf-8") as f:
+    os.makedirs(sc.DOCS, exist_ok=True)
+    with open(os.path.join(sc.DOCS, "GATES.md"), "w", encoding="utf-8") as f:
         f.write("\n".join(lines))
     print(f"[step9] gates {out['n_pass']}/{out['n_gates']} PASS")
 

@@ -41,6 +41,8 @@ REPO = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "..")
 EXP = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 CODE = os.path.join(EXP, "code")
 RESULTS = os.path.join(EXP, "results")
+# 归档层已移除：运行结果只写 RESULTS（不入库），报告档案入库在 DOCS。
+DOCS = os.path.join(EXP, "docs")
 DATA = os.path.join(EXP, "data")
 RUN = os.path.join(REPO, "run", "SCI-401")
 CACHE = os.path.join(RUN, "data_cache")

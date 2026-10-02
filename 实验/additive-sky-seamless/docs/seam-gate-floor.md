@@ -2,7 +2,7 @@
 
 **性质**：支撑推导（[推导] 腿），供 REPORT_paper.md §2.3 与 REPORT_experiment.md 引用。
 判据与适用域的权威出处：`docs/science/PHASE2_UPM.md` §9a/§17；实验腿：
-`code/audit_rework/route1/c3_seam_gate.py`（固化读数 `results/audit_rework/route1/c3_seam_gate.json`）。
+`code/audit_rework/route1/c3_seam_gate.py`（固化读数 `【复现：bash 实验/additive-sky-seamless/code/run_all.sh 重跑后读 c3_seam_gate.json；该读数需重跑取得，当前不可离线核验】`）。
 
 ## 1. 推导
 
@@ -54,7 +54,7 @@ rel_step = ln(B_R / B_L)；|Δ|/L = |e^{rel_step} − 1| ≤ e^{1e-2} − 1 = 0.
 合成夹具 ρ=0.26%/px ⇒ rel_step = 0.0104 判红（伪阳），ρ=0.10%/px ⇒ rel_step = 0.0040，
 而 d 扫描诊断量 rel_step_d4x = 0.0160 已越门 1.6×。纯斜坡 d 扫描比值恒 4、真实台阶恒 1。
 证据：`code/seam_gate_gradient_scan.py`（调用生产门本体 edge_metric/gate_decision，seed=20260928，
-固化 `results/seam_gate_gradient_scan.json`，20 项断言全绿）。另按台账 A-P5-05 限定：
+固化 `【复现：bash 实验/additive-sky-seamless/code/run_all.sh 重跑后读 seam_gate_gradient_scan.json；该读数需重跑取得，当前不可离线核验】`，20 项断言全绿）。另按台账 A-P5-05 限定：
 「f<1/2 中位数结构性失明」仅在**无噪极限**成立；M42 级噪声下 f=0.3、Δ/L=5%
 读数已达 1.03e-2（到门）。
 

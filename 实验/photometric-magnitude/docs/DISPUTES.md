@@ -45,12 +45,12 @@
 - **终裁**：**判为科学量**（保留在科学面，不进豁免清单）。**但其数值内容未被证据确定**：
   支撑实验 `code/redo/route1/exp4_spatial_gain.py` 的 `design()` 对 `order ∈ {0,1}` 返回**同一 3 列设计矩阵**
   （线性项无条件加入），故 `order0_rms_dex` 与 `order1_rms_dex` 在全部 N 档**逐位相同**（退化读数），
-  "order 1 vs order 2" 这一真正需要判别的比较**从未被评估**；且 `results/REVERSE_VERIFY_CANON.md` §1-2
+  "order 1 vs order 2" 这一真正需要判别的比较**从未被评估**；且 `../../absolute-snr/docs/REVERSE_VERIFY_CANON.md` §1-2
   的定案是"**order 1 为默认；order 2 只在星多且覆盖好时开**"，与"order ≤ 2 + 六降级门槛"不等价。
   ⇒ 本条款**只裁定"场形/阶数属科学面"这一分类**；`order ≤ 2` 这一具体取值与六个降级阈值
   **不得**作为已验证科学常数引用，引用时须标注为"数据相关的偏差-方差工作点，仅有合成白噪证据"。
 - **依据**：`code/redo/route1/REPORT_route1.md` §S12（why-not-structural 论证：场形弯曲度是物理量、
-  阶数上限是偏差-方差折中、order3 全档过拟合）＋ `results/redo/route1/exp4_spatial_gain.json`；
+  阶数上限是偏差-方差折中、order3 全档过拟合）＋ `【复现：实验/photometric-magnitude/code/redo/route1/exp4_spatial_gain.py 生成的 exp4_spatial_gain.json】`；
   退化读数与反向定案由审查员在 `design()` 上独立复算（order 0/1 均为 3 列、RMS 逐位相同）。
 
 ### A-P1-06 「幻觉锚数量被高估」的定性
@@ -96,7 +96,7 @@
 - **终裁**：影响为 **μmag 级（仅在所用模型内）**；真正的问题在**适用域**（G ≥ 15 域外谱），
   不在星族一致性本身。**该数值不得作为"两套星族不一致影响为 μmag 级"的实测证据引用。**
 - **依据**：测算过程存在（`code/redo/route3/exp_S09_mag_minmax.py`，
-  读数 `results/redo/route3/exp_S09_mag_minmax.json`）：该族 `n_G_15_16 = 2527` / `25788 ≈ 9.8%`，
+  读数 `【复现：bash 实验/photometric-magnitude/code/run_all.sh 重跑后读 exp_S09_mag_minmax.json；该读数需重跑取得，当前不可离线核验】`）：该族 `n_G_15_16 = 2527` / `25788 ≈ 9.8%`，
   `[6,15)` 与 `[6,16)` 两族中位数之差 `−9.298e−6 mag`，阶梯早停于 G=14 的情形 `+1.718e−5 mag`。
   **但该测算的输入是参数化噪声律** `noise = 0.01 + 0.02·clip(G−15,0,None)²`（脚本第 36 行字面量），
   且 `F_syn` 由 `m_syn` 反解得到、`m_syn − G = −zp_true + noise` 恒成立 ⇒ 读数是**该噪声律上的中位数差**，
@@ -132,6 +132,6 @@
 
 ## 与本单元其他文档的关系
 
-- 订正执行记录见 `REPORT_experiment.md` §7 与 `results/DOC_CORRECTIONS.md`；
+- 订正执行记录见 `REPORT_experiment.md` §7 与 `../../absolute-snr/docs/DOC_CORRECTIONS.md`；
 - 支撑推导见 `docs/derivation_robust_weights.md`（权威口径 = `docs/science/PHOTOMETRY.md`）；
 - 文献锚见 `refs.md`（只收一手 VERIFIED 条目，`c = 4.685` 锚体系见 D-06）。

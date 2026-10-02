@@ -11,7 +11,7 @@
 - **data/README.md** — 数据来源与生成方式（本单元**不自带数据副本**，全部输入为仓内既有真实数据 ＋ 固定 seed 的合成）。
 - **docs/** — 支撑推导正文（见 `docs/README.md`）。
 - **code/** — 固定 seed、可复跑的实验代码；一键入口见 §7。
-- **results/** — 固化读数、图表与冻结记录；`results/audit_rework_summary.json` 为关键结果汇总（每个数字注明来源路线）。
+- **results/** — 固化读数、图表与冻结记录；`【复现：bash 实验/additive-sky-seamless/code/run_all.sh 重跑后读 audit_rework_summary.json；该读数需重跑取得，当前不可离线核验】` 为关键结果汇总（每个数字注明来源路线）。
 
 ## 判据面上的三条收口结论
 
@@ -129,7 +129,7 @@ testdata M42 M1 T3 Red 4 帧（WCS + FFT 相位相关对齐）；生产代码静
 
 ## 4. 结果（含不确定度与对照）
 
-### 4.1 C1 纯加性世界（`results/c1_additive.json`）
+### 4.1 C1 纯加性世界（`【复现：bash 实验/additive-sky-seamless/code/run_all.sh 重跑后读 c1_additive.json；该读数需重跑取得，当前不可离线核验】`）
 
 | 门 | 量 | 实测 | 对照/不确定度 |
 |---|---|---|---|
@@ -156,7 +156,7 @@ testdata M42 M1 T3 Red 4 帧（WCS + FFT 相位相关对齐）；生产代码静
 
 **如实登记**：该标度关系在 400 px 与 50 px 两点**不单调**（代理量 σ=64 px 高通在小尺度端（50 px）与注入波长同量级、无法把注入图案与接缝分离而低估，在大尺度端（400 px）把台阶低频成分泄入基外 RMS 而非接缝通道——该代理量只给出正确的标度趋势（slope 0.80），不应被读作精确的样条投影，见 §6.3 第 3 条）<!-- 订正: 检查-行文逻辑 Y4——原句括号未闭合、解释缺失，据 §4.1 表与 §6.3 第 3 条补完 -->
 
-### 4.2 C2 乘性世界（`results/c2_multiplicative.json`，7/7 PASS）
+### 4.2 C2 乘性世界（`【复现：bash 实验/additive-sky-seamless/code/run_all.sh 重跑后读 c2_multiplicative.json；该读数需重跑取得，当前不可离线核验】`，7/7 PASS）
 
 注入 `g_k = {A:1.00, B:1.56, C:0.85, D:1.20}`（含历史 1.56×）+ 低阶 m(x,y)（5%）
 + 基外高频（1%@24 px）；星表引导孔径测光（180 颗注入 Moffat4 星，类比 Gaia XP 星表）。
@@ -176,7 +176,7 @@ testdata M42 M1 T3 Red 4 帧（WCS + FFT 相位相关对齐）；生产代码静
 幅度 = 帧间乘性比偏离 1 达 0.560；空间频率 = 低阶（多项式，Phase1 可完全吸收）
 + 基外高频（Phase1 不可吸收，1%@24 px 量级）；对纯加性 UPM 的影响 = 接缝 4.33×。
 
-### 4.3 C3 多退少补与公共面（`results/c3_public_plane.json`，7/7 PASS）
+### 4.3 C3 多退少补与公共面（`【复现：bash 实验/additive-sky-seamless/code/run_all.sh 重跑后读 c3_public_plane.json；该读数需重跑取得，当前不可离线核验】`，7/7 PASS）
 
 | 门 | 量 | 实测 |
 |---|---|---|
@@ -188,7 +188,7 @@ testdata M42 M1 T3 Red 4 帧（WCS + FFT 相位相关对齐）；生产代码静
 | B6 | gauge 0↔1 的 δ_k 逐帧常数偏移 | 5.33e-15；接缝差 0.0 |
 | B7 | 接缝 | 未校正 5.19 e⁻ → `raw−δ_k` **0.386 e⁻**（13.4×） |
 
-### 4.4 C4 非退化接缝判据（`results/c4_seam_criterion.json`，6/6 PASS）
+### 4.4 C4 非退化接缝判据（`【复现：bash 实验/additive-sky-seamless/code/run_all.sh 重跑后读 c4_seam_criterion.json；该读数需重跑取得，当前不可离线核验】`，6/6 PASS）
 
 120 次实现；注入接缝在帧 B 的 x≥256（B 覆盖 gx2-4 ⇒ 左子集 {B}，右子集 {B,C}）。
 
@@ -204,7 +204,7 @@ testdata M42 M1 T3 Red 4 帧（WCS + FFT 相位相关对齐）；生产代码静
 **这就是「非退化」的证明**：同一注入下，退化判据 100% 不响应，本判据 36σ 响应；
 且真值无效应时（平滑公共梯度）假阳性为 0。
 
-### 4.5 C5 采样权重与收敛枚举（`results/c5_weights.json`，5/5 PASS）
+### 4.5 C5 采样权重与收敛枚举（`【复现：bash 实验/additive-sky-seamless/code/run_all.sh 重跑后读 c5_weights.json；该读数需重跑取得，当前不可离线核验】`，5/5 PASS）
 
 一帧被污染（5× 读出噪声 + x≥256 的 25 e⁻ 系统伪影）；**差分度量**：同 seed 下
 clean/polluted 两次拟合之差，隔离伪影漏入。NMC=20。
@@ -222,7 +222,7 @@ rank 49 = n_nodes，χ²_red 0.771，δ_k 非零。
 收敛枚举：规范转写的 0/1/2/3 状态机四例自洽（**meta**）；生产 `p2_upm_convergence`
 只能给 0/1 —— max_iter 与 stalled 都返回 0（**FIX-2**）。
 
-### 4.6 C6 稀疏现场求值 vs 稠密（`results/c6_sparse_dense.json`，4/4 PASS）
+### 4.6 C6 稀疏现场求值 vs 稠密（`【复现：bash 实验/additive-sky-seamless/code/run_all.sh 重跑后读 c6_sparse_dense.json；该读数需重跑取得，当前不可离线核验】`，4/4 PASS）
 
 | 门 | 量 | 实测 |
 |---|---|---|
@@ -231,7 +231,7 @@ rank 49 = n_nodes，χ²_red 0.771，δ_k 非零。
 | E3 | 峰值 RSS | 按需 64² 块 **11,688 kB** < 稠密物化 512² **14,568 kB** |
 | E4 | 天光面节点占比 / 子集一致性 | 49/262,144 = **1.87e-4**；子集 δ_k、b_k 逐位相同（0.0） |
 
-### 4.7 C7 真实数据衔接（`results/c7_realdata.json`，5/5 PASS）
+### 4.7 C7 真实数据衔接（`【复现：bash 实验/additive-sky-seamless/code/run_all.sh 重跑后读 c7_realdata.json；该读数需重跑取得，当前不可离线核验】`，5/5 PASS）
 
 数据：`testdata/M42_T2T3_mosaic_Flying_dutchman/T3/M1/*Red.fts` 取 4 帧（300 s），
 512² 中心裁剪，WCS 预估 + FFT 相位相关对齐（实测位移 [0,0]/[0,0]/[8,6]/[10,8] px）。
@@ -243,7 +243,7 @@ rank 49 = n_nodes，χ²_red 0.771，δ_k 非零。
 | R2 | 生产天光面 | rc=0，n_nodes=49，n_params=58，rank=49，κ=**3.16e7**，χ²_red 1.004 |
 | R3 | 真实数据 + 人工覆盖图案接缝（**excess**，off-locus 对照后） | 未校正 **21.84 e⁻** → `raw−δ_k` **0.583 e⁻**（**37.5×**）；step 口径 20.89 → 0.460 e⁻（45×） |
 | R5 | 相对接缝度量 | **3.9e-4**（< 1%） |
-| R4 | 度量最红位置裁图 | `results/figs/fig_c7_real_crop.png`（目检互证，**非科学证据**） |
+| R4 | 度量最红位置裁图 | `docs/figs/fig_c7_real_crop.png`（目检互证，**非科学证据**） |
 
 **诚实标注**：分块中位的动态范围仅 ~10 ADU（bin_range 1203–1212），斜率的不确定度大
 （6 对散布 0.81–1.32）；该数字应读作「乘性失配 ≤ ±30% 量级」，不能读作精确增益。
@@ -281,6 +281,18 @@ rank 49 = n_nodes，χ²_red 0.771，δ_k 非零。
 「按需现场求值」不牺牲正确性（C6）。
 
 ---
+
+## 判据的地位：自身绿不构成证据
+
+本单元 `code/` 下的判据实现与门判决序是**计算数据的正向代码**，随实验单元保留在库。
+但**判据自身绿不构成该单元结论的证据资格**：门绿只说明实现与其自身阈值自洽，不说明结论为真。
+
+结论的有效性由**对抗性审核**给出，不由门判决给出。审核须做三件事：对齐质疑、尝试**重新推导**该结论、
+并**构造反例**（注入已知缺陷看门是否判红；真值无效应时是否归零）。判红也不是自动的证伪，
+须由审核重新推导其成因，区分「预算或口径不完整导致的判红」与「结论确实不成立」。
+
+本单元因此**不设**任何常驻机器门来保证归档与代码同步或代替上述审核。运行结果归档层已移除：
+`results/` 只是运行期暂存目录，产物不入库；报告档案与图表素材在 `docs/`。
 
 ## 6. 诚实边界（不得当作证据的部分）
 
@@ -548,7 +560,7 @@ C6 ≈ 1 min、C7 ≈ 1 min；审计重做三路＋补实验全量 ≈ 10 min；
 
 ## 8. 佐证来源
 
-### 8.1 文献（可解析 DOI/arXiv，`results/evidence_lit.json` 11/11 已核验）
+### 8.1 文献（可解析 DOI/arXiv，`【复现：bash 实验/additive-sky-seamless/code/run_all.sh 重跑后读 evidence_lit.json；该读数需重跑取得，当前不可离线核验】` 11/11 已核验）
 
 | 主题 | 来源 |
 |---|---|
@@ -566,7 +578,7 @@ C6 ≈ 1 min、C7 ≈ 1 min；审计重做三路＋补实验全量 ≈ 10 min；
 **无可解析 DOI/arXiv**，本报告改以 Gruen+2014（同行评议、含 SWarp 背景处理的系统误差分析）
 作为该实现的文献侧佐证；任务线索「Wild+2009 MNRAS 天光线」经检索**不成立**。
 
-### 8.2 开源实现（项目 + 文件:行，`results/evidence_code.json` 35/35）
+### 8.2 开源实现（项目 + 文件:行，`【复现：bash 实验/additive-sky-seamless/code/run_all.sh 重跑后读 evidence_code.json；该读数需重跑取得，当前不可离线核验】` 35/35）
 
 | 项目 | 关键位置 | 做法 |
 |---|---|---|
@@ -605,7 +617,7 @@ C6 ≈ 1 min、C7 ≈ 1 min；审计重做三路＋补实验全量 ≈ 10 min；
 | 稀疏按需 vs 稠密等价（冻结容差） | 完成 | `python3 .../c6_sparse_dense.py` | 3.11e-15 ≤ 1e-12；体积 0.167%；RSS 更低 |
 | 真实数据接缝度量分布 + VIS-401 对照 | 完成（M42 一路） | `python3 .../c7_realdata.py` | 20.89 → 0.460 e⁻（45×）；相对 3.9e-4 |
 | 三类证据互相佐证 | 完成 | 见 §8 | 文献 11 + 开源 35 + 仓内实测 |
-| 独立子代理对抗审稿 | 见 `results/REVIEW.md` | — | 见 REVIEW |
+| 独立子代理对抗审稿 | 见 `../absolute-snr/docs/REVIEW.md` | — | 见 REVIEW |
 | 一键复跑（固定 seed） | 完成 | `bash 实验/additive-sky-seamless/code/run_all.sh` | — |
 
 ---
@@ -626,7 +638,7 @@ FIX-2 按 `docs/algorithms` 的 0/1/2/3 语义补 `stalled` 分支；FIX-3 提�
 
 ## 11 判据变更登记（独立对抗审稿整改）
 
-独立子代理审稿（`results/REVIEW.md`）指出 6 条致命问题。下表**逐条披露**所有"文档判据 → 实现判据"
+独立子代理审稿（`../absolute-snr/docs/REVIEW.md`）指出 6 条致命问题。下表**逐条披露**所有"文档判据 → 实现判据"
 的改动、实测值与原判据的判定结果。**未披露即计 PASS 是不可接受的**，故本表是报告的一部分。
 
 | 门 | 原判据 | 实测 | 原判据判定 | 现判据 | 现判定 | 理由（是否正当） |
@@ -661,7 +673,7 @@ FIX-2 按 `docs/algorithms` 的 0/1/2/3 语义补 `stalled` 分支；FIX-3 提�
 门为 `margin ≥ −z·SE`（`z = 1.6449` 单侧 95 %）。**未达显著时判词是「不可分辨」而不是 FAIL**，
 且 W1 已从「三条红门的共同前提」里摘出——它与 `A6p`/`A9p` 不同源。
 
-实跑读数（NMC = 20，`results/c5_weights.json` 的 `W1_prime`）：
+实跑读数（NMC = 20，`【复现：bash 实验/additive-sky-seamless/code/run_all.sh 重跑后读 c5_weights.json；该读数需重跑取得，当前不可离线核验】` 的 `W1_prime`）：
 
 | 对照臂 | margin | SE | z（单侧 95 %） | 判词 |
 |---|---:|---:|---:|---|
@@ -718,4 +730,4 @@ FIX-2 按 `docs/algorithms` 的 0/1/2/3 语义补 `stalled` 分支；FIX-3 提�
 | `实验/additive-sky-seamless/results/*.json` | 机器可读结果 + `gates.rows` |
 | `实验/additive-sky-seamless/results/evidence_{lit,code}.json` | 文献/开源证据（含核验状态） |
 | `实验/additive-sky-seamless/results/figs/*.png` | 6 张图 |
-| `实验/additive-sky-seamless/results/REVIEW.md` | 独立对抗审稿记录 |
+| `实验/additive-sky-seamless/../absolute-snr/docs/REVIEW.md` | 独立对抗审稿记录 |

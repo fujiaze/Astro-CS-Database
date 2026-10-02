@@ -99,14 +99,14 @@ for codec, name in (("GZIP_1", "GZIP_1 q4 (fpack默认,有损)"),
     c = statistics.median([float(r["c_ms"]) for r in rows]); d = statistics.median([float(r["d_ms"]) for r in rows])
     rho = extrap(med)
     saved = (1 - rho) * (1 / BW_W + 1 / BW_R) * 1000
-    if rows and "bitwise" in rows[0]:
-        _bw = [int(float(r["bitwise"])) for r in rows if r.get("bitwise") not in (None, "")]
+    if rows and "bitwise_eq" in rows[0]:
+        _bw = [int(float(r["bitwise_eq"])) for r in rows if r.get("bitwise_eq") not in (None, "")]
         bw_eq, bw_n = sum(1 for v in _bw if v == 1), len(_bw)
-        bw_src = os.path.join(EV, "fits_codecs.csv") + "#bitwise"
+        bw_src = os.path.join(EV, "fits_codecs.csv") + "#bitwise_eq"
         bw_why = None
     else:
         bw_eq, bw_n, bw_src = None, 0, None
-        bw_why = "fits_codecs.csv 缺 bitwise 列或行集为空（fail-closed：不给数）"
+        bw_why = "fits_codecs.csv 缺 bitwise_eq 列或行集为空（fail-closed：不给数）"
     out["schemes"][name] = dict(ratio=rho, saved_gib=(tot - rho * tot) / 2**30, c_ms=c, d_ms=d,
                                 net_ms=saved - (c + d), bw_crit_1=2 * (1 - rho) / ((c + d) / 1000),
                                 bitwise_eq_corpus=bw_eq, corpus_n=bw_n,

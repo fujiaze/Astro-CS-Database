@@ -14,6 +14,8 @@ import numpy as np
 HERE = Path(__file__).resolve().parent
 ROOT = Path(__file__).resolve().parents[4]
 RES = ROOT / "实验" / "absolute-snr" / "results"
+# 报告档案入库在 docs/，运行结果留在 results/（不入库）
+DOCS = ROOT / "实验" / "absolute-snr" / "docs"
 
 
 def load(n: str) -> Dict[str, Any]:
@@ -162,7 +164,7 @@ def main() -> int:
                         and isinstance(v, (int, float)))
         lines.append("| inj:%s | %s | %s |" % (i["injection"], "PASS" if i["pass"] else "FAIL", key))
 
-    out = RES / "EXP03_TABLES.md"
+    out = DOCS / "EXP03_TABLES.md"
     out.write_text("\n".join(lines) + "\n", encoding="utf-8")
     print("wrote", out, len(lines), "lines")
 
@@ -171,8 +173,8 @@ def main() -> int:
         import matplotlib
         matplotlib.use("Agg")
         import matplotlib.pyplot as plt
-        figdir = RES / "exp03_figs"
-        figdir.mkdir(exist_ok=True)
+        figdir = DOCS / "figs"
+        figdir.mkdir(parents=True, exist_ok=True)
         # 图 1：误差-尺度关系（解析臂）
         fig, ax = plt.subplots(1, 2, figsize=(11, 4.2))
         for est, col in (("R0", "tab:red"), ("R1", "tab:orange"), ("R2", "tab:blue")):
@@ -201,7 +203,7 @@ def main() -> int:
         ax[1].set_xlabel("region size B [px]"); ax[1].set_ylabel("|median bias| [%]")
         ax[1].set_title("HST forward sim: absolute bias vs region size")
         ax[1].legend(fontsize=6); ax[1].grid(alpha=.3, which="both")
-        fig.tight_layout(); fig.savefig(figdir / "a_error_vs_scale.png", dpi=130); plt.close(fig)
+        fig.tight_layout(); fig.savefig(figdir / "exp03_a_error_vs_scale.png", dpi=130); plt.close(fig)
         # 图 2：真实帧前提检验
         fig, ax = plt.subplots(1, 2, figsize=(11, 4.2))
         xs, ys = [], []
@@ -241,7 +243,7 @@ def main() -> int:
         ax[1].set_xlabel("panel"); ax[1].set_ylabel("sigma [ADU]")
         ax[1].set_title("real: frame scalar vs regional sigma (log scale)")
         ax[1].legend(fontsize=6); ax[1].grid(alpha=.3, which="both")
-        fig.tight_layout(); fig.savefig(figdir / "b_real_premise.png", dpi=130); plt.close(fig)
+        fig.tight_layout(); fig.savefig(figdir / "exp03_b_real_premise.png", dpi=130); plt.close(fig)
         print("wrote figures to", figdir)
     except Exception as exc:
         print("figure generation skipped:", repr(exc))

@@ -24,7 +24,9 @@ UNIT = os.path.dirname(_HERE)
 ROOT = os.path.dirname(os.path.dirname(UNIT))          # 仓库根
 RESULTS = os.path.join(UNIT, "results")
 DATA = os.path.join(UNIT, "data")
-FIGS = os.path.join(RESULTS, "figs")
+# 归档层已移除：运行结果只写 results/（不入库），报告档案与图表素材入库在 docs/。
+DOCS = os.path.join(UNIT, "docs")
+FIGS = os.path.join(DOCS, "figs")
 TESTDATA = os.path.join(ROOT, "testdata")
 HST_M16 = os.path.join(ROOT, "testdata", "HST_M16")
 

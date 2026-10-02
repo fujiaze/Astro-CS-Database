@@ -22,7 +22,9 @@ ROOT = Path(__file__).resolve().parents[3]
 CODE = Path(__file__).resolve().parent          # 本单元 code/（从脚本自身位置推导，随目录改名不失效）
 UNIT = CODE.parent                              # 本单元根（实验/additive-sky-seamless/）
 RESULTS = UNIT / "results"
-FIGS = RESULTS / "figs"
+# 归档层已移除：运行结果只写 RESULTS（不入库），图表素材入库在 DOCS。
+DOCS = UNIT / "docs"
+FIGS = DOCS / "figs"
 RUN = ROOT / "run" / "SCI-403"
 
 TILE_PX = 512          # 一个 HEALPix tile = 512x512（leaf order = target_order+9）

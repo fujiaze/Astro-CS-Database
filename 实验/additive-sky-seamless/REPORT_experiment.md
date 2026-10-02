@@ -6,7 +6,7 @@
 **不一致**，且当前生产构建下 C1 与 C5 各有门为红 ⇒ `code/run_all.sh` 退出码为 1。
 逐条见 §6 末条与 §7.2。
 **裁决来源**：控制裁决台账所在目录已不在仓内；本稿可复核面为 §8 的三条证据腿
-（文献 `refs.md` / 开源 `results/evidence_code.json` / 仓内实测 `results/**`），
+（文献 `refs.md` / 开源 `【复现：bash 实验/additive-sky-seamless/code/run_all.sh 重跑后读 evidence_code.json；该读数需重跑取得，当前不可离线核验】` / 仓内实测 `results/**`），
 仅由台账支撑、未落在三者之上的陈述一律标为登记面。
 
 ---
@@ -32,11 +32,11 @@
 
 ## 3. 数据
 
-1. HST 真实信号模板＋完整物理前向（历史正本）；2. 纯解析合成＋负例（三路＋补实验）；3. testdata 真实数据 M42，**两条腿必须分开读**：(3a) 单元内 C7 = M1/T3 **同一指向的 4 帧** 512² crop（**不是 49 帧**），其 6 条「边界」是 x = 128/192/…/448 的**合成 cell 边界**（`code/c7_realdata.py` 的 BOUND），**不是真实帧足迹边界**；(3b) **真实帧足迹边界**的读数来自**生产 49 帧端到端产品**（逐字冻结记录 `results/production_e2e_seam_record.json`）。详见 REPORT_paper.md §3(3a)/(3b)。
+1. HST 真实信号模板＋完整物理前向（历史正本）；2. 纯解析合成＋负例（三路＋补实验）；3. testdata 真实数据 M42，**两条腿必须分开读**：(3a) 单元内 C7 = M1/T3 **同一指向的 4 帧** 512² crop（**不是 49 帧**），其 6 条「边界」是 x = 128/192/…/448 的**合成 cell 边界**（`code/c7_realdata.py` 的 BOUND），**不是真实帧足迹边界**；(3b) **真实帧足迹边界**的读数来自**生产 49 帧端到端产品**（逐字冻结记录 `【复现：bash 实验/additive-sky-seamless/code/run_all.sh 重跑后读 production_e2e_seam_record.json；该读数需重跑取得，当前不可离线核验】`）。详见 REPORT_paper.md §3(3a)/(3b)。
 
 ## 4. 结果
 
-（完整数字与来源路线见 `results/audit_rework_summary.json`；此处按假说列主数。）
+（完整数字与来源路线见 `【复现：bash 实验/additive-sky-seamless/code/run_all.sh 重跑后读 audit_rework_summary.json；该读数需重跑取得，当前不可离线核验】`；此处按假说列主数。）
 
 ### 4.1 H1：纯加性世界（成立，域内）
 
@@ -44,7 +44,7 @@
 |---|---|---|
 | 背景接缝中位（未校正→δ_k 臂） | 4.80 → 0.383 e⁻（12.5×）；6 条边界的逐条散布：未校正 \|step\| ∈ [1.384, 6.545] e⁻、中位 4.802；δ_k 臂 \|step\| ∈ [0.041, 0.850] e⁻、中位 0.383（off-locus `excess` 口径：中位 5.108 → 0.355 e⁻，14.4×）。**正负对照**：全减臂 `excess` 中位 0.275 e⁻，比 δ_k 臂更小但背景被减掉 ⇒ 度量更小不等于做法正确 | [实验:c1_additive.py]（`seam_native`，n=6 边界） |
 | 产品中位 vs B_ref（**δ 臂**，`product.delta_median`） | 299.17 ≈ 297.33 e⁻（比值 1.0062，保留公共背景）；同 fixture **全减臂** `product.full_median` = 0.711 e⁻（对照） | [实验:c3_public_plane.py] |
-| 全减背景退化臂 | 0.845 e⁻、**48.4% 负值像素**（`full_neg_frac = 0.4839820861816406`，出自 `code/c3_public_plane.py:131` ⇒ `results/c3_public_plane.json`）；度量上反而更好（0.275 < 0.383）——必须禁止 | [实验:c3_public_plane.py] |
+| 全减背景退化臂 | 0.845 e⁻、**48.4% 负值像素**（`full_neg_frac = 0.4839820861816406`，出自 `code/c3_public_plane.py:131` ⇒ `【复现：bash 实验/additive-sky-seamless/code/run_all.sh 重跑后读 c3_public_plane.json；该读数需重跑取得，当前不可离线核验】`）；度量上反而更好（0.275 < 0.383）——必须禁止 | [实验:c3_public_plane.py] |
 | 星孔径通量守恒（正负对照之外的第三腿） | n=16 颗最亮星，相对变化中位 −3.50e-8、最大 \|Δ\| 6.60e-6 ⇒ 加性扣除不动星流 | [实验:c1_additive.py]（`star_flux`） |
 | 乘性前提（Phase1 残差） | 0.560 → 5.89e-4；未做 Phase1 接缝 27.37 → 做后 6.31 e⁻（4.33×） | [实验:c2_multiplicative.py；P1 单元] |
 | 非退化判据分离度 | 退化 0.09σ vs 非退化 36.4σ；样本外假阳性 0/60（双边阈值 \|D−mu\|>5σ，mu=−5.10 e⁻、σ=0.627 e⁻）；A=10 e⁻ 检出率 0.975；5σ 检测限 6.98 e⁻ | [实验:c4_seam_criterion.py]（120 次实现） |
@@ -101,7 +101,7 @@
 
 ### 4.6 归零负例（真值无效应 ⇒ 度量归零或报警）
 
-固化读数 `results/sky_plane_zero_negative.json`，脚本 `code/sky_plane_zero_negative.py`，
+固化读数 `【复现：bash 实验/additive-sky-seamless/code/run_all.sh 重跑后读 sky_plane_zero_negative.json；该读数需重跑取得，当前不可离线核验】`，脚本 `code/sky_plane_zero_negative.py`，
 7 门全过、退出码 0。已有的归零负例（接缝门 `rel_step`、方差比、`k_corr`、可辨识性、
 表示边界）都作用在解析 fixture 上；本表补的是**生产天光面链路**
 （`p2_sky_plane_build` → `δ_k` → 加权叠加 → 接缝度量）此前没有的那一条。
@@ -123,7 +123,7 @@
 **判据形态的变更（原 `N2b` 是恒真门、原 `N2c` 是下界型伪判据）**：原 `N2b` 检的是
 「真值是否为 0」这一存在性事实，注入 6 种缺陷 6/6 全绿；原 `N2c` 的两条子判据都是下界
 （`max\|δ_k\| > 1e-6`、`\|excess\| > 1.0`），只在真值本身变小时才红。重写后的两条由
-`code/g08_defect_probe.py` 做缺陷注入自检（10 种缺陷，`results/g08_defect_probe.json`）：
+`code/g08_defect_probe.py` 做缺陷注入自检（10 种缺陷，`【复现：bash 实验/additive-sky-seamless/code/run_all.sh 重跑后读 g08_defect_probe.json；该读数需重跑取得，当前不可离线核验】`）：
 
 | 缺陷 | `N2b` 相对残差 | `\|step(1)\|` [e⁻] | 仿射残差 | 期望 |
 |---|---:|---:|---:|---|
@@ -226,8 +226,8 @@ python3 实验/additive-sky-seamless/code/reverse_verify/data_matrix/exp1_sky_po
 |---|---|:-:|
 | 三路脚本的中间结果 | `code/audit_rework/results/*.json` | 否（该目录自带 `.gitignore`，重跑不覆盖固化拷贝 `results/audit_rework/<route>/`） |
 | 历史正本固化读数 | `results/c{1..7}_*.json` | 是（代码直写，重跑前须备份） |
-| 归零负例读数 | `results/sky_plane_zero_negative.json` | 是 |
-| 冻结记录自检 / 出图 | `results/production_e2e_seam_record.json`（只读）、`results/figs/*.png` | 是 |
+| 归零负例读数 | `【复现：bash 实验/additive-sky-seamless/code/run_all.sh 重跑后读 sky_plane_zero_negative.json；该读数需重跑取得，当前不可离线核验】` | 是 |
+| 冻结记录自检 / 出图 | `【复现：bash 实验/additive-sky-seamless/code/run_all.sh 重跑后读 production_e2e_seam_record.json；该读数需重跑取得，当前不可离线核验】`（只读）、`results/figs/*.png` | 是 |
 | 探针二进制、逐腿日志、备份与本次读数 | `run/SCI-403/**` | 否（gitignore） |
 | M16 重建链与 data_matrix 产物 | `run/reverse_verify/**` | 否（gitignore） |
 
@@ -261,7 +261,7 @@ python3 实验/additive-sky-seamless/code/reverse_verify/data_matrix/exp1_sky_po
 
 ### 8.2 开源科学代码腿（项目 + 版本 + 文件:行，并回到其引用文献核对）
 
-台账：`results/evidence_code.json`（35 条，逐条带 `project` / `path:line` / 做法 / 核验状态）。
+台账：`【复现：bash 实验/additive-sky-seamless/code/run_all.sh 重跑后读 evidence_code.json；该读数需重跑取得，当前不可离线核验】`（35 条，逐条带 `project` / `path:line` / 做法 / 核验状态）。
 本稿实际据以支撑结论的四条：
 
 | 项目 | 位置 | 做法 | 支撑本稿哪条结论 |
@@ -275,10 +275,10 @@ python3 实验/additive-sky-seamless/code/reverse_verify/data_matrix/exp1_sky_po
 
 | 面 | 位置 | 可核性 |
 |---|---|---|
-| 审计重做三路 + 两个补实验 | `code/audit_rework/{route1,route2,route3,supp_*}/*.py`；固化读数 `results/audit_rework/`；汇总 `results/audit_rework_summary.json`（每个数字注明来源路线与固化文件） | **可现场重跑**：`bash 实验/additive-sky-seamless/code/audit_rework/run_all.sh`，37 个脚本、退出码 0 |
+| 审计重做三路 + 两个补实验 | `code/audit_rework/{route1,route2,route3,supp_*}/*.py`；固化读数 `results/audit_rework/`；汇总 `【复现：bash 实验/additive-sky-seamless/code/run_all.sh 重跑后读 audit_rework_summary.json；该读数需重跑取得，当前不可离线核验】`（每个数字注明来源路线与固化文件） | **可现场重跑**：`bash 实验/additive-sky-seamless/code/audit_rework/run_all.sh`，37 个脚本、退出码 0 |
 | 历史正本 C1–C7 | `code/c{1..7}_*.py`；固化读数 `results/c{1..7}_*.json`（每份含 `gates.rows`，逐门带 id/判据/实测值/是否通过） | **可重跑但读数不逐位复现**（见 §6 末条与 §7）；引用须连同该限定 |
-| 生产 49 帧接缝读数 | `results/production_e2e_seam_record.json`（逐字冻结记录）+ 自检器 `code/production_e2e_record_check.py` | 源产品 FITS 已回收 ⇒ 可核面 = 记录内哈希 + 自检器（13 项内部断言，4 项源文件核对；注入缺陷 4/4 判红） |
-| 天光平面链路归零负例 | `code/sky_plane_zero_negative.py`；固化读数 `results/sky_plane_zero_negative.json` | **可现场重跑**；7 门，含解析臂与生产链臂 |
+| 生产 49 帧接缝读数 | `【复现：bash 实验/additive-sky-seamless/code/run_all.sh 重跑后读 production_e2e_seam_record.json；该读数需重跑取得，当前不可离线核验】`（逐字冻结记录）+ 自检器 `code/production_e2e_record_check.py` | 源产品 FITS 已回收 ⇒ 可核面 = 记录内哈希 + 自检器（13 项内部断言，4 项源文件核对；注入缺陷 4/4 判红） |
+| 天光平面链路归零负例 | `code/sky_plane_zero_negative.py`；固化读数 `【复现：bash 实验/additive-sky-seamless/code/run_all.sh 重跑后读 sky_plane_zero_negative.json；该读数需重跑取得，当前不可离线核验】` | **可现场重跑**；7 门，含解析臂与生产链臂 |
 | 上游证据 | `实验/absolute-snr/results/*.json`（帧 SNR = F_signal/σ_F；天光扫描斜率 −0.4879/−0.4972 vs 理论 −0.5；三孔径域图；`SNR_comb² = ΣSNR_k²` 闭合 2.2e-16；天光采样权重必须用 `control_ivar`） | 跨单元引用；本单元 C5 独立复现了该权重结论 |
 
 ### 8.4 三腿缺一不可的地方

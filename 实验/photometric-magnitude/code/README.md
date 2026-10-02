@@ -61,7 +61,7 @@ bash 实验/photometric-magnitude/code/redo/run_all.sh
 | `step6_apply_and_units.py` | `apply photometry` 落像素与下游消费；物理单位消除 + 反推不可辨识退化族 |
 | `step7_negatives.py` | 6 条非退化负例（N0–N5） |
 | `step8_real_frame.py` | testdata 真实帧（底参照）：帧内仪器参数、引导 vs 盲检、单帧可自算预算 |
-| `step9_collect.py` | 汇总判据表 → `results/GATES.md` / `results/gates.json` |
+| `step9_collect.py` | 汇总判据表 → `../docs/GATES.md` / `【复现：bash 实验/photometric-magnitude/code/run_all.sh 重跑后读 gates.json；该读数需重跑取得，当前不可离线核验】` |
 | `redo/run_all.sh` | 重做三路统一入口（路线 1/2/3，seed 20260926）→ `results/redo/route{1,2,3}/` |
 | `reverse_verify/p1_spatial_gain/` | 低阶空间乘法增益的逆向验收：`cpp/p1sg_oracle.cpp` 独立 C++ Oracle + `src/` 五个真实数据脚本（结果落 `results/reverse_verify/p1_spatial_gain/data/`） |
 
@@ -82,5 +82,5 @@ bash 实验/photometric-magnitude/code/redo/run_all.sh
 - `budget_from_frame` 的 `sigma_fit_robust` **只合成逐像素噪声**；系统项由 `Budget.sigma_ceiling`
   在平方和中各计一次（不要重复折进 MC）。
 - `step8_real_frame.py` 读 FITS 时**不要**再减 `BZERO`：astropy 对 uint16+BZERO 已给物理值
-  （该 bug 曾导致归档结果与交付代码不自洽，见 `results/REVIEW.md` R1）。
+  （该 bug 曾导致归档结果与交付代码不自洽，见 `../../absolute-snr/docs/REVIEW.md` R1）。
 - `run_all.sh quick` 跳过 step6；`step9_collect.py` 会把缺失项标 `NOT_RUN` 而不是崩溃。

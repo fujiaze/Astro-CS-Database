@@ -142,13 +142,13 @@ PASS ⟺ sigma_floor ≤ sigma_obs ≤ sigma_ceiling
 ### 5.2 Oracle 与三类数据上的判据行为（历史正本轮，seed 20260921）
 
 - Oracle（`m≡1`）：估计器与真值一致到机器精度（rtol = 0.0，k 相对误差 3.33×10⁻¹⁵）[实验:code/step1_analytic.py]。
-- **仿真腿**：三帧物理前向仿真全 PASS，σ_obs = 0.045344 / 0.057457 / 0.051718 mag，观测/预测总项比 1.154 / 1.008 / 0.417（`results/step5_calibration_gate.json → obs_over_predicted`） [实验:code/step2_hst_sim.py, step5_calibration_gate.py]。这三帧的 σ_flat 取**注入真值**（独立于被测样本），且帧 A/B 用裸通量中位统计（**不**依赖 `m(x,y)`，见 `step5_calibration_gate.py` 作者约定），故该 PASS 不受 P1-B01 自指缺陷影响。
+- **仿真腿**：三帧物理前向仿真全 PASS，σ_obs = 0.045344 / 0.057457 / 0.051718 mag，观测/预测总项比 1.154 / 1.008 / 0.417（`【复现：bash 实验/photometric-magnitude/code/run_all.sh 重跑后读 step5_calibration_gate.json；该读数需重跑取得，当前不可离线核验】 → obs_over_predicted`） [实验:code/step2_hst_sim.py, step5_calibration_gate.py]。这三帧的 σ_flat 取**注入真值**（独立于被测样本），且帧 A/B 用裸通量中位统计（**不**依赖 `m(x,y)`，见 `step5_calibration_gate.py` 作者约定），故该 PASS 不受 P1-B01 自指缺陷影响。
 - **真实帧腿（订正 P1-B01，判红）**：testdata M42 帧 n=157、inlier=151，σ_obs = **0.026520** mag，σ_floor = 0.006008 mag。
   历史实现把 `calibrate()['delta_after_m']`（= 被测样本多项式拟合**后**的残差散度，σ_obs 自身的函数）当作 σ_flat = 0.019561 mag，
   占上界方差 47.6%，得 σ_ceiling = 0.028366 ⇒ PASS（自指上界，见 §7 订正项 5）。
   改用独立项后取仓内约定常数 σ_flat,hf = **0.0007 mag** ⇒ σ_ceiling = **0.020561** mag；
   σ_obs = 0.026520 **> σ_ceiling ⇒ ABOVE_CEILING（判红）**。翻转临界 σ_flat = **0.013057** mag（= 该约定值的 **18.7 倍**）
-  [实验:code/step8_real_frame.py, results/step8_real_frame.json]。
+  [实验:code/step8_real_frame.py, 【复现：bash 实验/photometric-magnitude/code/run_all.sh 重跑后读 step8_real_frame.json；该读数需重跑取得，当前不可离线核验】]。
   取仿真口径（σ_flat = 0.000881 mag，同帧族真值折算）时 σ_ceiling 略大（0.0205733 vs 0.0205608 mag），判定同为红 ⇒ 结论对该口径选择不敏感。
 - 负例（判据非退化）：真值无效应 ⇒ sigma_obs = 0 且判红；乘性空间残差注入 ⇒ sigma_obs 单调上升并判红；散粒噪声敏感（Poisson 天光抬升 2.91×，4× 判红）而确定性加性图样不敏感（1.08×）⇒ 判据**不能认证天光扣除质量** [实验:code/step7_negatives.py]。
 - 低样本失效模式（**订正 P1-M07**）：`rho_lo = 1 − 3·1.166/√n ≤ 0` ⟺ `n ≤ 12.236` 时下包络**不存在**（n = 5 实测 σ_floor = −0.004911）。历史按 `max(rho_lo, 0)·σ_fit` 夹逼 ⇒ 下界恒 0 而 σ_obs ≥ 0 恒真 ⇒ **过裁剪样本反而 PASS，属恒真门**。现改显式最小样本规则：作用域降级 `upper_only`、状态词 `LOWER_BOUND_UNDEFINED`（**不记 PASS**）⇒ 对「把样本裁到只剩同质星」的判别力来自上界与状态词 [实验:code/step7_negatives.py → N5, code/scia_common.py][推导:D5]。
@@ -182,7 +182,7 @@ bash 实验/photometric-magnitude/code/run_all.sh          # 历史正本轮 ste
 bash 实验/photometric-magnitude/code/redo/run_all.sh     # 重做三路 route1–route3（结果基准快照 results/redo/）
 ```
 
-单脚本均为纯 Python + numpy，不 import 仓库任何 Python；重做轮每脚本 CPU ≪ 5 min。基准读数快照：`results/step1..step8*.json`、`results/redo/route{1,2,3}/`（注明来源路线的汇总在 `results/redo_summary.json`）。
+单脚本均为纯 Python + numpy，不 import 仓库任何 Python；重做轮每脚本 CPU ≪ 5 min。基准读数快照：`results/step1..step8*.json`、`results/redo/route{1,2,3}/`（注明来源路线的汇总在 `【复现：bash 实验/photometric-magnitude/code/run_all.sh 重跑后读 redo_summary.json；该读数需重跑取得，当前不可离线核验】`）。
 
 ---
 

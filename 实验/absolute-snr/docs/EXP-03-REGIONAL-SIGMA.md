@@ -152,7 +152,7 @@ R1 被亚网格结构污染只会让它**变负**。实测 `excess` 中位 -0.1%
 白噪声 `S(L) ≡ σ²` 与 L 无关；平滑图案 P 叠加白噪声时 `S(L) = σ_n² + ½⟨(P(x+L)−P(x))²⟩` 随 L 上升到 `σ_n² + Var(P)`。
 故 **`S(L)/S(1) − 1` = 「尺度 < L 的图案功率 / 噪声功率」**。
 
-![真实帧结构函数：差分场（线）vs 单帧（空心方块）](../results/exp03_figs/b_real_premise.png)
+![真实帧结构函数：差分场（线）vs 单帧（空心方块）](figs/exp03_b_real_premise.png)
 
 *左：15 个真实帧对的差分场 `S(L)/S(1)`（线，1.00→1.14）与同一批帧对的**单帧**值（空心方块，1.7→6.3）。
 右：帧级标量（黑方块，21~46 ADU）与逐区域 σ（蓝点，中位；竖条 = p05~p95）—— 帧级标量高出 1.6~3.3 倍，且完全丢掉了 M2/M5 帧内 7~11 倍的空间跨度。*
@@ -316,13 +316,13 @@ res_err(B) = RMS_r [ sigma_B(r) / mean_r( sigma_{B/2} ) - 1 ]
 
 ### 4.2 实测曲线
 
-![误差-区域尺度关系](../results/exp03_figs/a_error_vs_scale.png)
+![误差-区域尺度关系](figs/exp03_a_error_vs_scale.png)
 
 *左：解析臂逐区域 RMSE vs 区域尺度 B（对数-对数）。R2（蓝）在所有结构下都贴着 ≈1.3% 的 `S_clip` 地板；
 R0/R1（红/橙）被结构泄漏锁死在几十~上千 %。右：HST 前向仿真（有真值）的中位绝对偏差 ——
 M16 星云核心上帧级标量 ≈131%、R1 ≈58%~91%、R2 ≈1.5%。*
 
-**解析臂（有真值，逐区域 RMSE）** —— 完整表见 `results/EXP03_TABLES.md` 表 A2。要点：
+**解析臂（有真值，逐区域 RMSE）** —— 完整表见 `EXP03_TABLES.md` 表 A2。要点：
 
 | 结构 | r = σ_s/σ_n | R0 RMSE@64 | R1 RMSE@64 | **R2 RMSE@64** | R2 中位偏差 |
 |---|---|---|---|---|---|
@@ -380,7 +380,7 @@ EXP-02 的 F1 用的就是 `box=64, filter_size=3, n_iter=2~3` —— **与本�
 
 ### 5.1 臂 A：纯解析代数合成（真值完全已知）
 
-`σ_n = 20 ADU` 已知；13 种结构 × 5 个尺度 × 8 个独立实现。完整表见 `results/EXP03_TABLES.md` 表 A2。
+`σ_n = 20 ADU` 已知；13 种结构 × 5 个尺度 × 8 个独立实现。完整表见 `EXP03_TABLES.md` 表 A2。
 
 | 量 | R0 | R1 | R2 | 帧级标量 S |
 |---|---|---|---|---|
@@ -784,7 +784,7 @@ Phase2（多帧）：在天球像素/控制点聚合「同一天区的帧集合�
 4. 真实帧逐区域功率闭合、结构函数、逐帧 σ 最小二乘解与散粒噪声模型的 **<0.1% 闭合**；
 5. 尺度分辨率误差在 B=64 上：M1 3.6%、M5 23.1%；双线性插值**不能**改善。
 
-**判据自审结果（`results/exp03_e4_gates.json`，`ALL_GATES_PASS = True`，完整表见 `results/EXP03_TABLES.md` 表 D1）**：
+**判据自审结果（`【复现：bash 实验/absolute-snr/code/run_all.sh 重跑后读 exp03_e4_gates.json；该读数需重跑取得，当前不可离线核验】`，`ALL_GATES_PASS = True`，完整表见 `EXP03_TABLES.md` 表 D1）**：
 
 | 门 | 结果 | 关键量 | 预算 |
 |---|---|---|---|
@@ -898,10 +898,10 @@ timeout  600 python3 code/exp03/make_tables.py             # 表与图
 | `code/exp03/e3_hst.py` | 臂 B：HST 真实模板 + 物理前向，4 帧同指向，逐像素解析真值 |
 | `code/exp03/e2_real_premise.py` | 臂 P：M42 T2 16 帧对齐、前提检验、方差分解、跨帧一致性、逐帧 σ 最小二乘解、分辨率曲线 |
 | `code/exp03/e4_gates_selftest.py` | 7 个门 + 5 个故障注入（能红能绿 + 特异性） |
-| `code/exp03/make_tables.py` | 生成 `results/EXP03_TABLES.md` 与 `results/exp03_figs/*.png` |
+| `code/exp03/make_tables.py` | 生成 `EXP03_TABLES.md` 与 `results/exp03_figs/*.png` |
 | `code/exp03/run_all.sh` | 一键复跑 |
-| `results/exp03_e1_analytic.json` / `e2_real.json` / `e3_hst.json` / `e4_gates.json` | 全部原始结果（含 seed、元数据、诚实边界字段） |
-| `results/EXP03_TABLES.md` | 完整表格（自动生成） |
+| `【复现：实验/absolute-snr/code/exp03/e1_analytic.py 生成的 exp03_e1_analytic.json】` / `e2_real.json` / `e3_hst.json` / `e4_gates.json` | 全部原始结果（含 seed、元数据、诚实边界字段） |
+| `EXP03_TABLES.md` | 完整表格（自动生成） |
 | `results/exp03_figs/*.png` | 误差-尺度曲线、真实帧前提检验图 |
 | `run/SCI-B-EXP-03/logs/*.log` | 运行日志（含 `/usr/bin/time -v` 峰值 RSS） |
 | `run/SCI-B-EXP-03/research/R1-regional-sky-implementations.md` | 独立子代理 R1：区域/局部天光估计的标准做法与误差界（927 行，含 σ_sky 对照总表与负面清单） |

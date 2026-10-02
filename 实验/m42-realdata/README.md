@@ -166,6 +166,18 @@ C2-G1d（平坦方差）、C3-N2（算术平均/取最大/取最小）、C4-N1..
 
 ---
 
+## 判据的地位：自身绿不构成证据
+
+本单元 `code/` 下的判据实现与门判决序是**计算数据的正向代码**，随实验单元保留在库。
+但**判据自身绿不构成该单元结论的证据资格**：门绿只说明实现与其自身阈值自洽，不说明结论为真。
+
+结论的有效性由**对抗性审核**给出，不由门判决给出。审核须做三件事：对齐质疑、尝试**重新推导**该结论、
+并**构造反例**（注入已知缺陷看门是否判红；真值无效应时是否归零）。判红也不是自动的证伪，
+须由审核重新推导其成因，区分「预算或口径不完整导致的判红」与「结论确实不成立」。
+
+本单元因此**不设**任何常驻机器门来保证归档与代码同步或代替上述审核。运行结果归档层已移除：
+`results/` 只是运行期暂存目录，产物不入库；报告档案与图表素材在 `docs/`。
+
 ## 6. 诚实边界
 
 - **未独立验证的结论**（不得当成本单元结论引用）：
@@ -189,18 +201,18 @@ C2-G1d（平坦方差）、C3-N2（算术平均/取最大/取最小）、C4-N1..
 ## 7. 复现命令
 
 ```bash
-# 一键复现（四个判据脚本 + 结果快照），只读既有端到端产物
+# 一键复现（四个判据脚本），只读既有端到端产物
 bash 实验/m42-realdata/code/run_all.sh
 
-# 单跑
+# 单跑（输出落 ../results/，运行期暂存，不入库）
 cd 实验/m42-realdata/code
 python3 c1_photometry.py      # -> ../results/c1_photometry.json
 python3 c2_absolute_snr.py    # -> ../results/c2_absolute_snr.json
 python3 c3_seam_additive.py   # -> ../results/c3_seam_additive.json
 python3 c4_leaf_allocation.py # -> ../results/c4_leaf_allocation.json
 
-# 完整性锚
-sha256sum -c 实验/m42-realdata/results/SNAPSHOT.sha256
+# 判据实现完整性锚（只校验、不生成；run_all.sh 自动执行）
+sha256sum -c 实验/m42-realdata/code/ANCHOR.sha256
 ```
 
 日志落 `run/M42-REALDATA-01/logs/`。
@@ -216,7 +228,7 @@ sha256sum -c 实验/m42-realdata/results/SNAPSHOT.sha256
 | 组间散度参考值 0.02 dex 与"帧间独立"裁决 | `lib/infrastructure/scheduler/src/module_adapters.cpp:4377`、`:4826-4838` |
 | `sigma_residual` 定义（MAD/0.6745） | `lib/algorithms/photometry/cpp/src/star_matcher.cpp:612-621` |
 | 噪声律与 SNR 链 | `docs/science/PHASE2_UPM.md`、`docs/science/SNR_CHAIN.md`、`lib/algorithms/coverage/src/integrate.cpp:20-79` |
-| E 的定义与参考值 | `实验/absolute-snr/code/exp05/exp05_common.py:393-408`、`实验/absolute-snr/docs/EXP-06-SUMMARY.md`、`results/exp06_e1_analytic.json` |
+| E 的定义与参考值 | `实验/absolute-snr/code/exp05/exp05_common.py:393-408`、`实验/absolute-snr/docs/EXP-06-SUMMARY.md`、`【复现：实验/absolute-snr/code/exp06/e1_analytic.py 生成的 exp06_e1_analytic.json】` |
 | 权威接缝判据本体 | `实验/additive-sky-seamless/code/sci_c_common.py:356-411` |
 | 纯加性天光模型与"保留背景" | `docs/science/PHASE2_UPM.md:9-10`、`:186-190`、`docs/ASTROCS_DESIGN.md:139-145` |
 | FP64 通量闭合门 1e-6 | `docs/science/algorithms/DRIZZLE_GEOMETRY.md:235-237` |
