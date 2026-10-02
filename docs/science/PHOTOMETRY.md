@@ -94,7 +94,7 @@ Gaia DR3 官方文档 §5.4.1「External Calibration → Zero points」给出合
 
 - `Q(λ)` **是通带的组成部分，不是可选项**。官方对 passband 的定义（Gaia Collaboration, Montegriffo et al. 2023, A&A 674, A33, §1）："actual TCs, which in the following we also refer to as passbands, are defined by the combination of the TC of an optical filter …, the sensitivity curve of a photon-counting detector (typically a CCD for observations in the optical spectral range), and the TC of the optical elements …, plus a contribution from the terrestrial atmosphere"。
 - 本合同的模型通带 `T(λ)·Q(λ)·λ` 因此**必须**含 `Q(λ)`；未配置 `Q` 时按 `Q(λ)≡1` 处理，其物理含义是「假设探测器为**理想量子效率平坦**器件」，**不是**「QE 已被折进 T(λ)」。
-- 缺失 `Q` 的判定：`Q≡1` 与计入 KAF-16803 QE 的合成星等差的**中位量被零点吸收**、**跨星散度不被吸收而进入 `sigma_residual`** ⇒ `T·Q·λ` 为唯一合法通带口径。读数正本见 `实验/photometric-magnitude/`（`results/` 与 `REPORT_experiment.md`）。
+- 缺失 `Q` 的判定：`Q≡1` 与计入 KAF-16803 QE 的合成星等差的**中位量被零点吸收**、**跨星散度不被吸收而进入 `sigma_residual`** ⇒ `T·Q·λ` 为唯一合法通带口径。读数正本见 `实验/photometric-magnitude/docs/fsyn_convention.md` §5（`Q≡1` 与计入 KAF-16803 QE 的实测散度变化，及 `(1+k)` 归因与判别证据）。
 - **计入 `Q` 后 `sigma_residual` 上升的机制（判据面）**：`Q` 曲线在带内的**形状**对不同 SED 给出不同的乘性因子，该因子与恒星颜色相关、并与既有残差 `r0` **正相关** ⇒ `sigma_residual` 近似按 **(1+k) 放大**，而**不是**按独立散度 `sqrt(σ0²+s²)` 合成。
 
   | 判别项 | 判据（逐项读数正本见 `实验/photometric-magnitude/`） |
@@ -375,27 +375,27 @@ outlier_rate = 1 − |r_inliers|/|r_consistent|
 
 ### 16.5 星数依赖与降级语义
 
-> 依据：实验单元 `实验/photometric-magnitude`（报告 `README.md`、结果 `results/step1..step8*.json`、复跑 `python3 实验/photometric-magnitude/code/step*.py`）。本节只登记**判据的样本量依赖与降级语义**，不改 §5 公式、§7 不变量与 §10 禁改清单。
+> 依据：实验单元 `实验/photometric-magnitude`（报告 `README.md`、`REPORT_experiment.md`、`REPORT_paper.md`；代码 `code/`，固定种子、可复跑，入口 `python3 实验/photometric-magnitude/code/step*.py`）。本节只登记**判据的样本量依赖与降级语义**，不改 §5 公式、§7 不变量与 §10 禁改清单。
 > C6（参考通量口径）的一手记录另见 `实验/photometric-magnitude/RESOLUTION_fsyn_formula.md`。
 
 1. **星数不构成拒绝条件**：不存在星点少到无法测光的图；任何可解析帧都完成测光定标并出产品，产品按该帧自身实测的 `σ_obs` 与误差预算如实标注精度，不设固定星数门槛、也不套用他帧的精度口径。§5 的双边界判据（`σ_obs` 上下界）按本帧自身星数自算；
 2. **星少到拟合不成立时报拟合失败（不是门槛拦截）**：§4 的冻结门「`|r_consistent| ≥ 3` 才进 IRLS」是**求解前提**——不成立时拟合**本就不产出标度**，走 NO_DATA 拟合失败路径（`fit_ok=false` + `degraded_reason` + `error` 上报，产品的测光施加声明面为空）。该前提只回答「本次拟合有没有产出标度」，不作「星数够不够」的准入判据；
-3. **N5 低样本量边界（判据能力边界，非拒绝门槛）**：`σ_floor = (1 − 3·1.166/√n)·σ_fit(白)`（`1.166 = √1.361`，其中 `1.361` = MAD 的**标准化方差**（Rousseeuw & Croux 1993, JASA 88, 1273, Table 2）；即 `1.166` 是 MAD→σ̂ 估计量的相对标准误 SD 因子，**不是**「SD(MAD)/MAD 正态渐近常数」）在 `n ≲ 12` 时为负、在 `n ≲ 22` 时已趋零 ⇒ 对「把样本裁剪到只剩同质星」**没有判别力**（负例读数见 `实验/photometric-magnitude/results/step7_negatives.json → N5`）。该现象**只出现在低样本量区间**，实拍帧的典型星数区间不构成缺陷。
+3. **N5 低样本量边界（判据能力边界，非拒绝门槛）**：`σ_floor = (1 − 3·1.166/√n)·σ_fit(白)`（`1.166 = √1.361`，其中 `1.361` = MAD 的**标准化方差**（Rousseeuw & Croux 1993, JASA 88, 1273, Table 2）；即 `1.166` 是 MAD→σ̂ 估计量的相对标准误 SD 因子，**不是**「SD(MAD)/MAD 正态渐近常数」）在 `n ≲ 12` 时为负、在 `n ≲ 22` 时已趋零 ⇒ 对「把样本裁剪到只剩同质星」**没有判别力**（负例读数见 `实验/photometric-magnitude/README.md` §4.6 非退化负例表 N5 行与 §2.3 判据作用域）。该现象**只出现在低样本量区间**，实拍帧的典型星数区间不构成缺陷。
    **判据形态**：下界 `rho_lo = 1 − 3·1.166/√n ≤ 0` 的语义是「3σ 下包络**不存在**」，**不是**「下界等于 0」。
    ⇒ 低样本量区间的下界不参与判定：`max(rho_lo, 0)·σ_fit` 形式的下界恒为 0，而 `σ_obs ≥ 0` 恒真 ⇒ 属恒真门、无证据资格（`standards/01` §7），一律不用；
    判据形态 = 显式最小样本量规则：`rho_lo ≤ 0` ⟺ `n ≤ (3·1.166)² = 12.236` 时，判据作用域取 `upper_only`，
    状态词返回 **`LOWER_BOUND_UNDEFINED`**（**不记 PASS**），并随产品一并报出 `n` 与 `gate_scope`；
    对「过裁剪」的判别力来自**上界与状态词**。实现与读数正本：
    `实验/photometric-magnitude/code/scia_common.py → Budget.lower_bound_defined / Budget.gate_scope / gate_verdict`、
-   `results/step7_negatives.json → N5`；
+   `实验/photometric-magnitude/README.md` §4.6 非退化负例表（N5 行）；
 4. **`σ_psfsys` 的孔径口径**：用「PSF 域通量 vs 独立孔径通量」的中位绝对偏差估计 `σ_psfsys` 时，**必须用小孔径（≈2×FWHM）+ 低背景星子样本**。大孔径（r=10 px）把星云结构算进「方法系统误差」，高估倍数随背景上升显著增大；小孔径（r=4 px）在稀疏场准确、在拥挤场仍上偏（保守方向，判据偏松不偏紧）。读数正本见 `实验/photometric-magnitude/`。
   **判据形态（正向）**：`σ_psfsys = median(|F_PSF − F_aper|)`，取**小孔径**（半径 ≈ 2×FWHM）且**低背景**星子样本；该量是**方法系统误差**的估计量，不是逐星随机误差。
   **量纲**：`σ_psfsys` 以**星等**计（mag）；通量域比值经 `−2.5·log10` 转换。
-  **证据与门禁状态（如实）**：定量支撑在实验单元 `实验/photometric-magnitude/results/step5_calibration_gate.json → items_measured`（另见同目录 `GATES.md`）；仓内**没有**与该口径一一对应的 ctest 目标，故该口径的机器化尚未落地，引用时必须连同实验单元结果一起引用；
-5. **判据的敏感域（C3 能力边界）**：`σ_obs` 双边界判据对**散粒噪声**敏感、对**确定性加性图样**不敏感——算术相加 `gx·(x−W/2)`（无散粒）不触发判红，而把天光经 Poisson 前向重画则触发（倍数读数见 `实验/photometric-magnitude/results/`）。⇒ 该判据能认证的是「天光**噪声**是否被正确预算」，**不能**认证天光**扣除**质量；后者须另设残差检查；
-6. **WCS 二轮精化是平移精化**：HST HLSP drz 头部 WCS 与 Gaia DR3 之间存在系统平移（精确读数见 `实验/photometric-magnitude/results/step3_forward_vs_photflam.json → wcs_refinement`），而 testdata 真实帧的残余显著更小 ⇒ 二轮精化的必要性取决于上游 WCS 质量，不是流程固定开销；设计须能覆盖 ~2″ 量级平移；
+  **证据与门禁状态（如实）**：定量支撑在实验单元 `实验/photometric-magnitude/README.md` §4.2「逐项预算（帧 A 实测，全部由本帧推导）」的 `σ_psfsys`（帧内小孔径 r=4 px）行，真实帧口径见同文 §4.7「可自算预算项」；仓内**没有**与该口径一一对应的 ctest 目标，故该口径的机器化尚未落地，引用时必须连同实验单元报告一起引用；
+5. **判据的敏感域（C3 能力边界）**：`σ_obs` 双边界判据对**散粒噪声**敏感、对**确定性加性图样**不敏感——算术相加 `gx·(x−W/2)`（无散粒）不触发判红，而把天光经 Poisson 前向重画则触发（倍数读数见 `实验/photometric-magnitude/README.md` §4.6 非退化负例表 N2 行与同节「另记」段）。⇒ 该判据能认证的是「天光**噪声**是否被正确预算」，**不能**认证天光**扣除**质量；后者须另设残差检查；
+6. **WCS 二轮精化是平移精化**：HST HLSP drz 头部 WCS 与 Gaia DR3 之间存在系统平移（精确读数见 `实验/photometric-magnitude/README.md` §4.5「WCS 二轮精化」，与真实帧对照见同文 §4.7 末段），而 testdata 真实帧的残余显著更小 ⇒ 二轮精化的必要性取决于上游 WCS 质量，不是流程固定开销；设计须能覆盖 ~2″ 量级平移；
 7. **参考通量的合成口径与适用域**：`F_syn` 的唯一权威写法是 §2a.1（绝对谱辐照度 × 通带 × 光子计数权重，**不含** `10^(−0.4·G)`）；XPSD uint8 解码的绝对刻度由真实数据实证锚定（读数正本见 `实验/photometric-magnitude/`），适用域 **G ≲ 18**；通带（含 `Q`）与 XP 覆盖必须完全包含，否则 `F_syn≡0` 而**不产出零点**。生产落盘的 `ZP_syn` 由该公式**逐位复现**（float64 精度内一致），证实生产实现与本节口径一致。
-8. **绝对刻度的适用域（C5）**：XP 合成通量相对 HST PHOTFLAM 的中位差只在**窄带**（等效宽度 29–39 nm，F657N/F673N/F502N）上定量（读数与色项斜率正本见 `实验/photometric-magnitude/results/`）。
+8. **绝对刻度的适用域（C5）**：XP 合成通量相对 HST PHOTFLAM 的中位差只在**窄带**（等效宽度 29–39 nm，F657N/F673N/F502N）上定量（读数与色项斜率正本见 `实验/photometric-magnitude/README.md` §4.5「残差与色项」表，适用域边界见同文 §6 第 4 条）。
   **适用域（逐帧声明，按域取用）**：上述量级**只对等效宽度 29–39 nm 的窄带成立**；**宽带**（Baader R，等效宽度 ~144 nm）的同类误差**未测量**。
   **与生产默认配置的关系（必须写明）**：生产默认通带是**宽带** —— `eng/packaging/config/templates/normalize.phase_config.json` 的 `filter_passband` 取 `Baader R`。⇒ **生产主要场景的绝对刻度误差处于未测量状态**；产品精度标注与绝对刻度断言的引用域 = 窄带结果本身。
 

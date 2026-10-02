@@ -26,16 +26,16 @@ F7: 星等一致性预过滤 |Δ−median(Δ)|>3.0 mag reject where Δ=−2.5·l
 
 - **F1 量纲**：`F_instr` 单位 **ADU**；`F_syn` 单位 **W·m⁻²·nm**（定义式与逐项量纲见 `docs/science/PHOTOMETRY.md` §2a.1/§2a.2）；`r_i` 是**有量纲比值**的对数，单位 `dex(ADU/[F_syn 单位])`；`location` 同单位；`scale` 单位 `[F_syn 单位]/ADU`。**有效域**：`F_instr>0`、`F_syn>0`、`r` 有限（`star_matcher.cpp`）；不成立者显式拒绝，不进入 `r`。
 - **F2 中心约定**：`MAD` 的中心是**中位数**（`star_matcher.cpp`：先 `location=median(r_consistent)`，再取 `MAD=median(|r−location|)`）。常数 `0.6744897501960817 = Φ⁻¹(3/4)` 的推导前提即「中心 = 中位数」。
-  **有限样本偏差（适用域）**：`MAD/0.6744897501960817` 对 σ 的期望在 n<20 时系统性偏低；修正因子 `b_n`（Croux & Rousseeuw 1992, *Computational Statistics* **1**, 411, p.413 表：n=3→1.495、4→1.363、5→1.206、9→1.107，n>9→`n/(n−0.8)`）。合成实验独立复算该表的期望并与文献预言一致（读数正本 = 实验/photometric-magnitude/results/）。本层冻结门 `|r_consistent|≥3` 恰落在偏差最大处：**n=3 时 S 与 sigma_residual 的期望偏低约 1.49 倍**、n=9 偏低 1.107 倍、n≥50 偏差 <2%；**该偏差在实现中不修正**，故低星数帧的 `sigma_mag` 是下偏估计。证据与读数正本 = 实验/photometric-magnitude/results/。
+  **有限样本偏差（适用域）**：`MAD/0.6744897501960817` 对 σ 的期望在 n<20 时系统性偏低；修正因子 `b_n`（Croux & Rousseeuw 1992, *Computational Statistics* **1**, 411, p.413 表：n=3→1.495、4→1.363、5→1.206、9→1.107，n>9→`n/(n−0.8)`）。合成实验独立复算该表的期望并与文献预言一致（读数正本 = `实验/photometric-magnitude/code/redo/route2/REPORT_route2.md` §S10 的 n 分层 MAD 有限样本偏差表）。本层冻结门 `|r_consistent|≥3` 恰落在偏差最大处：**n=3 时 S 与 sigma_residual 的期望偏低约 1.49 倍**、n=9 偏低 1.107 倍、n≥50 偏差 <2%；**该偏差在实现中不修正**，故低星数帧的 `sigma_mag` 是下偏估计。证据与读数正本 = `实验/photometric-magnitude/code/redo/route2/REPORT_route2.md` §S10。
 - **F3 尺度路线**：`S` 由 `MAD` **一次估计后在迭代中固定**（`star_matcher.cpp`），属「先验尺度估计的 M 估计」路线（Huber & Ronchetti 2009, *Robust Statistics* 2nd ed. §6.5；与 §6.4「位置-尺度同时迭代」并列）。
   **收益**：`location` 继承 `MAD` 的 50% 崩溃点（MASS 7.3-66 `R/rlm.R:171-183` 的 MM 法说明：「The final estimator is an M-estimator with Tukey's biweight and **fixed scale** that will inherit this breakdown point provided c > k0」）。
-  **代价**：`c=4.685` 的 95% 渐近效率只对**已知尺度**严格成立（statsmodels `robust/_tables.py`：`tukeybiweight_eff[0.95]=(4.685065, 0.119414)`；闭式复算 `ARE(4.685065)=0.950000`）。本层合成实测 93.7%（n=1000）–96.0%（n=50），与名义值同量级。证据与读数正本 = 实验/photometric-magnitude/results/。
+  **代价**：`c=4.685` 的 95% 渐近效率只对**已知尺度**严格成立（statsmodels `robust/_tables.py`：`tukeybiweight_eff[0.95]=(4.685065, 0.119414)`；闭式复算 `ARE(4.685065)=0.950000`）。本层合成实测 93.7%（n=1000）–96.0%（n=50），与名义值同量级。证据与读数正本 = `实验/photometric-magnitude/code/redo/route1/REPORT_route1.md` §S1。
   **成对变更约束**：若采用**每轮重估尺度**方案（MASS `rlm()` `R/rlm.R:171-183`、statsmodels `RLM(update_scale=True)` 的默认路线），`c=4.685` 下的崩溃点降到 **11.9%**；要保 50% 崩溃点必须同时把 `c` 降到 1.548（效率仅 28.7%）。⇒ `c` 与「尺度是否重估」**必须成对变更**，单独改任一项即破坏另一侧保证。
-- **F4 中心约定与语义**：实现的 `MAD` 中心是 **IRLS 收敛后的 `location`**，不是 `median(r_inliers)`（`star_matcher.cpp`）。二者相差 `δ=|location−median(r_inliers)|` 时，本式相对标准 MAD 的一阶偏差为 `δ/σ`：合成实验核实该一阶偏差（纯高斯与含污染两档；读数正本 = 实验/photometric-magnitude/results/）。**适用域**：`δ ≪ σ`（帧内残差近似单峰对称）时与标准 MAD 等价；`δ ≳ 0.1σ` 时必须声明所用中心。证据与读数正本 = 实验/photometric-magnitude/results/。
+- **F4 中心约定与语义**：实现的 `MAD` 中心是 **IRLS 收敛后的 `location`**，不是 `median(r_inliers)`（`star_matcher.cpp`）。二者相差 `δ=|location−median(r_inliers)|` 时，本式相对标准 MAD 的一阶偏差为 `δ/σ`：合成实验核实该一阶偏差（纯高斯与含污染两档；读数正本 = `实验/photometric-magnitude/README.md` §4.1 纯解析合成的实现正确性与约定收敛表）。**适用域**：`δ ≪ σ`（帧内残差近似单峰对称）时与标准 MAD 等价；`δ ≳ 0.1σ` 时必须声明所用中心。证据与读数正本 = `实验/photometric-magnitude/README.md` §4.1。
   **语义**：`sigma_residual` 是**逐星定标散度**（系综量，dex），不是单源通量误差；与 SExtractor 的 `FLUXERR/MAGERR` **同名不同义**，两者各自独立、不可互换。SExtractor 定义见其**用户手册** §2.24.2 式(1.2)（`MAGERR = 2.5/ln10·FLUXERR/FLUX`）与式(1.46)（`FLUXERR = sqrt(Σ(σ_i²+p_i/g_i))`），原文注明该误差「provides a lower limit of the true uncertainty, as it only takes into account photon and detector noise」——即**逐源**量，与本层系综散度不同。
 - **F5 语义与覆盖边界**：`sigma_mag`、`sigma_cal_rel` 是帧级定标散度的线性换算，**不含**参考端（XP 谱解码、Gaia 星表、通带曲线）误差与逐源测量误差；作为单源精度指标使用会低估（误差预算逐项见 `docs/science/PHOTOMETRY.md` §16.4）。
 - **F6 量纲与施加面**：`scale` 单位 `[F_syn 单位]/ADU`，其绝对量级由该帧仪器标度（增益/口径/曝光等不可测量）决定，**无物理意义**（`docs/science/PHOTOMETRY.md` §1/§16.2）；施加式 `I_cal=I·scale` 逐元素（`image_corrector.cpp`，OpenMP `schedule(static)`）。
-- **F7 适用域**：窗口作用于 `Δ−median(Δ)`，故对 `F_instr` 的**整体乘性标度严格不变**（合成实验：`k=10⁻⁴…10⁶` 下拒绝集逐位相同）；对**与星相关的颜色项不不变**。窗口 = **7.29σ（≈10.81×MAD）** ⇒ 需颜色项散度 ≈3.0 mag 才首次触发（斜率 4.0 mag/颜色单位），故该窗在本仓真实数据上不承担「防通带失配」职能（通带取错的跨星散度读数正本 = 实验/photometric-magnitude/results/）；对 6 mag 级粗大离群，其相对 IRLS 的边际贡献不可测（污染 0–49% 时 location RMSE 差 <2%）。`3.0` 为 Project-defined 冻结值。证据与读数正本 = 实验/photometric-magnitude/results/。
+- **F7 适用域**：窗口作用于 `Δ−median(Δ)`，故对 `F_instr` 的**整体乘性标度严格不变**（合成实验：`k=10⁻⁴…10⁶` 下拒绝集逐位相同）；对**与星相关的颜色项不不变**。窗口 = **7.29σ（≈10.81×MAD）** ⇒ 需颜色项散度 ≈3.0 mag 才首次触发（斜率 4.0 mag/颜色单位），故该窗在本仓真实数据上不承担「防通带失配」职能（通带取错的跨星散度读数正本 = `实验/photometric-magnitude/README.md` §4.6 非退化负例表 N3 行与 `实验/photometric-magnitude/docs/fsyn_convention.md` §5）；对 6 mag 级粗大离群，其相对 IRLS 的边际贡献不可测（污染 0–49% 时 location RMSE 差 <2%）。`3.0` 为 Project-defined 冻结值。证据与读数正本 = `实验/photometric-magnitude/code/redo/route1/REPORT_route1.md` §S4。
 
 ## 3 伪代码
 
@@ -64,7 +64,7 @@ function photometric_fit(F_instr, F_syn, G_Gaia):
 | `S=0` 且 `\|r_consistent\|≥3` | 可达：n=3 时两颗星 `r` 逐位相等即 `MAD=0`（合成实验实测）；此时 `location=median(r)`、`scale` 照常发布、`sigma_residual=0` |
 
 **`sigma_residual=0` 的双义与下游消歧（正向约束）**：`0` 同时表示「不可估计（`|r_inliers|<2`）」与「实测零散度（S=0 分支）」。下游 `snr_phot_cal_quality`（`lib/algorithms/noise_snr/cpp/src/noise_model.cpp`）把 `sigma≤0` 映射为 `fit_status=2`（未估计）并**不发布** `sigma_mag/sigma_cal_rel`，故两种含义在 SNR 面被消歧为「无不确定度可用」；**任何其他消费方**必须按同一规则处理，`0` 的解释 = 「无不确定度可用」；「零不确定度」是另一含义。
-**S=0 分支的可达性判据**：n=3 两值相等 ⇒ S=0；n=3 三值互异 ⇒ S>0（负例对照）；证据与读数正本 = 实验/photometric-magnitude/results/。
+**S=0 分支的可达性判据**：n=3 两值相等 ⇒ S=0；n=3 三值互异 ⇒ S>0（负例对照）；证据与读数正本 = `实验/photometric-magnitude/README.md` §4.1「`S=0` 退化」行与 `实验/photometric-magnitude/code/redo/route3/REPORT_route3.md` §S05（H5c 构型）。
 
 ## 5 确定性与归约
 
@@ -198,7 +198,7 @@ F_syn = ∫ F_λ(λ)·T(λ)·Q(λ)·λ dλ        # W·m⁻²·nm；F_λ 单位 
 | 谱网格来源 | 由 XPSD 文件头 `parameters="spectrumStart=336,spectrumStep=2,spectrumCount=343,spectrumBits=8"` 逐字给出（真实分片实测） | `lib/infrastructure/gaia_xpsd_client/src/gaia_client.c` |
 | **非生产通道（数值对拍用）** | `compute_f_syn` / `compute_f_syn_cached`：`∫uint8·T·Q·λdλ × 10^(−0.4·magG)`；仅作数值对拍，**生产定标面不含该通道** | `spectrum_integrator.cpp`（两处非生产符号） |
 
-**生产路径的实证判据**（真实 M42 产物；读数与证据正本 = 实验/photometric-magnitude/results/）：
+**生产路径的实证判据**（真实 M42 产物；读数与证据正本 = `实验/photometric-magnitude/docs/fsyn_convention.md` §2.3「真实数据（生产链逐位复现）」）：
 `zero_point_mag = median_i(magG_i + 2.5·log10 F_syn,i)` 必须由上式**逐位复现**（落盘值与复算值相对差 ≤1e-12）。
 
 **生产编排**（`lib/algorithms/photometry/cpp/src/pc_api.cpp`）: 生产主路径 = `run_with_gaia_impl<T>`；参数校验；退化（无 PSF / 无光谱星 / 滤光片-QE 失败 → scale=1.0、rc=0）；自适应锥搜 `mag_max_arr{12..16}`×5；F_syn OpenMP `schedule(dynamic,64)` 逐星（整数 `reduction(+:n_valid_fsyn)`）；匹配+清洗；逐星 PcMatchRecord；f64 内联像素校正；`make_dr3sp_id`；v2 封装三支（`pc_calibrate_simple_with_gaia_v2` / `_f64_v2` / `_f64_v2_qf`）。旧 ABI 通道：`pc_calibrate_simple`、`_with_gaia`、`_f64`、`_with_gaia_f64`（均在同一文件）。
@@ -218,7 +218,7 @@ F_syn = ∫ F_λ(λ)·T(λ)·Q(λ)·λ dλ        # W·m⁻²·nm；F_λ 单位 
   **两条路径的网格不可直接对拍**：生产用 2 nm 谱网格，非生产用 1.0 nm 重叠区网格；两者的离散误差量级不同（2 nm 网格离散误差 0.66–1.34%）。
 - **参考通量口径**：`F_syn = ∫F_λ·T·Q·λ dλ`（W·m⁻²·nm，**不含** `10^(−0.4·G)`；XPSD 解码 `F_λ=byte·flux_mul+flux_min` 已是绝对谱辐照度，实测 `median(m_syn−magG)=−0.0037 mag`）。权威 `docs/science/PHOTOMETRY.md` §2a。
 - 生产 XPSD 光谱为 uint8 编码 F(λ)=byte·flux_mul+flux_min（解码见 `spectrum_integrator.cpp`），非 float 原始光谱。
-  **量化误差（真实数据）**：逐样本相对半步步长 `0.5·flux_mul/F` 与进入 `F_syn` 的**加权和**相对误差是两个不同量级——积分后比逐样本小约 30 倍（权重代理 `w=λ`，T=Q=1）。⇒ 引用该误差时**必须声明是「逐样本」还是「积分后」**；读数正本 = 实验/photometric-magnitude/results/。证据与读数正本 = 实验/photometric-magnitude/results/。
+  **量化误差（真实数据）**：逐样本相对半步步长 `0.5·flux_mul/F` 与进入 `F_syn` 的**加权和**相对误差是两个不同量级——积分后比逐样本小约 30 倍（权重代理 `w=λ`，T=Q=1）。⇒ 引用该误差时**必须声明是「逐样本」还是「积分后」**；读数正本 = `实验/photometric-magnitude/docs/fsyn_convention.md` §2.2 误差分解。证据与读数正本 = `实验/photometric-magnitude/docs/derivation_robust_weights.md` 网格离散误差归因。
 - 自适应星等锥搜 mag_max_arr={12,13,14,15,16}（`lib/algorithms/photometry/cpp/src/pc_api.cpp`）实际
   覆盖 mag_max 入参（DISP-PHOT-005）。
 - 构建现状=`lib/algorithms/photometry/cpp/Makefile` + `build.ps1`（photometric_calib.dll，链接

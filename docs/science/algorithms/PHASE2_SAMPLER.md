@@ -73,8 +73,7 @@ ra_deg / dec_deg = 度（J2000）；snr / support / quality_flags = 无量纲；
 - 面积换算只发生在下游写盘前：`area = support×A_cell`、`flux = signal×area`
   （`lib/algorithms/coverage/tools/stage2.cpp:1149-1152` / `:1368-1369`），
   即 signal 是**单位面积通量**；
-- 实测闭环（本仓 `实验/absolute-snr/REPORT_experiment.md`，证据
-  `实验/absolute-snr/results/`）：真实 M42
+- 实测闭环（本仓 `实验/absolute-snr/REPORT_experiment.md`）：真实 M42
   300 s R 帧（raw 像素尺度 0.9890″/px，Ω_px = 2.2991e-11 sr）上 4096 个 17×17 patch
   实测 σ_bg 中位 = 14.826 ADU/px、N_retained 中位 = 287，按 §5.4 公式得
   control_variance = 1.684 (ADU/px)²、control_ivar = 0.5937 (ADU/px)⁻²；按 ADU·sr⁻¹
@@ -236,7 +235,7 @@ y_ik = m0（收敛集位置估计）                     # :863
 
 - 判据：`σ_bg_raw == 0` ⟺ **patch 内 ≥ 半数像素取同一数值**（`median(|v−m0|) = 0`）。
   可达性判据：真实帧上该分支必须可达，且命中 patch **没有一个是全常数**
-  （读数与证据正本 = 实验/absolute-snr/results/）⇒ 该分支在真实数据上可达，
+  （读数与证据正本 = 实验/absolute-snr/REPORT_experiment.md）⇒ 该分支在真实数据上可达，
   不是理论角落；
 - 约束：该分支表示 **patch 不携带尺度信息**（数据被量化/饱和平台主导），**发布口径 = 无尺度信息标记，本模块不把它**
   映射成一个有限的正方差。发布口径由 §5.4 规定；1e-12 只是避免 `σ_bg²` 归零的数值

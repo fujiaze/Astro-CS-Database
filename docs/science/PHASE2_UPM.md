@@ -98,7 +98,7 @@
   #   N≥9 触发率 12–35%，发布 cvar 对被估量（裁剪后中位数，触发时奇偶翻转）低估 1.3–3.2%。
   #   三口径小结：纯公式口径高估（保守方向）、端到端偏差有界、
   #   生产链亮端裁剪臂低估；偶 N 奇偶效应与生产链裁剪语义的正本 = `实验/absolute-snr/`
-  #   （results 与 REPORT_experiment.md）。
+  #   （REPORT_experiment.md）。
   #   非高斯域不成立（均匀 1.91×、拉普拉斯 0.335×，实测见 ALG-P2-SMP-001 §5.4）；
   #   结构主导 patch 的偏差比有限 N 修正大 1–2 个数量级（结构臂 b=0.3σ/样本时端到端高估 +117%）。
   #   出处：Serfling 1980 §2.3.2（ISBN 0-471-02403-1 / DOI 10.1002/9780470316481）。
@@ -191,7 +191,7 @@
   (c) 跨后端等价 = **无此合同**（判据面 = 空）。
   **适用域（正向约束）**：判据必须随标度归一。绝对量 1e-12 只在 `|C| ≈ 1` 时与 rtol 1e-12
   等价；生产 C 场为面亮度 ADU·sr⁻¹，量级由 Ω_px 决定（M42 真帧实测天空 ≈1.2e3 ADU/px，
-  `实验/additive-sky-seamless/results/c7_realdata.json` 的 `pair_mismatch[*].level_i`；
+  `实验/additive-sky-seamless/README.md` §4.7 的 `bin_range` 1203–1212；
   像素角尺度 0.98902″/px、Ω_px = 2.2991e-11 sr 由 FITS 头 FOCALLEN/XPIXSZ 换算 ⇒ 5.3e13 ADU·sr⁻¹），
   此时 ulp 量级为 1e-2，
   绝对 1e-12 比 ulp 严 10 个数量级、不可达；反之在 α² 标度（≈1e-29）上绝对 1e-12
@@ -370,7 +370,7 @@ UPM 在**像素域 control cell**（8×8 双线性网格）上工作，无 WCS/�
 
 ## 16 加性天光与无接缝的实验结论
 
-实验单元：`实验/additive-sky-seamless/`（报告 `README.md`，机器可读结果 `results/*.json`，
+实验单元：`实验/additive-sky-seamless/`（报告 `README.md`、`REPORT_experiment.md` 与 `REPORT_paper.md`，
 一键复跑 `code/run_all.sh`）。**本节只记录结论与判据形态，不改变任何公式或默认容差；
 全部读数的正本 = 该实验单元。**
 
@@ -398,7 +398,7 @@ UPM 在**像素域 control cell**（8×8 双线性网格）上工作，无 WCS/�
 2. **纯加性前提**：帧间乘性差必须先在 Phase1 吸收。未做 Phase1 归一时，纯加性 UPM 后仍显著
    存在电平接缝；做了 Phase1 归一后接缝大幅压缩（两条臂的读数正本见 `实验/additive-sky-seamless/`）。
    基外高频乘性分量对**电平**接缝贡献有界，但会被分块 PSD 检出
-   （读数正本 = `实验/additive-sky-seamless/results/` 的 `hf_component.psd_k_peak`）。
+   （读数正本 = `实验/additive-sky-seamless/README.md` §4.2 的 M5/M6 行）。
 
 3. **不可检验域**：`smoothing_lambda=0` 时 per-(frame,cell) 自由加性场恰好定解，公共场 M 只是
    每 cell 的规范选择 ⇒「拟合/堆叠权重同源」与「末端残差场扣除」在该域内**不可检验**；
@@ -421,7 +421,7 @@ UPM 在**像素域 control cell**（8×8 双线性网格）上工作，无 WCS/�
 
 > 本节给出 §9a 接缝指标门槛的**推导链**：观测量 → 零假设分布 → 虚警率 → 可检出下限 → 漏检面。
 > **本节不改动门槛数值、判据式、默认参数与适用域**：它把门槛标定到实测噪声上，并给出它的性质。
-> 证据与可复跑脚本正本：`实验/additive-sky-seamless/`（报告、`results/*.json` 与 `code/`）。
+> 证据与可复跑脚本正本：`实验/additive-sky-seamless/`（报告、`docs/` 与 `code/`）。
 
 ### 17.1 观测量与零假设模型
 
@@ -449,7 +449,7 @@ UPM 在**像素域 control cell**（8×8 双线性网格）上工作，无 WCS/�
 ### 17.2 门限对应的虚警率
 
 三种零假设口径（同一合格产品的全部帧足迹边界；条数与适用域计数为实测读数，正本见
-`实验/additive-sky-seamless/results/`）：
+`实验/additive-sky-seamless/REPORT_paper.md` §3(3b)）：
 
 | 零假设口径 | σ(rel_step) | 1e-2 = kσ | 双边虚警（正态） | 族系虚警（114 条，双边 max\|rel_step\|，正态） |
 |---|---|---|---|---|
@@ -501,7 +501,7 @@ UPM 在**像素域 control cell**（8×8 双线性网格）上工作，无 WCS/�
      （w = 8 px ⇒ 2.0%、16 px ⇒ 4.0%、32 px ⇒ 8.0%）⇒ 对**权重斜坡/羽化平滑过的接缝原理性不敏感**；
   4. **边界长度覆盖不足**：判据取**中位数**，边界上只有比例 `f` 的采样点承载台阶时 `f < 1/2` 恒有
      `median = 0` ⇒ 对**短于边界一半的局域接缝结构性失明**（判据量是「典型台阶」而非「最大台阶」；**该恒零仅在无噪极限下成立**——带噪时 median 由 §17.1 零假设的梯度项＋采样噪声决定，`f < 1/2` 只把判据量压到噪声水位，并非恒零失明）；
-  5. **适用域之外**：足迹外缘或贴数据边界的边界**不进判据**（条数为实测读数，正本见 `实验/additive-sky-seamless/results/`），那里没有无接缝证据。
+  5. **适用域之外**：足迹外缘或贴数据边界的边界**不进判据**（条数为实测读数，正本见 `实验/additive-sky-seamless/REPORT_paper.md` §3(3b)），那里没有无接缝证据。
 
   6. **光滑法向斜坡的伪阳（判据量的梯度项，与 1–5 方向相反）**：§17.1 的梯度项相对化后
      `rel_step = 2d·ρ + Δ/bg`（ρ = 边界处**相对**法向斜率，无量纲/px），真值**无台阶**（Δ = 0）时该量
@@ -513,7 +513,7 @@ UPM 在**像素域 control cell**（8×8 双线性网格）上工作，无 WCS/�
      本条是「真值无台阶却判红」，两类边界都必须随门一并陈述。
 
      证据（实验单元，只读调用生产门本体 `edge_metric`/`gate_decision`，seed = 20260928）：
-     `实验/additive-sky-seamless/code/seam_gate_gradient_scan.py` ⇒ `实验/additive-sky-seamless/results/seam_gate_gradient_scan.json`
+     `实验/additive-sky-seamless/code/seam_gate_gradient_scan.py` ⇒ 读数见 `实验/additive-sky-seamless/REPORT_paper.md` §2.3
      （20 项断言全绿；负例 ρ = 0 ⇒ rel_step 恒 0、4000 次 MC 全绿 ⇒ 判据非恒真）。
      斜坡不敏感化的候选判据 `Δ̂ = (4·s_d − s_4d)/3` 仅作为实验证据落盘，**尚未进入判决面**：
      判据面变更须走变更流程，本条只登记适用域边界，不改变任何阈值或公式（同 §17.4「本节不放宽任何判据」）。
@@ -521,10 +521,10 @@ UPM 在**像素域 control cell**（8×8 双线性网格）上工作，无 WCS/�
 ### 17.4 实测标定与 `1e-2` 的性质
 
 - 合格产品在适用域内的 `max|rel_step|`、中位与 p90，以及超门边**全部**落在 `not_interior`（被适用域排除）
-  这一事实，构成适用域在**数值上**必要的证据（`实验/additive-sky-seamless/results/`：没有适用域，
+  这一事实，构成适用域在**数值上**必要的证据（`实验/additive-sky-seamless/REPORT_paper.md` §3(3b)：没有适用域，
   同一合格产品会出现超门判红）。读数不在本节复述。
 
-- **`1e-2` 与实测跨边散布的倍数关系由三条独立标定给出**（`实验/additive-sky-seamless/results/`）。
+- **`1e-2` 与实测跨边散布的倍数关系由三条独立标定给出**（`实验/additive-sky-seamless/REPORT_paper.md`）。
   ⇒ `1e-2` **不是**宽裕的工程裕度，而是「恰好压在一个合格产品的实测散布之上」。
 
 - **`1e-2` 的性质（必须如实标注）**：该值最初来自 SCI-C 实验单元的「相对接缝度量 < 1%」**要求**
@@ -538,7 +538,7 @@ UPM 在**像素域 control cell**（8×8 双线性网格）上工作，无 WCS/�
 - **负例（门的判红与推导预测一致）**：按 §17.3 的临界注入幅度向真实产品注入台阶并逐档比对，
   判决翻转点落在临界值附近（约 0.8–0.9 倍临界之间），逐档判决与解析预测一致；预测与实测在
   翻转点附近的差异来自被注入多边形的足迹与**别的帧边界相交**这一二阶效应。
-  逐条证据、帧标识与幅度读数正本见 `实验/additive-sky-seamless/results/`。
+  逐条证据、帧标识与幅度读数正本见 `实验/additive-sky-seamless/REPORT_paper.md`。
 
 ### 17.5 复现
 
@@ -550,5 +550,5 @@ python3 实验/additive-sky-seamless/code/audit_rework/route3/exp01_seam_gate.py
 python3 实验/additive-sky-seamless/code/seam_gate_gradient_scan.py                              # 梯度项伪阳（§17.3 第 6 条）
 ```
 
-读数、逐条证据与推导说明正本 = `实验/additive-sky-seamless/results/audit_rework/` 与
+读数、逐条证据与推导说明正本 = `实验/additive-sky-seamless/REPORT_experiment.md` §4.3 与
 `实验/additive-sky-seamless/docs/seam-gate-floor.md`。
