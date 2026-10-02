@@ -64,7 +64,7 @@ for s in code/audit/supplement_control_variance/*.py; do python3 "$s"; done
 
 `results/route{1,2,3}` 与 `results/supplement_control_variance` 为各路 `results/` 的 JSON 逐字快照
 （`*.stdout` 文本日志未收录，见源目录）。关键读数的来源路线标注汇总见
-`../../results/AUDIT_KEY_RESULTS.json`；报告正文见 `../../REPORT_experiment.md` 与 `../../REPORT_paper.md`。
+`【复现：bash 实验/absolute-snr/code/run_all.sh 重跑后读 AUDIT_KEY_RESULTS.json；该读数需重跑取得，当前不可离线核验】`；报告正文见 `../../REPORT_experiment.md` 与 `../../REPORT_paper.md`。
 
 ## P2-M5 闭环脚本（`route3/exp11_frozen_operator_transfer.py`）
 
@@ -92,7 +92,7 @@ python3 eng/tools/monitoring/mem_guard.py --max-rss-gb 4 --timeout 900 -- \
 python3 实验/absolute-snr/code/audit/route3/exp11_frozen_operator_transfer.py --skip-real
 ```
 
-结果：`results/route3/exp11_frozen_operator_transfer.json`；
+结果：`【复现：bash 实验/absolute-snr/code/run_all.sh 重跑后读 exp11_frozen_operator_transfer.json；该读数需重跑取得，当前不可离线核验】`；
 证据说明：`run/FINAL-07/审核包/科研审查/P2_订正/evidence/exp11_frozen_operator_transfer.md`。
 
 ## 与单元主实验（seed 20260921）的关系

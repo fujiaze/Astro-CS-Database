@@ -66,7 +66,7 @@ N≈225–251、逐实现 MAD 取跨实现中位）专属的**单次 MC 实测�
 k_corr = k_gauss(N_retained) × k_geo
 ```
 
-- **k_gauss**（有限 N 估计器偏置，主导因子）：N=5→1.63、N≥121→≈1.00（表由 P3 单元承载）。**引用必须逐字带口径名**：`results/audit_rework/p3_kcorr/tables.md` T3 的列头原文是「k_gauss(N) **iid 参考**」= iid 高斯参考口径，**不是**「生产裁剪估计器 + MAD 尺度的实测比」（P5-07 订正点：原表述把列头口径换成了另一个口径）。同表注另给 N=5 的直接定征读数（Var(median)/渐近式 = 0.9113；median(MAD)/σ 口径 k = 1.6370，高精度参考 1.6339）⇒ N=5 处两口径数值接近、定义不同，口径统一由 P3 单元会签；<!-- 订正: 检查-跨文档冲突 红1 连带——原式 k_corr = k_shape × k_geo、k_shape 注为非高斯边际形状 ≤±5%，与 P3 正本 DERIVATIONS-P3 §D8/tables.md T3 的 k_gauss 因子两读，全域统一为 k_gauss(N_retained) × k_geo；非高斯边际形状效应 ≤±5%（N≥9）改作附带说明，不进入公式面。旧对照：k_corr = k_shape × k_geo；k_shape（非高斯边际形状）：N≥9 时 ≤±5%，可忽略 -->附带说明（非公式因子）：非高斯边际形状效应 ≤±5%（N≥9），可忽略 [推导]＋[实验:P3 单元 g2]。
+- **k_gauss**（有限 N 估计器偏置，主导因子）：N=5→1.63、N≥121→≈1.00（表由 P3 单元承载）。**引用必须逐字带口径名**：`audit/p3_kcorr/tables.md` T3 的列头原文是「k_gauss(N) **iid 参考**」= iid 高斯参考口径，**不是**「生产裁剪估计器 + MAD 尺度的实测比」（P5-07 订正点：原表述把列头口径换成了另一个口径）。同表注另给 N=5 的直接定征读数（Var(median)/渐近式 = 0.9113；median(MAD)/σ 口径 k = 1.6370，高精度参考 1.6339）⇒ N=5 处两口径数值接近、定义不同，口径统一由 P3 单元会签；<!-- 订正: 检查-跨文档冲突 红1 连带——原式 k_corr = k_shape × k_geo、k_shape 注为非高斯边际形状 ≤±5%，与 P3 正本 DERIVATIONS-P3 §D8/tables.md T3 的 k_gauss 因子两读，全域统一为 k_gauss(N_retained) × k_geo；非高斯边际形状效应 ≤±5%（N≥9）改作附带说明，不进入公式面。旧对照：k_corr = k_shape × k_geo；k_shape（非高斯边际形状）：N≥9 时 ≤±5%，可忽略 -->附带说明（非公式因子）：非高斯边际形状效应 ≤±5%（N≥9），可忽略 [推导]＋[实验:P3 单元 g2]。
 - **k_geo**（几何）：随 (ρ=输出/源尺度比, pixfrac, patch 构成, 帧数/dither) 变化——
   紧凑 patch ≈1.27±0.03、全 touched ≈1.43–1.45、空间分散 ≈1.00、几何扫描全域 1.00–5.0、
   多帧 1/2/4 帧 = 1.424/1.338/1.328 [实验:P3 单元 g1/g3/g4，固化于本单元
@@ -95,4 +95,4 @@ k_corr = k_gauss(N_retained) × k_geo
 - 单元正本 `code/c3_public_plane.py:43-72` 的 `k_corr=1.4` 是**标定带内一次实现**；
   其端到端结论（背景保留、接缝压缩）不依赖 1.4 的普适性，维持有效；论文按 D-08 口径转写。
 - `docs/smooth-lambda.md`（历史正本）中的 `k_corr=1.4` 行已加订正注，指向本文件。
-- `results/c1_additive.json` 等历史结果不重跑；其读数在论文中的引用一律挂 [实验:c*.py]。
+- `【复现：bash 实验/additive-sky-seamless/code/run_all.sh 重跑后读 c1_additive.json；该读数需重跑取得，当前不可离线核验】` 等历史结果不重跑；其读数在论文中的引用一律挂 [实验:c*.py]。

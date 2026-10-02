@@ -423,7 +423,15 @@ def main():
     p = M.json_dump(out, "c1_photometry.json")
     print(json.dumps(out["gates"], ensure_ascii=False, indent=1)[:7000])
     print("wrote", p)
-    return 0
+    # 退出码 = 未通过判据数。旧实现无条件 `return 0`：判据红不以任何方式传到
+    # 退出码，run_all.sh 的 `st=$?` 恒为 0，于是「全判红」与「全判绿」在入口
+    # 看来完全一样。degenerate 行按 m42_common.Gates.summary 的口径不计入
+    # （它们结构上永不判红，计入会把真实缺陷藏进红灯里），与该函数保持一致。
+    n_fail = int(out["gates"]["n_fail"])
+    if n_fail:
+        print("GATES RED: %d/%d 未通过（degenerate %d 条不计入）"
+              % (n_fail, out["gates"]["n"], out["gates"]["n_degenerate"]))
+    return n_fail
 
 
 if __name__ == "__main__":

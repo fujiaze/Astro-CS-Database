@@ -93,7 +93,7 @@ thr = 3 · 1.4826 · MAD_total ≈ 3 · σ_total        (近似高斯)
 
 ### 2.2 但"结构 rms / 噪声 rms"**不是**充分统计量
 
-同一个 `r`，污染量级可以差 4 个数量级。解析臂（`results/exp02_e1_analytic.json`，box=32）：
+同一个 `r`，污染量级可以差 4 个数量级。解析臂（`【复现：实验/absolute-snr/code/exp02/e1_analytic_scan.py 生成的 exp02_e1_analytic.json】`，box=32）：
 
 | 结构模型 | r = σ_s/σ_n | 生产 σ̂/σ_true − 1 | 说明 |
 |---|---|---|---|
@@ -221,10 +221,10 @@ PSF 为 Moffat4（检测块高斯 FWHM = 2.5 px）；`cr_rate = 0`、`hot_fracti
 
 ## 5. 结果（三类数据）
 
-### 5.1 臂 A：纯解析合成（`results/exp02_e1_analytic.json`，240 条记录）
+### 5.1 臂 A：纯解析合成（`【复现：实验/absolute-snr/code/exp02/e1_analytic_scan.py 生成的 exp02_e1_analytic.json】`，240 条记录）
 
-**σ̂/σ_true 随结构 rms 的关系曲线**见 `results/exp02_figs/a_analytic_scan.png`（左：F0 生产；右：F1b 修法）。
-节选（box=32；完整 60 行见 `results/EXP02_TABLES.md` 表 A1）：
+**σ̂/σ_true 随结构 rms 的关系曲线**见 `figs/exp02_a_analytic_scan.png`（左：F0 生产；右：F1b 修法）。
+节选（box=32；完整 60 行见 `EXP02_TABLES.md` 表 A1）：
 
 | 模型 | r | F0 生产 | F1b 修法 | A1 | A2 | 判据 |
 |---|---|---|---|---|---|---|
@@ -249,12 +249,12 @@ PSF 为 Moffat4（检测块高斯 FWHM = 2.5 px）；`cr_rate = 0`、`hot_fracti
 | r ≈ 3 | 3.0 | **+217%** | **σ_sky 语义已丧失** |
 | r ≳ 100 | 100 | ≥+9900% | σ̂ ≈ 结构 rms 本身 |
 
-**尺度分辨率**（`results/exp02_figs/a_box_dependence.png`）：修法在结构尺度 ≫ mesh 时有效；
+**尺度分辨率**（`figs/exp02_a_box_dependence.png`）：修法在结构尺度 ≫ mesh 时有效；
 结构尺度 ≲ mesh（`smooth_corr8` vs box≥32）时，修法与生产**同样失效**（A1 ≈ R ≈ 1，只有 A2 能检出，见 §7.3）。
 
-### 5.2 臂 B：HST M16 真实模板 + 物理前向仿真（`results/exp02_e2_hst.json`）
+### 5.2 臂 B：HST M16 真实模板 + 物理前向仿真（`【复现：实验/absolute-snr/code/exp02/e2_hst_scan.py 生成的 exp02_e2_hst.json】`）
 
-完整 22 行见 `results/EXP02_TABLES.md` 表 B1；曲线见 `results/exp02_figs/b_hst_scan.png`。节选（`nostar`，box=32）：
+完整 22 行见 `EXP02_TABLES.md` 表 B1；曲线见 `figs/exp02_b_hst_scan.png`。节选（`nostar`，box=32）：
 
 | p99.9 [e⁻] | 结构 rms/σ | p99.9/σ | F0 生产 | F1b 修法 | kf | A1 | A2 | 判据 |
 |---|---|---|---|---|---|---|---|---|
@@ -275,7 +275,7 @@ PSF 为 Moffat4（检测块高斯 FWHM = 2.5 px）；`cr_rate = 0`、`hot_fracti
 > 但 `p99.9/σ = 3.42` 的行 rms/sigma 已达 3.34 却**几乎无污染**。
 > 原因是 M16 核心区的 rms 由最亮 0.01% 像素主导 ⇒ 该场景下 rms 比值**不是**裁剪行为的良好代理。
 
-### 5.3 臂 C：testdata 真实帧（`results/exp02_e3_real.json`，16 帧，2048² 中心裁剪）
+### 5.3 臂 C：testdata 真实帧（`【复现：实验/absolute-snr/code/exp02/e3_real_data.py 生成的 exp02_e3_real.json】`，16 帧，2048² 中心裁剪）
 
 | 帧 | σ̂_prod | kf | σ̂_fix(64) | R=prod/fix | A1 | A2 | A2(mesh-med) | A2(MAD) | D | 块间 p95/p05 | 判据 |
 |---|---|---|---|---|---|---|---|---|---|---|---|
@@ -290,7 +290,7 @@ PSF 为 Moffat4（检测块高斯 FWHM = 2.5 px）；`cr_rate = 0`、`hot_fracti
 | M5-20251212 | 43.3752 | 0.8106 | 16.4219 | 2.641 | 2.865 | 1.0848 | 0.9607 | 1.0443 | 2.79 | 7.52 | fail_closed |
 | M6-20251212 | 17.9513 | 0.9537 | 13.5513 | 1.325 | 1.354 | 1.0219 | 1.0088 | 0.9943 | 1.14 | 1.33 | fail_closed |
 
-（完整 16 行见 `results/EXP02_TABLES.md` 表 C1；散点见 `results/exp02_figs/c_real_frames.png`。）
+（完整 16 行见 `EXP02_TABLES.md` 表 C1；散点见 `figs/exp02_c_real_frames.png`。）
 
 **真实数据上的可证结论**（无真值，故只报可证项）：
 
@@ -459,7 +459,7 @@ verdict = "ok"              if no_structure and fix_certified   # 可证明可�
 
 ---
 
-## 8. ④ 判据与红/绿自审（`results/exp02_e4_gates.json`）
+## 8. ④ 判据与红/绿自审（`【复现：实验/absolute-snr/code/exp02/e4_gates_selftest.py 生成的 exp02_e4_gates.json】`）
 
 运行：`python3 code/exp02/e4_gates_selftest.py`（任一门失败则 exit 1）
 
@@ -723,8 +723,8 @@ timeout  600 python3 code/exp02/make_tables.py                 # 图与表
 | `code/exp02/e3_real_data.py` | 臂 C（testdata 真实帧） |
 | `code/exp02/e4_gates_selftest.py` | 门自审 + 故障注入 + 候选对比 |
 | `code/exp02/make_tables.py` | 图与 Markdown 表生成 |
-| `results/exp02_e1_analytic.json` / `e2_hst.json` / `e3_real.json` / `e4_gates.json` | 全部原始结果（含 seed 与元数据） |
-| `results/EXP02_TABLES.md` | 完整表格（自动生成） |
+| `【复现：实验/absolute-snr/code/exp02/e1_analytic_scan.py 生成的 exp02_e1_analytic.json】` / `e2_hst.json` / `e3_real.json` / `e4_gates.json` | 全部原始结果（含 seed 与元数据） |
+| `EXP02_TABLES.md` | 完整表格（自动生成） |
 | `results/exp02_figs/*.png` | 5 张关系曲线/标定图 |
 | `run/SCI-B-EXP-02/logs/*.log` | 运行日志（含 `/usr/bin/time -v` 的峰值 RSS） |
 

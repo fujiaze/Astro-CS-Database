@@ -101,7 +101,8 @@ def main():
           "| Var(F_hat_out) | %.3f | %.3f |" % (g5["H3_var_full_mc"], g5["H3_var_full_pred"]),
           "| 对角近似宣称/实际 | %.3f | — |" % g5["H3_diag_claim_over_actual"], ""]
     txt = "\n".join(o).replace("«BT»", chr(96))
-    out = os.path.join(C.RESULTS, "COMPARISON_TABLES.md")
+    os.makedirs(C.DOCS, exist_ok=True)
+    out = os.path.join(C.DOCS, "COMPARISON_TABLES.md")
     with open(out, "w", encoding="utf-8") as f:
         f.write(txt)
     print("wrote", out, len(txt), "chars")

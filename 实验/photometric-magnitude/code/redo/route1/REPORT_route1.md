@@ -78,7 +78,7 @@ P1 是全链根基：把每帧信号统一到**测光星等坐标系同一平面
 
 **结论**：c=4.685 ≡ c*(0.95)=4.68508（差 8e-5）——三腿闭合。文献腿一手出处为 R3（Kafadar 1983 原句显式给出 c=4.685↔95%），出处文献 R1（Beaton & Tukey 1974）。02 C11 的"书目 UNPROVEN"升级为 CONFIRMED。
 **诚实边界**：MC 经验效率 0.9458 略低于渐近值——渐近效率对"已知尺度"严格成立，而生产实现 S 固定一次且有限样本（02 式-3 已附该边界）；本实验未模拟尺度重估路径。
-**复现**：`python3 code/exp1_robust_constants.py` → `results/exp1_robust_constants.json`。
+**复现**：`python3 code/exp1_robust_constants.py` → `【复现：实验/photometric-magnitude/code/redo/route1/exp1_robust_constants.py 生成的 exp1_robust_constants.json】`。
 **佐证文献**：[Kafadar 1983, DOI 10.6028/jres.088.006](https://pmc.ncbi.nlm.nih.gov/articles/PMC6768164/)；[Beaton & Tukey 1974, DOI 10.1080/00401706.1974.10489171](https://api.crossref.org/works/10.1080/00401706.1974.10489171)。
 
 ## S2 · MAD→σ 一致性系数 0.6744897501960817
@@ -133,7 +133,7 @@ P1 是全链根基：把每帧信号统一到**测光星等坐标系同一平面
 负例（无污染）：tol∈{1,2,3,5} 全部拒绝数=0，location 波动 ≤7e-4 dex（纯 MC 噪声）。
 **结论**：①预过滤只在偏移≥3.0 mag 时拦截；②在 IRLS/Tukey 已就位的前提下，预过滤对 ZP 偏差的**边际保护量 ≈0**（Tukey 权已把离群星归零）——它的真实作用面是控制进入拟合的样本族（错配星不污染 S 的初值尺度），不是精度门。支持 02 式-2"作用是放走错配与污染，不是标定质量判据"，并给出量化。
 **诚实边界**：文献腿 UNRESOLVED——正本明言不引文献为窗宽背书（项目冻结值）；本路亦未找到任何一手文献支持 3.0 这一取值。
-**复现**：`python3 code/exp2_mag_window_match.py` → `results/exp2_mag_window_match.json`。
+**复现**：`python3 code/exp2_mag_window_match.py` → `【复现：实验/photometric-magnitude/code/redo/route1/exp2_mag_window_match.py 生成的 exp2_mag_window_match.json】`。
 **佐证**：PHOTOMETRY.md:34/:200-202；02 式-2 注记（15.85×）。
 
 ## S5 · FOV 半径三常数：缓冲 1.2 / 钳位界 1.0/10.0 / 异常窗 30.0
@@ -151,7 +151,7 @@ P1 是全链根基：把每帧信号统一到**测光星等坐标系同一平面
 缓冲 1.2 vs 1.0：星数 ×1.44；1° 锥期望星数 2574±51，P(<3)≈0；**B12 危害**：错配对经预过滤（保留 58.8%）+IRLS 后 location 系统偏移 **−0.146 dex**，且 \|r_consistent\|≥3 门可被满足 ⇒ 奇异 CD 下拟合照常出错误标度。
 **结论**：①三常数为项目约定值（文献腿 UNRESOLVED，审查①/③判定维持）；②条件钳位窗 (0,1)/(10,30) 与奇异 CD→1.0° 继续搜是可达的真实危害路径（B12 成立，本路给出 0.146 dex 量化）；③建议 05 的"无条件钳位"修法同时补"cd_det=0 ⇒ 拒绝该帧"守卫，而非仅改钳位窗。
 **诚实边界**：密度模型用全天平均（拥挤场可高 1–2 个量级）；仪器配置为示意域非实测帧。
-**复现**：`python3 code/exp3_fov_ladder.py` → `results/exp3_fov_ladder.json`。
+**复现**：`python3 code/exp3_fov_ladder.py` → `【复现：实验/photometric-magnitude/code/redo/route1/exp3_fov_ladder.py 生成的 exp3_fov_ladder.json】`。
 **佐证**：05 A-4b；01/B12/C7；R6（密度标定）。
 
 ## S6 · 自适应星等阶梯 {12,13,14,15,16} / 早停 2000 / 循环上限 5
@@ -218,7 +218,7 @@ P1 是全链根基：把每帧信号统一到**测光星等坐标系同一平面
 | 0（平场负例，N=200/2000） | 0.0093 / 0.0011 | 否（度量随 N→0） |
 
 **结论**：C3 的"对 0.1 dex 恒不 binding"定量成立（0.055 vs 1.0，松 18 倍）；门对 ≥1.1 dex 场可判红——**非恒真门，具备证据资格**；平场负例度量随 N 收敛到 0 ✔。1.0 的取值本身文献腿 UNRESOLVED（正本注释自认约定值），修法按 C3：要么收紧到与失效模式同量级，要么在正本写明"粗筛门"语义。
-**复现**：`python3 code/exp4_spatial_gain.py` → `results/exp4_spatial_gain.json`。**佐证**：01/C3；02 V-9（0.1 dex 注入判红程序）。
+**复现**：`python3 code/exp4_spatial_gain.py` → `【复现：实验/photometric-magnitude/code/redo/route1/exp4_spatial_gain.py 生成的 exp4_spatial_gain.json】`。**佐证**：01/C3；02 V-9（0.1 dex 注入判红程序）。
 
 ## S10 · 冻结门①（\|r_consistent\|≥3）与 kMinFitStars（B13/A3）
 
@@ -233,7 +233,7 @@ P1 是全链根基：把每帧信号统一到**测光星等坐标系同一平面
 **假说**：上限的统计代价 = σ_ZP 边际收益：N=5000 → 10000 只改善 √2。
 **方法**：exp3 σ_ZP(N)=σ_star/√N 曲线（σ_star=0.045 mag）。**订正（P1-M05）**：该式缺中位数因子，统一式 = `1.2533·σ_star/√N`（σ_star=0.05 mag ≡ 0.02 dex），见 route3 `exp_S08 → H8d`；本路线读数相对低估 1.3926×。
 **数据/结果**：本路线读数 σ_ZP（**已被 P1-M05 统一式取代**）：N=1000→1.42e-3；5000→**6.36e-4**；10000→4.50e-4；20000→3.18e-4 mag。
-统一式（`1.2533·0.05/√N`）对应读数：N=1000→**1.98e-3**；5000→**8.86e-4**；10000→**6.27e-4**；20000→**4.43e-4** mag（`code/redo/results/exp_S08_ladder.json → H8d`）。
+统一式（`1.2533·0.05/√N`）对应读数：N=1000→**1.98e-3**；5000→**8.86e-4**；10000→**6.27e-4**；20000→**4.43e-4** mag（`code/redo/【复现：bash 实验/photometric-magnitude/code/run_all.sh 重跑后读 exp_S08_ladder.json；该读数需重跑取得，当前不可离线核验】 → H8d`）。
 两口径比恒为 **1.3926×**（对同一 N）。统一后 N=5000 的 σ_ZP 仍 ≪ 逐星散度 0.05 mag（≈56×）与 A6-GATE 门宽（~0.012–0.042 mag）⇒ **`max_stars=5000` 的结论方向不变**。
 **结论**：5000 是合理的成本-精度折中点；再放宽 4× 只换 2× 统计增益，而零点误差预算的主导项在系统差（S7 显示窗族系统差可达 0.032 mag）⇒ 文献腿 UNRESOLVED、定性为工程选择，两腿已补。
 **复现**：同 S5。**佐证**：审查③ C-6 行。
@@ -287,7 +287,7 @@ P1 是全链根基：把每帧信号统一到**测光星等坐标系同一平面
 
 收敛：n=9→129 点，rel err 5.85e-3 → 2.54e-7（4 阶）；常数被积式负例绝对误差 **0.0**；守卫：wl_count∈{1,2} 必须拒绝（无法 Simpson），{3,4} 可积（生产带 3/8 尾巴）。
 **结论**：B11 缺陷复现完全一致（含"误差正比于左端点取值"——y0=0 时幽灵项为 0）；当前生产网格 342 区间（偶）不触发（B11 判定维持），触发面是非生产 `compute_f_syn`；修法＝奇尾巴 3/8 规则＋wl_count<3 拒绝守卫（05 A-5 守卫方向正确）。文献腿 N/A：复化 Simpson 属数值分析标准内容，判据资格由负例（常数 ⇒ 归零）承担。
-**复现**：`python3 code/exp5_integration_gates.py` → `results/exp5_integration_gates.json`。**佐证**：01/B11/A6；审查③ grid 守卫行。
+**复现**：`python3 code/exp5_integration_gates.py` → `【复现：实验/photometric-magnitude/code/redo/route1/exp5_integration_gates.py 生成的 exp5_integration_gates.json】`。**佐证**：01/B11/A6；审查③ grid 守卫行。
 
 ## S15 · ZP_syn 样本下限 3（C9）与有限样本偏差
 

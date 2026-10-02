@@ -7,7 +7,8 @@ cd "$(dirname "$0")"
 
 LOG_DIR="${EXP05_LOG_DIR:-../../../../run/SNR-ABS-DERIVE-01/logs}"   # 仓库根/run/...
 mkdir -p "$LOG_DIR"
-OUT="${EXP05_OUT:-../../results}"   # 实验/absolute-snr/results
+OUT="${EXP05_OUT:-../../results}"   # 实验/absolute-snr/results（运行产物，不入库）
+DOCS="${EXP05_DOCS:-../../docs}"     # 报告档案，入库
 mkdir -p "$OUT"
 
 run() {
@@ -22,6 +23,6 @@ run e3_real e3_real.py --out "$OUT/exp05_e3_real.json"
 run e6_mechanism e6_mechanism.py --out "$OUT/exp05_e6_mechanism.json"
 run e4_weight e4_weight.py --real-json "$OUT/exp05_e3_real.json" --out "$OUT/exp05_e4_weight.json"
 run e5_gates e5_gates.py --out "$OUT/exp05_e5_gates.json"
-run make_tables make_tables.py --out "$OUT/EXP05_TABLES.md"
+run make_tables make_tables.py --out "$DOCS/EXP05_TABLES.md"
 
 echo "ALL DONE"

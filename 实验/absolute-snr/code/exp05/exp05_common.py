@@ -49,6 +49,8 @@ import exp03_common as E3  # noqa: E402  （区域估计器族）
 ROOT = Path(__file__).resolve().parents[4]
 UNIT = ROOT / "实验" / "absolute-snr"
 RESULTS = UNIT / "results"
+# 归档层已移除：运行结果只写 results/（不入库），报告档案入库在 docs/。
+DOCS = UNIT / "docs"
 TESTDATA = ROOT / "testdata"
 
 SEED = 20260926

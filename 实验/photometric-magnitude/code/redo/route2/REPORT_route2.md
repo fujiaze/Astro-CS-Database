@@ -26,7 +26,7 @@ P1（通量积分拟合）是全链根基：把每帧的仪器流量统一标定
 
 **数据**：纯解析（无外部数据）；20001 点 Gauss–Legendre 与 2×10⁶ 点梯形两套求积互证（两次运行值一致到 7 位）。
 
-**结果**（` results/exp1_robust_constants.json `）：
+**结果**（` 【复现：实验/photometric-magnitude/code/redo/route1/exp1_robust_constants.py 生成的 exp1_robust_constants.json】 `）：
 
 | 量 | 实测 | 参照 |
 |---|---|---|
@@ -76,7 +76,7 @@ P1（通量积分拟合）是全链根基：把每帧的仪器流量统一标定
 
 **方法**（` code/exp2_mag_prefilter.py `，500 帧/档）：每帧 500 星，真标定散度 σ_r=0.05 dex + 逐星颜色噪声 0.2 mag；10% 错配星 r 偏移 +0.8 dex。管线复刻 式-2→式-3：拒绝 ` |delta−median(delta)|>tol ` → IRLS/Tukey → location/sigma。扫 tol ∈ {0.5,1,2,3,5,∞}。不变性负例：全体 F_instr×10^0.5（=r 平移 +0.5 dex）后，内点集必须逐元素相同、location 平移精确、sigma 逐位相同（度量归零）；负对照：非平移不变窗口规则必须改变内点集（能红）。
 
-**结果**（` results/exp2_mag_prefilter.json `）：
+**结果**（` 【复现：bash 实验/photometric-magnitude/code/run_all.sh 重跑后读 exp2_mag_prefilter.json；该读数需重跑取得，当前不可离线核验】 `）：
 
 | tol (mag) | 中位 location (dex，真值 0) | p90\|loc\| (dex) | 中位 σ_residual (dex) | 中位 n_consistent | 中位 n_inliers |
 |---|---|---|---|---|---|
@@ -98,7 +98,7 @@ P1（通量积分拟合）是全链根基：把每帧的仪器流量统一标定
 
 **方法**（` code/exp4_fov_geometry.py `）：2000 组随机 (W,H,scale) 验证半径恒等式（真值无效应⇒偏差为 0）；预算换算像素；用 exp3 的 Gaia 计数模型给钳位窗成本敏感度；负例：真值半径已在窗内且 WCS 零误差 ⇒ 钳位不引入额外改变（度量 0）。
 
-**结果**（` results/exp4_fov_geometry.json `）：
+**结果**（` 【复现：bash 实验/photometric-magnitude/code/run_all.sh 重跑后读 exp4_fov_geometry.json；该读数需重跑取得，当前不可离线核验】 `）：
 
 | 项 | 实测 |
 |---|---|
@@ -118,7 +118,7 @@ P1（通量积分拟合）是全链根基：把每帧的仪器流量统一标定
 
 **方法**（` code/exp3_adaptive_ladder.py `）：复刻 pc_api.cpp:978-1008 循环语义（i<5、n_gaia>=2000 ‖ i==4），扫 FOV ∈ {0.5…10}° × 拥挤因子 {1,10,100}；负例一：阈值在第 0 档已满足 ⇒ 无浪费查询（度量 0）；负例二：加第 6 档（G=17）必须被 i==4 哨兵静默吞掉（可达性度量 0）。
 
-**结果**（` results/exp3_adaptive_ladder.json `，摘）：
+**结果**（` 【复现：bash 实验/photometric-magnitude/code/run_all.sh 重跑后读 exp3_adaptive_ladder.json；该读数需重跑取得，当前不可离线核验】 `，摘）：
 
 | FOV | 拥挤 | 停在哪档 | n_gaia | 省下的查询次数 |
 |---|---|---|---|---|
@@ -140,7 +140,7 @@ P1（通量积分拟合）是全链根基：把每帧的仪器流量统一标定
 
 **方法**（` code/exp5_match_radius.py `）：ρ 取 G≤16 天空平均 5.37×10⁻⁵ px⁻²（1″/px）与 100× 拥挤档；r ∈ {0.5…5} px；下游 300 次 MC：假配星以 (0.3,1.5) dex 均匀 r 偏移注入 1000 星拟合，量 IRLS location 偏差。负例：σ_c=0 且 ρ=0 ⇒ 假配计数必须为 0。
 
-**结果**（` results/exp5_match_radius.json `，摘）：
+**结果**（` 【复现：bash 实验/photometric-magnitude/code/run_all.sh 重跑后读 exp5_match_radius.json；该读数需重跑取得，当前不可离线核验】 `，摘）：
 
 | r (px) | 回收率(σ_c=0.3) | 假配率(天空) | 假配率(100×) | 下游 p90|Δlocation| (dex) |
 |---|---|---|---|---|
@@ -161,7 +161,7 @@ P1（通量积分拟合）是全链根基：把每帧的仪器流量统一标定
 
 **方法**（` code/exp7_spatial_bound.py `）：300 星合成帧，2D 二次场 A·(x²−0.3y²)、逐星散度 0.02 dex；等权 IRLS+Tukey（复刻 式-3 权重口径）拟 order-2 m(x,y)；扫 A ∈ {0, 0.03, 0.05, 0.1, 0.3, 1.0, 1.5} dex，各 100 帧，量 max|log10 m|。负例：A=0 ⇒ 拟合场幅度=噪声底（非零但无害，如实报数值）。
 
-**结果**（` results/exp7_spatial_bound.json `）：
+**结果**（` 【复现：bash 实验/photometric-magnitude/code/run_all.sh 重跑后读 exp7_spatial_bound.json；该读数需重跑取得，当前不可离线核验】 `）：
 
 | 场幅度 A (dex) | 中位 max|log10 m| | 1.0 dex 门 binding? |
 |---|---|---|
@@ -181,7 +181,7 @@ P1（通量积分拟合）是全链根基：把每帧的仪器流量统一标定
 
 **方法**（` code/exp6_sigma_kappa.py `）：MC（每 N 10-20 万次重复）的中位数标准误 vs 解析式，N ∈ {3,10,50,200,1000,2338}；负例 σ=0 ⇒ SE=0。
 
-**结果**（` results/exp6_sigma_kappa.json `）：
+**结果**（` 【复现：bash 实验/photometric-magnitude/code/run_all.sh 重跑后读 exp6_sigma_kappa.json；该读数需重跑取得，当前不可离线核验】 `）：
 
 | N | MC SE（σ=1） | √(π/2N) | 比值 |
 |---|---|---|---|
@@ -201,7 +201,7 @@ P1（通量积分拟合）是全链根基：把每帧的仪器流量统一标定
 
 **方法**（exp1 S10 段）：每 n 至多 4×10⁶ 次重复的行向 MAD MC（seed 20260926），n ∈ {3,4,5,9,12,20,50,200}。
 
-**结果**（` results/exp1_robust_constants.json `）：
+**结果**（` 【复现：实验/photometric-magnitude/code/redo/route1/exp1_robust_constants.py 生成的 exp1_robust_constants.json】 `）：
 
 | n | 实测 E[S]/σ | 偏差因子 | 文献 b_n | 相对差 |
 |---|---|---|---|---|
@@ -225,7 +225,7 @@ P1（通量积分拟合）是全链根基：把每帧的仪器流量统一标定
 
 **方法**（` code/exp8_fsyn_forward.py `）：纯合成物理前向——5800 K Planck 谱 × 高斯通带（中心 643.4 nm）× QE，网格 336–1020 nm @2 nm（官方 XP 网格，refs.md A7）；复刻 Simpson 正确实现与 B11 缺陷形状；链路演示：2000 星 → ZP_syn → F_ref → k_photo → σ_kappa → m₅。
 
-**结果**（` results/exp8_fsyn_forward.json `）：
+**结果**（` 【复现：bash 实验/photometric-magnitude/code/run_all.sh 重跑后读 exp8_fsyn_forward.json；该读数需重跑取得，当前不可离线核验】 `）：
 
 | 检验 | 实测 | 判定 |
 |---|---|---|

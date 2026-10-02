@@ -343,7 +343,7 @@ A0 的 `p_se` **精确为 0**（`curve_fit` 恰好返回 `p = 1.0`）⇒ `|p-1| 
 
 ## 7 门与故障注入（能红能绿）
 
-**全部 25 条门 PASS**（`results/exp06_e4_gates.json`，`ALL_PASS = True`）。关键条目：
+**全部 25 条门 PASS**（`【复现：实验/absolute-snr/code/exp06/e4_gates.py 生成的 exp06_e4_gates.json】`，`ALL_PASS = True`）。关键条目：
 
 | 门 | 预期 | 实测 |
 |---|---|---|

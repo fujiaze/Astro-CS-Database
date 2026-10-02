@@ -4,7 +4,7 @@
 **数据**：M42 真实数据端到端运行 `run/RELEASE-05`（49 帧 = T2 16 + T3 33；马赛克 523 tile /
 137,101,312 叶；导出 4096²）。**不重跑三命令**，只读既有产品。
 **代码**：`code/c1..c4*.py`，固定 seed，`code/run_all.sh` 一键复跑。
-**判据台账**：`results/c1..c4.json` 的 `gates.rows[]`（`id/desc/value/ok/source/level/note`）。
+**判据台账**：`【复现：bash 实验/m42-realdata/code/run_all.sh 重跑后读 c1..c4.json；该读数需重跑取得，当前不可离线核验】` 的 `gates.rows[]`（`id/desc/value/ok/source/level/note`）。
 
 ---
 

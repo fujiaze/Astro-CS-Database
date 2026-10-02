@@ -386,7 +386,7 @@ R[a*v](x) = m0 + a * k^T K^-1 (v - m0*1)  !=  a * R[v](x)        （除非 m0 = 
 | testdata | M4（3 帧） | — | — | — | 1.199~1.317 | **≤ +0.17%** | **≤ +23.92%** | 144x |
 | testdata | M5（3 帧） | — | — | — | 2.704~2.940 | **≤ +0.19%** | **≤ +65.99%** | 342x |
 
-> 逐帧明细、表 B/C/D/E 见 `实验/absolute-snr/results/EXP05_TABLES.md`（自动生成）。
+> 逐帧明细、表 B/C/D/E 见 `实验/absolute-snr/EXP05_TABLES.md`（自动生成）。
 
 **三个可分离效应，读法**：
 
@@ -519,7 +519,7 @@ A4/A5（纯文字订正，零风险） -> A3（1 句文档） -> A1（算子正�
 
 ## 7 ⑦ 负例红 / 绿（能红能绿 + 故障注入）
 
-判据落点：`实验/absolute-snr/code/exp05/e5_gates.py`；产物 `results/exp05_e5_gates.json`；
+判据落点：`实验/absolute-snr/code/exp05/e5_gates.py`；产物 `【复现：实验/absolute-snr/code/exp05/run_all.sh 生成的 exp05_e5_gates.json】`；
 28 条判据，`ALL_GATES_PASS = True`（表 D 有逐条实测值）。
 
 ### 7.1 三类判据与实测
@@ -639,7 +639,7 @@ IDENTICAL                EXP05_TABLES.md
 4. **首版 `e1_analytic.py` 用 `abs(hash(name))` 生成场景偏移** ⇒ Python 字符串 hash 在 `PYTHONHASHSEED` 未固定时**逐进程随机**，
    导致「固定 seed」不成立、两次复跑给出不同的 MC 实现（`flat_with_struct` 的 b_f 在 1.79~1.85 间漂移）。
    已改用 `zlib.crc32(name)` 的确定性偏移，并**复跑全部产物**；本报告引用的全部数字来自修正后的最终一轮
-   （与 `results/EXP05_TABLES.md` 逐字一致）。教训：**判据的复现性检查必须包含「两次独立运行逐位一致」**。
+   （与 `EXP05_TABLES.md` 逐字一致）。教训：**判据的复现性检查必须包含「两次独立运行逐位一致」**。
 
 ---
 
@@ -658,7 +658,7 @@ IDENTICAL                EXP05_TABLES.md
 | `实验/absolute-snr/code/exp05/make_tables.py` | 汇总表生成 |
 | `实验/absolute-snr/code/exp05/run_all.sh` | 一键复跑（固定 seed） |
 | `实验/absolute-snr/results/exp05_e{1..6}_*.json` | 各臂原始结果 |
-| `实验/absolute-snr/results/EXP05_TABLES.md` | 汇总对照表（自动生成） |
+| `实验/absolute-snr/EXP05_TABLES.md` | 汇总对照表（自动生成） |
 | `run/SNR-ABS-DERIVE-01/logs/*.log` | 各臂运行日志（含耗时与峰值 RSS） |
 
 ## 附录 B 外部依据（权重最优性与 SNR 定义；不是本单元结论的依据）

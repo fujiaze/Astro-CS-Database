@@ -39,7 +39,7 @@ def pct(x, n=2):
 
 def main() -> int:
     ap = argparse.ArgumentParser()
-    ap.add_argument("--out", default=str(X.RESULTS / "EXP05_TABLES.md"))
+    ap.add_argument("--out", default=str(X.DOCS / "EXP05_TABLES.md"))
     a = ap.parse_args()
     e1 = load(X.RESULTS / "exp05_e1_analytic.json")
     e2 = load(X.RESULTS / "exp05_e2_hst.json")

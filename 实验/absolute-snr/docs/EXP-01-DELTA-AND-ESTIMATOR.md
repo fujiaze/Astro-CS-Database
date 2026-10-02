@@ -8,7 +8,7 @@
 > **未使用 `ulimit -v`**；未修改 `lib/**`、`eng/**`、`docs/**` 任何受跟踪文件；未执行任何 git 写操作；
 > 未改动另两个实验单元（`photometric-magnitude/`、`additive-sky-seamless/`）与 `实验/shared/`（只 import、只读）。
 > **产物**：`code/exp01/{exp01_common.py,hst_sim.py,real_products.py,q1_delta_budget.py,q2a_estimator_pairing.py,q2b_estimator_data.py,negatives_selftest.py,run_all.sh}`
-> → `results/exp01_q1_delta.json`、`results/exp01_q2a_pairing.json`、`results/exp01_q2b_data.json`、`results/exp01_negatives_selftest.json`。
+> → `【复现：实验/absolute-snr/code/exp01/run_all.sh 生成的 exp01_q1_delta.json】`、`【复现：实验/absolute-snr/code/exp01/run_all.sh 生成的 exp01_q2a_pairing.json】`、`【复现：实验/absolute-snr/code/exp01/run_all.sh 生成的 exp01_q2b_data.json】`、`【复现：实验/absolute-snr/code/exp01/negatives_selftest.py 生成的 exp01_negatives_selftest.json】`。
 
 ---
 
@@ -751,8 +751,8 @@ T3 界在档 1 域内紧致（0.905~0.963，逐点复现）、δ*=1.4% 且 δ=1%
 
 | 编号 | 审稿意见 | 修正动作 | 复核证据 |
 |---|---|---|---|
-| **I1（重要）** | §2.6 把 16 帧 `run/PERF-401` 产物（σ 18.26~38.22 ADU）写成"8 帧 M42 裁剪帧（15.6~64.0）"，分母 n/8，并据此断言"rn_adu ≥ 5.4 ⇒ 0/8"；用 B 套 8 帧复算实为 **4/8** | **§2.6 重写为 A/B 两套帧集分开呈现**（A=16 帧 PERF-401、B=8 帧 testdata 裁剪），分母改 n/16 与 n/8，逐格重算；§0.5 同步改写；新增 `c_rho_feasibility_real_8frames` 产物与 `provenance` 字段 | `results/exp01_q1_delta.json` 的 `c_rho_feasibility_real{,_8frames}`；重跑后 A 套 0/16@rn_adu=5.38、B 套 4/8 |
-| **I2（重要）** | §3.4② A 列 8 个数值取自旧版产物，且与本行离散值不自洽 | 按最新产物逐位重填（1.02025/0.99415/1.00525/1.01501/1.02086/1.02072；带底图 1.02111/0.99270/1.00672/1.01663/1.02247/1.02313） | `results/exp01_q2b_data.json` 的 `frames[].psf_flux_p50_snr20` |
+| **I1（重要）** | §2.6 把 16 帧 `run/PERF-401` 产物（σ 18.26~38.22 ADU）写成"8 帧 M42 裁剪帧（15.6~64.0）"，分母 n/8，并据此断言"rn_adu ≥ 5.4 ⇒ 0/8"；用 B 套 8 帧复算实为 **4/8** | **§2.6 重写为 A/B 两套帧集分开呈现**（A=16 帧 PERF-401、B=8 帧 testdata 裁剪），分母改 n/16 与 n/8，逐格重算；§0.5 同步改写；新增 `c_rho_feasibility_real_8frames` 产物与 `provenance` 字段 | `【复现：实验/absolute-snr/code/exp01/run_all.sh 生成的 exp01_q1_delta.json】` 的 `c_rho_feasibility_real{,_8frames}`；重跑后 A 套 0/16@rn_adu=5.38、B 套 4/8 |
+| **I2（重要）** | §3.4② A 列 8 个数值取自旧版产物，且与本行离散值不自洽 | 按最新产物逐位重填（1.02025/0.99415/1.00525/1.01501/1.02086/1.02072；带底图 1.02111/0.99270/1.00672/1.01663/1.02247/1.02313） | `【复现：实验/absolute-snr/code/exp01/run_all.sh 生成的 exp01_q2b_data.json】` 的 `frames[].psf_flux_p50_snr20` |
 | **I3（重要）** | §5.1"本单元复算 −9.94%"无产物支撑 | 改为"**机制同源**；−9.94% 的数值引自 SNR-REVIEW-01，本单元未独立复算该点" | 全目录 grep 无该复算 |
 | **I4（重要）** | "SE = 0.787/√N"记号错（0.7870% 是 N=9216 的**值**，不是常数） | 改为 **0.7555/√N**（%·√N = 75.55/76.62/76.82 @ N=9216/1e5/1e6），并保留"N=9216 实测 0.7870%" | `b_stat_mc` 三点 |
 | **I5（重要）** | F=300 端膨胀因子的**尾部/seed 不稳定性**未登记 | §3.2 增列"独立复现（另一拟合器 ×5 seed）"：F=300 **2.30~3.22**（稳健 1.28~1.65）、F=1000 1.19~1.31、F=1e4 1.06~1.13；结论改述为"下界 = CRLB；F≥1000 稳定；低 SNR 端给区间" | 审稿人自写 6 参 TRF ×5 seed |

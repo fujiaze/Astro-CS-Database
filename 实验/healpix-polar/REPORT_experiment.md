@@ -192,7 +192,7 @@ NC-C 为读数无门），全部为绿。M2 原先的"分辨率无关性"门写�
 - 多帧变体只做等权、整数亚像素 dither；生产 dither 场形未扫描（结论只到"多帧不消除相关"）。
 - 生产单实现 σ_bg 口径的有限 N 偏置精确系数未标定（P2/P5 后续项）。
 - 接缝地板的最后一环（S-H 交点相消的精确定位）未定位；其绝对亏空实测 2.9e-17…1.05e-16 sr、幂律 |rel| ∝ A_drop^(−0.83)（不是 −1），且 long double 同算法不降（ld/prod = 0.868/0.961/0.905），见论文 §5 第 5 条；其余 11 条接缝未实测（EXP-07 §7）。<!-- 订正: P3-02/03/08（SCI-703 科研审查）——把"绝对地板恒定 ⇒ 相对 ∝1/A_drop"改为实测区间与幂律，保留"最后一步未定位"的诚实性。 -->
-- **原位大离轴指向：共同地板未定位（本轮 3D 基准复跑档 1.1e-05…2.1e-04）**：HST 0.0400″/px 模板置于原始指向 M16（dec=−13.84°，drop 距 CRVAL ≈2.74e+05″）时，nside=2²³ 归档读数为 V0 破门 24/25、最坏 2.353e-04，oracle 最坏 2.124e-04（3D 一致基准复跑单点 V0 1.127e-05 / oracle 3.052e-05），nside=2²¹ 档同量级——与极点无关、与 nside 基本无关，且 V0 与独立 oracle 同时触底 ⇒ 不是 RC1/RC2a/RC3。已排除 drop 面积定义（生产 `g.drop_area` 与 3D 角点双-双精度参考面积逐位相同）与算术精度（同一组顶点下 double/long double 累加差 6.19e-10 相对）；最后一步**未定位**。复现：`bash run_all.sh full`（内含 `./p4 all 8388608`，原始指向 M16 负对照即 实验/healpix-polar/results/p4_hst_n23.out 第三块），或单跑 `run/EXP-07-POLAR/verify/p4 orig 8388608`。<!-- 订正: P3-02/03/08（归因经 3D 基准复跑更正） -->
+- **原位大离轴指向：共同地板未定位（本轮 3D 基准复跑档 1.1e-05…2.1e-04）**：HST 0.0400″/px 模板置于原始指向 M16（dec=−13.84°，drop 距 CRVAL ≈2.74e+05″）时，nside=2²³ 归档读数为 V0 破门 24/25、最坏 2.353e-04，oracle 最坏 2.124e-04（3D 一致基准复跑单点 V0 1.127e-05 / oracle 3.052e-05），nside=2²¹ 档同量级——与极点无关、与 nside 基本无关，且 V0 与独立 oracle 同时触底 ⇒ 不是 RC1/RC2a/RC3。已排除 drop 面积定义（生产 `g.drop_area` 与 3D 角点双-双精度参考面积逐位相同）与算术精度（同一组顶点下 double/long double 累加差 6.19e-10 相对）；最后一步**未定位**。复现：`bash run_all.sh full`（内含 `./p4 all 8388608`，原始指向 M16 负对照即 实验/healpix-polar/【复现：bash 实验/healpix-polar/run_all.sh 重跑后读 p4_hst_n23.out；该读数需重跑取得，当前不可离线核验】 第三块），或单跑 `run/EXP-07-POLAR/verify/p4 orig 8388608`。<!-- 订正: P3-02/03/08（归因经 3D 基准复跑更正） -->
 - **同块 REC-1 的 5.003e+01 不属于上述地板，缺陷局限在实验侧 REC-1 的辅助自适应实现（读数可复现、位置未定位）**：`code/variants.h::overlap_adaptive` 在该格给出 5.003e+01，而同格生产口径 V0 = 1.127e-05、独立 oracle = 3.052e-05 均正常；3D 一致基准下 a2d/a3d−1 仅 6.843e-11 ⇒ **不是面积基准问题、也不是裁剪失败**。**判据预算阈值不是成因**：`code/variants.h:150` 的 `delta_max = 1.5·(budget_abs/4)/len` 在该档给出 δ_max ≈ **1.16e-13 rad**（budget_abs = 3.761e-20 sr、len = 1.22e-7 rad），叶边自然矢高 1.86e-15 rad 比它小 62 倍 ⇒ depth 0 即满足判据。5.003e+01 ≈ **51×A_drop** 提示有叶返回远超自身面积的贡献，`overlap_adaptive` 内"叶完全在 drop 内 ⇒ 返回整块 `g.drop_area`"的快路径**嫌疑最大但未逐叶打印证实**（登记为嫌疑，不作定论）。修法：在 `overlap_adaptive` 内逐叶打印 `(ipix, 返回面积, 该叶解析面积)` 定位后修；**该缺陷修好并加标志之前 REC-1 不得作为推荐落地路径**（见 §4.5）。<!-- 订正: P3-02/03/08（归因经 3D 基准复跑更正） -->
 - EXP-07 leafmax_err 判据的三个口径限制（fast 路径继承、测的是推荐方案残差、K 阶不统一）落地前须按其 §4.1 重算（原文已登记）。
 - depth=12 收敛性、生产跨面切点分布、N=2/4 平局构造口径：登记项，不阻成稿（台账 §4.2）。
@@ -215,7 +215,7 @@ bash code/audit/run_all.sh
 # 对照既有存档：results/audit/{route1,route2,route3,kcorr}/（逐位可对照；tables.md 可由 read_tables.py 重生成）
 
 # (B) 历史探针 EXP-07（C++17；无随机、逐位一致；quick 约 15 分钟）
-bash run_all.sh quick    # 或 full（约 60 分钟；日志落 run/EXP-07-POLAR/logs/，快照 results/SNAPSHOT.sha256）
+bash run_all.sh quick    # 或 full（约 60 分钟；日志落 run/EXP-07-POLAR/logs/，快照 【复现：实验/healpix-polar/run_all.sh 生成的 SNAPSHOT.sha256】）
 
 # (C) 单脚本示例
 python3 code/audit/route3/exp05_sagitta_subdiv.py     # 矢高梯子（约 4 分钟）

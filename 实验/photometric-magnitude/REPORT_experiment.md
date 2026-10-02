@@ -1,6 +1,6 @@
 # 实验报告 · P1 通量积分拟合（测光星等坐标系）
 
-**单元**：`实验/photometric-magnitude`（SCI-A，SCI-401）。本报告是实验重做轮的成稿实验报告：整合历史正本轮实验（step0–step9，seed=20260921）与三路独立重做（路线1/2/3，seed=20260926）；既有历史文档（`README.md`、`docs/fsyn_convention.md`、`RESOLUTION_m42_curve_resolve.md`、`results/REVIEW.md`、`results/DOC_CORRECTIONS.md`、`results/GATES.md`）保留，失效处按台账订正并在文内注明。
+**单元**：`实验/photometric-magnitude`（SCI-A，SCI-401）。本报告是实验重做轮的成稿实验报告：整合历史正本轮实验（step0–step9，seed=20260921）与三路独立重做（路线1/2/3，seed=20260926）；既有历史文档（`README.md`、`docs/fsyn_convention.md`、`RESOLUTION_m42_curve_resolve.md`、`../absolute-snr/docs/REVIEW.md`、`../absolute-snr/docs/DOC_CORRECTIONS.md`、`docs/GATES.md`）保留，失效处按台账订正并在文内注明。
 **裁决依据**：`实验/裁决台账.md`（D-xx）、`docs/DISPUTES.md`（A-P1-xx）、`docs/science/DISPUTE_RESOLUTION.md`（科学正本同步件）。本单元无 P1 专属补实验目录（`补实验-control_variance / -k_corr / -5.07` 分别由 P2/P3/P5 承载）。
 **论文版**：`REPORT_paper.md`；文献台账：`refs.md`；推导：`docs/derivation_robust_weights.md`。
 
@@ -21,7 +21,7 @@
 - **求积退化分支（订正 P1-m02）**：`n_int == 3` 时 1/3 前段区间数 `n_13 = 0` ⇒ 该段必须为 0；历史多计 `2·y[0]·h/3`，常数被积函数得 3.6667 vs 真值 3.0（+22.2%）。生产端与实验参考实现已按 claim `PHOT-SIMPSON-N3-001` 同步订正并补闭式期望 + 故障注入。
 - **双边界判据**：`σ_floor/σ_ceiling = (1 ∓ 3·1.166/√n)·(下/上界)`；1.166 = √1.361（MAD 标准化方差，**按台账 A-P1-01 订正标签**）；预算项各计一次。
 - **判据作用域（订正 P1-M07）**：`rho_lo = 1 − 3·1.166/√n ≤ 0` ⟺ `n ≤ 12.236` ⇒ 作用域降级 `upper_only`、状态词 `LOWER_BOUND_UNDEFINED`（**不记 PASS**）；**撤回** `max(rho_lo,0)` 夹逼（恒真门）。
-- **σ_flat 独立性（订正 P1-B01）**：仿真帧取**真值**逐像素平场散度经 `N_eff` 折算（`scia_common.sigma_flat_independent`，变更 claim `PHOT-SIGMAFLAT-INDEP-001`）；真实帧取 `docs/detail/registry/astrocs.phase1.photometry.md`「测光一致性判据（单帧、尺度无关、双边界）」 的 `σ_flat,hf = 0.0007 mag`；`calibrate()['delta_after_m']`（与被测统计量同源）**降级为诊断字段**，不进预算。反例化见 `results/step7_negatives.json → N6`。
+- **σ_flat 独立性（订正 P1-B01）**：仿真帧取**真值**逐像素平场散度经 `N_eff` 折算（`scia_common.sigma_flat_independent`，变更 claim `PHOT-SIGMAFLAT-INDEP-001`）；真实帧取 `docs/detail/registry/astrocs.phase1.photometry.md`「测光一致性判据（单帧、尺度无关、双边界）」 的 `σ_flat,hf = 0.0007 mag`；`calibrate()['delta_after_m']`（与被测统计量同源）**降级为诊断字段**，不进预算。反例化见 `【复现：bash 实验/photometric-magnitude/code/run_all.sh 重跑后读 step7_negatives.json；该读数需重跑取得，当前不可离线核验】 → N6`。
 - **重做轮方法学**：三路互不通信独立取证；每项"文献腿（一手 DOI/官方文档/开源逐字）＋实验腿（固定 seed 合成实验，含"真值无效应⇒归零"负例）＋推导腿"三腿补齐；纯 numpy，不 import 仓库任何 Python。
 
 ## 3 数据
@@ -121,7 +121,7 @@
 | 16 | 仿真帧 `σ_gaia = 0.002 mag` 计入上界，但注入与模型共用同一 `mag_eff` ⇒ 参考侧扰动在 `r_i` 中精确相消（复算相对差 0） | 标注「**该项在仿真中未被激活（偏松方向）**」，保留数值但降级为未检验项 | **审查 P1-m04**；`code/step5_calibration_gate.py` 注释 + `README.md`/`REPORT_paper.md` §3 + 本节 §4 边界 |
 | 17 | 恒真/空断言判据：`exp_S06` H6a（代数恒等）、H6b（积分线性性）、`exp_S02`/`exp_S11` 的 `negative_zero_check`（常数序列度量恒 0） | 三文件加 `discriminating_power` 字段标为「自洽守卫（无判别力）」，**保留字段作回归**但不作证据；有判别力的 H6c/H6d/H12、N0–N6 保留 | **审查 P1-m09**（标准 §7）；重跑落盘 `exp_S02/S06/S11` JSON |
 | 18 | `p1phot_performance` 并行比值门在共享过载节点上负载驱动地假红/假绿（同二进制 6 次隔离复跑 2 绿 4 红，parity4 6.0–9.8×） | **不改阈值 4.0**：自适应内循环 K 使单线程计时 ≳0.10 s；`getloadavg()` 过载时降级为 SOFT 登记；新增 `P1PHOT_PERF_FORCE_HARD=1` 负例开关证明该门**能红** | **本轮自查（P1-m13）**；`lib/algorithms/photometry/tests/p1phot/p1phot_tests_perf.cpp`；证据 `run/FINAL-07/logs/p1-perf-gate-red-green.txt` |
-| 19 | `results/GATES.md` 的 G1/G7 结论**写死**（G1 恒 PASS、G7 恒 PARTIAL）⇒ 恒真门 | 改为**由实测派生**：G1 三帧全 PASS 才绿；G7 由真实腿派生 ⇒ 本轮为 **RED**（三类数据不一致），合计 8/9 | **本轮自查**；`code/step9_collect.py` |
+| 19 | `docs/GATES.md` 的 G1/G7 结论**写死**（G1 恒 PASS、G7 恒 PARTIAL）⇒ 恒真门 | 改为**由实测派生**：G1 三帧全 PASS 才绿；G7 由真实腿派生 ⇒ 本轮为 **RED**（三类数据不一致），合计 8/9 | **本轮自查**；`code/step9_collect.py` |
 
 ## 8 诚实边界
 
@@ -207,12 +207,12 @@ python3 实验/photometric-magnitude/code/redo/route2/exp1_robust_constants.py
 
 | 证据 | 复现命令 | 产物 |
 |---|---|---|
-| 主实验轮 step1–step9 | `bash code/run_all.sh` | `results/step1..step8*.json`、`results/GATES.md`、`results/gates.json` |
-| 重做三路（seed 20260926） | `bash code/redo/run_all.sh` | `results/redo/route{1,2,3}/*.json`、`results/redo_summary.json` |
+| 主实验轮 step1–step9 | `bash code/run_all.sh` | `results/step1..step8*.json`、`docs/GATES.md`、`【复现：bash 实验/photometric-magnitude/code/run_all.sh 重跑后读 gates.json；该读数需重跑取得，当前不可离线核验】` |
+| 重做三路（seed 20260926） | `bash code/redo/run_all.sh` | `results/redo/route{1,2,3}/*.json`、`【复现：bash 实验/photometric-magnitude/code/run_all.sh 重跑后读 redo_summary.json；该读数需重跑取得，当前不可离线核验】` |
 | 低阶空间增益逆向验收 | `code/reverse_verify/p1_spatial_gain/src/*.py` + `cpp/p1sg_oracle.cpp` | `results/reverse_verify/p1_spatial_gain/data/*.json` |
 | **合成器物理链自检（公共前置步）** | `bash 实验/shared/synthetic/run_selftests.sh` | 四组件全 PASS，退出码 0 |
-| 判据表汇总 | `python3 code/step9_collect.py` | `results/GATES.md` / `results/gates.json` |
-| 独立审稿（非作者，两轮） | — | `results/REVIEW.md`（22 条意见；5 条真实硬伤的处置见 `REPORT_experiment.md` §7） |
+| 判据表汇总 | `python3 code/step9_collect.py` | `docs/GATES.md` / `【复现：bash 实验/photometric-magnitude/code/run_all.sh 重跑后读 gates.json；该读数需重跑取得，当前不可离线核验】` |
+| 独立审稿（非作者，两轮） | — | `../absolute-snr/docs/REVIEW.md`（22 条意见；5 条真实硬伤的处置见 `REPORT_experiment.md` §7） |
 
 ### 10.4 合成器物理链与共享链的口径对照
 

@@ -20,7 +20,7 @@ ACSD 科学链第 3 点（最高设计 §2 ALG-DRZ）：mosaic 阶段把源帧 d
 | code/audit/run_all.sh | 三路＋补实验＋M16 仿真腿一键复现（各脚本 seed 写死：route1=20050709、route2=20260927、route3=20260926、kcorr SEED_BASE=20260816、仿真腿 seed 在共享场景配方内）；首行先跑公共前置步 `实验/shared/synthetic/run_selftests.sh` |
 | run_all.sh（根） | 历史探针一键复现（quick/full，逐位一致） |
 | results/ | 历史探针日志/CSV 存档＋ SNAPSHOT.sha256 |
-| results/audit/{route1,route2,route3,kcorr}/ | 三路＋补实验关键结果 JSON 存档（索引见 results/audit/KEY_RESULTS.md，注明来源路线与台账编号） |
+| results/audit/{route1,route2,route3,kcorr}/ | 三路＋补实验关键结果 JSON 存档（索引见 docs/audit/KEY_RESULTS.md，注明来源路线与台账编号） |
 | results/audit/sim/ | M16 物理前向仿真腿结果 JSON（守恒、chart 侧 drop 面积偏差、权重分割、逐叶面亮度、跨面界用例与注入、负例） |
 
 ## 一句话结论（按分歧台账订正后）
@@ -77,11 +77,11 @@ r = 0.1/0.5/1/2 处相对误差 +3.8e-15 / −2.2e-16 / +4.4e-16 / 0.0，指数 
     13 份的差异全部只在墙钟字段（`elapsed_s` / `runtime_s`）。
   - 该入口 `set -eu` 并累加 `RC`、末尾 `exit $RC`：任一腿非零即计入，全部腿都会跑完而不以最后一条
     `echo` 的 0 掩盖失败。注入一次失败实测：1 条腿 rc≠0 ⇒ 入口 rc=1（全数失败时 rc=26）。
-  - `results/audit/kcorr/tables.md` 由 `kcorr/read_tables.py` 从 JSON 重生成，**该脚本不生成表内的
+  - `docs/audit/kcorr/tables.md` 由 `kcorr/read_tables.py` 从 JSON 重生成，**该脚本不生成表内的
     跨文档冲突批注**；重跑该腿会覆盖掉手写批注，重跑后须从 git 取回。
 - 历史探针：bash run_all.sh [quick|full]（约 15/60 分钟，日志落 run/EXP-07-POLAR/logs/）
   - **该入口会覆写 `results/**`**：跑完把 `run/EXP-07-POLAR/logs/*.out|*.csv` 拷进 `results/`，
-    并重算 `results/SNAPSHOT.sha256`。复跑前请先备份 `results/`。
+    并重算 `【复现：实验/healpix-polar/run_all.sh 生成的 SNAPSHOT.sha256】`。复跑前请先备份 `results/`。
 
 ## 环境
 
@@ -95,6 +95,18 @@ r = 0.1/0.5/1/2 处相对误差 +3.8e-15 / −2.2e-16 / +4.4e-16 / 0.0，指数 
 本单元**只读** lib/algorithms/drizzle/healpix_drizzle/ 与 lib/algorithms/shared/healpix/（探针交叉核对），
 不修改任何生产文件；修复方案以伪代码形式写在 docs/EXP-07-POLAR.md §6.1，落地属于单独任务。
 需要订正的生产/文档条目清单见 REPORT_paper.md §5 与五单元简报"需订正的文档条目"（本单元只登记，不改仓库其余部分）。
+
+## 判据的地位：自身绿不构成证据
+
+本单元 `code/` 下的判据实现与门判决序是**计算数据的正向代码**，随实验单元保留在库。
+但**判据自身绿不构成该单元结论的证据资格**：门绿只说明实现与其自身阈值自洽，不说明结论为真。
+
+结论的有效性由**对抗性审核**给出，不由门判决给出。审核须做三件事：对齐质疑、尝试**重新推导**该结论、
+并**构造反例**（注入已知缺陷看门是否判红；真值无效应时是否归零）。判红也不是自动的证伪，
+须由审核重新推导其成因，区分「预算或口径不完整导致的判红」与「结论确实不成立」。
+
+本单元因此**不设**任何常驻机器门来保证归档与代码同步或代替上述审核。运行结果归档层已移除：
+`results/` 只是运行期暂存目录，产物不入库；报告档案与图表素材在 `docs/`。
 
 ## 目录约定
 

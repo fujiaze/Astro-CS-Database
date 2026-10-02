@@ -2,8 +2,9 @@
 # -*- coding: utf-8 -*-
 """EXP-02 / 产物生成：关系曲线图 + Markdown 表。
 
-输入：results/exp02_{e1_analytic,e2_hst,e3_real}.json
-输出：results/exp02_figs/*.png、results/EXP02_TABLES.md
+输入：results/exp02_{e1_analytic,e2_hst,e3_real}.json（运行期产物，由本单元
+      code/exp02/ 下的实验脚本生成；运行结果不入库归档）
+输出：docs/figs/exp02_*.png、docs/EXP02_TABLES.md（报告档案，入库）
 不运行任何 ACSD 可执行文件。
 """
 
@@ -20,7 +21,10 @@ import matplotlib.pyplot as plt  # noqa: E402
 HERE = Path(__file__).resolve().parent
 UNIT = HERE.parent.parent
 RES = UNIT / "results"
-FIGS = RES / "exp02_figs"
+# 报告档案入库在 docs/，运行结果留在 results/（不入库）
+DOCS = UNIT / "docs"
+FIGS = DOCS / "figs"
+FIG_PREFIX = "exp02_"
 BOX_PRIMARY = 32
 
 
@@ -52,7 +56,7 @@ def fig_analytic(d: Dict[str, Any]) -> List[str]:
     axes[0].legend(fontsize=7, loc="upper left")
     fig.suptitle("EXP-02 Arm A (analytic): structure contamination vs r  [seed=20260925]")
     fig.tight_layout()
-    p = FIGS / "a_analytic_scan.png"
+    p = FIGS / (FIG_PREFIX + "a_analytic_scan.png")
     fig.savefig(p, dpi=140)
     plt.close(fig)
     outs.append(str(p.relative_to(UNIT)))
@@ -70,7 +74,7 @@ def fig_analytic(d: Dict[str, Any]) -> List[str]:
     ax.set_title("EXP-02 Arm A: mesh size vs residual structure error")
     ax.grid(alpha=0.3, which="both"); ax.legend(fontsize=6, ncol=2)
     fig.tight_layout()
-    p = FIGS / "a_box_dependence.png"
+    p = FIGS / (FIG_PREFIX + "a_box_dependence.png")
     fig.savefig(p, dpi=140)
     plt.close(fig)
     outs.append(str(p.relative_to(UNIT)))
@@ -93,7 +97,7 @@ def fig_analytic(d: Dict[str, Any]) -> List[str]:
         ax.grid(alpha=0.3, which="both"); ax.legend(fontsize=7)
     fig.suptitle("EXP-02 Arm A: truth-free gate proxies vs true structure error")
     fig.tight_layout()
-    p = FIGS / "a_gate_calibration.png"
+    p = FIGS / (FIG_PREFIX + "a_gate_calibration.png")
     fig.savefig(p, dpi=140)
     plt.close(fig)
     outs.append(str(p.relative_to(UNIT)))
@@ -115,7 +119,7 @@ def fig_hst(d: Dict[str, Any]) -> List[str]:
     ax.set_title("EXP-02 Arm B (HST M16 forward sim, nostar)  [seed=20260925]")
     ax.grid(alpha=0.3, which="both"); ax.legend()
     fig.tight_layout()
-    p = FIGS / "b_hst_scan.png"
+    p = FIGS / (FIG_PREFIX + "b_hst_scan.png")
     fig.savefig(p, dpi=140)
     plt.close(fig)
     return [str(p.relative_to(UNIT))]
@@ -141,7 +145,7 @@ def fig_real(d: Dict[str, Any]) -> List[str]:
     axes[1].set_title("real M42 T2 frames: A1 vs contamination")
     fig.suptitle("EXP-02 Arm C (testdata M42 T2 300s Red, 2048^2 centre crop, read-only)")
     fig.tight_layout()
-    p = FIGS / "c_real_frames.png"
+    p = FIGS / (FIG_PREFIX + "c_real_frames.png")
     fig.savefig(p, dpi=140)
     plt.close(fig)
     return [str(p.relative_to(UNIT))]
@@ -199,7 +203,7 @@ def main() -> int:
               "## 表 B1 HST M16 真实模板 + 物理前向仿真", "", md_hst(d2), "",
               "## 表 C1 testdata M42 T2 300s Red（2048^2 中心裁剪，只读）", "",
               md_real(d3), ""]
-    p = RES / "EXP02_TABLES.md"
+    p = DOCS / "EXP02_TABLES.md"
     p.write_text(NL.join(parts), encoding="utf-8")
     print("wrote", p)
     for f in figs:

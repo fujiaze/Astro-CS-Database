@@ -3,7 +3,7 @@
 - **任务**：`SCI-401`（控制包 RELEASE-04，最高优先级科学实验单元 SCI-A）
 - **固定种子**：`20260921`（所有 RNG 由 `scia_common.rng(tag)` SHA256 派生）
 - **一键复跑**：`bash 实验/photometric-magnitude/code/run_all.sh`（`quick` 跳过最慢的 step6）
-- **判据表**：`results/GATES.md`（机读 `results/gates.json`）
+- **判据表**：`docs/GATES.md`（机读 `【复现：bash 实验/photometric-magnitude/code/run_all.sh 重跑后读 gates.json；该读数需重跑取得，当前不可离线核验】`）
 - **规范依据**：`docs/ASTROCS_DESIGN.md` §2.1 / §4.2 / §4.4 / §12.1–12.3；
   `ACCEPTANCE_SPEC.md` §2.1 判据表；`docs/detail/registry/astrocs.phase1.photometry.md` **§4.1**
   （"测光一致性判据（从误差预算推导）"，判据形态逐字来源；该文只有 §1–§8，**没有 §2.1/§3.1**）；
@@ -14,7 +14,7 @@
 
 - **论文**：`REPORT_paper.md`（三路重做证据融合重写版）；**实验报告**：`REPORT_experiment.md`
 - **文献台账**：`refs.md`（只收一手 VERIFIED 条目）；**支撑推导**：`docs/derivation_robust_weights.md`
-- **重做轮代码/结果**：`code/redo/`（路线1/2/3，seed=20260926，`bash code/redo/run_all.sh`）与 `results/redo/`（基准快照）、`results/redo_summary.json`（关键读数汇总，注明来源路线）
+- **重做轮代码/结果**：`code/redo/`（路线1/2/3，seed=20260926，`bash code/redo/run_all.sh`）与 `results/redo/`（基准快照）、`【复现：bash 实验/photometric-magnitude/code/run_all.sh 重跑后读 redo_summary.json；该读数需重跑取得，当前不可离线核验】`（关键读数汇总，注明来源路线）
 - **裁决依据**：`实验/裁决台账.md`（跨单元 D-xx）与 `docs/DISPUTES.md`（本单元 A-P1-xx）；科学正本同步件 `docs/science/DISPUTE_RESOLUTION.md`；订正记录见 `REPORT_experiment.md` §7（A-P1-01/04/06/08/09/12、D-06）
 - **无 P1 专属补实验目录**：`补实验-control_variance / -k_corr / -5.07` 分别由 P2/P3/P5 承载
 
@@ -98,7 +98,7 @@ gate_scope   = "two_sided" if rho_lo > 0 else "upper_only"
 见 §4.7）：光子噪声、PSF 拟合不确定度（精确 Fisher，含**自由背景**简并项）、
 平场残余、天光扣除残余、颜色项（通带失配）、参考侧（XP 合成通量）、量化。
 各项在 `sigma_ceiling` 的平方和中**各计一次**（轮次 1 审稿发现早期版本把系统项二次计入，
-已修：见 `results/REVIEW.md` R7 与 §9）。
+已修：见 `../absolute-snr/docs/REVIEW.md` R7 与 §9）。
 
 > **σ_flat 必须独立于被测样本（订正 P1-B01）**：σ_flat 是平场/大尺度响应残差的**物理**预算项。
 > 历史实现取 `calibrate()['delta_after_m']`——那是**同一批星在多项式拟合之后**的残差散度，即 `σ_obs` 自身的函数
@@ -107,7 +107,7 @@ gate_scope   = "two_sided" if rho_lo > 0 else "upper_only"
 >    变更 claim `PHOT-SIGMAFLAT-INDEP-001`）；② 真实帧取**仓内约定常数** `σ_flat,hf = 0.0007 mag`
 >    （活出处 `code/scia_calib.py:31`；一手出处未取得，见 §6 第 16 条）；
 > ③ `delta_after_m` 只作**诊断字段**输出（`delta_after_m_role = diagnostic_only`），**不得**进入 `sigma_ceiling`。
-> **反例化证据**：`results/step7_negatives.json → N6` 用同一批通量并行跑两种口径——自指口径下注入逐星散度使 `σ_ceiling` 同步膨胀，
+> **反例化证据**：`【复现：bash 实验/photometric-magnitude/code/run_all.sh 重跑后读 step7_negatives.json；该读数需重跑取得，当前不可离线核验】 → N6` 用同一批通量并行跑两种口径——自指口径下注入逐星散度使 `σ_ceiling` 同步膨胀，
 > 判定**恒 PASS（无判别力）**；独立口径下同一注入在 0.05 mag 处**判红**。
 
 **本实验不使用**：跨帧/组间一致性门（`PHOT-GATE-DROP-001` 明令禁止）、`0.03 mag` 常数阈值、
@@ -197,7 +197,7 @@ gate_scope   = "two_sided" if rho_lo > 0 else "upper_only"
 
 ## 4. 结果（真实数字 + 不确定度 + 对照）
 
-### 4.1 纯解析合成：实现正确性与约定收敛（`results/step1_analytic.json`）
+### 4.1 纯解析合成：实现正确性与约定收敛（`【复现：bash 实验/photometric-magnitude/code/run_all.sh 重跑后读 step1_analytic.json；该读数需重跑取得，当前不可离线核验】`）
 
 | 检验 | 实测 | 结论 |
 |---|---|---|
@@ -225,7 +225,7 @@ gate_scope   = "two_sided" if rho_lo > 0 else "upper_only"
 **实测值**，不是该解析式的取值。轮次 1 审稿指出作者曾把这一条写成"文档订正 C1"，属**稻草人**，
 已从 `DOC_CORRECTIONS.md` **撤回**（见该文"已撤回"节与 `REVIEW.md` R5）。
 
-### 4.2 HST 物理前向仿真：逐帧标定与双边界判据（`results/step5_calibration_gate.json`）
+### 4.2 HST 物理前向仿真：逐帧标定与双边界判据（`【复现：bash 实验/photometric-magnitude/code/run_all.sh 重跑后读 step5_calibration_gate.json；该读数需重跑取得，当前不可离线核验】`）
 
 | 帧 | 说明 | n | `sigma_obs` [mag] | `sigma_floor` | `sigma_ceiling` | 判定 | obs/pred | `k` 相对误差（有效真值） |
 |---|---|---|---|---|---|---|---|---|
@@ -253,7 +253,7 @@ gate_scope   = "two_sided" if rho_lo > 0 else "upper_only"
 KS 检验 `D = 0.1227`、`p = 0.787`（n_A=48, n_B=54）⇒ 分布一致，**这才是"帧间独立"的正面证据**，
 而非只看 σ_obs 比。
 
-### 4.3 星表引导检测 vs 盲检测（`results/step4_guided_vs_blind.json`）
+### 4.3 星表引导检测 vs 盲检测（`【复现：bash 实验/photometric-magnitude/code/run_all.sh 重跑后读 step4_guided_vs_blind.json；该读数需重跑取得，当前不可离线核验】`）
 
 | 指标 | 帧 A | 帧 B |
 |---|---|---|
@@ -284,7 +284,7 @@ KS 检验 `D = 0.1227`、`p = 0.787`（n_A=48, n_B=54）⇒ 分布一致，**这
 827/827 匹配）。"3 px 崩到 0.0141" 恰好等于 `fit_psf` 的 ±2 px 位置搜索边界 ⇒
 "必须 ≲2 px" 是**由实现边界决定**的，不是独立的物理发现，已在 §6 登记。
 
-### 4.4 apply photometry 与物理单位消除（`results/step6_apply_and_units.json`）
+### 4.4 apply photometry 与物理单位消除（`【复现：bash 实验/photometric-magnitude/code/run_all.sh 重跑后读 step6_apply_and_units.json；该读数需重跑取得，当前不可离线核验】`）
 
 - `I_photo = k_photo·m(x,y)·I_cal`：与**独立复算**逐像素最大相对差 = **0.0**；
 - 下游消费：drizzle 式重采样尺度比 `2.060596e-17` vs 期望 `2.060581e-17`（相对差 7e-6）；
@@ -300,7 +300,7 @@ KS 检验 `D = 0.1227`、`p = 0.787`（n_A=48, n_B=54）⇒ 分布一致，**这
 - **零点平移不变量**：`F_instr × 7.3` ⇒ `Δlocation = 0.8633228601`（期望 `0.8633228601`）、
   `k` 比 = `0.1369863014`（期望同值）、`Δσ_residual = 0`。
 
-### 4.5 XP 合成通量 vs HST PHOTFLAM 绝对定标对拍（`results/step3_forward_vs_photflam.json`）
+### 4.5 XP 合成通量 vs HST PHOTFLAM 绝对定标对拍（`【复现：bash 实验/photometric-magnitude/code/run_all.sh 重跑后读 step3_forward_vs_photflam.json；该读数需重跑取得，当前不可离线核验】`）
 
 **透过率曲线独立校验**：由 PHOTFLAM 反推有效面积 `A = hc/(PHOTFLAM·∫λT dλ)`：
 
@@ -323,7 +323,7 @@ KS 检验 `D = 0.1227`、`p = 0.787`（n_A=48, n_B=54）⇒ 分布一致，**这
 
 同星跨滤镜（n=19）残差之差：中位 **0.117** mag、MAD 0.326 mag。
 
-### 4.6 非退化负例（`results/step7_negatives.json`，**7/7 通过**；订正 P1-M07 后重跑）
+### 4.6 非退化负例（`【复现：bash 实验/photometric-magnitude/code/run_all.sh 重跑后读 step7_negatives.json；该读数需重跑取得，当前不可离线核验】`，**7/7 通过**；订正 P1-M07 后重跑）
 
 > **轮次 1 审稿（R3/R4/R13）后重做**：原 N2 的通过判据与 `ACCEPTANCE_SPEC` §2.1
 > "注入天光梯度时度量如实变大"**方向相反**，且注入形态是"算术相加的确定性图样"（§12.2 禁止）；
@@ -348,7 +348,7 @@ N0/N4/N5 是退化输入与错误门禁反例。
 `gx = 0 → 0.4` ADU/px 时 `σ_obs` 只从 0.04534 变到 0.04897（**1.08×**）⇒ 判据对确定性加性图样
 不敏感（局部背景吸收），对散粒噪声敏感。见 `DOC_CORRECTIONS.md` C3。
 
-### 4.7 testdata 真实帧（底参照）（`results/step8_real_frame.json`）
+### 4.7 testdata 真实帧（底参照）（`【复现：bash 实验/photometric-magnitude/code/run_all.sh 重跑后读 step8_real_frame.json；该读数需重跑取得，当前不可离线核验】`）
 
 主帧：`testdata/M42_T2T3_mosaic_Flying_dutchman/T2/M1/M42_M1_T2_flying_dutchman-20251212@012404-300S-Red.fts`
 （FLI，4096²，`EXPTIME=300 s`，`BZERO=32768`，`FILTER=Red`，`CCD-TEMP=−20 °C`）。
@@ -408,6 +408,18 @@ N0/N4/N5 是退化输入与错误门禁反例。
    真实通带 σ_color、差分消光），而不是判据不可用；本实验的 C2/C3/C5 量化了这三项的量级。
 
 ---
+
+## 判据的地位：自身绿不构成证据
+
+本单元 `code/` 下的判据实现与门判决序是**计算数据的正向代码**，随实验单元保留在库。
+但**判据自身绿不构成该单元结论的证据资格**：门绿只说明实现与其自身阈值自洽，不说明结论为真。
+
+结论的有效性由**对抗性审核**给出，不由门判决给出。审核须做三件事：对齐质疑、尝试**重新推导**该结论、
+并**构造反例**（注入已知缺陷看门是否判红；真值无效应时是否归零）。判红也不是自动的证伪，
+须由审核重新推导其成因，区分「预算或口径不完整导致的判红」与「结论确实不成立」。
+
+本单元因此**不设**任何常驻机器门来保证归档与代码同步或代替上述审核。运行结果归档层已移除：
+`results/` 只是运行期暂存目录，产物不入库；报告档案与图表素材在 `docs/`。
 
 ## 6. 诚实边界（证据不足 / 未建立的部分）
 
@@ -550,7 +562,7 @@ python3 实验/photometric-magnitude/code/step9_collect.py            # → resu
 
 ### 8.3 独立审稿（非作者，两轮）
 
-`results/REVIEW.md`（428 行）。**结论：不可接受（需修改后重审）**，共 22 条意见。
+`../absolute-snr/docs/REVIEW.md`（428 行）。**结论：不可接受（需修改后重审）**，共 22 条意见。
 作者对全部意见逐条核实并修复，其中 **5 条为真实硬伤**（已在 §9 列明）。
 审稿确认作者**正确**的部分：八要素齐备；§6 的自我限制到位且未过度保守；
 禁用方法①–⑦除 N2 注入形态外均无违规；未发现"把失败说成环境问题"。
@@ -563,8 +575,8 @@ python3 实验/photometric-magnitude/code/step9_collect.py            # → resu
 
 ### 8.4 仓内实测
 
-全部结果 JSON 在 `results/`；判据表 `results/GATES.md`；
-文档订正建议 `results/DOC_CORRECTIONS.md`；独立审稿 `results/REVIEW.md`。
+全部结果 JSON 在 `results/`；判据表 `docs/GATES.md`；
+文档订正建议 `../absolute-snr/docs/DOC_CORRECTIONS.md`；独立审稿 `../absolute-snr/docs/REVIEW.md`。
 
 合成器物理链的可执行自校验（公共前置步，四个组件全绿）：
 `bash 实验/shared/synthetic/run_selftests.sh` →
@@ -580,7 +592,7 @@ python3 实验/photometric-magnitude/code/step9_collect.py            # → resu
 
 | 审稿号 | 严重度 | 问题 | 处置 | 证据位置 |
 |---|---|---|---|---|
-| R1 | 高 | 归档 `step8_real_frame.json` 与交付代码不自洽（负值图、n=0、36/827）——一个被 kill 的旧进程在 13:22 覆写了新结果 | **已修**：杀掉僵尸进程、重跑；现为 sky=1202、827/827、n=157 | `results/step8_real_frame.json` |
+| R1 | 高 | 归档 `step8_real_frame.json` 与交付代码不自洽（负值图、n=0、36/827）——一个被 kill 的旧进程在 13:22 覆写了新结果 | **已修**：杀掉僵尸进程、重跑；现为 sky=1202、827/827、n=157 | `【复现：bash 实验/photometric-magnitude/code/run_all.sh 重跑后读 step8_real_frame.json；该读数需重跑取得，当前不可离线核验】` |
 | R2 | 高 | README 写"盲检 2.00 s"，实为 890.7 s（同 R1 根因） | **已修**：现为 1.751 s（归档 JSON） | 同上 |
 | R3 | 高 | N2 的通过判据与 `ACCEPTANCE_SPEC` §2.1 方向相反 | **已修**：N2 改为 **Poisson 物理口径**天光抬升，判据改为"必须响应"，2.91×、4× 判红 | §4.6、`step7_negatives.json` |
 | R4 | 高 | N4 是算术恒等式；N0/N5 是同一恒等式 | **已修**：N4 改用 step5 **实测** k；N5 换成真实过裁剪实验（并因此**未通过**） | §4.6 |

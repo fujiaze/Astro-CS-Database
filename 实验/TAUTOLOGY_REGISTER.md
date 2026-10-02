@@ -188,7 +188,7 @@ moffat4 调用的逐字相同值，`:49` 的 `frame` 算后从未使用 ⇒ 该�
 | 29 | `route1/exp_p4_04_brightness_forward.py:803` | `reference_is_rewrite_proof` | 2 | **B** | `:605` 把 `:558` 的字面量与它自己比 ⇒ 恒 True。注释 `:600-602` 宣称「参照量重新指向可写文件时该门立刻判红」**是错的**（不动 `:558` 就不会红）。真能判红的 `ref_path_overlaps_out`（`:603`）被算出却未接门 |
 | — | `route1/exp_p4_04_brightness_forward.py:674→682→799` | `gain_injection_is_detected_by_this_suite` | — | **fail-open** | `inv_devs = inv_devs or [float("inf")]` ⇒ 无可比读数时塞 `inf` ⇒ `max_inv > tol` ⇒ 门报告「增益注入**已被检出****。同一文件 `:657-660` 注释宣称已消除这个失败模式，实为把它挪到了「无数据」分支 |
 
-**归档脱节**：`results/route1/exp_p4_04_brightness_forward.json → gates` 只有 **7** 门，
+**归档脱节**：`【复现：按本单元复现清单重跑后读 exp_p4_04_brightness_forward.json；该读数需重跑取得，当前不可离线核验】 → gates` 只有 **7** 门，
 现行代码 `:795-803` 有 **14** 门 ⇒ **8 条门没有任何实测记录**。
 
 ### 2.2 photometric-magnitude（P1）
@@ -196,8 +196,8 @@ moffat4 调用的逐字相同值，`:49` 的 `frame` 算后从未使用 ⇒ 该�
 | # | file:line | 门 | 型 | 类 | 说明 |
 |---|---|---|---|---|---|
 | 1 | `step9_collect.py:161` | `g2_c` | 1 | **B** | `sigma_residual_delta ≡ 0.0` **精确**：`calibrate:136` `r = log10(f_instr/f_syn)` ⇒ `r₁ ≡ r₀ + log10(shift)` 逐元素；`mad_sigma` 对平移严格不变、inlier 掩码逐元素相同。**已知隔离点 `step9_collect.py:148-163` 只隔离了 (a)(b)，(c) 漏网仍进判定** ⇒ G2 现只剩 `g2_d` 一个真子句 |
-| 2 | `step4_guided_vs_blind.py:63` | `false_alarms=0` | 2 | **B** | **字面量**；消费方 `step9_collect.py:247` `g4_fa` ⇒ 永真。报告引用 `results/GATES.md:11`、`README.md:264` |
-| 3 | `step5_calibration_gate.py:225` | `cross_frame_gate_present=False` | 2 | **B** | **字面量**；消费方 `:189` `g3_nogate` ⇒ 永真。报告引用 `results/GATES.md:10`、`README.md:251` |
+| 2 | `step4_guided_vs_blind.py:63` | `false_alarms=0` | 2 | **B** | **字面量**；消费方 `step9_collect.py:247` `g4_fa` ⇒ 永真。报告引用 `photometric-magnitude/docs/GATES.md:11`、`README.md:264` |
+| 3 | `step5_calibration_gate.py:225` | `cross_frame_gate_present=False` | 2 | **B** | **字面量**；消费方 `:189` `g3_nogate` ⇒ 永真。报告引用 `photometric-magnitude/docs/GATES.md:10`、`README.md:251` |
 | 4 | `step6_apply_and_units.py:61-62` | `I_photo_indep` vs `I_photo` | 2 | **C** | 注释称「不复用 `apply_photometry` 的实现」，但 `scia_pipeline.py:78-80` 的实现就是 `k_photo*m_map*img` ⇒ `rel ≡ 0.0` 精确。消费方 `:288` `g5_recompute` |
 | 5 | `step9_collect.py:293` | `g5_fc` | — | **D** | 验证的是 `step6:85-90` 的 **4 行本地桩** `downstream()` 自己抛的 `RuntimeError`，`True` 分支从未执行 |
 | 6 | `step9_collect.py:108` | `g1b_fold` | 1 | **C** | `sigma_flat_independent = PHOTON_MAG*s/sqrt(N_eff)`，右端就是 `s`，`N_eff = 1/ΣP² > 1` ⇒ 比值恒 < 1，**对任何归一化 PSF 恒真** |
@@ -205,8 +205,8 @@ moffat4 调用的逐字相同值，`:49` 的 `frame` 算后从未使用 ⇒ 该�
 | 8 | `step7_negatives.py:104-105` | `N0` | 1 | **B** | `F_true = f_syn*inject_scale` ⇒ 残差逐元素全等 ⇒ `sigma_obs == 0.0`；`b0` 是**硬编码常量**提供非零 floor ⇒ 永真。有 `provides_injection_response=False` 标注但仍计入 `n_pass` |
 | 9 | `step7_negatives.py:303-304` | `N5` | 2 | **B + D** | 门拿 `gate_verdict` 的定义核对 `gate_verdict` 自己（`ρ_lo<=0` 时必然返回 `LOWER_BOUND_UNDEFINED`） |
 | 10 | `step7_negatives.py:247` | `N3` | 3 | **B + D** | 残差场是**合成**的，未走 `measure()→guided_photometry→fit_psf→sample_selection` 任何一步；σ_obs 与「漏掉的那项」由同一个 `amp_col` 标量驱动 |
-| 11 | `step1_analytic.py:98/:100/:106-110/:141-144` | `rtol`/`k_rel_err`/N0/`oracle_S0_degenerate` | 1 | **B** | `analytic_frame(..., noise=False)` 直接返回 `k*mi*f_syn` ⇒ 三处「Oracle 恢复」全是代数恒等式。**`results/GATES.md:14` 把「Oracle 相对误差 3.33e-15」当作 G7 三类互证之一** |
-| 12 | `step9_collect.py:232` | `g4_rob` | — | **恒红** | `fit_psf:384-385` 把位置硬约束在 `x0±2.0`，而 `far` 取偏移 ≥3 px 的行 ⇒ 匹配必然失败 ⇒ **对任何保留 ±2 px 搜索框的实现恒红**。**代码已诚实处理**（`:207-225`、`:276-279` 写明「量的是搜索框不是物理鲁棒性」并如实判红），但 **`results/GATES.md:11` 与 `results/gates.json` 仍记 G4 = PASS ⇒ 归档过期** |
+| 11 | `step1_analytic.py:98/:100/:106-110/:141-144` | `rtol`/`k_rel_err`/N0/`oracle_S0_degenerate` | 1 | **B** | `analytic_frame(..., noise=False)` 直接返回 `k*mi*f_syn` ⇒ 三处「Oracle 恢复」全是代数恒等式。**`photometric-magnitude/docs/GATES.md:14` 把「Oracle 相对误差 3.33e-15」当作 G7 三类互证之一** |
+| 12 | `step9_collect.py:232` | `g4_rob` | — | **恒红** | `fit_psf:384-385` 把位置硬约束在 `x0±2.0`，而 `far` 取偏移 ≥3 px 的行 ⇒ 匹配必然失败 ⇒ **对任何保留 ±2 px 搜索框的实现恒红**。**代码已诚实处理**（`:207-225`、`:276-279` 写明「量的是搜索框不是物理鲁棒性」并如实判红），但 **`photometric-magnitude/docs/GATES.md:11` 与 `【复现：按本单元复现清单重跑后读 gates.json；该读数需重跑取得，当前不可离线核验】` 仍记 G4 = PASS ⇒ 归档过期** |
 
 **结构性发现（类 D）**：`code/redo/` 全部 27 个文件**不 import 本单元任何生产模块**
 （`grep "scia_common|scia_calib|scia_pipeline|scia_sim"` 零命中）。**同一个 IRLS 在仓内有 6 份
@@ -261,14 +261,14 @@ P1 单元**已经写了**撤回声明，但**没有一条落到 route2/route3 �
 |---|---|---|
 | `REPORT_experiment.md:79,:122`；`REPORT_paper.md:201` | `exp_S06` H6a/H6b + `exp_S02`/`exp_S11` 的 `negative_zero_check`「无判别力、不得当证据」 | `REPORT_route3.md:84`、`:122`、`:166` |
 | `docs/DISPUTES.md:104-106` | S09 `H9b`「恒真」、`negative_zero_check` 是字面量 | `REPORT_route3.md:148` |
-| 主链 `step9_collect.py:148-163` | G2 的 (a)(b) 降级为 `same_source_self_checks` | `results/GATES.md:9` 仍是隔离**之前**的旧证据串 |
+| 主链 `step9_collect.py:148-163` | G2 的 (a)(b) 降级为 `same_source_self_checks` | `photometric-magnitude/docs/GATES.md:9` 仍是隔离**之前**的旧证据串 |
 
 ⇒ **只改这 3 张表即可消除本单元一半的「声称有证据实则恒真」，不动任何实现。**
 本单窗口内未做完，登记为待办。
 
 #### 结构性缺口
 
-`results/GATES.md` 的 G1–G9 **完全不含 `route1`/`route2`/`route3`/`reverse_verify` 的任何一条门**
+`photometric-magnitude/docs/GATES.md` 的 G1–G9 **完全不含 `route1`/`route2`/`route3`/`reverse_verify` 的任何一条门**
 （只有 `step5/step7/step8` 链）⇒ **33 个 `.py` 的门没有任何机器可执行的总账**。
 而 `REPORT_route3.md:231` 写「13 个实验脚本全部运行通过（**verdict 全绿**）」，
 那个 `verdict` 里含至少 10 条永真或字面量行。
@@ -427,9 +427,9 @@ P1 单元**已经写了**撤回声明，但**没有一条落到 route2/route3 �
 
 | 位置 | 症状 |
 |---|---|
-| `absolute-snr/results/exp05_e5_gates.json` | `meta.n_gates=28 / all_pass=true` 描述的**门集合已不存在**；7 条纯恒等门已移入 `identity_checks`，另有 6 条真门不在存档里 |
-| `photometric-magnitude/results/GATES.md` 与 `gates.json` | 落后于现行 `step9_collect.py`（G4 已改判红、G2 证据串已改），仍记 G4 = PASS |
-| `dense-snr-reconstruct/results/route1/exp_p4_04_brightness_forward.json` | 只有 7 门，现行代码 14 门 ⇒ **8 条门无任何实测记录** |
+| `absolute-snr/【复现：实验/absolute-snr/code/exp05/run_all.sh 生成的 exp05_e5_gates.json】` | `meta.n_gates=28 / all_pass=true` 描述的**门集合已不存在**；7 条纯恒等门已移入 `identity_checks`，另有 6 条真门不在存档里 |
+| `photometric-magnitude/photometric-magnitude/docs/GATES.md` 与 `gates.json` | 落后于现行 `step9_collect.py`（G4 已改判红、G2 证据串已改），仍记 G4 = PASS |
+| `dense-snr-reconstruct/【复现：按本单元复现清单重跑后读 exp_p4_04_brightness_forward.json；该读数需重跑取得，当前不可离线核验】` | 只有 7 门，现行代码 14 门 ⇒ **8 条门无任何实测记录** |
 | `healpix-polar` `read_tables.py:24` | 整行硬编码 `"PASS"`，与落盘 JSON 冲突 |
 
 ⇒ **「代码改好了、归档没重跑」在本仓是系统性的**，三次都导致报告仍引用已被代码自己否定的证据。
@@ -593,7 +593,7 @@ H5a/H5b/H5c、H9a、H10a/H10b、H12a/H12b），并在 JSON 里新增 `registered
   按相对路径会让同一条门算两次；
 - **fail-closed**：任何 `false` 未被披露 ⇒ 记 `UNDECLARED` ⇒ **判红**；
 - `open_red` **不豁免**，照样让汇总器红；
-- 与 `results/_gate_rollup.json`（另一汇总器的产物）做**交叉核对**：
+- 与 `【复现：按本单元复现清单重跑后读 _gate_rollup.json；该读数需重跑取得，当前不可离线核验】`（另一汇总器的产物）做**交叉核对**：
   任何一方标红而本表未列 `open_red` ⇒ 判红；
 - 两个来源都扫（工作副本 + 固化正本），只扫其一都会静默漏判。
 
@@ -623,11 +623,11 @@ H5a/H5b/H5c、H9a、H10a/H10b、H12a/H12b），并在 JSON 里新增 `registered
 **没有 §16.1.3**；全文 `grep 16\.1\.3` **零命中**。
 「§16.1.3」只作为**门名字符串** `ordering_matches_doc_16.1.3` 存在于
 `code/audit_rework/route3/exp10_weight_arms.py:118,152`、
-`results/audit_rework/route3/q10_weight_arms.json:66`、
+`【复现：按本单元复现清单重跑后读 q10_weight_arms.json；该读数需重跑取得，当前不可离线核验】:66`、
 `code/audit_rework/GATE_DISCLOSURE.json:64` 与
 `docs/engineering/UNRESOLVED_REGISTER.md:2793,2797`。
 该节号**自 `exp10_weight_arms.py:9` 的注释起就是错的**，且
-`results/audit_rework_summary.json:90` 与 `REPORT_paper.md:100` **已自承「非正本 16.1.3」**
+`【复现：按本单元复现清单重跑后读 audit_rework_summary.json；该读数需重跑取得，当前不可离线核验】:90` 与 `REPORT_paper.md:100` **已自承「非正本 16.1.3」**
 （原文作「非正本 16.1.3 的 13×」）。⇒ 本表此前仍把它当**文档**引用，是本表的失真。
 （另：本表从未出现 `0.0245/0.0651/0.3203` 这三个数字，实测零命中；
  该组数字不出现在本文件，故不构成本表的伪引内容。）

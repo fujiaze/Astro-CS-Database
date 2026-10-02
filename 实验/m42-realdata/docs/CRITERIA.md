@@ -2,7 +2,7 @@
 
 本文件是 `实验/m42-realdata` 的判据台账。每条判据都给出：**规范出处（file:line）**、
 **实测值**、**红/绿**、**它为什么能红（负例注入）**、以及**判红时的差异来源分析**。
-全部数字来自 `results/c1..c4.json`（`code/run_all.sh` 可一键复跑，固定 seed）。
+全部数字来自 `【复现：bash 实验/m42-realdata/code/run_all.sh 重跑后读 c1..c4.json；该读数需重跑取得，当前不可离线核验】`（`code/run_all.sh` 可一键复跑，固定 seed）。
 
 判据台账机器可读形态：每个结果 JSON 的 `gates.rows[]`，字段
 `id / desc / value / ok / source / level / note`；`level` 取值
@@ -103,7 +103,7 @@
 - **规范**：`docs/ASTROCS_DESIGN.md:131-137`（跨帧绝对 SNR 传递链）；
   `docs/science/PHASE2_UPM.md`、`docs/science/SNR_CHAIN.md`；
   噪声律 `Var(p) = sigma0² + D(p)/g` 的 EXP-06 实测指数带 **0.995–1.017**
-  （`实验/absolute-snr/docs/EXP-06-SUMMARY.md`、`results/exp06_e1_analytic.json`）。
+  （`实验/absolute-snr/docs/EXP-06-SUMMARY.md`、`【复现：实验/absolute-snr/code/exp06/e1_analytic.py 生成的 exp06_e1_analytic.json】`）。
 - **判据（非退化设计）**：`log10(Var)` 对 `log10(signal)` 的加权最小二乘斜率
   必须 **= 1 ± 0.05**，**且** 400 次自助的 95% CI 半宽 **≤ 0.05**（后者防止"CI 宽到
   必然包含 1"的恒真门）。
@@ -137,7 +137,7 @@
   `interp_spline` 2.00861e-03、`frame_scalar` 5.81691e-02、`naive_pixel` 1.60982e-02、
   `phys_unsep` 4.22290e-02。
 - **真值方差场来源**：`E` 需要 `var_true`；EXP-06 的真实数据臂因此**没有算 E**
-  （`results/exp06_e3_real.json` 中 `eff_loss` 出现 **0** 次）。本单元用 §C2-G2 的
+  （`【复现：实验/absolute-snr/code/exp06/run_all.sh 生成的 exp06_e3_real.json】` 中 `eff_loss` 出现 **0** 次）。本单元用 §C2-G2 的
   **跨帧配对差**在 24 个信号箱上的中位作为 `var_true`，产品权重取帧 HiPS `ivar`
   （`p2_integrated.json: weight_basis = "per_sample_ivar"`）。
   ⚠ **G08-05 更正文档–代码冲突**：本节原写「产品权重取**同一批箱上**的中位」，

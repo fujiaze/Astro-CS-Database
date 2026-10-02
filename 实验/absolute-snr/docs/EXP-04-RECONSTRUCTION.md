@@ -142,7 +142,7 @@ SExtractor `backsig` 语义，`back.c:846`）、`frame_global_mad`（整帧未�
 
 ### 2.1 精度 + 权重效率损失（Δ=64，estimated 模式：控制值来自数据稳健 MAD）
 
-E / RMSE(dex)。完整 28 面 × 5 Δ 全表见 `results/EXP04_TABLES.md` T1。
+E / RMSE(dex)。完整 28 面 × 5 Δ 全表见 `EXP04_TABLES.md` T1。
 
 | 算子 | 平坦场 s=0 | 解析 ℓ=64 s=0.10 | 解析 ℓ=64 s=0.30 | 未分辨 ℓ_u=4 a=0.30 | **HST M16** | M42_M1（真实） |
 |---|---|---|---|---|---|---|
@@ -194,7 +194,7 @@ E / RMSE(dex)。完整 28 面 × 5 Δ 全表见 `results/EXP04_TABLES.md` T1。
 > 失控组加钳制后最坏 E 从 7.8e5 降到 **1.45**，进入有界组量级。
 > 因此**值域钳制是比"选中值滤波"更根本的工程手段**（§2.7 有对照实验）。
 
-### 2.3 计算量（1024² 输出；`results/exp04_e5_cost.json`）
+### 2.3 计算量（1024² 输出；`【复现：实验/absolute-snr/code/exp04/e5_cost.py 生成的 exp04_e5_cost.json】`）
 
 | 算子 | t(Δ=256,N=16) | t(Δ=64,N=256) | t(Δ=16,N=4096) | log-log 斜率 vs N | 外推 4096²/帧 |
 |---|---|---|---|---|---|
@@ -235,7 +235,7 @@ E / RMSE(dex)。完整 28 面 × 5 Δ 全表见 `results/EXP04_TABLES.md` T1。
 > **关键推论**：1 MiB/帧的预算允许 Δ 一直降到 **16 px**（512 KiB）。
 > **存储从来不是 Δ 的约束**——Δ=64 来自"复用 Phase2 UPM 8×8/tile 控制网格"这一**几何**约束。
 
-### 2.5 边界行为（Δ=64；`results/exp04_e6_boundary.json`）
+### 2.5 边界行为（Δ=64；`【复现：实验/absolute-snr/code/exp04/e6_boundary.py 生成的 exp04_e6_boundary.json】`）
 
 **B1 无效区**（控制网格注入 3×3 cell NaN 块 + 顶行 NaN；策略 `nearest_valid`＝SExtractor 语义）：
 
@@ -296,7 +296,7 @@ E / RMSE(dex)。完整 28 面 × 5 Δ 全表见 `results/EXP04_TABLES.md` T1。
 > 只要把查询坐标钳到节点范围——生产在 `weight_chain.cpp:239-240` 正是这么做的
 > （v1 误引为 `:249-256`，那是散点模式的 `max_radius_px` 检查，v2 已改正）。
 
-### 2.6 跨帧一致性（`results/exp04_e7_crossframe.json`）
+### 2.6 跨帧一致性（`【复现：实验/absolute-snr/code/exp04/e7_crossframe.py 生成的 exp04_e7_crossframe.json】`）
 
 log10 域跨实现离散中位数（dex）；C1 = 同一真值场 + 8 个独立噪声实现。
 
@@ -327,7 +327,7 @@ log10 域跨实现离散中位数（dex）；C1 = 同一真值场 + 8 个独立�
   split_scatter 精确为 0。**M42 的跨帧数字只能当上界用**，
   干净的跨帧测量在解析面与 HST 面上。
 
-### 2.7 值域钳制的对照实验（v2 新增；`results/exp04_e9_clip.json`）
+### 2.7 值域钳制的对照实验（v2 新增；`【复现：实验/absolute-snr/code/exp04/e9_clip.py 生成的 exp04_e9_clip.json】`）
 
 **动机**：v1 把 `snr_reconstruct_clip = true` 写进推荐，但被测算子本身没有钳制，
 "钳制把 761–7.8e5 压回有界"从未做对照（独立审稿 B-1）。本实验补上：同一核，唯一差别是最后一步
@@ -416,7 +416,7 @@ log10 域跨实现离散中位数（dex）；C1 = 同一真值场 + 8 个独立�
    其余域它**从不最优**，但它是**唯一永远可用**的兜底（无需稀疏层、跨帧一致性最好 0.00094 dex）。
    它作为兜底是合理的，**作为默认则不是**。
 
-### 3.2 对 `b3_domain_map.json` 既有结论的复核（独立实现重算，`results/exp04_e8_review_b3.json`）
+### 3.2 对 `b3_domain_map.json` 既有结论的复核（独立实现重算，`【复现：实验/absolute-snr/code/exp04/e8_review_b3.py 生成的 exp04_e8_review_b3.json】`）
 
 复核方法：另写 `mad_cell_indep()`（显式循环 + `np.median`，不复用 `sci_b_common.sigma_field_fast`），
 同 crop（2048）、同 Δ 网格（16…512）、同 P=32 评价粒度。
@@ -630,7 +630,7 @@ SExtractor `BACK_FILTTHRESH` 默认 0.0 语义）。
 
 ## 6. ⑥ 负例红/绿（含平坦场退化用例）
 
-**证据归属（v2 修正）**：G1–G6 落 `results/exp04_e4_gates.json`；
+**证据归属（v2 修正）**：G1–G6 落 `【复现：实验/absolute-snr/code/exp04/e4_gates.py 生成的 exp04_e4_gates.json】`；
 S1–S7 落 `run/SCI-B-EXP-04/logs/selftest.log`（`code/exp04/selftest_operators.py`，
 **88 行判据，FAIL=0**）。
 
@@ -745,7 +745,7 @@ python3 make_tables.py          # 生成 results/EXP04_TABLES.md
 python3 summarize.py            # 紧凑摘要（人工阅读用）
 ```
 
-**产物**：`results/exp04_e1_analytic.json`、`exp04_e2_hst.json`、`exp04_e3_real.json`、
+**产物**：`【复现：实验/absolute-snr/code/exp04/e1_analytic.py 生成的 exp04_e1_analytic.json】`、`exp04_e2_hst.json`、`exp04_e3_real.json`、
 `exp04_e4_gates.json`、`exp04_e5_cost.json`、`exp04_e6_boundary.json`、`exp04_e7_crossframe.json`、
 `exp04_e8_review_b3.json`、**`exp04_e9_clip.json`（v2 新增）**、`EXP04_TABLES.md`；
 日志 `run/SCI-B-EXP-04/logs/`。
@@ -892,7 +892,7 @@ python3 summarize.py            # 紧凑摘要（人工阅读用）
 | `code/exp04/make_tables.py` / `summarize.py` | 汇总表与摘要 |
 | `code/exp04/rss_guard.py` | 外部 RSS 监控包装（防内存事故） |
 | `code/exp04/run_all.sh` | 一键复跑 |
-| `results/exp04_*.json`（含 **`exp04_e9_clip.json`**）/ `results/EXP04_TABLES.md` | 本单元全部证据 |
+| `results/exp04_*.json`（含 **`exp04_e9_clip.json`**）/ `EXP04_TABLES.md` | 本单元全部证据 |
 | `docs/EXP-04-RECONSTRUCTION.md` | 本报告（v2） |
 
 **本单元未改动任何生产代码、合同 schema、科学公式与容差；未改 `docs/**` 权威文档**

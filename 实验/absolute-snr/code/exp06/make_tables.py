@@ -232,7 +232,7 @@ def table_scope(d: Dict[str, Any], out: List[str]) -> None:
 
 def main() -> int:
     ap = argparse.ArgumentParser()
-    ap.add_argument("--out", default=str(X.RESULTS / "EXP06_TABLES.md"))
+    ap.add_argument("--out", default=str(X.DOCS / "EXP06_TABLES.md"))
     a = ap.parse_args()
     R = X.RESULTS
     out: List[str] = ["# EXP-06 表格（由 results/exp06_*.json 生成）", ""]

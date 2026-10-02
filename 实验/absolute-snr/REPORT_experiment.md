@@ -56,14 +56,14 @@
 
 ## 3 数据
 
-- 单元主实验 results：results/b1_sky_scan.json、b2_noise_terms.json、b3_domain_map.json、b4_integration.json、b5_phase3_transfer.json、b6_gates_audit.json、exp0*.json 系列。
+- 单元主实验 results：【复现：实验/absolute-snr/code/b1_sky_scan.py 生成的 b1_sky_scan.json】、b2_noise_terms.json、b3_domain_map.json、b4_integration.json、b5_phase3_transfer.json、b6_gates_audit.json、exp0*.json 系列。
 - 审计重做快照：code/audit/results/route1|route2|route3|supplement_control_variance/*.json（35 份，逐字快照）。 [自检]
-- 关键读数汇总（注明来源路线）：results/AUDIT_KEY_RESULTS.json。
+- 关键读数汇总（注明来源路线）：【复现：bash 实验/absolute-snr/code/run_all.sh 重跑后读 AUDIT_KEY_RESULTS.json；该读数需重跑取得，当前不可离线核验】。
 - 三类数据覆盖：物理前向仿真（b1/b2）、纯解析合成（audit 全部 + exp0*）、testdata 真实（b3/b4/exp0*_e3）。
 
 ## 4 结果（要点）
 
-数字全部带腿标注；完整论证见 REPORT_paper.md §4；来源路线见 results/AUDIT_KEY_RESULTS.json。
+数字全部带腿标注；完整论证见 REPORT_paper.md §4；来源路线见 【复现：bash 实验/absolute-snr/code/run_all.sh 重跑后读 AUDIT_KEY_RESULTS.json；该读数需重跑取得，当前不可离线核验】。
 
 1. **常数体系**：κ_MAD=1.482602218505602、Gauss FWHM/σ=2.3548200450309493、Moffat4 闭式 1.2303076525901024（冻结值截断 +1.908×10⁻⁶）、截尾均值 0.7316730952806134、√(π/2)=1.2533141373155001 —— 解析恒等式级闭合 [实验:code/audit/*][推导]。 [自检]
 2. **预算链**：c(n=64)=1.152（D-04 终裁）；c_eff=1.4751±0.023（管线级，与理论 1.152×1.2533=1.444 差 +2.4%≈1.1σ）；N_min≈9321 vs 9216（1.2%）；5811→5816.6 订正 [实验:code/audit/route1/exp03_sky_budget_constant.py][实验:code/audit/route3/exp01_mad_sigma_budget.py]。 [自检]
@@ -73,7 +73,7 @@
 6. **控制点方差**：N=5 纯公式高估 9.53%（方向词订正，D-07）；端到端 ±1.5%；生产链裁剪臂低估 1.3–3.2%；偶 N 效应 +5.0%@N=20 [实验:code/audit/supplement_control_variance/*]。 [自检]
 7. **接口传递**：1.5% 控制点精度穿过 P4（首轮 IDW 代理算子通胀 1.06×；冻结默认算子在真实控制网格上 T ≈ 0.87 衰减、disc 0.1206，见 REPORT_paper §4.9）；SNR_comb²=ΣSNR_k²（2.2×10⁻¹⁶）；对角近似宣称方差仅为实际 32.5% [实验:code/audit/route3/exp04_refmag_chain.py][实验:code/b4_integration.py][实验:code/b5_phase3_transfer.py]。 [自检]
 8. **适用域**：地面稀疏胜帧级（0.0413–0.0825 vs 0.0506–0.1691 dex）、HST 帧级胜（Δ*≈16 px）、稠密 64 MiB/帧超预算 64 倍（诊断地位）[实验:code/b3_domain_map.py]。
-9. **逐像素绝对 SNR 重建四臂**（解析臂 `D_core`，n=1463，两 seed 同向；seed 20260921 与换 seed 20260922 复跑一致）[实验:code/b7_absolute_snr_recon.py][实验:results/b7_absolute_snr_recon.json]：
+9. **逐像素绝对 SNR 重建四臂**（解析臂 `D_core`，n=1463，两 seed 同向；seed 20260921 与换 seed 20260922 复跑一致）[实验:code/b7_absolute_snr_recon.py][实验:【复现：实验/absolute-snr/code/b7_run.sh 生成的 b7_absolute_snr_recon.json】]：
    模型 `I = S_src + S_sky + N_local`，`sigma_slow² = Var[N_local] + S_sky/g`，`sigma_w² = sigma_slow² + S_src/g`，**分子只取源**。
    - `T_full`（本单元推导出的模型）：中位 `|SNR/SNR_true − 1|` = **0.0054**、p95 = **0.0296** ⇒ 复原真值；方差面比值中位 1.0031。
    - `T_slow`（漏源项）：中位比值 **1.657**，解析预言 1.645（对拍差 0.70%）⇒ 偏高。
