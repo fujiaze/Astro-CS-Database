@@ -1090,7 +1090,7 @@ static void test_determinism() {
     CHECK_MSG(ff.ok(), ff.ok() ? "" : ff.error().message().c_str());
     const std::string intj = read_file(fx.out + "/p2_integrated.json");
     const std::string finj = read_file(fx.out + "/p2_final.json");
-    // FIX-405 G3-12（docs/ACSD_DESIGN §3.1「全程只有 SNR，不存在『权重模式』」）：
+    // FIX-405 G3-12（docs/ACSD_DESIGN.md §3.1「全链没有「权重模式」这一可选概念」）：
     // 真实 Phase2 产物不得再承载 weight_mode 键；方差面状态由语义键承接
     // （非退化：替代键必须同时在位，缺键 fail-closed 面不因删键而消失）。
     // BLD-401 空断言充数修复（AGENTS.md §9）：产物文件缺失 ⇒ intj/finj 为空 ⇒

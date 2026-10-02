@@ -23,7 +23,7 @@
 #include <string>
 #include <vector>
 
-// CLEAN-403 (docs/ACSD_DESIGN §10「aio 是文件级唯一 I/O 边界」): 文件读取/存在性/
+// CLEAN-403 (docs/ACSD_DESIGN §10「统一 I/O 是文件级唯一边界」): 文件读取/存在性/
 // 头部探测/流式分块读取一律经 aio 唯一实现 (aio_file_io.h / aio_atomic_file.h,
 // 均为 header-only 机制面 —— 不引入 cfitsio 或产品 IO 库链接依赖, core 依赖图
 // 保持原样)。

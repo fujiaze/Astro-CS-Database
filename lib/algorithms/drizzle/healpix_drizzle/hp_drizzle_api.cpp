@@ -15,7 +15,7 @@
 #include "astro_sphere_sink.h"      // Phase1: Drizzle -> AIO HiPS 直写
 #include "hp_drizzle_internal.h"    // F-13: run_drizzle_internal / setErrorMsg (run_hips 已迁出本 TU)
 #include "acsd/core/variance_floor.h"  // 按 dtype 导出的方差地板 (NOISE_MODEL §7/§9)
-// docs/ACSD_DESIGN §9「aio 是文件级唯一 I/O 边界」+ 原子产品:
+// docs/ACSD_DESIGN §10「统一 I/O 是文件级唯一边界」+ 原子产品:
 // 产品面落盘一律经 aio 机制原语 (aio_atomic_file.h), 本 TU 不得自持文件通道。
 #include "aio_atomic_file.h"
 

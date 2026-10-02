@@ -16,7 +16,7 @@
 #include <string>
 #include <vector>
 
-// docs/ACSD_DESIGN §9「aio 是文件级唯一 I/O 边界」:
+// docs/ACSD_DESIGN §10「统一 I/O 是文件级唯一边界」:
 // 整文件读取机制经 aio 唯一实现 (aio_file::read_all), 本 TU 不自持 ifstream 通道。
 #include "aio_file_io.h"
 

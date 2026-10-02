@@ -14,7 +14,7 @@
 #include <dlfcn.h>
 #endif
 
-// CLEAN-403 (docs/ACSD_DESIGN §10「aio 是文件级唯一 I/O 边界」): 文件摘要与存在性
+// CLEAN-403 (docs/ACSD_DESIGN §10「统一 I/O 是文件级唯一边界」): 文件摘要与存在性
 // 探测一律经 aio 唯一实现 (aio_file::sha256_hex / aio_atomic::path_exists),
 // 本 TU 不自持 FILE* / std::filesystem 通道。
 #include "aio_atomic_file.h"

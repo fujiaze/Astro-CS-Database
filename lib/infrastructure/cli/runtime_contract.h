@@ -135,8 +135,8 @@ inline ModeRoute route_phase2_weight_token(const std::string& raw) {
         // 原实现把这两个 token 放行为 kBaseline（rc=0），理由是
         // 「legacy 整数映射的目标登记」。整数路由已删除 ⇒ 该理由消失；且它们是
         // **输入路径**（CLI --mode）上的口径 token ⇒ 与其余 token 同归 fail-closed
-        // （docs/ACSD_DESIGN.md §3.1:175「没有可选择项」；PSF_SIGNAL_WEIGHT.md §4:72
-        // 「不存在口径选择键、口径枚举、口径配置项或口径产物」）。
+        // （docs/ACSD_DESIGN.md §3.1「全链没有「权重模式」这一可选概念」；
+        //  PSF_SIGNAL_WEIGHT.md §4「不存在口径选择键、口径枚举、口径配置项或口径产物」）。
         r.reason = "FZ-WEIGHT-SINGLE-PATH: '" + raw + "' rejected - there is no "
                    "selectable weight mode; Phase2 reconstructs the dense SNR field "
                    "and derives inverse-variance weights w = SNR^2/F_ref^2 = 1/sigma_F^2";
@@ -174,8 +174,8 @@ inline ModeRoute route_phase3_mode(const std::string& raw) {
 // 见 eng/ci/check_no_weight_mode_code.py C2「退役对象的拒绝面必须存活」与
 // is_retired_weight_mode_token）。最危险值 0（support x SNR^2，无量纲、非信号/噪声
 // 之比）保留**更具体**的拒绝理由，便于用户按提示改对。
-// 依据：docs/ACSD_DESIGN.md §3.1:175「权重的产生链固定为两步、没有可选择项」；
-// docs/science/PSF_SIGNAL_WEIGHT.md §4:72「不存在口径选择键、口径枚举、口径配置项
+// 依据：docs/ACSD_DESIGN.md §3.1「全链没有「权重模式」这一可选概念」；
+// docs/science/PSF_SIGNAL_WEIGHT.md §4「不存在口径选择键、口径枚举、口径配置项
 // 或口径产物」；docs/science/DATA_SEMANTICS.md §31.3（legacy weight_mode=0 → REJECT）。
 inline ModeRoute route_legacy_weight_mode_int(int v) {
     ModeRoute r;

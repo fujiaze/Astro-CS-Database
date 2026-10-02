@@ -778,8 +778,8 @@ int main(int argc, char** argv) {
         }
     }
     // ivar 产品 ——**唯一**权重口径（逐样本逆方差）。
-    // docs/ACSD_DESIGN.md §3.1:175「权重的产生链固定为两步、没有可选择项」；
-    // docs/science/PSF_SIGNAL_WEIGHT.md §4:72「没有可选择的口径」。
+    // docs/ACSD_DESIGN.md §3.1「全链没有「权重模式」这一可选概念」；
+    // docs/science/PSF_SIGNAL_WEIGHT.md §4「没有可选择的口径」。
     // 整个 ivar 产品缺失时默认
     // → 显式 science/degraded 错误（无静默回退）；仅当显式配置
     // （原 legacy_allow_weight_fallback=true 降级分支已删除。）

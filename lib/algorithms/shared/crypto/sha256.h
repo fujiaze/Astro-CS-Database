@@ -11,7 +11,7 @@ namespace acsd::crypto {
 // 计算输入字节的 SHA-256 摘要并输出 hex 字符串（64 字符）。
 std::string sha256_hex(const void* data, std::size_t len);
 
-// (docs/ACSD_DESIGN §10「aio 是文件级唯一 I/O 边界」): 文件级摘要
+// (docs/ACSD_DESIGN §10「统一 I/O 是文件级唯一边界」): 文件级摘要
 // 不属本模块（纯算法, 不持文件通道）; 唯一实现 = aio_file::sha256_hex
 // (lib/infrastructure/aio/src/aio_file_io.h)。原 sha256_file 全仓零调用者,
 // 已随该轮整改删除。

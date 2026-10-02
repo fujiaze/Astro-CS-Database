@@ -4,7 +4,7 @@
 #include <cstdio>
 #include <cstring>
 
-// CLEAN-403 (docs/ACSD_DESIGN §10「aio 是文件级唯一 I/O 边界」): 目录枚举与
+// CLEAN-403 (docs/ACSD_DESIGN §10「统一 I/O 是文件级唯一边界」): 目录枚举与
 // 整文件读取一律经 aio 唯一实现 (aio_atomic::for_each_child / aio_file::read_all),
 // 本 TU 不再 include <dirent.h>/<fstream> 自持 I/O 通道。
 #include "aio_atomic_file.h"
