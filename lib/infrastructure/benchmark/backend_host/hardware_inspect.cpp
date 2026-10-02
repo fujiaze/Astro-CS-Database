@@ -9,7 +9,7 @@
 
 #include <nlohmann/json.hpp>
 
-// CLEAN-403 (docs/ACSD_DESIGN §10「aio 是文件级唯一 I/O 边界」): /proc、/sys 与
+// CLEAN-403 (docs/ACSD_DESIGN §10「统一 I/O 是文件级唯一边界」): /proc、/sys 与
 // 任意文件读取一律经 aio 唯一实现 (aio_file::read_all / aio_atomic::path_exists),
 // 本 TU 不自持 ifstream / std::filesystem 通道。
 #include "aio_atomic_file.h"

@@ -112,7 +112,7 @@ std::string sha256_hex(const void* data, std::size_t len) {
     return s.final_hex();
 }
 
-// (docs/ACSD_DESIGN §10「aio 是文件级唯一 I/O 边界」): 原
+// (docs/ACSD_DESIGN §10「统一 I/O 是文件级唯一边界」): 原
 // acsd::crypto::sha256_file(path) 在本模块内自持 fopen/fread/fclose ——
 // 纯算法模块不得持有文件通道, 且全仓零调用者 ⇒ 删除该接口。文件级摘要
 // 唯一实现 = aio_file::sha256_hex (lib/infrastructure/aio/src/aio_file_io.h)。

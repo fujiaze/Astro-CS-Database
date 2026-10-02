@@ -4746,7 +4746,7 @@ static void test_p1photbroken_scale_guards() {
 //
 // 递归收集 root 下全部**常规文件**（键 = 相对 root 的 POSIX 相对路径）。
 // 目录枚举经 aio 唯一机制原语（aio_atomic::for_each_child，header-only；
-// docs/ACSD_DESIGN §10「aio 是文件级唯一 I/O 边界」+ §9.73 裁决 U5），本 TU 不再
+// docs/ACSD_DESIGN §10「统一 I/O 是文件级唯一边界」+ §9.73 裁决 U5），本 TU 不再
 // 自持 std::filesystem 遍历通道。kind: 0=常规文件 / 1=目录 / 2=其他（不跟随
 // 符号链接）。与 recursive_directory_iterator 的等价性: 常规目录照常下钻、常规
 // 文件照常采集；kind==2（符号链接/fifo/设备）不采集 —— 夹具产物树由 writer 直接

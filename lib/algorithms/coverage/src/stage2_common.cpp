@@ -455,12 +455,13 @@ bool p2_stage2_parse_config(const nlohmann::json& j, P2Stage2Config* cfg, std::s
         }
         // legacy_allow_weight_fallback **已删除** ——
         // 该键曾允许「ivar 缺失 → 降级 support/equal」，而 support/equal 都不是
-        // 信号/噪声之比（docs/ACSD_DESIGN.md §3.1：权重是纯信号与噪声之比的派生量）。
+        // 信号/噪声之比（docs/ACSD_DESIGN.md §3.1：叠加权重是 mosaic 集成时现场换算的派生量）。
         // ⇒ 该键**既不能被设、也不能被读**：出现即 fail-closed 拒绝。
         if (in.contains("legacy_allow_weight_fallback")) {
             *err = "integration.legacy_allow_weight_fallback 已删除："
                    "它允许用无量纲 support 或等权降级冒充逆方差权重，与 "
-                   "docs/ACSD_DESIGN.md §3.1（数据对象）「权重只能来自纯净信号与噪声之比」、"
+                   "docs/ACSD_DESIGN.md §3.1（数据对象）叠加权重是 mosaic 集成时"
+                   "现场换算的派生量、"
                    "全链没有「权重模式」这一可选概念冲突。唯一降级面 = 帧级 SNR 逆方差链 "
                    "w = SNR^2/F_ref^2（由数据可用性自动决定，不是用户开关；"
                    "docs/ACSD_DESIGN.md §5.3）；"

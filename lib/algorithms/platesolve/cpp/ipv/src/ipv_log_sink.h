@@ -5,7 +5,7 @@
 // ipv_log_sink.h - ipv::Logger 落点接缝的唯一实现（**内部头**，不属公共 include 面）
 //
 // 依据
-//   - docs/ACSD_DESIGN.md §10「aio 是文件级唯一 I/O 边界」（CLEAN-403）: 日志落盘
+//   - docs/ACSD_DESIGN.md §10「统一 I/O 是文件级唯一边界」（CLEAN-403）: 日志落盘
 //     经 aio 机制原语（aio_atomic::append_open / append_write / append_flush /
 //     append_close），本模块不自持 std::ofstream / FILE* 通道。
 //   - docs/ACSD_DESIGN.md §8.4/§8.5: 模块 include/ 是公共头面，src/ 是实现面。

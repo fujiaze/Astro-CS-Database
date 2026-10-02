@@ -73,8 +73,8 @@ inline int mode_gate(const Parsed& p, int phase, acsd::JsonlEmitter& ev) {
     // 1) phase2 config 的 legacy 整数 weight_mode ——**该键不存在**，
     //    任何形态（整数 / 字符串 / 其它）出现即 fail-closed 具名拒绝（rc=ARGS）。
     //    原实现只对整数形态路由，且 1|2 → baseline 放行；两处一并删除。
-    //    依据：docs/ACSD_DESIGN.md §3.1:175「没有可选择项」；PSF_SIGNAL_WEIGHT.md §4:72
-    //    「不存在口径选择键、口径枚举、口径配置项或口径产物」。
+    //    依据：docs/ACSD_DESIGN.md §3.1「全链没有「权重模式」这一可选概念」；
+    //    PSF_SIGNAL_WEIGHT.md §4「不存在口径选择键、口径枚举、口径配置项或口径产物」。
     if (phase == 2 && have_doc && doc.contains("weight_mode")) {
         const ModeRoute mr = doc["weight_mode"].is_number_integer()
             ? route_legacy_weight_mode_int(doc["weight_mode"].get<int>())

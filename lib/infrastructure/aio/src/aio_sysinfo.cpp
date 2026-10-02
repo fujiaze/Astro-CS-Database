@@ -2,7 +2,7 @@
 // aio_sysinfo.cpp - AIO 系统信息探测实现（可用内存）
 //
 // 合同头: lib/infrastructure/aio/include/aio_sysinfo.h（唯一权威签名源）。
-// 依据: docs/ACSD_DESIGN.md §10「aio 是文件级唯一 I/O 边界」。
+// 依据: docs/ACSD_DESIGN.md §10「统一 I/O 是文件级唯一边界」。
 // 任务: AIO-SYSINFO-01（scheduler 的 /proc/meminfo 直读收进本边界）。
 //       可用内存口径按平台补全：Linux 再 ∩ cgroup 内存余量。
 //

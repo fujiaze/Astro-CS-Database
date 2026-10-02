@@ -21,7 +21,7 @@
 
 #include <nlohmann/json.hpp>
 
-// CLEAN-403 (docs/ACSD_DESIGN §10「aio 是文件级唯一 I/O 边界」): manifest 读取经
+// CLEAN-403 (docs/ACSD_DESIGN §10「统一 I/O 是文件级唯一边界」): manifest 读取经
 // aio 唯一实现 (aio_file::read_all), 本 TU 不自持 ifstream 通道。
 #include "aio_file_io.h"
 

@@ -120,7 +120,8 @@ TEST(PsfswRetire, RuntimeRouteRejectsRetiredMode) {
     /* 原 documented baseline 面（equal / pixel_ivar → kBaseline，rc=0）
        已删除。其唯一理由是「legacy 整数路由的映射目标登记」；整数路由删除后理由消失，
        且它们是**输入路径**（CLI --mode）上的口径 token ⇒ 与其余 token 同归 fail-closed
-       （docs/ACSD_DESIGN.md §3.1:175「没有可选择项」；PSF_SIGNAL_WEIGHT.md §4:72）。 */
+       （docs/ACSD_DESIGN.md §3.1「全链没有「权重模式」这一可选概念」；
+         PSF_SIGNAL_WEIGHT.md §4「没有可选择的口径」）。 */
     for (const char* m : {"equal", "pixel_ivar"}) {
         const acsd::v6runtime::ModeRoute r = acsd::v6runtime::route_phase2_weight_token(m);
         EXPECT_EQ(r.kind, RouteKind::kReject) << "token=" << m;

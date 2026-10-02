@@ -169,7 +169,7 @@
 #include <vector>
 
 // ── CLEAN-403: 本 TU 的文件 I/O 全部经 aio 机制原语 ─────────────────────────
-// 依据 docs/ACSD_DESIGN §10「aio 是文件级唯一 I/O 边界：任何文件读写经 aio」。
+// 依据 docs/ACSD_DESIGN §10「统一 I/O 是文件级唯一边界」。
 // 本命名空间只做**薄转发**(零策略/零缓存/零语义), 使调用点不再
 // 出现第二处文件系统原语; 机制唯一实现在 lib/infrastructure/aio/src/**。
 namespace aio_fs {
@@ -3420,7 +3420,7 @@ bool p1_guided_cfg(const Json& doc, P1GuidedCfg* out, std::string* why) {
     *why = "star_detection.max_stars=" + std::to_string(max_stars) +
            " outside contract domain [" + std::to_string(kP1GuidedMaxStarsLo) + ", " +
            std::to_string(kP1GuidedMaxStarsHi) +
-           "] (docs/ACSD_DESIGN.md §4.2: top 2–5 万; 禁静默夹取)";
+           "] (星点上限由配置承载, 见 docs/ACSD_DESIGN.md §4.2; 禁静默夹取)";
     return false;
   }
   out->max_stars = max_stars;
@@ -11954,7 +11954,8 @@ Result<void> p2_op_integrate(const Json& doc, Json* man) {
         "w = SNR^2/F_ref^2 = 1/sigma_F^2（docs/ACSD_DESIGN.md §5.3）；请删除该键。"));
   // legacy_allow_weight_fallback **已删除**。
   // 该键曾允许「ivar 缺失 → 降级 support/equal」；support 是无量纲几何量、equal 是等权，
-  // 二者都不是信号/噪声之比（docs/ACSD_DESIGN.md §3.1：权重是纯信号与噪声之比的派生量）
+  // 二者都不是信号/噪声之比（docs/ACSD_DESIGN.md §3.1：叠加权重是 mosaic 集成时
+  // 现场换算的派生量）
   // ⇒ 既不能被设、也不能被读，
   // 出现即 fail-closed 具名拒绝。唯一降级面 = 帧级 SNR 逆方差链 w = SNR^2/F_ref^2，
   // 由数据可用性自动决定（不是用户开关；docs/ACSD_DESIGN.md §5.3）；
@@ -11963,7 +11964,8 @@ Result<void> p2_op_integrate(const Json& doc, Json* man) {
     return Result<void>::fail(Error(ErrorDomain::DATA,
         "legacy_allow_weight_fallback 已删除：它允许用无量纲 "
         "support 或等权降级冒充逆方差权重，与 docs/ACSD_DESIGN.md §3.1（数据对象）"
-        "「权重只能来自纯净信号与噪声之比」、全链没有「权重模式」这一可选概念冲突。唯一降级面 = "
+        "叠加权重是 mosaic 集成时现场换算的派生量、"
+        "全链没有「权重模式」这一可选概念冲突。唯一降级面 = "
         "帧级 SNR 逆方差链 w = SNR^2/F_ref^2（docs/ACSD_DESIGN.md §5.3）；请删除该键。"));
 
   // ── snr_path：三条 SNR 重建路径的**唯一生产读取/消费点**（此前为死键）──────
@@ -12216,7 +12218,7 @@ Result<void> p2_op_integrate(const Json& doc, Json* man) {
             std::string(acsd::v6::p2weight::weight_closure_token(wres.closure));
         const std::string detail = wres.error;
         return Result<void>::fail(Error(ErrorDomain::DATA,
-            "weight_mode=2 requires per-frame ivar products; " +
+            "per-frame ivar products are required but absent; " +
             std::to_string(ivar_missing) + "/" + std::to_string(frames.size()) +
             " frames missing ivar; frame-SNR weight chain NOT closed (" + tok +
             "): " + detail + " (DATA-UNC-001 §30.1: no silent fallback; the legacy"
@@ -12244,7 +12246,7 @@ Result<void> p2_op_integrate(const Json& doc, Json* man) {
       uncertainty_available = false;
       uncertainty_unavailable_reason = "ivar_product_missing_frame_snr_fallback";
       std::fprintf(stderr,
-                   ("[weight_chain] weight_mode=2: " + std::to_string(ivar_missing) +
+                   ("[weight_chain] per-frame ivar products missing: " + std::to_string(ivar_missing) +
                     "/" + std::to_string(frames.size()) +
                     " frames missing ivar -> HiPS frame-SNR inverse-variance"
                     " weights (source=" + weight_source + "; closure=" +
@@ -12264,7 +12266,8 @@ Result<void> p2_op_integrate(const Json& doc, Json* man) {
   }
   // 原 `else`（weight_mode==1 → 等权、unit_weight_mode1、
   // uncertainty_unavailable_reason="weight_mode_1_equal_non_ivar"）已删除 ——
-  // 等权是**可选择的非逆方差口径**，与 docs/ACSD_DESIGN.md §3.1:175「没有可选择项」
+  // 等权是**可选择的非逆方差口径**，与 docs/ACSD_DESIGN.md §3.1
+  // 「全链没有「权重模式」这一可选概念」
   // 直接冲突；唯一口径 = 逐样本 ivar，ivar 缺失走帧级 SNR 逆方差链（fail-closed）。
   struct IvarGuard {
     std::vector<IvarSet>* v;
@@ -12754,7 +12757,7 @@ Result<void> p2_op_integrate(const Json& doc, Json* man) {
   const std::string out_path = out_dir + "/p2_integrated.json";
   Json missing_j = Json::array();
   for (uint64_t mf : ivar_missing_frames) missing_j.push_back(mf);
-  // （docs/ACSD_DESIGN §3.1「全程只有 SNR，不存在『权重模式』」）:
+  // （docs/ACSD_DESIGN.md §3.1「全链没有「权重模式」这一可选概念」）:
   // 产品面**不再落** weight_mode 键。方差面状态由 corrected_variance_used /
   // snr_chain_used / uncertainty_available 三个语义键如实承载（下方均在册）。
   Json artifact = Json{{"schema", "DATA-P2-INT"},
@@ -13187,7 +13190,7 @@ Result<void> p2_op_write(const Json& doc, Json* man) {
   // 审计面（DATA-UNC-001 §30.1 规则 1 / docs/ACSD_DESIGN §3.1）：集成产物必须
   // **显式**声明方差面是否科学可用；缺键 ⇒ DATA fail-closed（禁静默缺省）。
   // 原实现以整数 weight_mode∈{1,2} 承载该状态 —— 与最高设计
-  // §3.1「全程只有 SNR，不存在『权重模式』这个概念」冲突，且该键随产品落盘。
+  // §3.1「全链没有「权重模式」这一可选概念」冲突，且该键随产品落盘。
   // 现改用同一 p2_integrated.json 内**已有的语义键**：uncertainty_available
   // （方差/ivar 子产品是否定义）与 corrected_variance_used / snr_chain_used
   // （逐样本 ivar 面或 SNR 权重链是否真的用上）。判据强度不变（缺键/不自洽
@@ -14050,7 +14053,8 @@ struct P2NodeModule : public IModule {
       return Result<void>::fail(Error(ErrorDomain::DATA,
           "legacy_allow_weight_fallback 已删除：它允许用无量纲 "
           "support 或等权降级冒充逆方差权重（docs/ACSD_DESIGN.md §3.1（数据对象）："
-          "权重只能来自纯净信号与噪声之比、全链没有「权重模式」这一可选概念）。"));
+          "叠加权重是 mosaic 集成时现场换算的派生量、"
+          "全链没有「权重模式」这一可选概念）。"));
     return Result<void>::success();
   }
 
