@@ -48,6 +48,7 @@
 #include "acsd/cosmetic/types.h"
 #include "astro_calibration.h"
 
+#include <climits>
 #include <cmath>
 #include <cstdint>
 #include <cstdio>
@@ -576,7 +577,12 @@ acsd_status cfg_fill(const jc_keyval* kvs, int nkv, const op_entry* e,
                          "method must be \"median\"|\"bilinear\"", 103);
         c->method = mm;
     }
-    if (kv_u64(kvs, nkv, "max_structure_size", &u) != 0 || u == 0)
+    /* max_structure_size 按 int 消费 (:818/:827), uint64 配置值不设上界会静默
+     * 窄化成负数 ⇒ 连通域尺寸上界恒真 ⇒ 候选域被整体豁免, correct_frame
+     * 逐位恒等、out_hot=out_cold=0 而返回 ACS_OK。上界取消费类型本身。
+     * 合同 non_finite_or_range: 超界 → detail=103。 */
+    if (kv_u64(kvs, nkv, "max_structure_size", &u) != 0 || u == 0 ||
+        u > (uint64_t)INT_MAX)
         return efill(err, ACS_ERR_PARAM, ACS_ERR_DOMAIN_CONFIG,
                      "max_structure_size positive required", 103);
     c->max_structure_size = u;
@@ -731,9 +737,17 @@ acsd_status exec_run(cos_inst* inst, const exec_cfg& c,
     for (int i = 0; i < 2; ++i) {
         const int bi = kv_find(mkv, nmk, planes[i].key);
         if (bi < 0) continue;
+        if (mkv[bi].kind == '0') continue;   /* JSON null → 缺席 (合同允许) */
         const char* b64 = mkv[bi].val;
         const uint32_t bl = mkv[bi].vlen;
-        if (mkv[bi].kind != 's' || !b64) continue;   /* null → 缺席 */
+        /* 类型错 ≠ 键缺席: 键在但 kind 为 number/bool/array 时不得静默当缺席
+         * (否则 master_dark:12345 与 master_dark:null 走同一条恒等路径,
+         *  检测面静默关闭并返回 ACS_OK)。
+         *  合同 binding 只允许「键缺席/JSON null」, invalid_rule 见 111。 */
+        if (mkv[bi].kind != 's' || !b64) {
+            return efill(err, ACS_ERR_PARAM, ACS_ERR_DOMAIN_DATA,
+                         "manifest plane key must be base64 string or null", 111);
+        }
         acsd_status st = decode_plane(b64, bl, plane_bytes, planes[i].dst,
                                      err, planes[i].key);
         if (st != ACS_OK) return st;
@@ -745,6 +759,14 @@ acsd_status exec_run(cos_inst* inst, const exec_cfg& c,
         return efill(err, ACS_ERR_CANCELLED, ACS_ERR_DOMAIN_CANCELLED,
                      "cancelled before execute start", ACS_DIAG_ECODE_NONE);
     }
+
+    /* 输出面先于租约分配: 租约一旦借出, 本函数内任何抛出会一路逃到
+     * cos_execute 的 catch, 而该 catch 只重置 state, 既不 release 租约
+     * 也不还原全局 OMP ICV ⇒ 租约泄漏 + 进程内后续模块线程数被改写。
+     * integration.json:127 lease_balance 要求每遍 execute
+     * acquire/release = 2/2, 该不变量此前无强制点。把本窗口内唯一的
+     * 大分配移出后, 租约窗口内不再有可抛分配。 */
+    bytes out_plane(plane_bytes);
 
     /* ── host executor 租约 (FORBID-003; cpu_heavy 必须租约: 纪律条款
      * "重计算禁止单线程" → acquire 失败/executor 缺失均为硬 BUDGET,
@@ -794,7 +816,6 @@ acsd_status exec_run(cos_inst* inst, const exec_cfg& c,
 
     /* ── legacy 科学调用 (1:1; 行为偏差 DISP-COS-002/003/004/011 均在
      * legacy 内, 处置见文件头) ── */
-    bytes out_plane(plane_bytes);
     int64_t hot = -1, cold = -1;
     int rc = AC_ERR_INTERNAL;
     {

@@ -333,7 +333,16 @@ std::uint64_t p2_frame_id(const char* hips_path) {
     if (!d) return 0;
     acsd::crypto::Sha256 sha;
     char buf[8192];
-    if (aio_hips_get_properties(d, buf, (int)sizeof(buf)) == 0) {
+    /* properties 是身份载荷的构成部分 (本函数头注: 「关键元数据 + signal/
+     * support 像素 + SNR catalogue 内容」)。读取失败 (返回 -1) 时若静默
+     * 跳过, 仅元数据 (filter/exptime/creator_did…) 不同的两帧会拿到同一个
+     * id, 且与末尾 catch 的 0 哨兵语义不一致 —— sampler.h:140 明写
+     * 「0 视为非法 (p2_frame_id 失败哨兵), 实现将直接拒绝」⇒ fail-closed。*/
+    if (aio_hips_get_properties(d, buf, (int)sizeof(buf)) != 0) {
+        aio_hips_close(d);
+        return 0;
+    }
+    {
         const std::map<std::string, std::string> props = [&]() {
             std::map<std::string, std::string> kv;
             std::istringstream ss(buf);
@@ -379,7 +388,14 @@ std::uint64_t p2_frame_id(const char* hips_path) {
         std::sort(tiles.begin(), tiles.end());
     }
     for (std::uint64_t t : tiles) {
-        if (aio_hips_read_tile_f32(d, t, tile_buf.data()) == 0) {
+        /* signal tile 读取失败 = 身份载荷缺失。静默跳过会产出「部分内容的
+         * id」, 与有效帧碰撞且调用方无从分辨 ⇒ fail-closed (d 在 :390 关闭,
+         * 此处提前返回须自行关闭)。 */
+        if (aio_hips_read_tile_f32(d, t, tile_buf.data()) != 0) {
+            aio_hips_close(d);
+            return 0;
+        }
+        {
             const std::string pre = std::to_string(t) + "=";
             sha.update(pre.data(), pre.size());
             sha.update(tile_buf.data(), tile_buf.size() * sizeof(float));
@@ -391,7 +407,12 @@ std::uint64_t p2_frame_id(const char* hips_path) {
     AioHipsDataset* sp = aio_hips_open(hips_path, AIO_HIPS_RD_SUPPORT);
     if (sp) {
         for (std::uint64_t t : tiles) {
-            if (aio_hips_read_tile_f32(sp, t, tile_buf.data()) == 0) {
+            /* 同 signal 面: support tile 读取失败同样 fail-closed。 */
+            if (aio_hips_read_tile_f32(sp, t, tile_buf.data()) != 0) {
+                aio_hips_close(sp);
+                return 0;
+            }
+            {
                 const std::string pre = "S" + std::to_string(t) + "=";
                 sha.update(pre.data(), pre.size());
                 sha.update(tile_buf.data(), tile_buf.size() * sizeof(float));
