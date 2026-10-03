@@ -18,7 +18,7 @@
 # dll_target=acsd_p2_coverage.dll 为迁移目标合同值（尚未存在）。
 # 现状构建=根 CMakeLists.txt acsd_phase2 STATIC（:338-346，含
 # src/coverage.cpp :341，无独立 DLL target）+ lib/algorithms/coverage/CMakeLists.txt
-# phase2 STATIC 兼容自测 target（:42-46）+ phase2_synthetic_gate（:77）。
+# phase2 STATIC compatibility 声明 target（:42-62）。
 # threading_model=host_executor_lease 为迁移目标合同值（11 号标准 §4
 # 值域）；现状实现单线程（coverage.cpp 全文无 OpenMP pragma，实测），
 # internal_parallel=none，输出 bitwise 与线程数无关，但 ThreadLease/

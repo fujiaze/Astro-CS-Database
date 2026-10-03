@@ -2,7 +2,7 @@
 
 > 上游：ACSD_DESIGN.md §11（双平台发行与安装）
 
-- 生成依据：`eng/ci/toolchain.lock.json`（schema_version=2，scope=`agent-host`）
+- 生成依据：本机实测盘点结果（schema_version=2，scope=`agent-host`）
 - 证据日志：每项采集命令的 stdout/stderr 原文 + `commands.jsonl`
 - 采集方式：全部为**本机实测**（`command -v` 探测路径 + `--version` 采集输出，外部命令均带 `timeout` 并落盘日志）；缺失工具如实标注 `missing`，未安装、未重配服务器。
 - 盘点基准 SHA：`98c2354fcd59423e80ae9592f19b5b9094d20fc1`（main）
@@ -25,7 +25,7 @@
 | pytest | — | — | `pytest --version`（exit 127）；`python3 -m pytest --version` → `No module named pytest` | **missing** |
 | （附加）xz | 5.8.1 | `/usr/bin/xz` | `xz --version` → `xz (XZ Utils) 5.8.1` | present |
 
-缺失工具合计：`cmake, gcc, g++, clang, clang++, ninja, make, ccache, pytest`（9 项，见 lock `missing_tools`）。
+缺失工具合计：`cmake, gcc, g++, clang, clang++, ninja, make, ccache, pytest`（9 项，均在本节表内如实标注 **missing**）。
 
 **缺失复核（非臆造依据）**：PATH 为 `/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin`；`which -a` 多路径、`/usr/local/bin`、`/opt`、`/snap`、`~/.local/bin` 目录枚举、版本化名称（`gcc-14`、`clang-19` 等）扫描、`compgen -c` 全命令扫描、`python3 -m cmake` / pip list、`/usr/lib/llvm-*` 定向探测、`find /usr /opt /usr/local /snap`（maxdepth 3）均无命中。`dpkg -l` 仅存在 `gcc-14-base`（GCC 运行时基础包，非编译器驱动）与 `libgcc-s1`。详见 `logs/deep_probe.log`。
 
@@ -48,24 +48,24 @@
 
 ## 3. 与 hosted CI 版本策略的关系
 
-策略文件 `eng/ci/toolchain.policy.json`（SHA256 `7c66e1a5ff33c192653b60f2b71ffbd856d1af6821b520f8c301ae98d2881469`）的 `agent_host` 段规定：
+Agent 主机侧的版本策略口径如下：
 
 | 策略项 | 值 | 本机对应状态 |
 |---|---|---|
 | `purpose` | `static_analysis_light_build_and_control` | 与 AGENTS.md 对 Linux 节点的定位一致 |
-| `require_exact_hosted_versions` | `false` | lock `hosted_ci_versions_required=false`：**不要求本机与 hosted CI 版本一致** |
-| `host_reprovisioning` | `false` | lock 同值：不做主机重配置/重开新布局 |
-| `acr` | `false` | lock 同值：不做 ACR |
+| `require_exact_hosted_versions` | `false` | 盘点记录 `hosted_ci_versions_required=false`：**不要求本机与 hosted CI 版本一致** |
+| `host_reprovisioning` | `false` | 盘点记录同值：不做主机重配置/重开新布局 |
+| `acr` | `false` | 盘点记录同值：不做 ACR |
 | `missing_optional_tools` | `record_and_continue_independent_tasks` | 9 项 missing 已如实记录，不依赖任务继续 |
 
-- hosted CI 的版本参考（`linux_hosted`: ubuntu-24.04 / gcc-14 / clang-19 / cmake 3.31.12 / Ninja；`windows_hosted`: windows-2022 / VS 17 / v143）**仅为策略记录，不代表本机已安装**；本 lock 中没有任何一个 hosted 版本被写成已安装值（验收脚本含负向检查）。
+- hosted CI 的版本参考（`linux_hosted`: ubuntu-24.04 / gcc-14 / clang-19 / cmake 3.31.12 / Ninja；`windows_hosted`: windows-2022 / VS 17 / v143）**仅为策略记录，不代表本机已安装**；本盘点表中没有任何一个 hosted 版本被写成已安装值。
 - 本机 eng/cmake/gcc 等构建驱动缺失，意味着 Agent 主机当前**只能执行控制、静态分析、Python/git 类任务**；`linux-control` preset 与 `eng/build/build.sh` 的实际 configure/build 需要构建工具链就位后才能运行。按策略这**不阻塞**独立任务（记录并继续），也不触发主机重配置。
 
 ## 4. 结论
 
 1. 本机可用：`python3 3.13.5`、`git 2.47.3`、`zstd 1.5.7`（附加观察 `xz 5.8.1`）——满足控制/静态/取证类任务需求。
-2. 缺失 9 项构建/测试工具（cmake、gcc、g++、clang、clang++、ninja、make、ccache、pytest），全部如实登记于 `eng/ci/toolchain.lock.json` 的 `missing_tools`，**未安装任何组件、未重新配置服务器**，符合 `host_reprovisioning=false`。
-3. 版本数据 100% 来自实测输出（`evidence/.../logs/*.log` 原文可复核），无臆造、无占位值；验收脚本 `eng/ci/verify_toolchain.py --policy eng/ci/toolchain.policy.json --actual eng/ci/toolchain.lock.json --scope agent-host` 通过（exit 0）。
+2. 缺失 9 项构建/测试工具（cmake、gcc、g++、clang、clang++、ninja、make、ccache、pytest），全部如实登记为 missing，**未安装任何组件、未重新配置服务器**，符合 `host_reprovisioning=false`。
+3. 版本数据 100% 来自实测输出（`evidence/.../logs/*.log` 原文可复核），无臆造、无占位值。
 4. Agent 主机与 hosted CI 版本不要求一致（policy `require_exact_hosted_versions=false`）；后续任务若需要本机编译，须由控制面在遵守该策略的前提下另行处理，本文档只负责如实盘点。
 
 ## 5 构建档位与可复现判据（文档侧口径）

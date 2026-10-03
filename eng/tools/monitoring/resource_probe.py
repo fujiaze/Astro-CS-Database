@@ -21,8 +21,8 @@ probe() 返回结构化 dict（字段与 source 成对出现）：
   max_workers             由 effective_cpu_cores 推导（1 worker/effective core，
                           封顶常量 WORKERS_PER_CORE=1.0，下限 1）——无硬编码核数
 
-probe() 可注入 proc_root/sys_root/affinity_fn/cpu_count_fn 以便单测构造假 /proc、
-/sys 树（见 eng/ci/tests/test_resource_probe.py）。
+probe() 可注入 proc_root/sys_root/affinity_fn/cpu_count_fn 以便构造假 /proc、
+/sys 树。
 """
 from __future__ import annotations
 

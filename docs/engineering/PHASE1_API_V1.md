@@ -47,4 +47,4 @@ acsd_status p1_session_destroy(acsd_handle);                                    
 
 ## 4 doc-symbol-signature checker 合同(验收)
 
-文档符号签名判据(API-003 建立合同, CLI-002 落地全量, 载体见 门禁注册面（G08-10 重建）): 对每个登记函数——① 头文件存在该符号;② 文档表此行存在;③ 签名(参数数)一致;④ 直接 test ID 非空;⑤ 五字段并发合同齐全。任一缺失 FAIL。机器门 = §2 表 + `eng/tests/api/test_p1_api.py`。
+文档符号签名判据(API-003 建立合同, CLI-002 落地全量, ): 对每个登记函数——① 头文件存在该符号;② 文档表此行存在;③ 签名(参数数)一致;④ 直接 test ID 非空;⑤ 五字段并发合同齐全。任一缺失 FAIL。机器门 = §2 表 + `eng/tests/api/test_p1_api.py`。

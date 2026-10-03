@@ -34,7 +34,7 @@
 | DATA-P2-REJ-001 | Phase2 rejection 产品 nused/nrej + 逐样本接受掩码 sample_mask(目标态, 诊断统计平面 + integrate 原始样本索引资格载体) | int32 + u8 | HEALPix NESTED 512 tile + 逐 tile [depth×tile_span] | 无量纲计数 + 0/1 接受位 | ICRS | 无覆盖=0(禁 −1 哨兵); sample_mask 缺失/offset 错位/frame_slots 不符/字节∉{0,1} → integrate fail-closed(禁回退像素级 accepted); 逐帧 reason 级非目标 | persisted(nused/,nrej/ 目录; AIO 位 64/32 冻结分配; files.sample_mask=p2_rejection_sample_mask.bin) | HiPS(不入 exchange science planes 枚举) |
 | DATA-P2-PROV-001 | Phase2 provenance 键组(目标态) | 64hex/uint/string/bool | 标量×5 | 无量纲 | 无(元数据) | uncertainty_available=false 显式登记非失败; 禁缺键/占位 | persisted(properties+manifest.json 双写) | HiPS properties+JSON |
 | DATA-P3-UNC-001 | Phase3 重采样 uncertainty 传播产品(目标态) | f32/f64 | [W_out,H_out] 行主序 | **`ADU^2/sr^2` / `sr^2/ADU^2`**（BUNIT 派生；立体角幂不可省） | TAN/ICRS(FITS-WCS) | 无覆盖=NaN(C=0); NaN 传播=C=1; 负/Inf=损坏显式错误; unavailable=无 HDU+manifest 标记 | persisted(单 FITS 文件 VARIANCE/IVAR 扩展 HDU) | FITS(EXTNAME=VARIANCE/IVAR, DATASUM 逐 HDU) |
-| DATA-P3-REJ-001 | Phase3 重采样**强制剔除计数**诊断统计平面（§30.7；正本 = DATA-002 §2a 规则 3 `count_field=n_rejected_nonfinite`） | int32 | W×H 一平面（独立载体 `p3_rejection.bin`） | 无量纲计数 | 输出平面像素（行主序，与 signal 同几何） | 无覆盖=0（**0 即「无」**，−1 只作无效标记）；**字段缺失 ≠ 全 0**（缺 `diagnostic_planes.n_rejected_nonfinite` 的产品判不满足 §2a 规则 3，判据具名 `COUNT_FIELD_MISSING`） | unique（p3_op_writer 原子写） | 二进制（**不进** exchange science planes 枚举；manifest `diagnostic_planes.n_rejected_nonfinite` + `n_rejected_nonfinite_total` 声明；判据 = 强制剔除计数合同判据（六条 G1–G6，载体见 门禁注册面（G08-10 重建））） |
+| DATA-P3-REJ-001 | Phase3 重采样**强制剔除计数**诊断统计平面（§30.7；正本 = DATA-002 §2a 规则 3 `count_field=n_rejected_nonfinite`） | int32 | W×H 一平面（独立载体 `p3_rejection.bin`） | 无量纲计数 | 输出平面像素（行主序，与 signal 同几何） | 无覆盖=0（**0 即「无」**，−1 只作无效标记）；**字段缺失 ≠ 全 0**（缺 `diagnostic_planes.n_rejected_nonfinite` 的产品判不满足 §2a 规则 3，判据具名 `COUNT_FIELD_MISSING`） | unique（p3_op_writer 原子写） | 二进制（**不进** exchange science planes 枚举；manifest `diagnostic_planes.n_rejected_nonfinite` + `n_rejected_nonfinite_total` 声明；判据 = 强制剔除计数合同判据（六条 G1–G6）） |
 | DATA-HIPS-001 | HiPS 产品输入面(properties + signal tile 读路径; 正文=SCI-P3-001 §9a-1 + DATA_SEMANTICS §29.1, tile 读路径=§3 冻结) | f32(tile) + 文本(properties) | 512×512/leaf(W=hips_tile_width, leaf=HEALPix cell @hips_order) | 面亮度(BUNIT 透传, 缺省 ADU; 禁默认 Jy/beam) | HEALPix NESTED(frame=ICRS; tile 内 FITS local 映射=§3) | NaN=传播语义非 invalid; 缺 tile=无覆盖非错误; properties 必需键非法→显式 P3_RS_PARAM | shared(只读共享; 产品归生产方 Phase1/Phase2) | HiPS 目录树(properties + FITS tiles) |
 | DATA-TILE-001 | 单个 HiPS leaf tile 科学面(W×W FITS float tile; 正文=SCI-P3-001 §9a-1/-8 + DATA_SEMANTICS §3) | f32 | [W,W] FITS local(W=512, leaf=NESTED 18 bit) | 面亮度(surface brightness; BUNIT 透传, 缺省 ADU) | HEALPix NESTED leaf + tile 内 fits_index=(511−x)·512+y(§3 CDS oracle 冻结) | tile 内 NaN=传播非 invalid; 缺 tile=无覆盖非错误; 非 float/多通道/JPEG-PNG/int+BLANK=显式拒绝 | shared(sampler 只读缓存, 禁改写) | FITS tile(HiPS 目录内) |
 
@@ -108,7 +108,7 @@ HEALPix NESTED；PIXEL 一侧属端口词汇漂移（§29.5 已声明端口表�
 | `upm.robust_control_weight` | upm.cpp | UPM 控制点权重 = quality×geom×control_ivar | DATA-UPM-CONTROL-UNC-001 | 已消除(与 integration weight 各自具名) |
 | `support` | integrate/upm/sampler | 覆盖支撑 [0,1] | DATA-IMG-SUPPORT-001 | 明确 |
 | `scale_deg_per_px` | p3_session | 输出像元角尺度 | DATA-P3-FITS-001 s_out | 明确(单位 deg/px) |
-| `sigma` | master_generator/rejection | MAD 转 σ 的**一致化系数** 1.482602218505602 = 1/Φ⁻¹(3/4)（零均值高斯下使 MAD 与 σ 同标度的定值；来源：Rousseeuw & Croux 1993, JASA 88, 1273, DOI 10.1080/01621459.1993.10476353）/ 拒绝阈值倍数 | SCI-NOISE/SCI-REJ | 明确(无量纲倍数) |
+| `sigma` | master_generator/rejection | MAD 转 σ 的**一致化系数** 1.482602218505602 = 1/Φ⁻¹(3/4)（零均值高斯下使 MAD 与 σ 同标度的定值；来源：Rousseeuw & Croux 1993, JASA 88, 1273, DOI 10.1080/01621459.1993.10476408）/ 拒绝阈值倍数 | SCI-NOISE/SCI-REJ | 明确(无量纲倍数) |
 | `snr` | CW/sampler | 区域级 SNR 权重因子 snr_v² | SCI-CW-001 | 明确(与 ivar 语义分离) |
 | `value` (integrate) | integrate.h | 候选样本值 | DATA-IMG-CAL-001 标度 | 明确 |
 | `quality` | sampler | 帧/星点质量位掩码 | SCI-CW-001 | 明确 |
@@ -120,5 +120,5 @@ HEALPix NESTED；PIXEL 一侧属端口词汇漂移（§29.5 已声明端口表�
 
 ## 3. 机器校验
 
-- 产物登记表判据（DATA-001；载体见 门禁注册面（G08-10 重建））：校验本表 schema_id 唯一、
+- 产物登记表判据（DATA-001）：校验本表 schema_id 唯一、
   DATA_SEMANTICS.md 中声明的 DATA-* ID 全部在本表登记、无重复。

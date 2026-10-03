@@ -142,21 +142,19 @@ DISP-COV-003；K=0（空 MOC）合法 rc=0。
   唯一权威）：F1 astropy 独立 union oracle（bitwise 相等，无浮点
   容差）→ F6 确定性/资源；可执行 TEST-P2-COV-001 由 P2-COV-TEST
   落地（EVIDENCE 届时落 EVID-*）。
-- 既有 legacy gate：Phase2Coverage.RealHipsUnion（synthetic_gate.cpp:
-  3374）/ FilterMismatchRejected（:3410）——Fatduck 本地路径依赖，
-  缺失 GTEST_SKIP（:3376/:3413）；合成 fixture 为 P2-COV-TEST 范围。
+- 合成 fixture 为 P2-COV-TEST 范围（可执行门尚未建立，不冒认）。
 - 容差来源：§9 集合运算整数精确，容差=0（bitwise），无经验容差。
 
 ## 10. build/test 命令、已知限制、未实现项
 
-- 构建：根 CMake `acsd_phase2` STATIC（CMakeLists.txt:338-346，
-  src/coverage.cpp :341）；独立自测 `lib/algorithms/coverage/CMakeLists.txt:42`
-  phase2 STATIC（compatibility 声明，非产品事实源）+
-  `phase2_synthetic_gate`（:77，GTest）；无 DLL target（迁移目标
-  acsd_p2_coverage.dll 归 P2-COV-IMPL）。
-- 测试：`phase2_synthetic_gate`（18/18 基线，lib/algorithms/coverage/memory.md）；
-  独立 legacy 构建：cmake -S lib/algorithms/coverage -B lib/algorithms/coverage/build && cmake
-  --build lib/algorithms/coverage/build --target phase2_synthetic_gate。
+- 构建：根 CMake 的 `acsd_phase2` STATIC（含 src/coverage.cpp，根声明为
+  唯一产品事实源）；compatibility 声明
+  `lib/algorithms/coverage/CMakeLists.txt:42` phase2 STATIC（非产品事实源）；
+  无 DLL target（迁移目标 acsd_p2_coverage.dll 归 P2-COV-IMPL）。
+- 按需工具：`acsd-stage2` / `calibrated_pair_diag` / `rejection_cli`
+  （均 EXCLUDE_FROM_ALL，不进默认构建）；独立 legacy 构建：
+  cmake -S lib/algorithms/coverage -B lib/algorithms/coverage/build && cmake
+  --build lib/algorithms/coverage/build --target acsd-stage2。
 - 已知限制/未实现（不改生产码，DISP-COV-001..005 全清单
   PHASE2_COVERAGE.md §11.3）：status/rc 不一致分支（001）、frame_id
   基名截断（002）、空 filter 放行（003）、intersection/depth/
@@ -202,7 +200,7 @@ DISP-COV-003；K=0（空 MOC）合法 rc=0。
 $env:Path = "C:\msys64\mingw64\bin;$env:Path"
 cd lib\phase2\build
 cmake .. -G Ninja
-ninja acsd-stage2 phase2_synthetic_gate
+ninja acsd-stage2
 ```
 
 `acsd-stage2.exe` 依赖 `lib\astro_image_io\astro_image_io.dll`
@@ -218,19 +216,9 @@ acsd-stage2 <stage2.json>
 `run/phase2/stage2_t4_overlap.json`（真实重叠验证）与
 `run/phase2/stage2_full.json`（完整三片）。
 
-合成 Gate：
-
-```powershell
-.\phase2_synthetic_gate.exe --gtest_brief=1
-```
-
-18/18 PASS（S0/S1/S2/R1/R2/sparse=dense/block/integrate/ACR/robust +
-coverage/sampler/upm roundtrip/linear-fit/RCR）。
-
 目录：
 
 - `lib/include/astro/phase2/`：冻结公共接口（upm/coverage/sampler/rejection/
   block/integrate/acr_kernels）
 - `src/`：CPU reference 实现
-- `eng/tools/stage2.cpp`：正式入口
-- `eng/tests/synthetic_gate.cpp`：合成 Gate
+- `tools/stage2.cpp`：正式入口

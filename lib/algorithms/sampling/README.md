@@ -94,13 +94,7 @@
 docs/detail/registry/acsd.phase2.sample.md §独立 synthetic
 验证节 + ALG-P2-SMP-001 §11.3 F1-F9 容差（F1-F6/F8-F9
 bitwise/解析/计数精确，F2 角点 exact 插值 rtol 1e-12、F3-F5
-rtol 1e-12、F4 atol 1e-9 deg）。现状相邻证据（引用不冒认）：
-lib/algorithms/coverage/tests/synthetic_gate.cpp Phase2Sampler 组
-（RealHipsControlSampling :3423、G6LocalSnrAvailabilityThreeZones
-:3470、G1StatisticsCorrectness :3594、UPMW-004 MC :4001、cvar 公式
-:4089）+ Phase2SamplerParallel.OneTvsTwoTDeterminism
-（sampler_parallel_consistency_test.cpp:29）+ ivar_wiring_test.cpp
-WireProductionStage2PerFrameIvar :223。
+rtol 1e-12、F4 atol 1e-9 deg）。
 
 ## 链接
 

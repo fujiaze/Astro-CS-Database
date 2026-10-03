@@ -149,10 +149,6 @@
       "note": "lib/infrastructure/aio/io/include/acsd/io/fits_stream_v1.h acsd_fio_status 0..13 全域交叉断言（测试编译期）"
     }
   ],
-  "conformance_tests": [
-    "eng/tests/unit/aio_abi_tests.cpp（units/negative 组：已知向量对拍、声明/篡改/截断负测、ABI 握手、确定性、1/N worker、状态码交叉断言）",
-    "eng/tests/unit/aio_abi_selfcheck.cpp（故障注入必败自检：baseline PASS + 注入必败）"
-  ],
   "fault_injection": {
     "env": "ACSD_AIO_FAULT",
     "registry": [

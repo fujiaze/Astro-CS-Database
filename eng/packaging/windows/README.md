@@ -4,13 +4,11 @@
 
 本目录是 Windows x64 发布工具链的**取值落点**：
 
-- `.vsconfig` —— Visual Studio 2022 Build Tools 安装的**唯一组件清单**（机器精确比对面）；
+- `.vsconfig` —— Visual Studio 2022 Build Tools 安装的**唯一组件清单**（登记镜像）；
 - 本 README —— 组件清单与工具链取值的**登记面**；机器单一事实源是
   `eng/packaging/schemas/preset-contract.json`。
 
-机器校验：`eng/cmake/toolchain/verify_toolchain.py`（合同 `preset-contract.json` 为单一事实源）
-对本目录 `.vsconfig` 做组件精确比对——多一个或少一个组件都会 FAIL fast；构建入口是
-`CMakePresets.json` 的正式 preset `win-msvc-17.14.39-x64`。
+构建入口是 `CMakePresets.json` 的正式 preset `win-msvc-17.14.39-x64`。
 
 ## 工具链取值（Windows 正式面）
 

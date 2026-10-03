@@ -5,7 +5,7 @@
 ## 职责边界
 
 - 放：计划图与真实运行图的渲染、图与 trace 的一致性复验。
-- 不放：trace 采集实现（在 `lib/infrastructure/`）、检查项注册表（在 `eng/ci/checks.json`）、产品执行（本工具只生成文档与图）。
+- 不放：trace 采集实现（在 `lib/infrastructure/`）、产品执行（本工具只生成文档与图）。
 
 ## 内容
 
@@ -14,5 +14,5 @@
 
 ## 上游
 
-- 本目录工具未注册于 `eng/ci/checks.json`（生成与复验按需执行）。
-- 本目录在 CI 门禁规范（工程正本内的检查项清单与门禁规范篇）无逐项对应篇；证据落位规范见 `docs/engineering/04_ARTIFACTS.md`。
+- 本目录工具生成与复验按需执行，不随构建自动运行。
+- 证据落位规范见 `docs/engineering/04_ARTIFACTS.md`。

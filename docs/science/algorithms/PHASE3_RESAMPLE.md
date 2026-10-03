@@ -186,8 +186,8 @@ function phase3_resample(hips_dir, params):
 - HEALPix 几何/ang2pix：Górski et al. 2005, ApJ 622, 759；astropy-healpix（BSD-3-Clause）。
 - 双线性插值：教科书级（Press et al. 2007, Numerical Recipes 3rd ed.）；本模块 order/邻域语义 Project-defined（SCI-P3 §5）。
 - WCS 反变换：Paper I = Greisen & Calabretta 2002, A&A 395, 1061（DOI 10.1051/0004-6361:20021326）
-  §2.1.1（中间坐标 = CD·(p−CRPIX)）；Paper II = Calabretta & Greisen 2002, A&A 395, 1077
-  （DOI 10.1051/0004-6361:20021327）§2.2（三 Euler 角旋转核）/ Table 1（TAN: R=(180/π)·cotθ）；
+  §2.1.2 式(3)（中间坐标 = CD·(p−CRPIX)）；Paper II = Calabretta & Greisen 2002, A&A 395, 1077
+  （DOI 10.1051/0004-6361:20021327）§2.3 式(2)–(7)（三 Euler 角旋转核；矩阵形式见附录 A.1）/ §5.1.3 式(54)（TAN: R=(180/π)·cotθ）；
   FITS Standard 4.0（2016）§4.3/§4.4；astropy 7.0.1（WCSLIB）作独立 Oracle。
 - 方差传播（若涉及）：Fruchter & Hook 2002；UNCERTAINTY_AND_COVARIANCE.md。
 

@@ -109,7 +109,7 @@ Phase2→Phase3：surface-brightness 和/或 point-source 产品族、variance/c
 - 独立解析、高精度和 Monte Carlo Oracle；
 - 注入源恢复 bias、variance、coverage；
 - 同一图像改变星表亮度分布只改变 source-SNR 摘要，不改变 information；
-- 独立帧满足预测 SNR_combined²=ΣSNR_k²；
+- `SNR_combined²=ΣSNR_k²` 不是独立断言，是 `SNR²=F_ref²W` 与 `Var=1/W` 的条件推论：仅当各帧参考通量同值时成立（组公共 `F_ref` 口径下为方差可加的定义式重述，恒真、无鉴别力）；逐帧 `F_ref` 口径下无公共锚、不构成单一绝对 SNR 的平方，故两种口径都不作实现正确性判据；
 - 协方差存在时能识别简单求和的过度乐观；
 - 点源与扩展源目标分别相对基线证明无损或改善；
 - 每个近似有 mutation 能使门变红。

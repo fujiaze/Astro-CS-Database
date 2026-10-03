@@ -30,7 +30,7 @@ from astropy.wcs import WCS, Sip
 
 # 权威 ctypes 镜像 (单一事实源, 宪章 §8.6 / V2-N-01):
 # 本工具不再自带 IpvParams/IpvWcsResult 定义, 一律 import 同目录镜像模块,
-# 由 ctest 门 ipv_abi_layout_lock 与 C 头逐字段机器对账。
+# 与 C 头逐字段对账（sizeof/offsetof 口径）。
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from ipv_abi_mirror import (  # noqa: E402
     IpvParams,

@@ -34,11 +34,6 @@ C++ + Qt6 实现的 HEALPix 浏览器，替代旧版 WebGL + HTTP 后端架构�
 ```powershell
 $env:Path = "C:\msys64\mingw64\bin;$env:Path"
 make core
-make tests    # 编译单元测试
-# 手动运行测试（Makefile run_tests 在 Windows 下有语法问题）
-./tests/test_healpix_math.exe
-./tests/test_stf_engine.exe
-./tests/test_browser_backend.exe
 ```
 
 ### 完整程序（CMake，需 Qt6）
@@ -67,18 +62,6 @@ cd build
 文件路由（统一球面渲染）：
 - `.hiss` → `SphereView`（SPHERE 模式 + 视角相关加载 + LOD 金字塔）
 - `.hcsd` → `SphereView`（SPHERE 模式 + 按需子叶 + LOD 金字塔）
-
-## 测试
-
-```powershell
-$env:Path = "C:\msys64\mingw64\bin;$env:Path"
-cd tests
-./test_healpix_math.exe       # 5/5: pix2ang/ang2pix 往返一致性, query_disc, ud_grade
-./test_stf_engine.exe         # 4/4: MTF 公式, 4 预设, MAD 自动拉伸, GPU uniform 归一化
-./test_browser_backend.exe    # 4/4: .hiss 加载, .hcsd 接口, ud_grade, ipix_to_angle 静态方法
-```
-
-注：`test_browser_backend.exe` 需要 `astro_image_io.dll` 在 PATH 中（`$env:Path += ";..\..\astro_image_io"`）。
 
 ## 关键设计
 

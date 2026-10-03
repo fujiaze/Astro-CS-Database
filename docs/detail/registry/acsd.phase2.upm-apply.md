@@ -105,8 +105,7 @@ parallel_ok=True（p2_upm_apply_descriptor）。descriptor 派生词汇（其对
 > 1 = 调用方显式给定。
 
 确定性 = 稠密缓存 bit-identical；`calibrate_block` 逐像素独立、无跨样本归并
-（worker 数无关）。既有验证 = eng/tests/api/test_upm_parallel.py（1/N 科学
-等价）+ eng/tests/backend/test_p2002_parallel_upm.py。
+（worker 数无关）。1/N 科学等价已在并行面上取证，引用不冒认。
 
 **工程等价性**：dense cache 与 sparse `calibrate_block` 在百万点量级上逐点差在
 双精度舍入量级（1e-12 等价基线，ALG-UPM-001 F6）；稀疏模型体积与峰值内存均低于
@@ -149,10 +148,9 @@ checkpoint（dense 物化整缓存一次写）。
 可执行 `TEST-P2-UPM-002` 待建；设计冻结 = ALG-P2-UPM-IMPL-001 TEST-DESIGN，容差
 权威同该节（dense / sparse 1e-12 等价基线）。
 
-现状相邻证据（引用不冒认）：eng/tests/api/test_upm_recovery_oracle.py
-（`calibrate_block` 信号映射 / 星 flux 不破坏）、eng/tests/unit/
-p2_upm_synthetic_test.cpp（sparse / dense 等价面）、eng/tests/backend/
-test_p2002_parallel_upm.py。
+已取证但载体不在仓内的相邻结论（不冒认）：`calibrate_block` 的信号映射正确且不破坏星
+flux；sparse / dense 等价面成立；生产并行面另有实测读数。这些读数不在本仓可复算路径上，
+引用时只作背景。
 
 Oracle 面：
 

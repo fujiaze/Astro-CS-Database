@@ -11,8 +11,7 @@
 > 科学 ID：SCI-DRZ-014/016（产品语义）
 > 精度：docs/engineering/PERFORMANCE_MODEL.md（FP64 reference）
 > 落盘形态说明：docs/detail/PRODUCT_STORAGE_FORM.md
-> 引用文献：IAU FITS Working Group, FITS Standard v4.0 (2016)；Pence et al. 2010,
-> A&A 524, A42；[IVOA HiPS 1.0 Recommendation](https://www.ivoa.net/documents/HiPS/)
+> 引用文献：见文末「参考文献」（角标用全角 `［N］`）
 
 ## 1. 职责与边界
 
@@ -173,3 +172,15 @@
 ## 11. 源文件
 
 `lib/infrastructure/aio/{include, src}/`。
+
+## 12. 参考文献
+
+- ［1］ IAU FITS Working Group. (2016). *FITS Standard*, Version 4.0.
+  永久链接 [fits.gsfc.nasa.gov/fits_standard.html](https://fits.gsfc.nasa.gov/fits_standard.html)
+- ［2］ Pence, W. D.; Chiappetti, L.; Page, C. G.; Shaw, R. A.; Stobie, E. (2010).
+  "Definition of the Flexible Image Transport System (FITS), Version 3.0".
+  *Astronomy and Astrophysics* 524, A42.
+  DOI [10.1051/0004-6361/201015362](https://doi.org/10.1051/0004-6361/201015362)
+- ［3］ IVOA. (2017). *HiPS - Hierarchical Progressive Survey*, Version 1.0,
+  IVOA Recommendation, 19 May 2017.
+  永久链接 [ivoa.net/documents/HiPS](https://www.ivoa.net/documents/HiPS/)

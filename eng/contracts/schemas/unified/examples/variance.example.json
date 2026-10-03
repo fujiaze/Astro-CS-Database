@@ -35,7 +35,6 @@
   "correlation_kernel": {
     "family": "drizzle_overlap_kernel",
     "support_radius_px": 1.5,
-    "oracle_ref": "eng/tests/contracts/product_family/test_field_constraints_integration.py::TestFieldConstraintsOracle::test_correlation_kernel_gate",
     "boundary_definition": "核支撑 = drop footprint + 1px guard ring；支撑外恒 0（对角省略的偏差必须由该核显式登记）"
   },
   "target_estimator": "pixel_flux"

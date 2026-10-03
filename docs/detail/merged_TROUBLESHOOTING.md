@@ -65,7 +65,7 @@
 
 ## 5 常用命令
 
-命令一律以 `ctest --test-dir build` 或仓内实际脚本为准，**不要照抄旧目录结构下的可执行文件路径**——
+命令一律以仓内实际脚本为准，**不要照抄旧目录结构下的可执行文件路径**——
 那些路径在当前仓库并不存在。
 
 ```bash
@@ -74,17 +74,6 @@ eng/build/toolchain.ps1 check
 
 # 全量构建
 eng/build/toolchain.ps1 build
-
-# SNR 科学矩阵（模块级，6 项）
-ctest --test-dir build -R "^p1snr_science_" --output-on-failure
-
-# Drizzle 方差传播科学测试（一次覆盖 oracle 幂次 + 产品级正例 + 负例注入，3 项）
-ctest --test-dir build -R "^drizzle_pf_sb" --output-on-failure
-
-# Phase2 合成 gate
-# 注意：该目标经 gtest_discover_tests 发现期注册，ctest 名带 TEST_PREFIX，形如
-#   phase2_synthetic_gate.<Suite>.<Case>
-ctest --test-dir build -R "^phase2_synthetic_gate\." --output-on-failure
 
 # 诊断：输出小 bundle（stage/error/metrics）
 # 日志目录必须是块的 output_dir 下的 logs，传错目录工具会直接返回 2

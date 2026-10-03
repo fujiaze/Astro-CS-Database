@@ -15,4 +15,5 @@
 
 ## 上游
 
-上游：ENGINEERING_SPEC.md §7（仓库根固定条目登记 eng/build/build.sh 与 eng/build/toolchain.ps1，CMake 入口留在仓库根）。
+上游：仓库根的固定条目登记 eng/build/build.sh 与 eng/build/toolchain.ps1，CMake 入口留在仓库根
+（根 `CMakeLists.txt` 与 `CMakePresets.json`）。

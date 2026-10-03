@@ -242,7 +242,7 @@ spec: .trae/specs/orchestrator-cpp-cli/spec.md (阶段1: 动态DLL加载)
   - set_num_threads: CALIBRATE 调用 ac_set_num_threads(int)，其他模块暂返回 false
   - load_library: LoadLibraryExA + LOAD_WITH_ALTERED_SEARCH_PATH (解决同目录依赖)
   - get_last_error: FormatMessageA 获取错误描述
-- `lib/infrastructure/pipeline/orchestrator/cpp/tests/test_dll_loader.cpp` - 单元测试 (7 个测试)
+- dll_loader 单元测试 (7 个测试, 已随机器门禁退场)
   1. 加载不存在的 DLL → 返回 false, status=NOT_FOUND
   2. 加载所有 5 个模块 → 5/5 全部成功 (lib_base_dir="../../..")
   3. 获取函数指针 → ac_version/ipv_solve_create/dpsf_fit/pc_calibrate_simple/hp_drizzle_run 全部非空
@@ -301,7 +301,7 @@ spec: .trae/specs/orchestrator-cpp-cli/spec.md (阶段3: JSON检查点断点续�
   - 时间戳: ISO 8601 格式 YYYY-MM-DDTHH:MM:SS (strftime)
   - update_stage: load 现有 → 添加/覆盖阶段记录 (同 stage_id 覆盖) → 更新 current_stage_id (max+1) → 自动标记 fully_completed (>=4)
   - get_resume_stage: 不存在返回 0, fully_completed 返回 -1, 否则返回 max(success stage_id)+1
-- `lib/infrastructure/pipeline/orchestrator/cpp/tests/test_checkpoint.cpp` - 单元测试 (11 个测试, 78 个断言)
+- checkpoint 单元测试 (11 个测试, 78 个断言, 已随机器门禁退场)
   1. 保存和加载检查点 (验证字段完整恢复)
   2. 原子写入 (检查 .tmp 临时文件被清理)
   3. 更新阶段状态 (新增 + 覆盖同 stage_id)
@@ -370,7 +370,7 @@ spec: .trae/specs/orchestrator-cpp-cli/spec.md (阶段1: 集成日志系统)
   - 线程安全: std::mutex 保护文件写入
   - 级别过滤: 仅输出 >= 当前级别的日志
   - level_to_string/string_to_level: 大小写不敏感, "WARNING" 为 WARN 别名, 无效字符串默认 INFO
-- `lib/infrastructure/pipeline/orchestrator/cpp/tests/test_logger.cpp` - 单元测试 (10 个测试, 60+ 断言)
+- logger 单元测试 (10 个测试, 60+ 断言, 已随机器门禁退场)
   - 级别设置/获取、DEBUG 过滤、INFO/WARN/ERROR 输出、文件创建、格式验证、级别转换、stderr 开关、多线程安全 (10 线程×100 条无丢失)、文件路径、shutdown 后不写
 
 **修改文件 (5个)**:
@@ -399,10 +399,10 @@ spec: .trae/specs/orchestrator-cpp-cli/spec.md (阶段1: 集成日志系统)
 ### 2026-07-13 C++ CLI 阶段1集成测试 (Task 5) 完成 ★阶段1全部完成★
 spec: .trae/specs/orchestrator-cpp-cli/spec.md (阶段1: 集成测试 - 阶段1最后一个任务)
 
-**目标**: 在 lib/infrastructure/pipeline/orchestrator/cpp/tests/ 下创建 test_orchestrator_cli.cpp 集成测试, 验证编排器 C++ CLI 项目的 REPL 命令、单次命令、断点续传、DLL 加载降级、日志集成 5 个 Part 的协同工作。
+**目标**: 为编排器 C++ CLI 项目建阶段1集成测试, 验证 REPL 命令、单次命令、断点续传、DLL 加载降级、日志集成 5 个 Part 的协同工作。
 
-**新增文件 (1个)**:
-- `lib/infrastructure/pipeline/orchestrator/cpp/tests/test_orchestrator_cli.cpp` - 阶段1集成测试 (1008 行, 142 个断言)
+**新增文件 (1个, 已随机器门禁退场)**:
+- test_orchestrator_cli.cpp - 阶段1集成测试 (1008 行, 142 个断言)
   - **辅助设施**: ExecResult 结构体、TempDir RAII 类 (nanosecond 时间戳+前缀避免冲突, 析构自动清理)、exec_with_stdin (Windows CreateProcessA + 三管道 stdin/stdout/stderr + 双线程并发读取避免死锁)、exec_command (无 stdin 包装)、find_orchestrator_exe (当前目录/上级目录查找)、断言宏 ASSERT_TRUE/ASSERT_EQ/ASSERT_CONTAINS/TEST_SECTION
   - **Part 1 (11 个测试)**: 交互式 REPL 命令测试, 通过管道发送 "command\nexit\n" 到 orchestrator.exe stdin
     - help/status/load/run/pause/resume/interrupt/checkpoint list/checkpoint clear/log level/log path/exit/未知命令

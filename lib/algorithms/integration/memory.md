@@ -32,20 +32,14 @@
     在 `if (w==0) continue`（integrate.cpp:49）之后更新（:54-55），
     零权重 accepted 样本的 support 不进 max → 输出 support 偏低
     （保守方向），偏离 integrate.h:17 "max(accepted support)" 冻结
-    语义；Stage2/ACR 直接消费。测试现状: test_p2004 :124 与
-    synthetic_gate :4737-4738 样本 support 全正，缺陷不可达。
+    语义；Stage2/ACR 直接消费。测试现状: test_p2004 :124 样本 support
+    全正，缺陷不可达。
   - DISP-P2INT-002（文档级表述矛盾，本任务登记）: INTEGRATION.md:58
     写 `max_{valid,W>0} support[i]`（≡ 实现现状），与 integrate.h:17
     "max(accepted support)" 冻结注释表述冲突（accepted ⊋ {W>0}，
     零权重样本差集）。SCI FROZEN 禁改；冻结口径以 header :17 为准
     （合同文本），实现现状按 DISP-P2INT-001 整改后归一。
-- 验证锚（相邻证据，引用不冒认）: lib/algorithms/coverage/tests/synthetic_gate.cpp
-  Phase2Integrate 组——零权重合同 :4702-4715（validate 零权重=0、
-  signal=10.0、n_positive_weight=1）、NaN/Inf support→INVALID
-  :4718-4738、五态+计数器 :4741-4760、加权均值+ALL_REJECTED
-  :2628-2643、weight policy 门 :2941-2990（equal/snr/snr2/
-  support_x_snr2/inverse_variance 等 bias/rmse 门）；ACR 等价门
-  :3021-3160（LegacyLauncherEquivalent）；P2-004 生产 Oracle
+- 验证锚（相邻证据，引用不冒认）: P2-004 生产 Oracle
   eng/tests/backend/test_p2004_reject_integrate.py（DRIVER_SRC :18-141，
   积分段 :66-126: 状态门 :67-101、signal 10.75/support 0.5 :113-126）。
 - descriptor 占位（不改码）: lib/infrastructure/scheduler/src/module_adapters.cpp

@@ -199,10 +199,9 @@ docs/science/NOISE_MODEL.md。
 输出值在 float32 中不可表示（下溢为 0、上溢为非有限）的像素取不可用态；
 不可用方差的落盘值 = 显式不可用态本身 —— floor clamp 会把「模型在此处失效」
 发布成极大逆方差；`(0, +inf)` 这类自相矛盾的对同样按不可用态处理。正本 =
-docs/science/NOISE_MODEL.md §5/§7/§9 与 DATA_SEMANTICS §4a 三态表。门 =
-`ctest -R p1noise_negative`（`n7_plane_pred_unavailable` /
-`n7b_dtype_underflow_pair`）+ `ctest -R p1noise_selfcheck`（证明判据能红，
-非恒真）。
+docs/science/NOISE_MODEL.md §5/§7/§9 与 DATA_SEMANTICS §4a 三态表。
+该组判据的负例面（平面预测不可用、float32 下溢/上溢对）与自证面（证明判据能红、
+非恒真）已取证，载体不在本仓可复算路径上。
 
 **影响面**：**不影响**帧级 SNR 路径（科学上正确）；逐像素**不确定度产品面**由
 生产调度路径经 A 的插件路径产出。凡「逐像素方差/不确定度已传播到产品」的主张

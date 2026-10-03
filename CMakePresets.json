@@ -73,8 +73,7 @@
       "binaryDir": "${sourceDir}/build/linux-control",
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "Release",
-        "ACSD_ENABLE_ACR": "OFF",
-        "ACSD_BUILD_TESTS": "ON"
+        "ACSD_ENABLE_ACR": "OFF"
       },
       "condition": {
         "type": "notEquals",

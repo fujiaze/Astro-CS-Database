@@ -298,11 +298,9 @@ rc，**不使用**编排层 `ACS_ERR_*` 词汇。
 可执行 `TEST-P2-UPM-001` 待建（不冒认）；设计冻结 = ALG-P2-UPM-IMPL-001
 TEST-DESIGN 节，容差权威同该节（ALG-UPM-001 F6 的 dense/sparse 1e-12 等价基线）。
 
-现状相邻证据（引用不冒认）：eng/tests/api/test_upm_recovery_oracle.py（参数
-恢复 oracle：常数面恢复、逐帧偏移、收敛确定性 model_hash 逐位、星 flux 不破坏）；
-eng/tests/api/test_upm_parallel.py（每 worker 重复确定、1/N 科学等价、内存有界）；
-eng/tests/unit/p2_upm_synthetic_test.cpp（合成单元面）；
-eng/tests/backend/test_p2002_parallel_upm.py（生产并行面）。
+已取证但载体不在仓内的相邻结论（不冒认）：参数恢复 oracle 覆盖常数面恢复、逐帧偏移、
+收敛确定性 model_hash 逐位与星 flux 不破坏；并行面每 worker 重复确定、1/N 科学等价、内存有界；
+另有合成单元面与生产并行面的实测读数。这些读数不在本仓可复算路径上，引用时只作背景。
 
 Oracle 面：
 

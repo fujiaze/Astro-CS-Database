@@ -59,7 +59,7 @@ SCI-DRZ-* / SCI-UPM-*（HEALPix 几何）；DATA-FRAME-ID-001（frame_id）；�
 
 ## Tests
 
-`lib/algorithms/shared/healpix/tests`（Hipsgen oracle 对照、`query_disc` 保守性）、`astro_scalar` 分发；上游通过 `docs_machine_consistency` frame_id / product 校验。
+`lib/algorithms/shared/healpix/tests`（Hipsgen oracle 对照、`query_disc` 保守性）、`astro_scalar` 分发；frame_id 与 product 的一致性由 `lib/infrastructure/observability/logging/log_event_v1.schema.json` 合同与各模块的数据合同约束保证。
 
 ## Known limitations
 

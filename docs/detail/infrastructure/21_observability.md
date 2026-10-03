@@ -174,4 +174,4 @@ G-RES-01 的采样面是**进程级**的：它能判「利用率低」，不能�
 - 日志落点测试：`log_dir` 缺省落 `<output_dir>/logs`；显式 `log_dir` 越出 `output_dir` 判 exit 2；**注入"落 `run/`/CWD/源码树"必红**（日志落点判据见 `docs/engineering/LOG_AND_ERROR_CONTRACT.md`）；
 - 日志写失败不静默：注入只读日志目录 ⇒ 运行非 0 退出 + stderr 有脱敏摘要；
 - 脱敏测试（无凭据泄漏）；
-- G-RES-01：判据边界（10 s 严格界 / ≥10 s 窗）、分母三分量与哨兵、record_and_justify 不改退出码、fail-closed 注入（抹掉样本必翻转）—— 见 `eng/tests/monitoring/test_frozen_gate.py`。
+- G-RES-01：判据边界（10 s 严格界 / ≥10 s 窗）、分母三分量与哨兵、record_and_justify 不改退出码、fail-closed 注入（抹掉样本必翻转）—— 判据正文见 `docs/engineering/PERF_GATE_CONTRACT.md`，执行面见 `eng/tools/monitoring/run_monitored.py`。

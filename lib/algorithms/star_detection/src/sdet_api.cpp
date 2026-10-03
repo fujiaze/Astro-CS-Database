@@ -13,7 +13,6 @@
 #include "sdet_image.h"
 #include "sdet_log.h"
 #include "sdet_angle_guard.h"   // SDET-ANGLE-001: 有界/fail-closed 朝向角归一化
-#include "sdet_test_probe.h"    // O11 判据测试观察面（仅 SDET_TESTING 定义, 见该头）
 #include <cstdlib>
 #include <cstring>
 #include <chrono>
@@ -50,17 +49,6 @@
 #define LM_MIN_LARGE_SAMPLING 3
 
 #define TWO_SQRT_2_LOG2 2.3548200450309493
-
-#ifdef SDET_TESTING
-// FIX-P128 负例观察面（仅测试目标以 -DSDET_TESTING 定义; 生产编译无此面,
-// 行为与 ABI 零影响）: sdet_detect_impl 检测段每组分 BFS 访问像素数
-// （= 该组分 comp.size()）按扫描序记录到此; 测试断言各组分数值即组分自身像素数。
-std::vector<int>* sdet_test_bfs_sizes = nullptr;
-// O11 判据观察面: 逐组分 × 逐层 × 逐枝的判据读数与实现判定（见 sdet_test_probe.h）
-std::vector<SdetDeblendProbe>* sdet_test_deblend_probe = nullptr;
-// 每组分经 O11 分裂后的叶数（判据基准的行为级读数）
-std::vector<int>* sdet_test_deblend_leaves = nullptr;
-#endif
 
 // FIX-P174: 原语收编——旧 sdet_detector.h 的类型与连通域原语迁入本文件（O4a 饱和岛消费；SPEC: ALG §3 8-连通语义）
 struct ConnectedComponent {
@@ -1293,31 +1281,10 @@ static void sdet_deblend_leaf(const T* smooth, int w,
         int n_sat1 = 0;
         for (size_t b = 0; b < brs.size(); ++b) {
             double fsum = 0.0;
-#ifdef SDET_TESTING
-            // bflow = 枝自身在检出阈值之上的流量: 旧权重基准, 仅作观察面对照读数
-            // （生产编译无此分支, 避免未读变量告警）
-            double bflow = 0.0;
-#endif
             for (size_t k = 0; k < brs[b].size(); ++k) {
                 fsum += (double)smooth[brs[b][k]] - t;
-#ifdef SDET_TESTING
-                bflow += (double)smooth[brs[b][k]] - thr;
-#endif
             }
             if (fsum > SDET_DELTA_C * total_flux) { sat1[b] = 1; ++n_sat1; }
-#ifdef SDET_TESTING
-            // O11 判据观察面（仅测试目标）: 记录逐枝判据读数与实现判定
-            if (sdet_test_deblend_probe) {
-                SdetDeblendProbe pr_rec;
-                pr_rec.t = t;
-                pr_rec.fsum = fsum;
-                pr_rec.bflow = bflow;
-                pr_rec.total_flux = total_flux;
-                pr_rec.nbrs = (int)brs.size();
-                pr_rec.sat1 = sat1[b] ? 1 : 0;
-                sdet_test_deblend_probe->push_back(pr_rec);
-            }
-#endif
         }
         const bool can_spawn = (n_sat1 >= 2);
         for (size_t b = 0; b < brs.size(); ++b) {
@@ -1878,22 +1845,12 @@ static int sdet_detect_impl(StarDetectorHandle handle,
                             }
                         }
                 }
-#ifdef SDET_TESTING  // FIX-P128 负例观察面: 每组分 BFS 访问像素数（仅测试目标
-                // 以 -DSDET_TESTING 定义; 生产编译不含此面, 行为与 ABI 零影响）
-                if (sdet_test_bfs_sizes)
-                    sdet_test_bfs_sizes->push_back(static_cast<int>(comp.size()));
-#endif
-                std::sort(comp.begin(), comp.end());
+std::sort(comp.begin(), comp.end());
                 double total_flux = 0.0;
                 for (size_t k = 0; k < comp.size(); ++k)
                     total_flux += (double)smooth[comp[k]] - thr;
                 std::vector<SdetLeaf> leaves;
                 sdet_deblend_leaf<T>(smooth, w, comp, thr, total_flux, 0, &leaves);
-#ifdef SDET_TESTING
-                // O11 判据观察面（仅测试目标）: 本组分分裂后的叶数
-                if (sdet_test_deblend_leaves)
-                    sdet_test_deblend_leaves->push_back((int)leaves.size());
-#endif
                 // FIX-R3: 每叶做 11x11 局部极大扫描——一叶可产多候选（B&A96
                 // 根不分裂 → 单星 = 常规域单叶单局部极大的特例）
                 std::vector<int> leaf_peaks;

@@ -12,8 +12,7 @@
 > 缓存：docs/engineering/CACHE_POLICY.md（Gaia 查询缓存行）
 > XPSD 本地编码合同：docs/engineering/STANDARDS_REGISTRY.md（catalog 行）
 > 消费方：registry/acsd.phase1.wcs-platesolve.md
-> 引用文献：Gaia Collaboration et al. 2023, A&A 674, A1（Gaia DR3 发布与内容综述，
-> DOI: 10.1051/0004-6361/202243940）
+> 引用文献：见文末「参考文献」（角标用全角 `［N］`）
 
 模块级事实以 lib/infrastructure/gaia_xpsd_client/src/gaia_client.{h,c} 为准。
 
@@ -137,3 +136,10 @@
 - `lib/infrastructure/gaia_xpsd_client/src/gaia_client.{h,c}`（唯一生产源）；
 - `lib/infrastructure/gaia_xpsd_client/module.yaml` + `README.md`（CAT-GAIA-DOC
   冻结）；追溯行 = `MOD-acsd-catalog-gaia`。
+
+## 参考文献
+
+- ［1］ Gaia Collaboration; Vallenari, A.; et al. (2023). "Gaia Data Release 3: Summary of
+  the Content and Survey Properties". *Astronomy and Astrophysics* 674, A1.
+  DOI [10.1051/0004-6361/202243940](https://doi.org/10.1051/0004-6361/202243940)；
+  预印本 [arXiv:2208.00211](https://arxiv.org/abs/2208.00211)

@@ -4,7 +4,7 @@
 
 > **本文的构建图机器块由生成器从根 CMake 构建图导出**：
 > 命令 = python3 eng/tools/arch/gen_build_graph_doc.py（根 CMakeLists 或子目录源集变动后重跑）。
-> 门 = CON-BUILD-GRAPH（载体见 门禁注册面（G08-10 重建））：
+> 门 = CON-BUILD-GRAPH：
 > 逐行比对目标集（与生产闭包的双向差集）、类型、定义文件与源集摘要；判据的输入是构建图本身。
 > 判别力自证 = 同一条命令加 --self-test。
 
@@ -118,10 +118,10 @@ target_link_libraries 的传递闭包内的全部 target；唯一事实源 = 根
 
     python3 eng/tools/arch/gen_build_graph_doc.py            # 从构建图导出机器块
 
-构建图门（CON-BUILD-GRAPH，载体见 门禁注册面（G08-10 重建））判定 PASS / FAIL；判别力自证 = 同一判据加 `--self-test`。
+构建图门（CON-BUILD-GRAPH）判定 PASS / FAIL；判别力自证 = 同一判据加 `--self-test`。
 
 ## 6 关联
 
 - 安装树：eng/cmake/install_layout.cmake + eng/packaging/install-tree.contract.json；
 - 执行面登记：docs/engineering/BUILD_GRAPH.md；
-- 规范点名实现的生产可达性：规范点名实现必须落在生产入口沿 `target_link_libraries` 的传递闭包内（§1）；封闭性核对随 门禁注册面（G08-10 重建）落盘。
+- 规范点名实现的生产可达性：规范点名实现必须落在生产入口沿 `target_link_libraries` 的传递闭包内（§1）；封闭性核对由门禁执行器承担；本仓无在位的门禁注册面与执行器。

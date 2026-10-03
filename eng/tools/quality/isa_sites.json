@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "authority": "AGENTS.md §6（不硬编码线程/ISA/block）；BLD-002（根 CMakeLists.txt = 唯一产品事实源）；docs/ACSD_DESIGN.md §12.5（状态词唯一口径）；docs/engineering/03_GATES.md；R-60（非 GCC 平台 ISA 旗标面与 TU 级隔离）",
-  "policy": "本表登记全量构建输入里的每一个 ISA 旗标站点（GCC/Clang 的 -m* 与 MSVC/clang-cl 的 /arch: 两族并集）。判据：站点未登记 ⇒ 红；旗标集合与登记不等 ⇒ 红；基线以上（高于 -msse2）的站点必须多侧同源（编译旗标 ⊆ 声明需求位 ⊆ 检测位面，且每个被要求的位在 feature_bit_header 里实有定义）；tu_isolation 登记的变体必须「计算面 target 有旗标 + 门面 target 无任何旗标」（非 GCC 工具链无函数级指令集覆盖，门面 TU 带旗标 = 自检入口可能与高指令集同码）；-march=native/-march= 一律红（AGENTS §6），仅 eng/ci/exemptions.json 的显式豁免可解，当前豁免面为空。",
+  "policy": "本表登记全量构建输入里的每一个 ISA 旗标站点（GCC/Clang 的 -m* 与 MSVC/clang-cl 的 /arch: 两族并集）。判据：站点未登记 ⇒ 红；旗标集合与登记不等 ⇒ 红；基线以上（高于 -msse2）的站点必须多侧同源（编译旗标 ⊆ 声明需求位 ⊆ 检测位面，且每个被要求的位在 feature_bit_header 里实有定义）；tu_isolation 登记的变体必须「计算面 target 有旗标 + 门面 target 无任何旗标」（非 GCC 工具链无函数级指令集覆盖，门面 TU 带旗标 = 自检入口可能与高指令集同码）；-march=native/-march= 一律红（AGENTS §6），当前豁免面为空。",
   "baseline_flags": [
     "-msse2"
   ],

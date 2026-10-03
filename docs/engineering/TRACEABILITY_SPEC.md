@@ -76,7 +76,7 @@ EVID     ^EVID-[A-Z0-9]+(-[A-Z0-9]+)*$         例如 EVID-P1-CAL-001
   EVIDENCE 层 id（非占位）全矩阵唯一。SCI/ALG/DATA/API/ARCH/TEST 是**合同层**，
   ID 可被多个模块行共享（如 `API-P2-001` 被 8 个 phase2 模块共同承载、
   `TEST-P3-RES-001` 由 phase3.resample/resample2 共享——registry 文档既定事实），
-  其**真实唯一性以合同注册表为准**（`eng/contracts/data/contract_index.yaml`；注册表与合同图的双向一致判据见 门禁注册面（G08-10 重建）），
+  其**真实唯一性以合同注册表为准**（`eng/contracts/data/contract_index.yaml`；注册表与合同图的双向一致判据不在本仓现行面），
   本矩阵对共享引用只登记不判重。
 - 状态 `MISSING` 的层允许保留 **descriptor/registry 已预留的真实 ID**（ID 占用
   命名空间但独立 authority 文档/实现尚未落地），也允许占位符 ID；空串判红。
@@ -106,7 +106,7 @@ EVID     ^EVID-[A-Z0-9]+(-[A-Z0-9]+)*$         例如 EVID-P1-CAL-001
   5. TEST 层 `VERIFIED` 时该行 SRC 层必须也 `VERIFIED`（有实现才有测试证据），
      SRC `MISSING` 而 TEST `VERIFIED` 判 `CHAIN_BREAK`（给出 module_id）。
 - 说明：台账是**模块↔锚**逐行合同；本文件 §10 的逐条细粒度
-  （authority/anchor/oracle）仍由逐条追溯判据负责（载体见 门禁注册面（G08-10 重建）），二者互补不冲突。
+  （authority/anchor/oracle）仍由逐条追溯判据负责，二者互补不冲突。
 
 ## 5. SOURCE SYMBOL 表达
 
@@ -149,7 +149,7 @@ EVID     ^EVID-[A-Z0-9]+(-[A-Z0-9]+)*$         例如 EVID-P1-CAL-001
 规则的实质是那最后一次下调的**不对称**：实测已降到 14/11，但**没有**下调阈值，保持基线保守 ——
 实际计数低于基线仍判通过，阈值只作上限。负例注入一律绕过基线、按全量强制判。
 
-> 归一化判据的载体见 门禁注册面（G08-10 重建）；逐类计数按各类错误在输出中的频次统计。
+> 归一化判据；逐类计数按各类错误在输出中的频次统计。
 
 ## 7. 追溯核对（人读检查清单）
 

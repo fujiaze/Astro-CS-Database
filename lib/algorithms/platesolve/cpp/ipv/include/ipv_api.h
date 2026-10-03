@@ -70,8 +70,8 @@ typedef struct {
 //   - 所有公共入口在 params != NULL 时校验二者; 任一不匹配一律 fail-closed
 //     (返回 0 并写 error_msg), 绝不按本结构体尺寸去写更小的调用方缓冲。
 //   - 字段增删/重排/改类型 => 必须同步抬高 IPV_PARAMS_ABI_VERSION, 并同步
-//     lib/algorithms/platesolve/tools/ipv_abi_mirror.py; ctest 门 ipv_abi_layout_lock
-//     会用 C 探针 sizeof/offsetof 机器校验二者逐字段一致。
+//     lib/algorithms/platesolve/tools/ipv_abi_mirror.py; 二者的 sizeof/offsetof
+//     必须逐字段一致（用 C 探针对账）。
 #define IPV_PARAMS_ABI_VERSION 2u
 
 typedef struct {
@@ -302,11 +302,9 @@ IPV_API int ipv_get_last_inliers(void* solver, double* out_buffer, int max_count
 // 同类结构体 ipv::RobustRefineParams（ipv_robust_refine.h）全部字段亦不可达：
 //   生产调用点传字面量 `RobustRefineParams{}`（默认构造）。
 //
-// 机器锁: ctest 目标 ipv_dead_params_lock（lib/algorithms/platesolve/cpp/ipv/test/
-//   ipv_dead_params_lock.py + ipv_dead_params_manifest.json）——死字段被新接线、
-//   真消费被删、死匹配器被接线、常数被换成配置，任一发生即变红。
-//   阴性对照: ipv_dead_params_lock_selfcheck（4 类反例全红、恢复即绿）。
-// 逐字段核对表与证据: run/perf-fix/P27-dead-params/REPORT.md
+// 死字段锁（脚本面已随机器门禁退场）: 死字段被新接线、真消费被删、
+//   死匹配器被接线、常数被换成配置，任一发生即须变红。
+// 逐字段核对表与历史证据: run/perf-fix/P27-dead-params/REPORT.md
 // 本注释不改变任何默认值 / 公式 / 容差。
 // ---------------------------------------------------------------------------
 

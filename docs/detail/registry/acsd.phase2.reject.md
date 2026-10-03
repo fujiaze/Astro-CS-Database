@@ -203,10 +203,9 @@ determinism = `fixed_reduction_order`。
 bitwise、F6 typed params 逐位、F7 Python oracle rtol 1e-12、F8 gather 逐元素精确；
 F1–F6/F8 无 epsilon 门、F7 rtol 1e-12、large_scale mask 精确）。
 
-现状相邻证据（引用不冒认）：lib/algorithms/coverage/tests/synthetic_gate.cpp
-R1/R2/LinearFit/Rcr/G4 + G6（ESD NIST Rosner 54）+ V15–V17；
-eng/tests/backend/test_p2004_reject_integrate.py（生产 Oracle）；
-eng/tests/unit/p2_rejection_test.cpp（语义 id / 解析面）。
+已取证但载体不在仓内的相邻结论（不冒认）：R1/R2/LinearFit/Rcr/G4 + G6（ESD NIST Rosner 54）
++ V15–V17 的合成门读数；生产 Oracle 的排异-集成读数；语义 id 与解析面的单测读数。
+这些读数不在本仓可复算路径上，引用时只作背景。
 
 Oracle 面：
 

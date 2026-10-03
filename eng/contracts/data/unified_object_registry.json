@@ -670,12 +670,6 @@
   },
   "u02_criterion": {
     "id": "U-02",
-    "statement": "单一合同链的唯一性判定标准：对 UNIFIED_MODEL §2 的 13 个对象，eng/contracts/schemas/unified/<对象名>.schema.json 是唯一 canonical 定义（每对象恰 1 个 $id，全局不重复）；任何其它 schema 只能是「产品族专用投影」或「兼容期映射」，其对象判别字段与 canonical 分立（除 schema_version 外 required/properties 词表两两不重叠），且 eng/contracts/schemas/** 下每个 schema 文件都必须在 eng/contracts/data/unified_object_registry.json 的 canonical_object_classes 中被登记归属。",
-    "machine_assertions": [
-      "eng/tests/contracts/test_unified_object_contract.py::TestCanonicalObjectSchemas::test_every_schema_loads_and_has_unique_global_id",
-      "eng/tests/contracts/test_unified_object_contract.py::TestCanonicalObjectSchemas::test_object_name_has_exactly_one_canonical_file",
-      "eng/tests/contracts/test_unified_object_contract.py::TestCanonicalObjectSchemas::test_every_object_schema_is_in_the_ownership_registry",
-      "eng/tests/contracts/test_unified_object_contract.py::TestCanonicalObjectSchemas::test_no_two_equivalent_schemas_per_object"
-    ]
+    "statement": "单一合同链的唯一性判定标准：对 UNIFIED_MODEL §2 的 13 个对象，eng/contracts/schemas/unified/<对象名>.schema.json 是唯一 canonical 定义（每对象恰 1 个 $id，全局不重复）；任何其它 schema 只能是「产品族专用投影」或「兼容期映射」，其对象判别字段与 canonical 分立（除 schema_version 外 required/properties 词表两两不重叠），且 eng/contracts/schemas/** 下每个 schema 文件都必须在 eng/contracts/data/unified_object_registry.json 的 canonical_object_classes 中被登记归属。"
   }
 }

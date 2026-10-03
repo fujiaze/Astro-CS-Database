@@ -113,7 +113,7 @@ flowchart LR
 - **降级显式**：构造上游产物缺失场景，断言 `degraded_reason` 落盘且 manifest 记录；注入静默回退（不写 `degraded_reason`）必红（判据见 `docs/engineering/LOG_AND_ERROR_CONTRACT.md`）；
 - 资源监控记录完整性；磁盘门测试（能红能绿）。
 - **编排入口层**：单帧端到端验证；模块加载冒烟（缺符号 / 签名不符 / 加载失败必红）；阶段失败注入断言「显式 exit code + 日志」且不产出伪完整产物。编排层共址测试覆盖 logger 单测、checkpoint 单测、CLI 集成、legacy 编排入口冒烟 ×2、可执行级饱和接线门。
-- **退出码一致性**：编排层退出码集合与 `docs/engineering/ERROR_HANDLING_STANDARD.md` 全集合一致（机器判据 = `eng/tools/docs_machine_consistency.py`）。
+- **退出码一致性**：编排层退出码集合与 `docs/engineering/ERROR_HANDLING_STANDARD.md` 全集合一致（唯一口径 = `lib/infrastructure/cli/exit_codes.h`）。
 
 ---
 

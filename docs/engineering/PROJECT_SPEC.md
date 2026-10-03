@@ -68,7 +68,7 @@ Phase3 接收任意兼容 HiPS，按选定投影与采样导出标准 WCS 平面
 - 科学定义先于算法，算法先于实现；唯一 expected 取自冻结定义与独立 oracle；
 - 每个模型有解析/独立高精度/Monte Carlo Oracle；
 - 注入点源验证理论 information 与实测 flux variance；
-- 独立帧条件下验证 `SNR_combined²=ΣSNR_k²`，有相关项时验证简单求和被拒；
+- 有相关项时验证简单求和被拒（独立帧的无条件结论是方差可加 `Var(F_hat)=1/Σ_k W_info,k`；本仓无来自 `W` 之外的参照量，据实不设恒真门）；
 - 扩展源验证常量面亮度、梯度、总通量和 covariance；
 - 任何压缩/近似用 mutation 证明门能红；
 - 真实 M42/银心验证接缝、背景、星形、排异、黑洞和预测噪声。

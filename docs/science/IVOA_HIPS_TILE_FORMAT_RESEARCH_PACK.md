@@ -1,7 +1,7 @@
 # IVOA HiPS 标准对瓦片（tile）文件格式的规定
 
 > 上游：ACSD_DESIGN.md §4.4（输出合同：HiPS 文件）、附录 B（外部标准与文献）。
-> 生态实测时点：2026-09-22（客户端与源码分支状态随上游演进；规范版本见各条引文）。
+> 生态实测口径（客户端与源码分支状态随上游演进；规范版本见各条引文）。
 
 **方法**：全部结论来自实际抓取的原文（PDF / HTML / HTTP 响应 / 源码），逐条给出 URL 与英文原文引文；
 条款号按仓库规范写作 `§X.Y.Z`；引文内以 `[…]` 标注的省略均在原处披露被省略片段；
@@ -355,7 +355,7 @@
 
 ### [S15] Aladin Lite v3 源码 —— 实际支持的格式 token 与 URL 拼接
 
-- **仓库 / 分支**：<https://github.com/cds-astro/aladin-lite>（`develop`，本次抓取于 2026-09-22）
+- **仓库 / 分支**：<https://github.com/cds-astro/aladin-lite>（`develop`；实测以该分支为准）
 - **原文引文（`src/core/al-api/src/hips.rs:179-186`）**：
 
 > pub enum ImageExt {
@@ -449,7 +449,7 @@
 
 ### [S17] CDS HiPS 服务器 HTTP 行为实测 —— 证实 §5.1 的 Note 是传输层压缩
 
-- **实测命令与响应**（2026-09-22，`https://alasky.cds.unistra.fr`，Apache/2.4.67）：
+- **实测命令与响应**（`https://alasky.cds.unistra.fr`，Apache/2.4.67）：
 
   默认请求：
   > HTTP/2 200 … content-type: application/fits … vary: Accept-Encoding … content-length: 527168

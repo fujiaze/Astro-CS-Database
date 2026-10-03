@@ -14,8 +14,8 @@
 > FROZEN 镜像）
 > 原子发布：docs/engineering/io/IO_003_ATOMIC_OUTPUT_PUBLISH.md（IO_003 §6）
 > 落地设计：docs/detail/PHASE3_DETAILED_DESIGN.md §5–§6
-> 引用文献：IAU FITS Working Group, FITS Standard v4.0 (2016)；Pence et al. 2010,
-> A&A 524, A42
+> 引用文献：见文末「参考文献」（角标用全角 `［N］`，因本文正文的半角 `[...]` 已被
+> 数值域区间占用）
 
 ## 1 身份与合同落位
 
@@ -192,8 +192,7 @@
 
 - 本节承载 TEST-P3-WR-001 登记面：设计冻结 = TEST-P3-WR-DESIGN-001
   （ALG-P3-FITS-IMPL-001 §12 T1-T7）；可执行测试待建，验收证据待补。
-  现状执行测试 eng/tests/unit/p3_output_test.cpp（4 段，
-  eng/tests/unit/CMakeLists.txt 注册）= 相邻证据，引用不冒认。
+  已取证的相邻读数为 4 段写出测试，引用不冒认。
 - T1 原子写+mask: 64×48 渐变场+分段 mask、BITPIX=-32、prov 全字段 → rc=0、
   coverage_ok=1、reopen_ok=1、sha256 64hex。
 - T2 独立 verify: 重开 dims/像素回环（NaN==NaN）/coverage 二值门/
@@ -207,7 +206,7 @@
 - **容差登记**：WCS roundtrip ≤ 1e-8 px（SCI-P3 §7 真值；适用域与门限由
   `p3_wcs_applicability()` 单一事实源给出，执行测试观测阈 1e-4 px）；采样值锚
   ≤ 1e-3；sha256 64hex；逐值精确回环（NaN == NaN 一致）。
-- 命令面（落地后冻结）: ctest / pytest 接入（验收证据域）。
+- 命令面（落地后冻结）: 构建产物侧的用例接入（验收证据域）。
 - Oracle 面补充：标准 FITS 验证器（checksum / 结构 / WCS）；重开独立验证内容与
   写入一致；不同 block / cache / worker 输出科学值一致；取消 / 失败无半成品；
   >2 GiB 与长路径测试。
@@ -219,8 +218,8 @@
   矛盾；他域文件只登记不修。
 - tmp 命名：p3_output.h 协议注写 `<dir>/.<base>.<pid>.tmp`（前置点隐藏形态），
   实测 make_temp_path 生成 `out_path.<pid>.tmp`（`lib/algorithms/fits_output/p3_output.cpp`）；同目录
-  rename 原子性语义不变，但执行测试残留检查前缀（`eng/tests/unit/p3_output_test.cpp`）
-  与实际命名不匹配（残留检查空转）；命名统一属迁移目标（未落地，含测试修正）。
+  rename 原子性语义不变，但已取证的残留检查所用前缀与实际命名不匹配（残留检查空转）；
+  命名统一属迁移目标（未落地，含用例修正）。
 - 整改项（非缺陷）: prov.manifest_hash 恒 nullptr（`lib/phase3_session/p3_session.cpp`，HISTORY
   manifest 字段写空，SCI-P3 §96 接线属迁移目标（未落地））；p3_output_verify
   忽略 wcs 参数（`lib/algorithms/fits_output/p3_output.cpp` 内 `(void)wcs`，设计如此）；DATASUM 为 32-bit
@@ -235,3 +234,12 @@
   剔除项逐条进场级计数。无覆盖/无数据 = NaN；0 与 ±Inf 不作有效值。
 - signal 语义 = **面亮度**，写端口 `UnitId::SURFACE_BRIGHTNESS`；输出模式显式声明
   （`surface_brightness` / `point_source_flux` / `visualization`，最高设计 §6.3）。
+
+## 参考文献
+
+- ［1］ IAU FITS Working Group. (2016). *FITS Standard*, Version 4.0.
+  永久链接 [fits.gsfc.nasa.gov/fits_standard.html](https://fits.gsfc.nasa.gov/fits_standard.html)
+- ［2］ Pence, W. D.; Chiappetti, L.; Page, C. G.; Shaw, R. A.; Stobie, E. (2010).
+  "Definition of the Flexible Image Transport System (FITS), Version 3.0".
+  *Astronomy and Astrophysics* 524, A42.
+  DOI [10.1051/0004-6361/201015362](https://doi.org/10.1051/0004-6361/201015362)

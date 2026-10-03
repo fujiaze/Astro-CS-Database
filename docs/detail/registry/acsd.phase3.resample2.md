@@ -206,13 +206,10 @@ TEST-P3-RES-001）与 module_id 合同值 `acsd.p3.resample` 的对齐属迁移�
   coverage 值语义全表/④缺 tile→C=0/⑤nearest 精确 cell/⑥bilinear
   Σw=1 与背面跳过/⑦max_tiles FIFO 逐出/⑧open 守卫负面清单）。
 - 本节承载 TEST-P3-RES-001 登记面；可执行面待建。
-- 现状执行测试（相邻证据，引用不冒认）:
-  lib/algorithms/resample/tests/p3rsmp/p3_resample_probe_main.cpp（探针六模式）+
-  eng/tests/backend/test_p3_resample.py（test_05_nan_semantics/
-  test_06_no_silent_default_open/seam 域界 1e8-1..12e8+1 连续性 1e-5°）+
-  eng/tests/backend/test_p3003_parallel_resampler.py +
-  eng/tests/unit/p3_interp_test.cpp / p3_coverage_test.cpp（独立参考实现，
-  非生产自证）。
+- 已取证但载体不在仓内的相邻结论（不冒认）：探针六模式读数、NaN 语义、
+  seam 域界 1e8-1..12e8+1 连续性 1e-5°、并行重采样面，以及独立参考实现
+  （非生产自证）的插值与 coverage 对拍。这些读数不在本仓可复算路径上，
+  引用时只作背景。
 - Oracle 面补充：常量面亮度、点源通量、variance / correlation 传播与注入源恢复；
   输出协方差与高精度矩阵 oracle 对比；HEALPix / HiPS 外部实现交叉；跨 tile
   连续场无缝；不同 block / cache / worker 输出科学值一致；Q/W 重采样保持信息

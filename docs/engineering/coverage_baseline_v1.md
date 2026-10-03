@@ -3,22 +3,22 @@
 > 上游：ACSD_DESIGN.md §12.4（验证层级与四层验收）
 
 - status: ACTIVE
-- scope: linux-deep profile（DEEP-COV-CPP / DEEP-COV-PY 检查，见 门禁注册面（G08-10 重建））
+- scope: linux-deep profile（DEEP-COV-CPP / DEEP-COV-PY 检查）
 
 ## 合同约束
 
 **第一次 deep CI 只测量并记录覆盖基线，不虚构覆盖率阈值**（deep profile 检查
-见 门禁注册面（G08-10 重建））。本文件即该基线的登记处；覆盖率阈值
+项同批采集）。本文件即该基线的登记处；覆盖率阈值
 （per-module `--cov-fail-under` 或全局 gate）待冻结，冻结前
-覆盖率驱动的 `threshold` 字段保持 `null`（驱动载体见 门禁注册面（G08-10 重建））。
+覆盖率驱动的 `threshold` 字段保持 `null`。
 
 ## 基线获取方式
 
-- 检查入口：linux-deep profile 的 DEEP-COV 检查（见 门禁注册面（G08-10 重建））。
-- 驱动：pytest-cov 薄封装（载体见 门禁注册面（G08-10 重建）；
-  `--cov=lib --cov=cli --cov=tools --cov-branch`，分支覆盖）。
-- 产物：`run/ci/coverage/coverage.xml`、`coverage.json`、
-  `coverage-summary.json`（含 pytest 退出码透传）。
+- 检查入口：linux-deep profile 的 DEEP-COV 检查。
+- 驱动：pytest-cov 薄封装
+  （`--cov=lib --cov=cli --cov=tools --cov-branch`，分支覆盖）。
+- 产物：pytest-cov 的覆盖率报告三份（逐机器可读 XML、逐包 JSON、
+  汇总 summary JSON），含 pytest 退出码透传。
 - 环境前提：pytest + pytest-cov（CI 环境 ubuntu-24.04 提供）。本地容器缺
   pytest 时该检查按 `prerequisite_tools=["pytest"]` 判 SKIPPED(waivable)。
 

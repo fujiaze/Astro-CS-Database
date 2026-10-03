@@ -53,8 +53,7 @@
   0/1（合规/违规）预检。
 - all rejected / zero weight 显式区分：`n_accepted==0` →
   ALL_REJECTED；`n_accepted>0 ∧ n_positive_weight==0` →
-  ZERO_VALID_WEIGHT（:65-69，synthetic_gate V17StatusesExplicit
-  :4746-4760 冻结）。
+  ZERO_VALID_WEIGHT（:65-69；V17StatusesExplicit 冻结）。
 - 并发：像素级纯函数，无内部并行；像素间并行在调用方（Stage2
   :1288 / ACR :218 OMP）；像素内候选索引固定序归约 + Stage2
   per-thread 统计按 thread id 定序归并（:1305-1313）→ 输出与
@@ -68,8 +67,6 @@
 可执行 `TEST-P2-INT-001` MISSING（P2-INT-TEST 建立）；登记面=设计冻结
 VERIFIED；设计内容与容差来源=ALG-P2-INT-001（PHASE2_INTEGRATION.md
 §11.4，五项冻结容差）。现状相邻证据（引用不冒认）：
-lib/algorithms/coverage/tests/synthetic_gate.cpp Phase2Integrate 组（零权重合同
-:4702-4715 / support reducer :4737-4738 / 五态 :4741-4760）、
 eng/tests/backend/test_p2004_reject_integrate.py（P2-004 生产 Oracle
 DRIVER_SRC 积分段 :66-126，含 max(accepted support) 注释 :124）。
 

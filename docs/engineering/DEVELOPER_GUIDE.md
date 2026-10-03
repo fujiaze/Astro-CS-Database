@@ -17,14 +17,14 @@ ninja -C build
 ctest --test-dir build --output-on-failure
 ```
 
-模块级科学矩阵由 `eng/tests/**` 的 CTEST 目标现场枚举（唯一源 = 构建面与 门禁注册面（G08-10 重建） 的 `ctest_targets` 字段），本指南只给入口：
+模块级科学矩阵由 `eng/tests/**` 的 CTEST 目标现场枚举（唯一源 = 构建面的 `ctest_targets` 字段；本仓无在位的门禁注册面），本指南只给入口：
 
 ```bash
 ctest --test-dir build -R <target> --output-on-failure      # 单个矩阵
 ```
 
 科学 Oracle 面（`CHK-ORACLE`）与科学不变量面（`CHK-INVARIANT`）按门 ID 注册执行，
-执行入口随 门禁注册面（G08-10 重建） 落盘。
+本仓无在位的门禁注册面与执行器，故本指南不给门禁执行入口。
 
 ## 编码与提交
 

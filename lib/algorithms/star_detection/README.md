@@ -183,7 +183,7 @@ TEST-STAR-DESIGN-001（STAR_DETECTION_ALGORITHMS.md §11.4，P1-STAR-TEST 执行
   显式加载，失败即错）；生产消费 `sdet_create`（:1593-1612）、
   `sdet_detect_ex`/`sdet_detect_ex_f64`（:2149-2198）、`sdet_free_detect_ex`
   （:2204-2213、:2466）。
-- 测试：lib/algorithms/star_detection/test/sdet_fp64_test.cpp（NON_PRODUCTION_TOOL_ONLY
+- 测试（fp64 回归，NON_PRODUCTION_TOOL_ONLY
   手工合成星图对比程序，非共址测试套件）；共址测试建立归 P1-STAR-TEST。
 - **已知限制（如实登记，DISP-STAR-001..005 + 线程/取消，ALG-STARDET-001
   §11.3，整改归 P1-STAR-IMPL/INT）**：① FP32 通道 uint16 量化；

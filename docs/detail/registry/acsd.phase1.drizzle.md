@@ -203,11 +203,11 @@ run generation 切换清空，原子化替换）。计数新增 `target_boundary
 逐 leaf < 1e-5、方差缩放律 worst_rel < 1e-4、候选零漏选（合成负例，全命中）、
 reverse false_hole / false_fill = 0。可执行 `TEST-P1-DRZ-001` 待建。
 
-lib 内科学门（`lib/algorithms/drizzle/healpix_drizzle/tests/`）：candidate /
+已取证的科学门读数（载体不在本仓可复算路径上，引用时只作背景）：candidate /
 overlap / variance oracle（证据产物为测试期 JSONL）、freeze / l0 闭合门、缩放律、
 reverse false_hole / false_fill；Monte Carlo 方差（SNR-011/012）。
 
-回归门：
+已取证的回归门读数：
 
 - `p1drz_disp009`：常量面亮度 `|S_p/B0 − 1| < 1e-3` 覆盖 `pixfrac ∈ (0,1]` +
   「分母取覆盖面积必判红」负例控制；

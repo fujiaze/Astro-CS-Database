@@ -91,12 +91,12 @@
 
 ---
 
-## D6【确认·无需修改】`SNR_combined²=ΣSNR_k²`、Q/W 信息量、F_ref 锚定换算的严格性
+## D6【部分·定义式重述降级】`SNR_combined²=ΣSNR_k²`、Q/W 信息量、F_ref 锚定换算的严格性
 
-- `SNR_combined²=ΣSNR_k²`：相对偏差 2.2e-16（`【复现：实验/absolute-snr/code/b4_integration.py 生成的 b4_integration.json】`）；
+- **`SNR_combined²=ΣSNR_k²`：不充当实现正确性判据，降为定义性结论。** 在组公共 `F_ref` 口径下它是方差可加 `Var(F_hat)=1/Σ_k W_info,k` 的定义式重述，因而恒真、零鉴别力——所记相对偏差 2.2e-16（`【复现：实验/absolute-snr/code/b4_integration.py 生成的 b4_integration.json】`）按构造成立，对任何可达路径恒过；在逐帧 `F_ref` 口径（本仓生产口径，`SNR_k` 分子是逐帧参考通量）下组内无公共锚，不构成任何单一绝对 SNR 的平方，无定义、无法计算、无法判定。依据：`docs/science/CONTROL_WEIGHT_SNR.md:213-214` 已自标 `is_tautology: true` / `evidence_eligible: false`，故本条只作定义性结论，不作独立证据腿；
 - `w_k=SNR_k(F_ref)²/F_ref,k² ≡ 1/σ_F,k²`：1.1e-16；
 - Q/W：`Var=1/ΣW` 实测 1275 vs 解析 1260（+1.2%）。
-即：研究包"权重在 Phase2 由 SNR 现场换算"的路线在本单元被独立证实，且入库量必须是**未加权原始 SNR**（PSFSNR 的功率比口径不可入库，PSFSW 是权重也不可入库）。
+即：研究包"权重在 Phase2 由 SNR 现场换算"的路线在本单元被独立证实（由上列后两条读数支撑），且入库量必须是**未加权原始 SNR**（PSFSNR 的功率比口径不可入库，PSFSW 是权重也不可入库）。
 
 ---
 

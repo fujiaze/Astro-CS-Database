@@ -113,16 +113,6 @@
       "version": ">=5 (控制节点实测 7.0.1; IO-001 记录 astropy7 兼容)",
       "control_node_version": "7.0.1",
       "usage": "test-only",
-      "consumers": [
-        "eng/tests/io/test_fits_stream_contract.py",
-        "eng/tests/io/test_hips_input_contract.py",
-        "eng/tests/io/make_hips_fixture.py",
-        "eng/tests/backend/test_p3004_spherical_oracle.py",
-        "eng/tests/backend/test_p3005_fits_output.py",
-        "eng/tests/backend/test_p3006_production_pipeline.py",
-        "eng/tests/backend/test_p2003_seam_oracle.py",
-        "eng/tools/astrometry_oracle/*.py"
-      ],
       "policy": "独立 FITS/WCS oracle (读写交叉/角距), 绝不链接进生产 DLL/EXE"
     },
     {
@@ -130,33 +120,7 @@
       "version": "system (控制节点实测 2.2.4)",
       "control_node_version": "2.2.4",
       "usage": "test-only",
-      "consumers": [
-        "eng/tests/**/*.py",
-        "eng/tools/astrometry_oracle/*.py"
-      ],
       "policy": "测试 fixture/oracle 计算"
-    },
-    {
-      "name": "pytest",
-      "version": "system (控制节点实测 8.3.5)",
-      "control_node_version": "8.3.5",
-      "usage": "test-only",
-      "consumers": [
-        "eng/tests/io/",
-        "eng/tests/backend/",
-        "eng/tests/artifact/"
-      ],
-      "policy": "python 测试 harness"
-    },
-    {
-      "name": "astrometry.net",
-      "version": "external tool",
-      "usage": "test-only oracle (real 模式)",
-      "consumers": [
-        "eng/tools/astrometry_oracle/compare_astrometry.py (real 模式)"
-      ],
-      "policy": "非构建依赖; real 数据 WCS oracle 由 Fatduck 侧提供结果 JSON, 控制节点不安装",
-      "note": "外部求解器 (仅 P* 集成 oracle)"
     },
     {
       "name": "astropy-healpix",
@@ -195,8 +159,7 @@
     "remaining_known": [
       "CMakePresets.json CMAKE_GENERATOR_INSTANCE=C:/AstroCS/toolchains/vs2022-17.14.39 → 冻结 Windows 工具链安装约定 (eng/packaging/windows/README.md), 非隐式用户路径",
       "eng/packaging/schemas/preset-contract.json vs_installation 同上一并冻结",
-      "eng/build/toolchain.ps1 已订正依赖面: 只用仓内 vendored 依赖与系统工具链, 不再引用 MSYS2/MinGW 路径或机器绝对用户路径 (ENGINEERING_SPEC §7 现役固定条目)",
-      "eng/tools/quality/v19r3_static.py 仍引用 MSYS2/MinGW 路径 → 登记为缺陷, 待其依赖面订正 (与本 lock 的 msys2_mingw=FORBIDDEN 冲突)"
+      "eng/build/toolchain.ps1 已订正依赖面: 只用仓内 vendored 依赖与系统工具链, 不再引用 MSYS2/MinGW 路径或机器绝对用户路径 (ENGINEERING_SPEC §7 现役固定条目)"
     ]
   }
 }

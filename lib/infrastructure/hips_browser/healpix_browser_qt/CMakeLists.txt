@@ -3,7 +3,9 @@
 # 依赖: Qt6 (Core/Gui/Widgets/OpenGLWidgets), OpenGL, astro_image_io.dll
 # 编译: cmake -B build -DCMAKE_PREFIX_PATH=C:/msys64/mingw64
 #        cmake --build build
-# 设计文档: docs/detail/healpix_browser_qt.md（模块页；原 superpowers 设计稿已删）
+# 本文件只声明本模块的四个生产 target（healpix_browser_core /
+# healpix_browser_qt_widgets / healpix_browser_qt / browser_cli）；
+# 唯一 project()/唯一产品可执行 acsd 只在根 CMakeLists.txt（BLD-002）。
 
 cmake_minimum_required(VERSION 3.16)
 project(healpix_browser_qt LANGUAGES CXX)
@@ -118,65 +120,4 @@ target_link_directories(browser_cli PRIVATE ${AIO_DIR})
 target_link_libraries(browser_cli PRIVATE astro_image_io psapi)
 if(OpenMP_CXX_FOUND)
     target_link_libraries(browser_cli PRIVATE OpenMP::OpenMP_CXX)
-endif()
-
-# ============================================================================
-# 单元测试 (可选, 通过 -DBUILD_TESTS=ON 启用)
-# ============================================================================
-option(BUILD_TESTS "Build unit tests" OFF)
-if(BUILD_TESTS)
-    enable_testing()
-
-add_executable(test_healpix_math tests/test_healpix_math.cpp core/healpix_math.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/../../../algorithms/shared/healpix/healpix_core.cpp)
-target_include_directories(test_healpix_math PRIVATE core include
-    ${CMAKE_CURRENT_SOURCE_DIR}/../../../algorithms/shared)
-    target_link_libraries(test_healpix_math PRIVATE)
-    add_test(NAME healpix_math COMMAND test_healpix_math)
-
-    add_executable(test_stf_engine tests/test_stf_engine.cpp core/stf_engine.cpp)
-    target_include_directories(test_stf_engine PRIVATE core include)
-    add_test(NAME stf_engine COMMAND test_stf_engine)
-
-    add_executable(test_browser_backend
-        tests/test_browser_backend.cpp
-        core/browser_backend.cpp
-        core/healpix_math.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/../../../algorithms/shared/healpix/healpix_core.cpp
-    )
-    target_include_directories(test_browser_backend PRIVATE core include
-        ${AIO_DIR}/include ${CMAKE_CURRENT_SOURCE_DIR}/../../../algorithms/shared)
-    target_compile_definitions(test_browser_backend PRIVATE ${AIO_DEFINES})
-    target_link_directories(test_browser_backend PRIVATE ${AIO_DIR})
-    target_link_libraries(test_browser_backend PRIVATE astro_image_io)
-    add_test(NAME browser_backend COMMAND test_browser_backend)
-
-    add_executable(test_hips_browser_backend
-        tests/test_hips_browser_backend.cpp
-        core/hips_browser_backend.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/../../../algorithms/shared/healpix/healpix_core.cpp
-    )
-    target_include_directories(test_hips_browser_backend PRIVATE
-        core include ${AIO_DIR}/include ${CMAKE_CURRENT_SOURCE_DIR}/../../../algorithms/shared)
-    target_compile_definitions(test_hips_browser_backend PRIVATE ${AIO_DEFINES})
-    target_link_directories(test_hips_browser_backend PRIVATE ${AIO_DIR})
-    target_link_libraries(test_hips_browser_backend PRIVATE astro_image_io)
-    add_test(NAME hips_browser_backend COMMAND test_hips_browser_backend)
-
-    add_executable(test_geometry_truth
-        tests/test_geometry_truth.cpp
-        core/hips_browser_backend.cpp
-        core/hips_sky_view.cpp
-        core/stf_engine.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/../../../algorithms/shared/healpix/healpix_core.cpp
-    )
-    target_include_directories(test_geometry_truth PRIVATE
-        core include ${AIO_DIR}/include ${CMAKE_CURRENT_SOURCE_DIR}/../../../algorithms/shared)
-    target_compile_definitions(test_geometry_truth PRIVATE ${AIO_DEFINES})
-    target_link_directories(test_geometry_truth PRIVATE ${AIO_DIR})
-    target_link_libraries(test_geometry_truth PRIVATE astro_image_io)
-    if(OpenMP_CXX_FOUND)
-        target_link_libraries(test_geometry_truth PRIVATE OpenMP::OpenMP_CXX)
-    endif()
-    add_test(NAME geometry_truth COMMAND test_geometry_truth)
 endif()

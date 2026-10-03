@@ -61,7 +61,7 @@ floor 0.1，即约定入参 master_flat 已是 median≈1.0 的归一化平场�
 | master_flat（任一形态） | 无 | 归一化是**独立维度**：`median(flat)` 须落在 `master_flat_median_range`（默认 [0.5,2.0]，`eng/packaging/config/defaults.json`），否则须显式声明 `master_flat_normalize="median"`（= §2 `flat_norm`，幂等） | 未声明且不落区间 ⇒ DATA 拒绝（rc=2） |
 | master_dark | `dark_optimization`（bool）声明是否含 bias | — | 提供 dark 而未声明 ⇒ DATA 拒绝（rc=2） |
 
-**四条机器规则（标度/归一化门判据 U1–U4，`--self-test` 可执行正负例；载体见 门禁注册面（G08-10 重建））**：
+**四条机器规则（标度/归一化门判据 U1–U4，`--self-test` 可执行正负例）**：
 U1 亮场域 ≫ 1 ADU 而 bias/dark 中位数 ≤ 1.0 且未声明 normalized+scale ⇒ 拒；
 U2 `median(flat)` 出区间且未声明 median 归一 ⇒ 拒；
 U3 提供 dark 而未显式声明 bias 约定 ⇒ 拒；
@@ -594,7 +594,7 @@ oracle 同容差；actual_k 精确相等。
   ④`eng/packaging/config/defaults.json` 登记 `calibration.master_flat_median_range`（[0.5,2.0]）；
   ⑤与 U3 冲突的既有节点级夹具（`eng/tests/unit/p1001_real_nodes_test.cpp` 9 处 doc）补显式
   `dark_optimization=false`（该夹具 `vd=5 < vb=10` = 已减 bias 的暗电流，声明后数值不变）。
-  **残留（登记待裁定）**：⑥**未新增 ctest 目标**（新目标必须在 门禁注册面（G08-10 重建） 的
+  **残留（登记待裁定）**：⑥**未新增 ctest 目标**（新目标必须在门禁注册面（本仓无在位注册面）的
   `ctest_targets` 登记）⇒ U1–U4 的机器覆盖由上述门脚本承担；
   ⑦**节点 manifest 未落盘**：`master_unit_guard` 写入节点 manifest 与 `stages.calibrate`，
   但当前 CLI 面只持久化 run manifest（`summary`/`provenance.units=["ADU"]`）与失败时的

@@ -14,5 +14,5 @@
 
 ## 上游
 
-- 由门禁在重建时注册为可执行项（`python3 eng/tools/astrometry/closure_metric.py selftest`）。
-- 检查项条目见 `docs/engineering/01_CHECKS.md`，门禁分级见 `docs/engineering/03_GATES.md`。
+- 口径数值定义正文在 `docs/science/ASTROMETRY.md` 与 `docs/science/algorithms/GATES_AND_TOLERANCES.md`。
+- 自检按需直接执行：`python3 eng/tools/astrometry/closure_metric.py selftest`。

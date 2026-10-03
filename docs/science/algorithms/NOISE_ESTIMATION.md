@@ -284,8 +284,8 @@ eng/tests/unit/p1_noise_test.cpp 经 `eng/tests/unit/CMakeLists.txt` 注册）�
 ## 参考文献与参考代码库（含许可证）
 
 
-- 背景网格 + 稳健 σ：Bertin & Arnouts 1996, A&AS 117, 393（**§2** 背景网格与稳健估计；§3 是检测不是背景）；源码 SExtractor（GPL-3.0）back.c/makeback。**差异**：SExtractor 用 mode/median + 迭代 σ，本模块用 8×8 patch MAD + 最小二乘平面场，二者不等价。**适用域**：该文不讨论权重图/逆方差加权/逐像元方差通道，本模块的 `variance/ivar` 面另立来源。
-- 多尺度稳健噪声 MRS/N*：Starck & Murtagh 2006, Astronomical Image and Data Analysis 2nd ed., Springer（ISBN 978-3-540-33023-3）；Starck, Donoho & Candès 2003, A&A 398, 785。现状未采用，仅选型对照。
+- 背景网格 + 稳健 σ：Bertin & Arnouts 1996, A&AS 117, 393（**§2** 背景网格与稳健估计；§3 是检测不是背景）；源码 SExtractor（GPL-3.0）back.c/makeback。**§2 的背景估计器是条件式规则**：不拥挤（常见）时取裁剪后直方图的 **mean**（原文并说 "This is why we turn back to the mean for uncrowded fields."），拥挤时才用 mode = 2.5·median − 1.5·mean（式 1）；背景网格为 32–128 px 的中值滤波 + 双线性插值。**差异**：本模块用 8×8 patch MAD + 最小二乘平面场，与上述任一读法都不等价。**适用域**：该文不讨论权重图/逆方差加权/逐像元方差通道，本模块的 `variance/ivar` 面另立来源。
+- 多尺度稳健噪声 MRS/N*：Starck & Murtagh 2006, Astronomical Image and Data Analysis 2nd ed., Springer（ISBN 978-3-540-33023-3）；**多分辨率支持的一手论文** = Starck, Donoho & Candès 2003, A&A 398, 785, "Astronomical image representation by the curvelet transform"（curvelet 表示，**不是** MRS/N* 的来源）。现状未采用，仅选型对照。
 - MAD→σ：Rousseeuw & Croux 1993, JASA 88, 1273；稳健尺度 Hoaglin et al. 1983。
 - Poisson+read noise 诊断式：Newberry 1991, PASP 103, 122；Janesick 2001, SPIE PM83, Ch.2。
 - 饱和过滤：LSST ip_isr（GPL-3.0）doSaturation/SAT 面；FITS SATURATE/DATAMAX。

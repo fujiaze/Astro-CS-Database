@@ -14,7 +14,7 @@ REJECTION_SEMANTICS    = FROZEN（canonical semantic IDs + typed params +
                         eligibility/rejection 分层 + per-sample reason +
                         RejectionNormalizationPolicy）
 ACSD_REJECT_PROFILE = FROZEN（生产科学路由 = ACSD_DESIGN.md
-                        §5.5 档位表（M3 裁决 2026-09-25 后为三档），N = 几何覆盖帧数：
+                        §5.5 档位表（裁决后为三档），N = 几何覆盖帧数：
                         1≤N≤3→none；4≤N≤5→percentile；N≥6→winsorized sigma
                         （原 N≥16→linear_fit 档改投 winsorized）；min/max 不用于生产）
 WBPP_AUTO_POLICY       = FROZEN（对照档 wbpp_2_9_1 = 本仓冻结解析表；档界

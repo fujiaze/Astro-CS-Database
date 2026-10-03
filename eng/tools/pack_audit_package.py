@@ -13,10 +13,8 @@
      zip_bytes=10.67 超过 10MB 目标仍 exit 0; 目录不存在则未捕获 FileNotFoundError
      —— 两种形态都属 ENGINEERING_SPEC.md §8 禁止的「静默坏掉」;
   4. **保留不退役的部分(活动替代即其自身)**: allowed()/denied()/EXCLUDE_EXT/DENY_PATHS/DENY_NAME_RE
-     是**审计包收录白名单与凭据排除保证的唯一真源**, 被活动门 CHK-SECRET-HYGIENE 直接 import
-     (eng/tools/quality/check_secret_hygiene.py:53 DEFAULT_PACKER → pack_files() 调 allowed()),
-     并由 eng/tests/quality/test_secret_hygiene.py 的能绿能红证据覆盖 —— 不得删改语义;
-  5. 发布候选打包门为 eng/ci/checks.json 的 CHK-PACKAGE; 正式证据按 §7 落位。
+     是**审计包收录白名单与凭据排除保证的唯一真源** —— 不得删改语义;
+  5. 正式证据按 §7 落位。
   复原命令 (内容未丢): git 历史
   退役后行为: 运行本文件打印 PACK_AUDIT_PACKAGE_RETIRED 说明并 exit 2 (fail-closed, 不伪装绿);
      作为模块 import 时不受影响(allowed/denied 语义不变)。

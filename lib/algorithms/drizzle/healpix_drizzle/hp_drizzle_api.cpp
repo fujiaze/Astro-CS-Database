@@ -11,7 +11,7 @@
 #include "reverse_drizzle.h"
 #include "astro_image_io.h"   // aio_frame_get_block / aio_frame_kv_get
 #include "snr_evaluator.h"  // SnrEvaluator (KD-tree IDW 重建逐像素 SNR; 模块内私有实现)
-#include "aio_healpix_io.h"         // HioSnrModel, HioSnrControlPoint (向后兼容宏)
+#include "aio_snr_model.h"          // HioSnrModel, HioSnrControlPoint
 #include "astro_sphere_sink.h"      // Phase1: Drizzle -> AIO HiPS 直写
 #include "hp_drizzle_internal.h"    // F-13: run_drizzle_internal / setErrorMsg (run_hips 已迁出本 TU)
 #include "acsd/core/variance_floor.h"  // 按 dtype 导出的方差地板 (NOISE_MODEL §7/§9)
@@ -344,24 +344,6 @@ HP_DRIZZLE_API int hp_drizzle_fits_to_ahpx(
         fprintf(stderr, "[hp_drizzle_api] Drizzle 失败: %s\n", errMsg.c_str());
         setErrorMsg(result, "Drizzle 失败: " + errMsg);
         return 10;
-    }
-
-    // 7. 写入 .hiss 文件
-    // DrizzleMeta: FitsImage 未保存 FILTER/EXPTIME/DATE-OBS 等 KV, 留空
-    // output_path 后缀规范化为 .hiss (兼容旧 .ahpx 调用)
-    std::string hissPath = output_path;
-    {
-        size_t plen = hissPath.size();
-        if (plen >= 5 && (hissPath.compare(plen - 5, 5, ".ahpx") == 0)) {
-            hissPath.replace(plen - 5, 5, ".hiss");
-        }
-    }
-    DrizzleMeta meta;  // FITS 路径无 header KV, meta 留空
-    if (!engine.writeHisTilesT<float>(tiles, stats, img.wcs, config, meta, fits_path, hissPath,
-                                      nullptr, nullptr, errMsg)) {
-        fprintf(stderr, "[hp_drizzle_api] 写入 .hiss 失败: %s\n", errMsg.c_str());
-        setErrorMsg(result, "写入 .hiss 失败: " + errMsg);
-        return 11;
     }
 
     // 8. 填充结果
@@ -1105,65 +1087,6 @@ try {
     fprintf(stderr, "[hp_drizzle_api] hp_drizzle_run: Drizzle 完成 (%lld 源像素 → %lld HEALPix 像素, 耗时 %.3fs)\n",
             (long long)stats.nSourcePixels, (long long)stats.nHealpixPixels, stats.elapsedSec);
     stamp(prof_drizzle);  // Drizzle kernel 结束
-
-    // 8. 写入 .hiss 文件 (若指定 output_path)
-    if (output_path && output_path[0] != '\0') {
-        // output_path 后缀规范化为 .hiss (兼容旧 .ahpx 调用)
-        std::string hissPath = output_path;
-        {
-            size_t plen = hissPath.size();
-            if (plen >= 5 && (hissPath.compare(plen - 5, 5, ".ahpx") == 0)) {
-                hissPath.replace(plen - 5, 5, ".hiss");
-            }
-        }
-
-        // 源路径 (用于元数据), 从 header KV 读取 SOURCE_PATH, 没有则用空串
-        std::string sourcePath;
-        const char* src = aio_frame_kv_get(frame, "header", "SOURCE_PATH");
-        if (src) sourcePath = src;
-
-        // 从 header KV 读取 FILTER/EXPTIME/DATE-OBS 等元数据
-        DrizzleMeta meta;
-        const char* filter_str = aio_frame_kv_get(frame, "header", "FILTER");
-        if (filter_str) meta.filter = filter_str;
-
-        const char* exptime_str = aio_frame_kv_get(frame, "header", "EXPTIME");
-        if (exptime_str) meta.exposure_s = std::atof(exptime_str);
-
-        const char* dateobs_str = aio_frame_kv_get(frame, "header", "DATE-OBS");
-        if (dateobs_str) meta.obs_time = dateobs_str;
-
-        // 收集 FITS 头 KV 到 fits_meta (OBJCTRA/OBJCTDEC/IMAGETYP/SITELAT/SITELONG 等)
-        static const char* FITS_META_KEYS[] = {
-            "OBJCTRA", "OBJCTDEC", "IMAGETYP", "SITELAT", "SITELONG",
-            "OBJECT", "RADESYS", "EQUINOX", "INSTRUME", "TELESCOP",
-            "XPIXSZ", "YPIXSZ", "XBINNING", "YBINNING", "GAIN", "OFFSET"
-        };
-        for (const char* k : FITS_META_KEYS) {
-            const char* v = aio_frame_kv_get(frame, "header", k);
-            if (v && v[0] != '\0') {
-                meta.fits_meta[k] = v;
-            }
-        }
-
-        fprintf(stderr, "[hp_drizzle_api] hp_drizzle_run: 写入 .hiss (filter=%s, exptime=%.1f, date=%s, fits_meta=%zu)\n",
-                meta.filter.c_str(), meta.exposure_s, meta.obs_time.c_str(), meta.fits_meta.size());
-
-        bool write_ok = img.use_f64
-            ? engine.writeHisTilesT<double>(tiles_f64, stats, img.wcs, config, meta,
-                                            sourcePath, hissPath, snrModelPtr,
-                                            snrModelF64Ptr, errMsg)
-            : engine.writeHisTilesT<float>(tiles_f32, stats, img.wcs, config, meta,
-                                           sourcePath, hissPath, snrModelPtr,
-                                           nullptr, errMsg);
-        if (!write_ok) {
-            fprintf(stderr, "[hp_drizzle_api] hp_drizzle_run: 写入 .hiss 失败: %s\n", errMsg.c_str());
-            setErrorMsg(result, "写入 .hiss 失败: " + errMsg);
-            return -11;
-        }
-        fprintf(stderr, "[hp_drizzle_api] hp_drizzle_run: .hiss 已写入 %s\n", hissPath.c_str());
-        stamp(prof_hiss);  // legacy .hiss 写入结束
-    }
 
     // 8.5 Phase1 Final Closure: HiPS 直写 (Drizzle -> AIO, 无 HISS 中转)
     if (write_hips) {

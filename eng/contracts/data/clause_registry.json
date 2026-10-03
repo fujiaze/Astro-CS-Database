@@ -1865,7 +1865,7 @@
       "id": "FZ-AP2PT-SNR-IDENT-RTOL",
       "kind": "threshold",
       "layer": "algorithm",
-      "subject": "【已撤判据】独立帧 SNR_combined^2=ΣSNR_k^2 的相对容差。条款 subject 不是恒等式：各帧 SNR_k 分子是同一共同信号 F 时 ΣSNR_k^2=F^2·W_tot、SNR_comb^2=F_hat^2·W_tot，相等当且仅当 F_hat=F（关于数据，不关于实现）；改读为各帧自身估计 F_hat_k 时由 Cauchy-Schwarz 得 ΣSNR_k^2−SNR_comb^2=Σ_k W_k(F_hat_k−F_bar)^2≥0，等号仅在零散度退化情形成立。独立帧的无条件结论只是**方差可加** Var(F_hat)=(Σ_k W_info,k)^−1，即组合定义本身",
+      "subject": "【已撤判据】独立帧 SNR_combined^2=ΣSNR_k^2 的相对容差。失效机理按参考通量 F_ref 的定义域分两口径（SNR_k 的分子是参考通量，不是逐源实测通量）：在 F_ref 组公共的口径下该式是**方差可加的定义式重述**（ΣSNR_k^2=F_ref^2·W_tot=SNR_comb^2，恒真、无鉴别力、无证据资格）；在 F_ref 逐帧的口径下无公共锚、不构成任何单一绝对信噪比的平方（无定义、无法计算、无法判定）。两种情形下它都不能充当实现正确性判据。独立帧的无条件结论只是**方差可加** Var(F_hat)=(Σ_k W_info,k)^−1，即组合定义本身",
       "value": 1e-09,
       "value_display": "1e-9",
       "unit": "1",
@@ -1873,10 +1873,10 @@
       "gate": "GATE-SNR-12（已撤：生产实现已删除，phase2_integrate.cpp 不再有该门）",
       "fail_closed": "无（无可 fail 的判据面）。正确性只由注入点源的实测 flux dispersion（PSF_SIGNAL_WEIGHT §7 第 1 项）判定，不由本条判定",
       "negative_mutation": "无。原记录「忘平方（SNR=ΣSNR_k）→ rc!=0」为假：被检验量 w 与参照量 Σ_k w_info 用同一循环、同一字段、同一顺序从 w=w_sum 重算，差按构造成 0，任何 mutation 都判不了红。不得为使门变红而放宽阈值或加 epsilon",
-      "status": "PENDING_OWNER_SIGNOFF",
+      "status": "OPEN",
       "owner_signoff": "SO-07",
       "evidence_qualification": "none",
-      "governance_note": "GOVERN-08/G08-05：唯一实现门 phase2_integrate.cpp 的 snr_rel 门与产品字段 phase2_extensions.snr_identity_rel_err 均已删除。签署**不得**以「门通过」为据——该门在任何可达路径下都恒绿。改判据需要来自 W 之外的参照量（像素级 C_k 的独立重算或注入实验）；Phase1 不落盘逐像素 sigma2、calibration_covariance 仅为摘要记录、VARIANCE 面是 drizzle 后面亮度方差，三条路在本仓均不可得，故据实登记为无有效机器判据，不造假参照。状态暂留 PENDING_OWNER_SIGNOFF 以免牵动 §31.10 正文计数与 field_constraints_oracle.py:563 的同计数核对；改 OPEN 需前台授权后同步三处",
+      "governance_note": "GOVERN-08/G08-05：唯一实现门 phase2_integrate.cpp 的 snr_rel 门与产品字段 phase2_extensions.snr_identity_rel_err 均已删除。签署**不得**以「门通过」为据——该门在任何可达路径下都恒绿。改判据需要来自 W 之外的参照量（像素级 C_k 的独立重算或注入实验）；Phase1 不落盘逐像素 sigma2、calibration_covariance 仅为摘要记录、VARIANCE 面是 drizzle 后面亮度方差，三条路在本仓均不可得，故据实登记为无有效机器判据，不造假参照。状态已由 PENDING_OWNER_SIGNOFF 改为 OPEN：本条款无门、无 fail 面、无 mutation、证据资格为 none、锚点（source_binding）已失，不满足 PENDING_OWNER_SIGNOFF「值与文本唯一确定」的定义；OPEN 的处置「生产判据面 = 空、引用处显式标 pending」与本条款实际状态一致。「已撤」不是登记表 status_vocabulary 的第四格，故取语义最接近的既有态并在本条据实登记；若日后要重建判据，其数值属 OPEN 的「数值待定」，须先取得来自 W 之外的参照量。改状态需同步 **13 处、跨 5 个文件**（本条 status；clause_registry.counts_by_status 的 PENDING_OWNER_SIGNOFF/OPEN；clause_registry.ids_by_status 的 PENDING_OWNER_SIGNOFF 与 OPEN 两张表；顶层 counts.pending_owner_signoff / counts.open；migration_map.signoff_policy 的条数副本；docs/science/DATA_SEMANTICS.md 的 PENDING 与 OPEN 两张 id 清单及其计数行；docs/engineering/UNIFIED_OBJECTS.md 与 lib/algorithms/integration/phase2_integrate/README.md 的条数叙述；eng/tests/contracts/product_family/field_constraints_oracle.py 的 counts_by_status 硬编码与正文计数串元组——该机器门文件已由并发车道从工作树删除，其两处硬编码未同步，若恢复须先补 48/9 否则该门判红），本条 governance_note 原称「三处」是低估。owner_signoff 保留 SO-07：OPEN 的定义即为「未落定、登记 owner」，且本登记表其余 8 条 OPEN 条款同样带 owner_signoff 字段；SO-07 此处只作登记 owner，不再构成待签对象",
       "source_binding": {
         "file": "docs/science/PSF_SIGNAL_WEIGHT.md",
         "kind": "substring",
@@ -2799,8 +2799,8 @@
   "counts": {
     "clauses_total": 96,
     "frozen": 39,
-    "pending_owner_signoff": 49,
-    "open": 8,
+    "pending_owner_signoff": 48,
+    "open": 9,
     "sci_adj_freeze_ids": 42,
     "required_freeze_ids": 19,
     "numeric_thresholds": 54,
@@ -3149,8 +3149,8 @@
     "total": 96,
     "counts_by_status": {
       "FROZEN": 39,
-      "OPEN": 8,
-      "PENDING_OWNER_SIGNOFF": 49
+      "OPEN": 9,
+      "PENDING_OWNER_SIGNOFF": 48
     },
     "ids_by_status": {
       "FROZEN": [
@@ -3196,6 +3196,7 @@
       ],
       "OPEN": [
         "CF-T-P3-CORR-EPSILON",
+        "FZ-AP2PT-SNR-IDENT-RTOL",
         "QF-G-BASE-03",
         "QF-G-INJ-01",
         "QF-G-INJ-02",
@@ -3208,7 +3209,6 @@
         "CF-T-CONST-SB-TOL",
         "FZ-AP1-DEFICIT-THRESH",
         "FZ-AP2PT-CORR-RATIO-MIN",
-        "FZ-AP2PT-SNR-IDENT-RTOL",
         "FZ-AP2S-EPS-PIXIVAR",
         "FZ-AP2S-EPS-PIXIVAR-SUP",
         "FZ-AP2S-EPSF-RTOL",
@@ -3611,8 +3611,7 @@
     "write_scope": [
       "eng/contracts/schemas/",
       "eng/contracts/data/",
-      "docs/engineering/",
-      "eng/tests/contracts/product_family/"
+      "docs/engineering/"
     ],
     "not_reintroduced": [
       "P33-COEF §12.2 snr_coefficient 落位段",
@@ -4077,7 +4076,7 @@
         "reason": "DEFERRED；C-004.1 本包不解冻"
       }
     },
-    "signoff_policy": "49 条 PENDING_OWNER_SIGNOFF 保持 pending 并 fail-closed；本映射表不使任何待签条款生效。",
+    "signoff_policy": "48 条 PENDING_OWNER_SIGNOFF 保持 pending 并 fail-closed；本映射表不使任何待签条款生效。",
     "catalog_migrations_covered": [
       "MIG-WEIGHTMODE-LEGACY",
       "MIG-UNITS-PXVARIANCE",

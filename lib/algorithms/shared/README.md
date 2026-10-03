@@ -11,11 +11,9 @@
 ## 内容
 
 - crypto/ —— sha256 哈希实现（sha256.h、sha256.cpp）。
-- healpix/ —— HEALPix 核心实现（healpix_core.h、healpix_core.cpp）、自带测试（tests/）与第三方声明（THIRD_PARTY_NOTICE.md）。
+- healpix/ —— HEALPix 核心实现（healpix_core.h、healpix_core.cpp）与第三方声明（THIRD_PARTY_NOTICE.md）。
 - include/ —— 共享公共头：astro_scalar.h、precision_context.h。
 - dirent_win.h —— Windows 目录遍历兼容头。
-- tests/ —— 共享层测试（test_precision.cpp）。
-- Makefile —— 本目录的独立构建入口。
 
 ## 上游
 

@@ -2,7 +2,7 @@
 
 > 上游权威: `ACSD_DESIGN.md` §6.3（冻结八投影；本节号为本轮订正，原写 §5.3 = 「SNR 重建与逆方差叠加」）/附录 B（基础科学与格式参考）+ `docs/DOCUMENT_INDEX.yaml`（本注册表为标准登记，不在 §0 权威链上）
 > 条款锚的现行落点：投影集合 = `ACSD_DESIGN.md` §6.3（八投影）；资源门 = 同文 §8 + `eng/contracts/resource_gate_v1.json`
-> 机器检查: 标准注册表判据 C1–C9（载体见 门禁注册面（G08-10 重建）；exit 0 = PASS / 1 = FAIL / 2 = ANCHOR_STALE；见 §5 与 §5 负向注入）
+> 机器检查: 标准注册表判据 C1–C9（exit 0 = PASS / 1 = FAIL / 2 = ANCHOR_STALE；见 §5 与 §5 负向注入）
 > 登记: `docs/DOCUMENT_INDEX.yaml` doc_index.active（status = ACTIVE_NORMATIVE）
 
 ---
@@ -39,7 +39,7 @@
 
 | 域 key | 标准 | 冻结版本 | 标准条款面 |
 |---|---|---|---|
-| spherical-projection | FITS WCS Paper I/II + SIP（Shupe et al. 2005） | Paper I = A&A 395, 1061 (2002)；Paper II = A&A 395, 1077 (2002)；SIP = ASPC 347, 491 (2005) | Paper I §2.1.1（CRPIX 1-based）/§3（CD/CTYPE）；Paper II §2.1（旋转与 LONPOLE）/§5 Table 1（TAN/SIN/CAR/AIT）；SIP §A（A/B/AP/BP 约定） |
+| spherical-projection | FITS WCS Paper I/II + SIP（Shupe et al. 2005） | Paper I = A&A 395, 1061 (2002)；Paper II = A&A 395, 1077 (2002)；SIP = ASPC 347, 491 (2005) | Paper I §2.1.1 式(1)（CRPIX 参考像素）/§2.1.4（1-based）/§2.1.2 式(3)/§3（CD/CTYPE）；Paper II §2.1（旋转与 LONPOLE）/§2.3 式(2)–(7)/§5.1.3 式(54)（TAN/SIN/CAR/AIT；矩阵形式见附录 A.1，投影代码表见 Table 12）；SIP §A（A/B/AP/BP 约定） |
 | hips | IVOA HiPS Recommendation 1.0（properties 修订 1.4） | HiPS 1.0 (PR-HiPS-1.0-20161122) + properties hips_version="1.4" | HiPS 1.0 §3（层级索引与目录结构）/§4.1（tile）/§4.2.1（properties）/§4.4.1（all-sky map）/§6.3.1（客户端绘制）；properties 1.4 键集 |
 | healpix | Górski et al. 2005 HEALPix（NESTED） | ApJ 622, 759 (2005)，bibcode 2005ApJ...622..759G | §5.1（nside=2^order 等面积单元）/§5.2（NESTED 编号与父子关系）/§5.3（ang2pix/pix2ang） |
 | drizzle | Fruchter & Hook 2002 Drizzle | PASP 114, 144 (2002)，bibcode 2002PASP..114..144F | §2（drop 与 pixfrac）/§3（线性重建与权重 w_jp=a_jp/A_pixel）/§4（欠采样图像重建） |
@@ -53,17 +53,17 @@
 - DOMAIN: spherical-projection
 - STANDARD: FITS WCS Paper I/II + SIP（Shupe et al. 2005）
 - VERSION: Paper I = A&A 395, 1061 (2002)；Paper II = A&A 395, 1077 (2002)；SIP = ASPC 347, 491 (2005)
-- CLAUSES: Paper I §2.1.1（CRPIX 1-based）/§3（CD/CTYPE）；Paper II §2.1（旋转/LONPOLE）/§5 Table 1（TAN/SIN/CAR/AIT）；SIP §A（A/B/AP/BP）
+- CLAUSES: Paper I §2.1.1 式(1)（CRPIX 参考像素）/§2.1.4（1-based）/§2.1.2 式(3)/§3（CD/CTYPE）；Paper II §2.1（旋转/LONPOLE）/§2.3 式(2)–(7)/§5.1.3 式(54)（TAN/SIN/CAR/AIT；矩阵形式见附录 A.1，投影代码表见 Table 12）；SIP §A（A/B/AP/BP）
 - COMPLIANCE: PARTIAL
 - EVIDENCE: docs/science/ASTROMETRY.md；docs/science/algorithms/PLATESOLVE.md；docs/science/algorithms/PHASE3_PROJ_IMPL.md；docs/science/algorithms/PHASE3_FITS_IMPL.md；eng/tests/unit/p1wcs/；eng/tests/unit/p3_projection_test.cpp；lib/algorithms/projection/p3_wcs.cpp；lib/algorithms/platesolve/cpp/ipv/src/ipv_wcs.cpp
 - DEVIATION: STD-F1；DISP-WCS-001；DISP-WCS-008；DISP-P3PROJ-001
 
 | 条款 | 标准要求 | 符合状态 | 证据指针 | 偏差 |
 |---|---|---|---|---|
-| Paper I §2.1.1（CRPIX 1-based 参考像素） | 参考像素 CRPIX 为 1-based，像素坐标 `xp = x + 1` | CONFORMANT | docs/science/ASTROMETRY.md；docs/science/algorithms/PLATESOLVE.md；eng/tests/unit/p1wcs/p1wcs_astropy_cross.py；eng/tests/unit/p1wcs/p1wcs_std_f1_bridge_cross.py；lib/algorithms/projection/tests/p3wcs/p3_wcs_test.cpp | STD-F1（CLOSED：ipv 求解器拟合自变量为 sdet 半整数像素中心、输出 `x=u+CRPIX` 即 1-based FITS `p`，与 Paper I §2.1.1 逐式一致；产品网格/数组下标→FITS 的单次 +1 换算在 Phase3 导出边界与 p1_wcs.json 写出侧；实测 astropy 交叉 5.7e-14 deg、九宫格 18 格无 1px 偏移、负向注入必败；见 §3 偏差索引） |
+| Paper I §2.1.1 式(1)（CRPIX 1-based 参考像素） | 参考像素 CRPIX 为 1-based，像素坐标 `xp = x + 1` | CONFORMANT | docs/science/ASTROMETRY.md；docs/science/algorithms/PLATESOLVE.md；eng/tests/unit/p1wcs/p1wcs_astropy_cross.py；eng/tests/unit/p1wcs/p1wcs_std_f1_bridge_cross.py；lib/algorithms/projection/tests/p3wcs/p3_wcs_test.cpp | STD-F1（CLOSED：ipv 求解器拟合自变量为 sdet 半整数像素中心、输出 `x=u+CRPIX` 即 1-based FITS `p`，与 Paper I §2.1.1 式(1) 逐式一致；产品网格/数组下标→FITS 的单次 +1 换算在 Phase3 导出边界与 p1_wcs.json 写出侧；实测 astropy 交叉 5.7e-14 deg、九宫格 18 格无 1px 偏移、负向注入必败；见 §3 偏差索引） |
 | Paper I §3（CD/CTYPE 关键词体系） | 线性变换以 CD 矩阵 + CTYPE 表达；FITS 头卡 ≤80 字节 | CONFORMANT | docs/science/algorithms/PHASE3_PROJ_IMPL.md；lib/algorithms/projection/p3_wcs.cpp；eng/tests/unit/p3_projection_test.cpp | 无（T5/T7 断言在位） |
-| Paper II §5 Table 1（TAN/SIN/CAR/AIT 四投影） | 四投影按 Table 1 的 R_θ 定义实现，新增投影须注册并附独立往返 Oracle | CONFORMANT | docs/science/algorithms/PHASE3_PROJ_IMPL.md；eng/tests/unit/p3_projection_test.cpp；eng/tests/backend/test_p3_projection_oracle.py | 无（registry v1 恰四行；T1/T2 往返与独立解析解在位） |
-| Paper II §2.1（LONPOLE 与旋转） | 允许通用 LONPOLE/φ_p 附加旋转机制 | PROJECT_DEFINED | docs/science/algorithms/PHASE3_PROJ_IMPL.md | 无（本实现固定 θ₀=+90°、无 φ_p 附加旋转，显式冻结为 Project-defined；不实现通用 LONPOLE） |
+| Paper II §5.1.3 式(54)（TAN/SIN/CAR/AIT 四投影） | 四投影按 §5.1.3 式(54) 等各投影的 R_θ 定义实现，新增投影须注册并附独立往返 Oracle | CONFORMANT | docs/science/algorithms/PHASE3_PROJ_IMPL.md；eng/tests/unit/p3_projection_test.cpp；eng/tests/backend/test_p3_projection_oracle.py | 无（registry v1 恰四行；T1/T2 往返与独立解析解在位） |
+| Paper II §2.2（LONPOLE 与投影参考点）/§2.3 式(2)–(7)（旋转核） | 允许通用 LONPOLE/φ_p 附加旋转机制 | PROJECT_DEFINED | docs/science/algorithms/PHASE3_PROJ_IMPL.md | 无（本实现固定 θ₀=+90°、无 φ_p 附加旋转，显式冻结为 Project-defined；不实现通用 LONPOLE） |
 | SIP §A（A/B 前向、AP/BP 逆向与单位线性剔除） | SIP 畸变系数约定与单位线性项处理 | PROJECT_DEFINED | docs/science/ASTROMETRY.md；docs/science/algorithms/PLATESOLVE.md | DISP-WCS-008（AP/BP 采样网格 ≥7×7，实现 41×41/81×81 + 迭代反演；7×7 自证门不成立） |
 | Paper I/II parity 与手性（det(CD) 符号、east_left/east_right） | 像素手性由 CD 行列式符号表达，翻转下 abs(det(CD)) 恒定 | CONFORMANT | docs/science/ASTROMETRY.md；docs/science/algorithms/PHASE3_PROJ_IMPL.md；eng/tests/unit/p3_projection_test.cpp | 无（T3/T5 含 det<0 与 crpix 奇偶双例 bitwise 断言） |
 | 退化语义（CD det→0 禁坍缩冒充解） | 退化线性变换一律显式报退化 | PARTIAL | docs/science/algorithms/PLATESOLVE.md；lib/algorithms/platesolve/cpp/ipv/src/ipv_wcs.cpp；eng/tests/unit/p1wcs/p1wcs_tests_negative.cpp | DISP-WCS-001（CD 退化静默坍缩，负面用例已覆盖） |
@@ -249,7 +249,7 @@
 | STD-F1 | spherical-projection | Paper I §2.1.1（CRPIX 1-based 参考像素） | 第 1 行 | CONFORMANT（求解器输出即 1-based FITS `p`；产品网格/数组下标→FITS 单次 +1 在导出边界，实测 astropy 交叉 5.7e-14 deg） | STD-F1-ADJ |
 | DISP-WCS-001 | spherical-projection | 退化语义（CD det→0 禁坍缩冒充解） | 第 7 行 | TRACKED | P1-WCS-IMPL |
 | DISP-WCS-008 | spherical-projection | SIP §A（A/B 前向、AP/BP 逆向与单位线性剔除） | 第 5 行 | TRACKED | P1-WCS-IMPL |
-| DISP-P3PROJ-001 | spherical-projection | Paper II §5 Table 1（TAN/SIN/CAR/AIT 四投影） | 第 3 行 | TRACKED | P3-PROJ-IMPL / P3-PROJ-INT |
+| DISP-P3PROJ-001 | spherical-projection | Paper II §5.1.3 式(54)（TAN/SIN/CAR/AIT 四投影） | 第 3 行 | TRACKED | P3-PROJ-IMPL / P3-PROJ-INT |
 | STD-F4 | hips | §4.2.1（properties 必需键集） | 第 3 行 | OPEN（下一轮域任务） | HiPS 域原子任务 |
 | DISP-HIPS-001 | hips | properties 1.4（hips_version="1.4" 与 hierarchy 聚合） | 第 7 行 | TRACKED | P1-HIPS-IMPL / P1-HIPS-INT |
 | DISP-HIPS-002 | hips | §4.2.1（properties 可选/推荐键：hips_status/hips_estsize/hips_initial_fov） | 第 4 行 | TRACKED | P1-HIPS-IMPL |
@@ -329,7 +329,7 @@
 | C8 | §3 偏差索引与偏差登记面双向一致：定义域为空 ⇒ 索引必须有显式「（无）」行；定义域非空 ⇒ 索引各行均为真实偏差 ID（「（无）」行的适用范围 = 定义域为空） |
 | C9 | **[W4-A3]** 域清单「偏差」列 → 域 DEVIATION 字段**反向一致**：清单行偏差列里出现的每个 STD-F*/DISP-* 词元必须在本域 DEVIATION 字段中有定义。C4 只判该列非空、C7 只判 §3 索引 → DEVIATION；补上反向后"清单行写着 STD-F1 而 DEVIATION 字段删掉它"不再可能整体绿 |
 
-用法（PASS 时 exit 0；FAIL 为 1；锚失效为 2）：域内手工复跑，判据载体随 门禁注册面（G08-10 重建） 落盘。
+用法（PASS 时 exit 0；FAIL 为 1；锚失效为 2）：域内手工复跑，判据载体无在位注册面。
 
 锚存活（`docs/DOCUMENT_INDEX.yaml`，fail-closed）：`REQUIRED_ANCHORS`（本注册表 +
 docs/DOCUMENT_INDEX.yaml）在启动时校验 os.path.exists + `git ls-files --error-unmatch`；
@@ -338,13 +338,13 @@ docs/DOCUMENT_INDEX.yaml）在启动时校验 os.path.exists + `git ls-files --e
 负向注入自证（9 场景，**域内手工复跑判据**：全部必须 FAIL；判定看 verdict 字段）：
 
 > ⚠ **负向注入的 CI 登记状态**：
-> 下列 9 场景与「注入空转守卫（`FAULT_INJECT_NOOP`）」中，**2 个场景已登记进
-> 门禁注册面（G08-10 重建）**（`STD-REG-FI-DANGLING` = `dangling-deviation-id`、
-> `STD-REG-FI-VERSION-DRIFT` = `version-drift`）；**其余 7 个场景与空转守卫为
+> 下列 9 场景与「注入空转守卫（`FAULT_INJECT_NOOP`）」中，**2 个场景的登记项已定义**
+> （`STD-REG-FI-DANGLING` = `dangling-deviation-id`、
+> `STD-REG-FI-VERSION-DRIFT` = `version-drift`；本仓无在位门禁注册面，登记项无强制效力）；**其余 7 个场景与空转守卫为
 > PLANNED（计划）**，**不是**已生效的强制 CI 义务。
 > 本节的「全部必须 FAIL」是**域内手工复跑**判据（手动执行 `--fault-inject`），
-> 其效力范围 = 域内手工复跑，CI 强制需另经登记。补登记属 门禁注册面（G08-10 重建） 写入面（**不在本文件域**），
-> 须先在 门禁注册面（G08-10 重建） 登记（`changed_paths=["docs/standards/**"]`，参照 DOC-INDEX 形态）；
+> 其效力范围 = 域内手工复跑，CI 强制需另经登记。补登记属门禁写入面（本仓无在位写入面；**不在本文件域**），
+> 须先在门禁注册面登记（本仓无在位注册面；`changed_paths=["docs/standards/**"]`，参照 DOC-INDEX 形态）；
 > 补登记完成后方可把本节改回强制口径。
 
 逐个场景以 `--fault-inject <场景名>` 复跑（场景名 = drop-domain-section / drop-checklist-table /
@@ -365,12 +365,12 @@ drop-governance-deviation / add-none-marker-row / anchor-stale）。
 观察退出码（预期 rc=2）。
 
 > CI 登记状态：本检查器为**治理文档检查器**
-> （非 CTest 目标、非 add_test 注册面）。**已登记**：门禁注册面（G08-10 重建） 的 `STD-REG` 项
+> （非 CTest 目标、非 add_test 注册面）。**已登记**：门禁注册面的 `STD-REG` 登记项（本仓无在位注册面）
 > （主判据 C1–C9）+ 2 个负向注入场景
 > （`STD-REG-FI-DANGLING`、`STD-REG-FI-VERSION-DRIFT`）。
-> **未登记（PLANNED）**：其余 7 个注入场景 + 空转守卫；该登记属 门禁注册面（G08-10 重建） 写入面，
+> **未登记（PLANNED）**：其余 7 个注入场景 + 空转守卫；该登记属门禁写入面（本仓无在位写入面），
 > 超出本文件域（参照 DOC-INDEX 检查项形态：changed_paths=["docs/standards/**"]）。
-> 补登记前，未登记场景由域内任务按 §1 纪律**手工复跑**；CI 强制的范围以 门禁注册面（G08-10 重建） 登记为准。
+> 补登记前，未登记场景由域内任务按 §1 纪律**手工复跑**；CI 强制的范围以门禁注册面登记为准；本仓无在位门禁注册面，故现无 CI 强制范围。
 
 ---
 
@@ -384,7 +384,7 @@ drop-governance-deviation / add-none-marker-row / anchor-stale）。
   docs/science/algorithms/PLATESOLVE.md、docs/science/algorithms/PHASE3_PROJ_IMPL.md、docs/science/algorithms/HIPS_WRITER.md、
   docs/science/algorithms/HEALPIX_MAPPING.md、docs/science/algorithms/DRIZZLE_GEOMETRY.md、docs/science/algorithms/GAIA_QUERY.md、
   docs/science/IO_001_FITS_STREAM_INTERFACE.md、docs/science/IO_002_HIPS_INPUT_INTERFACE.md。
-- 机器检查：标准注册表判据 C1–C9（载体见 门禁注册面（G08-10 重建））；docs/DOCUMENT_INDEX.yaml（DOC-INDEX 检查项）。
+- 机器检查：标准注册表判据 C1–C9；docs/DOCUMENT_INDEX.yaml（DOC-INDEX 检查项）。
 - 本文件不修改任何 SCI/ALG 公式、默认容差或冻结门；冲突一律登记偏差（§1.2/§1.5）。
 
 ---
@@ -393,8 +393,8 @@ drop-governance-deviation / add-none-marker-row / anchor-stale）。
 
 > 依据：`ACSD_DESIGN.md` §0.2（登记表/映射表的状态字段一律留空）、§12.5（状态必须现场计算）。
 
-- 本表**不写**交付状态阶梯（§12.5 的 `CONTRACT_READY`/`IMPLEMENTED`/…）——那是模块/交付物的状态，由交付状态现场计算（载体见 门禁注册面（G08-10 重建））；文档活动分类一律以 `docs/DOCUMENT_INDEX.yaml` 为准，文档索引判据载体见 门禁注册面（G08-10 重建）。
+- 本表**不写**交付状态阶梯（§12.5 的 `CONTRACT_READY`/`IMPLEMENTED`/…）——那是模块/交付物的状态，由交付状态现场计算；文档活动分类一律以 `docs/DOCUMENT_INDEX.yaml` 为准，文档索引判据无在位载体。
 - 本表保留的两列**不是**交付状态，且都由机器校验，不构成「表内自证绿」：
   - `符合状态`（`CONFORMANT`/`PARTIAL`/`NON_CONFORMANT`/`PROJECT_DEFINED`）= 与**外部标准条款**的关系轴，取值域与证据指针存在性由 C4/C5 现场判（`docs/engineering/RELEASE_STATUS.md` §0 已声明两轴独立）；
   - §3 偏差索引的 `状态`（`TRACKED`/`CLOSED`）= 偏差处置登记，定义域与索引一致性由 C6/C7 现场判。
-- 若后续要求连这两列也改为「检查器现场计算」，须先改 C4/C6 判据并同步 门禁注册面（G08-10 重建） 的 STD-REG 项——属门禁改造，不在本文件域内。
+- 若后续要求连这两列也改为「检查器现场计算」，须先改 C4/C6 判据并同步门禁注册面的 STD-REG 登记项（本仓无在位注册面）——属门禁改造，不在本文件域内。

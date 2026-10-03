@@ -116,10 +116,10 @@
   tile 内 NaN→C=1+值 NaN/test_06_no_silent_default_open/seam 域界
   1e8-1..12e8+1 连续性 1e-5°）+ test_p3003_parallel_resampler.py +
   eng/tests/unit/p3_interp_test.cpp + p3_coverage_test.cpp（独立参考实现,
-  非生产自证; 7)-10) 段新增样本级掩膜口径的参考模型判据）+
-  lib/algorithms/resample/tests/p3rsmp/p3_nan_mask_test.cpp（**生产码在内**
-  的掩膜 Oracle+负例: 逐像素注入 NaN/±Inf, 解析真值=重归一加权和,
-  含「实现回退 any_nan→NaN 即判红」实证, run/RSMP-NANMASK-01/evidence/）。
+  非生产自证; 7)-10) 段新增样本级掩膜口径的参考模型判据）；样本级掩膜
+  Oracle+负例（**生产码在内**: 逐像素注入 NaN/±Inf, 解析真值=重归一加权和,
+  含「实现回退 any_nan→NaN 即判红」实证）的实测记录见
+  run/RSMP-NANMASK-01/evidence/。
 - 实测偏差（如实登记，DISP/整改不修码）:
   1) DISP-P3RSMP-001: bilinear=切平面四象限最近中心双线性
      （cpp:196-230）；ALG-P3-003 G4 施工规格写"面积重叠分数（投影

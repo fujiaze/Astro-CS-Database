@@ -2,8 +2,7 @@
 
 > **W4-A9 批次 1（2026-09-17）**：本文件下文所有 `lib/phase3_session/p3_wcs.*`
 > 路径已随生产源迁至 **`lib/algorithms/projection/p3_wcs.{h,cpp}`**（docs/ACSD_DESIGN
-> §7.1「projection」行），共址测试在 `lib/algorithms/projection/tests/p3wcs/**`
-> （ctest 名 `p3_wcs`）；构建为 `acsd_p3_projection_wcs` STATIC，经
+> §7.1「projection」行）；构建为 `acsd_p3_projection_wcs` STATIC，经
 > `acsd_phase3_session` → `acsd_module_adapters` 闭包进产品图。
 > 下文保留冻结时（2026-09-11）的历史表述，行号锚按新址复测。
 

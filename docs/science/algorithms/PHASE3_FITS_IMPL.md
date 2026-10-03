@@ -425,7 +425,7 @@ function p3_output_verify(path, wcs, signal, coverage, W, H, out result):
 
 
 - FITS 标准/关键字：FITS Standard 3.0（HDU/关键字/checksum）；CFITSIO（宽松许可，NASA/HEASARC）作独立读取器。
-- WCS 关键字语义：Greisen & Calabretta 2002, A&A 395, 1061（Paper I）§2.1.1；Calabretta & Greisen 2002, A&A 395, 1077（Paper II）。
+- WCS 关键字语义：Greisen & Calabretta 2002, A&A 395, 1061（Paper I）§2.1.1 式(1)（CRPIX 为参考像素、q=Σ m_ij(p_j−CRPIX_j)）与 §2.1.4（1-based）；Calabretta & Greisen 2002, A&A 395, 1077（Paper II）§2.3 式(2)–(7)/附录 A.1（旋转核与矩阵形式）。
 - HiPS 输入语义：IVOA HiPS 1.0（https://www.ivoa.net/documents/HiPS/）；Fernique et al. 2015, A&A 578, A114。
 - 原子写：POSIX rename(2) 原子性（IEEE Std 1003.1）；本文件 §4 write_atomic 为 Project-defined。
 - BUNIT/VARIANCE/IVAR 扩展：DATA_SEMANTICS §30；FITS Standard 3.0 §4.3。

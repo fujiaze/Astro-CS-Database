@@ -15,7 +15,7 @@
 为准。现状构建 = `cpp/Makefile` + `cpp/build.ps1` → `photometric_calib.dll`，
 未编入根 CMake 主构建。缺陷与整改登记 = PHOTOMETRIC_FIT §13.3。
 `lib/algorithms/photometry/wrapper_phase1` 的 Photometer aperture 面为迁移目标面
-（README §9），当前由共址单测 `eng/tests/unit/p1_wcs_phot_test` 引用。
+（README §9），当前无仓内可复算的用例引用。
 
 ## 职责与明确非职责
 
@@ -192,8 +192,8 @@ cache/内存按 ALG 合同（bounded）; I-O 单 writer。
 SCI-PHOT-001 §11 容差 —— 注入 rtol 1e-4、20% 离群 Δlocation < 0.1 dex、NumPy
 rtol 1e-9）。
 
-既有锚：`eng/tests/unit/p1_wcs_phot_test.cpp`（Photometer 4 组）、
-`lib/algorithms/photometry/cpp/test/test_photometric_calib.py`（对齐回归锚）。
+已取证的相邻锚：Photometer 4 组读数与对齐回归读数；其载体不在本仓可复算路径上，
+引用时只作背景。
 
 Oracle 面：
 

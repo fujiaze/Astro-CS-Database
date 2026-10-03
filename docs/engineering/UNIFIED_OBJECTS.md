@@ -81,7 +81,7 @@ UNIFIED_MODEL §2 末条：**一个字段只承载一个含义**（模糊名 `we
 | 独立 Oracle + 负向 mutation 验证面 | `eng/tests/contracts/product_family/` | verification |
 | 共享校验器 | `eng/tests/common/jsonschema_min.py` | shared_validator |
 
-> 产品族记录级合同与被其引用的 canonical 对象合同**不等价**（前者含 49 条 `PENDING_OWNER_SIGNOFF` 条款，
+> 产品族记录级合同与被其引用的 canonical 对象合同**不等价**（前者含 48 条 `PENDING_OWNER_SIGNOFF` 条款，
 > fail-closed），因此以「非对象合同」身份在 ownership 索引中登记；其读写规则、fail-closed 门与词表不变。
 > `psfsw_robust_weight` 对象的负例见 `eng/contracts/schemas/unified/negative/n5_retired_psfsw_robust_weight.schema-violation.json`。
 

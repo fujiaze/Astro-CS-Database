@@ -50,7 +50,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Optional
 
-try:  # 库导入（eng/ci/tests 经 namespace package 导入）
+try:  # 库导入（作为包导入时）
     from tools.monitoring import resource_probe as _rp
 except ImportError:  # 脚本直跑（sys.path[0] = 本目录）
     import resource_probe as _rp  # type: ignore[no-redef]

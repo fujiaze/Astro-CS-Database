@@ -5,7 +5,7 @@
 > 上位：`ACSD_DESIGN.md` §10；`docs/detail/PRODUCT_STORAGE_FORM.md`
 下游：`docs/science/IO_002_HIPS_INPUT_INTERFACE.md`、`docs/engineering/io/IO_003_ATOMIC_OUTPUT_PUBLISH.md`、`docs/detail/infrastructure/17_aio.md`、`docs/detail/algorithms_phase1/08_drizzle.md`、`docs/detail/algorithms_phase2/09_coverage.md`
 机器事实源：`eng/contracts/schemas/hips_storage_form.schema.json`（索引文件 schema）
-机器检查器：落盘形态判据（CI 检查 `CHK-HIPS-STORAGE-FORM`，载体见 门禁注册面（G08-10 重建））
+机器检查器：落盘形态判据（CI 检查 `CHK-HIPS-STORAGE-FORM`）
 
 ## 1. 冻结面
 
@@ -174,10 +174,10 @@
 ## 9. 机器校验
 
 - 索引 schema：`eng/contracts/schemas/hips_storage_form.schema.json`；
-- 检查器（`--root .`，exit 0 = PASS；载体见 门禁注册面（G08-10 重建）；同时跑逐层字段口径一致性判据）；
+- 检查器（`--root .`，exit 0 = PASS；同时跑逐层字段口径一致性判据）；
 - 逐层口径（`--doc-consistency`）：每层文档必须出现词表登记的字段名与取值，词表外的同义名一律判红；
 - 负例自检（`--self-test`，恒 0 = 全部内置正/负例符合预期；覆盖形态键缺省/留空的默认+warn、逐帧索引字段、清单 storage 段、mosaic/export 形态键 REJECT、层间口径不一致）；
-- CI 登记：门禁注册面（G08-10 重建） 的 `CHK-HIPS-STORAGE-FORM`。
+- CI 登记：无在位注册面（本仓无在位的门禁注册面与执行器）。
 
 ## 10. 形态的输入配置与输出清单字段（MUST）
 

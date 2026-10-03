@@ -67,13 +67,7 @@
     0.012° 硬编码（:849-850）。
   - DISP-P2SMP-005: clipping 收敛阈值 1e-12×max(|m0|,1e-12) 在
     m0≈0 时过严（:818），退化固定轮数全迭代（确定性无影响）。
-- 验证锚（相邻证据，引用不冒认）: lib/algorithms/coverage/tests/synthetic_gate.cpp
-  Phase2Sampler 组（RealHipsControlSampling :3423、
-  G6LocalSnrAvailabilityThreeZones :3470、G1StatisticsCorrectness
-  :3594、UPMW-004 MC :4001、cvar 公式 :4089）+
-  sampler_parallel_consistency_test.cpp:29（OneTvsTwoTDeterminism）+
-  ivar_wiring_test.cpp:223（WireProductionStage2PerFrameIvar）。可执行
-  TEST-P2-SMP-001 MISSING（P2-SAMP-TEST 建立）；登记面=
+- 可执行 TEST-P2-SMP-001 MISSING（P2-SAMP-TEST 建立）；登记面=
   TEST-P2-SMP-DESIGN-001 设计冻结 VERIFIED（registry 页
   acsd.phase2.sample.md §独立 synthetic 验证节 + ALG §11.3
   F1-F9 容差）。

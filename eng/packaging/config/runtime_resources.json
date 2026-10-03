@@ -51,7 +51,7 @@
     "p2_tile_shift": 9,
     "p2_tile_shift_constraint": "整数 ≥ 0；leaf order − tile order 差（512 = 2^9）。与 p2_tile_leaf_span 必须满足 span == (1<<shift)^2（configure 期 static_assert 锁定）。",
     "p3_default_sub_block_px": 256,
-    "p3_default_sub_block_px_constraint": "整数，必须落在 [p3_min_sub_block_px, p3_max_sub_block_px]；P3 位置写子块的缺省边长（像素）。取值来源 = 内存守卫在途上界 2·queue_depth·sb²·8 B 在本机预算下的可行域（标定面见 eng/tests/config/test_cfg004_unified_contract.py）。",
+    "p3_default_sub_block_px_constraint": "整数，必须落在 [p3_min_sub_block_px, p3_max_sub_block_px]；P3 位置写子块的缺省边长（像素）。取值来源 = 内存守卫在途上界 2·queue_depth·sb²·8 B 在本机预算下的可行域。",
     "p3_min_sub_block_px": 16,
     "p3_min_sub_block_px_constraint": "整数 ≥ 1；缺省值域下界（fail-closed 守卫：越界配置被拒，不回退静默取值）。",
     "p3_max_sub_block_px": 1024,

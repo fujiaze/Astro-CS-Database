@@ -148,8 +148,7 @@ Oracle 面：
 - 1 worker vs N worker 输出一致；ISA 等价；
 - 注入点源信息权重理论 σ_F=1/√W_psf 与实测一致（与 psf / noise_snr 模块配合）。
 
-既有共址测试 = lib/algorithms/calibration/tests/，其中
-`test_photometry_apply.cpp` 未挂接 CMake 测试目标。Python 对照实现不在本树。
+已取证的共址验证读数中，定标应用面未挂接 CMake 测试目标。Python 对照实现不在本树。
 
 ## 已知限制
 

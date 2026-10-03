@@ -280,7 +280,7 @@ spectrum_start/step/count 取自 XPSD XML <Data parameters="...">（缺省 0，
 
 - Gaia 星表发布：Gaia Collaboration et al. 2016, A&A 595, A1（DR1）；2018, A&A 616, A1（DR2）；2021, A&A 649, A1（EDR3）；2023, A&A 674, A1（DR3）。**核验状态**：文章级。
 - Gaia 天体测量解：Lindegren et al. 2021, A&A 649, A2（DOI 10.1051/0004-6361/202039709）。
-- XP 光谱与外部定标：Gaia Collaboration et al. 2023, A&A 674, A1（DR3 文档）；CALSPEC（Bohlin et al. 2014, PASP 126, 711；Bohlin, Hubeny & Rauch 2020, AJ 159, 246）。
+- XP 光谱与外部定标：Gaia Collaboration et al. 2023, A&A 674, A1（DR3 文档）；CALSPEC（Bohlin 2014, AJ 147, 127，DOI 10.1088/0004-6256/147/6/127 —— 单作者；Bohlin, Hubeny & Rauch 2020, AJ 160, 21，DOI 10.3847/1538-3881/ab94b4）。
 - 锥搜索/球面几何：astropy（BSD-3-Clause）SkyCoord/cone search 作独立 Oracle；HEALPix 见 Górski et al. 2005。
 - 极冠平面剪枝：Project-defined（本文件 §2.5）。
 

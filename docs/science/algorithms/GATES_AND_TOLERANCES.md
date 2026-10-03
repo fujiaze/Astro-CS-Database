@@ -13,7 +13,7 @@
 > ALG-WCS-001 §11.4（docs/science/algorithms/PLATESOLVE.md）。
 > 标定证据面: 本表各行「来源」列所引 SCI/ALG 条款与对应 `ctest` 目标
 > （探针直链本树 sdet+dpsf 静态库 + scipy 独立复算）。
-> 机器校验: 门表登记校验项（本表即机器可校验事实源；载体见 门禁注册面（G08-10 重建））。
+> 机器校验: 门表登记校验项（本表即机器可校验事实源）。
 
 ## 1 规则（冻结）
 
@@ -78,7 +78,7 @@ R-3 §2.9 实测同一 Moffat4 场 `SNR_peak=20` 时 sdet 检出 **0 星**、
 
 | 脚本 / 阈值 | 现状 | 处置 |
 |---|---|---|
-| `lib/algorithms/photometry/cpp/test/gate4_dr3sp_gaiaxpy/gate2_psf_oracle.py` 的 `fwhm_median_le_1pct` / `ell_median_le_0.005` / `flux_median_le_1pct` / `photutils_oracle_centroid_p95_le_0.05px` | Windows 专用脚本，未注册进 门禁注册面（G08-10 重建）；4 个阈值在活动 `docs/**` 零命中（R-3 §3.5） | 降级为**诊断脚本**：引用面限于诊断；如需升格，必须先在 §3 登记门ID/域/统计量/来源并注册 CI 检查（转 CI-003） |
+| `lib/algorithms/photometry/cpp/test/gate4_dr3sp_gaiaxpy/gate2_psf_oracle.py` 的 `fwhm_median_le_1pct` / `ell_median_le_0.005` / `flux_median_le_1pct` / `photutils_oracle_centroid_p95_le_0.05px` | Windows 专用脚本，未注册进任何在位门禁注册面；4 个阈值在活动 `docs/**` 零命中（R-3 §3.5） | 降级为**诊断脚本**：引用面限于诊断；如需升格，必须先在 §3 登记门ID/域/统计量/来源并注册 CI 检查（转 CI-003） |
 
 ## 4a 台账实测值（**XISF 母版单位修复后须整体复跑**）
 
@@ -106,7 +106,7 @@ R-3 §2.9 实测同一 Moffat4 场 `SNR_peak=20` 时 sdet 检出 **0 星**、
 ## 参考文献与参考代码库（含许可证）
 
 
-- SNR_det/SNR_peak 与检测阈：Bertin & Arnouts 1996, A&AS 117, 393（SExtractor）；Stetson 1987, PASP 99, 191（DAOPHOT）。
+- `SNR_det`/`SNR_peak`：**本仓 Project-defined 量**（两条定义式见本文件 §2 表，均非外部文献给出，引用时必须随定义同写）。外部文献只提供检测阈的**其它**口径：SExtractor（Bertin & Arnouts 1996, A&AS 117, 393）给出的是 ±3σ 背景裁剪（§2）、去混叠通量比 δ=5·10⁻³（§4.1）与 Kron 半径 k=2/2.5（§6），全文不含 SNR 型定义或阈值公式；DAOPHOT 见 Stetson 1987, PASP 99, 191（Bertin & Arnouts §2 只以一句提及 "in Stetson's DAOPHOT program"，该文本身未著录 Stetson 1987，两条引用各自独立、不得相邻解读为同一来源）。
 - 天测残差口径与大圆角距：Greisen & Calabretta 2002, A&A 395, 1061（Paper I）；Calabretta & Greisen 2002, A&A 395, 1077（Paper II）；astropy.wcs（BSD-3-Clause）作独立重建 Oracle。
 - Gaia G<18 样本与 1″ 匹配：Gaia DR3（Gaia Collaboration et al. 2023, A&A 674, A1）；匹配半径/统计量的冻结依据见本文件 §3 与 ASTROMETRY §11a。
 - MAD→σ 常数：Rousseeuw & Croux 1993, JASA 88, 1273。

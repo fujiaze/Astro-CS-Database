@@ -195,12 +195,10 @@ rtol 1e-12、F3 control_variance Python oracle rtol 1e-12 + UPMW-004 MC、
 F4 坐标 atol 1e-9 deg、F5 constant/gradient/impulse rtol 1e-12、F6 边界 / seam
 exact、F7 missing / invalid exact、F8 串并行 bitwise、F9 计数守恒现状口径）。
 
-现状相邻证据（引用不冒认）：lib/algorithms/coverage/tests/synthetic_gate.cpp 的
-Phase2Sampler 组（RealHipsControlSampling、G6LocalSnrAvailabilityThreeZones、
-G1StatisticsCorrectness、UPMW-004 MC、cvar）+
-sampler_parallel_consistency_test.cpp + ivar_wiring_test.cpp（ivar 面）+
-`lib/algorithms/drizzle/healpix_drizzle/tests/control_median_mc_test.cpp`
-（control estimator 方差的 MC 证据，可复跑）。
+已取证但载体不在仓内的相邻结论（不冒认）：Phase2Sampler 组（RealHipsControlSampling、
+G6LocalSnrAvailabilityThreeZones、G1StatisticsCorrectness、UPMW-004 MC、cvar）、
+串并行一致性面、ivar 接线面，以及 control estimator 方差的 MC 证据。
+这些读数不在本仓可复算路径上，引用时只作背景。
 
 Oracle 面：
 

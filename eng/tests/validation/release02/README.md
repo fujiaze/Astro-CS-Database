@@ -5,6 +5,12 @@
 > 由 `run/RELEASE-02/<name>/` 收集而来（`run/` 为 gitignore，故迁入此处长期保留）。
 > 大体积中间数组（`.npz`/`.npy`/`>1MB` JSON）未收录，可由脚本重新生成。
 
+**现态**：域内机器门禁退场后，本目录保留的是**可复跑实验驱动与实测结果载荷**
+（合成对照、真实数据读数、能红能绿的负例）—— 它们是科学结论的一手证据载体。
+原有的**预言机程序、自检件与构建/运行输出快照**（`*.cpp` 预言机、`*.sh` 一次性构建驱动、
+`*.log`/`*.txt` 执行痕迹）已随门禁一并退场；相应实验的结论与读数仍在本目录的 `README.md`
+与 `*.json` 载荷中。`fix_p2a_seam_oracle/` 因只剩退场件而整目录清空。
+
 ---
 
 ## 0. 目录索引
@@ -16,10 +22,9 @@
 | `q3_additive_truth/` | 「正确归一化后帧间差=纯加性天光」是否成立 | 合成 + 真实 |
 | `phot_verify/` | Phase1 `k_photo` 定义式 / 拟合质量 / 空间乘法残留 | 真实 |
 | `c_delta_composition/` | C 场与 δ_k 的组合语义（双重扣除） | 真实（后验分解） |
-| `unc_propagation/` | 归一化的方差传播与权重序 | Oracle |
-| `fix_p1_photometry_apply/` | `I_photo=k_photo·I_cal` 施加的判别力 | Oracle |
-| `fix_p2a_seam_oracle/` | 无阶跃 formulation 的代数+数值验证 | Oracle |
-| `fix_p2b_variance_oracle/` | 残差制造者方差 `PΣPᵀ` 与权重序 | Oracle |
+| `unc_propagation/` | 归一化的方差传播与权重序 | 实验驱动 + 结果载荷 |
+| `fix_p1_photometry_apply/` | `I_photo=k_photo·I_cal` 施加的判别力 | 实验驱动 + 结果载荷 |
+| `fix_p2b_variance_oracle/` | 残差制造者方差 `PΣPᵀ` 与权重序 | 实验驱动 |
 
 ---
 

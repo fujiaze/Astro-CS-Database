@@ -26,8 +26,7 @@
 //       产物区登记）。用途: 把批拟合的**真实工作量**逐候选落盘（候选序 / 矩形
 //       尺寸 / 逐候选耗时 / 状态 / 局部背景与峰值 / LM 迭代数 / 退化阶段），
 //       供节点级门（p1stardet_node_gate）900 s 级超时做定量定位。
-// 边界（先例 = lib/algorithms/star_detection/src/sdet_api.cpp 的 #ifdef
-//       SDET_TESTING 审计钩子: 「生产构建不含此定义, ABI/行为零影响」）:
+// 边界（判据 = 「生产构建不含此编译期定义 ⇒ ABI/行为零影响」）:
 //   * 生产 target acsd_p1_dpsf **不定义** DPSF_FIT_DIAG ⇒ 本块整段不编入,
 //     生产二进制的数值、状态码、时序与判据逐位不变;
 //   * 编入后仍要运行期 DPSF_DIAG_PATH 非空才记录, 否则每次拟合只多一次

@@ -44,7 +44,7 @@
 **HiPS 读路径线程模型**：每次调用各自 open→read→close，句柄只活在调用栈帧内；
 `FptrTable` 与错误栈由 cfitsio 自带 `Fitsio_Lock` 保护，`READONLY` 打开走
 `fits_already_open` 直接返回、不复用句柄（`cfitsio/cfileio.c` `:1544`）。
-机器判据 = `EXEC-AIO-READ-NO-GLOBAL-LOCK`（执行合同判据，载体见 门禁注册面（G08-10 重建））。
+机器判据 = `EXEC-AIO-READ-NO-GLOBAL-LOCK`（执行合同判据）。
 
 ## 3 锁 / 原子与 I/O 串行
 
@@ -137,7 +137,7 @@
 
 - `lib/infrastructure/cli/runtime_contract.h`：由 `lib/infrastructure/cli/commands.cpp` include 并**编入产品 `acsd`** ⇒ **在役生产**。
 - `lib/infrastructure/cli/mode_gate.h`：同链 include ⇒ **在役生产**。
-- `lib/infrastructure/scheduler/budget.py`：由运行闭包判据调用其 `selftest`、由 `eng/tools/quality/runtime_oracle.py` 锚定（运行闭包判据载体见 门禁注册面（G08-10 重建））⇒ **在役 CI 面**。
+- `lib/infrastructure/scheduler/budget.py`：由运行闭包判据调用其 `selftest`、由 `eng/tools/quality/runtime_oracle.py` 锚定（运行闭包判据）⇒ **在役 CI 面**。
 - 上述三者与隔离面（ACR / CUDA / GPU、Qt 浏览器）**分属不同类别**，各列一张表。
 
 ## 11 治理任务执行模型
