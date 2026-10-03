@@ -28,8 +28,10 @@
  *   FZ-AP2S-IDENT-RTOL 1e-9 / FZ-AP2S-EPSF-RTOL 1e-12 /
  *   FZ-AP2PT-CORR-RATIO-MIN 1.05
  *   （FZ-AP2PT-SNR-IDENT-RTOL 已撤：其被检验量与参照量同源 ⇒ 差按构造恒为 0；
- *     条款 subject「SNR_combined^2=Sum_k SNR_k^2」也不是恒等式，只在 F_hat=F
- *     或各帧估计零散度的退化情形成立。本面证据资格 = 空，登记表里据实写明
+ *     条款 subject「SNR_combined^2=Sum_k SNR_k^2」的失效机理在参考通量 F_ref 的
+ *     定义域：F_ref 组内公共时它是方差可加的定义式重述 ⇒ 恒真、零鉴别力、无证据
+ *     资格；F_ref 逐帧时无公共锚、不构成单一绝对信噪比的平方 ⇒ 无定义、无法判定。
+ *     两种情形下它都不能充当实现正确性判据。本面证据资格 = 空，登记表里据实写明
  *     「不得以门通过为据」。见 GOVERN-08/G08-05。）
  *   FZ-FORMULA-COV-PROP      C_out = R C_in R^T；variance_from=combination_coefficients；
  *                            禁 1/W_psfsw、禁权重/诊断反推

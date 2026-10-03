@@ -60,4 +60,4 @@ ctest --test-dir <build_it> --output-on-failure
   `lib/infrastructure/aio/**`、`eng/contracts/**`、`docs/**`、根/公共 CMakeLists。
 - `lib/algorithms/coverage/src/integrate.cpp`/`block.cpp` 的 legacy 生产 API 未修改：V6 组合核心落在本目录，
   避免向根构建面注入新 `-I` 依赖（CMake 归属 W9）。
-- 不发布、不改冻结公式/容差/门；49 条 PENDING 保持 fail-closed。
+- 不发布、不改冻结公式/容差/门；48 条 PENDING 保持 fail-closed。
