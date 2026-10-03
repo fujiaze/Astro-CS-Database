@@ -159,6 +159,7 @@ def main():
     res["armA_12seed_rel_bias"] = {"values": [float(b) for b in biases],
                                    "max_abs": float(np.max(np.abs(biases)))}
     print(json.dumps(res, indent=2))
+    os.makedirs(os.path.dirname(OUT), exist_ok=True)
     with open(OUT, "w") as f:
         json.dump(res, f, indent=2)
 

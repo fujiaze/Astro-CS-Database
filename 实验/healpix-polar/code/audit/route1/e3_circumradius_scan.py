@@ -161,6 +161,7 @@ out["classification"] = ("structural safety buffer (exempt from three-leg requir
                          "bound for candidate completeness; does not enter published signal/variance; "
                          "zero-miss enforced by candidate oracle")
 
+os.makedirs(os.path.join(UNIT, "results", "audit", "route1"), exist_ok=True)
 with open(os.path.join(UNIT, "results", "audit", "route1", "e3_circumradius_scan.json"), "w") as fh:
     json.dump(out, fh, indent=1)
 lines = ["E3 HP_CIRCUMRADIUS_FACTOR scan (seed=%d)" % SEED, ""]

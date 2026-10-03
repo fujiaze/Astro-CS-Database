@@ -160,6 +160,7 @@ def main():
           and all(r["max"] < 0 for r in rows))
     out["verdict"] = "PASS" if ok else "FAIL"
     print(json.dumps(out, indent=2))
+    os.makedirs(os.path.join(UNIT, "results", "audit", "route2"), exist_ok=True)
     with open(os.path.join(UNIT, "results", "audit", "route2", "exp05_projection_budgets.json"), "w") as fh:
         json.dump(out, fh, indent=2)
 

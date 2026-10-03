@@ -182,6 +182,7 @@ def main():
           and abs(out["fixture"]["total_flux_conservation_rel"]) < 1e-12)
     out["verdict"] = "PASS" if ok else "FAIL"
     print(json.dumps(out, indent=2))
+    os.makedirs(os.path.join(UNIT, "results", "audit", "route2"), exist_ok=True)
     with open(os.path.join(UNIT, "results", "audit", "route2", "exp03_flux_conservation.json"), "w") as fh:
         json.dump(out, fh, indent=2)
 

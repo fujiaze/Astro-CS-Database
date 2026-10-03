@@ -73,6 +73,7 @@ def main():
     # ratio of the two profile blocks (P-CST-04 vs P-CST-05), for the record
     res["gaussian_over_moffat4_ratio"] = float(2.3548200450309493 / ratio_closed)
     print(json.dumps(res, indent=2))
+    os.makedirs(os.path.dirname(OUT), exist_ok=True)
     with open(OUT, "w") as f:
         json.dump(res, f, indent=2)
 

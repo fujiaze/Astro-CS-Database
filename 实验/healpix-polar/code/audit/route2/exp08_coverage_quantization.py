@@ -137,6 +137,7 @@ def main():
           and out["bankers_hazard"]["lround_q"] == 1)
     out["verdict"] = "PASS" if ok else "FAIL"
     print(json.dumps(out, indent=2))
+    os.makedirs(os.path.join(UNIT, "results", "audit", "route2"), exist_ok=True)
     with open(os.path.join(UNIT, "results", "audit", "route2", "exp08_coverage_quantization.json"), "w") as fh:
         json.dump(out, fh, indent=2)
 

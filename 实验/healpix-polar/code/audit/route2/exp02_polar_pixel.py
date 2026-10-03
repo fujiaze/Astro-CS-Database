@@ -115,6 +115,7 @@ def main():
           and abs(res["per_N"][-1]["worst_rel_chord"]) / floor > 1000)
     res["verdict"] = "PASS" if ok else "FAIL"
     print(json.dumps(res, indent=2))
+    os.makedirs(os.path.join(UNIT, "results", "audit", "route2"), exist_ok=True)
     with open(os.path.join(UNIT, "results", "audit", "route2", "exp02_polar_pixel.json"), "w") as fh:
         json.dump(res, fh, indent=2)
 

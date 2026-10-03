@@ -85,6 +85,7 @@ def main():
         out.append(rec)
         del imgA, imgB
 
+    os.makedirs(DATA, exist_ok=True)
     with open(os.path.join(DATA, "aperture_probe.json"), "w") as fh:
         json.dump({"pairs": out, "tau": args.tau, "radii": RADII, "elapsed_s": time.time() - t0}, fh, indent=1)
     print("[done] %.0fs" % (time.time() - t0))

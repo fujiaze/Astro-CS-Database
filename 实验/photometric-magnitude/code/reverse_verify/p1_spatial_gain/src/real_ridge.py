@@ -154,6 +154,7 @@ def main():
     out = dict(taus=[str(t) for t in TAUS], orders=ORDERS, scan=scan,
                consistency=cons, before=before, elapsed_s=time.time() - t0,
                n_frames=len(frames), n_pairs=len(pairs))
+    os.makedirs(DATA, exist_ok=True)
     with open(os.path.join(DATA, "real_ridge.json"), "w") as fh:
         json.dump(out, fh, indent=1)
     print("[done] %.0fs" % (time.time() - t0))

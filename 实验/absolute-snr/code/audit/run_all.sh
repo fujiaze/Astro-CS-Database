@@ -8,6 +8,10 @@
 #       一键全量若被打断：已完成脚本的产物仍是有效快照（逐脚本独立写入）。
 set -euo pipefail
 cd "$(dirname "$0")"
+# 运行结果归档层已移除 ⇒ 干净克隆上本目录下 results/ 不存在。
+# 注意各路线脚本以 __file__ 锚定，落点是 <本目录>/results/<route>/（不是单元级
+# ../results/），入口按同一相对位置把四棵目录树建出来。
+mkdir -p results/route1 results/route2 results/route3 results/supplement_control_variance
 
 echo "== route1 (seed 20260926) =="
 for s in route1/*.py; do echo "--- $s"; python3 "$s"; done

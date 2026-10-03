@@ -168,6 +168,7 @@ def main():
         meridian_zero=bool(row["meridian_max"] < 1e-15),
         frac_over_chart=oc/tot, frac_over_phiz=oz/tot)
     print("VERDICT:", json.dumps(out["verdict"]))
+    os.makedirs(os.path.join(UNIT, "results", "audit", "route3"), exist_ok=True)
     with open(os.path.join(UNIT, "results", "audit", "route3", "exp05_sagitta_subdiv.json"), "w") as f:
         json.dump(out, f, indent=1)
 

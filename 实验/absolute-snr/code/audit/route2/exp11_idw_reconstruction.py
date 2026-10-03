@@ -100,6 +100,7 @@ def main():
     res["node_coincidence_recovery_abs_err"] = float(abs(est0 - vals[3]))
 
     print(json.dumps(res, indent=2))
+    os.makedirs(os.path.dirname(OUT), exist_ok=True)
     with open(OUT, "w") as f:
         json.dump(res, f, indent=2)
 

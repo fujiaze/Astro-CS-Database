@@ -251,6 +251,7 @@ OUT["control_point_assignment"] = {
     "honest_boundary": "polar-branch inverse and NESTED ordering not exercised in this standalone check"
 }
 
+os.makedirs(os.path.join(UNIT, "results", "audit", "route1"), exist_ok=True)
 with open(os.path.join(UNIT, "results", "audit", "route1", "e1_leaf_area_and_scale.json"), "w") as fh:
     json.dump(OUT, fh, indent=1)
 

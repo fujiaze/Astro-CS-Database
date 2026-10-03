@@ -251,6 +251,7 @@ def main():
     repro = float(np.max(np.abs(rec - vals)))
     res["node_exact_reproduction"] = {"max_abs_deviation": repro, "pass": bool(repro < 1e-8)}
     res["all_pass"] = bool(res["negative_control_flat"]["pass"] and res["node_exact_reproduction"]["pass"])
+    os.makedirs(os.path.dirname(OUT), exist_ok=True)
     with open(OUT, "w", encoding="utf-8") as fh:
         json.dump(res, fh, indent=2, ensure_ascii=False)
     print("domains:", {k: {str(d): {op: round(v["E"], 5) for op, v in row.items()}

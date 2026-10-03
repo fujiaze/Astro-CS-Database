@@ -99,6 +99,7 @@ def main():
         "measured_b": rows[0]["infl_vs_ratio1_b"],
         "measured_c": rows[0]["infl_vs_ratio1_c"]}
     print(json.dumps(res, indent=2))
+    os.makedirs(os.path.dirname(OUT), exist_ok=True)
     with open(OUT, "w") as f:
         json.dump(res, f, indent=2)
 

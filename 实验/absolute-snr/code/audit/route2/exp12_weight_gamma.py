@@ -70,6 +70,7 @@ def main():
         "common scale; gamma=1 biases frame weights by |g_k|, i.e. a frame with "
         "g=2 gets its weight doubled relative to inverse-variance optimality.")
     print(json.dumps(res, indent=2))
+    os.makedirs(os.path.dirname(OUT), exist_ok=True)
     with open(OUT, "w") as f:
         json.dump(res, f, indent=2)
 

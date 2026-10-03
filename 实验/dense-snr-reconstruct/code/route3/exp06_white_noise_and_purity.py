@@ -150,6 +150,7 @@ def main():
     res["all_pass"] = bool(all(res[k]["pass"] for k in
                                ["W1_white_diff_lag1", "W2_variance_map_spread_law",
                                 "B1_no_source", "B1_with_source", "B2_sky_rise_monotone"]))
+    os.makedirs(os.path.dirname(OUT), exist_ok=True)
     with open(OUT, "w", encoding="utf-8") as fh:
         json.dump(res, fh, indent=2, ensure_ascii=False)
     print(json.dumps(res, indent=2, ensure_ascii=False))

@@ -168,6 +168,7 @@ def main():
             rec['pixel_applied']['ptp_nb3_pct'], rec['pixel_applied']['ptp_nb8_pct']))
         sys.stdout.flush()
 
+    os.makedirs(DATA, exist_ok=True)
     with open(os.path.join(DATA, "real_pixel_check.json"), "w") as fh:
         json.dump({"pairs": out, "taus": TAUS, "elapsed_s": time.time() - t0}, fh, indent=1)
     print("[done] %.0fs" % (time.time() - t0))

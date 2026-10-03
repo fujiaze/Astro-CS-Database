@@ -92,6 +92,7 @@ def main():
         ortho_dev_at_1e3=h1e3["max_dev_rad"],
         comment_4e8_is_wrong=bool(h1e3["max_dev_rad"] > 4e-8))
     print("VERDICT:", json.dumps(out["verdict"]))
+    os.makedirs(os.path.join(UNIT, "results", "audit", "route3"), exist_ok=True)
     with open(os.path.join(UNIT, "results", "audit", "route3", "exp06_projection_budget.json"), "w") as f:
         json.dump(out, f, indent=1)
 
