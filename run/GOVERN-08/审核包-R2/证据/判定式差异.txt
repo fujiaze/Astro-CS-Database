@@ -1,0 +1,183 @@
+=== 双车道判定式差异比对 ===
+对方逐份判定 3554 份   本单逐份判定 3554 份
+仅对方有 0 份   仅本单有 0 份
+
+--- 分级不一致 56 份 ---
+  对方=人工产物   → 本单=生成物        46 份    22057 行
+  对方=生成物    → 本单=人工产物       10 份    20852 行
+
+--- 逐份分歧明细（按行数降序）---
+    14962  eng/packaging/config/filters.json
+          对方: 人工产物   [层 ENG-packaging] P3 手写面豁免: ^eng/packaging/config/
+          本单: 生成物    [信号 G2]
+    14079  lib/algorithms/photometry/data/response_curves/filters.json
+          对方: 生成物    [层 ALG-photometry] P1 产出面 ^lib/algorithms/photometry/data/response_curves/ ∧ P2 数据形态 .json
+          本单: 人工产物   [信号 -]
+     6472  lib/algorithms/photometry/data/response_curves/qe_curves.json
+          对方: 生成物    [层 ALG-photometry] P1 产出面 ^lib/algorithms/photometry/data/response_curves/ ∧ P2 数据形态 .json
+          本单: 人工产物   [信号 -]
+     1076  实验/absolute-snr/code/reverse_verify/snr_design/audit/audit_exp3_physical.json
+          对方: 人工产物   [层 EXP-absolute-snr] 默认保留（非产出面或非数据形态）
+          本单: 生成物    [信号 G1]
+      786  实验/engineering-evidence/audit-2026-01/FIX_LEDGER.csv
+          对方: 人工产物   [层 EXP-engineering-evidence] 默认保留（非产出面或非数据形态）
+          本单: 生成物    [信号 G2+G3:O2]
+      754  实验/shared/data/real/m16_scene_index.json
+          对方: 人工产物   [层 EXP-shared] 默认保留（非产出面或非数据形态）
+          本单: 生成物    [信号 G1+G2]
+      689  eng/contracts/block_flow/stage_block_flow.json
+          对方: 人工产物   [层 ENG-contracts] 默认保留（非产出面或非数据形态）
+          本单: 生成物    [信号 G2]
+      621  实验/absolute-snr/code/reverse_verify/snr_design/audit/audit_exp1245.json
+          对方: 人工产物   [层 EXP-absolute-snr] 默认保留（非产出面或非数据形态）
+          本单: 生成物    [信号 G1]
+      431  实验/absolute-snr/code/reverse_verify/snr_design/audit/audit_sim_validation.json
+          对方: 人工产物   [层 EXP-absolute-snr] 默认保留（非产出面或非数据形态）
+          本单: 生成物    [信号 G1]
+      387  实验/absolute-snr/code/reverse_verify/snr_design/audit/audit_mosaic_shape.json
+          对方: 人工产物   [层 EXP-absolute-snr] 默认保留（非产出面或非数据形态）
+          本单: 生成物    [信号 G1]
+      362  实验/absolute-snr/code/reverse_verify/snr_design/exp2_sparse_snr_reconstruction.json
+          对方: 人工产物   [层 EXP-absolute-snr] 默认保留（非产出面或非数据形态）
+          本单: 生成物    [信号 G1]
+      224  eng/contracts/data/config_separation_anchors.json
+          对方: 人工产物   [层 ENG-contracts] P3 手写面豁免: ^eng/contracts/(schemas|data|config)/
+          本单: 生成物    [信号 G2]
+      222  实验/absolute-snr/code/reverse_verify/snr_design/audit/audit_sp0.json
+          对方: 人工产物   [层 EXP-absolute-snr] 默认保留（非产出面或非数据形态）
+          本单: 生成物    [信号 G1]
+      196  lib/infrastructure/acr/docs/dependency-lock.json
+          对方: 人工产物   [层 INF-acr] 默认保留（非产出面或非数据形态）
+          本单: 生成物    [信号 G1]
+      185  实验/absolute-snr/code/reverse_verify/snr_design/exp3_multiframe_weight_penalty.json
+          对方: 人工产物   [层 EXP-absolute-snr] 默认保留（非产出面或非数据形态）
+          本单: 生成物    [信号 G1]
+      173  eng/contracts/ledgers/dead_config_keys.json
+          对方: 生成物    [层 ENG-contracts] P1 产出面 ^eng/contracts/ledgers/ ∧ P2 数据形态 .json
+          本单: 人工产物   [信号 -]
+      156  实验/engineering-evidence/release-01/VIS-001/l4/chunks_gc/tiles_index.json
+          对方: 人工产物   [层 EXP-engineering-evidence] 默认保留（非产出面或非数据形态）
+          本单: 生成物    [信号 G3:O2]
+      156  实验/engineering-evidence/release-01/VIS-001/l4/chunks_m42/tiles_index.json
+          对方: 人工产物   [层 EXP-engineering-evidence] 默认保留（非产出面或非数据形态）
+          本单: 生成物    [信号 G3:O2]
+      139  eng/tests/validation/release02/fix_p1_photometry_apply/qf_oracle_stderr.txt
+          对方: 人工产物   [层 ENG-tests] 默认保留（非产出面或非数据形态）
+          本单: 生成物    [信号 G3:O3]
+      106  lib/infrastructure/aio/tests/results/dq001_codec_comparison.csv
+          对方: 生成物    [层 INF-aio] P1 产出面 (^|/)results(/|$) ∧ P2 数据形态 .csv
+          本单: 人工产物   [信号 -]
+      102  eng/tests/validation/release02/phot_verify/evidence_wiring.txt
+          对方: 人工产物   [层 ENG-tests] 默认保留（非产出面或非数据形态）
+          本单: 生成物    [信号 G3:O3]
+       75  eng/tests/validation/release02/unc_propagation/oracle_output.txt
+          对方: 人工产物   [层 ENG-tests] 默认保留（非产出面或非数据形态）
+          本单: 生成物    [信号 G3:O3]
+       62  eng/tests/validation/release02/fix_p2b_variance_oracle/wc_selfcheck.txt
+          对方: 人工产物   [层 ENG-tests] 默认保留（非产出面或非数据形态）
+          本单: 生成物    [信号 G3:O3]
+       47  实验/healpix-polar/results/SNAPSHOT.sha256
+          对方: 人工产物   [层 EXP-healpix-polar] 默认保留（非产出面或非数据形态）
+          本单: 生成物    [信号 G3:O1]
+       39  eng/tests/validation/release02/fix_p2b_variance_oracle/oracle_output.txt
+          对方: 人工产物   [层 ENG-tests] 默认保留（非产出面或非数据形态）
+          本单: 生成物    [信号 G3:O3]
+       39  eng/tests/validation/release02/fix_p2b_variance_oracle/oracle_output_red.txt
+          对方: 人工产物   [层 ENG-tests] 默认保留（非产出面或非数据形态）
+          本单: 生成物    [信号 G3:O3]
+       29  实验/healpix-polar/results/audit/route1/e5_projection_budgets.txt
+          对方: 人工产物   [层 EXP-healpix-polar] 默认保留（非产出面或非数据形态）
+          本单: 生成物    [信号 G3:O1]
+       28  实验/engineering-evidence/compress-01/MANIFEST.sha256
+          对方: 人工产物   [层 EXP-engineering-evidence] 默认保留（非产出面或非数据形态）
+          本单: 生成物    [信号 G3:O2]
+       24  eng/tests/validation/release02/fix_p2b_variance_oracle/realdata_evidence.txt
+          对方: 人工产物   [层 ENG-tests] 默认保留（非产出面或非数据形态）
+          本单: 生成物    [信号 G3:O3]
+       24  实验/healpix-polar/results/audit/route1/e2_polar_pixel_limit.txt
+          对方: 人工产物   [层 EXP-healpix-polar] 默认保留（非产出面或非数据形态）
+          本单: 生成物    [信号 G3:O1]
+       23  实验/healpix-polar/results/audit/route1/e1_leaf_area_and_scale.txt
+          对方: 人工产物   [层 EXP-healpix-polar] 默认保留（非产出面或非数据形态）
+          本单: 生成物    [信号 G3:O1]
+       20  实验/healpix-polar/results/audit/route1/e4_flux_conservation.txt
+          对方: 人工产物   [层 EXP-healpix-polar] 默认保留（非产出面或非数据形态）
+          本单: 生成物    [信号 G3:O1]
+       19  eng/tests/validation/release02/fix_p1_photometry_apply/oracle_output.txt
+          对方: 人工产物   [层 ENG-tests] 默认保留（非产出面或非数据形态）
+          本单: 生成物    [信号 G3:O3]
+       19  实验/engineering-evidence/science/kcorr_matrix.json
+          对方: 人工产物   [层 EXP-engineering-evidence] 默认保留（非产出面或非数据形态）
+          本单: 生成物    [信号 G3:O2]
+       15  实验/m42-realdata/results/SNAPSHOT.sha256
+          对方: 人工产物   [层 EXP-m42-realdata] 默认保留（非产出面或非数据形态）
+          本单: 生成物    [信号 G3:O1]
+       14  eng/tests/validation/release02/fix_p1_photometry_apply/oracle_stderr.txt
+          对方: 人工产物   [层 ENG-tests] 默认保留（非产出面或非数据形态）
+          本单: 生成物    [信号 G3:O3]
+       14  实验/engineering-evidence/release-01/VIS-001/l3/gc_stretch.json
+          对方: 人工产物   [层 EXP-engineering-evidence] 默认保留（非产出面或非数据形态）
+          本单: 生成物    [信号 G3:O2]
+       14  实验/engineering-evidence/release-01/VIS-001/l4/gc_stretch.json
+          对方: 人工产物   [层 EXP-engineering-evidence] 默认保留（非产出面或非数据形态）
+          本单: 生成物    [信号 G3:O2]
+       14  实验/engineering-evidence/release-01/VIS-001/l4/m42_stretch.json
+          对方: 人工产物   [层 EXP-engineering-evidence] 默认保留（非产出面或非数据形态）
+          本单: 生成物    [信号 G3:O2]
+       13  eng/tests/validation/release02/fix_p2a_seam_oracle/oracle_out.txt
+          对方: 人工产物   [层 ENG-tests] 默认保留（非产出面或非数据形态）
+          本单: 生成物    [信号 G3:O3]
+       13  实验/engineering-evidence/release-01/VIS-001/l3/m42_stretch.json
+          对方: 人工产物   [层 EXP-engineering-evidence] 默认保留（非产出面或非数据形态）
+          本单: 生成物    [信号 G3:O2]
+       13  实验/healpix-polar/results/audit/route1/e3_circumradius_scan.txt
+          对方: 人工产物   [层 EXP-healpix-polar] 默认保留（非产出面或非数据形态）
+          本单: 生成物    [信号 G3:O1]
+       11  eng/tests/validation/release02/fix_p1_photometry_apply/qf_oracle_output.txt
+          对方: 人工产物   [层 ENG-tests] 默认保留（非产出面或非数据形态）
+          本单: 生成物    [信号 G3:O3]
+       11  实验/healpix-polar/results/audit/route1/e6_lhuilier_vos.txt
+          对方: 人工产物   [层 EXP-healpix-polar] 默认保留（非产出面或非数据形态）
+          本单: 生成物    [信号 G3:O1]
+        7  实验/engineering-evidence/prerelease-v5/ISA-001/MEASUREMENTS.csv
+          对方: 人工产物   [层 EXP-engineering-evidence] 默认保留（非产出面或非数据形态）
+          本单: 生成物    [信号 G3:O2]
+        7  实验/engineering-evidence/prerelease-v5/ISA-002/MEASUREMENTS.csv
+          对方: 人工产物   [层 EXP-engineering-evidence] 默认保留（非产出面或非数据形态）
+          本单: 生成物    [信号 G3:O2]
+        7  实验/engineering-evidence/prerelease-v5/ISA-003/MEASUREMENTS.csv
+          对方: 人工产物   [层 EXP-engineering-evidence] 默认保留（非产出面或非数据形态）
+          本单: 生成物    [信号 G3:O2]
+        6  实验/additive-sky-seamless/code/audit_rework/results/.gitignore
+          对方: 人工产物   [层 EXP-additive-sky-seamless] 默认保留（非产出面或非数据形态）
+          本单: 生成物    [信号 G3:O1]
+        5  lib/infrastructure/aio/tests/results/dq002_occupancy_mode.csv
+          对方: 生成物    [层 INF-aio] P1 产出面 (^|/)results(/|$) ∧ P2 数据形态 .csv
+          本单: 人工产物   [信号 -]
+        4  lib/infrastructure/aio/tests/results/dq005_writer_memory.csv
+          对方: 生成物    [层 INF-aio] P1 产出面 (^|/)results(/|$) ∧ P2 数据形态 .csv
+          本单: 人工产物   [信号 -]
+        4  lib/infrastructure/aio/tests/results/dq006_auto_nside.csv
+          对方: 生成物    [层 INF-aio] P1 产出面 (^|/)results(/|$) ∧ P2 数据形态 .csv
+          本单: 人工产物   [信号 -]
+        4  lib/infrastructure/aio/tests/results/dq007_signal_support_semantics.csv
+          对方: 生成物    [层 INF-aio] P1 产出面 (^|/)results(/|$) ∧ P2 数据形态 .csv
+          本单: 人工产物   [信号 -]
+        3  lib/infrastructure/aio/tests/results/dq003_random_read_latency.csv
+          对方: 生成物    [层 INF-aio] P1 产出面 (^|/)results(/|$) ∧ P2 数据形态 .csv
+          本单: 人工产物   [信号 -]
+        2  lib/infrastructure/aio/tests/results/dq004_drizzle_profile.csv
+          对方: 生成物    [层 INF-aio] P1 产出面 (^|/)results(/|$) ∧ P2 数据形态 .csv
+          本单: 人工产物   [信号 -]
+        1  eng/tests/validation/release02/fix_p1_photometry_apply/ma_cmd.txt
+          对方: 人工产物   [层 ENG-tests] 默认保留（非产出面或非数据形态）
+          本单: 生成物    [信号 G3:O3]
+        1  eng/tests/validation/release02/fix_p1_photometry_apply/p1001_cmd.txt
+          对方: 人工产物   [层 ENG-tests] 默认保留（非产出面或非数据形态）
+          本单: 生成物    [信号 G3:O3]
+
+--- 分级矩阵（行数）---
+                  人工产物         生成物         第三方          合计
+人工产物           744,687      22,057           0     766,744
+生成物             20,852     634,924           0     655,776
+第三方                  0           0     325,105     325,105

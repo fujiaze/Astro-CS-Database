@@ -1,0 +1,1112 @@
+diff --git a/docs/architecture/doc_symbol_namespaces.json b/docs/architecture/doc_symbol_namespaces.json
+index fde99890..1e5a28df 100644
+--- a/docs/architecture/doc_symbol_namespaces.json
++++ b/docs/architecture/doc_symbol_namespaces.json
+@@ -1,6 +1,6 @@
+ {
+   "schema": "acsd/doc-symbol-namespaces/v1",
+-  "note": "check_doc_symbols.py 的**非 API 符号命名空间**登记表。判据：文档反引号里的 token 必须能解析到**已登记命名空间之一** —— API inventory / lib·include 公开头 / 文档词干 / 术语词典 / 本表。本表不是豁免表：每条登记的 token 必须在 evidence 所指文件里**逐字出现**（否则 DOC-SYMBOL-REGISTRY-EVIDENCE 判红），且必须在扫描面里**真实出现过**（否则 DOC-SYMBOL-REGISTRY-STALE 判红 ⇒ 登记只减不增）。",
++  "note": "**非 API 符号命名空间**登记表（登记面见 门禁注册面（G08-10 重建））。判据：文档反引号里的 token 必须能解析到**已登记命名空间之一** —— API inventory / lib·include 公开头 / 文档词干 / 术语词典 / 本表。本表不是豁免表：每条登记的 token 必须在 evidence 所指文件里**逐字出现**（否则 DOC-SYMBOL-REGISTRY-EVIDENCE 判红），且必须在扫描面里**真实出现过**（否则 DOC-SYMBOL-REGISTRY-STALE 判红 ⇒ 登记只减不增）。",
+   "auto_domains": [
+     {
+       "id": "document_stems",
+@@ -9,7 +9,7 @@
+     },
+     {
+       "id": "glossary_terms",
+-      "note": "docs/GLOSSARY.md = 唯一术语权威（冻结定义，18 术语，机器门 eng/tools/check_glossary.py）",
++      "note": "docs/GLOSSARY.md = 唯一术语权威（冻结定义，18 术语，术语权威校验项载体见 门禁注册面（G08-10 重建））",
+       "source": "docs/GLOSSARY.md"
+     },
+     {
+@@ -58,8 +58,8 @@
+     {
+       "token": "COUNT_FIELD_MISSING",
+       "namespace": "verdict_id",
+-      "evidence": "eng/tools/quality/check_p3_rejection_count.py:157",
+-      "reason": "DATA-P3-REJ-001 的判据名（产品缺 diagnostic_planes.n_rejected_nonfinite 时判红；「0 与字段缺失必须可区分」，DATA-002 §2a 规则 3）。判据由 eng/tools/quality/check_p3_rejection_count.py 产出，非 API 符号 ⇒ 显式登记命名空间；文档承载 = docs/engineering/DATA_ARTIFACTS.md【证据形态 A：该行逐字含 token —— 行锚即为 token 的真实承载行】"
++      "evidence": "docs/engineering/DATA_ARTIFACTS.md:37",
++      "reason": "DATA-P3-REJ-001 的判据名（产品缺 diagnostic_planes.n_rejected_nonfinite 时判红；「0 与字段缺失必须可区分」，DATA-002 §2a 规则 3）。非 API 符号 ⇒ 显式登记命名空间。判据载体见 门禁注册面（G08-10 重建）。文档承载 = docs/engineering/DATA_ARTIFACTS.md DATA-P3-REJ-001 行。【证据形态 C：仓内无该判词的代码抛出点载体（产出该判词的检查器已物理删除，载体随 门禁注册面（G08-10 重建） 重建），仅判据条文逐字承载 token；条文被改写时本门不判红 —— 已知代价，如实标注】"
+     },
+     {
+       "token": "PHOT_PASSBAND_IDENTITY_INCONSISTENT",
+@@ -67,12 +67,6 @@
+       "evidence": "lib/infrastructure/scheduler/src/module_adapters.cpp:6024",
+       "reason": "组内模型通带唯一性的帧级失败码（某帧解析出的通带与组内首帧不一致 ⇒ 该帧判此码；帧间独立，不阻塞其他帧）。全仓唯一产生点 = module_adapters.cpp:6024 的 mark_frame_fail 调用（帧间通带比较的 else-if 分支体内），同函数 p1_op_photometry 定义行 :5309。原锚 :5856 逐字是 `if (!sip_ok) {`，虽同在 p1_op_photometry 体内但属**另一判据分支**（→ PHOT_WCS_SIP_INVALID），不含本 token ⇒ 2026-09-30 逐条核验改到逐字命中行【证据形态 A：该行逐字含 token —— 行锚即为 token 的真实承载行】"
+     },
+-    {
+-      "token": "ARCHIVE_MARKERS",
+-      "namespace": "checker_constant",
+-      "evidence": "docs/algorithms/anchors/check_doc_line_anchors.py:82",
+-      "reason": "锚合同 checker 的归档标记目录常量（resolver 第 4 步 basename-unique 的排除面清单），ANCHOR_CONTRACT.md §3 规则 4 逐字转述其取值；Python 常量非 API 符号 ⇒ 显式登记命名空间。行锚 = 定义行 :82（该文件在飞改动中，行号按 grep 实测刷新）【证据形态 A：该行逐字含 token —— 行锚即为 token 的真实承载行】"
+-    },
+     {
+       "token": "FROZEN_SCI_CLAIM",
+       "namespace": "anchor_contract_kind",
+@@ -106,50 +100,50 @@
+     {
+       "token": "CONTRACT_READY",
+       "namespace": "delivery_status",
+-      "evidence": "eng/tools/quality/check_module_map.py:106",
+-      "reason": "模块/交付物状态阶梯取值（ENGINEERING_SPEC §12.5 词表；同文件 :822 逐条判 status ∈ STATUS_VOCABULARY，不在词表内即判红）。取值由模块映射表现场计算，不是公开 API 符号 ⇒ api_inventory（只登记函数签名）与 lib 公开头都不收。行锚 = 词表元组行 :106，阶梯判据释义见同文件 :63。文档承载 = docs/engineering/RELEASE_STATUS.md §0【证据形态 A：该行逐字含 token —— 行锚即为 token 的真实承载行】"
++      "evidence": "docs/modules/MODULE_MAP.yaml:34",
++      "reason": "模块/交付物状态阶梯取值（ACSD_DESIGN §12.5 词表；文档映射表现场计算 status ∈ status_vocabulary，不在词表内即判红）。取值由模块映射表现场计算，不是公开 API 符号 ⇒ api_inventory（只登记函数签名）与 lib 公开头都不收。判据载体见 门禁注册面（G08-10 重建）。文档承载 = docs/engineering/RELEASE_STATUS.md §0。【证据形态 C：仓内无该判词的代码抛出点载体（产出该判词的检查器已物理删除，载体随 门禁注册面（G08-10 重建） 重建），仅判据条文逐字承载 token；条文被改写时本门不判红 —— 已知代价，如实标注】"
+     },
+     {
+       "token": "NOT_IMPLEMENTED",
+       "namespace": "delivery_status",
+-      "evidence": "eng/tools/quality/check_module_map.py:107",
+-      "reason": "模块/交付物状态阶梯取值（同上词表元组行 :107；判据释义「目标目录或实现缺失，或 entrypoint 为 facade/no-op」见同文件 :62）。文档状态词、非 API 符号 ⇒ 需显式登记命名空间。文档承载 = docs/engineering/RELEASE_STATUS.md §0 与 docs/engineering/PIPELINE_OVERVIEW.md【证据形态 A：该行逐字含 token —— 行锚即为 token 的真实承载行】"
++      "evidence": "docs/engineering/RELEASE_STATUS.md:19",
++      "reason": "模块/交付物状态阶梯取值（同 §12.5 词表；释义「能力不在当前基线（符号/路径不存在）」见 docs/engineering/RELEASE_STATUS.md §0）。非 API 符号 ⇒ 需显式登记命名空间。判据载体见 门禁注册面（G08-10 重建）。文档承载 = docs/engineering/RELEASE_STATUS.md §0。【证据形态 C：仓内无该判词的代码抛出点载体（产出该判词的检查器已物理删除，载体随 门禁注册面（G08-10 重建） 重建），仅判据条文逐字承载 token；条文被改写时本门不判红 —— 已知代价，如实标注】"
+     },
+     {
+       "token": "NOT_VERIFIED",
+       "namespace": "delivery_status",
+-      "evidence": "eng/tools/quality/check_module_map.py:107",
+-      "reason": "模块/交付物状态阶梯取值（词表元组行 :107）。本 token 有**两个独立承载面**：① 映射表 verification_status（同文件 :1096 由主状态派生）；② 验收 tier 判词（eng/tools/acceptance/tier_verdict_gate.py:41 TIER_VERDICTS）。两面的封闭词表都不在 api_inventory 与 lib 公开头 ⇒ 显式登记命名空间；本条 evidence 钉交付阶梯那一面。文档承载 = docs/engineering/RELEASE_STATUS.md §0 与 docs/engineering/TIER_VERDICT_CRITERIA.md【证据形态 A：该行逐字含 token —— 行锚即为 token 的真实承载行】"
++      "evidence": "docs/engineering/RELEASE_STATUS.md:20",
++      "reason": "模块/交付物状态阶梯取值（同 §12.5 词表；释义「能力可能存在但当前提交未复跑执行验收」见 docs/engineering/RELEASE_STATUS.md §0）。两面的封闭词表都不在 api_inventory 与 lib 公开头 ⇒ 显式登记命名空间。文档承载 = docs/engineering/RELEASE_STATUS.md §0 与 §4。【证据形态 C：仓内无该判词的代码抛出点载体（产出该判词的检查器已物理删除，载体随 门禁注册面（G08-10 重建） 重建），仅判据条文逐字承载 token；条文被改写时本门不判红 —— 已知代价，如实标注】"
+     },
+     {
+       "token": "NOT_ATTEMPTED",
+       "namespace": "verdict_id",
+-      "evidence": "eng/tools/acceptance/tier_verdict_gate.py:41",
+-      "reason": "验收 tier 判词的封闭词表取值（同文件 :40 注释「改词表 = 改判据，须走变更流程；本文件是唯一实现点」）。判词不是 API 符号，判据实现点是 .py 而非 lib 公开头 ⇒ 显式登记命名空间。行锚 = 词表字面量行 :41。文档承载 = docs/engineering/TIER_VERDICT_CRITERIA.md 判据表【证据形态 A：该行逐字含 token —— 行锚即为 token 的真实承载行】"
++      "evidence": "docs/engineering/VALIDATION_EVIDENCE_STANDARD.md:487",
++      "reason": "验收 tier 判词的封闭词表取值（判据口径：0 帧被求值且 not_attempted_reasons 非空）。判词不是 API 符号 ⇒ 显式登记命名空间。判据载体见 门禁注册面（G08-10 重建）。文档承载 = docs/engineering/VALIDATION_EVIDENCE_STANDARD.md 帧级判词表。【证据形态 C：仓内无该判词的代码抛出点载体（产出该判词的检查器已物理删除，载体随 门禁注册面（G08-10 重建） 重建），仅判据条文逐字承载 token；条文被改写时本门不判红 —— 已知代价，如实标注】"
+     },
+     {
+       "token": "NOT_EVALUATED",
+       "namespace": "verdict_id",
+-      "evidence": "eng/tools/acceptance/tier_verdict_gate.py:53",
+-      "reason": "帧级判词三值之一（FRAME_VERDICTS = ACCEPT / REJECT / NOT_EVALUATED，消费点同文件 :88 与 :166；同形枚举另见 eng/tools/acceptance/rel790_checklist.json:41 的 enum ACCEPT|REJECT|NOT_EVALUATED）。判词不是 API 符号 ⇒ 显式登记命名空间。文档承载 = docs/engineering/TIER_VERDICT_CRITERIA.md（与 counts.not_attempted 对账）与 docs/engineering/REL790_VISUAL_EVIDENCE_CHECKLIST.md 帧级 schema【证据形态 A：该行逐字含 token —— 行锚即为 token 的真实承载行】"
++      "evidence": "docs/engineering/VALIDATION_EVIDENCE_STANDARD.md:473",
++      "reason": "帧级判词三值之一（ACCEPT / REJECT / NOT_EVALUATED）。判词不是 API 符号 ⇒ 显式登记命名空间。文档承载 = docs/engineering/VALIDATION_EVIDENCE_STANDARD.md 帧级判词表（与 counts.not_attempted 对账）。【证据形态 C：仓内无该判词的代码抛出点载体（产出该判词的检查器已物理删除，载体随 门禁注册面（G08-10 重建） 重建），仅判据条文逐字承载 token；条文被改写时本门不判红 —— 已知代价，如实标注】"
+     },
+     {
+       "token": "FAULT_INJECT_NOOP",
+       "namespace": "verdict_id",
+-      "evidence": "docs/standards/checks/check_standards_registry.py:581",
+-      "reason": "注入空转守卫的失败判词：注入锚被 _replace_once 替换命中次数 ≠ 1 ⇒ 抛 InjectedNoOp 并 exit 3（抛出点 :580-583、另两处 :607）。产出者是 docs/ 下的 .py 检查器，既不在 lib 公开头语料也不在 api_inventory ⇒ 显式登记命名空间。文档承载 = docs/engineering/STANDARDS_REGISTRY.md 注入协议节【证据形态 A：该行逐字含 token —— 行锚即为 token 的真实承载行】"
++      "evidence": "docs/engineering/STANDARDS_REGISTRY.md:341",
++      "reason": "注入空转守卫的失败判词：注入锚被确定性替换命中次数 ≠ 1 ⇒ 抛 InjectedNoOp 并 exit 3。产出者既不在 lib 公开头语料也不在 api_inventory ⇒ 显式登记命名空间。判据载体见 门禁注册面（G08-10 重建）。文档承载 = docs/engineering/STANDARDS_REGISTRY.md 注入协议节。【证据形态 C：仓内无该判词的代码抛出点载体（产出该判词的检查器已物理删除，载体随 门禁注册面（G08-10 重建） 重建），仅判据条文逐字承载 token；条文被改写时本门不判红 —— 已知代价，如实标注】"
+     },
+     {
+       "token": "TRACEABILITY_MATRIX_PASS",
+       "namespace": "verdict_id",
+-      "evidence": "eng/tools/traceability/check_traceability_matrix.py:1019",
+-      "reason": "追溯矩阵检查器 exit 0 的成功判词（打印面；判据 C1–C6 见同文件 :7-13）。判词不是 API 符号 ⇒ 显式登记命名空间。行锚 = 打印语句行 :1019。文档承载 = docs/engineering/TRACEABILITY_SPEC.md 检查器节【证据形态 A：该行逐字含 token —— 行锚即为 token 的真实承载行】"
++      "evidence": "docs/engineering/TRACEABILITY_SPEC.md:24",
++      "reason": "追溯矩阵检查 exit 0 的成功判词（打印面；判据 C1–C7 见 docs/engineering/TRACEABILITY_SPEC.md §7）。判词不是 API 符号 ⇒ 显式登记命名空间。判据载体见 门禁注册面（G08-10 重建）。文档承载 = docs/engineering/TRACEABILITY_SPEC.md 检查器节。【证据形态 C：仓内无该判词的代码抛出点载体（产出该判词的检查器已物理删除，载体随 门禁注册面（G08-10 重建） 重建），仅判据条文逐字承载 token；条文被改写时本门不判红 —— 已知代价，如实标注】"
+     },
+     {
+       "token": "EMPTY_CELL_VIOLATION",
+       "namespace": "verdict_id",
+-      "evidence": "eng/tools/traceability/check_traceability_matrix.py:9",
+-      "reason": "追溯矩阵 C3 判据名（任何单元格为空/纯空白/'-'/'?'/'TBD'/'TODO' ⇒ FAIL 并报具体行/列；emit 点同文件 :421/:437/:442）。判据名不是 API 符号 ⇒ 显式登记命名空间。行锚 = 判据释义行 :9。文档承载 = docs/engineering/TRACEABILITY_SPEC.md【证据形态 A：该行逐字含 token —— 行锚即为 token 的真实承载行】"
++      "evidence": "docs/engineering/TRACEABILITY_SPEC.md:66",
++      "reason": "追溯矩阵 C3 判据名（任何单元格为空/纯空白/'-'/'?'/'TBD'/'TODO' ⇒ FAIL 并报具体行/列）。判据名不是 API 符号 ⇒ 显式登记命名空间。文档承载 = docs/engineering/TRACEABILITY_SPEC.md。【证据形态 C：仓内无该判词的代码抛出点载体（产出该判词的检查器已物理删除，载体随 门禁注册面（G08-10 重建） 重建），仅判据条文逐字承载 token；条文被改写时本门不判红 —— 已知代价，如实标注】"
+     },
+     {
+       "token": "ABOVE_CEILING",
+@@ -178,50 +172,32 @@
+     {
+       "token": "NON_CONFORMANT",
+       "namespace": "standards_conformance_status",
+-      "evidence": "docs/standards/checks/check_standards_registry.py:108",
+-      "reason": "「符合状态」轴（与外部标准条款的关系，取值域由 LEGAL_STATUS 四值封闭，与交付状态阶梯是**两个独立轴**，docs/engineering/RELEASE_STATUS.md §0 已声明两轴独立）的取值之一。取值域的判据实现点在 docs/ 下的 .py 检查器，不在 lib 公开头语料也不在 api_inventory ⇒ 显式登记命名空间。行锚 = 词表字面量行 :108。文档承载 = docs/engineering/RELEASE_STATUS.md §0 与 docs/engineering/STANDARDS_REGISTRY.md 符合状态列【证据形态 A：该行逐字含 token —— 行锚即为 token 的真实承载行】"
++      "evidence": "docs/engineering/STANDARDS_REGISTRY.md:26",
++      "reason": "「符合状态」轴（与外部标准条款的关系，取值域由四值封闭，与交付状态阶梯是**两个独立轴**，docs/engineering/RELEASE_STATUS.md §0 已声明两轴独立）的取值之一。取值域判据不在 lib 公开头语料也不在 api_inventory ⇒ 显式登记命名空间。判据载体见 门禁注册面（G08-10 重建）。文档承载 = docs/engineering/RELEASE_STATUS.md §0 与 docs/engineering/STANDARDS_REGISTRY.md 符合状态列。【证据形态 C：仓内无该判词的代码抛出点载体（产出该判词的检查器已物理删除，载体随 门禁注册面（G08-10 重建） 重建），仅判据条文逐字承载 token；条文被改写时本门不判红 —— 已知代价，如实标注】"
+     },
+     {
+       "token": "PROJECT_DEFINED",
+       "namespace": "standards_conformance_status",
+-      "evidence": "docs/standards/checks/check_standards_registry.py:108",
+-      "reason": "「符合状态」轴的取值之一（标准未规定或本实现显式偏离标准之处，按 Project-defined 冻结；取值域同 LEGAL_STATUS，见 :108）。与交付状态阶梯是**两个独立轴**。文档承载 = docs/engineering/RELEASE_STATUS.md §0 与 docs/engineering/STANDARDS_REGISTRY.md 符合状态列【证据形态 A：该行逐字含 token —— 行锚即为 token 的真实承载行】"
++      "evidence": "docs/engineering/STANDARDS_REGISTRY.md:27",
++      "reason": "「符合状态」轴的取值之一（标准未规定或本实现显式偏离标准之处，按 Project-defined 冻结；取值域同 NON_CONFORMANT 所述封闭词表）。与交付状态阶梯是**两个独立轴**。文档承载 = docs/engineering/RELEASE_STATUS.md §0 与 docs/engineering/STANDARDS_REGISTRY.md 符合状态列。【证据形态 C：仓内无该判词的代码抛出点载体（产出该判词的检查器已物理删除，载体随 门禁注册面（G08-10 重建） 重建），仅判据条文逐字承载 token；条文被改写时本门不判红 —— 已知代价，如实标注】"
+     },
+     {
+       "token": "REQUIRED_ANCHORS",
+       "namespace": "checker_constant",
+-      "evidence": "docs/standards/checks/check_standards_registry.py:63",
+-      "reason": "STD-REG 门禁的必需锚清单常量（REGISTRY_REL / INDEX_REL，fail-closed：文件不存在或未跟踪 ⇒ ANCHOR_STALE + exit 2；校验点同文件 :194）。产出者是 docs/ 下的 .py 检查器，既不在 lib 公开头语料也不在 api_inventory ⇒ 显式登记命名空间。行锚 = 定义行 :63。文档承载 = docs/engineering/STANDARDS_REGISTRY.md 锚存活节【证据形态 A：该行逐字含 token —— 行锚即为 token 的真实承载行】"
+-    },
+-    {
+-      "token": "CONT_RE",
+-      "namespace": "checker_constant",
+-      "evidence": "docs/algorithms/anchors/check_doc_line_anchors.py:66",
+-      "reason": "锚合同检查器的续锚续行正则常量（ANCHOR_RE 只吃「文件名 + 首个行号段」，同 token 里 ,N 与 / :N 形态的续锚由本常量在 :139 的 while 循环逐 token 展开）。产出者是 docs/ 下的 .py 检查器，既不在 lib 公开头语料也不在 api_inventory ⇒ 显式登记命名空间。行锚 = 定义行 :66。文档承载 = docs/detail/anchors/ANCHOR_CONTRACT.md 续锚订正段【证据形态 A：该行逐字含 token —— 行锚即为 token 的真实承载行】"
+-    },
+-    {
+-      "token": "SCALE_RE",
+-      "namespace": "checker_constant",
+-      "evidence": "docs/algorithms/anchors/check_doc_line_anchors.py:75",
+-      "reason": "C7 规模声明的规范句式正则常量（回读点同文件 :198；往返自检 :351-352）。产出者是 docs/ 下的 .py 检查器，不在 lib 公开头语料也不在 api_inventory ⇒ 显式登记命名空间。行锚 = 定义行 :75。文档承载 = docs/detail/anchors/ANCHOR_CONTRACT.md C7 规模声明【证据形态 A：该行逐字含 token —— 行锚即为 token 的真实承载行】"
+-    },
+-    {
+-      "token": "SCALE_LINE",
+-      "namespace": "checker_constant",
+-      "evidence": "docs/algorithms/anchors/check_doc_line_anchors.py:79",
+-      "reason": "C7 规范句式的成句模板常量（--self-test 夹具与正例回读共用：同文件 :320 与 :351）。产出者是 docs/ 下的 .py 检查器，不在 lib 公开头语料也不在 api_inventory ⇒ 显式登记命名空间。行锚 = 定义行 :79。文档承载 = docs/detail/anchors/ANCHOR_CONTRACT.md C7 规模声明【证据形态 A：该行逐字含 token —— 行锚即为 token 的真实承载行】"
++      "evidence": "docs/engineering/STANDARDS_REGISTRY.md:334",
++      "reason": "STD-REG 门禁的必需锚清单常量（REGISTRY_REL / INDEX_REL，fail-closed：文件不存在或未跟踪 ⇒ ANCHOR_STALE + exit 2）。产出者既不在 lib 公开头语料也不在 api_inventory ⇒ 显式登记命名空间。判据载体见 门禁注册面（G08-10 重建）。文档承载 = docs/engineering/STANDARDS_REGISTRY.md 锚存活节。【证据形态 C：仓内无该判词的代码抛出点载体（产出该判词的检查器已物理删除，载体随 门禁注册面（G08-10 重建） 重建），仅判据条文逐字承载 token；条文被改写时本门不判红 —— 已知代价，如实标注】"
+     },
+     {
+       "token": "ACSD_ENABLE_ACR",
+       "namespace": "cmake_variable",
+       "evidence": "CMakeLists.txt:18",
+-      "reason": "根 CMake option（构建 dormant ACR 树，默认 OFF；状态回显 :1580，preset 面 CMakePresets.json:49/:76，正式路径必须 OFF 由 eng/cmake/toolchain/verify_toolchain.py:209-211 断言）。CMake 变量不是 API 符号 ⇒ 显式登记命名空间。行锚 = option() 定义行 :18。文档承载 = docs/engineering/ARCHITECTURE_OVERVIEW.md 构建面表【证据形态 A：该行逐字含 token —— 行锚即为 token 的真实承载行】"
++      "reason": "根 CMake option（构建 dormant ACR 树，默认 OFF；状态回显 :1580，preset 面 CMakePresets.json:49/:76，正式路径必须 OFF 由 工具链锁定判据（正式路径必须 OFF 的断言，载体见 门禁注册面（G08-10 重建）） 断言）。CMake 变量不是 API 符号 ⇒ 显式登记命名空间。行锚 = option() 定义行 :18。文档承载 = docs/engineering/ARCHITECTURE_OVERVIEW.md 构建面表【证据形态 A：该行逐字含 token —— 行锚即为 token 的真实承载行】"
+     },
+     {
+       "token": "p2_op_coverage",
+       "namespace": "module_port_symbol",
+       "evidence": "lib/infrastructure/scheduler/src/module_adapters.cpp:9367",
+-      "reason": "Phase2 coverage 模块的编排层端口符号（定义行 :9367；派发点 :14088；端口登记面 lib/infrastructure/pipeline/module_ports.registry.json:940/:961；模块→符号映射 eng/tools/quality/check_block_flow_ports_vs_code.py:489）。与既有 p2_write_descriptor / p2_parallel_for 同型：编排层词汇，不进 api_inventory（只登记函数签名），也不在 lib 公开头。行锚 = 定义行 :9367。文档承载 = docs/detail/registry/acsd.phase2.coverage.md「公共 header、核心 symbol 与生命周期」（`p2_op_coverage` 登记行）【证据形态 A：该行逐字含 token —— 行锚即为 token 的真实承载行】"
++      "reason": "Phase2 coverage 模块的编排层端口符号（定义行 :9367；派发点 :14088；端口登记面 lib/infrastructure/pipeline/module_ports.registry.json:940/:961；模块→符号映射 端口↔代码双向一致判据（载体见 门禁注册面（G08-10 重建）））。与既有 p2_write_descriptor / p2_parallel_for 同型：编排层词汇，不进 api_inventory（只登记函数签名），也不在 lib 公开头。行锚 = 定义行 :9367。文档承载 = docs/detail/registry/acsd.phase2.coverage.md「公共 header、核心 symbol 与生命周期」（`p2_op_coverage` 登记行）【证据形态 A：该行逐字含 token —— 行锚即为 token 的真实承载行】"
+     },
+     {
+       "token": "p2_op_reject",
+@@ -239,7 +215,7 @@
+       "token": "P2_SEMANTIC_",
+       "namespace": "prefix_family_token",
+       "evidence": "lib/algorithms/coverage/include/astro/phase2/rejection.h:66",
+-      "reason": "**前缀族 token 形态**（以 _ 结尾的族名）：族成员是同头 :66-78 的 12 条 #define（P2_SEMANTIC_NONE / _ROBUST_MAD_CLIP / _WINSORIZED_SIRIL / …）。门的 lib 公开头判据是词界匹配（eng/tools/quality/contracts/check_doc_symbols.py:54 的 \\b+token+\\b），P2_SEMANTIC_ 后接字母时不存在词界 ⇒ 族名形态解析不到族内任一具体成员，而族名本身也不是 API 符号 ⇒ 必须显式登记该形态，否则文档写「前缀族」这一合法形态即被判红。行锚 = 族内首条 #define 行 :66。文档承载 = docs/detail/anchors/ANCHOR_CONTRACT.md L3 三形态（本形/前缀族/形态族）判别力用例【证据形态 A：该行逐字含 token —— 行锚即为 token 的真实承载行】"
++      "reason": "**前缀族 token 形态**（以 _ 结尾的族名）：族成员是同头 :66-78 的 12 条 #define（P2_SEMANTIC_NONE / _ROBUST_MAD_CLIP / _WINSORIZED_SIRIL / …）。门的 lib 公开头判据是词界匹配（词的 lib 公开头判据是词界匹配（`\\b+token+\\b`）），P2_SEMANTIC_ 后接字母时不存在词界 ⇒ 族名形态解析不到族内任一具体成员，而族名本身也不是 API 符号 ⇒ 必须显式登记该形态，否则文档写「前缀族」这一合法形态即被判红。行锚 = 族内首条 #define 行 :66。文档承载 = docs/detail/anchors/ANCHOR_CONTRACT.md L3 三形态（本形/前缀族/形态族）判别力用例【证据形态 A：该行逐字含 token —— 行锚即为 token 的真实承载行】"
+     },
+     {
+       "token": "__AVX512CD__",
+@@ -263,7 +239,7 @@
+       "token": "RICE_1",
+       "namespace": "external_upstream_symbol",
+       "evidence": "lib/infrastructure/aio/third_party/cfitsio/fitsio.h:296",
+-      "reason": "FITS 标准 tile-compression 算法码（CFITSIO 宏，随 CFITSIO vendored 进仓；同族 GZIP_1 :297、PLIO_1 :299）。本仓消费面：读取路径接 CFITSIO 的 .fz 自动检测/解压（lib/infrastructure/aio/src/aio_fits.cpp:552）。**门的 lib 公开头语料显式排除 third_party**（eng/tools/quality/contracts/check_doc_symbols.py:42）⇒ 该宏不在 public_headers 命名空间，也不是本仓 API 符号 ⇒ 显式登记命名空间。行锚 = #define 行 :296。文档承载 = docs/science/IVOA_HIPS_TILE_FORMAT_RESEARCH_PACK.md 与 docs/engineering/COMPRESSION_CODEC_RESEARCH_PACK.md【证据形态 A：该行逐字含 token —— 行锚即为 token 的真实承载行】"
++      "reason": "FITS 标准 tile-compression 算法码（CFITSIO 宏，随 CFITSIO vendored 进仓；同族 GZIP_1 :297、PLIO_1 :299）。本仓消费面：读取路径接 CFITSIO 的 .fz 自动检测/解压（lib/infrastructure/aio/src/aio_fits.cpp:552）。**门的 lib 公开头语料显式排除 third_party**（词的 lib 公开头语料显式排除 third_party）⇒ 该宏不在 public_headers 命名空间，也不是本仓 API 符号 ⇒ 显式登记命名空间。行锚 = #define 行 :296。文档承载 = docs/science/IVOA_HIPS_TILE_FORMAT_RESEARCH_PACK.md 与 docs/engineering/COMPRESSION_CODEC_RESEARCH_PACK.md【证据形态 A：该行逐字含 token —— 行锚即为 token 的真实承载行】"
+     },
+     {
+       "token": "COADD_WEIGHTED",
+diff --git a/docs/contracts/unified_object_registry.json b/docs/contracts/unified_object_registry.json
+index 66f96680..5aa18b73 100644
+--- a/docs/contracts/unified_object_registry.json
++++ b/docs/contracts/unified_object_registry.json
+@@ -424,7 +424,7 @@
+       "role": "traceability_contract",
+       "owner": "GOV-001",
+       "object_class": null,
+-      "note": "可追溯矩阵形状；由 eng/tools/traceability/check_traceability_matrix.py 消费。"
++      "note": "可追溯矩阵形状；由可追溯矩阵判据消费（载体见 门禁注册面（G08-10 重建））。"
+     },
+     {
+       "file": "eng/contracts/schemas/cpu_profile.schema.json",
+@@ -452,7 +452,7 @@
+       "role": "task_result_contract",
+       "owner": "CI-001",
+       "object_class": null,
+-      "note": "任务结果合同；由 eng/tools/quality/check_task_result_schema.py 消费。"
++      "note": "任务结果合同；由任务结果 schema 判据消费（载体见 门禁注册面（G08-10 重建））。"
+     },
+     {
+       "file": "eng/contracts/schemas/phase_config_normalize.schema.json",
+@@ -536,7 +536,7 @@
+       "role": "storage_form_contract",
+       "owner": "CONTRACT-STORAGE-001",
+       "object_class": null,
+-      "note": "落盘形态合同（CONTRACT-STORAGE-001；doc_id DOC-CONTRACT-STORAGE-001，doc_status ACTIVE_NORMATIVE）的机器事实源：两形态命名与互斥、归档容器布局、产品级索引与数据集级覆盖索引 schema、形态输入配置键与运行完成清单 storage 段；**不是** UNIFIED_MODEL §2 的 13 个数据对象之一，不定义 unified_object 判别字段。权威 = docs/engineering/HIPS_STORAGE_FORM_CONTRACT.md（上位 ACSD_DESIGN.md §10 + docs/detail/PRODUCT_STORAGE_FORM.md）；机器检查器 = eng/tools/hipsform/check_hips_storage_form.py（CI 检查 CHK-HIPS-STORAGE-FORM）。"
++      "note": "落盘形态合同（CONTRACT-STORAGE-001；doc_id DOC-CONTRACT-STORAGE-001，doc_status ACTIVE_NORMATIVE）的机器事实源：两形态命名与互斥、归档容器布局、产品级索引与数据集级覆盖索引 schema、形态输入配置键与运行完成清单 storage 段；**不是** UNIFIED_MODEL §2 的 13 个数据对象之一，不定义 unified_object 判别字段。权威 = docs/engineering/HIPS_STORAGE_FORM_CONTRACT.md（上位 ACSD_DESIGN.md §10 + docs/detail/PRODUCT_STORAGE_FORM.md）；机器检查器 = 落盘形态判据（CI 检查 CHK-HIPS-STORAGE-FORM，载体见 门禁注册面（G08-10 重建））。"
+     }
+   ],
+   "deprecation": {
+diff --git a/docs/detail/LOG_AND_ERROR_SYSTEM.md b/docs/detail/LOG_AND_ERROR_SYSTEM.md
+index 5b34e460..9e83dc92 100644
+--- a/docs/detail/LOG_AND_ERROR_SYSTEM.md
++++ b/docs/detail/LOG_AND_ERROR_SYSTEM.md
+@@ -4,7 +4,7 @@
+ 
+ > 机器事实源：`lib/infrastructure/observability/logging/log_event_v1.schema.json`（日志行，LOG-001 正本）、
+ > `eng/run/ledgers/log_system_ledger.json`（显式降级/吞错/落点登记台账）、
+-> `eng/tools/quality/check_log_system.py`（判据检查器落点）。
++> 日志系统判据 R1–R5（判据载体见 门禁注册面（G08-10 重建））。
+ 
+ 本文件回答"日志系统具体怎么设计"：有哪些对象、落在哪、怎么走完一生、与 manifest/provenance 和
+ observability 各面是什么关系。字段级格式合同在 `docs/engineering/LOG_AND_ERROR_CONTRACT.md`。
+@@ -188,7 +188,7 @@ flowchart LR
+ 
+ | 判据 | 内容 | 检查器 | 负例面 |
+ |---|---|---|---|
+-| R1 错误不吞 | 生产收敛面 catch 吞错点必须登记（台账只减不增） | `eng/tools/quality/check_log_system.py`（判据检查器落点） | 注入空 catch ⇒ 判红 |
++| R1 错误不吞 | 生产收敛面 catch 吞错点必须登记（台账只减不增） | `CHK-LOG-SYS`（载体见 门禁注册面（G08-10 重建）） | 注入空 catch ⇒ 判红 |
+ | R2 降级显式 | 生产面条件回退点必须登记且函数体内记录 `degraded_reason` | 同上 | 注入静默回退 ⇒ 判红 |
+ | R3 日志落点 | 生产面日志落点必须派生自 `output_dir` 或登记 | 同上 | 注入 `run/` 字面量 ⇒ 判红 |
+ | R4 台账完整 | 台账锚存活、只减不增、扫描面非空（fail-closed） | 同上 | 抹掉锚/清空扫描面 ⇒ 判红 |
+diff --git a/docs/engineering/02_PIPELINE.md b/docs/engineering/02_PIPELINE.md
+index e54dfc56..35bc9ece 100644
+--- a/docs/engineering/02_PIPELINE.md
++++ b/docs/engineering/02_PIPELINE.md
+@@ -26,8 +26,8 @@
+ 
+ | Workflow | Job（依赖） | 内容 | 证据锚 |
+ |---|---|---|---|
+-| `ci-linux.yml` | `linux`（单 job，ubuntu） | run.py --profile linux-main（workflow_dispatch 可选 linux-deep）；失败路径 wf_step.py --step LINUX-BOOTSTRAP-DIAG | `linux-ci-<sha>` ← `artifacts/ci/`（always） |
+-| `ci-windows.yml` | `windows`（单 job） | run.py --profile windows-main；失败调 wf_step.py --step WINDOWS-BOOTSTRAP-DIAG | `acsd-windows-candidate-<sha>`、`windows-ci-<sha>` ← artifacts/（success/always） |
++| `ci-linux.yml` | `linux`（单 job，ubuntu） | linux-main profile（workflow_dispatch 可选 linux-deep）；失败路径走 LINUX-BOOTSTRAP-DIAG 诊断步 | `linux-ci-<sha>` ← `artifacts/ci/`（always） |
++| `ci-windows.yml` | `windows`（单 job） | windows-main profile；失败走 WINDOWS-BOOTSTRAP-DIAG 诊断步 | `acsd-windows-candidate-<sha>`、`windows-ci-<sha>` ← artifacts/（success/always） |
+ 
+ 增量档不跑整条链：只执行与改动集相交的检查（`TEST_STANDARD.md` §8），构建/测试 target 由构建图反查得出；
+ 任一 fail-closed 条件命中即判红。
+diff --git a/docs/engineering/BUILD_GRAPH.md b/docs/engineering/BUILD_GRAPH.md
+index 5aeb7ef0..c5d3cc41 100644
+--- a/docs/engineering/BUILD_GRAPH.md
++++ b/docs/engineering/BUILD_GRAPH.md
+@@ -4,7 +4,7 @@
+ 
+ > **本文的构建图机器块由生成器从根 CMake 构建图导出**：
+ > 命令 = python3 eng/tools/arch/gen_build_graph_doc.py（根 CMakeLists 或子目录源集变动后重跑）。
+-> 门 = CON-BUILD-GRAPH（python3 eng/tools/quality/contracts/check_build_graph.py）：
++> 门 = CON-BUILD-GRAPH（载体见 门禁注册面（G08-10 重建））：
+ > 逐行比对目标集（与生产闭包的双向差集）、类型、定义文件与源集摘要；判据的输入是构建图本身。
+ > 判别力自证 = 同一条命令加 --self-test。
+ 
+@@ -110,8 +110,8 @@ target_link_libraries 的传递闭包内的全部 target；唯一事实源 = 根
+ ## 5 复算
+ 
+     python3 eng/tools/arch/gen_build_graph_doc.py            # 从构建图导出机器块
+-    python3 eng/tools/quality/contracts/check_build_graph.py # 门（PASS / FAIL）
+-    python3 eng/tools/quality/contracts/check_build_graph.py --self-test
++
++构建图门（CON-BUILD-GRAPH，载体见 门禁注册面（G08-10 重建））判定 PASS / FAIL；判别力自证 = 同一判据加 `--self-test`。
+ 
+ ## 6 关联
+ 
+diff --git a/docs/engineering/CLI_PROTOCOL_V1.md b/docs/engineering/CLI_PROTOCOL_V1.md
+index 1fa18660..ed1b5582 100644
+--- a/docs/engineering/CLI_PROTOCOL_V1.md
++++ b/docs/engineering/CLI_PROTOCOL_V1.md
+@@ -88,7 +88,7 @@ handler→内部会话 API 追溯(phase 为内部指代): normalize→API-003(
+ - 取消后: 关 writer→写 incomplete manifest→删除/隔离临时产物→exit 9;**取消后的 HiPS/结果一律为 incomplete 形态**(与 ARCH-002 §5/ARCH-005 §3 原子单元一致)。
+ - 未捕获异常→70+run_id/阶段/最小脱敏 crash report(不泄露凭据)。
+ 
+-## 6 机器化一致性检查器合同(API-002 建立；现行落地 = `eng/tools/check_api_docs.py`)
++## 6 机器化一致性检查器合同(API-002 建立；判据载体见 门禁注册面（G08-10 重建）)
+ 
+ 1. `--help` golden 树与 §1 逐行一致;
+ 2. JSON/JSONL 样例对 schema 有效(jsonschema 或 stdlib 等价校验);
+diff --git a/docs/engineering/CONFIG_CONTRACT.md b/docs/engineering/CONFIG_CONTRACT.md
+index 0a4f2131..7dd36366 100644
+--- a/docs/engineering/CONFIG_CONTRACT.md
++++ b/docs/engineering/CONFIG_CONTRACT.md
+@@ -223,7 +223,7 @@ negative:   eng/tests/config/fixtures/negative/cpu_profile_v2_bad_os_abi.json（
+ | 模块/CLI 契约 schema | `eng/contracts/config/**` | cli_modules_list / cli_selftest / module_dll_contract / module_lifecycle_contract | CFG002-07（全为 schema；与 eng/packaging/config/** 各自具名） |
+ | phase_config schema | `eng/contracts/schemas/phase_config_{normalize,mosaic,export}.schema.json` | 三份 phase 专属；无聚合第二定义 | `test_no_aggregate_second_definition` |
+ | 文档事实源 | `docs/engineering/CONFIG_CONTRACT.md`（本文件） | 语义与索引 | CFG002-07（DOCUMENT_INDEX 恰一次 + ACTIVE_NORMATIVE） |
+-| 文档索引 | `docs/DOCUMENT_INDEX.yaml` | docs/** 与根治理文档 | `eng/tools/doccheck/check_doc_index.py` |
++| 文档索引 | `docs/DOCUMENT_INDEX.yaml` | docs/** 与根治理文档 | 文档索引判据（载体见 门禁注册面（G08-10 重建）） |
+ | 测试登记 | `eng/tests/test_index.csv` | eng/tests/** 子目录 | CFG002-07（登记 eng/tests/config；未登记集合 ⊆ 已登记缺口清单） |
+ | CI 注册表 | 门禁注册面（G08-10 重建） ↔ `docs/engineering/VALIDATION_EVIDENCE_STANDARD.md §12` §2 | 检查项双向对齐 | config 域的 `UT-CONFIG` 步骤登记在 CI 侧（正本 = `docs/engineering/VALIDATION_EVIDENCE_STANDARD.md §12` §2） |
+ 
+diff --git a/docs/engineering/CPU_BACKEND_ARCH.md b/docs/engineering/CPU_BACKEND_ARCH.md
+index 252d42e7..94c5dfa1 100644
+--- a/docs/engineering/CPU_BACKEND_ARCH.md
++++ b/docs/engineering/CPU_BACKEND_ARCH.md
+@@ -48,4 +48,4 @@
+ | §4 C ABI v1 | `docs/engineering/abi/ABI_003_SECURE_LOADER.md`、`eng/tests/backend/test_abi_v1.py`（ABI layout 与异常不跨边界） |
+ | §5 kernel 表 | `eng/tests/backend/test_abi_kernels.py`（baseline 全 kernel + affinity 多线程） |
+ | §6 回退 | `eng/tests/backend/test_cpu_profile.py`（profile 失效 / fallback）+ `docs/ACSD_DESIGN.md` §7.2（退出码） |
+-| §7 发布 | `eng/packaging/verify_install_tree.py`、`docs/architecture/PRODUCTION_EXECUTION_INVENTORY.csv`（打包面登记） |
++| §7 发布 | `docs/architecture/PRODUCTION_EXECUTION_INVENTORY.csv`（打包面登记）；安装树校验项载体见 门禁注册面（G08-10 重建） |
+diff --git a/docs/engineering/DATA_ARTIFACTS.md b/docs/engineering/DATA_ARTIFACTS.md
+index b77bf7aa..04da148c 100644
+--- a/docs/engineering/DATA_ARTIFACTS.md
++++ b/docs/engineering/DATA_ARTIFACTS.md
+@@ -34,7 +34,7 @@
+ | DATA-P2-REJ-001 | Phase2 rejection 产品 nused/nrej + 逐样本接受掩码 sample_mask(目标态, 诊断统计平面 + integrate 原始样本索引资格载体) | int32 + u8 | HEALPix NESTED 512 tile + 逐 tile [depth×tile_span] | 无量纲计数 + 0/1 接受位 | ICRS | 无覆盖=0(禁 −1 哨兵); sample_mask 缺失/offset 错位/frame_slots 不符/字节∉{0,1} → integrate fail-closed(禁回退像素级 accepted); 逐帧 reason 级非目标 | persisted(nused/,nrej/ 目录; AIO 位 64/32 冻结分配; files.sample_mask=p2_rejection_sample_mask.bin) | HiPS(不入 exchange science planes 枚举) |
+ | DATA-P2-PROV-001 | Phase2 provenance 键组(目标态) | 64hex/uint/string/bool | 标量×5 | 无量纲 | 无(元数据) | uncertainty_available=false 显式登记非失败; 禁缺键/占位 | persisted(properties+manifest.json 双写) | HiPS properties+JSON |
+ | DATA-P3-UNC-001 | Phase3 重采样 uncertainty 传播产品(目标态) | f32/f64 | [W_out,H_out] 行主序 | **`ADU^2/sr^2` / `sr^2/ADU^2`**（BUNIT 派生；立体角幂不可省） | TAN/ICRS(FITS-WCS) | 无覆盖=NaN(C=0); NaN 传播=C=1; 负/Inf=损坏显式错误; unavailable=无 HDU+manifest 标记 | persisted(单 FITS 文件 VARIANCE/IVAR 扩展 HDU) | FITS(EXTNAME=VARIANCE/IVAR, DATASUM 逐 HDU) |
+-| DATA-P3-REJ-001 | Phase3 重采样**强制剔除计数**诊断统计平面（§30.7；正本 = DATA-002 §2a 规则 3 `count_field=n_rejected_nonfinite`） | int32 | W×H 一平面（独立载体 `p3_rejection.bin`） | 无量纲计数 | 输出平面像素（行主序，与 signal 同几何） | 无覆盖=0（**0 即「无」**，−1 只作无效标记）；**字段缺失 ≠ 全 0**（缺 `diagnostic_planes.n_rejected_nonfinite` 的产品判不满足 §2a 规则 3，判据具名 `COUNT_FIELD_MISSING`） | unique（p3_op_writer 原子写） | 二进制（**不进** exchange science planes 枚举；manifest `diagnostic_planes.n_rejected_nonfinite` + `n_rejected_nonfinite_total` 声明；判据 `eng/tools/quality/check_p3_rejection_count.py`） |
++| DATA-P3-REJ-001 | Phase3 重采样**强制剔除计数**诊断统计平面（§30.7；正本 = DATA-002 §2a 规则 3 `count_field=n_rejected_nonfinite`） | int32 | W×H 一平面（独立载体 `p3_rejection.bin`） | 无量纲计数 | 输出平面像素（行主序，与 signal 同几何） | 无覆盖=0（**0 即「无」**，−1 只作无效标记）；**字段缺失 ≠ 全 0**（缺 `diagnostic_planes.n_rejected_nonfinite` 的产品判不满足 §2a 规则 3，判据具名 `COUNT_FIELD_MISSING`） | unique（p3_op_writer 原子写） | 二进制（**不进** exchange science planes 枚举；manifest `diagnostic_planes.n_rejected_nonfinite` + `n_rejected_nonfinite_total` 声明；判据 = 强制剔除计数合同判据（六条 G1–G6，载体见 门禁注册面（G08-10 重建））） |
+ | DATA-HIPS-001 | HiPS 产品输入面(properties + signal tile 读路径; 正文=SCI-P3-001 §9a-1 + DATA_SEMANTICS §29.1, tile 读路径=§3 冻结) | f32(tile) + 文本(properties) | 512×512/leaf(W=hips_tile_width, leaf=HEALPix cell @hips_order) | 面亮度(BUNIT 透传, 缺省 ADU; 禁默认 Jy/beam) | HEALPix NESTED(frame=ICRS; tile 内 FITS local 映射=§3) | NaN=传播语义非 invalid; 缺 tile=无覆盖非错误; properties 必需键非法→显式 P3_RS_PARAM | shared(只读共享; 产品归生产方 Phase1/Phase2) | HiPS 目录树(properties + FITS tiles) |
+ | DATA-TILE-001 | 单个 HiPS leaf tile 科学面(W×W FITS float tile; 正文=SCI-P3-001 §9a-1/-8 + DATA_SEMANTICS §3) | f32 | [W,W] FITS local(W=512, leaf=NESTED 18 bit) | 面亮度(surface brightness; BUNIT 透传, 缺省 ADU) | HEALPix NESTED leaf + tile 内 fits_index=(511−x)·512+y(§3 CDS oracle 冻结) | tile 内 NaN=传播非 invalid; 缺 tile=无覆盖非错误; 非 float/多通道/JPEG-PNG/int+BLANK=显式拒绝 | shared(sampler 只读缓存, 禁改写) | FITS tile(HiPS 目录内) |
+ 
+@@ -120,5 +120,5 @@ HEALPix NESTED；PIXEL 一侧属端口词汇漂移（§29.5 已声明端口表
+ 
+ ## 3. 机器校验
+ 
+-- `eng/tools/check_data_artifacts.py`（DATA-001 新增）：校验本表 schema_id 唯一、
++- 产物登记表判据（DATA-001；载体见 门禁注册面（G08-10 重建））：校验本表 schema_id 唯一、
+   DATA_SEMANTICS.md 中声明的 DATA-* ID 全部在本表登记、无重复。
+diff --git a/docs/engineering/DEPENDENCY_RULES.md b/docs/engineering/DEPENDENCY_RULES.md
+index 95182f45..3737cfc9 100644
+--- a/docs/engineering/DEPENDENCY_RULES.md
++++ b/docs/engineering/DEPENDENCY_RULES.md
+@@ -23,9 +23,9 @@
+ 
+ | 面 | 机器单一事实源 | 登记镜像 | 校验入口 |
+ |---|---|---|---|
+-| Windows x64 发布工具链（generator、toolset 与其版本、VS Build Tools 与 installationVersion、SDK 与 servicing bundle、CMake、C++ 标准、CRT、VS 安装位置、preset 禁面） | `eng/packaging/schemas/preset-contract.json` | `eng/packaging/windows/README.md` | `eng/cmake/toolchain/verify_toolchain.py` |
+-| VS 安装组件清单 | `eng/packaging/windows/.vsconfig` | `eng/packaging/windows/README.md` | `eng/cmake/toolchain/verify_toolchain.py` |
+-| 生产依赖与系统库锁定（vendored 清单与哈希、zlib/zstd/lz4、kernel32 与线程 shim、OpenMP、Threads、机器路径政策） | `eng/packaging/dependency-lock.json`（schema：`eng/packaging/schemas/dependency-lock.schema.json`） | — | `eng/packaging/gen_sbom_input.py --root .` |
++| Windows x64 发布工具链（generator、toolset 与其版本、VS Build Tools 与 installationVersion、SDK 与 servicing bundle、CMake、C++ 标准、CRT、VS 安装位置、preset 禁面） | `eng/packaging/schemas/preset-contract.json` | `eng/packaging/windows/README.md` | 工具链锁定校验项（载体见 门禁注册面（G08-10 重建）） |
++| VS 安装组件清单 | `eng/packaging/windows/.vsconfig` | `eng/packaging/windows/README.md` | 工具链锁定校验项（载体见 门禁注册面（G08-10 重建）） |
++| 生产依赖与系统库锁定（vendored 清单与哈希、zlib/zstd/lz4、kernel32 与线程 shim、OpenMP、Threads、机器路径政策） | `eng/packaging/dependency-lock.json`（schema：`eng/packaging/schemas/dependency-lock.schema.json`） | — | 依赖与系统库锁定校验项（载体见 门禁注册面（G08-10 重建）） |
+ 
+ - **冲突以机器源为准**：登记镜像、文档与本文一律不得声明第二套取值；镜像与机器源不一致时按机器源订正镜像；
+ - 机器路径政策：CMake 与构建输入不得读取 `F:/`、`C:/Users/<user>`、`/home/<user>` 等机器绝对路径（fresh configure 必须可复现）；Windows 正式工具链的安装位置由 preset 显式声明，属白名单例外；MSYS2/MinGW 依赖面禁止；`vcpkg` 不使用，引入时须同时以 manifest 与 baseline 双重锁定并在本锁文件登记；
+diff --git a/docs/engineering/DOCUMENTATION_STANDARD.md b/docs/engineering/DOCUMENTATION_STANDARD.md
+index 4cd66df1..115a4a24 100644
+--- a/docs/engineering/DOCUMENTATION_STANDARD.md
++++ b/docs/engineering/DOCUMENTATION_STANDARD.md
+@@ -20,7 +20,7 @@ L5 模块文档        docs/detail/registry/**（module 页 + MODULE_MAP.yaml +
+ 历史（非权威）      docs/**/v6/**（V6 产品族冻结/设计档案，仍在活动索引）；其余历史由 git 承载
+ ~~~
+ 
+-- 活动/归档边界与机器索引：`docs/DOCUMENT_INDEX.yaml` + `python3 eng/tools/doccheck/check_doc_index.py --strict`。
++- 活动/归档边界与机器索引：`docs/DOCUMENT_INDEX.yaml`；文档索引判据以 `--strict` 复核（载体见 门禁注册面（G08-10 重建））。
+ - 机器一致性检查器以 门禁注册面（G08-10 重建） 为唯一注册表（`docs/engineering/VALIDATION_EVIDENCE_STANDARD.md §12`）。
+ 
+ - 每份 science 文档：目的、科学定义、公式、变量/单位、假设、有效域、
+diff --git a/docs/engineering/EXECUTION_MODEL.md b/docs/engineering/EXECUTION_MODEL.md
+index 43beb690..e3b28501 100644
+--- a/docs/engineering/EXECUTION_MODEL.md
++++ b/docs/engineering/EXECUTION_MODEL.md
+@@ -44,8 +44,7 @@
+ **HiPS 读路径线程模型**：每次调用各自 open→read→close，句柄只活在调用栈帧内；
+ `FptrTable` 与错误栈由 cfitsio 自带 `Fitsio_Lock` 保护，`READONLY` 打开走
+ `fits_already_open` 直接返回、不复用句柄（`cfitsio/cfileio.c` `:1544`）。
+-机器判据 = `eng/tools/quality/contracts/check_execution_contracts.py` 的
+-`EXEC-AIO-READ-NO-GLOBAL-LOCK`。
++机器判据 = `EXEC-AIO-READ-NO-GLOBAL-LOCK`（执行合同判据，载体见 门禁注册面（G08-10 重建））。
+ 
+ ## 3 锁 / 原子与 I/O 串行
+ 
+@@ -138,7 +137,7 @@
+ 
+ - `lib/infrastructure/cli/runtime_contract.h`：由 `lib/infrastructure/cli/commands.cpp` include 并**编入产品 `acsd`** ⇒ **在役生产**。
+ - `lib/infrastructure/cli/mode_gate.h`：同链 include ⇒ **在役生产**。
+-- `lib/infrastructure/scheduler/budget.py`：由 `eng/tools/quality/check_runtime_closure.py` 调用其 `selftest`、`eng/tools/quality/runtime_oracle.py` 锚定 ⇒ **在役 CI 面**。
++- `lib/infrastructure/scheduler/budget.py`：由运行闭包判据调用其 `selftest`、由 `eng/tools/quality/runtime_oracle.py` 锚定（运行闭包判据载体见 门禁注册面（G08-10 重建））⇒ **在役 CI 面**。
+ - 上述三者与隔离面（ACR / CUDA / GPU、Qt 浏览器）**分属不同类别**，各列一张表。
+ 
+ ## 11 治理任务执行模型
+diff --git a/docs/engineering/FROZEN_GATE_INVENTORY.md b/docs/engineering/FROZEN_GATE_INVENTORY.md
+index 9c6cbd92..f30f2853 100644
+--- a/docs/engineering/FROZEN_GATE_INVENTORY.md
++++ b/docs/engineering/FROZEN_GATE_INVENTORY.md
+@@ -2,7 +2,7 @@
+ 
+ > 上游：`docs/ACSD_DESIGN.md` §12.1（科学正确性）、`docs/engineering/SCIENCE_FREEZE.md`（冻结基线）、
+ > `docs/science/algorithms/GATES_AND_TOLERANCES.md` §1 R1/R2（表内唯一来源、证据必需）
+-> 机器实现：`eng/tools/acceptance/frozen_gate_exit_gate.py`（FG-01..FG-06）
++> 机器判据：FG-01..FG-06（裁决器载体见 门禁注册面（G08-10 重建））
+ > 盘点表（机器可读）：`eng/tools/acceptance/frozen_gate_inventory.json`
+ > 盘点时点 commit：`e9fa20d9`
+ 
+@@ -34,10 +34,10 @@
+ 触发事件在轮次报告里有记，**产品面（manifest / 判词记录）无记录**，等价于「停工且无登记面」：
+ 只看产品面的人无法区分本档是「首帧中止」还是「全批失败」。
+ 
+-登记面定义见 `eng/tools/acceptance/tier_verdict_gate.py` 的 TV-03 / TV-06 / TV-12。
++登记面定义见 TV-03 / TV-06 / TV-12（档位判词记录面，载体见 门禁注册面（G08-10 重建））。
+ 
+ **处置方案（本轮已落地一半）**：
+-1. 登记面 = 档位判词记录（`eng/tools/acceptance/tier_verdict_gate.py` TV-03/TV-06/TV-12）；
++1. 登记面 = 档位判词记录（TV-03/TV-06/TV-12）；
+ 2. 拒绝记录必带门 ID / 原文原因 / 分类（产品行为 or 缺陷）/ 出口 / 确定性复现；
+ 3. 存在未消命中时，档位判词写 `VERIFIED` 即判红（TV-12）。
+ 
+@@ -62,10 +62,7 @@
+ 
+ ## 3 可执行证据
+ 
+-~~~bash
+-python3 eng/tools/acceptance/frozen_gate_exit_gate.py --self-test   # 正例 1/1 + 注入负例 6/6
+-python3 eng/tools/acceptance/frozen_gate_exit_gate.py               # 裁决真实盘点表
+-~~~
++裁决入口随 门禁注册面（G08-10 重建） 落盘（`--self-test` = 正例 1/1 + 注入负例 6/6）。
+ 
+ 实测：`FROZEN_GATE_EXIT_PASS: gates=7 无出口=2 已声明未运行缺口=1 red_rules=0`。
+ 「无出口=2」= A6-GATE-PHOT + CPU-PROFILE-BIND，二者均已带 `remediation`；
+diff --git a/docs/engineering/HIPS_STORAGE_FORM_CONTRACT.md b/docs/engineering/HIPS_STORAGE_FORM_CONTRACT.md
+index ddc60fae..b2d87c15 100644
+--- a/docs/engineering/HIPS_STORAGE_FORM_CONTRACT.md
++++ b/docs/engineering/HIPS_STORAGE_FORM_CONTRACT.md
+@@ -5,7 +5,7 @@
+ > 上位：`ACSD_DESIGN.md` §10；`docs/detail/PRODUCT_STORAGE_FORM.md`
+ 下游：`docs/science/IO_002_HIPS_INPUT_INTERFACE.md`、`docs/engineering/io/IO_003_ATOMIC_OUTPUT_PUBLISH.md`、`docs/detail/infrastructure/17_aio.md`、`docs/detail/algorithms_phase1/08_drizzle.md`、`docs/detail/algorithms_phase2/09_coverage.md`
+ 机器事实源：`eng/contracts/schemas/hips_storage_form.schema.json`（索引文件 schema）
+-机器检查器：`eng/tools/hipsform/check_hips_storage_form.py`（CI 检查 `CHK-HIPS-STORAGE-FORM`）
++机器检查器：落盘形态判据（CI 检查 `CHK-HIPS-STORAGE-FORM`，载体见 门禁注册面（G08-10 重建））
+ 
+ ## 1. 冻结面
+ 
+@@ -174,9 +174,9 @@
+ ## 9. 机器校验
+ 
+ - 索引 schema：`eng/contracts/schemas/hips_storage_form.schema.json`；
+-- 检查器：`python3 eng/tools/hipsform/check_hips_storage_form.py --root .`（exit 0 = PASS；同时跑逐层字段口径一致性判据）；
+-- 逐层口径：`python3 eng/tools/hipsform/check_hips_storage_form.py --root . --doc-consistency`（每层文档必须出现词表登记的字段名与取值，词表外的同义名一律判红）；
+-- 负例自检：`python3 eng/tools/hipsform/check_hips_storage_form.py --self-test`（恒 0 = 全部内置正/负例符合预期；覆盖形态键缺省/留空的默认+warn、逐帧索引字段、清单 storage 段、mosaic/export 形态键 REJECT、层间口径不一致）；
++- 检查器（`--root .`，exit 0 = PASS；载体见 门禁注册面（G08-10 重建）；同时跑逐层字段口径一致性判据）；
++- 逐层口径（`--doc-consistency`）：每层文档必须出现词表登记的字段名与取值，词表外的同义名一律判红；
++- 负例自检（`--self-test`，恒 0 = 全部内置正/负例符合预期；覆盖形态键缺省/留空的默认+warn、逐帧索引字段、清单 storage 段、mosaic/export 形态键 REJECT、层间口径不一致）；
+ - CI 登记：门禁注册面（G08-10 重建） 的 `CHK-HIPS-STORAGE-FORM`。
+ 
+ ## 10. 形态的输入配置与输出清单字段（MUST）
+diff --git a/docs/engineering/ISA_VARIANTS.md b/docs/engineering/ISA_VARIANTS.md
+index 2abf7eb4..2d933dfa 100644
+--- a/docs/engineering/ISA_VARIANTS.md
++++ b/docs/engineering/ISA_VARIANTS.md
+@@ -87,7 +87,7 @@ avx512 = `avx512f|avx512bw|avx512dq|avx512vl` = 928（声明集 ⊊ 编译所需
+ - **校验**：`CHK-PROVIDER-MANIFESTS`（注册面见 门禁注册面（G08-10 重建））逐条校验清单自洽、
+   实测 sha256、声明的入口符号**确实可由 dlopen 解析**、`providers/*.so|*.dll` 与清单条目一一对应
+   （游离或双登记判红）、能力位与 `features_defined` 一致；配 `--self-test`（5 红 1 绿）作负例面。
+-- **隔离**：两族都在 `acsd` 链接闭包之外（`check_isa_leak.py` 的报错面不变）；主程序保持基线指令集。
++- **隔离**：两族都在 `acsd` 链接闭包之外（ISA 泄漏判据的报错面不变）；主程序保持基线指令集。
+ 
+ ## 3 ISA 污染防线
+ 
+@@ -99,11 +99,11 @@ avx512 = `avx512f|avx512bw|avx512dq|avx512vl` = 928（声明集 ⊊ 编译所需
+   `acsd_variant_kernel_dispatch_v1`（`backend_variant_kernels.h`）相连。
+   **为什么按源文件隔离**：MSVC 没有函数级指令集覆盖（无 `#pragma GCC target` 对应物），若自检/握手
+   入口与计算面同 TU，则「能力预检不过 ⇒ 干净拒绝」会退化成「加载即撞非法指令」。
+-  机器判据：`eng/tools/quality/check_isa_same_source.py` 的 `tu_isolation`（S7，门面 TU 带旗标即红）
++  机器判据：`tu_isolation`（S7，门面 TU 带旗标即红；载体见 门禁注册面（G08-10 重建））
+   + 站点登记 `eng/tools/quality/isa_sites.json`。
+ - 变体 TU：门面走基线旗标，计算面 TU 局部旗标（GCC/Clang：`-mavx2 -mfma` /
+   `-mavx512f -mavx512bw -mavx512vl -mavx512dq`）。**产物级双向判据** =
+-  `eng/tools/quality/check_variant_isa_disasm.py`（工具无关，吃 objdump / llvm-objdump / dumpbin 文本）：
++  产物级反汇编判据（工具无关，吃 objdump / llvm-objdump / dumpbin 文本；载体见 门禁注册面（G08-10 重建））：
+   计算面必须含该档宽指令（`--hit`），自检/握手入口必须**零 VEX/EVEX**（`--clean-symbol`），
+   且每条**有使用证据的声明位**都要在产物里找到证据（`--require-feature`；
+   `--declared-features` 逐位登记"许可面 vs 实际发射面"的差异，不得静默）。
+@@ -154,10 +154,10 @@ avx512 = `avx512f|avx512bw|avx512dq|avx512vl` = 928（声明集 ⊊ 编译所需
+   - `eng/tests/cpu/avx2/run_provider_avx2_checks.py` 与
+     `eng/tests/cpu/avx512/run_provider_avx512_checks.py` 改走**同一份**编译配方
+     (`eng/tests/backend/variant_build.py`)，测试产物形态 = 发行产物形态。
+-  - `check_isa_same_source.py --fault-inject` 新增 4 条本族注入：
++  - `tu_isolation` 判据的故障注入入口新增 4 条本族注入：
+     `cpuprov-tu-isolation` / `cpuprov-kernels-unflagged` / `cpuprov-arch-flag-drift` /
+     `cpuprov-declaration-cd`（逐条必红，见 `--fault-inject all`）。
+-- **已登记差异（产品缺陷，非判据缺陷）**：▭check_manifest_isa_artifact.py 的 M5 对本族判红一处，
++- **已登记差异（产品缺陷，非判据缺陷）**：▭ISA 清单产物判据的 M5 对本族判红一处，
+   登记如下，不得用改判据消红：
+ 
+   | 项 | 实测 | 判定 |
+diff --git a/docs/engineering/LOG_AND_ERROR_CONTRACT.md b/docs/engineering/LOG_AND_ERROR_CONTRACT.md
+index e3190c72..56553a3b 100644
+--- a/docs/engineering/LOG_AND_ERROR_CONTRACT.md
++++ b/docs/engineering/LOG_AND_ERROR_CONTRACT.md
+@@ -29,7 +29,7 @@
+ |---|---|
+ | 字段表、语义、枚举、error 载荷 | `docs/engineering/observability/STRUCTURED_LOGGING_CONTRACT.md` §2 |
+ | JSON Schema（draft-07） | `lib/infrastructure/observability/logging/log_event_v1.schema.json` |
+-| 参考实现与校验器 | `lib/infrastructure/observability/logging/log_event.py`、`eng/tools/monitoring/check_log_contract.py` |
++| 参考实现与校验器 | `lib/infrastructure/observability/logging/log_event.py`（参考实现）；校验面 = 日志行 schema / 字段 / 枚举 / 单行大小（正本 `lib/infrastructure/observability/logging/log_event_v1.schema.json`，校验项载体见 门禁注册面（G08-10 重建）） |
+ | 诊断工具 | `eng/tools/acsd_diagnose.py <run_dir>`，由一次运行的日志工件汇总输出小 bundle |
+ 
+ - 每行 = 一个 JSON 对象 + `\n`；单行（含换行）≤ **4096 字节**；
+@@ -162,18 +162,13 @@ run manifest 增列 `log_artifacts[]`（**每次运行必填，可为空数组
+ 
+ | 判据 | 机器入口 | 正例（绿） | 负例（红） |
+ |---|---|---|---|
+-| R1 错误不吞 | `check_log_system.py` | 生产收敛面无未登记吞错点 | 注入 `catch (...) {}` ⇒ FAIL |
++| R1 错误不吞 | `CHK-LOG-SYS`（注册面见 门禁注册面（G08-10 重建）） | 生产收敛面无未登记吞错点 | 注入 `catch (...) {}` ⇒ FAIL |
+ | R2 降级显式 | 同上 | 条件回退点已登记且写 `degraded_reason` | 注入静默回退函数 ⇒ FAIL |
+ | R3 日志落点 | 同上 | 落点均派生自 `output_dir` 或已登记 | 落点字面量指向 `output_dir` 之外 ⇒ FAIL |
+ | R4 台账完整 | 同上 | 锚存活、条目只减不增、扫描面非空 | 抹掉锚 / 清空扫描面 ⇒ FAIL |
+ | R5 合同锚 | 同上 | 台账落点默认值与本合同、最高设计一致 | 改台账默认值 ⇒ FAIL |
+ 
+-命令：
+-
+-```bash
+-python3 eng/tools/quality/check_log_system.py --json-out run/ci/log-system/log_system.json
+-python3 eng/tools/quality/check_log_system.py --self-test
+-```
++机器入口与负例命令随 门禁注册面（G08-10 重建） 落盘（注册项 = `CHK-LOG-SYS`，见下）。
+ 
+ 注册项 = `CHK-LOG-SYS`（门禁注册面（G08-10 重建）、`docs/engineering/VALIDATION_EVIDENCE_STANDARD.md §12` §2）。
+ 
+diff --git a/docs/engineering/MODULE_MAP.md b/docs/engineering/MODULE_MAP.md
+index 1247c71a..abc48f2e 100644
+--- a/docs/engineering/MODULE_MAP.md
++++ b/docs/engineering/MODULE_MAP.md
+@@ -3,7 +3,7 @@
+ > 上游：`docs/ACSD_DESIGN.md` §8（软件架构）、§12.5（状态阶梯）
+ 
+ 状态词口径 = `docs/ACSD_DESIGN.md` §12.5（不另立阶梯）；本文件的表格**不写状态字段**——
+-各面状态由 `eng/tools/quality/check_module_map.py` **现场计算**并落在
++各面状态由交付状态**现场计算**（载体见 门禁注册面（G08-10 重建））并落在
+ `docs/modules/MODULE_MAP.yaml`，本文件只承载映射与可核证据锚。
+ 每行按 `lib/` 实际目录登记，`docs/modules/<module>.md` 为对应 L5 详细文档。
+ 
+@@ -49,7 +49,7 @@
+     （HASH_MISMATCH / MODULE_ID_MISMATCH / PATH_ESCAPE / FILE_MISSING）必败；
+   - `eng/tests/abi/test_module_registry.py` 与 `eng/tests/abi/test_abi005_echo.py`
+     （module 合同与三方一致正测）；
+-  - `eng/packaging/verify_install_tree.py`（安装树产品清单核对）。
++  - 安装树产品清单核对（载体见 门禁注册面（G08-10 重建））。
+ - **缺口登记**：运行期宿主接线未落地一项登记于 `docs/KNOWN_LIMITATIONS.md`，
+   其收敛按 `docs/modules/MODULE_MAP.yaml` 与 `CHK-PROD-WIRING` 的现场计算结论判定；
+   收缩声明面须经 `docs/modules/registry/**` 变更单按最高设计 §8.1 走变更流程。
+diff --git a/docs/engineering/PHASE1_API_V1.md b/docs/engineering/PHASE1_API_V1.md
+index e569e377..d65bb5a5 100644
+--- a/docs/engineering/PHASE1_API_V1.md
++++ b/docs/engineering/PHASE1_API_V1.md
+@@ -47,4 +47,4 @@ acsd_status p1_session_destroy(acsd_handle);
+ 
+ ## 4 doc-symbol-signature checker 合同(验收)
+ 
+-`eng/tools/check_api_docs.py`(API-003 建立合同, CLI-002 落地全量): 对每个登记函数——① 头文件存在该符号;② 文档表此行存在;③ 签名(参数数)一致;④ 直接 test ID 非空;⑤ 五字段并发合同齐全。任一缺失 FAIL。机器门 = §2 表 + `eng/tests/api/test_p1_api.py`。
++文档符号签名判据(API-003 建立合同, CLI-002 落地全量, 载体见 门禁注册面（G08-10 重建）): 对每个登记函数——① 头文件存在该符号;② 文档表此行存在;③ 签名(参数数)一致;④ 直接 test ID 非空;⑤ 五字段并发合同齐全。任一缺失 FAIL。机器门 = §2 表 + `eng/tests/api/test_p1_api.py`。
+diff --git a/docs/engineering/PIPELINE_BLOCK_CONTRACT.md b/docs/engineering/PIPELINE_BLOCK_CONTRACT.md
+index 7775b751..693fa37a 100644
+--- a/docs/engineering/PIPELINE_BLOCK_CONTRACT.md
++++ b/docs/engineering/PIPELINE_BLOCK_CONTRACT.md
+@@ -76,7 +76,7 @@ CREATED --(所有声明消费者执行完毕)--> CONSUMED --(调度器回收)-->
+ 
+ ## 7 机器判据（端口 ↔ 代码双向一致）
+ 
+-`eng/tools/quality/check_block_flow_ports_vs_code.py` 把注册表的端口面与
++端口↔代码双向一致判据（C1–C6，载体见 门禁注册面（G08-10 重建））把注册表的端口面与
+ `lib/infrastructure/scheduler/src/module_adapters.cpp` 的真实数据流做**双向**核对：
+ 
+ | 判据 | 内容 |
+@@ -100,7 +100,7 @@ CREATED --(所有声明消费者执行完毕)--> CONSUMED --(调度器回收)-->
+ |---|---|
+ | C4 无幻边 | IR 声明的每条边必须由注册表端口图支持：该产物身份对应的注册表端口必须是生产模块的**输出**端口、且是消费模块的**输入**端口；IR 产物身份须在 `PHASE1_ARTIFACT_TO_PORT` 桥表中登记（未登记即判红，新增产物必须同步该桥） |
+ | C5 序为拓扑序 | 注册表端口图 DAG 的每条边必须满足 `pos(上游) < pos(下游)`；IR 自身声明的边也必须与节点数组序一致 |
+-| C5b 声明序一致 | IR 的 phase1 节点序必须等于注册表 `modules` 数组里同阶段模块的出现序（块流规格 `stage_block_flow.json` 的 declared order 与 `check_block_flow_spec.py` 的 R4 同源） |
++| C5b 声明序一致 | IR 的 phase1 节点序必须等于注册表 `modules` 数组里同阶段模块的出现序（块流规格 `stage_block_flow.json` 的 declared order 与 R4 同源） |
+ | C6 psf 在 wcs 之后 | `pos(psf) > pos(wcs)`，且 `psf` 节点必须声明 `artifact:p1_wcs` 输入边（取向先验的真实来源） |
+ | C8 IR 端口 ∈ descriptor | IR 每个节点的输入/输出端口名必须出现在 `module_adapters.cpp` 对应 descriptor 的端口表里（运行期 `MISSING_PORT` 静态验证的 CI 侧等价判据；不启动产品二进制即可发现 IR ↔ descriptor 漂移） |
+ | C7 非退化 | phase1 节点数 / IR 边数 / 注册表端口边数均有下界；解析不到即 fail-closed（判据 = 解析成功；解析不到一律判红） |
+diff --git a/docs/engineering/PUBLIC_API.md b/docs/engineering/PUBLIC_API.md
+index c35c5c53..4d55c7e9 100644
+--- a/docs/engineering/PUBLIC_API.md
++++ b/docs/engineering/PUBLIC_API.md
+@@ -719,9 +719,8 @@ manifest 字段 dtype 逐项登记；坐标/单位词汇沿用 GLOSSARY（ADU/0-
+   cosmetic→ac_correct_frame、star-psf→StarDetector、wcs→WcsTan、
+   photometry→Photometer、noise-snr→NoiseModel、drizzle→hp_drizzle_run、
+   writer→aio_write_fits；子节点不调完整 phase_session_run）；P1Api/SessionModule
+-  为兼容面。CLI/测试之外无其他直接调用方（生产可达性锚 =
+-  eng/tools/quality/check_prod_reachability.py:42 与
+-  eng/tools/check_pipeline_trace.py:16）。
++  为兼容面。CLI/测试之外无其他直接调用方（生产可达性锚 = 生产可达性判据与
++  管线追踪判据，载体见 门禁注册面（G08-10 重建））。
+ - star-psf 走 lib/algorithms/star_detection 生产检测（sdet C 头，StarDetector C++ 类
+   为薄包装）+ lib/algorithms/psf `dpsf_fit_batch_f64`（Moffat4 FP64 批量 PSF 拟合，
+   DATA-P1-PSF 携 psf_params:FLOAT64[N,9]）。
+diff --git a/docs/engineering/RELEASE_STATUS.md b/docs/engineering/RELEASE_STATUS.md
+index 7f3534bd..30d5ad90 100644
+--- a/docs/engineering/RELEASE_STATUS.md
++++ b/docs/engineering/RELEASE_STATUS.md
+@@ -76,7 +76,7 @@ psf_snr_power:       DEFERRED（生产拒绝）
+ - 非产品版本的数字三元组只作格式/组件标识，产品版本一律取自根 `VERSION`：FITS 4.0（格式规范）、HiPS 1.0/1.4（IVOA 格式版本）、DatabaseVersion（Gaia 库标识）、`schema_version` / ABI v1（见上表定义点）、外部组件版本（CFITSIO 4.6.4、gcc/cmake 等）、`X.Y.Z` / `MAJOR.MINOR.PATCH` 占位表述。
+ - **生成链**（CMake/CLI/打包从根 `VERSION` 派生，字面量只有一个来源）：根 `CMakeLists.txt` 的 `file(READ …/VERSION)` + `git rev-parse HEAD` → `ACSD_VERSION_STRING`（`X.Y.Z-alpha.N+g<sha>`）→ `configure_file` 生成 `lib/infrastructure/cli/version_generated.h`；`eng/tools/gen_version.py --json` 输出 version/prerelease/commit/dirty/build_id/abi_version/cli_schema_version 合同对象；CLI `--version[ --json]` 与 doctor/hardware/verify 共用同一生成串。
+ - 生成串形态：clean main 为 `0.1.0-alpha.1+g<commit12>`，dirty 工作树追加 `.dirty`。
+-- **机器检查入口**：`eng/tools/doccheck/check_version_namespaces.py`（唯一源格式 + 生成链 + 允许路径扫描 + 反误报断言 + 伪造版本必须判红）；既有版本扫描 `eng/tools/check_version_consistency.py`。
++- **机器检查入口**：版本命名空间判据（唯一源格式 + 生成链 + 允许路径扫描 + 反误报断言 + 伪造版本必须判红）与既有版本字面量扫描，两者载体见 门禁注册面（G08-10 重建）。
+ - Windows 正式发布候选：**未产生**（`NOT_VERIFIED`）。DLL 化安装树的 **Linux 技术预览安装面已 `INSTALLED`**（五科学模块 + noop 入 `modules/`，产品清单 10 units，安全 loader 实测 64/64 PASS），Windows 侧复验未执行。
+ - 已知他人路径遗留：`docs/engineering/VERSIONING.md`、CMake `project(... VERSION)` 字面量、若干 eng/tests/tools 硬编码旧版本号 —— 由版本检查器 `known_legacy_reported` 输出登记（见检查器 `out_of_scope` 列表）。
+ 
+@@ -85,9 +85,9 @@ psf_snr_power:       DEFERRED（生产拒绝）
+ | 面 | 状态 | 主要依据（文件锚 / 命令 / rc） |
+ |---|---|---|
+ | 最高设计 | `CONTRACT_READY` | `docs/ACSD_DESIGN.md`（§0 权威链，唯一最高权威） |
+-| 最高设计 ↔ 工程规范边界 | `CONTRACT_READY` | `ACSD_DESIGN.md` §0 权威链 + `docs/engineering/`；旧 `ACSD_ENGINEERING_CONSTRAINTS.md` 与 `eng/tools/doccheck/check_engineering_constraints.py` 已退役（历史条目） |
+-| 文档边界/索引 | `CONTRACT_READY` | `docs/DOCUMENT_INDEX.yaml`（DOC-001 收敛：新文档集补登 + 旧体系移出活动区）；`eng/tools/doccheck/check_doc_index.py --strict` 残留 1 项 `control_archive_dir_readme`（绑定已删除的 `engineering/control/archive/**`），登记 CI-001 迁移 |
+-| 内核标准注册表 | `CONTRACT_READY` | `docs/engineering/STANDARDS_REGISTRY.md` + `docs/standards/checks/check_standards_registry.py` → STANDARDS_REGISTRY_PASS（STD-REG-001 `fb7f232a`） |
++| 最高设计 ↔ 工程规范边界 | `CONTRACT_READY` | `ACSD_DESIGN.md` §0 权威链 + `docs/engineering/` |
++| 文档边界/索引 | `CONTRACT_READY` | `docs/DOCUMENT_INDEX.yaml`（DOC-001 收敛：新文档集补登 + 旧体系移出活动区）；文档索引判据以 `--strict` 复核活动/归档边界（载体见 门禁注册面（G08-10 重建）） |
++| 内核标准注册表 | `CONTRACT_READY` | `docs/engineering/STANDARDS_REGISTRY.md` + 标准注册表判据 C1–C9（载体见 门禁注册面（G08-10 重建））→ STANDARDS_REGISTRY_PASS |
+ | 版本单源 | `CONTRACT_READY` | `VERSION` + 本文 §2；检查器 rc=0 |
+ | C ABI v1 / DLL 边界 / 安全 loader 合同 | `CONTRACT_READY` | `lib/include/acsd/abi/*.h`（ABI-001）、`eng/contracts/config/module_dll_contract.schema.json`（ARC-001）、`runtime/module_loader/secure_loader.h`（ABI-003） |
+ | 类型化产物 / 三阶段交换 / 不确定度合同 | `CONTRACT_READY` | DATA-001/002 + DATA-UNC-001（`99713034`）+ `eng/contracts/data/*` |
+@@ -102,7 +102,7 @@ psf_snr_power:       DEFERRED（生产拒绝）
+ | Windows 工具链 preset | `CONTRACT_READY` | BLD-001 + `eng/packaging/schemas/preset-contract.json` |
+ | 唯一根 CMake 构建图 | `IMPLEMENTED` | BLD-002；根 `ninja -C build` 本提交实测 rc=0（全量 28 步） |
+ | FITS 流式接口 | `IMPLEMENTED` | IO-001（接口 + 实现 + 契约测试）；**未接入 Phase3 writer**（见 §4） |
+-| L0 负责人入口 | `CONTRACT_READY` | `docs/engineering/{SCIENCE_OVERVIEW,PIPELINE_OVERVIEW,ARCHITECTURE_OVERVIEW,RELEASE_STATUS}.md` + `docs/DOCUMENT_INDEX.yaml`（根 `REVIEW.md` 与旧轮次评审副本已删除）；`eng/tools/check_l0_docs.py` 现行绑定 `docs/engineering/{SCIENCE_OVERVIEW,PIPELINE_OVERVIEW,ARCHITECTURE_OVERVIEW,RELEASE_STATUS}.md`（DOC-001 后实测 rc=0，GAP-001/GAP-016 关闭）|
++| L0 负责人入口 | `CONTRACT_READY` | `docs/engineering/{SCIENCE_OVERVIEW,PIPELINE_OVERVIEW,ARCHITECTURE_OVERVIEW,RELEASE_STATUS}.md` + `docs/DOCUMENT_INDEX.yaml`；L0 入口完整性判据绑定同一组文档（载体见 门禁注册面（G08-10 重建））|
+ 
+ > 本表"实测"级证据（IMPLEMENTED/INSTALLED）全部来自 BASE=`da3c4b4a` 的命令日志
+ > `run/docconv001/logs/{focused_rebuild_test.log,mod001_install_check.log,cli001_vpi.log}`；
+diff --git a/docs/engineering/STANDARDS_REGISTRY.md b/docs/engineering/STANDARDS_REGISTRY.md
+index 52f85917..a802bc6f 100644
+--- a/docs/engineering/STANDARDS_REGISTRY.md
++++ b/docs/engineering/STANDARDS_REGISTRY.md
+@@ -2,7 +2,7 @@
+ 
+ > 上游权威: `ACSD_DESIGN.md` §6.3（冻结八投影；本节号为本轮订正，原写 §5.3 = 「SNR 重建与逆方差叠加」）/附录 B（基础科学与格式参考）+ `docs/DOCUMENT_INDEX.yaml`（本注册表为标准登记，不在 §0 权威链上）
+ > 条款锚的现行落点：投影集合 = `ACSD_DESIGN.md` §6.3（八投影）；资源门 = 同文 §8 + `eng/contracts/resource_gate_v1.json`
+-> 机器检查: `docs/standards/checks/check_standards_registry.py`（exit 0 = PASS / 1 = FAIL / 2 = ANCHOR_STALE；见 §5 与 §5 负向注入）
++> 机器检查: 标准注册表判据 C1–C9（载体见 门禁注册面（G08-10 重建）；exit 0 = PASS / 1 = FAIL / 2 = ANCHOR_STALE；见 §5 与 §5 负向注入）
+ > 登记: `docs/DOCUMENT_INDEX.yaml` doc_index.active（status = ACTIVE_NORMATIVE）
+ 
+ ---
+@@ -314,7 +314,7 @@
+ 
+ ---
+ 
+-## 5. 机器检查合同（docs/standards/checks/check_standards_registry.py）
++## 5. 机器检查合同（标准注册表判据 C1–C9）
+ 
+ | 检查 | 断言 |
+ |---|---|
+@@ -329,9 +329,7 @@
+ | C8 | §3 偏差索引与偏差登记面双向一致：定义域为空 ⇒ 索引必须有显式「（无）」行；定义域非空 ⇒ 索引各行均为真实偏差 ID（「（无）」行的适用范围 = 定义域为空） |
+ | C9 | **[W4-A3]** 域清单「偏差」列 → 域 DEVIATION 字段**反向一致**：清单行偏差列里出现的每个 STD-F*/DISP-* 词元必须在本域 DEVIATION 字段中有定义。C4 只判该列非空、C7 只判 §3 索引 → DEVIATION；补上反向后"清单行写着 STD-F1 而 DEVIATION 字段删掉它"不再可能整体绿 |
+ 
+-用法（PASS 时 exit 0；FAIL 为 1；锚失效为 2）：
+-
+-    python3 docs/standards/checks/check_standards_registry.py --root .
++用法（PASS 时 exit 0；FAIL 为 1；锚失效为 2）：域内手工复跑，判据载体随 门禁注册面（G08-10 重建） 落盘。
+ 
+ 锚存活（`docs/DOCUMENT_INDEX.yaml`，fail-closed）：`REQUIRED_ANCHORS`（本注册表 +
+ docs/DOCUMENT_INDEX.yaml）在启动时校验 os.path.exists + `git ls-files --error-unmatch`；
+@@ -349,11 +347,9 @@ docs/DOCUMENT_INDEX.yaml）在启动时校验 os.path.exists + `git ls-files --e
+ > 须先在 门禁注册面（G08-10 重建） 登记（`changed_paths=["docs/standards/**"]`，参照 DOC-INDEX 形态）；
+ > 补登记完成后方可把本节改回强制口径。
+ 
+-    for s in drop-domain-section drop-checklist-table illegal-status version-drift \
+-             drop-wcs003f1-pointer dangling-deviation-id \
+-             drop-governance-deviation add-none-marker-row anchor-stale; do
+-      python3 docs/standards/checks/check_standards_registry.py --root . --fault-inject "$s"
+-    done
++逐个场景以 `--fault-inject <场景名>` 复跑（场景名 = drop-domain-section / drop-checklist-table /
++illegal-status / version-drift / drop-wcs003f1-pointer / dangling-deviation-id /
++drop-governance-deviation / add-none-marker-row / anchor-stale）。
+ 
+ 前 8 场景恒退出 0（注入协议：判定看 verdict）；`anchor-stale` 为例外 —— 锚失效按 §8
+ 必须非零退出，退出 2 并打印 `ANCHOR_STALE`。
+@@ -365,12 +361,12 @@ docs/DOCUMENT_INDEX.yaml）在启动时校验 os.path.exists + `git ls-files --e
+ 
+ 人工复现生产路径（不经 --fault-inject）：
+ 
+-    ACSD_STD_REG_ANCHOR_OVERRIDE='REGISTRY_REL=docs/standards/__missing__.md' \
+-      python3 docs/standards/checks/check_standards_registry.py --root .; echo rc=$?   # rc=2
++以 `ACSD_STD_REG_ANCHOR_OVERRIDE='REGISTRY_REL=docs/standards/__missing__.md'` 指向缺席锚复跑，
++观察退出码（预期 rc=2）。
+ 
+ > CI 登记状态：本检查器为**治理文档检查器**
+ > （非 CTest 目标、非 add_test 注册面）。**已登记**：门禁注册面（G08-10 重建） 的 `STD-REG` 项
+-> （主判据 `check_standards_registry.py --root .`）+ 2 个负向注入场景
++> （主判据 C1–C9）+ 2 个负向注入场景
+ > （`STD-REG-FI-DANGLING`、`STD-REG-FI-VERSION-DRIFT`）。
+ > **未登记（PLANNED）**：其余 7 个注入场景 + 空转守卫；该登记属 门禁注册面（G08-10 重建） 写入面，
+ > 超出本文件域（参照 DOC-INDEX 检查项形态：changed_paths=["docs/standards/**"]）。
+@@ -388,7 +384,7 @@ docs/DOCUMENT_INDEX.yaml）在启动时校验 os.path.exists + `git ls-files --e
+   docs/science/algorithms/PLATESOLVE.md、docs/science/algorithms/PHASE3_PROJ_IMPL.md、docs/science/algorithms/HIPS_WRITER.md、
+   docs/science/algorithms/HEALPIX_MAPPING.md、docs/science/algorithms/DRIZZLE_GEOMETRY.md、docs/science/algorithms/GAIA_QUERY.md、
+   docs/science/IO_001_FITS_STREAM_INTERFACE.md、docs/science/IO_002_HIPS_INPUT_INTERFACE.md。
+-- 机器检查：docs/standards/checks/check_standards_registry.py；docs/DOCUMENT_INDEX.yaml（DOC-INDEX 检查项）。
++- 机器检查：标准注册表判据 C1–C9（载体见 门禁注册面（G08-10 重建））；docs/DOCUMENT_INDEX.yaml（DOC-INDEX 检查项）。
+ - 本文件不修改任何 SCI/ALG 公式、默认容差或冻结门；冲突一律登记偏差（§1.2/§1.5）。
+ 
+ ---
+@@ -397,8 +393,8 @@ docs/DOCUMENT_INDEX.yaml）在启动时校验 os.path.exists + `git ls-files --e
+ 
+ > 依据：`ACSD_DESIGN.md` §0.2（登记表/映射表的状态字段一律留空）、§12.5（状态必须现场计算）。
+ 
+-- 本表**不写**交付状态阶梯（§12.5 的 `CONTRACT_READY`/`IMPLEMENTED`/…）——那是模块/交付物的状态，由 `eng/tools/quality/check_module_map.py` 现场计算；文档活动分类一律以 `docs/DOCUMENT_INDEX.yaml` + `eng/tools/doccheck/check_doc_index.py` 为准。
++- 本表**不写**交付状态阶梯（§12.5 的 `CONTRACT_READY`/`IMPLEMENTED`/…）——那是模块/交付物的状态，由交付状态现场计算（载体见 门禁注册面（G08-10 重建））；文档活动分类一律以 `docs/DOCUMENT_INDEX.yaml` 为准，文档索引判据载体见 门禁注册面（G08-10 重建）。
+ - 本表保留的两列**不是**交付状态，且都由机器校验，不构成「表内自证绿」：
+-  - `符合状态`（`CONFORMANT`/`PARTIAL`/`NON_CONFORMANT`/`PROJECT_DEFINED`）= 与**外部标准条款**的关系轴，取值域与证据指针存在性由 `check_standards_registry.py` C4/C5 现场判（`docs/engineering/RELEASE_STATUS.md` §0 已声明两轴独立）；
++  - `符合状态`（`CONFORMANT`/`PARTIAL`/`NON_CONFORMANT`/`PROJECT_DEFINED`）= 与**外部标准条款**的关系轴，取值域与证据指针存在性由 C4/C5 现场判（`docs/engineering/RELEASE_STATUS.md` §0 已声明两轴独立）；
+   - §3 偏差索引的 `状态`（`TRACKED`/`CLOSED`）= 偏差处置登记，定义域与索引一致性由 C6/C7 现场判。
+-- 若后续要求连这两列也改为「检查器现场计算」，须先改 `docs/standards/checks/check_standards_registry.py` 的 C4/C6 判据并同步 门禁注册面（G08-10 重建） 的 STD-REG 项——属门禁改造，不在本文件域内。
++- 若后续要求连这两列也改为「检查器现场计算」，须先改 C4/C6 判据并同步 门禁注册面（G08-10 重建） 的 STD-REG 项——属门禁改造，不在本文件域内。
+diff --git a/docs/engineering/TRACEABILITY_SPEC.md b/docs/engineering/TRACEABILITY_SPEC.md
+index 0b978471..9f11c359 100644
+--- a/docs/engineering/TRACEABILITY_SPEC.md
++++ b/docs/engineering/TRACEABILITY_SPEC.md
+@@ -21,7 +21,7 @@ Schema：
+ - `schemas/traceability_matrix.schema.json`（JSON 合同）
+ - `docs/traceability/TRACEABILITY_LAYERS.csv`（CSV 合同：列定义 + 每层必填规则 + 取值域）
+ 
+-检查器：`eng/tools/traceability/check_traceability_matrix.py`（exit 0 = `TRACEABILITY_MATRIX_PASS`；
++检查器（载体见 门禁注册面（G08-10 重建））：exit 0 = `TRACEABILITY_MATRIX_PASS`；
+ 任何断链输出**具体模块 + 层 + 缺失/悬空引用路径**并以非 0 退出，绝不崩溃吞异常）。
+ 
+ ## 2. 追溯链与分层
+@@ -85,8 +85,8 @@ EVID     ^EVID-[A-Z0-9]+(-[A-Z0-9]+)*$         例如 EVID-P1-CAL-001
+   EVIDENCE 层 id（非占位）全矩阵唯一。SCI/ALG/DATA/API/ARCH/TEST 是**合同层**，
+   ID 可被多个模块行共享（如 `API-P2-001` 被 8 个 phase2 模块共同承载、
+   `TEST-P3-RES-001` 由 phase3.resample/resample2 共享——registry 文档既定事实），
+-  其**真实唯一性以合同注册表为准**（`docs/contracts/INDEX.yaml` +
+-  `eng/tools/check_contract_graph.py`），本矩阵对共享引用只登记不判重。
++  其**真实唯一性以合同注册表为准**（`docs/contracts/INDEX.yaml`；注册表与合同图的双向一致判据见 门禁注册面（G08-10 重建）），
++  本矩阵对共享引用只登记不判重。
+ - 状态 `MISSING` 的层允许保留 **descriptor/registry 已预留的真实 ID**（ID 占用
+   命名空间但独立 authority 文档/实现尚未落地），也允许占位符 ID；空串判红。
+ - 状态 `VERIFIED` 的层必须满足：id 非占位，且锚可机器解析（见 §4/§5 与 §7）。
+@@ -115,7 +115,7 @@ EVID     ^EVID-[A-Z0-9]+(-[A-Z0-9]+)*$         例如 EVID-P1-CAL-001
+   5. TEST 层 `VERIFIED` 时该行 SRC 层必须也 `VERIFIED`（有实现才有测试证据），
+      SRC `MISSING` 而 TEST `VERIFIED` 判 `CHAIN_BREAK`（给出 module_id）。
+ - 说明：矩阵是**模块↔锚**机器合同；`docs/TRACEABILITY.csv` 的逐条细粒度
+-  （authority/anchor/oracle）仍由 `eng/tools/check_traceability.py` 负责，二者互补不冲突。
++  （authority/anchor/oracle）仍由逐条追溯判据负责（载体见 门禁注册面（G08-10 重建）），二者互补不冲突。
+ 
+ ## 5. SOURCE SYMBOL 表达
+ 
+@@ -141,8 +141,8 @@ EVID     ^EVID-[A-Z0-9]+(-[A-Z0-9]+)*$         例如 EVID-P1-CAL-001
+ 
+ ## 7. 机器闭环（检查器行为契约）
+ 
+-运行：`python3 eng/tools/traceability/check_traceability_matrix.py --root . [--json-out out.json] [--strict]`
+-（Python 3.10+ 标准库；无网络；不依赖 cwd 之外路径；`timeout 120` 内完成）。
++运行（载体见 门禁注册面（G08-10 重建）；接受 `--root .` / `--json-out <out.json>` / `--strict`；Python 3.10+ 标准库；
++无网络；不依赖 cwd 之外路径；`timeout 120` 内完成）。
+ 
+ 必须实现且失败时给出**具体断链**（模块 + 层 + 路径 + 期望/实际）；崩溃即判红：
+ 
+diff --git a/docs/engineering/VERSIONING.md b/docs/engineering/VERSIONING.md
+index 0ec2c038..feae2db5 100644
+--- a/docs/engineering/VERSIONING.md
++++ b/docs/engineering/VERSIONING.md
+@@ -1,7 +1,7 @@
+ # Astro Celestial Sphere Database（ACSD） 版本合同
+ 
+ > 上游：docs/ACSD_DESIGN.md §13（版本与发布权）
+-> 唯一正本：本文件是版本合同的唯一正本；机器门 = `CHK-VERSION-CONSISTENCY-VER001`（`eng/tools/check_version_consistency.py`）。
++> 唯一正本：本文件是版本合同的唯一正本；机器门 = `CHK-VERSION-CONSISTENCY-VER001`（载体见 门禁注册面（G08-10 重建））。
+ 
+ ## 1. 唯一版本源
+ 
+@@ -57,7 +57,7 @@
+ 
+ ## 4. 机器检查
+ 
+-`eng/tools/check_version_consistency.py`：
++版本一致性判据（载体见 门禁注册面（G08-10 重建））：
+ - `VERSION` 格式必须为 `X.Y.Z-alpha.N`；出现 `stable/rc/beta` 预发布标记即 FAIL。
+ - 扫描 `docs/ schemas/ eng/tools/ launch/ eng/tests/` 与根级 README/CHANGELOG/build.sh/toolchain.ps1：任何 `X.Y.Z` 字面量必须等于唯一源（豁免：hips_version、DatabaseVersion、schema_version、外部组件版本、`X.Y.Z`/`MAJOR.MINOR.PATCH` 占位写法）。
+ - **mutation 合同：任何一处伪造/漂移版本字面量必须使本 checker FAIL**（`eng/tests/version/**` 有固定试金石）。
+diff --git a/docs/engineering/complexity_baseline_v1.md b/docs/engineering/complexity_baseline_v1.md
+index 5db2f4e1..a50ed4db 100644
+--- a/docs/engineering/complexity_baseline_v1.md
++++ b/docs/engineering/complexity_baseline_v1.md
+@@ -4,11 +4,11 @@
+ 
+ - 合同依据：**第一次 deep CI 只测量并记录基线，不设阈值**；每模块复杂度上限待冻结
+   （检查 `DEEP-COMPLEXITY`，见 门禁注册面（G08-10 重建））。
+-- 工具：`eng/tools/quality/check_complexity.py`（正则近似：函数头计数 +
++- 工具：复杂度度量判据（载体见 门禁注册面（G08-10 重建）；正则近似：函数头计数 +
+   全文分支 token；文件级粒度，不做函数体切分——namespace/class 花括号
+   会把多函数吞并成假"巨型函数"，实测伪影 max≈504 已弃用该算法）。
+ - 度量域：`--paths lib,cli,include`；排除 `lib/infrastructure/acr`（ACR dormant，约束 §C）与
+-  vendored/生成目录；完整排除表 = `eng/tools/quality/check_complexity.py::EXCLUDE_PARTS`。
++  vendored/生成目录；完整排除表随判据载体落盘。
+ - 阈值：**null（未冻结）**。检查 `DEEP-COMPLEXITY` 恒 exit 0（只记录，
+   不做门禁判定）；正式 C++ 解析器与阈值冻结由后续质量任务实现。
+ 
+diff --git a/docs/engineering/coverage_baseline_v1.md b/docs/engineering/coverage_baseline_v1.md
+index 21a7e0fd..c2235615 100644
+--- a/docs/engineering/coverage_baseline_v1.md
++++ b/docs/engineering/coverage_baseline_v1.md
+@@ -10,12 +10,12 @@
+ **第一次 deep CI 只测量并记录覆盖基线，不虚构覆盖率阈值**（deep profile 检查
+ 见 门禁注册面（G08-10 重建））。本文件即该基线的登记处；覆盖率阈值
+ （per-module `--cov-fail-under` 或全局 gate）待冻结，冻结前
+-`eng/tools/quality/ci_coverage_runner.py` 的 `threshold` 字段保持 `null`。
++覆盖率驱动的 `threshold` 字段保持 `null`（驱动载体见 门禁注册面（G08-10 重建））。
+ 
+ ## 基线获取方式
+ 
+ - 检查入口：linux-deep profile 的 DEEP-COV 检查（见 门禁注册面（G08-10 重建））。
+-- 驱动：`eng/tools/quality/ci_coverage_runner.py`（pytest-cov 薄封装，
++- 驱动：pytest-cov 薄封装（载体见 门禁注册面（G08-10 重建）；
+   `--cov=lib --cov=cli --cov=tools --cov-branch`，分支覆盖）。
+ - 产物：`run/ci/coverage/coverage.xml`、`coverage.json`、
+   `coverage-summary.json`（含 pytest 退出码透传）。
+diff --git a/docs/engineering/data/DATA-002_PHASE_PRODUCT_EXCHANGE.md b/docs/engineering/data/DATA-002_PHASE_PRODUCT_EXCHANGE.md
+index 92fc326f..dca9a43b 100644
+--- a/docs/engineering/data/DATA-002_PHASE_PRODUCT_EXCHANGE.md
++++ b/docs/engineering/data/DATA-002_PHASE_PRODUCT_EXCHANGE.md
+@@ -179,7 +179,7 @@ role 与 type 逐一对应（同名必同 type / 同 type 必同 role，无歧
+        `n_rejected_nonfinite`、`per_pixel=true`）+ `n_rejected_nonfinite_total`。
+        **不进** science planes 枚举（沿用 §30.2 阶段二 `nused`/`nrej` 诊断平面
+        先例：诊断平面由 artifact manifest 声明描述，science 枚举零改动）。
+-       判据 = `eng/tools/quality/check_p3_rejection_count.py`.
++       判据 = 强制剔除计数合同判据（六条 G1–G6，载体见 门禁注册面（G08-10 重建））。
+ 
+     4. **帧间集成**：某帧在该像素的输出非有限时，该帧作为**候选被剔除并计数**；
+        判 `INVALID_INPUT` 的条件 = 全部候选非有限，单帧非有限只剔除该帧（`integrate.cpp` 合同：仅
+diff --git a/docs/engineering/execution_options_contract.md b/docs/engineering/execution_options_contract.md
+index 0f01c738..fdfc8fb3 100644
+--- a/docs/engineering/execution_options_contract.md
++++ b/docs/engineering/execution_options_contract.md
+@@ -294,7 +294,7 @@ lease 存在时恒等且不被放大；`--self-test` 注入未接线状态必须
+ 
+ ## 9. 静态 checker 合同
+ 
+-`eng/tools/arch/check_thread_budget.py`：
++线程预算静态判据（载体见 门禁注册面（G08-10 重建））：
+ 
+ 1. 扫描 `lib/` 生产源：`std::thread` / `std::async` / `_beginthread` / `CreateThread` 出现处
+    必须在 `THREAD_BUDGET_EXEMPT` 登记表内。登记表以 checker 内 `THREAD_BUDGET_EXEMPT` 为
+diff --git a/docs/engineering/observability/RESOURCE_MONITORING_CONTRACT.md b/docs/engineering/observability/RESOURCE_MONITORING_CONTRACT.md
+index 3205f585..e111e4a7 100644
+--- a/docs/engineering/observability/RESOURCE_MONITORING_CONTRACT.md
++++ b/docs/engineering/observability/RESOURCE_MONITORING_CONTRACT.md
+@@ -5,7 +5,7 @@
+ ## 1. 目的与边界
+ 
+ 机器可读事实源：`lib/infrastructure/observability/monitoring/monitor.py`（列合同、指纹链与
+-校验的唯一权威）、`eng/tools/monitoring/verify_monitor_csv.py`（检查器）、
++校验的唯一权威）、CSV 校验项（检查器，载体见 门禁注册面（G08-10 重建））、
+ `lib/infrastructure/observability/monitoring/linux_procfs.py`（Linux 采集）、
+ `lib/infrastructure/observability/monitoring/windows_pdh_etw.py`（Windows 隔离 stub）。
+ 
+@@ -115,7 +115,7 @@ fp(seq=n)    = sha256(salt | fp(seq=n-1) | json(行字符串形态) | n)
+ 
+ ## 5. 机器校验（verify_csv）
+ 
+-`eng/tools/monitoring/verify_monitor_csv.py --csv <file> [--run-id R] [--stats]`：
++CSV 校验（接受 `--csv <file>` / `--run-id R` / `--stats`；载体见 门禁注册面（G08-10 重建））：
+ exit 0 = PASS；违例 => 非 0 + machine JSON verdict=FAIL。检查：
+ 
+ 1. header 精确等于合同 HEADER；
+diff --git a/docs/engineering/observability/STRUCTURED_LOGGING_CONTRACT.md b/docs/engineering/observability/STRUCTURED_LOGGING_CONTRACT.md
+index 2f8c33f2..c2ce2281 100644
+--- a/docs/engineering/observability/STRUCTURED_LOGGING_CONTRACT.md
++++ b/docs/engineering/observability/STRUCTURED_LOGGING_CONTRACT.md
+@@ -6,7 +6,7 @@
+ 
+ 机器可读事实源：`lib/infrastructure/observability/logging/log_event_v1.schema.json`（字段定义、
+ 枚举与验收的唯一权威）、`lib/infrastructure/observability/logging/log_event.py`（参考实现）、
+-`eng/tools/monitoring/check_log_contract.py`（检查器）。本文件是该合同的说明视图；
++日志行校验项（schema / seq 单调性 / error 载荷 / 级别与事件枚举 / 脱敏样例 / 单行大小，载体见 门禁注册面（G08-10 重建））。本文件是该合同的说明视图；
+ JSON/JSONL 输出为真相，两者不一致时以 schema 与检查器为准。
+ 
+ ACSD 需要一个跨 run/任务/节点/模块/线程的统一结构化日志接口：
+@@ -29,7 +29,7 @@ ACSD 需要一个跨 run/任务/节点/模块/线程的统一结构化日志接
+ | 面 | 唯一源 | 事件键名 | 事件枚举 | 工件 |
+ |---|---|---|---|---|
+ | **运行事件流**（run event stream） | `lib/infrastructure/cli/protocol.h`（`ValidateEventV1`，发送侧硬闸）+ `lib/infrastructure/cli/jsonl.h`（`JsonlEmitter`） | `kind` | `progress` / `resource` / `artifact` / `backend` / `final` | CLI JSONL 事件流（默认输出，最高设计 §7.2） |
+-| **结构化日志**（本合同） | `lib/infrastructure/observability/logging/log_event_v1.schema.json` + `log_event.py` + `eng/tools/monitoring/check_log_contract.py` | `event` | `start` / `progress` / `end` / `warn` / `error` / `metric` / `checkpoint` / `cancel` / `trace` | 结构化日志 JSONL（`acsd.log.event.v1`） |
++| **结构化日志**（本合同） | `lib/infrastructure/observability/logging/log_event_v1.schema.json` + `log_event.py` + 日志行校验项（载体见 门禁注册面（G08-10 重建）） | `event` | `start` / `progress` / `end` / `warn` / `error` / `metric` / `checkpoint` / `cancel` / `trace` | 结构化日志 JSONL（`acsd.log.event.v1`） |
+ 
+ - **两份流各用不同工件名，各自具名**；
+ - **键名 `event`（本合同）与 `kind`（运行事件流）各归各流**：本合同的 `event` 字段
+@@ -123,7 +123,7 @@ ACSD 需要一个跨 run/任务/节点/模块/线程的统一结构化日志接
+ 
+ - 单行（含 `\n`）上限 **4096 字节**（`MAX_LINE_BYTES`）；超限按 UTF-8 边界截断 + 省略号，不切坏多字节字符；
+ - 日志文件总量上限与轮转策略由运行配置定义；本合同冻结单行上限；
+-- 机器检查器 `eng/tools/monitoring/check_log_contract.py` 提供：schema 校验（缺字段被拒）、
++- 机器检查项（载体见 门禁注册面（G08-10 重建））提供：schema 校验（缺字段被拒）、
+   seq 单调性、error 载荷、级别/事件枚举、脱敏样例、单行大小；输出机器 JSON 判定。
+ 
+ ## 6.1 落盘与错误收敛
+@@ -166,4 +166,4 @@ ACSD 需要一个跨 run/任务/节点/模块/线程的统一结构化日志接
+ - 依据：`docs/ACSD_DESIGN.md` §7.2（配置、事件与退出码）、§7.3（错误传播与运行日志）
+ - 依据：`docs/ACSD_DESIGN.md` §7.1（命令树）、§8.1（总原则：唯一 CLI 入口、阶段独立调度器）+ `docs/engineering/ARCH-001.md`
+ - 落点与错误收敛：`docs/detail/LOG_AND_ERROR_SYSTEM.md`、`docs/engineering/LOG_AND_ERROR_CONTRACT.md`
+-- 机器事实源：`lib/infrastructure/observability/logging/log_event_v1.schema.json`、`eng/tools/monitoring/check_log_contract.py`
++- 机器事实源：`lib/infrastructure/observability/logging/log_event_v1.schema.json`（字段与枚举唯一权威）、日志行校验项（载体见 门禁注册面（G08-10 重建））
+diff --git a/docs/modules/MODULE_MAP.yaml b/docs/modules/MODULE_MAP.yaml
+index cfa6b9a3..cac62a4f 100644
+--- a/docs/modules/MODULE_MAP.yaml
++++ b/docs/modules/MODULE_MAP.yaml
+@@ -12,8 +12,8 @@
+ #   - eng/contracts/config/module_dll_contract.schema.json（entrypoint_abi 统一 acsd_module_query_v1）
+ #
+ # 本表是**期望映射**：不含任何模块状态声明。模块状态一律由
+-# eng/tools/quality/check_module_map.py 现场计算，状态词只取 §12.5 词表；
+-# status 字段的取值源 = check_module_map.py 的现场计算（防「表内自证绿」）。
++# 交付状态现场计算（载体见 门禁注册面（G08-10 重建）），状态词只取 §12.5 词表；
++# status 字段的取值源 = 交付状态判据的现场计算（防「表内自证绿」）。
+ #
+ # 诚实性约定：legacy_paths 保存**迁移前**的路径（历史键），只作 ARCH-001 的定位线索，
+ # **不参与实现/安装判定**；实现只认 target_dir 下的生产源。迁移完成后这些路径在树中
+@@ -25,7 +25,7 @@
+ # 修改本表必须同时过 CHK-MODULE-MANIFEST（引用刷新）。
+ 
+ schema_version: 1
+-tool: eng/tools/quality/check_module_map.py
++tool: 门禁注册面（G08-10 重建）
+ authorities:
+   module_index: docs/detail/00_INDEX.md §1/§2/§3/§5
+   engineering_spec: ENGINEERING_SPEC.md §4/§8
+@@ -746,7 +746,7 @@ modules:
+ #   * 文件已移动的 ⇒ 直接更新声明路径、不登记缺口；
+ #   * owner 必须命中下方 gap_owners；kind=task 的 owner 必须有对应任务书文件，
+ #     否则机器判红（fail-closed）。
+-# 校验：python3 eng/tools/quality/check_module_map.py
++# 校验：交付状态判据（载体见 门禁注册面（G08-10 重建））
+ #   * 声明缺失且**未登记** ⇒ FAIL(fake_path)；
+ #   * 登记缺口的路径/target **已存在/已定义** ⇒ FAIL(stale_declared_absent)；
+ #   * owner 未登记 / 任务书缺失 ⇒ FAIL(gap_owner_unknown)；
+@@ -844,7 +844,7 @@ declared_absent_paths:
+ # 公开头 ABI 标记、module.yaml 字段一致、产品清单 unit、共址测试文件）逐条登记 owner。
+ # 登记 ⇒ GAP（逐条出机器表并计数）；未登记 ⇒ FAIL；登记了却不再出现 ⇒ FAIL（棘轮反向自证）。
+ # 这些缺口的实现不在登记侧改动面内，转 owner 承接。
+-# 校验：python3 eng/tools/quality/check_module_map.py（capability_gap_count 必须与实测条数一致）
++# 校验：交付状态判据（载体见 门禁注册面（G08-10 重建）；capability_gap_count 必须与实测条数一致）
+ # ===========================================================================
+ declared_absent_capabilities:
+   note: >-
+diff --git a/docs/modules/registry/module_id_migration_baseline.json b/docs/modules/registry/module_id_migration_baseline.json
+index dad3e378..c9559237 100644
+--- a/docs/modules/registry/module_id_migration_baseline.json
++++ b/docs/modules/registry/module_id_migration_baseline.json
+@@ -1,10 +1,10 @@
+ {
+   "baseline_id": "module-id-migration-baseline-v1",
+   "generated_at": "2026-09-17T06:15:00+08:00",
+-  "method": "python3 eng/tools/quality/check_module_id_normalization.py --root . --json-out <out>（逐类计数 = errors[].split()[0] 频次）",
++  "method": "模块 ID 归一化判据（--root . --json-out <out>，载体见 门禁注册面（G08-10 重建）；逐类计数 = errors[].split()[0] 频次）",
+   "scope": "docs/modules/MODULE_MAP.yaml（规范面）+ docs/modules/registry/*.md front-matter（登记页）",
+   "index_module_count": 23,
+-  "index_module_count_rule": "文档集规模登记值（取代 check_module_map.py 中的硬编码 23）：门断言 docs/detail/00_INDEX.md §2 解析出的模块数 == 本值，且 set(map_ids) == set(index_ids)。只许在落地批内手改并在自证摘要写明依据；未登记时退化为「索引规模 == 映射表规模」。",
++  "index_module_count_rule": "文档集规模登记值（取代交付状态判据中的硬编码模块数）：门断言 docs/detail/00_INDEX.md §2 解析出的模块数 == 本值，且 set(map_ids) == set(index_ids)。只许在落地批内手改并在自证摘要写明依据；未登记时退化为「索引规模 == 映射表规模」。",
+   "classes": {
+     "PAGE_MISSING_MODULE_ID": 20,
+     "MODULE_WITHOUT_PAGE": 17,
+diff --git a/docs/science/CALIBRATION.md b/docs/science/CALIBRATION.md
+index d72e0246..643f70b6 100644
+--- a/docs/science/CALIBRATION.md
++++ b/docs/science/CALIBRATION.md
+@@ -344,7 +344,7 @@ cal_pipe − cal_true = (t_light/t_d)·(b_light − b0) = −K·Δb          Δb
+   缺 EXPTIME 时必须 fail-closed 而非静默取 `K=1`。
+ - **失败注入**：空指针/零维度/NaN 输入显式错误码 `AC_ERR_PARAM`（见 `TST-CAL-FAIL-*`）；
+   **ignore-bias 变异注入**：把实现里的 bias 项去掉后，上面两道门必须判红（可执行负例入口）。
+-- **标度/归一化门（可执行正负例入口 `eng/tools/quality/check_master_unit_guard.py --self-test`）**：
++- **标度/归一化门判据（U1–U4，载体见 门禁注册面（G08-10 重建））；可执行正负例入口 `--self-test`**：
+   以真实数据的独立统计为判据（不依赖文件名/目录名）：
+   (a) **单位门（U1）**：亮场观测中位数 > 1 ADU 而某 bias/dark 母版观测中位数 ≤ 1.0 且未声明
+       `master_units=normalized` + `master_scale` ⇒ 判红（拒绝）。**适用域与两个已实测盲区
+@@ -383,14 +383,14 @@ cal_pipe − cal_true = (t_light/t_d)·(b_light − b0) = −K·Δb          Δb
+       （值 5、**单位 s**、语义 = 暗场/亮场**曝光时长**容差）与
+       `calibration.master_flat_median_range`（无量纲、平场归一化判定带）；
+       **s 量纲的键与 ADU 量纲的一致性容差各自具名**。当前生产门脚本按每例
+-      1e-2..3e-2 的相对差判定（`eng/tools/quality/check_master_unit_guard.py`），
++      1e-2..3e-2 的相对差判定（标度/归一化门判据），
+       该数值**未登记**，属待定项：本判据的数值面在登记前，冻结主张的成立条件 = 登记完成。
+       T2 NGC1727（曝光 600 s）逐像素 oracle `median[(raw−bias−K·(dark−bias))/flat_norm]` =
+       **436.2 ADU**，现行错误实现 7048.6 ADU ⇒ **16.2×**；T4（曝光 180 s）361.2 vs 3650.4 ADU ⇒ 10.1×）；
+       ② 母版本就 ADU（观测中位数 > 1）+ 平场本就归一（`median(flat)` ∈ 带内）+ 约定已声明
+       ⇒ **无需任何标度声明**即通过（回归锚：门不是「一律拒绝」）。
+   四条负例（a/b/c/e）必须能同时判红，两条正例（f①②）必须同时判绿（红→绿对照由
+-  `eng/tools/quality/check_master_unit_guard.py --self-test` 给出）。
++  标度/归一化门判据的 `--self-test` 给出）。
+ 
+ - **暗场线性门（非退化，可执行）**：`median(master_dark)` 对曝光档的线性拟合必须同时满足
+   (i) **至少 3 个不同曝光档**（2 档判据退化，判绿条件 = ≥ 3 档）；
+@@ -479,10 +479,10 @@ cal_pipe − cal_true = (t_light/t_d)·(b_light − b0) = −K·Δb          Δb
+ - §11 **bias 参与门**与 **K 参与门**全过，且 ignore-bias 变异注入可判红；
+ - §11 **标度/归一化门**四条负例（单位混用 / 平场未归一 / dark bias 约定未声明 / 声明自洽）与
+   两条正例（显式声明组合 / 本就合规组合=防过度拒绝）全过，
+-  且负例为**真实二进制端到端**判红（`eng/tools/quality/check_master_unit_guard.py --self-test`）；
++  且负例为**真实二进制端到端**判红（标度/归一化门判据 `--self-test`）；
+ - §11 **暗场线性门**（≥3 曝光档 + 斜率正 + 残差 ≤ 噪声量级）与 **曝光容差门**（`|K·Δb| ≤ ε·σ_frame`）
+   在真实母版上可判：T4 组判绿（残差 0.034 ADU）、T2 组判红（斜率 −0.03824 ADU/s）、T3 组判「不可判定」；
+   判据的负例（`Δb ≡ 0`）残留逐位为 0，非退化性由 §6a 表给出；
+-- 单位经 `eng/tools/check_glossary.py`（GLOSSARY_PASS）且本文件无被禁 alias；
++- 单位经术语权威校验项（GLOSSARY_PASS，载体见 门禁注册面（G08-10 重建））且本文件无被禁 alias；
+ - §9a 专属问题逐项有锚点回答，无 TBD/二选一（`eng/tools/science_contract_lint.py` PASS）；
+ - 解析不变量可转 SYN-001：常量场→SYN-001 constant/ramp 用例；NaN/饱和→SYN-001 invalid 边界用例（映射登记于 SYN-001 任务）。
+diff --git a/docs/science/DATA_SEMANTICS.md b/docs/science/DATA_SEMANTICS.md
+index 6a37434b..8d0bb5e4 100644
+--- a/docs/science/DATA_SEMANTICS.md
++++ b/docs/science/DATA_SEMANTICS.md
+@@ -244,7 +244,7 @@ free）；`out_spectra` 为 `out_count × global_spec_count` 字节（global_spe
+ 
+ **审计口径（与实现一致，UNIT-001 批次 B 实测）**：
+ - **拒绝路径（已落盘）**：结构化诊断（token + 点名文件 + 观测中位数 + 缺失声明项）随
+-  `ErrorDomain::DATA` 进入 run manifest 的 `error.message`（机检：`eng/tools/quality/check_master_unit_guard.py`），
++  `ErrorDomain::DATA` 进入 run manifest 的 `error.message`（机检：标度/归一化门判据，载体见 门禁注册面（G08-10 重建）），
+   且该路径不产出任何 `calibrated_*`。
+ - **接受路径（部分落盘，登记残留）**：`p1_op_calibrate` 把声明、观测中位数、实际换算因子、
+   平场归一前后 median 写入**节点 manifest**（`stages.calibrate.master_unit_guard` + 顶层
+@@ -377,7 +377,7 @@ phase1_session 将 out 写为 `calibrated_<原名>.fits`（float32 ADU）；母
+ > `orchestrator_saturation_wiring_gate` 机器核验）；**放行集 = 标准表 + 显式注册**——
+ > 块名 ∉ 标准表且未经 `aio_block_name_register` 显式注册 ⇒ `aio_frame_add_block` /
+ > `aio_frame_add_block_move` 拒绝（返回 9），KV 自动创建与缓存回读同口径；
+-> 机器判据 = `eng/tools/quality/check_module_map.py`（标准表↔`kStandardBlockNames` 逐名一致 +
++> 机器判据 = 块名放行判据（载体见 门禁注册面（G08-10 重建）；标准表↔`kStandardBlockNames` 逐名一致 +
+ > 生产调用点白名单，含 dlsym 别名形态）。语义正本 = `docs/detail/UNIFIED_MODEL.md` §2
+ > （canonical 对象 variance / ivar）+ `eng/contracts/schemas/unified/{variance,ivar}.schema.json`。
+ 
+@@ -1837,7 +1837,7 @@ u64。out_n_controls = n_union×G² **全几何节点含空覆盖占位**
+   `aio_hips_read_tile_*` 调用各自 open→read→close，句柄只在该调用栈帧内
+   （线程私有、不跨线程转移），并发安全由 cfitsio `_REENTRANT` 构建保证
+   —— 依据与机器判据见 `docs/engineering/EXECUTION_MODEL.md` §2/§3 与
+-  `check_execution_contracts.py::EXEC-AIO-READ-NO-GLOBAL-LOCK`。
++  `EXEC-AIO-READ-NO-GLOBAL-LOCK`（执行合同判据，载体见 门禁注册面（G08-10 重建））。
+   并行路径 per-worker 独立 AIO 句柄（:938 `rdr.init_own`）无共享可变
+   全局态，reentrant yes；无取消检查点（ThreadLease 接线不在本层）。
+ - 取值面与硬编码登记（不改码）: cfg `<=0→默认` 不保留显式 0（:485-502）；
+@@ -3097,9 +3097,7 @@ ivar_out = var_out 同态  (var_out=0 → 0 显式不可用; NaN → NaN)
+   等于 `n_rejected_nonfinite`；②校验载体存在且长度 == `height_px × width_px × 4`；
+   ③校验 `n_rejected_nonfinite_total` == Σ 逐像素计数。任一不符 ⇒ **非零失败**
+   （禁静默缺省、禁按 0 补齐）。判据实现 =
+-  `eng/tools/quality/check_p3_rejection_count.py`（六条 G1–G6 + `--self-test`
+-  1 正例 7 负例），CI 可见载体 =
+-  `eng/tests/quality/test_p3_rejection_count.py`（UT-QUALITY 自动 discover）。
++  强制剔除计数合同判据（六条 G1–G6 + `--self-test` 1 正例 7 负例，载体见 门禁注册面（G08-10 重建））。
+ 
+ - **未冻结面**: Phase3 产物是否另落 FITS 诊断 HDU、以及
+   `output_phase3.fits` 侧的计数通道，本节**不冻结**（科学平面的 FITS HDU 序
+diff --git a/docs/science/algorithms/CALIBRATION_ALGORITHMS.md b/docs/science/algorithms/CALIBRATION_ALGORITHMS.md
+index 185592a9..351e779c 100644
+--- a/docs/science/algorithms/CALIBRATION_ALGORITHMS.md
++++ b/docs/science/algorithms/CALIBRATION_ALGORITHMS.md
+@@ -61,7 +61,7 @@ floor 0.1，即约定入参 master_flat 已是 median≈1.0 的归一化平场
+ | master_flat（任一形态） | 无 | 归一化是**独立维度**：`median(flat)` 须落在 `master_flat_median_range`（默认 [0.5,2.0]，`eng/packaging/config/defaults.json`），否则须显式声明 `master_flat_normalize="median"`（= §2 `flat_norm`，幂等） | 未声明且不落区间 ⇒ DATA 拒绝（rc=2） |
+ | master_dark | `dark_optimization`（bool）声明是否含 bias | — | 提供 dark 而未声明 ⇒ DATA 拒绝（rc=2） |
+ 
+-**四条机器规则（`eng/tools/quality/check_master_unit_guard.py --self-test` 可执行正负例）**：
++**四条机器规则（标度/归一化门判据 U1–U4，`--self-test` 可执行正负例；载体见 门禁注册面（G08-10 重建））**：
+ U1 亮场域 ≫ 1 ADU 而 bias/dark 中位数 ≤ 1.0 且未声明 normalized+scale ⇒ 拒；
+ U2 `median(flat)` 出区间且未声明 median 归一 ⇒ 拒；
+ U3 提供 dark 而未显式声明 bias 约定 ⇒ 拒；
+@@ -199,7 +199,7 @@ F3.4  契约边界:
+ 
+ > 上表 rc 口径 = CLI 退出码（DATA 拒绝 → 2；`-force` 只越过「缺标定帧」类预检
+ > error，不越过 DATA 校验）。单位一致性（母版与 light 同标度）由**消费
+-> 边界门**（`p1_op_calibrate` 前置校验 + `eng/tools/quality/check_master_unit_guard.py`，
++> 边界门**（`p1_op_calibrate` 前置校验 + 标度/归一化门判据，
+ > 见 §2 标度声明表与 DISP-CAL-013）fail-closed 校验；**本层（calibrator）保持单位盲**，
+ > 只做 SCI-CAL-001 §5 的逐像素算术。
+ 
+@@ -551,7 +551,7 @@ oracle 同容差；actual_k 精确相等。
+   与逐像素量级判据同组执行：`median(cal_obs)` 对逐像素 oracle
+   `median[(raw − bias − K·(dark − bias))/flat_norm]` 的**无量纲相对差** ≤ 该判据
+   的数值容差（当前生产门脚本按每例 1e-2..3e-2 相对差判定，见
+-  `eng/tools/quality/check_master_unit_guard.py:287,297,351,391,405`；
++  标度/归一化门判据的逐例相对差比较；
+   该数值**未**登记在 `eng/packaging/config/defaults.json`，见 §2 标度声明表
+   的量纲说明）。**"必须不同"单独使用不具备证据资格**。
+   `dark_opt=1` 分支有/无 bias 并非逐位相同（2,141,721 px 差，max|Δ|=0.03125），
+@@ -589,7 +589,7 @@ oracle 同容差；actual_k 精确相等。
+   **现行规定**：①§2「标度声明」表与 U1–U4 四条机器规则；②消费边界（`p1_op_calibrate`）
+   新增声明解析 + 观测统计校验 + 声明换算 + 节点 manifest 溯源（`master_unit_guard`），
+   违反即 DATA 拒绝（rc=2）并点名文件 + 观测值 + 缺失声明项；
+-  ③`eng/tools/quality/check_master_unit_guard.py`：**四条负例（U1–U4）+ 两条正例**（显式声明组合 /
++  ③标度/归一化门判据：**四条负例（U1–U4）+ 两条正例**（显式声明组合 /
+   本就合规组合），合成与真实 T2 双模式，门内逐像素 NumPy oracle，`--self-test` 为期望 token 变异注入；
+   ④`eng/packaging/config/defaults.json` 登记 `calibration.master_flat_median_range`（[0.5,2.0]）；
+   ⑤与 U3 冲突的既有节点级夹具（`eng/tests/unit/p1001_real_nodes_test.cpp` 9 处 doc）补显式
+@@ -605,7 +605,7 @@ oracle 同容差；actual_k 精确相等。
+   signal 及其下游 mosaic/export）与由之派生的测光/SNR 台账数字；合成测试若使用同域母版不受影响。
+ - **DISP-CAL-014（门侧已覆盖，通用语义待裁定）拒绝/失败路径的产物残留**：
+   单位/归一化门在 calibrate 节点**前置**判红（DATA/rc=2），混标度输入不产出任何
+-  `calibrated_*`；门脚本 `eng/tools/quality/check_master_unit_guard.py` 对三条负例显式断言
++  `calibrated_*`；标度/归一化门判据对三条负例显式断言
+   「拒绝路径不留 calibrated_* 半成品」。**残留（通用语义，不在本文件域，待裁定）**：
+   run 级 incomplete 时上游节点已原子发布的产品如何标记/清理（`.incomplete` 后缀、独立
+   staging、或 run 结束统一回滚）——`docs/ACSD_DESIGN.md` §7.2「失败时不留可被误认成正式产品的
+diff --git a/docs/science/algorithms/GATES_AND_TOLERANCES.md b/docs/science/algorithms/GATES_AND_TOLERANCES.md
+index f1d9c877..e8557d1c 100644
+--- a/docs/science/algorithms/GATES_AND_TOLERANCES.md
++++ b/docs/science/algorithms/GATES_AND_TOLERANCES.md
+@@ -13,7 +13,7 @@
+ > ALG-WCS-001 §11.4（docs/science/algorithms/PLATESOLVE.md）。
+ > 标定证据面: 本表各行「来源」列所引 SCI/ALG 条款与对应 `ctest` 目标
+ > （探针直链本树 sdet+dpsf 静态库 + scipy 独立复算）。
+-> 机器校验: `eng/tools/check_gates_and_tolerances.py`（本表即机器可校验事实源）。
++> 机器校验: 门表登记校验项（本表即机器可校验事实源；载体见 门禁注册面（G08-10 重建））。
+ 
+ ## 1 规则（冻结）
+ 
