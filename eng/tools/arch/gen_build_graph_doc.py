@@ -100,9 +100,15 @@ def md_table(header, rows, per_chunk=9):
 
 def render_blocks(repo, mod):
     repo = pathlib.Path(repo)
-    graph = mod.parse_cmake_graph(repo)
-    entry = mod.production_entry(repo)
-    closure = mod.production_closure(graph, entry)
+    # cmake_graph 的守卫用 GateError 携带稳定错误码（ANCHOR_* / ENTRY_REGISTRY_*）。
+    # 不在此转成 SystemExit 的话，那 6 处拒绝会以裸 traceback 结束进程：异常虽仍抛出
+    # （不 fail-open），但调用方与 shell 只看到「工具崩了」，稳定错误码到不了退出面。
+    try:
+        graph = mod.parse_cmake_graph(repo)
+        entry = mod.production_entry(repo)
+        closure = mod.production_closure(graph, entry)
+    except mod.GateError as exc:
+        raise SystemExit(str(exc))
     targets = graph["targets"]
     if not targets:
         raise SystemExit("ANCHOR_EMPTY: 根构建图解析出 0 个 target")

@@ -58,12 +58,16 @@ TELEM_EXACT = {
     "resource_timeseries.csv", "worker_balance.csv", "run_context.json",
     # 调度图/追踪（含时间戳与 run_id）
     "graph_sidecar.json", "observed_trace.json", "static_graph.json",
-    # 逐帧终判（含 output_dir 路径串）
-    "p1_final.json",
 }
 # 含 output_dir 绝对路径串、但**同时**含科学量 ⇒ 不能整体降级为遥测（会静默容忍科学差异）。
 # 口径：对这些文件比对**路径掩码后的规范化 JSON**（掩码只替换本 run 的 output_dir 前缀，
 # 其余字段逐字参与比较）⇒ 科学字段仍然严格比对。
+#
+# p1_final.json（逐帧终判）**不得**进 TELEM_EXACT：它曾同时列在两张表里，而 classify()
+# 先查 TELEM_EXACT ⇒ 命中即返回 'telem'，逐帧科学终判的真实差异被记进 telem_diff 而
+# 不是 must_diff（判据静默退化）。它的路径串差异已由上面的掩码口径单独容错，
+# 与两个同族兄弟 p1_phot.json / p1_products.json（只在 MASKED_JSON、不在 TELEM_EXACT）
+# 保持一致：同类文件必须同一口径。
 MASKED_JSON = {"p1_phot.json", "p1_products.json", "p1_final.json"}
 TELEM_PREFIX = ("graph/",)
 TELEM_SUFFIX = ("/properties",)          # HiPS properties: hips_creation_date 墙钟
@@ -426,7 +430,9 @@ def self_test() -> int:
             ("f/manifest.json", "must"),                      # 未知 JSON 默认 must
             ("f/p1_unknown_product.dat", "must"),             # 未知扩展名默认 must
             ("f/p1_stack.json", "must"),
-            ("f/p1_final.json", "telem"),                     # 含 output_dir 路径串
+            ("f/p1_final.json", "must"),                     # 含 output_dir 路径串但含科学量 ⇒ 走
+                                                               # MASKED_JSON 掩码口径，
+                                                               # 不得整体降级为 telem
             ("f/signal/properties", "telem"),                 # hips_creation_date
             ("graph/observed_graph.dot", "telem"),
             ("acsd_run_ec3dea28e982.json", "telem"),

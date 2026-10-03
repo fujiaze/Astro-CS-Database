@@ -370,6 +370,31 @@ def expand_ids(s: str) -> list[str]:
     return out
 
 
+# 人读正本 = docs/engineering/TRACEABILITY_SPEC.md §10「需求→实现→测试 登记册」。
+# 它是**独立于 CONTRACTS 的另一个来源**：CONTRACTS 是本工具的声明面，
+# §10 是人维护的正本。用它当参照，覆盖率才不是自证。
+_SPEC_REL = os.path.join("docs", "engineering", "TRACEABILITY_SPEC.md")
+_SPEC_SEC10_RE = re.compile(
+    r"^(?:SCI|ENG|TEST|ACR|ALG|DATA|EXP|TAIL|INF|LIB)-[A-Z0-9]+(?:-[A-Z0-9]+)*-\d{3}$")
+
+
+def spec_requirement_ids() -> set[str]:
+    """从人读正本 §10 抽取登记的需求 ID；正本不在或无 §10 ⇒ 返回空集。
+
+    返回空集时调用方**不得**判成「全覆盖」，必须显式记 reference_missing。
+    """
+    path = os.path.join(ROOT, _SPEC_REL)
+    if not os.path.isfile(path):
+        return set()
+    with open(path, "r", encoding="utf-8") as f:
+        text = f.read()
+    cut = text.find("## 10.")
+    if cut < 0:
+        return set()
+    return {m for m in re.findall(r"\b[A-Z][A-Z0-9]*(?:-[A-Z0-9]+)*-\d{3}\b",
+                                 text[cut:]) if _SPEC_SEC10_RE.match(m)}
+
+
 def main() -> int:
     os.makedirs(os.path.join(REV, "evidence", "quality"), exist_ok=True)
     files = set(tracked())
@@ -450,14 +475,25 @@ def main() -> int:
                 found.append((c[0], c[6], c[7]))
         sym_samples.append({"symbol": sym, "contracts": found})
 
+    # 覆盖率对**人读正本**核，不对自身核。
+    # 旧口径 `len(set(inv_ids)) == len({r["requirement_id"] for r in rows})` 是恒真门：
+    # inv_ids 与 rows 出自**同一个** for 循环的**同一个** rid，两侧集合必然逐个相同，
+    # 基数相等恒成立 ⇒ 恒报 100%（代数恒等式，型①）。改成对正本的真实差集。
+    spec_ids = spec_requirement_ids()
+    uncovered = sorted(spec_ids - {r["requirement_id"] for r in rows})
     summary = {
         "contract_inventory_rows": len(inv_rows),
         "traceability_rows": len(rows),
         "authority_path_broken": sum(1 for b in broken
                                      if "authority_doc" in b["reason"]),
         "traceability_broken": len(broken),
-        "contract_coverage": len(set(inv_ids)) == len({r["requirement_id"]
-                                                       for r in rows}),
+        # 参照缺失时为 None（不可判），不是 True：判据失效不得退化成「全覆盖」。
+        "contract_coverage": (None if not spec_ids
+                              else not uncovered),
+        "contract_coverage_reference": ("MISSING:" + _SPEC_REL if not spec_ids
+                                        else _SPEC_REL),
+        "contract_coverage_uncovered": len(uncovered),
+        "contract_coverage_uncovered_ids": uncovered,
         "random_contract_samples": len(contract_samples),
         "random_contract_ok": sum(1 for s in contract_samples if s["ok"]),
         "random_symbol_samples": len(sym_samples),
@@ -476,8 +512,11 @@ def main() -> int:
         f.write(f"- traceability_rows: {len(rows)}\n")
         f.write(f"- authority_path_broken: {summary['authority_path_broken']}\n")
         f.write(f"- traceability_broken: {len(broken)}\n")
-        f.write(f"- contract_coverage(100%): "
-                f"{summary['contract_coverage']}\n")
+        f.write(f"- contract_coverage: {summary['contract_coverage']}"
+                f"（参照 {summary['contract_coverage_reference']} §10；"
+                f"未覆盖 {summary['contract_coverage_uncovered']} 条）\n")
+        for rid in summary["contract_coverage_uncovered_ids"]:
+            f.write(f"- UNCOVERED {rid}: 正本已登记，CONTRACTS 未收录\n")
         f.write(f"- random_contract: {summary['random_contract_ok']}/"
                 f"{summary['random_contract_samples']}\n")
         f.write(f"- random_symbol: {len(sym_samples)} sampled\n")

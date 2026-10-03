@@ -277,6 +277,14 @@ def compare_fits(blob_a, blob_b, rel_tol, abs_tol, ignore_fits):
     if worst["exceed"] > 0 or worst["nan_mismatch"] > 0:
         return {"reason": "tolerance_exceeded", "detail": worst, "per_hdu": details,
                 "ignored": ignored}
+    # 逐 HDU 比对累计了 0 个数据元素（所有 HDU 都走上面的 `continue` 跳过 data）：
+    # 此时 exceed/nan_mismatch 必为 0，「无超差」只是「什么都没比」，不是「比过且一致」。
+    # 旧口径在这里返回 within_tolerance，调用方据此把该文件记为 equal_files 并计入
+    # numeric_within_tolerance ⇒ 零覆盖的比较被报成确定性一致（筛选掉真信号）。
+    # 改为显式非判决，由调用方归入 differences（fail-closed，不静默判绿）。
+    if worst["n"] == 0:
+        return {"reason": "no_data_compared", "detail": worst, "per_hdu": details,
+                "ignored": ignored}
     return {"reason": "within_tolerance", "detail": worst, "per_hdu": details,
             "ignored": ignored}
 
