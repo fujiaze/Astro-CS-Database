@@ -8,8 +8,10 @@ Hypotheses:
      asymptotically (= 1.2533141373155001 sigma/sqrt(N)); the implementation value 1.253
      is truncated by -2.5066e-4 relative. Zero-effect negative: sigma=0 => SE=0.
   H2 (P-CST-13) the identity w = SNR^2 / F_ref^2 equals 1/sigma_F^2 with sigma_F = F_ref/SNR
-     to within a few double-precision epsilons (machine eps 2.22e-16); the archive gate
-     2.22e-16 is the IEEE-754 double rounding scale, no literature/experiment leg needed.
+     to within a few double-precision epsilons (machine eps 2.22e-16). The archived 1-ulp
+     fixed gate turns red at random under floating-point rounding (measured max 2.5 ulp), so
+     per adjudication A-P2-10 (docs/DISPUTES.md) the gate is counted in ulp: <= 4 ulp is green.
+     Same convention and same ulp constant as route1/exp07_weight_and_coadd_identities.py.
   H3 (P-CST-21) gamma = 2 is a definitional exponent: w_gamma = SNR^gamma / F_ref^2 differs
      from 1/sigma_F^2 by SNR^(gamma-2) - 1, which is exactly 0 (float eps) only at gamma=2;
      hence gamma=2 is NOT an empirical calibration quantity (route-3 verdict, diverges from
@@ -57,11 +59,17 @@ sigma_f = f_ref / snr
 w_direct = 1.0 / (sigma_f * sigma_f)
 w_identity = (snr * snr) / (f_ref * f_ref)
 rel_dev = np.abs(w_identity / w_direct - 1.0)
+# A-P2-10：归档的 1 ulp 固定门（2.22e-16）在浮点置位下随机置红（实测最大 2.5 ulp），
+# 终裁改为 ulp 计数、<= 4 ulp 绿。口径与 route1/exp07_weight_and_coadd_identities.py 一致。
+ULP = 2.220446049250313e-16          # 1 ulp = 1.0 处的 IEEE-754 双精度间隔
 h2 = {"eps_double": float(np.finfo(np.float64).eps),
-      "archived_gate": 2.22e-16,
+      "archived_gate": 2.22e-16,                  # 归档的 1 ulp 固定门（已废，见 A-P2-10）
+      "gate_ulp": 4,                               # 终裁门限：ulp 计数
+      "gate_rel_dev": 4 * ULP,                     # = 8.881784197001252e-16
       "max_rel_dev": float(rel_dev.max()),
+      "max_rel_dev_ulp": float(rel_dev.max() / ULP),
       "n_points": n_id,
-      "within_gate": bool(rel_dev.max() <= 2.22e-16)}
+      "within_4_ulp": bool(rel_dev.max() <= 4 * ULP)}
 
 # ---------- H3: gamma exponent identity ----------
 
