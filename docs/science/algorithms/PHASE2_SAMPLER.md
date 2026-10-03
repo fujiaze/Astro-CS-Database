@@ -293,7 +293,7 @@ uncertainty      = sqrt(control_variance)                  # :878
 - **σ_bg 的结构分量（实测）**：`实验/absolute-snr/REPORT_experiment.md`
   （证据 `evidence/e3e4_floor_structure.json:E4_structure_vs_noise`）在真值 σ=2 的 patch 上
   叠加线性梯度：E[σ_bg]/σ_true 必须随梯度单调增（零梯度时必须 ≤1.01、1.0/px 时
-  必须 ≥3.0）；读数正本 = 实验/absolute-snr/results/。⇒ 适用域 = **背景主导 patch**；
+  必须 ≥3.0）；读数正本 = `实验/absolute-snr/REPORT_experiment.md`。⇒ 适用域 = **背景主导 patch**；
   结构主导 patch 上 control_variance 偏大（权重偏小），必须在 provenance 里可分辨。
 
 **零尺度分支的发布口径（正向约束）**：
@@ -302,7 +302,7 @@ uncertainty      = sqrt(control_variance)                  # :878
   「无尺度信息」：`control_ivar = 0`、`control_variance` 取非有限值（或等价地以
   `quality_flags` 置位并计数），**发布面 = 无尺度信息标记**（1e-12 只作数值保护量，不生成有限正方差）。
   理由：1e-12 是量纲随标度变化的数值保护量（§5.3），把它平方除以 N 得到的是
-  **伪方差**；该伪方差与伪 control_ivar 的读数正本 = 实验/absolute-snr/results/，
+  **伪方差**；该伪方差与伪 control_ivar 的读数正本 = `实验/absolute-snr/REPORT_experiment.md`，
   它们比同一标度下 float32
   可表示的最小真实离散度所对应的方差还小 **32 个数量级**（M42 ADU·sr⁻¹ 标度），
   即「任何可表示的数据都不可能支持这个精度」。
@@ -359,7 +359,7 @@ uncertainty      = sqrt(control_variance)                  # :878
   (i) 真实生产帧的源像素角尺度量级为 **≈1″/px**（由 FOCALLEN=1877 mm、
   XPIXSZ=9 µm 推得 206264.806×9e-6/1.877 ≈ 0.989″/px）；probe 产品
   `hips_pixel_scale ≈ 0.8064″/px`
-  （`实验/healpix-polar/results/`）
+  （`实验/healpix-polar/REPORT_experiment.md`）
   ⇒ 与标定域 [300,600]″/px 相差 **300× 以上**；
   (ii) 因此**逐帧标定在所有已知生产数据上恒不生效**，生产实现现仍回退未在本尺度标定的
   代码默认 1.4（实现记录）；任何「control_variance 已做 Drizzle 相关校正」的表述必须写明这一点，
@@ -601,7 +601,7 @@ lib/algorithms/coverage/CMakeLists.txt:28 的 `P2_ENABLE_OPENMP` option 仅影�
 |---|---|---|---|
 | F1 | 统计量单元：median odd/even/负值/重复/乱序/NaN 过滤；MAD=1.482602218505602×median 偏差 | 逐值 bitwise（EXPECT_DOUBLE_EQ） | synthetic_gate.cpp:3594 G1StatisticsCorrectness（先例在库） |
 | F2 | kcorr_lookup 边界与角点：pf∈{0.5,0.8,1.0}×sc∈{300,600} 九值、**域外回退冻结默认 1.4（禁 clamp）**、provenance 缺失/尺度未知回退 1.4 | 角点值 exact；插值点 rtol 1e-12；域外 == 1.4 exact | phase2_sampler.kcorr.corner_exact / .domain_fallback_to_frozen_default_not_clamp（表值 :94-97） |
-| F3 | control_variance 解析 oracle（Python 复算 k_corr×(π/2)×σ²/N_ret） | **两档分开**：(a) 解析复算 rtol 1e-12（f64 复算域，判据=逐值相等）；(b) 与 MC 实测 Var(median) 比对的**相对**判据：N=289 时 |比值/k_corr − 1| ≤ 0.02、N=17 时 ≤ 0.05（实测 (a) 恒真、(b) 读数正本 = 实验/absolute-snr/results/）。**统计判据必须显式声明 N 与分布**（「3σ」这类写法不含声明） | synthetic_gate.cpp:4001/:4061/:4089（先例在库）；域判据见 `实验/absolute-snr/REPORT_experiment.md` |
+| F3 | control_variance 解析 oracle（Python 复算 k_corr×(π/2)×σ²/N_ret） | **两档分开**：(a) 解析复算 rtol 1e-12（f64 复算域，判据=逐值相等）；(b) 与 MC 实测 Var(median) 比对的**相对**判据：N=289 时 |比值/k_corr − 1| ≤ 0.02、N=17 时 ≤ 0.05（实测 (a) 恒真、(b) 读数正本 = `实验/absolute-snr/REPORT_paper.md` §4.6 与 `实验/absolute-snr/code/audit/supplement_control_variance/finiteN_control_variance.py` 的 `DOC_ANCHOR_RATIOS`）。**统计判据必须显式声明 N 与分布**（「3σ」这类写法不含声明） | synthetic_gate.cpp:4001/:4061/:4089（先例在库）；域判据见 `实验/absolute-snr/REPORT_experiment.md` |
 | F4 | 坐标/tile 映射：单 tile 合成 → 64 cell (ra,dec,leaf_ipix) 对独立 HEALPix 参考实现（astropy-healpix，BSD-3-Clause） | atol 1e-9 deg（≈3.6e-6″；适用域=本模块 order ≤ 12 的 f64 pix2ang_nest，参考实现同域；**高于该 order 或跨实现差异 >1e-9 deg 时判据不成立**，须先做参考实现一致性预检再启用本门）；cell 索引单射 exact | 无（新建） |
 | F5 | constant/gradient/impulse 验证面：constant patch（σ_bg_raw=0 分支）、线性梯度 patch（亮端 clipping 方向性）、单像素 impulse（bfrac=1/n_total 路径） | (a) 有尺度 patch：cvar rtol 1e-12；(b) **零尺度分支（非退化判据）**：σ_bg_raw=0 时断言 `control_ivar == 0` 且 control_variance 非有限，**且**断言该分支在 ≥50% 像素同值的 patch 上触发、在 <50% 的 patch 上不触发（正/负例各一，§5.3 判据）；(c) 梯度 patch：E[σ_bg]/σ_true 在 slope=0 时 ≤1.01、slope=1.0/σ 时 ≥3.0（能红能绿，证据 `evidence/e3e4_floor_structure.json:E4_structure_vs_noise`）；接受/拒绝判定 exact | 无（新建；公式 :864-878） |
 | F6 | 边界/seam：patch 跨 tile 边界截断、相邻 tile 互不污染、第二遍邻域同 tile 限定、空覆盖 tile 占位 | obs 集合 exact；node 占位数 exact | 无（新建） |

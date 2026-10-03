@@ -125,10 +125,10 @@
      外接半径 `r_circ`（像元中心→像元边界最远点角距）与等面积尺度 `hp_res = sqrt(A_cell)` 之比的
      全天 sup 为 **1.0415**（N=64 全天穷举实测，随 N 自下方单调升收敛；1.25/1.0415 = 1.2002，
      即裕量 ≥20.0%；该上界与裕量的读数正本 = 实验/healpix-polar/
-     （REPORT_experiment.md 与该单元 results/）。**另注意区分一个几何常数**：1.1284 = √2·ρ₁/hp_res
+     （REPORT_experiment.md §4.3 与 docs/DERIVATIONS-P3.md §D3）。**另注意区分一个几何常数**：1.1284 = √2·ρ₁/hp_res
      = 2/√π 是"极冠 apex 叶对角（极点→叶远角）/hp_res"的叶对角尺度（ρ₁ = arccos(1−1/(3N²))
      ≈ √(2/3)/N）——外接半径必须按本节定义取值（像元中心→像元边界最远点角距）；相邻 ring 纬度中点法在极冠 apex 叶失效，只作叶对角尺度的取心，不用作外接半径。
-     阴性对照：等经纬网格的同度量显著高于该上界（读数与反例见 实验/healpix-polar/results/）
+     阴性对照：等经纬网格的同度量显著高于该上界（读数与反例见 实验/healpix-polar/docs/DERIVATIONS-P3.md §D3）
      ⇒ 1.25 的安全性只对 HEALPix 特化成立，相对该上界留 ≥20.0% 裕量，且覆盖跨
      face 边界（面内畸变已由 `hp_res` 的球面定义吸收）。
      零漏选由 9003 例全枚举 oracle 兜底（§9）。
@@ -178,7 +178,7 @@
   而 HEALPix 单元的**局部采样步长**（邻元中心角距）随纬度与方向变化：
   nside=512 实测邻元步长 ∈ [0.63, 0.71]×`sqrt(A_cell)`（共边邻元）与
   [1.95, 2.94]×`sqrt(A_cell)`（对角邻元），各向异性最大 ≈4.6×
-  （实验锚同上 A4 段，nside=512/1024 双档）。故"过采样 1–2×"是按等面积尺度
+  （实验锚同上，nside=512/1024 双档）。故"过采样 1–2×"是按等面积尺度
   定义的**面平均**口径；要求**方向性**分辨率保证的消费方必须按局部步长另加余量。
 - orchestrator 侧策略 `1x_to_2x_drizzle`/`fixed` 最终映射到本函数
   （`lib/infrastructure/pipeline/orchestrator/cpp/src/orchestrator.cpp`）。

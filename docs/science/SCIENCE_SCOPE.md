@@ -31,7 +31,7 @@ ACSD 从多帧天文 CCD 图像估计统一的天球辐射场（HiPS signal）�
     `p1_phot.json#photometry_applied` 与 `#photscales`（`DATA-P1-PHOTPROV-001`）判定；
     HiPS 产品由 `BUNIT` 与 `provenance` 判定。缺声明 ⇒ 显式拒绝（消费前提 = 产品自身声明）。
   - **α 是逐帧量，不是全仓常数**：其取值逐帧由 `p1_phot.json`（`photscales`）判定，
-    不存在可用的全仓常数（实测取值范围与帧标识正本见 `实验/photometric-magnitude/` results）。
+    不存在可用的全仓常数（实测取值范围与帧标识正本见 `实验/photometric-magnitude/RESOLUTION_m42_curve_resolve.md` §2.4 与 §5）。
 - **标度律（强制）**：`x′ = α·x ⇒ Var′ = α²·Var`、`ivar′ = ivar/α²`；`S = F/A_cell ⇒ Var(S) = Var(F)/A_cell²`。
   一手证据（JCGM 100 §5.1.2 式(10)）、合成实验与真实数据推导见 `docs/engineering/NUMERIC_STANDARD.md`。
 - 位置：RA/Dec 度（J2000）、HEALPix NESTED、tile+local xy；
@@ -54,8 +54,7 @@ ACSD 从多帧天文 CCD 图像估计统一的天球辐射场（HiPS signal）�
     **空间结构**而非随机分量，噪声场必须显式降级（退回已规定的全局常量场并登记
     `degraded_reason`），**消费口径 = 显式降级的常量场**。
   - **实测（本仓独立复算）**：M42 真实帧 8×8 patch 的 MAD 稳健方差对 patch 中位信号的对数斜率
-    显著偏离 1 ⇒ **该真实域不满足 `γ ≈ 1`**，前提在本帧上不成立（读数、相关系数与 patch 数正本见
-    `实验/absolute-snr/` 结构污染面 results）。
+    显著偏离 1 ⇒ **该真实域不满足 `γ ≈ 1`**，前提在本帧上不成立（读数、相关系数与 patch 数正本已随实验域运行结果归档移除，须由对抗性审核重新推导并构造反例确认）。
     **诚实边界**：作为参照的「跨帧配对差」口径在同一批文件上给出的斜率更大，
     因两帧的标度/天光不同而**本身含确定性标度失配项**，
     故**污染幅度未被本次独立复算定量确认**；本节只冻结判据形式与「前提可被违反」这一事实。

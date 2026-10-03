@@ -199,7 +199,7 @@ Y-up → Y-down 转换 (FITS 1-based 输出):
   ⇒ 误差 100% 来自 FP64 舍入，主项 `ε ≈ C_env·u·sec²Δ/s_rad`（`u = 2⁻⁵³`，`sec²Δ ≤ 1.03046`；
   `C_env` 取设计常数，与实测常数的偏差登记在 ALG 层）。
   合成规则 = 最坏情况包络**线性相加**（不用 RSS——包络与 RSS 的比值由分母口径决定，两者不互为替代；
-  误差预算的完整推导、判别实验与复算入口正本见 `实验/` 天测误差预算单元 results）。
+  误差预算的完整推导、判别实验与复算入口正本见 `docs/science/algorithms/GATES_AND_TOLERANCES.md` §3 的 G-P1-WCS-BRIDGE / G-P1-WCS-BRIDGE-GLOBAL 行）。
 - **失败注入**：空星表/奇异线性/越界 `rect` 显式错误码。
 - **外部闭环指标门**：§11a 的 G-P1-WCS-CLOSURE v1 口径与 G-P1-WCS-CLOSURE-REPRO 可复现门。
 
@@ -217,13 +217,13 @@ Y-up → Y-down 转换 (FITS 1-based 输出):
 
 | 项 | 冻结值 | 依据（逐条） |
 |---|---|---|
-| 检出星样本 `S` | `p1_sources.json` 中 `x,y` 有限 **且 `snr > 20`** | ① 低 SNR 检出星在 1″ 内主要是错配（全样本只有 4–28% 能找到对应体）；② 与同域位置门 G-P1-CENTROID-SCI 的 `SNR_peak ≥ 20` 域同源（GATES_AND_TOLERANCES §3）；③ 实测（读数与帧标识正本见 `实验/` 天测实验单元 results）：未设 SNR 门的子样本中位角距**更差**、且其匹配贡献集中在低 SNR 检出 ⇒ 不设 SNR 门则匹配样本被低 SNR 错配主导 |
+| 检出星样本 `S` | `p1_sources.json` 中 `x,y` 有限 **且 `snr > 20`** | ① 低 SNR 检出星在 1″ 内主要是错配（全样本只有 4–28% 能找到对应体）；② 与同域位置门 G-P1-CENTROID-SCI 的 `SNR_peak ≥ 20` 域同源（GATES_AND_TOLERANCES §3）；③ 实测（该读数与帧标识的证据面尚未确立，须由对抗性审核重新推导并构造反例确认）：未设 SNR 门的子样本中位角距**更差**、且其匹配贡献集中在低 SNR 检出 ⇒ 不设 SNR 门则匹配样本被低 SNR 错配主导 |
 | 样本上限 | `flux` 降序前 **20000**（超限时记录 `sample_capped=true`，并同时记录 `n_det_snr_pass`） | 运行时间上界（T4 场 n_detected 1.46e5、星表锥内 3.4e6）；**上限必须随记录报告**，否则 |S| 不可复现（实测方法学） |
 | 星表样本 | 本仓 Gaia DR3 XPSD 视场单锥搜索，**G < 18** | 与 `lib/algorithms/platesolve/memory.md` 记录的工具口径一致；mag<18 与 T2/T3/T4 探测深度匹配，避免暗端错配主导 |
 | 匹配半径 | **1.0″（唯一值）**，必须写入记录 `params.match_radius_arcsec` | ① 1″ 在 T2/T3 原生采样（0.9586/0.9669″/px）≈1 px，把残差锚回像素尺度（`0.897 px` 的本意）；② 1″ 是四档扫描（1/2/3/5″）中最严的一档，错配污染最小；③ **不冻结半径即不可复现**：仅把半径 1″→5″，T3 median 即从 0.5410″ 漂到 0.6140″（**+13.5%**） |
 | 统计量 | **median**（必须同时报 p95 / max / n_matched / match_rate） | ① 该口径用 median，保持可比；② median 对错配长尾稳健；③ p95/max 几乎贴住半径上限正是「错配主导」的特征 ⇒ 三者必须同报，判读面 = 四项联合 |
 | 匹配率 | `match_rate = n_matched / \|S\|`，**必须与 median 同报** | median 单独不可解释：`M` 只描述「已匹配的那些星」，匹配率回答「多少星根本没匹配上」；实测 4.9%（T3）/3.5%（T2）/28.0%（T4，全样本） |
-| WCS 口径 | `wcs_flavor` ∈ {`solved_cd_sip`（产物 `p1_wcs.json` 的 CD+SIP）, `frame_header`（输入帧头，当前为仪器 PinPoint）}，**分别报告、各自具名** | ① 求解结果当前不写回 FITS 头，头域仍是未授权的外部解 ⇒ 两种口径并存；② 两种口径在仓内真实帧上统计等价（各口径的中位角距读数与帧标识正本见 `实验/` 天测实验单元 results）⇒ 任一方都不能代表另一方；③ `0.897 px` 是 **frame_header** 口径 |
+| WCS 口径 | `wcs_flavor` ∈ {`solved_cd_sip`（产物 `p1_wcs.json` 的 CD+SIP）, `frame_header`（输入帧头，当前为仪器 PinPoint）}，**分别报告、各自具名** | ① 求解结果当前不写回 FITS 头，头域仍是未授权的外部解 ⇒ 两种口径并存；② 两种口径在仓内真实帧上统计等价（各口径的中位角距读数与帧标识正本见 `docs/science/algorithms/GATES_AND_TOLERANCES.md` §4a 台账实测值表，solved 与 header 分列）⇒ 任一方都不能代表另一方；③ `0.897 px` 是 **frame_header** 口径 |
 | 像素换算 | `median_px = median_arcsec / s0`，`s0 = 3600·sqrt\|det(CD)\|`（**线性 CD 标度**；SIP 的局部标度不参与），s0 必须同报 | 以 px 报值；s0 定义与本节口径一致，缺 s0 则 px 值不可复现 |
 | 残差定义 | 1-最近邻（tangent 平面 KD-tree 选邻居）→ 最终用**真大圆角距**（不用平面近似代替） | 与独立 astropy 对拍通过（逐点 100% 相等） |
 | 独立性 | 只用 astropy（≥7.0.1）从产物 JSON/FITS 头重建 WCS + 独立星表解码；**不导入 Astro Celestial Sphere Database（ACSD） 代码、不读 `wcs_result.*`** | `docs/engineering/`「不调用生产实现的独立 Oracle」；GATES_AND_TOLERANCES §1 R3 |

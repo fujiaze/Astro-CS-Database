@@ -156,7 +156,7 @@ pixel_resolution_arcsec(nside=512 << k) / 3600 ≤ scale_deg_per_px
 （lib/algorithms/shared/healpix/healpix_core.cpp 权威实现）= `sqrt(π/3)/nside` rad。
 **该式是精确的等面积等效线尺度，不是近似**：HEALPix 在同一 nside 下**所有单元面积严格
 相等** = `4π/(12·nside²)`（Górski et al. 2005, ApJ 622, 759 §4；本仓实测
-实验/healpix-polar/results/（A4 段）：nside=512/1024 × 9 档纬度
+实验/healpix-polar/（叶面积恒等式正本 = docs/DERIVATIONS-P3.md §D1）：nside=512/1024 × 9 档纬度
 面积相对偏差恒为 0.0；同一实验的等经纬网格阴性对照在 dec=89.9° 偏 −20.5%）。
 **适用域**：该式是**面平均**判据；HEALPix 单元的局部采样步长（邻元中心角距）随纬度与
 方向变化——实测 nside=512 共边邻元步长 ∈ [0.63,0.71]×该尺度、对角邻元 ∈ [1.95,2.94]×
