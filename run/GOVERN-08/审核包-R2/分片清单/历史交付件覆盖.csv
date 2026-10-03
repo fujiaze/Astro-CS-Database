@@ -1,0 +1,15 @@
+deliverable,manifest,new_slices
+轮1v3-片01,s000,INF-scheduler-001
+轮1v3-片02,s001,ALG-coverage-001
+轮1v3-片03,s002,DOC-ENG-001;INF-pipeline-001
+轮1v3-片04,s003,ALG-coverage-002;DOC-SCI-001;INF-gaia_xpsd_client-001
+轮1v3-片05,s004,ALG-coverage-003;INF-aio-002;INF-cli-001
+轮1v3-片06,s005,ALG-drizzle-002;ALG-platesolve-001;ALG-star_detection-001;INF-acr-001
+轮1v3-片07,s006,ALG-coverage-002;ALG-coverage-003;DOC-ENG-002;INF-aio-003;INF-hips_browser-001
+轮1v3-片08,s007,ALG-drizzle-003;ENG-tests-003;INF-pipeline-003
+轮1v3-片09,s000,INF-scheduler-001
+轮1v3-片10,s001,ALG-coverage-001
+轮1v3-片11,s002,DOC-ENG-001;INF-pipeline-001
+轮1v3-片12,s003,ALG-coverage-002;DOC-SCI-001;INF-gaia_xpsd_client-001
+轮1v3-片13,s004,ALG-coverage-003;INF-aio-002;INF-cli-001
+轮1v3-片14,s005,ALG-drizzle-002;ALG-platesolve-001;ALG-star_detection-001;INF-acr-001

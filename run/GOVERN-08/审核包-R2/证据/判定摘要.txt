@@ -1,0 +1,121 @@
+=== GEN-2 判定汇总（HEAD f9650dd0）===
+受审主体                      3554 份   1748063 行  占主体 100.0%
+生成物 G1∨G2∨G3               484 份    657306 行  占主体  37.6%
+  其中不含第三方                  484 份    657306 行  占主体  37.6%
+第三方内联 G5                   179 份    325110 行  占主体  18.6%
+人工产物                      2891 份    765647 行  占主体  43.8%
+
+--- 信号命中计数（可重叠）---
+  G3:O1        290 份
+  G5           179 份
+  G3:O2        111 份
+  G1            79 份
+  G3:O3         71 份
+  G2             5 份
+
+--- G1/G2 收紧：被排除在内容信号外的件（防止误报）---
+  扩展名非数据格式                  2745 份
+  合同定义件（schema/example）       85 份
+
+--- 生成物唯一信号归因（不含第三方）---
+  G3:O1                      222 份     40121 行
+  G3:O2                      108 份    246578 行
+  G3:O3                       71 份    105980 行
+  G1+G3:O1                    68 份    243167 行
+  G1                           8 份      3487 行
+  G2                           3 份     15875 行
+  G1+G3:O2                     2 份       557 行
+  G2+G3:O2                     1 份       786 行
+  G1+G2                        1 份       755 行
+
+--- G3 逐产出面命中（仅计数据件；人工件扩展名除外）---
+  O1 实验/*/results/*
+      生成物  290 份   283288 行
+      人工件例外（留在主体）  19 份     2970 行
+      依据: 实验/README.md:3,8 —— results/ 具名为「结果与判据表」面
+  O2 实验/engineering-evidence/*
+      生成物  111 份   247921 行
+      人工件例外（留在主体）  79 份     7626 行
+      依据: 实验/README.md:7 —— 「工程实测类证据留档……时点证据快照，历史记录不改写」
+  O3 eng/tests/validation/release02/*
+      生成物   71 份   105980 行
+      人工件例外（留在主体）  89 份     7534 行
+      依据: eng/tests/validation/release02/README.md:1,5,6 —— 「由 run/RELEASE-02/<name>/ 收集而来（run/ 为 gitignore，故迁入此处长期保留）」
+
+--- 人工产物 按顶层目录 ---
+  lib       1273 份    420498 行
+  eng        829 份    184840 行
+  实验         602 份    114800 行
+  docs       187 份     45509 行
+
+--- 生成物 按顶层目录 ---
+  实验         409 份    535255 行
+  eng         74 份    121855 行
+  lib          1 份       196 行
+
+--- 第三方内联 按顶层目录 ---
+  lib        179 份    325110 行
+
+--- 人工产物 Top 40 行数（人工抽查面）---
+    16260  lib/infrastructure/scheduler/src/module_adapters.cpp
+    14080  lib/algorithms/photometry/data/response_curves/filters.json
+     6473  lib/algorithms/photometry/data/response_curves/qe_curves.json
+     6078  lib/algorithms/coverage/tests/synthetic_gate.cpp
+     5538  lib/infrastructure/pipeline/orchestrator/cpp/src/orchestrator.cpp
+     5071  eng/tests/unit/p1001_real_nodes_test.cpp
+     4178  docs/engineering/UNRESOLVED_REGISTER.md
+     4159  eng/contracts/data/clause_registry.json
+     4091  lib/algorithms/drizzle/healpix_drizzle/nanoflann.hpp
+     4091  lib/infrastructure/aio/healpix_db/archive/legacy/healpix_stack/gradient/nanoflann.hpp
+     4050  eng/contracts/schemas/product_family_field_constraints.schema.json
+     3416  docs/science/DATA_SEMANTICS.md
+     3171  lib/infrastructure/gaia_xpsd_client/src/gaia_client.c
+     2981  lib/algorithms/coverage/src/upm.cpp
+     2959  lib/algorithms/coverage/src/rejection.cpp
+     2935  lib/infrastructure/aio/src/hips/aio_hips_writer.cpp
+     2814  eng/packaging/config/config_registry.json
+     2734  lib/infrastructure/cli/commands.cpp
+     2699  lib/algorithms/drizzle/healpix_drizzle/drizzle_engine.cpp
+     2640  lib/infrastructure/acr/scheduler/dispatcher.cpp
+     2491  lib/algorithms/star_detection/src/sdet_api.cpp
+     2243  lib/algorithms/platesolve/cpp/ipv/src/ipv_select.cpp
+     2201  lib/infrastructure/aio/src/healpix/aio_healpix_io.cpp
+     2197  lib/infrastructure/pipeline/module_ports.registry.json
+     2064  docs/engineering/PUBLIC_API.md
+     2062  lib/infrastructure/hips_browser/healpix_browser_qt/core/gl_renderer.cpp
+     2032  eng/tests/unit/p2002_unc_rej_prov_test.cpp
+     2030  lib/algorithms/coverage/src/sky_plane.cpp
+     2019  lib/algorithms/coverage/tools/stage2.cpp
+     1968  lib/infrastructure/pipeline/orchestrator/cpp/tests/test_orchestrator_cli.cpp
+     1940  lib/algorithms/drizzle/healpix_drizzle/spherical_overlap.cpp
+     1873  eng/tests/unit/CMakeLists.txt
+     1861  lib/algorithms/photometry/cpp/test/test_spectrum_integrator_golden_results.json
+     1836  lib/algorithms/platesolve/cpp/ipv/src/ipv_solver.cpp
+     1802  eng/tools/perf/run_perf_synth_chain.py
+     1790  lib/infrastructure/aio/src/hiss_reader.cpp
+     1745  lib/infrastructure/aio/io/fits_core.c
+     1635  lib/algorithms/noise_snr/src/module_entry.cpp
+     1624  eng/tests/config/check_cfg002_registry.py
+     1603  lib/algorithms/noise_snr/tests/p1noise/p1noise_tests_core.cpp
+
+--- 人工产物：实验/ 域 Top 15（人工语义密度面）---
+     1539  实验/absolute-snr/docs/snr-propagation-design.md
+     1485  实验/shared/synthetic/m16_sampling.py
+     1323  实验/shared/synthetic/noise_selftest.py
+     1193  实验/absolute-snr/code/audit/route3/exp11_frozen_operator_transfer.py
+      973  实验/absolute-snr/docs/EXP-03-REGIONAL-SIGMA.md
+      966  实验/absolute-snr/code/b7_absolute_snr_recon.py
+      907  实验/absolute-snr/code/exp06/exp06_common.py
+      901  实验/absolute-snr/docs/EXP-04-RECONSTRUCTION.md
+      897  实验/shared/synthetic/m16_scene.py
+      865  实验/dense-snr-reconstruct/code/route1/exp_p4_04_brightness_forward.py
+      859  实验/healpix-polar/docs/EXP-07-POLAR.md
+      831  实验/healpix-polar/code/audit/sim/exp_sim01_m16_forward_conservation.py
+      810  实验/engineering-evidence/compress-01/COMPRESSION_CODEC_RESEARCH_PACK_TABLES.md
+      782  实验/absolute-snr/docs/EXP-01-DELTA-AND-ESTIMATOR.md
+      762  实验/absolute-snr/docs/EXP-02-STRUCTURE-CONTAMINATION.md
+
+--- 第三方内联 目录构成 ---
+  lib/infrastructure/aio                                        168 份   294557 行
+  lib/third_party/nlohmann                                        1 份    27031 行
+  lib/infrastructure/pipeline                                    10 份     3522 行

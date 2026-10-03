@@ -1,0 +1,16 @@
+== C1 纯加性世界 ==
+  [PASS] A1_sky_build             0
+  [PASS] A4_delta_removes_seam    {'un_med': 4.8023203843169995, 'un_max': 6.544490559400231, 'd_med': 0.39718505096682577, 'd_max': 0.8038458772817592, 'b_med': 0.3790918922559321}
+  [PASS] A5_full_subtract_zero    0.8042997789557282
+  [PASS] A2_curve_calibrated      {'ratio': 0.9747277829127695, 'slope_pred': 0.8235053756097857}
+  [PASS] A3_curve_flat            0.00771162773930108
+  [PASS] A6p_subset_and_gauge_consistency {'worst_sigma': 0.7523263017597124, 'subset_sigma': 0.7523263017597124, 'gauge_sigma': 1.638584401559019e-15}
+  [PASS] A9p_terminal_gauge_margin {'max_abs_G': 0.13271928566723545, 'tol_M': 0.3013559430274131}
+  [PASS] A6p_A9p_discrimination   {'abs_tolerance_arm': True, 'fg_disabled': False, 'gauge_frame_dependent_injection': True}
+  [PASS] A6_subset_invariance_scale 0.4077910086047609
+  [PASS] A7b_absolute_tol_defect  {'converged': 0, 'iters': 300}
+  [PASS] A8b_weight_choice_no_effect_in_exact_regime {'same': 0.4077910086047609, 'diff': 0.4001129358054527}
+  [PASS] A9q_final_gauge_zero_effect_on_solve {'obj_same': True, 'dC': 0.0, 'd_corr': 0.13271928566723545}
+  [PASS] A10_oob_scaling          {'slope': 0.7687065969853147, 'spearman': 0.8857142857142858, 'pearson': 0.8822086109818777, 'ratio': 6.139029101773245}
+  [PASS] A11_star_flux            6.6857409012142615e-06
+  -> /workspace/Astro CS Database/实验/additive-sky-seamless/results/c1_additive.json

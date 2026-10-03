@@ -1,0 +1,12 @@
+Traceback (most recent call last):
+  File "/workspace/Astro CS Database/实验/m42-realdata/code/c1_photometry.py", line 430, in <module>
+    raise SystemExit(main())
+                     ~~~~^^
+  File "/workspace/Astro CS Database/实验/m42-realdata/code/c1_photometry.py", line 252, in main
+    tab = phot_table()
+  File "/workspace/Astro CS Database/实验/m42-realdata/code/c1_photometry.py", line 54, in phot_table
+    d = M.read_json(M.p1_dir(blk) / "p1_phot.json")
+  File "/workspace/Astro CS Database/实验/m42-realdata/code/m42_common.py", line 60, in read_json
+    with open(p, "r", encoding="utf-8") as f:
+         ~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^
+FileNotFoundError: [Errno 2] No such file or directory: '/workspace/Astro CS Database/run/RELEASE-05/vis/out/m42_p1_t2/p1_phot.json'

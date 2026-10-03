@@ -1,0 +1,9 @@
+== 天光平面链路归零负例 ==
+  [PASS] N1a_zero_effect_zeroes_seam      5.684341886080802e-14
+  [PASS] N1b_zero_injection_reads_zero    0.0
+  [PASS] N1b_injected_step_is_detected    10.892963021238756
+  [PASS] N1b_metric_has_scale             0.9077469184365645
+  [PASS] N2a_zero_effect_zeroes_delta     2.785952824208552e-10
+  [PASS] N2b_apply_field_identity         1.3159125022703723e-15
+  [PASS] N2c_injection_truth_match        [(6.0, 4.916955731459893e-12, 4e-12), (1.2, 5.229594535194337e-12, 1.1e-11), (0.9, 5.6274984672199935e-12, 1.1e-11)]
+  -> /workspace/Astro CS Database/实验/additive-sky-seamless/results/sky_plane_zero_negative.json
