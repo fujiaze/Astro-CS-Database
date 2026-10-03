@@ -287,6 +287,47 @@ $ git count-objects -vH
 | W1 | `lib/infrastructure/gaia_xpsd_client/CMakeLists.txt:38-39` | **D9025**（命令行）/ 级降级 | `target_compile_options(acsd_catalog_gaia PRIVATE`<br>`    /Zc:__cplusplus /W3)` | 把**第一方**目标钉在 `/W3`，而全局 `/W4` 仍生效（`CMakeLists.txt:53-54`）⇒ `cl` 额外报一条**关于降级手段本身**的警告，正是根 `CMakeLists.txt:50-52` 自己论证要避免的形态 | 违反本单「不得关警告」纪律 |
 | W2 | `lib/infrastructure/gaia_xpsd_client/src/gaia_client.c:518-522`（`_WIN32` 分支） | **C4267** + **C4018** | `MEMORYSTATUSEX ms;`<br>`ms.dwLength = sizeof(ms);`<br>`return (ms.ullAvailPhys < MEMORY_PRESSURE_THRESHOLD) ? 1 : 0;` | **本单最干净的一个例证**。`:219` `#define MEMORY_PRESSURE_THRESHOLD (4ULL * 1024 * 1024 * 1024)`（unsigned long long）；`MEMORYSTATUSEX::ullAvailPhys` 的类型是 `DWORDLONG` = **有符号** `long long`（成员名里的 `ull` 有误导性）⇒ **有符号/无符号比较 ⇒ C4018**。而 POSIX 孪生分支 `:536` 比的是 `unsigned long mem_available * 1024`（`:529` 声明）**两侧同为无符号** ⇒ **GCC `-Wsign-compare` 静默，MSVC `/W4` 报 C4018**。另 `:520` 的 `sizeof(ms)`（size_t）→ `DWORD` 是 C4267。**这两条都落在被 `/W3` 降级的同一个 target 里** | **LIKELY，高置信** |
 | W2b | `lib/infrastructure/cli/monitor.h:273` | C4100 | Windows 下 `read_thread_cpu` 空体 | 公共签名形参在 Windows 分支未引用；**仓内已有现成惯用法** `atomic_publish.cpp:155-156` 的 `(void)dir;`，此处缺 | LIKELY |
+| **W4** | `gaia_client.c:1814,1949,2093` + `:1737`（递归点 `:1857,1860,1863,1866`） | **C4244 ×7，CERTAIN** | `int n = node->block_size / xf->star_stride;`（`block_size` 是 `uint32_t` `:233`、`star_stride` 是 `int` `:234` ⇒ `uint32_t/int` 提升为 `unsigned int` 再窄回 `int`）；以及 `:235` 的 `uint32_t child_nw/…` 传给 `search_recursive(..., int node_idx, …)`。**注意 `:1872`/`:2018` 两处同名递归正确地取 `uint32_t node_idx` ⇒ 签名本身自相矛盾** | **CERTAIN** |
+| W5 | `lib/algorithms/coverage/src/sampler.cpp:190-197` | C4505（删 8 行即解） | `static int seh_filter(...)` 在 `namespace {}` 内且**全仓零引用**（唯一定义处即 `:191`）；另它也**不是合法的 `_except` 过滤器签名** | UNCERTAIN（取决于 `[[maybe_unused]]` 是否抑制 C4505） |
+
+> **W4 是本单置信度最高的一组**：它**不受** `x.dwSize = sizeof(x)` 那一族的"常量表达式豁免"不确定性影响
+> —— 那是**运行期值**的 `uint32_t→int` 窄化，且所在文件（`gaia_client.c`）确定在 `/W4` 构建内。
+> **修掉这 7 条，`sizeof` 族是否需要证明豁免就不再挡在关键路径上。**
+
+#### ❌ 已撤回的一条误报（记录下来免得有人去"修"它）
+
+曾报「`gaia_client.c:2439-2442` C4456 ×4」。**该结论错误**：该处是
+```c
+    int f;
+    #pragma omp parallel for schedule(dynamic) num_threads(gaia_omp_team_size())
+    for (f = 0; f < nfiles; f++) {
+```
+循环是 `for (f = 0; …)` **纯赋值、无重声明**，`int f` 只声明一次 ⇒ **无遮蔽、无 C4456**。
+该注释描述的"把索引变量提到 pragma 之前声明"**恰恰就是为避开 C3015 而做的正确修法**。
+**不要按那条改。**
+
+#### ⚠️ 又一批零告警的静默缺陷（比告警号更要紧）
+
+- **`lib/infrastructure/benchmark/backend_host/cpu_features.cpp:65-109` 缺 `_M_X64` 分支**
+  ⇒ MSVC x64 下 ISA mask 恒为 0 ⇒ `kernel_*_axpy_safe` 一类门（`sse.cpp:39` 等）全部返回 false
+  ⇒ **静默退回标量路径**。同类根因见 `acr/topology/cpu_features.cpp:33`（只测 `__GNUC__`/`__x86_64__`，
+  从不测 `_M_X64`，与该文件 `:51` 自己的注释「x86-64 必有 SSE2」直接矛盾）；
+  `acr/qualification/benchmark_driver.cpp:789-798` 则在 MSVC 下恒报 `"baseline"`。
+- **`hardware_inspect.cpp:126-128` 的 MSVC CPUID 解码漏了 `base_family == 0x6u`**（仓内孪生实现
+  `capability_detect.c:205-207` 有）⇒ 两份实现对 family-6 部件给出**不同的 `model`** ⇒ 进 CPU 指纹/profile 缓存键。
+- **`host_services.cpp:31-38`**：Windows 腿 `_aligned_malloc(size, align)` 返回 `size` 字节，
+  POSIX 腿把 size **向上取整**到 `align` 的倍数 ⇒ **写那个尾部在 Windows 上越界**。
+- **`gaia_client.c:1333-1335`**：`GetFileSizeEx` 失败时 Windows 侧 `mmap_size` **保持未初始化垃圾值**，
+  POSIX 侧 `fstat` **fail-closed**。`/W4` 不做确定性赋值分析（只有 `/analyze` 的 C6001 能查）⇒ **零告警**。
+- **`dll_loader.cpp:29-33` 建立 `kModuleLibSuffix`（`.dll`/`.so`）抽象，`:273` 与 `:301` 的 Windows 预载却硬写 `.dll`** ⇒ 240 行后自我否定。
+- **`avx512_backend.cpp:27-32`**：门面 TU 用基线旗标（`/arch:AVX512` 只加在 `acsd_cpu_avx512_kernels` 上）
+  ⇒ MSVC 那里永不定义 `__AVX512CD__` ⇒ `#else` **恒取**，声明的 feature 集漏 `AVX512CD`，
+  与该文件 `:17-20` 自己的注释「必须含 CD，否则『用了却没声明』」矛盾
+  ⇒ 无 CD 的宿主能过 preflight、加载 DLL，而计算 TU 撞 `#UD`。
+
+**两处任务提示的更正**：`LoadLibraryA`/`GetProcAddress`/`LoadLibraryExA` 是 **Win32 kernel32 API、不是 CRT**，
+**C4996 不适用**；`localtime_s`/`gmtime_s` 的实参顺序在**全部 13 处都正确**
+（MSVC 取 `(tm*, const time_t*)`，每个 Windows 分支都传 `(&tm, &t)`）——**不存在要修的换序隐患**。
 | W3 | `lib/algorithms/coverage/src/sampler.cpp:35` | **C4005** | `#define NOMINMAX` | 与 `CMakeLists.txt:55` 的 `add_compile_definitions(NOMINMAX …)` → MSVC 的 `/DNOMINMAX` 重名。`cl` 把 `/DNOMINMAX` 当作 `#define NOMINMAX **1**`，而源码重定义为**空**替换列表 ⇒ **两者不同，触发 C4005**。⚠️ **我一度判其为良性（理由：替换列表相同）并推翻了子代理，该判断错误**，历史实测日志证明它确实发生（见 §1.6） | **LIKELY**，历史实测佐证 |
 
 > **W3 的判定更正（我的自我推翻）**：我最初依据「C++ 标准允许相同定义的重定义」
@@ -609,6 +650,14 @@ FP32 面仍按 `TEST_MATRIX.md:22` 的 `rtol=5e-6`；P3 Phase-1 HiPS 输出按�
 `GATES_AND_TOLERANCES.md` 里（该表按 `DOCUMENT_INDEX.yaml:138-141` 只覆盖 P1），
 而在各模块 ALG 文档 + `TEST_MATRIX.md`。
 
+**⚠️ 顺带一处治理缺口**：`GATES_AND_TOLERANCES.md:5-6` 自述只覆盖星检测/PSF/WCS
+（§3 全部 20 行都是 `G-P1-*` 前缀），**但它自己 `:20-21` 的 R1 规则要求"每条容差都要登记在此"**
+⇒ **规则与登记表自相矛盾**：P2–P5 的容差事实上散落在各模块 ALG 文档，
+没有单一可机检的容差登记面。查 P2–P5 的验收数**不要去 `GATES_AND_TOLERANCES.md` 找**。
+当前已散落登记的数值举例：P5 接缝门 `≤1e-2`（`PHASE2_UPM.md:333-335`）、
+P2 噪声 oracle `5%`/`10%`/`≤2%`（`NOISE_MODEL.md:288,345,347`）、
+P3 逐叶 `<1e-5`（`DRIZZLE_GEOMETRY.md:321`）。
+
 ### 5.5 仓内自己的状态台账与本件结论一致
 
 `docs/engineering/RELEASE_STATUS.md` 逐字：
@@ -836,6 +885,79 @@ IDW 内部（`:294-295,355-356`）也确是 double，消费链 `hp_drizzle_api.c
 per-leaf 归约次序不变——但 `std::unordered_map` **不保证插入序**，该机制陈述是错的。
 不变量本身成立（次序由 `merge_cursor` 强制的 stripe 升序左折叠决定），**但它被一条错误理由"保护"着**，
 建议顺手改注释，避免后人据错误前提改动它。
+
+### 5.9 aio 子系统补遗：告警 ID 更正 + 几处一行可修的静默缺陷
+
+**⚠️ 一处告警 ID 更正**：`int → size_t` 的加宽族**不是 C4267**。
+x64 上 `int`→`size_t` 是 32→64 位**加宽、不丢位**，唯一问题是符号；
+MSVC `/W4` 对有符号→无符号失配的诊断是 **C4245**（level 4），C4365 是 `/Wall` 变体。
+⇒ **预期 C4245，不是 C4267**；无论哪个都需要显式转换。
+活站点（均在已编译 TU）：`aio_util.h:13,17`、`aio_healpix_io.cpp:73,77`、`aio_pipeline.cpp:83,88`、
+`hiss_stream_writer.cpp:164,166`。
+**仓内已证明正确写法**：`aio_atomic_file.h:85` `std::wstring ws((size_t)len, L'\0');` 与
+`:87` `ws.resize((size_t)len - 1);` 已带转换，**被复制粘贴的那几处漏了**。
+
+**几处一行可修的静默缺陷**（无告警，但都有仓内正确范式可抄）：
+
+| 位置 | 缺陷 | 仓内已验证的正确范式 |
+|---|---|---|
+| `aio_disk_full.h:84-90` | `#ifdef EDQUOT` 被编译掉——**MSVC UCRT 的 `errno.h` 不定义 `EDQUOT`** ⇒ 配额耗尽在 Windows 上不可见 | **同一子系统的 `io/fits_core.c:43-48` 已写好 shim**：`#if defined(_WIN32) && !defined(EDQUOT) #define EDQUOT 122`。直接抄，一行 |
+| `aio_log.cpp:39-48` | Windows 用 `CreateDirectoryA`（**单层**），POSIX 用 `std::filesystem::create_directories`（**递归**）⇒ 非仓根 CWD 下 Windows **静默不产生日志文件**。该文件 `:32-37` 的注释自称这类问题已修——**只修了吞返回值，没修单层/递归不一致** | — |
+| `aio_sparse_punch.h:216-232` | `errno_is_unsupported` 在 Windows 恒返回 true ⇒ 每次 `DeviceIoControl` 失败都被报成"trim=skipped"降级而非 `PUNCH_IO_ERROR` ⇒ **fail-open，而 Linux 是 fail-closed**。该文件 `:32-33` 自认 Windows 分支**从未在真实硬件上跑过** | — |
+| `aio_sparse_punch.h:71-75` | `kPunchBlockBytes` Windows 65536ULL vs Linux 4096ULL（`:68-70` 有说明，是有意的），但它改变 `PunchResult` 的 `zero_blocks/punched_bytes/holes` ⇒ **provenance 载荷跨 OS 不可比**（字节内容仍可比） | — |
+| `aio_sysinfo.cpp:249-259` | `aio_process_tree_rss_bytes` 在 Windows **只测当前进程**，POSIX 测「本进程 + 全部后代」⇒ **违反其自己冻结的合同** `include/aio_sysinfo.h:60-63`「当前进程树（本进程 + 其全部后代进程）」；内存压力判据的分子在 Windows 上系统性偏小 | — |
+| `atomic_publish.cpp:398` | `size = _filelengthi64(fd);` 未查返回值，失败返回 `-1`，而 `size` 是 `uint64_t` ⇒ 变成 `0xFFFFFFFFFFFFFFFF`（**真 bug，不只是告警**） | — |
+
+**已确认是死代码、不要为其分配修警预算**（三路独立 grep 确认零 target 引用）：
+`lib/infrastructure/aio/healpix_db/archive/legacy/healpix_stack/**`（30 文件，且**未**登记在
+`dependency-lock.json` 里，连 vendored 身份都没有）、`lib/infrastructure/aio/src/ahpx/**`（4 文件）、
+`lib/infrastructure/aio/src/aio_pipeline_engine.cpp`、`lib/infrastructure/aio/io/hips_core.c`、
+以及 `lib/infrastructure/pipeline/module_loader/{module_registry,secure_loader}.c`。
+按 AGENTS.md §6 应**删除或显式标记退役**——目前它们是"带着真缺陷、无人负责、却看着像产品代码"的状态。
+
+### 5.10 两个竞争性的 `<unistd.h>` 垫片——**没用的那个才是活的那个**
+
+| | 内容 | 状态 |
+|---|---|---|
+| `lib/infrastructure/aio/third_party/cfitsio/win_compat/unistd.h` | **完整映射垫片**：`#include <io.h>/<process.h>/<direct.h>/<fcntl.h>`，并把 `getcwd→_getcwd`、`getpid→_getpid`、`read→_read`、`write→_write`、`close→_close`、`unlink→_unlink`、`access→_access`、`ftruncate→_chsize`、`fsync→_commit`、`isatty→_isatty` 全部 `#define`（有 `_WIN32` 与 `ACS_CFITSIO_UNISTD_H` 双守卫） | **死代码**：`git grep win_compat` 在所有 CMakeLists.txt / *.cmake 中**零命中**；vendored cfitsio 自己的 CMakeLists **根本没声明任何 `target_include_directories`**（根是从 `eng/cmake/cfitsio_sources.cmake` 的显式源列表编 cfitsio 的） |
+| `eng/cmake/win32_pthread_shim/unistd.h` | **几乎全空**，只有注释 + `#pragma once` + `#ifndef _WIN32 #error` | **活的**：经 `acsd_cfitsio_apply_platform_shim`（`cfitsio_platform.cmake:102-115`）注入到**全部四个编译 cfitsio 的目标**的包含面（`CMakeLists.txt:547`、`drizzle/CMakeLists.txt:81`、`hips/CMakeLists.txt:69`、`phase2_integrate/CMakeLists.txt:97`） |
+
+⚠️ 空垫片的注释断言 cfitsio 只是**声明** `unlink`/`access` 而从不真正调用那些分支——
+**这一点静态无法核实**。若任何 cfitsio TU 真的以 POSIX 拼法调用 `read`/`write`/`close`/`open`，
+在 MSVC 下就是 **C4013/C2065**（不是告警，是编译错）。
+**处置建议（二选一，别留着两份）**：删掉死的 `win_compat/unistd.h`，或把完整的那个提上包含面、删掉空的。
+**这已是本仓第 4 例「同一物的两份实现、其中一份是死的」**（另三例见 §4.4 的 `module_loader`、
+§5.9 的 `healpix_stack`、以及 `CATCH` 的 legacy 目录）。
+
+**⚠️ 隔离是双刃的（值得写明）**：`acsd_cfitsio` 在 `/W0` 下编译 ⇒
+pthread 垫片里那些 `static inline` 函数产生的任何 C4505/C4514 **全被压掉**
+⇒ **该垫片对 `/W4` 零告警贡献，而 §5.6 那个"递归互斥被静默降级"的缺陷恰恰就藏在里面。**
+（已核实无冲突：手工声明的 `long _InterlockedExchange(volatile long*, long);`（`pthread.h:29`）
+不与任何 cfitsio TU 冲突——没有 TU 包含 `intrin.h`；只有 `swapproc.c` 拉 `tmmintrin.h`/`emmintrin.h`，
+二者都不声明该内建。）
+
+**⚠️ 关键更正：当前源码树里 `ctest` 没有任何测试可跑。**
+实测（`lib/` + `eng/` 全量，来源 CMakeLists.txt / *.cmake）：
+
+```
+$ grep -rn 'add_test'            --include=CMakeLists.txt --include='*.cmake' lib/ eng/   → 0
+$ grep -rn 'enable_testing|include(CTest)|gtest_discover'  同上                          → 0
+```
+
+⇒ **HEAD 上不存在任何注册进 CTest 的测试**。
+⚠️ 两个直接后果：
+(1) `eng/build/toolchain.ps1` 的 `ctest --preset win-rel` **无事可跑**——它会"绿"，但那是**空绿**，
+**不构成任何测试通过证据**。这一点必须写进 Windows 侧交付，否则极易被读成"测试全过"。
+(2) **数值等价核对没有现成的载体**。任何"双平台数值等价"结论目前**没有可执行的判据面支撑**：
+既没有测试套件，也没有跨平台容差（§5.4）。若要做，只能从 CLI 侧
+（`acsd normalize|mosaic|export --config … --output …`，入口 `commands.cpp`，注册 `CMakeLists.txt:1290-1294`）
+对同一小输入跑两端并 diff 产物——**但"用哪份当前真实存在的配置"尚未核实，记为 UNKNOWN**。
+`testdata/` 在树内（BASS_DR3 日期 JSON 自 1965 B 起），可用作输入候选，但**未验证**哪份配置能驱动完整流水线。
+
+> ⚠️ **易踩的坑**：仓内 `build/linux-control/**/CTestTestfile.cmake` 里**仍留着一份 455 条测试清单**，
+> 但那棵构建树的 `CMakeCache.txt` mtime 是 **2026-09-29**，而源码此后已大改
+> （HEAD 已推进 294 提交量级）。**照那份清单排计划会全部落空**——本件一度差点引用它，已自我排除。
+> **复核任何"测试名"之前，先确认它出自当前源码而不是 `build/` 产物。**
 
 ---
 
