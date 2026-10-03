@@ -1544,6 +1544,14 @@ int p2_sky_plane_eval(const void* model_in, std::uint64_t frame_id,
         if (out_status) *out_status = P2_SKY_EVAL_UNKNOWN_FRAME;
         return P2_SKY_PLANE_OK;
     }
+    // 坐标有限性闸（fail-closed）：非有限坐标不是「越域」，而是位置非法。
+    // 漏检时 gnomonic 的 `cosc <= 1e-12` 对 NaN **判假**（与 NaN 比较恒假）⇒
+    // u/v 全 NaN ⇒ 下面两道越域守卫同样全判假 ⇒ bspline/delta_basis 出 NaN
+    // ⇒ *out_value = NaN 却把 out_status 写成 OK（=「母版天光面值有效」）。
+    // 位置非法 ⇒ P2_SKY_EVAL_INVALID（本函数入口已置该初值），rc 仍 0 =
+    // 「调用方按状态处理」（sky_plane.h:461 的越域约定）。
+    if (!std::isfinite(ra_deg) || !std::isfinite(dec_deg))
+        return P2_SKY_PLANE_OK;
     double u = 0, v = 0, cosc = 0;
     if (!gnomonic(m->ra0_deg, m->dec0_deg, ra_deg, dec_deg, &u, &v, &cosc)) {
         if (out_status) *out_status = P2_SKY_EVAL_OUT_OF_DOMAIN;
@@ -1611,6 +1619,10 @@ int p2_sky_plane_eval_delta(const void* model_in, std::uint64_t frame_id,
         if (out_status) *out_status = P2_SKY_EVAL_UNKNOWN_FRAME;
         return P2_SKY_PLANE_OK;
     }
+    // 同 p2_sky_plane_eval：坐标非有限 ⇒ 位置非法（NaN 会击穿 cosc 与越域两道
+    // 守卫并让 δ 多项式出 NaN），按 P2_SKY_EVAL_INVALID 报。
+    if (!std::isfinite(ra_deg) || !std::isfinite(dec_deg))
+        return P2_SKY_PLANE_OK;
     double u = 0, v = 0, cosc = 0;
     if (!gnomonic(m->ra0_deg, m->dec0_deg, ra_deg, dec_deg, &u, &v, &cosc)) {
         if (out_status) *out_status = P2_SKY_EVAL_OUT_OF_DOMAIN;
@@ -1694,6 +1706,12 @@ int p2_sky_plane_residuals(const void* model_in,
         const double r = s.value - val;
         sw += w; swr2 += w * r * r; sr2 += r * r; ++used;
     }
+    // 全部样本被过滤（flags/非有限/权重不可用/求值失败）⇒ 残差集为空：
+    // 与 build 同一 fail-closed 码（sky_plane.h:511「rc 同 build 参数约定」，
+    // build 侧 :548 同条件返回 NO_USABLE_SAMPLES）。
+    // **不得**把空集写成 rms=0 + OK：0 残差与「零残差」不可区分，调用方
+    // （Oracle 对拍 / 前台独立复跑）会把「什么都没算」读成「拟合完美」。
+    if (used == 0) return P2_SKY_PLANE_NO_USABLE_SAMPLES;
     if (out_rms_weighted) *out_rms_weighted = (sw > 0.0) ? std::sqrt(swr2 / sw) : 0.0;
     if (out_rms_unweighted) *out_rms_unweighted = (used > 0) ? std::sqrt(sr2 / static_cast<double>(used)) : 0.0;
     if (out_n_used) *out_n_used = used;
@@ -1988,6 +2006,27 @@ int p2_sky_plane_open(const char* path, void** out_model) {
         }
         for (const auto& dk : m->deltas)
             if (dk.size() != static_cast<std::size_t>(m->m)) { delete m; return P2_SKY_PLANE_IO_ERROR; }
+        // 几何标量与系数的有限性/正性（fail-closed）。build 侧已把
+        // node_spacing(h)>0（:499）与 us/vs>0（:660-662）写成硬约束，open 侧
+        // 漏检 ⇒ 一个 h<=0 / us<=0 的模型文件会被**当成正常模型**求值：
+        //   h == 0 ⇒ bspline_basis 的 floor((u-t0)/h) = ±Inf ⇒ (int)Inf 是 UB；
+        //   us/vs == 0 ⇒ delta_basis 的 (u-uc)/us = ±Inf ⇒ pow(Inf,a)=Inf；
+        //   us/vs < 0 ⇒ x 整体反号 ⇒ δ 多项式**符号翻转** ⇒ 帧间天光偏差被
+        //   反向扣除，台阶不消反增，而 rc 全程为 0（成功）。
+        // 合法域 = (0,+∞) 且有限（正本：几何量缺失 ⇒ 显式失败，不回退常数，
+        // docs/science/PHASE2_UPM.md 节点间距导出条款；DATA_SEMANTICS.md 禁
+        // clamp 静默饱和）。系数非有限同理：δ/B_ref 非有限 ⇒ 母版天光面非有限。
+        if (!(std::isfinite(m->h) && m->h > 0.0) ||
+            !(std::isfinite(m->us) && m->us > 0.0) ||
+            !(std::isfinite(m->vs) && m->vs > 0.0)) {
+            delete m;
+            return P2_SKY_PLANE_IO_ERROR;
+        }
+        for (const double cv : m->coeff)
+            if (!std::isfinite(cv)) { delete m; return P2_SKY_PLANE_IO_ERROR; }
+        for (const auto& dk : m->deltas)
+            for (const double dv : dk)
+                if (!std::isfinite(dv)) { delete m; return P2_SKY_PLANE_IO_ERROR; }
         *out_model = m;
         return P2_SKY_PLANE_OK;
     } catch (...) {

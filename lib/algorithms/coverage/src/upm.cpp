@@ -256,6 +256,23 @@ static int build_impl(const P2ControlObservation* obs, std::uint64_t n_obs,
                       const P2ControlNode* nodes, std::uint64_t n_nodes,
                       const P2UpmBuildConfig* cfg_in, void** out_model) {
     if (out_model == nullptr || obs == nullptr || n_obs == 0) return 1;
+    // 观测量有限性闸（fail-closed；位于任何分配之前，故无需释放）：
+    // uncertainty 是标准误（upm.h:39-40），合法域 = [0,+∞) 且**必须有限**；
+    // value 可负但不可非有限（upm.h:39）。
+    // 漏检的后果不是「阈值偏松」，而是判据链整条失效：
+    //   uncertainty=NaN ⇒ `sigma_eff = max(|unc|, sigma_floor)` 的**下限反向
+    //   失效**（std::max 遇 NaN 返回 NaN）⇒ w[i]=NaN ⇒ 法方程 rhs/obs_w=NaN
+    //   ⇒ cg_solve_frame 的 `pAp <= 1e-30` 对 NaN 判假 ⇒ C 场写成 NaN ⇒
+    //   calibrate_block 输出 input−NaN 而 rc=0；
+    //   value=NaN（w 有限时）⇒ `den > 1e-12` 仍为真 ⇒ M 直接写成 NaN 并进
+    //   model_hash。两条路都把非有限的母版校正场当正常产品发布。
+    // 与姊妹求解器 p2_upm_ma_build 的逐条校验（:2470-:2471，rc=1/2）一致。
+    for (std::uint64_t i = 0; i < n_obs; ++i) {
+        if (!std::isfinite(obs[i].value) ||
+            !std::isfinite(obs[i].uncertainty)) {
+            return 2;   // 观测量非法 = 显式科学错误（同 compute_raw 的 rc=2 语义）
+        }
+    }
     // 无观测几何节点的 component sentinel（不参与数据图/gauge）
     const std::size_t kNoData = ~std::size_t(0);
     P2UpmBuildConfig cfg;
@@ -1064,6 +1081,26 @@ static int build_impl(const P2ControlObservation* obs, std::uint64_t n_obs,
         obj_prev = m->objective;
     }
 
+    // 数据充分性闸（fail-closed；与 compute_raw 的 rc=2 同一语义族，
+    // p2_session map_rc: rc=2 → ACS_ERR_STATE「build fail」）：
+    // 若**没有任何**观测携带「正且有限」的拟合权重，则目标恒 0、max_dM 与
+    // max_dC 恒 0 ⇒ 第一轮就判 converged；而下方可辨识性判据的每个块都会
+    // 因 wfk 为空被跳过（:1256）⇒ **判据一步都没跑过**，却报
+    // identifiable=1、chi2=0、chi2_red=0（即「全部可辨识 + 完美拟合」的
+    // 零模型）。此时不存在任何科学约束面，模型无意义：失败，不得产出。
+    // 构造路径（数据驱动）：每条观测 quality_flags 置 photo_rejected 位
+    // ⇒ quality_factor()=0 ⇒ raw 权重全 0（control ivar 本身合法，
+    // 故 compute_raw 的 rc=2 不触发）。
+    {
+        std::uint64_t n_weighted = 0;
+        for (std::uint64_t i = 0; i < n_obs; ++i)
+            if (std::isfinite(w[i]) && w[i] > 0.0) ++n_weighted;
+        if (n_weighted == 0) {
+            p2_upm_close((void*)m);
+            return 2;
+        }
+    }
+
     // ===== FIX-REGRESS：无观测几何节点的调和延拓 =====
     // build_geo 的全 coverage 节点里，单帧区/无覆盖 cell 没有 ≥2 帧观测
     // （obs_idx 为空），其 component=sentinel，M/C 更新无数据项 ⇒ 在 λs=0
@@ -1232,6 +1269,7 @@ static int build_impl(const P2ControlObservation* obs, std::uint64_t n_obs,
         std::vector<std::pair<std::size_t, double>> wfk;   // (frame index, weight)
         std::vector<double> block;
         double chi2 = 0.0;
+        std::uint64_t chi2_terms = 0;   // 实际进入 χ² 的项数（空集 ⇒ 0）
         for (std::size_t k = 0; k < K; ++k) {
             wfk.clear();
             for (std::size_t ii : m->controls[k].obs_idx) {
@@ -1242,7 +1280,10 @@ static int build_impl(const P2ControlObservation* obs, std::uint64_t n_obs,
                 const std::size_t f = m->frame_index[o.frame_id];
                 const double r = o.value - M[k] - m->C[f][k];
                 const double sig = std::max(std::fabs(o.uncertainty), cfg.sigma_floor);
-                if (sig > 0.0 && std::isfinite(r)) chi2 += (r / sig) * (r / sig);
+                if (sig > 0.0 && std::isfinite(r)) {
+                    chi2 += (r / sig) * (r / sig);
+                    ++chi2_terms;
+                }
                 const bool seen = std::any_of(
                     wfk.begin(), wfk.end(),
                     [&](const std::pair<std::size_t, double>& e) { return e.first == f; });
@@ -1325,12 +1366,20 @@ static int build_impl(const P2ControlObservation* obs, std::uint64_t n_obs,
         // 未定 gauge 时的读数（= 定 gauge 后的未约束方向 + 每块 1 个 gauge 自由度）。
         // 单独记账，供读者核对旧口径下的"秩亏"里有多少是 gauge。
         out.n_unidentified_raw = out.n_unidentified + out.n_blocks_gauge_pinned;
-        out.identifiable = (out.n_blocks_rank_deficient == 0) ? 1 : 0;
+        // 一个块都没进判据（n_blocks==0）⇒ 判据未运行，**不得**报「全部可
+        // 辨识」：那正是 :1256 把所有块跳过后 n_blocks_rank_deficient 仍为 0
+        // 造成的假绿。n_blocks>0 时该位仍如实反映逐块结果。
+        out.identifiable = (out.n_blocks > 0 &&
+                            out.n_blocks_rank_deficient == 0) ? 1 : 0;
+        if (out.n_blocks == 0)
+            out.kappa = std::numeric_limits<double>::infinity();
         out.chi2 = chi2;
         out.dof_eff = static_cast<double>(n_obs) - static_cast<double>(out.rank_eff);
-        // dof <= 0 ⇒ χ²_red **无定义**：置 NaN 并置 chi2_red_defined=0，由持久化层写
-        // null。**不得**写 0——那会把"无自由度"伪装成"完美拟合"（静默降级）。
-        if (out.dof_eff > 0.0) {
+        // dof <= 0 **或 χ² 一项都没进**（全部观测被 :1240 的权重守卫剔除）⇒
+        // χ²_red **无定义**：置 NaN 并置 chi2_red_defined=0，由持久化层写
+        // null。**不得**写 0——那会把"无自由度/无残差项"伪装成"完美拟合"
+        //（静默降级；本闸即其在本文件的对称面）。
+        if (out.dof_eff > 0.0 && chi2_terms > 0) {
             out.chi2_red = chi2 / out.dof_eff;
             out.chi2_red_defined = 1;
         } else {
