@@ -77,14 +77,15 @@ git diff --name-only cbddbb8d db354e22 -- <本片 46 个成员文件> | wc -l   
 
 ### 1.4 子代理补读后的并集覆盖
 
-本车道派出 3 个子代理（详见 §7）。其中两个已交付并声明读满：
+本车道派出 3 个子代理（详见 §7），**三个均已交付**：
 
 - `673d4a30`：`m16_sampling.py` / `noise_selftest.py` / `m16_scene.py` 三份读满（3 705 行）；
-- `4774e795`：`render.py` / `m16_mask.py` / `noise_model.py` / `synth_gain.py` / `gainlib.py` / `generate.py` / `run_selftests.sh` 七份读满（2 569 行）。
+- `4774e795`：`render.py` / `m16_mask.py` / `noise_model.py` / `synth_gain.py` / `gainlib.py` / `generate.py` / `run_selftests.sh` 七份读满（2 569 行）；
+- `3f22ee01`：**36 份文档 + 数据集 + 场景 JSON 全部逐行读满，4 583 行，无未读项**（7 文档 1 303 + `datasets.json` 234 + `synthetic/scenes/` 23 个 2 650 + `before_stackn32/scenes/` 4 个 396 + `.gitkeep` 0）。
 
-**并集覆盖 = 本人 5 043 ∪ 子代理补齐的 `m16_scene.py` 1–239、`render.py` 1–314、`m16_mask.py` 1–292、`synth_gain.py` 全文（1 231 行） = 6 274 / 10 856 = 57.8%**，覆盖本片**全部 9 个代码/脚本文件**。文档与场景 JSON 的并集覆盖取决于第三个子代理（审稿进行中，见 §7.3）。
+**并集覆盖 = 10 856 / 10 856 = 100%**（本片 46 份全部至少被一份逐行读完）。
 
-**结论口径**：本片的**代码面（6 272 行 Python + shell）并集 100% 覆盖**；**文档面与场景数据面（4 582 行）本人零覆盖**，本交付件对其不作判定。
+**结论口径**：本片**并集 100% 覆盖**，但**本车道本人仅 46.4%**。§3.10（`synth_gain.py`）与 §3.11（全部文档 / 参考文献 / 场景 JSON）的发现**全部转引子代理**，本车道未复核其行号。**文档面与场景数据面的关键发现见 §3.11**，引用时按 §8.3 的强度限定对待。
 
 ---
 
@@ -272,15 +273,46 @@ manifest["datasets"].append({"id": d["id"], "status": "OK", ...})
 - `:228` `lr_corr = log_ratio_true + fitB.log_gain − fitA.log_gain` 用**真值场**构造「校正后」的场，再据此报 `:243/:245`；而 `:232` 的星级 `d_corr` 用观测量。**同一份输出里两个「校正后」不是同一个东西。**【须修·待复核】
 - `:219-220` `if fitA is None or fitB is None: continue` 静默丢弃拟合失败，**无计数、无告警、退出码恒 0**。【须修·待复核】
 
-### 3.11 未读文件（不判定）
+### 3.11 文档 / 参考文献 / 场景 JSON —— `3f22ee01` 交付后补记（**全部转引，本车道未复核行号**）
 
-`references/*`（2 份 834 行）、`REVERSE_VERIFY_MIGRATION.md`、`data/README.md`、`data/real/README.md`、`synthetic/README.md`、`data/synthetic/before_stackn32/CHANGES.md`、`datasets.json`、27 个场景 JSON（≈3 133 行）—— **本人零覆盖，全部不作判定。**
+**最重 3 条（并入 §4.1 阻断 B6–B8）**：
+
+- **R1｜两个「负例」的真值逻辑相反，而登记在册的那个是恒真门**【**阻断**】
+  `scenes/common_mode_overlap.json:4` 宣称「6 帧…**只有噪声实现不同** —— 真值为『无帧间空间形状差异』，任何形状差异度量**必须归零**」；但 `:61-80` 的 6 个 frame 条目**只有 `frame_id`**，无 per-frame seed/pointing/exposure/psf/sky ⇒ 6 帧是同一真值模型、同一几何的重复渲染，**任何帧间形状差异度量在此结构上只能由噪声涨落驱动，构造上不可能非零**（恒真门①结构恒等 + ③往返自证）。它被 `datasets.json:76-87`（`negative_control:true`）+ `data/README.md:49` 正式登记并绑定判据 `exp2_mosaic_shape_difference`（`datasets.json:84`）。
+  对照 `scenes/m16_sampling_overlap_common.json:48` 同样宣称「必须归零」，但 `:88/100/112` 三帧带亚像素抖动（`dither_label: sub_0.50_0.25` 等）+ `:19 resample_order:3` ⇒ 对 β=4 Moffat 做亚像素相位三次样条重采样**必然**产生非零逐帧残差 ⇒ **这条真值在物理上不成立**；该场景 `matrix_cells:54` 同样挂 `negative_control:true` **但未登记进 datasets.json**。
+  ⇒ **仓里两个负例，一个恒真、一个真值写错；恒真的恰是唯一被登记的。** `data/README.md:66` 的「每类数据都要能红能绿」在登记口径下不成立。
+- **R2｜一条「全仓命中 0」的核对结论，被它自己声明的检索命令当场推翻**【**阻断**·伪证据】
+  `references/REVERSE_VERIFY_BIBLIOGRAPHY.md:330`：「本工作区**无**（全仓 `find -iname '*hst*' / '*hubble*'` **命中 0**）⇒ 真实数据实验改用真实实拍 M42 帧。」
+  实测 `find . -iname '*hst*' -o -iname '*hubble*' | grep -vc node_modules` = **296**，含本片子树内的 `scenes/hst_m16_realbase.json`（`:6` 自述「负责人上传的 3 帧哈勃 M16 作底」，`:41` `real_base.path` 直指 `testdata/HST_M16/*.fits`）。⇒ **意图可能成立，但检索方式与结果都错，且一条范围决策建立在从未按声明方式执行过的检索上。**
+- **R3｜4 份被引的一手来源 / 上游文档在本仓不存在**【**阻断**·上游指针断裂】
+  实测 MISSING：`docs/ASTROCS_DESIGN.md`（实际是 `docs/ACSD_DESIGN.md`）、`docs/ENGINEERING_SPEC.md`、`tools/doccheck/dangling_ledger.json`（`MIGRATION.md:76` 整段论证的支点）、`run/RELEASE-02/paper/data/STACKN32/before_stackn32/`（119 MB 前后对照）、`run/RELEASE-02/paper/data/M16FIX/src/a6_before_repro.py`（`CHANGES.md:35-37` 记录了对其的代码改动）。另 `BIBLIOGRAPHY.md:236-237` 的两条路径与 `.bib:386-387` 指向**另一条路径**。⇒ 违反 AGENTS.md §3「追溯不到上层的机制，先补上层要点」。
+
+**反例 G（本车道未复算，采信子代理）· 「噪声底偏乐观 5.66×」的口径缺陷**
+`scenes/m16_nebula_core.json:37` 断言「stack_n=1（3.1 e⁻）使**噪声底偏乐观 5.66x**」。复算：√32×3.1 = 17.536 e⁻，读出项比确为 5.657× ✅；但**总噪声底** = √(σ_R²+σ_dark²)，而 σ_dark = 0.002×9600 = **19.2 e⁻**（本就大于读出项）⇒ stack_n=1 总 σ = **19.45 e⁻**、stack_n=32 总 σ = **26.00 e⁻**，真实倍数 **1.337×，不是 5.66×**（差 4.2 倍）。该数字被 `datasets.json:3` 原样复述。**口径缺陷：句子写「噪声底」但数字只对读出项成立。**
+
+**反例 H · 旧版仍在被引用，且旧版本身内部不自洽**
+`datasets.json:3` 的 `$stack_n` **主动指向** `before_stackn32/`；旧版 `m16_nebula_core.json:19 "stack_n": 1` 与 `:30 "full_well_e": 2240000` 并存，而同文件 `:37 calibration.rule` 定义 `full_well_e = NDRIZIM*70000 = 32*70000` ⇒ **旧版拿 1 次叠加的读出噪声配 32 次叠加的饱和预算**，任何拿 before/after 比饱和像素或满阱的结论都无效，而 `CHANGES.md` 未披露。缓解已到位（目录名、`stack_n:1`、不登记），故判「须修说明」而非删文件。
+
+**其他须修（摘要）**：
+- `REVERSE_VERIFY_MIGRATION.md` **整篇是历史叙事**（日期、「退役」、20 行旧→新路径表），**直接违反 AGENTS.md §5**；`:96-98` 三行表格经 `realpath -m` 实测**全部塌缩到同一文件**而 `:92` 声称是「对应单元的」⇒ 表与前言矛盾，且 `../` 写法刻意掩盖塌缩；`:37` 声明 `.gitkeep`「退役」而它实际存在；`:82-85` 用「我方零 git 写权限」解释 DOC-INDEX 必红 ⇒ **流程性假红**，任何把它计入证据的门都会失真。
+- `BIBLIOGRAPHY.md:73` vs `:156` 对**同一条 SExtractor「逐字核对」句给出两种文本**（`:73` 是 `:156` 的截断）⇒ **至多一个是逐字连续引用**。【待联网核验】
+- `BIBLIOGRAPHY.md:251` Bosch 2018 逐字句「where b is the level of the background (before it is subtracted)」**裸引、无引号** —— 正是清单点名的形态。【待联网核验】
+- `BIBLIOGRAPHY.md:315-318` PixInsight 引文**跨行拼接且语法断裂**，疑为两处非相邻文本合并。【待联网核验】
+- `BIBLIOGRAPHY.md:331` 用「Confluence CQL 检索 `totalSize: 0`」论证某说法**不存在** ⇒ **检索未命中 ≠ 不存在**（CQL 非全文索引），论证不成立。
+- `.bib` **5 对重复条目**（同一 DOI/arXiv 两套 key，BibTeX 工具会产出重复参考文献）；`:84` 把 Jähne 2010 / Borek 2023 塞进 note 当参考文献；`:380` 与 `.md:126` 同一模块两个「官方」URL（其一已 404）。
+- `synthetic/README.md:106` `m16_sampling.py` 判据条数写「——」而 `:61` 已写 V1–V7 ⇒ **总数应为 32（6+7+7+12），表里只能算出 25**；`:118-120` 判别力证据指向 gitignore 的 `run/`，**支撑「已实测」的证据不在仓内**；`:99` 「全绿 144 s，noise_selftest 143 s」⇒ 另三个组件合计只剩 1 s，**算术可疑**。
+- `data/README.md:14-23` 目录树**漏掉整个 `before_stackn32/`**；`:68-74` 判据表 5 条中 **3 条的「结果」列填的是分片名 `DATA-TYPE-MATRIX` 而非结论**；`exp_variance_closure` 被 datasets.json 引用数 = **0**（孤儿判据）。
+- `data/real/README.md:50-51` V1 判据是**往返自证型**（同一模块同一公式两份实现互校，公式错或 PHOTZPT 错时两臂同错 ⇒ **V1 不可能红**）；`:32/:44-48/:71-81/:87/:95-98/:103` 实测数字**全部手抄一遍**，而 `:11` 说同一批也在 `m16_scene_index.json` ⇒ **双份手维护、无单一真值源**。
+- 场景 JSON 共同项：**三套坐标约定**无单位标注（`pointing:{y,x,dy,dx}` / `pointing:{offset_px:[x,y]}` / 无标签数组），且 `pointing.x/y` 实为 0.04″/px 而 `pixel_scale_arcsec` 是 0.2″/px · `m16_starfield.json:45` 与 `m16_dark_lowsnr.json:45` 把 **F657N 的文案逐字复制到 F502N/F673N**（子曝光 300s vs 实际 500/450s），且同文件 `:44` 自己写 `saturated_pixels_after: "0 px"` ⇒ **同文件内自相矛盾，且该错误在 `before_stackn32/` 旧版同样存在 ⇒ 跨两次交付未被发现** · 4 个 `m16_*` 顶层 `seed`/`psf`/`sky` 被逐帧全覆盖 ⇒ **顶层死配置**（改顶层不生效的静默陷阱） · `sweep_exposure.json:4` 声称验「SNR ∝ √t」，复算得 SNR 随曝光**单调下降**（t=30→19.2、600→6.2）⇒ **描述物理错误**（目前 `criteria: []` 未成红灯） · `mosaic_diff_pointing_realbase.json` 声称「不同指向」但 frames **完全没有 `pointing` 键**，全靠 `glob_index` 去 glob gitignore 的 `run/` ⇒ **判别依据既不在仓内、也不由文件系统顺序钉住**。
+- **10 条待联网核验**已在 `3f22ee01` 报告中逐条列明（含 SExtractor、Bosch、PixInsight、Andrae、Jones 年份、Jacob Montage 出处、PhotometricMosaic 权威 URL 等），本车道**不裁决**。
+
+**正面（记账以正）**：`.md` ↔ `.bib` 的 DOI/年份/卷页**逐条一致**，70 条全对上，0 孤儿 0 悬空 · `CHANGES.md:18-20/:25` 的场景改动清单**经 `diff` 完全证实**（4 文件 × 恰好 3 处差异，无第四处） · `data/real/README.md:39-48` 光度定标数值**独立复算全部吻合**（F657N ZP_AB 算得 **22.63501**，与 `:50` 声称完全一致） · `m16_band_matrix.json:45` 的 141/1048576=0.01345%、2720/1048576=0.25941% 吻合 · `datasets.json:3`「非 m16_* 数据集不含 stack_n」逐个核实**属实** · 子代理**主动撤回了自己对 `:210` shift=14 的误判**（复算确认 8192/64=128=2⁷、2×7=14 正确）——**这种「先准备报错、复算后撤回」正是本项目要求的证据纪律，予以记账为正**。
 
 ---
 
 ## 4. 发现清单（按严重性）
 
-### 4.1 阻断（5 条）
+### 4.1 阻断（8 条）
 
 | # | 位置 | 一句话 | 机理类型 |
 |---|---|---|---|
@@ -289,6 +321,11 @@ manifest["datasets"].append({"id": d["id"], "status": "OK", ...})
 | B3 | `noise_selftest.py:534` | 加性负例 `(mm-1.0)**2 * 0.0`，负例臂从未构造 | 恒真门④（机制从不执行） |
 | B4 | `generate.py:88-90` + `render.py:581-590` | 全部帧 UNAVAILABLE 时 manifest 仍写 `status:"OK"`，退出码 0 | 打印不计入汇总 + 吞异常（合并路径） |
 | B5 | `run_selftests.sh:41` + `:80` + `:90` | 过滤运行与全量运行输出**逐字相同**的「全绿」结论，且汇总从不打印分母 | 制造绿色产物 + 计数口径 |
+| **B6** | `scenes/common_mode_overlap.json:4` + `:61-80` | 6 帧只有 `frame_id`、无任何逐帧变量，却宣称「形状差必须归零」并被 `datasets.json:76-87` 登记为 `negative_control:true` | 恒真门①结构恒等 + ③往返自证 |
+| **B7** | `references/REVERSE_VERIFY_BIBLIOGRAPHY.md:330` | 「全仓 `find -iname '*hst*'` 命中 0」实测为 **296**，一条范围决策建立其上 | 伪证据（负面检索被推翻） |
+| **B8** | `docs/ASTROCS_DESIGN.md` / `docs/ENGINEERING_SPEC.md` / `tools/doccheck/dangling_ledger.json` / `run/RELEASE-02/...` | 4 份被引上游文档/数据在本仓 **MISSING**，其中 `dangling_ledger.json` 是 `MIGRATION.md:76` 整段论证的支点 | 上游指针断裂（AGENTS §3） |
+
+（B1–B5 为本车道亲读原文；**B6–B8 来自 `3f22ee01`，本车道未复核行号**。）
 
 ### 4.2 须修（18 条）
 
@@ -430,11 +467,17 @@ V8 的 3.2 四处硬编码（恒红门风险）· V9 覆盖面窄 · `:1066-1072
 | `673d4a30`：`m16_sampling.py:1180` 主张判词文本声称「未知 band 被拒」但不在 checks | **接受并独立确认** | 本车道读 `:1101-1124` 逐键核对，`checks` 确无 `unknown_band_rejected`；`:1179-1181` 判词文本确含该句。 |
 | `673d4a30` / `4774e795`：多处裸从句伪引（GAP_AUDIT §9.41/§9.42/§9.47、`star_matcher.cpp:616-627`、Q1/Q3 §3.4、`9.67 定案 7`、`.gitignore:167`、`P7-synthetic-noise.md §1`） | **登记为待核，本车道不裁决** | 被引文档均**不在本片内**，本人未读，无法核实被引句是否逐字存在。按纪律标「待核 / 待联网核验」，不下结论。 |
 
-### 7.3 未交付的子代理与由此产生的缺口
+### 7.3 缺口已闭合（`3f22ee01` 交付后）
 
-`3f22ee01`（文档 + 场景 JSON）**在本件定稿时仍在运行**，因此本交付件**没有**关于以下项的判定：参考文献 `.bib` 与 `BIBLIOGRAPHY.md` 的条目对应、DOI/年份一致性、`before_stackn32` 旧场景与现行场景的差异是否与 `CHANGES.md` 相符、`datasets.json` 与场景文件的一一对应、场景 JSON 的数值合法性。**这 4 403 行在本片中占 40.5%，是本片最大的未覆盖区。**
+`3f22ee01` 已交付，声明 **36 份文档/数据集/场景 JSON 全部逐行读满、4 583 行、无未读项**，并给出 R1/R2/R3 三条阻断与大量须修（见 §3.11）。**本片并集覆盖已达 100%，§7.3 原记载的缺口（4 403 行、占 40.5%）已闭合。**
 
-**建议前台**：在 `3f22ee01` 交付后，用它的结论补写一份增量交付件，或据此重开本片。本件不应被当作 EXP-shared-001 的**完整**重读证据。
+**残留的三项限制（非覆盖缺口，须随件流转）**：
+1. **本人未复核 §3.10/§3.11 的行号**——见 §8.3 的强度分层。
+2. **28 个场景 JSON 的「可解析性」未被验证**——`3f22ee01` 逐行读毕、括号配平，但**按纪律未跑解析器**（跑解析器会越过「不许执行脚本」的边界）。前台补跑：
+   `cd "实验/shared" && for f in $(find . -name '*.json' | grep -v __pycache__); do python3 -m json.tool "$f" >/dev/null || echo "BAD $f"; done`
+3. **10 条外部文献逐字核对项仍为「待联网核验」**，本车道与子代理均未裁决。
+
+**建议前台**：本件可作为 EXP-shared-001 的重读证据使用，但引用 §3.10/§3.11 的具体行号前应抽查。
 
 ---
 
@@ -457,9 +500,16 @@ V8 的 3.2 四处硬编码（恒红门风险）· V9 覆盖面窄 · `:1066-1072
 - **未改任何仓内文件**：本车道只写了本文件与姊妹片交付件。
 - 唯一在授权范围外做的动作：确认 `git log`/`git status`/`git diff --name-only`（只读），用于基线漂移核验。
 
-### 8.3 未读到即未判（纪律声明）
+### 8.3 未读到即未判（纪律声明 · 已按 §1.4 更新）
 
-本片 46 份中，**本人逐行读完 6 份、部分读完 3 份、共 37 份未读**（含参考文献两份与全部 27 个场景 JSON）。对这 37 份，本交付件**没有给出「无问题」的判断**。任何把本件当作 EXP-shared-001 完整重读证据的引用都是误用。
+本片 46 份中，**本人逐行读完 6 份、部分读完 3 份、共 37 份未由本人读**（含参考文献两份与全部 27 个场景 JSON）。
+
+**这 37 份已由 `3f22ee01`（文档/场景）与 `673d4a30`/`4774e795`（Python）逐行读完**，故本片**并集 100% 覆盖**，§3.11 与 §3.10 的条目**不是「未判」，而是「转引」**——它们有结论，但**本车道未亲自复核其行号**。
+
+**强度分层**（引用时必须区分）：
+- **可直接采信**：B1–B5 及 §3.1–§3.9 的全部发现（本车道亲读原文 + 可复现控制流）。
+- **建议抽查**：B6–B8 及 §3.10/§3.11 的全部发现（转引子代理，本车道未复核行号）。
+- **一律不裁决**：10 条「待联网核验」的外部文献逐字核对项。
 
 ### 8.4 结论的强度限定
 
