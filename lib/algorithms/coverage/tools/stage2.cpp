@@ -15,13 +15,10 @@
 #include "astro/phase2/rejection.h"
 #include "astro/phase2/integrate.h"
 #include "astro/phase2/block.h"
-#include "astro/phase2/acr_kernels.h"
+#include "astro/phase2/accelerator_fallback.h"
 
 #include "healpix/healpix_core.h"
 #include "crypto/sha256.h"
-#include "astro/compute/kernel_registry.hpp"
-#include "astro/compute/task_traits.hpp"
-#include "cuda_bridge_api.hpp"
 #if defined(P2_ENABLE_OPENMP)
 #include <omp.h>
 #endif
@@ -57,14 +54,6 @@ extern "C" {
 }
 
 namespace {
-
-// ACR 调用缓冲里「权重口径」标量槽（offset 7）的冻结取值。
-// 删除 legacy 整数权重模式域后，生产只剩一条权重口径（逐样本
-// 逆方差，原 weight_mode=2）⇒ 该槽固定为 ivar 语义。acr_kernels.cpp 读到该值
-// 即 throw（TRACEABILITY ACR-IVAR-001：cell-ivar 与逐像素 ivar 不等价，ivar
-// science 模式必须走 CPU canonical path）⇒ 链路 fail-closed，不会静默回落到
-// support×snr²（无量纲、非信号/噪声之比）。
-constexpr int kAcrWeightModeIvar = 2;
 
 std::ofstream g_log;
 std::mutex g_log_mutex;
@@ -849,20 +838,19 @@ int main(int argc, char** argv) {
     std::vector<float> t_sig_probe(512 * 512);
     const std::uint32_t nb = (std::uint32_t)cfg.hips.size();
 
-    // ---- ACR 路由：按 tile 解析后的显式方法决定是否走
-    // KernelRegistry（仅 robust_mad_clip/sigma）；GPU 可用则 CUDA，
-    // 否则 CPU legacy（同一科学语义）。 ----
-    astro::compute::phase2::register_phase2_acr_kernels();
-    const astro::compute::KernelRegistration* acr_reg =
-        astro::compute::global_kernel_registry().find(
-            astro::compute::phase2::kOpMosaicReject);
-    namespace bridge = astro::compute::cuda::bridge;
-    bool gpu_ready = false;
-    void* gpu_exec = nullptr;
-    // CON-007: 生产路由记录（requested/effective/workers/fallback_reason）。
+    // ---- 集成执行路由：CON-007 生产路由记录
+    // （requested / effective / workers / fallback_reason）。
+    // 生产计算后端是纯 CPU 自适应后端，不存在加速器子系统（最高设计 §1.3 把
+    // GPU 与 CPU/GPU 混合生产路由列为非目标）⇒ 恒走 CPU canonical 路径。
+    // 「无可用加速器时回退」的决策在覆盖模块自己的命名空间下
+    // （astro::phase2::p2_resolve_accelerator_fallback），不依赖任何异构计算
+    // 运行时类型；该决策只取决于 cfg.acr_route（配置面），与 tile 无关，
+    // 故在此处一次求值，供逐 tile 日志与运行末的 diagnostics.json 共用。
     const std::string requested_route = cfg.acr_route;
-    std::string effective_route = cfg.acr_route;
-    std::string fallback_reason;
+    const auto route_state = astro::phase2::p2_resolve_accelerator_fallback(
+        requested_route, /*accelerator_available=*/false);
+    const std::string& effective_route = route_state.effective_route;
+    const std::string& fallback_reason = route_state.fallback_reason;
     const int acr_workers = effective_cpu_workers(cfg.exec);
 
     // wbpp_current = integration-group level 一次解析（nominal = 全部
@@ -969,39 +957,19 @@ int main(int argc, char** argv) {
             " large_scale=" + std::to_string(large_scale_active));
         resolved_methods[depth] = p2_rejection_semantic_id(rplan.method);
 
-        // 仅显式 sigma（robust_mad_clip）可走 ACR 块路径（同一 contract）
+        // 仅显式 sigma（robust_mad_clip）可走异构块路径（同一 contract）
         // large_scale 激活时强制 CPU（per-frame mask 后处理在 CPU
-        // reference 权威路径执行；ACR 只做逐像素 kernel，不做 grow）
+        // reference 权威路径执行）。异构块已在 ACR 子树退场时一并移除
+        // （最高设计 §1.3：GPU 与 CPU/GPU 混合生产路由为非目标，生产不可达），
+        // 故此处恒为 false —— 保留该资格判定是为了让「为何生产只剩 CPU
+        // canonical 路径」这条判据在代码里仍是可读、可查的一条冻结守卫，
+        // 而不是一句注释。
         const bool use_acr_block =
-            p2_acr_block_eligible(cfg, acr_reg != nullptr,
+            p2_acr_block_eligible(cfg, /*acr_registered=*/false,
                                   rplan.method, large_scale_active);
-        if (use_acr_block && gpu_exec == nullptr) {
-            bridge::ensure_bridge_loaded();
-            if (bridge::api().loaded()) {
-                const char* gerr = nullptr;
-                gpu_exec = bridge::api().executor_create(0, 1u << 22,
-                                                         1u << 18, &gerr);
-                gpu_ready = (gpu_exec != nullptr);
-                if (gpu_ready) bridge::set_tls_handle(gpu_exec);
-                if (gpu_ready) {
-                    effective_route = "cuda";
-                    fallback_reason.clear();
-                }
-            }
-        }
-        if (!gpu_ready) {
-            if (fallback_reason.empty()) {
-                if (requested_route == "auto") {
-                    fallback_reason = "linux_no_cuda_auto_fallback";
-                } else if (requested_route == "cuda") {
-                    fallback_reason = "cuda_unavailable_fallback";
-                }
-            }
-            effective_route = "cpu";
-        }
-        log("tile " + std::to_string(tile_ipix) + " ACR block: enabled=" +
-            std::to_string(use_acr_block) + " gpu=" +
-            std::to_string(gpu_ready) + " requested_route=" + requested_route +
+        log("tile " + std::to_string(tile_ipix) + " route: enabled=" +
+            std::to_string(use_acr_block) +
+            " requested_route=" + requested_route +
             " effective_route=" + effective_route +
             " workers=" + std::to_string(acr_workers) +
             " fallback_reason=" + fallback_reason);
@@ -1035,14 +1003,9 @@ int main(int argc, char** argv) {
             std::to_string(plan.estimated_peak_bytes) +
             " working_bytes=" +
             std::to_string(
-                // 实际分配的工作缓冲（非 RSS）：cal+supv、ACR 暂存、
+                // 实际分配的工作缓冲（非 RSS）：cal+supv、
                 // tile 读取缓冲、输出缓冲
                 depth * chunk_pixels * sizeof(double) * 2 +
-                (use_acr_block
-                     ? chunk_pixels * depth * sizeof(float) * 2 +
-                           depth * 64 * sizeof(float) +
-                           chunk_pixels * sizeof(float) * 4
-                     : 0) +
                 512 * 512 * sizeof(float) * 2 +
                 n_leaf * (sizeof(float) * 2 + sizeof(double) * 2 +
                           sizeof(std::uint8_t))));
@@ -1103,222 +1066,6 @@ int main(int argc, char** argv) {
             buf_hi.assign(cap, 0);
             buf_elig.assign(cap, 0);
             buf_nvalid.assign(n_leaf, 0);
-        }
-
-        if (use_acr_block) {
-            const int grid = 8;
-            // 唯一权重口径 = compact per-cell ivar (buffer3=ivar)。
-            // 原 weight_mode=0 的 per-cell SNR 分支（support×snr² 的 ACR 形态）已删除。
-            std::vector<float> weight_compact(depth * grid * grid);
-            for (std::uint32_t s = 0; s < depth; ++s) {
-                const std::uint64_t fid =
-                    frame_id_cache[frames[s]];
-                for (int gy = 0; gy < grid; ++gy)
-                    for (int gx = 0; gx < grid; ++gx) {
-                        const auto key =
-                            std::make_tuple(fid, tile_ipix, gx, gy);
-                        double v;
-                        {
-                            const auto iit = local_ivar_map.find(key);
-                            if (iit != local_ivar_map.end()) {
-                                v = iit->second;
-                                ++local_ivar_used;
-                            } else {
-                                v = (ivar_product_missing == 0) ? 1.0 : 0.0;
-                            }
-                        }
-                        weight_compact[(std::size_t)(s * grid * grid +
-                                                     gy * grid + gx)] =
-                            (float)v;
-                    }
-            }
-            std::vector<float> frames_f32(chunk_pixels * depth);
-            std::vector<float> sup_f32(chunk_pixels * depth);
-            std::vector<float> out_sig_f32(chunk_pixels),
-                out_sup_f32(chunk_pixels), out_rej_f32(chunk_pixels),
-                out_valid_f32(chunk_pixels);
-            for (std::uint64_t c = 0; c < n_chunk; ++c) {
-                const std::uint64_t p0 = c * chunk_pixels;
-                const std::uint64_t p1 = std::min<std::uint64_t>(
-                    p0 + chunk_pixels, n_leaf);
-                const std::uint64_t cnt = p1 - p0;
-                // 读每帧 tile 并提取 chunk 段 + UPM 空间校准
-                for (std::uint32_t s = 0; s < depth; ++s) {
-                    const std::uint32_t f = frames[s];
-                    if (aio_hips_read_tile_f32(sig[f], tile_ipix,
-                                               t_sig.data()) != 0 ||
-                        aio_hips_read_tile_f32(sup[f], tile_ipix,
-                                               t_sup.data()) != 0) {
-                        log("tile read failed");
-                                    return 6;
-                    }
-                    std::vector<double> cal_v(cnt), sup_v(cnt);
-                    for (std::uint64_t i = 0; i < cnt; ++i) {
-                        const std::uint64_t g = p0 + i;
-                        cal_v[i] = (double)t_sig[(std::size_t)g];
-                        sup_v[i] = (double)t_sup[(std::size_t)g];
-                    }
-                    std::vector<double> out_v(cnt);
-                    p2_upm_calibrate_block(
-                        model, frame_id_cache[f],
-                        chunk_leaves[c].data(), cal_v.data(), out_v.data(),
-                        cnt);
-                    // FIX-GK / 方案 B：corrected = (raw − C_k(x) − δ_k(x)) / g_k。
-                    // δ_k(x) = b_k(x) − B_ref(x) 现场求值（不建稠密栅格）：
-                    // 把该帧归一化到公共参考面 B_ref（多退少补，保留 B_ref 真实
-                    // 天光亮度，只消除帧间差异）；不扣整个 b_k。g_k 乘法响应保留。
-                    double gain = 1.0;
-                    if (!frame_gain.empty()) {
-                        const auto git = frame_gain.find(frame_id_cache[f]);
-                        if (git != frame_gain.end()) gain = git->second;
-                    }
-                    if (sky_guard || gain != 1.0) {
-                        for (std::uint64_t i = 0; i < cnt; ++i) {
-                            if (sky_guard) {
-                                double dk = 0.0;
-                                int st = P2_SKY_EVAL_INVALID;
-                                p2_sky_plane_eval_delta(sky_guard.get(), frame_id_cache[f],
-                                                        chunk_ra[c][i], chunk_dec[c][i],
-                                                        &dk, &st);
-                                if (st == P2_SKY_EVAL_OK) out_v[i] -= dk;
-                            }
-                            out_v[i] /= gain;
-                        }
-                    }
-                    for (std::uint64_t i = 0; i < cnt; ++i) {
-                        frames_f32[(size_t)s * chunk_pixels + i] =
-                            (float)out_v[i];
-                        sup_f32[(size_t)s * chunk_pixels + i] =
-                            (float)sup_v[i];
-                    }
-                }
-                std::fill(out_sig_f32.begin(), out_sig_f32.end(), 0.0f);
-                std::fill(out_sup_f32.begin(), out_sup_f32.end(), 0.0f);
-                std::fill(out_rej_f32.begin(), out_rej_f32.end(), 0.0f);
-                std::fill(out_valid_f32.begin(), out_valid_f32.end(), 0.0f);
-                astro::compute::KernelInvocation inv;
-                inv.id = astro::compute::phase2::kOpMosaicReject;
-                inv.domain = astro::compute::WorkDomain{0, cnt};
-                inv.buffers.add(0, out_sig_f32.data(), cnt, 1,
-                                astro::compute::BufferRole::Output);
-                inv.buffers.add(1, frames_f32.data(), cnt * depth, 1,
-                                astro::compute::BufferRole::Input);
-                inv.buffers.add(2, sup_f32.data(), cnt * depth, 1,
-                                astro::compute::BufferRole::Input);
-                inv.buffers.add(3, weight_compact.data(),
-                                depth * grid * grid, 1,
-                                astro::compute::BufferRole::Input);
-                inv.buffers.add(4, out_sup_f32.data(), cnt, 1,
-                                astro::compute::BufferRole::Output);
-                inv.buffers.add(5, out_rej_f32.data(), cnt, 1,
-                                astro::compute::BufferRole::Output);
-                inv.buffers.add(6, out_valid_f32.data(), cnt, 1,
-                                astro::compute::BufferRole::Output);
-                astro::compute::append_scalar(inv.scalars, std::size_t{cnt});
-                astro::compute::append_scalar(inv.scalars, std::size_t{depth});
-                astro::compute::append_scalar(inv.scalars,
-                                              int{rplan.method});
-                astro::compute::append_scalar(inv.scalars,
-                    static_cast<int>(rplan.underdetermined_n));
-                astro::compute::append_scalar(inv.scalars,
-                                              rplan.sigma.lower_sigma);
-                astro::compute::append_scalar(inv.scalars,
-                                              rplan.sigma.upper_sigma);
-                astro::compute::append_scalar(inv.scalars,
-                                              int{rplan.sigma.max_iterations});
-                astro::compute::append_scalar(inv.scalars,
-                                              std::size_t{p0});  // chunk tile 偏移
-                // TRACEABILITY ACR-IVAR-001：唯一权重口径 = 逐样本 ivar ⇒ 必须向
-                // kernel 声明 ivar 语义（原 cfg.weight_mode=2 的固定值）。
-                // acr_kernels.cpp:141 对该值显式 throw（cell-ivar 与逐像素 ivar
-                // 不等价）⇒ 若 ACR 块被重新启用，链路 fail-closed，不会静默回落到
-                // support×snr²（无量纲、非信号/噪声之比）。
-                astro::compute::append_scalar(inv.scalars,
-                                              int{kAcrWeightModeIvar});
-                astro::compute::append_scalar(inv.scalars,
-                                              int{acr_workers}); // CON-007 CPU worker 预算
-                try {
-                    if (gpu_ready && acr_reg->cuda.has_value()) {
-                        (*acr_reg->cuda)(inv, nullptr);
-                    } else {
-                        acr_reg->legacy_parallel(inv, nullptr);
-                    }
-                } catch (const std::exception& e) {
-                    log("ACR block failed, fallback CPU: " +
-                        std::string(e.what()));
-                    acr_reg->legacy_parallel(inv, nullptr);
-                }
-                for (std::uint64_t i = 0; i < cnt; ++i) {
-                    const std::uint64_t p = p0 + i;
-                    const float nv = out_valid_f32[i];
-                    const bool ok = out_sup_f32[i] > 0.0f;
-                    valid[p] = ok ? 1 : 0;
-                    const double area =
-                        ok ? (double)out_sup_f32[i] * A_cell : 0.0;
-                    const double flux =
-                        ok ? (double)out_sig_f32[i] * area : 0.0;
-                    if (cfg.precision) {
-                        fluxD[p] = flux;
-                        areaD[p] = area;
-                    } else {
-                        fluxF[p] = (float)flux;
-                        areaF[p] = (float)area;
-                    }
-                    if (ok) ++total_pixels;
-                    total_rejected += (std::uint64_t)out_rej_f32[i];
-                    if (nv <= 0.0f) { ++dbg_zero_px; ++px_depth_0; }
-                    else if (nv <= (float)rplan.underdetermined_n ||
-                             nv < (float)rplan.minimum_n) {
-                        if (nv == 1.0f) ++px_depth_1;
-                        else ++px_depth_ge_2;
-                        ++total_fallback;
-                        ++dbg_fallback_px;
-                        ++underdetermined_px;
-                    } else {
-                        ++px_depth_ge_2;
-                        ++px_integrated;
-                        ++dbg_reject_px;
-                    }
-                    if (out_rej_f32[i] > 0.0f)
-                        ++reject_hist[(std::uint32_t)out_rej_f32[i]];
-                }
-            }
-            // writer 约定 view 缓冲为 NESTED local 序
-            // （ HIPS-IMG-001，与 drizzle 热路径一致）；stage2 集成缓冲为
-            // FITS 行主序，写入前转换 buffer[i]=buf[fits_index(i)]，否则
-            // tile 内像素被散射错排（表现为 16px 周期 comb/重复星点）。
-            std::vector<float> flux_leaf(n_leaf), area_leaf(n_leaf);
-            std::vector<std::uint8_t> valid_leaf(n_leaf);
-            for (std::uint64_t i = 0; i < n_leaf; ++i) {
-                const std::uint64_t fi =
-                    acsd::healpix::nested_local_to_fits_index(i, 9u, 512u);
-                flux_leaf[(std::size_t)i] =
-                    cfg.precision ? (float)fluxD[(std::size_t)fi]
-                                  : fluxF[(std::size_t)fi];
-                area_leaf[(std::size_t)i] =
-                    cfg.precision ? (float)areaD[(std::size_t)fi]
-                                  : areaF[(std::size_t)fi];
-                valid_leaf[(std::size_t)i] = valid[(std::size_t)fi];
-            }
-            AstroSphereTileView view{};
-            std::memset(&view, 0, sizeof(view));
-            view.parent_ipix = tile_ipix;
-            view.leaf_order = (std::uint32_t)(target_order + 9);
-            view.width = 512;
-            view.data_type = dtype;
-            view.flux_sum = flux_leaf.data();
-            view.covered_area = area_leaf.data();
-            view.valid_mask = valid_leaf.data();
-            aio_hips_tile_view_abi_init(&view);
-            if (aio_hips_write_signal_support_tile(ps, &view) != 0) {
-                log("hips tile write failed: " +
-                    std::string(aio_hips_last_error()));
-                aio_hips_abort(ps);
-                p2_upm_close(model);
-                    return 6;
-            }
-            ++tiles_written;
-            continue;
         }
 
         // CPU reference 路径：逐 chunk（micro-chunk）处理

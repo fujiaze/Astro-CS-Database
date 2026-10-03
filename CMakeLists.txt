@@ -15,7 +15,6 @@ cmake_minimum_required(VERSION 3.24)
 project(acsd VERSION 0.1.0 LANGUAGES C CXX)
 
 # ── 选项 (03/BLD-001 冻结) ──
-option(ACSD_ENABLE_ACR "Build dormant ACR tree (default OFF, production exclusion)" OFF)
 # QA-002: sanitizer 选项 (ASan/UBSan/LSan 或 TSan; 生产默认 OFF)
 option(ACSD_ENABLE_SANITIZERS "Enable ASan/UBSan/LSan (GCC/Clang, production OFF)" OFF)
 option(ACSD_ENABLE_TSAN "Enable ThreadSanitizer (targeted, mutually exclusive with ASan)" OFF)
@@ -676,7 +675,7 @@ target_include_directories(acsd_identifiability PUBLIC
   ${CMAKE_CURRENT_SOURCE_DIR}/lib/algorithms/coverage/include)
 target_link_libraries(acsd_identifiability PUBLIC acsd_contracts acsd_common)
 
-# lib/algorithms/coverage (phase2 生产模块; ACR 源不在此列 — LEG-004)
+# lib/algorithms/coverage (phase2 生产模块)
 add_library(acsd_phase2 STATIC
   lib/algorithms/coverage/src/upm.cpp
   lib/algorithms/coverage/src/sky_plane.cpp
@@ -685,11 +684,9 @@ add_library(acsd_phase2 STATIC
   lib/algorithms/coverage/src/coverage.cpp
   lib/algorithms/coverage/src/sampler.cpp
   lib/algorithms/coverage/src/block.cpp
-  lib/algorithms/coverage/src/integrate.cpp
-  lib/algorithms/coverage/src/cuda_bridge_stub.cpp)
+  lib/algorithms/coverage/src/integrate.cpp)
 target_include_directories(acsd_phase2 PUBLIC
   ${CMAKE_CURRENT_SOURCE_DIR}/lib/algorithms/coverage/include
-  ${CMAKE_CURRENT_SOURCE_DIR}/lib/infrastructure/acr/backends/cuda/bridge
   ${CMAKE_CURRENT_SOURCE_DIR}/lib/infrastructure/aio/include
   ${CMAKE_CURRENT_SOURCE_DIR}/lib/infrastructure/aio/src
   ${CMAKE_CURRENT_SOURCE_DIR}/lib/infrastructure/aio/third_party/cfitsio
@@ -1296,7 +1293,7 @@ target_link_libraries(acsd_phase3_session PUBLIC acsd_contracts acsd_aio acsd_co
 # 置于 acsd target 之前: INTERFACE target 无源编译, 仅提供 include 面。
 add_subdirectory(lib/infrastructure/cli)
 
-# app/acsd_cli: 薄 CLI (显式链接各库; 无 GLOB; ACR 不链)
+# app/acsd_cli: 薄 CLI (显式链接各库; 无 GLOB)
 # RT-008: main.cpp 仅入口壳; parser/commands/runtime_client 为独立编译单元
 # B8-P1: lib/infrastructure/cli/process.cpp — 跨平台子进程封装(argv 传参, 替代 std::system 拼接族)。
 add_library(acsd_cli_process STATIC lib/infrastructure/cli/process.cpp)
@@ -1443,4 +1440,4 @@ add_subdirectory(lib/algorithms/integration/phase2_integrate)
 # include 于全部 target 声明之后; 本文件只允许在根 CMake 出现 (BLD-002)。
 include(eng/cmake/install_layout.cmake)
 
-message(STATUS "ACSD ${ACSD_VERSION_STRING} root target graph ready (ACR=${ACSD_ENABLE_ACR})")
+message(STATUS "ACSD ${ACSD_VERSION_STRING} root target graph ready")

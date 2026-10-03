@@ -44,27 +44,17 @@ add_library(phase2 STATIC
     src/sky_plane.cpp
     src/identifiability.cpp
     src/stage2_common.cpp
+    src/accelerator_fallback.cpp
     src/rejection.cpp
     src/coverage.cpp
     src/sampler.cpp
     src/block.cpp
     src/integrate.cpp
-    src/acr_kernels.cpp
     src/async_io.cpp
-    ../../infrastructure/acr/api/kernel_registry.cpp
-    # 桥接追加函数的定义来源：Windows 在本目标内直接编 loader 源（强定义在本目标内），
-    # Linux 用 stub（桥接恒不可达，走 CPU 路径）。
-    $<$<PLATFORM_ID:Windows>:../../infrastructure/acr/backends/cuda/cuda_bridge_loader.cpp>
-    $<$<NOT:$<PLATFORM_ID:Windows>>:src/cuda_bridge_stub.cpp>
-    ../../infrastructure/acr/scheduler/device_executor.cpp
     ../shared/healpix/healpix_core.cpp
     ../shared/crypto/sha256.cpp
 )
 target_include_directories(phase2 PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
-target_include_directories(phase2 PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/../../infrastructure/acr/include)
-target_include_directories(phase2 PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/../../infrastructure/acr)
-target_include_directories(phase2 PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/../../infrastructure/acr/backends/cuda/bridge)
-target_include_directories(phase2 PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/../../infrastructure/acr/scheduler)
 target_include_directories(phase2 PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/../../infrastructure/aio/include)
 # CLEAN-403: sky_plane.cpp 的文件读写经 aio 机制原语 (aio_atomic_file.h /
 # aio_file_io.h, header-only) ⇒ compatibility 目标同样需要 aio/src include 面。
@@ -81,13 +71,6 @@ target_include_directories(phase2 PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/../../algor
 target_include_directories(phase2 PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/../../../lib/third_party)
 if(P2_ENABLE_OPENMP AND OpenMP_CXX_FOUND)
     target_link_libraries(phase2 PUBLIC OpenMP::OpenMP_CXX)
-# 本目标在 Windows 上**自己编入** loader 源 ⇒ 强定义就在本目标内 ⇒ 必须抑制
-# device_executor.cpp 的平台兜底空定义，否则同一符号在本链接闭包内出现两个强定义
-# （重复符号告警，且最终取哪一个取决于目标/对象顺序）。
-# 判据是「强定义是否在本目标内」，与「是否链接 loader 库」无关：
-# 后者受目标定序影响——被引用的目标若尚未定义，名字会被当成裸库名，接口属性根本不生效。
-# Linux 侧由 stub 提供强定义、device_executor.cpp 的 weak 定义被强定义覆盖，故无需本宏。
-target_compile_definitions(phase2 PRIVATE $<$<PLATFORM_ID:Windows>:ACR_WITH_BRIDGE_LOADER=1>)
     # CON-004: 把 P2_ENABLE_OPENMP 作为编译宏定义（原为装饰性 option，源内 #if 恒假）。
     # 仅 ON 且找到 OpenMP 时定义 => 源内 #if defined(P2_ENABLE_OPENMP) 才真正激活并行路径。
     target_compile_definitions(phase2 PRIVATE P2_ENABLE_OPENMP=1)
@@ -132,14 +115,3 @@ set_target_properties(calibrated_pair_diag PROPERTIES EXCLUDE_FROM_ALL TRUE)
 add_executable(rejection_cli tools/rejection_cli.cpp)
 target_link_libraries(rejection_cli PRIVATE phase2)
 set_target_properties(rejection_cli PROPERTIES EXCLUDE_FROM_ALL TRUE)
-
-# V17：CUDA bridge DLL（nvcc 构建产物）复制到各 exe 目录（bridge loader
-# 搜索路径 1 = exe 目录），保证 clean build 与增量 build 环境一致。
-set(_cuda_bridge "${CMAKE_CURRENT_SOURCE_DIR}/../../infrastructure/acr/backends/cuda/bridge/acr_cuda_bridge.dll")
-if(EXISTS "${_cuda_bridge}")
-  foreach(_t acsd-stage2 calibrated_pair_diag rejection_cli)
-    add_custom_command(TARGET ${_t} POST_BUILD
-      COMMAND ${CMAKE_COMMAND} -E copy_if_different
-              "${_cuda_bridge}" "$<TARGET_FILE_DIR:${_t}>")
-  endforeach()
-endif()
