@@ -517,8 +517,8 @@ bool p2_acr_block_eligible(const P2Stage2Config& cfg,
                            bool large_scale_active) {
     // 删除 legacy 整数权重模式域后，生产**只剩**一条权重口径：
     // 逐样本逆方差（原 weight_mode=2 语义）。TRACEABILITY ACR-IVAR-001 冻结：
-    // 「ivar science 模式必须走 CPU canonical path」；acr_kernels.cpp 亦对
-    // cell-ivar 权重显式 throw（ACR 与逐像素 ivar 不等价）。
+    // 「ivar science 模式必须走 CPU canonical path」；异构执行面亦对
+    // cell-ivar 权重显式拒绝（ACR 与逐像素 ivar 不等价）。
     // ⇒ 该条件对本仓**恒成立** ⇒ 本函数恒 false：ACR 块在生产不可达
     //   （docs/ACSD_DESIGN.md §2「纯 CPU 生产，ACR 生产不可达」）。
     // 这不是"关掉一个开关"，而是唯一路径的推论：可进入 ACR 的前提（非 ivar

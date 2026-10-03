@@ -60,10 +60,6 @@ NONROOT = [
      "浏览器工具（ARCHITECTURE §1 迁移冻结：工具面）"),
     ("browser_cli", "lib/infrastructure/hips_browser/healpix_browser_qt/CMakeLists.txt",
      "浏览器工具（ARCHITECTURE §1 迁移冻结：工具面）"),
-    ("acr-benchmark", "lib/infrastructure/acr/tools/acr_benchmark/CMakeLists.txt",
-     "ACR DORMANT（最高设计 §8：不进生产构建）"),
-    ("acr_test_api", "lib/infrastructure/acr/tests/unit/CMakeLists.txt",
-     "ACR DORMANT（最高设计 §8：不进生产构建）"),
 ]
 
 
