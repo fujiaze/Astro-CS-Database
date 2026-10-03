@@ -283,11 +283,14 @@ void group_contract() {
   // C1: 三个帧级标量必须是同一个 median(SNR_F), 不是任何"整帧 SNR"构造
   check(out.snr_phot == out.median_snr && out.median_snr == out.median_source_snr,
         "C1 snr_phot==median_snr==median_source_snr (bitwise)");
-  std::vector<double> used;
-  for (std::size_t i = 0; i < out.snr_f.size(); ++i) {
-    if (std::isfinite(out.snr_f[i])) used.push_back(out.snr_f[i]);
-  }
-  check_close(out.median_snr, ref_median(used), 1e-15, "C1 median == median(SNR_F)");
+  /* "C1 median == median(SNR_F)" 已退役（GOVERN-08/G08-05）：被检验量 out.median_snr
+   * 的期望量 ref_median(used) 是生产 median_of 的孪生实现 —— 生产
+   * lib/algorithms/noise_snr/wrapper_phase1/snr_frame_science.cpp:140 `const double med
+   * = median_of(used_snr);`（:145 赋给 out.median_snr），其 median_of（:30-37）与本文件
+   * ref_median（:78-84）同为「复制 + std::sort + 奇偶分支」，是同一个中位数的两套实现
+   * ⇒ 期望量追不回被检验量自身的输出字段。
+   * 覆盖同一被检验量的独立冻结字面量锚仍在 :263（kOracleMedian），来源为不调用被测
+   * C++ 代码的 NumPy oracle ⇒ 保留锚、删重复者。 */
 
   // C2: 旧构造必须被否证。
   //  (a) 数值不是 1/(ln10*sigma_residual) (定标散度倒数, 不同类量);
@@ -311,8 +314,15 @@ void group_contract() {
   }
   check_close(ref_median(loc), 1.0, 1e-15, "C3 median(local_snr) == 1");
 
-  // C4: 帧级科学基准 = 5sigma 深度, 与 5*sigma_F(ref) 恒等
-  check_close(out.frame_depth_flux5_adu, 5.0 * out.reference_sigma_f_adu, 1e-15, "C4 F5 == 5*sigma_F(ref)");
+  /* C4「F5 == 5*sigma_F(ref)」已退役（GOVERN-08/G08-05）：生产
+   * lib/algorithms/noise_snr/cpp/src/snr_science.cpp:257
+   * `const double f5 = 5.0 * reference->sigma_f_optimal_adu;`
+   * （snr_frame_depth_f64，经 wrapper_phase1/snr_frame_science.cpp:203-205 写出
+   * out.frame_depth_flux5_adu）就是同一对操作数的同一乘，本行期望量 5.0 *
+   * out.reference_sigma_f_adu 是它的逐字重演 —— 期望量与被检验量同源。
+   * 覆盖同一被检验量的独立冻结字面量锚仍在 :265（kOracleFlux5）⇒ 保留锚、删重复者。
+   * 注：生产 :217 `out->flux5_adu = 5.0 * out->sigma_f_optimal_adu;` 是**另一个输出
+   * 字段** SnrSourceResult::flux5_adu（逐源），不是本行被检验的帧级字段。 */
 
   // C5: 字段单位/符号域
   check(out.frame_depth_flux5_adu > 0.0, "C5 F5 > 0 [ADU]");

@@ -133,7 +133,14 @@ int main() {
     std::printf("        apply_photometry 逐像素 max|out - k·in| = %.3e (float 舍入)\n",
                 max_abs_err);
     check(max_dev < 1e-6, "POS 施加后帧间乘性标量差归零 (<1e-6)");
-    check(max_abs_err < 1e-3, "POS out == k_photo·in (float32 舍入内)");
+    /* "POS out == k_photo·in (float32 舍入内)" 已删（GOVERN-08/G08-05）：期望量
+     * `want`（:119 `static_cast<double>(frames[k][p]) * k_photo`）是生产
+     * apply_photometry 内部那一乘的逐字复制 ⇒ 期望量与被检验量同源，追不回独立来源；
+     * 两侧唯一可差的是 float32 存储舍入（相对 ~6e-8），而容差 1e-3 比该量级松约两个
+     * 数量级，且采样步长 4093（每帧约 1/4093）远稀于同块真判据的步长 97。
+     * 同块 :135（帧间比值中位 |med-1| < 1e-6，步长 97）在同一被检验函数上判别力严格
+     * 更强且不冗余：若 apply_photometry 未施加 k_photo、用错 k、或标度差一个常数，
+     * 该值立刻远离 1 ⇒ 保留之。max_abs_err 仍由上方 printf 使用，未成未使用符号。 */
   }
 
   // ── ③ 误差语义 + NaN/Inf 透传 ──────────────────────────────────────────
