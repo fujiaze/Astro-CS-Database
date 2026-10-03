@@ -516,7 +516,11 @@ class HipsOutputStore:
             self._validate_product_filename(fn)
 
         # ── stage：临时写 + 关闭 + fitsverify + sha256 ──
-        staged: List[Dict[str, Any]] = []  # {tmp, final_rel, size, sha256, fits_ok}
+        # staged 每项的 fitsverify = 该文件**实际**过了 fitsverify 的结果（None = 没验）。
+        # 不得用 `fn.endswith(".fits")` 当「验过」的标记：Moc.fits 也是 .fits 后缀却被
+        # 下一行的分支显式排除（IO-001 支持域外），用它会让完成 manifest 的
+        # fitsverify.tile_count 把未校验的 Moc.fits 计成已校验。
+        staged: List[Dict[str, Any]] = []
         try:
             for fn, data in file_list:
                 tmp = self._stage_file(fn)
@@ -530,11 +534,13 @@ class HipsOutputStore:
                 # fitsverify：tile 科学平面 FITS（NpixN.fits）必须过结构+DATASUM；
                 # Moc.fits 为 BINTABLE 扩展（IO-001 支持域外），只做 sha256 + 原子落盘
                 # （与 IO-002 读端 "MOC optional hint" 一致：缺失/损坏不阻塞发布）。
+                verified = None
                 if fn.endswith(".fits") and not fn.endswith("Moc.fits"):
-                    self._verify_fits(tmp, fn)
+                    verified = self._verify_fits(tmp, fn)
                 sha = sha256_bytes(data)
                 staged.append({"tmp": tmp, "rel": fn, "size": len(data),
-                               "sha256": sha, "fits": fn.endswith(".fits")})
+                               "sha256": sha, "fits": fn.endswith(".fits"),
+                               "fitsverify": verified})
         except BaseException:
             self._cleanup_staged(staged)
             raise
@@ -591,6 +597,16 @@ class HipsOutputStore:
                 [{"path": r["rel"], "size": r["size"], "sha256": r["sha256"]}
                  for r in staged],
                 key=lambda e: (e["path"], e["size"], e["sha256"]))
+            # fitsverify 三项**全部由实际校验记录导出**，不写字面量：
+            # performed = 至少有一个 tile 真的过了 fitsverify；
+            # tile_count = 真的过了 fitsverify 的 tile 数（Moc.fits 不计——它按上面
+            #   的分支就没验）；checksum = 当且仅当每个已验 tile 都带 DATASUM 卡并
+            #   通过该卡校验时才是 "datasum"，否则如实记 "none"。
+            # 期望量来自 _verify_fits 返回的校验事实（校验器自身的输出字段），
+            # 不是把这里的定义式重写一遍与它自己比较。
+            vtiles = [r for r in staged if r["fitsverify"] is not None]
+            datasum_all = bool(vtiles) and all(
+                r["fitsverify"]["datasum"] for r in vtiles)
             doc: Dict[str, Any] = {
                 "manifest_schema": "acsd.hips-output-manifest/v1",
                 "manifest_version": 1,
@@ -601,8 +617,9 @@ class HipsOutputStore:
                 "publisher": "acsd.hips-output/v1",
                 "tree": tree_entries,
                 "tree_hash": tree_hash(tree_entries),
-                "fitsverify": {"performed": True, "checksum": "datasum",
-                               "tile_count": sum(1 for r in staged if r["fits"])},
+                "fitsverify": {"performed": bool(vtiles),
+                               "checksum": "datasum" if datasum_all else "none",
+                               "tile_count": len(vtiles)},
                 "created_utc": utc_now_z(),
             }
             if producer:
@@ -708,8 +725,15 @@ class HipsOutputStore:
                   f"({backup}): {exc}", file=_sys.stderr)
 
     # ── 校验助手 ──
-    def _verify_fits(self, path: pathlib.Path, rel: str) -> None:
-        """fitsverify 一步：结构 + DATASUM（与 fits_core 同算法）。失败抛 PublishError。"""
+    def _verify_fits(self, path: pathlib.Path, rel: str) -> Dict[str, Any]:
+        """fitsverify 一步：结构 + DATASUM（与 fits_core 同算法）。失败抛 PublishError。
+
+        返回**实际做了什么**的事实，供完成 manifest 如实记账：
+          datasum  = 该文件带 DATASUM 卡且已通过该卡校验
+          checksum = 这次调用真的做了 CHECKSUM 卡校验（受 verify_checksum 开关）
+        注意：DATASUM 的校验**不受** verify_checksum 开关约束（它只管 CHECKSUM 卡），
+        故 datasum 的真值来源是校验器返回的 header，而不是本函数的开关。
+        """
         try:
             from fits_verify import FitsVerifyError, verify_fits_file
         except ImportError:
@@ -717,11 +741,14 @@ class HipsOutputStore:
             sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
             from fits_verify import FitsVerifyError, verify_fits_file  # noqa: F811
         try:
-            verify_fits_file(str(path), verify_checksum=self.verify_checksum)
+            hdr = verify_fits_file(str(path), verify_checksum=self.verify_checksum)
         except FitsVerifyError as exc:
             raise PublishError(f"fitsverify 拒绝 {rel}: {exc}")
         except OSError as exc:
             raise PublishError(f"fitsverify 读取失败 {rel}: {exc}")
+        return {"datasum": hdr.datasum is not None,
+                "checksum": bool(self.verify_checksum and
+                                 hdr.checksum is not None)}
 
     @staticmethod
     def _validate_product_filename(fn: str) -> None:

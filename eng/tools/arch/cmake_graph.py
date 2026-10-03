@@ -16,6 +16,20 @@ import sys
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
 
+
+class GateError(Exception):
+    """本模块的 fail-closed 拒绝信号，携带稳定错误码（ANCHOR_* / ENTRY_REGISTRY_*）。
+
+    这些守卫以前写成 `gc.GateError(...)`，而本模块从未导入任何叫 `gc` 的符号
+    （`gc` 是标准库垃圾回收器，不含 GateError）⇒ 每次拒绝都退化成
+    `NameError: name 'gc' is not defined`：异常照抛（不 fail-open），但
+      ① 稳定错误码（ANCHOR_MISSING / ANCHOR_STALE / ANCHOR_EMPTY /
+         ENTRY_REGISTRY_EMPTY / ENTRY_REGISTRY_AMBIGUOUS）全部丢失，
+      ② 异常类型无法与「本工具有 bug」区分，调用方无从按类型甄别。
+    故在本模块自持该类型（唯一权威定义处），由调用方按类型捕获并转成退出码。
+    """
+
+
 # 生产入口的唯一权威面是根 CMakeLists.txt 自身的 add_executable（见下方常量注释）。
 def read_text(path, label=None) -> str:
     """读文本文件；失败时把路径带上，便于判据点名。"""
@@ -101,7 +115,7 @@ def _iter_reachable_cmake(repo: pathlib.Path):
     """自根 CMakeLists.txt 沿未注释 add_subdirectory 递归（只认根构建图）。"""
     root = repo / "CMakeLists.txt"
     if not root.is_file():
-        raise gc.GateError("ANCHOR_MISSING: CMakeLists.txt（根构建图唯一事实源）")
+        raise GateError("ANCHOR_MISSING: CMakeLists.txt（根构建图唯一事实源）")
     seen, queue = set(), [root]
     while queue:
         path = queue.pop(0)
@@ -286,7 +300,7 @@ def parse_cmake_graph(repo: pathlib.Path):
 def production_closure(graph: dict, entry: str):
     targets = graph["targets"]
     if entry not in targets:
-        raise gc.GateError("ANCHOR_STALE: 生产入口 target %r 不在根构建图" % entry)
+        raise GateError("ANCHOR_STALE: 生产入口 target %r 不在根构建图" % entry)
     seen, stack = set(), [entry]
     while stack:
         node = stack.pop()
@@ -297,7 +311,7 @@ def production_closure(graph: dict, entry: str):
             if dep in targets and dep not in seen:
                 stack.append(dep)
     if not seen:
-        raise gc.GateError("ANCHOR_STALE: 生产闭包为空（禁止空转判绿）")
+        raise GateError("ANCHOR_STALE: 生产闭包为空（禁止空转判绿）")
     return seen
 
 
@@ -316,11 +330,11 @@ def production_entry(repo: pathlib.Path, default: str = DEFAULT_ENTRY_TARGET) ->
         and info.get("file") == ROOT_BUILD_FILE
     )
     if not root_exes:
-        raise gc.GateError(
+        raise GateError(
             "ENTRY_REGISTRY_EMPTY: 根 %s 未解析出任何 add_executable（不得回退默认值 %s）"
             % (ROOT_BUILD_FILE, default))
     if len(root_exes) > 1:
-        raise gc.GateError(
+        raise GateError(
             "ENTRY_REGISTRY_AMBIGUOUS: 根 %s 有多个 add_executable: %s"
             % (ROOT_BUILD_FILE, ", ".join(root_exes)))
     return root_exes[0]
@@ -412,6 +426,6 @@ def install_targets(repo: pathlib.Path):
                 targets.add(tok)
     targets = {t for t in targets if t and not t.startswith("$") and "/" not in t}
     if not targets:
-        raise gc.GateError("ANCHOR_EMPTY: %s 未解析出任何 install(TARGETS)（禁止空转判绿）"
+        raise GateError("ANCHOR_EMPTY: %s 未解析出任何 install(TARGETS)（禁止空转判绿）"
                            % INSTALL_RULES)
     return targets, sorted(set(unresolved))
