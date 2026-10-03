@@ -240,70 +240,70 @@ manifest 与磁盘**双向**核对（声明了而磁盘没有 / 磁盘有而未�
 
 ### 3.3 判据非退化与双向类
 
-**T13 · `lib/algorithms/drizzle/healpix_drizzle/tests/p1drz/p1drz_disp009_gate.cpp`**
+**T13**
 P+N+E 三段门：正例必须绿；用独立 oracle 几何把被测量投影回另一种归一分母，该投影必须红；再加端点退化例。
 文件头写明负例的作用是证明容差**确有分辨两种归一分母的能力**，并声明本门不调用被测函数来产生期望值。
 **守住**：容差不是任选的；判据确实在检验它声称的性质。
 
-**T14 · `lib/algorithms/integration/phase2_integrate/oracle/weight_chain_selfcheck.cpp`**
+**T14**
 非退化锚：先断言被比较的两个重建场**确实不同**（注释标为 non-vacuous），再谈它们是否一致。
 **守住**：判据先证明自己被执行过。
 
-**T15 · `lib/algorithms/coverage/tests/routing_test.cpp`**
+**T15**
 明确写出该断言在冻结配置下恒成立、不存在任何合法配置能进入该块，
 并紧接着指名「若把某开关改回条件成立即真，本测试转红」。
 **守住**：结构性恒真的判据应当**如实声明并指名可红的改动**，而不是删掉或假装有判别力。
 
-**T16 · `lib/algorithms/star_detection/tests/p1star/p1star_tests_selfcheck.cpp`**
+**T16**
 三阶段双向排除：基线必须通过（排除恒红）；两个不同的注入点分别必须失败（排除恒真）；
 注入名必须真实存在，否则子进程仍会通过，因此显式检查子进程返回码。
 **守住**：一套判据同时排除两个方向。
 
-**T17 · `lib/infrastructure/aio/tests/abi/aio_abi_layout_lock.py`**
+**T17**
 `--selfcheck` 反向证明：用探针真实布局构造一个**故意破坏**的镜像（字段重排 + 漏字段 + 常量污染），
 断言锁必然报警；锁对被破坏镜像仍然放行即视为门失效并非零退出。
 **守住**：锁本身不是恒真。
 
-**T18 · `eng/tests/config/check_cfg002_registry.py`**
+**T18**
 负例基础设施的三重自证：先证明沙箱基线自身全绿（否则整个负例面无意义）；
 每条注入执行前记录树摘要，执行后必须证明**真的改了东西** —— 没改即判红并点名「注入是空操作，靶点已失效」；
 注入抛异常必须显式报告，不得静默算过。
 **守住**：负例面本身可用。
 
-**T19 · `eng/tests/unit/aio/mutations/mutate_and_check.py`**
+**T19**
 正控制（未变异源码必须全绿）+ 锚文本失配检测（锚在目标文件里必须恰好出现一次，否则报 missed 而不是静默跳过）
 + 每条变异必须失败。
 **守住**：变异测试框架不退化为空转。
 
-**T20 · `eng/tests/unit/aio/check_atomic_durability.py`**
+**T20**
 强制「注入前后必须不同」：注入态与非注入态的状态与持久性档位任一相同即判负例为 vacuous。
 **守住**：负例没有真的注入。
 
-**T21 · `eng/tests/quality/test_doc_machine_check.py`**
+**T21**
 变异前置断言：先断言待变异的文本当前确实存在于文档中，注释写明「否则本 mutation 无效」。
 **守住**：变异目标先得存在。
 
-**T22 · `eng/tests/runtime/integration/test_rt004_executor.py`**
+**T22**
 非退化要求直接写成一条违规：「未找到某作用域声明（判据非退化要求）」。
 **守住**：找不到被测对象不等于通过。
 
-**T23 · `eng/tests/cli/test_cli004_process_protocol.py`**
+**T23**
 注入未生效时主动失败：返回码符合预期但注入其实没发生（缓冲吸收了全部输出）时，
 判为「本用例零证据，不得计为通过」，而不是跳过或通过。
 **守住**：失败的注入被记成通过的证据。
 
-**T24 · `eng/tests/quality/test_pack_audit_exclusion.py`**
+**T24**
 白名单回归哨兵：临时把被拒样本加进白名单，断言 `allowed()` 仍拒绝它。
 头注写明排除保证与白名单解耦 —— 即使白名单被误加回，也必须拒绝。
 **守住**：把白名单放宽这一伪修复被直接封死。
 
-**T25 · `lib/infrastructure/aio/tests/v5_maptile_oracle.py`**
+**T25**
 外部权威逐像素对照；参照 tile 缺失时计成 mismatch 而不是静默跳过；末尾是「缺失、冗余、像素不符三者皆为零」的硬门。
 **守住**：映射关系由仓外标准背书，且缺失不可被跳过。
 
 ### 3.4 前置与裁决接线类
 
-**T26 · `eng/tests/api/test_seam_metric_gate.py`**
+**T26**
 fail-closed 前置。注释点名历史失效形态：跳过装饰器在依赖库缺失时把整类用例静默变成 OK，使该层验收不可能失败。
 **守住**：前提不满足时不得表现为通过。
 
@@ -312,7 +312,7 @@ fail-closed 前置。注释点名历史失效形态：跳过装饰器在依赖�
 文件内不发明默认数值。
 **守住**：阈值不漂移、缺合同即失败。
 
-**T28 · `lib/infrastructure/aio/tests/test_checksum.cpp`**
+**T28**
 用外部权威算法的标准向量作期望值。
 **守住**：实现的正确性由外部标准判定，而非由自身往返。
 

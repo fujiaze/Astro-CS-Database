@@ -365,7 +365,7 @@ drop-governance-deviation / add-none-marker-row / anchor-stale）。
 观察退出码（预期 rc=2）。
 
 > CI 登记状态：本检查器为**治理文档检查器**
-> （非 CTest 目标、非 add_test 注册面）。**已登记**：门禁注册面的 `STD-REG` 登记项（本仓无在位注册面）
+> （非 CTest 目标、非机器门禁注册面）。**已登记**：见本表登记项。
 > （主判据 C1–C9）+ 2 个负向注入场景
 > （`STD-REG-FI-DANGLING`、`STD-REG-FI-VERSION-DRIFT`）。
 > **未登记（PLANNED）**：其余 7 个注入场景 + 空转守卫；该登记属门禁写入面（本仓无在位写入面），
