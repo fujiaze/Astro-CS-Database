@@ -224,8 +224,15 @@ void test_qw_output_frame_vs_oracle() {
   }
   P3_CHECK_NEAR(res.W, W_or, 1e-12);
   P3_CHECK_NEAR(res.Q, Q_or, 1e-12);
-  P3_CHECK_NEAR(res.F_hat, res.Q / res.W, 1e-15);
-  P3_CHECK_NEAR(res.var_F_hat, 1.0 / res.W, 1e-15);
+  /* GOVERN-08/G08-05：原两行把 res.F_hat 对 res.Q/res.W、res.var_F_hat 对 1.0/res.W
+   * 比对，而生产正是**逐字**这么定义的（p3_rsmp_propagation.cpp:248-249）⇒ 差恒为 0、
+   * 无鉴别力。改为对照本函数已算出的独立 Oracle（W_or/Q_or 走稠密 Cholesky 消元）。
+   * 容差取 W/Q 一致性（1e-12）传导到比值后的标度无关界，仍比任何真实缺陷小 7 个
+   * 量级以上；test_qw_vs_monte_carlo 另外用 MC 给 var_F_hat 一条独立 5% 粗判。 */
+  const double F_or = Q_or / W_or;
+  const double var_or = 1.0 / W_or;
+  P3_CHECK_NEAR(res.F_hat, F_or, 1e-9 * std::fmax(1.0, std::fabs(F_or)));
+  P3_CHECK_NEAR(res.var_F_hat, var_or, 1e-9 * std::fmax(1.0, std::fabs(var_or)));
 }
 
 void test_qw_vs_monte_carlo() {

@@ -26,7 +26,11 @@
  *   FZ-FORMULA-GLS           x_hat=(A^T C^-1 A)^-1 A^T C^-1 d; Cov=(A^T C^-1 A)^-1;
  *                             R=(A^T C^-1 A)^-1 A^T C^-1
  *   FZ-AP2S-IDENT-RTOL 1e-9 / FZ-AP2S-EPSF-RTOL 1e-12 /
- *   FZ-AP2PT-SNR-IDENT-RTOL 1e-9 / FZ-AP2PT-CORR-RATIO-MIN 1.05
+ *   FZ-AP2PT-CORR-RATIO-MIN 1.05
+ *   （FZ-AP2PT-SNR-IDENT-RTOL 已撤：其被检验量与参照量同源 ⇒ 差按构造恒为 0；
+ *     条款 subject「SNR_combined^2=Sum_k SNR_k^2」也不是恒等式，只在 F_hat=F
+ *     或各帧估计零散度的退化情形成立。本面证据资格 = 空，登记表里据实写明
+ *     「不得以门通过为据」。见 GOVERN-08/G08-05。）
  *   FZ-FORMULA-COV-PROP      C_out = R C_in R^T；variance_from=combination_coefficients；
  *                            禁 1/W_psfsw、禁权重/诊断反推
  *   FZ-GATE-PSFSW-EPSF       effective PSF 必输；只给 FWHM 标量 REJECT
@@ -64,7 +68,6 @@ namespace p2int {
 constexpr double kEpsPixivar = 0.05;      /* FZ-AP2S-EPS-PIXIVAR */
 constexpr double kEpsPixivarSup = 0.20;   /* FZ-AP2S-EPS-PIXIVAR-SUP */
 constexpr double kIdentRtol = 1e-9;       /* FZ-AP2S-IDENT-RTOL */
-constexpr double kSnrIdentRtol = 1e-9;    /* FZ-AP2PT-SNR-IDENT-RTOL */
 constexpr double kCorrRatioMin = 1.05;    /* FZ-AP2PT-CORR-RATIO-MIN */
 constexpr double kEpsfRtol = 1e-12;       /* FZ-AP2S-EPSF-RTOL */
 constexpr int    kCommonMin = 3;          /* PSFSW-T-NMIN */

@@ -298,10 +298,11 @@ int main() {
     check(pr.sparse_operator_id == "natural_bicubic_spline_clip_v1",
           "default reconstruction operator id recorded (natural_bicubic_spline_clip_v1)");
     check(pr.sparse_node_residual <= 1e-9, "node reproduction residual ~ 0");
-    /* 量纲自证：w[ADU^-2]·F_ref[ADU]^2 - SNR^2[1]·g^2 == 0 */
-    check(close(pr.dimensional_identity, 0.0, 1e-15) ||
-              std::fabs(pr.dimensional_identity) < 1e-15,
-          "dimensional identity w*F_ref^2 - SNR^2*g^2 == 0 (units consistent)");
+    /* GOVERN-08/G08-05：原「dimensional identity w*F_ref^2 - SNR^2*g^2 == 0」断言已删。
+     * w 在被测函数里被逐字定义为 (layer_snr/F_ref)^2*g^2，该断言是代数恒等式型自证
+     * （只剩几个 ulp 舍入），对重建算子/层语义/F_ref 配对/gain 的任何错误都不动。
+     * 真正的对照在上面两行：用**独立双线性 oracle** 重建的 layer_oracle 与由它
+     * 独立算出的 w 做比较——参照量与被检验量不同源。 */
     check(std::string(pr.weight_units) == "ADU^-2" &&
               std::string(pr.snr_units) == "dimensionless" &&
               std::string(pr.reference_flux_units) == "ADU",
@@ -802,8 +803,18 @@ int main() {
     const double fref = 1000.0;
     SparseSnrLayer L = grid4x4();
     const double qs[5][2] = {{3.5, 3.5}, {11.5, 3.5}, {19.5, 11.5}, {3.5, 27.5}, {31.0, 31.0}};
-    bool all_units = true, all_ident = true, all_sigma = true;
+    bool all_units = true, all_w_oracle = true;
     double worst_rel = 0.0;
+    int n_oracle_pts = 0;
+    /* 只在**控制点（节点）**处做 oracle 对照：默认算子是自然边界双三次样条，非节点处
+     * 样条 != 双线性，两条路径本就应当不同，拿双线性去比会误红。节点处两条路径都
+     * 必须复现控制点值（prepare() 的 node_residual 门已强制），此时对照是严格的。 */
+    const auto is_node = [&](double x, double y) {
+      const double gx = (x - L.x0) / L.dx, gy = (y - L.y0) / L.dy;
+      return std::fabs(gx - std::floor(gx + 0.5)) < 1e-12 &&
+             std::fabs(gy - std::floor(gy + 0.5)) < 1e-12 && gx >= 0.0 && gy >= 0.0 &&
+             gx <= static_cast<double>(L.nx - 1) && gy <= static_cast<double>(L.ny - 1);
+    };
     for (const auto& q : qs) {
       acsd::v6::p2weight::PixelWeightInput pin;
       pin.frame_id = "f0"; pin.layer = &L; pin.x = q[0]; pin.y = q[1];
@@ -811,24 +822,30 @@ int main() {
       const acsd::v6::p2weight::PixelWeightResult pr =
           acsd::v6::p2weight::weight_from_sparse_layer_pixel(pin);
       if (!pr.ok) { all_units = false; continue; }
-      /* (a) 单位 token 必须是 [ADU^-2] / [1] / [ADU] */
+      /* (a) 单位 token 必须是 [ADU^-2] / [1] / [ADU]（声明值逐字核对，非数值判据） */
       all_units = all_units && std::string(pr.weight_units) == "ADU^-2" &&
                   std::string(pr.snr_units) == "dimensionless" &&
                   std::string(pr.reference_flux_units) == "ADU";
-      /* (b) 量纲自证：w[ADU^-2] * F_ref[ADU]^2 - SNR^2[1] * g^2 == 0 */
-      all_ident = all_ident && std::fabs(pr.dimensional_identity) <=
-                                   1e-15 * std::max(1.0, std::fabs(pr.weight) * fref * fref);
-      /* (c) 口径自证：sigma_F = F_ref/SNR_layer ⇒ 1/sigma_F^2 == w（独立复算） */
-      const double sigma_f = fref / pr.layer_snr;
-      const double w_from_sigma = 1.0 / (sigma_f * sigma_f);
-      const double rel = std::fabs(w_from_sigma - pr.weight) / pr.weight;
-      worst_rel = std::max(worst_rel, rel);
-      all_sigma = all_sigma && rel <= 1e-12;
+      /* (b) 参照量来自**独立**双线性 oracle（直接读控制点，不经被测重建算子），
+       *     不是用被检验量自身的定义式或它的逆函数构造的「外部参照」。 */
+      if (is_node(q[0], q[1])) {
+        ++n_oracle_pts;
+        const double w_oracle =
+            oracle_weight_from_snr(oracle_bilinear(L, q[0], q[1]), fref);
+        const double rel = std::fabs(w_oracle - pr.weight) / pr.weight;
+        worst_rel = std::max(worst_rel, rel);
+        all_w_oracle = all_w_oracle && close(w_oracle, pr.weight, 1e-12);
+      }
     }
     check(all_units, "unit tokens consistent: w[ADU^-2] from SNR[1]/F_ref[ADU]");
-    check(all_ident, "dimensional identity w*F_ref^2 - SNR^2*g^2 == 0 at all pixels");
-    check(all_sigma, "w == 1/sigma_F^2 with sigma_F = F_ref/SNR_layer (scale consistent)");
-    std::printf("        (max relative deviation vs 1/sigma_F^2: %.3e)\n", worst_rel);
+    /* GOVERN-08/G08-05：原 (b) dimensional identity 与原 (c) sigma_F=F_ref/SNR_layer
+     * 两项已删——两者都是同源自证：前者与 w 的定义式同边，后者是把被检验公式取逆
+     * 得到的「外部参照」，代回后回到同一个式子。w == 1/sigma_F^2 在此面证据资格
+     * = 空（sigma_F 无独立来源），此处改为对独立 oracle 的严格对照。 */
+    check(all_w_oracle && n_oracle_pts > 0,
+          "w == independent-oracle w at every control point (different source)");
+    std::printf("        (%d control points vs independent oracle; "
+                "max relative deviation: %.3e)\n", n_oracle_pts, worst_rel);
 
     /* (d) 层值缺失：显式降级（policy 默认）——**不是**「层值 = 1」 */
     {

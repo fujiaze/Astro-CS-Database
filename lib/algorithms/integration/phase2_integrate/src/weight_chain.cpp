@@ -215,8 +215,14 @@ PixelWeightResult finish_pixel_weight(const PixelWeightInput& in,
   r.gain = g;
   r.weight = w;
   r.generated_from_absent_layer = false;
-  /* 量纲/口径自证：w[ADU^-2]·F_ref[ADU]^2 - SNR^2[1]·g^2 应恒为 0。 */
-  r.dimensional_identity = w * in.ref_flux_k * in.ref_flux_k - layer_snr * layer_snr * g * g;
+  /* GOVERN-08/G08-05：原
+   *   r.dimensional_identity = w*F_ref,k^2 - layer_snr^2*g^2;
+   * 已删。该式与上面 :104/:197-200 的 w = (layer_snr/F_ref,k)^2 * g^2 同源，
+   * 代数上恒等、浮点上只剩几个 ulp 的舍入——它是「代数恒等式型」自证判据，
+   * 对任何科学错误（重建算子、层语义、F_ref 配对、gain）都不动，故无鉴别力。
+   * 量纲一致性改由单位词面（PixelWeightResult 的 weight_units/snr_units/
+   * reference_flux_units）与本函数签名保证；w 是否真等于 1/sigma_F^2 在此面
+   * 无有效机器判据（证据资格 = 空），真判据见 weight_chain.h 的说明。 */
   return r;
 }
 

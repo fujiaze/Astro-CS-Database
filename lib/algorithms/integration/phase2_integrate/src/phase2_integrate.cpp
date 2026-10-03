@@ -380,7 +380,8 @@ struct Assembly {
   bool independent_frames = true;
   double corr_ratio = 0.0;
   double naive_variance = 0.0, joint_variance = 0.0;
-  double snr_identity_rel_err = 0.0;
+  /* 无 snr_identity_rel_err：该量按构造恒为 0，写进产品会被读成「恒等式已验证」。
+   * 依据与替代证据面见 run_point_information 内 f_hat/var_f 处的注释。 */
 
   bool has_surface = false;
   double x_hat = 0.0, var_gls = 0.0;
@@ -742,7 +743,9 @@ PublishOutcome publish_phase2_assembly(const Assembly& as, const RunMeta& meta,
     ext["w_psfsw"] = as.w_psfsw;
     ext["combination"] = {{"operator", "phase2_combination"},
                           {"coefficients", as.combination_coefficients}};
-    ext["snr_identity_rel_err"] = as.snr_identity_rel_err;
+    /* GOVERN-08/G08-05：原 ext["snr_identity_rel_err"] 已删。该字段的被检验量与
+     * 参照量同源 ⇒ 值按构造恒为 0；留在每个 Phase2 产品里会被审计方读成
+     * 「独立帧 SNR 恒等式已验证」。本仓在该面无有效机器判据（证据资格 = 空）。 */
     ext["rho_p05"] = as.rho_p05;
     ext["rho_p50"] = as.rho_p50;
     ext["rho_p95"] = as.rho_p95;
@@ -948,16 +951,30 @@ ProductResult run_point_information(const std::vector<std::string>& product_dirs
 
   const double f_hat = q / w;
   const double var_f = 1.0 / w;
-  double snr_rel = 0.0;
-  {
-    double sum_w = 0.0;
-    for (const auto& f : fs.frames) sum_w += f.view.w_info;
-    snr_rel = (w > 0.0) ? std::fabs(w - sum_w) / w : 0.0;
-    if (!joint_used && snr_rel > kSnrIdentRtol) {
-      res.error = "independent frame SNR identity violated (FZ-AP2PT-SNR-IDENT-RTOL)";
-      return res;
-    }
-  }
+  /* 独立帧下**没有**可用的恒等式判据，本仓据实不设门（GOVERN-08/G08-05）。
+   *
+   * 独立帧组合的无条件结论是**方差可加**：Var(F_hat) = (Sum_k W_info,k)^-1，
+   * 而它正是上面 `w = w_sum`（:867-871）这一行的定义式重述。把它与「用同一循环、
+   * 同一字段、同一顺序重算的 Sum_k W_info,k」相减，差按构造成 0；任何可达路径都
+   * 不可能判红——参照量与被检验量同源。
+   *
+   * 合同条款原写的 "SNR_combined^2 = Sum_k SNR_k^2" 本身也不是恒等式：各帧 SNR_k
+   * 的分子是**同一个共同信号** F，则
+   *     Sum_k SNR_k^2     = F^2 * Sum_k 1/sigma_F,k^2 = F^2 * W_tot，
+   *     SNR_combined^2    = F_hat^2 * W_tot，
+   * 两者相等当且仅当 F_hat = F（估计无偏）——这是关于**数据**的陈述，不是关于
+   * **实现**的陈述，实现是否正确无法由它判定。若改读为每帧各自的估计 F_hat_k，
+   * 则由 Cauchy-Schwarz
+   *     Sum_k SNR_k^2 - SNR_combined^2 = Sum_k W_k (F_hat_k - F_bar)^2 >= 0，
+   * 等号当且仅当各帧估计完全一致（chi^2 = 0 的退化情形）。
+   * 两种读法下该式都不是可实施的正确性判据。
+   *
+   * 能判定「W = Sum_k W_info,k 是否正确」的参照量必须来自 W 之外（注入点源的实测
+   * flux dispersion，或像素级 C_k 的独立重算）。二者在 Phase2 消费面均不可得：
+   * Phase1 不落盘逐像素 sigma2（phase1_product.cpp:396 只在内存里喂
+   * w_info_diagonal），磁盘 `calibration_covariance` 只是摘要记录
+   * （calibration_covariance.cpp:635-641），VARIANCE 面是 drizzle 后的面亮度方差、
+   * 与 W_info 用的逐帧噪声不是同一个数组。故此处证据资格 = 空，不设假门。 */
 
   /* 实际组合系数 + effective PSF */
   std::vector<double> alpha(K, 0.0);
@@ -995,7 +1012,6 @@ ProductResult run_point_information(const std::vector<std::string>& product_dirs
   as.corr_ratio = res.corr_ratio;
   as.naive_variance = res.naive_variance;
   as.joint_variance = res.joint_variance;
-  as.snr_identity_rel_err = snr_rel;
   as.combination_coefficients = alpha;
   as.coefficients_ref = "point_information.independent_frame_combination";
   as.eff_psf = peff; as.eff_psf_id = std::string("p2-point-") + meta.run_id;
