@@ -13,7 +13,7 @@
 | 线 | 文件域（glob） | 内容 |
 |---|---|---|
 | A（代码架构） | `lib/**`、`实验/**/code` | 命名块机制、三阶段调度器、节点改写、探针性能优化 |
-| B（门禁测试合同） | `eng/ci/**`、`eng/tests/**`、`eng/contracts/**`、`docs/engineering/**`、§2.1 B 域 19 篇 | 门禁与测试的合理性审计与补充、合同预先约定、双向对应 |
+| B（门禁测试合同） | `eng/tests/**`、`eng/contracts/**`、`docs/engineering/**`、§2.1 B 域 19 篇 | 门禁与测试的合理性审计与补充、合同预先约定、双向对应 |
 | shared（共享面） | `docs/science/**`、`docs/engineering/**`、§2.1 shared 域 60 篇 | 改动走登记，串行合并 |
 | report（实验报告面） | `实验/**/REPORT_paper.md` | 只增不改 |
 

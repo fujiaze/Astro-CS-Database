@@ -142,9 +142,7 @@ endif()
 # cosmetic,hips_writer} (P1-*迁移面) 均为 SHARED target (各子目录 CMakeLists
 # 声明), 唯一导出 acsd_module_query_v1 (ABI-006); MOD-001 起随安装树发布
 # 到 modules/ 并登记进 eng/packaging/acsd.product.json +
-# install-tree.contract.json (三方面同步, 机器校验 eng/packaging/verify_install_tree.py
-# + eng/tests/abi/mod001_install_load_check.py 经安全 loader 逐 unit 加载验证,
-# §18.4 只加载签名清单官方模块)。
+# install-tree.contract.json (三方面同步; §18.4 只加载签名清单官方模块)。
 # F-CI-002-01 (owner 裁决 2026-09-11): acsd_p1_noise 随 lib/algorithms/noise_snr
 # V7 残留断链解除一并摘出本安装名单/产品清单 (该子图 CMakeLists 未入库, 根
 # CMakeLists add_subdirectory 已解除, acsd_p1_noise target 不在根图);

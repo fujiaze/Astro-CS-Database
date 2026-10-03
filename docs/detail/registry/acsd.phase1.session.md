@@ -86,9 +86,8 @@ INTERNAL …），触发锚见 API-P1-SESSION 返回码节。失败短路返回�
 
 ## 独立 synthetic 验证命令与容差
 
-测试标识 = `TEST-P1-SESSION-001` = eng/tests/unit/p1_ir_facade_test.cpp
-（facade 语义 / canonical 四节点 / 委托）。生命周期登记 =
-eng/tests/api/test_p1_api.py（API-003）。
+测试标识 = `TEST-P1-SESSION-001`，覆盖面为 facade 语义 / canonical 四节点 / 委托；
+生命周期登记覆盖 API-003。载体不在本仓可复算路径上。
 
 ## 已知限制
 

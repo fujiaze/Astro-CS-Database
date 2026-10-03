@@ -294,7 +294,7 @@ lease 存在时恒等且不被放大；`--self-test` 注入未接线状态必须
 
 ## 9. 静态 checker 合同
 
-线程预算静态判据（载体见 门禁注册面（G08-10 重建））：
+线程预算静态判据：
 
 1. 扫描 `lib/` 生产源：`std::thread` / `std::async` / `_beginthread` / `CreateThread` 出现处
    必须在 `THREAD_BUDGET_EXEMPT` 登记表内。登记表以 checker 内 `THREAD_BUDGET_EXEMPT` 为

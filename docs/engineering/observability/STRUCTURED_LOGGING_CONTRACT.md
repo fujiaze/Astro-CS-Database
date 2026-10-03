@@ -6,7 +6,7 @@
 
 机器可读事实源：`lib/infrastructure/observability/logging/log_event_v1.schema.json`（字段定义、
 枚举与验收的唯一权威）、`lib/infrastructure/observability/logging/log_event.py`（参考实现）、
-日志行校验项（schema / seq 单调性 / error 载荷 / 级别与事件枚举 / 脱敏样例 / 单行大小，载体见 门禁注册面（G08-10 重建））。本文件是该合同的说明视图；
+日志行校验项（schema / seq 单调性 / error 载荷 / 级别与事件枚举 / 脱敏样例 / 单行大小）。本文件是该合同的说明视图；
 JSON/JSONL 输出为真相，两者不一致时以 schema 与检查器为准。
 
 ACSD 需要一个跨 run/任务/节点/模块/线程的统一结构化日志接口：
@@ -29,7 +29,7 @@ ACSD 需要一个跨 run/任务/节点/模块/线程的统一结构化日志接�
 | 面 | 唯一源 | 事件键名 | 事件枚举 | 工件 |
 |---|---|---|---|---|
 | **运行事件流**（run event stream） | `lib/infrastructure/cli/protocol.h`（`ValidateEventV1`，发送侧硬闸）+ `lib/infrastructure/cli/jsonl.h`（`JsonlEmitter`） | `kind` | `progress` / `resource` / `artifact` / `backend` / `final` | CLI JSONL 事件流（默认输出，最高设计 §7.2） |
-| **结构化日志**（本合同） | `lib/infrastructure/observability/logging/log_event_v1.schema.json` + `log_event.py` + 日志行校验项（载体见 门禁注册面（G08-10 重建）） | `event` | `start` / `progress` / `end` / `warn` / `error` / `metric` / `checkpoint` / `cancel` / `trace` | 结构化日志 JSONL（`acsd.log.event.v1`） |
+| **结构化日志**（本合同） | `lib/infrastructure/observability/logging/log_event_v1.schema.json` + `log_event.py` + 日志行校验项 | `event` | `start` / `progress` / `end` / `warn` / `error` / `metric` / `checkpoint` / `cancel` / `trace` | 结构化日志 JSONL（`acsd.log.event.v1`） |
 
 - **两份流各用不同工件名，各自具名**；
 - **键名 `event`（本合同）与 `kind`（运行事件流）各归各流**：本合同的 `event` 字段
@@ -123,7 +123,7 @@ ACSD 需要一个跨 run/任务/节点/模块/线程的统一结构化日志接�
 
 - 单行（含 `\n`）上限 **4096 字节**（`MAX_LINE_BYTES`）；超限按 UTF-8 边界截断 + 省略号，不切坏多字节字符；
 - 日志文件总量上限与轮转策略由运行配置定义；本合同冻结单行上限；
-- 机器检查项（载体见 门禁注册面（G08-10 重建））提供：schema 校验（缺字段被拒）、
+- 机器检查项提供：schema 校验（缺字段被拒）、
   seq 单调性、error 载荷、级别/事件枚举、脱敏样例、单行大小；输出机器 JSON 判定。
 
 ## 6.1 落盘与错误收敛
@@ -166,4 +166,4 @@ ACSD 需要一个跨 run/任务/节点/模块/线程的统一结构化日志接�
 - 依据：`docs/ACSD_DESIGN.md` §7.2（配置、事件与退出码）、§7.3（错误传播与运行日志）
 - 依据：`docs/ACSD_DESIGN.md` §7.1（命令树）、§8.1（总原则：唯一 CLI 入口、阶段独立调度器）+ `docs/engineering/ARCH-001.md`
 - 落点与错误收敛：`docs/detail/LOG_AND_ERROR_SYSTEM.md`、`docs/engineering/LOG_AND_ERROR_CONTRACT.md`
-- 机器事实源：`lib/infrastructure/observability/logging/log_event_v1.schema.json`（字段与枚举唯一权威）、日志行校验项（载体见 门禁注册面（G08-10 重建））
+- 机器事实源：`lib/infrastructure/observability/logging/log_event_v1.schema.json`（字段与枚举唯一权威）、日志行校验项

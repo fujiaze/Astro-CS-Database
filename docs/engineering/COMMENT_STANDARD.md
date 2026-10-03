@@ -43,4 +43,4 @@ scientific model version。
 
 ## 审计
 
-每个 production 文件记录 comment_hygiene = PASS/FAIL，由注释卫生检查项产出并落 `run/ci/`（注册面见 门禁注册面（G08-10 重建））。
+每个 production 文件记录 comment_hygiene = PASS/FAIL，由注释卫生检查项产出并随该检查项的运行产物落盘。

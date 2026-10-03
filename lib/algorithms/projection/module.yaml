@@ -7,11 +7,8 @@
 # STATIC，经 acsd_phase3_session → acsd_module_adapters 闭包；
 # 会话消费方 lib/phase3_session/p3_session.cpp :17 include / :160
 # p3_wcs_make（rotation_pa_deg 恒 0.0）/ :163 状态映射 / :232 worker
-# 循环 p3_wcs_pix2world；执行面探针
-# lib/algorithms/projection/tests/p3wcs/p3_wcs_main.cpp +
-# 独立解析解回归 eng/tests/backend/test_p1002_gaps.py（脚本内联编译链接新址
-# p3_wcs.cpp）+ 单元测试 lib/algorithms/projection/tests/p3wcs/p3_wcs_test.cpp
-# （ctest 名 p3_wcs，W4-A9 批次 1 共址化）），
+# 循环 p3_wcs_pix2world；独立解析解回归 eng/tests/backend/test_p1002_gaps.py
+# （脚本内联编译链接本址 p3_wcs.cpp），
 # 模块化迁移（独立模块源 acsd_p3_projection.dll / C ABI adapter /
 # plan-execute-cancel-inspect / ThreadLease 接线）由 P3-PROJ-IMPL 执行；
 # 验收级可执行测试由 P3-PROJ-TEST 建立（可执行面升级不冒认；设计冻结

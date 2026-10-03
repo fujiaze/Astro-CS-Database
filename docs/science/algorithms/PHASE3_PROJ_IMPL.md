@@ -715,10 +715,10 @@ eng/tests/backend/test_p1002_gaps.py 承载（独立解析解，非生产代码
 ## 参考文献与参考代码库（含许可证）
 
 
-- 投影 native↔celestial：Calabretta & Greisen 2002, A&A 395, 1077（Paper II）§2.1/§2.2/Table 1；本文件 §15.8 已给逐条文献锚，本节只补代码库。
-- CRPIX/CRVAL 不变量：Greisen & Calabretta 2002, A&A 395, 1061（Paper I）§2.1.1。
+- 投影 native↔celestial：Calabretta & Greisen 2002, A&A 395, 1077（Paper II）§2.1/§2.3 式(2)–(7)/§5.1.3 式(54)（旋转矩阵形式见附录 A.1）；本文件 §15.8 已给逐条文献锚，本节只补代码库。
+- CRPIX/CRVAL 不变量：Greisen & Calabretta 2002, A&A 395, 1061（Paper I）§2.1.1 式(1)（q_i=Σ_j m_ij(p_j−r_j)）与 §2.1.4（1-based）。
 - 可执行标准：astropy 7.0.1（BSD-3-Clause）/WCSLIB（LGPL-3.0）逐点对拍（R-1 §2）。
-- 各投影原始定义（TAN/SIN/CAR/AIT/STG/MOL/CEA/ZEA）见 Paper II Table 1 及其引用（Aitoff 1889；Mollweide 1805；Lambert 1772 等）；Astro Celestial Sphere Database（ACSD） 逐式以 Paper II 为准。
+- 各投影原始定义（TAN/SIN/CAR/AIT/STG/MOL/CEA/ZEA）见 Paper II Table 12（投影代码表）及其引用（Aitoff 1889；Mollweide 1805；Lambert 1728–1777 等）、各投影公式见 §5；Astro Celestial Sphere Database（ACSD） 逐式以 Paper II 为准。
 - 3D 向量 oracle：Project-defined 第一性原理推导（§15.8）。
 
 参考代码库（含许可证）正本 = docs/engineering/SCIENTIFIC_REFERENCES.md §M。

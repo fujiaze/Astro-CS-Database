@@ -7,13 +7,10 @@
 "C=40B 而镜像=32B" 的镜像分叉: 按镜像语义传 3 个 SNR 点会静默错位写数据,
 第 3 条 snr 落进 ra_deg 槽并越界读 24 字节, rc 仍为 0)。
 
-机器锁
-    ctest 目标 aio_abi_layout_lock (lib/infrastructure/aio/tests/abi/
-    aio_abi_layout_lock.py) 编译 C 探针 (aio_abi_layout_probe.cpp, 只 include
-    aio_hips.h), 读取其 sizeof/alignof/逐字段 offsetof JSON, 与本模块逐字段
-    比对: 字段名/顺序/offset/size/结构体 sizeof/alignof 任一不一致 => FAIL;
-    aio_abi_layout_lock_selfcheck 用被篡改的镜像 (字段重排 + 常量污染) 反向
-    证明该门非恒真。
+ABI 一致性对账
+    用 C 探针 (只 include aio_hips.h) 读取 sizeof/alignof/逐字段 offsetof JSON,
+    与本模块逐字段比对: 字段名/顺序/offset/size/结构体 sizeof/alignof 任一
+    不一致 => FAIL。
 
 ABI 自描述
     四个跨边界结构首部两个 uint32_t: struct_size @0, abi_version @4。

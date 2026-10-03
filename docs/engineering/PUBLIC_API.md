@@ -720,7 +720,7 @@ manifest 字段 dtype 逐项登记；坐标/单位词汇沿用 GLOSSARY（ADU/0-
   photometry→Photometer、noise-snr→NoiseModel、drizzle→hp_drizzle_run、
   writer→aio_write_fits；子节点不调完整 phase_session_run）；P1Api/SessionModule
   为兼容面。CLI/测试之外无其他直接调用方（生产可达性锚 = 生产可达性判据与
-  管线追踪判据，载体见 门禁注册面（G08-10 重建））。
+  管线追踪判据）。
 - star-psf 走 lib/algorithms/star_detection 生产检测（sdet C 头，StarDetector C++ 类
   为薄包装）+ lib/algorithms/psf `dpsf_fit_batch_f64`（Moffat4 FP64 批量 PSF 拟合，
   DATA-P1-PSF 携 psf_params:FLOAT64[N,9]）。

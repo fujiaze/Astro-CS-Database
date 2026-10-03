@@ -11,8 +11,7 @@
 //     (p3_proj.h/.cpp, kProjectionRegistryVersion=3) 已实现 4/8
 //     (TAN/SIN/CAR/AIT), 但**会话/产品面收窄为仅 TAN**; 内核行不是产品声明。
 //
-// 三层集合（本文件是唯一权威; 机器判据见 p3_proj_registry_selfcheck 与共址测试
-// lib/algorithms/projection/tests/p3wcs/p3_projection_registry_test.cpp）:
+// 三层集合（本文件是唯一权威; 机器判据见 p3_proj_registry_selfcheck）:
 //   ① 冻结集 F = DESIGN §6.3 八投影（p3_proj_frozen_table）;
 //   ② 实现集 I = 生产路径真正有内核的码（p3_proj_is_implemented）;
 //   ③ 声明集 D = 可作为产品声明的码（p3_proj_is_declared）。

@@ -20,9 +20,9 @@
   ],
   "x-acsd-notes": [
     "迁移原因（实测）：原文件内容为 BENCH-004 旧 schema（schema_version=1），而 lib/infrastructure/benchmark/backend_host/profile_gen.h:21 明确 eng/contracts/schemas/cpu_profile.schema.json 即 v2 schema；实现已在写/校 v2（profile_gen_v2.cpp、profile_store.h:10-18）。迁移把两条分支并入唯一文件，消除「schema 文件与实现口径分裂」。",
-    "兼容面（既有检查项不变）：eng/tests/backend/test_cpu_profile.py:74-79 读取顶层 required 与 properties.kernels.items.required；eng/tools/validate_cpu_profile.py:41-70 读取顶层 required/additionalProperties/properties。故顶层 required 取两分支共有键 [build, kernels]，顶层 properties 同时登记两分支全部顶层键，完整字段约束分别落在 $defs.legacy_v1 / $defs.profile_v2。",
-    "兼容取舍（如实登记，需负责人知悉）：为让同一文件同时容纳 v1 数组与 v2 对象，顶层 properties.kernels.type = ['array','object']，因此 eng/tools/validate_cpu_profile.py:65 的 rule.get('type')=='array' 分支对该字段不再生效。v1 kernel 项约束由 $defs.legacy_v1.properties.kernels.items -> $defs.kernel_v1（顶层镜像等价）强制，并由 eng/tests/config 负例复跑证明其仍能红（docs/engineering/CONFIG_CONTRACT.md §5、eng/tests/config/fixtures/negative/cpu_profile_v1_bad_kernel.json）。",
-    "kernel 约束接线（W5-CPU-001，2026-09-17）：$defs.kernel_v1 现由 $defs.legacy_v1.properties.kernels.items $ref（v1 kernels[] 项约束），$defs.kernel_v2 现由 $defs.profile_v2.properties.kernels.additionalProperties $ref（v2 kernels{} 行约束）；两处 refs=1/1（登记 eng/packaging/config/config_registry.json#cpu_profile_kernel_link，门 CFG002-10）。顶层 properties.kernels.items/.additionalProperties 保留等价镜像以服务既有读取面（eng/tests/backend/test_cpu_profile.py:78、eng/tools/validate_cpu_profile.py:68），镜像与 $defs 逐字一致由 eng/tests/config 门钉死（漂移即红）。接线不收紧既有约束：镜像与 $defs 在接线时为同一约束（eng/tests/config/test_cfg001_negative.py::TestNegativeFixturesMustFail::test_cpu_profile_kernel_defs_are_wired_and_enforced 断言 JSON 相等）。",
+    "兼容面（既有检查项不变）：eng/tools/validate_cpu_profile.py:41-70 读取顶层 required/additionalProperties/properties。故顶层 required 取两分支共有键 [build, kernels]，顶层 properties 同时登记两分支全部顶层键，完整字段约束分别落在 $defs.legacy_v1 / $defs.profile_v2。",
+    "兼容取舍（如实登记，需负责人知悉）：为让同一文件同时容纳 v1 数组与 v2 对象，顶层 properties.kernels.type = ['array','object']，因此 eng/tools/validate_cpu_profile.py:65 的 rule.get('type')=='array' 分支对该字段不再生效。v1 kernel 项约束由 $defs.legacy_v1.properties.kernels.items -> $defs.kernel_v1（顶层镜像等价）强制（判据见 docs/engineering/CONFIG_CONTRACT.md §5）。",
+    "kernel 约束接线（W5-CPU-001，2026-09-17）：$defs.kernel_v1 现由 $defs.legacy_v1.properties.kernels.items $ref（v1 kernels[] 项约束），$defs.kernel_v2 现由 $defs.profile_v2.properties.kernels.additionalProperties $ref（v2 kernels{} 行约束）；两处 refs=1/1（登记 eng/packaging/config/config_registry.json#cpu_profile_kernel_link，门 CFG002-10）。顶层 properties.kernels.items/.additionalProperties 保留等价镜像以服务既有读取面（eng/tools/validate_cpu_profile.py:68）。接线不收紧既有约束：镜像与 $defs 在接线时为同一约束。",
     "ISA 绑定：v2 的 ISA 级别由 kernels.*.provider ∈ {baseline,avx2,avx512} 与 host.features/xcr0 共同承载；不另造 isa/isa_level 死字段（锚点 isa(_[a-z0-9_]+)? / ^block(_[a-z0-9_]+)?$ 为命名族示例，生产者未写出）。",
     "无 profile 行为：无/失配 profile -> 回落 generic(baseline) + 动态多线程、不阻塞（profile_store.h:7-8,32），本 schema 不改变该行为。"
   ],
@@ -896,7 +896,7 @@
     }
   },
   "x-acsd-frozen-domains": {
-    "host.os_abi": "CFG-002 冻结（2026-09-17）：值域枚举 {linux, windows} 由生产者字面量集合推导（hardware_inspect.cpp:255-261、profile_gen_v2.cpp:568），非编造；平台面见 ENGINEERING_SPEC §1。原 x-acsd-pending-authority 登记随之撤销。负例见 eng/tests/config/fixtures/negative/cpu_profile_v2_bad_os_abi.json。",
+    "host.os_abi": "CFG-002 冻结（2026-09-17）：值域枚举 {linux, windows} 由生产者字面量集合推导（hardware_inspect.cpp:255-261、profile_gen_v2.cpp:568），非编造；平台面见 ENGINEERING_SPEC §1。原 x-acsd-pending-authority 登记随之撤销。",
     "note": "本键只登记「原 pending 项已冻结为枚举」的事实；枚举本体是 host.os_abi.enum（单一事实源），本处不重复取值。"
   },
   "x-acsd-pending-authority": {

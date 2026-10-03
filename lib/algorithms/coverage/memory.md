@@ -271,16 +271,13 @@ photometric scale、新 runtime I/O DLL。
 
 ### RESCUE-V3 B3-A4（2026-09-13，FIX-CI）
 
-- 根 `CMakeLists.txt` 在 `ACSD_BUILD_TESTS` 下新增
-  `add_subdirectory(lib/algorithms/coverage)`：六个 Phase2 gtest 门
-  （synthetic_gate/ivar_wiring/execution_options/routing/sampler_parallel/
-  async_io）首次进入全量 ctest（173 → 286 项）。CI 供应 libgtest-dev。
-- 六个 `gtest_discover_tests` 统一加 `TEST_PREFIX "phase2_<gate>."`，使
-  `ctest -N | grep -i synthetic` 命中 `phase2_synthetic_gate.*`。
-- `phase2_ivar_wiring` 以 `std::system("acsd-stage2 …")` 驱动 compatibility
-  工具：补 `add_dependencies(phase2_ivar_wiring acsd-stage2)`（该工具
-  EXCLUDE_FROM_ALL）并把命中路径加 `./` 前缀（/bin/sh 走 PATH 不认裸名）。
-  修复后 `ctest -R '^phase2_'` 113/113 PASS（0 failed）。
+- 该批次曾在 `ACSD_BUILD_TESTS` 下挂载本目录并注册六个 Phase2 gtest 门；
+  这些门连同 `gtest_discover_tests` 的 `TEST_PREFIX "phase2_<gate>."` 归一化
+  已随机器门禁退场（本目录现只保留 phase2 compat 库与三个 EXCLUDE_FROM_ALL 工具）。
+- `phase2_ivar_wiring` 当年以 `std::system("acsd-stage2 …")` 驱动 compatibility
+  工具，因此补了 `add_dependencies(phase2_ivar_wiring acsd-stage2)`（该工具
+  EXCLUDE_FROM_ALL）。该依赖守卫在本文件保留（`if(TARGET)` 形式），随门退场后
+  恒不成立，不再有实际效果。
 
 ## 2026-09-25 M3 裁决落地（rejection n≥16 档改投 winsorized）
 

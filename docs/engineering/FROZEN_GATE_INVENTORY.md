@@ -2,7 +2,7 @@
 
 > 上游：`docs/ACSD_DESIGN.md` §12.1（科学正确性）、`docs/engineering/SCIENCE_FREEZE.md`（冻结基线）、
 > `docs/science/algorithms/GATES_AND_TOLERANCES.md` §1 R1/R2（表内唯一来源、证据必需）
-> 机器判据：FG-01..FG-06（裁决器载体见 门禁注册面（G08-10 重建））
+> 机器判据：FG-01..FG-06（裁决器无在位载体）
 > 盘点表（机器可读）：`eng/tools/acceptance/frozen_gate_inventory.json`
 > 盘点时点 commit：`e9fa20d9`
 
@@ -10,7 +10,7 @@
 
 | 问 | 怎么判 |
 |---|---|
-| **是否真的在跑** | 只认机器证据：门禁注册面（G08-10 重建） 里的登记项，或已注册 ctest 目标名（`ctest -N` 实测 585 个）。写代码≠在跑 |
+| **是否真的在跑** | 只认机器证据：已注册 ctest 目标名（`ctest -N` 实测 585 个）。写代码≠在跑 |
 | **谁被通知** | 通知面必须具名：`product_log` / `ci_step` / `run_artifact`；写 `none` 就要说明 |
 | **有没有出口** | 出口 = 触发后是否有**制度化**的登记/处置面，不指技术上能不能绕开。`none` 必须带 `remediation` |
 
@@ -19,7 +19,7 @@
 | 门 | 在跑？ | 机器证据（详见盘点表） | 通知面 | 出口 |
 |---|---|---|---|---|
 | **F9-WCS-ABS**（DISP-WCS-001 / RESCUE F-9） | **是** | `lib/algorithms/platesolve/cpp/ipv/src/ipv_wcs.cpp`；ctest `p1wcs_negative` / `p1wcs_apbp` | product_log | 停工 + 登记面=档位判词记录 |
-| **G-RES-01**（L2 资源四条） | **裁决器在跑，当轮不跑** | 资源门判定域 = `docs/detail/infrastructure/21_observability.md` §8；CI 侧只登记 `L2-FROZEN-GATE-SELFTEST` / `L2-FROZEN-GATE-REPLAY`（注册面见 门禁注册面（G08-10 重建）） | run_artifact | record_and_justify |
+| **G-RES-01**（L2 资源四条） | **裁决器在跑，当轮不跑** | 资源门判定域 = `docs/detail/infrastructure/21_observability.md` §8；CI 侧只登记 `L2-FROZEN-GATE-SELFTEST` / `L2-FROZEN-GATE-REPLAY` | run_artifact | record_and_justify |
 | **G-P1-GATETABLE**（P1 检测/PSF/WCS 20 行门表） | **是** | `CHK-GATES-AND-TOLERANCES(-SELFTEST)`；20 行中 18 行的 `ctest:` 证据 ID 实测全部解析成功 | ci_step | 降级为诊断 |
 | **A6-GATE-PHOT**（P1 测光 σ 双边界） | **不在跑**（已声明缺口） | `checks.json` 161 条中 `实验/` 只出现在 `changed_paths`，0 条作为执行面；插件文档自述「判据尚未在代码中生效」 | **none** | **none** |
 | **L4-SEAM-FOOTPRINT**（接缝门） | 注册在跑，零产品时跳过 | `CHK-L4-SEAM-FOOTPRINT`；其 PRODUCT 步的 `optional_inputs` 实测不存在 | ci_step | 降级为诊断 |
@@ -34,7 +34,7 @@
 触发事件在轮次报告里有记，**产品面（manifest / 判词记录）无记录**，等价于「停工且无登记面」：
 只看产品面的人无法区分本档是「首帧中止」还是「全批失败」。
 
-登记面定义见 TV-03 / TV-06 / TV-12（档位判词记录面，载体见 门禁注册面（G08-10 重建））。
+登记面定义见 TV-03 / TV-06 / TV-12（档位判词记录面）。
 
 **处置方案（本轮已落地一半）**：
 1. 登记面 = 档位判词记录（TV-03/TV-06/TV-12）；
@@ -67,7 +67,7 @@
 
 ## 3 可执行证据
 
-裁决入口随 门禁注册面（G08-10 重建） 落盘（`--self-test` = 正例 1/1 + 注入负例 6/6）。
+裁决入口由门禁执行器提供；本仓无在位的门禁注册面与执行器（`--self-test` 契约 = 正例 1/1 + 注入负例 6/6）。
 
 实测：`FROZEN_GATE_EXIT_PASS: gates=7 无出口=2 已声明未运行缺口=1 red_rules=0`。
 「无出口=2」= A6-GATE-PHOT + CPU-PROFILE-BIND，二者均已带 `remediation`；
@@ -75,6 +75,6 @@
 
 ## 4 本盘点不做的事
 
-- 不改任何阈值、不改任何冻结定义、不改 门禁注册面（G08-10 重建）（本轮硬约束）；
+- 不改任何阈值、不改任何冻结定义（本轮硬约束）；
 - 不重跑全量端到端、不跑重计算批次；
 - 「是否在跑」只做静态取证（读 `checks.json` + `ctest -N`），未实跑各门。

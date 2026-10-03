@@ -74,7 +74,7 @@ target_link_libraries(acsd_catalog_gaia PRIVATE Threads::Threads)
 # 不改为可选依赖、不摘除 REQUIRED (裁决 R-12/R-13): 找不到 zlib 一律
 # configure 期 fail-fast。本节不按 MSVC 门控 (与根段的差异仅在此: gaia 走
 # imported target, 不拼 MSVC 专有 .lib 路径), 使该消费口径可在 Linux 侧同构
-# 复验 —— 见 lib/infrastructure/gaia_xpsd_client/tests/test_gaia_zlib_configure_contract.py。
+# 复验 —— zlib configure 合同脚本已随机器门禁退场。
 #
 # ⚠ 条件写法硬约束: 二② 的环境变量判空**必须**用字符串比较
 # (NOT "$ENV{ACS_ZLIB_LIB}" STREQUAL ""), 不得写成 if(ENV{ACS_ZLIB_LIB}) ——

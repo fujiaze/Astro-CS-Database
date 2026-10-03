@@ -48,7 +48,7 @@
           "symbol": "file"
         }
       ],
-      "note": "与 eng/ci/ledgers/registry_ir_parity.json 的两条 registered_not_in_ir 构成同一事实的双登记面（端口面 ↔ IR 面），不重复计数。"
+      "note": "该端口名与 IR 面构成同一事实的双登记面（端口面 ↔ IR 面），不重复计数。"
     }
   ],
   "note": "**判据完整性边界（ARCH-AUDIT-01 M-4，已由 REGISTRY-ALIGN-01 收口）**：本册的机器门（check_block_flow_conformance.py D1–D8）只校验「已登记条目的证据是否腐烂」。注册表端口面与代码真实数据流的**双向**一致性自 REGISTRY-ALIGN-01 起由 eng/tools/quality/check_block_flow_ports_vs_code.py 机器保证（C1 结构 / C2 声明⇒实现 / C3 实现⇒声明 / C3b 载体一致 / C4 方向一致 / C5 载体合同 / C6 非退化，自测 14/14 含 13 条负例）。本册不再承担「登记册是否完整」的职责，只保留代码侧未解决项。"

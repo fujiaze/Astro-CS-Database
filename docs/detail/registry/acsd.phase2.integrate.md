@@ -190,14 +190,14 @@ worker 数 = ThreadBudget.max_workers（禁 hardware_concurrency）；lease / �
 （ALG-P2-INT-001 §11.4：常量场 bitwise / 零权重惰性 / 五态穷尽 / 支撑 max 门 /
 NumPy 参考 rtol 1e-12 / 并行 1..N 线程 bitwise + ACR↔CPU 等价）。
 
-现状相邻证据（引用不冒认）：lib/algorithms/coverage/tests/synthetic_gate.cpp 的
-Phase2Integrate 组 + weight policy 门 + ACR↔CPU 等价组；
-eng/tests/backend/test_p2004_reject_integrate.py（生产 Oracle，含 DRIVER_SRC 段）。
+已取证但载体不在仓内的相邻结论（不冒认）：Phase2Integrate 组与 weight policy 门、
+ACR↔CPU 等价组，以及含 DRIVER_SRC 段的生产 Oracle 读数。这些读数不在本仓可复算路径上，
+引用时只作背景。
 
 Oracle 面：
 
 - 独立高精度矩阵 / NumPy oracle 验证 GLS、Q / W、covariance；
-- 注入点源满足合并后信噪比的平方近似等于各帧信噪比平方之和（独立、模型正确）；
+- 注入点源在独立帧下满足组合方差等于各帧信息量之和的倒数（与实测 flux dispersion 对拍，相关帧须判简单求和被拒）；
 - 不同 seeing / 透明度 / 背景组合下点源检测功率 ≥ 普通 ivar 叠加；
 - **SNR 路径**：三条路径输出正确，适用域入 `实验/absolute-snr`；
 - **SNR 重建**：稀疏→稠密重建与帧级铺满重建分别验证；**逐像素**权重按

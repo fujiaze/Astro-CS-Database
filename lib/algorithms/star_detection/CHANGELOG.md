@@ -15,7 +15,7 @@
    dependency-lock.json/DEPENDENCIES.md 删除 gsl 条目、CI 工具链与测试驱动同步。
 
 ### 理由
-Windows 平台无 GSL 来源（`lib/algorithms/psf/tests/p1psf/CMakeLists.txt` 原在 configure 期
+Windows 平台无 GSL 来源（psf 模块的 p1psf 兼容测试 CMakeLists 原在 configure 期
 fail-fast），且 GSL 属 GPL 族并经 `acsd_p1_sdet → acsd_module_adapters → acsd` 进入
 产品 exe 动态链（`license_review: PENDING_OWNER`）。
 

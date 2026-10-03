@@ -114,7 +114,7 @@
         "ZWO G",
         "ZWO R"
       ],
-      "description": "滤镜库键，必须逐字命中 eng/packaging/config/filters.json 的 filters 键（未知滤镜 -> error，docs/ACSD_DESIGN.md §3.3/:144；enum 由 eng/tests/config 断言与滤镜库逐项相等）"
+      "description": "滤镜库键，必须逐字命中 eng/packaging/config/filters.json 的 filters 键（未知滤镜 -> error，docs/ACSD_DESIGN.md §3.3/:144）"
     },
     "precision": {
       "enum": [

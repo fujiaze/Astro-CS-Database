@@ -1322,8 +1322,63 @@ int p2_reject_plan_resolve_n(std::uint32_t nominal_n,
 
 namespace {
 
-// policy core：对 count 个样本做 finite/valid/support/quality 判定，
+// ===== 资格判定的唯一事实源（SCI REJECTION §4(:52)/§8(:146)）=====
+//
+// 五道门按**固定次序**求值，返回**首个**不通过的门。判据只在本文件这一处
+// 写：连续版（eligibility_core）、strided 生产收集器
+// （p2_collect_candidate_stack）、compat adapter 的 eligible→original 映射
+// （p2_reject_stack）都只经本函数求值。
+//
+// 为什么必须是单一事实源：本文件曾出现「资格层按四道门（含权重非有限）
+// 构造紧凑数组、映射循环却只按三道门（漏权重）推进索引」的写法，于是
+// 被资格层剔除的样本仍占用一次下标推进 ⇒ 判据数组被读到尾部之外；读到
+// ACCEPTED/UNDERDETERMINED 就把该样本静默写成已接受。**两处各写一遍的
+// 条件必然再次走偏**，故此处不接受任何调用方自行复述。
+enum class EligGate {
+    kPass, kFinite, kValid, kWeightFinite, kSupport, kQuality
+};
+
+// 入参一律给**元素地址**（nullptr = 该门不参与）：指针是否为 nullptr 就是
+// 「这道门是否参与」的唯一表述，调用方无法靠漏传一个布尔量悄悄绕过门。
+inline EligGate eligibility_gate(
+    double value,
+    const std::uint8_t* valid_p,
+    const double* weight_p,
+    const double* support_p,
+    const std::uint32_t* quality_p,
+    double support_threshold,
+    std::uint32_t quality_flags_required) {
+    if (!std::isfinite(value)) return EligGate::kFinite;
+    if (valid_p != nullptr && *valid_p == 0) return EligGate::kValid;
+    if (weight_p != nullptr && !std::isfinite(*weight_p))
+        return EligGate::kWeightFinite;
+    if (support_p != nullptr && !(*support_p > support_threshold))
+        return EligGate::kSupport;
+    if (quality_p != nullptr && quality_flags_required != 0 &&
+        (*quality_p & quality_flags_required) != quality_flags_required)
+        return EligGate::kQuality;
+    return EligGate::kPass;
+}
+
+// 诊断计数（与判据同源）：非有限值与非有限权重同归 invalid_finite。
+inline void eligibility_tally(EligGate g, std::uint32_t* out_finite,
+                              std::uint32_t* out_valid,
+                              std::uint32_t* out_support,
+                              std::uint32_t* out_quality) {
+    switch (g) {
+        case EligGate::kFinite:
+        case EligGate::kWeightFinite: ++*out_finite; break;
+        case EligGate::kValid: ++*out_valid; break;
+        case EligGate::kSupport: ++*out_support; break;
+        case EligGate::kQuality: ++*out_quality; break;
+        case EligGate::kPass: break;
+    }
+}
+
+// policy core：对 count 个样本做 finite/valid/weight/support/quality 判定，
 // 合格者按序写入 out_vals（可带 weights），返回合格数。
+// out_eligible 非空时逐样本写回 1/0 verdict —— 下游「紧凑下标 → 原始 slot」
+// 的映射一律读它，不再复述判据（见上方为什么必须是单一事实源）。
 std::uint32_t eligibility_core(
     const double* values, const double* weights, const std::uint8_t* valid,
     const double* support, const std::uint32_t* quality,
@@ -1335,21 +1390,17 @@ std::uint32_t eligibility_core(
     std::uint32_t cnt = 0;
     *out_finite = 0; *out_valid = 0; *out_support = 0; *out_quality = 0;
     for (std::uint32_t i = 0; i < count; ++i) {
-        bool ok = true;
-        if (!std::isfinite(values[i])) { ++*out_finite; ok = false; }
-        else if (valid != nullptr && !valid[i]) { ++*out_valid; ok = false; }
-        else if (weights != nullptr && !std::isfinite(weights[i])) {
-            // SCI REJECTION §4/§8：非有限 weights 在资格层判不合格
-            // （INVALID_INPUT hard fail 由 kernel 入口 p2_reject_stack_ex 给出）。
-            ++*out_finite; ok = false;
-        }
-        else if (support != nullptr && !(support[i] > support_threshold)) {
-            ++*out_support; ok = false;
-        } else if (quality != nullptr && quality_flags_required != 0 &&
-                   (quality[i] & quality_flags_required) !=
-                       quality_flags_required) {
-            ++*out_quality; ok = false;
-        }
+        // SCI REJECTION §4/§8：五道门（非有限 weights 在此判不合格；
+        // INVALID_INPUT hard fail 由 kernel 入口 p2_reject_stack_ex 给出）。
+        const EligGate gate = eligibility_gate(
+            values[i], valid != nullptr ? &valid[i] : nullptr,
+            weights != nullptr ? &weights[i] : nullptr,
+            support != nullptr ? &support[i] : nullptr,
+            quality != nullptr ? &quality[i] : nullptr,
+            support_threshold, quality_flags_required);
+        eligibility_tally(gate, out_finite, out_valid, out_support,
+                          out_quality);
+        const bool ok = (gate == EligGate::kPass);
         if (out_eligible) out_eligible[i] = ok ? 1 : 0;
         if (ok) {
             out_vals[cnt] = values[i];
@@ -1422,45 +1473,42 @@ int p2_collect_candidate_stack(const P2EligibilityGatherInput* in,
         const double v = is_f32
             ? (double)vf[(std::size_t)s * in->value_stride + in->pixel]
             : vd[(std::size_t)s * in->value_stride + in->pixel];
-        bool ok = true;
-        if (!std::isfinite(v)) { ++out->invalid_finite; ok = false; }
-        else if (in->valid != nullptr &&
-                 !in->valid[(std::size_t)s * in->valid_stride + in->pixel]) {
-            ++out->invalid_valid; ok = false;
-        } else if (in->weights != nullptr &&
-                   !std::isfinite(
-                       is_f32 ? (double)wf[(std::size_t)s * in->weight_stride +
-                                           in->pixel]
-                              : wd[(std::size_t)s * in->weight_stride +
-                                   in->pixel])) {
-            // SCI REJECTION §4/§8：非有限 weights 在资格层判不合格。
-            ++out->invalid_finite; ok = false;
-        } else if (in->support != nullptr &&
-                   !((is_f32
-                          ? (double)sf[(std::size_t)s * in->support_stride +
-                                       in->pixel]
-                          : sd[(std::size_t)s * in->support_stride +
-                               in->pixel]) > in->support_threshold)) {
-            ++out->invalid_support; ok = false;
-        } else if (in->quality != nullptr && in->quality_flags_required != 0 &&
-                   (in->quality[(std::size_t)s * in->quality_stride +
-                                in->pixel] & in->quality_flags_required) !=
-                       in->quality_flags_required) {
-            ++out->invalid_quality; ok = false;
-        }
-        if (ok) {
+        // 判据只经 eligibility_gate 求值（与连续版同一 policy core，
+        // SCI REJECTION §4/§8）；此处只负责按 dtype 取元素地址。
+        const std::uint8_t vv =
+            (in->valid != nullptr)
+                ? in->valid[(std::size_t)s * in->valid_stride + in->pixel]
+                : 1u;
+        const double wv = (in->weights != nullptr)
+            ? (is_f32
+                   ? (double)wf[(std::size_t)s * in->weight_stride + in->pixel]
+                   : wd[(std::size_t)s * in->weight_stride + in->pixel])
+            : 0.0;
+        const double sv = (in->support != nullptr)
+            ? (is_f32
+                   ? (double)sf[(std::size_t)s * in->support_stride + in->pixel]
+                   : sd[(std::size_t)s * in->support_stride + in->pixel])
+            : 0.0;
+        const std::uint32_t qv = (in->quality != nullptr)
+            ? in->quality[(std::size_t)s * in->quality_stride + in->pixel]
+            : 0u;
+        const EligGate gate = eligibility_gate(
+            v, in->valid != nullptr ? &vv : nullptr,
+            in->weights != nullptr ? &wv : nullptr,
+            in->support != nullptr ? &sv : nullptr,
+            in->quality != nullptr ? &qv : nullptr,
+            in->support_threshold, in->quality_flags_required);
+        eligibility_tally(gate, &out->invalid_finite, &out->invalid_valid,
+                         &out->invalid_support, &out->invalid_quality);
+        if (gate == EligGate::kPass) {
             out->values[cnt] = v;
             // 显式保留原始 slot 映射（eligible → original）
             if (out->source_indices != nullptr)
                 out->source_indices[cnt] = s;
             if (in->weights != nullptr && out->weights != nullptr)
-                out->weights[cnt] = is_f32
-                    ? (double)wf[(std::size_t)s * in->weight_stride + in->pixel]
-                    : wd[(std::size_t)s * in->weight_stride + in->pixel];
+                out->weights[cnt] = wv;
             if (in->support != nullptr && out->support != nullptr)
-                out->support[cnt] = is_f32
-                    ? (double)sf[(std::size_t)s * in->support_stride + in->pixel]
-                    : sd[(std::size_t)s * in->support_stride + in->pixel];
+                out->support[cnt] = sv;
             if (in->frame_ids != nullptr && out->frame_ids != nullptr)
                 out->frame_ids[cnt] = in->frame_ids[s];
             ++cnt;
@@ -2242,25 +2290,30 @@ int p2_reject_stack(const P2SampleStackView* in, P2RejectionResult* out) {
     for (std::uint32_t i = 0; i < n; ++i)
         if (!std::isfinite(in->values[i])) has_nonfinite = true;
 
-    // 资格层（同一 policy core：finite/valid/support）
+    // 资格层（同一 policy core：finite/valid/weight/support；判据只在
+    // eligibility_gate 一处）
     ScratchVec<double> vals, wgt;
     ScratchVec<std::uint64_t> fids;
+    ScratchVec<std::uint8_t> eligible;
     vals.resize(n);
     if (in->weights != nullptr) wgt.resize(n);
     if (in->frame_ids != nullptr) fids.resize(n);
+    // 映射面：资格层逐样本 verdict（1=合格）。下面两处「紧凑下标 → 原始
+    // slot」的索引推进一律读它，**不得**再复述 finite/valid/support 条件
+    // ——复述时漏掉一道门就会让被剔除的样本多推进一次下标，读到判据数组
+    // 尾部之外（越界读），读到 ACCEPTED/UNDERDETERMINED 即静默改判。
+    eligible.resize(n);
     std::uint32_t finite_c = 0, valid_c = 0, support_c = 0, qual_c = 0;
     const std::uint32_t m = eligibility_core(
         in->values, in->weights, in->valid, in->support, in->quality, n, 0.0,
-        0, vals.data(), wgt.empty() ? nullptr : wgt.data(), nullptr,
+        0, vals.data(), wgt.empty() ? nullptr : wgt.data(), eligible.data(),
         &finite_c, &valid_c, &support_c, &qual_c);
     if (in->frame_ids != nullptr)
         for (std::uint32_t i = 0; i < m; ++i) fids[i] = in->frame_ids[i];
     (void)has_nonfinite;
     if (m < (std::uint32_t)std::max(0, in->min_samples)) {
         for (std::uint32_t i = 0; i < n; ++i) {
-            if (!std::isfinite(in->values[i])) continue;
-            if (in->valid != nullptr && !in->valid[i]) continue;
-            if (in->support != nullptr && !(in->support[i] > 0.0)) continue;
+            if (!eligible[i]) continue;
             out->accepted[i] = 1;
         }
         out->status = P2_STATUS_MIN_SAMPLES;
@@ -2321,11 +2374,15 @@ int p2_reject_stack(const P2SampleStackView* in, P2RejectionResult* out) {
     dec.reasons = reasons.data();
     if (p2_reject_stack_ex(&st, &plan, &dec) != 0) return 1;
 
+    // eligible→original 映射：推进条件 = 资格层逐样本 verdict（单一事实源）。
+    // k 恰好在合格样本上推进一次，合格样本数 = m = dec.reasons 的长度 ⇒
+    // 读下标恒 < m（k ≤ m-1），结构上不可能读到数组尾之后。
+    // 改前此循环自带三道门（漏「权重非有限」），被资格层剔除的样本仍多推进
+    // 一次 ⇒ 尾后读；读到 0/3（P2_REASON_ACCEPTED / UNDERDETERMINED）即把该
+    // 样本静默写成已接受，并把其后所有样本的判据整体错位一格。
     std::uint32_t k = 0;
     for (std::uint32_t i = 0; i < n; ++i) {
-        if (!std::isfinite(in->values[i])) continue;
-        if (in->valid != nullptr && !in->valid[i]) continue;
-        if (in->support != nullptr && !(in->support[i] > 0.0)) continue;
+        if (!eligible[i]) continue;
         if (dec.reasons[k] == P2_REASON_ACCEPTED ||
             dec.reasons[k] == P2_REASON_UNDERDETERMINED)
             out->accepted[i] = 1;

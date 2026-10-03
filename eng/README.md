@@ -10,13 +10,12 @@
 
 ## 内容
 
-- ci/ —— 机器门注册表 checks.json 与确定性执行器 run_checks.py，以及各检查器脚本。
 - contracts/ —— 机器校验的合同 schema，唯一事实源。
-- tests/ —— 测试套件（单元/合同/集成/科学 Oracle 等），按主题分目录，test_index.csv 为套件索引。
+- tests/ —— tests/conformance/noop 为产品安装单元（模块 target 声明，不含测试）；tests/validation/release02 为可复跑实验资产。
 - cmake/ —— CMake 模块、平台工具链片段与安装布局。
 - build/ —— Linux 构建入口 build.sh 与 Windows 工具链入口 toolchain.ps1。
 - packaging/ —— 产品清单、程序全局配置（config/）、依赖锁、许可证与安装树校验。
-- tools/ —— 工具与质量检查器（quality/、doccheck/、arch/、astrometry/、monitoring/ 等）。
+- tools/ —— 工具与质量检查器（quality/、arch/、astrometry/、monitoring/ 等）。
 - run/ —— eng 侧本地运行工作区目录骨架。
 
 ## 上游

@@ -39,8 +39,7 @@
                          噪声差、扣 200px 对照线的净台阶、d 扫描、v1 的 excess 口径都只作**诊断量**
                          （v1 的 excess = median|seam| − median|ctrl| 对噪声差敏感，会把边缘余量的
                          高噪声判成接缝：run/VIS-E2E02-01/REPORT.md §1.1、run/SEAM-GATE-FIX-01/REPORT.md）。
-                         判据实现唯一事实源：eng/tools/e2e/seam_footprint.py（同一模块被 L4 机器门
-                         CHK-L4-SEAM-FOOTPRINT 使用；本脚本只做入口，不复制判据）。
+                         判据实现在仓内不携带：缺失时 V6 判红（fail-closed），不得改用 V4 代替。
                          fail-closed：缺 --p1-dirs（帧足迹）⇒ **判红**（V4 不得代替帧间接缝判据；
                          「无法判定」≠「无接缝」）。纯渲染用途可显式 --no-seam-eval 跳过，
                          此时报告记 seam_level_step.status = SKIPPED_BY_FLAG 并在结论行打印。
@@ -67,9 +66,8 @@ from PIL import Image
 
 REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 
-# V6 判据的**唯一事实源**：eng/tools/e2e/seam_footprint.py（与 L4 机器门
-# CHK-L4-SEAM-FOOTPRINT 共用同一实现，本脚本不复制判据）。同目录导入；依赖缺失时
-# V6 判红（fail-closed），不得静默跳过。
+# V6 判据模块按需同目录导入；仓内不携带该实现。依赖缺失时 V6 判红
+# （fail-closed，不得静默跳过，也不得改用 V4 代替）。
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 
@@ -245,7 +243,7 @@ def apply_frame_injection(data, hdr, p1_dirs, spec, frame_naxis=4096):
 
 def seam_level_step(data, hdr, p1_dirs, max_rel_step=1e-2, min_samples=20, frame_naxis=4096,
                     norm_d=2.0, ctrl_shift=200.0):
-    """V6：按**真实帧足迹**的电平阶跃判据（判据实现见 eng/tools/e2e/seam_footprint.py）。
+    """V6：按**真实帧足迹**的电平阶跃判据（判据实现在仓内不携带，缺失即判红）。
 
     与 V4 的本质差别在判据量本身：V4 比的是方差（局部尺度量），**电平阶跃不改变方差**
     ⇒ 对帧间接缝原理性失明；V6 直接量沿真实帧边界法向的**有符号**电平台阶（相对边界处的

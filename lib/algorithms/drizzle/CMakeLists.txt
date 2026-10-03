@@ -47,6 +47,7 @@ set(DRZ_AIO_SOURCES
     ${CMAKE_SOURCE_DIR}/lib/infrastructure/aio/src/hips/aio_hips_reader.cpp
     ${CMAKE_SOURCE_DIR}/lib/infrastructure/aio/src/hips/aio_hips_writer.cpp
     ${CMAKE_SOURCE_DIR}/lib/infrastructure/aio/src/healpix/aio_healpix_io.cpp
+    ${CMAKE_SOURCE_DIR}/lib/infrastructure/aio/src/aio_tile_geometry.cpp
     ${CMAKE_SOURCE_DIR}/lib/infrastructure/aio/src/hiss_codec.cpp
     ${CMAKE_SOURCE_DIR}/lib/infrastructure/aio/src/hiss_common.cpp
     ${CMAKE_SOURCE_DIR}/lib/infrastructure/aio/src/hiss_reader.cpp
@@ -73,8 +74,7 @@ target_sources(acsd_p1_drizzle PRIVATE ${DRZ_CFITSIO_SOURCES})
 # ── 第三方源的平台面: 与根 acsd_cfitsio **同一份**实现 ────────────────
 # 本目标同样把 vendored cfitsio 整套源再编一遍 (含 zcompress.c/zuncompress.c,
 # 二者 #include "zlib.h"), 故必须接上同一份平台垫片与 zlib 依赖包含面 ——
-# 判据与清单见 eng/cmake/cfitsio_platform.cmake 抬头 (核查器
-# eng/ci/check_cfitsio_platform_surface.py 的 I1/I2 对本目标逐条判定)。
+# 判据与清单见 eng/cmake/cfitsio_platform.cmake 抬头。
 if(NOT COMMAND acsd_cfitsio_apply_platform_shim)
   include("${CMAKE_SOURCE_DIR}/eng/cmake/cfitsio_platform.cmake")
 endif()

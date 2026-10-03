@@ -9,8 +9,8 @@
 //             「实现未声明 = 隐藏能力（禁止）」判据的对照面。
 // STATUS:     内核-only，非产品声明，未接入生产。生产 projection target
 //             acsd_p3_projection_wcs 只编 p3_wcs.cpp（TAN，lib/algorithms/projection/
-//             CMakeLists.txt:19）；本文件仅被 eng/tests/unit/p3_proj、eng/tests/integration/p3_export、
-//             lib/algorithms/projection/tests/p3wcs 三个测试 target 编译。
+//             CMakeLists.txt:19）；本文件仅被 eng/tests/unit/p3_proj、eng/tests/integration/p3_export
+//             两个测试 target 编译。
 //             **已知缺陷**：p3_proj.cpp:195 sin_world2pix 用
 //             ctheta = sqrt(1 - stheta^2)，投影中心 theta→pi/2 时灾难性消去 ⇒ 往返误差
 //             ∝ 1/离轴距离 × 1/像素角尺度、无上界：0.5"/px 实测 2.5e-5 px、0.05"/px 1.0e-4 px、
@@ -24,8 +24,7 @@
 //             kKernelOnly 提升为产品声明（需独立往返 Oracle + 适用域声明）；
 //             ② 复核裁决「退役」⇒ 随 v6 家族整体删除，删除需同批改
 //             eng/contracts/schemas/projection_registry.schema.json:5,9、
-//             lib/algorithms/projection/tests/p3wcs/CMakeLists.txt:16-19 与
-//             p3_projection_registry_test.cpp、eng/tests/unit/p3_proj/**、
+//             eng/tests/unit/p3_proj/**、
 //             eng/tests/integration/p3_export/**，以及 eng/ci/checks.json 的 p3_proj_* ctest_targets
 //             （DOC-403 文件域）。
 // AUTHORITY:  ENGINEERING_SPEC.md §2（历史实现处置：保留则注释）；docs/ACSD_DESIGN.md §6.3

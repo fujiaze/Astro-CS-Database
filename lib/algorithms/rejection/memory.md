@@ -66,11 +66,7 @@
   - DISP-P2REJ-004: minmax value-only tie-break 未显式冻结
     （sort :1667-1669，比较器仅 value），等值样本 permutation
     不变性未承诺。
-- 验证锚（相邻证据，引用不冒认）: lib/algorithms/coverage/tests/synthetic_gate.cpp
-  Phase2Rejection 组 :2639-2725（R1/G4 等）+ G6 组 :2779-2863
-  （ESD NIST Rosner 54/掩蔽/winsor≠sigma/permutation）+ V15-V17 组
-  :4138-4864（V16GatherStridedFp32Fp64 :4592、V17InvalidMethodStatus
-  :4763、V17LargeScale* :4798-4864）；eng/tests/backend/
+- 验证锚（相邻证据，引用不冒认）: eng/tests/backend/
   test_p2004_reject_integrate.py（P2-004 生产 Oracle）与
   eng/tests/unit/p2_rejection_test.cpp（P2-005）。可执行 TEST-P2-REJ-001
   MISSING（P2-REJ-TEST 建立）；登记面=TEST-P2-REJ-DESIGN-001 设计

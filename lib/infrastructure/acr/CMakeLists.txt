@@ -8,21 +8,20 @@ cmake_minimum_required(VERSION 3.24)
 # 本文件 = ACR 隔离实验树的唯一合法构建入口（standalone）：
 #   * 合法入口: 独立 configure（cmake -S lib/infrastructure/acr -B <dir> [选项]）。此时
 #     CMAKE_SOURCE_DIR == CMAKE_CURRENT_SOURCE_DIR → guard PASS，产出 ACR
-#     实验 targets（acr-* 工具 / acr-test-classic / qualification / tests），
+#     实验 targets（acr-* 工具 / acr-test-classic / qualification），
 #     全部位于用户显式指定的独立 build 目录；本文件不含任何 install 规则，
 #     不进入产品安装树/产品 manifest（BLD-003 白名单 install 唯一源 =
 #     eng/cmake/install_layout.cmake，其中无 ACR 条目）。
 #   * 禁止入口: 被生产构建 add_subdirectory() 引入。ACR 含独立 project()、
 #     FetchContent、全局 C++20/输出目录/编译选项设定，并入产品构建图会向生产
-#     泄漏编译标准、编译器选项与第三方依赖解析 → 直接 FATAL（机器负测见
-#     lib/infrastructure/acr/ci/check_acr_dormant.py NEG-ACR-001）。
+#     泄漏编译标准、编译器选项与第三方依赖解析 → 直接 FATAL（ACR-001
+#     NEG-ACR-001 机器负测）。
 #
-# 机器断言（lib/infrastructure/acr/ci/check_acr_dormant.py，ACR-001 验收）：
+# 机器断言（ACR-001 验收）：
 #   1) 默认/Release 根 configure target graph 无 ACR target（根 CMakeLists
 #     从不 add_subdirectory 本目录）；
 #   2) release preset（CMakePresets.json win-msvc-17.14.39-x64 / linux-control）
-#      ACSD_ENABLE_ACR=OFF（正式路径不接受 ON；eng/cmake/toolchain/
-#      verify_toolchain.py 对 formal path 强制 OFF）；
+#      ACSD_ENABLE_ACR=OFF（正式路径不接受 ON）；
 #   3) 显式 -DACSD_ENABLE_ACR=ON 的根 configure 仍不引入 ACR target ——
 #      ACR 实验树只能独立 configure（本 guard 即隔离实验 target 的机器边界）；
 #   4) install-tree contract / product manifest / install_layout 零 ACR/CUDA 条目。
@@ -41,7 +40,6 @@ message(STATUS "ACR-001 guard PASS: standalone experimental build tree "
                "ACR/CUDA never linked/loaded by production)")
 
 # ACR_BUILD_* 选项（ADR-009 CPU-only build gate）
-option(ACR_BUILD_TESTS        "Build ACR unit tests"               ON)
 option(ACR_BUILD_BENCHMARK    "Build acr-benchmark tool"           ON)
 option(ACR_BUILD_TOOLS        "Build acr-status/report" ON)
 option(ACR_BUILD_EXAMPLES     "Build standalone examples"          ON)
@@ -65,9 +63,6 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CUDA_STANDARD 17)
 set(CMAKE_CUDA_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
-
-# 启用 ctest（顶层调用，确保 build 根生成 CTestTestfile.cmake）
-enable_testing()
 
 if(NOT CMAKE_BUILD_TYPE)
     set(CMAKE_BUILD_TYPE Release CACHE STRING "Build type" FORCE)
@@ -123,7 +118,6 @@ FetchContent_Declare(cli11         GIT_REPOSITORY https://github.com/CLIUtils/CL
 FetchContent_Declare(onetbb        GIT_REPOSITORY https://github.com/uxlfoundation/oneTBB.git GIT_TAG v2022.0.0 GIT_SHALLOW TRUE)
 FetchContent_Declare(hwloc         GIT_REPOSITORY https://github.com/open-mpi/hwloc.git     GIT_TAG hwloc-2.11.2 GIT_SHALLOW TRUE)
 FetchContent_Declare(cpu_features  GIT_REPOSITORY https://github.com/google/cpu_features.git GIT_TAG v0.9.0     GIT_SHALLOW TRUE)
-FetchContent_Declare(googletest    GIT_REPOSITORY https://github.com/google/googletest.git    GIT_TAG v1.15.2     GIT_SHALLOW TRUE)
 FetchContent_Declare(benchmark     GIT_REPOSITORY https://github.com/google/benchmark.git    GIT_TAG v1.9.1      GIT_SHALLOW TRUE)
 FetchContent_Declare(alpaka        GIT_REPOSITORY https://github.com/alpaka-group/alpaka.git  GIT_TAG 1.2.0       GIT_SHALLOW TRUE)
 
@@ -166,7 +160,7 @@ target_compile_features(acr_options INTERFACE cxx_std_20)
 # ADR-008 原计划 FetchContent，但 oneTBB v2022.0.0 的 CMake 版本检测脚本
 # 与 MinGW g++ 16.1.0 不兼容（/dev/null 重定向 + 版本号解析失败）。
 # 务实 fallback：优先 MSYS2 系统包（find_package），FetchContent_Declare 仅作 ADR 记录。
-# dependency-lock.json 已记录版本差异（tbb 2023.0.0、gtest 1.17.0，来源 MSYS2）。
+# dependency-lock.json 已记录版本差异（tbb 2023.0.0，来源 MSYS2）。
 find_package(TBB QUIET)
 if(TBB_FOUND)
     message(STATUS "ACR: oneTBB found via system package: ${TBB_VERSION}")
@@ -177,20 +171,10 @@ else()
     set(TBB_STRICT OFF CACHE BOOL "" FORCE)
     FetchContent_MakeAvailable(onetbb)
 endif()
-if(ACR_BUILD_TESTS)
-    find_package(GTest QUIET)
-    if(GTest_FOUND)
-        message(STATUS "ACR: GoogleTest found via system package: ${GTest_VERSION}")
-    else()
-        message(STATUS "ACR: GTest system package not found, using FetchContent (googletest v1.15.2)")
-        set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
-        FetchContent_MakeAvailable(googletest)
-    endif()
-endif()
 
 # nlohmann_json：route_profile_v2.cpp 硬依赖（json.hpp），此前仅 FetchContent_Declare 未
 # MakeAvailable，Linux/MinGW 靠 gcc 默认 include 路径侥幸编译；MSVC 无该路径暴露。
-# 按 GTest 务实 fallback 模式：find_package 优先，缺失则 FetchContent。
+# 按 TBB 同一务实 fallback 模式：find_package 优先，缺失则 FetchContent。
 find_package(nlohmann_json QUIET)
 if(nlohmann_json_FOUND)
     message(STATUS "ACR: nlohmann_json found via system package: ${nlohmann_json_VERSION}")
@@ -228,8 +212,6 @@ foreach(subdir
     backends/cpu backends/alpaka backends/cuda backends/classic
     qualification scheduler utilization routing
     profile cost
-    tests eng/tools/acr_benchmark eng/tools/acr_status eng/tools/acr_report
-    eng/tools/acr_classic_runner
     examples
 )
     if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/${subdir}/CMakeLists.txt)
@@ -243,7 +225,6 @@ message(STATUS "  C++ standard:   ${CMAKE_CXX_STANDARD}")
 message(STATUS "  CUDA backend:   ${ACR_BUILD_CUDA} (default OFF, ADR-009)")
 message(STATUS "  HIP backend:    ${ACR_BUILD_HIP}")
 message(STATUS "  SYCL backend:   ${ACR_BUILD_SYCL}")
-message(STATUS "  Tests:          ${ACR_BUILD_TESTS}")
 message(STATUS "  Benchmark:      ${ACR_BUILD_BENCHMARK}")
 message(STATUS "  Tools:          ${ACR_BUILD_TOOLS}")
 message(STATUS "  Examples:       ${ACR_BUILD_EXAMPLES}")

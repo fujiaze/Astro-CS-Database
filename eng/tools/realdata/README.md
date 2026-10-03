@@ -41,12 +41,6 @@ python3 eng/tools/realdata/match_plan.py plan --testdata testdata \
    `NO_LUM_FLAT`），不得用其他滤镜 flat 顶替；
 5. **T1**：显式空集用例（0 帧 0 母版）→ `T1: empty(PASS)`，不是 skip。
 
-## 测试
+## 自检
 
-```bash
-python3 -m pytest eng/tests/realdata/ -q     # 匹配器正例/策略/四类负例 + index v1.2 校验
-python3 -m pytest eng/tests/monitoring/ -q   # 索引消费方回归
-```
-
-相关测试：`eng/tests/realdata/test_match_plan.py`（匹配语义）、
-`eng/tests/realdata/test_index_v12.py`（testdata/index.json v1.2 schema 与磁盘对账）。
+匹配器按需直接执行，命令与参数见上（`inventory` / `plan` 两个子命令）。

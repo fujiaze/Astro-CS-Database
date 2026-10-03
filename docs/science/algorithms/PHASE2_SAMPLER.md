@@ -216,9 +216,14 @@ y_ik = m0（收敛集位置估计）                     # :863
 - 该常数 = 1/Φ⁻¹(3/4)（Φ = 标准正态 CDF），是**正态族**的尺度一致性因子：
   对称分布且中位处密度 f(m)>0 连续时 MAD = F⁻¹_{|X−m|}(3/4)，σ̂ = MAD/Φ⁻¹(3/4)
   仅在 **f 为高斯** 时相合。出处：Rousseeuw, P. J. & Croux, C. 1993, JASA 88(424),
-  1273-1283, DOI 10.1080/01621459.1993.10476408（MAD 的一致性因子与有限样本修正）；
-  有限样本修正 b_n 表见 Croux, C. & Rousseeuw, P. J. 1992, *Computational Statistics*,
-  411-428, DOI 10.1007/978-3-662-26811-7_58。
+  1273-1283, DOI 10.1080/01621459.1993.10476408（该文把 `1.4826·MAD` 当**既有对照基线**引用，
+  研究对象是 `S_n`/`Q_n` 及其有限样本偏差校正的粗糙近似 ⇒ **该文不是本仓 MAD 有限样本修正的来源**；
+  口径与 `docs/science/algorithms/CALIBRATION_ALGORITHMS.md` §参考文献、
+  `docs/science/algorithms/COSMETIC_ALGORITHMS.md` §参考文献同条一致）；
+  有限样本修正 `b_n` 表见 Croux, C. & Rousseeuw, P. J. 1992, *Computational Statistics*,
+  411-428, DOI 10.1007/978-3-662-26811-7_58（**记号边界**：RC93 JASA（88, 1273）中字母 `b` 指
+  **渐近**一致性常数 b = 1.4826（式 1.2 p.1273），**不是**有限样本 `b_n`；JASA 1993 未重印
+  `b_n` 表，只在 p.1274/p.1277 交叉引用 ⇒ 有限样本表只引 1992 章）。
 - 本仓实测（`实验/absolute-snr/REPORT_experiment.md`，证据
   `evidence/e1e2_domain.json:mad_factor`，R=4×10⁵）：E[MAD×1.482602218505602]/σ_true =
   **0.9528 (N=17) / 0.9972 (N=289)**（高斯，判绿）；**1.275（均匀）**、

@@ -20,7 +20,6 @@
 #   .github/workflows/ci-windows.yml "Provide zlib (vcpkg)" 步（注入布局的合同声明）
 #
 # ── 包含面核查判据（included-surface invariant）─────────────────────────────
-#   核查器：eng/ci/check_cfitsio_platform_surface.py（静态、可判定、带正负例）
 #   I1  每个"编入 vendored cfitsio 源清单"的目标，必须经
 #       `acsd_cfitsio_apply_platform_shim(<target>)` 拿到 pthread 垫片包含面；
 #   I2  每个"编入含 zlib.h 的 vendored cfitsio TU"的目标，必须经

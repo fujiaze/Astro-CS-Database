@@ -610,10 +610,10 @@
       "registered_at": "eng/packaging/config/defaults.json#fields[].key=psf.default_model",
       "registered_key": "psf.default_model",
       "finding": "conflict",
-      "note": "与 psf.default_model=moffat4 对齐；检测/PSF 双模型差异已登记为设计缺口（检测侧椭圆高斯不属本模块）。**但本键生产零消费**（lib/ 全仓 grep `psf_model` / `default_model` 零命中），已作为 dead key 登记在 eng/ci/prod_wiring_baseline.json 的 dead_config_key 清单内（该面门为绿）；CLI 实况键名是 `algorithm_psf_model`（lib/infrastructure/cli/parser.cpp 平铺白名单），与本行的 `psf.default_model` **不同名**⇒ 两面相反，按登记册词表标 finding=conflict 并给出证据。",
+      "note": "与 psf.default_model=moffat4 对齐；检测/PSF 双模型差异已登记为设计缺口（检测侧椭圆高斯不属本模块）。**但本键生产零消费**（lib/ 全仓 grep `psf_model` / `default_model` 零命中）；CLI 实况键名是 `algorithm_psf_model`（lib/infrastructure/cli/parser.cpp 平铺白名单），与本行的 `psf.default_model` **不同名**⇒ 两面相反，按登记册词表标 finding=conflict 并给出证据。",
       "conflict": {
         "kind": "same_knob_two_keys",
-        "evidence": "eng/ci/prod_wiring_baseline.json（dead_config_key:psf.default_model；check_config_consumed.py 判绿）+ lib/infrastructure/cli/parser.cpp（session_keys 含 algorithm_psf_model）+ eng/contracts/schemas/phase_config_normalize.schema.json（algorithm_psf_model 定义）；docs/detail/algorithms_phase1/04_psf.md 声明的字段名为 psf_model、无算法前缀。",
+        "evidence": "lib/infrastructure/cli/parser.cpp（session_keys 含 algorithm_psf_model）+ eng/contracts/schemas/phase_config_normalize.schema.json（algorithm_psf_model 定义）；docs/detail/algorithms_phase1/04_psf.md 声明的字段名为 psf_model、无算法前缀。",
         "owner": "config_registry 面（键名收口：psf.default_model 与 algorithm_psf_model 须二择一并同步 defaults.json / schema / 插件文档），本行只登记不改口径。"
       },
       "anchor": {
@@ -2485,9 +2485,7 @@
     "derivation": "生产者字面量集合，非编造：lib/infrastructure/benchmark/backend_host/hardware_inspect.cpp（_WIN32->windows，否则->linux）；lib/infrastructure/benchmark/backend_host/profile_gen_v2.cpp（缺 os 字段回落 linux）；平台面由 ENGINEERING_SPEC.md §1（Windows 10+ amd64 / Linux amd64）封闭。",
     "consumers": [
       "lib/infrastructure/benchmark/backend_host/cpu_routing.cpp（os_abi 与 hw os.name 逐字比较，不等即 stale_machine）"
-    ],
-    "negative_fixture": "eng/tests/config/fixtures/negative/cpu_profile_v2_bad_os_abi.json（os_abi=freebsd -> oneOf 0 branches matched）",
-    "known_non_production_literal": "eng/tests/unit/cpu007_profile_store_test.cpp 用 linux-test 构造内存内 profile（不经 schema 校验）；该字面量非生产值，若将来把 schema 校验接进 profile_store，该夹具需同步（跨域：eng/tests/unit 归 QA/CPU 线）。"
+    ]
   },
   "index_ownership": {
     "sources": {
@@ -2502,40 +2500,18 @@
         "owns": "docs/** 与根治理文档",
         "required_entry": "docs/engineering/CONFIG_CONTRACT.md = ACTIVE_NORMATIVE（恰一次）",
         "owner": "DOC 线（eng/tools/doccheck/check_doc_index.py 为门）"
-      },
-      {
-        "index": "eng/tests/test_index.csv",
-        "owns": "eng/tests/** 子目录登记",
-        "required_entry": "eng/tests/config（恰一次）",
-        "owner": "QA/测试线"
-      },
-      {
-        "index": "eng/ci/checks.json + docs/engineering/01_CHECKS.md §2",
-        "owns": "CI 检查注册表（双向一致）",
-        "required_entry": "UT-CONFIG（eng/tests/config 的 unittest discover）",
-        "owner": "CI 线",
-        "status": "跨域未落：eng/ci/** 与 CI 门禁规范（工程正本内的检查项清单与门禁规范篇）不在本卡文件域（S6-A），已登记为交接项，见 CONFIG_CONTRACT §8"
       }
     ],
-    "test_index_known_unregistered": [
-      "eng/tests/conformance",
-      "eng/tests/integration",
-      "eng/tests/oracle",
-      "eng/tests/realdata",
-      "eng/tests/system",
-      "eng/tests/validation"
-    ],
-    "test_index_known_unregistered_note": "eng/tests/config 的登记已闭合；上列目录在 eng/tests/test_index.csv 中缺席（编制时实测，均有测试源但无登记行），属 QA/测试线登记缺口，已登记为交接项。机器门要求「未登记集合 == 本清单」：新增 eng/tests/** 目录必须先登记（fail-closed），清单缩小时必须同步。 追加 eng/tests/validation：验证工作区（L4/M16 真实数据验收与论文实验）。 退役登记项 eng/tests/gaia_zlib 已删除：该目录在真仓库不存在（目录本身与 test_index.csv 双向都不成立），属「登记了但已无对象」的死登记项；本清单是只减不增的棘轮，死项必须删除而不是留着提示。",
-    "gate": "机器门断言：①contracts/config/** 与 eng/packaging/config/** 无同名文件、无重复 schema 定义；②DOCUMENT_INDEX 中 CONFIG_CONTRACT.md 恰一次且 ACTIVE_NORMATIVE；③tests/test_index.csv 登记 eng/tests/config，且「未登记目录集合 == test_index_known_unregistered」（fail-closed）；④config/** 下不得出现 *.schema.json（防第二事实源）；⑤「登记项必须仍有对象」（棘轮，只减不增）：本清单每一条的目录必须真实存在，且必须仍是 test_index.csv 的未登记缺口；失效项 ⇒ 判红并要求删除登记 —— 由 PY-TEST-INDEX-VERDICTS（eng/ci/check_test_index.py R8）机器保证。"
+    "gate": "机器门断言：①contracts/config/** 与 eng/packaging/config/** 无同名文件、无重复 schema 定义；②DOCUMENT_INDEX 中 CONFIG_CONTRACT.md 恰一次且 ACTIVE_NORMATIVE；④config/** 下不得出现 *.schema.json（防第二事实源）。"
   },
   "cpu_profile_kernel_link": {
     "status": "LINKED",
-    "detail": "eng/contracts/schemas/cpu_profile.schema.json：$defs.kernel_v1 由 $defs.legacy_v1.properties.kernels.items $ref（v1 kernels[] 项约束），$defs.kernel_v2 由 $defs.profile_v2.properties.kernels.additionalProperties $ref（v2 kernels{} 行约束），refs=1/1。接线前约束已由顶层 properties.kernels.items/.additionalProperties 的等价镜像施加（镜像为既有读取面 eng/tests/backend/test_cpu_profile.py、eng/tools/validate_cpu_profile.py 保留），故本次接线不收紧既有 profile；镜像与 $defs 逐字一致 + 「剥离镜像后仍由分支 $ref 判红」由 eng/tests/config/test_cfg001_negative.py::TestNegativeFixturesMustFail::test_cpu_profile_kernel_defs_are_wired_and_enforced 钉死（漂移/退化即红）。",
+    "detail": "eng/contracts/schemas/cpu_profile.schema.json：$defs.kernel_v1 由 $defs.legacy_v1.properties.kernels.items $ref（v1 kernels[] 项约束），$defs.kernel_v2 由 $defs.profile_v2.properties.kernels.additionalProperties $ref（v2 kernels{} 行约束），refs=1/1。顶层 properties.kernels.items/.additionalProperties 保留等价镜像以服务既有读取面 eng/tools/validate_cpu_profile.py。",
     "refs": {
       "kernel_v1": 1,
       "kernel_v2": 1
     },
-    "handover": "已闭合：接线完成；负例 eng/tests/config/fixtures/negative/cpu_profile_v1_bad_kernel.json（size_class 越界）与 cpu_profile_v2_bad_kernel.json（provider 越界）必红；正向 v1/v2 夹具仍绿；producer 面无需改动（接线不收紧：镜像与 $defs 接线时为同一约束）。"
+    "handover": "已闭合：接线完成；producer 面无需改动（接线不收紧：镜像与 $defs 为同一约束）。"
   },
   "contract_doc_citations": {
     "structural_rule": "CONFIG_CONTRACT.md 内所有 文件:行 与 文件:a-b 引用必须：文件存在、行在范围内、起始行非空、范围升序（该面由 DOC-LINE-ANCHORS 门负责）。token_anchors 面不得内嵌行号（R-54 4 条）：每条 = 内容锚{id, path, quote, sha256} + value_text；判据 = 引文在目标文档内唯一命中 且 value_text 落在引文内 且 指纹自洽；CONFIG_CONTRACT.md 只须在文件级引用该 path。",
@@ -2808,7 +2784,7 @@
       "doc": "docs/detail/infrastructure/21_observability.md",
       "header": "字段|承载事实",
       "reason": "事件协议字段（承载事实 = 事件载荷语义），不是配置键；配置表解析只认白名单表头 字段|默认|单位|说明 / 字段|默认|说明 / 字段|说明。",
-      "authority": "eng/ci/check_event_field_sets.py；lib/infrastructure/cli/protocol.h"
+      "authority": "lib/infrastructure/cli/protocol.h"
     }
   ]
 }

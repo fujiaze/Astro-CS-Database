@@ -72,7 +72,7 @@ enum AioHipsDataType {
 // (照 ipv_api.h 的 ipv_get_default_params 样板: 未经初始化器的旧调用方在
 // 入口被明确拒绝, 而不是被静默按错误布局解释)。
 // Python 侧唯一权威镜像: lib/infrastructure/aio/tools/aio_abi_mirror.py
-// (机器锁 aio_abi_layout_lock 逐字段比对; 禁止在任何脚本里另抄一份 _fields_)。
+// (二者 sizeof/alignof/offsetof 须逐字段比对; 禁止在任何脚本里另抄一份 _fields_)。
 // ============================================================================
 #define AIO_HIPS_TILE_VIEW_ABI_VERSION      1u
 #define AIO_HIPS_SNR_POINT_ABI_VERSION      1u

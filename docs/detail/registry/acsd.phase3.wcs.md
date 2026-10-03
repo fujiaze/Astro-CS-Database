@@ -15,8 +15,8 @@
 > 架构正本：docs/engineering/ARCH-001.md
 > 门表事实源：docs/science/algorithms/GATES_AND_TOLERANCES.md §3
 > 落地设计：docs/detail/PHASE3_DETAILED_DESIGN.md §2
-> 引用文献：Greisen, E. W. & Calabretta, M. R. 2002, A&A 395, 1061（FITS WCS Paper I）；
-> Calabretta, M. R. & Greisen, E. W. 2002, A&A 395, 1077（Paper II）
+> 引用文献：见文末「参考文献」（角标用全角 `［N］`，因本文正文的半角 `[...]` 已被
+> 数值域区间与数组下标占用）
 
 模块 = `acsd.p3.projection`（module_id 合同值）；registry 行
 MOD-acsd-phase3-wcs；dll_target = `acsd_p3_projection.dll`（迁移合同值，
@@ -31,8 +31,7 @@ ALG-P3-002 / API-P3-001 / TEST-P3-WCS-001）与 module_id 合同值
 ## 1 身份与合同落位
 
 - 合同落位: lib/algorithms/projection/ 三件套（CONTRACT_READY）。
-- 生产源: lib/algorithms/projection/p3_wcs.cpp + 同目录签名头正本 p3_wcs.h；
-  同批迁入共址测试 eng/tests/p3wcs/（ctest p3_wcs）。
+- 生产源: lib/algorithms/projection/p3_wcs.cpp + 同目录签名头正本 p3_wcs.h。
 - 合同链: SCI-P3-001（docs/science/PHASE3_HIPS_TO_FITS.md，FROZEN；映射声明
   SCI-P3-WCS-001 ⇒ SCI-P3-001 见 ALG §5）→ ALG-P3-PROJ-IMPL-001（兼承接
   ALG-P3-002 本域子面 G1/G2）→ DATA-P3-WCS（DATA_SEMANTICS §28）+
@@ -142,7 +141,7 @@ ALG-P3-002 / API-P3-001 / TEST-P3-WCS-001）与 module_id 合同值
   CD1_2=sgn_y·s·sinPA/CD2_1=−sgn_x·s·sinPA/CD2_2=sgn_y·s·cosPA；
   det(CD)=−s²<0 手性冻结；P0 缺陷修复已合并（p3_wcs.cpp）。
 - G2 正向（p3_wcs.cpp）: (ξ,η)=CD·(pix−CRPIX)→θ=atan(1/r)→球面角
-  （Calabretta & Greisen 2002 形式）→RA wrap [0,360)。
+  （Calabretta & Greisen 2002［2］ 形式）→RA wrap [0,360)。
 - G2 反向（p3_wcs.cpp）: gnomonic (ξ,η)→δ=CD⁻¹·(ξ,η)→0-based 像素。
 - 容差: roundtrip **紧门** <1e-8 px（SCI §7 冻结；适用域与门限由
   `p3_wcs_applicability()` 单一事实源给出，`kTanApplicability`）——
@@ -185,10 +184,9 @@ ALG-P3-002 / API-P3-001 / TEST-P3-WCS-001）与 module_id 合同值
   T5 负面清单/T6 oracle=现状独立解析解→验收级 WCSLIB/T7 不变量
   回归）。
 - 本节承载 TEST-P3-WCS-001 登记面；可执行面待建（验收级 oracle=WCSLIB）。
-- 现状执行测试（相邻证据，引用不冒认）:
-  lib/algorithms/projection/tests/p3wcs/p3_wcs_test.cpp（WCS 完整性/溢出检查）+
-  eng/tests/backend/test_p1002_gaps.py（独立解析解回归）+
-  lib/algorithms/projection/tests/p3wcs/p3_wcs_main.cpp（探针 make/p2w/w2p/kw）。
+- 已取证但载体不在仓内的相邻结论（不冒认）: WCS 完整性/溢出检查读数、
+  独立解析解回归读数，以及 make/p2w/w2p/kw 探针读数。这些读数不在本仓可复算路径上，
+  引用时只作背景。
 - Oracle 面补充：Astropy / WCSLIB 独立正负投影**绝对对拍**（不只用往返 —— 往返
   对 CRVAL2 类缺陷零区分力）+ 往返（中心、边、wrap、极点、奇点）+ CRPIX ↔ CRVAL
   定义性不变量 + `dec0 ≠ 0` 用例；**八投影全覆盖测试**（每投影必须带独立 Oracle
@@ -212,3 +210,12 @@ ALG-P3-002 / API-P3-001 / TEST-P3-WCS-001）与 module_id 合同值
   剔除项逐条进场级计数。无覆盖/无数据 = NaN；0 与 ±Inf 不作有效值。
 - 输出语义守卫：只接受**面亮度**语义输入，端口 `UnitId::SURFACE_BRIGHTNESS`；输出模式
   `surface_brightness` / `point_source_flux` / `visualization` 显式声明（最高设计 §6.3）。
+
+## 参考文献
+
+- ［1］ Greisen, E. W.; Calabretta, M. R. (2002). "Representations of World Coordinates in
+  FITS". *Astronomy and Astrophysics* 395, 1061–1075（FITS WCS Paper I）.
+  DOI [10.1051/0004-6361:20021326](https://doi.org/10.1051/0004-6361:20021326)
+- ［2］ Calabretta, M. R.; Greisen, E. W. (2002). "Representations of Celestial Coordinates
+  in FITS". *Astronomy and Astrophysics* 395, 1077–1122（FITS WCS Paper II）.
+  DOI [10.1051/0004-6361:20021327](https://doi.org/10.1051/0004-6361:20021327)

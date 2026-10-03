@@ -1,10 +1,7 @@
 # eng/tools/perf/run_perf_synth_chain.py —— 小批量**合成数据**全流程性能驱动
 
-> 上游：\`run/FINAL-07/pkg/tasks/PERF-760_合成数据性能.md\`（任务书）、
-> \`run/FINAL-07/pkg/standards/05_性能与数值等价标准.md\`（验收标准 §1/§2/§5）、
-> \`docs/ACSD_DESIGN.md\` §8.3/§9、\`ACCEPTANCE_SPEC.md\` §4、
+> 上游：\`docs/ACSD_DESIGN.md\` §8.3/§9、
 > \`docs/detail/infrastructure/21_observability.md\` §8（G-RES-01 语义权威）、
-> \`docs/engineering/CI_SPEC.md\` §9（L2 冻结判据裁决面）、
 > \`eng/contracts/resource_gate_v1.json\`（**唯一**阈值数值源）。
 
 ## 1. 它是什么 / 不是什么
@@ -17,9 +14,7 @@
 
 ## 2. 为什么必须新建（任务书第 1 条的判定依据）
 
-规范路径的三命令串行驱动是 \`eng/tools/e2e/run_e2e_chain.py\`（登记面：
-\`eng/ci/checks.json\` 的 \`CHK-E2E-CHAIN\` / \`CHK-E2E-CHAIN-SELFTEST\`；纪律条款
-\`ENGINEERING_SPEC.md\` §13）。但它**只吃真实帧**——配置由 \`eng/tools/e2e/make_e2e_configs.py\`
+规范路径的三命令串行驱动是 \`eng/tools/e2e/run_e2e_chain.py\`，但它**只吃真实帧**——配置由 \`eng/tools/e2e/make_e2e_configs.py\`
 从 \`testdata/M42_T2T3_mosaic_Flying_dutchman/\`、\`testdata/Galaxy_Center_T4/\` 构造，
 含写死的 RA/Dec 中心。合成数据侧现有三件都不能独立驱动全链：
 
@@ -37,7 +32,9 @@
 | 层 | 实现 | 判据 | 语义 |
 |---|---|---|---|
 | ① 生产侧 G-RES-01 | \`eng/tools/monitoring/run_monitored.py::evaluate_frozen_gate\` | 硬失败：单活跃计算线程、低利用窗且队列有工作、无界内存增长；记录项：平均/p50/逐样本占比 | 阈值读 \`eng/contracts/resource_gate_v1.json\`；不适用（有效核<2 或区间 ≤10 s）为**显式分类** |
-| ② CI 裁决面 L2 | \`eng/ci/l2_frozen_gate.py::adjudicate\` | 四条：\`avg_utilization_ge_min\` / \`p50_utilization_ge_min\` / \`sample_pass_fraction_ge_min\` / \`no_low_utilization_window\` | \`docs/engineering/CI_SPEC.md\` §9.2 唯一正本；**违规必红**；分母未声明或门不适用按红 |
+
+> 现态说明：原第二层「CI 裁决面 L2」依赖已退场的门禁脚本与门禁规范篇，该层裁决面已下线；
+> 本工具只保留生产侧 G-RES-01 一层判据。
 
 外加本工具自有的两条**记录面**（不产生退出码，但越界即红并写进报告）：
 内存峰值 ≤ 声明预算（取实测正常峰值的 1.5–2 倍）、I/O 等待占比与写量（口径见 \`21_observability.md\` §8.7）。

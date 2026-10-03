@@ -436,8 +436,8 @@ struct PixelWeightResult {
    *
    * 「w 是否真的等于 1/σ_F²」在本仓此面**无有效机器判据**（证据资格 = 空）：
    * σ_F := F_ref/SNR_layer 是把被检验公式**取逆**得来的，用它当参照量只回到同一个
-   * 式子。可用的真判据只有两条：(a) oracle/weight_chain_selfcheck.cpp 中用独立
-   * 双线性 oracle 重建层值再独立算 w 的对照；(b) 注入实验测得的 σ_F。 */
+   * 式子。可用的真判据只有两条：(a) 用独立双线性 oracle 重建层值再独立算 w
+   * 的对照实验；(b) 注入实验测得的 σ_F。 */
   const char* weight_units = "ADU^-2";
   const char* snr_units = "dimensionless";
   const char* reference_flux_units = "ADU";

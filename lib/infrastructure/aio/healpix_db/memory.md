@@ -284,9 +284,8 @@ Healpix天球分块数据库，提供LOD金字塔分层、球面浏览器可视�
 
 **验证结果**:
 - astro_image_io.dll 构建成功（2923.7 KB，9 个 HEALPix I/O 符号全部导出）
-- healpix_browser_qt Makefile 编译成功（core 静态库 + 3 测试）
-- healpix_browser_qt CMake 完整构建成功（34/34：core + widgets + app + 测试）
-- test_healpix_math 5/5 ALL PASS
+- healpix_browser_qt Makefile 编译成功（core 静态库）
+- healpix_browser_qt CMake 完整构建成功（core + widgets + app）
 - hiss_read 兼容宏验证通过（成功读取 nside=8192 n_pix=965048 的 .hiss 文件）
 
 **独立仓库 commit 更新**（与文档记录不一致，已更新）:

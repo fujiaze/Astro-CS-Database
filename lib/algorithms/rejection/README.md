@@ -93,10 +93,7 @@
 docs/detail/registry/acsd.phase2.reject.md §独立 synthetic
 验证节 + ALG-P2-REJ-001 §11.4 F1-F8 容差（F1-F6/F8 bitwise/枚举/
 计数精确、F7 rtol 1e-12、large_scale mask 精确）。现状相邻证据
-（引用不冒认）：lib/algorithms/coverage/tests/synthetic_gate.cpp Phase2Rejection
-组 :2639-2725 + G6 组 :2779-2863 + V15-V17 组 :4138-4864
-（V16GatherStridedFp32Fp64 :4592、V17InvalidMethodStatus :4763、
-V17LargeScale* :4798-4864）；eng/tests/backend/
+（引用不冒认）：eng/tests/backend/
 test_p2004_reject_integrate.py（P2-004 生产 Oracle）与
 eng/tests/unit/p2_rejection_test.cpp（P2-005）。
 

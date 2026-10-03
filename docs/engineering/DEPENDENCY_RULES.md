@@ -23,9 +23,9 @@
 
 | 面 | 机器单一事实源 | 登记镜像 | 校验入口 |
 |---|---|---|---|
-| Windows x64 发布工具链（generator、toolset 与其版本、VS Build Tools 与 installationVersion、SDK 与 servicing bundle、CMake、C++ 标准、CRT、VS 安装位置、preset 禁面） | `eng/packaging/schemas/preset-contract.json` | `eng/packaging/windows/README.md` | 工具链锁定校验项（载体见 门禁注册面（G08-10 重建）） |
-| VS 安装组件清单 | `eng/packaging/windows/.vsconfig` | `eng/packaging/windows/README.md` | 工具链锁定校验项（载体见 门禁注册面（G08-10 重建）） |
-| 生产依赖与系统库锁定（vendored 清单与哈希、zlib/zstd/lz4、kernel32 与线程 shim、OpenMP、Threads、机器路径政策） | `eng/packaging/dependency-lock.json`（schema：`eng/packaging/schemas/dependency-lock.schema.json`） | — | 依赖与系统库锁定校验项（载体见 门禁注册面（G08-10 重建）） |
+| Windows x64 发布工具链（generator、toolset 与其版本、VS Build Tools 与 installationVersion、SDK 与 servicing bundle、CMake、C++ 标准、CRT、VS 安装位置、preset 禁面） | `eng/packaging/schemas/preset-contract.json` | `eng/packaging/windows/README.md` | 工具链锁定校验项 |
+| VS 安装组件清单 | `eng/packaging/windows/.vsconfig` | `eng/packaging/windows/README.md` | 工具链锁定校验项 |
+| 生产依赖与系统库锁定（vendored 清单与哈希、zlib/zstd/lz4、kernel32 与线程 shim、OpenMP、Threads、机器路径政策） | `eng/packaging/dependency-lock.json`（schema：`eng/packaging/schemas/dependency-lock.schema.json`） | — | 依赖与系统库锁定校验项 |
 
 - **冲突以机器源为准**：登记镜像、文档与本文一律不得声明第二套取值；镜像与机器源不一致时按机器源订正镜像；
 - 机器路径政策：CMake 与构建输入不得读取 `F:/`、`C:/Users/<user>`、`/home/<user>` 等机器绝对路径（fresh configure 必须可复现）；Windows 正式工具链的安装位置由 preset 显式声明，属白名单例外；MSYS2/MinGW 依赖面禁止；`vcpkg` 不使用，引入时须同时以 manifest 与 baseline 双重锁定并在本锁文件登记；

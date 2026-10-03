@@ -45,9 +45,11 @@
     `g.drop_area`），由 `spherical::polygon_area_consistent`（收缩四角）求值。
     `pixfrac==1` 时未收缩四角 ≡ drop 四角 ⇒ `A_drop,j ≡ A_pixel,j`（**逐位不变**）。
     w≤0 拒绝。**核按 drop 面积归一**（F&H 2002 **双锚定**：权重更新式 `W' = a·w + W`
-    与 s² 因子在 §2 式(2)–(5)；`a` 的逐字定义句 "axy is the fractional area overlap
-    of the drop of input pixel dxy with the output pixel o" 在 §7 式(7) 正下方
-    ——两者配合给出 `Σ_o a_io=1` ⇒ 核按 drop 归一；等价于 drizzlepac
+    与 s² 因子在 §2 式(2)–(5)；`a` 的逐字定义句 "a_xy is the fractional area overlap
+    of the drop of input data pixel d_xy with the output pixel o" 在 §7 式(7) 正下方
+    ——**注意：F&H 2002 全文从未陈述 partition of unity**，故 `Σ_o a_io=1` 是**本仓依据 drop
+    恰覆盖输入像元、邻接输出像元无空隙这一几何事实作出的推断**，不是原文明述的定理；
+    据此推出核按 drop 归一；等价于 drizzlepac
     `cdrizzlebox.c` 的 `dover /= jaco`。
     权重公式（w、a_xy、s² 因子）一手锚 = §2 式(2)–(5)＋§7 式(7) 后定义句双锚；
     §7 式(6)–(10) 的方差/相关（R = σc/σp）另行分列引用）：
@@ -453,7 +455,7 @@ B0=1000、nside=512、W=H=16）：注入态（分母取 A_drop）逐 leaf `S_p/B
 ## 参考文献与参考代码库（含许可证）
 
 
-- Drizzle 线性重建/drop/pixfrac：Fruchter & Hook 2002, PASP 114, 144（DOI 10.1086/338393；arXiv:astro-ph/9808087）。**锚分列**：权重公式（w、a_xy、s²）= §2 式(2)–(5)；方差/相关（R = σc/σp、单输出像素方差）= §7 式(6)–(10)。**差异**：原式在切平面，本模块在球面 HEALPix 上实施（Project-defined 迁移）。
+- Drizzle 线性重建/drop/pixfrac：Fruchter & Hook 2002, PASP 114, 144（DOI 10.1086/338393；arXiv:astro-ph/9808087**v2**——全文锚一律按 v2 打开，v1 是完全不同的短文，无 s² 项、无 §7 噪声节）。**锚分列**：权重公式（w、a_xy、s²）= §2 式(2)–(5)；方差/相关（R = σc/σp、单输出像素方差）= §7 式(6)–(10)。**差异**：原文只说 "input/output pixel plane"，**未声明其在切平面/gnomonic 平面**（v2 源码 `tangent|gnomonic|spherical|celestial` 零命中）⇒「原式在切平面」属过度声称；本模块在球面 HEALPix 上实施是 Project-defined 迁移。
 - Drizzle 实践：DrizzlePac Handbook（STScI）；drizzlepac（BSD-3-Clause）。
 - HEALPix 几何：Górski et al. 2005, ApJ 622, 759（DOI 10.1086/427976）；astropy-healpix（BSD-3-Clause）、healpy（GPL-2.0）。
 - 球面三角面积：Van Oosterom & Strackee 1983, IEEE TBME 30, 125（DOI 10.1109/TBME.1983.325207）。

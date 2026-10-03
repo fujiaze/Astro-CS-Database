@@ -15,8 +15,6 @@ ACSD 是一个天文 CCD/CMOS 图像校准与标准化数据库：把单帧天�
 ```bash
 cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release   # 仓库唯一的根 CMake
 ninja -C build
-ctest --test-dir build --output-on-failure                # 测试
-python3 eng/ci/run_checks.py                              # 机器一致性检查（注册表 eng/ci/checks.json）
 ```
 
 ## 使用
@@ -49,7 +47,6 @@ acsd benchmark                          # 生成/更新安装目录 cpu_profile�
 | [`docs/engineering/DOCUMENT_GOVERNANCE.md`](docs/engineering/DOCUMENT_GOVERNANCE.md) | 文档分层、准入、写法与登记判据 |
 | [`docs/engineering/EXECUTION_MODEL.md`](docs/engineering/EXECUTION_MODEL.md) | 工作包的制作与执行纪律、收口即清理 |
 | [`docs/engineering/VALIDATION_EVIDENCE_STANDARD.md`](docs/engineering/VALIDATION_EVIDENCE_STANDARD.md) | 独立 Oracle、零用例即红、四层验收判据 |
-| [`docs/engineering/CI_SPEC.md`](docs/engineering/CI_SPEC.md) | 机器门怎么跑、证据落哪 |
 | [`docs/detail/00_INDEX.md`](docs/detail/00_INDEX.md) | 逐模块工作细节 |
 
 与上述入口并列的下级权威：`docs/science/`（科学公式与定义式）、`docs/science/algorithms/`（算法推导与符号表）、
@@ -58,7 +55,7 @@ acsd benchmark                          # 生成/更新安装目录 cpu_profile�
 
 | 要读什么 | 去哪读 |
 |---|---|
-| 数据对象、三类配置、逐阶段详细设计 | `docs/detail/UNIFIED_MODEL.md`、`docs/detail/PHASE{1,2,3}_DETAILED_DESIGN.md` |
+| 数据对象、三类配置、逐阶段详细设计 | `docs/detail/UNIFIED_MODEL.md`、`docs/detail/PHASE1_DETAILED_DESIGN.md`、`docs/detail/PHASE2_DETAILED_DESIGN.md`、`docs/detail/PHASE3_DETAILED_DESIGN.md` |
 | 科学定义式、单位、适用域 | `docs/science/` |
 | 算法推导、符号表、算法级边界 | `docs/science/algorithms/` |
 | 产品字段、键集、值域（文档侧） | `docs/engineering/` |
@@ -67,15 +64,14 @@ acsd benchmark                          # 生成/更新安装目录 cpu_profile�
 | 架构与不变量 | `docs/engineering/` |
 | 跨阶段产品交换与 ABI | `docs/engineering/io/`、`docs/science/IO_001_FITS_STREAM_INTERFACE.md`、`docs/science/IO_002_HIPS_INPUT_INTERFACE.md` |
 | CLI/API 协议 | `docs/engineering/CLI_PROTOCOL_V1.md` |
-| 机器门清单与运行方式 | `docs/engineering/CI_SPEC.md`、`docs/engineering/01_CHECKS.md` |
-| 验收证据与 QA 矩阵 | `docs/engineering/v6/QA_MATRIX.md`、`实验/engineering-evidence/` |
+| 验收证据 | `实验/engineering-evidence/` |
 | 术语 | `docs/GLOSSARY.md` |
 | 开发与排查 | `docs/engineering/DEVELOPER_GUIDE.md`、`docs/detail/merged_TROUBLESHOOTING.md` |
 
 ## 仓库布局
 
 算法在 `lib/algorithms/`（并联放置），基建与 CLI 在 `lib/infrastructure/`，工程支撑面在 `eng/`
-（合同 schema、机器门、构建与质量工具、程序全局配置），自解释文档集在 `docs/`；科学实验单元在
+（合同 schema、构建与打包工具、程序全局配置），自解释文档集在 `docs/`；科学实验单元在
 `实验/`，证据在 `artifacts/`，过程产物在 `run/`（不入库）。
 模块索引权威 = `docs/engineering/MODULE_MAP.md`；未决事项见 `docs/engineering/UNRESOLVED_REGISTER.md`。
 
@@ -89,52 +85,59 @@ acsd benchmark                          # 生成/更新安装目录 cpu_profile�
 
 ### 文献
 
+条目编号 `［N］` 为本节的引用角标；本 README 正文没有归属引文，故只给条目编号、不在正文
+加角标。角标用全角方括号，与 `docs/` 其它文档里已占用的半角 `[N]`（公式号、数组下标）
+错开命名空间。
+
 **Drizzle 与球面重采样**
-- Drizzle 算法（Paper I）：Fruchter & Hook 2002，[arXiv:astro-ph/0207407](https://arxiv.org/abs/astro-ph/0207407)、[DOI 10.1051/0004-6361:20021326](https://doi.org/10.1051/0004-6361:20021326)
-- Drizzle 配套论文（Paper II）：[DOI 10.1051/0004-6361:20021327](https://doi.org/10.1051/0004-6361:20021327)
-- SIP 多项式畸变表示：Shupe et al. 2005, ASPC 347, 491
-- HEALPix：Górski et al. 2005, ApJ 622, 759，[DOI 10.1086/427976](https://doi.org/10.1086/427976)
+- ［1］ Drizzle 算法：Fruchter, A. S. & Hook, R. N. 2002, PASP 114, 144–152，[DOI 10.1086/338393](https://doi.org/10.1086/338393)、[arXiv:astro-ph/9808087](https://arxiv.org/abs/astro-ph/9808087)（引用一律按 **v2** 打开：v1 是完全不同的短文，无 s² 项、无噪声节）
+- ［2］ 球面坐标的 FITS 表示（drizzle 所依赖的 WCS 约定，非 Drizzle 论文）：Calabretta & Greisen 2002, A&A 395, 1077–1122，[DOI 10.1051/0004-6361:20021327](https://doi.org/10.1051/0004-6361:20021327)
+- ［3］ SIP 多项式畸变表示：Shupe et al. 2005, ASPC 347, 491
+- ［4］ HEALPix：Górski et al. 2005, ApJ 622, 759，[DOI 10.1086/427976](https://doi.org/10.1086/427976)
 
 **天体测量与 platesolve**
-- FOCAS 三角匹配：Valdes et al. 1995, PASP 107, 1119，[DOI 10.1086/133667](https://doi.org/10.1086/133667)
-- 平面星表模式匹配：Groth 1986, AJ 91, 280，[DOI 10.1086/114099](https://doi.org/10.1086/114099)
-- astrometry.net：Lang et al. 2010, AJ 139, 1782，[DOI 10.1088/0004-6256/139/5/1782](https://doi.org/10.1088/0004-6256/139/5/1782)、[arXiv:0910.2233](https://arxiv.org/abs/0910.2233)
-- SCAMP 天测标定：Bertin 2006, ASPC 351, 112
-- k-vector 范围搜索：Mortari 1999, J. Astronaut. Sci.（候选出处，佐证充实中）
+- ［5］ FOCAS 三角匹配：Valdes et al. 1995, PASP 107, 1119，[DOI 10.1086/133667](https://doi.org/10.1086/133667)
+- ［6］ 平面星表模式匹配：Groth 1986, AJ 91, 280，[DOI 10.1086/114099](https://doi.org/10.1086/114099)
+- ［7］ astrometry.net：Lang et al. 2010, AJ 139, 1782，[DOI 10.1088/0004-6256/139/5/1782](https://doi.org/10.1088/0004-6256/139/5/1782)、[arXiv:0910.2233](https://arxiv.org/abs/0910.2233)
+- ［8］ SCAMP 天测标定：Bertin 2006, ASPC 351, 112
+- ［9］ k-vector 范围搜索：Mortari 1999, J. Astronaut. Sci.（候选出处，佐证充实中）
 
 **检测与测光**
-- SourceExtractor：Bertin & Arnouts 1996, A&AS 117, 393，[DOI 10.1051/aas:1996164](https://doi.org/10.1051/aas:1996164)
-- DAOPHOT：Stetson 1987, PASP 99, 191，[DOI 10.1086/131977](https://doi.org/10.1086/131977)
+- ［10］ SourceExtractor：Bertin & Arnouts 1996, A&AS 117, 393，[DOI 10.1051/aas:1996164](https://doi.org/10.1051/aas:1996164)
+- ［11］ DAOPHOT：Stetson 1987, PASP 99, 191，[DOI 10.1086/131977](https://doi.org/10.1086/131977)
 
-- Schechter, Mateo & Saha 1993（CCD 增益与读噪声标定），[DOI 10.1086/133316](https://doi.org/10.1086/133316)
-- Horne 1986（最优提取），[DOI 10.1086/131801](https://doi.org/10.1086/131801)
-- Naylor 1998（加权测光与不确定度），[DOI 10.1046/j.1365-8711.1998.01314.x](https://doi.org/10.1046/j.1365-8711.1998.01314.x)
-- Zackay & Ofek 2017（How to coadd images? I/II），[arXiv:1512.06872](https://arxiv.org/abs/1512.06872)、[arXiv:1512.06879](https://arxiv.org/abs/1512.06879)
-- Mighell 1998（星像 peaker 谱系，KPNO）
-- Siril：[arXiv:2408.03346](https://arxiv.org/abs/2408.03346)
+- ［12］ Schechter, Mateo & Saha 1993（CCD 增益与读噪声标定），[DOI 10.1086/133316](https://doi.org/10.1086/133316)
+- ［13］ Horne 1986（最优提取），[DOI 10.1086/131801](https://doi.org/10.1086/131801)
+- ［14］ Naylor 1998（加权测光与不确定度），[DOI 10.1046/j.1365-8711.1998.01314.x](https://doi.org/10.1046/j.1365-8711.1998.01314.x)
+- ［15］ Zackay & Ofek 2017（How to coadd images? I/II），[arXiv:1512.06872](https://arxiv.org/abs/1512.06872)、[arXiv:1512.06879](https://arxiv.org/abs/1512.06879)
+- ［16］ Mighell 1998（星像 peaker 谱系，KPNO）
+- ［17］ Siril：[arXiv:2408.03346](https://arxiv.org/abs/2408.03346)
 
 **校准与宇宙线**
-- L.A.Cosmic：van Dokkum 2001, PASP 113, 1420，[arXiv:astro-ph/0108003](https://arxiv.org/abs/astro-ph/0108003)
-- 平场适用性检验：Marshall & DePoy 2005，[arXiv:astro-ph/0510233](https://arxiv.org/abs/astro-ph/0510233)
-- 暗场-曝光稳健线性回归与热像素：Hochedez et al. 2013，[arXiv:1303.1437](https://arxiv.org/abs/1303.1437)
+- ［18］ L.A.Cosmic：van Dokkum 2001, PASP 113, 1420，[arXiv:astro-ph/0108003](https://arxiv.org/abs/astro-ph/0108003)
+- ［19］ 平场适用性检验：Marshall & DePoy 2005，[arXiv:astro-ph/0510233](https://arxiv.org/abs/astro-ph/0510233)
+- ［20］ 暗场-曝光稳健线性回归与热像素：Hochedez et al. 2013，[arXiv:1303.1437](https://arxiv.org/abs/1303.1437)
 
 **统计与稳健估计**
-- Huber 1964（M 估计），[DOI 10.1214/aoms/1177703732](https://doi.org/10.1214/aoms/1177703732)
-- Holland & Welsch 1977（IWLS 稳健回归），[DOI 10.1080/00401706.1977.10489534](https://doi.org/10.1080/00401706.1977.10489534)
-- Rousseeuw & Croux 1993（Qn 稳健尺度），[DOI 10.1080/01621459.1993.10476308](https://doi.org/10.1080/01621459.1993.10476308)
-- 中位数/MAD 数值口径：Akinshin 2022，[arXiv:2207.12005](https://arxiv.org/abs/2207.12005)
-- 求和数值误差：Baumer 2017，[arXiv:1706.07400](https://arxiv.org/abs/1706.07400)
-- Ipatov 2006，[arXiv:astro-ph/0610931](https://arxiv.org/abs/astro-ph/0610931)
+- ［21］ Huber 1964（M 估计），[DOI 10.1214/aoms/1177703732](https://doi.org/10.1214/aoms/1177703732)
+- ［22］ Holland & Welsch 1977（IWLS 稳健回归），[DOI 10.1080/00401706.1977.10489534](https://doi.org/10.1080/00401706.1977.10489534)
+- ［23］ Rousseeuw & Croux 1993（Qn 稳健尺度），[DOI 10.1080/01621459.1993.10476308](https://doi.org/10.1080/01621459.1993.10476308)
+- ［24］ 中位数/MAD 数值口径：Akinshin 2022，[arXiv:2207.12005](https://arxiv.org/abs/2207.12005)
+- ［25］ 求和数值误差：Baumer 2017，[arXiv:1706.07400](https://arxiv.org/abs/1706.07400)
+- ［26］ Ipatov 2006，[arXiv:astro-ph/0610931](https://arxiv.org/abs/astro-ph/0610931)
 
-- Clopper & Pearson 1934（二项置信区间），[DOI 10.1093/biomet/26.4.404](https://doi.org/10.1093/biomet/26.4.404)
-- Young & van Vliet 1995（递归高斯滤波），[DOI 10.1016/0165-1684(95)00020-E](https://doi.org/10.1016/0165-1684(95)00020-E)
-- Levenberg 1944 / Marquardt 1963 / Moré 1978（LM 优化族）
+- ［27］ Clopper & Pearson 1934（二项置信区间），[DOI 10.1093/biomet/26.4.404](https://doi.org/10.1093/biomet/26.4.404)
+- ［28］ Young & van Vliet 1995（递归高斯滤波），[DOI 10.1016/0165-1684(95)00020-E](https://doi.org/10.1016/0165-1684(95)00020-E)
+- ［29］ Levenberg 1944 / Marquardt 1963 / Moré 1978（LM 优化族）
 
-**PROSAC 采样**：Chum & Matas 2005，[DOI 10.1109/CVPR.2005.221](https://doi.org/10.1109/CVPR.2005.221)
+**PROSAC 采样**
+- ［30］ Chum & Matas 2005，[DOI 10.1109/CVPR.2005.221](https://doi.org/10.1109/CVPR.2005.221)
 
-**星表**：Gaia DR3，Gaia Collaboration 2023，[arXiv:2208.00211](https://arxiv.org/abs/2208.00211)
+**星表**
+- ［31］ Gaia DR3，Gaia Collaboration 2023，[arXiv:2208.00211](https://arxiv.org/abs/2208.00211)
 
-**Astropy 社区**：Astropy Collaboration 2013/2018/2022，[DOI 10.3847/1538-3881/aabc4f](https://doi.org/10.3847/1538-3881/aabc4f)
+**Astropy 社区**
+- ［32］ Astropy Collaboration 2013/2018/2022，[DOI 10.3847/1538-3881/aabc4f](https://doi.org/10.3847/1538-3881/aabc4f)
 
 ### 开源项目
 

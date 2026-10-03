@@ -2,9 +2,8 @@
 
 > 上游：ACSD_DESIGN.md §7.3（错误传播与运行日志：顶层约束）、§10（I/O 与原子产品）
 
-> 机器事实源：`lib/infrastructure/observability/logging/log_event_v1.schema.json`（日志行，LOG-001 正本）、
-> `eng/run/ledgers/log_system_ledger.json`（显式降级/吞错/落点登记台账）、
-> 日志系统判据 R1–R5（判据载体见 门禁注册面（G08-10 重建））。
+> 机器事实源：`lib/infrastructure/observability/logging/log_event_v1.schema.json`（日志行，LOG-001 正本）。
+> 日志系统判据 R1–R5 的判定以本文件正文与 `docs/engineering/LOG_AND_ERROR_CONTRACT.md` 为准。
 
 本文件回答"日志系统具体怎么设计"：有哪些对象、落在哪、怎么走完一生、与 manifest/provenance 和
 observability 各面是什么关系。字段级格式合同在 `docs/engineering/LOG_AND_ERROR_CONTRACT.md`。

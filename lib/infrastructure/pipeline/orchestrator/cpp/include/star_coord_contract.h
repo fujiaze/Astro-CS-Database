@@ -27,7 +27,7 @@
 // 系统性偏低恰 0.5000 px, 而 ipv 去重阈值是严格 < 0.5 px ⇒ 同一颗星双份
 // 进入 ipv (R-3 §2.9 Part D 实测; 缺陷已由 SCI-FIX-PSF 第 1 项修复)。
 //
-// 机器门: G-P1-CENTROID-1 = lib/algorithms/psf/tests/p1psf/p1psf_centroid_gate.cpp
+// 机器门: G-P1-CENTROID-1（psf 模块 p1psf 质心门，已随机器门禁退场）
 // (链接 sdet + dpsf 真实生产源, ctest p1psf_centroid_gate /
 //  p1psf_centroid_gate_neg), 判据与证据见
 //  docs/science/algorithms/GATES_AND_TOLERANCES.md G-P1-CENTROID-1 行。

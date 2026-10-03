@@ -199,7 +199,7 @@ for 每个控制星 s（半径内）:
 3. **跨帧可比性硬约束**：逐帧 `F_ref,k`、同帧配对、`m_ref=6.0`（`m_ref` 为**记录参考
    电平约定**而非标定量）。权重换算式 `w = SNR²/F_ref² = 1/σ_F²` 是**代数恒等**：分子 `F_ref`
    与分母 `σ_F` 随 `m_ref` 同步变化，归一在 `SNR` 中相消，恒等式在任何噪声组成下精确成立。
-   `SNR_combined²=ΣSNR_k²` 相对偏差 2.2e-16，Q/W 信息量 `Var=1/ΣW` 实测 1275 vs 解析 1260（+1.2%）；逆方差组合严格优于等权与 `w∝SNR`。
+   `SNR_combined²=ΣSNR_k²` 在组公共参考通量下是方差可加的定义式重述（恒过、无鉴别力）、在逐帧 `F_ref` 下无定义，均不作基准；承载证据的读数是 Q/W 信息量 `Var=1/ΣW` 实测 1275 vs 解析 1260（+1.2%）；逆方差组合严格优于等权与 `w∝SNR`。
    **`w` 的适用域**：`w` 对 `m_ref` 不变当且仅当 `σ_F` 与 `F_ref` 无关。
    实测 `实验/absolute-snr/code/audit/route3/exp04_refmag_chain.py` 的
    `H2_pairing_and_cross_frame.cross_frame_invariance`：
@@ -210,7 +210,7 @@ for 每个控制星 s（半径内）:
    `F_ref` 的 100.00×），`w = 1/σ_F²` 因而随参考电平单调变。
    **漂移是被加权量随源亮度变化的结果，不是归一相消被破坏。**
    **⇒ 跨帧比对须限「同一 m_ref 档」，且天光受限与源主导两档不可混比。**
-   （读数正本：`实验/absolute-snr/`；恒等式与 `SNR_combined²` 的偏差腿属**代数恒等**，实验侧已自标
+   （读数正本：`实验/absolute-snr/`；帧内换算恒等 `w = SNR²/F_ref²` 确属**代数恒等**，而 `SNR_combined²` 偏差腿不作此归因——组公共 `F_ref` 口径下它是方差可加的定义式重述，恒真、无证据资格；逐帧 `F_ref` 口径下无公共锚、不构成单一绝对 SNR 的平方，故无定义。实验侧已自标
    `is_tautology: true`、`evidence_eligible: false`，故恒等式本身与「2.2e-16」只作定义性结论，不作独立证据腿。）
 4. **量纲区隔复核**：`quality_weight`（无量纲相对质量）与 `variance/ivar`（ADU²）不混用——§5/§6 的不变量在本单元以数值方式复核（权重换算恒等、组合方差解析对拍）。
 5. **读噪口径必须由 `sigma_sky_source` 显式声明**：`SnrSourceParams.sigma_sky_source` 取 `SHOT_ONLY` / `EMPIRICAL_TOTAL_RMS` 之一，生产调用点声明 `EMPIRICAL_TOTAL_RMS`（`noise_sigma` = `StarDetector::estimate_background` 的**整帧 2 轮裁剪 RMS**，含读噪的经验总 rms；噪声模型 A 的 `1.482602218505602×MAD` 稳健尺度是另一生产者，承载逐像素 `variance`）；`sigma_sky_source_effective` 落 provenance。**禁用**把**含读噪**的经验空天总 rms 填入 `sigma_sky_adu` 后又在 gain>0 时叠加 `(RN/g)²`（`snr_science.cpp`）——会高估 σ_F（基准点 +12.8%、RN=50 时 +34.0%，天光主导时消失；负例判据）。**保护测试** `p1snr_science_skysource`：正确口径与独立 MC 真值 zA=1.27（≤3σ）绿、双计臂 zB=25.6（>3σ）红、legacy 缺省与双计臂逐位一致（向后兼容）。PSF 行路径（`snr_estimator.cpp`，gain 未知不加 RN 项）不受影响。量化与修复闭环见 `实验/absolute-snr/REPORT_experiment.md` §1 H3 与 §4.3；保护测试的注册与实现见 `lib/algorithms/noise_snr/tests/p1noise/CMakeLists.txt` 与 `p1snr_science_test.cpp`（组 `skysource`）。

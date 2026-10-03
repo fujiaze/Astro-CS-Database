@@ -244,7 +244,7 @@ free）；`out_spectra` 为 `out_count × global_spec_count` 字节（global_spe
 
 **审计口径（与实现一致，UNIT-001 批次 B 实测）**：
 - **拒绝路径（已落盘）**：结构化诊断（token + 点名文件 + 观测中位数 + 缺失声明项）随
-  `ErrorDomain::DATA` 进入 run manifest 的 `error.message`（机检：标度/归一化门判据，载体见 门禁注册面（G08-10 重建）），
+  `ErrorDomain::DATA` 进入 run manifest 的 `error.message`（机检：标度/归一化门判据），
   且该路径不产出任何 `calibrated_*`。
 - **接受路径（部分落盘，登记残留）**：`p1_op_calibrate` 把声明、观测中位数、实际换算因子、
   平场归一前后 median 写入**节点 manifest**（`stages.calibrate.master_unit_guard` + 顶层
@@ -377,7 +377,7 @@ phase1_session 将 out 写为 `calibrated_<原名>.fits`（float32 ADU）；母�
 > `orchestrator_saturation_wiring_gate` 机器核验）；**放行集 = 标准表 + 显式注册**——
 > 块名 ∉ 标准表且未经 `aio_block_name_register` 显式注册 ⇒ `aio_frame_add_block` /
 > `aio_frame_add_block_move` 拒绝（返回 9），KV 自动创建与缓存回读同口径；
-> 机器判据 = 块名放行判据（载体见 门禁注册面（G08-10 重建）；标准表↔`kStandardBlockNames` 逐名一致 +
+> 机器判据 = 块名放行判据（标准表↔`kStandardBlockNames` 逐名一致 +
 > 生产调用点白名单，含 dlsym 别名形态）。语义正本 = `docs/detail/UNIFIED_MODEL.md` §2
 > （canonical 对象 variance / ivar）+ `eng/contracts/schemas/unified/{variance,ivar}.schema.json`。
 
@@ -720,7 +720,7 @@ p1snr_frame_parity_test.cpp）**：同一输入下 `psf.max_stars=0`（不限）
   读法方向唯一（SCI-PHOT-001 §10）。
 - determinism=fixed_reduction_order：F_syn 逐星独立（OpenMP dynamic,64）、
   像素逐元素独立（static）→ 输出 bitwise 与线程数无关（README §7）。
-  **口径注记（RULING-DOC-01）**：此处的「bitwise 与线程数无关」是**模块层由构造保证的更强断言**（该路径无跨像素归约，故不存在归约顺序依赖），**不是**合同层对"1/N worker 等价"的一般判据；合同层的等价判据是**事前冻结的浮点容差**（`docs/engineering/SCHEDULER_CONTRACT.md` §2.1、`docs/engineering/TEST_MATRIX.md` §2）。模块门可以比合同更严，其它跨 worker 归约路径按合同层浮点容差判定。
+  **口径注记**：此处的「bitwise 与线程数无关」是**模块层由构造保证的更强断言**（该路径无跨像素归约，故不存在归约顺序依赖），**不是**合同层对"1/N worker 等价"的一般判据；合同层的等价判据是**事前冻结的浮点容差**（`docs/engineering/SCHEDULER_CONTRACT.md` §2.1、`docs/engineering/TEST_MATRIX.md` §2）。模块门可以比合同更严，其它跨 worker 归约路径按合同层浮点容差判定。
 
 ## 15. Phase1 star-psf 模块输入/输出数据（DATA-P1-PSF）
 
@@ -1837,7 +1837,7 @@ u64。out_n_controls = n_union×G² **全几何节点含空覆盖占位**
   `aio_hips_read_tile_*` 调用各自 open→read→close，句柄只在该调用栈帧内
   （线程私有、不跨线程转移），并发安全由 cfitsio `_REENTRANT` 构建保证
   —— 依据与机器判据见 `docs/engineering/EXECUTION_MODEL.md` §2/§3 与
-  `EXEC-AIO-READ-NO-GLOBAL-LOCK`（执行合同判据，载体见 门禁注册面（G08-10 重建））。
+  `EXEC-AIO-READ-NO-GLOBAL-LOCK`（执行合同判据）。
   并行路径 per-worker 独立 AIO 句柄（:938 `rdr.init_own`）无共享可变
   全局态，reentrant yes；无取消检查点（ThreadLease 接线不在本层）。
 - 取值面与硬编码登记（不改码）: cfg `<=0→默认` 不保留显式 0（:485-502）；
@@ -3097,7 +3097,7 @@ ivar_out = var_out 同态  (var_out=0 → 0 显式不可用; NaN → NaN)
   等于 `n_rejected_nonfinite`；②校验载体存在且长度 == `height_px × width_px × 4`；
   ③校验 `n_rejected_nonfinite_total` == Σ 逐像素计数。任一不符 ⇒ **非零失败**
   （禁静默缺省、禁按 0 补齐）。判据实现 =
-  强制剔除计数合同判据（六条 G1–G6 + `--self-test` 1 正例 7 负例，载体见 门禁注册面（G08-10 重建））。
+  强制剔除计数合同判据（六条 G1–G6 + `--self-test` 1 正例 7 负例）。
 
 - **未冻结面**: Phase3 产物是否另落 FITS 诊断 HDU、以及
   `output_phase3.fits` 侧的计数通道，本节**不冻结**（科学平面的 FITS HDU 序
@@ -3359,7 +3359,7 @@ concentration 写作 `ADU/px` 属**登记在案的文本错误**：`ADU/px²` �
 
 **`PENDING_OWNER_SIGNOFF` 条款（id）**
 
-  `CF-T-CONST-SB-TOL`、`FZ-AP1-DEFICIT-THRESH`、`FZ-AP2PT-CORR-RATIO-MIN`、`FZ-AP2PT-SNR-IDENT-RTOL`
+  `CF-T-CONST-SB-TOL`、`FZ-AP1-DEFICIT-THRESH`、`FZ-AP2PT-CORR-RATIO-MIN`
   `FZ-AP2S-EPS-PIXIVAR`、`FZ-AP2S-EPS-PIXIVAR-SUP`、`FZ-AP2S-EPSF-RTOL`、`FZ-AP2S-IDENT-RTOL`
   `FZ-AP2S-KAPPA-MAX`、`FZ-AP2S-MC-RELTOL`、`FZ-AP2S-RANK-RTOL`、`FZ-AP2S-REJ-BSS-MIN`
   `FZ-AP2S-REJ-CALIB-ABS`、`FZ-AP2S-REJ-CALIB-BINMIN`、`FZ-AP2S-UPM-MINFRAMES`、`FZ-BUNIT-SEMANTICS`
@@ -3375,7 +3375,7 @@ concentration 写作 `ADU/px` 属**登记在案的文本错误**：`ADU/px²` �
 
 **`OPEN` 条款（id）**
 
-  `CF-T-P3-CORR-EPSILON`、`QF-G-BASE-03`、`QF-G-INJ-01`、`QF-G-INJ-02`
+  `CF-T-P3-CORR-EPSILON`、`FZ-AP2PT-SNR-IDENT-RTOL`、`QF-G-BASE-03`、`QF-G-INJ-01`、`QF-G-INJ-02`
   `QF-G-INJ-03`、`QF-G-INJ-07`、`QF-G-RD-01`、`QF-G-RD-02`
 
 **`FROZEN` 条款（id）**
@@ -3392,7 +3392,7 @@ concentration 写作 `ADU/px` 属**登记在案的文本错误**：`ADU/px²` �
   `FZ-UNIT-SIGNAL-SB`、`FZ-UNIT-WINFO`、`FZ-UPM-CONVERGENCE`
 
 **条款计数**（与 `eng/contracts/data/clause_registry.json#clause_registry.counts_by_status` 逐字
-一致，机器门逐字核对）：`clauses_total=96`；`FROZEN 39`、`PENDING_OWNER_SIGNOFF 49`、`OPEN 8`。
+一致，机器门逐字核对）：`clauses_total=96`；`FROZEN 39`、`PENDING_OWNER_SIGNOFF 48`、`OPEN 9`。
 
 **`OPEN` 条款的承载**：id 见本节 `OPEN` 列表；未冻结项的生产判据面 = 空，引用处显式标 pending
 （§31.9）。

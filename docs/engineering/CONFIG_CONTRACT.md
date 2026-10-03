@@ -22,7 +22,7 @@
 | cpu_profile | `eng/contracts/schemas/cpu_profile.schema.json` | **仅 benchmark** | ISA/workers/block + CPU/OS/软件版本/provider hash 机器绑定 | phase_config 的 `sci_*`/`algorithm_*` 字段 |
 | run_manifest | `eng/contracts/schemas/run_manifest.schema.json` | 运行时（每次运行冻结） | 源码 SHA / 配置哈希 / 输入输出哈希 / 工具链版本 | 科学参数与硬件调优字段 |
 
-- **cpu_profile 落点口径与适用域（R-52 裁决，2026-09-29）**：落点 = 发行布局（程序安装目录）；输出路径相对发行布局解析，**源码树内运行构建期二进制不构成产品契约面**。安装目录不可写或落在版本控制工作树内时转用户可写落点（Linux `$XDG_DATA_HOME/ACSD`，Windows `%LOCALAPPDATA%\ACSD`）并在 stderr 明示，**不静默换落点、不把 profile 或原始样本写入版本控制工作树**。本条与"运行产物不入库"守卫（`AGENTS.md` §6）**不冲突**：守卫拒绝的是写入版本控制工作树，口径给出的是合法替代落点。正本 = `docs/ACSD_DESIGN.md` §9；接口登记 = `docs/engineering/CLI_PROTOCOL_V1.md` §2；唯一实现 = `lib/infrastructure/cli/commands.cpp`（`cli_resolve_cpu_profile_path()`）与 `lib/infrastructure/benchmark/backend_host/profile_store.cpp`（原子写 + 校验）。
+- **cpu_profile 落点口径与适用域（项目负责人裁决）**：落点 = 发行布局（程序安装目录）；输出路径相对发行布局解析，**源码树内运行构建期二进制不构成产品契约面**。安装目录不可写或落在版本控制工作树内时转用户可写落点（Linux `$XDG_DATA_HOME/ACSD`，Windows `%LOCALAPPDATA%\ACSD`）并在 stderr 明示，**不静默换落点、不把 profile 或原始样本写入版本控制工作树**。本条与"运行产物不入库"守卫（`AGENTS.md` §6）**不冲突**：守卫拒绝的是写入版本控制工作树，口径给出的是合法替代落点。正本 = `docs/ACSD_DESIGN.md` §9；接口登记 = `docs/engineering/CLI_PROTOCOL_V1.md` §2；唯一实现 = `lib/infrastructure/cli/commands.cpp`（`cli_resolve_cpu_profile_path()`）与 `lib/infrastructure/benchmark/backend_host/profile_store.cpp`（原子写 + 校验）。
 
 - phase_config 由**三份 phase 专属 schema** 定义：`eng/contracts/schemas/phase_config_normalize.schema.json`、`eng/contracts/schemas/phase_config_mosaic.schema.json`、`eng/contracts/schemas/phase_config_export.schema.json`；**不存在**同名聚合文件（唯一正本，`docs/detail/UNIFIED_MODEL.md` §3）。回归锁：`eng/tests/config/test_cfg001_contracts.py::TestPhaseConfigFamily::test_no_aggregate_second_definition`。
 
@@ -141,7 +141,7 @@ normalize 只接受**多块**与**平铺单块**两形态；CLI 遇到逐帧 `{p
 ## 6 `eng/contracts/schemas/run_manifest.schema.json`
 
 - 冻结源码 SHA（`software_sha`，40hex）· 配置哈希（`config_hash`，sha256 64hex）· 输入/输出哈希（`manifest_input_hashes`/`manifest_output_hashes`，逐项 path+sha256，minItems 1、uniqueItems）· 工具链版本（`toolchain_version` 必填，`toolchain_compiler`/`toolchain_cmake` 可选）· `run_id` · `created_utc`。
-- 字段名族取自 DATA-001 锚点（`^run_id$`、`^software_sha$`、`^config_hash$`、`^manifest_(input|output)_hashes$`、`^toolchain_[a-z0-9_]+$`）；`additionalProperties:false` 拒绝 `workers`/`isa`/`block` 等（负例复跑）。`input_hashes` 与 DATA-OBJ-PROVENANCE-001.provenance.input_hashes 同义（锚点 note）。**加性可选键 `storage`（R-42/P-181）**：运行级落盘形态事实，**不属**上列哈希/版本字段名族，已在锚点 `config_classes[run_manifest].additive_field_names` 登记；**条款归属** = `docs/engineering/HIPS_STORAGE_FORM_CONTRACT.md` §10.3（字段词表与不变式 M1..M4 的唯一正本），**唯一机器事实源** = `eng/contracts/schemas/hips_storage_form.schema.json#/$defs.manifest_storage`——本 schema 故意**不复写**字段（只登记键位与 `type:object`），避免 P-180 式同名异型；真实产出 run manifest 的键登记面 = `docs/engineering/MANIFEST_VERIFY_V1.md` §2.2 + 门禁注册面（G08-10 重建）运行清单 schema 校验项的加性键白名单；缺失 ⇒ 无形态事实（不判红）。
+- 字段名族取自 DATA-001 锚点（`^run_id$`、`^software_sha$`、`^config_hash$`、`^manifest_(input|output)_hashes$`、`^toolchain_[a-z0-9_]+$`）；`additionalProperties:false` 拒绝 `workers`/`isa`/`block` 等（负例复跑）。`input_hashes` 与 DATA-OBJ-PROVENANCE-001.provenance.input_hashes 同义（锚点 note）。**加性可选键 `storage`（R-42/P-181）**：运行级落盘形态事实，**不属**上列哈希/版本字段名族，已在锚点 `config_classes[run_manifest].additive_field_names` 登记；**条款归属** = `docs/engineering/HIPS_STORAGE_FORM_CONTRACT.md` §10.3（字段词表与不变式 M1..M4 的唯一正本），**唯一机器事实源** = `eng/contracts/schemas/hips_storage_form.schema.json#/$defs.manifest_storage`——本 schema 故意**不复写**字段（只登记键位与 `type:object`），避免 P-180 式同名异型；真实产出 run manifest 的键登记面 = `docs/engineering/MANIFEST_VERIFY_V1.md` §2.2 + 运行清单 schema 校验项的加性键白名单；缺失 ⇒ 无形态事实（不判红）。
 
 ## 7 机器门清单（复跑命令）
 
@@ -168,7 +168,7 @@ timeout 60 python3 eng/tests/config/run_validation.py eng/contracts/schemas/phas
 | CFG002-04 滤镜名语义 | `match=exact` / `case_sensitive=true` / `normalization=none` / `aliases={}`；三 schema enum == 库键；6 反例必拒、4 正例必过；`non_key_examples` 锚点成立；消费 filter 的 phase 面与登记一致 | 同上 CFG002-04 |
 | CFG002-05 os_abi 值域 | schema enum == 生产者字面量集合 == 登记册；profile_gen_v2 回落字面量 ∈ enum；负例必拒、正例必过 | 同上 CFG002-05 |
 | CFG002-06 module.yaml 键闭包 | 20 份 `lib/**/module.yaml` 顶层键 ⊆ 登记键集；出现 knobs/params/config/defaults 等旋钮声明键即红 | 同上 CFG002-06 |
-| CFG002-07 索引归属 | `eng/packaging/config/**` 无 schema、`eng/contracts/config/**` 全 schema、两侧无同名文件；DOCUMENT_INDEX 中本文件恰一次且 ACTIVE_NORMATIVE；`eng/tests/test_index.csv` 登记 eng/tests/config 且未登记目录 ⊆ 已登记缺口清单 | 同上 CFG002-07 |
+| CFG002-07 索引归属 | `eng/packaging/config/**` 无 schema、`eng/contracts/config/**` 全 schema、两侧无同名文件；DOCUMENT_INDEX 中本文件恰一次且 ACTIVE_NORMATIVE | 同上 CFG002-07 |
 | CFG002-08 文档锚 | 本文件 5 条 `CFG002-ANCHOR:` 标记行恰一次且指向登记册 | 同上 CFG002-08 |
 | CFG002-09 内容锚存活 | defaults 每个 `source_ref` 形态完整（`id/path/quote/sha256/value_text`）；引文在目标文档内唯一命中（0 次 = 锚不成立，≥2 次 = 无区分力）；指纹自洽；`value_text` 落在引文内；`source` 描述内嵌 文件:行 即红；`defaults_anchor_exceptions.paraphrase` 非空即红（内容锚形态下无豁免面） | 同上 CFG002-09 |
 | CFG002-10 kernel 接线 pin | `$defs.kernel_v1`/`kernel_v2` 的 `$ref` 计数与 kernels 接线状态 == 登记册 | 同上 CFG002-10 |
@@ -223,8 +223,6 @@ negative:   eng/tests/config/fixtures/negative/cpu_profile_v2_bad_os_abi.json（
 | 模块/CLI 契约 schema | `eng/contracts/config/**` | cli_modules_list / cli_selftest / module_dll_contract / module_lifecycle_contract | CFG002-07（全为 schema；与 eng/packaging/config/** 各自具名） |
 | phase_config schema | `eng/contracts/schemas/phase_config_{normalize,mosaic,export}.schema.json` | 三份 phase 专属；无聚合第二定义 | `test_no_aggregate_second_definition` |
 | 文档事实源 | `docs/engineering/CONFIG_CONTRACT.md`（本文件） | 语义与索引 | CFG002-07（DOCUMENT_INDEX 恰一次 + ACTIVE_NORMATIVE） |
-| 文档索引 | `docs/DOCUMENT_INDEX.yaml` | docs/** 与根治理文档 | 文档索引判据（载体见 门禁注册面（G08-10 重建）） |
-| 测试登记 | `eng/tests/test_index.csv` | eng/tests/** 子目录 | CFG002-07（登记 eng/tests/config；未登记集合 ⊆ 已登记缺口清单） |
-| CI 注册表 | 门禁注册面（G08-10 重建） ↔ `docs/engineering/VALIDATION_EVIDENCE_STANDARD.md §12` §2 | 检查项双向对齐 | config 域的 `UT-CONFIG` 步骤登记在 CI 侧（正本 = `docs/engineering/VALIDATION_EVIDENCE_STANDARD.md §12` §2） |
+| 文档索引 | `docs/DOCUMENT_INDEX.yaml` | docs/** 与根治理文档 | 文档索引判据 |
 
 CFG002-ANCHOR: item5-index-ownership → eng/packaging/config/config_registry.json

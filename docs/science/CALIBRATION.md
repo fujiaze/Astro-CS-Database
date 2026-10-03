@@ -343,7 +343,7 @@ cal_pipe − cal_true = (t_light/t_d)·(b_light − b0) = −K·Δb          Δb
   缺 EXPTIME 时必须 fail-closed 而非静默取 `K=1`。
 - **失败注入**：空指针/零维度/NaN 输入显式错误码 `AC_ERR_PARAM`（见 `TST-CAL-FAIL-*`）；
   **ignore-bias 变异注入**：把实现里的 bias 项去掉后，上面两道门必须判红（可执行负例入口）。
-- **标度/归一化门判据（U1–U4，载体见 门禁注册面（G08-10 重建））；可执行正负例入口 `--self-test`**：
+- **标度/归一化门判据（U1–U4）；可执行正负例入口 `--self-test`**：
   以真实数据的独立统计为判据（不依赖文件名/目录名）：
   (a) **单位门（U1）**：亮场观测中位数 > 1 ADU 而某 bias/dark 母版观测中位数 ≤ 1.0 且未声明
       `master_units=normalized` + `master_scale` ⇒ 判红（拒绝）。**适用域与两个已实测盲区
@@ -482,6 +482,6 @@ cal_pipe − cal_true = (t_light/t_d)·(b_light − b0) = −K·Δb          Δb
 - §11 **暗场线性门**（≥3 曝光档 + 斜率正 + 残差 ≤ 噪声量级）与 **曝光容差门**（`|K·Δb| ≤ ε·σ_frame`）
   在真实母版上可判：T4 组判绿（残差 0.034 ADU）、T2 组判红（斜率 −0.03824 ADU/s）、T3 组判「不可判定」；
   判据的负例（`Δb ≡ 0`）残留逐位为 0，非退化性由 §6a 表给出；
-- 单位经术语权威校验项（GLOSSARY_PASS，载体见 门禁注册面（G08-10 重建））且本文件无被禁 alias；
+- 单位经术语权威校验项（GLOSSARY_PASS）且本文件无被禁 alias；
 - §9a 专属问题逐项有锚点回答，无 TBD/二选一（`eng/tools/science_contract_lint.py` PASS）；
 - 解析不变量可转 SYN-001：常量场→SYN-001 constant/ramp 用例；NaN/饱和→SYN-001 invalid 边界用例（映射登记于 SYN-001 任务）。

@@ -3,7 +3,7 @@
 > 上游：`docs/ACSD_DESIGN.md` §7.2（机器输出与退出码）、§7.3（错误传播与日志：顶层约束）
 > 详细设计：`docs/detail/LOG_AND_ERROR_SYSTEM.md`
 > 机器事实源：`lib/infrastructure/observability/logging/log_event_v1.schema.json`（日志行格式正本）、
-> 登记台账（日志系统偏差登记面）与判据的载体见 门禁注册面（G08-10 重建）
+> 登记台账（日志系统偏差登记面）与判据的
 
 ---
 
@@ -29,7 +29,7 @@
 |---|---|
 | 字段表、语义、枚举、error 载荷 | `docs/engineering/observability/STRUCTURED_LOGGING_CONTRACT.md` §2 |
 | JSON Schema（draft-07） | `lib/infrastructure/observability/logging/log_event_v1.schema.json` |
-| 参考实现与校验器 | `lib/infrastructure/observability/logging/log_event.py`（参考实现）；校验面 = 日志行 schema / 字段 / 枚举 / 单行大小（正本 `lib/infrastructure/observability/logging/log_event_v1.schema.json`，校验项载体见 门禁注册面（G08-10 重建）） |
+| 参考实现与校验器 | `lib/infrastructure/observability/logging/log_event.py`（参考实现）；校验面 = 日志行 schema / 字段 / 枚举 / 单行大小（正本 `lib/infrastructure/observability/logging/log_event_v1.schema.json`，校验项） |
 | 诊断工具 | `eng/tools/acsd_diagnose.py <run_dir>`，由一次运行的日志工件汇总输出小 bundle |
 
 - 每行 = 一个 JSON 对象 + `\n`；单行（含换行）≤ **4096 字节**；
@@ -108,7 +108,7 @@ run manifest 增列 `log_artifacts[]`（**每次运行必填，可为空数组�
 
 - **数值表只有一份**：本合同只做「域 → 码」映射，不复写码值含义；
 - 未列出的域一律 70，并在 `status` 里给出可定位的稳定错误码；
-- 现行实现的域映射偏差在日志系统登记台账的 `findings` 面登记（台账载体见 门禁注册面（G08-10 重建）；登记不改码）。
+- 现行实现的域映射偏差在日志系统登记台账的 `findings` 面登记（台账；登记不改码）。
 
 ---
 
@@ -162,15 +162,15 @@ run manifest 增列 `log_artifacts[]`（**每次运行必填，可为空数组�
 
 | 判据 | 机器入口 | 正例（绿） | 负例（红） |
 |---|---|---|---|
-| R1 错误不吞 | `CHK-LOG-SYS`（注册面见 门禁注册面（G08-10 重建）） | 生产收敛面无未登记吞错点 | 注入 `catch (...) {}` ⇒ FAIL |
+| R1 错误不吞 | `CHK-LOG-SYS` | 生产收敛面无未登记吞错点 | 注入 `catch (...) {}` ⇒ FAIL |
 | R2 降级显式 | 同上 | 条件回退点已登记且写 `degraded_reason` | 注入静默回退函数 ⇒ FAIL |
 | R3 日志落点 | 同上 | 落点均派生自 `output_dir` 或已登记 | 落点字面量指向 `output_dir` 之外 ⇒ FAIL |
 | R4 台账完整 | 同上 | 锚存活、条目只减不增、扫描面非空 | 抹掉锚 / 清空扫描面 ⇒ FAIL |
 | R5 合同锚 | 同上 | 台账落点默认值与本合同、最高设计一致 | 改台账默认值 ⇒ FAIL |
 
-机器入口与负例命令随 门禁注册面（G08-10 重建） 落盘（注册项 = `CHK-LOG-SYS`，见下）。
+机器入口与负例命令由门禁执行器提供；本仓无在位的门禁注册面与执行器（注册项名 = `CHK-LOG-SYS`，见下）。
 
-注册项 = `CHK-LOG-SYS`（门禁注册面（G08-10 重建）、`docs/engineering/VALIDATION_EVIDENCE_STANDARD.md §12` §2）。
+注册项名 = `CHK-LOG-SYS`（登记面文档 = `docs/engineering/VALIDATION_EVIDENCE_STANDARD.md §12` §2）。
 
 R3 的落点扫描按字面量执行：源码中出现写死的落点路径字面量（不限于 §7 列举的落点之外位置）
 即判红，注入样例取仓库过程产物目录下的日志路径。该判据只允许一处声明，即本节。

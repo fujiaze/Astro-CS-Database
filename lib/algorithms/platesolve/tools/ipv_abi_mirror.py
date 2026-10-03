@@ -6,12 +6,11 @@
     本文件是仓内 **唯一** 的 Python 侧镜像 —— 诊断工具与一致性锁都必须
     import 本模块, 不得各自复制一份 _fields_ (V2-N-01 的根因正是镜像分叉)。
 
-机器锁:
-    ctest 目标 ipv_abi_layout_lock (lib/algorithms/platesolve/cpp/ipv/test/
-    ipv_abi_layout_lock.py) 会编译 C 探针 (ipv_abi_layout_probe.cpp),
-    读取其 sizeof/offsetof JSON, 与本模块的 ctypes 布局逐字段比对:
-    任一字段名/顺序/offset/size 或结构体总大小不一致即 FAIL。
-    因此任何字段增删/重排/改类型都必须同时改 ipv_api.h 与本文件, 否则门变红。
+ABI 一致性锁（脚本面已随机器门禁退场）:
+    探针 (ipv_abi_layout_probe.cpp) 读取 sizeof/offsetof JSON, 与本模块的
+    ctypes 布局逐字段比对: 任一字段名/顺序/offset/size 或结构体总大小
+    不一致即 FAIL。因此任何字段增删/重排/改类型都必须同时改 ipv_api.h
+    与本文件。
 
 ABI 自描述:
     IpvParams 首部两个 uint32_t (struct_size 偏移 0, abi_version 偏移 4)。

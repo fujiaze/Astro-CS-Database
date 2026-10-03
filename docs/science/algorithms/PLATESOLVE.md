@@ -360,7 +360,7 @@ API-P1-004/TEST-P1-WCS-001，`lib/infrastructure/scheduler/src/module_adapters.c
 ## 参考文献与参考代码库（含许可证）
 
 
-- WCS 框架/TAN/SIP：Paper I §2.1.1；Paper II §2.1/§2.2/Table 1；Shupe et al. 2005, ASPC 347, 491（SIP）。
+- WCS 框架/TAN/SIP：Paper I §2.1.1 式(1)（CRPIX 参考像素）/§2.1.2 式(3)（中间坐标 = CD·(p−CRPIX)）/§2.1.4（1-based）；Paper II §2.1/§2.3 式(2)–(7)（旋转核；矩阵形式见附录 A.1）/§5.1.3 式(54)（TAN）/Table 12（投影代码表）；Shupe et al. 2005, ASPC 347, 491（SIP）。
 - 可执行标准：WCSLIB（LGPL-3.0）、astropy.wcs（BSD-3-Clause）≥7.0.1。
 - 三角匹配/星表求解：Groth 1986, AJ 91, 1244（DOI 10.1086/114099）；Valdes et al. 1995, PASP 107, 1119（DOI 10.1086/133667）。
 - 多帧联合校准：SCAMP（GPL-3.0，https://github.com/astromatic/scamp，tag v2.14.0 = 控制节点实测；文件位置 `src/photsolve.c`；Bertin 2006, ASPC 351, 112）。

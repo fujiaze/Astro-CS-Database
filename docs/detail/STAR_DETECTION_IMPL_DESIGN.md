@@ -24,6 +24,9 @@
 - 本设计的来源面 = 本项目文档（ALG、SCI-P1、合同 schema）、一手公开文献、
   项目自己的测试与 `实验/` 证据。
 - 文献证据按「原文页/节」标注；转述引入的不确定处按 §8 逐条登记，不编造。
+- 文献角标写法：文末参考文献条目用 `［N］` 编号，正文在**首次提及处**及**每个新小节的首次
+  引用处**标注该编号。用全角方括号是因为本文正文的半角 `[...]`（如 `objlist[0]`、`obj[j]`、
+  `D[j]`）已被源码数组下标占用，两套编号不可共用同一命名空间。
 - 现行实现的**行为**（不是源码）是等价基准：判据级合同见 §2。
 
 ### 1.3 算子盘点（16 项）
@@ -48,7 +51,7 @@ O13 排异门、O14 孔径测光、O15 输出整理、O16 星表引导检测。
 | 2.5 | 12.0 |
 | 3.0 | 10.0 |
 
-- 标定协议：每档 1000 次 Monte Carlo，Clopper–Pearson 下界，n≥298 有效样本（ALG §11.4）。
+- 标定协议：每档 1000 次 Monte Carlo，Clopper–Pearson［1］下界，n≥298 有效样本（ALG §11.4）。
 - 实现向该表收敛：任一档超出即不合格。「与参考实现一致」不构成通过理由。
 - **判据非退化三必须（承接上游，逐字同源）**：召回场**必须**在每一档都有域内真星；**必须**包含落在过渡带内（`10 ≤ SNR_peak <` 该档 99% 召回阈）的真星，总数 ≥8 且覆盖 ≥4 个 σ 档；**必须**同时报告过渡带负例召回率，且该召回率**必须**低于 99%。上游正本 = `docs/science/STAR_DETECTION.md` §3「判据非退化要求」与 `docs/science/algorithms/GATES_AND_TOLERANCES.md` G-P1-STAR-RECALL 行（ALG §11.4 F1 同源）；本设计不另立口径，三必须缺一即该召回判据不成立。
 - 真帧行为统计（检测数、检出中心差、阈值日志值、oracle 容差）属**实验证据面**（`实验/`），
@@ -75,8 +78,8 @@ O13 排异门、O14 孔径测光、O15 输出整理、O16 星表引导检测。
 - 本设计的实现面 = `lib/algorithms/star_detection/src/sdet_api.cpp`（逐算子主链）+
   `src/sdet_image.cpp` 的平滑（O2）与统计（O1）路径。
 - 合同面不动：`include/star_detector.h`（字段、枚举、导出签名）、`wrapper_phase1` 接线与全部调用方。
-- 求解器：`src/nls_lm.h` / `src/nls_lm.cpp`（谱系：Moré 1978 信赖域 LM /
-  Madsen–Nielsen–Tingleff 2004 教材式 / MINPACK-1 lmder·lmpar 结构）。
+- 求解器：`src/nls_lm.h` / `src/nls_lm.cpp`（谱系：Moré 1978［2］信赖域 LM /
+  Madsen–Nielsen–Tingleff 2004［3］教材式 / MINPACK-1［4］ lmder·lmpar 结构）。
 - 算子改动若移动召回阈表，须按 ALG §11.4 协议重新标定（1000 次/档）后走变更流程；
   §6 的谱系化构造均受此约束。
 
@@ -108,9 +111,9 @@ std 用 5σ 迭代裁剪：**逐行**对行内差分样本做 median/MAD 迭代�
 
 ### 5.2 O2 高斯平滑（YvV 递归 IIR）—— [论文锚定]
 
-构造出处：Young & van Vliet 1995, *Recursive implementation of the Gaussian filter*,
+构造出处：Young & van Vliet 1995［5］, *Recursive implementation of the Gaussian filter*,
 Signal Processing 44(2), 139–151（DOI 10.1016/0165-1684(95)00020-E）。
-边界条件：Triggs & Sdika 2006, *Boundary conditions for Young-van Vliet recursive filtering*,
+边界条件：Triggs & Sdika 2006［6］, *Boundary conditions for Young-van Vliet recursive filtering*,
 IEEE Trans. Signal Processing 54(6), 2365–2367（DOI 10.1109/TSP.2006.871980）。
 
 数学规格（与现行冻结实现逐项对应，`sdet_image.cpp` float/double 双变体）：
@@ -127,7 +130,7 @@ IEEE Trans. Signal Processing 54(6), 2365–2367（DOI 10.1109/TSP.2006.871980�
    **冻结说明**：q² 项取现行实现值 **1.4281**（行为冻结锚；文献通行复现记 1.4251，
    差异的量化影响与处置见 §8-1 存疑）。
 3. 递归（每行/列双向）：前向 w(n) = B·x(n) + b1·w(n−1) + b2·w(n−2) + b3·w(n−3)，
-   反向同系数逆序；首三样用常信号种子（w(0) = x(0)·(B+b1+b2+b3) 等，Triggs–Sdika 2006 §2
+   反向同系数逆序；首三样用常信号种子（w(0) = x(0)·(B+b1+b2+b3) 等，Triggs–Sdika 2006［6］§2
    边界矩阵 M 构造），行末镜像取值。float/double 两变体算术各自冻结。
 4. 直通域：σs ≤ 0.5 或 W < 4 或 H < 4 时不平滑直通；float 与 double 两变体取**同一域**。
 5. 生产参数：σs = 2.0（冻结）。
@@ -141,8 +144,8 @@ IEEE Trans. Signal Processing 54(6), 2365–2367（DOI 10.1109/TSP.2006.871980�
 
 ### 5.3 O3 检测阈值 —— [论文锚定]
 
-构造出处：Bertin & Arnouts 1996, *SExtractor: Software for source extraction*,
-A&AS 117, 393 — §3（检测阈值化：对「模板帧」（原图与所选卷积核的即时卷积结果）做单遍
+构造出处：Bertin & Arnouts 1996［7］, *SExtractor: Software for source extraction*,
+A&AS 117(2), 393–404 — §3（检测阈值化：对「模板帧」（原图与所选卷积核的即时卷积结果）做单遍
 连通域提取）。模板帧在本实现中即 O2 平滑图（平滑核对点源检测最优，B&A96 §3 引 Irwin 1985 结论）。
 
 规格：候选像素 = 平滑图 S 中
@@ -177,7 +180,7 @@ float 定标帧上 dynrange 退化为「帧自身 max 与 65535 的较小者减�
   pixel0 − minhigh ≤ 0.1·dynrange（pixel0 为峰中心原图像素值；邻域高像素计数 < 3 的峰
   直接剔除；此处 dynrange 取 min(max(img), 65535) − bg 全式）。
 
-注：Stetson 1987（PASP 99, 191, §II FIND）亦有「饱和像素从核拟合中剔除」条款，但本算子族的
+注：Stetson 1987［8］（PASP 99, 191–222, §II FIND）亦有「饱和像素从核拟合中剔除」条款，但本算子族的
 单阈岛标记与 3×3 双条件形式均为本项目构造（0.7/0.1 为工程标定值，冻结），不注文献出处。
 
 ### 5.5 O5 质心（一阶导过零） —— [Project-defined：文献无出处，引用时不注文献出处]
@@ -203,7 +206,7 @@ sdet_zero_cross_dir）。**读数 = 峰到零交叉的像素距离**：`dist = |
 
 ### 5.8 O8 局部极大扫描 —— [论文锚定]
 
-构造出处：Stetson 1987, PASP 99, 191 — §II「FIND」：在核卷积响应图上找局部极大
+构造出处：Stetson 1987［8］, PASP 99, 191–222 — §II「FIND」：在核卷积响应图上找局部极大
 H(i0,j0) > Hmin 且大于规定半径内所有邻值，半径由星像 FWHM 推出（原文 §II.2）。
 本实现以 O2 平滑图替代 DAOFIND 的零积分核响应图 H（O3 已按平滑图量纲冻结阈值表，
 两者在点源检测上同构——B&A96 §3 同样以 PSF 形状核为点源最优），扫描半径与邻域语义为项目参数。
@@ -225,7 +228,7 @@ R = σp·√(2 ln 1000) = σp·3.71692）加工程钳位 R ≤ 200。
 现行构造（**不**替换为 DAOFIND 门）：以 dA/dSr/dSc 三个对称性统计在 LM 前剔除非星形状
 ——dA = amax/amin、dSr = drmax/drmin、dSc = dcmax/dcmin 为**峰中心四方向零交叉估计量**的
 两两比值，任一门值 > 2.0 即剔除。理由（判据级）：DAOFIND 的 roundness/sharpness 门
-（Stetson 1987 §II：0.2 < sharp < 1.0、−1.0 < round < 1.0 默认域，论文 §II.F 明示）
+（Stetson 1987［8］§II：0.2 < sharp < 1.0、−1.0 < round < 1.0 默认域，论文 §II.F 明示）
 要求以零积分核响应图 H 为输入，切换输入图即移动 O3 阈值表的量纲（ALG §2 的 ‖k‖₂ 折算
 随核改变），触发全表重标定（§4 条款）；现行对称门在冻结阈表下已达标。
 切换路径完整规格见 §6.3，作为谱系化备置，不在本次实施。
@@ -235,7 +238,7 @@ R = σp·√(2 ln 1000) = σp·3.71692）加工程钳位 R ≤ 200。
 现行构造为「曼哈顿距离 + SNR 优先」的拟合后去重（项目自有，无文献出处）。
 本设计决定替换为文献构造：
 
-- **替换规格**（Bertin & Arnouts 1996, A&AS 117, 393 — §4）：
+- **替换规格**（Bertin & Arnouts 1996［7］, A&AS 117(2), 393–404 — §4）：
   对每个 8-连通检出组分，在检测阈值与峰值之间取 **30 个指数间隔阈值**
       t(i) = tdet · (Smax/tdet)^(i/30)，i = 1..30
   重建亮度树；自枝叶向根，在任一结点阈值 t(i) 处，若某枝满足
@@ -246,14 +249,14 @@ R = σp·√(2 ln 1000) = σp·3.71692）加工程钳位 R ≤ 200。
   than a certain fraction δ_c of **the total intensity of the composite object**;
   (2) condition (1) is verified for at least one more branch at the same level i.」
   ——「(above t_i)」只修饰判据左端的枝流量，δc 的乘数是整块复合天体的总强度。参照实现
-  逐字同构：SExtractor 2.28.2 `src/refine.c:97`
+  逐字同构：SExtractor 2.28.2［9］ `src/refine.c:97`
   `value0 = objlist[0].obj[0].fdflux*prefs.deblend_mincont;` 与 `:159`
   `obj[j].fdflux - obj[j].dthresh*obj[j].fdnpix > value0`（`objlist[0].obj[0]` = 根复合
   天体，`fdflux` = 其在检出阈值之上的积分流量；`obj[j].dthresh` = 当前层阈值）；
-  SEP v1.4.1 `src/deblend.c:116/:179` 与之逐行同构。本项目实现取
+  SEP v1.4.1［10］ `src/deblend.c:116/:179` 与之逐行同构。本项目实现取
   `total_flux = Σ_{comp}(smooth − thr)`（父组分在检出阈之上的积分流量），与 SExtractor
   `fdflux`（阈值像素值直接求和，含阈底）存在有界约定偏差（实测样例帧约 13%，见
-  run/FINAL-07/审核包/ 报告）。）
+   仓外 `run/` 留档树，该留档未随本仓跟踪、无法在本仓复核）。）
   则判为独立成分（B&A96 §4.1 双准则；原文 p.395：「we find a good value for δ_c of
   5 10⁻³」，与 SExtractor/SEP 默认 DEBLEND_MINCONT = 0.005 同值）。
   两项操作化规则（B&A96 §4.1–4.2 语义）：
@@ -277,11 +280,11 @@ R = σp·√(2 ln 1000) = σp·3.71692）加工程钳位 R ≤ 200。
   阈表不移动（见上）。
 - 注 1（层数）：B&A96 原文 p.394 逐字「re-thresholded at **30 levels** exponentially spaced
   between its primary extraction threshold and its peak value」⇒ 论文正文 = 30 层；
-  SExtractor v2 的软件默认 DEBLEND_NTHRESH = 32（`src/preflist.h:207-208`、
+  SExtractor v2 的软件默认 DEBLEND_NTHRESH = 32（［9］ `src/preflist.h:207-208`、
   `config/default.sex:23`）。二者为版本差异、不矛盾；本设计按论文正文 30 层实现。
   原文页码级核验已完成（ADS 影印原页 p.394-395，400 dpi 读图 + 独立 OCR 交叉核对）。
 - 注 2（公式出处）：指数阈值公式 t(i) = tdet·(Smax/tdet)^(i/30) **未印在论文正文**，
-  其出处是作者实现（SExtractor `src/refine.c:112`，PHOTO 型走线性 `:110`）与 SExtractor
+  其出处是作者实现（［9］ `src/refine.c:112`，PHOTO 型走线性 `:110`）与 SExtractor
   手册 v2.3 §6.4；引用时不得标注为论文原句。
 - 注 3（条件 (2) 的实现化）：原文条件 (2) 为「同一层 i 至少另有一枝满足 (1)」；本项目实现
   在单根组分的层内以「满足 (1) 的枝数 ≥ 2」近似（等价于原文，因单根组分的同层枝集即
@@ -290,10 +293,10 @@ R = σp·√(2 ln 1000) = σp·3.71692）加工程钳位 R ≤ 200。
 ### 5.12 O12 椭圆高斯 LM 拟合 —— [论文锚定]
 
 - 母函数：DISP-STAR-007 唯一椭圆高斯（§3-2），参数 (x0, y0, σx, σy, θ, A, B)。
-- 求解器：信赖域 Levenberg–Marquardt（Moré 1978, *The Levenberg–Marquardt algorithm:
+- 求解器：信赖域 Levenberg–Marquardt［11］（Moré 1978［2］, *The Levenberg–Marquardt algorithm:
   implementation and theory*, Numer. Anal. LNM 630, 105 — §4 信赖域与 λ 调整；
-  Madsen, Nielsen & Tingleff 2004, IMM-DTU Lecture Note — §3 教材式流程；
-  MINPACK-1 lmder/lmpar 结构）。实现为 `src/nls_lm.h`（谱系已核，不改）。
+  Madsen, Nielsen & Tingleff 2004［3］, IMM-DTU Lecture Note — §3 教材式流程；
+  MINPACK-1［4］ lmder/lmpar 结构）。实现为 `src/nls_lm.h`（谱系已核，不改）。
 - 冻结参数：20 迭代上限、饱和 3×、xtol = gtol = ftol = 1e-3、avmax = 0.75。
   步长/信赖域控制因子：3/2 为**信赖域因子**（nls_lm.h Options::factor_up=3.0/
   factor_down=2.0；拒步时 μ←μ·ν 与 Nielsen 因子更新见 nls_lm.cpp 接受步/拒绝步注释）。
@@ -314,8 +317,8 @@ R = σp·√(2 ln 1000) = σp·3.71692）加工程钳位 R ≤ 200。
 
 ### 5.14 O14 孔径测光 —— [论文锚定]
 
-构造出处：Bertin & Arnouts 1996 — §6（测光）：圆孔径星等族与总星等构造；
-自适应孔径承 Kron 1980 一阶矩算法（r1 = ΣrI/ΣI，孔径 k·r1，k = 2.5 时平均流量损失 ≈6%，
+构造出处：Bertin & Arnouts 1996［7］ — §6（测光）：圆孔径星等族与总星等构造；
+自适应孔径承 Kron 1980［12］一阶矩算法（r1 = ΣrI/ΣI，孔径 k·r1，k = 2.5 时平均流量损失 ≈6%，
 原文 §6）。本实现取**单个正方形孔径** (2R+1)²（R = O9 拟合盒半径，钳位 [5,200]，
 中心取候选中心），孔径内像素和**扣除拟合背景 B_fit**；星等 = −2.5·log10(孔径和)。
 Kron 自适应孔径列为谱系化备置（§6.4）。
@@ -342,7 +345,7 @@ O1/O2、O4b、O6/O7、O9/O10、O12/O13 链（跳过 O3 连通域、O5、O8、O11
 
 ### 6.1 CLEAN 门（B&A96 §5）
 
-出处：Bertin & Arnouts 1996 — §5「Filtering the detections」：对邻星贡献做高斯外推
+出处：Bertin & Arnouts 1996［7］ — §5「Filtering the detections」：对邻星贡献做高斯外推
 （邻星轮廓宽 × 系数 1.0–2.0），扣除邻星贡献后均值面亮度仍高于检测阈值方可入表。
 用途：低阈值档（σ_psf=1.0 的 [52,65] 过渡区）抑制亮星翼内噪声峰误检。
 规格备置：邻星贡献 Δμ = Σj [ Aj/(2π·sj²) · exp(−rj²/(2·sj²)) ]，
@@ -356,7 +359,7 @@ sj = c·FWHMj/2.3548，c ∈ [1.0, 2.0) 项目待标定；
 
 ### 6.3 DAOFIND roundness / sharpness 门
 
-出处：Stetson 1987 — §II FIND：sharpness = (H(i0,j0) − d)/H(i0,j0) 族
+出处：Stetson 1987［8］ — §II FIND：sharpness = (H(i0,j0) − d)/H(i0,j0) 族
 （d 为中心像素与拟合区邻域均值之差、H 为零积分核响应峰高；原文 §II.E）；
 roundness 由 x/y 两个一维高斯拟合峰高 hx, hy 构成（原文 §II.E–F；
 OCR 未复得显式公式，按 DAOPHOT 语义补全 round = 2(hx − hy)/(hx + hy)——
@@ -377,19 +380,19 @@ OCR 未复得显式公式，按 DAOPHOT 语义补全 round = 2(hx − hy)/(hx + 
 | 算子 | 处置 | 出处/构造 | 移动阈表？ |
 |---|---|---|---|
 | O1 背景噪声 | Project-defined | 行差分 Var(d)=2σ²(1−ρ) + 3×5σ clip | 否 |
-| O2 高斯平滑 | 论文锚定 | YvV95 Signal Processing 44(2) + T&S06 IEEE TSP 54(6) | 否（σs=2.0 冻结） |
-| O3 检测阈值 | 论文锚定 | B&A96 §3 构造 + ALG §11.4 项目 κ 表 | 否（表冻结） |
+| O2 高斯平滑 | 论文锚定 | YvV95［5］ Signal Processing 44(2) + T&S06［6］ IEEE TSP 54(6) | 否（σs=2.0 冻结） |
+| O3 检测阈值 | 论文锚定 | B&A96［7］ §3 构造 + ALG §11.4 项目 κ 表 | 否（表冻结） |
 | O4 饱和预标记 | Project-defined | O4a 单阈岛标记 + O4b 3×3 双条件（0.7/0.1·dynrange 相对式） | 否 |
 | O5 质心 | Project-defined | 一阶导过零内插 | 否 |
 | O6 饱和中心行走 | Project-defined | 饱和岛梯度行走 | 否 |
 | O7 宽度/振幅门读数 | Project-defined | √e 恒等式二阶导（供 O9/O10/O13；LM 初值＝halfA） | 否 |
-| O8 局部极大扫描 | 论文锚定 | Stetson 1987 §II FIND 构造 + 项目参数 | 否（越界读修复不触标定域） |
+| O8 局部极大扫描 | 论文锚定 | Stetson 1987［8］ §II FIND 构造 + 项目参数 | 否（越界读修复不触标定域） |
 | O9 拟合盒 R | Project-defined | 99.9% 能量半径 + 钳位 200 | 否 |
 | O10 形状预门 | Project-defined（保留） | 对称性三统计；DAOFIND 门备置 §6.3 | 切换则移动（故不切换） |
-| O11 多星去重 | **替换为论文构造** | B&A96 §4 deblending 树（30 层/δc=5e-3） | 否（孤立单星域不触发） |
-| O12 椭圆高斯 LM | 论文锚定 | DISP-STAR-007 母函数 + Moré 1978 / Madsen 2004 / MINPACK-1 | 否 |
+| O11 多星去重 | **替换为论文构造** | B&A96［7］ §4 deblending 树（30 层/δc=5e-3） | 否（孤立单星域不触发） |
+| O12 椭圆高斯 LM | 论文锚定 | DISP-STAR-007 母函数 + Moré 1978［2］ / Madsen 2004［3］ / MINPACK-1［4］ | 否 |
 | O13 排异五码 | Project-defined | 五判式冻结 | 否 |
-| O14 孔径测光 | 论文锚定 | B&A96 §6 孔径族（Kron 1980 备置） | 否 |
+| O14 孔径测光 | 论文锚定 | B&A96［7］ §6 孔径族（Kron 1980［12］备置） | 否 |
 | O15 输出整理 | Project-defined | 输出合同冻结（§3-3） | 否 |
 | O16 星表引导检测 | Project-defined | 引导窗主链 + 六计数 | 否 |
 
@@ -447,3 +450,62 @@ OCR 未复得显式公式，按 DAOPHOT 语义补全 round = 2(hx − hy)/(hx + 
 冻结伪代码与 §5.10 正文均无此豁免条款。影响域 = 饱和候选检出率（放宽方向）；
 标定域非饱和单星不触发，召回阈表不动。本条登记为现行实现语义；其正向化为 ALG 条款
 按变更流程处置。
+
+---
+
+## 9. 参考文献与参考代码库
+
+条目编号与正文角标一一对应，角标写法见 §1.2。
+
+### 期刊论文与会议论文
+
+- ［1］ Clopper, C. J.; Pearson, E. S. (1934). "The Use of Confidence or Fiducial Limits
+  Illustrated in the Case of the Binomial". *Biometrika* 26(4), 404–413.
+  DOI [10.1093/biomet/26.4.404](https://doi.org/10.1093/biomet/26.4.404)
+- ［2］ Moré, J. J. (1978). "The Levenberg–Marquardt Algorithm: Implementation and Theory".
+  In: Watson, L. T. (ed.) *Numerical Analysis: An Introduction*, Lecture Notes in Mathematics
+  630, Springer, 105–116.
+  DOI [10.1007/BFb0067700](https://doi.org/10.1007/BFb0067700)
+- ［5］ Young, I. T.; van Vliet, L. J. (1995). "Recursive Implementation of the Gaussian Filter".
+  *Signal Processing* 44(2), 139–151.
+  DOI [10.1016/0165-1684(95)00020-E](https://doi.org/10.1016/0165-1684(95)00020-E)
+- ［6］ Triggs, B.; Sdika, M. (2006). "Boundary Conditions for Young–van Vliet Recursive
+  Filtering". *IEEE Transactions on Signal Processing* 54(6), 2365–2367.
+  DOI [10.1109/TSP.2006.871980](https://doi.org/10.1109/TSP.2006.871980)
+- ［7］ Bertin, E.; Arnouts, S. (1996). "SExtractor: Software for Source Extraction".
+  *Astronomy and Astrophysics Supplement Series* 117(2), 393–404.
+  DOI [10.1051/aas:1996164](https://doi.org/10.1051/aas:1996164)
+- ［8］ Stetson, P. B. (1987). "DAOPHOT: A Computer Program for Crowded-Field Stellar
+  Photometry". *Publications of the Astronomical Society of the Pacific* 99, 191–222.
+  DOI [10.1086/131977](https://doi.org/10.1086/131977)
+- ［11］ Levenberg, K. (1944). "A Method for the Solution of Certain Non-Linear Problems in
+  Least Squares". *Quarterly of Applied Mathematics* 2(2), 164–168.
+  DOI [10.1090/qam/10666](https://doi.org/10.1090/qam/10666)；
+  Marquardt, D. (1963). "An Algorithm for Least-Squares Estimation of Nonlinear Parameters".
+  *SIAM Journal on Applied Mathematics* 11(2), 431–441.
+  DOI [10.1137/0111030](https://doi.org/10.1137/0111030)
+- ［12］ Kron, R. G. (1980). 自适应孔径一阶矩算法（r1 = ΣrI/ΣI、孔径 k·r1）。本条
+  **在本仓写作时未取得一手核验**：正文所据 r1 定义与 k = 2.5 / ≈6% 流量损失口径来自
+  ［7］ §6 的转述，未直接读取 Kron 原文。引用时按「转述自 ［7］」理解，不得标为
+  Kron 原文页码级证据。
+
+### 讲义与数值库
+
+- ［3］ Madsen, K.; Nielsen, H. B.; Tingleff, O. (2004). *Methods for Non-Linear Least
+  Squares Problems*, 2nd edition. Department of Mathematics, Technical University of Denmark.
+  永久链接 [DTU Orbit 记录](https://orbit.dtu.dk/en/publications/methods-for-non-linear-least-squares-problems-2nd-ed)
+- ［4］ MINPACK-1（lmder / lmpar 源码与文档）。永久链接 [netlib.org/minpack](https://netlib.org/minpack/)
+
+### 参考代码库
+
+- ［9］ SExtractor 2.28.2。永久链接 [github.com/astromatic/sextractor](https://github.com/astromatic/sextractor)。
+  许可 LGPL-3.0；本项目只读其算法与源码行，不复制代码。
+- ［10］ SEP 1.4.1（Source Extractor Package，作者 Bertin）。永久链接
+  [sep.sourceforge.net](https://sep.sourceforge.net/)。本项目只读其算法与源码行，不复制代码。
+
+### 未能核实的转引
+
+- §5.3 的「平滑核对点源检测最优」在仓内只能追到 B&A96 ［7］ §3 对 Irwin 1985 的转引；
+  Irwin 1985 的完整著录未取得，故不单列条目，引用时按「［7］ 转引」理解。
+- §5.12 的「λ 更新由 Nielsen 1999 因子承担」为项目内部注释口径，Nielsen 1999 的完整著录
+  未取得，不单列条目。

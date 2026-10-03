@@ -88,7 +88,7 @@ enum class PipelineStage {
 // 供 stage1/stage2 CLI 命令使用
 // 第一段: 单帧预处理 (stage 0-7, FITS -> calibrated/solved frame -> HEALPix Drizzle -> IVOA HiPS;
 // legacy .hiss 仅 validation.legacy_hiss_compare=true 时写出)
-// 第二段: 多帧合并 (stage 8-9, .hiss -> .hcsd)
+// 第二段: 产品集验证 (stage 8-9, HiPS 产品集 -> HISS_VERIFY 为 legacy 通道)
 // 2026-08-07 (Phase1 v2): 重排星点链 —
 // PSF/STAR_MEASURE 必须先于 PLATESOLVE (单次权威检测 + instrumental flux),
 // PLATESOLVE 消费同一批星 (ipv_solve_from_detections_v1), 禁止 PlateSolve 重检测。

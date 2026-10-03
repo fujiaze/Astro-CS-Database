@@ -4,7 +4,7 @@
 #include "fits_reader.h"
 #include "wcs_sip.h"
 #include "poly_clip.h"
-#include "aio_healpix_io.h"   // HioSnrModel (稀疏 SNR 控制点模型, 向后兼容宏)
+#include "aio_snr_model.h"   // HioSnrModel (稀疏 SNR 控制点模型)
 #include <cstdint>
 #include <string>
 #include <vector>
@@ -23,7 +23,7 @@ namespace drizzle {
 // Drizzle 配置
 struct DrizzleConfig {
     int    nside = 32768;       // HEALPix nside (nside=0 触发自动 NSIDE 计算)
-    bool   nested = true;       // NESTED 或 RING (HISS 内部统一 NESTED)
+    bool   nested = true;       // NESTED 或 RING (生产端统一 NESTED)
     double pixfrac = 1.0;       // 像素收缩因子 (0 < pixfrac <= 1, 标准 drop 语义)
     // 测光校准语义 (B5 修复): PHOTOMETRIC 阶段 (pc_calibrate_simple) 已把 photscal
     // 乘入像素值, drizzle 不再重复应用。这两个字段仅用于元数据记录。
@@ -160,7 +160,7 @@ struct DrizzleStats {
     int64_t n_rejected_nonpositive_weight = 0;   // 权重非有限或 ≤0（"权重非正"）
 };
 
-// Drizzle 元数据 (写入 .hiss JSON 头)
+// Drizzle 元数据
 struct DrizzleMeta {
     std::string filter;                              // FILTER 滤光片名
     double      exposure_s = 0.0;                    // EXPTIME 曝光时间 (秒)
@@ -184,7 +184,7 @@ public:
     // error_msg: 错误信息
     // 返回: 成功/失败
     // 内部改为 Tile 级累加, 合并后展开为 leaf map 的兼容包装;
-    // 正式写入路径请使用 drizzleTiled + writeHisTiles (取消全局 leaf map)
+    // 正式写入路径请使用 drizzleTiled (直接产出 TileAccumulator, 取消全局 leaf map)
     bool drizzle(const FitsImage& img, const DrizzleConfig& config,
                  const float* snrData, const float* weightData,
                  const float* varianceData,
@@ -251,45 +251,6 @@ public:
         return drizzleTiled_f64(img, config, snrData, weightData, nullptr,
                                 tiles, stats, error_msg);
     }
-
-    // 将累加器归一化并写入 .hiss 文件
-    // accumulators: Drizzle 输出的累加器
-    // stats: Drizzle 统计
-    // wcs: 原始 WCS 参数 (写入元数据)
-    // config: Drizzle 配置 (写入元数据)
-    // meta: Drizzle 元数据 (filter/exposure_s/obs_time/fits_meta, 写入 JSON 头)
-    // fitsPath: 源 FITS 文件路径 (写入元数据)
-    // outputPath: 输出 .hiss 文件路径
-    // snr_model: 稀疏 SNR 控制点模型 (可为 nullptr, 不写 SNR 通道)
-    // error_msg: 错误信息
-    bool writeHis(const std::unordered_map<uint64_t, PixelAccumulator>& accumulators,
-                  const DrizzleStats& stats, const WcsParams& wcs,
-                  const DrizzleConfig& config, const DrizzleMeta& meta,
-                  const std::string& fitsPath,
-                  const std::string& outputPath,
-                  const HioSnrModel* snr_model,
-                  std::string& error_msg);
-
-    // 将 Tile 级累加结果直接写入 .hiss (流式, 不恢复全局 leaf map)
-    // 与 writeHis 语义一致, 但输入为 TileAccumulator 列表 (FP32=float, FP64=double)
-    template <typename Scalar>
-    bool writeHisTilesT(const std::vector<TileAccumulatorT<Scalar>>& tiles,
-                       const DrizzleStats& stats, const WcsParams& wcs,
-                       const DrizzleConfig& config, const DrizzleMeta& meta,
-                       const std::string& fitsPath,
-                       const std::string& outputPath,
-                       const HioSnrModel* snr_model,
-                       const HioSnrModelF64* snr_model_f64,
-                       std::string& error_msg);
-
-    // 兼容包装 (double 实例, 旧调用方)
-    bool writeHisTiles(const std::vector<TileAccumulator>& tiles,
-                       const DrizzleStats& stats, const WcsParams& wcs,
-                       const DrizzleConfig& config, const DrizzleMeta& meta,
-                       const std::string& fitsPath,
-                       const std::string& outputPath,
-                       const HioSnrModel* snr_model,
-                       std::string& error_msg);
 
 private:
     // 处理单个像素的 Drizzle (6步流水线) — 模板双实例 (Scalar=float/double)

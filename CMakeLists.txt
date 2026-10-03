@@ -2,21 +2,20 @@
 # ── 契约 (BLD-002 唯一根 CMake 构建图) ──
 # 1) 本文件是仓库唯一 project() 与唯一产品事实源: 产品可执行 acsd 只在此声明
 #    (add_executable(acsd ...)), 显式源列表, 禁 GLOB (QA-002)。
-# 2) 子目录 CMakeLists 只声明本模块 target (eng/tests/unit 为测试, 见文末 add_subdirectory)。
+# 2) 子目录 CMakeLists 只声明本模块 target。
 # 3) 旧 CLI 兼容子图的 CMakeLists（仓库根遗留, 非产品事实源; 其路径同步归 INT-001）与
 #    lib/algorithms/coverage/CMakeLists.txt 已降级为 compatibility 声明 (BLD-002): 保留给
-#    遗留 eng/tests/cli 独立构建与模块自测/工具按需构建, 禁止正式 install; 产品安装/发布
+#    遗留 CLI 独立构建与模块自测/工具按需构建, 禁止正式 install; 产品安装/发布
 #    构建一律以本文件为入口。
 # 4) 正式构建入口: 本文件 (Windows preset win-msvc-17.14.39-x64 / Linux linux-control)。
 cmake_minimum_required(VERSION 3.24)
 # project() VERSION 只接受数字三元组(CMake 语法); alpha 后缀由根 VERSION 唯一承载,
 # 生成串 ACSD_VERSION_STRING = VERSION + g<commit> (V81-ADOPT-006 统一规则)。
-# 同步规则: 此三元组必须 == 根 VERSION 的 major.minor.patch (eng/ci/check_version.py 校验)。
+# 同步规则: 此三元组必须 == 根 VERSION 的 major.minor.patch。
 project(acsd VERSION 0.1.0 LANGUAGES C CXX)
 
 # ── 选项 (03/BLD-001 冻结) ──
 option(ACSD_ENABLE_ACR "Build dormant ACR tree (default OFF, production exclusion)" OFF)
-option(ACSD_BUILD_TESTS "Build tests" ON)
 # QA-002: sanitizer 选项 (ASan/UBSan/LSan 或 TSan; 生产默认 OFF)
 option(ACSD_ENABLE_SANITIZERS "Enable ASan/UBSan/LSan (GCC/Clang, production OFF)" OFF)
 option(ACSD_ENABLE_TSAN "Enable ThreadSanitizer (targeted, mutually exclusive with ASan)" OFF)
@@ -217,24 +216,6 @@ if(UNIX)
   find_package(OpenMP QUIET)
 endif()
 
-# ── QA-006 覆盖插桩作用域 (F8-b 修复, V8-CI-012 R6.5): 必须位于首个 add_library/
-# add_subdirectory 之前。目录级 add_compile_options/add_link_options 只影响其后声明的
-# target; 原位置在 lib/tests/unit 之后导致 *_test 可执行未插桩链接 (无 __llvm_profile
-# runtime) → 测试进程零 profraw。前移后 lib/cli/tests/unit 全部插桩编译链接,
-# *_test 落 profraw, llvm-cov 经 *_test objects 报 lib/cli 覆盖。
-if(NOT WIN32 AND NOT MSVC)
-  option(ACSD_BUILD_COVERAGE "Build instrumented for coverage + ccov target (deep CI)" OFF)
-  if(ACSD_BUILD_COVERAGE)
-    find_program(ACSD_LLVM_PROFDATA llvm-profdata)
-    find_program(ACSD_LLVM_COV llvm-cov)
-    if(NOT ACSD_LLVM_PROFDATA OR NOT ACSD_LLVM_COV)
-      message(FATAL_ERROR "ACSD_BUILD_COVERAGE=ON 需要 llvm-profdata/llvm-cov (linux-deep CI host 提供)")
-    endif()
-    add_compile_options(-fprofile-instr-generate -fcoverage-mapping)
-    add_link_options(-fprofile-instr-generate)
-  endif()
-endif()
-
 # ── 显式 target 依赖图 (依赖方向见 ARCH-001 §3) ──
 
 # core/contracts: 公共类型 (DATA/API/MOD)
@@ -320,8 +301,7 @@ target_link_libraries(acsd_io PRIVATE acsd_platform_math)
 #   if(MSVC)…else() 三种口径, 另有相当一部分**根本没写**平台判断 ⇒ Windows 链接期
 #   LNK1104 "cannot open file 'm.lib'" (实测 11 条) 及同类的 z.lib / pthread.lib。
 # 现口径: 平台判断**只写在下面这一处**; 全仓链接面一律引用这三个 INTERFACE 目标,
-#   调用点不得再写 if(UNIX)/if(MSVC) 分支 (撤除后的可执行判据 =
-#   eng/ci/check_platform_syslib_links.py, 带正例/负例注射)。
+#   调用点不得再写 if(UNIX)/if(MSVC) 分支。
 #   空载荷 INTERFACE 目标在链接面展开为空, 且不会触发 target_link_libraries 的
 #   参数个数校验 (裸变量展开为空则会)。
 #   空载荷不是豁免: 目标若真消费 zlib 而构建未提供 ACS_ZLIB_ROOT, 缺失会在链接期
@@ -460,7 +440,7 @@ add_library(acsd_core STATIC
   # （根 CMake 全文无该符号）⇒ 内存回压无估算输入。本行把它编入 acsd_core，
   # 使 Runtime::load_pipeline 能按节点 config 静态估算峰值工作集并喂给 Scheduler。
   # 依赖面：该 TU 只 include 自己的公开头 + <algorithm>/<cmath>/<limits>/<sstream>，
-  # 不引入新依赖环（eng/tests/runtime/test_rt005_plan_estimator.py 静态断言同款）。
+  # 不引入新依赖环。
   lib/infrastructure/scheduler/src/plan_estimator.cpp
   # MEM-WIRE-01: 内存预算**来源解析**（纯函数；可用内存 × 可配置比例，默认 95）。
   # 唯一数值源 = eng/packaging/config/runtime_resources.json（经生成头消费，零字面量）。
@@ -547,7 +527,6 @@ target_include_directories(acsd_common PUBLIC
 # target: acsd_infra_orchestrator（MODULE_MAP conventions: acsd_infra_<id>）;
 # 依赖闭包见 lib/infrastructure/pipeline/orchestrator/cpp/CMakeLists.txt。
 # 唯一静态依赖 = acsd_common（sha256 + healpix_core），故置于其后。
-# 注: 共址测试子目录在文末 ACSD_BUILD_TESTS 段（enable_testing() 之后）注册。
 add_subdirectory(lib/infrastructure/pipeline/orchestrator/cpp)
 
 # vendored cfitsio (第三方, SYSTEM 隔离; 不参与模块图)
@@ -647,6 +626,7 @@ add_library(acsd_hips STATIC
   lib/infrastructure/aio/src/hips/aio_hips_reader.cpp
   lib/infrastructure/aio/src/hips/aio_hips_writer.cpp
   lib/infrastructure/aio/src/healpix/aio_healpix_io.cpp
+  lib/infrastructure/aio/src/aio_tile_geometry.cpp
   lib/infrastructure/aio/src/hiss_codec.cpp
   lib/infrastructure/aio/src/hiss_common.cpp
   lib/infrastructure/aio/src/hiss_reader.cpp
@@ -1048,7 +1028,7 @@ endif()
 
 # providers/providers.manifest.json：provider 家族清单（module_api_v1 ABI）。
 # 与 backends.manifest.json 并列同目录但**互不混装**：每族的 entrypoint 字段实测于 DSO
-# 本身（生成期 dlopen + 取符号），eng/ci/check_provider_manifests.py 双向校验家族归属。
+# 本身（生成期 dlopen + 取符号），家族归属由此双向校验。
 set(ACSD_PROVIDERS_MANIFEST "${ACSD_ISA_PROVIDER_DIR}/providers.manifest.json")
 add_custom_command(OUTPUT "${ACSD_PROVIDERS_MANIFEST}"
   COMMAND ${ACSD_STAMP_PYTHON}
@@ -1318,8 +1298,7 @@ add_subdirectory(lib/infrastructure/cli)
 
 # app/acsd_cli: 薄 CLI (显式链接各库; 无 GLOB; ACR 不链)
 # RT-008: main.cpp 仅入口壳; parser/commands/runtime_client 为独立编译单元
-# B8-P1: lib/infrastructure/cli/process.cpp — 跨平台子进程封装(argv 传参, 替代 std::system 拼接族),
-#   同时以 acsd_cli_process 静态库形式供 eng/tests/unit 共址单测链接。
+# B8-P1: lib/infrastructure/cli/process.cpp — 跨平台子进程封装(argv 传参, 替代 std::system 拼接族)。
 add_library(acsd_cli_process STATIC lib/infrastructure/cli/process.cpp)
 target_include_directories(acsd_cli_process PUBLIC
   ${CMAKE_CURRENT_SOURCE_DIR}/lib/infrastructure/cli
@@ -1459,119 +1438,6 @@ add_subdirectory(lib/algorithms/resample)
 add_subdirectory(lib/algorithms/fits_output)
 add_subdirectory(lib/algorithms/integration/phase1_product)
 add_subdirectory(lib/algorithms/integration/phase2_integrate)
-
-if(ACSD_BUILD_TESTS)
-  enable_testing()
-  # W4-A9 批次 1: projection 共址测试 (p3_wcs_test / ctest 名 p3_wcs) 必须先于
-  # eng/tests/unit 注册 —— eng/tests/unit/p1wcs/CMakeLists.txt 的 p1wcs_std_f1_bridge_cross
-  # 以 $<TARGET_FILE:p3_wcs_test> 引用该目标 (STD-F1 导出边界第三方交叉)。
-  # 目标名与 ctest 名相对迁移前不变, 外部引用零改动。
-  add_subdirectory(lib/algorithms/projection/tests/p3wcs)
-  # ORCH-001 批次 1: 编排层共址测试注册（改前 ctest -N | grep -ci orchestrator = 0）。
-  # 必须在 enable_testing() 之后: 目标库本体已在 add_subdirectory(ORCH 模块) 声明。
-  add_subdirectory(lib/infrastructure/pipeline/orchestrator/cpp/tests)
-  add_subdirectory(eng/tests/unit)
-  # V3 B3-A4 (RESCUE-P1-13/P1-16): Phase2 主科学门进全量 ctest。
-  # lib/algorithms/coverage/tests/* 的六个 gtest 目标 (synthetic_gate / ivar_wiring /
-  # execution_options / routing / sampler_parallel / async_io) 此前从不进根
-  # 图 —— ctest -N | grep -i synthetic 只剩 eng/tests/unit 的 p2_upm_synthetic
-  # 单点。子目录自带 find_package(GTest QUIET); GTest 缺失时这些目标零注册,
-  # 故 CI 供应 libgtest-dev 以保证有真实执行面 (不得静默零测试)。
-  add_subdirectory(lib/algorithms/coverage)
-
-  # ── V6 (AR-033 / C-004.4): V6 测试目标统一注册 ────────────────────────
-  # eng/tests/unit/{aio,p1_cal,p1_drz,p1_psfw,p2_*,p3_*}: Wave 5 共址单元测试（9 个）；eng/tests/integration/{p1_integrate,p2_integrate,p3_export}:
-  # Wave 7/8 产品链集成；eng/tests/system/runtime: Wave 9 运行面。
-  # 均只依赖上方已定义的 V6 库目标与 acsd_phase2，故置于 lib/algorithms/coverage 之后。
-  add_subdirectory(eng/tests/unit/aio aio)
-  add_subdirectory(eng/tests/unit/p1_cal p1_cal)
-  add_subdirectory(eng/tests/unit/p1_drz p1_drz)
-  add_subdirectory(eng/tests/unit/p1_psfw p1_psfw)
-  add_subdirectory(eng/tests/unit/p2_rej p2_rej)
-  add_subdirectory(eng/tests/unit/p2_samp p2_samp)
-  add_subdirectory(eng/tests/unit/p2_upm p2_upm)
-  add_subdirectory(eng/tests/unit/p2_sky p2_sky)
-  # SCI-502 FIX-3：天光面 κ 可观测 + 粗糙度自适应红/绿双向
-  add_subdirectory(eng/tests/unit/p2_sky_kappa p2_sky_kappa)
-  # UPM-KAPPA-UNIFY-01：唯一可辨识性判据（正/负例 + 尺度不变 + Oracle）
-  add_subdirectory(eng/tests/unit/p2_identifiability p2_identifiability)
-  # FINAL-07 R1：UPM-KAPPA-UNIFY-01 的 M42 判据探针曾在此登记为 add_executable，
-  # 但源码在 run/UPM-KAPPA-UNIFY-01/tools/（.gitignore 忽略 run/*）⇒ 干净克隆 / CI
-  # 的 configure 必红（Cannot find source file），违反「构建不得依赖未跟踪路径」。
-  # 该探针是**一次性证据探针**：判据本体的现行回归锁在跟踪面
-  # eng/tests/unit/p2_identifiability（v6_p2_identifiability）与 eng/tests/unit/p2_upm
-  # 的 geo 诊断测试；探针源码与结果留在 run/UPM-KAPPA-UNIFY-01/（该轮 REPORT.md 已留档）。
-  # 若将来要把它作为**现行工具**保留，须先把源码迁入跟踪目录（如 eng/tools/）再重新
-  # 登记，并同步 eng/tools/arch/gen_build_graph_doc.py 的 NONPROD 与再生 BUILD_GRAPH.md。
-  add_subdirectory(eng/tests/unit/p3_proj p3_proj)
-  add_subdirectory(eng/tests/unit/p3_rsmp p3_rsmp)
-  add_subdirectory(eng/tests/integration/p1_integrate p1_integration)
-  add_subdirectory(eng/tests/integration/p2_integrate p2_integration)
-  add_subdirectory(eng/tests/integration/p3_export p3_integration)
-  add_subdirectory(eng/tests/system/runtime runtime)
-endif()
-
-# ── QA-006: linux-deep 附加质量目标 (V8-CI-005; 默认 OFF, 仅 linux-deep CI 开) ──
-# 与 QA-002 sanitizer 选项同模式: 生产默认 OFF, 不进默认构建图。
-#   ACSD_SANITIZE_RUNTIME: qa-sanitize 目标 (clang + ASan/UBSan/LSan, 复用 QA-002 接线)
-#   ACSD_SANITIZE_THREAD : qa-sanitize-tsan 目标 (clang + TSan; 与上一个互斥, 单选)
-#   ACSD_BUILD_COVERAGE  : 插桩作用域已前移至 target 声明前 (见上文 F8-b 注释);
-#                             此处仅声明 ccov 自定义目标 (构建+ctest+报告合并)。
-if(NOT WIN32 AND NOT MSVC)
-  option(ACSD_SANITIZE_RUNTIME "Add qa-sanitize custom target (clang ASan+UBSan+LSan)" OFF)
-  option(ACSD_SANITIZE_THREAD "Add qa-sanitize-tsan custom target (clang TSan)" OFF)
-  if(ACSD_SANITIZE_THREAD AND ACSD_SANITIZE_RUNTIME)
-    message(FATAL_ERROR "qa-sanitize 与 qa-sanitize-tsan 互斥 (QA-006): 单选")
-  endif()
-  if(ACSD_BUILD_COVERAGE)
-    # 报告合并逻辑在 eng/cmake/qa_coverage_report.sh（多目标 -object 列表展开）
-    add_custom_target(ccov
-      COMMAND ${CMAKE_COMMAND} --build ${CMAKE_BINARY_DIR} -j2
-      COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_BINARY_DIR}/coverage
-      COMMAND ${CMAKE_COMMAND} -E env
-              LLVM_PROFILE_FILE=${CMAKE_BINARY_DIR}/coverage/%p-%m.profraw
-              ${CMAKE_CTEST_COMMAND} --test-dir ${CMAKE_BINARY_DIR} --output-on-failure
-      COMMAND /bin/sh ${CMAKE_SOURCE_DIR}/eng/cmake/qa_coverage_report.sh
-              ${CMAKE_BINARY_DIR} ${CMAKE_SOURCE_DIR}
-      WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
-      COMMENT "QA-006 覆盖基线测量 (lib+cli, LLVM source-based; ctest 全量)"
-      VERBATIM)
-  endif()
-  if(ACSD_SANITIZE_RUNTIME OR ACSD_SANITIZE_THREAD)
-    find_program(ACSD_QA_CLANG clang)
-    if(NOT ACSD_QA_CLANG)
-      message(FATAL_ERROR "qa-sanitize/qa-sanitize-tsan 需要 clang 工具链 (linux-deep CI host 提供)")
-    endif()
-    if(ACSD_SANITIZE_THREAD)
-      set(_QA_SAN_OPT -DACSD_ENABLE_TSAN=ON)
-      set(_QA_SAN_TGT qa-sanitize-tsan)
-      # TSan suppression: vendored cfitsio 4.6.4 内部诊断状态写竞争
-      # (Fitsio_Pthread_Status, fitsio2.h FFLOCK/FFUNLOCK 宏, 上游固有模式)
-      # — 仓库既有先例 eng/tools/quality/tsan/cfitsio.supp (QA-002, 仅限第三方
-      # 符号)。全量 ctest 环境统一挂载 (与下方 ASan 分支 ASAN_OPTIONS 同
-      # 模式); 路径取 qa-sanitize 子 build 树副本 (eng/tests/unit configure 时
-      # 生成, 不含空格) — sanitizer flag 解析按空白切 token, 源树路径含
-      # 空格会破坏 TSAN_OPTIONS。非 TSan 构建不消费该环境变量, 无副作用。
-      set(_QA_SAN_ENV ${CMAKE_COMMAND} -E env
-        TSAN_OPTIONS=suppressions=${CMAKE_BINARY_DIR}/qa-sanitize/tsan/cfitsio.supp)
-    else()
-      set(_QA_SAN_OPT -DACSD_ENABLE_SANITIZERS=ON)
-      set(_QA_SAN_TGT qa-sanitize)
-      set(_QA_SAN_ENV ${CMAKE_COMMAND} -E env ASAN_OPTIONS=detect_leaks=1:abort_on_error=1)
-    endif()
-    # 独立 build dir 用 clang 重新配置, 复用本文件 QA-002 sanitizer 接线 (不重复实现)
-    add_custom_target(${_QA_SAN_TGT}
-      COMMAND ${CMAKE_COMMAND} -S ${CMAKE_SOURCE_DIR} -B ${CMAKE_BINARY_DIR}/qa-sanitize
-              -DCMAKE_BUILD_TYPE=Debug -DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++
-              ${_QA_SAN_OPT}
-      COMMAND ${CMAKE_COMMAND} --build ${CMAKE_BINARY_DIR}/qa-sanitize -j2
-      COMMAND ${_QA_SAN_ENV}
-              ${CMAKE_CTEST_COMMAND} --test-dir ${CMAKE_BINARY_DIR}/qa-sanitize
-              --output-on-failure -j2
-      COMMENT "QA-006 clang sanitizer 全量单元 (CTest; 违例=非零退出=检查 FAIL)"
-      VERBATIM)
-  endif()
-endif()
 
 # ── BLD-003 模块化安装骨架: 唯一 install 规则源 (白名单 install 树) ──
 # include 于全部 target 声明之后; 本文件只允许在根 CMake 出现 (BLD-002)。

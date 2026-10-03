@@ -81,8 +81,8 @@ OpenGL，STF 显示，可选构建），落地目录 =
 
 ## 8. 测试与 Oracle
 
-- 读侧复用 aio 的测试；
-- STF engine 单测（`lib/infrastructure/hips_browser/healpix_browser_qt/tests/test_stf_engine.cpp`）；
+- 读侧复用 aio 的验证面；
+- STF engine 单测面；
 - 渲染正确性（已知产品 → 期望像素值）；
 - 导航 / 坐标读出测试；
 - 视觉验收按 `docs/ACSD_DESIGN.md` §12.4 的 L4 清单执行；

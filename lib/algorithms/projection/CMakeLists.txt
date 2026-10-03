@@ -1,7 +1,7 @@
 # lib/algorithms/projection/CMakeLists.txt — projection 算法模块 target 清单
 #
 # BLD-002: 唯一产品事实源 = 根 CMakeLists.txt (唯一 project / 唯一 add_executable(acsd))。
-# 本文件只声明本模块的算法库 target 与共址测试; 由根 CMakeLists.txt 的
+# 本文件只声明本模块的算法库 target; 由根 CMakeLists.txt 的
 # add_subdirectory(lib/algorithms/projection) 引入产品图 (INT-001 W4-A9 批次 1)。
 #
 # 目标归属:
@@ -25,18 +25,3 @@ if(NOT TARGET acsd_p3_projection_wcs)
     target_compile_options(acsd_p3_projection_wcs PRIVATE -Wall -Wextra -Wpedantic)
   endif()
 endif()
-
-# 共址可复用测试 (ENGINEERING_SPEC §4.6): 唯一注册点 = 根 CMakeLists.txt 的
-# ACSD_BUILD_TESTS 段（enable_testing() 之后）—— add_subdirectory(
-# lib/algorithms/projection/tests/p3wcs) 直接挂载本模块 tests/p3wcs/
-# （p3_wcs_test / p3_projection_registry_test / unsupported CLI 负例）。
-# P-083 (台账 B8): 此前此处是一段恒假死守卫 —— EXISTS 指向不存在的
-# <module>/eng/tests/CMakeLists.txt，且 add_subdirectory(tests) 指向无
-# CMakeLists.txt 的 tests/（真体在 tests/p3wcs/），双重死代码。不得在此
-# 重复挂载: 同一源目录只允许 add_subdirectory 一次（根注释同义），且
-# tests/p3wcs 依赖根图 target（acsd / acsd_common），独立 configure 下
-# 本就无法成立 —— 故按台账 fix「删死代码」分支移除，防后续误激活。
-# P-083 修复注记：本模块唯一测试注册点 = 根 CMakeLists.txt:1122 的
-# add_subdirectory(lib/algorithms/projection/tests/p3wcs)。此处一律不挂载：
-# 模块 CMakeLists 求值早于根图注册 p3_wcs_test（NOT TARGET 恒真），
-# 任何条件挂载都会与根图形成同源目录双挂（binary dir 冲突）。

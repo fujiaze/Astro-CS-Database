@@ -39,7 +39,7 @@
 | module / ABI / doc revision | `acsd.p2.hips_writer` / C++17（内部）+ C ABI 库消费（aio_hips.h extern "C"，P1 冻结面）/ r1 |
 | owner / phase scope | SA-P2-I23 / phase2（matrix P2-HIPS；depends_on_int=P2-INT-INT;IO-003） |
 | 文档状态 | CONTRACT_READY（实现存在于 lib/algorithms/coverage/tools/stage2.cpp，模块化迁移未开始；不声明 IMPLEMENTED） |
-| 构建 | lib/algorithms/coverage/CMakeLists.txt:103 `add_executable(acsd-stage2 eng/tools/stage2.cpp)`、:104-105 链接、:107-108 P2_ENABLE_OPENMP 宏（CON-006 逐像素并行）、:110 EXCLUDE_FROM_ALL、:126 与 phase2_synthetic_gate 同列按需工具；stage2_common.cpp 编入 phase2 库（CMakeLists.txt:44、根 CMakeLists.txt:339） |
+| 构建 | lib/algorithms/coverage/CMakeLists.txt:111 `add_executable(acsd-stage2 tools/stage2.cpp)`、:112-113 链接、:114-117 P2_ENABLE_OPENMP 宏（CON-006 逐像素并行）、:118 EXCLUDE_FROM_ALL、:127/:132 与 calibrated_pair_diag / rejection_cli 同列按需工具；stage2_common.cpp 编入 phase2 库（CMakeLists.txt:46） |
 
 ## 2. 负责范围 / 不负责
 
@@ -148,9 +148,7 @@ PUBLIC_API.md Phase2 mosaic write 节（API-P2-HIPS-001）。
 
 - 可执行 TEST-P2-HIPS-001：**MISSING**（P2-HIPS-TEST 建立；不冒认）。
 - 矩阵/登记 VERIFIED 面=设计冻结（ALG 文档 §11.4 设计+容差，COV 先例）。
-- 现状相邻测试（引用不冒认）：phase2_synthetic_gate W9 ACR
-  mosaic_reject legacy↔CPU reference 等价（lib/algorithms/coverage/tests/
-  synthetic_gate.cpp:3021-3160）；eng/tests/api/test_reject_integration_oracle.py
+- 现状相邻测试（引用不冒认）：eng/tests/api/test_reject_integration_oracle.py
   生产 kernel oracle；eng/tests/api/test_reject_parallel.py。马赛克端到端
   （真数据）验证记录见 lib/algorithms/coverage/memory.md W11。
 - TEST-DESIGN 建议与容差来源：ALG-P2-HIPS-001..004（PHASE2_MOSAIC_WRITE.md

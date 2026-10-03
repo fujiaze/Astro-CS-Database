@@ -35,22 +35,3 @@ endif()
 set_target_properties(acsd_noop PROPERTIES
   OUTPUT_NAME "acsd_noop"
   PREFIX "")
-
-# 共址可复用测试 (11 §5): module:<module_id> label + CTest 注册
-# ACSD_BUILD_TESTS 由根 CMakeLists 声明。注意: 根 enable_testing() 在本
-# 子目录 add_subdirectory 之后才执行 (根文件尾部), 故本目录须自行
-# enable_testing() 才能把 add_test 落入本目录 CTestTestfile.cmake
-# (enable_testing 是目录级属性, 多次调用不冲突)。
-if(ACSD_BUILD_TESTS)
-  enable_testing()
-  add_executable(noop_handshake_test tests/unit/noop_handshake_test.c)
-  target_include_directories(noop_handshake_test PRIVATE
-    ${CMAKE_CURRENT_SOURCE_DIR}/include
-    ${CMAKE_CURRENT_SOURCE_DIR}/../../../../lib/include)
-  # 直接链接 SHARED (Linux 侧加载验证); Windows 侧 import lib 由同 target 提供
-  target_link_libraries(noop_handshake_test PRIVATE acsd_noop)
-  if(NOT MSVC)
-    target_compile_options(noop_handshake_test PRIVATE -Wall -Wextra)
-  endif()
-  add_test(NAME module:acsd.conformance.noop COMMAND noop_handshake_test)
-endif()

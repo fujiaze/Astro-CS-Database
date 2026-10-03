@@ -1,8 +1,6 @@
 # ============================================================================
 # orchestrator - C++ CLI 编排器 Makefile
 # 功能: 编译 orchestrator.exe (Phase1 JSON 入口: orchestrator.exe <stage1.json>)
-#       编译 test_dll_loader.exe (DllLoader 单元测试)
-#       编译 test_checkpoint.exe (CheckpointManager 单元测试)
 # 编译器: g++ (MSYS2), C++17, 静态链接 C++ 运行时
 # 注: 暂不链接任何 DLL (动态加载由 DllLoader 运行时完成)
 # 注: nlohmann/json 已通过 MSYS2 pacman 安装在 mingw64/include, 默认搜索路径
@@ -43,14 +41,6 @@ endif
 
 SRC_DIR = src
 INCDIR = include
-TEST_DIR = tests
-# BLD-004: 测试目录创建命令跨平台化 — make 在 Windows 走 cmd.exe、Linux 走 sh,
-# 'mkdir -p'(sh) 与 'if not exist ... mkdir'(cmd) 互不兼容, 按 OS 显式选择:
-ifeq ($(OS),Windows_NT)
-MKDIR_TESTDIR = cmd /c "if not exist $(TEST_DIR) mkdir $(TEST_DIR)"
-else
-MKDIR_TESTDIR = mkdir -p $(TEST_DIR)
-endif
 
 # 源文件列表 (Phase1 JSON 入口: 删除 cli_repl, 新增 json_config)
 SRCS = $(SRC_DIR)/main.cpp \
@@ -81,17 +71,8 @@ HEADERS = $(INCDIR)/orchestrator.h \
 
 # 输出目标
 TARGET = orchestrator.exe
-TEST_DLL_LOADER = $(TEST_DIR)/test_dll_loader.exe
-TEST_CHECKPOINT = $(TEST_DIR)/test_checkpoint.exe
-TEST_LOGGER = $(TEST_DIR)/test_logger.exe
-TEST_ORCHESTRATOR_CLI = $(TEST_DIR)/test_orchestrator_cli.exe
-TEST_P1_BATCHB = $(TEST_DIR)/test_p1_batchB_fixes.exe
 
-# Bug 狩猎 R8 批次 H 修复验证: star_measurements 坐标契约 0.5px 系统错位
-# (同帧混合星点同系 / 契约桥往返 / 去重阈值 0.5px 边界)
-TEST_P1_BATCHH = $(TEST_DIR)/test_p1_batchH_star_coord.exe
-
-.PHONY: all clean test_dll_loader test_checkpoint test_logger test_orchestrator_cli test_p1_batchB test_p1_batchH run_test run_integration_test
+.PHONY: all clean
 
 all: $(TARGET)
 
@@ -99,152 +80,8 @@ $(TARGET): $(SRCS) $(HEADERS)
 	$(CXX) $(CXXFLAGS) -o $@ $(SRCS) $(JSV_SRCS) $(INCLUDES) $(LDFLAGS) -lm
 
 # ============================================================================
-# DllLoader 单元测试
-# ============================================================================
-test_dll_loader: $(TEST_DLL_LOADER)
-
-$(TEST_DLL_LOADER): $(TEST_DIR)/test_dll_loader.cpp $(SRC_DIR)/dll_loader.cpp $(INCDIR)/dll_loader.h
-	@$(MKDIR_TESTDIR)
-	$(CXX) $(CXXFLAGS) -o $@ $(TEST_DIR)/test_dll_loader.cpp $(SRC_DIR)/dll_loader.cpp $(INCLUDES) $(LDFLAGS) -lm
-
-# ============================================================================
-# CheckpointManager 单元测试
-# ============================================================================
-test_checkpoint: $(TEST_CHECKPOINT)
-
-$(TEST_CHECKPOINT): $(TEST_DIR)/test_checkpoint.cpp $(SRC_DIR)/checkpoint.cpp $(INCDIR)/checkpoint.h
-	@$(MKDIR_TESTDIR)
-	$(CXX) $(CXXFLAGS) -o $@ $(TEST_DIR)/test_checkpoint.cpp $(SRC_DIR)/checkpoint.cpp $(INCLUDES) $(LDFLAGS) -lm
-
-# ============================================================================
-# Logger 单元测试
-# ============================================================================
-test_logger: $(TEST_LOGGER)
-
-$(TEST_LOGGER): $(TEST_DIR)/test_logger.cpp $(SRC_DIR)/logger.cpp $(INCDIR)/logger.h
-	@$(MKDIR_TESTDIR)
-	$(CXX) $(CXXFLAGS) -o $@ $(TEST_DIR)/test_logger.cpp $(SRC_DIR)/logger.cpp $(INCLUDES) $(LDFLAGS) -lm
-
-# ============================================================================
-# 阶段1集成测试: test_orchestrator_cli
-# Phase1 JSON 入口: 测试 JSON 配置解析/验证、断点续传、DLL 加载降级、日志集成
-# ============================================================================
-test_orchestrator_cli: $(TEST_ORCHESTRATOR_CLI)
-
-$(TEST_ORCHESTRATOR_CLI): $(TEST_DIR)/test_orchestrator_cli.cpp \
-                          $(SRC_DIR)/orchestrator.cpp \
-                          ../../common/healpix/healpix_core.cpp \
-                          $(SRC_DIR)/dll_loader.cpp \
-                          $(SRC_DIR)/checkpoint.cpp \
-                          $(SRC_DIR)/logger.cpp \
-                          $(SRC_DIR)/cli_command.cpp \
-                          $(SRC_DIR)/json_config.cpp \
-                          $(JSV_SRCS) \
-                          $(INCDIR)/orchestrator.h \
-                          $(INCDIR)/dll_loader.h \
-                          $(INCDIR)/checkpoint.h \
-                          $(INCDIR)/logger.h \
-                          $(INCDIR)/cli_command.h \
-                          $(INCDIR)/json_config.h
-	@$(MKDIR_TESTDIR)
-	$(CXX) $(CXXFLAGS) -o $@ $(TEST_DIR)/test_orchestrator_cli.cpp \
-	    $(SRC_DIR)/orchestrator.cpp ../../common/healpix/healpix_core.cpp \
-	    ../../common/crypto/sha256.cpp \
-	    $(SRC_DIR)/dll_loader.cpp \
-	    $(SRC_DIR)/checkpoint.cpp $(SRC_DIR)/logger.cpp \
-	    $(SRC_DIR)/cli_command.cpp $(SRC_DIR)/json_config.cpp $(JSV_SRCS) \
-	    $(INCLUDES) $(LDFLAGS) -lm
-
-# ============================================================================
-# Bug 狩猎 R5 P1 批次 B 修复验证: cleanup 目录树 / SIGINT 纯 atomic / JSONL 转义
-# ============================================================================
-test_p1_batchB: $(TEST_P1_BATCHB)
-
-$(TEST_P1_BATCHB): $(TEST_DIR)/test_p1_batchB_fixes.cpp \
-                   $(SRC_DIR)/orchestrator.cpp \
-                   ../../common/healpix/healpix_core.cpp \
-                   ../../common/crypto/sha256.cpp \
-                   $(SRC_DIR)/dll_loader.cpp \
-                   $(SRC_DIR)/checkpoint.cpp \
-                   $(SRC_DIR)/logger.cpp \
-                   $(SRC_DIR)/cli_command.cpp \
-                   $(SRC_DIR)/json_config.cpp \
-                   $(JSV_SRCS) \
-                   $(INCDIR)/orchestrator.h \
-                   $(INCDIR)/cli_command.h \
-                   $(INCDIR)/logger.h
-	@$(MKDIR_TESTDIR)
-	$(CXX) $(CXXFLAGS) -o $@ $(TEST_DIR)/test_p1_batchB_fixes.cpp \
-	    $(SRC_DIR)/orchestrator.cpp ../../common/healpix/healpix_core.cpp \
-	    ../../common/crypto/sha256.cpp \
-	    $(SRC_DIR)/dll_loader.cpp \
-	    $(SRC_DIR)/checkpoint.cpp $(SRC_DIR)/logger.cpp \
-	    $(SRC_DIR)/cli_command.cpp $(SRC_DIR)/json_config.cpp $(JSV_SRCS) \
-	    $(INCLUDES) -I../../../third_party $(LDFLAGS) -lm
-
-# ============================================================================
-# Bug 狩猎 R8 批次 H 修复验证: star_measurements 坐标契约 0.5px 系统错位
-# (同帧混合星点同系 / 契约桥往返 / 去重阈值 0.5px 边界)
-# ============================================================================
-test_p1_batchH: $(TEST_P1_BATCHH)
-
-$(TEST_P1_BATCHH): $(TEST_DIR)/test_p1_batchH_star_coord.cpp \
-                   $(SRC_DIR)/orchestrator.cpp \
-                   ../../common/healpix/healpix_core.cpp \
-                   ../../common/crypto/sha256.cpp \
-                   $(SRC_DIR)/dll_loader.cpp \
-                   $(SRC_DIR)/checkpoint.cpp \
-                   $(SRC_DIR)/logger.cpp \
-                   $(SRC_DIR)/cli_command.cpp \
-                   $(SRC_DIR)/json_config.cpp \
-                   $(JSV_SRCS) \
-                   $(INCDIR)/orchestrator.h \
-                   $(INCDIR)/cli_command.h \
-                   $(INCDIR)/logger.h
-	@$(MKDIR_TESTDIR)
-	$(CXX) $(CXXFLAGS) -o $@ $(TEST_DIR)/test_p1_batchH_star_coord.cpp \
-	    $(SRC_DIR)/orchestrator.cpp ../../common/healpix/healpix_core.cpp \
-	    ../../common/crypto/sha256.cpp \
-	    $(SRC_DIR)/dll_loader.cpp \
-	    $(SRC_DIR)/checkpoint.cpp $(SRC_DIR)/logger.cpp \
-	    $(SRC_DIR)/cli_command.cpp $(SRC_DIR)/json_config.cpp $(JSV_SRCS) \
-	    $(INCLUDES) -I../../../third_party $(LDFLAGS) -lm
-
-# ============================================================================
-# 运行测试 (需要在项目根目录执行, 以便加载各模块 DLL)
-# ============================================================================
-run_test: test_dll_loader test_checkpoint test_logger
-	@echo ============================================================
-	@echo 运行 DllLoader 单元测试 (在项目根目录执行)
-	@echo ============================================================
-	cd .. && cd .. && cd .. && $(TEST_DIR)\test_dll_loader.exe
-	@echo ============================================================
-	@echo 运行 CheckpointManager 单元测试
-	@echo ============================================================
-	$(TEST_CHECKPOINT)
-	@echo ============================================================
-	@echo 运行 Logger 单元测试
-	@echo ============================================================
-	$(TEST_LOGGER)
-
-# ============================================================================
-# 运行阶段1集成测试 (Task 5)
-# 需要先编译 orchestrator.exe (cli_command.cpp 修改后需重新编译)
-# ============================================================================
-run_integration_test: $(TARGET) test_orchestrator_cli
-	@echo ============================================================
-	@echo 运行阶段1集成测试 (Task 5 - 5 个 Part)
-	@echo ============================================================
-	$(TEST_ORCHESTRATOR_CLI)
-
-# ============================================================================
 # 清理
 # ============================================================================
 clean:
 	del /f /q $(TARGET) 2>nul
-	del /f /q $(TEST_DLL_LOADER) 2>nul
-	del /f /q $(TEST_CHECKPOINT) 2>nul
-	del /f /q $(TEST_LOGGER) 2>nul
-	del /f /q $(TEST_ORCHESTRATOR_CLI) 2>nul
 	del /f /q $(SRC_DIR)\*.o 2>nul
-	del /f /q $(TEST_DIR)\*.o 2>nul

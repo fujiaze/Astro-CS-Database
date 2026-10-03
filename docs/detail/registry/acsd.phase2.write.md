@@ -157,9 +157,9 @@ ALG-UPM-CONTROL-IVAR-001、DATA-UPM-CONTROL-UNC-001。`ERR-P2-UPM-001`（畸形�
 
 `TEST-P2-HIPS-001` 待建；设计冻结 = ALG-P2-HIPS-001..004
 （PHASE2_MOSAIC_WRITE.md §8/§9：NumPy 参考 signal / sup_max rtol = 1e-12、序转换
-恒等往返、ivar 门负例）。现状相邻证据：phase2_synthetic_gate 的 ACR
-`mosaic_reject_legacy` ↔ CPU 等价（synthetic_gate.cpp）、synthetic_gate UPMW 组、
-G5 ivar 真值、SNR-015 ablation；eng/tests/api/test_reject_integration_oracle.py。
+恒等往返、ivar 门负例）。已取证的相邻读数：ACR `mosaic_reject_legacy` ↔ CPU 等价、
+synthetic_gate UPMW 组、G5 ivar 真值、SNR-015 ablation；这些读数的载体不在本仓
+可复算路径上，引用时只作背景。
 
 ## 已知限制
 

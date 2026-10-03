@@ -19,7 +19,7 @@
 
 - **上游接口（P1 → P2）**：输入逐帧测光零点 ZP_k（mag）与逐星产品（F、FWHM）。P2 生成 F_ref,k = 10^(−0.4(m_ref−ZP_k)) [ADU]；恒等式 F_ref,k·k_photo,k = F0 锁定与 P1 的自洽 [实验:code/audit/route1/exp04_double_count_bias.py]。P1 低星数帧零点不确定度被低估（MAD 有限样本偏差 1.49×，n=3）会传入 P2，按 P1 单元精度约定处理。 [自检]
 - **本环产出**：① frame_snr（无量纲，依赖 m_ref，须同档比较）；② 逐源 σ_F/SNR_F（ADU 域）；③ 稀疏控制点 sparse_snr_value = F_ref/σ_F（无量纲，Δ=64 px 网格；**边界（P2-B2）**：口径与 schema 已冻结、Phase2 消费面已接线并红绿验证，但 Phase1 侧尚无产者与 HiPS 载体 ⇒ 生产链当前不产出该层，见 REPORT_paper §6）；④ 叠加权唯一换算口径 w = SNR²/F_ref² = 1/σ_F² [ADU⁻²]。
-- **下游消费**：P3 上球（消费控制点＋预测方差；k_corr 查表由 P3 承载，D-08）；P4 稠密重建（插值配置化＋运行日志输出不落盘，已批，承载于 P4）；P5 加性天光去除（w 组合，SNR_comb² = ΣSNR_k²）。
+- **下游消费**：P3 上球（消费控制点＋预测方差；k_corr 查表由 P3 承载，D-08）；P4 稠密重建（插值配置化＋运行日志输出不落盘，已批，承载于 P4）；P5 加性天光去除（w 组合；独立帧的无条件结论是方差可加 `Var(F_hat)=1/Σ_k W_info,k`）。
 - **精度约定**：m_ref 随产品落盘；换算权逐帧比对对 m_ref/ZP 的**代数**不变性 ≤3.3×10⁻¹⁶，但生产组成下只是近似——m_ref 档实测漂移 1.9%–4.2%（f4 生产驱动最大 4.20%、exp04 生产臂 3.83%、exp05 1.95%；零点灵敏度 1.85% 是另一量），故必须同档比较（P2-M2）[实验:code/audit/route3/exp04_refmag_chain.py]；量纲错位 ⇒ SNR 偏一个 gain 因子（增益不变性检验锁定约定）[实验:code/audit/route1/exp04_double_count_bias.py]；控制点精度约定 1.5%（N_sky=9216 口径）经接口核对传递（首轮 **IDW 代理算子**：RMS 0.229、通胀 1.06×，属代理自身性质；**冻结默认算子** natural_bicubic_spline_clip_v1 在生产 SparseSnrReconstructor 直调下实测 T ≈ 0.87 衰减、同几何 disc 0.1206，见 REPORT_paper §4.9，P2-M5）[实验:code/audit/route3/exp04_refmag_chain.py]。**数值精度**：全部复算 FP64；1e-9 级判据仅 FP64 有定义（FP32 负控 3.4×10⁻⁸，P2-m8）。 [自检]
 
 ## 1 假说与判定
@@ -32,7 +32,8 @@
 | H4/H5 | 负例：算术常数无散粒 ⇒ 度量恒零；传统"信号含天光"口径失真判红 | 成立（6.7×10⁻¹⁶；×3419/×1.03e5 判红） | [实验:code/b1_sky_scan.py] |
 | H6 | 局部背景估计偏差 δB 有可量化 SNR 边界 | 成立（1% 边界 δB*=2.78 e⁻ 解析，实测交叉 3.44 e⁻） | [实验:code/b1_sky_scan.py] |
 | H8 | 三口径无全局最优、适用域可判 | 成立（地面稀疏全胜、HST 帧级胜、Δ*≈16 px） | [实验:code/b3_domain_map.py] |
-| H9/H10 | SNR_comb²=ΣSNR_k² 恒等；拟合/堆叠权重分离 | 成立（2.2×10⁻¹⁶；杠杆方差比 1.523 vs 预言 1.504） | [实验:code/b4_integration.py] |
+| H9 | `SNR_comb²=ΣSNR_k²` | **定义性结论（非证据）**：在组公共 `F_ref` 口径下属方差可加的定义式重述、因而恒真且零鉴别力；在逐帧 `F_ref` 口径下无公共锚、不构成单一绝对 SNR 的平方、无定义。二者均不构成实现正确性判据，故 2.2×10⁻¹⁶ 按构造成立（`code/b4_integration.py` 两端分子为同一固定真值）。依据 `docs/science/CONTROL_WEIGHT_SNR.md:213-214` 已自标 `is_tautology: true` / `evidence_eligible: false` | [实验:code/b4_integration.py] |
+| H10 | 拟合/堆叠权重分离 | 成立（杠杆方差比 1.523 vs 预言 1.504） | [实验:code/b4_integration.py] |
 | H11 | w=SNR(F_ref)²/F_ref² ≡ 1/σ_F²；γ=2 唯一 | 成立（1.1×10⁻¹⁶；γ=2 恒等偏差 4.4×10⁻¹⁶=2 ulp，γ=1 ⇒ 帧权 ×0.32–×3.16） | [实验:code/b4_integration.py][实验:code/audit/route1/exp12_gamma_weight_scale.py] [自检] |
 | H12 | 方差按 C_out=R C_in Rᵀ 传播；对角近似欠估 | 成立（对角元比 0.9980；对角近似宣称方差仅为实际的 32.5%；欠估闭式 1+ρ(M_eff−1)，36.31%@ρ=0.19、4-tap） | [实验:code/b5_phase3_transfer.py][实验:code/audit/route1/exp10_covariance_diagonal_approx.py] [自检] |
 | H13 | "RMSE≡s_field"类门是恒真门、不作证据 | 成立（对抗场下门仍绿 ⇒ 移除；替代判据 E 双向可假） | [实验:code/b6_gates_audit.py] |
@@ -71,7 +72,7 @@
 4. **对角欠估**：1+ρ(M_eff−1) 闭式；36.31%@ρ=0.19、4-tap；23.3% 同族；1+0.75ρ̄ 淘汰 [实验:code/audit/route1/exp10_covariance_diagonal_approx.py]。 [自检]
 5. **权重唯一性**：γ=2 恒等偏差 4.4×10⁻¹⁶=2 ulp；γ≠2 ⇒ O(1) 畸变；恒等门改 4 ulp 规则（A-P2-10）[实验:code/audit/route1/exp12_gamma_weight_scale.py][实验:code/audit/route1/exp07_weight_and_coadd_identities.py]。 [自检]
 6. **控制点方差**：N=5 纯公式高估 9.53%（方向词订正，D-07）；端到端 ±1.5%；生产链裁剪臂低估 1.3–3.2%；偶 N 效应 +5.0%@N=20 [实验:code/audit/supplement_control_variance/*]。 [自检]
-7. **接口传递**：1.5% 控制点精度穿过 P4（首轮 IDW 代理算子通胀 1.06×；冻结默认算子在真实控制网格上 T ≈ 0.87 衰减、disc 0.1206，见 REPORT_paper §4.9）；SNR_comb²=ΣSNR_k²（2.2×10⁻¹⁶）；对角近似宣称方差仅为实际 32.5% [实验:code/audit/route3/exp04_refmag_chain.py][实验:code/b4_integration.py][实验:code/b5_phase3_transfer.py]。 [自检]
+7. **接口传递**：1.5% 控制点精度穿过 P4（首轮 IDW 代理算子通胀 1.06×；冻结默认算子在真实控制网格上 T ≈ 0.87 衰减、disc 0.1206，见 REPORT_paper §4.9）；`SNR_comb²=ΣSNR_k²` 读数 2.2×10⁻¹⁶（定义式重述、按构造成立，不作证据，详见 §1 H9 与 §5「定义性结论（非证据）」格）；对角近似宣称方差仅为实际 32.5% [实验:code/audit/route3/exp04_refmag_chain.py][实验:code/b4_integration.py][实验:code/b5_phase3_transfer.py]。 [自检]
 8. **适用域**：地面稀疏胜帧级（0.0413–0.0825 vs 0.0506–0.1691 dex）、HST 帧级胜（Δ*≈16 px）、稠密 64 MiB/帧超预算 64 倍（诊断地位）[实验:code/b3_domain_map.py]。
 9. **逐像素绝对 SNR 重建四臂**（解析臂 `D_core`，n=1463，两 seed 同向；seed 20260921 与换 seed 20260922 复跑一致）[实验:code/b7_absolute_snr_recon.py][实验:【复现：实验/absolute-snr/code/b7_run.sh 生成的 b7_absolute_snr_recon.json】]：
    模型 `I = S_src + S_sky + N_local`，`sigma_slow² = Var[N_local] + S_sky/g`，`sigma_w² = sigma_slow² + S_src/g`，**分子只取源**。
@@ -84,12 +85,13 @@
 
 ## 5 可判定结论
 
-按「成立 / 不成立 / 证据不足」三值对每条假说给出判定；逐条证据见 §1 表格与 §4。
+按「成立 / 有条件成立 / 定义性结论（非证据）/ 不成立 / 证伪的任务书前提 / 证据不足」对每条假说给出判定；逐条证据见 §1 表格与 §4。
 
 | 判定 | 条目 |
 |---|---|
-| **成立** | H1、H2、H4/H5、H6、H8、H9/H10、H11、H12、H13；A1、A2、A3、A4、A5、A6、A7、A8、A9；§4.9 四臂（`T_full`/`T_slow`/`T_naive_sky`/`T_traditional`/`T_null`）；§4.9 的 m_ref 精度约定 |
+| **成立** | H1、H2、H4/H5、H6、H8、H10、H11、H12、H13；A1、A2、A3、A4、A5、A6、A7、A8、A9；§4.9 四臂（`T_full`/`T_slow`/`T_naive_sky`/`T_traditional`/`T_null`）；§4.9 的 m_ref 精度约定 |
 | **有条件成立** | H3：生产口径与 Horne 口径一致，但「经验总 σ + RN 项」臂双计读噪（发现→修复闭环） |
+| **定义性结论（非证据）** | H9 `SNR_comb²=ΣSNR_k²`：在组公共 `F_ref` 口径下属方差可加的定义式重述，因而恒真、零鉴别力；在逐帧 `F_ref` 口径（本仓生产口径，`SNR_k` 分子为逐帧参考通量）下组内无公共锚，不构成任何单一绝对 SNR 的平方，无定义、无法计算、无法判定。二者均不构成实现正确性判据，故其 2.2×10⁻¹⁶ 读数不作独立证据腿（依据 `docs/science/CONTROL_WEIGHT_SNR.md:213-214` 的 `is_tautology: true` / `evidence_eligible: false`） |
 | **不成立（已证伪并订正）** | ① 「seed 无关闭式」标签——双计偏差存在闭式且逐位复现（2.35×10⁻¹⁴）；② 「方向恒偏绿」符号——自洽口径截断**偏低**；③ control_variance N=5「低估 8.5%」方向词——纯公式口径**高估 9.53%**；④ 「1.06×/0.2287 是重建算子通胀」——那是 IDW 代理算子自身性质，冻结默认算子实为**衰减**（T ≈ 0.87）；⑤ 「帧级未裁剪 MAD 高 31.27% ⇒ 帧级 SNR 偏低 23.8%」——归因错误，两条路径不同源 |
 | **证伪的任务书前提** | ① 「`T_null` 三臂必须收敛」错：`T_full` 与 `T_slow` 恒等、`T_naive_sky` 按预言发散 1.368 倍，照原话写归零判据在两臂恒真、一臂恒假，**不携带信息**，必须逐臂写；② 「本地噪声与天光散粒在空间上缓变」按字面为假——只有**方差图**缓变（散布 2.0%），噪声实现是白的（lag-1 自相关 −0.4985 ≈ −1/2）；③ 「`T_naive_sky` = 把天光加进分子」自相矛盾——按其公式（分子纯源）实测偏低 0.874、按字面（分子含天光）实测偏高 1.314，两个方向相反的变体被当成一个 |
 | **证据不足** | ① 稀疏控制点 sparse_snr_value：口径与 schema 已冻结、Phase2 消费面已接线并红绿验证，但 **Phase1 侧无产者与 HiPS 载体**，生产链当前不产出该层（见 `REPORT_paper.md` §6 的 P2-B2 条）；② 1.152 的标定登记出处待补登（数值已终裁，不影响结论）；③ k_corr 几何查表网格属 P3 交付件；④ 生产链被估量 y 的合同语义待裁决 |

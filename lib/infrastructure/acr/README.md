@@ -20,21 +20,11 @@ ACSD_ENGINEERING_CONSTRAINTS.md §C.1/C.2：ACR 是正式发布后的 CPU/GPU �
 2. **实验 target 只能隔离构建**：显式实验 configure 以 ACR 树自身为
    `-S` 根（见下），产出 target 全部位于独立 build 目录，不与产品图交集。
 3. **release preset 不接受 ON**：`win-msvc-17.14.39-x64` 与 `linux-control`
-   preset 冻结 `ACSD_ENABLE_ACR=OFF`；`eng/cmake/toolchain/verify_toolchain.py`
-   对 formal path 强制 OFF（ON → FAIL）。
+   preset 冻结 `ACSD_ENABLE_ACR=OFF`（ON → FAIL）。
 4. **install/product manifest 零 ACR**：唯一 install 源
    `eng/cmake/install_layout.cmake` 与 `eng/packaging/*.json` 均无 ACR/CUDA 条目
-   （机器校验见 `lib/infrastructure/acr/ci/check_acr_dormant.py`）。
 5. **生产二进制不加载**：`lib/include/acsd/core/runtime.h` 声明"ACR 不注册不链接"，
-   `lib/infrastructure/scheduler/src/module.cpp` 拒绝 `acsd.acr.*` 模块注册；ACR 实验入口
-   （eng/tools/qualification/scheduler）仅供独立实验构建。
-
-验收命令（Linux 控制节点）：
-
-```bash
-python3 lib/infrastructure/acr/ci/check_acr_dormant.py --repo .            # 全部 PASS
-python3 lib/infrastructure/acr/ci/check_acr_dormant.py --repo . --selftest # 负测自检
-```
+   `lib/infrastructure/scheduler/src/module.cpp` 拒绝 `acsd.acr.*` 模块注册。
 
 ## 范围
 
@@ -56,8 +46,6 @@ lib/infrastructure/acr/
 ├── scheduler/              # 工作保持调度器
 ├── utilization/            # 95% 软占用控制
 ├── diagnostics/            # 日志 + 设备报告
-├── eng/tests/{unit,classic,fault}/
-├── eng/tools/{acr_benchmark,acr_status,acr_report,acr_invalidate}/
 ├── docs/                   # ADR + 审计报告 + 禁止路径 + dependency-lock
 ├── schemas/                # route_profile schema
 ├── examples/               # minimal_parallel_for 等

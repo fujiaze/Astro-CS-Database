@@ -45,5 +45,5 @@
   p2_session.h「拒未知键」与 validate 实现漂移；run 子键类型错未捕获路径。
 - 已知缺陷：编号与语义见 ALG-P2-SESSION-001 的缺陷清单（本页不另行编号）。
 - 测试：TEST-P2-SESSION-001 待建（设计冻结面 = ALG-P2-SESSION-001 TEST-DESIGN）；
-  共址现状 = eng/tests/unit/p2_ir_facade_test.cpp 静态结构断言（canonical
-  节点声明/facade 委托），无会话行为测试；lib/phase2_session/ 下无 tests 目录。
+  已取证的只有静态结构断言（canonical 节点声明/facade 委托），无会话行为测试；
+  lib/phase2_session/ 下无 tests 目录。

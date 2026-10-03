@@ -76,7 +76,7 @@ cpu profile(独立文件): **契约唯一源 = `eng/contracts/schemas/cpu_profil
 `eng/contracts/schemas/hips_storage_form.schema.json` 的 `$defs.manifest_storage`；CFG-001
 `eng/contracts/schemas/run_manifest.schema.json` 只登记该键位与类型。
 缺失 ⇒ 无形态事实（**不判红**）；出现 ⇒ 必须逐条满足 M1..M4（运行清单 schema 校验项的加性键
-白名单须已登记 `storage`；注册面见 门禁注册面（G08-10 重建））。**产品级**完成 manifest
+白名单须已登记 `storage`）。**产品级**完成 manifest
 （`products/{user_path}/manifest.json`）
 **不承载**该键——其形态事实只在 `tree`/`tree_hash`/`fitsverify` 三项
 （`docs/engineering/io/IO_003_ATOMIC_OUTPUT_PUBLISH.md` §5）。

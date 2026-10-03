@@ -215,7 +215,7 @@ struct FlipModeResult {
     bool           success;
 };
 
-// [P27-DEAD-PARAMS] 生产路径不消费字段标注（机器锁 ipv_dead_params_lock）:
+// [P27-DEAD-PARAMS] 生产路径不消费字段标注:
 //   【全局】生产路径无任何 "配置/CLI -> IpvParams" 注入路径 (p1_op_wcs 仅
 //   ipv_get_default_params + 清零 log_dir; wcs 配置对象无 IPV 参数键) =>
 //   本结构体 24 字段全部不可由用户配置影响, 值恒为编译期默认值。

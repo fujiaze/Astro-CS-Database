@@ -1,5 +1,0 @@
-[1/40] Building CXX object lib/foo.cpp.o
-lib/algorithms/calibration/src/cal_core.cpp(120,5): warning C4267: 'conversion from 'size_t' to 'int', possible loss of data'
-[2/40] Building CXX object eng/tests/unit/calib_test.cpp.o
-eng/tests/unit/calib_test.cpp(44,9): warning C4100: unreferenced formal parameter
-lib/third_party/nlohmann/json.hpp(9001,20): warning C4996: 'std::iterator': deprecated

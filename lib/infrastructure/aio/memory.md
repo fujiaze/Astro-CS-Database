@@ -272,7 +272,7 @@
   rc: 0 自洽 / -1 参数或产品集缺失 / 2 available 缺 HDU / 3 unavailable 占位 /
   4 五键不齐 / 5 声明缺失或 tile 不可读 / 6 未声明却存在 / 7 负值哨兵 / 8 双写分叉。
 - **测试（零新增 CTest 目标 ⇒ 零 CI 注册债）**: 新增
-  `lib/infrastructure/aio/tests/p1hips/p1hips_tests_diag_prov.cpp`，正向用例并入既有
+  p1hips 诊断/溯源用例源（已随机器门禁退场），正向用例并入既有
   `p1hips_units` 组（DP-U1..U6）、负向并入既有 `p1hips_negative` 组
   （DP-N1..N4）、注入自检并入既有 `p1hips_selfcheck` 可执行（4 基线场景 +
   5 注入点必败：`ACSD_HIPS_PROV_FAULT=missing_key|value_drift`、

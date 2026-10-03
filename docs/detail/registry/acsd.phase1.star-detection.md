@@ -215,9 +215,8 @@ manifest 顶层与逐帧记录 `detection_mode`、`detection_authoritative`、
 
 `TEST-STAR-DESIGN-001`（ALG-STARDET-001 §11.4，冻结测试设计与容差：合成场质心
 / FWHM / 召回 / 虚警、饱和/混合/边缘专项、确定性 bitwise、FP64 独立 oracle、负例、
-回归锚）；可执行 `TEST-P1-STAR-001` 待建。现状无共址测试套件；
-`lib/algorithms/star_detection/test/sdet_fp64_test.cpp` 为
-NON_PRODUCTION_TOOL_ONLY 手工验证程序。
+回归锚）；可执行 `TEST-P1-STAR-001` 待建。现状无仓内可复算的共址测试套件；
+FP64 手工验证程序已退役。
 
 Oracle 面：
 
@@ -225,17 +224,17 @@ Oracle 面：
 - selection function 与注入分布一致；
 - 改变星表亮度分布只改变 source-SNR 摘要，不改变信息权重（跨模块验证）；
 - 1 worker vs N worker 输出一致；
-- 权威路径判据 `p1star_guided`（`lib/algorithms/star_detection/tests/p1star/p1star_guided_test.cpp`）：
-  真值位置召回与质心（|Δc| ≤ 0.3px @ SNR ≥ 20）、纯噪声场虚警 ≤ 0.1/千像素
-  （发布门 `G-P1-STAR-FP`）、定义域丢弃计数守恒、1/4 线程逐位一致、定义域非退化
-  （预测位置整体偏移后输出不落在真星上）、空定义域非错误；
-- 节点级判据 `p1stardet_node_gate`（`lib/algorithms/star_detection/tests/p1star/p1stardet_node_gate_test.cpp`）：
-  本节 fail-closed 表每条的红例 + `blind_diagnostic` / `auto` 的绿例与降级落档断言
-  + 真实帧（testdata）权威路径与盲检测的对照；
-- 节点序与边保真判据 = `eng/tools/（registry IR 一致性检查器）`（C4–C7：无幻边 / 序
+- 权威路径判据 `p1star_guided`：真值位置召回与质心（|Δc| ≤ 0.3px @ SNR ≥ 20）、
+  纯噪声场虚警 ≤ 0.1/千像素（发布门 `G-P1-STAR-FP`）、定义域丢弃计数守恒、
+  1/4 线程逐位一致、定义域非退化（预测位置整体偏移后输出不落在真星上）、
+  空定义域非错误；
+- 节点级判据 `p1stardet_node_gate`：本节 fail-closed 表每条的红例 +
+  `blind_diagnostic` / `auto` 的绿例与降级落档断言 + 真实帧（testdata）权威路径与
+  盲检测的对照；上述两组判据的读数载体不在本仓可复算路径上；
+- 节点序与边保真判据（C4–C7：无幻边 / 序
   为注册表 DAG 拓扑序 / IR 序 == 注册表声明序 / `psf` 在 `wcs` 之后且声明
   `artifact:p1_wcs` 输入 / 非退化），含 4 条负例注入（交换 `psf` / `wcs` 序、恢复
-  幻边、移除 `psf` 的 WCS 输入），逐条必判红。
+  幻边、移除 `psf` 的 WCS 输入），逐条必判红；其执行器不在本仓可复算路径上。
 
 ## 已知限制
 

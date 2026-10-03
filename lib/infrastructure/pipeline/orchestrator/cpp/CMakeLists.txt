@@ -16,8 +16,8 @@
 #   该条依据写的是「7.1 infrastructure/pipeline（typed DAG 编排）」）⇒ 位置与职责冲突，
 #   登记 ORCH-HOME-01 另行处置（目录搬迁 = git mv，非本任务权限）。
 #   本 target 名取 MODULE_MAP 的 infrastructure 约定（docs/engineering/MODULE_MAP.md
-#   conventions: target_infrastructure = acsd_infra_<id>），id = orchestrator
-#   （模块文档 docs/detail/orchestrator.md），**不写死 pipeline 或 scheduler 任意一侧**。
+#   conventions: target_infrastructure = acsd_infra_<id>），id = orchestrator，
+#   **不写死 pipeline 或 scheduler 任意一侧**。
 #
 # 契约（BLD-002）：本文件只声明本模块 target；唯一 project()/唯一产品可执行
 # acsd 仍只在根 CMakeLists.txt。
@@ -62,7 +62,8 @@ target_include_directories(acsd_infra_orchestrator PUBLIC
   ${CMAKE_CURRENT_SOURCE_DIR}/include
   # orchestrator.h 直接 include "aio_pipeline.h" ⇒ AIO 头面随本 target 传递。
   ${CMAKE_SOURCE_DIR}/lib/infrastructure/aio/include
-  # 共址测试需要 SnrNoiseModelConfig 等 C ABI 结构定义（可执行级接线门）。
+  # orchestrator.cpp 编译期直接 include "snr_estimator.h"（run_stage_snr 的 C ABI
+  # 面），该头在 noise_snr 的 cpp/include 与 include 两处 ⇒ 两条头面都随本 target 传递。
   ${CMAKE_SOURCE_DIR}/lib/algorithms/noise_snr/cpp/include
   ${CMAKE_SOURCE_DIR}/lib/algorithms/noise_snr/include)
 target_include_directories(acsd_infra_orchestrator PRIVATE
@@ -93,8 +94,8 @@ endif()
 
 # ── 3) legacy CLI 入口（非产品；不进 install 白名单）──
 # docs/ACSD_DESIGN §6.2 的唯一命令树 = 产品 acsd（normalize|mosaic|export）；
-# 本可执行是 docs/detail/orchestrator.md 记载的 legacy「stage1.json 入口」，
-# 仅用于共址冒烟测试与诊断，**不 install、不进产品 manifest**。其退场与否
+# 本可执行是 legacy「stage1.json 入口」，
+# 仅用于诊断与手工冒烟，**不 install、不进产品 manifest**。其退场与否
 # （§7.1 收编入 scheduler 后的形态）登记为 ORCH-HOME-01 的一部分另行处置。
 add_executable(orchestrator_legacy_cli src/main.cpp)
 # WIN-PORT 缺陷⑤: main.cpp 直接 include nlohmann/json.hpp (源 :36)。上面
@@ -103,7 +104,3 @@ add_executable(orchestrator_legacy_cli src/main.cpp)
 target_include_directories(orchestrator_legacy_cli PRIVATE
   ${CMAKE_SOURCE_DIR}/lib/third_party)
 target_link_libraries(orchestrator_legacy_cli PRIVATE acsd_infra_orchestrator)
-
-# 共址测试子目录由根 CMakeLists.txt 在 enable_testing() 之后单独注册
-# （add_test 必须在顶层 enable_testing() 生效后进入目录树；本文件被提前注册时
-# 若自行 add_subdirectory(tests) 会得到「测试不注册」的静默空门）。
