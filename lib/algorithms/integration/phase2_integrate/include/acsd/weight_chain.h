@@ -423,16 +423,24 @@ struct PixelWeightResult {
   /* true = 该帧没有可用层，本结果**不是**层消费结果：调用方须显式降级到帧级
    * 标量路径（weights=0、closure 非 kClosed）。它**不等于**「层值按 1 处理」。 */
   bool generated_from_absent_layer = false;
-  /* 逐像素面的**量纲/口径自证**（可被调用方与门直接断言）：
-   *   weight_units       = "ADU^-2"
-   *   snr_units          = "dimensionless"
-   *   reference_flux_units = "ADU"
-   *   dimensional_identity = weight * reference_flux_k² - layer_snr² * gain²
-   * 后式应恒为 0（相对残差 ≤ 1e-15），即 w[ADU^-2]·F_ref[ADU]² = SNR²[1]·g²。 */
+  /* 单位词面（**声明值**，不是复算结果）：由调用方与门逐字核对，不是数值判据。
+   *
+   * 原 `dimensional_identity = weight*F_ref,k² − layer_snr²*gain²` 已删
+   * （GOVERN-08/G08-05）。它是代数恒等式型自证：weight 在同一函数里被**逐字定义**
+   * 为 (layer_snr/F_ref,k)²·gain²，两边同源，差只剩浮点舍入（≤ 数个 ulp），任何
+   * 科学错误（算子选错、层语义错、F_ref 配对错、gain 用错）都**不会**让它动。
+   * 它曾是公开注释宣称的「可被调用方与门直接断言」的量纲一致性保证的**全部依据**，
+   * 而那句话是错的：量纲一致性由单位词面加**签名**保证，不由同源相减保证。
+   * 该函数签名里只有层值一个 SNR 输入、没有帧级 SNR 参数，口径错已从接口面排除
+   * （见本文件 weight_from_sparse_layer_pixel 的权威锚注释）。
+   *
+   * 「w 是否真的等于 1/σ_F²」在本仓此面**无有效机器判据**（证据资格 = 空）：
+   * σ_F := F_ref/SNR_layer 是把被检验公式**取逆**得来的，用它当参照量只回到同一个
+   * 式子。可用的真判据只有两条：(a) oracle/weight_chain_selfcheck.cpp 中用独立
+   * 双线性 oracle 重建层值再独立算 w 的对照；(b) 注入实验测得的 σ_F。 */
   const char* weight_units = "ADU^-2";
   const char* snr_units = "dimensionless";
   const char* reference_flux_units = "ADU";
-  double dimensional_identity = 0.0;
 };
 
 /* 单帧单像素的层消费。失败语义（全部 fail-closed，无「乘 1」）：

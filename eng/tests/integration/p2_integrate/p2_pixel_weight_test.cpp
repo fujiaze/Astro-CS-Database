@@ -101,8 +101,17 @@ int main() {
     const double qs[9][2] = {{3.5, 3.5},  {11.5, 3.5}, {19.5, 3.5}, {27.5, 3.5},
                              {3.5, 11.5}, {11.5, 11.5}, {19.5, 19.5}, {27.5, 27.5},
                              {31.0, 31.0}};
-    bool units_ok = true, ident_ok = true, sigma_ok = true, gain_ok = true;
+    bool units_ok = true, w_oracle_ok = true, gain_ok = true;
     double worst = 0.0;
+    int n_oracle_pts = 0;
+    /* 只在控制点（节点）处做 oracle 对照：默认算子是自然边界双三次样条，非节点处
+       样条 != 双线性，拿双线性去比会误红；节点处两条路径都必须复现控制点值。 */
+    const auto is_node = [&](double x, double y) {
+      const double gx = (x - L.x0) / L.dx, gy = (y - L.y0) / L.dy;
+      return std::fabs(gx - std::floor(gx + 0.5)) < 1e-12 &&
+             std::fabs(gy - std::floor(gy + 0.5)) < 1e-12 && gx >= 0.0 && gy >= 0.0 &&
+             gx <= L.nx - 1 && gy <= L.ny - 1;
+    };
     for (const auto& q : qs) {
       p2w::PixelWeightInput in;
       in.frame_id = "f0";
@@ -119,21 +128,26 @@ int main() {
       units_ok = units_ok && std::string(r.weight_units) == "ADU^-2" &&
                  std::string(r.snr_units) == "dimensionless" &&
                  std::string(r.reference_flux_units) == "ADU";
-      ident_ok = ident_ok &&
-                 std::fabs(r.dimensional_identity) <=
-                     1e-15 * std::max(1.0, std::fabs(r.weight) * fref_k * fref_k);
-      const double w_want = oracle_w(r.layer_snr, fref_k) * g * g;
-      const double rel = std::fabs(w_want - r.weight) / r.weight;
-      worst = std::max(worst, rel);
-      sigma_ok = sigma_ok && rel <= 1e-12;
+      /* 参照量取自独立双线性 oracle（直接读控制点），不是被检验量自身的定义式，
+         也不是它的逆函数（sigma_F := F_ref/SNR_layer 代回即回到同一式子）。 */
+      if (is_node(q[0], q[1])) {
+        ++n_oracle_pts;
+        const double w_want = oracle_w(oracle_bilinear(L, q[0], q[1]), fref_k) * g * g;
+        const double rel = std::fabs(w_want - r.weight) / r.weight;
+        worst = std::max(worst, rel);
+        w_oracle_ok = w_oracle_ok && close(w_want, r.weight, 1e-12);
+      }
       gain_ok = gain_ok && close(r.gain, g) && close(r.reference_flux_k, fref_k);
     }
     check(units_ok, "unit tokens: w[ADU^-2] = SNR[1]^2 / F_ref[ADU]^2");
-    check(ident_ok, "dimensional identity w*F_ref_k^2 - SNR_layer^2*g^2 == 0 (9 pixels)");
-    check(sigma_ok || worst <= 1e-12,
-          "w == 1/sigma_F^2 with sigma_F = F_ref,k/SNR_layer (independent oracle)");
+    /* GOVERN-08/G08-05：原 dimensional identity 断言与原 sigma_F 口径断言已删——
+       前者与 w 的定义式同源，后者是取逆构造的「外部参照」，均无鉴别力。
+       w == 1/sigma_F^2 在此面证据资格 = 空（sigma_F 无独立来源）。 */
+    check(w_oracle_ok && n_oracle_pts > 0,
+          "w == independent-oracle w at every control point (different source)");
     check(gain_ok, "per-frame F_ref,k and g_k are carried through unchanged");
-    std::printf("        (max rel dev vs 1/sigma_F^2: %.3e)\n", worst);
+    std::printf("        (%d control points vs independent oracle; max rel dev: %.3e)\n",
+                n_oracle_pts, worst);
     /* 独立 oracle 也核对**层值**本身（绝对 SNR，非相对因子） */
     bool val_ok = true;
     for (const auto& q : qs) {
