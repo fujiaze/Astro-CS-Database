@@ -3,7 +3,7 @@
 import os, re, unittest
 
 REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
-DOC = os.path.join(REPO, "docs", "architecture", "CPU_BACKEND_ARCH.md")
+DOC = os.path.join(REPO, "docs", "engineering", "CPU_BACKEND_ARCH.md")
 
 class TestBackendArch(unittest.TestCase):
     @classmethod
@@ -11,15 +11,17 @@ class TestBackendArch(unittest.TestCase):
         cls.s = open(DOC, encoding="utf-8").read()
 
     def test_01_covers_05_all_sections(self):
-        for k in ("设计结论", "编译隔离", "CPU/OS", "C ABI v1", "Kernel 注册粒度", "失败与回退", "发布检查"):
+        for k in ("设计结论", "编译隔离", "CPU / OS", "C ABI v1", "Kernel 注册粒度", "失败与回退", "发布检查"):
             self.assertIn(k, self.s, f"05 条目 {k} 缺失")
 
     def test_02_cpp_abi_banned(self):
-        self.assertIn("C++ STL", self.s) and self.assertIn("异常", self.s)
+        self.assertIn("C++ STL", self.s, "跨边界禁 C++ STL")
+        self.assertIn("异常", self.s, "跨边界禁异常")
         self.assertIn("禁私有线程池", self.s)
 
     def test_03_no_plugin_injection(self):
-        self.assertIn("LD_LIBRARY_PATH", self.s) and self.assertIn("禁止任意", self.s)
+        self.assertIn("LD_LIBRARY_PATH", self.s, "须显式处置 PATH/LD_LIBRARY_PATH")
+        self.assertIn("解析只走这两个可信来源", self.s, "解析来源须限定为两个可信来源")
 
     def test_04_kernel_granularity(self):
         self.assertIn("禁一个全局", self.s, "必须声明禁止全局 AVX2 模式")
