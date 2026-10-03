@@ -958,16 +958,19 @@ ProductResult run_point_information(const std::vector<std::string>& product_dirs
    * 同一字段、同一顺序重算的 Sum_k W_info,k」相减，差按构造成 0；任何可达路径都
    * 不可能判红——参照量与被检验量同源。
    *
-   * 合同条款原写的 "SNR_combined^2 = Sum_k SNR_k^2" 本身也不是恒等式：各帧 SNR_k
-   * 的分子是**同一个共同信号** F，则
-   *     Sum_k SNR_k^2     = F^2 * Sum_k 1/sigma_F,k^2 = F^2 * W_tot，
-   *     SNR_combined^2    = F_hat^2 * W_tot，
-   * 两者相等当且仅当 F_hat = F（估计无偏）——这是关于**数据**的陈述，不是关于
-   * **实现**的陈述，实现是否正确无法由它判定。若改读为每帧各自的估计 F_hat_k，
-   * 则由 Cauchy-Schwarz
-   *     Sum_k SNR_k^2 - SNR_combined^2 = Sum_k W_k (F_hat_k - F_bar)^2 >= 0，
-   * 等号当且仅当各帧估计完全一致（chi^2 = 0 的退化情形）。
-   * 两种读法下该式都不是可实施的正确性判据。
+   * 合同条款原写的 "SNR_combined^2 = Sum_k SNR_k^2"，失效机理在**参考通量 F_ref 的
+   * 定义域**，不在通量估计是否无偏。分子取逐帧实测通量 F_hat_k 的读法对应
+   * source_snr（docs/ACSD_DESIGN.md:125 已定其不直接作帧权重），不是 P2 的口径。
+   * 两种真实口径：
+   *   - F_ref 组内公共（各帧共用同一 F_0 作分子）：
+   *       Sum_k SNR_k^2   = F_0^2 * Sum_k 1/sigma_F,k^2 = F_0^2 * W_tot，
+   *       SNR_comb(F_0)^2 = F_0^2 * W_tot，
+   *     精确恒等：它就是上面方差可加 Var(F_hat) = (Sum_k W_info,k)^-1 乘 F_0^2 的
+   *     **定义式重述** ⇒ 恒真、零鉴别力、**无证据资格**；
+   *   - F_ref 逐帧（本仓已裁决的生产口径）：右边是把锚在不同参考通量上的平方相加，
+   *     组内**无公共锚，不构成任何单一绝对信噪比的平方** ⇒ 无定义、无法计算、
+   *     无法判定。
+   * 两种情形下它都不能充当实现正确性判据。
    *
    * 能判定「W = Sum_k W_info,k 是否正确」的参照量必须来自 W 之外（注入点源的实测
    * flux dispersion，或像素级 C_k 的独立重算）。二者在 Phase2 消费面均不可得：

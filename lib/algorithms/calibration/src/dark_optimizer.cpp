@@ -16,7 +16,7 @@
 // 4. 合理性判定：样本不足 / 回归残差异常 / k 值越界(k<=0 或 k>10) 任一触发即判失败
 //
 // 失败回退（02_FROZEN §2.3 强制要求）:
-// - 最优估计失败时输出结构化诊断（hiss::Stage1Diagnostics）
+// - 最优估计失败时输出结构化诊断（acsd::Stage1Diagnostics）
 // - 自动回退曝光时间比例缩放: k_t = t_light / t_dark（由调用方传入 k_init）
 // - 设置 diagnostics.fell_back=1, fallback_from="OPTIMAL", fallback_to="EXPOSURE_RATIO"
 // - 返回 k_init
@@ -30,7 +30,7 @@
 // ============================================================
 
 #include "../include/astro_calibration.h"
-#include "hiss_format.h"  // hiss::Stage1Diagnostics
+#include "stage1_diagnostics.h"  // acsd::Stage1Diagnostics
 
 #include <vector>
 #include <algorithm>
@@ -70,7 +70,7 @@ void safe_copy(char* dst, const char* src, std::size_t n) {
 
 // 一次性填充 Stage1Diagnostics 各字段。
 // success: 0=成功, <0=失败; fell_back: 0=未回退, 1=已回退
-void set_diag(hiss::Stage1Diagnostics& d, int success,
+void set_diag(acsd::Stage1Diagnostics& d, int success,
               const char* stage, const char* code, const char* message,
               int fell_back, const char* from, const char* to) {
     d.success = success;
@@ -83,7 +83,7 @@ void set_diag(hiss::Stage1Diagnostics& d, int success,
 }
 
 // 标准回退：最优估计失败 → 回退曝光时间比例
-void fallback_to_exposure(hiss::Stage1Diagnostics& d,
+void fallback_to_exposure(acsd::Stage1Diagnostics& d,
                           const char* code, const char* message) {
     set_diag(d, -1, "DARK_OPT", code, message,
              1, "OPTIMAL", "EXPOSURE_RATIO");
@@ -96,7 +96,7 @@ void fallback_to_exposure(hiss::Stage1Diagnostics& d,
 // 返回: 最优 k 值；失败时返回 k_init 并设置 diagnostics.fell_back=1
 float optimize_dark_k(const float* light, const float* bias, const float* dark,
                       const float* flat, int w, int h, float k_init,
-                      hiss::Stage1Diagnostics& diagnostics) {
+                      acsd::Stage1Diagnostics& diagnostics) {
     // flat 当前未参与回归（模型在原始 ADU 空间），显式标记避免 -Wunused-parameter
     (void)flat;
 

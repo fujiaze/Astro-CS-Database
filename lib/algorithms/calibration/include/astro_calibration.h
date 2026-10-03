@@ -389,11 +389,11 @@ AC_API const char* ac_version();
 #endif
 
 /* ========== C++ 接口（最优 Dark 系数估计）========== */
-/* 纯 C++ 接口，使用 hiss::Stage1Diagnostics 结构化诊断，仅供 C++ 调用方使用。
+/* 纯 C++ 接口，使用 acsd::Stage1Diagnostics 结构化诊断，仅供 C++ 调用方使用。
  * 对应实现见 src/dark_optimizer.cpp。
  */
 #ifdef __cplusplus
-#include "hiss_format.h"  // hiss::Stage1Diagnostics (02_FROZEN §2.3)
+#include "stage1_diagnostics.h"  // acsd::Stage1Diagnostics
 namespace ac {
 /* 最优 Dark 系数估计
  * 模型: L - B = c + k*(D - B)
@@ -404,7 +404,7 @@ namespace ac {
  */
 float optimize_dark_k(const float* light, const float* bias, const float* dark,
                       const float* flat, int w, int h, float k_init,
-                      hiss::Stage1Diagnostics& diagnostics);
+                      acsd::Stage1Diagnostics& diagnostics);
 }
 #endif
 
