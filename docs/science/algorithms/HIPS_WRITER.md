@@ -83,12 +83,12 @@ docs/engineering/io/IO_003_ATOMIC_OUTPUT_PUBLISH.md，本文件仅登记对齐�
   （面亮度，`FZ-UNIT-SIGNAL-SB` FROZEN；推导见 DATA_SEMANTICS §31.1a 量纲链表）；
   `support` **无量纲**（sr/sr，∈[0,1]）。**`signal` 的读法 = 面亮度 [ADU/sr]**；另一种读数是"每像素计数"
   （裸 ADU）：两者相差 1/A_cell 的立体角因子，且跨像元尺度不可比。
-- (2b-上游) Phase1 编排（`lib/infrastructure/scheduler/src/module_adapters.cpp` 的 p1_op_writer）必须按 HISS 支持度
-  uint8 面连续缩放 `covered_area = (support/255)·A_cell`，并置 `valid_mask`=
+- (2b-上游) Phase1 编排（`lib/infrastructure/scheduler/src/module_adapters.cpp` 的 p1_op_writer）必须按
+  uint8 支持度面连续缩放 `covered_area = (support/255)·A_cell`，并置 `valid_mask`=
   本 parent 实际触及叶像素（未覆盖偏移一律取未触及态，与上一 parent 缓冲无关）；
   **禁用** `support>0 ? A_cell : 0` 这一写法——它把任意部分覆盖塌缩为满覆盖
   （AIO 侧 `support=area/A_cell` 恒 1，负例判据）；provenance
-  `covered_area_model="hiss_support_ratio_x_A_cell"`。
+  `covered_area_model="support_ratio_x_A_cell"`。
 - (2c) 无效规则（`lib/infrastructure/aio/src/hips/aio_hips_writer.cpp`）：当 `valid[p] && area[p]>0 && isfinite(flux[p])
   && isfinite(area[p])` 为假 → signal=NaN、support=0；
   signal_min/signal_max 遍历有限值更新（供 properties
