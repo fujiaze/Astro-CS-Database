@@ -1475,10 +1475,6 @@ int p2_collect_candidate_stack(const P2EligibilityGatherInput* in,
             : vd[(std::size_t)s * in->value_stride + in->pixel];
         // 判据只经 eligibility_gate 求值（与连续版同一 policy core，
         // SCI REJECTION §4/§8）；此处只负责按 dtype 取元素地址。
-        const std::uint8_t vv =
-            (in->valid != nullptr)
-                ? in->valid[(std::size_t)s * in->valid_stride + in->pixel]
-                : 1u;
         const double wv = (in->weights != nullptr)
             ? (is_f32
                    ? (double)wf[(std::size_t)s * in->weight_stride + in->pixel]
@@ -1493,7 +1489,10 @@ int p2_collect_candidate_stack(const P2EligibilityGatherInput* in,
             ? in->quality[(std::size_t)s * in->quality_stride + in->pixel]
             : 0u;
         const EligGate gate = eligibility_gate(
-            v, in->valid != nullptr ? &vv : nullptr,
+            v,
+            in->valid != nullptr
+                ? &in->valid[(std::size_t)s * in->valid_stride + in->pixel]
+                : nullptr,
             in->weights != nullptr ? &wv : nullptr,
             in->support != nullptr ? &sv : nullptr,
             in->quality != nullptr ? &qv : nullptr,
@@ -2061,6 +2060,44 @@ bool extreme_prior_valid(const P2CandidateStack* st,
     return true;  // center_mode!=0：允许栈中位数回退
 }
 
+// 判据阈值的有限性（fail-closed，SCI REJECTION §3 量纲前提）：
+// 各方法核把阈值取绝对值后直接参与比较（|NaN| 仍非有限 ⇒ 每一个比较都恒假
+// ⇒ 整栈免检、reasons 全写 ACCEPTED、status=OK）。这不是「阈值很松」，而是
+// 判据根本没跑过，必须 fail-closed 报配置非法。
+// 禁止的两种「修法」：① 非有限就退回冻结默认阈值（把非法 plan 换成另一套
+// 未申报的判据）；② 比较时把 NaN 当作「未超阈」（同一件事的静默版）。
+// 合法 plan 的阈值全部由 p2_reject_plan_resolve 从冻结表填充（恒有限），
+// 本门只对手工构造/外部改写的 plan 触发；只校验本方法实际消费的字段，
+// 避免因无关字段为 0 而误拒合法 plan。
+bool method_thresholds_finite(int method, const P2RejectionPlan& p) {
+    switch (method) {
+        case P2_REJECT_SIGMA:
+        case P2_REJECT_WINSORIZED_SIGMA:
+        case P2_REJECT_AVERAGED_SIGMA:
+        case P2_REJECT_MEDIAN_SIGMA: {
+            const P2SigmaParams* s = &p.sigma;
+            if (method == P2_REJECT_WINSORIZED_SIGMA) s = &p.winsorized;
+            else if (method == P2_REJECT_AVERAGED_SIGMA) s = &p.averaged;
+            else if (method == P2_REJECT_MEDIAN_SIGMA) s = &p.median_sigma;
+            return std::isfinite(s->lower_sigma) &&
+                   std::isfinite(s->upper_sigma);
+        }
+        case P2_REJECT_LINEAR_FIT:
+            return std::isfinite(p.linear_fit.lower) &&
+                   std::isfinite(p.linear_fit.upper);
+        case P2_REJECT_PERCENTILE:
+            return std::isfinite(p.percentile.low_fraction) &&
+                   std::isfinite(p.percentile.high_fraction);
+        case P2_REJECT_GENERALIZED_ESD:
+            return std::isfinite(p.esd.alpha);
+        default:
+            // NONE / RCR / MINMAX 不消费连续阈值（MINMAX 只用整数计数并已
+            // 内部钳位，RCR 的尺度由栈内数据估计）；未知方法由
+            // method_is_explicit 先行判 INVALID_METHOD。
+            return true;
+    }
+}
+
 } // namespace
 
 int p2_reject_stack_ex(const P2CandidateStack* stack,
@@ -2124,6 +2161,14 @@ int p2_reject_stack_ex(const P2CandidateStack* stack,
     // 层解析已保证；手工构造 plan 走此 fail-closed 门）。
     if (plan->method == P2_REJECT_EXTREME_VALUE_PRIOR_SIGMA &&
         norm != P2_NORMALIZE_NONE) {
+        for (std::uint32_t i = 0; i < n; ++i)
+            reasons_out[i] = static_cast<std::uint8_t>(P2_REASON_UNDERDETERMINED);
+        out->accepted_count = n;
+        out->status = P2_STATUS_INVALID_CONFIGURATION;
+        return 0;
+    }
+    // 判据阈值非有限 ⇒ 整栈免检（见 method_thresholds_finite 的说明）
+    if (!method_thresholds_finite(plan->method, *plan)) {
         for (std::uint32_t i = 0; i < n; ++i)
             reasons_out[i] = static_cast<std::uint8_t>(P2_REASON_UNDERDETERMINED);
         out->accepted_count = n;
