@@ -183,6 +183,7 @@ OUT["tangent_plane_fit"] = {"coefficient": float(coef_good), "max_residual": flo
                             "wrong_model_residual": float(res_wrong),
                             "verdict": "theta^2/2-family model fits; theta^2/12-model residual is nonzero"}
 
+os.makedirs(os.path.join(UNIT, "results", "audit", "route1"), exist_ok=True)
 with open(os.path.join(UNIT, "results", "audit", "route1", "e5_projection_budgets.json"), "w") as fh:
     json.dump(OUT, fh, indent=1)
 

@@ -122,6 +122,7 @@ def main():
 
     res["all_pass"] = bool(all(v.get("pass", False) for v in res["hypotheses"].values())
                            and res["downstream_interface"]["pass"])
+    os.makedirs(os.path.dirname(OUT), exist_ok=True)
     with open(OUT, "w", encoding="utf-8") as fh:
         json.dump(res, fh, indent=2, ensure_ascii=False)
     print("H1a:", res["hypotheses"]["H1a_identity"])

@@ -74,6 +74,9 @@ fi
 grep -v ': 成功$' "$LOGDIR/anchor.log" 2>/dev/null | sed 's/^/   /'
 
 # 本次产物记录（记录，非门禁）
+# 归档层移除后 results/ 在干净克隆上不存在；下面的重定向由 shell 在 xargs 之前建立，
+# 目录缺失时直接失败，不依赖四条腿是否已跑过（腿可在建目录之前就 fail-closed 退出）。
+mkdir -p "实验/m42-realdata/results"
 find "实验/m42-realdata/results" -maxdepth 1 -type f -name 'c[0-9]_*.json' -print0 \
   | sort -z | xargs -0 sha256sum > "实验/m42-realdata/results/RUN.sha256"
 echo "本次产物记录 -> 实验/m42-realdata/results/RUN.sha256（记录，非门禁）"

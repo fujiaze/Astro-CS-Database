@@ -129,6 +129,7 @@ def main():
                           sum_closure_le_1e12=bool(max(abs(r['sum_res']) for r in out['rows']) <= 1e-12),
                           mean_le_1e12=bool(max(abs(r['mean_res']) for r in out['rows']) <= 1e-12))
     print("VERDICT:", json.dumps(out["verdict"]))
+    os.makedirs(os.path.join(UNIT, "results", "audit", "route3"), exist_ok=True)
     with open(os.path.join(UNIT, "results", "audit", "route3", "exp01_leaf_area.json"), "w") as f:
         json.dump(out, f, indent=1)
 

@@ -141,6 +141,7 @@ OUT["hemisphere_domain"] = {
 
 OUT["triangle_cross_check"] = res
 
+os.makedirs(os.path.join(UNIT, "results", "audit", "route1"), exist_ok=True)
 with open(os.path.join(UNIT, "results", "audit", "route1", "e6_lhuilier_vos.json"), "w") as fh:
     json.dump(OUT, fh, indent=1)
 

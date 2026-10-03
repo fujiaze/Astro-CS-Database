@@ -108,6 +108,7 @@ def main():
         res[k].get("pass", False) for k in
         ["P1_multiplicative_invariance", "P2_degenerate_zeroing",
          "P3_sensitivity", "P4_level_bias_complement"]))
+    os.makedirs(os.path.dirname(OUT), exist_ok=True)
     with open(OUT, "w", encoding="utf-8") as fh:
         json.dump(res, fh, indent=2, ensure_ascii=False)
     print(json.dumps(res, indent=2, ensure_ascii=False))

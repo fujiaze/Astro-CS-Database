@@ -57,6 +57,7 @@ def main():
         rel_diff_about_minus_2e4=bool(abs(rel + 1.97e-4) < 1e-6),
         decision_flip=bool(demo["nside_true"] == 4 and demo["nside_wrong"] == 2))
     print("VERDICT:", json.dumps(out["verdict"]))
+    os.makedirs(os.path.join(UNIT, "results", "audit", "route3"), exist_ok=True)
     with open(os.path.join(UNIT, "results", "audit", "route3", "exp08_scale_constant.json"), "w") as f:
         json.dump(out, f, indent=1)
 

@@ -65,6 +65,7 @@ def main():
         count16=bool(all(r["n_abs_rel_gt_1pct"] == 16 for r in out["rows"][-4:])),
         belt_o1_over_N2=[float(x) for x in b])
     print("VERDICT:", json.dumps(out["verdict"]))
+    os.makedirs(os.path.join(UNIT, "results", "audit", "route3"), exist_ok=True)
     with open(os.path.join(UNIT, "results", "audit", "route3", "exp02_polar_limit.json"), "w") as f:
         json.dump(out, f, indent=1)
 

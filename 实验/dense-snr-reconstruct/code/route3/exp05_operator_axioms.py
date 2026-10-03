@@ -193,6 +193,7 @@ def main():
     res["all_pass"] = bool(res["A2_positive_homogeneity"]["pass"]
                            and res["A3_node_reproduction"]["pass"]
                            and res["A4_clamp_necessity"]["pass"])
+    os.makedirs(os.path.dirname(OUT), exist_ok=True)
     with open(OUT, "w", encoding="utf-8") as fh:
         json.dump(res, fh, indent=2, ensure_ascii=False)
     print(json.dumps({k: res[k] for k in ["A2_positive_homogeneity", "A3_node_reproduction", "A4_clamp_necessity", "all_pass"]}, indent=2))

@@ -84,6 +84,7 @@ def main():
         var_bias_tracks_2rsig=bool(all(abs(v["var_ratio_minus_1"] - v["pred_2rsig_plus"]) < 0.05 for v in var_rows)))
     print("worst:", worst, "points:", pts)
     print("VERDICT:", json.dumps(out["verdict"]))
+    os.makedirs(os.path.join(UNIT, "results", "audit", "route3"), exist_ok=True)
     with open(os.path.join(UNIT, "results", "audit", "route3", "exp07_quantization.json"), "w") as f:
         json.dump(out, f, indent=1)
 

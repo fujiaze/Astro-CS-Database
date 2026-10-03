@@ -475,6 +475,7 @@ def main():
         seam_measured_per_drop_n=int(_md["n"]),
         elapsed_s=time.time()-t0)
     print("VERDICT:", json.dumps(out["verdict"]))
+    os.makedirs(os.path.join(UNIT, "results", "audit", "route3"), exist_ok=True)
     with open(os.path.join(UNIT, "results", "audit", "route3", "exp03_weight_conservation.json"), "w") as f:
         json.dump(out, f, indent=1)
 

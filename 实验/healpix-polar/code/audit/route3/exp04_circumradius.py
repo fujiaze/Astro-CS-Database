@@ -89,6 +89,7 @@ def main():
         headroom=float(1.25 - max(r)),
         negctl_worse=bool(w > max(r)))
     print("VERDICT:", json.dumps(out["verdict"]))
+    os.makedirs(os.path.join(UNIT, "results", "audit", "route3"), exist_ok=True)
     with open(os.path.join(UNIT, "results", "audit", "route3", "exp04_circumradius.json"), "w") as f:
         json.dump(out, f, indent=1)
 

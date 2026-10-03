@@ -856,6 +856,7 @@ def main():
         "容差未放宽、读数集未改动。")
     res["all_gates_pass"] = bool(all(res["gates"].values()))
     res["runtime_s"] = time.time() - t0
+    os.makedirs(os.path.dirname(OUT), exist_ok=True)
     with open(OUT, "w") as f:
         json.dump(res, f, indent=2)
     print(json.dumps(res, indent=2))

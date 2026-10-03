@@ -145,6 +145,7 @@ def main():
     res["all_pass"] = bool(res["S2_p_inf_nearest_limit"]["pass"]
                            and res["S3_gamma_floor"]["pass"]
                            and res["NC_flat_zeroing"]["pass"])
+    os.makedirs(os.path.dirname(OUT), exist_ok=True)
     with open(OUT, "w", encoding="utf-8") as fh:
         json.dump(res, fh, indent=2, ensure_ascii=False)
     print("best:", res["S1_parameter_sensitivity"])

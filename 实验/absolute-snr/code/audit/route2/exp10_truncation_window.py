@@ -108,6 +108,7 @@ def main():
         "deviates_from_unity": bool(abs(s2_w_tiny / s2_all_ref - 1.0) > 1e-4)}
 
     print(json.dumps(res, indent=2))
+    os.makedirs(os.path.dirname(OUT), exist_ok=True)
     with open(OUT, "w") as f:
         json.dump(res, f, indent=2)
 

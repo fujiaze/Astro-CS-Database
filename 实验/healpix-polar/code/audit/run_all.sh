@@ -23,7 +23,10 @@ set -eu
 HERE="$(cd "$(dirname "$0")" && pwd)"
 REPO="$(cd "$HERE/../../../.." && pwd)"
 OUT="$(cd "$HERE/../../../.." && pwd)/run/healpix-polar-audit-logs"
-mkdir -p "$OUT"
+# 运行结果归档层已移除 ⇒ 干净克隆上 实验/healpix-polar/results/audit/ 不存在。
+# 各腿以脚本自身位置锚定落 results/audit/<路线>/，入口先把该目录树建出来。
+mkdir -p "$OUT" "$HERE/../../results/audit/route1" "$HERE/../../results/audit/route2" \
+         "$HERE/../../results/audit/route3" "$HERE/../../results/audit/kcorr" "$HERE/../../results/audit/sim"
 
 RC=0
 run() { name="$1"; script="$2";

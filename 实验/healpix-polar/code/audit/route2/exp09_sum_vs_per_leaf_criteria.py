@@ -122,6 +122,7 @@ def main():
     ok = out["min_separation_orders"] >= 14.0
     out["verdict"] = "PASS" if ok else "FAIL"
     print(json.dumps(out, indent=2))
+    os.makedirs(os.path.join(UNIT, "results", "audit", "route2"), exist_ok=True)
     with open(os.path.join(UNIT, "results", "audit", "route2", "exp09_sum_vs_per_leaf_criteria.json"), "w") as fh:
         json.dump(out, fh, indent=2)
 

@@ -175,5 +175,16 @@ eng/packaging/config/local.paths.json
 # 仓库根不应出现 results/（实验单元的结果只落在各自单元下）
 /results/
 
+# 实验域的运行结果归档层已整层移除 ⇒ 各单元 results/ 不再入库，重跑产物不得回流。
+# 本条覆盖「实验树内任意深度的 results/」，即：
+#   - 单元级 实验/<单元>/results/（absolute-snr / additive-sky-seamless /
+#     dense-snr-reconstruct / healpix-polar / m42-realdata / photometric-magnitude）
+#   - 嵌在 code/ 下的审计产物目录 实验/absolute-snr/code/audit/results/
+#     （各路线脚本以 __file__ 锚定，落点在本目录而非单元根）
+# git 不跟踪空目录 ⇒ 干净克隆上这些目录不存在，由各入口脚本自行 mkdir -p 重建。
+# 只认路径末段的 results/：不碰 实验/*/docs/（报告档案，入库）、实验/*/code/（判据实现，入库），
+# 也不碰仓库别处的 results/（lib/infrastructure/aio/tests/results/ 有已跟踪的证据面）。
+/实验/**/results/
+
 # 仓外绝对路径符号链接（文档站工作副本），不随仓库分发
 /site

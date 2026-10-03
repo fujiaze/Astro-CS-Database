@@ -139,6 +139,7 @@ def main():
           > out["forbidden_constant"]["min_nside_with_wrong_constant"])
     out["verdict"] = "PASS" if ok else "FAIL"
     print(json.dumps(out, indent=2))
+    os.makedirs(os.path.join(UNIT, "results", "audit", "route2"), exist_ok=True)
     with open(os.path.join(UNIT, "results", "audit", "route2", "exp07_polar_sagitta_ladder.json"), "w") as fh:
         json.dump(out, fh, indent=2)
 

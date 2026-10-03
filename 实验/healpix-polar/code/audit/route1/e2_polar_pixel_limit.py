@@ -222,6 +222,7 @@ for N, f, i0, j0 in [(64, 4, 32, 32), (128, 5, 70, 20)]:
                "richsonson_residual": (a2K - aK) / A_t})
 out["negative_control_true_curve"] = tc
 
+os.makedirs(os.path.join(UNIT, "results", "audit", "route1"), exist_ok=True)
 with open(os.path.join(UNIT, "results", "audit", "route1", "e2_polar_pixel_limit.json"), "w") as fh:
     json.dump(out, fh, indent=1)
 

@@ -182,6 +182,7 @@ q_f = np.floor(255.0 * S_fine + 0.5).astype(np.int64)
 out6["inv_max_r_near_half_count_boundary"] = float(np.max(255.0 * S_fine / q_f - 1.0))
 OUT["quantization"] = out6
 
+os.makedirs(os.path.join(UNIT, "results", "audit", "route1"), exist_ok=True)
 with open(os.path.join(UNIT, "results", "audit", "route1", "e4_flux_conservation.json"), "w") as fh:
     json.dump(OUT, fh, indent=1)
 

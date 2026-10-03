@@ -109,6 +109,7 @@ def main():
             print("   %-5s %-14s n=%3d  %7.3f%% -> %7.3f%%  (%.0f%% pairs improved, ratio %.2f)" % (
                 key, k, v['n'], v['before'], v['after'], 100 * v['frac_improved'], v['median_ratio']))
 
+    os.makedirs(DATA, exist_ok=True)
     with open(os.path.join(DATA, "real_analysis.json"), "w") as fh:
         json.dump(out, fh, indent=1)
     print("[done]")

@@ -118,6 +118,7 @@ def main():
                                "reproducible_at": {"n_eff": 3, "rho": 0.19415,
                                                    "k": 1.0 + 2 * 0.19415}}
     print(json.dumps(res, indent=2))
+    os.makedirs(os.path.dirname(OUT), exist_ok=True)
     with open(OUT, "w") as f:
         json.dump(res, f, indent=2)
 

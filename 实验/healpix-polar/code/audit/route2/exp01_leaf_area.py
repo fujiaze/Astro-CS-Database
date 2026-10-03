@@ -72,6 +72,7 @@ def main():
           and res["negative_control"]["metric_wrong_candidate"] > 0.2)
     res["verdict"] = "PASS" if ok else "FAIL"
     print(json.dumps(res, indent=2))
+    os.makedirs(os.path.join(UNIT, "results", "audit", "route2"), exist_ok=True)
     with open(os.path.join(UNIT, "results", "audit", "route2", "exp01_leaf_area.json"), "w") as fh:
         json.dump(res, fh, indent=2)
 
