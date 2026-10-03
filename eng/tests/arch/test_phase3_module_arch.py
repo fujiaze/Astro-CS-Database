@@ -3,7 +3,7 @@
 import os, re, unittest
 
 REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
-DOC = os.path.join(REPO, "docs", "architecture", "PHASE3_MODULE_ARCH.md")
+DOC = os.path.join(REPO, "docs", "engineering", "PHASE3_MODULE_ARCH.md")
 
 class TestPhase3Arch(unittest.TestCase):
     @classmethod
@@ -19,11 +19,13 @@ class TestPhase3Arch(unittest.TestCase):
         self.assertIn("cache 永不伪造数据", self.s)
 
     def test_03_memory_bound_frozen(self):
-        self.assertIn("M ≤", self.s) and self.assertIn("max_tiles", self.s)
-        self.assertIn("rc=MEM_BUDGET", self.s, "超预算必须显式错误码")
+        self.assertIn("M ≤", self.s)
+        self.assertIn("max_tiles", self.s)
+        self.assertIn("ACS_ERR_BUDGET", self.s, "超预算必须显式错误码")
 
     def test_04_concurrency_follows_budget(self):
-        self.assertIn("禁硬编码", self.s) and self.assertIn("host budget", self.s)
+        self.assertIn("禁硬编码", self.s)
+        self.assertIn("worker 预算经 Runtime lease 派生", self.s, "并发预算须由 Runtime lease 派生")
         self.assertIn("取消时 FitsWriter 不发生", self.s)
 
     def test_05_traceability_table(self):
