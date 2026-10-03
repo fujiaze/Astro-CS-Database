@@ -43,7 +43,7 @@
   },
   "c6_identifiability_dof.json|global_weight_invariance.kappa_identical": {
    "class": "open_red",
-   "why": "**结构性恒红门**：对角均衡 D⁻¹HD⁻¹ 对全局标量缩放精确不变 ⇒ k_c ≡ k_f 数学恒等，但代码用逐位 `==` ⇒ 由浮点最后一位决定（实测 reldiff 1.10e-15）⇒ 恒红。真实门恒红比恒真更坏：它把 kappa 变化的真实缺陷永久藏在红灯里。建议改 `abs(k_c-k_f)/k_f < 1e-12` 或直接删（本次不改阈值、不改数据）"
+   "why": "**恒红门（判决只由最后一个 ULP 决定 ⇒ 红不携带任何缺陷信息）**：对角均衡 D⁻¹HD⁻¹ 对全局标量缩放精确不变 ⇒ k_c ≡ k_f 是数学恒等式，代码却用逐位 `==` 去比 ⇒ 该门的红绿**不是实现对错的函数**（实测 reldiff 1.10e-15）。这不是「目前恰好是红的」：调最后一个 ULP、换比较运算符或动容差只会把恒红换成另一条恒红或一个假绿。真实门恒红比恒真更坏——它把 kappa 变化的真实缺陷永久藏在红灯里。处置：**删除该判据，或改写其可满足形式**（比 |k_c−k_f|/k_f 与一个有物理含义的容差，而不是逐位 ==）。本次只改登记措辞，未改阈值、未改数据、未删判据。"
   },
   "c6_identifiability_dof.json|always_green_gate_on_Hsolve.detail.lambda_x1e+00.identifiable_on_Hsolve": {
    "class": "demonstration",
@@ -51,7 +51,7 @@
   },
   "c7_share_vs_abs_weight.json|fake_ivar_domination.exclusive": {
    "class": "open_red",
-   "why": "**恒红门被当作正面证据引用**：`exclusive = bool(share > 1.0 - 1e-20)`，而 share 是份额对任意非负 x,y 恒 ≤1；1.0-1e-20 在 binary64 下坍回精确 1.0（实测 repr(1.0-1e-20)==1.0）⇒ 实为 share > 1.0，对任意输入无解。文件里真实的 share 恰好就是 1.0。`:76-77` 的 claim 字段与 REPORT_paper.md:100 都按它成立引用。改法见登记表 §7.3 P1：改成真正低于 1 的阈，不要只调 1e-20 的量级（那个量级无效）。"
+   "why": "**恒红门 · 谓词不可满足（对所有输入无解），且被当作正面证据引用**：`exclusive = bool(share > 1.0 - 1e-20)`；1.0 - 1e-20 在 binary64 下**逐位等于 1.0**（实测十六进制两侧同为 3ff0000000000000；1.0 之下最近的可表示值是 1 − 2^-53 ≈ 0.9999999999999999，1e-20 只有它的 9.007e-5 ⇒ 整个减法被舍掉）⇒ 谓词退化为 share > 1.0；而 share 是份额，a/(a+b) 对任意有限 a,b>0 恒 ≤ 1 ⇒ **任何 fixture 都点不绿，这不是「恰好红」**。`:76-77` 的 claim 字段与 REPORT_paper.md:100 都按它成立引用。处置：**删除该判据，或改写其可满足形式**（换成真正低于 1 的阈，或换成可证伪命题）。⛔ 不要只调 1e-20 的量级——该量级在 binary64 下无效；也不要把它挪到 1.0 − 1e-15 去「让它变绿」。本次只改登记措辞，未改阈值、未改数据、未删判据。"
   },
   "e4_variance_ratio_blindness.json|cases[].seam_gate_1e-2_verdict_red": {
    "class": "demonstration",

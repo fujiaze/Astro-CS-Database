@@ -124,17 +124,24 @@ def main() -> int:
     eq_max = max(d1["operator_scale_equivariance_max_rel"].values())
     X.gate(gates, "G1a_operator_scale_equivariance", eq_max <= 1e-12,
            "三个正齐次算子的 R[a*v]==a*R[v] 最大相对偏差", eq_max, "<= 1e-12")
-    X.gate(gates, "G1b_single_frame_weighted_mean_invariant",
-           d1["single_frame_mean_rel_diff"] <= 1e-12,
-           "单帧归一化加权均值在两种表示下的相对差",
-           d1["single_frame_mean_rel_diff"], "<= 1e-12")
-    X.gate(gates, "G1c_weight_efficiency_invariant",
-           d1["weight_efficiency_rel_diff"] <= 1e-12,
-           "权重效率 E 在两种表示下的绝对差", d1["weight_efficiency_rel_diff"], "<= 1e-12")
-    X.gate(gates, "G1d_exp1_ratio_1.000000_is_theorem",
-           d1["weight_efficiency_rel_diff"] <= 1e-12,
-           "EXP-1 实测 ratio=1.000000 是共模相消定理的必然结果（非经验发现）",
-           d1["weight_efficiency_rel_diff"], "<= 1e-12")
+    # G1b / G1c / G1d **已移出门表**，改记入本文件的 identity_checks（见 :331）。
+    # 移出理由（逐条可算，不依赖跑脚本）：
+    #   G1b  e4_weight.py:82 `w_rel = w_abs / (c*c)`，c 是写死常数 2.9 ⇒ 加权均值
+    #        Σw·y/Σw 对 w 的**正标量缩放不变** ⇒ `single_frame_mean_rel_diff` 是
+    #        机器零（/tmp 等价浮点实测上界 4.44e-16），门阈 1e-12 比它宽约 3 个
+    #        数量级 ⇒ 对任何有限输入恒绿（恒真门型①）。
+    #   G1c  exp05_common.weight_efficiency 的 docstring `:398` 自己写明「全局尺度不变
+    #        ⇒ 帧内共模因子对 E 严格无影响」：`var_w = Σw²v/Σw²` 对 w 缩放不变、
+    #        `var_opt` 根本不含 w ⇒ `|E_rel − E_abs|` 恒为机器零（/tmp 实测上界
+    #        7.77e-16）⇒ 恒绿（型①）。
+    #   G1d  谓词与 G1c **逐字节相同**（同一个表达式、同一个值字段、同一个阈串），
+    #        是一个门两个名字；原表把它与 G1c 各计一次 ⇒ `meta.n_gates` 自我高报 1。
+    #        且它自述的内容（"ratio=1.000000 是定理的必然结果"）本身就是恒等式声明。
+    # **读数一律保留**：`single_frame_weighted_mean_abs/_rel`、`weight_efficiency_abs/_rel`
+    # 仍原样留在 d1 并随 JSON 发出（移出判定不等于删读数）。
+    # **未改任何阈值、未加 epsilon、未吞异常**：1e-12 原封不动，只是不再承担证据位。
+    # G1a 保留在门表：它对三个上采样器各做**两次真实调用**（R[a·v] 与 a·R[v]），
+    # 算子一旦失去正齐次性立刻判红，是「同文件旁的真判据」。
 
     # ---- G2 反例：带数据无关先验均值的算子不正齐次 ----
     d3 = e4["D3_counterexample"]
@@ -329,7 +336,8 @@ def main() -> int:
     _old_c = X.frame_common_factor(sp1, sf1)
     _old_flat = np.full((8, 8), 20.0)
     identity_checks = {
-        "note": ("代数恒等式自检，**不计入门数**（G08-05 R2 第 5 条 N1/N2 + 自查新发现）。"
+        "note": ("代数恒等式自检，**不计入门数**（G08-05 R2 第 5 条 N1/N2 + 自查新发现 +"
+                 " G08-05 R2 登记措辞与判据移动移入的 G1b/G1c/G1d）。"
                  "每条都对任意输入、任意帧级标量恒成立，实测残差 0 或 1 ulp；"
                  "保留仅为确认定义自洽，不得作为实现正确性的证据。"),
         "G5a_old_same_call_twice_max_reldiff": float(
@@ -343,15 +351,101 @@ def main() -> int:
             X.level_dev(sp1 * 1.5, sp1)["snr_rel_dev"] - (1.0 / 1.5 - 1.0)),
         "G8_old_c_eq_1_bitwise_max_abs_diff": float(np.max(np.abs(
             X.recon_absolute(_old_flat) - X.recon_relative(_old_flat, 20.0)))),
+        # ---- G08-05 R2 登记措辞与判据移动：从 gates 移入的 G1b / G1c / G1d ----
+        # 三条都是**夹具构造出来的**代数恒等式：被比较的两侧由同一批数经一个正标量
+        # 缩放得到，中间**不经过任何被检验的生产实现**，故期望量可完整追回到
+        # 被检验量自身的输出字段 ⇒ 恒真门型①。三条的原始读数与门阈一并保留在此。
+        "G1b_old_single_frame_weighted_mean_rel_diff": float(
+            d1["single_frame_mean_rel_diff"]),
+        "G1b_old_single_frame_weighted_mean_abs": float(
+            d1["single_frame_weighted_mean_abs"]),
+        "G1b_old_single_frame_weighted_mean_rel": float(
+            d1["single_frame_weighted_mean_rel"]),
+        "G1c_old_weight_efficiency_rel_diff": float(
+            d1["weight_efficiency_rel_diff"]),
+        "G1c_old_weight_efficiency_abs": float(d1["weight_efficiency_abs"]),
+        "G1c_old_weight_efficiency_rel": float(d1["weight_efficiency_rel"]),
+        # G1d 的谓词与 G1c 逐字节相同，故它的值字段与 G1c 同源；保留一份独立读数以证
+        # 「一个门两个名字」这一事实本身可核。
+        "G1d_old_weight_efficiency_rel_diff_duplicate_of_G1c": float(
+            d1["weight_efficiency_rel_diff"]),
     }
+    # 上面三条被移出门表时的门阈（原封不动，只是不再承担证据位）。
+    identity_threshold = 1e-12
 
-    # ---- G9 之后的门保持不变；G5d 的二阶歧义在解析真值装置上更锋利，予以保留 ----
+    # ---- G5d **已移出门表**，改记入本文件的 tautology_checks（第四型，见下）----
     c_apx1 = X.frame_common_factor_approx(sp1, sf1)
     amb = abs(c_apx1 / c1 - 1.0)
-    X.gate(gates, "G5d_sigma_space_vs_snr_space_median_ambiguity",
-           amb > 0.0,
-           "median(1/sigma)*median(sigma)-1：相对表示的锚点口径在 sigma/SNR 空间不等价（二阶项）",
-           {"c_exact": c1, "c_approx": c_apx1, "rel_diff": amb}, "> 0")
+
+    # =======================================================================
+    # 恒真门 / 重复项登记（**不计入门数**）：第四型「机制正确但从不执行」
+    # 与「重复」的一处登记区
+    # -----------------------------------------------------------------------
+    # 与上面的 algebraic identity **不是同一类**，故另立一本，不混进 identity_checks：
+    # 这里的条目不是「数学恒等式自检」，而是「谓词本身永远为真 / 判据从不被执行」。
+    # 登记它们的目的只有一个：让 meta.n_gates 不再把它们当证据数，同时把读数留住。
+    isolated_fail: List[str] = []
+    for _n, _v, _ok in (
+            ("G1b_single_frame_weighted_mean_invariant",
+             float(d1["single_frame_mean_rel_diff"]),
+             d1["single_frame_mean_rel_diff"] <= identity_threshold),
+            ("G1c_weight_efficiency_invariant",
+             float(d1["weight_efficiency_rel_diff"]),
+             d1["weight_efficiency_rel_diff"] <= identity_threshold),
+            ("G1d_exp1_ratio_1.000000_is_theorem",
+             float(d1["weight_efficiency_rel_diff"]),
+             d1["weight_efficiency_rel_diff"] <= identity_threshold),
+            ("G5d_sigma_space_vs_snr_space_median_ambiguity",
+             float(amb), amb > 0.0)):
+        if not _ok:
+            isolated_fail.append(_n)
+    tautology_checks = {
+        "note": ("恒真门 / 重复项登记，**不计入门数**。本册登记的是**第四型**"
+                 "（机制正确但从不执行、判据永远为真）与「重复」——它们不是"
+                 "代数恒等式自检，混进 algebraic_identity_checks 会把两件事说错。"
+                 "每条都给出原谓词、原读数与原门阈，**阈值一个字未改**。"
+                 "若 meta.isolated_fail 非空 ⇒ 说明「恒真」这一前提被打破，"
+                 "本册条目必须退回 gates。"),
+        # 第四型：谓词 `amb > 0.0` 只要求两个实现**不相等**，对任何不相等的实现都成立；
+        # 把 sigma 场换成任何有离散的真实噪声场都恒绿（/tmp 等价浮点实测：两档
+        # sigma ⇒ amb = 0.25；只有完全无离散的常值场才给出 False，而那不是
+        # 任何生产配置的取值）。它是「判据只反映夹具、不反映被检验实现」的形态。
+        "G5d_sigma_space_vs_snr_space_median_ambiguity": {
+            "predicate": "amb > 0.0", "threshold": 0.0,
+            "c_exact": float(c1), "c_approx": float(c_apx1), "amb": float(amb),
+            "why": ("median(1/sigma) 与 1/median(sigma) 只要 sigma 场有离散就不相等；"
+                    "谓词无幅值约束 ⇒ 任何两个不相等的实现都满足 ⇒ 永远判不了红。"
+                    "它在门表里只能表达「二阶歧义存在」，不能表达「二阶歧义多大」"
+                    "——后者由 G5e 的闭式粗对拍承担。"),
+            "evidence_eligible": False},
+        # 重复：G1d 的谓词与 G1c **逐字节相同**，同一个布尔量被计了两次。
+        "G1d_duplicates_G1c_verbatim": {
+            "predicate": "d1['weight_efficiency_rel_diff'] <= 1e-12",
+            "same_expression_as": "G1c_weight_efficiency_invariant",
+            "value": float(d1["weight_efficiency_rel_diff"]),
+            "threshold": identity_threshold,
+            "evidence_eligible": False},
+        # 重复合取项（**保留在 gates 内**，只登记，不改谓词、不改门数）：
+        #   G5b 首合取项 ≡ G6 首合取项：:219 与 :270 是同一句
+        #     _xframe([rel_snr(sp1,sf1), rel_snr(sp2,sf2)], [T1,T2])，
+        #     rel_pred ≡ float(c1/c2)，故 rel_dev ≡ xf_ok_dev 逐位相同。
+        #     但 G6 **有独立的第二合取项** xf_bad_dev（交叉预测 cx12/cx21 的换位检验），
+        #     G5b 没有 ⇒ 二者互补，**门本身保留不动**。
+        #   G5c 第二合取项 ≡ G5a 首合取项：:250 与 :187 是同一句
+        #     _xframe([X.recon_absolute(sp1), X.recon_absolute(sp2)], [T1,T2])；
+        #     注入的 sf2_fault 只进入相对臂（recon_absolute 无 sigma_frame_scalar 形参），
+        #     故 abs_fault ≡ abs_ratio 逐位相同。
+        #     但 G5c 的**第一**合取项用的是注入后的新预测 c1/c2'，G5a 没有 ⇒ 互补，
+        #     **门本身保留不动**。
+        "G5b_first_conjunct_equals_G6_first_conjunct": {
+            "identical_value": "rel_dev ≡ xf_ok_dev",
+            "gate_moved": False, "why_not_moved": "G6 有独立第二合取项 xf_bad_dev（换位检验）",
+            "evidence_eligible": False},
+        "G5c_second_conjunct_equals_G5a_first_conjunct": {
+            "identical_value": "abs_fault ≡ abs_ratio",
+            "gate_moved": False, "why_not_moved": "G5c 有独立第一合取项（注入后的新预测 c1/c2'）",
+            "evidence_eligible": False},
+    }
 
     # ---- c_eff 对解析聚合失配的**粗**独立对拍（抓 frame_common_factor 的粗错）----
     cagg_devs = {k: abs(float(X.frame_common_factor(sp, sf)) / c_agg_closed(v) - 1.0)
@@ -418,10 +512,18 @@ def main() -> int:
     out = {"meta": {"seed": SEED, "n_gates": len(gates),
                     "all_pass": X.all_pass(gates),
                     "n_algebraic_identity_checks": len(identity_checks) - 1,
+                    "n_tautology_checks": len(tautology_checks) - 1,
+                    "isolated_fail": isolated_fail,
+                    "isolation_note": ("gates（判据数）、algebraic_identity_checks（代数恒等式数）、"
+                                       "tautology_checks（恒真门/重复项数）三者分别上报，"
+                                       "只有 gates 计入 n_gates 与 all_pass。tautology_checks 里的"
+                                       "条目**已移入门表，不再计入门数**；isolated_fail 非空 ⇒ "
+                                       "「恒真」前提被打破，这些条目必须退回 gates。"),
                     "elapsed_s": time.time() - t0,
                     "supersedes": "results/exp05_e5_gates.json（旧存档，判决已过期，见下）"},
            "gates": gates,
            "algebraic_identity_checks": identity_checks,
+           "tautology_checks": tautology_checks,
            "stale_archive_notice": {
                "path": "results/exp05_e5_gates.json",
                "status": "EXPIRED — 判决已过期，不得作为证据引用",
@@ -445,7 +547,9 @@ def main() -> int:
         print("%-4s %-52s %s" % (g["verdict"], g["gate"],
                                  json.dumps(g["value"], ensure_ascii=False)[:90]))
     print("ALL_PASS =", out["meta"]["all_pass"],
-          "| identity_checks (not counted) =", out["meta"]["n_algebraic_identity_checks"])
+          "| identity_checks (not counted) =", out["meta"]["n_algebraic_identity_checks"],
+          "| tautology_checks (not counted) =", out["meta"]["n_tautology_checks"],
+          "| isolated_fail =", out["meta"]["isolated_fail"])
     X.save_json(a.out, out)
     print("wrote", a.out)
     return 0

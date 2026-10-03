@@ -150,13 +150,26 @@ healpix-polar、m42-realdata、engineering-evidence、shared。
 **待办**：`absolute-snr` 的逐条 A/B/C/D 分类（需覆盖 `code/audit/` 36 个 `.py`）
 尚未进行；在补齐前，**全实验域整改分母在本文件内不存在**，任何全域数字都必须注明来源单元。
 
-## 1 三型分类
+## 1 四型分类
 
-| 型 | 特征 | 本域计数（估） |
-|---|---|---|
-| **1 代数恒等式型** | 恒等式两边数学恒等，含用**逆函数**构造的「外部参照」（拿 `f(f(x))` 或 `1/v` 当参照） | ≈54 |
-| **2 结构对称型** | 左右两支由同一次计算赋值（一个数与自己比）、或同一条代码路径产出两个待比较量 | ≈41 |
-| **3 往返自证型** | 期望值由产生被测值的**同一来源**重算 | ≈2（本域实扫远多于 2，见下） |
+**判别依据只有一条**：期望量能否追回到**被检验量自身的输出字段**。
+追回到 ⇒ 恒真（型 1/2/3）；追不回但仍判红 ⇒ 恒红；**期望量根本追不到、
+因为那一行代码从不执行** ⇒ 型 4，必须改查**控制流执行到哪一行**。
+
+| 型 | 特征 | 判别依据 | 本域计数（估） |
+|---|---|---|---|
+| **1 代数恒等式型** | 恒等式两边数学恒等，含用**逆函数**构造的「外部参照」（拿 `f(f(x))` 或 `1/v` 当参照） | 期望量＝被检验量自己的逆或誊抄 | ≈54 |
+| **2 结构对称型** | 左右两支由同一次计算赋值（一个数与自己比）、或同一条代码路径产出两个待比较量 | 期望量＝同一次赋值的另一支 | ≈41 |
+| **3 往返自证型** | 期望值由产生被测值的**同一来源**重算 | 期望量＝被测值的来源函数 | ≈2（本域实扫远多于 2，见下） |
+| **4 机制正确但从不执行** | 判据写法本身没错，但**控制流到不了那一行**；或谓词在语法上就对任何输入为真 | **查控制流执行到哪一行**（前三型查不出来） | 见 §6.4（已落地首批 2 类共 5 处） |
+
+⚠ **型 4 不属于前三型，且「期望量从哪来」这一问对它无效**：
+前三型的病灶在**表达式**里，型 4 的病灶在**语句边界**上——
+断言函数返回空值被 `and` 短路、析取末项恒真、被测分支被上一行覆盖。
+⇒ 横扫时若只做「期望量溯源」，型 4 **整类会被漏掉**。
+
+⚠ **型 4 与恒红并列为「无效」**：恒真门把真缺陷放过，恒红门把真缺陷永久藏在红灯里。
+一个「能红」的写法若永远到不了那行，它既不提供判别力，也提供不了诊断力。
 
 ⚠ 原始估算的「仅 2 条往返自证型」与实扫不符：实扫在 `shared`、`dense-snr`、
 `m42-realdata`、`engineering-evidence` 四面各找到多条往返自证（如
@@ -603,17 +616,25 @@ H5a/H5b/H5c、H9a、H10a/H10b、H12a/H12b），并在 JSON 里新增 `registered
 
 **6 条 `open_red`（不豁免，保持红）**：
 
-| # | 位置 | 性质 |
-|---|---|---|
-| 1 | `route1/c6_identifiability_dof.json` `global_weight_invariance.kappa_identical` | **结构性恒红**：对角均衡 `D⁻¹HD⁻¹` 对全局标量缩放精确不变 ⇒ `k_c ≡ k_f` 数学恒等，但代码用**逐位 `==`** ⇒ 红不红由浮点最后一位决定（实测 reldiff 1.10e-15） |
-| 2 | `route1/c7_share_vs_abs_weight.json` `fake_ivar_domination.exclusive` | **恒红门被当作正面证据引用**：`share > 1.0 − 1e-20` 在 binary64 下**坍回精确 1.0** ⇒ 实为 `share > 1.0`，对任意输入无解；而文件里真实的 `share` 恰好就是 1.0 |
-| 3 | `route2/e8_identifiability_rank_rtol.json` `column_equilibration_invariance.kappa_changes` | **`inf − inf = NaN` 吞红**：`nan > 1.0` 为 False ⇒ 门静默报「kappa 未变」，同段 note 却称「kappa 变 12 个量级」——自相矛盾 |
-| 4 | `route3/q10_weight_arms.json` `ordering_matches_doc_16.1.3` | **门谓词强于正本 ⇒ 恒红，但正本结论本身成立**（订正见下） |
-| 5-6 | `supp_507_relstep/eb_relstep_calibration.json` `part2a_spec_recipe_x10.spec_red` / `.mean_gt_02` | **05 规格自己的注入配方（单节点系数 ×10）不使规格变红**：`frac_gt_01=0.0357`、`mean_rel=0.0388`、`max_rel=0.901`，两判据皆 false ⇒ 缺陷注入未被检出 |
+| # | 位置 | 判定（措辞已按「谓词不可满足／恒红」改写） | 处置方向 |
+|---|---|---|---|
+| 1 | `route1/c6_identifiability_dof.json` `global_weight_invariance.kappa_identical` | **恒红门（谓词的判决只由最后一个 ULP 决定 ⇒ 红不携带任何缺陷信息）**：对角均衡 `D⁻¹HD⁻¹` 对全局标量缩放**精确不变** ⇒ `k_c ≡ k_f` 是数学恒等式；代码却用**逐位 `==`** 去比一个数学恒等 ⇒ 该门的红绿**不是实现对错的函数**，只是两次舍入是否碰巧同位（实测 reldiff 1.10e-15）。**不是「目前恰好是红的」** | **删除该判据，或改写其可满足形式**（比 `\|k_c−k_f\|/k_f` 与一个**有物理含义**的容差，而不是逐位 `==`）。⛔ **禁止**去调最后一个 ULP、换比较运算符或动容差来「碰运气翻绿」 |
+| 2 | `route1/c7_share_vs_abs_weight.json` `fake_ivar_domination.exclusive` | **恒红门 · 谓词不可满足（对所有输入无解）**：`exclusive = bool(share > 1.0 − 1e-20)`；而 `1.0 − 1e-20` 在 binary64 下**逐位等于 `1.0`**（实测十六进制两侧同为 `3ff0000000000000`；1.0 之下最近的可表示值是 `1 − 2⁻⁵³ ≈ 0.9999999999999999`，1e-20 只有它的 9.007e-5 ⇒ 整个减法被舍掉）⇒ 谓词退化为 `share > 1.0`；而 `share = x/(x+y)` 对任意有限 `x,y > 0` 恒 `≤ 1` ⇒ **任何 fixture 都点不绿，这不是「恰好红」** | **删除该判据，或改写其可满足形式**（真正低于 1 的阈 / 换成对可证伪命题的判据）。⛔ **禁止**只调 `1e-20` 的量级——该量级在 binary64 下无效；也禁止把阈值挪到 `1.0 − 1e-15` 去「让它变绿」 |
+| 3 | `route2/e8_identifiability_rank_rtol.json` `column_equilibration_invariance.kappa_changes` | **`inf − inf = NaN` 吞红**：`nan > 1.0` 为 False ⇒ 门静默报「kappa 未变」，同段 note 却称「kappa 变 12 个量级」——自相矛盾 | 改判据使 NaN fail-closed（不得靠加 epsilon 掩盖） |
+| 4 | `route3/q10_weight_arms.json` `ordering_matches_doc_16.1.3` | **门谓词强于正本 ⇒ 恒红，但正本结论本身成立**（订正见下） | 把谓词收窄到正本实际声称的 `ivar < uniform 且 ivar < snr2`（属该单元代码面，非本单写入面） |
+| 5-6 | `supp_507_relstep/eb_relstep_calibration.json` `part2a_spec_recipe_x10.spec_red` / `.mean_gt_02` | **05 规格自己的注入配方（单节点系数 ×10）不使规格变红**：`frac_gt_01=0.0357`、`mean_rel=0.0388`、`max_rel=0.901`，两判据皆 false ⇒ 缺陷注入未被检出 | 换能真正触发该规格的注入配方（不得改规格阈值） |
 
 ⚠ **本次只让这六条红灯变得可见，没有改任何阈值、没有把它们改绿。**
 按规范 08 §5，红色不以 waiver 覆盖；按派单「不得为了让门变绿而放宽阈值」的纪律，
 在门本身的缺陷修好之前，红就是正确状态。
+
+⚠ **措辞订正（本单执行，影响下一个人的动作）**：第 1、2 条此前用的是
+「**目前恰好是红的**」「红不红由浮点最后一位决定」「文件里真实的 `share` 恰好就是 1.0」
+一类措辞。这类措辞把**结构性恒红**说成了**刀刃上的红** ⇒ 下一个人的合理推断是
+「数据差一点、阈值差一点点、换最后一次舍入就绿了」⇒ **去调参**。
+事实相反：两者的判决都**不由被检验量决定**，调参只会把恒红换成另一条恒红或一个假绿。
+已改为「谓词不可满足／恒红」，处置方向随之从**重新调参**改为**删除该判据或改写其可满足形式**。
+本单**只改登记措辞，未改任何阈值、未改任何数据、未删除任何判据**。
 
 #### 第 4 条订正：「§16.1.3」是**伪引**，且原判定的因果方向**反了**
 
@@ -661,3 +682,36 @@ H5a/H5b/H5c、H9a、H10a/H10b、H12a/H12b），并在 JSON 里新增 `registered
 ⚠ 同时撤回本表原措辞「报告仍当通过项引用」中的**通过**暗示：该门自身实测为 `false`，
 `REPORT_paper.md:100` 实为在「非正本 16.1.3」的限定语下引用读数，
 **是否构成「把红门当绿证据引用」须由该单元车道复核，本单不下结论**。
+
+### 6.4 型 4「机制正确但从不执行」：首批落地登记（**永久绿**，共 5 处 / 2 类）
+
+> 本节是 §1 型 4 的**证据面**。型 4 的病灶在**语句边界**上，
+> 「期望量从哪来」这一问对它**完全无效**——所以必须单独成节，
+> 否则后续横扫会把整类漏掉。本节 5 处**全部在 `lib/**` 与 `eng/**`**，
+> **不在本单写入面**；本单**只登记、不改码**，处置指向相应车道。
+
+| # | 位置 | 机制（逐字可查） | 为什么是「永久绿」 | 处置（一行） |
+|---|---|---|---|---|
+| 4-a | `lib/algorithms/drizzle/healpix_drizzle/tests/test_drizzle.py:487-488` | `assert "nside" in meta or "n_pix" in meta or len(meta) >= 0` | `len(x) >= 0` 对**任意**容器（含空 dict）恒真 ⇒ 整个析取恒真 ⇒ **本想查的 `nside`/`n_pix` 从未被要求存在**。/tmp 等价复算：`{}` 与 `{"nothing":1}` 两种输入下该析取均为 `True` | 删去 `or len(meta) >= 0` 一支；**不得**改为 `len(meta) > 0` 之类「看着更严」的写法充数 |
+| 4-b | `eng/tests/arch/test_backend_arch.py:18` | `self.assertIn("C++ STL", self.s) and self.assertIn("异常", self.s)` | unittest 的 `assertIn` **成功时返回 `None`（falsy）** ⇒ `None and …` **短路** ⇒ 第二项从不求值；又因是**裸表达式语句**（不是 `assert`），假值被丢弃 ⇒ **删掉文档里「异常」二字照样过**。/tmp 等价复算：第一项成功时第二项探针被调用 **0 次**、无 `AssertionError` | 拆成两行独立的 `assertIn` |
+| 4-c | `eng/tests/arch/test_backend_arch.py:22` | `self.assertIn("LD_LIBRARY_PATH", self.s) and self.assertIn("禁止任意", self.s)` | 同 4-b（短路 + 裸表达式）⇒ 换插件注入的禁令**从未被机器检查过** | 拆成两行 |
+| 4-d | `eng/tests/arch/test_phase3_module_arch.py:22` | `self.assertIn("M ≤", self.s) and self.assertIn("max_tiles", self.s)` | 同 4-b ⇒ 内存预算上界**从未与 max_tiles 绑定检查**（下一行 `:23` 的 `rc=MEM_BUDGET` 仍是活的） | 拆成两行 |
+| 4-e | `eng/tests/arch/test_phase3_module_arch.py:26` | `self.assertIn("禁硬编码", self.s) and self.assertIn("host budget", self.s)` | 同 4-b ⇒ 并发上限**从未与 host budget 绑定检查**（下一行 `:27` 仍是活的） | 拆成两行 |
+
+**四处的同型可推广性**：`self.assertIn(a, s) and self.assertIn(b, s)` 这一写法
+在全仓是**可机检的语法形态**——`grep -n 'assertIn(.*)\s+and\s+self\.assertIn(' --include=*.py`
+命中 **4 处，即上表 4-b…4-e，无第五处**。
+⇒ 后续横扫可用这一条 grep 当**零成本哨兵**，但须注意它只覆盖 `self.assertIn` 形态；
+`self.assertTrue(self.assertIn(a,s) and self.assertIn(b,s))` 之类的包裹写法**不在此 grep 内**。
+
+⚠ **两条更前置的失效（比型 4 更重，登记以免被当成「只有短路问题」）**：
+4-b/4-c 所在类的 `DOC` 指向 `docs/architecture/CPU_BACKEND_ARCH.md`、
+4-d/4-e 所在类的 `DOC` 指向 `docs/architecture/PHASE3_MODULE_ARCH.md`，
+而实测 **`docs/architecture/` 整个目录不存在** ⇒ 两个 `setUpClass` 的
+`open(DOC)` 直接抛 `FileNotFoundError` ⇒ **整类 ERROR，根本没跑到那四行**。
+⇒ 这两处的**第一顺位**处置是补文档或改指真实文档；拆行是第二顺位。
+
+⚠ **本单对这两处未改码的理由**：两处分别落在 `lib/**` 与 `eng/**`，
+是**并发车道的写入面**（本单写入面只有 `实验/**`）；并发改同一批文件是典型撞车。
+本单只做取证 + 登记，处置指向对应车道。
+
