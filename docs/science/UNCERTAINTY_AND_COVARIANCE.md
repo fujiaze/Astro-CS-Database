@@ -50,8 +50,8 @@ control_ivar     = 1 / control_variance
   k_geo = drizzle 输出像素相关的纯几何因子；非高斯边际形状效应 ≤±5%（N≥9），只作附带可忽略性说明，不进入公式面。k_gauss 表
   （照抄 P3 正本 DERIVATIONS-P3 §D8 全表：N=5→1.637、9→1.316、17→1.144、25→1.083、49→1.046、≥121→≈1.00）与 k_geo 域
   （紧凑 patch 1.27±0.03 / 全 touched ≈1.43–1.45 / 远散 ≈1.00）**由 P3 单元
-  `实验/healpix-polar` 承载**：`k_corr` 的 MC 证据与全部读数正本 = `实验/healpix-polar/`（results，
-  受控复现的相位/seed 构成同址登记）。冻结单数 1.4 在其声明标定域两端
+  `实验/healpix-polar` 承载**：`k_corr` 的 MC 证据与全部读数正本 = `实验/healpix-polar/REPORT_experiment.md` §4.4
+  与 `REPORT_paper.md` §3.4（受控复现的相位/seed 构成同址登记）。冻结单数 1.4 在其声明标定域两端
   低估 control_variance（N=5 端 k_corr(5,紧凑)≈2.05 → 低估 32%；源 583–600″ 端
   ≈2.5–3.0 → 低估约 2 倍）。**引用义务**：任何引用 `control_variance` 的陈述必须声明
   ① 标定元组 (ρ, pixfrac, 帧数/dither, patch 构成)；② N_retained 档位（N≤25 时

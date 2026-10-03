@@ -298,8 +298,8 @@
   ⇒ 跨帧比较必须限「同一 `m_ref` 档」，且该档随产品落盘。
 - **依据**：恒等式的两项独立复算均落在浮点舍入量级——`SNR` 与 `F_ref/σ_F` 逐位相同（相对误差 0），
   `SNR²/F_ref² ÷ 1/σ_F² − 1` 最大 1 ulp；天光受限臂 `mref_drift_rel = 4.44e-16`、源主导臂 `0.0383`
-  （`实验/absolute-snr/code/audit/results/route3/exp04_refmag_chain.json`；
-  该件把配对恒等式自标 `is_tautology: true`、`evidence_eligible: false`，故恒等式本身不承载证据，
+  （`实验/absolute-snr/code/audit/route3/exp04_refmag_chain.py`；
+  该脚本把配对恒等式自标 `is_tautology: true`、`evidence_eligible: false`，故恒等式本身不承载证据，
   漂移量由跨帧比值给出而非由恒等式给出）；同件 `sigma_F_adu` 随 `F_ref` 由 14044.18 降到 1408.98
   （99.35×），与 `F_ref` 的 100.00× 同量级，直接印证 `σ_F` 的源亮度依赖；
   档漂移区间读数正本 = `实验/absolute-snr/REPORT_experiment.md` §精度约定。

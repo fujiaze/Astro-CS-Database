@@ -309,8 +309,8 @@ SDetParams 9 字段（`lib/algorithms/star_detection/include/star_detector.h`）
   11×11 局部极大 + 3×3 邻域 + 对称性门（`dA/dSr/dSc ≤ 2` 且
   `max(|Ar|,|Ac|) ≥ 5·bgnoise`，`lib/algorithms/star_detection/src/sdet_api.cpp`）决定，判据**必须**按此域分开声明。
   **负对照**：平坦背景合成场上同一统计量的取值必须非空（正例），该子样本为空集
-  ⇒ 全局阈不构成星云/银道面域的检出下限；两域**必须**分开声明。读数正本 =
-  星检测实验单元 results。
+  ⇒ 全局阈不构成星云/银道面域的检出下限；两域**必须**分开声明。读数正本尚未确立，
+  须由对抗性审核重新推导并构造反例确认。
 - DISP-STAR-003 SDetParams 9 字段生产消费面缺口（§11.1 表后注）: 编排
   platesolve.* 传参（`lib/infrastructure/pipeline/orchestrator/cpp/src/orchestrator.cpp`）部分字段无效；fwhmClipSigma
   生产路径半失效。
@@ -446,7 +446,7 @@ PHOTOMETRY/ASTROMETRY）不因本附录改动；本节是唯一冻结依据（�
   `sdet_compute_bgnoise()`（行差分 FnNoise1，`lib/algorithms/star_detection/src/sdet_api.cpp`）与
   `StarDetector::estimate_background`（2 轮 `median±3σ` 裁剪后 RMS），两者互不调用。
   **负对照**：两套 σ 若可互换，同帧比值必须为 1 ⇒ 引用「σ_bg」而不点名估计器的
-  判据不可复核（比值读数正本 = 星检测实验单元 results）。凡写「σ_bg」的判据**必须**
+  判据不可复核（比值读数正本须由对抗性审核重新推导并构造反例确认）。凡写「σ_bg」的判据**必须**
   点名估计器。
 - **登记纪律**：本节增益数字以「度量定义 + bootstrap CI + 可复跑探针」三者齐备即引用前提；缺项数字只作过程记录。
 - **NaN fail-open 已闭合**：估计器入口逐像素 `isfinite` 归约 + 返回值检查，NaN 输入不再静默通过；负例（全 NaN patch）必须判红。

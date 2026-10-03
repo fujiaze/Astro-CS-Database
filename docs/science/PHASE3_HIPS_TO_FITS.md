@@ -86,7 +86,7 @@ coverage:
   - ⇒ 安全上界 **`h_max = 2.13794 / nside_leaf` rad**（= 2.0892036·θ_pix），对全部像素、全部 nside 成立。
 - **适用域**：`θ_pix ≤ s_out` 是「输出网格比输入采样更细」的过采样条件；在 `order_needed ≤ hips_order` 时按**等面积尺度精确成立**。但 bilinear 的 `O(h²)` 误差界必须取 `h = h_max`（局部最大采样间隔）；用 `θ_pix` 会把该界低估最多 `2.089² = 4.36` 倍。
 - **夹紧域（必须显式声明）**：`order_needed > hips_order` 时 `order_sel = hips_order`，此时 `θ_pix > s_out`，**`h ≤ s_out` 不成立**。例：`hips_order=3, W=512, s_out=0.001°/px` ⇒ `order_needed=7`、`order_sel=3`、`θ_pix = 0.01431° = 51.5″/px = 14.31×s_out`。该情形按 §9a-5「按 survey 原生分辨率输出并记录」处理，**过采样主张的成立条件 = `θ_pix ≤ s_out`**。
-- 证据：等面积精确性与像元尺度（像素直径分布、`h_max` 上界）面见 `实验/healpix-polar/`（叶面积与尺度 results）；沿用的可执行判据 = 下条 `ang2pix` 幂等式。
+- 证据：等面积精确性面见 `实验/healpix-polar/REPORT_paper.md` §3.1 与 `REPORT_experiment.md` §4.1（叶面积恒等式 `A_leaf = π/(3N²)` 的文献/推导/实验三腿与全天穷举互证读数）；像元尺度（像素直径分布、`h_max` 上界）的读数正本已随实验域运行结果归档移除，须由对抗性审核重新推导并构造反例确认；沿用的可执行判据 = 下条 `ang2pix` 幂等式。
 
 **位移恒等式的地位（正向约束）**：`tile = ipix >> (2·log2(W))` 与 `local = ipix & ((1<<(2·log2(W)))−1)` 由 HEALPix NESTED 的层级性质（父索引 = 子索引 `>> 2`，HiPS REC §4.1 逐字「The tile index N at order K corresponds to the 4 tile indices Nx4, Nx4+1, Nx4+2 and Nx4+3 at order K+1」）与 tile/leaf 的 S 阶差（REC §4.2.1 逐字「HiPS image tile hierarchy is S orders less deep than the original HEALPix resampled data, packaging the 2^S x 2^S HEALPix cell values」）合成；**规范未逐字写出该位移式**，它是推论，且**要求 W = 2^S**。
 **可执行判据**：`ang2pix_nested(W·nside_parent,·) >> 2·log2(W) == ang2pix_nested(nside_parent,·)`，对 `W ∈ {256,512,1024}` × `nside_parent ∈ {1,2,8,64}` 共 12 组、每组 200 008 点（含极区、`lat=±90°`、`lon=0/360` 接缝）**全量零不一致**，另有 4 组穷举全天空比对（最大 12 582 912 像素）**零不一致**；负例（位移 ±1 位、W 差一档）不一致数 1.76×10⁵–2.00×10⁵，比偶然命中水平（~3）高 4–5 个数量级 ⇒ 判据有判别力。证据见 `实验/healpix-polar/`（HEALPix 几何与叶索引面）。

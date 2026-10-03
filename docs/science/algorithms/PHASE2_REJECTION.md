@@ -829,5 +829,5 @@ tally: accepted_count/rejected_low/rejected_high/iterations  :2163-2177
 - **pixel any-rejection FPR = 26.3%**（任一帧被拒即计）。
 - 科学量偏差：星点通量 **−0.07%**、FWHM **+0.012%**、faint structure **−0.29%**、背景噪声效率 **1.045**、三类 outlier recall = **1.0**。
 - 该组数字只作**对照档行为证据**登记，不改变 §5 四档路由与阈值表；复跑入口 = `lib/algorithms/coverage/tools/controlled_rejection_truth.py`（受控真值）与 `lib/algorithms/coverage/tools/rejection_oracle_compare.py`（Siril 1.4.3 harness 逐位对照，**次生参考实现对拍**）。
-- **真实数据判据（M42 沿线，口径与分母显式）**：显著点以「卫星帧留一稳健 z>5」判定，分母口径 = 全域显著点；漏检率与检出率按分档（`n ≥ 16`、`n = 6..15`）分别统计。读数正本 = 实验/m42-realdata/results/。权威口径见 `docs/science/REJECTION.md` §17；复现入口 = 生产 kernel 与受控真值脚本 `lib/algorithms/coverage/tools/controlled_rejection_truth.py`。
+- **真实数据判据（M42 沿线，口径与分母显式）**：显著点以「卫星帧留一稳健 z>5」判定，分母口径 = 全域显著点；漏检率与检出率按分档（`n ≥ 16`、`n = 6..15`）分别统计。读数正本 = 实验/m42-realdata/。权威口径见 `docs/science/REJECTION.md` §17；复现入口 = 生产 kernel 与受控真值脚本 `lib/algorithms/coverage/tools/controlled_rejection_truth.py`。
 

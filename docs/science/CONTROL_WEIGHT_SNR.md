@@ -192,7 +192,7 @@ for 每个控制星 s（半径内）:
 
 ## 8a. 帧级 SNR 定义与跨帧可比性
 
-> 依据：`实验/absolute-snr/`（`results/b1_sky_scan.json`、`b2_noise_terms.json`、`b4_integration.json`，复跑 `code/run_all.sh`）。本节确认 §2a 的帧级定义并给出实验边界，不改任何定义与权重语义。
+> 依据：`实验/absolute-snr/REPORT_experiment.md`（`code/b1_sky_scan.py`、`code/b2_noise_terms.py`、`code/b4_integration.py`，复跑 `code/run_all.sh`）。本节确认 §2a 的帧级定义并给出实验边界，不改任何定义与权重语义。
 
 1. **定义已被物理 MC 证实**：固定真实源通量、只抬升天光时，`SNR=F_signal/σ_F` 单调下降，天光主导段 log-log 斜率 −0.4879（亮源）/−0.4972（暗源）（理论 −1/2），`SNR(10⁶)/SNR(0)=2.11%/1.07%`；定义式与 MC 经验散度 max|z|=2.06（26 点）。
 2. **"信号含天光"的传统口径失真可量化**：同一天光范围内传统口径上升 3 个数量级（B=10⁶ 时相对真值 ×3419 亮源 / ×1.0e5 暗源）；不扣局部背景的帧级臂 ×8040 ⇒ **必须独立估计并扣除局部背景**（1% SNR 偏差对应背景偏差 δB*=2.78 e⁻ ≈ 0.28% 天光；实测 1% 交叉 3.44 e⁻）。
@@ -201,7 +201,7 @@ for 每个控制星 s（半径内）:
    与分母 `σ_F` 随 `m_ref` 同步变化，归一在 `SNR` 中相消，恒等式在任何噪声组成下精确成立。
    `SNR_combined²=ΣSNR_k²` 相对偏差 2.2e-16，Q/W 信息量 `Var=1/ΣW` 实测 1275 vs 解析 1260（+1.2%）；逆方差组合严格优于等权与 `w∝SNR`。
    **`w` 的适用域**：`w` 对 `m_ref` 不变当且仅当 `σ_F` 与 `F_ref` 无关。
-   实测 `实验/absolute-snr/code/audit/results/route3/exp04_refmag_chain.json` 的
+   实测 `实验/absolute-snr/code/audit/route3/exp04_refmag_chain.py` 的
    `H2_pairing_and_cross_frame.cross_frame_invariance`：
    - `sky_limited_arm`（`gain = 0`）`mref_drift_rel` = **4.44e-16**（机器精度级）
    - `source_dominated_arm`（`gain = 1.3`）`mref_drift_rel` = **0.0383（3.83%）**
@@ -213,24 +213,24 @@ for 每个控制星 s（半径内）:
    （读数正本：`实验/absolute-snr/`；恒等式与 `SNR_combined²` 的偏差腿属**代数恒等**，实验侧已自标
    `is_tautology: true`、`evidence_eligible: false`，故恒等式本身与「2.2e-16」只作定义性结论，不作独立证据腿。）
 4. **量纲区隔复核**：`quality_weight`（无量纲相对质量）与 `variance/ivar`（ADU²）不混用——§5/§6 的不变量在本单元以数值方式复核（权重换算恒等、组合方差解析对拍）。
-5. **读噪口径必须由 `sigma_sky_source` 显式声明**：`SnrSourceParams.sigma_sky_source` 取 `SHOT_ONLY` / `EMPIRICAL_TOTAL_RMS` 之一，生产调用点声明 `EMPIRICAL_TOTAL_RMS`（`noise_sigma` = `StarDetector::estimate_background` 的**整帧 2 轮裁剪 RMS**，含读噪的经验总 rms；噪声模型 A 的 `1.482602218505602×MAD` 稳健尺度是另一生产者，承载逐像素 `variance`）；`sigma_sky_source_effective` 落 provenance。**禁用**把**含读噪**的经验空天总 rms 填入 `sigma_sky_adu` 后又在 gain>0 时叠加 `(RN/g)²`（`snr_science.cpp`）——会高估 σ_F（基准点 +12.8%、RN=50 时 +34.0%，天光主导时消失；负例判据）。**保护测试** `p1snr_science_skysource`：正确口径与独立 MC 真值 zA=1.27（≤3σ）绿、双计臂 zB=25.6（>3σ）红、legacy 缺省与双计臂逐位一致（向后兼容）。PSF 行路径（`snr_estimator.cpp`，gain 未知不加 RN 项）不受影响。量化见 `实验/absolute-snr/results/DOC_CORRECTIONS.md` D1。
-6. **误差预算常数单位**：`NOISE_MODEL.md` 的 `1.44/√N` 是**相对**标准误（实测 1.166/√N），换算到 dex 为 `1.44/ln10/√N`；直接当 dex 常数用会高估 2.303 倍（`DOC_CORRECTIONS.md` D2）。
+5. **读噪口径必须由 `sigma_sky_source` 显式声明**：`SnrSourceParams.sigma_sky_source` 取 `SHOT_ONLY` / `EMPIRICAL_TOTAL_RMS` 之一，生产调用点声明 `EMPIRICAL_TOTAL_RMS`（`noise_sigma` = `StarDetector::estimate_background` 的**整帧 2 轮裁剪 RMS**，含读噪的经验总 rms；噪声模型 A 的 `1.482602218505602×MAD` 稳健尺度是另一生产者，承载逐像素 `variance`）；`sigma_sky_source_effective` 落 provenance。**禁用**把**含读噪**的经验空天总 rms 填入 `sigma_sky_adu` 后又在 gain>0 时叠加 `(RN/g)²`（`snr_science.cpp`）——会高估 σ_F（基准点 +12.8%、RN=50 时 +34.0%，天光主导时消失；负例判据）。**保护测试** `p1snr_science_skysource`：正确口径与独立 MC 真值 zA=1.27（≤3σ）绿、双计臂 zB=25.6（>3σ）红、legacy 缺省与双计臂逐位一致（向后兼容）。PSF 行路径（`snr_estimator.cpp`，gain 未知不加 RN 项）不受影响。量化与修复闭环见 `实验/absolute-snr/REPORT_experiment.md` §1 H3 与 §4.3；保护测试的注册与实现见 `lib/algorithms/noise_snr/tests/p1noise/CMakeLists.txt` 与 `p1snr_science_test.cpp`（组 `skysource`）。
+6. **误差预算常数单位**：`NOISE_MODEL.md` 的 `1.44/√N` 是**相对**标准误（实测 1.166/√N），换算到 dex 为 `1.44/ln10/√N`；直接当 dex 常数用会高估 2.303 倍（判据脚本 `实验/absolute-snr/code/b6_gates_audit.py` 与 `实验/absolute-snr/code/b3_domain_map.py`；`1.44 = 1.152×1.2533` 的现行裁决见 `实验/裁决台账.md` D-04）。
 7. **稀疏层表示与载体**：`sparse_snr_layer` 的控制点直接存**绝对**通量型 SNR `SNR_c = F_ref/σ_F,c`（与帧级 SNR 同物理定义、同逐帧参考通量 `F_ref`，无量纲）；Phase2 由控制点**直接重建**为稠密 `SNR(x,y)`，逐像素权重同式 `w(x,y)=SNR(x,y)²/F_ref²`。帧级 SNR 与稀疏层是**相互独立**的两个对象——帧级 SNR **不作**稀疏层的尺度基准，也不参与其还原；帧级 SNR 自身的定义、红线与独立用途（帧级参考电平、`frame_reconstruct` 口径、缺逐像素 ivar 时的帧级逆方差权重链）见 §2a 与 `docs/detail/algorithms_phase1/07_noise_snr.md` §4.1。**方向性约束（若未来要求两者一致）**：只允许 `frame_snr := median_p(SNR_c)`（由**绝对控制点导出帧级摘要**，或按足迹加权的摘要），**方向面 = 上述单向**（`SNR_c := frame_snr × 相对场` 的反向把帧级估计量的偏差乘进每一个控制点，且在 `median_p(SNR_c) ≠ frame_snr` 时**不可逆**）。本节 §2a 的帧级科学基准与 §4 的 `quality_weight` 语义均不因此改变。
 
 ## 8b. 三口径适用域图谱（选型依据）
 
-> 依据：`实验/absolute-snr/results/b3_domain_map.json`（`gates.delta64_detail`、`faces.synthetic_grf`、`faces.hst_m16`）与 `b6_gates_audit.json`。三条口径指 `dense` / `sparse_reconstruct`(Δ=64) / `frame_reconstruct`（§4.2 路径表）。
+> 依据：`实验/absolute-snr/REPORT_experiment.md` §1 H8/H13 与 §4.8，三口径读数的独立复核见 `实验/absolute-snr/docs/EXP-04-RECONSTRUCTION.md` §3.2；判据脚本 `实验/absolute-snr/code/b3_domain_map.py` 与 `b6_gates_audit.py`。三条口径指 `dense` / `sparse_reconstruct`(Δ=64) / `frame_reconstruct`（§4.2 路径表）。
 
 | 口径 | 优的域 | 劣的域 | 依据 |
 |---|---|---|---|
-| `sparse_reconstruct`（**默认**） | **地面视宁度受限域**（σ 场有空间结构、源污染低）：三帧全部胜出帧级标量 | 高对比结构域（HST 类）：cell 稳健 MAD 被 cell 内**未分辨结构**抬偏，偏差随 Δ 从 +0.0297（Δ=32）增到 +0.2626（Δ=256）、+0.4444（Δ=512）dex | `b3_domain_map.json` |
+| `sparse_reconstruct`（**默认**） | **地面视宁度受限域**（σ 场有空间结构、源污染低）：三帧全部胜出帧级标量 | 高对比结构域（HST 类）：cell 稳健 MAD 被 cell 内**未分辨结构**抬偏，偏差随 Δ 从 +0.0297（Δ=32）增到 +0.2626（Δ=256）、+0.4444（Δ=512）dex | `实验/absolute-snr/REPORT_experiment.md` §4.8 + `实验/absolute-snr/docs/EXP-04-RECONSTRUCTION.md` §3.2 |
 | `frame_reconstruct` | **HST 类高对比结构域且重建算子为 `bilinear_regular_grid_v1` 或默认 `natural_bicubic_spline_clip_v1` 时**：帧级标量更优（Δ≥32 起） | 有明显帧内 σ 梯度时丢失空间信息 | 同上 + EXP-04 §4.4/§5.3 |
 | `dense` | 精度基准 | **存储门**：4096² = 67,108,864 B = 64 MiB/帧 = 1 MiB 预算的 **64 倍** ⇒ 稠密超门结论成立 | 同上 |
 
 > **HST 类域的结论与重建算子绑定（条件式；判定面 = 与算子绑定）**：换用 `natural_bicubic_spline_clip_mesh_median_v1`（3×3 mesh 中值前置滤波 + 自然边界双三次样条 + 值域钳制）后，同一 HST 域上稀疏臂 **E=0.0490 优于帧级臂 0.0530** ⇒ 「HST 类域帧级更优」只在双线性/默认算子下成立。Δ\*（该算子 E 首次劣于帧级臂的最小 Δ）实测：`bilinear_regular_grid_v1` **32 px**、默认 `natural_bicubic_spline_clip_v1` **32 px**、`..._mesh_median_v1` **128 px**；生产 Δ=64 落在前两者的失效区内（分别差 2.1 / 2.6 倍），落在后者的有效区内。算子定义与选择规则见 `docs/detail/algorithms_phase1/07_noise_snr.md` §4.5，判据与数字正本见 `实验/absolute-snr` EXP-04 §3.2/§4.4/§5.3。
 
 - **失效边界不是单一 `Δ/ℓ≈1`，而是「`Δ/ℓ` × σ 场幅度 × 未分辨结构污染」三因子联合判据**：无源污染合成面上 sparse 在 Δ=512 px 仍胜（余量 ℓ=16 → 0.6%、ℓ=32 → 1.8%、ℓ=64 → 2.8%、ℓ=128 → 16%、ℓ=256 → 35%），而 HST M16 真实结构面上 Δ*=16 px（Δ/ℓ=0.50）；
-- **判据必须非退化**：空间权重/σ 场的精度判据用**权重效率损失** `E = Var_w/Var_opt − 1`（全局尺度相消；`E=0 ⇔ σ̂ ∝ σ_true`）。「帧级臂 RMSE ≤ K·s_field」类判据对**任意**真值场恒真（对抗打乱场下 E=7.17 仍绿），**证据资格 = 空**（`b6_gates_audit.json::tautology_demo`）；平坦 σ 场（真值无空间效应）时任何「空间口径优于帧级」的排序判据都退化，须走 `DEGENERATE_flat_field_ranking_never_true` 用例（该门不计证据）；
+- **判据必须非退化**：空间权重/σ 场的精度判据用**权重效率损失** `E = Var_w/Var_opt − 1`（全局尺度相消；`E=0 ⇔ σ̂ ∝ σ_true`）。「帧级臂 RMSE ≤ K·s_field」类判据对**任意**真值场恒真（对抗打乱场下 E=7.17 仍绿），**证据资格 = 空**（`实验/absolute-snr/code/b6_gates_audit.py::tautology_demo`）；平坦 σ 场（真值无空间效应）时任何「空间口径优于帧级」的排序判据都退化，须走 `DEGENERATE_flat_field_ranking_never_true` 用例（该门不计证据）；
 - **E 对乘性偏差免疫，不能替代水平偏差判据**：E 由 `w = 1/σ̂²` 的比值定义，整体乘性缩放完全相消——实测两臂可以 E 完全相同（均 0.0530）而水平偏差相差 **8.7 倍**（0.094 vs 0.818 dex）。⇒ 选型必须同时报 E 与水平偏差，「E 相同」的推断面 = 空（两臂等价需另行判定）；
 - **控制点局部 σ 的估计器要求（数值准确的必要条件）**：稀疏层「表示正确」（控制点存绝对 SNR）**不等于**「数值准确」——后者完全由局部 σ 估计器决定。朴素地把估计作用域从整帧换成区域（同一 recipe + 更小窗口）**不够**：结构污染只是被挪到更小尺度，cell 内的未分辨结构仍被算进稳健尺度，偏差随 Δ 单调增大。控制点的局部 σ **必须**用**结构感知**估计器：mesh 局部背景扣除后的逐区域残差稳健尺度，或跨帧差分（唯一零结构偏差口径）；估计器标识、`sigma_rho` 与 `quality_flags` 随稀疏层入 manifest（正本见 `docs/detail/algorithms_phase1/07_noise_snr.md` §4.5）。
 - **兜底**：HST 类数据默认给**帧级标量兜底**，不静默用稀疏口径冒充空间精度；该兜底与「稀疏臂换用 `..._mesh_median_v1` 后可胜出」并不冲突——两者是同一域上的两条可选路径，取舍见 `07_noise_snr.md` §4.5 的选择规则。
