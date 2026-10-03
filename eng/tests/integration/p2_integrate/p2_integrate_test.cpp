@@ -267,7 +267,12 @@ static bool run_write(const fs::path& work) {
     double asum = 0.0; for (double a : r.combination_coefficients) asum += a;
     CHECK_NEAR(asum, 1.0, 1e-9, "actual combination coefficients sum to 1");
     CHECK_NEAR(r.flux_variance * r.w_info, 1.0, 1e-9, "Var(F_hat)=1/W (FZ-FORMULA-WINFO)");
-    CHECK_NEAR(r.flux, r.q / r.w_info, 1e-12, "F_hat = Q/W");
+    /* "F_hat = Q/W" 已退役（GOVERN-08/G08-05）：生产 phase2_integrate.cpp:952 就是
+     * `const double f_hat = q / w;`，本行期望量是它的逐字复制，两侧用同一对操作数
+     * 各算一次除法、结果逐位相同 ⇒ 任何可达路径都不可能判红（参照量与被检验量同源）。
+     * 依据：lib/algorithms/integration/phase2_integrate/src/phase2_integrate.cpp:954-977
+     * 「独立帧下没有可用的恒等式判据，本仓据实不设门 … 故此处证据资格 = 空，不设假门。」
+     * 保留上一行 Var(F_hat)=1/W：它是 (1.0/w)*w 的 ulp 级量，判别力极弱但非零，不按死门删。 */
     const json rec = load_json(out / "point" / "phase2_product.json");
     CHECK(rec["phase2_extensions"]["group_normalization_performed"] == false, "point group normalization flag");
     CHECK(rec["weight_mode_record"]["weight"]["kind"] == "W_info", "point weight.kind");
