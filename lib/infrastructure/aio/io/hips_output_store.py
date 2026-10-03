@@ -9,21 +9,36 @@ DATA-003 production_store 原子语义 + DATA-004 provenance sidecar 语义）:
      {output_root}/runs/{run_id}/{user_path}（run 私有；两个不同 run 绝不共享
      一个目标路径）。目录层级 user_path 段（run_id/各组件/文件名）只允许
      [A-Za-z0-9._-]，含 '..'/'.'/空段/反斜杠/'/'内嵌 → 拒绝（路径穿越拒绝）。
-  2. 发布流水线：临时写（stage 目录内）→ 关闭 → fitsverify（tile FITS 结构 +
-     DATASUM，lib/infrastructure/aio/io/fits_verify.py 与 IO-001 fits_core 同算法）→ sha256 →
-     fsync → 原子 rename → 完成 manifest（`COMPLETE` 为唯一完成标记）。
+  2. 发布流水线：临时写（stage 目录内）→ 关闭 → **文件数据 fsync** →
+     fitsverify（tile FITS 结构 + DATASUM，lib/infrastructure/aio/io/fits_verify.py
+     与 IO-001 fits_core 同算法）→ sha256 → 原子 rename → 目录 fsync（尽力，
+     见第 8 条）→ 完成 manifest（`COMPLETE` 为唯一完成标记）。
      任一步失败（校验不过/中断/取消/磁盘满/权限拒绝）→ 无 COMPLETE manifest、
      无成功对象；可恢复（cleanup 或新 run 重发）。
-  3. 默认不覆盖：目标已存在 → 拒绝；显式 overwrite=True 才允许替换（先删除旧
-     目标再原子 rename；中断窗口无完成标记，可恢复）。
+  3. 默认不覆盖：目标已存在 → 拒绝；显式 overwrite=True 才允许替换，且替换序是
+     **先写暂存 → 成功后原子让位替换**：旧的成功产品不删除，只被一次 rename(2)
+     原子挪到 products/.replaced-*；换入失败则原样搬回；连搬回也失败则保留让位
+     副本并把它的路径报出（禁静默丢数据）。中断窗口无完成标记，可恢复。
   4. 文件权限拒绝：任何写入路径组件含符号链接、或最终目标权限不可写/被降权
      （目录或文件），一律拒绝（先检查后写；不静默放宽）。发布产物目录/文件
      权限收紧为 0o750/0o640（阶段隔离 + 用户路径不泄露）。
   5. tree hash 可重算：完成 manifest 记录 tree_hash = sha256(规范 JSON：
-     {path, size, sha256} 稳定排序)；同内容重算一致，任何文件改动即变化。
+     {path, size, sha256} 稳定排序）；同内容重算一致，任何文件改动即变化。
+     **这是内容一致性判据，不是落盘判据**（边界见第 8 条与 verify_tree_hash）。
   6. cancel/fail → 无成功对象：InterruptIO 故障注入/手动 abort → 无 COMPLETE
      manifest；Store.start() 恢复只索引"内容 + COMPLETE manifest"齐全对象。
   7. 并发不同 run 不互相覆盖：run_id 目录隔离 + 原子 rename（同文件系统）。
+  8. 落盘口径（本条是**边界声明**，不是能力声明）：
+     本模块只对**文件数据**做真 fsync（StoreIO.write_bytes 内的 os.fsync(fd)）。
+     **目录项**的 fsync 由 _fsync_dir() 执行，而它对任何 OSError 一律静默吞掉
+     ⇒ 目录 fsync 失败在本模块内**不留任何痕迹**；本模块**没有** kDurable /
+     kNotDurable 那样的持久化三态，也不声称提供它。
+     仓内真正的落盘口径在 lib/infrastructure/aio/product_io/include/astro/aio/
+     atomic_publish.h（PublishDurability kDurable/kNotDurable；判据 = rename 已生效
+     + 目录 fsync 成功）与 atomic_publish.cpp:152-168 的 confirm_dir_durability()
+     （目录 fsync 真失败 ⇒ fail-closed 上报 kErrIo；不得把「无失败证据」当成
+     「已确认落盘」）。本模块**未**接入该口径 —— 如实登记为缺口：不以「更强的验证」
+     冒充，也不自行发明第三套判据。
 
 本文件为纯 Python 执行语义（Linux 控制/轻合成节点可完整验证）；Windows 正式
 DLL 交付由 IO-003 同语义 C 接线复刻（同一发布状态机；manifest/tree hash 公式
@@ -379,6 +394,8 @@ class HipsOutputStore:
         self._products_dir = self._run_dir / "products"
         # 已发布（恢复后）索引: rel_path → {size, sha256}
         self._published: Dict[str, Dict[str, Any]] = {}
+        # 覆盖写让位副本的进程内计数（同 run 内让位名不重名）
+        self._retire_seq = 0
 
     # ── 生命周期 ──
     def start(self) -> "HipsOutputStore":
@@ -444,11 +461,23 @@ class HipsOutputStore:
         return target
 
     def _stage_file(self, rel_path: str) -> pathlib.Path:
-        """临时写路径（stage 私有区；文件名词法已由发布器控制）。"""
+        """临时写路径（stage 私有区；文件名词法已由发布器控制）。
+
+        定址按**完整相对路径**而非文件名。HiPS 目录产物在同一子产品下含多个分辨率
+        阶次（NorderK/DirD/NpixN.fits），同名 NpixN.fits 会合法地出现在不同 NorderK
+        下 —— NESTED 下像素 0..3 的各阶祖先都折叠回 0，故 Norder1/Dir0/Npix0.fits 与
+        Norder2/Dir0/Npix0.fits 同名是正常形态。按文件名定址会让两个不同的产品文件
+        落进同一暂存路径，第二个撞上 publish_directory 的 "stage path already exists"
+        而使这一类合法多阶产品根本无法发布。故对完整相对路径取 sha256 定址；尾部仍
+        保留文件名仅为可读性（不参与定址）。摘要宽度保持 16 hex 不变（下游
+        eng/tests/io/test_hips_output_contract.py:298 按该宽度构造预置符号链接），
+        本单只改定址**输入**，不改宽度。
+        """
         seg = rel_path.rsplit("/", 1)[-1] if "/" in rel_path else rel_path
         if not _FNAME_RE.match(seg):
             raise PublishError(f"publish filename illegal: {seg!r}")
-        return self._stage_dir / f"{hashlib.sha256(seg.encode()).hexdigest()[:16]}.{seg}"
+        key = hashlib.sha256(rel_path.encode("utf-8")).hexdigest()[:16]
+        return self._stage_dir / f"{key}.{seg}"
 
     # ── 完整发布（文件集合 → 原子目录产物） ──
     def publish_directory(self, user_path: str, files: Iterable[Tuple[str, bytes]],
@@ -471,14 +500,9 @@ class HipsOutputStore:
             raise PublishError(
                 f"target exists (overwrite=0): {rel} "
                 f"(默认不覆盖，显式 overwrite 才可)")
-        # 中断/cancel 残留（目录存在但无 COMPLETE manifest）= 非成功对象
-        # （DATA-003 语义：cancel/fail → 无成功对象，可恢复）→ 清残后重发；
-        # 成功对象仅在显式 overwrite 时清除。
-        if target_exists and (overwrite or not is_success):
-            if target.is_dir() and not target.is_symlink():
-                self.io.remove_tree(target)
-            else:
-                self.io.unlink(target)
+        # 目标区此刻**一个字节都不动**：清残 / 让位必须等暂存全部成功之后才做
+        # （见下面的 retire 段与 _retire_success_target）—— 先毁旧再暂新时，暂存或
+        # 写入中途失败会把旧的正确产物提前毁掉且不可恢复。
 
         # ── 文件清单词法校验（先检后写） ──
         file_list = [(validate_relative_path(fn, "filename"), data)
@@ -515,64 +539,173 @@ class HipsOutputStore:
             self._cleanup_staged(staged)
             raise
 
-        # ── 目标目录就绪（覆盖已清理） ──
+        # ── 暂存全部成功，此刻才动目标区（先写暂存 → 成功后原子替换）──────────
+        # 旧的正确产品**不删除**，而是先一次 rename(2) 原子让位到 products/.replaced-*
+        # （同目录 ⇒ 不跨文件系统）。让位失败 ⇒ 目标根本没被碰过、旧产品原样在位；
+        # 换入失败 ⇒ 原样搬回；连搬回也失败 ⇒ 保留让位副本并把它的路径报出，
+        # 绝不静默删除（禁静默丢数据）。
+        backup: Optional[pathlib.Path] = None
         try:
-            _check_no_symlink(target.parent)
-            self.io.mkdir(target, mode=0o750)
-        except OSError as exc:
-            self._cleanup_staged(staged)
-            raise PermissionError_(f"target dir create failed: {exc}")
-
-        # ── 原子 rename 全部文件（先建 manifest 前文件；顺序无关紧要） ──
-        try:
-            for rec in sorted(staged, key=lambda r: r["rel"]):
-                final = target / rec["rel"]
-                if final.parent != target:
-                    # NorderK/DirD/… 子目录
-                    self.io.mkdir(final.parent, mode=0o750)
-                self.io.atomic_rename(rec["tmp"], final)
-            _fsync_dir(target)
+            if target_exists:
+                if is_success:
+                    backup = self._retire_success_target(target, rel)
+                else:
+                    # 中断/cancel 残留（目录存在但无 COMPLETE manifest）= 非成功对象
+                    # （DATA-003 语义：cancel/fail → 无成功对象，可恢复）→ 清残后重发。
+                    if target.is_dir() and not target.is_symlink():
+                        self.io.remove_tree(target)
+                    else:
+                        self.io.unlink(target)
         except BaseException:
-            # 中断/失败：目标区已半写 → 无完成 manifest（非成功对象；可恢复）
+            # 让位/清残失败 ⇒ 新树尚未换入、目标保持原状（旧产品未丢）。但此时已写好的
+            # 暂存必须收干净，否则同 run 的下一次发布会撞 "stage path already exists"
+            # 而把可恢复失败变成不可重发。
             self._cleanup_staged(staged)
             raise
 
-        # ── 完成 manifest（唯一完成标记；原子 rename 落盘） ──
-        tree_entries = sorted(
-            [{"path": r["rel"], "size": r["size"], "sha256": r["sha256"]}
-             for r in staged],
-            key=lambda e: (e["path"], e["size"], e["sha256"]))
-        doc: Dict[str, Any] = {
-            "manifest_schema": "acsd.hips-output-manifest/v1",
-            "manifest_version": 1,
-            "status": _COMPLETE,
-            "run_id": self.run_id,
-            "user_path": rel,
-            "product": rel.rsplit("/", 1)[-1],
-            "publisher": "acsd.hips-output/v1",
-            "tree": tree_entries,
-            "tree_hash": tree_hash(tree_entries),
-            "fitsverify": {"performed": True, "checksum": "datasum",
-                           "tile_count": sum(1 for r in staged if r["fits"])},
-            "created_utc": utc_now_z(),
-        }
-        if producer:
-            doc["producer"] = dict(producer)
-        manifest_json = canonical_json(doc)
-        tmp_mf = self._stage_dir / f"manifest.{self.run_id}.{rel.replace('/', '_')}.json.tmp"
         try:
-            self.io.write_bytes(tmp_mf, manifest_json.encode("utf-8"), mode=0o640)
-            self.io.atomic_rename(tmp_mf, target / _MANIFEST_NAME)
-            _fsync_dir(target)
-        except BaseException:
+            # ── 目标目录就绪 ──
             try:
-                tmp_mf.unlink()
-            except OSError:
-                pass
+                _check_no_symlink(target.parent)
+                self.io.mkdir(target, mode=0o750)
+            except OSError as exc:
+                self._cleanup_staged(staged)
+                raise PermissionError_(f"target dir create failed: {exc}")
+
+            # ── 原子 rename 全部文件（先建 manifest 前文件；顺序无关紧要） ──
+            try:
+                for rec in sorted(staged, key=lambda r: r["rel"]):
+                    final = target / rec["rel"]
+                    if final.parent != target:
+                        # NorderK/DirD/… 子目录
+                        self.io.mkdir(final.parent, mode=0o750)
+                    self.io.atomic_rename(rec["tmp"], final)
+                _fsync_dir(target)
+            except BaseException:
+                # 中断/失败：目标区已半写 → 无完成 manifest（非成功对象；可恢复）
+                self._cleanup_staged(staged)
+                raise
+
+            # ── 完成 manifest（唯一完成标记；原子 rename 落盘） ──
+            tree_entries = sorted(
+                [{"path": r["rel"], "size": r["size"], "sha256": r["sha256"]}
+                 for r in staged],
+                key=lambda e: (e["path"], e["size"], e["sha256"]))
+            doc: Dict[str, Any] = {
+                "manifest_schema": "acsd.hips-output-manifest/v1",
+                "manifest_version": 1,
+                "status": _COMPLETE,
+                "run_id": self.run_id,
+                "user_path": rel,
+                "product": rel.rsplit("/", 1)[-1],
+                "publisher": "acsd.hips-output/v1",
+                "tree": tree_entries,
+                "tree_hash": tree_hash(tree_entries),
+                "fitsverify": {"performed": True, "checksum": "datasum",
+                               "tile_count": sum(1 for r in staged if r["fits"])},
+                "created_utc": utc_now_z(),
+            }
+            if producer:
+                doc["producer"] = dict(producer)
+            manifest_json = canonical_json(doc)
+            tmp_mf = (self._stage_dir /
+                      f"manifest.{self.run_id}.{rel.replace('/', '_')}.json.tmp")
+            try:
+                self.io.write_bytes(tmp_mf, manifest_json.encode("utf-8"),
+                                    mode=0o640)
+                self.io.atomic_rename(tmp_mf, target / _MANIFEST_NAME)
+                _fsync_dir(target)
+            except BaseException:
+                try:
+                    tmp_mf.unlink()
+                except OSError:
+                    pass
+                raise
+        except BaseException as exc:
+            # 换入失败 ⇒ 把让位的旧产物搬回（半写目标区先撤掉，否则 rename onto
+            # 非空目录必败）。搬不回就抛带让位路径的错误，绝不静默删旧产物。
+            self._restore_retired(backup, target, exc)
             raise
+
+        # ── 成功：新树已在位且带 COMPLETE manifest，旧让位副本此时才可回收 ──
+        self._discard_retired(backup)
         # 成功对象登记
         self._published[rel] = {"size": -1, "sha256": doc["tree_hash"]}
         return doc
+
+    # ── 覆盖写：旧产物的原子让位 / 回滚 / 回收 ──
+    # 覆盖写序 = 先写暂存 → 成功后原子替换。旧的正确产品**永不先被删或截断**：
+    # 让位是一次 rename(2)（同目录 ⇒ 不跨文件系统）；失败发生在换入之前时目标未被动。
+    def _retired_name(self, rel: str) -> pathlib.Path:
+        """让位副本路径：products/.replaced-<run>-<16hex>。
+
+        点前缀是刻意的：start() 的恢复扫描按 `child.name.startswith(".")` 跳过
+        products 子项，故让位副本永不被当成产品索引 —— 即使回滚失败把它留在盘上，
+        也不会伪造出一个「成功对象」。
+        """
+        self._retire_seq += 1
+        token = hashlib.sha256(
+            f"{rel}|{self.run_id}|{os.getpid()}|{self._retire_seq}|"
+            f"{time.time_ns()}".encode("utf-8")).hexdigest()[:16]
+        return self._products_dir / f".replaced-{self.run_id}-{token}"
+
+    def _retire_success_target(self, target: pathlib.Path,
+                               rel: str) -> pathlib.Path:
+        """把旧的**成功对象**原子让位到 products/.replaced-* 并返回让位路径。
+
+        失败（让位 rename 报错，或让位后目录状态不符预期）⇒ 目标仍保持旧产物原状，
+        抛 PublishError 报出；此时新树尚未换入，旧产品**没有**任何丢失。
+        """
+        backup = self._retired_name(rel)
+        try:
+            self.io.atomic_rename(target, backup)
+        except Exception as exc:
+            raise PublishError(
+                f"覆盖发布失败：旧产物让位失败，目标未被改动，旧产物仍在 {target}: "
+                f"{exc}") from exc
+        if target.exists() or target.is_symlink() or not backup.exists():
+            # 让位没真正生效（后端语义与预期不符）⇒ 搬回去，保持不变式
+            try:
+                self.io.atomic_rename(backup, target)
+            except Exception:
+                pass
+            raise PublishError(
+                f"覆盖发布失败：旧产物让位未生效，目标未被改动，旧产物仍在 {target}")
+        return backup
+
+    def _restore_retired(self, backup: Optional[pathlib.Path],
+                         target: pathlib.Path, cause: BaseException) -> None:
+        """换入失败 ⇒ 把让位的旧产物搬回；搬不回就抛带让位路径的错误。
+
+        只在 backup 存在时动作（没有让位就没有可回滚的旧产物）。绝不删让位副本。
+        """
+        if backup is None:
+            return
+        try:
+            if target.is_dir() and not target.is_symlink():
+                self.io.remove_tree(target)
+            elif target.exists() or target.is_symlink():
+                self.io.unlink(target)
+        except Exception:
+            pass
+        try:
+            self.io.atomic_rename(backup, target)
+        except Exception as rex:
+            raise PublishError(
+                f"覆盖发布失败且旧产物回滚失败：旧产物仍完整保存在 {backup}，"
+                f"请人工恢复（按禁静默丢数据纪律不得自动删除）。"
+                f"回滚错误={rex}; 原始错误={cause}") from rex
+
+    def _discard_retired(self, backup: Optional[pathlib.Path]) -> None:
+        """成功发布后回收让位副本；回收失败只留痕，不回滚已完成的发布。"""
+        if backup is None:
+            return
+        try:
+            self.io.remove_tree(backup)
+        except Exception as exc:
+            import sys as _sys
+            print(f"[hips-output-store] warning: retired product cleanup failed "
+                  f"({backup}): {exc}", file=_sys.stderr)
 
     # ── 校验助手 ──
     def _verify_fits(self, path: pathlib.Path, rel: str) -> None:
@@ -658,7 +791,15 @@ class HipsOutputStore:
         return doc
 
     def read_product_file(self, user_path: str, fn: str) -> Optional[bytes]:
-        """已发布产物文件内容（sha256 与 manifest 核对；篡改拒绝）。"""
+        """已发布产物文件内容（sha256 与 manifest 核对；篡改拒绝）。
+
+        能证明: (a) 该产品有 COMPLETE manifest（可消费）；(b) 按路径读到的字节
+        与 manifest.tree 声明的 sha256 一致（事后篡改可检出）。
+
+        **不能证明**: 数据或目录项已落盘。读回走的是同一文件描述符语义的页缓存，
+        写方刚写完的那份数据在页缓存里原样可见 ⇒ 缺失的落盘同步在本函数里
+        **结构上无法被发现**。本函数通过 ≠ 数据已落盘。落盘口径见模块 docstring 第 8 条。
+        """
         rel = validate_relative_path(user_path)
         if not self.has_complete_manifest(rel):
             return None
@@ -680,7 +821,16 @@ class HipsOutputStore:
         return data
 
     def verify_tree_hash(self, user_path: str) -> bool:
-        """tree hash 可重算验收：按磁盘当前文件重算 == manifest.tree_hash。"""
+        """tree hash 可重算验收：按当前文件系统视图重算 == manifest.tree_hash。
+
+        能证明: 产品树上每个 manifest 登记的文件此刻都存在，且其当前字节的 sha256
+        与登记值一致（树内容与清单自洽）。
+
+        **不能证明**: 落盘。"按磁盘当前文件重算"这句里的"磁盘"只是文件系统视图 ——
+        读回命中的是写方自己刚写进页缓存的同一份数据，缺失的文件 fsync 或目录 fsync
+        在这里都是不可见的（本模块的目录 fsync 见 _fsync_dir，连失败都不报）。
+        真正的落盘判据在 atomic_publish.h 的 kDurable/kNotDurable，见模块 docstring 第 8 条。
+        """
         rel = validate_relative_path(user_path)
         doc = self.read_complete_manifest(rel)
         if doc is None:
