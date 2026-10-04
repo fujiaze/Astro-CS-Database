@@ -4,10 +4,10 @@
 > §4.4（产品基数不变量）
 > 科学正本：docs/science/PHOTOMETRY.md（SCI-PHOT-001，含 §1 判据与 §5 观测统计量、
 > §16 平移精化判据）、docs/science/algorithms/PHOTOMETRIC_FIT.md（ALG-PHOT-001..002
-> §13 逐符号锚）、docs/science/UNCERTAINTY_AND_COVARIANCE.md（通量方差）
-> 数据正本：docs/science/DATA_SEMANTICS.md §14（DATA-P1-PHOT）
-> API 正本：docs/engineering/PUBLIC_API.md（API-PHOT-001）、
-> docs/engineering/COMMON_ABI_V1.md、API-P1-005（docs/engineering/PHASE1_API_V1.md）
+> §13 逐符号锚）、docs/science/noise_snr/NOISE_SNR.md §3.3（逐源通量不确定度）
+> 数据正本：docs/detail/registry/acsd.phase1.photometry.md（DATA-P1-PHOT 端口表，本页输入输出端口表）
+> API 正本：docs/engineering/api/PUBLIC_API.md（API-PHOT-001）、
+> docs/engineering/api/abi/ABI.md、API-P1-005（docs/engineering/api/PUBLIC_API.md「分阶段 API 面」）
 > 数据对象：docs/detail/UNIFIED_MODEL.md §1（观测模型）
 
 模块级事实以 `lib/algorithms/photometry/README.md` + `module.yaml`
@@ -34,7 +34,7 @@ Registry production 模块（唯一源 = module_adapters.cpp 的 p1_photometry_d
 
 端口 DATA 编目（psf→DATA-P1-PSF / sources→DATA-P1-SOURCES /
 fluxes→DATA-P1-FLUX）为编排层词汇，模块合同 DATA 层 = DATA-P1-PHOT
-（DATA_SEMANTICS §14）。
+（本页输入输出端口表）。
 
 ## 输入输出端口、DATA、单位、坐标、invalid
 
@@ -42,7 +42,7 @@ fluxes→DATA-P1-FLUX）为编排层词汇，模块合同 DATA 层 = DATA-P1-PHO
 |---|---|---|---|---|
 | `calibrated` | `DATA-P1-CAL` | 必 | `UnitId::ADU` | `CoordinateFrame::PIXEL` |
 | `sources` | `DATA-P1-SOURCES` | 必 | `UnitId::DIMENSIONLESS` | `CoordinateFrame::ICRS` |
-| `fluxes` | `DATA-P1-FLUX` | 可 | `UnitId::ADU`（与 DATA_SEMANTICS §14.1 psf_flux 一致） | `CoordinateFrame::ICRS` |
+| `fluxes` | `DATA-P1-FLUX` | 可 | `UnitId::ADU`（与本页输入输出端口表 psf_flux 一致） | `CoordinateFrame::ICRS` |
 
 invalid = NaN/coverage=0（按 DATA 合同）。
 
@@ -101,7 +101,7 @@ PhotometricMosaic（PMM）的使用面 = 只读方法研究：可读源码做方
 
 ## 公共 header、核心 symbol 与生命周期
 
-模块级 API = API-PHOT-001（docs/engineering/PUBLIC_API.md 测光节；头
+模块级 API = API-PHOT-001（docs/engineering/api/PUBLIC_API.md 测光节；头
 `lib/algorithms/photometry/cpp/include/photometric_calib.h`，6 导出符号，
 生产入口 `pc_calibrate_simple_with_gaia_f64` / `_v2`）；编排级 API =
 API-P1-005（phase session extern "C"）；生命周期 create→validate→run→inspect→

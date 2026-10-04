@@ -1,8 +1,8 @@
 # 排障手册（症状 → 定位 → 修复）
 
 > 上游：`docs/ACSD_DESIGN.md` §7.2（机器输出与退出码）、§7.3（错误传播与运行日志）、
-> `docs/engineering/LOG_AND_ERROR_CONTRACT.md` §5（错误域与退出码映射）、§7（日志面）。
-> 写法：`docs/engineering/DOCUMENT_GOVERNANCE.md` §7（写法判据）与 AGENTS.md 第 5 节。
+> `docs/engineering/contracts/LOG_AND_ERROR.md`「错误对象与退出码映射」一节（错误域与退出码映射）、「落点合同」一节（日志面）。
+> 写法：`docs/engineering/governance/DOCUMENT_GOVERNANCE.md`「写法检查（人读清单）」一节（写法判据）与 AGENTS.md 第 5 节。
 
 ## 1 何时用本文
 
@@ -33,7 +33,7 @@
 2. 匹配状态码或错误域（配置 / 输入损坏 / 数值 / IO / 内存 / 取消 / ABI 不匹配 / 退出码）。
 3. 查模块文档（`docs/detail/`）与本表。
 4. 复现：最小输入 + 期望不变量（正本在 `docs/science/`）。
-5. 定位源码符号 → 对应测试（追溯层定义见 `docs/engineering/TRACEABILITY_SPEC.md`）。
+5. 定位源码符号 → 对应测试（追溯层定义见 `docs/engineering/governance/TRACEABILITY.md`）。
 
 ## 4 症状主表
 
@@ -49,7 +49,7 @@
 | SNR 阶段被跳过 | normalize · NOISE | 跳过状态 · 阶段日志 | 噪声模块未运行或数据块缺失 | 确认噪声模块为当前版本并重跑 |
 | 权重全等权（ivar 失效） | normalize · NOISE | 诊断字段 `ivar_product_missing>0` | 输入帧没有 ivar 产品 | 重跑 Phase1 生成含 variance/ivar 的帧；或接受 support 回退 |
 | 候选权重为 NaN | mosaic · INTEGRATE | 输入无效状态 | 候选权重含负值/NaN/Inf | 生产侧有校验拒绝；此处说明为何会见到 |
-| stage2 权重全为 0 | mosaic · INTEGRATE | 零有效权重 | 帧无 ivar/variance 产品 ⇒ 全部样本权重为 0（`n_accepted>0 ∧ n_positive_weight==0`）。**注意这不是 support=0**——该状态下 support 仍按已接受样本的 max 发布（`docs/science/DATA_SEMANTICS.md` §21.5） | 确认 Phase1 输出了 variance/ivar；重跑 Phase1 |
+| stage2 权重全为 0 | mosaic · INTEGRATE | 零有效权重 | 帧无 ivar/variance 产品 ⇒ 全部样本权重为 0（`n_accepted>0 ∧ n_positive_weight==0`）。**注意这不是 support=0**——该状态下 support 仍按已接受样本的 max 发布（`docs/detail/registry/acsd.phase2.integrate.md`） | 确认 Phase1 输出了 variance/ivar；重跑 Phase1 |
 | 接缝处出现阶跃 | mosaic · UPM | 条件结论 | 接缝压缩只在可表示域内成立，域外结论不成立 | 见 `docs/science/PHASE2_UPM.md` 的适用域与边界声明 |
 | 星云带 / 银道面附近误检多 | normalize · 星检测 | 检出域 · 诊断 | 该区域不属星检测方法的标定适用域 | 见 `docs/science/algorithms/STAR_DETECTION_ALGORITHMS.md` 的适用域段 |
 | 排异配置被拒 | mosaic · REJECTION | 配置错误 | 归一化组合非法 | percentile 必须配 median_center；rcr 必须为 none |
@@ -87,4 +87,4 @@ python3 eng/tools/acsd_diagnose.py <output_dir>/logs --json diag.json
 
 ---
 
-> 本手册的写法判据见 `docs/engineering/DOCUMENT_GOVERNANCE.md` §7。
+> 本手册的写法判据见 `docs/engineering/governance/DOCUMENT_GOVERNANCE.md`「写法检查（人读清单）」一节。

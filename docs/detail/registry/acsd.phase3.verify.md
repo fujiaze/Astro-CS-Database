@@ -25,7 +25,7 @@ invalid = 重开失败、HDU 尺寸或像素不符、sha256 不匹配即 fail-cl
 校验实现 = lib/algorithms/fits_output/p3_output.h 的 `p3_output_verify`/
 `p3_output_verify_ex`（重开路径 `aio::verify_fits_file`，lib/phase3_session/p3_export.cpp）；
 节点入口 = P3NodeOp::Verify（`verify_output`，节点绑定表）；编排级 API = API-P3-001
-（docs/engineering/PHASE3_API_V1.md，phase session extern "C"）；生命周期
+（docs/engineering/api/PUBLIC_API.md「export 会话生命周期合同」，phase session extern "C"）；生命周期
 create→validate→run→inspect→destroy。
 
 ## Registry descriptor 与配置 schema

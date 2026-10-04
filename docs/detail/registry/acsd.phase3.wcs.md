@@ -7,12 +7,12 @@
 > §5 映射声明、§6/§7 公式、§11 实测偏差、§12 测试设计 T1–T7、§13 合同边界、
 > §15 registry 冻结表 + 逐投影六要素）；承接
 > docs/science/algorithms/PHASE3_RESAMPLE.md（ALG-P3-002 G1/G2 施工规格，零改动）
-> 数据正本：docs/science/DATA_SEMANTICS.md §28（DATA-P3-WCS）、
+> 数据正本：docs/detail/registry/acsd.phase3.wcs.md（DATA-P3-WCS 端口表，本页输入输出端口表）、
 > eng/contracts/schemas/projection_registry.schema.json（registry 冻结集合，
 > 机器可校验导出 schema）
-> API 正本：docs/engineering/PUBLIC_API.md（API-P3-PROJ-001，Phase3 投影公共消费面节；
+> API 正本：docs/engineering/api/PUBLIC_API.md（API-P3-PROJ-001，Phase3 投影公共消费面节；
 > API-P3-001 = p3_session 五段编排面 FROZEN 镜像）
-> 架构正本：docs/engineering/ARCH-001.md
+> 架构正本：docs/engineering/architecture/ARCHITECTURE.md
 > 门表事实源：docs/science/algorithms/GATES_AND_TOLERANCES.md §3
 > 落地设计：docs/detail/PHASE3_DETAILED_DESIGN.md §2
 > 引用文献：见文末「参考文献」（角标用全角 `［N］`，因本文正文的半角 `[...]` 已被
@@ -34,9 +34,9 @@ ALG-P3-002 / API-P3-001 / TEST-P3-WCS-001）与 module_id 合同值
 - 生产源: lib/algorithms/projection/p3_wcs.cpp + 同目录签名头正本 p3_wcs.h。
 - 合同链: SCI-P3-001（docs/science/PHASE3_HIPS_TO_FITS.md，FROZEN；映射声明
   SCI-P3-WCS-001 ⇒ SCI-P3-001 见 ALG §5）→ ALG-P3-PROJ-IMPL-001（兼承接
-  ALG-P3-002 本域子面 G1/G2）→ DATA-P3-WCS（DATA_SEMANTICS §28）+
+  ALG-P3-002 本域子面 G1/G2）→ DATA-P3-WCS（本页输入输出端口表）+
   API-P3-PROJ-001 → TEST-P3-WCS-001（设计冻结 = TEST-P3-WCS-DESIGN-001，见 §9）；
-  编排面 API-P3-001（p3_session 五段 FROZEN）镜像不变；ARCH-001（VERIFIED）。
+  编排面 API-P3-001（p3_session 五段 FROZEN）镜像不变；ARCHITECTURE（VERIFIED）。
 - 上游依赖: acsd_phase3_session（采样/重采样/写出编排域同库）；
   depends_on_int=ABI-005;DATA-004;RT-006（ABI-005=模块 C ABI 承接、
   DATA-004=WCS descriptor 数据面、RT-006=线程泄漏守卫由纯函数无状态
@@ -199,10 +199,10 @@ ALG-P3-002 / API-P3-001 / TEST-P3-WCS-001）与 module_id 合同值
 - ALG: docs/science/algorithms/PHASE3_PROJ_IMPL.md；承接:
   docs/science/algorithms/PHASE3_RESAMPLE.md（ALG-P3-002 G1/G2 施工规格，
   零改动）
-- DATA: docs/science/DATA_SEMANTICS.md §28
-- API: docs/engineering/PUBLIC_API.md（API-P3-PROJ-001 节）
+- DATA: docs/detail/registry/acsd.phase3.wcs.md（本页输入输出端口表）
+- API: docs/engineering/api/PUBLIC_API.md（API-P3-PROJ-001 节）
 - 合同三件套: lib/algorithms/projection/
-- 会话编排面现行权威 = docs/engineering/RT-001.md + docs/detail/registry/acsd.phase3.*
+- 会话编排面现行权威 = docs/engineering/contracts/RUNTIME.md + docs/detail/registry/acsd.phase3.*
 
 ## NaN 与输出语义
 

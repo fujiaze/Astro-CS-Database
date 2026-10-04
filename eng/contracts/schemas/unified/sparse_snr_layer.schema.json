@@ -47,7 +47,7 @@
         "support",
         "coverage"
       ],
-      "description": "禁止键守卫（FZ-FIELD-PSFSW-4COMP / FZ-GATE-PSFSW-COV）：诊断量/派生量不得作为裸键出现，禁止写成 ivar/Fisher/W_info/方差/SNR/support/coverage 等；见 docs/science/DATA_SEMANTICS.md §31.7/§31.8"
+      "description": "禁止键守卫（FZ-FIELD-PSFSW-4COMP / FZ-GATE-PSFSW-COV）：诊断量/派生量不得作为裸键出现，禁止写成 ivar/Fisher/W_info/方差/SNR/support/coverage 等；见 docs/science/unified/DATA_SEMANTICS.md §31.7/§31.8"
     }
   },
   "properties": {

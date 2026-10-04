@@ -32,7 +32,7 @@
   不是外接半径**。该系数判为结构性安全缓冲、非科学量。
 - **依据**：全天穷举实测 `[0.9941, 1.0196, 1.0322, 1.0384, 1.0415]`；1.12839 与闭式
   `2/√π = 1.1283792` 五位一致；经纬对照格反例 4.516 证明 HEALPix 特化性。
-- **正本落点**：`docs/science/DRIZZLE.md`（裁剪外接圆半径条目）、
+- **正本落点**：`docs/science/drizzle/DRIZZLE.md`（裁剪外接圆半径条目）、
   `docs/science/algorithms/DRIZZLE_GEOMETRY.md`（外接半径节与查询圆半径式）—— **已一致**。
 
 ## §2 极冠边弦矢高预算与 `max_depth`（D-02）
@@ -55,7 +55,7 @@
   **§7.1–§7.2 式(6)–(10)**。引用面统一写「§2 式(2)–(5)（权重）＋§7 式(6)–(10)（方差/相关）」。
 - **依据**：Fruchter & Hook 2002, PASP 114, 144（DOI 10.1086/338393；arXiv:astro-ph/9808087v2）
   全文直验，两处定位各自成立。
-- **正本落点**：`docs/science/DRIZZLE.md` —— **无落点（待同步）**：正本须显式写出双锚分工，
+- **正本落点**：`docs/science/drizzle/DRIZZLE.md` —— **无落点（待同步）**：正本须显式写出双锚分工，
   避免权重式与方差式被同一条引用混指。
 
 ## §4 MAD–σ̂ 相对标准误系数与天光预算（D-04）
@@ -65,7 +65,7 @@
   `1.152` 是**相对标准误**，不是 dex 阈值。
 - **依据**：20 万次 MC 直接测量 c(64) = 1.1508（+0.19%）与 1.1542（M = 1200）；
   直接管线测量 c ≈ 1.449（n = 9216）⇒ N_min ≈ 9321，与 9216 差 1.2%，支持复合口径。
-- **正本落点**：`docs/science/NOISE_MODEL.md`（a priori 预算推导节与 N_sky 判定行）——
+- **正本落点**：`docs/science/noise_snr/NOISE_SNR.md` §3.1「天空预算」（a priori 预算推导节与 N_sky 判定行）——
   **已一致**。
   **登记待补**：`c = 1.152` 的原始标定记录须入常数表（登记待补项 REG-01）。
 
@@ -78,7 +78,7 @@
 - **依据**：参数全扫（p ∈ {0.5…3} × K ∈ {4,8,16,32,all} × 噪声 {0,2%,6%}，1024²、Δ = 64）：
   无噪 p=2.0/K=4 最优（1.639e-3）；2% 噪声 p=0.5/K=16 最优（6.827e-3）；
   6% 噪声 p=0.5/K=32 最优（1.414e-2）。
-- **正本落点**：配置面 = `docs/science/DATA_SEMANTICS.md`（`snr_model` 块与重建算子枚举）——
+- **正本落点**：配置面 = `docs/detail/registry/acsd.phase1.drizzle.md`（`snr_model` 面与重建算子枚举）——
   **无落点（待同步）**：`idw_power` / `K` 的配置化与日志输出义务须进配置正本；
   默认值 2.0 → 1.0 属**实现面改动**（配置默认与运行日志），见待执行项 CFG-01。
 
@@ -107,9 +107,9 @@
 - **依据**：Fruchter & Hook 2002 全文子串级检索无 1.3883 / 1.4 / k_corr（该文唯一定量相关
   噪声量为 `R = σc/σp = 1.662`）；受控复现（16 相位 × 8 seed）1.3445 ± 0.0416，
   range [1.273, 1.425]；`k_geo` 扫描全域 1.00–5.0；多帧 1/2/4 帧 = 1.424 / 1.338 / 1.328。
-- **正本落点**：`docs/science/UNCERTAINTY_AND_COVARIANCE.md`（两因子式与全表）、
-  `docs/science/DATA_SEMANTICS.md`（`control_k_corr` / `control_variance` 行的公式面、
-  适用域与引用义务）、`docs/science/PHASE2_UPM.md`（`k_gauss` 表）—— **已一致**。
+- **正本落点**：`docs/science/noise_snr/NOISE_SNR.md` §3.5「控制点估计量的方差」（两因子式与全表）、
+  `docs/detail/registry/acsd.phase2.sample.md`（DATA-P2-SMP 端口的 `control_k_corr` 行与 control estimator 方差冻结式，
+  含公式面、适用域与引用义务）、`docs/science/PHASE2_UPM.md`（`k_gauss` 表）—— **已一致**。
 
 ## §8 弦亏缺律系数（D-09）
 
@@ -123,7 +123,7 @@
   `bilinear_regular_grid_v1` 为对照/回退档；IDW 为备选口径。
   论文对比表只用同 fixture 的 Δ = 16/32/64/128 读数。
 - **依据**：规范正本（工程层）07 §4.5 与 05 P-ALG-09；两路独立核对一致。
-- **正本落点**：`docs/science/CONTROL_WEIGHT_SNR.md`（重建路径表与算子绑定的条件式结论）——
+- **正本落点**：`docs/science/noise_snr/NOISE_SNR.md` §6.2（重建路径表与算子绑定的条件式结论）——
   **已一致**。
 
 ## §10 VOS 非归一化注入幅度（D-11）
@@ -155,7 +155,7 @@
   n = 3 的 MAD 有限样本偏差为 **1.49×**。
 - **依据**：实测渐近式在 n = 3 处高估 **7.4%**。单元内路线报告另记 **8.03%** ——
   两读数并存，**须以固定 seed 复跑裁定单一值**（数字冲突待核项）。
-- **正本落点**：`docs/science/NOISE_MODEL.md` / `docs/science/PHOTOMETRY.md`
+- **正本落点**：`docs/science/noise_snr/NOISE_SNR.md` §3.1「天空预算」/ `docs/science/PHOTOMETRY.md`
   （中位数渐近标准误系数 `√(π/2) = 1.2533141…` 的适用域）—— **部分一致**：
   系数在册，**待同步**：小 N 域的禁用条款与 n = 3 的实测偏差幅度。
 
@@ -166,7 +166,7 @@
   （= 以 26.3× 方差损失换保守）。
 - **依据**：γ = 2 时恒等式偏差 **4.4e-16 = 2 ulp**（P2 侧）/ **≤ 3.7e-16**（P4 侧）；
   `w` 对 `m_ref` 不变逐位；四路独立同判。
-- **正本落点**：`docs/science/CONTROL_WEIGHT_SNR.md` —— **无落点（待同步）**：
+- **正本落点**：`docs/science/noise_snr/NOISE_SNR.md` §3.4 —— **无落点（待同步）**：
   「γ = 2 非自由参数」须作为科学面条款写入（现正本只给 `w` 的换算式，未写 γ 的唯一性）。
 
 ## §14 协方差对角近似的低估面（A-P2-08）
@@ -174,7 +174,7 @@
 - **终裁**：23.3% 与 36.3% **同族、不互斥** —— 同一条低估面 `1/(1+(n−1)ρ) − 1` 上的两点；
   该面**仍属核形状（有效邻域数）未定**，不得写成两个互斥读数。
 - **依据**：闭式 36.31% 与登记值精确吻合。
-- **正本落点**：`docs/science/UNCERTAINTY_AND_COVARIANCE.md` —— **无落点（待同步）**：
+- **正本落点**：`docs/science/noise_snr/NOISE_SNR.md` §3.5 —— **无落点（待同步）**：
   对角近似的低估面须按单族曲线表述并标注核形状未定。
 
 ## §15 量化补偿公式的方向（A-P3-05）
@@ -182,7 +182,7 @@
 - **终裁**：**补偿口径** `sig = S·(255S/q)` 成立，严格界 **`|r| ≤ 0.5/q`**；
   **反方向在 S = 0.5/255⁺ 处 `r → −1`**（S = 1/510 ⇒ −50%）。
 - **依据**：补偿口径越界实测 1.86e-17；反方向 −50% 两路独立双证。
-- **正本落点**：`docs/science/CALIBRATION.md` / `docs/science/PHOTOMETRY.md`
+- **正本落点**：`docs/science/calibration/CALIBRATION.md` / `docs/science/PHOTOMETRY.md`
   的量化口径节 —— **无落点（待同步）**：正本须写明补偿方向与严格界，
   并禁止反方向表述。
 
@@ -204,7 +204,7 @@
 - **终裁**：**`hp_res` 真值 = 211076.28514206142″/N**；`211034.6` **不得使用**。
   影响为量级：nside 决策窗口内两值分档不同（finest = 105527.7″ 时真值给 nside = 4、禁抄值给 2）。
 - **依据**：真值与禁抄值相对差 −1.97e-4；nside 决策窗内分档实测。
-- **正本落点**：`docs/science/DRIZZLE.md` / `docs/science/algorithms/DRIZZLE_GEOMETRY.md`
+- **正本落点**：`docs/science/drizzle/DRIZZLE.md` / `docs/science/algorithms/DRIZZLE_GEOMETRY.md`
   —— **无落点（待同步）**：正本须写死真值并注明「禁抄值」禁用面。
   残留清除清单（实现/说明面）：`hp_drizzle_api.h:114`、`orchestrator.cpp:180-181`/`:198`、
   `module_adapters.cpp:7603`、`drizzle/README.md:93`。
@@ -231,7 +231,7 @@
 - **终裁**：`f < 1/2` 的**结构性失明仅在无噪极限成立**；M42 级噪声下
   `f = 0.3`、`Δ/L = 5%` 的读数已达 **1.03e-2**（到门）。
 - **依据**：M42 级噪声实测（f = 0.3、Δ/L = 5% ⇒ 1.03e-2）。
-- **正本落点**：`docs/science/PHASE2_UPM.md` / `docs/science/UNCERTAINTY_AND_COVARIANCE.md`
+- **正本落点**：`docs/science/PHASE2_UPM.md` / `docs/science/noise_snr/NOISE_SNR.md` §3.5
   —— **无落点（待同步）**：失明条款须补入噪声档限定。
 
 ## §21 `w ∝ SNR²` 的禁令与泄漏幅度（A-P5-06）
@@ -303,14 +303,14 @@
   漂移量由跨帧比值给出而非由恒等式给出）；同件 `sigma_F_adu` 随 `F_ref` 由 14044.18 降到 1408.98
   （99.35×），与 `F_ref` 的 100.00× 同量级，直接印证 `σ_F` 的源亮度依赖；
   档漂移区间读数正本 = `实验/absolute-snr/REPORT_experiment.md` §精度约定。
-- **正本落点**：`docs/science/CONTROL_WEIGHT_SNR.md` §8a 第 3 条。
+- **正本落点**：`docs/science/noise_snr/NOISE_SNR.md` §3.4「跨帧可比性的硬约束」（`m_ref` 档限定）。
 
 ## §28 「默认档总是最优」的适用域（A-P4-07）
 
 - **终裁**：**不成立** —— 在可分辨域（Δ/ℓ ≲ 1）内默认样条最优，**跨 Δ 外推须重验**。
   IDW 备选定位与规范一致（实测 E ≈ 0.031，劣于样条 5e-5 一个量级以上）。
 - **依据**：Δ 系列实测（样条 0.0024/0.0135/0.0892/0.1878）；Δ = 256 时被双线性/IDW 反超。
-- **正本落点**：`docs/science/CONTROL_WEIGHT_SNR.md`（重建路径表）——
+- **正本落点**：`docs/science/noise_snr/NOISE_SNR.md` §6.2（重建路径表）——
   **部分一致**：算子与路径在册，**待同步**：可分辨域（Δ/ℓ ≲ 1）的限定与跨 Δ 重验义务。
 
 ## §29 MAD→σ 字面精度与循环耦合（A-P1-08）
@@ -319,7 +319,7 @@
   1. `frame_photometry_fit.cpp:292` 用 **4 位 1.4826**，违反 MAD→σ 冻结条款（要求 1e-6 量级）；
   2. `mag_max_arr` 长度与 `i < 5` 循环上限**巧合耦合**，使第 6 档改动静默失效。
 - **依据**：`frame_photometry_fit.cpp:292`（代码实际行为）；冻结条款在噪声估计正本。
-- **正本落点**：`docs/science/NOISE_MODEL.md`（MAD→σ 系数条款）—— **已一致**
+- **正本落点**：`docs/science/noise_snr/NOISE_SNR.md` §3.1（稳健尺度与 §4 参数表 `kappa` 行，MAD→σ 系数条款）—— **已一致**
   （正本条款在位；实现面偏离由实现侧订正）。
 
 ## §30 `irls_tolerance` / `max_iter` 的归类（A-P1-07）
@@ -338,14 +338,14 @@
 
 | 正本 | 待同步条款 |
 |---|---|
-| `docs/science/DRIZZLE.md` | §3（F&H 双锚分工）、§17（`hp_res` 真值与禁抄值禁用面） |
+| `docs/science/drizzle/DRIZZLE.md` | §3（F&H 双锚分工）、§17（`hp_res` 真值与禁抄值禁用面） |
 | `docs/science/algorithms/DRIZZLE_GEOMETRY.md` | §2（`sag0` 记账与推导行）、§16（切平面/gnomonic 近似律与约定）、§17 |
-| `docs/science/NOISE_MODEL.md` | §12（小 N 渐近式禁用条款与 n=3 幅度）、§4 登记项（`c = 1.152` 标定出处） |
+| `docs/science/noise_snr/NOISE_SNR.md` | §3.1「天空预算」（小 N 渐近式禁用条款与 n=3 幅度）、§4 参数表登记项（`c_se` 标定出处） |
 | `docs/science/PHOTOMETRY.md` | §11（字面式 `1.729/√n`）、§12 |
-| `docs/science/CALIBRATION.md` | §15（量化补偿方向与严格界） |
-| `docs/science/CONTROL_WEIGHT_SNR.md` | §13（γ = 2 唯一性）、§27（`m_ref` 定位）、§28（可分辨域限定） |
-| `docs/science/UNCERTAINTY_AND_COVARIANCE.md` | §14（对角近似的单族低估面）、§20 |
+| `docs/science/calibration/CALIBRATION.md` | §15（量化补偿方向与严格界） |
+| `docs/science/noise_snr/NOISE_SNR.md` | §3.4（γ = 2 唯一性）、§3.3（`m_ref` 定位）、§6.2（可分辨域限定） |
+| `docs/science/noise_snr/NOISE_SNR.md` | §3.5（对角近似的单族低估面） |
 | `docs/science/PHASE2_UPM.md` | §18（dof 分母方向词）、§19（方差定义声明）、§20（噪声档限定）、§22（权重口径声明）、§23（恒真门适用域）、§24（规范选择归类）、§25（除名）、§26（峰值/长尺度比 ≈ 8） |
 | `docs/science/algorithms/PHASE2_SAMPLER.md` | §30（求解器设置归类） |
-| `docs/science/DATA_SEMANTICS.md` | §5（`idw_power` / `K` 配置化与日志义务） |
+| `docs/science/unified/DATA_SEMANTICS.md` | §3.1（`idw_power` / `K` 配置化与日志义务） |
 | 全部 | §10（VOS 注入幅度的族依赖区间与注入定义登记） |

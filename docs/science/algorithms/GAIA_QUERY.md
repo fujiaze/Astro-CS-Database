@@ -1,7 +1,7 @@
 # Gaia XPSD 查询（ALG-GAIA-001）
 
 > 上游：ACSD_DESIGN.md §3.3（科学量与星表）、§4.2（Phase1 节点流程）、
-> SCI-AST-001（docs/science/ASTROMETRY.md，别名 SCI-WCS-001）
+> SCI-AST-001（docs/science/detection/ASTROMETRY.md，别名 SCI-WCS-001）
 > 权威源码: lib/infrastructure/gaia_xpsd_client/src/gaia_client.c（本文件全部离散公式、常量、
 > 行为边界均从该文件逐函数核对；与 lib/infrastructure/gaia_xpsd_client/README.md 的
 > 性能摘要冲突时以本文与源码为准）。
@@ -17,7 +17,7 @@ m_lo ≤ m_G(s) ≤ m_hi        （闭区间，两边界都包含）
 ```
 
 的全部恒星子集。坐标 frame、`RA∈[0,360)`、`Dec∈[-90,90]` 的契约与
-`docs/science/ASTROMETRY.md` §3a 一致；本模块不做自行消化（proper motion）、
+`docs/science/detection/ASTROMETRY.md` §3a 一致；本模块不做自行消化（proper motion）、
 不做 SIP/像素投影（plate_solve 侧）、不做匹配求解。
 
 ## 2. 离散公式（源码逐条对应）
@@ -180,9 +180,9 @@ spectrum_start/step/count 取自 XPSD XML <Data parameters="...">（缺省 0，
 
 ## 3. 数据与 API 契约
 
-- DATA 合同：DATA-GAIA-001（docs/science/DATA_SEMANTICS.md §6）——输入
+- DATA 合同：DATA-GAIA-001（docs/detail/infrastructure/22_gaia_xpsd_client.md §2 输入/输出数据合同）——输入
   XPSD 目录、输出星表行单位/dtype/shape/invalid。
-- API 合同：API-GAIA-001（docs/engineering/PUBLIC_API.md §gaia-client）——
+- API 合同：API-GAIA-001（docs/engineering/api/PUBLIC_API.md §gaia-client）——
   12 个 GAIA_EXPORT 符号、返回码、所有权、线程安全。
 - 唯一生产源符号清单与迁移映射：lib/infrastructure/gaia_xpsd_client/README.md §6、
   module.yaml `source_symbols`。
@@ -270,8 +270,8 @@ spectrum_start/step/count 取自 XPSD XML <Data parameters="...">（缺省 0，
 ## 6. ID 索引
 
 - ALG-GAIA-001（本文件）；SCI 上游 SCI-AST-001；
-- DATA-GAIA-001（docs/science/DATA_SEMANTICS.md §6）；
-- API-GAIA-001（docs/engineering/PUBLIC_API.md）；
+- DATA-GAIA-001（docs/detail/infrastructure/22_gaia_xpsd_client.md §2；星表行语义另见 `docs/science/unified/DATA_SEMANTICS.md` §4.3）；
+- API-GAIA-001（docs/engineering/api/PUBLIC_API.md）；
 - TEST-GAIA-DESIGN-001（本文 §5，设计冻结；可执行 TEST-GAIA-* 待
   CAT-GAIA-TEST）。
 

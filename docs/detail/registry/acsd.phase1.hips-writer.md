@@ -3,8 +3,8 @@
 > 上游：docs/ACSD_DESIGN.md §8.5（模块与 ABI）
 
 > 合同：ALG-HIPS-001（docs/science/algorithms/HIPS_WRITER.md）/
-> DATA-HIPS-001（docs/science/DATA_SEMANTICS.md §12）/ API-HIPS-001
-> （docs/engineering/PUBLIC_API.md）。事实源：lib/algorithms/drizzle/hips/README.md
+> DATA-HIPS-001（本页输入输出端口表）/ API-HIPS-001
+> （docs/engineering/api/PUBLIC_API.md）。事实源：lib/algorithms/drizzle/hips/README.md
 > （CONTRACT_READY）、module.yaml、lib/infrastructure/aio/src/hips/aio_hips_writer.cpp。
 
 ## 职责与明确非职责
@@ -53,7 +53,7 @@ versioned config schema 待落地（窗口期以 product_begin 参数为冻结�
 零命中（现状调用方线程直连执行——迁移整改点）。确定性：tile 字节随输入
 与写序可复现（FITS checksum 内嵌）；hierarchy 归约按 k 降序 + NESTED
 索引确定性顺序；properties 的 UTC 时间戳（hips_creation_date 等）不跨
-运行复现（真实时间合同，DATA_SEMANTICS §5）。
+运行复现（真实时间合同，docs/science/unified/DATA_SEMANTICS.md §3.7）。
 
 ## 内存/cache/I-O/所有权
 
@@ -83,7 +83,7 @@ HiPS tile 的原子发布宣称不成立。
 
 `TEST-HIPS-DESIGN-001`（HIPS_WRITER.md §9）：解析 oracle（独立朴素实现）
 逐像素校验 signal/support/variance/ivar 与 FITS 序映射（CDS Hipsgen 外部
-点，DATA_SEMANTICS §3）、MOC UNIQ/sky fraction、hierarchy 聚合闭合；
+点，docs/science/unified/DATA_SEMANTICS.md §3.1）、MOC UNIQ/sky fraction、hierarchy 聚合闭合；
 冻结容差=FP64 逐像素 bitwise、f32 存储 rtol=1e-7、MOC/properties 精确。
 可执行 TEST-P1-HIPS-001 待建。
 

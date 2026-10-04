@@ -6,10 +6,10 @@
 > §14a 上游一手出处）、docs/detail/PHASE2_DETAILED_DESIGN.md §5
 > 算法正本：docs/science/algorithms/PHASE2_REJECTION.md（ALG-P2-REJ-001；§3 行号
 > 权威、§4.1 语义权威、§7/§11.3 缺陷登记、§11.4 测试设计、§11.5 映射声明）
-> 数据正本：docs/science/DATA_SEMANTICS.md §22（DATA-P2-REJ）、
+> 数据正本：docs/detail/registry/acsd.phase2.reject.md（DATA-P2-REJ 端口表，本页输入输出端口表）、
 > eng/contracts/schemas/unified/rejection.schema.json（rejection 对象 canonical schema）
-> API 正本：docs/engineering/PUBLIC_API.md（API-P2-REJ-001）、
-> docs/engineering/PHASE2_API_V1.md（API-P2-001，FROZEN）
+> API 正本：docs/engineering/api/PUBLIC_API.md（API-P2-REJ-001）、
+> docs/engineering/api/PUBLIC_API.md「分阶段 API 面」（API-P2-001，FROZEN）
 
 LIB 面 = `lib/algorithms/rejection/` 三件套（README / module.yaml ，
 CONTRACT_READY）。MOD ID = MOD-acsd-phase2-reject；module_id 合同值 =
@@ -56,7 +56,7 @@ threshold → `REJECTED_LOW`、高于 upper → `REJECTED_HIGH`，**禁原始值
 | `corrected` | `DATA-P2-COR` | 必 | `UnitId::ADU` | `CoordinateFrame::PIXEL` |
 | `accepted_mask` | `DATA-P2-REJ` | 可 | `UnitId::DIMENSIONLESS` | `CoordinateFrame::PIXEL` |
 
-内核级真实 I/O 合同 = DATA-P2-REJ（DATA_SEMANTICS §22）：
+内核级真实 I/O 合同 = DATA-P2-REJ（本页输入输出端口表）：
 
 - 输入 = `P2CandidateStack`（values f64 ADU / weights f64 1/ADU²，可空 = 等权 /
   frame_ids u64 / count u32）+ `P2RejectionPlan`（typed params 六组；AUTO 仅在

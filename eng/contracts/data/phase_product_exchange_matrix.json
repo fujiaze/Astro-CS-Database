@@ -4,8 +4,8 @@
   "title": "ACSD 三阶段产品交换兼容矩阵 (DATA-002 冻结)",
   "frozen_at": "2026-09-02T00:00:00Z",
   "owner": "SA-DATA-06",
-  "doc_ref": "docs/engineering/data/DATA-002_PHASE_PRODUCT_EXCHANGE.md",
-  "normative_rule_doc_ref": "docs/engineering/data/DATA-002_PHASE_PRODUCT_EXCHANGE.md",
+  "doc_ref": "docs/engineering/data/PHASE_PRODUCT_EXCHANGE.md",
+  "normative_rule_doc_ref": "docs/engineering/data/PHASE_PRODUCT_EXCHANGE.md",
   "exchange_medium": {
     "mode": "disk_only",
     "rule_id": "R-DISK-ONLY",

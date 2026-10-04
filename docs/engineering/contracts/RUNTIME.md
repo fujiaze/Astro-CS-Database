@@ -1,0 +1,65 @@
+# 运行时与模块公共合同
+
+上游：最高设计的顶层结构一章。
+
+公共头的接口签名与语义是冻结点，改动必须同步 ABI 布局测试。跨动态库边界的类型与并发合同模板
+见 `../api/abi/ABI.md`，调度机制见 `SCHEDULER.md`。
+
+public headers 的接口签名与语义是冻结点：任何改动必须同步 ABI layout 测试。
+
+## 目的
+
+唯一生产 Runtime 的公共接口冻结点。CLI→Runtime→Registry→Module→CPU/I-O 唯一调用链；
+CLI 只经 Runtime 触达 session/科学内核；调度面只有一套；ACR 不注册不链接。
+
+## 冻结接口（lib/include/acsd/core/*.h）
+
+### Runtime（runtime.h）
+
+| 方法 | 参数 ownership/nullable/lifetime | 线程安全 | 阻塞 | 单位/schema |
+|---|---|---|---|---|
+| `load_pipeline(ir_json, registry)` | ir_json 拥有方=调用者，非空，本次调用有效；registry 引用由调用者持有，非空 | 调用期不并发写 registry | 否（同步解析） | pipeline_ir schema v2 |
+| `run(ctx)` | ctx 引用由 Runtime 持有，非空 | 仅单线程调用 | 是（至完成/失败/取消） | — |
+| `cancel` | 无 | 任意线程可调 | 否 | 幂等 |
+| `inspect` | 输出 JSON 文本（拥有方=调用者，调用者释放） | 可并发 | 否 | 结构化诊断 |
+| `node_statuses` | 输出 vector<pair> | 可并发 | 否 | NodeStatus 枚举 |
+
+### ModuleDescriptor / ModulePlan / IModule（module.h + runtime.h）
+
+- `ModuleDescriptor`：module_id/version/abi/ports/config_schema/execution_class/parallel_ok/SCI/ALG/DATA/API/TEST 引用。
+- `ModulePlan`：node_id、work_units、estimated_memory_bytes、parallel_axes、kernel_ids、cpu_heavy。
+- `IModule` 生命周期：describe→validate_config→plan→create→execute→inspect→destroy；
+ plan 不改输入；execute 只用 Runtime 提供的 lease/context/artifacts；inspect 不重执行科学计算。
+
+### typed Port / DataArtifact（module.h + artifact.h）
+
+- `PortDescriptor`：name、data_schema_id、is_input、unit（UnitId）、coordinate（CoordinateFrame）。
+- `DataArtifactDescriptor`：id、data_schema_id、scalar、unit、coordinate、shape、invalids、ownership、storage、provenance。
+
+### ThreadBudget / ThreadLease（context.h）
+
+- `ThreadBudget::acquire(min,max)`：原子预留，RAII 归还，全局不超卖；Scheduler 与节点内并行共用。
+- `ThreadLease`：可移动 RAII；析构/异常/取消自动归还；`size>0` 表示已获取。
+
+### logger/metrics/checkpoint（context.h）
+
+- `RunContext::log/add_metric/record_tick/store_artifact/get_artifact/mark_checkpoint/cancel_token`；
+ 模块只能经 context 访问服务；禁全局状态。
+
+## 边界规则
+
+- C ABI 不抛异常；C++ 边界返回 Result/Error。
+- ABI 只承载接口与描述符，算法实现留模块侧；全局 scheduler 只由 Runtime 持有。
+- ABI layout 测试 `eng/tests/unit/rt001_abi_test.cpp` 在 GCC/Clang/MSVC 验证 size/align/offset/version。
+
+## 验收
+
+1. `cmake --build ... --target rt001_abi_test` + 运行 → RT-001_ABI_PASS
+2. 全部 core_* 测试 PASS（ACSD_REPO 环境变量指向仓库根）
+3. 负例：acquire 不足返回空租约；create_runtime(0) 返回 Error(RESOURCE)
+
+## 参考文献
+
+[1] 内部文档 `docs/ACSD_DESIGN.md，最高设计`，上位来源。
+[2] 内部文档 `docs/engineering/api/abi/ABI.md`，同层相关正本。
+[3] 内部文档 `docs/engineering/contracts/SCHEDULER.md`，同层相关正本。

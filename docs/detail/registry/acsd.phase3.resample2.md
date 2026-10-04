@@ -3,16 +3,16 @@
 > 上游：docs/ACSD_DESIGN.md §8.5（模块与 ABI）、§6.2（export 流程：反向映射 +
 > 重采样）、§6.3（投影算法：输入语义守卫与输出模式）
 > 科学正本：docs/science/PHASE3_HIPS_TO_FITS.md（SCI-P3-001，FROZEN，零改动）、
-> docs/science/UNCERTAINTY_AND_COVARIANCE.md（重采样方差传播）
+> docs/science/noise_snr/NOISE_SNR.md §3.5（重采样方差传播）
 > 算法正本：docs/science/algorithms/PHASE3_RSMP_IMPL.md（ALG-P3-RSMP-IMPL-001；
 > §5 映射声明、§6 公式与值语义表、§7 线程合同、§11 实测偏差、§12 测试设计、
 > §13 合同边界）；承接 docs/science/algorithms/PHASE3_RESAMPLE.md（ALG-P3-003 的
 > G3/G4 施工规格 + 采样核定义/误差/边界/适用域，公式零改动）
-> 数据正本：docs/science/DATA_SEMANTICS.md §29（DATA-P3-RES；§29.4 invalid、
-> §3 tile 内 leaf local 坐标 CDS oracle、§30 规则项）
-> API 正本：docs/engineering/PUBLIC_API.md（API-P3-RSMP-001，重采样公共消费面节）、
-> docs/engineering/PHASE3_API_V1.md（API-P3-001，p3_session 五段 FROZEN 镜像）
-> 架构正本：docs/engineering/ARCH-001.md
+> 数据正本：docs/detail/registry/acsd.phase3.resample2.md（DATA-P3-RES 端口表与 invalid 语义，本页输入输出端口表）；
+> tile 内 leaf local 坐标 CDS oracle 见 docs/science/unified/DATA_SEMANTICS.md §3.1，规则项见同文件 §4.5
+> API 正本：docs/engineering/api/PUBLIC_API.md（API-P3-RSMP-001，重采样公共消费面节）、
+> docs/engineering/api/PUBLIC_API.md「分阶段 API 面」（API-P3-001，p3_session 五段 FROZEN 镜像）
+> 架构正本：docs/engineering/architecture/ARCHITECTURE.md
 > 落地设计：docs/detail/PHASE3_DETAILED_DESIGN.md §3–§4
 
 模块 = `acsd.p3.resample`（module_id 合同值）；registry 行
@@ -32,10 +32,10 @@ TEST-P3-RES-001）与 module_id 合同值 `acsd.p3.resample` 的对齐属迁移�
 - 生产源: lib/algorithms/resample/p3_resample.cpp + 权威签名头 p3_resample.h。
 - 合同链: SCI-P3-001（FROZEN；映射声明 SCI-P3-RES-001 ⇒ SCI-P3-001 见 ALG §5）
   → ALG-P3-003（PHASE3_RESAMPLE.md G3/G4 施工规格，公式零改动）+
-  ALG-P3-RSMP-IMPL-001 → DATA-P3-RES（DATA_SEMANTICS §29）+
+  ALG-P3-RSMP-IMPL-001 → DATA-P3-RES（本页输入输出端口表）+
   API-P3-RSMP-001 → TEST-P3-RES-001（设计冻结 = TEST-P3-RSMP-DESIGN-001，
   见 §9；矩阵 test_status = DORMANT，可执行面待落地）；编排面 API-P3-001 镜像不变；
-  ARCH-001（VERIFIED）。
+  ARCHITECTURE（VERIFIED）。
 - 上游依赖: acsd_phase3_session（properties 校验经
   p3_sampler_open 间接消费 + lib/algorithms/shared/healpix 权威球面函数
   `leaf_to_tile_nest` / `tile_to_leaf_nest` / `nested_local_to_fits_index` /
@@ -85,7 +85,7 @@ TEST-P3-RES-001）与 module_id 合同值 `acsd.p3.resample` 的对齐属迁移�
   传播；tile 缺失→NaN+coverage=0；未打开→coverage=0）。
 - 坐标/单位冻结: 采样值=面亮度（BUNIT 承载，缺省 canonical **'ADU/sr'** 绝不裸 ADU、绝不
   Jy/beam——SCI §9a-8/-11）；coverage 无量纲二值；tile 内 leaf
-  local 坐标 fits_index=(511-x)*512+y（DATA_SEMANTICS §3 CDS
+  local 坐标 fits_index=(511-x)*512+y（docs/science/unified/DATA_SEMANTICS.md §3.1 CDS
   oracle 冻结，nested_local_to_fits_index 权威函数）。
 - 端口词汇（wcs_plan/hips/resampled）为 descriptor 派生（p3_resample2_descriptor），
   其与 DATA-P3-RES 的对齐属迁移目标（未落地），不作冻结依据。
@@ -151,7 +151,7 @@ TEST-P3-RES-001）与 module_id 合同值 `acsd.p3.resample` 的对齐属迁移�
   方案与 G4 施工规格的差异登记 = ALG-P3-RSMP-IMPL-001 §11。
 - tile 寻址: tile_ipix=leaf_ipix>>18（leaf_to_tile_nest(leaf,9)，
   W=512→shift=9，SCI §9a-1）；fits_index=(511−x)·512+y
-  （DATA_SEMANTICS §3）；值语义表（NaN/C）=ALG §6.6。
+  （docs/science/unified/DATA_SEMANTICS.md §3.1）；值语义表（NaN/C）=ALG §6.6。
 - **采样核是产品语义**（核定义、误差 / 边界与适用域正本 =
   docs/science/algorithms/PHASE3_RESAMPLE.md；验证方式见 §9）：nearest 仅用于
   离散 mask / 诊断或显式用户选择；bilinear / 高阶核用于连续场，但必须说明
@@ -159,7 +159,7 @@ TEST-P3-RES-001）与 module_id 合同值 `acsd.p3.resample` 的对齐属迁移�
   插值分属两套口径**（普通 signal 插值规则**不得**机械套用于点源）。
 - 科学模式要求球面几何一致，**距离一律取球面量**；线性采样的输出协方差由输入
   协方差经该算子双向作用得到，**仅输出对角 variance 时必须给相关核 / 近似误差**
-  （方差传播推导正本 = docs/science/UNCERTAINTY_AND_COVARIANCE.md）。
+  （方差传播推导正本 = docs/science/noise_snr/NOISE_SNR.md §3.5）。
   **coverage 与 variance 各自独立、互不代用**。
 
 ## 7 执行类、并行轴、ThreadBudget lease、确定性
@@ -222,10 +222,10 @@ TEST-P3-RES-001）与 module_id 合同值 `acsd.p3.resample` 的对齐属迁移�
 - ALG: docs/science/algorithms/PHASE3_RSMP_IMPL.md；承接:
   docs/science/algorithms/PHASE3_RESAMPLE.md（ALG-P3-003 G3/G4 施工规格，
   零改动）
-- DATA: docs/science/DATA_SEMANTICS.md §29
-- API: docs/engineering/PUBLIC_API.md（API-P3-RSMP-001 节）
+- DATA: docs/detail/registry/acsd.phase3.resample2.md（本页输入输出端口表）
+- API: docs/engineering/api/PUBLIC_API.md（API-P3-RSMP-001 节）
 - 合同三件套: lib/algorithms/resample/
-- 会话编排面现行权威 = docs/engineering/RT-001.md + docs/detail/registry/acsd.phase3.*
+- 会话编排面现行权威 = docs/engineering/contracts/RUNTIME.md + docs/detail/registry/acsd.phase3.*
 
 ## NaN 与写端口
 

@@ -66,7 +66,7 @@ ra_deg / dec_deg = 度（J2000）；snr / support / quality_flags = 无量纲；
 - 上游 Phase1 HiPS signal 层的量纲由写盘门冻结为面亮度族：合法 BUNIT 集 =
   {`ADU/sr`, `ADU^2/sr^2`, `sr^2/ADU^2`}，裸 `ADU` 判红（rc=-2）——
   `lib/infrastructure/aio/src/hiss_writer.cpp:335-365`（其依据注释 `:319-334`
-  指向 `docs/science/DATA_SEMANTICS.md` §31.1a:2808-2810 / :2827-2830：全链
+  指向 `docs/science/unified/DATA_SEMANTICS.md` §3.4：全链
   signal 承载的物理量是面亮度；帧间标度由 PHOTAPPL/PHOTSCAL 承载，标度 ≠ 量纲类别）；
 - 本模块逐 leaf 直读该层 tile 值、**不做任何面积乘除**（`sampler.cpp:818-822`），
   故 value / σ_bg 的量纲与该层一致；
@@ -622,7 +622,7 @@ fill）。fixture 由固定 seed 合成 HiPS 树生成，不提交大二进制�
 - 采样语义权威已有 FROZEN SCI：SCI-UPM-001（docs/science/
   PHASE2_UPM.md，集合 SCI-UPM-001..010 + SCI-UPM-WEIGHT-001 +
   SCI-UPM-PERSIST-001；页头明示模块 "phase2 (upm/sampler)"）。
-  **共享 SCI 引用不改动**（P1-WCS SCI-WCS-001=共享 ASTROMETRY.md、
+  **共享 SCI 引用不改动**（P1-WCS SCI-WCS-001=共享 docs/science/detection/ASTROMETRY.md、
   P2-COV SCI-UPM-001/SCI-INT-001、P2-INT SCI-INT-001、P2-REJ
   SCI-REJ-001 同构）。
 - matrix P2-SAMP 行 science_id=SCI-P2-SMP-001（descriptor 占位

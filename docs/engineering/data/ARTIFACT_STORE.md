@@ -1,0 +1,123 @@
+# 产物库
+
+上游：最高设计的 I/O 与原子产品一章；原子发布步序见 `../contracts/ATOMIC_PUBLISH.md`。
+
+产物库的目录布局、寻址方式、生命周期与并发访问语义的正本。
+
+权威文档形态 = 本文；执行形态 = `lib/infrastructure/aio/runtime/artifact_store/production_store.py`。
+实现锚 = `ArtifactStore` / `Writer` / `StoreIO` 的公开方法名（`start` / `new_writer` /
+`stage_manifest` / `publish` / `bind_as_input` / `read_verified`）。typed manifest 的机器形态 =
+`eng/contracts/data/artifact_manifest.schema.json`（必填字段与 `additionalProperties` 口径）与
+`eng/contracts/data/artifact_types.registry.json`（type 登记与唯一 producer）。
+
+## 目标
+
+> Runtime 启动真实 Store；模块 `execute` 只能拿已校验 handle/reader/writer；
+> 写临时对象 → 完整校验 → hash → 原子 publish；cancel/fail 无成功对象。
+> 验收：spy Store 证明每读写经过 Store；绕过路径/producer 重复/错误 schema/
+> 磁盘满/进程中断/取消均失败且可恢复；manifest hash 可重算。
+
+约束来源：`../../ACSD_DESIGN.md` 「命名块内存管线与块生命周期」一节（阶段内命名块内存管线）、（I/O 与原子产品：三 Phase
+隔离产品命令；阶段间只通过原子发布、哈希和 provenance 完整的磁盘产品/manifest 交换）；
+`../architecture/ARCHITECTURE.md`（Pipeline edge 传递 ArtifactHandle，不是路径字符串）；artifact manifest 机器合同
+（`eng/contracts/data/artifact_manifest.schema.json` 与 `eng/contracts/data/artifact_types.registry.json`；
+`storage_uri` 解析只发生在 Store 内部）。
+
+## 接线结构
+
+```text
+Runtime 启动（每次 phase run）
+ └─ ArtifactStore(root, run_id).start 真实 Store（run 私有目录）
+ ├─ writer 授予: store.new_writer(id) → Writer（临时对象）
+ ├─ 暂存 manifest: store.stage_manifest(id, doc) → ManifestRead
+ ├─ 原子发布: store.publish(id) → Digest（内容摘要）
+ ├─ 绑定读: store.bind_as_input(id, type) → ManifestRead（校验后）
+ └─ 校验读: store.read_verified(id, type) → bytes（hash 复核）
+```
+
+模块 `execute` 只接触上述 handle/reader/writer；任何真实文件系统路径解析只发生在
+`ArtifactStore`/`StoreIO` 内部（artifact manifest 合同冻结语义）。跨 Phase 消费 = 进程外读取
+已发布 COMPLETE manifest + 内容（`PHASE_PRODUCT_EXCHANGE.md` 交换对象），不共享进程内对象。
+
+磁盘布局（每 run 私有）:
+
+```text
+{root}/runs/{run_id}/stage/ 临时对象（未发布）
+{root}/runs/{run_id}/objects/{artifact_id} 已发布内容（原子 rename）
+{root}/runs/{run_id}/manifests/{artifact_id}.manifest.json COMPLETE manifest
+{root}/runs/{run_id}/manifests/{artifact_id}.manifest.sha256 manifest hash sidecar
+```
+
+两面划分：typed artifact 面 = `objects/` + `manifests/`（本文正本）；HiPS 目录产物面 =
+`products/{user_path}/`（正本 = `../contracts/ATOMIC_PUBLISH.md` ）。
+两面目录在同一 `runs/{run_id}/` 根下互不重叠，各由其正本约束。
+
+## 写路径（临时对象 → 完整校验 → hash → 原子 publish）
+
+1. `new_writer(id)`：同 id 已发布 → 硬失败（唯一 producer，artifact manifest 合同）。
+2. `Writer.stage_bytes(data)`：内容写入 Store 私有 `stage/` 临时文件并 fsync
+ （发布前落盘；进程中断/磁盘满时不产生成功对象）。
+3. `stage_manifest(id, doc)`：artifact manifest 完整校验（缺字段/NaN/重复
+ producer/未知 type/非法 digest/status≠COMPLETE 全拒）。
+4. `publish(id)`：
+ - 重读暂存内容 → sha256；
+ - 与 manifest `content_digest`/`size` 核对（错误 schema/篡改 → 拒绝）；
+ - manifest 规范 JSON → sha256（hash sidecar，先写 tmp 再原子 rename）；
+ - 原子 rename：先内容、再 manifest（manifest rename = 完成标记）、再 sidecar；
+ 每步前 fsync 文件与目录。
+
+发布物保持严格 artifact manifest 形态（`additionalProperties=false`，不附加
+内部字段）；manifest hash 以独立 sidecar 持久化，可重算核对。
+
+## 读路径（消费前必须经 Store 校验）
+
+- `bind_as_input(id, expected_type_id)`：仅索引内 COMPLETE manifest + type_id 匹配
+ 才允许绑定（跨 Phase 资格 = `PHASE_PRODUCT_EXCHANGE.md` 交换资格；不要求 run ID 匹配）。
+- `read_verified(id, type)`：绑定通过后经 Store 读字节并重算 sha256 与 manifest
+ 声明一致；不匹配 → 硬失败。
+- 绕过 Store 直读 `objects/` 目录的文件不在索引内 → bind/consume 一律失败
+ （无成功对象）；删除绕过文件即可恢复。
+
+## 失败语义
+
+下表逐场景给出注入、结果与恢复：全部失败都不产生成功对象，且均可恢复。
+
+| 场景 | 注入 | 结果 | 恢复 |
+|---|---|---|---|
+| 绕过路径 | 直写 objects/ 不经 Store | 不在索引；bind/consume 拒绝 | 删除绕过文件 |
+| producer 重复 | 同 id 二次 publish | 硬失败（唯一 producer） | 无需（首次即成功对象） |
+| 错误 schema | content_digest/size 不符 / manifest 缺字段 | publish/stage 拒绝 | 修正后重发 |
+| 磁盘满 | `FailingIO`（stage_open/atomic_publish 抛 ENOSPC） | 无 COMPLETE manifest | 空间恢复后重发 |
+| 进程中断 | `InterruptIO`（publish 中途抛 KeyboardInterrupt） | 无完成标记；新 Store 不索引 | 新 Store start 后重发 |
+| 取消 | writer.release + cleanup 不 publish | 无成功对象 | 下一 run 重发 |
+
+无 COMPLETE manifest = 无成功对象：`start` 恢复索引只接受
+内容 + COMPLETE manifest + hash sidecar 三者齐全的对象。
+
+## spy 证明每读写经 Store
+
+`StoreIO` 为真实 I/O 后端；`SpyStoreIO` 记录每次 `stage_open`（写）/`read_bytes`
+（读）/`atomic_publish`（发布）事件。验收: 一次完整 publish + read_verified 后，
+spy.writes/reads/publishes 非空，且内容字节只经 Store 事件读取 —— 模块代码路径
+不含任何直接 open/read（负测对照: 绕过 Store 直读不产生成功对象）。
+
+## manifest hash 可重算
+
+发布时对 manifest 规范 JSON（`canonical_manifest_json`，键序 = artifact manifest 冻结
+字段序、`ensure_ascii=False`、紧凑分隔）计算 sha256 并原子写入
+`{aid}.manifest.sha256`。验收: `manifest_digest_hex(id)`（sidecar）==
+`ArtifactStore.manifest_hash_recompute(doc)` == 磁盘 sidecar 内容。
+
+## 边界（非目标）
+
+- 本合同覆盖 Store 的执行语义；科学公式/常数按 `docs/science/` 正本执行，artifact manifest 与
+ 三阶段产品交换合同的 schema/registry/validator/C ABI 按各自机器正本执行；checkpoint 表、日志与 trace
+ 溯源字段属 `PROVENANCE.md` 与
+ `../../detail/LOG_AND_ERROR_SYSTEM.md` 范围。
+- Windows 侧交付形态 `acsd_runtime.dll`（Linux 侧 `libacsd_runtime.so`）按本文同一状态机
+ 由同语义 C 接线复刻。
+
+## 参考文献
+
+[1] 内部文档 `docs/ACSD_DESIGN.md，最高设计`，上位来源。
+[2] 内部文档 `docs/engineering/contracts/ATOMIC_PUBLISH.md`，同层相关正本。

@@ -7,12 +7,12 @@
 > §96 面、§7 真值阈、§5c）
 > 算法正本：docs/science/algorithms/PHASE3_FITS_IMPL.md（ALG-P3-FITS-IMPL-001；
 > §10 错误触发锚、§12 T1–T7、§14 合同边界）；承接 ALG-P3-002 / ALG-P3-004 本域子面
-> 数据正本：docs/science/DATA_SEMANTICS.md §27（DATA-P3-FITS；§27.1 in 面）、
-> §31.1a（单位定义）/ §31.2（BUNIT 语义）/ §30（规则项）
-> API 正本：docs/engineering/PUBLIC_API.md（API-P3-FITS-001，Phase3 FITS 写出
-> 公共消费面节）、docs/engineering/PHASE3_API_V1.md（API-P3-001，p3_session 五段
+> 数据正本：docs/detail/registry/acsd.phase3.writer.md（DATA-P3-FITS 输出行与 HDU 合同，本页输入输出端口表）；
+> 单位定义与 BUNIT 语义 = docs/science/unified/DATA_SEMANTICS.md §3.4/§3.6，规则项 = 同文件 §4.5
+> API 正本：docs/engineering/api/PUBLIC_API.md（API-P3-FITS-001，Phase3 FITS 写出
+> 公共消费面节）、docs/engineering/api/PUBLIC_API.md「分阶段 API 面」（API-P3-001，p3_session 五段
 > FROZEN 镜像）
-> 原子发布：docs/engineering/io/IO_003_ATOMIC_OUTPUT_PUBLISH.md（IO_003 §6）
+> 原子发布：docs/engineering/contracts/ATOMIC_PUBLISH.md（IO_003「错误语义」一节）
 > 落地设计：docs/detail/PHASE3_DETAILED_DESIGN.md §5–§6
 > 引用文献：见文末「参考文献」（角标用全角 `［N］`，因本文正文的半角 `[...]` 已被
 > 数值域区间占用）
@@ -34,7 +34,7 @@
   + WCS 关键字源 p3_wcs.h。
 - 合同链: SCI-P3-001（docs/science/PHASE3_HIPS_TO_FITS.md，FROZEN）→
   ALG-P3-FITS-IMPL-001（docs/science/algorithms/PHASE3_FITS_IMPL.md，兼承接
-  ALG-P3-002/004 本域子面）→ DATA-P3-FITS（DATA_SEMANTICS §27）+
+  ALG-P3-002/004 本域子面）→ DATA-P3-FITS（本页输入输出端口表）+
   API-P3-FITS-001（PUBLIC_API Phase3 FITS 写出公共消费面节）→ TEST-P3-WR-001
   （设计冻结 = TEST-P3-WR-DESIGN-001，见 §9）；编排面 API-P3-001（p3_session
   五段 FROZEN）镜像不变。
@@ -77,15 +77,15 @@
   WCS。PRIMARY = 所选科学 signal / flux / statistic；扩展 HDU = COVERAGE、
   VARIANCE / IVAR（**语义择一且一致**）；其余候选面（VALIDITY、SUPPORT、
   REJECTION、POINT_INFORMATION/W、PSF 表/图与 correlation 描述）为待实现项，
-  落盘前须先在 docs/science/DATA_SEMANTICS.md §27 立输出行与 HDU 合同。
+  落盘前须先在本页「3 输入输出端口、DATA、单位、坐标、invalid」一节立输出行与 HDU 合同。
   标准 WCS 为**直接计算生成**；DATASUM / CHECKSUM 见 §10。
 - **BUNIT 语义**：主 HDU 的 `BUNIT` = 输入 HiPS `signal/properties#BUNIT` 声明的
   canonical 串（canonical 值 `ADU/sr`；写端口单位 `UnitId::SURFACE_BRIGHTNESS`，
-  落盘值 = 通量和 / 覆盖面积 = 面亮度）。缺声明时按 DATA_SEMANTICS §31.2(b)
+  落盘值 = 通量和 / 覆盖面积 = 面亮度）。缺声明时按 docs/science/unified/DATA_SEMANTICS.md §3.6 的量纲可判条件
   处理 —— `BUNIT = "ADU"` 要求 provenance 声明
   `pixel_semantics = "surface_brightness"`；`VARIANCE` / `IVAR` 扩展 HDU 的
   `BUNIT` = 主 HDU BUNIT 的平方 / 倒数（`FZ-P3-BUNIT-QUADRATIC`）。单位口径唯一
-  权威 = DATA_SEMANTICS §31.1a / §31.2。
+  权威 = docs/science/unified/DATA_SEMANTICS.md §3.4 / §3.6。
 - **provenance**：源 product / hash、软件完整 SHA、配置、投影、核、order、近似、
   生成时间。
 - **节点产物**：`output_phase3.fits`、`p3_writer.json`（写侧自述）、`p3_verify.json`
@@ -99,7 +99,7 @@
   子产品（或权重非纯逆方差、发生 fallback 等 §30 规则项）时 → **不写**
   VARIANCE / IVAR 扩展 HDU（禁静默丢弃、禁用常量 0 冒充）+ manifest 写
   `uncertainty_available=false` + diagnostics 标红计数；**该键不是失败态**，是
-  unavailable 显式登记模式。正本 = DATA_SEMANTICS 的「规则」条与「显式登记」条
+  unavailable 显式登记模式。正本 = docs/science/unified/DATA_SEMANTICS.md §4.5（状态与失败语义）
   （禁占位 / 静默缺键 / 空输出冒充）。
 
 ## 4 公共 header、核心 symbol 与生命周期

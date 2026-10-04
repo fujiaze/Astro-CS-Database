@@ -2,9 +2,9 @@
 
 > 上游：docs/ACSD_DESIGN.md §0（文档权威与索引）、§8.5（模块与 ABI）
 > 状态面：AGENTS.md 第 8 节（SubAgent 无 git 写权限）与
-> docs/engineering/DOCUMENT_GOVERNANCE.md（准入判据、登记面判据、上游抬头）。
-> 写法：docs/engineering/DOCUMENT_GOVERNANCE.md §7（写法判据的封闭词表与分层施加）；
-> 引用格式：docs/engineering/DOCUMENT_GOVERNANCE.md 与各 science 分册的论文式引用。
+> docs/engineering/governance/DOCUMENT_GOVERNANCE.md（准入判据、登记面判据、上游抬头）。
+> 写法：docs/engineering/governance/DOCUMENT_GOVERNANCE.md「写法检查（人读清单）」一节（写法判据的封闭词表与分层施加）；
+> 引用格式：docs/engineering/governance/DOCUMENT_GOVERNANCE.md 与各 science 分册的论文式引用。
 
 本文件规定「文档条款锚定到源码符号与内容锚」的合同：锚的形态、解析规则、
 审查判据、登记面与维护义务。锚的唯一目的是**可机器核验地断言「文档所述的符号与
@@ -107,14 +107,14 @@ fingerprint(quote) = sha256(N1..N5(quote).encode("utf-8")).hexdigest()[:16]
 ### 4.5 正例 / 负例
 
 ```text
-正例：{"id": "detection.threshold_sigma", "path": "docs/science/STAR_DETECTION.md",
+正例：{"id": "detection.threshold_sigma", "path": "docs/science/detection/STAR_DETECTION.md",
        "quote": "| `threshold_sigma` | 5.0 | sigma | ... |", "sha256": "<16 位>", "value_text": "5.0"}
 负例 A（锚不成立）：quote 在目标文档内 0 次命中        -> D2 判红
 负例 B（无区分力）：quote = "默认"（全文出现 12 次）  -> D2 判红
 负例 C（太短）：quote = "4"                            -> D1 判红
 负例 D（指纹过期）：改了表行说明文字但没更新 sha256    -> D3 判红
 负例 E（值没锁住）：value_text = "6.0" 而引文里只有 "5.0" -> D4 判红
-负例 F（行号混入）：登记面写 "docs/science/PSF.md:7" 或锚里带 "line" 字段 -> D5 / D1 判红
+负例 F（行号混入）：登记面写 "docs/science/psf/PSF.md:7" 或锚里带 "line" 字段 -> D5 / D1 判红
 ```
 
 ### 4.6 负例形态（执行者已退场，判定改由人工审查逐条核对）

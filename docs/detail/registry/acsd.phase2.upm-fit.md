@@ -4,13 +4,13 @@
 > §5.4（天光平面与统一相对模型 UPM）
 > 科学正本：docs/science/PHASE2_UPM.md（SCI-UPM-001，FROZEN；§1/§4/§5/§10/§14a/§17）、
 > docs/science/algorithms/UPM_SOLVER.md（ALG-UPM-001，权威推导；F3/F5/F6）、
-> docs/science/UNCERTAINTY_AND_COVARIANCE.md（参数协方差）
+> docs/science/noise_snr/NOISE_SNR.md §3.5（参数协方差）
 > 实现级合同：docs/science/algorithms/PHASE2_UPM_IMPL.md（ALG-P2-UPM-IMPL-001；
 > §11/§13 语义与缺陷清单、TEST-DESIGN 冻结容差、字段名与生产取值登记）
-> 数据正本：docs/science/DATA_SEMANTICS.md §23（DATA-P2-SMP）、§25（DATA-P2-UPM）、
-> §26（DATA-P2-COR）
-> API 正本：docs/engineering/PUBLIC_API.md（API-P2-UPM-001）、
-> docs/engineering/PHASE2_API_V1.md（API-P2-001，FROZEN）
+> 数据正本：docs/detail/registry/acsd.phase2.upm-fit.md（DATA-P2-UPM / DATA-P2-COR 端口表，本页输入输出端口表）；
+> DATA-P2-SMP 端口表见 docs/detail/registry/acsd.phase2.sample.md
+> API 正本：docs/engineering/api/PUBLIC_API.md（API-P2-UPM-001）、
+> docs/engineering/api/PUBLIC_API.md「分阶段 API 面」（API-P2-001，FROZEN）
 
 MOD ID = `MOD-acsd-phase2-upm-fit`；module_id 合同值 = `acsd.p2.upm`
 （descriptor 词汇 `acsd.phase2.upm-fit` 为编排层口径，其对齐属迁移目标、未
@@ -224,7 +224,7 @@ lib/phase2_session/p2_session.cpp。
 | `huber_delta` | 1.345 | —— | Huber IRLS 调谐常数（无量纲） |
 | `max_iterations` | 100 | 次 | 稳健拟合迭代上限 |
 | `tolerance` | 1e-6 | —— | 绝对容差（同时作步长判据的容差） |
-| `tolerance_relative` | 见正本 | —— | 相对容差开关；**生产必须为 1**（字段名与生产取值登记于 PHASE2_UPM_IMPL.md + DATA_SEMANTICS 字段表） |
+| `tolerance_relative` | 见正本 | —— | 相对容差开关；**生产必须为 1**（字段名与生产取值登记于 docs/science/algorithms/PHASE2_UPM_IMPL.md + 本页输入输出端口表） |
 | `target_order` | 覆盖图 order | —— | 取自 coverage |
 | `sigma_floor` | 1e-3 | —— | 权重分母下限（legacy 权重臂） |
 | `support_power` | 1.0 | —— | legacy 权重臂的 support 幂 |

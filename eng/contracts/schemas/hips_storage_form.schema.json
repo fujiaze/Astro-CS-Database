@@ -2,8 +2,8 @@
   "$schema": "http://json-schema.org/draft-07/schema#",
   "$id": "acsd.hips-storage-form/v1",
   "title": "ACSD HiPS 落盘形态索引 schema",
-  "description": "落盘形态合同 CONTRACT-STORAGE-001 的机器事实源。① 两个索引文件按 index_schema 选择 $defs.product_index 或 $defs.coverage_index 校验；② 形态相关的输入配置键与输出清单字段按 $defs.frame_storage / $defs.coverage_index_ref / $defs.manifest_storage 校验。不变式 I1..I4 / H1..H3 / R1..R6 / F1..F4 / M1..M4 依 docs/engineering/HIPS_STORAGE_FORM_CONTRACT.md 逐条定义。",
-  "x-acsd-contract": "docs/engineering/HIPS_STORAGE_FORM_CONTRACT.md",
+  "description": "落盘形态合同 CONTRACT-STORAGE-001 的机器事实源。① 两个索引文件按 index_schema 选择 $defs.product_index 或 $defs.coverage_index 校验；② 形态相关的输入配置键与输出清单字段按 $defs.frame_storage / $defs.coverage_index_ref / $defs.manifest_storage 校验。不变式 I1..I4 / H1..H3 / R1..R6 / F1..F4 / M1..M4 依 docs/engineering/contracts/HIPS_STORAGE_FORM.md 逐条定义。",
+  "x-acsd-contract": "docs/engineering/contracts/HIPS_STORAGE_FORM.md",
   "x-acsd-design": "docs/detail/PRODUCT_STORAGE_FORM.md",
   "x-acsd-index-schemas": {
     "product_index": "acsd.hips-index/v1",
@@ -47,10 +47,10 @@
       {"layer": "design-p1", "file": "docs/detail/PHASE1_DETAILED_DESIGN.md", "must_contain": ["storage_form", "archive", "bare"]},
       {"layer": "design-p2", "file": "docs/detail/PHASE2_DETAILED_DESIGN.md", "must_contain": ["coverage_index", ".hips.index.json"]},
       {"layer": "design-p3", "file": "docs/detail/PHASE3_DETAILED_DESIGN.md", "must_contain": ["storage_form"]},
-      {"layer": "contract", "file": "docs/engineering/HIPS_STORAGE_FORM_CONTRACT.md", "must_contain": ["storage_form", "form_source", "index_path", "index_sha256", "archive_sha256", "archive_bytes", "coverage_index", "coverage_index_path", ".hips.index.json", "coverage.index.json"]},
-      {"layer": "contract-config", "file": "docs/engineering/CONFIG_CONTRACT.md", "must_contain": ["storage_form", "coverage_index", "archive", "bare"]},
+      {"layer": "contract", "file": "docs/engineering/contracts/HIPS_STORAGE_FORM.md", "must_contain": ["storage_form", "form_source", "index_path", "index_sha256", "archive_sha256", "archive_bytes", "coverage_index", "coverage_index_path", ".hips.index.json", "coverage.index.json"]},
+      {"layer": "contract-config", "file": "docs/engineering/contracts/CONFIG.md", "must_contain": ["storage_form", "coverage_index", "archive", "bare"]},
       {"layer": "interface-io2", "file": "docs/science/IO_002_HIPS_INPUT_INTERFACE.md", "must_contain": ["storage_form", ".hips.index.json"]},
-      {"layer": "interface-io3", "file": "docs/engineering/io/IO_003_ATOMIC_OUTPUT_PUBLISH.md", "must_contain": ["storage_form", "index_sha256", "archive_sha256"]},
+      {"layer": "interface-io3", "file": "docs/engineering/contracts/ATOMIC_PUBLISH.md", "must_contain": ["storage_form", "index_sha256", "archive_sha256"]},
       {"layer": "engineering", "file": "ENGINEERING_SPEC.md", "must_contain": ["storage_form", "archive", "bare", ".hips.index.json", "coverage.index.json"]},
       {"layer": "acceptance", "file": "ACCEPTANCE_SPEC.md", "must_contain": ["storage_form", "coverage_index", "form_source"]}
     ]

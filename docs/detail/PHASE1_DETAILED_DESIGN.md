@@ -2,7 +2,7 @@
 
 > 上游：ACSD_DESIGN.md §4（normalize：单帧标准化）
 
-上位：`ACSD_DESIGN.md`（§0 权威链，最高设计）、`docs/engineering/PROJECT_SPEC.md`  
+上位：`docs/ACSD_DESIGN.md`（§0 权威链，最高设计；§1 项目定位、§2 核心科学方法：五个创新点、§4 normalize 使命与输入输出合同、§12 验证体系）  
 下游：Phase1 SCI/ALG/DATA/API/实现与验收；冲突时本文件描述目标，目标只由本文件定义。
 
 ## 1. 使命与科学产品
@@ -44,7 +44,7 @@ ingest → calibration → cosmetic/validity → background/noise
 **序的依据**：`platesolve` 按帧读校准后像素自行做星点检测与星表匹配，**不消费** `star_detection` 的产物；
 而权威检测的星表逆投影需要**含取向**的完整 WCS（取自本帧解算产物）⇒ 解算必须在检测之前。
 `psf` 的唯一消费者是 `photometry`（本就在解算之后），故该序不延长关键路径。
-节点序与依赖边由注册表端口图唯一确定，判据（注册表 ↔ 管线 IR 的节点序与边保真）见 `docs/engineering/PIPELINE_BLOCK_CONTRACT.md` §7.1，由对抗性审查逐条核对。
+节点序与依赖边由注册表端口图唯一确定，判据（注册表 ↔ 管线 IR 的节点序与边保真）见 `docs/engineering/contracts/PIPELINE_BLOCK.md`「机器判据（注册表 ↔ 管线 IR 的节点序与边保真）」一节，由对抗性审查逐条核对。
 
 节点可由调度器安排，但科学依赖不可改变；每节点只执行声明 operation，整段 Phase1 逐 operation 执行一次。
 **photometry 为什么是一步（不是两步）**：拟合出的归一化标度 `k_photo` 必须真正落到像素，但**施加不需要独立的节点**——
@@ -68,7 +68,7 @@ ingest → calibration → cosmetic/validity → background/noise
   `k_photo` 非物理、帧内残差散度超 `P1_PHOT_MAX_SIGMA_DEX`）⇒ **该帧 fail，其余帧照常完成**：
   失败帧不产出 `photoapplied_<base>`、不进入 `photscales`，其判决逐帧落 `p1_phot.json.frames[]`
   （`status=fail` + `error_domain`/`error_status`/`error`，error_report 口径见
-  `docs/engineering/LOG_AND_ERROR_CONTRACT.md` §5）与节点 manifest（`frame_status`/`frame_errors`/
+  `docs/engineering/contracts/LOG_AND_ERROR.md`「错误对象与退出码映射」一节）与节点 manifest（`frame_status`/`frame_errors`/
   `failed_frames`/`n_frames_failed`/`n_frames_ok`/`n_frames_applied`）。
   帧级失败**不是降级**：不写 `degraded_reason`（失败 ≠ 降级，判据见该合同 §6 D1–D3 与
   `docs/detail/LOG_AND_ERROR_SYSTEM.md` §10）。
@@ -109,7 +109,7 @@ V(y_p) = {V(r_p)+V(b_p)+alpha²[V(d_p)+V(b_p)]+y_p²V(f_p)} / f_p²
 
 - 背景模型 (B(x,y)) 与随机噪声 (C) 分开；Phase1 可估计背景，背景校正与 UPM 各占一层；
 - validity 包含 NaN/Inf、坏点、饱和、cosmetic、边界、插值、星轨/严重形变；
-- 检测阈值的**冻结定义**为全局背景噪声倍数 `median(img)+5.0·bgnoise`（`docs/science/STAR_DETECTION.md`）；以逐像素 variance/ivar 做**局部噪声自适应**为目标态、当前未实现（`DISP-STAR-002`）；输出 selection function 和 completeness 相关参数；检测目录不是图像灵敏度本身；
+- 检测阈值的**冻结定义**为全局背景噪声倍数 `median(img)+5.0·bgnoise`（`docs/science/detection/STAR_DETECTION.md` §3.1）；以逐像素 variance/ivar 做**局部噪声自适应**为目标态、当前未实现（`DISP-STAR-002`）；输出 selection function 和 completeness 相关参数；检测目录不是图像灵敏度本身；
 - 检测、PSF、WCS、测光、SNR 的 source row 都绑定同一 frame_id/source_id。
 
 ## 6. PSF 模型
@@ -134,13 +134,13 @@ PSF 拟合质量只能作 validity/诊断，不能未经概率模型直接乘入
 
 **“校准到测光星等坐标系”的实现形态**：标度 `k_photo = 10^{−location}`（`docs/science/PHOTOMETRY.md` §3/§5）
 是**线性乘性因子**（单位 [F_syn 单位]/ADU），作用是把各帧对齐到**统一相对测光零点**；它不把数据变成星等。
-逐层承载的物理量与单位（唯一正本 = `docs/science/DATA_SEMANTICS.md` §31.1/§31.1a）：
+逐层承载的物理量与单位（唯一正本 = `docs/science/unified/DATA_SEMANTICS.md` §4.1/§3.4）：
 
 | 层 | 物理量 | 单位 | 口径 |
 |---|---|---|---|
 | Phase1 帧平面（calibrated / cleaned） | 线性计数（逐像素） | `ADU` | 未按立体角归一 |
 | Phase1 测光施加后帧平面 `photoapplied_<base>` | 线性计数 × 逐帧标度 | `k_photo·ADU`（零点 = 本帧相对测光零点） | `I_photo = k_photo·I_cal` |
-| Phase1 HiPS signal | 线性面亮度 | `ADU/sr` | writer 归一 `S_p = F_p / N_p`，`F_p = Σ_j x_j·w_jp`、`N_p = Σ_j w_jp·A_pixel,j`（`docs/science/DRIZZLE.md` §3/§5/§7） |
+| Phase1 HiPS signal | 线性面亮度 | `ADU/sr` | writer 归一 `S_p = F_p / N_p`，`F_p = Σ_j x_j·w_jp`、`N_p = Σ_j w_jp·A_pixel,j`（`docs/science/drizzle/DRIZZLE.md` §2.1/§3.3） |
 | Phase1 HiPS variance / ivar | `ADU^2/sr^2` / `sr^2/ADU^2` | 二次律 `FZ-P3-BUNIT-QUADRATIC` |
 | Phase1 点源量（flux / Q / W_info） | `ADU` / `ADU^-1` / `ADU^-2` | 点源与面亮度两套量各自闭合 |
 | Phase2 马赛克 signal | 线性面亮度（与输入同标度） | 面亮度产品为 `ADU/sr` | `Σ w_i·x_i / Σ w_i`（线性加权） |
@@ -157,7 +157,7 @@ PSF 拟合质量只能作 validity/诊断，不能未经概率模型直接乘入
 
 **星等的换算位置与公式**（派生表达，不改变产品 `BUNIT`、不改变数据面形态）：
 
-- 帧级 5σ 深度：`m_5 = ZP_k − 2.5·log10(F_5)`（`docs/science/DATA_SEMANTICS.md` §13.4）；
+- 帧级 5σ 深度：`m_5 = ZP_k − 2.5·log10(F_5)`（`docs/science/unified/DATA_SEMANTICS.md` §4.2）；
 - 面亮度星等：`SB_mag = ZP_k − 2.5·log10(signal) + 2.5·log10(Ω_ref)`（§31.1a）；
 - 测光一致性 QA：`delta_i = −2.5·log10(F_instr,i) − G_Gaia,i`、`sigma_mag = 2.5·sigma_residual`（`docs/science/PHOTOMETRY.md` §2/§5）。
 
@@ -193,7 +193,7 @@ PSF 拟合质量代理（FWHM、残差尺度等）**只作诊断**，**权重面
 
 ## 9. 球面 Drizzle 与不确定度
 
-源像素积分通量 `x_j` 先转换为源像素面亮度 `B_j = x_j/A_pixel,j`，再按球面交叠面积 `a_jp` 估计。核与归一分母的定义式、单位与恒等式见 `docs/science/DRIZZLE.md` §3/§5/§7 与 `docs/science/algorithms/DRIZZLE_GEOMETRY.md`（`DISP-DRZ-009` 覆盖正向与反向两个面），本页只记落地约束：
+源像素积分通量 `x_j` 先转换为源像素面亮度 `B_j = x_j/A_pixel,j`，再按球面交叠面积 `a_jp` 估计。核与归一分母的定义式、单位与恒等式见 `docs/science/drizzle/DRIZZLE.md` §3.2/§3.3/§3.4 与 `docs/science/algorithms/DRIZZLE_GEOMETRY.md`（`DISP-DRZ-009` 覆盖正向与反向两个面），本页只记落地约束：
 
 - 正向（帧→球面）核 `w_jp = a_jp/A_drop,j`（按 drop 面积归一，`Σ_p w_jp = 1`）；
 - 正向面亮度归一分母用 `N_p = Σ_j w_jp·A_pixel,j`（`N_p = D_p/pixfrac²`），该面**不**取覆盖面积 `D_p = Σ_j a_jp` —— 换了在 `pixfrac < 1` 时使面亮度偏 `pixfrac²`；
@@ -212,7 +212,7 @@ PSF 拟合质量代理（FWHM、残差尺度等）**只作诊断**，**权重面
 - drizzle correlation/transfer 描述；
 - product manifest：schema、算法/模块/provider、完整 SHA、输入/配置哈希、单位、参考尺度、近似和降级。
 
-产品的**落盘形态**由**输入配置键** `storage_form` 选定：默认归档形态 `<name>.hips.zst`（整包 tar + 逐成员 zstd 帧），可显式切裸形态 `<name>.hips/`；键缺失或留空 ⇒ 取默认 `archive` 并报一条 warn（取默认动作一律记 warn，形态来源记入 `manifest.json#storage.form_source`）。两形态都必须写出产品级索引 `<name>.hips.index.json`（不压缩：叶块覆盖集合 + 归档定位表），一次运行还写出数据集级覆盖索引 `coverage.index.json`（不压缩：块 → 帧集合）。逐帧产品清单 `p1_products.json` 自报 `storage_form` / `index_path` / `index_sha256` / `archive_sha256`，运行级记 `coverage_index`。归档内 `properties` 与裸形态逐字节一致，解压后必须通过既有 HiPS 校验（`docs/detail/PRODUCT_STORAGE_FORM.md`、`docs/engineering/HIPS_STORAGE_FORM_CONTRACT.md`）。
+产品的**落盘形态**由**输入配置键** `storage_form` 选定：默认归档形态 `<name>.hips.zst`（整包 tar + 逐成员 zstd 帧），可显式切裸形态 `<name>.hips/`；键缺失或留空 ⇒ 取默认 `archive` 并报一条 warn（取默认动作一律记 warn，形态来源记入 `manifest.json#storage.form_source`）。两形态都必须写出产品级索引 `<name>.hips.index.json`（不压缩：叶块覆盖集合 + 归档定位表），一次运行还写出数据集级覆盖索引 `coverage.index.json`（不压缩：块 → 帧集合）。逐帧产品清单 `p1_products.json` 自报 `storage_form` / `index_path` / `index_sha256` / `archive_sha256`，运行级记 `coverage_index`。归档内 `properties` 与裸形态逐字节一致，解压后必须通过既有 HiPS 校验（`docs/detail/PRODUCT_STORAGE_FORM.md`、`docs/engineering/contracts/HIPS_STORAGE_FORM.md`）。
 
 上述对象各自具名字段，`snr` 只承载其中之一。
 

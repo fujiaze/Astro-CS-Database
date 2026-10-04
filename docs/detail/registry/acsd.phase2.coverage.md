@@ -2,15 +2,15 @@
 
 > 上游：docs/ACSD_DESIGN.md §8.5（模块与 ABI）、§5.2（固定科学流程：coverage 重叠图）、
 > 科学正本：docs/science/PHASE2_UPM.md §1（覆盖并集）、docs/science/INTEGRATION.md §5
-> （support/validity 分离）、docs/science/SCIENCE_SCOPE.md（处理链第 5 步）、
-> docs/science/UNCERTAINTY_AND_COVARIANCE.md（有效域语义）、
-> docs/science/PSF_SIGNAL_WEIGHT.md（信息量定义）
+> （support/validity 分离）、docs/science/unified/SCIENCE_SCOPE.md（处理链第 5 环节，`## 2 物理模型`）、
+> docs/science/noise_snr/NOISE_SNR.md §5.3（适用域与失效域）、
+> docs/science/noise_snr/NOISE_SNR.md §3.4（信息量定义）
 > 算法正本：docs/science/algorithms/PHASE2_COVERAGE.md（ALG-COV-001；状态声明 §11.5、
 > 逐公式锚 §2、缺陷登记 §11.3、测试设计 §11.4）
-> 数据正本：docs/science/DATA_SEMANTICS.md §19（DATA-COV-001，§19.3）、
+> 数据正本：docs/detail/registry/acsd.phase2.coverage.md（DATA-COV-001 端口表，本页输入输出端口表）、
 > eng/contracts/schemas/unified/coverage.schema.json（coverage 对象 canonical schema）
-> API 正本：docs/engineering/PUBLIC_API.md（API-COV-001，Coverage union C API 节）、
-> docs/engineering/PHASE2_API_V1.md（API-P2-001，FROZEN）
+> API 正本：docs/engineering/api/PUBLIC_API.md（API-COV-001，Coverage union C API 节）、
+> docs/engineering/api/PUBLIC_API.md「分阶段 API 面」（API-P2-001，FROZEN）
 
 模块级事实以 `lib/algorithms/coverage/README.md` + `module.yaml`
 （MOD-acsd-phase2-coverage，dll_target=acsd_p2_coverage.dll）为准；权威签名头
@@ -42,7 +42,7 @@ SCI-INT-001 §2 样本级 [0,1]、validity = §5 有效性标志，均不在本�
 | `calibrated` | `DATA-COV-001`（入：HiPS 树路径数组 `const char* const* [n_inputs]`） | 必 | —— | —— |
 | `coverage` | `DATA-COV-001`（出：union MOC，`P2MocCell [K]` 无量纲整数） | 可 | 无量纲 | `HEALPix NESTED equatorial / ICRS` |
 
-`DATA-P2-COV` 端口名为编排词汇，权威定义 = DATA-COV-001（DATA_SEMANTICS §19.3）。
+`DATA-P2-COV` 端口名为编排词汇，权威定义 = DATA-COV-001（本页输入输出端口表）。
 
 输入面：一组合同兼容 Phase1 产品（含各自 coverage / validity / WCS / manifest）。
 产品的落盘形态不进入科学语义（裸 / 归档同义，形态由落盘名判定）；`hips_paths` 的
@@ -65,7 +65,7 @@ SCI-INT-001 §2 样本级 [0,1]、validity = §5 有效性标志，均不在本�
 - 重叠图：帧间球面交叠（几何有效域交集），以 MOC 表达（NESTED）；
 - 记录有效面积（球面交叠面积积分，单位 deg² / sr）与信息量（可推导到
   `point_information` 的域面；该量的定义与推导正本 =
-  docs/science/PSF_SIGNAL_WEIGHT.md，模块侧口径见
+  docs/science/noise_snr/NOISE_SNR.md §3.4，模块侧口径见
   registry/acsd.phase1.noise-snr.md）；
 - 连通分量：在几何有效域上按球面邻接求连通分量，互不相连的分量一律分组件输出，
   **不**按同一零点 / 背景基准合并；分量划分由 `connected_components` 键控制；

@@ -3,13 +3,13 @@
 > 上游：docs/ACSD_DESIGN.md §8.4（顶层结构）、§8.5（模块与 ABI）、
 > §3.3（星表只解析本地星表文件，离线、零网络）、§8.4（`gaia_xpsd_client/` 本地星表
 > 解析）、§9（CPU 后端与资源：缓存复用、编排连续性）
-> 科学正本：docs/science/ASTROMETRY.md（SCI-AST-001）
+> 科学正本：docs/science/detection/ASTROMETRY.md（SCI-AST-001）
 > 算法正本：docs/science/algorithms/GAIA_QUERY.md（ALG-GAIA-001；§2.9 汇总表
 > 「缓存」行、§4 并发模型、§5 测试设计、§资源）
-> 数据正本：docs/science/DATA_SEMANTICS.md §8（DATA-GAIA-001）
-> API 正本：docs/engineering/PUBLIC_API.md（API-GAIA-001，gaia_client C API 节）
-> 架构正本：docs/engineering/ARCH-001.md
-> 缓存：docs/engineering/CACHE_POLICY.md（Gaia 查询缓存行）
+> 数据正本：docs/science/unified/DATA_SEMANTICS.md §4.3（DATA-GAIA-001 星表行语义）
+> API 正本：docs/engineering/api/PUBLIC_API.md（API-GAIA-001，gaia_client C API 节）
+> 架构正本：docs/engineering/architecture/ARCHITECTURE.md
+> 缓存：docs/engineering/standards/CACHE.md（Gaia 查询缓存行）
 > XPSD 本地编码合同：docs/engineering/STANDARDS_REGISTRY.md（catalog 行）
 > 消费方：registry/acsd.phase1.wcs-platesolve.md
 > 引用文献：见文末「参考文献」（角标用全角 `［N］`）
@@ -112,7 +112,7 @@
   非有限值 → detail 102 / 103；版本不匹配或过期的缓存条目 → 失效重查，**不
   返回过期数据**。**无网络**：不存在 TIMEOUT / 网络错误码。
 - 错误码与退出码唯一源 = lib/infrastructure/cli/exit_codes.h（本页不复制数值表）；
-  域→码映射唯一源 = docs/engineering/LOG_AND_ERROR_CONTRACT.md §5。
+  域→码映射唯一源 = docs/engineering/contracts/LOG_AND_ERROR.md「错误对象与退出码映射」一节。
 
 ## 7. 测试与 Oracle
 

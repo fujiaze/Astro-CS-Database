@@ -73,13 +73,13 @@
       "why": "ALG 文档的 noise_model.cpp 唯一指 snr_estimator 生产实现；lib/phase1/noise 小封装在文档中以全路径出现"
     },
     {
-      "doc": "docs/science/NOISE_MODEL.md",
+      "doc": "docs/science/noise_snr/NOISE_SNR.md",
       "basename": "noise_model.cpp",
       "path": "lib/algorithms/noise_snr/cpp/src/noise_model.cpp",
       "why": "同上"
     },
     {
-      "doc": "docs/science/PSF.md",
+      "doc": "docs/science/psf/PSF.md",
       "basename": "noise_model.cpp",
       "path": "lib/algorithms/noise_snr/cpp/src/noise_model.cpp",
       "why": "同上"
@@ -93,35 +93,35 @@
     {
       "doc": "docs/science/algorithms/DRIZZLE_GEOMETRY.md",
       "basename": "DRIZZLE.md",
-      "path": "docs/science/DRIZZLE.md",
-      "why": "裸 DRIZZLE.md 锚指 SCI 冻结文档；同名审计报告使 basename 不再唯一，显式钉死到 docs/science/DRIZZLE.md"
+      "path": "docs/science/drizzle/DRIZZLE.md",
+      "why": "裸 DRIZZLE.md 锚指 SCI 冻结文档；同名审计报告使 basename 不再唯一，显式钉死到 docs/science/drizzle/DRIZZLE.md"
     },
     {
       "doc": "docs/science/algorithms/HIPS_WRITER.md",
       "basename": "DRIZZLE.md",
-      "path": "docs/science/DRIZZLE.md",
+      "path": "docs/science/drizzle/DRIZZLE.md",
       "why": "同上（同名审计报告引入同名 basename）"
     },
     {
       "doc": "docs/science/algorithms/NOISE_ESTIMATION.md",
       "basename": "NOISE_MODEL.md",
-      "path": "docs/science/NOISE_MODEL.md",
+      "path": "docs/science/noise_snr/NOISE_SNR.md",
       "why": "裸 NOISE_MODEL.md 锚指 SCI 冻结文档；同名审计报告（原 reports/ 侧，已退役收编 artifacts/evidence/**）使 basename 不再唯一，显式钉死"
     },
     {
-      "doc": "docs/science/DATA_SEMANTICS.md",
+      "doc": "docs/science/unified/DATA_SEMANTICS.md",
       "basename": "api.cpp",
       "path": "lib/algorithms/drizzle/healpix_drizzle/hp_drizzle_api.cpp",
       "why": "§10 drizzle 段的裸 api.cpp = drizzle C API 实现，与 DRIZZLE_GEOMETRY.md 同一目标（ARCH-001 迁移后现址 lib/algorithms/drizzle/healpix_drizzle）"
     },
     {
-      "doc": "docs/engineering/PUBLIC_API.md",
+      "doc": "docs/engineering/api/PUBLIC_API.md",
       "basename": "build.ps1",
       "path": "lib/algorithms/noise_snr/cpp/build.ps1",
       "why": "同句已写「头: lib/algorithms/noise_snr/cpp/include/snr_estimator.h … 现状构建=cpp/Makefile:5,12 … + cpp/build.ps1:29」，cpp/ 即 lib/algorithms/noise_snr/cpp/"
     },
     {
-      "doc": "docs/engineering/PUBLIC_API.md",
+      "doc": "docs/engineering/api/PUBLIC_API.md",
       "basename": "star_detector.h",
       "path": "lib/algorithms/star_detection/include/star_detector.h",
       "why": "该节逐行锚 sdet_create/sdet_destroy/sdet_detect/sdet_detect_ex(_f64)/sdet_free_*/SDetParams 只存在于 include/star_detector.h（wrapper_phase1/star_detector.h 无这些符号）"
@@ -157,13 +157,13 @@
       "why": "同行自述「本仓 healpix_core.cpp:338-340 自述移植自 Healpix_3.83」；:338 正是该自述注释，drizzle 副本无此注释"
     },
     {
-      "doc": "docs/engineering/DATA_ARTIFACTS.md",
+      "doc": "docs/engineering/data/ARTIFACTS.md",
       "basename": "resample2.md",
       "path": "docs/detail/registry/acsd.phase3.resample2.md",
       "why": "原文以省略号截断写「…resample2.md:71」，被引文档即 docs/detail/registry/acsd.phase3.resample2.md"
     },
     {
-      "doc": "docs/engineering/DATA_ARTIFACTS.md",
+      "doc": "docs/engineering/data/ARTIFACTS.md",
       "basename": "properties.md",
       "path": "docs/detail/registry/acsd.phase3.properties.md",
       "why": "原文以省略号截断写「…properties.md:22」，被引文档即 docs/detail/registry/acsd.phase3.properties.md"
@@ -175,7 +175,7 @@
       "why": "DISP-P3RSMP-006 行自述「drizzle 先例 module_entry.cpp:971 的 n_rejected_nonfinite」；全仓 5 个 module_entry.cpp 中只有 lib/algorithms/drizzle/src/module_entry.cpp:971 是 \"n_rejected_nonfinite\" 聚合键，其余 4 个该行无此键"
     },
     {
-      "doc": "docs/science/CALIBRATION.md",
+      "doc": "docs/science/calibration/CALIBRATION.md",
       "basename": "cosmetic_corrector.cpp",
       "path": "lib/algorithms/calibration/src/cosmetic_corrector.cpp",
       "why": "BASENAME-AMBIGUOUS 消歧：CALIBRATION.md §12 的 ALG-CAL-004 行自述「cc_* 命名属已退役通道，不在任何 CMake 目标内」——同名另一候选 lib/algorithms/calibration/cpp/cosmetic_corrector.cpp 正是该退役通道（全仓无 add_library/add_subdirectory 引用它，根 CMakeLists.txt:624 与 lib/algorithms/calibration/CMakeLists.txt:23 的生产源均为 src/）；锚 :119/:140/:161 逐字命中生产源 detect_hot_pixels/detect_cold_pixels/interpolate_pixels 定义行 ⇒ 生产唯一源。同 COSMETIC_ALGORITHMS.md / CALIBRATION_ALGORITHMS.md 两条既有规则"
@@ -207,12 +207,12 @@
       "evidence": "docs/science/algorithms/PHASE2_INTEGRATION.md:182"
     },
     {
-      "doc": "docs/science/NOISE_MODEL.md",
+      "doc": "docs/science/noise_snr/NOISE_SNR.md",
       "raw": "photutils/utils/errors.py:91-92",
       "kind": "EXTERNAL_REFERENCE",
       "reason": "photutils（BSD-3-Clause）为外部参考实现，未 vendor 进仓库；此处为 SCI-001 的文献/开源代码对照引用，非本仓源码锚",
       "owner": "SCI-001-S1",
-      "evidence": "docs/science/NOISE_MODEL.md:204"
+      "evidence": "docs/science/noise_snr/NOISE_SNR.md:204"
     }
   ],
   "bindings": [
@@ -374,7 +374,7 @@
     },
     {
       "id": "CAL-MEDFLOOR",
-      "doc": "docs/science/CALIBRATION.md",
+      "doc": "docs/science/calibration/CALIBRATION.md",
       "target": "lib/algorithms/calibration/src/calibrator.cpp",
       "symbol": "med > 0"
     },
@@ -452,13 +452,13 @@
     },
     {
       "id": "NOISEMODEL-VARFLOOR",
-      "doc": "docs/science/NOISE_MODEL.md",
+      "doc": "docs/science/noise_snr/NOISE_SNR.md",
       "target": "lib/algorithms/noise_snr/cpp/src/noise_model.cpp",
       "symbol": "variance_floor"
     },
     {
       "id": "PSF-ROBUST",
-      "doc": "docs/science/PSF.md",
+      "doc": "docs/science/psf/PSF.md",
       "target": "lib/algorithms/noise_snr/cpp/src/noise_model.cpp",
       "symbol": "kTrimMeanToSigma"
     }

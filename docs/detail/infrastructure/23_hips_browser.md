@@ -3,7 +3,7 @@
 > 上游：docs/ACSD_DESIGN.md §8.4（顶层结构：hips_browser 基建目录）、§8.5
 > （模块与 ABI）、§1.3（非目标：Alpha 不含 GUI）、§6.3（`visualization` 模式标注
 > 「不可测量」）
-> 数据正本：docs/science/DATA_SEMANTICS.md §12（DATA-P1-HIPS，读侧复用；
+> 数据正本：docs/detail/registry/acsd.phase1.hips-writer.md（DATA-HIPS-001 端口表，读侧复用；
 > 依赖 DATA-HIPS-*）
 > 读侧：infrastructure/17_aio.md（读侧复用 aio，不复制 reader）
 > 引用规范：[IVOA HiPS 1.0 Recommendation](https://www.ivoa.net/documents/HiPS/)
@@ -30,7 +30,7 @@ OpenGL，STF 显示，可选构建），落地目录 =
 
 - **输入**：HiPS 产品（signal/variance/coverage/...，只读）。
 - **输出**：可视化（渲染图像、导航状态、诊断视图）。
-- 参考：`docs/science/DATA_SEMANTICS.md` §12（DATA-P1-HIPS：HiPS 产品数据合同，读侧复用）。
+- 参考：`docs/detail/registry/acsd.phase1.hips-writer.md`（DATA-HIPS-001 端口表：HiPS 产品数据合同，读侧复用）。
 
 ## 4. 算法与公式要点
 

@@ -2,11 +2,11 @@
 
 > 上游：docs/ACSD_DESIGN.md §8.5（模块与 ABI）、§4.2（WCS 解算：近似指向 + 星表匹配精化）、
 
-> 科学正本：docs/science/ASTROMETRY.md（SCI-WCS-001）、docs/science/algorithms/PLATESOLVE.md
+> 科学正本：docs/science/detection/ASTROMETRY.md（SCI-WCS-001）、docs/science/algorithms/PLATESOLVE.md
 > （ALG-WCS-001，解算算法推导）、docs/science/PHOTOMETRY.md §16（平移精化判据与读数）
-> 数据正本：docs/science/DATA_SEMANTICS.md §18（DATA-P1-WCS）
-> API 正本：docs/engineering/PUBLIC_API.md（API-WCS-001）、API-P1-004
-> （docs/engineering/PHASE1_API_V1.md）
+> 数据正本：docs/detail/registry/acsd.phase1.wcs-platesolve.md（DATA-P1-WCS 端口表，本页输入输出端口表）
+> API 正本：docs/engineering/api/PUBLIC_API.md（API-WCS-001）、API-P1-004
+> （docs/engineering/api/PUBLIC_API.md「分阶段 API 面」）
 > 依赖：infrastructure/22_gaia_xpsd_client.md（星表查询与坐标语义合同）
 
 模块级事实以 `lib/algorithms/platesolve/README.md` + `module.yaml`（acsd.p1.wcs，
@@ -30,8 +30,8 @@ Registry production 模块（唯一源 = module_adapters.cpp 的 p1_wcs_descript
 
 | 端口 | DATA | 必/可 | 单位 | 坐标 |
 |---|---|---|---|---|
-| `sources` | `DATA-P1-SOURCES`（编排词汇；模块权威输入 = star_measurements [N,≥15] 权威块 + star_det fallback，DATA_SEMANTICS §18.1） | 必 | `UnitId::DIMENSIONLESS` | `CoordinateFrame::PIXEL`（统一契约 index-is-center，+0.5 桥接至 IPV 接口契约） |
-| `wcs` | `DATA-P1-WCS`（DATA_SEMANTICS §18） | 可 | `UnitId::DIMENSIONLESS` | `CoordinateFrame::ICRS`（RADESYS=ICRS / EQUINOX=2000 写回） |
+| `sources` | `DATA-P1-SOURCES`（编排词汇；模块权威输入 = star_measurements [N,≥15] 权威块 + star_det fallback，本页输入输出端口表） | 必 | `UnitId::DIMENSIONLESS` | `CoordinateFrame::PIXEL`（统一契约 index-is-center，+0.5 桥接至 IPV 接口契约） |
+| `wcs` | `DATA-P1-WCS`（本页输入输出端口表） | 可 | `UnitId::DIMENSIONLESS` | `CoordinateFrame::ICRS`（RADESYS=ICRS / EQUINOX=2000 写回） |
 
 输入面：检测目录（像素坐标）、参考星表匹配集（Gaia / 离线）、初始猜测（可空）、
 配置。数据形态 = detections `[n,6]` + 0.5 契约 → `IpvWcsResult` POD + inlier
@@ -71,7 +71,7 @@ invalid = NaN/coverage=0（按 DATA 合同）；求解失败 → `PLATESOLVE_FAI
 
 ## 公共 header、核心 symbol 与生命周期
 
-模块级 API = API-WCS-001（docs/engineering/PUBLIC_API.md；签名头正本
+模块级 API = API-WCS-001（docs/engineering/api/PUBLIC_API.md；签名头正本
 `lib/algorithms/platesolve/cpp/ipv/include/ipv_api.h`，12 导出，生产入口 `ipv_solve_from_detections_v1`）；
 编排级 API = API-P1-004（phase session extern "C"）；生命周期
 create→validate→run→inspect→destroy。

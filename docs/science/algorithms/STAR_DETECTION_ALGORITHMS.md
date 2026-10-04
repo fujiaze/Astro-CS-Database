@@ -2,13 +2,13 @@
 
 > 上游：ACSD_DESIGN.md §4.2（Phase1 节点流程）
 
-> 上游 SCI: SCI-PSF-001（docs/science/PSF.md，FROZEN 共享引用不改动）；本域冻结层
+> 上游 SCI: SCI-PSF-001（docs/science/psf/PSF.md，FROZEN 共享引用不改动）；本域冻结层
 > SCI-P1-STAR-001（§11.5，ALG 内冻结层，共享 SCI 不改动）
 > 下游: DATA-P1-STAR（DATA_SEMANTICS §17）、API-STAR-001（PUBLIC_API）、
 > MOD-acsd-phase1-star（registry）
 > 唯一权威生产源: lib/algorithms/star_detection/src/sdet_api.cpp（2497 行；源文件唯一在役副本）；合同头
 > lib/algorithms/star_detection/include/star_detector.h（139 行）；取值与签名一律以本头文件为唯一来源。
-> 矩阵行: docs/engineering/TRACEABILITY_SPEC.md §9 MOD-acsd-phase1-star
+> 矩阵行: docs/engineering/governance/TRACEABILITY.md §9 MOD-acsd-phase1-star
 > （matrix P1-STAR，legacy_paths=lib/algorithms/star_detection;lib/algorithms/star_detection/wrapper_phase1，
 > 迁移目标 acsd_p1_star_detection.dll）。
 

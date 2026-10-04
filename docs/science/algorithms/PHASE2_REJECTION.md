@@ -16,7 +16,7 @@
 > 建立，本文件不声明 IMPLEMENTED；descriptor 占位
 > module_id=acsd.phase2.reject（module_adapters.cpp:705-724）由
 > P2-XX-INT 对齐，不作冻结依据。
-> 关联: DATA=DATA-P2-REJ（docs/science/DATA_SEMANTICS.md §22）；API=API-P2-REJ-001（docs/engineering/PUBLIC_API.md 末节）；MOD 页=docs/detail/phase2_rej.md + registry docs/detail/registry/acsd.phase2.reject.md（手写合同页）；TEST 登记面=registry 页 §独立 synthetic 验证节（TEST-P2-REJ-DESIGN-001 设计冻结 VERIFIED）。
+> 关联: DATA=DATA-P2-REJ（docs/detail/registry/acsd.phase2.reject.md）；API=API-P2-REJ-001（docs/engineering/api/PUBLIC_API.md 末节）；MOD 页=docs/detail/phase2_rej.md + registry docs/detail/registry/acsd.phase2.reject.md（手写合同页）；TEST 登记面=registry 页 §独立 synthetic 验证节（TEST-P2-REJ-DESIGN-001 设计冻结 VERIFIED）。
 
 ## 1 目的与非目标
 
@@ -741,11 +741,11 @@ tally: accepted_count/rejected_low/rejected_high/iterations  :2163-2177
 
 ## 14 合同落位
 
-- DATA-P2-REJ = docs/science/DATA_SEMANTICS.md §22：输入
+- DATA-P2-REJ = docs/detail/registry/acsd.phase2.reject.md：输入
   eligibility/gather/kernel 三层 + P2RejectionDecision 输出 +
   八态状态机 + 单位/确定性唯一权威；与 §21 DATA-P2-INT 的消费
   边界 = accepted mask → P2PixelStack.accepted。
-- API-P2-REJ-001 = docs/engineering/PUBLIC_API.md 末节：
+- API-P2-REJ-001 = docs/engineering/api/PUBLIC_API.md 末节：
   planning/eligibility/gather/kernel/large_scale 导出符号冻结；
   compat p2_reject_stack 冻结两符号；与 API-P2-001 编排面并存。
 - MOD = docs/detail/phase2_rej.md（模块页）+ lib/algorithms/rejection/
@@ -758,7 +758,7 @@ tally: accepted_count/rejected_low/rejected_high/iterations  :2163-2177
   SCI 权威永远在 docs/science/（方向 = 从 docs/science/ 到本文档）。
 - 缺陷联动: DISP-P2REJ-001..004 同时登记于 registry 页与
   module.yaml known_defects；本文件 §7 为权威表述。
-- docs/engineering/TRACEABILITY_SPEC.md §9 MOD-acsd-phase2-reject 行:
+- docs/engineering/governance/TRACEABILITY.md §9 MOD-acsd-phase2-reject 行:
   science_id=SCI-REJ-001（映射 §11.5）/
   algorithm_id=ALG-P2-REJ-001（本文件）/data_id=DATA-P2-REJ/
   api_id=API-P2-REJ-001/src_id=SRC-P2-REJ-001（src_path=lib/
@@ -774,7 +774,7 @@ tally: accepted_count/rejected_low/rejected_high/iterations  :2163-2177
 
 - **输入**：每像素候选栈 `values[]`、`weights[]`、`support[]`、`accepted[]`、`frame_id[]`，打包在 `P2EligibilityGatherInput`（`lib/algorithms/coverage/include/astro/phase2/rejection.h`）。布局为**帧主序**：`value_stride = support_stride = chunk_pixels`，元素寻址 `gidx = s·stride + pixel`，`s` 为帧槽序号、`pixel` 为该子域像素序号；kernel 与 ACR 共享同一布局。
 - **规划层**：`p2_reject_plan_resolve` 以 `n`（该输出像素的 nominal contributors，一次解析）路由到 method，request 与 plan 两处结构同源；同一 `n` 的 method 解析结果唯一（§5 F1）。
-- **布局单位**：`values` = 面亮度 ADU·sr⁻¹；`weights` = (ADU·sr⁻¹)⁻²；`support` 无量纲 [0,1]；`frame_id` 无量纲 u64。单位权威 = `docs/science/REJECTION.md` §3 与 `docs/science/DATA_SEMANTICS.md` §22。
+- **布局单位**：`values` = 面亮度 ADU·sr⁻¹；`weights` = (ADU·sr⁻¹)⁻²；`support` 无量纲 [0,1]；`frame_id` 无量纲 u64。单位权威 = `docs/science/REJECTION.md` §3 与 `docs/detail/registry/acsd.phase2.reject.md` 的单位/dtype 面。
 - **输出**：reject plan（method + 阈值）、per-sample reason（`P2_REASON_*`）、stack status（`P2_STATUS_*`）。large_scale 结构按两种形态给出——**trail 生长**（被拒掩膜的连通分量达标后作 Chebyshev 半径扩张）与 **compact 不生长**（cosmic 形态，分量不达标时原样保留）。
 - **内存**：候选栈占用 O(n)；逐像素拒绝就地完成；无整帧副本。
 

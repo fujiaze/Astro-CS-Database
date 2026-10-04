@@ -2,19 +2,19 @@
 
 > 上游：docs/ACSD_DESIGN.md §8.5（模块与 ABI）、§2.2（跨帧可用的绝对信噪比）、
 > §3.1（全程只有 SNR）、§4.2（Phase1 节点流程）、§4.4（输出合同）
-> 科学正本：docs/science/NOISE_MODEL.md（噪声模型 A，§5/§5d/§7/§9）、
-> docs/science/PSF_SIGNAL_WEIGHT.md（帧级 SNR 与点源信息权重的定义式）、
+> 科学正本：docs/science/noise_snr/NOISE_SNR.md（噪声模型 A，§3.1/§3.2 连续定义与平面场、§2.4 缓变谓词、§6.3 精度归属）、
+> docs/science/noise_snr/NOISE_SNR.md（帧级 SNR §3.3 与点源信息权重 §3.4 的定义式）、
 > docs/science/algorithms/NOISE_ESTIMATION.md（ALG-NOISE-001..003，§2–§5 推导与
-> §13 逐符号锚 / 缺陷登记）、docs/science/CONTROL_WEIGHT_SNR.md §8b
-> 数据正本：docs/science/DATA_SEMANTICS.md §13（DATA-P1-NOISE）、§4a（三态表）
-> API 正本：docs/engineering/PUBLIC_API.md（API-NOISE-001）、API-P1-006
-> （docs/engineering/PHASE1_API_V1.md）
+> §13 逐符号锚 / 缺陷登记）、docs/science/noise_snr/NOISE_SNR.md §5.3（适用域与失效域）
+> 数据正本：docs/detail/registry/acsd.phase1.noise-snr.md（DATA-P1-NOISE 端口表，本页输入输出端口表）；三态表见 docs/science/unified/DATA_SEMANTICS.md §3.3
+> API 正本：docs/engineering/api/PUBLIC_API.md（API-NOISE-001）、API-P1-006
+> （docs/engineering/api/PUBLIC_API.md「分阶段 API 面」）
 > 数据对象：docs/detail/UNIFIED_MODEL.md（frame_snr、sparse_snr_layer）
 
 模块级事实以 `lib/algorithms/noise_snr/README.md` + `module.yaml` 与现行生产实现
 `lib/algorithms/noise_snr/cpp/` 为准。现状构建 = `cpp/Makefile` + `cpp/build.ps1`
 → `snr_estimator.dll`，未编入根 CMake 主构建。端口 DATA 编目（DATA-P1-FLUX /
-DATA-P1-SNR）为编排层词汇，模块合同 DATA 层 = DATA-P1-NOISE（DATA_SEMANTICS §13）。
+DATA-P1-SNR）为编排层词汇，模块合同 DATA 层 = DATA-P1-NOISE（本页输入输出端口表）。
 
 ## 职责与明确非职责
 
@@ -26,7 +26,7 @@ Registry production 模块（唯一源 = module_adapters.cpp 的 p1_noise_snr_de
 
 三层噪声模型：`PhotometricCalibrationQuality` / `PsfFitQuality` /
 `NoiseWeightModelV1`（空背景稳健方差 → ivar）。噪声模型 A = `NoiseWeightModelV1`
-（逐像素，正本 docs/science/NOISE_MODEL.md）为**唯一生产模型**；噪声 σ 来源 =
+（逐像素，正本 docs/science/noise_snr/NOISE_SNR.md §3.1/§3.2）为**唯一生产模型**；噪声 σ 来源 =
 局部 patch + 星点掩膜 + 饱和过滤。生产内核 = `cpp/src/noise_model.cpp`（patch
 采集与 σ 估计），模块入口 = `src/module_entry.cpp`，phase1 包装面 =
 `wrapper_phase1/snr_frame_science.{h,cpp}`。
@@ -71,8 +71,7 @@ invalid = NaN/coverage=0（按 DATA 合同）。
 
 ### 数值落地口径
 
-信息核、帧级 SNR 与换算的定义式正本 = docs/science/PSF_SIGNAL_WEIGHT.md 与
-docs/science/NOISE_MODEL.md；本页只记落地约束。
+信息核、帧级 SNR 与换算的定义式正本 = docs/science/noise_snr/NOISE_SNR.md §3.3/§3.4；本页只记落地约束。
 
 #### 帧级 SNR（frame_snr）
 
@@ -89,7 +88,7 @@ docs/science/NOISE_MODEL.md；本页只记落地约束。
 背景**；天光**只作为噪声项**进入 `σ_F`；固定源通量、增大天光 ⇒ SNR **单调下降**
 （`B → ∞` 时 `SNR → 0`），该性质必须可复现；帧级 SNR 是**点源（PSF）量**，与
 面亮度 SNR **各自独立、互不代用**。`F_signal` 的测光口径与 `σ_F` 的稳健噪声
-估计以 PSF_SIGNAL_WEIGHT.md 与 NOISE_MODEL.md 为正本。**验收方式**：对每条
+估计以 docs/science/noise_snr/NOISE_SNR.md §3.1/§3.2 为正本。**验收方式**：对每条
 SNR 路径做**注入-回收** —— 已知真值信号 + 已知天光 + 已知噪声，回收的 SNR
 必须等于真值 `F_s/σ_F`；不满足者修正或退回重检。
 
@@ -182,7 +181,7 @@ HiPS 是数据库：帧产品长期保存、可被任意多次、任意科学目
 `snr_noise_model_v1` / `_f64` / `_fill` + `NoiseWeightModelV1`（**逐像素**），
 编入根 CMake 目标 `acsd_phase1_noise`（STATIC），经 `acsd_phase1_session`
 的 PUBLIC 闭包链入主程序。模型定义、参数语义、稳健噪声估计与掩膜规则的正本见
-docs/science/NOISE_MODEL.md。
+docs/science/noise_snr/NOISE_SNR.md。
 
 **逐像素方差接线现状**：A 已编入 `acsd_phase1_noise` 并链入主程序；生产
 调度路径**已挂** `variance` 帧内命名块 —— module_adapters.cpp（`p1_op_drizzle`）
@@ -199,7 +198,7 @@ docs/science/NOISE_MODEL.md。
 输出值在 float32 中不可表示（下溢为 0、上溢为非有限）的像素取不可用态；
 不可用方差的落盘值 = 显式不可用态本身 —— floor clamp 会把「模型在此处失效」
 发布成极大逆方差；`(0, +inf)` 这类自相矛盾的对同样按不可用态处理。正本 =
-docs/science/NOISE_MODEL.md §5/§7/§9 与 DATA_SEMANTICS §4a 三态表。
+docs/science/noise_snr/NOISE_SNR.md §3.1 数值地板与三态、§6.3 精度归属 与 docs/science/unified/DATA_SEMANTICS.md §3.3 三态表。
 该组判据的负例面（平面预测不可用、float32 下溢/上溢对）与自证面（证明判据能红、
 非恒真）已取证，载体不在本仓可复算路径上。
 
@@ -210,7 +209,7 @@ docs/science/NOISE_MODEL.md §5/§7/§9 与 DATA_SEMANTICS §4a 三态表。
 #### 背景方差面的自适应拟合与审计面
 
 背景方差面的**控制点有效性**与**拟合可行域**都由数据自身给出，**不含按数据集
-标定的常数**（正本 = docs/science/NOISE_MODEL.md §5d）。
+标定的常数**（正本 = docs/science/noise_snr/NOISE_SNR.md §3.1 空间方差场）。
 
 - **控制点有效性判据是自校准统计量** `R` = 该 patch 的稳健尺度 / 同一 patch
   在**白噪声零假设**下的等价尺度。该判据的**零假设值恒为 1**，是恒等式而不是
@@ -315,11 +314,11 @@ docs/science/NOISE_MODEL.md §5/§7/§9 与 DATA_SEMANTICS §4a 三态表。
   未分辨结构仍被算进稳健尺度）。控制点的局部 σ **必须**用**结构感知**估计器：
   mesh 局部背景扣除后的逐区域残差稳健尺度，或跨帧差分（唯一零结构偏差口径）；
   估计器标识、`sigma_rho` 与 `quality_flags` 一并入 manifest。估计器认证、逐
-  区域偏差与适用域见 docs/science/CONTROL_WEIGHT_SNR.md §8b。
+  区域偏差与适用域见 docs/science/noise_snr/NOISE_SNR.md §3.1/§5.3。
 
 ## 公共 header、核心 symbol 与生命周期
 
-模块级 API = API-NOISE-001（docs/engineering/PUBLIC_API.md 噪声/SNR 节）；编排级
+模块级 API = API-NOISE-001（docs/engineering/api/PUBLIC_API.md 噪声/SNR 节）；编排级
 API = API-P1-006（phase session extern "C"）；生命周期
 create→validate→run→inspect→destroy。
 

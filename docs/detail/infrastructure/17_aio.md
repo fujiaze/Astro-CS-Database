@@ -2,14 +2,14 @@
 
 > 上游：docs/ACSD_DESIGN.md §10（I/O 与原子产品）、§8.4（顶层结构：aio 模块位）、
 > §8.5（模块与 ABI）
-> 数据正本：docs/science/DATA_SEMANTICS.md（§11.1 帧内命名块表，仅作引用；
-> DATA-HIPS-SIGNAL-001 等 HiPS tile 语义）、docs/engineering/CONFIG_SCHEMA.md
-> 合同面：docs/engineering/HIPS_STORAGE_FORM_CONTRACT.md（§7 归档容器不打洞、
-> §10 形态事实登记落点）、docs/engineering/io/IO_003_ATOMIC_OUTPUT_PUBLISH.md
+> 数据正本：docs/detail/registry/acsd.phase1.drizzle.md（帧内命名块表，仅作引用；
+> DATA-HIPS-SIGNAL-001 等 HiPS tile 语义）、docs/engineering/contracts/CONFIG.md
+> 合同面：docs/engineering/contracts/HIPS_STORAGE_FORM.md（「体积削减（裸形态）」一节归档容器不打洞、
+> 「形态的输入配置与输出清单字段」一节形态事实登记落点）、docs/engineering/contracts/ATOMIC_PUBLISH.md
 > （IO_002 读合同、IO_003 原子发布）
-> API 正本：docs/engineering/PUBLIC_API.md（API-AIO-001..）
+> API 正本：docs/engineering/api/PUBLIC_API.md（API-AIO-001..）
 > 科学 ID：SCI-DRZ-014/016（产品语义）
-> 精度：docs/engineering/PERFORMANCE_MODEL.md（FP64 reference）
+> 精度：docs/engineering/resources/PERFORMANCE_MODEL.md（FP64 reference）
 > 落盘形态说明：docs/detail/PRODUCT_STORAGE_FORM.md
 > 引用文献：见文末「参考文献」（角标用全角 `［N］`）
 
@@ -47,7 +47,7 @@
   `AIO_HIPS_FLOAT64 = 1`（lib/infrastructure/aio/include/aio_hips.h）透传至
   `aio_hips_product_begin` 的 `data_type`，写盘 `BITPIX -32 / -64` 对应 CFITSIO
   `TFLOAT / TDOUBLE`（src/hips/aio_hips_writer.cpp）。**科学精度优先 FP64
-  reference，FP32 仅显式等价路径**（见 docs/engineering/PERFORMANCE_MODEL.md）。
+  reference，FP32 仅显式等价路径**（见 docs/engineering/resources/PERFORMANCE_MODEL.md）。
 - **UPM sparse format** = `acsd-upm-v2`（DATA-UPM-MODEL-001）。
 
 ## 4. 形态与原子提交
@@ -64,7 +64,7 @@
   产品级索引 `<name>.hips.index.json` 与完成清单 `manifest.json` 的 `storage`
   段（`storage_form` / `index_path` / `index_sha256` / `archive_sha256` /
   `archive_bytes` / `tree_hash`）的写出均为**待实现项**；形态事实登记落点的合同
-  口径见 docs/engineering/HIPS_STORAGE_FORM_CONTRACT.md §10；
+  口径见 docs/engineering/contracts/HIPS_STORAGE_FORM.md「形态的输入配置与输出清单字段」一节；
 - 所有产品：临时文件 / 目录 + 校验 + fsync + 原子 rename 提交；
 - **裸形态体积削减（文件系统打洞）**：`aio_sparse_punch.h` 是打洞机制的**唯一
   实现** —— 只对 4 KiB 对齐的**字面全零**块调
@@ -73,7 +73,7 @@
   **读回复算**整文件 `sha256`；不一致 ⇒ 硬错误、不发布；卷不支持 ⇒
   `trim = skipped(reason)` 的 warn 后照常发布。判据是**字节级**（`-0.0` 与 NaN
   的位型含非零字节 ⇒ 不可打洞）。打洞在 `write_fits_atomic` 内、`fsync` 之后与
-  原子 rename 之前完成；**归档容器不做打洞**（HIPS_STORAGE_FORM_CONTRACT §7）；
+  原子 rename 之前完成；**归档容器不做打洞**（docs/engineering/contracts/HIPS_STORAGE_FORM.md「体积削减（裸形态）」一节）；
 - **发布终态恰有三态**：① **已发布且持久化已确认**
   （`PublishDurability::kDurable`：`status = kOk`、`renamed = true`、rename 后
   目录 fsync 成功）；② **已发布但持久化未确认**（`kNotDurable`：目标**已可见且
@@ -113,7 +113,7 @@
   `lib/infrastructure/aio/include/aio_pipeline.h` 的「标准块定义表」**（aio 是
   文件级唯一 I/O 边界，块词表属 aio 的内存块合同）；其它文档只作引用 ——
   编排层的 6 个名字**不是块词表**，而是 `stage_trace.jsonl` 的**跟踪子集**；
-  DATA_SEMANTICS §11.1 的「帧内命名块」表**只作引用**。当前实现状态：标准块定义
+  docs/detail/registry/acsd.phase1.drizzle.md 的「帧内命名块」表**只作引用**。当前实现状态：标准块定义
   表**尚未收录** `variance` 块；`aio_pipeline.h` **仍允许**未列出的自定义块名；
   「块名 ∉ 标准表 ⇒ 判红」这条不变量当前无自动兜底，核对责任在对抗性审查。
 - `PipelineStageFn` 签名 = `const input / output / params` + `error_msg` /
@@ -129,11 +129,11 @@
 - 缺 tile / 非有限 → validity 标记，不以零填充；
 - 取消 → 无半成品；
 - I/O 错误 → exit 7（退出码唯一源 = lib/infrastructure/cli/exit_codes.h；域→码
-  映射唯一源 = docs/engineering/LOG_AND_ERROR_CONTRACT.md §5）；
+  映射唯一源 = docs/engineering/contracts/LOG_AND_ERROR.md「错误对象与退出码映射」一节）；
 - **日志落点** = 块级 `log_dir`（默认 `<output_dir>/logs`），节点事件经
   observability 汇聚（最高设计 §7.3）；落点之外的位置（含 `run/`、源码树目录、
   安装目录、用户家目录、进程 CWD 相对路径）均不在处置面内，判据见
-  docs/engineering/LOG_AND_ERROR_CONTRACT.md。日志内容 = 错误类别 + 消息。
+  docs/engineering/contracts/LOG_AND_ERROR.md。日志内容 = 错误类别 + 消息。
 
 ## 8. 执行类、并行轴、ThreadBudget lease、确定性
 

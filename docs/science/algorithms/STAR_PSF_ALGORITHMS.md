@@ -20,7 +20,8 @@
   θ=rad、residual_scale=ADU、q_psf=无量纲（均为 double/FLOAT64）。
 - 使用面：LM 拟合参数向量序（常数与维数 `lib/algorithms/psf/src/dpsf_psf.cpp`）、
   §3 伪代码 init/回填、测试 oracle（§10 解析 Moffat4 合成图回收 B,A,cx,cy,sx,sy,θ）。
-- 逐列 dtype/invalid 详见 DATA_SEMANTICS §15 生产表布局 B 对照。
+- 逐列 dtype/invalid 详见 `docs/detail/registry/acsd.phase1.star-psf.md`（DATA-P1-PSF 端口，
+  `DPSFFitResult` 逐列面）的生产表布局 B 对照。
 
 ### 1.2 布局 B：生产 PSF 块布局（编排序列化序，9 列，权威现状）
 
@@ -38,13 +39,14 @@
   cx/cy/fwhm/eccentricity 如上。
 - **θ 列不在此布局中**（布局 B 无 θ 列）；布局 A 的 θ 单位 rad，**规范值域
   `[0, π)`**，消费方必须先归约再作位置角解释（实测真实产物 `|θ|>π` 占 63.1%，
-  见 `docs/science/PSF.md` §3）。
+  见 `docs/science/psf/PSF.md` §4）。
 - **[7] 列名 `mad` 与语义**：权威语义 = 10–90% 截尾均值 |残差|（`residual_scale`，
   单位 ADU），**不是**中位绝对偏差；`robust_residual_sigma = [7]/0.7316727929211932`
-  仅在 Gaussian 残差且 `m ≥ 441` 时具绝对标度意义（`docs/science/PSF.md` §9）。
+  仅在 Gaussian 残差且 `m ≥ 441` 时具绝对标度意义（`docs/science/psf/PSF.md` §3.5）。
 - 消费者：PHOTOMETRIC（必需块，缺失退出码 3，`lib/infrastructure/pipeline/orchestrator/cpp/src/orchestrator.cpp`）、
   snr_psf_fit_quality（`lib/algorithms/noise_snr/cpp/include/snr_estimator.h` PsfFitQualityRow 同序映射）；
-  逐列 dtype/invalid 权威表见 **DATA_SEMANTICS §15.2 生产表布局 A**
+  逐列 dtype/invalid 权威表见 **`docs/detail/registry/acsd.phase1.star-psf.md` 的
+  DATA-P1-PSF 端口输出面**（`DPSFFitResult` 逐列序）
   （该文件在飞，本文件只作消歧引用，不复制其表）。
 
 ### 1.3 布局 C：批量 ABI 参数布局（`dpsf_fit_batch_f32/f64` 的消费/产出序，9 列）
@@ -61,7 +63,7 @@
   C 保留 `fwhm_x`/`fwhm_y` 两列而 B 只给平均。
 - **布局 A 无生产写出面**：`residual_scale`/`q_psf` 在 `lib/algorithms/psf/src/dpsf_psf.cpp`
   全文件 **0 命中** ⇒ A 是 oracle/测试与 SCI 参数序面，**不是**任何接口产出的生产块。
-- **DATA 侧待订正（登记移交，不代改）**：`docs/science/DATA_SEMANTICS.md`（star-detection 数据面节）把布局 C
+- **DATA 侧待订正（登记移交，不代改）**：`docs/detail/registry/acsd.phase1.star-detection.md`（DATA-P1-STAR 端口输出面）把布局 C
   与布局 B 当「同名异物」处理；实测二者**既不同名也不同物**（B 首列 status、C 首列 B）
   ⇒ 该处待订正；该文件当前在飞，本节只作消歧引用。
 

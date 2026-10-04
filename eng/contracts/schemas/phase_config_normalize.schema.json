@@ -24,8 +24,8 @@
     "顶层键闭包用 propertyNames 而非 additionalProperties：schema_version 与 cpu_profile 的同名键冲突登记（phase_config ∩ cpu_profile == {precision}）必须保持，故 schema_version 不进 properties；块内（normalize_block）无此冲突，仍用 additionalProperties:false 做机器拒绝。",
     "字段名与 DATA-001 锚点 eng/contracts/data/config_separation_anchors.json 的关系：本 schema 的顶层键 {schema_version, blocks} 与块内键（input_lights/master_*/output_dir/filter_passband/drizzle/wcs/...）以 docs/ACSD_DESIGN.md §3.3 的 JSON 数据块为准（最高权威）；锚点的 ^sci_*/^(input|output)_*/^algorithm_*/^phase_name$ 命名族用于「算法选择」与「输入输出路径」类字段（本 schema 的 algorithm_* 与 output_* 即该族）。旧逐帧形态 {phase_name, config, inputs[]} 已按 §9.68 删除。",
     "硬件字段禁令：ISA/workers/block/CPU 型号等一律不得出现在 phase_config（UNIFIED_MODEL.md §3；config_separation_anchors.json cross_class_forbidden.cpu_profile_keys_in_phase_config）。本 schema 用 additionalProperties:false 在块与 drizzle/wcs 两级做机器拒绝。",
-    "算法选择的逐项权威见 docs/engineering/CONFIG_CONTRACT.md §3。",
-    "**落盘形态键 storage_form**：Phase1 产品的落盘形态是**输入配置项**，不是运行期开关——取值 archive（默认）/ bare；键缺失、空串或 null ⇒ 取默认 archive 并报一条 level=warn 事件（不静默取默认）。合同与判据：docs/engineering/HIPS_STORAGE_FORM_CONTRACT.md §10、docs/detail/PRODUCT_STORAGE_FORM.md §10；字段词表唯一源 = eng/contracts/schemas/hips_storage_form.schema.json#x-acsd-field-vocabulary。本键**只**出现在 normalize（Phase2 固定裸服务面、Phase3 固定裸 FITS 不套壳）——mosaic/export 出现本键一律 REJECT。生产消费点（写出侧按形态落盘）属分阶段实现计划阶段 2；在此之前 CLI 只识别并透传，不得静默 no-op。",
+    "算法选择的逐项权威见 docs/engineering/contracts/CONFIG.md §3。",
+    "**落盘形态键 storage_form**：Phase1 产品的落盘形态是**输入配置项**，不是运行期开关——取值 archive（默认）/ bare；键缺失、空串或 null ⇒ 取默认 archive 并报一条 level=warn 事件（不静默取默认）。合同与判据：docs/engineering/contracts/HIPS_STORAGE_FORM.md §10、docs/detail/PRODUCT_STORAGE_FORM.md §10；字段词表唯一源 = eng/contracts/schemas/hips_storage_form.schema.json#x-acsd-field-vocabulary。本键**只**出现在 normalize（Phase2 固定裸服务面、Phase3 固定裸 FITS 不套壳）——mosaic/export 出现本键一律 REJECT。生产消费点（写出侧按形态落盘）属分阶段实现计划阶段 2；在此之前 CLI 只识别并透传，不得静默 no-op。",
     "块内键集派生（键名一律以命令行实际认的键为准）：唯一声明 = lib/infrastructure/cli/session_commands.h 的 config_fields(SESSION_NORMALIZE) + parser.cpp block_keys()={name, output_dir}。**登记在案的既存差异（实测，未修）**：normalize_block 另含 12 个会话可选键（cosmetic / dark_optimization / dark_scale_factor / master_units / master_scale / master_flat_normalize / master_flat_median_range / photometry / sparse_snr_layer / sparse_snr_spacing_px / algorithm_drizzle_pixfrac / algorithm_psf_model）——它们在 parser.cpp session_keys()（平铺白名单）内、可经平铺简写到达，但**不在** config_fields() 内 ⇒ CLI 的块内未知键门（session_blocks_errors）对块内出现它们判 rc=3（实测）。收口二选一（均不在本任务文件域）：① 把这 12 键补进 config_fields()（lib/infrastructure/cli/**）；② 从 normalize_block 移除并改指 config_registry.json 的两条 sparse_snr_layer 登记点（eng/packaging/config/**）。在收口前，块内出现这 12 键是「schema 通过但 CLI rc=3」，不得据此认为块面已同构。",
     "（不存在「权重模式」）本 schema 任何分支都**不含** weight_mode / legacy_allow_weight_fallback / algorithm_weight_mode。",
     "star_detection 段（B3 收口）：段内键 = 生产节点 p1_guided_cfg（lib/infrastructure/scheduler/src/module_adapters.cpp）实际读取的键集；缺段 = 取编译期默认，不是错误。段内键名 mode 与 cpu_profile 的 legacy_v1/kernel_v1 同名（语义无关：检测模式 vs CPU profile 模式；且不在 cross_class_forbidden.cpu_profile_keys_in_phase_config 硬件禁止名列表内）⇒ 按**登记制**处置（登记面 = eng/contracts/data/config_separation_anchors.json#cross_class_forbidden.documented_same_name）。键闭包由 propertyNames.enum + additionalProperties:false 保证。合同文档 = docs/detail/algorithms_phase1/03_star_detection.md §5.1；登记册 = eng/packaging/config/config_registry.json（03_star_detection 组）。"
@@ -143,7 +143,7 @@
           "type": "number",
           "exclusiveMinimum": 0,
           "maximum": 1,
-          "description": "drizzle drop 收缩因子 pixfrac（0 < pixfrac <= 1；语义/值域权威 docs/science/DRIZZLE.md + docs/science/algorithms/DRIZZLE_GEOMETRY.md；非法值显式 NO_DATA 不夹逼）"
+          "description": "drizzle drop 收缩因子 pixfrac（0 < pixfrac <= 1；语义/值域权威 docs/science/drizzle/DRIZZLE.md + docs/science/algorithms/DRIZZLE_GEOMETRY.md；非法值显式 NO_DATA 不夹逼）"
         },
         "precision_mode": {
           "enum": [
@@ -222,7 +222,7 @@
     },
     "cosmetic": {
       "type": "object",
-      "description": "宇宙线/坏点配置块（cosmetic.enabled 等；值类型与默认见 docs/science/DATA_SEMANTICS.md §16.1）"
+      "description": "宇宙线/坏点配置块（cosmetic.enabled 等；值类型与默认见 docs/science/unified/DATA_SEMANTICS.md §16.1）"
     },
     "snr": {
       "type": "object",
@@ -231,7 +231,7 @@
     "noise_config": {
       "type": "object",
       "additionalProperties": false,
-      "description": "噪声模型配置段（SCI-NOISE / docs/science/NOISE_MODEL.md §4/§5/§5a）。**唯一消费点** = lib/infrastructure/scheduler/src/module_adapters.cpp 的 p1_noise_cfg_apply（由 p1_noise_model_for_frame 调用，SNR 节点与 drizzle 逐像素 variance 块共用同一份配置推导）；缺段 = 全取 snr_noise_model_v1_default_config 的冻结默认（不是错误，数值逐位不变）。段内键 = 该函数实际写入 SnrNoiseModelConfig 的全部键（封闭词表）；**未知键即 DATA 拒绝（rc=3），禁静默忽略**（静默忽略等于把「声明了没消费」换成「假装消费」）。逐键实际生效值以产物诊断键 noise_cfg_applied 回执。",
+      "description": "噪声模型配置段（SCI-NOISE / docs/science/noise_snr/NOISE_SNR.md §4/§5/§5a）。**唯一消费点** = lib/infrastructure/scheduler/src/module_adapters.cpp 的 p1_noise_cfg_apply（由 p1_noise_model_for_frame 调用，SNR 节点与 drizzle 逐像素 variance 块共用同一份配置推导）；缺段 = 全取 snr_noise_model_v1_default_config 的冻结默认（不是错误，数值逐位不变）。段内键 = 该函数实际写入 SnrNoiseModelConfig 的全部键（封闭词表）；**未知键即 DATA 拒绝（rc=3），禁静默忽略**（静默忽略等于把「声明了没消费」换成「假装消费」）。逐键实际生效值以产物诊断键 noise_cfg_applied 回执。",
       "propertyNames": {
         "enum": [
           "patch_grid",
@@ -338,7 +338,7 @@
           "type": "number",
           "exclusiveMinimum": 0,
           "default": 1e-12,
-          "description": "ivar 分母下限（**单位 ADU²**，§7 冻结默认 1e-12）。承载 ADU 标度量的键：数组被上游测光归一化（x' = α·x）时按 α² 换算，换算责任方 = 调用方（docs/engineering/CONFIG_CONTRACT.md 逐键标度类别表）。"
+          "description": "ivar 分母下限（**单位 ADU²**，§7 冻结默认 1e-12）。承载 ADU 标度量的键：数组被上游测光归一化（x' = α·x）时按 α² 换算，换算责任方 = 调用方（docs/engineering/contracts/CONFIG.md 逐键标度类别表）。"
         },
         "saturation_level": {
           "type": "number",
@@ -469,13 +469,13 @@
       "type": "number",
       "exclusiveMinimum": 0,
       "maximum": 1,
-      "description": "drizzle drop 收缩因子 pixfrac（字段收录；语义/值域权威：docs/science/DRIZZLE.md 与 docs/science/algorithms/DRIZZLE_GEOMETRY.md——0 < pixfrac <= 1，非法值显式 NO_DATA 不夹逼）。数值默认未冻结（defaults.json 的 drizzle.pixfrac 为 pending_authority），本字段不声明数值默认。"
+      "description": "drizzle drop 收缩因子 pixfrac（字段收录；语义/值域权威：docs/science/drizzle/DRIZZLE.md 与 docs/science/algorithms/DRIZZLE_GEOMETRY.md——0 < pixfrac <= 1，非法值显式 NO_DATA 不夹逼）。数值默认未冻结（defaults.json 的 drizzle.pixfrac 为 pending_authority），本字段不声明数值默认。"
     },
     "algorithm_psf_model": {
       "enum": [
         "moffat4"
       ],
-      "description": "PSF 模型选择；当前唯一实现路径为椭圆 Moffat4（docs/science/PSF.md；defaults.json psf.default_model）"
+      "description": "PSF 模型选择；当前唯一实现路径为椭圆 Moffat4（docs/science/psf/PSF.md；defaults.json psf.default_model）"
     },
     "storage_form": {
       "type": [
@@ -489,7 +489,7 @@
         null
       ],
       "default": "archive",
-      "description": "Phase1 产品的落盘形态（唯一词表见 eng/contracts/schemas/hips_storage_form.schema.json#x-acsd-field-vocabulary）：archive = <name>.hips.zst（整包 tar + 逐成员独立 zstd 帧，**默认**）；bare = <name>.hips/（目录）。**键缺失、空串或 null** ⇒ 取默认 archive，并按日志合同报一条 level=warn 事件（docs/engineering/LOG_AND_ERROR_CONTRACT.md §2；禁止静默取默认）。形态只改磁盘表示与 I/O 路径，不改任何科学结果——同一输入下两形态的产品内容逐字节一致（产品身份 tree_hash 取解压后内容，两形态同身份）。mosaic / export 的输入合同**不设**本键：它们的落盘形态固定（Phase2 裸服务面 / Phase3 裸 FITS 不套壳），出现 storage_form 一律 REJECT。"
+      "description": "Phase1 产品的落盘形态（唯一词表见 eng/contracts/schemas/hips_storage_form.schema.json#x-acsd-field-vocabulary）：archive = <name>.hips.zst（整包 tar + 逐成员独立 zstd 帧，**默认**）；bare = <name>.hips/（目录）。**键缺失、空串或 null** ⇒ 取默认 archive，并按日志合同报一条 level=warn 事件（docs/engineering/contracts/LOG_AND_ERROR.md §2；禁止静默取默认）。形态只改磁盘表示与 I/O 路径，不改任何科学结果——同一输入下两形态的产品内容逐字节一致（产品身份 tree_hash 取解压后内容，两形态同身份）。mosaic / export 的输入合同**不设**本键：它们的落盘形态固定（Phase2 裸服务面 / Phase3 裸 FITS 不套壳），出现 storage_form 一律 REJECT。"
     },
     "normalize_block": {
       "type": "object",
@@ -524,7 +524,7 @@
         },
         "dark_scale_factor": {
           "type": "number",
-          "description": "dark 缩放因子（K = t_light/t_dark 语义见 docs/science/CALIBRATION.md）；运行期兜底 1.0"
+          "description": "dark 缩放因子（K = t_light/t_dark 语义见 docs/science/calibration/CALIBRATION.md）；运行期兜底 1.0"
         },
         "master_units": {
           "$ref": "#/$defs/master_units"
@@ -610,7 +610,7 @@
     },
     "dark_scale_factor": {
       "type": "number",
-      "description": "dark 缩放因子（K = t_light/t_dark 语义见 docs/science/CALIBRATION.md）；运行期兜底 1.0"
+      "description": "dark 缩放因子（K = t_light/t_dark 语义见 docs/science/calibration/CALIBRATION.md）；运行期兜底 1.0"
     },
     "master_units": {
       "$ref": "#/$defs/master_units"

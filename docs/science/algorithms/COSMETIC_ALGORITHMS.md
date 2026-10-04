@@ -8,7 +8,7 @@
 > `lib/algorithms/calibration/src/ac_api.cpp:108,228`，签名权威
 > `lib/algorithms/calibration/include/astro_calibration.h:97,142`）；迁移目标目录
 > `lib/algorithms/cosmetic/`（落码由 P1-COS-IMPL 执行，尚未存在生产符号）。
-> 科学定义见 `docs/science/CALIBRATION.md`（SCI-CAL-001，FROZEN，§2 参数表
+> 科学定义见 `docs/science/calibration/CALIBRATION.md`（SCI-CAL-001，FROZEN，§2 参数表
 > `hot_sigma/cold_sigma/method/max_structure_size`、§6 假设、§9a mask 极性
 > 1=坏点）。本文档只登记离散算法与实现事实，不修改 SCI；算法分层与
 > ALG-CAL-004 的重叠界定见 §0。状态词唯一口径 = `ACSD_DESIGN.md` §12.5；IMPLEMENTED 只由验收签发。
@@ -47,7 +47,7 @@ interpolate_pixels/correct_frame`（cosmetic_corrector.cpp:61-265，经
   ADU，`[h][w]` 行主序 0-based），sigma 倍数 `threshold_sigma`
   （无量纲），结构尺寸上限 `max_size`（像素个数）。
 - **标度与量纲（冻结，逐项）**：`threshold_sigma` 无量纲；`med`/`mad`/`σ`/阈值与
-  `src` 同标度（ADU 域定义见 `docs/science/CALIBRATION.md` §3：
+  `src` 同标度（ADU 域定义见 `docs/science/calibration/CALIBRATION.md` §3：
   `物理值 = BSCALE·样本 + BZERO`）。
   - **检出集合对 `src` 的正标度变换严格不变**：`med`/`σ`/阈值三者同步缩放，
   比较 `src[i] > med + threshold_sigma·σ` 在 `c>0` 下等价；结构过滤只依赖
@@ -257,10 +257,10 @@ interpolate_pixels/correct_frame`（cosmetic_corrector.cpp:61-265，经
 
 > **登记依据**：本节为 P-198 补登（原文档 §0/§11 只登记 `ALG-COS-001..005`，坏列/方差管线
 > `:268-784` 与 6 个在役 `AC_API` 导出**零登记**；`docs` 全库 `bad_column` 符号 0 命中）。
-> SCI 侧无独立条款（`docs/science/CALIBRATION.md` §12 只登记坏点检测/修复 = ALG-CAL-004）；本族为
+> SCI 侧无独立条款（`docs/science/calibration/CALIBRATION.md` §12 只登记坏点检测/修复 = ALG-CAL-004）；本族为
 > **Project-defined 实现**，其 `ALG-COS-006` 身份由本节首次落册。
 > **冻结面**：判据形式、`1.482602218505602` 常数、状态位语义、修复算子与**默认参数**均属冻结面
-> （`DATA_SEMANTICS.md` §10.4「修复」行），本节只登记事实，不改公式/容差/默认值。
+> （`docs/detail/registry/acsd.phase1.cosmetic.md` 的坏列检测/修复行），本节只登记事实，不改公式/容差/默认值。
 
 - 源码锚（唯一生产源，口径同 §0「单一生产源（冻结）」）：`cosmetic_corrector.cpp:268-784`。
 - **独立路径（冻结）**：本节任何函数都不被 ALG-COS-001..005 的函数调用，也不改变其判据/阈值/语义；
@@ -485,13 +485,13 @@ var_out[y][x] = (Σw² · var_in[y][x]) · κ      # 只对被修复列（掩膜
 
 ## 11 关联
 
-- SCI: SCI-CAL-001（docs/science/CALIBRATION.md，FROZEN；§2 参数表、
+- SCI: SCI-CAL-001（docs/science/calibration/CALIBRATION.md，FROZEN；§2 参数表、
   §6 坏点稀疏假设、§9a mask 极性 1=坏点、§11 oracle 容差标度）。
-- DATA: DATA-P1-COS（docs/science/DATA_SEMANTICS.md §10）；上游输入
+- DATA: DATA-P1-COS（docs/detail/registry/acsd.phase1.cosmetic.md）；上游输入
   DATA-P1-CAL（§9）。
-- API: API-COS-001（docs/engineering/PUBLIC_API.md，ac_correct_frame/
+- API: API-COS-001（docs/engineering/api/PUBLIC_API.md，ac_correct_frame/
   ac_correct_frame_f64/ac_set_num_threads）；API-P1-002
-  （docs/engineering/PHASE1_API_V1.md §2，编排合同，多模块共享）。
+  （docs/engineering/api/PUBLIC_API.md §2，编排合同，多模块共享）。
 - MOD/SRC: MOD-acsd-phase1-cosmetic（lib/algorithms/cosmetic/module.yaml，
   CONTRACT_READY；lib/algorithms/cosmetic/README.md 实现事实）。
 - TEST: TEST-COS-DESIGN-001（本文档 §9）；可执行 TEST-P1-COS-001 由
@@ -515,5 +515,5 @@ var_out[y][x] = (Σw² · var_in[y][x]) · κ      # 只对被修复列（掩膜
 
 参考代码库（含许可证）正本 = docs/engineering/SCIENTIFIC_REFERENCES.md §M。
 
-**权威依据**：本文件 ALG-COS-001..006 的上游科学定义 = `docs/science/CALIBRATION.md`（SCI-CAL-001，FROZEN；§2 参数表与 §12 坏点检测/修复登记，ALG-CAL-004 关系见本文件 §0）；C API 合同面 = `docs/engineering/PUBLIC_API.md`（cosmetic 条目：SCI: SCI-CAL-001 / ALG: ALG-COS-001..006 / DATA: DATA-P1-COS）；算法口径的唯一算法文档落位 = 本文件。
+**权威依据**：本文件 ALG-COS-001..006 的上游科学定义 = `docs/science/calibration/CALIBRATION.md`（SCI-CAL-001，FROZEN；§2 参数表与 §12 坏点检测/修复登记，ALG-CAL-004 关系见本文件 §0）；C API 合同面 = `docs/engineering/api/PUBLIC_API.md`（cosmetic 条目：SCI: SCI-CAL-001 / ALG: ALG-COS-001..006 / DATA: DATA-P1-COS）；算法口径的唯一算法文档落位 = 本文件。
 

@@ -12,7 +12,7 @@
 - **非目标**：不处理带通外颜色项高阶效应（仅 QA 暴露残差分布）；不估计逐像素噪声方差（SCI-NOISE 边界）；不做大气消光时变建模。
 - **测光标定语义（不可协商）**：标定目标是**真实测光坐标系（星等）**，手段 = 星点光通量积分 + Gaia + CCD QE + 滤镜透过率曲线。**「消除物理单位」的准确含义 = 不宣称绝对通量刻度、仪器参数只以未知量形式被吸收（§16.3），不是「产品面只写星等」**——两个面必须分开写：
   - **定标坐标系（星等面）**：零点、残差与判据都在 `log10`/星等域表达（`location` 单位 dex、`sigma_mag` 单位 mag），绝对通量刻度不被宣称；
-  - **像素承载面（线性标度面）**：`I_photo = k_photo·m(x,y)·I_cal`（§16.1 ⑤），标度类别 = `photo_scaled_adu`；单位随输入标度（输入 `ADU` ⇒ 输出 `[F_syn 单位]`），消费按 `x′ = α·x ⇒ Var′ = α²·Var`、`ivar′ = ivar/α²`（`docs/engineering/NUMERIC_STANDARD.md`「量纲与标度」；`docs/science/SCIENCE_SCOPE.md` §变量/单位）。
+  - **像素承载面（线性标度面）**：`I_photo = k_photo·m(x,y)·I_cal`（§16.1 ⑤），标度类别 = `photo_scaled_adu`；单位随输入标度（输入 `ADU` ⇒ 输出 `[F_syn 单位]`），消费按 `x′ = α·x ⇒ Var′ = α²·Var`、`ivar′ = ivar/α²`（`docs/engineering/standards/NUMERIC.md`「量纲与标度」；`docs/science/unified/SCIENCE_SCOPE.md` §变量/单位）。
 标定因子（本文件 `scale`、Phase1 标定面 `k_photo`）的**绝对值无物理意义**——它把增益/口径/曝光等**未知量全部吸收**；物理闭合式（如 `k = g·h·c·1e9/(A·t)`）只作形式对照，仪器参数一律按未知量处理（设计前提 = **FITS 头拿不到这些量**）。**有意义的判据只有一条（尺度无关）**：**测光一致性**——施加后星点**星等**与 Gaia 的残差（散度/MAD）必须小。
 **「帧间一致性」（各帧 `k`/`scale` 落在同一测光体系）是语义目标与报告字段，不是门禁判据**：`k_photo`/`scale` 逐帧独立标定，判据只有单帧测光一致性。
 门只有一个 = 单帧标定是否可信，与其它帧无关；跨帧 `k` 不同属正常且正确。
@@ -48,7 +48,7 @@ F_syn = ∫ F_λ(λ) · T(λ) · Q(λ) · λ dλ            # W·m⁻²·nm
 **必须是什么**
 
 - `F_λ(λ)` 是参考星的**绝对**谱辐照度，单位 **W·m⁻²·nm⁻¹**；来源 = Gaia DR3 XP 采样均值谱（官方字段 `flux`，声明单位 `Flux[W m-2 nm-1]`、自述 "Externally-calibrated combined BP and RP flux"）。
-  - 本仓生产消费的是该官方产品的**第三方再编码容器**（PixInsight XPSD，见 §14a［29］）：官方以 float32 直接给出 `flux`，容器以 **uint8 + 逐星 float32 量化参数** 存储，解码式 `F_λ = byte·flux_mul + flux_min` 是**本仓合同约定**（`gaia_client.c` / `DATA_SEMANTICS.md` §14.2），其**绝对刻度由本轮真实数据实证锚定**（§2a.6），不依赖对容器内部约定的信任。
+  - 本仓生产消费的是该官方产品的**第三方再编码容器**（PixInsight XPSD，见 §14a［29］）：官方以 float32 直接给出 `flux`，容器以 **uint8 + 逐星 float32 量化参数** 存储，解码式 `F_λ = byte·flux_mul + flux_min` 是**本仓合同约定**（`gaia_client.c` / `docs/science/unified/DATA_SEMANTICS.md` §4.3），其**绝对刻度由本轮真实数据实证锚定**（§2a.6），不依赖对容器内部约定的信任。
   - 官方产品本身**可以含负值**（外部定标谱在低信噪波段出现负通量，不做裁剪）；因此"解码后出现负值"不是容器缺陷，非正 `F_syn` 由调用方有效域判据拒绝（§4/§8）。
 - `T(λ)` 是滤镜透过率，无量纲，值域 `[0,1]`；来源 = 本帧配置声明的滤镜型号在 `filters.json` 中的曲线。
 - `Q(λ)` 是探测器量子效率，无量纲，值域 `[0,1]`；**是通带的组成部分**（见 §2a.4），不是可选装饰。
@@ -73,7 +73,7 @@ F_syn = ∫ F_λ(λ) · T(λ) · Q(λ) · λ dλ            # W·m⁻²·nm
 | `Q(λ)` | `1` | 无量纲量子效率 |
 | `λ` | `nm` | 光子计数权重 |
 | `dλ` | `nm` | 积分元 |
-| **`F_syn`** | **`W·m⁻²·nm⁻¹ · nm · nm = W·m⁻²·nm`** | 与 §2 符号表、`DATA_SEMANTICS.md` §14.3 一致 |
+| **`F_syn`** | **`W·m⁻²·nm⁻¹ · nm · nm = W·m⁻²·nm`** | 与 §2 符号表、`docs/detail/registry/acsd.phase1.photometry.md`（DATA-P1-PHOT 端口，`F_syn` 与 `location`/`scale` 面）一致 |
 
 - 物理含义：`F_syn = hc · N_γ`，其中 `N_γ` 为通带内**光子计数率**（photons·s⁻¹·m⁻²），`hc` 以 `J·nm` 计（`hc = 1.986445857e-16 J·nm`）。因此 `F_syn` 与光子计数率**只差一个与星无关的常数**，这正是 §1 所述「常数由零点吸收」的量纲依据。
 - `F_instr` 单位 ADU，与 `F_syn` **量纲不同**；`r_i = log10(F_instr/F_syn)` 是有量纲比值的对数，`location` 单位 `dex(ADU/[F_syn 单位])`，`scale = 10^{−location}` 单位 `[F_syn 单位]/ADU`（§3）。
@@ -137,7 +137,7 @@ Gaia DR3 官方文档［17］§5.4.1「External Calibration → Zero points」�
 
 **必须是什么**
 
-- 曲线解析的输入是**滤镜库对象键**（`resolve(name) = filters[name]`，字节精确、不折叠大小写/空白、不解析别名，见 `docs/engineering/CONFIG_CONTRACT.md` §4 与 `eng/packaging/config/filters.json#lookup`）。解析结果必须**自证身份**（判据 = 下节四项同时成立）。
+- 曲线解析的输入是**滤镜库对象键**（`resolve(name) = filters[name]`，字节精确、不折叠大小写/空白、不解析别名，见 `docs/engineering/contracts/CONFIG.md` §4 与 `eng/packaging/config/filters.json#lookup`）。解析结果必须**自证身份**（判据 = 下节四项同时成立）。
 - 判定「取到的就是声明的那条曲线」需要**四项同时成立**：
 
   | 项 | 内容 | 不成立的后果 |
@@ -172,7 +172,7 @@ Gaia DR3 官方文档［17］§5.4.1「External Calibration → Zero points」�
 
 ## 3 物理量和单位
 
-- `F_instr`: ADU（e⁻ 需 gain，当前不可得；增益 `g` 的**单位语义固定为** e⁻/ADU，换算 `ADU = N_e/g`，与 `ACSD_DESIGN.md` §2.2 增益约定同源）；`F_syn`: **W·m⁻²·nm**（`F_syn = ∫F_λ(λ)·T(λ)·Q(λ)·λ dλ`，`F_λ` 单位 W·m⁻²·nm⁻¹、`λ` 与 `dλ` 单位 nm；逐项量纲见 §2a.2）；二者**不同量纲**，其比值的对数即 `location`（见 DATA_SEMANTICS §14.3）；`r, location, S, sigma_residual`: dex（`r_i = log10(F_instr/F_syn)` 是**有量纲比值**的对数，`location` 单位 dex(ADU/[F_syn 单位])，`scale = 10^{−location}` 单位 [F_syn 单位]/ADU）；`delta, sigma_mag`: mag；`sigma_cal_rel`: 相对误差（`sigma_cal_rel = ln10·sigma_residual`）；`qf` 无量纲标志。
+- `F_instr`: ADU（e⁻ 需 gain，当前不可得；增益 `g` 的**单位语义固定为** e⁻/ADU，换算 `ADU = N_e/g`，与 `ACSD_DESIGN.md` §2.2 增益约定同源）；`F_syn`: **W·m⁻²·nm**（`F_syn = ∫F_λ(λ)·T(λ)·Q(λ)·λ dλ`，`F_λ` 单位 W·m⁻²·nm⁻¹、`λ` 与 `dλ` 单位 nm；逐项量纲见 §2a.2）；二者**不同量纲**，其比值的对数即 `location`（见 `docs/detail/registry/acsd.phase1.photometry.md` DATA-P1-PHOT 端口）；`r, location, S, sigma_residual`: dex（`r_i = log10(F_instr/F_syn)` 是**有量纲比值**的对数，`location` 单位 dex(ADU/[F_syn 单位])，`scale = 10^{−location}` 单位 [F_syn 单位]/ADU）；`delta, sigma_mag`: mag；`sigma_cal_rel`: 相对误差（`sigma_cal_rel = ln10·sigma_residual`）；`qf` 无量纲标志。
 
 ## 3a 坐标 frame
 
@@ -210,14 +210,14 @@ outlier_rate = 1 − |r_inliers|/|r_consistent|
 
 与 `lib/algorithms/photometry/cpp/src/star_matcher.cpp`（常数 `_MAD_SCALE/_TUKEY_C/_IRLS_MAX_ITER/_IRLS_CONVERGE`）、（星等一致性预过滤）、（`|r_consistent|<3 ⇒ NO_DATA`）、（IRLS/Tukey 迭代）、（`scale`/inliers/`sigma_residual`）及 `lib/algorithms/photometry/cpp/src/pc_api.cpp`（`mag_tolerance=3.0` 实际传入点；`star_matcher.cpp` 仅为 `psf_valid` 诊断）一致。
 - **`mag_tolerance = 3.0 mag` 的地位与适用域（正向约束）**：它是**进入 IRLS 之前的粗预过滤窗**，单位 mag，量纲上等价于通量比 `10^{0.4·3.0} ≈ 15.85×`；其作用是剔除与 Gaia 星等明显不一致的错配/污染样本，**不是**标定质量的判据。
-  - **证据出处**：Project-defined 冻结值（配置键 `photometry.mag_tolerance`，`eng/packaging/config/defaults.json`；合同字段 `docs/science/DATA_SEMANTICS.md` §测光字段表「合同值 3.0」；算法侧 `docs/science/algorithms/PHOTOMETRIC_FIT.md` 星等预过滤行）。本层**不引用文献**为该窗宽背书。
+  - **证据出处**：Project-defined 冻结值（配置键 `photometry.mag_tolerance`，`eng/packaging/config/defaults.json`；合同字段 `docs/detail/registry/acsd.phase1.photometry.md`（DATA-P1-PHOT 端口）的「合同值 3.0」；算法侧 `docs/science/algorithms/PHOTOMETRIC_FIT.md` 星等预过滤行）。本层**不引用文献**为该窗宽背书。
   - **为什么窗宽不构成风险**：真正决定鲁棒性的是其后 IRLS/Tukey 层——`S = MAD(r)/0.6744897501960817`、`c = 4.685` 的 biweight 截断（§7「鲁棒性」不变量：注入 20% 离群 `location` 变化 `<0.1 dex`）。预过滤窗只需保证「不放走数量级级错配」，不需要窄。
   - **变更约束**：改该值属 §10 列出的不可接受变化，须走 SCI 变更。
 
 ## 6 假设
 
 - 参考端 `F_λ` 是 Gaia DR3 XP 采样均值谱的**外部定标**（绝对）谱辐照度，单位 W·m⁻²·nm⁻¹；本合同据此在**模型通带 `T(λ)·Q(λ)·λ` 内**做正向合成（§2a）。
-- **绝对归一化不可辨识，通带形状必须正确**：`F_syn` 与官方「平均通量」只差一个与星无关的分母（§2a.3），该常数被 `location` 吸收，故本合同**不宣称产物处于绝对通量刻度**（数据形态 = 带逐帧相对测光零点的**线性面亮度**；「以星等表达」只发生在**派生/展示**侧、星等不落盘——口径正本 = `ACSD_DESIGN.md` §2.1 两条冻结语句与 §4.4 测光输出语义、`docs/science/DATA_SEMANTICS.md` §31.1a）；但通带形状（含 `Q(λ)`）**不被吸收**，其失配直接进入 `sigma_residual`（§2a.5）。
+- **绝对归一化不可辨识，通带形状必须正确**：`F_syn` 与官方「平均通量」只差一个与星无关的分母（§2a.3），该常数被 `location` 吸收，故本合同**不宣称产物处于绝对通量刻度**（数据形态 = 带逐帧相对测光零点的**线性面亮度**；「以星等表达」只发生在**派生/展示**侧、星等不落盘——口径正本 = `ACSD_DESIGN.md` §2.1 两条冻结语句与 §4.4 测光输出语义、`docs/science/unified/DATA_SEMANTICS.md` §3.4）；但通带形状（含 `Q(λ)`）**不被吸收**，其失配直接进入 `sigma_residual`（§2a.5）。
 - **模型通带不含光学系统透过率与大气消光**（显式未建模项，跨帧会成为帧间系统差）；`Q(λ)` 缺失时按 `Q≡1`（显式未建模项，§2a.4）；大气/仪器零点在观测尺度稳定；饱和判据可靠（`psf_status==0` 且无 `SATURATED` 标志）。
 - **适用域**：
   - 通带必须被 XP 覆盖（330–1050 nm）**完全包含**；官方口径同此（［19］§8.4："any photometric system whose passbands are fully enclosed in the 330-1050 nm wavelength range covered by Gaia BP and RP spectra"）。本仓消费的采样网格为 336–1020 nm、步长 2 nm、343 点；网格外 `T·Q` 置 0 而**不外推**。
@@ -252,7 +252,7 @@ outlier_rate = 1 − |r_inliers|/|r_consistent|
 ## 9a 口径问答：孔径测光与 PSF 域的边界
 
 - **WCS frame/pixel convention**：不在本层处理；交叉匹配依赖 SCI-WCS 输出的 ICRS/J2000 坐标（§3a）。
-- **PSF 参数**：星点通量来自 PSF 拟合域（PSF.md），饱和判据 `psf_status/SATURATED` 决定剔除（§4）。
+- **PSF 参数**：星点通量来自 PSF 拟合域（docs/science/psf/PSF.md），饱和判据 `psf_status/SATURATED` 决定剔除（§4）。
 - **aperture/flux/background**：`F_instr` 为仪器通量（ADU·px 或 e⁻ 同尺度）；无孔径背景扣除项——背景已在 PSF/测光上游处理；`F>0` 有限值为有效域，非有限显式拒绝（§8）。
 - **photometric scale 与不确定度**：`scale=10^{−location}`（IRLS/Tukey 稳健位置）；不确定度 `sigma_residual`（dex）→`sigma_mag`（mag）→`sigma_cal_rel`（相对）；`q_psf`/`sigma_residual` 与逐像素 ivar 各自具名（§10）。
 
@@ -281,12 +281,12 @@ outlier_rate = 1 − |r_inliers|/|r_consistent|
 - 权威文件: `docs/science/PHOTOMETRY.md` (SCI-PHOT-001)
 - 实现: `lib/algorithms/photometry/cpp/src/star_matcher.cpp` (`location/S/scale, mag_tolerance, IRLS`), `lib/algorithms/photometry/cpp/src/pc_api.cpp` (`pc_calibrate_simple`)
 - 公开 API: `lib/algorithms/photometry/cpp/include/photometric_calib.h` (`pc_calibrate_simple, pc_calibrate_simple_with_gaia`)
-- 测试: `TST-PHOT-001` 合成零点、`TST-PHOT-INV-001` 鲁棒性、`TST-PHOT-FAIL-001` 饱和拒（新增/映射见 `docs/engineering/TRACEABILITY_SPEC.md §10`）
+- 测试: `TST-PHOT-001` 合成零点、`TST-PHOT-INV-001` 鲁棒性、`TST-PHOT-FAIL-001` 饱和拒（新增/映射见 `docs/engineering/governance/TRACEABILITY.md §10`）
 
 ## 14 Primary literature（引用定位声明）
 
 1. Tukey biweight `c=4.685`（95% 高斯渐近效率）：教材出处 = Mosteller & Tukey 1977［2］（书目见 §14a）。一手锚 = Kafadar, K. 1983［1］；[PMC6768164](https://pmc.ncbi.nlm.nih.gov/articles/PMC6768164/) 即该文全文，定位经其原文实证核对（原文含 "c=4.685 yields 95% asymptotic efficiency at the Gaussian" 原句）。
-2. MAD→σ 换算 `1/0.6744897501960817 = 1.482602218505602`：标准正态 MAD 分位恒等式（`Φ⁻¹(3/4) = 0.6744897501960817`，double 逐位等于 `1/1.482602218505602`；与 `docs/science/NOISE_MODEL.md` §14 同值），教科书级恒等式，Project-defined 采纳。4 位截断写法 `0.6745` 与全精度值相对差 **+1.5196e-05**，只允许出现在「≈」语境并标注该偏差；权威值 = 全精度写法。
+2. MAD→σ 换算 `1/0.6744897501960817 = 1.482602218505602`：标准正态 MAD 分位恒等式（`Φ⁻¹(3/4) = 0.6744897501960817`，double 逐位等于 `1/1.482602218505602`；与 `docs/science/noise_snr/NOISE_SNR.md` §3.1 稳健尺度节同值），教科书级恒等式，Project-defined 采纳。4 位截断写法 `0.6745` 与全精度值相对差 **+1.5196e-05**，只允许出现在「≈」语境并标注该偏差；权威值 = 全精度写法。
 3. Gaia DR3 合成通量参考：Gaia DR3 星表发布文献［11］——bibcode 级定位（未逐页核验），本合同仅消费星表数值，不转述其定标推导。
 
 ## 14a 参考文献与参考代码库（含许可证）
@@ -298,7 +298,7 @@ outlier_rate = 1 − |r_inliers|/|r_consistent|
 - **［3］ Tukey biweight `c=4.685`**：Beaton, A. E. & Tukey, J. W. 1974, Technometrics 16, 147（DOI 10.1080/00401706.1974.10489171）。
 - **［4］ Tukey biweight `c=4.685`**：Huber, P. J. & Ronchetti, E. 2009, *Robust Statistics*, 2nd ed., Wiley（ISBN 978-0-470-12990-6）。
 - **［5］ MAD→σ 换算 `0.6744897501960817 = Φ⁻¹(3/4)`**：标准正态分位恒等式（§14 第 2 条）；稳健性讨论见 Rousseeuw, P. J. & Croux, C. 1993, JASA 88, 1273（DOI 10.1080/01621459.1993.10476408；§16.5 引其 Table 2 的 MAD 标准化方差 1.361）。
-- **［6］ 反方差（ivar）权重口径**（`ivar′ = ivar/α²`，§1/§3——本合同交给下游 GLS/逆方差加权的权重面）：Aitken, A. C. 1935, Proc. Roy. Soc. Edinburgh 55, 42（DOI 10.1017/S0370164600014346 【出版年双源登记】本仓取 1935 = 论文出版年：一手依据 = 纸本合卷 Proc. R. Soc. Edin. Vol. LV 逐字「Read March 4, 1935」与「Issued separately March 6, 1935」（Internet Archive dli.ernet.7410）；另一源 CrossRef 与 Cambridge Core 卷期页记 1936 = **合卷印年**（同卷扉页逐字「VOL. LV. / 1934-1935 / MCMXXXVI」）。**结论：不改数字，保留 1935**；双源差异在此登记，不按错处理。，GLS 原始出处；与 `docs/science/UNIFIED_SCIENCE_MODEL.md` 的 GLS 条目同源）。
+- **［6］ 反方差（ivar）权重口径**（`ivar′ = ivar/α²`，§1/§3——本合同交给下游 GLS/逆方差加权的权重面）：Aitken, A. C. 1935, Proc. Roy. Soc. Edinburgh 55, 42（DOI 10.1017/S0370164600014346 【出版年双源登记】本仓取 1935 = 论文出版年：一手依据 = 纸本合卷 Proc. R. Soc. Edin. Vol. LV 逐字「Read March 4, 1935」与「Issued separately March 6, 1935」（Internet Archive dli.ernet.7410）；另一源 CrossRef 与 Cambridge Core 卷期页记 1936 = **合卷印年**（同卷扉页逐字「VOL. LV. / 1934-1935 / MCMXXXVI」）。**结论：不改数字，保留 1935**；双源差异在此登记，不按错处理。，GLS 原始出处；与 `docs/science/unified/UNIFIED_SCIENCE_MODEL.md` 的 GLS 条目同源）。
 - **［7］ 最优提取（PᵀC⁻¹P 结构）**：Horne, K. 1986, PASP 98, 609（DOI 10.1086/131801）。**边界**：［7］与［8］二者为已知 profile/方差下的最优提取；Astro Celestial Sphere Database（ACSD） 本层做的是 Gaia 交叉定标的零点/尺度，不是逐源最优提取（§1 非目标），引用只作统计结构对照。
 - **［8］ 最优提取（PᵀC⁻¹P 结构）**：Naylor, T. 1998, MNRAS 296, 339（边界说明同［7］）。
 - **［9］ 误差口径 FLUXERR/MAGERR 与孔径改正**：SExtractor 官方文档 `https://astromatic.github.io/sextractor/Param.html`「Flux and magnitude uncertainties」式 (2)（`MAGERR = 2.5/ln10·FLUXERR/FLUX`）与 `https://astromatic.github.io/sextractor/Photom.html` 的 `FLUXERR` 式（**定义式的出处在此**）；算法出处 = Bertin, E. & Arnouts, S. 1996, A&AS 117, 393（DOI 10.1051/aas:1996164），但**该论文正文不含 FLUXERR/MAGERR 定义**，不得据它著录定义式。**差异**：ACSD 的 sigma_residual 是**逐星定标散度**（dex），不是 SExtractor 的单源通量误差；两者语义不同、各自独立消费（NOISE_MODEL §9a）。
@@ -322,7 +322,7 @@ outlier_rate = 1 − |r_inliers|/|r_consistent|
 - **［27］ 端到端系统透过率 × 光谱的工程范例**：Sirianni, M., et al. 2005, PASP 117, 1049（DOI 10.1086/444553）。
 - **［28］ F_syn 数值积分（Akima + 复合 Simpson）**：Akima, H. 1970, J. ACM **17(4), 589–602**（DOI 10.1145/321607.321609；**页域订正 P1-m06**：历史只给首页 589）；复合 Simpson 1/3 公式（教科书级）。**实现忠实性与误差分解**：生产实现与同输入网格复合 Simpson 逐位一致；网格离散误差与 XPSD 量化误差的量级读数正本见 `实验/photometric-magnitude/`。
 - **［29］ XPSD 容器格式（`flux_min`/`flux_mul` 量化解码）· 容器来源（可核验一手）**：PixInsight 官方文档 *Spectrophotometry-based Color Calibration*（SPCC）§3："With the release of version 1.8.8-6 of PixInsight in October 2020, we introduced XPSD (eXtensible Point Source Database), a new database format we have designed and developed for fast and efficient access to massive astrometric and photometric star catalogs."；同节："mean spectra from 336 to 1020 nm sampled discretely at 2 nm steps (343 spectrum values) for each star"。
-  - **字段名的地位**：`flux_min`/`flux_mul` 这两个**字段名**是本仓合同命名（`docs/science/DATA_SEMANTICS.md` §14.2；`gaia_client.c`），**未在 PixInsight 公开文档中核到**（PixInsight 明言 "An in-depth, formal description of the XPSD format is beyond the scope of this document"）。因此本文件**不**把该命名当作 Gaia 官方语义；解码式的**正确性由真实数据的绝对刻度实证锚定**（§2a.6），不依赖对容器内部命名的信任。
+  - **字段名的地位**：`flux_min`/`flux_mul` 这两个**字段名**是本仓合同命名（`docs/science/unified/DATA_SEMANTICS.md` §4.3 星表行语义；`gaia_client.c`），**未在 PixInsight 公开文档中核到**（PixInsight 明言 "An in-depth, formal description of the XPSD format is beyond the scope of this document"）。因此本文件**不**把该命名当作 Gaia 官方语义；解码式的**正确性由真实数据的绝对刻度实证锚定**（§2a.6），不依赖对容器内部命名的信任。
   - **与官方产品的关系**：官方 `xp_sampled_mean_spectrum` 以 float32 直接给出 `flux`（W·m⁻²·nm⁻¹），**不含** uint8 量化参数；本仓消费的是 XPSD 再编码容器（`gaia/GaiaDR3SP/gdr3sp-1.0.0-*.xpsd`，20 片，魔数 `XPSD0100`，记录布局 `32B EncodedStarData | float[2] 量化参数 | uint8 flux[343]`）。容器**不是** ESA 官方交付格式。仓库内的 XPSD **测试夹具**为自造（生成器载体已不在本仓）；本节引用的实测数据是 `gaia/GaiaDR3SP/` 下的真实文件。
   - **使用约束**：量化参数**逐星不同**（实测跨 6 个数量级），因此 `byte` 数组**不能**当作与星无关的相对谱形使用。
 - **［30］ XPSD 采样谱的归一化存储口径**：PCL 官方 API 文档 `pcl::GaiaSearchData::normalizeSpectrum`："When enabled, search operations provide sampled spectrum data normalized to the [0,1] range for each star. When normalization is disabled, spectrum data is provided in either the original power units of spectral irradiance (W*m^-2*nm^-1), or in spectral photon flux units (ph*s^-1*m^-2*nm^-1) … Spectrum normalization is disabled by default." ⇒ **8-bit 归一化存储 + 逐星还原参数**是 PixInsight XPSD 的既有设计，还原到 W·m⁻²·nm⁻¹。
@@ -366,7 +366,7 @@ outlier_rate = 1 − |r_inliers|/|r_consistent|
 | 步 | 做什么 | 节点（§4.2） | 权威/细则 |
 |---|---|---|---|
 | ① **Gaia XP 逆映射定位** | 用本帧 WCS（近似指向来自 `wcs.init_source`）把 Gaia DR3 星表（ICRS/J2000，自行/视差传播到观测历元）**逆投影到像素域**，只在星表位置做质心/PSF 拟合；拟合失败直接丢弃（不计虚警、不报错）；上限按亮度取（规模由配置键 `star_detection.max_stars` 导出，数值/合同域正本 = `eng/contracts/schemas/phase_config_normalize.schema.json` 与 `docs/detail/algorithms_phase1/03_star_detection.md` §5.1；本节不复制数值），极限星等按焦距/画幅/曝光**派生估计**（**登记 P1-m12**：该句是**设计意图**；截至本轮，P1 实验单元**没有任何实验锚定该派生链**，其实锚是生产侧固定星等阶梯 {12,13,14,15,16}，且注释宣称的「上界 10000」**未实现**——引用时必须写成「设计意图、未验证」，见 `实验/photometric-magnitude/code/redo/route1/REPORT_route1.md` H6） | `platesolve`（星表匹配 + 稳健迭代精化）+ `star_detection` | `docs/detail/algorithms_phase1/03_star_detection.md` §4、`docs/detail/algorithms_phase1/05_platesolve.md`；研究包 §6（astrometry.net 盲解+精化、SCAMP 星表解算、astropy WCS 逆投影） |
-| ② **星点测光** | 在星表位置做 **PSF 拟合域**测光（全链唯一 `flux` 口径 `flux = 2πA·sx·sy/3`；孔径测光只作显式诊断）；`F_hat = Q/W`、`Var(F_hat)=1/W`；饱和/质量异常不入定标 | `psf` → `photometry` | `docs/detail/algorithms_phase1/06_photometry.md` §4、`docs/science/PSF_SIGNAL_WEIGHT.md` §2；研究包 §6（DAOPHOT/Anderson & King［35］的星表引导 PSF 测光族、photutils/SEP 的独立对照） |
+| ② **星点测光** | 在星表位置做 **PSF 拟合域**测光（全链唯一 `flux` 口径 `flux = 2πA·sx·sy/3`；孔径测光只作显式诊断）；`F_hat = Q/W`、`Var(F_hat)=1/W`；饱和/质量异常不入定标 | `psf` → `photometry` | `docs/detail/algorithms_phase1/06_photometry.md` §4、`docs/science/noise_snr/NOISE_SNR.md` §3.4「严格信息量口径」；研究包 §6（DAOPHOT/Anderson & King［35］的星表引导 PSF 测光族、photutils/SEP 的独立对照） |
 | ③ **光谱 × QE × 透过率积分（正向合成期望测光量）** | 用 Gaia DR3 XP 星点光谱 × 系统响应在**模型通带**内积分得 `F_syn`（定义式与量纲见本文件 §2a.1/§2a.2；与官方式 5.41 的对应见 §2a.3）；XP 采样网格 = 336–1020 nm、步长 2 nm、343 点，谱插值按 §14a［28］；`Q(λ)≡1` 与网格外无数据是**显式未建模项**，不外推 | `photometry`（参考侧） | 研究包 §3（Gaia DR3 官方文档 §20.12.3/§20.12.4［16］、Montegriffo 2023［19］、De Angeli 2023［20］）、§4（合成测光标准方法：Bessell 1990［25］、Bessell & Murphy 2012［15］、Sirianni 2005［27］、synphot/pysynphot） |
 | ④ **拟合 `k_photo` 与低阶空间增益 `m(x,y)`** | 逐星 `r_i = log10(F_instr/F_syn)` → 星等一致性预过滤 → IRLS/Tukey 稳健位置（§5）；同时用星点残差在帧内估计**低阶乘性空间增益** `m(x,y)`（平场/光学大尺度响应的低阶残余），与 `k_photo` 一并作为标定面 | `photometry` | 本文件 §5；`ACSD_DESIGN.md` §4.2（测光归一化落到像素，photometry 一步完成）；研究包 §7 ④（平场/大尺度残余的预算出处） |
 | ⑤ **应用到像素** | `I_photo = k_photo·m(x,y)·I_cal` 施加到**整帧像素**（不只星点）；其后所有节点与 drizzle 消费归一化后的像素；该步不可用时产品显式记录 `degraded_reason` 并 **fail-closed**。**施加是 `photometry` 节点内的步骤，不是独立节点**（合并成一步省一次中间产物落盘 = 省一次写 + 一次读的 IO 往返） | `photometry`（同一步内的施加步骤） | `ACSD_DESIGN.md` §4.2（含 fail-closed 条款） |
@@ -440,5 +440,5 @@ outlier_rate = 1 − |r_inliers|/|r_consistent|
 
 - 一手出处与开源对照（项目+版本+文件:行）：`docs/science/PHOTOMETRY_RESEARCH_PACK.md`；
 - 模块算法与配置：`docs/detail/algorithms_phase1/06_photometry.md`、`docs/detail/algorithms_phase1/07_noise_snr.md`；
-- PSF 信息权重与最优性声明：`docs/science/PSF_SIGNAL_WEIGHT.md`；
-- 方差与协方差传播：`docs/science/UNCERTAINTY_AND_COVARIANCE.md`。
+- PSF 信息权重与最优性声明：`docs/science/noise_snr/NOISE_SNR.md` §3.4；
+- 方差与协方差传播：`docs/science/noise_snr/NOISE_SNR.md` §3.5。

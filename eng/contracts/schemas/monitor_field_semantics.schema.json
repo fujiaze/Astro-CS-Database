@@ -2,7 +2,7 @@
   "$schema": "http://json-schema.org/draft-07/schema#",
   "$id": "acsd.monitor-field-semantics/v1",
   "title": "监控字段执行语义（requires_monitor / mutates_workspace）",
-  "x-doc": "docs/engineering/PERF_GATE_CONTRACT.md",
+  "x-doc": "docs/engineering/resources/PERFORMANCE_MODEL.md",
   "type": "object",
   "required": [
     "schema",
