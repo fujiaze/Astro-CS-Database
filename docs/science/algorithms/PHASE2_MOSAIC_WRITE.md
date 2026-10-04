@@ -351,9 +351,7 @@ main(stage2.json, CLI overrides):
 ## 8 参考实现/Oracle
 
 - 权威参考实现 = stage2.cpp CPU reference 权威路径本身（:1061-1541，
-  "CPU reference 路径" 注释 :1061）；ACR 块路径为执行域加速（:863-1058），
-  两者科学语义等价合同（kernel legacy_parallel 同路径 :979-983；ACR 等价
-  权威 = docs/science/algorithms/ACR_EQUIVALENCE.md ALG-ACR-EQUIV）。
+  "CPU reference 路径" 注释 :1061）。
 - Oracle 设计（独立于被测符号，不复制 §2 公式）:
   - Python/NumPy 参考实现: 合成 3 帧单 tile HiPS（signal/support/ivar），
     按 SCI-INT §5 语义独立复算 signal（weighted mean, w=ivar）与
@@ -386,8 +384,6 @@ main(stage2.json, CLI overrides):
     （ivar_wiring_test.cpp:311-321）；repeat-2T 阈值 1e-6、差数==0
     （:339-341，by-construction 位精确注释 :327-328）；帧置换/ivar 局部性
     阈值 1e-4（:383-385/:406-410）。
-  - ACR↔CPU 等价: ALG-ACR-EQUIV（docs/science/algorithms/ACR_EQUIVALENCE.md）
-    权威容差域。
   - 集合/索引运算整数精确: target_order/ipix/序转换往返容差=0（bitwise）。
 - **TEST-P2-HIPS-001 MISSING**: 专属端到端马赛克 synthetic gate（NumPy
   signal/sup_max oracle rtol=1e-12 + 序转换全索引双射 + ivar 门负测 +

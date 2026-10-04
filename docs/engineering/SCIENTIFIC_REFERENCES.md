@@ -115,7 +115,7 @@
 
 ## L. 数值、投影几何与可复现
 
-49. IEEE 754-2019, IEEE Standard for Floating-Point Arithmetic。用途：FP32/FP64 舍入、归约非结合与 1/N worker 容差的判据基础（ACR_EQUIVALENCE.md §7/§9）。
+49. IEEE 754-2019, IEEE Standard for Floating-Point Arithmetic。用途：FP32/FP64 舍入、归约非结合与 1/N worker 容差的判据基础。
 50. Goldberg, D. 1991, “What Every Computer Scientist Should Know About Floating-Point Arithmetic”, ACM Computing Surveys 23, 5（DOI 10.1145/103162.103163）。用途：浮点归约/结合律与容差设定。
 51. Higham, N. J. 2002, Accuracy and Stability of Numerical Algorithms, 2nd ed., SIAM（ISBN 0-89871-521-0）。用途：归约误差界、确定性求和顺序。
 52. Van Oosterom, A. & Strackee, J. 1983, “The Solid Angle of a Plane Triangle”, IEEE Trans. Biomed. Eng. 30, 125（DOI 10.1109/TBME.1983.325207）。用途：Girard 定理/球面三角面积（DRIZZLE.md §5 Sutherland–Hodgman + Girard）。

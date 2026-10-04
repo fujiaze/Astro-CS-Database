@@ -89,7 +89,6 @@
 
 | 目录 | 说明 |
 | --- | --- |
-| `lib/infrastructure/acr` | 异构计算抽象；根 `CMakeLists.txt` 默认 OFF，生产 target 不链；保留源码与隔离测试（最高设计 §1.4） |
 | `lib/infrastructure/pipeline/orchestrator` | Phase1 编排已并入 CLI pipeline driver，无独立 exe；非生产入口 |
 | `lib/infrastructure/hips_browser/healpix_browser_qt` | HiPS 浏览器（optional，不入 product manifest）；工具分类（非发布） |
 | `lib/algorithms/noise_snr` | 不在根构建图（未 `add_subdirectory`）；其测试面目录不在现行文件树中，故构建图不引用 |
