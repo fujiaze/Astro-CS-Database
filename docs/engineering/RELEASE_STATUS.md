@@ -12,14 +12,14 @@
 
 | 状态词 | 语义 | 判据（当前提交内可核） |
 |---|---|---|
-| `CONTRACT_READY` | 权威文档/合同/schema 冻结在位；**文档与合同类对象以此为终态** | 权威文档 + `module.yaml`/registry 条目 + 机器检查器 rc=0 |
-| `IMPLEMENTED` | 生产（或注册测试面）源码在位，且**当前提交内实际执行通过** | 文件锚 + 命令 + rc=0（ctest/pytest 实测） |
+| `CONTRACT_READY` | 权威文档/合同/schema 冻结在位；**文档与合同类对象以此为终态** | 权威文档 + `module.yaml`/registry 条目在位，由审核者逐份核对 |
+| `IMPLEMENTED` | 生产源码在位，且**当前提交内实际执行并给出读数** | 文件锚 + 命令 + 读数；读数由复跑或对抗性审核给出，**不以任何门通过为据** |
 | `INSTALLED` | 除 IMPLEMENTED 外，已进入构建安装树 + 产品清单，并可被 CLI/loader 实际发现 | `eng/cmake/install_layout.cmake` + `eng/packaging/acsd.product.json` + `modules list/verify` 实测 |
 | `VERIFIED` | 除 INSTALLED 外，已在正式平台（Windows x64）与真实数据上通过验收 | Fatduck/真实数据证据（**当前无此项**） |
 | `NOT_IMPLEMENTED` | 能力不在当前基线（符号/路径不存在） | 全域 grep 零命中 |
 | `NOT_VERIFIED` | 能力可能存在但当前提交未复跑执行验收 | 无当前提交证据 |
 | `DEFERRED` | 任务图界定明确不在本轮范围 | 控制包任务图条目 |
-| `DORMANT` | 保留源码但**不**进生产构建/加载/发布 | CMake/preset 排除 + 隔离测试 |
+| `DORMANT` | 保留源码但**不**进生产构建/加载/发布 | CMake/preset 排除项在位 |
 | `FAIL` | 已执行但不符合要求 | 执行证据 + 不符合项 |
 
 > 与 `docs/engineering/STANDARDS_REGISTRY.md` §1.4 的**标准符合性**取值域
@@ -91,10 +91,10 @@ psf_snr_power:       DEFERRED（生产拒绝）
 | 版本单源 | `CONTRACT_READY` | `VERSION` + 本文 §2；检查器 rc=0 |
 | C ABI v1 / DLL 边界 / 安全 loader 合同 | `CONTRACT_READY` | `lib/include/acsd/abi/*.h`（ABI-001）、`eng/contracts/config/module_dll_contract.schema.json`（ARC-001）、`runtime/module_loader/secure_loader.h`（ABI-003） |
 | 类型化产物 / 三阶段交换 / 不确定度合同 | `CONTRACT_READY` | DATA-001/002 + DATA-UNC-001（`99713034`）+ `eng/contracts/data/*` |
-| Runtime 类型化运行图 + 节点绑定表 | `IMPLEMENTED` | `runtime/pipeline/typed_dag.py` + `module_ports.registry.json`；节点绑定经 ctest 节点化用例复核 |
-| 三 Phase 节点化（`ACSD_DESIGN.md` §3.2/§4.2/§5.2 每节点唯一真实 operation；原引「宪章 §F.1」已废止） | `IMPLEMENTED` | `lib/infrastructure/scheduler/src/module_adapters.cpp`:4257/:4282/:4309（P1 8 / P2 7 / P3 5 节点）；ctest `p1001_real_nodes`/`p2001_real_nodes`/`p3002_real_nodes`/`p3002_uncertainty` 4/4 PASS |
-| RT 唯一 executor + 实测资源门（`ACSD_DESIGN.md` §8/§10 + `docs/ACSD_DESIGN.md` §9（CPU 后端与资源）；原引「宪章 §10.4/§10.5/§18.2」已废止） | `IMPLEMENTED` | `lib/infrastructure/scheduler/src/executor_runtime.h`、`module_adapters.cpp`:3777-3793、`eng/tools/monitoring/run_monitored.py:evaluate_frozen_gate()`；ctest `rt001_unique_executor` PASS（RT-001 `91440c16`） |
-| Phase3 四投影 registry（TAN/SIN/CAR/AIT） | `IMPLEMENTED` | `lib/algorithms/projection/p3_projection.{h,cpp}`:267-273（registry v1 恰四行）；ctest `p3_projection_units`/`p3_projection_fault` 2/2 PASS；CI `CTEST-P3-PROJECTION-UNITS/FAULT` |
+| Runtime 类型化运行图 + 节点绑定表 | `NOT_VERIFIED` | 原记证据 `runtime/pipeline/typed_dag.py` + `module_ports.registry.json` 在当前文件树中均不存在；节点绑定的现载体是 `lib/infrastructure/scheduler/src/module_adapters.cpp`，须由对抗性审核重新推导绑定关系并构造反例确认后才可升回 |
+| 三 Phase 节点化（`ACSD_DESIGN.md` §3.2/§4.2/§5.2 每节点唯一真实 operation；原引「宪章 §F.1」已废止） | `NOT_VERIFIED` | 节点注册面在 `lib/infrastructure/scheduler/src/module_adapters.cpp`（P1 8 / P2 7 / P3 5 节点）；原记行锚 4257/4282/4309 已漂移到无关代码，须重新定位；「每节点唯一真实 operation」须由对抗性审核逐节点核对后复算 |
+| RT 唯一 executor + 实测资源门（`ACSD_DESIGN.md` §8/§10 + `docs/ACSD_DESIGN.md` §9（CPU 后端与资源）；原引「宪章 §10.4/§10.5/§18.2」已废止） | `NOT_VERIFIED` | `lib/infrastructure/scheduler/src/executor_runtime.h` 在位；资源门判定实现 `eng/tools/monitoring/run_monitored.py:581 evaluate_frozen_gate` 在位；原记行锚 `module_adapters.cpp:3777-3793` 已漂移。资源门阈值与分类口径见 `docs/detail/infrastructure/21_observability.md` §8；本行的「唯一 executor」结论须由对抗性审核复算后确认 |
+| Phase3 四投影 registry（TAN/SIN/CAR/AIT） | `NOT_VERIFIED` | `lib/algorithms/projection/p3_projection.{h,cpp}`:267-273（`kRegistry[4]`，四行在场）；「恰四行且各投影 operation 唯一」须由对抗性审核核对后复算 |
 | MOD 科学模块安装面 + 产品清单 | `INSTALLED` | `eng/cmake/install_layout.cmake`:104-105；`eng/packaging/acsd.product.json` units=10；`eng/tests/abi/mod001_install_load_check.py` 64/64 PASS（MOD-001 `59fdeab3`；`f74fc20f` 摘出 p1_noise） |
 | CLI 薄命令面（normalize/mosaic/export + doctor/benchmark） | `INSTALLED` | `command_tree.h` 唯一命令树（golden = `docs/engineering/CLI_PROTOCOL_V1.md` §1；`eng/tests/cli/test_cli_protocol.py` test_01/test_07） |
 | 三 Phase 隔离（三个独立命令，一次调用只驱动一个阶段） | `IMPLEMENTED` | `normalize`/`mosaic`/`export` 各拉起本阶段调度器（`ACSD_DESIGN.md` §1.2/§8.1）；`run --phases 1,2,3` → rc=2 `unknown command 'run'`（CLI-002）；DATA-002 磁盘交换合同冻结 |

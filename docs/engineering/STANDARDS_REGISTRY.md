@@ -2,7 +2,7 @@
 
 > 上游权威: `ACSD_DESIGN.md` §6.3（冻结八投影；本节号为本轮订正，原写 §5.3 = 「SNR 重建与逆方差叠加」）/附录 B（基础科学与格式参考）+ `docs/DOCUMENT_INDEX.yaml`（本注册表为标准登记，不在 §0 权威链上）
 > 条款锚的现行落点：投影集合 = `ACSD_DESIGN.md` §6.3（八投影）；资源门 = 同文 §8 + `eng/contracts/resource_gate_v1.json`
-> 机器检查: 标准注册表判据 C1–C9（exit 0 = PASS / 1 = FAIL / 2 = ANCHOR_STALE；见 §5 与 §5 负向注入）
+> 判据执行面: 标准注册表判据 C1–C9，由人读对抗性审查逐条裁决、实验复核取证；三态 = 通过 / 判红 / 不可锚定（见 §5 与 §5 负向注入）
 > 登记: `docs/DOCUMENT_INDEX.yaml` doc_index.active（status = ACTIVE_NORMATIVE）
 
 ---
@@ -16,9 +16,9 @@
    其定义见本注册表 §3.2）：
    实现与标准不一致时，**一律登记偏差（§3）并按 finding 处理**：标准条款文字保持原样、
    实现现状只作偏差登记项。
-3. **版本冻结**：§2 域表的「冻结版本」字面量由本注册表冻结，机器检查器逐字比对
-   （`C3_version_frozen_*`）——版本漂移（含以"最新版"含糊表述替代版本号）判 FAIL。
-4. **符合状态取值域**（唯一合法四值，机器检查）：
+3. **版本冻结**：§2 域表的「冻结版本」字面量由本注册表冻结，对抗审核逐字比对
+   （判据 `C3` 版本冻结条）——版本漂移（含以"最新版"含糊表述替代版本号）判红。
+4. **符合状态取值域**（唯一合法四值，C4 现场判）：
    | 取值 | 语义 |
    |---|---|
    | `CONFORMANT` | 已按标准条款实现且有在位可执行证据（测试/oracle/工具） |
@@ -27,11 +27,10 @@
    | `PROJECT_DEFINED` | 标准未规定或本实现显式偏离标准之处，按 Project-defined 冻结（必须写明归属文档） |
 5. **偏差指针纪律**：清单表「偏差」列与域字段 `DEVIATION` 必须指向已定义 ID。
    **偏差 ID 的闭包域 = 本注册表域偏差表 ∪ 本注册表 §3.2 跨域治理偏差表**；
-   无外部 findings 登记册时，机器检查器显式登记
-   `C6_external_findings_source`，空集一律显式登记；悬空指针判 FAIL
-   （`C6_deviation_id_closure`）。
+   无外部 findings 登记册时，对抗审核须显式登记
+   `C6_external_findings_source`（判据 `C6` 偏差 ID 闭包条），空集一律显式登记；悬空指针判红。
 6. **变更流程**：新增/变更域、版本或条款映射必须走 `docs/ACSD_DESIGN.md` §0（文档权威与索引） + `SCIENCE_CORRECTNESS.md` 变更流程并同步本文件 §2/§3
-   与机器检查器冻结表；仅新增偏差指针（不改语义）由域内原子任务随实现提交更新。
+   与本注册表 §5 判据 C1–C9；仅新增偏差指针（不改语义）由域内原子任务随实现提交更新。
 
 ---
 
@@ -138,7 +137,7 @@
 | §5.2（NESTED 编号与 4 分叉父子关系） | NESTED 索引与父子位移关系 child = 4·parent + k | CONFORMANT | lib/algorithms/shared/healpix/healpix_core.cpp；lib/algorithms/shared/healpix/tests/test_healpix_neighbors.cpp；eng/tests/unit/CMakeLists.txt | 无（tile_shift=9、mask=(1<<18)-1 不变量在位） |
 | §5.3（ang2pix/pix2ang 往返） | 球面角 ↔ NESTED 索引往返在 FP64 下达机器精度 | CONFORMANT | lib/algorithms/shared/healpix/tests/test_healpix_oracle.cpp；lib/algorithms/shared/healpix/tests/snr_hips_spatial_oracle.py；docs/science/algorithms/HEALPIX_MAPPING.md | 无（往返 ≤1e-12 deg；astropy-healpix 百万点 oracle 对拍） |
 | §5.2/§5.3（order 上限与溢出收口） | order ≤ 29 且越界输入显式拒绝 | CONFORMANT | lib/algorithms/shared/healpix/healpix_core.cpp；lib/algorithms/shared/healpix/tests/test_healpix_neighbors.cpp | 无（checked 收口，禁静默溢出） |
-| 单源纪律（B4-01 去重） | 全仓唯一 HEALPix 权威实现，重复实现须机器门禁 | CONFORMANT | lib/algorithms/shared/healpix/healpix_core.h；docs/science/algorithms/HEALPIX_MAPPING.md | 无（兼容 shim + 机器门禁登记在位） |
+| 单源纪律（B4-01 去重） | 全仓唯一 HEALPix 权威实现，重复实现须判红 | CONFORMANT | lib/algorithms/shared/healpix/healpix_core.h；docs/science/algorithms/HEALPIX_MAPPING.md | 无（单源唯一性由对抗审核逐处清点：兼容 shim 之外出现第二实现即判红） |
 
 ### D.healpix 偏差表
 
@@ -291,7 +290,7 @@
 ### 3.2 跨域治理偏差（跨域治理级 ID 的定义域）
 
 跨域治理偏差指不归属任何单一标准域、而是约束"本注册表自身"或"标准↔实现关系"的偏差。
-本表是这些 ID 的**唯一事实源**（机器检查 `C5_governance_*`/`C6`/`C7` 按此闭包判定）。
+本表是这些 ID 的**唯一事实源**（判据 `C5` 跨域治理条 / `C6` / `C7` 按此闭包判定）。
 
 | 偏差 ID | 严重度 | 指针 | 处置归属 |
 |---|---|---|---|
@@ -314,9 +313,11 @@
 
 ---
 
-## 5. 机器检查合同（标准注册表判据 C1–C9）
+## 5. 判据合同与执行面（标准注册表判据 C1–C9）
 
-| 检查 | 断言 |
+判据由**人读对抗性审查逐条裁决、实验复核取证**，三态取「通过 / 判红 / 不可锚定」。下表断言即裁决口径本身，只描述要判什么，不依赖任何自动执行器。
+
+| 判据 | 断言 |
 |---|---|
 | C1 | 注册表存在；docs/DOCUMENT_INDEX.yaml doc_index.active 中登记为 ACTIVE_NORMATIVE |
 | C2 | §2 域表 key 集合 == 冻结六域；`## D.<key>` 域节集合相同 |
@@ -324,53 +325,41 @@
 | C4 | 每域符合性清单表在位（列头冻结）、≥1 行、条款 ID 唯一、状态合法、证据指针指向存在的文件/目录、偏差列非空 |
 | C5 | 每域偏差表在位、偏差 ID 唯一且形如 STD-F<n>/DISP-<域>-<n>、指针非空 |
 | C5′ | §3.2 跨域治理偏差表在位、ID 合法唯一、指针非空，且与域偏差表**跨表不重号** |
-| C6 | 正文所有 STD-F*/DISP-* 引用在**闭包域**（本注册表域偏差表 ∪ §3.2 跨域治理偏差表 ∪（若存在）外部 findings 登记册）中有定义（悬空指针 FAIL）；外部登记册缺席时显式登记"缺席（可选来源）"，绝不静默返回空集 |
+| C6 | 正文所有 STD-F*/DISP-* 引用在**闭包域**（本注册表域偏差表 ∪ §3.2 跨域治理偏差表 ∪（若存在）外部 findings 登记册）中有定义（悬空指针判红）；外部登记册缺席时显式登记"缺席（可选来源）"，绝不静默返回空集 |
 | C7 | §3 偏差索引行与定义域（域偏差表 ∪ §3.2）逐 ID 一致（「（无）」行不计入 ID 集合）；域行指向的域/条款在对应清单中真实存在且域 DEVIATION 字段含该 ID；跨域治理行（域列 = `(跨域治理)`）校验其定义在 §3.2 表内且字段齐全 |
 | C8 | §3 偏差索引与偏差登记面双向一致：定义域为空 ⇒ 索引必须有显式「（无）」行；定义域非空 ⇒ 索引各行均为真实偏差 ID（「（无）」行的适用范围 = 定义域为空） |
 | C9 | **[W4-A3]** 域清单「偏差」列 → 域 DEVIATION 字段**反向一致**：清单行偏差列里出现的每个 STD-F*/DISP-* 词元必须在本域 DEVIATION 字段中有定义。C4 只判该列非空、C7 只判 §3 索引 → DEVIATION；补上反向后"清单行写着 STD-F1 而 DEVIATION 字段删掉它"不再可能整体绿 |
 
-用法（PASS 时 exit 0；FAIL 为 1；锚失效为 2）：域内手工复跑，判据载体无在位注册面。
+用法（通过 / 判红 / 不可锚定三态）：裁决由对抗审核逐条给出并留判词，取证由域内实验复算；判据文本本身不含执行器。
 
 锚存活（`docs/DOCUMENT_INDEX.yaml`，fail-closed）：`REQUIRED_ANCHORS`（本注册表 +
-docs/DOCUMENT_INDEX.yaml）在启动时校验 os.path.exists + `git ls-files --error-unmatch`；
-失效 ⇒ stderr 打印 `ANCHOR_STALE: <常量名> <路径>` ⇒ **exit 2**（不 traceback、不静默通过）。
+docs/DOCUMENT_INDEX.yaml）由裁决前先判存在性 —— `os.path.exists` + `git ls-files --error-unmatch`；
+锚失效 ⇒ 判「不可锚定」并指名 `ANCHOR_STALE: <常量名> <路径>`，**不静默通过**。
 
-负向注入自证（9 场景，**域内手工复跑判据**：全部必须 FAIL；判定看 verdict 字段）：
+负向注入自证（9 场景，**判别力判据**：全部必须判红；判定看 verdict 字段）：
 
-> ⚠ **负向注入的 CI 登记状态**：
-> 下列 9 场景与「注入空转守卫（`FAULT_INJECT_NOOP`）」中，**2 个场景的登记项已定义**
-> （`STD-REG-FI-DANGLING` = `dangling-deviation-id`、
-> `STD-REG-FI-VERSION-DRIFT` = `version-drift`；本仓无在位门禁注册面，登记项无强制效力）；**其余 7 个场景与空转守卫为
-> PLANNED（计划）**，**不是**已生效的强制 CI 义务。
-> 本节的「全部必须 FAIL」是**域内手工复跑**判据（手动执行 `--fault-inject`），
-> 其效力范围 = 域内手工复跑，CI 强制需另经登记。补登记属门禁写入面（本仓无在位写入面；**不在本文件域**），
-> 须先在门禁注册面登记（本仓无在位注册面；`changed_paths=["docs/standards/**"]`，参照 DOC-INDEX 形态）；
-> 补登记完成后方可把本节改回强制口径。
+> **场景实现进度（决定判别力是否已被证明）**：
+> 下列 9 场景与「注入空转守卫」中，`dangling-deviation-id` 与 `version-drift` 两个场景已实现并有历史复跑记录
+> （既往轮次归档在 `artifacts/ci/*/checks/STD-REG-FI-*.json`）；其余 7 个场景与空转守卫**尚未实现**为可复跑用例。
+> 「全部必须判红」是**判别力要求**：对已实现的两个场景是现行约束，对其余七个是待补项 ——
+> 补齐前这七个场景的判别力**未经证明**，不得据「九场景都在册」认为 C1–C9 已受检验。补用例属本注册表判据面，不在门禁写入面。
 
-逐个场景以 `--fault-inject <场景名>` 复跑（场景名 = drop-domain-section / drop-checklist-table /
+九个场景名即必须齐备的注入负例集合：drop-domain-section / drop-checklist-table /
 illegal-status / version-drift / drop-wcs003f1-pointer / dangling-deviation-id /
-drop-governance-deviation / add-none-marker-row / anchor-stale）。
+drop-governance-deviation / add-none-marker-row / anchor-stale。
 
-前 8 场景恒退出 0（注入协议：判定看 verdict）；`anchor-stale` 为例外 —— 锚失效按 §8
-必须非零退出，退出 2 并打印 `ANCHOR_STALE`。
+判定看 verdict 字段而非退出码：前 8 场景的注入协议是「判词由 verdict 承载」，`anchor-stale` 是例外 ——
+锚失效按本节锚存活条必须判「不可锚定」，不得静默通过。
 
 **注入空转守卫**：8 个文本场景一律"确定性命中一次"替换；命中 0 次（正文
-漂移导致锚点失配）或 >1 次 ⇒ 抛 `FAULT_INJECT_NOOP`（exit 3），拒绝以原文冒充
-"已注入"。`drop-wcs003f1-pointer` 由 `C7_deviation_index_rows_resolve` 与
-`C9_checklist_deviation_backref` 双重判红。
+漂移导致锚点失配）或 >1 次 ⇒ 判「注入空转」（`FAULT_INJECT_NOOP`），拒绝以原文冒充
+"已注入"。`drop-wcs003f1-pointer` 由 C7 偏差索引解析条与 C9 清单偏差反查条**双重判红**。
 
-人工复现生产路径（不经 --fault-inject）：
+缺席锚的复现方式：把裁决输入的注册表指针指向一个不存在的路径（如 `docs/standards/__missing__.md`），
+裁决须给出「不可锚定」并指名 `ANCHOR_STALE`，不得给出通过。
 
-以 `ACSD_STD_REG_ANCHOR_OVERRIDE='REGISTRY_REL=docs/standards/__missing__.md'` 指向缺席锚复跑，
-观察退出码（预期 rc=2）。
-
-> CI 登记状态：本检查器为**治理文档检查器**
-> （非 CTest 目标、非机器门禁注册面）。**已登记**：见本表登记项。
-> （主判据 C1–C9）+ 2 个负向注入场景
-> （`STD-REG-FI-DANGLING`、`STD-REG-FI-VERSION-DRIFT`）。
-> **未登记（PLANNED）**：其余 7 个注入场景 + 空转守卫；该登记属门禁写入面（本仓无在位写入面），
-> 超出本文件域（参照 DOC-INDEX 检查项形态：changed_paths=["docs/standards/**"]）。
-> 补登记前，未登记场景由域内任务按 §1 纪律**手工复跑**；CI 强制的范围以门禁注册面登记为准；本仓无在位门禁注册面，故现无 CI 强制范围。
+> **本节判据的效力**：C1–C9 与九场景是本注册表的现行判别力要求，由对抗审核逐条裁决；
+> 「已实现」与「未实现」的分野只说明哪些要求已有可复跑证据，不改变要求本身，也不因此设立任何自动执行器。
 
 ---
 
@@ -384,7 +373,7 @@ drop-governance-deviation / add-none-marker-row / anchor-stale）。
   docs/science/algorithms/PLATESOLVE.md、docs/science/algorithms/PHASE3_PROJ_IMPL.md、docs/science/algorithms/HIPS_WRITER.md、
   docs/science/algorithms/HEALPIX_MAPPING.md、docs/science/algorithms/DRIZZLE_GEOMETRY.md、docs/science/algorithms/GAIA_QUERY.md、
   docs/science/IO_001_FITS_STREAM_INTERFACE.md、docs/science/IO_002_HIPS_INPUT_INTERFACE.md。
-- 机器检查：标准注册表判据 C1–C9；docs/DOCUMENT_INDEX.yaml（DOC-INDEX 检查项）。
+- 判据执行面：标准注册表判据 C1–C9（§5）；docs/DOCUMENT_INDEX.yaml 的 DOC-INDEX 判据。二者均由人读对抗性审查逐条裁决。
 - 本文件不修改任何 SCI/ALG 公式、默认容差或冻结门；冲突一律登记偏差（§1.2/§1.5）。
 
 ---
@@ -393,8 +382,8 @@ drop-governance-deviation / add-none-marker-row / anchor-stale）。
 
 > 依据：`ACSD_DESIGN.md` §0.2（登记表/映射表的状态字段一律留空）、§12.5（状态必须现场计算）。
 
-- 本表**不写**交付状态阶梯（§12.5 的 `CONTRACT_READY`/`IMPLEMENTED`/…）——那是模块/交付物的状态，由交付状态现场计算；文档活动分类一律以 `docs/DOCUMENT_INDEX.yaml` 为准，文档索引判据无在位载体。
-- 本表保留的两列**不是**交付状态，且都由机器校验，不构成「表内自证绿」：
-  - `符合状态`（`CONFORMANT`/`PARTIAL`/`NON_CONFORMANT`/`PROJECT_DEFINED`）= 与**外部标准条款**的关系轴，取值域与证据指针存在性由 C4/C5 现场判（`docs/engineering/RELEASE_STATUS.md` §0 已声明两轴独立）；
-  - §3 偏差索引的 `状态`（`TRACKED`/`CLOSED`）= 偏差处置登记，定义域与索引一致性由 C6/C7 现场判。
-- 若后续要求连这两列也改为「检查器现场计算」，须先改 C4/C6 判据并同步门禁注册面的 STD-REG 登记项（本仓无在位注册面）——属门禁改造，不在本文件域内。
+- 本表**不写**交付状态阶梯（§12.5 的 `CONTRACT_READY`/`IMPLEMENTED`/…）——那是模块/交付物的状态，由交付状态现场计算；文档活动分类一律以 `docs/DOCUMENT_INDEX.yaml` 为准，DOC-INDEX 判据由文档索引车道在对抗审核中逐条裁决。
+- 本表保留的两列**不是**交付状态，且都由 C4/C5 与 C6/C7 判据现场判，不构成「表内自证绿」：
+  - `符合状态`（`CONFORMANT`/`PARTIAL`/`NON_CONFORMANT`/`PROJECT_DEFINED`）= 与**外部标准条款**的关系轴，取值域与证据指针存在性由 C4/C5 判（`docs/engineering/RELEASE_STATUS.md` §0 已声明两轴独立）；
+  - §3 偏差索引的 `状态`（`TRACKED`/`CLOSED`）= 偏差处置登记，定义域与索引一致性由 C6/C7 判。
+- 若后续要求连这两列也改为「由裁决现场计算」，须先改 C4/C6 判据本身 —— 判词怎么算由判据文本决定，不由任何机器登记项决定；**不在本文件域内**。

@@ -131,8 +131,7 @@ snr_estimator CMake 目标，CMake 集成归 P1-NOISE-IMPL），
 dll_loader.cpp 加载名与路径吻合）。**噪声模型 A 为唯一生产模型**
 （`lib/algorithms/noise_snr/cpp/src/noise_model.cpp`；公式正本 =
 `docs/science/NOISE_MODEL.md`），静态库
-`acsd_phase1_noise`（源 = A + `wrapper_phase1/snr_frame_science.cpp` + `cpp/src/snr_science.cpp`），在根 `CMakeLists.txt` 中登记，经 `acsd_phase1_session` PUBLIC 闭包链入主程序（同一 `CMakeLists.txt`）；单测
-eng/tests/unit/p1_noise_test.cpp 经 `eng/tests/unit/CMakeLists.txt` 注册）。
+`acsd_phase1_noise`（源 = A + `wrapper_phase1/snr_frame_science.cpp` + `cpp/src/snr_science.cpp`），在根 `CMakeLists.txt` 中登记，经 `acsd_phase1_session` PUBLIC 闭包链入主程序（同一 `CMakeLists.txt`）；单测覆盖归 P1-NOISE-TEST）。
 
 | ALG | 符号 | 源锚 |
 |---|---|---|
@@ -206,7 +205,7 @@ eng/tests/unit/p1_noise_test.cpp 经 `eng/tests/unit/CMakeLists.txt` 注册）�
 | # | 议题 | 现行口径 | 依据 |
 |---|---|---|---|
 | 1 | 平面几何判据 | `plane_geometry_ratio()`：中心化点云 Gram 特征值比 `λlo/λhi ≥ kPlaneGeomRatio=0.0625`（κ=√(λhi/λlo)≤4），build 与 fill 用同一判据；不满足 ⇒ `has_spatial_field=0` ⇒ 全局常量场 | 数值判据表见 `docs/science/NOISE_MODEL.md`（A=0 / B=0.0133 / C=0.200 / 满格=1.0） |
-| 2 | gain 方向 | 解析式 `signal/gain + (rn/gain)²`；`eng/tests/unit/p1_noise_test.cpp` fixture 用 SCI 约定 `ADU=N_e/gain+N(0,rn/gain)`、容差 SCI 冻结 **5%**；断言生产诊断式 `snr_noise_gain_variance` 与该解析式一致 | SCI-NOISE-001 §5 |
+| 2 | gain 方向 | 解析式 `signal/gain + (rn/gain)²`；判据 fixture 用 SCI 约定 `ADU=N_e/gain+N(0,rn/gain)`、容差 SCI 冻结 **5%**；断言生产诊断式 `snr_noise_gain_variance` 与该解析式一致 | SCI-NOISE-001 §5 |
 | 3 | MAD→σ 常数 | 唯一全精度写法 `1.482602218505602`（= `1/Φ⁻¹(3/4)`）；`1.4826022185` 与 `1.4826` 只作约等于语境，各档相对差 3.779e-12 / 1.4964e-06；`0.6745` 相对差 +1.5196e-05（不可互换） | SCI-NOISE-001 §9；`docs/GLOSSARY.md` |
 | 4 | PSF 状态位 | 仅 `psf_status == 0.0` 置 `SNR_QF_PSF_OK`；未收敛帧在 UPM `quality_factor` 走"未知"档 0.5 | STAR_PSF_ALGORITHMS §11.2、DATA_SEMANTICS §15 |
 | 5 | kLn10 | 模块内唯一定义点 = `noise_model.cpp`（字面量 `2.302585092994045684`） | 复算 `float('2.302585092994045684')==float('2.302585092994045684017991454684')` → True |
@@ -234,8 +233,8 @@ eng/tests/unit/p1_noise_test.cpp 经 `eng/tests/unit/CMakeLists.txt` 注册）�
   `ctrl_*` 数组）判定；期望值取自该 oracle，产品面自身的 0 值只作被检对象；两档各自必须非空。
   **产品 dtype 门**：生效 floor 在输出 dtype 中不可表示（如 α² 换算后 `1e-46` 在
   float32 下溢为 0）时，产品面必须取不可用态——**不可用对的取值 = 不可用态**；`(0, +inf)` 归入另一形态。
-  落地：`p1noise_negative` 的 `n7_plane_pred_unavailable` / `n7b_dtype_underflow_pair`，
-  非恒真由 `p1noise_selfcheck` 的故障注入证明。
+  落地判据：`n7_plane_pred_unavailable` / `n7b_dtype_underflow_pair` 两档，
+  非恒真由故障注入证明。
 - **FIX-NOISE-C 常量场退化**: 常量输入 C → MAD=0 → 全部 patch 拒绝 →
   全帧兜底路径 sigma=0 → rc=1、degenerate=1、ivar_bg_global==0.0
   （bitwise 断言零值，不产生伪权重）。
@@ -243,8 +242,8 @@ eng/tests/unit/p1_noise_test.cpp 经 `eng/tests/unit/CMakeLists.txt` 注册）�
   对 `F_i` 与 `FWHM_i` **单调不减**（同 `(F_i,FWHM_i,σ_bg)` 逐位可复现），见 SCI-NOISE-001 §5a。
   「半径与亮度解耦」**不是**不变量、**判据面不含该项**（旧「亮星/暗星掩膜逐位一致」门把该被证伪
   的陈述机器化）。**负例（门必须能红）**：只给 flux 不给 FWHM ⇒ 回落统一 rmax、半径与 F 无关
-  ⇒ 严格单调判据必红，且必须置 `MASK_LEGACY`。落地 `p1noise_oracle` 的 `o2_mask_radius_monotone`
-  （含 `o2_mask_radius_monotone_F` / `o2_mask_radius_monotone_fwhm` / 门牙证明）。
+  ⇒ 严格单调判据必红，且必须置 `MASK_LEGACY`。落地判据 `o2_mask_radius_monotone`
+  （含缺 FWHM 臂 / 缺 flux 臂 + 门牙证明）。
 - **FIX-NOISE-E Poisson 诊断交叉**: 已知 gain/rn 合成帧 →
   `snr_noise_gain_variance` 与 var_th=μ/gain+(rn/gain)² 解析式逐位一致；
   与经验 variance_bg_global 相对差 ≤5%（SNR-005）；**并断言**
@@ -264,8 +263,7 @@ eng/tests/unit/p1_noise_test.cpp 经 `eng/tests/unit/CMakeLists.txt` 注册）�
 - **负面/参数矩阵**: data/out NULL、h/w≤0 → rc=3；cfg=NULL → 默认配置
   rc=0；source_mask 全 1（无 sky）→ rc=1；NaN/Inf 像素 → 过滤不计入
   （valid_pixel）；饱和电平以上像素排除（**必须提供电平**：`saturation_level>0` 或帧元数据
-  `SATURATE`/`DATAMAX`；未提供 ⇒ 编排层显式声明 `DISABLED_NO_METADATA`，
-  门 `ctest -R p1noise_saturation`）；star 坐标 NaN → 跳过该星。
+  `SATURATE`/`DATAMAX`；未提供 ⇒ 编排层显式声明 `DISABLED_NO_METADATA`）；star 坐标 NaN → 跳过该星。
 - **串并行/资源**: O(h·w) 时间、O(h·w) 掩膜 + O(64) 控制点内存界断言；
   现状单线程（§13.2），P1-NOISE-IMPL 引入并行后按 ④ 复验。
 - **ISA**: 基线标量断言（无 SIMD 变体；引入时按约束 C.4-C.8 逐内核

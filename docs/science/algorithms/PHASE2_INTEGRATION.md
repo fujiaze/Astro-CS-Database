@@ -186,9 +186,7 @@ eligibility（逐候选 i，候选索引固定序）:
   作用域 = 通过资格门的全部 accepted 样本；零权重 accepted 样本的
   support 必须进入 max。**禁用**把 `sup_max` 更新置于 `w==0 continue`
   之后——会使零权 accepted 样本的 support 被静默丢弃、低估 coverage 并集
-  （负例判据见 §11.3）。回归门
-  `eng/tests/unit/p2_output_semantics_test.cpp`
-  （4b/4c；`ctest -R p2_output_semantics`）。
+  （负例判据见 §11.3）。回归判据 4b/4c。
 - 本层的锚一律给到文件/符号级；外部文档给出的行号区间与实测文件长度不符时，
   以本文档 §3 为准（语义一致不受影响）。
 
@@ -246,8 +244,7 @@ eligibility（逐候选 i，候选索引固定序）:
 - **约束（`DISP-P2INT-001` 面）**：`sup_max` 更新必须位于权重分支**之前**（``lib/algorithms/coverage/src/integrate.cpp``；权重分支内含
   `if (w == 0.0) continue;`），作用域 = 通过资格门的全部
   accepted 样本；零权重 accepted 样本的 support 必须进入 max，与 ``lib/algorithms/coverage/include/astro/phase2/integrate.h``
-  的 `max(accepted support)` 冻结语义一致。回归门：
-  `eng/tests/unit/p2_output_semantics_test.cpp`（4b/4c）。
+  的 `max(accepted support)` 冻结语义一致。回归判据见 4b/4c。
 - **禁用**把 `sup_max` 更新置于 `w == 0` 分支之后——会使零权 accepted 样本的 support
   被静默丢弃，低估 coverage 并集。**负例判据**：输入 `{support=0.2,0.3,0.9}`、
   `{w=1,1,0}`、全 accepted，必须输出 `support=0.9`；置于分支之后的实现输出

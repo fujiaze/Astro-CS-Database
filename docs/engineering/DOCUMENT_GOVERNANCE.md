@@ -205,7 +205,7 @@ commit 与散列 | 40 位十六进制独立 token；7-12 位十六进制独立 t
 - 新产物落位到对应目录，不散落根目录；确需新增根条目或根目录，先登记并经负责人核准后生效；
 - 根 `VERSION` 无扩展名，是产品版本唯一事实源（最高设计 §13），以本条文字登记；
 - `eng/build/toolchain.ps1` 是 Windows 侧构建与自检脚本，其依赖面只允许仓内 vendored 依赖与系统工具链（机器路径政策见 `DEPENDENCY_RULES.md`）；
-- 根目录不得出现运行产物：命令行运行产物只落块级 `output_dir`（最高设计 §10），开发与 CI 过程产物与过程日志落 `run/`，ctest 残留归 `run/Testing_archive/`；
+- 根目录不得出现运行产物：命令行运行产物只落块级 `output_dir`（最高设计 §10），开发与验证过程产物与过程日志落 `run/`；
 - 版本信息按阶段出现：alpha 阶段之前代码与产物中不含版本信息，进入 alpha 阶段后一律由根 `VERSION` 派生或与其一致（单源条款 = `docs/engineering/RELEASE_STATUS.md` §2）。
 
 ### 9.2 外部只读数据集

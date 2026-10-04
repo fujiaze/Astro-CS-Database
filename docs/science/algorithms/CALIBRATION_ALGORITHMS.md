@@ -61,7 +61,7 @@ floor 0.1，即约定入参 master_flat 已是 median≈1.0 的归一化平场�
 | master_flat（任一形态） | 无 | 归一化是**独立维度**：`median(flat)` 须落在 `master_flat_median_range`（默认 [0.5,2.0]，`eng/packaging/config/defaults.json`），否则须显式声明 `master_flat_normalize="median"`（= §2 `flat_norm`，幂等） | 未声明且不落区间 ⇒ DATA 拒绝（rc=2） |
 | master_dark | `dark_optimization`（bool）声明是否含 bias | — | 提供 dark 而未声明 ⇒ DATA 拒绝（rc=2） |
 
-**四条机器规则（标度/归一化门判据 U1–U4，`--self-test` 可执行正负例）**：
+**四条 fail-closed 规则（标度/归一化门判据 U1–U4；配套正负例：合法声明组合判绿、违规组合判红）**：
 U1 亮场域 ≫ 1 ADU 而 bias/dark 中位数 ≤ 1.0 且未声明 normalized+scale ⇒ 拒；
 U2 `median(flat)` 出区间且未声明 median 归一 ⇒ 拒；
 U3 提供 dark 而未显式声明 bias 约定 ⇒ 拒；
@@ -550,7 +550,7 @@ oracle 同容差；actual_k 精确相等。
   （即按 [0,1] 归一化值 0.0153 相减）产物同样"不同"而判绿。故本判据**必须**
   与逐像素量级判据同组执行：`median(cal_obs)` 对逐像素 oracle
   `median[(raw − bias − K·(dark − bias))/flat_norm]` 的**无量纲相对差** ≤ 该判据
-  的数值容差（当前生产门脚本按每例 1e-2..3e-2 相对差判定，见
+  的数值容差（按每例 1e-2..3e-2 相对差判定，见
   标度/归一化门判据的逐例相对差比较；
   该数值**未**登记在 `eng/packaging/config/defaults.json`，见 §2 标度声明表
   的量纲说明）。**"必须不同"单独使用不具备证据资格**。
@@ -559,14 +559,14 @@ oracle 同容差；actual_k 精确相等。
   消费"已减 bias 暗电流母版"的标定产物；含 bias 的暗场母版必须用
   `dark_optimization=true` 显式声明（否则多减一次 bias）。相邻项（UNIT-001，
   见 DISP-CAL-013 与 SCI-CAL-001 §3/§6/§8）：XISF 母版 [0,1] 归一化 vs 亮场
-  ADU 的量级不一致、master_flat 未归一（median 0.2064）均无机器门——二者使
+  ADU 的量级不一致、master_flat 未归一（median 0.2064）均未被 fail-closed 拦截——二者使
   真实链路产物标度错 ≈×4.85 且本底几乎未减；UNIT-001 落地后该两类输入
   fail-closed，bias/K 语义独立成立。
 - **DISP-CAL-013（UNIT-001）XISF 母版 [0,1] 归一化被当 ADU 消费**：
   `aio_xisf.cpp` 对 `sampleFormat="Float32"` 只做字节布局转换（`convert_xisf_pixels`），
   **不解释 `Image` 元素的 `bounds`（可表示域）**，也不做任何单位换算；`p1_op_calibrate`
   把读到的 float 直接当 ADU 传给 `ac_calibrate_frame`——该路径由 §2 标度声明表与
-  U1–U4 四条机器规则 fail-closed 拦截（规则本体
+  U1–U4 四条 fail-closed 规则拦截（规则本体
   `lib/include/acsd/core/master_unit_guard.h:93-173`；调用与诊断
   `lib/infrastructure/scheduler/src/module_adapters.cpp:2003-2125`；
   声明换算 `:2033,2037,2041`；K 推导 `:2129-2147,2198-2216`；
@@ -586,17 +586,15 @@ oracle 同容差；actual_k 精确相等。
   **端到端验证（真实链路 rc=0）**：T2 同帧声明后产物 `median=436.1555`、
   `mean=500.7639`、`min=−23215.701`、`max=74318.594`，与门内独立 NumPy oracle 相对差 **1.26e−08**；
   未声明标度时同一帧 `median=7048.6179`、`mean=7372.6422` ⇒ 比值 **16.161×**。
-  **现行规定**：①§2「标度声明」表与 U1–U4 四条机器规则；②消费边界（`p1_op_calibrate`）
+  **现行规定**：①§2「标度声明」表与 U1–U4 四条 fail-closed 规则；②消费边界（`p1_op_calibrate`）
   新增声明解析 + 观测统计校验 + 声明换算 + 节点 manifest 溯源（`master_unit_guard`），
   违反即 DATA 拒绝（rc=2）并点名文件 + 观测值 + 缺失声明项；
   ③标度/归一化门判据：**四条负例（U1–U4）+ 两条正例**（显式声明组合 /
-  本就合规组合），合成与真实 T2 双模式，门内逐像素 NumPy oracle，`--self-test` 为期望 token 变异注入；
+  本就合规组合），合成与真实 T2 双模式，门内逐像素 NumPy oracle，期望 token 变异注入为负例臂；
   ④`eng/packaging/config/defaults.json` 登记 `calibration.master_flat_median_range`（[0.5,2.0]）；
-  ⑤与 U3 冲突的既有节点级夹具（`eng/tests/unit/p1001_real_nodes_test.cpp` 9 处 doc）补显式
-  `dark_optimization=false`（该夹具 `vd=5 < vb=10` = 已减 bias 的暗电流，声明后数值不变）。
-  **残留（登记待裁定）**：⑥**未新增 ctest 目标**（新目标必须在门禁注册面（本仓无在位注册面）的
-  `ctest_targets` 登记）⇒ U1–U4 的机器覆盖由上述门脚本承担；
-  ⑦**节点 manifest 未落盘**：`master_unit_guard` 写入节点 manifest 与 `stages.calibrate`，
+  ⑤**U3 的夹具侧要求**：`vd=5 < vb=10` 这类「母版已减 bias」的暗电流样本，在 U3 下必须
+  显式声明 `dark_optimization=false`（声明后数值不变）。
+  **残留（登记待裁定）**：⑥**节点 manifest 未落盘**：`master_unit_guard` 写入节点 manifest 与 `stages.calibrate`，
   但当前 CLI 面只持久化 run manifest（`summary`/`provenance.units=["ADU"]`）与失败时的
   `error.message` ⇒ **拒绝路径可审计（token + 点名文件 + 观测值已入 run manifest）**，
   **接受路径的"实际施加换算"尚未落盘**；声明内容本身可由 run manifest 的 `config_path`/

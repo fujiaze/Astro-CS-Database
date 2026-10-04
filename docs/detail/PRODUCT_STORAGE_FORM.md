@@ -42,7 +42,7 @@
 | **Phase2 mosaic** | 叠加后的天球数据库，被随机读取用于服务 | **裸 `<name>.hips/`** | 无（服务面不接受归档形态） |
 | **Phase3 export** | 平面 FITS 导出交付物 | **裸 FITS（不压缩、不套壳）** | 无 |
 
-- Phase1 归档形态的**下游读取代价必须可接受**：归档定位表的随机瓦片读取必须与本机冷盘直读同量级，且读盘字节数必须显著低于裸形态。判据 = 归档定位表的随机读延迟与冷盘直读同档，见 `实验/engineering-evidence/compress-01/`（机器门 `CHK-SPARSE-PUNCH-PROBE` 与归档定位表探针的复现面）。
+- Phase1 归档形态的**下游读取代价必须可接受**：归档定位表的随机瓦片读取必须与本机冷盘直读同量级，且读盘字节数必须显著低于裸形态。判据 = 归档定位表的随机读延迟与冷盘直读同档；收益读数与本机磁盘直读基准见 `实验/engineering-evidence/compress-01/`。
 - Phase3 产物是**交付物**：外部工具（DS9 / astropy / 浏览器）必须能直接打开，任何套壳都会把"打开"变成"先解压"。Phase3 不产出 HiPS，因此不使用 `.hips` / `.hips.zst` 命名。
 
 ## 3. 命名与内容布局
@@ -184,8 +184,8 @@ flowchart LR
 
 | 机制 | 作用层 | 判据落点 | 读回行为 | 前提 |
 |---|---|---|---|---|
-| **9.1 文件系统打洞**（sparse hole punching） | 文件分配层（**字节不变**） | `CHK-SPARSE-PUNCH`、`CHK-SPARSE-PUNCH-PROBE`；收益读数 = `实验/engineering-evidence/compress-01/` | **逐字节不变**（稀疏区读出为零填充；打洞只作用于**本来就是零字节**的区域） | Linux ext4 上成立；Windows 有等价实现，**行为面待实测** |
-| **9.2 包围盒 TRIM**（WD-HiPS-2.0 §4.3.2，`TRIM1/TRIM2/ONAXIS1/ONAXIS2`） | 瓦片内容层（**改 FITS 结构**） | `CHK-SPARSE-PUNCH` 的「TRIM 默认形态 = 关闭」判据；收益读数 = `实验/engineering-evidence/compress-01/trim_scan.json` | **改变**：NAXIS1/NAXIS2 缩小，读者必须按 TRIM 关键字补边 | **不成立**——标准 FITS 读者读到的图像变小；草案特性、生态窄 |
+| **9.1 文件系统打洞**（sparse hole punching） | 文件分配层（**字节不变**） | 打洞前后逐字节不变 / 谓词字节级 / 释放量下降 / NaN 区不动（判据正文见 §9.1）；收益读数 = `实验/engineering-evidence/compress-01/` | **逐字节不变**（稀疏区读出为零填充；打洞只作用于**本来就是零字节**的区域） | Linux ext4 上成立；Windows 有等价实现，**行为面待实测** |
+| **9.2 包围盒 TRIM**（WD-HiPS-2.0 §4.3.2，`TRIM1/TRIM2/ONAXIS1/ONAXIS2`） | 瓦片内容层（**改 FITS 结构**） | 「TRIM 默认形态 = 关闭」判据（判据正文见 §9.2）；收益读数 = `实验/engineering-evidence/compress-01/trim_scan.json` | **改变**：NAXIS1/NAXIS2 缩小，读者必须按 TRIM 关键字补边 | **不成立**——标准 FITS 读者读到的图像变小；草案特性、生态窄 |
 
 **关键区分**：包围盒 TRIM 的收益属于 9.2，不是打洞；两者收益**不可迁移**。原因：signal 层边距是 IEEE **NaN**（位型 `0x7FC00000`），**没有全零块可打**（结构必然：NaN 位型含非零字节）；而合同要求 signal 边距必须是 NaN（`docs/science/DATA_SEMANTICS.md` §12.4「未覆盖像素一律 invalid（signal=NaN/support=0）」，**不可互换**），把 NaN 改写成 0.0 会把"无覆盖"变成"有效零流量"⇒ 语义破坏；`NaN` 与 `0.0` 两位型各自独立、不可互换。
 
@@ -200,7 +200,7 @@ flowchart LR
 - **可打洞谓词为什么必须是字节级**：判据是"逐字节等于 0"，**只取字节级比较** —— IEEE `-0.0` 在浮点比较下等于 `0.0`，但其位型 `0x80000000` 含非零字节；用浮点判定会把 `-0.0` 区打成洞并**改变文件字节**。signal 层边距是 IEEE NaN（`0x7FC00000`），位型含非零字节 ⇒ 按构造落入"不可打洞"，这正是"NaN 区字节保持原样"这条红线的机制来源。
 - **块对齐与 EOF**：只有 4 KiB 对齐的整块可打；洞起点必须块对齐，洞终点要么块对齐、要么等于 `st_size`（末块补到块边界以释放尾部块；`st_size` 与读回语义均不变）。`punched_bytes` 表示**提交**的打洞字节；若洞提交后已分配字节未下降 ⇒ 返回 `NO_RELEASE` 并记 warn（`trim=skipped(no_release)`），状态词取 `NO_RELEASE`，成功判据 = 释放量下降。
 - **降级路径的机器形态**：卷不支持 ⇒ `rc=UNSUPPORTED`、`punched_bytes=0`、`released_bytes=0`，文件**一个字节都不动**（能力探测先于任何打洞调用）；调用方记 `trim=skipped(<reason>)` 后照常发布。
-- **判据（机器）**：`CHK-SPARSE-PUNCH`（静态不变量 + 谓词判据判别力 + TRIM 默认形态 = 关闭）与 `CHK-SPARSE-PUNCH-PROBE`（把本机制的生产头编译成探针跑真实系统调用：读回逐字节一致、释放量、NaN 红线、降级）。
+- **判据**：静态不变量 + 谓词判据判别力 + TRIM 默认形态 = 关闭；探针面把本机制的生产头编译成探针跑真实系统调用：读回逐字节一致、释放量、NaN 红线、降级。核对面 = 对抗性审查逐条核对，实验读数见 `实验/engineering-evidence/compress-01/`。
 
 ### 9.2 包围盒 TRIM（可选形态，默认不启用）
 

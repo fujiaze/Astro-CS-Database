@@ -4,9 +4,11 @@
 
 > **本文的构建图机器块由生成器从根 CMake 构建图导出**：
 > 命令 = python3 eng/tools/arch/gen_build_graph_doc.py（根 CMakeLists 或子目录源集变动后重跑）。
-> 门 = CON-BUILD-GRAPH：
-> 逐行比对目标集（与生产闭包的双向差集）、类型、定义文件与源集摘要；判据的输入是构建图本身。
-> 判别力自证 = 同一条命令加 --self-test。
+> 判据（输入 = 构建图本身，不经转述）：
+> 逐行比对目标集（与生产闭包的双向差集）、类型、定义文件与源集摘要；
+> 生成器自身 fail-closed —— 登记为非生产的目标若不在图中或已进入生产闭包、
+> 登记为非根图的目标若已在根图中，非零退出，绝不把假事实写进文档。
+> 该比对由人工对抗审核在每次重跑后逐行执行，不设机器判决。
 
 > **生成器残留（待裁决）**：§2 与 §3 两张机器表内的「ARCHITECTURE §1 迁移冻结」字样，
 > 其唯一来源是生成器 `eng/tools/arch/gen_build_graph_doc.py:48/:49/:60/:62` 的硬编码理由串，
@@ -118,10 +120,12 @@ target_link_libraries 的传递闭包内的全部 target；唯一事实源 = 根
 
     python3 eng/tools/arch/gen_build_graph_doc.py            # 从构建图导出机器块
 
-构建图门（CON-BUILD-GRAPH）判定 PASS / FAIL；判别力自证 = 同一判据加 `--self-test`。
+复算后的核对 = 把本文三张机器块与生成器输出逐行比对：目标集与生产闭包的双向差集、
+`kind`、定义文件、源集数量与 `src_fingerprint` 全部一致。任一行对不上即判红 ——
+判据的输入是构建图本身，文档转述不构成证据。
 
 ## 6 关联
 
 - 安装树：eng/cmake/install_layout.cmake + eng/packaging/install-tree.contract.json；
 - 执行面登记：docs/engineering/BUILD_GRAPH.md；
-- 规范点名实现的生产可达性：规范点名实现必须落在生产入口沿 `target_link_libraries` 的传递闭包内（§1）；封闭性核对由门禁执行器承担；本仓无在位的门禁注册面与执行器。
+- 规范点名实现的生产可达性：规范点名实现必须落在生产入口沿 `target_link_libraries` 的传递闭包内（§1）。封闭性核对 = 以根 CMakeLists.txt 的实际闭包为准，逐个点名实现反查其所属 target 是否在该闭包内；查不到即判红。

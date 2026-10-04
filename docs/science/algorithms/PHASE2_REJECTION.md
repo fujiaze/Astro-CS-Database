@@ -732,9 +732,8 @@ tally: accepted_count/rejected_low/rejected_high/iterations  :2163-2177
   lib/algorithms/coverage/ 三件套已被 P2-COV 占用）；registry
   acsd.phase2.reject.md。
 - 消费者: stage2.cpp（§6；DATA_SEMANTICS §20 编排域）/
-  acr_kernels.cpp（ACR 域）/ eng/tests/unit/p2_rejection_test.cpp
-  （P2-005 语义 id/解析面）/ eng/tests/backend/test_p2004_reject_
-  integrate.py（P2-004 生产 Oracle）/ module_adapters.cpp:704-720
+  acr_kernels.cpp（ACR 域）/ P2-005 语义 id/解析面判据/
+  排异/积分生产 Oracle 组/ module_adapters.cpp:704-720
   descriptor 占位。
 - SCI: docs/science/REJECTION.md（SCI-REJ-001..008，FROZEN）。**阈值表、
   判据带定义、§10 禁改清单零改动**；本文档只同步行号锚、profile 依赖的

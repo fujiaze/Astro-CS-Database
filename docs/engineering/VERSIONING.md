@@ -1,7 +1,7 @@
 # Astro Celestial Sphere Database（ACSD） 版本合同
 
 > 上游：docs/ACSD_DESIGN.md §13（版本与发布权）
-> 唯一正本：本文件是版本合同的唯一正本；机器门 = `CHK-VERSION-CONSISTENCY-VER001`。
+> 唯一正本：本文件是版本合同的唯一正本；版本一致性判据见本文件 §4，由人读对抗性审查逐条裁决、实验复核取证。
 
 ## 1. 唯一版本源
 
@@ -24,7 +24,7 @@
   `git rev-parse HEAD` 采样一次（`CMakeLists.txt`）。Ninja 的 `RERUN_CMAKE` 规则只依赖 CMake 输入，
   **不含任何 `.cpp/.h`** ⇒ 改源码不重跑 configure ⇒ 二进制里编进去的是新代码，记录里留的是 configure
   时刻的 SHA。故 `run_context.json` / `provenance` 的 `source_sha` **只表示 configure 时刻的 HEAD，
-  不是构建指纹**；两份产物的 `source_sha` 相等**不蕴含**同一二进制。验证面 = 构建溯源判据（本节「机器判据」条）。
+  不是构建指纹**；两份产物的 `source_sha` 相等**不蕴含**同一二进制。验证面 = 本节构建溯源判据。
 - **构建指纹**（判「同一代码 / 同一二进制」的唯一依据）由 `eng/tools/gen_build_stamp.py`
   在**构建期**采样、经 `build_stamp_generated.h` 烙进产物，随 `run_context.json` 与
   `run_manifest.provenance` 落盘：
@@ -41,26 +41,26 @@
 - **代价约束**：指纹只由 `git ls-files` 给出的显式清单 + 改动文件的对象 id 决定
   （干净工作树零读盘，判据 = 指纹计算只用显式清单；耗时读数落 `实验/engineering-evidence/`）；生成头内容不变时不落盘，故不触发下游重编译；
   生成头只被一个 TU（`build_stamp.cpp`）消费，指纹变化的重编译面 = 1 个小 TU。
-- **机器判据**（`CHK-BUILD-PROVENANCE`，）—— 记录指纹 ≠ 当前工作树重算 ⇒
+- **构建溯源判据** —— 记录指纹 ≠ 当前工作树重算 ⇒
   具名判红（`SOURCE_DIGEST_MISMATCH`，有构建树逐文件清单时精确点名差异文件）；
-  产物缺指纹 ⇒ `BUILD_STAMP_ANCHOR_MISSING`（rc=2，**不可锚定 ≠ 通过**）。
+  产物缺指纹 ⇒ `BUILD_STAMP_ANCHOR_MISSING`，**不可锚定 ≠ 通过**。
 
-## 3. 同步矩阵（机器检查覆盖）
+## 3. 同步矩阵（判据覆盖点）
 
-| 消费点 | 同步方式 | 检查 |
+| 消费点 | 同步方式 | 判据 |
 |---|---|---|
-| CLI `--version`/`--version --json` | 构建期由 gen_version 注入 | schema 校验 + DOCCHK |
-| alpha 包名/清单 | 打包脚本必须调用 gen_version | 打包校验器 |
-| run_manifest.json | 运行期调 gen_version | 运行清单 schema 校验项（判据见本节；本仓无在位门禁注册面） |
-| run_manifest.provenance / run_context.json 的构建指纹 | 构建期由 gen_build_stamp.py 烙入（§2.1） | CHK-BUILD-PROVENANCE |
-| 文档 | 只允许出现当前基础号 | 本 checker |
+| CLI `--version`/`--version --json` | 构建期由 gen_version 注入 | §4 版本一致性判据 |
+| alpha 包名/清单 | 打包脚本必须调用 gen_version | §4 版本一致性判据 |
+| run_manifest.json | 运行期调 gen_version | §4 版本一致性判据（manifest 字段口径另见 §1 唯一版本源） |
+| run_manifest.provenance / run_context.json 的构建指纹 | 构建期由 gen_build_stamp.py 烙入（§2.1） | §2.1 构建溯源判据 |
+| 文档 | 只允许出现当前基础号 | §4 版本一致性判据 |
 
-## 4. 机器检查
+## 4. 版本一致性判据
 
-版本一致性判据：
-- `VERSION` 格式必须为 `X.Y.Z-alpha.N`；出现 `stable/rc/beta` 预发布标记即 FAIL。
+判据由人读对抗性审查逐条裁决、实验复核取证；判据文本不含执行器。
+- `VERSION` 格式必须为 `X.Y.Z-alpha.N`；出现 `stable/rc/beta` 预发布标记即判红。
 - 扫描 `docs/ schemas/ eng/tools/ launch/ eng/tests/` 与根级 README/CHANGELOG/build.sh/toolchain.ps1：任何 `X.Y.Z` 字面量必须等于唯一源（豁免：hips_version、DatabaseVersion、schema_version、外部组件版本、`X.Y.Z`/`MAJOR.MINOR.PATCH` 占位写法）。
-- **mutation 合同：任何一处伪造/漂移版本字面量必须使本 checker FAIL**（`eng/tests/version/**` 有固定试金石）。
+- **mutation 合同：任何一处伪造/漂移版本字面量必须使本判据判红**。该合同的固定试金石用例原在 `eng/tests/version/**`，该目录在现行文件树中不存在 ⇒ 本判据现无可复跑的 mutation 用例，注入前须先补用例（补用例属判据面，不在门禁写入面）。
 
 ## 5. 豁免清单（非产品版本的三元组）
 

@@ -149,7 +149,7 @@
 - **分块不变量门**：`1×N` vs `N×1` 切分结果等价（合法域按 §5）。
 - **回退门**：逐像素 ivar 权重的 `ACR` 强制 CPU 与纯 CPU `canonical` 等价（`ivar_wiring_test`）。
 - **流量守恒门**：常数场 `C` 的 `signal` 与 `C` 在 §9 相对容差内相等，且与分块无关。
-- **独立参考**：`eng/tests/api/test_reject_integration_oracle.py`（SYN-006）用**纯 Python 第一性原理**复算 `robust-MAD sigma-clip → accepted 集合 → 等权均值`，与生产 kernel 逐像素比对，判据为 `abs ≤ 0.02`（信号标度，非相对容差）。该参考不实现逐样本 ivar 加权，只覆盖等权（`weights=nullptr`）分支。
+- **独立参考**（SYN-006）：用**纯 Python 第一性原理**复算 `robust-MAD sigma-clip → accepted 集合 → 等权均值`，与生产 kernel 逐像素比对，判据为 `abs ≤ 0.02`（信号标度，非相对容差）。该参考不实现逐样本 ivar 加权，只覆盖等权（`weights=nullptr`）分支。
 
 ## 12 关联 ALG ID
 

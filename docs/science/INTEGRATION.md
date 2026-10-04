@@ -87,7 +87,7 @@
   **口径的精确作用域**：max 的作用域 = 通过资格门（`accepted ∧ values 有限 ∧
   support 有限且 >0`）的全部样本，**不含权重正性要求**——零权重 accepted 样本的
   support **进入** max（`lib/algorithms/coverage/src/integrate.cpp`，位于权重分支
-  之前；回归门 `eng/tests/unit/p2_output_semantics_test.cpp`）。
+  之前；回归判据见 ALG-P2-INT-001 §11.3）。
 - **两个 support 的命名区分（各自具名）**：
   (i) **样本级 support**（本层输入 `support[i]`，域 (0,1]，几何覆盖支撑）——
   本层只对它做 canonical max 归约；
