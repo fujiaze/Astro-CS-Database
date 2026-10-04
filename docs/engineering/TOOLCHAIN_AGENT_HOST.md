@@ -44,7 +44,9 @@
 > （`eng/cmake/toolchain/` 路径无此文件）。即 Windows 工具链的「禁 MinGW/MSYS」约束目前**只有合同文本、
 > 无机器执行**。约束本身不因此失效——`CMakePresets.json` 仅暴露 MSVC 预设、`toolchain.ps1` 显式走
 > 该预设且记 `msys2_mingw=FORBIDDEN`，四者口径一致；但缺执行器意味着换用 MinGW 不会自动判红。
-> 需负责人决定是恢复执行器还是改由 CI 侧承担。
+> 该约束的机器执行面不存在且**不建立**（门禁与 CI 已作废、不重建，见
+> `docs/engineering/UNRESOLVED_REGISTER.md` §0）。上文「只有合同文本、无机器执行」
+> 与「换用 MinGW 不会自动判红」是这一状态的如实陈述，继续有效。
 
 ## 3. 与 hosted CI 版本策略的关系
 

@@ -2,6 +2,12 @@
 
 > 上游：docs/ACSD_DESIGN.md §12.4（验证层级与四层验收）、§12.5（状态阶梯）
 
+> **现态（§0 口径，见 `docs/engineering/UNRESOLVED_REGISTER.md`）**：门禁与 CI 已作废、不重建。
+> `.github/workflows/ci-linux.yml`、`ci-windows.yml`、`eng/ci/run.py` 与 `ci_result.json`
+> 均不在现行文件树中，**本文件不描述任何注册或执行流程**。下游 §1–§7 逐条记述的是这两条
+> workflow 与门禁判定当时的形态，属如实台账，不是现行载体声明，**不得据本文件重建 CI**。
+> 验证与验收的执行面现为人读对抗性审核与实验单元；判词不产出自动判红判绿，也不进流水线。
+
 ## 1. 触发与范围
 
 范围口径以 `TEST_STANDARD.md` §8 为正本；本节只写"什么事件跑哪个范围"。
