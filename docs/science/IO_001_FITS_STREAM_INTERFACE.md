@@ -198,8 +198,8 @@ typedef struct acsd_fio_trace_hooks_v1 {
 - `lib/infrastructure/aio/io` + `lib/include/acsd/io/io_adapter.h`：Artifact 事务 + FileIoAdapter（本接口的原型实现），保留。
 - `lib/infrastructure/aio/io/fits_core.c` 是本接口新增的 fits 流 C 核心（无 CFITSIO 依赖）。
 - 产物 manifest C ABI（`lib/include/acsd/contracts/artifact_abi_v1.h`）：fits 流接口不重复其职责。
-- trace/bytes：由宿主注入 hook；本接口只覆盖 hook 契约与累计语义，trace 事件面（取值为现场观测）见 `docs/engineering/observability/RUN_GRAPH_CONTRACT.md`。
-- HiPS/manifest 输入输出（`docs/science/IO_002_HIPS_INPUT_INTERFACE.md`、`docs/engineering/io/IO_003_ATOMIC_OUTPUT_PUBLISH.md`）在本接口之上扩展，本接口不实现。
+- trace/bytes：由宿主注入 hook；本接口只覆盖 hook 契约与累计语义，trace 事件面（取值为现场观测）见 `docs/engineering/resources/observability/RUN_GRAPH.md`。
+- HiPS/manifest 输入输出（`docs/science/IO_002_HIPS_INPUT_INTERFACE.md`、`docs/engineering/contracts/ATOMIC_PUBLISH.md`）在本接口之上扩展，本接口不实现。
 
 ## 14. 已知限制（v1 骨架）
 

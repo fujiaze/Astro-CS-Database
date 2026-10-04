@@ -133,10 +133,10 @@ lib/algorithms/resample/p3_resample.h 全部公共符号（ALG-P3-003 施工面 
   §2 的 **G3（order 选择）与 G4（leaf 采样）** 为本域子面；本合同承接
   其全部公式（零改动，§6 给出等价性核对）。G1/G2（投影）属
   ALG-P3-PROJ-IMPL-001，G5（FITS 写）属 writer 域，不在本合同。
-- DATA 层: 输出张量语义 = DATA-P3-RES（docs/science/DATA_SEMANTICS.md
-  §29，本任务新建）；输入 properties/tile 语义 = DATA-HIPS-001/
+- DATA 层: 输出张量语义 = DATA-P3-RES（docs/detail/registry/acsd.phase3.resample2.md
+  §3 输入输出端口，本任务新建）；输入 properties/tile 语义 = DATA-HIPS-001/
   DATA-TILE-001（§3 冻结）。
-- API 层: 公共消费合同 = API-P3-RSMP-001（docs/engineering/PUBLIC_API.md
+- API 层: 公共消费合同 = API-P3-RSMP-001（docs/engineering/api/PUBLIC_API.md
   本任务新节），登记上面 10 符号。
 
 ## 6 逐符号冻结（公式与实现等价性）
@@ -418,13 +418,13 @@ fits_index = nested_local_to_fits_index(local, 9, 512)   # = (511-x)*512 + y（D
 ## U 承接：`uncertainty_available=false`（fail-closed 唯一出口）
 
 本层产出/消费不确定度子产品时，`uncertainty_available=false` 的处置**承接
-`docs/science/DATA_SEMANTICS.md` §30 的 fail-closed 唯一出口**（该节的不确定度
+`docs/engineering/data/ARTIFACTS.md`（DATA-UNC-001 / DATA-P2-PROV-001 行）的 fail-closed 唯一出口**（不确定度
 fail-closed 规则与其显式登记项）：输入面不含 variance/ivar 子产品
 （或权重非纯逆方差、发生 fallback、合成输入非有限被拒等规则项）⇒ **不写**
 variance/ivar 子产品 + manifest 写 `uncertainty_available=false` +
 diagnostics 标红计数；**该键不是失败态**，是 unavailable 显式登记模式
 （禁占位子产品、禁静默缺键、禁用常量 0 冒充）。
-键名与取值口径以 `DATA_SEMANTICS.md` 为唯一权威，本层不另立第二套
+键名与取值口径以 `docs/engineering/data/ARTIFACTS.md` 为唯一权威，本层不另立第二套
 （本层此前零承接，P-154/DISP-P3UNC-001 勘误）。
 
 

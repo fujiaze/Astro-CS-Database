@@ -189,7 +189,7 @@ function phase3_resample(hips_dir, params):
   §2.1.2 式(3)（中间坐标 = CD·(p−CRPIX)）；Paper II = Calabretta & Greisen 2002, A&A 395, 1077
   （DOI 10.1051/0004-6361:20021327）§2.3 式(2)–(7)（三 Euler 角旋转核；矩阵形式见附录 A.1）/ §5.1.3 式(54)（TAN: R=(180/π)·cotθ）；
   FITS Standard 4.0（2016）§4.3/§4.4；astropy 7.0.1（WCSLIB）作独立 Oracle。
-- 方差传播（若涉及）：Fruchter & Hook 2002；UNCERTAINTY_AND_COVARIANCE.md。
+- 方差传播（若涉及）：Fruchter & Hook 2002；docs/science/noise_snr/NOISE_SNR.md §3.5。
 
 参考代码库（含许可证）正本 = docs/engineering/SCIENTIFIC_REFERENCES.md §M。
 
@@ -198,13 +198,12 @@ function phase3_resample(hips_dir, params):
 ## U 承接：`uncertainty_available=false`（fail-closed 唯一出口）
 
 本层产出/消费不确定度子产品时，`uncertainty_available=false` 的处置**承接
-`docs/science/DATA_SEMANTICS.md` §30 的 fail-closed 唯一出口**（§30 规则面；
-同节显式登记面）：输入面不含 variance/ivar 子产品
+`docs/engineering/data/ARTIFACTS.md`（DATA-UNC-001 规则面；同表显式登记面）**（合同面：输入面不含 variance/ivar 子产品
 （或权重非纯逆方差、发生 fallback、合成输入非有限被拒等规则项）⇒ **不写**
 variance/ivar 子产品 + manifest 写 `uncertainty_available=false` +
 diagnostics 标红计数；**该键不是失败态**，是 unavailable 显式登记模式
 （禁占位子产品、禁静默缺键、禁用常量 0 冒充）。
-键名与取值口径以 `DATA_SEMANTICS.md` 为唯一权威，本层不另立第二套
+键名与取值口径以 `docs/engineering/data/ARTIFACTS.md` 为唯一权威，本层不另立第二套
 （本层此前零承接，P-154/DISP-P3UNC-001 勘误）。
 
 

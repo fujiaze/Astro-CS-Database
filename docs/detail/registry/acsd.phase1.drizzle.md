@@ -2,15 +2,15 @@
 
 > 上游：docs/ACSD_DESIGN.md §8.5（模块与 ABI）、§4.4（输出合同：帧级 SNR 入文件头、
 > 稀疏层插入）、§2.2（创新点二：跨帧可用的绝对信噪比）、§5.5/§10（无覆盖 = NaN 语义）
-> 科学正本：docs/science/DRIZZLE.md（SCI-DRZ-001/014/015/016，§7 通量守恒因子）、
+> 科学正本：docs/science/drizzle/DRIZZLE.md（SCI-DRZ-001/014/015/016，§4 参数与常数通量守恒因子）、
 > docs/science/algorithms/DRIZZLE_GEOMETRY.md（ALG-DRZ-001，重采样几何与 §9/§10
-> 测试设计与缺陷登记）、docs/science/UNCERTAINTY_AND_COVARIANCE.md（重采样方差传播）
-> 数据正本：docs/science/DATA_SEMANTICS.md §11（DATA-P1-DRZ，§11.1 variance 块）、
-> §11.1「"variance" 块（可选，帧内块）float32，ADU²」
+> 测试设计与缺陷登记）、docs/science/noise_snr/NOISE_SNR.md §3.5（重采样方差传播）
+> 数据正本：docs/detail/registry/acsd.phase1.drizzle.md（DATA-P1-DRZ 端口表与帧内
+> "variance" 块（可选，帧内块）float32，ADU²，本页输入输出端口表）
 > 落盘与索引词表：eng/contracts/schemas/hips_storage_form.schema.json、
 > eng/contracts/schemas/run_manifest.schema.json
-> API 正本：docs/engineering/PUBLIC_API.md（API-DRZ-001）、API-P1-007
-> （docs/engineering/PHASE1_API_V1.md）
+> API 正本：docs/engineering/api/PUBLIC_API.md（API-DRZ-001）、API-P1-007
+> （docs/engineering/api/PUBLIC_API.md「分阶段 API 面」）
 > 数据对象：docs/detail/UNIFIED_MODEL.md §1（重采样线性算子）
 
 合同 = SCI-DRZ-001 / ALG-DRZ-001 / TEST-DRZ-DESIGN-001（与
@@ -43,7 +43,7 @@ drizzle 后逐像素 ivar 重建而丢掉 PSF / 协方差**；**不产出外挂�
 | `stacked` | `DATA-P1-STACK` | 可 | `UnitId::SURFACE_BRIGHTNESS` | `CoordinateFrame::ICRS` |
 
 数据合同：descriptor 的 data_id = DATA-P1-STACK（编排汇总语义）；模块级数据合同 =
-DATA-P1-DRZ（DATA_SEMANTICS §11：tile 累加量为原始和，finalize 归一在下游），其
+DATA-P1-DRZ（本页输入输出端口表：tile 累加量为原始和，finalize 归一在下游），其
 对齐属迁移目标（未落地）。输入帧形如「data」f32/f64 `[H][W]` ADU + header
 WCS/SIP + 可选 PRECISION / snr_model；目标 NESTED tile 产品含 SIGNAL / SUPPORT /
 variance / ivar，tile_depth = 9、nside ≥ 512 硬门，外加 `HpDrizzleResult` 统计
@@ -160,7 +160,7 @@ run generation 切换清空，原子化替换）。计数新增 `target_boundary
 （DrizzleStats + `[ops]` 行）。缓存的科学等价由 candidate oracle、freeze 闭合门
 与 MC 复算结果给出（判据见 DRIZZLE_GEOMETRY.md）；`k_corr` 的规范式 = 因子分解式
 `k_corr = k_gauss(N_retained) × k_geo(几何)`、逐帧查表标定
-（`docs/science/UNCERTAINTY_AND_COVARIANCE.md`），标定域两端的冻结单数 1.4 低估，
+（`docs/science/noise_snr/NOISE_SNR.md` §3.5 `k_corr` 因子分解式），标定域两端的冻结单数 1.4 低估，
 不作规范取值。
 
 所有权 = 调用方分配 frame / result / 输出缓冲；模块内 RAII（SNR 控制点 vector，

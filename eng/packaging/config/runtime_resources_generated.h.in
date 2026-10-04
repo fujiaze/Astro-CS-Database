@@ -3,7 +3,7 @@
 // （与 G-RES-01 的 resource_gate_thresholds_generated.h 同款机制：
 //   实现侧不得再出现字面量阈值。）
 // 依据: ACSD_DESIGN.md §8.3/§9（静态预算 = 调度准入输入；内存不设资源门）+
-//       docs/engineering/SCHEDULER_CONTRACT.md §3（内存上限由配置决定，禁硬编码）。
+//       docs/engineering/contracts/SCHEDULER.md §3（内存上限由配置决定，禁硬编码）。
 #pragma once
 
 #include <cstdint>
@@ -27,7 +27,7 @@ inline constexpr std::uint32_t kMemoryPressureLowDwellSamples = @ACSD_RR_MEMORY_
 inline constexpr std::uint32_t kMemoryPressureEvictAfterSamples = @ACSD_RR_MEMORY_PRESSURE_EVICT_AFTER@;
 inline constexpr std::uint32_t kMemoryPressureSampleIntervalMs = @ACSD_RR_MEMORY_PRESSURE_SAMPLE_INTERVAL_MS@;
 
-// ── 编排参数（docs/engineering/SCHEDULER_CONTRACT.md §3 受控化 / R-27）──────────
+// ── 编排参数（docs/engineering/contracts/SCHEDULER.md §3 受控化 / R-27）──────────
 // 唯一数值源同为本文件对应的 JSON（orchestration_params 节）；实现侧零字面量。
 // P2 tile 几何：512×512 标准 HiPS tile = 2^18 leaf。它同时是**产品格式不变量**
 // （P2 产品 manifest 的 tile_leaf_span 与消费侧逐位比对）⇒ 改动等于改产品格式。
@@ -49,7 +49,7 @@ static_assert(kP3DefaultQueueDepth >= 1,
 
 // ── 编排参数（续）：帧并发度上限与预取线程上限（DYN-740 / P4 交接项 2）──────
 // 依据 docs/ACSD_DESIGN.md §8.3:652（编排参数含「预取深度、帧并发度、工作窃取策略」，
-// 基于探针实测迭代）+ docs/engineering/SCHEDULER_CONTRACT.md §3/:38（最终取值由性能门定，
+// 基于探针实测迭代）+ docs/engineering/contracts/SCHEDULER.md §3/:38（最终取值由性能门定，
 // 合同保证机制正确）+ §8.3:647（线程池唯一来源是调度器、单进程唯一预算源）。
 // 语义：帧并发度上限只**收紧**、不放大（实现侧 fail-closed）；0 = 策略值。
 inline constexpr std::uint32_t kP1MaxFramesInFlight = @ACSD_RR_P1_MAX_FRAMES_IN_FLIGHT@;
@@ -61,7 +61,7 @@ static_assert(kSchedulerPrefetchThreadsMax <= 256u,
 
 // 进程有效 CPU 预算的配置上限（X1；0 = 不设上限）。预算唯一来源仍是运行期配额
 // （调度器 lease / CLI 注入的可用核），本键只提供上限，不引入第二个数值来源。
-// 依据 docs/engineering/CONCURRENCY_STANDARD.md「默认」节（线程数外部可配置、
+// 依据 docs/engineering/standards/CONCURRENCY.md「默认」节（线程数外部可配置、
 // 默认 min(可用核, 配置上限)、取值来源 = 配置）；消费面 = scheduler/src/cpu_budget.cpp。
 inline constexpr std::uint32_t kCpuBudgetMax = @ACSD_RR_CPU_BUDGET_MAX@;
 static_assert(kCpuBudgetMax <= 4096u,

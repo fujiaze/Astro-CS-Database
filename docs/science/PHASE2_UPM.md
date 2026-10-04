@@ -21,7 +21,7 @@
 | `control_ivar` | `1/control_variance` | `p2_upm_raw_weight` |
 | `quality_factor` | 质量因子（cosmic/geom 质量） | `SCI-UPM-WEIGHT-001` |
 | `control_reliability`（旧名 `geometric_reliability`） | per-control 相对可靠度。**实现事实 = 配置常量**（`P2UpmBuildConfig.control_reliability`，默认 1.0，`upm.cpp`），**不是**按单 control 覆盖度算出的几何量 | `upm.cpp`（字段注释；默认 1.0 与越域回退 1.0）|
-| `k_corr` | Drizzle 相关校正（`k_corr = N_retained/N_eff`，与 `UNCERTAINTY_AND_COVARIANCE.md` UPM 节同口径）；定义域 **1 < k_corr**（`k_corr = 1` ⇔ 忽略相关，显式拒）；公式面 = 两因子 `k_gauss(N)×k_geo` 几何查表，代码默认 1.4 为实现记录 | `sampler.cpp`（默认、取值与消费） |
+| `k_corr` | Drizzle 相关校正（`k_corr = N_retained/N_eff`，与 `docs/science/noise_snr/NOISE_SNR.md` §3.5「控制点估计量的方差」同口径）；定义域 **1 < k_corr**（`k_corr = 1` ⇔ 忽略相关，显式拒）；公式面 = 两因子 `k_gauss(N)×k_geo` 几何查表，代码默认 1.4 为实现记录 | `sampler.cpp`（默认、取值与消费） |
 | `w_cell` | 求解器内 per-control 份额权重（无量纲，`Σ_cell w_cell = control_reliability`） | `upm.cpp`（归一化注释） |
 | `N_retained` | clipping 后保留样本数 | `P2ControlObservation` |
 | `parameter_rows[index]` | 第 index 帧的 θ 行 | `upm.cpp:parameter_rows` |
@@ -40,7 +40,7 @@
 - 帧数 `n_frames ≥2` 且至少一 control cell 有 `≥2` 帧 clean 覆盖，否则 harmonic continuation 填单帧区；`n_control_points` 可为 0（→ NO_DATA）。
 - `control_ivar` 有效要求 `use_ivar_weight=1` 时 `control_ivar>0` 且有限，否则 `p2_upm_raw_weight rc=2 → build rc=2`（`DATA-UPM-CONTROL-UNC-001`）。
 - `k_corr` 为 `frames[f].kcorr>0 ? per-frame : cfg.control_k_corr`，缺省 1.4（`sampler.cpp`）；
-  **定义域 1 < k_corr**（`k_corr = N_retained/N_eff`，正本口径见 `UNCERTAINTY_AND_COVARIANCE.md` UPM 节 / SCI-UPM §5/§6）：`p2_upm_control_variance`（`upm.cpp`）对 k_corr<1 返回 rc=1、
+  **定义域 1 < k_corr**（`k_corr = N_retained/N_eff`，正本口径见 `docs/science/noise_snr/NOISE_SNR.md` §3.5「控制点估计量的方差」/ SCI-UPM §5/§6）：`p2_upm_control_variance`（`upm.cpp`）对 k_corr<1 返回 rc=1、
   对 k_corr=1 返回 rc=2、对非冻结值缺 `calibration_run_id` 返回 rc=3、缺 `applicability_domain` 返回 rc=4；
   `p2_upm_ma_build`（`upm.cpp`）对上述四类越域一律返回 rc=7。
   物理依据：k_corr 表征 Drizzle 输出像素协方差使 `N_eff ≤ N_retained`；k_corr<1 ⇔ N_eff>N_retained，

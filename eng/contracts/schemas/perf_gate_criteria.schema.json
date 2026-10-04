@@ -2,7 +2,7 @@
   "$schema": "http://json-schema.org/draft-07/schema#",
   "$id": "acsd.perf-gate-criteria/v1",
   "title": "L2 冻结性能判据（fail-closed）",
-  "x-doc": "docs/engineering/PERF_GATE_CONTRACT.md",
+  "x-doc": "docs/engineering/resources/PERFORMANCE_MODEL.md",
   "type": "object",
   "required": [
     "schema",

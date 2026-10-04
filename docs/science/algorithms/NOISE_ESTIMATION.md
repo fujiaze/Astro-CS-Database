@@ -1,9 +1,9 @@
 # Noise Estimation Algorithms (ALG-NOISE)
 
 > 上游：ACSD_DESIGN.md §2.2（创新点二）、§4.2（Phase1 节点流程）
-> (docs/science/NOISE_MODEL.md，FROZEN，共享引用不改动)
+> (docs/science/noise_snr/NOISE_SNR.md，FROZEN，共享引用不改动)
 > (逐符号源码锚定 §13.1 / DISP-NOISE §13.3 / TEST-NOISE-DESIGN-001 §13.4，
-> 根公式不变；**噪声模型 A 为唯一生产模型**，公式正本 = docs/science/NOISE_MODEL.md)
+> 根公式不变；**噪声模型 A 为唯一生产模型**，公式正本 = docs/science/noise_snr/NOISE_SNR.md)
 ## 1 上游 SCI 与输入输出
 
 - 上游: `SCI-NOISE-001..015` (8×8 patch, MAD→σ 1.482602218505602, 平面场 a+b·x+c·y, floor 1e-12 ADU²；floor **只作用于可用方差**)
@@ -16,7 +16,7 @@
 F1: σ_bg = 1.482602218505602 · median(|x−median(x)|)  (MAD→σ Gaussian)
 F2: 5σ裁剪 ≤2轮: 剔除 |x−median|>5σ, 剩余求 σ_bg
 F3: var(x,y)=a+b·x+c·y (相对误差加权 w_i=(v_med/v_i)² + 控制点凸包非负硬约束, enable_spatial_field==1 && n_ctrl≥4 else 全局中位数)
-    **为何不是无权最小二乘**：无权 LS 会让平面在帧内部穿过零点，实测 30.42% 像素预测 <= 0（ivar 归零）、马赛克丢 13.22% 信号；见 `lib/algorithms/coverage/src/upm.cpp` 中 SCI-VAR-ADAPT-01 (SCI-NOISE-001 §5d) 段的自陈。正本条款见 `docs/science/NOISE_MODEL.md`（拟合可行域/结构非负）。
+    **为何不是无权最小二乘**：无权 LS 会让平面在帧内部穿过零点，实测 30.42% 像素预测 <= 0（ivar 归零）、马赛克丢 13.22% 信号；见 `lib/algorithms/coverage/src/upm.cpp` 中 SCI-VAR-ADAPT-01 (SCI-NOISE-001 §5d) 段的自陈。正本条款见 `docs/science/noise_snr/NOISE_SNR.md` §3.1（拟合可行域/结构非负）。
 F4: 可用档（平面预测 > 0）: variance = max(var, floor), ivar = 1/variance
     不可用档（预测 ≤ 0 或产品 dtype 不可表示）: variance = 0, ivar = 0
     （floor 默认 1e-12 ADU²；非有限或 ≤0 一律 SNR_FLOOR_UNBOUND(-10)，不静默回退）
@@ -111,7 +111,7 @@ function snr_noise_model_v1_free(model): g_model_floor.erase(model*)
 
 ## 13 模块合同冻结增补（实现锚定 / DISP-NOISE / TEST-NOISE-DESIGN-001）
 
-> 上游：SCI-NOISE-001..015（docs/science/NOISE_MODEL.md，FROZEN，不改 SCI）
+> 上游：SCI-NOISE-001..015（docs/science/noise_snr/NOISE_SNR.md，FROZEN，不改 SCI）
 > 下游：DATA-P1-NOISE
 > （DATA_SEMANTICS §13）/ API-NOISE-001（PUBLIC_API）/
 > MOD-acsd-phase1-noise-snr / TEST-NOISE-DESIGN-001。
@@ -130,14 +130,14 @@ MinGW 通道）+ `cpp/build.ps1`——未编入根 CMake 主构建（无
 snr_estimator CMake 目标，CMake 集成归 P1-NOISE-IMPL），
 dll_loader.cpp 加载名与路径吻合）。**噪声模型 A 为唯一生产模型**
 （`lib/algorithms/noise_snr/cpp/src/noise_model.cpp`；公式正本 =
-`docs/science/NOISE_MODEL.md`），静态库
+`docs/science/noise_snr/NOISE_SNR.md`），静态库
 `acsd_phase1_noise`（源 = A + `wrapper_phase1/snr_frame_science.cpp` + `cpp/src/snr_science.cpp`），在根 `CMakeLists.txt` 中登记，经 `acsd_phase1_session` PUBLIC 闭包链入主程序（同一 `CMakeLists.txt`）；单测覆盖归 P1-NOISE-TEST）。
 
 | ALG | 符号 | 源锚 |
 |---|---|---|
 | ALG-NOISE-001 | `noise_model_impl`（模板 f32/f64 内核） | `noise_model.cpp`（参数校验、`g_model_floor` 注册、逐星半径掩膜+天空预算收缩（MASK-002 / SCI §5a）、控制点收集、全局兜底、控制点数组+平面场断言） |
 | ALG-NOISE-001 | `snr_noise_model_v1` / `snr_noise_model_v1_f64`（C ABI 门面，extern "C" 异常屏障→rc 3） | `noise_model.cpp`（两门面的 try/catch 屏障） |
-| ALG-NOISE-001 | `snr_noise_model_v1_default_config` | `noise_model.cpp`（默认 8×8/r0=10/scale=6/clip 5.0/min 64/rounds 2/spatial 1/floor 1e-12，均在同一 `noise_model.cpp`；**语义判据以 SCI 为准**：`r0·scale` = 60 px 是逐星半径的**硬上界**，另加 k=0.1 / r_min=1.5 px / fwhm_floor=0.75 / budget_patches=8 / budget_sky=9216 —— 见 `docs/science/NOISE_MODEL.md` §5a/§14.5） |
+| ALG-NOISE-001 | `snr_noise_model_v1_default_config` | `noise_model.cpp`（默认 8×8/r0=10/scale=6/clip 5.0/min 64/rounds 2/spatial 1/floor 1e-12，均在同一 `noise_model.cpp`；**语义判据以 SCI 为准**：`r0·scale` = 60 px 是逐星半径的**硬上界**，另加 k=0.1 / r_min=1.5 px / fwhm_floor=0.75 / budget_patches=8 / budget_sky=9216 —— 见 `docs/science/noise_snr/NOISE_SNR.md` §3.1 与 §4 参数表） |
 | ALG-NOISE-001 | `robust_median` / `robust_sigma`（1.482602218505602·MAD）/ `collect_patch_sky`（掩膜+饱和过滤+5σ≤2 轮裁剪） | `noise_model.cpp` |
 | ALG-NOISE-002 | `fill_impl`（平面 LS var(x,y)=a+b·x+c·y：预测 > 0 ⇒ `max(预测,floor)` + `ivar=1/var`；预测 ≤ 0 或产品 dtype 不可表示 ⇒ `0/0`；否则全局常量）+ `snr_noise_model_v1_fill` | `noise_model.cpp`（LS 系数、floor 查询/拒绝、逐像素两态、全局常量支、fill 门面） |
 | ALG-NOISE-002 | `snr_noise_model_v1_free`（free ctrl 数组 + 按指针擦除 g_model_floor） | `noise_model.cpp` |
@@ -157,7 +157,7 @@ dll_loader.cpp 加载名与路径吻合）。**噪声模型 A 为唯一生产模
 - `min_patch_samples` 默认 **64**（`snr_estimator.h`，`noise_model.cpp` 的 default_config 同值），
   patch 合格阈即 64；SCI-NOISE-001 §4 的冻结值即 64（N=5 时单 patch 偏差 −19.2%，
   与 SCI §11 冻结的 5% oracle 通过率不兼容）——本层**以 SCI 为准**。
-- 掩膜半径：**判据以 SCI 为准**（`docs/science/NOISE_MODEL.md` §5a）——
+- 掩膜半径：**判据以 SCI 为准**（`docs/science/noise_snr/NOISE_SNR.md` §3.1「掩膜半径的物理导出」）——
   `r_i = clip(r_local(F_i, FWHM_i, k·σ_bg), r_min, rmax)` 再按天空预算收缩
   （`n_qualified ≥ 8` 且 `N_sky ≥ 9216`）；`rmax = max(1, source_mask_radius_px)·
   max(1, mask_radius_scale)` = 默认 10·6 = **60 px 是硬上界**，不是操作默认半径；
@@ -204,12 +204,12 @@ dll_loader.cpp 加载名与路径吻合）。**噪声模型 A 为唯一生产模
 
 | # | 议题 | 现行口径 | 依据 |
 |---|---|---|---|
-| 1 | 平面几何判据 | `plane_geometry_ratio()`：中心化点云 Gram 特征值比 `λlo/λhi ≥ kPlaneGeomRatio=0.0625`（κ=√(λhi/λlo)≤4），build 与 fill 用同一判据；不满足 ⇒ `has_spatial_field=0` ⇒ 全局常量场 | 数值判据表见 `docs/science/NOISE_MODEL.md`（A=0 / B=0.0133 / C=0.200 / 满格=1.0） |
+| 1 | 平面几何判据 | `plane_geometry_ratio()`：中心化点云 Gram 特征值比 `λlo/λhi ≥ kPlaneGeomRatio=0.0625`（κ=√(λhi/λlo)≤4），build 与 fill 用同一判据；不满足 ⇒ `has_spatial_field=0` ⇒ 全局常量场 | 数值判据表见 `docs/science/noise_snr/NOISE_SNR.md` §3.1（几何退化判据；A=0 / B=0.0133 / C=0.200 / 满格=1.0） |
 | 2 | gain 方向 | 解析式 `signal/gain + (rn/gain)²`；判据 fixture 用 SCI 约定 `ADU=N_e/gain+N(0,rn/gain)`、容差 SCI 冻结 **5%**；断言生产诊断式 `snr_noise_gain_variance` 与该解析式一致 | SCI-NOISE-001 §5 |
 | 3 | MAD→σ 常数 | 唯一全精度写法 `1.482602218505602`（= `1/Φ⁻¹(3/4)`）；`1.4826022185` 与 `1.4826` 只作约等于语境，各档相对差 3.779e-12 / 1.4964e-06；`0.6745` 相对差 +1.5196e-05（不可互换） | SCI-NOISE-001 §9；`docs/GLOSSARY.md` |
 | 4 | PSF 状态位 | 仅 `psf_status == 0.0` 置 `SNR_QF_PSF_OK`；未收敛帧在 UPM `quality_factor` 走"未知"档 0.5 | STAR_PSF_ALGORITHMS §11.2、DATA_SEMANTICS §15 |
 | 5 | kLn10 | 模块内唯一定义点 = `noise_model.cpp`（字面量 `2.302585092994045684`） | 复算 `float('2.302585092994045684')==float('2.302585092994045684017991454684')` → True |
-| 6 | defaults 引用 | `eng/packaging/config/defaults.json` 的 `noise.*` `source_ref` 指向 `docs/science/NOISE_MODEL.md` 的实际陈述（各键定位由内容锚 `sha256` 承担，键名为 `patch_grid`/`clip_sigma`/`max_clip_rounds`/`min_patch_samples`/`spatial_field_enabled`/`variance_floor`）；`source_mask_radius_px`(10) / `mask_radius_scale`(6) 保留 ALG 登记——SCI §5 只冻结 `rmax=max(1,r0)·max(1,scale)` 公式、不给数值 | `docs/ACSD_DESIGN.md` §0（文档权威与索引） 权威链：科学默认值引用落在 `docs/science/**` |
+| 6 | defaults 引用 | `eng/packaging/config/defaults.json` 的 `noise.*` `source_ref` 指向 `docs/science/noise_snr/NOISE_SNR.md` §3.1 与 §4 参数表的实际陈述（各键定位由内容锚 `sha256` 承担，键名为 `patch_grid`/`clip_sigma`/`max_clip_rounds`/`min_patch_samples`/`spatial_field_enabled`/`variance_floor`）；`source_mask_radius_px`(10) / `mask_radius_scale`(6) 保留 ALG 登记——SCI §5 只冻结 `rmax=max(1,r0)·max(1,scale)` 公式、不给数值 | `docs/ACSD_DESIGN.md` §0（文档权威与索引） 权威链：科学默认值引用落在 `docs/science/**` |
 
 **MAD→σ 常数的各档舍入差（由 `1/Φ⁻¹(3/4)` 闭式复算）**：以全精度写法为基准，11 位简写 `1.4826022185` 的绝对差 5.602e-12、相对差 3.779e-12；4 位简写 `1.4826` 的绝对差 2.2185e-06、相对差 1.4964e-06。判据与冻结值一律取全精度写法，各档简写只作约等于语境。
 

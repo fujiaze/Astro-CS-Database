@@ -144,7 +144,7 @@ Polar prune: if |dec|>45° use C/C45 disk B(q,C·radius), false_negative=0
 
 - `IpvWcsResult.error_msg` 与内部 `WcsFitResult.error` 是**对外可见**的失败信息载体，
   其内容**必须**是**合法 UTF-8**（承接 ``docs/engineering/``「文件编码 UTF-8」与
-  `docs/engineering/LOG_AND_ERROR_CONTRACT.md` §8「超限按 UTF-8 边界截断」的口径）。
+  `docs/engineering/contracts/LOG_AND_ERROR.md` §8「超限按 UTF-8 边界截断」的口径）。
 - **写入定长缓冲的规则**：
   1. 截断**只**发生在 UTF-8 码点边界，多字节序列整体保留；
   2. 非法字节（孤立续字节 / 非法首字节 / 过长编码 / 代理区 / 越界码点 / 被 NUL 截断的序列）
@@ -324,7 +324,7 @@ Polar prune: if |dec|>45° use C/C45 disk B(q,C·radius), false_negative=0
   oracle，§5 规则）前向/逆向 |Δ|≤1e-4 px 于中心 90% 区域（承接 §8 预冻结
   值，不放宽）；AP/BP 逆向一致性 roundtrip 同容差。
 - F3 CRPIX/Y-down 不变量：CRPIX=(w/2+0.5, h/2+0.5) 精确断言（F1）；Y 翻转
-  后 CD 第 2 列符号翻转与 F5 公式一致；ASTROMETRY.md §7 CRPIX 不变量不破。
+  后 CD 第 2 列符号翻转与 F5 公式一致；docs/science/detection/ASTROMETRY.md §7 CRPIX 不变量不破。
 - F4 失败语义负例：0 星/<3 星 → ret=0 或 success=0 且 error_msg 非空，进程
   不崩溃；指向偏差 >FOV → 显式失败；**CD det 退化注入（DISP-WCS-001）→
   success=0 即最终取值，坍缩值只作诊断量**；DLL 缺失 → orchestrator 非零退出码
@@ -348,9 +348,9 @@ Polar prune: if |dec|>45° use C/C45 disk B(q,C·radius), false_negative=0
 
 科学专项（matrix P1-WCS 行）映射：plate solving TAN+SIP=本 ALG F1-F5 公式
 与 §11.1 生产通道；ICRS/J2000=RADESYS=ICRS/EQUINOX=2000 写回
-（`lib/infrastructure/pipeline/orchestrator/cpp/src/orchestrator.cpp` 的 RADESYS/EQUINOX 写回处，ASTROMETRY.md §3a）；degenerate conditions=
+（`lib/infrastructure/pipeline/orchestrator/cpp/src/orchestrator.cpp` 的 RADESYS/EQUINOX 写回处，docs/science/detection/ASTROMETRY.md §3a）；degenerate conditions=
 ASTROMETRY §8 ↔ DISP-WCS-001 退化语义（坍缩禁冒充解）；astropy oracle=
-ASTROMETRY §11 ↔ F2。共享 SCI（ASTROMETRY.md SCI-WCS-001，FROZEN）
+ASTROMETRY §11 ↔ F2。共享 SCI（docs/science/detection/ASTROMETRY.md SCI-WCS-001，FROZEN）
 不因本附录改动；本节是唯一冻结依据（编排层词汇只作对齐对象；descriptor
 acsd.phase1.wcs-platesolve 占位 ID SCI-P1-WCS-001/ALG-002/DATA-P1-WCS/
 API-P1-004/TEST-P1-WCS-001，`lib/infrastructure/scheduler/src/module_adapters.cpp`，由 P1-WCS-INT

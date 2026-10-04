@@ -6,7 +6,7 @@
     "design": "docs/ACSD_DESIGN.md §3.3（eng/packaging/config/ 全局配置：filters.json 滤镜库、defaults.json 默认参数）",
     "separation": "docs/detail/UNIFIED_MODEL.md §3（三类配置严格分离；cpu_profile 仅 benchmark 可写）",
     "spec": "ENGINEERING_SPEC.md §7（目录规范：eng/packaging/config/ 为程序根全局配置）、§8（登记项必须能红能绿、可执行负例面、fail-closed）",
-    "science_redline": "ENGINEERING_SPEC.md §3（科学公式/默认容差不可随意修改）；docs/engineering/CONFIG_CONTRACT.md（配置语义与索引）",
+    "science_redline": "ENGINEERING_SPEC.md §3（科学公式/默认容差不可随意修改）；docs/engineering/contracts/CONFIG.md（配置语义与索引）",
     "plugin_docs": "docs/detail/**（各模块配置项表：字段/默认/单位/说明）"
   },
   "rules": {
@@ -567,12 +567,12 @@
       "registered_at": null,
       "registered_key": null,
       "finding": "gap",
-      "note": "插件默认 true（是否输出 selection function）；SCI/ALG 零命中。同名 token 在 docs/science/PSF_SIGNAL_WEIGHT.md 指 PSFSW 选择函数证据对象（异义同名），同名消歧登记于本行。",
+      "note": "插件默认 true（是否输出 selection function）；SCI/ALG 零命中。同名 token 在 docs/science/noise_snr/NOISE_SNR.md 指 PSFSW 选择函数证据对象（异义同名），同名消歧登记于本行。",
       "conflict": {
         "kind": "unregistered_default_homonym",
         "evidence": [
           "docs/detail/algorithms_phase1/03_star_detection.md",
-          "docs/science/PSF_SIGNAL_WEIGHT.md"
+          "docs/science/noise_snr/NOISE_SNR.md"
         ],
         "owner": "config_registry"
       },
@@ -855,7 +855,7 @@
         "kind": "unregistered_default",
         "evidence": [
           "docs/detail/algorithms_phase1/07_noise_snr.md",
-          "docs/engineering/CONFIG_CONTRACT.md §2"
+          "docs/engineering/contracts/CONFIG.md §2"
         ],
         "owner": "config_registry"
       },
@@ -2395,7 +2395,7 @@
         "must": "REJECT",
         "anchor": {
           "id": "filter-negative.bader r",
-          "path": "docs/engineering/CONFIG_CONTRACT.md",
+          "path": "docs/engineering/contracts/CONFIG.md",
           "quote": "- **反例串的权威锚点**：`\"bader r\"`/`\"bader v\"` 的**唯一权威锚点 = 本文件 §10 负例表**（`eng/packaging/config/filters.json#lookup.non_key_examples[].where` 指向它）。最高设计全篇不含 `bader`，因此这两个串的锚点只落在本文件 §10 负例表。两个串仍登记为 `lookup.non_key_examples`（`kind=design_doc_negative_example`、`resolution=ERROR`，值与判据未变）——它们不是合法库键，也不能靠归一化变成合法键（`bader` ≠ `Baader`；且库内不存在 Baader V 曲线）。`non_key_examples` 只把反例与合法值分开，**不**把反例升级为别名。正反例与门见 §10。CFG002-ANCHOR: item3-filter-name-policy → eng/packaging/config/config_registry.json",
           "sha256": "aacaaa55247654ff",
           "value_text": "bader r"
@@ -2406,7 +2406,7 @@
         "must": "REJECT",
         "anchor": {
           "id": "filter-negative.bader v",
-          "path": "docs/engineering/CONFIG_CONTRACT.md",
+          "path": "docs/engineering/contracts/CONFIG.md",
           "quote": "- **反例串的权威锚点**：`\"bader r\"`/`\"bader v\"` 的**唯一权威锚点 = 本文件 §10 负例表**（`eng/packaging/config/filters.json#lookup.non_key_examples[].where` 指向它）。最高设计全篇不含 `bader`，因此这两个串的锚点只落在本文件 §10 负例表。两个串仍登记为 `lookup.non_key_examples`（`kind=design_doc_negative_example`、`resolution=ERROR`，值与判据未变）——它们不是合法库键，也不能靠归一化变成合法键（`bader` ≠ `Baader`；且库内不存在 Baader V 曲线）。`non_key_examples` 只把反例与合法值分开，**不**把反例升级为别名。正反例与门见 §10。CFG002-ANCHOR: item3-filter-name-policy → eng/packaging/config/config_registry.json",
           "sha256": "aacaaa55247654ff",
           "value_text": "bader v"
@@ -2498,7 +2498,7 @@
       {
         "index": "docs/DOCUMENT_INDEX.yaml",
         "owns": "docs/** 与根治理文档",
-        "required_entry": "docs/engineering/CONFIG_CONTRACT.md = ACTIVE_NORMATIVE（恰一次）",
+        "required_entry": "docs/engineering/contracts/CONFIG.md = ACTIVE_NORMATIVE（恰一次）",
         "owner": "DOC 线（eng/tools/doccheck/check_doc_index.py 为门）"
       }
     ],
@@ -2517,8 +2517,8 @@
     "structural_rule": "CONFIG_CONTRACT.md 内所有 文件:行 与 文件:a-b 引用必须：文件存在、行在范围内、起始行非空、范围升序（该面由 DOC-LINE-ANCHORS 门负责）。token_anchors 面不得内嵌行号（R-54 4 条）：每条 = 内容锚{id, path, quote, sha256} + value_text；判据 = 引文在目标文档内唯一命中 且 value_text 落在引文内 且 指纹自洽；CONFIG_CONTRACT.md 只须在文件级引用该 path。",
     "token_anchors": [
       {
-        "id": "docs/science/STAR_DETECTION.md#5.0",
-        "path": "docs/science/STAR_DETECTION.md",
+        "id": "docs/science/detection/STAR_DETECTION.md#5.0",
+        "path": "docs/science/detection/STAR_DETECTION.md",
         "quote": "  `threshold = median(img) + 5.0·bgnoise`，**单位 ADU**；`bgnoise` 为",
         "sha256": "1ee8a504a9719e69",
         "value_text": "5.0"
@@ -2559,15 +2559,15 @@
         "value_text": "20000"
       },
       {
-        "id": "docs/science/DRIZZLE.md#pixfrac",
-        "path": "docs/science/DRIZZLE.md",
+        "id": "docs/science/drizzle/DRIZZLE.md#pixfrac",
+        "path": "docs/science/drizzle/DRIZZLE.md",
         "quote": "- **目的**：将多帧抖动观测经球面 Drizzle 线性重建到公共 HEALPix 网格，**保持面亮度**（`S_p=Σ_j B_j a_jp/Σ_j a_jp`）、**严格守恒总通量**（`Σ_p F_p=Σ_j x_j`，与 `pixfrac` 无关；核按 drop 面积归一），并传播方差/协方差语义（不存完整矩阵），为 HiPS 信号/权重/支撑度提供重采样基础。",
         "sha256": "19ea700275ed5aef",
         "value_text": "pixfrac"
       },
       {
-        "id": "docs/science/PSF_SIGNAL_WEIGHT.md#psf_information_weight",
-        "path": "docs/science/PSF_SIGNAL_WEIGHT.md",
+        "id": "docs/science/noise_snr/NOISE_SNR.md#psf_information_weight",
+        "path": "docs/science/noise_snr/NOISE_SNR.md",
         "quote": "1. **psf_information_weight**：基于观测模型的点源信息权重，是 Phase2 唯一的科学权重来源；",
         "sha256": "a988177c987e24de",
         "value_text": "psf_information_weight"
@@ -2587,8 +2587,8 @@
     "consumer_chain": "CMakeLists.txt（string(JSON ...) 取键 → configure_file）→ build/runtime_resources_generated.h → lib/infrastructure/scheduler/src/module_adapters.cpp（using 声明，实现侧零字面量）",
     "owner_class": "resource_binding",
     "authority": [
-      "docs/engineering/SCHEDULER_CONTRACT.md §3（线程预算、内存上限（峰值工作集）、队列深度、分块/窗口/子块大小；上述参数由配置/资源门决定）",
-      "docs/engineering/CONCURRENCY_STANDARD.md 默认节（线程数：外部可配置，默认 min(可用核, 配置上限)；取值来源 = 配置）"
+      "docs/engineering/contracts/SCHEDULER.md §3（线程预算、内存上限（峰值工作集）、队列深度、分块/窗口/子块大小；上述参数由配置/资源门决定）",
+      "docs/engineering/standards/CONCURRENCY.md 默认节（线程数：外部可配置，默认 min(可用核, 配置上限)；取值来源 = 配置）"
     ],
     "keys": [
       {

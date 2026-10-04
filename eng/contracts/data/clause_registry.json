@@ -4,8 +4,8 @@
   "version": 1,
   "status": "PRODUCTION_INTEGRATED",
   "task": "DOC-CONTRACT-MERGE-02",
-  "semantic_authority": "docs/science/DATA_SEMANTICS.md §31（§31.10 V6 条款注册表与待签登记）",
-  "machine_registration_note": "本文件是 §31 的机器可读登记表（docs/ACSD_DESIGN.md §0.2：登记表与映射表承载定义）；语义权威在 docs/science/DATA_SEMANTICS.md §31 正文，本文件不自声为权威。",
+  "semantic_authority": "docs/science/unified/DATA_SEMANTICS.md §31（§31.10 V6 条款注册表与待签登记）",
+  "machine_registration_note": "本文件是 §31 的机器可读登记表（docs/ACSD_DESIGN.md §0.2：登记表与映射表承载定义）；语义权威在 docs/science/unified/DATA_SEMANTICS.md §31 正文，本文件不自声为权威。",
   "migrated_from": {
     "frozen_contract": "acsd.v6.contract-freeze.v1.json",
     "data_dictionary": "v6_data_dictionary_v1.json",
@@ -951,7 +951,7 @@
       "status": "PENDING_OWNER_SIGNOFF",
       "owner_signoff": "SO-07",
       "source_binding": {
-        "file": "docs/science/PSF_SIGNAL_WEIGHT.md",
+        "file": "docs/science/noise_snr/NOISE_SNR.md",
         "kind": "md_table_row",
         "locator": "PSFSW-T-DEPTH",
         "contains": "0.05",
@@ -976,7 +976,7 @@
       "status": "PENDING_OWNER_SIGNOFF",
       "owner_signoff": "SO-07",
       "source_binding": {
-        "file": "docs/science/PSF_SIGNAL_WEIGHT.md",
+        "file": "docs/science/noise_snr/NOISE_SNR.md",
         "kind": "md_table_row",
         "locator": "PSFSW-T-DEPTH-K",
         "contains": "5",
@@ -1001,7 +1001,7 @@
       "status": "PENDING_OWNER_SIGNOFF",
       "owner_signoff": "SO-07",
       "source_binding": {
-        "file": "docs/science/PSF_SIGNAL_WEIGHT.md",
+        "file": "docs/science/noise_snr/NOISE_SNR.md",
         "kind": "md_table_row",
         "locator": "PSFSW-T-DEPTH-SPAN",
         "contains": "1.0",
@@ -1026,7 +1026,7 @@
       "status": "PENDING_OWNER_SIGNOFF",
       "owner_signoff": "SO-07",
       "source_binding": {
-        "file": "docs/science/PSF_SIGNAL_WEIGHT.md",
+        "file": "docs/science/noise_snr/NOISE_SNR.md",
         "kind": "md_table_row",
         "locator": "PSFSW-T-DEPTH-RHO",
         "contains": "0.8",
@@ -1051,7 +1051,7 @@
       "status": "PENDING_OWNER_SIGNOFF",
       "owner_signoff": "SO-07",
       "source_binding": {
-        "file": "docs/science/PSF_SIGNAL_WEIGHT.md",
+        "file": "docs/science/noise_snr/NOISE_SNR.md",
         "kind": "md_table_row",
         "locator": "PSFSW-T-NMIN",
         "contains": "3",
@@ -1076,7 +1076,7 @@
       "status": "PENDING_OWNER_SIGNOFF",
       "owner_signoff": "SO-07",
       "source_binding": {
-        "file": "docs/science/PSF_SIGNAL_WEIGHT.md",
+        "file": "docs/science/noise_snr/NOISE_SNR.md",
         "kind": "md_table_row",
         "locator": "PSFSW-T-NROBUST",
         "contains": "10",
@@ -1101,7 +1101,7 @@
       "status": "PENDING_OWNER_SIGNOFF",
       "owner_signoff": "SO-07",
       "source_binding": {
-        "file": "docs/science/PSF_SIGNAL_WEIGHT.md",
+        "file": "docs/science/noise_snr/NOISE_SNR.md",
         "kind": "md_table_row",
         "locator": "PSFSW-T-NPREF",
         "contains": "30",
@@ -1126,7 +1126,7 @@
       "status": "PENDING_OWNER_SIGNOFF",
       "owner_signoff": "SO-07",
       "source_binding": {
-        "file": "docs/science/PSF_SIGNAL_WEIGHT.md",
+        "file": "docs/science/noise_snr/NOISE_SNR.md",
         "kind": "md_table_row",
         "locator": "PSFSW-T-NU",
         "contains": "0.30",
@@ -1151,7 +1151,7 @@
       "status": "PENDING_OWNER_SIGNOFF",
       "owner_signoff": "SO-07",
       "source_binding": {
-        "file": "docs/science/PSF_SIGNAL_WEIGHT.md",
+        "file": "docs/science/noise_snr/NOISE_SNR.md",
         "kind": "md_table_row",
         "locator": "PSFSW-T-TREND",
         "contains": "0.10",
@@ -1176,7 +1176,7 @@
       "status": "PENDING_OWNER_SIGNOFF",
       "owner_signoff": "SO-07",
       "source_binding": {
-        "file": "docs/science/PSF_SIGNAL_WEIGHT.md",
+        "file": "docs/science/noise_snr/NOISE_SNR.md",
         "kind": "md_table_row",
         "locator": "PSFSW-T-POWERLOSS",
         "contains": "0.05",
@@ -1201,7 +1201,7 @@
       "status": "PENDING_OWNER_SIGNOFF",
       "owner_signoff": "SO-07",
       "source_binding": {
-        "file": "docs/science/PSF_SIGNAL_WEIGHT.md",
+        "file": "docs/science/noise_snr/NOISE_SNR.md",
         "kind": "md_table_row",
         "locator": "PSFSW-T-FLUXBIAS",
         "contains": "0.01",
@@ -1226,7 +1226,7 @@
       "status": "PENDING_OWNER_SIGNOFF",
       "owner_signoff": "SO-07",
       "source_binding": {
-        "file": "docs/science/PSF_SIGNAL_WEIGHT.md",
+        "file": "docs/science/noise_snr/NOISE_SNR.md",
         "kind": "md_table_row",
         "locator": "PSFSW-T-WRANGE",
         "contains": "100",
@@ -1251,7 +1251,7 @@
       "status": "PENDING_OWNER_SIGNOFF",
       "owner_signoff": "SO-07",
       "source_binding": {
-        "file": "docs/science/PSF_SIGNAL_WEIGHT.md",
+        "file": "docs/science/noise_snr/NOISE_SNR.md",
         "kind": "md_table_row",
         "locator": "PSFSW-T-COVMC",
         "contains": "0.03",
@@ -1276,7 +1276,7 @@
       "status": "PENDING_OWNER_SIGNOFF",
       "owner_signoff": "SO-07",
       "source_binding": {
-        "file": "docs/science/PSF_SIGNAL_WEIGHT.md",
+        "file": "docs/science/noise_snr/NOISE_SNR.md",
         "kind": "md_table_row",
         "locator": "PSFSW-T-BOOT",
         "contains": "200",
@@ -1301,7 +1301,7 @@
       "status": "PENDING_OWNER_SIGNOFF",
       "owner_signoff": "SO-07",
       "source_binding": {
-        "file": "docs/science/PSF_SIGNAL_WEIGHT.md",
+        "file": "docs/science/noise_snr/NOISE_SNR.md",
         "kind": "md_table_row",
         "locator": "PSFSW-T-CI",
         "contains": "0.95",
@@ -1326,7 +1326,7 @@
       "status": "PENDING_OWNER_SIGNOFF",
       "owner_signoff": "SO-07",
       "source_binding": {
-        "file": "docs/science/PSF_SIGNAL_WEIGHT.md",
+        "file": "docs/science/noise_snr/NOISE_SNR.md",
         "kind": "md_table_row",
         "locator": "PSFSW-T-EPSFTOL",
         "contains": "1e-9",
@@ -1351,7 +1351,7 @@
       "status": "PENDING_OWNER_SIGNOFF",
       "owner_signoff": "SO-07",
       "source_binding": {
-        "file": "docs/science/PSF_SIGNAL_WEIGHT.md",
+        "file": "docs/science/noise_snr/NOISE_SNR.md",
         "kind": "substring",
         "locator": "收紧至",
         "contains": "0.20",
@@ -1376,7 +1376,7 @@
       "status": "PENDING_OWNER_SIGNOFF",
       "owner_signoff": "SO-07",
       "source_binding": {
-        "file": "docs/science/PSF_SIGNAL_WEIGHT.md",
+        "file": "docs/science/noise_snr/NOISE_SNR.md",
         "kind": "substring",
         "locator": "alpha=2, beta=1, gamma=2, delta=1, C_norm=1.0",
         "contains": "alpha=2",
@@ -1401,7 +1401,7 @@
       "status": "PENDING_OWNER_SIGNOFF",
       "owner_signoff": "SO-07",
       "source_binding": {
-        "file": "docs/science/PSF_SIGNAL_WEIGHT.md",
+        "file": "docs/science/noise_snr/NOISE_SNR.md",
         "kind": "substring",
         "locator": "alpha=2, beta=1, gamma=2, delta=1, C_norm=1.0",
         "contains": "beta=1",
@@ -1426,7 +1426,7 @@
       "status": "PENDING_OWNER_SIGNOFF",
       "owner_signoff": "SO-07",
       "source_binding": {
-        "file": "docs/science/PSF_SIGNAL_WEIGHT.md",
+        "file": "docs/science/noise_snr/NOISE_SNR.md",
         "kind": "substring",
         "locator": "alpha=2, beta=1, gamma=2, delta=1, C_norm=1.0",
         "contains": "gamma=2",
@@ -1451,7 +1451,7 @@
       "status": "PENDING_OWNER_SIGNOFF",
       "owner_signoff": "SO-07",
       "source_binding": {
-        "file": "docs/science/PSF_SIGNAL_WEIGHT.md",
+        "file": "docs/science/noise_snr/NOISE_SNR.md",
         "kind": "substring",
         "locator": "alpha=2, beta=1, gamma=2, delta=1, C_norm=1.0",
         "contains": "delta=1",
@@ -1476,7 +1476,7 @@
       "status": "PENDING_OWNER_SIGNOFF",
       "owner_signoff": "SO-07",
       "source_binding": {
-        "file": "docs/science/PSF_SIGNAL_WEIGHT.md",
+        "file": "docs/science/noise_snr/NOISE_SNR.md",
         "kind": "substring",
         "locator": "alpha=2, beta=1, gamma=2, delta=1, C_norm=1.0",
         "contains": "C_norm=1.0",
@@ -1501,7 +1501,7 @@
       "status": "PENDING_OWNER_SIGNOFF",
       "owner_signoff": "SO-07",
       "source_binding": {
-        "file": "docs/science/PSF_SIGNAL_WEIGHT.md",
+        "file": "docs/science/noise_snr/NOISE_SNR.md",
         "kind": "substring",
         "locator": "component_floors = 1e-12",
         "contains": "1e-12",
@@ -1526,7 +1526,7 @@
       "status": "PENDING_OWNER_SIGNOFF",
       "owner_signoff": "SO-07",
       "source_binding": {
-        "file": "docs/science/PSF_SIGNAL_WEIGHT.md",
+        "file": "docs/science/noise_snr/NOISE_SNR.md",
         "kind": "substring",
         "locator": "non_inferior_to",
         "contains": "0.02",
@@ -1551,7 +1551,7 @@
       "status": "PENDING_OWNER_SIGNOFF",
       "owner_signoff": "SO-07",
       "source_binding": {
-        "file": "docs/science/DATA_SEMANTICS.md",
+        "file": "docs/science/unified/DATA_SEMANTICS.md",
         "kind": "md_table_row",
         "locator": "FZ-AP2S-EPS-PIXIVAR",
         "contains": "0.05",
@@ -1576,7 +1576,7 @@
       "status": "PENDING_OWNER_SIGNOFF",
       "owner_signoff": "SO-07",
       "source_binding": {
-        "file": "docs/science/DATA_SEMANTICS.md",
+        "file": "docs/science/unified/DATA_SEMANTICS.md",
         "kind": "md_table_row",
         "locator": "FZ-AP2S-EPS-PIXIVAR-SUP",
         "contains": "0.20",
@@ -1701,7 +1701,7 @@
       "status": "PENDING_OWNER_SIGNOFF",
       "owner_signoff": "SO-07",
       "source_binding": {
-        "file": "docs/science/UNCERTAINTY_AND_COVARIANCE.md",
+        "file": "docs/science/noise_snr/NOISE_SNR.md",
         "kind": "substring",
         "locator": "FZ-AP2S-MC-RELTOL",
         "contains": "3%",
@@ -1726,7 +1726,7 @@
       "status": "PENDING_OWNER_SIGNOFF",
       "owner_signoff": "SO-07",
       "source_binding": {
-        "file": "docs/science/UNCERTAINTY_AND_COVARIANCE.md",
+        "file": "docs/science/noise_snr/NOISE_SNR.md",
         "kind": "substring",
         "locator": "FZ-AP2S-EPSF-RTOL",
         "contains": "1e-12",
@@ -1876,9 +1876,9 @@
       "status": "OPEN",
       "owner_signoff": "SO-07",
       "evidence_qualification": "none",
-      "governance_note": "GOVERN-08/G08-05：唯一实现门 phase2_integrate.cpp 的 snr_rel 门与产品字段 phase2_extensions.snr_identity_rel_err 均已删除。签署**不得**以「门通过」为据——该门在任何可达路径下都恒绿。改判据需要来自 W 之外的参照量（像素级 C_k 的独立重算或注入实验）；Phase1 不落盘逐像素 sigma2、calibration_covariance 仅为摘要记录、VARIANCE 面是 drizzle 后面亮度方差，三条路在本仓均不可得，故据实登记为无有效机器判据，不造假参照。状态已由 PENDING_OWNER_SIGNOFF 改为 OPEN：本条款无门、无 fail 面、无 mutation、证据资格为 none、锚点（source_binding）已失，不满足 PENDING_OWNER_SIGNOFF「值与文本唯一确定」的定义；OPEN 的处置「生产判据面 = 空、引用处显式标 pending」与本条款实际状态一致。「已撤」不是登记表 status_vocabulary 的第四格，故取语义最接近的既有态并在本条据实登记；若日后要重建判据，其数值属 OPEN 的「数值待定」，须先取得来自 W 之外的参照量。改状态需同步 **13 处、跨 5 个文件**（本条 status；clause_registry.counts_by_status 的 PENDING_OWNER_SIGNOFF/OPEN；clause_registry.ids_by_status 的 PENDING_OWNER_SIGNOFF 与 OPEN 两张表；顶层 counts.pending_owner_signoff / counts.open；migration_map.signoff_policy 的条数副本；docs/science/DATA_SEMANTICS.md 的 PENDING 与 OPEN 两张 id 清单及其计数行；docs/engineering/UNIFIED_OBJECTS.md 与 lib/algorithms/integration/phase2_integrate/README.md 的条数叙述；eng/tests/contracts/product_family/field_constraints_oracle.py 的 counts_by_status 硬编码与正文计数串元组——该机器门文件已由并发车道从工作树删除，其两处硬编码未同步，若恢复须先补 48/9 否则该门判红），本条 governance_note 原称「三处」是低估。owner_signoff 保留 SO-07：OPEN 的定义即为「未落定、登记 owner」，且本登记表其余 8 条 OPEN 条款同样带 owner_signoff 字段；SO-07 此处只作登记 owner，不再构成待签对象",
+      "governance_note": "GOVERN-08/G08-05：唯一实现门 phase2_integrate.cpp 的 snr_rel 门与产品字段 phase2_extensions.snr_identity_rel_err 均已删除。签署**不得**以「门通过」为据——该门在任何可达路径下都恒绿。改判据需要来自 W 之外的参照量（像素级 C_k 的独立重算或注入实验）；Phase1 不落盘逐像素 sigma2、calibration_covariance 仅为摘要记录、VARIANCE 面是 drizzle 后面亮度方差，三条路在本仓均不可得，故据实登记为无有效机器判据，不造假参照。状态已由 PENDING_OWNER_SIGNOFF 改为 OPEN：本条款无门、无 fail 面、无 mutation、证据资格为 none、锚点（source_binding）已失，不满足 PENDING_OWNER_SIGNOFF「值与文本唯一确定」的定义；OPEN 的处置「生产判据面 = 空、引用处显式标 pending」与本条款实际状态一致。「已撤」不是登记表 status_vocabulary 的第四格，故取语义最接近的既有态并在本条据实登记；若日后要重建判据，其数值属 OPEN 的「数值待定」，须先取得来自 W 之外的参照量。改状态需同步 **13 处、跨 5 个文件**（本条 status；clause_registry.counts_by_status 的 PENDING_OWNER_SIGNOFF/OPEN；clause_registry.ids_by_status 的 PENDING_OWNER_SIGNOFF 与 OPEN 两张表；顶层 counts.pending_owner_signoff / counts.open；migration_map.signoff_policy 的条数副本；docs/science/unified/DATA_SEMANTICS.md 的 PENDING 与 OPEN 两张 id 清单及其计数行；docs/engineering/UNIFIED_OBJECTS.md 与 lib/algorithms/integration/phase2_integrate/README.md 的条数叙述；eng/tests/contracts/product_family/field_constraints_oracle.py 的 counts_by_status 硬编码与正文计数串元组——该机器门文件已由并发车道从工作树删除，其两处硬编码未同步，若恢复须先补 48/9 否则该门判红），本条 governance_note 原称「三处」是低估。owner_signoff 保留 SO-07：OPEN 的定义即为「未落定、登记 owner」，且本登记表其余 8 条 OPEN 条款同样带 owner_signoff 字段；SO-07 此处只作登记 owner，不再构成待签对象",
       "source_binding": {
-        "file": "docs/science/PSF_SIGNAL_WEIGHT.md",
+        "file": "docs/science/noise_snr/NOISE_SNR.md",
         "kind": "substring",
         "locator": "独立帧相对容差",
         "contains": "1e-9",
@@ -1905,7 +1905,7 @@
       "status": "PENDING_OWNER_SIGNOFF",
       "owner_signoff": "SO-07",
       "source_binding": {
-        "file": "docs/science/PSF_SIGNAL_WEIGHT.md",
+        "file": "docs/science/noise_snr/NOISE_SNR.md",
         "kind": "substring",
         "locator": "correlated_detection_ratio_min",
         "contains": "1.05",
@@ -1930,7 +1930,7 @@
       "status": "PENDING_OWNER_SIGNOFF",
       "owner_signoff": "SO-03",
       "source_binding": {
-        "file": "docs/science/DATA_SEMANTICS.md",
+        "file": "docs/science/unified/DATA_SEMANTICS.md",
         "kind": "substring",
         "locator": "FZ-GATE-CONST-SB",
         "contains": "1e-3",
@@ -1955,7 +1955,7 @@
       "status": "PENDING_OWNER_SIGNOFF",
       "owner_signoff": "SO-07",
       "source_binding": {
-        "file": "docs/science/DATA_SEMANTICS.md",
+        "file": "docs/science/unified/DATA_SEMANTICS.md",
         "kind": "substring",
         "locator": "PROPOSED_PENDING_OWNER_SIGNOFF_SO07",
         "contains": "0.20",
@@ -1980,7 +1980,7 @@
       "status": "FROZEN",
       "owner_signoff": null,
       "source_binding": {
-        "file": "docs/science/DATA_SEMANTICS.md",
+        "file": "docs/science/unified/DATA_SEMANTICS.md",
         "kind": "substring",
         "locator": "max(f_p, 0.1)",
         "contains": "0.1",
@@ -2005,7 +2005,7 @@
       "status": "FROZEN",
       "owner_signoff": null,
       "source_binding": {
-        "file": "docs/science/DATA_SEMANTICS.md",
+        "file": "docs/science/unified/DATA_SEMANTICS.md",
         "kind": "substring",
         "locator": "default 1 ADU",
         "contains": "1 ADU",
@@ -2030,7 +2030,7 @@
       "status": "FROZEN",
       "owner_signoff": null,
       "source_binding": {
-        "file": "docs/science/DATA_SEMANTICS.md",
+        "file": "docs/science/unified/DATA_SEMANTICS.md",
         "kind": "substring",
         "locator": "GLS/Q-W rel < 1e-9",
         "contains": "1e-9",
@@ -2055,7 +2055,7 @@
       "status": "PENDING_OWNER_SIGNOFF",
       "owner_signoff": "SO-07",
       "source_binding": {
-        "file": "docs/science/DATA_SEMANTICS.md",
+        "file": "docs/science/unified/DATA_SEMANTICS.md",
         "kind": "substring",
         "locator": "未复跑标定前",
         "contains": "1.4",
@@ -2080,7 +2080,7 @@
       "status": "FROZEN",
       "owner_signoff": null,
       "source_binding": {
-        "file": "docs/science/DATA_SEMANTICS.md",
+        "file": "docs/science/unified/DATA_SEMANTICS.md",
         "kind": "substring",
         "locator": "CAR",
         "contains": "2.0000",
@@ -2652,7 +2652,7 @@
     {
       "id": "SUP-01",
       "doc_id": "SCI-DRZ-001",
-      "file": "docs/science/DRIZZLE.md",
+      "file": "docs/science/drizzle/DRIZZLE.md",
       "section": "§3 物理量和单位",
       "lines": "27",
       "statement": "`v,variance`: ADU²；`ivar`: ADU⁻² —— 把输入逐像素方差与输出面亮度方差同名写作 variance",
@@ -2668,7 +2668,7 @@
     {
       "id": "SUP-02",
       "doc_id": "SCI-DRZ-001",
-      "file": "docs/science/DRIZZLE.md",
+      "file": "docs/science/drizzle/DRIZZLE.md",
       "section": "§5 权重与归一 / §7 不变量",
       "lines": "38-51,79-84",
       "statement": "`w_jp=a_jp/A_drop`（A_drop=pixfrac²·A_pixel）；`S_p=B0` 仅在 pixfrac=1 成立；面亮度归一因子 A_drop vs A_pixel 分叉",
@@ -2683,7 +2683,7 @@
     {
       "id": "SUP-03",
       "doc_id": "SCI-DRZ-001",
-      "file": "docs/science/DRIZZLE.md",
+      "file": "docs/science/drizzle/DRIZZLE.md",
       "section": "§11 验收门",
       "lines": "117",
       "statement": "`流量守恒：常数场 C 的 S_p=C 全像素 max_abs==0`（把每像素常量 ADU 与常量面亮度混同）",
@@ -2696,7 +2696,7 @@
     {
       "id": "SUP-04",
       "doc_id": "SCI-DRZ-001",
-      "file": "docs/science/DRIZZLE.md",
+      "file": "docs/science/drizzle/DRIZZLE.md",
       "section": "§1 目的与非目标 / §9a 专属问题",
       "lines": "8,146",
       "statement": "`协方差产品为非目标（仅方差传播，协方差文档化）`；`不存完整协方差矩阵`",
@@ -2711,7 +2711,7 @@
     {
       "id": "SUP-05",
       "doc_id": "SCI-CW-001..008",
-      "file": "docs/science/CONTROL_WEIGHT_SNR.md",
+      "file": "docs/science/noise_snr/NOISE_SNR.md",
       "section": "§ 像素级 SNR 权重（weight_mode=2）（已按 §9.73 A44 作废：该概念不存在）",
       "lines": "66,71",
       "statement": "`weight_mode=2`；`weights[s] = support[s] × snr_v²`（support×SNR² 作像素级权重）（已按 §9.73 A44 作废：该概念不存在）",
@@ -2741,7 +2741,7 @@
     {
       "id": "SUP-08",
       "doc_id": "SCI-CAL-001",
-      "file": "docs/science/CALIBRATION.md",
+      "file": "docs/science/calibration/CALIBRATION.md",
       "section": "§1 目的与非目标 / §9a 专属问题",
       "lines": "5,91,95",
       "statement": "`read noise：校准层不建模、不传播`；`variance 传播：本层不传播母版方差至 cal`",
@@ -2770,7 +2770,7 @@
     {
       "id": "SUP-10",
       "doc_id": "UNCERTAINTY_AND_COVARIANCE(V19R3)",
-      "file": "docs/science/UNCERTAINTY_AND_COVARIANCE.md",
+      "file": "docs/science/noise_snr/NOISE_SNR.md",
       "section": "§V19R3 control estimator 方差",
       "lines": "21,30-48",
       "statement": "`k_corr=1.3883`（保守 1.4）冻结值 + 口径不完整；`V19 不保存完整 covariance matrix`",
@@ -3409,7 +3409,7 @@
       "section": "§4.2 四分量表",
       "line": 203,
       "as_written": "ADU/px",
-      "disposition": "被登记的错误原文已随 DOC-PURGE-01 出库；该错误不得被静默采纳的判据仍然成立（合法域不含 'ADU/px'），见 docs/science/DATA_SEMANTICS.md §31.7",
+      "disposition": "被登记的错误原文已随 DOC-PURGE-01 出库；该错误不得被静默采纳的判据仍然成立（合法域不含 'ADU/px'），见 docs/science/unified/DATA_SEMANTICS.md §31.7",
       "not_silently_adopted": true
     }
   },
@@ -3615,7 +3615,7 @@
     "wave": 6,
     "status": "PRODUCTION_INTEGRATED",
     "authority": "CONTROLLER_LOG.md C-004.3; C-007 F1 局部裁定; DI-01; DI-07",
-    "semantic_authority": "docs/science/DATA_SEMANTICS.md §31.10",
+    "semantic_authority": "docs/science/unified/DATA_SEMANTICS.md §31.10",
     "statement": "SCI-PSFW-001 与 SCI-P2-001 的两套既有权重词表归一为单一权威 schema；本文件是唯一词表事实源，不发明第三套。/ The two pre-existing weight vocabularies are collapsed into one canonical schema; no third vocabulary is permitted.",
     "object_path": "weight",
     "canonical_fields": [
@@ -3852,8 +3852,8 @@
     "task": "SCHEMA-INTEGRATE-001",
     "wave": 6,
     "status": "PRODUCTION_INTEGRATED",
-    "semantic_authority": "docs/science/DATA_SEMANTICS.md §31.10",
-    "source_of_truth": "eng/contracts/proposals/v6/data/acsd.v6.data-design-catalog.v1.json#migrations + docs/science/DATA_SEMANTICS.md",
+    "semantic_authority": "docs/science/unified/DATA_SEMANTICS.md §31.10",
+    "source_of_truth": "eng/contracts/proposals/v6/data/acsd.v6.data-design-catalog.v1.json#migrations + docs/science/unified/DATA_SEMANTICS.md",
     "compatibility_declaration": "向后兼容仅由 reader/迁移层提供；writer/schema 只产出 v6 canonical。legacy weight_mode=0 一律拒绝，不得静默解释为任何科学权重。既有合同语义（signal/support/variance/ivar/mask 平面语义、BUNIT 二次律、provenance 最小集）不被静默改变。",
     "file_migrations": [
       {
@@ -3927,7 +3927,7 @@
       },
       {
         "from": "docs/engineering/UNIFIED_OBJECTS.md",
-        "to": "docs/science/DATA_SEMANTICS.md §31 + docs/engineering/PUBLIC_API.md v6 段",
+        "to": "docs/science/unified/DATA_SEMANTICS.md §31 + docs/engineering/api/PUBLIC_API.md v6 段",
         "kind": "doc",
         "note": "生产合同吸收 v6 字段/单位/BUNIT/weight_mode/provenance/fail-closed"
       }
@@ -3937,7 +3937,7 @@
         "id": "MIG-WEIGHTMODE-LEGACY",
         "from": "ACSD_WEIGHT_MODE 整数 {0,1,2}（DATA_SEMANTICS §30.3:2421；PUBLIC_API:1165；ACR {auto,ivar,equal,support_x_snr2}）",
         "to": "显式字符串 weight_mode ∈ {point_information, surface_gls, psfsw_robust}（生产）/ {equal, pixel_ivar}（文档基线）",
-        "reader_rule": "**全值域一律 REJECT**（§9.73 裁决 A44 后订正）：0=support×snr²、1=equal、2=pixel_ivar **三者同等拒绝**；auto/support_x_snr2/psf_snr_power/未知 → REJECT。订正依据：A44 删除 legacy 整数权重模式域后该字段不存在任何合法取值（docs/ACSD_DESIGN.md §3.1:175「没有可选择项」；docs/science/PSF_SIGNAL_WEIGHT.md §4:72），原「1 → equal；2 → pixel_ivar」的映射处置**已作废**。实现事实源：lib/algorithms/coverage/src/stage2_common.cpp 与 lib/infrastructure/scheduler/src/module_adapters.cpp（键出现即拒绝）；lib/infrastructure/cli/v6_runtime_contract.h 的 route_legacy_weight_mode_int 为纯拒绝面（0/1/2/任意整数 → kReject）。",
+        "reader_rule": "**全值域一律 REJECT**（§9.73 裁决 A44 后订正）：0=support×snr²、1=equal、2=pixel_ivar **三者同等拒绝**；auto/support_x_snr2/psf_snr_power/未知 → REJECT。订正依据：A44 删除 legacy 整数权重模式域后该字段不存在任何合法取值（docs/ACSD_DESIGN.md §3.1:175「没有可选择项」；docs/science/noise_snr/NOISE_SNR.md §4:72），原「1 → equal；2 → pixel_ivar」的映射处置**已作废**。实现事实源：lib/algorithms/coverage/src/stage2_common.cpp 与 lib/infrastructure/scheduler/src/module_adapters.cpp（键出现即拒绝）；lib/infrastructure/cli/v6_runtime_contract.h 的 route_legacy_weight_mode_int 为纯拒绝面（0/1/2/任意整数 → kReject）。",
         "writer_rule": "只写显式字符串模式 + 版本；不得写 legacy 整数。",
         "anchor": "ADJ-S1; ADJ-AR-01; FZ-FIELD-WEIGHTMODE; FZ-MODE-PRODUCTION; FZ-MODE-BASELINE",
         "legacy_status": "SUPERSEDED",
@@ -4084,23 +4084,23 @@
     "entries": [
       {
         "retired": "ALG_P1_001_PHASE1_ALGORITHM_SPEC.md",
-        "current": "docs/science/DATA_SEMANTICS.md"
+        "current": "docs/science/unified/DATA_SEMANTICS.md"
       },
       {
         "retired": "ALG-P2-POINT-001_SPEC.md",
-        "current": "docs/science/PSF_SIGNAL_WEIGHT.md"
+        "current": "docs/science/noise_snr/NOISE_SNR.md"
       },
       {
         "retired": "PSFSW_BASELINE_COMPARISON.md",
-        "current": "docs/science/PSF_SIGNAL_WEIGHT.md"
+        "current": "docs/science/noise_snr/NOISE_SNR.md"
       },
       {
         "retired": "PSFSW_FROZEN_THRESHOLDS.md",
-        "current": "docs/science/PSF_SIGNAL_WEIGHT.md"
+        "current": "docs/science/noise_snr/NOISE_SNR.md"
       },
       {
         "retired": "ALG-P2-SURF-COVARIANCE-EPSF.md",
-        "current": "docs/science/UNCERTAINTY_AND_COVARIANCE.md"
+        "current": "docs/science/noise_snr/NOISE_SNR.md"
       },
       {
         "retired": "ALG-P2-SURF-GLS.md",
@@ -4108,7 +4108,7 @@
       },
       {
         "retired": "ALG-P2-SURF-PIXIVAR-GATE.md",
-        "current": "docs/science/DATA_SEMANTICS.md"
+        "current": "docs/science/unified/DATA_SEMANTICS.md"
       },
       {
         "retired": "ALG-P2-SURF-REJECTION.md",
@@ -4120,7 +4120,7 @@
       },
       {
         "retired": "ALG-P3-001_VERIFICATION.md",
-        "current": "docs/science/DATA_SEMANTICS.md"
+        "current": "docs/science/unified/DATA_SEMANTICS.md"
       },
       {
         "retired": "*.md",
@@ -4128,19 +4128,19 @@
       },
       {
         "retired": "07_provenance.md",
-        "current": "docs/science/DATA_SEMANTICS.md"
+        "current": "docs/science/unified/DATA_SEMANTICS.md"
       },
       {
         "retired": "10_migration_and_open_items.md",
-        "current": "docs/science/DATA_SEMANTICS.md"
+        "current": "docs/science/unified/DATA_SEMANTICS.md"
       },
       {
         "retired": "acsd.v6.contract-freeze.v1.json",
-        "current": "docs/science/DATA_SEMANTICS.md"
+        "current": "docs/science/unified/DATA_SEMANTICS.md"
       },
       {
         "retired": "SCI-ADJ-001_FREEZE_LIST.md",
-        "current": "docs/science/DATA_SEMANTICS.md"
+        "current": "docs/science/unified/DATA_SEMANTICS.md"
       }
     ]
   }

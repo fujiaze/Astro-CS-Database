@@ -52,8 +52,8 @@
 >    2 份 `ADU/px^2`（手工语料）、**零份裸 `ADU`**。
 >
 > ⇒ **本表按面亮度口径判读**（与 `docs/science/algorithms/PHASE2_REJECTION.md` §2、
-> `docs/science/algorithms/PHASE2_MOSAIC_WRITE.md` 一致）。`DATA_SEMANTICS.md`
-> §21.1/§21.2 若给出像素域 ADU 字面读法，以本表的面亮度口径为准。
+> `docs/science/algorithms/PHASE2_MOSAIC_WRITE.md` 一致）。`docs/detail/registry/acsd.phase2.integrate.md`
+> 的输入/输出端口面若给出像素域 ADU 字面读法，以本表的面亮度口径为准。
 
 权重语义（`lib/algorithms/coverage/include/astro/phase2/integrate.h` 注释冻结）: 权重是 Phase2 按该天球像素
 对应帧集合现场算出的派生量——逐样本 `ivar`（`1/ADU²`），由调用方构造
@@ -250,7 +250,7 @@ eligibility（逐候选 i，候选索引固定序）:
   `{w=1,1,0}`、全 accepted，必须输出 `support=0.9`；置于分支之后的实现输出
   `support=0.3` ⇒ 判红（证明该判据有判别力）；两臂 `signal` 逐位相同（=11），
   即 support 与 signal 正交。
-- **约束（`DISP-P2INT-002` 面）**：`docs/science/INTEGRATION.md` §5/§7、`docs/science/DATA_SEMANTICS.md` §21.5
+- **约束（`DISP-P2INT-002` 面）**：`docs/science/INTEGRATION.md` §5/§7、`docs/detail/registry/acsd.phase2.integrate.md` 的错误/边界面
   与 ``lib/algorithms/coverage/include/astro/phase2/integrate.h`` 的文本口径必须同为 `max_{accepted} support[i]`，
   **该口径即唯一口径**。
 
@@ -300,7 +300,7 @@ eligibility（逐候选 i，候选索引固定序）:
 
 - 积分语义权威已有 FROZEN SCI: SCI-INT-001（docs/science/
   INTEGRATION.md，集合 SCI-INT-001/002/004/008）。**共享 SCI 引用
-  不改动**（P1-WCS SCI-WCS-001=共享 ASTROMETRY.md、P2-COV
+  不改动**（P1-WCS SCI-WCS-001=共享 docs/science/detection/ASTROMETRY.md、P2-COV
   SCI-UPM-001/SCI-INT-001、P2-HIPS SCI-UPM/INT/REJ 同构）。
 - matrix P2-INT 行 science_id=SCI-P2-INT-001（descriptor 占位词汇）
   的语义映射由本节声明——**SCI-P2-INT-001 ⇒ SCI-INT-001**

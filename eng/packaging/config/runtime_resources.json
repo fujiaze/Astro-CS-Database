@@ -6,7 +6,7 @@
   "authority_refs": [
     "docs/ACSD_DESIGN.md §8.3（静态预算：估算是调度决策的输入；编排策略「内存占用永不越界」——越界时按「可中断排队 / 可丢弃重跑」处置，不是拒绝任务）",
     "docs/ACSD_DESIGN.md §9（一个进程一个资源调度器与线程预算源；内存与 CPU 同源）",
-    "docs/engineering/SCHEDULER_CONTRACT.md §3（内存上限（峰值工作集）由配置/资源门决定，禁止硬编码）",
+    "docs/engineering/contracts/SCHEDULER.md §3（内存上限（峰值工作集）由配置/资源门决定，禁止硬编码）",
     "docs/ACSD_DESIGN.md §4.5 运行前预检 + ENGINEERING_SPEC.md §12 + eng/contracts/resource_gate_v1.json#disk_gate.no_gate（资源门只管磁盘；内存 / CPU / 线程**不设门** ⇒ 本预算是调度准入输入，不产生退出码、不阻断运行）"
   ],
   "readers": [
@@ -44,7 +44,7 @@
     "benchmark"
   ],
   "orchestration_params": {
-    "authority": "docs/engineering/SCHEDULER_CONTRACT.md §3（「线程预算、内存上限（峰值工作集）、队列深度、分块/窗口/子块大小；上述参数由配置/资源门决定」——硬编码常数升为受控配置键；值域守卫保留 fail-closed）+ docs/engineering/CONCURRENCY_STANDARD.md「默认」节（「线程数：外部可配置，默认 min(可用核, 配置上限)；取值来源 = 配置（16 不作硬编码值）」）",
+    "authority": "docs/engineering/contracts/SCHEDULER.md §3（「线程预算、内存上限（峰值工作集）、队列深度、分块/窗口/子块大小；上述参数由配置/资源门决定」——硬编码常数升为受控配置键；值域守卫保留 fail-closed）+ docs/engineering/standards/CONCURRENCY.md「默认」节（「线程数：外部可配置，默认 min(可用核, 配置上限)；取值来源 = 配置（16 不作硬编码值）」）",
     "note": "P2 tile 几何与 P3 子块/队列深度的**唯一数值源**。升键前它们以 constexpr 字面量只存在于 lib/infrastructure/scheduler/src/module_adapters.cpp（kP2TileLeafSpan=512*512 / kP2TileShift=9 / kP3DefaultSubBlockPx=256 / kP3MinSubBlockPx=16 / kP3MaxSubBlockPx=1024 / kP3DefaultQueueDepth=4），schema/config_registry/defaults.json 全零命中 ⇒ 与 P1 帧闸门两分母同款缺陷（第二个未登记的数值来源）。现经 CMake configure_file 生成头消费（与 memory_budget_percent / frame_memory_gate 同一机制），实现侧零字面量；值域守卫（:min/:max）保留为 fail-closed。",
     "p2_tile_leaf_span": 262144,
     "p2_tile_leaf_span_constraint": "= (2^p2_tile_shift)^2；HiPS 标准 tile（512×512）的 leaf 数 2^18。**不是可自由调参**：它同时是 P2 产品格式不变量（产品 manifest 的 tile_leaf_span 字段与消费侧逐位比对，不一致即 DATA 错 fail-closed）⇒ 改动等于改产品格式，须走合同变更。",
@@ -59,12 +59,12 @@
     "p3_default_queue_depth": 4,
     "p3_default_queue_depth_constraint": "整数 ≥ 1；P3 子块写队列缺省深度。与 p3_default_sub_block_px 共同决定在途内存上界 2·queue_depth·sb²·8 B。",
     "p1_max_frames_in_flight": 0,
-    "p1_max_frames_in_flight_constraint": "整数 ≥ 0；0 = 策略值（帧级并行宽度由 Runtime lease 与内存闸门共同决定，见 docs/engineering/THREADING_MODEL.md「并行轴分配」）。>0 时**只收紧**帧级在飞宽度（实现侧 fail-closed：绝不放大到超预算，也不改帧内轴分配公式）。依据 docs/ACSD_DESIGN.md §8.3:652「编排参数（窗口大小、预取深度、帧并发度、工作窃取策略）基于探针实测数据迭代，不靠静态猜测」+ docs/engineering/SCHEDULER_CONTRACT.md:38（最终取值由性能门定，合同只保证机制正确）。",
+    "p1_max_frames_in_flight_constraint": "整数 ≥ 0；0 = 策略值（帧级并行宽度由 Runtime lease 与内存闸门共同决定，见 docs/engineering/THREADING_MODEL.md「并行轴分配」）。>0 时**只收紧**帧级在飞宽度（实现侧 fail-closed：绝不放大到超预算，也不改帧内轴分配公式）。依据 docs/ACSD_DESIGN.md §8.3:652「编排参数（窗口大小、预取深度、帧并发度、工作窃取策略）基于探针实测数据迭代，不靠静态猜测」+ docs/engineering/contracts/SCHEDULER.md:38（最终取值由性能门定，合同只保证机制正确）。",
     "scheduler_prefetch_threads_max": 4,
     "scheduler_prefetch_threads_max_constraint": "整数 ≥ 0；0 = 不设上限。未接线调度器 lib/infrastructure/scheduler/src/normalize_workflow.cpp 的**预取线程数上限**（NormalizeWorkflowConfig::prefetch_threads 的受控上界）：实现侧把请求值 clamp 到本键并留痕，不再出现无上界的并发预取。依据 docs/ACSD_DESIGN.md §8.3:643（normalize「异步启动其他独立工作流（预取下一帧…）；I/O 预取与计算重叠」）+ §8.3:647（线程池唯一来源是调度器、单进程唯一预算源）。",
     "work_steal_policy": "gap:未落地（键位方案见 config_registry.json#orchestration_params.gaps；生产无实现，不落死键）",
     "cpu_budget_max": 0,
-    "cpu_budget_max_constraint": "整数 ≥ 0；0 = 不设上限。进程有效 CPU 预算的**配置上限**（docs/engineering/CONCURRENCY_STANDARD.md「默认」节：「线程数：外部可配置，默认 min(可用核, 配置上限)」）——预算唯一来源仍是运行期配额（调度器 lease / CLI 注入的可用核），本键只提供上限，不引入第二个数值来源。消费面 = lib/infrastructure/scheduler/src/cpu_budget.cpp#process_cpu_budget（生成头 kCpuBudgetMax）。",
+    "cpu_budget_max_constraint": "整数 ≥ 0；0 = 不设上限。进程有效 CPU 预算的**配置上限**（docs/engineering/standards/CONCURRENCY.md「默认」节：「线程数：外部可配置，默认 min(可用核, 配置上限)」）——预算唯一来源仍是运行期配额（调度器 lease / CLI 注入的可用核），本键只提供上限，不引入第二个数值来源。消费面 = lib/infrastructure/scheduler/src/cpu_budget.cpp#process_cpu_budget（生成头 kCpuBudgetMax）。",
     "x-cpu-budget-note": "X1 节点并行预算接线：旧实现在直接调用 op（无调度器 lease、config 无 __workers）时恒取 1 ⇒ 节点内 omp parallel for 继承 ICV=1 ⇒ 整批科学内核单线程（PSF 域实测 1,086.0 s vs 16 线程探针 101.2 s）。现按运行期预算解析：lease 存在则以其为准（只收紧），否则取 min(可用核, 本上限)。"
   },
   "frame_memory_gate": {

@@ -5,8 +5,8 @@
 > §7 四概念分离、§8/§9 测试设计、§11.4 冻结容差）
 > 共享 FROZEN SCI（零改动）：docs/science/PHASE2_UPM.md（`w_UPM` 唯一冻结式 §5）、
 > docs/science/INTEGRATION.md（signal / sup_max）、docs/science/REJECTION.md（排异判据）
-> 数据正本：docs/science/DATA_SEMANTICS.md §20（DATA-P2-HIPS）
-> API 正本：docs/engineering/PUBLIC_API.md（API-P2-HIPS-001，Phase2 mosaic write 节）
+> 数据正本：docs/detail/registry/acsd.phase2.write.md（DATA-P2-HIPS 端口表，本页输入输出端口表）
+> API 正本：docs/engineering/api/PUBLIC_API.md（API-P2-HIPS-001，Phase2 mosaic write 节）
 > I/O：docs/detail/infrastructure/17_aio.md（IO-002 读合同、IO-003 原子发布）
 
 模块级事实以 `lib/algorithms/coverage/hips_p2/` 三件套（README + module.yaml +
@@ -71,7 +71,7 @@ schema 单一来源。
 | `integrated` | `DATA-P2-INT` | 必 | `UnitId::ADU` | `CoordinateFrame::PIXEL`（descriptor 词汇） |
 | `mosaic` | `DATA-P2-HIPS`（descriptor 端口词汇 `DATA-P2-RES`；权威 = DATA-P2-HIPS） | 可 | `UnitId::SURFACE_BRIGHTNESS`（signal = 面亮度；枚举源 `lib/include/acsd/core/artifact.h`，phase3 同用） | NESTED 球面（HEALPix nside=2^(target_order+9)，tile 512×512） |
 
-权威源 = DATA-P2-HIPS（DATA_SEMANTICS §20）；descriptor 端口表（`p2_write_descriptor`，
+权威源 = DATA-P2-HIPS（本页输入输出端口表）；descriptor 端口表（`p2_write_descriptor`，
 坐标记为 PIXEL）为编排词汇，球面端口以 DATA-P2-HIPS（NESTED 球面）为准。
 invalid = NaN signal + support = 0（writer 库 aio_hips_writer.cpp）；ivar 缺产品 =
 rc=7 science / degraded（stage2.cpp）。
@@ -146,7 +146,7 @@ model_hash 等；stage2.cpp）。取消 = 无（长 run 无检查点，如实登
 orchestrator 的 `cleanup_partial_output` 用 `fs::remove_all` 修复（orchestrator.cpp，
 失败时清理 HiPS 目录树）。错误码与退出码唯一源 =
 lib/infrastructure/cli/exit_codes.h；域→码映射唯一源 =
-docs/engineering/LOG_AND_ERROR_CONTRACT.md §5。
+docs/engineering/contracts/LOG_AND_ERROR.md「错误对象与退出码映射」一节。
 
 **阶段二冻结科学合同 ID 集合**（零改动）：SCI-UPM-001..010、
 SCI-UPM-PERSIST-001、ALG-UPM-FRAME-BIND-001、ALG-REJ-001..008、
@@ -175,7 +175,7 @@ HiPS properties provenance；阶段二直写 `out_hips` 无 staging（原子发�
 
 **日志落点**：本模块的日志一律落块级 `<output_dir>/logs`。开发过程日志
 不是产品日志，不在产品落盘面内；判据 R3 见
-`docs/engineering/LOG_AND_ERROR_CONTRACT.md`（落点指向块级 output_dir 之外即判红）。
+`docs/engineering/contracts/LOG_AND_ERROR.md`「落点合同」一节（落点指向块级 output_dir 之外即判红）。
 
 目标交付形态 acsd_p2_hips_writer.dll 未落地。全局限制登记 =
 artifacts/evidence/known-limitations-ledger/LIMITATIONS.md。

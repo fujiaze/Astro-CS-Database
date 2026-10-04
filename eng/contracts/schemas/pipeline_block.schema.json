@@ -2,7 +2,7 @@
   "$schema": "http://json-schema.org/draft-07/schema#",
   "$id": "acsd.pipeline-block/v1",
   "title": "阶段内命名块元数据与生命周期",
-  "x-doc": "docs/engineering/PIPELINE_BLOCK_CONTRACT.md",
+  "x-doc": "docs/engineering/contracts/PIPELINE_BLOCK.md",
   "type": "object",
   "required": [
     "schema",

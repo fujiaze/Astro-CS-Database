@@ -1,10 +1,10 @@
 # 模块 acsd.phase1.session
 
 > 上游：docs/ACSD_DESIGN.md §8.5（模块与 ABI）
-> 数据正本：docs/science/DATA_SEMANTICS.md §16（DATA-P1-SESSION）
-> API 正本：docs/engineering/PUBLIC_API.md「Phase1 装配会话 C API」节
-> （API-P1-SESSION）、docs/engineering/PHASE1_API_V1.md（API-P1-001，FROZEN）
-> C ABI 与 host services 四通道：docs/engineering/COMMON_ABI_V1.md
+> 数据正本：docs/detail/registry/acsd.phase1.session.md（DATA-P1-SESSION 端口表，本页输入输出端口表）
+> API 正本：docs/engineering/api/PUBLIC_API.md「Phase1 装配会话 C API」节
+> （API-P1-SESSION）、docs/engineering/api/PUBLIC_API.md「分阶段 API 面」（API-P1-001，FROZEN）
+> C ABI 与 host services 四通道：docs/engineering/api/abi/ABI.md
 > I/O：docs/detail/infrastructure/17_aio.md（IO-002 canonical deleter）
 
 Phase1 装配底座（`p1_session` 函数族）登记页。权威签名头
@@ -24,7 +24,7 @@ io_write` 的进程内会话（create / validate / run / inspect / destroy 生�
 config 键集校验、取消传播、线程预算注入、manifest 产出。科学实现全部委托既有
 冻结 C API（`ac_calibrate_frame` / `ac_correct_frame`，lib/algorithms/calibration）。
 
-外部输入 = config JSON 键集（DATA_SEMANTICS §16.1）/ host services 四通道
+外部输入 = config JSON 键集（本页输入输出端口表）/ host services 四通道
 （common_abi_v1.h）/ FITS·XISF 读帧 / FITS 写帧。
 
 不做：拥有任何算法（校准 / 星点 / PSF / WCS / 测光 / SNR / drizzle / HiPS 公式
@@ -42,7 +42,7 @@ config 键集校验、取消传播、线程预算注入、manifest 产出。科�
 | `calibrated` | `DATA-P1-CAL` | 可 | `UnitId::ADU` | `CoordinateFrame::PIXEL` |
 
 数据面 = config JSON 键集 / host services / manifest / 校准 artifact
-（DATA-P1-SESSION，DATA_SEMANTICS §16）。像素输出为 float32 ADU `[h,w]`，
+（DATA-P1-SESSION，本页输入输出端口表）。像素输出为 float32 ADU `[h,w]`，
 仅 FITS 落盘。
 
 ## 公共 header、核心 symbol 与生命周期
@@ -60,7 +60,7 @@ manifest 状态机 = created → complete / failed。
 ## Registry descriptor 与配置 schema
 
 本模块不设独立 registry descriptor，配置面 = config JSON 键集
-（DATA_SEMANTICS §16.1），由本层校验。
+（本页输入输出端口表），由本层校验。
 
 ## Execution class、并行轴、ThreadBudget lease、确定性
 

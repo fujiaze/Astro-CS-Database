@@ -3,11 +3,11 @@
 > 上游：docs/ACSD_DESIGN.md §8.5（模块与 ABI）、§4.2（星表引导检测：候选星来自
 > 星表位置拟合）、§3.1（科学叠加权重的边界）
 > 科学正本：docs/science/algorithms/STAR_PSF_ALGORITHMS.md（SCI-P1-PSF-001 §11.5、
-> ALG-STARPSF-001 §11.1）、docs/science/PSF_SIGNAL_WEIGHT.md（PSF 与信息权重）、
+> ALG-STARPSF-001 §11.1）、docs/science/noise_snr/NOISE_SNR.md §3.4（PSF 与信息权重）、
 > docs/detail/UNIFIED_MODEL.md §1（观测模型）
-> 数据正本：docs/science/DATA_SEMANTICS.md §15（DATA-P1-PSF）
-> API 正本：docs/engineering/PUBLIC_API.md（API-PSF-001）、API-P1-003
-> （docs/engineering/PHASE1_API_V1.md）
+> 数据正本：docs/detail/registry/acsd.phase1.star-psf.md（DATA-P1-PSF 端口表，本页输入输出端口表）
+> API 正本：docs/engineering/api/PUBLIC_API.md（API-PSF-001）、API-P1-003
+> （docs/engineering/api/PUBLIC_API.md「分阶段 API 面」）
 
 模块级事实以 `lib/algorithms/psf/README.md` + `lib/algorithms/psf/module.yaml`
 （acsd.p1.psf，迁移目标 acsd_p1_psf.dll）为准。现状构建 Makefile →
@@ -48,7 +48,7 @@ validity。
 
 ## 公共 header、核心 symbol 与生命周期
 
-模块级 API = API-PSF-001（docs/engineering/PUBLIC_API.md PSF 节）；编排级 =
+模块级 API = API-PSF-001（docs/engineering/api/PUBLIC_API.md PSF 节）；编排级 =
 API-P1-003（phase session extern "C"）；生命周期 create→validate→run→inspect→
 destroy。
 
@@ -62,7 +62,7 @@ eccentricity}`；入口 `dpsf_fit`（uint16）/ `dpsf_fit_batch` /
 entrypoint = 信号 + 候选星窗口 + 初值 → PSF 模型 / 参数（帧级 Moffat4）。
 输出模型的**生产消费者为零**：节点注册表不声明 `artifact:p1_psf` 输入端口
 （module_adapters.cpp 记该边在注册表里不存在，`acsd.phase1.star-psf` 的
-`p1_psf` 端口为「生产链路零消费者」）；`docs/engineering/PIPELINE_BLOCK_CONTRACT.md`
+`p1_psf` 端口为「生产链路零消费者」）；`docs/engineering/contracts/PIPELINE_BLOCK.md`
 把 `photometry ← p1_psf` 列作自测负例（幻边）。`p1_psf.json` 只经 `star_id` 关联
 作 PSF 域复核读数；noise_snr 的交付样本与深度按测光有效源独立构造，与 PSF 参数面
 解耦。
@@ -77,7 +77,7 @@ module_id=`acsd.phase1.star-psf`（registry descriptor 口径）；模块合同
 module.yaml 登记的 module_id 为 `acsd.p1.psf`，两者指同一生产模块。目标交付
 形态 acsd_p1_psf.dll。execution_class=`cpu_heavy`; parallel_ok=True。
 
-配置 = phase config JSON（签名与默认值见 docs/engineering/PHASE1_API_V1.md）：
+配置 = phase config JSON（签名见 docs/engineering/api/PUBLIC_API.md「分阶段 API 面」，默认值见 docs/engineering/contracts/CONFIG.md）：
 
 | 字段 | 默认 | 单位 | 说明 |
 |---|---|---|---|
@@ -128,7 +128,7 @@ Oracle 面：
   恢复（PSF-001..008）与残差 Gaussian 假设检查；
 - 空间变化模型在位置变化时的残差验证；
 - 有效面积与信息权重一致性 Oracle（PSF 归一化与信息核正本 =
-  docs/science/PSF_SIGNAL_WEIGHT.md）；
+  docs/science/noise_snr/NOISE_SNR.md §3.4）；
 - PSF 不变量（逐位置归一为和为一、含像素响应对称性按模型）。
 
 ## 已知限制

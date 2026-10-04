@@ -6,7 +6,7 @@
 > `lib/algorithms/drizzle/healpix_drizzle/`（CMake 目标 `acsd_drizzle`，
 > 在根 `CMakeLists.txt` 中登记；C ABI 导出 `lib/algorithms/drizzle/healpix_drizzle/
 > hp_drizzle_api.h`）；迁移目标目录 `lib/algorithms/drizzle/`。科学定义见
-> `docs/science/DRIZZLE.md`（SCI-DRZ-001，FROZEN，集合 SCI-DRZ-001/014/015/016）。
+> `docs/science/drizzle/DRIZZLE.md`（SCI-DRZ-001，FROZEN，集合 SCI-DRZ-001/014/015/016）。
 > 本文档只登记离散算法与实现事实；源码与 SCI 的差异全部登记于 §10（DISP-DRZ-*）。
 > **权威订正原则** = `docs/ACSD_DESIGN.md` §0（文档权威与索引）「科学正确性优先」：独立证据（外部标准 /
 > 文献 / 可复跑实验）证明文档与事实不符时，**订正文档是义务**（SCI 层订正走变更流程并
@@ -37,7 +37,7 @@
   A_drop,j = drop 球面总面积 [sr]
   （S-H 裁剪前，双精度角点累积，<1e-20 拒绝，
   `build_drop_geometry_into` / `DropGeometryT::drop_area`）。
-- 离散公式（逐条源码锚；**单位逐项**与 `docs/science/DATA_SEMANTICS.md` §31.1a
+- 离散公式（逐条源码锚；**单位逐项**与 `docs/science/unified/DATA_SEMANTICS.md` §3.4
   的量纲链逐段一致，`FZ-UNIT-SIGNAL-SB` FROZEN）:
   - 权重: `w_jp = a_jp / A_drop,j`，**量纲 = 1（无量纲）**（a_jp 与 A_drop,j 同为 sr）。
     **面亮度保持口径**（SCI-DRZ-001 §5 目标态面亮度保持权重），a_jp = drop ∩ target p
@@ -209,7 +209,7 @@
 | channels≠1 多通道 | 拒绝 | 同上 |
 | 缺 WCS（CD 与 CDELT+CROTA2 均无） | 拒绝（帧通道返回 -9） | `lib/algorithms/drizzle/healpix_drizzle/api.cpp` |
 | 尺寸/空指针非法 | 拒绝 | `lib/algorithms/drizzle/healpix_drizzle/drizzle_engine.cpp` |
-| **值像素 NaN/Inf** | 按 `rule_id NAN-SAMPLE-MASK-COVERAGE-NAN` 处置 = **样本级掩膜 + 重归一 + 覆盖级 NaN + 强制计数**（唯一口径文字 = `docs/engineering/data/DATA-002_PHASE_PRODUCT_EXCHANGE.md` §2a）：不合格样本从 `F_p`、分母、方差三项一并剔除并重新归一，仅零合格样本输出 `NaN ∧ support≤0`，每个输出像素必须暴露被剔除样本计数 `n_rejected_nonfinite`（按原因分类、互斥可加）。**实现锚**：`!std::isfinite(pixelValue) → ++tc.rejected_nonfinite_value; continue`（`DrizzleEngine::drizzleTiledImpl` 主循环）；分类计数聚合为 `DrizzleStats::n_rejected_nonfinite{,_value,_variance,_nonpositive_weight}`（同文件）。 | `lib/algorithms/drizzle/healpix_drizzle/drizzle_engine.cpp` |
+| **值像素 NaN/Inf** | 按 `rule_id NAN-SAMPLE-MASK-COVERAGE-NAN` 处置 = **样本级掩膜 + 重归一 + 覆盖级 NaN + 强制计数**（唯一口径文字 = `docs/engineering/data/PHASE_PRODUCT_EXCHANGE.md` §2a）：不合格样本从 `F_p`、分母、方差三项一并剔除并重新归一，仅零合格样本输出 `NaN ∧ support≤0`，每个输出像素必须暴露被剔除样本计数 `n_rejected_nonfinite`（按原因分类、互斥可加）。**实现锚**：`!std::isfinite(pixelValue) → ++tc.rejected_nonfinite_value; continue`（`DrizzleEngine::drizzleTiledImpl` 主循环）；分类计数聚合为 `DrizzleStats::n_rejected_nonfinite{,_value,_variance,_nonpositive_weight}`（同文件）。 | `lib/algorithms/drizzle/healpix_drizzle/drizzle_engine.cpp` |
 | SNR 面非有限 | 计入 `rejected_nonfinite_value` 同族掩膜路径（SNR 面参与权重/有效性判定，剔除项逐条计数登记） | `lib/algorithms/drizzle/healpix_drizzle/drizzle_engine.cpp` |
 | 权重面非有限或 ≤0 | 计入 `rejected_nonpositive_weight`（原因 3）后剔除该样本（**必须计数**，禁静默） | 同上 |
 | variance 面非有限（NaN/Inf） | 计入 `rejected_nonfinite_variance`（原因 2）后剔除该样本（**必须计数**，禁静默） | 同上 |
@@ -280,7 +280,7 @@
 - **库边界精度缺省（无 silent FP32）**: `hp_drizzle_run` 参数
   `precision_mode==-1` 且帧头无 `PRECISION` KV 时取 **FP64**
   （现行载体 = 本条；数据面同源 =
-  `DATA_SEMANTICS.md` §11.1「PRECISION」行；**语义不变**）
+  `docs/detail/registry/acsd.phase1.drizzle.md` 的「PRECISION」行；**语义不变**）
   （不再静默 FP32）；帧头显式 `fp32`/`fp64` 生效；未知 KV 值或参数
   非 -1/0/1 → 显式拒绝（返回非零，不写产物）。生产节点仍由
   `drizzle.precision_mode`（0|1）显式门把关。
@@ -382,12 +382,12 @@
 | DISP-DRZ-001 | `lib/algorithms/drizzle/healpix_drizzle/hp_drizzle_api.h` 注释 sip_order "0..4" | `lib/algorithms/drizzle/healpix_drizzle/hp_drizzle_api.cpp` 校验 [0,5]（6×6 系数组支持 5 阶下标） | 头注释 vs 实现的校验段 |
 | DISP-DRZ-002 | 源码注释 `lib/algorithms/drizzle/healpix_drizzle/spherical_overlap.h` / `spherical_overlap.cpp` 写 "Girard 定理" | 面积实现 = S-H 球面裁剪 + Van Oosterom & Strackee 扇形三角剖分，无 Girard 实现；文档侧命名已与实现一致，**禁用** "Girard 定理" 命名 | 头/源注释 vs 面积实现 |
 | DISP-DRZ-003 | pixfrac∈(0,1] 单一边界 | 文件通道 API 层接受 0.0（<0 才拒），引擎层拒绝——两层双轨 | `lib/algorithms/drizzle/healpix_drizzle/api.cpp` vs `lib/algorithms/drizzle/healpix_drizzle/drizzle_engine.cpp` |
-| DISP-DRZ-004 | 值像素 NaN 按 `rule_id NAN-SAMPLE-MASK-COVERAGE-NAN` 处置 = 样本级掩膜 + 重归一 + 覆盖级 NaN + 强制计数（`docs/science/DRIZZLE.md`）：不合格样本剔除并重归一、仅零合格样本输出 `NaN ∧ support≤0`、必须暴露 `n_rejected_nonfinite` | **约束**：主循环按原因分类计数（值/方差/权重三分类）并聚合暴露 `DrizzleStats::n_rejected_nonfinite*`（`lib/algorithms/drizzle/healpix_drizzle/drizzle_engine.cpp`）；**禁用**把非有限样本传播进 `F_p`/分母/方差——会污染整像素信号与几何支撑（负例判据：零合格样本必须输出 `NaN ∧ support≤0` 且分类计数非零） | `docs/science/DRIZZLE.md` vs `lib/algorithms/drizzle/healpix_drizzle/drizzle_engine.cpp` |
+| DISP-DRZ-004 | 值像素 NaN 按 `rule_id NAN-SAMPLE-MASK-COVERAGE-NAN` 处置 = 样本级掩膜 + 重归一 + 覆盖级 NaN + 强制计数（`docs/science/drizzle/DRIZZLE.md`）：不合格样本剔除并重归一、仅零合格样本输出 `NaN ∧ support≤0`、必须暴露 `n_rejected_nonfinite` | **约束**：主循环按原因分类计数（值/方差/权重三分类）并聚合暴露 `DrizzleStats::n_rejected_nonfinite*`（`lib/algorithms/drizzle/healpix_drizzle/drizzle_engine.cpp`）；**禁用**把非有限样本传播进 `F_p`/分母/方差——会污染整像素信号与几何支撑（负例判据：零合格样本必须输出 `NaN ∧ support≤0` 且分类计数非零） | `docs/science/drizzle/DRIZZLE.md` vs `lib/algorithms/drizzle/healpix_drizzle/drizzle_engine.cpp` |
 | DISP-DRZ-005 | `max_angle < 1e-3` 切平面分支是**实际执行路径，必须保留**：微小 drop（角跨度 < 1e-3 rad ≈ 206″）用切平面面积 | 三处活分支（均在 `lib/algorithms/drizzle/healpix_drizzle/spherical_overlap.cpp`）：`g.drop_area` 微小 drop 用切平面面积、nb=4 重叠 `<1e-3` 用 `planar_polygon_area_n`（否则球面 `spherical_polygon_area_n`）、三角形扇重叠同策略（与 g.drop_area 表示一致，避免 weight 偏差） | 同文件的三处活分支与其注释；θ=1e-3 时切平面偏差 ≈ −θ_max²/2 = −5.0e-7（恒负、单向下偏；θ_max 按 drop 最远顶点角距约定；旧注 "<4e-8" 缺符号且偏小 12.5 倍，撤换），球面 double 相消噪声 ~1e-4~5e-5 |
 | DISP-DRZ-006 | TileLeafAccumulatorT release 仅 3 字段（`lib/algorithms/drizzle/healpix_drizzle/drizzle_engine.h` 注释） | 实际 4 字段（sumVarNum 为正式产品） | 同一头文件的注释 vs 结构体定义 |
-| DISP-DRZ-007 | SCI §13 方差锚指向 `drizzle_engine.cpp`（该锚所在段已随引擎重构消失） | 锚漂移：现行方差锚在 `astro_sphere_sink.cpp` + aio_hips_writer finalize_tile | `docs/science/DRIZZLE.md` vs `lib/algorithms/drizzle/healpix_drizzle/drizzle_engine.cpp` 的锚注释 |
+| DISP-DRZ-007 | SCI §13 方差锚指向 `drizzle_engine.cpp`（该锚所在段已随引擎重构消失） | 锚漂移：现行方差锚在 `astro_sphere_sink.cpp` + aio_hips_writer finalize_tile | `docs/science/drizzle/DRIZZLE.md` vs `lib/algorithms/drizzle/healpix_drizzle/drizzle_engine.cpp` 的锚注释 |
 | DISP-DRZ-008 | poly_clip.h 自述生产重叠面积用途 | PolyClip（平面 S-H/Shoelace）生产 tiled 路径零调用 | poly_clip.h vs `drizzle_engine.cpp` 全文 |
-| DISP-DRZ-009 | SCI-DRZ-001 §5 canonical 核 `w_jp=a_jp/A_drop,j` + 面亮度归一分母 `N_p=Σ_j w_jp·A_pixel,j`（`S_p=F_p/N_p=Σ_j B_j a_jp/Σ_j a_jp`） | **约束（覆盖正向与反向两条路径）**。**正向** `processPixelSharedTiled`：`weight = overlap_area / drop_area`（drop 面积归一，F&H 2002 §2 式(2)–(5)（原引 §7.2 撤换）/ drizzlepac `dover/=jaco`），归一分母 `acc.sumNorm`。**反向** `reverse_drizzle.cpp`：`S_p = Σ_j B_j·a_jp / Σ_j a_jp`（面亮度加权平均，分子分母各自累加后相除）。**禁用**把正向分母换成覆盖面积 `D_p=Σ_j a_jp`：`pixfrac<1` 时偏 `1/pixfrac²`（pf=0.8→+56.25%，与 `1/pf²−1` 逐位吻合）；反向路径若改用非面亮度归一，输出随**源 nside** 变化（实测 nside=16/64/256 偏 −99.98%/−99.70%/−95.23%，`S_p` 与 `B0·A_pixel/A_leaf` 逐位吻合）——两者均为负例判据 | DRIZZLE.md §5/§7 vs drizzle_engine.cpp `processPixelSharedTiled`（`weight=overlap_area/drop_area` + `sumNorm`）/ `astro_sphere_sink.cpp`（`k=sumArea/sumNorm`）/ reverse_drizzle.cpp（`weight` 累加 + 输出归一）/ `spherical_overlap.cpp` 的 `polygon_area_consistent`；契约 `FZ-FORMULA-DRIZZLE-SB`（docs/science/DATA_SEMANTICS.md §31.1、§11.2）；回归门 `p1drz_disp009` |
+| DISP-DRZ-009 | SCI-DRZ-001 §5 canonical 核 `w_jp=a_jp/A_drop,j` + 面亮度归一分母 `N_p=Σ_j w_jp·A_pixel,j`（`S_p=F_p/N_p=Σ_j B_j a_jp/Σ_j a_jp`） | **约束（覆盖正向与反向两条路径）**。**正向** `processPixelSharedTiled`：`weight = overlap_area / drop_area`（drop 面积归一，F&H 2002 §2 式(2)–(5)（原引 §7.2 撤换）/ drizzlepac `dover/=jaco`），归一分母 `acc.sumNorm`。**反向** `reverse_drizzle.cpp`：`S_p = Σ_j B_j·a_jp / Σ_j a_jp`（面亮度加权平均，分子分母各自累加后相除）。**禁用**把正向分母换成覆盖面积 `D_p=Σ_j a_jp`：`pixfrac<1` 时偏 `1/pixfrac²`（pf=0.8→+56.25%，与 `1/pf²−1` 逐位吻合）；反向路径若改用非面亮度归一，输出随**源 nside** 变化（实测 nside=16/64/256 偏 −99.98%/−99.70%/−95.23%，`S_p` 与 `B0·A_pixel/A_leaf` 逐位吻合）——两者均为负例判据 | docs/science/drizzle/DRIZZLE.md §5/§7 vs drizzle_engine.cpp `processPixelSharedTiled`（`weight=overlap_area/drop_area` + `sumNorm`）/ `astro_sphere_sink.cpp`（`k=sumArea/sumNorm`）/ reverse_drizzle.cpp（`weight` 累加 + 输出归一）/ `spherical_overlap.cpp` 的 `polygon_area_consistent`；契约 `FZ-FORMULA-DRIZZLE-SB`（docs/science/unified/DATA_SEMANTICS.md §3.4 面亮度单位推导；输出面见 `docs/detail/registry/acsd.phase1.drizzle.md`）；回归门 `p1drz_disp009` |
 
 无差异项（核对通过）: F/D/sumVarNum 结构、HP_CIRCUMRADIUS
 _FACTOR=1.25、三层缓冲语义、NESTED 统一、按线程序合并确定性。
@@ -438,13 +438,13 @@ B0=1000、nside=512、W=H=16）：注入态（分母取 A_drop）逐 leaf `S_p/B
 
 ## 11 关联
 
-- SCI: SCI-DRZ-001（docs/science/DRIZZLE.md，FROZEN；§5 公式、§7
+- SCI: SCI-DRZ-001（docs/science/drizzle/DRIZZLE.md，FROZEN；§5 公式、§7
   不变量、§15 Acceptance；集合 SCI-DRZ-014 方差传播 / 015 支撑 /
   016 协方差）。
-- DATA: DATA-P1-DRZ（docs/science/DATA_SEMANTICS.md §11）；上游
+- DATA: DATA-P1-DRZ（docs/detail/registry/acsd.phase1.drizzle.md）；上游
   DATA-P1-CAL（§9）；编排现状引用 DATA-P1-STACK（descriptor）。
-- API: API-DRZ-001（docs/engineering/PUBLIC_API.md）；API-P1-007
-  （docs/engineering/PHASE1_API_V1.md，区间 API-P1-001..010 编排合同）。
+- API: API-DRZ-001（docs/engineering/api/PUBLIC_API.md）；API-P1-007
+  （docs/engineering/api/PUBLIC_API.md，区间 API-P1-001..010 编排合同）。
 - MOD/SRC: MOD-acsd-phase1-drizzle（lib/algorithms/drizzle/module.yaml，
   CONTRACT_READY；lib/algorithms/drizzle/README.md 实现事实）；SRC-DRZ-001
   （lib/algorithms/drizzle/healpix_drizzle/hp_drizzle_api.h 等签名源）。

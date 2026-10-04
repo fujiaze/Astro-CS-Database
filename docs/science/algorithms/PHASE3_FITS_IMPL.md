@@ -399,7 +399,7 @@ function p3_output_verify(path, wcs, signal, coverage, W, H, out result):
 - ALG-P3-FITS-IMPL-001 = 本文件（实现级合同；upstream SCI-P3-001 +
   ALG-P3-001 + ALG-P3-002 + ALG-P3-004，PHASE3_RESAMPLE.md §1-§10
   推导权威不重复）。
-- DATA-P3-FITS = DATA_SEMANTICS.md §27（in signal f32[W·H] ADU /
+- DATA-P3-FITS = docs/detail/registry/acsd.phase3.writer.md（in signal f32[W·H] ADU /
   coverage f32{0,1} / out FITS BITPIX/WCS/BUNIT/checksum 唯一权威）。
 - API-P3-FITS-001 = PUBLIC_API.md「Phase3 FITS 写出公共消费面」
   （p3_output_write_atomic/p3_output_verify 符号级冻结 + 会话编排
@@ -414,8 +414,8 @@ function p3_output_verify(path, wcs, signal, coverage, W, H, out result):
 
 ## 17 追溯
 
-- MATRIX 行：MOD-acsd-phase3-writer（`docs/engineering/TRACEABILITY_SPEC.md §9`
-  / `docs/engineering/TRACEABILITY_SPEC.md §9` 的 P3-FITS 行）；合同落位=lib/algorithms/fits_output/ 三件套 + 本文件
+- MATRIX 行：MOD-acsd-phase3-writer（`docs/engineering/governance/TRACEABILITY.md §9`
+  / `docs/engineering/governance/TRACEABILITY.md §9` 的 P3-FITS 行）；合同落位=lib/algorithms/fits_output/ 三件套 + 本文件
   + DATA_SEMANTICS §27 + PUBLIC_API API-P3-FITS-001 节 + registry
   手写页 + docs/detail/phase3_fits.md。
 - 冻结红线：SCI-P3 冻结面（`docs/science/`、`PHASE3_RESAMPLE.md` 的公式与容差）
@@ -437,13 +437,13 @@ function p3_output_verify(path, wcs, signal, coverage, W, H, out result):
 ## U 承接：`uncertainty_available=false`（fail-closed 唯一出口）
 
 本层产出/消费不确定度子产品时，`uncertainty_available=false` 的处置**承接
-`docs/science/DATA_SEMANTICS.md` §30 的 fail-closed 唯一出口**（§30 规则条
-与 §30 显式登记条，按**内容锚**读，不按行号读）：输入面不含 variance/ivar 子产品
+`docs/engineering/data/ARTIFACTS.md` 的 fail-closed 唯一出口**（DATA-UNC-001 规则行
+与 DATA-P2-PROV-001 显式登记行，按**内容锚**读，不按行号读）：输入面不含 variance/ivar 子产品
 （或权重非纯逆方差、发生 fallback、合成输入非有限被拒等规则项）⇒ **不写**
 variance/ivar 子产品 + manifest 写 `uncertainty_available=false` +
 diagnostics 标红计数；**该键不是失败态**，是 unavailable 显式登记模式
 （禁占位子产品、禁静默缺键、禁用常量 0 冒充）。
-键名与取值口径以 `DATA_SEMANTICS.md` 为唯一权威，本层不另立第二套
+键名与取值口径以 `docs/engineering/data/ARTIFACTS.md` 为唯一权威，本层不另立第二套
 （本层此前零承接，P-154/DISP-P3UNC-001 勘误）。
 
 

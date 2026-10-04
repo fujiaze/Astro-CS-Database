@@ -2,10 +2,10 @@
 
 > 上游：docs/ACSD_DESIGN.md §8.5（模块与 ABI）
 > 科学正本：docs/science/algorithms/COSMETIC_ALGORITHMS.md（ALG-COS-001..005）
-> 数据正本：docs/science/DATA_SEMANTICS.md §10（DATA-P1-COS）、
-> docs/science/UNCERTAINTY_AND_COVARIANCE.md（修正对协方差的影响）
-> API 正本：docs/engineering/PUBLIC_API.md（API-COS-001）、
-> docs/engineering/PHASE1_API_V1.md（API-P1-002）
+> 数据正本：docs/detail/registry/acsd.phase1.cosmetic.md（DATA-P1-COS 端口表，本页输入输出端口表）、
+> docs/science/noise_snr/NOISE_SNR.md §3.5（修正对协方差的影响）
+> API 正本：docs/engineering/api/PUBLIC_API.md（API-COS-001）、
+> docs/engineering/api/PUBLIC_API.md「分阶段 API 面」（API-P1-002）
 
 合同三件套落位 `lib/algorithms/cosmetic/`（README/module.yaml/memory.md）；
 descriptor 词汇 module_id=`acsd.phase1.cosmetic`（`p1_cosmetic_descriptor`）为
@@ -34,7 +34,7 @@ COSMETIC_ALGORITHMS.md §10）。
 | `cleaned` | `DATA-P1-COS` | 可 | `UnitId::ADU` | `CoordinateFrame::PIXEL` |
 
 invalid = NaN（透传，不判坏）；掩码极性 1 = 坏点（SCI-CAL-001 §9a）；数据
-语义 DATA_SEMANTICS §10（DATA-P1-COS，DATA-P1-COSMETIC 为 descriptor 占位名，
+语义 registry/acsd.phase1.cosmetic.md（DATA-P1-COS，DATA-P1-COSMETIC 为 descriptor 占位名，
 合同以 DATA-P1-COS 为准）。
 
 输入面：定标信号 `y`、cosmetic map、饱和/非线性状态、坏点列表（可含注入）。
@@ -60,10 +60,10 @@ invalid = NaN（透传，不判坏）；掩码极性 1 = 坏点（SCI-CAL-001 §
 
 ## 公共 header、核心 symbol 与生命周期
 
-模块级：API-COS-001（docs/engineering/PUBLIC_API.md，`ac_correct_frame` /
+模块级：API-COS-001（docs/engineering/api/PUBLIC_API.md，`ac_correct_frame` /
 `ac_correct_frame_f64` / `ac_set_num_threads`，头
 lib/algorithms/calibration/include/astro_calibration.h）；编排级：API-P1-002
-（PHASE1_API_V1 §2，生命周期 create→validate→run→inspect→destroy，
+（docs/engineering/api/PUBLIC_API.md「分阶段 API 面」 底层模块函数登记，生命周期 create→validate→run→inspect→destroy，
 多模块共享）。目标交付形态 acsd_p1_cosmetic.dll + C ABI adapter（entrypoint
 未落地）。
 

@@ -1,10 +1,10 @@
 # 模块 acsd.phase1.calibration
 
 > 上游：docs/ACSD_DESIGN.md §8.5（模块与 ABI）
-> 科学正本：docs/science/CALIBRATION.md（SCI-CAL-001）、docs/science/NOISE_MODEL.md（噪声模型与方差传播）、
+> 科学正本：docs/science/calibration/CALIBRATION.md（SCI-CAL-001）、docs/science/noise_snr/NOISE_SNR.md（噪声模型 §2.2 分类学、§3.5 方差传播）、
 > docs/science/algorithms/CALIBRATION_ALGORITHMS.md（ALG-CAL-001..006）
-> 数据正本：docs/science/DATA_SEMANTICS.md §9（DATA-P1-CAL）
-> API 正本：docs/engineering/PUBLIC_API.md（API-CAL-001）、docs/engineering/PHASE1_API_V1.md（API-P1-001）
+> 数据正本：docs/detail/registry/acsd.phase1.calibration.md（DATA-P1-CAL 端口表，本页输入输出端口表）
+> API 正本：docs/engineering/api/PUBLIC_API.md（API-CAL-001）、docs/engineering/api/PUBLIC_API.md「分阶段 API 面」（API-P1-001）
 
 ## 职责与明确非职责
 
@@ -19,7 +19,7 @@ dark_opt 双分支）——生产源 lib/algorithms/calibration/src/。
 
 cosmetic 域的合同已独立冻结为 acsd.p1.cosmetic（`ALG-COS-001..005` =
 docs/science/algorithms/COSMETIC_ALGORITHMS.md，`DATA-P1-COS` =
-DATA_SEMANTICS §10，`API-COS-001` = PUBLIC_API.md），与本页 P1-CAL 合同共享同一
+registry/acsd.phase1.cosmetic.md，`API-COS-001` = PUBLIC_API.md），与本页 P1-CAL 合同共享同一
 编译目标与头文件；本页只保留 P1-CAL 视角，cosmetic 域见
 registry/acsd.phase1.cosmetic.md。
 
@@ -49,9 +49,9 @@ SCI-CAL-001 与 ALG-CAL-001..006；本页只记落地约束：
 
 ## 公共 header、核心 symbol 与生命周期
 
-模块级 API = API-CAL-001（docs/engineering/PUBLIC_API.md；头 astro_calibration.h、
+模块级 API = API-CAL-001（docs/engineering/api/PUBLIC_API.md；头 astro_calibration.h、
 实现 lib/algorithms/calibration/src/）；编排级 API = API-P1-001（phase session
-extern "C"，签名源 docs/engineering/PHASE1_API_V1.md）；生命周期
+extern "C"，签名源 docs/engineering/api/PUBLIC_API.md「分阶段 API 面」）；生命周期
 create→validate→run→inspect→destroy。
 
 头 astro_calibration.h 导出 12 个符号（5 个 f32 科学入口 + 5 个 f64 变体 +
@@ -78,7 +78,7 @@ create→validate→run→inspect→destroy。
 
 module_id=`acsd.phase1.calibration`; execution_class=`cpu_heavy`;
 parallel_ok=True; 目标交付形态 acsd_p1_calibration.dll。配置 = phase config JSON
-（签名与默认值见 docs/engineering/PHASE1_API_V1.md），字段面：
+（签名见 docs/engineering/api/PUBLIC_API.md「分阶段 API 面」，默认值见 docs/engineering/contracts/CONFIG.md），字段面：
 
 | 字段 | 默认 | 单位 | 说明 |
 |---|---|---|---|

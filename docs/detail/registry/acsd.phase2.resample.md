@@ -22,7 +22,7 @@ invalid = NaN/coverage=0(按 DATA 合同)。
 
 ## 公共 header、核心 symbol 与生命周期
 
-编排级 API = API-P2-001（docs/engineering/PHASE2_API_V1.md，FROZEN；phase session
+编排级 API = API-P2-001（docs/engineering/api/PUBLIC_API.md「分阶段 API 面」，FROZEN；phase session
 extern "C"）；生命周期 create→validate→run→inspect→destroy 由会话承接。
 
 ## Registry descriptor 与配置 schema
@@ -34,7 +34,7 @@ parallel_ok=True; 配置=phase config JSON(按 PHASE API 文档)。
 
 `cpu_heavy`; parallel=是(资源门拒绝 heavy+serial 组合); worker 数=ThreadBudget.max_workers(唯一取值源);
 确定性=NOT_VERIFIED（未取得验收证据）；占位 descriptor 无独立实现面，
-确定性口径随 lib/phase2_session 会话面（PHASE2_API_V1 §2 并发条款）。
+确定性口径随 lib/phase2_session 会话面（docs/engineering/api/PUBLIC_API.md「分阶段 API 面」 逐函数登记并发条款）。
 
 ## 内存/cache/I-O/所有权
 

@@ -142,7 +142,7 @@ owner=创建者、threadsafe:no（handle 级）、reentrant:yes。
    绝对 1e-6 低于 ULP 5–8 个数量级、原理上不可达（`lib/algorithms/coverage/src/upm.cpp`；
    实测 iterations=100, converged=0））、
    sigma_floor=1e-3（**量纲 = σ(ADU)，帧面标度**，与所消费的 `uncertainty` 同标度；
-   权威 = `DATA_SEMANTICS.md` §25.3 标度条与「三地板互不代用」条
+   权威 = `docs/detail/registry/acsd.phase2.upm-fit.md` 的单位/dtype 面标度条与「三地板互不代用」条
    （**不是**面亮度 ADU·sr⁻¹；`photo_scaled_adu` 时按 α 换算）；
    当 `|uncertainty| < sigma_floor` 时 Huber 的 z 失去统计尺度意义，
    见 `docs/science/PHASE2_UPM.md` §7）、support_power=1.0、use_ivar_weight=1、
@@ -342,7 +342,7 @@ DATA-P2-SESSION（§24，并行任务生成）；本节为实现现状锚定。
 
 - p2 会话引用 SCI-UPM-001 / SCI-INT-001 / SCI-REJ-001 的语义
   （docs/science/，FROZEN；**共享 SCI 引用不改动**）
-  （P1-WCS SCI-WCS-001=共享 ASTROMETRY.md、P2-COV
+  （P1-WCS SCI-WCS-001=共享 docs/science/detection/ASTROMETRY.md、P2-COV
   SCI-UPM-001/SCI-INT-001、P2-INT SCI-INT-001、P2-REJ
   SCI-REJ-001 同构）。现状 4 段实际消费面=SCI-UPM-001（coverage/
   sampler/upm 域均在其集合 SCI-UPM-001..010 内）；SCI-INT-001/

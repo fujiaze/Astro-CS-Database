@@ -2,7 +2,7 @@
 
 > 上游：ACSD_DESIGN.md §10（I/O 与原子产品）、§4.4 / §5 / §6（三阶段输出合同）、附录 B（外部标准与文献）
 
-形态键的字段词表正本 = `eng/contracts/schemas/hips_storage_form.schema.json`；形态合同 = `docs/engineering/HIPS_STORAGE_FORM_CONTRACT.md`；接口面 = `docs/science/IO_002_HIPS_INPUT_INTERFACE.md`、`docs/engineering/io/IO_003_ATOMIC_OUTPUT_PUBLISH.md`。
+形态键的字段词表正本 = `eng/contracts/schemas/hips_storage_form.schema.json`；形态合同 = `docs/engineering/contracts/HIPS_STORAGE_FORM.md`；接口面 = `docs/science/IO_002_HIPS_INPUT_INTERFACE.md`、`docs/engineering/contracts/ATOMIC_PUBLISH.md`。
 
 ## 1. 两种落盘形态
 
@@ -21,7 +21,7 @@
 
 > "The actual implementation of HiPS as directories and files is not an obligation, only the view as directories and files is required. … Internally, a HiPS may be stored in a data base, or any other appropriate packaging (tar or zip files…) rather than in a basic file system directory structure."
 
-⇒ 归档形态合法，**前提是解压后得到目录/文件视图**（"解压后合法"）；归档内容因此必须是**完整合法 HiPS**，`properties` 必须与裸形态逐字节一致（§8）。逐瓦片压缩（`.fits.zst` / `ZCMPTYPE=ZSTD`）**不在本设计内**：它违反 HiPS 1.0 §4.2.1.3 的扩展名 MUST 且 `hips_tile_format` 词表无对应 token（证据见 `docs/science/IVOA_HIPS_TILE_FORMAT_RESEARCH_PACK.md` 与 `docs/engineering/COMPRESSION_CODEC_RESEARCH_PACK.md`）。
+⇒ 归档形态合法，**前提是解压后得到目录/文件视图**（"解压后合法"）；归档内容因此必须是**完整合法 HiPS**，`properties` 必须与裸形态逐字节一致（§8）。逐瓦片压缩（`.fits.zst` / `ZCMPTYPE=ZSTD`）**不在本设计内**：它违反 HiPS 1.0 §4.2.1.3 的扩展名 MUST 且 `hips_tile_format` 词表无对应 token（证据见 `docs/science/IVOA_HIPS_TILE_FORMAT_RESEARCH_PACK.md` 与 `docs/engineering/contracts/HIPS_STORAGE_FORM.md`「归档容器布局」一节 A4 档位规则、「压缩档位」一节）。
 
 ## 2. 形态判据：由访问模式决定，不由全局一刀切
 
@@ -171,7 +171,7 @@ flowchart LR
 
 - **`tree_hash` 的规范序列化**：`canonical_json` = 条目三元组数组 `[(path, size, sha256), …]` 按
   `(path, size, sha256)` 升序排序后序列化；执行形态 = `lib/infrastructure/aio/io/hips_output_store.py`，
-  合同正本 = `docs/engineering/HIPS_STORAGE_FORM_CONTRACT.md`。
+  合同正本 = `docs/engineering/contracts/HIPS_STORAGE_FORM.md`。
 - **产品身份取解压后内容，不取压缩包字节**：压缩档位、帧切分、tar 顺序都是打包参数，不改变科学产品；若身份随打包参数变化，同一科学内容会有多个身份，跨运行可比性与可复现性同时失效。两形态因此**同身份**。
 - `manifest.json` 的 `tree` 记录**解压后内容**的条目（与裸形态相同），另设 `storage` 段记录形态、容器指纹与索引指纹。
 - **规范序列化参数（冻结）**：条目序列化为 `[path, size, sha256]` 三元组数组（不是对象数组）；UTF-8 编码、`ensure_ascii=false`（非 ASCII 路径按原字符写入，不做 \u 转义）、分隔符为 `(",", ":")`（无空白）；数组按 `(path, size, sha256)` 字典序升序。三项参数与排序键构成产品身份的全部自由度——任何一项变动即改变 `tree_hash`，属产品格式变更。两形态（裸 / 归档）逐字节同身份。
@@ -187,7 +187,7 @@ flowchart LR
 | **9.1 文件系统打洞**（sparse hole punching） | 文件分配层（**字节不变**） | 打洞前后逐字节不变 / 谓词字节级 / 释放量下降 / NaN 区不动（判据正文见 §9.1）；收益读数 = `实验/engineering-evidence/compress-01/` | **逐字节不变**（稀疏区读出为零填充；打洞只作用于**本来就是零字节**的区域） | Linux ext4 上成立；Windows 有等价实现，**行为面待实测** |
 | **9.2 包围盒 TRIM**（WD-HiPS-2.0 §4.3.2，`TRIM1/TRIM2/ONAXIS1/ONAXIS2`） | 瓦片内容层（**改 FITS 结构**） | 「TRIM 默认形态 = 关闭」判据（判据正文见 §9.2）；收益读数 = `实验/engineering-evidence/compress-01/trim_scan.json` | **改变**：NAXIS1/NAXIS2 缩小，读者必须按 TRIM 关键字补边 | **不成立**——标准 FITS 读者读到的图像变小；草案特性、生态窄 |
 
-**关键区分**：包围盒 TRIM 的收益属于 9.2，不是打洞；两者收益**不可迁移**。原因：signal 层边距是 IEEE **NaN**（位型 `0x7FC00000`），**没有全零块可打**（结构必然：NaN 位型含非零字节）；而合同要求 signal 边距必须是 NaN（`docs/science/DATA_SEMANTICS.md` §12.4「未覆盖像素一律 invalid（signal=NaN/support=0）」，**不可互换**），把 NaN 改写成 0.0 会把"无覆盖"变成"有效零流量"⇒ 语义破坏；`NaN` 与 `0.0` 两位型各自独立、不可互换。
+**关键区分**：包围盒 TRIM 的收益属于 9.2，不是打洞；两者收益**不可迁移**。原因：signal 层边距是 IEEE **NaN**（位型 `0x7FC00000`），**没有全零块可打**（结构必然：NaN 位型含非零字节）；而合同要求 signal 边距必须是 NaN（`docs/science/unified/DATA_SEMANTICS.md` §3.2「未覆盖像素一律 invalid（signal=NaN/support=0）」，**不可互换**），把 NaN 改写成 0.0 会把"无覆盖"变成"有效零流量"⇒ 语义破坏；`NaN` 与 `0.0` 两位型各自独立、不可互换。
 
 ### 9.1 文件系统打洞（默认启用，裸形态）
 
@@ -218,7 +218,7 @@ flowchart LR
 
 ## 10. 形态的输入配置与清单登记
 
-形态选择落在**输入 JSON**，产物把形态与索引路径**自报进输出清单**——两者合起来使不同批次 Phase1 的输出 JSON 可以合并而不丢索引（细则与不变式 F0/F1..F4/M1..M4 见 `docs/engineering/HIPS_STORAGE_FORM_CONTRACT.md` §10；字段名与取值的唯一词表 = `eng/contracts/schemas/hips_storage_form.schema.json#x-acsd-field-vocabulary`）。
+形态选择落在**输入 JSON**，产物把形态与索引路径**自报进输出清单**——两者合起来使不同批次 Phase1 的输出 JSON 可以合并而不丢索引（细则与不变式 F0/F1..F4/M1..M4 见 `docs/engineering/contracts/HIPS_STORAGE_FORM.md`「形态的输入配置与输出清单字段」一节；字段名与取值的唯一词表 = `eng/contracts/schemas/hips_storage_form.schema.json#x-acsd-field-vocabulary`）。
 
 ### 10.1 输入：Phase1 的形态切换键
 

@@ -1,3 +1,5 @@
-# data
+# 数据工件正本
 
-数据交换接口合同：阶段间产品交换、生产工件库布局与产品 provenance 链。数据语义正本在 `docs/science/DATA_SEMANTICS.md`，产品工件清单在上级目录 `DATA_ARTIFACTS.md`。
+本目录是数据工件正本：`ARTIFACTS.md` 是工件字段合同与产物留存，`PHASE_PRODUCT_EXCHANGE.md`
+是阶段间磁盘交换，`ARTIFACT_STORE.md` 是产物库，`PROVENANCE.md` 是产品溯源。给写读写侧与
+产物校验的开发者阅读。

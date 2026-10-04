@@ -2,13 +2,13 @@
 
 > 上游：ACSD_DESIGN.md §4.2（Phase1 节点流程）、§10（I/O 与原子产品）
 
-> SCI 上游: SCI-DRZ-001（docs/science/DRIZZLE.md，FROZEN，共享引用不改动；
+> SCI 上游: SCI-DRZ-001（docs/science/drizzle/DRIZZLE.md，FROZEN，共享引用不改动；
 > 实现锚 finalize_tile 方差语义与 support=D_p 归一语义两处）
-> 与 SCI-SCOPE-001（docs/science/SCIENCE_SCOPE.md，产品目标）；读侧消费合同
+> 与 SCI-SCOPE-001（docs/science/unified/SCIENCE_SCOPE.md，产品目标）；读侧消费合同
 > SCI-P3-001（docs/science/PHASE3_HIPS_TO_FITS.md，只读引用）。
 > 实现源（逐公式锚定）: lib/infrastructure/aio/src/hips/aio_hips_writer.cpp
 > （合同头 lib/infrastructure/aio/include/aio_hips.h）。
-> 数据语义权威: docs/science/DATA_SEMANTICS.md §12（DATA-P1-HIPS；上游 §11 DATA-P1-DRZ、
+> 数据语义权威: docs/detail/registry/acsd.phase1.hips-writer.md（DATA-P1-HIPS；上游 docs/detail/registry/acsd.phase1.drizzle.md 的 DATA-P1-DRZ、
 > §4a DATA-HIPS-VAR-001/DATA-HIPS-IVAR-001、§3 FITS 局部像素映射、§5 帧身份）。
 > HiPS 1.0/1.4 外部参照: IVOA HiPS 推荐（Fernique et al. 2015）、HEALPix 算法
 > （Górski et al. 2005）——经 SCI-P3-001 收录的文献锚，本文件不另立外部断言。
@@ -33,7 +33,7 @@
 SNR/manifest 收尾（ALG-HIPS-005）。不覆盖：tile 累加产生 AstroSphereTileView 的
 drizzle 引擎公式（ALG-DRZ-001 权威）；HiPS 读侧（aio_hips_reader.cpp，P3 链）；
 IO-003 Python 发布层（原子 rename/manifest COMPLETE 语义在
-docs/engineering/io/IO_003_ATOMIC_OUTPUT_PUBLISH.md，本文件仅登记对齐边界）。
+docs/engineering/contracts/ATOMIC_PUBLISH.md，本文件仅登记对齐边界）。
 
 ## 1. ALG-HIPS-001 — 产品生命周期与叶级几何基数
 
@@ -172,7 +172,7 @@ add_var 同文件）；finalize 落盘 `finalize_hierarchy`
   （M2a-H-3）**：support 是 a/A_cell_k 的钳后值，Σa>A_cell_k 时父级真实覆盖
   面积**不可由产物复原**（sup=1 丢失倍数信息）；该情形逐像素计数写入
   properties 与 manifest（`acsd_support_clamped_pixels` 叶级钳制像素数
-  （叶级与层级两处计数键，均在同文件）；`docs/science/DATA_SEMANTICS.md` §20.3 同款声明）
+  （叶级与层级两处计数键，均在同文件）；`docs/detail/registry/acsd.phase2.write.md` 同款声明）
   约定。FITS cards ORDERING=NESTED + NSIDE=2^(k+9)（k = 该 hierarchy 阶，
   nside_k = 2^(k+9) 与叶级 ilog2 语义一致；**不是 tile 阶**——tile 宽恒 512=2^9，
   故 k 阶的 NSIDE 比叶级 nside 低 2(K−k) 个数量级）。三处 scatter 同 (2a) 式
@@ -279,10 +279,10 @@ add_var 同文件）；finalize 落盘 `finalize_hierarchy`
   截断与无效规则为实现语义，DATA_SEMANTICS §4 冻结）。
 - **SCI 缺口（如实登记）**：HiPS 写出合同（tile 切分/hierarchy 聚合/properties
   键集/publish 协议）在 docs/science/ 无 SCI 级条目——由本文件 ALG-HIPS 承接；
-  `docs/science/SCIENCE_SCOPE.md` 仅产品级目标，SCI-P3-001 为读侧消费合同。SCI 化候选
+  `docs/science/unified/SCIENCE_SCOPE.md` 仅产品级目标，SCI-P3-001 为读侧消费合同。SCI 化候选
   变更走 SCI 变更流程（`docs/ACSD_DESIGN.md` §0：独立证据证明文档有误时订正文档是义务，
   SCI 层订正须记录证据与影响面并做一致性回归）。
-- `docs/science/DRIZZLE.md` 指向的 DISP-DRZ-007（方差行漂移）涉 `lib/algorithms/drizzle/healpix_drizzle/astro_sphere_sink.cpp`
+- `docs/science/drizzle/DRIZZLE.md` 指向的 DISP-DRZ-007（方差行漂移）涉 `lib/algorithms/drizzle/healpix_drizzle/astro_sphere_sink.cpp`
   与本文件 (3a) 接口，本模块不改传播公式。
 - 上游 drizzle 计算为 OpenMP 行级并行（`lib/algorithms/drizzle/healpix_drizzle/drizzle_engine.cpp`，
   schedule(static)，线程数不污染 ICV），线程私有 tile 累加 + 线程 0
@@ -373,7 +373,7 @@ round-trip（(5c)）。容差冻结见 §9。
 | DISP-HIPS-001 | 高 | abort 仅 `delete ps`，不删除已写文件；`lib/infrastructure/aio/include/aio_hips.h` 注释称"清理已写部分(尽力)"——合同与实现不符，部分失败产品残留无 rollback。matrix 专项"partial failure rollback"如实登记为缺口 | `lib/infrastructure/aio/src/hips/aio_hips_writer.cpp`（abort 段）；`lib/infrastructure/aio/include/aio_hips.h` | IMPL 事务化（写临时目录+发布切换）或头注释降级声明+文档化调用方清理责任（与 IO-003 对齐） |
 | DISP-HIPS-002 | 中 | properties `hips_estsize="1000000"`、`hips_initial_fov="60"`（image 与 SNR 两处）硬编码占位，无真实估算/校验 | `lib/infrastructure/aio/src/hips/aio_hips_writer.cpp`（image 与 SNR 两处） | 按产品目录真实字节数与天区极值估算；e2e fixture 生成器照抄处需同步 |
 | DISP-HIPS-003 | 低 | properties `hips_status` 恒 "private master"，无公开/克隆状态参数化 | `lib/infrastructure/aio/src/hips/aio_hips_writer.cpp`（image 与 SNR 两处） | 参数化或确认产品定位恒私有 |
-| DISP-HIPS-004 | 高 | C++ 写出无原子发布：FITS/MOC/metadata 先 remove 后 create 直写、make_dirs 无 fsync（同文件）、properties/manifest 直写、manifest 无 COMPLETE 状态字/树哈希；finalize 中途失败（−3..−8）已写子产品残留；同 out_dir 重跑与旧运行残留混合。原子语义由 IO-003 Python 发布层承接（临时写→fsync→fitsverify→sha256→原子 rename→manifest COMPLETE）——两合同边界在 DATA-P1-HIPS §12.5 登记对齐，writer 层不冒认已原子。对照：HISS 容器有 .partial/.tmppool+atomic_replace（`lib/infrastructure/aio/src/hips/hiss_stream_writer.cpp`）但 writer 未采用 | `lib/infrastructure/aio/src/hips/aio_hips_writer.cpp`；`docs/engineering/io/IO_003_ATOMIC_OUTPUT_PUBLISH.md` | INT 层接线（writer 写 staging 由 IO-003 消费）或 writer 内嵌事务；tree hash 归属待定 |
+| DISP-HIPS-004 | 高 | C++ 写出无原子发布：FITS/MOC/metadata 先 remove 后 create 直写、make_dirs 无 fsync（同文件）、properties/manifest 直写、manifest 无 COMPLETE 状态字/树哈希；finalize 中途失败（−3..−8）已写子产品残留；同 out_dir 重跑与旧运行残留混合。原子语义由 IO-003 Python 发布层承接（临时写→fsync→fitsverify→sha256→原子 rename→manifest COMPLETE）——两合同边界在 DATA-P1-HIPS §12.5 登记对齐，writer 层不冒认已原子。对照：HISS 容器有 .partial/.tmppool+atomic_replace（`lib/infrastructure/aio/src/hips/hiss_stream_writer.cpp`）但 writer 未采用 | `lib/infrastructure/aio/src/hips/aio_hips_writer.cpp`；`docs/engineering/contracts/ATOMIC_PUBLISH.md` | INT 层接线（writer 写 staging 由 IO-003 消费）或 writer 内嵌事务；tree hash 归属待定 |
 | DISP-HIPS-005 | 低/中 | 入参 moc_order 静默 clamp（min 与 tile_order）无告警；且 moc_order<K 时 Moc.fits 含低阶 UNIQ，而自家读侧 `lib/infrastructure/aio/src/hips/aio_hips_reader.cpp` 仅保留 order==K——低阶 MOC 对自家 reader 无效（Moc.fits 为 optional hint，不影响覆盖判定） | `lib/infrastructure/aio/src/hips/aio_hips_writer.cpp`；`aio_hips_reader.cpp` | 强制 moc_order=K 或 reader 兼容低阶 UNIQ |
 | DISP-HIPS-006 | 中 | CFITSIO 裸调未包装进程级互斥锁（同库 `lib/infrastructure/aio/src/aio_fits.cpp` 与 `aio_hips_reader.cpp` 均用 aio::cfitsio_io_mutex）——writer 写路径完全无锁；单句柄串行使用无影响，未来多句柄/多线程写同进程将静默竞争（现生产链=drizzle 合并后单线程写，`lib/algorithms/drizzle/healpix_drizzle/astro_sphere_sink.cpp`，暂无并发场景） | `lib/infrastructure/aio/src/hips/aio_hips_writer.cpp` 全文件无 mutex | 统一包装 mutex 或显式登记单句柄使用约束 |
 | DISP-HIPS-007 | 低 | 错误码无集中枚举且正负混用（write/finalize 负码 −1..−9（含 ABI 不匹配 −9，V11-N-01）vs provenance 正码 1/2；语义仅注释）——ABI 演进风险；last_error 每入口 clear，跨调用不可追溯 | `lib/infrastructure/aio/src/hips/aio_hips_writer.cpp`（各公开入口与各子产品写出/收尾段） | 集中枚举 + 头文件公开 |
@@ -391,7 +391,7 @@ UTC 时间戳致 properties/manifest 字节不跨运行复现（合同，§7）�
 
 ## 11. 关联
 
-- 上游：SCI-DRZ-001（DRIZZLE.md，共享引用）、SCI-SCOPE-001；ALG-DRZ-001
+- 上游：SCI-DRZ-001（docs/science/drizzle/DRIZZLE.md，共享引用）、SCI-SCOPE-001；ALG-DRZ-001
   （tile 累加上游，DRIZZLE_GEOMETRY.md）；ALG-HEALPIX-001（NESTED 核心，
   HEALPIX_MAPPING.md 索引卡，lib/algorithms/shared/healpix 权威实现——healpix_drizzle
   内 healpix_core.h 为 DEPRECATED shim，healpix_stack 系列函数全仓零调用

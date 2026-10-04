@@ -1,13 +1,13 @@
 # Calibration Algorithms (ALG-CAL)
 
 > 上游：ACSD_DESIGN.md §4.2（Phase1 节点流程）
-> 连续数学定义以 `docs/science/CALIBRATION.md`（SCI-CAL-001，FROZEN）为唯一权威；
+> 连续数学定义以 `docs/science/calibration/CALIBRATION.md`（SCI-CAL-001，FROZEN）为唯一权威；
 > 本文只做离散化与实现事实登记，**本文为下游派生件，SCI 的修改从 SCI 自身发起**。现行源码中不存在
 > 黄金分割搜索、ISA benchmark 注册与取消检查点（§6 登记）。
 
 ## 1 上游 SCI 与模块边界
 
-- 上游: `SCI-CAL-001`（docs/science/CALIBRATION.md，FROZEN）——§5 连续定义
+- 上游: `SCI-CAL-001`（docs/science/calibration/CALIBRATION.md，FROZEN）——§5 连续定义
   （dark_opt 双分支 + flat_norm median=1.0 / floor 0.1）、§9a 专属问题
   （无 pedestal、无 gain、无 read-noise 建模、负值保留、bad_mask 极性 1=坏点、
   variance 不传播）。
@@ -410,7 +410,7 @@ MinGW `Makefile`，仓内无消费者）。**已退役**：逐条分歧（`mad=0
   ——**SHARED 目标已在位**（`lib/algorithms/calibration/CMakeLists.txt:30`
   `add_library(acsd_p1_calibration SHARED)`，生产源独立重编译；Linux 产物
   `acsd_p1_calibration.so`，Windows 链接脚本 `src/acsd_p1_calibration.def`），
-  `docs/engineering/MODULE_MAP.md:17` 已登记为 `modules/acsd_p1_calibration.so`；
+  `docs/engineering/architecture/MODULE_MAP.md:17` 已登记为 `modules/acsd_p1_calibration.so`；
   legacy 静态库 `acsd_calibration`（CMakeLists.txt:621-641）与非生产 MinGW DLL 并存。
   **未闭合的是运行期绑定**：entrypoint `acsd_module_query_v1`
   （`lib/algorithms/calibration/src/module_entry.cpp:1487`）零调用 ⇒ `acsd.p1.*` 身份
@@ -539,7 +539,7 @@ oracle 同容差；actual_k 精确相等。
   "has been bias-subtracted so that it can be scaled by exposure time"，顺序为
   bias → dark(×曝光比) → flat；LSST `ip_isr` 为 `biasCorrection` →
   `darkCorrection`（`maskedImage -= dark * expScaling / darkScaling`）→
-  `flatCorrection`（证据与 URL 见 `docs/science/CALIBRATION.md` §14 第 4/5 条）。
+  `flatCorrection`（证据与 URL 见 `docs/science/calibration/CALIBRATION.md` §14 第 4/5 条）。
   **判据（真实 T2 NGC1727 Red 600s）**：默认分支下
   "提供 vs 缺失 master_bias" 的 `calibrated_*.fts` 必须不同——**逐位相同
   （16,777,216 px 全等，max|Δ|=0）即偏离**；只提供 bias（无 dark/flat）时产物与
@@ -617,12 +617,12 @@ oracle 同容差；actual_k 精确相等。
 
 ## 11 关联
 
-- SCI: SCI-CAL-001（docs/science/CALIBRATION.md，FROZEN）
-- DATA: DATA-P1-CAL（docs/science/DATA_SEMANTICS.md §9）；输入帧端口 DATA-P1-FRAME
-- API: API-P1-001（docs/engineering/PHASE1_API_V1.md，编排合同 §2 已登记 ac_*）；API-CAL-001（docs/engineering/PUBLIC_API.md，现状 C API 合同）
+- SCI: SCI-CAL-001（docs/science/calibration/CALIBRATION.md，FROZEN）
+- DATA: DATA-P1-CAL（docs/detail/registry/acsd.phase1.calibration.md）；输入帧端口 DATA-P1-FRAME（同页）
+- API: API-P1-001（docs/engineering/api/PUBLIC_API.md，编排合同 §2 已登记 ac_*）；API-CAL-001（docs/engineering/api/PUBLIC_API.md，现状 C API 合同）
 - MOD/SRC: MOD-acsd-phase1-calibration；SRC-CAL-001（astro_calibration.h 14 符号）
 - 测试: TEST-CAL-DESIGN-001（本文 §9，P1-CAL-TEST 落地可执行 TEST-P1-CAL-001）；既有共址测试 lib/algorithms/calibration/tests/test_photometry_apply.cpp
-- ARCH: ARCH-001（docs/engineering/ARCH-001.md）
+- ARCH: ARCH-001（docs/engineering/architecture/ARCHITECTURE.md）
 
 ## 参考文献与参考代码库（含许可证）
 

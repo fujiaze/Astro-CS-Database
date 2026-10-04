@@ -3,10 +3,10 @@
 > 上游：ACSD_DESIGN.md §7.3（错误传播与运行日志：顶层约束）、§10（I/O 与原子产品）
 
 > 机器事实源：`lib/infrastructure/observability/logging/log_event_v1.schema.json`（日志行，LOG-001 正本）。
-> 日志系统判据 R1–R5 的判定以本文件正文与 `docs/engineering/LOG_AND_ERROR_CONTRACT.md` 为准。
+> 日志系统判据 R1–R5 的判定以本文件正文与 `docs/engineering/contracts/LOG_AND_ERROR.md` 为准。
 
 本文件回答"日志系统具体怎么设计"：有哪些对象、落在哪、怎么走完一生、与 manifest/provenance 和
-observability 各面是什么关系。字段级格式合同在 `docs/engineering/LOG_AND_ERROR_CONTRACT.md`。
+observability 各面是什么关系。字段级格式合同在 `docs/engineering/contracts/LOG_AND_ERROR.md`。
 
 ---
 
@@ -71,9 +71,9 @@ L3 不改写事件内容（L1 独占格式）。
 | 对象 | 定义 | 归属 | 权威 |
 |---|---|---|---|
 | `log_event` | 单行结构化日志事件（run/task/node/module/phase/commit/host/level/event/units/elapsed/diagnostic + 可选 error/progress/value） | L1 产出 | 既有 schema `acsd.log.event.v1`（LOG-001 正本，本设计**不新建第二套**） |
-| `run_log` | 一次运行的日志工件集合：`{log_dir, files[]}`；`files[]` 条目 = `{kind: jsonl\|summary, name, sha256, bytes, lines, level_counts{debug,info,warn,error}, truncated}` | L2 产出 | `docs/engineering/LOG_AND_ERROR_CONTRACT.md` §4 |
-| `error_report` | CLI 收敛面错误对象：`{domain, exit_code, status, source, symbol, message, run, node, phase, degraded}` | L3 产出 | `docs/engineering/LOG_AND_ERROR_CONTRACT.md` §5 |
-| `degradation_record` | 显式降级记录：`{site_id, module, symbol, reason, scientific_effect, manifest_key}` | L0 产出、manifest 承载 | `docs/engineering/LOG_AND_ERROR_CONTRACT.md` §6 |
+| `run_log` | 一次运行的日志工件集合：`{log_dir, files[]}`；`files[]` 条目 = `{kind: jsonl\|summary, name, sha256, bytes, lines, level_counts{debug,info,warn,error}, truncated}` | L2 产出 | `docs/engineering/contracts/LOG_AND_ERROR.md`「`run_log` 与 manifest 登记字段」一节 |
+| `error_report` | CLI 收敛面错误对象：`{domain, exit_code, status, source, symbol, message, run, node, phase, degraded}` | L3 产出 | `docs/engineering/contracts/LOG_AND_ERROR.md`「错误对象与退出码映射」一节 |
+| `degradation_record` | 显式降级记录：`{site_id, module, symbol, reason, scientific_effect, manifest_key}` | L0 产出、manifest 承载 | `docs/engineering/contracts/LOG_AND_ERROR.md`「显式降级登记要件」一节 |
 
 - `run_log` 与 `error_report` **各自具名**：`run_log` 是运行过程的完整记录（含成功路径），
   `error_report` 是失败结论（一次运行至多一条终止性结论）；
@@ -84,7 +84,7 @@ L3 不改写事件内容（L1 独占格式）。
 
 ## 4. 落点与 `output_dir` 的关系
 
-`output_dir` 是块级必填配置键（`docs/engineering/CLI_PROTOCOL_V1.md` §7；`CONFIG_CONTRACT.md`）。
+`output_dir` 是块级必填配置键（`docs/engineering/contracts/CLI_PROTOCOL.md`「配置与 `output_dir`」一节；`docs/engineering/contracts/CONFIG.md`）。
 日志落点由它派生，不另立全局目录：
 
 | 项 | 取值 | 说明 |
@@ -127,10 +127,10 @@ flowchart LR
 
 - manifest 面两码分立（P-159 定一，禁止混用）：**manifest 登记/写入失败** = exit 7（IO）；
   **manifest verify/完整性失败**（status≠complete、artifact sha256/size 不匹配等）= exit 8
-  （INTEGRITY）。唯一源 = `docs/engineering/MANIFEST_VERIFY_V1.md` §3「校验序→错误码」
+  （INTEGRITY）。唯一源 = `docs/engineering/contracts/MANIFEST_VERIFY.md`「manifest verify 合同」一节「校验序→错误码」
   （语法/schema=3、status≠complete=8、版本不一致=5、输入 hash 已变=3、产物缺失=3、
   sha256/size 不匹配=8、全过=0；实现 `lib/infrastructure/cli/commands.cpp` :2396-2476）+
-  域→码表 `docs/engineering/LOG_AND_ERROR_CONTRACT.md` §5（IO→7 / INTEGRITY→8）。
+  域→码表 `docs/engineering/contracts/LOG_AND_ERROR.md`「进程退出码」一节（IO→7 / INTEGRITY→8）。
 
 **日志写失败一律显式**：任何一步失败都在 stderr 输出一条脱敏摘要，并让本次运行以非 0 退出码结束。
 "日志写不进去就继续跑完"不是可接受行为。
@@ -153,10 +153,10 @@ flowchart LR
 
 | 面 | 合同（正本） | 键名/工件 | 消费者 |
 |---|---|---|---|
-| 结构化日志（本设计 L1） | `docs/engineering/observability/STRUCTURED_LOGGING_CONTRACT.md`（LOG-001）+ `log_event_v1.schema.json` | `event` / `seq` / `acsd.log.event.v1` 行 | 操作员、审计、回放 |
+| 结构化日志（本设计 L1） | `docs/engineering/resources/observability/STRUCTURED_LOGGING.md`（LOG-001）+ `log_event_v1.schema.json` | `event` / `seq` / `acsd.log.event.v1` 行 | 操作员、审计、回放 |
 | 运行事件流 | `lib/infrastructure/cli/protocol.h` + `jsonl.h` | `kind` / `sequence` / CLI stdout JSONL | GUI、外部 harness |
-| 运行图 | `docs/engineering/observability/RUN_GRAPH_CONTRACT.md`（LOG-003） | run-graph / observed_trace | 审计、性能 |
-| 资源监控伴随器 | `docs/engineering/observability/RESOURCE_MONITORING_CONTRACT.md`（LOG-002） | `monitor_timeseries.csv` | 容量分析、资源门 |
+| 运行图 | `docs/engineering/resources/observability/RUN_GRAPH.md`（LOG-003） | run-graph / observed_trace | 审计、性能 |
+| 资源监控伴随器 | `docs/engineering/resources/observability/RESOURCE_MONITORING.md`（LOG-002） | `monitor_timeseries.csv` | 容量分析、资源门 |
 | 性能探针 | `lib/infrastructure/observability/probes/README.md` | `ACSD_PROBE_LOG` JSONL（编译期 OFF） | 性能迭代 |
 
 **本设计新增的是 L2 落盘器与 L3 收敛面**，不是第六个面：它把 L1 已冻结的行格式**写到
@@ -168,7 +168,7 @@ flowchart LR
 
 日志落点**不需要新配置键就已成立**：默认由块级 `output_dir` 派生。可覆盖的旋钮都是
 **运行期策略（runtime_policy）**，权威在插件/CLI 文档面，**不进 `phase_config`、不进 `defaults.json`**
-（`docs/engineering/CONFIG_CONTRACT.md` §3 三类配置分离红线；`CFG002-02` 机器强制）。
+（`docs/engineering/contracts/CONFIG.md`「三类配置（现场清单）」一节 三类配置分离红线；`CFG002-02` 机器强制）。
 
 | 旋钮 | 登记点（权威） | 默认 | 值域/约束 |
 |---|---|---|---|

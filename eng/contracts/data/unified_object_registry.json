@@ -196,7 +196,7 @@
   ],
   "legacy_contract_ids": {
     "task": "DATA-001",
-    "trigger": "MOD-001 的 docs/engineering/MODULE_MAP.md 引用 22 个 DATA ID，其中 7 个在统一对象权威面上无解析；负责人裁决：权威=统一对象合同，MODULE_MAP 引用的 ID 一律取自权威面。",
+    "trigger": "MOD-001 的 docs/engineering/architecture/MODULE_MAP.md 引用 22 个 DATA ID，其中 7 个在统一对象权威面上无解析；负责人裁决：权威=统一对象合同，MODULE_MAP 引用的 ID 一律取自权威面。",
     "decision_rule": "(a) 有 canonical 映射 = 旧 ID → 统一对象（或组件对象组合）canonical schema ID；(b) 无 canonical 对应 = 明确判定并附旧合同面证据（结论只取 mapped / no_canonical 二值）。",
     "entries": [
       {
@@ -208,8 +208,8 @@
         "relation": "single_object",
         "kind": "module_io_contract",
         "old_contract_face": [
-          "docs/science/DATA_SEMANTICS.md:133（§9 ID 定义节，:135 状态 CONTRACT_READY）",
-          "docs/engineering/PUBLIC_API.md:102",
+          "docs/science/unified/DATA_SEMANTICS.md:133（§9 ID 定义节，:135 状态 CONTRACT_READY）",
+          "docs/engineering/api/PUBLIC_API.md:102",
           "docs/detail/registry/acsd.phase1.calibration.md:23（端口 calibrated）",
           "docs/detail/registry/acsd.phase1.cosmetic.md:34（端口 calibrated）",
           "docs/detail/registry/acsd.phase1.drizzle.md:35（端口 calibrated）",
@@ -232,8 +232,8 @@
         "relation": "single_object",
         "kind": "module_io_contract",
         "old_contract_face": [
-          "docs/science/DATA_SEMANTICS.md:180（§10 ID 定义节，:182 状态 CONTRACT_READY）",
-          "docs/engineering/PUBLIC_API.md:152/:177",
+          "docs/science/unified/DATA_SEMANTICS.md:180（§10 ID 定义节，:182 状态 CONTRACT_READY）",
+          "docs/engineering/api/PUBLIC_API.md:152/:177",
           "docs/detail/registry/acsd.phase1.cosmetic.md:35（端口 cleaned）/:38-40（权威名说明）",
           "docs/detail/calibration.md:12"
         ],
@@ -278,8 +278,8 @@
         "relation": "composite",
         "kind": "module_io_contract",
         "old_contract_face": [
-          "docs/science/DATA_SEMANTICS.md:226（§11 ID 定义节，:228 状态 CONTRACT_READY）",
-          "docs/engineering/PUBLIC_API.md:214",
+          "docs/science/unified/DATA_SEMANTICS.md:226（§11 ID 定义节，:228 状态 CONTRACT_READY）",
+          "docs/engineering/api/PUBLIC_API.md:214",
           "docs/detail/registry/acsd.phase1.drizzle.md:7（upstream 引用）/:39（模块级数据合同说明）",
           "docs/detail/registry/acsd.phase1.hips-writer.md:7/:34（端口 stacked）",
           "docs/detail/healpix_drizzle.md:32/:62"
@@ -298,13 +298,13 @@
         "relation": "orchestration_port_catalog_name",
         "kind": "descriptor_port_catalog",
         "old_contract_face": [
-          "docs/science/DATA_SEMANTICS.md:444（§14 下游计数行 n_sources 的引用）",
-          "docs/science/DATA_SEMANTICS.md:471（§14 端口链 psf→sources→fluxes）",
-          "docs/science/DATA_SEMANTICS.md:531（§15 端口链）",
-          "docs/engineering/PUBLIC_API.md:634（photometry descriptor 端口编目，带data_id=DATA-P1-SOURCES）",
-          "docs/engineering/MODULE_MAP.md:151（psf 模块）"
+          "docs/science/unified/DATA_SEMANTICS.md:444（§14 下游计数行 n_sources 的引用）",
+          "docs/science/unified/DATA_SEMANTICS.md:471（§14 端口链 psf→sources→fluxes）",
+          "docs/science/unified/DATA_SEMANTICS.md:531（§15 端口链）",
+          "docs/engineering/api/PUBLIC_API.md:634（photometry descriptor 端口编目，带data_id=DATA-P1-SOURCES）",
+          "docs/engineering/architecture/MODULE_MAP.md:151（psf 模块）"
         ],
-        "evidence": "全仓无独立定义节：只出现在编排/descriptor 端口编目与交叉引用链中，指向「PSF 拟合结果中的 sources 列（star_id/x/y/flux）」。DATA_SEMANTICS §15.2 明确该块列语义由 P1-STAR-INT 承接，且要求「下游必须经 star_id 连接」，未定义为跨阶段产品合同；基线 docs/engineering/DATA_ARTIFACTS.md 与基线 eng/contracts/data/contract_index.yaml（ecf6ad6f）对该 ID 均为零命中。",
+        "evidence": "全仓无独立定义节：只出现在编排/descriptor 端口编目与交叉引用链中，指向「PSF 拟合结果中的 sources 列（star_id/x/y/flux）」。DATA_SEMANTICS §15.2 明确该块列语义由 P1-STAR-INT 承接，且要求「下游必须经 star_id 连接」，未定义为跨阶段产品合同；基线 docs/engineering/data/ARTIFACTS.md 与基线 eng/contracts/data/contract_index.yaml（ecf6ad6f）对该 ID 均为零命中。",
         "new_index_added_by_DATA001": [
           "eng/contracts/data/contract_index.yaml#legacy_contract_id_map（本任务新增；基线无该 ID）"
         ],
@@ -317,8 +317,8 @@
         "relation": "module_io_contract_without_object_semantics",
         "kind": "module_io_contract",
         "old_contract_face": [
-          "docs/science/DATA_SEMANTICS.md:1407（§23 ID 定义节，:1409 状态 CONTRACT_READY）",
-          "docs/engineering/PUBLIC_API.md:1447/:1556/:1701",
+          "docs/science/unified/DATA_SEMANTICS.md:1407（§23 ID 定义节，:1409 状态 CONTRACT_READY）",
+          "docs/engineering/api/PUBLIC_API.md:1447/:1556/:1701",
           "docs/detail/phase2_samp.md:74/:76/:189",
           "docs/detail/phase2_upm.md:52/:73/:90/:101/:249",
           "docs/detail/registry/acsd.phase2.sample.md:62/:64/:164",
@@ -338,10 +338,10 @@
         "relation": "external_catalog_service_contract",
         "kind": "external_catalog_contract",
         "old_contract_face": [
-          "docs/science/DATA_SEMANTICS.md:86（§8 ID 定义节，:88 状态 CONTRACT_READY）",
-          "docs/engineering/PUBLIC_API.md:71",
-          "docs/engineering/DATA_ARTIFACTS.md:29（登记行）",
-          "docs/engineering/TRACEABILITY_SPEC.md §9/§9.1 第 2 行（DATA=DATA-GAIA-001, VERIFIED）",
+          "docs/science/unified/DATA_SEMANTICS.md:86（§8 ID 定义节，:88 状态 CONTRACT_READY）",
+          "docs/engineering/api/PUBLIC_API.md:71",
+          "docs/engineering/data/ARTIFACTS.md:29（登记行）",
+          "docs/engineering/governance/TRACEABILITY.md §9/§9.1 第 2 行（DATA=DATA-GAIA-001, VERIFIED）",
           "docs/detail/gaia_xpsd_client.md:23/:40"
         ],
         "new_index_added_by_DATA001": [
@@ -529,14 +529,14 @@
       "role": "product_family_field_constraints",
       "object_class": null,
       "owner": "DOC-CONTRACT-MERGE-02",
-      "note": "V6 合同层十类产品族记录（units/signal/covariance/psf/effective-psf/point-information/weight-mode/psfsw/provenance/phase3）的字段级机器门，按 $defs 逐件承载；**不是**数据对象合同，不定义 unified_object 判别字段。权威 = docs/science/DATA_SEMANTICS.md §31.6；变更编号 CHG-2026-09-22-V6-CONTRACT-MERGE。"
+      "note": "V6 合同层十类产品族记录（units/signal/covariance/psf/effective-psf/point-information/weight-mode/psfsw/provenance/phase3）的字段级机器门，按 $defs 逐件承载；**不是**数据对象合同，不定义 unified_object 判别字段。权威 = docs/science/unified/DATA_SEMANTICS.md §31.6；变更编号 CHG-2026-09-22-V6-CONTRACT-MERGE。"
     },
     {
       "file": "eng/contracts/schemas/hips_storage_form.schema.json",
       "role": "storage_form_contract",
       "owner": "CONTRACT-STORAGE-001",
       "object_class": null,
-      "note": "落盘形态合同（CONTRACT-STORAGE-001；doc_id DOC-CONTRACT-STORAGE-001，doc_status ACTIVE_NORMATIVE）的机器事实源：两形态命名与互斥、归档容器布局、产品级索引与数据集级覆盖索引 schema、形态输入配置键与运行完成清单 storage 段；**不是** UNIFIED_MODEL §2 的 13 个数据对象之一，不定义 unified_object 判别字段。权威 = docs/engineering/HIPS_STORAGE_FORM_CONTRACT.md（上位 ACSD_DESIGN.md §10 + docs/detail/PRODUCT_STORAGE_FORM.md）；机器检查器 = 落盘形态判据（CI 检查 CHK-HIPS-STORAGE-FORM，载体见 门禁注册面（G08-10 重建））。"
+      "note": "落盘形态合同（CONTRACT-STORAGE-001；doc_id DOC-CONTRACT-STORAGE-001，doc_status ACTIVE_NORMATIVE）的机器事实源：两形态命名与互斥、归档容器布局、产品级索引与数据集级覆盖索引 schema、形态输入配置键与运行完成清单 storage 段；**不是** UNIFIED_MODEL §2 的 13 个数据对象之一，不定义 unified_object 判别字段。权威 = docs/engineering/contracts/HIPS_STORAGE_FORM.md（上位 ACSD_DESIGN.md §10 + docs/detail/PRODUCT_STORAGE_FORM.md）；机器检查器 = 落盘形态判据（CI 检查 CHK-HIPS-STORAGE-FORM，载体见 门禁注册面（G08-10 重建））。"
     }
   ],
   "deprecation": {

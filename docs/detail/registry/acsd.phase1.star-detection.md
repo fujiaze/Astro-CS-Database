@@ -2,13 +2,13 @@
 
 > 上游：docs/ACSD_DESIGN.md §8.5（模块与 ABI）、§4.2（节点流程：星表引导检测与 WCS 解算）、
 §2.1（创新点一：星点位置由星表逆映射获得）
-> 科学正本：docs/science/STAR_DETECTION.md（SCI-P1-STAR-001）、
+> 科学正本：docs/science/detection/STAR_DETECTION.md（SCI-P1-STAR-001）、
 > docs/science/algorithms/STAR_DETECTION_ALGORITHMS.md（ALG-STARDET-001）、
 > docs/science/algorithms/GATES_AND_TOLERANCES.md §3（冻结门表）、
-> docs/science/UNCERTAINTY_AND_COVARIANCE.md（质心/矩不确定度）
-> 数据正本：docs/science/DATA_SEMANTICS.md §17（DATA-P1-STAR）
-> API 正本：docs/engineering/PUBLIC_API.md（API-STAR-001）、
-> docs/engineering/PHASE1_API_V1.md（API-P1-003）
+> docs/science/detection/STAR_DETECTION.md §3.2/§5.4（质心/矩不确定度）
+> 数据正本：docs/detail/registry/acsd.phase1.star-detection.md（DATA-P1-STAR 端口表，本页输入输出端口表）
+> API 正本：docs/engineering/api/PUBLIC_API.md（API-STAR-001）、
+> docs/engineering/api/PUBLIC_API.md「分阶段 API 面」（API-P1-003）
 
 模块词汇 `acsd.phase1.star-detection` 为 registry descriptor 单源；模块合同
 owner = SA-P1-S15。冻结合同 = `lib/algorithms/star_detection/README.md` +
@@ -87,11 +87,11 @@ WCS 作逆投影先验。
 
 ## 公共 header、核心 symbol 与生命周期
 
-模块级 API = API-STAR-001（docs/engineering/PUBLIC_API.md），现行 6 个导出符号：
+模块级 API = API-STAR-001（docs/engineering/api/PUBLIC_API.md），现行 6 个导出符号：
 `sdet_create` / `sdet_destroy` / `sdet_detect_ex` / `sdet_detect_ex_f64` /
 `sdet_detect_guided_ex_f64` / `sdet_free_detect_ex`。编排级 API = API-P1-003
-（PHASE1_API_V1 §2，一帧一次权威检测）。全量签名清单见
-docs/engineering/PUBLIC_API.md。
+（docs/engineering/api/PUBLIC_API.md「分阶段 API 面」 底层模块函数登记，一帧一次权威检测）。全量签名清单见
+docs/engineering/api/PUBLIC_API.md。
 
 `n_pred = 0` 返回 rc = 0 + count = 0（空定义域非错误）；指针参数非法返回 −1。
 
@@ -166,7 +166,7 @@ typed 边 `artifact:p1_wcs` 保证序）；配置的 `approx_wcs` / `rotation_de
 `cpu_heavy`; parallel=是（资源门拒绝 heavy+serial 组合）。现状无 ThreadBudget
 接线，worker 数取进程默认 team（迁移整改点）；取消接线同样未落地。
 
-handle 级互斥使用（单 handle 单线程，无内部锁，PHASE1_API_V1 §2 表行 no/no）。
+handle 级互斥使用（单 handle 单线程，无内部锁，docs/engineering/api/PUBLIC_API.md「分阶段 API 面」 底层模块函数登记表行 no/no）。
 OpenMP 四处：行差分背景噪声估计、入口像素类型转换、盲检测候选拟合（dynamic +
 reduction）、星表引导候选拟合（同款 dynamic + reduction，每线程私有 LM 工作区）。
 dedup / sort / maxStars 截断串行。

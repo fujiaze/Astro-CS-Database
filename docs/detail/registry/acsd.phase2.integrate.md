@@ -3,13 +3,13 @@
 > 上游：docs/ACSD_DESIGN.md §8.5（模块与 ABI）、§5.2（固定科学流程）、
 > §5.3（SNR 重建与逆方差叠加）
 > 科学正本：docs/science/INTEGRATION.md（SCI-INT-001，FROZEN，零改动）、
-> docs/science/PSF_SIGNAL_WEIGHT.md（PSF 与信息权重、§8 诊断面不作权重）
+> docs/science/noise_snr/NOISE_SNR.md（PSF 与信息权重 §3.4、§6.4 诊断面不作权重）
 > 算法正本：docs/science/algorithms/PHASE2_INTEGRATION.md（ALG-P2-INT-001；§3 锚表、
 > §11.3 约束与回归门、§11.4 测试设计、§11.5 映射声明）
-> 数据正本：docs/science/DATA_SEMANTICS.md §21（DATA-P2-INT；§21.2/§21.5）、
-> §31.8（权重来源受限表）
-> API 正本：docs/engineering/PUBLIC_API.md（API-P2-INT-001）、
-> docs/engineering/PHASE2_API_V1.md（API-P2-001，FROZEN）
+> 数据正本：docs/detail/registry/acsd.phase2.integrate.md（DATA-P2-INT 端口表，本页输入输出端口表）；
+> 权重来源受限表见 docs/science/unified/DATA_SEMANTICS.md §3.9（权重词表：登记面与输入面）
+> API 正本：docs/engineering/api/PUBLIC_API.md（API-P2-INT-001）、
+> docs/engineering/api/PUBLIC_API.md「分阶段 API 面」（API-P2-001，FROZEN）
 > 数据对象：docs/detail/UNIFIED_MODEL.md（frame_snr、sparse_snr_layer）
 
 LIB 面 = `lib/algorithms/integration/` 三件套（README / module.yaml ，
@@ -59,7 +59,7 @@ CPU-005；legacy_paths = 「lib/algorithms/coverage integration sources」。
 | `corrected` | `DATA-P2-COR` | 必 | `UnitId::ADU` | `CoordinateFrame::PIXEL` |
 | `integrated` | `DATA-P2-INT` | 可 | `UnitId::ADU` | `CoordinateFrame::PIXEL` |
 
-内核级真实 I/O 合同 = DATA-P2-INT（DATA_SEMANTICS §21）：输入 `P2PixelStack`
+内核级真实 I/O 合同 = DATA-P2-INT（本页输入输出端口表）：输入 `P2PixelStack`
 （values f64 ADU / weights f64 1/ADU²，可空 = 等权 / support f64 [0,1]，可空 =
 1.0 / accepted u8，可空 = 全接受 / count u32）；输出 `P2PixelResult`（signal f64
 ADU / support f64 [0,1] / 五计数器 / status 0..4）。
@@ -83,7 +83,7 @@ invalid 显式化：非法输入 → `INVALID_INPUT`（0 / ±Inf 属非法值；
 ### 数值落地口径
 
 GLS 扩展源解、点源 Q / W 定义式与 effective PSF 的推导正本 = SCI-INT-001 与
-docs/science/PSF_SIGNAL_WEIGHT.md；本页只记落地方式：
+docs/science/noise_snr/NOISE_SNR.md §3.4/§3.5；本页只记落地方式：
 
 - **扩展源 / 面亮度**：按设计矩阵与协方差的广义最小二乘求解；**工程近似独立样本
   才退化到像素 ivar 加权平均**。Drizzle 相关、共同 master、UPM 参数、重叠重采样
@@ -216,9 +216,9 @@ Oracle 面：
   support 输出现状为**保守方向偏差**（不改覆盖并集保守下界语义）；
 - **权重来源受限表的在役判据面**：`coverage.cpp` 的 `kForbiddenWeightSourceTokens`
   （含 `psfsw_robust_weight`、`psfsw` 等 token）与其同文件内的权重来源检查门、
-  以及 `rejection.cpp` 的同源词表，是 DATA_SEMANTICS §31.8
-  （`G-WEIGHT-SOURCES` / `G-DIAGNOSTIC-NOT-WEIGHT`）与 PSF_SIGNAL_WEIGHT §8 的
-  执行面 —— **不是死代码**。**收缩路径**：DATA_SEMANTICS §31.8 受限来源表与代码
+  以及 `rejection.cpp` 的同源词表，是 docs/science/unified/DATA_SEMANTICS.md §3.9（权重词表）
+  与 docs/science/noise_snr/NOISE_SNR.md §6.4（质量面与信息面的分离）的
+  执行面 —— **不是死代码**。**收缩路径**：docs/science/unified/DATA_SEMANTICS.md §3.9 受限来源表与代码
   词表**同源**，任一侧收缩一律走变更流程并在**同一次提交**内同步另一侧；两侧不同步
   会**放宽**冻结科学门（使 `psfsw` 重新成为合法权重来源）。生产权重来源仍是单一
   现场派生量（逐样本 ivar），该受限来源表只负责**拒绝**非法来源，不产生权重；

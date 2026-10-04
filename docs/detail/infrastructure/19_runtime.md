@@ -10,7 +10,7 @@
 ## 2. 权威依据
 
 - 最高设计 `ACSD_DESIGN.md` §8.4（顶层结构：scheduler + pipeline 职责名全仓唯一）、§9（CPU 后端与资源：内存极简化、编排连续性）
-- `docs/engineering/COMMON_ABI_V1.md`（C ABI 规则）、`docs/engineering/ERROR_HANDLING_STANDARD.md`（退出码全集合）
+- `docs/engineering/api/abi/ABI.md`（C ABI 规则）、`docs/engineering/contracts/LOG_AND_ERROR.md`「进程退出码」一节（退出码全集合）
 - `docs/detail/anchors/ANCHOR_CONTRACT.md`（行号锚合同）、`docs/detail/UNIFIED_MODEL.md`（数据对象）
 - `docs/detail/infrastructure/21_observability.md` §8（G-RES-01 资源门）
 
@@ -31,8 +31,8 @@
   `in_flight = min(n, frame_workers)`、`inner_omp = max(1, thread_budget / in_flight)`，
   两轴之积 ≤ 预算。帧级被 `p1_memory_cap`（内存闸门）压低时必须把剩余预算转给帧内轴，
   否则出现「预算未用满」的利用率塌陷。
-  语义与不变式见 `docs/engineering/execution_options_contract.md` §并行轴分配（冻结口径）；
-  冻结标定值见 `docs/engineering/PERFORMANCE_MODEL.md` §1.2（冻结参数）；
+  语义与不变式见 `docs/engineering/architecture/DATA_FLOW.md`「并行轴分配」一节（冻结口径）；
+  冻结标定值见 `docs/engineering/resources/PERFORMANCE_MODEL.md`「冻结参数」一节；
   观测面 `ACSD_{LEASE,NODE,P1CAP}_TRACE=1` + `eng/tools/monitoring/node_waterfall.py`。
 
 ### 4.2 编排连续性与数据局部性
@@ -84,7 +84,7 @@ flowchart LR
 
 - entrypoint：run-plan → 执行 → run 产物；编排入口侧 = 阶段 JSON → 各 stage 顺序执行。
 - 模块经构建内注册表装配（`ModuleRegistry`，`runtime_client.cpp`），不隐藏整阶段 Session；装载期版本化 C ABI 校验由 `secure_loader` 提供，**生产装配不走动态装载路径**。
-- 历史编排面经 `DllLoader` 以纯 C 调用模块符号（合同 = docs/engineering/COMMON_ABI_V1.md）；该动态装载路径是编排层的 legacy 装配面，不进产品命令树。
+- 历史编排面经 `DllLoader` 以纯 C 调用模块符号（合同 = docs/engineering/api/abi/ABI.md）；该动态装载路径是编排层的 legacy 装配面，不进产品命令树。
 - 缓存以只读共享句柄向模块提供（如星表客户端），模块不自行持有重复副本。
 - **模块句柄所有权**：句柄生命周期由编排层管理。
 
@@ -96,7 +96,7 @@ flowchart LR
 - 取消/超时 → exit 9（CANCELLED）；
 - **模块加载失败 / 阶段失败 → 显式 exit code + 日志**，不静默跳段、不产出半成品运行。
 - 内存预算内无法安排最小工作集时：调度器对就绪队列回压——谓词挂起等待在途节点释放内存（非自旋），并在无在途节点或取消时放行队首以保证推进；不静默退化、不改写数值路径。
-- **退出码唯一源 = `lib/infrastructure/cli/exit_codes.h`**（本页不复制定义第二套数值表）；域→码映射唯一源 = `docs/engineering/LOG_AND_ERROR_CONTRACT.md` §5。
+- **退出码唯一源 = `lib/infrastructure/cli/exit_codes.h`**（本页不复制定义第二套数值表）；域→码映射唯一源 = `docs/engineering/contracts/LOG_AND_ERROR.md`「错误对象与退出码映射」一节。
 - **模块错误必须上行到 CLI**（最高设计 §7.3）：节点/模块的失败以稳定错误码返回并终止本阶段；**错误码一律上行**（空 catch、忽略返回码、只写日志不返回错误、"警告后继续"均不在处置面内）；
 - **降级必须显式**：上游产物/能力缺失时改走替代路径并继续运行，只允许在"显式写 `degraded_reason` + manifest 记录 + 不改变科学语义"三要件齐备时发生（合同 §6）；改变科学语义的降级 = 故障，必须 fail-closed；
 - **节点运行日志**：节点事件经 `observability` 汇聚落 `<output_dir>/logs`（最高设计 §7.3）；节点不自行开文件写日志、不自行决定落点。
@@ -110,10 +110,10 @@ flowchart LR
 - 1 worker vs N worker 数值一致；
 - 取消/checkpoint 恢复无半成品，且取消/失败路径的运行日志仍发布并登记；
 - **错误上行**：每个节点的失败路径测试断言"返回稳定错误码 + CLI 退出码正确"，负例注入（吞掉错误码）必红；
-- **降级显式**：构造上游产物缺失场景，断言 `degraded_reason` 落盘且 manifest 记录；注入静默回退（不写 `degraded_reason`）必红（判据见 `docs/engineering/LOG_AND_ERROR_CONTRACT.md`）；
+- **降级显式**：构造上游产物缺失场景，断言 `degraded_reason` 落盘且 manifest 记录；注入静默回退（不写 `degraded_reason`）必红（判据见 `docs/engineering/contracts/LOG_AND_ERROR.md`「显式降级登记要件」一节）；
 - 资源监控记录完整性；磁盘门测试（能红能绿）。
 - **编排入口层**：单帧端到端验证；模块加载冒烟（缺符号 / 签名不符 / 加载失败必红）；阶段失败注入断言「显式 exit code + 日志」且不产出伪完整产物。编排层共址测试覆盖 logger 单测、checkpoint 单测、CLI 集成、legacy 编排入口冒烟 ×2、可执行级饱和接线门。
-- **退出码一致性**：编排层退出码集合与 `docs/engineering/ERROR_HANDLING_STANDARD.md` 全集合一致（唯一口径 = `lib/infrastructure/cli/exit_codes.h`）。
+- **退出码一致性**：编排层退出码集合与 `docs/engineering/contracts/LOG_AND_ERROR.md`「进程退出码」一节 全集合一致（唯一口径 = `lib/infrastructure/cli/exit_codes.h`）。
 
 ---
 
@@ -122,11 +122,11 @@ flowchart LR
 - 模块名只有一份：**`scheduler`**（注册、资源预算、执行、取消、checkpoint；物理位
   `lib/infrastructure/scheduler`）+ **`pipeline`**（typed DAG、命名块、内存/数据管线；
   物理位 `lib/infrastructure/pipeline`），依据最高设计 §8.4（顶层结构）与 §7.1（命令树）。
-- 对应登记：`docs/engineering/MODULE_MAP.md` 条目 `id: scheduler` /
+- 对应登记：`docs/engineering/architecture/MODULE_MAP.md` 条目 `id: scheduler` /
   `module_id: acsd.infra.scheduler` / `target_dir: lib/infrastructure/scheduler`；
   `docs/detail/00_INDEX.md` §2 第 2 列 = `scheduler`。
 - `runtime` **不是模块名**，其用途仅限路径；本页文件名 `19_runtime.md` 是 `docs/DOCUMENT_INDEX.yaml` 登记在册的文档路径，仅作路径使用。
-- `pipeline` 在 `docs/engineering/MODULE_MAP.md` 中登记；本页与 `00_INDEX.md` 已覆盖其名。
+- `pipeline` 在 `docs/engineering/architecture/MODULE_MAP.md` 中登记；本页与 `00_INDEX.md` 已覆盖其名。
 
 ---
 
@@ -140,7 +140,7 @@ flowchart LR
 - `ACSD_DESIGN.md` §8.4 顶层结构里的 pipeline 位（typed DAG、块生命周期、
   内存/数据管线）在代码侧的实体是 `lib/infrastructure/scheduler/src/{pipeline,
   artifact,artifact_store}.cpp` 与 `lib/infrastructure/runtime/**`
-  （MODULE_MAP `id=runtime`），**不属**编排层实体。
+  （docs/engineering/architecture/MODULE_MAP.md `id=runtime`），**不属**编排层实体。
 - **物理位 = `lib/infrastructure/pipeline/orchestrator/**`**：该目录承载编排层
   实现，对应顶层设计 §8.4 的「infrastructure/pipeline（typed DAG 编排）」位。
 - ⇒ **位置与职责分离**：归属一律按职责判定，不按目录名推断。检查器、清单与
@@ -152,7 +152,7 @@ flowchart LR
   最高设计 §6.2 的唯一命令树仍是产品 `acsd`）。
 - **语言与 ABI 锚点**：C++17（`-std=c++17`，编排层 `Makefile` 的 CXXFLAGS；
   正式构建入口 = 根 CMake 的 `acsd_infra_orchestrator`）；C ABI 经 `DllLoader`
-  纯 C 调用（docs/engineering/COMMON_ABI_V1.md）。
+  纯 C 调用（docs/engineering/api/abi/ABI.md）。
 - **编排层源文件**：`lib/infrastructure/pipeline/orchestrator/cpp/`。
 
 ---
@@ -162,7 +162,7 @@ flowchart LR
 - 编排层目录 `cpp/` 下存在嵌套的 `logs` 目录（非阻断缺陷）；日志落点的唯一合法
   面是 `<output_dir>/logs`（最高设计 §7.3），落点之外的位置（含 `run/`、源码树
   目录、安装目录、用户家目录、进程 CWD 相对路径）均不在处置面内，判据见
-  docs/engineering/LOG_AND_ERROR_CONTRACT.md。
+  docs/engineering/contracts/LOG_AND_ERROR.md。
 - `cache_budget_mb` 与 `schedule_policy` 为无行为承载的配置键。
 - artifact-manifest 与调度指标（worker 空转率、缓存命中率、数据搬运量、上下文
   切换次数、RSS 峰值）为待实现项。

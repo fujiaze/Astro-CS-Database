@@ -10,7 +10,7 @@
 > MOD-acsd-phase2-coverage（registry）
 > 唯一权威生产源: lib/algorithms/coverage/src/coverage.cpp（455 行，复测）+ 唯一权威签名头
 > lib/algorithms/coverage/include/astro/phase2/coverage.h（172 行，同上）；取值与签名一律以本头文件为唯一来源。
-> 矩阵行: docs/engineering/TRACEABILITY_SPEC.md §9
+> 矩阵行: docs/engineering/governance/TRACEABILITY.md §9
 > MOD-acsd-phase2-coverage（matrix P2-COV，legacy_paths=lib/algorithms/coverage coverage
 > sources，迁移目标 acsd_p2_coverage.dll，module_id=acsd.p2.coverage）。
 
@@ -146,7 +146,7 @@ p2_coverage_build(hips_paths, n_inputs, out):
 - P2CoverageResult/P2MocCell/P2HipsInputInfo 全部为调用方分配（`lib/algorithms/coverage/include/astro/phase2/coverage.h` 注释）；
   `p2_coverage_free` 仅 `memset(out,0)` 清零 POD（`lib/algorithms/coverage/src/coverage.cpp`）——不释放任何堆内存，无所有权转移（与 PHASE2_API_V1 §1 所有权
   图行 `Coverage: build/调用方持有/p2_coverage_free/只读借用` 一致，
-  `docs/engineering/PHASE2_API_V1.md`）。
+  `docs/engineering/api/PUBLIC_API.md`）。
 - 重复调用幂等: 同输入两次 build 结果 bitwise 一致（纯函数式扫描，无
   全局状态；错误路径通过 `aio_hips_reader_last_error()` 转述 AIO 层原因）。
 
@@ -242,15 +242,15 @@ p2_coverage_build(hips_paths, n_inputs, out):
 
 ## 10 关联 ARC/API/TST
 
-- API-COV-001（docs/engineering/PUBLIC_API.md）: p2_coverage_build/free
+- API-COV-001（docs/engineering/api/PUBLIC_API.md）: p2_coverage_build/free
   2 导出 + 两阶段协议 + P2CoverageResult 所有权。
-- DATA-COV-001（docs/science/DATA_SEMANTICS.md §19）: 输入 HiPS 树
+- DATA-COV-001（docs/detail/registry/acsd.phase2.coverage.md）: 输入 HiPS 树
   与输出 MOC/逐帧元信息的单位/dtype/shape/invalid 唯一权威。
-- API-P2-001（docs/engineering/PHASE2_API_V1.md，FROZEN）: 逐函数
+- API-P2-001（docs/engineering/api/PUBLIC_API.md，FROZEN）: 逐函数
   并发五字段（p2_coverage_build/free: yes/no(独立对象)/none/无/TST-COV-*）
-  + 所有权图（`docs/engineering/PHASE2_API_V1.md`）——编排级合同，与本节
+  + 所有权图（`docs/engineering/api/PUBLIC_API.md`）——编排级合同，与本节
   并行不互斥。
-- ARC-001（CPU 自适应资源合同；现行 CPU 后端设计见 docs/engineering/CPU_BACKEND_ARCH.md）: cpu_heavy 资源类、
+- ARC-001（CPU 自适应资源合同；现行 CPU 后端设计见 docs/engineering/resources/cpu/BACKEND.md）: cpu_heavy 资源类、
   单线程（internal_parallel=none）与 host_executor_lease 合同值依据。
 - TST: TEST-COV-DESIGN-001（§11.4，P2-COV-TEST 落 TEST-P2-COV-001）。
 
@@ -377,11 +377,11 @@ status 语义: 0=ok；错误路径部分分支置 1（`lib/algorithms/coverage/s
   SCI-INT-001（docs/science/INTEGRATION.md）§5
   support「覆盖并集保守下界」、SCI-SCOPE-001 §处理链第 5 步
   「coverage union → 控制采样 → …」。三者均**共享 SCI 引用不改动**
-  （P1-WCS SCI-WCS-001=共享 ASTROMETRY.md 同构）。
+  （P1-WCS SCI-WCS-001=共享 docs/science/detection/ASTROMETRY.md 同构）。
 - 本域不新建 docs/science/ 冻结层文档：matrix P2-COV 行
   science_id=SCI-P2-COV-001 的语义映射由本节声明——
   SCI-P2-COV-001 ⇒ 指向既有 FROZEN 共享 SCI（权威=PHASE2_UPM.md §1
-  覆盖并集 + INTEGRATION.md §5 support/validity 分离 + SCIENCE_SCOPE.md
+  覆盖并集 + INTEGRATION.md §5 support/validity 分离 + docs/science/unified/SCIENCE_SCOPE.md
   §处理链），矩阵 science_doc=docs/science/PHASE2_UPM.md
   （MOD-acsd-phase2-coverage 行）。
   三概念分离/union 离散公式/负向条款的算法定义权威=ALG-COV-001

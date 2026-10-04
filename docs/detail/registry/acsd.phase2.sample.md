@@ -3,13 +3,13 @@
 > 上游：docs/ACSD_DESIGN.md §8.5（模块与 ABI）、§5.2（固定科学流程：控制采样）、
 > §5.4（天光平面与统一相对模型）
 > 科学正本：docs/science/PHASE2_UPM.md（SCI-UPM-001，FROZEN，§1/§4/§5）、
-> docs/science/CONTROL_WEIGHT_SNR.md（控制点定权）、docs/detail/PHASE2_DETAILED_DESIGN.md §4
+> docs/science/noise_snr/NOISE_SNR.md §3.5（控制点定权）、docs/detail/PHASE2_DETAILED_DESIGN.md §4
 > 算法正本：docs/science/algorithms/PHASE2_SAMPLER.md（ALG-P2-SMP-001；语义与判据
 > §11.3、缺陷登记 §11.2/§11.3、测试设计 §11.3 F1–F9）
-> 数据正本：docs/science/DATA_SEMANTICS.md §23（DATA-P2-SMP；control_k_corr 行、
-> §23.1、§23.3、§23.5）
-> API 正本：docs/engineering/PUBLIC_API.md（API-P2-SMP-001）、
-> docs/engineering/PHASE2_API_V1.md（API-P2-001，FROZEN）
+> 数据正本：docs/detail/registry/acsd.phase2.sample.md（DATA-P2-SMP 端口表，本页输入输出端口表）；
+> control_variance / k_corr 冻结式见 docs/science/noise_snr/NOISE_SNR.md §3.5
+> API 正本：docs/engineering/api/PUBLIC_API.md（API-P2-SMP-001）、
+> docs/engineering/api/PUBLIC_API.md「分阶段 API 面」（API-P2-001，FROZEN）
 
 LIB 面 = `lib/algorithms/sampling/` 三件套（README / module.yaml ，
 CONTRACT_READY）。MOD ID = MOD-acsd-phase2-sample；module_id 合同值 =
@@ -41,7 +41,7 @@ lib/algorithms/coverage/include/astro/phase2/sampler.h；构建 = 根 CMakeLists
 `out_n_controls` = n_union × G²，含空覆盖占位（与 accepted / overlap_controls
 区分）。control estimator 方差的口径 = k_corr × (π/2) × σ_bg² / N_retained
 （ALG-UPM-CONTROL-IVAR-001；公式与 k_corr 定义域正本 =
-docs/science/algorithms/PHASE2_SAMPLER.md §5.4 与 DATA_SEMANTICS §23；
+docs/science/algorithms/PHASE2_SAMPLER.md §5.4 与本页输入输出端口表；
 k_corr 逐帧按 Drizzle provenance 查表，代码回退值 1.4）。`frame_id` 是内容稳定
 身份（truncated-64 canonical SHA-256，DATA-FRAME-ID-001）。
 
@@ -65,7 +65,7 @@ per-pixel 科学场产品；session 依赖（coverage 数据面显式传入）�
 | `coverage` | `DATA-P2-COV` | 必 | `UnitId::DIMENSIONLESS` | `CoordinateFrame::PIXEL` |
 | `samples` | `DATA-P2-SMP` | 可 | `UnitId::ADU` | `CoordinateFrame::PIXEL` |
 
-内核级真实 I/O 合同 = DATA-P2-SMP（DATA_SEMANTICS §23）：
+内核级真实 I/O 合同 = DATA-P2-SMP（本页输入输出端口表）：
 
 - 输入 = `P2CoverageResult`（n_union 上限 1e6、cells 上限 2e8）+ `hips_paths` /
   `frame_ids`（cached 版可空 = 内部重算；0 = 非法哨兵）+ `P2SamplerConfig` 15 字段
@@ -100,7 +100,7 @@ flowchart LR
     F["每帧校准图像"] --> M["套用星点掩膜"]
     M --> GRID["空间分层网格"]
     GRID --> P["每格取稀疏背景采样点<br/>（局部稳健背景 + 方差）"]
-    P --> W["每点赋 control_ivar 权重<br/>（= 1 / control_variance；<br/>control_variance 冻结式见<br/>DATA_SEMANTICS §23）"]
+    P --> W["每点赋 control_ivar 权重<br/>（= 1 / control_variance；<br/>control_variance 冻结式见<br/>docs/science/noise_snr/NOISE_SNR.md §3.5）"]
     W --> OUT["sky_samples 稀疏点表"]
 ```
 
@@ -207,7 +207,7 @@ Oracle 面：
 - **control_ivar 加权验证**：注入低 SNR / 光污染帧，联合天光面不被拉高（与等权
   拟合对照，偏差显著减小）。三臂对照（`control_ivar` / `uniform` / `SNR²`）的
   结论 = `control_ivar` 是**偏差漏入**最小的一臂；与等权相比其**噪声项**优势落在
-  MC 误差内，决定性优势在偏差漏入（依据 = docs/science/CONTROL_WEIGHT_SNR.md）；
+  MC 误差内，决定性优势在偏差漏入（依据 = docs/science/noise_snr/NOISE_SNR.md §3.4/§3.5）；
 - 稀疏性验证：采样点数量级远低于像素数，峰值内存随采样点数而非像素数增长；子集
   现场求值与全网格求值**逐位相同**；
 - 欠定检测（点数不足 / 连通性断裂时报错）；

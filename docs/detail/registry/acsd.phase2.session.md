@@ -15,9 +15,9 @@
   CMakeLists.txt，link acsd_contracts acsd_phase2；
   CLI target 汇总三处）。
 - 合同：ALG-P2-SESSION-001（docs/science/algorithms/PHASE2_SESSION.md）/
-  DATA-P2-SESSION（DATA_SEMANTICS §24）/ API-P2-SESSION-001
+  DATA-P2-SESSION（本页合同条）/ API-P2-SESSION-001
   （PUBLIC_API「Phase2 装配会话 C API」节）/ 编排上游 API-P2-001
-  （docs/engineering/PHASE2_API_V1.md，FROZEN，引用不改动）。
+  （docs/engineering/api/PUBLIC_API.md「分阶段 API 面」，FROZEN，引用不改动）。
 - 节点：canonical 4 段 coverage→sample→upm_build→persist
   （p2_session.cpp 四段实测；科学实现
   委托 p2_coverage_build 两处、p2_sample_controls 两处、
@@ -40,7 +40,7 @@
   CANCELLED；map_rc p2_session.cpp，语义表=DATA §24.3）。
 - manifest 状态机：created→complete/failed（p2_session.cpp；
   段内 running/ok/fail/cancelled；字段表=DATA §24.2）。
-- 已知差距（登记不改码）：API-P2-001（PHASE2_API_V1）冻结段集 vs 现状四段
+- 已知差距（登记不改码）：API-P2-001（docs/engineering/api/PUBLIC_API.md「分阶段 API 面」）冻结段集 vs 现状四段
   （coverage/sample/upm_build/persist），补齐属迁移目标（未落地）；
   p2_session.h「拒未知键」与 validate 实现漂移；run 子键类型错未捕获路径。
 - 已知缺陷：编号与语义见 ALG-P2-SESSION-001 的缺陷清单（本页不另行编号）。

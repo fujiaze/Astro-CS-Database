@@ -3,12 +3,12 @@
 > 上游：docs/ACSD_DESIGN.md §8.5（模块与 ABI）、§5.4（天光平面与统一相对模型 UPM）
 > 科学正本：docs/science/PHASE2_UPM.md（SCI-UPM-001，FROZEN；§5/§9a/§14a/§17）、
 > docs/science/algorithms/UPM_SOLVER.md（ALG-UPM-001，权威推导；F4/F6）、
-> docs/science/UNCERTAINTY_AND_COVARIANCE.md（参数协方差）
+> docs/science/noise_snr/NOISE_SNR.md §3.5（参数协方差）
 > 实现级合同：docs/science/algorithms/PHASE2_UPM_IMPL.md（ALG-P2-UPM-IMPL-001；
 > §11/§13 语义与缺陷清单、TEST-DESIGN 冻结容差、字段名与生产取值登记）
-> 数据正本：docs/science/DATA_SEMANTICS.md §25（DATA-P2-UPM）、§26（DATA-P2-COR）
-> API 正本：docs/engineering/PUBLIC_API.md（API-P2-UPM-001）、
-> docs/engineering/PHASE2_API_V1.md（API-P2-001，FROZEN）
+> 数据正本：docs/detail/registry/acsd.phase2.upm-apply.md（DATA-P2-UPM / DATA-P2-COR 端口表，本页输入输出端口表）
+> API 正本：docs/engineering/api/PUBLIC_API.md（API-P2-UPM-001）、
+> docs/engineering/api/PUBLIC_API.md「分阶段 API 面」（API-P2-001，FROZEN）
 
 MOD ID = `MOD-acsd-phase2-upm-apply`；module_id 合同值 = `acsd.p2.upm`
 （descriptor 词汇 `acsd.phase2.upm-apply` 为编排层口径，其对齐属迁移目标、未

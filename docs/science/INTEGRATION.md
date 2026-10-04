@@ -7,7 +7,7 @@
 ## 1 目的与非目标
 
 - **目的**：将每像素的 `UPM-calibrated + accepted` 候选栈加权合并为统一信号 `signal` 与支撑度 `support`，输出 `P2PixelResult`。
-- **非目标**：不决定候选资格/排异（SCI-REJ）；不估计噪声权重策略（SCI-NOISE）；不进行天区重投影（SCI-DRIZZLE）；不存完整协方差（见 `UNCERTAINTY_AND_COVARIANCE.md`）。
+- **非目标**：不决定候选资格/排异（SCI-REJ）；不估计噪声权重策略（SCI-NOISE）；不进行天区重投影（SCI-DRIZZLE）；不存完整协方差（见 `docs/science/noise_snr/NOISE_SNR.md` §3.5）。
 
 ## 2 符号表
 
@@ -136,7 +136,7 @@
 - 权威文件: `docs/science/INTEGRATION.md` (SCI-INT-001,002,004,008)
 - 实现: `lib/algorithms/coverage/src/integrate.cpp` (10-79), `lib/algorithms/coverage/include/astro/phase2/integrate.h` (P2PixelStack/Result, P2_INTEGRATE_*)
 - 公开 API: `p2_integrate_pixel, p2_validate_candidate_weights`
-- 测试: `TST-INT-001` 常量场、`TST-INT-ZERO` 零权重、`TST-INT-FAIL-*` 四态、支撑 `max` 门（新增/映射见 `docs/engineering/TRACEABILITY_SPEC.md §10`）
+- 测试: `TST-INT-001` 常量场、`TST-INT-ZERO` 零权重、`TST-INT-FAIL-*` 四态、支撑 `max` 门（新增/映射见 `docs/engineering/governance/TRACEABILITY.md §10`）
 
 ## 3a 坐标 frame
 
@@ -154,7 +154,7 @@
 
 1. 加权均值/逆方差聚合：教科书级（Project-defined，权重语义由 SCI-NOISE/SCI-UPM 冻结）。
 2. `support=max` canonical reducer：**Project-defined**（覆盖并集保守下界，§5 注释）；无外部公式。
-3. 无外部文献依赖；协方差不存矩阵（UNCERTAINTY_AND_COVARIANCE.md 文档化）。
+3. 无外部文献依赖；协方差不存矩阵（docs/science/noise_snr/NOISE_SNR.md §3.5 文档化）。
 
 ## 14a 参考文献与参考代码库（含许可证）
 
