@@ -680,26 +680,43 @@ static unsigned long fio_decode_checksum(const char ascii[17], int complm) {
 }
 
 /* 一个 HDU 的 CHECKSUM 校验和: 对 header+data (含填充) 全字节流式累计,
- * 期间 CHECKSUM 卡的值 16 字符已被置 '0' (由调用方保证或在此处理)。 */
-static unsigned long fio_hdu_checksum_stream(fio_file* f, fio_off_t hdr_off,
-                                             size_t hdr_len, size_t data_len_padded) {
+ * 期间 CHECKSUM 卡的值 16 字符已被置 '0' (由调用方保证或在此处理)。
+ *
+ * 失败必须**有独立通道**: 0 同时是一个合法的校验和值, 所以不能用 return 0
+ * 表示失败 —— 调用方会把"根本没读到"当成"和恰为 0", 再把它编码成一张
+ * 看起来合法的 CHECKSUM 卡落盘。同文件的 fio_file_read_datasum 用 (size_t)-1
+ * 表示失败, 这里用返回值 1/0 对齐同一套约定。
+ * 返回 1 = *out_sum 有效; 返回 0 = 失败 (err 已置, *out_sum 不可用)。*/
+static int fio_hdu_checksum_stream(fio_file* f, fio_off_t hdr_off,
+                                  size_t hdr_len, size_t data_len_padded,
+                                  unsigned long* out_sum, char* err, size_t cap) {
   fio_dsum s;
   unsigned char buf[2880];
   size_t total = 0;
   size_t want = hdr_len + data_len_padded;
+  if (fio_file_seek(f, hdr_off, SEEK_SET) != 0) {
+    set_err(err, cap, "seek failed (checksum)");
+    return 0;
+  }
   fio_dsum_init(&s);
-  if (fio_file_seek(f, hdr_off, SEEK_SET) != 0) return 0;
   while (total < want) {
     size_t chunk = want - total;
     if (chunk > sizeof(buf)) chunk = sizeof(buf);
     {
       size_t got = fio_file_read(f, buf, chunk);
-      if (got == 0) break;
+      /* 读不满 want 就是截断/IO 失败。原实现 `if (got == 0) break;` 返回**部分**
+       * 累计值, 同样无法与真值区分 —— 半个 HDU 的和会被当成整个 HDU 的和落盘。*/
+      if (got == 0) {
+        set_err(err, cap, "checksum read truncated: %lu/%lu bytes",
+                (unsigned long)total, (unsigned long)want);
+        return 0;
+      }
       fio_dsum_update(&s, buf, got);
       total += got;
     }
   }
-  return fio_dsum_finish(&s);
+  *out_sum = fio_dsum_finish(&s);
+  return 1;
 }
 
 /* 在 header 缓冲/文件内查找关键字卡片偏移 (第 0..hdr_len 字节, 80 对齐),
@@ -1463,11 +1480,18 @@ int acsd_fio_writer_end_v1(acsd_fio_writer_v1* wr,
   if (write_checksum) {
     size_t hdu_len =
         (size_t)wr->header_bytes + (size_t)fio_blocks2880(wr->data_bytes_total) * 2880;
-    unsigned long sum = fio_hdu_checksum_stream(&wr->f, 0, (size_t)wr->header_bytes,
-                                                (size_t)fio_blocks2880(wr->data_bytes_total) *
-                                                    2880);
+    unsigned long sum = 0;
     char cstr[17];
     (void)hdu_len;
+    /* 失败必须在这里停: 读不到 HDU 就**不能**写 CHECKSUM 卡。原式把 seek 失败
+     * 压成 sum=0, 再 encode 成一张"看起来合法"的卡落盘 —— 交付物带着一个从未
+     * 被计算过的校验值, 而 verify 侧无从区分。fail-closed: 不写卡 + 报 IO 错。*/
+    if (!fio_hdu_checksum_stream(&wr->f, 0, (size_t)wr->header_bytes,
+                                 (size_t)fio_blocks2880(wr->data_bytes_total) * 2880,
+                                 &sum, err, cap)) {
+      st = ACS_FIO_ERR_IO;
+      goto fail;
+    }
     fio_encode_checksum(sum, 1, cstr);
     if (wr->checksum_card_off >= 0) {
       st = fio_card_patch(&wr->f, wr->checksum_card_off, "CHECKSUM", cstr,

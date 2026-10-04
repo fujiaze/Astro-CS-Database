@@ -135,7 +135,19 @@ bool fsync_dir(const std::string& path, std::string* err) {
   const int rc = ::fsync(fd);
   const int saved = errno;
   close_fd(fd);
-  if (rc != 0 && saved != EINVAL && saved != ENOTSUP) {
+  if (rc != 0) {
+    /* EINVAL / ENOTSUP = 该文件系统**不支持**目录 fsync ⇒ 这是「无持久化证据」,
+     * 不是「已确认落盘」。原式把它们并进成功分支 (`rc != 0 && saved != EINVAL &&
+     * saved != ENOTSUP` 才判失败), 于是 fsync 真失败也 return true 且 *err 留空
+     * ⇒ confirm_dir_durability 上报 kDurable, 调用方把未确认落盘的产品当已确认,
+     * 连 status 都是 kOk。同文件 Windows 分支明文禁止这种做法:「不得把『无失败
+     * 证据』当成『已确认落盘』」—— Linux 分支当时与它自相矛盾。
+     * 处置: err 留空 ⇒ 调用方按 confirm_dir_durability 的契约走 kNotDurable
+     * (status 仍成功路径, 但 durability 不谎报 kDurable); 真失败仍置 err ⇒ kErrIo。*/
+    if (saved == EINVAL || saved == ENOTSUP) {
+      if (err) err->clear();
+      return false;
+    }
     if (err) *err = std::string("fsync dir failed: ") + std::strerror(saved);
     return false;
   }
@@ -441,6 +453,12 @@ PublishResult atomic_publish_file(const std::string& target,
     return res;
   }
   res.renamed = true;
+  /* 外部观测 (这一句让 publish_result_consistent 不再是恒等式): 本次 rename 已
+   * 返回 0, 此刻目标是否**真的**在盘上? 期望量来自文件系统而不是本库自己刚写的
+   * 字段 ⇒ 谓词可假。只在 rename 刚生效这一刻观测 —— 更早的早退路径上「目标存在」
+   * 可能来自上一次发布, 拿它当判据会造出恒红门。*/
+  res.target_checked = true;
+  res.target_present = path_exists(target);
 
   {
     std::string derr;
@@ -474,7 +492,11 @@ PublishResult atomic_publish_file(const std::string& target,
         // P-174：撤销成功后目标根不再有正式产品 ⇒ 回到 kNotPublished，且
         // renamed 同步复位（终态自洽：renamed ⇔ durability != kNotPublished）；
         // 撤销失败（目标仍在）⇒ 保留既有持久化事实，不谎报「未发布」。
-        if (!path_exists(target)) {
+        // 复位前重新读盘：撤销后目标是否还在盘上是外部事实，不能由库自己的
+        // 意图推定 —— 否则「撤销声称成功但目标还在」这种不一致永远看不见。
+        res.target_checked = true;
+        res.target_present = path_exists(target);
+        if (!res.target_present) {
           res.renamed = false;
           res.durability = PublishDurability::kNotPublished;
         }
@@ -597,6 +619,9 @@ PublishResult atomic_publish_directory(const std::string& target_dir,
   }
   res.renamed = true;
   res.bytes_written = n_files;
+  /* 同 atomic_publish_file: rename 刚生效这一刻读盘, 给终态判据一个外部参照。*/
+  res.target_checked = true;
+  res.target_present = path_exists(target_dir);
   {
     std::string derr;
     if (!confirm_dir_durability(parent, opts.fsync_directory, &derr)) {
@@ -622,7 +647,10 @@ PublishResult atomic_publish_directory(const std::string& target_dir,
           fsync_dir(parent, &derr);
         }
         // P-174：撤销成功 ⇒ 回到 kNotPublished 并复位 renamed（终态自洽）。
-        if (!path_exists(target_dir)) {
+        // 复位前重新读盘, 让「撤销声称成功但整树还在」这种不一致能被看见。
+        res.target_checked = true;
+        res.target_present = path_exists(target_dir);
+        if (!res.target_present) {
           res.renamed = false;
           res.durability = PublishDurability::kNotPublished;
         }

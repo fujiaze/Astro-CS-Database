@@ -103,6 +103,10 @@ class _Header:
         self.bitpix: Optional[int] = None
         self.naxis: Optional[int] = None
         self.naxis_n: List[int] = []
+        # naxis_n[i] 是否**真的**出现过对应的 NAXIS{i+1} 卡。
+        # naxis_n 为了让下标可寻址会被补齐, 补出来的值不是证据; 这张表才是
+        # "该轴卡在不在头里"的唯一可判据（否则缺失的中间轴会被补值伪装成合法轴长）。
+        self.naxis_seen: List[bool] = []
         self.datasum: Optional[str] = None
         self.checksum: Optional[str] = None
         self.header_bytes: int = 0          # 2880 对齐头块字节
@@ -138,6 +142,14 @@ def _parse_header(data: bytes) -> _Header:
                 raise FitsVerifyError(f"unsupported NAXIS={h.naxis}")
             if len(h.naxis_n) < h.naxis:
                 raise FitsVerifyError("missing NAXISn card(s)")
+            # 长度够 ≠ 卡齐：NAXIS3 单独出现时 naxis_n 被补到 3 元素,
+            # len() 检查会放行, 而 NAXIS2 根本没读过。逐项查"是否真出现过"。
+            missing = [i + 1 for i in range(h.naxis)
+                       if i >= len(h.naxis_seen) or not h.naxis_seen[i]]
+            if missing:
+                raise FitsVerifyError(
+                    "missing NAXISn card(s): " +
+                    ", ".join(f"NAXIS{i}" for i in missing))
             for i in range(h.naxis):
                 if h.naxis_n[i] <= 0:
                     raise FitsVerifyError(
@@ -168,11 +180,13 @@ def _parse_header(data: bytes) -> _Header:
             elif name.startswith("NAXIS") and name[5:].isdigit():
                 idx = int(name[5:]) - 1
                 while len(h.naxis_n) <= idx:
-                    h.naxis_n.append(1)
+                    h.naxis_n.append(1)   # 仅补下标占位; 是否真出现过看 naxis_seen
+                    h.naxis_seen.append(False)
                 try:
                     h.naxis_n[idx] = int(str(val).strip())
                 except (TypeError, ValueError):
                     raise FitsVerifyError(f"invalid {name} value {val!r}")
+                h.naxis_seen[idx] = True
             elif name == "DATASUM" and val is not None:
                 h.datasum = str(val).strip()
             elif name == "CHECKSUM" and val is not None:
@@ -380,26 +394,46 @@ def verify_fits_bytes(data: bytes, verify_checksum: bool = False) -> _Header:
             raise FitsVerifyError(
                 f"DATASUM mismatch: header {decl} computed "
                 f"(std32 {c_std}, fio16 {c_fio})")
-    # CHECKSUM（可选；写入侧默认写 DATASUM 卡；'0000000000000000' 占位 = 未计算）
+    # CHECKSUM（可选；卡存在且 verify_checksum=1 时**必须**真的校验完）
     if verify_checksum and h.checksum is not None:
         cval = str(h.checksum).strip()
-        if len(cval) == 16 and cval != "0" * 16:
-            buf = _zero_checksum_card(bytearray(data), h.header_bytes, cval)
-            # 双通道：标准 32-bit fold（cfitsio/astropy 编码）或 fits_core
-            # 16-bit lane fold（仓库写路径编码）任一与卡解码一致即通过。
-            computed_std = _hdu_checksum_std(bytes(buf), h.header_bytes)
-            computed_fio = _hdu_checksum(bytes(buf), h.header_bytes)
-            decoded_std = _decode_checksum(cval, complm=True)
-            # fits_core 解码函数与其编码互补；此处标准解码已覆盖仓库卡编码的
-            # 16-bit 差异情形（卡值相同则两者解码等价——fits_core 写出的卡也是
-            # 16 字符 ASCII 同一编码族）。保守双判：
-            ok = (computed_std == decoded_std or
-                  computed_std == 0xFFFFFFFF or computed_std == 0 or
-                  computed_fio == decoded_std)
-            if not ok:
-                raise FitsVerifyError(
-                    f"CHECKSUM mismatch: computed 0x{computed_std:08x} "
-                    f"decoded 0x{decoded_std:08x}")
+        # 卡在但**不可校验** ≠ 校验通过。原实现把整个校验块挂在
+        # `if len(cval) == 16 and cval != "0" * 16:` 之下：长度不对或全零占位时
+        # 整块跳过，函数照常返回 ⇒ 假绿。调用方 hips_output_store._verify_fits
+        # 恰恰按 "verify_checksum and hdr.checksum is not None" 记账，
+        # 于是这类坏卡会被**如实记成"已做 CHECKSUM 校验"**，把记录也一起弄假。
+        # 三条坏卡口径与同仓 C 侧 acsd_fio_verify_file_v1（M2b-B-09）对齐：
+        #   - 空值卡 → 拒；
+        #   - 非 16 字符 → 拒（_decode_checksum 本身就只接受 16 字符，
+        #     放行短卡等于放行一个随后必然 IndexError 的调用）；
+        #   - 全零占位串 → 拒。写侧在 write_checksum=0 时把该卡**抹空**而不是留
+        #     全零（fits_core.c acsd_fio_writer_end_v1），读侧对 >=15 个 '0'
+        #     直接 ERR_CHECKSUM —— 全零是"预留槽未复算"的基准态，不是交付校验值。
+        if not cval:
+            raise FitsVerifyError("CHECKSUM card empty")
+        if len(cval) != 16:
+            raise FitsVerifyError(
+                f"CHECKSUM card value must be 16 chars, got {len(cval)}: {cval!r}")
+        if set(cval) == {"0"}:
+            raise FitsVerifyError(
+                "CHECKSUM 为全零占位串 (未复算): 交付物必须带真实校验和")
+        buf = _zero_checksum_card(bytearray(data), h.header_bytes, cval)
+        # 双通道：标准 32-bit fold（cfitsio/astropy 编码）或 fits_core
+        # 16-bit lane fold（仓库写路径编码）任一与卡解码一致即通过。
+        computed_std = _hdu_checksum_std(bytes(buf), h.header_bytes)
+        computed_fio = _hdu_checksum(bytes(buf), h.header_bytes)
+        decoded_std = _decode_checksum(cval, complm=True)
+        # 只保留 0xFFFFFFFF 豁免（1 补码全 1 的规范不动点，与 fits_core.c 注释
+        # 「兼容 sum==0xFFFFFFFF」同）；`computed_std == 0` 豁免**删除** ——
+        # fits_core.c M2b-B-09 明写「不再豁免 sum==0 —— 全零串已在上方显式拒绝」。
+        # 只收窄不放宽：本次没有新增任何可通过的分支。
+        ok = (computed_std == decoded_std or
+              computed_fio == decoded_std or
+              computed_std == 0xFFFFFFFF)
+        if not ok:
+            raise FitsVerifyError(
+                f"CHECKSUM mismatch: computed 0x{computed_std:08x} "
+                f"decoded 0x{decoded_std:08x}")
     return h
 
 

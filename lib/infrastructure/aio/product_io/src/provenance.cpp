@@ -252,18 +252,15 @@ ValidationReport validate_provenance_json(
     }
   }
   // flux_conservation_factor (FZ-COND-FLUX-CONSERV)。
-  bool has_pixfrac = false;
-  double pixfrac = 1.0;
-  if (j.contains("sampling") && j["sampling"].is_object() &&
-      j["sampling"].contains("pixfrac")) {
-    has_pixfrac = true;
-    pixfrac = j["sampling"]["pixfrac"].is_number()
-                  ? j["sampling"]["pixfrac"].get<double>()
-                  : 1.0;
-  }
-  // DRZ-FLUX-FIX-01: drop 面积归一 ⇒ 因子恒 1 (与 pixfrac 无关); pixfrac=1 与
-  // pixfrac<1 同判据 (旧口径只在 pixfrac<1 时检查正性, 掩盖了因子语义)。
-  if (has_pixfrac && pixfrac > 0.0) {
+  //
+  // DRZ-FLUX-FIX-01: drop 面积归一 ⇒ 因子恒 1 (**与 pixfrac 无关**)。
+  // 旧式 `if (has_pixfrac && pixfrac > 0.0)` 把这条判据挂在 pixfrac 上, 与紧邻
+  // 的注释自相矛盾, 而且实测只有 phase1_product.cpp:265 一条生产线置
+  // has_pixfrac=true —— phase2_integrate.cpp:433 与 p3_export.cpp:277 都是 false
+  // ⇒ 该键是 provenance_required_keys() 的**必填项**, 却在 2/3 产线上无人检查
+  // (机制正确但从不执行, 恒真门第 ④ 型)。判据与 pixfrac 无关就删掉那个守卫,
+  // 让它在全部生产线上无条件执行。
+  {
     const double fcf = j.contains("flux_conservation_factor") &&
                                j["flux_conservation_factor"].is_number()
                            ? j["flux_conservation_factor"].get<double>()

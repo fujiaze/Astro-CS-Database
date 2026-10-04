@@ -1224,18 +1224,17 @@ Phase1OpenResult open_phase1_product(const std::string& target_dir) {
 
   /* (9) flux_conservation_factor（FZ-COND-FLUX-CONSERV）。 */
   const json& pj = doc["provenance"];
-  const bool has_pixfrac = pj["sampling"].contains("pixfrac");
-  const double pixfrac = pj["sampling"].value("pixfrac", 1.0);
-  /* DRZ-FLUX-FIX-01：drop 面积归一 ⇒ 因子恒 1（与 pixfrac 无关）。缺因子仍
-   * fail-closed（provenance 最小集），但取值必须为 1；写成 pixfrac^2 判红。 */
-  if (has_pixfrac) {
-    if (!pj.contains("flux_conservation_factor") ||
-        !pj["flux_conservation_factor"].is_number() ||
-        pj["flux_conservation_factor"].get<double>() <= 0.0)
-      return fail("missing/nonpositive flux_conservation_factor");
-    if (std::fabs(pj["flux_conservation_factor"].get<double>() - 1.0) > 1e-12)
-      return fail("flux_conservation_factor != 1 (drop-area normalized kernel)");
-  }
+  /* DRZ-FLUX-FIX-01：drop 面积归一 ⇒ 因子恒 1（**与 pixfrac 无关**）。本条与
+   * provenance.cpp 的同名判据是同一条判据的第二份实现；旧式
+   * `if (has_pixfrac)` 把判据挂在 pixfrac 上，与紧邻注释自相矛盾，且
+   * phase2/p3 产线根本不置 pixfrac ⇒ 必填键在 2/3 产线上无人检查。守卫已删，
+   * 本条无条件执行。缺因子仍 fail-closed（provenance 最小集），取值必须为 1。*/
+  if (!pj.contains("flux_conservation_factor") ||
+      !pj["flux_conservation_factor"].is_number() ||
+      pj["flux_conservation_factor"].get<double>() <= 0.0)
+    return fail("missing/nonpositive flux_conservation_factor");
+  if (std::fabs(pj["flux_conservation_factor"].get<double>() - 1.0) > 1e-12)
+    return fail("flux_conservation_factor != 1 (drop-area normalized kernel)");
   if (doc["drizzle_covariance"]["diagonal_approximation"]["deficit_metric"].value("value", -1.0) < 0.0)
     return fail("parent deficit must be >= 0");
 

@@ -24,7 +24,8 @@
  *      无证据 —— rename 后目录 fsync 失败（status 仍 fail-closed 为 kErrIo），或本平台
  *      无目录 fsync 等价物 / 调用方显式关闭 opts.fsync_directory（此时 status 可为 kOk，
  *      但不得据此声称「已确认落盘」）。
- *   自洽判据：renamed == (durability != kNotPublished)，见 publish_result_consistent()。
+ *   自洽判据：renamed == (durability != kNotPublished)，且已观测路径上目标确实存在，
+ *   见 publish_result_consistent()（外部项来自 rename 后那次读盘，不是自证）。
  *   调用方处置：kNotDurable **不得回滚删除**（产品已可见，删了就毁掉已发布对象）、
  *   **不得静默当成功**（该产品面在崩溃后可能消失），须显式可见（日志/manifest 标注
  *   「持久化未确认」）并允许对父目录重跑 fsync 确认；只有 kNotPublished 才按
@@ -109,16 +110,28 @@ struct PublishResult {
   // 成功（目标根已无该产品）⇒ false。恒等式：renamed == (durability !=
   // kNotPublished)，由 publish_result_consistent() 判定。
   bool renamed = false;
+  // 外部观测: 本次发布是否**读盘看过**目标 (target_checked), 以及读到目标是否
+  // 真的在盘上 (target_present)。只在 rename 已生效的路径上置位 —— 早退路径上
+  // 的「目标存在」可能来自上一次发布, 拿它当判据会造出恒红门。
+  bool target_checked = false;
+  bool target_present = false;
   bool tmp_residue = false;  // 失败后 tmp 是否残留（必须恒为 false）
   // P-174 第三态：只描述「正式产品面的持久化事实」，与 status 正交（status 仍是
   // 调用方的主判据）。默认 kNotPublished；详见文件头三态说明。
   PublishDurability durability = PublishDurability::kNotPublished;
 };
 
-// P-174 终态自洽判据：存在正式产品（kDurable | kNotDurable）⇔ renamed。
+// P-174 终态自洽判据：存在正式产品（kDurable | kNotDurable）⇔ renamed；
+// 并且在已读盘观测的路径上，正式产品**真的在盘上**。
+// 第二项不可省：只比 renamed 与 durability 这两个**由同一控制流成对赋值**的字段
+// 是一条恒等式 —— 本库三个生产者对自产出的每一个 PublishResult 都返回 true，
+// 八个生产点拿它当红灯门却永不触发，恒真门第 ③ 型（往返自证）。外部项的期望量
+// 来自文件系统 (rename 返回 0 ⇒ 目标必然在盘上), 与被检验量不同源, 谓词可假。
 inline bool publish_result_consistent(const PublishResult& r) {
   const bool published = r.durability != PublishDurability::kNotPublished;
-  return r.renamed == published;
+  if (r.renamed != published) return false;
+  if (!r.target_checked) return true;   // 未到读盘观测点：只判内部不变量
+  return r.target_present == published;
 }
 
 // 原子发布单个文件。

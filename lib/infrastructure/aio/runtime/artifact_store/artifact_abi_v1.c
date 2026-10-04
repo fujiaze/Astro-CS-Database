@@ -512,16 +512,46 @@ int acsd_artifact_manifest_parse_v1(const char* json_utf8, size_t json_bytes,
             handle_free(h); return 1;
         }
         ++q;
-        /* 计数 */
+        /* 计数: 数数组**顶层**的元素对象。
+         *
+         * 为什么不能只靠嵌套深度判层: 元素的类型是对象 `{...}`, 不是嵌套数组,
+         * 而 depth 只由 '[' 驱动。顶层 '{' 落在 depth==0 上, '}' 更是完全未被计数
+         * 循环考虑 ⇒ depth 恒为 0 ⇒ `depth == 1` 恒不成立 ⇒ cnt 恒为 0 ⇒
+         * 下面整个 `if (cnt > 0)` 块(元素解析 + **重复 artifact_id 拒绝**)
+         * 永不可达, 血缘被静默丢弃。判据要落在被检验量(cnt)自身, 不能用一个
+         * 恒假的层号去数它。
+         *
+         * 顺带把三处扫描统一成"认识 JSON 字符串字面量": 字符串里的
+         * ']' / '{' / '}' 不是结构字符。不跳过的话, 一个含 `]` 的 artifact_id
+         * 会让计数提前截断(cnt 偏小 ⇒ 后面的元素被静默丢弃 = 假绿),
+         * 一个含 '{' 的 artifact_id 会让元素边界配平错位。
+         */
         size_t cnt = 0;
         {
             const char* r = q;
-            int depth = 0;
             while (r < ae) {
-                if (*r == '[') ++depth;
-                else if (*r == ']') { if (depth == 0) break; --depth; }
-                else if (*r == '{' && depth == 1) ++cnt;
-                ++r;
+                if (*r == '{') {
+                    /* 顶层元素对象: 计一个, 再整段跳过它的内部(含嵌套 {} 与 []) */
+                    ++cnt;
+                    int d = 0;
+                    while (r < ae) {
+                        if (*r == '{') ++d;
+                        else if (*r == '}') { --d; if (d == 0) { ++r; break; } }
+                        else if (*r == '"') {
+                            const char* e2 = parse_json_string(r, ae, NULL);
+                            r = e2 ? e2 : ae;
+                            continue;
+                        }
+                        ++r;
+                    }
+                } else if (*r == ']') {
+                    break; /* 数组结束 */
+                } else if (*r == '"') {
+                    const char* e2 = parse_json_string(r, ae, NULL);
+                    r = e2 ? e2 : ae;
+                } else {
+                    ++r;
+                }
             }
         }
         h->input_count = cnt;
@@ -532,13 +562,26 @@ int acsd_artifact_manifest_parse_v1(const char* json_utf8, size_t json_bytes,
             size_t idx = 0;
             const char* r = q;
             while (r < ae && idx < cnt) {
-                while (r < ae && *r != '{') ++r;
+                while (r < ae) {
+                    if (*r == '{') break;
+                    if (*r == '"') { /* 非对象元素: 跳过整个字符串, 其内的 '{' 不是结构字符 */
+                        const char* e2 = parse_json_string(r, ae, NULL);
+                        r = e2 ? e2 : ae;
+                        continue;
+                    }
+                    ++r;
+                }
                 if (r >= ae) break;
                 const char* obj_end = r;
                 int depth = 0;
                 while (obj_end < ae) {
                     if (*obj_end == '{') ++depth;
                     else if (*obj_end == '}') { --depth; if (depth == 0) { ++obj_end; break; } }
+                    else if (*obj_end == '"') { /* 元素字段值里的 '{' / '}' 不参与配平 */
+                        const char* e2 = parse_json_string(obj_end, ae, NULL);
+                        obj_end = e2 ? e2 : ae;
+                        continue;
+                    }
                     ++obj_end;
                 }
                 char* aid = NULL; char* dg = NULL;
