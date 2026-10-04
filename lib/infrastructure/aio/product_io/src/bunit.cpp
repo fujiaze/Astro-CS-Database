@@ -239,6 +239,11 @@ BunitCheck bunit_dimension_decidable(const std::string& bunit,
   return out;
 }
 
+// 【零调用者·保留登记】HEAD 全仓符号级枚举无调用者（仅本定义 + bunit.h:80 声明；
+// 排除 build/、run/），且不在任何已发布接口合同内（docs/ 与 eng/contracts/ 对
+// astro/aio 命名空间零引用）。按 AGENTS.md §6 保留并写明原因：它是 FZ-BUNIT-SEMANTICS
+// 的 G-PIXEL-AREA-POWER 门所需的量纲幂次默认表，退役或接线属接口决策，待负责人裁定；
+// 不因当前无调用者而删除。
 int default_pixel_area_power(Quantity q) {
   switch (q) {
     case Quantity::kSignalSb: return -2;
@@ -254,6 +259,11 @@ int default_pixel_area_power(Quantity q) {
   }
 }
 
+// 【零调用者·保留登记】HEAD 全仓符号级枚举无调用者（仅本定义 + bunit.h:83 声明；
+// 排除 build/、run/），且不在任何已发布接口合同内。按 AGENTS.md §6 保留并写明原因：
+// 它是 README.md:43-45「psfsw 单位冻结为无量纲 1」这条科学纪律的可执行判定
+// （README.md:36 的门映射表把 PSFSW 条款归给 frozen_unit_string，故本函数当前不在门链上）；
+// 退役或接线属接口决策，待负责人裁定；不因当前无调用者而删除。
 bool psfsw_unit_forbidden(const std::string& unit) {
   const std::string u = trim(unit);
   if (u == "1") return false;
