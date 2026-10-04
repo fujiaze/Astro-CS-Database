@@ -25,7 +25,7 @@
 | FITS 流核心（C 实现、私有，DLL 内） | `lib/infrastructure/aio/io/fits_core.c` |
 | FITS 流 C ABI（只被动态库 `libacsd_io.so`/`acsd_io.dll` 导出） | `lib/infrastructure/aio/io/include/acsd/io/fits_stream_v1.h` |
 | 模块公开 ABI 面（module query 入口） | `lib/infrastructure/aio/io/include/acsd/io/fits_stream_v1.h`、`hips_input_v1.h` |
-| 契约/负测（Python，依赖 numpy/astropy 作 oracle） | `eng/tests/io/` |
+| 契约/负测（Python，依赖 numpy/astropy 作 oracle） | 判据清单见本文 §12 |
 | C 层自检驱动 | `lib/infrastructure/aio/io/tests/` |
 
 ## 3. DLL 边界与所有权
@@ -127,7 +127,7 @@ typedef struct acsd_fio_trace_hooks_v1 {
   对数据区做 32 位 1 的补码块校验：2880 字节块、
   16-bit 大端字累加、进位回卷，返回 10 位十进制字符串；算法独立（不链接 CFITSIO）。
 
-  一手标准与本仓正/负例（`eng/tests/io/test_fits_stream_contract.py` 的
+  一手标准与本仓正/负例（判据清单见 §12：
   `TestFitsCoreContract.test_datasum_cross`：与文件 DATASUM 卡及 astropy 独立算法三方一致；
   `test_checksum_verify_and_tamper`：篡改一字节即返回 `ACS_FIO_ERR_CHECKSUM`）相互佐证。
 - `acsd_fio_verify_file_v1` 校验顺序：
@@ -177,7 +177,7 @@ typedef struct acsd_fio_trace_hooks_v1 {
   st = acsd_fio_compute_file_datadigest_v1(path, buf10, sizeof(buf10), &len, err, sizeof(err));
 ```
 
-## 12. 契约/负测验收映射（eng/tests/io/）
+## 12. 契约/负测验收映射（判据清单）
 
 | 验收 | 测试 |
 | --- | --- |

@@ -105,12 +105,12 @@
 ### 8.4 record / enforce 划分与判定点
 
 - **程序内恒 record_only**（`ACSD_DESIGN.md` §4.5「资源门只管磁盘…内存、CPU、线程不设门」；数值与判据唯一源 = `eng/contracts/resource_gate_v1.json#enforcement`）：CLI 运行期只记录与报告，**不因资源判据改变退出码**；`--strict-resource-gate` / `--on-resource-gate strict` **保留接受但不改变门结论**（旗标请求事实由事件字段如实登记，见下「事件面登记」）。实现唯一收口 = `lib/infrastructure/cli/resource_gate.h::gate_enforcement`（恒返回 `RecordOnly`；`Enforced` 枚举值仅为既有 ABI/测试引用保留）。
-- **唯一判定点 = CI 重计算检查 + 发布验收**（判定参数与阈值唯一源 = `eng/contracts/resource_gate_v1.json`），以 `run_monitored.py --gate-required --gate-workers <registry 声明>` 形式执行。**`--gate-workers` 必须由 registry 显式声明**；未声明时利用率类判据不成立（记 `allocated_capacity_undeclared`），只有 ① 生效。
-- **exit 10（RESOURCE）在资源门判定域内的充分条件**：判定域内 ①②③ 任一违约且处于 enforce 面——该路径**只存在于 CI 判定点**，程序内（CLI）无此路径。`NOT_APPLICABLE` 与 record-only 记录项**都不产生 exit 10**。本节只界定资源门判定域内的 exit 10；**磁盘写满 / 写盘失败 ⇒ exit 10** 是独立触发路径（`19_runtime.md` §7 与 `docs/engineering/LOG_AND_ERROR_CONTRACT.md` §5）。
+- **唯一判定点 = 重计算监控实测 + 发布验收**（判定参数与阈值唯一源 = `eng/contracts/resource_gate_v1.json`），以 `run_monitored.py --gate-required --gate-workers <registry 声明>` 形式实测。**`--gate-workers` 必须由 registry 显式声明**；未声明时利用率类判据不成立（记 `allocated_capacity_undeclared`），只有 ① 生效。
+- **exit 10（RESOURCE）在资源门判定域内的充分条件**：判定域内 ①②③ 任一违约且处于 enforce 面——该路径**只存在于资源门判定面**，程序内（CLI）无此路径。`NOT_APPLICABLE` 与 record-only 记录项**都不产生 exit 10**。本节只界定资源门判定域内的 exit 10；**磁盘写满 / 写盘失败 ⇒ exit 10** 是独立触发路径（`19_runtime.md` §7 与 `docs/engineering/LOG_AND_ERROR_CONTRACT.md` §5）。
 
 **事件面登记（`resource` / `resource_gate`）**
 
-`resource_gate`（severity=warning，仅判定为违规时发出）的**冻结必含扩展字段**（五面一致；正本 = `lib/infrastructure/cli/protocol.h::missing_required_extension_v1`，注册面见 门禁注册面（G08-10 重建））：
+`resource_gate`（severity=warning，仅判定为违规时发出）的**冻结必含扩展字段**（五面一致；正本 = `lib/infrastructure/cli/protocol.h::missing_required_extension_v1`）：
 
 | 字段 | 承载事实 |
 |---|---|
@@ -135,7 +135,7 @@
 | 实现 | 落点 | 与本节的关系 |
 |---|---|---|
 | C++ CLI | `lib/infrastructure/cli/resource_gate.h`、`memory_report.h`（阈值经 CMake 从契约生成的 `resource_gate_thresholds_generated.h` 引入） | 程序内 record_only；① 用 `workers_p50` |
-| Python 冻结门 | `eng/tools/monitoring/run_monitored.py::evaluate_frozen_gate` / `resolve_allocated_capacity` | CI 判定点实现；① 用 `threads_p50` |
+| Python 冻结门 | `eng/tools/monitoring/run_monitored.py::evaluate_frozen_gate` / `resolve_allocated_capacity` | 资源门判定面实现；① 用 `threads_p50` |
 | 外挂 judge（建议面） | `eng/tools/quality/resource_monitor.py` | 只给建议，不做发布判定；阈值同契约 |
 
 ### 8.7 节点级归因探针与两个 I/O 口径

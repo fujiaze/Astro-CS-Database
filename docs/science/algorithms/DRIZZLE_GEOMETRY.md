@@ -284,7 +284,7 @@
   （不再静默 FP32）；帧头显式 `fp32`/`fp64` 生效；未知 KV 值或参数
   非 -1/0/1 → 显式拒绝（返回非零，不写产物）。生产节点仍由
   `drizzle.precision_mode`（0|1）显式门把关。
-  （`lib/algorithms/drizzle/healpix_drizzle/hp_drizzle_api.cpp`；回归 eng/tests/unit/drizzle_precision_default_test.cpp）
+  （`lib/algorithms/drizzle/healpix_drizzle/hp_drizzle_api.cpp`；回归判据 = 精度缺省面）
 - **测光 provenance（禁硬编码 PHOTAPPL=1）**: PHOTSCAL/PHOTAPPL
   由真实测光 provenance `p1_phot.json`（DATA-P1-PHOTPROV-001，
   `p1_op_photometry` 产出）决定；未应用测光 → PHOTAPPL=0 + 帧头
@@ -321,8 +321,8 @@
     相对误差 <1e-5（drizzle_freeze_test.cpp 硬门；l0 小图 FP64<1e-10）；
   - FP64 通量闭合（辅判据，只证总量守恒）：逐 drop ≤ max(1e-6·A_drop, 1e-15 sr)、
     帧级 ≤1e-4，逐位置集分别判定，位置集必须含极点与 u+v=1 face 接缝（判据、绝对项
-    来源与适用域见本节「面积守恒闭合」条；位置集与逐组判定在
-    ctest 门 drizzle_p3_conservation）；求和型判据对逐叶错注入无判别力，
+    来源与适用域见本节「面积守恒闭合」条；位置集与逐组判定分别出读数）；
+    求和型判据对逐叶错注入无判别力，
     只作辅判据，不作验收判据；
   - 方差 α² 缩放律逐像素 worst_rel <1e-4（variance_propagation_test，
     SCI-DRZ-014）；
@@ -358,9 +358,8 @@
     赤道对照；另需含 HST 真实尺度（0.04″/px、nside=2^23）。
   - 判据必须逐位置集分别判定并打印（全局汇总通过不等于各位置集通过）；
     负例（注入订正前"叶顶点全含 ⇒ 返回解析叶面积 π/(3N²)"行为）时
-    极点/极冠组必须判红、赤道对照组必须仍绿。可执行门 =
-    ctest 目标 drizzle_p3_conservation / _self_test / _legacy_injection
-    （tests/p3_conservation_gate.cpp）。
+    极点/极冠组必须判红、赤道对照组必须仍绿。三条判据臂 =
+    守恒判据 / 自检判据 / legacy 注入判据。
   - **绝对项 ε_abs 的来源与适用域**：叶边界在 nside≥256 由 4 角弦表示、
     相邻叶边界与 drop 边的近退化大圆求交在 A_drop ≲1e-16 sr 尺度上
     留下 ~1e-16 sr 的绝对残差；该残差与 drop 尺寸弱相关（实测 drop
@@ -450,7 +449,7 @@ B0=1000、nside=512、W=H=16）：注入态（分母取 A_drop）逐 leaf `S_p/B
   CONTRACT_READY；lib/algorithms/drizzle/README.md 实现事实）；SRC-DRZ-001
   （lib/algorithms/drizzle/healpix_drizzle/hp_drizzle_api.h 等签名源）。
 - TEST: TEST-DRZ-DESIGN-001（本文档 §9）；可执行 TEST-P1-DRZ-001
-  由 P1-DRZ-TEST 建立（既有 lib 内 eng/tests/*.cpp 为科学门基线）。
+  由 P1-DRZ-TEST 建立。
 
 ## 参考文献与参考代码库（含许可证）
 

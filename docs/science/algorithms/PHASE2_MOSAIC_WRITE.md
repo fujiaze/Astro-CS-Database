@@ -375,7 +375,7 @@ main(stage2.json, CLI overrides):
   bitwise（:324-345）；lib/algorithms/coverage/tests/routing_test.cpp
   `Phase2Routing.AcrCpuRouteStaysCpuNoSilentGpu`（:54）/
   `AcrCpuRouteEntersCpuAcrBlockForLegacyWeightMode`（:65）；
-  eng/tests/backend/test_p2004_reject_integrate.py（cosmic ray rejected/
+  排异/积分 oracle 组（cosmic ray rejected/
   auto resolves/integration weighted mean/all rejected，:152-170）。
 
 ## 9 容差来源
@@ -506,7 +506,7 @@ f32 产品存取粒度所致，f64 oracle 不沿用）；fixture 生成器注记
 - 测试现状: 无名为 TEST-P2-HIPS-001 的测试；实测基线 = ivar_wiring_test.cpp
   （直接跑生产 acsd-stage2）、routing_test.cpp、synthetic_gate.cpp
   Phase2Integrate/Phase2Robust（reducer 级，:2622/:3360）、
-  eng/tests/backend/test_p2004_reject_integrate.py。
+  排异/积分 oracle 组。
 
 ## 参考文献与参考代码库（含许可证）
 

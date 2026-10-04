@@ -3,9 +3,9 @@
 > 上游：ACSD_DESIGN.md §10（I/O 与原子产品）、docs/detail/PRODUCT_STORAGE_FORM.md（DESIGN-STORAGE-001）
 
 > 上位：`ACSD_DESIGN.md` §10；`docs/detail/PRODUCT_STORAGE_FORM.md`
-下游：`docs/science/IO_002_HIPS_INPUT_INTERFACE.md`、`docs/engineering/io/IO_003_ATOMIC_OUTPUT_PUBLISH.md`、`docs/detail/infrastructure/17_aio.md`、`docs/detail/algorithms_phase1/08_drizzle.md`、`docs/detail/algorithms_phase2/09_coverage.md`
+下游：`docs/science/IO_002_HIPS_INPUT_INTERFACE.md`、`docs/engineering/io/IO_003_ATOMIC_OUTPUT_PUBLISH.md`、`docs/detail/infrastructure/17_aio.md`
 机器事实源：`eng/contracts/schemas/hips_storage_form.schema.json`（索引文件 schema）
-机器检查器：落盘形态判据（CI 检查 `CHK-HIPS-STORAGE-FORM`）
+判据载体：逐层字段口径核对（§9），由人工对抗审核执行
 
 ## 1. 冻结面
 
@@ -105,8 +105,8 @@
 
 - **指定生产者** = 写出产品集清单的**同一条命令（`mosaic`）的发布步**：在运行输出**根层**写出 `coverage.index.json`，与产品集清单一并**同一次原子发布**（同批、同原子序，见 §9）。
 - **裁决口径不变**：仍**单判据**（本轮只裁 `coverage.index.json` 一项，兄弟面不随之进入白名单）、**不设豁免名单**；`IO_003` §4「发布清单必含 `properties`」**不得放宽**，产品集判定**不得**改为白名单。
-- **未实现（零生产者）**：登记面 = `eng/contracts/ledgers/dead_config_keys.json#dead_config_key:coverage_index` 与 `docs/KNOWN_LIMITATIONS.md` §C 第 49 条；**不得静默留白**。
-- **落地判据（R-47.4）**：该发布路径实现时，须同时提供**正例**（索引存在且同批清单含 `properties`、随清单原子落盘）与**负例**（索引缺失或与清单不同批 ⇒ 判红）并进机器门；在此之前不得声称覆盖索引可用。
+- **未实现（零生产者）**：登记面 = `eng/contracts/ledgers/dead_config_keys.json#dead_config_key:coverage_index`；**不得静默留白**。
+- **落地判据（R-47.4）**：该发布路径实现时，须同时提供**正例**（索引存在且同批清单含 `properties`、随清单原子落盘）与**负例**（索引缺失或与清单不同批 ⇒ 判红）；在此之前不得声称覆盖索引可用。
 
 ### 4.3 查询语义
 
@@ -147,7 +147,7 @@
 
 ## 7. 体积削减（裸形态）
 
-**两种机制，冻结口径与判据如下**（机制与推导见 `docs/detail/PRODUCT_STORAGE_FORM.md` §9；读数复现判据 = 机器门 `CHK-SPARSE-PUNCH-PROBE`）：
+**两种机制，冻结口径与判据如下**（机制与推导见 `docs/detail/PRODUCT_STORAGE_FORM.md` §9；读数复现 = 按本节判据在 Linux 面实测，实测读数见 `实验/engineering-evidence/`）：
 
 | 机制 | 作用层 | 冻结规则 | 失败语义 | 判据（机器可校验） |
 |---|---|---|---|---|
@@ -156,7 +156,7 @@
 
 - **生效面**：仅**裸形态** `<name>.hips/`。**归档形态 `<name>.hips.zst` 两种都不实施**（收益被 zstd 吸收）。
 - **产品身份不受影响（T1）**：字节不变 ⇒ 产品哈希不变。**T2 改变内容** ⇒ 启用 T2 的产品与未 TRIM 的同源产品**不同身份**，必须在 `properties` 与 manifest 的 `storage` 段显式区分（两个身份都须显式具名，静默分化判红）。
-- **T1 与 T2 的收益口径分立对照**：T1 的整产物收益与 T2 的缩小-NAXIS 收益是两个独立口径，各自成立，只允许在同一机制内引用；T1 的收益只在 Linux 面有可核验读数（Windows 面无可核验读数，其等价实现只有一手文档依据），signal/variance/ivar 三层的收益口径另计。**实测读数与逐层数值见 `实验/engineering-evidence/`**；收益数值的复现判据 = 机器门 `CHK-SPARSE-PUNCH-PROBE`（Linux），机制与口径正本 = `docs/detail/PRODUCT_STORAGE_FORM.md` §9。
+- **T1 与 T2 的收益口径分立对照**：T1 的整产物收益与 T2 的缩小-NAXIS 收益是两个独立口径，各自成立，只允许在同一机制内引用；T1 的收益只在 Linux 面有可核验读数（Windows 面无可核验读数，其等价实现只有一手文档依据），signal/variance/ivar 三层的收益口径另计。**实测读数与逐层数值见 `实验/engineering-evidence/`**；收益数值的复现 = 在 Linux 面按上表 T1 判据①–⑤ 实测（`st_blocks` 下降量即整产物收益），机制与口径正本 = `docs/detail/PRODUCT_STORAGE_FORM.md` §9。
 - **降级**：T1 在卷不支持稀疏（`EOPNOTSUPP` 等）时跳过，产品保持完整可读；T2 在读端不支持时拒绝，不降级为"读小图"。
 
 ## 8. 错误语义
@@ -171,19 +171,22 @@
 | `properties` 的 `hips_tile_format` 与该子产品档位不符（`signal` 写 `tsv` / `snr` 写 `fits`）或为非标准 token | 既有读端拒绝（`UNSUPPORTED`）；目录子产品 `snr` 的 `tsv` 是登记值，不在此列（P-179 两档词表） |
 
 
-## 9. 机器校验
+## 9. 形态核对与负例
 
-- 索引 schema：`eng/contracts/schemas/hips_storage_form.schema.json`；
-- 检查器（`--root .`，exit 0 = PASS；同时跑逐层字段口径一致性判据）；
-- 逐层口径（`--doc-consistency`）：每层文档必须出现词表登记的字段名与取值，词表外的同义名一律判红；
-- 负例自检（`--self-test`，恒 0 = 全部内置正/负例符合预期；覆盖形态键缺省/留空的默认+warn、逐帧索引字段、清单 storage 段、mosaic/export 形态键 REJECT、层间口径不一致）；
-- CI 登记：无在位注册面（本仓无在位的门禁注册面与执行器）。
+- 唯一机器事实源 = 索引 schema `eng/contracts/schemas/hips_storage_form.schema.json`；
+  落盘实例是否满足该 schema，按 §10 的不变式 F0–F4 / M1–M4 逐条核对；
+- **逐层口径核对**：每层文档必须只使用 §10 词表登记的字段名与取值，词表外的同义名一律判红；
+  词表 = `hips_storage_form.schema.json#x-acsd-field-vocabulary`；
+- **负例必须能红**，覆盖面与本节判据同口径：形态键缺省/留空却无 warn、逐帧索引字段缺失、
+  清单 storage 段缺字段、mosaic/export 输入含形态键却未 REJECT、层间口径不一致 ——
+  每条各配一个构造样例，样例不合预期即判该判据失效；
+- 核对由人工对抗审核逐条执行，证据 = 复核命令 + 实测读数或产物路径，不产出流水线判决。
 
 ## 10. 形态的输入配置与输出清单字段（MUST）
 
 形态是**输入配置项**，不是运行期开关；产物必须**自报形态与索引路径**，使不同批次 Phase1 的输出 JSON 可以合并而不丢索引。
 
-字段词表唯一源 = `eng/contracts/schemas/hips_storage_form.schema.json#x-acsd-field-vocabulary`：字段名、取值、段名与文件名后缀只在那里定义一次，本文档与各层文档只引用，**同义名一律以词表为准**。逐层口径一致性由 `CHK-HIPS-STORAGE-FORM --doc-consistency` 机器断言（缺登记词、词表外的同义名、取值口径漂移都判红）。
+字段词表唯一源 = `eng/contracts/schemas/hips_storage_form.schema.json#x-acsd-field-vocabulary`：字段名、取值、段名与文件名后缀只在那里定义一次，本文档与各层文档只引用，**同义名一律以词表为准**。逐层口径一致性是硬判据（缺登记词、词表外的同义名、取值口径漂移都判红，核对口径见 §9）。
 
 ### 10.1 Phase1 输入配置键 `storage_form`
 

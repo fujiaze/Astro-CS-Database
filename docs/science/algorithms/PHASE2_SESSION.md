@@ -34,8 +34,7 @@ budget/allocator）、manifest 状态机与错误映射，供 CLI 直调（CLI-0
 **非目标（本模块不做）**：
 
 - 不做任何科学计算：无 coverage union/采样/UPM 求解公式（p2_session
-  全文零科学实现；`eng/tests/unit/p2_ir_facade_test.cpp` 的 facade 委托
-  断言冻结"不复制算法"）；
+  全文零科学实现；facade 委托断言冻结"不复制算法"）；
 - 不做 HiPS 马赛克写（upm_apply/reject/integrate/write 四域不在现状
   4 段内；`PUBLIC_API.md`「Phase2 会话装配」节；补齐归 P2-SESSION-IMPL，§11.4）；
 - 不做线程创建/并行调度决策：worker 数一律经 host->budget 注入域内
@@ -62,9 +61,8 @@ budget/allocator）、manifest 状态机与错误映射，供 CLI 直调（CLI-0
 ## 3 DAG 拓扑：canonical 四段
 
 `lib/phase2_session/p2_session.h` 冻结注释"coverage → sampler → UPM build → persist
-(可选); 全部直调 lib/algorithms/coverage 生产函数"；段名与运行 trace 由
-`eng/tests/unit/p2_ir_facade_test.cpp` 断言（{"coverage","sample","upm_build",
-"persist"} 四节点）。**段序不可重排**（§10.1）。
+(可选); 全部直调 lib/algorithms/coverage 生产函数"；段名与运行 trace 的冻结断言为
+{"coverage","sample","upm_build","persist"} 四节点。**段序不可重排**（§10.1）。
 
 | # | 段 | 输入端口（DATA-P2-SESSION §24） | 输出端口 | 被调用符号（path::symbol 实测锚） | 取消点 | 段内并行 |
 |---|---|---|---|---|---|---|
@@ -202,9 +200,8 @@ passthrough 交会话拒——两道防线，语义一致。
 
 反断言（grep 实测）：`lib/phase2_session/p2_session.cpp` 不含 p2_integrate_
 pixel / p2_reject_* / p2_upm_apply 族 / hips writer 任何符号——7 节点
-链其余四域不在现状 4 段（§11.4 差距表）。承载测试=`eng/tests/unit/p2_ir_facade_test.cpp`
-（p2_coverage_build/p2_sample_controls/p2_upm_build 委托
-断言；另含段序断言）；call-count 门设计冻结见 §11.5 T1。
+链其余四域不在现状 4 段（§11.4 差距表）。p2_coverage_build / p2_sample_controls /
+p2_upm_build 的委托断言与段序断言冻结于 §11.5 T1。
 
 ## 8 预算绑定与并发语义
 
@@ -237,8 +234,7 @@ pixel / p2_reject_* / p2_upm_apply 族 / hips writer 任何符号——7 节点
 
 ## 10 已冻结禁改清单（本层不可接受变化）
 
-1. 段序 coverage→sample→upm_build→persist 不可重排（`lib/phase2_session/p2_session.h`；
-   `eng/tests/unit/p2_ir_facade_test.cpp` 断言）。
+1. 段序 coverage→sample→upm_build→persist 不可重排（`lib/phase2_session/p2_session.h`）。
 2. canonical 节点集 {coverage,sample,upm_build,persist}（同一测试的静态
    门；typed DAG 扩面归 P2-SESSION-IMPL，不回头改 4 段 trace 词汇）。
 3. 五函数签名与 handle 所有权（`lib/phase2_session/p2_session.h`；P2Api 委托面
@@ -249,7 +245,7 @@ pixel / p2_reject_* / p2_upm_apply 族 / hips writer 任何符号——7 节点
    IO（`lib/phase2_session/p2_session.cpp` 的头部注释与 map_rc 分支）。
 6. 每段恰一取消检查点=段边界；upm 段整模型原子（`lib/phase2_session/p2_session.h`）。
 7. 预算零硬编码：worker 数恒经 host->budget 注入（`lib/phase2_session/p2_session.cpp`）。
-8. NODE-CALL 唯一性（§7 矩阵）；facade 不内联科学（`eng/tests/unit/p2_ir_facade_test.cpp`）。
+8. NODE-CALL 唯一性（§7 矩阵）；facade 不内联科学。
 
 ## 11 冻结附录（SRC-P2-SESSION-001 源码实测）
 
@@ -306,7 +302,7 @@ DATA-P2-SESSION（§24，并行任务生成）；本节为实现现状锚定。
 | 3 | sample 域产物（P2ControlObservation/P2ControlNode/P2SampleStats） | 已实现（sampler.cpp，ALG-P2-SMP-001 域） | 已存在（P2-SAMP 域） |
 | 4 | upm 域产物（model 构建/持久化 p2_upm_build/save/info/close） | 已实现（lib/algorithms/coverage/src/upm*.cpp，ALG-UPM-001 域） | 已存在（P2-UPM 域） |
 | 5 | persist 段=HiPS writer 域马赛克写产品 | **不在会话**：p2_session persist 段仅 upm_save 单产物；upm_apply/reject/integrate/write 四域未编排（`PUBLIC_API.md`「Phase2 会话装配」节） | P2-SESSION-IMPL（typed DAG 扩面） |
-| 6 | typed phase2 DAG 全链执行（"full execution no partial facade"） | 现状=4 段 facade 直调（`eng/tests/unit/p2_ir_facade_test.cpp` 契合现状口径） | P2-SESSION-IMPL（台账） |
+| 6 | typed phase2 DAG 全链执行（"full execution no partial facade"） | 现状=4 段 facade 直调（契合现状口径） | P2-SESSION-IMPL（台账） |
 | 7 | module integration descriptor + typed ports | registry 无 acsd.p2.session descriptor；占位 descriptor 工厂委托（§4） | P2-SESSION-INT（台账） |
 | 8 | registry 页 acsd.phase2.session.md / README / memory | 不存在；归 registry 面登记 | registry 面 |
 | 9 | TEST-P2-SESSION-001 可执行测试 | MISSING（不冒认） | P2-SESSION-TEST（台账） |
@@ -314,16 +310,15 @@ DATA-P2-SESSION（§24，并行任务生成）；本节为实现现状锚定。
 ### 11.5 TEST-P2-SESSION-DESIGN-001 冻结测试设计（可执行 TEST-P2-SESSION-001 由 P2-SESSION-TEST 落地，MISSING 如实登记）
 
 锚定台账三条任务关键词（`V7_1_STATIC_TASK_LEDGER.csv` 的三条 session 行），
-对拍先例 `eng/tests/unit/p1_ir_facade_test.cpp` / `p2_ir_facade_test.cpp`
-（同址 add_test 注册见 `eng/tests/unit/CMakeLists.txt`）：
+对拍先例 `p1_ir_facade_test.cpp` / `p2_ir_facade_test.cpp`：
 
 - **T1 call-count 唯一性**（台账 "add node call-count tests …
   coverage through hips writer each once"）：§7 矩阵逐符号断言——
   现状 4 段（p2_coverage_build×2/probe-fill、p2_sample_controls×2、
   p2_upm_build×1、p2_upm_close 恰 1、反断言零越段调用）+ typed DAG
   扩面后的 7 节点链全链 call-count（coverage→…→hips writer 每节点
-  恰一次，P2-SESSION-IMPL 落地后启用该面）。静态 grep 门
-  （`eng/tests/unit/p2_ir_facade_test.cpp` 先例）+ 运行期门双层。
+  恰一次，P2-SESSION-IMPL 落地后启用该面）。静态 grep 审核
+  （`p2_ir_facade_test.cpp` 先例）+ 运行期核对双层。
 - **T2 typed DAG/full execution**（台账）：canonical 节点集断言
   （facade 测试先例）、段序不可重排（同上）、facade 零内联科学
   （不含 UPM 求解循环/积分/排异符号）、四段 trace 与静态节点一致

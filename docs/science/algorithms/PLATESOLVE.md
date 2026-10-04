@@ -298,7 +298,7 @@ Polar prune: if |dec|>45° use C/C45 disk B(q,C·radius), false_negative=0
   num_threads 注入；长帧求解不可中断。threading_model=host_executor_lease
   为合同值，接线归 P1-WCS-IMPL。
 - DISP-WCS-006 三套 TAN 实现并存：ipv（生产）、wcs_tan（lib/algorithms/platesolve/wrapper_phase1，
-  仅 `eng/tests/unit/p1_wcs_phot_test.cpp` 消费）、wcs_transform（P1-PHOT 域）
+  仅 WcsTan 桥回归面消费）、wcs_transform（P1-PHOT 域）
   ——像素中心契约不一致（§11.2 双契约），维护歧义，去留归
   P1-WCS-IMPL/P1-PHOT-IMPL。
 - DISP-WCS-008 SIP 逆映射网格/阶扩展 + 迭代反演：生产 `ipv_wcs.cpp` AP/BP 用
@@ -334,11 +334,10 @@ Polar prune: if |dec|>45° use C/C45 disk B(q,C·radius), false_negative=0
   拟合单线程，无跨线程浮点重结合——§5c 禁令；若实测违背，P1-WCS-TEST
   如实登记，语义取值照本节）。
 - F6 WcsTan 桥回归：WcsTan pix2sky/sky2pix roundtrip <1e-6 deg
-  （`eng/tests/unit/p1_wcs_phot_test.cpp` 冻结值）；另有**独立前向交叉绝对门**：pix2sky 输出与
+  （§10 冻结值）；另有**独立前向交叉绝对门**：pix2sky 输出与
   独立 TAN 逆投影参考解（`lib/infrastructure/scheduler/src/module_adapters.cpp` 内 p1_tan_forward_reference，
-  与 WcsTan 的 atan(R)/asin 式不同源）角距 **≤1e-9 deg**；测试锚
-  eng/tests/unit/p1wcs negative `n1_wcs_tan_unit_anchor` 与 units
-  `u1_f6_abs_cross`，生产门同在 p1_op_wcs。roundtrip 仅作次级不变量
+  与 WcsTan 的 atan(R)/asin 式不同源）角距 **≤1e-9 deg**；判据锚为 negative 组
+  `n1_wcs_tan_unit_anchor` 与 units 组 `u1_f6_abs_cross`，生产门同在 p1_op_wcs。roundtrip 仅作次级不变量
   （对 ξ/η 成对单位错零鉴别力，见 AUD-COORD F-01/F-06）。
 - 回归锚：Galaxy_Center 实场 fixture。当前版本实测 T4 Galaxy_Center panel1 Red
   `rms_arcsec=0.2803–0.3588″`（六帧）；该值须在 UNIT-001（XISF 母版单位）落地后

@@ -88,8 +88,7 @@ function photometric_fit(F_instr, F_syn, G_Gaia):
 规范口径：**并列构型不在本算法的适用域内**；调用方（星检测/星表）必须保证同一 PSF 星在匹配半径内不存在
 精确等距的 Gaia 候选。该例外的存在性由 `p1phot_determinism` 的 N1 负例锁住（判据必须能分辨它）。
 
-**可执行判据**：`lib/algorithms/photometry/tests/p1phot/p1phot_tests_determinism.cpp`
-（ctest `p1phot_determinism`）—— 线程数扫描 1/2/4/8（I5 的显式补全）+ 两类到达序置换
+**可执行判据**（确定性组）—— 线程数扫描 1/2/4/8（I5 的显式补全）+ 两类到达序置换
 + 两个序相关负例（N1 并列 tie-break / N2 在线归约），正负例共用同一 `verdict` 函数。
 **注意与 §13.4 I5 的区别**：I5 只扫线程数、每个线程跑**完全相同的样本序**，因此**抓不到**顺序依赖；
 两者互补，不可互相替代。
@@ -107,7 +106,7 @@ function photometric_fit(F_instr, F_syn, G_Gaia):
 
 **为什么是装配契约而不是新的科学判据**：通带形状**不被零点吸收**（`docs/science/PHOTOMETRY.md` §2a.5），故「用了哪条曲线」决定 `sigma_residual` 的可比性；本节只核对「用的是不是声明的那条」，**不改**任何公式、阈值、容差与权重。
 
-**可执行判据**：`lib/infrastructure/pipeline/orchestrator/cpp/tests/test_p1phot_passband_identity.cpp`（ctest `p1phot_passband_identity_gate`，装配入口层）与同目录 `test_photometry_curve_resolve.cpp` 的 `[I0..I9]`（解析层），两者都含恒真自检（正例与错误输入的判定必须互不相同）。
+**可执行判据**（装配入口层与解析层 `[I0..I9]`）：两者都含恒真自检（正例与错误输入的判定必须互不相同）。
 
 ## 6 复杂度
 
@@ -266,7 +265,7 @@ F_syn = ∫ F_λ(λ)·T(λ)·Q(λ)·λ dλ        # W·m⁻²·nm；F_λ 单位 
   F4: XPSD uint8 光谱解码+1.0nm 积分 NumPy 参考复算（rtol 1e-9）；F5:
   退化输入矩阵（无 Gaia/无 PSF/无光谱星/滤光片失败 → scale=1.0、rc=0、
   records reject_reason 显式）；F6: Photometer aperture 已知通量 + 越界/
-  空环/空孔径显式失败（对齐 eng/tests/unit/p1_wcs_phot_test 4 组）。
+  空环/空孔径显式失败（对齐孔径组 4 组）。
 - 不变量 I1: out_pixels=round-trip(I·scale) bitwise（f64 通道）；I2:
   sigma_residual=`median(|r_inliers−location|)/0.6744897501960817` 与逐星 records 残差一致。**该门的性质**：oracle 侧（`lib/algorithms/photometry/tests/p1phot/p1phot_oracle.hpp`）按**同一中心约定**（中心 = `location`）复算，故 I2 是**实现一致性**门（可抓编码错误），**不是定义正确性**门——若中心约定本身有误，两侧同错、门仍绿。定义口径由 §2 F4 的显式声明固定；中心约定的敏感度见 §2 F4（δ/σ 一阶偏差）。I3:
   Σdiag.rejected_*+fit_used=unique_matches；I4: records[star_id] 与输入
@@ -286,7 +285,7 @@ F_syn = ∫ F_λ(λ)·T(λ)·Q(λ)·λ dλ        # W·m⁻²·nm；F_λ 单位 
   （median 回退，无调用方，DISP-PHOT-003）。
 - acsd::phase1::Photometer（lib/algorithms/photometry/wrapper_phase1/photometer.{h,cpp}）
   =aperture 测光待迁移符号（静态库 acsd_phase1_phot，`CMakeLists.txt`；
-  单测 eng/tests/unit/p1_wcs_phot_test 与其注册处 `eng/tests/unit/CMakeLists.txt`，
+  单测覆盖已撤，
   未接 orchestrator 管线），aperture 合同并入 lib/algorithms/photometry/
   README.md §9。
 

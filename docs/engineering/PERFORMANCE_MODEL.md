@@ -11,7 +11,7 @@
     验证方式 = 与穷举候选集比对时 **false negative 恒为 0**（本仓 oracle）。
   - **UPM dense cache**：稠密缓存与逐点稀疏求值必须给出同一结果；
     验证方式 = 缓存命中域上的最大相对偏差 ≤ 1e-12。定义与适用域见
-    `docs/detail/algorithms_phase2/11_upm.md`、`docs/science/PHASE2_UPM.md`。
+    `docs/science/PHASE2_UPM.md`。
   - **NoiseWeightModelV1**：权重模型以 oracle 矩阵与 Monte Carlo 双向核对；
     定义见 `docs/science/NOISE_MODEL.md`。
   - **Gaia 极区 prune**：剪枝用**可证明保守**的球面判据（不丢候选）；cache 键精确匹配，
@@ -54,7 +54,7 @@
 （`alloc_*` / `resource_*` / `worker_balance` / `graph/*` / `p1_final` / HiPS `properties`）
 仅差 output_dir 路径串 / 时间戳 / run_id。
 该性质与 `docs/science/algorithms/DRIZZLE_GEOMETRY.md` 的 `DRIZZLE-DET-001`
-（1..16 线程预算逐位恒等）同口径；判据套件见 `eng/tests/` 的 determinism 面。
+（1..16 线程预算逐位恒等）同口径；对照实验与逐档读数见 `实验/engineering-evidence/l2_performance/`。
 
 ## 2 有效并行宽度
 
@@ -111,7 +111,7 @@ W_eff = F × min(I, K)                                    // drizzle 节点；K 
 `W_eff` 由 `2×min(8,2) = 4` 抬到 `2×8 = 16`）。
 
 **「`K` 不进数值路径」的判据（非只引注释）**：回归锁 `p1drz_merge_pipeline_lock`
-（门禁注册面登记的那组实验在 16 核档下直接比较 `K=2` 与 `K=num_threads` 两条路径），
+（一组在 16 核档下直接比较 `K=2` 与 `K=num_threads` 两条路径的对照实验），
 要求逐 leaf 转储 `.canon` 与 `.norm.hiss` 的 sha256 完全一致
 （256×1024 高瘦帧 / 64 stripe / FP32+FP64 / `taskset` 预算 1,2,4,8,16 / 每预算两轮重复）；
 另有同二进制多档轴形态 A/B 下全部产品**逐位相同**的判据。内存代价：每份额外 scratch 的增量

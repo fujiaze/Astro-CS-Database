@@ -398,7 +398,7 @@ doc_index:
       downstream: ""
     - path: "docs/engineering/04_ARTIFACTS.md"
       status: ACTIVE_NORMATIVE
-      duty: "CI 工件与证据落位规范"
+      duty: "构建工件与证据落位规范"
       upstream: "docs/ACSD_DESIGN.md §10（I/O 与原子产品）、§12.4（验证层级与四层验收）"
       downstream: "ACCEPTANCE_SPEC.md、README.md 等 5 处"
     - path: "docs/engineering/API-001.md"
@@ -968,7 +968,7 @@ doc_index:
       downstream: ""
     - path: "docs/engineering/FROZEN_GATE_INVENTORY.md"
       status: ACTIVE_NORMATIVE
-      duty: "冻结门台账（表内唯一来源与证据必需的正本登记）"
+      duty: "冻结门判别力口径与盲区登记（三问盘点口径、判定点执行证据、已知盲区与处置）"
       upstream: "docs/ACSD_DESIGN.md §12.1（科学正确性与三重佐证）、docs/engineering/SCIENCE_FREEZE.md（冻结基线）、docs/science/algorithms/GATES_AND_TOLERANCES.md §1 R1/R2（表内唯一来源、证据必需）"
       downstream: ""
     - path: "docs/engineering/SCIENCE_FREEZE.md"

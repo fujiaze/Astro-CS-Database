@@ -386,7 +386,7 @@ phase1_session 将 out 写为 `calibrated_<原名>.fits`（float32 ADU）；母�
 | "data" 块 | float32 或 float64（二选一）`[H][W]` 行主序（hp_drizzle_api.cpp:584-630） | ADU | 多通道 channels≠1 拒绝（BLOCKER）；**值 NaN/Inf 经 `F_p=Σx_j·w_jp` 直接传播、drizzle 层不掩膜**——**逐像素一律计入累加器并计数**（`isfinite(...)+continue` 式静默吞像素即反例）；实现锚 `lib/algorithms/drizzle/healpix_drizzle/drizzle_engine.cpp:1899-1902`、`hp_drizzle_api.cpp`，科学锚 `docs/science/DRIZZLE.md:116`，回归 `lib/algorithms/drizzle/healpix_drizzle/tests/p1drz/p1drz_tests_core.cpp:518-537`（`p1drz_negative`） |
 | "header" KV: CD1_1..CD2_2 或 CDELT1/2+CRVAL1/2+CRPIX1/2 | double | 度/像素、度、像素（1-based） | 两者均缺 → 无 WCS，帧通道返回 -9（hp_drizzle_api.cpp:427-447，`read_wcs_params_from_frame`）；CDELT+CROTA2 构造 CD（hp_drizzle_api.cpp:412-421）。 |
 | "header" KV: SIP A/B/AP/BP 系数 | double[] | 无量纲 | gate A_ORDER 存在才载入（hp_drizzle_api.cpp:451-505）；reverse 通道 sip_order 校验 [0,5]。**B2-A17**：编排 drizzle 节点从 `p1_wcs.json` 读回 `wcs.sip`，经 `p1_sip_write_header_frame` 写 frame header `CTYPE1/2`（含 `-SIP`）、`A_ORDER`/`B_ORDER`、`A_i_j`/`B_i_j`、`AP_*`/`BP_*`；无 SIP → CTYPE 不含 `-SIP` 且不写任何 SIP 键（module_adapters.cpp p1_op_drizzle）。 |
-| "header" KV: "PRECISION" | 字符串 "fp32"/"fp64" | — | precision_mode=-1 时读取；**RESCUE-FD-02**：无 KV 时库边界缺省 **FP64**，**禁**静默取 FP32（权威 = docs/science/algorithms/DRIZZLE_GEOMETRY.md `RESCUE-FD-02 库边界精度缺省` + 实现锚 `hp_drizzle_api.cpp:956-991` + 回归 `eng/tests/unit/drizzle_precision_default_test.cpp`；**语义不变**），未知 KV 值/参数非 -1/0/1 → 显式拒绝（返回非零，不写产物，`hp_drizzle_api.cpp:956-991`）；编排经 aio_frame_kv_set 写入（orchestrator.cpp:3367-3379）。**B2-A12**：P1 drizzle 节点**必须**按 `drizzle.precision_mode` 写实际精度，**禁**写死 "0"；`precision_mode` 缺失/非整数 0|1 → DATA 拒绝（CLI rc=2），不写 p1_stack.* |
+| "header" KV: "PRECISION" | 字符串 "fp32"/"fp64" | — | precision_mode=-1 时读取；**RESCUE-FD-02**：无 KV 时库边界缺省 **FP64**，**禁**静默取 FP32（权威 = docs/science/algorithms/DRIZZLE_GEOMETRY.md `RESCUE-FD-02 库边界精度缺省` + 实现锚 `hp_drizzle_api.cpp:956-991` + 回归判据 = 精度缺省面（`-1` 且无 KV ⇒ FP64、有 KV ⇒ 取 KV、未知 KV ⇒ 拒）；**语义不变**），未知 KV 值/参数非 -1/0/1 → 显式拒绝（返回非零，不写产物，`hp_drizzle_api.cpp:956-991`）；编排经 aio_frame_kv_set 写入（orchestrator.cpp:3367-3379）。**B2-A12**：P1 drizzle 节点**必须**按 `drizzle.precision_mode` 写实际精度，**禁**写死 "0"；`precision_mode` 缺失/非整数 0|1 → DATA 拒绝（CLI rc=2），不写 p1_stack.* |
 | "header" KV: "PHOTSCAL"/"PHOTAPPL"/"PHOTDEGRADE" | 数值 + 整型标签 | 无量纲 | — | **B2-A14**：drizzle 节点从真实测光 provenance `p1_phot.json`（DATA-P1-PHOTPROV-001，由 `p1_op_photometry` 产出）读 `photometry_applied`/`photscal`；未应用测光 → `PHOTAPPL=0`+`PHOTDEGRADE=1`；**写盘 BUNIT 一律取 §31.1 冻结的 canonical 面亮度族串（signal 面 `ADU/sr`），由输入面声明决定，与 `PHOTAPPL` 各自独立**——BUNIT 描述「量的种类」（线性计数面亮度），标度由 `PHOTSCAL`/`PHOTAPPL` 逐帧承载（§31.1a；实现守卫 = `hiss_writer.cpp` 的 BUNIT 白名单 fail-closed，只接受 `{ADU/sr, ADU^2/sr^2, sr^2/ADU^2}`）；未显式降级且 `PHOTAPPL=0` → 引擎按 02_FROZEN §7 拒绝。`PHOTAPPL=1` 仅当 provenance 声明已应用（禁硬编码） |
 | "snr_model" 块（可选；**标准块定义表已登记**，见本节首注） | 稀疏控制点（ra/dec/snr_psf + snr_phot/median_snr/idw_power） | 度、度、无量纲 | 缺块/0 点 → 不写 SNR 子块；KD-tree IDW 重建逐像素 SNR（snr_evaluator.h） |
 | nside | int，2 的幂 | — | 非法（≤0 或非 2 的幂）拒绝（hp_drizzle_api.cpp:208-210 文件通道 / `:557-561` 帧通道）；auto 模式钳位 [16,2^22]（compute_auto_nside） |
@@ -608,8 +608,7 @@ phase1_session 将 out 写为 `calibrated_<原名>.fits`（float32 ADU）；母�
 | reference_flux_k | f64 | ADU（与该帧 `F`、`σ_F` 同标度；由 `m_ref/ZP` 合成的绝对档位可写为 F_syn 制，取值随 `reference_mag_system`） | **逐帧** `F_ref,k = 10^(−0.4·(m_ref − ZP_k))`（逐帧、只依赖本帧标定）；**配对条件** = 与同帧 `snr_f` 同帧同源（`w = SNR²/F_ref² = 1/σ_F²` 要求分子分母同标度，跨标度相乘会使 SNR 偏一个增益因子） |
 | reference_flux_adu | f64/null | ADU | 显式覆盖键 `snr.reference_flux_adu`（优先于合成谱）；缺省 null |
 
-**样本真实性约束（机器锁 eng/tests/unit/p1snr/
-p1snr_frame_parity_test.cpp）**：同一输入下 `psf.max_stars=0`（不限）与
+**样本真实性约束（机器锁：帧间 parity 判据）**：同一输入下 `psf.max_stars=0`（不限）与
 `psf.max_stars=5000`（或任何值）两次运行，交付的 `snr_phot` / `median_snr` /
 `frame_depth_flux5_adu` / `frame_depth_m5_mag` / `n_snr_input` /
 `n_snr_catalogue` **必须逐位一致**（`psf.max_stars` 仅性能用途）；人为用
@@ -1471,8 +1470,7 @@ rc（函数返回）: 0=语义由 status 承载；1=stack/result null（:20-21�
   正性要求——零权重 accepted 样本**进入** max（`:44-50`）；全零权
   （ZERO_VALID_WEIGHT）仍发布该 max（`:79-80`），ALL_REJECTED 保持 0
   （`:21`）。口径与 ALG-P2-INT-001 §11.3「支撑单调性」及
-  `docs/science/INTEGRATION.md:85-90` 一致；回归门 =
-  `eng/tests/unit/p2_output_semantics_test.cpp`（4b/4c/4d 节）。
+  `docs/science/INTEGRATION.md:85-90` 一致；回归判据见该条 4b/4c/4d 节。
 
 ### 21.6 交叉引用
 
@@ -3111,7 +3109,7 @@ ivar_out = var_out 同态  (var_out=0 → 0 显式不可用; NaN → NaN)
 > 条款注册表见 **§31.10**；Phase3 逐像素立体角与采样核版本化 registry 见 **§28.6**。
 > 字段级机器门：对象级判据落在 `eng/contracts/schemas/unified/*.schema.json` 的 `allOf`；
 > 产品族记录级判据落在 `eng/contracts/schemas/product_family_field_constraints.schema.json`；
-> 正例 `eng/contracts/data/examples/`；验证 `eng/tests/contracts/product_family/`（独立 Oracle + 负向 mutation）。
+> 正例 `eng/contracts/data/examples/`；验证 = 独立 Oracle + 负向 mutation。
 > 状态语义：`PENDING_OWNER_SIGNOFF` = 条款值与文本唯一确定，但涉及 FROZEN 科学文档的修订或数值确认，签字后方可作为正式修订生效；**生效前相关面 fail-closed，实现面保持条款原样、任何产物都标 pending**。`OPEN` = 尚未冻结（数值待定或数据面待实例化），**生产判据面 = 空**，引用处必须显式标注 pending（逐条登记见 §31.10）。
 
 ### 31.1 单位表（`FZ-UNIT-*` / `FZ-P3-BUNIT-QUADRATIC`）
@@ -3403,7 +3401,7 @@ concentration 写作 `ADU/px` 属**登记在案的文本错误**：`ADU/px²` �
 
 **fail-closed 策略**：`PENDING_OWNER_SIGNOFF` 条款保持 pending 并 fail-closed，任何生产 artifact 的状态词 = pending 本身，而非
 `FROZEN`；缺项 / 枚举越界 / 单位不一致 / 待签写成已冻结 / 诊断量进权重面 → 判红。判据由
-`eng/tests/contracts/product_family/` 的独立 Oracle 与负向 mutation 证明"能红"。
+独立 Oracle 与负向 mutation 证明"能红"。
 
 **迁移映射（`DATA-V6-SCHEMA-INTEGRATION`）**：目录级迁移（权重词表 / 单位 / 归一 / PSFSW 词表 /
 协方差产品 / 诊断量 / owner）的逐条落点见 `eng/contracts/data/clause_registry.json#migration_map`，

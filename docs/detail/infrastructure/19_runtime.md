@@ -161,7 +161,7 @@ flowchart LR
 
 - 编排层目录 `cpp/` 下存在嵌套的 `logs` 目录（非阻断缺陷）；日志落点的唯一合法
   面是 `<output_dir>/logs`（最高设计 §7.3），落点之外的位置（含 `run/`、源码树
-  目录、安装目录、用户家目录、进程 CWD 相对路径）均不在处置面内，机器判据见
+  目录、安装目录、用户家目录、进程 CWD 相对路径）均不在处置面内，判据见
   docs/engineering/LOG_AND_ERROR_CONTRACT.md。
 - `cache_budget_mb` 与 `schedule_policy` 为无行为承载的配置键。
 - artifact-manifest 与调度指标（worker 空转率、缓存命中率、数据搬运量、上下文

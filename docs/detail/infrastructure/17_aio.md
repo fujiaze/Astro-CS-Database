@@ -115,7 +115,7 @@
   编排层的 6 个名字**不是块词表**，而是 `stage_trace.jsonl` 的**跟踪子集**；
   DATA_SEMANTICS §11.1 的「帧内命名块」表**只作引用**。当前实现状态：标准块定义
   表**尚未收录** `variance` 块；`aio_pipeline.h` **仍允许**未列出的自定义块名；
-  「块名 ∉ 标准表 ⇒ 判红」的机器判据**尚未建立**。
+  「块名 ∉ 标准表 ⇒ 判红」这条不变量当前无自动兜底，核对责任在对抗性审查。
 - `PipelineStageFn` 签名 = `const input / output / params` + `error_msg` /
   `error_capacity`（可为 NULL，> 0 保证 NUL 终止 / 截断）；
   `aio_frame_add_block_move` 为 move 语义（成功接管后调用方不再拥有 `aio_alloc`
@@ -132,7 +132,7 @@
   映射唯一源 = docs/engineering/LOG_AND_ERROR_CONTRACT.md §5）；
 - **日志落点** = 块级 `log_dir`（默认 `<output_dir>/logs`），节点事件经
   observability 汇聚（最高设计 §7.3）；落点之外的位置（含 `run/`、源码树目录、
-  安装目录、用户家目录、进程 CWD 相对路径）均不在处置面内，机器判据见
+  安装目录、用户家目录、进程 CWD 相对路径）均不在处置面内，判据见
   docs/engineering/LOG_AND_ERROR_CONTRACT.md。日志内容 = 错误类别 + 消息。
 
 ## 8. 执行类、并行轴、ThreadBudget lease、确定性
@@ -166,7 +166,7 @@
   该缺口闭合为前提**（最高设计 §10 的原子发布条款；缺口如实登记）；
 - 归档形态的写出与读取、产品级索引与完成清单 `storage` 段写出未落地，生产只落
   裸形态；
-- 标准块定义表未收录 `variance` 块，且无块名越表的机器判据；
+- 标准块定义表未收录 `variance` 块，且块名越表无自动兜底；
 - 全局限制登记 = artifacts/evidence/known-limitations-ledger/LIMITATIONS.md。
 
 ## 11. 源文件

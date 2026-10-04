@@ -340,8 +340,7 @@ uncertainty      = sqrt(control_variance)                  # :878
   - **1.3883 的归属（改写）**：标定几何专属（源 300″/px、nside=512 → 412.26″/px、
     pixfrac=0.8、全 touched patch N≈225–251）的 MC 实测带 **1.27–1.43（中心 1.34±0.04）**
     内的一次实现值；受控复现 1.3445±0.0416（16 相位 × 8 seed），
-    证据源 `control_median_mc_test` **已注册（`lib/algorithms/drizzle/healpix_drizzle/tests/
-    CMakeLists.txt:110-118` add_executable + add_test）⇒ 可复跑**；
+    证据源 `control_median_mc_test` 的判据覆盖该复现；
   - **消费规则（fail-closed）**：任何引用 `control_variance` 的陈述**必须同时**声明
     (i) 标定元组 (ρ, pixfrac, 帧数/dither, patch 构成)；(ii) N_retained 档位
     （N≤25 时 k_gauss(N)>1.08 不可忽略，N=5 须取 ≥1.6）；(iii) 元组与本产品几何不一致时

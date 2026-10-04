@@ -320,8 +320,8 @@ status 语义: 0=ok；错误路径部分分支置 1（`lib/algorithms/coverage/s
   build 层对全部帧做**全等**比较（含空串）——空 filter 一律不静默放行
   （违背「同一 filter/passband」兼容前提 `lib/algorithms/coverage/include/astro/phase2/coverage.h`）；
   (c) 跨帧 `hips_frame` 相等；(d) `hips_ordering` 非 NESTED 拒绝
-  （均在 `lib/algorithms/coverage/src/coverage.cpp`）。真实 filter/ordering 负例见 eng/tests/cli/test_phase3_inprocess.py
-  `test_10_coverage_requires_filter_and_nested_ordering`。
+  （均在 `lib/algorithms/coverage/src/coverage.cpp`）。真实 filter/ordering 负例见
+  `test_10_coverage_requires_filter_and_nested_ordering` 用例。
 - DISP-COV-004 overlap/intersection/missing-tiles 产品缺失（合同范围
   缺口，非公式错误）: matrix P2-COV 专项要求 union/intersection/
   missing tiles/constant overlap 四语义；现状仅 union（`lib/algorithms/coverage/src/coverage.cpp`）+

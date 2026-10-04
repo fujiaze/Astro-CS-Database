@@ -203,6 +203,7 @@ python3 run/DOC-404/verify_oss.py     # 输出 run/DOC-404/evidence/oss_line_anc
 > —— Gaia DR3 Documentation release 1.3, §20.12.4 `xp_sampled_mean_spectrum` [2]（`run/DOC-404/evidence/gaia-xp-sampled.html`）
 
 **核验计数（复跑器实测）**：`python3 run/DOC-404/check_pack_refs.py` → **`doi=45 ok=45 fail=0 | arxiv=10 ok=10 fail=0 | url=24 ok=24 non200=0`（rc=0，两份研究包去重合计；含本包与 SNR 包）**；开源锚由 `python3 run/DOC-404/check_pack_oss_anchors.py` **逐条断言「锚行/锚区间逐字命中预期符号」→ `anchors=36 ok=36 bad=0`**（证据 `run/DOC-404/evidence/pack_oss_anchors_exact.txt`、`run/DOC-404/evidence/oss_line_anchors.txt`）；`[NONE]` 3 条（§9）。全部 DOI 经 Crossref API 解析且卷/页/年与作者匹配，全部 arXiv 经 `arxiv.org/abs` HTTP 200 + arXiv API 标题匹配。
+（现态：`run/DOC-404/` 复跑目录与其复跑器脚本已不在本仓，上述计数为该次运行的台账读数；复跑时须重新执行引用核验，不得引用固定计数。）
 
 ---
 

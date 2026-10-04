@@ -48,9 +48,9 @@ HiPS 输出/原子发布见 `docs/engineering/io/IO_003_ATOMIC_OUTPUT_PUBLISH.md
 | 本合同 | `docs/science/IO_002_HIPS_INPUT_INTERFACE.md` |
 | HiPS 输入 C ABI | `lib/infrastructure/aio/io/include/acsd/io/hips_input_v1.h` |
 | HiPS 输入核心（C 实现、私有、DLL 内） | `lib/infrastructure/aio/io/hips_core.c` |
-| 契约/负测（Python，astropy/astropy_healpix 可选 oracle） | `eng/tests/io/` |
+| 契约/负测（Python，astropy/astropy_healpix 可选 oracle） | 判据清单见本文 §8 |
 | C 层自检驱动 | `lib/infrastructure/aio/io/tests/hips_core_selftest.c` |
-| fixture 重建生成器 | `eng/tests/io/make_hips_fixture.py` |
+| fixture 重建生成器 | 判据清单见本文 §8 |
 
 ## 3. 输入合同（IVOA HiPS 兼容子集）
 
@@ -225,7 +225,7 @@ plane 读回后按调用方 dtype 目标转换；`NAXIS1!=NAXIS2!=TW`、卡冲�
 
 ## 7. fixture 可重建（验收）
 
-`eng/tests/io/make_hips_fixture.py` 是 **fixture 重建生成器**：以固定随机种子合成
+**fixture 重建生成器**是 §7 的固定种子生成器：以固定随机种子合成
 小 HiPS（可选 order，默认 K=1，TW=512 数据为梯度块）并写
 
 ```text
@@ -250,7 +250,7 @@ plane 读回后按调用方 dtype 目标转换；`NAXIS1!=NAXIS2!=TW`、卡冲�
   6. parent fallback（请求缺 tile ipix，父 order 存在同族 tile）→ TILE_MISSING
      （**不返回父 tile 内容/不回退**）。
 
-## 8. 验收映射（eng/tests/io/）
+## 8. 验收映射（判据清单）
 
 | 验收 | 测试 |
 | --- | --- |

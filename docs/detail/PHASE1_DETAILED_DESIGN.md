@@ -44,7 +44,7 @@ ingest → calibration → cosmetic/validity → background/noise
 **序的依据**：`platesolve` 按帧读校准后像素自行做星点检测与星表匹配，**不消费** `star_detection` 的产物；
 而权威检测的星表逆投影需要**含取向**的完整 WCS（取自本帧解算产物）⇒ 解算必须在检测之前。
 `psf` 的唯一消费者是 `photometry`（本就在解算之后），故该序不延长关键路径。
-节点序与依赖边由注册表端口图唯一确定，机器判据见 `docs/engineering/PIPELINE_BLOCK_CONTRACT.md` §7.1。
+节点序与依赖边由注册表端口图唯一确定，判据（注册表 ↔ 管线 IR 的节点序与边保真）见 `docs/engineering/PIPELINE_BLOCK_CONTRACT.md` §7.1，由对抗性审查逐条核对。
 
 节点可由调度器安排，但科学依赖不可改变；每节点只执行声明 operation，整段 Phase1 逐 operation 执行一次。
 **photometry 为什么是一步（不是两步）**：拟合出的归一化标度 `k_photo` 必须真正落到像素，但**施加不需要独立的节点**——

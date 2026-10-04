@@ -45,7 +45,7 @@
   `p2_upm_ma_build`（`upm.cpp`）对上述四类越域一律返回 rc=7。
   物理依据：k_corr 表征 Drizzle 输出像素协方差使 `N_eff ≤ N_retained`；k_corr<1 ⇔ N_eff>N_retained，
   正相关样本的有效样本量不可能大于样本数；k_corr=1 ⇔ 忽略相关。**两者都显式拒，不静默饱和**。
-  边界已有判别力测试：`eng/tests/unit/p2_upm/p2_upm_ma_test.cpp`（0.999999→rc=1、1.0000001→rc=0）。
+  边界已有判别力用例：`k_corr=0.999999`→rc=1、`k_corr=1.0000001`→rc=0。
   **适用域（正向约束）**：k_corr 只在**其标定域内**有实证意义。
   1.3883 是标定几何专属（源 300″/px、nside=512→412.26″/px、pixfrac=0.8、
   全 touched patch N≈225–251、逐实现 MAD 取跨实现中位）的 MC 实测带
@@ -316,8 +316,9 @@
 - 权威文件: `docs/science/PHASE2_UPM.md` (SCI-UPM-001..010, SCI-UPM-WEIGHT-001, SCI-UPM-PERSIST-001)
 - 实现: `lib/algorithms/coverage/src/upm.cpp` (1107-1123, 493-510), `lib/algorithms/coverage/src/sampler.cpp` (250-364, 672), `lib/infrastructure/aio/src/aio_upm.cpp` (持久化)
 - 公开 API: `p2_upm_build, p2_upm_calibrate_block, p2_upm_raw_weight, p2_upm_open/save`
-- 测试: `TEST-UPMW-001..007, UPMW-001..007, UpmPersist*` (`synthetic_gate.cpp`)；
-  `control_median_mc_test.cpp` **EXECUTABLE（已注册：进 CMake/ctest/CI 面，可复跑）**
+- 测试: `TEST-UPMW-001..007, UPMW-001..007, UpmPersist*`（`synthetic_gate.cpp`）；
+  `control_median_mc_test.cpp` 的判据覆盖 UPM 权重中位数蒙特卡洛（`EXECUTABLE` 面已撤；
+  覆盖须由实验复算与人读对抗审核复核，见 `docs/science/algorithms/PHASE2_SAMPLER.md` §k_geo）
 
 ## 3a 坐标 frame
 

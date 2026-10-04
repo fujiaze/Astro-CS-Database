@@ -278,7 +278,7 @@ Y-up → Y-down 转换 (FITS 1-based 输出):
 - §11 导出边界桥接门（STD-F1）过：九宫格两 parity 共 18 格全过、astropy 四向桥接扫描
   正向达机器精度且三向负向注入全部检出；
 - §7 四不变量门全过（CRPIX/行列式/SIP 逆一致/极区保守）；
-- §11a 外部闭环指标可复现门（G-P1-WCS-CLOSURE-REPRO）过：`ctest:p1wcs_closure_metric_gate`
-  （合成场同输入两跑 median 完全相等 + 7 类负例注入全部判红 + 2 类缺输入 fail-closed 判红）；
+- §11a 外部闭环指标可复现门（G-P1-WCS-CLOSURE-REPRO）过：合成场同输入两跑 median
+  完全相等 + 7 类负例注入全部判红 + 2 类缺输入 fail-closed 判红；
 - `eng/tools/science_contract_lint.py` PASS（15 节+合同 ID+锚点）；
 - 解析不变量→SYN-002 转换：已知 WCS 星场（解析 TAN+SIP 场）、往返不变量、RA wrap/极区用例登记 SYN-002；WCS roundtrip 亦入 SYN-007/009。

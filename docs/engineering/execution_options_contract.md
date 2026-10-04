@@ -159,7 +159,7 @@ W_eff = in_flight × min(inner_omp, K)        // 有效宽度（PERFORMANCE_MODE
 
 1. 调度器 `execute` 注入的 lease（节点 config 的 `__workers`）**存在** ⇒ 以它为准，只收紧不放大
    （`1` 显式表示串行 reference；非数值 fail-closed 视为显式串行）；
-2. lease **不存在**（直接调用 op 的非调度路径：门禁 / 单元 / 集成）⇒ 取「进程有效 CPU 预算」=
+2. lease **不存在**（直接调用 op 的非调度路径：工具面直调 / 单元 / 集成）⇒ 取「进程有效 CPU 预算」=
    进程注入的可用核（亲和性 ∩ cgroup），未注入则现算同一口径
    `min(可用核, 配置上限)`（配置键 `cpu_budget_max`，`0` = 不设上限）⇒ **缺省不是 1**。
 
@@ -167,9 +167,12 @@ W_eff = in_flight × min(inner_omp, K)        // 有效宽度（PERFORMANCE_MODE
 `p1_parallel_for` 的 `frame_w<=1` 分支把帧内 ICV 置 1，节点内 `omp parallel for` 整批单线程
 （PSF 域的对照读数见 `实验/engineering-evidence/l2_performance/`）。
 
-机器门 = `CHK-NODE-BUDGET-WIRING`（静态：调度器内不得存在「缺省即串行」的 `__workers` 读取；
-动态：探针链接**真实**解析面，断言无 lease 时预算 = 进程有效 CPU 预算、`inner_omp > 1`、
-lease 存在时恒等且不被放大；`--self-test` 注入未接线状态必须判红）。
+静态判据（由人工对抗审核逐条复核，证据 = 符号级枚举的实际输出）：
+
+- 静态：调度器内不得存在「缺省即串行」的 `__workers` 读取；
+- 动态：探针链接**真实**解析面，断言无 lease 时预算 = 进程有效 CPU 预算、`inner_omp > 1`、
+  lease 存在时恒等且不被放大；
+- 判别力自证：注入未接线状态（把解析面从调用点摘掉）必须判红；正确接线时同一复核给绿。
 
 ## 4. 每阶段执行画像
 
@@ -290,29 +293,30 @@ lease 存在时恒等且不被放大；`--self-test` 注入未接线状态必须
   `effective_io_workers(exec)` 返回生效值；
 - 嵌套模块复用该预算；`omp_set_num_threads(hc)` 属新建等规模线程池，越界即判红；
 - 异步队列容量由 `memory_budget_bytes` 推导（见 `ASYNC_IO_CONTRACT.md`）；
-- 实现面与设计条款的偏差登记于 `docs/KNOWN_LIMITATIONS.md`。
+- 实现面与设计条款的偏差须逐条登记、不得静默；未登记的偏差按判红处理。
 
-## 9. 静态 checker 合同
+## 9. 线程预算静态判据
 
-线程预算静态判据：
+线程创建的准入判据：
 
 1. 扫描 `lib/` 生产源：`std::thread` / `std::async` / `_beginthread` / `CreateThread` 出现处
-   必须在 `THREAD_BUDGET_EXEMPT` 登记表内。登记表以 checker 内 `THREAD_BUDGET_EXEMPT` 为
-   **唯一事实源**，随实现演进，以实跑输出为准；`eng/tests/` 为扫描面豁免、不占登记条目。
+   必须在 `THREAD_BUDGET_EXEMPT` 登记表内。该登记表随实现演进，
+   以符号级枚举 `lib/` 生产源的实际线程创建点逐条核对为准（本节列核心条目，不作完整清单）；
+   验证面与模块测试面豁免、不占登记条目。
    生产科学模块面的核心条目：`lib/algorithms/coverage/src/upm.cpp` 的 per-call 池
    （`cworkers = Runtime lease`）、`lib/algorithms/coverage/src/sampler.cpp` 的 per-call 池
    （`workers = Runtime lease`）；另有
-   `lib/algorithms/integration/phase2_integrate/oracle/weight_chain_selfcheck.cpp`
-   （权重链独立 Oracle 自查池）、`lib/algorithms/cosmetic/src/module_entry.cpp`
+   `lib/algorithms/cosmetic/src/module_entry.cpp`
    （`omp_set_num_threads` 租约注入），以及 `lib/infrastructure/pipeline/orchestrator/`
-   的 watchdog 与资源监控文件级豁免。逐条清单以实跑输出为准；
+   的 watchdog 与资源监控文件级豁免；
 2. `omp_set_num_threads(` / `num_threads(` 字面量零容忍；
-3. 未登记即 FAIL（exit 1）——保证「未登记线程创建」机器可查。
+3. 未登记即判红 —— 保证「未登记线程创建」在符号级可查（不得用文本检索代替符号级枚举）。
 
 ## 10. 测试
 
-`lib/algorithms/coverage/tests/execution_options_test.cpp`（目标 `phase2_execution_options`）：
-配置覆盖、缺省由 profile / 预算注入、非法值拒绝、effective 计数器。
+`execution_options` 的共址测试面随 `coverage` 模块在位（见
+`docs/engineering/TEST_STANDARD.md` §6），覆盖面必须包含四项：配置覆盖、
+缺省由 profile / 预算注入、非法值拒绝、effective 计数器。四项缺一即该模块验证面不完整。
 
 ## 11. 关联
 

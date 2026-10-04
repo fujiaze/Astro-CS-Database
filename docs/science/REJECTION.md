@@ -237,7 +237,7 @@ large_scale 结构生长:
 - 权威文件: 本文件（SCI-REJ-001..008 集合的唯一权威页）
 - 实现: `lib/algorithms/coverage/src/rejection.cpp` (1-12 冻结头、1199-1320 规划、2016-2221 生产 kernel、2342-2440 large_scale), `lib/algorithms/coverage/include/astro/phase2/rejection.h` (45-62 方法枚举、99-123 reason/status/normalization、208-243 plan/request), `lib/algorithms/coverage/src/integrate.cpp` (状态消费)
 - 公开 API: `p2_reject_plan_resolve, p2_reject, p2_large_scale_apply`
-- 测试: `synthetic_gate`（排异面合成门，逐 TEST 用例；通过数以该文件与 ctest 实测为准，**不引用固定计数**）、
+- 测试: `synthetic_gate`（排异面合成门，逐 TEST 用例；通过数须由实验复算实测给出，**不引用固定计数**）、
 - `rejection_oracle_compare`（NIST ESD + Siril 1.4.3 harness 逐位对照）、
 - `satellite_gate_build` / `controlled_rejection_truth`（注入门与受控真值）。
 

@@ -288,7 +288,7 @@ function p3_output_verify(path, wcs, signal, coverage, W, H, out result):
   READONLY + 逐 HDU 回环 + sha256 重算，不复用写缓冲状态）；
   SCI-P3 §11 全集为真值面（Oracle 不调用本模块——独立小规模球面
   reference + 独立 FITS/WCS 读取器，PHASE3_RESAMPLE.md §8 同源）。
-- 执行测试现状锚（相邻证据，引用不冒认）：`eng/tests/unit/p3_output_test.cpp` 4 段（§12）；WCS oracle=p3_wcs roundtrip。
+- 执行测试现状锚（相邻证据，引用不冒认）：输出测试组 4 段（§12，载体已撤）；WCS oracle=p3_wcs roundtrip。
 
 ## 12 TEST-DESIGN（TEST-P3-WR-DESIGN-001 冻结）
 
@@ -298,14 +298,14 @@ function p3_output_verify(path, wcs, signal, coverage, W, H, out result):
 
 - T1 原子写+mask：64×48 渐变场+分段 mask（x<40），BITPIX=-32，
   prov 全字段 → rc=0、coverage_ok=1、reopen_ok=1、sha256 64hex
-  （`eng/tests/unit/p3_output_test.cpp`）。
+  （输出测试组 1a 段）。
 - T2 独立 verify：重开 dims/WCS/BUNIT/checksum/mask 一致 →
-  reopen_ok=1、coverage_ok=1、sha256 64hex（同文件下一段）。
+  reopen_ok=1、coverage_ok=1、sha256 64hex（同组 1b 段）。
   **T2b WCS 篡改负例**：写后翻转 CRPIX1 +1 →
-  重开 verify `reopen_ok=0`；恢复后 `reopen_ok=1`（`eng/tests/unit/p3_output_test.cpp` 的 3b 段，覆盖 verify 对 WCS 的鉴别力）。
+  重开 verify `reopen_ok=0`；恢复后 `reopen_ok=1`（输出测试组 3b 段，覆盖 verify 对 WCS 的鉴别力）。
   **T2c 标准校验和**：astropy `fits.verify`/
   `checksum=True` 逐 HDU 无警告，DATASUM/CHECKSUM 为 32-bit 数字串 +
-  16 字符；BSCALE/BZERO 存在时为 float（eng/tests/cli/test_phase3_inprocess.py
+  16 字符；BSCALE/BZERO 存在时为 float（in-process 组
   `test_09_fits_standard_checksum_and_wcs_provenance`）。
 - T3 原子性：无 .tmp 残留（filesystem 目录遍历，WIN-001 替代
   popen；前缀匹配弱匹配偏差 DISP-P3FITS-002 如实，不误报）
@@ -354,7 +354,7 @@ function p3_output_verify(path, wcs, signal, coverage, W, H, out result):
   协议注写 `<dir>/.<base>.<pid>.tmp`（前置点隐藏文件形态），实测
   make_temp_path 生成 `out_path.<pid>.tmp`（无前置点、保留
   .fits 扩展名）；同目录 rename 原子性语义不变；执行测试残留检查
-  前缀 ".acsd_p3_out_test."（`eng/tests/unit/p3_output_test.cpp`）
+  前缀 ".acsd_p3_out_test."（输出测试组 4c 段）
   与实际命名恒不匹配 → 残留检查弱匹配空转（不误报亦捕不到本实现
   形态残留）。命名统一归 P3-FITS-IMPL（含测试修正）。
 - **DISP-P3FITS-003**：实现面已扩展，本文件 §2-§8 的**逐符号对照表**已按现行实现重定位

@@ -61,11 +61,8 @@ lib/algorithms/resample/p3_resample.cpp     586 行  全部实现（§6 逐符�
 lib/algorithms/resample/tests/p3rsmp/p3_nan_mask_test.cpp  437 行  样本级掩膜 Oracle+负例（§12）
 lib/phase3_session/p3_session.cpp      441 行  会话编排消费（§8）
 lib/algorithms/shared/healpix/healpix_core.{h,cpp}         权威球面函数（第二套核心恒不接受）
-eng/tests/backend/p3_resample_probe_main.cpp        探针（order/mode/open/nearest/bilinear/pix2ang 六模式）
-eng/tests/backend/test_p3_resample.py      164 行  最近邻邻接测试（编译探针+seam/NaN/无静默默认）
-eng/tests/backend/test_p3003_parallel_resampler.py 141 行  并行域邻接测试
-eng/tests/unit/p3_interp_test.cpp          137 行  单元参考实现（独立参考，非生产自证）
-eng/tests/unit/p3_coverage_test.cpp        224 行  同上（coverage 语义）
+（探针 / 独立参考实现 / 并行域 / coverage 语义四组判据的载体文件**均已不在本仓**；
+  判据本体见 §12，引用时只引判据，不引载体路径。）
 ```
 
 - p3_resample.cpp 内部结构（按符号名定位，行号仅作导航）: `kTileWidth=512`（编译期常量，SCI
@@ -345,7 +342,7 @@ fits_index = nested_local_to_fits_index(local, 9, 512)   # = (511-x)*512 + y（D
 |---|---|---|---|---|
 | DISP-P3RSMP-001 | bilinear 为切平面**四象限最近中心**双线性；G4 施工规格写"面积重叠分数（投影线性化）"。同族一阶插值、Σw=1 不变量一致，离散化方案不同 | `lib/algorithms/resample/p3_resample.cpp` | ALG-P3-003 §2 G4 | P3-RSMP-IMPL 决策: 升级实现或修订 ALG 表述（须保持 SCI §9a-7 不变量） |
 | DISP-P3RSMP-002 | tile cache 逐出为 FIFO；ALG §3 伪代码写 "LRU" | `lib/algorithms/resample/p3_resample.cpp`（无访问序更新） | ALG-P3-003 §3 | P3-RSMP-IMPL（实现升级 LRU 或 ALG 修订为 FIFO 表述） |
-| DISP-P3RSMP-003 | `p3_resample_check_mode` 会话编排层无调用点（flux/variance 输入拒未经会话守卫；能力在内核、探针消费） | grep 全仓: 仅 `eng/tests/backend/p3_resample_probe_main.cpp` | SCI §9a-8/10 | P3-RSMP-INT 接线（会话请求守卫增加 input_mode 检查） |
+| DISP-P3RSMP-003 | `p3_resample_check_mode` 会话编排层无调用点（flux/variance 输入拒未经会话守卫；能力在内核、探针消费） | grep 全仓：仅探针载体（已不在本仓） | SCI §9a-8/10 | P3-RSMP-INT 接线（会话请求守卫增加 input_mode 检查） |
 | DISP-P3RSMP-004 | provenance.missing_tiles 恒 nullptr（缺 tile 聚合上报未接线；SCI §9a-9 要求记 missing） | `lib/phase3_session/p3_session.cpp` | SCI §9a-9 | P3-RSMP-IMPL/INT |
 | DISP-P3RSMP-005 | acsd_p3_resample.dll 未建（entrypoint 缺失） | 全仓无该 target | 矩阵 dll_target | P3-RSMP-IMPL |
 | DISP-P3RSMP-006 | **强制计数的产品承载面未冻结**：DATA-002 §2a 冻结了计数**字段名** `n_rejected_nonfinite`（按原因分类、per-pixel、mandatory），但**未**冻结 Phase3 产品里的承载面（`phase3_planar_fits_v1` 最小平面集 = signal/support/mask，plane_id 枚举 `{signal,support,variance,ivar,mask,sparse_snr}` 无计数字段；`p3_resampled.json` 的 `planes` 列表亦无）。内核面已按冻结字段名暴露（`P3SampleRejection`），**产品承载面不自行发明** | `eng/contracts/data/phase_product_exchange.schema.json`（无 `invalid_handling`/`count_field` 键，与 DATA-002 §2a「机器形态」声明不一致）；`eng/contracts/schemas/unified/rejection.schema.json` 仅有可选 `rejected_sample_count`；DATA_SEMANTICS §30.2（Phase2 诊断平面 `nrej/nused` 通道，语义为 P2 排异原因计数，非本规则） | DATA-002 §2a 规则 3；ALG-P3-003 §2 G4 | 待合同域登记：候选 =（a）逐像素诊断平面（沿用 §30.2 诊断平面通道，不入 science planes 枚举）；（b）`p3_resampled.json` 聚合键（drizzle 先例 `lib/algorithms/drizzle/healpix_drizzle/module_entry.cpp` 的 `"n_rejected_nonfinite"`）；（c）provenance 计数。三者均需合同域登记后才可落产品 |
@@ -356,17 +353,17 @@ fits_index = nested_local_to_fits_index(local, 9, 512)   # = (511-x)*512 + y（D
 - 定位: 本域可执行测试面在 P3-RSMP-TEST 落地；矩阵行 test_id=
   TEST-P3-RES-001 状态 **DORMANT**。本节冻结**设计**（登记面
   TEST-P3-RSMP-DESIGN-001，VERIFIED），不冒认可执行覆盖。
-- 现有证据（引用不冒认，均测试独立参考实现或探针，非生产自证）:
-  - eng/tests/backend/p3_resample_probe_main.cpp（探针六模式: order 选择/
+- 现有证据（引用不冒认，均测试独立参考实现或探针，非生产自证；载体文件均已不在本仓，
+  判据本体见 §12）:
+  - 探针六模式: order 选择/
     mode 守卫/open/nearest/bilinear/pix2ang——pix2ang 用 nside=4 首子
-    像素中心技巧）。
-  - eng/tests/backend/test_p3_resample.py（164 行）: test_05_nan_semantics
+    像素中心技巧。
+  - 最近邻邻接组: test_05_nan_semantics
     （tile 内 NaN → C=1 + 值 NaN，§6.6 行 2）、test_06_no_silent_
     default_open（open 失败必须带原因）、seam 域界断言（1e8-1..
     12e8+1）与连续性（1e-5° 位移）——SYN-007 判据邻接。
-  - eng/tests/backend/test_p3003_parallel_resampler.py（141 行，并行域）。
-  - eng/tests/unit/p3_interp_test.cpp（137 行）/p3_coverage_test.cpp
-    （106 行）: 独立参考实现核对插值/覆盖语义（不调用生产码 ⇒ 不能作本规则判据）。
+  - 并行域组。
+  - 独立参考实现核对插值/覆盖语义（不调用生产码 ⇒ 不能作本规则判据）。
   - lib/algorithms/resample/tests/p3rsmp/p3_nan_mask_test.cpp（437 行，本次新增）:
     **生产码在内**的样本级掩膜 Oracle + 负例——手写最小 HiPS（signal+variance，逐像素
     可注入 NaN/±Inf），期望值由本文件独立复算（剩余合格邻域重归一加权和）。覆盖:
