@@ -161,9 +161,9 @@ parallel_ok=True。配置面 = lib/algorithms/coverage/include/astro/phase2/stag
 ## Execution class、并行轴、ThreadBudget lease、确定性
 
 `cpu_heavy`。并行轴 = 像素间（**调用方** OMP：现存调用方 stage2.cpp 用
-schedule(static)；rejection.cpp 无任何线程原语）。原并列调用方 acr_kernels.cpp
-已随 ACR 子树退场删除（`383088f2`）。逐样本独立判定、无跨样本归约 ⇒ **结果与
-worker 数无关（1..N bitwise）**。
+schedule(static)；rejection.cpp 无任何线程原语；集成执行路由唯一 = CPU，
+`lib/algorithms/coverage/` 下无 ACR 源与 CUDA kernel）。逐样本独立判定、
+无跨样本归约 ⇒ **结果与 worker 数无关（1..N bitwise）**。
 
 per-thread 统计按 thread id 定序归并（stage2.cpp）；large_scale 激活时强制串行
 （stage2.cpp 的分支条件）。确定性合同：同输入同 plan 同 fid → decision bitwise；
@@ -205,7 +205,7 @@ bitwise、F6 typed params 逐位、F7 Python oracle rtol 1e-12、F8 gather 逐�
 F1–F6/F8 无 epsilon 门、F7 rtol 1e-12、large_scale mask 精确）。
 
 已取证但载体不在仓内的相邻结论（不冒认）：R1/R2/LinearFit/Rcr/G4 + G6（ESD NIST Rosner 54）
-+ V15–V17 的合成门读数；生产 Oracle 的排异-集成读数；语义 id 与解析面的单测读数。
+的合成门读数；生产 Oracle 的排异-集成读数；语义 id 与解析面的单测读数。
 这些读数不在本仓可复算路径上，引用时只作背景。
 
 Oracle 面：

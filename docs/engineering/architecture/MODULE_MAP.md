@@ -12,7 +12,7 @@
 
 | 模块 | 路径 | 产物 | 证据锚 |
 | --- | --- | --- | --- |
-| conformance (noop) | `lib/infrastructure/scheduler`（target 定义在根构建） | `modules/acsd_noop.so` | `eng/packaging/acsd.product.json` 单元 `MOD-NOOP` = `acsd.conformance.noop`；安全装载器的安装加载覆盖正路径（哈希、模块标识、授权根）与路径逃逸、文件缺失、模块标识不符、哈希不符四类负路径 |
+| conformance (noop) | `eng/tests/conformance/noop`（target `acsd_noop` 在该子目录声明，由根构建图 `add_subdirectory` 引入） | `modules/acsd_noop.so` | `eng/packaging/acsd.product.json` 单元 `MOD-NOOP` = `acsd.conformance.noop`；安全装载器的安装加载覆盖正路径（哈希、模块标识、授权根）与路径逃逸、文件缺失、模块标识不符、哈希不符四类负路径 |
 | catalog gaia | `lib/infrastructure/gaia_xpsd_client` | `modules/acsd_catalog_gaia.so` | unit `MOD-CAT-GAIA` = `acsd.catalog.gaia`；`src/module_entry.c` 九操作 + `acsd_module_query_v1`；selftest 装配 |
 | p1 drizzle | `lib/algorithms/drizzle` | `modules/acsd_p1_drizzle.so` | unit `MOD-P1-DRIZZLE`；`src/module_entry.cpp`（C ABI v1 九操作）；装配 selftest |
 | p1 calibration | `lib/algorithms/calibration` | `modules/acsd_p1_calibration.so` | unit `MOD-P1-CAL`；`src/module_entry.cpp`；装配 selftest |
@@ -49,19 +49,19 @@
  （HASH_MISMATCH / MODULE_ID_MISMATCH / PATH_ESCAPE / FILE_MISSING）必败；
  - module 合同与 ABI 三方一致正测；
  - 安装树产品清单核对。
-- 运行期宿主接线尚未闭合，收敛判据是本节的可达性核对项；收缩可达面须经
- `docs/detail/registry/` 的变更单按最高设计的顶层结构章走变更流程。
-- 相邻事实：`eng/packaging/acsd.product.json` 自述平台运行时与 I/O 平台单元尚未落实现；
- `lib/infrastructure/pipeline/module_loader/README.md` 自述宿主注册表接线属平台运行时工单。
+- 可达面收缩须经 `docs/detail/registry/` 的变更单，按最高设计的顶层结构章走变更流程。
+- 本篇只承载模块到目录、产物与证据锚的映射。平台运行时与 I/O 平台单元的实现状态，
+  声明面是 `eng/packaging/acsd.product.json` 与 `lib/infrastructure/pipeline/module_loader/README.md`，
+  状态类结论由 `../governance/UNRESOLVED.md` 承载。
 
 ## 会话与节点执行面（构建内，非独立 DLL）
 
 | 模块 | 路径 | 职责 | 证据锚 |
 | --- | --- | --- | --- |
 | 运行时与唯一执行器 | `lib/infrastructure/scheduler` | 类型化有向无环图调度、线程预算租约、进程唯一 worker 池 | `lib/infrastructure/scheduler/src/executor_runtime.h`、`lib/infrastructure/scheduler/src/module_adapters.cpp` |
-| 模块注册表（三阶段节点） | `lib/infrastructure/scheduler` | `normalize` 八节点（校准、修饰、星点与 PSF、天体定位、测光、噪声信噪比、球面重采样、产品写出）、`mosaic` 七节点（覆盖、采样、天光面拟合、天光面施加、排异、集成、写出）、`export` 五节点（properties、WCS、重采样、验证、写出），各绑唯一真实 operation（节点序以最高设计各阶段流程章为准） | `lib/infrastructure/scheduler/src/module_adapters.cpp` |
+| 模块注册表（三阶段节点） | `lib/infrastructure/scheduler` | `normalize` 八节点（校准、修饰、天体定位、星点与 PSF、测光、噪声信噪比、球面重采样、产品写出）、`mosaic` 七节点（覆盖、采样、天光面拟合、天光面施加、排异、集成、写出）、`export` 五节点（properties、WCS、重采样、验证、写出），各绑唯一真实 operation（节点序以最高设计各阶段流程章为准） | `lib/infrastructure/scheduler/src/module_adapters.cpp` |
 | `normalize` 会话 | `lib/phase1_session` | `io_read → calibrate → cosmetic → io_write` | `lib/phase1_session/p1_session.cpp`（`manifest["stages"]`）；unit `entrypoint: p1_session_run` |
-| `normalize` 科学内核 | `lib/algorithms/photometry`、`lib/algorithms/star_detection`、`lib/algorithms/psf`、`lib/algorithms/platesolve`、`lib/algorithms/calibration`、`lib/algorithms/cosmetic` | 校准、检测 / PSF、天文定位、测光定标、噪声模型 | 各目录 `src/` 内真实源文件（逐内核 operation 见 `module_adapters.cpp`） |
+| `normalize` 科学内核 | `lib/algorithms/photometry`、`lib/algorithms/star_detection`、`lib/algorithms/psf`、`lib/algorithms/platesolve`、`lib/algorithms/calibration`、`lib/algorithms/cosmetic`、`lib/algorithms/noise_snr` | 校准、检测 / PSF、天文定位、测光定标、噪声模型 | 各目录 `src/` 内真实源文件（逐内核 operation 见 `module_adapters.cpp`） |
 | `mosaic` 会话 | `lib/phase2_session` | 七节点链组装（coverage → sample → upm-fit → upm-apply → reject → integrate → write） | `lib/phase2_session/p2_session.cpp` |
 | `mosaic` 内核 | `lib/algorithms/coverage` | `lib/algorithms/coverage/src` 下 coverage / sampler / upm / rejection / integrate / stage2_common 源文件 | 同上 + `eng/contracts/data/phase2_uncertainty_rejection_provenance_v1.json` |
 | `export` 会话 | `lib/phase3_session` | properties / WCS（TAN）/ nearest+bilinear 重采样 / CFITSIO 原子写 / verify | `lib/phase3_session` 的 p3_session / p3_wcs / p3_resample / p3_output 四源文件 |
@@ -76,7 +76,7 @@
 
 | 待接入目标 | 路径 | 现状与去向 |
 | --- | --- | --- |
-| p3 projection | `lib/algorithms/projection` | 设计冻结 8 种投影（`TAN/SIN/CAR/AIT/STG/MOL/CEA/ZEA`，最高设计的投影算法一节）；**在役 registry = `p3_proj.h`/`p3_proj.cpp`**，可作产品声明的投影以 `p3_projection_registry.h` 的当前声明为权威，未实现项报「不支持」；DLL 挂载与生产会话切换归待接入目标 P3 投影接入 |
+| p3 projection | `lib/algorithms/projection` | 设计冻结 8 种投影（`TAN/SIN/CAR/AIT/STG/MOL/CEA/ZEA`，最高设计的投影算法一节）；**在役 registry = `p3_projection_registry.h`**（header-only inline，由同目录 `p3_wcs.cpp` 直接包含），可作产品声明的投影以该注册表的当前声明为权威，未实现项报「不支持」；DLL 挂载与生产会话切换归待接入目标 P3 投影接入 |
 | p3 resample | `lib/algorithms/resample` | 目标产物 `acsd_p3_resample`；生产实现在 `lib/algorithms/resample/p3_resample.cpp`；顶层占位 descriptor `acsd.phase3.resample` 接入归待接入目标 P3 重采样接入 |
 | p3 fits | `lib/algorithms/fits_output` | 目标产物 `acsd_p3_fits`；生产实现在 `lib/algorithms/fits_output/p3_output.cpp`；流式 FITS 接入未实现 |
 | phase2 upm / samp / rej / int | `lib/algorithms/upm`、`lib/algorithms/sampling`、`lib/algorithms/rejection`、`lib/algorithms/integration` | 生产实现在 `lib/algorithms/coverage`（节点化已在役）；独立 DLL 化为待接入目标 |
@@ -89,8 +89,9 @@
 | --- | --- |
 | `lib/infrastructure/pipeline/orchestrator` | Phase1 编排已并入 CLI pipeline driver，无独立 exe；非生产入口 |
 | `lib/infrastructure/hips_browser/healpix_browser_qt` | 球面浏览器（可选，不入产品 manifest）；工具分类，非发布 |
-| `lib/algorithms/noise_snr` | 不在根构建图（未 `add_subdirectory`），故构建图不引用 |
+| `lib/algorithms/noise_snr` | 子目录未 `add_subdirectory`，其源集由根构建图直接编入 `acsd_phase1_noise` 目标（静态库，随链接闭包进产品图）；该子目录自带 target 不在根图 |
 | `aio_pipeline_engine` 越权编排 | `lib/infrastructure/aio/src/aio_pipeline_engine.cpp` 在位但不由生产命令驱动 |
+| `lib/algorithms/projection` 的 `p3_proj.h` / `p3_proj.cpp` | v6 内核行：无构建目标编译其源文件，不进产品图；在役产品声明 registry 是同目录 header-only 的 `p3_projection_registry.h` |
 
 ## 每模块详细文档
 

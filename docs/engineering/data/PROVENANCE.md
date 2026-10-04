@@ -1,6 +1,7 @@
 # 产品溯源
 
-上游：最高设计的 I/O 与原子产品一章；运行清单的溯源子对象见 `../contracts/MANIFEST_VERIFY.md`。
+上游：最高设计的 I/O 与原子产品一章[1]；运行清单的溯源子对象见 `../contracts/MANIFEST_VERIFY.md`[2]；
+产物库接线语义见 `ARTIFACT_STORE.md`[3]。
 
 产品溯源记录的字段、写入者与不可伪造约束的正本。
 
@@ -8,7 +9,8 @@
 
 执行形态 = `lib/infrastructure/aio/runtime/artifact_store/provenance.py`（provenance 层与校验器）+
 `lib/infrastructure/aio/runtime/artifact_store/production_store.py`（provenance sidecar / 版本门 / 消费门接线）；
-验收测试 = `eng/tests/artifact/test_provenance.py`；typed manifest 机器形态 =
+验收测试 = **判据无载体**：仓内无 `eng/tests/artifact/` 目录（`eng/tests/` 只有 `conformance/` 与
+ `validation/` 两个子目录），本合同的验收用例尚无测试文件；typed manifest 机器形态 =
 `eng/contracts/data/artifact_manifest.schema.json`。下游接线：`../contracts/ATOMIC_PUBLISH.md`
 （原子 HiPS/manifest 输出复用 provenance sidecar 语义）、`../architecture/ARCHITECTURE.md`（phase-isolated runtime
 消费门接线）、`../resources/observability/STRUCTURED_LOGGING.md`（脱敏语义对齐）。
@@ -103,7 +105,8 @@ provenance_digest = sha256(canonical_json({
 - 配置 source_commit 的 Store 每次 `publish` 额外原子发布 provenance sidecar
  （同一原子区：内容 → manifest → hash sidecar → provenance sidecar）；发布前执行
  provenance 语义门（「发布/消费语义门」一节）；
-- 未配置溯源事实源的 Store 发布行为完全不变——`eng/tests/artifact/test_production_store.py` 基线不受影响；
+- 未配置溯源事实源的 Store 发布行为完全不变——该基线尚无载体（`eng/tests/artifact/test_production_store.py`
+  在仓内不存在），故本条不得写成已有基线回归锁定；
 - 恢复（`start`）：成功对象基线 = 内容 + COMPLETE manifest + hash sidecar
  （`ARTIFACT_STORE.md` 冻结形态）；provenance sidecar 存在则加载到
  `_provenance`（损坏 → 不加载，对象仍按基线索引）；带 provenance 的产品消费必须走 `bind_product_input`（要求 provenance
@@ -138,6 +141,9 @@ provenance 顶层字段结构上也不携带任何文件系统路径（storage_u
 
 ## 验收映射（依据：本文件 + `../../ACSD_DESIGN.md` 「I/O 与原子产品」一节）
 
+下表「测试」列登记的是**验收要求的用例名**，不是已生效的判据：这些用例与承载它们的
+测试面当前在仓内均不存在（见本节末的载体登记）。
+
 | 验收 | 实现 | 测试 |
 |---|---|---|
 | 区分 product/module/ABI/data schema/doc revision/history | 「revision 类别区分」一节 + `build_revision`/`build_history`/`assert_doc_revision_is_current` | `TestRevisionCategories` / `TestDocRevisionHistory` |
@@ -147,9 +153,9 @@ provenance 顶层字段结构上也不携带任何文件系统路径（storage_u
 | privacy scan 不泄露绝对用户路径/凭据 | 「privacy scan」一节 + `make_provenance_doc` 隐私门 | `TestPrivacyScanNoLeak` |
 | 接线：sidecar 原子发布/恢复加载/digest 可复算 | 「接线」一节 production_store 接线 | `TestStoreProvenanceIntegration` |
 
-测试：`eng/tests/artifact/test_provenance.py`（正/负例，无第三方依赖；
-`python3 -m pytest eng/tests/artifact/test_provenance.py`）；`eng/tests/artifact/test_production_store.py`
-基线保持通过（未配置溯源事实源的 Store 行为不变）。
+测试：正/负例与基线测试的载体应为 `eng/tests/artifact/` 下的 provenance 与 production_store 测试面；
+该目录**当前不存在**（`eng/tests/` 只有 `conformance/` 与 `validation/` 两个子目录），
+故本合同的验收判据**尚不可复跑**，不得写成已生效。
 
 ## 边界（非目标）
 
@@ -166,11 +172,13 @@ provenance 顶层字段结构上也不携带任何文件系统路径（storage_u
 ## 文档追溯
 
 `eng/contracts/data/artifact_manifest.schema.json` / `PHASE_PRODUCT_EXCHANGE.md` /
-`ARTIFACT_STORE.md` → 本溯源合同（本文档 + provenance.py +
-production_store 接线） → `eng/tests/artifact/test_provenance.py`。
+`ARTIFACT_STORE.md` → 本溯源合同（本文档 + `lib/infrastructure/aio/runtime/artifact_store/provenance.py` +
+`lib/infrastructure/aio/runtime/artifact_store/production_store.py` 接线） → 验收测试面（载体待落库）。
 
 ## 参考文献
 
-[1] 内部文档 `docs/ACSD_DESIGN.md，最高设计`，上位来源。
+[1] 内部文档 `docs/ACSD_DESIGN.md`，最高设计的 I/O 与原子产品一章，上位来源。
+
 [2] 内部文档 `docs/engineering/contracts/MANIFEST_VERIFY.md`，同层相关正本。
+
 [3] 内部文档 `docs/engineering/data/ARTIFACT_STORE.md`，同层相关正本。

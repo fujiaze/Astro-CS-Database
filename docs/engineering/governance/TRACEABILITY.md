@@ -1,6 +1,6 @@
 # 追溯规范
 
-上游：最高设计的验证体系一章；文档治理见 文档治理规范。
+上游：最高设计的验证体系一章 [1]；文档治理见文档治理规范 [2]；合同 ID 的登记面与跨面差异单见双线文件域与合并点合同 [3]。
 
 合同 ID 的分类、登记面、文档与代码的双向对应，以及证据层的登记与留存规则。
 
@@ -139,7 +139,7 @@ EVID ^EVID-[A-Z0-9]+(-[A-Z0-9]+)*$ 例如 EVID-P1-CAL-001
 
 **基线规则（逐字）**：
 
-> 烧毁式基线：每类只许下降不许上升；下调只能在 MOD-002 落地批内手改，并在自证摘要记明「本批下调 X→Y，依据=落地了哪几条」；两类归零后删除本文件 ⇒ 门转全量强制（任何 error 即 rc=1）。负例注入（--fault-inject）一律绕过基线、全量强制。
+> 烧毁式基线：每类只许下降不许上升；下调只能在 MOD-002 落地批内手改，并在自证摘要记明「本批下调 X→Y，依据=落地了哪几条」；两类归零后删除本文件 ⇒ 门转全量强制（任何 error 即 rc=1）。负例注入（`--fault-inject`）一律绕过基线、全量强制。**该机制当前无执行器**：全仓检索 `--fault-inject` 只命中本行与 `../resources/cpu/ISA_VARIANTS.md` 的两处提及，仓内没有消费该开关的程序，也没有对应的失败注入点；因此这条判据描述的是目标态，不是已生效的门。执行器补齐前，负例面在本仓不可复跑，不得以「本判据已生效」作为判据覆盖的证据。
 
 规则的实质是那最后一次下调的**不对称**：实测已降到 14/11，但**没有**下调阈值，保持基线保守 ——
 实际计数低于基线仍判通过，阈值只作上限。负例注入一律绕过基线、按全量强制判。
@@ -263,8 +263,8 @@ EVID ^EVID-[A-Z0-9]+(-[A-Z0-9]+)*$ 例如 EVID-P1-CAL-001
 
 | requirement_id | type | title | authority_doc | module | implementation_files | test_ids | diagnostic_ids | error_codes | status |
 |---|---|---|---|---|---|---|---|---|---|
-| SCI-UPM-WEIGHT-001 | science | production UPM 权重 = quality × control_reliability（旧名 geometric_reliability） × control_ivar；禁止 star-SNR/support^p 乘因子<!-- 订正: 检查-跨文档冲突 绿12——authority 正本 PHASE2_UPM.md:23 已定名 control_reliability 并注旧名 --> | docs/science/PHASE2_UPM.md | phase2 | lib/algorithms/coverage/src/upm.cpp | UPMW-001;UPMW-002;UPMW-003;UPMW-006 | UPM_CONTROL_VARIANCE_SCIENCE | - | VERIFIED |
-| ALG-UPM-CONTROL-IVAR-001 | science | control_variance = k_corr×(π/2)×σ_bg²/N_retained；control_ivar=1/var；k_corr 由 Drizzle MC 校准（k_gauss×k_geo 两因子查表〔D-08〕） | docs/science/PHASE2_UPM.md | phase2 | lib/algorithms/coverage/src/sampler.cpp | UPMW-004;UPMW-005;UPMW-007 | ALG-UPM-CONTROL-IVAR-001 | - | VERIFIED |
+| SCI-UPM-WEIGHT-001 | science | production UPM 权重 = quality × control_reliability × control_ivar；禁止 star-SNR/support^p 乘因子 | docs/science/PHASE2_UPM.md | phase2 | lib/algorithms/coverage/src/upm.cpp | UPMW-001;UPMW-002;UPMW-003;UPMW-006 | UPM_CONTROL_VARIANCE_SCIENCE | - | VERIFIED |
+| ALG-UPM-CONTROL-IVAR-001 | science | control_variance = k_corr×(π/2)×σ_bg²/N_retained；control_ivar=1/var；k_corr 由 Drizzle MC 校准（k_gauss×k_geo 两因子查表，其身份与查表见 [4]） | docs/science/PHASE2_UPM.md | phase2 | lib/algorithms/coverage/src/sampler.cpp | UPMW-004;UPMW-005;UPMW-007 | ALG-UPM-CONTROL-IVAR-001 | - | VERIFIED |
 | DATA-UPM-CONTROL-UNC-001 | science | control estimator = patch median；uncertainty=SE(median) 用 N_retained；ivar 产品缺失显式科学错误 | docs/science/PHASE2_UPM.md | phase2 | lib/algorithms/coverage/src/sampler.cpp;lib/algorithms/coverage/tools/stage2.cpp | UPMW-006;UPMW-007;V17NonFiniteWeightInvalid | IVAR_MISSING_BEHAVIOR | ERR-P2-UPM-001 | VERIFIED |
 | ALG-INTEGRATE-001 | science | integrator 权重资格：NaN/Inf/负→INVALID；0→合法不贡献；>0→可用；reducer 无 policy 知识 | docs/science/algorithms/PHASE2_INTEGRATION.md | phase2 | lib/algorithms/coverage/src/integrate.cpp | V17NonFiniteWeightInvalid;V17StatusesExplicit;V17NonFiniteSupportInvalid | INTEGRATION_ZERO_WEIGHT_CONTRACT | - | VERIFIED |
 | ALG-DRZ-GEOM-CACHE-001 | science | bounded target-ipix geometry cache（LRU 8192，run generation 清空）；科学等价 + 操作计数 | docs/science/algorithms/DRIZZLE_GEOMETRY.md | healpix_drizzle | lib/algorithms/drizzle/healpix_drizzle/spherical_overlap.cpp;lib/algorithms/drizzle/healpix_drizzle/drizzle_engine.cpp | UPMW-005 | DRIZZLE_TARGETED_OPTIMIZATION | - | VERIFIED |
@@ -318,18 +318,22 @@ EVID ^EVID-[A-Z0-9]+(-[A-Z0-9]+)*$ 例如 EVID-P1-CAL-001
 | TEST-PR-UPM-009 | science | PR#1 frame-binding 测试 #9 | docs/science/PHASE2_UPM.md | phase2 | lib/algorithms/coverage/src/upm.cpp | UpmPersistInsertionOrderIndependent | - | - | VERIFIED |
 | SCI-UPM-010 | science | UPM 科学门 #10（PHASE2_UPM 语义集） | docs/science/PHASE2_UPM.md | phase2 | lib/algorithms/coverage/src/upm.cpp | S0IdentityCalibrationNoChange;S1KnownAdditiveFieldRecovered;S2LowSnrDoesNotPullHighSnr;SaveOpenRoundtripAndHash | - | - | VERIFIED |
 | TEST-PR-UPM-010 | science | PR#1 frame-binding 测试 #10 | docs/science/PHASE2_UPM.md | phase2 | lib/algorithms/coverage/src/upm.cpp | UpmPersistInvalidModelRejected | - | - | VERIFIED |
-| TEST-UPMW-001 | science | UPM 权重门 UPMW-001（V19R3） | docs/science/PHASE2_UPM.md | phase2 | lib/algorithms/coverage/src/upm.cpp | UPMW001SnrInvariance | - | - | VERIFIED |
-| TEST-UPMW-002 | science | UPM 权重门 UPMW-002（V19R3） | docs/science/PHASE2_UPM.md | phase2 | lib/algorithms/coverage/src/upm.cpp | UPMW002ControlIvarRatio | - | - | VERIFIED |
-| TEST-UPMW-003 | science | UPM 权重门 UPMW-003（V19R3） | docs/science/PHASE2_UPM.md | phase2 | lib/algorithms/coverage/src/upm.cpp | UPMW003StarPopulationInvariance | - | - | VERIFIED |
-| TEST-UPMW-004 | science | UPM 权重门 UPMW-004（V19R3） | docs/science/PHASE2_UPM.md | phase2 | lib/algorithms/coverage/src/upm.cpp | UPMW004MedianSeIndependentGaussianMc | - | - | VERIFIED |
-| TEST-UPMW-005 | science | UPM 权重门 UPMW-005（V19R3） | docs/science/PHASE2_UPM.md | phase2 | lib/algorithms/coverage/src/upm.cpp | UPMW-005 | - | - | VERIFIED |
-| TEST-UPMW-006 | science | UPM 权重门 UPMW-006（V19R3） | docs/science/PHASE2_UPM.md | phase2 | lib/algorithms/coverage/src/upm.cpp | UPMW006MissingControlIvarExplicit | - | - | VERIFIED |
-| TEST-UPMW-007 | science | UPM 权重门 UPMW-007（V19R3） | docs/science/PHASE2_UPM.md | phase2 | lib/algorithms/coverage/src/upm.cpp | UPMW007PatchEstimatorVsTruth | - | - | VERIFIED |
+| TEST-UPMW-001 | science | UPM 权重门 UPMW-001 | docs/science/PHASE2_UPM.md | phase2 | lib/algorithms/coverage/src/upm.cpp | UPMW001SnrInvariance | - | - | VERIFIED |
+| TEST-UPMW-002 | science | UPM 权重门 UPMW-002 | docs/science/PHASE2_UPM.md | phase2 | lib/algorithms/coverage/src/upm.cpp | UPMW002ControlIvarRatio | - | - | VERIFIED |
+| TEST-UPMW-003 | science | UPM 权重门 UPMW-003 | docs/science/PHASE2_UPM.md | phase2 | lib/algorithms/coverage/src/upm.cpp | UPMW003StarPopulationInvariance | - | - | VERIFIED |
+| TEST-UPMW-004 | science | UPM 权重门 UPMW-004 | docs/science/PHASE2_UPM.md | phase2 | lib/algorithms/coverage/src/upm.cpp | UPMW004MedianSeIndependentGaussianMc | - | - | VERIFIED |
+| TEST-UPMW-005 | science | UPM 权重门 UPMW-005 | docs/science/PHASE2_UPM.md | phase2 | lib/algorithms/coverage/src/upm.cpp | UPMW-005 | - | - | VERIFIED |
+| TEST-UPMW-006 | science | UPM 权重门 UPMW-006 | docs/science/PHASE2_UPM.md | phase2 | lib/algorithms/coverage/src/upm.cpp | UPMW006MissingControlIvarExplicit | - | - | VERIFIED |
+| TEST-UPMW-007 | science | UPM 权重门 UPMW-007 | docs/science/PHASE2_UPM.md | phase2 | lib/algorithms/coverage/src/upm.cpp | UPMW007PatchEstimatorVsTruth | - | - | VERIFIED |
 | SCI-PSF-001 | science | PSF Moffat4 FWHM/拟合质量科学门 | docs/science/psf/PSF.md | psf | lib/algorithms/psf/src/dpsf_psf.cpp | TST-PSF-001;SCI-PSF-001 | - | - | VERIFIED |
-| SCI-REJ-001 | science | Rejection 7 种排异自动选择科学门 | docs/science/REJECTION.md | coverage | lib/algorithms/coverage/src/rejection.cpp | TEST-REJ-* | - | - | VERIFIED |
+| SCI-REJ-001 | science | Rejection 生产算法集 4 种（none / percentile / winsorized / linear fit）排异自动选择科学门 | docs/science/REJECTION.md | coverage | lib/algorithms/coverage/src/rejection.cpp | TEST-REJ-* | - | - | VERIFIED |
 | SCI-INT-001 | science | Integration 信号/support 积分科学门 | docs/science/INTEGRATION.md | coverage | lib/algorithms/coverage/src/integrate.cpp | TST-INT-001 | - | - | VERIFIED |
 
 ## 参考文献
 
 [1] 内部文档 `docs/ACSD_DESIGN.md，最高设计`，上位来源。
-[2] 内部文档 `docs/engineering/governance/DOCUMENT_GOVERNANCE.md`，同层相关正本。
+[2] 内部文档 `docs/engineering/governance/DOCUMENT_GOVERNANCE.md`，文档治理规范。
+
+[3] 内部文档 `docs/engineering/governance/DUAL_LINE.md`，双线文件域与合并点合同。
+
+[4] 内部文档 `docs/science/DISPUTE_RESOLUTION.md`，`k_corr` 的身份与两因子查表。

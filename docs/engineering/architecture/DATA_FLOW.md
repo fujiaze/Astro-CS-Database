@@ -6,9 +6,9 @@
 
 | 载体 | 范围 | 形态 | 规范依据 |
 |---|---|---|---|
-| 命名块（`PipelineFrame`） | 阶段内节点之间 | 内存对象，带冻结元数据（名字、形状、类型、单位、可缺性、生产者、消费者、生命周期） | `../contracts/PIPELINE_BLOCK.md` |
+| 命名块（`PipelineFrame`） | 单节点执行期 | 内存对象，带冻结元数据（名字、形状、类型、单位、可缺性、生产者、消费者、生命周期） | `../contracts/PIPELINE_BLOCK.md` |
 | 阶段内文件约定 | 同阶段节点之间 | `output_dir` 下的具体产物（文件或产品目录），生产者写、消费者按同一路径读 | `../contracts/PIPELINE_BLOCK.md` 载体合同 |
-| HiPS 产品树 | 跨阶段 | 磁盘目录 + manifest + 哈希 | 本文第 4–6 节 |
+| HiPS 产品树 | 跨阶段 | 磁盘目录 + manifest + 哈希 | `../contracts/HIPS_STORAGE_FORM.md` |
 | 运行配置 | 阶段入口 | JSON 块列表，每块一个块级 `output_dir` | `../contracts/CONFIG.md` |
 
 跨阶段流转的载体只有 HiPS 产品树；阶段内节点的交换面是 `output_dir` 文件约定，不是命名块。
@@ -19,7 +19,7 @@
 |---|---|---|
 | 输入 | 亮场帧 + 母版校准帧（偏置/暗流/平场） | FITS / XISF，经统一 I/O 边界读入 |
 | 输入 | 运行配置（滤镜、精度模式、落盘形态、块级 `output_dir`） | JSON |
-| 中间 | 校准像素面、有效与坏点掩膜、背景与噪声面、权威 WCS、星点绑定行、PSF 模型、测光归一化后的像素面、帧级与稀疏信噪比 | 阶段内命名块 |
+| 中间 | 校准像素面、有效与坏点掩膜、背景与噪声面、权威 WCS、星点绑定行、PSF 模型、测光归一化后的像素面、帧级与稀疏信噪比 | 单节点执行期的内存对象；节点间交换面是 `output_dir` 文件约定 |
 | 输出 | 逐帧 HiPS 产品树（signal / support / variance / ivar / 可选稀疏信噪比标准层） | 磁盘产品 + manifest + 哈希 |
 | 输出 | 结构化 JSON（声明产物路径与必需字段，符合 `mosaic` 输入格式） | JSON |
 
@@ -30,7 +30,7 @@
 | 方向 | 数据对象 | 形态 |
 |---|---|---|
 | 输入 | 一组合同兼容的 `normalize` HiPS 产品树及其运行清单 | 磁盘产品 |
-| 中间 | 覆盖重叠图、控制采样点与其逆方差、公共天光面与逐帧偏差、归一化后的样本面、逐像素排异结果与服务支撑度 | 阶段内命名块 |
+| 中间 | 覆盖重叠图、控制采样点与其逆方差、公共天光面与逐帧偏差、归一化后的样本面、逐像素排异结果与服务支撑度 | 单节点执行期的内存对象；节点间交换面是 `output_dir` 文件约定 |
 | 落盘（可选） | 天光平面模型稀疏 JSON、稠密缓存 | 磁盘产品 |
 | 输出 | 马赛克 HiPS 产品树 + 运行清单 | 磁盘产品 + manifest + 哈希 |
 
@@ -41,7 +41,7 @@
 | 方向 | 数据对象 | 形态 |
 |---|---|---|
 | 输入 | 兼容 HiPS 产品树（只读） | 磁盘产品 |
-| 中间 | properties 读取结果、目标投影 WCS、重采样后的子块 | 阶段内命名块 |
+| 中间 | properties 读取结果、目标投影 WCS、重采样后的子块 | 单节点执行期的内存对象；节点间交换面是 `output_dir` 文件约定 |
 | 输出 | 平面 FITS 产品（含方差与逆方差扩展 HDU） | 磁盘产品 + 校验报告 |
 
 ## 完成判定
@@ -118,11 +118,11 @@ inner_omp = max(1, thread_budget / in_flight) // thread_budget = lease
 总并行度 = in_flight × inner_omp ≤ thread_budget
 ```
 
-两轴都要动的理由：内存闸门（`cap = floor(MemAvailable × 0.75 / (W×H×B/px))`，`B` 的标定值见 `../resources/PERFORMANCE_MODEL.md`）可能把帧级宽度压到远低于租约。此时若帧内轴仍固定为 1，CPU 预算大部分空转。帧级被内存压低时，剩余预算必须转给帧内轴。
+变量取义：`n` 是本次运行的帧单元数（对照实验中按帧计档时写作 `n_units`）；`lease` 是调度器注入该节点的线程租约，唯一解析面是调度器的 `node_thread_budget`；`frame_workers` 是帧级轴的上限，取租约与内存闸门上限的较小者；`thread_budget` 是租约本身；`in_flight` 是同时在算的帧数；`inner_omp` 是每帧的帧内线程数。除法按整数除法取下限，`max(1, …)` 保证帧内轴至少 1。内存闸门上限 `cap = floor(MemAvailable × 0.75 / (W×H×B/px))`，其中 `MemAvailable` 是机器画像给出的可用内存，`W`、`H` 是单帧像素宽高，`B` 是每像素字节数的标定值（见 `../resources/PERFORMANCE_MODEL.md`）。闸门把帧级轴压到远低于租约时，帧内轴仍固定为 1 会让 CPU 预算空转，因此帧级被压低时剩余预算必须转给帧内轴。
 
-不变式：帧级宽度未被内存压低时本式退化为 `inner_omp = 1`，即该分配只改变预算怎么用，不改变任何节点的数值路径。
+不变式：帧级宽度未被内存压低时本式退化为 `inner_omp = 1`，即该分配只改变预算怎么用，不改变任何节点的数值路径。当帧单元数 `n ≥ frame_workers` 时 `in_flight = frame_workers`，上式等价于 `I = max(1, L / F)`，其中 `I = inner_omp`、`L = lease`、`F = frame_workers`；`n < frame_workers` 时必须回到 `min(n, frame_workers)` 的原式，两条不可互换。
 
-**有效宽度的第三个因子**：drizzle 投影内部的暂存池上限 `K` 会把帧内轴再截一次，`W_eff = in_flight × min(inner_omp, K)`。要让有效宽度达到帧内轴宽度必须 `K ≥ inner_omp`；而 `K = inner_omp = num_threads` 时同时在飞的暂存份数等于 `in_flight × inner_omp ≤ 租约`，因此 `K = num_threads` 是达成满宽的唯一最小取值，且总份数与轴形态无关。
+**有效宽度的第三个因子**：drizzle 投影内部的暂存池上限 `K` 会把帧内轴再截一次，`W_eff = in_flight × min(inner_omp, K)`；`K` 是暂存池份数上限，`num_threads` 是 drizzle 投影内核拿到的线程数，`W_eff` 是实际同时在算的线程数。要让有效宽度达到帧内轴宽度必须 `K ≥ inner_omp`；而 `K = inner_omp = num_threads` 时同时在飞的暂存份数等于 `in_flight × inner_omp ≤ 租约`，因此 `K = num_threads` 是达成满宽的唯一最小取值，且总份数与轴形态无关。
 
 口径统一：本节两轴式与「活动 worker 之和不超过预算」是同一预算的两种陈述。单个科学内核内部的并行度就是帧内轴，内核内只有这一个并行区。三命令各自独立进程，线程预算不跨命令、不跨阶段共享。
 

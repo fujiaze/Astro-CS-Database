@@ -1,7 +1,7 @@
 # hips_browser（HiPS 浏览器组件，acsd.hips_browser / healpix_browser_qt）
 
-> 上游：docs/ACSD_DESIGN.md §8.4（顶层结构：hips_browser 基建目录）、§8.5
-> （模块与 ABI）、§1.3（非目标：Alpha 不含 GUI）、§6.3（`visualization` 模式标注
+> 上游：《ACSD 最高设计》的「软件架构」一章（顶层结构：hips_browser 基建目录；模块与 ABI）、
+> 「项目定位」一章（非目标：Alpha 不含 GUI）、「export：投影导出」一章（`visualization` 模式标注
 > 「不可测量」）
 > 数据正本：docs/detail/registry/acsd.phase1.hips-writer.md（DATA-HIPS-001 端口表，读侧复用；
 > 依赖 DATA-HIPS-*）
@@ -23,7 +23,7 @@ OpenGL，STF 显示，可选构建），落地目录 =
 
 ## 2. 权威依据
 
-- 最高设计 `ACSD_DESIGN.md` §1.3（非目标：Alpha 不含 GUI）、§8.4（顶层结构：hips_browser 基建目录）
+- 《ACSD 最高设计》的「项目定位」一章（非目标：Alpha 不含 GUI）、「软件架构」一章（顶层结构：hips_browser 基建目录）
 - [IVOA HiPS 1.0 Recommendation](https://www.ivoa.net/documents/HiPS/)（IVOA 2017；渲染与层级切分规范）
 
 ## 3. 输入/输出数据合同
@@ -36,10 +36,10 @@ OpenGL，STF 显示，可选构建），落地目录 =
 
 - 渲染：按 HiPS order / tile 加载、LOD、颜色映射（诊断用，不冒充测量）；
 - 导航：平移 / 缩放 / 坐标读出；
-- 可视化允许显示型降级，**但产物只作显示面**（最高设计 §6.3：`visualization`
+- 可视化允许显示型降级，**但产物只作显示面**（《ACSD 最高设计》的「export：投影导出」一章：`visualization`
   模式标注「不可测量」）；
 - 读侧复用 aio，不复制 reader。
-- **渲染架构**：HiPS tile decode/cache → float viewport buffer → display transform/STF → Qt paint。STF 改变**只重做 display transform**，不重新 sky→HEALPix 采样 / FITS decode（`eng/.../OPTIMIZATION.md` 的 STF 不重采样条款）。
+- **渲染架构**：HiPS tile decode/cache → float viewport buffer → display transform/STF → Qt paint。STF 改变**只重做 display transform**，不重新 sky→HEALPix 采样 / FITS decode（`docs/engineering/standards/OPTIMIZATION.md` 的「STF 变化不重新采样」条款）。
 - **唯一显示变换状态**：`core/stf_engine.h` 的 `DisplayTransformState`（mode = AutoGlobal/AutoView/Manual；locked；black；white；midtones；curve；compression；generation）。UI（MainWindow / STFPanel / STFBar）只编辑 state；renderer（`HipsSkyView::rasterize`）只消费 state；任何变更 `generation+1`（丢弃过期异步结果用）。状态字段唯一：分散的 `preset_` / `auto_range_` / `auto_view_` / `stf_locked_` / `manual_*` 字段与 MainWindow 的重复 `stf_locked_` / `hips_auto_range_` 均不存在。
 - **robust signal auto stretch 链路**：
   ```text
@@ -66,10 +66,14 @@ OpenGL，STF 显示，可选构建），落地目录 =
   （GUI 入口 `main`）/ `browser_cli.cpp`（命令行入口 `main`）/ `main_window.cpp`；
   `core/` 的 `browser_backend.cpp` / `hips_browser_backend.cpp` /
   `hips_sky_view.cpp` / `healpix_math.cpp` / `gl_renderer.cpp`）。
-- 头面 = `include/healpix_browser_core.h`（core 面）+ `core/{stf_engine.h,
-  hips_sky_view.h, gl_renderer.h, browser_backend.h}` + Qt 层
-  `widgets/{abstract_view, hips_view, sphere_view}.{h,cpp}`、
-  `app/{main_window, stf_bar, stf_panel}.{h,cpp}`。
+- 头面 = `include/healpix_browser_core.h`（core 面）+ `core/` 下的
+  `stf_engine.h`、`hips_sky_view.h`、`gl_renderer.h`、`browser_backend.h` + Qt 层
+  `widgets/abstract_view.h` 与 `widgets/abstract_view.cpp`、
+  `widgets/hips_view.h` 与 `widgets/hips_view.cpp`、
+  `widgets/sphere_view.h` 与 `widgets/sphere_view.cpp`、
+  `app/main_window.h` 与 `app/main_window.cpp`、
+  `app/stf_bar.h` 与 `app/stf_bar.cpp`、
+  `app/stf_panel.h` 与 `app/stf_panel.cpp`。
 - 读侧走 aio（HiPS tiles 经 `astro_image_io` 读面）。
 - 所有权：Qt parent-child；renderer 只读共享。
 
@@ -85,12 +89,12 @@ OpenGL，STF 显示，可选构建），落地目录 =
 - STF engine 单测面；
 - 渲染正确性（已知产品 → 期望像素值）；
 - 导航 / 坐标读出测试；
-- 视觉验收按 `docs/ACSD_DESIGN.md` §12.4 的 L4 清单执行；
+- 视觉验收按《ACSD 最高设计》的「验证层级与四层验收」一节的 L4 清单执行；
 - 与科学产品隔离验证（不写产品、不影响测量路径）。
 
 ## 9. 已知限制
 
-- Alpha 不含 GUI（最高设计 §1.3）；本组件是可选工具，不进产品 manifest；
+- Alpha 不含 GUI（《ACSD 最高设计》的「项目定位」一章）；本组件是可选工具，不进产品 manifest；
 - 全局限制登记 = artifacts/evidence/known-limitations-ledger/LIMITATIONS.md。
 
 ## 10. 源文件

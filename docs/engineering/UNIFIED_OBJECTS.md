@@ -1,12 +1,12 @@
-# 统一数据对象合同（UNIFIED_MODEL 「13 个对象 → canonical schema → schema ID」一节 的 **13** 个对象）
+# 统一数据对象合同（13 个 canonical 数据对象与 canonical schema 的对照登记）
 
 > 上游：docs/ACSD_DESIGN.md 「数据对象」一节（数据对象）。
-> 上位正本：`docs/detail/common/UNIFIED_MODEL` 「统一对象」一节（对象集与逐对象语义）。本文是**索引与语义登记**，不改任何科学定义、公式、阈值、容差或推导；对象身份/单位/无效值/精度/可否作权重一律以 canonical schema 为准。
+> 上位正本：`docs/detail/UNIFIED_MODEL.md` 的「数据对象（各自具名）」一节——该节登记 13 个 canonical 数据对象，逐对象给出语义与「可否作权重」判定，并规定 `weight`/`value`/`mask`/`snr` 各字段各自具名、一个字段只承载一个含义。本文是**索引与语义登记**，不改任何科学定义、公式、阈值、容差或推导；对象身份/单位/无效值/精度/可否作权重一律以 canonical schema 为准。
 > 现行对象集 = **13 个**；全链没有「权重模式」这一可选概念，`weight_mode` 家族与 `sci_weight_mode` 键**不存在**（叠加权重是阶段二按该天球像素对应帧集合现场换算的派生量，见 `docs/ACSD_DESIGN.md` 「数据对象」一节（数据对象））。
 
 ## 1. 唯一事实源声明
 
-`eng/contracts/schemas/` 是数据合同的**唯一事实源**（`docs/ACSD_DESIGN.md` 「数据对象」一节）。对 UNIFIED_MODEL 「13 个对象 → canonical schema → schema ID」一节 的 **13** 个对象：
+`eng/contracts/schemas/` 是数据合同的**唯一事实源**（`docs/ACSD_DESIGN.md` 「数据对象」一节）。对上位正本「数据对象（各自具名）」一节的 **13** 个 canonical 对象：
 
 ```text
 canonical 定义 = eng/contracts/schemas/unified/<对象名>.schema.json
@@ -16,38 +16,46 @@ canonical 定义 = eng/contracts/schemas/unified/<对象名>.schema.json
                   且不得与 canonical 重复定义对象判别字段（除 schema_version 外 required/properties 词表不得重叠）。
 ```
 
-**唯一性判定标准**：对 UNIFIED_MODEL 「13 个对象 → canonical schema → schema ID」一节 的 13 个对象，eng/contracts/schemas/unified/<对象名>.schema.json 是唯一 canonical 定义（每对象恰 1 个 $id，全局不重复）；任何其它 schema 只能是「产品族专用投影」或「兼容期映射」，其对象判别字段与 canonical 分立（除 schema_version 外 required/properties 词表两两不重叠），且 eng/contracts/schemas/** 下每个 schema 文件都必须在 eng/contracts/data/unified_object_compatibility_map_v1.json 的 entries 中被登记归属。
+**唯一性判定标准**：对上述 13 个对象，`eng/contracts/schemas/unified/<对象名>.schema.json` 是唯一 canonical 定义（每对象恰 1 个 `$id`，全局不重复）；任何其它 schema 只能是「产品族专用投影」或「兼容期映射」，其对象判别字段与 canonical 分立（除 `schema_version` 外 required/properties 词表两两不重叠），且 `eng/contracts/schemas/**` 下每个 schema 文件都必须在 `eng/contracts/data/unified_object_compatibility_map_v1.json` 的 entries 中被登记归属。
 
-机器可复跑断言（`python3 -m unittest discover -s eng/tests/contracts -t eng/tests/contracts`）：
+本节所列的唯一性判据有四种，逐条对应一条人读判据与一个机器可核事实：
 
-- `eng/tests/contracts/test_unified_object_contract.py::TestCanonicalObjectSchemas::test_every_schema_loads_and_has_unique_global_id`
-- `eng/tests/contracts/test_unified_object_contract.py::TestCanonicalObjectSchemas::test_object_name_has_exactly_one_canonical_file`
-- `eng/tests/contracts/test_unified_object_contract.py::TestCanonicalObjectSchemas::test_every_object_schema_is_in_the_ownership_registry`
-- `eng/tests/contracts/test_unified_object_contract.py::TestCanonicalObjectSchemas::test_no_two_equivalent_schemas_per_object`
+| 判据 | 人读判据 | 机器可核事实 |
+|---|---|---|
+| 每 schema 可加载、`$id` 全局唯一 | 13 个 canonical 文件逐个能被 JSON 解析 | `eng/contracts/schemas/unified/` 下 13 个文件的 `$id` 互不相同 |
+| 每个对象名恰一个 canonical 文件 | 对象名与文件名一一对应，无第二份同名 canonical | `eng/contracts/schemas/unified/<对象名>.schema.json` 存在且唯一 |
+| 每个 schema 都在归属登记表内 | `eng/contracts/schemas/**` 下每个文件都能在 compatibility map 的 entries 里找到归属 | `eng/contracts/data/unified_object_compatibility_map_v1.json#entries` |
+| 同一对象无两份等价 schema | 产品族投影与兼容期映射不与 canonical 重复定义对象判别字段 | 除 `schema_version` 外 required/properties 词表两两不重叠 |
+
+本节不声明执行器：仓内 `eng/tests/` 只有 `conformance/`（noop 骨架）与 `validation/`（实验域脚本）两个目录，上表四条判据当前**没有可执行载体**，按人读对抗性审核逐条核对。补执行器属代码侧订正，见 `governance/UNRESOLVED.md`。
 
 ## 2. 13 个对象 → canonical schema → schema ID（对照表）
 
-| 对象 | schema ID | canonical 文件 | 单位（BUNIT 语义） | 无效值 / 缺失表示 | 精度 | 可否作权重（UNIFIED_MODEL 「13 个对象 → canonical schema → schema ID」一节 原文） | DataArtifact 登记 |
+| 对象 | schema ID | canonical 文件 | 单位（BUNIT 语义） | 无效值 / 缺失表示 | 精度 | 可否作权重（上位正本「数据对象（各自具名）」一节原文） | DataArtifact 登记 |
 |---|---|---|---|---|---|---|---|
 | `signal` | `https://acsd.local/schemas/unified/signal/v1` | `eng/contracts/schemas/unified/signal.schema.json` | **标度由承载面声明**（`docs/engineering/standards/NUMERIC` 标度词表）：面亮度域 = `ADU/sr`；像素域帧面 = `ADU`（`calibrated_adu` 或 `photo_scaled_adu`，后者含逐帧因子 α）；`BUNIT(声明)` 只在产品显式写出 BUNIT 时成立，且须与 `provenance` 的像素语义声明一致（`DATA_SEMANTICS` §31.2） | NaN / null | float32|float64 | 否 | `DATA-OBJ-SIGNAL-001` |
 | `variance` | `https://acsd.local/schemas/unified/variance/v1` | `eng/contracts/schemas/unified/variance.schema.json` | **量纲随承载它的 signal 估计量**：面亮度域 = `ADU^2/sr^2`；像素域帧面（Phase1 `variance` 块）与 UPM 控制点 = `ADU^2`（**无 sr 幂**）⇒ 同名对象的三种承载面**各自独立取值、互不代入**，消费侧必须先判定标度类别（`docs/engineering/standards/NUMERIC`） | 无覆盖 = `null`（对象级）/ `NaN`（Phase1 产品面，与 signal 同态）；**有覆盖但无方差信息 = `0`（显式不可用）**；负值 = 损坏 | float32|float64 | 对该估计目标可以 | `DATA-OBJ-VARIANCE-001` |
 | `ivar` | `https://acsd.local/schemas/unified/ivar/v1` | `eng/contracts/schemas/unified/ivar.schema.json` | **1/signal单位^2**：面亮度域 = `sr^2/ADU^2`；像素域帧面 = `ADU^-2`（无 sr 幂）；与同承载面的 variance 严格互倒（有限域） | `0` = 显式不可用（禁 `1/0→Inf`）；`null` = 缺失；无覆盖 = `NaN`（同 signal） | float32|float64 | 对该估计目标可以 | `DATA-OBJ-IVAR-001` |
 | `source_snr` | `https://acsd.local/schemas/unified/source_snr/v1` | `eng/contracts/schemas/unified/source_snr.schema.json` | 1（F_hat/sigma_F 无量纲） | null | float32|float64 | 不直接作帧权重 | `DATA-OBJ-SOURCE-SNR-001` |
 | `depth_m5` | `https://acsd.local/schemas/unified/depth_m5/v1` | `eng/contracts/schemas/unified/depth_m5.schema.json` | mag | null | float32|float64 | 摘要，不作权重 | `DATA-OBJ-DEPTH-M5-001` |
-| `frame_snr` | `https://acsd.local/schemas/unified/frame_snr/v1` | `eng/contracts/schemas/unified/frame_snr.schema.json` | 1（真实信号/噪声比，`SNR = F_ref/σ_F`，**无量纲**；分子 `F_ref` 取**逐帧参考通量**，不是逐源实测通量，口径定义处是 `docs/ACSD_DESIGN.md` §2.2（P2 跨帧绝对信噪比））。**对象身份的两个必要条件（正向约束）**：① 分子**必须已扣独立估计的局部背景**，天光**只作为噪声项**进入 `σ_F`（红线见 `docs/detail/normalize/modules/noise_snr` §4.1）——未扣背景的比值**不是** `frame_snr`，本对象只接受已扣背景的比值；② 本对象是**点源（PSF）**量，与面亮度 SNR **各自独立、互不宣称等价**。参考通量基准（`reference_baseline`）见 science 分册的数据语义卷 §13.4 | null | float32|float64 | 唯一帧级参考；权重由 Phase2 逆方差叠加从 SNR 计算（SNR 本身**不是**权重） | `DATA-OBJ-FRAME-SNR-001` |
+| `frame_snr` | `https://acsd.local/schemas/unified/frame_snr/v1` | `eng/contracts/schemas/unified/frame_snr.schema.json` | 1（真实信号/噪声比，`SNR = F_ref/σ_F`，**无量纲**；分子 `F_ref` 取**逐帧参考通量**，不是逐源实测通量，口径定义处是 `docs/ACSD_DESIGN.md` §2.2（P2 跨帧绝对信噪比））。**对象身份的两个必要条件（正向约束）**：① 分子**必须已扣独立估计的局部背景**，天光**只作为噪声项**进入 `σ_F`（红线见 `docs/detail/normalize/modules/noise_snr` §4.1）——未扣背景的比值**不是** `frame_snr`，本对象只接受已扣背景的比值；② 本对象是**点源（PSF）**量，与面亮度 SNR **各自独立、互不宣称等价**。参考通量基准（`reference_baseline`）见 science 分册的数据语义卷 §13.4 | null | float64 | 唯一帧级参考；权重由 Phase2 逆方差叠加从 SNR 计算（SNR 本身**不是**权重） | `DATA-OBJ-FRAME-SNR-001` |
 | `point_information` | `https://acsd.local/schemas/unified/point_information/v1` | `eng/contracts/schemas/unified/point_information.schema.json` | ADU^-2（=1/Var(F_hat)，点源通量口径；**不是**面亮度 `signal^-2`——后者为 sr^2/ADU^2，见 science 分册的数据语义卷 §31.1a）。**标度 = 与 `F_hat` 同承载面**（帧面为 `photo_scaled_adu` 时随 1/α² 换算） | null | float32|float64 | 点源目标的严格权重。**估计域（正向约束）**：`Var(F_hat)` 是**PSF 拟合域**内的通量估计方差（`F_hat` 单位 ADU），**不含**像素间相关核的贡献；把本对象当权重消费前，消费侧必须确认 ① 估计域与目标一致（点源、非面亮度）、② 是否已含相关核（未含时按 science 分册的数据语义卷 §31.5 的 `k_corr ≠ 1` 条款补核或拒绝）、③ 与 `W_info` 消费面（science 分册的数据语义卷 §28.6）的量纲一致。三条缺一即 fail-closed，默认代入一律判红 | `DATA-OBJ-POINT-INFORMATION-001` |
 | `sparse_snr_layer` | `https://acsd.local/schemas/unified/sparse_snr_layer/v1` | `eng/contracts/schemas/unified/sparse_snr_layer.schema.json` | 1 | null | float32|float64 | 帧内精细参考 | `DATA-OBJ-SPARSE-SNR-LAYER-001` |
 | `support` | `https://acsd.local/schemas/unified/support/v1` | `eng/contracts/schemas/unified/support.schema.json` | 1（[0,1]） | 0=无覆盖 | float32|float64|integer | 否 | `DATA-OBJ-SUPPORT-001` |
 | `coverage` | `https://acsd.local/schemas/unified/coverage/v1` | `eng/contracts/schemas/unified/coverage.schema.json` | 1（几何有效域） | 0=无覆盖（空域） | float32|float64|integer | 否 | `DATA-OBJ-COVERAGE-001` |
 | `validity` | `https://acsd.local/schemas/unified/validity/v1` | `eng/contracts/schemas/unified/validity.schema.json` | 1（状态量） | missing=显式缺失态 | integer | 门，不是权重 | `DATA-OBJ-VALIDITY-001` |
 | `rejection` | `https://acsd.local/schemas/unified/rejection/v1` | `eng/contracts/schemas/unified/rejection.schema.json` | 1（门/概率） | 0=未拒绝（无覆盖=0） | float32|float64|integer | 门/概率，不是 coverage | `DATA-OBJ-REJECTION-001` |
-| `provenance` | `https://acsd.local/schemas/unified/provenance/v1` | `eng/contracts/schemas/unified/provenance.schema.json` | 1（元数据，无量纲） | unavailable.{flag,reason,scope} 显式登记 | integer | —— | `DATA-OBJ-PROVENANCE-001` |
+| `provenance` | `https://acsd.local/schemas/unified/provenance/v1` | `eng/contracts/schemas/unified/provenance.schema.json` | 1（元数据，无量纲） | unavailable.{flag,reason,scope} 显式登记 | 非数值元数据（字符串 / 键值：来源链、输入哈希、运行标识、产品类型） | —— | `DATA-OBJ-PROVENANCE-001` |
 
-> 「可否作权重」列逐字照抄 `docs/detail/common/UNIFIED_MODEL` 「统一对象」一节，机器以 `object_weight_verdict`（const）+ `object_weight_capability`（const）双字段固化，判定只取自该列原文。
+**精度列的读法**：`float32` / `float64` / `integer` 只对数值面有意义；非数值对象写其载荷形态，不套数值 dtype。归依据是最高设计的「精度归属」节与 science 分册数据语义卷的「精度」节——稠密大面（图像面、球面累加器、方差与覆盖面、HiPS tile）承载 FP32，稀疏与元数据（帧级信噪比、WCS 解、星表匹配、测光定标、控制点）承载 FP64；本列按该归属逐对象标注。
+
+**精度面当前的实现缺口（需负责人裁决）**：最高设计要求「稠密大面 FP32」与「稀疏与元数据 FP64」**同时成立**（两个可各自独立的归属），但机器侧统一 I/O 只有一个**全局精度模式位**——`lib/infrastructure/aio/src/aio_api.cpp` 的 `g_aio_precision_mode_fp64` 与 `aio_set_precision_mode(int is_fp64)`，模块内查询接口 `aio_internal_is_fp64()` 读同一变量，其头注自述 `PrecisionContext` 单例在动态库边界不共享，须显式设置。单个全局位**无法表达**「稠密 FP32 且稀疏/元数据 FP64」这一组合。因此：本表按对象语义标注的是**应归属**的精度，不是当前机器已强制执行的精度；「拆成两个独立精度量」还是「把最高设计的精度归属收敛为一个全局模式」属未决项，登记在 `governance/UNRESOLVED.md`，裁决前本列不得被读作运行时保证。
+
+> 「可否作权重」列逐字照抄 `docs/detail/UNIFIED_MODEL.md` 的「数据对象（各自具名）」一节，机器以 `object_weight_verdict`（const）+ `object_weight_capability`（const）双字段固化，判定只取自该列原文。
 
 ## 3. 模糊字段名禁令（机器门）
 
-UNIFIED_MODEL 「13 个对象 → canonical schema → schema ID」一节 末条：**一个字段只承载一个含义**（模糊名 `weight/value/mask/snr` 的多义承载一律判红）。落法：
+上位正本「数据对象（各自具名）」一节末条：**一个字段只承载一个含义**（模糊名 `weight`/`value`/`mask`/`snr` 的多义承载一律判红）。落法：
 
 - 每个 canonical schema 的 `propertyNames.pattern` 拒绝裸名 `weight`/`value`/`mask`/`snr`；
 - 合格写法必须带对象全名或类型前缀：`frame_snr_value`、`depth_m5_value`、`psfsw_weight_value`、`variance_value`、`validity_state`、`support_plane_ref` 等；
@@ -78,12 +86,13 @@ UNIFIED_MODEL 「13 个对象 → canonical schema → schema ID」一节 末条
 | 条款注册表 / 单位表 / 词表 / 迁移映射 / 待签与开放项登记 | `eng/contracts/data/clause_registry.json` | machine_registration_table |
 | 条款注册表、签字项与开放项的**正文承载页** | `docs/science/unified/DATA_SEMANTICS` §31.10（+ §31.1–§31.9、§28.6） | human_readable_contract |
 | 产品族正例 | `eng/contracts/data/examples/` | positive_fixtures |
-| 独立 Oracle + 负向 mutation 验证面 | `eng/tests/contracts/product_family/` | verification |
-| 共享校验器 | `eng/tests/common/jsonschema_min.py` | shared_validator |
+| 独立 Oracle + 负向 mutation 验证面 | `eng/tests/contracts/product_family/`（当前无执行器，见下注） | verification |
+| 共享校验器 | 无仓内载体；JSON Schema 校验随产品族记录级合同走 `eng/contracts/schemas/product_family_field_constraints.schema.json` 的词表（`shared_validator` 待补） | shared_validator |
 
 > 产品族记录级合同与被其引用的 canonical 对象合同**不等价**（前者含 48 条 `PENDING_OWNER_SIGNOFF` 条款，
 > fail-closed），因此以「非对象合同」身份在 ownership 索引中登记；其读写规则、fail-closed 门与词表不变。
 > `psfsw_robust_weight` 对象的负例见 `eng/contracts/schemas/unified/negative/n5_retired_psfsw_robust_weight.schema-violation.json`。
+> **验证面执行器状态**：上表「独立 Oracle + 负向 mutation 验证面」与「共享校验器」两行的仓内执行器当前都不存在——`eng/tests/` 只有 `conformance/`（noop 骨架）与 `validation/`（实验域脚本）两个目录。判据本身仍生效，执行器待补，属代码侧订正。
 
 ## 4b. `sparse_snr_layer` 的重建声明面（算子词表与层几何）
 
@@ -102,7 +111,7 @@ UNIFIED_MODEL 「13 个对象 → canonical schema → schema ID」一节 末条
   - **默认档的适用域（正向约束）**：`natural_bicubic_spline_clip_v1` 的适用域 = **地面 seeing-limited 与一般情形**。在 HST 类高对比域上，其 Δ*（E 首次劣于帧级臂的最小控制点间隔）小于生产控制点间隔，落于失效区 ⇒ 该域**必须**显式改用 `..._mesh_median_v1`（其 Δ* 大于生产控制点间隔，处于有效区）。默认档是**回退**，不是「域无关的安全选择」；未声明域时取默认档属**显式降级**，必须随层入 manifest 可追溯。逐域 Δ* 与失效倍数见 `实验/absolute-snr`。
 - **几何**：控制点坐标是像素中心坐标；规则网格下节点落在**所属 Δ×Δ cell 的中心**（cell i 覆盖 `[origin_x + i·Δ, origin_x + (i+1)·Δ − 1]`）。把节点当 cell 角点会使重建场整体平移半个 cell（Δ/2）。层定义域 = 层覆盖的 cell 并集，越出即消费侧 fail-closed（不外推、不回退帧级）。
   - **与 Phase2 UPM 控制网格的关系（强制，同一约定）**：默认 Δ = `hips.tile_width / 8 = 512 / 8 = 64` px 复用 Phase2 UPM 的 8×8/tile 控制网格 ⇒ **两处必须是同一套几何约定**：节点 = 所属 cell 的**中心**、cell 编号自 `origin` 起、`origin` 缺省 0、层定义域 = cell 并集。稀疏层一侧的约定按本行；UPM 一侧按 science 分册的数据语义卷 §25.1（控制点几何）——**两处不一致即 fail-closed**：同一套几何约定在两处逐项相同，换算不在消费侧发生。
-- 依据：`实验/absolute-snr` EXP-04 §2.7/§4.1/§4.3/§4.5；算子定义、钳制与滤波的实测代价见 `docs/detail/normalize/modules/noise_snr` §4.2/§4.5。合同机器门：`eng/tests/contracts/test_unified_object_contract.py`（对象级）与 `lib/algorithms/integration/phase2_integrate/oracle/recon_contract_gate.py`（声明面门）。
+- 依据：`实验/absolute-snr` EXP-04 §2.7/§4.1/§4.3/§4.5；算子定义、钳制与滤波的实测代价见 `docs/detail/normalize/modules/noise_snr` §4.2/§4.5。合同判据分两面：对象级由 `eng/contracts/schemas/unified/sparse_snr_layer.schema.json` 的 `enum` / `const` 冻结，声明面由本节表格约束；两面的机器门当前均无仓内执行器，按人读对抗性审核逐条核对。
 
 ## 4a. 合同 ID → 统一对象映射（MODULE_MAP 引用面）
 
@@ -120,7 +129,7 @@ UNIFIED_MODEL 「13 个对象 → canonical schema → schema ID」一节 末条
 
 逐条判定依据（含证据原文与逐行锚）：本节 「归属归一与产品族字段级约束落点」一节a 表与 `eng/contracts/data/unified_object_compatibility_map_v1.json#legacy_contract_id_map`（7 条，含 `decision` / `relation` / `canonical_objects` / `contract_faces`）。
 
-小结：**mapped = 4**（DATA-P1-CAL / DATA-P1-COS / DATA-P1-COSMETIC / DATA-P1-DRZ），**无 canonical 对应 = 3**（DATA-P1-SOURCES / DATA-P2-SMP / DATA-GAIA-001）。机器断言：`eng/tests/contracts/test_unified_object_contract.py::TestRegistryIndex::test_legacy_ids_are_decided_not_pending` 与 `::test_legacy_id_map_written_into_index_and_compat_map`。
+小结：**mapped = 4**（DATA-P1-CAL / DATA-P1-COS / DATA-P1-COSMETIC / DATA-P1-DRZ），**无 canonical 对应 = 3**（DATA-P1-SOURCES / DATA-P2-SMP / DATA-GAIA-001）。机器判据：`eng/contracts/data/unified_object_compatibility_map_v1.json#legacy_contract_id_map` 的 7 条 `decision` 字段不得为 pending，且该映射须与 ownership 索引逐条一致；当前无仓内执行器，按人读核对。
 
 ## 5. 三类配置分离锚点（配置 schema 本体归 CFG-001）
 
@@ -133,5 +142,5 @@ UNIFIED_MODEL 「13 个对象 → canonical schema → schema ID」一节 末条
 | `run_manifest` | 本次运行冻结：源码 SHA / 配置哈希 / 输入输出哈希 / 工具链版本；不承载科学参数与硬件调优 | CFG-001 | `^manifest_(input|output)_hashes$`；`^software_sha$`；`^config_hash$`；`^toolchain_[a-z0-9_]+$`；`^run_id$` | `isa`、`workers`、`block`、`sci_algorithm_id`、`sci_weight_mode`（该键不存在；权重是阶段二现场派生量） |
 
 硬规则：三类配置的字段名模式两两互斥（同名即同义）；`cpu_profile` 的硬件字段出现在 `phase_config` 即 REJECT。
-机器断言：`eng/tests/contracts/test_unified_object_contract.py::TestConfigSeparationAnchors`。
+机器判据：`eng/contracts/data/config_separation_anchors.json`（`IDX-CONFIG-SEPARATION`）的命名空间与混入即 REJECT 字段集逐条对读；当前无仓内执行器，按人读核对。
 

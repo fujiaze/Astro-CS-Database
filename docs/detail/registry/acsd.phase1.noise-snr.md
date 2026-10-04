@@ -59,7 +59,7 @@ invalid = NaN/coverage=0（按 DATA 合同）。
 | `depth_m5` | 帧/位置深度表达 |
 | `point_information` | 点源严格权重（通量估计方差的倒数） |
 | `frame_snr` | 帧级 SNR，**写入 HiPS 文件头**；语义 = 点源（PSF）信号 SNR |
-| `sparse_snr_layer` | 帧内稀疏控制点 SNR 层（`sparse_snr_layer=true` 时，默认产出）；控制点值 = 该点的**绝对**通量型 SNR，与帧级 SNR 同口径、同逐帧参考通量，无量纲；消费时由控制点**直接重建**为稠密 SNR 场 |
+| `sparse_snr_layer` | 帧内稀疏控制点 SNR 层（`sparse_snr_layer=true` 时请求产出）；控制点值 = 该点的**绝对**通量型 SNR，与帧级 SNR 同口径、同一个冻结的参考星等档 `m_ref`，无量纲；消费时由控制点**直接重建**为稠密 SNR 场。**交付状态 = 合同面已冻结、生产侧尚无产者**：Phase1 既无稀疏层侧车写者，也无 HiPS 属性载体发布者；产者落地前 `sparse_reconstruct` 路径不可兑现，只余 `frame_reconstruct` 与稠密路径 |
 
 `frame_snr` 与 `sparse_snr_layer` 是**相互独立**的两个对象，稀疏层**不作**
 帧级标量的尺度基准。`point_information` 是权重、帧级 SNR 是信噪比，两者不是同一
@@ -92,19 +92,41 @@ invalid = NaN/coverage=0（按 DATA 合同）。
 SNR 路径做**注入-回收** —— 已知真值信号 + 已知天光 + 已知噪声，回收的 SNR
 必须等于真值 `F_s/σ_F`；不满足者修正或退回重检。
 
-**逐帧参考通量**：参考通量由该帧自己的零点决定，参考星等固定为 6.0 等，
-`reference_flux_scope = frame_independent_fixed_magnitude`；公共锚与帧无关，
-满足「帧参考通量 × 光度响应 = 公共锚」的严格恒等。配对性只要求**同一帧内** SNR
-与参考通量同源，**不要求跨帧相等**；不同指向 / 不同光学系统的帧**合法地**有
-不同参考通量，**不设组间参考通量硬闸门**。6 等星档参考是**线性区外**的形式
-外推，作为**参考电平**良定义，但该值的用途**限定为参考电平**（真实帧可饱和或
-超满井）。单位以产物字段 `reference_flux_common_unit` 为准（现行 = Gaia XPSD
-绝对谱积分合成通量；显式 `snr.reference_flux_adu` 覆盖时为 ADU）。
+**精度归属**：帧级信噪比标量、稀疏控制点值与控制点局部 `σ` 属**稀疏与元数据**面，
+按最高设计的「数据对象与配置」章内「精度归属」条取**全程双精度**；JSON 显式指定
+位深时以 JSON 为准。稠密逐像素方差面属**稠密大面**，按同条取单精度，两类面不得互相
+代入（该归属与现行单一全局精度位的冲突登记见「已知限制」）。
+
+**参考通量按冻结的参考星等档取，不由数据派生**：参考星等 `m_ref`（配置键
+`snr.reference_mag`，缺省 6.0 等）在一次运行内冻结，参考通量是该星等档在**本帧
+仪器通量下的读数** `F_ref,k = 10^(−0.4·(m_ref − ZP_k))`，其中
+`ZP_k = ZP_syn,k − 2.5·log10(k_photo,k)` 只来自本帧自身的测光标定；产品另记与帧
+无关的**物理公共锚** `F0 = 10^(−0.4·(m_ref − ZP_syn))`，同波段同星场恒为同一数。
+该口径的合同正本 = `eng/contracts/schemas/unified/frame_snr.schema.json` 的
+`reference_baseline`（必落 `scope` / `reference_flux_source` /
+`reference_flux_common` / `reference_mag` / `reference_mag_system`，
+`scope` 生效值 = `frame_independent_fixed_magnitude`），逐帧 provenance
+`snr_reference` 另记 `reference_mag` / `frame_zero_point_mag` / `frame_k_photo`
+—— `m_ref` 随产品落盘，消费侧据此复算而不必猜口径。
+
+**禁由数据派生参考通量**：逐帧检出通量中位数形态会丢掉帧间标度因子 `a_f²`，并把
+本帧检出亮度混进入头 SNR，使帧间不可比、与权重链的 `F_ref` 口径不配对 ⇒ 该形态
+**fail-closed**（`snr_frame_science` 的 `reference_flux_adu` 缺失 / 非有限 / ≤0 即
+判红）；公共锚与帧参考通量的配对恒等式 `w = SNR_f²/F0² = a_f²/σ_f²` 只在两者
+同源于一个 `m_ref` 时成立。
+
+配对性只要求**同一帧内** SNR 与参考通量同源，**不要求跨帧相等**；不同指向 / 不同
+光学系统的帧**合法地**有不同 `F_ref,k`，跨帧一致性降为**报告字段**、
+**不设组间参考通量硬闸门**。参考星等档是**线性区外**的形式外推，作为**参考
+电平**良定义，但该值的用途**限定为参考电平**（真实帧可饱和或超满井）。单位以产物
+字段 `reference_flux_common_unit` 为准（现行 = Gaia XPSD 绝对谱积分合成通量；
+显式 `snr.reference_flux_adu` 覆盖时为 ADU）。
 
 HiPS 是数据库：帧产品长期保存、可被任意多次、任意科学目标的叠加消费，因此
 入库的是客观的未加权 SNR（与具体集成无关的观测量）；权重在 Phase2 集成时按
 天球像素对应的输入帧集合现场计算。稀疏帧内层启用时，每个控制点同样存
-**未加权的绝对 SNR**（与帧级同一物理定义、同一逐帧参考通量），而非权重。
+**未加权的绝对 SNR**（与帧级同一物理定义、同一参考通量口径、同一个冻结的
+`m_ref`），而非权重。
 
 #### SNR 三条路径与稀疏帧内层
 
@@ -214,9 +236,11 @@ docs/science/noise_snr/NOISE_SNR.md §3.1 数值地板与三态、§6.3 精度�
 - **控制点有效性判据是自校准统计量** `R` = 该 patch 的稳健尺度 / 同一 patch
   在**白噪声零假设**下的等价尺度。该判据的**零假设值恒为 1**，是恒等式而不是
   标定值 ⇒ `R` 的比较基准 = 零假设值 1 本身；与写死的绝对倍数比较属另一口径；
-- **判据实现 = `ln R` 的序统计量**：取最大的 `k` 使第 `k` 个跳变超过保留主体的
-  极差；保留主体下限 = max(⌈n/2⌉, 预算 patch 数)；`n` 低于该下限时判据**不
-  武装**，这些 patch 计入 `n_r_unavailable_patches`，**按不可用登记**；
+- **判据实现 = `ln R` 的序统计量**：取最大的跳变序号 `j` 使第 `j` 个跳变超过保留
+  主体的极差；保留主体下限 = max(⌈n/2⌉, 预算 patch 数)；`n` 低于该下限时判据**不
+  武装**，这些 patch 计入 `n_r_unavailable_patches`，**按不可用登记**。序号记作
+  `j` 而非 `k`，以免与本模块背景方差口径的掩膜边缘残余系数 `k` 混名（后者的取值
+  与出处正本 = docs/science/noise_snr/NOISE_SNR.md 的常数表）；
 - **拟合可行域**：平面必须在**控制点凸包内结构非负**（凸包内预测 ≤ 0 是拟合
   缺陷，不是合法外推）；**合法解集 = 凸包内结构非负的平面**（常数场属另一
   形态）；
@@ -257,9 +281,9 @@ docs/science/noise_snr/NOISE_SNR.md §3.1 数值地板与三态、§6.3 精度�
 - **定义域 = 层覆盖的 cell 并集**：cell 内非节点处由重建算子插值给出，最外
   半个 cell 由端点节点常数延拓；越出该并集即 **fail-closed**（不外推、不回退
   帧级）；
-- 稀疏控制点存**绝对** SNR（与帧级 SNR 同口径、同逐帧参考通量）；重建算子在
-  控制点上重建出稠密绝对 SNR 场；帧级标量与稀疏层相互独立，不作其尺度基准，
-  消费时也不参与还原；
+- 稀疏控制点存**绝对** SNR（与帧级 SNR 同口径、同一个冻结的参考星等档 `m_ref`）；
+  重建算子在控制点上重建出稠密绝对 SNR 场；帧级标量与稀疏层相互独立，不作其
+  尺度基准，消费时也不参与还原；
 - **重建算子（冻结词表；算子标识 = 唯一配置面）**。算子标识把「核 + 是否开
   3×3 mesh 中值前置滤波 + 是否做值域钳制」**整组绑定**，不做成可自由组合的
   独立开关：钳制是正值与有界性的必要条件，滤波只在特定域必需，独立布尔可组合
@@ -341,7 +365,9 @@ HiPS 文件头；稀疏层作为标准层插入 HiPS。各类输出独立 schema
 
 ### 源文件
 
-`lib/algorithms/noise_snr/{include/acsd, src, wrapper_phase1, cpp}/`。
+`lib/algorithms/noise_snr/include/acsd/`（公共头族）、`lib/algorithms/noise_snr/src/`
+（模块入口与导出面）、`lib/algorithms/noise_snr/wrapper_phase1/`（phase1 包装面）、
+`lib/algorithms/noise_snr/cpp/`（噪声模型 A 的独立构建面）。
 
 ## Registry descriptor 与配置 schema
 
@@ -350,17 +376,19 @@ parallel_ok=True。配置 = phase config JSON：
 
 | 字段 | 默认 | 单位 | 说明 |
 |---|---|---|---|
-| `reference_flux` | 逐帧参考通量 | 见说明 | 参考通量（m5/SNR 定义必需）。**逐帧**，由该帧零点与固定参考星等（6.0 等）决定；`reference_flux_scope = frame_independent_fixed_magnitude`；公共锚满足「帧参考通量 × 光度响应 = 公共锚」。单位以产物字段 `reference_flux_common_unit` 为准（现行 = Gaia XPSD 绝对谱积分合成通量；显式 `snr.reference_flux_adu` 覆盖时为 ADU）。参考星等是线性区外的形式外推，**用途限定为参考电平** |
+| `snr.reference_mag` | 6.0 | mag | 冻结的**参考星等档** `m_ref`，SNR 与深度定义必需。参考通量由该星等档按本帧测光零点换算（`F_ref,k = 10^(−0.4·(m_ref − ZP_k))`，见「数值落地口径」的参考通量条）；**不由数据派生**，`m_ref` 随产品落盘（合同必落字段见 `eng/contracts/schemas/unified/frame_snr.schema.json` 的 `reference_baseline`）。星等档是线性区外的形式外推，**用途限定为参考电平** |
+| `snr.reference_flux_adu` | —— | ADU | 显式给出的参考通量（覆盖按 `m_ref` 换算的结果，优先级最高）；缺失 / 非有限 / ≤0 ⇒ 该帧 fail-closed，不回退到数据派生形态。单位以产物字段 `reference_flux_common_unit` 为准 |
 | `scalar_gate_rd` | —— | —— | 标量降级鲁棒离散门 |
 | `scalar_gate_trend` | —— | —— | 标量降级系统趋势门 |
 | `psfsw_enable` | true | —— | 是否产出 PSF 信号权重复合分量（诊断/基线对照；PSF 拟合质量代理不计入科学叠加权重） |
-| `sparse_snr_layer` | true | —— | 是否产出稀疏帧内 SNR 层（控制点值 = 绝对通量型 SNR，与帧级同口径、同参考通量）。**默认产出** |
+| `sparse_snr_layer` | true | —— | 是否产出稀疏帧内 SNR 层（控制点值 = 绝对通量型 SNR，与帧级同口径、同参考通量）。**请求面已冻结；生产侧尚无产者**，落地前该键不产生可消费产物 |
 | `sparse_snr_spacing_px` | 64 | px | 稀疏层控制点间隔 Δ：复用 Phase2 UPM 的 8×8/tile 控制网格（tile_width / 8 = 512 / 8 = 64） |
 | `sparse_snr_density` | —— | 点/度² | 稀疏层控制点密度（按面积表述）；生产由像素域控制点间隔承载该量，本键不承载生产取值 |
 | `snr_path` | `sparse_reconstruct` | —— | SNR 重建路径：`dense` / `sparse_reconstruct`（默认）/ `frame_reconstruct`；三条路径的适用域由 `实验/absolute-snr` 给出 |
 
 **重建算子的声明面不是配置键**：算子标识由稀疏层自身声明
-（`sparse_snr_layer.reconstruction_operator`，冻结词表见数值落地一节），随层入
+（`sparse_snr_layer.reconstruction_operator`，冻结词表见本页「稀疏帧内层几何与
+重建算子」），随层入
 manifest；上表**不**登记该键 —— 避免出现「配置一套、层里另一套」的双事实源。
 
 ## Execution class、并行轴、ThreadBudget lease、确定性
@@ -392,11 +420,15 @@ cache/内存按 ALG 合同（bounded）; I-O 单 writer。平面判定与审计�
   不外推、不回退帧级）；
 - 缺 `a_k` / PSF / 方差 ⇒ fail-closed（信息权重不可凭空造）；
 - 标量门失败 ⇒ 自动升级为空间模型（标量结果只保留具名降级登记）；
-- `reference_flux` 未定义时 m5/SNR 不可输出；无 `photscale_fit` 或
-  `zero_point_valid=false` ⇒ 按显式回退 `group_median`（`reference_flux_scope`
-  落盘，**不伪造**），显式 `snr.reference_flux_adu` 优先；**逐帧中位数回退为
-  fail-closed，该形态保持**；
-- **组内参考通量相等只作登记事实**；缺 `variance` 块 ⇒ `uncertainty_available=false`，
+- 参考通量取不到时 m5/SNR 不可输出。三条来源形态各自具名落盘
+  （`reference_flux_source`）：① `fixed_magnitude` = 冻结的 `m_ref` 按本帧测光
+  零点换算（生效路径，作用域 `frame_independent_fixed_magnitude`）；② `config` =
+  显式 `snr.reference_flux_adu`；③ `group_median` = **块级**公共 F0（块内逐帧检出
+  通量中位数的中位数，作用域 `group`），只在 ①② 都不可得时启用，`scope` 随之落盘
+  为 `group`、**不伪造**；三者皆不可得 ⇒ `unavailable`，该帧 fail-closed。
+  **以本帧检出通量中位数充当本帧 `F_ref`** 的形态（作用域冒充 `fixed_magnitude`）
+  ⇒ fail-closed：它丢 `a_f²` 且使帧间不可比；
+- **跨帧参考通量相等只作登记事实**；缺 `variance` 块 ⇒ `uncertainty_available=false`，
   **逐像素方差的产出主张以 `variance` 块在盘为准**；
 - 帧级 SNR 无法计算（如缺真实信号参考）⇒ fail-closed；受天光影响的普通 SNR 属
   另一个量，两者互不代用；
@@ -434,10 +466,12 @@ Oracle 面：
 - 稀疏层：启用/不启用输出结构正确，稀疏层值可重建验证；**三路径精度与存储量
   对比**并报告精度差与存储量；无稀疏层而路径为 `sparse_reconstruct` 时实际路径
   须被显式记录（负例：静默降级判红）；
-- **重建算子 Oracle**（`lib/algorithms/integration/phase2_integrate/oracle/`）：
+- **重建算子 Oracle**（判据载体 = 实验单元
+  `实验/absolute-snr/docs/EXP-04-RECONSTRUCTION.md` 的算子实现与逐像素对拍表；
+  仓内**没有**独立的 oracle 源码目录，独立复算的承载形态是下述逐条判据）：
   ① 正例——默认算子与独立复算的自然样条+钳制逐点一致、控制点自身复现残差
-  ~0、预置路径与单次调用逐位一致、1/8 worker 求值逐位一致；② 与实验单元
-  实验单元 `实验/absolute-snr/docs/EXP-04-RECONSTRUCTION.md` 的算子实现逐像素对拍（容差 1e-12）；③ 负例注入——移除值域钳制 ⇒
+  ~0、预置路径与单次调用逐位一致、1/8 worker 求值逐位一致；② 与实验单元的算子
+  实现逐像素对拍（容差 1e-12）；③ 负例注入——移除值域钳制 ⇒
   病态网格效率爆增判红；把 mesh 滤波档设为全局默认 ⇒ 默认目标域上默认档与
   滤波档持平判红；移除 cell 中心几何门 ⇒ 角点锚定网格被接受判红；同时移除
   钳制与正值守卫 ⇒ 重建场出现负噪声估计判红；
@@ -447,9 +481,10 @@ Oracle 面：
   落盘值，该差异必须判红；③ 红——schema 层：值语义声明为相对或缺失 ⇒
   合同测试判红；
 - 点源/面亮度口径分离：把面亮度 SNR 当帧级 SNR 使用必须判红；
-- **逐帧参考通量独立性负例**：人为要求组内参考通量相等（组间硬闸门）⇒ 必须
-  判红 —— 不同指向/不同光学系统的帧合法地有不同参考通量；逆方差配对性**只在
-  同一帧内**成立；
+- **参考通量跨帧独立性负例**：人为要求组内参考通量相等（组间硬闸门）⇒ 必须
+  判红 —— 不同指向 / 不同光学系统的帧合法地有不同 `F_ref,k`；逆方差配对性**只在
+  同一帧内**成立；另一负例 = 以本帧检出通量中位数冒充 `F_ref`（作用域写作
+  `fixed_magnitude`）⇒ 该帧 fail-closed；
 - **背景方差面判据**：注入结构（未分辨源 / 强梯度）⇒ 被 `ln R` 序统计量判据
   剔除、`n_structure_rejected_patches > 0`；真值无结构 ⇒ 判据**不动作**
   （`n_structure_rejected_patches == 0`、`r_median ≈ 1`，证明判据非恒真）；
@@ -463,10 +498,18 @@ Oracle 面：
 - 缺陷与整改登记 = docs/science/algorithms/NOISE_ESTIMATION.md §13.3；
 - gain 未知时源泊松项不可加，帧级 SNR 退化为天空受限上界口径
   （`snr_caliber = upper_bound_no_gain`），该值仅限上界诊断；
-- 组内参考通量回退的逐帧中位数形态为 fail-closed；
+- 以本帧检出通量中位数充当本帧参考通量的形态为 fail-closed（数据派生参考通量
+  会丢 `a_f²` 并使帧间不可比）；
 - 平场大尺度残差类结构项无对照数据；
 - 现状构建产物 `snr_estimator.dll` 未编入根 CMake 主构建（生产走根 CMake 目标
   `acsd_phase1_noise` 静态链入）；
 - 三条 SNR 路径的适用域由 `实验/absolute-snr` 判定，高对比域结论必须绑定算子
   才能成立；
+- **精度归属待裁决**：最高设计要求稀疏与元数据（帧级信噪比等）全程双精度，而
+  `docs/engineering/UNIFIED_OBJECTS.md` 的对象登记对全部对象只给「float32 或
+  float64」一个全局精度位、`lib/infrastructure/aio/src/aio_api.cpp` 也只有一个全局
+  精度开关（`aio_set_precision_mode`）—— 一套全局位无法同时满足「稠密大面单精度」
+  与「稀疏元数据双精度」。本卡按最高设计登记双精度归属，实现侧如何满足该归属
+  （按块分精度位 / 分 AIO 句柄 / 接受全局单精度并下调最高设计）属负责人裁决项，
+  未决前不在本页给出实现结论；
 - 全局限制登记 = artifacts/evidence/known-limitations-ledger/LIMITATIONS.md。

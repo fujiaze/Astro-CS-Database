@@ -1,30 +1,30 @@
 # 插件文档：scheduler + pipeline（调度与资源）
 
-> 上游：ACSD_DESIGN.md §8.1（总原则：阶段独立调度器）、§8.4（顶层结构）
+> 上游：《ACSD 最高设计》的「软件架构」一章（总原则：阶段独立调度器；顶层结构）
 
 ## 1. 职责与边界
 
 - **职责**：typed DAG 的执行（注册、依赖、调度）、统一线程预算、**locality-aware 编排**、流式内存管理、资源监控、取消与 checkpoint。编排入口以阶段 JSON 驱动各 stage（READ / CALIBRATE / STAR / PSF / PLATESOLVE / PHOTOMETRIC / NOISE / DRIZZLE / HIPS_WRITE），并经加载面装配模块。
-- **不是**：不定义科学公式；不产生科学值；不实现科学算法 —— 各 stage 的科学实现一律委托各模块的冻结 C API；模块注册/加载与 ABI 校验由调度器承担（本模块负责执行与资源）。**模块名只有一份 = `scheduler` + `pipeline`（最高设计 §7.1）；`runtime` 不是模块名（禁第二名字）**；本页文件名 `19_runtime.md` 是登记在册的文档路径，仅作路径使用。
+- **不是**：不定义科学公式；不产生科学值；不实现科学算法 —— 各 stage 的科学实现一律委托各模块的冻结 C API；模块注册/加载与 ABI 校验由调度器承担（本模块负责执行与资源）。**模块名只有一份 = `scheduler` + `pipeline`（《ACSD 最高设计》「命令行合同」一章的命令树）；`runtime` 不是模块名（禁第二名字）**；本页文件名 `19_runtime.md` 是登记在册的文档路径，仅作路径使用。
 
 ## 2. 权威依据
 
-- 最高设计 `ACSD_DESIGN.md` §8.4（顶层结构：scheduler + pipeline 职责名全仓唯一）、§9（CPU 后端与资源：内存极简化、编排连续性）
+- 《ACSD 最高设计》的「软件架构」一章（顶层结构：scheduler + pipeline 职责名全仓唯一）与「CPU 后端与资源」一章（内存极简化、编排连续性）
 - `docs/engineering/api/abi/ABI.md`（C ABI 规则）、`docs/engineering/contracts/LOG_AND_ERROR.md`「进程退出码」一节（退出码全集合）
 - `docs/detail/anchors/ANCHOR_CONTRACT.md`（行号锚合同）、`docs/detail/UNIFIED_MODEL.md`（数据对象）
-- `docs/detail/infrastructure/21_observability.md` §8（G-RES-01 资源门）
+- `docs/detail/infrastructure/21_observability.md` 的「重计算负载资源门（G-RES-01）」一章
 
 ## 3. 输入/输出数据合同
 
-- **输入**：run-plan（节点图、模块 ID、配置、输出路径）、cpu_profile、内存预算（可选）；编排入口侧另消费阶段 JSON（`configs/stage1.schema.json`：输入 / 校准 / 输出 / 参数）。
+- **输入**：run-plan（节点图、模块 ID、配置、输出路径）、cpu_profile、内存预算（可选）；编排入口侧另消费阶段 JSON（`lib/infrastructure/pipeline/orchestrator/configs/stage1.schema.json`：输入 / 校准 / 输出 / 参数）。
 - **输出**：运行图三件（`graph/static_graph.json`（计划）、`graph/observed_trace.json`（实际观测）、`graph/graph_sidecar.json`）、资源三件套（`resource_timeseries.csv`、`resource_summary.json`、`worker_balance.csv`）、run 摘要与 artifact 登记面；artifact-manifest 与调度指标（worker 空转率、缓存命中率、数据搬运量、上下文切换次数、RSS 峰值）为待实现项。
-- 参考：`eng/contracts/schemas/run_*.schema.json`。
+- 参考：`eng/contracts/schemas/run_manifest.schema.json`。
 
 ## 4. 算法与公式要点
 
 ### 4.1 DAG 与线程预算
 
-- typed DAG：节点 = 模块/entrypoint/operation；科学依赖不可改变（最高设计 §3/4/5）；
+- typed DAG：节点 = 模块/entrypoint/operation；科学依赖不可改变（《ACSD 最高设计》的数据对象、normalize 与 mosaic 三章的科学顺序）；
 - 一个进程只有一个资源调度器与线程预算源；workers 与长期线程池均取该预算源的分配值；
 - 分块/并行只改变执行，不改变归约次序或科学结果；
 - **并行轴分配（冻结口径）**：Phase1 节点的帧级宽度与帧内 OpenMP 度由同一 lease 预算切分，
@@ -57,16 +57,16 @@ flowchart LR
 ### 4.3 流式内存管理
 
 - 工作集 = 当前在算的块 + 其显式依赖；块完成即释放中间数组（引用计数/作用域绑定），不累积整轮数据；
-- 可现场计算的量（逐像素逆方差权重、天光面值、投影坐标）按需计算，不预分配稠密数组（与最高设计 §8.2、§9 一致）；
+- 可现场计算的量（逐像素逆方差权重、天光面值、投影坐标）按需计算，不预分配稠密数组（与《ACSD 最高设计》的「命名块内存管线与块生命周期」及「CPU 后端与资源」两章一致）；
 - 缓存分层：进程内只读共享缓存（Gaia/星表、PSF、母版，带字节预算 + LRU）+ 磁盘缓存；缓存命中不改变科学结果；
-- 内存预算 `memory_limit` 给出时，调度器据此选块大小与并发块数（**内存不是门禁**：最高设计 §4.5「资源门只管磁盘——内存/CPU/线程不设门」）；
+- 内存预算 `memory_limit` 给出时，调度器据此选块大小与并发块数（**内存不是门禁**：《ACSD 最高设计》的「运行前预检」一章「资源门只管磁盘——内存/CPU/线程不设门」）；
 - 大对象单一所有者、显式交接，避免多副本驻留。
 
 ### 4.4 取消、checkpoint 与监控
 
 - 取消：协作取消 → checkpoint → 干净退出；
 - 资源监控：进程/线程 CPU、RSS/PSS、内存增长、读写字节、I/O wait、work units、队列深度、worker 均衡、进度、墙钟；
-- 重计算负载受 G-RES-01 **磁盘门**约束（内存/CPU/线程不设门；判据与 exit 10 见 21_observability §8 与最高设计 §4.5/§9）。
+- 重计算负载受 G-RES-01 **磁盘门**约束（内存/CPU/线程不设门；判据与 exit 10 见 `21_observability.md` 的「资源门」一章与《ACSD 最高设计》的「运行前预检」「CPU 后端与资源」两章）。
 
 ## 5. 配置项
 
@@ -78,7 +78,7 @@ flowchart LR
 | `memory_limit` | —— | MB | 内存预算（可选） |
 | `cache_budget_mb` | —— | MB | 进程内共享缓存字节预算（LRU）；当前无行为承载，生产路径不读取该键 |
 | `schedule_policy` | `locality_first` | —— | 调度策略（locality_first/balanced）；当前无行为承载，生产路径不读取该键 |
-| `stage1` | —— | —— | 编排入口的阶段 JSON（`configs/stage1.schema.json`：输入 / 校准 / 输出 / 参数），由编排入口消费，驱动 READ / CALIBRATE / STAR / PSF / PLATESOLVE / PHOTOMETRIC / NOISE / DRIZZLE / HIPS_WRITE 各 stage |
+| `stage1` | —— | —— | 编排入口的阶段 JSON（`lib/infrastructure/pipeline/orchestrator/configs/stage1.schema.json`：输入 / 校准 / 输出 / 参数），由编排入口消费，驱动 READ / CALIBRATE / STAR / PSF / PLATESOLVE / PHOTOMETRIC / NOISE / DRIZZLE / HIPS_WRITE 各 stage |
 
 ## 6. 接口/ABI
 
@@ -92,14 +92,14 @@ flowchart LR
 
 - ABI/签名/CPU 特征不匹配 → exit 5（BACKEND）；
 - 执行失败 → exit 6（COMPUTE）；
-- **磁盘写满 / 写盘失败 → exit 10（RESOURCE）**（与资源门判定域内的 exit 10 相互独立，见 `21_observability.md` §8.4）；内存/CPU/线程不设门（最高设计 §4.5，退出码见 §7.2）；
+- **磁盘写满 / 写盘失败 → exit 10（RESOURCE）**（与资源门判定域内的 exit 10 相互独立，见 `21_observability.md` 的「资源门判定与 exit 10」一段）；内存/CPU/线程不设门（《ACSD 最高设计》的「运行前预检」一章，退出码见其「命令行合同」一章的「机器输出与退出码」一节）；
 - 取消/超时 → exit 9（CANCELLED）；
 - **模块加载失败 / 阶段失败 → 显式 exit code + 日志**，不静默跳段、不产出半成品运行。
 - 内存预算内无法安排最小工作集时：调度器对就绪队列回压——谓词挂起等待在途节点释放内存（非自旋），并在无在途节点或取消时放行队首以保证推进；不静默退化、不改写数值路径。
 - **退出码唯一源 = `lib/infrastructure/cli/exit_codes.h`**（本页不复制定义第二套数值表）；域→码映射唯一源 = `docs/engineering/contracts/LOG_AND_ERROR.md`「错误对象与退出码映射」一节。
-- **模块错误必须上行到 CLI**（最高设计 §7.3）：节点/模块的失败以稳定错误码返回并终止本阶段；**错误码一律上行**（空 catch、忽略返回码、只写日志不返回错误、"警告后继续"均不在处置面内）；
-- **降级必须显式**：上游产物/能力缺失时改走替代路径并继续运行，只允许在"显式写 `degraded_reason` + manifest 记录 + 不改变科学语义"三要件齐备时发生（合同 §6）；改变科学语义的降级 = 故障，必须 fail-closed；
-- **节点运行日志**：节点事件经 `observability` 汇聚落 `<output_dir>/logs`（最高设计 §7.3）；节点不自行开文件写日志、不自行决定落点。
+- **模块错误必须上行到 CLI**（《ACSD 最高设计》的「命令行合同」一章的「错误传播与日志」一节）：节点/模块的失败以稳定错误码返回并终止本阶段；**错误码一律上行**（空 catch、忽略返回码、只写日志不返回错误、"警告后继续"均不在处置面内）；
+- **降级必须显式**：上游产物/能力缺失时改走替代路径并继续运行，只允许在"显式写 `degraded_reason` + manifest 记录 + 不改变科学语义"三要件齐备时发生（判据正文见 `docs/engineering/contracts/LOG_AND_ERROR.md`「显式降级登记要件」一节）；改变科学语义的降级 = 故障，必须 fail-closed；
+- **节点运行日志**：节点事件经 `observability` 汇聚落 `<output_dir>/logs`（《ACSD 最高设计》的「命令行合同」一章的「错误传播与日志」一节）；节点不自行开文件写日志、不自行决定落点。
 
 ## 8. 测试与 Oracle
 
@@ -121,10 +121,11 @@ flowchart LR
 
 - 模块名只有一份：**`scheduler`**（注册、资源预算、执行、取消、checkpoint；物理位
   `lib/infrastructure/scheduler`）+ **`pipeline`**（typed DAG、命名块、内存/数据管线；
-  物理位 `lib/infrastructure/pipeline`），依据最高设计 §8.4（顶层结构）与 §7.1（命令树）。
+  物理位 `lib/infrastructure/pipeline`），依据《ACSD 最高设计》的「软件架构」一章（顶层结构）
+  与「命令行合同」一章（命令树）。
 - 对应登记：`docs/engineering/architecture/MODULE_MAP.md` 条目 `id: scheduler` /
   `module_id: acsd.infra.scheduler` / `target_dir: lib/infrastructure/scheduler`；
-  `docs/detail/00_INDEX.md` §2 第 2 列 = `scheduler`。
+  `docs/detail/00_INDEX.md` 的基建卡表列名 = `scheduler`。
 - `runtime` **不是模块名**，其用途仅限路径；本页文件名 `19_runtime.md` 是 `docs/DOCUMENT_INDEX.yaml` 登记在册的文档路径，仅作路径使用。
 - `pipeline` 在 `docs/engineering/architecture/MODULE_MAP.md` 中登记；本页与 `00_INDEX.md` 已覆盖其名。
 
@@ -132,24 +133,27 @@ flowchart LR
 
 ## 10. 归属与构建（ORCH-001 落位）
 
-- **职责家 = `lib/infrastructure/scheduler/**`**：与 `ACSD_DESIGN.md` 目录树
-  scheduler/ 行逐条对应 —— 注册 = `dll_loader.cpp`（模块动态加载 + 函数指针
+- **职责家 = `lib/infrastructure/scheduler/`**：与《ACSD 最高设计》顶层结构里的
+  scheduler 位逐条对应 —— 注册 = `dll_loader.cpp`（模块动态加载 + 函数指针
   注册表）；资源预算 = `admission_controller.h` + `resource_monitor.h`；执行 =
   `orchestrator.cpp` 的 `run_stage_*` 与阶段表；取消 = `request_cancel()` /
   SIGINT 原子 token（`ACSD_CANCELLED`）；checkpoint = `checkpoint.cpp`。
-- `ACSD_DESIGN.md` §8.4 顶层结构里的 pipeline 位（typed DAG、块生命周期、
-  内存/数据管线）在代码侧的实体是 `lib/infrastructure/scheduler/src/{pipeline,
-  artifact,artifact_store}.cpp` 与 `lib/infrastructure/runtime/**`
-  （docs/engineering/architecture/MODULE_MAP.md `id=runtime`），**不属**编排层实体。
+- 《ACSD 最高设计》顶层结构里的 pipeline 位（typed DAG、块生命周期、
+  内存/数据管线）在代码侧的实体是 `lib/infrastructure/scheduler/src/pipeline.cpp`、
+  `lib/infrastructure/scheduler/src/artifact.cpp`、
+  `lib/infrastructure/scheduler/src/artifact_store.cpp`；三阶段产品交换的落盘面在
+  `lib/infrastructure/aio/runtime/artifact_store/`
+  （`docs/engineering/architecture/MODULE_MAP.md`「三阶段产品交换」行），
+  **不属**编排层实体。
 - **物理位 = `lib/infrastructure/pipeline/orchestrator/**`**：该目录承载编排层
-  实现，对应顶层设计 §8.4 的「infrastructure/pipeline（typed DAG 编排）」位。
+  实现，对应《ACSD 最高设计》「顶层结构」里的「infrastructure/pipeline（typed DAG 编排）」位。
 - ⇒ **位置与职责分离**：归属一律按职责判定，不按目录名推断。检查器、清单与
   文档的归属判据同此口径。
 - **构建 target**：`acsd_infra_orchestrator`（静态库；编排层
   `CMakeLists.txt` 声明，根 `CMakeLists.txt` 经 `add_subdirectory` 注册）；
   vendored json-schema-validator 独立为 `acsd_orchestrator_jsv`；入口可执行
   `orchestrator_legacy_cli` 为**非产品**（不进 install 白名单、不进产品 manifest；
-  最高设计 §6.2 的唯一命令树仍是产品 `acsd`）。
+  《ACSD 最高设计》的唯一命令树仍是产品 `acsd`）。
 - **语言与 ABI 锚点**：C++17（`-std=c++17`，编排层 `Makefile` 的 CXXFLAGS；
   正式构建入口 = 根 CMake 的 `acsd_infra_orchestrator`）；C ABI 经 `DllLoader`
   纯 C 调用（docs/engineering/api/abi/ABI.md）。
@@ -160,7 +164,7 @@ flowchart LR
 ## 11. 已知限制
 
 - 编排层目录 `cpp/` 下存在嵌套的 `logs` 目录（非阻断缺陷）；日志落点的唯一合法
-  面是 `<output_dir>/logs`（最高设计 §7.3），落点之外的位置（含 `run/`、源码树
+  面是 `<output_dir>/logs`（《ACSD 最高设计》的「命令行合同」一章），落点之外的位置（含 `run/`、源码树
   目录、安装目录、用户家目录、进程 CWD 相对路径）均不在处置面内，判据见
   docs/engineering/contracts/LOG_AND_ERROR.md。
 - `cache_budget_mb` 与 `schedule_policy` 为无行为承载的配置键。

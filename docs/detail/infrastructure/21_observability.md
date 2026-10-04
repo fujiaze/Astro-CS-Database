@@ -1,6 +1,6 @@
 # 插件文档：observability（可观测性）
 
-> 上游：ACSD_DESIGN.md §7.3（错误传播与运行日志）、§8.4（顶层结构）
+> 上游：《ACSD 最高设计》的「命令行合同」一章（错误传播与运行日志）与「软件架构」一章（顶层结构）
 
 ## 1. 职责与边界
 
@@ -9,10 +9,10 @@
 
 ## 2. 权威依据
 
-- 最高设计 `ACSD_DESIGN.md` §7.2（配置、事件与退出码：JSONL 事件流）、§7.3（错误传播与运行日志）、§9（CPU 后端与资源：资源记录与重计算资源门）、§10（I/O 与原子产品：run 产物）
+- 《ACSD 最高设计》的「命令行合同」一章（配置、事件与退出码：JSONL 事件流；错误传播与运行日志）、「CPU 后端与资源」一章（资源记录与重计算资源门）、「I/O 与原子产品」一章（run 产物）
 - `docs/detail/LOG_AND_ERROR_SYSTEM.md`（日志与错误系统详细设计）、`docs/engineering/contracts/LOG_AND_ERROR.md`（日志行/落点/降级/退出码映射合同）
 - `eng/contracts/schemas/jsonl_event_v1.schema.json`（运行事件流唯一 schema）
-- `eng/contracts/resource_gate_v1.json`（G-RES-01 数值唯一源，见 §8）
+- `eng/contracts/resource_gate_v1.json`（G-RES-01 数值唯一源，判据正文见下文「重计算负载资源门（G-RES-01）」一章）
 
 ## 3. 输入/输出数据合同
 
@@ -55,7 +55,7 @@
 
 ## 8. 重计算负载资源门（G-RES-01）
 
-> **本节是 G-RES-01 判据的唯一语义权威**（`ACSD_DESIGN.md` §0：具体硬约束与细节写入下级文档）。
+> **本节是 G-RES-01 判据的唯一语义权威**（《ACSD 最高设计》的「文档权威与索引」一章：具体硬约束与细节写入下级文档）。
 > **数值唯一源 = `eng/contracts/resource_gate_v1.json`**；实现侧（C++ / Python 冻结门 / 外挂 judge）的阈值一律从该文件取。
 > 维护规则：**改数值只改契约，改语义只改本节**；两侧必须同一次提交内保持一致。
 
@@ -84,17 +84,17 @@
 
 ### 8.3 判据表
 
-| # | 判据 | 阈值 | 执行面 | 违约后果 |
+| # | 判据 | 阈值 | 执行面（唯一数值源 = `eng/contracts/resource_gate_v1.json`） | 违约后果 |
 |---|---|---|---|---|
-| ① | 单活跃计算线程 | 活跃计算线程统计量 < **2** | **enforce** | FAIL → exit 10 |
-| ② | 连续低利用窗 | 任何连续 **≥10 s** 窗利用率 < **60%**，且队列有工作 | **enforce** | FAIL → exit 10 |
-| ③ | 无界内存增长 | 分配/RSS 稳健斜率 **≥ 32 MiB·s⁻¹** 且 run 结束回落不可解释 | **enforce**（C++ 分配报告面） | FAIL → exit 10 |
+| ① | 单活跃计算线程 | 活跃计算线程统计量 < **2** | **record_and_justify**（合同**未给该判据 enforcement 键**） | 记录 + 超标登记（不改退出码） |
+| ② | 连续低利用窗 | 任何连续 **≥10 s** 窗利用率 < **60%**，且队列有工作 | **hard_fail**（`queue_low_window_enforcement`） | 判定面 fail-closed；程序内（CLI）无此路径 |
+| ③ | 无界内存增长 | 分配/RSS 稳健斜率 **≥ 32 MiB·s⁻¹** 且 run 结束回落不可解释 | **record_and_justify**（合同**未给该判据 enforcement 键**；C++ 分配报告面） | 记录 + 超标登记（不改退出码） |
 | ④ | 平均利用率 | 计算区间均值 < **85%** | **record_and_justify** | 记录 + 超标登记（不改退出码） |
 | ⑤ | 利用率 p50 | 样本中位数 < **90%** | **record_and_justify** | 记录 + 超标登记 |
 | ⑥ | 逐样本利用率 | 单样本 ≥ **85%** 的样本占比 < **0.70** | **record_and_justify** | 记录 + 超标登记 |
 | ⑦ | 工作量下限 | 线程秒（等效核·秒）< **10** | 事实标记 | 只记录，不参与判定 |
 
-硬失败（enforce）由分母无关的 ①②③ 承担；④⑤⑥ 为分母敏感的统计项，记录并要求超标登记。
+七项中**只有 ② 在合同里带硬失败执行面**；①③ 在合同里没有 enforcement 键，而程序内实现 `gate_enforcement()` **恒返回 `RecordOnly`**（CLI 面不存在由 CPU/内存判据产生 `rc=10` 的路径）。判据表与合同、实现三方在此对齐：**任何资源判据都不改变程序退出码**，`exit 10` 只属磁盘写满/写盘失败（见下文「错误与边界」）。
 
 **统计量口径（全实现统一）**
 
@@ -104,9 +104,9 @@
 
 ### 8.4 record / enforce 划分与判定点
 
-- **程序内恒 record_only**（`ACSD_DESIGN.md` §4.5「资源门只管磁盘…内存、CPU、线程不设门」；数值与判据唯一源 = `eng/contracts/resource_gate_v1.json#enforcement`）：CLI 运行期只记录与报告，**不因资源判据改变退出码**；`--strict-resource-gate` / `--on-resource-gate strict` **保留接受但不改变门结论**（旗标请求事实由事件字段如实登记，见下「事件面登记」）。实现唯一收口 = `lib/infrastructure/cli/resource_gate.h::gate_enforcement`（恒返回 `RecordOnly`；`Enforced` 枚举值仅为既有 ABI/测试引用保留）。
+- **程序内恒 record_only**（《ACSD 最高设计》的「运行前预检」一节「资源门只管磁盘…内存、CPU、线程不设门」；数值与判据唯一源 = `eng/contracts/resource_gate_v1.json#enforcement`）：CLI 运行期只记录与报告，**不因资源判据改变退出码**；`--strict-resource-gate` / `--on-resource-gate strict` **保留接受但不改变门结论**（旗标请求事实由事件字段如实登记，见下「事件面登记」）。实现唯一收口 = `lib/infrastructure/cli/resource_gate.h::gate_enforcement`（恒返回 `RecordOnly`；`Enforced` 枚举值仅为既有 ABI/测试引用保留）。
 - **唯一判定点 = 重计算监控实测 + 发布验收**（判定参数与阈值唯一源 = `eng/contracts/resource_gate_v1.json`），以 `run_monitored.py --gate-required --gate-workers <registry 声明>` 形式实测。**`--gate-workers` 必须由 registry 显式声明**；未声明时利用率类判据不成立（记 `allocated_capacity_undeclared`），只有 ① 生效。
-- **exit 10（RESOURCE）在资源门判定域内的充分条件**：判定域内 ①②③ 任一违约且处于 enforce 面——该路径**只存在于资源门判定面**，程序内（CLI）无此路径。`NOT_APPLICABLE` 与 record-only 记录项**都不产生 exit 10**。本节只界定资源门判定域内的 exit 10；**磁盘写满 / 写盘失败 ⇒ exit 10** 是独立触发路径（`19_runtime.md` §7 与 `docs/engineering/contracts/LOG_AND_ERROR.md`「错误对象与退出码映射」一节）。
+- **exit 10（RESOURCE）在资源门判定域内的充分条件**：判定域内 ①②③ 任一违约且处于 enforce 面——该路径**只存在于资源门判定面**，程序内（CLI）无此路径。`NOT_APPLICABLE` 与 record-only 记录项**都不产生 exit 10**。本节只界定资源门判定域内的 exit 10；**磁盘写满 / 写盘失败 ⇒ exit 10** 是独立触发路径（`19_runtime.md` 的「错误与边界」一章与 `docs/engineering/contracts/LOG_AND_ERROR.md`「错误对象与退出码映射」一节）。
 
 **事件面登记（`resource` / `resource_gate`）**
 
@@ -120,7 +120,7 @@
 | `so05_signoff_id` / `so05_signoff_status` | SO-05 签字项身份与状态（`docs/engineering/contracts/CLI_PROTOCOL.md`「JSONL 运行事件流」一节：恒 `SO-05` / `PENDING_OWNER_SIGNOFF`） |
 | `auto_adjudication_allowed` | 自动判定是否放行（恒 `false`） |
 
-**`resource_gate` 事件只写可表达逐判据 enforce/record 分类的字段**：§8.3 的 ④⑤⑥ 是 `record_and_justify`（违约后果 = 记录 + 超标登记，**不改退出码**），事件级常量无法表达逐判据的 enforce/record 分类，「若已签字是否会失败」类字段即属此类。
+**`resource_gate` 事件只写可表达逐判据 enforce/record 分类的字段**：「判据表」一节的 ④⑤⑥ 是 `record_and_justify`（违约后果 = 记录 + 超标登记，**不改退出码**），事件级常量无法表达逐判据的 enforce/record 分类，「若已签字是否会失败」类字段即属此类。
 
 `resource`（severity=info，每阶段末发出）的必含扩展字段 = 冻结五项（`cpu_cores_used` / `rss_bytes` / `io_read_bytes` / `io_write_bytes` / `threads`）；其余（含 SO-05 记录字段 `measurement_policy` / `so05_signoff_id` / `so05_signoff_status` / `auto_adjudication_allowed` / `auto_adjudication_policy` / `one_budget_source_rule` / `determinism_contract`，以及 `strict_flag_requested`）是**实现侧附加字段**，不属冻结必含集（口径同 `docs/engineering/contracts/CLI_PROTOCOL.md`「JSONL 运行事件流」一节 对 `artifact` 的附加字段）。
 

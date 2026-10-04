@@ -5,18 +5,18 @@
 依赖方向、唯一动态加载路径、第三方依赖与工具链锁定的读取面。
 
 - 唯一 I/O 依赖方向：上层模块 → aio（文件级唯一 I/O 边界）；aio 不依赖
- 上层科学模块（最高设计 ）。
+ 上层科学模块[3]。
 - 共享面（`acsd_common`，含 SHA-256 与共享 HEALPix 核心）可被任何模块依赖，依赖方向单向。
 - healpix_drizzle 依赖共享 HEALPix 核心，实现单源 = `lib/algorithms/shared/healpix/healpix_core.cpp`（CMake target `acsd_common`）。
 - phase2 依赖共享 HEALPix 核心 + aio 的产品读写面（`aio_upm` / `aio_hips_reader`）。
- ⛔ **生产构建采用无 ACR/CUDA 的链接面**（最高设计 非目标：ACR/GPU 生产路由
- 生产不可达）。ACR 为 `DORMANT`：保留源码与隔离测试，
- **不进生产构建/加载/路由/benchmark/发布**（最高设计 ；状态词唯一口径 = 最高设计 ）。
+ ⛔ **生产构建采用无 ACR/CUDA 的链接面**（见最高设计第 1.3 节非目标：ACR/GPU 生产路由
+ 生产不可达[3]）。ACR 为 `DORMANT`：保留源码与隔离测试，
+ **不进生产构建/加载/路由/benchmark/发布**[3]（状态词唯一口径 = 最高设计第 12.5 节的状态阶梯[3]）。
 - 唯一动态加载路径 = 安全 loader：加载前过固定检查（CPU 特征、OS 可安全执行状态、manifest、哈希、ABI），
- 只认清单授权的绝对路径，失败只报错、不回退搜索（最高设计 ）。
+ 只认清单授权的绝对路径，失败只报错、不回退搜索[3]。
 
-- 依赖图为有向无环图；模块产品输出落块级 `output_dir`（最高设计 ），开发/CI 过程产物落 `run/`，testdata/ 只读。
-- 归档面（`lib/infrastructure/aio/healpix_db/`）不进生产构建、不重建；其内容改动一律走变更流程。
+- 依赖图为有向无环图；模块产品输出落块级 `output_dir`，开发/CI 过程产物落 `run/`，testdata/ 只读[3]。
+- 归档面（`lib/infrastructure/aio/healpix_db/`）不进生产构建、不重建；其内容改动一律走变更流程[2]。
 - Python 仅限带 NON_PRODUCTION_TOOL_ONLY 标记的测试/研究脚本。
 
 ## 第三方依赖与工具链锁定的读取面
@@ -29,14 +29,19 @@
 | VS 安装组件清单 | `eng/packaging/windows/.vsconfig` | `eng/packaging/windows/README.md` | 工具链锁定校验项 |
 | 生产依赖与系统库锁定（vendored 清单与哈希、zlib/zstd/lz4、kernel32 与线程 shim、OpenMP、Threads、机器路径政策） | `eng/packaging/dependency-lock.json`（schema：`eng/packaging/schemas/dependency-lock.schema.json`） | — | 依赖与系统库锁定校验项 |
 
-- **冲突以机器源为准**：登记镜像、文档与本文一律不得声明第二套取值；镜像与机器源不一致时按机器源订正镜像；
-- 机器路径政策：CMake 与构建输入不得读取 `F:/`、`C:/Users/<user>`、`/home/<user>` 等机器绝对路径（fresh configure 必须可复现）；Windows 正式工具链的安装位置由 preset 显式声明，属白名单例外；MSYS2/MinGW 依赖面禁止；`vcpkg` 不使用，引入时须同时以 manifest 与 baseline 双重锁定并在本锁文件登记；
+- **工具链的定位与版本**：正式工具链（Windows = MSVC v143；Linux = GCC 或 Clang）的版本取值由上表的
+ 机器单一事实源冻结；MSYS2 MinGW64 的定位是**本地开发与兼容性验证工具链**，其编译器版本同样由
+ 上表机器源与依赖锁登记，标准类文档（`CODE.md`）只写定位、不复述版本号；
+- **冲突以机器源为准**：登记镜像、标准类文档与本文一律不得声明第二套取值；镜像或文档与机器源不一致时
+ 按机器源订正；
+- 机器路径政策：CMake 与构建输入不得读取 `F:/`、`C:/Users/<user>`、`/home/<user>` 等机器绝对路径（fresh configure 必须可复现）；Windows 正式工具链的安装位置由 preset 显式声明，属白名单例外；MSYS2/MinGW 不作为**生产依赖来源**（生产构建的 vendored 与系统库只走依赖锁），但其工具链作为本地开发与兼容性验证工具链可用[1]；`vcpkg` 不使用，引入时须同时以 manifest 与 baseline 双重锁定并在本锁文件登记；
 - CRT 取值由 preset 合同冻结：Debug 用动态调试版 CRT，Release 与 RelWithDebInfo 用动态版 CRT，全部可执行文件、动态库与第三方一致；**静态 CRT 禁止**；
 - MSVC 侧的 zlib 由显式 cache 变量指向（默认空，不硬编码用户路径）；未提供时 cfitsio 不编译压缩路径，属已登记的降级而非缺依赖；
-- 依赖锁文件的每次复算同时产出 SBOM 输入清单；该清单是过程产物，不入库（`run/` 与构建目录不入库，最高设计 ）。
+- 依赖锁文件的每次复算同时产出 SBOM 输入清单；该清单是过程产物，不入库（`run/` 与构建目录不入库，见最高设计的文档权威与索引一章）[3]；构建入口与 preset 的落点见[4]。
 
 ## 参考文献
 
-[1] 内部文档 `docs/ACSD_DESIGN.md，最高设计`，上位来源。
-[2] 内部文档 `docs/engineering/architecture/ARCHITECTURE.md`，同层相关正本。
-[3] 内部文档 `docs/engineering/build/BUILD_NODES.md`，同层相关正本。
+[1] 内部文档 `docs/engineering/standards/CODE.md`，代码标准，其 MUST 条款给正式工具链与 MinGW64 的定位。
+[2] 内部文档 `docs/engineering/architecture/ARCHITECTURE.md`，架构边界，同层相关正本。
+[3] 内部文档 `docs/ACSD_DESIGN.md`，最高设计，第 0 章（文档权威与索引）、第 1.3 节（非目标）、第 8 章（软件架构）与第 12.5 节（状态阶梯），上位来源。
+[4] 内部文档 `docs/engineering/build/BUILD_NODES.md`，构建节点正本，preset 与构建入口的落点。

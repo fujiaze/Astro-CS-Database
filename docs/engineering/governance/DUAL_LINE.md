@@ -1,6 +1,6 @@
 # 双线文件域与合并点合同
 
-上游：最高设计的软件架构与 CPU 后端与资源两章。
+上游：最高设计的软件架构与 CPU 后端与资源两章 [1]。
 
 代码线、合同与测试线、共享面的写域互斥、数值等价基线与合并点规则。
 
@@ -15,11 +15,12 @@
 | 线 | 文件域（glob） | 内容 |
 |---|---|---|
 | A（代码架构） | `lib/**`、`实验/**/code` | 命名块机制、三阶段调度器、节点改写、探针性能优化 |
-| B（合同与测试） | `eng/tests/**`、`eng/contracts/**`、`docs/engineering/**`、「文件域点名清单」一节 B 域 19 篇 | 合同与测试的合理性审计与补充、合同预先约定、双向对应 |
-| shared（共享面） | `docs/science/**`、`docs/engineering/**`、「文件域点名清单」一节 shared 域 60 篇 | 改动走登记，串行合并 |
+| B（合同与测试） | `eng/tests/**`、`eng/contracts/**`、B 域点名清单 | 合同与测试的合理性审计与补充、合同预先约定、双向对应 |
+| shared（共享面） | `docs/science/**`、`docs/engineering/**`、shared 域点名清单 | 改动走登记，串行合并 |
 | report（实验报告面） | `实验/**/REPORT_paper.md` | 只增不改 |
 
-glob 记法：`X/**` = 该目录下全部跟踪文件；`{a,b}` = 并集。「文件域点名清单」一节 的两份点名清单是本表的组成部分。
+glob 记法：`X/**` = 该目录下全部跟踪文件；`{a,b}` = 并集。本篇的点名清单是上表的组成部分：`docs/engineering/**` 与 `docs/science/**` 整体归 shared，
+因此本表的四条线互斥，任一文件只属一条。
 
 ## 文件域点名清单
 
@@ -27,13 +28,13 @@ glob 记法：`X/**` = 该目录下全部跟踪文件；`{a,b}` = 并集。「�
 
 旧目录在本节只写目录名、不写完整路径：文档索引门把正文里出现的 docs 完整路径一律按可达性引用判定，溯源散文同样判红；写全路径会让本文件凭空产生未登记悬空。
 
-B 域 19 篇：
+B 域（按下列点名清单计 1 篇）：
 
 `../testing/VALIDATION_EVIDENCE.md`
 
 来源：原 `ci/` 5 篇 ＋ `contracts/` 的说明文档 14 篇。
 
-shared 域（篇数待归属裁决后重算）：
+shared 域（按下列点名清单计 4 条；归属裁决后重算总篇数）：
 
 `docs/engineering/{architecture/DATA_FLOW,architecture/MODULE_MAP,build/BUILD_GRAPH,build/RELEASE,contracts/ASYNC_IO,contracts/OWNERSHIP_LIFETIME,resources/PERFORMANCE_MODEL,resources/cpu/BACKEND,resources/cpu/ISA_VARIANTS,standards/CACHE,standards/COMPATIBILITY,standards/DEPENDENCY}.md`
 
@@ -55,13 +56,17 @@ shared 域（篇数待归属裁决后重算）：
 本单不擅自扩大域范围。清单标称「60 篇」的计数随本行移除同步失效，篇数待归属裁决后重算。
 
 `PROJECT_SPEC` 同批移除，理由同上（仓内无此文件）：其「权威体系」「项目使命」「统一观测模型」三节在
-`docs/engineering/` 内**无后继正本**——`../architecture/ARCHITECTURE.md` 只承接了三个命令的输入输出与
+`docs/engineering/` 内**无后继正本**——`../architecture/ARCHITECTURE.md` [2] 只承接了三个命令的输入输出与
 隔离面一节，`docs/engineering/` 全树对「观测模型」与「项目使命」零命中。该三节的内容归属待裁，
 本单不指向不承载它的邻近文件。
 
 docs/engineering/ 与 docs/engineering/ 留在表内：两处各有在位机器可读件（4 件 / 6 件）。
 
-本节的生效文件域只有上面两份点名清单的反引号行（B 域 19 篇 1 条、shared 域 4 条，共五条）；其余各行（含「来源」行与旧目录溯源说明）是溯源散文，不参与归属判定。
+**残留交叉**：`docs/engineering/**` 整体归 shared 后，B 域点名清单里唯一那一条
+`../testing/VALIDATION_EVIDENCE.md` 本身落在 shared 的 glob 内，两条线在这一份文件上仍交叉。
+该交叉属归属问题、待裁，本篇不擅自把它划给任一条线。
+
+本节的生效文件域只有上面两份点名清单的反引号行（B 域 1 条、shared 域 4 条，共五条）；其余各行（含「来源」行与旧目录溯源说明）是溯源散文，不参与归属判定。
 
 （science 分册的数据语义卷 现位于 `docs/science/unified/DATA_SEMANTICS`，随 `docs/science/` 计入 shared 域；其迁移前的 `contracts/` 位置已无此文件，归属待裁。）
 

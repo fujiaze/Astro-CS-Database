@@ -1,6 +1,6 @@
 # 数据语义
 
-> 上游：docs/ACSD_DESIGN.md 第 3 章第 3.1 节（数据对象）、第 10 章（I/O 与原子产品）
+> 上游：《ACSD 最高设计》（docs/ACSD_DESIGN.md）的「数据对象与配置」与「I/O 与原子产品」两章
 
 ## 1 主题与目标
 
@@ -28,21 +28,34 @@
 ### 3.1 坐标语义
 
 ```text
-内部像素坐标   x, y        0-based，x ∈ [0, w-1]
-FITS 像素坐标  xp, yp      1-based，xp = x + 1
+平面像素坐标   i, j        0-based，i ∈ [0, w-1]，j ∈ [0, h-1]
+FITS 像素坐标  ip, jp      1-based，ip = i + 1
 天球坐标       RA, Dec     度，ICRS，RA ∈ [0, 360)，Dec ∈ [-90, 90]
 ```
 
+平面像素坐标记作 `(i, j)`，`i` 沿第一轴、FITS 列；球面 tile 内坐标另记作 `(x, y)`，`x` 沿第二轴、FITS 行。两套符号不混用。
+
 整数像素号指像素中心：FITS 约定下第一个像素跨越像素号 0.5 到 1.5 [1]。内部球面计算使用弧度，跨库接口一律用度。
 
-球面像素化固定为 **HEALPix NESTED** [2]：`order K` 对应 `nside = 2^K`，`nside` 必须是 2 的幂，ring 序不进入本链。leaf 的局部索引在 chart 内与坐标轴对齐，一个 leaf 对应 512×512 的 tile，leaf 的局部序比 tile 序高 9 级。tile 内局部像素到 FITS 行主序索引的映射为
+球面像素化固定为 **HEALPix NESTED** [2]：`order K` 对应 `nside = 2^K`，`nside` 必须是 2 的幂，ring 序不进入本链。leaf 的局部索引在 chart 内与坐标轴对齐。tile 宽度是带默认值的可配置属性，标准把 512×512 列为工程折中而非强制值 [3]；本链据此自行冻结 512×512，leaf 的局部序比 tile 序高 9 级。tile 内局部像素到 FITS 行主序索引的映射为
 
 ```text
 leaf local (NESTED, 18 bits) = interleave(x, y)      x 占偶数位, y 占奇数位
+FITS 第一轴（列）= y ,   FITS 第二轴（行）= 511 - x
 FITS index = (511 - x) * 512 + y
 ```
 
-该映射由外部 HiPS 生成工具族冻结，writer、reader 与查询端共用同一个实现。磁盘目录布局取 IVOA HiPS 推荐 `Norder{K}/Dir{(ipix/10000)*10000}/Npix{ipix}.fits`，其中 `Dir` 是万进制块的起始值、`Npix` 是完整 tile 号 [3]。`hips_pixel_scale` 的单位是度，与标准键的定义一致；角秒面只作内部私有量。
+映射的三个环节各有独立的一手依据，读侧必须照同一链条解释：
+
+- **位序**：`(x, y)` 分别取 NESTED 局部序的偶数位与奇数位 [2]。HEALPix 的位压缩实现掩码为 `0x5555…`，与该读法一致。
+- **面内方向**：`x` 与 `y` 在 chart 内都从**最南**角起、向北增（`x` 沿东北、`y` 沿西北）[2]。该文对文件布局完全沉默，因此它**只锚定面内方向，不锚定 FITS 行方向**。
+- **FITS 行方向**：FITS 文件的第一个像元是成像系统显示的左下角像元、**第二轴**向上递增 [1]；IVOA 另注明 HiPS 的 JPEG/PNG 与 FITS 的行列方向相反 [3]。故 HiPS 的 FITS tile 自下而上排列，第二轴向上即向北；而面内 `x` 亦向北、且 `x` 是第二轴，于是行号随 `x` **递减**，行项是 `511 − x`。
+- **FITS 列方向**：标准只写「第一轴向右」，未规定右方是东是西。本链按天文显示约定取「向北在上时向右为西」，与面内 `y` 沿西北同向，故列项是 `y`。
+- **实测对拍**：以 HiPS 参考生成器产出的真实 tile 为对象，把 tile 头的 `CTYPE1=RA---HPX`、`CTYPE2=DEC--HPX` 与 `PV2_1=4`、`PV2_2=3` 交给标准 WCS 实现求逐像元视位置，再与 HEALPix NESTED 局部序的对应位置比对：上式在覆盖全部 12 个面、南北半球与两个波段的 tile 上最大偏差为 `0.004` 角秒（即 CD 矩阵的舍入量级），三种镜像假设的平均偏差在 3 500–5 400 角秒。另用不依赖 WCS 的父子 tile 规则做纯图像数据检验：把 4 个子 tile 按上式拼回父 tile 后与真实父 tile 的秩相关为 `+1.0000`，三种镜像假设都落在平移对照的噪声基上。
+
+**这条约定是事实标准而非规范强制**：REC-HIPS-1.0 只规定 NESTED 编号、目录布局与 tile 宽度，不定义面内 `(x, y)` 到 FITS 行列的映射；HEALPix 库与 astropy-healpix 也都不提供该函数（上游 FITS 接口写的是一维全天空 map）。因此上式由 HiPS 生产层冻结，其读侧与写侧必须共用同一实现，且**在取得第二个独立生产者的 FITS tile 之前，它只在已验证的那一个生成器上被证实**。
+
+该映射由共享 HEALPix 核心单点实现，writer、reader 与查询端共用。磁盘目录布局取 IVOA HiPS 规定的 `Norder{K}/Dir{(ipix/10000)*10000}/Npix{ipix}.fits`，其中 `Dir` 是万进制块的起始值、`Npix` 是完整 tile 号 [3]。`hips_pixel_scale` 的单位是度，与标准键的定义一致；角秒面只作内部私有量。
 
 ### 3.2 三个基本对象的语义
 
@@ -66,7 +79,7 @@ variance = v_num_sum / D_p² ,      ivar = 1 / variance
 
 **符号唯一性**：覆盖面积 `D_p` 与权重和 `W_p = Σ w` 量纲不同，代入错误会相差一个单元面积的平方。覆盖面积只写 `D_p`，权重和另写 `W_p`，同一式内不得混用。
 
-逐像素编码有三个互斥且穷尽的态：
+逐像素编码有三个互斥且穷尽的**产品态**，另有一条不属于产品值的**损坏态**：
 
 | 态 | 判据 | `signal` | `variance` | `ivar` |
 |---|---|---|---|---|
@@ -75,7 +88,7 @@ variance = v_num_sum / D_p² ,      ivar = 1 / variance
 | 无覆盖 | `D_p <= 0` 或非有限 | `NaN` | `NaN` | `NaN` |
 | 损坏 | 方差分子非有限或为负 | — | — | 硬失败 |
 
-第二态是本链的关键设计：不可用的方差写 `0`，而 `ivar = 0` 本身就是显式不可用标记，与"夹紧的结果"可区分；NaN 只留给"无覆盖"这一与信号同态的情形。产品值只取这两态，不存在 `ivar = 1/max(variance, floor)` 这种第三形态——数值地板只作计算过程中的保护，不进入产品。
+第二态是本链的关键设计：不可用的方差写 `0`，而 `ivar = 0` 本身就是显式不可用标记，与"夹紧的结果"可区分；NaN 只留给"无覆盖"这一与信号同态的情形。产品值只取有效态与有覆盖但方差不可用态这两态，损坏态是硬失败、不落盘为产品值；不存在 `ivar = 1/max(variance, floor)` 这种第三形态——数值地板只作计算过程中的保护，不进入产品。
 
 全无覆盖的 tile 不落盘，返回显式失败而不是空产品。读侧把 `ivar = 0` 视为合法零权重，但必须先通过 `support > 0 ∧ finite(signal)` 的资格门。
 
@@ -95,9 +108,15 @@ variance = v_num_sum / D_p² ,      ivar = 1 / variance
 
 **为什么是每立体角而不是每像元**：分子分母同时随输出单元的立体角等比缩放，所以 `signal` 与球面阶数无关，也与导出平面的像元尺度无关；两帧像元尺度不同而天空面亮度相同时，`signal` 数值相同。面亮度是强度量（per solid angle），不是广延量（per pixel）。
 
-**为什么不是 `mag/arcsec²`**：星等是对数量，且声称绝对定标；本链建立的是以逐帧滤光片正向合成的模型通带积分辐照度为参考的乘性标度，不建立增益标定，也不建立具名测光系统的零点。需要星等面亮度时按 `SB_mag = ZP_k − 2.5·log10(signal) + 2.5·log10(Ω_ref)` 现场派生，其中 `Ω_ref` 为选定参考立体角。
+**为什么不是 `mag/arcsec²`**：星等是对数量，且声称绝对定标；本链建立的是以逐帧滤光片正向合成的模型通带积分辐照度为参考的乘性标度，不建立增益标定，也不建立具名测光系统的零点。需要星等面亮度时按 `SB_mag = ZP_k − 2.5·log10(signal) − 2.5·log10(Ω_ref)` 现场派生，其中 `Ω_ref` 为选定参考立体角，`SB_mag` 读作「面积 `Ω_ref` 内该面亮度的总星等」。推导：面积 `Ω_ref` 内的总通量是 `F = signal·Ω_ref`，代入总星等式 `m = ZP_k − 2.5·log10 F` 得
 
-**FITS 依据**：`BUNIT` 描述的是应用 `BSCALE` 与 `BZERO` 之后物理值的单位，且必须遵循标准对单位串的构造规定 [4]。标准列出 `sr` 为立体角基本单位、`adu` 为允许的附加单位，并规定幂次只能用 `**`、`ˆ` 或并置；据此 `ADU/sr` 量纲精确，而 `ADU/px^2` 同时违反两条（`px` 不是标准列出的单位符号，ASCII `^` 不是允许的幂号）。本链冻结的单位串用大写 `ADU`，与标准 Table 4 中的小写 `adu` 只差大小写。
+```text
+SB_mag ≡ m(Ω_ref) = ZP_k − 2.5·log10(signal·Ω_ref) = ZP_k − 2.5·log10(signal) − 2.5·log10(Ω_ref)
+```
+
+`Ω_ref` 项因此是减号。方向也可由标准面亮度定义反查：`μ = m + 2.5·log10(A)`（`A` 以 `arcsec²` 计），换到立体角口径后同一项落到减号。`Ω_ref = 1 sr` 时该项为零，写反写成加号与正确式退化相同——符号错误只在 `Ω_ref ≠ 1 sr` 时显形；取 `Ω_ref = 1 arcsec² = 2.350443e-11 sr` 时该项为 `−26.5717` mag，用 `ZP_k = 0`、`signal = 1e-4 /sr`、`Ω = 10 sr`（总星等 `7.5`）自检，正确式给 `36.5721`、加号式给 `−16.5721`。
+
+**FITS 依据**：`BUNIT` 描述的是应用 `BSCALE` 与 `BZERO` 之后物理值的单位，且必须遵循标准对单位串的构造规定 [4]。标准列出 `sr` 为立体角基本单位、`adu` 为允许的附加单位，并规定幂次只能用 `**`、`ˆ` 或并置；据此 `ADU/sr` 量纲精确，而 `ADU/px^2` 同时违反两条（`px` 不是标准列出的单位符号，ASCII `^` 不是允许的幂号）。本链冻结的单位串用大写 `ADU`，与标准 Table 4 列出的小写 `adu` 在**大小写上不一致**；标准明文规定「per IAU convention, case is significant throughout」，因此这是一处显式偏离，按偏离登记条款记录偏离事实、理由（大写便于与本链内部的合成量名区分）与适用范围，只对本链产品生效，不把大小写等价性当作读侧兼容规则。
 
 ### 3.5 二次律只约束单位层
 
@@ -119,7 +138,7 @@ x′ = α·x        ⇒    Var′ = α²·Var ,    ivar′ = ivar/α²
 S  = F/A_cell  ⇒    Var(S) = Var(F)/A_cell²
 ```
 
-线性标度与方差标度的关系逐字出自计量学通用手册 [6]。`α` 是逐帧量：不同夜的帧、不同透明度的帧标度不同是正常的。
+线性标度与方差标度的关系出自计量学通用手册 [6] 不相关输入量式 (10) 与相关输入量式 (13) 在单输入量情形下的推论，不是逐字引文。逐帧测光标度在本分册记作 `α_k`，在测光分册记作 `k_photo`，在 Phase1 标定溯源面记作 `photscal`，在测光分册的正文中记作 `scale`；四者是同一个量的四个面名，不是四个量，引用时必须随语境给出全部面名。`α` 是逐帧量：不同夜的帧、不同透明度的帧标度不同是正常的。
 
 **`BUNIT` 相等不蕴含标度相等。** `BUNIT` 描述量的种类，逐帧标度由溯源中的标度声明与 `α_k` 承载。跨帧比较、合并、加权或做阈值判定前，消费侧必须读逐帧标度并按上式换算到同一标度；`BUNIT`、标度类别、逐帧因子三者缺一即须先换算。产品满足下列三条才是量纲可判：单位串显式含立体角幂次；或单位串只写计数单位但在溯源中声明像素语义为面亮度并给出目标像素面积；以及无论何种写法都必须声明该产品的标度类别与逐帧因子。只写计数单位而无声明的，产品判为不可用。
 
@@ -132,7 +151,7 @@ S  = F/A_cell  ⇒    Var(S) = Var(F)/A_cell²
 - mosaic 面：按帧身份数值升序拼接 `<帧身份十进制文本>|<filter=…;order=…;frame=…;>` 后取 SHA-256；
 - export 面：对输入 HiPS 的 `signal/properties` 字节与 `signal/Moc.fits` 字节各以其相对路径与换行作前缀后取 SHA-256。
 
-masonry 面有两处实现，必须同形同值；任一面不得使用另一面的公式，也不得与之比对——两面摘要的是不同全集，等值不构成正确性判据。
+mosaic 面有两处实现，必须同形同值；任一面不得使用另一面的公式，也不得与之比对——两面摘要的是不同全集，等值不构成正确性判据。
 
 ### 3.8 精度
 
@@ -145,7 +164,7 @@ masonry 面有两处实现，必须同形同值；任一面不得使用另一面
 
 计算与承载分离：归约与累积在 FP64 域完成，FP32 是落盘与发布的 dtype。分块只改变执行顺序，不改变科学结果。
 
-**量纲后果必须显式处理**：绝对常数一旦随标度换算就会改变可表示性。一个以 `calibrated_adu` 标度给出的方差地板 `1e-12`（`ADU²`），按 `α²` 换算到 `photo_scaled_adu` 后约 `1e-46`，在 FP32 中精确下溢为 `0`，而 `1/floor` 上溢为无穷。该像素必须取不可用态 `(variance=0 ∧ ivar=0)`；`(0, +inf)` 是不可表示态，属产品缺陷。生效地板必须在它将被写入的 dtype 中可表示，否则该次运行显式失败。
+**量纲后果必须显式处理**：绝对常数一旦随标度换算就会改变可表示性。一个以 `calibrated_adu` 标度给出的方差地板 `1e-12`（`ADU²`），按 `α²` 换算到 `photo_scaled_adu` 后落在 `1.297e-46`–`3.610e-45` 区间（实测 `α² ∈ [1.2966e-34, 3.6100e-33]`）：区间下端在 FP32 中精确下溢为 `0`，上端少数成为**非零次正规数**（最大 `4.204e-45`，为最小次正规数 `1.4013e-45` 的 3 个 ulp），而 `1/floor` 在 FP32 中一律上溢为无穷。该像素必须取不可用态 `(variance=0 ∧ ivar=0)`；`(0, +inf)` 是不可表示态，属产品缺陷。下溢到零与落进次正规区是两种不同结局，落进次正规区的地板必须逐帧显式登记，不得当作已下溢。生效地板必须在它将被写入的 dtype 中可表示，否则该次运行显式失败。
 
 ### 3.9 权重词表：登记面与输入面
 
@@ -182,12 +201,13 @@ masonry 面有两处实现，必须同形同值；任一面不得使用另一面
 
 | 键 | 取值 |
 |---|---|
-| `scope` | `frame_independent_fixed_magnitude`：逐帧参考通量，只依赖本帧标定 |
-| `reference_mag` | `m_ref = 6.0`（项目约定，冻结于 `eng/contracts/schemas/unified/frame_snr.schema.json`） |
+| `scope` | `frame_independent_fixed_magnitude`：逐帧参考通量，只依赖本帧标定；合同另允许块级公共锚 `group` |
+| `reference_flux_source` | `fixed_magnitude`：由固定参考星等加本帧测光零点导出；合同另允许 `group_median`、`config`、`unavailable`（不可得时该帧不写帧级信噪比键） |
+| `reference_mag` | `m_ref`，项目配置缺省 `6.0`，取自调度层读取帧配置时的缺省值并可被输入 JSON 覆盖；合同只约束它是 number，不冻结取值，因此**它不是冻结常数** |
 | `reference_mag_system` | `gaia_g_via_synthetic_xpsd`：Gaia DR3 XP 绝对 XPSD 谱经本帧滤光片与探测器量子效率正向合成 |
-| `reference_flux_k` | `F_ref,k = 10^(−0.4·(m_ref − ZP_k))`，与同帧 `F`、`σ_F` 同标度 |
+| `frame_zero_point_mag` | `ZP_k = ZP_syn − 2.5·log10(k_photo,k)`，满足 `mag = ZP_k − 2.5·log10(F_adu)`；据此 `F_ref,k = 10^(−0.4·(m_ref − ZP_k))`，与同帧 `F`、`σ_F` 同标度 |
 
-**配对条件**：参考通量与同帧的 `F̂`、`σ_F` 必须同帧同源。跨标度相乘会让信噪比偏一个增益因子，这正是统一科学模型中"权重必须携带 `F_ref²`"在数据面的落地形态。参考轮廓取星点目录的中位视宁度加本帧天光离散度，5σ 深度按 `F_5 = 5·σ_F(ref)` 换算，缺测光零点时深度键写空。
+**配对条件**：参考通量与同帧的 `F̂`、`σ_F` 必须同帧同源。跨标度相乘会让信噪比偏一个增益因子，这正是统一科学模型中"权重必须携带 `F_ref²`"在数据面的落地形态。5σ 深度按参考轮廓下的 `F_5 = 5·σ_F(ref)` 换算，缺测光零点时深度键写空；参考轮廓、孔径、背景估计域与像素标度的绑定条件由《噪声、信噪比与不确定度》分册承载，本册只固定落盘键与空值语义。
 
 **样本真实性约束**：改变 PSF 拟合的星数上限只影响性能，不得改变交付的信噪比与深度数值；若交付样本被显式截断，必须同时落盘截断标志与被计入的样本数，使这两条判据可区分。
 
@@ -198,11 +218,13 @@ masonry 面有两处实现，必须同形同值；任一面不得使用另一面
 | 字段 | dtype | 单位或域 | 无效或哨兵 |
 |---|---|---|---|
 | `ra`, `dec` | float64 | 度 | 无 NaN 输出（量化解码有界） |
-| `magG`, `magBP`, `magRP` | float64 | mag | 由原始值按 `×0.001 − 1.5` 换算；无光谱数据的记录其 BP/RP 恒为哨兵零 |
+| `magG`, `magBP`, `magRP` | float64 | mag | 由 XPSD 记录内的 `uint16` 原始字（`magG_raw@20`、`magBP_raw@22`、`magRP_raw@24`）按 `×0.001 − 1.5` 解码；无光谱数据的记录其 BP/RP 恒为哨兵零 |
 | `flux_min`, `flux_mul` | float32 | `W·m⁻²·nm⁻¹` | 无光谱记录时为哨兵零 |
 | 光谱字节块 | uint8 | 行主序 | 解码为 `flux_mul · 字节 + flux_min` |
 | `out_match_idx` | int32 | 坐标序 | `-1` 表示该坐标未匹配 |
 | `out_count` | int32 | 行数 | `0` 表示空结果，是合法结果而非错误 |
+
+这条量化是本地星表客户端采用的**存储约定**，不是 ESA Gaia DR3 的官方换算：DR3 的 `gaiadr3.gaia_source` 把 `phot_*_mean_mag` 存为浮点，官方定义是「由该波段平均通量加 Vega 制星等零点换算」，不存在 `×0.001 − 1.5` 的整数编码。该量化的出处目前只有代码级证据（客户端的 `uint16` 解码与其声明的上游格式），未取得一手文献，故按代码级证据登记，读侧不得把它当作 Gaia 官方口径向外交叉换算。
 
 光谱行长度由第一个含光谱文件的光谱点数决定。星表接口**不输出**源标识、视差、自行与误差列；不存在的输出字段在结构体中未初始化，调用方一律按未初始化处理。
 
@@ -263,16 +285,16 @@ unavailable.{flag, reason, scope}
 
 ## 7 参考文献与参考代码
 
-[1] Greisen E. W., Calabretta M. R. Representations of world coordinates in FITS. Astronomy & Astrophysics, 2002, 395: 1061–1076. https://doi.org/10.1051/0004-6361:20021326（预印本 [arXiv:astro-ph/0207407](https://arxiv.org/abs/astro-ph/0207407)；逐字核对第 2.1.1 节式 (1) 的 `q_i = Σ_j m_ij (p_j − r_j)`、`r_j = CRPIX_j`，以及第 2.1.4 节的 1-based 像素中心约定）
+[1] Greisen E. W., Calabretta M. R. Representations of world coordinates in FITS. Astronomy & Astrophysics, 2002, 395(3): 1061–1075. https://doi.org/10.1051/0004-6361:20021326（预印本 [arXiv:astro-ph/0207407](https://arxiv.org/abs/astro-ph/0207407)；逐字核对第 2.1.1 节式 (1) 的 `q_i = Σ_j m_ij (p_j − r_j)`、`r_j = CRPIX_j`，以及第 2.1.4 节的 1-based 像素中心约定）
 
-[2] Górski K. M., et al. HEALPix: A framework for high-resolution discretization and fast analysis of data on the sphere. The Astrophysical Journal, 2005, 622: 759–771. https://doi.org/10.1086/427976（预印本 [arXiv:astro-ph/0409513](https://arxiv.org/abs/astro-ph/0409513)）
+[2] Górski K. M., et al. HEALPix: A framework for high-resolution discretization and fast analysis of data distributed on the sphere. The Astrophysical Journal, 2005, 622(2): 759–771. https://doi.org/10.1086/427976（预印本 [arXiv:astro-ph/0409513](https://arxiv.org/abs/astro-ph/0409513)）
 
 [3] IVOA. HiPS — Hierarchical Progressive Survey Version 1.0, REC-HIPS-1.0. https://www.ivoa.net/documents/HiPS/20170519/REC-HIPS-1.0-20170519.pdf
 
 [4] FITS Working Group. FITS Standard Version 4.0. https://fits.gsfc.nasa.gov/standard40/fits_standard40aa-le.pdf（逐字核对 4.4.2.5 节的 `BUNIT` 定义与 4.3.1 节的单位串构造规定、Table 3 的 `sr`、Table 4 的 `adu`、Table 6 的幂次记法）
 
-[5] EMVA. Standard 1288 Release 4.0 General, Linear. https://www.emva.org/standards-technology/ema-1288/（第 2.4 节的完整方差式含与信号无关的偏置项，读出噪声在该节被称为 signal independent）
+[5] EMVA. Standard for Characterization of Image Sensors and Cameras, Release 4.0 Linear. https://www.emva.org/wp-content/uploads/EMVA1288Linear_4.0Release.pdf（Linear 模块第 2.4 节 Noise Model 的式 (14)(15) 含与信号无关的偏置项 σ_d²，读出噪声在该节被称为 signal independent；General 模块不含噪声模型节，被引的是 Linear 模块）
 
-[6] Joint Committee for Guides in Metrology. Evaluation of measurement data — Guide to the expression of uncertainty in measurement, JCGM 100:2008. https://www.bipm.org/documents/20126/2071204/JCGM_100_2008_E.pdf（逐字核对第 4.2.3 节关于方差与标准差量纲的说明，以及线性标度传播的表达式）
+[6] Joint Committee for Guides in Metrology. Evaluation of measurement data — Guide to the expression of uncertainty in measurement, JCGM 100:2008. https://www.bipm.org/documents/20126/2071204/JCGM_100_2008_E.pdf（逐字核对第 4.2.3 节 NOTE 2 关于方差与标准差量纲的说明，以及第 5.1.2 节式 (10) 与第 5.2.2 节式 (13) 的不确定度传播表达式；本分册的两条标度律是式 (10) 在单输入量情形下的推论）
 
-参考代码：球面像素化与 NESTED 索引可对照 healpy（BSD-3-Clause，<https://github.com/astropy/healpy>）；WCS 与单位解析可对照 astropy（BSD-3-Clause，<https://github.com/astropy/astropy>）；FITS 读写与校验可对照 CFITSIO（NASA 宽松许可）。三者均为宽松或记录型许可，只作行为对照。
+参考代码：球面像素化与 NESTED 索引可对照 healpy（BSD-3-Clause，<https://github.com/astropy/healpy>）；HiPS tile 的行列排列可对照 CDS 的 tile 生成器产物（见上）；WCS 与单位解析可对照 astropy（BSD-3-Clause，<https://github.com/astropy/astropy>）；FITS 读写与校验可对照 CFITSIO（NASA 宽松许可）。三者均为宽松或记录型许可，只作行为对照。

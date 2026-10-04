@@ -1,6 +1,6 @@
 # 产物库
 
-上游：最高设计的 I/O 与原子产品一章；原子发布步序见 `../contracts/ATOMIC_PUBLISH.md`。
+上游：最高设计的 I/O 与原子产品一章[1]；原子发布步序见 `../contracts/ATOMIC_PUBLISH.md`[2]。
 
 产物库的目录布局、寻址方式、生命周期与并发访问语义的正本。
 
@@ -17,9 +17,9 @@
 > 验收：spy Store 证明每读写经过 Store；绕过路径/producer 重复/错误 schema/
 > 磁盘满/进程中断/取消均失败且可恢复；manifest hash 可重算。
 
-约束来源：`../../ACSD_DESIGN.md` 「命名块内存管线与块生命周期」一节（阶段内命名块内存管线）、（I/O 与原子产品：三 Phase
-隔离产品命令；阶段间只通过原子发布、哈希和 provenance 完整的磁盘产品/manifest 交换）；
-`../architecture/ARCHITECTURE.md`（Pipeline edge 传递 ArtifactHandle，不是路径字符串）；artifact manifest 机器合同
+约束来源：最高设计的软件架构一章与 I/O 与原子产品一章[1]（三 Phase 隔离产品命令；阶段间只通过
+原子发布、哈希和 provenance 完整的磁盘产品/manifest 交换）；`../architecture/ARCHITECTURE.md`
+（Pipeline edge 传递 ArtifactHandle，不是路径字符串）；artifact manifest 机器合同
 （`eng/contracts/data/artifact_manifest.schema.json` 与 `eng/contracts/data/artifact_types.registry.json`；
 `storage_uri` 解析只发生在 Store 内部）。
 

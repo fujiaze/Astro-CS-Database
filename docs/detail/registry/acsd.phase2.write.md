@@ -91,8 +91,9 @@ coverage, sampler, rejection, block, integrate}.h`（`P2_API` /
 `p2_collect_candidate_stack` / `p2_reject_stack_ex` / `p2_integrate_pixel` /
 `p2_large_scale_apply` / `p2_block_plan`（lib/algorithms/coverage 冻结接口）；库消费
 aio_hips.h 的 9 个 C ABI 符号（P1 冻结面）。源文件 =
-`lib/algorithms/coverage/{src, include/astro/phase2, tools, tests}/`。原头文件族里
-并列的 acr_kernels.h 已随 ACR 子树退场删除（`383088f2`），该冻结接口成员不再存在。
+`lib/algorithms/coverage/src/`、`lib/algorithms/coverage/include/astro/phase2/`、
+`lib/algorithms/coverage/tools/`。头文件族中与冻结接口并列的 ACR 头
+（`acr_kernels.h`）在 `lib/` 下不存在，集成执行路由唯一 = CPU。
 
 公共 API 登记 = API-P2-HIPS-001（PUBLIC_API Phase2 mosaic write 节，
 stage2 配置 schema + 退出码 2/3/4/5/6/7 + diagnostics.json 键集）。
@@ -137,16 +138,22 @@ registry/acsd.phase2.upm-apply.md）。
 
 ## 错误、日志、指标、取消和 checkpoint
 
-退出码 2 = eng/packaging/config/CLI、3 = coverage / target_order、4 = frame_id /
-sampler、5 = UPM、6 = tile 读写 / 块不可行 / finalize、7 = ivar 门 / HIPS_VERIFY。
+**acsd-stage2 工具返回值（工具局部，不是 `acsd::ExitCode`）**：0 = 成功；1 = 未捕获
+异常兜底；2 = config 解析 / CLI 参数错误；3 = coverage 构建 / target_order 校验；
+4 = frame_id / sampler 域；5 = UPM 构建 / 持久化；6 = 写路径 / 集成块（rejection
+resolve、tile 写、large_scale 等）；7 = ivar 门（ivar 产品缺失且未显式降级）/
+HIPS_VERIFY 回读失败。**该工具不以裸整数冒充进程退出码**：它不消费
+`lib/infrastructure/cli/exit_codes.h` 的 `acsd::ExitCode`，两套码值在 3–7 区间重叠
+且语义不同，按任一面反查都会取到另一面的错值（该重叠已在
+docs/engineering/api/PUBLIC_API.md 的「acsd-stage2 工具返回值」处登记为未决项）。
 日志落点 = 块级 `log_dir`（默认 `<output_dir>/logs`），节点事件经 observability
 汇聚（最高设计 §7.3，阶段二工具侧同时输出 stderr）。指标 = diagnostics.json
 （`rejection_resolved_methods` / `reject_hist` / `pixels_depth_*` / `acr_*` route /
 model_hash 等；stage2.cpp）。取消 = 无（长 run 无检查点，如实登记）。跨模块：
 orchestrator 的 `cleanup_partial_output` 用 `fs::remove_all` 修复（orchestrator.cpp，
-失败时清理 HiPS 目录树）。错误码与退出码唯一源 =
+失败时清理 HiPS 目录树）。**进程退出码**唯一源 =
 lib/infrastructure/cli/exit_codes.h；域→码映射唯一源 =
-docs/engineering/contracts/LOG_AND_ERROR.md「错误对象与退出码映射」一节。
+docs/engineering/contracts/LOG_AND_ERROR.md 的「错误对象与退出码映射」。
 
 **阶段二冻结科学合同 ID 集合**（零改动）：SCI-UPM-001..010、
 SCI-UPM-PERSIST-001、ALG-UPM-FRAME-BIND-001、ALG-REJ-001..008、
@@ -157,25 +164,28 @@ ALG-UPM-CONTROL-IVAR-001、DATA-UPM-CONTROL-UNC-001。`ERR-P2-UPM-001`（畸形�
 ## 独立 synthetic 验证命令与容差
 
 `TEST-P2-HIPS-001` 待建；设计冻结 = ALG-P2-HIPS-001..004
-（PHASE2_MOSAIC_WRITE.md §8/§9：NumPy 参考 signal / sup_max rtol = 1e-12、序转换
-恒等往返、ivar 门负例）。已取证的相邻读数：ACR `mosaic_reject_legacy` ↔ CPU 等价
-（该符号的定义侧随 ACR 子树退场删除（`383088f2`），`lib/` 下已无该符号）、
+（PHASE2_MOSAIC_WRITE.md 的测试设计与验收章：NumPy 参考 signal / sup_max
+rtol = 1e-12、序转换恒等往返、ivar 门负例）。已取证的相邻读数：ACR
+`mosaic_reject_legacy` ↔ CPU 等价（该符号在 `lib/` 下无定义，无 CUDA kernel）、
 synthetic_gate UPMW 组、G5 ivar 真值、SNR-015 ablation；这些读数的载体不在本仓
 可复算路径上，引用时只作背景。
 
 ## 已知限制
 
-- ACR 子树已退场（`383088f2`）：其仅有的 CPU launcher `mosaic_reject_legacy`
-  （**无 CUDA kernel**）随 `lib/algorithms/coverage/src/acr_kernels.cpp` 一并删除，
-  「输出仅 signal / support」随之成为历史读数，不再是现行限制；
-缺陷登记 = lib/algorithms/coverage/hips_p2/README.md §7 与 ALG-P2-HIPS-001..004
-缺陷清单（登记不改码，整改面未落地）：无 variance / ivar 输出产品；hash 链未入
-HiPS properties provenance；阶段二直写 `out_hips` 无 staging（原子发布归 IO-003，
-不满足最高设计 §10 的原子发布条款，属已登记的例外面）；O(T·N) 覆盖帧 probe。
+- 集成执行路由只有 CPU：`lib/algorithms/coverage/` 下无 ACR 源、无
+  `acr_kernels.cpp`、无 `mosaic_reject_legacy` 符号（**无 CUDA kernel**），因此
+  「输出仅 signal / support」不是现行限制；
+  缺陷登记 = lib/algorithms/coverage/hips_p2/README.md 的
+  「已知缺陷（DISP-P2HIPS，登记不改码，整改归 P2-HIPS-IMPL/INT）」段与
+  ALG-P2-HIPS-001..004 缺陷清单（登记不改码，整改面未落地）：无 variance / ivar
+  输出产品；hash 链未入 HiPS properties provenance；阶段二直写 `out_hips` 无
+  staging（原子发布归 IO-003，不满足最高设计 §10 的原子发布条款，属已登记的
+  例外面）；O(T·N) 覆盖帧 probe。
 
 **日志落点**：本模块的日志一律落块级 `<output_dir>/logs`。开发过程日志
-不是产品日志，不在产品落盘面内；判据 R3 见
-`docs/engineering/contracts/LOG_AND_ERROR.md`「落点合同」一节（落点指向块级 output_dir 之外即判红）。
+不是产品日志，不在产品落盘面内；判据 R3 =
+`docs/engineering/contracts/LOG_AND_ERROR.md` 的「落点合同」（落点指向块级
+output_dir 之外即判红）。
 
 目标交付形态 acsd_p2_hips_writer.dll 未落地。全局限制登记 =
 artifacts/evidence/known-limitations-ledger/LIMITATIONS.md。

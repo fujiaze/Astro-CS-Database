@@ -1,7 +1,7 @@
 # 优化标准
 
-上游：最高设计的 CPU 后端与资源一章；标定常数与有效宽度模型见
-`../resources/PERFORMANCE_MODEL.md`。
+上游：最高设计的 CPU 后端与资源一章[1]；标定常数与有效宽度模型见
+`../resources/PERFORMANCE_MODEL.md`[2]。
 
 优化只能从实测剖面出发、只改实现不改精度档位的工程正本。
 

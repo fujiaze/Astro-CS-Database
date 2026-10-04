@@ -1,6 +1,6 @@
 # 所有权与生命周期合同
 
-上游：最高设计的软件架构一章；跨动态库边界的规则见 `../api/abi/ABI.md`。
+上游：最高设计的软件架构一章[1]；跨动态库边界的规则见 `../api/abi/ABI.md`[2]。
 
 公共接口的句柄所有权、输出缓冲语义与线程局部状态的正本。
 
@@ -23,9 +23,12 @@
 
 ## 契约
 
-所有权与生命周期契约 = `ENG-OWN-001`（登记面 = `governance/TRACEABILITY.md 「合同 ID 登记面」一节`）。
+所有权与生命周期契约 = `ENG-OWN-001`（登记面 = `../governance/TRACEABILITY.md`[3] 的「需求→实现→测试 登记册（人读正本）」一节）。
 
 ## 参考文献
 
-[1] 内部文档 `docs/ACSD_DESIGN.md，最高设计`，上位来源。
+[1] 内部文档 `docs/ACSD_DESIGN.md`，最高设计的软件架构一章，上位来源。
+
 [2] 内部文档 `docs/engineering/api/abi/ABI.md`，同层相关正本。
+
+[3] 内部文档 `docs/engineering/governance/TRACEABILITY.md`，合同 ID 登记面（`ENG-OWN-001` 登记处）。

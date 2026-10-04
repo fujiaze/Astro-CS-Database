@@ -12,7 +12,7 @@
 > API 正本：docs/engineering/api/PUBLIC_API.md（API-P3-FITS-001，Phase3 FITS 写出
 > 公共消费面节）、docs/engineering/api/PUBLIC_API.md「分阶段 API 面」（API-P3-001，p3_session 五段
 > FROZEN 镜像）
-> 原子发布：docs/engineering/contracts/ATOMIC_PUBLISH.md（IO_003「错误语义」一节）
+> 原子发布：docs/engineering/contracts/ATOMIC_PUBLISH.md（IO_003，章节「错误语义」）
 > 落地设计：docs/detail/PHASE3_DETAILED_DESIGN.md §5–§6
 > 引用文献：见文末「参考文献」（角标用全角 `［N］`，因本文正文的半角 `[...]` 已被
 > 数值域区间占用）
@@ -36,7 +36,8 @@
   ALG-P3-FITS-IMPL-001（docs/science/algorithms/PHASE3_FITS_IMPL.md，兼承接
   ALG-P3-002/004 本域子面）→ DATA-P3-FITS（本页输入输出端口表）+
   API-P3-FITS-001（PUBLIC_API Phase3 FITS 写出公共消费面节）→ TEST-P3-WR-001
-  （设计冻结 = TEST-P3-WR-DESIGN-001，见 §9）；编排面 API-P3-001（p3_session
+  （设计冻结 = TEST-P3-WR-DESIGN-001，见本页「独立 synthetic 验证命令与容差」）；
+  编排面 API-P3-001（p3_session
   五段 FROZEN）镜像不变。
 - 上游依赖: acsd_phase3_session（采样/重采样编排域）+
   acsd_aio（aio_fits + vendored third_party/cfitsio）；depends_on_int=
@@ -77,8 +78,9 @@
   WCS。PRIMARY = 所选科学 signal / flux / statistic；扩展 HDU = COVERAGE、
   VARIANCE / IVAR（**语义择一且一致**）；其余候选面（VALIDITY、SUPPORT、
   REJECTION、POINT_INFORMATION/W、PSF 表/图与 correlation 描述）为待实现项，
-  落盘前须先在本页「3 输入输出端口、DATA、单位、坐标、invalid」一节立输出行与 HDU 合同。
-  标准 WCS 为**直接计算生成**；DATASUM / CHECKSUM 见 §10。
+  落盘前须先在本页「输入输出端口、DATA、单位、坐标、invalid」立输出行与 HDU 合同。
+  标准 WCS 为**直接计算生成**；DATASUM / CHECKSUM 的口径与整改登记见本页
+  「已知限制与缺陷登记（登记不改码）」。
 - **BUNIT 语义**：主 HDU 的 `BUNIT` = 输入 HiPS `signal/properties#BUNIT` 声明的
   canonical 串（canonical 值 `ADU/sr`；写端口单位 `UnitId::SURFACE_BRIGHTNESS`，
   落盘值 = 通量和 / 覆盖面积 = 面亮度）。缺声明时按 docs/science/unified/DATA_SEMANTICS.md §3.6 的量纲可判条件
@@ -93,7 +95,8 @@
 - **out 面细节**（DATA-P3-FITS §27.2）：FITS 文件 BITPIX = -32 / -64、
   CTYPE = `RA---TAN` / `DEC--TAN`、CUNIT = deg、BSCALE = 1 / BZERO = 0、
   HIPSID / RUNID / ORDERSEL / SAMPLER / SWVER + HISTORY、DATASUM（32-bit）；
-  `P3OutputResult` = `sha256[65]` / `coverage_ok` / `reopen_ok` / `covered_px` /
+  上述头卡与数据模型的依据 = FITS 标准［1］［2］。`P3OutputResult` = `sha256[65]` /
+  `coverage_ok` / `reopen_ok` / `covered_px` /
   `total_px`。
 - **不确定度可得性（fail-closed，唯一出口）**：输入 HiPS 不含 variance / ivar
   子产品（或权重非纯逆方差、发生 fallback 等 §30 规则项）时 → **不写**
@@ -156,7 +159,8 @@
   AIO 域非本域）。ThreadLease/取消检查点无接线（迁移整改点）。
 - 确定性: 固定顺序输出（fits_write_pix 定序 + sha256/fdatasum
   纯函数）；取消点=行（kernel cancelled_at_row，签名见 `lib/algorithms/fits_output/p3_output.h`；session 层
-  取消在采样循环，同 `p3_session.cpp`），写面发布序不可中断（IO_003 §6）。
+  取消在采样循环，同 `p3_session.cpp`），写面发布序不可中断（IO_003 的
+  「发布流水线（原子语义）」）。
 
 ## 7 内存、cache、I-O、所有权
 
@@ -164,7 +168,7 @@
   （verify 内逐 HDU 临时 vector 除外）；内存不依赖 tile 数
   （tile 缓冲在上游，max_tiles 守卫在 `lib/phase3_session/p3_session.cpp`）。
 - I-O: 单 writer 串行（cfitsio 锁内）；磁盘临时文件
-  `<path>.<pid>.tmp` 同目录（`lib/algorithms/fits_output/p3_output.cpp` 的 make_temp_path；协议注与实测命名的差异见 §10）；
+  `<path>.<pid>.tmp` 同目录（`lib/algorithms/fits_output/p3_output.cpp` 的 make_temp_path；协议注与实测命名的差异见本页「已知限制与缺陷登记（登记不改码）」）；
   发布后无 tmp 残留（失败/取消 unlink）。
 - 所有权: 输出文件归调用方；sha256 结果归 result 出参
   （P3OutputResult，定义见 `lib/algorithms/fits_output/p3_output.h`）。
@@ -198,7 +202,7 @@
 - T2 独立 verify: 重开 dims/像素回环（NaN==NaN）/coverage 二值门/
   sha256 重算一致。
 - T3 原子性: 无 .tmp 残留（filesystem 遍历替代 popen；前缀弱匹配差异
-  见 §10，不误报）。
+  见本页「已知限制与缺陷登记（登记不改码）」，不误报）。
 - T4 WCS roundtrip oracle: pix→world→pix ≤1e-4 px（SCI-P3 §7
   真值阈 ≤1e-6 px）+ 采样值锚 100.0+0.5·32（≤1e-3）。
 - T5-T7 设计面（现状未覆盖，可执行测试待建）: 取消不落盘、
@@ -218,12 +222,12 @@
   矛盾；他域文件只登记不修。
 - tmp 命名：p3_output.h 协议注写 `<dir>/.<base>.<pid>.tmp`（前置点隐藏形态），
   实测 make_temp_path 生成 `out_path.<pid>.tmp`（`lib/algorithms/fits_output/p3_output.cpp`）；同目录
-  rename 原子性语义不变，但已取证的残留检查所用前缀与实际命名不匹配（残留检查空转）；
+  rename 原子性语义不变，但残留检查所用前缀与实际命名不匹配（残留检查空转）；
   命名统一属迁移目标（未落地，含用例修正）。
 - 整改项（非缺陷）: prov.manifest_hash 恒 nullptr（`lib/phase3_session/p3_session.cpp`，HISTORY
   manifest 字段写空，SCI-P3 §96 接线属迁移目标（未落地））；p3_output_verify
   忽略 wcs 参数（`lib/algorithms/fits_output/p3_output.cpp` 内 `(void)wcs`，设计如此）；DATASUM 为 32-bit
-  数值校验和非 FITS 标准 ASCII CHECKSUM（如实冻结）。
+  数值校验和，不是 FITS 标准的 ASCII CHECKSUM 约定［1］（如实冻结）。
 - 其余: 见 ALG-P3-FITS-IMPL-001 §14 合同边界；全局限制登记 =
   artifacts/evidence/known-limitations-ledger/LIMITATIONS.md；
   SCI-P3 FROZEN 零改动声明（本页不承载公式）。

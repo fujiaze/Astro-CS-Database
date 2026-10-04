@@ -1,6 +1,6 @@
 # 校准
 
-> 上游：docs/ACSD_DESIGN.md 第 4 章第 4.2 节（normalize 节点流程）、第 3 章第 3.3 节（精度归属）
+> 上游：《ACSD 最高设计》（docs/ACSD_DESIGN.md）的「normalize：单帧标准化」节点流程与「精度归属」两章
 
 ## 1 主题与目标
 
@@ -18,7 +18,7 @@
 - **暗流母版**：在遮光条件下积累的暗电流。它与曝光时长成正比，这使它成为全链唯一可以按曝光时间外推的标定量。
 - **平场母版**：探测器的**相对**空间响应场。它把每个像元的量子效率、滤光片与光学系统的透过率不均匀性、像元几何差异一次性记录下来。
 
-平场的绝对标度**不是物理量**：`cal = num / flat_norm` 中平场的整体因子被约掉，只有形状进入结果。校准误差预算与探测器噪声的课程级背景见 [2]。这条性质有一个重要推论：平场按自身中位数归一**不是**"用未知因子掩盖标度错"，因为对平场而言不存在可供对照的真标度；归一正是它的定义域转换。偏置与暗流的绝对标度则**是**物理量（电平），必须被声明并核验。
+平场的绝对标度**不是物理量**：`cal = num / flat_norm` 中平场的整体因子被约掉，只有形状进入结果。校准误差预算与探测器噪声的课程级背景见 [1]。这条性质有一个重要推论：平场按自身中位数归一**不是**"用未知因子掩盖标度错"，因为对平场而言不存在可供对照的真标度；归一正是它的定义域转换。偏置与暗流的绝对标度则**是**物理量（电平），必须被声明并核验。
 
 ### 2.2 标度的物理解释链
 
@@ -26,14 +26,16 @@
 
 | 文件形态 | 物理值 | 换算 |
 |---|---|---|
-| FITS 整数帧 | `BSCALE · 样本 + BZERO` [4] | 读路径恰应用一次 |
-| XISF 浮点帧 | 文件声明的 `bounds` 是**可表示域**（渲染黑点到白点），不携带物理单位 [5] | 声明制因子，实测取 65535（见下） |
+| FITS 整数帧 | `BSCALE · 样本 + BZERO` [3] | 读路径恰应用一次 |
+| XISF 浮点帧 | 文件声明的 `bounds` 是**可表示域**（渲染黑点到白点），不携带物理单位 [4] | 声明制因子，实测取 65535（见下） |
 
-**ADU 域的定义**：本链把"物理值 = `BSCALE·样本 + BZERO`"这一等式上的值域称为 ADU 域。这是一句项目约定——FITS 标准确立的是"应用 `BSCALE`/`BZERO` 之后的物理值"这个概念，并不规定该物理值的单位名，也不给任何数值区间 [4]。约定本身由 `BUNIT='ADU'` 与数据语义承载。未经该换算的原始样本不在 ADU 域内。
+**ADU 域的定义**：本链把"物理值 = `BSCALE·样本 + BZERO`"这一等式上的值域称为 ADU 域。这是一句项目约定——FITS 标准确立的是"应用 `BSCALE`/`BZERO` 之后的物理值"这个概念，并不规定该物理值的单位名，也不给任何数值区间 [3]。约定本身由 `BUNIT='ADU'` 与数据语义承载。未经该换算的原始样本不在 ADU 域内。
 
-**65535 换算因子**：XISF 规范要求浮点实型图像必须声明 `bounds`，该属性定义为像素样本可在显示设备上表示的取值范围 [5]。PixInsight 的参考实现把文件可表示域线性映射到目标类型域，16 位整数目标的映射除数即 `2¹⁶−1 = 65535`（PixInsight Class Library 的 `XISFReader.cpp`，`NormalizeSamples`，版本钉到 commit `5a3902196a7d7a701385a7113cbdce2976ae1a85`）。同一物理数据在 Float32 `[0,1]` 与 UInt16 `[0,65535]` 两种表示之间的换算因子因此是 65535。**该因子是声明制，不是推断制**：调用方必须显式给出，取值错误由下文 U1/U4 门拦截。
+**65535 换算因子**：XISF 规范要求浮点实型图像必须声明 `bounds`（可表示域），其定义是「像素样本可在显示设备上表示的取值范围」，上下界即图像的黑点与白点 [4]。PixInsight 的参考实现把该区间线性映射到目标类型域，映射系数是**乘数** `scale = (2ᵏ−1)/(upper − lower)`；16 位整数目标取 `2ᵏ−1 = 2¹⁶−1 = 65535`，文件 `bounds` 取 `0:1` 时 `scale = 65535`（PixInsight Class Library 的 `XISFReader.cpp`，`NormalizeSamples`）。同一物理数据在 Float32 `[0, 1]` 与 UInt16 `[0, 65535]` 两种表示之间的换算因子因此是 65535。**该因子是声明制，不是推断制**：调用方必须显式给出，取值错误由下文 U1/U4 门拦截。
 
-**本仓真实亮场的实测锚**：仓内 T4 180 秒 Lum 帧的 FITS 头为 `BITPIX=16`、`BSCALE=1.0`、`BZERO=32768.0`、`EXPTIME=180.0`，读入后落在 `[0,65535]` ADU。`BZERO=32768` 与 `BSCALE=1` 把无符号 16 位整数装进有符号 16 位 FITS 数组，是**存储约定**而不是标准强制值 [4]，因此其他位深或关键字组合下读入域随之改变，必须重新判定。
+**待裁决的 1 LSB 口径差**：仓内一份真实母版的回归反解给出的是 `value = ADU/65536` 而不是 `ADU/65535`，相对差 `1.5e-5`，恰为 1 LSB 量级。`65535` 是 UInt16 `[0, 65535]` 可表示域的满量程，`65536` 则是 `BZERO = 32768` 有符号存储约定下的自然满量程，而本仓亮场正是后一种存储。两者在本链的适用面（低响应像元占比远低于百分之一）上对最终 ADU 的影响低于读出噪声，但在地板与满阱判据上不可互换，因此**取值冻结前须由负责人裁决**；在此之前该因子按声明制消费，其声明值必须在溯源中逐帧登记。
+
+**本仓真实亮场的实测锚**：仓内 T4 180 秒 Lum 帧的 FITS 头为 `BITPIX=16`、`BSCALE=1.0`、`BZERO=32768.0`、`EXPTIME=180.0`，读入后落在 `[0, 65535]` ADU。`BZERO=32768` 与 `BSCALE=1` 把无符号 16 位整数装进有符号 16 位 FITS 数组，是**存储约定**而不是标准强制值 [3]，因此其他位深或关键字组合下读入域随之改变，必须重新判定。
 
 ## 3 公式与推导
 
@@ -44,25 +46,31 @@
 ```text
 master_bias   零曝光本底母版（ADU，与亮场同标度）
 master_dark   已减偏置的暗电流母版（ADU，与亮场同标度）
-master_flat   已归一平场（median = 1.0；逐像素下界 0.1 在标定时施加）
+master_flat   盘上平场母版（ADU，与亮场同标度；不要求中位为 1）
+```
+
+符号约定：全文 `flat` 只表示**盘上母版**，除法一律作用于派生量
+
+```text
+K          = t_light / t_dark                      暗流的曝光线性缩放因子，无量纲
+flat_norm  = max( flat / median(flat), 0.1 )        median → 1.0；median ≤ 0 时不归一，保持原样
 ```
 
 标准式（默认，暗流母版已减偏置）：
 
 ```text
-cal = ( raw − bias·[bias≠NULL] − K·dark·[dark≠NULL] ) / max(flat, 0.1)
+cal = ( raw − bias·[bias≠NULL] − K·dark·[dark≠NULL] ) / max(flat_norm, 0.1)
 ```
 
 兼容式（母版暗场含偏置，需显式声明）：
 
 ```text
-cal = ( raw − bias − K·(dark − bias) ) / max(flat, 0.1)
-
-K          = t_light / t_dark                      暗流的曝光线性缩放因子，无量纲
-flat_norm  = max( flat / median(flat), 0.1 )        median → 1.0；median ≤ 0 时不归一，保持原样
+cal = ( raw − bias − K·(dark − bias) ) / max(flat_norm, 0.1)
 ```
 
-两分支的**唯一差别是入参暗流母版的约定**，算术链的顺序完全一致：减偏置、缩暗流、除平场。这个顺序与主流开源归约管线同向——ccdproc 的归约手册给出的归一母版约定是"master_dark 是已减偏置、可按曝光时间缩放的暗电流母版" [6]，LSST 的仪器签名移除模块中偏置扣除是逐像元相减、暗流扣除按 `maskedImage -= dark * expScaling / darkScaling` 执行、平场校正是除法 [7]。
+`flat_norm` 中的 `max(·, 0.1)` 是归一环节自带的响应下界，与标定式分母上的同一道下界同源；盘上母版已归一（中位为 1）时 `median(flat) = 1`，两项幂等。平场缺省时 `flat_norm` 缺省，除法整段跳过。
+
+两分支的**唯一差别是入参暗流母版的约定**，算术链的顺序完全一致：减偏置、缩暗流、除平场。这个顺序与主流开源归约管线同向——ccdproc 的归约手册给出的归一母版约定是"master_dark 是已减偏置、可按曝光时间缩放的暗电流母版" [5]，LSST 的仪器签名移除模块中偏置扣除是逐像元相减、暗流扣除按 `maskedImage -= dark * expScaling / darkScaling` 执行、平场校正是除法 [6]。
 
 两分支在 `K = 1` 时代数恒等：`(raw−bias) − (dark_total−bias) ≡ raw − dark_total`。是否在 FP32 下逐位相等取决于数据能否被整数精确表示，因此**不作为判据**。
 
@@ -72,9 +80,15 @@ flat_norm  = max( flat / median(flat), 0.1 )        median → 1.0；median ≤ 
 
 ### 3.2 平场响应下界的适用域
 
-`flat` 与 `flat_norm` 都是无量纲相对响应场，`0.1` 是无量纲响应下界，语义是"平场响应的消费下界 = 中位响应的 10%"。由 `cal = num / max(flat_norm, 0.1)`，真实响应 `f < 0.1` 的像元被按 `0.1` 相除，该像元的校准值相对误差为 `(0.1/f − 1)`，**单边偏低**（欠校正），且不可由任何后续标度声明恢复。
+`flat` 与 `flat_norm` 都是无量纲相对响应场，`0.1` 是无量纲响应下界，语义是"平场响应的消费下界 = 中位响应的 10%"。由 `cal = num / max(flat_norm, 0.1)`，真实响应 `f < 0.1` 的像元被按 `0.1` 相除，即 `cal = num/0.1` 而真值为 `cal_true = num/f`，故该像元的校准值相对误差为
 
-| `f`（已归一响应） | 输出校准值 | 真值 | 相对误差 |
+```text
+(cal − cal_true) / cal_true = (f / 0.1) − 1
+```
+
+它是 `f` 的增函数、在 `f = 0.1` 处为零、随 `f → 0` 单边趋于 `−1`，即**单边偏低**（欠校正），且不可由任何后续标度声明恢复。倒过来写 `0.1/f − 1` 得到的是**响应倒数**的相对误差，随 `f → 0` 发散，量纲上描述的不是校准值。
+
+| `f`（已归一响应） | 输出校准值 | 真值 | 相对误差 `(f/0.1 − 1)` |
 |---|---|---|---|
 | 1.0 | 1000 | 1000 | 0 |
 | 0.5 | 2000 | 2000 | 0 |
@@ -88,7 +102,7 @@ flat_norm  = max( flat / median(flat), 0.1 )        median → 1.0；median ≤ 
 
 ### 3.3 暗流的曝光线性
 
-暗流与曝光成正比是本层唯一的外推假设。ccdproc 与 LSST 的归约流程都以曝光时间缩放暗流为基准 [6, 7]。可检验形式是：
+暗流与曝光成正比是本层唯一的外推假设。ccdproc 与 LSST 的归约流程都以曝光时间缩放暗流为基准 [5, 6]。可检验形式是：
 
 ```text
 median(master_dark, t) = b0 + I_d · t ,      I_d > 0
@@ -102,13 +116,25 @@ median(master_dark, t) = b0 + I_d · t ,      I_d > 0
 
 预检面与科学面必须分开。预检面判定的是曝光时长差，结论是提示性的，不参与科学可信判定。科学面判定的是**与曝光无关的截距失配**。
 
-由 `master_dark(t_d) = b0 + I_d·t_d` 与 `K = t_light/t_d`：
+由 `master_dark(t_d) = b0 + I_d·t_d`、`K = t_light/t_d` 与两条分支的减法顺序：
 
 ```text
-cal_pipeline − cal_true = (t_light/t_d) · (b_light − b0) = −K · Δb ,      Δb ≡ b0 − b_light
+cal_pipeline = raw − b_bias − K · [ (b0 + I_d·t_d) − b_bias ]
+cal_true     = raw − b_light − I_d · t_light
+
+cal_pipeline − cal_true = −b_bias − K·b0 + K·b_bias + b_light + I_d·t_light − K·I_d·t_d
+                         = −K·b0 + b_bias·(K − 1) + b_light      （用 I_d·t_light = K·I_d·t_d 消去暗流项）
+                         = −K·(b0 − b_light) + (K − 1)·(b_bias − b_light)
+                         = −K · Δb + (K − 1)·(b_bias − b_light) ,      Δb ≡ b0 − b_light
 ```
 
-暗电流项 `I_d·t` 经 `K` 缩放是精确线性的，**曝光比 `K` 本身不是暗电流项的误差来源**；唯一误差项是与曝光无关的截距失配 `Δb` 被乘以 `K`。`Δb ≡ 0` 时残留对任意曝光差、任意 `K` 逐位为零。
+第三步用到亮场自身的曝光关系 `I_d·t_light = K·I_d·t_d`。式子成立的前提是 `b_bias = median(master_bias) = b_light`，即母版偏置中位与亮场偏置电平取同一值——**标准式与兼容式都只减一次偏置，因此任何 `b_bias ≠ b_light` 都按一条与 `K` 无关的常量平移进入两支的分子**：
+
+```text
+偏置电平失配项 = (b_bias − b_light) · (K − 1)
+```
+
+`Δb ≡ 0` 时残留对任意曝光差、任意 `K` 逐位为零；偏置电平失配项在 `K = 1` 时恒为零，与 `K` 不成比例，因此它不进入下面以 `K` 为系数的判据，必须单独由母版偏置实测并在溯源中声明。
 
 **科学判据：**
 
@@ -116,17 +142,19 @@ cal_pipeline − cal_true = (t_light/t_d) · (b_light − b0) = −K · Δb ,   
 |K · Δb| ≤ ε · σ_frame
 ```
 
-其中 `Δb` 由母版自身实测（暗流中位对曝光档线性拟合的截距减 `master_bias` 中位），`σ_frame` 由亮场自身实测（空天光稳健尺度），`ε` 是无量纲的容许份额——容许的残留占亮场稳健尺度的份额。等价地，对 `t_light > t_d` 有
+其中 `Δb` 的实测量取 `b0 − median(master_bias)`（暗流中位对曝光档线性拟合的截距减母版偏置中位）；它与上式的定义 `b0 − b_light` 只在偏置电平失配项为零时才相等，两者不得混用。`σ_frame` 由亮场自身实测（空天光稳健尺度），`ε` 是无量纲的容许份额——容许的残留占亮场稳健尺度的份额。等价地，对 `t_light > t_d` 有
 
 ```text
 Δt_max = t_d · ( ε·σ_frame / |Δb| − 1 )
 ```
 
-平场的另一条边界同样来自文献：平场误差的量级须由测光检验量化，不能由平场自身自证 [3]，因此本层不把"平场已完整校正"写成对滤波响应正确性的断言。
+暗电流项 `I_d·t` 经 `K` 缩放是精确线性的，**曝光比 `K` 本身不是暗电流项的误差来源**；进入本判据的唯一误差项是与曝光无关的截距失配 `Δb` 被乘以 `K`。
+
+平场的另一条边界同样来自文献：平场误差的量级须由测光检验量化，不能由平场自身自证 [2]，因此本层不把"平场已完整校正"写成对滤波响应正确性的断言。
 
 **为什么不能用曝光差阈值代替**：两个判据的判定变量不相关。`Δt` 恒为零时残留仍为 `|K·Δb| ≠ 0`；`Δb` 恒为零时残留在任意 `Δt` 下逐位为零却仍触发提示。负例是"真值无效应"：截距失配为零的母版组在任意 `Δt`、任意 `K` 下残留为零，任何容差阈值在这组上都没有科学效应。
 
-**适用域**：本判据只适用于母版暗场与亮场经两个分支之一校准的情形。`Δb` 不可测（无偏置母版，或曝光档少于 3 而无法分离截距）时，曝光容差判定必须显式降级为"不可判定"并登记，阈值判定面随之关闭。
+**适用域**：本判据只适用于母版暗场与亮场经两个分支之一校准、且母版偏置中位与亮场偏置电平一致的情形。`Δb` 不可测（无偏置母版，或曝光档少于 3 而无法分离截距）时，曝光容差判定必须显式降级为"不可判定"并登记，阈值判定面随之关闭。母版偏置中位与亮场偏置电平不一致时，本判据只覆盖 `K·Δb` 一项，偏置电平失配项须另立检查。
 
 **`ε` 的登记状态**：默认配置表中的校准键只有两项——以秒为单位的曝光时长容差（预检面）与无量纲的平场判定带（归一化面）。**没有承载 `ε` 的项**。因此在 `ε` 被登记之前，本判据只能给出"给定 `ε` 下的判定"；**只有登记完成后才构成"已按冻结默认值判定"**。适用域的另一半同样重要：`ε` 是容许份额，所以 `|Δb| > ε·σ_frame` 时 `Δt_max < 0`，即连 `Δt = 0` 都不满足；这种情形必须显式登记为"该组母版按本判据不合格"，而不是取一个更大的 `ε` 使之通过。
 
@@ -138,7 +166,7 @@ cal_pipeline − cal_true = (t_light/t_d) · (b_light − b0) = −K · Δb ,   
 σ = 1.482602218505602 · MAD ,     1.482602218505602 = 1 / Φ⁻¹(3/4)
 ```
 
-该常数可独立复算：标准正态的 0.75 分位点为 `0.6744897501960817`，其倒数为 `1.482602218505602`，16 位十进制逐位相同。本链使用**渐近常数**，不做 MAD 的有限样本偏差校正。有限样本校正的研究与稳健估计量的比较见 Rousseeuw 与 Croux 的论文 [8]；该文把 `1.4826 · MAD` 作为对照基线引用，其权威全精度值即上面这个 16 位常数。
+该常数可独立复算：标准正态的 0.75 分位点为 `0.6744897501960817`，其倒数为 `1.482602218505602`，16 位十进制逐位相同。本链使用**渐近一致性常数**，不做 MAD 的有限样本偏差校正。有限样本校正因子的研究见 Croux 与 Rousseeuw 的论文 [7]；该文与 Rousseeuw & Croux 的对照论文 [8] 讨论的是"稳健离散度估计量如何选择"，其 `1.4826` 只作为渐近基准出现，四位有效数字的写法不含本册使用的全精度值——本册的 16 位常数由上面的解析式独立复算得到，与任何一篇文献的印刷精度无关。
 
 ## 4 参数与常数
 
@@ -176,7 +204,7 @@ cal_pipeline − cal_true = (t_light/t_d) · (b_light − b0) = −K · Δb ,   
 
 ### 5.3 仓内真实母版的复算
 
-复算脚本按 XISF 规范解码母版、按声明因子 65535 换算到 ADU、取全帧中位并做最小二乘拟合，结果如下（`testdata/` 下三组标定帧，曝光档单位秒，中位与残差单位 ADU）：
+复算按 XISF 规范解码母版、按声明因子 65535 换算到 ADU、取全帧中位并做最小二乘拟合，结果如下（`testdata/` 下三组标定帧，曝光档单位秒，中位与残差单位 ADU）：
 
 | 组 | 曝光档 | `median(master_dark)` | 拟合 `I_d` | 截距 `b0` | 最大残差 | `median(master_bias)` | `b0 − median(bias)` |
 |---|---|---|---|---|---|---|---|
@@ -192,6 +220,8 @@ cal_pipeline − cal_true = (t_light/t_d) · (b_light − b0) = −K · Δb ,   
 - **T2 组线性前提被违反**：中位随曝光非单调（1800 秒档低于 600 秒档），拟合斜率为负（−0.038236 ADU/s），暗电流物理上不可能为负。该组母版的消费路径是 fail-closed 或更换母版。
 - **T3 组不可判定**：只有 2 个曝光档，判据退化。
 
+**复现状态**：三组母版数据齐备（T2 的 600/1200/1800 秒暗流、T3 的 600/1200 秒暗流、T4 的 180/300/600 秒暗流，另有各组偏置与滤光平场），解码环节有可用的最小 XISF 读取器（`run/NOISE-TAXONOMY-01/code/xisf.py`）。但本表的最小二乘复算与亮场稳健尺度**没有随仓的复跑脚本**，因此这些读数是历史读数，不是可复跑判据；把 `σ_frame` 与拟合系数升为判据的前提是补一个固定 seed 的复跑脚本与结果文件。
+
 曝光容差科学判据在 T4 上的实际含义：`Δb = 105.70` ADU，亮场稳健尺度取同一组 180 秒 Lum 亮场的全帧 MAD 换算 `σ_frame = 57.82` ADU。若亮场用同曝光档的暗流母版则 `K = 1`，残留 `|K·Δb| = 105.70` ADU；判据要求 `ε ≥ 105.70 / 57.82 = 1.83` 才判绿。作为"容许份额"，取到 1.83 意味着容许的残留超过一个亮场噪声标准差——这不是一个有意义的容许度。因此该组在登记的容许份额下属于不合格，这与 `Δt = 0` 时曝光差阈值给出的"通过"形成直接对照：两个判据在同一份数据上给出相反结论，而残差本身不为零。
 
 ### 5.4 坏点与坏列的可分性
@@ -201,27 +231,31 @@ cal_pipeline − cal_true = (t_light/t_d) · (b_light − b0) = −K · Δb ,   
 - **点状缺陷**（热像素、冷像素、宇宙线斑点）按连通域尺寸过滤可用，但口径是"尺寸上界 + 幅度判据并用"，不是"尺寸分布不重叠"。可分性的真实依据是两件事并用：幅度判据在**母版差分**上做（母版里没有天体源，源被构造性排除），尺寸过滤只作兜底。真实数据上暗弱源的小尺寸端与点状缺陷重叠——在 5σ 门限下相当比例的源连通域尺寸不超过 4 像素，与点状缺陷的分布重合。
 - **列状缺陷**（整列或列内一段）**连通域尺寸过滤无效**，判据是列统计量的跨列跳变（详见同目录《CCD 线性缺陷》分册）。
 
-四条主流实现在这一点上口径一致：IRAF 的坏像元掩膜按像元幅度判定；Siril 的化妆品校正按幅度逐条记录点缺陷与坏列；LSST 的 `afw` 用带包围盒的显式缺陷表；astropy 的 ccdproc 提供 `ccdmask` 参数化的掩膜流程。它们都不把"尺寸分布不重叠"当作点缺陷与弱源可分的前提。
+主流实现都不把"尺寸分布不重叠"当作点缺陷与弱源可分的前提：astropy 的 ccdproc 提供参数化的掩膜流程 [5]；LSST 的仪器签名移除模块用带包围盒的显式缺陷表，逐像元幅度判据与掩膜极性由调用方给定 [6]。IRAF 的坏像元掩膜与 Siril 的化妆品校正同样按幅度记录点缺陷与坏列，本仓只把它们作行为对照、不引用其判据细节。
 
 ### 5.5 不变量
+
+校准层的冻结不变量是下面这一份清单，它比算法分册的归约不变量编号表更全：后者只列可由算法侧直接判定的项，偏置参与、缩放因子参与与约定等价三条以本表的 oracle 形式给出。
 
 | 不变量 | 形式 |
 |---|---|
 | 常量场 | `raw=C`、`dark=D`、`flat=1` 时 `cal = C−D` 全帧恒定，无空间调制 |
-| 空平场 | 平场缺省时退化为减法，不引入除法伪影 |
+| 空平场 | 平场缺省时退化为减法，输出与手算减法逐位相等，不引入除法伪影 |
 | 幂等归一 | 同一平场连续两次归一结果一致 |
 | 确定性 | 输入顺序改变不改变输出（逐像元独立算术，无跨像元归约） |
-| 偏置参与 | 暗流缺省时，提供与不提供偏置的输出逐像元差恒为 `bias/max(flat,0.1)`；偏置非零时该差非零 |
-| 缩放因子参与 | 暗流在位时输出对 `K` 的依赖为 `−K·dark′/max(flat,0.1)`，改 `K` 必须改变输出 |
+| 偏置参与 | 暗流缺省时，提供与不提供偏置的输出逐像元差恒为 `bias/max(flat_norm,0.1)`；偏置非零时该差非零 |
+| 缩放因子参与 | 暗流在位时输出对 `K` 的依赖为 `−K·dark_cal/max(flat_norm,0.1)`，改 `K` 必须改变输出 |
 | 约定等价 | `K=1` 且暗流母版含偏置时两分支代数恒等（FP32 逐位性不作判据） |
+| 负值保留 | `raw < dark` 输出负值，不夹紧、不加本底 |
+| 掩码极性 | 掩膜取 `1` 表示坏点，修复只改被判坏的像元，未判坏像元逐位不变 |
 
-其中**偏置参与门**是"标定输入被静默忽略"的机器可判据：把实现里的偏置项去掉后输出逐位不变，这道门必须判红。
+其中 `dark_cal` 是**进入标定式的暗流项**：标准分支为 `dark`，兼容分支为 `dark − bias`，两个分支取值不同，因此这条不变量的表达式必须分标准式与兼容式两式读取，不得把 `dark_cal` 当成盘上母版本身。**偏置参与门**是"标定输入被静默忽略"的机器可判据：把实现里的偏置项去掉后输出逐位不变，这道门必须判红。
 
 ### 5.6 验证 Oracle
 
 - 解析解：常量场组合下公式精确成立（逐像元零误差）；
 - 独立实现比对：NumPy 对同一组输入的双分支公式逐像元比对，FP32 相对与绝对容差取 `1e-6` 与 `1e-7`；
-- 不变量门：上表七条；
+- 不变量门：上表九条；
 - 失败注入：空指针、非正维度、非有限输入返回显式参数错误；
 - 变异注入：注入"去掉偏置项"必须使偏置参与门判红。
 
@@ -239,20 +273,21 @@ cal_pipeline − cal_true = (t_light/t_d) · (b_light − b0) = −K · Δb ,   
 
 ## 7 参考文献与参考代码
 
-[1] Newberry M. V. Signal-to-noise considerations for sky-subtracted CCD data. Publications of the Astronomical Society of the Pacific, 1991, 103: 122. https://doi.org/10.1086/132801
 
-[2] Howell S. B. Handbook of CCD Astronomy, 2nd ed. Cambridge University Press, 2006. ISBN 9780521852159（该书正文未打开，只作课程级背景，不引用其公式或数值）
+[1] Howell S. B. Handbook of CCD Astronomy, 2nd ed. Cambridge University Press, 2006. ISBN 9780521852159（该书正文未打开，只作课程级背景，不引用其公式或数值）
 
-[3] Marshall J. L., DePoy D. L. Flattening scientific CCD imaging data with a dome flat field system. [arXiv:astro-ph/0510233](https://arxiv.org/abs/astro-ph/0510233)（结论支持"平场误差须在测光检验中量化，不能由平场自身自证"）
+[2] Marshall J. L., DePoy D. L. Flattening scientific CCD imaging data with a dome flat field system. [arXiv:astro-ph/0510233](https://arxiv.org/abs/astro-ph/0510233)（结论支持"平场误差须在测光检验中量化，不能由平场自身自证"）
 
-[4] FITS Working Group. FITS Standard Version 4.0. https://fits.gsfc.nasa.gov/standard40/fits_standard40aa-le.pdf（逐字核对 4.4.2.5 节的 Eq. 3 `physical value = BZERO + BSCALE × array value`、BUNIT 定义与 BLANK 段的 `BZERO = 32768 and BSCALE = 1` 存储约定；Table 3 的 `sr`、Table 4 的 `adu`）
+[3] FITS Working Group. FITS Standard Version 4.0. https://fits.gsfc.nasa.gov/standard40/fits_standard40aa-le.pdf（逐字核对 4.4.2.5 节的 Eq. 3 `physical value = BZERO + BSCALE × array value`、BUNIT 定义与 BLANK 段的 `BZERO = 32768 and BSCALE = 1` 存储约定；Table 3 的 `sr`、Table 4 的 `adu`）
 
-[5] Pleiades Astrophoto. XISF Version 1.0 Specification. http://pixinsight.com/xisf/xisf-1.0.xsd（随规范发布的 XML Schema 逐字核对浮点实型图像的 `bounds` 必填声明）
+[4] Pleiades Astrophoto. XISF Version 1.0 Specification. https://pixinsight.com/doc/docs/XISF-1.0-spec/XISF-1.0-spec.html（逐字核对「可表示域」的规范定义：representable range 是 "the range of pixel sample values that can be represented on display devices"，lower/upper 即黑点与白点，以及浮点实型图像必须显式声明可表示域）；随规范发布的 XML Schema https://pixinsight.com/xisf/xisf-1.0.xsd 第 24 行核对 `bounds` 对浮点实型图像必填的声明，`BoundsType` 见同文件第 247-252 行（只给词法模式，语义定义以规范正文为准）
 
-[6] Astropy ccdproc. Reduction toolbox. https://ccdproc.readthedocs.io/en/latest/reduction_toolbox.html（逐字核对母版暗场已减偏置并可按曝光时间缩放的约定；`subtract_dark` 的曝光比例因子参数）
+[5] Astropy ccdproc. Reduction toolbox. https://ccdproc.readthedocs.io/en/latest/reduction_toolbox.html（逐字核对母版暗场已减偏置并可按曝光时间缩放的约定；`subtract_dark` 的曝光比例因子参数）
 
-[7] LSST Science Pipelines, `lsst.ip.isr`. https://github.com/lsst/ip_isr，commit `28faec7dd2297d2ff9f108e543b2d55fdb046345`，文件 `python/lsst/ip/isr/isrFunctions.py`（逐字核对 `darkCorrection` 的 Notes：`maskedImage -= dark * expScaling / darkScaling`；`biasCorrection` 为逐像元相减；`flatCorrection` 为除法且缩放取自数据）
+[6] LSST Science Pipelines, `lsst.ip.isr`. https://github.com/lsst/ip_isr，commit `28faec7dd2297d2ff9f108e543b2d55fdb046345`，文件 `python/lsst/ip/isr/isrFunctions.py`（逐字核对 `darkCorrection` 的 Notes：`maskedImage -= dark * expScaling / darkScaling`；`biasCorrection` 为逐像元相减；`flatCorrection` 为除法且缩放取自数据）
 
-[8] Rousseeuw P. J., Croux C. Alternatives to the median absolute deviation. Journal of the American Statistical Association, 1993, 88(424): 1273–1283. https://doi.org/10.1080/01621459.1993.10476408（该文摘要未取到全文，其引用面限于"稳健离散度估计量的选择"这一主题层；本册使用的 1.482602218505602 常数由解析式独立复算，不依赖该文）
+[7] Croux C., Rousseeuw P. J. Time-efficient algorithms for two highly robust estimators of scale. Computational Statistics, 1992, 7: 411–428. https://doi.org/10.1007/978-3-662-26811-7_58（免费永久链接：<https://wis.kuleuven.be/stat/robust/papers/publications-1992/crouxrousseeuw-timeeffalgosnqn-compstat-1992.pdf/@@download/file/CrouxRousseeuw_TimeEffAlgoSnQn_COMPSTAT_1992.pdf>；逐字核对该文第 414 页式 (4) `MAD_n = b_n · 1.4826 · med_i |x_i − med_j x_j|`、`b_n` 的"approximately unbiased"判据，以及 `n > 9` 时 `b_n = n/(n−0.8)`）
 
-参考代码：PixInsight Class Library（PixInsight Class Library License 2.0.1，commit `5a3902196a7d7a701385a7113cbdce2976ae1a85`，文件 `src/pcl/XISFReader.cpp` 的 `NormalizeSamples`）是 XISF 可表示域到目标类型域映射的取证来源；astropy ccdproc（BSD-3-Clause）与 LSST `ip_isr`（GPL-3.0）只作行为对照。传染性许可的代码只读、不复制入仓。
+[8] Rousseeuw P. J., Croux C. Alternatives to the median absolute deviation. Journal of the American Statistical Association, 1993, 88(424): 1273–1283. https://doi.org/10.1080/01621459.1993.10476408（该文把 `b = 1.4826` 作为渐近一致性常数给出；引用面限于"稳健离散度估计量的选择"这一主题层，其 4 位有效数字写法不含本册的全精度值）
+
+参考代码：PixInsight Class Library（PixInsight Class Library License Version 2.0，仓库 `https://gitlab.com/pixinsight/PCL`，commit `5a3902196a7d7a701385a7113cbdce2976ae1a85`）是 XISF 可表示域到目标类型域映射的取证来源：`src/pcl/XISFReader.cpp` 的 `NormalizeSamples`（UInt16 分支）以 `scale = MaxSampleValue()/(upperRange − lowerRange)` 线性映射，`include/pcl/PixelTraits.h` 的 `UInt16PixelTraits::MaxSampleValue()` 返回 `2¹⁶−1`；astropy ccdproc（BSD-3-Clause）与 LSST `ip_isr`（GPL-3.0）只作行为对照。传染性许可的代码只读、不复制入仓。

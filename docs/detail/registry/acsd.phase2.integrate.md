@@ -60,9 +60,16 @@ CPU-005；legacy_paths = 「lib/algorithms/coverage integration sources」。
 | `integrated` | `DATA-P2-INT` | 可 | `UnitId::ADU` | `CoordinateFrame::PIXEL` |
 
 内核级真实 I/O 合同 = DATA-P2-INT（本页输入输出端口表）：输入 `P2PixelStack`
-（values f64 ADU / weights f64 1/ADU²，可空 = 等权 / support f64 [0,1]，可空 =
-1.0 / accepted u8，可空 = 全接受 / count u32）；输出 `P2PixelResult`（signal f64
-ADU / support f64 [0,1] / 五计数器 / status 0..4）。
+（values f64 ADU / weights f64 1/ADU²，**生产权重 = 调用方构造的逐样本逆方差
+`w = SNR²/F_ref² = 1/σ_F²`**；weights 指针可空 = 本 C API 的输入合同（无权重数组
+⇒ 等权），生产唯一调用方恒传权重数组，故该分支在生产不可达 / support f64 [0,1]，
+可空 = 1.0 / accepted u8，可空 = 全接受 / count u32）；输出 `P2PixelResult`
+（signal f64 ADU / support f64 [0,1] / 五计数器 / status 0..4）。
+**单一权重口径（签名头 integrate.h 明文）**：唯一生产策略 = 调用方构造的逐样本
+逆方差权重；`weights = support × SNR²`（原 `weight_mode = 0`）与 `weight_mode = 1`
+的等权档这两个**可选口径**及其 `weight_mode` 选择键**均不存在**，出现即判红 ——
+support 是无量纲几何量、等权不是信号/噪声之比，两者都不是权重。UPM 控制点权重是
+另一个语义（`p2_upm_raw_weight`），禁止与本模块的积分权重混名。
 
 马赛克输入面：归一化产品组、UPM 参数、rejection、PSF / 信息层、帧级 SNR
 （文件头）、[稀疏**绝对** SNR 层]、配置。输出面（同一马赛克包可含多个产品族）：
@@ -116,7 +123,9 @@ docs/science/noise_snr/NOISE_SNR.md §3.4/§3.5；本页只记落地方式：
   实际生效算子标识与重建误差入 manifest（`SparseReconstruction.operator_id` /
   `node_reproduction_max_abs`）；未识别标识或声明与层形态不符 ⇒ fail-closed。冻结
   词表（算子标识与语义）唯一正本 = registry/acsd.phase1.noise-snr.md；
-- `frame_reconstruct` → 帧级 SNR 重建 / 直接参与（等权重面）；
+- `frame_reconstruct` → 用帧级标量把该帧的 SNR 铺满为逐像素常量面（该帧每个像素
+  的权重 = `SNR_f²/F_ref,k²`，逐像素取值相同但**不等于等权**：各帧的 `SNR_f` 与
+  `F_ref,k` 一般不同）；
 - 输入**无**稀疏层而路径为默认 / `sparse_reconstruct` → 按帧级执行并**显式记录
   实际路径**（`snr_path_effective = frame_reconstruct` + 计数），**不静默**；
   稀疏层存在但损坏 / 不可重建 → 明确失败（帧级回退属另一路径）；
@@ -126,9 +135,12 @@ docs/science/noise_snr/NOISE_SNR.md §3.4/§3.5；本页只记落地方式：
 **逆方差叠加**：每个天球像素接收多个源像素输入，用每个源像素的 SNR 计算对应
 权重（SNR → 逆方差权重）得到最优检测 / 测光功率 —— **不是直接用 SNR 加权**。换算
 口径 = 帧内 SNR 与该帧参考通量的商再取平方（配对性只要求**同一帧内** SNR 与参考
-通量同源，参考通量是逐帧的）；对稀疏重建场逐像素同式。**稠密权重是数学表示，
-工程按需计算**：叠加分块进行（最小单元可为单个像素），**不预计算稠密、不全部加载
-内存**，用到哪个像素的 SNR 算哪个。
+通量同源；参考通量按冻结的参考星等档 `m_ref` 取，随产品落盘，逐帧取值依赖本帧测光
+标定而不同 —— 口径与必落字段正本 =
+`eng/contracts/schemas/unified/frame_snr.schema.json` 的 `reference_baseline`，
+卡片级说明见 registry/acsd.phase1.noise-snr.md）；对稀疏重建场逐像素同式。
+**稠密权重是数学表示，工程按需计算**：叠加分块进行（最小单元可为单个像素），
+**不预计算稠密、不全部加载内存**，用到哪个像素的 SNR 算哪个。
 
 ## 公共 header、核心 symbol 与生命周期
 
@@ -160,8 +172,9 @@ parallel_ok=True（像素间）。配置 = phase config JSON（权重策略在 S
 `cpu_heavy`。并行轴 = 像素间（**调用方** OMP：现存调用方 stage2.cpp 用
 schedule(static)）；像素内候选归约**固定序**、无跨 worker 浮点重结合 ⇒ **结果与
 worker 数无关（1..N bitwise）**；per-thread 统计按 thread id 定序归并
-（stage2.cpp）；large_scale 激活时强制串行（stage2.cpp 的分支条件）。原并列调用方
-`acr_kernels.cpp` 已随 ACR 子树退场删除（`383088f2`），该像素间并行面不再存在。
+（stage2.cpp）；large_scale 激活时强制串行（stage2.cpp 的分支条件）。集成执行
+路由唯一 = CPU：`lib/algorithms/coverage/` 下不存在 ACR / CUDA kernel 实现，
+像素间并行面只由调用方 stage2.cpp 承担。
 
 worker 数 = ThreadBudget.max_workers（禁 hardware_concurrency）；lease / 取消
 检查点接线属迁移整改面（未落地）。determinism = `fixed_reduction_order`
@@ -188,14 +201,13 @@ worker 数 = ThreadBudget.max_workers（禁 hardware_concurrency）；lease / �
 ## 独立 synthetic 验证命令与容差
 
 可执行 `TEST-P2-INT-001` 待建（不冒认）；设计冻结 = `TEST-P2-INT-DESIGN-001`
-（ALG-P2-INT-001 §11.4：常量场 bitwise / 零权重惰性 / 五态穷尽 / 支撑 max 门 /
-NumPy 参考 rtol 1e-12 / 并行 1..N 线程 bitwise + ACR↔CPU 等价（ACR 侧已随
-`383088f2` 退场））。
+（ALG-P2-INT-001 的测试设计条：常量场 bitwise / 零权重惰性 / 五态穷尽 / 支撑 max 门 /
+NumPy 参考 rtol 1e-12 / 并行 1..N 线程 bitwise + ACR↔CPU 等价；ACR 侧在
+`lib/` 下无实现，该等价项当前不可执行）。
 
 已取证但载体不在仓内的相邻结论（不冒认）：Phase2Integrate 组与 weight policy 门、
-ACR↔CPU 等价组（ACR 侧随 `acr_kernels.cpp` 一并退场，`383088f2`），
-以及含 DRIVER_SRC 段的生产 Oracle 读数。这些读数不在本仓可复算路径上，
-引用时只作背景。
+ACR↔CPU 等价组（ACR 侧无仓内实现），以及含 DRIVER_SRC 段的生产 Oracle 读数。
+这些读数不在本仓可复算路径上，引用时只作背景。
 
 Oracle 面：
 

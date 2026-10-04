@@ -32,7 +32,8 @@ config 键集校验、取消传播、线程预算注入、manifest 产出。科�
 
 **已知差距（如实登记）**：API-P1-001 冻结 7-stage 序列与现行四段（CAL+COS）
 不重合 —— 现行实现不覆盖检测 / PSF / platesolve / 测光 / SNR / Drizzle / HiPS
-段；补齐属迁移目标（未落地，登记面 = lib/phase1_session/README.md §3）。
+段；补齐属迁移目标（未落地，登记面 = lib/phase1_session/README.md 的
+「装配顺序与数据流（p1_session_run 实测）」段与其「已知限制（登记不改码）」段）。
 
 ## 输入输出端口、DATA、单位、坐标、invalid
 
@@ -55,7 +56,8 @@ manifest 状态机 = created → complete / failed。
 
 ### 源文件
 
-`lib/phase1_session/p1_session.{cpp,h}`。
+`lib/phase1_session/p1_session.cpp`（实现）与 `lib/phase1_session/p1_session.h`
+（权威签名头）。
 
 ## Registry descriptor 与配置 schema
 
@@ -78,7 +80,8 @@ registry 通道经 SessionModule ThreadLease 租借（module_adapters.cpp 的适
 ## 错误、日志、指标、取消和 checkpoint
 
 错误码 = `ACS_ERR_*` 全集（PARAM / ABI_MISMATCH / NOMEM / IO / CANCELLED /
-INTERNAL …），触发锚见 API-P1-SESSION 返回码节。失败短路返回，**不留伪完整
+INTERNAL …），触发锚见 docs/engineering/api/PUBLIC_API.md 的「Phase1 装配会话 C
+API（API-P1-SESSION）」章内「返回码」。失败短路返回，**不留伪完整
 产物**；manifest 记 `status=failed` + `error` / `error_kind`。错误码与退出码
 唯一源 = lib/infrastructure/cli/exit_codes.h（本页不复制数值表）。
 
@@ -92,6 +95,6 @@ INTERNAL …），触发锚见 API-P1-SESSION 返回码节。失败短路返回�
 ## 已知限制
 
 - API-P1-001 冻结 7-stage 序列与现行四段实现的差距（登记面 =
-  lib/phase1_session/README.md §3）；
+  lib/phase1_session/README.md 的「装配顺序与数据流（p1_session_run 实测）」段）；
 - 本模块无独立 registry descriptor，module_id 只在 assembly 层成立；
 - 全局限制登记 = artifacts/evidence/known-limitations-ledger/LIMITATIONS.md。

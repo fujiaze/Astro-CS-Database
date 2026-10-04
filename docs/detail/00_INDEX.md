@@ -1,6 +1,6 @@
 # ACSD 细节文档索引（docs/detail）
 
-> 上游：docs/ACSD_DESIGN.md §0（文档权威与索引）、§8（软件架构）
+> 上游：《ACSD 最高设计》的「文档权威与索引」与「软件架构」两章
 > 本索引覆盖 `docs/detail/` 全树：根级跨模块正本、`registry/` 模块登记面、
 > `infrastructure/` 基建模块落地面、`anchors/` 文档—代码锚合同面。
 
@@ -19,7 +19,7 @@ docs/detail/
 ├── LOG_AND_ERROR_SYSTEM.md            日志与错误系统详细设计
 ├── STAR_DETECTION_IMPL_DESIGN.md      星检测逐算子落地规格
 ├── merged_TROUBLESHOOTING.md          排障手册（症状 → 定位 → 修复）
-├── registry/                          生产模块登记正本（26 张卡 + README）
+├── registry/                          生产模块登记正本（25 张卡 + README）
 ├── infrastructure/                    基建模块落地设计（7 张卡 + README）
 └── anchors/                           文档—代码锚合同（ANCHOR_CONTRACT + README）
 ```
@@ -38,7 +38,7 @@ docs/detail/
 不在 `registry/` 登记面的对象：`common`（跨链路共享基础库，不是流水节点）与
 `hips_browser`（未来可视化组件，不进产品 manifest）。
 
-## 3. `registry/` 模块卡（26）
+## 3. `registry/` 模块卡（25）
 
 | 命令 | 模块卡 |
 |---|---|

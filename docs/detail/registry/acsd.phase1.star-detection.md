@@ -44,7 +44,9 @@ cosmetic 校正（消费 cleaned 帧）；排异（Phase2 推断）。检测目�
 | `star_det` | `DATA-P1-STAR` | 可 | 位置 px / 通量 ADU / 星等 mag | `CoordinateFrame::PIXEL` |
 
 输入 image = FP32 通道 uint16 量化（登记见 STAR_DETECTION_ALGORITHMS §11.3）/
-FP64 通道 double 不降级，加 `SDetParams`；另有逆投影先验（见 §4）。
+FP64 通道 double 不降级，加 `SDetParams`；另有逆投影先验，取值优先级见本页
+「Registry descriptor 与配置 schema」的先验链（显式天测键 → 本帧解算产物 →
+初始指向 + 旋转 / 视向）。
 
 输出 `star_det` = FLOAT64 `[N,6]`，列 x, y, flux, mag, saturated, has_saturated；
 x/y 为 0-based double 像素坐标（像素中心 = 索引 + 0.5）、flux 为 ADU（正常星 =
@@ -121,8 +123,9 @@ parallel_ok=True。
 段的 `gaia_data_dir`），**模式与输入在节点级一次解析**，逐帧不再重解析。该段是
 合法配置段：合同声明 = `eng/contracts/schemas/phase_config_normalize.schema.json`
 `#/$defs/star_detection_config`（块内与平铺两形态同面）；CLI 认键面 =
-`lib/infrastructure/cli/session_commands.h::config_fields(SESSION_NORMALIZE)` 与
-`lib/infrastructure/cli/parser.cpp::session_keys()`。**缺段不是错误**，全取编译期
+`lib/infrastructure/cli/session_commands.h` 的 `config_fields(SessionId)`（逐会话
+字段声明，`SESSION_NORMALIZE` 为 normalize 会话）与 `lib/infrastructure/cli/parser.cpp`
+的 `session_keys()`（平铺会话键集）。**缺段不是错误**，全取编译期
 默认；段内未知键被 schema 拒（`additionalProperties: false`）。
 
 本段一切「规模/上限」类数字都由配置键与星表查询口径导出：检测定义域 =

@@ -35,7 +35,8 @@ ALG-P3-002 / API-P3-001 / TEST-P3-WCS-001）与 module_id 合同值
 - 合同链: SCI-P3-001（docs/science/PHASE3_HIPS_TO_FITS.md，FROZEN；映射声明
   SCI-P3-WCS-001 ⇒ SCI-P3-001 见 ALG §5）→ ALG-P3-PROJ-IMPL-001（兼承接
   ALG-P3-002 本域子面 G1/G2）→ DATA-P3-WCS（本页输入输出端口表）+
-  API-P3-PROJ-001 → TEST-P3-WCS-001（设计冻结 = TEST-P3-WCS-DESIGN-001，见 §9）；
+  API-P3-PROJ-001 → TEST-P3-WCS-001（设计冻结 = TEST-P3-WCS-DESIGN-001，见本页
+  「验证与测试面（TEST-P3-WCS-DESIGN-001 设计冻结 VERIFIED）」）；
   编排面 API-P3-001（p3_session 五段 FROZEN）镜像不变；ARCHITECTURE（VERIFIED）。
 - 上游依赖: acsd_phase3_session（采样/重采样/写出编排域同库）；
   depends_on_int=ABI-005;DATA-004;RT-006（ABI-005=模块 C ABI 承接、
@@ -62,11 +63,11 @@ ALG-P3-002 / API-P3-001 / TEST-P3-WCS-001）与 module_id 合同值
   新增投影须同时进实现集与声明集（`p3_proj_registry_selfcheck` 判红）+ 独立
   往返 Oracle + 追溯条目；**注册面与会话面分离**。
 
-  **实现集口径冲突登记**：文档面曾记「已实现 TAN/SIN/CAR/AIT（4/8），STG/MOL/
-  CEA/ZEA 待实现」，与在役注册表不符 —— 口径**以在役注册表为准**（当前
-  D = I = {TAN}）。
+  **实现集口径冲突登记**：下级文档中有一处把实现集写成「TAN/SIN/CAR/AIT（4/8），
+  STG/MOL/CEA/ZEA 待实现」，与在役注册表不符 —— 口径**以在役注册表为准**（当前
+  D = I = {TAN}）；该处表述待其车道订正。
 
-  registry 冻结要点（FITS WCS Paper II）：CAR / AIT 把 CRVAL2（含 LONPOLE 默认
+  registry 冻结要点（FITS WCS Paper II［2］）：CAR / AIT 把 CRVAL2（含 LONPOLE 默认
   0/180）纳入三 Euler 角映射；AIT 椭圆域要求半长轴 ≤ 1；CAR native 极行
   |θ| ≥ 90° fail-closed。冻结表与逐投影六要素的正本 = ALG-P3-PROJ-IMPL-001 §15
   与 `lib/algorithms/projection/` 的 `Spec` 六要素字段与 `registry_frozen_set()`
@@ -202,7 +203,9 @@ ALG-P3-002 / API-P3-001 / TEST-P3-WCS-001）与 module_id 合同值
 - DATA: docs/detail/registry/acsd.phase3.wcs.md（本页输入输出端口表）
 - API: docs/engineering/api/PUBLIC_API.md（API-P3-PROJ-001 节）
 - 合同三件套: lib/algorithms/projection/
-- 会话编排面现行权威 = docs/engineering/contracts/RUNTIME.md + docs/detail/registry/acsd.phase3.*
+- 会话编排面现行权威 = docs/engineering/contracts/RUNTIME.md + 本目录的 export 命令
+  各模块卡（acsd.phase3.properties / acsd.phase3.wcs / acsd.phase3.resample2 /
+  acsd.phase3.writer / acsd.phase3.verify）
 
 ## NaN 与输出语义
 

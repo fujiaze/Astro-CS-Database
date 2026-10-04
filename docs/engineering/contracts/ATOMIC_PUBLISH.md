@@ -1,10 +1,10 @@
 # 原子发布合同
 
-上游：最高设计的 I/O 与原子产品一章。
+上游：最高设计的 I/O 与原子产品一章[1]。
 
-产品发布的步序、发布清单、校验序与错误码的正本；生产者协议的唯一正本是本文的发布步序一节。
+产品发布的步序、发布清单、校验序与错误码的正本；生产者协议的唯一正本是本文的发布流水线一节。
 
-本合同按 最高设计的 I/O 与原子产品一章的发布链执行：阶段隔离由「每次运行私有临时区 + 唯一用户路径」保证，
+本合同按最高设计的 I/O 与原子产品一章[1]的发布链执行：阶段隔离由「每次运行私有临时区 + 唯一用户路径」保证，
 原子性由「临时写 → 校验 → fsync → 哈希 → 原子改名 → 完成清单」保证；科学公式与图像算法按
 `docs/science/` 与 `docs/science/algorithms/` 的正本执行，不在本合同范围内。
 
@@ -21,7 +21,7 @@
 `临时写（run 私有 stage）→ 关闭/fsync → fitsverify（结构 + DATASUM）→ sha256 →
 原子 rename → 最后原子落 manifest.json(COMPLETE) = 完成标记`。
 
-**落盘形态**（`HIPS_STORAGE_FORM.md`）：产品以裸
+**落盘形态**（`HIPS_STORAGE_FORM.md`[2]）：产品以裸
 `<name>.hips/` 或归档 `<name>.hips.zst` 发布，二者互斥；归档形态的发布次序是
 「stage 内先按裸形态写出并逐瓦片 fitsverify → 打包为逐成员独立 zstd 帧 → 写产品级
 索引 → 归档与索引 fsync + 原子 rename → 完成 manifest」。**归档解压后的合法性在
@@ -32,13 +32,13 @@
 本合同覆盖**输出端**的发布语义：tile 生成 / 投影按各命令科学模块的正本执行；
 `lib/infrastructure/aio` 与 `lib/infrastructure/aio/io` 按各自现行职责运行。读端
 （`../../science/IO_002_HIPS_INPUT_INTERFACE.md`）与产物交换资格
-（`../data/PHASE_PRODUCT_EXCHANGE.md`）是独立合同面，不在此重复。
+（`../data/PHASE_PRODUCT_EXCHANGE.md`[3]）是独立合同面，不在此重复。
 
 **原子性的适用范围**：原子性覆盖全部产品，HiPS tile 也不例外——tile 写统一经
 `write_fits_image` → `write_fits_atomic`（`lib/infrastructure/aio/src/hips/aio_hips_writer.cpp`）。
 全部 tile 写调用点与 MOC 写自动经该路径；失败分类（`ENOSPC` / 写失败）在清理前完成
-（`aio_disk_full.h` 语义）。负例为红：`lib/infrastructure/aio/tests/test_hips_atomic_publish.cpp`
-（`tile_diskfull` / `tile_write_fail` 注入）。
+（`aio_disk_full.h` 语义）。负例须覆盖 `tile_diskfull` / `tile_write_fail` 两种注入。**判据无载体**：承载这两条负例的
+测试文件在仓内不存在（`lib/infrastructure/aio/` 无 `tests/` 目录），故本条不得写成已生效。
 
 **产物落点只有两处**：产品落块级 `output_dir`；开发与 CI 过程产物落仓库过程产物目录。
 写出位置取自显式配置，进程 CWD 只标识进程自身位置。
@@ -50,8 +50,8 @@
 | 本合同 | `ATOMIC_PUBLISH.md` |
 | 原子输出发布器（Python 执行形态） | `lib/infrastructure/aio/io/hips_output_store.py` |
 | FITS 独立校验器（fitsverify，与 fits_core 同算法） | `lib/infrastructure/aio/io/fits_verify.py` |
-| 契约 / 负测（Python） | `eng/tests/io/test_hips_output_contract.py` |
-| 测试 tile fixture（复用 FITS 流式接口 fits_core） | `eng/tests/io/hips_output_fixture.py` |
+| 契约 / 负测（Python） | **判据无载体**：仓内无 `eng/tests/io/` 目录，契约与负测尚无测试文件 |
+| 测试 tile fixture（复用 FITS 流式接口 fits_core） | **判据无载体**：同上 |
 
 本接口执行形态 = `lib/infrastructure/aio/io/hips_output_store.py`（发布状态机）+
 `lib/infrastructure/aio/io/fits_verify.py`（FITS 结构 + DATASUM 校验）：纯 Python 语义层，
@@ -60,7 +60,7 @@
 **已知缺口登记**：mosaic 阶段直写输出目录、无 staging 环节，缺口登记面 =
 `../../detail/registry/acsd.phase2.write.md`。该缺口的闭合条件与判定口径以该登记面为准。
 
-**契约登记**：原子 I/O 与发布契约 = `ENG-IO-001`（登记面 = `governance/TRACEABILITY.md 「合同 ID 登记面」一节`）。
+**契约登记**：原子 I/O 与发布契约 = `ENG-IO-001`（登记面 = `../governance/TRACEABILITY.md`[4] 的合同 ID 登记面）。
 
 ## 唯一目标与 run 隔离
 
@@ -97,8 +97,8 @@
 （**数据集级**覆盖索引，只认**根层**这一个名）——
 其它文件名（如 `notes.txt`、任意 `.fits` 布局、带子目录或改名的覆盖索引）发布前拒绝（`PublishError`）。
 
-`coverage.index.json` 为何在白名单里：它是数据集级产物，按 `HIPS_STORAGE_FORM.md` 「数据集级覆盖索引」一节与归档容器的布局规则 A5 位于**归档之外**（与产品同级、运行输出根）；发布它的清单仍是同一份「HiPS 目录产物」清单（`properties` 必在，见 「发布流水线」一节），故必须与产品文件同名法登记，否则同一发布路径上「文档允许而发布器拒绝」。
-**仍只有一条判据、无豁免名单**：白名单按**形态**判定，不为任何产品 / 场景开逐名豁免；产品树内的 `metadata.fits`、产品集 `manifest.json`、`snr/**`（`.tsv` / `metadata.xml`）面的登记以各自正本为准（落盘形态合同的「形态的输入配置与输出清单字段」一节，以及统一工程对象正本）。
+`coverage.index.json` 为何在白名单里：它是数据集级产物，按 `HIPS_STORAGE_FORM.md`「数据集级覆盖索引 `coverage.index.json`」一节与归档容器的布局规则 A5 位于**归档之外**（与产品同级、运行输出根）；发布它的清单仍是同一份「HiPS 目录产物」清单（`properties` 必在，见「发布流水线（原子语义）」一节），故必须与产品文件同名法登记，否则同一发布路径上「文档允许而发布器拒绝」。
+**仍只有一条判据、无豁免名单**：白名单按**形态**判定，不为任何产品 / 场景开逐名豁免；产品树内的 `metadata.fits`、产品集 `manifest.json`、`snr/**`（`.tsv` / `metadata.xml`）面的登记以各自正本为准（落盘形态合同的「形态的输入配置与输出清单字段」一节，以及统一工程对象正本 `../UNIFIED_OBJECTS.md`）。
 
 **只读数据集**：`testdata/` 保持只读，打开模式限于只读；本合同的发布器不对其发起任何写操作。
 
@@ -162,10 +162,10 @@
  （定义见 `atomic_publish.h`）：`kNotDurable` = 已发布但持久化未确认，**不得回滚删除**、
  不得静默当成功。
 
-**能区分两序的判据**：在 rename **成功之后**破坏目标内容
-（LD_PRELOAD 注入器加一档 `ACSD_TEST_CORRUPT_AFTER_RENAME=1`，在 rename 返回后向目标追加坏字节），
-机制层必须**检出并撤销**（`status=ERR_*` + `renamed=false`）；生产者序在该情形下无法检出
-（校验点已在 rename 之前）——该用例即「机制层检测面更强」的可执行证据。
+**能区分两序的判据**：在 rename **成功之后**破坏目标内容，机制层必须**检出并撤销**
+（`status=ERR_*` + `renamed=false`）；生产者序在该情形下无法检出（校验点已在 rename 之前）。
+**判据未接线**：仓内没有实现该注入的加载器（全仓只有本行提到 `ACSD_TEST_CORRUPT_AFTER_RENAME`），
+故这条判据当前不可执行，不得写成已有可执行证据。
 
 ## 完成 manifest 形态
 
@@ -196,19 +196,25 @@
  （`config` = 输入配置显式给出 / `default` = 键缺失或留空 ⇒ 取默认 `archive` 并报 warn）、`products[]`
  （逐产品 `product` / `storage_form` / `index_path` / `index_sha256` / `archive_bytes` /
  `archive_sha256` / `tree_hash`）与 `coverage_index`。字段与不变式（M1..M4）的唯一正本 =
- `HIPS_STORAGE_FORM.md` 「运行完成清单 storage 段」一节，机器事实源 =
+ `HIPS_STORAGE_FORM.md`「运行完成清单 `manifest.json#storage`（加性）」一节，机器事实源 =
  `eng/contracts/schemas/hips_storage_form.schema.json#/$defs.manifest_storage`。
  本接口的**产品级**完成 manifest（`products/{user_path}/manifest.json`，执行形态
  `lib/infrastructure/aio/io/hips_output_store.py`）承载 `tree` / `tree_hash` / `fitsverify` 三项与形态无关的事实。
 
 - **形态事实只落输出清单面**：`storage_form` / `archive_sha256` / `index_sha256` 出现在三处——normalize
  输出清单 `p1_products.json#frames[]` 的逐帧四字段、上述运行级 `storage` 段、产品级索引
- （正本 = `HIPS_STORAGE_FORM.md` 「normalize 输出清单」与「运行完成清单 storage 段」两节）；归档内 `properties` 与裸形态
+ （正本 = `HIPS_STORAGE_FORM.md`「normalize 输出清单 `p1_products.json`（加性）」与「运行完成清单 `manifest.json#storage`（加性）」两节）；归档内 `properties` 与裸形态
  逐字节一致；`properties` 只含标准 `hips_tile_format` token。
 - **产品身份仍取解压后内容**：`tree` / `tree_hash` 记录解压后 HiPS 的条目（与裸形态相同）；`storage.archive_sha256` 只是容器指纹，产品身份判据 = `tree_hash`。
-- `tree_hash` = sha256(规范 JSON 序列化的 tree 条目数组) → **可重算**：
- 同内容重算一致；任何文件改动 / 增删 → hash 变化。重算 = `tree_hash(tree_entries)`
- 或 `recompute_tree_hash(manifest)` 或按磁盘实际文件重算 `verify_tree_hash`。
+- `tree_hash` = **归一后**的 sha256 → **可重算**：
+ 归一规则（唯一实现 = `lib/infrastructure/aio/io/hips_output_store.py` 的 `tree_hash`，与
+ `HIPS_STORAGE_FORM.md`[2] 的哈希口径同源）：① 每个 `tree` 条目 `{path,size,sha256}`
+ 归一为**三元组** `(path, size, sha256)`（非对象数组）；② 按 `(path, size, sha256)`
+ 字典序升序排序；③ 序列化为紧凑 JSON（UTF-8、`ensure_ascii=false`、分隔符 `(",",":")`
+ 无空白）；④ 对该字节串取 sha256。
+ 判据：同内容重算一致；任何文件改动 / 增删 → hash 变化。
+ 重算入口 = `tree_hash(tree_entries)` / `recompute_tree_hash(manifest)` /
+ 按磁盘实际文件重算 `verify_tree_hash`。
 - `fitsverify` 记录发布时已执行校验（performed / tile_count）——机器证据。
 - `producer`（可选）由调用方注入；不含绝对路径 / 凭据（privacy：任何绝对
  Unix / Windows 路径不进入 manifest —— 结构上字段均为词法受限标识）。
@@ -246,17 +252,24 @@
 
 ## 验收映射
 
-| 验收 | 覆盖 |
-|---|---|
-| 每个输出以唯一用户路径或 run ID 目录 | 「唯一目标与 run 隔离」一节 + `TestUniqueRunDirIsolation` |
-| 临时写、关闭、fitsverify、SHA256、原子 rename、最终完成 manifest | 「发布流水线」一节 + `TestAtomicPublishPipeline`（spy 证据） |
-| 默认不覆盖，显式 overwrite 才可 | 「发布流水线」一节.2 + `TestNoOverwriteDefault` |
-| 并发不同 run 不互相覆盖 | 「唯一目标与 run 隔离」一节 + `TestConcurrentRunsIsolated` |
-| 中断后无完成标记 | 「发布流水线」一节.7 + `TestInterruptNoCompleteMark` |
-| 文件权限 / 路径穿越拒绝 | 「词法拒绝」与「文件系统层拒绝」两节 + `TestPathTraversalRejected` / `TestPermissionRejected` |
-| tree hash 可重算 | 「完成 manifest 形态」一节 + `TestTreeHashRecomputable` |
-| fitsverify 与 C verifier 同一判定 | `TestFitsVerifyCrossOracle` |
-| 非生产 / 诊断接口不被生产路径引用 | 「非生产与诊断接口登记」一节 + 在役调用链扫描 |
+合同条款 → 验收要求的对应关系如下。**当前状态：下列九项验收全部判据无载体** ——
+承载它们的测试类（`TestUniqueRunDirIsolation` / `TestAtomicPublishPipeline` /
+`TestNoOverwriteDefault` / `TestConcurrentRunsIsolated` / `TestInterruptNoCompleteMark` /
+`TestPathTraversalRejected` / `TestPermissionRejected` / `TestTreeHashRecomputable` /
+`TestFitsVerifyCrossOracle`）在 `lib/` 与 `eng/` 下均无实现，故本表登记的是**验收要求**，
+不是已生效的判据。
+
+| 验收 | 合同条款（现行口径） | 状态 |
+|---|---|---|
+| 每个输出以唯一用户路径或 run ID 目录 | 「唯一目标与 run 隔离」一节 | 判据无载体 |
+| 临时写、关闭、fitsverify、SHA256、原子 rename、最终完成 manifest | 「发布流水线」一节 | 判据无载体 |
+| 默认不覆盖，显式 overwrite 才可 | 「发布流水线」一节的覆盖清理步 | 判据无载体 |
+| 并发不同 run 不互相覆盖 | 「唯一目标与 run 隔离」一节 | 判据无载体 |
+| 中断后无完成标记 | 「发布流水线」一节的完成 manifest 步 | 判据无载体 |
+| 文件权限 / 路径穿越拒绝 | 「词法拒绝」与「文件系统层拒绝」两节 | 判据无载体 |
+| tree hash 可重算 | 「完成 manifest 形态」一节的 `tree_hash` 归一规则（实现 = `tree_hash` / `recompute_tree_hash` / `verify_tree_hash` 三个入口） | 判据无载体 |
+| fitsverify 与 C verifier 同一判定 | 「发布流水线」一节的 fitsverify 步（实现 = `lib/infrastructure/aio/io/fits_verify.py`[2]） | 判据无载体 |
+| 非生产 / 诊断接口不被生产路径引用 | 「非生产 / 诊断接口登记」一节 + 在役调用链扫描 | 可人工复跑 |
 
 ## 已知限制
 
@@ -275,3 +288,5 @@
 [1] 内部文档 `docs/ACSD_DESIGN.md，最高设计`，上位来源。
 [2] 内部文档 `docs/engineering/contracts/HIPS_STORAGE_FORM.md`，同层相关正本。
 [3] 内部文档 `docs/engineering/data/ARTIFACT_STORE.md`，同层相关正本。
+
+[4] 内部文档 `../governance/TRACEABILITY.md`，合同 ID 登记面（ENG-IO-001 登记处）。

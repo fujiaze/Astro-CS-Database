@@ -30,14 +30,17 @@ apply 职能见 registry/acsd.phase2.upm-apply.md（同一 module_id 的另一�
 `δ_k(x)`**；表示层全量 `C_k ≡ B_ref + δ_k`；**实际施加量为 `δ_k`**（多退少补到
 公共面，`B_ref` 保留）。本期为**纯加性**模型，不引入乘性尺度。
 
-落地链路：production 权重 `p2_upm_raw_weight` = quality × control_ivar（缺
-control ivar **显式 rc=2**，禁静默回退）→ per-control 归一化（权重除以权重和再乘
-control_reliability）→ Huber IRLS（δ = 1.345 无量纲）+ 图平滑 + 弱零锚 + 连通
-分量逐分量 gauge（分量内最小 frame_id，ALG-UPM-001 F3/F5）→ 模型
-C[frame][control] 8×8 control cell 双线性场 + `frame_index` / `frame_id_by_index`
-稳定绑定（绑定仅由稳定 frame_id 决定；save 前校验行数一致，**拒绝写绑定损坏的
-模型文件**）。`build_geo` 变体消费全几何 `P2ControlNode`（含单帧区），单帧区经
-全局平滑 / Laplacian 延拓（harmonic continuation）。
+落地链路：**production 控制点权重 = `quality_factor × control_ivar`**
+（签名头 `lib/algorithms/coverage/include/astro/phase2/upm.h` 的
+`p2_upm_raw_weight` 是**单一实现**：几何可靠性**不在分子乘 geom**，而是在
+per-control 归一化里施加 —— `out_norm = raw / Σ_cell raw × control_reliability`，
+单元总权恒为 `control_reliability`；`control_ivar ≤ 0` 或非有限 ⇒ rc = 2
+显式 INVALID，禁静默回退 support / SNR 权重臂）→ Huber IRLS（δ = 1.345 无量纲）
++ 图平滑 + 弱零锚 + 连通分量逐分量 gauge（分量内最小 frame_id，ALG-UPM-001 F3/F5）
+→ 模型 C[frame][control] 8×8 control cell 双线性场 + `frame_index` /
+`frame_id_by_index` 稳定绑定（绑定仅由稳定 frame_id 决定；save 前校验行数一致，
+**拒绝写绑定损坏的模型文件**）。`build_geo` 变体消费全几何 `P2ControlNode`
+（含单帧区），单帧区经全局平滑 / Laplacian 延拓（harmonic continuation）。
 
 **记法消歧（强制）**：`C_k ≡ B_ref + δ_k` 是**表示层全量**；`raw − C_k`（全减，
 含 `B_ref`）**不是默认路径** —— 把整张背景减掉后各帧都趋零，「接缝小」是背景没了
@@ -81,7 +84,9 @@ build rc = 2（**显式 INVALID，禁静默回退 support / SNR**，upm.h）；�
 与 ALG-UPM-001 / PHASE2_UPM_IMPL.md；本页只记落地方式与可读数。
 
 **权重口径 = 逆方差，禁止读作裸 SNR²**：拟合目标是采样点上的逆方差加权最小二乘（GLS 最优权重；文献与出版年双源登记见 docs/science/PHASE2_UPM.md），与 P2 定权
-式「权重 ∝ 平方信噪比 / 参考通量平方 = 逆方差」同源（SNR 以逐帧参考通量归一）。
+式「权重 ∝ 平方信噪比 / 参考通量平方 = 逆方差」同源（SNR 以冻结的参考星等档
+`m_ref` 归一，口径正本 = `eng/contracts/schemas/unified/frame_snr.schema.json` 的
+`reference_baseline`）。
 无参考通量归一的「权重 ∝ 裸 SNR²」与该逆方差口径**互斥**；本几何下 SNR² 权重的
 伪影泄漏仅比 ivar 高约 18%，幅度**不可迁移**到其他几何。低 SNR 帧、光污染帧的
 采样点权重自然变小，其异常背景无法把参考面与正常帧拉高；污染点由稳健迭代进一步
@@ -214,28 +219,45 @@ parallel_ok=True; abi=c++17; api_id=API-P2-001。descriptor 派生的占位 ID
 （persist→reload）的对齐属迁移目标（未落地）；descriptor 端口为静态声明的
 persist→reload 语义，与内核 probe/fill 语义的桥接未验证。
 
-配置 = `P2UpmBuildConfig` 16 字段（upm.h），production 默认单一来源 =
-lib/phase2_session/p2_session.cpp。
+配置面分三处结构体，字段名一律以签名头为准：`P2UpmBuildConfig`
+（upm.h，20 字段；本页登记装配面字段见下表 A）、
+`P2UpmMaBuildConfig`（upm.h，乘法/加性观测求解器；判据与 gauge 字段见表 B）、
+`P2SkyPlaneConfig`（sky_plane.h，天光面表示与逐帧梯度；字段见表 B）。production
+默认取值单一来源 = lib/phase2_session/p2_session.cpp。
+
+表 A —— `P2UpmBuildConfig` 的装配面字段：
 
 | 字段 | 默认 | 单位 | 说明 |
 |---|---|---|---|
 | `robust_loss` | 0 | —— | 0 = Huber |
-| `upm_weight_source` | 0 | —— | 0 = snr2_normalized（归一化后按信噪比平方） |
+| `snr_weight_mode` | 0 | —— | 0 = snr2_normalized（头字段名 `snr_weight_mode`，生产装配显式置 0）；生产权重口径由 `use_ivar_weight` 决定，本字段不选择科学权重 |
 | `huber_delta` | 1.345 | —— | Huber IRLS 调谐常数（无量纲） |
 | `max_iterations` | 100 | 次 | 稳健拟合迭代上限 |
 | `tolerance` | 1e-6 | —— | 绝对容差（同时作步长判据的容差） |
-| `tolerance_relative` | 见正本 | —— | 相对容差开关；**生产必须为 1**（字段名与生产取值登记于 docs/science/algorithms/PHASE2_UPM_IMPL.md + 本页输入输出端口表） |
-| `target_order` | 覆盖图 order | —— | 取自 coverage |
-| `sigma_floor` | 1e-3 | —— | 权重分母下限（legacy 权重臂） |
+| `tolerance_relative` | 0 | —— | 相对容差开关（1 = 右端改为容差 × max(观测尺度, 1)）；**生产必须打开**（字段名与生产取值登记于 docs/science/algorithms/PHASE2_UPM_IMPL.md + 本页输入输出端口表） |
+| `target_order` | 覆盖图 order | —— | 取自 coverage（−1 = auto） |
+| `sigma_floor` | 1e-3 | —— | 权重分母下限（**仅 legacy 权重臂**消费） |
 | `support_power` | 1.0 | —— | legacy 权重臂的 support 幂 |
-| `use_ivar_weight` | 1 | —— | **真开关**：非 0 时用 `control_ivar` 权重；0 时走 legacy 权重臂 |
-| `control_reliability` | 1.0 | —— | per-control 可靠性因子 |
+| `quality_mode` | 0 | —— | quality 因子的分支选择（0 = flags 映射）；实现在 `quality_factor(flags, mode)` 内忽略该参数 |
+| `use_ivar_weight` | 1 | —— | **真开关**：非 0 时用 `control_ivar` 权重；0 时走 legacy 权重臂（仅 ablation / 诊断） |
+| `control_reliability` | 1.0 | —— | per-control 相对可靠度，**在 per-control 归一化中施加**（不在 `raw_w` 分子）；实现上是配置常量，默认 1.0 且越域回退 1.0 |
+| `zero_anchor_weight` | 键缺省时编译期默认 0.0 | —— | 弱零校正锚权重（头注记：生产装配显式 1e-3）；不属 `raw_w`，在 IRLS 目标函数中单独施加 |
 | `smoothing_lambda` | 键缺省时编译期默认 0.0 | —— | **UPM 图平滑权重**（对天光 / δ 面的拟合正则项，默认 0 = 关闭）。`P2_SMOOTHING_LAMBDA_AUTO = 0.1` 仅在 auto 路径生效 |
-| `rank_rtol` | 1e-10 | —— | **唯一**判据阈值 τ（相对量，冻结值 `FZ-AP2S-RANK-RTOL`） |
-| `gauge` | `reference_frame` | —— | `reference_frame` / `sum` |
-| `bkg_model` | `spline` | —— | 天光面表示：`spline`（稀疏二维样条面）/ `constant`（常数，仅均匀背景） |
-| `bkg_spline_spacing` | 由输入几何导出 | deg | 样条节点间距（决定面自由度）；缺省 = 由输入几何导出；几何量缺失 ⇒ fail-closed（标定常数属另一形态） |
-| `frame_gradient_order` | 1 | —— | 逐帧梯度修正的阶数（0 = 仅偏移，1 = 平面） |
+| `cpu_workers` | 调用方给 lease | —— | 并行 worker 数；0 = 单线程串行（不是 auto） |
+| `input_manifest_hash` | 可空 | —— | 输入稳定 manifest 哈希；非空时参与模型 hash |
+
+表 A 未列但同属 `P2UpmBuildConfig` 的字段（阻尼 / 参考场装配 / 控制网格边长）已在
+upm.h 带冻结注记登记，本页不复制其语义。
+
+表 B —— 判据与天光面表示字段（分属另两个结构体）：
+
+| 字段 | 所在结构体 | 默认 | 说明 |
+|---|---|---|---|
+| `rank_rtol` | `P2UpmMaBuildConfig` / `P2SkyPlaneConfig` | 1e-10 | **唯一**判据阈值 τ（相对量，冻结值 `FZ-AP2S-RANK-RTOL`；与天光面侧同符号、同值、同一实现） |
+| `gauge_mode` | `P2UpmMaBuildConfig` / `P2SkyPlaneConfig` | 0 | UPM 侧 0 = `min_frame_id` gauge（其他值 → 参数错误）；天光面侧 0 = `reference_frame`、1 = `sum_zero` |
+| `frame_gradient_order` | `P2SkyPlaneConfig` | 1 | 逐帧梯度修正的阶数（0 = 仅偏移、1 = 平面、2 = 二次；越界夹到 0..2） |
+| `spline_degree` | `P2SkyPlaneConfig` | 1 | 公共天光面 `B_ref` 的样条阶数（1 = 双线性，3 = 双三次） |
+| `node_spacing_deg` | `P2SkyPlaneConfig` | 0 | `B_ref` 节点间距（切平面角度，度）：>0 = 调用方显式给定；≤0 = 由输入几何经 `p2_sky_plane_derive_node_spacing` 导出；几何量缺失 ⇒ `P2_SKY_PLANE_GEOMETRY_REQUIRED` 显式失败（禁回退标定常数） |
 
 `upm` / `smoothing_lambda` / `huber_delta` / `max_iterations` 可被 phase config
 JSON 覆盖（lib/phase2_session/p2_session.cpp）。
@@ -295,8 +317,9 @@ rc，**不使用**编排层 `ACS_ERR_*` 词汇。
 
 ## 独立 synthetic 验证命令与容差
 
-可执行 `TEST-P2-UPM-001` 待建（不冒认）；设计冻结 = ALG-P2-UPM-IMPL-001
-TEST-DESIGN 节，容差权威同该节（ALG-UPM-001 F6 的 dense/sparse 1e-12 等价基线）。
+可执行 `TEST-P2-UPM-001` 待建（不冒认）；设计冻结 = ALG-P2-UPM-IMPL-001 的
+「TEST-DESIGN（TEST-P2-UPM-DESIGN 冻结）」章，容差权威同该章
+（ALG-UPM-001 F6 的 dense/sparse 1e-12 等价基线）。
 
 已取证但载体不在仓内的相邻结论（不冒认）：参数恢复 oracle 覆盖常数面恢复、逐帧偏移、
 收敛确定性 model_hash 逐位与星 flux 不破坏；并行面每 worker 重复确定、1/N 科学等价、内存有界；
