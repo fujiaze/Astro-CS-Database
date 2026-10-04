@@ -5,40 +5,43 @@
 - 落位: `lib/algorithms/integration/` 三件套（本目录）。`lib/algorithms/coverage/` 一目录一套
   三件套已被 P2-COV（acsd.p2.coverage）占用，不可覆盖；按
   `lib/algorithms/coverage/hips_p2/`（P2-HIPS-DOC）先例新建迁移目标目录。生产源
-  `lib/algorithms/coverage/src/integrate.cpp`（76 行）引用不搬家。
-- 权威签名头: `lib/algorithms/coverage/include/astro/phase2/integrate.h`（74 行）。
-  P2PixelStack :36-42（values/weights/support/accepted 可空语义）、
-  P2IntegrateStatus :45-51（五态 0..4）、P2PixelResult :53-63、
-  support canonical reducer 冻结语义 :17、权重策略注释 :8-11
+  `lib/algorithms/coverage/src/integrate.cpp`（89 行）引用不搬家。
+- 权威签名头: `lib/algorithms/coverage/include/astro/phase2/integrate.h`（83 行）。
+  P2PixelStack :45-51（values/weights/support/accepted 可空语义）、
+  P2IntegrateStatus :54-60（五态 0..4）、P2PixelResult :62-72、
+  support canonical reducer 冻结语义 :26、权重策略注释 :11-13
   （stack.support_x_snr2.v1 / stack.equal.v1，policy/reducer 分离）。
 - integrate.cpp 锚（实测）: p2_validate_candidate_weights :10-17
-  （null→0；NaN/Inf/负→1）；p2_integrate_pixel :19-74（null :20 →
+  （null→0；NaN/Inf/负→1）；p2_integrate_pixel :19-87（null :20 →
   rc=1；count==0/values==null :23-26 → NO_CANDIDATES；eligibility
-  循环 :30-57（finite :37、support :38-42、权重 :44-49、w==0
-  continue :49）；rc 同步 :58-63 invalid_input→INVALID_INPUT；
-  状态分支 :65-69（n_positive_weight==0 →
-  n_accepted==0?ALL_REJECTED:ZERO_VALID_WEIGHT）；signal=vs/wsum :70；
-  support=support?sup_max:1.0 :71；OK :72）。
+  循环 :33-62（finite :37、support :38-42、sup_max :49-50、权重 :51-57、
+  w==0 continue :56）；rc 同步 :66-69 invalid_input→INVALID_INPUT；
+  状态分支 :70-81（n_positive_weight==0 →
+  n_accepted==0?ALL_REJECTED:ZERO_VALID_WEIGHT）；signal=vs/wsum :83；
+  support=support?sup_max:1.0 :84；OK :85）。
 - 消费链: stage2.cpp 权重构造 :1106-1140（mode 2=ivar→fallback
   support；0=sup×snr²；1=等权 fill 1.0）+ validate :1141/:1402 +
   integrate :1213-1223（chunk 并行路径）/:1515-1527（CPU 串行路径，
   注释 :1525-1526 冻结 "support 唯一 canonical reducer…Stage2 只
-  消费"）/:1579-1585（large_scale 二次积分）；OMP 像素间并行 :1288/
-  :1298，per-thread 统计 thread id 定序归并 :1305-1313。ACR:
-  acr_kernels.cpp process_pixel :189-208（integrate :196、失败清零
-  :199-208）、OMP :218/:228 schedule(static)。
-- known_defects（登记不改码，整改归 P2-INT-IMPL/TEST）:
-  - DISP-P2INT-001（bughunt ledger R3-A，ledger.md:249）: sup_max
-    在 `if (w==0) continue`（integrate.cpp:49）之后更新（:54-55），
-    零权重 accepted 样本的 support 不进 max → 输出 support 偏低
-    （保守方向），偏离 integrate.h:17 "max(accepted support)" 冻结
-    语义；Stage2/ACR 直接消费。测试现状: test_p2004 :124 样本 support
-    全正，缺陷不可达。
-  - DISP-P2INT-002（文档级表述矛盾，本任务登记）: INTEGRATION.md:58
-    写 `max_{valid,W>0} support[i]`（≡ 实现现状），与 integrate.h:17
-    "max(accepted support)" 冻结注释表述冲突（accepted ⊋ {W>0}，
-    零权重样本差集）。SCI FROZEN 禁改；冻结口径以 header :17 为准
-    （合同文本），实现现状按 DISP-P2INT-001 整改后归一。
+  消费"）/:1579-1585（large_scale 二次积分）。OMP 像素间并行 = stage2.cpp 的
+  `#if defined(P2_ENABLE_OPENMP) && !defined(_MSC_VER)` 段（入口
+  `!large_scale_active && effective_cpu_workers(cfg.exec) > 1`，像素循环
+  `#pragma omp for schedule(static)`）；per-thread 统计 thread id 定序归并 =
+  同文件 `// 定序归并：thread id 固定顺序` 段（`reject_hist[kv.first] +=
+  kv.second`）。⚠️ 原并列的 ACR 消费面（acr_kernels.cpp process_pixel
+  :189-208、OMP :218/:228 schedule(static)）已随 `383088f2` 删除该文件一并
+  退场，现存像素间并行面只有 Stage2 一处。
+- known_defects: 无。原先登记的两条经本轮逐行复核**均已不成立**，理由：
+  - DISP-P2INT-001（曾记 sup_max 在 `if (w==0) continue`（integrate.cpp:49）
+    之后更新、零权重 accepted 样本的 support 不进 max）：**已修复**。现行
+    integrate.cpp:49-50 的 `sup_max = std::max(sup_max, in->support[i])` 位于
+    `w==0 continue`（:56）**之前**，作用域覆盖全部 accepted ∧ finite 样本，与
+    integrate.h:26「max(**accepted** support)」及 docs/science/INTEGRATION.md:69
+    「max_{accepted} support[i]」三方一致。原记「测试不可达」的前提已消失。
+  - DISP-P2INT-002（曾记 INTEGRATION.md:58 写 `max_{valid,W>0} support[i]`，
+    与 header 冲突）：**系误读**。INTEGRATION.md:58 讲的是 n_accepted /
+    n_finite 计数定义；support 归约式在同文件 :69，口径为 `max_{accepted}`，
+    与实现本就无矛盾，不存在待整改的表述面。
 - 验证锚（相邻证据，引用不冒认）: P2-004 生产 Oracle
   eng/tests/backend/test_p2004_reject_integrate.py（DRIVER_SRC :18-141，
   积分段 :66-126: 状态门 :67-101、signal 10.75/support 0.5 :113-126）。

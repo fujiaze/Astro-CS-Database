@@ -73,8 +73,19 @@ AIO_HIPS_RD_EXPORT int aio_hips_read_leaf_f64(AioHipsDataset* d, uint64_t leaf_i
 AIO_HIPS_RD_EXPORT int aio_hips_read_tile_datasum(
     AioHipsDataset* d, uint64_t tile_ipix, char* out, int out_size);
 
-// SNR catalogue: 返回点数与数组 (ra[], dec[], snr[], star_id[],
-// quality_flags[], photometric_status[])。调用方分配; 返回实际点数 (0=无)。
+// SNR catalogue: 读出 SNR 目录 (ra[], dec[], snr[], star_id[],
+// quality_flags[], photometric_status[])。调用方分配, max = 各数组容量。
+// 返回语义是**点数返回型** (实现 aio_hips_reader.cpp:650-676), 0 与失败必须分开判:
+//   >= 0 = 实际写出点数, 取 min(max, 目录条目数); 目录为空时**合法**返回 0;
+//   <  0 = 失败 (实现只可能返回 -1)。调用方必须先判 <0 再用点数,
+//   写成 `if (got > 0)` 会把「失败」与「目录为空」并成同一条静默跳过。
+// -1 的三条来源: 句柄为空 / product 非 SNR (前置守卫)、读出抛 std::exception、
+// 抛未知异常。
+// 失败原因取 aio_hips_reader_last_error(), 但该串只能当诊断, 不能用来判成败:
+//   (a) 前置守卫的 return -1 不置错误串 (实测 cpp:656 无 set_err);
+//   (b) 该串是 thread_local 且成功路径不复位 (cpp:27/:29 只在失败时赋值),
+//       故一次失败之后它会残留到下一次成功调用。
+// 成败一律只看返回值。
 // quality_flags/photometric_status 可为 NULL (旧调用方不读取)。
 AIO_HIPS_RD_EXPORT int aio_hips_read_snr_catalog(
     AioHipsDataset* d, double* ra, double* dec, double* snr, int64_t* star_id,

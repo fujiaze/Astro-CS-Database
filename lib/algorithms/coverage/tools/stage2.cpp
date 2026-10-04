@@ -1668,7 +1668,18 @@ int main(int argc, char** argv) {
         log("verify: signal tiles=" + std::to_string(nt));
         aio_hips_close(vd);
         AioHipsDataset* spd = aio_hips_open(cfg.out_hips.c_str(), AIO_HIPS_RD_SUPPORT);
-        if (spd) {
+        // 与上面 signal 面同形态：mosaic 产物是按
+        // AIO_HIPS_PRODUCT_SIGNAL | AIO_HIPS_PRODUCT_SUPPORT 声明的（见本文件
+        // 的 aio_hips_product_begin），所以「有 signal 无 support」是**半成品**
+        // 而不是合法形态。旧的 `if (spd)` 无 else ⇒ 半成品通过验证并落到成功
+        // 收口，下游拿到一个缺 support 面的 mosaic 却拿到 rc=0。
+        // 沿用同一退出码 7（不新开码：退出码唯一性是单一条根因）。
+        if (!spd) {
+            log("verify failed (support plane): " + std::string(aio_hips_reader_last_error()));
+            p2_upm_close(model);
+            return 7;
+        }
+        {
             const int ns = aio_hips_tile_count(spd);
             log("verify: support tiles=" + std::to_string(ns));
             aio_hips_close(spd);

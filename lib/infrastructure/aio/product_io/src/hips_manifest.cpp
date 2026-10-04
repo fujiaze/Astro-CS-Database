@@ -116,7 +116,7 @@ ValidationReport validate_hips_properties(const std::string& text) {
   }
   if (kv.count("hips_tile_format") && !allowed_tile_format(kv["hips_tile_format"])) {
     r.add("G-HIPS-PROPERTIES", "ALG-P3-008",
-          "hips_tile_format not in {fits,png,jpeg}");
+          "hips_tile_format not in {fits,png,jpeg,jpg}");
   }
   return r;
 }

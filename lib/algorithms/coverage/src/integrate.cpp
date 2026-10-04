@@ -4,6 +4,7 @@
 #include <algorithm>
 #include <cmath>
 #include <cstring>
+#include <limits>
 
 extern "C" {
 
@@ -80,7 +81,32 @@ int p2_integrate_pixel(const P2PixelStack* in, P2PixelResult* out) {
             out->support = (in->support != nullptr) ? sup_max : 1.0;
         return 0;
     }
-    out->signal = vs / wsum;
+    // 输出侧有限性门（**发布面**，与上面的输入侧资格门是两道不同的门）：
+    // 上面那道只保证「每个样本的 value/support/weight 有限」，**不保证归约结果
+    // 有限** —— N 个各自有限的大数相加仍可溢出到 ±Inf（w·v 或 wsum 都可以），
+    // 而 vs/wsum 在 (±Inf, ±Inf) 上得 NaN。旧实现没有这道门：溢出时照样
+    // `status = P2_INTEGRATE_OK` 并把 NaN 当科学值发布，调用方按 OK 读 ⇒
+    // NaN 进入产品面且该像素计入有效像素数（tools/stage2.cpp 的
+    // `ok ? signal*area : 0` / `valid[p]` / `++total_pixels` 三处）。
+    // 判据对**发布量**本身取有限性（不是对判据自身取——那才是恒真门）：
+    //   isfinite(vs) ∧ isfinite(wsum) ∧ isfinite(vs/wsum)。
+    // 为什么不复用既有五态：输入全合法 ⇒ INVALID_INPUT 是谎报；权重全正 ⇒
+    // ZERO_VALID_WEIGHT 是谎报；这是第 6 态（integrate.h）。
+    {
+        const double sig = vs / wsum;   // wsum>0 已由上面的 ZERO_VALID_WEIGHT 分支保证
+        if (!std::isfinite(vs) || !std::isfinite(wsum) || !std::isfinite(sig)) {
+            // 发布面：无效的唯一表示 = NaN（NUMERIC_STANDARD「覆盖级 NaN」条），
+            // 禁 0/±Inf/哨兵值伪装。support 仍按 canonical reducer 发 sup_max：
+            // 覆盖确实存在（样本通过了资格门），失效的只是统计量——与
+            // ZERO_VALID_WEIGHT 分支同一条「support 与 signal 解耦」的冻结
+            // 语义（integrate.h）；发 0 会把「有覆盖」误报成「无覆盖」。
+            out->signal = std::numeric_limits<double>::quiet_NaN();
+            out->support = (in->support != nullptr) ? sup_max : 1.0;
+            out->status = P2_INTEGRATE_NON_FINITE_OUTPUT;
+            return 0;
+        }
+        out->signal = sig;
+    }
     out->support = (in->support != nullptr) ? sup_max : 1.0;
     out->status = P2_INTEGRATE_OK;
     return 0;

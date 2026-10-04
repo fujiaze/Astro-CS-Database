@@ -4,11 +4,12 @@
 > `lib/algorithms/integration/`（README r1 + module.yaml + memory.md，CONTRACT_READY，
 > entrypoint=MISSING）——迁移目标目录按 `lib/algorithms/coverage/hips_p2/`（P2-HIPS-DOC）
 > 先例新建；`lib/algorithms/coverage/` 三件套已被 P2-COV（acsd.p2.coverage）占用，
-> 不可覆盖。生产源 `lib/algorithms/coverage/src/integrate.cpp`（76 行，根 CMakeLists
+> 不可覆盖。生产源 `lib/algorithms/coverage/src/integrate.cpp`（89 行，根 CMakeLists
 > acsd_phase2 静态库成员 :336-346/:344）+ 唯一权威签名头
-> `lib/algorithms/coverage/include/astro/phase2/integrate.h`（74 行）；消费链
-> `lib/algorithms/coverage/tools/stage2.cpp`（马赛克编排）与
-> `lib/algorithms/coverage/src/acr_kernels.cpp`（ACR 加速），均为本模块合同消费者。
+> `lib/algorithms/coverage/include/astro/phase2/integrate.h`（83 行）；消费链
+> `lib/algorithms/coverage/tools/stage2.cpp`（马赛克编排），为本模块合同消费者。
+> 曾并列的 `lib/algorithms/coverage/src/acr_kernels.cpp` 已随 ACR 子树退场删除
+> （`383088f2`），该并行消费面不再存在。
 
 ## 身份与合同
 
@@ -30,9 +31,9 @@
 - 逐像素加权积分 reducer：单像素候选栈 → `signal = Σ wᵢxᵢ / Σ wᵢ`
   （仅 eligible ∧ finite ∧ 正权重样本；候选索引固定序单栈归约）。
 - 五态显式 status 状态机：OK / NO_CANDIDATES / ALL_REJECTED /
-  ZERO_VALID_WEIGHT / INVALID_INPUT（integrate.h:45-51；零权重图
-  不做除法——wsum==0 时 :65-69 分支先行，无除零路径）。
-- support 唯一 canonical reducer = max(accepted support)（integrate.h:17
+  ZERO_VALID_WEIGHT / INVALID_INPUT（integrate.h:54-60；零权重图
+  不做除法——wsum==0 时 :70-81 分支先行，无除零路径）。
+- support 唯一 canonical reducer = max(accepted support)（integrate.h:26
   冻结语义）；sup_max 实现现状含 DISP-P2INT-001 缺陷（见 §6）。
 - 输入防御面：`p2_validate_candidate_weights`（integrate.cpp:10-17，
   null→0；NaN/Inf/负→1）供 Stage2 权重构造后预检。
@@ -47,20 +48,29 @@
   [0,1]，仅 eligibility/canonical reducer 消费，禁作科学权重）、
   mask（accepted 标志，不入权重式）。
 - 权重 = 外部 numeric weights（`weights` 可空 → 等权 fill 1.0）；
-  零权重合同：`w==0` 合法但零贡献（:49 continue，计入
+  零权重合同：`w==0` 合法但零贡献（integrate.cpp:56 continue，计入
   n_accepted/n_finite，不计 n_used/n_positive_weight）；权重负/
   非有限 → INVALID_INPUT；`p2_validate_candidate_weights` 返回
   0/1（合规/违规）预检。
 - all rejected / zero weight 显式区分：`n_accepted==0` →
   ALL_REJECTED；`n_accepted>0 ∧ n_positive_weight==0` →
-  ZERO_VALID_WEIGHT（:65-69；V17StatusesExplicit 冻结）。
-- 并发：像素级纯函数，无内部并行；像素间并行在调用方（Stage2
-  :1288 / ACR :218 OMP）；像素内候选索引固定序归约 + Stage2
-  per-thread 统计按 thread id 定序归并（:1305-1313）→ 输出与
+  ZERO_VALID_WEIGHT（:70-81；V17StatusesExplicit 冻结）。
+- 并发：像素级纯函数，无内部并行；像素间并行在调用方（Stage2 的
+  `#if defined(P2_ENABLE_OPENMP) && !defined(_MSC_VER)` 段，入口条件
+  `!large_scale_active && effective_cpu_workers(cfg.exec) > 1`，像素循环
+  `#pragma omp for schedule(static)`）；像素内候选索引固定序归约 + Stage2
+  per-thread 统计按 thread id 定序归并（`// 定序归并：thread id 固定顺序`
+  段，`reject_hist[kv.first] += kv.second`）→ 输出与
   worker 数无关（CON-006/parallel reduction 合同，无浮点重结合）。
-- known_defects：DISP-P2INT-001（sup_max 漏计零权重 accepted 样本）、
-  DISP-P2INT-002（INTEGRATION.md:58 表述面）——登记不改码，整改归
-  P2-INT-IMPL/TEST。
+  ⚠️ 并行语义已随 ACR 退场移除：原并列的 `acr_kernels.cpp:218 OMP` 像素间
+  并行面随该文件删除（`383088f2`）一并消失，现存并行面只有上述 Stage2 一处。
+- known_defects：无。原先登记的 DISP-P2INT-001（sup_max 漏计零权重 accepted
+  样本）经复核**已不成立**：`integrate.cpp:49-50` 的 `sup_max` 更新已在
+  `w==0 continue`（:56）**之前**，作用域覆盖全部 accepted ∧ finite 样本，
+  与 `integrate.h:26` 及 `docs/science/INTEGRATION.md:69`
+  （`max_{accepted} support[i]`）三方一致；DISP-P2INT-002 所记「INTEGRATION.md:58
+  写 max_{valid,W>0}」经复核**为误读**——:58 讲的是 n_accepted/n_finite 计数，
+  support 归约式在 :69 且口径为 `max_{accepted}`，与实现无矛盾。
 
 ## 验证
 

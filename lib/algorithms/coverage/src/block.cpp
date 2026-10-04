@@ -5,6 +5,14 @@
 #include <cmath>
 #include <cstring>
 
+namespace {
+
+// safety_factor 的值域上界。budget = memory_limit · sf，故 sf > 1 等于「按比
+// 用户给的内存上限更大的预算规划」——那不是余量，是把 memory_limit 当摆设。
+constexpr double kSafetyFactorMax = 1.0;
+
+}  // namespace
+
 extern "C" {
 
 int p2_block_plan(const P2BlockPlannerInput* in, P2BlockPlan* out) {
@@ -16,8 +24,37 @@ int p2_block_plan(const P2BlockPlannerInput* in, P2BlockPlan* out) {
         out->status = 1;
         return 0;
     }
+    // precision 是枚举面：契约只有 fp32(0)/fp64(1) 两值。非 0/1 的取值不是
+    // 「按 fp32 处理」的许可，而是调用方算错了；悄悄换成 fp32 会让内存估算
+    // 在调用方以为是 fp64 的地方按 fp32 计（低估一半），错误不可见。
+    if (in->precision != 0 && in->precision != 1) {
+        std::strncpy(out->error, "precision 必须是 0(fp32) 或 1(fp64)",
+                     sizeof(out->error) - 1);
+        out->status = 1;
+        return 0;
+    }
+    // safety_factor **无默认**：非有限 / ≤0 / >1 一律不可行。
+    // 为什么不给隐式兜底：0.75 在本仓的唯一在册出处是调用点
+    // lib/algorithms/coverage/tools/stage2.cpp（tile 级与 tile 循环各一处
+    // 都显式写 0.75）与 docs/science/algorithms/PHASE2_MOSAIC_WRITE.md 对
+    // 同一字面量的登记——两处都只是**登记**不是推导；而峰值公式的每一项
+    // 都来自 N_B / 像素数 / 每样本字节三类输入，没有任何一项能定出「余量」，
+    // 它属**需标定的工程参数**（给公式未建模的运行期分配留份额），不能由
+    // 输入几何或物理关系导出。若把越界值悄悄换成 0.75，「调用方算错了」在
+    // 运行期就表现为「一切正常」⇒ fail-closed。
+    // （落配置面是它的最终归属，但 config_registry.json / schema /
+    // 调用点三处都在本车道写面之外；此处只保证不再静默吞掉非法值。）
+    if (!std::isfinite(in->safety_factor) ||
+        !(in->safety_factor > 0.0) ||
+        in->safety_factor > kSafetyFactorMax) {
+        std::strncpy(out->error,
+                     "safety_factor 必须在 (0, 1]（无默认；越界值不静默替换）",
+                     sizeof(out->error) - 1);
+        out->status = 1;
+        return 0;
+    }
     const double bytes_per_sample = (in->precision == 1) ? 8.0 : 4.0;
-    const double sf = in->safety_factor > 0.0 ? in->safety_factor : 0.75;
+    const double sf = in->safety_factor;
 
     // 峰值 ≈ P·N_B·bytes_per_sample + P·scratch_per_pixel +
     // (P·N_B·scratch_per_sample if provided) + fixed
@@ -49,8 +86,19 @@ int p2_block_plan(const P2BlockPlannerInput* in, P2BlockPlan* out) {
         static_cast<double>(in->covering_frames) *
             static_cast<double>(in->scratch_bytes_per_sample);
     if (per_px <= 0.0) {
-        out->micro_chunk_required = 1;
-        out->status = 0;
+        // 走到这里说明上面的 peak<=budget 已经不成立。三项输入全是无符号，
+        // 故 per_px==0 ⇒ N_B=0 且两项 scratch 均为 0 ⇒ sample_work /
+        // per_pixel_scratch / per_sample_scratch 全为 0 ⇒ peak 恒等于
+        // fixed_overhead。于是 fixed_overhead 本身就超预算：连 0 像素的块
+        // 都装不下，micro-chunk 缩小块尺寸也救不了这一项（它与块大小无关）。
+        // 返回「不可行」而不是 status=0 ——否则调用方会拿着一份
+        // estimated_peak_bytes > budget 的计划当可行继续跑（假绿）。
+        out->status = 1;
+        std::strncpy(out->error,
+                     "per-pixel cost is 0 but peak still exceeds budget: "
+                     "fixed_overhead alone is above the memory limit",
+                     sizeof(out->error) - 1);
+        out->block_pixels = 1;
         return 0;
     }
     const double available = budget - static_cast<double>(in->fixed_overhead);

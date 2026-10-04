@@ -933,9 +933,12 @@ static int serialize_block_data(FILE* fp, const AioBlock* blk) {
     }
 }
 
-    /* 降级登记 (docs/ACSD_DESIGN §9「块↔文件的导出/缓存接口不是生产
-     * 接口」): 本函数是**非生产/诊断**接口 —— 禁止任何阶段内节点用它搬运
-     * 数据; 生产调用点 = 0 (机器判据 eng/ci/check_aio_io_boundary.py)。 */
+    /* 降级登记 (docs/engineering/io/IO_003_ATOMIC_OUTPUT_PUBLISH.md §7「非生产 /
+     * 诊断接口登记」): 本函数是**非生产/诊断**接口 —— 禁止任何阶段内节点用它搬运
+     * 数据。分级的正本是该节 §7 的逐符号表 (本符号在列); 判据按同节取「各符号在役
+     * 调用链」, 本组 6 个符号在 aio 之外无任何调用点。仓内**无**自动核这条边界的
+     * 机器判据 —— 原 eng/ci 边界检查器已随旧门禁物理删除, 所以改动本组接口时
+     * 必须人工复核调用链, 不能假定有自动守卫在拦。 */
 AIO_EXPORT int aio_frame_save_cache(const PipelineFrame* frame, const char* path)  {
     /* P1 (R9-A): C 边界异常屏障 */
     try {
@@ -1162,9 +1165,12 @@ static int load_cache_parse(PipelineFrame* frame, const char* path) {
     return 0;
 }
 
-    /* 降级登记 (docs/ACSD_DESIGN §9「块↔文件的导出/缓存接口不是生产
-     * 接口」): 本函数是**非生产/诊断**接口 —— 禁止任何阶段内节点用它搬运
-     * 数据; 生产调用点 = 0 (机器判据 eng/ci/check_aio_io_boundary.py)。 */
+    /* 降级登记 (docs/engineering/io/IO_003_ATOMIC_OUTPUT_PUBLISH.md §7「非生产 /
+     * 诊断接口登记」): 本函数是**非生产/诊断**接口 —— 禁止任何阶段内节点用它搬运
+     * 数据。分级的正本是该节 §7 的逐符号表 (本符号在列); 判据按同节取「各符号在役
+     * 调用链」, 本组 6 个符号在 aio 之外无任何调用点。仓内**无**自动核这条边界的
+     * 机器判据 —— 原 eng/ci 边界检查器已随旧门禁物理删除, 所以改动本组接口时
+     * 必须人工复核调用链, 不能假定有自动守卫在拦。 */
 AIO_EXPORT int aio_frame_load_cache(PipelineFrame* frame, const char* path)  {
     /* P1 (R9-A): C 边界异常屏障 */
     try {
@@ -1273,9 +1279,12 @@ static std::string block_to_xml(const AioBlock* blk, const char* block_name_over
     return xml;
 }
 
-    /* 降级登记 (docs/ACSD_DESIGN §9「块↔文件的导出/缓存接口不是生产
-     * 接口」): 本函数是**非生产/诊断**接口 —— 禁止任何阶段内节点用它搬运
-     * 数据; 生产调用点 = 0 (机器判据 eng/ci/check_aio_io_boundary.py)。 */
+    /* 降级登记 (docs/engineering/io/IO_003_ATOMIC_OUTPUT_PUBLISH.md §7「非生产 /
+     * 诊断接口登记」): 本函数是**非生产/诊断**接口 —— 禁止任何阶段内节点用它搬运
+     * 数据。分级的正本是该节 §7 的逐符号表 (本符号在列); 判据按同节取「各符号在役
+     * 调用链」, 本组 6 个符号在 aio 之外无任何调用点。仓内**无**自动核这条边界的
+     * 机器判据 —— 原 eng/ci 边界检查器已随旧门禁物理删除, 所以改动本组接口时
+     * 必须人工复核调用链, 不能假定有自动守卫在拦。 */
 AIO_EXPORT int aio_frame_export_block_xml(const PipelineFrame* frame,
     const char* block_name, const char* path)  {
     /* P1 (R9-A): C 边界异常屏障 */
@@ -1315,9 +1324,12 @@ AIO_EXPORT int aio_frame_export_block_xml(const PipelineFrame* frame,
     }
 }
 
-    /* 降级登记 (docs/ACSD_DESIGN §9「块↔文件的导出/缓存接口不是生产
-     * 接口」): 本函数是**非生产/诊断**接口 —— 禁止任何阶段内节点用它搬运
-     * 数据; 生产调用点 = 0 (机器判据 eng/ci/check_aio_io_boundary.py)。 */
+    /* 降级登记 (docs/engineering/io/IO_003_ATOMIC_OUTPUT_PUBLISH.md §7「非生产 /
+     * 诊断接口登记」): 本函数是**非生产/诊断**接口 —— 禁止任何阶段内节点用它搬运
+     * 数据。分级的正本是该节 §7 的逐符号表 (本符号在列); 判据按同节取「各符号在役
+     * 调用链」, 本组 6 个符号在 aio 之外无任何调用点。仓内**无**自动核这条边界的
+     * 机器判据 —— 原 eng/ci 边界检查器已随旧门禁物理删除, 所以改动本组接口时
+     * 必须人工复核调用链, 不能假定有自动守卫在拦。 */
 AIO_EXPORT int aio_frame_export_all_xml(const PipelineFrame* frame, const char* path)  {
     /* P1 (R9-A): C 边界异常屏障 */
     try {
@@ -1362,9 +1374,12 @@ AIO_EXPORT int aio_frame_export_all_xml(const PipelineFrame* frame, const char* 
     }
 }
 
-    /* 降级登记 (docs/ACSD_DESIGN §9「块↔文件的导出/缓存接口不是生产
-     * 接口」): 本函数是**非生产/诊断**接口 —— 禁止任何阶段内节点用它搬运
-     * 数据; 生产调用点 = 0 (机器判据 eng/ci/check_aio_io_boundary.py)。 */
+    /* 降级登记 (docs/engineering/io/IO_003_ATOMIC_OUTPUT_PUBLISH.md §7「非生产 /
+     * 诊断接口登记」): 本函数是**非生产/诊断**接口 —— 禁止任何阶段内节点用它搬运
+     * 数据。分级的正本是该节 §7 的逐符号表 (本符号在列); 判据按同节取「各符号在役
+     * 调用链」, 本组 6 个符号在 aio 之外无任何调用点。仓内**无**自动核这条边界的
+     * 机器判据 —— 原 eng/ci 边界检查器已随旧门禁物理删除, 所以改动本组接口时
+     * 必须人工复核调用链, 不能假定有自动守卫在拦。 */
 /* 旧名包装 (非生产/诊断别名; **不是**「兼容保留」的生产接口) */
 AIO_EXPORT int aio_pipeline_export_xml(const PipelineFrame* frame,
     const char* path, const char* comment)  {
@@ -1383,9 +1398,12 @@ AIO_EXPORT int aio_pipeline_export_xml(const PipelineFrame* frame,
     }
 }
 
-    /* 降级登记 (docs/ACSD_DESIGN §9「块↔文件的导出/缓存接口不是生产
-     * 接口」): 本函数是**非生产/诊断**接口 —— 禁止任何阶段内节点用它搬运
-     * 数据; 生产调用点 = 0 (机器判据 eng/ci/check_aio_io_boundary.py)。 */
+    /* 降级登记 (docs/engineering/io/IO_003_ATOMIC_OUTPUT_PUBLISH.md §7「非生产 /
+     * 诊断接口登记」): 本函数是**非生产/诊断**接口 —— 禁止任何阶段内节点用它搬运
+     * 数据。分级的正本是该节 §7 的逐符号表 (本符号在列); 判据按同节取「各符号在役
+     * 调用链」, 本组 6 个符号在 aio 之外无任何调用点。仓内**无**自动核这条边界的
+     * 机器判据 —— 原 eng/ci 边界检查器已随旧门禁物理删除, 所以改动本组接口时
+     * 必须人工复核调用链, 不能假定有自动守卫在拦。 */
 /* FITS 导出: 简化版本，写入裸二进制 + 元数据头 */
 /* 注: 不依赖 cfitsio，使用简单的 FITS 2880 字节块格式 */
 AIO_EXPORT int aio_frame_export_block_fits(const PipelineFrame* frame,

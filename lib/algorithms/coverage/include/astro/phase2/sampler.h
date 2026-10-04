@@ -2,8 +2,7 @@
 //
 // Phase2 W4：稀疏光度控制点采样器（control sampler）。
 //
-// 语义（冻结；权威 = docs/science/algorithms/PHASE2_SAMPLER.md 与
-// docs/detail/algorithms_phase2/10_sampling.md）：
+// 语义（冻结；权威 = docs/science/algorithms/PHASE2_SAMPLER.md）：
 // - 控制点 geometry 由 union 几何与目标角间距决定，**不由 SNR 决定**；
 // - 每个覆盖控制节点的 frame 提供观测 y_ik/sigma_ik/snr_ik/support_ik/quality_ik，
 // y_ik 必须从实际 Phase1 HiPS 数据读取；
@@ -98,6 +97,10 @@ typedef struct P2ControlNode {
 // - 取 SHA-256 前 16 hex 字符（大端序截断）为 uint64；
 // - 与输入顺序无关；UPM 参考帧 = 每分量最小 frame_id。
 // 本标识是 truncated-64 SHA-256，不是 FNV-1a，也不由路径派生。
+// **fail-closed**：上面四个载荷面（properties / signal tile / support tile /
+// SNR catalogue）任一面打不开或读失败 ⇒ 返回 0（失败哨兵），绝不产出
+// 「部分内容的 id」——那会与有效帧碰撞且调用方无从分辨。SNR catalogue
+// 「点数为 0」不是失败（目录为空合法，哈希照常推进）。
 P2_API std::uint64_t p2_frame_id(const char* hips_path);
 
 // 统一统计量（sampler patch estimator / MAD / SNR 邻域共用同一实现）。

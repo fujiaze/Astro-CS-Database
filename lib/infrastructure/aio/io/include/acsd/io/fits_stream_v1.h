@@ -199,11 +199,13 @@ void acsd_fio_writer_abort_v1(acsd_fio_writer_v1* wr);
 
 /* ───────── 校验 / checksum ───────── */
 
-/* 独立 DATASUM 算法 (无 CFITSIO): 对文件数据区 2880 字节块做 32 位 1 补码校验,
- * 返回 10 位十进制 ASCII (同 FITS DATASUM 语义)。datasum 至少 ACS_FIO_DATASUM_LEN。
- * 只校验数据区; 调用方应已确认文件结构合法 (或由本函数内部先做结构校验: strict=1)。
- * verify_checksum=1: 若 header 含 CHECKSUM 卡也校验整个 HDU。
- * 返回 ACS_FIO_ERR_BAD_HEADER/TRUNCATED/CHECKSUM 等; ok 时 *out_len = 字符数 (不含 NUL)。 */
+/* 校验文件: 开文件 → 解析 header 并做结构校验 → header 含 DATASUM 卡时流式重算数据区
+ * DATASUM 并比对 → verify_checksum=1 且 header 含 CHECKSUM 卡时重算整个 HDU 的 CHECKSUM
+ * 并比对。返回状态码 (ACS_FIO_ERR_BAD_HEADER / TRUNCATED / CHECKSUM / IO 等), 成功返回 0,
+ * 失败原因写入 err。
+ * 注 1: DATASUM 的校验**不受** verify_checksum 开关约束 (它只管 CHECKSUM 卡)。
+ * 注 2: 本函数只返回状态码, 不产出 DATASUM 串 —— 要串请用下面的
+ *       acsd_fio_compute_file_datadigest_v1。 */
 int acsd_fio_verify_file_v1(const char* path_utf8,
                            int verify_checksum,
                            char* err, size_t err_cap);

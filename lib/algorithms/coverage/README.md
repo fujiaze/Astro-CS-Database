@@ -213,12 +213,20 @@ acsd-stage2 <stage2.json>
 ```
 
 只允许一个 JSON 配置路径参数。示例配置见
-`run/phase2/stage2_t4_overlap.json`（真实重叠验证）与
-`run/phase2/stage2_full.json`（完整三片）。
+`lib/algorithms/coverage/configs/stage2_t4_true_overlap.json`（真实重叠验证）与
+`lib/algorithms/coverage/configs/stage2_full.example.json`（完整三片）。
+配置面有两道 fail-closed 门：`version` 必填且必须 == 1，每个对象的键集必须是
+解析器逐字读取的键集（白名单外的键即报错）——理由见
+`include/astro/phase2/stage2_common.h` 的 `p2_stage2_parse_config` 契约。
 
 目录：
 
-- `lib/include/astro/phase2/`：冻结公共接口（upm/coverage/sampler/rejection/
-  block/integrate/acr_kernels）
+- `include/astro/phase2/`：冻结公共接口（upm/coverage/sampler/rejection/
+  block/integrate/sky_plane/stage2_common/identifiability/execution_options/
+  async_io/accelerator_fallback）
 - `src/`：CPU reference 实现
 - `tools/stage2.cpp`：正式入口
+
+> 原目录清单里列的 `acr_kernels` 已随 ACR 子树退场删除（`383088f2`）：头文件侧
+> `include/astro/phase2/` 下无 acr_kernels.h，符号 `register_phase2_acr_kernels()`
+> 在 `lib/`、`eng/` 零命中。原配置路径 `run/phase2/` 整目录亦不存在。

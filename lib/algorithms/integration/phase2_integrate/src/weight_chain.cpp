@@ -128,9 +128,10 @@ bool weight_from_corrected_variance(double variance, double* out_weight,
 /* ------------------------------------------------------------------ */
 /* 逐像素消费面：稀疏层（绝对 SNR）→ w(x,y) = (SNR_layer/F_ref,k)²·g_k²  */
 /* ------------------------------------------------------------------ */
-/* 权威（只读）：docs/science/UNIFIED_SCIENCE_MODEL.md:59「w(x,y) = SNR(x,y)^2 /
+/* 权威（只读）：docs/science/UNIFIED_SCIENCE_MODEL.md:63「w(x,y) = SNR(x,y)^2 /
  * F_ref^2 ≡ 1/sigma_F(x,y)^2」；docs/science/PSF_SIGNAL_WEIGHT.md:87 同式；
- * docs/ACSD_DESIGN.md §3.1:264「控制点值即绝对量本身，不乘/除帧级标量」；
+ * docs/detail/PHASE2_DETAILED_DESIGN.md:21/108-114「控制点值即绝对量本身，
+ * 不乘/除帧级标量」；
  * eng/contracts/schemas/unified/sparse_snr_layer.schema.json（消费时不得乘/除
  * 帧级 SNR）。本函数**只有**层值一个 SNR 输入：签名里根本不存在帧级 SNR 参数，
  * 从接口面排除「误乘帧级标量」这一类口径错。 */

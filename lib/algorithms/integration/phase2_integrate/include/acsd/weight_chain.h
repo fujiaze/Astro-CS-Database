@@ -1,25 +1,23 @@
 /* weight_chain.h — Phase2 SNR → 逆方差权重链（科学计算核心）
  *
  * 权威依据（只读，不改；行号为引用时刻的现况）:
- *   - docs/ACSD_DESIGN.md §3.1:264「帧级 SNR 与稀疏 SNR 层是两个独立对象…
- *       稀疏层存控制点处的**绝对** SNR；稀疏层不以帧级 SNR 为尺度基准，消费时
- *       直接由绝对控制点重建为稠密 SNR 场（不经帧级 SNR 乘除）。两者共用同一物理
- *       定义与同一逐帧参考通量 F_ref，权重换算 w = SNR²/F_ref² 对两者一致」
- *   - docs/ACSD_DESIGN.md §3.1:263「HiPS 里存的是帧级 SNR 与稀疏控制点上的绝对
- *       SNR；权重是 Phase2 集成时按天球像素对应的输入帧集合**现场计算的派生量**」
- *   - docs/ACSD_DESIGN.md §3.1:267 + §2.4:240「三条 SNR 重建口径
- *       （dense / sparse_reconstruct / frame_reconstruct）是**重建方式**的选择，
- *       不是权重口径的选择：三者都产出同一物理量的稠密表示，都走同一条逆方差定权式」
- *   - docs/ACSD_DESIGN.md §5.3:439（w = 1/σ² = SNR²/F_ref²，F_ref 逐帧；Zackay & Ofek）
+ *   - docs/ACSD_DESIGN.md:335「三者都产出同一物理量 SNR = F_ref/σ_F 的稠密表示，
+ *     只在重建方式上不同；叠加权重现场换算为逆方差 w = SNR²/F_ref² = 1/σ_F²…
+ *     该恒等式要求 SNR 的分子与 F_ref 是同一参考通量」
+ *   - docs/ACSD_DESIGN.md:130「由帧级信噪比与稀疏层出发的叠加权重在 mosaic 消费时
+ *     才由信噪比现场换算 w = SNR²/F_ref² = 1/σ_F²」
+ *   - docs/ACSD_DESIGN.md:161（三条 SNR 重建口径是**重建方式**的选择，不是权重口径的
+ *     选择：三者都产出同一物理量的稠密表示，都走同一条逆方差定权式）
+ *   - docs/ACSD_DESIGN.md:161（w = 1/σ_F² = SNR²/F_ref²，F_ref 逐帧；Zackay & Ofek）
  *   - docs/science/PSF_SIGNAL_WEIGHT.md:75/87（w_k = SNR_k²/F_ref,k² ≡ 1/σ_F,k²；
- *       阶段二 w(x,y) = SNR(x,y)²/F_ref²）；docs/science/UNIFIED_SCIENCE_MODEL.md:62
+ *       阶段二 w(x,y) = SNR(x,y)²/F_ref²）；docs/science/UNIFIED_SCIENCE_MODEL.md:66
  *       「SNR(x,y) 由稀疏控制点上的**绝对** SNR 重建（控制点值即绝对量本身，
  *       不乘/除帧级标量），F_ref 为**逐帧**参考通量」
  *   - eng/contracts/schemas/unified/sparse_snr_layer.schema.json（冻结）:
  *       sparse_snr_semantics const = "absolute_flux_type_snr"；控制点值 =
  *       F_ref/sigma_F,c（与 frame_snr 同口径、同逐帧 F_ref）；
  *       「消费时**不得**乘/除帧级 SNR 做还原」
- *   - docs/detail/algorithms_phase2/13_integration.md §4.0（稀疏层逐像素消费面）
+ *   - docs/detail/PHASE2_DETAILED_DESIGN.md:21/108-114（稀疏层逐像素消费面）
  *
  * 本模块只做「SNR 元数据 → 逆方差权重」的换算，不做排异、不做叠加；调用方
  * （scheduler / stage2 接线）按报告给出的约定取用。
@@ -32,7 +30,7 @@
  * 层值缺失不是「乘 1」：逐像素面的缺层/语义不符/越界/非正值一律显式降级
  * （generated_from_absent_layer）或判红（closure 非 kClosed），绝不静默照常出权。
  *
- * fail-closed 纪律（13_integration.md §7:80、DESIGN §3.4:154-156）:
+ * fail-closed 纪律（docs/science/INTEGRATION.md:42-45/62；ACSD_DESIGN.md §3.4:154-156）:
  *   - 帧级 SNR 缺失/非有限/非正 → 拒绝，不静默退化为等权；
  *   - F_ref 缺失/非有限/非正 → 拒绝（换算不成立）；
  *   - 稀疏层存在但损坏/不可重建/越界 → 拒绝，**不得静默回退帧级**；
@@ -277,7 +275,7 @@ bool weight_from_snr(double snr, double reference_flux, double* out_weight,
 /* w = 1/Var(corrected)（Var>0 有限）[ADU^-2]：逐像素归一化方差的逆。
  * 这是 P2b 的正确权重面（w 是 Var(corrected) 的严格单调递减函数 ⇒ 高归一化
  * SNR 帧权重 ≥ 低归一化 SNR 帧由构造保证）。**禁止**由权重标量反推 variance
- * （upm.h:228）；本函数只做 1/var。Var<=0/非有限 → false（fail-closed）。 */
+ * （upm.h:267）；本函数只做 1/var。Var<=0/非有限 → false（fail-closed）。 */
 bool weight_from_corrected_variance(double variance, double* out_weight,
                                     std::string* err);
 
@@ -391,10 +389,10 @@ WeightChainResult compute_inverse_variance_weights(
 /* ------------------------------------------------------------------ */
 /* 稀疏层的**唯一**消费面 = 逐输出像素的权重路径。层值已是**绝对** SNR，故
  *   w(x,y) = (SNR_layer(x,y) / F_ref,k)² · g_k²   ≡   1/σ_F(x,y)²
- * （docs/science/UNIFIED_SCIENCE_MODEL.md:59、PSF_SIGNAL_WEIGHT.md:87、
- *   docs/detail/algorithms_phase2/13_integration.md §4.0）。
+ * （docs/science/UNIFIED_SCIENCE_MODEL.md:63、PSF_SIGNAL_WEIGHT.md:87、
+ *   docs/detail/PHASE2_DETAILED_DESIGN.md:21/108-114）。
  * **不得**再乘/除帧级 SNR：层与帧级是两个独立对象，共用同一物理定义与同一逐帧
- * F_ref（ACSD_DESIGN §3.1:264；冻结 schema 明文「消费时不得乘/除帧级 SNR」）。 */
+ * F_ref（ACSD_DESIGN.md:335；冻结 schema 明文「消费时不得乘/除帧级 SNR」）。 */
 struct PixelWeightInput {
   std::string frame_id;                    /* 追溯用（可空） */
   const SparseSnrLayer* layer = nullptr;   /* 必填（非空且 present） */

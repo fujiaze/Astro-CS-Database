@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
-"""DATA-003 生产 ArtifactStore（执行形态；权威文档形态 = docs/engineering/data/
-DATA-003_PRODUCTION_ARTIFACT_STORE.md + 本目录 README.md）。
+"""DATA-003 生产 ArtifactStore（执行形态；权威文档形态 =
+docs/engineering/data/DATA-003_PRODUCTION_ARTIFACT_STORE.md）。
 
-冻结语义（tasks/03_RUNTIME_DATA_IO_TASKS.md DATA-003 + 约束 A.3/A.4/A.6 +
+冻结语义（DATA-003 + 约束 A.3/A.4/A.6 +
 DATA-001 manifest 合同 + DATA-002 交换资格）:
   - Runtime 启动真实 Store（ArtifactStore(root, run_id).start()，run 私有）；
     模块 `execute` 只能拿已校验 handle/reader/writer —— 写侧 Writer（stage 后

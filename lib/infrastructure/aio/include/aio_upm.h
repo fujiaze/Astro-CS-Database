@@ -9,7 +9,7 @@
 //
 // 语义（冻结）：
 // - 稀疏模型为权威形态：JSON 文本（format=acsd-upm-v2，
-// 读兼容 acsd-upm-v1，见 docs/detail/astro_image_io.md），
+// 读兼容 acsd-upm-v1，见 docs/detail/infrastructure/17_aio.md），
 // model_hash 由 phase2 计算（内容哈希）并随 JSON 保存；
 // - dense cache 是同一 UPM 的**空间求值缓存**：按
 // (frame_id, target_order, tile) 保存 C_i(p) 的 evaluated values，

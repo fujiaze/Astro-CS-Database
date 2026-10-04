@@ -248,6 +248,85 @@ inline double huber_w(double r, double d) {
     return d / a;
 }
 
+// control 平滑邻接图的**唯一**构造算子。build（求解）与 open（读回模型）
+// 必须走同一份代码，否则 save→open 往返会静默换掉平滑约束：|adj| 进
+// p2_upm_geometry_hash 的 payload，差异会直接改变对外模型 hash，且 adj 驱动
+// 无观测节点的 G 调和延拓与 geometry_component_count。
+// 为什么放在这里而不是各自内联：两侧曾各写一份，reload 侧漏掉了跨 tile 几何
+// 邻接、漏了 a==b 自环守卫、漏了去重 —— 三者共同构成 A11 生产缺陷。
+// 前置条件：m->controls / m->cell_index / m->grid / m->cell_side /
+// m->info.target_order 均已就位（build 在建完 control 索引后调；open 在
+// 恢复完 cell_index 与 target_order 后调）。
+static void build_control_adjacency(Model* m) {
+    const std::size_t K = m->controls.size();
+    // 邻接图：网格邻接经 cell_index 全键遍历（含跨 tile 合并别名键，
+    // 使合并节点两侧邻居都连到同一系数），随后跨 tile 边界平滑链接。
+    m->adj.assign(K, {});
+    auto add_edge = [&](std::size_t a, std::size_t b) {
+        // a==b 守卫是必需的：跨 tile 合并别名键会把邻居坐标映回节点自身，
+        // 漏掉它会在图拉普拉斯对角上凭空加自环（改变行和，不是恒等变换）。
+        if (a == b) return;
+        m->adj[a].push_back(b);
+        m->adj[b].push_back(a);
+    };
+    for (const auto& kv : m->cell_index) {
+        const std::uint64_t tile = kv.first.first;
+        const int gx = kv.first.second.first;
+        const int gy = kv.first.second.second;
+        const std::size_t k = kv.second;
+        auto link = [&](int nx, int ny) {
+            if (nx < 0 || ny < 0 || nx >= m->grid || ny >= m->grid) return;
+            const auto key = std::make_pair(tile, std::make_pair(nx, ny));
+            const auto it = m->cell_index.find(key);
+            if (it != m->cell_index.end()) add_edge(k, it->second);
+        };
+        link(gx + 1, gy);
+        link(gx - 1, gy);
+        link(gx, gy + 1);
+        link(gx, gy - 1);
+    }
+
+    // 跨 tile 几何邻接（tile 边界 control cells 角距 < 阈值连接，
+    // 使跨 tile 几何相邻区域的 correction 受同一平滑约束）
+    {
+        // cell 中心间距（target order 像素尺度推导; 用 ldexp 避免 1u<<k 对 k>=32 的 UB）
+        const double nside = std::ldexp(1.0, m->info.target_order + 9);
+        const double pix_rad = std::sqrt(4.0 * 3.141592653589793 /
+                                         (12.0 * nside * nside));
+        const double cell_dist_rad = (double)m->cell_side * pix_rad;
+        const double link_rad = cell_dist_rad * 1.6;
+        const double link_deg = link_rad * 180.0 / 3.141592653589793;
+        std::vector<std::size_t> boundary;
+        for (std::size_t k = 0; k < K; ++k) {
+            const auto& cn = m->controls[k];
+            if (cn.gx == 0 || cn.gx == m->grid - 1 ||
+                cn.gy == 0 || cn.gy == m->grid - 1)
+                boundary.push_back(k);
+        }
+        for (std::size_t i = 0; i < boundary.size(); ++i) {
+            const auto& a = m->controls[boundary[i]];
+            for (std::size_t j = i + 1; j < boundary.size(); ++j) {
+                const auto& b = m->controls[boundary[j]];
+                if (a.tile_ipix == b.tile_ipix) continue;
+                // 粗筛：|Δra|/|Δdec| 先于角距（避免 O(B²) 全角距）
+                if (std::fabs(a.ra_deg - b.ra_deg) > link_deg) continue;
+                if (std::fabs(a.dec_deg - b.dec_deg) > link_deg) continue;
+                if (acsd::healpix::angular_distance_deg(
+                        a.ra_deg, a.dec_deg, b.ra_deg, b.dec_deg) < link_deg) {
+                    m->adj[boundary[i]].push_back(boundary[j]);
+                    m->adj[boundary[j]].push_back(boundary[i]);
+                }
+            }
+        }
+        // 去重（同一邻接可能被网格与跨 tile 同时加入；重复边会抬高度数并
+        // 放大图拉普拉斯，因此必须排序去重而不是靠「加两次无所谓」）
+        for (auto& v : m->adj) {
+            std::sort(v.begin(), v.end());
+            v.erase(std::unique(v.begin(), v.end()), v.end());
+        }
+    }
+}
+
 } // namespace
 
 extern "C" {
@@ -425,69 +504,9 @@ static int build_impl(const P2ControlObservation* obs, std::uint64_t n_obs,
     m->C.assign(F, std::vector<double>(K, 0.0));
     m->obs_w.assign(F, std::vector<double>(K, 0.0));
 
-    // 邻接图：网格邻接经 cell_index 全键遍历（含跨 tile 合并别名键，
-    // 使合并节点两侧邻居都连到同一系数），随后跨 tile 边界平滑链接。
-    m->adj.assign(K, {});
-    auto add_edge = [&](std::size_t a, std::size_t b) {
-        if (a == b) return;
-        m->adj[a].push_back(b);
-        m->adj[b].push_back(a);
-    };
-    for (const auto& kv : m->cell_index) {
-        const std::uint64_t tile = kv.first.first;
-        const int gx = kv.first.second.first;
-        const int gy = kv.first.second.second;
-        const std::size_t k = kv.second;
-        auto link = [&](int nx, int ny) {
-            if (nx < 0 || ny < 0 || nx >= m->grid || ny >= m->grid) return;
-            const auto key = std::make_pair(tile, std::make_pair(nx, ny));
-            const auto it = m->cell_index.find(key);
-            if (it != m->cell_index.end()) add_edge(k, it->second);
-        };
-        link(gx + 1, gy);
-        link(gx - 1, gy);
-        link(gx, gy + 1);
-        link(gx, gy - 1);
-    }
-
-    // 跨 tile 几何邻接（tile 边界 control cells 角距 < 阈值连接，
-    // 使跨 tile 几何相邻区域的 correction 受同一平滑约束）
-    {
-        // cell 中心间距（target order 像素尺度推导; 用 ldexp 避免 1u<<k 对 k>=32 的 UB）
-        const double nside = std::ldexp(1.0, cfg.target_order + 9);
-        const double pix_rad = std::sqrt(4.0 * 3.141592653589793 /
-                                         (12.0 * nside * nside));
-        const double cell_dist_rad = (double)m->cell_side * pix_rad;
-        const double link_rad = cell_dist_rad * 1.6;
-        const double link_deg = link_rad * 180.0 / 3.141592653589793;
-        std::vector<std::size_t> boundary;
-        for (std::size_t k = 0; k < K; ++k) {
-            const auto& cn = m->controls[k];
-            if (cn.gx == 0 || cn.gx == m->grid - 1 ||
-                cn.gy == 0 || cn.gy == m->grid - 1)
-                boundary.push_back(k);
-        }
-        for (std::size_t i = 0; i < boundary.size(); ++i) {
-            const auto& a = m->controls[boundary[i]];
-            for (std::size_t j = i + 1; j < boundary.size(); ++j) {
-                const auto& b = m->controls[boundary[j]];
-                if (a.tile_ipix == b.tile_ipix) continue;
-                // 粗筛：|Δra|/|Δdec| 先于角距（避免 O(B²) 全角距）
-                if (std::fabs(a.ra_deg - b.ra_deg) > link_deg) continue;
-                if (std::fabs(a.dec_deg - b.dec_deg) > link_deg) continue;
-                if (acsd::healpix::angular_distance_deg(
-                        a.ra_deg, a.dec_deg, b.ra_deg, b.dec_deg) < link_deg) {
-                    m->adj[boundary[i]].push_back(boundary[j]);
-                    m->adj[boundary[j]].push_back(boundary[i]);
-                }
-            }
-        }
-        // 去重（同一邻接可能被网格与跨 tile 同时加入）
-        for (auto& v : m->adj) {
-            std::sort(v.begin(), v.end());
-            v.erase(std::unique(v.begin(), v.end()), v.end());
-        }
-    }
+    // 邻接图交给共享算子构造：p2_upm_open 读回模型时必须逐字得到同一张图，
+    // 否则 save→open 往返会静默换掉平滑约束（见 build_control_adjacency 注释）。
+    build_control_adjacency(m);
 
     // 求解前连通分量（frame-control 二分图），每分量独立 gauge
     // 只有带 observation 的 frame/control 参与数据分量统计；
@@ -1823,23 +1842,13 @@ int p2_upm_open(const char* path, void** out_model) {
                 if (v != 0.0) { any = true; break; }
             if (!any) m->gauge.clear();
         }
-        m->adj.assign(K, {});
-        for (std::size_t k = 0; k < K; ++k) {
-            const auto& cn = m->controls[k];
-            auto link = [&](int nx, int ny) {
-                if (nx < 0 || ny < 0 || nx >= m->grid || ny >= m->grid)
-                    return;
-                const auto key =
-                    std::make_pair(cn.tile_ipix, std::make_pair(nx, ny));
-                const auto it = m->cell_index.find(key);
-                if (it != m->cell_index.end())
-                    m->adj[k].push_back(it->second);
-            };
-            link(cn.gx + 1, cn.gy);
-            link(cn.gx - 1, cn.gy);
-            link(cn.gx, cn.gy + 1);
-            link(cn.gx, cn.gy - 1);
-        }
+        // 邻接图必须与 build 逐字同构：本文件过去在这里另写了一份「只做网格
+        // 邻接」的简化版，漏掉跨 tile 几何邻接、漏 a==b 自环守卫、漏去重。
+        // 后果是 upm-fit 求解用的平滑约束与 upm-apply 读回后施加的不是同一个
+        // 算子：|adj| 进 p2_upm_geometry_hash，对外模型 hash 会随一次
+        // save→open 往返改变；adj 同时驱动无观测节点的 G 调和延拓与
+        // geometry_component_count。自环还会凭空抬拉普拉斯对角。
+        build_control_adjacency(m);
     } catch (...) {
         // DATA-UPM-MODEL-001：任何字段损坏都返回稳定错误，禁止异常越界。
         delete m;

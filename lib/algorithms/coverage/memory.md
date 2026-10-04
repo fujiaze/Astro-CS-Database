@@ -47,7 +47,7 @@ photometric scale、新 runtime I/O DLL。
   `p2_upm_dense_read_block` 做 stale 校验（source hash 不匹配返回 2）。
 - **补全**：LinearFit（残差 MAD 尺度稳健版）与 RCR（Maples et al. 2018
   论文独立实现，Chauvenet 判据，weighted/unweighted）。
-- **stage2 正式入口**（`eng/tools/stage2.cpp` → `acsd-stage2.exe`）：
+- **stage2 正式入口**（`lib/algorithms/coverage/tools/stage2.cpp` → `acsd-stage2.exe`）：
   单 JSON 参数驱动 DISCOVER → VALIDATE → COVERAGE_UNION → CONTROL_SAMPLE →
   UPM_FIT → UPM_PERSIST → BLOCK_PLAN → BLOCK_CALIBRATE → REJECT_INTEGRATE →
   HIPS_WRITE → HIPS_VERIFY；输出 signal/support 两个 Image HiPS；
@@ -79,7 +79,10 @@ photometric scale、新 runtime I/O DLL。
   LinearFit/GeneralizedESD/RCR）
 - block：`p2_block_plan`
 - integrate：`p2_integrate_pixel`
-- acr：`astro::compute::phase2::register_phase2_acr_kernels()`
+- acr：**已退场**。原条目 `astro::compute::phase2::register_phase2_acr_kernels()`
+  随 ACR 子树删除（`383088f2`），该符号在 `lib/`、`eng/` 零命中；加速请求面由
+  `accelerator_fallback` 承接（把 requested/effective/fallback_reason 写入
+  `diagnostics.json`）。
 
 ## 未完成 / 已知限制
 
@@ -234,11 +237,15 @@ photometric scale、新 runtime I/O DLL。
   (2) `:2765`（p2_op_integrate）把该**像素级**标志套用到该像素的**每一个**
   样本——部分拒绝像素内被拒样本仍进积分 ⇒ nused 含被拒样本 ⇒
   nused + nrej > depth ⇒ n_ineligible < 0（违反 §30.2 完备划分）。
-- **lib/algorithms/coverage 两条生产路径已正确**（逐样本剔除，即本任务目标行为）：
-  `eng/tools/stage2.cpp:1462-1467 / 1515-1522` 与
-  `src/acr_kernels.cpp:184-193` 均按 kernel reason 写**每样本** acc[] 后
-  再过 p2_integrate_pixel。⇒ 违规面唯一 = lib/infrastructure/scheduler 节点链（Stage2 CLI 与
-  ACR 均不产出 §30.2 的 nused/nrej/variance/ivar 产品）。
+- **lib/algorithms/coverage 生产路径已正确**（逐样本剔除，即本任务目标行为）：
+  `lib/algorithms/coverage/tools/stage2.cpp:1462-1467 / 1515-1522` 均按 kernel
+  reason 写**每样本** acc[] 后再过 p2_integrate_pixel。
+  ⚠️ 此处原引的两条路径均已失效：(a) 路径写成了 `eng/tools/stage2.cpp`，真实路径是
+  `lib/algorithms/coverage/tools/stage2.cpp`；(b) 并列的第二条
+  `src/acr_kernels.cpp:184-193` **已随 ACR 子树退场删除**（`383088f2`，
+  `test -e` 退出码 1），**不得**再当作「已正确的生产路径」引用 —— 那是在为一个
+  不存在的实现背书。现存唯一的 coverage 生产路径是上述 stage2.cpp。
+  ⇒ 违规面唯一 = lib/infrastructure/scheduler 节点链。
 - 本任务 in-scope 交付（白名单内，source 面零改动于 lib/algorithms/coverage/src、
   include、tools）：eng/tests/unit/p2002_unc_rej_prov_test.cpp 新增 2c/2d/2e 三节
   + 订正 2 节被缺陷行为编码的旧期望——（a）§30.2 恒等式逐像素断言
