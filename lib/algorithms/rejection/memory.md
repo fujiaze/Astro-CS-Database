@@ -42,7 +42,9 @@
   gather :1101/:1349、p2_reject_stack_ex :1184（串行）/:1449
   （并行块内）、OMP 像素间并行 :1288、per-thread 统计 thread id
   定序归并 :1305-1313、large_scale 两遍 :1544-1605（调用 :1549）。
-  acr_kernels.cpp（361 行）OMP :218/:228 schedule(static)。
+  ⚠️ 原并列的 ACR 消费面（acr_kernels.cpp 361 行 OMP :218/:228
+  schedule(static)）已随 `383088f2` 删除该文件一并退场，现存像素间并行面
+  只有 Stage2 一处。
 - descriptor 占位（不改码）: lib/infrastructure/scheduler/src/module_adapters.cpp
   p2_reject_descriptor :638-655（module_id=acsd.phase2.reject、
   sci_id=SCI-P2-REJ-001/alg_id=ALG-P2-REJ-001/data_id=DATA-P2-REJ/

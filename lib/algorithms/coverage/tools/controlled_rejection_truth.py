@@ -156,7 +156,7 @@ def make_config(method, out):
                                           "underdetermined_n": 2},
                             # 「权重模式」概念不存在（docs/ACSD_DESIGN.md §3.1（数据对象））
                             # ⇒ weight_mode 已删除（出现即拒绝）。
-                            "acr_route": "cpu"},
+                            },
             "output": {"hips": out}, "diagnostics": {"enabled": True}}
 
 

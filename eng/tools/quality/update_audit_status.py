@@ -48,7 +48,7 @@ CHANGED = {
 }
 
 BATCH = {
-    "lib/algorithms/shared": "B01", "lib/infrastructure/acr/api": "B14", "lib/infrastructure/acr": "B14",
+    "lib/algorithms/shared": "B01",
     "lib/infrastructure/aio": "B02", "lib/algorithms/calibration": "B03",
     "lib/algorithms/psf": "B04", "lib/algorithms/star_detection": "B04",
     "lib/infrastructure/gaia_xpsd_client": "B05", "lib/algorithms/platesolve": "B06",
@@ -67,7 +67,7 @@ def batch_of(path: str) -> str:
     if top == "root":
         return "B01"
     if path.startswith("lib/algorithms/coverage") and any(
-            s in path for s in ("rejection", "integrate", "block", "acr_kernels")):
+            s in path for s in ("rejection", "integrate", "block")):
         return "B11"
     for prefix, b in BATCH.items():
         if path.startswith(prefix):

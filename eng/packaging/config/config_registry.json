@@ -2678,7 +2678,7 @@
         "parameter": "工作窃取策略（work stealing policy）",
         "planned_key": "scheduler_work_steal_policy（值域：0=atomic-claim 动态认领（现状）|1=per-worker 双端队列窃取）",
         "status": "未落地（生产无实现）",
-        "reason": "全仓 grep：生产侧零 work-steal 实现（唯一命中 = lib/infrastructure/acr/**，而 ACR 生产不可达，docs/ACSD_DESIGN.md §8.4）；P1 帧轴现用原子认领（p1_parallel_for），无窃取路径。",
+        "reason": "全仓 grep：生产侧零 work-steal 实现（全仓零命中）；P1 帧轴现用原子认领（p1_parallel_for），无窃取路径。",
         "ruling": "按裁决「先落受控配置键，再接线；禁止实现侧硬编码字面量」：键位与守卫方案已备于此，**不落死键**（无读取面的键会被 check_config_consumed 的 C1 判死键）。",
         "unblock": "实现窃取调度（lib/infrastructure/scheduler/src/**）+ 数值等价负例（SCHEDULER_CONTRACT.md「异步与工作窃取只改变执行顺序，不改变结合顺序」）后，同批落键。"
       }

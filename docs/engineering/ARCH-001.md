@@ -148,25 +148,15 @@ io → data_contracts; io ⇏ runtime; io ⇏ modules
 - **产品验证入口**：命令树不设独立 verify 命令，验证能力由 `doctor` 的机器旗标承载；
   命令树与机器输出正本 = `docs/engineering/CLI_PROTOCOL_V1.md`。
 
-## 6. ACR 隔离
-
-- 默认构建 `ACSD_ENABLE_ACR=OFF`；生产 CLI 链接图/符号/运行模块表内一律没有
-  ACR。
-- 生产计算后端是纯 CPU 自适应后端（最高设计 §1.3、§9）；配置项 `acr_route` 只作配置守卫，
-  取非 `cpu` 值时显式拒绝或回退 `cpu`。
-- ACR 源码保留 dormant target，可独立构建/测试，不属生产发布面。
-- 未来接入只实现同一 CPU Backend/Compute Provider 上层合同。
-
-## 7. 生产架构硬约束
+## 6. 生产架构硬约束
 
 - 生产只存在一个全局执行平面：全局执行顺序与资源预算归 Pipeline Runtime，CLI 不顺序调用阶段 session，
   阶段间只经磁盘产品与 manifest 交换。
 - I/O 边界不承担编排：`aio` 只做读写与原子提交，不内置 stage 调度。
 - 科学调用一律经模块入口，CLI 不直呼科学内核。
 - 生产重计算路径的并行度取自 profile，固定串行一律判红。
-- 生产构建的链接图、导出符号与运行模块表内没有 ACR。
 
-## 8. 不变量（机器可验）
+## 7. 不变量（机器可验）
 
 1. 唯一生产入口 = `acsd`；命令树口径唯一，机器门覆盖 `eng/tests/cli/` 与
    `docs/engineering/CLI_PROTOCOL_V1.md` 的命令树一致性。
@@ -176,7 +166,7 @@ io → data_contracts; io ⇏ runtime; io ⇏ modules
 5. 唯一 CLI 入口在进程内（in-process）按命令拉起对应阶段的调度器：一次调用只驱动一个阶段，
    三个阶段各自实例化调度器与内存管线，无跨阶段进程边界。
 
-## 9. 平台与发布形态
+## 8. 平台与发布形态
 
 - 正式开发、客户端与发布平台 = Windows x64；兼容下限 Windows 10 22H2 x64（build 19045），
   Windows 11 x64 为主验证环境（最高设计 §11）。
@@ -190,7 +180,7 @@ io → data_contracts; io ⇏ runtime; io ⇏ modules
 - HiPS Browser 不注册为 CLI 插件、不进入科学 DLL 列表；未来图形界面经稳定的 CLI、JSON、退出码与
   产品文件调用（最高设计 §1.3、§8.4）。
 
-## 10. 验收
+## 9. 验收
 
 - canonical run 不链接、不调用非 Runtime 调度器与 ACR；CLI 薄化；静态图=trace；
   dependency checker 证明 I/O 无 runtime 依赖。

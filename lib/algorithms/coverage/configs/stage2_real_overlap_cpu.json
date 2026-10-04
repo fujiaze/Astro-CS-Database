@@ -31,8 +31,7 @@
         "upper_sigma": 3.0,
         "max_iterations": 8
       }
-    },
-    "acr_route": "cpu"
+    }
   },
   "output": {
     "hips": "run/phase2/real_overlap_cpu.mosaic.hips"

@@ -2725,20 +2725,6 @@
       "suggested_wording": "标注为 ARCHIVED：support×snr² 权重形态被 UNIFIED §11 撤销；support/coverage 只作门，local_snr/frame_snr 只作相对质量诊断，不得作科学权重来源；生产权重枚举改为显式三模式。"
     },
     {
-      "id": "SUP-06",
-      "doc_id": "SCI-ACR-EQUIV-001",
-      "file": "docs/science/ACR_EQUIVALENCE.md",
-      "section": "§4 GPU 合同",
-      "lines": "33",
-      "statement": "`weight_mode∈{auto,ivar,equal,support_x_snr2}`（已按 §9.73 A44 作废：该概念不存在）",
-      "superseded_by": [
-        "FZ-FIELD-WEIGHTMODE",
-        "FZ-MODE-PRODUCTION"
-      ],
-      "signoff": "SO-06",
-      "suggested_wording": "标注为 ARCHIVED/HISTORICAL：ACR 等价门不得反向定义生产权重枚举；生产权重枚举以 FZ-MODE-PRODUCTION 为唯一来源，auto/support_x_snr2/legacy 整数不得出现在产品 schema 合法取值域。"
-    },
-    {
       "id": "SUP-07",
       "doc_id": "SCI-INT-001",
       "file": "docs/science/INTEGRATION.md",
@@ -2806,7 +2792,7 @@
     "numeric_thresholds": 54,
     "open_items_registered": 27,
     "signoff_items": 7,
-    "superseded_sections": 10
+    "superseded_sections": 9
   },
   "a44_deprecation": {
     "banner": "本文件属历史/冻结层。其中「权重模式 / 权重档位 / mode0·mode1·mode2」这一整套概念不存在（负责人 2026-09-20 裁决，GAP_AUDIT.md §9.73 A44；docs/ACSD_DESIGN.md §2.1）。内容保持历史原样、仅作留痕，不构成现行规范；权重 = 阶段二按天球像素对应帧集合现场算出的派生量。",
@@ -3357,7 +3343,6 @@
       "SUP-03",
       "SUP-04",
       "SUP-05",
-      "SUP-06",
       "SUP-07",
       "SUP-08",
       "SUP-09",

@@ -24,11 +24,12 @@
 # （:336-346，:340 编入 src/rejection.cpp）。
 # threading_model=host_executor_lease 为迁移目标合同值（11 号标准 §4
 # 值域）；现状实现=像素级纯函数（rejection kernel 无任何线程原语，
-# 像素间并行在调用方：stage2.cpp:1288 OMP / acr_kernels.cpp:218 OMP
-# schedule(static)；Stage2 per-thread 统计按 thread id 固定顺序定序
-# 归并 stage2.cpp:1305-1313；large_scale 激活时 Stage2 强制串行，
-# grow 缓冲跨线程覆盖防护）；ThreadLease/取消检查点无接线（迁移
-# 整改点，与 DISP-COV-005 同构）。
+# 像素间并行在调用方：stage2.cpp:1288 OMP schedule(static)；Stage2
+# per-thread 统计按 thread id 固定顺序定序归并 stage2.cpp:1305-1313；
+# large_scale 激活时 Stage2 强制串行，grow 缓冲跨线程覆盖防护）。
+# 并行语义已随 ACR 退场移除：原 `acr_kernels.cpp:218 OMP` 像素间并行面随
+# `383088f2` 删除该文件一并消失，现存像素间并行面只有上述 Stage2 一处。
+# ThreadLease/取消检查点无接线（迁移整改点，与 DISP-COV-005 同构）。
 # entrypoint=MISSING：registry 入口未接；descriptor 现状占位 ID
 # （lib/infrastructure/scheduler/src/module_adapters.cpp:638-655 p2_reject_descriptor 的
 # module_id=acsd.phase2.reject、sci_id=SCI-P2-REJ-001/

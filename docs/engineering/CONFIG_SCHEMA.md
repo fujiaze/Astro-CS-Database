@@ -55,7 +55,7 @@ integration: precision(fp32) memory_limit_mb rejection{method
              rcr{technique ss_median_dl}
              （low/high/max_iterations/min_samples 不是现行键（出现即硬错误），
               旧 config 必须 eng/tools/migrate_stage2_config.py 迁移）}
-             weight_mode(auto) acr_route(auto/cpu)   # acr_route 是**活键**：parser 读取并校验（stage2_common.cpp），仅接受 auto/cpu；默认值 auto。权重仍是派生量，见下方 note
+             weight_mode(auto)   # acr_route **不是现行键**（已从 parser 删除）：出现在 integration 段即 fail-closed 拒绝；退役对象的拒绝面必须存活，不得静默忽略或静默取默认值（与同函数内 weight_mode / legacy_allow_weight_fallback 的退役键拒绝面同型，stage2_common.cpp）。集成执行路由唯一 = CPU。权重仍是派生量，见下方 note
 
 rejection.method 说明（V17 冻结）：
   - 默认 `method=auto` + `profile=acsd_adaptive_pixel`
@@ -141,16 +141,11 @@ output.hips / diagnostics
 | block_calibrate | stage2.integration.* | phase2/block | p2_upm_calibrate_block | parallel_cpu | block.t_ms | TEST-P2-CALIB-001 |
 | rejection | stage2.integration.rejection.* | phase2/rejection | p2_reject_stack_ex (7 档自动选择 SD-18: 1-3 none/4-5 percentile/N>=6 winsorized) | tile 级并行 (p2_parallel_for,  std::thread) | rejection.n_rejected_low/high | TEST-REJ-* |
 | integration | stage2.integration.* | phase2/integrate | p2_integrate_pixel | tile 级并行 (p2_parallel_for,  std::thread) | integrate.signal/support | V17StatusesExplicit |
-| acr_routing(DORMANT，非生产) | stage2.integration.acr_route | acr/dispatcher | Dispatcher::decide / register_phase2_acr_kernels | DORMANT（保留源码与隔离测试；生产构建/加载/路由/benchmark/发布不含 ACR/CUDA，最高设计 §8） | diagnostics.route | TEST-ACR-001 |
 | hips_write | stage2.output.hips | astro_image_io | aio_hips_writer | serial+async_io | hips.nside | TEST-HIPS-001 |
-
-> `acr_routing` 一行为 **DORMANT**：保留源码与隔离测试，生产构建、加载、路由、benchmark 与
-> 发布均不含 ACR/CUDA（最高设计 §8）；`stage2.integration.acr_route` 只接受 `auto`/`cpu`，
-> 默认 `auto`（`lib/algorithms/coverage/src/stage2_common.cpp` 的 parser 与校验）。
 
 ## Stage1 config
 
 见 `lib/infrastructure/pipeline/orchestrator/configs/stage1_*.json` 模板。
 
 - `drizzle.pixfrac` (0,1]：`stage1.schema.json` 默认 0.8（生产默认收缩滴落，`stage1.template.json` 同）；
-  银心三面板 `stage1_gc_panel{1,2,3}_Red.json` 为 `pixfrac=1.0` 无收缩分支（最大覆盖/GC 专用），与默认分支在 `lib/infrastructure/pipeline/orchestrator/configs/` 并存，`docs/engineering/ARCH-001.md §6` 同步说明。
+  银心三面板 `stage1_gc_panel{1,2,3}_Red.json` 为 `pixfrac=1.0` 无收缩分支（最大覆盖/GC 专用），与默认分支在 `lib/infrastructure/pipeline/orchestrator/configs/` 并存。

@@ -85,13 +85,14 @@ mask（rejection reasons + large_scale grow，**不输出产品、不入权重�
 
 生产入口 stage2.cpp `main`（CLI `--cpu-workers` / `--io-workers` / `--gpu-route` /
 `--deterministic`，CON-002）；阶段二头文件族 = `astro/phase2/{upm, stage2_common,
-coverage, sampler, rejection, block, integrate, acr_kernels}.h`（`P2_API` /
+coverage, sampler, rejection, block, integrate}.h`（`P2_API` /
 `extern "C"`）；config 层 stage2_common.h（`p2_stage2_parse_config` /
 `p2_stage2_make_upm_cfg` / `p2_acr_block_eligible`）；编排消费
 `p2_collect_candidate_stack` / `p2_reject_stack_ex` / `p2_integrate_pixel` /
 `p2_large_scale_apply` / `p2_block_plan`（lib/algorithms/coverage 冻结接口）；库消费
 aio_hips.h 的 9 个 C ABI 符号（P1 冻结面）。源文件 =
-`lib/algorithms/coverage/{src, include/astro/phase2, tools, tests}/`。
+`lib/algorithms/coverage/{src, include/astro/phase2, tools, tests}/`。原头文件族里
+并列的 acr_kernels.h 已随 ACR 子树退场删除（`383088f2`），该冻结接口成员不再存在。
 
 公共 API 登记 = API-P2-HIPS-001（PUBLIC_API Phase2 mosaic write 节，
 stage2 配置 schema + 退出码 2/3/4/5/6/7 + diagnostics.json 键集）。
@@ -109,7 +110,7 @@ sci_id=SCI-P2-WR-001/alg_id=ALG-P2-WR-001/test_id=TEST-P2-WR-001）为编排层
 冻结依据 = `docs/science/algorithms/PHASE2_MOSAIC_WRITE.md`（ALG-P2-HIPS-001..004）。
 配置=single JSON
 （P2Stage2Config：reject_profile（工具链默认 wbpp_2_9_1；生产入口默认
-acsd_adaptive_pixel）、large_scale 默认关、acr_route=auto、
+acsd_adaptive_pixel）、large_scale 默认关、
 memory_limit_mb=24576 等，权威=API-P2-HIPS-001）。
 
 ## Execution class、并行轴、ThreadBudget lease、确定性
@@ -157,14 +158,16 @@ ALG-UPM-CONTROL-IVAR-001、DATA-UPM-CONTROL-UNC-001。`ERR-P2-UPM-001`（畸形�
 
 `TEST-P2-HIPS-001` 待建；设计冻结 = ALG-P2-HIPS-001..004
 （PHASE2_MOSAIC_WRITE.md §8/§9：NumPy 参考 signal / sup_max rtol = 1e-12、序转换
-恒等往返、ivar 门负例）。已取证的相邻读数：ACR `mosaic_reject_legacy` ↔ CPU 等价、
+恒等往返、ivar 门负例）。已取证的相邻读数：ACR `mosaic_reject_legacy` ↔ CPU 等价
+（该符号的定义侧随 ACR 子树退场删除（`383088f2`），`lib/` 下已无该符号）、
 synthetic_gate UPMW 组、G5 ivar 真值、SNR-015 ablation；这些读数的载体不在本仓
 可复算路径上，引用时只作背景。
 
 ## 已知限制
 
-- ACR 仅有 `mosaic_reject_legacy` CPU launcher（**无 CUDA kernel**）；输出仅
-  signal / support；
+- ACR 子树已退场（`383088f2`）：其仅有的 CPU launcher `mosaic_reject_legacy`
+  （**无 CUDA kernel**）随 `lib/algorithms/coverage/src/acr_kernels.cpp` 一并删除，
+  「输出仅 signal / support」随之成为历史读数，不再是现行限制；
 缺陷登记 = lib/algorithms/coverage/hips_p2/README.md §7 与 ALG-P2-HIPS-001..004
 缺陷清单（登记不改码，整改面未落地）：无 variance / ivar 输出产品；hash 链未入
 HiPS properties provenance；阶段二直写 `out_hips` 无 staging（原子发布归 IO-003，

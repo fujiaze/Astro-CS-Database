@@ -1123,7 +1123,7 @@ registry descriptor 像素登记面）。
 | reject_normalization | "acsd_median_center_v1"（:56） | 无量纲 | 判定工作域归一（mask 应用回原始值） |
 | large_scale_enabled（+ min_structure_pixels/low_grow/high_grow） | false / 8 / 2 / 2（:60-63） | 无量纲 | acsd.large_scale_rejection.v1，默认关闭 |
 | 键面 | — | — | 不含 `weight_mode` / `legacy_allow_weight_fallback` 键（`docs/ACSD_DESIGN.md` §3.1（数据对象）：全链没有「权重模式」这一可选概念）；ivar 产品缺失时按 rc=7 失败（stage2.cpp:565-578） |
-| acr_route | "auto"（:95） | cpu/auto/cuda 族 | 集成执行路由 |
+| acr_route | —（键已删除） | 不是现行键 | 集成执行路由的选择键已退场：出现在 config 中即 fail-closed 拒绝，退役对象的拒绝面必须存活（不得静默忽略或静默取默认值），与 `weight_mode` / `legacy_allow_weight_fallback` 同型，见 `lib/algorithms/coverage/src/stage2_common.cpp` 的退役键拒绝面；集成执行路由唯一 = CPU，无可选路由 |
 | out_hips | —（:97） | 路径 | 输出 HiPS 产品集根目录 |
 | diagnostics | true（:98） | bool | true → 落 diagnostics.json（本节键集） |
 

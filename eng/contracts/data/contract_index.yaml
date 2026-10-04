@@ -16,7 +16,7 @@ contracts:
     version: 1.0.0
     path: docs/science/SCIENCE_SCOPE.md
     upstream: []
-    downstream: [SCI-CAL-001, SCI-WCS-001, SCI-PHOT-001, SCI-PSF-001, SCI-NOISE-001, SCI-DRZ-001, SCI-UPM-001, SCI-REJ-001, SCI-INT-001, SCI-CW-001, SCI-AST-001, SCI-ACR-EQUIV-001, SCI-P3-001, ALG-P2-HIPS-001, ALG-P2-HIPS-002, ALG-P2-HIPS-003, ALG-P2-HIPS-004]
+    downstream: [SCI-CAL-001, SCI-WCS-001, SCI-PHOT-001, SCI-PSF-001, SCI-NOISE-001, SCI-DRZ-001, SCI-UPM-001, SCI-REJ-001, SCI-INT-001, SCI-CW-001, SCI-AST-001, SCI-P3-001, ALG-P2-HIPS-001, ALG-P2-HIPS-002, ALG-P2-HIPS-003, ALG-P2-HIPS-004]
   - id: SCI-CAL-001
     type: SCI
     status: ACTIVE
@@ -121,14 +121,6 @@ contracts:
     path: docs/science/PHASE3_HIPS_TO_FITS.md
     upstream: [SCI-WCS-001, SCI-DRZ-001, SCI-SCOPE-001]
     downstream: [ALG-P3-001, ALG-P3-002, ALG-P3-003, ALG-P3-004, ALG-P3-FITS-IMPL-001, ALG-P3-PROJ-IMPL-001, ALG-P3-RSMP-IMPL-001, DATA-P3-UNC-001]
-  - id: SCI-ACR-EQUIV-001
-    type: SCI
-    status: DORMANT
-    owner: ACSD
-    version: 1.0.0
-    path: docs/science/ACR_EQUIVALENCE.md
-    upstream: [SCI-SCOPE-001]
-    downstream: [ALG-ACR-EQUIV-001]
 
   # ── ALG 算法推导 ──
   # 锚合同（L28e-E-004 登记：此前全仓仅自身声明行、INDEX 零命中 ⇒ 孤锚）。
@@ -627,14 +619,6 @@ contracts:
     version: 1.0.0
     path: docs/science/algorithms/GAIA_QUERY.md
     upstream: [SCI-AST-001]
-    downstream: []
-  - id: ALG-ACR-EQUIV-001
-    type: ALG
-    status: DORMANT
-    owner: ACSD
-    version: 1.0.0
-    path: docs/science/algorithms/ACR_EQUIVALENCE.md
-    upstream: [SCI-ACR-EQUIV-001]
     downstream: []
 
   # ── DATA 数据语义 ──

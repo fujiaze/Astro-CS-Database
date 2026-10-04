@@ -1214,7 +1214,7 @@ P2Stage2Config 公共关键字段（唯一签名源 stage2_common.h:16-99，行�
 | large_scale_enabled（及 min_structure_pixels/low_grow/high_grow） | false / 8 / 2 / 2（:60-63） | 无量纲 | acsd.large_scale_rejection.v1，默认关闭（WBPP largeScaleClip 默认一致） |
 | weight_mode（键不存在） | — | 无量纲 | **禁用键**：全链不存在「权重模式」这一可选概念（`docs/ACSD_DESIGN.md` §3.1（数据对象））；逆方差权重由阶段二按该天球像素对应的帧集合**现场算出**（派生量，非配置项）；配置中出现该键 ⇒ 具名 fail-closed 拒绝（§31.8） |
 | legacy_allow_weight_fallback（键不存在） | — | — | **禁用键**：缺 ivar 的失败语义由「权重现场算」条款承载 —— ivar 产品缺失 → rc=7 显式科学错误（stage2.cpp:792-805）；配置中出现该键 ⇒ 具名 fail-closed 拒绝（§31.8） |
-| acr_route | "auto"（:95） | 无量纲 | 集成执行路由 |
+| acr_route（键不存在） | — | — | **禁用键**：集成执行路由唯一 = CPU（`docs/ACSD_DESIGN.md` §9（CPU 后端与资源）：生产仅纯 CPU）；GPU 与 CPU/GPU 混合生产路由属非目标（§1.3（非目标））；配置中出现该键 ⇒ 具名 fail-closed 拒绝（§31.8） |
 | out_hips | —（:97） | 文件系统路径 | 输出 HiPS 产品集根目录 |
 | diagnostics | true（:98） | bool | true → 落 `<out_hips>/diagnostics.json`（§20.3 provenance 链） |
 
@@ -1357,7 +1357,7 @@ signal 回读失败 rc=7 :1665）。
   逐符号数据合同见 §21。
 - **dtype/确定性**: 全浮点输出限 float32/float64 IEEE 域
   （precision 唯一选择 :528）；整数登记量（nside/order/tile 计数/
-  UNIQ）bitwise 确定；浮点积分确定性受 acr_route/execution
+  UNIQ）bitwise 确定；浮点积分确定性受 execution
   预算（CON-002，CLI/退出码同源 API-P2-HIPS-001）控制。
 - **交叉引用**: 上游 ALG-P2-HIPS-001..004（docs/science/algorithms/
   PHASE2_MOSAIC_WRITE.md）；同文档相关节: DATA-P2-INT（暂无独立

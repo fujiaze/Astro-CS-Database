@@ -12,7 +12,7 @@
 ## 内容
 
 - algorithms/ —— 科学算法唯一家，子目录并联放置：calibration、cosmetic、star_detection、psf、platesolve、photometry、noise_snr、drizzle、coverage、sampling、upm、rejection、integration、projection、resample、fits_output、shared。
-- infrastructure/ —— 工程基建：cli/（normalize/mosaic/export 三个子命令薄入口）、pipeline/（命名块与 typed DAG）、scheduler/（三阶段调度器）、aio/（FITS/HiPS/manifest 唯一 I/O）、benchmark/、observability/、gaia_xpsd_client/、acr/、hips_browser/。
+- infrastructure/ —— 工程基建：cli/（normalize/mosaic/export 三个子命令薄入口）、pipeline/（命名块与 typed DAG）、scheduler/（三阶段调度器）、aio/（FITS/HiPS/manifest 唯一 I/O）、benchmark/、observability/、gaia_xpsd_client/、hips_browser/。
 - phase1_session/ —— normalize 阶段装配会话与端口表（p1_session.cpp/.h、module.yaml、memory.md、tests/）。
 - phase2_session/ —— mosaic 阶段装配会话（p2_session.cpp/.h、module.yaml、memory.md）。
 - phase3_session/ —— export 阶段装配会话与导出接口（p3_session.cpp/.h、p3_export.cpp/.h）。

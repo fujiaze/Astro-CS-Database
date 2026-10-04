@@ -144,7 +144,7 @@ def run_stage2(cfg_name, method, frames, out_name):
                                          "underdetermined_n": 2},
                            # 「权重模式」概念不存在（docs/ACSD_DESIGN.md §3.1（数据对象））
                            # ⇒ weight_mode 已删除（出现即拒绝），不再生成。
-                           "acr_route": "cpu"},
+                           },
            "output": {"hips": f"run/temp/v17_control_truth/{out_name}"},
            "diagnostics": {"enabled": True}}
     cfg_path.write_text(json.dumps(cfg, indent=2), encoding="utf-8")

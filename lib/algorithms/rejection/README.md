@@ -9,9 +9,10 @@
 > `lib/algorithms/coverage/src/rejection.cpp`（2076 行，根 CMakeLists acsd_phase2
 > 静态库成员 :336-346/:340）+ 唯一权威签名头
 > `lib/algorithms/coverage/include/astro/phase2/rejection.h`（329 行）；消费链
-> `lib/algorithms/coverage/tools/stage2.cpp`（1762 行，马赛克编排）与
-> `lib/algorithms/coverage/src/acr_kernels.cpp`（361 行，ACR 加速），均为本模块
+> `lib/algorithms/coverage/tools/stage2.cpp`（1762 行，马赛克编排），为本模块
 > 合同消费者。
+> 曾并列的 `lib/algorithms/coverage/src/acr_kernels.cpp` 已随 ACR 子树退场删除
+> （`383088f2`），该消费面不再存在。
 
 ## 身份与合同
 
@@ -82,9 +83,10 @@
   （mask 1→0 禁止）；cosmic 紧凑结构不生长（min_structure 门 +
   V17LargeScaleGrowsTrailNotCosmic :4798 冻结）。
 - 并发：像素级纯函数，与 worker 数无关 bitwise（像素内候选索引
-  固定序归约；并行轴在调用方 stage2.cpp:1288 / acr_kernels.cpp:218
-  OMP；Stage2 per-thread 统计按 thread id 定序归并
-  :1305-1313）→ CON-006 deterministic 决策合同。
+  固定序归约；并行轴在调用方 stage2.cpp:1288 OMP；Stage2 per-thread
+  统计按 thread id 定序归并 :1305-1313）→ CON-006 deterministic 决策合同。
+  ⚠️ 并行语义已随 ACR 退场移除：原并列的 `acr_kernels.cpp:218 OMP` 像素间
+  并行面随该文件删除（`383088f2`）一并消失，现存并行面只有上述 Stage2 一处。
 
 ## 验证
 

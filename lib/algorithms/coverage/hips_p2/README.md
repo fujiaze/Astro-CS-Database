@@ -120,9 +120,9 @@ surface brightness 语义矛盾，现行 = UnitId::SURFACE_BRIGHTNESS。）
 --cpu-workers/--io-workers/--gpu-route cpu|auto|cuda/--deterministic 0|1
 （CON-002 :155-166）。公共关键字段（stage2_common.h）：hips[]、
 target_order(auto)、precision(0)、reject_method(AUTO)/reject_profile
-（`weight_mode` / `legacy_allow_weight_fallback` 已删除：出现即拒绝）
+（`weight_mode` / `legacy_allow_weight_fallback` / `acr_route` 已删除：出现即拒绝）
 (wbpp_2_9_1)/reject_underdetermined_n(2)、reject_normalization
-(acsd_median_center_v1)、large_scale_*(false)、acr_route(auto)、
+(acsd_median_center_v1)、large_scale_*(false)、
 memory_limit_mb(24576)、out_hips、diagnostics(true)。权威登记：
 PUBLIC_API.md Phase2 mosaic write 节（API-P2-HIPS-001）。
 
