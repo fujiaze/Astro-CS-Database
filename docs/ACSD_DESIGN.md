@@ -635,7 +635,7 @@ flowchart TD
 | L4 真实视觉验收 | 马赛克→平面 FITS→拉伸 PNG→切块目检：无黑洞、亮斑、接缝，星点正常、全局正常，由负责人目检判定 |
 
 - 容差在写测试前冻结，NaN/Inf/缺失的位置与语义精确一致；受影响验证范围由改动集算出，只扩大不缩小。
-- L4 通过且关键机器门全绿后由负责人决定发布预览版。
+- L4 通过、且关键度量经对抗性审核重新推导并构造反例确认后，由负责人决定发布预览版。
 
 **下级索引**：下级正本见 `docs/engineering/02_PIPELINE.md`、`docs/engineering/04_ARTIFACTS.md`、`docs/engineering/TEST_MATRIX.md`、`docs/engineering/TRACEABILITY_SPEC.md`、`docs/engineering/complexity_baseline_v1.md`，另 1 份。
 
@@ -660,7 +660,7 @@ flowchart TD
 
 - 产品版本以仓库根 VERSION 为唯一事实源，构建、命令行 `--version` 与产品 manifest 由该源派生或一致；文档与合同的内部修订号不进入程序与产物。
 - 只有通过验收的阶段在产品 manifest 标 available，未实现、未验收明确报告。
-- 发布候选满足：合同冻结无冲突、追溯无断链、模块可独立加载验证、无硬编码线程与无界内存增长、双平台 CI 通过、四层验收通过（L4 含真实数据目检）、发行包白名单与哈希通过。
+- 发布候选满足：合同冻结无冲突、追溯无断链、模块可独立加载验证、无硬编码线程与无界内存增长、双平台全量编译通过且警告为零、四层验收通过（L4 含真实数据目检）、发行包白名单与哈希通过。
 - 最终发布决定只属项目负责人；agent 至多声明 READY_FOR_OWNER_REVIEW；负责人目视认可后执行发布收口，标记 alpha 预览版。
 
 **下级索引**：下级正本见 `docs/engineering/COMPRESSION_CODEC_RESEARCH_PACK.md`、`docs/engineering/RELEASE_STATUS.md`、`docs/engineering/UNRESOLVED_REGISTER.md`、`docs/engineering/VERSIONING.md`。
