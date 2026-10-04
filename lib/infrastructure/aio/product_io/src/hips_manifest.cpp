@@ -41,9 +41,36 @@ bool allowed_tile_format(const std::string& f) {
   return f == "fits" || f == "png" || f == "jpeg" || f == "jpg";
 }
 
+// 词法口径 = IO_003 §3.2「词法拒绝（路径穿越）」（docs/engineering/io/
+// IO_003_ATOMIC_OUTPUT_PUBLISH.md:85-95）+ :77-80 的段词法 ^[A-Za-z0-9._-]+$：
+// 拒绝对路径、父目录穿越、空段/当前段、尾分隔符、反斜杠（Windows 分隔符）、
+// 非法字符段。与生产面同源实现 lib/infrastructure/aio/io/hips_output_store.py:137
+// validate_relative_path（段白名单见同文件 :59）逐条对应。
+//   `..` 按**段**判定而非子串：IO_003 §3.2 列的穿越形态是 `../evil`、`a/../../b`，
+//   均为 `..` 段；按段可避免误拒 `a..b` 这类合法文件名，且对目录穿越零判别力损失。
+// ⚠ 适用面待补正本要点：IO_003 §3.2:87 的适用面原文是「user_path / 发布文件名 /
+// run_id」，未点名本字段；`HipsManifest` 与 `relative_path` 在 docs/ 全树零登记，
+// 该模块首要语义锚 ALG-P3-008 亦为孤儿条款（docs/engineering/UNRESOLVED_REGISTER.md:2004）。
+// 故「本字段按 IO_003 §3.2 判定」是待裁定的推断，不是正本原文；正本补上该适用面一句
+// 之前，本判据按此口径实现并在此标注，不擅自改写正本。
 bool path_is_safe(const std::string& p) {
-  if (p.empty() || p[0] == '/') return false;
-  if (p.find("..") != std::string::npos) return false;
+  if (p.empty()) return false;
+  if (p.find('\\') != std::string::npos) return false;      // 反斜杠（Windows 分隔符）
+  if (p.front() == '/' || p.back() == '/') return false;    // 绝对路径 / 尾分隔符
+  std::size_t start = 0;
+  while (start <= p.size()) {
+    std::size_t end = p.find('/', start);
+    if (end == std::string::npos) end = p.size();
+    const std::string seg = p.substr(start, end - start);
+    if (seg.empty() || seg == "." || seg == "..") return false;  // 空段 / 当前段 / 父目录穿越
+    for (const char c : seg) {
+      const bool ok = (c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z') ||
+                      (c >= '0' && c <= '9') || c == '.' || c == '_' || c == '-';
+      if (!ok) return false;                                  // 非法字符段
+    }
+    start = end + 1;
+    if (end == p.size()) break;
+  }
   return true;
 }
 
@@ -147,6 +174,10 @@ json hips_manifest_to_json(const HipsManifest& m) {
   return j;
 }
 
+// 【零调用者·保留登记】HEAD 全仓符号级枚举无调用者（仅本定义 + hips_manifest.h:70 声明；
+// 排除 build/、run/），且不在任何已发布接口合同内。按 AGENTS.md §6 保留并写明原因：
+// 它是 hips_manifest_to_json 的文本化封装，是 validate_product_record 汇总门所读的
+// manifest 文本形态；退役或接线属接口决策，待负责人裁定；不因当前无调用者而删除。
 std::string render_hips_manifest_json(const HipsManifest& m) {
   return hips_manifest_to_json(m).dump(2) + "\n";
 }

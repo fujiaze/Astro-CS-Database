@@ -159,6 +159,11 @@ std::array<char, 16> fits_encode_checksum(std::uint32_t value) {
   return out;
 }
 
+// 【零调用者·保留登记】HEAD 全仓符号级枚举无调用者（仅本定义 + fits.h:61 声明；
+// 排除 build/、run/），且不在任何已发布接口合同内。按 AGENTS.md §6 保留并写明原因：
+// 它是 FITS 4.0 §4.4.2.5 CHECKSUM 卡的 1 补码解码本体（下方 fold_halves + *value 写入
+// 均为实算），接线即产出正确解码值；本函数签名无失败态，故 return true 是正常返回，
+// 不是恒真桩。退役或接线属接口决策，待负责人裁定；不因当前无调用者而删除。
 bool fits_decode_checksum(const std::array<char, 16>& in,
                           std::uint32_t* value) {
   char cbuf[16];

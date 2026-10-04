@@ -73,6 +73,11 @@ PublishResult publish_fits_product(const std::string& target,
   return atomic_publish_file(target, writer, verify, opts, cancel);
 }
 
+// 【零调用者·保留登记】HEAD 全仓符号级枚举无调用者（仅本定义 + product_io.h:41 声明；
+// 排除 build/、run/），且不在任何已发布接口合同内。按 AGENTS.md §6 保留并写明原因：
+// 它是 README.md:21 所述「产品记录级汇总门」，同时是 hips_manifest.cpp 的
+// relative_path 词法门（path_is_safe 的唯一上游入口）所在的那条链的顶端。接线或退役
+// 属接口决策，待负责人裁定；不因当前无调用者而删除。
 ValidationReport validate_product_record(const Provenance& prov,
                                          const HipsManifest& manifest,
                                          const HipsProperties& props) {
