@@ -37,10 +37,6 @@ doc_index:
   schema_rev: "3"
   coverage: "docs/** 全部 .md 与 .yaml + 仓库根固定条目（AGENTS.md、README.md、VERSION）；目录招牌件按「每目录必有 README」治理，不进规范索引面。覆盖面以人读件为界：机器源（.json/.csv/.py 等）不因跨域而自动取得登记资格；跨域件按 docs/engineering/DOCUMENT_GOVERNANCE.md 规则 6 以 notes 具名豁免登记，当前豁免 4 条（跨域人读件 2 条：实验/裁决台账.md、artifacts/evidence/known-limitations-ledger/LIMITATIONS.md；人读正本直接依赖的判据实现 2 条：eng/contracts/ledgers/ledger_schema.py、eng/tools/source_scan.py）"
   active:
-    - path: "docs/detail/infrastructure/acr.md"
-      status: ACTIVE_NORMATIVE
-      duty: "异构计算运行时落地设计：kernel registry、CPU 调度、device executor、route calibration"
-      upstream: "docs/ACSD_DESIGN.md §8.4（顶层结构）、§8.5（模块与 ABI）"
     - path: "实验/裁决台账.md"
       status: ACTIVE_NORMATIVE
       duty: "跨单元裁决台账：五个创新点实验重做的分歧终裁，含依据与落点正本节"
@@ -822,11 +818,6 @@ doc_index:
       duty: "科学正本层的分歧终裁同步件：跨单元与逐单元裁决中改变公式、常数取值与判据口径的部分，逐条登记「裁决 → 正本节」对应关系"
       upstream: "docs/ACSD_DESIGN.md §2（核心科学方法：五个创新点）、§12.1（科学正确性与三重佐证）"
       downstream: ""
-    - path: "docs/science/ACR_EQUIVALENCE.md"
-      status: ACTIVE_NORMATIVE
-      duty: "ACR 等价性的科学边界（生产不可达）"
-      upstream: "docs/ACSD_DESIGN.md §1.3（非目标）、§4（normalize：单帧标准化）"
-      downstream: "clause_registry.json、文档现状审计台账.csv 等 29 处"
     - path: "docs/science/ASTROMETRY.md"
       status: ACTIVE_NORMATIVE
       duty: "WCS/SIP 天测科学公式与外部闭环口径"
@@ -984,10 +975,6 @@ doc_index:
       status: ACTIVE_NORMATIVE
       duty: 验证证据标准：独立 Oracle、零用例即红、负向 mutation 目录、基线比较矩阵与声明边界
       upstream: "docs/ACSD_DESIGN.md §12（验证体系）"
-    - path: "docs/science/algorithms/ACR_EQUIVALENCE_ALGORITHMS.md"
-      status: ACTIVE_NORMATIVE
-      duty: ACR 等价性判据的算法推导，对应 science/ACR_EQUIVALENCE.md 的顶层科学口径
-      upstream: "docs/ACSD_DESIGN.md §1.3（非目标）；docs/science/ACR_EQUIVALENCE.md"
     - path: "artifacts/evidence/known-limitations-ledger/LIMITATIONS.md"
       status: ACTIVE_INFORMATIVE
       duty: 已知限制台账的人读面，逐条 48 项

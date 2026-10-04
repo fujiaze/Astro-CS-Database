@@ -78,13 +78,11 @@ flowchart LR
 
 ### 1.3 非目标
 
-- GPU 与 CPU/GPU 混合生产路由（相关实验源码隔离保留，生产不可达）；
+- GPU 与 CPU/GPU 混合生产路由；
 - Windows/Linux 图形界面（球面浏览器是未来可视化组件，不进产品清单）；
 - ARM 及非 amd64 架构；
 - 从任意路径加载未经产品清单授权的第三方插件；
 - 为未发生的假设故障堆叠回退、重试、兼容层与重复校验。
-
-**下级索引**：下级正本见 `docs/science/ACR_EQUIVALENCE.md`、`docs/science/algorithms/ACR_EQUIVALENCE_ALGORITHMS.md`。
 
 ---
 
@@ -207,7 +205,7 @@ flowchart LR
 
 ## 4. normalize：单帧标准化
 
-**下级索引**：下级正本见 `docs/engineering/PHASE1_API_V1.md`、`docs/science/ACR_EQUIVALENCE.md`、`docs/science/CCD_LINEAR_DEFECT_LITERATURE.md`；阶段详细设计见 `docs/detail/PHASE1_DETAILED_DESIGN.md`。
+**下级索引**：下级正本见 `docs/engineering/PHASE1_API_V1.md`、`docs/science/CCD_LINEAR_DEFECT_LITERATURE.md`；阶段详细设计见 `docs/detail/PHASE1_DETAILED_DESIGN.md`。
 
 ### 4.1 使命
 
@@ -493,7 +491,6 @@ lib/
 │   ├── benchmark/         kernel 测量与机器画像
 │   ├── observability/     日志、事件、探针、资源监控
 │   ├── gaia_xpsd_client/  本地星表解析（离线）
-│   ├── acr/               隔离实验（生产不可达）
 │   └── hips_browser/      未来可视化组件
 ├── include/               公共头
 └── third_party/
