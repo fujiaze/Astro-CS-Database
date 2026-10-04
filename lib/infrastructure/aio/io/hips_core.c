@@ -140,7 +140,7 @@ struct acsd_hips_handle_v1_s {
   char dir[ACS_HIPS_PATH_MAX]; /* 子产品目录 (含 properties/Moc.fits/tiles) */
   int32_t order;               /* hips_order K */
   int32_t tile_width;          /* hips_tile_width TW */
-  uint64_t nside;              /* 2^(K+9) (tile 像素 HEALPix 分辨率) */
+  uint64_t nside;              /* tile_width × 2^K (tile 像素 HEALPix 分辨率) */
   hips_prop props[ACS_HIPS_PROP_MAX];
   int32_t prop_count;
   uint64_t* moc_tiles;         /* MOC optional hint: 叶级 NESTED ipix (order==K) */
@@ -252,7 +252,12 @@ static int hips_validate_properties(acsd_hips_handle_v1 h, char* err, size_t cap
   }
   h->order = (int32_t)order;
   h->tile_width = (int32_t)tw;
-  h->nside = 1ULL << ((uint64_t)order + 9u);
+  /* NSIDE = hips_tile_width × 2^K (IO_002_HIPS_INPUT_INTERFACE §3.1 关键字表:
+   * 「若存在必须等于 hips_tile_width × 2^K (tile 像素分辨率)」)。
+   * 原式 `1ULL << (order + 9)` 把 tile_width 焊死成 512 ⇒ tile_width != 512 时
+   * 与正本**双向**失配: 合法的 tile 被判红(假红), 反过来焊死 512 的值反而放行
+   * (假绿)。位宽安全: tw <= ACS_HIPS_TILE_WIDTH_MAX=2^14, order <= 29 ⇒ <= 2^43。*/
+  h->nside = (uint64_t)tw << (uint64_t)order;
   return ACS_HIPS_OK;
 }
 
@@ -510,6 +515,7 @@ static int hips_parse_moc(acsd_hips_handle_v1 h, char* err, size_t cap) {
     size_t cap_tiles = (size_t)mh_naxis2;
     uint64_t* arr = NULL;
     int64_t n = 0;
+    int partial = 0;   /* 是否发生过定位/读取失败 */
     if (cap_tiles > 0) {
       arr = (uint64_t*)malloc(cap_tiles * sizeof(uint64_t));
       if (!arr) { rc = ACS_HIPS_ERR_NOMEM; goto done; }
@@ -518,8 +524,15 @@ static int hips_parse_moc(acsd_hips_handle_v1 h, char* err, size_t cap) {
       unsigned char buf[8];
       uint64_t u = 0;
       int i;
-      if (hips_fseeko(f, data_start + row * mh_naxis1 + uniq_off, SEEK_SET) != 0) break;
-      if (fread(buf, 1, (size_t)uniq_bytes, f) != (size_t)uniq_bytes) break;
+      /* 原式这两处失败直接 break, 不置任何失败标志 ⇒ n 停在"已读行数",
+       * 随后 :540-542 照常把**部分** tile 列表发布成完整枚举。调用方
+       * acsd_hips_tile_count_v1/acsd_hips_tile_ipix_v1 拿到的是一份看起来合法、
+       * 实则截断的枚举, 而 MOC 不可解析这件事从不出现在任何返回面。
+       * IO_002_HIPS_INPUT_INTERFACE §3.3 第 3 条逐字要求:「Moc.fits 存在但不可
+       * 解析 … 一律取『枚举面 0 tile』，open 不失败」—— 部分列表两头都不是:
+       * 既不是 0 tile, 也不是一次 open 失败。*/
+      if (hips_fseeko(f, data_start + row * mh_naxis1 + uniq_off, SEEK_SET) != 0) { partial = 1; break; }
+      if (fread(buf, 1, (size_t)uniq_bytes, f) != (size_t)uniq_bytes) { partial = 1; break; }
       if (uniq_bytes == 8) {
         u = 0;
         for (i = 0; i < 8; ++i) u = (u << 8) | (uint64_t)buf[i]; /* big-endian */
@@ -531,6 +544,13 @@ static int hips_parse_moc(acsd_hips_handle_v1 h, char* err, size_t cap) {
         uint64_t ipix = u - base_uniq;
         if (ipix < npix_order) arr[n++] = ipix;
       }
+    }
+    if (partial) {
+      /* MOC 只作枚举提示（§3.3 第 3 条）: 读不完就当没有 MOC, 取 0 tile,
+       * open 不失败。不静默发布半份枚举 —— 那是把一次读取失败伪装成一次成功枚举。*/
+      free(arr);
+      arr = NULL;
+      n = 0;
     }
     h->moc_tiles = arr;
     h->moc_count = n;
@@ -677,9 +697,21 @@ static int hips_tile_validate(acsd_hips_handle_v1 h, uint64_t ipix,
       hips_set_err(err, cap, "tile COORDSYS='%s' 非 C (equatorial)", val);
       return ACS_HIPS_ERR_TILE_INVALID;
     }
+    /* 三张数值卡 (NSIDE/FIRSTPIX/LASTPIX) 的比对必须 fail-closed。
+   * 原式把「解析失败」与「值不符」并进同一个 `&&`: hips_parse_int 对非整数
+   * 卡值 (空值 / 带单位 / 带注释尾巴) 返回 0 ⇒ **整条检查被跳过、tile 放行**
+   * = 判据机制正确但从不执行 (恒真门第 ④ 型)。同循环里 PIXTYPE/ORDERING/
+   * COORDSYS 用 !hips_card_val_eq(...), 任何不匹配都拒, 不存在此缺口 ——
+   * 这三张数值卡是同循环里唯一的放行口。判据取在**卡值与合同期望值**两侧,
+   * 期望值来自 h->nside / h->tile_width (读自 properties), 与被检验量不同源。
+   */
     if (strcmp(nm, "NSIDE") == 0) {
       int64_t nsv;
-      if (hips_parse_int(val, &nsv) && (uint64_t)nsv != h->nside) {
+      if (!hips_parse_int(val, &nsv)) {
+        hips_set_err(err, cap, "tile NSIDE 非整数: '%s'", val ? val : "(null)");
+        return ACS_HIPS_ERR_TILE_INVALID;
+      }
+      if ((uint64_t)nsv != h->nside) {
         hips_set_err(err, cap, "tile NSIDE=%lld 与 order %d (nside=%llu) 不符",
                      (long long)nsv, (int)h->order,
                      (unsigned long long)h->nside);
@@ -688,7 +720,11 @@ static int hips_tile_validate(acsd_hips_handle_v1 h, uint64_t ipix,
     }
     if (strcmp(nm, "FIRSTPIX") == 0) {
       int64_t fv;
-      if (hips_parse_int(val, &fv) && fv != 0) {
+      if (!hips_parse_int(val, &fv)) {
+        hips_set_err(err, cap, "tile FIRSTPIX 非整数: '%s'", val ? val : "(null)");
+        return ACS_HIPS_ERR_TILE_INVALID;
+      }
+      if (fv != 0) {
         hips_set_err(err, cap, "tile FIRSTPIX=%lld 非 0", (long long)fv);
         return ACS_HIPS_ERR_TILE_INVALID;
       }
@@ -696,7 +732,11 @@ static int hips_tile_validate(acsd_hips_handle_v1 h, uint64_t ipix,
     if (strcmp(nm, "LASTPIX") == 0) {
       int64_t lv;
       int64_t expect = (int64_t)h->tile_width * h->tile_width - 1;
-      if (hips_parse_int(val, &lv) && lv != expect) {
+      if (!hips_parse_int(val, &lv)) {
+        hips_set_err(err, cap, "tile LASTPIX 非整数: '%s'", val ? val : "(null)");
+        return ACS_HIPS_ERR_TILE_INVALID;
+      }
+      if (lv != expect) {
         hips_set_err(err, cap, "tile LASTPIX=%lld 非 %lld", (long long)lv,
                      (long long)expect);
         return ACS_HIPS_ERR_TILE_INVALID;
@@ -901,13 +941,18 @@ static int hips_read_plane_impl(acsd_hips_handle_v1 h, uint64_t ipix,
   char path[ACS_HIPS_PATH_MAX];
   int32_t bitpix = 0;
   acsd_fio_reader_v1* rd = NULL;
-  int64_t tw = h->tile_width;
-  int64_t need = tw * tw;
+  int64_t tw;
+  int64_t need;
   int st;
   void* scratch = NULL;
   int64_t got = 0;
 
+  /* 守卫必须先于**任何** h 的解引用。原式把 h->tile_width 的读放在守卫之前
+   * 整整 6 行: 外部调用方按合同 (IO_002 §"参数非法（NULL/越界/…）" ⇒
+   * ACS_HIPS_ERR_PARAM) 传 NULL 时拿到的是段错误而不是错误码。*/
   if (!h || !out || !out_got) return ACS_HIPS_ERR_PARAM;
+  tw = h->tile_width;
+  need = tw * tw;
   if (out_elem_capacity < need) {
     hips_set_err(err, err_cap, "out 容量 %lld < tile 元素数 %lld",
                  (long long)out_elem_capacity, (long long)need);
