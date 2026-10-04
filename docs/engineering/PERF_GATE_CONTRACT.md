@@ -15,7 +15,7 @@
 
 - **enforcement = fail-closed**：任一判据违规 ⇒ `verdict=red`；`record_and_justify` 只是无违规样本的**记录语义**，不参与裁决；
 - 判据阈值本身**保持事前冻结值**（唯一数值源 = `eng/contracts/resource_gate_v1.json::compute`）；硬件/算法上限只作证据化上限随判据登记，不 waiver。
-- **定义与适用域（自洽说明）**：`utilization = busy_cpu_seconds / (window_seconds × n_workers)`；适用域 = 生产重计算面、`effective_cpus ≥ 2` 且采样区间 > 10 s；**验证方式** = 已归档运行证据回放（`实验/engineering-evidence/l2_performance/gates/`）与红绿双向自测（可执行面（重建后登记））。
+- **定义与适用域（自洽说明）**：`utilization = busy_cpu_seconds / (window_seconds × n_workers)`；适用域 = 生产重计算面、`effective_cpus ≥ 2` 且采样区间 > 10 s；**验证方式** = 已归档运行证据回放（`实验/engineering-evidence/l2_performance/gates/`）与红绿双向自测——两者均由人读对抗审核与实验单元执行，**本条不设机器执行面**（门禁与 CI 已作废、不重建，见 `docs/engineering/UNRESOLVED_REGISTER.md` §0）。
 
 ## 2 测量口径（冻结）
 

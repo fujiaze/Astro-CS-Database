@@ -393,7 +393,7 @@ doc_index:
       downstream: ""
     - path: "docs/engineering/02_PIPELINE.md"
       status: ACTIVE_NORMATIVE
-      duty: "CI 流水线与 profile 定义"
+      duty: "门禁与 CI 已作废、不重建；本件只作 CI 流水线与 profile 形态的台账记述，不描述任何注册或执行流程，不得据以重建 CI"
       upstream: "docs/ACSD_DESIGN.md §12.4（验证层级与四层验收）、§12.5（状态阶梯）"
       downstream: ""
     - path: "docs/engineering/04_ARTIFACTS.md"
