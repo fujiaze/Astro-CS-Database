@@ -185,7 +185,7 @@ if(WIN32)
   # BLD-003 Linux 技术预览骨架(platform=linux-amd64, rel_path=acsd/
   # libacsd_runtime.so/...)。Windows 安装树无条件装它后, candidate 根的
   # acsd.exe modules list/verify/selftest 读到 Linux rel_path →
-  # missing_unit_file → 退出 5(ACR BACKEND)。MSVC configure 期生成 Windows
+  # missing_unit_file → 退出 5。MSVC configure 期生成 Windows
   # 正式形态 manifest(03 §4)并安装生成物; Linux 分支同样在 configure 期生成
   # 交付副本(注入 VERSION/commit), 只是单元 rel_path 取 Linux 形态。
   configure_file(

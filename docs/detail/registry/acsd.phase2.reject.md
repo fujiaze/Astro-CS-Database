@@ -160,9 +160,10 @@ parallel_ok=True。配置面 = lib/algorithms/coverage/include/astro/phase2/stag
 
 ## Execution class、并行轴、ThreadBudget lease、确定性
 
-`cpu_heavy`。并行轴 = 像素间（**调用方** OMP：stage2.cpp 与
-acr_kernels.cpp 均用 schedule(static)；rejection.cpp 无任何线程原语）。逐样本
-独立判定、无跨样本归约 ⇒ **结果与 worker 数无关（1..N bitwise）**。
+`cpu_heavy`。并行轴 = 像素间（**调用方** OMP：现存调用方 stage2.cpp 用
+schedule(static)；rejection.cpp 无任何线程原语）。原并列调用方 acr_kernels.cpp
+已随 ACR 子树退场删除（`383088f2`）。逐样本独立判定、无跨样本归约 ⇒ **结果与
+worker 数无关（1..N bitwise）**。
 
 per-thread 统计按 thread id 定序归并（stage2.cpp）；large_scale 激活时强制串行
 （stage2.cpp 的分支条件）。确定性合同：同输入同 plan 同 fid → decision bitwise；

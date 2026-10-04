@@ -1,6 +1,6 @@
 # Build Graph
 
-> 上游：ACSD_DESIGN.md §8（软件架构）；ARCH-001.md §1（唯一全局执行平面）、§8 不变量 1。
+> 上游：ACSD_DESIGN.md §8（软件架构）；ARCH-001.md §1（唯一全局执行平面）、§7 不变量 1。
 
 > **本文的构建图机器块由生成器从根 CMake 构建图导出**：
 > 命令 = python3 eng/tools/arch/gen_build_graph_doc.py（根 CMakeLists 或子目录源集变动后重跑）。

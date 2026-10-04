@@ -157,10 +157,11 @@ parallel_ok=True（像素间）。配置 = phase config JSON（权重策略在 S
 
 ## Execution class、并行轴、ThreadBudget lease、确定性
 
-`cpu_heavy`。并行轴 = 像素间（**调用方** OMP：stage2.cpp 与 acr_kernels.cpp 均用
+`cpu_heavy`。并行轴 = 像素间（**调用方** OMP：现存调用方 stage2.cpp 用
 schedule(static)）；像素内候选归约**固定序**、无跨 worker 浮点重结合 ⇒ **结果与
 worker 数无关（1..N bitwise）**；per-thread 统计按 thread id 定序归并
-（stage2.cpp）；large_scale 激活时强制串行（stage2.cpp 的分支条件）。
+（stage2.cpp）；large_scale 激活时强制串行（stage2.cpp 的分支条件）。原并列调用方
+`acr_kernels.cpp` 已随 ACR 子树退场删除（`383088f2`），该像素间并行面不再存在。
 
 worker 数 = ThreadBudget.max_workers（禁 hardware_concurrency）；lease / 取消
 检查点接线属迁移整改面（未落地）。determinism = `fixed_reduction_order`
@@ -188,10 +189,12 @@ worker 数 = ThreadBudget.max_workers（禁 hardware_concurrency）；lease / �
 
 可执行 `TEST-P2-INT-001` 待建（不冒认）；设计冻结 = `TEST-P2-INT-DESIGN-001`
 （ALG-P2-INT-001 §11.4：常量场 bitwise / 零权重惰性 / 五态穷尽 / 支撑 max 门 /
-NumPy 参考 rtol 1e-12 / 并行 1..N 线程 bitwise + ACR↔CPU 等价）。
+NumPy 参考 rtol 1e-12 / 并行 1..N 线程 bitwise + ACR↔CPU 等价（ACR 侧已随
+`383088f2` 退场））。
 
 已取证但载体不在仓内的相邻结论（不冒认）：Phase2Integrate 组与 weight policy 门、
-ACR↔CPU 等价组，以及含 DRIVER_SRC 段的生产 Oracle 读数。这些读数不在本仓可复算路径上，
+ACR↔CPU 等价组（ACR 侧随 `acr_kernels.cpp` 一并退场，`383088f2`），
+以及含 DRIVER_SRC 段的生产 Oracle 读数。这些读数不在本仓可复算路径上，
 引用时只作背景。
 
 Oracle 面：

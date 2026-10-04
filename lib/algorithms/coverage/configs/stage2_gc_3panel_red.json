@@ -76,8 +76,7 @@
       "rcr": {
         "technique": "ss_median_dl"
       }
-    },
-    "acr_route": "cpu"
+    }
   },
   "output": {
     "hips": "run/phase2/v7/gc_3panel.mosaic.hips"

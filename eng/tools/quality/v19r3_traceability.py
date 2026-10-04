@@ -85,16 +85,6 @@ CONTRACTS = [
      "lib/algorithms/coverage/tests/synthetic_gate.cpp",
      "IVAR_MISSING_BEHAVIOR", "ERR-P2-UPM-001",
      "PRE_RELEASE_ENGINEERING_FOUNDATION", "V19R3"),
-    ("ACR-IVAR-001",
-     "weight_policy=ivar 时 ACR 块禁用（cell-ivar×support 与 CPU 逐像素 "
-     "ivar 不等价）→ CPU canonical path",
-     "docs/science/PHASE2_UPM.md", "phase2",
-     "lib/algorithms/coverage/tools/stage2.cpp;lib/algorithms/coverage/src/acr_kernels.cpp",
-     "p2_stage2_parse_config; mosaic_reject_legacy",
-     "UPMW-006",
-     "lib/algorithms/coverage/tests/synthetic_gate.cpp",
-     "CPU_ACR_IVAR_EQUIVALENCE", "-",
-     "PRE_RELEASE_ENGINEERING_FOUNDATION", "ACR ivar 生产禁用"),
     # ---- integration 零权重 / policy-reducer 分离（V19R3）----
     ("ALG-INTEGRATE-001",
      "integrator 权重资格：NaN/Inf/负→INVALID；0→合法不贡献；>0→可用；"

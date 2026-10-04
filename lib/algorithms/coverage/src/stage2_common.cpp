@@ -619,11 +619,26 @@ bool p2_stage2_parse_config(const nlohmann::json& j, P2Stage2Config* cfg, std::s
                    "权重链未闭合即显式 science 错误。请删除该键。";
             return false;
         }
-        // integration 面的未知键门。位置在两道退役键拒绝面**之后**：那两道带
+        // integration.acr_route **已删除** ——
+        // 该键曾在 auto/cpu 之间选择「集成执行路由」，把一个已整体退场的加速后端
+        // 重新接回配置面；生产计算后端恒为纯 CPU。
+        //   · docs/ACSD_DESIGN.md §1.3（非目标）首条：「GPU 与 CPU/GPU 混合生产路由」；
+        //   · docs/ACSD_DESIGN.md §9（CPU 后端与资源）首条：「生产仅纯 CPU」。
+        // ⇒ 该键**既不能被设、也不能被读**：出现即 fail-closed 拒绝（退役对象的
+        //   拒绝面必须存活，不得静默忽略或静默取默认值）。
+        if (in.contains("acr_route")) {
+            *err = "integration.acr_route 已删除："
+                   "该键只用于在 auto/cpu 之间选择集成执行路由，"
+                   "而生产计算后端恒为纯 CPU（docs/ACSD_DESIGN.md §9（CPU 后端与资源）："
+                   "生产仅纯 CPU）；GPU 与 CPU/GPU 混合生产路由属非目标"
+                   "（docs/ACSD_DESIGN.md §1.3（非目标））。请删除该键。";
+            return false;
+        }
+        // integration 面的未知键门。位置在三道退役键拒绝面**之后**：那三道带
         // 各自的规范引用与迁移提示，必须先被命中；本门只兜住其余拼错的键。
         if (!reject_unknown_keys(in, "integration.",
-                                 {"precision", "memory_limit_mb", "rejection",
-                                  "acr_route"}, err)) {
+                                 {"precision", "memory_limit_mb", "rejection"},
+                                 err)) {
             return false;
         }
             cfg->acr_route = in.value("acr_route", std::string("auto")); // B4-28 ACR边界 ACR-IVAR-001: weight_mode=ivar时 ACR块禁用→CPU canonical (TRACEABILITY ACR-IVAR-001)

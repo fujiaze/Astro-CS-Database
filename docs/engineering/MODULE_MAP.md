@@ -112,7 +112,7 @@
 | `glossary_terms` | docs/GLOSSARY.md — docs/GLOSSARY.md = 唯一术语权威（冻结定义，18 术语，术语权威校验项） |
 | `public_headers` | lib/**/*.h, lib/include/**/*.h — lib/**、lib/include/** 公开头中真实定义的枚举常量/宏（公开 API 面只登记函数签名，见 `docs/engineering/PUBLIC_API.md`） |
 
-**逐条登记**（39 条）：
+**逐条登记**（38 条）：
 
 | # | token | 命名空间 | 证据锚 | 归属理由 |
 |---:|---|---|---|---|
@@ -144,7 +144,6 @@
 | 26 | `NON_CONFORMANT` | `standards_conformance_status` | `docs/engineering/STANDARDS_REGISTRY.md:26` | 「符合状态」轴（与外部标准条款的关系，取值域由四值封闭，与交付状态阶梯是**两个独立轴**，docs/engineering/RELEASE_STATUS.md §0 已声明两轴独立）的取值之一。取值域判据不在 lib 公开头语料也不在 api_inventory ⇒ 显式登记命名空间。判据。文档承载 = docs/engineering/RELEASE_STATUS.md §0 与 docs/engineering/STANDARDS_REGISTRY.md 符合状态列。【证据形态 C：仓内无该判词的代码抛出点载体（产出该判词的检查器已物理删除），仅判据条文逐字承载 token；条文被改写时本门不判红 —— 已知代价，如实标注】 |
 | 27 | `PROJECT_DEFINED` | `standards_conformance_status` | `docs/engineering/STANDARDS_REGISTRY.md:27` | 「符合状态」轴的取值之一（标准未规定或本实现显式偏离标准之处，按 Project-defined 冻结；取值域同 NON_CONFORMANT 所述封闭词表）。与交付状态阶梯是**两个独立轴**。文档承载 = docs/engineering/RELEASE_STATUS.md §0 与 docs/engineering/STANDARDS_REGISTRY.md 符合状态列。【证据形态 C：仓内无该判词的代码抛出点载体（产出该判词的检查器已物理删除），仅判据条文逐字承载 token；条文被改写时本门不判红 —— 已知代价，如实标注】 |
 | 28 | `REQUIRED_ANCHORS` | `checker_constant` | `docs/engineering/STANDARDS_REGISTRY.md:335` | 标准注册表判据的必需锚清单常量（REGISTRY_REL / INDEX_REL，fail-closed：文件不存在或未跟踪 ⇒ 不可锚定，不得判通过）。产出者既不在 lib 公开头语料也不在 api_inventory ⇒ 显式登记命名空间。判据。文档承载 = docs/engineering/STANDARDS_REGISTRY.md 锚存活节。【证据形态 C：仓内无该判词的代码抛出点载体（产出该判词的检查器已物理删除），仅判据条文逐字承载 token；条文被改写时本门不判红 —— 已知代价，如实标注】 |
-| 29 | `ACSD_ENABLE_ACR` | `cmake_variable` | `CMakeLists.txt:18` | 根 CMake option（构建 dormant ACR 树，默认 OFF；状态回显 :1580，preset 面 CMakePresets.json:49/:76，正式路径必须 OFF 由 工具链锁定判据（正式路径必须 OFF 的断言） 断言）。CMake 变量不是 API 符号 ⇒ 显式登记命名空间。行锚 = option() 定义行 :18。文档承载 = docs/engineering/ARCHITECTURE_OVERVIEW.md 构建面表【证据形态 A：该行逐字含 token —— 行锚即为 token 的真实承载行】 |
 | 30 | `p2_op_coverage` | `module_port_symbol` | `lib/infrastructure/scheduler/src/module_adapters.cpp:9389` | Phase2 coverage 模块的编排层端口符号（定义行 :9367；派发点 :14088；端口登记面 lib/infrastructure/pipeline/module_ports.registry.json:940/:961；模块→符号映射 端口↔代码双向一致判据）。与既有 p2_write_descriptor / p2_parallel_for 同型：编排层词汇，不进 api_inventory（只登记函数签名），也不在 lib 公开头。行锚 = 定义行 :9367。文档承载 = docs/detail/registry/acsd.phase2.coverage.md「公共 header、核心 symbol 与生命周期」（`p2_op_coverage` 登记行）【证据形态 A：该行逐字含 token —— 行锚即为 token 的真实承载行】 |
 | 31 | `p2_op_reject` | `module_port_symbol` | `lib/infrastructure/scheduler/src/module_adapters.cpp:11105` | Phase2 rejection 模块的编排层端口符号（定义行 :11068；台账面 eng/contracts/ledgers/dead_config_keys.json 以该符号名记退出条件）。与既有 p2_write_descriptor / p2_parallel_for 同型：编排层词汇，不进 api_inventory，也不在 lib 公开头。行锚 = 定义行 :11068。文档承载 = docs/detail/registry/acsd.phase2.reject.md「公共 header、核心 symbol 与生命周期」（`p2_op_reject` 登记行）【证据形态 A：该行逐字含 token —— 行锚即为 token 的真实承载行】 |
 | 32 | `sdet_gauss_fit` | `module_internal_symbol` | `lib/algorithms/star_detection/src/sdet_api.cpp:779` | 星检测模块翻译单元内的椭圆高斯拟合函数（模板 sdet_gauss_fit<T>，定义行 :779；调用点 :2076 与 :2331；模块登记面 lib/algorithms/star_detection/module.yaml:103）。不经导出宏、**不在 lib 公开头语料**（门内 _defined_in_public_header 实测判 False）也不在 api_inventory ⇒ 显式登记命名空间。行锚 = 定义行 :779。文档承载 = docs/detail/registry/acsd.phase1.star-detection.md「数值落地口径与实现落点」（两条实现路径表）【证据形态 A：该行逐字含 token —— 行锚即为 token 的真实承载行】 |

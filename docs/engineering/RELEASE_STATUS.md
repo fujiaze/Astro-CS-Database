@@ -49,7 +49,6 @@ Phase3 流式 FITS 接入 → 当前状态 NOT_READY_FOR_RELEASE，而非 READY_
 发布结论:            NOT_READY_FOR_RELEASE（未到 READY_FOR_OWNER_REVIEW）
 真实数据面:          NOT_VERIFIED（FINAL_REAL_DATA_VALIDATION 未达成）
 Windows x64 复验面:  NOT_VERIFIED（VERIFIED 要求正式平台 + 真实数据验收通过）
-ACR（CPU/GPU 异构）: DORMANT（不进生产构建/加载/路由/发布）
 psf_snr_power:       DEFERRED（生产拒绝）
 ~~~
 
@@ -125,8 +124,7 @@ psf_snr_power:       DEFERRED（生产拒绝）
 | Phase3 `healpix_interp4` | `NOT_IMPLEMENTED` | lib/cli/include/runtime 全域无 `interp4` 实现符号；当前 nearest/bilinear |
 | Phase3 流式 FITS 输出接入 | `NOT_IMPLEMENTED` | IO-001 接口在位；Phase3 writer 走 CFITSIO 原子写（`lib/algorithms/fits_output/p3_output.cpp`） |
 | 顶层占位 descriptor `acsd.phase3.resample` | `DEFERRED` | P2 模板复制残留，归 P3-RSMP-INT（`lib/algorithms/resample/README.md` 登记） |
-| 旧 `aio_pipeline_engine` 越权编排 | 保留中（`DEFERRED`） | `lib/infrastructure/aio/src/aio_pipeline_engine.cpp` 仍在位，ARCH-001 §7 登记为已知现状差距（LEG-003 迁移）；不宣称已删除 |
-| ACR | `DORMANT` | 根 `CMakeLists.txt`:17 ACR 默认 OFF；生产构建/加载/路由/benchmark/发布不含 ACR/CUDA |
+| 旧 `aio_pipeline_engine` 越权编排 | 保留中（`DEFERRED`） | `lib/infrastructure/aio/src/aio_pipeline_engine.cpp` 仍在位，ARCH-001 §6 登记为已知现状差距（LEG-003 迁移）；不宣称已删除 |
 
 ## 5. 发布 Gate 口径（参考控制包 02_GATES_AND_EXECUTION.md / 03_AUDIT_PACKAGE_SPEC.md）
 
