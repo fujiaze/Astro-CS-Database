@@ -104,8 +104,6 @@ target_link_libraries 的传递闭包内的全部 target；唯一事实源 = 根
 |---|---|---|
 | healpix_browser_qt | lib/infrastructure/hips_browser/healpix_browser_qt/CMakeLists.txt | 浏览器工具（ARCHITECTURE §1 迁移冻结：工具面） |
 | browser_cli | lib/infrastructure/hips_browser/healpix_browser_qt/CMakeLists.txt | 浏览器工具（ARCHITECTURE §1 迁移冻结：工具面） |
-| acr-benchmark | lib/infrastructure/acr/tools/acr_benchmark/CMakeLists.txt | ACR DORMANT（最高设计 §8：不进生产构建） |
-| acr_test_api | lib/infrastructure/acr/tests/unit/CMakeLists.txt | ACR DORMANT（最高设计 §8：不进生产构建） |
 <!-- BUILD-GRAPH-NONROOT:END -->
 
 ## 4 编译定义与链接面
