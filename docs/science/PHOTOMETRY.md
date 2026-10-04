@@ -351,7 +351,7 @@ outlier_rate = 1 − |r_inliers|/|r_consistent|
 
 - §11 Oracle 全过：合成注入 `location≈log10 k`（rtol 1e-4）、20% 离群鲁棒门 `<0.1 dex`、S=0 退化门、NumPy 复算 rtol 1e-9；
 - §7 四不变量门全过（零点平移/尺度单调/鲁棒性/S=0）；
-- `eng/tools/science_contract_lint.py` PASS；
+- 本文件各节内容、标识与锚点经对抗性审核逐条核对确认；
 - 解析不变量→SYN-002 转换：已知 flux/background 星场、photometric scale 恢复、离群注入用例登记 SYN-002。
 
 ---

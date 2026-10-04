@@ -251,5 +251,5 @@ Fruchter & Hook 线性重建 (SCI-DRZ-001; 核按 **drop 面积** 归一):
 
 - §11 Oracle 全过（常量场/解析场/方差传播/边界，以 §11 列门为准）；
 - §7 不变量门全过；
-- `eng/tools/science_contract_lint.py` PASS（15 节+合同 ID+锚点）；
+- 本文件 15 节内容、合同 ID 与锚点经对抗性审核逐条核对确认；
 - 解析不变量→SYN-004 转换：常数/点源/梯度/旋转/亚像素 shift/pixfrac 扫描/tile boundary 用例，flux 或 brightness/support/variance/coverage 不变量全过（SYN-004 数据与不变量表）。

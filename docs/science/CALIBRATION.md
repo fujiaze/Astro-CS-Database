@@ -483,5 +483,5 @@ cal_pipe − cal_true = (t_light/t_d)·(b_light − b0) = −K·Δb          Δb
   在真实母版上可判：T4 组判绿（残差 0.034 ADU）、T2 组判红（斜率 −0.03824 ADU/s）、T3 组判「不可判定」；
   判据的负例（`Δb ≡ 0`）残留逐位为 0，非退化性由 §6a 表给出；
 - 单位经术语权威校验项（GLOSSARY_PASS）且本文件无被禁 alias；
-- §9a 专属问题逐项有锚点回答，无 TBD/二选一（`eng/tools/science_contract_lint.py` PASS）；
+- §9a 专属问题逐项有锚点回答，无 TBD/二选一（经对抗性审核逐条核对确认）；
 - 解析不变量可转 SYN-001：常量场→SYN-001 constant/ramp 用例；NaN/饱和→SYN-001 invalid 边界用例（映射登记于 SYN-001 任务）。

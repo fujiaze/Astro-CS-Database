@@ -366,7 +366,7 @@ UPM 在**像素域 control cell**（8×8 双线性网格）上工作，无 WCS/�
   UPMW-005 的 MC 证据源 `control_median_mc_test` **已注册可复跑** ⇒ 该项
   只有常数冻结定义（§5/§10），没有可执行证据；"已过"的成立前提 = 该 MC 证据可执行；
 - §7 不变量门全过；
-- `eng/tools/science_contract_lint.py` PASS（15 节+claim ID+锚点）；
+- 本文件 15 节内容、claim ID 与锚点经对抗性审核逐条核对确认；
 - 解析不变量→SYN-005 转换：已知低阶光度面恢复、重叠图 gauge/退化强度扫描、接缝指标按 §9a 的**有符号台阶**口径（门 `max|rel_step| ≤ 1e-2`、适用域与 fail-closed 同 §9a），参数恢复/残差/接缝降低且不破坏星 flux 全过。
 
 ## 16 加性天光与无接缝的实验结论

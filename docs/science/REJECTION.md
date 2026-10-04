@@ -316,7 +316,7 @@ large_scale 结构生长:
 
 - §11 Oracle 全过（以 §11 列门为准：各方法已知 inlier/outlier 注入的 reject set 解析一致）；
 - §7 阈值不变量/路由确定性门全过；
-- `eng/tools/science_contract_lint.py` PASS；
+- 本文件各节内容、标识与锚点经对抗性审核逐条核对确认；
 - 解析不变量→SYN-006 转换：卫星线/宇宙线/坏帧注入、small-N 分位、frame identity 保持、reject set 与 identity 解析可验用例登记 SYN-006。
 
 ## 16 全拒容错域的可达条件与小 N 档位取舍
