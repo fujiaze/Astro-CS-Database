@@ -116,11 +116,11 @@ FITS index = (511 - x) * 512 + y
     `signal/Moc.fits` 字节，各自前缀其相对路径 + 换行)。正本 = §27.1（:2355）
     + docs/science/algorithms/PHASE3_FITS_IMPL.md（:372）；实现 =
     module_adapters.cpp `p3n_input_manifest_hash`。
-  机器判据（单源绑定，见 `eng/tools/docs_machine_consistency.py` 的
-  `input_manifest_hash_single_formula`）：P2 面的两处实现（stage2.cpp 与
+  判据（单源绑定）：P2 面的两处实现（stage2.cpp 与
   module_adapters.cpp `p2_input_manifest_hash`）必须**同形同值**（frame_id 文本形态
   与排序键都取十进制数值口径）；任一面不得使用另一面的公式或与其比对。
-  跨面比对判据无效：两面摘要的是不同全集，等值不是正确性判据。
+  跨面比对判据无效：两面摘要的是不同全集，等值不是正确性判据。该单源绑定
+  经对抗性审核逐条核对确认：两处实现各自对着 §20.3（P2 面）公式锚逐字符比对读数。
 - HiPS properties 中 `hips_creation_date` 为真实 UTC 时间，不伪造。
 
 ## 6. precision

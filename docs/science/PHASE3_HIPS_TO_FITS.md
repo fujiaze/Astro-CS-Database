@@ -201,7 +201,7 @@ coverage:
 
 - §11 Oracle 十二项全过且 Oracle 独立性成立（不调生产路径）；
 - `UNRESOLVED-SCIENCE=0`（§9a 十二项全部冻结，无 TBD/二选一）；
-- `eng/tools/science_contract_lint.py` PASS（15 节+合同 ID+锚点）；
+- 本文件 15 节内容、合同 ID 与锚点经对抗性审核逐条核对确认；
 - alpha 最小范围 = 单通道 / ICRS / NESTED / TAN / 显式 center-scale-W-H / nearest+bilinear / coverage / float32+64，**收窄不扩大**。
 
 ## 16 登记面：§6.3 输入语义守卫与产品 provenance 现状

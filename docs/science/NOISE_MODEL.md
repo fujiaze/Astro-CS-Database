@@ -399,5 +399,5 @@ DSNU、PRNU、列固定图案、高光通量方差亏损、重采样相关**在�
 - §11 Oracle 全过：Gaussian 5% 复现、Poisson 诊断 5% 交叉（仅诊断）、平面场 10% 恢复、四不变量门、Python 参考 rtol 1e-9、**源污染 oracle（含星帧，正例 + 三条负例；）**、**饱和域 oracle（正例 + 两条负例；）**；
 - §11 平面不可用态判据全过（`n7_plane_pred_unavailable` 与 `n7b_dtype_underflow_pair` 两档）：预测 ≤ 0 的像素 `variance==0 ∧ ivar==0`、预测 > 0 的像素与独立 LS oracle 逐位一致、产品面不存在 `(0, +inf)` 这类对；两档各自非空（判据非恒真），并由故障注入证明该判据能红；
 - §8 全部退化路径显式（无合格 patch/NaN/floor/gain≤0）；饱和过滤状态在帧产品里**显式可读**（`NOISE_SATURATION_FILTER`，）；
-- `eng/tools/science_contract_lint.py` PASS（15 节 + ID + 锚点）；
+- 本文件 15 节内容、ID 与锚点经对抗性审核逐条核对确认；
 - 解析不变量→SYN-003 转换：Gaussian/Poisson/常量/blank sky/outlier/small-N 用例、estimator bias 与 ivar 边界（零/负/NaN→ivar=0）登记 SYN-003。

@@ -170,5 +170,5 @@
 
 - §11 Oracle 全过（以 §11 列门为准：状态码/权重归一/support reducer/NaN 拒）；
 - §7 不变量门全过；
-- `eng/tools/science_contract_lint.py` PASS；
+- 本文件各节内容、标识与锚点经对抗性审核逐条核对确认；
 - 解析不变量→SYN-006 转换：已知 inlier/outlier 栈、多权重组合、weighted result 解析值、identity 保持用例登记 SYN-006。
