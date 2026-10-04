@@ -20,7 +20,7 @@ docs/detail/
 ├── STAR_DETECTION_IMPL_DESIGN.md      星检测逐算子落地规格
 ├── merged_TROUBLESHOOTING.md          排障手册（症状 → 定位 → 修复）
 ├── registry/                          生产模块登记正本（26 张卡 + README）
-├── infrastructure/                    基建模块落地设计（8 张卡 + README）
+├── infrastructure/                    基建模块落地设计（7 张卡 + README）
 └── anchors/                           文档—代码锚合同（ANCHOR_CONTRACT + README）
 ```
 
@@ -31,12 +31,11 @@ docs/detail/
 | 面 | 承载对象 | 体例 |
 |---|---|---|
 | `registry/` | 每个**生产 DAG 节点模块**一页 | 职责与明确非职责、输入输出端口与 DATA/单位/坐标/invalid、公共头与核心符号生命周期、配置 schema、执行类与并行轴、内存与所有权、错误与取消、独立验证命令与容差、已知限制 |
-| `infrastructure/` | 每个**工程基建组件**一页（`lib/infrastructure/**`），含生产不可达的隔离实验与未来可视化组件 | 同 `registry/` 体例 |
+| `infrastructure/` | 每个**工程基建组件**一页（`lib/infrastructure/**`），含生产不可达的未来可视化组件 | 同 `registry/` 体例 |
 | 根级 | 跨模块的观测模型、阶段详细设计、落盘形态、日志错误系统、逐算子实现规格、排障手册，以及不属于生产 DAG 的跨链路共享库 | 按主题组织 |
 | `anchors/` | 文档条款锚定到源码符号与内容锚的合同 | 合同正文 |
 
-不在 `registry/` 登记面的对象：`common`（跨链路共享基础库，不是流水节点）、
-`infrastructure/` 下的 `acr`（隔离实验，`p2_acr_block_eligible` 恒 false）与
+不在 `registry/` 登记面的对象：`common`（跨链路共享基础库，不是流水节点）与
 `hips_browser`（未来可视化组件，不进产品 manifest）。
 
 ## 3. `registry/` 模块卡（26）
@@ -51,7 +50,7 @@ docs/detail/
 职责与明确非职责、端口表、落地口径、公共头与 symbol、配置 schema、
 执行类与并行轴、内存与所有权、错误与取消、验证面、已知限制。
 
-## 4. `infrastructure/` 基建卡（8）
+## 4. `infrastructure/` 基建卡（7）
 
 | 卡 | 组件 | 物理位 |
 |---|---|---|
@@ -62,7 +61,6 @@ docs/detail/
 | `21_observability.md` | 结构化日志、事件流、运行图、资源门 | `lib/infrastructure/observability/` |
 | `22_gaia_xpsd_client.md` | 本地星表解析与两级缓存（离线、零网络） | `lib/infrastructure/gaia_xpsd_client/` |
 | `23_hips_browser.md` | 球面浏览器与显示变换（不进产品 manifest） | `lib/infrastructure/hips_browser/` |
-| `acr.md` | 异构计算运行时（隔离实验，生产不可达） | `lib/infrastructure/acr/` |
 
 ## 5. 每册必须回答的问题
 
