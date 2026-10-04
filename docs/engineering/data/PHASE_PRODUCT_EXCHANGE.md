@@ -1,12 +1,13 @@
 # 阶段间产品交换
 
-上游：最高设计的顶层结构与 I/O 与原子产品两章。
+上游：最高设计的顶层结构与 I/O 与原子产品两章[1]；单位与量纲口径见
+`docs/science/unified/DATA_SEMANTICS.md`[4]；浮点容差与判据登记见 `../standards/NUMERIC.md`[3]。
 
 阶段之间磁盘产品的角色与类型强绑定、输入面校验、无效值处置与兼容性的正本。
 
 ## 目的与范围
 
-本合同在三阶段隔离运行（Phase1 / Phase2 / Phase3 各自独立进程；最高设计 ：一次 CLI 调用只驱动一个阶段、无 `--phases 1,2,3`；：跨阶段只交换磁盘产品）
+本合同在三阶段隔离运行（Phase1 / Phase2 / Phase3 各自独立进程；最高设计「总原则：唯一入口、阶段独立调度器」一节：一次调用只驱动一个阶段、跨阶段只交换磁盘 HiPS 与 manifest）之上
 之上定义**产品级交换合同**：定义三个阶段产品角色
 `phase1_product_v1` / `phase2_mosaic_v1` / `phase3_planar_fits_v1` 的输入/输出兼容矩阵，
 并声明跨 Phase **仅磁盘交换**。
@@ -32,22 +33,26 @@ role 与 type 逐一对应（同名必同 type / 同 type 必同 role，无歧�
 
 | product_role | type_id（registry） | registry schema_version | producer_phase | 最小平面集 | content format |
 |---|---|---|---|---|---|
-| `phase1_product_v1` | `acsd.phase1.frame_hips.v1` | 1 | phase1 | signal, support, variance, mask | hips |
-| `phase2_mosaic_v1` | `acsd.phase2.mosaic_hips.v1` | 1 | phase2 | signal, support, mask | hips |
-| `phase3_planar_fits_v1` | `acsd.phase3.planar_fits.v1` | 1 | phase3 | signal, support, mask | fits |
+| `phase1_product_v1` | `acsd.phase1.frame_hips.v1` | 1 | phase1 | signal, support, variance | hips |
+| `phase2_mosaic_v1` | `acsd.phase2.mosaic_hips.v1` | 1 | phase2 | signal, support, variance | hips |
+| `phase3_planar_fits_v1` | `acsd.phase3.planar_fits.v1` | 1 | phase3 | signal, support, variance | fits |
 
 - type_id 本体登记于 `eng/contracts/data/artifact_types.registry.json`，本文档/本 schema
  只做绑定，不重复登记；未知/未登记 type_id 由该 registry 拒绝并传播。
 - 内容语义（最小平面集）：signal=科学表面亮度、support=覆盖/有效支持度 [0,1]、
- variance=逐像素随机方差（信号单位²，Drizzle 传播）、mask=坏点/质量位掩码；
- units 权威 = properties BUNIT / ARTIFACTS.md / DATA_SEMANTICS.md（本层强制显式声明）。
+ variance=逐像素随机方差（信号单位²，Drizzle 传播）。**本合同不含 `mask` 面**：三个生产者
+ 都不写该面（HiPS 生产者的产品面位枚举 `AioHipsProductFlag` 只有
+ `SIGNAL/SUPPORT/SNR/VARIANCE/IVAR/NREJ/NUSED`；Phase3 平面 FITS 写出的扩展 HDU 只有
+ `COVERAGE`/`VARIANCE`/`IVAR`，主 HDU = signal），且 `mask` 在 13 个 canonical 统一对象中
+ 无 schema，故不进 `plane_id` 枚举与最小平面集；
+ units 权威 = properties BUNIT / `ARTIFACTS.md` / `docs/science/unified/DATA_SEMANTICS.md`（本层强制显式声明）。
 
 ### a. 内容格式与角色绑定
 
 - `phase1_product_v1`、`phase2_mosaic_v1` → 内容格式 **hips**（HEALPix NESTED，
- 唯一允许 ordering；tile_width 默认 512，`leaf_order=tile_order+9`，DATA_SEMANTICS 「交换对象」一节/「跨 Phase 仅磁盘交换」一节）。
+ 唯一允许 ordering；tile_width 默认 512，`leaf_order=tile_order+9`，`docs/science/unified/DATA_SEMANTICS.md`「坐标语义」一节：NESTED 与 leaf 索引约定）。
 - `phase3_planar_fits_v1` → 内容格式 **fits**（平面 WCS FITS，TAN 投影唯一，
- CUNIT=deg、CRPIX/CRVAL/CD-only、1-based；SCI-P3 「跨 Phase 仅磁盘交换」一节a/a）。
+ CUNIT=deg、CRPIX/CRVAL/CD-only、1-based；`docs/science/PHASE3_HIPS_TO_FITS.md`「坐标 frame」一节 / 「输入有效域」一节）。
 - 交换对象 `product_content.geometry.format` 必须与 role 绑定一致（validator 拒绝 format/role 不匹配）。
 
 ## 交换对象（exchange object）结构
@@ -66,13 +71,12 @@ role 与 type 逐一对应（同名必同 type / 同 type 必同 role，无歧�
  "artifact_manifest": { /* 完整 manifest（15 必填字段；形态 = eng/contracts/data/artifact_manifest.schema.json） */ },
  "product_content": {
  "content_schema": "acsd.phase-product-content/v1",
- "coordinate": { "frame": "icrs", "ra_unit": "deg", "dec_unit": "deg" },
+ "coordinate": { "frame": "icrs", "ra_unit": "deg", "dec_unit": "deg" },  // 取值映射见下文一节
  "geometry": { "format": "hips", "hips": { "ordering": "nested", "tile_width": 512 } },
  "planes": [
  { "plane_id": "signal", "units": "ADU/sr", "dtype": "float32", "invalid_policy": "nan_or_support_le_0" },
  { "plane_id": "support", "units": "dimensionless", "dtype": "float32", "invalid_policy": "nan_or_support_le_0" },
- { "plane_id": "variance", "units": "ADU^2/sr^2", "dtype": "float32", "invalid_policy": "nan_or_support_le_0" },
- { "plane_id": "mask", "units": "bitmask", "dtype": "u8", "invalid_policy": "nan_or_support_le_0" }
+ { "plane_id": "variance", "units": "ADU^2/sr^2", "dtype": "float32", "invalid_policy": "nan_or_support_le_0" }
  ],
  "invalid_policy": "nan_or_support_le_0"
  }
@@ -87,28 +91,31 @@ role 与 type 逐一对应（同名必同 type / 同 type 必同 role，无歧�
 - **product_content**：**units 载体**。合并 manifest 顶层无 units 字段，因此交换层把
  `units/coordinate/dtype/planes/invalid` 作为产品内容证据显式声明：
  - `coordinate`：frame 必须 `icrs`（唯一允许；galactic/ecliptic 显式拒绝，
- DATA_SEMANTICS 「阶段产品角色与 type 绑定」一节 + SCI-P3 「跨 Phase 仅磁盘交换」一节a）；RA/Dec 单位 `deg`。
+ `docs/science/unified/DATA_SEMANTICS.md`「坐标语义」一节 + `docs/science/PHASE3_HIPS_TO_FITS.md`「坐标 frame」一节）；RA/Dec 单位 `deg`；
+ 与 HiPS `hips_frame` 的取值映射见下文「coordinate 的 frame 取值映射」一节。
  - `geometry`：format + 结构子块（hips→ordering/tile_width；fits→projection/wcs）。
- - `planes`：每平面显式 `plane_id/units/dtype/invalid_policy`；plane_id 集合
- `{signal, support, variance, ivar, mask}`（机器真源 = `eng/contracts/data/phase_product_exchange.schema.json`
- 的 `plane_id` enum 与 `lib/infrastructure/aio/runtime/artifact_store/phase_product_exchange_validator.py`
- 的 `_PLANE_ID_SET`）；units 非空且取实义字符串（占位/空串/首尾空白一律拒绝）。
+ - `planes`：每平面显式 `plane_id/units/dtype/invalid_policy`；**本合同的 plane_id 集合 =
+ `{signal, support, variance, ivar}`**（与三个生产者的实际面一一对应）。
+ **schema 需修订**：`eng/contracts/data/phase_product_exchange.schema.json` 的 `plane_id` enum 与
+ `lib/infrastructure/aio/runtime/artifact_store/phase_product_exchange_validator.py` 的 `_PLANE_ID_SET`
+ 当前仍含 `mask`，而 `mask` 无生产者、无 canonical schema —— schema 面应与本节同步删除 `mask`；
+ 修订落地前交换对象文档不得声明 `mask` 面。units 非空且取实义字符串（占位/空串/首尾空白一律拒绝）。
 
  - **稀疏绝对 SNR 控制点层（`sparse_snr_layer`，可选标准层）**：**不是**交换对象 `planes` 枚举的一员，
  而是插入 HiPS 文件内的标准层；对象形态与机器校验承载于
  `eng/contracts/schemas/unified/sparse_snr_layer.schema.json`（统一对象 `sparse_snr_layer`，
  对象语义见 「交换对象」一节）：
- - 层语义（最高设计 ，强制）：控制点值 = 该点的**绝对**通量型 SNR `SNR_c = F_ref / σ_F,c`
+ - 层语义（最高设计「P2 跨帧绝对信噪比」一节，强制）：控制点值 = 该点的**绝对**通量型 SNR `SNR_c = F_ref / σ_F,c`
  （与帧级 SNR 同物理定义、同逐帧参考通量 `F_ref`），`units` = `dimensionless`（无量纲信噪比）。
  消费时由控制点**直接重建**为稠密 SNR 场 `SNR(p)`（重建算子显式声明、在控制点处精确复现节点值、
- 并返回预测方差）；该层只作 SNR 表示、不进权重面（最高设计 ：HiPS 里只**存**
+ 并返回预测方差）；该层只作 SNR 表示、不进权重面（最高设计「P2 跨帧绝对信噪比」一节：HiPS 里只**存**
  **帧级 SNR** 与**稀疏绝对 SNR 控制点**；权重是阶段二现场派生量 `w(p) = SNR(p)²/F_ref²`）。
  - 该层**可选**（`sparse_snr_layer=true` 时存在，默认 true），**不属于** 「阶段产品角色与 type 绑定」一节 的最小平面集，
  也不进交换对象 `product_content.planes`。
 
  - `invalid_policy`：全局 `nan_or_support_le_0`（NaN 或 support<=0 视为无效；
- DATA_SEMANTICS 「兼容矩阵」一节）。
- - `invalid_handling`（**产品内容证据块**；规则依据 `../../ACSD_DESIGN.md` ，drizzle 侧正本见
+ `docs/science/unified/DATA_SEMANTICS.md`「方差与逆方差的三态编码」一节）。
+ - `invalid_handling`（**产品内容证据块**；规则依据最高设计的「逐像素排异」一节，drizzle 侧正本见
  `docs/science/drizzle/DRIZZLE.md`）：
 
  ```jsonc
@@ -127,10 +134,10 @@ role 与 type 逐一对应（同名必同 type / 同 type 必同 role，无歧�
 
  | 术语 | 定义 |
  |---|---|
- | **合格样本** | 参与聚合的源样本满足：值有限（`isfinite(x_j)`）且几何上覆盖该输出像素（`w_jp > 0`）。**方差是否可用不参与合格性判定**（上游授权 = `../../ACSD_DESIGN.md` 「NaN 采用样本级掩膜」，该条只对 NaN 授权；「每一层只由它的上一层推出」） |
+ | **合格样本** | 参与聚合的源样本满足：值有限（`isfinite(x_j)`）且几何上覆盖该输出像素（`w_jp > 0`）。**方差是否可用不参与合格性判定**（上游授权 = 最高设计的「逐像素排异」一节「NaN 采用样本级掩膜，覆盖级缺数置 NaN 并计数」条款，该条只对 NaN 授权；逐层推出关系见最高设计的「m osaic：相对定标 · 排异 · 集成」一章固定科学流程） |
  | **方差可用样本** | 合格样本中 `V_j` 有限且 `V_j > 0` 者：其 `V_j` 计入 `Var_p` |
  | **方差不可用样本** | 合格样本中 `V_j` **有限且 `V_j ≤ 0`** 者（"有覆盖但无方差信息"）：**信号与几何权重照常计入 `F_p`、`W_p`**（保信号、保覆盖），方差项**不计入** `Var_p`；`V_j` 一律取原值，常数、地板或哨兵值一律不参与 |
- | **方差面损坏** | `V_j` 非有限（NaN/±Inf）：按 「兼容矩阵」一节a「NaN/负只表示产品损坏」处置 —— 该样本按不合格样本剔除并计入 `n_rejected_nonfinite_variance`，类别恒为「损坏」并与「方差不可用」分列 |
+ | **方差面损坏** | `V_j` 非有限（NaN/±Inf）：按 `docs/science/unified/DATA_SEMANTICS.md`「方差与逆方差的三态编码」一节的「损坏」态处置 —— 该样本按不合格样本剔除并计入 `n_rejected_nonfinite_variance`，类别恒为「损坏」并与「方差不可用」分列 |
  | **零合格样本** | 某输出像素的全部候选样本都不合格（或根本没有候选样本） |
  | **无覆盖** | 该输出像素没有任何候选样本（几何无覆盖） |
  | **无效输出** | `signal = NaN` **且** `support ≤ 0`；两者**必须同时**成立（互推） |
@@ -142,7 +149,7 @@ role 与 type 逐一对应（同名必同 type / 同 type 必同 role，无歧�
 
  | 分支 | 分母符号 | 分母定义 | 分母量纲 | 方差传播式 |
  |---|---|---|---|---|
- | Phase 1 drizzle drop | **`D_p`** | `D_p = Σ_j a_jp` = `covered_area` | **`sr`（球面面积）** | `variance_p = Σ_j v_j·w_jp² / D_p²`（`DATA_SEMANTICS` 「兼容矩阵」一节a / a） |
+ | Phase 1 drizzle drop | **`D_p`** | `D_p = Σ_j a_jp` = `covered_area` | **`sr`（球面面积）** | `variance_p = Σ_j v_j·w_jp² / D_p²`（`docs/science/unified/DATA_SEMANTICS.md`「方差与逆方差的三态编码」一节） |
  | Phase 2 帧间集成 | **`W_p`** | `W_p = Σ_{合格} w_i`（帧索引 `i`） | `w_i` 的量纲（逆方差权重 ⇒ `1/(signal 量纲)²`） | `Var_p = Σ_{方差可用} V_i·w_i² / W_p²` |
  | Phase 3 投影重采样 | **`W_p`** | `W_p = Σ_{合格} w_j`（邻域样本索引 `j`） | **无量纲**（双线性几何权重） | `Var_p = Σ_{方差可用} u_j·w_j² / W_p²`（`u_j` = 该样本输入方差） |
 
@@ -150,7 +157,7 @@ role 与 type 逐一对应（同名必同 type / 同 type 必同 role，无歧�
  **`W_p` 在 Phase 1 drizzle drop 分支不成立** —— 该分支的分母是**球面面积** `D_p`
  （量纲 `sr`，= 本文件与 `DATA_SEMANTICS` 的 `covered_area`），**不是**无量纲权重和。
  `D_p` 与 `W_p` 量纲不同，**各自具名、不可互换**：`D_p` 只表示 `covered_area[sr]`，
- 权重和一律用 `W_p`（符号唯一性强制与错误代入的量级差见 `DATA_SEMANTICS` 「兼容矩阵」一节a）。
+ 权重和一律用 `W_p`（符号唯一性强制与错误代入的量级差见 `docs/science/unified/DATA_SEMANTICS.md`「方差与逆方差的三态编码」一节）。
 
  **处置规则（样本级掩膜 + 重归一 + 覆盖级 NaN + 强制计数）** —— 对**每一个聚合算子**
  （Phase 1 的 drizzle drop、Phase 2 的帧间集成、Phase 3 的投影重采样）：
@@ -163,8 +170,8 @@ role 与 type 逐一对应（同名必同 type / 同 type 必同 role，无歧�
 
  1a. **方差项的乘积表达**：`Var_p = Σ_{方差可用} V_j w_jp² / W_p²`，其中 `W_p` **含方差不可用
  样本的 `w_jp`**（**分母不缩小**，避免方差系统性偏高）。输出像素的 `variance/ivar` 按
- `DATA_SEMANTICS` 「兼容矩阵」一节a 表达为 **`variance=0 ∧ ivar=0`（显式不可用）**；该情形只写 0
- —— NaN 保留给「无覆盖」（/ ）。
+ `docs/science/unified/DATA_SEMANTICS.md`「方差与逆方差的三态编码」一节 表达为 **`variance=0 ∧ ivar=0`（显式不可用）**；该情形只写 0
+ —— NaN 保留给「无覆盖」；该三态编码的正本见 `docs/science/unified/DATA_SEMANTICS.md`「方差与逆方差的三态编码」一节。
  2. **覆盖级 NaN**：仅当 `W_p = 0`（零合格样本）时，输出 `signal = NaN`、`variance = NaN`、
  `support = 0`。NaN 是**无效的唯一表示**；`0`、`±Inf` 或任意哨兵值一律不表示无效。
 
@@ -192,20 +199,22 @@ role 与 type 逐一对应（同名必同 type / 同 type 必同 role，无歧�
  | 无信息（该源像素在**全部**帧都非有限） | 有候选、零合格 | `NaN / support=0`，`n_rejected>0` |
  | 坏点 / 坏列 / 饱和 / 宇宙线（部分帧或部分样本坏） | 掩膜 + 重归一 | **有限值** + `support>0` + `n_rejected>0` + `variance>0`（该像素无方差不可用样本，见下一行） |
  | 有覆盖但该源像素方差不可用（`V_j` 有限且 `V_j ≤ 0`） | 计入 `F_p`/`W_p`，不计入 `Var_p` | **有限值** + `support>0` + `variance=0 ∧ ivar=0`（方差面显式不可用） |
- | 方差面损坏（`V_j` 非有限） | 该样本按不合格样本剔除并计数 | `n_rejected_nonfinite_variance>0`（「兼容矩阵」一节a：非有限 = 产品损坏） |
+ | 方差面损坏（`V_j` 非有限） | 该样本按不合格样本剔除并计数 | `n_rejected_nonfinite_variance>0`（三态编码的「损坏」态：方差分子非有限或为负 ⇒ 硬失败） |
  | 全部样本合格 | 无剔除 | 有限值 + `support>0` + `n_rejected=0` + `variance>0` |
 
  **下游可判定性**：下游可仅凭 `(isnan(signal), support, n_rejected, variance==0 ∧ ivar==0)`
  四元组（`n_rejected` 取无效值处置规则 3 的该像素计数）把上表六行**完全分开**
- （判据 = `eng/tests/artifact/test_phase_product_exchange.py` 的逐行正/负例，
- 受 「兼容矩阵」一节a 三态表与本节规则 1/1a/2 约束；「有覆盖但方差不可用」行由
+ （判据 = 交换对象校验器 `lib/infrastructure/aio/runtime/artifact_store/phase_product_exchange_validator.py`
+ 与配套正/负测的逐行用例，**判据无载体**（该测试文件在仓内不存在，`eng/tests/` 只有
+ `conformance/` 与 `validation/` 两个子目录），
+ 受 `docs/science/unified/DATA_SEMANTICS.md`「方差与逆方差的三态编码」一节的三态表与本节规则 1/1a/2 约束；「有覆盖但方差不可用」行由
  `signal` 有限 ∧ `support>0` ∧ `variance=0 ∧ ivar=0` 与「全部样本合格」行的
  `variance>0` 区分，与「无覆盖」行的 `signal=NaN` 区分，与「坏样本」行的
  `n_rejected>0` 区分）。因此「无覆盖」与「有覆盖但全坏」在**诊断层**可区分，在
  **科学语义层**同为「无效」；「有覆盖但方差不可用」在**科学语义层**为**有效**
  （`signal` 有限、`support>0`），只在**方差面**显式不可用 —— 这与
- 「兼容矩阵」一节a 三态表一致（无覆盖 ⇒ `NaN`；有覆盖但方差不可用 ⇒
- `variance=0 ∧ ivar=0`），并与该文件 （`ivar==0` = 合法零权重、`variance==0` = 无信息）一致。
+ `docs/science/unified/DATA_SEMANTICS.md`「方差与逆方差的三态编码」一节的三态表一致（无覆盖 ⇒ `NaN`；有覆盖但方差不可用 ⇒
+ `variance=0 ∧ ivar=0`），并与 `docs/science/unified/DATA_SEMANTICS.md`「方差与逆方差的三态编码」一节（`ivar==0` = 合法零权重、`variance==0` = 无信息）一致。
 
  **一句话版本**：**NaN 在重采样与集成中按「样本级掩膜、重归一、覆盖级 NaN、强制计数」处置**：
  不合格样本从聚合的分子/分母/方差中一并剔除并重新归一（无效面的表示限于覆盖级；
@@ -214,7 +223,7 @@ role 与 type 逐一对应（同名必同 type / 同 type 必同 role，无歧�
  **方差可用性是独立通道**：`V_j` 有限且 `≤ 0` 的合格样本照常贡献 `F_p`/`W_p` 与覆盖，
  方差面写 `variance=0 ∧ ivar=0`（显式不可用，取值与 clamp/常数/地板结果可区分）。
 
- **口径归属**：NaN 处置以 `rule_id = NAN-SAMPLE-MASK-COVERAGE-NAN` 为准（`../../ACSD_DESIGN.md` ）；
+ **口径归属**：NaN 处置以 `rule_id = NAN-SAMPLE-MASK-COVERAGE-NAN` 为准（最高设计的「逐像素排异」一节）；
  `../standards/NUMERIC.md` 的必须遵守条目与标准符合性登记
  （D.drizzle `DISP-DRZ-004`）引用同一份文字。
  **机器形态**：`invalid_handling` 是本节规则块的名称（`rule_id = NAN-SAMPLE-MASK-COVERAGE-NAN`），
@@ -225,10 +234,13 @@ role 与 type 逐一对应（同名必同 type / 同 type 必同 role，无歧�
 
 ### b. 最小平面集
 
-- `phase1_product_v1`：signal + support + variance + mask（Phase1 输出单帧标准化 HiPS 含
- SCI/variance/support/mask 四平面；13 标准 「交换对象」一节）。
-- `phase2_mosaic_v1`：signal + support + mask（马赛克产物信号/覆盖/质量；13 标准 「交换对象」一节）。
-- `phase3_planar_fits_v1`：signal + support + mask（SCI/SUPPORT/MASK + WCS；13 标准 「交换对象」一节）。
+- `phase1_product_v1`：**signal + support + variance**（Phase1 单帧标准化 HiPS 的科学面；帧级 SNR
+ 与稀疏绝对 SNR 控制点层是插入 HiPS 文件内的标准层，不在本枚举内，见本文稀疏绝对 SNR 控制点层一条）。
+- `phase2_mosaic_v1`：**signal + support + variance**（马赛克产物信号/覆盖/方差；`nrej`/`nused` 是
+ artifact manifest 声明的诊断统计平面，不进交换 science planes 枚举）。
+- `phase3_planar_fits_v1`：**signal + support + variance**（主 HDU = signal，扩展 HDU =
+ COVERAGE/VARIANCE/IVAR + WCS 关键字）。
+三个角色都**不含 `mask`**：无生产者、无 canonical schema。
 
 ## 跨 Phase 仅磁盘交换（R-DISK-ONLY）
 
@@ -240,10 +252,29 @@ Phase3 ──(原子发布: 磁盘 planar FITS + manifest/hash/provenance)──
 
 - **rule_id `R-DISK-ONLY`**：任一 Phase 进程只接受另一 Phase 通过原子发布 + 完整 manifest
  （hash/provenance）产生的**磁盘产品**；跨 Phase 传输面限于磁盘产品（进程内对象 / ArtifactHandle / run 上下文不承载交换）；
- 单进程串联不在合同面内（最高设计 ：一次 CLI 调用只驱动一个阶段、无 `--phases 1,2,3`；
+ 单进程串联不在合同面内（最高设计「总原则：唯一入口、阶段独立调度器」一节：一次调用只驱动一个阶段；
  阶段隔离运行时见 `../architecture/ARCHITECTURE.md`）。
 - 磁盘交换是唯一跨 Phase 通道：无共享内存、无进程内 registry 直连、无隐式文件路径猜测。
 - 交换对象文档中的 `artifact_manifest.run.run_id` **仅溯源**，绝不作为接收方进程内匹配依据。
+
+## coordinate 的 frame 取值映射
+
+交换对象 `product_content.coordinate.frame` 与 HiPS 产品 `properties.hips_frame` 是
+**两份工件上的两个不同字段**，词表不同，必须显式映射：
+
+| 来源 | 字段 | 取值 |
+|---|---|---|
+| HiPS 产品 `properties`（生产者写出） | `hips_frame` | `equatorial`（IVOA HiPS 1.0 §4.4.1 关键字表的标准写法，即 ICRS；`galactic`/`ecliptic` 是同表另两值） |
+| 交换对象文档（本文合同） | `product_content.coordinate.frame` | `icrs`（唯一允许值） |
+
+**映射规则**：读侧从 HiPS `properties` 构造交换对象文档时，
+`hips_frame = equatorial` ⇒ `coordinate.frame = icrs`；`hips_frame` 为 `galactic` 或
+`ecliptic` ⇒ **显式拒绝**（不得映射成 `icrs`，也不得写进交换对象）。
+
+交换对象校验器 `lib/infrastructure/aio/runtime/artifact_store/phase_product_exchange_validator.py`
+只校验交换对象文档的 `frame == "icrs"`，不读磁盘、不解析 HiPS —— 校验器与 HiPS 生产者
+各自面对自己的工件面，二者不矛盾：**矛盾只可能出现在从 `hips_frame` 到 `frame` 的取值
+映射上，本节即该映射的正本**。
 
 ## 兼容矩阵（machine-readable 真源）
 
@@ -279,7 +310,7 @@ Phase3 ──(原子发布: 磁盘 planar FITS + manifest/hash/provenance)──
 | `X-NO-SCHEMA` | `type_id` 未登记 registry，或 role↔type_id↔schema_version 不一致 | 缺 schema 拒绝（D4c） |
 | `X-NO-UNITS` | `product_content` 缺失，或任一必需 plane 缺 units（空/占位/空白） | 缺 units 拒绝（D4d） |
 | `X-NAME-BINDING` | 任何把语义绑定到 artifact_id/storage_uri/文件名的尝试 | 无隐式 name binding（D5） |
-| `COUNT_FIELD_MISSING` | 产品缺 `diagnostic_planes.n_rejected_nonfinite`（计数为 0 与字段缺失必须可区分） | 强制计数（「交换对象」一节a 规则 3） |
+| `COUNT_FIELD_MISSING` | 产品缺 `diagnostic_planes.n_rejected_nonfinite`（计数为 0 与字段缺失必须可区分） | 强制计数（本文「交换对象（exchange object）结构」一节的处置规则第 3 条） |
 
 `R-NO-NAME-BINDING` 的判定面：输入资格、角色识别、单位/坐标/平面语义**绝不根据
 文件名 / 目录名 / `storage_uri` 尾段 / 路径猜测**；产品角色由 `exchange.product_role` +
@@ -291,7 +322,7 @@ Phase3 ──(原子发布: 磁盘 planar FITS + manifest/hash/provenance)──
 文件路径或 storage_uri 尾段**；不访问磁盘内容；storage_uri 仅做合并 manifest 词法校验
 （禁裸路径）。
 
-## 验收映射（依据：「兼容矩阵」一节 + `../../ACSD_DESIGN.md` ）
+## 验收映射（依据：本文「兼容矩阵」一节 + 最高设计的「I/O 与原子产品」一章）
 
 | 验收 | 实现 |
 |---|---|
@@ -305,18 +336,19 @@ Phase3 ──(原子发布: 磁盘 planar FITS + manifest/hash/provenance)──
 | D5 无隐式 artifact name binding | `R-NO-NAME-BINDING`；validator 无路径/名称派生代码；测试 `TestNoImplicitNameBinding.test_artifact_id_arbitrary_does_not_affect_qualification`（详见 「拒绝条件」一节） |
 | D6 跨 Phase 仅磁盘交换 | `R-DISK-ONLY`；「跨 Phase 仅磁盘交换」一节；阶段隔离运行时由进程边界强制（见 `../architecture/ARCHITECTURE.md` 与 `ARTIFACT_STORE.md`） |
 
-测试：`eng/tests/artifact/test_phase_product_exchange.py`（正/负测，无第三方依赖）。
+测试：正/负测应落在交换合同配套的校验器测试面上（`eng/tests/` 下当前只有 `conformance/` 与
+`validation/` 两个子目录，**该测试面尚不存在**）—— 载体落库前本文的交换资格判据不可复跑。
 
 ## 边界与拒绝面
 
 - 本合同**不重定义科学公式/单位/坐标/平面语义**——units 只做显式声明与强制呈现，不发明单位
- （`ADU`/`ADU^2`/`dimensionless`/`bitmask` 源自 ARTIFACTS.md / DATA_SEMANTICS.md）；
+ （`ADU`/`ADU^2`/`dimensionless` 源自 `ARTIFACTS.md`[2] 与 `docs/science/unified/DATA_SEMANTICS.md` 的单位与量纲表）；
  不新增 registry type（沿用 registry 已登记的三产品 type + calibrated_frame 内部类型）。
 - `support`/`coverage` 属覆盖/有效性面，不承载科学权重（「阶段产品角色与 type 绑定」一节）；flux-per-pixel
  与 surface brightness 语义分列（SCI-P3 a.8）——本合同只要求显式声明与强制校验，不重定义科学。
 - 三阶段各自独立进程；输入只取磁盘产品，不取另一 phase 的 run 上下文；角色识别只依据 manifest 字段。
 - 非目标（alpha 拒绝项延续 SCI-P3 「阶段产品角色与 type 绑定」一节）：多通道/RGBA/lossy HiPS。
-- **阶段三接受域（最高设计 ）**：export **接受任一合同兼容 HiPS**（含来自 `normalize`
+- **阶段三接受域（最高设计的「投影算法」一节）**：export **接受任一合同兼容 HiPS**（含来自 `normalize`
  的单帧产品，见 「兼容矩阵」一节 `E-P2-OUT-P3-IN`/`E-P1-OUT-P3-IN`）；**variance/ivar 按显式消费并传播**
  （输出 `VARIANCE`/`IVAR` 扩展 HDU），两者皆无时**显式 `unavailable`**（不静默）。
  （`weight`/`support` 冒充方差/逆方差仍**显式拒绝**；flux-per-pixel 输入仍显式拒绝。）
@@ -329,6 +361,8 @@ SCI-P3（`../../science/PHASE3_HIPS_TO_FITS.md`）/ SCI-DRZ（`../../science/alg
 
 ## 参考文献
 
-[1] 内部文档 `docs/ACSD_DESIGN.md，最高设计`，上位来源。
-[2] 内部文档 `docs/engineering/data/ARTIFACTS.md`，同层相关正本。
-[3] 内部文档 `docs/engineering/standards/NUMERIC.md`，同层相关正本。
+[1] 内部文档 `../../ACSD_DESIGN.md`，最高设计的顶层结构与 I/O 与原子产品两章，上位来源。
+[2] 内部文档 `ARTIFACTS.md`，数据工件字段合同，同层相关正本。
+[3] 内部文档 `../standards/NUMERIC.md`，数值与容差标准，同层相关正本。
+
+[4] 内部文档 `docs/science/unified/DATA_SEMANTICS.md`，数据语义正本（单位与量纲表、方差与逆方差的三态编码、坐标语义）。

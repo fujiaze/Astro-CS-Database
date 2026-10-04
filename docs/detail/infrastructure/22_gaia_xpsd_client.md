@@ -1,20 +1,21 @@
 # gaia_xpsd_client（本地星表查询，acsd.catalog.gaia / CAT-GAIA）
 
-> 上游：docs/ACSD_DESIGN.md §8.4（顶层结构）、§8.5（模块与 ABI）、
-> §3.3（星表只解析本地星表文件，离线、零网络）、§8.4（`gaia_xpsd_client/` 本地星表
-> 解析）、§9（CPU 后端与资源：缓存复用、编排连续性）
+> 上游：《ACSD 最高设计》的「软件架构」一章（顶层结构；模块与 ABI；`gaia_xpsd_client/`
+> 本地星表解析）与「数据对象与配置」一章（星表只解析本地星表文件，离线、零网络）、
+> 「CPU 后端与资源」一章（缓存复用、编排连续性）
 > 科学正本：docs/science/detection/ASTROMETRY.md（SCI-AST-001）
-> 算法正本：docs/science/algorithms/GAIA_QUERY.md（ALG-GAIA-001；§2.9 汇总表
-> 「缓存」行、§4 并发模型、§5 测试设计、§资源）
-> 数据正本：docs/science/unified/DATA_SEMANTICS.md §4.3（DATA-GAIA-001 星表行语义）
+> 算法正本：docs/science/algorithms/GAIA_QUERY.md（ALG-GAIA-001；汇总表的「缓存」行、
+> 并发模型、测试设计、资源安排各段）
+> 数据正本：docs/science/unified/DATA_SEMANTICS.md「星表行语义」（DATA-GAIA-001）
 > API 正本：docs/engineering/api/PUBLIC_API.md（API-GAIA-001，gaia_client C API 节）
 > 架构正本：docs/engineering/architecture/ARCHITECTURE.md
 > 缓存：docs/engineering/standards/CACHE.md（Gaia 查询缓存行）
-> XPSD 本地编码合同：docs/engineering/STANDARDS_REGISTRY.md（catalog 行）
+> XPSD 本地编码合同：docs/science/algorithms/GAIA_QUERY.md「DR3SP 光谱量化解码」一节
 > 消费方：registry/acsd.phase1.wcs-platesolve.md
 > 引用文献：见文末「参考文献」（角标用全角 `［N］`）
 
-模块级事实以 lib/infrastructure/gaia_xpsd_client/src/gaia_client.{h,c} 为准。
+模块级事实以 `lib/infrastructure/gaia_xpsd_client/src/gaia_client.h` 与
+`lib/infrastructure/gaia_xpsd_client/src/gaia_client.c` 为准。
 
 ## 1. 职责与边界
 
@@ -112,11 +113,11 @@
   非有限值 → detail 102 / 103；版本不匹配或过期的缓存条目 → 失效重查，**不
   返回过期数据**。**无网络**：不存在 TIMEOUT / 网络错误码。
 - 错误码与退出码唯一源 = lib/infrastructure/cli/exit_codes.h（本页不复制数值表）；
-  域→码映射唯一源 = docs/engineering/contracts/LOG_AND_ERROR.md「错误对象与退出码映射」一节。
+  域→码映射唯一源 = `docs/engineering/contracts/LOG_AND_ERROR.md`「错误对象与退出码映射」一节。
 
 ## 7. 测试与 Oracle
 
-设计冻结 = `TEST-GAIA-DESIGN-001`（GAIA_QUERY.md §5：合成 fixture、独立 oracle、
+设计冻结 = `TEST-GAIA-DESIGN-001`（`docs/science/algorithms/GAIA_QUERY.md` 的测试设计一节：合成 fixture、独立 oracle、
 不变量 I1–I5、负面 / 分配注入、1/N worker、ISA bitwise、资源）；可执行
 `TEST-GAIA-*` 待建（当前无 PASS 声明）。
 
@@ -125,7 +126,7 @@
 - LRU / 字节预算：超限按最近最少使用淘汰，无无限增长；块缓存总内存 ≤ 4 GB；
 - RA 环绕 / 极区剪枝无假阴性（false_negative = 0）；
 - `max_workers = 1` 与 N worker 输出一致；mmap 资源面 RSS 结束回落有可解释
-  高水位（GAIA_QUERY.md §资源）。
+  高水位（`docs/science/algorithms/GAIA_QUERY.md` 的资源安排一节）。
 
 ## 8. 已知限制
 
@@ -133,7 +134,7 @@
 
 ## 9. 源文件
 
-- `lib/infrastructure/gaia_xpsd_client/src/gaia_client.{h,c}`（唯一生产源）；
+- `lib/infrastructure/gaia_xpsd_client/src/gaia_client.h` 与 `lib/infrastructure/gaia_xpsd_client/src/gaia_client.c`（唯一生产源）；
 - `lib/infrastructure/gaia_xpsd_client/module.yaml` + `README.md`（CAT-GAIA-DOC
   冻结）；追溯行 = `MOD-acsd-catalog-gaia`。
 

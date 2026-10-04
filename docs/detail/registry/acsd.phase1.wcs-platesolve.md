@@ -55,6 +55,11 @@ PSF 复用），**不消费** `star_detection` 节点的星表，因此本节点
 invalid = NaN/coverage=0（按 DATA 合同）；求解失败 → `PLATESOLVE_FAILED`，
 不写半成品 WCS 头（orchestrator.cpp 两处）。
 
+**精度归属**：WCS 解、星表匹配与残差统计属**稀疏与元数据**面，按最高设计的
+「数据对象与配置」章内「精度归属」条取**全程双精度**；JSON 显式指定位深时以 JSON
+为准。图像面本身属**稠密大面**（单精度），进入解算前按同一读入面类型参与，两类面
+的精度归属不得互相代入。
+
 ### 数值落地口径
 
 匹配与拟合的推导正本 = ALG-WCS-001；本页只记落地方式：
@@ -119,7 +124,8 @@ inlier 缓冲由调用方预分配（`ipv_get_last_inliers`）。
 ## 错误、日志、指标、取消和 checkpoint
 
 错误码与退出码唯一源 = lib/infrastructure/cli/exit_codes.h（本页不复制数值表）。
-现状返回 ret 0/1 + `error_msg[256]`（API-WCS-001 返回码节）：几何退化 / 星数
+现状返回 ret 0/1 + `error_msg[256]`（docs/engineering/api/PUBLIC_API.md 的
+「WCS 求解 C API（API-WCS-001）」章内「返回码」）：几何退化 / 星数
 不足 → ret=0 / success=0（error_msg 载因）→ 编排 `PLATESOLVE_FAILED`；
 `BLOCK_MISSING`（必需块缺失）；CD 退化坍缩按失败处理（失败-置信度语义见
 PLATESOLVE.md §11）。

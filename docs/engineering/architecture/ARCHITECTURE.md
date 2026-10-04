@@ -120,10 +120,10 @@ io → data_contracts; io ⇏ runtime; io ⇏ modules
 
 ## 平台与交付形态
 
-- 正式开发、客户端与发布平台是 Windows x64，兼容下限 Windows 10 22H2 x64；Linux amd64 承载常在线控制、静态分析、轻量编译与小合成实验。
+- 交付平台是 Windows 10+ amd64 与 Linux amd64 两个。运行时、I/O、科学模块与 CPU provider 作为动态库随包交付：Windows 用户面对 `acsd.exe` 加各 `dll`，Linux 用户面对 `acsd` 加各 `so`；两平台各给出一个解压目录（唯一可执行文件、各动态库、schemas、配置）。
+- 开发、构建、合成与真实数据终验在 Linux amd64 节点上完成，随后交 Windows 复验，再由负责人终审发布候选。
 - 双平台使用各自的构建配置与平台相关源码（I/O、线程、路径分开写），平台无关源码（尤其算法）尽可能复用；两平台共用同一套 C ABI 与产品 manifest。
-- Windows 用户只面对 `acsd.exe`；运行时、I/O、科学模块与 CPU provider 作为动态库随包交付，交付物是解压目录（唯一可执行文件、各动态库、schemas、配置）。Linux 同源产出 `acsd` 加 `.so` 技术预览用于轻验证，其读数不作为 Windows 发布性能结论。
-- 球面浏览器不注册为命令行插件、不进入科学动态库清单、不进产品 manifest；未来的图形界面经稳定的命令行、JSON、退出码与产品文件调用。
+- Windows 官方工具链为 MSVC；球面浏览器不注册为命令行插件、不进入科学动态库清单、不进产品 manifest；未来的图形界面经稳定的命令行、JSON、退出码与产品文件调用。
 
 ## 不变量
 

@@ -7,8 +7,8 @@
 ## 目标与验收
 
 实现面 = `lib/infrastructure/pipeline/module_loader/`（`secure_loader.h` + `secure_loader.c`）；
-类型正本 = `lib/include/acsd/abi/module_api_v1.h` / `host_api_v1.h`；测试面 =
-`eng/tests/abi/`（`abi003_loader_probe.c` + `test_secure_loader.py`）。
+类型正本 = `lib/include/acsd/abi/module_api_v1.h` / `host_api_v1.h`。本层不随仓内留测试脚本载体，
+装配 fixture 由该验收面自行构建。
 本层提供受控动态加载： Windows 用受控绝对路径 +
 `SetDefaultDllDirectories`/`AddDllDirectory`/`LoadLibraryExW` 安全 flags;
 Linux 仅从 product manifest 的绝对 canonical path `dlopen`。加载前后校验
@@ -101,14 +101,14 @@ product manifest(host 解析) → unit 记录(绝对路径/sha/module_id/abi/bui
 | N11 | kind 不支持 | detail=17 |
 | L1-3 | 消息字面量/无文件写/拒绝输出无泄露 | 静态断言 |
 
-运行: `python3 eng/tests/abi/test_secure_loader.py`(gcc + -ldl; 内部编译 fixture
-与一致性模块, 不依赖仓库先 build)。
+上表逐条对应本篇拒绝模型的 detail 码，是安全装载器在 Linux 技术预览面上的验收矩阵；
+负路径与正路径的装配 fixture 由该面自行构建，不在仓内留脚本载体。
 
 ## 非目标
 
 - Windows `LoadLibraryExW` 实机验证（发行验证面）;
 - product manifest 解析与动态 registry 接线（`module_loader/module_registry.h`）;
-- conformance 模块语义(validate/plan/create/execute…) 探针 `eng/tests/abi/test_abi005_echo.py`;
+- conformance 模块语义(validate/plan/create/execute…) 探针（`eng/tests/conformance/noop/` 只装配骨架，不含语义探针）;
 - provider 加载后的 CPUID/self_test 路由（`lib/infrastructure/benchmark/cpu/` 与安全 loader 的接线）。
 
 ## 参考文献

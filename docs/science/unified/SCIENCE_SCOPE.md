@@ -1,6 +1,6 @@
 # 科学范围与假设
 
-> 上游：docs/ACSD_DESIGN.md 第 1 章（项目定位）、第 2 章（核心科学方法：五个创新点）
+> 上游：《ACSD 最高设计》（docs/ACSD_DESIGN.md）的「项目定位」与「核心科学方法：五个创新点」两章
 
 ## 1 主题与目标
 
@@ -37,7 +37,7 @@ photo_scaled_adu   施加逐帧测光标度 α_k 后，α_k·ADU
 surface_brightness 按立体角归一后，ADU/sr
 ```
 
-标度律是线性的：乘性标度 `x′ = α·x` 蕴含 `Var′ = α²·Var` 与 `ivar′ = ivar/α²`；面亮度换算 `S = F/A_cell` 蕴含 `Var(S) = Var(F)/A_cell²`。这两条逐字出自计量学通用手册 [1]。电子数只在校正方另行给出增益换算后才成立，本链不建模增益。
+标度律是线性的，其形式与推导在《数据语义》分册的标度类别一节给出，本册只固定它对本链成立的范围：电子数只在校正方另行给出增益换算后才成立，本链不建模增益。
 
 `α_k` 是逐帧量：不同夜、不同透明度的帧标度不同是正常的，链上不存在全仓常数形式的测光标度。
 
@@ -49,7 +49,7 @@ surface_brightness 按立体角归一后，ADU/sr
 
 ### 3.3 五个σ深度的判据
 
-固定参考 PSF 与孔径下的 5σ 深度是摘���量，参考轮廓取星点目录的中位视宁度加本帧天光离散度，`F_5 = 5·σ_F(ref)`，深度由该通量按逐帧零点换算。深度的定义与 PSF 匹配、孔径与零点绑定的口径由 Pan-STARRS1 测光系统与 LSST 科学产品文档给出 [2, 3]。深度是摘要，不作权重。
+固定参考 PSF 与孔径下的 5σ 深度是摘要量，深度由参考轮廓下的 `F_5 = 5·σ_F(ref)` 按逐帧零点换算；参考轮廓、孔径、背景估计域与像素标度的绑定条件由《噪声、信噪比与不确定度》分册承载，定义层面由 Pan-STARRS1 测光系统与 LSST 科学产品文档给出 [1, 2]。深度是摘要，不作权重。
 
 ## 4 参数与常数
 
@@ -62,7 +62,7 @@ surface_brightness 按立体角归一后，ADU/sr
 | 帧级信噪比、稀疏控制点信噪比 | 无量纲 | 同一线性标度下 α 相消，与标度类别无关 |
 | 曝光时长 | 秒 | 只以暗流缩放比 `t_light/t_dark` 进入算法 |
 
-## 5 假设
+## 5 假设与适用域
 
 ### 5.1 场景假设
 
@@ -76,12 +76,12 @@ surface_brightness 按立体角归一后，ADU/sr
 判据取 patch 尺度上的对数斜率
 
 ```text
-γ = d log(patch 方差) / d log(patch 中位信号)
+s_log = d log(patch 方差) / d log(patch 中位信号)
 ```
 
-判据面是**散粒主导的 patch 子集**，冻结阈值 `|γ − 1| ≤ 0.3`（仓内冻结值，冻结面在 science 的噪声与信噪比分册）。在散粒主导子集上 `γ > 1.3` 说明该 patch 的估计量测的是空间结构而不是随机分量，噪声场必须显式降级为全局常量场并登记降级原因；消费口径就是那个显式降级的常量场。
+判据面是**散粒主导的 patch 子集**，本分册冻结阈值 `|s_log − 1| ≤ 0.3`。在散粒主导子集上 `s_log > 1.3` 说明该 patch 的估计量测的是空间结构而不是随机分量，噪声场必须显式降级为全局常量场并登记降级原因；消费口径就是那个显式降级的常量场。符号取 `s_log` 而不是 `γ`，是为了与信噪比模型里作为指数的 `γ` 区分。
 
-真实数据上的实测结论是：M42 真实帧的 patch 稳健方差对 patch 中位信号的对数斜率显著偏离 1，即该真实域不满足 `γ ≈ 1`，前提在该帧上不成立。作为对照的"跨帧配对差"口径在同一批文件上给出的斜率更大，但该口径本身含有由两帧标度与天光不同带来的确定性失配项，因此污染幅度未被这组数据定量确认——**前提可被违反是已确认的事实，污染幅度是未定量项**。这正是冻结"判据形式 + 显式降级路径"而不是冻结"斜率必为 1"的原因。
+前提可被违反是已确认的事实：patch 稳健方差对 patch 中位信号的对数斜率不必为 1，`s_log > 1.3` 的 patch 在真实帧上确实出现，噪声场随之显式降级。**污染幅度是未定量项**——它取决于帧集、标度与天光的组合，本分册不给该幅度的数值，因为仓内目前没有把它定量的实验；作为对照的跨帧配对差口径本身还含有由两帧标度与天光不同带来的确定性失配项，不能单独用来定幅度。这正是冻结"判据形式 + 显式降级路径"而不是冻结"斜率必为 1"的原因。
 
 ### 5.3 系统误差与随机误差的分面
 
@@ -90,21 +90,15 @@ surface_brightness 按立体角归一后，ADU/sr
 - **背景方差面** = 空背景随机分量，由逐像元稳健尺度估计并落成方差/逆方差，其基线是经验空背景方差；
 - **加权方差面** = 该像元的总方差，含源光子散粒项，供叠加与拟合的最优加权。
 
-参数式的 `var = max(signal,0)/gain + (read_noise_e/gain)²` 是加权方差面的来源 [4, 5]，其中读出噪声项与信号无关，因此数值意义上的 `variance = signal²` 在低信号端必然失效。背景方差面以经验空背景方差为准。系统项与重采样后的协方差不属于任一面。
+参数式的加权方差面按 ADU 域写成 `var_adu = max(S_adu, 0)/g + RN_adu²`，或按电子域写成 `Var_e = max(S_e, 0) + RN_e²`；两式量纲自洽（前者 `ADU²`，后者 `e⁻²`），换算因子由调用方从帧头或配置提供，本链不反推增益。两种写法分别来自 [3, 4]。其中读出噪声项与信号无关，因此数值意义上的 `variance = signal²` 在低信号端必然失效。背景方差面以经验空背景方差为准。系统项与重采样后的协方差不属于任一面。
 
-## 6 与上下游的关系
+## 6 判据与误差
 
-上游是最高设计的项目定位与创新点两章。本分册向下约束全部主题分册：校准分册的适用域、检测与天体测量分册的标度约定、噪声与信噪比分册的方差面、映射分册的守恒判据、集成分册的权重口径，都在本册声明的前提内成立。工程侧的默认值与配置合同在 engineering 正本。
-
-本分册的假设条款同时是实验单元的设计前提：任何实验单元若在前提外取证，其结论只能作为适用域外证据登记，不能作为正本口径的证据。
-
-## 7 有效域、失效条件与参考文献
-
-### 7.1 有效域
+### 6.1 有效域
 
 深空成像、16 位或 32 位 FITS 帧、标准 CCD/CMOS 探测器、视场内可用单次切平面投影加低阶畸变多项式刻画光学畸变。
 
-### 7.2 失效条件
+### 6.2 失效条件
 
 | 条件 | 显式后果 |
 |---|---|
@@ -115,18 +109,27 @@ surface_brightness 按立体角归一后，ADU/sr
 | 探测器饱和区 | 该像元不参与有效统计 |
 | 背景结构在 patch 尺度主导 | 噪声场显式降级 |
 
-### 7.3 不产出
+### 6.3 不产出
 
 本链不产出完整协方差矩阵产品（相邻像素的相关性以文档化与相关核摘要承载）、不产出光谱或运动学产品。
 
-### 7.4 参考文献
+### 6.4 误差归属
 
-[1] Joint Committee for Guides in Metrology. Evaluation of measurement data — Guide to the expression of uncertainty in measurement, JCGM 100:2008. https://www.bipm.org/documents/20126/2071204/JCGM_100_2008_E.pdf
+随机误差进逐像元方差与逆方差面；系统项与重采样后的协方差不属于任一面，也不逐像元传播；模型偏差进有效性面与误差预算。三者分面记录、互不替代，混为一谈会让最终深度偏乐观。
 
-[2] Tonry J. L., et al. The Pan-STARRS1 photometric system. The Astrophysical Journal, 2012, 750(2): 99. https://doi.org/10.1088/0004-637x/750/2/99
+## 7 与上下游的关系
 
-[3] Ivezić Ž., et al. LSST: From science drivers to reference design and anticipated data products. The Astrophysical Journal, 2019, 873(2): 111. https://doi.org/10.3847/1538-4357/ab042c
+上游是最高设计的项目定位与创新点两章。本分册向下约束全部主题分册：校准分册的适用域、检测与天体测量分册的标度约定、噪声与信噪比分册的方差面、映射分册的守恒判据、集成分册的权重口径，都在本册声明的前提内成立。工程侧的默认值与配置合同在 engineering 正本。
 
-[4] Newberry M. V. Signal-to-noise considerations for sky-subtracted CCD data. Publications of the Astronomical Society of the Pacific, 1991, 103: 122. https://doi.org/10.1086/132801
+本分册的假设条款同时是实验单元的设计前提：任何实验单元若在前提外取证，其结论只能作为适用域外证据登记，不能作为正本口径的证据。
 
-[5] Janesick J. R. Scientific Charge-Coupled Devices. SPIE Press Monograph PM83, 2001（第 2 章 photon transfer 给出增益与读出噪声的测量与完整方差式；本册只引用其模型结构，不引用具体公式号。该书正文未逐页核对，核验状态为书目级）
+## 8 参考文献与参考代码
+
+
+[1] Tonry J. L., et al. The Pan-STARRS1 photometric system. The Astrophysical Journal, 2012, 750(2): 99. https://doi.org/10.1088/0004-637x/750/2/99
+
+[2] Ivezić Ž., et al. LSST: From science drivers to reference design and anticipated data products. The Astrophysical Journal, 2019, 873(2): 111. https://doi.org/10.3847/1538-4357/ab042c
+
+[3] Newberry M. V. Signal-to-noise considerations for sky-subtracted CCD data. Publications of the Astronomical Society of the Pacific, 1991, 103: 122. https://doi.org/10.1086/132801
+
+[4] Janesick J. R. Scientific Charge-Coupled Devices. SPIE Press Monograph PM83, 2001（第 2 章 photon transfer 给出增益与读出噪声的测量与完整方差式；本册只引用其模型结构，不引用具体公式号。该书正文未逐页核对，核验状态为书目级）

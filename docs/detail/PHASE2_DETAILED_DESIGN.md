@@ -1,6 +1,6 @@
 # Phase2 目标态详细设计
 
-> 上游：ACSD_DESIGN.md §5（mosaic：相对定标·排异·集成）
+> 上游：《ACSD 最高设计》的「mosaic：相对定标 · 排异 · 集成」一章
 
 使命：把一组合同兼容的 Phase1 球面产品相对定标、排异并合成为可继续测量的马赛克；对不同科学目标提供明确的最优统计量，而不是一个万能 weight。
 
@@ -8,7 +8,7 @@
 
 输入可来自不同 Phase1 运行，但必须兼容：天球 frame、滤镜/波段、signal 物理语义、通量尺度可变换、PSF/噪声模型可解释、产品 schema 和 provenance 完整。混合积分通量/面亮度、未知单位、缺少必要响应或损坏 manifest 时拒绝。
 
-输入的 signal 是**线性**面亮度（单位随产品 `BUNIT`，Phase1 面亮度产品为 `ADU/sr`；逐帧相对测光零点由 `PHOTSCAL`/`PHOTAPPL` 承载，量纲正本见 `docs/science/unified/DATA_SEMANTICS.md` §3.4）：本阶段的全部运算是**线性**的——UPM 加性天光校正（`y_k = s + C_k + ε_k`）与逆方差加权求和（`signal = Σ w_i·x_i / Σ w_i`）——因此**不做星等换算**（星等是对数量，星等的加权平均在物理上无意义；星等只在派生/展示时按 `m = ZP_k − 2.5·log10 F` 换算，见 `docs/detail/PHASE1_DETAILED_DESIGN.md` §7.1）。
+输入的 signal 是**线性**面亮度（单位随产品 `BUNIT`，Phase1 面亮度产品为 `ADU/sr`；逐帧相对测光零点由 `PHOTSCAL`/`PHOTAPPL` 承载，量纲正本见 `docs/science/unified/DATA_SEMANTICS.md`「量纲与逐像素语义」一节）：本阶段的全部运算是**线性**的——UPM 加性天光校正（`y_k = s + C_k + ε_k`）与逆方差加权求和（`signal = Σ w_i·x_i / Σ w_i`）——因此**不做星等换算**（星等是对数量，星等的加权平均在物理上无意义；星等只在派生/展示时按 `m = ZP_k − 2.5·log10 F` 换算，见 `docs/detail/PHASE1_DETAILED_DESIGN.md`）。
 
 输入产品的**落盘形态不进入科学语义**：`hips_paths` 的元素可以是裸 `<name>.hips/` 或归档 `<name>.hips.zst`，调用方不感知形态（形态由落盘名判定，见 `docs/detail/PRODUCT_STORAGE_FORM.md`）。**`hips_paths` 的元素保持字符串**（不做元素对象化）：逐帧产品级索引路径由命名规则派生 —— `<name>.hips` / `<name>.hips.zst` → `<name>.hips.index.json`（与 `hips_path` 同父目录）。按天区查输入帧走**块级覆盖索引**（数据集级 `coverage.index.json`，不压缩；由**加性可选键** `coverage_index` 显式引用，缺失时由各产品级索引现场倒排），不逐瓦片探测：索引给出块 → 候选帧集合与覆盖分数，**像素级裁决仍由 support/validity/排异语义执行**。输入合同**不设** `storage_form` 键——阶段二产物固定裸形态（服务面），出现该键（含 `archive` 值）一律 REJECT。
 
@@ -18,7 +18,7 @@
 
 每步产物持久或可重建，七个 operation 逐一具名调用。
 
-SNR 重建口径由 JSON 显式指定：`dense`（稠密帧内 SNR）、`sparse_reconstruct`（默认，稀疏控制点插值重建）、`frame_reconstruct`（仅帧级）；实际生效口径记录在 `snr_path_effective`。三条口径都**直接**产出同一物理量 `SNR = F_ref/σ_F` 的稠密表示，只在重建方式上不同：`sparse_reconstruct` 由稀疏**绝对** SNR 控制点重建为稠密场（控制点值即绝对信噪比本身，不再乘/除帧级标量）；叠加权重由 SNR **现场换算**为逆方差 `w = SNR²/F_ref²`（`F_ref` 为逐帧参考通量），不由上游落盘（`ACSD_DESIGN.md` §5.3）。
+SNR 重建口径由 JSON 显式指定：`dense`（稠密帧内 SNR）、`sparse_reconstruct`（默认，稀疏控制点插值重建）、`frame_reconstruct`（仅帧级）；实际生效口径记录在 `snr_path_effective`。三条口径都**直接**产出同一物理量 `SNR = F_ref/σ_F` 的稠密表示，只在重建方式上不同：`sparse_reconstruct` 由稀疏**绝对** SNR 控制点重建为稠密场（控制点值即绝对信噪比本身，不再乘/除帧级标量）；叠加权重由 SNR **现场换算**为逆方差 `w = SNR²/F_ref²`（`F_ref,k = 10^(−0.4·(m_ref − ZP_k))`，冻结参考星等档 `m_ref` 在本帧的仪器通量；该档随产品落盘，口径见 `docs/detail/UNIFIED_MODEL.md`「参考通量基准」一节），不由上游落盘（《ACSD 最高设计》的「信噪比重建与逆方差叠加」一节）。
 
 ## 3. Coverage 与重叠图
 
@@ -32,8 +32,8 @@ SNR 重建口径由 JSON 显式指定：`dense`（稠密帧内 SNR）、`sparse_
 y_k(x) = s(x) + C_k(x) + epsilon_k(x)      # 纯加性（g_k ≡ 1）
 ```
 
-- `C_k(x)` 是加性天光背景（校正场）；**不引入乘性 `g_k`**（恒等；乘性残留归 Phase1 低阶空间增益，见 `docs/science/PHASE2_UPM.md` §14a）；
-- 星点掩膜之外每帧取稀疏背景采样点，采样点权重取**噪声逆方差 `control_ivar`**：被估量是变化的背景电平，`SNR²` 在该处不是有效逆方差代理；SNR 只作 veto/质量门（`ACSD_DESIGN.md` §5.4）；
+- `C_k(x)` 是加性天光背景（校正场）；**不引入乘性 `g_k`**（恒等；乘性残留归 Phase1 低阶空间增益，见 `docs/science/PHASE2_UPM.md`）；
+- 星点掩膜之外每帧取稀疏背景采样点，采样点权重取**噪声逆方差 `control_ivar`**：被估量是变化的背景电平，`SNR²` 在该处不是有效逆方差代理；SNR 只作 veto/质量门（《ACSD 最高设计》的「天光平面（UPM）」一节）；
 - 约束 gauge，报告**可辨识性判决与读数**（判在**未正则化**的列均衡数据信息矩阵上，唯一相对阈值；欠定与病态是同一条不等式的两种读法）、连通性、残差和参数协方差；
 - 参考天光面的节点间距由**输入几何**导出（上界 = 重叠带宽度与指向间距的一半取小，下界 = 数据自身分辨率极限），并作为自适应回路的**唯一旋钮**；几何量缺失 ⇒ fail-closed，取值只来自输入几何；
 - 控制点避开源、饱和、坏点和高结构区域；
@@ -61,7 +61,7 @@ y_k(x) = s(x) + C_k(x) + epsilon_k(x)      # 纯加性（g_k ≡ 1）
 | 4 ≤ N ≤ 5 | percentile clipping |
 | N ≥ 6 | winsorized sigma clipping |
 
-生产档（`acsd_adaptive_pixel`）的 **AUTO 路由 = 三档**（`1≤N≤3` none / `4≤N≤5` percentile / `N≥6` winsorized）；`linear fit` 仍是合法**显式**方法（`request=linear_fit`），AUTO 在生产档不产出该档（档界与算法名的唯一正本 = `registry/acsd.phase2.reject.md`（档位表段），本节不另立）；min/max 极值法**不用于生产**。实际方法、参数与 N 写入 `rejection` provenance（权威表见 `ACSD_DESIGN.md` §5.5；算法出处、合法性窗口与合成 Oracle 正负例见 `docs/science/REJECTION.md`）。
+生产档（`acsd_adaptive_pixel`）的 **AUTO 路由 = 三档**（`1≤N≤3` none / `4≤N≤5` percentile / `N≥6` winsorized）；`linear fit` 仍是合法**显式**方法（`request=linear_fit`），AUTO 在生产档不产出该档（档界与算法名的唯一正本 = `registry/acsd.phase2.reject.md`（档位表段），本节不另立）；min/max 极值法**不用于生产**。实际方法、参数与 N 写入 `rejection` provenance（权威表见《ACSD 最高设计》的「逐像素排异」一节；算法出处、合法性窗口与合成 Oracle 正负例见 `docs/science/REJECTION.md`）。
 
 ## 6. 两类目标产品，不能混用权重
 
@@ -100,7 +100,7 @@ Q = Σ_k Q_k,    W = Σ_k W_k,    F_hat = Q/W,    Var(F_hat) = 1/W
 ### 6.3 权重的来源与产生链
 
 Phase2 **不消费**任何来自 Phase1 的相对权重产品：权重一律**按该天球像素对应的帧集合现场算出**（派生量）；
-Phase1 与 Phase3 **不产生、不消费**权重。PSF 拟合质量代理（`q_psf`、残差尺度）**只作诊断**，**权重面排除**该项（`ACSD_DESIGN.md` §2、§3.1）。
+Phase1 与 Phase3 **不产生、不消费**权重。PSF 拟合质量代理（`q_psf`、残差尺度）**只作诊断**，**权重面排除**该项（《ACSD 最高设计》的「核心科学方法：五个创新点」与「数据对象」两章）。
 
 **产生链固定为两步、没有可选择项**：
 
@@ -111,7 +111,7 @@ Phase1 与 Phase3 **不产生、不消费**权重。PSF 拟合质量代理（`q_
         → 叠加
 ~~~
 
-§2 的三条 SNR 重建口径（`dense` / `sparse_reconstruct`（默认）/ `frame_reconstruct`）是**重建方式**的选择，不是权重口径的选择：三者都产出同一物理量的稠密表示，都走同一条逆方差定权式；实际生效口径记入 `snr_path_effective`。**不存在**可选的权重口径、口径选择键、口径枚举或口径配置项；越界 token 一律 fail-closed（`FZ-WEIGHT-SINGLE-PATH` / `FZ-MODE-RETIRED` / `FZ-FIELD-WEIGHTMODE`）。
+本章的三条 SNR 重建口径（`dense` / `sparse_reconstruct`（默认）/ `frame_reconstruct`）是**重建方式**的选择，不是权重口径的选择：三者都产出同一物理量的稠密表示，都走同一条逆方差定权式；实际生效口径记入 `snr_path_effective`。**不存在**可选的权重口径、口径选择键、口径枚举或口径配置项；越界 token 一律 fail-closed（`FZ-WEIGHT-SINGLE-PATH` / `FZ-MODE-RETIRED` / `FZ-FIELD-WEIGHTMODE`）。
 
 ## 7. 空间变化与压缩
 
@@ -142,4 +142,4 @@ Phase2 产物是**服务面天球数据库**，落盘形态固定为**裸 `<name
 - 不同 seeing/透明度/背景组合优于或等于普通 ivar 图像叠加的点源检测功率；
 - 扩展源常量场、梯度、总通量与方差无偏；
 - UPM 断图/欠定/不可辨识、排异小样本、零信息量和相关噪声失配能红；拟合不收敛或判红时产品**照出**、`warning_codes` 非空、构建 rc **不变**；
-- M42/银心真实数据检查接缝（**有符号**电平台阶门槛 + 适用域，见 `docs/ACSD_DESIGN.md` §12.4（L4 真实视觉验收））、背景、星形、卫星线、黑洞和预测/实测噪声。
+- M42/银心真实数据检查接缝（**有符号**电平台阶门槛 + 适用域，见《ACSD 最高设计》的「验证层级与四层验收」一节（L4 真实视觉验收））、背景、星形、卫星线、黑洞和预测/实测噪声。

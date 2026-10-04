@@ -1,9 +1,10 @@
 # 运行清单与校验合同
 
-上游：最高设计的 I/O 与原子产品一章。
+上游：最高设计的 I/O 与原子产品一章[1]。
 
 运行清单的字段、分离原则、溯源子对象与校验顺序的正本。科学配置与 CPU 机器画像是两个独立文件、
-独立校验、独立散列，画像陈旧即确定错误，不做猜测。退出码语义见 `LOG_AND_ERROR.md`。
+独立校验、独立散列，画像陈旧即确定错误，不做猜测。退出码语义见 `LOG_AND_ERROR.md`[2]；
+发布产物的交付口径见 `RELEASE.md`[3]。
 
 ## pipeline_config.json v1（配置校验 schema）
 
@@ -18,9 +19,9 @@
 ```
 
 validate 校验序(错误码确定, 不猜测): JSON 语法(3)→顶层对象+schema_version=="1"(3)→inputs 四键存在且为字符串数组、路径非空且文件存在(3)→output_dir 存在(3)。已知键白名单外键→3(防拼写静默忽略)。schema_version≠"1"→2(参数/配置错, 与输入缺失区分)。
-cpu profile(独立文件): **契约唯一源 = `eng/contracts/schemas/cpu_profile.schema.json`**（CFG-001 单文件双分支：legacy_v1 `schema_version=1` + profile_v2 `schema=acsd.cpu-profile/v2`；`x-acsd-writer` 声明生产者仅 `benchmark`）；校验 oracle = `eng/tools/validate_cpu_profile.py`（schema 最小校验 + stale 判定，消费面 `eng/tests/backend/test_cpu_profile.py`）；无/失配 profile → 回落 generic(baseline) + 动态多线程，不阻塞（`profile_store.h`）。CLI 侧运行时校验入口 `lib/infrastructure/cli/parser.cpp`（`validate_cpu_profile`）当前无生产调用方——消费链接线缺口已在死键台账（`eng/contracts/ledgers/dead_config_keys.json`）与开放项清单登记在案，处置排期随该登记推进。
+cpu profile(独立文件): **契约唯一源 = `eng/contracts/schemas/cpu_profile.schema.json`**[1]（CFG-001 单文件双分支：legacy_v1 `schema_version=1` + profile_v2 `schema=acsd.cpu-profile/v2`；`x-acsd-writer` 声明生产者仅 `benchmark`）；校验 oracle = `eng/tools/validate_cpu_profile.py`（schema 最小校验 + stale 判定）；无/失配 profile → 回落 generic(baseline) + 动态多线程，不阻塞（`profile_store.h`）。CLI 侧运行时校验入口 `lib/infrastructure/cli/parser.cpp`（`validate_cpu_profile`）当前无生产调用方——消费链接线缺口已在死键台账（`eng/contracts/ledgers/dead_config_keys.json`）与开放项清单登记在案，处置排期随该登记推进。**判据无载体**：消费侧测试 `eng/tests/backend/test_cpu_profile.py` 在仓内不存在（`eng/tests/` 只有 `conformance/` 与 `validation/` 两个子目录），故本条的 stale 判定只有 oracle 一处载体，不得写成已有回归测试锁定。
 
-## run_manifest.json v1(run 结束原子写, ARCH-002 「落点映射与测试」一节)
+## run_manifest.json v1(run 结束原子写，落点映射见「落点映射与测试」一节)
 
 ```json
 { "schema_version":"1", "kind":"acsd_run_manifest", "run_id":"<12hex>",
@@ -67,11 +68,11 @@ cpu profile(独立文件): **契约唯一源 = `eng/contracts/schemas/cpu_profil
  `run_id`/`software_version` 为空时 fail-closed，把输入 HiPS `signal/properties` +
  `signal/Moc.fits` 的 sha256 作为 `input_manifest_hash` 注入 FITS HISTORY 与 provenance。
 
-### 加性顶层键 `storage`（运行级形态事实；R-42/P-181）
+### 加性顶层键 `storage`（运行级形态事实）
 
 `run` 命令在 run manifest 顶层**可选**追加 `storage` 对象（additive，与 「provenance 子对象」一节 的
 `provenance` 同形：v1 校验器/`verify` 忽略未知顶层键，向后兼容）。**条款归属**：该键的
-字段词表与不变式 M1..M4 的**唯一正本** = `HIPS_STORAGE_FORM.md` 「运行完成清单 storage 段」一节
+字段词表与不变式 M1..M4 的**唯一正本** = `HIPS_STORAGE_FORM.md`「运行完成清单 `manifest.json#storage`（加性）」一节
 （本文件只登记键的存在与归属，不复写字段）；**唯一机器事实源** =
 `eng/contracts/schemas/hips_storage_form.schema.json` 的 `$defs.manifest_storage`；CFG-001
 `eng/contracts/schemas/run_manifest.schema.json` 只登记该键位与类型。
@@ -83,10 +84,10 @@ cpu profile(独立文件): **契约唯一源 = `eng/contracts/schemas/cpu_profil
 
 ## manifest verify 合同(acsd doctor --json --run-manifest <manifest.json>)
 
-独立 `verify` 命令不在命令面上（CLI-001 唯一命令树；verify* 为已删别名 → rc=2，负例锁定于
-`eng/tests/cli/test_cli_protocol.py` test_03）。manifest verify 的现行载体 = **`doctor` 的机器旗标
+命令面不含 `verify*`；调用返回 rc=2。**判据无载体**：锁定该退出码的负例
+（`test_03`）在仓内不存在（`eng/tests/` 无 CLI 测试面）。manifest verify 的现行载体 = **`doctor` 的机器旗标
 `--run-manifest`**（`lib/infrastructure/cli/commands.cpp` → `cmd_verify`）。
-校验序→错误码: manifest 语法/schema(3)→status=="complete"(否则 8)→acsd_version 与本机一致(5, 版本不同不可 verify)→重算 config/profile hash(3, 输入已变)→逐 artifact 存在性(3)+sha256(8)+size(8)→全部过→0 并输出 JSON `{verify:"ok", checked:N, manifest:<path>}`（stdout 恰一个 JSON 文档）。
+校验序→错误码: manifest 语法/schema(3)→status=="complete"(否则 8)→acsd_version 与本机一致(5, 版本不同不可 verify)→重算 config/profile hash(3, 输入已变)→逐 artifact 存在性(3)+sha256(8)+size(8)→全部过→0 并输出 JSON `{verify:"ok", checked:N, manifest:<path>}`（stdout 恰一个 JSON 文档；逐码语义见 `LOG_AND_ERROR.md`[2]，机器输出纪律见最高设计的机器输出与退出码[1]）。
 
 ## config/profile 分离校验落点
 
@@ -105,8 +106,9 @@ config 与 cpu profile 的分离校验由 `normalize|mosaic|export` 运行前预
 - manifest verify: `acsd doctor --json --run-manifest`（「manifest verify 合同」一节，`cmd_verify`）。
 - hash 工具: CRYPTO 公共层 `lib/algorithms/shared/crypto` sha256（CLI 侧封装 `file_sha256`，
  `commands.cpp` 三处在役调用）。
-- golden: `eng/tests/cli/test_cli_protocol.py`（schema_version 篡改→2 / 未知键 / 路径不存在 /
- manifest verify 全组 test_01..test_06 / 独立 verify 命令保持删除 test_07），每组断言退出码。
+- golden: schema_version 篡改→2 / 未知键 / 路径不存在 / manifest verify 全组 test_01..test_06 /
+ manifest verify 全组 test_01..test_06 / 独立 verify 命令返回 rc=2 test_07），每组断言退出码。**判据无载体**：该 golden 测试文件在仓内
+不存在（`eng/tests/` 无 CLI 测试面），故本组退出码断言不得写成已生效。
 
 ## 参考文献
 

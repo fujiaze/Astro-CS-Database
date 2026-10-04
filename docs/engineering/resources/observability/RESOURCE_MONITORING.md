@@ -1,9 +1,9 @@
 # 资源监控合同
 
-上游：最高设计的 CPU 后端与资源一章；监控伴随器的实现面在 `lib/infrastructure/observability/monitoring/`。
+上游：最高设计的 CPU 后端与资源一章[1]；监控伴随器的实现面在 `lib/infrastructure/observability/monitoring/`。
 
 监控时序工件的列定义、采样语义、指纹链与记录项语义的唯一正本。资源判据的阈值与
-判定见 `../PERFORMANCE_MODEL.md`。
+判定见 `../PERFORMANCE_MODEL.md`[2]。
 
 ## 目的与边界
 

@@ -2,9 +2,10 @@
 
 > 上游：docs/ACSD_DESIGN.md §8.5（模块与 ABI）、§4.4（输出合同：帧级 SNR 入文件头、
 > 稀疏层插入）、§2.2（创新点二：跨帧可用的绝对信噪比）、§5.5/§10（无覆盖 = NaN 语义）
-> 科学正本：docs/science/drizzle/DRIZZLE.md（SCI-DRZ-001/014/015/016，§4 参数与常数通量守恒因子）、
-> docs/science/algorithms/DRIZZLE_GEOMETRY.md（ALG-DRZ-001，重采样几何与 §9/§10
-> 测试设计与缺陷登记）、docs/science/noise_snr/NOISE_SNR.md §3.5（重采样方差传播）
+> 科学正本：docs/science/drizzle/DRIZZLE.md（SCI-DRZ-001/014/015/016，「参数与常数」表的
+> pixfrac / 叶面积 / `flux_conservation_factor`；「主题与目标」「几何闭合」的守恒不变量）、
+> docs/science/algorithms/DRIZZLE_GEOMETRY.md（ALG-DRZ-001，重采样几何、「TEST-DRZ-DESIGN-001」
+> 测试设计与「DISP-DRZ-001..009」缺陷登记）、docs/science/noise_snr/NOISE_SNR.md「重采样方差传播」
 > 数据正本：docs/detail/registry/acsd.phase1.drizzle.md（DATA-P1-DRZ 端口表与帧内
 > "variance" 块（可选，帧内块）float32，ADU²，本页输入输出端口表）
 > 落盘与索引词表：eng/contracts/schemas/hips_storage_form.schema.json、
@@ -67,9 +68,14 @@ point_information map、psfsw、depth、**帧级 SNR 写入文件头**、**稀�
 索引均属待实现项；归档形态落地时，其归档内 `properties` 必须与裸形态逐字节
 一致。
 
-**invalid**：现行实现为值 NaN 经面亮度累加**传播、不掩膜**（DRIZZLE.md；
-drizzle_engine.cpp；回归 finalize 层，covered_area ≤ 0 → variance 记 NaN，
-`p1drz_tests_core.cpp`）；pixfrac ∈ (0,1] 引擎层严格拒绝；仅 NESTED。
+**invalid**：源像元值非有限（NaN/±Inf）按**样本级掩膜**处理 —— 不合格样本从
+分子、分母、方差三项中一并剔除并**重新归一**，剔除数逐叶计数（引擎计数
+`rejected_nonfinite_value`，规则正本 = docs/science/drizzle/DRIZZLE.md 的「误差
+来源与预算」）；只有**零合格样本**的输出像元才取 NaN 且 `support ≤ 0`
+（覆盖级 NaN）；方差面非有限同样按不合格样本剔除，而方差有限但 ≤0 表示「有覆盖
+但无方差信息」，此时信号与几何权重照常计入覆盖、不计入方差项（回归 finalize 层，
+covered_area ≤ 0 → variance 记 NaN）。`pixfrac ∈ (0,1]` 引擎层严格拒绝（非有限、
+0、负、>1 均拒绝，不夹逼）；仅 NESTED。
 
 ### 数值落地口径
 
@@ -82,17 +88,46 @@ drizzle_engine.cpp；回归 finalize 层，covered_area ≤ 0 → variance 记 N
   variance 时**必须**另存 correlation kernel / scale 或可重建算子摘要；
 - signal 单位、源/目标像素面积、pixfrac、归一必须统一，不得隐含；
 - **核按 drop 面积归一（canonical）**：交叠面积除以该 drop 的面积。依据 F&H 2002
-  §7.2 式(7) 正下方定义（`a` 是 the drop 与输出像素的分数交叠，故按输出像素求
-  和为 1）与 drizzlepac 3.11.0 `src/cdrizzlebox.c` 的 `do_kernel_square`
-  （`dover /= jaco`）；这是唯一满足**严格通量守恒**（累加的通量总和等于源端
-  积分通量总和，全 `pixfrac ∈ (0,1]`）的口径；
+  式 (2)–(5) 的累加式与 §7 式 (7) 后「`a + b = 1`」的定义句（双锚；原引 §7.2 已由
+  docs/science/algorithms/DRIZZLE_GEOMETRY.md 撤换），以及 drizzlepac
+  `src/cdrizzlebox.c` 的 `do_kernel_square`（`dover /= jaco`，`jaco` 为映射后的 drop
+  面积）；在这一口径**且几何闭合成立**时，累加的通量总和等于源端积分
+  通量总和。通量守恒的成立是**条件式**的：条件一 = 核按 drop 面积归一（换任何
+  其他归一即破坏），条件二 = 几何闭合 `Σ_p a_jp = A_drop,j` 逐 drop 成立（drop
+  足迹面积在其覆盖的叶上被精确分完，超额与亏损分开具名判红；`A_drop,j` 取球面
+  实测值，它与 `pixfrac²·A_pixel,j` 只在平面极限相等，残差见下条 `k`）。守恒量与
+  两条核心不变量的正本 = docs/science/drizzle/DRIZZLE.md 的「主题与目标」与
+  「归一与分母的唯一性」，闭合判据的正本 = 同文件「几何闭合」与「正确性判据」；
+  本页不作无条件断言；
 - **面亮度归一分母 = 各源 drop 归一权重乘源像素面积之和**：若把分母换成覆盖
   面积，`pixfrac < 1` 时面亮度偏 `pixfrac²` 的倒数（pf = 0.8 ⇒ +56.25%，
-  `DISP-DRZ-009` 负例判据）；
-- 等价参数化（同一交叠面积）：按源像素面积归一配覆盖面积分母；两种参数化给出
-  **逐位相同**的面亮度与逐像素方差，但通量守恒因子只有 drop 面积归一口径等于
-  源端积分通量。`provenance.flux_conservation_factor` **恒为 1**（drop 面积归一，
-  与 pixfrac 无关；DRIZZLE.md §7）；
+  `DISP-DRZ-009` 负例判据）。等价参数化（同一交叠面积）：按源像素面积归一配覆盖
+  面积分母；两种参数化给出同一个 `c_jp`、因而给出同一个 `S_p` 与同一个
+  `variance_p`（实现侧两个直写末端共用同一分母、走同一代码路径 ⇒ 产物逐位相同；
+  两套公式独立复算时差在双精度舍入量级），但通量守恒因子只有 drop 面积归一口径
+  等于源端积分通量。`provenance.flux_conservation_factor` **恒为 1**（drop 面积
+  归一，与 pixfrac 无关；口径正本 = docs/science/drizzle/DRIZZLE.md「参数与常数」
+  表的 `flux_conservation_factor` 行）；
+- **归一发布因子 `k = D_p/N_p`（`D_p = Σ_j a_jp` 为覆盖面积，
+  `N_p = Σ_j w_jp·A_pixel,j` 为面亮度归一分母）**：在**平面（仿射）极限**下，
+  由 `A_drop,j = pixfrac²·A_pixel,j` 与 `w_jp = a_jp/A_drop,j` 得
+  `N_p = Σ_j a_jp/pixfrac² = D_p/pixfrac²`，即 `k = pixfrac²`（与 `pixfrac`
+  取值无关，`pixfrac = 1` 时 `k ≡ 1`）。**球面上该等式只近似成立**：
+  `A_drop,j` 与 `A_pixel,j` 各自由球面上不同四边形量得，二者之比与 `pixfrac²`
+  的相对残差按
+  `δ = (1−pixfrac²)·θ²·[0.25/(1+r_c²) − 0.625·ξ_c²/(1+r_c²)²] + O(θ⁴)`
+  随源像元角尺度 `θ` 二次增长（pixfrac = 0.8、中心在参考点时 θ = 2″→8.5e-12、
+  θ = 6.3″→8.4e-11、θ = 60″→7.6e-9、θ = 300″→1.9e-7）。把它代回
+  `N_p = Σ_j (a_jp/A_drop,j)·A_pixel,j` 作一阶展开可知：`k` 相对 `pixfrac²` 的偏离
+  与 `δ` **同阶**（面积加权平均、符号相反）⇒ `θ ≲ 10″/px` 时该偏离 ≲ 1e-10，
+  `θ ≳ 100″/px` 时进入 1e-7–1e-6、与门禁容差同阶。
+  残差律的推导、独立复算与实测读数正本 =
+  docs/science/algorithms/DRIZZLE_GEOMETRY.md 的「DISP-DRZ-001..009」章末
+  「面亮度保持权重的实现口径」段；实现侧 `k` 的取法 = `sb_publish_scale`
+  （`sum_norm ≤ 0` 时退回 1.0 并计数告警），**不得**用近似式
+  `overlap_area·pixfrac²/drop_area` 替代球面精确交叠面积。`k` 的幂次用法
+  （signal 乘 `k`、variance 乘 `k²`，漏 `k²` 把方差压低 `pixfrac⁴` 倍）正本 =
+  docs/science/noise_snr/NOISE_SNR.md 的方差传播节；
 - **实现落点**：`lib/algorithms/drizzle/healpix_drizzle/drizzle_engine.cpp` 的
   `processPixelSharedTiled` 权重核 = 交叠面积 / drop 面积（代码内名
   `overlap_area` / `drop_area`），并累加归一分母；`pixfrac == 1` 时 pixel_area ≡
@@ -134,7 +169,7 @@ module_id=`acsd.p1.drizzle`; execution_class=`cpu_heavy`; parallel_ok=True。
 | `ordering` | `nested` | —— | HEALPix ordering（仅 NESTED） |
 | `precision` | —— | —— | FP32 / FP64（经 header KV `PRECISION`） |
 | `storage_form` | `archive` | —— | `archive`（zstd 归档包）/ `bare`（裸目录）；键缺失或留空取默认并报 warn |
-| `sparse_snr_layer` | true | —— | 是否将稀疏帧内 SNR 层插入 HiPS（来自 noise-snr；控制点值 = 绝对通量型 SNR，与帧级同口径、同逐帧参考通量）。**默认产出** |
+| `sparse_snr_layer` | true | —— | 是否将稀疏帧内 SNR 层插入 HiPS（来自 noise-snr；控制点值 = 绝对通量型 SNR，与帧级同口径、同一个冻结的参考星等档 `m_ref`）。**默认产出** |
 
 ## Execution class、并行轴、ThreadBudget lease、确定性
 
@@ -199,7 +234,7 @@ run generation 切换清空，原子化替换）。计数新增 `target_boundary
 
 ## 独立 synthetic 验证命令与容差
 
-`TEST-DRZ-DESIGN-001`（DRIZZLE_GEOMETRY.md §9）：FP64 通量闭合 < 1e-6（主域）/
+`TEST-DRZ-DESIGN-001`（DRIZZLE_GEOMETRY.md 的「TEST-DRZ-DESIGN-001」章）：FP64 通量闭合 < 1e-6（主域）/
 逐 leaf < 1e-5、方差缩放律 worst_rel < 1e-4、候选零漏选（合成负例，全命中）、
 reverse false_hole / false_fill = 0。可执行 `TEST-P1-DRZ-001` 待建。
 
@@ -220,9 +255,12 @@ Oracle 面：常量面亮度、积分通量、variance、correlation oracle 全�
 
 ## 已知限制
 
-- ALG-DRZ-001 §10 缺陷登记：NaN 无计数、pixfrac 双轨、错误码混用、无取消、
-  static 条带负载不均、`poly_clip` 零调用；另见
-  `lib/algorithms/drizzle/README.md` §9；
+- DISP-DRZ 清单（正本 = docs/science/algorithms/DRIZZLE_GEOMETRY.md 的
+  「DISP-DRZ-001..009」章；另见 `lib/algorithms/drizzle/README.md` 的
+  「构建与已知限制」段）：值 NaN 掩膜与计数已按 DRIZZLE.md 的规则落地并在引擎
+  分类计数；仍未闭合的是 `pixfrac` 值域双轨（文件通道 API 层接受 0.0、引擎层
+  拒绝）、帧/文件两通道错误码混用且无集中枚举、无取消检查点、static 条带负载
+  不均、`poly_clip` 生产路径零调用；
 - 归档形态（`storage_form = archive`）的写出与读取、产品级索引与运行级覆盖索引
   未落地，生产只落裸形态；
 - 面亮度归一与 variance finalize 在下游 astro_image_io 层，模块与编排层的

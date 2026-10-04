@@ -1,6 +1,6 @@
 # 插件文档：cli（命令行入口）
 
-> 上游：ACSD_DESIGN.md §7.1（命令树）、§7.2（配置、事件与退出码）、§7.3（错误传播与运行日志）
+> 上游：《ACSD 最高设计》的「命令行合同」一章（命令树、配置与事件与退出码、错误传播与运行日志）
 
 ## 1. 职责与边界
 
@@ -8,9 +8,9 @@
 
 ## 2. 权威依据
 
-- 最高设计 `ACSD_DESIGN.md` §7（CLI 合同）、§4.5（运行前预检）、§7.3（错误传播与运行日志）
+- 《ACSD 最高设计》的「命令行合同」一章、「运行前预检」一节、「错误传播与日志」一节
 - `docs/engineering/contracts/LOG_AND_ERROR.md`「错误对象与退出码映射」一节、「落点合同」（日志落点）一节
-- `eng/contracts/schemas/phase_config*.schema.json`
+- `eng/contracts/schemas/phase_config_normalize.schema.json`、`eng/contracts/schemas/phase_config_mosaic.schema.json`、`eng/contracts/schemas/phase_config_export.schema.json`
 
 ## 3. 输入/输出数据合同
 
@@ -21,9 +21,9 @@
 
 ## 4. 算法与公式要点
 
-- 命令树（唯一）见最高设计 §7.1：`help / --version / doctor / benchmark / normalize|mosaic|export --json|--template|--help`；
+- 命令树（唯一）见《ACSD 最高设计》的「命令行合同」一章：`help / --version / doctor / benchmark / normalize|mosaic|export --json|--template|--help`；
 - 三个命令直接以命令名调用（`normalize` / `mosaic` / `export`），是平级独立命令；`phase1|2|3` 仅为内部命名；
-- **运行前预检（检查页面）**：见最高设计 §4.5——三档（🟢 correct / 🟠 warn 不阻塞 / 🔴 error 阻塞），三档都显示完整检查页面；**无 error 时（correct 与 warn）都需用户输入 `yes` 确认才运行**，`-y`/`-yes` 跳过确认；存在 error 时 `-y`/`-yes` 不能越过；`-force` 跳过整个检查步骤直接运行（后果由用户承担）；
+- **运行前预检（检查页面）**：见《ACSD 最高设计》的「运行前预检」一节——三档（🟢 correct / 🟠 warn 不阻塞 / 🔴 error 阻塞），三档都显示完整检查页面；**无 error 时（correct 与 warn）都需用户输入 `yes` 确认才运行**，`-y`/`-yes` 跳过确认；存在 error 时 `-y`/`-yes` 不能越过；`-force` 跳过整个检查步骤直接运行（后果由用户承担）；
 - `benchmark` 直接输出 profile 到**安装目录**（自动生成/更新），后续运行时自动读取；
 - `help` 直接输入即为详细帮助；
 - 取消：协作取消 → 关 writer → incomplete manifest → 隔离临时产物 → **收尾并发布运行日志** → exit 9；

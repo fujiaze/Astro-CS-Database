@@ -30,9 +30,10 @@
 - **结构性不变量（必须满足，判红项）**：归约顺序按帧 ID / 块 ID / 窗口 ID / 像素序固定；跨 worker **无共享浮点累加器**；异步与工作窃取只改变执行顺序，不改变结合顺序；归约量是整数/索引/mask/计数时要求**精确一致**。
 - **数值判据（浮点结果）**：1 worker 与 N worker **数值等价**，容差来源按优先级取：
  1. 模块科学页已冻结的三档（`../../science/PHASE2_UPM.md` 「并行确定性与三档容差」一节：同配置重复=位精确 + `model_hash` 逐字相同；跨 worker 数（1..N）= **相对容差 rtol 1e-12**，判据 `|ΔC| ≤ 1e-12·max(|C|, C_scale)`；跨后端等价=无此合同，判据面为空）；
- 2. 未在模块页冻结的，按 「三阶段调度形态」一节 通用容差规则（该节是容差数值与可满足性下限的唯一正本，本文件不复述）。
+ 2. 未在模块页冻结的，按 `../testing/TEST.md` 的通用浮点容差与可满足性下限规则（通用容差数值与可满足性下限的唯一正本是该文件，本合同不复述）。
 - **模块自有门可以更严**：由构造保证位精确的路径（固定槽位写回、per-thread 定序归并、整数索引归约）其共址测试仍可断言 bitwise——这是模块的更强保证，不违反本合同；**合同层不要求逐位一致**。
-- 容差在写测试前冻结；NaN/Inf/缺失的**位置与语义**必须精确一致（「三阶段调度形态」一节）。
+- 容差在写测试前冻结；NaN/Inf/缺失的**位置与语义**必须精确一致，唯一正本同样是
+  `../testing/TEST.md` 的 NaN 与 Inf 语义一节。
 
 ## 资源声明（每阶段必填）
 
@@ -58,7 +59,10 @@
 | `window_id` | uint64? | 窗口/子块身份（可缺） |
 | `worker` | int? | worker 序号（`worker_busy`） |
 
-**映射表（与 observability 现有事件流）**：本 schema 与 `eng/contracts/schemas/jsonl_event_v1.schema.json` 兼容——`ts`/`kind`/`value`/`unit` 复用其字段名；`stage`/`node`/`block`/`worker` 作为 `tags` 的等价展开。落地时由 observability 侧提供单一写出点，事件格式只有这一份。
+**与运行事件流的关系**：本 schema 与 `eng/contracts/schemas/jsonl_event_v1.schema.json` 兼容——
+`ts`/`kind`/`value`/`unit` 复用其字段名；`stage`/`node`/`block`/`worker`/`frame_id`/`window_id`
+在两份 schema 中都是**独立顶层字段**（本 schema 不存在 `tags` 属性，故不存在「等价展开」这种形态）。
+落地时由 observability 侧提供单一写出点，事件格式只有这一份。
 
 ## 取消与原子性
 

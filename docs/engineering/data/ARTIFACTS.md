@@ -1,6 +1,8 @@
 # 数据工件与产物留存
 
-上游：最高设计的 I/O 与原子产品、验证层级与四层验收两章。
+上游：最高设计的 I/O 与原子产品、验证层级与四层验收两章[1]。
+标度类别与面亮度单位的推导见 `../standards/NUMERIC.md`[2]；阶段间交换与强制计数规则见
+`PHASE_PRODUCT_EXCHANGE.md`[3]。
 
 数据工件的字段合同、不可用值的表示、逐阶段产物清单与构建产物留存策略的正本。
 
@@ -34,65 +36,66 @@
 | DATA-P2-REJ-001 | Phase2 rejection 产品 nused/nrej + 逐样本接受掩码 sample_mask(目标态, 诊断统计平面 + integrate 原始样本索引资格载体) | int32 + u8 | HEALPix NESTED 512 tile + 逐 tile [depth×tile_span] | 无量纲计数 + 0/1 接受位 | ICRS | 无覆盖=0(禁 −1 哨兵); sample_mask 缺失/offset 错位/frame_slots 不符/字节∉{0,1} → integrate fail-closed(禁回退像素级 accepted); 逐帧 reason 级非目标 | persisted(nused/,nrej/ 目录; AIO 位 64/32 冻结分配; files.sample_mask=p2_rejection_sample_mask.bin) | HiPS(不入 exchange science planes 枚举) |
 | DATA-P2-PROV-001 | Phase2 provenance 键组(目标态) | 64hex/uint/string/bool | 标量×5 | 无量纲 | 无(元数据) | uncertainty_available=false 显式登记非失败; 禁缺键/占位 | persisted(properties+manifest.json 双写) | HiPS properties+JSON |
 | DATA-P3-UNC-001 | Phase3 重采样 uncertainty 传播产品(目标态) | f32/f64 | [W_out,H_out] 行主序 | **`ADU^2/sr^2` / `sr^2/ADU^2`**（BUNIT 派生；立体角幂不可省） | TAN/ICRS(FITS-WCS) | 无覆盖=NaN(C=0); NaN 传播=C=1; 负/Inf=损坏显式错误; unavailable=无 HDU+manifest 标记 | persisted(单 FITS 文件 VARIANCE/IVAR 扩展 HDU) | FITS(EXTNAME=VARIANCE/IVAR, DATASUM 逐 HDU) |
-| DATA-P3-REJ-001 | Phase3 重采样**强制剔除计数**诊断统计平面（；正本 = DATA-002 「weight/value/scale/sigma/snr 歧义映射」一节a 规则 3 `count_field=n_rejected_nonfinite`） | int32 | W×H 一平面（独立载体 `p3_rejection.bin`） | 无量纲计数 | 输出平面像素（行主序，与 signal 同几何） | 无覆盖=0（**0 即「无」**，−1 只作无效标记）；**字段缺失 ≠ 全 0**（缺 `diagnostic_planes.n_rejected_nonfinite` 的产品判不满足 「weight/value/scale/sigma/snr 歧义映射」一节a 规则 3，判据具名 `COUNT_FIELD_MISSING`） | unique（p3_op_writer 原子写） | 二进制（**不进** exchange science planes 枚举；manifest `diagnostic_planes.n_rejected_nonfinite` + `n_rejected_nonfinite_total` 声明；判据 = 强制剔除计数合同判据（六条 G1–G6）） |
-| DATA-HIPS-001 | HiPS 产品输入面(properties + signal tile 读路径; 正文=SCI-P3-001 a-1 + DATA_SEMANTICS , tile 读路径=「机器校验」一节 冻结) | f32(tile) + 文本(properties) | 512×512/leaf(W=hips_tile_width, leaf=HEALPix cell @hips_order) | 面亮度(BUNIT 透传, 缺省 ADU; 禁默认 Jy/beam) | HEALPix NESTED(frame=ICRS; tile 内 FITS local 映射=「机器校验」一节) | NaN=传播语义非 invalid; 缺 tile=无覆盖非错误; properties 必需键非法→显式 P3_RS_PARAM | shared(只读共享; 产品归生产方 Phase1/Phase2) | HiPS 目录树(properties + FITS tiles) |
-| DATA-TILE-001 | 单个 HiPS leaf tile 科学面(W×W FITS float tile; 正文=SCI-P3-001 a-1/-8 + DATA_SEMANTICS 「机器校验」一节) | f32 | [W,W] FITS local(W=512, leaf=NESTED 18 bit) | 面亮度(surface brightness; BUNIT 透传, 缺省 ADU) | HEALPix NESTED leaf + tile 内 fits_index=(511−x)·512+y(「机器校验」一节 CDS oracle 冻结) | tile 内 NaN=传播非 invalid; 缺 tile=无覆盖非错误; 非 float/多通道/JPEG-PNG/int+BLANK=显式拒绝 | shared(sampler 只读缓存, 禁改写) | FITS tile(HiPS 目录内) |
+| DATA-P3-REJ-001 | Phase3 重采样**强制剔除计数**诊断统计平面（正本 = `PHASE_PRODUCT_EXCHANGE.md`[3] 的处置规则第 3 条「强制计数」，`count_field=n_rejected_nonfinite`） | int32 | W×H 一平面（独立载体 `p3_rejection.bin`） | 无量纲计数 | 输出平面像素（行主序，与 signal 同几何） | 无覆盖=0（**0 即「无」**，−1 只作无效标记）；**字段缺失 ≠ 全 0**（缺 `diagnostic_planes.n_rejected_nonfinite` 的产品判不满足 `PHASE_PRODUCT_EXCHANGE.md`[3] 的处置规则第 3 条「强制计数」，判据具名 `COUNT_FIELD_MISSING`） | unique（p3_op_writer 原子写） | 二进制（**不进** exchange science planes 枚举；manifest `diagnostic_planes.n_rejected_nonfinite` + `n_rejected_nonfinite_total` 声明；判据 = 强制剔除计数合同判据（六条 G1–G6）） |
+| DATA-HIPS-001 | HiPS 产品输入面(properties + signal tile 读路径；正文见「登记行权威锚点」一节，tile 读路径的冻结映射见 `docs/science/unified/DATA_SEMANTICS.md`「坐标语义」一节) | f32(tile) + 文本(properties) | 512×512/leaf(W=hips_tile_width, leaf=HEALPix cell @hips_order) | 面亮度(BUNIT 透传, 缺省 ADU; 禁默认 Jy/beam) | HEALPix NESTED(frame=ICRS；tile 内 FITS local 映射 = `docs/science/unified/DATA_SEMANTICS.md`「坐标语义」一节) | NaN=传播语义非 invalid; 缺 tile=无覆盖非错误; properties 必需键非法→显式 P3_RS_PARAM | shared(只读共享; 产品归生产方 Phase1/Phase2) | HiPS 目录树(properties + FITS tiles) |
+| DATA-TILE-001 | 单个 HiPS leaf tile 科学面(W×W FITS float tile；正文见「登记行权威锚点」一节) | f32 | [W,W] FITS local(W=512, leaf=NESTED 18 bit) | 面亮度(surface brightness; BUNIT 透传, 缺省 ADU) | HEALPix NESTED leaf + tile 内 `FITS index = (511−x)·512+y`（`docs/science/unified/DATA_SEMANTICS.md`「坐标语义」一节冻结） | tile 内 NaN=传播非 invalid; 缺 tile=无覆盖非错误; 非 float/多通道/JPEG-PNG/int+BLANK=显式拒绝 | shared(sampler 只读缓存, 禁改写) | FITS tile(HiPS 目录内) |
 
-### 统一对象合同登记（DATA-001，UNIFIED_MODEL 「weight/value/scale/sigma/snr 歧义映射」一节，canonical 在 eng/contracts/schemas/）
+### 统一对象合同登记（DATA-001，`docs/detail/UNIFIED_MODEL.md`「数据对象（各自具名）」一节，canonical 在 eng/contracts/schemas/）
 
-本表第二节：UNIFIED_MODEL 「weight/value/scale/sigma/snr 歧义映射」一节 的 **13** 个对象各自在 `eng/contracts/schemas/unified/<对象名>.schema.json` 有唯一 canonical 合同（`$id = https://acsd.local/schemas/unified/<对象名>/v1`）。对象身份 / 单位（含 BUNIT 语义）/ 无效值与缺失表示 / 精度 / 可否作权重一律以该 canonical schema 为准（人类可读对照 = 「weight/value/scale/sigma/snr 歧义映射」一节）；本表只登记它们在 DataArtifact 面的 scalar/shape/axis/coordinate/ownership/serialization 列，**单位与无效值两列只给 canonical schema 指针**。
-上位锚：「weight/value/scale/sigma/snr 歧义映射」一节；「weight/value/scale/sigma/snr 歧义映射」一节；`../../ACSD_DESIGN.md` （文档权威与索引）/。机器门：`eng/tests/contracts/test_unified_object_contract.py`。
+本表第二节：`docs/detail/UNIFIED_MODEL.md`「数据对象（各自具名）」一节 的 **13** 个对象各自在 `eng/contracts/schemas/unified/<对象名>.schema.json` 有唯一 canonical 合同（`$id = https://acsd.local/schemas/unified/<对象名>/v1`）。对象身份 / 单位（含 BUNIT 语义）/ 无效值与缺失表示 / 精度 / 可否作权重一律以该 canonical schema 为准（人类可读对照 = 本文件下文「weight/value/scale/sigma/snr 歧义映射（DATA-001 登记）」一节）；本表只登记它们在 DataArtifact 面的 scalar/shape/axis/coordinate/ownership/serialization 列，**单位与无效值两列只给 canonical schema 指针**。
+上位锚：`docs/detail/UNIFIED_MODEL.md`「数据对象（各自具名）」一节；`../../ACSD_DESIGN.md`「文档权威与索引」一节。**判据无载体**：机器门 `eng/tests/contracts/test_unified_object_contract.py` 在仓内不存在（`eng/tests/` 只有 `conformance/` 与 `validation/` 两个子目录），故逐层一致性只有 canonical schema 自身可校验，不得写成已有门在跑。
 
 | schema_id | 内容 | scalar | shape/axis | unit | coordinate | invalid | ownership | serialization |
 |---|---|---|---|---|---|---|---|---|
-| DATA-OBJ-SIGNAL-001 | signal（UNIFIED_MODEL 「weight/value/scale/sigma/snr 歧义映射」一节 对象；可否作权重：否） | f32|f64 | 对象文档 / 平面引用（map·scalar·control_points） | 见 canonical schema | 按对象（pixel / HEALPix NESTED / 源列表 / 元数据） | 见 canonical schema | unique（canonical owner = eng/contracts/schemas/unified/signal.schema.json） | JSON schema + 产品载体（FITS/HiPS/JSON 由产品族决定） |
-| DATA-OBJ-VARIANCE-001 | variance（UNIFIED_MODEL 「weight/value/scale/sigma/snr 歧义映射」一节 对象；可否作权重：对该估计目标可以） | f32|f64 | 对象文档 / 平面引用（map·scalar·control_points） | 见 canonical schema | 按对象（pixel / HEALPix NESTED / 源列表 / 元数据） | 见 canonical schema | unique（canonical owner = eng/contracts/schemas/unified/variance.schema.json） | JSON schema + 产品载体（FITS/HiPS/JSON 由产品族决定） |
-| DATA-OBJ-IVAR-001 | ivar（UNIFIED_MODEL 「weight/value/scale/sigma/snr 歧义映射」一节 对象；可否作权重：对该估计目标可以） | f32|f64 | 对象文档 / 平面引用（map·scalar·control_points） | 见 canonical schema | 按对象（pixel / HEALPix NESTED / 源列表 / 元数据） | 见 canonical schema | unique（canonical owner = eng/contracts/schemas/unified/ivar.schema.json） | JSON schema + 产品载体（FITS/HiPS/JSON 由产品族决定） |
-| DATA-OBJ-SOURCE-SNR-001 | source_snr（UNIFIED_MODEL 「weight/value/scale/sigma/snr 歧义映射」一节 对象；可否作权重：不直接作帧权重） | f32|f64 | 对象文档 / 平面引用（map·scalar·control_points） | 见 canonical schema | 按对象（pixel / HEALPix NESTED / 源列表 / 元数据） | 见 canonical schema | unique（canonical owner = eng/contracts/schemas/unified/source_snr.schema.json） | JSON schema + 产品载体（FITS/HiPS/JSON 由产品族决定） |
-| DATA-OBJ-DEPTH-M5-001 | depth_m5（UNIFIED_MODEL 「weight/value/scale/sigma/snr 歧义映射」一节 对象；可否作权重：摘要，不作权重） | f32|f64 | 对象文档 / 平面引用（map·scalar·control_points） | 见 canonical schema | 按对象（pixel / HEALPix NESTED / 源列表 / 元数据） | 见 canonical schema | unique（canonical owner = eng/contracts/schemas/unified/depth_m5.schema.json） | JSON schema + 产品载体（FITS/HiPS/JSON 由产品族决定） |
-| DATA-OBJ-FRAME-SNR-001 | frame_snr（UNIFIED_MODEL 「weight/value/scale/sigma/snr 歧义映射」一节 对象；可否作权重：唯一帧级参考；权重由 Phase2 逆方差叠加从 SNR 计算） | f32|f64 | 对象文档 / 平面引用（map·scalar·control_points） | 见 canonical schema | 按对象（pixel / HEALPix NESTED / 源列表 / 元数据） | 见 canonical schema | unique（canonical owner = eng/contracts/schemas/unified/frame_snr.schema.json） | JSON schema + 产品载体（FITS/HiPS/JSON 由产品族决定） |
-| DATA-OBJ-POINT-INFORMATION-001 | point_information（UNIFIED_MODEL 「weight/value/scale/sigma/snr 歧义映射」一节 对象；可否作权重：点源目标的严格权重） | f32|f64 | 对象文档 / 平面引用（map·scalar·control_points） | 见 canonical schema | 按对象（pixel / HEALPix NESTED / 源列表 / 元数据） | 见 canonical schema | unique（canonical owner = eng/contracts/schemas/unified/point_information.schema.json） | JSON schema + 产品载体（FITS/HiPS/JSON 由产品族决定） |
-| DATA-OBJ-SPARSE-SNR-LAYER-001 | sparse_snr_layer（UNIFIED_MODEL 「weight/value/scale/sigma/snr 歧义映射」一节 对象；可否作权重：帧内精细参考） | f32|f64 | 对象文档 / 平面引用（map·scalar·control_points） | 见 canonical schema | 按对象（pixel / HEALPix NESTED / 源列表 / 元数据） | 见 canonical schema | unique（canonical owner = eng/contracts/schemas/unified/sparse_snr_layer.schema.json） | JSON schema + 产品载体（FITS/HiPS/JSON 由产品族决定） |
-| DATA-OBJ-SUPPORT-001 | support（UNIFIED_MODEL 「weight/value/scale/sigma/snr 歧义映射」一节 对象；可否作权重：否） | f32|f64|int | 对象文档 / 平面引用（map·scalar·control_points） | 见 canonical schema | 按对象（pixel / HEALPix NESTED / 源列表 / 元数据） | 见 canonical schema | unique（canonical owner = eng/contracts/schemas/unified/support.schema.json） | JSON schema + 产品载体（FITS/HiPS/JSON 由产品族决定） |
-| DATA-OBJ-COVERAGE-001 | coverage（UNIFIED_MODEL 「weight/value/scale/sigma/snr 歧义映射」一节 对象；可否作权重：否） | f32|f64|int | 对象文档 / 平面引用（map·scalar·control_points） | 见 canonical schema | 按对象（pixel / HEALPix NESTED / 源列表 / 元数据） | 见 canonical schema | unique（canonical owner = eng/contracts/schemas/unified/coverage.schema.json） | JSON schema + 产品载体（FITS/HiPS/JSON 由产品族决定） |
-| DATA-OBJ-VALIDITY-001 | validity（UNIFIED_MODEL 「weight/value/scale/sigma/snr 歧义映射」一节 对象；可否作权重：门，不是权重） | int | 对象文档 / 平面引用（map·scalar·control_points） | 见 canonical schema | 按对象（pixel / HEALPix NESTED / 源列表 / 元数据） | 见 canonical schema | unique（canonical owner = eng/contracts/schemas/unified/validity.schema.json） | JSON schema + 产品载体（FITS/HiPS/JSON 由产品族决定） |
-| DATA-OBJ-REJECTION-001 | rejection（UNIFIED_MODEL 「weight/value/scale/sigma/snr 歧义映射」一节 对象；可否作权重：门/概率，不是 coverage） | f32|f64|int | 对象文档 / 平面引用（map·scalar·control_points） | 见 canonical schema | 按对象（pixel / HEALPix NESTED / 源列表 / 元数据） | 见 canonical schema | unique（canonical owner = eng/contracts/schemas/unified/rejection.schema.json） | JSON schema + 产品载体（FITS/HiPS/JSON 由产品族决定） |
-| DATA-OBJ-PROVENANCE-001 | provenance（UNIFIED_MODEL 「weight/value/scale/sigma/snr 歧义映射」一节 对象；可否作权重：——） | int | 对象文档 / 平面引用（map·scalar·control_points） | 见 canonical schema | 按对象（pixel / HEALPix NESTED / 源列表 / 元数据） | 见 canonical schema | unique（canonical owner = eng/contracts/schemas/unified/provenance.schema.json） | JSON schema + 产品载体（FITS/HiPS/JSON 由产品族决定） |
+| DATA-OBJ-SIGNAL-001 | signal（`docs/detail/UNIFIED_MODEL.md`「数据对象（各自具名）」一节 对象；可否作权重：否） | f32|f64 | 对象文档 / 平面引用（map·scalar·control_points） | 见 canonical schema | 按对象（pixel / HEALPix NESTED / 源列表 / 元数据） | 见 canonical schema | unique（canonical owner = eng/contracts/schemas/unified/signal.schema.json） | JSON schema + 产品载体（FITS/HiPS/JSON 由产品族决定） |
+| DATA-OBJ-VARIANCE-001 | variance（`docs/detail/UNIFIED_MODEL.md`「数据对象（各自具名）」一节 对象；可否作权重：对该估计目标可以） | f32|f64 | 对象文档 / 平面引用（map·scalar·control_points） | 见 canonical schema | 按对象（pixel / HEALPix NESTED / 源列表 / 元数据） | 见 canonical schema | unique（canonical owner = eng/contracts/schemas/unified/variance.schema.json） | JSON schema + 产品载体（FITS/HiPS/JSON 由产品族决定） |
+| DATA-OBJ-IVAR-001 | ivar（`docs/detail/UNIFIED_MODEL.md`「数据对象（各自具名）」一节 对象；可否作权重：对该估计目标可以） | f32|f64 | 对象文档 / 平面引用（map·scalar·control_points） | 见 canonical schema | 按对象（pixel / HEALPix NESTED / 源列表 / 元数据） | 见 canonical schema | unique（canonical owner = eng/contracts/schemas/unified/ivar.schema.json） | JSON schema + 产品载体（FITS/HiPS/JSON 由产品族决定） |
+| DATA-OBJ-SOURCE-SNR-001 | source_snr（`docs/detail/UNIFIED_MODEL.md`「数据对象（各自具名）」一节 对象；可否作权重：不直接作帧权重） | f32|f64 | 对象文档 / 平面引用（map·scalar·control_points） | 见 canonical schema | 按对象（pixel / HEALPix NESTED / 源列表 / 元数据） | 见 canonical schema | unique（canonical owner = eng/contracts/schemas/unified/source_snr.schema.json） | JSON schema + 产品载体（FITS/HiPS/JSON 由产品族决定） |
+| DATA-OBJ-DEPTH-M5-001 | depth_m5（`docs/detail/UNIFIED_MODEL.md`「数据对象（各自具名）」一节 对象；可否作权重：摘要，不作权重） | f32|f64 | 对象文档 / 平面引用（map·scalar·control_points） | 见 canonical schema | 按对象（pixel / HEALPix NESTED / 源列表 / 元数据） | 见 canonical schema | unique（canonical owner = eng/contracts/schemas/unified/depth_m5.schema.json） | JSON schema + 产品载体（FITS/HiPS/JSON 由产品族决定） |
+| DATA-OBJ-FRAME-SNR-001 | frame_snr（`docs/detail/UNIFIED_MODEL.md`「数据对象（各自具名）」一节 对象；可否作权重：唯一帧级参考；权重由 Phase2 逆方差叠加从 SNR 计算） | f32|f64 | 对象文档 / 平面引用（map·scalar·control_points） | 见 canonical schema | 按对象（pixel / HEALPix NESTED / 源列表 / 元数据） | 见 canonical schema | unique（canonical owner = eng/contracts/schemas/unified/frame_snr.schema.json） | JSON schema + 产品载体（FITS/HiPS/JSON 由产品族决定） |
+| DATA-OBJ-POINT-INFORMATION-001 | point_information（`docs/detail/UNIFIED_MODEL.md`「数据对象（各自具名）」一节 对象；可否作权重：点源目标的严格权重） | f32|f64 | 对象文档 / 平面引用（map·scalar·control_points） | 见 canonical schema | 按对象（pixel / HEALPix NESTED / 源列表 / 元数据） | 见 canonical schema | unique（canonical owner = eng/contracts/schemas/unified/point_information.schema.json） | JSON schema + 产品载体（FITS/HiPS/JSON 由产品族决定） |
+| DATA-OBJ-SPARSE-SNR-LAYER-001 | sparse_snr_layer（`docs/detail/UNIFIED_MODEL.md`「数据对象（各自具名）」一节 对象；可否作权重：帧内精细参考） | f32|f64 | 对象文档 / 平面引用（map·scalar·control_points） | 见 canonical schema | 按对象（pixel / HEALPix NESTED / 源列表 / 元数据） | 见 canonical schema | unique（canonical owner = eng/contracts/schemas/unified/sparse_snr_layer.schema.json） | JSON schema + 产品载体（FITS/HiPS/JSON 由产品族决定） |
+| DATA-OBJ-SUPPORT-001 | support（`docs/detail/UNIFIED_MODEL.md`「数据对象（各自具名）」一节 对象；可否作权重：否） | f32|f64|int | 对象文档 / 平面引用（map·scalar·control_points） | 见 canonical schema | 按对象（pixel / HEALPix NESTED / 源列表 / 元数据） | 见 canonical schema | unique（canonical owner = eng/contracts/schemas/unified/support.schema.json） | JSON schema + 产品载体（FITS/HiPS/JSON 由产品族决定） |
+| DATA-OBJ-COVERAGE-001 | coverage（`docs/detail/UNIFIED_MODEL.md`「数据对象（各自具名）」一节 对象；可否作权重：否） | f32|f64|int | 对象文档 / 平面引用（map·scalar·control_points） | 见 canonical schema | 按对象（pixel / HEALPix NESTED / 源列表 / 元数据） | 见 canonical schema | unique（canonical owner = eng/contracts/schemas/unified/coverage.schema.json） | JSON schema + 产品载体（FITS/HiPS/JSON 由产品族决定） |
+| DATA-OBJ-VALIDITY-001 | validity（`docs/detail/UNIFIED_MODEL.md`「数据对象（各自具名）」一节 对象；可否作权重：门，不是权重） | int | 对象文档 / 平面引用（map·scalar·control_points） | 见 canonical schema | 按对象（pixel / HEALPix NESTED / 源列表 / 元数据） | 见 canonical schema | unique（canonical owner = eng/contracts/schemas/unified/validity.schema.json） | JSON schema + 产品载体（FITS/HiPS/JSON 由产品族决定） |
+| DATA-OBJ-REJECTION-001 | rejection（`docs/detail/UNIFIED_MODEL.md`「数据对象（各自具名）」一节 对象；可否作权重：门/概率，不是 coverage） | f32|f64|int | 对象文档 / 平面引用（map·scalar·control_points） | 见 canonical schema | 按对象（pixel / HEALPix NESTED / 源列表 / 元数据） | 见 canonical schema | unique（canonical owner = eng/contracts/schemas/unified/rejection.schema.json） | JSON schema + 产品载体（FITS/HiPS/JSON 由产品族决定） |
+| DATA-OBJ-PROVENANCE-001 | provenance（`docs/detail/UNIFIED_MODEL.md`「数据对象（各自具名）」一节 对象；可否作权重：——） | int | 对象文档 / 平面引用（map·scalar·control_points） | 见 canonical schema | 按对象（pixel / HEALPix NESTED / 源列表 / 元数据） | 见 canonical schema | unique（canonical owner = eng/contracts/schemas/unified/provenance.schema.json） | JSON schema + 产品载体（FITS/HiPS/JSON 由产品族决定） |
 
 ### 登记行权威锚点
 
 上表末两行 `DATA-HIPS-001` / `DATA-TILE-001` 是**既存** ID 的登记行，
-**不引入新语义**：两 ID 已在 DATA_SEMANTICS （"DATA-HIPS-001/
-DATA-TILE-001（HiPS properties/tile 输入面）"）、生产 descriptor
-（lib/infrastructure/scheduler/src/module_adapters.cpp 四处）、
-lib/infrastructure/pipeline/module_ports.registry.json 两处、
-端口合同页（`docs/detail/export/modules/resample`、`docs/detail/export/modules/projection`）、
-eng/tests/unit/core_pipeline_test.cpp 在用，并在
-governance/TRACEABILITY.md 「模块与源码追溯矩阵」一节 两行登记为 `VERIFIED`。
+**不引入新语义**：两 ID 已在 `docs/science/unified/DATA_SEMANTICS.md`
+（"DATA-HIPS-001/DATA-TILE-001（HiPS properties/tile 输入面）"）、生产 descriptor
+（`lib/infrastructure/scheduler/src/module_adapters.cpp` 四处）、
+`lib/infrastructure/pipeline/module_ports.registry.json` 两处在用，并在
+`../governance/TRACEABILITY.md` 的「逐模块追溯台账（人读正本）」一节两行登记。
+**判据无载体**：仓内 `eng/tests/unit/core_pipeline_test.cpp` 与端口合同页
+`docs/detail/export/modules/resample` / `docs/detail/export/modules/projection`
+均不存在，故这两条登记不得当作已被测试集锁定。
 
 登记行与冻结正文逐条对应，不新增/修改任何公式、单位、
 坐标系、精度或 invalid 规则。逐行正文锚点：
 
-- `DATA-HIPS-001`（HiPS 产品输入面）: SCI-P3-001（docs/science/
- PHASE3_HIPS_TO_FITS.md）输入有效域（properties 必需键
- `hips_order/hips_tile_width/hips_frame/dataproduct_type=image`；NESTED
- 唯一；仅 float FITS tiles）、a-1（tile=HEALPix cell @hips_order 的
- W×W FITS float tile）、a-8/-9（tile 值=面亮度；缺 tile=无覆盖）、
- （tile 内 NaN 传播）；DATA_SEMANTICS 「weight/value/scale/sigma/snr 歧义映射」一节（NESTED/leaf_order）、
- 「机器校验」一节（FITS tile local-pixel 映射，冻结）、（signal/support/
- invalid）、（hips_dir 严格校验 + HiPS tile 读路径行）。单位口径
- =（采样值=面亮度，BUNIT 透传缺省 `ADU`，绝不默认 Jy/beam）。
-- `DATA-TILE-001`（单 leaf tile 面）: 同上 「机器校验」一节 冻结映射（tile 内
- `fits_index=(511−x)·512+y`）与 SCI-P3-001 a-1/-8；descriptor 单位
- `UnitId::SURFACE_BRIGHTNESS`、坐标 `CoordinateFrame::HEALPIX`
- （module_adapters.cpp）；"tile 读路径权威=DATA_SEMANTICS 「机器校验」一节"
- （docs/detail/phase3_rsmp.md）。
+- `DATA-HIPS-001`（HiPS 产品输入面）: `docs/science/PHASE3_HIPS_TO_FITS.md`
+  的输入有效域一节（properties 必需键
+  `hips_order/hips_tile_width/hips_frame/dataproduct_type=image`；NESTED
+  唯一；仅 float FITS tiles）与连续定义一节（tile=HEALPix cell @hips_order 的
+  W×W FITS float tile；tile 值=面亮度；缺 tile=无覆盖；tile 内 NaN 传播）；
+  `docs/science/unified/DATA_SEMANTICS.md`「坐标语义」一节（NESTED/leaf_order 与
+  tile 内 FITS local-pixel 映射 `FITS index = (511 − x)·512 + y`；该映射由外部 HiPS
+  生成工具族冻结，writer / reader / 查询端共用同一实现）。单位口径
+  =（采样值=面亮度，BUNIT 透传缺省 `ADU`，绝不默认 Jy/beam）。
+- `DATA-TILE-001`（单 leaf tile 面）: 同上「坐标语义」一节冻结映射（tile 内
+  `FITS index = (511−x)·512+y`）与输入有效域 / 连续定义两节；descriptor 单位
+  `UnitId::SURFACE_BRIGHTNESS`、坐标 `CoordinateFrame::HEALPIX`
+  （`module_adapters.cpp`）；tile 读路径的正本即
+  `docs/science/unified/DATA_SEMANTICS.md`「坐标语义」一节。
 
 **端口词汇面偏差（登记 finding）**：`DATA-HIPS-001` 的
 coordinate 在端口词汇面存在两个值——`CoordinateFrame::PIXEL`
 （module_adapters.cpp）与 `CoordinateFrame::HEALPIX`
-（lib/infrastructure/scheduler/src/module_adapters.cpp 两处）。本表按冻结正文（「机器校验」一节）登记
-HEALPix NESTED；PIXEL 一侧属端口词汇漂移（已声明端口表只作对齐面、
+（`lib/infrastructure/scheduler/src/module_adapters.cpp` 两处）。本表按冻结正文（`docs/science/unified/DATA_SEMANTICS.md`「坐标语义」一节）登记
+HEALPix NESTED；PIXEL 一侧属端口词汇漂移（端口表只作对齐面、
 冻结依据取自冻结正文）。
 
 ## weight/value/scale/sigma/snr 歧义映射（DATA-001 登记）
@@ -102,20 +105,21 @@ HEALPix NESTED；PIXEL 一侧属端口词汇漂移（已声明端口表只作对
 
 | 字段名 | 出现位置 | 语义 | DATA ID | 歧义状态 |
 |---|---|---|---|---|
-| `weights` (integrate) | lib/algorithms/coverage/include/astro/phase2/integrate.h | 候选栈数值权重 = support×SNR² 或等权(1.0) | DATA-IMG-WEIGHT-001 数值权重 | 已消除(与 UPM 权重分离命名) |
-| `weights` (rejection) | lib/algorithms/coverage/include/astro/phase2/rejection.h | 随样本携带到候选栈的数值权重 | 同上 | 已消除 |
-| `upm.robust_control_weight` | upm.cpp | UPM 控制点权重 = quality×geom×control_ivar | DATA-UPM-CONTROL-UNC-001 | 已消除(与 integration weight 各自具名) |
+| `weights` (integrate) | `lib/algorithms/coverage/include/astro/phase2/integrate.h` | **单一权重口径**：候选栈数值权重 = 调用方构造的逐样本逆方差 `w = SNR²/F_ref² = 1/σ_F²`（ivar 产品，或 ivar 缺失时的帧级 SNR 逆方差链），构造后先经 `p2_validate_candidate_weights`。reducer 只消费传入的 `values`/`weights`/`support`/`accepted`，**不编码 ivar/SNR 科学策略**（policy 在调用方）；`weights=nullptr` 是本 C API 的输入合同（无权重数组 ⇒ 等权），**不是可选权重口径**，生产唯一调用方恒传 `weights` | DATA-IMG-WEIGHT-001 数值权重 | 明确（无 `weight_mode` 选择键、无权重口径枚举） |
+| `weights` (rejection) | `lib/algorithms/coverage/include/astro/phase2/rejection.h` | 随样本携带到候选栈的数值权重，与 integrate 同一逐样本逆方差口径 | 同上 | 明确 |
+| `upm.robust_control_weight` | `lib/algorithms/coverage/include/astro/phase2/upm.h`、`lib/algorithms/coverage/src/upm.cpp` | UPM 控制点权重**分两个阶段**（正本 = `p2_upm_raw_weight` 与其后的 per-control 归一化）：**① 分子** `raw_w = quality_factor × control_ivar`（production，`cfg.use_ivar_weight != 0`；**几何可靠性不在分子**；`control_ivar ≤ 0`/非有限 ⇒ rc=2 显式拒绝，禁静默回退 support/SNR）；**② per-control 归一化** `w_cell = raw_w / Σ_cell(raw_w) × control_reliability`（**几何可靠性在这一步施加**）。`cfg.use_ivar_weight == 0` 的 `quality × support^p × snr²/(1+snr²) / max(unc², sigma_floor²)` 只作 ablation/诊断 | DATA-UPM-CONTROL-UNC-001 | 明确（与 integration weight 各自具名，互不混用） |
 | `support` | integrate/upm/sampler | 覆盖支撑 [0,1] | DATA-IMG-SUPPORT-001 | 明确 |
 | `scale_deg_per_px` | p3_session | 输出像元角尺度 | DATA-P3-FITS-001 s_out | 明确(单位 deg/px) |
-| `sigma` | master_generator/rejection | MAD 转 σ 的**一致化系数** 1.482602218505602 = 1/Φ⁻¹(3/4)（零均值高斯下使 MAD 与 σ 同标度的定值；来源：Rousseeuw & Croux 1993, JASA 88, 1273, DOI 10.1080/01621459.1993.10476408）/ 拒绝阈值倍数 | SCI-NOISE/SCI-REJ | 明确(无量纲倍数) |
+| `sigma` | master_generator/rejection | MAD 转 σ 的**一致化系数** 1.482602218505602 = 1/Φ⁻¹(3/4)（零均值高斯下使 MAD 与 σ 同标度的定值；来源：Rousseeuw & Croux 1993, JASA 88, 1273, DOI 10.1080/01621459.1993.10476408[4]）/ 拒绝阈值倍数 | SCI-NOISE/SCI-REJ | 明确(无量纲倍数) |
 | `snr` | CW/sampler | 区域级 SNR 权重因子 snr_v² | SCI-CW-001 | 明确(与 ivar 语义分离) |
 | `value` (integrate) | integrate.h | 候选样本值 | DATA-IMG-CAL-001 标度 | 明确 |
 | `quality` | sampler | 帧/星点质量位掩码 | SCI-CW-001 | 明确 |
 | `k_corr` | sampler.cpp | Drizzle 协方差方差放大因子：域内 = k_gauss(N_retained)×k_geo 逐帧查表；1.4 = 代码默认（域外回退） | SCI-UPM-WEIGHT-001 | 明确 |
 
-结论：`weight` 在 integrate 与 UPM 两处语义已显式分离命名（`stack.*.v1` vs
-`upm.robust_control_weight.v1`），无未消除歧义；`scale/sigma/snr/value/quality` 均有
-明确 DATA/SCI 归属。G2 consumer API 可安全引用。
+结论：`weight` 只有两个各自具名的物理量，无选择键、无口径枚举 —— 帧间积分的
+**逐样本逆方差** `w = SNR²/F_ref² = 1/σ_F²`（integrate/rejection 共用），与 UPM 控制点的
+**raw 分子 + per-control 归一化**（`upm.robust_control_weight`）。`scale/sigma/snr/value/quality`
+均有明确 DATA/SCI 归属。消费者 API 可安全引用。
 
 ## 机器校验
 
@@ -127,3 +131,5 @@ HEALPix NESTED；PIXEL 一侧属端口词汇漂移（已声明端口表只作对
 [1] 内部文档 `docs/ACSD_DESIGN.md，最高设计`，上位来源。
 [2] 内部文档 `docs/engineering/standards/NUMERIC.md`，同层相关正本。
 [3] 内部文档 `docs/engineering/data/PHASE_PRODUCT_EXCHANGE.md`，同层相关正本。
+
+[4] P. J. Rousseeuw, C. Croux. Alternatives to the Median Absolute Deviation. Journal of the American Statistical Association, 1993, 88(424): 1273-1283. https://doi.org/10.1080/01621459.1993.10476408

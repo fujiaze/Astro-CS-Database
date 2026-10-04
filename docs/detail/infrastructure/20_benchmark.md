@@ -1,6 +1,6 @@
 # 插件文档：benchmark（CPU profile）
 
-> 上游：ACSD_DESIGN.md §9（CPU 后端与资源）
+> 上游：《ACSD 最高设计》的「CPU 后端与资源」一章
 
 ## 1. 职责与边界
 
@@ -9,7 +9,7 @@
 
 ## 2. 权威依据
 
-- 最高设计 `ACSD_DESIGN.md` §7.1（命令树：benchmark）、§9（CPU 后端与资源）
+- 《ACSD 最高设计》的「命令行合同」一章（命令树：benchmark）、「CPU 后端与资源」一章
 - `eng/contracts/schemas/cpu_profile.schema.json`
 
 ## 3. 输入/输出数据合同

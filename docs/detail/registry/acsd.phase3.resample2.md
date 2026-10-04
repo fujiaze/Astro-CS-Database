@@ -34,7 +34,8 @@ TEST-P3-RES-001）与 module_id 合同值 `acsd.p3.resample` 的对齐属迁移�
   → ALG-P3-003（PHASE3_RESAMPLE.md G3/G4 施工规格，公式零改动）+
   ALG-P3-RSMP-IMPL-001 → DATA-P3-RES（本页输入输出端口表）+
   API-P3-RSMP-001 → TEST-P3-RES-001（设计冻结 = TEST-P3-RSMP-DESIGN-001，
-  见 §9；矩阵 test_status = DORMANT，可执行面待落地）；编排面 API-P3-001 镜像不变；
+  见本页「验证与测试面（TEST-P3-RSMP-DESIGN-001 设计冻结 VERIFIED）」；
+  矩阵 test_status = DORMANT，可执行面待落地）；编排面 API-P3-001 镜像不变；
   ARCHITECTURE（VERIFIED）。
 - 上游依赖: acsd_phase3_session（properties 校验经
   p3_sampler_open 间接消费 + lib/algorithms/shared/healpix 权威球面函数
@@ -153,7 +154,8 @@ TEST-P3-RES-001）与 module_id 合同值 `acsd.p3.resample` 的对齐属迁移�
   W=512→shift=9，SCI §9a-1）；fits_index=(511−x)·512+y
   （docs/science/unified/DATA_SEMANTICS.md §3.1）；值语义表（NaN/C）=ALG §6.6。
 - **采样核是产品语义**（核定义、误差 / 边界与适用域正本 =
-  docs/science/algorithms/PHASE3_RESAMPLE.md；验证方式见 §9）：nearest 仅用于
+  docs/science/algorithms/PHASE3_RESAMPLE.md；验证方式见本页
+  「验证与测试面（TEST-P3-RSMP-DESIGN-001 设计冻结 VERIFIED）」）：nearest 仅用于
   离散 mask / 诊断或显式用户选择；bilinear / 高阶核用于连续场，但必须说明
   通量 / 面亮度语义；**point-source Q/W/PSF 参数按各自语义插值，与普通 signal
   插值分属两套口径**（普通 signal 插值规则**不得**机械套用于点源）。
@@ -225,7 +227,9 @@ TEST-P3-RES-001）与 module_id 合同值 `acsd.p3.resample` 的对齐属迁移�
 - DATA: docs/detail/registry/acsd.phase3.resample2.md（本页输入输出端口表）
 - API: docs/engineering/api/PUBLIC_API.md（API-P3-RSMP-001 节）
 - 合同三件套: lib/algorithms/resample/
-- 会话编排面现行权威 = docs/engineering/contracts/RUNTIME.md + docs/detail/registry/acsd.phase3.*
+- 会话编排面现行权威 = docs/engineering/contracts/RUNTIME.md + 本目录的 export 命令
+  各模块卡（acsd.phase3.properties / acsd.phase3.wcs / acsd.phase3.resample2 /
+  acsd.phase3.writer / acsd.phase3.verify）
 
 ## NaN 与写端口
 

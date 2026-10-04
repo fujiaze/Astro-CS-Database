@@ -56,7 +56,7 @@ doc_index:
       status: ACTIVE_NORMATIVE
       duty: "CCD/CMOS 线性缺陷的分类、检测判据、插值修复的方差处置与一手文献证据（坏列、CTE 拖尾、宇宙线、卫星线）"
       upstream: "docs/ACSD_DESIGN.md §4.2（normalize 节点流程）、§12.1（科学正确性与三重佐证）"
-      notes: "由原 CCD_LINEAR_DEFECT_LITERATURE 迁入并与 CALIBRATION 的缺陷可分性条款合并重写；唯一正本。参考文献逐条登记核验状态，含未取全文与未核验分级"
+      notes: "由原 CCD_LINEAR_DEFECT_LITERATURE 迁入并与 CALIBRATION 的缺陷可分性条款合并重写；唯一正本。参考文献逐条登记核验状态。κ=2 的依据是非重复计数的记账约定而非信息论下界；坏列七步判据无复跑脚本，§3.1 读数登记为历史读数"
     - path: "docs/DOCUMENT_INDEX.yaml"
       status: ACTIVE_NORMATIVE
       duty: "全文档集唯一索引地图：条目登记、双向索引、扫描口径与状态分类"
@@ -173,7 +173,17 @@ doc_index:
       downstream: ""
     - path: "docs/engineering/standards/CODE.md"
       status: ACTIVE_NORMATIVE
-      duty: "代码标准：必须遵守条目、命名与机器契约保留面、注释纪律、编译器告警口径"
+      duty: "代码标准：必须遵守条目、命名与机器契约保留面、编译器告警口径"
+      upstream: "docs/ACSD_DESIGN.md"
+      downstream: ""
+    - path: "docs/engineering/standards/COMMENT.md"
+      status: ACTIVE_NORMATIVE
+      duty: "注释纪律标准：注释原则、必须注释与必须删除迁移面、叙述性注释清理面、长度与审计"
+      upstream: "docs/ACSD_DESIGN.md"
+      downstream: ""
+    - path: "docs/engineering/standards/ERROR_MODEL.md"
+      status: ACTIVE_NORMATIVE
+      duty: "错误模型标准：三层语义与两层互斥判据、违规判据、硬错误类别、错误域、阶段 ID、进程退出码与 error-sensitive 模块要件"
       upstream: "docs/ACSD_DESIGN.md"
       downstream: ""
     - path: "docs/engineering/standards/NUMERIC.md"
@@ -474,9 +484,9 @@ doc_index:
       notes: "ALG/SCI 源码行号锚合同：解析规则/豁免纪律/符号绑定/同提交维护义务；机器检查器与合同正文同为本件，锚登记与待解锚登记落 eng/contracts/anchors/；全量复测 36 文档 793 锚（784 绿 + 9 登记豁免）"
     - path: "docs/science/unified/DATA_SEMANTICS.md"
       status: ACTIVE_NORMATIVE
-      duty: "跨阶段数据语义唯一正本（坐标与球面索引、对象量纲、三态无效编码、标度类别与 BUNIT、帧身份与溯源最小集）"
+      duty: "跨阶段数据语义唯一正本（坐标与球面索引、HiPS tile 内行列方向、对象量纲、产品态无效编码、标度类别与 BUNIT、帧身份与溯源最小集）"
       upstream: "docs/ACSD_DESIGN.md §3.1（数据对象）、§10（I/O 与原子产品）"
-      notes: "由原 DATA_SEMANTICS 迁入重写：模块级端口字段表移交 detail 正本的模块登记页与 engineering 正本的接口页，本分册只固定语义；DATA-* 合同编号的正本仍在 eng/contracts/data/contract_index.yaml"
+      notes: "由原 DATA_SEMANTICS 迁入重写：模块级端口字段表移交 detail 正本的模块登记页与 engineering 正本的接口页，本分册只固定语义；DATA-* 合同编号的正本仍在 eng/contracts/data/contract_index.yaml。HiPS tile 的行项与列项各由一手来源锚定并与真实 tile 逐像元对拍，单位串大写 ADU 登记为对 FITS 的大小写显式偏离"
     - path: "docs/detail/PHASE1_DETAILED_DESIGN.md"
       status: ACTIVE_NORMATIVE
       duty: "normalize 阶段的目标态详细设计"
@@ -739,23 +749,23 @@ doc_index:
       status: ACTIVE_NORMATIVE
       duty: "WCS/SIP 天体测量科学口径：像元-天球桥接、切平面投影与畸变模型、不变量与外部闭环判据"
       upstream: "docs/ACSD_DESIGN.md §4.2（节点流程）、§4.4（输出合同）"
-      notes: "由原 ASTROMETRY 迁入重写：剥离源码行号与逐次运行读数，只保留公式、约定、不变量与可复现判据；闭环指标的阈值数值面待标定"
+      notes: "由原 ASTROMETRY 迁入重写：剥离源码行号与逐次运行读数，只保留公式、约定、不变量与可复现判据；闭环指标的阈值数值面待标定。发散区按 C&G Paper II 落在原生赤道而非天球北极；桥接门的 C_env、FOV 与余量三组常数互锁"
     - path: "docs/science/calibration/CALIBRATION.md"
       status: ACTIVE_NORMATIVE
       duty: "定标科学口径（母版约定、单帧标定式与双分支、平场响应适用域、暗流曝光线性与曝光容差科学判据、标度声明拒绝规则）"
       upstream: "docs/ACSD_DESIGN.md §4.2（节点流程）、§3.3（精度归属）"
-      notes: "由原 CALIBRATION 迁入重写；暗流线性表与亮场稳健尺度为本轮在 testdata 上按 XISF 规范解码复算所得；缺陷可分性条款并入同目录 CCD_DEFECT"
+      notes: "由原 CALIBRATION 迁入重写；缺陷可分性条款并入同目录 CCD_DEFECT。flat 只表示盘上母版、除法一律作用于 flat_norm；暗流截距失配式带显式前提与偏置电平失配项；暗流线性表与亮场稳健尺度为历史读数（无复跑脚本）"
     - path: "docs/science/noise_snr/NOISE_SNR.md"
       status: ACTIVE_NORMATIVE
-      duty: "噪声模型、绝对信噪比、方差与协方差传播的唯一正本：两个方差面、信噪比定义、逆方差定权与协方差二次型"
+      duty: "噪声模型、绝对信噪比、方差与协方差传播的唯一正本：两个方差面、信噪比定义与参考通量基准、逆方差定权与协方差二次型、掩膜半径的物理导出"
       upstream: "docs/ACSD_DESIGN.md §2.2（P2 跨帧绝对信噪比）、§2.4（P4 重建稠密信噪比）、§5.3（信噪比重建与逆方差叠加）、§3.1（数据对象）"
-      downstream: ""
-      notes: "唯一正本指认：背景方差面、加权方差面、绝对信噪比、逐源通量不确定度、逆方差定权与协方差传播六件事同属一个物理口径，合为一册，不得在别处另立同主题正本；产品面只发布方差对角线，完整协方差矩阵不作为产品交付"
+      downstream: "docs/detail/PHASE1_DETAILED_DESIGN.md、docs/detail/UNIFIED_MODEL.md、docs/detail/registry/ 9 处、docs/engineering/contracts/CONFIG.md、docs/engineering/governance/{TRACEABILITY,UNRESOLVED}.md、docs/engineering/standards/NUMERIC.md、docs/engineering/UNIFIED_OBJECTS.md、docs/GLOSSARY.md、docs/science/{DISPUTE_RESOLUTION,INTEGRATION,PHASE2_UPM,PHASE3_HIPS_TO_FITS,PHOTOMETRY}.md、docs/science/algorithms/{GATES_AND_TOLERANCES,NOISE_ESTIMATION,PHASE3_RESAMPLE}.md、eng/contracts/anchors/anchor_contract.json、eng/contracts/data/{clause_registry,contract_index}、eng/contracts/schemas/phase_config_normalize.schema.json、eng/packaging/config/{config_registry.json,defaults.json} 等 34 处"
+      notes: "唯一正本指认：背景方差面、加权方差面、绝对信噪比、逐源通量不确定度、逆方差定权与协方差传播六件事同属一个物理口径，合为一册，不得在别处另立同主题正本；产品面只发布方差对角线，完整协方差矩阵不作为产品交付，方差面取有限对/成对零/NaN 三态互斥编码；帧面通量不确定度与统一测光坐标系下的通量不确定度必须分名，二者相差该帧测光标度因子，叠加权重的归一化因子取与帧无关的公共通量锚"
     - path: "docs/science/drizzle/DRIZZLE.md"
       status: ACTIVE_NORMATIVE
       duty: "守恒映射算子的科学正本：drop 归一核、面亮度归一分母、方差与协方差传播、几何闭合与常量场判据"
       upstream: "docs/ACSD_DESIGN.md §2.3（P3 守恒映射算子：平面到 HEALPix drizzle）、§4.2（normalize：单帧标准化）"
-      notes: 平面到球面的守恒重采样唯一正本；球面到平面一侧的重采样口径由 docs/science/resample/RESAMPLE.md 承担，两者不合并；pixfrac 值域同时由 eng/contracts/schemas/phase_config_normalize.schema.json 机器强制
+      notes: 平面到球面的守恒重采样唯一正本；球面到平面一侧的重采样口径由 docs/science/resample/RESAMPLE.md 承担，两者不合并；pixfrac 值域 0 < pixfrac <= 1 由 eng/contracts/schemas/phase_config_normalize.schema.json 机器强制；数值默认 0.8 在本册「参数与常数」与 eng/packaging/config/defaults.json（authority_status=owner_adjudicated）两处一致，而同一 schema 的 algorithm_drizzle_pixfrac 描述仍写「数值默认未冻结（defaults.json 的 drizzle.pixfrac 为 pending_authority）」——该描述与 defaults.json 现状不符，数值默认的权威归属口径尚未在三处统一，登记为待 eng 侧裁决
     - path: "docs/science/INTEGRATION.md"
       status: ACTIVE_NORMATIVE
       duty: "逆方差叠加与 SNR 重建的科学公式"
@@ -780,12 +790,12 @@ doc_index:
       status: ACTIVE_NORMATIVE
       duty: "PSF 建模的科学正本：轮廓模型与 σ 口径、FWHM 因子、解析通量、拟合残差截尾标度及其适用域"
       upstream: "docs/ACSD_DESIGN.md §2.1（P1 通量积分拟合：测光校准到测光星等坐标系）、§4.2（节点流程）"
-      notes: PSF 建模唯一正本；σ 口径、FWHM 因子、解析通量与截尾均值→σ 因子在本册给出可独立复算的推导与脚本；psf 相关配置的模型取值权威见 docs/engineering/contracts/CONFIG
+      notes: PSF 建模唯一正本；σ 口径（含与 σ_g 口径的换算与对照）、FWHM 因子、解析通量、窗截尾份额与截尾均值→σ 因子在本册给出可独立复算的推导与脚本；位置角 θ 的规范值域与轴约定 sx ≥ sy、位置角的归轴归约判法、以及判据中的反例式判法也在本册给出；本分册的公式与常数均为针对本仓七参数模型的独立推导，外部文献只承担另一尺度口径的出处与判据设计依据；psf 相关配置的模型取值权威见 docs/engineering/contracts/CONFIG.md
     - path: "docs/science/resample/RESAMPLE.md"
       status: ACTIVE_NORMATIVE
       duty: "重采样的科学正本：层序选择、采样核权重与样本级掩膜、行/列归一算子、协方差传播、有效 PSF 与输出帧 Q/W 重算"
       upstream: "docs/ACSD_DESIGN.md §6.1（export：投影导出）、§6.2（流程）、§6.3（投影算法）"
-      notes: 投影之后平面网格上的重采样唯一正本；帧面到球面的守恒重采样由 docs/science/drizzle/DRIZZLE.md 承担，两者不合并；sampler 取值域见 eng/contracts/schemas/phase_config_export.schema.json
+      notes: 投影之后平面网格上的重采样唯一正本；帧面到球面的守恒重采样由 docs/science/drizzle/DRIZZLE.md 承担，两者不合并；对外配置的 sampler 取值域 nearest | bilinear 见 eng/contracts/schemas/phase_config_export.schema.json，而本册「采样核的注册与准入」的注册表 id 是 nearest / bilinear_4quad / bilinear_area_overlap_exact（bicubic 与 lanczos 未注册）——配置 token 与注册表 id 的映射缺失，eng 侧全仓核不到任何把 bilinear 对应到具体核 id 的声明，登记为待补齐
     - path: "docs/science/REJECTION.md"
       status: ACTIVE_NORMATIVE
       duty: "逐像素排异的科学定义与合法性窗口"
@@ -795,17 +805,17 @@ doc_index:
       status: ACTIVE_NORMATIVE
       duty: "科学范围与假设正本（处理链、标度类别链与标度律、局部平稳假设的失效判据、两个方差面、有效域与失效条件）"
       upstream: "docs/ACSD_DESIGN.md §1（项目定位）、§2（核心科学方法：五个创新点）"
-      notes: "由原 SCIENCE_SCOPE 迁入重写并吸收其假设条款族；合同编号 SCI-SCOPE-001 沿用不变"
+      notes: "由原 SCIENCE_SCOPE 迁入重写并吸收其假设条款族；合同编号 SCI-SCOPE-001 沿用不变。局部平稳判据的符号取 s_log 以与信噪比指数 γ 分名，冻结面归本分册；标度律的正文与推导移交同目录 DATA_SEMANTICS"
     - path: "docs/science/detection/STAR_DETECTION.md"
       status: ACTIVE_NORMATIVE
       duty: "星点检测科学口径（像元中心约定、检测阈值与其噪声单位换算、亚像素质心、召回域统计判据、饱和与边缘判据）"
       upstream: "docs/ACSD_DESIGN.md §2.1（测光标定）、§4.2（节点流程）"
-      notes: "由原 STAR_DETECTION 迁入重写；逐档 99% 召回阈的复跑入口不在仓内，阈值表登记为待复算，取值路径在本分册给出"
+      notes: "由原 STAR_DETECTION 迁入重写；逐档 99% 召回阈的复跑入口不在仓内，阈值表登记为待复算，取值路径在本分册给出。阈值等效倍数按生产 Young–van Vliet 核冻结，权威路径为星表引导检测、盲检为显式声明的诊断路径"
     - path: "docs/science/unified/UNIFIED_SCIENCE_MODEL.md"
       status: ACTIVE_NORMATIVE
       duty: "跨阶段统一科学模型正本（线性观测模型、科学目标分层、点源与扩展源最优统计、绝对信噪比与逆方差权重的唯一换算、对象与权重的关系）"
       upstream: "docs/ACSD_DESIGN.md §2（核心科学方法：五个创新点）、§3.1（数据对象）"
-      notes: "由原 UNIFIED_SCIENCE_MODEL 迁入重写；ACSD-SCIENCE-MODEL-001 沿用不变，w = SNR²/F_ref² = 1/σ_F² 是全链唯一权重换算"
+      notes: "由原 UNIFIED_SCIENCE_MODEL 迁入重写；ACSD-SCIENCE-MODEL-001 沿用不变，w = SNR²/F_ref² = 1/σ_F² 是全链唯一权重换算。帧间相关时用一般分块协方差而非块对角；点源族与面亮度族的量纲由承载面决定"
     - path: "artifacts/evidence/known-limitations-ledger/LIMITATIONS.md"
       status: ACTIVE_INFORMATIVE
       duty: 已知限制台账的人读面，逐条 48 项

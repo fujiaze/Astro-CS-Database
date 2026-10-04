@@ -1,6 +1,6 @@
 # 文档治理规范
 
-上游：最高设计的文档权威与索引、文档写法两章；目录拓扑正本在 `docs/DOCUMENT_INDEX.yaml`。
+上游：最高设计的文档权威与索引、文档写法两章 [1]；目录拓扑正本在 `docs/DOCUMENT_INDEX.yaml` [2]。
 
 文档体系的分层模型、各层准入判据、引用与登记纪律、写法检查、订正意见与登记面的交付形状、
 仓库根条目登记面。
@@ -19,7 +19,15 @@ docs/
  ├── science/ 科学正本：公式、常数、判据与算法推导（只读权威）
  │ └── algorithms/ 算法推导与逐符号实现锚定
  ├── engineering/ 工程正本：架构、合同、标准与验证规范
- │ └── abi/ cpu/ data/ io/ observability/
+ │   ├── api/（含 api/abi/）对外与跨库接口、C ABI 基础层
+ │   ├── architecture/ 架构、数据流与模块地图
+ │   ├── build/ 构建图、构建节点与工具链、发布与版本
+ │   ├── contracts/ 行为合同
+ │   ├── data/ 数据工件与溯源合同
+ │   ├── governance/ 文档治理、追溯与登记面
+ │   ├── resources/（含 resources/cpu/、resources/observability/）性能模型与可观测性
+ │   ├── standards/ 工程标准
+ │   └── testing/ 测试标准与验证证据
  ├── detail/ 细节实施：模块页、算法与插件实现设计、阶段详细设计、锚契约
  │ └── registry/ 模块登记与注册表说明
 ```
@@ -27,7 +35,7 @@ docs/
 `docs/` 下**只有人读文档**。机读的合同 schema、合同数据与配置一律落 `eng/contracts/**`、
 `eng/packaging/config/**` 等工程目录，由代码按固定路径读取；文档域不承载机读资产
 （`docs/` 下的 `.csv` / `.json` 台账一律不新建，已存在的按本条迁出）。
-**豁免**：`docs/DOCUMENT_INDEX.yaml` 是文档集自身的索引地图，按「检查项 C3——结构上抓不到、只能人读的缺陷类型」一节 与
+**豁免**：追溯与证据登记的落点是 `TRACEABILITY.md` [3]；`docs/DOCUMENT_INDEX.yaml` 是文档集自身的索引地图，按「检查项 C3——结构上抓不到、只能人读的缺陷类型」一节 与
 `../../ACSD_DESIGN.md` 作为唯一索引载体保留在 `docs/`，不适用本条迁出。
 另：已知限制台账的人读面为 已知限制台账，
 不在 `docs/` 根层。

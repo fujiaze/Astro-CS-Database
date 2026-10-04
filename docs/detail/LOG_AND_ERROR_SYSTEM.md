@@ -1,6 +1,6 @@
 # 日志与错误系统（详细设计）
 
-> 上游：ACSD_DESIGN.md §7.3（错误传播与运行日志：顶层约束）、§10（I/O 与原子产品）
+> 上游：《ACSD 最高设计》的「命令行合同」一章（错误传播与运行日志：顶层约束）与「I/O 与原子产品」一章
 
 > 机器事实源：`lib/infrastructure/observability/logging/log_event_v1.schema.json`（日志行，LOG-001 正本）。
 > 日志系统判据 R1–R5 的判定以本文件正文与 `docs/engineering/contracts/LOG_AND_ERROR.md` 为准。
@@ -12,7 +12,7 @@ observability 各面是什么关系。字段级格式合同在 `docs/engineering
 
 ## 1. 范围与两条硬要求
 
-日志与错误系统服务两条顶层要求（`ACSD_DESIGN.md` §7.3）：
+日志与错误系统服务两条顶层要求（《ACSD 最高设计》的「命令行合同」一章）：
 
 1. **任何模块运行出问题都必须抛错到 CLI**：模块不吞错、不静默降级；故障以稳定错误码上行，
    在 CLI 收敛为 `lib/infrastructure/cli/exit_codes.h` 的退出码；
@@ -70,7 +70,7 @@ L3 不改写事件内容（L1 独占格式）。
 
 | 对象 | 定义 | 归属 | 权威 |
 |---|---|---|---|
-| `log_event` | 单行结构化日志事件（run/task/node/module/phase/commit/host/level/event/units/elapsed/diagnostic + 可选 error/progress/value） | L1 产出 | 既有 schema `acsd.log.event.v1`（LOG-001 正本，本设计**不新建第二套**） |
+| `log_event` | 单行结构化日志事件（必含字段名：`run` / `task` / `node` / `module` / `phase` / `commit` / `host` / `level` / `event` / `units` / `elapsed` / `diagnostic`；可选字段名：`error` / `progress` / `value`） | L1 产出 | 既有 schema `acsd.log.event.v1`（LOG-001 正本，本设计**不新建第二套**） |
 | `run_log` | 一次运行的日志工件集合：`{log_dir, files[]}`；`files[]` 条目 = `{kind: jsonl\|summary, name, sha256, bytes, lines, level_counts{debug,info,warn,error}, truncated}` | L2 产出 | `docs/engineering/contracts/LOG_AND_ERROR.md`「`run_log` 与 manifest 登记字段」一节 |
 | `error_report` | CLI 收敛面错误对象：`{domain, exit_code, status, source, symbol, message, run, node, phase, degraded}` | L3 产出 | `docs/engineering/contracts/LOG_AND_ERROR.md`「错误对象与退出码映射」一节 |
 | `degradation_record` | 显式降级记录：`{site_id, module, symbol, reason, scientific_effect, manifest_key}` | L0 产出、manifest 承载 | `docs/engineering/contracts/LOG_AND_ERROR.md`「显式降级登记要件」一节 |
@@ -98,8 +98,8 @@ L3 不改写事件内容（L1 独占格式）。
 **落点范围**：`<log_dir>` 及其子目录；判据红 = 进程 CWD 相对路径、源码树内目录（如 `lib/**/logs/`）、
 `run/` 下的运行日志、安装目录、用户家目录。
 
-`run/` 的定位不变：**只放临时产物与日志**（最高设计 §10）——但那是**开发过程日志**
-（`run/<task>/logs/`），不是**程序运行日志**；两者各占一个目录。
+`run/` 的定位不变：**只放临时产物与日志**（《ACSD 最高设计》的「I/O 与原子产品」一章）——但那是**开发过程日志**
+（仓库 `run/` 目录下按任务名分的 `logs/` 子目录），不是**程序运行日志**；两者各占一个目录。
 
 ---
 
@@ -139,7 +139,7 @@ flowchart LR
 
 ## 6. 与 manifest / provenance 的关系
 
-- `run_log` 是 run 产物的一部分，登记在 run manifest 的 `log_artifacts[]`（字段表见合同 §4）；
+- `run_log` 是 run 产物的一部分，登记在 run manifest 的 `log_artifacts[]`（字段表见 `docs/engineering/contracts/LOG_AND_ERROR.md`「`run_log` 与 manifest 登记字段」一节）；
 - **manifest 不写进日志**（避免自引用循环）：manifest 是日志的登记面，日志不是 manifest 的载体；
 - 日志行内的 `commit` 来自真实构建/运行现场（既有 schema 强制 40 位 SHA，取值只来自现场），
   因此日志可作为 provenance 的独立佐证；
@@ -172,7 +172,7 @@ flowchart LR
 
 | 旋钮 | 登记点（权威） | 默认 | 值域/约束 |
 |---|---|---|---|
-| `log_dir` | `docs/detail/infrastructure/21_observability.md` §5（plugin_doc / runtime_policy） | `<output_dir>/logs` | 绝对路径，或由 `output_dir` 派生；CWD 相对路径属判据红 |
+| `log_dir` | `docs/detail/infrastructure/21_observability.md` 的「配置项」一章（`log_dir` / `log_keep` / `log_level`） | `<output_dir>/logs` | 绝对路径，或由 `output_dir` 派生；CWD 相对路径属判据红 |
 | `log_level` | 同上 | `info` | `debug\|info\|warn\|error` |
 | `log_keep` | 同上 | `all` | `all`（保留全部运行日志）或正整数（保留最近 N 次运行） |
 
@@ -203,10 +203,10 @@ flowchart LR
 
 | 作用域 | 触发条件 | 上报形态 | 运行结果 |
 |---|---|---|---|
-| **帧级失败** | 失败只由**该帧自身**的条件决定：换一帧可能成功（本帧 WCS 不可用、本帧星点目录缺行、本帧拟合未产出标度、本帧标度非物理、帧内残差散度超门限） | 该帧记 `status=fail` + `error_domain`/`error_status`/`error`（合同 §5 的 error_report 口径），落在节点 manifest 与 provenance 的**逐帧判决表**里 | **该帧不产出产品，其余帧照常完成**；运行级是否判红由产品基数与不变量决定（`ACSD_DESIGN.md` §4.4「任何一帧未被处理、跳过或失败都显式判红」），判红时**不发布**数据集清单 |
-| **全局失败** | 失败与具体帧无关：换任何一帧都不会好（星表/响应曲线等程序级输入不可读、配置缺项、冻结 C 入口返回非零） | 节点直接返回 `Error`（域 = `CONFIG`/`IO`）上行到 CLI，收敛为退出码（合同 §4） | **中止运行**：不再处理后续帧，也不把整批帧逐帧判 fail |
+| **帧级失败** | 失败只由**该帧自身**的条件决定：换一帧可能成功（本帧 WCS 不可用、本帧星点目录缺行、本帧拟合未产出标度、本帧标度非物理、帧内残差散度超门限） | 该帧记 `status=fail` + `error_domain`/`error_status`/`error`（`error_report` 口径见 `docs/engineering/contracts/LOG_AND_ERROR.md`「错误对象与退出码映射」一节），落在节点 manifest 与 provenance 的**逐帧判决表**里 | **该帧不产出产品，其余帧照常完成**；运行级是否判红由产品基数与不变量决定（《ACSD 最高设计》「normalize」一章的「输出合同」一节：任何一帧未被处理、跳过或失败都显式判红），判红时**不发布**数据集清单 |
+| **全局失败** | 失败与具体帧无关：换任何一帧都不会好（星表/响应曲线等程序级输入不可读、配置缺项、冻结 C 入口返回非零） | 节点直接返回 `Error`（域 = `CONFIG`/`IO`）上行到 CLI，收敛为退出码（判据见 `docs/engineering/contracts/LOG_AND_ERROR.md`「错误对象与退出码映射」一节） | **中止运行**：不处理后续帧，也不把整批帧逐帧判 fail |
 
-**帧级失败不是降级**：降级 = 上游能力缺失时改走替代路径并**继续运行**且**科学语义不变**（合同 §6 D1–D3）。
+**帧级失败不是降级**：降级 = 上游能力缺失时改走替代路径并**继续运行**且**科学语义不变**（判据见 `docs/engineering/contracts/LOG_AND_ERROR.md`「显式降级登记要件」一节）。
 帧级失败改变的是「这一帧有没有合格的科学结果」，因此不写 `degraded_reason`，并以帧级失败状态上报（L3 行为边界项）。
 反之，**通道整体缺席**（例如测光标定通道未配置、产品以未归一化的中性标度继续）是降级：写 `degraded_reason` 并在元数据如实登记标度。
 

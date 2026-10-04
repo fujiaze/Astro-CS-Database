@@ -69,7 +69,8 @@ create→validate→run→inspect→destroy。
 
 ### 源文件
 
-`lib/algorithms/calibration/{include,src}/`（CMake 目标 `acsd_calibration`：
+`lib/algorithms/calibration/include/`（公共头族）与
+`lib/algorithms/calibration/src/`（CMake 目标 `acsd_calibration`：
 `calibrator.cpp` / `master_generator.cpp` / `cosmetic_corrector.cpp` / `ac_api.cpp`）。
 未挂接 CMake 的源：`dark_optimizer.cpp`、`photometry_apply.cpp`；双实现通道
 `cpp/cosmetic_corrector.cpp`（`cc_*`）。

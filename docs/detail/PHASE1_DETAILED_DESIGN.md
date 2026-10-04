@@ -1,8 +1,8 @@
 # Phase1 目标态详细设计
 
-> 上游：ACSD_DESIGN.md §4（normalize：单帧标准化）
+> 上游：《ACSD 最高设计》的「normalize：单帧标准化」一章
 
-上位：`docs/ACSD_DESIGN.md`（§0 权威链，最高设计；§1 项目定位、§2 核心科学方法：五个创新点、§4 normalize 使命与输入输出合同、§12 验证体系）  
+上位：`docs/ACSD_DESIGN.md`（文档权威与索引、项目定位、核心科学方法：五个创新点、normalize 的使命与输入输出合同、验证体系各章）  
 下游：Phase1 SCI/ALG/DATA/API/实现与验收；冲突时本文件描述目标，目标只由本文件定义。
 
 ## 1. 使命与科学产品
@@ -31,7 +31,7 @@ d_k = A_k x + n_k,    Cov(n_k) = C_k
 
 ## 3. 节点与先后关系
 
-**节点顺序以 `ACSD_DESIGN.md` §4.2 为唯一权威**：
+**节点顺序以《ACSD 最高设计》normalize 一章的「节点流程」一节为唯一权威**：
 
 ```text
 ingest → calibration → cosmetic/validity → background/noise
@@ -52,7 +52,7 @@ ingest → calibration → cosmetic/validity → background/noise
 省掉一次中间产物落盘，即**省一次写 + 一次读的 IO 往返**（生产 IR 的 normalize 阶段因此是 8 个节点：
 `calibrate / cosmetic_correct / detect_sources / plate_solve / measure_flux / estimate_snr / drizzle_stack / write_hips`，
 其中 `measure_flux` 即 photometry，施加是它的**内部步骤**而不是第 9 个节点）。
-**强制语义（判据固定，细化见 §3.6）**：① 星表引导检测（检测定义域 = 星表位置，不是整幅图像）；
+**强制语义（判据固定，细化见本文「星点检测与 PSF 拟合」一节）**：① 星表引导检测（检测定义域 = 星表位置，不是整幅图像）；
 ② WCS 解算只有**一个节点、一个权威解**：近似指向由 `wcs.init_source` 给出（不是解算节点），`platesolve` 在该指向下匹配星表并稳健迭代精化，输出即权威 WCS（轮次数是求解器实现细节，不是流程语义）；
 ③ **一次检测、一次通量积分、三处复用**（`star_detection` → `psf` → `photometry` → `noise_snr` 共用同一份
 检测结果与同一 `flux` 口径）；④ **测光归一化必须真正落到像素**（`I_photo = k_photo·m(x,y)·I_cal`；
@@ -60,7 +60,7 @@ ingest → calibration → cosmetic/validity → background/noise
 **单帧拟合失败**不属降级，按帧级失败上报，见下）；
 ⑤ **施加的可核对性不因合并而降低**：provenance `p1_phot.json`（`DATA-P1-PHOTPROV-001`）必须记 `photometry_applied` /
 `photscal` / `photscales`（逐帧 `k_photo`）/ `photoapplied_artifacts`（施加后产物路径），使「k 确实乘进了像素」
-可由独立读者用「calibrated 面 × k」逐像素复算核对（判据与实测见 `docs/science/algorithms/CALIBRATION_ALGORITHMS.md` §3.6；语义正本 = `ACSD_DESIGN.md` §4.2）。
+可由独立读者用「calibrated 面 × k」逐像素复算核对（判据与实测见 `docs/science/algorithms/CALIBRATION_ALGORITHMS.md` 的标度因子一节；语义正本 = 《ACSD 最高设计》normalize 一章的「节点流程」一节）。
 
 **测光失败的失败语义（帧级 vs 全局，两种作用域各自具名）**：
 
@@ -70,13 +70,13 @@ ingest → calibration → cosmetic/validity → background/noise
   （`status=fail` + `error_domain`/`error_status`/`error`，error_report 口径见
   `docs/engineering/contracts/LOG_AND_ERROR.md`「错误对象与退出码映射」一节）与节点 manifest（`frame_status`/`frame_errors`/
   `failed_frames`/`n_frames_failed`/`n_frames_ok`/`n_frames_applied`）。
-  帧级失败**不是降级**：不写 `degraded_reason`（失败 ≠ 降级，判据见该合同 §6 D1–D3 与
-  `docs/detail/LOG_AND_ERROR_SYSTEM.md` §10）。
+  帧级失败**不是降级**：不写 `degraded_reason`（失败 ≠ 降级，判据见
+  `docs/engineering/contracts/LOG_AND_ERROR.md`「显式降级登记要件」一节与 `docs/detail/LOG_AND_ERROR_SYSTEM.md`）。
 - **全局失败**（换任何一帧都不会好：星表/响应曲线不可读、`gaia_data_dir`/`filter`/`filters_json`
   配置缺项、冻结 C 入口返回非零）⇒ **中止运行**（`ErrorDomain::CONFIG`/`IO` 上行到 CLI 收敛为退出码），
   不把整批帧逐帧判 fail。
-- **运行级判红**：产品基数按 `ACSD_DESIGN.md` §4.4「每一帧输入对应一个 HiPS 产品，任何一帧未被处理、
-  跳过或失败都显式判红」——`write_hips` 对失败帧上抛 `SCIENCE_PRECONDITION`（退出码 4，`ACSD_DESIGN.md` §7.2）
+- **运行级判红**：产品基数按《ACSD 最高设计》normalize 一章的「输出合同」一节「每一帧输入对应一个 HiPS 产品，任何一帧未被处理、
+  跳过或失败都显式判红」——`write_hips` 对失败帧上抛 `SCIENCE_PRECONDITION`（退出码 4，见其「命令行合同」一章的「机器输出与退出码」一节）
   且**不发布** `p1_products.json`（不产出部分产品却报成功）；其他帧已写出的产物保留在磁盘上作为证据。
 - **组级摘要与逐帧真相**：`photometry_applied=true` 只表示「至少一帧已施加」（`pixel_scaling` 取
   `applied`/`partial`/`none`）；逐帧真相只在 `frames[]`。下游 `drizzle_stack` 按 `frames[]` 逐帧选择输入面
@@ -109,7 +109,7 @@ V(y_p) = {V(r_p)+V(b_p)+alpha²[V(d_p)+V(b_p)]+y_p²V(f_p)} / f_p²
 
 - 背景模型 (B(x,y)) 与随机噪声 (C) 分开；Phase1 可估计背景，背景校正与 UPM 各占一层；
 - validity 包含 NaN/Inf、坏点、饱和、cosmetic、边界、插值、星轨/严重形变；
-- 检测阈值的**冻结定义**为全局背景噪声倍数 `median(img)+5.0·bgnoise`（`docs/science/detection/STAR_DETECTION.md` §3.1）；以逐像素 variance/ivar 做**局部噪声自适应**为目标态、当前未实现（`DISP-STAR-002`）；输出 selection function 和 completeness 相关参数；检测目录不是图像灵敏度本身；
+- 检测阈值的**冻结定义**为全局背景噪声倍数 `median(img)+5.0·bgnoise`（`docs/science/detection/STAR_DETECTION.md`「O3 检测阈值」一节）；以逐像素 variance/ivar 做**局部噪声自适应**为目标态、当前未实现（`DISP-STAR-002`）；输出 selection function 和 completeness 相关参数；检测目录不是图像灵敏度本身；
 - 检测、PSF、WCS、测光、SNR 的 source row 都绑定同一 frame_id/source_id。
 
 ## 6. PSF 模型
@@ -132,23 +132,23 @@ PSF 拟合质量只能作 validity/诊断，不能未经概率模型直接乘入
 
 ### 7.1 测光链路的逐层物理量与单位
 
-**“校准到测光星等坐标系”的实现形态**：标度 `k_photo = 10^{−location}`（`docs/science/PHOTOMETRY.md` §3/§5）
+**“校准到测光星等坐标系”的实现形态**：标度 `k_photo = 10^{−location}`（`docs/science/PHOTOMETRY.md` 的「物理量和单位」与「连续定义」两章）
 是**线性乘性因子**（单位 [F_syn 单位]/ADU），作用是把各帧对齐到**统一相对测光零点**；它不把数据变成星等。
-逐层承载的物理量与单位（唯一正本 = `docs/science/unified/DATA_SEMANTICS.md` §4.1/§3.4）：
+逐层承载的物理量与单位（唯一正本 = `docs/science/unified/DATA_SEMANTICS.md` 的「单位与量纲表」与「面亮度单位的推导」两节）：
 
 | 层 | 物理量 | 单位 | 口径 |
 |---|---|---|---|
 | Phase1 帧平面（calibrated / cleaned） | 线性计数（逐像素） | `ADU` | 未按立体角归一 |
 | Phase1 测光施加后帧平面 `photoapplied_<base>` | 线性计数 × 逐帧标度 | `k_photo·ADU`（零点 = 本帧相对测光零点） | `I_photo = k_photo·I_cal` |
-| Phase1 HiPS signal | 线性面亮度 | `ADU/sr` | writer 归一 `S_p = F_p / N_p`，`F_p = Σ_j x_j·w_jp`、`N_p = Σ_j w_jp·A_pixel,j`（`docs/science/drizzle/DRIZZLE.md` §2.1/§3.3） |
-| Phase1 HiPS variance / ivar | `ADU^2/sr^2` / `sr^2/ADU^2` | 二次律 `FZ-P3-BUNIT-QUADRATIC` |
-| Phase1 点源量（flux / Q / W_info） | `ADU` / `ADU^-1` / `ADU^-2` | 点源与面亮度两套量各自闭合 |
+| Phase1 HiPS signal | 线性面亮度 | `ADU/sr` | writer 归一 `S_p = F_p / N_p`，`F_p = Σ_j x_j·w_jp`、`N_p = Σ_j w_jp·A_pixel,j`（`docs/science/drizzle/DRIZZLE.md` 的「输入与输出的物理语义」与「面亮度归一分母」两节） |
+| Phase1 HiPS variance / ivar | 逐像素随机方差 / 其倒数 | `ADU^2/sr^2` / `sr^2/ADU^2` | 二次律 `FZ-P3-BUNIT-QUADRATIC` |
+| Phase1 点源量 | flux / Q / W_info | `ADU` / `ADU^-1` / `ADU^-2` | 点源与面亮度两套量各自闭合 |
 | Phase2 马赛克 signal | 线性面亮度（与输入同标度） | 面亮度产品为 `ADU/sr` | `Σ w_i·x_i / Σ w_i`（线性加权） |
 | Phase3 导出平面 | 线性面亮度（采样核的凸组合） | 透传输入 `BUNIT` | 重采样不改量纲类别 |
 
 **`k_photo` 的语义**：对齐各帧的**相对零点**，使帧间信号处于同一测光体系。其**绝对值无物理意义**——
 增益、口径、曝光、`hc` 等未建模常数被 `location` 吸收，因此它只作相对零点使用，取值窗口取相对量
-（`docs/science/PHOTOMETRY.md` §3/§6）。逐帧 `k_photo` 与“是否真的乘进像素”记入 `p1_phot.json`
+（`docs/science/PHOTOMETRY.md` 的「物理量和单位」与「假设」两章）。逐帧 `k_photo` 与“是否真的乘进像素”记入 `p1_phot.json`
 （DATA-P1-PHOTPROV-001），可由独立读者用“calibrated 面 × k”逐像素复算核对。
 
 **为什么必须保持线性**：Phase2 的固定科学流程是加性天光校正（UPM：`y_k = s + C_k + ε_k`，纯加性）与
@@ -157,16 +157,16 @@ PSF 拟合质量只能作 validity/诊断，不能未经概率模型直接乘入
 
 **星等的换算位置与公式**（派生表达，不改变产品 `BUNIT`、不改变数据面形态）：
 
-- 帧级 5σ 深度：`m_5 = ZP_k − 2.5·log10(F_5)`（`docs/science/unified/DATA_SEMANTICS.md` §4.2）；
-- 面亮度星等：`SB_mag = ZP_k − 2.5·log10(signal) + 2.5·log10(Ω_ref)`（§31.1a）；
-- 测光一致性 QA：`delta_i = −2.5·log10(F_instr,i) − G_Gaia,i`、`sigma_mag = 2.5·sigma_residual`（`docs/science/PHOTOMETRY.md` §2/§5）。
+- 帧级 5σ 深度：`m_5 = ZP_k − 2.5·log10(F_5)`，`F_5 = 5·σ_F(ref)`（`docs/science/unified/DATA_SEMANTICS.md`「帧级信噪比的参考通量基准」一节、`docs/science/noise_snr/NOISE_SNR.md`「绝对信噪比」一节）；系数 `2.5` 是星等定义式 `m = ZP − 2.5·log10 F` 的换算常数，不是深度倍数；
+- 面亮度星等：`SB_mag = ZP_k − 2.5·log10(signal) + 2.5·log10(Ω_ref)`（`docs/science/unified/DATA_SEMANTICS.md` 的面亮度星等一段）；
+- 测光一致性 QA：`delta_i = −2.5·log10(F_instr,i) − G_Gaia,i`、`sigma_mag = 2.5·sigma_residual`（`docs/science/PHOTOMETRY.md` 的标度因子与 QA 两段）。
 
 ## 8. SNR、点源信息量与 Phase2 输入
 
 ### 8.1 三个不同对象
 
 1. **逐源 SNR**：`SNR_s = F_hat_s / sigma_F,s`，用于源测量诊断；依赖真实源亮度。
-2. **参考通量深度**：`m_5 = ZP - 2.5 log10[5 sigma_F(ref)]`，用于帧/位置深度表达。
+2. **参考通量深度**：`m_5 = ZP - 2.5 log10[5 sigma_F(ref)]`，用于帧/位置深度表达（`2.5` 是星等换算常数；`5` 是深度倍数）。
 3. **点源信息量**：
 
 ```text
@@ -183,9 +183,9 @@ W_psf,k = a_k² Σ_p P_k,p² / sigma_pix,k² = a_k² / (sigma_pix,k² A_NEA,k)
 
 ### 8.2 Phase1 的 SNR 与信息量产品边界
 
-Phase1 **只**产出帧级 SNR、稀疏控制点上的**绝对** SNR（`F_ref/σ_F(x,y)`，与帧级同口径、同参考通量 `F_ref`），以及 `W_psf = PᵀC⁻¹P` 作为点源充分统计量（`point_source_information`）；
+Phase1 **只**产出帧级 SNR、稀疏控制点上的**绝对** SNR（`F_ref/σ_F(x,y)`，与帧级同口径、同参考通量 `F_ref`），以及 `W_psf = PᵀC⁻¹P` 作为点源充分统计量（`point_source_information`）；`F_ref` 的口径见 `docs/detail/UNIFIED_MODEL.md`「参考通量基准」一节；
 **不产生、不消费**任何叠加权重。叠加权重由**阶段二**按该天球像素对应的输入帧集合**现场算出**（派生量）。
-PSF 拟合质量代理（FWHM、残差尺度等）**只作诊断**，**权重面排除**该项（`ACSD_DESIGN.md` §2、§3.1）。
+PSF 拟合质量代理（FWHM、残差尺度等）**只作诊断**，**权重面排除**该项（《ACSD 最高设计》的「核心科学方法：五个创新点」与「数据对象」两章）。
 
 ### 8.3 标量降级门
 
@@ -193,7 +193,7 @@ PSF 拟合质量代理（FWHM、残差尺度等）**只作诊断**，**权重面
 
 ## 9. 球面 Drizzle 与不确定度
 
-源像素积分通量 `x_j` 先转换为源像素面亮度 `B_j = x_j/A_pixel,j`，再按球面交叠面积 `a_jp` 估计。核与归一分母的定义式、单位与恒等式见 `docs/science/drizzle/DRIZZLE.md` §3.2/§3.3/§3.4 与 `docs/science/algorithms/DRIZZLE_GEOMETRY.md`（`DISP-DRZ-009` 覆盖正向与反向两个面），本页只记落地约束：
+源像素积分通量 `x_j` 先转换为源像素面亮度 `B_j = x_j/A_pixel,j`，再按球面交叠面积 `a_jp` 估计。核与归一分母的定义式、单位与恒等式见 `docs/science/drizzle/DRIZZLE.md` 的「核权重：按 drop 面积归一」「面亮度归一分母」「归一与分母的唯一性（正向反解）」三节与 `docs/science/algorithms/DRIZZLE_GEOMETRY.md`（`DISP-DRZ-009` 覆盖正向与反向两个面），本页只记落地约束：
 
 - 正向（帧→球面）核 `w_jp = a_jp/A_drop,j`（按 drop 面积归一，`Σ_p w_jp = 1`）；
 - 正向面亮度归一分母用 `N_p = Σ_j w_jp·A_pixel,j`（`N_p = D_p/pixfrac²`），该面**不**取覆盖面积 `D_p = Σ_j a_jp` —— 换了在 `pixfrac < 1` 时使面亮度偏 `pixfrac²`；

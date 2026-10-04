@@ -4,7 +4,7 @@
 
 生产缓存的清单与「容量、身份、失效、线程模型」四要素的正本。
 
-本清单只登记生产缓存。满足「容量 + 身份 + 失效 + 线程模型」四要素的对象才可成为缓存（最高设计 ）。HiPS Browser 属工具分类（非发布，最高设计 ），其页面级瓦片缓存不在本清单。
+本清单只登记生产缓存。满足「容量 + 身份 + 失效 + 线程模型」四要素的对象才可成为缓存[1]。HiPS Browser 属工具分类（非发布[1]），其页面级瓦片缓存不在本清单。
 
 ## 缓存清单
 
@@ -22,17 +22,19 @@
 
 ## 机器判据
 
-缓存身份 / 失效 / 线程模型的可核面 = `lib/infrastructure/gaia_xpsd_client/src/gaia_client.c`（查询键与事务性替换）、`lib/algorithms/drizzle/healpix_drizzle/spherical_overlap.h`（LRU 容量与线程私有）、`lib/algorithms/resample/p3_resample.cpp`（P3 tile 负缓存与热缓存，见 `../architecture/DATA_FLOW.md` ）。偏差登记面 = 已知限制台账。
+缓存身份 / 失效 / 线程模型的可核面[1] = `lib/infrastructure/gaia_xpsd_client/src/gaia_client.c`（查询键与事务性替换）、`lib/algorithms/drizzle/healpix_drizzle/spherical_overlap.h`（LRU 容量与线程私有）、`lib/algorithms/resample/p3_resample.cpp`（P3 tile 负缓存与热缓存，见 `../architecture/DATA_FLOW.md`[2]）。偏差登记面 = 已知限制台账。
 
 ## 外部查询合并判据
 
 对外部星表服务的同组查询，一次运行内的**外部请求计数为 1**：查询在客户端侧合并，缓存为两级（运行内复用 + 落盘复用）。
 
-- 该计数是 L2 合成性能验收的缓存复用判据（../testing/VALIDATION_EVIDENCE.md ），与命中率一同归档；
+- 该计数是 L2 合成性能验收的缓存复用判据（`../testing/VALIDATION_EVIDENCE.md`[3]），与命中率一同归档；
 - 判定看的是**外部请求数**而不是缓存命中率：命中率高而外部请求数大于 1，说明查询未合并，属性能缺陷；
 - 两级缓存各自满足本文件「缓存清单」的四要素；失效策略不得让外部请求数随帧数线性增长。
 
 ## 参考文献
 
 [1] 内部文档 `docs/ACSD_DESIGN.md，最高设计`，上位来源。
-[2] 内部文档 `docs/engineering/architecture/ARCHITECTURE.md`，同层相关正本。
+[2] 内部文档 `docs/engineering/architecture/DATA_FLOW.md`，管线数据流，缓存与并行的架构侧正本。
+
+[3] 内部文档 `docs/engineering/testing/VALIDATION_EVIDENCE.md`，验证证据标准，外部请求计数的归档口径。

@@ -1,7 +1,6 @@
 # aio（I/O 与原子提交）
 
-> 上游：docs/ACSD_DESIGN.md §10（I/O 与原子产品）、§8.4（顶层结构：aio 模块位）、
-> §8.5（模块与 ABI）
+> 上游：《ACSD 最高设计》的「I/O 与原子产品」一章与「软件架构」一章（顶层结构：aio 模块位；模块与 ABI）
 > 数据正本：docs/detail/registry/acsd.phase1.drizzle.md（帧内命名块表，仅作引用；
 > DATA-HIPS-SIGNAL-001 等 HiPS tile 语义）、docs/engineering/contracts/CONFIG.md
 > 合同面：docs/engineering/contracts/HIPS_STORAGE_FORM.md（「体积削减（裸形态）」一节归档容器不打洞、
@@ -18,7 +17,7 @@
 - **职责**：FITS / XISF / AHPIX / HiPS / manifest 的**唯一 I/O 边界**：读、写、
   校验、原子提交、缓存；zstd / lz4 压缩；UPM 模型文件容器（`aio_upm` sparse /
   dense）；`PipelineFrame` / 引擎；**形态解析**（裸 HiPS 在役；zstd 归档包读侧属
-  待实现项，见 §4）。
+  待实现项，见下文「已知限制」）。
 - **不是**：不做科学计算（几何 / 统计）；不做重采样 / 投影；不写 `testdata/`。
   Phase1/2/3 复用同一套 AIO（reader / writer 只有这一套）。
 - **形态解析层**：按落盘名判定形态并向上层提供统一读语义 —— 裸 `<name>.hips/`
@@ -34,8 +33,8 @@
 
 ## 2. 权威依据
 
-- 最高设计 `docs/ACSD_DESIGN.md` §8.4（顶层结构：aio 模块位）、§10（I/O 与
-  原子产品：aio 是文件级唯一 I/O 边界）、§9（原子发布的本期例外如实登记）
+- 《ACSD 最高设计》的「软件架构」一章（顶层结构：aio 模块位）、「I/O 与原子产品」一章
+  （aio 是文件级唯一 I/O 边界）、「CPU 后端与资源」一章（原子发布的本期例外如实登记）
 - 机器可校验 schema：`eng/contracts/schemas/*.schema.json`（全部数据产品）
 
 ## 3. 输入输出数据合同
@@ -118,7 +117,7 @@
   「块名 ∉ 标准表 ⇒ 判红」这条不变量当前无自动兜底，核对责任在对抗性审查。
 - `PipelineStageFn` 签名 = `const input / output / params` + `error_msg` /
   `error_capacity`（可为 NULL，> 0 保证 NUL 终止 / 截断）；
-  `aio_frame_add_block_move` 为 move 语义（成功接管后调用方不再拥有 `aio_alloc`
+  `aio_frame_add_block_move` 为 move 语义（成功接管后调用方不持有 `aio_alloc`
   的 buffer）。
 
 ## 7. 错误、日志、指标、取消和 checkpoint
@@ -131,7 +130,7 @@
 - I/O 错误 → exit 7（退出码唯一源 = lib/infrastructure/cli/exit_codes.h；域→码
   映射唯一源 = docs/engineering/contracts/LOG_AND_ERROR.md「错误对象与退出码映射」一节）；
 - **日志落点** = 块级 `log_dir`（默认 `<output_dir>/logs`），节点事件经
-  observability 汇聚（最高设计 §7.3）；落点之外的位置（含 `run/`、源码树目录、
+  observability 汇聚（《ACSD 最高设计》的「命令行合同」一章）；落点之外的位置（含 `run/`、源码树目录、
   安装目录、用户家目录、进程 CWD 相对路径）均不在处置面内，判据见
   docs/engineering/contracts/LOG_AND_ERROR.md。日志内容 = 错误类别 + 消息。
 
@@ -163,7 +162,7 @@
   清理、finalize 写 CHECKSUM / DATASUM 后交付；单 tile 为 remove → create →
   write_chksum → close（lib/infrastructure/aio/src/hips/aio_hips_writer.cpp 的
   `std::remove`），**不是** temp + rename 原子发布。**HiPS tile 原子发布的宣称以
-  该缺口闭合为前提**（最高设计 §10 的原子发布条款；缺口如实登记）；
+  该缺口闭合为前提**（《ACSD 最高设计》的「I/O 与原子产品」一章的原子发布条款；缺口如实登记）；
 - 归档形态的写出与读取、产品级索引与完成清单 `storage` 段写出未落地，生产只落
   裸形态；
 - 标准块定义表未收录 `variance` 块，且块名越表无自动兜底；
@@ -171,7 +170,7 @@
 
 ## 11. 源文件
 
-`lib/infrastructure/aio/{include, src}/`。
+`lib/infrastructure/aio/include/` 与 `lib/infrastructure/aio/src/`。
 
 ## 12. 参考文献
 

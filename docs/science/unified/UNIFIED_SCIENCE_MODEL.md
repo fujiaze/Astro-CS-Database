@@ -1,6 +1,6 @@
 # 统一科学模型
 
-> 上游：docs/ACSD_DESIGN.md 第 2 章（核心科学方法：五个创新点）、第 3 章第 3.1 节（数据对象）
+> 上游：《ACSD 最高设计》（docs/ACSD_DESIGN.md）的「核心科学方法：五个创新点」与「数据对象与配置」两章
 
 ## 1 主题与目标
 
@@ -65,7 +65,15 @@ F̂_k = Q_k / W_k
 Var(F̂_k) = 1 / W_k
 ```
 
-这是加权最小二乘的直接结论：令残差对 `F` 的导数为零即得 `F̂ = Q/W`；由 `Var(F̂) = (PᵀC⁻¹P)⁻¹` 得 `Var = 1/W`。光学成像的最优提取公式取同一形式 [1]，成像测光的最优提取式由 Naylor 给出 [2]，多帧组合的最优权重由 Zackay 与 Ofek 从加权随机变量叠加的似然比推导 [3]：在独立测量 `θ_j = μ_j T + ε_j`、`Var(ε_j) = σ_j²` 下，似然比关于 `T` 线性，其充分统计量权重恰为 `1/σ_j²`，最大信噪比估计量为 `Σ_j μ_j θ_j / σ_j²`。这与上式在"权重 = 逆方差"上完全一致。
+这是加权最小二乘的直接结论：令残差对 `F` 的导数为零即得 `F̂ = Q/W`；由 `Var(F̂) = (PᵀC⁻¹P)⁻¹` 得 `Var = 1/W`。光学成像的最优提取公式取同一形式 [1]，成像测光的最优提取式由 Naylor 给出 [2]，多帧组合的最优权重由 Zackay 与 Ofek 从加权随机变量叠加的似然比推导 [3]：在独立测量 `θ_j = μ_j T + ε_j`、`Var(ε_j) = σ_j²` 下，似然比关于 `T` 线性，其充分统计量与方差为
+
+```text
+S = Σ_j (μ_j / σ_j²) · θ_j            似然比线性于 T，其权重是 μ_j/σ_j²，不是 1/σ_j²
+I = Σ_j μ_j² / σ_j²                   S 在 H0 下的方差
+T̃  = ( Σ_j μ_j θ_j / σ_j² ) / ( Σ_j μ_j² / σ_j² ) = S / I        最大信噪比估计量
+```
+
+分母 `I` 不可省：它把 `S` 归一成对 `T` 无偏的估计量，去掉分母得到的量随 `T` 线性放大，不是估计量。这与上式在"权重 = 逆方差乘以响应"上一致——`μ_j` 正是一个待估源在第 `j` 帧的相对响应，`a_k P_kᵀC_k⁻¹P_k` 是同一形状。
 
 多帧合并时，若各帧噪声独立，
 
@@ -73,7 +81,7 @@ Var(F̂_k) = 1 / W_k
 Q = Σ_k Q_k ,   W = Σ_k W_k ,   F̂ = Q / W ,   Var(F̂) = 1 / W
 ```
 
-**帧间噪声相关时不能简单求和**：必须用联合协方差 `C = blockdiag(C_1..C_K)` 的一次矩阵求逆，此时 `W = a² Pᵀ C⁻¹ P` 不等于 `Σ_k W_k`，直接相加会系统性地低估方差。这一点是 P2 与 P4 存在的理由：控制点上的绝对信噪比只有在显式承认共享母版与共享天光面带来的相关性时才是可跨帧比较的量。
+**帧间噪声相关时不能简单求和**：此时联合协方差不再块对角，写成一般分块矩阵 `C = [C_ij]`（`C_kk = C_k`，跨块元 `C_ij ≠ 0` 承载帧间相关），必须一次性求逆 `C⁻¹` 后按 `W = a² Pᵀ C⁻¹ P` 计算、`Q = a Pᵀ C⁻¹ d` 同理；此时 `W` 一般**不等于** `Σ_k W_k`，直接相加会系统性地低估方差。反之若 `C = blockdiag(C_1..C_K)`（各帧独立），`C⁻¹` 仍块对角，`Pᵀ C⁻¹ P = Σ_k P_kᵀ C_k⁻¹ P_k` 恒成立，此时简单求和才是精确的。这一点是 P2 与 P4 存在的理由：控制点上的绝对信噪比只有在显式承认共享母版与共享天光面带来的相关性时才是可跨帧比较的量。
 
 ### 3.2 绝对信噪比与逆方差权重
 
@@ -122,12 +130,12 @@ Drizzle 的核心贡献正在于把卷积算子 `P`（PSF）与采样算子 `T` 
 
 ### 4.1 权威数据对象与能否作权重
 
-全链的数据对象是封闭集。对象名携带全名，端口只接同一种对象，裸写 `weight` 或 `snr` 不指代下表任何一行。
+本表是最高设计的数据对象集在物理含义、单位与权重资格三列上的投影，不是第二份正本；对象名携带全名，端口只接同一种对象，裸写 `weight` 或 `snr` 不指代下表任何一行。
 
 | 对象 | 物理含义 | 单位 | 能否作权重 |
 |---|---|---|---|
 | `signal` | 声明单位与像素语义的科学估计量，本链为面亮度 | `ADU/sr` | 否，是被估计量 |
-| `variance` / `ivar` | 同一 `signal` 估计量的方差及其倒数 | `ADU²/sr²` / `sr²/ADU²` | 对同一估计目标可以 |
+| `variance` / `ivar` | 同一 `signal` 估计量的方差及其倒数（本行两个对象，端口分立） | `ADU²/sr²` / `sr²/ADU²` | 对同一估计目标可以 |
 | `source_snr` | `F̂/σ_F`，依赖被测源亮度 | 无量纲 | 否，只作诊断 |
 | `depth_m5` | 固定参考 PSF 与孔径下的 5σ 深度 [6, 7] | mag | 否，摘要量 |
 | `frame_snr` | 帧级标量的绝对信噪比，携带该帧 `F_ref` | 无量纲 | 否，与 `source_snr` 同为原始量 |
@@ -138,6 +146,8 @@ Drizzle 的核心贡献正在于把卷积算子 `P`（PSF）与采样算子 `T` 
 | `validity` | 坏点、缺失、越界等状态 | 布尔 | 否，是门不是权重 |
 | `rejection` | 污染样本对推断的影响 | 门或概率 | 否，与 `coverage` 分属两面 |
 | `provenance` | 单位、坐标、标度、算法标识、实际后端的声明 | — | 否，是消费前提 |
+
+本表两族的量纲由 `d_k` 所在的承载面决定：`d_k` 取面亮度面时 `variance` / `ivar` 为 `ADU²/sr²` 与 `sr²/ADU²`；`d_k` 取帧面点源面时 `W = a² Pᵀ C⁻¹ P = 1/Var(F̂)` 为 `ADU⁻²`，与数据语义分册的点源族口径一致。两者分属不同量族，同式内不得混用。
 
 关键的语义切分有两条。第一，**信息量面与质量面分属不同对象**：`point_information = 1/Var(F̂)` 属于信息量面，PSF 拟合残差、视宁度、support 与 coverage 属于质量面；把后者代入权重在语义上不成立。第二，**权重是消费时派生的量**：它由 `SNR` 与该帧的 `F_ref` 现场换算得到，数据层不存、不选、不传权重模式；因此链上不存在"选择哪一种权重口径"这个概念，也不存在与权重口径相关的版本键。
 
@@ -199,9 +209,9 @@ normalize 到 mosaic 的最小交接面是：信号与其单位、方差或相�
 
 [1] Horne K. An optimal extraction algorithm for CCD spectroscopy. Publications of the Astronomical Society of the Pacific, 1986, 98: 609–617. https://doi.org/10.1086/131801
 
-[2] Naylor T. An optimal extraction algorithm for imaging photometry. Monthly Notices of the Royal Astronomical Society, 1998, 296(1): 339–346. https://doi.org/10.1046/j.1365-8711.1998.01314.x
+[2] Naylor T. An optimal extraction algorithm for imaging photometry. Monthly Notices of the Royal Astronomical Society, 1998, 296(2): 339–346. https://doi.org/10.1046/j.1365-8711.1998.01314.x
 
-[3] Zackay B., Ofek E. O. How to coadd images? I. Optimal source detection and photometry using ensembles of images. The Astrophysical Journal, 2017, 836(2): 187. https://doi.org/10.3847/1538-4357/836/2/187（预印本 [arXiv:1512.06872](https://arxiv.org/abs/1512.06872)）
+[3] Zackay B., Ofek E. O. How to COAAD images. I. Optimal source detection and photometry of point sources using ensembles of images. The Astrophysical Journal, 2017, 836(2): 187. https://doi.org/10.3847/1538-4357/836/2/187（预印本 [arXiv:1512.06872](https://arxiv.org/abs/1512.06872)，预印本题名为 How to coadd images? I. Optimal source detection and photometry using ensembles of images；式 (9)(11)(17)(18) 与式 (4)(6) 已取预印本全文逐字核对）
 
 [4] Aitken A. C. IV.—On least squares and linear combination of observations. Proceedings of the Royal Society of Edinburgh, 55: 42–48. https://doi.org/10.1017/S0370164600014346（卷期页与题名按 Crossref 与 Cambridge Core 记录核对，出版年记为该两源一致给出的 1936）
 

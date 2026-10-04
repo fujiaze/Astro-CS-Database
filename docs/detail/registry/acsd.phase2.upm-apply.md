@@ -145,8 +145,9 @@ checkpoint（dense 物化整缓存一次写）。
 
 ## 独立 synthetic 验证命令与容差
 
-可执行 `TEST-P2-UPM-002` 待建；设计冻结 = ALG-P2-UPM-IMPL-001 TEST-DESIGN，容差
-权威同该节（dense / sparse 1e-12 等价基线）。
+可执行 `TEST-P2-UPM-002` 待建；设计冻结 = ALG-P2-UPM-IMPL-001 的
+「TEST-DESIGN（TEST-P2-UPM-DESIGN 冻结）」章，容差权威同该章
+（dense / sparse 1e-12 等价基线）。
 
 已取证但载体不在仓内的相邻结论（不冒认）：`calibrate_block` 的信号映射正确且不破坏星
 flux；sparse / dense 等价面成立；生产并行面另有实测读数。这些读数不在本仓可复算路径上，
