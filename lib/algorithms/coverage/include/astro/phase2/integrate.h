@@ -27,7 +27,10 @@
 // （覆盖并集保守下界， 冻结语义）；Stage2/ACR 只消费 pr.support，
 // 不再自行第二次 max/mean。
 // - status 枚举（与 rejection status 分离）：
-// OK / NO_CANDIDATES / ALL_REJECTED / ZERO_VALID_WEIGHT / INVALID_INPUT。
+// OK / NO_CANDIDATES / ALL_REJECTED / ZERO_VALID_WEIGHT / INVALID_INPUT /
+// NON_FINITE_OUTPUT。前五态是冻结面；NON_FINITE_OUTPUT = 归约溢出（输入合法、
+// 输出非有限）——它带**非 OK 码**，调用方按「本像素无有效统计贡献」处置
+// （signal 为 NaN、该像素不计入有效像素），**不得**当 OK 读。
 #pragma once
 
 #include <cstdint>
@@ -51,12 +54,26 @@ typedef struct {
 } P2PixelStack;
 
 // integration status（unambiguous）
+// 数值取值 0..4 是冻结面（SCIENCE_FREEZE.md「INTEGRATION_CONTRACT = FROZEN
+// 显式状态 OK/NO_CANDIDATES/ALL_REJECTED/ZERO_VALID_WEIGHT/INVALID_INPUT」、
+// ERROR_HANDLING_STANDARD.md 错误模型、docs/detail/registry/acsd.phase2.integrate.md
+// 「五态显式 status」）：0..4 的**取值与语义都不动**。
+// NON_FINITE_OUTPUT 是为「五态无法如实表达的一个既有物理态」追加的第 6 态，
+// 追加它**不改变**任何既有态的含义，也不改变任何既有取值（下游全部按具名
+// 等值比较，见 src/integrate.cpp 的发布面说明）。
 enum P2IntegrateStatus {
     P2_INTEGRATE_OK = 0,
     P2_INTEGRATE_NO_CANDIDATES = 1,
     P2_INTEGRATE_ALL_REJECTED = 2,
     P2_INTEGRATE_ZERO_VALID_WEIGHT = 3,
-    P2_INTEGRATE_INVALID_INPUT = 4
+    P2_INTEGRATE_INVALID_INPUT = 4,
+    // 资格门**全部通过**（输入全 finite、权重全正），但归约累加溢出：
+    // Σw·v 或 Σw 溢出到 ±Inf，或二者相除得 NaN。此时 signal 按
+    // docs/engineering/NUMERIC_STANDARD.md「无效的唯一表示 = NaN」发 NaN，
+    // **不得**发 0/±Inf/哨兵值伪装成有效。既有五态没有一态能如实表达它：
+    // INVALID_INPUT 会谎称「输入非法」（输入全合法），ZERO_VALID_WEIGHT 会谎称
+    // 「权重全 0」（权重全正）。
+    P2_INTEGRATE_NON_FINITE_OUTPUT = 5
 };
 
 typedef struct {

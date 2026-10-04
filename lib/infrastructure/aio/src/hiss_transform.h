@@ -3,7 +3,7 @@
 //
 // 依据:
 // - docs/science/algorithms/HIPS_WRITER.md (transform 正式路径)
-// - docs/engineering/ARCHITECTURE.md (模块边界)
+// - docs/engineering/ARCH-001.md (模块边界)
 // - 02_FROZEN_STAGE1_HISS_SPEC.md §15 (子块目录 transform_id 字段)
 //
 // 职责:

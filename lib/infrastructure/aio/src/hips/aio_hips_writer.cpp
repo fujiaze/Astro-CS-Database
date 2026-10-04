@@ -690,8 +690,9 @@ bool write_moc_fits(const std::string& path,
 
 // properties 写出 (IVOA HiPS + ACSD_* provenance 唯一文本载体)。
 // M9-G-6/AIO-001: 原实现 fopen 失败即静默 return、fprintf/fclose 不查, 且直写正式路径
-// —— 违反 docs/ACSD_DESIGN §9(失败不得留下可被误认为正式产品的半成品)与
-// ENGINEERING_SPEC §9(错误须经统一状态码传播)。改为: 同目录临时文件 → fflush →
+// —— 违反 docs/ACSD_DESIGN §10(失败或取消须清理临时产物; 没有完成清单不算成功
+// 对象)与 docs/engineering/LOG_AND_ERROR_CONTRACT.md(错误须经统一状态码传播)。改为:
+// 同目录临时文件 → fflush →
 // fsync → 原子 rename (aio_atomic_file.h), 任一环节失败清理临时文件并返回 false,
 // 由调用方按子产品错误码 (-3..-8) 上报。
 bool write_properties(const std::string& path,
@@ -1232,7 +1233,7 @@ AioHipsProductSet* aio_hips_product_begin(
         // nside 必须恰为 2 的幂(M8d-A-01/AIO-001): 叶级几何基数 nside=2^K 是
         // ALG-HIPS-001 (1a) 的冻结构造前提, 下方 ilog2_u64 是*向下取整*, 非 2 的幂
         // (如 600) 会被静默夹逼到 2^9 并据此写出与调用方声明不一致的 NSIDE/
-        // A_cell/leaf_order 产品 —— 属 docs/ACSD_DESIGN §9 禁止的"看似完整产品"。
+        // A_cell/leaf_order 产品 —— 属 docs/ACSD_DESIGN §10 禁止的"看似完整产品"。
         // 上界 2^29(实现域): NESTED 计数 Npix=12·nside² 在 nside=2^29 时为 12·2^58
         // < 2^63(uint64 域内); nside>2^29 时该积将溢出/越出可寻址 tile 域, 且
         // tile_order=leaf_order-9 亦超出 MOC 阶实际可用范围 ⇒ 与非法 nside 同类拒绝。

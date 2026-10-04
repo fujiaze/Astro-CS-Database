@@ -2,10 +2,70 @@
 #include "astro/phase2/stage2_common.h"
 #include <nlohmann/json.hpp>
 #include <cmath>
+#include <initializer_list>
 #include <string>
+
+namespace {
+
+// 未知键拒绝门（GOVERN-08 A6）。
+// 为什么必须有：`json::value(key, default)` 对**不存在的键**与**存在但名字拼错
+// 的键**返回同一个默认值。stage2.json 是人工编辑的科学配置面；把
+// `model.min_samples` 写成 `model.min_smaples` 之后，运行期看到的是「少了一个
+// 键」，而「多了一个键」这件事在 JSON 里不留任何痕迹 ⇒ 打错的键静默取默认，
+// 且这份配置在运行期与「故意不设该键」**完全不可分辨**。本门是唯一能把两者
+// 分开的地方：把「键名不在读取集内」变成显式错误。
+//
+// 白名单是**本文件读取面的逐字镜像**（下面每道门的键集 = 对应代码块里
+// `contains`/`value`/`[...]` 出现的键）。单一来源纪律：新增配置键必须同时
+// 加进对应门的键集，否则「配置面写了、消费面没读」会以静默 no-op 的形态回来。
+// 退役键（integration.weight_mode / integration.legacy_allow_weight_fallback /
+// rejection.{low,high,max_iterations,min_samples}）**有意不在**白名单里，
+// 但它们各自有一道更具体的拒绝面（在各自的退役说明处），那道面优先于本门。
+bool reject_unknown_keys(const nlohmann::json& obj, const char* path,
+                         std::initializer_list<const char*> allowed,
+                         std::string* err) {
+    for (auto it = obj.begin(); it != obj.end(); ++it) {
+        bool known = false;
+        for (const char* k : allowed) {
+            if (it.key() == k) { known = true; break; }
+        }
+        if (!known) {
+            *err = std::string("unknown key: ") + path + it.key() +
+                   "（键名以解析面读取集为准；打错的键不会被静默忽略，也不会"
+                   "静默取默认值）";
+            return false;
+        }
+    }
+    return true;
+}
+
+}  // namespace
 
 bool p2_stage2_parse_config(const nlohmann::json& j, P2Stage2Config* cfg, std::string* err) {
     try {
+        // ── 格式版本门 ──────────────────────────────────────────────────
+        // `version` 是配置面**写出**的键（仓内 8 份 stage2 模板全部写
+        // "version": 1），但解析面读 0 次 ⇒ 一份按 v2 语义写的 stage2.json 会被
+        // 按 v1 逐字解析且无任何提示。按错误的版本解释配置比拒绝它危险得多：
+        // 结果是一份「看起来跑完了」的、参数含义全错的集成。
+        if (!j.contains("version") || !j["version"].is_number_integer()) {
+            *err = "missing version (stage2.json format version; "
+                   "this parser implements version 1)";
+            return false;
+        }
+        {
+            const int ver = j["version"].get<int>();
+            if (ver != 1) {
+                *err = "unsupported version " + std::to_string(ver) +
+                       " (this parser implements version 1)";
+                return false;
+            }
+        }
+        if (!reject_unknown_keys(j, "", {"version", "inputs", "model",
+                                         "sky_plane", "integration", "output",
+                                         "diagnostics", "execution"}, err)) {
+            return false;
+        }
         if (!j.contains("inputs") || !j["inputs"].contains("hips")) {
             *err = "missing inputs.hips";
             return false;
@@ -14,6 +74,10 @@ bool p2_stage2_parse_config(const nlohmann::json& j, P2Stage2Config* cfg, std::s
             cfg->hips.push_back(p.get<std::string>());
         if (cfg->hips.size() < 2) {
             *err = "inputs.hips must have >= 2 entries";
+            return false;
+        }
+        if (!reject_unknown_keys(j["inputs"], "inputs.",
+                                 {"hips", "target_order"}, err)) {
             return false;
         }
         if (j["inputs"].contains("target_order")) {
@@ -37,6 +101,23 @@ bool p2_stage2_parse_config(const nlohmann::json& j, P2Stage2Config* cfg, std::s
         }
         if (j.contains("model")) {
             const auto& m = j["model"];
+            if (!m.is_object()) { *err = "model 必须是对象"; return false; }
+            if (!reject_unknown_keys(m, "model.",
+                                     {"control_grid_per_tile", "patch_radius_pixels",
+                                      "min_samples", "snr_search_radius_deg",
+                                      "background_patch_radius", "background_clip_sigma",
+                                      "background_clip_iters",
+                                      "background_max_contamination",
+                                      "background_contamination_sigma",
+                                      "background_min_retained_fraction",
+                                      "background_tolerance", "background_neighbor_radius",
+                                      "background_catalog_veto", "huber_delta",
+                                      "smoothing", "zero_anchor_weight",
+                                      "max_irls_iterations", "tolerance",
+                                      "robust_loss", "snr_weight_mode", "sigma_floor",
+                                      "support_power", "use_ivar_weight"}, err)) {
+                return false;
+            }
             cfg->control_grid_per_tile = m.value("control_grid_per_tile", 8);
             if (cfg->control_grid_per_tile < 1 ||
                 cfg->control_grid_per_tile > 64) {
@@ -183,6 +264,13 @@ bool p2_stage2_parse_config(const nlohmann::json& j, P2Stage2Config* cfg, std::s
         if (j.contains("sky_plane")) {
             const auto& sp = j["sky_plane"];
             if (!sp.is_object()) { *err = "sky_plane 必须是对象"; return false; }
+            if (!reject_unknown_keys(sp, "sky_plane.",
+                                     {"enabled", "spline_degree", "node_spacing_deg",
+                                      "frame_gradient_order", "gauge_mode",
+                                      "weight_mode", "rank_rtol", "frame_gain"},
+                                     err)) {
+                return false;
+            }
             cfg->sky_plane_enabled = sp.value("enabled", cfg->sky_plane_enabled);
             cfg->sky_plane_spline_degree = sp.value("spline_degree", cfg->sky_plane_spline_degree);
             cfg->sky_plane_node_spacing_deg =
@@ -221,6 +309,18 @@ bool p2_stage2_parse_config(const nlohmann::json& j, P2Stage2Config* cfg, std::s
                            "删除（V17）。请用 eng/tools/migrate_stage2_config.py "
                            "迁移到 typed params（rejection.<method>.* 与 "
                            "underdetermined_n）。";
+                    return false;
+                }
+                // rejection 面的未知键门。位置在退役键拒绝面之后（理由同
+                // integration 面）：退役键必须先命中自己那道带迁移提示的门。
+                if (!reject_unknown_keys(rj, "integration.rejection.",
+                                         {"method", "profile", "underdetermined_n",
+                                          "normalization", "normalization_floor",
+                                          "large_scale", "robust_mad_clip",
+                                          "winsorized_sigma", "averaged_sigma",
+                                          "linear_fit", "generalized_esd",
+                                          "percentile", "median_sigma", "minmax",
+                                          "rcr"}, err)) {
                     return false;
                 }
                 const std::string method =
@@ -334,6 +434,12 @@ bool p2_stage2_parse_config(const nlohmann::json& j, P2Stage2Config* cfg, std::s
                 // large_scale_rejection.v1（connected-component grow）
                 if (rj.contains("large_scale")) {
                     const auto& ls = rj["large_scale"];
+                    if (!reject_unknown_keys(ls, "integration.rejection.large_scale.",
+                                             {"enabled", "min_structure_pixels",
+                                              "low_grow_radius_pixels",
+                                              "high_grow_radius_pixels"}, err)) {
+                        return false;
+                    }
                     cfg->large_scale_enabled =
                         ls.value("enabled", false);
                     cfg->large_scale_min_structure_pixels =
@@ -369,6 +475,11 @@ bool p2_stage2_parse_config(const nlohmann::json& j, P2Stage2Config* cfg, std::s
                 // method-specific typed params（单语义单默认）
                 if (rj.contains("robust_mad_clip")) {
                     const auto& s = rj["robust_mad_clip"];
+                    if (!reject_unknown_keys(
+                            s, "integration.rejection.robust_mad_clip.",
+                            {"lower_sigma", "upper_sigma", "max_iterations"}, err)) {
+                        return false;
+                    }
                     cfg->sigma_lower = s.value("lower_sigma", 4.0);
                     cfg->sigma_upper = s.value("upper_sigma", 3.0);
                     cfg->sigma_max_iterations =
@@ -376,6 +487,11 @@ bool p2_stage2_parse_config(const nlohmann::json& j, P2Stage2Config* cfg, std::s
                 }
                 if (rj.contains("winsorized_sigma")) {
                     const auto& s = rj["winsorized_sigma"];
+                    if (!reject_unknown_keys(
+                            s, "integration.rejection.winsorized_sigma.",
+                            {"lower_sigma", "upper_sigma", "max_iterations"}, err)) {
+                        return false;
+                    }
                     cfg->winsor_lower = s.value("lower_sigma", 4.0);
                     cfg->winsor_upper = s.value("upper_sigma", 3.0);
                     cfg->winsor_max_iterations =
@@ -383,6 +499,11 @@ bool p2_stage2_parse_config(const nlohmann::json& j, P2Stage2Config* cfg, std::s
                 }
                 if (rj.contains("averaged_sigma")) {
                     const auto& s = rj["averaged_sigma"];
+                    if (!reject_unknown_keys(
+                            s, "integration.rejection.averaged_sigma.",
+                            {"lower_sigma", "upper_sigma", "max_iterations"}, err)) {
+                        return false;
+                    }
                     cfg->avg_lower = s.value("lower_sigma", 4.0);
                     cfg->avg_upper = s.value("upper_sigma", 3.0);
                     cfg->avg_max_iterations =
@@ -390,6 +511,11 @@ bool p2_stage2_parse_config(const nlohmann::json& j, P2Stage2Config* cfg, std::s
                 }
                 if (rj.contains("linear_fit")) {
                     const auto& s = rj["linear_fit"];
+                    if (!reject_unknown_keys(
+                            s, "integration.rejection.linear_fit.",
+                            {"lower", "upper", "max_iterations"}, err)) {
+                        return false;
+                    }
                     cfg->linfit_lower = s.value("lower", 5.0);   // WBPP Light
                     cfg->linfit_upper = s.value("upper", 3.5);
                     cfg->linfit_max_iterations =
@@ -397,11 +523,21 @@ bool p2_stage2_parse_config(const nlohmann::json& j, P2Stage2Config* cfg, std::s
                 }
                 if (rj.contains("generalized_esd")) {
                     const auto& s = rj["generalized_esd"];
+                    if (!reject_unknown_keys(
+                            s, "integration.rejection.generalized_esd.",
+                            {"alpha", "max_outliers"}, err)) {
+                        return false;
+                    }
                     cfg->esd_alpha = s.value("alpha", 0.05);
                     cfg->esd_max_outliers = s.value("max_outliers", 10);
                 }
                 if (rj.contains("percentile")) {
                     const auto& s = rj["percentile"];
+                    if (!reject_unknown_keys(
+                            s, "integration.rejection.percentile.",
+                            {"low_fraction", "high_fraction"}, err)) {
+                        return false;
+                    }
                     cfg->pct_low_fraction =
                         s.value("low_fraction", 0.2);  // WBPP Light
                     cfg->pct_high_fraction =
@@ -409,6 +545,11 @@ bool p2_stage2_parse_config(const nlohmann::json& j, P2Stage2Config* cfg, std::s
                 }
                 if (rj.contains("median_sigma")) {
                     const auto& s = rj["median_sigma"];
+                    if (!reject_unknown_keys(
+                            s, "integration.rejection.median_sigma.",
+                            {"lower_sigma", "upper_sigma", "max_iterations"}, err)) {
+                        return false;
+                    }
                     cfg->medsig_lower = s.value("lower_sigma", 4.0);
                     cfg->medsig_upper = s.value("upper_sigma", 3.0);
                     cfg->medsig_max_iterations =
@@ -416,6 +557,12 @@ bool p2_stage2_parse_config(const nlohmann::json& j, P2Stage2Config* cfg, std::s
                 }
                 if (rj.contains("minmax")) {
                     const auto& s = rj["minmax"];
+                    if (!reject_unknown_keys(
+                            s, "integration.rejection.minmax.",
+                            {"reject_low_count", "reject_high_count", "min_kept"},
+                            err)) {
+                        return false;
+                    }
                     cfg->minmax_low_count =
                         s.value("reject_low_count", 1);
                     cfg->minmax_high_count =
@@ -424,6 +571,10 @@ bool p2_stage2_parse_config(const nlohmann::json& j, P2Stage2Config* cfg, std::s
                 }
                 if (rj.contains("rcr")) {
                     const auto& s = rj["rcr"];
+                    if (!reject_unknown_keys(s, "integration.rejection.rcr.",
+                                             {"technique"}, err)) {
+                        return false;
+                    }
                     cfg->rcr_technique =
                         s.value("technique", std::string("ss_median_dl"));
                     if (cfg->rcr_technique != "ss_median_dl") {
@@ -468,6 +619,13 @@ bool p2_stage2_parse_config(const nlohmann::json& j, P2Stage2Config* cfg, std::s
                    "权重链未闭合即显式 science 错误。请删除该键。";
             return false;
         }
+        // integration 面的未知键门。位置在两道退役键拒绝面**之后**：那两道带
+        // 各自的规范引用与迁移提示，必须先被命中；本门只兜住其余拼错的键。
+        if (!reject_unknown_keys(in, "integration.",
+                                 {"precision", "memory_limit_mb", "rejection",
+                                  "acr_route"}, err)) {
+            return false;
+        }
             cfg->acr_route = in.value("acr_route", std::string("auto")); // B4-28 ACR边界 ACR-IVAR-001: weight_mode=ivar时 ACR块禁用→CPU canonical (TRACEABILITY ACR-IVAR-001)
             if (cfg->acr_route != "auto" && cfg->acr_route != "cpu") {
                 *err = "acr_route 只支持 auto/cpu";
@@ -479,11 +637,24 @@ bool p2_stage2_parse_config(const nlohmann::json& j, P2Stage2Config* cfg, std::s
             return false;
         }
         cfg->out_hips = j["output"]["hips"].get<std::string>();
-        if (j.contains("diagnostics"))
+        if (!reject_unknown_keys(j["output"], "output.", {"hips"}, err)) {
+            return false;
+        }
+        if (j.contains("diagnostics")) {
+            if (!reject_unknown_keys(j["diagnostics"], "diagnostics.",
+                                     {"enabled"}, err)) {
+                return false;
+            }
             cfg->diagnostics = j["diagnostics"].value("enabled", true);
+        }
         // CON-002 global worker budget contract (execution block)
         if (j.contains("execution")) {
             const auto& ex = j["execution"];
+            if (!reject_unknown_keys(ex, "execution.",
+                                     {"cpu_workers", "io_workers", "gpu_route",
+                                      "deterministic", "memory_budget_bytes"}, err)) {
+                return false;
+            }
             if (ex.contains("cpu_workers")) {
                 const int cw = ex.value("cpu_workers", 0);
                 if (cw < 0 || cw > 1024) { *err = "cpu_workers 必须在 0..1024 (0=auto)"; return false; }

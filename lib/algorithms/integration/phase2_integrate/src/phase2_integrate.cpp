@@ -1038,6 +1038,19 @@ ProductResult run_point_information(const std::vector<std::string>& product_dirs
   {
     const std::size_t P = fs.frames.front().signal_sb.size();
     double asum = 0.0; for (double a : alpha) asum += a;
+    /* 归一化权重 wgt_k = α_k/Σα 在此处要求 Σα ≠ 0。独立帧路径由
+     * derive_psf_alpha 构造保证 Σα ≡ 1（Σ w_info/Σ w_info）；但**相关帧
+     * GLS 路径**的 α_k = a_k·Σ_i P_ki (C⁻¹A)_i / W 只保证 W>0（:945 的
+     * corr_ratio 门蕴含 wj>0），Σ_k α_k ≡ 0 是代数上可达的（α 含 a_k 的
+     * 符号，而 a_k 来自 JSON `point_source.a` 且未做正性/有限性校验）。
+     * 缺此门时 wgt = α_k/0 = ±inf 或 NaN 会**静默**进入 as.signal/as.variance
+     * 并被写进 FITS 科学产品。build_effective_psf 的分母是 Σ α_k a_k P_k(centre)
+     * 而非 Σα_k，**不覆盖**本处，故在此显式 fail-closed。 */
+    if (!std::isfinite(asum) || asum == 0.0) {
+      res.error = "sum of combination coefficients is non-finite or zero "
+                  "(cannot normalize SIGNAL/VARIANCE combination weights)";
+      return res;
+    }
     as.signal.assign(P, 0.0); as.variance.assign(P, 0.0);
     for (std::size_t k = 0; k < K; ++k) {
       for (std::size_t i = 0; i < P && i < fs.frames[k].signal_sb.size(); ++i) {
@@ -1544,7 +1557,7 @@ UpmRejSampResult run_upm_rej_samp_wiring(const FrameSet& fs, const RunMeta& meta
    * 冻结依据：docs/science/DATA_SEMANTICS.md §31.8
    * 「weight 来源含诊断量（median(SNR_F)/support/coverage/FWHM/residual）→ REJECT；
    *  G-WEIGHT-SOURCES / G-DIAGNOSTIC-NOT-WEIGHT」+ §31.3/§31.7，
-   * docs/detail/algorithms_phase2/13_integration.md「权重来源受限表的锁定状态」。 */
+   * docs/detail/registry/acsd.phase2.integrate.md:214「权重来源受限表的在役判据面」。 */
   {
     char eb[256] = {0};
     const char* tokens_ok[] = {"psf", "photometric_response", "noise_covariance"};

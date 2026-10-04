@@ -22,6 +22,9 @@ namespace {
 std::string err_msg(const std::string& what, const std::string& path) {
   return what + ": " + path + ": " + std::strerror(errno);
 }
+// FNV-1a/64 轮函数。偏移基 = kFnv1a64OffsetBasis (声明在 io_adapter.h, 只此一处);
+// 乘数 1099511628211 = 0x100000001b3 与它同属 FNV-1a/64 参数表 —— 偏移基原写成
+// 标准值整除 10 的转录值时本行的乘数仍是正确值, 两者不符才坐实是转录错误。
 uint64_t fnv_update(uint64_t h, const char* data, size_t n) {
   for (size_t i = 0; i < n; ++i) { h ^= (unsigned char)data[i]; h *= 1099511628211ULL; }
   return h;
@@ -50,7 +53,7 @@ Result<std::string> ArtifactTransaction::begin(const std::string& target_path) {
   f.close();
   target_ = target_path;
   written_ = 0;
-  checksum_ = 1469598103934665603ULL;
+  checksum_ = kFnv1a64OffsetBasis;
   active_ = true;
   return Result<std::string>::ok(tmp_);
 }
@@ -94,7 +97,7 @@ Result<void> ArtifactTransaction::commit() {
     return Result<void>::fail(Error(ErrorDomain::IO, e));
   }
   uint64_t sz = 0;
-  uint64_t got = 1469598103934665603ULL;
+  uint64_t got = kFnv1a64OffsetBasis;
   char buf[65536];
   while (f.read(buf, static_cast<std::streamsize>(sizeof(buf))) || f.gcount() > 0) {
     got = fnv_update(got, buf, static_cast<size_t>(f.gcount()));

@@ -275,8 +275,15 @@ int p2_identifiability_assess(const double* H, std::uint64_t n_params, std::uint
     const double scale = std::max(1.0, std::fabs(1.0 - sigma));
     std::uint64_t below = count_nonpositive_pivots(shifted, nl, 64.0 * kEps * scale);
     if (below > static_cast<std::uint64_t>(nl)) below = static_cast<std::uint64_t>(nl);
-    // 两个等价读法不一致时取更保守者（判红），不静默择一。
-    if (spd_shifted && below != 0) below = 0;
+    // 两个读法不一致时一律取**更保守者（判红）**。方向不能反：
+    //   · 直接判据判红（!spd_shifted）而计数判据说 0 ⇒ 抬到 1；
+    //   · 直接判据判绿而计数判据判红 ⇒ **保持 below 原值不动**。
+    // 为什么只有这一个方向：below 是 r_eff 的定义（头文件：r_eff = #{λ_i > τ·λ_1}），
+    // 能定 below 的只有计数判据；直接判据是**独立复核**，它的作用是发现
+    // 计数判据漏掉的不定性，所以只许把绿抬成红。反向（旧实现会做的
+    // `spd_shifted && below!=0 ⇒ below=0`）等于让一次数值巧合把计数判据的
+    // 红字清零，判决位 identifiable 随之假绿——被检验量（below）会被
+    // 被检验量自己的另一个读数覆盖，两条判据塌成一条。
     if (!spd_shifted && below == 0) below = 1;
 
     out->rank_eff = static_cast<std::uint64_t>(nl) - below;

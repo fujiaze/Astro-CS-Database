@@ -1,7 +1,6 @@
 // lib/algorithms/coverage/src/sampler.cpp — Phase2 稀疏光度控制点采样器
 //
-// 语义（冻结；权威 = docs/science/algorithms/PHASE2_SAMPLER.md 与
-// docs/detail/algorithms_phase2/10_sampling.md）：
+// 语义（冻结；权威 = docs/science/algorithms/PHASE2_SAMPLER.md）：
 // - 控制点布置于整个 coverage union（不限于 pairwise overlap）；
 // - 控制点 geometry 由 union geometry + target angular spacing 决定，
 // 不由 SNR 决定（SNR 只参与观测可信度）；
@@ -336,7 +335,8 @@ std::uint64_t p2_frame_id(const char* hips_path) {
     /* properties 是身份载荷的构成部分 (本函数头注: 「关键元数据 + signal/
      * support 像素 + SNR catalogue 内容」)。读取失败 (返回 -1) 时若静默
      * 跳过, 仅元数据 (filter/exptime/creator_did…) 不同的两帧会拿到同一个
-     * id, 且与末尾 catch 的 0 哨兵语义不一致 —— sampler.h:140 明写
+     * id, 且与末尾 catch 的 0 哨兵语义不一致 —— sampler.h 的
+     * p2_sample_controls_cached 契约明写
      * 「0 视为非法 (p2_frame_id 失败哨兵), 实现将直接拒绝」⇒ fail-closed。*/
     if (aio_hips_get_properties(d, buf, (int)sizeof(buf)) != 0) {
         aio_hips_close(d);
@@ -389,8 +389,8 @@ std::uint64_t p2_frame_id(const char* hips_path) {
     }
     for (std::uint64_t t : tiles) {
         /* signal tile 读取失败 = 身份载荷缺失。静默跳过会产出「部分内容的
-         * id」, 与有效帧碰撞且调用方无从分辨 ⇒ fail-closed (d 在 :390 关闭,
-         * 此处提前返回须自行关闭)。 */
+         * id」, 与有效帧碰撞且调用方无从分辨 ⇒ fail-closed（d 在本循环
+         * 之后关闭, 此处提前返回须自行关闭）。 */
         if (aio_hips_read_tile_f32(d, t, tile_buf.data()) != 0) {
             aio_hips_close(d);
             return 0;
@@ -405,24 +405,35 @@ std::uint64_t p2_frame_id(const char* hips_path) {
     }
     aio_hips_close(d);
     AioHipsDataset* sp = aio_hips_open(hips_path, AIO_HIPS_RD_SUPPORT);
-    if (sp) {
-        for (std::uint64_t t : tiles) {
-            /* 同 signal 面: support tile 读取失败同样 fail-closed。 */
-            if (aio_hips_read_tile_f32(sp, t, tile_buf.data()) != 0) {
-                aio_hips_close(sp);
-                return 0;
-            }
-            {
-                const std::string pre = "S" + std::to_string(t) + "=";
-                sha.update(pre.data(), pre.size());
-                sha.update(tile_buf.data(), tile_buf.size() * sizeof(float));
-                const char semi = ';';
-                sha.update(&semi, 1);
-            }
+    /* support 面与 signal 面同权：sampler.h 的冻结清单把 support tile 像素列为
+     * 身份载荷的构成部分，因此**打开失败**与读取失败是同一类「载荷缺失」。
+     * 旧的 `if (sp)` 无 else：打开失败时整段静默跳过，产出「部分内容的 id」，
+     * 与有效帧碰撞且调用方无从分辨（sampler.h 规定 0 才是失败哨兵）⇒ 与上面
+     * signal 面的 open 臂同风格 fail-closed。 */
+    if (!sp) return 0;
+    for (std::uint64_t t : tiles) {
+        /* 同 signal 面: support tile 读取失败同样 fail-closed。 */
+        if (aio_hips_read_tile_f32(sp, t, tile_buf.data()) != 0) {
+            aio_hips_close(sp);
+            return 0;
         }
-        aio_hips_close(sp);
+        {
+            const std::string pre = "S" + std::to_string(t) + "=";
+            sha.update(pre.data(), pre.size());
+            sha.update(tile_buf.data(), tile_buf.size() * sizeof(float));
+            const char semi = ';';
+            sha.update(&semi, 1);
+        }
     }
+    aio_hips_close(sp);
     AioHipsDataset* sn = aio_hips_open(hips_path, AIO_HIPS_RD_SNR);
+    /* SNR 面与 signal/support **不同权**：它是可选子产品。证据链：
+     * aio_hips.h 的 AIO_HIPS_PRODUCT_SNR 是 flags 位，「未被 flags 选中的通道
+     * 不落盘」；Phase1 写侧 module_entry.cpp 的 flags 来自配置，且 SNR 点集
+     * 只在 rows.n_snr>0 时写入。⇒ 「目录不存在 ⇒ open 返回 NULL」是**合法态**，
+     * 本函数下面的采样实现也按同一口径 `if (snr)` 容忍它。所以这里**不能**照搬
+     * signal 面的 fail-closed：那会把「合法地没有 SNR 面」判成失败。
+     * 真正需要 fail-closed 的是**读失败**（下面 got<0 那道），不是「面缺失」。 */
     if (sn) {
         const int maxn = 1 << 20;
         std::vector<double> ra(maxn), dec(maxn), snr(maxn);
@@ -430,23 +441,29 @@ std::uint64_t p2_frame_id(const char* hips_path) {
         const int got = aio_hips_read_snr_catalog(
             sn, ra.data(), dec.data(), snr.data(), nullptr, qf.data(),
             nullptr, maxn);
-        if (got > 0) {
-            for (int i = 0; i < got; ++i) {
-                const std::string pre = std::to_string(i) + ":";
-                sha.update(pre.data(), pre.size());
-                const auto fmt = [](double v) {
-                    std::ostringstream os;
-                    os << std::setprecision(
-                              std::numeric_limits<double>::max_digits10)
-                       << v;
-                    return os.str();
-                };
-                const std::string seg = fmt(ra[static_cast<size_t>(i)]) + "," +
-                           fmt(dec[static_cast<size_t>(i)]) + "," +
-                           fmt(snr[static_cast<size_t>(i)]) + "," +
-                           std::to_string(qf[static_cast<size_t>(i)]) + ";";
-                sha.update(seg.data(), seg.size());
-            }
+        /* 返回值语义（aio_hips_reader.h / aio_hips_reader.cpp 的实现）：
+         * >=0 = 实际点数（0 = 目录为空，**合法**）；<0 = 读取失败。
+         * 旧的 `if (got > 0)` 把「读失败」与「合法空目录」并成同一条静默跳过 ⇒
+         * 这里分开：读失败 fail-closed（载荷缺失），空目录照常哈希。 */
+        if (got < 0) {
+            aio_hips_close(sn);
+            return 0;
+        }
+        for (int i = 0; i < got; ++i) {
+            const std::string pre = std::to_string(i) + ":";
+            sha.update(pre.data(), pre.size());
+            const auto fmt = [](double v) {
+                std::ostringstream os;
+                os << std::setprecision(
+                          std::numeric_limits<double>::max_digits10)
+                   << v;
+                return os.str();
+            };
+            const std::string seg = fmt(ra[static_cast<size_t>(i)]) + "," +
+                       fmt(dec[static_cast<size_t>(i)]) + "," +
+                       fmt(snr[static_cast<size_t>(i)]) + "," +
+                       std::to_string(qf[static_cast<size_t>(i)]) + ";";
+            sha.update(seg.data(), seg.size());
         }
         aio_hips_close(sn);
     }

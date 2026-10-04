@@ -93,7 +93,7 @@
 - `src/healpix/aio_healpix_io.cpp` - HEALPix I/O 实现
 - `aio_build_config.json` (默认/full/minimal/healpix 4 套配置)
 - `build.ps1` - 选择编译脚本
-- `docs/HEALPIX_FORMAT_SPEC.md` - 格式规范（从 healpix_io 复制）
+- `lib/infrastructure/aio/docs/HEALPIX_FORMAT_SPEC.md` - 格式规范（从 healpix_io 复制）
 - `eng/tests/test_healpix_io*.py` - 测试（从 healpix_io 复制）
 - `python/aio_healpix_io.py` - Python 绑定（从 healpix_io 复制）
 

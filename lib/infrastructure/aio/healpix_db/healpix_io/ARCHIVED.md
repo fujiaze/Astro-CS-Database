@@ -6,7 +6,7 @@
 - 头文件: `lib/infrastructure/aio/include/aio_healpix_io.h`
 - 实现: `lib/infrastructure/aio/src/healpix/aio_healpix_io.cpp`
 - Python 绑定: `lib/infrastructure/aio/python/aio_healpix_io.py`
-- 格式规范: `lib/infrastructure/aio/docs/HEALPIX_FORMAT_SPEC.md`
+- 格式规范: `lib/infrastructure/aio/lib/infrastructure/aio/docs/HEALPIX_FORMAT_SPEC.md`
 - 编译: `lib/infrastructure/aio/build.ps1` (含 HEALPix 条件编译宏 `AIO_ENABLE_HEALPIX`)
 
 **API 命名变更**:

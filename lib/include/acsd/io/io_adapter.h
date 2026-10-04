@@ -39,10 +39,20 @@ class ArtifactTransaction {
   bool active() const { return active_; }
 
  private:
+  // FNV-1a/64 参数: 偏移基 0xcbf29ce484222325 = 14695981039346656037; 乘数
+  // 1099511628211 (0x100000001b3) 见 io_adapter.cpp 的 fnv_update。两者取自 FNV
+  // 参考实现而非本仓自定: 用其公布的测试向量 (""→0xcbf29ce484222325、"a"→
+  // 0xaf63dc4c8601ec8c、"foobar"→0x85944171f73967e8) 可逐位复算。
+  // 只此一处声明: 该值只服务于 commit() 的写后读回比对, 期望侧 (write 收到的内存
+  // 载荷) 与实测侧 (从 tmp 文件读回的落盘字节) 物理不同源, 两端共用同一参数;
+  // 故它是有效的完整性判据, 且改动不改变任何落盘读数 (checksum_ 不出本类)。
+  // 收成单一声明是为排除 .h 与 .cpp 各写一份字面量而漂移 —— 两者曾各自写成少一位的
+  // 转录值 (标准偏移基整除 10), 三处全同才没被当场发现。
+  static constexpr uint64_t kFnv1a64OffsetBasis = 14695981039346656037ULL;
   std::string target_;
   std::string tmp_;
   uint64_t written_ = 0;
-  uint64_t checksum_ = 1469598103934665603ULL;  // FNV-1a seed
+  uint64_t checksum_ = kFnv1a64OffsetBasis;
   bool write_failed_ = false;  // 任一次 write 失败即锁存, commit 时按合同报错
   bool active_ = false;
 };

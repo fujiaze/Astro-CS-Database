@@ -93,7 +93,8 @@ struct P2Stage2Config {
     int    sky_plane_weight_mode = 0;
     // 已退休：sky_plane_roughness_penalty（λ 自由标定值）。λ 现由判据阈值派生
     // （λ_eff = rank_rtol·mean(diag(H_red))，见 astro/phase2/identifiability.h），
-    // 不再有配置面；旧配置键被**忽略**而不是继续生效（避免旧值悄悄复活）。
+    // 不再有配置面；旧配置键**显式拒绝**而不是继续生效或被忽略——与
+    // integration.weight_mode 的退役面同口径（忽略等于让拼错的键静默取默认）。
     double sky_plane_rank_rtol = 1e-10;   // FZ-AP2S-RANK-RTOL（唯一判据阈值）
     // 乘法响应 g_k（v6 UPM MA 求解器）接入主链；build 失败时显式 g=1 降级。
     bool   frame_gain_enabled = true;
@@ -166,7 +167,16 @@ struct P2Stage2Config {
     bool diagnostics = true;
 };
 
-// 解析生产 Stage2 JSON（异常安全；非法输入返回 false + 清晰 err）
+// 解析生产 Stage2 JSON（异常安全；非法输入返回 false + 清晰 err）。
+// 两道 fail-closed 门（GOVERN-08 A6）：
+//   · `version` **必填**且必须 == 1（仓内 8 份 stage2 模板全部写 "version": 1）。
+//     按错误的版本逐字解释配置比拒绝它危险得多：结果是一份「看起来跑完了」
+//     的、参数含义全错的集成。
+//   · 每个对象的键集白名单 = 本函数逐字读取的键；白名单外的键即失败。理由：
+//     `value(key, default)` 对「键不存在」与「键名拼错」返回同一个默认值，
+//     二者在运行期不可分辨。退役键各有更具体的拒绝面并优先生效。
+// 新增配置键必须同时登记进 src/stage2_common.cpp 里对应对象的键集，否则
+// 「配置面写了、消费面没读」会以静默 no-op 的形态回来。
 bool p2_stage2_parse_config(const nlohmann::json& j, P2Stage2Config* cfg,
                             std::string* err);
 

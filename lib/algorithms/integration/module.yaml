@@ -1,7 +1,7 @@
 # ACSD phase2 integration 模块 — 元数据 (P2-INT-DOC 冻结, 2026-09-09)
 # 状态: CONTRACT_READY —— 实现存在（生产源 lib/algorithms/coverage/src/integrate.cpp
-# 76 行 + 唯一权威签名头 lib/algorithms/coverage/include/astro/phase2/integrate.h
-# 74 行，行号 grep/read 实测；构建挂载: 根 CMakeLists.txt:336-346
+# 89 行 + 唯一权威签名头 lib/algorithms/coverage/include/astro/phase2/integrate.h
+# 83 行，行号 grep/read 实测；构建挂载: 根 CMakeLists.txt:336-346
 # acsd_phase2 STATIC 目标（:344 src/integrate.cpp）+
 # lib/algorithms/coverage/CMakeLists.txt:42-49 兼容 target（:49 同文件）），
 # 模块化迁移（独立模块源 acsd_p2_integration.dll / C ABI adapter /
@@ -23,9 +23,13 @@
 # （:336-346，:344 编入 src/integrate.cpp）。
 # threading_model=host_executor_lease 为迁移目标合同值（11 号标准 §4
 # 值域）；现状实现=像素级纯函数（p2_integrate_pixel 无任何线程原语，
-# 单栈归约按候选索引固定序），并行仅发生在调用方（stage2.cpp:1288 /
-# acr_kernels.cpp:218 OMP 像素间并行，像素内无跨 worker 归约；Stage2
-# per-thread 统计按 thread id 固定顺序定序归并 stage2.cpp:1305-1313）；
+# 单栈归约按候选索引固定序），并行仅发生在调用方（stage2.cpp 的
+# `#if defined(P2_ENABLE_OPENMP) && !defined(_MSC_VER)` 段：入口
+# `!large_scale_active && effective_cpu_workers(cfg.exec) > 1`，像素循环
+# `#pragma omp for schedule(static)`；Stage2 per-thread 统计按 thread id 固定
+# 顺序定序归并，`reject_hist[kv.first] += kv.second`）。
+# 并行语义已随 ACR 退场移除：原 `acr_kernels.cpp:218 OMP` 像素间并行面随
+# `383088f2` 删除该文件一并消失，现存像素间并行面只有上述 Stage2 一处。
 # ThreadLease/取消检查点无接线（迁移整改点，与 DISP-COV-005 同构）。
 # entrypoint=MISSING：registry 入口未接；descriptor 现状占位 ID
 # （lib/infrastructure/scheduler/src/module_adapters.cpp:657-675 p2_integrate_descriptor 的
@@ -86,6 +90,4 @@ scientific_change: false
 depends_on:
   - acsd_phase2
 legacy_paths: lib/algorithms/coverage integration sources
-known_defects:
-  - DISP-P2INT-001
-  - DISP-P2INT-002
+known_defects: []   # DISP-P2INT-001/002 经复核均已不成立，见文件头说明
