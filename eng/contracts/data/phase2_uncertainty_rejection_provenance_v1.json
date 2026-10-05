@@ -5,7 +5,7 @@
   "title": "Phase2 §30.2 rejection 平面与 §30.3 provenance 键组实现合同（AIO 子产品位分配 + provenance 键通道登记）",
   "owner": "SA-P2",
   "frozen": true,
-  "doc_ref": "docs/science/unified/DATA_SEMANTICS.md §30.2/§30.3 (DATA-P2-REJ-001 / DATA-P2-PROV-001, DATA-UNC-001 FROZEN_TARGET_CONTRACT)",
+  "doc_ref": "docs/detail/registry/acsd.phase2.reject.md 的「输入输出端口、DATA、单位、坐标、invalid」一节 (DATA-P2-REJ-001) + docs/science/unified/DATA_SEMANTICS.md 的「溯源最小集」一节 (DATA-P2-PROV-001), DATA-UNC-001 FROZEN_TARGET_CONTRACT",
   "constitution_ref": [
     "ASTROCS-CONSTITUTION-001 §6.1 (Phase2 输出 variance/ivar/rejection 产品)",
     "ASTROCS-CONSTITUTION-001 §6.3 (integration 必须明确不确定度传播)",
@@ -14,8 +14,8 @@
   "upstream_frozen_anchors": [
     "SCI-INT-001 §5 (n_used 冻结量)",
     "SCI-REJ-001 §5 (reason 值域: ACCEPTED/REJECTED_LOW/REJECTED_HIGH/UNDERDETERMINED)",
-    "DATA_SEMANTICS §20.3 (input_manifest_hash 公式)",
-    "DATA_SEMANTICS §30.1 (variance/ivar unavailable 三规则)"
+    "docs/science/unified/DATA_SEMANTICS.md 的「帧身份与输入清单摘要」一节 (input_manifest_hash 公式)",
+    "docs/science/unified/DATA_SEMANTICS.md「方差与逆方差的三态编码」一节 (variance/ivar unavailable 三规则)"
   ],
   "rejection_planes": {
     "planes": ["nused", "nrej", "sample_mask"],
@@ -43,12 +43,12 @@
     "NUSED": 64,
     "bit_domain": "uint32 flags 域（AioHipsProductFlag）",
     "occupied_bits_ref": "lib/astro_image_io/include/aio_hips.h:35-40（1=SIGNAL 2=SUPPORT 4=SNR 8=VARIANCE 16=IVAR；32/64 空闲）",
-    "authority": "DATA_SEMANTICS §30.2 冻结位值；AIO_ALL 掩码扩展由实现任务在 AIO 域合同登记（本合同登记位值，掩码扩展待 AIO 域 writer 实现）"
+    "authority": "DATA-P2-REJ-001 冻结位值（nused/nrej 诊断平面承载页 = docs/detail/registry/acsd.phase2.reject.md 的「输入输出端口、DATA、单位、坐标、invalid」一节；AioHipsProductFlag 名册见 docs/engineering/data/PHASE_PRODUCT_EXCHANGE.md 的「阶段产品角色与 type 绑定（role ↔ type）」一节）；AIO_ALL 掩码扩展由实现任务在 AIO 域合同登记（本合同登记位值，掩码扩展待 AIO 域 writer 实现）"
   },
   "provenance_keys": {
     "ACSD_INPUT_MANIFEST_HASH": {
       "value": "64hex sha256",
-      "source": "DATA_SEMANTICS §20.3 input_manifest_hash 公式（canonical manifest 按 frame_id 排序拼接）"
+      "source": "docs/science/unified/DATA_SEMANTICS.md 的「帧身份与输入清单摘要」一节 input_manifest_hash 公式（canonical manifest 按 frame_id 排序拼接）"
     },
     "ACSD_MODEL_HASH": {
       "value": "UPM model_hash（64hex sha256）",

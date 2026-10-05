@@ -28,7 +28,7 @@ namespace drizzle {
 //       sumArea = D_p = Σ_j a_jp            (覆盖面积)
 //       sumNorm = N_p = Σ_j w_jp·A_pixel,j  (面亮度归一分母)
 //       sumVarNum = Σ_j v_j·w_jp²           (方差分子)
-//   * docs/science/DRIZZLE.md §5:50/§5:83 冻结的发布量是
+//   * docs/science/drizzle/DRIZZLE.md §5:50/§5:83 冻结的发布量是
 //       S_p = F_p / N_p        (= Σ_j B_j a_jp / Σ_j a_jp, B_j = x_j/A_pixel,j)
 //       variance_p = sumVarNum / N_p²
 //   * 而 AIO writer 的落盘口径是 sig = flux_sum / covered_area（aio_hips_writer.cpp

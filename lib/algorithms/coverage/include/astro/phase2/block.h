@@ -4,7 +4,7 @@
 //
 // 语义（冻结；权威 = docs/science/algorithms/PHASE2_MOSAIC_WRITE.md
 // （micro-chunk 内存规划、逐 tile 真实 depth 重算 p2_block_plan）与
-// docs/engineering/OWNERSHIP_AND_LIFETIME.md）：
+// docs/engineering/contracts/OWNERSHIP_LIFETIME.md）：
 // - 峰值估算 ≈ P·N_B·B_sample + P·B_scratch + M_AIO + M_UPM + M_ACR；
 // - 从少量相邻 HiPS tiles 增长，保持空间局部性与顺序 I/O；
 // - 使用真实 coverage depth N_B（不按总帧数规划）；

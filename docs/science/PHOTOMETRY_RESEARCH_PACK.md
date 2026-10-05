@@ -2,7 +2,7 @@
 
 > 研究包只承载一手出处、方法学对照与核验留痕；**不定义公式、常数与门限**
 > 上游: `ACSD_DESIGN.md` §2.1（创新点一）、§4.2（Phase1 节点流程：星表引导检测 + WCS 解算 + photometry（含同一步内的测光归一化施加））、§4.4（测光输出语义）、附录 B
-> 合同权威: `docs/science/PHOTOMETRY.md`（SCI-PHOT-001，FROZEN）；模块细则: `docs/detail/algorithms_phase1/06_photometry.md`
+> 合同权威: `docs/science/PHOTOMETRY.md`（SCI-PHOT-001，FROZEN）；模块细则: `docs/detail/registry/acsd.phase1.photometry.md`
 > 消费方: SCI-401 / SCI-402（实验单元一与其误差预算）、DOC-403（文档索引门）
 > 依据: AGENTS.md §5（三重佐证）、§8（科学查证流程）、任务书 `DOC-404`
 
@@ -87,7 +87,7 @@
 ### 4.2 对 ACSD 的用法与边界
 
 - 正向合成的**方法学**就是 [14]–[22] 的标准做法：恒星光谱 ×（QE × 滤镜透过率 × 光学响应）在波长上积分；
-- **`Q(λ)` 是通带的组成部分**（官方对 passband 的定义即「滤光片透过率 × 光子计数探测器灵敏度 × 光学元件透过率 × 大气贡献」，出处见 [9] §1）；未配置时按 `Q(λ)≡1` 处理，物理含义是「假设探测器为**理想平坦 QE**器件」——这是一条**显式未建模项**，不是「QE 已折进 `T(λ)`」。其量级（真实 M42 视场，26211 颗 XPSD 星，n=10348）：`Q≡1` 与计入 KAF-16803 QE 的合成星等差中位 **+0.811 mag**（被零点吸收）、跨星散度 **0.0082 mag**（不被吸收，进入 `sigma_residual`）；颜色项误差单列（见 `docs/detail/algorithms_phase1/06_photometry.md` §4.1 的 `σ_color`）；
+- **`Q(λ)` 是通带的组成部分**（官方对 passband 的定义即「滤光片透过率 × 光子计数探测器灵敏度 × 光学元件透过率 × 大气贡献」，出处见 [9] §1）；未配置时按 `Q(λ)≡1` 处理，物理含义是「假设探测器为**理想平坦 QE**器件」——这是一条**显式未建模项**，不是「QE 已折进 `T(λ)`」。其量级（真实 M42 视场，26211 颗 XPSD 星，n=10348）：`Q≡1` 与计入 KAF-16803 QE 的合成星等差中位 **+0.811 mag**（被零点吸收）、跨星散度 **0.0082 mag**（不被吸收，进入 `sigma_residual`）；颜色项误差单列（见 `docs/detail/registry/acsd.phase1.photometry.md` §4.1 的 `σ_color`）；
 - **产物不处于绝对通量刻度**（这是与上一条**不同**的陈述）：`F_syn` 与官方平均通量只差一个**与星无关**的归一化分母 `∫TQλdλ`，该分母被 `location`/`scale` 吸收；因此标定系数绝对值无物理意义、产物以星等/相对星等表达（`docs/science/PHOTOMETRY.md` §1/§6）。**通带形状（含 `Q`）不被吸收**，其失配直接进入 `sigma_residual`；
 - 通带内积分与光子计数口径的选择由 SCI 合同决定（`F_syn=∫F_λ·T·Q·λ dλ`），本包只提供该口径的标准文献依据（[15] 的 photonic passband 讨论）；
 - **禁止**把合成通量的绝对归一常数（`1/(hc)` 等）当科学量：常数被标定因子吸收（`docs/science/PHOTOMETRY.md` §6）。
@@ -125,13 +125,13 @@ F_ν = 3631 Jy ⇒ m_AB = 0                            # AB 零点定义
 
 ## 6. 星表引导检测与 WCS 精化的开源对照
 
-**权威范式（本项目）**：WCS 解算的近似指向由 `wcs.init_source` 给出（不是独立的盲解节点），求解器在该指向下匹配星表并稳健迭代精化，其输出即唯一权威 WCS；检测定义域 = 用本帧 WCS 把 Gaia 星表逆投影到像素域，只对星表位置做质心/PSF 拟合（`ACSD_DESIGN.md` §4.2；`docs/detail/algorithms_phase1/03_star_detection.md` §4）。
+**权威范式（本项目）**：WCS 解算的近似指向由 `wcs.init_source` 给出（不是独立的盲解节点），求解器在该指向下匹配星表并稳健迭代精化，其输出即唯一权威 WCS；检测定义域 = 用本帧 WCS 把 Gaia 星表逆投影到像素域，只对星表位置做质心/PSF 拟合（`ACSD_DESIGN.md` §4.2；`docs/detail/registry/acsd.phase1.star-detection.md` §4）。
 
 | # | 项目（许可证） | 版本/tag | 入口 文件:行（`[OSS]`） | 对照什么 |
 |---|---|---|---|---|
 | [33] O1 | **SCAMP**（GPL-3.0） | v2.15.0 | `src/photsolve.c:117`（`photsolve_fgroups`：全局**相对光度**解算入口）；`src/astrsolve.c:117`（`astrsolve_fgroups`：天体测量解算入口）；`src/fitswcs.c`（WCS 结构/投影）；官方页 https://www.astromatic.net/software/scamp/ `[URL]` 200 | 星表引导的**相对零点 + 天体测量**联合解算的工程结构；ACSD 只对照“用星表做相对定标”的结构，**不引其为天光面/UPM 依据**（SCAMP 核心无像素背景归一） |
 | [34] O2 | **astrometry.net**（BSD-3-Clause 系） | 0.98 | `solver/tweak2.c:195`（`tweak2()`：以星表参考做 WCS 精化）；`solver/tweak.c:47`（`tweak_just_do_it()`：tweak 流程入口）；官方文档 https://astrometry.net/doc/ `[URL]` 200 | **盲解 + 星表精化**的完整开源对照（本项目的星表匹配精化定位与它同构；ACSD 不设独立盲解节点） |
-| [35] O3 | **SExtractor**（GPL-3.0） | 2.28.2 | `src/analyse.c:64`（`analyse()` 主测光流程）；`src/analyse.c:568`（`computeaperflux` 调用点）；`src/back.c:51`（`makeback()` 背景网格）；`src/back.c:669`（`backguess()` 背景插值）；`src/fitswcs.c:1375`（`wcs_to_raw()` 天球→像素）；官方页 https://www.astromatic.net/software/sextractor/ `[URL]` 200 | 分块背景网格 + 检测 + 孔径测光 + FLUXERR 的工程实现；ACSD 只把孔径测光当**诊断/交叉验证**，生产口径是 PSF 拟合域（`docs/detail/algorithms_phase1/06_photometry.md` §1/§4） |
+| [35] O3 | **SExtractor**（GPL-3.0） | 2.28.2 | `src/analyse.c:64`（`analyse()` 主测光流程）；`src/analyse.c:568`（`computeaperflux` 调用点）；`src/back.c:51`（`makeback()` 背景网格）；`src/back.c:669`（`backguess()` 背景插值）；`src/fitswcs.c:1375`（`wcs_to_raw()` 天球→像素）；官方页 https://www.astromatic.net/software/sextractor/ `[URL]` 200 | 分块背景网格 + 检测 + 孔径测光 + FLUXERR 的工程实现；ACSD 只把孔径测光当**诊断/交叉验证**，生产口径是 PSF 拟合域（`docs/detail/registry/acsd.phase1.photometry.md` §1/§4） |
 | [36] O4 | **SEP**（LGPL-3.0） | v1.4.1 | `src/extract.c:206`（`sep_extract()` 检测入口）；`src/aperture.c:190`（`sep_sum_circle` 宏实例化）；`src/aperture.c:263`（`sep_sum_circann` 宏实例化）；`src/aperture.c:604`（`sep_flux_radius()`）；论文 Barbary, K. 2016, JOSS 1, 58 [37] `[DOI]` 10.21105/joss.00058 | SExtractor 算法的库化实现（背景/检测/孔径与误差传播的独立可对拍实现） |
 | [38] O5 | **photutils**（BSD-3-Clause） | 3.0.0 | `photutils/detection/daofinder.py:26`（`DAOStarFinder`）；`photutils/aperture/photometry.py:30`（`aperture_photometry()`）；`photutils/psf/photometry.py:217`（`PSFPhotometry`）；`photutils/background/background_2d.py:33`（`Background2D`） | 星检测、孔径/PSF 测光、二维背景的参考实现与误差传播；SCI-401 的数值对拍对象 |
 | [39] O6 | **astropy**（BSD-3-Clause） | v8.0.1 | `astropy/wcs/wcs.py:359`（`class WCS`）；`astropy/wcs/wcs.py:1669`（`all_pix2world()`：天球↔像素互转） | WCS 投影/逆投影的独立实现（星表逆映射定位的验证基准） |
@@ -144,7 +144,7 @@ F_ν = 3631 Jy ⇒ m_AB = 0                            # AB 零点定义
 
 ## 7. 测光标定误差预算的构成文献
 
-**用途**：为 `docs/science/PHOTOMETRY.md` §16.5 与 `docs/detail/algorithms_phase1/06_photometry.md` §4.1 的**逐项预算**提供一手出处。**本包不给数值**；数值推导与冻结属 SCI-401。
+**用途**：为 `docs/science/PHOTOMETRY.md` §16.5 与 `docs/detail/registry/acsd.phase1.photometry.md` §4.1 的**逐项预算**提供一手出处。**本包不给数值**；数值推导与冻结属 SCI-401。
 
 | 预算项 | 一手出处 | 核验 | 该出处支撑什么 |
 |---|---|---|---|
@@ -167,7 +167,7 @@ F_ν = 3631 Jy ⇒ m_AB = 0                            # AB 零点定义
 2. **正向合成**用 XP 谱 × 系统响应在模型通带内积分；`Q(λ)≡1`、通带外无数据等未建模项必须显式声明，不得静默当作已建模（[17] 的端到端预算写法、[2] 的采样边界）。
 3. **标定因子绝对值无物理意义**：`k_photo`/`scale` 吸收增益/口径/曝光/透过率等不可得量；唯一判据是**尺度无关的测光一致性**（星等残差散度），见 `docs/science/PHOTOMETRY.md` §1/§10 与 `ACSD_DESIGN.md` §4.4。
 4. **禁止物理闭合反推**（`k = g·h·c·1e9/(A·t)` 一类）：FITS 头拿不到 g、t、A、光学透过率与大气项，方程欠定；反推等于编造未测量量（`docs/science/PHOTOMETRY.md` §10）。
-5. **误差预算必须逐项带出处**（§7 十项），未测项按“不加”处理（上限偏严、fail-closed），并在报告中显式列出（`docs/detail/algorithms_phase1/06_photometry.md` §4.1）。
+5. **误差预算必须逐项带出处**（§7 十项），未测项按“不加”处理（上限偏严、fail-closed），并在报告中显式列出（`docs/detail/registry/acsd.phase1.photometry.md` §4.1）。
 6. **跨帧一致性不是门**：不同夜/不同透明度的帧标定系数不同是正常的（`ACSD_DESIGN.md` §2.1；`PHOT-GATE-DROP-001`）。
 
 ---

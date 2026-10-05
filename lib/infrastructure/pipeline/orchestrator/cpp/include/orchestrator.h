@@ -12,7 +12,7 @@
 //             DOC-403 文件域，本任务（CLEAN-401）无权同步，故本轮不能删。
 // STATUS:     未接入生产。产品可执行 acsd 的 target_link_libraries（根 CMakeLists.txt:834-842）
 //             不含 acsd_infra_orchestrator；orchestrator_legacy_cli 为非发布目标
-//             （docs/engineering/BUILD_GRAPH.md:90 记 production=no，该行在 §2 非生产闭包面内）。
+//             （docs/engineering/build/BUILD_GRAPH.md:90 记 production=no，该行在 §2 非生产闭包面内）。
 //             本目录职责已由 lib/infrastructure/scheduler/** 生产实现承接：注册=module 注册表、
 //             资源预算=executor/plan_estimator、执行=Runtime/Executor、取消=取消令牌、
 //             checkpoint=src/checkpoint.cpp。

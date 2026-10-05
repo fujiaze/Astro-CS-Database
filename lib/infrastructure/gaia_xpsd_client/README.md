@@ -39,7 +39,7 @@ F_syn 积分（photometric_calib）；星匹配/求解；网络访问（结构�
 LZ4 或 zlib+shuffle 压缩块；GaiaDR3 32B 记录 / GaiaDR3SP 384B 记录）。
 模块不写输入文件、不联网。
 
-输出行（单位/坐标/dtype/shape/invalid 全表见 docs/science/DATA_SEMANTICS.md §8）：
+输出行（单位/坐标/dtype/shape/invalid 全表见 docs/science/unified/DATA_SEMANTICS.md §8）：
 
 - `gaia_client_cone_search` → `GaiaStar[out_count]`：ra/dec/magG/magBP/magRP
   float64（deg, ICRS J2000 / mag）、parallax/pmra/pmdec float32
@@ -57,14 +57,14 @@ LZ4 或 zlib+shuffle 压缩块；GaiaDR3 32B 记录 / GaiaDR3SP 384B 记录）�
 
 ## 4. 合同链接
 
-- SCI: `SCI-AST-001`（docs/science/ASTROMETRY.md）
+- SCI: `SCI-AST-001`（docs/science/detection/ASTROMETRY.md）
 - ALG: `ALG-GAIA-001`（docs/science/algorithms/GAIA_QUERY.md）
-- DATA: `DATA-GAIA-001`（docs/science/DATA_SEMANTICS.md §8）
-- API: `API-GAIA-001`（docs/engineering/PUBLIC_API.md §gaia_client C API）
+- DATA: `DATA-GAIA-001`（docs/science/unified/DATA_SEMANTICS.md §8）
+- API: `API-GAIA-001`（docs/engineering/api/PUBLIC_API.md §gaia_client C API）
 - ARCH: `ARCH-001`（docs/engineering/ARCH-001.md）
 - TEST: `TEST-GAIA-DESIGN-001`（GAIA_QUERY.md §5，设计冻结；可执行
   TEST-GAIA-* 由 CAT-GAIA-TEST 建立，当前未实现）
-- 追溯: docs/engineering/TRACEABILITY_SPEC.md §9 `MOD-acsd-catalog-gaia`
+- 追溯: docs/engineering/governance/TRACEABILITY.md §9 `MOD-acsd-catalog-gaia`
 
 ## 5. 实现事实（源码核对）
 

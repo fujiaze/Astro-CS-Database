@@ -283,7 +283,7 @@ const std::set<std::string>& session_keys() {
         // HIPS-IDX-01（合同 = phase_config_normalize.schema.json#/$defs/storage_form）：
         // Phase1 产品落盘形态键 archive|bare（默认 archive；键缺失/空串 ⇒ 默认 + warn）。
         // 只识别并透传到 pdoc；写出侧按形态落盘 = 分阶段实现计划阶段 2 ⇒ 生产零读取
-        // 期间由 eng/ci/ledgers/dead_config_keys.json 显式登记（不得静默 no-op）。
+        // 期间由 eng/contracts/ledgers/dead_config_keys.json 显式登记（不得静默 no-op）。
         // 仅 normalize 认本键：Phase2/Phase3 固定裸形态，其输入出现本键即 rc=3。
         "storage_form",
         // P1-001: 真实节点域科学参数（drizzle: nside/nested/pixfrac/precision;
@@ -295,7 +295,7 @@ const std::set<std::string>& session_keys() {
         //   m_5 = null)。不放宽任何既有键校验。
         "snr",
         // WIRING-W34-01 (W3-CHK-PROD-WIRING): 噪声模型配置段（SCI-NOISE /
-        //   docs/science/NOISE_MODEL.md §4/§5/§5a）。段内键 = 生产节点
+        //   docs/science/algorithms/NOISE_ESTIMATION.md §4/§5/§5a）。段内键 = 生产节点
         //   p1_noise_cfg_apply（lib/infrastructure/scheduler/src/module_adapters.cpp）
         //   实际写入 SnrNoiseModelConfig 的**封闭词表** 14 键
         //   （patch_grid/clip_sigma/spatial_field_enabled/mask_*/min_patch_samples/
@@ -315,7 +315,7 @@ const std::set<std::string>& session_keys() {
         //   不是错误。合同声明 =
         //   eng/contracts/schemas/phase_config_normalize.schema.json#/$defs/star_detection_config。
         //   规范：docs/ACSD_DESIGN.md §4.2（星表引导检测 = 权威范式，top 2–5 万）
-        //   + docs/detail/algorithms_phase1/03_star_detection.md §5.1。
+        //   + docs/detail/registry/acsd.phase1.star-detection.md §5.1。
         "star_detection",
         // phase2 平铺 (p2_session / canonical P2 节点链 消费面)
         // B1-A4: 节点实际消费键必须可达, 否则配置被 parser 拒绝而链路不可闭合。
@@ -336,7 +336,7 @@ const std::set<std::string>& session_keys() {
         // 合同声明名（禁止新造同义键）：
         //   phase_config_mosaic.schema.json#/$defs/mosaic_config/properties/snr_path
         // 只识别并透传到 pdoc（phase_config 直通分支）；科学消费点在 scheduler 面。
-        // 生产零读取期间由 eng/ci/ledgers/dead_config_keys.json 显式登记（不得静默 no-op）。
+        // 生产零读取期间由 eng/contracts/ledgers/dead_config_keys.json 显式登记（不得静默 no-op）。
         "snr_path",
         // phase3 平铺 (p3_session 消费面)
         "source", "center", "scale_deg_per_px", "width_px", "height_px",
@@ -362,7 +362,7 @@ const std::set<std::string>& session_keys() {
         // 计算精度口径（docs/ACSD_DESIGN §3.3:256）：阶段一 =
         // drizzle.precision_mode(0=FP32/1=FP64)；阶段二/三 = 位深键 bitpix(-32/-64)。
         // **不新造 precision(fp32/fp64) 同义键**——合同旧键 precision 由死键台账登记
-        // （eng/ci/ledgers/dead_config_keys.json#dead_config_key:precision），CLI 面拒绝。
+        // （eng/contracts/ledgers/dead_config_keys.json#dead_config_key:precision），CLI 面拒绝。
         // phase3 平铺直通特征键 (runtime_client phase_config 平铺判定)
         "output_fits_path", "sampler_used", "mode",
         // DC-401/DC-418/DC-419 (§4.5.5): 排异算法选择键（留空/0/auto = 按 n 自动；
@@ -417,7 +417,7 @@ std::string retired_perframe_form_message(const std::string& session_name) {
                "one group of input frames}); the unified key-name scheme is a frontend decision. "
                "Use the block form "
                "{\"schema_version\":\"1\",\"blocks\":[{...}]}; "
-               "see docs/engineering/CONFIG_CONTRACT.md §3";
+               "see docs/engineering/contracts/CONFIG.md §3";
     }
     return "config uses the retired per-frame phase_config form "
            "{phase_name, config, inputs[]} — one entry per light is no longer supported; "

@@ -3,7 +3,8 @@
 上游：`../../ACSD_DESIGN.md` 的命令行合同、机器输出与退出码、错误传播与日志三章。
 
 本文是命令行面的行为合同：命令树、退出码、标准输出与标准错误纪律、运行事件流、
-取消与崩溃语义、运行配置与输出目录规则。退出码的逐码语义与错误域映射见 `LOG_AND_ERROR.md`[3]；
+取消与崩溃语义、运行配置与输出目录规则。退出码的逐码语义见 `../standards/ERROR_MODEL.md`[3]、
+错误域到退出码的映射见 `LOG_AND_ERROR.md`[6]；
 运行配置的完整字段合同见 `CONFIG.md`[4]；运行清单的校验合同见 `MANIFEST_VERIFY.md`。
 机器输出的 stdout 纪律与退出码分型、取消语义的上位条款见最高设计的命令行合同一章[1]。
 
@@ -33,7 +34,7 @@ handler→内部会话 API 追溯(phase 为内部指代): normalize→API-003(�
 ## 退出码
 
 退出码的码值与含义只有一份，唯一源是 `lib/infrastructure/cli/exit_codes.h` 的 `acsd::ExitCode`
-枚举，逐码语义表见 `LOG_AND_ERROR.md`[3]「进程退出码」一节。上位分型条款见最高设计的机器输出与退出码[1]。共 11 个码：0 成功、2 命令行参数或配置错、
+枚举，逐码语义表见 `../standards/ERROR_MODEL.md`[3]「进程退出码」一节。上位分型条款见最高设计的机器输出与退出码[1]。共 11 个码：0 成功、2 命令行参数或配置错、
 3 输入缺失或格式或散列错、4 科学验证或不变量失败、5 后端 ABI、签名、CPU 特征或加载失败、
 6 计算执行失败、7 I/O 失败、8 输出完整性验证失败、9 用户取消或超时、10 磁盘写满或写盘失败、
 70 未分类内部错误（必须出脱敏崩溃报告）。
@@ -178,8 +179,10 @@ UT-CLI `mutates_workspace=false` 的 dirty 判定。
 
 [2] FITS 工作组. FITS 标准 4.0. IAU, 2018. https://fits.gsfc.nasa.gov/standard40/fits_standard40aa-le.pdf
 
-[3] 内部文档 `LOG_AND_ERROR.md`，日志与错误合同（含逐码语义表）。
+[3] 内部文档 `../standards/ERROR_MODEL.md`，错误模型标准（「进程退出码」一节含逐码语义表，码值语义的唯一正本）。
 
 [4] 内部文档 `CONFIG.md`，配置合同（`output_dir` 与 `crop` 字段合同）。
 
 [5] 内部文档 `../resources/observability/STRUCTURED_LOGGING.md`，结构化日志合同。
+
+[6] 内部文档 `LOG_AND_ERROR.md`，日志与错误合同（「错误对象与退出码映射」一节含错误域到退出码的映射表；码值含义不在本文）。

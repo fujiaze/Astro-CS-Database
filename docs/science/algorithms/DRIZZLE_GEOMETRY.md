@@ -82,7 +82,7 @@
   - 方差分子: `sumVarNum_p = Σ_j v_j · w_jp²`，**单位 = ADU²**（v_j 为输入源像素方差
     [ADU²]，`FZ-UNIT-VAR-IN`；`(double)v · (double)w²` 中转再转 Scalar，
     仅当 v>0 累加，`lib/algorithms/drizzle/healpix_drizzle/drizzle_engine.cpp`）——"仅 v>0"即"方差不可用样本不进入方差项"，
-    依据 DATA_SEMANTICS §4a「无方差信息 ⇒ variance=0 ∧ ivar=0（显式不可用）」
+    依据 `docs/science/unified/DATA_SEMANTICS.md`「方差与逆方差的三态编码」一节「无方差信息 ⇒ variance=0 ∧ ivar=0（显式不可用）」
     与 §20.1「ivar==0 = 合法零权重」。
     **α² 缩放律（代数恒等）**：`v_j → α²·v_j` ⇒ `sumVarNum_p → α²·sumVarNum_p`
     ⇒ `variance_p → α²·variance_p`（sumVarNum 对 v_j 线性、D_p 与 v 无关），
@@ -197,23 +197,23 @@
   |cd[k]|≤1 deg/px；crval dec∈[-90,90]；f32/f64 signal 二选一严格；
   support∈[0,1]（空=全 1.0）；ipix 越界/重复拒绝。
 - 能力/版本: hp_drizzle_reverse_capability 位 0x01|0x02|0x04|0x08|
-  0x10|0x20（`lib/algorithms/drizzle/healpix_drizzle/api.cpp`）；version "1.0.0"（同文件）。
+  0x10|0x20（`lib/algorithms/drizzle/healpix_drizzle/hp_drizzle_api.cpp`）；version "1.0.0"（同文件）。
 
 ## 5 输入校验与 NaN/Inf/invalid 边界
 
 | 条件 | 行为 | 锚 |
 |---|---|---|
 | pixfrac ≤0 或 >1（引擎层） | 拒绝（不夹逼） | `lib/algorithms/drizzle/healpix_drizzle/drizzle_engine.cpp` |
-| pixfrac==0.0（文件通道 API 层） | 放行后进引擎再拒（双轨） | `lib/algorithms/drizzle/healpix_drizzle/api.cpp`（DISP-DRZ-003） |
+| pixfrac==0.0（文件通道 API 层） | 放行后进引擎再拒（双轨） | `lib/algorithms/drizzle/healpix_drizzle/hp_drizzle_api.cpp`（DISP-DRZ-003） |
 | RING（nested=0） | 硬拒绝 | `lib/algorithms/drizzle/healpix_drizzle/drizzle_engine.cpp`；shim throw |
 | channels≠1 多通道 | 拒绝 | 同上 |
-| 缺 WCS（CD 与 CDELT+CROTA2 均无） | 拒绝（帧通道返回 -9） | `lib/algorithms/drizzle/healpix_drizzle/api.cpp` |
+| 缺 WCS（CD 与 CDELT+CROTA2 均无） | 拒绝（帧通道返回 -9） | `lib/algorithms/drizzle/healpix_drizzle/hp_drizzle_api.cpp` |
 | 尺寸/空指针非法 | 拒绝 | `lib/algorithms/drizzle/healpix_drizzle/drizzle_engine.cpp` |
 | **值像素 NaN/Inf** | 按 `rule_id NAN-SAMPLE-MASK-COVERAGE-NAN` 处置 = **样本级掩膜 + 重归一 + 覆盖级 NaN + 强制计数**（唯一口径文字 = `docs/engineering/data/PHASE_PRODUCT_EXCHANGE.md` §2a）：不合格样本从 `F_p`、分母、方差三项一并剔除并重新归一，仅零合格样本输出 `NaN ∧ support≤0`，每个输出像素必须暴露被剔除样本计数 `n_rejected_nonfinite`（按原因分类、互斥可加）。**实现锚**：`!std::isfinite(pixelValue) → ++tc.rejected_nonfinite_value; continue`（`DrizzleEngine::drizzleTiledImpl` 主循环）；分类计数聚合为 `DrizzleStats::n_rejected_nonfinite{,_value,_variance,_nonpositive_weight}`（同文件）。 | `lib/algorithms/drizzle/healpix_drizzle/drizzle_engine.cpp` |
 | SNR 面非有限 | 计入 `rejected_nonfinite_value` 同族掩膜路径（SNR 面参与权重/有效性判定，剔除项逐条计数登记） | `lib/algorithms/drizzle/healpix_drizzle/drizzle_engine.cpp` |
 | 权重面非有限或 ≤0 | 计入 `rejected_nonpositive_weight`（原因 3）后剔除该样本（**必须计数**，禁静默） | 同上 |
 | variance 面非有限（NaN/Inf） | 计入 `rejected_nonfinite_variance`（原因 2）后剔除该样本（**必须计数**，禁静默） | 同上 |
-| **variance 面 = 0（方差不可用）** | **不是无效像素**：样本合格性只判 `isfinite(x_j)`（DATA-002 §2a）；variance=0 按 DATA_SEMANTICS §4a「无覆盖/无方差信息像素写 variance=0 且 ivar=0（显式不可用）」与 §20.1「ivar==0 = 合法零权重、variance==0 = 无信息」处理 ⇒ **只令方差项为 0，不丢信号、不丢几何支撑**。`V_j ≤ 0` 不构成掩膜授权（`ACSD_DESIGN.md` §5.5 只授权对 NaN 做样本级掩膜） | `lib/algorithms/drizzle/healpix_drizzle/drizzle_engine.cpp` V≤0 分支（置 0 不 continue）；证据见 实验/absolute-snr/（方差语义面）|
+| **variance 面 = 0（方差不可用）** | **不是无效像素**：样本合格性只判 `isfinite(x_j)`（DATA-002 §2a）；variance=0 按 `docs/science/unified/DATA_SEMANTICS.md`「方差与逆方差的三态编码」一节「无覆盖/无方差信息像素写 variance=0 且 ivar=0（显式不可用）」与 §20.1「ivar==0 = 合法零权重、variance==0 = 无信息」处理 ⇒ **只令方差项为 0，不丢信号、不丢几何支撑**。`V_j ≤ 0` 不构成掩膜授权（`ACSD_DESIGN.md` §5.5 只授权对 NaN 做样本级掩膜） | `lib/algorithms/drizzle/healpix_drizzle/drizzle_engine.cpp` V≤0 分支（置 0 不 continue）；证据见 实验/absolute-snr/（方差语义面）|
 | 几何 NaN（ra/dec 非有限） | 显式拒绝该像素 | `lib/algorithms/drizzle/healpix_drizzle/drizzle_engine.cpp` |
 | 半球检查失败（max_ang≥π/2） | 返回 NAN 面积 | `lib/algorithms/drizzle/healpix_drizzle/spherical_overlap.cpp` |
 | A_drop<1e-20 / w≤0 | 拒绝 | `lib/algorithms/drizzle/healpix_drizzle/drizzle_engine.cpp` |
@@ -258,7 +258,7 @@
   oracle 枚举）；fast 路径圆心距预过滤降低 S-H 调用。
 - 内存: tile 累加器 leaf 连续数组 O(1) 寻址（禁 per-leaf 全局 map，
   `lib/algorithms/drizzle/healpix_drizzle/drizzle_engine.cpp` 注释）；target 缓存 per-thread bounded 8192 LRU；单交集
-  O(顶点数≤8) 无整帧副本；SNR 控制点 RAII vector（`lib/algorithms/drizzle/healpix_drizzle/api.cpp`，
+  O(顶点数≤8) 无整帧副本；SNR 控制点 RAII vector（`lib/algorithms/drizzle/healpix_drizzle/hp_drizzle_api.cpp`，
   已消除 free 泄漏）。
 
 ## 8 数据布局
@@ -272,7 +272,7 @@
   （有 variance 输入时）；provenance 写 pixfrac/源像素尺度。
 - HissWriter 流式（writeHisTilesT，`lib/algorithms/drizzle/healpix_drizzle/drizzle_engine.cpp` finalize），
   测光 gate 同文件；operation_counts.json 剖面
-  （`lib/algorithms/drizzle/healpix_drizzle/api.cpp`）。
+  （`lib/algorithms/drizzle/healpix_drizzle/hp_drizzle_api.cpp`）。
 - **累加精度 provenance（无 silent 缺省）**: 累加精度由
   `drizzle.precision_mode`（整数 0=FP32 / 1=FP64）显式给出；缺失或非整数
   → DATA 拒绝（不 silent 降 FP32）。节点写 p1_stack.json `precision_mode`、
@@ -292,7 +292,7 @@
   未显式声明仍按 02_FROZEN §7 拒绝（`lib/algorithms/drizzle/healpix_drizzle/drizzle_engine.cpp`；
   `lib/algorithms/drizzle/healpix_drizzle/hp_drizzle_api.cpp`；`lib/infrastructure/scheduler/src/module_adapters.cpp`）。
 - 输入通道: PipelineFrame "data"（f32/f64 二选一，bzero=0/bscale=1
-  固定，`lib/algorithms/drizzle/healpix_drizzle/api.cpp`）+ header WCS/SIP KV + 可选 "snr_model" 块
+  固定，`lib/algorithms/drizzle/healpix_drizzle/hp_drizzle_api.cpp`）+ header WCS/SIP KV + 可选 "snr_model" 块
   （KD-tree IDW 重建逐像素 SNR，snr_evaluator.h）。
 - **SIP 桥接**：编排 drizzle 节点从上游
   `p1_wcs.json`（DATA-P1-WCS §18）读回 `wcs.sip`（order/ap_order/a/b/ap/bp，
@@ -381,7 +381,7 @@
 |---|---|---|---|
 | DISP-DRZ-001 | `lib/algorithms/drizzle/healpix_drizzle/hp_drizzle_api.h` 注释 sip_order "0..4" | `lib/algorithms/drizzle/healpix_drizzle/hp_drizzle_api.cpp` 校验 [0,5]（6×6 系数组支持 5 阶下标） | 头注释 vs 实现的校验段 |
 | DISP-DRZ-002 | 源码注释 `lib/algorithms/drizzle/healpix_drizzle/spherical_overlap.h` / `spherical_overlap.cpp` 写 "Girard 定理" | 面积实现 = S-H 球面裁剪 + Van Oosterom & Strackee 扇形三角剖分，无 Girard 实现；文档侧命名已与实现一致，**禁用** "Girard 定理" 命名 | 头/源注释 vs 面积实现 |
-| DISP-DRZ-003 | pixfrac∈(0,1] 单一边界 | 文件通道 API 层接受 0.0（<0 才拒），引擎层拒绝——两层双轨 | `lib/algorithms/drizzle/healpix_drizzle/api.cpp` vs `lib/algorithms/drizzle/healpix_drizzle/drizzle_engine.cpp` |
+| DISP-DRZ-003 | pixfrac∈(0,1] 单一边界 | 文件通道 API 层接受 0.0（<0 才拒），引擎层拒绝——两层双轨 | `lib/algorithms/drizzle/healpix_drizzle/hp_drizzle_api.cpp` vs `lib/algorithms/drizzle/healpix_drizzle/drizzle_engine.cpp` |
 | DISP-DRZ-004 | 值像素 NaN 按 `rule_id NAN-SAMPLE-MASK-COVERAGE-NAN` 处置 = 样本级掩膜 + 重归一 + 覆盖级 NaN + 强制计数（`docs/science/drizzle/DRIZZLE.md`）：不合格样本剔除并重归一、仅零合格样本输出 `NaN ∧ support≤0`、必须暴露 `n_rejected_nonfinite` | **约束**：主循环按原因分类计数（值/方差/权重三分类）并聚合暴露 `DrizzleStats::n_rejected_nonfinite*`（`lib/algorithms/drizzle/healpix_drizzle/drizzle_engine.cpp`）；**禁用**把非有限样本传播进 `F_p`/分母/方差——会污染整像素信号与几何支撑（负例判据：零合格样本必须输出 `NaN ∧ support≤0` 且分类计数非零） | `docs/science/drizzle/DRIZZLE.md` vs `lib/algorithms/drizzle/healpix_drizzle/drizzle_engine.cpp` |
 | DISP-DRZ-005 | `max_angle < 1e-3` 切平面分支是**实际执行路径，必须保留**：微小 drop（角跨度 < 1e-3 rad ≈ 206″）用切平面面积 | 三处活分支（均在 `lib/algorithms/drizzle/healpix_drizzle/spherical_overlap.cpp`）：`g.drop_area` 微小 drop 用切平面面积、nb=4 重叠 `<1e-3` 用 `planar_polygon_area_n`（否则球面 `spherical_polygon_area_n`）、三角形扇重叠同策略（与 g.drop_area 表示一致，避免 weight 偏差） | 同文件的三处活分支与其注释；θ=1e-3 时切平面偏差 ≈ −θ_max²/2 = −5.0e-7（恒负、单向下偏；θ_max 按 drop 最远顶点角距约定；旧注 "<4e-8" 缺符号且偏小 12.5 倍，撤换），球面 double 相消噪声 ~1e-4~5e-5 |
 | DISP-DRZ-006 | TileLeafAccumulatorT release 仅 3 字段（`lib/algorithms/drizzle/healpix_drizzle/drizzle_engine.h` 注释） | 实际 4 字段（sumVarNum 为正式产品） | 同一头文件的注释 vs 结构体定义 |

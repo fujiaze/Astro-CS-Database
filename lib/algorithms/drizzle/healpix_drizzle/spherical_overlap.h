@@ -3,7 +3,7 @@
 
 // ============================================================================
 // 球面 HEALPix 重叠计算模块 (WP-D 步骤3-4)
-// Trace: SCI-DRZ-001 / ALG-DRZ-001（docs/science/DRIZZLE.md,
+// Trace: SCI-DRZ-001 / ALG-DRZ-001（docs/science/drizzle/DRIZZLE.md,
 // docs/science/algorithms/DRIZZLE_GEOMETRY.md, TRACEABILITY MOD-acsd-phase1-drizzle）。
 //
 // 用途:

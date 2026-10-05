@@ -935,7 +935,9 @@ static acsd_status gaia_execute(acsd_module_instance_v1* inst_raw,
                 memcpy(w, keys[2], kl); w += kl;
                 b64_encode((const uint8_t*)match_idx, (uint64_t)c.n_coords * sizeof(int), w);
                 /* M2a-C-1: match_idx 载荷长度 = n_coords（坐标序 + −1 表未匹配），
-                 * 不得截断为 matched_count；见 DATA_SEMANTICS §8.2。 */
+                 * 不得截断为 matched_count；见 docs/science/unified/
+                 * DATA_SEMANTICS.md「星表行语义」一节（`out_match_idx` = -1 表示
+                 * 该坐标未匹配，`out_count` = 0 是合法结果而非错误）。 */
                 w += strlen(w);
                 *w++ = '"';
             }

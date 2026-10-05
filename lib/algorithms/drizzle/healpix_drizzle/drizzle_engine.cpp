@@ -1,5 +1,5 @@
 #include "drizzle_engine.h"
-// 文档锚点: docs/science/DRIZZLE.md §方差传播 (SCI-DRZ-014 / ALG-DRZ-VAR) — α²v: sumVarNum+=v·w², var=sumVarNum/D², ivar=1/var, x'=αx→var'=α²var
+// 文档锚点: docs/science/drizzle/DRIZZLE.md §方差传播 (SCI-DRZ-014 / ALG-DRZ-VAR) — α²v: sumVarNum+=v·w², var=sumVarNum/D², ivar=1/var, x'=αx→var'=α²var
 // 数值: (double)v·(double)w²→Scalar FP64累积; 归一在 astro_sphere_sink.cpp:100 / aio_hips_writer::finalize_tile
 #include "healpix_core.h"
 #include "spherical_overlap.h"   // WP-D: 球面 HEALPix 重叠计算
@@ -1650,7 +1650,7 @@ bool DrizzleEngine::drizzleTiledImpl(const FitsImage& img, const DrizzleConfig& 
     //     W_eff = in_flight × min(inner_omp, K) ⇒ 要 W_eff 达到帧内轴宽度必须 K ≥ inner_omp;
     //     而 K = inner_omp = num_threads 时，同时在飞的 scratch 份数
     //     = in_flight × inner_omp ≤ lease（p1_parallel_for 的轴不变式，
-    //     docs/engineering/THREADING_MODEL.md「并行轴分配」）
+    //     docs/engineering/architecture/DATA_FLOW.md「并行轴分配」）
     //   ⇒ **K = num_threads 是达成满宽的唯一最小取值**，且总份数与轴形态无关。
     //   旧值 2 是「帧内轴尚未按剩余预算分配」时代的补丁：那时每帧线程数 = 进程默认
     //   （硬件并发），K 不压就会 16 帧 × 16 线程 = 256 份（8 GB 地址空间下 bad_alloc）。
@@ -1856,7 +1856,7 @@ bool DrizzleEngine::drizzleTiledImpl(const FitsImage& img, const DrizzleConfig& 
                 // —— 下游 processPixel* 的 `varianceValue > 0.0f` 判据自然
                 // 跳过 sumVarNum 累加，产品面即 §4a 的 variance=0 ∧ ivar=0。
                 // 丢弃会同时销毁 support（support 是纯几何量 covered_area/A_cell，
-                // DATA_SEMANTICS §12.3:398-411），使该像素在下游变成"无效"。
+                // `docs/science/unified/DATA_SEMANTICS.md`「三个基本对象的语义」一节），使该像素在下游变成"无效"。
                 if (varianceValue <= 0.0f) varianceValue = 0.0f;
             }
 

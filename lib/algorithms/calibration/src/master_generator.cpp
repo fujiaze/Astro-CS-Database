@@ -169,7 +169,7 @@ void generate_master(const float* stack, int n_frames, int w, int h,
 // bias: [h * w] 或 NULL
 // out: [h * w]，最终 median 归一化到 1.0，最小值裁剪 0.1
 // 返回 0 成功 / AC_ERR_PARAM 参数无效。SCIENCE 契约
-// (docs/science/CALIBRATION.md §5 连续定义, flat_norm): median<=0 的帧不可归一化 —
+// (docs/science/calibration/CALIBRATION.md §5 连续定义, flat_norm): median<=0 的帧不可归一化 —
 // 负中位数直接作除数会使全负帧被 0.1 地板钳成常数场 (科学数据损坏),
 // 此类输入必须在归一化前拒绝。
 // DISP-CAL-010: 帧级 median 与 generate_master 逐像素路径同一 NaN 策略

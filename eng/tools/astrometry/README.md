@@ -5,7 +5,7 @@
 ## 职责边界
 
 - 放：闭环指标的 compute / check / fault-inject / selftest 四个子命令，独立于生产实现。
-- 不放：口径数值定义正文（在 `docs/science/ASTROMETRY.md` 与 `docs/science/algorithms/GATES_AND_TOLERANCES.md`）、生产 WCS 求解代码（在 `lib/`）、星表锥搜索产物本身。
+- 不放：口径数值定义正文（在 `docs/science/detection/ASTROMETRY.md` 与 `docs/science/algorithms/GATES_AND_TOLERANCES.md`）、生产 WCS 求解代码（在 `lib/`）、星表锥搜索产物本身。
 
 ## 内容
 
@@ -14,5 +14,5 @@
 
 ## 上游
 
-- 口径数值定义正文在 `docs/science/ASTROMETRY.md` 与 `docs/science/algorithms/GATES_AND_TOLERANCES.md`。
+- 口径数值定义正文在 `docs/science/detection/ASTROMETRY.md` 与 `docs/science/algorithms/GATES_AND_TOLERANCES.md`。
 - 自检按需直接执行：`python3 eng/tools/astrometry/closure_metric.py selftest`。

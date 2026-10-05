@@ -17,7 +17,7 @@
 为什么必须新建本工具（任务书第 1 条的判定）
 --------------------------------------------
 规范路径的三命令串行驱动是 eng/tools/e2e/run_e2e_chain.py（ENGINEERING_SPEC §13 +
-docs/engineering/01_CHECKS.md 注册面 CHK-E2E-CHAIN / CHK-E2E-CHAIN-SELFTEST），但它**只吃真实帧**：
+docs/engineering/testing/VALIDATION_EVIDENCE.md 注册面 CHK-E2E-CHAIN / CHK-E2E-CHAIN-SELFTEST），但它**只吃真实帧**：
 配置由 eng/tools/e2e/make_e2e_configs.py 从 testdata/M42*、testdata/Galaxy_Center_T4 的
 真实 FITS 构造（含写死的 RA/Dec 中心）。合成数据侧现有两件都不能独立驱动全链：
 

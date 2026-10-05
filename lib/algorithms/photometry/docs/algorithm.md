@@ -160,7 +160,7 @@ r_i = log10(F_instr,i / F_syn,i)
 
 取对数的原因：乘性梯度在对数域变为加性，便于多项式拟合；同时压缩动态范围，提高稳健性。
 
-**[ARCHIVED/失实] 物理推导**（原文声称 `F_syn = I_star`，把 Gaia 合成通量等同于"未衰减的仪器流量"，量纲与物理均错）：正确关系为 `r_i = log10(F_instr,i/F_syn,i) = log10 κ + ε_i`，其中 `κ` 为曝光×增益⁻¹×有效口径×像素立体角等帧/滤镜内常数乘积，`ε_i` 为第 i 颗星的通带失配项；`F_instr` 单位 ADU、`F_syn` 单位 W·m⁻²·nm，二者不同量纲（正确单位见 `docs/science/PHOTOMETRY.md` §3 与 `docs/science/DATA_SEMANTICS.md` §14.3）。拟合曲面经零点吸收的是 `log10 κ + med(ε)`，**不是** `log10(M)`；原文 `M = 10^r = M_true`、`I_cal=(I-S)/M=I_star`（正确）不成立。<!-- (P5-SNR 订正；依据 PHOTOMETRY_LITERATURE_REVIEW D.2 S9) -->
+**[ARCHIVED/失实] 物理推导**（原文声称 `F_syn = I_star`，把 Gaia 合成通量等同于"未衰减的仪器流量"，量纲与物理均错）：正确关系为 `r_i = log10(F_instr,i/F_syn,i) = log10 κ + ε_i`，其中 `κ` 为曝光×增益⁻¹×有效口径×像素立体角等帧/滤镜内常数乘积，`ε_i` 为第 i 颗星的通带失配项；`F_instr` 单位 ADU、`F_syn` 单位 W·m⁻²·nm，二者不同量纲（正确单位见 `docs/science/PHOTOMETRY.md` §3 与 `docs/science/unified/DATA_SEMANTICS.md` §14.3）。拟合曲面经零点吸收的是 `log10 κ + med(ε)`，**不是** `log10(M)`；原文 `M = 10^r = M_true`、`I_cal=(I-S)/M=I_star`（正确）不成立。<!-- (P5-SNR 订正；依据 PHOTOMETRY_LITERATURE_REVIEW D.2 S9) -->
 
 ### 4.2 星-图匹配
 

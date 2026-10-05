@@ -17,7 +17,7 @@ fits_stream_v1.h）同一算法族（32 位 1 补码 DATASUM / CHECKSUM，NOAO/R
     与 CHECKSUM 卡（16 字符 ASCII，'0' 占位兼容）比对；写入侧恒写 DATASUM 卡。
 
 确定性：只读输入字节，无时间/随机输入。并发：无全局状态（纯函数）。
-本文件为执行形态；权威文档形态 = docs/engineering/io/IO_003_ATOMIC_OUTPUT_PUBLISH.md。
+本文件为执行形态；权威文档形态 = docs/engineering/contracts/ATOMIC_PUBLISH.md。
 科学公式/常数不改：DATASUM/CHECKSUM 算法与 fits_core.c 一致（同一公开算法，
 不做任何数学近似）。
 """

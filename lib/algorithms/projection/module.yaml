@@ -107,8 +107,8 @@ api_contracts:
 doc_links:
   sci: docs/science/PHASE3_HIPS_TO_FITS.md
   alg: docs/science/algorithms/PHASE3_PROJ_IMPL.md
-  data: docs/science/DATA_SEMANTICS.md#§28
-  api: docs/engineering/PUBLIC_API.md#API-P3-PROJ-001
+  data: docs/science/unified/DATA_SEMANTICS.md#§28
+  api: docs/engineering/api/PUBLIC_API.md#API-P3-PROJ-001
 contract_ids:
   sci: SCI-P3-001
   alg: ALG-P3-PROJ-IMPL-001

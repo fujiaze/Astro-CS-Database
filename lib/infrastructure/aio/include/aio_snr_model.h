@@ -10,7 +10,7 @@
 //   drizzle 链消费 (hp_drizzle_api.cpp 构造、HISS_VERIFY 之外的稀疏 SNR 重建)，
 //   它与容器格式无任何关系，故独立成头。
 //
-// 字段语义 (P2/P4 判据参数, 权威 = docs/science/DATA_SEMANTICS.md 的 SNR
+// 字段语义 (P2/P4 判据参数, 权威 = docs/science/unified/DATA_SEMANTICS.md 的 SNR
 // 控制点条目):
 //   snr_psf     单点 SNR, 无量纲
 //   snr_phot    1/(ln10×sigma_residual) 全局标量

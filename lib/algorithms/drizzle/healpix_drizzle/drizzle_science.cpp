@@ -567,7 +567,8 @@ GateVerdict gate_parent_reduction(const ParentReductionRecord& rec) {
 
 namespace {
 // canonical 面亮度串必须显式含立体角因子（"ADU/sr"、"ADU^2/sr^2"、"sr^2/ADU^2"；
-// DATA_SEMANTICS §31.1a: 写侧一律 "sr"）；legacy "px"/"pixel" 为读侧别名，同判。
+// `docs/science/unified/DATA_SEMANTICS.md`「面亮度单位的推导」一节：写侧一律 "sr"）；
+// legacy "px"/"pixel" 为读侧别名，同判。
 bool has_explicit_solid_angle_power(const std::string& u) {
     static const char* kPos[] = {"/sr", "sr^", "/px", "px^", "/pixel", "pixel^"};
     for (const char* p : kPos) {

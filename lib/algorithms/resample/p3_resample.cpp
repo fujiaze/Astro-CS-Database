@@ -282,7 +282,9 @@ P3ResampleStatus p3_sampler_open_ex(const char* product_dir, P3Sampler* out,
     // 暴露输入实际 order 与 BUNIT(缺省 ADU/sr, 绝不 Jy/beam)
     if (out_order) *out_order = p.order;
     // 采样值 = 输入 HiPS tile 值的凸组合 ⇒ 与输入同单位（面亮度，canonical "ADU/sr"，
-    // DATA_SEMANTICS §29.3/§31.1a）；缺省串取该平面物理单位，禁裸 ADU（每像素口径）。
+    // docs/detail/registry/acsd.phase3.resample2.md
+    // 「输入输出端口、DATA、单位、坐标、invalid」一节与 `docs/science/unified/DATA_SEMANTICS.md`「面亮度单位的推导」一节）；
+    // 缺省串取该平面物理单位，禁裸 ADU（每像素口径）。
     if (out_bunit) *out_bunit = p.bunit.empty() ? std::string("ADU/sr") : p.bunit;
     return P3_RS_OK;
 }

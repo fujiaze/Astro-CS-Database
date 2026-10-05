@@ -4,11 +4,11 @@
 > 模块化迁移落码归 P1-WCS-IMPL；禁止声明 IMPLEMENTED）
 > 文档版本: r1（本 README 重写取代 V4.30 营销式旧 README——旧文成功率/性能
 > 对比等叙述保留于 GitHub 上游仓库与 memory.md 存档，合同冻结以本版为准）
-> 权威来源: SCI=docs/science/ASTROMETRY.md（SCI-WCS-001，FROZEN T102
+> 权威来源: SCI=docs/science/detection/ASTROMETRY.md（SCI-WCS-001，FROZEN T102
 > 2026-08-23，共享引用不改动）；ALG=docs/science/algorithms/PLATESOLVE.md
 > （ALG-WCS-001 + §11 逐符号源码锚定）；DATA=docs/engineering/
-> DATA_SEMANTICS.md §18（DATA-P1-WCS）；API=docs/engineering/PUBLIC_API.md
-> （API-WCS-001）；矩阵行=docs/engineering/TRACEABILITY_SPEC.md §9
+> DATA_SEMANTICS.md §18（DATA-P1-WCS）；API=docs/engineering/api/PUBLIC_API.md
+> （API-WCS-001）；矩阵行=docs/engineering/governance/TRACEABILITY.md §9
 > MOD-acsd-phase1-wcs-platesolve。
 > 唯一权威签名头: lib/algorithms/platesolve/cpp/ipv/include/ipv_api.h（238 行；
 > 禁止手抄他版）。
@@ -49,7 +49,7 @@ star_det 块）；不做图像重采样（drizzle 域）；不做 Gaia 星表缓
 管理（gaia_xpsd_client 域，句柄注入）；不做星表-图像流量定标（P1-PHOT
 域）；不输出逐像素坐标映射网格（仅 FITS WCS 参数化）。
 
-## 3. 输入输出（DATA-P1-WCS，DATA_SEMANTICS §18 唯一权威）
+## 3. 输入输出（DATA-P1-WCS，`docs/detail/registry/acsd.phase1.wcs-platesolve.md`「输入输出端口、DATA、单位、坐标、invalid」一节 唯一权威）
 
 生产通道（ipv_solve_from_detections_v1，orchestrator.cpp:1967 实调）：
 
@@ -68,7 +68,7 @@ star_det 块）；不做图像重采样（drizzle 域）；不做 Gaia 星表缓
 
 ## 4. 与 SCI-WCS-001 的映射
 
-共享 SCI docs/science/ASTROMETRY.md（不改动）：TAN 投影+SIP 参数化=本模块
+共享 SCI docs/science/detection/ASTROMETRY.md（不改动）：TAN 投影+SIP 参数化=本模块
 输出形式；CRPIX=w/2+0.5 不变量=ipv_wcs.cpp:274-277 冻结实现；ICRS/J2000=
 RADESYS/EQUINOX 写回（orchestrator.cpp:2007-2008）；退化条件 §8=DISP-WCS-001
 登记域；astropy oracle §11=TEST-WCS-DESIGN-001 F2。科学公式（F1-F6，

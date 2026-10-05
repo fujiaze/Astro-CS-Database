@@ -15,7 +15,7 @@
 #   物理位 = ARCH-001 迁移清单 #15（lib/orchestrator → lib/infrastructure/pipeline/orchestrator，
 #   该条依据写的是「7.1 infrastructure/pipeline（typed DAG 编排）」）⇒ 位置与职责冲突，
 #   登记 ORCH-HOME-01 另行处置（目录搬迁 = git mv，非本任务权限）。
-#   本 target 名取 MODULE_MAP 的 infrastructure 约定（docs/engineering/MODULE_MAP.md
+#   本 target 名取 MODULE_MAP 的 infrastructure 约定（docs/engineering/architecture/MODULE_MAP.md
 #   conventions: target_infrastructure = acsd_infra_<id>），id = orchestrator，
 #   **不写死 pipeline 或 scheduler 任意一侧**。
 #

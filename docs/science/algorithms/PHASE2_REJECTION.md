@@ -9,7 +9,7 @@
 > （docs/science/REJECTION.md，FROZEN，集合
 > SCI-REJ-001..008，零改动；descriptor 占位 SCI-P2-REJ-001 ⇒
 > SCI-REJ-001 映射声明见 §11.5）。共享 L2: ALG-REJ-001
-> （本文件 §12 承接，方法核与数据布局见 §5/§15/§16）。DATA: DATA-P2-REJ（DATA_SEMANTICS §22）。API:
+> （本文件 §12 承接，方法核与数据布局见 §5/§15/§16）。DATA: DATA-P2-REJ（`docs/detail/registry/acsd.phase2.reject.md`）。API:
 > API-P2-REJ-001（PUBLIC_API.md）。TEST: TEST-P2-REJ-001（设计冻结
 > 面=本文档 §11.4；可执行落地归 P2-REJ-TEST）。迁移目标
 > acsd_p2_rejection.dll 为矩阵合同值（MISSING），由 P2-REJ-IMPL
@@ -33,7 +33,7 @@
   session 依赖（无状态纯函数）；不做瞬变/卫星语义区分（SCI §1
   非目标）；单帧无排异（n=1 进 UNDERDETERMINED 白名单）。
 
-## 2 符号与单位（权威=本表 + DATA_SEMANTICS §22 + SCI §3）
+## 2 符号与单位（权威=本表 + `docs/detail/registry/acsd.phase2.reject.md` + SCI §3）
 
 | 符号 | 含义 | 单位/dtype | 锚 |
 |---|---|---|---|
@@ -220,7 +220,7 @@ profile 合法集 = {acsd_adaptive_pixel(生产默认, Astro Celestial Sphere Da
   depth；acsd_adaptive_pixel=逐输出像素几何 N 映射（上表）；与 WBPP
   档界的差异及其依据见 docs/science/REJECTION.md——canonical/adaptive
   区别仅在 nominal 来源，h:227-239/:241-259 冻结注释。
-  生产布局与现行语义详见 DATA_SEMANTICS §22 生产表）
+  生产布局与现行语义详见 `docs/detail/registry/acsd.phase2.reject.md`
 ```
 
 ### F2 eligibility gather（p2_collect_candidate_stack :1372-1455；core :1311-1346）
@@ -513,11 +513,11 @@ tally: accepted_count/rejected_low/rejected_high/iterations  :2163-2177
   冻结两符号；compat 仅测试/旧调用（h:299 冻结注释"生产 Stage2
   不再调用"）。
 
-## 8 单位与 dtype 登记（唯一权威=DATA_SEMANTICS §22）
+## 8 单位与 dtype 登记（唯一权威=`docs/detail/registry/acsd.phase2.reject.md`）
 
 - kernel 工作域全浮点 IEEE f64（gather 按 `value_dtype` 分派 f32/f64 源→f64 提升，
   :1386-1401）；无 long double/复数。**单位逐项**（权威 = SCI REJECTION §3
-  + DATA_SEMANTICS §22）：`values` = 面亮度 **ADU·sr⁻¹**；
+  + `docs/detail/registry/acsd.phase2.reject.md`）：`values` = 面亮度 **ADU·sr⁻¹**；
   `weights` = **(ADU·sr⁻¹)⁻²**；`support` 无量纲 [0,1]（仅作资格门，不进统计）；
   `frame_ids` 无量纲 u64；`reasons` u8；计数/iterations u32；`status` int。
 - MINMAX 判定直接用原始域值（:2150 分派 stack->values）；PERCENTILE
@@ -724,14 +724,14 @@ tally: accepted_count/rejected_low/rejected_high/iterations  :2163-2177
 
 - 实现: lib/algorithms/coverage/src/rejection.cpp（2965 行）+
   lib/algorithms/coverage/include/astro/phase2/rejection.h（602 行）（实测）。
-- 合同: DATA-P2-REJ（DATA_SEMANTICS §22）/ API-P2-REJ-001
+- 合同: DATA-P2-REJ（`docs/detail/registry/acsd.phase2.reject.md`）/ API-P2-REJ-001
   （PUBLIC_API.md）/ TEST-P2-REJ-001（设计冻结 VERIFIED=registry
   承载页 §独立验证节；可执行落地归 P2-REJ-TEST + EVIDENCE）。
 - 交叉: docs/detail/phase2_rej.md + lib/algorithms/rejection/ 三件套
   （README/module.yaml/memory.md，按 lib/algorithms/integration/ 先例新建；
   lib/algorithms/coverage/ 三件套已被 P2-COV 占用）；registry
   acsd.phase2.reject.md。
-- 消费者: stage2.cpp（§6；DATA_SEMANTICS §20 编排域）/
+- 消费者: stage2.cpp（§6；`docs/detail/registry/acsd.phase2.write.md` 编排域）/
   acr_kernels.cpp（ACR 域）/ P2-005 语义 id/解析面判据/
   排异/积分生产 Oracle 组/ module_adapters.cpp:704-720
   descriptor 占位。

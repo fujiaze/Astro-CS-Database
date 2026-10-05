@@ -52,7 +52,8 @@ std::string g_last_err;
 // 逐 HDU 写出并由 cfitsio 自行归属。旧实现自算 "little-endian 无进位字节和"
 // 并以 TINT 整数写入保留字 DATASUM，是非法关键字值（astropy checksum=True
 // 报 Datasum verification failed），已删除。
-// FZ-P3-BUNIT-QUADRATIC / docs/science/DATA_SEMANTICS.md §31.1/§31.1a:
+// FZ-P3-BUNIT-QUADRATIC / docs/science/unified/DATA_SEMANTICS.md
+// 「单位与量纲表」+「面亮度单位的推导」两节:
 // variance BUNIT = (signal BUNIT)^2, ivar = 1/variance —— 用**冻结单位表的 canonical
 // 串**（ADU^a × 立体角幂次代数；写侧一律 "sr"），禁朴素字符串拼接（"ADU/sr" + "^2"
 // = "ADU/sr^2" 既非 canonical 也不可判）。解析失败 → false（调用方显式拒绝，
@@ -76,7 +77,9 @@ bool bunit_square_canonical(const std::string& signal, std::string* variance,
         return false;
     };
     // 分母因子的立体角幂次（符号 "sr"；legacy 读侧别名 "px"/"pixel" 同幂次，
-    // DATA_SEMANTICS §31.1a: 旧冻结表把像元面积记作 px^N ⇒ 与 sr^(N/2) 同一立体角维）。
+    // docs/science/unified/DATA_SEMANTICS.md「单位与量纲表」一节：写盘单位串一律用
+    // `sr`，读侧兼容同幂次的 `px`、`pixel` 写法 ⇒ 旧冻结表把像元面积记作 px^N
+    // 与 sr^(N/2) 是同一立体角维）。
     auto parse_area_pow = [&parse_pow](const std::string& s, int* sr_out) -> bool {
         int e = 0;
         if (parse_pow(s, "sr", &e)) { *sr_out = e; return true; }
@@ -334,8 +337,11 @@ P3OutputStatus p3_output_write_atomic_ex(const float* signal, const float* cover
         double bscale = 1.0, bzero = 0.0;
         fits_write_key(f, TDOUBLE, (char*)"BSCALE", &bscale, nullptr, &status);
         fits_write_key(f, TDOUBLE, (char*)"BZERO", &bzero, nullptr, &status);
-        // 主 HDU = 重采样后的**面亮度**平面（§27.1/§29.3），单位口径见
-        // DATA_SEMANTICS §31.1a；缺省串取该平面的物理单位 canonical "ADU/sr"
+        // 主 HDU = 重采样后的**面亮度**平面（Phase3 FITS 写出与 HiPS 重采样两模块的
+        // 端口见 docs/detail/registry/acsd.phase3.writer.md 与
+        // docs/detail/registry/acsd.phase3.resample2.md 的
+        // 「输入输出端口、DATA、单位、坐标、invalid」一节），单位口径见
+        // `docs/science/unified/DATA_SEMANTICS.md`「面亮度单位的推导」一节；缺省串取该平面的物理单位 canonical "ADU/sr"
         // （裸 "ADU" 是每像素计数口径，与本平面数值不符且量纲不可判）。
         const char* unit = (bunit && *bunit) ? bunit : "ADU/sr";
         fits_write_key(f, TSTRING, (char*)"BUNIT", (void*)unit, nullptr, &status);
@@ -758,7 +764,7 @@ P3OutputStatus p3_output_verify_ex(const char* output_path,
 //
 // 规范：docs/ACSD_DESIGN §8.3 export 行「子块流式：读子块 → 投影重采样 → 写
 // FITS，有界队列 + 背压，不整幅驻留；I/O 与计算重叠，内存占用与子块大小成
-// 正比、与总图大小无关」；docs/engineering/SCHEDULER_CONTRACT.md §2 export 行同文。
+// 正比、与总图大小无关」；docs/engineering/contracts/SCHEDULER.md §2 export 行同文。
 // 产品语义与整幅 API 逐条同面（FITS 关键字、BSCALE/BZERO、HISTORY provenance、
 // 逐 HDU DATASUM/CHECKSUM、flush→close→fsync→rename 原子发布序、独立重开
 // 对拍），差别只在**驻留面**：像素按矩形子块经 cfitsio 子集接口进出，
@@ -812,7 +818,8 @@ P3OutputStatus P3FitsStream::open(const char* output_path,
     impl_->height = height;
     impl_->bitpix = bitpix;
     // 主 HDU = 重采样后的**面亮度**平面（与整幅路径同面，§27.1/§29.3）:
-    // 缺省串取 DATA_SEMANTICS §31.1a 的 canonical "ADU/sr"（裸 "ADU" 是每像素计数口径）。
+    // 缺省串取 `docs/science/unified/DATA_SEMANTICS.md`「面亮度单位的推导」一节
+    // 的 canonical "ADU/sr"（裸 "ADU" 是每像素计数口径）。
     impl_->bunit = (bunit && *bunit) ? bunit : "ADU/sr";
     impl_->out = output_path;
     impl_->lock.reset(new aio::CfitsioLockGuard());

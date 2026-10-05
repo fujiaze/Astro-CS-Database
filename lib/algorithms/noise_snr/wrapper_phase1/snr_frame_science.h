@@ -38,7 +38,8 @@ struct SnrSourceRow {
   double flux_adu = 0.0; // F 总通量 [ADU] (>0 才可计算)
   // **检测块**母函数宽度 = 椭圆高斯 FWHM [pixel] (>0 才可计算)。
   // 来源列固定为 DATA-P1-SOURCES.sources[].fwhm_px (与 psf.max_stars 解耦,
-  // DATA_SEMANTICS §13.4); 该列不得与 PSF 块 Moffat4 FWHM 列互换/比较
+  // docs/science/unified/DATA_SEMANTICS.md「帧级信噪比的参考通量基准」一节的
+  // 样本真实性约束); 该列不得与 PSF 块 Moffat4 FWHM 列互换/比较
   // (SCI-P1-STAR-001 §2 :31-34, DISP-STAR-007): 同 sigma 下相差 1.914005x。
   double fwhm_px = 0.0;
 };

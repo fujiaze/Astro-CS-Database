@@ -68,8 +68,8 @@ api_contracts:
 doc_links:
   sci: docs/science/INTEGRATION.md
   alg: docs/science/algorithms/PHASE2_INTEGRATION.md
-  data: docs/science/DATA_SEMANTICS.md#§21
-  api: docs/engineering/PUBLIC_API.md#API-P2-INT-001
+  data: docs/science/unified/DATA_SEMANTICS.md#§21
+  api: docs/engineering/api/PUBLIC_API.md#API-P2-INT-001
 contract_ids:
   sci: SCI-INT-001
   alg: ALG-P2-INT-001

@@ -4,8 +4,8 @@
   "version": 1,
   "status": "PRODUCTION_INTEGRATED",
   "task": "DOC-CONTRACT-MERGE-02",
-  "semantic_authority": "docs/science/unified/DATA_SEMANTICS.md §31（§31.10 V6 条款注册表与待签登记）",
-  "machine_registration_note": "本文件是 §31 的机器可读登记表（docs/ACSD_DESIGN.md §0.2：登记表与映射表承载定义）；语义权威在 docs/science/unified/DATA_SEMANTICS.md §31 正文，本文件不自声为权威。",
+  "semantic_authority": "docs/engineering/UNIFIED_OBJECTS.md「归属归一与产品族字段级约束落点」一节（V6 条款注册表、单位表、词表、迁移映射与待签/开放项登记的现行承载页）",
+  "machine_registration_note": "本文件是 V6 合同层（DATA-V6-SCHEMA）的机器可读登记表（docs/ACSD_DESIGN.md §0.2：登记表与映射表承载定义）；条款语义与待签/开放项的正文承载页是 docs/engineering/UNIFIED_OBJECTS.md「归属归一与产品族字段级约束落点」一节，本文件不自声为权威。",
   "migrated_from": {
     "frozen_contract": "acsd.v6.contract-freeze.v1.json",
     "data_dictionary": "v6_data_dictionary_v1.json",
@@ -399,7 +399,7 @@
       "subject": "BUNIT/pixel_area_power",
       "value": "BUNIT 必须量纲可判：显式立体角幂次 或 provenance pixel_semantics=surface_brightness+pixel_area_power=-2",
       "scope": "全部产品写盘",
-      "anchor": "ADJ-F-OBS-01; DATA_SEMANTICS §30.4:2475",
+      "anchor": "ADJ-F-OBS-01; docs/science/unified/DATA_SEMANTICS.md「标度类别与线性标度律」一节",
       "gate": "单位不可判 -> unavailable/REJECT",
       "fail_closed": "BUNIT=ADU 且无 pixel_semantics=surface_brightness + pixel_area_power=-2 → 单位不可判 → unavailable/REJECT",
       "negative_mutation": "删除 provenance 的 pixel_area_power 声明 → rc!=0",
@@ -847,7 +847,7 @@
       "subject": "Phase3 variance BUNIT",
       "value": "variance BUNIT = (signal BUNIT)^2; ivar = 1/(signal BUNIT)^2",
       "scope": "Phase3 产品",
-      "anchor": "DATA_SEMANTICS §30.4:2475; ADJ-P3-01/GEN-01",
+      "anchor": "docs/science/unified/DATA_SEMANTICS.md「二次律只约束单位层」一节; ADJ-P3-01/GEN-01",
       "gate": "非二次律即拒绝",
       "fail_closed": "var BUNIT ≠ (signal BUNIT)^2 或 ivar ≠ 1/variance → REJECT",
       "negative_mutation": "Phase3 variance BUNIT 改为 signal BUNIT 的一次幂 → rc!=0",
@@ -927,7 +927,7 @@
       "subject": "provenance 最小集",
       "value": "schema/软件 SHA/run ID/输入+配置哈希/单位+pixel_area_power/frame/像素语义/算法 ID/provider/近似+降级原因/归一版本/相关核摘要/flux_conservation_factor/k_corr/时间/输出哈希",
       "scope": "全部产品",
-      "anchor": "宪章 §4.3; UNIFIED §9; DATA_SEMANTICS §30.3; ADJ-GEN-03",
+      "anchor": "宪章 §4.3; UNIFIED §9; docs/science/unified/DATA_SEMANTICS.md「溯源最小集」一节; ADJ-GEN-03",
       "gate": "缺键/单位不可判/unavailable 无原因即 REJECT",
       "fail_closed": "provenance 缺最小集键、单位不可判、或 unavailable 无原因 → REJECT",
       "negative_mutation": "删除 flux_conservation_factor 或 k_corr 键 → rc!=0",
@@ -2477,7 +2477,7 @@
       "cls": "schema_runtime",
       "owner": "SCHEMA-INTEGRATE-001(W6) / IMPL-AIO-001",
       "status": "OPEN",
-      "anchor": "DATA_SEMANTICS §30.2 F-UNC-003"
+      "anchor": "docs/engineering/data/PHASE_PRODUCT_EXCHANGE.md「交换对象（exchange object）结构」一节 F-UNC-003"
     },
     {
       "id": "DI-07",
@@ -3409,7 +3409,7 @@
       "section": "§4.2 四分量表",
       "line": 203,
       "as_written": "ADU/px",
-      "disposition": "被登记的错误原文已随 DOC-PURGE-01 出库；该错误不得被静默采纳的判据仍然成立（合法域不含 'ADU/px'），见 docs/science/unified/DATA_SEMANTICS.md §31.7",
+      "disposition": "被登记的错误原文已随 DOC-PURGE-01 出库；该错误不得被静默采纳的判据仍然成立（合法域不含 'ADU/px'），concentration 单位唯一权威（component_flux_unit/px^2）见 docs/engineering/UNIFIED_OBJECTS.md「归属归一与产品族字段级约束落点」一节登记的 psfsw 记录类",
       "not_silently_adopted": true
     }
   },
@@ -3615,7 +3615,7 @@
     "wave": 6,
     "status": "PRODUCTION_INTEGRATED",
     "authority": "CONTROLLER_LOG.md C-004.3; C-007 F1 局部裁定; DI-01; DI-07",
-    "semantic_authority": "docs/science/unified/DATA_SEMANTICS.md §31.10",
+    "semantic_authority": "docs/engineering/UNIFIED_OBJECTS.md「归属归一与产品族字段级约束落点」一节",
     "statement": "SCI-PSFW-001 与 SCI-P2-001 的两套既有权重词表归一为单一权威 schema；本文件是唯一词表事实源，不发明第三套。/ The two pre-existing weight vocabularies are collapsed into one canonical schema; no third vocabulary is permitted.",
     "object_path": "weight",
     "canonical_fields": [
@@ -3852,7 +3852,7 @@
     "task": "SCHEMA-INTEGRATE-001",
     "wave": 6,
     "status": "PRODUCTION_INTEGRATED",
-    "semantic_authority": "docs/science/unified/DATA_SEMANTICS.md §31.10",
+    "semantic_authority": "docs/engineering/UNIFIED_OBJECTS.md「归属归一与产品族字段级约束落点」一节",
     "source_of_truth": "eng/contracts/proposals/v6/data/acsd.v6.data-design-catalog.v1.json#migrations + docs/science/unified/DATA_SEMANTICS.md",
     "compatibility_declaration": "向后兼容仅由 reader/迁移层提供；writer/schema 只产出 v6 canonical。legacy weight_mode=0 一律拒绝，不得静默解释为任何科学权重。既有合同语义（signal/support/variance/ivar/mask 平面语义、BUNIT 二次律、provenance 最小集）不被静默改变。",
     "file_migrations": [
@@ -3927,7 +3927,7 @@
       },
       {
         "from": "docs/engineering/UNIFIED_OBJECTS.md",
-        "to": "docs/science/unified/DATA_SEMANTICS.md §31 + docs/engineering/api/PUBLIC_API.md v6 段",
+        "to": "docs/engineering/UNIFIED_OBJECTS.md「归属归一与产品族字段级约束落点」一节 + docs/engineering/api/PUBLIC_API.md v6 段",
         "kind": "doc",
         "note": "生产合同吸收 v6 字段/单位/BUNIT/weight_mode/provenance/fail-closed"
       }
@@ -3935,7 +3935,7 @@
     "record_migrations": [
       {
         "id": "MIG-WEIGHTMODE-LEGACY",
-        "from": "ACSD_WEIGHT_MODE 整数 {0,1,2}（DATA_SEMANTICS §30.3:2421；PUBLIC_API:1165；ACR {auto,ivar,equal,support_x_snr2}）",
+        "from": "ACSD_WEIGHT_MODE 整数 {0,1,2}（docs/science/unified/DATA_SEMANTICS.md「权重词表：登记面与输入面」一节；PUBLIC_API:1165；ACR {auto,ivar,equal,support_x_snr2}）",
         "to": "显式字符串 weight_mode ∈ {point_information, surface_gls, psfsw_robust}（生产）/ {equal, pixel_ivar}（文档基线）",
         "reader_rule": "**全值域一律 REJECT**（§9.73 裁决 A44 后订正）：0=support×snr²、1=equal、2=pixel_ivar **三者同等拒绝**；auto/support_x_snr2/psf_snr_power/未知 → REJECT。订正依据：A44 删除 legacy 整数权重模式域后该字段不存在任何合法取值（docs/ACSD_DESIGN.md §3.1:175「没有可选择项」；docs/science/noise_snr/NOISE_SNR.md §4:72），原「1 → equal；2 → pixel_ivar」的映射处置**已作废**。实现事实源：lib/algorithms/coverage/src/stage2_common.cpp 与 lib/infrastructure/scheduler/src/module_adapters.cpp（键出现即拒绝）；lib/infrastructure/cli/v6_runtime_contract.h 的 route_legacy_weight_mode_int 为纯拒绝面（0/1/2/任意整数 → kReject）。",
         "writer_rule": "只写显式字符串模式 + 版本；不得写 legacy 整数。",
@@ -4013,7 +4013,7 @@
         "from": "ACSD_WEIGHT_MODE 环境/配置整数；ACSD_UNCERTAINTY_AVAILABLE 无 reason/scope",
         "to": "provenance.weight_mode_version 显式版本串 + unavailable.{flag,reason,scope}",
         "reader_rule": "unavailable 缺 reason/scope → REJECT；静默缺键 → REJECT",
-        "anchor": "FZ-PROV-MINIMAL-SET; ADJ-GEN-03; DATA_SEMANTICS §30.3",
+        "anchor": "FZ-PROV-MINIMAL-SET; ADJ-GEN-03; docs/science/unified/DATA_SEMANTICS.md「溯源最小集」一节",
         "legacy_status": "MIGRATED",
         "owner": "SCHEMA-INTEGRATE-001(W6)",
         "catalog_refs": []
@@ -4023,7 +4023,7 @@
         "from": "eng/contracts/data/phase_product_exchange.schema.json plane_id ∈ {signal,support,variance,ivar,mask}",
         "to": "v6 描述层对象并入生产 schema（point-information / psfsw / effective-psf / covariance / provenance / phase3）",
         "reader_rule": "science plane 枚举扩展必须 schema 与 runtime validator 同一提交（F-UNC-003）",
-        "anchor": "F-UNC-003; DATA_SEMANTICS §30.2; DI-06",
+        "anchor": "F-UNC-003; docs/engineering/data/PHASE_PRODUCT_EXCHANGE.md「交换对象（exchange object）结构」一节; DI-06",
         "legacy_status": "DEFERRED_COUPLED",
         "owner": "SCHEMA-INTEGRATE-001(W6) / IMPL-AIO-001",
         "not_done_reason": "runtime validator 不在本任务 write_scope；单方面扩 plane 枚举会与 runtime 失配，故 DI-06 保持 OPEN",

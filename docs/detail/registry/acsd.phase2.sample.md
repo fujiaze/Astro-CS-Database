@@ -174,8 +174,8 @@ AIO 缓存面。reentrant = yes / threadsafe = no（头文件无线程注记，�
 
 ## 错误、日志、指标、取消和 checkpoint
 
-错误面 = rc 二值 + err 8KB 文本（细分语义 = DATA §23.5 / ALG §11.1）；无状态机
-（accept / reason u8 0..5 逐观测承载，DATA §23.3）；容量不足不报错（probe/fill）。
+错误面 = rc 二值 + err 8KB 文本（细分语义 = 本页「输入输出端口、DATA、单位、坐标、invalid」一节 / ALG §11.1）；无状态机
+（accept / reason u8 0..5 逐观测承载，同上）；容量不足不报错（probe/fill）。
 
 - 控制点 / 采样点不足、连通性断裂 → fail-closed（UPM 欠定 / 不可辨识）；
 - 高结构区域误入 → 标记，不进拟合；

@@ -317,7 +317,7 @@ int HissWriter::open(const std::string& output_path,
     }
 
     // WP-C 步骤9 + UNIT-DERIVE-01 收口: 产品 BUNIT 口径校验 (fail-closed, 逐类具名)
-    // 规范: docs/science/DATA_SEMANTICS.md §31.1a:2808-2810（全链 signal 承载的物理量是
+    // 规范: docs/science/unified/DATA_SEMANTICS.md §31.1a:2808-2810（全链 signal 承载的物理量是
     //   面亮度，产品 FITS/HiPS 写盘 BUNIT 一律取 canonical 串）+ §31.1a:2827-2830（测光
     //   归一化层是线性乘性标度，不改变量纲类别：BUNIT 描述「量的种类」，标度由
     //   PHOTSCAL/PHOTAPPL 与 k_photo 逐帧承载）+ §31.2 FZ-BUNIT-SEMANTICS（写盘 BUNIT
@@ -340,7 +340,7 @@ int HissWriter::open(const std::string& output_path,
         if (bunit_str.empty()) {
             fprintf(stderr,
                     "[hiss][writer] open 失败: BUNIT 未声明 (空串)。写盘 BUNIT 必须量纲可判 "
-                    "(docs/science/DATA_SEMANTICS.md §31.2 FZ-BUNIT-SEMANTICS); "
+                    "(docs/science/unified/DATA_SEMANTICS.md §31.2 FZ-BUNIT-SEMANTICS); "
                     "产品 signal 面亮度 canonical 串 = \"ADU/sr\" (HISS_ERR_INVALID_STATE)\n");
             return -2;
         }
@@ -348,7 +348,7 @@ int HissWriter::open(const std::string& output_path,
             fprintf(stderr,
                     "[hiss][writer] open 失败: BUNIT=%s 不是面亮度口径串。产品 BUNIT 一律取 "
                     "canonical \"ADU/sr\"——测光归一化是线性乘性标度，只改零点、不改量纲类别，"
-                    "标度由 PHOTAPPL/PHOTSCAL 承载 (docs/science/DATA_SEMANTICS.md "
+                    "标度由 PHOTAPPL/PHOTSCAL 承载 (docs/science/unified/DATA_SEMANTICS.md "
                     "§31.1a:2808-2810 / :2827-2830) (HISS_ERR_INVALID_STATE)\n",
                     metadata.bunit);
             return -2;

@@ -16,7 +16,7 @@
 //   IEEE-754 的 -0.0 在浮点比较下等于 0.0，但其位型 0x80000000 含非零字节；
 //   若用浮点等值判定可打洞，就会把 -0.0 区打成洞并**改变文件字节**。
 // - signal 层边距是 IEEE NaN (0x7FC00000 等)，其位型含非零字节 ⇒ 按构造落入
-//   「不可打洞」。合同要求 signal 边距必须是 NaN (docs/science/DATA_SEMANTICS.md)，
+//   「不可打洞」。合同要求 signal 边距必须是 NaN (docs/science/unified/DATA_SEMANTICS.md)，
 //   把它改写成 0.0 会把「无覆盖」变成「有效零流量」⇒ 语义破坏，禁止。
 // - 文件逻辑尺寸 (st_size) 与整文件字节**逐字节不变**；只有文件分配层变化。
 // - 卷/文件系统不支持 (EOPNOTSUPP 等) ⇒ 返回 PUNCH_UNSUPPORTED，**一个字节都不动**，

@@ -1,6 +1,6 @@
 // ACSD Core Contracts — RT-005 plan 真实资源估算实现（独立纯函数库）
 //
-// 公式权威（不得重定义科学常量；docs/algorithms、docs/science、lib/phase* 实现）:
+// 公式权威（不得重定义科学常量；docs/science/algorithms、docs/science、lib/phase* 实现）:
 //   P3 order 选择/内存守卫: docs/science/PHASE3_HIPS_TO_FITS.md §5 + p3_session.cpp
 //     (max_tiles = ceil(W·H/512²)+16, cap 1024; 输出平面 S+C 双 float; TileCache
 //     f32 tile = 512·512·4 = 1 MiB; 每 worker 独立 sampler+cache)

@@ -61,10 +61,10 @@ api_contracts:
   - API-P1-001
   - API-P1-SESSION
 doc_links:
-  sci: docs/science/CALIBRATION.md
+  sci: docs/science/calibration/CALIBRATION.md
   alg: docs/science/algorithms/CALIBRATION_ALGORITHMS.md
-  data: docs/science/DATA_SEMANTICS.md#§16
-  api: docs/engineering/PUBLIC_API.md#API-P1-SESSION
+  data: docs/science/unified/DATA_SEMANTICS.md#§16
+  api: docs/engineering/api/PUBLIC_API.md#API-P1-SESSION
 contract_ids:
   sci: MISSING
   alg: MISSING
@@ -107,12 +107,12 @@ scientific_change: false
 notes: >-
   装配层合同（P1-SESSION-DOC 冻结，2026-09-07，SA-P1-R19）：SCI/ALG 置空
   （science_contracts=[]；contract_ids.sci/alg=MISSING）——assembly 不定义
-  科学与算法，科学权威=SCI-CAL-001（docs/science/CALIBRATION.md）+
+  科学与算法，科学权威=SCI-CAL-001（docs/science/calibration/CALIBRATION.md）+
   ALG-CAL-001..006 / ALG-COS-001..005（algorithm_contracts 仅引用既有
   冻结 ALG，不新设装配算法；INDEX.yaml 无 ALG-P1-SESSION 条目，决策见
-  控制报告）。四段编排与 manifest/artifact schema 权威=DATA_SEMANTICS §16
+  控制报告）。四段编排与 manifest/artifact schema 权威=`docs/detail/registry/acsd.phase1.session.md`「输入输出端口、DATA、单位、坐标、invalid」一节
   （DATA-P1-SESSION）；入口符号/时序/并发合同权威=PUBLIC_API.md
-  API-P1-SESSION；编排级上游合同=API-P1-001（docs/engineering/PHASE1_API_V1.md，
+  API-P1-SESSION；编排级上游合同=API-P1-001（docs/engineering/api/PUBLIC_API.md，
   FROZEN）。
   如实差距（P1-001 后更新）：API-P1-001 §1 冻结序列为校准→检测/PSF→plate
   solve→测光→SNR→Drizzle→HiPS 7-stage，本 session run 仍仅落 CAL+COS 4
@@ -125,7 +125,7 @@ notes: >-
   源内已无平台 stub；explicit_config 仅为显式八参数旁路）、writer=aio_hips
   标准 HiPS 写链（p1_stack.hiss→IVOA 1.4 512×512 signal/support/
   properties/MOC）；
-  A 线 CLI 生产 7-stage 全链=docs/engineering/PHASE1_API_V1.md（DLL 显式
+  A 线 CLI 生产 7-stage 全链=docs/engineering/api/PUBLIC_API.md（DLL 显式
   加载，与本静态库并存，无第二调度顺序）。session 内 7-stage 段补齐归
   后续 P1-SESSION-IMPL/INT。
   已知限制：cosmetic master 实参 nullptr→检测禁用恒等 pass（:295-296，

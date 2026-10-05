@@ -526,7 +526,7 @@ bool write_hips_phase1(const std::vector<TileAccumulatorT<Scalar>>& tiles,
             if (q > 255) q = 255;
             // 面亮度换算因子 k = sumArea/sumNorm = D_p/N_p。
             // N_p = Σ_j w_jp·A_pixel,j 是面亮度归一分母（单位 sr, 与覆盖球面面积同量纲;
-            // 符号表 = docs/science/DRIZZLE.md §符号表、字段锚 = astro_sphere_sink.h:29）。
+            // 符号表 = docs/science/drizzle/DRIZZLE.md §符号表、字段锚 = astro_sphere_sink.h:29）。
             // 核按 **drop 面积** 归一 (drizzlepac dover/=jaco; F&H 2002 §7.2), 故
             // acc.sumFlux 是"分配通量"(Σ_p sumFlux = Σ_j x_j, 与 pixfrac 无关),
             // 而 writer 发布的 signal 面语义是**面亮度** (sig = flux/covered_area)。

@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 """VER-001 唯一版本源生成接口。
 读取仓库根 VERSION（唯一权威版本源）+ git 状态，输出 --version --json 合同对象。
-规则见 docs/engineering/VERSIONING.md；版本格式合同见控制包 13_ALPHA_VERSION_AND_PHASE3.md §1。
+规则见 docs/engineering/build/RELEASE.md；版本格式合同见控制包 13_ALPHA_VERSION_AND_PHASE3.md §1。
 
-git 面与 fail-closed（规范依据 docs/engineering/01_CHECKS.md §1「不得 traceback」「fail-closed」、
+git 面与 fail-closed（规范依据 docs/engineering/testing/VALIDATION_EVIDENCE.md §1「不得 traceback」「fail-closed」、
 ENGINEERING_SPEC.md §10/§11「降级必须显式」）：
   * 合同对象里的 "+g<commit12>" 分量**只能**来自 git HEAD —— 没有 git 就没有诚实的
     版本串。原实现用 subprocess.run(..., check=True)：非 git 工作树 ⇒

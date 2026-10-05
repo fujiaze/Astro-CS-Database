@@ -8,6 +8,6 @@
 - 目录现状（**如实登记**，2026-09-20 实测 `git ls-files lib/infrastructure/benchmark | wc -l` = **38**，目录**非空**）：
   - `backend_host/`（27）：backend 加载/选路（`backend_loader.*`、`cpu_routing.*`、`baseline_*`、`avx/avx2/avx512_backend.cpp`）、`bench_harness.*`/`bench_report.*`、`profile_gen*.cpp`/`profile_store.*`、`worker_advisor.*`、`hardware_inspect.*`、`host_services.cpp`；
   - `cpu/`（10）：`baseline`/`avx2`/`avx512` provider（include+src）、`common/`（`capability_detect.c`、`capability_v1.h`、`cpu_capability.schema.json`、`README.md`）。
-- 待办（INT-001）：本目录内容归位后的模块边界收口（`docs/engineering/MODULE_MAP.md` 已有 `benchmark` 条目）。
-- 已知缺口：本目录**缺** `README.md` 与 `module.yaml`，而 `docs/engineering/MODULE_MAP.md` 已声明 `readme: lib/infrastructure/benchmark/README.md` ⇒ 该声明当前不解析（S09 类缺口，登记不改）。
+- 待办（INT-001）：本目录内容归位后的模块边界收口（`docs/engineering/architecture/MODULE_MAP.md` 已有 `benchmark` 条目）。
+- 已知缺口：本目录**缺** `README.md` 与 `module.yaml`，而 `docs/engineering/architecture/MODULE_MAP.md` 已声明 `readme: lib/infrastructure/benchmark/README.md` ⇒ 该声明当前不解析（S09 类缺口，登记不改）。
 - 权威清单：`eng/cmake/ARCH-001-migration-manifest.md` §1/§4。

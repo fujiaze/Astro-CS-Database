@@ -11,5 +11,5 @@
   - `module_loader/`（5）：`module_registry.c/.h`、`secure_loader.c/.h`、`README.md`；
   - 阶段内内存块管线合同与工具（7）：`typed_dag.py`、`typed_dag.schema.json`、`typed_dag_contract.h`、`module_ports.registry.json`、`trace_replay.py`、`fixtures/phase2_typed_dag.json`、本文件。
 - 待办（INT-001）：`lib/infrastructure/scheduler` 内 pipeline/artifact 实现按 §7.1 迁入本目录。
-- 已知缺口：本目录**缺** `README.md` 与 `module.yaml`（`docs/engineering/MODULE_MAP.md` 无 `pipeline` 条目 ⇒ S09 类缺口，登记不改）。
+- 已知缺口：本目录**缺** `README.md` 与 `module.yaml`（`docs/engineering/architecture/MODULE_MAP.md` 无 `pipeline` 条目 ⇒ S09 类缺口，登记不改）。
 - 权威清单：`eng/cmake/ARCH-001-migration-manifest.md` §4。

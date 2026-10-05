@@ -763,7 +763,7 @@ contracts:
     upstream: [ARCH-001, API-001]
     downstream: []
 
-  # ── DATA 不确定度产品合同（DATA-001 冻结，DATA_SEMANTICS §30，目标态） ──
+  # ── DATA 不确定度产品合同（DATA-001 冻结，落点 = docs/science/unified/DATA_SEMANTICS.md「方差与逆方差的三态编码」与「溯源最小集」两节，目标态） ──
   - id: DATA-UNC-001
     type: DATA
     status: ACTIVE

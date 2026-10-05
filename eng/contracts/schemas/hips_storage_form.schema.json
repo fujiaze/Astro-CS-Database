@@ -26,7 +26,7 @@
     "manifest_storage_fields": ["storage_form", "form_source", "products", "coverage_index"],
     "coverage_index_ref_fields": ["path", "sha256", "n_frames", "n_blocks"],
     "hips_tile_format_two_tiers": {
-      "note": "P-179（R-42）：hips_tile_format **分两档**——① Image 产品子产品（signal/support/variance/ivar）：固定 `fits`（FITS 瓦片，读端既有校验；IO_003 §5 的 properties 只含标准 token）；② HiPS **目录（catalogue）**子产品 `snr/`：固定 `tsv`（VOTable 元数据 + `.tsv` 控制点，承载 SNR-PREC-001 `%.9g/%.17g` 精度锚，DATA_SEMANTICS §12.2）。停写 `tsv` 等于撤掉已冻结的科学载体 ⇒ 取「扩值域 + 逐子产品档位表」，不停写。",
+      "note": "P-179（R-42）：hips_tile_format **分两档**——① Image 产品子产品（signal/support/variance/ivar）：固定 `fits`（FITS 瓦片，读端既有校验；IO_003 §5 的 properties 只含标准 token）；② HiPS **目录（catalogue）**子产品 `snr/`：固定 `tsv`（VOTable 元数据 + `.tsv` 控制点，承载 SNR-PREC-001 `%.9g/%.17g` 精度锚，docs/detail/registry/acsd.phase1.hips-writer.md「输入输出端口、DATA、单位、坐标、invalid」一节）。停写 `tsv` 等于撤掉已冻结的科学载体 ⇒ 取「扩值域 + 逐子产品档位表」，不停写。",
       "by_subproduct": {
         "signal": "fits",
         "support": "fits",

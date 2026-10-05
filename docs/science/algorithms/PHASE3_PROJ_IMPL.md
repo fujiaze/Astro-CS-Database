@@ -43,7 +43,7 @@
   phase3_fits 先例新建；lib/phase3_session/ 为会话编排域共享源，
   不整目录归属）。
 - 合同链: SCI-P3-001（共享 FROZEN）→ ALG-P3-PROJ-IMPL-001（本文档，
-  兼承接 ALG-P3-002 本域子面）→ DATA-P3-WCS（DATA_SEMANTICS §28）+
+  兼承接 ALG-P3-002 本域子面）→ DATA-P3-WCS（`docs/detail/registry/acsd.phase3.wcs.md`）+
   API-P3-PROJ-001（PUBLIC_API.md Phase3 投影公共消费面节）→
   TEST-P3-WCS-001（登记面=TEST-P3-WCS-DESIGN-001 设计冻结 VERIFIED，
   §12；可执行面升级归 P3-PROJ-TEST）；编排面 API-P3-001（p3_session
@@ -438,7 +438,7 @@ G-P1-WCS-BRIDGE / G-P1-WCS-BRIDGE-GLOBAL；推导依据
   实现不符时，改实现。**权威方向 = 从 SCI 到实现**：不接受「以代码为准」式权威
   倒置表述；「文档已冻结」只表取值的当前状态，已知错误照改。
 - 现行口径：SCI-P3 的 CAR/AIT CRVAL2 语义、AIT 域界、CAR 极行、order/leaf
-  公式、coverage/权重容差表述与 DATA_SEMANTICS §30.4 传播式，均以外部标准
+  公式、coverage/权重容差表述与 `docs/science/unified/DATA_SEMANTICS.md`「方差与逆方差的三态编码」一节的传播式，均以外部标准
   （Paper I/II、astropy/WCSLIB）与可复跑实验为准；正本见
   `docs/science/PHASE3_HIPS_TO_FITS.md` §14/§15。
 
@@ -448,7 +448,7 @@ G-P1-WCS-BRIDGE / G-P1-WCS-BRIDGE-GLOBAL；推导依据
 > 首批冻结 **TAN / SIN / CAR / AIT / STG / MOL / CEA / ZEA**，每种声明适用域、
 > 奇点、经度 wrap、轴手性、CRPIX/CRVAL/CD/PC/CDELT/CTYPE；新增投影经
 > projection registry 注册并附独立往返 Oracle）+
-> `docs/detail/algorithms_phase3/14_projection.md`（⑥ 级）+ Calabretta & Greisen (2002) FITS WCS Paper II。
+> `docs/detail/registry/acsd.phase3.wcs.md`（⑥ 级）+ Calabretta & Greisen (2002) FITS WCS Paper II。
 > 投影集合按 DESIGN §6.3 的**八投影**为准。
 > **可执行标准**：astropy 7.0.1（WCSLIB）逐点对拍，22 组配置最大球面偏差
 > 6.854e-13°；证据与逐项判据见 `docs/science/PHASE3_HIPS_TO_FITS.md` §14/§15。

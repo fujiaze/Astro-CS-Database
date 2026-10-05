@@ -62,13 +62,13 @@ StarDetector::StarDetector(double detection_sigma) : detection_sigma_(detection_
 //             25 星 |σ/σ_true−1| ≤ 2%；纯噪声 −3% ≤ bias ≤ 0%）。
 // EXIT:       本块无删除条件（该项保留）。仅当出现下列情形时改写：
 //             ① 若后续改造 NaN 处置 ⇒ 同步本块「已知缺陷」段（当前状态：已修）；
-//             ② 若 docs/science/NOISE_MODEL.md 的 σ 口径改为裁剪后 RMS ⇒ 本块
+//             ② 若 docs/science/noise_snr/NOISE_SNR.md 的 σ 口径改为裁剪后 RMS ⇒ 本块
 //                的「增益 vs MAD」对照口径同步更新；
 //             ③ 若将来决定统一 σ 口径（改调 1.482602218505602·MAD）⇒ 必须先做数值等价验证并同步
 //                p1_sources.json / p1_snr 的容差与基线，不得直接替换。
 // AUTHORITY:  ENGINEERING_SPEC.md §2（历史实现处置：保留则注释）/§3（科学代码红线）；
 //             实验证据：CLEAN-401 第三 σ 合成实验（README/verify.log/metrics.json）；
-//             docs/science/NOISE_MODEL.md:46（冻结的 σ_bg=1.482602218505602·MAD 仍是注册口径，未改）。
+//             docs/science/noise_snr/NOISE_SNR.md:46（冻结的 σ_bg=1.482602218505602·MAD 仍是注册口径，未改）。
 // ──────────────────────────────────────────────────────────────────────
 bool StarDetector::estimate_background(const float* image, int w, int h,
                                        double* bg, double* sigma) {

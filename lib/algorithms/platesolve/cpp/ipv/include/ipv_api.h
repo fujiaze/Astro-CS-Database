@@ -152,7 +152,7 @@ IPV_API int ipv_solve_from_memory(
 // 候选路径 A / 路径 B API (实验性, 生产默认不调用)
 //
 // 规范: docs/science/algorithms/STAR_DETECTION_ALGORITHMS.md §2（star_det v1 十数组输出语义）
-//       + docs/science/DATA_SEMANTICS.md §17（star_det v1 [N,6] 权威块）
+//       + docs/science/unified/DATA_SEMANTICS.md §17（star_det v1 [N,6] 权威块）
 // star_det v1 格式: FLOAT64 [N,6]
 // 0: x_px 1: y_px 2: flux
 // 3: mag 4: saturated 5: has_saturated
@@ -234,7 +234,7 @@ IPV_API void ipv_get_default_params(IpvParams* params);
 // 获取求解器内部最终权威 inlier 对应关系,
 // 避免外部诊断工具用 kd-tree 重新匹配导致误配。
 //
-// 详见 docs/science/algorithms/PLATESOLVE.md（IPV 解算）与 docs/engineering/PUBLIC_API.md（ipv_* C API）
+// 详见 docs/science/algorithms/PLATESOLVE.md（IPV 解算）与 docs/engineering/api/PUBLIC_API.md（ipv_* C API）
 //
 // 字段约定 (out_buffer 每行 9 个 double, 行数 = 返回值):
 // [0] det_x_px - 检测器 x (像素, 图像中心原点, Y 轴向上)

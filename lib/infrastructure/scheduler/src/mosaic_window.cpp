@@ -1,5 +1,5 @@
 // ACSD Core — ARCH-503 mosaic 天球窗口并行调度器实现
-// 依据：docs/ACSD_DESIGN.md §8.3；CONTRACT-501 docs/engineering/SCHEDULER_CONTRACT.md
+// 依据：docs/ACSD_DESIGN.md §8.3；CONTRACT-501 docs/engineering/contracts/SCHEDULER.md
 #include "acsd/core/mosaic_window.h"
 
 #include <algorithm>

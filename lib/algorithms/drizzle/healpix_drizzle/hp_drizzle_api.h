@@ -50,9 +50,11 @@ typedef struct {
     //       并重新归一；仅 D_p=0 时输出 signal=NaN ∧ support≤0。
     // 方差可用性 = 独立通道，**不参与**合格性判定：V_j 有限且 V_j ≤ 0 属
     //       「有覆盖但无方差信息」⇒ 信号与几何权重照常计入 F_p/D_p（保信号、
-    //       保覆盖），仅不计入 Var_p；产品面按 DATA_SEMANTICS §4a 表达为
+    //       保覆盖），仅不计入 Var_p；产品面按
+    //       `docs/science/unified/DATA_SEMANTICS.md`「方差与逆方差的三态编码」一节 表达为
     //       variance=0 ∧ ivar=0（显式不可用），**禁止**用常数/地板/哨兵值顶替。
-    //       V_j 非有限 = 方差面损坏（§4a）⇒ 按不合格样本剔除并计入下方方差计数。
+    //       V_j 非有限 = 方差面损坏（同节「损坏」行）⇒ 按不合格样本剔除并
+    //       计入下方方差计数。
     // n_rejected_nonfinite = value + variance + nonpositive_weight（可加、互斥）。
     int64_t n_rejected_nonfinite;            // 合计（按原因分类见下三字段）
     int64_t n_rejected_nonfinite_value;      // 值非有限 (NaN/Inf)

@@ -3,7 +3,7 @@
 // 用途: 为 GLRenderer 提供数据源, 无 Qt 依赖, 无 HTTP 服务器
 // 依赖: astro_image_io.dll (aio_hiss_read/aio_hcsd_read/aio_hcsd_read_leaf/aio_hio_free, 旧 API 通过兼容宏)
 // 编译: C++17, 纯标准库 + astro_image_io
-// 设计文档: docs/detail/healpix_browser_qt.md
+// 设计文档: docs/detail/infrastructure/23_hips_browser.md
 
 #ifndef BROWSER_BACKEND_H
 #define BROWSER_BACKEND_H

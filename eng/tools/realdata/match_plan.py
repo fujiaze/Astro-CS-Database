@@ -17,7 +17,7 @@
   (2) sensor 尺寸 + binning —— 母版文件名承载的 BIN-<n>_<W>x<H> 必须与
       望远镜 sensor 声明一致，错配 UNMATCHED(SENSOR_MISMATCH)；
   (3) 曝光 —— dark 优先精确相等（容差 EXPOSURE_TOL_S）；缺失时按冻结策略
-      线性缩放：K = t_light / t_dark（docs/science/CALIBRATION.md:57,90），
+      线性缩放：K = t_light / t_dark（docs/science/calibration/CALIBRATION.md:57,90），
       K 必须落在 (0, K_MAX]，K_MAX=10（docs/science/algorithms/
       CALIBRATION_ALGORITHMS.md:158 K_OUT_OF_RANGE 定义 k<=0 或 >10）；
       strategy 码 EXACT_MATCH / SCALE_OPTIMAL（OPTIMAL 估计器 fallback
@@ -343,7 +343,7 @@ def cmd_inventory(args) -> int:
         gaia[name] = {"path": f"{root}/", "db_type": db_type,
                       "record_bytes": rec_bytes, "file_count": len(xpsd),
                       "files": xpsd,
-                      "contract": "DATA-GAIA-001 (docs/science/DATA_SEMANTICS.md §8.1)",
+                      "contract": "DATA-GAIA-001 (`docs/science/unified/DATA_SEMANTICS.md`「星表行语义」一节)",
                       "readonly": True}
         print(f"[inventory] gaia registry: {name} db_type={db_type} "
               f"files={len(xpsd)}")
@@ -601,7 +601,7 @@ def cmd_plan(args) -> int:
             "dark_strategy": {
                 "exact": f"{STRATEGY_EXACT} (|t_light-t_dark|<={EXPOSURE_TOL_S}s, K=1.0)",
                 "scaled": f"{STRATEGY_SCALE}: K=t_light/t_dark 线性缩放 "
-                          "(docs/science/CALIBRATION.md:57,90)；估计器 OPTIMAL "
+                          "(docs/science/calibration/CALIBRATION.md:57,90)；估计器 OPTIMAL "
                           "fallback EXPOSURE_RATIO (docs/science/algorithms/"
                           "CALIBRATION_ALGORITHMS.md:158,292)，"
                           "phase_config.dark_optimization=true 显式开启，逐帧记录 K",
@@ -670,7 +670,7 @@ def cmd_plan(args) -> int:
             "dark_strategy": {
                 "estimator": "OPTIMAL",
                 "fallback": FALLBACK_EXPOSURE_RATIO,
-                "K": "t_light/t_dark (docs/science/CALIBRATION.md:57,90)",
+                "K": "t_light/t_dark (docs/science/calibration/CALIBRATION.md:57,90)",
             },
             "expected_match_summary": p["summary"],
             "generated_by": "eng/tools/realdata/match_plan.py",
@@ -710,7 +710,7 @@ def write_summary_md(plan, path, masters_by_tel, sensor_by_tel, gaps):
         "1. 匹配键顺序：望远镜目录 → sensor 尺寸/binning → 曝光 → 滤镜；",
         "2. 滤镜归一：casefold + 去分隔符（OIII == Oiii）；数据文件名一律不改；",
         "3. dark 策略：精确曝光优先（容差 ≤0.01s，K=1.0）；缺失时按 "
-        "`docs/science/CALIBRATION.md:57,90` 线性缩放 K=t_light/t_dark，",
+        "`docs/science/calibration/CALIBRATION.md:57,90` 线性缩放 K=t_light/t_dark，",
         "   估计器 `OPTIMAL` fallback `EXPOSURE_RATIO`"
         "（`docs/science/algorithms/CALIBRATION_ALGORITHMS.md:158,292`），",
         "   `phase_config.dark_optimization=true` 显式开启并逐帧记录 K；"

@@ -140,14 +140,14 @@
 
 ## 3a 坐标 frame
 
-积分在**像素栈域**逐像素独立进行（每 `P2PixelStack` 一个位置）；无 WCS/重投影（天区重投影=SCI-DRIZZLE 非目标，§1）；候选携带 `frame_id`（DATA_SEMANTICS §5），聚合不丢失样本身份（n_used/权重可追溯）。
+积分在**像素栈域**逐像素独立进行（每 `P2PixelStack` 一个位置）；无 WCS/重投影（天区重投影=SCI-DRIZZLE 非目标，§1）；候选携带 `frame_id`（`docs/science/unified/DATA_SEMANTICS.md`「帧身份与输入清单摘要」一节），聚合不丢失样本身份（n_used/权重可追溯）。
 
 ## 9a 口径问答：聚合顺序、support 语义与权重校验
 
 - **integration 权重**：`weights[i]`=逐候选科学权重（可空=等权 1.0），来源为 SCI-NOISE ivar/SCI-UPM 权重链；本层不做权重策略（§1 非目标）。
 - **归一**：`signal=Σ_{valid,W>0} w_i·x_i / wsum`（wsum=权重归一）；`support`=canonical reducer `max(accepted support)`（唯一归约器 = max，§10）。
 - **mask/eligibility**：`valid(i)=accepted ∧ finite(x) ∧ (support>0) ∧ (w≥0)`；`accepted` 为排异层产物（SCI-REJ）；非法输入显式 `INVALID_INPUT`，无正权显式 `ALL_REJECTED/ZERO_VALID_WEIGHT`，取值面只出自该状态码集（0 只在有正权样本上作为数值出现，§5 状态码）。
-- **frame identity**：聚合输出不携带逐样本身份，但 `n_accepted/n_used` 与 accepted 掩膜保证可追溯；重复 frame_id 由 UPM 构建层显式拒绝（DATA_SEMANTICS §5）。
+- **frame identity**：聚合输出不携带逐样本身份，但 `n_accepted/n_used` 与 accepted 掩膜保证可追溯；重复 frame_id 由 UPM 构建层显式拒绝（`docs/science/unified/DATA_SEMANTICS.md`「帧身份与输入清单摘要」一节）。
 - **NaN/非有限样本**：**样本级掩膜 + 重归一 + 覆盖级 NaN + 强制计数**由调用方（排异层）按 `ACSD_DESIGN.md` §5.5 施加；本层对进入 reducer 的非有限 `values/support/weights` 一律显式 `INVALID_INPUT`（fail-closed），**剔除项逐条登记**，也不产生伪 0 或伪有效信号。
 
 ## 14 Primary literature（引用定位声明）

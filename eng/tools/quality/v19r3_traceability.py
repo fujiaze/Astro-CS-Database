@@ -11,7 +11,7 @@
 - seeded deterministic 随机抽样：50 个生产符号 code→contract→test→
   diagnostic；50 个契约 contract→code→test。
 
-输出：docs/engineering/TRACEABILITY_SPEC.md §10（覆盖原文件）、reports/v19r3/evidence/quality/
+输出：docs/engineering/governance/TRACEABILITY.md §10（覆盖原文件）、reports/v19r3/evidence/quality/
 contract_inventory.csv + traceability_check.json、reports/v19r3/
 traceability_summary.md。
 """
@@ -143,7 +143,7 @@ CONTRACTS = [
      "PRE_RELEASE_ENGINEERING_FOUNDATION", "PR#1 保留"),
     ("ENG-OWN-001",
      "模块 ownership/lifetime 契约（OWNERSHIP_AND_LIFETIME）",
-     "docs/engineering/OWNERSHIP_AND_LIFETIME.md", "phase2",
+     "docs/engineering/contracts/OWNERSHIP_LIFETIME.md", "phase2",
      "lib/algorithms/coverage/src/upm.cpp",
      "p2_upm_build; p2_upm_close",
      "S0IdentityCalibrationNoChange;SaveOpenRoundtripAndHash",
@@ -151,7 +151,7 @@ CONTRACTS = [
      "-", "-", "PRE_RELEASE_ENGINEERING_FOUNDATION", "V19R2 有效"),
     ("ENG-THREAD-001",
      "线程模型契约（THREADING_MODEL）",
-     "docs/engineering/THREADING_MODEL.md", "phase2",
+     "docs/engineering/architecture/DATA_FLOW.md", "phase2",
      "lib/algorithms/coverage/src/stage2_common.cpp",
      "p2_stage2_parse_config",
      "G1ProductionWiringTruth",
@@ -176,7 +176,7 @@ CONTRACTS = [
      "-", "-", "PRE_RELEASE_ENGINEERING_FOUNDATION", "V19R2 有效"),
     ("DATA-HIPS-SIGNAL-001",
      "signal HiPS 数据语义",
-     "docs/science/DATA_SEMANTICS.md", "astro_image_io",
+     "docs/science/unified/DATA_SEMANTICS.md", "astro_image_io",
      "lib/infrastructure/aio/src/hips/aio_hips_writer.cpp",
      "aio_hips_product_begin; aio_hips_write_signal_support_tile",
      "G3ManifestOrderCanonical",
@@ -184,7 +184,7 @@ CONTRACTS = [
      "-", "-", "PRE_RELEASE_ENGINEERING_FOUNDATION", "V19R2 有效"),
     ("DATA-HIPS-SUPPORT-001",
      "support HiPS 数据语义（coverage 保守下界）",
-     "docs/science/DATA_SEMANTICS.md", "astro_image_io",
+     "docs/science/unified/DATA_SEMANTICS.md", "astro_image_io",
      "lib/infrastructure/aio/src/hips/aio_hips_writer.cpp",
      "aio_hips_product_begin",
      "G3ManifestOrderCanonical",
@@ -192,7 +192,7 @@ CONTRACTS = [
      "-", "-", "PRE_RELEASE_ENGINEERING_FOUNDATION", "V19R2 有效"),
     ("DATA-HIPS-IVAR-001",
      "ivar 产品语义（1/variance）",
-     "docs/science/DATA_SEMANTICS.md", "snr_estimator",
+     "docs/science/unified/DATA_SEMANTICS.md", "snr_estimator",
      "lib/algorithms/noise_snr/cpp/src/noise_model.cpp",
      "snr_noise_model_v1; snr_phot_cal_quality",
      "TEST-SNR-001",
@@ -200,7 +200,7 @@ CONTRACTS = [
      "-", "-", "PRE_RELEASE_ENGINEERING_FOUNDATION", "V19R2 有效"),
     ("SCI-DRZ-001",
      "Drizzle 球面重叠科学门（false_negative=0）",
-     "docs/science/DRIZZLE.md", "healpix_drizzle",
+     "docs/science/drizzle/DRIZZLE.md", "healpix_drizzle",
      "lib/algorithms/drizzle/healpix_drizzle/drizzle_engine.cpp;"
      "lib/algorithms/drizzle/healpix_drizzle/spherical_overlap.cpp",
      "processPixelSharedTiled; compute_overlap_area_g_ctx",
@@ -210,7 +210,7 @@ CONTRACTS = [
      "PRE_RELEASE_ENGINEERING_FOUNDATION", "V19R2 有效"),
     ("SCI-DRZ-014",
      "variance 传播 identity（α²v）",
-     "docs/science/DRIZZLE.md", "healpix_drizzle",
+     "docs/science/drizzle/DRIZZLE.md", "healpix_drizzle",
      "lib/algorithms/drizzle/healpix_drizzle/drizzle_engine.cpp",
      "drizzleTiled",
      "TEST-DRZ-VAR-001",
@@ -218,7 +218,7 @@ CONTRACTS = [
      "-", "-", "PRE_RELEASE_ENGINEERING_FOUNDATION", "V19R2 有效"),
     ("SCI-CAL-001",
      "校准科学门（bias/dark/flat/cosmetic）",
-     "docs/science/CALIBRATION.md", "calibration",
+     "docs/science/calibration/CALIBRATION.md", "calibration",
      "lib/algorithms/calibration/src/calibrator.cpp;lib/algorithms/calibration/include/astro_calibration.h",
      "ac_generate_master_bias; ac_generate_master_dark; ac_generate_master_flat; "
      "ac_calibrate_frame",
@@ -227,7 +227,7 @@ CONTRACTS = [
      "-", "-", "PRE_RELEASE_ENGINEERING_FOUNDATION", "V19R2 有效"),
     ("SCI-AST-001",
      "astrometry/WCS 科学门",
-     "docs/science/ASTROMETRY.md", "plate_solve",
+     "docs/science/detection/ASTROMETRY.md", "plate_solve",
      "lib/algorithms/platesolve/cpp/ipv/src/ipv_entry.cpp;"
      "lib/algorithms/platesolve/cpp/ipv/src/ipv_wcs.cpp",
      "ipv_solve_from_detections_v1; build_wcs",
@@ -252,7 +252,7 @@ def _gen_range_rows() -> list[tuple]:
         rows.append((
             f"SCI-NOISE-{i:03d}",
             f"SNR/Noise 科学门 #{i}（noise_model_science_test 子项）",
-            "docs/science/NOISE_MODEL.md", "snr_estimator",
+            "docs/science/noise_snr/NOISE_SNR.md", "snr_estimator",
             "lib/algorithms/noise_snr/cpp/src/noise_model.cpp",
             "snr_noise_model_v1; snr_phot_cal_quality",
             "TEST-SNR-001",
@@ -360,10 +360,10 @@ def expand_ids(s: str) -> list[str]:
     return out
 
 
-# 人读正本 = docs/engineering/TRACEABILITY_SPEC.md §10「需求→实现→测试 登记册」。
+# 人读正本 = docs/engineering/governance/TRACEABILITY.md §10「需求→实现→测试 登记册」。
 # 它是**独立于 CONTRACTS 的另一个来源**：CONTRACTS 是本工具的声明面，
 # §10 是人维护的正本。用它当参照，覆盖率才不是自证。
-_SPEC_REL = os.path.join("docs", "engineering", "TRACEABILITY_SPEC.md")
+_SPEC_REL = os.path.join("docs", "engineering", "governance", "TRACEABILITY.md")
 _SPEC_SEC10_RE = re.compile(
     r"^(?:SCI|ENG|TEST|ACR|ALG|DATA|EXP|TAIL|INF|LIB)-[A-Z0-9]+(?:-[A-Z0-9]+)*-\d{3}$")
 

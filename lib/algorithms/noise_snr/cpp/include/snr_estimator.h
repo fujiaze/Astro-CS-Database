@@ -113,7 +113,7 @@ SNR_API int snr_psf_fit_quality(const double* psf, int n_stars,
                                 PsfFitQualityRow* out);
 
 // ---------------------------------------------------------------------------
-// 3. NoiseWeightModelV1 — 合同锚点: docs/science/algorithms/NOISE_ESTIMATION.md + docs/science/NOISE_MODEL.md
+// 3. NoiseWeightModelV1 — 合同锚点: docs/science/algorithms/NOISE_ESTIMATION.md + docs/science/noise_snr/NOISE_SNR.md
 // source-masked blank-sky 稳健方差 (production 基线)。
 // 控制点来自空背景噪声, 与星亮度/星族解耦 (SNR-003/SNR-010)。
 // 默认 patch grid 扫描校准帧:
@@ -242,7 +242,8 @@ SNR_API int  snr_noise_model_v1_abi_check_model(const NoiseWeightModelV1* model)
 //   预测 > 0 ⇒ variance=max(预测, variance_floor) 且 ivar=1/variance
 //              （floor 只作用于可用方差，保证 ivar 有限）；
 //   预测 ≤ 0 ⇒ 该像素方差**不可用**：variance=0 ∧ ivar=0
-//              （禁 clamp 成 floor、禁写 NaN；DATA_SEMANTICS §4a 三态表）。
+//              （禁 clamp 成 floor、禁写 NaN；
+//               `docs/science/unified/DATA_SEMANTICS.md`「方差与逆方差的三态编码」一节 的三态表）。
 // 否则全局常量（退化时 variance_bg_global=ivar_bg_global=0）。 冻结。
 // 返回 0=成功, 3=nullptr/尺寸非法, SNR_ABI_MISMATCH(-9)=model ABI 头部失配,
 // SNR_FLOOR_UNBOUND(-10)=模型未绑定 variance_floor（fail-closed：
@@ -308,9 +309,9 @@ SNR_API double snr_noise_gain_variance(double signal,
 //   snr_* [无量纲]; sigma_f_* [ADU]; flux5_adu [ADU]; m5_mag [mag]
 // ============================================================================
 
-// σ_sky 入参语义 (SCI-B D1 定案; 口径正本 docs/science/NOISE_MODEL.md §9a
+// σ_sky 入参语义 (SCI-B D1 定案; 口径正本 docs/science/noise_snr/NOISE_SNR.md §9a
 //   「σ_sky 入参口径与 c_est 单位 (防双计)」—— 该节是现存的**一级**科学正本,
-//   逐字承载下述两条入参语义; 原锚 docs/detail/algorithms_phase1/07_noise_snr.md
+//   逐字承载下述两条入参语义; 原锚 docs/detail/registry/acsd.phase1.noise-snr.md
 //   §4.2a 已在文档迁移后整目录缺席, 按权威链 docs/science/ 高于 docs/detail/):
 //   逐像素噪声 sigma_i^2 = sigma_sky^2 + (RN/g)^2 + F*P_i/g  —— **读噪只出现一次**。
 //   sigma_sky_source 声明 sigma_sky 承载哪一种语义, 调用方**必须显式给出**:

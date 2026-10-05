@@ -32,7 +32,7 @@
 # schedule(dynamic,64)、:1023/image_corrector.cpp:74 像素 schedule(static)，
 # star_matcher 匹配与 IRLS 单线程），科学结果 bitwise 与线程数无关，但
 # ThreadLease/omp_set_num_threads 无接线（迁移整改点，见
-# docs/engineering/PUBLIC_API.md API-PHOT-001 与
+# docs/engineering/api/PUBLIC_API.md API-PHOT-001 与
 # docs/science/algorithms/PHOTOMETRIC_FIT.md §13.3 DISP-PHOT-001..009）。
 # entrypoint=MISSING：registry 入口未接；descriptor 现状占位 ID
 # （lib/infrastructure/scheduler/src/module_adapters.cpp:469-486 p1_photometry_descriptor 的
@@ -45,7 +45,7 @@ module_id: acsd.p1.photometry
 owner: SA-P1-N17
 language: c++17
 # module_version 属 module 命名空间（docs/engineering/RELEASE_STATUS.md §2），取值须与
-# docs/engineering/MODULE_MAP.md 登记值一致。
+# docs/engineering/architecture/MODULE_MAP.md 登记值一致。
 module_version: 0.1.0-alpha.1
 abi_version: 1
 phase_scope: phase1
@@ -72,8 +72,8 @@ api_contracts:
 doc_links:
   sci: docs/science/PHOTOMETRY.md
   alg: docs/science/algorithms/PHOTOMETRIC_FIT.md#§13
-  data: docs/science/DATA_SEMANTICS.md#§14
-  api: docs/engineering/PUBLIC_API.md#API-PHOT-001
+  data: docs/science/unified/DATA_SEMANTICS.md#§14
+  api: docs/engineering/api/PUBLIC_API.md#API-PHOT-001
 contract_ids:
   sci: SCI-PHOT-001
   alg: ALG-PHOT-001..002
@@ -137,5 +137,5 @@ notes: >-
   api_id=API-P1-005/test_id=TEST-P1-PHOT-001，module_adapters.cpp:469-486）
   与 port DATA 编目（psf→DATA-P1-PSF/sources→DATA-P1-SOURCES/
   fluxes→DATA-P1-FLUX，编排层词汇）由 P1-PHOT-INT 对齐本合同（模块 DATA
-  层=DATA-P1-PHOT，DATA_SEMANTICS §14），不得反向作为冻结依据。
+  层=DATA-P1-PHOT，`docs/detail/registry/acsd.phase1.photometry.md`「输入输出端口、DATA、单位、坐标、invalid」一节），不得反向作为冻结依据。
   禁止声明 IMPLEMENTED（迁移落码未发生）。

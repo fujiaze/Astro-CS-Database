@@ -36,10 +36,11 @@ patch 网格（整除划分，循环 :179-208）、星点固定保守掩膜（so
 控制点（:241-267）、可选最小二乘平面空间方差场、全局兜底（合格 patch
 variance 稳健中位数，:207-246）；fill 逐像素 variance/ivar 场（平面 LS
 var(x,y)=a+b·x+c·y：预测>0 ⇒ max(预测,floor) 且 ivar=1/var；预测≤0 ⇒ variance=0 ∧ ivar=0
-（不可用态；SCI-NOISE-001 §5/§7/§9 + DATA_SEMANTICS §4a 三态表），fill_impl :776-866）；
+（不可用态；SCI-NOISE-001 §5/§7/§9 +
+`docs/science/unified/DATA_SEMANTICS.md`「方差与逆方差的三态编码」一节 的三态表），fill_impl :776-866）；
 scale law（x'=αx → var'=α²var、ivar'=ivar/α²，:488-495）；gain+read-noise
 Poisson 诊断函数（var_ADU=max(signal,0)/gain+(rn/gain)²，:497-505，
-不入生产权重）。数据语义 DATA-P1-NOISE（DATA_SEMANTICS §13）。
+不入生产权重）。数据语义 DATA-P1-NOISE（`docs/detail/registry/acsd.phase1.noise-snr.md`「输入输出端口、DATA、单位、坐标、invalid」一节）。
 
 不负责：SNR catalogue 产品与 SNR² 加权落盘（P1-SNR/DRZ 侧，stage6 经
 snr_extract_model 稀疏控制点进 snr_model 块——编排层职责）；测光质量
@@ -50,9 +51,9 @@ DLL 装载（orchestrator.cpp:4177 stage6 SNR 必需 stage → :4242-4251 函数
 ——snr_estimator.h:19-20 头注释已降级 legacy heuristic/diagnostic，
 不在本合同）；整 Phase 行为（禁止）。
 
-## 3. 输入与输出（DATA-P1-NOISE，DATA_SEMANTICS §13）
+## 3. 输入与输出（DATA-P1-NOISE）
 
-输入（build，snr_noise_model_v1/_f64，DATA_SEMANTICS §13.1）：
+输入（build，snr_noise_model_v1/_f64，`docs/detail/registry/acsd.phase1.noise-snr.md`「输入输出端口、DATA、单位、坐标、invalid」一节）：
 `data` `[h·w]` 行主序 0-based（v1=float32 / f64=float64，ADU；非 NULL
 强制，h>0/w>0 否则 rc=3）；`source_mask` float32 `[h·w]`（≠0=源，可 NULL
 改用 star 通道，与 star_x/y 互斥——DISP-NOISE-006）；`star_x/star_y`
@@ -60,7 +61,7 @@ double `[n_stars]` 0-based pixel（可 NULL/0；非有限坐标跳过该星
 :149）；`cfg` SnrNoiseModelConfig（可 NULL=default_config；部分
 下限静默钳位——DISP-NOISE-007）；`variance_floor` double（默认 1e-12）。
 
-输出（DATA_SEMANTICS §13.2）：`NoiseWeightModelV1`（snr_estimator.h
+输出（`docs/detail/registry/acsd.phase1.noise-snr.md`「输入输出端口、DATA、单位、坐标、invalid」一节）：`NoiseWeightModelV1`（snr_estimator.h
 :117-134）——ctrl_x_px/ctrl_y_px/ctrl_sigma/ctrl_variance/ctrl_ivar
 double `[n_control_points]`（patch 中心 0-based；σ ADU、variance ADU²、
 ivar ADU⁻²）、sigma_bg_global/variance_bg_global/ivar_bg_global 标量
@@ -76,11 +77,12 @@ max(a+b·x+c·y, floor)）。所有权：out_model 由调用方分配/持有，c
 
 | 层 | ID | 权威文档 |
 |---|---|---|
-| SCI | SCI-NOISE-001..015 | docs/science/NOISE_MODEL.md（FROZEN T104 2026-08-23，共享引用不改动；SNR-002 scale law/SNR-004 σ5%/SNR-005 gain 诊断/SNR-006 场 10%） |
+| SCI | SCI-NOISE-001..015 | docs/science/noise_snr/NOISE_SNR.md（FROZEN T104 2026-08-23，共享引用不改动；SNR-002 scale law/SNR-004 σ5%/SNR-005 gain 诊断/SNR-006 场 10%） |
 | ALG | ALG-NOISE-001..003 | docs/science/algorithms/NOISE_ESTIMATION.md §13（逐符号源码锚定 + DISP-NOISE-001..009 + TEST-NOISE-DESIGN-001） |
-| DATA | DATA-P1-NOISE | docs/science/DATA_SEMANTICS.md §13（上游 §4a 产品语义 ivar=1/variance、ivar=0 显式不可用） |
-| API | API-NOISE-001 / API-P1-006 | docs/engineering/PUBLIC_API.md（snr_estimator.h 7 noise 导出现状 C API）/ docs/engineering/PHASE1_API_V1.md §2（编排级） |
-| ARCH/MOD/SRC | ARCH-001 / MOD-acsd-phase1-noise-snr / SRC-NOISE-001 | docs/engineering/TRACEABILITY_SPEC.md §9；SRC 锚 snr_estimator.h::noise 7 导出 |
+| DATA | DATA-P1-NOISE | `docs/detail/registry/acsd.phase1.noise-snr.md`「输入输出端口、DATA、单位、坐标、invalid」一节（上游产品语义
+  ivar=1/variance、ivar=0 显式不可用 = `docs/science/unified/DATA_SEMANTICS.md`「方差与逆方差的三态编码」一节） |
+| API | API-NOISE-001 / API-P1-006 | docs/engineering/api/PUBLIC_API.md（snr_estimator.h 7 noise 导出现状 C API）/ docs/engineering/api/PUBLIC_API.md §2（编排级） |
+| ARCH/MOD/SRC | ARCH-001 / MOD-acsd-phase1-noise-snr / SRC-NOISE-001 | docs/engineering/governance/TRACEABILITY.md §9；SRC 锚 snr_estimator.h::noise 7 导出 |
 
 ## 5. 公共入口与符号（API-NOISE-001）
 

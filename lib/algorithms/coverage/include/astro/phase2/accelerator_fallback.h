@@ -21,7 +21,7 @@ namespace astro::phase2 {
 //
 // 这两个字符串是产品行为的一部分：mosaic 诊断面（diagnostics.json 的
 // acr_fallback_reason 键）逐字记录它们并交给下游消费，属公开键面的一部分
-// （docs/engineering/PUBLIC_API.md 的 diagnostics.json 键集）。
+// （docs/engineering/api/PUBLIC_API.md 的 diagnostics.json 键集）。
 // 字符串内容不得改写、不得改名、不得合并——下游按字面比对。
 inline constexpr const char* kFallbackReasonNoAcceleratorAuto =
     "linux_no_cuda_auto_fallback";

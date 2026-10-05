@@ -1,5 +1,5 @@
 // ACSD Core — ARCH-501 命名块与块生命周期实现
-// 依据：docs/ACSD_DESIGN.md §8.2；CONTRACT-501 docs/engineering/PIPELINE_BLOCK_CONTRACT.md
+// 依据：docs/ACSD_DESIGN.md §8.2；CONTRACT-501 docs/engineering/contracts/PIPELINE_BLOCK.md
 #include "acsd/core/block_frame.h"
 
 #include <algorithm>

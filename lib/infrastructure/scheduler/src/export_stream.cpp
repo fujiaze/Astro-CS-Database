@@ -1,5 +1,5 @@
 // ACSD Core — ARCH-504 export 子块流式调度器实现
-// 依据：docs/ACSD_DESIGN.md §6/§8.3；CONTRACT-501 docs/engineering/SCHEDULER_CONTRACT.md
+// 依据：docs/ACSD_DESIGN.md §6/§8.3；CONTRACT-501 docs/engineering/contracts/SCHEDULER.md
 #include "acsd/core/export_stream.h"
 
 #include <algorithm>

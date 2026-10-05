@@ -103,7 +103,7 @@ struct ModeRoute {
 // 该理由消失 ⇒ 二者与其余 token 同归 fail-closed（本注释首句本来就是这条口径，
 // 旧实现与自身冻结说明不一致）。
 // 依据：docs/ACSD_DESIGN.md §3.1（权重只能来自纯净信号/噪声之比的逆方差，跨帧绝对
-// 标定，不基于参考帧；全程只有 SNR）+ docs/science/PSF_SIGNAL_WEIGHT.md §4（单一
+// 标定，不基于参考帧；全程只有 SNR）+ docs/science/unified/UNIFIED_SCIENCE_MODEL.md §4（单一
 // 权重口径，无模式选择）。psfsw_robust_weight 不是现行对象
 // （docs/detail/UNIFIED_MODEL.md:58）⇒ 显式拒绝 + 迁移提示，不得静默接受。
 inline ModeRoute route_phase2_weight_token(const std::string& raw) {
@@ -175,8 +175,8 @@ inline ModeRoute route_phase3_mode(const std::string& raw) {
 // is_retired_weight_mode_token）。最危险值 0（support x SNR^2，无量纲、非信号/噪声
 // 之比）保留**更具体**的拒绝理由，便于用户按提示改对。
 // 依据：docs/ACSD_DESIGN.md §3.1「全链没有「权重模式」这一可选概念」；
-// docs/science/PSF_SIGNAL_WEIGHT.md §4「不存在口径选择键、口径枚举、口径配置项
-// 或口径产物」；docs/science/DATA_SEMANTICS.md §31.3（legacy weight_mode=0 → REJECT）。
+// docs/science/unified/UNIFIED_SCIENCE_MODEL.md §4「不存在口径选择键、口径枚举、口径配置项
+// 或口径产物」；docs/science/unified/DATA_SEMANTICS.md §31.3（legacy weight_mode=0 → REJECT）。
 inline ModeRoute route_legacy_weight_mode_int(int v) {
     ModeRoute r;
     r.surface = "phase2_legacy_int";

@@ -113,7 +113,7 @@ function snr_noise_model_v1_free(model): g_model_floor.erase(model*)
 
 > 上游：SCI-NOISE-001..015（docs/science/noise_snr/NOISE_SNR.md，FROZEN，不改 SCI）
 > 下游：DATA-P1-NOISE
-> （DATA_SEMANTICS §13）/ API-NOISE-001（PUBLIC_API）/
+> （`docs/detail/registry/acsd.phase1.noise-snr.md`）/ API-NOISE-001（PUBLIC_API）/
 > MOD-acsd-phase1-noise-snr / TEST-NOISE-DESIGN-001。
 > 本节由源码逐符号核对后追加：§1-§12 为既有登记，
 > 根公式（MAD→σ、5σ≤2 轮、平面场、floor、ivar=1/variance）不变；本节登记
@@ -207,7 +207,7 @@ dll_loader.cpp 加载名与路径吻合）。**噪声模型 A 为唯一生产模
 | 1 | 平面几何判据 | `plane_geometry_ratio()`：中心化点云 Gram 特征值比 `λlo/λhi ≥ kPlaneGeomRatio=0.0625`（κ=√(λhi/λlo)≤4），build 与 fill 用同一判据；不满足 ⇒ `has_spatial_field=0` ⇒ 全局常量场 | 数值判据表见 `docs/science/noise_snr/NOISE_SNR.md` §3.1（几何退化判据；A=0 / B=0.0133 / C=0.200 / 满格=1.0） |
 | 2 | gain 方向 | 解析式 `signal/gain + (rn/gain)²`；判据 fixture 用 SCI 约定 `ADU=N_e/gain+N(0,rn/gain)`、容差 SCI 冻结 **5%**；断言生产诊断式 `snr_noise_gain_variance` 与该解析式一致 | SCI-NOISE-001 §5 |
 | 3 | MAD→σ 常数 | 唯一全精度写法 `1.482602218505602`（= `1/Φ⁻¹(3/4)`）；`1.4826022185` 与 `1.4826` 只作约等于语境，各档相对差 3.779e-12 / 1.4964e-06；`0.6745` 相对差 +1.5196e-05（不可互换） | SCI-NOISE-001 §9；`docs/GLOSSARY.md` |
-| 4 | PSF 状态位 | 仅 `psf_status == 0.0` 置 `SNR_QF_PSF_OK`；未收敛帧在 UPM `quality_factor` 走"未知"档 0.5 | STAR_PSF_ALGORITHMS §11.2、DATA_SEMANTICS §15 |
+| 4 | PSF 状态位 | 仅 `psf_status == 0.0` 置 `SNR_QF_PSF_OK`；未收敛帧在 UPM `quality_factor` 走"未知"档 0.5 | STAR_PSF_ALGORITHMS §11.2、DATA-P1-PSF（`docs/detail/registry/acsd.phase1.star-psf.md`） |
 | 5 | kLn10 | 模块内唯一定义点 = `noise_model.cpp`（字面量 `2.302585092994045684`） | 复算 `float('2.302585092994045684')==float('2.302585092994045684017991454684')` → True |
 | 6 | defaults 引用 | `eng/packaging/config/defaults.json` 的 `noise.*` `source_ref` 指向 `docs/science/noise_snr/NOISE_SNR.md` §3.1 与 §4 参数表的实际陈述（各键定位由内容锚 `sha256` 承担，键名为 `patch_grid`/`clip_sigma`/`max_clip_rounds`/`min_patch_samples`/`spatial_field_enabled`/`variance_floor`）；`source_mask_radius_px`(10) / `mask_radius_scale`(6) 保留 ALG 登记——SCI §5 只冻结 `rmax=max(1,r0)·max(1,scale)` 公式、不给数值 | `docs/ACSD_DESIGN.md` §0（文档权威与索引） 权威链：科学默认值引用落在 `docs/science/**` |
 
@@ -226,7 +226,7 @@ dll_loader.cpp 加载名与路径吻合）。**噪声模型 A 为唯一生产模
   NumPy median/MAD 复算 rtol 1e-9 对照同帧）。
 - **FIX-NOISE-B 平面场恢复 + 不可用态**: 注入 var(x,y)=a+b·x+c·y（b,c 非零、覆盖
   正/负梯度方向）→ 拟合系数在 10% 内复现（SNR-006）。**逐像素两态穷尽**
-  （判据式见 SCI-NOISE-001 §5/§7/§9 + DATA_SEMANTICS §4a 三态表）：
+  （判据式见 SCI-NOISE-001 §5/§7/§9 + `docs/science/unified/DATA_SEMANTICS.md`「方差与逆方差的三态编码」一节三态表）：
   **预测 > 0** ⇒ `variance=max(预测, floor)` 且 `ivar=1/variance`（与独立 LS oracle
   逐位一致）；**预测 ≤ 0** ⇒ `variance==0 ∧ ivar==0`。
   **判据非退化**：「哪些像素预测 ≤ 0」由独立 LS oracle（只消费 build 导出的

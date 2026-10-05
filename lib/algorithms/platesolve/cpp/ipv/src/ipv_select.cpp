@@ -359,7 +359,7 @@ double compute_initial_mag_cut(
 // perf-study/exp-A-magiter):
 //  - 真实 alpha = dlog10(N)/dmag 实测 0.243–0.456 (中位 0.2885, R²>0.986);
 //    原代码/文档写死的 1.3 使密度模型高估 4–5 个数量级 (该偏差尚未在
-//    docs/algorithms 登记为 DISP 条目)。
+//    docs/science/algorithms 登记为 DISP 条目)。
 //  - 原"一次性公式 + 补救 +1.0mag×2 + mag=22 兜底"在 4/10 真实帧上
 //    "FOV 内不足 n_target 颗" (最短 -0.47 mag); 割线迭代 safety=3 时 10/10
 //    通过 (余量 +0.36..+1.07 mag), 且 6/10 帧匹配输入逐位不变。
@@ -1170,7 +1170,7 @@ int ipv_select(
     // 替换 V4.9 一次性密度公式 + 补救 +1.0mag×2 + mag=22 兜底:
     //  - 割线迭代 m_next = m + (log10(N_target) - log10(N))/alpha, alpha 由相邻两次查询实测更新;
     //  - 删除 mag=22 兜底 (该值触发 gaia_client 每文件 200000 条顺序截断 => 科学有偏);
-    //  - 参数全部来自 IPVSolverParams (safety=3 等); 与冻结文档的偏差尚未在 docs/algorithms 登记。
+    //  - 参数全部来自 IPVSolverParams (safety=3 等); 与冻结文档的偏差尚未在 docs/science/algorithms 登记。
     if (logger) logger->info("Step 5: 极限星等割线迭代 (P4-magiter)");
     double m_lim_final = 0.0;
     int    m_lim_iters = 0;        // = query_count (Gaia 查询次数)
@@ -1474,7 +1474,7 @@ int ipv_select_from_memory(
     // 替换 V4.9 一次性密度公式 + 补救 +1.0mag×2 + mag=22 兜底:
     //  - 割线迭代 m_next = m + (log10(N_target) - log10(N))/alpha, alpha 由相邻两次查询实测更新;
     //  - 删除 mag=22 兜底 (该值触发 gaia_client 每文件 200000 条顺序截断 => 科学有偏);
-    //  - 参数全部来自 IPVSolverParams (safety=3 等); 与冻结文档的偏差尚未在 docs/algorithms 登记。
+    //  - 参数全部来自 IPVSolverParams (safety=3 等); 与冻结文档的偏差尚未在 docs/science/algorithms 登记。
     if (logger) logger->info("Step 5: 极限星等割线迭代 (P4-magiter)");
     double m_lim_final = 0.0;
     int    m_lim_iters = 0;        // = query_count (Gaia 查询次数)
@@ -1751,7 +1751,7 @@ int ipv_select_from_detections(
     // 替换 V4.9 一次性密度公式 + 补救 +1.0mag×2 + mag=22 兜底:
     //  - 割线迭代 m_next = m + (log10(N_target) - log10(N))/alpha, alpha 由相邻两次查询实测更新;
     //  - 删除 mag=22 兜底 (该值触发 gaia_client 每文件 200000 条顺序截断 => 科学有偏);
-    //  - 参数全部来自 IPVSolverParams (safety=3 等); 与冻结文档的偏差尚未在 docs/algorithms 登记。
+    //  - 参数全部来自 IPVSolverParams (safety=3 等); 与冻结文档的偏差尚未在 docs/science/algorithms 登记。
     if (logger) logger->info("Step 5: 极限星等割线迭代 (P4-magiter)");
     double m_lim_final = 0.0;
     int    m_lim_iters = 0;        // = query_count (Gaia 查询次数)
@@ -2085,7 +2085,7 @@ static int ipv_select_from_memory_with_callback_impl(
     // 替换 V4.9 一次性密度公式 + 补救 +1.0mag×2 + mag=22 兜底:
     //  - 割线迭代 m_next = m + (log10(N_target) - log10(N))/alpha, alpha 由相邻两次查询实测更新;
     //  - 删除 mag=22 兜底 (该值触发 gaia_client 每文件 200000 条顺序截断 => 科学有偏);
-    //  - 参数全部来自 IPVSolverParams (safety=3 等); 与冻结文档的偏差尚未在 docs/algorithms 登记。
+    //  - 参数全部来自 IPVSolverParams (safety=3 等); 与冻结文档的偏差尚未在 docs/science/algorithms 登记。
     if (logger) logger->info("Step 5: 极限星等割线迭代 (P4-magiter)");
     double m_lim_final = 0.0;
     int    m_lim_iters = 0;        // = query_count (Gaia 查询次数)

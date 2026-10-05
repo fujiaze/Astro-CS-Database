@@ -22,7 +22,7 @@ wave W1，owner SA-P2-I23，lock-P2-HIPS），不是实现/迁移/测试任务�
 - lib/infrastructure/aio/healpix_db 侧生产参与仅 astro_sphere_sink.cpp（P1 写通道），
   引用不重归属。
 - ID 方案：ALG-P2-HIPS-001..004（新文档 docs/science/algorithms/
-  PHASE2_MOSAIC_WRITE.md）；DATA-P2-HIPS（DATA_SEMANTICS §20 追加）；
+  PHASE2_MOSAIC_WRITE.md）；DATA-P2-HIPS（登记于 `docs/detail/registry/acsd.phase2.write.md`「输入输出端口、DATA、单位、坐标、invalid」一节）；
   API-P2-HIPS-001（PUBLIC_API 新节）；TEST-P2-HIPS-001（登记面=ALG 文档 §11.4 设计冻结 VERIFIED，COV 先例；
   可执行测试 MISSING 归 P2-HIPS-TEST）；
   SRC-PP2HIPS-001（stage2.cpp 编排 + stage2_common.h config，grep 实测）。
@@ -66,7 +66,7 @@ wave W1，owner SA-P2-I23，lock-P2-HIPS），不是实现/迁移/测试任务�
 
 - 交付：lib/algorithms/coverage/hips_p2/ 三件套（本目录）；docs/science/algorithms/
   PHASE2_MOSAIC_WRITE.md（ALG-P2-HIPS-001..004 + DISP-P2HIPS-001..004）；
-  DATA_SEMANTICS §20 DATA-P2-HIPS；PUBLIC_API API-P2-HIPS-001 节；
+  DATA-P2-HIPS（`docs/detail/registry/acsd.phase2.write.md`「输入输出端口、DATA、单位、坐标、invalid」一节）；PUBLIC_API API-P2-HIPS-001 节；
   registry 页 acsd.phase2.write.md 重写；INDEX.yaml 新增 4 ID 条目
   （ALG-P2-HIPS-001..004/DATA-P2-HIPS/API-P2-HIPS-001，上游=共享 SCI，
   下游互链）；DOCUMENT_INDEX.yaml 注册；TRACEABILITY_SPEC §9 json/csv

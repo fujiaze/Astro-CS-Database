@@ -1,14 +1,14 @@
 /* psf_information.h - Phase1/V6 A_NEA 与 effective PSF (IMPL-P1-PSFW-001)
  *
  * 合同锚 (docs/detail/PHASE1_DETAILED_DESIGN.md;
- *         docs/science/PSF_SIGNAL_WEIGHT.md):
+ *         docs/science/noise_snr/NOISE_SNR.md):
  *   - FZ-COND-WHITENOISE : P_k(u,v) >= 0, Sum_p P_k,p = 1 ;
  *                          A_NEA,k = 1 / Sum_p P_k,p^2   [px^2]
  *   - FZ-GATE-PSFSW-EPSF : effective PSF 必输; 只给 FWHM 标量不构成 effective PSF
  *   - FZ-FORMULA-COV-PROP: effective PSF 是实际组合算子的脉冲响应 (conventional coadd)
  *
  * 单位: A_NEA = px^2 (冻结表 eng/contracts/data/clause_registry.json#weight_vocabulary §1
- *       PSFSW 行; docs/science/PSF_SIGNAL_WEIGHT.md)。
+ *       PSFSW 行; docs/science/noise_snr/NOISE_SNR.md)。
  *
  * 纪律: 本头/源不接线 session; 不含任何权重/方差反推; 不引用 legacy median SNR。
  * 复用: 无 (纯 std + libm)。

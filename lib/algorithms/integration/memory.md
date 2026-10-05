@@ -69,7 +69,8 @@
 - 登记面: INDEX.yaml 4 新条目 + ALG-INT-001 path 改绑
   PHASE2_INTEGRATION.md（其 downstream=[ALG-P2-INT-001]；ALG-P2-INT-
   001.upstream=[SCI-INT-001, ALG-INT-001]）+ SCI-INT-001.downstream
-  追加；DATA_SEMANTICS §21 新节 + :998-999 词汇注记指向 §21；
+  追加；DATA-P2-INT 合同登记于 `docs/detail/registry/acsd.phase2.integrate.md`「输入输出端口、DATA、单位、坐标、invalid」一节 +
+  词汇注记同指该节；
   PUBLIC_API 尾部 API-P2-INT-001 消费面节；DOCUMENT_INDEX.yaml
   PHASE2_INTEGRATION.md/phase2_int.md/registry integrate 三处登记；
   docs/detail/phase2_int.md 新模块页。

@@ -188,7 +188,7 @@
           "properties": {
             "frame": {
               "const": "icrs",
-              "description": "唯一允许坐标 frame：ICRS/equatorial（DATA_SEMANTICS §1；Phase3 输入仅 ICRS，SCI-P3 §3a）。galactic/ecliptic 显式拒绝。"
+              "description": "唯一允许坐标 frame：ICRS/equatorial（docs/science/unified/DATA_SEMANTICS.md「坐标语义」一节；Phase3 输入仅 ICRS，SCI-P3 §3a）。galactic/ecliptic 显式拒绝。"
             },
             "ra_unit": { "const": "deg" },
             "dec_unit": { "const": "deg" }
@@ -210,7 +210,7 @@
                 "tile_width": {
                   "type": "integer",
                   "minimum": 1,
-                  "description": "HiPS tile 宽；NESTED 唯一（DATA_SEMANTICS §2）；512 默认（leaf_order=tile_order+9）。"
+                  "description": "HiPS tile 宽；NESTED 唯一（docs/science/unified/DATA_SEMANTICS.md「坐标语义」一节）；512 默认（leaf_order=tile_order+9）。"
                 }
               },
               "description": "HiPS 几何（phase1/phase2 产品）。"
@@ -238,7 +238,7 @@
         "invalid_policy": {
           "type": "string",
           "enum": ["nan_or_support_le_0"],
-          "description": "无效值全局策略：NaN 或 support<=0 视为无效（DATA_SEMANTICS §4；无有效样本必须显式 status，禁止静默输出 0/±Inf）。"
+          "description": "无效值全局策略：NaN 或 support<=0 视为无效（docs/science/unified/DATA_SEMANTICS.md「三个基本对象的语义」一节；无有效样本必须显式 status，禁止静默输出 0/±Inf）。"
         }
       },
       "description": "产品内容证据块。"

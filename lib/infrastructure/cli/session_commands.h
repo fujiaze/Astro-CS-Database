@@ -170,7 +170,7 @@ inline const std::vector<ConfigField>& config_fields(SessionId s) {
         // 模板不替用户主张形态，用户不写就走「默认 archive + warn」这条默认路径。
         // 形态只改磁盘表示与 I/O 路径，不改科学结果（两形态 tree_hash 相同）。
         // 生产消费点（写出侧按形态落盘）= 分阶段实现计划阶段 2 ⇒ 已登记
-        // eng/ci/ledgers/dead_config_keys.json（不得把「CLI 认识」当成「已消费」）。
+        // eng/contracts/ledgers/dead_config_keys.json（不得把「CLI 认识」当成「已消费」）。
         // 只属 normalize：Phase2 固定裸服务面、Phase3 固定裸 FITS 不套壳，
         // 两者的输入合同不设本键（出现即 REJECT）。", "block"},
         {"storage_form", nullptr,
@@ -205,7 +205,7 @@ inline const std::vector<ConfigField>& config_fields(SessionId s) {
          "parity(pos|neg)/limiting_mag/limiting_mag_safety/query_radius_factor/"
          "limiting_mag_max_iter；缺段 = 取编译期默认", "block"},
         // WIRING-W34-01（W3-CHK-PROD-WIRING）：噪声模型配置段（SCI-NOISE /
-        //   docs/science/NOISE_MODEL.md §4/§5/§5a）。段内键 = 生产节点
+        //   docs/science/algorithms/NOISE_ESTIMATION.md §4/§5/§5a）。段内键 = 生产节点
         //   p1_noise_cfg_apply（lib/infrastructure/scheduler/src/module_adapters.cpp）
         //   实际写入 SnrNoiseModelConfig 的**封闭词表** 14 键；合同声明 =
         //   eng/contracts/schemas/phase_config_normalize.schema.json#/$defs/noise_config。
@@ -213,7 +213,7 @@ inline const std::vector<ConfigField>& config_fields(SessionId s) {
         //   不进 --template 骨架）。与 parser.cpp session_keys() 的 "noise" 逐字同名：
         //   两形态（平铺/块内）同源一份按会话键表，缺一声明即用户拿到 rc=3。
         {"noise", nullptr,
-         "可选噪声模型配置段（docs/science/NOISE_MODEL.md §4/§5/§5a）："
+         "可选噪声模型配置段（docs/science/algorithms/NOISE_ESTIMATION.md §4/§5/§5a）："
          "patch_grid/clip_sigma/spatial_field_enabled/mask_k_sigma/mask_r_min_px/"
          "mask_fwhm_floor_scale/mask_budget_min_patches/mask_budget_min_sky/"
          "min_patch_samples/max_clip_rounds/source_mask_radius_px/mask_radius_scale/"
@@ -242,7 +242,7 @@ inline const std::vector<ConfigField>& config_fields(SessionId s) {
         // 模板值 = 合同默认 sparse_reconstruct（schema default 与 eng/packaging/config/defaults.json#snr.path
         // 同值；本表只作可运行骨架，默认值唯一家仍是 schema/defaults.json，不构成第二份来源）。
         // ⚠ 生产科学消费点尚未落地（Phase2 SNR 消费 = FIX-SCI-SNR-CANON-001 §4.2 跟随项）
-        //   ⇒ 已在 eng/ci/ledgers/dead_config_keys.json 登记为「合同声明但生产零读取」，不得静默 no-op。
+        //   ⇒ 已在 eng/contracts/ledgers/dead_config_keys.json 登记为「合同声明但生产零读取」，不得静默 no-op。
         {"snr_path", "\"sparse_reconstruct\"",
          "Phase2 SNR 重建/消费路径 dense|sparse_reconstruct|frame_reconstruct"
          "（默认 sparse_reconstruct = 消费 Phase1 稀疏控制点 SNR 层重建稠密 SNR；"
@@ -277,11 +277,11 @@ inline const std::vector<ConfigField>& config_fields(SessionId s) {
         //   eng/contracts/schemas/phase_config_export.schema.json#/$defs/export_wcs/properties/{rotation_deg,crpix_px}
         // 平铺顶层与 CLI export 既有几何键（center / scale_deg_per_px / width_px / height_px）同面
         // —— 三命令通用输入合同「块内运行参数平铺、取消 config 子对象」。
-        // rotation_deg 模板值 0.0 = 合同默认（docs/detail/algorithms_phase3/14_projection.md:38）。
+        // rotation_deg 模板值 0.0 = 合同默认（docs/detail/registry/acsd.phase3.wcs.md:38）。
         // crpix_px 模板值 [512.5, 512.5] = 本模板 1024×1024 输出的几何中心（FITS 1-based，
         // (1+1024)/2；「缺省 = 中心」），是示例占位、不是数值默认。
         // ⚠ 两键生产科学消费点尚未落地（p3 投影/重采样面）⇒ 已在
-        //   eng/ci/ledgers/dead_config_keys.json 登记为「合同声明但生产零读取」，不得静默 no-op。
+        //   eng/contracts/ledgers/dead_config_keys.json 登记为「合同声明但生产零读取」，不得静默 no-op。
         {"rotation_deg", "0.0",
          "投影旋转角（度；合同默认 0，见 phase_config_export.schema.json；"
          "生产消费点未落地，见死键台账）"},
@@ -327,7 +327,7 @@ inline const std::vector<ConfigField>& config_fields(SessionId s) {
         // surface_brightness」；config_registry.json:1238-1241 同源登记「默认
         // surface_brightness 与插件一致」）。缺键即 REJECT（FZ-P3-MODES）⇒ 模板必须
         // 给出该键（docs/ACSD_DESIGN §3.3「模板与 --help 由同一份键表生成」；
-        // docs/engineering/CONFIG_CONTRACT.md:81 旧合同 required 即含 output_mode）。
+        // docs/engineering/contracts/CONFIG.md:81 旧合同 required 即含 output_mode）。
         {"output_mode", "\"surface_brightness\"",
          "输出模式（必填；合同默认 surface_brightness）：surface_brightness / "
          "point_source_flux / visualization（缺所选模式所需信息 → 拒绝或明确 unavailable）"},

@@ -215,7 +215,9 @@ static bool run_typed(const ReverseDrizzleInput& in, ReverseDrizzleOutput& out,
                 const size_t idx = (size_t)py * (size_t)W + (size_t)px;
                 const double pixel_area = spherical::spherical_polygon_area(fp);
                 if (pixel_area <= 0.0 || !std::isfinite(pixel_area)) continue;
-                // 面亮度加权平均：分子 Σ B_j·a_jp、分母 Σ a_jp（契约 DATA_SEMANTICS §11.2）。
+                // 面亮度加权平均：分子 Σ B_j·a_jp、分母 Σ a_jp（面亮度归一契约：
+                // 分子分母同时随输出单元立体角等比缩放，见
+                // `docs/science/unified/DATA_SEMANTICS.md`「面亮度单位的推导」一节）。
                 // 禁用 ov/drop_area 归一——那是 a_jp/A_drop,j，输出会随源 nside 变化而非面亮度。
                 const double w = ov;
                 acc.signal[idx] += T(sig * w);

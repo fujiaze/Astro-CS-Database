@@ -43,7 +43,7 @@ public:
     // snr_psf_arr - 控制点 SNR_psf 数组 [n_points] (无量纲)
     // snr_phot - 全局测光 SNR 标量 1/(ln10×sigma_residual)
     // median_snr - median(snr_psf) 归一化基准
-    // idw_power - IDW 幂次 (默认 1.0；规范值见 docs/detail/algorithms_phase1/07_noise_snr.md:192；
+    // idw_power - IDW 幂次 (默认 1.0；规范值见 docs/detail/registry/acsd.phase1.noise-snr.md:192；
     //   适用域=含噪场景，最优带 0.5-1；p=2 属无噪/光滑极限口径，仅作备选)
     //
     // 返回: true=成功, false=失败 (n_points<=0 或参数非法)

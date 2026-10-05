@@ -2727,7 +2727,7 @@ int p2_rejection_weight_surface_guard(const char* const* tokens,
 // ── RETIRED-CODE-RETAINED (ENGINEERING_SPEC §2 保留则注释) ─────────────
 // WHAT:       psfsw 残留面（rejection.cpp 对应点）：拒绝权重面守卫的
 //             冻结禁止 token 表里保留 "psfsw"（与 coverage.cpp:376 同一冻结词表的第二份执行面）。
-// WHY-KEPT:   同 coverage.cpp 的保留块：语义源 = docs/science/DATA_SEMANTICS.md §31
+// WHY-KEPT:   同 coverage.cpp 的保留块：语义源 = docs/science/unified/DATA_SEMANTICS.md §31
 //             acsd.v6.contract-freeze.v1.json:196-197 的 forbidden.weight_source_tokens，
 //             由 FZ-GATE-MEDIAN-SNR / FZ-GATE-SUPPORT-COVERAGE / FZ-MODE-DEFERRED 三条冻结门
 //             要求（本函数是 p2_rejection_weight_surface_guard 的实参面）。

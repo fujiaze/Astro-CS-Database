@@ -10,7 +10,7 @@
 
 ## Phase1 WCS 节点：初始指向来源（`p1_op_wcs`）
 
-权威合同见 `docs/science/DATA_SEMANTICS.md` §18.5。要点：
+权威合同见 `docs/science/unified/DATA_SEMANTICS.md` §18.5。要点：
 
 - 负责人裁定：**帧头 WCS 未授权**。`p1_op_wcs` 不得读取/使用帧头
   `CRVAL1/2`、`PLTSOLVD`、`CD`/`PC`、`SIP` 作为初始指向或任何解算输入。

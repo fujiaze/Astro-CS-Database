@@ -4,7 +4,7 @@
  *
  * 纪律: 不接线 Phase session；不改 legacy ac_* 实现；不发明 DI-03（共享低秩/
  *       相关核数据面实例化）未冻结的核函数或秩上限；所有 fail-closed 按
- *       docs/science/DATA_SEMANTICS.md 实现。
+ *       docs/science/unified/DATA_SEMANTICS.md 实现。
  *
  * 测试用故障注入: 仅当环境变量 ACSD_V6_CAL_FAULT 被显式设置时改变行为，
  *       默认（未设置）为严格正确实现。对齐仓库既有先例 ACSD_RT001_FAULT。

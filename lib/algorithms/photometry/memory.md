@@ -418,7 +418,7 @@ static constexpr double _IRLS_CONVERGE = 1e-6;   // IRLS 收敛阈值
   TEST-P1-PHOT-001（占位），ports: psf→DATA-P1-PSF(PIXEL 必)、
   sources→DATA-P1-SOURCES(ICRS 必)、fluxes→DATA-P1-FLUX(ELECTRON/ICRS 可)
   ——占位 ID 对齐归 P1-PHOT-INT，不得反向作为冻结依据；port DATA 编目为
-  编排层词汇，模块合同 DATA 层=DATA-P1-PHOT（DATA_SEMANTICS §14）。
+  编排层词汇，模块合同 DATA 层=DATA-P1-PHOT（`docs/detail/registry/acsd.phase1.photometry.md`「输入输出端口、DATA、单位、坐标、invalid」一节）。
 
 ### 冻结产物（本任务域）
 
@@ -429,11 +429,11 @@ static constexpr double _IRLS_CONVERGE = 1e-6;   // IRLS 收敛阈值
 - docs/science/algorithms/PHOTOMETRIC_FIT.md §13 冻结增补（ALG-PHOT-001..002 逐
   符号源码锚定 + §13.2 实现事实修订 + §13.3 DISP-PHOT-001..009 +
   §13.4 TEST-PHOT-DESIGN-001 冻结容差 + §13.5 legacy 通道与迁移旧符号）；
-  docs/science/DATA_SEMANTICS.md §14（DATA-P1-PHOT）；docs/engineering/
+  `docs/detail/registry/acsd.phase1.photometry.md`「输入输出端口、DATA、单位、坐标、invalid」一节（DATA-P1-PHOT）；docs/engineering/
   PUBLIC_API.md API-PHOT-001（6 导出符号头锚）；eng/contracts/data/contract_index.yaml
   新 ID 条目与互指；docs/DOCUMENT_INDEX.yaml notes；docs/detail/registry/
   photometric_calib.md + docs/detail/registry/acsd.phase1.photometry.md
-  事实修订；docs/engineering/TRACEABILITY_SPEC.md §9 photometry 行原位
+  事实修订；docs/engineering/governance/TRACEABILITY.md §9 photometry 行原位
   更新 + CSV 重生成。
 
 ### 纪律记录

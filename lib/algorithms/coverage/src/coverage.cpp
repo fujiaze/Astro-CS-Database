@@ -279,7 +279,7 @@ int p2_coverage_free(P2CoverageResult* out) {
 
 // ===========================================================================
 // V6 目标态：coverage/support 区分、确定性边界与权重角色门
-// 冻结锚见 coverage.h V6 节；语义源 = docs/science/DATA_SEMANTICS.md §31
+// 冻结锚见 coverage.h V6 节；语义源 = docs/science/unified/DATA_SEMANTICS.md §31
 // acsd.v6.contract-freeze.v1.json。禁止零填、禁止权重冒充。
 // ===========================================================================
 
@@ -375,13 +375,13 @@ namespace {
 //             psfsw_robust_weight **不是现行对象**：docs/ACSD_DESIGN.md §3.1
 //             「权重只能来自纯净信号与噪声之比……任何使偏差随帧而变的量（含 PSF 拟合
 //             质量代理）都不得进入科学叠加权重」；docs/detail/UNIFIED_MODEL.md:58；
-//             docs/science/PSF_SIGNAL_WEIGHT.md §1/§4；
+//             docs/science/noise_snr/NOISE_SNR.md §1/§4；
 //             统一对象退役登记 eng/contracts/data/unified_object_compatibility_map_v1.json:133-143。
 // STATUS:     生产可达的合同门：p2_weight_source_token_reject
 //             由 lib/algorithms/integration/phase2_integrate/src/phase2_integrate.cpp 调用，
 //             并在 coverage target 内编译。
 // EXIT:       无（拒绝面必须保留）。
-// AUTHORITY:  docs/ACSD_DESIGN.md §3.1；docs/science/PSF_SIGNAL_WEIGHT.md §1/§4；
+// AUTHORITY:  docs/ACSD_DESIGN.md §3.1；docs/science/noise_snr/NOISE_SNR.md §1/§4；
 //             docs/detail/UNIFIED_MODEL.md:58；ENGINEERING_SPEC.md §2/§3；
 //             eng/contracts/data/unified_object_compatibility_map_v1.json:133-143（14→13 退役登记）。
 // ──────────────────────────────────────────────────────────────────────

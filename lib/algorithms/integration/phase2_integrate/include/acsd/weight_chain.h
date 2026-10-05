@@ -9,7 +9,7 @@
  *   - docs/ACSD_DESIGN.md:161（三条 SNR 重建口径是**重建方式**的选择，不是权重口径的
  *     选择：三者都产出同一物理量的稠密表示，都走同一条逆方差定权式）
  *   - docs/ACSD_DESIGN.md:161（w = 1/σ_F² = SNR²/F_ref²，F_ref 逐帧；Zackay & Ofek）
- *   - docs/science/PSF_SIGNAL_WEIGHT.md:75/87（w_k = SNR_k²/F_ref,k² ≡ 1/σ_F,k²；
+ *   - docs/science/unified/UNIFIED_SCIENCE_MODEL.md:75/87（w_k = SNR_k²/F_ref,k² ≡ 1/σ_F,k²；
  *       阶段二 w(x,y) = SNR(x,y)²/F_ref²）；docs/science/UNIFIED_SCIENCE_MODEL.md:66
  *       「SNR(x,y) 由稀疏控制点上的**绝对** SNR 重建（控制点值即绝对量本身，
  *       不乘/除帧级标量），F_ref 为**逐帧**参考通量」
@@ -115,7 +115,7 @@ struct SparseSnrPoint {
 /* ------------------------------------------------------------------ */
 /* 每个算子把「核 + 是否开 3×3 mesh 中值前置滤波 + 是否做值域钳制」**整组**
  * 绑成一个不可拆分的标识。为什么不做成独立布尔开关（见
- * docs/detail/algorithms_phase1/07_noise_snr.md §4.5、实验 EXP-04 §2.7/§4.4）：
+ * docs/detail/registry/acsd.phase1.noise-snr.md §4.5、实验 EXP-04 §2.7/§4.4）：
  *   ① 值域钳制**不是可选项**：去掉它，光滑插值类在病态控制网格上失控
  *      （E 达 2.48e4），且会给出**负的 σ**（实测 min = −0.5585，非物理）；
  *   ② 中值前置滤波在默认目标域（地面/seeing-limited）**有害**

@@ -33,7 +33,7 @@ acsd benchmark                          # 生成/更新安装目录 cpu_profile�
 配置不用手写：`acsd <命令> --template [-o <path>]` 生成可改的完整 JSON 模板，`--help` 给字段说明。
 运行前有配置预检三档（correct / warn / error，error 阻塞），事件流是默认输出（stdout 每行一个 JSON
 事件，GUI 可直接捕获）。退出码全 11 条冻结（0 成功 … 10 磁盘写满、70 未分类内部错误），唯一源
-`lib/infrastructure/cli/exit_codes.h`；完整协议见 `docs/engineering/CLI_PROTOCOL_V1.md`。
+`lib/infrastructure/cli/exit_codes.h`；完整协议见 `docs/engineering/contracts/CLI_PROTOCOL.md`。
 
 ## 文档与权威链
 
@@ -63,7 +63,7 @@ acsd benchmark                          # 生成/更新安装目录 cpu_profile�
 | 模块工作细节 | `docs/detail/`、`docs/detail/registry/` |
 | 架构与不变量 | `docs/engineering/` |
 | 跨阶段产品交换与 ABI | `docs/engineering/io/`、`docs/science/IO_001_FITS_STREAM_INTERFACE.md`、`docs/science/IO_002_HIPS_INPUT_INTERFACE.md` |
-| CLI/API 协议 | `docs/engineering/CLI_PROTOCOL_V1.md` |
+| CLI/API 协议 | `docs/engineering/contracts/CLI_PROTOCOL.md` |
 | 验收证据 | `实验/engineering-evidence/` |
 | 术语 | `docs/GLOSSARY.md` |
 | 开发与排查 | `docs/engineering/DEVELOPER_GUIDE.md`、`docs/detail/merged_TROUBLESHOOTING.md` |
@@ -73,12 +73,12 @@ acsd benchmark                          # 生成/更新安装目录 cpu_profile�
 算法在 `lib/algorithms/`（并联放置），基建与 CLI 在 `lib/infrastructure/`，工程支撑面在 `eng/`
 （合同 schema、构建与打包工具、程序全局配置），自解释文档集在 `docs/`；科学实验单元在
 `实验/`，证据在 `artifacts/`，过程产物在 `run/`（不入库）。
-模块索引权威 = `docs/engineering/MODULE_MAP.md`；未决事项见 `docs/engineering/UNRESOLVED_REGISTER.md`。
+模块索引权威 = `docs/engineering/architecture/MODULE_MAP.md`；未决事项见 `docs/engineering/governance/UNRESOLVED.md`。
 
 ## 状态与版本
 
 状态词表唯一口径 = `docs/ACSD_DESIGN.md` §12.5；逐模块状态与证据锚见 `docs/engineering/RELEASE_STATUS.md`
-与 `docs/engineering/MODULE_MAP.md`。产品版本唯一事实源 = 仓库根 `VERSION`，CMake、CLI、产品 manifest
+与 `docs/engineering/architecture/MODULE_MAP.md`。产品版本唯一事实源 = 仓库根 `VERSION`，CMake、CLI、产品 manifest
 由该源派生。已知限制台账：`docs/KNOWN_LIMITATIONS.md`。
 
 ## 参考项目与文献
@@ -164,4 +164,4 @@ acsd benchmark                          # 生成/更新安装目录 cpu_profile�
 | [CFITSIO](https://heasarc.gsfc.nasa.gov/fitsio/) | 随库条款 | FITS I/O（随仓 third_party） |
 | [nlohmann/json](https://github.com/nlohmann/json) | MIT | JSON（随仓 third_party） |
 
-> 完整佐证映射（哪篇支撑我们哪条断言）见 `docs/engineering/SCIENTIFIC_REFERENCES.md` 与 `实验/` 各单元的佐证来源区。
+> 完整佐证映射（哪篇支撑我们哪条断言）见 `docs/ACSD_DESIGN.md` 附录 B 与 `实验/` 各单元的佐证来源区。

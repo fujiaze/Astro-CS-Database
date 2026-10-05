@@ -66,9 +66,9 @@
 - 合同三件套落位本目录：README.md r1 重写（取代 V4.30 营销式旧 README，
   旧性能指标叙述保留于 GitHub 上游与上文存档）+ module.yaml（11 号标准
   §4，CONTRACT_READY，entrypoint=MISSING）+ 本节。
-- 合同 ID：SCI=SCI-WCS-001（docs/science/ASTROMETRY.md 共享引用不改）；
+- 合同 ID：SCI=SCI-WCS-001（docs/science/detection/ASTROMETRY.md 共享引用不改）；
   ALG=ALG-WCS-001（PLATESOLVE.md §11 逐符号锚，12 导出+内核符号链实测）；
-  DATA=DATA-P1-WCS（DATA_SEMANTICS §18）；API=API-WCS-001（PUBLIC_API，
+  DATA=DATA-P1-WCS（`docs/detail/registry/acsd.phase1.wcs-platesolve.md`「输入输出端口、DATA、单位、坐标、invalid」一节）；API=API-WCS-001（PUBLIC_API，
   12 导出符号锚）；SRC=SRC-WCS-001；TEST=TEST-WCS-DESIGN-001（§11.4
   冻结容差，可执行 TEST-P1-WCS-001 归 P1-WCS-TEST）。
 - ID 修正记录：descriptor 占位 alg_id=ALG-002/api_id=API-P1-004 为编排层

@@ -74,8 +74,8 @@ api_contracts:
 doc_links:
   sci: docs/science/PHASE2_UPM.md
   alg: docs/science/algorithms/PHASE2_SAMPLER.md
-  data: docs/science/DATA_SEMANTICS.md#§23
-  api: docs/engineering/PUBLIC_API.md#API-P2-SMP-001
+  data: docs/science/unified/DATA_SEMANTICS.md#§23
+  api: docs/engineering/api/PUBLIC_API.md#API-P2-SMP-001
 contract_ids:
   sci: SCI-UPM-001
   alg: ALG-P2-SMP-001

@@ -10,7 +10,7 @@
 //                DOC-403 文件域，本任务无权同步；
 //             ② eng/ci/spec_named_impls.json SNI-S4-P3X-06/P3X-12 与 eng/ci/ledgers/spec_named_impl_gaps.json
 //                以本文件为锚（删除须同提交改表，属 CI 登记面，需与 DOC-403 同批）；
-//             ③ 原登记锚 docs/engineering/BUILD_GRAPH.md:338 经核不成立：该文现共 127 行，
+//             ③ 原登记锚 docs/engineering/build/BUILD_GRAPH.md:338 经核不成立：该文现共 127 行，
 //                :338 越界，且全文无 p3_export 行（p3_export 非 CMake target，仅由
 //                CMakeLists.txt:1510 的 eng/tests/integration/p3_export add_subdirectory 编译，
 //                不进构建图）。本条锚已注销，本轮不能删的实据为 ①②。
