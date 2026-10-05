@@ -89,11 +89,14 @@
 from __future__ import annotations
 
 import argparse
+import bisect
+import fnmatch
 import json
 import os
 import re
 import subprocess
 import sys
+import unicodedata
 from collections import Counter, defaultdict
 
 # --------------------------------------------------------------------------
@@ -284,6 +287,7 @@ EXTERNAL_STD_MARKERS = (
 
 # glob / 占位形态：按 DOCUMENT_GOVERNANCE.md 的 C1「不判」，只计数不作存在性判定
 GLOB_CHARS = "*?[]{}"
+PLACEHOLDER_CHARS = "<>"
 
 
 def repo_universe(root):
@@ -419,6 +423,93 @@ class RepoIndex:
             for i in range(len(parts)):
                 self.by_suffix["/".join(parts[i:])].append((canonical, rel))
         self._cache = {}
+        self._by_dir = None
+        self._dir_keys = None
+
+    def _dir_index(self):
+        """按**父目录**给仓内对象建索引。对象 = 文件 ∪ 目录。
+
+        目录必须进池：`lib/phase*` 在 shell 语义下指的是 `lib/` 下以 `phase`
+        开头的**目录项**（`phase1_session` 等），只索引文件会把这类通配判成
+        「一个都没命中」，那是抽取器在说谎。
+        """
+        if self._by_dir is None:
+            d = defaultdict(list)
+            for rel in self.universe:
+                d[os.path.dirname(rel)].append(rel)
+            for rel in self.dirs:
+                if rel:
+                    d[os.path.dirname(rel)].append(rel)
+            self._by_dir = d
+            self._dir_keys = sorted(d)
+        return self._by_dir
+
+    def match_pattern(self, pat, cap=8):
+        """glob / 花括号形态对仓内路径全集的命中判定。
+
+        用于「作者写下的完整路径表达是否真的指向东西」这一判定。
+
+        ⚠ **两类通配的判据不同，这是对抗复核点名的红线**：
+          · 花括号 `{a,b,c}` 是**点名**：作者逐个写出了要哪几个，展开后
+            **每一项都必须存在**才算通过。命中任意一个就放行，会把
+            `实验/photometric-magnitude/code/step{0,1,2}.sh` 这种
+            「step0 其实是 .sh、step1/2 是 .py」的真缺陷吞掉。
+          · 星号 `*` / `?` 是**集合**：作者没点名具体哪几个，命中 ≥ 1 即可。
+
+        ⚠ 另一条边界：命中与否由**作者原文里的通配元符**决定，不做任何
+        「前缀补全 / 后缀猜测 / 词干还原」。`lib/phase1` 的目录不存在
+        （只有 `lib/phase1_session/`），原文没写 `*`，就必须继续报。
+
+        先用最长的一段**无通配符**的目录前缀把候选集收窄，再逐条 fnmatch，
+        避免对 20 万条路径做通配全扫。返回 (是否全部命中, 命中条数, 样例)；
+        通配符落在首段（无法收窄）时 ok=None，调用方据此记
+        `pattern_uncomputable`，**不谎报零命中**。
+        """
+        alts = expand_braces(pat)
+        if not alts:
+            return (False, 0, [])
+        di = self._dir_index()
+        keys = self._dir_keys
+        total, sample, ok = 0, [], True
+        for a in alts:
+            segs = a.split("/")
+            lit = []
+            for s in segs:
+                if any(c in GLOB_CHARS for c in s):
+                    break
+                lit.append(s)
+            if len(lit) == len(segs):
+                # 完全字面：直接查对象全集。
+                if a in self.universe or a in self.dirs:
+                    total += 1
+                    if len(sample) < cap:
+                        sample.append(a)
+                else:
+                    ok = False
+                continue
+            prefix = "/".join(lit)
+            if prefix == "":
+                # 首段就带通配符：无法用目录索引收窄。全集太大时如实说算不出来。
+                if len(self.universe) > 40000:
+                    return (None, 0, [])
+                pool = sorted(self.universe)
+            else:
+                # 通配符只在**末段**（文件名）时，候选就是该目录下的对象本身；
+                # 通配符之后还有段时，才需要把该目录的所有子目录一并纳入。
+                pool = list(di.get(prefix, ()))
+                if len(lit) < len(segs) - 1:
+                    lo = bisect.bisect_left(keys, prefix + "/")
+                    hi = bisect.bisect_left(keys, prefix + "0")
+                    for d in keys[lo:hi]:
+                        pool.extend(di[d])
+            hits = [p for p in pool if fnmatch.fnmatchcase(p, a)]
+            if not hits:
+                ok = False
+            total += len(hits)
+            for h in hits:
+                if len(sample) < cap:
+                    sample.append(h)
+        return (ok and total > 0, total, sample)
 
     def _is_dir(self, rel):
         return rel in self.dirs or os.path.isdir(os.path.join(self.root, rel))
@@ -597,6 +688,307 @@ def iter_candidates(text):
     return out
 
 
+# --------------------------------------------------------------------------
+# 路径表达文法（修 BARE_RE 抽取缺陷用）
+#
+# 抽取器过去把三类**非字面路径**的形态当成字面路径去判存在性，于是报出假悬空：
+#
+#   1. glob / 花括号形态：`stage1_*.json`、`phase_config_{normalize,mosaic,export}
+#      .schema.json`、`drizzle_science.{h,cpp}`、`panel{1,2,3}`、`p3_export.*`
+#   2. 含空格的形态：`testdata/T2 calibration files/masterDark_...xisf`
+#   3. 占位形态：`<output_dir>/logs`
+#
+# DOCUMENT_GOVERNANCE.md 的检查项 C1（`docs/` 路径无悬空）对这三类逐字写着
+# **「不判：glob 形态（含 `**`）、占位形态（含尖括号）、含空格的形态——只计
+# 命中数，不作存在性判定」**。工具里 GLOB_CHARS 早就带着这条注释，却从未被
+# 引用过：判据在位、执行不在，是一处死代码。本节把这条判据接上执行。
+#
+# ⚠ **判据边界**（写在这里，是为了挡住后来者为「让数字下降」而放宽）：
+#   「不判」只对上面这三类**形态**成立，且只在**作者写下的完整表达**真的含有
+#   这些形态时成立。形态一旦不是这三类，就回到字面判定——
+#   **前缀不是路径**：`lib/phase1` 的目录不存在（只有 `lib/phase1_session/`），
+#   必须继续报悬空；`lib/infrastructure/pipeline/module_loader/secure_loader`
+#   没有扩展名也必须继续报（不替人补 `.c` / `.h`）。
+#
+# 非 ASCII 路径字符**不在**这三类里。CJK 文件名在本仓真实存在
+# （`实验/.../03_缺陷账本_重开清单.md`、`testdata/LDN43_T2素材_flying_dutchman/`），
+# BARE_RE 的字符类只有 ASCII 才把它们截断成半截前缀——那是纯抽取缺陷，必须照常
+# 判存在性、判出结果，不豁免。
+# --------------------------------------------------------------------------
+
+# 路径段内允许的 ASCII 字符：字母数字、下划线、加号、点、连字符、波浪号、@，
+# 外加 glob 元字符。逗号只在花括号/方括号**内部**合法。
+SEG_ASCII = set("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"
+                "0123456789_+-.~@*?")
+
+_seg_ok_cache = {}
+
+
+def _seg_char_ok(ch):
+    """这个字符能不能出现在路径**段**里（不含 / 与空格）。
+
+    ASCII：白名单（SEG_ASCII）。非 ASCII：按 Unicode 类别判——
+    字母 / 数字 / 组合记号放行（汉字文件名），标点 / 符号 / 空白 / 控制一律终止
+    （`实验/a，b.md` 里的 `，` 是散文分隔，不是文件名）。
+    """
+    v = _seg_ok_cache.get(ch)
+    if v is None:
+        if ch < "\x80":
+            v = ch in SEG_ASCII
+        else:
+            v = unicodedata.category(ch)[0] in ("L", "N", "M")
+        _seg_ok_cache[ch] = v
+    return v
+
+
+def _read_segment(text, i, end, depth=0):
+    """读一个路径段。返回 (段文本, 结束下标, 括号深度)。"""
+    buf = []
+    while i < end:
+        ch = text[i]
+        if ch in "{[":
+            depth += 1
+        elif ch in "}]":
+            if depth == 0:
+                break
+            depth -= 1
+        elif ch == ",":
+            # 逗号只在括号内合法（`{normalize,mosaic,export}`）
+            if depth == 0:
+                break
+        elif not _seg_char_ok(ch):
+            break
+        buf.append(ch)
+        i += 1
+    return "".join(buf), i, depth
+
+
+def path_expression(text, start, limit=240):
+    """从 start 起按路径表达文法把作者写下的**完整**表达读出来。
+
+    返回 (无空格读法, 完整读法)：
+      · 无空格读法 = 只用 `/` 连接的最长前缀（`实验/x/03_缺陷账本.md AR-048`
+        里的 `AR-048` 是散文尾巴，不算路径）；
+      · 完整读法 = 再允许用**单个空格**连接后续段（`testdata/T2 calibration
+        files`）。空格后的段若含非 ASCII 字符则不接受（` 的硬件字段禁令`
+        是散文不是路径段）。
+
+    读出来的串**不保证存在**——存在与否由调用方判。
+    """
+    end = min(len(text), start + limit)
+    seg, i, depth = _read_segment(text, start, end)
+    if not seg:
+        return "", ""
+    full = seg
+    nospace = seg
+    joined = False
+    while i < end and depth == 0:
+        if text[i] == "/":
+            seg, i, depth = _read_segment(text, i + 1, end)
+            if not seg:
+                break
+            full += "/" + seg
+            # ⚠ 一旦用过空格续接，之后的 `/` 段**不得**再回填进无空格读法：
+            # `testdata/T2 calibration files/keep.txt` 的无空格读法只能是
+            # `testdata/T2`，否则「含空格」这一层就永远测不出来。
+            if not joined:
+                nospace = full
+            continue
+        if text[i] == " ":
+            j = i + 1
+            while j < end and text[j] == " ":
+                j += 1
+            seg2, j2, _d2 = _read_segment(text, j, end)
+            # 空格后的一段必须是纯 ASCII：CJK 段只允许出现在 `/` 分隔的段里
+            if seg2 and seg2.isascii():
+                full += " " + seg2
+                joined = True
+                i = j2
+                continue
+        break
+    return nospace, full
+
+
+def _starts_repo_path(text, start):
+    """text[start:] 是否以某个仓内一级目录名开头。"""
+    for top in REPO_TOPS:
+        if text.startswith(top, start):
+            nxt = text[start + len(top): start + len(top) + 1]
+            if nxt in ("", "/"):
+                return True
+    return False
+
+
+def has_glob(expr):
+    return any(c in GLOB_CHARS for c in expr)
+
+
+def has_placeholder(expr):
+    return any(c in PLACEHOLDER_CHARS for c in expr)
+
+
+def expand_braces(pat, cap=16):
+    """把 `{a,b}` 展开成若干具体形态。组合数超上限就放弃展开。"""
+    start = pat.find("{")
+    if start < 0:
+        return [pat]
+    depth, i = 0, start
+    while i < len(pat):
+        if pat[i] == "{":
+            depth += 1
+        elif pat[i] == "}":
+            depth -= 1
+            if depth == 0:
+                break
+        i += 1
+    if depth != 0:
+        return [pat]
+    inner = pat[start + 1:i]
+    alts, buf, d = [], [], 0
+    for ch in inner:
+        if ch == "{":
+            d += 1
+        elif ch == "}":
+            d -= 1
+        if ch == "," and d == 0:
+            alts.append("".join(buf))
+            buf = []
+        else:
+            buf.append(ch)
+    alts.append("".join(buf))
+    out = []
+    for a in alts:
+        out.extend(expand_braces(pat[:start] + a + pat[i + 1:], cap))
+        if len(out) > cap:
+            return []
+    return out
+
+
+# 「不判」只剩占位形态一类：尖括号里的内容无法机械展开，判它只能靠猜。
+# glob 与含空格两类改为**照常判**：完整表达能展开，展开命中 0 就是真悬空。
+UNJUDGED_STATS = {
+    "glob": ("unjudged_glob_form", "unjudged_glob_hit", "unjudged_glob_miss"),
+    "space": ("unjudged_space_form", "unjudged_space_hit", "unjudged_space_miss"),
+    "placeholder": ("unjudged_placeholder_form", "unjudged_placeholder_hit",
+                    "unjudged_placeholder_miss"),
+}
+
+
+def judge_path_expression(text, at, index, rel, stats):
+    """一条仓根相对 token 解析不到时，按路径表达文法重读作者的**完整**表达再判。
+
+    返回 (verdict, form, expr)：
+      ("literal",  None, None)
+          完整表达就是这条字面路径（或续写后仍不存在）⇒ 照常按原 token 报悬空。
+          **刻意保留原 token**：真悬空的身份（stable_key）不因抽取器修正而漂移。
+      ("resolved", None, target)
+          完整表达指向真实目标 ⇒ 之前那条是抽取器截断出来的**假**悬空。
+      ("missing",  form, expr)
+          完整表达是 glob / 含空格形态，而它**一个真实目标都没命中**
+          ⇒ 仍然是悬空，只是把 token 从截断前缀换成作者的完整表达。
+      ("unjudged", "placeholder", expr)
+          占位形态（尖括号）确实无法机械判定，按 C1 只计数。
+
+    ⚠ 为什么 glob 零命中要**继续报硬缺陷**而不是「不判」：
+      `docs/engineering/api/PUBLIC_API.md` 里 `eng/tests/unit/p2_*` 的目录
+      整层不存在（同一行的 `eng/tests/validation/release02/` 却存在），
+      `lib/infrastructure/aio/memory.md` 的 `eng/tests/test_healpix_io*.py`
+      同理。这两条是 ACTIVE 正本里的**死 glob**，写成「不判」就是替工具
+      缺陷背书、顺手把真缺陷吞掉——本仓已因此返工过一次。
+    """
+    if not _starts_repo_path(text, at):
+        return ("literal", None, None)
+    nospace, full = path_expression(text, at)
+    if not nospace:
+        return ("literal", None, None)
+
+    if has_placeholder(nospace):
+        stats["unjudged_placeholder_form"] += 1
+        return ("unjudged", "placeholder", nospace)
+
+    if has_glob(nospace):
+        ok, _n, _sample = index.match_pattern(nospace)
+        if ok is None:
+            # 收窄不了就如实说算不出来，按占位形态只计数，不谎报零命中。
+            stats["pattern_uncomputable"] += 1
+            stats["unjudged_glob_form"] += 1
+            return ("unjudged", "glob", nospace)
+        if ok:
+            stats["glob_form_resolved"] += 1
+            return ("resolved", None, nospace)
+        stats["glob_form_no_match"] += 1
+        return ("missing", "glob", nospace)
+
+    # 非 ASCII 续写（CJK 文件名）必须照常判存在性：
+    # `实验/.../03_缺陷账本_重开清单.md` 是真实路径，判出「存在」或「不存在」。
+    kind, resolved, _c = index.resolve(nospace, rel)
+    if kind in ("exact", "dir", "ext"):
+        stats["expression_extended"] += 1
+        return ("resolved", None, resolved)
+
+    # `X.h/.cpp` 复合简写：展开后头 + 源**都要**在，才算这条简写指的是真东西。
+    alts = composite_suffix_alts(nospace)
+    if alts:
+        if all(a in index.universe or a in index.dirs for a in alts):
+            stats["composite_suffix_resolved"] += 1
+            return ("resolved", None, alts[0])
+        stats["composite_suffix_no_match"] += 1
+        return ("missing", "composite", nospace)
+
+    if kind == "missing" and nospace != full:
+        # 作者确实在路径里写了空格（`testdata/T2 calibration files`）。
+        # ⚠ **续写只许成功、不许改写**：命中就消解，没命中就退回按原 token 报悬空。
+        # 否则 `eng/tools/e2e/seam_footprint.py --self-test` 这类「路径 + 命令行
+        # 参数」会被整条吞成一个假路径 token，把真悬空的诊断改坏。
+        k2, r2, _c2 = index.resolve(full, rel)
+        if k2 in ("exact", "dir"):
+            stats["space_form_resolved"] += 1
+            return ("resolved", None, r2)
+    return ("literal", None, None)
+
+
+# `X.h/.cpp` / `X.cpp/.h` 这种「同一模块的头 + 源」复合简写：仓内 12 处，
+# 两个文件都在（实测 `sha256.h/.cpp` → `sha256.h` + `sha256.cpp` 都在盘上）。
+# 这是**简写记法**不是字面路径，判据与花括号同档：展开后每一项都必须存在。
+COMPOSITE_SUFFIX_RE = re.compile(r"^(?P<stem>.*)\.(?P<e1>[A-Za-z0-9]{1,6})/\.(?P<e2>[A-Za-z0-9]{1,6})$")
+COMPOSITE_EXTS = {"h", "hpp", "hh", "c", "cc", "cpp", "cxx", "py", "sh", "cmake"}
+
+# 占位形态：`X/<name>/Y`、`eng/contracts/schemas/unified/<对象名>.schema.json`。
+# C1 明写占位形态「不判」存在性——但**不判不等于看不见**，单列 ADVISORY。
+# `classify_token` 把 `<>` 直接判 none，这些形态过去**整条从未被检查过**。
+PLACEHOLDER_PATH_RE = re.compile(
+    r"(?<![\w/.-])((?:%s)/[^\s，。；：、（）「」`\"']*<[^>\n]{1,40}>[^\s，。；：、（）「」`\"']*)"
+    % "|".join(sorted(REPO_TOPS))
+)
+# markdown 表格里的 <br/> / <hr/> 不是占位路径，别混进来当形态计数
+HTML_TAGS = {"br", "hr", "img", "a", "b", "i", "code", "em", "strong", "p",
+             "span", "div", "table", "td", "tr", "sub", "sup", "pre"}
+
+
+def placeholder_paths(text):
+    """抽出文本里的占位形态路径；markdown 的 <br/> 一类已排除。"""
+    out = []
+    for m in PLACEHOLDER_PATH_RE.finditer(text):
+        expr = m.group(1)
+        inner = expr[expr.find("<") + 1: expr.find(">")].strip("/")
+        if inner.lower() in HTML_TAGS:
+            continue
+        out.append((expr, m.start(1), len(expr)))
+    return out
+
+
+def composite_suffix_alts(expr):
+    """`X.h/.cpp` 展开成 [X.h, X.cpp]；不是这个形态就返回 []。"""
+    m = COMPOSITE_SUFFIX_RE.match(expr)
+    if not m:
+        return []
+    e1, e2 = m.group("e1"), m.group("e2")
+    if e1 not in COMPOSITE_EXTS or e2 not in COMPOSITE_EXTS:
+        return []
+    stem = m.group("stem")
+    return [stem + "." + e1, stem + "." + e2]
+
+
 def anchors_after(text, start, length):
     """取紧跟该路径之后的章节锚集合。
 
@@ -665,6 +1057,8 @@ CLASSES = {
     "clause_anchor_retired": "条款锚 · 已退役无承载：编号已登记且 status=OBSOLETE，"
                              "映射表不给承载路径——缺席是退役登记意图，不判缺陷",
     "external_ref": "外部引用：指向仓外标准/文献，仓内不可判定（仅列出，不判缺陷）",
+    "path_placeholder": "占位路径形态：`X.md` 形如 `<output_dir>/logs`，尖括号里的内容"
+                        "无法机械展开，按 C1 不判存在性——单列是「不判不等于吞掉」",
 }
 
 SOFT = ("unresolved_bare_anchor", "external_ref", "unresolved_relative",
@@ -677,7 +1071,7 @@ SOFT = ("unresolved_bare_anchor", "external_ref", "unresolved_relative",
 # 三十来条假悬空，判成 SOFT 又会被淹没。ADVISORY 是唯一不撒谎的位置：
 # 单列、可单独计数、不混进硬判定合计。是否升级为硬闸需负责人裁定。
 ADVISORY = ("ambiguous_target", "anchor_title_mismatch", "replacement_residue",
-            "anchor_title_not_literal")
+            "anchor_title_not_literal", "path_placeholder")
 
 
 class Finding:
@@ -993,6 +1387,7 @@ def scan(root, surfaces):
     heads.ensure_indexed(md_files)
 
     findings, seen = [], set()
+    placeholder_seen = set()
     stats = defaultdict(int)
 
     def add(f):
@@ -1063,6 +1458,17 @@ def scan(root, surfaces):
                     else:
                         stats["resolved_named_volume"] += 1
 
+            # 占位形态：`<name>` 里的内容无法机械展开，按 C1 不判存在性，
+            # 但必须单列可见（对抗复核点名：过去这整类**从未被检查过**）。
+            for expr, pstart, plen in placeholder_paths(line):
+                stats["placeholder_forms"] += 1
+                emitted_placeholder = (rel, expr)
+                if emitted_placeholder in placeholder_seen:
+                    continue
+                placeholder_seen.add(emitted_placeholder)
+                add(Finding("path_placeholder", rel, lineno, expr[:200], expr,
+                            None, "占位形态，按 C1 不判存在性：%s" % expr))
+
             # 路径 token
             for raw, start, length in iter_candidates(line):
                 ckind, token = classify_token(raw)
@@ -1072,6 +1478,31 @@ def scan(root, surfaces):
                 kind, resolved, cands = index.resolve(token, rel)
 
                 if kind == "missing":
+                    # 抽取器退让：token 解析不到时，按路径表达文法把作者写下的
+                    # 完整表达重读一遍再判（截断 / glob / 空格 / CJK 四类缺陷的
+                    # 共同入口）。判据边界写在 judge_path_expression 的注释里。
+                    verdict, form, info = judge_path_expression(line, start, index,
+                                                              rel, stats)
+                    if verdict == "resolved":
+                        stats["resolved_by_expression"] += 1
+                        continue
+                    if verdict == "unjudged":
+                        stats["unjudged_%s_suppressed" % form] += 1
+                        if form == "placeholder":
+                            # 「不判」不等于「吞掉」：占位形态无法机械展开，
+                            # 但必须留一条可见痕迹（对抗复核点名：原版连
+                            # ADVISORY 都不发，与工具自述原则自相矛盾）。
+                            add(Finding("path_placeholder", rel, lineno,
+                                        info[:200], info, None,
+                                        "占位形态，不判存在性：%s" % info))
+                        continue
+                    if verdict == "missing":
+                        # 完整表达是 glob / 含空格形态且**零命中**：仍然是悬空，
+                        # 只是 token 从截断前缀换成作者写下的完整表达。
+                        add(Finding("dangling_path", rel, lineno,
+                                    info[:200], info, None,
+                                    "%s形态未命中任何仓内路径：%s" % (form, info)))
+                        continue
                     if ckind == "rel":
                         # 相对路径 / 裸文件名解析不到 ≠ 悬空：它可能相对于
                         # 正文里另行声明的目录。降为待人判读，不计入悬空。
@@ -1269,6 +1700,32 @@ def scan(root, surfaces):
                 if token is None:
                     continue
                 kind, resolved, cands = index.resolve(token, rel)
+                if kind == "missing" and _ck == "abs":
+                    # 与逐行扫描同一套退让：值里写的可能是被 `re.split` 按空白
+                    # 切碎的含空格路径、glob 形态，或被 BARE_RE 截断的 CJK 路径。
+                    # 这里没有行偏移，用 piece 在原值里的字符位置代替。
+                    at = val.find(piece)
+                    verdict, form, info = judge_path_expression(
+                        val, at if at >= 0 else 0, index, rel, stats)
+                    if verdict == "resolved":
+                        stats["resolved_by_expression"] += 1
+                        continue
+                    if verdict == "unjudged":
+                        stats["unjudged_%s_suppressed" % form] += 1
+                        if form == "placeholder":
+                            # 「不判」不等于「吞掉」：占位形态无法机械展开，
+                            # 但必须留一条可见痕迹（对抗复核点名：原版连
+                            # ADVISORY 都不发，与工具自述原则自相矛盾）。
+                            add(Finding("path_placeholder", rel, _line_of(text, info[:40]),
+                                        info[:200], info, None,
+                                        "占位形态，不判存在性：%s" % info))
+                        continue
+                    if verdict == "missing":
+                        add(Finding("dangling_path", rel, 0,
+                                    "%s: %s" % (key, info)[:200], info, None,
+                                    "结构化字段 %s 的 %s形态未命中任何仓内路径：%s"
+                                    % (key, form, info)))
+                        continue
                 if kind == "missing":
                     cls = "dangling_path" if _ck == "abs" else "unresolved_relative"
                 elif kind == "ambiguous":
@@ -1547,6 +2004,55 @@ SELFTEST_TREE = {
         "已登记且 OBSOLETE、无承载文档：`ALG-RETIRED-001 §1`。\n\n"
         "未登记（形近 `ALG-TOK-001` 但少一段）：`ALG-TOK §1`；另一个：`ALG-TOK-001-EXTRA §1`。\n"
     ),
+    # ---- 回归夹具四：路径表达文法（本次修的抽取缺陷，七类形态）----
+    # 判据：真实存在的路径不再报悬空；**真悬空一条都不许因此消失**。
+    # 每条正例旁边都配一条「长得像它但必须仍报出」的负例，否则就是空夹具。
+    "docs/t_glob_a.md": "# glob 甲\n",
+    "docs/t_dirx/a.md": "# 目录通配夹具\n",
+    "docs/t_glob_b.md": "# glob 乙\n",
+    "docs/t_head.hpp": "// 头\n",
+    "docs/t_head.cpp": "// 源\n",
+    "testdata/T2 calibration files/keep.txt": "母版目录\n",
+    "testdata/T3 calibration files/keep.txt": "母版目录\n",
+    "实验/t_cjk/03_缺陷账本_重开清单.md": "# CJK 账本\n",
+    "实验/t_cjk/素材信息.txt": "素材\n",
+    "lib/t_mod/t_pair.h": "// 头\n",
+    "lib/t_mod/t_pair.cpp": "// 源\n",
+    "lib/t_mod/t_half.h": "// 只有头\n",
+    "lib/t_mod/t_lonely.h": "// 只有头，没有源\n",
+    "docs/t_paths.md": (
+        "# 路径表达形态\n\n"
+        # —— 正例 1：glob 命中 ⇒ 解析，不得报悬空
+        "glob 命中：`docs/t_glob_*.md`。\n\n"
+        # —— 正例 1b：glob 必须能命中**目录**（`lib/phase*` 在本仓指的是
+        #   `lib/phase1_session/` 这类目录项；只索引文件会把它判成零命中）
+        "目录 glob：`docs/t_dir*`。\n\n"
+        # —— 负例 1：glob 零命中 ⇒ **必须仍报**（对抗复核 A4/A5 的真凶）
+        "glob 零命中：`docs/t_none_*.md`。\n\n"
+        # —— 正例 2：花括号全命中 ⇒ 解析
+        "花括号全命中：`docs/t_head.{hpp,cpp}`。\n\n"
+        # —— 负例 2：花括号**部分**命中 ⇒ 必须仍报
+        #（对抗复核 A4：「命中任意一个即算存在」会吞掉这一条）
+        "花括号部分命中：`lib/t_mod/t_half.{h,cpp}`。\n\n"
+        # —— 正例 3：含空格路径 ⇒ 解析
+        "含空格：`testdata/T2 calibration files/keep.txt`。\n\n"
+        # —— 负例 3：空格续接**只许成功不许改写**：路径本身悬空且后面跟参数
+        "路径 + 参数：`docs/t_gone.py --flag`。\n\n"
+        # —— 正例 4：CJK 路径 ⇒ 解析
+        "CJK：`实验/t_cjk/03_缺陷账本_重开清单.md`。\n\n"
+        # —— 负例 4：CJK 路径真缺失 ⇒ 必须仍报
+        "CJK 缺失：`实验/t_cjk/04_缺陷账本_未复开清单.md`。\n\n"
+        # —— 正例 5：`「节名」一节` 后缀黏进 token ⇒ 解析
+        "节名引用：`docs/t_head.hpp`「甲节」一节。\n\n"
+        # —— 正例 6：`X.h/.cpp` 复合简写 ⇒ 解析
+        "复合简写：`lib/t_mod/t_pair.h/.cpp`。\n\n"
+        # —— 负例 6：`X.h/.cpp` 缺一个 ⇒ 必须仍报（不得「命中一个」就放行）
+        "复合简写缺源：`lib/t_mod/t_lonely.h/.cpp`。\n\n"
+        # —— 负例 5：段内截断**不得**被前缀吞（本仓实证 lib/phase1 不存在）
+        "退役旧目录：`lib/t_retired`，已迁往 `lib/t_mod`（旧目录本世代不再存在）。\n\n"
+        # —— 占位形态：可见但不计硬缺陷（C1「不判」≠「吞掉」）
+        "占位形态：`lib/t_mod/<name>/t_ghost.cpp`。\n"
+    ),
 }
 
 SELFTEST_EXPECT = {
@@ -1598,6 +2104,27 @@ SELFTEST_CLEAN_FILES = ["docs/t_other.md", "docs/t_sub/README.md",
                         "docs/t_ambig_a/x.md", "docs/t_ambig_b/x.md",
                         "docs/t_right.md"]
 
+# ---- 抽取器回归（本次修的七类形态）----
+# 正例：真实存在的路径**不得**再被报成悬空（按 token 查报告里没有它）。
+SELFTEST_MUST_RESOLVE = (
+    "docs/t_glob_",                                       # glob 命中（文件）
+    "docs/t_dir",                                         # glob 命中（目录项）
+    "docs/t_head",                                        # 花括号全命中 + 「节名」黏连
+    "testdata/T2",                                        # 含空格路径
+    "实验/t_cjk/03_",                                     # CJK 路径
+    "lib/t_mod/t_pair",                                   # X.h/.cpp 复合简写
+)
+# 负例：真悬空**必须**仍被报出，且 token 必须是作者写下的完整表达。
+# 少一条就是过宽匹配 —— 每条都配了「长得像它」的正例，不是空夹具。
+SELFTEST_MUST_STILL_REPORT = (
+    ("docs/t_none_*.md", "glob 零命中必须仍报"),
+    ("lib/t_mod/t_half.{h,cpp}", "花括号部分命中必须仍报"),
+    ("docs/t_gone.py", "空格续接不得改写真悬空的 token"),
+    ("实验/t_cjk/04_缺陷账本_未复开清单.md", "CJK 路径缺失必须仍报"),
+    ("lib/t_mod/t_lonely.h/.cpp", "复合简写缺一个必须仍报"),
+    ("lib/t_retired", "段内截断不得被前缀吞（旧目录已迁走）"),
+)
+
 
 def selftest():
     import shutil
@@ -1611,7 +2138,7 @@ def selftest():
             with open(p, "w", encoding="utf-8") as fh:
                 fh.write(content)
 
-        findings, stats, scan_note, _i, _h, _s = scan(base, ())
+        findings, stats, scan_note, _idx, _h, _s = scan(base, ())
         pairs = {(f.cls, f.token, f.src) for f in findings}
         ok, bad = 0, []
 
@@ -1678,11 +2205,68 @@ def selftest():
         else:
             ok += 1
 
+        from collections import defaultdict as _dd
         bad_tokens = {"§5.4.1"}
         wrong = [(f.cls, f.token) for f in findings
                  if f.cls in ("dangling_path", "dangling_anchor") and f.token in bad_tokens]
         if wrong:
             bad.append("误报：外部标准引用被判成仓内悬空 %s" % wrong)
+        else:
+            ok += 1
+
+        # ---- 抽取器回归：真实存在的路径不得再报悬空 ----
+        leaked = sorted({f.token for f in findings
+                         if f.src == "docs/t_paths.md"
+                         and f.cls in ("dangling_path", "unresolved_relative")
+                         and f.token.startswith(SELFTEST_MUST_RESOLVE)})
+        if leaked:
+            bad.append("抽取器缺陷未修好：真实存在的路径仍被报悬空 %s" % leaked)
+        else:
+            ok += 1
+
+        # ---- 抽取器回归：真悬空必须一条不少，且 token 是作者的完整表达 ----
+        reported = {f.token for f in findings
+                    if f.src == "docs/t_paths.md" and f.cls == "dangling_path"}
+        missing = [(tok, why) for tok, why in SELFTEST_MUST_STILL_REPORT
+                   if tok not in reported]
+        if missing:
+            bad.append("过宽匹配：真悬空被吞掉 %s" % missing)
+        else:
+            ok += 1
+
+        # ---- 抽取器回归：占位形态可见但不计硬缺陷 ----
+        ph = [f for f in findings if f.cls == "path_placeholder"
+              and f.src == "docs/t_paths.md"]
+        if not ph:
+            bad.append("占位形态不可见：「不判」被做成了「吞掉」")
+        elif any(f.cls not in ADVISORY for f in ph):
+            bad.append("占位形态被算成硬判定")
+        else:
+            ok += 1
+
+        # ---- 抽取器回归：仓根目录闸门本身 ----
+        # 散文里的仓内路径串**不能**被当成一条路径表达：整段文本不以仓内一级
+        # 目录名开头时一律照常判，不许续写。撤掉闸门本项必须变红。
+        prose = "本册不复制科学数值：docs/t_glob_a.md 不是本册事实源"
+        if _starts_repo_path(prose, 0):
+            bad.append("仓根目录闸门失效：散文文本被判成仓内路径起点")
+        elif not _starts_repo_path(prose, prose.find("docs/")):
+            bad.append("仓根目录闸门失效：真正的仓内路径起点被拒")
+        else:
+            v, _f, _i = judge_path_expression(prose, 0, _idx, "docs/t_doc.md",
+                                              defaultdict(int))
+            if v != "literal":
+                bad.append("散文文本被当成路径表达判成 %r" % (v,))
+            else:
+                ok += 1
+
+        # ---- 口径回归：续写类统计必须真的在计数（防空跑） ----
+        need = ("glob_form_resolved", "glob_form_no_match", "composite_suffix_resolved",
+                "composite_suffix_no_match", "space_form_resolved", "expression_extended",
+                "resolved_by_expression")
+        dead = [k for k in need if not stats.get(k)]
+        if dead:
+            bad.append("抽取器统计项恒为 0（等于没接执行）：%s" % dead)
         else:
             ok += 1
 
