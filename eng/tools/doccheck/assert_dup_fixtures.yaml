@@ -1,0 +1,472 @@
+# 断言副本检测器 · 实测夹具集
+#
+# 用途：给 eng/tools/doccheck/check_assert_dup.py 的四种查询模式建一批带人工期望的夹具，
+#       由 measure_assert_dup_accuracy.py 实跑并打出逐条 PASS/FAIL 表。
+#
+# 【纪律】
+#   · 本文件只写**期望**，不写工具行为。期望值一律由人读原文判定，不由工具反推。
+#   · 每条 must_hit 的 file:line 都来自本文件末尾「核验记录」一节列出的实跑命令输出。
+#   · verified_by: me     = 本次由我（执行夹具的 agent）亲自 grep / 实跑复核过
+#     verified_by: 待核    = 尚未独立复核，使用前请自行核
+#   · 计数只作分母。PASS/FAIL 是给人看的诊断，不是门禁；退出码恒 0。
+#
+# 【字段】
+#   kind: positive      仓内确有该形态，期望工具抓到
+#         negative      仓内确无 / 或命中后经人读判定为非矛盾
+#   query / queries     单条查询，或多条子查询（并集判定；报告里会标明每条 must_hit 由哪条子查询命中）
+#   expect.must_hit     必须出现在命中列表里的 file:line
+#   expect.must_hit_layer  可选，断言该 file:line 被工具归到哪一层（人工判定）
+#   expect.must_not_hit 不得出现；出现即误报
+#   expect.forbid_matched  不得作为「命中值」出现的字面量（量级护栏等）
+#   expect.forbid_verdicts 不得被工具贴上的初判标签（防把非矛盾判成重复副本）
+#   expect.expect_zero_hits  整条查询期望 0 命中
+#   expect.known_miss   已知漏检位置：人读确认该处确有该断言，但工具抓不到
+#   expect.human_ruling 人读裁决（命中是否构成矛盾）
+#   expect.note         复核时看到的东西
+
+meta:
+  目标工具: eng/tools/doccheck/check_assert_dup.py
+  测量脚本: eng/tools/doccheck/measure_assert_dup_accuracy.py
+  仓根: "."
+  工具退出码约定: 恒为 0（发现分歧不是错误）
+  本夹具集性质: 诊断表，不是门禁；计数只作分母，判定由人阅读上下文做出
+
+fixtures:
+
+  # ── 正例 ────────────────────────────────────────────────────────────────
+  - id: POS-01
+    kind: positive
+    title: MAD 一致化常数的 ULP 邻居与截断档（PSF.md 用 ...023）
+    query: ["--num", "1.482602218505602"]
+    verified_by: me
+    expect:
+      must_hit:
+        - "docs/science/psf/PSF.md:176"        # 写成 1.4826022185056023，与正本差 1 ULP
+        - "docs/science/psf/PSF.md:298"        # 脚本注释里的 # 1.4826022185056023
+        - "docs/science/algorithms/NOISE_ESTIMATION.md:102"   # 11 位简写 1.4826022185
+        - "docs/science/algorithms/NOISE_ESTIMATION.md:209"   # 同上 + 4 位 1.4826
+      must_hit_layer:
+        "docs/science/psf/PSF.md:176": "L1-SCI"
+      note: >-
+        实测命中 205 处 / 100 文件 / 4 层。matched 值共 7 档：1.4826（4 位截断，仓内多处）、
+        1.482602（6 位）、1.4826022（7 位）、1.4826022185（11 位简写）、1.483、1.4826022185056023、
+        1.4826022185056019。POS-01 的核心是 PSF.md 两处 ...023。
+        注意：正本 docs/science/algorithms/NOISE_ESTIMATION.md 与 docs/science/noise_snr/NOISE_SNR.md
+        **不出现在命中列表里**——它们只写全精度值本身，而 scan_num 对 num_str == v_str 直接 continue。
+        即：--num 只报邻居、正本本身不可见。这不是漏检，是口径，写在这里免得下次误判。
+
+  - id: POS-02
+    kind: positive
+    title: MAD 常数的第三个字面量（1 ULP 另一侧）
+    query: ["--num", "1.482602218505602"]
+    verified_by: me
+    expect:
+      must_hit:
+        - "实验/dense-snr-reconstruct/code/route2/exp_P4R2_08_mad_sigma_budget.py:12"  # 1.4826022185056019
+      must_hit_layer:
+        "实验/dense-snr-reconstruct/code/route2/exp_P4R2_08_mad_sigma_budget.py:12": "EXP"
+      note: >-
+        该行 docstring 写「验证 1/0.6744897501960817 = 1.4826022185056019（FP64 逐位）」。
+        它是仓内第三个 MAD 字面量，既不等于全精度正本 ...602，也不等于 PSF.md 的 ...023，
+        与两者各差 1 ULP（方向相反）。POS-01 与 POS-02 合起来把「一个常数的三种字面量」
+        这一形态摆全。实测该行为 neighbor_kind=同前缀·不同精度。
+
+  - id: POS-03
+    kind: positive
+    title: UPM 控制点权重——四份副本口径分裂 + 登记册滞后
+    queries:
+      - ["--text", "raw_w = quality_factor × control_ivar"]
+      - ["--text", "quality × control_reliability × control_ivar"]
+    verified_by: me
+    expect:
+      must_hit:
+        - "lib/algorithms/coverage/include/astro/phase2/upm.h:177"                 # L3 代码正本
+        - "docs/engineering/architecture/DATA_FLOW.md:142"                        # 只写第一阶段
+        - "docs/engineering/data/ARTIFACTS.md:112"                                # 两阶段完整式（①分子那行逐字含此串）
+        - "docs/science/algorithms/PHASE2_UPM_IMPL.md:162"                        # L1 科学算法卷
+        - "docs/engineering/governance/TRACEABILITY.md:266"                       # 登记册把两阶段压成一条式
+      must_hit_layer:
+        "lib/algorithms/coverage/include/astro/phase2/upm.h:177": "L3-CODE"
+        "docs/engineering/architecture/DATA_FLOW.md:142": "L1-ENG"
+        "docs/engineering/data/ARTIFACTS.md:112": "L1-ENG"
+        "docs/science/algorithms/PHASE2_UPM_IMPL.md:162": "L1-SCI"
+        "docs/engineering/governance/TRACEABILITY.md:266": "L1-ENG"
+      note: >-
+        派单原描述有两处与实测不符，已按实测更正：
+        (1) ARTIFACTS.md:112 **确实逐字含** `raw_w = quality_factor × control_ivar`——它是两阶段式的
+            ① 分子那行，--text 会命中，不是漏检。派单把它当「不命中」是夹具写错。
+        (2) 派单的 must_hit 漏了 PHASE2_UPM_IMPL.md:162，它同样逐字命中。
+        两条子查询的实测分工：
+          子查询①（raw_w = quality_factor × control_ivar）→ 4 命中 / 4 文件 / 3 层。
+          子查询②（quality × control_reliability × control_ivar）→ 1 命中，就是
+          TRACEABILITY.md:266，且全仓仅此一处（其余命中全在 run/，默认不扫）。
+        ⇒ 子查询② 单打独斗地把「登记册滞后」这一形态摆出来：TRACEABILITY 是 governance 登记册，
+        把两阶段压成一条式 `quality × control_reliability × control_ivar`（几何可靠性乘进分子），
+        与 ARTIFACTS.md:112「几何可靠性不在分子」和 upm.h:177 三处相反，而该行 status 仍标 VERIFIED。
+        注意 TRACEABILITY.md 归到 L1-ENG 而非 R-* 登记册层——工具只把 DOCUMENT_INDEX.yaml 与
+        GLOSSARY.md 当登记册，docs/engineering/governance/ 下的台账一律算 L1-ENG。
+        另记两条已知不可见（不在 must_hit）：lib/algorithms/coverage/src/upm.cpp:9 用 `*` 不是 `×`（记法分叉）；
+        lib/algorithms/upm/README.md:57 该串跨行折断，逐字匹配看不见。
+
+  - id: POS-04
+    kind: positive
+    title: 标识符前缀包含（bilinear ⊂ bilinear_4quad / bilinear_area_overlap_exact）
+    query: ["--ident", "bilinear", "--prefix"]
+    verified_by: me
+    expect:
+      must_hit:
+        - "docs/science/resample/RESAMPLE.md:249"                              # bilinear_4quad
+        - "docs/science/resample/RESAMPLE.md:257"                              # bilinear_area_overlap_exact
+        - "lib/algorithms/resample/p3_rsmp_kernel_registry.cpp:176"             # k.kernel_id = "bilinear_4quad"
+        - "lib/algorithms/resample/p3_rsmp_kernel_registry.cpp:205"             # k.kernel_id = "bilinear_area_overlap_exact"
+        - "lib/phase3_session/p3_export.h:159"                                 # 默认 kernel_id = "bilinear_4quad"
+        - "eng/contracts/schemas/phase_config_export.schema.json:345"           # 配置字面 bilinear
+      must_hit_layer:
+        "docs/science/resample/RESAMPLE.md:249": "L1-SCI"
+        "lib/algorithms/resample/p3_rsmp_kernel_registry.cpp:176": "L3-CODE"
+        "eng/contracts/schemas/phase_config_export.schema.json:345": "L3-CONTRACT"
+      note: >-
+        实测命中 467 处 / 117 文件 / 9 层（含 L3-CONFIG 新层）。全部 bilinear_4quad /
+        bilinear_area_overlap_exact 命中的 relation 均为「折叠前缀包含」。
+        本条要证明的是：**逐字相等比较（--ident bilinear 不加 --prefix）必然漏掉这两个 id**，
+        --prefix 才看得见。加 --prefix 的代价是噪声爆炸——467 处里有 293 处在 实验/，
+        且带出 bilinear_nodes / bilinear_var / bilinear_from_cells / bilinear_convergence_order
+        这一大族无关标识符。这是本模式「召回换噪声」的实测代价，写在这里备查。
+        另注：docs/DOCUMENT_INDEX.yaml:450 命中的是大写 BILINEAR，只有 --ident 折叠能抓到，
+        --text 必然漏。
+
+  - id: POS-05
+    kind: positive
+    title: 权重换算式跨层副本（分层判定的正例）
+    query: ["--text", "w = SNR²/F_ref²"]
+    verified_by: me
+    expect:
+      must_hit:
+        - "docs/ACSD_DESIGN.md:111"                            # L0 顶点
+        - "docs/ACSD_DESIGN.md:282"                            # L0 顶点
+        - "docs/science/DISPUTE_RESOLUTION.md:164"             # L1 正本·科学
+        - "docs/science/DISPUTE_RESOLUTION.md:291"             # L1 正本·科学
+        - "docs/science/unified/DATA_SEMANTICS.md:171"         # L1 正本·科学
+        - "docs/engineering/contracts/CONFIG.md:71"             # L1 正本·工程
+        - "docs/engineering/data/ARTIFACTS.md:110"              # L1 正本·工程
+        - "docs/detail/UNIFIED_MODEL.md:101"                    # L2 细节
+        - "docs/DOCUMENT_INDEX.yaml:818"                        # 登记册·地图
+        - "lib/algorithms/coverage/include/astro/phase2/integrate.h:9"   # L3 代码
+      must_hit_layer:
+        "docs/ACSD_DESIGN.md:111": "L0-DESIGN"
+        "docs/science/DISPUTE_RESOLUTION.md:164": "L1-SCI"
+        "docs/engineering/contracts/CONFIG.md:71": "L1-ENG"
+        "docs/detail/UNIFIED_MODEL.md:101": "L2-DETAIL"
+        "docs/DOCUMENT_INDEX.yaml:818": "R-INDEX"
+        "lib/algorithms/coverage/include/astro/phase2/integrate.h:9": "L3-CODE"
+      note: >-
+        实测命中 73 处 / 37 文件 / 9 层，逐层分布 L0=2, L1-SCI=3, L1-ENG=5, L2=3, R-INDEX=1,
+        L3-CODE=17, L3-TOOL=4, EXP=37, OTHER=1。跨 L0 顶点 + L1 正本 + L2 + R 登记册 + L3 代码，
+        分层判定成立（层数 ≥ 2 且跨 L0/L1 两级）。
+        OTHER 那一处是 CMakeLists.txt:1366（构建注释里引了这条式）——顺带说明分类器把根目录
+        的 CMakeLists.txt 归 OTHER 是对的，它是构建面不是断言正本面。
+
+  - id: POS-06
+    kind: positive
+    title: 配置面仍锁着已订正正本的旧常数（活分歧）
+    queries:
+      - ["--text", "1.739917768184329"]
+      - ["--num", "1.739917768184329"]
+    verified_by: me
+    expect:
+      must_hit:
+        - "docs/science/psf/PSF.md:85"                                  # 正本（已订正），由子查询①命中
+        - "docs/science/psf/PSF.md:205"
+        - "docs/science/psf/PSF.md:343"
+        - "eng/packaging/config/defaults.json:91"                       # 配置面仍锁旧值，由子查询②命中
+      must_hit_layer:
+        "docs/science/psf/PSF.md:85": "L1-SCI"
+        "eng/packaging/config/defaults.json:91": "L3-CONFIG"
+      note: >-
+        **本条核实成立，且比派单描述更严重——是活的分歧，不是已闭环。**
+        正本 docs/science/psf/PSF.md 现值 1.739917768184329（= 4·√(2^{1/4}−1)），出现在 :85/:205/:343/:357。
+        但 eng/packaging/config/defaults.json:91 的 source_ref.quote 仍逐字锁着**旧值 1.7399178387**
+        （相对差 4.05e-08，第 8 位起错）。run/GOVERN-08/审核包-R2/T06-第1轮订正-SCI-psf-drizzle-resample.md:60
+        记 R10-4「已改 → 1.739917768184329」——正本改了，**配置面没跟着改**。
+        两条子查询实测分工：
+          子查询① --text "1.739917768184329" → 8 命中，全部在 docs/science/psf/PSF.md（1 文件 1 层，L1-SCI）。
+          子查询② --num  1.739917768184329 → 19 命中 / 11 文件 / 4 层，含 defaults.json:91。
+        **关键口径**：--num 只报邻居，正本自己（PSF.md 的全精度值）不在 --num 命中里；
+        要看见正本必须另跑 --text。两条子查询合起来才把「正本已改 / 配置未改」这一跨层分歧摆出来——
+        这本身就是本工具的使用要点。
+        forbid_matched 故意**不填** 1.7399178387：它是本条要抓的**命中对象**，
+        绝不能同时列成禁值——否则 POS-06 会因为「成功抓到了要抓的东西」而 FAIL。
+        （第一版夹具在这里踩过这个坑，已改。）
+        子查询②另有 3 处已确认的误报（人判）：real_data2.json:17475 的 1.739334435688303、
+        acc_roundtrip.json:5970 的 1.738530001603067、acc_roundtrip.json:5972 的 1.7389279964845628
+        ——都是光子/压缩实验读数，与 Moffat4 FWHM 因子无关，只因同前缀 1.739 被吸进来。
+
+  - id: POS-07
+    kind: positive
+    title: 检索键措辞不同 ⇒ 整行不可见（must_hit 与 expect_zero_hits 并列）
+    queries:
+      - ["--text", "唯一性登记"]
+      - ["--text", "唯一术语权威"]
+    verified_by: me
+    expect:
+      must_hit:
+        - "docs/DOCUMENT_INDEX.yaml:86"      # 由子查询①命中：duty: "全项目术语与别名唯一性登记（词典锚点）"
+      must_hit_layer:
+        "docs/DOCUMENT_INDEX.yaml:86": "R-INDEX"
+      expect_zero_hits_for_query: 1         # 子查询②（索引 1）期望 0 命中
+      note: >-
+        一对检索键、一个对照。子查询①「唯一性登记」→ 实测 1 命中，docs/DOCUMENT_INDEX.yaml:86 [R-INDEX]。
+        子查询②「唯一术语权威」→ 实测 **0 命中**；我在 docs/ 全树 grep 该串同样 0 命中。
+        run/GOVERN-08/审核包-R2/T07-重复断言收敛-detail-glossary.md 曾把「唯一术语权威」当检索键并报 0，
+        属**实测过的伪阴性**：那一行确实存在，只是措辞是「唯一性登记」，整行对逐字匹配不可见。
+        本条证明的是**工具的固有限制，不是 bug**——逐字子串对同义措辞零容错，
+        「报告 0 命中」永远不能直接读作「没有这条」。
+        正解是 --text 换 2~3 个同义措辞各跑一遍，或用 --regex 放宽。
+
+  # ── 负例 ────────────────────────────────────────────────────────────────
+  - id: NEG-01
+    kind: negative
+    title: 量级护栏——不得把 1000 倍不同的值吸成精度变体
+    query: ["--num", "1.482602218505602"]
+    verified_by: me
+    expect:
+      must_not_hit:
+        - "实验/engineering-evidence/l2_performance/gates/real4_w16_gate.json:4066"  # "cpu_percent": 1482.63
+        - "docs/science/algorithms/PHASE2_SAMPLER.md:78"                            # 实测 σ_bg 中位 = 14.826 ADU/px
+        - "实验/absolute-snr/docs/f-instr-canon.md:245"                             # 表内 14.826
+        - "实验/absolute-snr/docs/f-instr-canon.md:246"                             # 表内 14.826
+      forbid_matched:
+        - "1482.63"
+        - "14.826"
+      note: >-
+        这三个位置**仓内确有** 1482.63 / 14.826（不是空想出来的护栏），我先 grep 到再登记的。
+        实测 --num 1.482602218505602 的 205 处命中，matched 值只有 7 档
+        （1.4826 / 1.482602 / 1.4826022 / 1.4826022185 / 1.483 / 1.4826022185056023 / 1.4826022185056019），
+        不含 1482.63 或 14.826。量级护栏成立。
+        机理：1482.63 与 1.4826 的有效数字公共前缀有 5 位、且公共前缀只越过候选数整数部 1 位
+        （past_int = 5 − 4 = 1 < 2），第 1 条规则被挡住；第 2 条规则的 rel_diff ≈ 999 远超 tol=1e-3。
+        14.826 的 past_int = 5 − 2 = 3 ≥ 2 过了第一关，但 rel_diff ≈ 9.0 > 0.5 仍被挡。
+        ⇒ 护栏是两条规则叠加的结果，单看任何一条都不够。
+
+  - id: NEG-02
+    kind: negative
+    title: 命中 ≠ 矛盾——211034.6 是故意写的反例
+    query: ["--num", "211076.28514206142"]
+    verified_by: me
+    expect:
+      must_hit:
+        - "docs/science/algorithms/DRIZZLE_GEOMETRY.md:169"    # 命中是预期的；但人读 = 反例示范
+        - "docs/science/algorithms/DRIZZLE_GEOMETRY.md:167"
+        - "docs/science/DISPUTE_RESOLUTION.md:204"
+      forbid_verdicts:
+        - "重复副本·逐字一致"
+        - "同名不同义·候选"
+      human_ruling: >-
+        全部 44 处命中经人读判定**均非矛盾**。211034.6 是 HEALPIX 尺度常数的**禁抄旧值**，
+        仓内留着它全部是为了说明「抄错值会怎样」：
+        DRIZZLE_GEOMETRY.md:167/:169 在「数值纪律」里说清了后果——若 finest 落在
+        (211034.6/2^k, 211076.285/2^k) 窗口内就**少取一阶** nside；
+        DISPUTE_RESOLUTION.md:204 的终裁原文是「`211034.6` **不得使用**」。
+        其余 211076.3 类命中是同一常数的 7 位截断（真实代码注释），相对差 1.9e-05，是精度变体不是旧值。
+      note: >-
+        本条专门用来量「上下文够不够人一眼看出是反例」。实测结论：**大部分够，1 处不够。**
+        够的——DISPUTE_RESOLUTION.md:204 excerpt 直接含「不得使用」四字，一眼可判；
+          DRIZZLE_GEOMETRY.md:169 excerpt 含「窗口内**少取一阶**」，反例信号明确。
+        不够的——DRIZZLE_GEOMETRY.md:167 的 excerpt 被 clip 成
+          「**数值纪律**：常数按上式**求值**，取值来源 = 求值结果；`211034.6` 与上式相差」
+          句子在下一行才说完，单独看这一行读不出「反例」，必须连读 :167–:169。
+        ⇒ 工具的 excerpt 是**单行 clip（宽 110）**，跨行论证会被腰斩。这是本仓实测出的可改进点，
+        报给工具作者；本脚本不改工具。
+        另外 forbid_verdicts 断言工具没有把 num 命中误贴成「重复副本·逐字一致」或「同名不同义·候选」——
+        实测全部 44 处初判都是「数值分歧·需人裁」，符合工具自述的保守口径。
+
+  - id: NEG-03
+    kind: negative
+    title: 标识符只应命中定义处与文档承认处，不得造出「被多处使用」的假象
+    query: ["--ident", "row_sum_tol"]
+    verified_by: me
+    expect:
+      must_hit:
+        - "lib/algorithms/resample/p3_rsmp.h:321"              # 唯一定义处
+        - "docs/science/resample/RESAMPLE.md:273"             # 文档承认处（并注明「生产路径未被调用」）
+      must_hit_layer:
+        "lib/algorithms/resample/p3_rsmp.h:321": "L3-CODE"
+        "docs/science/resample/RESAMPLE.md:273": "L1-SCI"
+      known_unrelated_hits:
+        - "eng/tools/doccheck/README.md:16"
+      note: >-
+        实测命中 3 处 / 3 文件 / 3 层。命中集合已逐条记录：
+        (1) 定义处 lib/algorithms/resample/p3_rsmp.h:321（`double row_sum_tol = 1e-9;`）[L3-CODE]
+        (2) 文档承认处 docs/science/resample/RESAMPLE.md:273（已明写「该常量与 row_sums() /
+            full_coverage() 在生产路径未被调用，判据尚未接入」）[L1-SCI]
+        (3) eng/tools/doccheck/README.md:16 —— **无关提及**。该文件是断言检测器自己的 README，
+            第 16 行把 `row_sum_tol|bunit_tol` 当作 **--regex 的用法示例**写在表格里，
+            不是在陈述这个容差被多处使用。人读判定：与「被多处使用」无关。
+        (1)(2) 两处即派单预期的「定义处 + 文档承认处」，仓内其余 row_sum_tol 提及全在 run/
+        审核过程记录里（默认不扫）。⇒ 期望成立：工具没有把一个死常量报成高复用标识符。
+        这是 --ident 折叠模式少有的低噪声样本，可作 --ident 的召回基准。
+        **⚠ 本条曾在实测中途失效**：首轮实测（01:49 前后）命中恰为 2 处，期望成立；
+        01:52:34 另一个 agent 新建了 eng/tools/doccheck/README.md，其用法示例使命中变成 3 处。
+        ⇒ 这不是工具行为变了，是仓内容在测量期间变化。已把第 3 处按「无关提及」显式登记，
+        避免把「计数从 2 变 3」误读成工具退化。复跑本条时若再出现第 4 处，先查是不是仓又变了。
+
+  - id: NEG-04
+    kind: negative
+    title: 已知漏检——斜杠两侧的空格让逐字匹配整行不可见
+    query: ["--text", "SNR = F_ref/σ_F"]
+    verified_by: me
+    known_miss: true
+    expect:
+      known_miss:
+        - "docs/science/unified/UNIFIED_SCIENCE_MODEL.md:91"    # 实际写作 "SNR = F_ref / σ_F"（斜杠两侧有空格）
+      note: >-
+        **本项目实测过的限制，记为 known_miss。** 该行实际内容是
+        `SNR = F_ref / σ_F ,        σ_F = sqrt( Var(F̂) ) = 1 / sqrt(W)`——斜杠前后各有一个空格。
+        查询串用的是无空格写法 `SNR = F_ref/σ_F`，因此整行对逐字匹配不可见。
+        实测 --text "SNR = F_ref/σ_F" 共 13 命中 / 11 文件 / 6 层，**其中不含 UNIFIED_SCIENCE_MODEL.md:91**；
+        我另外 grep 该文件确认原文确实是带空格写法，grep「无空格版」在 docs/ 树下 0 命中。
+        ⇒ 记为 known_miss 而非工具缺陷：--text 零歧义，代价是对空格 / 全半角 / 连字零容错。
+        附带一条口径观察：本查询 13 处命中的 matched 全都等于查询串本身，所以归一后形态只有 1 种，
+        工具必然把全部命中贴成「重复副本·逐字一致」。这不是初判失灵，是**逐字匹配的结构性必然**——
+        它按定义看不见任何书写分叉。--text 的初判在原理上不可能给出别的结论，读表时别把它当独立信息。
+        同族的其他不可见点（本次一并核实，均不在 13 命中里）：
+          docs/science/CONTROL_WEIGHT_SNR.md 的 `SNR_c = F_ref/σ_F,c`（带下标后缀 ,c）
+          docs/detail/UNIFIED_MODEL.md 的 `w=SNR²/F_ref²=1/σ_F²`（无空格写法，行内自注）
+        ⇒ 「命中 13 处」**不等于**「全仓 13 处写了这条式」。这条限制必须在每次引用命中数时同写。
+        known_miss 字段的语义：若该位置**将来**出现在命中里，测量脚本报 FAIL，
+        提醒把这条已登记的限制撤掉——已消失的限制比新出现的限制更值得知道。
+
+  - id: NEG-05
+    kind: negative
+    title: 同前缀吸进无关同量级读数（--num 的固有误报面，已登记、预期内）
+    query: ["--num", "1.739917768184329"]
+    verified_by: me
+    expect:
+      known_false_positive:
+        - "eng/tests/validation/release02/q1_photometry_gradient/real_data2.json:17475"  # 1.739334435688303
+        - "实验/engineering-evidence/compress-01/acc_roundtrip.json:5970"              # 1.738530001603067
+        - "实验/engineering-evidence/compress-01/acc_roundtrip.json:5972"              # 1.7389279964845628
+      note: >-
+        这三处是「同前缀·疑似旧值」规则吸进来的**真误报**（人判）：分别是光度梯度实测读数与
+        压缩编解码往返精度读数，与 Moffat4 的 FWHM/σ_g 因子毫无关系，只是都落在 1.73x 量级、
+        与 1.739917768184329 的有效数字公共前缀够长。它们与 POS-06 的真命中
+        （defaults.json:91 锁旧值 1.7399178387）混在同一次输出里，单看命中列表分不出真假。
+        ⇒ 量出 --num 的误报面：本次实测该查询 19 命中（排除夹具自身自污染后），其中 3 处真误报。
+        这印证工具 banner 的自述「--num 尤其易误报」不是套话。
+        **为什么用 known_false_positive 而不是 must_not_hit**：must_not_hit 的语义是
+        「出现即护栏失守、判 FAIL」。而本条登记的正是「工具确实会误报、且我们已知道」这一事实——
+        用 must_not_hit 会让这条夹具永远红，红的却是文档而不是工具行为。
+        known_false_positive 计入负例误报率（那是实测数），但不判 FAIL。
+        这也是为什么 must_hit 与各类误报登记必须都由人读原文判定：工具给不出真假标签。
+
+# ── 核验记录（每条 must_hit 的来源）────────────────────────────────────────
+# 全部为本次执行者亲自跑的命令与其真实输出摘要。中文路径一律 git -c core.quotepath=false
+# （本次夹具核验未用到 git，故无写操作）。
+#
+# [1] PyYAML 可用性
+#     python3 -c "import yaml; print('PyYAML OK', yaml.__version__)"  →  PyYAML OK 6.0.2
+#     Python 3.13.5。⇒ 夹具用 YAML，不需要退化成 JSON。
+#
+# [2] POS-01 / POS-02 行号来源（grep 工具，pattern `1\.48260`）
+#     docs/science/psf/PSF.md:176  …`1/Φ⁻¹(0.75) = 1.4826022185056023` 是**两个不同估计量**…
+#     docs/science/psf/PSF.md:298  print("MAD factor        =", 1/Phi_inv(0.75))  # 1.4826022185056023
+#     实验/dense-snr-reconstruct/code/route2/exp_P4R2_08_mad_sigma_budget.py:12
+#         …验证 1/0.6744897501960817 = 1.4826022185056019（FP64 逐位）。
+#     docs/science/algorithms/NOISE_ESTIMATION.md:102 / :209
+#         11 位简写 `1.4826022185` 与 4 位 `1.4826` 各档相对差 3.779e-12 / 1.4964e-06。
+#
+# [3] POS-03 行号来源（grep 工具，pattern `raw_w = quality_factor` 与 `quality × control_reliability`）
+#     lib/algorithms/coverage/include/astro/phase2/upm.h:177
+#         // raw_w = quality_factor × control_ivar（几何可靠性在 per-control 归一化
+#     docs/engineering/architecture/DATA_FLOW.md:142
+#         两阶段——分子 `raw_w = quality_factor × control_ivar` 冻结后，再按控制的 `sums[ck]` 做 per-control 归一化
+#     docs/engineering/data/ARTIFACTS.md:112
+#         ① 分子 `raw_w = quality_factor × control_ivar`（production，…**几何可靠性不在分子**…
+#     docs/science/algorithms/PHASE2_UPM_IMPL.md:162
+#         production（use_ivar_weight=1，默认）: raw_w = quality_factor × control_ivar
+#     docs/engineering/governance/TRACEABILITY.md:266（read 工具逐行读取，:264–:273）
+#         | SCI-UPM-WEIGHT-001 | … production UPM 权重 = quality × control_reliability × control_ivar；… | VERIFIED |
+#     排除项（grep 命中但 --text 不可见，写进 POS-03 note）：
+#     lib/algorithms/coverage/src/upm.cpp:9   用 `*` 不是 `×`
+#     lib/algorithms/upm/README.md:57        `raw_w = quality_factor ×` 后换行
+#
+# [4] POS-04 行号来源（grep 工具，pattern `bilinear_4quad|bilinear_area_overlap_exact`）
+#     docs/science/resample/RESAMPLE.md:249 / :256 / :257 / :260
+#     lib/algorithms/resample/p3_rsmp_kernel_registry.cpp:173 / :176 / :191 / :202 / :205
+#     lib/algorithms/resample/p3_rsmp.h:11 / :126
+#     lib/phase3_session/p3_export.h:159   std::string kernel_id = "bilinear_4quad";
+#     eng/contracts/schemas/product_family_field_constraints.schema.json:3861
+#     eng/contracts/data/examples/phase3.example.json:13/:14/:21
+#     eng/contracts/data/examples/effective-psf.example.json:11
+#     eng/contracts/data/clause_registry.json:832 / :837
+#     eng/contracts/schemas/phase_config_export.schema.json:345/:347（字面 bilinear）
+#     另：docs/DOCUMENT_INDEX.yaml:450 为大写 BILINEAR，只有 --ident 能抓到。
+#
+# [5] POS-05 行号来源（grep 工具，pattern `w = SNR²/F_ref²`）
+#     docs/ACSD_DESIGN.md:111 / :282
+#     docs/science/DISPUTE_RESOLUTION.md:164 / :291
+#     docs/science/unified/DATA_SEMANTICS.md:171
+#     docs/engineering/contracts/CONFIG.md:71 / :88
+#     docs/engineering/data/ARTIFACTS.md:110 / :122
+#     docs/detail/UNIFIED_MODEL.md:101 ; docs/detail/PHASE2_DETAILED_DESIGN.md:21
+#     docs/detail/registry/acsd.phase2.integrate.md:64
+#     docs/DOCUMENT_INDEX.yaml:818
+#     lib/algorithms/coverage/include/astro/phase2/integrate.h:9
+#     lib/algorithms/integration/phase2_integrate/include/acsd/weight_chain.h:5/:8/:307
+#     CMakeLists.txt:1366（OTHER）
+#
+# [6] POS-06 行号来源（grep 工具，pattern `1\.7399`）
+#     eng/packaging/config/defaults.json:91
+#         "quote": "…把 σ_g=α/2 口径（FWHM/σ_g=1.7399178387）代入本域 σ 口径（FWHM/σ=1.230307652590102）…"
+#     docs/science/psf/PSF.md:85 / :205 / :343 / :357   （均为 1.739917768184329）
+#     实验/dense-snr-reconstruct/code/route2/exp_P4R2_09_moffat4_factor.py:17（:1.7399178387，注释「生产禁用」）
+#     旧值订正来源：run/GOVERN-08/审核包-R2/T06-第1轮订正-SCI-psf-drizzle-resample.md:60
+#         | **R10-4** `1.7399178387` 第 8 位起错 | 已改 | → `1.739917768184329` | 旧值相对误差 4.05e−08 |
+#     ⇒ 正本已改、defaults.json 未改，是活分歧。
+#
+# [7] POS-07 行号来源（grep 工具）
+#     pattern `唯一性登记` → 全仓唯一命中：docs/DOCUMENT_INDEX.yaml:86
+#         duty: "全项目术语与别名唯一性登记（词典锚点）"
+#     pattern `唯一术语权威`，限定 path=docs/ → No matches found（0 命中）
+#     ⇒ 「唯一术语权威」作检索键报 0 是伪阴性，整行对逐字匹配不可见。
+#
+# [8] NEG-01 护栏位置来源（grep 工具，pattern `\b1482\.63\b|\b14\.826\b|\b0\.0014826\b`）
+#     实验/engineering-evidence/l2_performance/gates/real4_w16_gate.json:4066  "cpu_percent": 1482.63,
+#     docs/science/algorithms/PHASE2_SAMPLER.md:78   实测 σ_bg 中位 = 14.826 ADU/px
+#     实验/absolute-snr/docs/f-instr-canon.md:245  | mid | 15.341 | 14.826 | 0.966 |
+#     实验/absolute-snr/docs/f-instr-canon.md:246  | poor | 15.499 | 14.826 | 0.957 |
+#     另 2 处命中在 eng/tools/doccheck/check_assert_dup.py:398 / :401 —— 那是工具自己 docstring
+#     里举的护栏例子，不算仓内数据。
+#
+# [9] NEG-02 行号来源（grep 工具，pattern `211034\.6`）
+#     docs/science/algorithms/DRIZZLE_GEOMETRY.md:167  **数值纪律**：常数按上式**求值**…；`211034.6` 与上式相差
+#     docs/science/algorithms/DRIZZLE_GEOMETRY.md:169  `finest ∈ (211034.6/2^k, 211076.285/2^k)` 窗口内**少取一阶**
+#     docs/science/DISPUTE_RESOLUTION.md:204  **终裁**：**`hp_res` 真值 = 211076.28514206142″/N**；`211034.6` **不得使用**。
+#     上下文充分性由工具实跑 JSON 的 excerpt / section 字段逐条读取确认（见 NEG-02 note）。
+#
+# [10] NEG-03 命中集合来源（grep 工具，pattern `row_sum_tol`）
+#      lib/algorithms/resample/p3_rsmp.h:321   double row_sum_tol = 1e-9;
+#      docs/science/resample/RESAMPLE.md:273  | 算子行和自洽容差 | `1e-9` | …该常量与 `row_sums()` /
+#          `full_coverage()` 在生产路径未被调用，判据尚未接入 |
+#      其余命中全在 run/（默认不扫）。实测 --ident 命中数 = 2，与 grep 一致。
+#
+# [11] NEG-04 已知漏检来源（grep 工具，pattern `SNR = F_ref/σ_F|SNR = F_ref / σ_F`）
+#      docs/science/unified/UNIFIED_SCIENCE_MODEL.md:91
+#          SNR = F_ref / σ_F ,        σ_F = sqrt( Var(F̂) ) = 1 / sqrt(W)
+#      ⇒ 斜杠两侧有空格，无空格检索串不可见。实测 --text 命中 13 处，不含该行。
+#
+# [12] NEG-05 误报位置来源
+#      POS-06 子查询②（--num 1.739917768184329）的命中输出中：
+#      eng/tests/validation/release02/q1_photometry_gradient/real_data2.json:17475  '1.739334435688303'
+#      实验/engineering-evidence/compress-01/acc_roundtrip.json:5970  '1.738530001603067'
+#      实验/engineering-evidence/compress-01/acc_roundtrip.json:5972  '1.7389279964845628'
+#      实验/engineering-evidence/compress-01/COMPRESSION_CODEC_RESEARCH_PACK_TABLES.md:563  '1.739'
+#      前三者读文件确认是实验读数，与 FWHM 因子无关 → 人判为误报。
+#
+# [13] 工具运行口径（本次实测，11 条查询全部 EXIT=0）
+#      扫描文件数 1825；耗时 2.3–5.6 秒；默认不含 run/。
+#      口径块字段：搜索根 / 查询模式 / 查询原文 / 前缀阈值(5) / 相对差阈值(1e-3) /
+#      文件类型过滤 / 剪掉目录 / 额外排除 / run_面 / 大小写策略 / 行形态过滤 / 计数单位 /
+#      扫描文件数 / 耗时秒 / 禁止。
+#      注意「禁止：禁止跨口径配 before-after」——本夹具集的期望全部在同一次口径下建立，
+#      复跑不得换 --prefix-min / --tol / --include-run / --root 再比命中率。
