@@ -358,7 +358,6 @@ UPM 在**像素域 control cell**（8×8 双线性网格）上工作，无 WCS/�
 - **模型形式：纯加性（正向约束）**：本文件 §1/§5 的加性模型 `calibrated_f(p)=raw_f(p)−C_f(p)` 是 Phase2 的唯一模型形式，`g_k ≡ 1` **不启用**；乘性方向 `y_k(x)=g_k·s(x)+b_k(x)` **不在本层**。`÷g²` 保持**恒等式**（`Var(corrected)=[σ_raw²+J_out C_θ J_outᵀ]/g²`，`g≡1` 时退化等价，公式保留）。**依据**：Phase1 正确归一化后，帧本身已是同一测光体系的真信号加可等效为加性的天光；残留天光无论是加性还是乘性都可用加法移除；乘性残留属低阶空间增益，归 Phase1 处理（`I_photo = k_photo·m(x,y)·I_cal`），Phase2 只做加性扣除。`10_sampling.md`/`11_upm.md`/`UNIFIED_MODEL.md` 的目标态表述与本节一致。
 - **k_corr 的 MC 证据与公式面**：control_median_mc_test 已注册（可复跑）；公式面 = 两因子 `k_gauss(N)×k_geo` 几何查表（§5/§10），读数正本 = `实验/healpix-polar/`；k_corr 必要性的文献依据 = Fruchter & Hook 2002 §7.1（输出像素非独立、§7 式(8)–(10) 的 R），该文不含 k_corr 数值。
 
-参考代码库（含许可证）正本 = docs/engineering/SCIENTIFIC_REFERENCES.md §M。
 
 ## 15 Acceptance
 

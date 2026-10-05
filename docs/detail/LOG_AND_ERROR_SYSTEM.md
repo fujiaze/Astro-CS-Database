@@ -130,7 +130,7 @@ flowchart LR
   （INTEGRITY）。唯一源 = `docs/engineering/contracts/MANIFEST_VERIFY.md`「manifest verify 合同」一节「校验序→错误码」
   （语法/schema=3、status≠complete=8、版本不一致=5、输入 hash 已变=3、产物缺失=3、
   sha256/size 不匹配=8、全过=0；实现 `lib/infrastructure/cli/commands.cpp` :2396-2476）+
-  域→码表 `docs/engineering/contracts/LOG_AND_ERROR.md`「进程退出码」一节（IO→7 / INTEGRITY→8）。
+  域→码表 `docs/engineering/contracts/LOG_AND_ERROR.md`「错误对象与退出码映射」一节（IO→7 / INTEGRITY→8）；码值语义表见 `docs/engineering/standards/ERROR_MODEL.md`「进程退出码」一节。
 
 **日志写失败一律显式**：任何一步失败都在 stderr 输出一条脱敏摘要，并让本次运行以非 0 退出码结束。
 "日志写不进去就继续跑完"不是可接受行为。

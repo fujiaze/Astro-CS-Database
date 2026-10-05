@@ -817,7 +817,6 @@ tally: accepted_count/rejected_low/rejected_high/iterations  :2163-2177
 - **档界来源**：PixInsight WBPP **2.5.9** `WeightedBatchPreprocessing-engine.js:1421-1429` `bestRejectionMethod()`（官方包 sha1 `712cc7c3fdb523643ad0e685104592d511996f82`；非学术软件来源）。IRAF `combine`/`imcombine`（方法族命名来源；`reject` 值域 `none|minmax|ccdclip|crreject|sigclip|avsigclip|pclip`，**无 `lfitclip`/`winsorize`**）。
 - **核语义来源**：`linear_fit` = 官方**式[21]/[22]** + NR 3rd ed. §15.7.3；`winsorized_sigma` = 官方式[18]/[19]（Huber 体系）；`percentile` = `docs/science/REJECTION.md` §5/§8a 本层定义。**Siril 1.4.3 是次生参考实现**（上列 `:31-44` 用于掩码逐元素对拍），**不是核语义归属**。
 
-参考代码库（含许可证）正本 = docs/engineering/SCIENTIFIC_REFERENCES.md §M。
 
 
 ---

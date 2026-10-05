@@ -273,7 +273,7 @@ doc_index:
       downstream: ""
     - path: "docs/engineering/build/BUILD_NODES.md"
       status: ACTIVE_NORMATIVE
-      duty: "构建节点职责、冻结工具链取值与处置纪律、构建档位与可复现判据"
+      duty: "两个具名构建节点各自执行的构建动作（细目层）、冻结工具链取值与处置纪律、构建档位与可复现判据；平台角色不在本篇承载"
       upstream: "docs/ACSD_DESIGN.md"
       downstream: ""
     - path: "docs/engineering/build/RELEASE.md"

@@ -1,7 +1,7 @@
 # 模块 acsd.phase1.star-detection
 
 > 上游：docs/ACSD_DESIGN.md §8.5（模块与 ABI）、§4.2（节点流程：星表引导检测与 WCS 解算）、
-§2.1（创新点一：星点位置由星表逆映射获得）
+§2.1（P1 通量积分拟合）
 > 科学正本：docs/science/detection/STAR_DETECTION.md（SCI-P1-STAR-001）、
 > docs/science/algorithms/STAR_DETECTION_ALGORITHMS.md（ALG-STARDET-001）、
 > docs/science/algorithms/GATES_AND_TOLERANCES.md §3（冻结门表）、
@@ -10,7 +10,9 @@
 > API 正本：docs/engineering/api/PUBLIC_API.md（API-STAR-001）、
 > docs/engineering/api/PUBLIC_API.md「分阶段 API 面」（API-P1-003）
 
-模块词汇 `acsd.phase1.star-detection` 为 registry descriptor 单源；模块合同
+模块词汇 `acsd.phase1.star-detection` 是本页文档路径与模块卡片名，不是生产端口注册表的
+`module_id`；生产端口图上承担检测 + PSF 建模的节点模块是 `acsd.phase1.star-psf`（本页
+与 `acsd.phase1.star-psf.md` 同属一张登记面，两卡各写一面职责）。模块合同
 owner = SA-P1-S15。冻结合同 = `lib/algorithms/star_detection/README.md` +
 `module.yaml`（MOD-acsd-phase1-star，dll_target=acsd_p1_star_detection.dll，
 entrypoint 未落地）；权威签名头

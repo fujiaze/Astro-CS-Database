@@ -125,7 +125,6 @@ s_log = d log(patch 方差) / d log(patch 中位信号)
 
 ## 8 参考文献与参考代码
 
-
 [1] Tonry J. L., et al. The Pan-STARRS1 photometric system. The Astrophysical Journal, 2012, 750(2): 99. https://doi.org/10.1088/0004-637x/750/2/99
 
 [2] Ivezić Ž., et al. LSST: From science drivers to reference design and anticipated data products. The Astrophysical Journal, 2019, 873(2): 111. https://doi.org/10.3847/1538-4357/ab042c

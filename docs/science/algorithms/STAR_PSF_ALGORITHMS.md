@@ -255,13 +255,9 @@ saturated=§11.2 简并兜底 + §11.1 饱和列不消费登记（P1-PSF-TEST �
 
 ## 参考文献与参考代码库（含许可证）
 
-
 - Moffat 轮廓：Moffat 1969, A&A 3, 455（bibcode 1969A&A.....3..455M）。
 - β=4 解析通量/FWHM 因子：Project-defined 解析积分（可用 SciPy/sympy 复算）。
 - LM：Levenberg 1944；Marquardt 1963；Moré 1978；实现对照 GSL（GPL-3.0）。
 - 空间变异 PSF/采样基：Bertin 2011, ASPC 442, 435（PSFEx）；photutils（BSD-3-Clause）MoffatPSF。现状不做空间变异（DISP-PSF-005）。
 - 拥挤场 PSF 测光：Stetson 1987, PASP 99, 191。
 - q_psf/residual_scale：Project-defined 质量代理，非 SNR/非 Fisher information。
-
-参考代码库（含许可证）正本 = docs/engineering/SCIENTIFIC_REFERENCES.md §M。
-

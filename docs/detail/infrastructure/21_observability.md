@@ -49,7 +49,7 @@
   （INTEGRITY）。唯一源 = `docs/engineering/contracts/MANIFEST_VERIFY.md`「manifest verify 合同」一节「校验序→错误码」
   （语法/schema=3、status≠complete=8、版本不一致=5、输入 hash 已变=3、产物缺失=3、
   sha256/size 不匹配=8、全过=0；实现 `lib/infrastructure/cli/commands.cpp` :2396-2476）+
-  域→码表 `docs/engineering/contracts/LOG_AND_ERROR.md`「进程退出码」一节（IO→7 / INTEGRITY→8）。
+  域→码表 `docs/engineering/contracts/LOG_AND_ERROR.md`「错误对象与退出码映射」一节（IO→7 / INTEGRITY→8）；码值语义表见 `docs/engineering/standards/ERROR_MODEL.md`「进程退出码」一节。
 - 降级必须显式：写 `degraded_reason` 并入 manifest；静默回退到低优先输入/静默保持缺省值/静默跳过校验都按故障上行（`docs/engineering/contracts/LOG_AND_ERROR.md`「显式降级登记要件」一节）；
 - 日志/事件/诊断一律走脱敏处理，凭据、密钥与绝对用户路径按规则替换（脱敏规则唯一源 = `docs/engineering/contracts/LOG_AND_ERROR.md`「脱敏与大小上限」一节）。
 
@@ -94,7 +94,7 @@
 | ⑥ | 逐样本利用率 | 单样本 ≥ **85%** 的样本占比 < **0.70** | **record_and_justify** | 记录 + 超标登记 |
 | ⑦ | 工作量下限 | 线程秒（等效核·秒）< **10** | 事实标记 | 只记录，不参与判定 |
 
-七项中**只有 ② 在合同里带硬失败执行面**；①③ 在合同里没有 enforcement 键，而程序内实现 `gate_enforcement()` **恒返回 `RecordOnly`**（CLI 面不存在由 CPU/内存判据产生 `rc=10` 的路径）。判据表与合同、实现三方在此对齐：**任何资源判据都不改变程序退出码**，`exit 10` 只属磁盘写满/写盘失败（见下文「错误与边界」）。
+七项中**只有 ② 在合同里带硬失败执行面**；①③ 在合同里没有 enforcement 键，而程序内实现 `gate_enforcement()` **恒返回 `RecordOnly`**（CLI 面不存在由 CPU/内存判据产生 `rc=10` 的路径）。判据表与合同、实现三方在此对齐：**任何资源判据都不改变程序退出码**，`exit 10` 只属磁盘写满/写盘失败（见本章「错误与边界」一节）。
 
 **统计量口径（全实现统一）**
 

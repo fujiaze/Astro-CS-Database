@@ -310,7 +310,6 @@ large_scale 结构生长:
   `n<8` percentile / `≤10` averaged / `<20` winsorized / `<25` LinearFit / 否则 ESD（见上条 Siril 1.4.6 逐字锚）。
 - **percentile 判据的适用域**：等效显著性随 `|median|/s` 线性漂移（§8a），真实天光电平下退化为惰性、近零天光下退化为过拒；判据带定义与冻结阈值以 §5/§8a 为准。
 
-参考代码库（含许可证）正本 = docs/engineering/SCIENTIFIC_REFERENCES.md §M。
 
 ## 15 Acceptance
 

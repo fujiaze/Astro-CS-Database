@@ -453,11 +453,9 @@ B0=1000、nside=512、W=H=16）：注入态（分母取 A_drop）逐 leaf `S_p/B
 
 ## 参考文献与参考代码库（含许可证）
 
-
 - Drizzle 线性重建/drop/pixfrac：Fruchter & Hook 2002, PASP 114, 144（DOI 10.1086/338393；arXiv:astro-ph/9808087**v2**——全文锚一律按 v2 打开，v1 是完全不同的短文，无 s² 项、无 §7 噪声节）。**锚分列**：权重公式（w、a_xy、s²）= §2 式(2)–(5)；方差/相关（R = σc/σp、单输出像素方差）= §7 式(6)–(10)。**差异**：原文只说 "input/output pixel plane"，**未声明其在切平面/gnomonic 平面**（v2 源码 `tangent|gnomonic|spherical|celestial` 零命中）⇒「原式在切平面」属过度声称；本模块在球面 HEALPix 上实施是 Project-defined 迁移。
 - Drizzle 实践：DrizzlePac Handbook（STScI）；drizzlepac（BSD-3-Clause）。
 - HEALPix 几何：Górski et al. 2005, ApJ 622, 759（DOI 10.1086/427976）；astropy-healpix（BSD-3-Clause）、healpy（GPL-2.0）。
 - 球面三角面积：Van Oosterom & Strackee 1983, IEEE TBME 30, 125（DOI 10.1109/TBME.1983.325207）。
 - 多边形裁剪：Sutherland & Hodgman 1974, “Reentrant Polygon Clipping”, Comm. ACM 17, 32（DOI 10.1145/360767.360802）——**平面**算法（原文摘要为 “plane-faced volumes”）；本模块的球面逐边裁剪是它的推广，不属原文结论。
 
-参考代码库（含许可证）正本 = docs/engineering/SCIENTIFIC_REFERENCES.md §M。

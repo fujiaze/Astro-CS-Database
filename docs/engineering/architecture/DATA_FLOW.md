@@ -118,11 +118,11 @@ inner_omp = max(1, thread_budget / in_flight) // thread_budget = lease
 总并行度 = in_flight × inner_omp ≤ thread_budget
 ```
 
-变量取义：`n` 是本次运行的帧单元数（对照实验中按帧计档时写作 `n_units`）；`lease` 是调度器注入该节点的线程租约，唯一解析面是调度器的 `node_thread_budget`；`frame_workers` 是帧级轴的上限，取租约与内存闸门上限的较小者；`thread_budget` 是租约本身；`in_flight` 是同时在算的帧数；`inner_omp` 是每帧的帧内线程数。除法按整数除法取下限，`max(1, …)` 保证帧内轴至少 1。内存闸门上限 `cap = floor(MemAvailable × 0.75 / (W×H×B/px))`，其中 `MemAvailable` 是机器画像给出的可用内存，`W`、`H` 是单帧像素宽高，`B` 是每像素字节数的标定值（见 `../resources/PERFORMANCE_MODEL.md`）。闸门把帧级轴压到远低于租约时，帧内轴仍固定为 1 会让 CPU 预算空转，因此帧级被压低时剩余预算必须转给帧内轴。
+变量取义：`n` 是本次运行的帧单元数（对照实验中按帧计档时写作 `n_units`）；`lease` 是调度器注入该节点的线程租约，唯一解析面是调度器的 `node_thread_budget`；`frame_workers` 是帧级轴的上限，取租约与内存闸门上限的较小者；`thread_budget` 是租约本身；`in_flight` 是同时在算的帧数；`inner_omp` 是每帧的帧内线程数。除法按整数除法取下限，`max(1, …)` 保证帧内轴至少 1。内存闸门上限 `cap = floor(MemAvailable × kP1FrameMemSafetyFrac / (W×H×B/px))`，其中 `MemAvailable` 是机器画像给出的可用内存，`W`、`H` 是单帧像素宽高，`B` 是每像素字节数的标定值，`kP1FrameMemSafetyFrac` 是帧级内存闸门安全系数；两个系数的唯一数值源、落点与取值口径见 `../resources/PERFORMANCE_MODEL.md`，本式不复述其取值。闸门把帧级轴压到远低于租约时，帧内轴仍固定为 1 会让 CPU 预算空转，因此帧级被压低时剩余预算必须转给帧内轴。
 
 不变式：帧级宽度未被内存压低时本式退化为 `inner_omp = 1`，即该分配只改变预算怎么用，不改变任何节点的数值路径。当帧单元数 `n ≥ frame_workers` 时 `in_flight = frame_workers`，上式等价于 `I = max(1, L / F)`，其中 `I = inner_omp`、`L = lease`、`F = frame_workers`；`n < frame_workers` 时必须回到 `min(n, frame_workers)` 的原式，两条不可互换。
 
-**有效宽度的第三个因子**：drizzle 投影内部的暂存池上限 `K` 会把帧内轴再截一次，`W_eff = in_flight × min(inner_omp, K)`；`K` 是暂存池份数上限，`num_threads` 是 drizzle 投影内核拿到的线程数，`W_eff` 是实际同时在算的线程数。要让有效宽度达到帧内轴宽度必须 `K ≥ inner_omp`；而 `K = inner_omp = num_threads` 时同时在飞的暂存份数等于 `in_flight × inner_omp ≤ 租约`，因此 `K = num_threads` 是达成满宽的唯一最小取值，且总份数与轴形态无关。
+**有效宽度的第三个因子**：drizzle 投影内部的暂存池上限 `K` 会把帧内轴再截一次，`W_eff = in_flight × min(inner_omp, K)`；`K` 是暂存池份数上限，`num_threads` 是 drizzle 投影内核拿到的线程数，`W_eff` 是实际同时在算的线程数。由 `min(inner_omp, K)` 对 `K` 单调不降可知，`W_eff` 达到帧内轴宽度 `in_flight × inner_omp` 当且仅当 `K ≥ inner_omp`；`K < inner_omp` 时多余线程在暂存池上空等。因此 `K` **没有唯一最小取值**：可行区间内的任一取值给出同一满宽，总份数在该区间内不变。`K` 的实际生效值还被内核的 `min(num_threads, K)` 截断，故达成满宽的充要条件是 `min(num_threads, K) ≥ inner_omp`；把 `K` 取成 `num_threads` 只是其中一条充分条件，其来源链、适用域与算例由资源正本给出[7]，本节不复述。
 
 口径统一：本节两轴式与「活动 worker 之和不超过预算」是同一预算的两种陈述。单个科学内核内部的并行度就是帧内轴，内核内只有这一个并行区。三命令各自独立进程，线程预算不跨命令、不跨阶段共享。
 
@@ -139,7 +139,7 @@ inner_omp = max(1, thread_budget / in_flight) // thread_budget = lease
 
 ## 浮点归约顺序的冻结锚点
 
-- **mosaic 天光面权重归一**：`raw_w = quality_factor × control_ivar` 冻结后按控制的 `sums[ck]` 归一，遍历顺序为观测索引的固定顺序。
+- **mosaic 天光面权重归一**：两阶段——分子 `raw_w = quality_factor × control_ivar` 冻结后，再按控制的 `sums[ck]` 做 per-control 归一化（该步另乘几何可靠性因子）；遍历顺序为观测索引的固定顺序。权重公式本身以 `../data/ARTIFACTS.md` 为准，本节只冻结归约顺序，不复述权重公式。
 - **mosaic 采样器**：worker 数只来自运行时租约；格由原子取号动态领取，结果写回固定槽位，归约顺序与线程调度无关。
 - **drizzle 浮点归约**：主并行区用逐条带暂存累积（无浮点 reduction 子句）；块合并是逐条带暂存池加按条带索引升序左折叠归约，累加与归约解耦，浮点结合树与线程数、调度顺序无关。整数计数器统计不作为浮点归约锚。
 

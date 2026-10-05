@@ -422,7 +422,6 @@ PHOTOMETRY/ASTROMETRY）不因本附录改动；本节是唯一冻结依据（�
 
 ## 参考文献与参考代码库（含许可证）
 
-
 - 阈值检测/去混叠：Bertin & Arnouts 1996, A&AS 117, 393（SExtractor）；源码 SExtractor（GPL-3.0，tag 2.8.6）scan.c（扫描/阈值）/extract.c（提取）/back.c（背景）/photom.c（测光）。
 - 质心估计：Stetson 1987, PASP 99, 191（DAOPHOT）；photutils（BSD-3-Clause）centroid_sources。
 - 椭圆高斯 LM：Levenberg 1944, Quart. Appl. Math. 2, 164；Marquardt 1963, SIAM J. Appl. Math. 11, 431；Moré 1978, LNM 630, 105；实现对照 GSL（GPL-3.0）。
@@ -430,7 +429,6 @@ PHOTOMETRY/ASTROMETRY）不因本附录改动；本节是唯一冻结依据（�
 - SNR_peak/门：docs/science/algorithms/GATES_AND_TOLERANCES.md §2/§3。
 - 检测侧椭圆高斯与 PSF 侧 Moffat4 的 FWHM 不可跨块比较（DISP-STAR-007；Moffat 1969, A&A 3, 455）。
 
-参考代码库（含许可证）正本 = docs/engineering/SCIENTIFIC_REFERENCES.md §M。
 
 
 ---

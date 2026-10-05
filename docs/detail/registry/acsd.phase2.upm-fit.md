@@ -84,8 +84,8 @@ build rc = 2（**显式 INVALID，禁静默回退 support / SNR**，upm.h）；�
 与 ALG-UPM-001 / PHASE2_UPM_IMPL.md；本页只记落地方式与可读数。
 
 **权重口径 = 逆方差，禁止读作裸 SNR²**：拟合目标是采样点上的逆方差加权最小二乘（GLS 最优权重；文献与出版年双源登记见 docs/science/PHASE2_UPM.md），与 P2 定权
-式「权重 ∝ 平方信噪比 / 参考通量平方 = 逆方差」同源（SNR 以冻结的参考星等档
-`m_ref` 归一，口径正本 = `eng/contracts/schemas/unified/frame_snr.schema.json` 的
+式「权重 ∝ 平方信噪比 / 参考通量平方 = 逆方差」同源（SNR 以配置缺省的参考星等档
+`m_ref` 归一，缺省 6.0、可被输入 JSON 覆盖；口径正本 = `eng/contracts/schemas/unified/frame_snr.schema.json` 的
 `reference_baseline`）。
 无参考通量归一的「权重 ∝ 裸 SNR²」与该逆方差口径**互斥**；本几何下 SNR² 权重的
 伪影泄漏仅比 ivar 高约 18%，幅度**不可迁移**到其他几何。低 SNR 帧、光污染帧的

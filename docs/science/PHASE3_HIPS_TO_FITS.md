@@ -195,7 +195,6 @@ coverage:
 - **FITS 独立读取器**：CFITSIO（宽松许可，NASA/HEASARC，https://heasarc.gsfc.nasa.gov/fitsio/）。
 - **order_needed/leaf_order=order_sel+log2(W)/sqrt(π/3) cell 宽度**：Project-defined（§5/§14 第 6 条），与 DATA_SEMANTICS §3 冻结公式一致。
 
-参考代码库（含许可证）正本 = docs/engineering/SCIENTIFIC_REFERENCES.md §M。
 
 ## 15 Acceptance
 

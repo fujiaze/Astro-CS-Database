@@ -110,7 +110,7 @@ compatibility target（非产品事实源）。
 reentrant=yes / threadsafe=no（独立对象）/ internal_parallel = none（单线程整数
 集合运算）。determinism = `fixed_reduction_order`（bitwise 确定）。ThreadLease /
 取消检查点未接线 —— 阶段级取消由 session 阶段边界提供（p2_session.cpp 的检查在
-其内）；整改未落地。
+其内）；该接线尚未落地。
 
 ## 内存/cache/I-O/所有权
 
@@ -142,7 +142,7 @@ Oracle 面：
 
 ## 已知限制
 
-缺陷登记 = ALG-COV-001 §11.3（登记不改码；整改未落地）："no inputs" status 不一致 /
+缺陷登记 = ALG-COV-001 的缺陷登记节："no inputs" status 不一致 /
 frame_id 基名截断 / 空 filter 静默放行 / intersection / depth / missing-tiles
 产品缺失（四语义仅 union 落地；覆盖度几何非 UPM geometric_reliability 权重因子，
 该乘数恒 1.0，修正归 P2-UPM 域）/ extern "C" include + 两阶段全量重扫 / ThreadLease。

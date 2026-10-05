@@ -273,7 +273,6 @@ cal_pipeline − cal_true = −b_bias − K·b0 + K·b_bias + b_light + I_d·t_l
 
 ## 7 参考文献与参考代码
 
-
 [1] Howell S. B. Handbook of CCD Astronomy, 2nd ed. Cambridge University Press, 2006. ISBN 9780521852159（该书正文未打开，只作课程级背景，不引用其公式或数值）
 
 [2] Marshall J. L., DePoy D. L. Flattening scientific CCD imaging data with a dome flat field system. [arXiv:astro-ph/0510233](https://arxiv.org/abs/astro-ph/0510233)（结论支持"平场误差须在测光检验中量化，不能由平场自身自证"）

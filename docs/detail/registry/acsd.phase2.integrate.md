@@ -135,7 +135,7 @@ docs/science/noise_snr/NOISE_SNR.md §3.4/§3.5；本页只记落地方式：
 **逆方差叠加**：每个天球像素接收多个源像素输入，用每个源像素的 SNR 计算对应
 权重（SNR → 逆方差权重）得到最优检测 / 测光功率 —— **不是直接用 SNR 加权**。换算
 口径 = 帧内 SNR 与该帧参考通量的商再取平方（配对性只要求**同一帧内** SNR 与参考
-通量同源；参考通量按冻结的参考星等档 `m_ref` 取，随产品落盘，逐帧取值依赖本帧测光
+通量同源；参考通量按配置缺省的参考星等档 `m_ref` 取，随产品落盘，逐帧取值依赖本帧测光
 标定而不同 —— 口径与必落字段正本 =
 `eng/contracts/schemas/unified/frame_snr.schema.json` 的 `reference_baseline`，
 卡片级说明见 registry/acsd.phase1.noise-snr.md）；对稀疏重建场逐像素同式。

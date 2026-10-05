@@ -43,6 +43,8 @@
 ### 统一对象合同登记（DATA-001，`docs/detail/UNIFIED_MODEL.md`「数据对象（各自具名）」一节，canonical 在 eng/contracts/schemas/）
 
 本表第二节：`docs/detail/UNIFIED_MODEL.md`「数据对象（各自具名）」一节 的 **13** 个对象各自在 `eng/contracts/schemas/unified/<对象名>.schema.json` 有唯一 canonical 合同（`$id = https://acsd.local/schemas/unified/<对象名>/v1`）。对象身份 / 单位（含 BUNIT 语义）/ 无效值与缺失表示 / 精度 / 可否作权重一律以该 canonical schema 为准（人类可读对照 = 本文件下文「weight/value/scale/sigma/snr 歧义映射（DATA-001 登记）」一节）；本表只登记它们在 DataArtifact 面的 scalar/shape/axis/coordinate/ownership/serialization 列，**单位与无效值两列只给 canonical schema 指针**。
+
+**本表 `scalar` 列的读法（同名不同义，不得与另两处互相代入）**：本列登记的是该对象在 **DataArtifact 承载面上的标量形态**，即线格式层面的载体类型，不是「该对象应归属哪一档精度」。逐对象的**应归属精度**的唯一正本是 `../UNIFIED_OBJECTS.md` 的对象对照表精度列；canonical schema 的 `precision` 属性是**值域**（取值只能是三个 token 之一），不逐对象指派档位。三个问句各答一处，读者按问句取面，不得跨面比较。
 上位锚：`docs/detail/UNIFIED_MODEL.md`「数据对象（各自具名）」一节；`../../ACSD_DESIGN.md`「文档权威与索引」一节。**判据无载体**：机器门 `eng/tests/contracts/test_unified_object_contract.py` 在仓内不存在（`eng/tests/` 只有 `conformance/` 与 `validation/` 两个子目录），故逐层一致性只有 canonical schema 自身可校验，不得写成已有门在跑。
 
 | schema_id | 内容 | scalar | shape/axis | unit | coordinate | invalid | ownership | serialization |
@@ -59,7 +61,7 @@
 | DATA-OBJ-COVERAGE-001 | coverage（`docs/detail/UNIFIED_MODEL.md`「数据对象（各自具名）」一节 对象；可否作权重：否） | f32|f64|int | 对象文档 / 平面引用（map·scalar·control_points） | 见 canonical schema | 按对象（pixel / HEALPix NESTED / 源列表 / 元数据） | 见 canonical schema | unique（canonical owner = eng/contracts/schemas/unified/coverage.schema.json） | JSON schema + 产品载体（FITS/HiPS/JSON 由产品族决定） |
 | DATA-OBJ-VALIDITY-001 | validity（`docs/detail/UNIFIED_MODEL.md`「数据对象（各自具名）」一节 对象；可否作权重：门，不是权重） | int | 对象文档 / 平面引用（map·scalar·control_points） | 见 canonical schema | 按对象（pixel / HEALPix NESTED / 源列表 / 元数据） | 见 canonical schema | unique（canonical owner = eng/contracts/schemas/unified/validity.schema.json） | JSON schema + 产品载体（FITS/HiPS/JSON 由产品族决定） |
 | DATA-OBJ-REJECTION-001 | rejection（`docs/detail/UNIFIED_MODEL.md`「数据对象（各自具名）」一节 对象；可否作权重：门/概率，不是 coverage） | f32|f64|int | 对象文档 / 平面引用（map·scalar·control_points） | 见 canonical schema | 按对象（pixel / HEALPix NESTED / 源列表 / 元数据） | 见 canonical schema | unique（canonical owner = eng/contracts/schemas/unified/rejection.schema.json） | JSON schema + 产品载体（FITS/HiPS/JSON 由产品族决定） |
-| DATA-OBJ-PROVENANCE-001 | provenance（`docs/detail/UNIFIED_MODEL.md`「数据对象（各自具名）」一节 对象；可否作权重：——） | int | 对象文档 / 平面引用（map·scalar·control_points） | 见 canonical schema | 按对象（pixel / HEALPix NESTED / 源列表 / 元数据） | 见 canonical schema | unique（canonical owner = eng/contracts/schemas/unified/provenance.schema.json） | JSON schema + 产品载体（FITS/HiPS/JSON 由产品族决定） |
+| DATA-OBJ-PROVENANCE-001 | provenance（`docs/detail/UNIFIED_MODEL.md`「数据对象（各自具名）」一节 对象；可否作权重：——） | 非数值（字符串 / 键值对象 / 字符串数组，无标量数值面） | 对象文档 / 平面引用（map·scalar·control_points） | 见 canonical schema | 按对象（pixel / HEALPix NESTED / 源列表 / 元数据） | 见 canonical schema | unique（canonical owner = eng/contracts/schemas/unified/provenance.schema.json） | JSON schema + 产品载体（FITS/HiPS/JSON 由产品族决定） |
 
 ### 登记行权威锚点
 

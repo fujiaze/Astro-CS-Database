@@ -143,10 +143,14 @@ W_eff = in_flight × min(I, K)                        // drizzle 节点；K 为�
 ## scratch 池上限的派生（`K = num_threads`）
 
 **充分条件（非定理陈述）**：在 drizzle 由帧级轴驱动时，`K = num_threads` 是达成满宽的一个**充分条件**，
-其成立依赖三条可核事实：
+且**不是唯一取值**；其成立依赖四条可核事实：
 
-- **必要条件**：`W_eff = in_flight × min(inner_omp, K)`，故要 `W_eff` 达到帧内轴宽度必须 `K ≥ inner_omp`；
-  `K < inner_omp` 会让多余线程在池上空等。
+- **满宽的充要条件**：抽象口径 `W_eff = in_flight × min(inner_omp, K)` 对 `K` 单调不降，
+  故 `W_eff` 达到帧内轴宽度 `in_flight × inner_omp` 当且仅当 `K ≥ inner_omp`；`K < inner_omp` 时多余线程在池上空等。
+  实现实际分配的池是 `kScratchPool = min(num_threads, kScratchPoolCap)`
+  （`lib/algorithms/drizzle/healpix_drizzle/drizzle_engine.cpp`），把 `num_threads` 也纳入截断后，
+  **达成满宽的充要条件是 `min(num_threads, K) ≥ inner_omp`**，等价于 `K ≥ inner_omp` 与 `num_threads ≥ inner_omp` 同时成立。
+  因此 `K` **没有唯一最小取值**：落在该可行区间内的任一取值给出同一满宽；提高 `K` 只在 `num_threads` 之上仍有富余时才可能改变结果。
 - **充分性来源**：`K = num_threads` 且 `num_threads = inner_omp` 时，同时在飞的 scratch 份数 =
   `in_flight × inner_omp ≤ lease`（`../architecture/DATA_FLOW.md` 的轴不变式[1]），
   故总份数与轴形态无关，不越租约。
@@ -156,8 +160,11 @@ W_eff = in_flight × min(I, K)                        // drizzle 节点；K 为�
   ③ `drizzle_engine.cpp` 取 `num_threads = config.threads > 0 ? config.threads : omp_get_max_threads()`，
   而每个帧级 worker 线程在进入 drizzle 前先执行 `omp_set_num_threads(inner_omp)`；
   `omp_get_max_threads()` 返回当前任务 `nthreads-var` 的值，故此处恰为 `inner_omp`。
+  另：实现把 `kScratchPoolCap` 的缺省置为 `num_threads`，故「不设环境变量」本身就取到 `K = num_threads`，
+  它是缺省策略值而不是被论证出来的唯一最小值。
 - **适用域**：本条只覆盖**由 `p1_parallel_for` 驱动**的 drizzle 路径。不经帧级轴调用 drizzle 时，
-  `omp_get_max_threads()` 取线程默认 ICV，`num_threads` 与 `inner_omp` 不必相等，本条不成立。
+  `omp_get_max_threads()` 取线程默认 ICV，`num_threads` 与 `inner_omp` 不必相等，本条不成立；
+  此时 `K = num_threads` 成立与否取决于 `num_threads ≥ inner_omp` 是否碰巧成立，不是本条保证的。
 
 **等价形态的算例**（补齐全部参数，使「标定形态」与算例同面）：取 `L = 16`、`n = 2`、`K = 2`
 （本机标定形态），则 `F = min(16, 闸门) = 2` ⇒ `in_flight = min(2, 2) = 2` ⇒ `I = max(1, 16/2) = 8`，
@@ -275,6 +282,11 @@ Browser GC wide / pan / zoom / STF
 ## 参考文献
 
 [1] 内部文档 `docs/engineering/architecture/DATA_FLOW.md`，并行轴分配与轴不变式，帧内 OpenMP 度公式的正本。
+
+[2] 内部文档 `../standards/NUMERIC.md`，数值标准，科学浮点量的量纲与标度词表。
+
+[3] 内部文档 `../build/BUILD_GRAPH.md`，生产构建图，受影响构建目标的反查依据。
+
 [4] 内部文档 `docs/engineering/testing/TEST.md`，测试标准，通用浮点容差与 NaN/Inf 语义的唯一正本。
 [5] 内部文档 `docs/science/noise_snr/NOISE_SNR.md`，跨帧绝对信噪比，权重模型的科学定义。
 [6] 内部文档 `docs/ACSD_DESIGN.md`，最高设计，CPU 后端与资源一章与 I/O 与原子产品一章，上位来源。
