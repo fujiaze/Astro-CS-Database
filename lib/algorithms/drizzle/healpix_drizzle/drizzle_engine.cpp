@@ -1646,7 +1646,7 @@ bool DrizzleEngine::drizzleTiledImpl(const FitsImage& img, const DrizzleConfig& 
     // K=2 保留"一份在累加、一份在归约"的重叠; 池不再随 worker 数放大。
     // 归约流水线的线程预算不变式由 p1drz_merge_pipeline_lock 回归锁守。
     // P1-PARALLEL-AXIS-REDESIGN-01: 池上限由**帧内轴宽度**决定，不再硬钉 2。
-    //   定理（有效宽度口径见 docs/engineering/PERFORMANCE_MODEL.md §5）:
+    //   定理（有效宽度口径见 docs/engineering/resources/PERFORMANCE_MODEL.md「有效并行宽度」一节）:
     //     W_eff = in_flight × min(inner_omp, K) ⇒ 要 W_eff 达到帧内轴宽度必须 K ≥ inner_omp;
     //     而 K = inner_omp = num_threads 时，同时在飞的 scratch 份数
     //     = in_flight × inner_omp ≤ lease（p1_parallel_for 的轴不变式，
@@ -1807,8 +1807,8 @@ bool DrizzleEngine::drizzleTiledImpl(const FitsImage& img, const DrizzleConfig& 
 
         for (int x = 0; x < img.width; x++) {
             // ── 样本级掩膜 / DISP-DRZ-004 收口 ───────────────────────────────────
-            // 冻结合同（唯一口径文字 = docs/engineering/data/DATA-002_PHASE_PRODUCT_EXCHANGE.md
-            // §2a；rule_id = NAN-SAMPLE-MASK-COVERAGE-NAN）:
+            // 冻结合同（唯一口径文字 = docs/engineering/data/PHASE_PRODUCT_EXCHANGE.md
+            // 「组成块」一节；rule_id = NAN-SAMPLE-MASK-COVERAGE-NAN）:
             //   合格样本 = isfinite(x_j)（值有限即合格）；
             //   不合格样本 → **样本级掩膜**（从分子 F_p、分母 D_p、方差项
             //   Var_p 三项一并剔除 ⇒ 重归一自动成立；禁止让单个不合格样本使

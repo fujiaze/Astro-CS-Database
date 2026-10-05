@@ -348,7 +348,7 @@ Polar prune: if |dec|>45° use C/C45 disk B(q,C·radius), false_negative=0
 
 科学专项（matrix P1-WCS 行）映射：plate solving TAN+SIP=本 ALG F1-F5 公式
 与 §11.1 生产通道；ICRS/J2000=RADESYS=ICRS/EQUINOX=2000 写回
-（`lib/infrastructure/pipeline/orchestrator/cpp/src/orchestrator.cpp` 的 RADESYS/EQUINOX 写回处，docs/science/detection/ASTROMETRY.md §3a）；degenerate conditions=
+（`lib/infrastructure/pipeline/orchestrator/cpp/src/orchestrator.cpp` 的 RADESYS/EQUINOX 写回处，docs/science/detection/ASTROMETRY.md 的「坐标参考系」一节）；degenerate conditions=
 ASTROMETRY §8 ↔ DISP-WCS-001 退化语义（坍缩禁冒充解）；astropy oracle=
 ASTROMETRY §11 ↔ F2。共享 SCI（docs/science/detection/ASTROMETRY.md SCI-WCS-001，FROZEN）
 不因本附录改动；本节是唯一冻结依据（编排层词汇只作对齐对象；descriptor

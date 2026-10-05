@@ -69,7 +69,7 @@ enum P2IntegrateStatus {
     P2_INTEGRATE_INVALID_INPUT = 4,
     // 资格门**全部通过**（输入全 finite、权重全正），但归约累加溢出：
     // Σw·v 或 Σw 溢出到 ±Inf，或二者相除得 NaN。此时 signal 按
-    // docs/engineering/NUMERIC_STANDARD.md「无效的唯一表示 = NaN」发 NaN，
+    // docs/engineering/standards/NUMERIC.md「MUST」一节「无效的唯一表示 = NaN」发 NaN，
     // **不得**发 0/±Inf/哨兵值伪装成有效。既有五态没有一态能如实表达它：
     // INVALID_INPUT 会谎称「输入非法」（输入全合法），ZERO_VALID_WEIGHT 会谎称
     // 「权重全 0」（权重全正）。

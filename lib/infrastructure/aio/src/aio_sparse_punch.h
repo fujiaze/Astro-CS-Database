@@ -7,7 +7,7 @@
 // 依据:
 // - docs/ACSD_DESIGN.md §10「I/O 与原子产品」(裸形态体积削减两种机制的分工);
 // - docs/detail/PRODUCT_STORAGE_FORM.md §9.1 (何时 / 对谁 / 失败怎么办 / 如何验证);
-// - docs/engineering/HIPS_STORAGE_FORM_CONTRACT.md §7 表 T1 (冻结规则 + 判据);
+// - docs/engineering/contracts/HIPS_STORAGE_FORM.md「体积削减（裸形态）」一节 表 T1 (冻结规则 + 判据);
 // - ENGINEERING_SPEC.md §11 (打洞在 fsync 之后、算哈希与原子发布之前完成)。
 //
 // 语义:
@@ -162,7 +162,7 @@ inline void report(int level, const std::string& msg) {
 }
 
 // ── 运行级策略（默认启用；调用方按形态显式关闭）────────────────────────────
-// 归档形态不实施打洞（docs/engineering/HIPS_STORAGE_FORM_CONTRACT.md §7「生效面」）。
+// 归档形态不实施打洞（docs/engineering/contracts/HIPS_STORAGE_FORM.md「体积削减（裸形态）」一节「生效面」）。
 inline bool& punch_enabled_ref() {
     static bool v = true;
     return v;

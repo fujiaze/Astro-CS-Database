@@ -20,7 +20,7 @@
 #include <vector>
 
 // ── CONFORM-FIX-B-009: smoothing 键 "auto" 的唯一解析值（单一来源）──
-// 语义权威：docs/engineering/CONFIG_SCHEMA.md:19 「smoothing(auto→0.1)」；
+// 语义权威：docs/engineering/contracts/CONFIG.md「Stage2 config 段」一节「smoothing(auto→0.1)」；
 // smoothing_lambda 不能为 0（λ>0 必须）。
 // **不是**生产取值裁决面：具体生产 λ 由 SMOOTH-LAMBDA 配置面确定
 // （本常量只定义 "auto" 这个键值解析成什么，不定义生产链路的 λ）。

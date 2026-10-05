@@ -1,4 +1,4 @@
-// lib/phase3_session/hips_properties.h — HiPS properties 严格解析/校验 (ALG-P3-001) — P3-001
+// lib/algorithms/coverage/hips_properties.h — HiPS properties 严格解析/校验 (ALG-P3-001) — P3-001
 // 原则(06/TASK): 无 silent default —— 必需键缺失/值非法/越界一律拒绝;
 // 安全路径: 拒 ".." / 空段 / NUL / 符号逃逸; 缺 tile 探测 = 声明叶级至少 1 tile 可读路径。
 #ifndef ACSD_HIPS_PROPERTIES_H

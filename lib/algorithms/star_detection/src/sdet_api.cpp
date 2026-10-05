@@ -25,7 +25,7 @@
 #include <omp.h>
 
 // 拟合后端: 自研信赖域 Levenberg-Marquardt（见 src/nls_lm.h; 该头载有不得退回外部求解器的禁止性说明）
-// 算法与行为对齐依据见 docs/science/psf/PSF.md §14a 所列文献（Moré 1978 等）与
+// 算法与行为对齐依据见 docs/science/algorithms/STAR_PSF_ALGORITHMS.md「参考文献与参考代码库（含许可证）」一节所列文献（LM 谱系含 Moré 1978）与
 // src/nls_lm.cpp 顶部说明; 该后端不引入任何外部依赖（Windows 可编译, 无 GPL 传染）。
 #include "nls_lm.h"
 

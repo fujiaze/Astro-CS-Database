@@ -41,7 +41,7 @@ LEGACY_SOURCE_REL = "lib/core/src/module_adapters.cpp"      # 已消失；仅用
 INDEX_REL = "docs/DOCUMENT_INDEX.yaml"
 # 27 份模块页已随迁移迁至 docs/detail/registry/（旧位只余一份 baseline json，仍在原处）。
 # 本生成器**写页面**，故指向新落点；否则它会把页面重新生成进已废目录，
-# 而它自述的「未写盘（docs/detail/registry/registry 保持原样）」也会变成假话。
+# 而它自述的「未写盘（docs/detail/registry 保持原样）」也会变成假话。
 OUT_DIR_REL = "docs/detail/registry"
 GENERATOR_REL = "eng/tools/quality/gen_module_readmes.py"
 EVIDENCE_REL = "eng/ci/ledgers/module_page_evidence.json"
@@ -120,7 +120,7 @@ cache/内存按 ALG 合同(bounded); I-O 单 writer; 所有权=调用方分配 b
 
 ## 已知限制
 
-见 docs/KNOWN_LIMITATIONS.md 与 \x60@@ALG@@\x60 合同边界。
+见 artifacts/evidence/known-limitations-ledger/LIMITATIONS.md 与 \x60@@ALG@@\x60 合同边界。
 """
 
 

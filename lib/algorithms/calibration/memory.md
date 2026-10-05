@@ -7,7 +7,7 @@
   （acsd.p1.calibration / acsd_p1_calibration.dll 目标）。
 - 产物: docs/science/algorithms/CALIBRATION_ALGORITHMS.md 重写为 ALG-CAL-001..006
   （逐公式源码锚定 + TEST-CAL-DESIGN-001 设计与冻结容差 rtol=1e-6/atol=1e-7）；
-  docs/science/unified/DATA_SEMANTICS.md §9（DATA-P1-CAL）；docs/engineering/
+  docs/detail/registry/acsd.phase1.calibration.md「输入输出端口、DATA、单位、坐标、invalid」一节（DATA-P1-CAL 端口表）；docs/engineering/
   PUBLIC_API.md（API-CAL-001，12 导出符号 + 缺陷清单）；docs/detail/registry/
   calibration.md 事实修订；本 README/module.yaml 重写与新建；
   TRACEABILITY_SPEC §9 行 MOD-acsd-phase1-calibration 更新
@@ -226,7 +226,7 @@ CCD/CMOS标准校准模块，包含主帧生成、图像校准（含暗场优化
 - **C++ DLL验证**: 单帧性能测试通过，C++ DLL加载成功，热像素34652/冷像素276/修复34928，均值450.28（与Python版一致）
 
 ## cosmetic_corrector C++ OpenMP 版本详情（Phase 2）
-- **路径**: `lib/algorithms/calibration/cpp/cosmetic_corrector.h` + `cosmetic_corrector.cpp`
+- **路径**: `lib/algorithms/calibration/cpp/cosmetic_corrector.h` + `lib/algorithms/calibration/cpp/cosmetic_corrector.cpp`
 - **构建**: `lib/algorithms/calibration/Makefile`（`make` 编译为 `cosmetic_corrector.dll`）
 - **编译环境**: MSYS2 MinGW64 g++ 16.1.0，CXXFLAGS=`-O3 -march=native -ffast-math -funroll-loops -fopenmp -Wall -std=c++17`
 - **导出C接口**（4个函数，ctypes 可直接调用）:

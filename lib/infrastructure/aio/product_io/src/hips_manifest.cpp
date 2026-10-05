@@ -50,7 +50,7 @@ bool allowed_tile_format(const std::string& f) {
 //   均为 `..` 段；按段可避免误拒 `a..b` 这类合法文件名，且对目录穿越零判别力损失。
 // ⚠ 适用面待补正本要点：IO_003 §3.2:87 的适用面原文是「user_path / 发布文件名 /
 // run_id」，未点名本字段；`HipsManifest` 与 `relative_path` 在 docs/ 全树零登记，
-// 该模块首要语义锚 ALG-P3-008 亦为孤儿条款（docs/engineering/UNRESOLVED_REGISTER.md:2004）。
+// 该模块首要语义锚 ALG-P3-008 亦为孤儿条款（docs/engineering/governance/UNRESOLVED.md:2004）。
 // 故「本字段按 IO_003 §3.2 判定」是待裁定的推断，不是正本原文；正本补上该适用面一句
 // 之前，本判据按此口径实现并在此标注，不擅自改写正本。
 bool path_is_safe(const std::string& p) {

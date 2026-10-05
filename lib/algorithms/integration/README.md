@@ -87,5 +87,4 @@ DRIVER_SRC 积分段 :66-126，含 max(accepted support) 注释 :124）。
 - ALG：docs/science/algorithms/PHASE2_INTEGRATION.md（ALG-P2-INT-001）
 - DATA：`docs/detail/registry/acsd.phase2.integrate.md`「输入输出端口、DATA、单位、坐标、invalid」一节（DATA-P2-INT）
 - API：docs/engineering/api/PUBLIC_API.md API-P2-INT-001
-- 模块页：docs/detail/phase2_int.md；
-  docs/detail/registry/acsd.phase2.integrate.md
+- 模块页：docs/detail/registry/acsd.phase2.integrate.md

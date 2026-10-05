@@ -861,7 +861,7 @@
         },
         "kind": "design_doc_negative_example",
         "resolution": "ERROR",
-        "note": "现行权威 = docs/engineering/contracts/CONFIG.md §10「滤镜名匹配语义」负例表（第 198 行）冻结的 \"bader r\"；RELEASE-04 换版后最高设计不再携带该反例串，原 §3.3 行号锚点失效（GATE-502 按现行合同重锚，值与判据未变）。与本库键 'Baader R' 拼写不同形（bader vs Baader）：仅折叠大小写/空白仍不相等，因此任何「轻量归一化」都不能把它变成合法键；按 resolution_rule 判 ERROR。"
+        "note": "现行权威 = docs/engineering/contracts/CONFIG.md「滤镜名匹配语义」一节 负例表 冻结的 \"bader r\"；RELEASE-04 换版后最高设计不再携带该反例串，原 §3.3 行号锚点失效（GATE-502 按现行合同重锚，值与判据未变）。与本库键 'Baader R' 拼写不同形（bader vs Baader）：仅折叠大小写/空白仍不相等，因此任何「轻量归一化」都不能把它变成合法键；按 resolution_rule 判 ERROR。"
       },
       {
         "literal": "bader v",

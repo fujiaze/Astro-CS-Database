@@ -433,7 +433,7 @@ static constexpr double _IRLS_CONVERGE = 1e-6;   // IRLS 收敛阈值
   PUBLIC_API.md API-PHOT-001（6 导出符号头锚）；eng/contracts/data/contract_index.yaml
   新 ID 条目与互指；docs/DOCUMENT_INDEX.yaml notes；docs/detail/registry/
   photometric_calib.md + docs/detail/registry/acsd.phase1.photometry.md
-  事实修订；docs/engineering/governance/TRACEABILITY.md §9 photometry 行原位
+  事实修订；docs/engineering/governance/TRACEABILITY.md「逐模块追溯台账（人读正本）」一节 photometry 行原位
   更新 + CSV 重生成。
 
 ### 纪律记录

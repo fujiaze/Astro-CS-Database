@@ -6,7 +6,7 @@
 # CMakeLists.txt add_library(acsd_phase3_session ...) 五源文件之一
 # （原记 :460-465 已随路径迁移漂移）；
 # 底座=acsd_aio STATIC :273-296（aio_fits.cpp + vendored
-# lib/third_party/cfitsio acsd_cfitsio 静态库 + zlib），
+# lib/infrastructure/aio/third_party/cfitsio acsd_cfitsio 静态库 + zlib），
 # cfitsio 进程锁 aio_cfitsio_mutex.h:9-15 RT-008），
 # 模块化迁移（独立模块源 acsd_p3_fits_writer.dll / C ABI adapter /
 # plan-execute-cancel-inspect / ThreadLease 接线）由 P3-FITS-IMPL 执行；

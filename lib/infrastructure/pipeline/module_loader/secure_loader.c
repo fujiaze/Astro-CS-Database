@@ -48,7 +48,7 @@
 #endif
 
 /* ═══════════════════════════ 内部 FIPS 180-4 SHA-256 ═══════════════════════════
- * 纯 C、自包含、无第三方依赖(仓库无现成纯 C sha256; lib/common/crypto 为 C++,
+ * 纯 C、自包含、无第三方依赖(仓库无现成纯 C sha256; lib/algorithms/shared/crypto 为 C++,
  * loader 不跨语言边界)。仅用于二进制身份比对(非密钥用途)。 */
 
 typedef struct acsd_sha256_ctx_s {

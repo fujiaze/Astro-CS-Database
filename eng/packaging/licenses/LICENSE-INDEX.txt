@@ -11,7 +11,7 @@ ACSD 安装树 licenses/ 目录 — 许可证收集 (BLD-003)
 
 文件清单:
   CFITSIO_LICENSE.txt  — cfitsio 第三方许可证 (来源
-      lib/astro_image_io/third_party/cfitsio/licenses/License.txt,
+      lib/infrastructure/aio/third_party/cfitsio/licenses/License.txt,
       NASA/USG 许可, cfitsio 官方 vendored 副本; BLD-003 只读复制)
   nlohmann_json.MIT.txt — nlohmann/json (单头, MIT), 头部 SPDX 声明
       (来源 lib/third_party/nlohmann/json.hpp 头部 SPDX-FileCopyrightText)

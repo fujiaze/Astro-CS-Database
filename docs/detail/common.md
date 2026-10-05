@@ -35,7 +35,7 @@
 
 ## Ownership
 
-- `healpix_core.h` header + `healpix_core.cpp` 实现；`sha256.h` + `sha256.cpp` 编译单元（静态库，非纯 header-only）。
+- `lib/algorithms/shared/healpix/healpix_core.h` header + `lib/algorithms/shared/healpix/healpix_core.cpp` 实现；`lib/algorithms/shared/crypto/sha256.h` + `lib/algorithms/shared/crypto/sha256.cpp` 编译单元（静态库，非纯 header-only）。
 - `Sha256` 增量对象由调用方持有，`final_hex` 为终态（`update` 的调用面随 `final_hex` 结束）；`sha256_hex` 纯函数无所有权转移。
 
 ## Thread safety

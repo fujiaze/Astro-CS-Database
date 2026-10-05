@@ -12,7 +12,7 @@
 > API 正本：docs/engineering/api/PUBLIC_API.md（API-COV-001，Coverage union C API 节）、
 > docs/engineering/api/PUBLIC_API.md「分阶段 API 面」（API-P2-001，FROZEN）
 
-模块级事实以 `lib/algorithms/coverage/README.md` + `module.yaml`
+模块级事实以 `lib/algorithms/coverage/README.md` + `lib/algorithms/coverage/module.yaml`
 （MOD-acsd-phase2-coverage，dll_target=acsd_p2_coverage.dll）为准；权威签名头
 `lib/algorithms/coverage/include/astro/phase2/coverage.h`。模块词汇
 `acsd.p2.coverage`，owner = SA-P2-S20，实现面 = lib/algorithms/coverage；

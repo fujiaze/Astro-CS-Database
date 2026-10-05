@@ -11,7 +11,7 @@
       "severity": "blocker",
       "kind": "undeclared_input",
       "registry_ref": "R:acsd.phase1.cosmetic 输入 p1_calibrated；R:acsd.phase1.wcs-platesolve 输入 p1_calibrated；R:acsd.phase1.photometry 输入 p1_calibrated；R:acsd.phase1.noise-snr 输入 p1_cleaned；R:acsd.phase1.drizzle 输入 p1_calibrated/p1_photoapplied",
-      "summary": "静默回退（ARCH-AUDIT-01 B-5）：module_adapters.cpp#p1_calibrated_path 与 #p1_cleaned_input_path 在声明产物缺失时**不报错、不写 degraded_reason**，直接回退到原帧（light）或上游 cal 产物；下游消费点 p1_op_wcs / p1_op_drizzle / p1_op_photometry / p1_op_noise / p1_op_star_psf_impl 的 manifest 也不记录**实际输入路径**。即「注册表声明的输入缺失」这一事实既不进 provenance 也不进 manifest ⇒ 违反 docs/engineering/contracts/PIPELINE_BLOCK.md §4「降级必须显式」。注册表侧已把该输入面声明为真实产物（carrier=output_dir_file）；本条登记的是**代码侧降级显式性缺口**，改表无法消除。降级显式性本身在机器门上无判据（同族登记见 docs/KNOWN_LIMITATIONS.md §E 条目 32）。",
+      "summary": "静默回退（ARCH-AUDIT-01 B-5）：module_adapters.cpp#p1_calibrated_path 与 #p1_cleaned_input_path 在声明产物缺失时**不报错、不写 degraded_reason**，直接回退到原帧（light）或上游 cal 产物；下游消费点 p1_op_wcs / p1_op_drizzle / p1_op_photometry / p1_op_noise / p1_op_star_psf_impl 的 manifest 也不记录**实际输入路径**。即「注册表声明的输入缺失」这一事实既不进 provenance 也不进 manifest ⇒ 违反 docs/engineering/contracts/PIPELINE_BLOCK.md「provenance 流转」一节的「降级必须显式」条款。注册表侧已把该输入面声明为真实产物（carrier=output_dir_file）；本条登记的是**代码侧降级显式性缺口**，改表无法消除。降级显式性本身在机器门上无判据（同族登记见 `artifacts/evidence/known-limitations-ledger/LIMITATIONS.md`「E. 架构与门禁判据面的现行限制」一节（条目 32）。",
       "evidence": [
         {
           "file": "lib/infrastructure/scheduler/src/module_adapters.cpp",

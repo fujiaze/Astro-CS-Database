@@ -226,7 +226,7 @@ AIO_HIPS_EXPORT int aio_hips_write_diag_tile(
 // **已删除的键: 旧「权重模式」provenance 键**。
 //   依据: docs/ACSD_DESIGN §2.1 总纲 + §3.1 数据对象（HiPS 含帧级 SNR 与可选稀疏
 //   控制点层：绝对 SNR 控制点、同一参考通量 F_ref）+ §4.4 输出合同 + §5.5
-//   「先排异、后加权」+ docs/science/CONTROL_WEIGHT_SNR.md §8c「定权路径唯一：
+//   「先排异、后加权」+ docs/science/noise_snr/NOISE_SNR.md「3.4 定权：逆方差与信息量」一节「定权路径唯一：
 //   w(x,y) = SNR(x,y)²/F_ref²」—— 阶段二按该位置像素对应集合现场取逆方差定权，
 //   不存在独立于 SNR 的第二套权重通道。
 //   ⇒ provenance 只承载帧级 SNR 与稀疏相对 SNR 比值, **不承载任何权重模式**;

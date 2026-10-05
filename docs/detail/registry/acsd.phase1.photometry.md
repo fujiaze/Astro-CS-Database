@@ -10,9 +10,9 @@
 > docs/engineering/api/abi/ABI.md、API-P1-005（docs/engineering/api/PUBLIC_API.md「分阶段 API 面」）
 > 数据对象：docs/detail/UNIFIED_MODEL.md §1（观测模型）
 
-模块级事实以 `lib/algorithms/photometry/README.md` + `module.yaml`
+模块级事实以 `lib/algorithms/photometry/README.md` + `lib/algorithms/photometry/module.yaml`
 （acsd.p1.photometry，迁移目标 acsd_p1_photometry.dll，entrypoint 未落地）
-为准。现状构建 = `cpp/Makefile` + `cpp/build.ps1` → `photometric_calib.dll`，
+为准。现状构建 = `lib/algorithms/photometry/cpp/Makefile` + `lib/algorithms/photometry/cpp/build.ps1` → `photometric_calib.dll`，
 未编入根 CMake 主构建。缺陷与整改登记 = PHOTOMETRIC_FIT §13.3。
 `lib/algorithms/photometry/wrapper_phase1` 的 Photometer aperture 面为迁移目标面
 （README §9），当前无仓内可复算的用例引用。
@@ -21,7 +21,7 @@
 
 Registry production 模块（唯一源 = module_adapters.cpp 的 p1_photometry_descriptor）。
 职责：对检测源做 **PSF 拟合域**测光（孔径测光仅作显式声明的诊断/交叉验证，
-非生产口径——依据最高设计「全链只有一个 `flux` 口径」），把本帧 signal 映射到
+非生产口径——依据最高设计「节点流程」一节的「全链一个通量口径」），把本帧 signal 映射到
 统一线性通量尺度，给出 `a_k` 及其不确定度；源星表 ↔ 参考星表双向最近邻配对
 （KD-tree，2.0px）+ 星等预过滤 + IRLS/Tukey 稳健零点求解（scale 取
 10^(−location)）；质量结构体落位 snr_estimator。

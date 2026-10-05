@@ -3,7 +3,7 @@
  * 角色: CPU-001 冻结的 AMD64 CPU 能力探测合同。区分
  *   "硬件支持"(CPUID feature 位) 与 "OS 可安全执行"(OSXSAVE + XGETBV/XCR0
  *   状态位 + 层次包含 + provider required_features 子集判定)。
- * 冻结合同: docs/engineering/cpu/CPU_001_CAPABILITY_PROBE.md (DOC-ARCH-CPU-001)
+ * 冻结合同: docs/engineering/resources/cpu/CAPABILITY_PROBE.md (DOC-ARCH-CPU-001)
  *   + lib/infrastructure/benchmark/cpu/common/schemas/cpu_capability.schema.json (JSON 序列化 schema)。
  *
  * 关键约束 (v1 不可变; 扩展须升版本):

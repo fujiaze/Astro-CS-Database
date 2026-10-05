@@ -23,4 +23,4 @@
 
 上游：docs/ACSD_DESIGN.md §8.4（顶层结构）、§8.5（模块与 ABI）；ENGINEERING_SPEC.md §7（目录规范）。
 
-科学断言以 docs/science/ 为权威，佐证要求见 docs/engineering/DOCUMENT_GOVERNANCE.md §2。
+科学断言以 docs/science/ 为权威，佐证要求见 docs/engineering/governance/DOCUMENT_GOVERNANCE.md「各层准入判据」一节。

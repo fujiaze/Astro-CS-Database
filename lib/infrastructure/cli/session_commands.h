@@ -74,7 +74,7 @@ inline const char* session_cli_name(SessionId s) {
 //                 见 config_fields 的 scope=="block" —— 预检逐块判定）
 //   * mosaic    → hips_paths  （p2_session 消费的路径数组）
 //   * export    → source.hips_dir（p3_session.cpp parse_request 的对象字段；
-//                权威 docs/engineering/PHASE3_API_V1.md §请求 与 MANIFEST_VERIFY_V1 样例）
+//                权威 docs/engineering/contracts/MANIFEST_VERIFY.md「pipeline_config.json v1（配置校验 schema）」一节样例）
 // GAP-034 事实: 旧 precheck 把 source 当 array|string 计数（对象形态 n=0 → 恒
 // 「source 为空」），而 export 模板又写 "source": ""/"center": [..]，三处口径互斥，
 // 导致 export 无任何配置可在不加 -force 时进入会话。现收敛为「同一声明 + 同一字段」。

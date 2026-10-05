@@ -764,7 +764,7 @@ P3OutputStatus p3_output_verify_ex(const char* output_path,
 //
 // 规范：docs/ACSD_DESIGN §8.3 export 行「子块流式：读子块 → 投影重采样 → 写
 // FITS，有界队列 + 背压，不整幅驻留；I/O 与计算重叠，内存占用与子块大小成
-// 正比、与总图大小无关」；docs/engineering/contracts/SCHEDULER.md §2 export 行同文。
+// 正比、与总图大小无关」；docs/engineering/contracts/SCHEDULER.md「三阶段调度形态（冻结）」一节的 export 行同文。
 // 产品语义与整幅 API 逐条同面（FITS 关键字、BSCALE/BZERO、HISTORY provenance、
 // 逐 HDU DATASUM/CHECKSUM、flush→close→fsync→rename 原子发布序、独立重开
 // 对拍），差别只在**驻留面**：像素按矩形子块经 cfitsio 子集接口进出，

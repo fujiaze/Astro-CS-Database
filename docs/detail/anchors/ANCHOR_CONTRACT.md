@@ -16,7 +16,7 @@
   一律用内容锚（「内容锚（content anchor）」一章）。文档指向本仓代码同样不写 `cpp/foo.cpp:123`。
 - **行锚只用于外部目标**：未 vendor 进仓库的外部开源实现与外部许可证据文件。
   这类目标在本仓不可解析，只能逐条登记（「外部锚的登记面」一章）。
-- 配置登记面（`config_registry.json` / `defaults.json` / `filters.json`）一律零行号：
+- 配置登记面（`eng/packaging/config/config_registry.json` / `eng/packaging/config/defaults.json` / `eng/packaging/config/filters.json`）一律零行号：
   位置信息一律「锚 id + 内容指纹」。
 
 ## 2. 外部行锚的形态

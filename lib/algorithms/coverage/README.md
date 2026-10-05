@@ -56,7 +56,7 @@
 
 ## 3. 输入/输出 ports、DATA ID、单位、坐标、dtype、shape、invalid
 
-唯一权威 = DATA-COV-001（docs/science/unified/DATA_SEMANTICS.md §19）。
+唯一权威 = DATA-COV-001（`docs/detail/registry/acsd.phase2.coverage.md`「输入输出端口、DATA、单位、坐标、invalid」一节）。
 端口视图（descriptor 词汇，module_adapters.cpp:561-576）：
 
 | 端口 | DATA | 必/可 | 单位 | 坐标 | dtype/shape |
@@ -73,20 +73,20 @@ DISP-COV-003；K=0（空 MOC）合法 rc=0。
 
 - SCI: SCI-P2-COV-001 ⇒ 既有 FROZEN 共享 SCI（SCI-UPM-001
   docs/science/PHASE2_UPM.md / SCI-INT-001 docs/science/INTEGRATION.md /
-  SCI-SCOPE-001 docs/science/SCIENCE_SCOPE.md；共享 SCI 不改动，状态
+  SCI-SCOPE-001 docs/science/unified/SCIENCE_SCOPE.md；共享 SCI 不改动，状态
   声明 = docs/science/algorithms/PHASE2_COVERAGE.md §11.5，P1-WCS-DOC
   SCI-WCS-001=共享 ASTROMETRY.md 先例）。
 - ALG: **ALG-COV-001**（docs/science/algorithms/PHASE2_COVERAGE.md，§2 逐公式
   源码行号锚定 + §11.4 TEST-COV-DESIGN-001 冻结容差 + §11.3
   DISP-COV-001..005）。
-- DATA: **DATA-COV-001**（docs/science/unified/DATA_SEMANTICS.md §19）。
+- DATA: **DATA-COV-001**（`docs/detail/registry/acsd.phase2.coverage.md`「输入输出端口、DATA、单位、坐标、invalid」一节）。
 - API: **API-COV-001**（docs/engineering/api/PUBLIC_API.md §Coverage union
-  C API）+ 编排级 **API-P2-001**（docs/engineering/PHASE2_API_V1.md，FROZEN，
+  C API）+ 编排级 **API-P2-001**（docs/engineering/api/PUBLIC_API.md，FROZEN，
   所有权图 Coverage 行 / §2 并发五字段行 1）。
 - ARCH: **ARCH-001**（cpu_heavy 资源类/单线程 internal_parallel=none/
   host_executor_lease 合同值依据 docs/science/algorithms/PHASE2_COVERAGE.md）。
 - MOD: docs/detail/registry/acsd.phase2.coverage.md（本模块 registry
-  合同页）+ docs/detail/phase2.md（legacy 诊断页事实修订）。
+  合同页）。
 
 ## 5. public entry 和实际主要 source symbols（AST/行号实测，非手抄）
 
@@ -98,7 +98,7 @@ DISP-COV-003；K=0（空 MOC）合法 rc=0。
 - 结构体：P2MocCell（coverage.h:26-29）、P2HipsInputInfo（:31-38）、
   P2CoverageResult（:40-48）。
 - 计划迁移旧符号：无独立旧目录——legacy 即本目录
-  lib/algorithms/coverage/src/coverage.cpp + lib/include/astro/phase2/coverage.h
+  lib/algorithms/coverage/src/coverage.cpp + lib/algorithms/coverage/include/astro/phase2/coverage.h
   （MODULE_MIGRATION_MATRIX.csv P2-COV 行 legacy_paths="lib/algorithms/coverage
   coverage sources"）；迁移=P2-COV-IMPL 经 C ABI adapter 包装为
   acsd_p2_coverage.dll，符号集不增减（去留登记其 TASK_RESULT）。
@@ -186,7 +186,7 @@ DISP-COV-003；K=0（空 MOC）合法 rc=0。
 - ALG: docs/science/algorithms/PHASE2_COVERAGE.md；DATA:
   docs/science/unified/DATA_SEMANTICS.md#§19；API:
   docs/engineering/api/PUBLIC_API.md#API-COV-001；编排 API:
-  docs/engineering/PHASE2_API_V1.md；registry:
+  docs/engineering/api/PUBLIC_API.md；registry:
   docs/detail/registry/acsd.phase2.coverage.md。
 
 ## 13. legacy 构建/运行说明（原 42 行 README 全文保留，非权威）

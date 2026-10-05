@@ -167,7 +167,7 @@ P3WcsStatus p3_wcs_check_applicability(const P3WcsDescriptor* d,
 // 调用方 = lib/infrastructure/scheduler/src/module_adapters.cpp 的 p3 节点链
 // （p3n_crop_shape / p3n_crop_window / p3n_crop_from_plan / p3_crop_apply_wcs）。
 // 规范正本 = docs/detail/PHASE3_DETAILED_DESIGN.md §8 +
-// docs/engineering/contracts/CONFIG.md §3（export 行 crop）；
+// docs/engineering/contracts/CONFIG.md「三命令 phase_config 与模板」一节（export 行 crop）；
 // 字段合同 = eng/contracts/schemas/phase_config_export.schema.json#/$defs/export_crop。
 //
 // 语义（依据 docs/detail/PHASE3_DETAILED_DESIGN.md §8「导出裁剪范围（crop）」：

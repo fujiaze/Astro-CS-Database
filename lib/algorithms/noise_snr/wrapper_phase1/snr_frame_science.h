@@ -8,7 +8,7 @@
 // snr_source_snr_f64, 帧级深度一律 snr_frame_depth_f64, 零点标准误一律
 // snr_calib_zero_point_standard_error。
 //
-// 依据与定义式 (见 docs/science/CONTROL_WEIGHT_SNR.md §2a / S4):
+// 依据与定义式 (见 docs/science/noise_snr/NOISE_SNR.md「3.3 绝对信噪比」一节 / S4):
 //   逐源 SNR_F = F / sigma_F,  sigma_F^-2 = sum_i P_i^2/sigma_i^2   (Horne 1986)
 //   帧级科学基准 = 5sigma 点源深度 F_5 = 5*sigma_F(ref) [ADU];
 //                  m_5 = ZP - 2.5*log10(F_5) [mag] (无 ZP 时 NaN)

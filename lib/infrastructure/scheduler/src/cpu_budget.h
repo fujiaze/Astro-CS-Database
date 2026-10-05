@@ -3,9 +3,9 @@
 // 依据（逐条）：
 //   * docs/engineering/architecture/DATA_FLOW.md「并行轴分配」（冻结口径）：并行轴 = 帧轴 × 帧内轴，
 //     两轴之积 ≤ 预算；**预算唯一来源 = 运行期配额**（禁硬编码线程数）；
-//   * docs/engineering/contracts/SCHEDULER.md §3：线程预算由配置/资源门决定，禁硬编码常数；
+//   * docs/engineering/contracts/SCHEDULER.md「资源声明（每阶段必填）」一节：线程预算由配置/资源门决定，禁硬编码常数；
 //     §8.3:647「一个进程只有一个资源预算源（§9），线程池的唯一来源是调度器」；
-//   * docs/engineering/CONCURRENCY_STANDARD.md「默认」节：线程数 = 外部可配置，
+//   * docs/engineering/standards/CONCURRENCY.md「默认」一节：线程数 = 外部可配置，
 //     **默认 min(可用核, 配置上限)**；取值来源 = 配置（16 不作硬编码值）。
 //
 // 语义（唯一权威 = 运行期预算，**不是**使用方传参）：

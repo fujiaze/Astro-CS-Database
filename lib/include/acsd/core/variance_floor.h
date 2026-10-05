@@ -5,9 +5,9 @@
 //   * docs/science/noise_snr/NOISE_SNR.md §7「Floor 夹逼不变量」：任意**可用** variance 经
 //     floor 夹逼后 ivar 有限；clamp **只作用于可用方差**；**不可用一律 ivar=0
 //     （不得由 clamp 产生）**；每帧生效 floor 及其来源必须随帧产品登记。
-//   * docs/science/noise_snr/NOISE_SNR.md §9：variance_floor 是**纯数值保护**（「保证 ivar
+//   * docs/science/noise_snr/NOISE_SNR.md「背景方差面：空背景稳健方差」一节：variance_floor 是**纯数值保护**（「保证 ivar
 //     有限」），**不是**最小可分辨方差、**不是**读出噪声下限。
-//   * docs/science/unified/DATA_SEMANTICS.md §13.2（fill 输出 out_variance/out_ivar 为
+//   * docs/science/unified/DATA_SEMANTICS.md「精度」一节（fill 输出 out_variance/out_ivar 为
 //     **float32** 产品）与 §12.4（HiPS variance/ivar 存储 dtype 双轨 f32/f64）。
 //
 // 为什么不能是绝对常数

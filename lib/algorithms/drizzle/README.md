@@ -78,7 +78,7 @@ operation_counts.json 剖面（api.cpp:1087-1130）。方差仅当 varianceValue
 | DATA | DATA-P1-DRZ | `docs/detail/registry/acsd.phase1.drizzle.md`「输入输出端口、DATA、单位、坐标、invalid」一节（上游
   `docs/detail/registry/acsd.phase1.calibration.md`「输入输出端口、DATA、单位、坐标、invalid」一节；编排现状引用 DATA-P1-STACK） |
 | API | API-DRZ-001 / API-P1-007 | docs/engineering/api/PUBLIC_API.md / docs/engineering/api/PUBLIC_API.md（区间 API-P1-001..010） |
-| MOD/SRC | MOD-acsd-phase1-drizzle / SRC-DRZ-001 | docs/engineering/governance/TRACEABILITY.md §9；实现源 lib/algorithms/drizzle/healpix_drizzle/（签名源 hp_drizzle_api.h:42-51,62-75,130-140） |
+| MOD/SRC | MOD-acsd-phase1-drizzle / SRC-DRZ-001 | docs/engineering/governance/TRACEABILITY.md「逐模块追溯台账（人读正本）」一节；实现源 lib/algorithms/drizzle/healpix_drizzle/（签名源 hp_drizzle_api.h:42-51,62-75,130-140） |
 | TEST | TEST-DRZ-DESIGN-001 | docs/science/algorithms/DRIZZLE_GEOMETRY.md §9（可执行 TEST-P1-DRZ-001 由 P1-DRZ-TEST 落地） |
 
 ## 5. 实现事实（源码核对）

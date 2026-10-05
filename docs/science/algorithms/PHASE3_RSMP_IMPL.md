@@ -41,7 +41,7 @@
 | dll_target | acsd_p3_resample.dll | 矩阵 CSV；entrypoint 实测未建（DISP-P3RSMP-005） |
 | owner | SA-P3-S26 | 矩阵 CSV |
 | 合同目录 | lib/algorithms/resample/（本域合同文件，无源码） | 生产源仍在 lib/phase3_session/ |
-| 依赖 | lib/algorithms/shared/healpix（leaf_to_tile_nest/tile_to_leaf_nest/nested_local_to_fits_index/ang2pix/pix2ang）、lib/phase3_session/hips_properties（properties 严格校验经 p3_sampler_open 间接消费） | §3 |
+| 依赖 | lib/algorithms/shared/healpix（leaf_to_tile_nest/tile_to_leaf_nest/nested_local_to_fits_index/ang2pix/pix2ang）、lib/algorithms/coverage/hips_properties.h 与同目录 hips_properties.cpp（properties 严格校验经 p3_sampler_open 间接消费） | §3 |
 | 下游 | P3-RSMP-IMPL（实现）、P3-RSMP-TEST（可执行测试）、P3-RSMP-INT（descriptor 对齐 acsd.p3.resample） | — |
 
 - 静态库落位: acsd_phase3_session（根 `CMakeLists.txt`，
@@ -165,7 +165,7 @@ pixel_resolution_arcsec(nside=512 << k) / 3600 ≤ scale_deg_per_px
 （扫描完未命中）`*out_order = max_order`（欠采样降级为 survey 原生
 分辨率输出，SCI §9a-5 允许并记录）。守卫: `!out_order || max_order<0
 || max_order>20 || !(scale_deg_per_px>0)` → `P3_RS_PARAM`（同文件）；
-kMaxOrder=20 来自 `lib/phase3_session/hips_properties.h`（ARCH-P3 §3）。
+kMaxOrder=20 来自 `lib/algorithms/coverage/hips_properties.h`（ARCH-P3 §3）。
 会话消费（`lib/phase3_session/p3_session.cpp`）: `max_order = 输入实际 order`
 （open_ex 返回值，clamp ≤20）——**禁仅写 metadata 的 order**。
 
@@ -173,7 +173,7 @@ kMaxOrder=20 来自 `lib/phase3_session/hips_properties.h`（ARCH-P3 §3）。
 
 `input_mode == "surface_brightness"` 唯一返回 `P3_RS_OK`；`nullptr`/空串 ⇒ `P3_RS_PARAM`；
 `weight`/`flux-per-pixel` ⇒ `P3_RS_UNSUPPORTED`（SCI §9a-8）；其余（含 `flux`/`variance`/`ivar`）
-⇒ `P3_RS_PARAM`——**「未支持模式」≠「显式拒」**：`variance`/`ivar` 依 DATA-P3-UNC-001 §30.4-4 已转 uncertainty 子产品消费面（§3 符号表 `p3_uncertainty_*`；同文件逐字注记）。
+⇒ `P3_RS_PARAM`——**「未支持模式」≠「显式拒」**：`variance`/`ivar` 依 DATA-P3-UNC-001 §30.4-4 已转 uncertainty 子产品消费面（§4 符号表 `p3_uncertainty_*`；同文件逐字注记）。
 实测偏差: 会话编排层未接线（DISP-P3RSMP-003）。
 
 ### 6.3 sampler 生命周期
@@ -181,7 +181,7 @@ kMaxOrder=20 来自 `lib/phase3_session/hips_properties.h`（ARCH-P3 §3）。
 - `p3_sampler_open_ex`（`lib/algorithms/resample/p3_resample.cpp`）: ①`hips_properties_parse`
   严格校验（必需 keys `hips_order, hips_tile_width, hips_frame,
   dataproduct_type`；`hips_order ∈ [0,20]`；`hips_tile_width` 必须
-  512——`lib/phase3_session/hips_properties.cpp` 显式拒非 512；NESTED 唯一）②校验
+  512——`lib/algorithms/coverage/hips_properties.cpp` 显式拒非 512；NESTED 唯一）②校验
   `hips_frame` ICRS ③构造 `P3SamplerImpl`（nside=512·2^order）④
   `out_order`/`out_bunit` 回填实际值；BUNIT **必须**取输入 tile 的 BUNIT，
   输入 properties 无 BUNIT 时取 **canonical `ADU/sr`**（**绝不**缺省 `ADU`、

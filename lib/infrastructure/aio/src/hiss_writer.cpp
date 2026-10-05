@@ -317,20 +317,21 @@ int HissWriter::open(const std::string& output_path,
     }
 
     // WP-C 步骤9 + UNIT-DERIVE-01 收口: 产品 BUNIT 口径校验 (fail-closed, 逐类具名)
-    // 规范: docs/science/unified/DATA_SEMANTICS.md §31.1a:2808-2810（全链 signal 承载的物理量是
-    //   面亮度，产品 FITS/HiPS 写盘 BUNIT 一律取 canonical 串）+ §31.1a:2827-2830（测光
-    //   归一化层是线性乘性标度，不改变量纲类别：BUNIT 描述「量的种类」，标度由
-    //   PHOTSCAL/PHOTAPPL 与 k_photo 逐帧承载）+ §31.2 FZ-BUNIT-SEMANTICS（写盘 BUNIT
-    //   必须量纲可判）。
-    // 合法集 = §31.1 冻结串（signal 面亮度 / 其方差 / 其逆方差）:
+    // 规范: docs/science/unified/DATA_SEMANTICS.md「面亮度单位的推导」一节（全链 signal
+    //   承载的物理量是面亮度，「`signal` 的单位唯一写作 `ADU/sr`」，产品 FITS/HiPS 写盘
+    //   BUNIT 一律取 canonical 串）+「标度类别与线性标度律」一节（测光归一化层是线性乘性
+    //   标度，不改变量纲类别：`BUNIT` 描述量的种类，逐帧标度由溯源中的标度声明与 `α_k`
+    //   承载；产品满足下列三条才是量纲可判）。
+    // 合法集 = 「单位与量纲表」一节冻结串（signal 面亮度 / 其方差 / 其逆方差）:
     //   "ADU/sr" / "ADU^2/sr^2" / "sr^2/ADU^2"。
     // 判红 (HISS_ERR_INVALID_STATE, rc=-2) 三类, 各自具名:
     //   (a) 空串 —— 单位未声明;
     //   (b) "ACSD_RELATIVE_FLUX" —— 非面亮度量纲串：它把「标度已变」写成「量的种类已变」,
-    //       与 §31.1a:2827-2830 相反。订正 = 写 "ADU/sr"，标度交给 PHOTAPPL/PHOTSCAL;
-    //   (c) 其它串（含裸 "ADU"）—— §31.2 规定裸 "ADU" 必须配 provenance 声明
-    //       pixel_semantics="surface_brightness" + pixel_area_power=-2，HISS 容器无该
-    //       provenance 面 ⇒ 单位不可判, 不得静默落盘。
+    //       与「标度类别与线性标度律」一节相反。订正 = 写 "ADU/sr"，标度交给 PHOTAPPL/PHOTSCAL;
+    //   (c) 其它串（含裸 "ADU"）——「标度类别与线性标度律」一节规定裸 "ADU" 必须配
+    //       溯源声明像素语义为面亮度并给出目标像素面积（键见「溯源最小集」一节的
+    //       units.pixel_semantics / units.pixel_area_power / units.target_pixel_area），
+    //       HISS 容器无该溯源面 ⇒ 单位不可判, 不得静默落盘。
     // PHOTAPPL/PHOTSCAL 只承载标度, **不**作为单位判据（标度 ≠ 量纲类别）。
     {
         const std::string bunit_str(metadata.bunit);

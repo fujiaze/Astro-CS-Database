@@ -89,7 +89,7 @@ preset 合同的两个面（`CMakePresets.json` 的 `vendor.acsd.org/toolchain/1
 - 架构与依赖方向见 `../architecture/ARCHITECTURE.md` 与 `../standards/DEPENDENCY.md` [3]。
 - 构建图见 `BUILD_GRAPH.md` [2]；验证执行范围与分档见 `../testing/TEST.md`。
 - 工具链冻结取值的机器校验实现见 `eng/cmake/toolchain/verify_toolchain.py`，
-  其 schema 源见 `eng/packaging/schemas/preset-contract.schema.json`。
+  其 schema 源见 `eng/packaging/schemas/preset-contract.json`。
 
 ## 参考文献
 

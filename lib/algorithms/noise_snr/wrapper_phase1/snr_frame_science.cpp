@@ -162,7 +162,7 @@ SnrFrameScienceResult compute_snr_frame_science(
 
   // --- 帧级科学基准: 显式参考轮廓 = (median FWHM, sigma_sky, 参考通量) ---
   //
-  // WEIGHT-SCI-001（依据 docs/science/CONTROL_WEIGHT_SNR.md §8c「定权路径唯一：
+  // WEIGHT-SCI-001（依据 docs/science/noise_snr/NOISE_SNR.md「3.4 定权：逆方差与信息量」一节「定权路径唯一：
   // w(x,y) = SNR(x,y)²/F_ref²」与 docs/science/unified/DATA_SEMANTICS.md 的参考通量口径）:
   // F_ref 必须是**组内公共参考通量**，且与存入 HiPS 头的 ACSD_FRAME_SNR
   // **配对**（同一定义参考）。配对性定理:

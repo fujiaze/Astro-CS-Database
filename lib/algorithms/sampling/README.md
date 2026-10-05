@@ -106,7 +106,6 @@ rtol 1e-12、F4 atol 1e-9 deg）。
 - API：docs/engineering/api/PUBLIC_API.md API-P2-SMP-001；
   API-P2-001（编排层既有）
 - 模块页：docs/detail/registry/acsd.phase2.sample.md
-- 新模块页：docs/detail/phase2_samp.md
 
 ## 已知限制（DISP-P2SMP，登记不改码，整改归 P2-SAMP-IMPL/TEST）
 

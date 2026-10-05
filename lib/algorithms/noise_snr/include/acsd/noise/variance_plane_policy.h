@@ -91,7 +91,7 @@ inline bool variance_plane_auditable(double hull_nonpositive_frac) {
 }
 
 // ── SCI-NOISE-001 §5d: 「可观测量（必须写入 provenance）」的**机检清单** ────────
-// 规范原文（docs/science/noise_snr/NOISE_SNR.md §5d:270-271）:
+// 规范原文（docs/science/noise_snr/NOISE_SNR.md「误差传播的登记面」一节）:
 //   「**可观测量（必须写入 provenance）**：控制点方差的动态范围、平面系数、
 //     凸包内预测 ≤ 0 的像素占比、被剔除 patch 数与 `R` 的分布。
 //     **缺任一项即视为该帧的方差面不可审计。**」

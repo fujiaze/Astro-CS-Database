@@ -8,7 +8,7 @@ Astro Celestial Sphere Database（ACSD） **唯一可执行入口** `acsd`（Win
   机器输出（`--json` 下 stdout 恰一个 JSON 文档）、JSONL 事件、取消与退出码；
 - **非职责**：科学公式（唯一家在 `lib/algorithms/`）、FITS/HiPS 读写（`infrastructure/aio`）、
   线程池（scheduler/runtime）。本目录**不实现**任何科学计算，只把已校验的配置交给
-  `lib/infrastructure/cli/runtime_client`（CLI runtime client）→ Runtime/pipeline。
+  `lib/infrastructure/cli/runtime_client.cpp`（CLI runtime client）→ Runtime/pipeline。
 
 ## 2. 命令树（唯一，docs/ACSD_DESIGN §6.2）
 

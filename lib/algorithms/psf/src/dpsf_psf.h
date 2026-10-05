@@ -1,7 +1,7 @@
 /* Moffat4/PSF 拟合数值契约锚点（不改算法，仅文档化；锚点按符号名给，不写行号）：
  * SCI-PSF-001 / ALG-STAR-PSF-*：I=B+A/(1+Q)⁴，Q=p1dx²+2p2dxdy+p3dy²，
  *  p1=cos²θ/(2sx²)+sin²θ/(2sy²), p2=sin2θ/(4sx²)−sin2θ/(4sy²), p3=sin²θ/(2sx²)+cos²θ/(2sy²)。
- * 常量：MOFFAT4_FWHM_FACTOR=1.230310=2√2·√(2^{1/4}−1)（β=4，α=√2σ，见 docs/science/psf/PSF.md §16）。
+ * 常量：MOFFAT4_FWHM_FACTOR=1.230310=2√2·√(2^{1/4}−1)（β=4，α=√2σ，见 docs/science/psf/PSF.md 的「全宽半高」一节）。
  * 边界/守卫：gauss_solve_buf 的 pivot <1e-30 判奇异（数值奇异守卫）；lm_solve 求导步长
  *  h=max(|x|·1e-6,1e-8)（相对+绝对守卫）；moffat4_fit_tmpl_core 内 sx/sy 下界 0.3 px
  *  （防平坦星退化，迭代内钳位 + 收敛后判参两处）；fwhm_x/fwhm_y > rect 判 NO_CONVERGENCE
@@ -9,7 +9,7 @@
  *  （无效几何守卫，在 moffat4_residual）。
  * 残差：10–90% trimmed mean |res| = residual_scale（compute_trimmed_mad 取 lo=int(0.1m)、hi=int(0.9m)），
  *  robust_residual_sigma=residual_scale/0.7316727929211932 仅 Gaussian 假设有效
- *  （E[trimmed mean |r|]=0.7316727929211932·σ, kTrimMeanToSigma, docs/science/psf/PSF.md §9 / §14）。
+ *  （E[trimmed mean |r|]=0.7316727929211932·σ, kTrimMeanToSigma, docs/science/psf/PSF.md 的「拟合残差的截尾标度」与「参数与常数」两节）。
  * θ 消歧：4 候选 {θ,π/2−θ,π/2+θ,π−θ} 取 trimmed-mad 最小者（moffat4_fit_tmpl_core）。
  * 通量：flux=2πA·sxsy/3（β=4 整平面解析积分）。
  * 迭代：LM tol 1e-8 / maxIter 200（moffat4_fit_tmpl_core 调用 lm_solve 处）。

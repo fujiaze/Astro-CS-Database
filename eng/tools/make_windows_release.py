@@ -102,7 +102,7 @@ def main() -> int:
         "ACSD CLI 发布包自带许可证。仓库内第三方许可见控制包 PACKAGE_MANIFEST.md 与各 third_party LICENSE。"
         "本包对交付对象(ACSD Windows amd64 单一 CLI + 私有 VC 运行时)建档。\n"
         "静态自带的第三方: cfitsio(BSD), zlib(zlib license), nlohmann/json(MIT), "
-        "HEALPix(见 lib/plate_solve/LICENSE 等), OpenMP/VC 运行时(MSVC 红分发)。\n"
+        "HEALPix(见 lib/algorithms/platesolve/LICENSE 等), OpenMP/VC 运行时(MSVC 红分发)。\n"
     )
     with open(os.path.join(root, "LICENSES", "NOTICE.txt"), "w", encoding="utf-8") as f:
         f.write(license_text)

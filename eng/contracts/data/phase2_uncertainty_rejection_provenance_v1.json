@@ -42,7 +42,7 @@
     "NREJ": 32,
     "NUSED": 64,
     "bit_domain": "uint32 flags 域（AioHipsProductFlag）",
-    "occupied_bits_ref": "lib/astro_image_io/include/aio_hips.h:35-40（1=SIGNAL 2=SUPPORT 4=SNR 8=VARIANCE 16=IVAR；32/64 空闲）",
+    "occupied_bits_ref": "lib/infrastructure/aio/include/aio_hips.h:35-40（1=SIGNAL 2=SUPPORT 4=SNR 8=VARIANCE 16=IVAR；32/64 空闲）",
     "authority": "DATA-P2-REJ-001 冻结位值（nused/nrej 诊断平面承载页 = docs/detail/registry/acsd.phase2.reject.md 的「输入输出端口、DATA、单位、坐标、invalid」一节；AioHipsProductFlag 名册见 docs/engineering/data/PHASE_PRODUCT_EXCHANGE.md 的「阶段产品角色与 type 绑定（role ↔ type）」一节）；AIO_ALL 掩码扩展由实现任务在 AIO 域合同登记（本合同登记位值，掩码扩展待 AIO 域 writer 实现）"
   },
   "provenance_keys": {
@@ -81,7 +81,7 @@
   "pending_aio_channels": {
     "writer_int32_tile": {
       "status": "PENDING_AIO_DOMAIN",
-      "gap": "aio_hips writer 无 int32 子产品写通道（flags 位 32/64 未定义、无 aio_hips_write_*_tile int32 变体）；writer 源 lib/astro_image_io/src/hips/aio_hips_writer.cpp 归 AIO 域",
+      "gap": "aio_hips writer 无 int32 子产品写通道（flags 位 32/64 未定义、无 aio_hips_write_*_tile int32 变体）；writer 源 lib/infrastructure/aio/src/hips/aio_hips_writer.cpp 归 AIO 域",
       "transfer": "P2-001 F1 移交（evidence run Rmtucy2cqced995/P2-001/1.json）；本合同登记位值与通道语义为 AIO 域实现任务唯一事实源输入",
       "current_carrier": "p2_integrated_nused.bin / p2_integrated_nrej.bin（int32 逐像素诊断平面，p2_integrated.json files 面）"
     },

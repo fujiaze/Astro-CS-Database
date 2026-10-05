@@ -315,7 +315,7 @@ const std::set<std::string>& session_keys() {
         //   不是错误。合同声明 =
         //   eng/contracts/schemas/phase_config_normalize.schema.json#/$defs/star_detection_config。
         //   规范：docs/ACSD_DESIGN.md §4.2（星表引导检测 = 权威范式，top 2–5 万）
-        //   + docs/detail/registry/acsd.phase1.star-detection.md §5.1。
+        //   + docs/detail/registry/acsd.phase1.star-detection.md「Registry descriptor 与配置 schema」一节。
         "star_detection",
         // phase2 平铺 (p2_session / canonical P2 节点链 消费面)
         // B1-A4: 节点实际消费键必须可达, 否则配置被 parser 拒绝而链路不可闭合。
@@ -417,7 +417,7 @@ std::string retired_perframe_form_message(const std::string& session_name) {
                "one group of input frames}); the unified key-name scheme is a frontend decision. "
                "Use the block form "
                "{\"schema_version\":\"1\",\"blocks\":[{...}]}; "
-               "see docs/engineering/contracts/CONFIG.md §3";
+               "see docs/engineering/contracts/CONFIG.md「三命令 phase_config 与模板」一节";
     }
     return "config uses the retired per-frame phase_config form "
            "{phase_name, config, inputs[]} — one entry per light is no longer supported; "
@@ -550,7 +550,7 @@ std::vector<std::string> session_blocks_errors(const std::string& session_name,
     return errs;
 }
 
-// pipeline_config.json v1 全量校验(合同: docs/engineering/MANIFEST_VERIFY_V1.md §1)
+// pipeline_config.json v1 全量校验(合同: docs/engineering/contracts/MANIFEST_VERIFY.md「pipeline_config.json v1（配置校验 schema）」一节)
 // 返回 0 有效(doc 填充); 否则对应退出码, 诊断写 stderr。
 // session_mode=true (phaseN run): 追加接受两种会话格式 —— RT-008 平铺直通
 // (runtime_client phase_config 平铺分支) 与 CLI-MULTIBLOCK 多块形态 (顶层 blocks[]）

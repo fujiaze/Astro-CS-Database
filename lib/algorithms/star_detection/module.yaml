@@ -71,7 +71,7 @@ api_contracts:
   - API-P1-003
   - API-STAR-001
 doc_links:
-  sci: docs/science/STAR_DETECTION.md
+  sci: docs/science/detection/STAR_DETECTION.md
   alg: docs/science/algorithms/STAR_DETECTION_ALGORITHMS.md#§11
   data: docs/science/unified/DATA_SEMANTICS.md#§17
   api: docs/engineering/api/PUBLIC_API.md#API-STAR-001

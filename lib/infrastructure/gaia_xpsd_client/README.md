@@ -61,7 +61,7 @@ LZ4 或 zlib+shuffle 压缩块；GaiaDR3 32B 记录 / GaiaDR3SP 384B 记录）�
 - ALG: `ALG-GAIA-001`（docs/science/algorithms/GAIA_QUERY.md）
 - DATA: `DATA-GAIA-001`（docs/science/unified/DATA_SEMANTICS.md §8）
 - API: `API-GAIA-001`（docs/engineering/api/PUBLIC_API.md §gaia_client C API）
-- ARCH: `ARCH-001`（docs/engineering/ARCH-001.md）
+- ARCH: `ARCH-001`（docs/engineering/architecture/ARCHITECTURE.md）
 - TEST: `TEST-GAIA-DESIGN-001`（GAIA_QUERY.md §5，设计冻结；可执行
   TEST-GAIA-* 由 CAT-GAIA-TEST 建立，当前未实现）
 - 追溯: docs/engineering/governance/TRACEABILITY.md §9 `MOD-acsd-catalog-gaia`

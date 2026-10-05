@@ -12,7 +12,7 @@ import sys
 
 
 # oracle 口径唯一事实源 = schemas/cpu_profile.schema.json (oracle_status const "PASS")。
-# lib/backend_host/profile_gen.cpp 历史写小写 "pass" (该文件禁改)，读取侧统一
+# lib/infrastructure/benchmark/backend_host/profile_gen.cpp 历史写小写 "pass" (该文件禁改)，读取侧统一
 # 归一到大写口径后再比较/校验，消除三方分裂。
 ORACLE_PASS = "PASS"
 

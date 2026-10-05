@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """DATA-003 生产 ArtifactStore（执行形态；权威文档形态 =
-docs/engineering/data/DATA-003_PRODUCTION_ARTIFACT_STORE.md）。
+docs/engineering/data/ARTIFACT_STORE.md）。
 
 冻结语义（DATA-003 + 约束 A.3/A.4/A.6 +
 DATA-001 manifest 合同 + DATA-002 交换资格）:

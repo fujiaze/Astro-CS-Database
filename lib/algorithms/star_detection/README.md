@@ -39,7 +39,7 @@ WCS（ipv/gaia_client，消费 star_det 块禁止重检测 orchestrator.cpp:1748
 
 ## 2. 输入 / 输出 ports、DATA ID、单位、dtype、shape、invalid
 
-权威=DATA-P1-STAR（docs/science/unified/DATA_SEMANTICS.md §17）；下表为实现层摘要：
+权威=DATA-P1-STAR（`docs/detail/registry/acsd.phase1.star-detection.md`「输入输出端口、DATA、单位、坐标、invalid」一节）；下表为实现层摘要：
 
 | 端口 | DATA ID | 方向 | 必/可 | 单位 | dtype/shape | invalid |
 |---|---|---|---|---|---|---|
@@ -56,11 +56,11 @@ WCS（ipv/gaia_client，消费 star_det 块禁止重检测 orchestrator.cpp:1748
 
 | 层 | ID | 状态 | 文档 |
 |---|---|---|---|
-| SCI | SCI-P1-STAR-001（共享 SCI 引用不改动） | FROZEN（本任务） | docs/science/STAR_DETECTION.md |
+| SCI | SCI-P1-STAR-001（共享 SCI 引用不改动） | FROZEN（本任务） | docs/science/detection/STAR_DETECTION.md |
 | ALG | ALG-STARDET-001 | FROZEN（本任务） | docs/science/algorithms/STAR_DETECTION_ALGORITHMS.md#§11 |
 | DATA | DATA-P1-STAR | VERIFIED | docs/science/unified/DATA_SEMANTICS.md#§17 |
 | API | API-STAR-001（编排占位 API-P1-003 仍有效） | VERIFIED | docs/engineering/api/PUBLIC_API.md#API-STAR-001；docs/engineering/api/PUBLIC_API.md |
-| ARCH | ARCH-001 | VERIFIED | docs/engineering/ARCHITECTURE.md |
+| ARCH | ARCH-001 | VERIFIED | docs/engineering/architecture/ARCHITECTURE.md |
 | SRC | SRC-STAR-001 | VERIFIED | lib/algorithms/star_detection/src/sdet_api.cpp（本 README 全部行号锚） |
 | TEST | TEST-STAR-DESIGN-001 | FROZEN（设计） | docs/science/algorithms/STAR_DETECTION_ALGORITHMS.md#§11.4 |
 | EVIDENCE | EVID-MISSING | MISSING | 待 P1-STAR-TEST |

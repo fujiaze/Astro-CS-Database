@@ -2,7 +2,7 @@
 """RT-006 JSONL trace 可重放（Python 权威执行形态）。
 
 角色（tasks/03_RUNTIME_DATA_IO_TASKS.md RT-006 + 14 §5 运行图 + LOG-003 消费端）:
-  - trace JSONL 由 Runtime（lib/core/src/trace.cpp TraceStore::export_jsonl）
+  - trace JSONL 由 Runtime（lib/infrastructure/scheduler/src/context.cpp:387 TraceStore::export_jsonl）
     每事件一行输出；本模块把 JSONL 重放为按 node 聚合的可渲染摘要
     （replay_schema=acsd.trace-replay/v1），供 LOG-003 图渲染工具直接消费；
   - 与 C++ trace_replay_from_jsonl 双实现同构（字段语义一致）；测试互相对照；

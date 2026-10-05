@@ -424,8 +424,7 @@ G-P1-WCS-BRIDGE / G-P1-WCS-BRIDGE-GLOBAL；推导依据
 - 整改项（非缺陷，§11）: PA 接线、dll/入口建立、WCSLIB oracle
   建库——均归 P3-PROJ-IMPL/TEST/INT，本合同层不修码。
 - 边界: 不改 vendored 第三方；不改 SCI 公式（§14）；跨域消费
-  （p3_session/p3_output）只登记不修；模块页=
-  docs/detail/phase3_proj.md + registry 手写页
+  （p3_session/p3_output）只登记不修；模块页（registry 手写页）=
   docs/detail/registry/acsd.phase3.wcs.md。
 
 ## 14 SCI 侧一致性：以独立证据判定，不预设谁为准
@@ -687,7 +686,7 @@ G-P1-WCS-BRIDGE / G-P1-WCS-BRIDGE-GLOBAL；推导依据
 | C1 | `docs/detail/registry/acsd.phase2.write.md:51` | `UnitId::ADU（signal surface brightness）` | ✅ 现行 `UnitId::SURFACE_BRIGHTNESS` |
 | C1b | 同页 `:63-64` / `lib/algorithms/coverage/hips_p2/README.md:100` / `lib/algorithms/coverage/hips_p2/module.yaml:33` | 行锚 `module_adapters.cpp:1166-1188` / `:677-694` 已漂移 | ✅ 现址 `:1040-1057`（`grep -n p2_write_descriptor → :1040`） |
 | **C1a** | `lib/infrastructure/scheduler/src/module_adapters.cpp:1040-1057`（`p2_write_descriptor`） | `mosaic` 端口仍 `UnitId::ADU`（:1049），`integrated` 亦为 `UnitId::ADU`（:1048）；`UnitId::SURFACE_BRIGHTNESS` 枚举已存在但 phase2 未用 | **lib/** ⇒ FIX / P2-XX-INT（本包只登记） |
-| C2 | `acsd.phase2.write.md:41` / `docs/detail/hips_p2.md:39` | writer 视图中间量 `flux` 与产品语义混淆 | ✅ 已补「该 `flux` 是 writer 视图中间量、落盘值 = `flux_sum/covered_area`」 |
+| C2 | `docs/detail/registry/acsd.phase2.write.md` 的写出链「逆归一」小节（`acsd.phase2.write.md:41`） | writer 视图中间量 `flux` 与产品语义混淆 | ✅ 已补「该 `flux` 是 writer 视图中间量、落盘值 = `flux_sum/covered_area`」 |
 | C3 | `docs/science/unified/DATA_SEMANTICS.md` §3.4 | `ADU surface brightness` 措辞歧义 | ✅ 已明确为 `ADU/sr` 并登记「产品 tile 无 `BUNIT`、properties 无像素语义 provenance」 |
 | **C4** | `lib/phase3_session/p3_session.cpp:166-172,396` + `CMakeLists.txt:759-760` | export **无**输入语义守卫：只透传 BUNIT（缺省 "ADU"）；守卫内核 `p3_rsmp_units.cpp:137-171` 与会话接线层 `p3_export.cpp` **未进构建**（`grep -c p3_export CMakeLists.txt` = **0**） | **lib/** ⇒ FIX / Phase3 export 域（本包只登记；§6.3 生效与否以接线实测为准） |
 | **C5** | `lib/infrastructure/aio/src/hips/aio_hips_writer.cpp` finalize | signal 产品不写 `BUNIT="ADU/sr"`，properties 无 `pixel_semantics`/`pixel_area_power` ⇒ 即使接线，当前产品会被自己的守卫 REJECT | **lib/** ⇒ FIX（本包只登记） |
@@ -705,7 +704,7 @@ G-P1-WCS-BRIDGE / G-P1-WCS-BRIDGE-GLOBAL；推导依据
 - 投影 native↔celestial：Calabretta & Greisen 2002, A&A 395, 1077（Paper II）§2.1/§2.3 式(2)–(7)/§5.1.3 式(54)（旋转矩阵形式见附录 A.1）；本文件 §15.8 已给逐条文献锚，本节只补代码库。
 - CRPIX/CRVAL 不变量：Greisen & Calabretta 2002, A&A 395, 1061（Paper I）§2.1.1 式(1)（q_i=Σ_j m_ij(p_j−r_j)）与 §2.1.4（1-based）。
 - 可执行标准：astropy 7.0.1（BSD-3-Clause）/WCSLIB（LGPL-3.0）逐点对拍（R-1 §2）。
-- 各投影原始定义（TAN/SIN/CAR/AIT/STG/MOL/CEA/ZEA）见 Paper II Table 12（投影代码表）及其引用（Aitoff 1889；Mollweide 1805；Lambert 1728–1777 等）、各投影公式见 §5；Astro Celestial Sphere Database（ACSD） 逐式以 Paper II 为准。
+- 各投影原始定义（TAN/SIN/CAR/AIT/STG/MOL/CEA/ZEA）见 Paper II Table 12（投影代码表）及其引用（Aitoff 1889；Mollweide 1805；Lambert 1728–1777 等）、各投影公式见 §15.3 投影层（逐式）与 §15.2 统一管线与旋转核；Astro Celestial Sphere Database（ACSD） 逐式以 Paper II 为准。
 - 3D 向量 oracle：Project-defined 第一性原理推导（§15.8）。
 
 

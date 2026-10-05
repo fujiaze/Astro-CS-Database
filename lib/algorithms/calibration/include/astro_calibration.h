@@ -41,8 +41,8 @@ extern "C" {
                                            *  bad_column_edge_columns_excluded） */
 #define AC_COLSTAT_WIDE_DEFECT        32  /* 检出宽度 > max_seg_len 的缺陷段：**未修复**，
                                            * 仅在 col_mask 里以值 2 标记（依据
-                                           * docs/science/unified/DATA_SEMANTICS.md §10.4
-                                           * 产物表：值 2 = 仅标记未修；只修单列）。
+                                           * docs/detail/registry/acsd.phase1.cosmetic.md「输入输出端口、DATA、单位、坐标、invalid」一节
+                                           * 产物表：坏列掩膜取值语义 1 = 已修 / 2 = 仅标记）。
                                            * 该位只声明"存在被跳过的宽段"，不静默。 */
 
 /* col_mask 的取值语义（不是布尔！） */
@@ -140,7 +140,8 @@ AC_API int ac_correct_frame(
  * out:  修复帧 [height*width] float32（调用方分配；非坏列逐像素恒等）
  * column_sigma: 判据阈值（帧内 MAD 倍数，无量纲）；<=0 = 显式禁用本路径
  * neighbor_k:   **当前实现不读此形参**。判据的段长上限由 max_seg_len 承担
- *               （依据 docs/science/unified/DATA_SEMANTICS.md §10.4「修复」行：只修单列）。
+ *               （依据 docs/detail/registry/acsd.phase1.cosmetic.md「数值落地口径」
+ *               一节的坏列修复行：修复 = 段外锚点线性插值，贴边退化为单侧复制）。
  *               本形参属冻结的对外签名，保留并显式标记未使用；调用方传任何值
  *               都不改变结果。**不得**按下面的 max_seg_len 语义去理解它。
  * max_seg_len:  坏列段的**最大长度**（列数）；<=0 取缺省 1（只判单列缺陷）。

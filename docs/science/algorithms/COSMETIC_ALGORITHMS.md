@@ -257,12 +257,12 @@ interpolate_pixels/correct_frame`（cosmetic_corrector.cpp:61-265，经
 
 > **登记依据**：本节为 P-198 补登（原文档 §0/§11 只登记 `ALG-COS-001..005`，坏列/方差管线
 > `:268-784` 与 6 个在役 `AC_API` 导出**零登记**；`docs` 全库 `bad_column` 符号 0 命中）。
-> SCI 侧无独立条款（`docs/science/calibration/CALIBRATION.md` §12 只登记坏点检测/修复 = ALG-CAL-004）；本族为
+> SCI 侧无独立条款（`docs/science/calibration/CALIBRATION.md`「坏点与坏列的可分性」一节只登记坏点检测/修复判据 = ALG-CAL-004）；本族为
 > **Project-defined 实现**，其 `ALG-COS-006` 身份由本节首次落册。
 > **冻结面**：判据形式、`1.482602218505602` 常数、状态位语义、修复算子与**默认参数**均属冻结面
 > （`docs/detail/registry/acsd.phase1.cosmetic.md` 的坏列检测/修复行），本节只登记事实，不改公式/容差/默认值。
 
-- 源码锚（唯一生产源，口径同 §0「单一生产源（冻结）」）：`cosmetic_corrector.cpp:268-784`。
+- 源码锚（唯一生产源，口径同 §0「单一生产源（冻结）」）：`lib/algorithms/calibration/src/cosmetic_corrector.cpp:268-784`。
 - **独立路径（冻结）**：本节任何函数都不被 ALG-COS-001..005 的函数调用，也不改变其判据/阈值/语义；
   反之亦然（`:270-273` 的显式声明）——坏点路径按**像素**判定，本节按**列**判定。
 - 状态位（**降级必须留痕**，`:287-291`）：`OK=0`、`SCALE_DEGENERATE=1`（MAD(dev)==0 ⇒ 检测不可用）、
@@ -351,7 +351,7 @@ var_out[y][x] = (Σw² · var_in[y][x]) · κ      # 只对被修复列（掩膜
 | 并行轴 | 像素域 omp parallel for schedule(static)（判定/合并/清零/插值/计数）；统计与 BFS 串行 | §1-§4 |
 | 归约 | 仅 out_hot/out_cold 计数归约（omp reduction(+)，顺序不确定但整数加法可交换→结果确定） | §4 |
 | 确定性 | 输出 bitwise 与线程数无关（逐像素独立 + 固定遍历顺序 + 中位/IDW 无跨像素顺序耦合） | §1-§5 |
-| 线程数控制 | 进程级 OpenMP ICV（ac_set_num_threads 可改写；现状调用点 p1_session 由 budget 注入——DISP-COS-008 整改点） | §4 |
+| 线程数控制 | 进程级 OpenMP ICV（ac_set_num_threads 可改写；现状调用点 p1_session 由 budget 注入——DISP-COS-008 整改点） | §10 |
 
 ## 7 误差来源与数值精度
 
@@ -510,7 +510,7 @@ var_out[y][x] = (Σw² · var_in[y][x]) · κ      # 只对被修复列（掩膜
 - 稳健尺度（median/MAD 换算）：Hoaglin, Mosteller & Tukey (eds.) 1983, Understanding Robust and Exploratory Data Analysis, Wiley（ISBN 0-471-09777-2）。
   **`1.4826·MAD`（文献 4 位截断展示；权威全精度 `1.482602218505602`）的归属**：Rousseeuw & Croux 1993, JASA **88(424), 1273–1283**（DOI 10.1080/01621459.1993.10476408）把 `1.4826·MAD` 当**既有对照基线**引用，其研究对象是 `S_n`/`Q_n` 及其有限样本偏差校正的粗糙近似 ⇒ **该文不是本模块 MAD 有限样本校正的来源**；本模块使用**渐近常数**、不做有限样本校正。若要做，来源为 Akinshin 2022（arXiv:2207.12005 / arXiv:2209.12268）或 Park, Kim & Wang 2020（DOI 10.1080/03610918.2019.1699114）。
 - 连通域结构过滤（8 邻接）：二值图像连通分量标准算法（见 Rosenfeld & Kak 1982, Digital Picture Processing）；本模块 Project-defined 实现。
-- 插值修复（中值替换 / 4 方向 `1/dist` 距离反比加权 IDW——**现行实现口径**；方法常量名义 bilinear 实为 IDW，见 DISP-COS-003 与 `cosmetic_corrector.cpp:202-224`）：插值修复的教科书级背景（Press et al. 2007, Numerical Recipes 3rd ed.）。**差异**：本模块是坏点局部修复，不是通用的图像插值库。
+- 插值修复（中值替换 / 4 方向 `1/dist` 距离反比加权 IDW——**现行实现口径**；方法常量名义 bilinear 实为 IDW，见 DISP-COS-003 与 `lib/algorithms/calibration/src/cosmetic_corrector.cpp:202-224`）：插值修复的教科书级背景（Press et al. 2007, Numerical Recipes 3rd ed.）。**差异**：本模块是坏点局部修复，不是通用的图像插值库。
 
 
 **权威依据**：本文件 ALG-COS-001..006 的上游科学定义 = `docs/science/calibration/CALIBRATION.md`（SCI-CAL-001，FROZEN；§2 参数表与 §12 坏点检测/修复登记，ALG-CAL-004 关系见本文件 §0）；C API 合同面 = `docs/engineering/api/PUBLIC_API.md`（cosmetic 条目：SCI: SCI-CAL-001 / ALG: ALG-COS-001..006 / DATA: DATA-P1-COS）；算法口径的唯一算法文档落位 = 本文件。

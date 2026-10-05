@@ -16,7 +16,7 @@
 > 建立，本文件不声明 IMPLEMENTED；descriptor 占位
 > module_id=acsd.phase2.reject（module_adapters.cpp:705-724）由
 > P2-XX-INT 对齐，不作冻结依据。
-> 关联: DATA=DATA-P2-REJ（docs/detail/registry/acsd.phase2.reject.md）；API=API-P2-REJ-001（docs/engineering/api/PUBLIC_API.md 末节）；MOD 页=docs/detail/phase2_rej.md + registry docs/detail/registry/acsd.phase2.reject.md（手写合同页）；TEST 登记面=registry 页 §独立 synthetic 验证节（TEST-P2-REJ-DESIGN-001 设计冻结 VERIFIED）。
+> 关联: DATA=DATA-P2-REJ（docs/detail/registry/acsd.phase2.reject.md）；API=API-P2-REJ-001（docs/engineering/api/PUBLIC_API.md 末节）；MOD 页=docs/detail/registry/acsd.phase2.reject.md（手写合同页）；TEST 登记面=registry 页 §独立 synthetic 验证节（TEST-P2-REJ-DESIGN-001 设计冻结 VERIFIED）。
 
 ## 1 目的与非目标
 
@@ -727,10 +727,10 @@ tally: accepted_count/rejected_low/rejected_high/iterations  :2163-2177
 - 合同: DATA-P2-REJ（`docs/detail/registry/acsd.phase2.reject.md`）/ API-P2-REJ-001
   （PUBLIC_API.md）/ TEST-P2-REJ-001（设计冻结 VERIFIED=registry
   承载页 §独立验证节；可执行落地归 P2-REJ-TEST + EVIDENCE）。
-- 交叉: docs/detail/phase2_rej.md + lib/algorithms/rejection/ 三件套
+- 交叉: `docs/detail/registry/acsd.phase2.reject.md`（手写合同页）+
+  lib/algorithms/rejection/ 三件套
   （README/module.yaml/memory.md，按 lib/algorithms/integration/ 先例新建；
-  lib/algorithms/coverage/ 三件套已被 P2-COV 占用）；registry
-  acsd.phase2.reject.md。
+  lib/algorithms/coverage/ 三件套已被 P2-COV 占用）。
 - 消费者: stage2.cpp（§6；`docs/detail/registry/acsd.phase2.write.md` 编排域）/
   acr_kernels.cpp（ACR 域）/ P2-005 语义 id/解析面判据/
   排异/积分生产 Oracle 组/ module_adapters.cpp:704-720
@@ -748,17 +748,16 @@ tally: accepted_count/rejected_low/rejected_high/iterations  :2163-2177
 - API-P2-REJ-001 = docs/engineering/api/PUBLIC_API.md 末节：
   planning/eligibility/gather/kernel/large_scale 导出符号冻结；
   compat p2_reject_stack 冻结两符号；与 API-P2-001 编排面并存。
-- MOD = docs/detail/phase2_rej.md（模块页）+ lib/algorithms/rejection/
+- MOD = `docs/detail/registry/acsd.phase2.reject.md`（手写合同页
+  重写；TEST 登记面承载）+ lib/algorithms/rejection/
   三件套（README/module.yaml CONTRACT_READY entrypoint=MISSING/
-  memory.md，按 lib/algorithms/integration/ 先例）+ registry
-  docs/detail/registry/acsd.phase2.reject.md（手写合同页
-  重写；TEST 登记面承载）。
+  memory.md，按 lib/algorithms/integration/ 先例）。
 - 一致性声明: 本文件（ALG）与上述同批产物冲突时以本文件为
   算法/锚权威，DATA/API 以各自文件为单位/dtype/消费面权威；
   SCI 权威永远在 docs/science/（方向 = 从 docs/science/ 到本文档）。
 - 缺陷联动: DISP-P2REJ-001..004 同时登记于 registry 页与
   module.yaml known_defects；本文件 §7 为权威表述。
-- docs/engineering/governance/TRACEABILITY.md §9 MOD-acsd-phase2-reject 行:
+- docs/engineering/governance/TRACEABILITY.md「逐模块追溯台账（人读正本）」一节 MOD-acsd-phase2-reject 行:
   science_id=SCI-REJ-001（映射 §11.5）/
   algorithm_id=ALG-P2-REJ-001（本文件）/data_id=DATA-P2-REJ/
   api_id=API-P2-REJ-001/src_id=SRC-P2-REJ-001（src_path=lib/

@@ -45,7 +45,7 @@ namespace photometry {
 namespace {
 
 // ── 曲线解析: **唯一实现** = lib/algorithms/photometry/cpp/src/filter_curve_json.h ──
-// 依据 docs/engineering/CODE_STANDARD.md §MUST「禁止重复 production science
+// 依据 docs/engineering/standards/CODE.md「MUST」一节「禁止重复 production science
 // implementation（单一实现 + oracle）」。本 TU 与 orchestrator 路径
 // (lib/infrastructure/pipeline/orchestrator/cpp/src/orchestrator.cpp) 共用同一份
 // 定位/抽取代码与同一张 FILTER→库键表（curve_json::map_filter_name）。

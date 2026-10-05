@@ -5,7 +5,7 @@
   "baseline_head": "ecf6ad6f",
   "authority": {
     "separation": "docs/detail/UNIFIED_MODEL.md §3（三类配置严格分离）",
-    "design": "ACSD_DESIGN.md §2（数据对象与配置分离）",
+    "design": "ACSD_DESIGN.md §3.2（三类配置）",
     "owner": "配置 schema 本体（eng/packaging/config/**、eng/contracts/schemas/*config*|*profile*|*manifest*）归 CFG-001；本文件只留锚点与索引，不定义配置 schema。"
   },
   "purpose": "为 CFG-001 冻结三类配置的字段名命名空间：phase_config（科学，可跨机复现）、cpu_profile（机器绑定，仅 benchmark 生成）、run_manifest（本次运行冻结）。三类各用一套字段名，同名即同义（UNIFIED_MODEL §3）。",
@@ -173,9 +173,9 @@
         {
           "name": "storage",
           "type": "object",
-          "authority": "docs/engineering/contracts/HIPS_STORAGE_FORM.md §10.3（运行完成清单 manifest.json#storage；字段词表与不变式 M1..M4 的唯一正本）",
+          "authority": "docs/engineering/contracts/HIPS_STORAGE_FORM.md「运行完成清单 `manifest.json#storage`（加性）」一节（字段词表与不变式 M1..M4 的唯一正本）",
           "machine_source": "eng/contracts/schemas/hips_storage_form.schema.json#/$defs.manifest_storage",
-          "note": "加性可选键（R-42/P-181）：运行级形态事实，不属本类哈希/版本字段名族，也不承载科学参数；CFG-001 schema 只登记键位与 type:object（不复写字段），真实产出 manifest 的键登记面 = docs/engineering/contracts/MANIFEST_VERIFY.md §2.2 + 门禁注册面（G08-10 重建）运行清单 schema 校验项的加性键白名单；缺失 ⇒ 不判红"
+          "note": "加性可选键（R-42/P-181）：运行级形态事实，不属本类哈希/版本字段名族，也不承载科学参数；CFG-001 schema 只登记键位与 type:object（不复写字段），真实产出 manifest 的键登记面 = docs/engineering/contracts/MANIFEST_VERIFY.md「加性顶层键 `storage`（运行级形态事实）」一节 + 门禁注册面（G08-10 重建）运行清单 schema 校验项的加性键白名单；缺失 ⇒ 不判红"
         }
       ],
       "forbidden_field_names": [

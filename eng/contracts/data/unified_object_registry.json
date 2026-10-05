@@ -341,7 +341,7 @@
           "docs/science/unified/DATA_SEMANTICS.md:86（§8 ID 定义节，:88 状态 CONTRACT_READY）",
           "docs/engineering/api/PUBLIC_API.md:71",
           "docs/engineering/data/ARTIFACTS.md:29（登记行）",
-          "docs/engineering/governance/TRACEABILITY.md §9/§9.1 第 2 行（DATA=DATA-GAIA-001, VERIFIED）",
+          "docs/engineering/governance/TRACEABILITY.md「逐模块追溯台账（人读正本）」一节的 MOD-acsd-catalog-gaia 行（DATA=DATA-GAIA-001），其状态见同文件「逐模块层状态（人读正本）」一节（VERIFIED）",
           "docs/detail/infrastructure/22_gaia_xpsd_client.md:23/:40"
         ],
         "new_index_added_by_DATA001": [
