@@ -77,7 +77,7 @@
 ## API 契约 ID
 
 每个稳定公共 API 关联一个 `API-*` ID。合同清单 =
-`PUBLIC_API.md`，追溯登记面 = `governance/TRACEABILITY.md` 的「逐模块追溯台账（人读正本）」一节。
+`PUBLIC_API.md`，追溯登记面 = `../governance/TRACEABILITY.md` 的「逐模块追溯台账（人读正本）」一节。
 已登记的 ID 举例：
 
 | API ID | 覆盖面 |
