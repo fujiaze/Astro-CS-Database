@@ -1,4 +1,4 @@
-// lib/phase3_session/hips_properties.cpp — HiPS properties 严格解析实现 (ALG-P3-001) — P3-001
+// lib/algorithms/coverage/hips_properties.cpp — HiPS properties 严格解析实现 (ALG-P3-001) — P3-001
 #include "hips_properties.h"
 
 #include <cstdio>

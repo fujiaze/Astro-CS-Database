@@ -9,7 +9,7 @@
 > 2026-08-23，共享引用不改动）；ALG=docs/science/algorithms/PHOTOMETRIC_FIT.md
 > （ALG-PHOT-001..002 + §13 逐符号源码锚定）；DATA=docs/engineering/
 > DATA_SEMANTICS.md §14（DATA-P1-PHOT）；API=docs/engineering/api/PUBLIC_API.md
-> （API-PHOT-001）；矩阵行=docs/engineering/governance/TRACEABILITY.md §9
+> （API-PHOT-001）；矩阵行=docs/engineering/governance/TRACEABILITY.md「逐模块追溯台账（人读正本）」一节
 > MOD-acsd-phase1-photometry。
 > 唯一权威签名头: lib/algorithms/photometry/cpp/include/photometric_calib.h
 > （271 行；禁止手抄他版）。

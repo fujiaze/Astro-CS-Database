@@ -5,7 +5,7 @@
   "frozen_at": "2026-09-02T00:00:00Z",
   "note": "每个 node 唯一真实 operation 绑定表。单一真源：typed DAG compiler 按 (module_id, operation) 绑定到唯一真实 operation 与 DLL/入口（entry 为声明名，真实 DLL 绑定属 ABI-00x/RT-002+ 接线）；未知 module_id/operation 即拒绝。ports 逐条反映 module_adapters.cpp 中该节点实际打开/写出的产物：name = 端口身份（= 阶段块名），artifacts = 该端口在 output_dir 下的真实产物，carrier = 载体种类，code = 该读写事实在代码中的锚点（文件 + 符号 + 必须出现的 token），由 eng/tools/quality/check_block_flow_ports_vs_code.py 双向机器复核（声明⇒实现 / 实现⇒声明）。phase 字段声明该 module 所属产品 Phase（禁止跨 Phase edge）。",
   "unit_vocabulary": {
-    "authority": "docs/science/unified/DATA_SEMANTICS.md §31.1（单位表）/ §31.2（BUNIT 量纲可判）",
+    "authority": "docs/science/unified/DATA_SEMANTICS.md「单位与量纲表」一节 / 「标度类别与线性标度律」一节",
     "tokens": {
       "ADU": {
         "bunit": "ADU",
@@ -781,7 +781,7 @@
                   "token": "/p1_stack.json"
                 }
               ],
-              "note": "nside/精度/SIP/测光 provenance 的编排证据（产品面逐字节可复现，墙钟遥测只进节点 manifest）。carrier 口径修订（FINAL-07/carrier-conformance）：output_dir_file → hips_product_tree，理由二条可机检复核。① 物理位置在 HiPS 树内：p1_op_drizzle 把 fdir 当 HiPS 产品集根传给 hp_drizzle_run_phase1_hips(..., fdir.c_str(), ...)（module_adapters.cpp:8468；该 API 形参 hips_dir 即「HiPS 产品集根目录」，hp_drizzle_hips_api.cpp:31/36），随后用 fdir + '/p1_stack.json' 落盘（module_adapters.cpp:8485），而 fdir = p1_frame_dir(doc,lp) = output_dir + '/' + frame_key（module_adapters.cpp:1434）⇒ 本文件与 signal/support/variance/ivar 同处 <frame_key>/ 根。磁盘实测：run/FINAL-07-e2e/evidence/face/t2_ab_p1_B/<frame_key>/ 目录清单为 ivar/ manifest.json p1_final.json p1_stack.json p1_wcs.json signal/ support/ variance/，p1_stack.json 与四个 HiPS 产品子目录同级。② 合同依据：docs/engineering/contracts/PIPELINE_BLOCK.md §1.1「跨阶段唯一载体 = HiPS 产品树」；同一路径 <frame_key>/p1_stack.json 在 acsd.phase2.upm-fit 侧本就声明为 frame_hips / hips_product_tree，两处同指一个物理事实却用两种载体口径，按前台裁决对齐事实。边界声明：它不是 manifest.products 成员（那里只列 signal/support/variance/ivar），而是 HiPS 树根的 provenance 旁挂文件；这一点 acsd.phase2.upm-fit 的同名 note 已有记录，不靠本字段单独承担。"
+              "note": "nside/精度/SIP/测光 provenance 的编排证据（产品面逐字节可复现，墙钟遥测只进节点 manifest）。carrier 口径修订（FINAL-07/carrier-conformance）：output_dir_file → hips_product_tree，理由二条可机检复核。① 物理位置在 HiPS 树内：p1_op_drizzle 把 fdir 当 HiPS 产品集根传给 hp_drizzle_run_phase1_hips(..., fdir.c_str(), ...)（module_adapters.cpp:8468；该 API 形参 hips_dir 即「HiPS 产品集根目录」，hp_drizzle_hips_api.cpp:31/36），随后用 fdir + '/p1_stack.json' 落盘（module_adapters.cpp:8485），而 fdir = p1_frame_dir(doc,lp) = output_dir + '/' + frame_key（module_adapters.cpp:1434）⇒ 本文件与 signal/support/variance/ivar 同处 <frame_key>/ 根。磁盘实测：run/FINAL-07-e2e/evidence/face/t2_ab_p1_B/<frame_key>/ 目录清单为 ivar/ manifest.json p1_final.json p1_stack.json p1_wcs.json signal/ support/ variance/，p1_stack.json 与四个 HiPS 产品子目录同级。② 合同依据：docs/engineering/contracts/PIPELINE_BLOCK.md「载体合同（生产链路的真实载体）」一节「跨阶段唯一载体 = HiPS 产品树」；同一路径 <frame_key>/p1_stack.json 在 acsd.phase2.upm-fit 侧本就声明为 frame_hips / hips_product_tree，两处同指一个物理事实却用两种载体口径，按前台裁决对齐事实。边界声明：它不是 manifest.products 成员（那里只列 signal/support/variance/ivar），而是 HiPS 树根的 provenance 旁挂文件；这一点 acsd.phase2.upm-fit 的同名 note 已有记录，不靠本字段单独承担。"
             }
           ]
         }
@@ -842,7 +842,7 @@
                   "token": "/p1_stack.json"
                 }
               ],
-              "note": "carrier 口径修订（FINAL-07/carrier-conformance）：output_dir_file → hips_product_tree，与生产端 acsd.phase1.drizzle/p1_stack 同步对齐。本节点从 fdir + \"/p1_stack.json\" 逐字读回（module_adapters.cpp:8737），fdir = p1_frame_dir(doc,lp) = output_dir + \"/\" + frame_key（:1434），与它同处 <frame_key>/ 的 signal/support/variance/ivar 同为 HiPS 树根内容 ⇒ 物理位置在 HiPS 树内；依据 docs/engineering/contracts/PIPELINE_BLOCK.md §1.1「跨阶段唯一载体 = HiPS 产品树」。本节点同时已有 frame_hips/hips_product_tree 输入端口读同一棵树，两个端口是同一棵树的两个读面（tile 校验面 / provenance 面），不是两棵不同的树。"
+              "note": "carrier 口径修订（FINAL-07/carrier-conformance）：output_dir_file → hips_product_tree，与生产端 acsd.phase1.drizzle/p1_stack 同步对齐。本节点从 fdir + \"/p1_stack.json\" 逐字读回（module_adapters.cpp:8737），fdir = p1_frame_dir(doc,lp) = output_dir + \"/\" + frame_key（:1434），与它同处 <frame_key>/ 的 signal/support/variance/ivar 同为 HiPS 树根内容 ⇒ 物理位置在 HiPS 树内；依据 docs/engineering/contracts/PIPELINE_BLOCK.md「载体合同（生产链路的真实载体）」一节「跨阶段唯一载体 = HiPS 产品树」。本节点同时已有 frame_hips/hips_product_tree 输入端口读同一棵树，两个端口是同一棵树的两个读面（tile 校验面 / provenance 面），不是两棵不同的树。"
             },
             {
               "name": "p1_phot",

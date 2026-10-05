@@ -279,8 +279,9 @@ int p2_coverage_free(P2CoverageResult* out) {
 
 // ===========================================================================
 // V6 目标态：coverage/support 区分、确定性边界与权重角色门
-// 冻结锚见 coverage.h V6 节；语义源 = docs/science/unified/DATA_SEMANTICS.md §31
-// acsd.v6.contract-freeze.v1.json。禁止零填、禁止权重冒充。
+// 冻结锚见 coverage.h V6 节；语义源 = docs/detail/registry/acsd.phase2.coverage.md
+// 「职责与明确非职责」一节（coverage / support / validity 三概念分离，coverage 不是权重）
+// 与 acsd.v6.contract-freeze.v1.json。禁止零填、禁止权重冒充。
 // ===========================================================================
 
 static void set_p2_err(char* err, std::size_t err_size, const char* msg) {

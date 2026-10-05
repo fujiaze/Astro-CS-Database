@@ -330,8 +330,8 @@ eligibility（逐候选 i，候选索引固定序）:
   lib/algorithms/coverage/include/astro/phase2/integrate.h（83 行）。
 - 合同: DATA-P2-INT（`docs/detail/registry/acsd.phase2.integrate.md`）/ API-P2-INT-001
   （PUBLIC_API.md）/ TEST-P2-INT-001（MISSING，§11.4 设计冻结）。
-- 交叉: docs/detail/phase2_int.md + lib/algorithms/integration/ 三件套；
-  registry acsd.phase2.integrate.md。
+- 交叉: `docs/detail/registry/acsd.phase2.integrate.md`（手写合同页）+
+  lib/algorithms/integration/ 三件套。
 - 消费者: stage2.cpp（`docs/detail/registry/acsd.phase2.write.md` 域）/ acr_kernels.cpp
   （ACR 域）/ `lib/infrastructure/scheduler/src/module_adapters.cpp` descriptor 占位。
 

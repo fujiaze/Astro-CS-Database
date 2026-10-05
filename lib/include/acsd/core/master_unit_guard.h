@@ -6,7 +6,7 @@
 // 权威：SCI-CAL-001（docs/science/calibration/CALIBRATION.md）§3/§6/§8/§11 —— 标度/域声明、
 //       flat 归一化判定带、dark bias 约定显式声明；ALG-CAL-001
 //       （docs/science/algorithms/CALIBRATION_ALGORITHMS.md）§2 标度声明表 + §10 DISP-CAL-013；
-//       DATA-P1-CAL（docs/science/unified/DATA_SEMANTICS.md）§9.1/§9.1a。
+//       DATA-P1-CAL（`docs/detail/registry/acsd.phase1.calibration.md`「输入输出端口、DATA、单位、坐标、invalid」一节）。
 // 外部依据：XISF 1.0 §Image（bounds = 可表示域；浮点实型必须声明，无默认域）、
 //       PCL XISFReader NormalizeSamples（Float32[0,1] ↔ UInt16[0,65535]）、
 //       FITS 3.0 §4.2.1（BSCALE/BZERO）。

@@ -87,7 +87,7 @@ SITE_BY_FAMILY = {
     "provider": {"avx2": "product-cpuprov-avx2", "avx512": "product-cpuprov-avx512"},
 }
 
-# kernel 表 (与 lib/backend_host/backend_table.inc 注册序一致; hash 校验防漂移)
+# kernel 表 (与 lib/infrastructure/benchmark/backend_host/backend_table.inc 注册序一致; hash 校验防漂移)
 # (science_contract_id, algorithm_id, kernel_version, precision, determinism_class)
 KERNEL_TABLE = [
     ("ALG-001", "calibration-pixel-transform", "1.0.0", "f32", "bitwise"),

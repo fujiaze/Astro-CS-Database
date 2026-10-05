@@ -16,7 +16,7 @@
 // 单位/约定（权威=docs/science、docs/science/algorithms、lib/phase* 实现与 api 文档，勿臆测）：
 //   - 图像/输出平面尺寸一律像素(px)；角尺度 deg/px；HiPS order=properties hips_order
 //     （0..20，docs/science/algorithms/HEALPIX_MAPPING.md + p3 hips_properties.h kMaxOrder=20）；
-//   - tile 宽 W=512（lib/phase3_session/hips_properties.h kHipsTileWidth=512；P2
+//   - tile 宽 W=512（lib/algorithms/coverage/hips_properties.h:25 kHipsTileWidth=512；P2
 //     coverage.cpp 同样拒绝 tw!=512）；
 //   - 每 tile FITS float 像素数 = W*W，字节 = W*W*4（f32 输入，SCALE 输入单精度）；
 //   - 内存/IO 估算字节数一律 u64；无符号溢出由 checked 计算拒绝（负/越界 → 错误）。
@@ -80,7 +80,7 @@ struct PlanEstimate {
   uint64_t write_bytes = 0;            // 预计写字节（输出 metadata 推导）
 
   std::vector<std::string> kernel_ids;         // 请求的 provider kernel ID（权威清单见
-                                               // lib/backend_host/backend_table.inc）
+                                               // lib/infrastructure/benchmark/backend_host/backend_table.inc）
   std::vector<SerialSection> serial_sections;  // 显式串行段（短 I/O/metadata/收尾）
 };
 

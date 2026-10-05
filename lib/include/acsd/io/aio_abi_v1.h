@@ -14,7 +14,7 @@
  *
  * 对齐矩阵 (数值冻结; v1 不可变, 扩展须升版本):
  *   - 0..7  与 lib/include/acsd/common_abi_v1.h acsd_status 共同子域数值一致。
- *   - 0..13 与 lib/infrastructure/aio/io/.../fits_stream_v1.h acsd_fio_status 全域一致
+ *   - 0..13 与 lib/infrastructure/aio/io/include/acsd/io/fits_stream_v1.h acsd_fio_status 全域一致
  *     (IO 家族同域; _Static_assert 编译期对齐证明)。
  *   - 14/15 为 AIO 内容哈希复核专属扩展码。
  *

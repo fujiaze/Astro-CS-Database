@@ -344,7 +344,7 @@
         "nearest",
         "bilinear"
       ],
-      "description": "采样核（CLI --help 字段说明：nearest|bilinear，缺省 bilinear）；重采样方差传播语义见细节实施面的第三阶段分册（docs/detail/algorithms_phase3/）与科学正本（docs/science/）"
+      "description": "采样核（CLI --help 字段说明：nearest|bilinear，缺省 bilinear）；重采样方差传播语义见细节实施面的第三阶段分册（docs/detail/registry/acsd.phase3.resample2.md）与科学正本（docs/science/noise_snr/NOISE_SNR.md）"
     },
     "longitude_parity": {
       "enum": [

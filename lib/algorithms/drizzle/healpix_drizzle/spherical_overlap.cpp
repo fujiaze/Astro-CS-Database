@@ -1913,7 +1913,7 @@ template void query_candidate_pixels_fast<double>(
 // 因此 pixfrac==1 时 (未收缩四角 == drop 四角) 本函数返回值与 drop_area 相同;
 // 生产路径在该情形下**直接复用 drop_area** (不调用本函数) 以保证逐位不变。
 // 定义置于文件末尾: 依赖上方 static planar_polygon_area_n, 且**不位移**任何
-// 既有行号 (docs/algorithms/anchors/anchor_contract.json 的 DRZ-MAXANGLE 绑定
+// 既有行号 (eng/contracts/anchors/anchor_contract.json 的 DRZ-MAXANGLE 绑定
 // 以文档行锚校验 drop_area 所在行, 见 docs/science/algorithms/DRIZZLE_GEOMETRY.md §10)。
 // ============================================================================
 double polygon_area_consistent(const Vec3* vertices, int n) {

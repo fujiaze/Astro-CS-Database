@@ -340,7 +340,7 @@ bool p2_stage2_parse_config(const nlohmann::json& j, P2Stage2Config* cfg, std::s
                     cfg->reject_method = P2_REJECT_PERCENTILE;
                 else if (method == "median_sigma")
                     cfg->reject_method = P2_REJECT_MEDIAN_SIGMA;
-                // FZ-REJ-NO-MINMAX（docs/science/unified/DATA_SEMANTICS.md §22 首注）:
+                // FZ-REJ-NO-MINMAX（docs/science/algorithms/PHASE2_REJECTION.md「逐公式定义（算法级，与 SCI §5 同构；单位见 §2）」一节）:
                 // min/max 在合同层不可选。phase_config schema 的
                 // algorithm_rejection_method 枚举已删 minmax，但本键
                 // （integration.rejection.method）不在该 schema 的键集内
@@ -351,7 +351,7 @@ bool p2_stage2_parse_config(const nlohmann::json& j, P2Stage2Config* cfg, std::s
                     *err = "rejection.method=minmax 不可选 (FZ-REJ-NO-MINMAX): "
                            "min/max 不得用于生产；AUTO 路由值域恒为 "
                            "{percentile, winsorized_sigma, linear_fit}。"
-                           "见 docs/science/unified/DATA_SEMANTICS.md §22 首注。";
+                           "见 docs/science/algorithms/PHASE2_REJECTION.md 的「逐公式定义（算法级，与 SCI §5 同构；单位见 §2）」一节。";
                     return false;
                 }
                 // FIX-REJ n=2 档: 已知先验 σ 的极值检验（显式方法）

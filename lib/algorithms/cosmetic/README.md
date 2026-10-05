@@ -11,7 +11,7 @@
 > 坐标、dtype、shape、invalid、错误、并发、内存、I/O 均以现行唯一生产
 > 实现 `lib/algorithms/calibration/src/cosmetic_corrector.cpp` + `src/ac_api.cpp`
 > （CMake `acsd_calibration`，CMakeLists.txt:321-333）+ 唯一权威签名源
-> `lib/include/astro_calibration.h` 为准；`lib/algorithms/cosmetic/` 是 P1-COS 迁移目标
+> `lib/algorithms/calibration/include/astro_calibration.h` 为准；`lib/algorithms/cosmetic/` 是 P1-COS 迁移目标
 > 目录（acsd_p1_cosmetic.dll 与 src/module_entry.cpp 已由 P1-COS-IMPL 落地在位）。权威合同：SCI-CAL-001 → ALG-COS-001..005 →
 > DATA-P1-COS / API-COS-001（链接见 §4）。与 P1-CAL-DOC 冻结的
 > lib/algorithms/calibration 合同共存不重叠：本模块只冻结 cosmetic 路径
@@ -73,7 +73,7 @@ out_hot/out_cold 可 NULL。
 | DATA | DATA-P1-COS | `docs/detail/registry/acsd.phase1.cosmetic.md`「输入输出端口、DATA、单位、坐标、invalid」一节（上游
   `docs/detail/registry/acsd.phase1.calibration.md`「输入输出端口、DATA、单位、坐标、invalid」一节） |
 | API | API-COS-001 / API-P1-002 | docs/engineering/api/PUBLIC_API.md / docs/engineering/api/PUBLIC_API.md §2 |
-| MOD/SRC | MOD-acsd-phase1-cosmetic / SRC-COS-001 | docs/engineering/governance/TRACEABILITY.md §9；实现源 cosmetic_corrector.cpp + ac_api.cpp（签名源 astro_calibration.h:97-103,142-148） |
+| MOD/SRC | MOD-acsd-phase1-cosmetic / SRC-COS-001 | docs/engineering/governance/TRACEABILITY.md「逐模块追溯台账（人读正本）」一节；实现源 cosmetic_corrector.cpp + ac_api.cpp（签名源 astro_calibration.h:97-103,142-148） |
 | TEST | TEST-COS-DESIGN-001 | docs/science/algorithms/COSMETIC_ALGORITHMS.md §9（可执行 TEST-P1-COS-001 由 P1-COS-TEST 落地） |
 
 ## 5. 实现事实（源码核对）
@@ -100,12 +100,12 @@ out_hot/out_cold 可 NULL。
   生产生效」已作废**（WIRING-AUDIT-01 整改；正本 =
   `docs/science/algorithms/COSMETIC_ALGORITHMS.md:212-220` 与同文件 §10 的
   DISP-COS-009 行）。`dark==NULL`/`bias==NULL` 时检测关闭、模块退化为恒等
-  映射（`cosmetic_corrector.cpp:243-249`：`dark`/`bias` 为空则对应检测不跑、两掩膜全 0），这是 **API/配置面语义**
-  （`module_entry.cpp:714` 的 legacy NULL 通道），**不是生产现状**。
+  映射（`lib/algorithms/calibration/src/cosmetic_corrector.cpp:243-249`：`dark`/`bias` 为空则对应检测不跑、两掩膜全 0），这是 **API/配置面语义**
+  （`lib/algorithms/cosmetic/src/module_entry.cpp:719` 的 legacy NULL 通道），**不是生产现状**。
 - **并发**：函数级 reentrant+threadsafe（无共享可变全局）；OpenMP
   `parallel for schedule(static)` 像素域并行（判定/合并/清零/插值），
   统计（median/MAD）与 BFS 标记串行；**掩码合并与坏点计数是串行循环**
-  （`cosmetic_corrector.cpp:253-259`，该文件内无任何 `omp reduction`——旧登记
+  （`lib/algorithms/calibration/src/cosmetic_corrector.cpp:253-259`，该文件内无任何 `omp reduction`——旧登记
   「计数用 omp reduction(+)」与「合并并行」均已作废）。坏列路径的并行面 =
   逐列中位数（`:352-355`，每线程独立缓冲）与坏列修复（`:488`）。输出
   bitwise 与线程数无关。ac_set_num_threads

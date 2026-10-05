@@ -19,7 +19,7 @@
 // 所有权/线程：Executors 为进程内单实例（per Runtime）；enqueue 线程安全；
 // 所有任务在 executor worker 线程执行，调用者不得在任务内再 enqueue 同一 executor
 // 的阻塞等待（嵌套并行禁止，见约束 D/THREAD_BUDGET_ARCH §3）。
-// 本头为 RT-004 冻结合同；实现见 lib/core/src/executor.cpp，测试见
+// 本头为 RT-004 冻结合同；实现见 lib/infrastructure/scheduler/src/executor.cpp，测试见
 // eng/tests/runtime/test_rt004_executor.py（照 RT-003 harness 模式）。
 #pragma once
 

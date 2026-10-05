@@ -10,7 +10,7 @@ ACSD 是一个天文 CCD/CMOS 图像校准与标准化数据库：把单帧天�
 
 ## 构建
 
-需要 CMake、Ninja 与 C++ 工具链（依赖与工具链冻结值见 `docs/engineering/DEPENDENCY_RULES.md` 与 `docs/engineering/TOOLCHAIN_AGENT_HOST.md`）。
+需要 CMake、Ninja 与 C++ 工具链（依赖与工具链冻结值见 `docs/engineering/standards/DEPENDENCY.md`「第三方依赖与工具链锁定的读取面」一节）。
 
 ```bash
 cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release   # 仓库唯一的根 CMake
@@ -44,14 +44,14 @@ acsd benchmark                          # 生成/更新安装目录 cpu_profile�
 |---|---|
 | [`docs/ACSD_DESIGN.md`](docs/ACSD_DESIGN.md) | 是什么、做到什么、顶层架构、CLI、发行、验收（最高设计） |
 | [`AGENTS.md`](AGENTS.md) | 干活纪律与工作流（开工前逐层读文档、硬禁令、自查自修） |
-| [`docs/engineering/DOCUMENT_GOVERNANCE.md`](docs/engineering/DOCUMENT_GOVERNANCE.md) | 文档分层、准入、写法与登记判据 |
+| [`docs/engineering/governance/DOCUMENT_GOVERNANCE.md`](docs/engineering/governance/DOCUMENT_GOVERNANCE.md) | 文档分层、准入、写法与登记判据 |
 | [`docs/engineering/EXECUTION_MODEL.md`](docs/engineering/EXECUTION_MODEL.md) | 工作包的制作与执行纪律、收口即清理 |
-| [`docs/engineering/VALIDATION_EVIDENCE_STANDARD.md`](docs/engineering/VALIDATION_EVIDENCE_STANDARD.md) | 独立 Oracle、零用例即红、四层验收判据 |
+| [`docs/engineering/testing/VALIDATION_EVIDENCE.md`](docs/engineering/testing/VALIDATION_EVIDENCE.md) | 独立 Oracle、零用例即红、四层验收判据 |
 | [`docs/detail/00_INDEX.md`](docs/detail/00_INDEX.md) | 逐模块工作细节 |
 
 与上述入口并列的下级权威：`docs/science/`（科学公式与定义式）、`docs/science/algorithms/`（算法推导与符号表）、
 `docs/detail/UNIFIED_MODEL.md`（数据对象与三类配置）、`docs/engineering/`（合同说明，与 `eng/contracts/`
-机器 schema 双向对应）；科学佐证纪律见 `docs/engineering/DOCUMENT_GOVERNANCE.md`。
+机器 schema 双向对应）；科学佐证纪律见 `docs/engineering/governance/DOCUMENT_GOVERNANCE.md`。
 
 | 要读什么 | 去哪读 |
 |---|---|
@@ -66,7 +66,7 @@ acsd benchmark                          # 生成/更新安装目录 cpu_profile�
 | CLI/API 协议 | `docs/engineering/contracts/CLI_PROTOCOL.md` |
 | 验收证据 | `实验/engineering-evidence/` |
 | 术语 | `docs/GLOSSARY.md` |
-| 开发与排查 | `docs/engineering/DEVELOPER_GUIDE.md`、`docs/detail/merged_TROUBLESHOOTING.md` |
+| 开发与排查 | `docs/detail/merged_TROUBLESHOOTING.md` |
 
 ## 仓库布局
 
@@ -77,9 +77,9 @@ acsd benchmark                          # 生成/更新安装目录 cpu_profile�
 
 ## 状态与版本
 
-状态词表唯一口径 = `docs/ACSD_DESIGN.md` §12.5；逐模块状态与证据锚见 `docs/engineering/RELEASE_STATUS.md`
-与 `docs/engineering/architecture/MODULE_MAP.md`。产品版本唯一事实源 = 仓库根 `VERSION`，CMake、CLI、产品 manifest
-由该源派生。已知限制台账：`docs/KNOWN_LIMITATIONS.md`。
+状态词表唯一口径 = `docs/ACSD_DESIGN.md`「状态阶梯」一节；逐模块状态与证据锚见
+`docs/engineering/architecture/MODULE_MAP.md`。产品版本唯一事实源 = 仓库根 `VERSION`，CMake、CLI、产品 manifest
+由该源派生。已知限制台账：`artifacts/evidence/known-limitations-ledger/LIMITATIONS.md`。
 
 ## 参考项目与文献
 

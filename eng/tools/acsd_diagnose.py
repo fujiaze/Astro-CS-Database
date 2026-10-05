@@ -12,7 +12,7 @@
   - 输出人类可读报告 + 机器可读 JSON
   - 默认不读取大 FITS/HiPS; 外部命令 (如 ctest) 带 timeout
 
-错误分类 (与 docs/ERROR_TAXONOMY.md 一致):
+错误分类 (与 docs/engineering/standards/ERROR_MODEL.md「硬错误类别」一节一致):
   E100 DLL_LOAD_FAILED      E200 BLOCK_MISSING       E300 CALIBRATE_FAILED
   E400 PLATESOLVE_FAILED    E500 PSF_FAILED          E600 PHOTOMETRIC_FAILED
   E700 SNR_FAILED           E800 DRIZZLE_FAILED      E900 HIPS_WRITE_FAILED
@@ -62,7 +62,7 @@ ERROR_MAP = [
     (r"STAGE2 FAILED|stage2.{0,120}fail|p2_|REJECTION FAILED", "E920", "STAGE2_FAILED",
      "Phase2 失败 (coverage/UPM/rejection/integrate)", "检查 stage2 JSON 与 gate 日志; 用 rejection_cli 复现"),
     (r"CONFIG_ERROR|非法.*配置|unsupported.*weight_mode|config.*invalid", "E950", "CONFIG_ERROR",
-     "配置非法 (schema/枚举/组合)", "对照 docs/CONFIG_REFERENCE.md 与 configs/ 模板"),
+     "配置非法 (schema/枚举/组合)", "对照 docs/engineering/contracts/CONFIG.md「配置校验判据」一节与 eng/packaging/config/templates/ 模板"),
     (r"FILE_IO_ERROR|无法.*文件|failed to open|cannot open|file not found", "E960", "FILE_IO_ERROR",
      "文件 IO 失败 (路径/权限/损坏)", "检查路径大小写、磁盘空间、文件完整性 (sha256)"),
     (r"timed out|timeout|超时", "E980", "TIMEOUT",

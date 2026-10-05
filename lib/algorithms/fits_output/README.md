@@ -119,7 +119,7 @@
 - API 面：docs/engineering/api/PUBLIC_API.md「Phase3 FITS 写出公共消费面
   （API-P3-FITS-001）」
 - SCI：docs/science/PHASE3_HIPS_TO_FITS.md（FROZEN，零改动）
-- 模块页：docs/detail/phase3_fits.md；registry 手写页：
+- 模块页（registry 手写页）：
   docs/detail/registry/acsd.phase3.writer.md
 - 元数据：module.yaml（31 个顶层键，CONTRACT_READY，entrypoint=MISSING；
   2026-09-16 实测 `python3 -c "import yaml;print(len(yaml.safe_load(open('lib/algorithms/fits_output/module.yaml'))))"`）、

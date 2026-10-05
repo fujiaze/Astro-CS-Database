@@ -3,7 +3,7 @@
 // Phase2 稀疏天光面（sky plane）公共接口。
 //
 // 权威：
-//   docs/ACSD_DESIGN.md §4.4（天光亮度平面稀疏表示、按需求值）
+//   docs/ACSD_DESIGN.md §5.4（天光亮度平面稀疏表示、按需求值）
 //   docs/detail/registry/acsd.phase2.sample.md（star_mask / sky_samples / 点权重）
 //   docs/detail/registry/acsd.phase2.upm-fit.md §4.1-§4.4（b_k(x)=B_ref(x)+δ_k(x)、SNR 加权最小 RMS）
 //   docs/detail/UNIFIED_MODEL.md §2（sky_samples / sky_plane 数据对象）
@@ -234,8 +234,8 @@ typedef struct {
     // 注：本求解（按帧 Schur 消元 + 稳健 IRLS，整面一次）内在串行，无并行路径，
     // 故**不设 worker 数字段**——原「预留 cpu_workers=1」是零消费者的死字段，
     // 且其字面量默认值违反 QA-002/P2-002（生产禁止 workers=1 硬编码）。按
-    // docs/engineering/CONCURRENCY_STANDARD.md「线程数外部可配置，禁止硬编码」与
-    // docs/engineering/THREAD_BUDGET_ARCH.md §1（线程预算唯一来源 = Runtime
+    // docs/engineering/standards/CONCURRENCY.md「默认」一节「线程数外部可配置，禁止硬编码」与
+    // docs/engineering/architecture/DATA_FLOW.md「线程预算的唯一来源」一节（线程预算唯一来源 = Runtime
     // lease），将来若引入并行，worker 数必须由 Runtime 预算/租约注入（形如
     // P2SamplerConfig.cpu_workers，见 module_adapters.cpp CON-004），不得在此
     // 以字面量预留。

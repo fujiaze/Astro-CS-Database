@@ -11,7 +11,7 @@
 //   * 采样核 registry（FZ-P3-KERNEL-REGISTRY；bilinear_4quad 须独立 Oracle+误差界+边界）
 //   * 三模式 fail-closed 12 门 + kernel/covariance/QW/epsf/provenance 扩展门（FZ-P3-FAILCLOSED）
 //
-// 单位（冻结表 docs/science/unified/DATA_SEMANTICS.md §31.1 §1）：
+// 单位（冻结表 docs/science/unified/DATA_SEMANTICS.md「单位与量纲表」一节）：
 //   signal_sb=ADU/sr、pixel_variance_in=ADU²、sb_variance_out=ADU²/sr²、
 //   sb_ivar_out=sr²/ADU²、W_info=ADU⁻²、Q=ADU⁻¹、flux=ADU、psfsw=1、
 //   phase3_var_out=(主 HDU signal BUNIT)²（FZ-P3-BUNIT-QUADRATIC）。

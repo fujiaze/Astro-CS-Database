@@ -141,7 +141,7 @@ UT-CLI `mutates_workspace=false` 的 dirty 判定。
 > 权威：最高设计的投影导出与命令行合同两章[1]；字段合同见 `CONFIG.md`[4]；几何唯一实现是
 > `lib/algorithms/projection/p3_wcs.h`（命令行配置面与调度节点面共用）；生产消费点是调度器的
 > `export` 节点链 WCS、写出与验证三节点。
-> 设计正本：`docs/detail/export/` 阶段详细设计的裁剪参数设计；字段合同：
+> 设计正本：`docs/detail/PHASE3_DETAILED_DESIGN.md` 的「导出裁剪范围（crop）」一节；字段合同：
 > `eng/contracts/schemas/phase_config_export.schema.json` 的 `$defs/export_crop`；
 > 字段说明（`--help` 同源）：`lib/infrastructure/cli/session_commands.h` 的
 > `config_fields(SESSION_EXPORT)`。

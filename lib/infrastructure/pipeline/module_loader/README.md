@@ -48,7 +48,7 @@ python3 eng/tests/abi/test_secure_loader.py   # 退出码 0 = 36/36 PASS
   走构建内 `acsd::ModuleRegistry`（`module_adapters.cpp`），本通道是**安装/交付面**，
   由 `eng/tests/abi/mod001_install_load_check.py`（逐 unit 装载 + 4 类负路径必败）、
   `eng/tests/abi/test_module_registry.py`、`eng/packaging/verify_install_tree.py` 消费。
-  完整声明（依据/消费者/退出条件）见 `docs/engineering/architecture/MODULE_MAP.md` §1.1；
+  完整声明（依据/消费者/退出条件）见 `docs/engineering/architecture/MODULE_MAP.md` 的「C ABI 动态装载通道的可达性」一节；
   台账 = `eng/ci/ledgers/prod_wiring.json`。
 - Windows `LoadLibraryExW` 实现由 WIN-* 按本头契约落地(SetDefaultDllDirectories/
   AddDllDirectory/LOAD_LIBRARY_SEARCH_*); `_WIN32` 分支当前返回

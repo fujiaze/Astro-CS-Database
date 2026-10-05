@@ -11,7 +11,7 @@
 > lib/algorithms/coverage/include/astro/phase2/upm.h（453 行，实测）；
 > API: API-P2-UPM-001（矩阵词汇；PUBLIC_API.md 尚未落页，见 §16）；
 > DATA: DATA-P2-UPM / DATA-P2-COR；MOD: acsd.p2.upm
-> （docs/engineering/governance/TRACEABILITY.md §9 :21/:22 两行）；TEST: TEST-P2-UPM-001/002
+> （docs/engineering/governance/TRACEABILITY.md「逐模块追溯台账（人读正本）」一节 :21/:22 两行）；TEST: TEST-P2-UPM-001/002
 > （设计冻结面=本文档 §13，可执行 MISSING 归 P2-UPM-TEST）。
 
 ## 1 目的与非目标
@@ -145,10 +145,10 @@ function calibrate_block(model, frame_id, leaves, in, out, n):   # :1907-1941（
     module_adapters.cpp:676）⇒ **SCI-UPM-001**；
   - `SCI-P2-UPM-002`（apply descriptor sci_id，module_adapters.cpp:696）
     ⇒ **SCI-UPM-001**；
-  - `ALG-P2-UPM-001`（fit 行 algorithm_id，docs/engineering/governance/TRACEABILITY.md §9:22）
+  - `ALG-P2-UPM-001`（fit 行 algorithm_id，docs/engineering/governance/TRACEABILITY.md「逐模块追溯台账（人读正本）」一节:22）
     ⇒ **ALG-UPM-001**（docs/science/algorithms/UPM_SOLVER.md，推导权威）+
     **ALG-P2-UPM-IMPL-001**（本文件，实现级合同）；
-  - `ALG-P2-UPM-002`（apply 行，docs/engineering/governance/TRACEABILITY.md §9:21）⇒
+  - `ALG-P2-UPM-002`（apply 行，docs/engineering/governance/TRACEABILITY.md「逐模块追溯台账（人读正本）」一节:21）⇒
     **ALG-UPM-001** + **ALG-P2-UPM-IMPL-001**。
   - SCI/公式语义不在此重复定义，两处冲突时以 docs/science/ 为准并
     回改本文档（方向 = 从 docs/science/ 到本文档）；descriptor 词汇 acsd.phase2.upm-fit/
@@ -505,7 +505,7 @@ PHASE2_SAMPLER.md 承载），本域只引用 control_ivar 消费面，不改不
 
 ## 17 追溯
 
-- 矩阵行：MOD-acsd-phase2-upm-fit（docs/engineering/governance/TRACEABILITY.md §9:22，
+- 矩阵行：MOD-acsd-phase2-upm-fit（docs/engineering/governance/TRACEABILITY.md「逐模块追溯台账（人读正本）」一节:22，
   SCI-P2-UPM-001/ALG-P2-UPM-001/DATA-P2-UPM/TEST-P2-UPM-001）与
   MOD-acsd-phase2-upm-apply（:21，SCI-P2-UPM-002/ALG-P2-UPM-002/
   DATA-P2-COR/TEST-P2-UPM-002）。

@@ -17,7 +17,7 @@ m_lo ≤ m_G(s) ≤ m_hi        （闭区间，两边界都包含）
 ```
 
 的全部恒星子集。坐标 frame、`RA∈[0,360)`、`Dec∈[-90,90]` 的契约与
-`docs/science/detection/ASTROMETRY.md` §3a 一致；本模块不做自行消化（proper motion）、
+`docs/science/detection/ASTROMETRY.md`「坐标参考系」一节一致；本模块不做自行消化（proper motion）、
 不做 SIP/像素投影（plate_solve 侧）、不做匹配求解。
 
 ## 2. 离散公式（源码逐条对应）

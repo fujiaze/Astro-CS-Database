@@ -263,6 +263,6 @@ module_adapters.cpp:61-91）：
 - 编排合同：docs/engineering/api/PUBLIC_API.md（API-P1-001..010，FROZEN）。
 - 数据语义：`docs/detail/registry/acsd.phase1.session.md`「输入输出端口、DATA、单位、坐标、invalid」一节（DATA-P1-SESSION）。
 - 公共 API：docs/engineering/api/PUBLIC_API.md（API-P1-SESSION 节）。
-- 架构：docs/engineering/ARCH-001.md；生产路径表
+- 架构：docs/engineering/architecture/ARCHITECTURE.md；生产路径表
   docs/engineering/api/PUBLIC_API.md:24（生产路径表）。
 - 旧映射（历史）：归档映射表 P1_SYMBOL_MAP.md（已删，见 git 历史）。

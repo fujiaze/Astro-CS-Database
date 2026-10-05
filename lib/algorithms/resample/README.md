@@ -27,7 +27,7 @@
 |---|---|---|---|
 | SCI | SCI-P3-001 | docs/science/PHASE3_HIPS_TO_FITS.md（共享 FROZEN，映射声明 SCI-P3-RES-001⇒SCI-P3-001 见 ALG-P3-RSMP-IMPL-001 §5） | FROZEN |
 | ALG | ALG-P3-RSMP-IMPL-001 | docs/science/algorithms/PHASE3_RSMP_IMPL.md（本域实现级合同，兼承接 ALG-P3-003 本域子面 G3/G4） | CONTRACT_READY |
-| DATA | DATA-P3-RES | docs/science/unified/DATA_SEMANTICS.md §29 | CONTRACT_READY |
+| DATA | DATA-P3-RES | `docs/detail/registry/acsd.phase3.resample2.md`「输入输出端口、DATA、单位、坐标、invalid」一节 | CONTRACT_READY |
 | API | API-P3-RSMP-001 | docs/engineering/api/PUBLIC_API.md（Phase3 重采样公共消费面节） | CONTRACT_READY |
 | ARCH | ARCH-001 | eng/cmake/ARCH-001-migration-manifest.md | VERIFIED |
 | API(镜像) | API-P3-001 | docs/engineering/api/PUBLIC_API.md（p3_session 五段编排面 FROZEN 镜像，不变） | FROZEN 镜像 |
@@ -57,8 +57,8 @@
   的薄封装）、`p3_sample_bilinear_nanmask_ex`、`p3_uncertainty_open`、
   `p3_uncertainty_propagate`、`p3_sampler_close`。
 - **NaN 处置口径（本次对齐，rule_id `NAN-SAMPLE-MASK-COVERAGE-NAN`）**: 权威 =
-  `docs/engineering/data/DATA-002_PHASE_PRODUCT_EXCHANGE.md` §2a `invalid_handling`
-  （唯一正本）+ `docs/engineering/NUMERIC_STANDARD.md` §MUST + ALG-P3-003 §2 G4/§4。
+  `docs/engineering/data/PHASE_PRODUCT_EXCHANGE.md` 「组成块」一节 `invalid_handling`
+  （唯一正本）+ `docs/engineering/standards/NUMERIC.md` 「MUST」一节 + ALG-P3-003 §2 G4/§4。
   实现: ¬isfinite（含 ±Inf）邻域样本从分子、分母、**方差**三项一并剔除，剩余合格
   邻域重归一（FP64 固定 k 序）；`weights[4]` 暴露**生效（重归一）权重**（被剔除样本
   恰为 0）⇒ 方差传播 `Σc_k²u_k` 消费该权重；仅零合格样本（或 W_p=0，无量纲权重和）⇒ S=NaN
@@ -94,8 +94,7 @@
 - ALG(承接): [docs/science/algorithms/PHASE3_RESAMPLE.md](../../docs/science/algorithms/PHASE3_RESAMPLE.md)（ALG-P3-003 施工规格，公式零改动）
 - DATA: [docs/science/unified/DATA_SEMANTICS.md](../../docs/science/unified/DATA_SEMANTICS.md) §29
 - API: [docs/engineering/api/PUBLIC_API.md](../../docs/engineering/api/PUBLIC_API.md)
-- 模块页: [docs/detail/phase3_rsmp.md](../../docs/detail/phase3_rsmp.md)；
-  registry 手写页: docs/detail/registry/acsd.phase3.resample2.md
+- 模块页（registry 手写页）: docs/detail/registry/acsd.phase3.resample2.md
 
 ## 6 实测偏差登记（不改码，详见 ALG-P3-RSMP-IMPL-001 §11）
 

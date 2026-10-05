@@ -134,9 +134,9 @@
   ],
   "implementations": [
     {
-      "path": "lib/astro_image_io/src/aio_abi.cpp",
+      "path": "lib/infrastructure/aio/src/aio_abi.cpp",
       "lang": "C++17",
-      "note": "唯一公共 ABI 实现（acsd_aio 域 = AIO 正统归属，宪章 §8.5 acsd_aio 交付单元）；SHA-256 原语复用 lib/common/crypto 单一实现（acsd_common，与 AIO UPM 同源）；异常屏障家族口径"
+      "note": "唯一公共 ABI 实现（acsd_aio 域 = AIO 正统归属，宪章 §8.5 acsd_aio 交付单元）；SHA-256 原语复用 lib/algorithms/shared/crypto 单一实现（acsd_common，与 AIO UPM 同源）；异常屏障家族口径"
     }
   ],
   "oracle_refs": [

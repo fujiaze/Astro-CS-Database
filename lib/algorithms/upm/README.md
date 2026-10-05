@@ -179,7 +179,7 @@ use_ivar_weight=1 / control_reliability=1.0 / cpu_workers=1）。
 - DATA：`docs/detail/registry/acsd.phase2.upm-fit.md`「输入输出端口、DATA、单位、坐标、invalid」一节（DATA-P2-UPM）/
   `docs/detail/registry/acsd.phase2.upm-apply.md`「输入输出端口、DATA、单位、坐标、invalid」一节（DATA-P2-COR）
 - API：docs/engineering/api/PUBLIC_API.md API-P2-UPM-001；
-  API-P2-001（docs/engineering/PHASE2_API_V1.md，编排上游）
+  API-P2-001（docs/engineering/api/PUBLIC_API.md，编排上游）
 - 模块页：docs/detail/registry/acsd.phase2.upm-fit.md /
   acsd.phase2.upm-apply.md
 - ARCH：ARCH-001

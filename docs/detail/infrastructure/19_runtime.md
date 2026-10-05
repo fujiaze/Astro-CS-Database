@@ -137,7 +137,7 @@ flowchart LR
   scheduler 位逐条对应 —— 注册 = `dll_loader.cpp`（模块动态加载 + 函数指针
   注册表）；资源预算 = `admission_controller.h` + `resource_monitor.h`；执行 =
   `orchestrator.cpp` 的 `run_stage_*` 与阶段表；取消 = `request_cancel()` /
-  SIGINT 原子 token（`ACSD_CANCELLED`）；checkpoint = `checkpoint.cpp`。
+  SIGINT 原子 token（`ACSD_CANCELLED`）；checkpoint = `lib/infrastructure/scheduler/src/checkpoint.cpp`。
 - 《ACSD 最高设计》顶层结构里的 pipeline 位（typed DAG、块生命周期、
   内存/数据管线）在代码侧的实体是 `lib/infrastructure/scheduler/src/pipeline.cpp`、
   `lib/infrastructure/scheduler/src/artifact.cpp`、

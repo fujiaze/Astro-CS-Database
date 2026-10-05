@@ -1,6 +1,6 @@
 // lib/infrastructure/benchmark/backend_host/avx_backend.cpp — AVX(无 FMA)变体 backend (ISA-002)
 //
-// 【退役登记 · 未进构建目标】档位决策 = NOT_SHIPPED(见 docs/engineering/resources/cpu/ISA_VARIANTS.md §1
+// 【退役登记 · 未进构建目标】档位决策 = NOT_SHIPPED(见 docs/engineering/resources/cpu/ISA_VARIANTS.md「测量口径与决策」一节
 // 表「AVX（无 FMA）」行：AVX 是 AVX2+FMA 的严格指令集子集，受控热点增益被严格主导，无独立收益)。
 // 本文件当前**不被任何 CMake target 引用**(根 CMakeLists.txt 只登记 baseline/avx2/avx512 的
 // 门面 TU + 计算面 TU)，故不进产品安装树、不参与运行期选路。保留原因：作为「AVX 档位曾被评估」

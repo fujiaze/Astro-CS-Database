@@ -137,7 +137,7 @@ Gaia DR3 官方文档［17］§5.4.1「External Calibration → Zero points」�
 
 **必须是什么**
 
-- 曲线解析的输入是**滤镜库对象键**（`resolve(name) = filters[name]`，字节精确、不折叠大小写/空白、不解析别名，见 `docs/engineering/contracts/CONFIG.md` §4 与 `eng/packaging/config/filters.json#lookup`）。解析结果必须**自证身份**（判据 = 下节四项同时成立）。
+- 曲线解析的输入是**滤镜库对象键**（`resolve(name) = filters[name]`，字节精确、不折叠大小写/空白、不解析别名，见 `docs/engineering/contracts/CONFIG.md`「滤镜名匹配语义（可执行规则 + 正反例）」一节与 `eng/packaging/config/filters.json#lookup`）。解析结果必须**自证身份**（判据 = 下节四项同时成立）。
 - 判定「取到的就是声明的那条曲线」需要**四项同时成立**：
 
   | 项 | 内容 | 不成立的后果 |
@@ -281,7 +281,7 @@ outlier_rate = 1 − |r_inliers|/|r_consistent|
 - 权威文件: `docs/science/PHOTOMETRY.md` (SCI-PHOT-001)
 - 实现: `lib/algorithms/photometry/cpp/src/star_matcher.cpp` (`location/S/scale, mag_tolerance, IRLS`), `lib/algorithms/photometry/cpp/src/pc_api.cpp` (`pc_calibrate_simple`)
 - 公开 API: `lib/algorithms/photometry/cpp/include/photometric_calib.h` (`pc_calibrate_simple, pc_calibrate_simple_with_gaia`)
-- 测试: `TST-PHOT-001` 合成零点、`TST-PHOT-INV-001` 鲁棒性、`TST-PHOT-FAIL-001` 饱和拒（新增/映射见 `docs/engineering/governance/TRACEABILITY.md §10`）
+- 测试: `TST-PHOT-001` 合成零点、`TST-PHOT-INV-001` 鲁棒性、`TST-PHOT-FAIL-001` 饱和拒（新增/映射见 `docs/engineering/governance/TRACEABILITY.md`「需求→实现→测试 登记册（人读正本）」一节）
 
 ## 14 Primary literature（引用定位声明）
 

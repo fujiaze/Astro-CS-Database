@@ -10,7 +10,7 @@
       "doc": "docs/science/algorithms/COSMETIC_ALGORITHMS.md",
       "basename": "cosmetic_corrector.cpp",
       "path": "lib/algorithms/calibration/src/cosmetic_corrector.cpp",
-      "why": "生产唯一源（cc_* 通道在文档中以全路径 lib/calibration/cpp/ 出现，走 exact 解析）"
+      "why": "生产唯一源（cc_* 通道在文档中以全路径 lib/algorithms/calibration/cpp/ 出现，走 exact 解析）"
     },
     {
       "doc": "docs/science/algorithms/CALIBRATION_ALGORITHMS.md",
@@ -34,13 +34,13 @@
       "doc": "docs/science/algorithms/HIPS_WRITER.md",
       "basename": "healpix_core.h",
       "path": "lib/algorithms/shared/healpix/healpix_core.h",
-      "why": "tile 排布/leaf_to_tile_nest 权威在 lib/algorithms/shared/healpix（HiPS 打包注释 :43-45）；由 lib/common/healpix 纯移动而来（内容逐字节相同）"
+      "why": "tile 排布/leaf_to_tile_nest 权威在 lib/algorithms/shared/healpix（HiPS 打包注释 :43-45）；由 lib/algorithms/shared/healpix 纯移动而来（内容逐字节相同）"
     },
     {
       "doc": "docs/science/algorithms/HIPS_WRITER.md",
       "basename": "healpix_core.cpp",
       "path": "lib/algorithms/shared/healpix/healpix_core.cpp",
-      "why": "ang2pix_nest 实现 :233-243；由 lib/common/healpix 纯移动而来（内容逐字节相同）"
+      "why": "ang2pix_nest 实现 :233-243；由 lib/algorithms/shared/healpix 纯移动而来（内容逐字节相同）"
     },
     {
       "doc": "docs/science/algorithms/NOISE_ESTIMATION.md",
@@ -70,7 +70,7 @@
       "doc_prefix": "docs/science/algorithms/",
       "basename": "noise_model.cpp",
       "path": "lib/algorithms/noise_snr/cpp/src/noise_model.cpp",
-      "why": "ALG 文档的 noise_model.cpp 唯一指 snr_estimator 生产实现；lib/phase1/noise 小封装在文档中以全路径出现"
+      "why": "ALG 文档的 noise_model.cpp 唯一指 snr_estimator 生产实现；lib/algorithms/noise_snr/wrapper_phase1 小封装在文档中以全路径出现"
     },
     {
       "doc": "docs/science/noise_snr/NOISE_SNR.md",
@@ -88,7 +88,7 @@
       "doc": "docs/science/algorithms/HEALPIX_MAPPING.md",
       "basename": "healpix_core.cpp",
       "path": "lib/algorithms/shared/healpix/healpix_core.cpp",
-      "why": "BASENAME-AMBIGUOUS 消歧：仓内 healpix_core.cpp 有两处（lib/algorithms/shared/healpix 与 lib/algorithms/drizzle/healpix_drizzle）；本文档的 ang2pix/ring-nest 排布口径取自 shared/healpix 权威实现（由 lib/common/healpix 纯移动而来）"
+      "why": "BASENAME-AMBIGUOUS 消歧：仓内 healpix_core.cpp 有两处（lib/algorithms/shared/healpix 与 lib/algorithms/drizzle/healpix_drizzle）；本文档的 ang2pix/ring-nest 排布口径取自 shared/healpix 权威实现（由 lib/algorithms/shared/healpix 纯移动而来）"
     },
     {
       "doc": "docs/science/algorithms/DRIZZLE_GEOMETRY.md",

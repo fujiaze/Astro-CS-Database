@@ -3,7 +3,7 @@
 // ============================================================
 // 功能: 对单帧 Light 图像进行标准 CCD 校准（Dark / Flat / Bias），
 // 支持暗场优化（黄金分割搜索最优暗场缩放因子 K）。
-// 所属模块: astro_calibration（lib/astro_calibration）
+// 所属模块: astro_calibration（lib/algorithms/calibration）
 //
 // 实现函数（namespace ac）:
 // 1. compute_mad(data, n)

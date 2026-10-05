@@ -10,7 +10,7 @@
  *     选择：三者都产出同一物理量的稠密表示，都走同一条逆方差定权式）
  *   - docs/ACSD_DESIGN.md:161（w = 1/σ_F² = SNR²/F_ref²，F_ref 逐帧；Zackay & Ofek）
  *   - docs/science/unified/UNIFIED_SCIENCE_MODEL.md:75/87（w_k = SNR_k²/F_ref,k² ≡ 1/σ_F,k²；
- *       阶段二 w(x,y) = SNR(x,y)²/F_ref²）；docs/science/UNIFIED_SCIENCE_MODEL.md:66
+ *       阶段二 w(x,y) = SNR(x,y)²/F_ref²）；docs/science/unified/UNIFIED_SCIENCE_MODEL.md:66
  *       「SNR(x,y) 由稀疏控制点上的**绝对** SNR 重建（控制点值即绝对量本身，
  *       不乘/除帧级标量），F_ref 为**逐帧**参考通量」
  *   - eng/contracts/schemas/unified/sparse_snr_layer.schema.json（冻结）:
@@ -115,7 +115,7 @@ struct SparseSnrPoint {
 /* ------------------------------------------------------------------ */
 /* 每个算子把「核 + 是否开 3×3 mesh 中值前置滤波 + 是否做值域钳制」**整组**
  * 绑成一个不可拆分的标识。为什么不做成独立布尔开关（见
- * docs/detail/registry/acsd.phase1.noise-snr.md §4.5、实验 EXP-04 §2.7/§4.4）：
+ * docs/detail/registry/acsd.phase1.noise-snr.md「稀疏帧内层几何与重建算子」一节、实验 EXP-04 §2.7/§4.4）：
  *   ① 值域钳制**不是可选项**：去掉它，光滑插值类在病态控制网格上失控
  *      （E 达 2.48e4），且会给出**负的 σ**（实测 min = −0.5585，非物理）；
  *   ② 中值前置滤波在默认目标域（地面/seeing-limited）**有害**
@@ -389,7 +389,7 @@ WeightChainResult compute_inverse_variance_weights(
 /* ------------------------------------------------------------------ */
 /* 稀疏层的**唯一**消费面 = 逐输出像素的权重路径。层值已是**绝对** SNR，故
  *   w(x,y) = (SNR_layer(x,y) / F_ref,k)² · g_k²   ≡   1/σ_F(x,y)²
- * （docs/science/UNIFIED_SCIENCE_MODEL.md:63、PSF_SIGNAL_WEIGHT.md:87、
+ * （docs/science/unified/UNIFIED_SCIENCE_MODEL.md:63、PSF_SIGNAL_WEIGHT.md:87、
  *   docs/detail/PHASE2_DETAILED_DESIGN.md:21/108-114）。
  * **不得**再乘/除帧级 SNR：层与帧级是两个独立对象，共用同一物理定义与同一逐帧
  * F_ref（ACSD_DESIGN.md:335；冻结 schema 明文「消费时不得乘/除帧级 SNR」）。 */

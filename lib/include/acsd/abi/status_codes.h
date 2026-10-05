@@ -165,7 +165,7 @@ typedef enum acsd_status {
     ACS_ERR_INTERNAL = 70     /* 未分类内部错误; 等价 CLI 退出码 70 语义 */
 } acsd_status;
 
-/* 错误域（docs/engineering/ERROR_MODEL.md; v1 冻结） */
+/* 错误域（docs/engineering/standards/ERROR_MODEL.md; v1 冻结） */
 enum {
     ACS_ERR_DOMAIN_CONFIG = 0,
     ACS_ERR_DOMAIN_DATA = 1,

@@ -56,7 +56,7 @@ registry descriptor ports（module_adapters.cpp:437-441）：
 | ALG | ALG-STARPSF-001（descriptor 占位 ALG-002 同文档） | MISSING→本任务冻结 | docs/science/algorithms/STAR_PSF_ALGORITHMS.md#§11 |
 | DATA | DATA-P1-PSF（descriptor 占位 DATA-P1-SOURCES 为编排层误配） | VERIFIED | docs/science/unified/DATA_SEMANTICS.md#§15 |
 | API | API-PSF-001（descriptor 占位 API-P1-003 仍有效） | VERIFIED | docs/engineering/api/PUBLIC_API.md#API-PSF-001；docs/engineering/api/PUBLIC_API.md |
-| ARCH | ARCH-001 | VERIFIED | docs/engineering/ARCHITECTURE.md |
+| ARCH | ARCH-001 | VERIFIED | docs/engineering/architecture/ARCHITECTURE.md |
 | SRC | SRC-PSF-001 | VERIFIED | lib/algorithms/psf/src/dpsf_psf.cpp（本 README 全部行号锚） |
 | TEST | TEST-PSF-DESIGN-001 | VERIFIED（设计） | docs/science/algorithms/STAR_PSF_ALGORITHMS.md#§11.4 |
 | EVIDENCE | EVID-MISSING | MISSING | 待 P1-PSF-TEST |
@@ -66,7 +66,7 @@ registry descriptor ports（module_adapters.cpp:437-441）：
 
 ## 4. module.yaml 与 standards
 
-见本目录 `module.yaml`（schema `acsd.module-manifest/v1`，字段遵循
+见本目录 `lib/algorithms/psf/module.yaml`（schema `acsd.module-manifest/v1`，字段遵循
 11_MODULE_SOURCE_TEST_STANDARD.md §4；必填项无删减，未接项显式 `MISSING`）。
 
 ## 5. public entry 与实际主要 source symbols（dpsf_psf.cpp 实测行号）
@@ -203,7 +203,7 @@ TEST-PSF-DESIGN-001（STAR_PSF_ALGORITHMS.md §11.4，P1-PSF-TEST 执行）：
 旧版 README（GitHub 仓库 a3ae0d6/v1.1 性能修复叙事）为过程记录，其中"7 参数 =
 (amplitude,x0,y0,sigma_x,sigma_y,beta,background)"参数序描述与本实现不符
 （实际序 B,A,x0,y0,sx,sy,theta，β 固定为 4 不可拟合），以本 README r1 为准；
-历史细节归本目录 `memory.md`（ARCHIVED_NON_NORMATIVE）。
+历史细节归本目录 `lib/algorithms/psf/memory.md`（ARCHIVED_NON_NORMATIVE）。
 
 ## 12. PSF-FAST-001 / 精确路径 INACTIVE（P2 性能批）
 

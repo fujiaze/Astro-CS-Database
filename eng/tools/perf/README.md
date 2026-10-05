@@ -10,7 +10,7 @@
 接成一条可复跑、出机器可读证据的链路，并在每个阶段落 \`run_monitored\` 的 JSON/CSV 读数。
 
 **不是**：不新造任何埋点；不复制 \`eng/tools/monitoring/\` 的采样与判定实现；不发明阈值；
-不做科学判据（科学保真度判据在 \`实验/additive-sky-seamless/.../run_reconstruct.py\`，本工具不越界）。
+不做科学判据（科学保真度判据在 \`实验/additive-sky-seamless/code/reverse_verify/m16_sampling/run_reconstruct.py\`，本工具不越界）。
 
 ## 2. 为什么必须新建（任务书第 1 条的判定依据）
 

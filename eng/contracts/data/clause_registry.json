@@ -3573,16 +3573,16 @@
     }
   ],
   "examples_index": [
-    "eng/contracts/data/examples/v6/covariance.example.json",
-    "eng/contracts/data/examples/v6/effective-psf.example.json",
-    "eng/contracts/data/examples/v6/phase3.example.json",
-    "eng/contracts/data/examples/v6/point-information.example.json",
-    "eng/contracts/data/examples/v6/provenance.example.json",
-    "eng/contracts/data/examples/v6/psf.example.json",
-    "eng/contracts/data/examples/v6/psfsw.example.json",
-    "eng/contracts/data/examples/v6/signal.example.json",
-    "eng/contracts/data/examples/v6/units.example.json",
-    "eng/contracts/data/examples/v6/weight-mode.example.json"
+    "eng/contracts/data/examples/covariance.example.json",
+    "eng/contracts/data/examples/effective-psf.example.json",
+    "eng/contracts/data/examples/phase3.example.json",
+    "eng/contracts/data/examples/point-information.example.json",
+    "eng/contracts/data/examples/provenance.example.json",
+    "eng/contracts/data/examples/psf.example.json",
+    "eng/contracts/data/examples/psfsw.example.json",
+    "eng/contracts/data/examples/signal.example.json",
+    "eng/contracts/data/examples/units.example.json",
+    "eng/contracts/data/examples/weight-mode.example.json"
   ],
   "x-acsd-canonical-object-retirement": {
     "note": "本文件属 v6 合同层，按 工程控制/RELEASE-03/GAP_AUDIT.md §4.1 Q2 裁决在位保留为「设计档案 / 产品族专用投影（非生产目标态）」，文件不删。统一对象 canonical psfsw_robust_weight retired（负责人 2026-09-20 裁决 B，14→13；变更编号 CHG-2026-09-20-PSFSW-RETIRE；依据 docs/ACSD_DESIGN.md §2.1/§2.2/§2.3 与 工程控制/RELEASE-02/GAP_AUDIT.md §9.73 裁决 A44）：eng/contracts/schemas/unified/psfsw_robust_weight.schema.json 与其正例已删除，端口合同枚举不再接受该对象。本文件中的 psfsw_robust_weight 是 v6 提案/产品族内部标识（weight.kind 值、单位表符号、variance_from 禁止项 token），不是统一对象 canonical 引用；旧产品声明该对象 ⇒ 显式拒绝 + 迁移提示（eng/contracts/data/unified_object_compatibility_map_v1.json#retired_entries）。",

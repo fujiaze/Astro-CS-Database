@@ -148,8 +148,8 @@ P2_API int p2_upm_info(const void* model, P2ModelInfo* out_info);
 // 收敛与否必须由本访问器显式读取，禁止用 rc=0 冒充"已收敛"）。
 //   out_iterations：实际执行迭代数（1..cfg.max_iterations）
 //   out_objective ：末轮 Huber 目标值（ADU² 量纲）
-//   out_converged ：**状态枚举**（唯一口径见 docs/detail/algorithms_phase2/
-//                   11_upm.md §4.6 与 docs/science/PHASE2_UPM.md §5）：
+//   out_converged ：**状态枚举**（唯一口径见 docs/science/PHASE2_UPM.md
+//                   「converged 状态枚举」一节）：
 //                     0 = max_iter（迭代耗尽未达容差；模型文件未记录时同样读作 0，
 //                         一律按"未证明收敛"处理）
 //                     1 = converged（tol_step 与 tol_obj 同时满足）
@@ -230,7 +230,8 @@ P2_API int p2_upm_close(void* model);
 // ===========================================================================
 // V6 目标态：UPM 乘法/加性分离求解器（ALG-P2S-UPM.1..8）
 // ---------------------------------------------------------------------------
-// 模型（ALG-P2S-UPM.1，FZ 语义冻结 / docs/science/unified/DATA_SEMANTICS.md §31）：
+// 模型（ALG-P2S-UPM.1，FZ 语义冻结 / docs/science/unified/DATA_SEMANTICS.md ——
+//   该卷已无承载本式的章节，乘法/加性分离在仓内 science 正本中的落点待负责人裁定）：
 //     y_k(p) = g_k * s(p) + b_k + eps_k(p)
 //   g_k   每帧乘法光度响应（相对参考帧无量纲；单位 1）——不得藏进加性场；
 //   b_k   每帧加性背景（帧级常数，单位 ADU）；

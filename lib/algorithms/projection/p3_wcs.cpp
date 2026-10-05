@@ -35,7 +35,7 @@ void normalize_ra(double* ra) {
 // STD-F1（方案 b） 导出边界桥接 —— **全文件唯一 +1 点**
 //
 // 口径 (合同冻结, 见 docs/science/detection/ASTROMETRY.md 与
-// docs/engineering/STANDARDS_REGISTRY.md 的 STD-F1 行):
+// docs/science/algorithms/GATES_AND_TOLERANCES.md「3 冻结门表（判据与阈值唯一事实源；列序固定）」一节的 STD-F1 行):
 //   - 内层 (lib/algorithms/platesolve ipv 迭代反演) 保持既有 0-based 自洽约定;
 //   - FITS 导出层以 FITS WCS Paper I §2.1.1 为基础: CRPIX 为 1-based 参考像素,
 //     像素坐标 xp = x + 1, 中间坐标 (xi,eta) = CD·(xp − CRPIX);

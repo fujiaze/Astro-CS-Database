@@ -25,7 +25,7 @@ docs/engineering/testing/VALIDATION_EVIDENCE.md 注册面 CHK-E2E-CHAIN / CHK-E2
 |---|---|---|
 | 实验/shared/data/synthetic/generate.py | 按 datasets.json 生成 DATA-TYPE-MATRIX 场景帧 | 解析玩具仪器产物：无 TAN WCS、无校准母版 ⇒ normalize 的预检/解算链不可用 |
 | 实验/shared/synthetic/m16_sampling.py | 真实信号模板 → 仿真采样帧 + **与探测器模型一致的合成母版** + 真值画布（TAN WCS 一等公民） | 只到"生成数据"为止，不构造三命令配置、不驱动 CLI、不出性能证据 |
-| 实验/additive-sky-seamless/.../run_reconstruct.py | 仿真帧 → normalize → mosaic → export → 与真值比对 | 是**科学保真度**判据驱动（互相关峰位/结构残差/测光），不采样资源、不判 G-RES-01、不落监控证据；且二进制路径写死 build/acsd（本仓现役 CLI 为 build/acsd） |
+| 实验/additive-sky-seamless/code/reverse_verify/m16_sampling/run_reconstruct.py | 仿真帧 → normalize → mosaic → export → 与真值比对 | 是**科学保真度**判据驱动（互相关峰位/结构残差/测光），不采样资源、不判 G-RES-01、不落监控证据；且二进制路径写死 build/acsd（本仓现役 CLI 为 build/acsd） |
 
 ⇒ 本工具是"规范路径 + 合成数据驱动件"的**接线层**，不复制上述任何一方的实现：
 数据生成调 m16_sampling（唯一事实源），三命令串行与 manifest 链纪律沿用 run_e2e_chain 的口径，

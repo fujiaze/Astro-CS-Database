@@ -31,7 +31,7 @@
   Phase3 通用 HiPS 语义），不属本模块合同、不在本任务域——不改（改动
   会扩 diff 并触碰生产源码）；本模块用 DATA-P1-HIPS（§12），两者并存
   合法。
-- docs/engineering/governance/TRACEABILITY.md §9 追加
+- docs/engineering/governance/TRACEABILITY.md「逐模块追溯台账（人读正本）」一节 追加
   MOD-acsd-phase1-hips-writer 行（七层 VERIFIED + EVID-MISSING，
   追加不重排）。
 - docs/DOCUMENT_INDEX.yaml 登记 docs/science/algorithms/HIPS_WRITER.md 与

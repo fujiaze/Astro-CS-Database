@@ -25,7 +25,7 @@
  *     调用方 strbuf 两阶段提交 (尺寸查询→写入; 不足→PARAM+BUFFER_TOO_SMALL,
  *     不半写)。行数据 base64 (GaiaStar 等结构体原样字节, 供 direct-vs-plugin
  *     bitwise 对比与消费方解码)。
- *   - 输入 typed: config JSON 键词表冻结于 lib/include/acsd/gaia/types.h;
+ *   - 输入 typed: config JSON 键词表冻结于 lib/infrastructure/gaia_xpsd_client/include/acsd/gaia/types.h;
  *     catalog_dir 为数据集 port (catalog.xpsd_dir), 模块不自拼路径。
  *
  * 编译合同: 纯 C11; 无 STL/异常/RTTI; -fno-exceptions 亦可编译;

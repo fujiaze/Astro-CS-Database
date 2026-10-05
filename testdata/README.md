@@ -70,9 +70,9 @@ git status --porcelain --untracked-files=all -- testdata/BASS_DR3 | wc -l   # �
 
   三帧 WCS 网格逐位相同（同一天区、同输出网格）：`NAXIS1=8000`、`NAXIS2=8400`、
   `CD1_1 = −9.1016831619991e-06`、`ORIENTAT ≈ −35°`（像素尺度 0.0400″/px）。
-- **消费方**：`实验/SCI-A/code/step2_hst_sim.py`（真实信号模板 → 物理前向仿真）、
-  `实验/SCI-B/code/{sci_b_common.py,b3_domain_map.py}`（高对比结构适用域臂）、
-  `实验/SCI-C/code/sci_c_common.py`（真实结构底图）；
+- **消费方**：`实验/photometric-magnitude/code/step2_hst_sim.py`（真实信号模板 → 物理前向仿真）、
+  `实验/absolute-snr/code/{sci_b_common.py,b3_domain_map.py}`（高对比结构适用域臂）、
+  `实验/additive-sky-seamless/code/sci_c_common.py`（真实结构底图）；
   `实验/shared/synthetic/m16_*.py`（M16 合成场景渲染器）
 - **校验**（可复跑，三帧齐备 + 头部常量）：
 

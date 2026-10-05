@@ -49,7 +49,7 @@
 | 源 | 内容 |
 |---|---|
 | `src/noop_module.c` | 唯一导出 `acsd_module_query_v1` + 静态 vtable |
-| `lib/include/acsd/noop/types.h` | 静态标识常量（三方一致） |
+| `include/acsd/noop/types.h` | 静态标识常量（三方一致） |
 
 导出符号（机器核对见 ABI-006）：仅 `acsd_module_query_v1`。
 当前 vtable 语义：`describe`=OK；`validate_config/plan/create/execute/inspect`

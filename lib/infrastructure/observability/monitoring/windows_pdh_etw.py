@@ -14,7 +14,7 @@ Windows 侧只保留隔离 stub 或明确未实现接口。
   collect()      -> 抛 NotImplementedError（显式，不返回假数据）
 
 绝不返回半真数据；绝不静默 0。known_limits 记录于
-docs/engineering/observability/RESOURCE_MONITORING_CONTRACT.md。
+docs/engineering/resources/observability/RESOURCE_MONITORING.md。
 """
 from __future__ import annotations
 

@@ -61,7 +61,7 @@
 #include "acsd/core/memory_pressure.h"
 // P3-STREAM-01：ARCH-504 export 子块流式调度器（生产接线点 = phase3 writer 节点）。
 // 依据 docs/ACSD_DESIGN §8.3 export 行「子块流式：读子块 → 投影重采样 → 写 FITS，
-// 有界队列 + 背压，不整幅驻留」+ docs/engineering/contracts/SCHEDULER.md §2。
+// 有界队列 + 背压，不整幅驻留」+ docs/engineering/contracts/SCHEDULER.md「三阶段调度形态（冻结）」一节。
 #include "acsd/core/export_stream.h"
 
 #include "astro_calibration.h"
@@ -256,14 +256,14 @@ inline int walk_tree(const std::string& root,
 // 显式失败, 无静默重复）。
 #include "executor.cpp"
 #include "executor_runtime.h"
-// 编排参数（docs/engineering/contracts/SCHEDULER.md §3 / R-27）：tile span / sub_block_px /
+// 编排参数（docs/engineering/contracts/SCHEDULER.md「资源声明（每阶段必填）」一节 / R-27）：tile span / sub_block_px /
 // queue_depth 的数值唯一来源 =
 // eng/packaging/config/runtime_resources.json（orchestration_params 节），经本生成头消费
 // ⇒ 实现侧零字面量。值域守卫（kP3Min/MaxSubBlockPx）保留为 fail-closed。
 #include "runtime_resources_generated.h"
 // X1 节点并行预算接线：预算唯一权威 = 运行期配额（调度器 lease / CLI 注入的可用核），
 // 不再把「调用方没传 __workers」解释成串行。见 docs/engineering/architecture/DATA_FLOW.md
-// 「并行轴分配」§8.3:647 与 docs/engineering/CONCURRENCY_STANDARD.md「默认」节。
+// 「并行轴分配」§8.3:647 与 docs/engineering/standards/CONCURRENCY.md「默认」一节。
 #include "cpu_budget.h"
 
 // session C ABI（与 lib/phaseN_session/*.h 一致；避免把会话头拉进 core 依赖图）
@@ -3347,7 +3347,7 @@ inline double p1_psf_analytic_flux(double A, double sx, double sy) {
 // 规范: docs/ACSD_DESIGN.md §4.2（星表引导检测：用本帧 WCS 把 Gaia 星表逆投影到
 //   像素域，只对星表位置做质心/PSF 拟合；拟合成功即星点，失败直接丢弃；按亮度
 //   取 top 2–5 万为上限，极限星等按焦距、画幅、曝光时间派生估计，宁多勿少）
-//   + §2.1 + docs/detail/registry/acsd.phase1.star-detection.md §4。
+//   + §2.1 + docs/detail/registry/acsd.phase1.star-detection.md「Registry descriptor 与配置 schema」一节。
 // 分工: 权威路径 = 本块（星表逆投影 → sdet_detect_guided_ex_f64 逐位置拟合）；
 //   全图盲检测 = **诊断/初值**路径（显式 star_detection.mode=blind_diagnostic，
 //   或未配置参考星表时的自动降级 —— 降级必须逐帧落 degraded_reason 且
@@ -3801,7 +3801,7 @@ Result<void> p1_op_star_psf_impl(const Json& doc, Json* man, int n_fit_limit) {
   const std::string psf_mode = (n_fit_limit > 0) ? std::string("fast")
                                                  : std::string("precise");
   // ── STARDET-01: 检测模式解析（权威 = 星表引导拟合）──────────────────────────
-  // 依据 docs/ACSD_DESIGN.md §4.2 + docs/detail/registry/acsd.phase1.star-detection.md §4。
+  // 依据 docs/ACSD_DESIGN.md §4.2 + docs/detail/registry/acsd.phase1.star-detection.md「Registry descriptor 与配置 schema」一节。
   // 节点级一次解析（禁逐帧重复），模式与 fail-closed 语义见 p1_guided_cfg 注释块。
   P1GuidedCfg gcfg;
   {
@@ -6442,7 +6442,7 @@ Result<void> p1_op_photometry(const Json& doc, Json* man) {
   //   "not_applicable (no fitted scale)" = 无拟合标度产出（标度来自侧车或通道缺席），
   //     通带身份不适用 —— 此时**不**声称已核对。
   // 依据 docs/science/PHOTOMETRY.md §2a.4（比较 sigma_residual 必须声明所用模型
-  // 通带）+ §2a.5（通带形状不被零点吸收）+ docs/engineering/contracts/CONFIG.md §4
+  // 通带）+ §2a.5（通带形状不被零点吸收）+ docs/engineering/contracts/CONFIG.md「滤镜名匹配语义」一节
   // （滤镜名解析 = 字节精确、无别名）。
   auto passband_identity_json = [&]() -> Json {
     if (!passband_identity_valid)
@@ -8206,7 +8206,7 @@ Result<void> p1_op_drizzle(const Json& doc, Json* man) {
         }
         var_degenerate = (nmc.rc == 1) || (nmc.model.degenerate != 0);
         // ── SCI-NOISE-001 §5d「可观测量（必须写入 provenance）」逐项落盘 ──────────
-        // 规范：docs/science/noise_snr/NOISE_SNR.md §5d:270-271 —— 控制点方差的动态范围、
+        // 规范：docs/science/noise_snr/NOISE_SNR.md「误差传播的登记面」一节 —— 控制点方差的动态范围、
         // 平面系数、凸包内预测 ≤ 0 的占比、被剔除 patch 数与 R 的分布，
         // **缺任一项即视为该帧的方差面不可审计**。
         // 数据来源 = ABI v2 的 NoiseWeightModelV1 尾部字段（生产模型自身的输出，
@@ -10047,7 +10047,7 @@ Result<void> p2_op_upm_fit(const Json& doc, Json* man) {
   // 同源）; 成功后 save 供 upm-apply 逐像素扣除。失败显式降级（保留 UPM C
   // 场）并记日志, 不静默、不写半成品。**降级的下游后果在 apply 节点闭合**：
   // 请求 δ 而无天光面产物时，apply 只能退化为全减（背景归零），该产品按
-  // docs/detail/registry/acsd.phase2.upm-fit.md §7 判红 —— 具名 degraded_reason +
+  // docs/detail/registry/acsd.phase2.upm-apply.md「错误、日志、指标、取消和 checkpoint」一节判红 —— 具名 degraded_reason +
   // warning_codes 随 p2_corrected.json 与节点 manifest 落盘。
   // config: doc["sky_plane"]。
   {
@@ -10570,7 +10570,7 @@ Result<void> p2_op_upm_apply(const Json& doc, Json* man) {
     return Result<void>::fail(Error(ErrorDomain::DATA,
         "seam.additive_mode invalid (expect c|delta|both): " + additive_mode));
   // ── 加性施加模式的显式降级登记（判红面）────────────────────────────────
-  // 依据 docs/detail/registry/acsd.phase2.upm-fit.md §5/§7：请求 δ（delta 或 both）
+  // 依据 docs/detail/registry/acsd.phase2.upm-apply.md「错误、日志、指标、取消和 checkpoint」一节：请求 δ（delta 或 both）
   // 而无天光面产物 ⇒ δ 不存在，只能退化为单次 C 扣除（**全减**，背景归零）；
   // 该形态必须判红，不得以"看起来没有警告"通过。判红面 = 具名
   // degraded_reason + warning_codes（产品照出、rc 不变，口径同 §4.6/§7 的
@@ -11676,8 +11676,8 @@ static bool p2_hips_prop_str(AioHipsDataset* ds, const char* key, std::string* o
 // ── 稀疏帧内 SNR 层（sparse_snr_layer）载入 + 合同校验（P2 生产消费面）──────
 // 权威：docs/engineering/UNIFIED_OBJECTS.md §4b、docs/detail/UNIFIED_MODEL.md §2、
 //       eng/contracts/schemas/unified/sparse_snr_layer.schema.json、
-//       docs/detail/registry/acsd.phase1.noise-snr.md §4.2/§4.5、
-//       docs/detail/registry/acsd.phase2.integrate.md §4.0。
+//       docs/detail/registry/acsd.phase1.noise-snr.md「SNR 三条路径与稀疏帧内层」与「稀疏帧内层几何与重建算子」两节、
+//       docs/detail/registry/acsd.phase2.integrate.md「SNR 重建与逆方差权重（单一权重口径，没有可选择项）」一节。
 // 声明面：帧产品 signal 子产品的 HiPS 属性键 ACSD_SPARSE_SNR_LAYER = 层 JSON
 //   相对该产品目录的路径（与 ACSD_FRAME_SNR / ACSD_REFERENCE_FLUX 同一
 //   属性通道）。该键名为**加性**新增，落点登记见
@@ -11979,7 +11979,7 @@ Result<void> p2_op_integrate(const Json& doc, Json* man) {
 
   // ── snr_path：三条 SNR 重建路径的**唯一生产读取/消费点**（此前为死键）──────
   // 正本：docs/ACSD_DESIGN.md §5.3（design_clauses 条目 DESIGN-5.3-SNR-PATH-JSON）、
-  //       docs/detail/registry/acsd.phase1.noise-snr.md §4.2/§4.5、
+  //       docs/detail/registry/acsd.phase1.noise-snr.md「SNR 三条路径与稀疏帧内层」与「稀疏帧内层几何与重建算子」两节、
   //       eng/contracts/schemas/phase_config_mosaic.schema.json
   //       #/$defs/mosaic_config/properties/snr_path（enum，默认 sparse_reconstruct）。
   // 不静默降级（07 §4.2「实际生效口径记 snr_path_effective」）：
@@ -14284,7 +14284,7 @@ bool p3n_check_request_fields(const Json& doc, std::string* err) {
 }
 
 // ── P3-STREAM-01：子块边长（编排参数，非科学键）──────────────────────────
-// 依据 docs/engineering/contracts/SCHEDULER.md §3「分块/窗口/子块大小由配置/资源门
+// 依据 docs/engineering/contracts/SCHEDULER.md「资源声明（每阶段必填）」一节「分块/窗口/子块大小由配置/资源门
 // 决定，禁止硬编码」：默认值 = ARCH-504 组件声明的配置默认（256），配置可改；
 // 值域 [16, 1024] 为内存守卫（在途上界 = 2·queue_depth·sb²·8 B，与总图大小无关）。
 // 与 max_tiles 同款「资源/编排键」形态（CLI 会话键白名单已登记，见 parser.cpp）。
@@ -14305,7 +14305,7 @@ bool p3n_sub_block_px(const Json& doc, int* out, std::string* err) {
 }
 
 // ── EXPORT-CROP-01：导出裁剪范围（默认不裁剪）──────────────────────────────
-// 权威：docs/engineering/contracts/CONFIG.md §3（export 行 crop）+ docs/detail/
+// 权威：docs/engineering/contracts/CONFIG.md「三命令 phase_config 与模板」一节（export 行 crop）+ docs/detail/
 // PHASE3_DETAILED_DESIGN.md §8；几何唯一实现 = lib/algorithms/projection/p3_wcs.h
 // （CLI 配置面与节点面共用，禁第二份）。依据 docs/detail/PHASE3_DETAILED_DESIGN.md
 // §8：默认导出不得裁剪任何有效像素（允许黑边），裁剪为**可选**参数，且两种形式都要有。

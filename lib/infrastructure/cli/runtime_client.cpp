@@ -190,7 +190,7 @@ std::string build_pipeline_ir(const std::vector<int>& phases,
            "cpu_heavy", true),
         // 取向先验来自 wcs 节点产物 <frame_dir>/p1_wcs.json（typed 边, 调度器保证
         // wcs 先落盘）。缺该产物时本节点按 star_detection.mode 显式降级或 fail-closed,
-        // 不以"北向上/东向左"假设冒充权威（见 docs/detail/registry/acsd.phase1.star-detection.md §4）。
+        // 不以"北向上/东向左"假设冒充权威（见 docs/detail/registry/acsd.phase1.star-detection.md「Registry descriptor 与配置 schema」一节）。
         mk("psf", "acsd.phase1.star-psf",
            {{"cleaned", "artifact:cos"}, {"wcs", "artifact:p1_wcs"}},
            {{"sources", "artifact:p1_sources"}, {"psf", "artifact:p1_psf"}},

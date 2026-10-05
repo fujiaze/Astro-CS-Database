@@ -10,7 +10,7 @@
 | 项 | 值 |
 |---|---|
 | 组件 ID | `acsd.cpu.capability` (CPU-001) |
-| 交付形态 | 纯 C11 源码单元 `src/capability_detect.c` + 公共头 `lib/include/acsd/cpu/capability_v1.h`（本轮不建 SHARED target；CPU-002 起 provider DLL 链接本单元） |
+| 交付形态 | 纯 C11 源码单元 `src/capability_detect.c` + 公共头 `lib/infrastructure/benchmark/cpu/common/include/acsd/cpu/capability_v1.h`（本轮不建 SHARED target；CPU-002 起 provider DLL 链接本单元） |
 | ABI | C ABI v1（`ACS_CAP_ABI_VERSION_V1`，POD 前两字段 struct_size+abi_version） |
 | 平台 | AMD64（Linux 实测；Windows `_M_X64` 同源契约，实机验证由 WIN-* 承担） |
 | 科学变更 | 无（纯探测/判定基础设施，`scientific_change=false`） |
@@ -52,7 +52,7 @@
 
 | 链 | ID | 落点 |
 |---|---|---|
-| ARCH | DOC-ARCH-CPU-001 | `docs/engineering/cpu/CPU_001_CAPABILITY_PROBE.md` |
+| ARCH | DOC-ARCH-CPU-001 | `docs/engineering/resources/cpu/CAPABILITY_PROBE.md` |
 | API | API-CPU-001 | `lib/infrastructure/benchmark/cpu/common/include/acsd/cpu/capability_v1.h` |
 | DATA | CPU-CAP-JSON-001 | `lib/infrastructure/benchmark/cpu/common/schemas/cpu_capability.schema.json` |
 | TEST | TEST-CPU001-* | `eng/tests/cpu/dispatch/`（probe + feature matrix 模拟 + schema 校验） |

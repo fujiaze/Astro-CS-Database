@@ -33,7 +33,7 @@
     {
       "id": "dead_config_key:rotation_deg",
       "kind": "dead_key",
-      "reason": "键由合同登记：eng/contracts/schemas/phase_config_export.schema.json#/$defs/export_wcs/properties/rotation_deg（number；description「旋转角（若用 CD）；默认 0」）+ eng/packaging/config/config_registry.json#export.config.wcs.rotation_deg + docs/engineering/contracts/CONFIG.md §3（export 配置键 wcs.{rotation_deg,crpix_px}）+ docs/detail/registry/acsd.phase3.wcs.md:38（rotation 默认 0）。**FIX-203 后状态（2026-09-20，GAP_AUDIT N03）**：已按「键名以命令行实际认的键为准」（docs/ACSD_DESIGN §3.3）提升为 CLI export 平铺顶层键 rotation_deg（session_commands.h#config_fields(kExport) :234 + parser.cpp#session_keys() :314），--help/--template 可见、配置可达。但**生产科学消费点为零**：p3 投影/重采样链（p3_session.cpp parse_request、module_adapters P3 节点）不读 rotation_deg，lib/** 内带引号 \"rotation_deg\" token 只出现在 CLI 键表声明处（aio_wcs_rotation_deg 是另一函数名，不是配置读取面）⇒ 本键当前为 no-op，登记在此，不得静默。",
+      "reason": "键由合同登记：eng/contracts/schemas/phase_config_export.schema.json#/$defs/export_wcs/properties/rotation_deg（number；description「旋转角（若用 CD）；默认 0」）+ eng/packaging/config/config_registry.json#export.config.wcs.rotation_deg + docs/engineering/contracts/CONFIG.md「三命令 phase_config 与模板」一节（export 配置键 wcs.{rotation_deg,crpix_px}）+ docs/detail/registry/acsd.phase3.wcs.md:38（rotation 默认 0）。**FIX-203 后状态（2026-09-20，GAP_AUDIT N03）**：已按「键名以命令行实际认的键为准」（docs/ACSD_DESIGN §3.3）提升为 CLI export 平铺顶层键 rotation_deg（session_commands.h#config_fields(kExport) :234 + parser.cpp#session_keys() :314），--help/--template 可见、配置可达。但**生产科学消费点为零**：p3 投影/重采样链（p3_session.cpp parse_request、module_adapters P3 节点）不读 rotation_deg，lib/** 内带引号 \"rotation_deg\" token 只出现在 CLI 键表声明处（aio_wcs_rotation_deg 是另一函数名，不是配置读取面）⇒ 本键当前为 no-op，登记在此，不得静默。",
       "owner": "FIX-203（RELEASE-03）提升键落地；科学消费 = p3 投影/重采样面跟随项（与 FIX-205 投影面、FIX-207 契约面重整协同）",
       "exit_condition": "export 投影计划/输出 WCS 生成按 rotation_deg 计算 CD/PC 旋转（FITS 1-based CRPIX 与 CD 矩阵口径按 14_projection.md:35,38）出现生产读取点后删除本条。",
       "template": "（不在 eng/packaging/config/templates/*.json 键面；CLI --template 已列出，见 FIX-203）",
@@ -48,7 +48,7 @@
     {
       "id": "dead_config_key:crpix_px",
       "kind": "dead_key",
-      "reason": "键由合同登记：eng/contracts/schemas/phase_config_export.schema.json#/$defs/export_wcs/properties/crpix_px（number[2]，FITS 1-based，description「参考像素（FITS 1-based）；缺省=中心」）+ eng/packaging/config/config_registry.json#export.config.wcs.crpix_px + docs/engineering/contracts/CONFIG.md §3。**FIX-203 后状态（2026-09-20，GAP_AUDIT N03）**：已提升为 CLI export 平铺顶层键 crpix_px（session_commands.h#config_fields(kExport) :237 + parser.cpp#session_keys() :314），--help/--template 可见、配置可达。但**生产科学消费点为零**：p3 投影链不读 crpix_px（参考像素当前恒取输出几何中心），lib/** 内带引号 \"crpix_px\" token 只出现在 CLI 键表声明处 ⇒ 本键当前为 no-op，登记在此，不得静默。",
+      "reason": "键由合同登记：eng/contracts/schemas/phase_config_export.schema.json#/$defs/export_wcs/properties/crpix_px（number[2]，FITS 1-based，description「参考像素（FITS 1-based）；缺省=中心」）+ eng/packaging/config/config_registry.json#export.config.wcs.crpix_px + docs/engineering/contracts/CONFIG.md「三命令 phase_config 与模板」一节。**FIX-203 后状态（2026-09-20，GAP_AUDIT N03）**：已提升为 CLI export 平铺顶层键 crpix_px（session_commands.h#config_fields(kExport) :237 + parser.cpp#session_keys() :314），--help/--template 可见、配置可达。但**生产科学消费点为零**：p3 投影链不读 crpix_px（参考像素当前恒取输出几何中心），lib/** 内带引号 \"crpix_px\" token 只出现在 CLI 键表声明处 ⇒ 本键当前为 no-op，登记在此，不得静默。",
       "owner": "FIX-203（RELEASE-03）提升键落地；科学消费 = p3 投影/重采样面跟随项（与 FIX-205 投影面、FIX-207 契约面重整协同）",
       "exit_condition": "export 输出 WCS 按 crpix_px 写 CRPIX1/2（FITS 1-based；缺省=中心）出现生产读取点后删除本条。",
       "template": "（不在 eng/packaging/config/templates/*.json 键面；CLI --template 已列出，见 FIX-203）",
@@ -141,7 +141,7 @@
       "id": "dead_config_key:storage_form",
       "kind": "dead_key",
       "reason": "键由合同登记：eng/contracts/schemas/phase_config_normalize.schema.json#/$defs/storage_form（enum archive|bare，默认 archive；键缺失/空串/null ⇒ 默认 + warn）。CLI 可达性已闭合（lib/infrastructure/cli/parser.cpp#session_keys() 与 lib/infrastructure/cli/session_commands.h#config_fields(kNormalize)；json==nullptr ⇒ 只进 --help、不进 --template 骨架，不替用户主张形态），配置不再被判 unknown key 退出 3。但**生产写出侧零读取**：按 storage_form 落盘（裸 <name>.hips/ 与归档 <name>.hips.zst 两形态、逐成员独立 zstd 帧、产品级索引写出）属 HiPS 双形态落盘的分阶段实现计划阶段 2 ⇒ 本条保留，防止把「CLI 认识」误当成「已消费」。本键**不在**任何 eng/packaging/config/templates/*.json 内，故 CHK-CONFIG-CONSUMED 的模板面不覆盖它；本条按 FIX-203 步骤 3 的同一纪律显式登记。",
-      "owner": "负责人裁决（形态切换键写在输入 JSON 里；留空或不写 ⇒ 走默认 archive 并报 warn）；合同与判据 = docs/engineering/contracts/HIPS_STORAGE_FORM.md §10；实现 = 分阶段实现计划阶段 2",
+      "owner": "负责人裁决（形态切换键写在输入 JSON 里；留空或不写 ⇒ 走默认 archive 并报 warn）；合同与判据 = docs/engineering/contracts/HIPS_STORAGE_FORM.md「形态的输入配置与输出清单字段」一节；实现 = 分阶段实现计划阶段 2",
       "exit_condition": "生产写出侧出现 storage_form 的真实读取点（Phase1 产品按形态落盘 + 缺省/留空时报 level=warn 事件 + manifest.storage.form_source 记 default）后删除本条。",
       "consumed_as": "（无：生产零读取；CLI 只识别并透传）",
       "template": "（不在 eng/packaging/config/templates/*.json 键面；CLI --help 已列出）",
@@ -149,15 +149,15 @@
         "eng/contracts/schemas/phase_config_normalize.schema.json#/$defs/storage_form",
         "lib/infrastructure/cli/session_commands.h#config_fields(kNormalize)",
         "lib/infrastructure/cli/parser.cpp#session_keys()",
-        "docs/engineering/contracts/HIPS_STORAGE_FORM.md §10.1",
+        "docs/engineering/contracts/HIPS_STORAGE_FORM.md「normalize 输入配置键 `storage_form`」一节",
         "docs/detail/PRODUCT_STORAGE_FORM.md §10"
       ]
     },
     {
       "id": "dead_config_key:coverage_index",
       "kind": "dead_key",
-      "reason": "键由合同登记：eng/contracts/schemas/phase_config_mosaic.schema.json#/$defs/coverage_index_path（加性可选键，指向数据集级覆盖索引 coverage.index.json；P-180 分名后正名，勿与 hips_storage_form.schema.json#/$defs/coverage_index_ref 的对象定义混读）。CLI 可达性已闭合（parser.cpp#session_keys() 与 session_commands.h#config_fields(kMosaic)；json==nullptr ⇒ 不进模板骨架）。但**生产消费点为零**：阶段二 coverage 节点按该键载入倒排索引（缺失时规定回退 = 读全部产品级索引现场倒排）属分阶段实现计划阶段 2 ⇒ 本条保留。与 snr_path 同款：CLI 只识别并透传，不得把「CLI 认识」当成「已消费」。**R-47 裁决（2026-09-28）**：该键的张力（IO_003 §4 要求发布清单必含 properties，而数据集级 coverage.index.json 按 HIPS_STORAGE_FORM_CONTRACT §4.2/A5 位于归档之外）**不得**以放宽 IO_003 §4 或把产品集判定改成白名单的方式消解；缺口按「**零生产者（发布路径已指定、未实现）**」显式登记 —— 生产者 = 与产品集清单一同发布的同一条命令（mosaic）的发布步，写出**根层** coverage.index.json，与清单**同一次原子发布**（HIPS §4.2「生产者与发布路径（R-47）」）；另一面登记 = docs/KNOWN_LIMITATIONS.md §C 第 49 条；**不得静默留白**。",
-      "owner": "负责人裁决（Phase2 输入沿用既有字段结构、不做元素对象化；额外的总索引引用用加性可选键）；合同与判据 = docs/engineering/contracts/HIPS_STORAGE_FORM.md §10.4；实现 = 分阶段实现计划阶段 2",
+      "reason": "键由合同登记：eng/contracts/schemas/phase_config_mosaic.schema.json#/$defs/coverage_index_path（加性可选键，指向数据集级覆盖索引 coverage.index.json；P-180 分名后正名，勿与 hips_storage_form.schema.json#/$defs/coverage_index_ref 的对象定义混读）。CLI 可达性已闭合（parser.cpp#session_keys() 与 session_commands.h#config_fields(kMosaic)；json==nullptr ⇒ 不进模板骨架）。但**生产消费点为零**：阶段二 coverage 节点按该键载入倒排索引（缺失时规定回退 = 读全部产品级索引现场倒排）属分阶段实现计划阶段 2 ⇒ 本条保留。与 snr_path 同款：CLI 只识别并透传，不得把「CLI 认识」当成「已消费」。**R-47 裁决（2026-09-28）**：该键的张力（IO_003 §4 要求发布清单必含 properties，而数据集级 coverage.index.json 按 HIPS_STORAGE_FORM_CONTRACT §4.2/A5 位于归档之外）**不得**以放宽 IO_003 §4 或把产品集判定改成白名单的方式消解；缺口按「**零生产者（发布路径已指定、未实现）**」显式登记 —— 生产者 = 与产品集清单一同发布的同一条命令（mosaic）的发布步，写出**根层** coverage.index.json，与清单**同一次原子发布**（HIPS §4.2「生产者与发布路径（R-47）」）；另一面登记 = `artifacts/evidence/known-limitations-ledger/LIMITATIONS.md`「E. 架构与门禁判据面的现行限制」一节（条目 49）；**不得静默留白**。",
+      "owner": "负责人裁决（Phase2 输入沿用既有字段结构、不做元素对象化；额外的总索引引用用加性可选键）；合同与判据 = docs/engineering/contracts/HIPS_STORAGE_FORM.md「mosaic 输入：索引引用是加性可选键」一节；实现 = 分阶段实现计划阶段 2",
       "exit_condition": "阶段二 coverage 节点出现 coverage_index 的真实读取点（载入倒排索引；缺失时按产品级索引现场倒排并记 provenance）后删除本条。R-47 补：该读取点所依赖的 coverage.index.json 生产者 = mosaic 发布步（根层、与产品集清单同一次原子发布）；实现时须同时给出正例（索引存在且同批清单含 properties、随清单原子落盘）与负例（索引缺失或与清单不同批 ⇒ 判红）并进机器门（R-47.4），否则本条不得按「已消费」删除。",
       "consumed_as": "（无：生产零读取；CLI 只识别并透传）",
       "template": "（不在 eng/packaging/config/templates/*.json 键面；CLI --help 已列出）",
@@ -165,7 +165,7 @@
         "eng/contracts/schemas/phase_config_mosaic.schema.json#/$defs/coverage_index_path",
         "lib/infrastructure/cli/session_commands.h#config_fields(kMosaic)",
         "lib/infrastructure/cli/parser.cpp#session_keys()",
-        "docs/engineering/contracts/HIPS_STORAGE_FORM.md §10.4",
+        "docs/engineering/contracts/HIPS_STORAGE_FORM.md「mosaic 输入：索引引用是加性可选键」一节",
         "docs/detail/PHASE2_DETAILED_DESIGN.md §1"
       ]
     }

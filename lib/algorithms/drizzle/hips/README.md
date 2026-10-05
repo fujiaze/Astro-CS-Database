@@ -105,7 +105,7 @@ covered_area≤0 或非有限 → signal=NaN、support=0（:476-485）；varianc
   产品位/ivar 语义（DATA-HIPS-VAR-001/DATA-HIPS-IVAR-001）= `docs/science/unified/DATA_SEMANTICS.md`「方差与逆方差的三态编码」一节；
   帧身份 = `docs/science/unified/DATA_SEMANTICS.md`「帧身份与输入清单摘要」一节 |
 | API | API-HIPS-001 | docs/engineering/api/PUBLIC_API.md（aio_hips.h 9 符号现状 C API；编排级经 API-P1-007 hp_drizzle_run_hips 间接到达） |
-| ARCH/MOD/SRC | ARCH-001 / MOD-acsd-phase1-hips-writer / SRC-HIPS-001 | docs/engineering/governance/TRACEABILITY.md §9；SRC 锚 aio_hips.h::9 符号 |
+| ARCH/MOD/SRC | ARCH-001 / MOD-acsd-phase1-hips-writer / SRC-HIPS-001 | docs/engineering/governance/TRACEABILITY.md「逐模块追溯台账（人读正本）」一节；SRC 锚 aio_hips.h::9 符号 |
 
 ## 5. 公共入口与符号（API-HIPS-001）
 

@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """DATA-004 product provenance 层（执行形态；权威文档形态 =
-docs/engineering/data/DATA-004_PRODUCT_PROVENANCE.md + 本文件 docstring）。
+docs/engineering/data/PROVENANCE.md + 本文件 docstring）。
 
-冻结语义（docs/engineering/data/DATA-004_PRODUCT_PROVENANCE.md DATA-004 + 约束 A.6）：
+冻结语义（docs/engineering/data/PROVENANCE.md DATA-004 + 约束 A.6）：
   - 区分 revision 类别 product/module/ABI/data schema/doc revision/history：
     DATA-001 manifest 的 type_id/schema_version = data schema revision；
     本层用 `revision.product` 记录产物版本、`revision.module` 记录模块版本、

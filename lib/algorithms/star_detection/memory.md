@@ -99,7 +99,7 @@ P1-STAR-DOC 任务完成模块冻结合同（状态 CONTRACT_READY，禁止宣�
 - **ALG 权威**：docs/science/algorithms/STAR_DETECTION_ALGORITHMS.md（ALG-STARDET-001
   §11 逐符号锚 + DISP-STAR-001..005 + TEST-STAR-DESIGN-001 冻结测试设计 +
   SCI-P1-STAR-001 状态声明）。
-- **DATA 权威**：docs/science/unified/DATA_SEMANTICS.md §17（DATA-P1-STAR）；
+- **DATA 权威**：docs/detail/registry/acsd.phase1.star-detection.md「输入输出端口、DATA、单位、坐标、invalid」一节（DATA-P1-STAR 端口表）；
   **API 权威**：docs/engineering/api/PUBLIC_API.md API-STAR-001。
 - 生产事实要点（实测）：生产路径=sdet_detect_impl（:1599-2353）peaker 七步
   候选 + Moffat4 trust-region LM（自研）；双入口 sdet_detect_ex（uint16→float）/…_f64

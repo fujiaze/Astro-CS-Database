@@ -30,7 +30,7 @@
   EXPTIME 得出后传入）、噪声方差/SNR 估计（snr_estimator）、天光背景扣除
   （Phase2）、宇宙线剔除（叠加 rejection）、WCS/测光定标、整 Phase 编排。
 
-## 2 连续定义（SCI-CAL-001 §5 转述，权威以 SCI 为准）
+## 2 连续定义（SCI-CAL-001 §3.1 单帧标定式 转述，权威以 SCI 为准）
 
 ```text
 母版约定（SCI-CAL-001 §5 输入合同）:
@@ -539,7 +539,7 @@ oracle 同容差；actual_k 精确相等。
   "has been bias-subtracted so that it can be scaled by exposure time"，顺序为
   bias → dark(×曝光比) → flat；LSST `ip_isr` 为 `biasCorrection` →
   `darkCorrection`（`maskedImage -= dark * expScaling / darkScaling`）→
-  `flatCorrection`（证据与 URL 见 `docs/science/calibration/CALIBRATION.md` §14 第 4/5 条）。
+  `flatCorrection`（证据与 URL 见 `docs/science/calibration/CALIBRATION.md`「参考文献与参考代码」一节的文献 [6]）。
   **判据（真实 T2 NGC1727 Red 600s）**：默认分支下
   "提供 vs 缺失 master_bias" 的 `calibrated_*.fts` 必须不同——**逐位相同
   （16,777,216 px 全等，max|Δ|=0）即偏离**；只提供 bias（无 dark/flat）时产物与

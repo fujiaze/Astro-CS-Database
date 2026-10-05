@@ -22,11 +22,11 @@
 
 ### CLI 退出码
 
-退出码的码值语义唯一声明处 = 「验收」一节
+退出码的码值语义唯一声明处 = `../standards/ERROR_MODEL.md`「进程退出码」一节
 （机器事实源 `lib/infrastructure/cli/exit_codes.h`）。本节只声明接口面归属：
 
 - CLI 收敛面按该表输出 11 码之一，不新增、不改义；
-- `ErrorDomain` → 退出码的映射 = 「API 契约 ID」一节；
+- `ErrorDomain` → 退出码的映射 = `../contracts/LOG_AND_ERROR.md`「错误对象与退出码映射」一节；
 - 码 10 的适用面是磁盘写满 / 写盘失败；内存 / CPU / 线程不设资源超限门；
 - 退出码映射测试覆盖全部 11 码。
 
@@ -77,7 +77,7 @@
 ## API 契约 ID
 
 每个稳定公共 API 关联一个 `API-*` ID。合同清单 =
-`PUBLIC_API.md`，追溯登记面 = `governance/TRACEABILITY.md 「模块与源码追溯矩阵」一节`。
+`PUBLIC_API.md`，追溯登记面 = `governance/TRACEABILITY.md` 的「逐模块追溯台账（人读正本）」一节。
 已登记的 ID 举例：
 
 | API ID | 覆盖面 |
@@ -1057,7 +1057,7 @@ tile_width=512/hips_version/hips_frame/obs_filter）+ union MOC（NESTED
 父单元聚合）+ target_order=min(逐帧 order)。不做：逐帧重校准/PlateSolve/
 PSF/Drizzle（coverage.h:6）、像素数据读取（只读 properties+Moc.fits）、
 intersection/depth/missing-tiles 产品、任何科学权重
-计算（合同红线：coverage 禁作隐式科学权重，PHASE2_COVERAGE.md 「验收」一节）。
+计算（合同红线：coverage 禁作隐式科学权重，`docs/science/algorithms/PHASE2_COVERAGE.md`「合同负向条款（科学红线，P2-COV 专项）」一节）。
 无取消检查点（API-P2-001 「request」一节 行 1 取消点=无，阶段级取消由编排 session
 阶段边界提供，p2_session.cpp:121）。
 
@@ -1371,7 +1371,7 @@ registry descriptor 像素登记面）。
  显式方法（nominal_contributors=u32 几何可贡献数 :234-238；
  kernel 永不接收 AUTO）；**生产默认 profile = `acsd_adaptive_pixel`
  （自研：1≤N≤3 → NONE、N<6 → PERCENTILE、N≥6 → WINSORIZED_SIGMA；
- 档界唯一正本 = `docs/detail/mosaic/modules/rejection` 「排异档位表」一节）**；对照档 `wbpp_2_9_1`（n<6 → PERCENTILE、
+ 档界唯一正本 = `docs/detail/registry/acsd.phase2.reject.md`「数值落地口径」内的「排异算法自动路由：按几何覆盖帧数 N 的档位表」条目）**；对照档 `wbpp_2_9_1`（n<6 → PERCENTILE、
  6..15 → WINSORIZED、>15 → LINEAR_FIT）与 `acsd_adaptive`；
  非法 profile → 非零 rc。rc=0 OK；rc=1 null
  请求/plan、request 出界或 profile 非法（err 仅日志文本）。线程

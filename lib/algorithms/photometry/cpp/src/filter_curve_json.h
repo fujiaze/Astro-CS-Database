@@ -12,10 +12,10 @@
 //      load_filter_curve / load_qe_curve —— legacy 编排入口 run_stage_photometric
 //
 // 规范依据（逐条）:
-//   - docs/engineering/CODE_STANDARD.md §MUST「禁止重复 production science
+//   - docs/engineering/standards/CODE.md「MUST」一节「禁止重复 production science
 //     implementation（单一实现 + oracle）」——本头即该条的落点：曲线解析只能有
 //     一份实现，两份独立实现是同类缺陷复发的根源。
-//   - docs/engineering/CODE_STANDARD.md §MUST「禁止 silent config fallback 改变
+//   - docs/engineering/standards/CODE.md「MUST」一节「禁止 silent config fallback 改变
 //     科学语义」——曲线名解析不到时必须报错，不得静默取到别的曲线。
 //   - eng/packaging/config/filters.json#lookup.resolution_rule 逐字:
 //     「resolve(name) = filters[name] if name in keys(filters) else
