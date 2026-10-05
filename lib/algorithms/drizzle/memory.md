@@ -20,11 +20,11 @@
   memory.md（本文件）。
 - docs/science/algorithms/DRIZZLE_GEOMETRY.md 重写：ALG-DRZ-001 逐公式源码锚定
   + TEST-DRZ-DESIGN-001（§9）+ DISP-DRZ-001..008（§10）。
-- docs/science/DATA_SEMANTICS.md 追加 §11（DATA-P1-DRZ）。
-- docs/engineering/PUBLIC_API.md 追加 API-DRZ-001 节。
+- docs/science/unified/DATA_SEMANTICS.md 追加 §11（DATA-P1-DRZ）。
+- docs/engineering/api/PUBLIC_API.md 追加 API-DRZ-001 节。
 - docs/detail/healpix_drizzle.md、docs/detail/registry/
   acsd.phase1.drizzle.md 事实修订。
-- docs/engineering/TRACEABILITY_SPEC.md §9 P1-DRZ 行原地更新
+- docs/engineering/governance/TRACEABILITY.md §9 P1-DRZ 行原地更新
   （七层 VERIFIED + EVID-MISSING，行序不变）。
 - 源码事实采集底稿（不入库）：run/local/agent_p1_drz_doc/
   source_facts.md（11 节，全行号实测）。

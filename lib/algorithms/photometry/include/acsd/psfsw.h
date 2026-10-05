@@ -1,6 +1,6 @@
 /* psfsw.h - Phase1/V6 PSFSW 四分量 / 共同星集 / validity-depth 门 (IMPL-P1-PSFW-001)
  *
- * 合同锚 (主: docs/science/PSF_SIGNAL_WEIGHT.md;
+ * 合同锚 (主: docs/science/noise_snr/NOISE_SNR.md;
  *         Phase1: docs/detail/PHASE1_DETAILED_DESIGN.md;
  *         冻结: docs/science/algorithms/GATES_AND_TOLERANCES.md;
  *         eng/contracts/data/clause_registry.json#weight_vocabulary):

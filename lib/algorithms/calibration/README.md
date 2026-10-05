@@ -9,7 +9,7 @@
 > 实现侧整改归 P1-CAL-IMPL。
 > 本 README 由源码逐函数核对后全面重写（P1-CAL-DOC，wave W1）：函数、单位、
 > 坐标、dtype、shape、invalid、错误、并发、内存、I/O 均以
-> `lib/include/astro_calibration.h` + `src/{master_generator,calibrator,
+> `lib/algorithms/calibration/include/astro_calibration.h` + `src/{master_generator,calibrator,
 > cosmetic_corrector,ac_api}.cpp`（CMake `acsd_calibration`，唯一生产构建）
 > 为准；旧版 README 中与源码不符的黄金分割搜索、Python 封装、GitHub 仓库
 > 等陈述已删除。权威合同：SCI-CAL-001 → ALG-CAL-001..006 → DATA-P1-CAL /
@@ -38,15 +38,18 @@ NaN 跳过）；单帧校准算术（dark_opt 双分支 + flat floor 0.1，FP32/
 rejection）；WCS/测光定标；线程池/ThreadLease 授予（现状 OpenMP 默认
 team，迁移后由 host 授予）；整 Phase 行为（禁止）。
 
-## 3. 输入与输出（DATA-P1-CAL，DATA_SEMANTICS §9）
+## 3. 输入与输出（DATA-P1-CAL）
 
 输入：全部内存数组，行主序 `idx=y·w+x` 0-based，单位 ADU；
 stack `[n_frames][h][w]` 连续；master_bias/dark/flat 与 light `[h][w]`，
-均可 NULL（语义见 DATA_SEMANTICS §9.1：dark/bias NULL=不减/不检测，
-flat NULL=不除）；K 无量纲（=t_light/t_dark）；sigma 参数无量纲（MAD 倍数，
-<=0 禁用对应检测）；掩码 1=坏点。
+均可 NULL（dark/bias NULL=不减/不检测，flat NULL=不除；端口登记见
+`docs/detail/registry/acsd.phase1.calibration.md`「输入输出端口、DATA、单位、坐标、invalid」一节，
+NULL 退化行为逐行见 `docs/science/algorithms/CALIBRATION_ALGORITHMS.md`
+「边界 / invalid / 退化行为（实现如实）」一节）；K 无量纲（=t_light/t_dark）；
+sigma 参数无量纲（MAD 倍数，<=0 禁用对应检测）；掩码 1=坏点。
 
-输出（单位/dtype/shape/invalid 全表见 DATA_SEMANTICS §9.2）：
+输出（单位/dtype/shape/invalid 全表见
+`docs/detail/registry/acsd.phase1.calibration.md`「输入输出端口、DATA、单位、坐标、invalid」一节）：
 
 - master 生成 → `out[h][w]` float32/64（ADU；全 NaN 像素列 → NaN 合法）。
 - `ac_calibrate_frame(+_f64)` → 校准帧（可负，不 clamp 不加 pedestal，
@@ -62,11 +65,11 @@ float32 / f64 ABI double。
 
 | 层 | ID | 权威文档 |
 |---|---|---|
-| SCI | SCI-CAL-001 | docs/science/CALIBRATION.md（FROZEN） |
+| SCI | SCI-CAL-001 | docs/science/calibration/CALIBRATION.md（FROZEN） |
 | ALG | ALG-CAL-001..006 | docs/science/algorithms/CALIBRATION_ALGORITHMS.md（§3 逐公式源码锚定） |
-| DATA | DATA-P1-CAL | docs/science/DATA_SEMANTICS.md §9 |
-| API | API-CAL-001 / API-P1-001 | docs/engineering/PUBLIC_API.md / docs/engineering/PHASE1_API_V1.md |
-| MOD/SRC | MOD-acsd-phase1-calibration / SRC-CAL-001 | docs/engineering/TRACEABILITY_SPEC.md §9；lib/include/astro_calibration.h（14 AC_API 符号） |
+| DATA | DATA-P1-CAL | `docs/detail/registry/acsd.phase1.calibration.md`「输入输出端口、DATA、单位、坐标、invalid」一节 |
+| API | API-CAL-001 / API-P1-001 | docs/engineering/api/PUBLIC_API.md（两者**同面**：calibration 与编排级 P1 入口在同一份合同的分阶段 API 面内） |
+| MOD/SRC | MOD-acsd-phase1-calibration / SRC-CAL-001 | docs/engineering/governance/TRACEABILITY.md「逐模块追溯台账（人读正本）」一节；lib/algorithms/calibration/include/astro_calibration.h（14 AC_API 符号） |
 | TEST | TEST-CAL-DESIGN-001 | docs/science/algorithms/CALIBRATION_ALGORITHMS.md §9（可执行 TEST-P1-CAL-001 由 P1-CAL-TEST 落地） |
 
 ## 5. 实现事实（源码核对）
@@ -133,7 +136,9 @@ SIMD kernel 注册（ISA 迁移由 P1-CAL-IMPL 按约束 C.4-C.8 逐内核 bench
   复算连通域；K 恒等映射。
 - 不变量 I1-I6：常量场、空平场、幂等归一、确定性（1/2 线程 bitwise）、
   负值保留、掩码极性（SCI §7 四门超集）。
-- 负面：DATA_SEMANTICS §9.1/§9.2 invalid 列 + ALG-CAL §7 全表逐行断言。
+- 负面：DATA-P1-CAL 端口的 invalid 列（`docs/detail/registry/acsd.phase1.calibration.md`「输入输出端口、DATA、单位、坐标、invalid」一节）+
+  `docs/science/algorithms/CALIBRATION_ALGORITHMS.md`
+  「边界 / invalid / 退化行为（实现如实）」一节全表逐行断言。
 - 串并行：1/2/4 线程 bitwise 一致；2 核 ≥1.60 加速比（约束 D.7）；无
   嵌套并行。
 - ISA：基线断言（无 ISA 变体；引入 SIMD 时按约束冻结 ULP 容差）。

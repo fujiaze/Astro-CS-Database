@@ -21,7 +21,7 @@
 # threading_model=host_executor_lease 为迁移目标合同值（11 号标准 §4 值域）；
 # 现状实现为单线程顺序（noise_model_impl 无 omp pragma），唯一共享可变状态
 # g_model_floor 进程级无锁 unordered_map（DISP-NOISE-001），ThreadLease 接线为
-# 迁移整改点（见 docs/engineering/PUBLIC_API.md API-NOISE-001 与
+# 迁移整改点（见 docs/engineering/api/PUBLIC_API.md API-NOISE-001 与
 # docs/science/algorithms/NOISE_ESTIMATION.md §13.3 DISP-NOISE-001..009）。
 # entrypoint=MISSING：registry 入口未接；descriptor 现状占位 ID
 # （lib/infrastructure/scheduler/src/module_adapters.cpp:489-503 p1_noise_snr_descriptor 的
@@ -54,10 +54,10 @@ api_contracts:
   - API-P1-006
   - API-NOISE-001
 doc_links:
-  sci: docs/science/NOISE_MODEL.md
+  sci: docs/science/noise_snr/NOISE_SNR.md
   alg: docs/science/algorithms/NOISE_ESTIMATION.md#§13
-  data: docs/science/DATA_SEMANTICS.md#§13
-  api: docs/engineering/PUBLIC_API.md#API-NOISE-001
+  data: docs/science/unified/DATA_SEMANTICS.md#§13
+  api: docs/engineering/api/PUBLIC_API.md#API-NOISE-001
 contract_ids:
   sci: SCI-NOISE-001..015
   alg: ALG-NOISE-001..003
@@ -115,5 +115,5 @@ notes: >-
   alg_id=ALG-004/data_id=DATA-P1-SNR/test_id=TEST-P1-SNR-001，
   module_adapters.cpp:489-503）与 port DATA 编目（DATA-P1-FLUX/DATA-P1-SNR，
   编排层词汇）由 P1-NOISE-INT 对齐本合同（模块 DATA 层=DATA-P1-NOISE，
-  DATA_SEMANTICS §13），不得反向作为冻结依据。禁止声明 IMPLEMENTED
+  `docs/detail/registry/acsd.phase1.noise-snr.md`「输入输出端口、DATA、单位、坐标、invalid」一节），不得反向作为冻结依据。禁止声明 IMPLEMENTED
   （迁移落码未发生）。

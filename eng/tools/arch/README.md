@@ -15,4 +15,4 @@
 
 ## 上游
 
-- 构建图口径见 `docs/engineering/BUILD_GRAPH.md`。
+- 构建图口径见 `docs/engineering/build/BUILD_GRAPH.md`。

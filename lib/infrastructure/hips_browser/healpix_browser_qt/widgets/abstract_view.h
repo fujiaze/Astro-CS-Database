@@ -4,7 +4,7 @@
 // (SingleFrameView 已废弃归档至 widgets/archive/, .hiss 改用 SphereView 球面渲染)
 // 依赖: Qt6::OpenGLWidgets, Qt6::Gui (QMouseEvent/QWheelEvent),
 // core/ (BrowserBackend + GLRenderer + STFEngine)
-// 设计文档: docs/detail/healpix_browser_qt.md
+// 设计文档: docs/detail/infrastructure/23_hips_browser.md
 // 编译: 通过 CMake (AUTOMOC ON), 链接 Qt6::OpenGLWidgets + healpix_browser_core
 
 #ifndef ABSTRACT_VIEW_H

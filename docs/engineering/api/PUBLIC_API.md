@@ -1212,12 +1212,12 @@ registry descriptor 像素登记面）。
 
 ### `acsd-stage2` 工具返回值（工具局部，非 `acsd::ExitCode`）
 
-> 进程退出码正本 = `../contracts/LOG_AND_ERROR.md` 「验收」一节（唯一源 =
+> 进程退出码正本 = `../standards/ERROR_MODEL.md` 「进程退出码」一节（唯一源 =
 > `lib/infrastructure/cli/exit_codes.h` 的 `acsd::ExitCode` 枚举）。本表**不是**那份表的
 > 接口面副本：`acsd-stage2` 是诊断/工具二进制，未 include `exit_codes.h`、不使用
 > `acsd::ExitCode`（`stage2.cpp:11-29` 的 include 面无该头；全文件无 `ExitCode` 引用），
 > 其 `main`（`stage2.cpp:120`）以裸整数 `return` 收敛。下列取值逐条取自实现返回点，
-> 只对本二进制有效；**不得**按 `../contracts/LOG_AND_ERROR.md` 「验收」一节 的表反查，也不得据此推断
+> 只对本二进制有效；**不得**按 `../standards/ERROR_MODEL.md` 「进程退出码」一节 的表反查，也不得据此推断
 > 三个生产命令的退出码语义。
 
 | 工具返回值 | 域 | 锚（stage2.cpp） |

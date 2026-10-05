@@ -161,7 +161,7 @@ static int parse_fits_header(FILE *fp, FITSHeader &hdr) {
             else if (key == "NAXIS3") hdr.naxis3 = std::atoi(kw.value);
             // BSCALE/BZERO 是**数值变换**关键字, 不是描述性元数据: 读入后物理值
             // = BSCALE*样本 + BZERO (DATA-IMG-RAW-001 / DATA-IMG-CAL-001, 读时
-            // 已施加; ADU 域冻结定义 docs/science/CALIBRATION.md)。因此解析失败
+            // 已施加; ADU 域冻结定义 docs/science/calibration/CALIBRATION.md)。因此解析失败
             // **不能**静默落缺省 —— 那会让读路径的
             // "if (bscale != 1.0 || bzero != 0.0)" 缩放守卫判假而整幅跳过缩放,
             // 像素以错比例 (原始 ADU) 进入 M42 端到端数值, 且不产生任何日志

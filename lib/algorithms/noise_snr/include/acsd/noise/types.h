@@ -10,7 +10,7 @@
  *
  * 合同链: SCI-NOISE-001..015 (NOISE_MODEL.md FROZEN T104 2026-08-23)
  *         -> ALG-NOISE-001..003 (NOISE_ESTIMATION.md §13)
- *         -> API-NOISE-001 (docs/engineering/PUBLIC_API.md)
+ *         -> API-NOISE-001 (docs/engineering/api/PUBLIC_API.md)
  *         -> lib/algorithms/noise_snr/module.yaml
  *            (module_id=acsd.p1.noise, dll_name=acsd_p1_noise.dll,
  *             threading_model=host_executor_lease,
@@ -136,7 +136,8 @@ extern "C" {
 
 #define NOISE_O_KEY_OP              "op"
 #define NOISE_O_KEY_RC              "rc"                  /* 生产返回码 0=成功(含退化兜底)
-                                                           1=完全退化 (DATA_SEMANTICS §4a:
+                                                           1=完全退化 (docs/science/unified/
+                                                           DATA_SEMANTICS.md「方差与逆方差的三态编码」一节:
                                                            ivar_bg_global==0 显式不可用;
                                                            ACS_OK 语义, 科学结果非故障) */
 #define NOISE_O_KEY_DTYPE           "dtype"

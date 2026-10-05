@@ -26,7 +26,7 @@ acsd::core::Result<void> register_cli_modules(ModuleRegistry& reg) {
   return acsd::core::register_phase_modules(reg);
 }
 
-// P-158: ErrorDomain → 退出码。唯一依据 = docs/engineering/LOG_AND_ERROR_CONTRACT.md §5
+// P-158: ErrorDomain → 退出码。唯一依据 = docs/engineering/contracts/LOG_AND_ERROR.md §5
 // 的「域 → 码」表（码值语义本身以 exit_codes.h 为准，本函数只做映射，不重定义数值）。
 // 上游事实：pipeline 解析/静态验证（lib/infrastructure/scheduler/src/pipeline.cpp:55-189
 // 与 runtime.cpp:133-149）一律构造 ErrorDomain::DATA ⇒ 取值 2(ARGS)；
@@ -190,7 +190,7 @@ std::string build_pipeline_ir(const std::vector<int>& phases,
            "cpu_heavy", true),
         // 取向先验来自 wcs 节点产物 <frame_dir>/p1_wcs.json（typed 边, 调度器保证
         // wcs 先落盘）。缺该产物时本节点按 star_detection.mode 显式降级或 fail-closed,
-        // 不以"北向上/东向左"假设冒充权威（见 docs/detail/algorithms_phase1/03_star_detection.md §4）。
+        // 不以"北向上/东向左"假设冒充权威（见 docs/detail/registry/acsd.phase1.star-detection.md §4）。
         mk("psf", "acsd.phase1.star-psf",
            {{"cleaned", "artifact:cos"}, {"wcs", "artifact:p1_wcs"}},
            {{"sources", "artifact:p1_sources"}, {"psf", "artifact:p1_psf"}},
@@ -545,7 +545,7 @@ int run_pipeline(const std::vector<int>& phases, const std::string& config_json,
       if (input_err) return 3;
     }
     // F-EXIT-MAP 归零（P-158 同因）：域→码不再各自硬编码，一律走
-    // exit_code_for_error_domain（唯一实现，依据 docs/engineering/LOG_AND_ERROR_CONTRACT.md §5
+    // exit_code_for_error_domain（唯一实现，依据 docs/engineering/contracts/LOG_AND_ERROR.md §5
     // 的「域 → 码」表）。旧实现的三处偏差已由此消除：
     //   CONFIG  → default 70（合同 2(ARGS)）
     //   BACKEND → default 70（合同 5(BACKEND)）

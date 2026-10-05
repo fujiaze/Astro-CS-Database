@@ -8,8 +8,8 @@
 > 权威来源: SCI=docs/science/PHOTOMETRY.md（SCI-PHOT-001，FROZEN T103
 > 2026-08-23，共享引用不改动）；ALG=docs/science/algorithms/PHOTOMETRIC_FIT.md
 > （ALG-PHOT-001..002 + §13 逐符号源码锚定）；DATA=docs/engineering/
-> DATA_SEMANTICS.md §14（DATA-P1-PHOT）；API=docs/engineering/PUBLIC_API.md
-> （API-PHOT-001）；矩阵行=docs/engineering/TRACEABILITY_SPEC.md §9
+> DATA_SEMANTICS.md §14（DATA-P1-PHOT）；API=docs/engineering/api/PUBLIC_API.md
+> （API-PHOT-001）；矩阵行=docs/engineering/governance/TRACEABILITY.md §9
 > MOD-acsd-phase1-photometry。
 > 唯一权威签名头: lib/algorithms/photometry/cpp/include/photometric_calib.h
 > （271 行；禁止手抄他版）。
@@ -50,7 +50,7 @@ QA 换算 sigma_mag/sigma_cal_rel 现状由 snr_estimator 的 snr_phot_cal_quali
 （v1.0 已封存，禁止复活）；不做 PSF 拟合本身（上游 PSF 模块供 [N,9] 块）；
 不做星点检测；不执行单位换算到 mag 空间（仅输出 dex）。
 
-## 3. 输入输出（DATA-P1-PHOT，DATA_SEMANTICS §14 唯一权威）
+## 3. 输入输出（DATA-P1-PHOT，`docs/detail/registry/acsd.phase1.photometry.md`「输入输出端口、DATA、单位、坐标、invalid」一节 唯一权威）
 
 生产通道（pc_calibrate_simple_with_gaia_v2 / _f64_v2，orchestrator 实际调用）：
 
@@ -62,8 +62,8 @@ QA 换算 sigma_mag/sigma_cal_rel 现状由 snr_estimator 的 snr_phot_cal_quali
 | 入 | filter_wl/trans、qe_wl/trans | double `[count]` | nm / [0,1] |
 | 入 | spectrum_wl | double `[343]`（336..1020nm step 2nm） | nm |
 | 入 | WCS/SIP | crval/crpix/CD4 元 + sip_order(≤2)/a/b/ap/bp `[36]`（i*6+j） | deg/pixel |
-| 出 | out_pixels | 同输入 dtype `[h·w]` | 未定标/退化=ADU；已定标（scale≠1 且 n_matched>0）=模型通带积分辐照度（F_syn 单位），I_cal=I·scale；写盘 BUNIT 随 PHOTAPPL 区分（DATA_SEMANTICS §14.2） |
-| 出 | out_scale_factor | double 标量 | 10^(−location)，单位 [F_syn 单位]/ADU（location 单位 dex(ADU/[F_syn 单位])；DATA_SEMANTICS §14.3）<!-- (P5-SNR 订正；依据 PHOTOMETRY_LITERATURE_REVIEW D.2 S2/S1) --> |
+| 出 | out_pixels | 同输入 dtype `[h·w]` | 未定标/退化=ADU；已定标（scale≠1 且 n_matched>0）=模型通带积分辐照度（F_syn 单位），I_cal=I·scale；写盘 BUNIT 随 PHOTAPPL 区分（`docs/detail/registry/acsd.phase1.photometry.md`「输入输出端口、DATA、单位、坐标、invalid」一节） |
+| 出 | out_scale_factor | double 标量 | 10^(−location)，单位 [F_syn 单位]/ADU（location 单位 dex(ADU/[F_syn 单位])；`docs/detail/registry/acsd.phase1.photometry.md`「输入输出端口、DATA、单位、坐标、invalid」一节）<!-- (P5-SNR 订正；依据 PHOTOMETRY_LITERATURE_REVIEW D.2 S2/S1) --> |
 | 出 | out_sigma_residual | double 标量 | dex（log10 flux-ratio） |
 | 出 | out_n_matched | int32 标量 | 颗 |
 | 出 | out_diag（PhotometricDiag） | 17 字段 | 计数/dex/pixel |

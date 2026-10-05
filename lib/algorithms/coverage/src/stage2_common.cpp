@@ -340,7 +340,7 @@ bool p2_stage2_parse_config(const nlohmann::json& j, P2Stage2Config* cfg, std::s
                     cfg->reject_method = P2_REJECT_PERCENTILE;
                 else if (method == "median_sigma")
                     cfg->reject_method = P2_REJECT_MEDIAN_SIGMA;
-                // FZ-REJ-NO-MINMAX（docs/science/DATA_SEMANTICS.md §22 首注）:
+                // FZ-REJ-NO-MINMAX（docs/science/unified/DATA_SEMANTICS.md §22 首注）:
                 // min/max 在合同层不可选。phase_config schema 的
                 // algorithm_rejection_method 枚举已删 minmax，但本键
                 // （integration.rejection.method）不在该 schema 的键集内
@@ -351,7 +351,7 @@ bool p2_stage2_parse_config(const nlohmann::json& j, P2Stage2Config* cfg, std::s
                     *err = "rejection.method=minmax 不可选 (FZ-REJ-NO-MINMAX): "
                            "min/max 不得用于生产；AUTO 路由值域恒为 "
                            "{percentile, winsorized_sigma, linear_fit}。"
-                           "见 docs/science/DATA_SEMANTICS.md §22 首注。";
+                           "见 docs/science/unified/DATA_SEMANTICS.md §22 首注。";
                     return false;
                 }
                 // FIX-REJ n=2 档: 已知先验 σ 的极值检验（显式方法）
@@ -589,7 +589,7 @@ bool p2_stage2_parse_config(const nlohmann::json& j, P2Stage2Config* cfg, std::s
         //   · docs/ACSD_DESIGN.md §3.1（数据对象）「全链没有「权重模式」这一可选概念」；
         //   · docs/ACSD_DESIGN.md §5.3（信噪比重建与逆方差叠加）承载换算式
         //     w = SNR²/F_ref² = 1/σ_F²（该节只作引用，F_ref/σ_F 口径定义处是 §2.2）；
-        //   · docs/science/PSF_SIGNAL_WEIGHT.md §4（单一权重口径）：
+        //   · docs/science/unified/UNIFIED_SCIENCE_MODEL.md §4（单一权重口径）：
         //     「**没有可选择的口径**：不存在口径选择键、口径枚举、口径配置项或口径产物」。
         // 原实现把 integration.weight_mode ∈ {auto,ivar,equal,support_x_snr2} 映射为
         // 整数域 {2,2,1,0}：equal 直接开等权、support_x_snr2 开 support×snr²
@@ -599,7 +599,7 @@ bool p2_stage2_parse_config(const nlohmann::json& j, P2Stage2Config* cfg, std::s
         if (in.contains("weight_mode")) {
             *err = "integration.weight_mode 已删除：不存在「权重模式」"
                    "（docs/ACSD_DESIGN.md §3.1（数据对象）：全链没有「权重模式」这一可选概念；"
-                   "docs/science/PSF_SIGNAL_WEIGHT.md §4（单一权重口径）：没有可选择的口径）。"
+                   "docs/science/unified/UNIFIED_SCIENCE_MODEL.md §4（单一权重口径）：没有可选择的口径）。"
                    "权重是阶段二按天球像素对应的输入帧集合现场算出的派生量 "
                    "w = SNR^2/F_ref^2 = 1/sigma_F^2（docs/ACSD_DESIGN.md §5.3）；请删除该键。";
             return false;

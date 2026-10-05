@@ -212,7 +212,7 @@ def render_header(stamp):
         return '""' if v is None else '"%s"' % v
     return (
         "// 由 eng/tools/gen_build_stamp.py 生成 — 禁手改（构建期指纹）\n"
-        "// 依据：docs/engineering/VERSIONING.md 构建指纹合同 / RUN-PROVENANCE-01\n"
+        "// 依据：docs/engineering/build/RELEASE.md 构建指纹合同 / RUN-PROVENANCE-01\n"
         "#pragma once\n"
         "#define ACSD_BUILD_HEAD_SHA %s\n"
         "#define ACSD_BUILD_DIRTY %d\n"

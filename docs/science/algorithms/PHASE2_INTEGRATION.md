@@ -21,10 +21,10 @@
   status。实现=reducer 无知策略（policy/reducer 分离冻结）。
 - **非目标**：不决定排异/eligibility gather（SCI-REJ/P2-REJ）；不做
   权重策略（权重=外部 numeric weights，构造在 Stage2）；不输出
-  variance/ivar 产品（ivar 为输入侧权重语义，DATA_SEMANTICS §4a/§21）；
+  variance/ivar 产品（ivar 为输入侧权重语义，`docs/science/unified/DATA_SEMANTICS.md`「方差与逆方差的三态编码」一节；端口表见 `docs/detail/registry/acsd.phase2.integrate.md`）；
   不做马赛克编排/逆归一化（Stage2 域）；无内部并行（像素级纯函数）。
 
-## 2 符号与单位（权威=本表 + DATA_SEMANTICS §21）
+## 2 符号与单位（权威=本表 + `docs/detail/registry/acsd.phase2.integrate.md`）
 
 | 符号 | 含义 | 单位/dtype | 锚 |
 |---|---|---|---|
@@ -161,7 +161,7 @@ eligibility（逐候选 i，候选索引固定序）:
   "support 唯一 canonical reducer（max accepted support）由
   p2_integrate_pixel 计算，Stage2 只消费"——**调用方的用法 = 只消费该值，不做二次
   max/mean**）、large_scale 二次积分（以上均在 `lib/algorithms/coverage/tools/stage2.cpp`）。逆归一化
-  `area=support_out×A_cell`、`flux=signal×area`（两处，同文件）在 Stage2 域（DATA_SEMANTICS §20.3）。
+  `area=support_out×A_cell`、`flux=signal×area`（两处，同文件）在 Stage2 域（`docs/detail/registry/acsd.phase2.write.md`）。
 - **ACR 加速（`lib/algorithms/coverage/src/acr_kernels.cpp`）**: process_pixel
   （P2PixelStack 构造、p2_integrate_pixel 调用、失败清零
   与 Stage2 `(status==0)?signal:0` 同型）；缓冲布局 frame-major。
@@ -190,7 +190,7 @@ eligibility（逐候选 i，候选索引固定序）:
 - 本层的锚一律给到文件/符号级；外部文档给出的行号区间与实测文件长度不符时，
   以本文档 §3 为准（语义一致不受影响）。
 
-## 8 单位与 dtype 登记（唯一权威=DATA_SEMANTICS §21）
+## 8 单位与 dtype 登记（唯一权威=`docs/detail/registry/acsd.phase2.integrate.md`）
 
 - signal: ADU（f64 输出；写盘 f32/f64 由 Stage2 precision 决定）；
   weights: 1/ADU²（本层仅数值域，与无量纲量各自独立）；support: 无量纲
@@ -328,11 +328,11 @@ eligibility（逐候选 i，候选索引固定序）:
 
 - 实现: lib/algorithms/coverage/src/integrate.cpp（89 行）+
   lib/algorithms/coverage/include/astro/phase2/integrate.h（83 行）。
-- 合同: DATA-P2-INT（DATA_SEMANTICS §21）/ API-P2-INT-001
+- 合同: DATA-P2-INT（`docs/detail/registry/acsd.phase2.integrate.md`）/ API-P2-INT-001
   （PUBLIC_API.md）/ TEST-P2-INT-001（MISSING，§11.4 设计冻结）。
 - 交叉: docs/detail/phase2_int.md + lib/algorithms/integration/ 三件套；
   registry acsd.phase2.integrate.md。
-- 消费者: stage2.cpp（DATA_SEMANTICS §20 域）/ acr_kernels.cpp
+- 消费者: stage2.cpp（`docs/detail/registry/acsd.phase2.write.md` 域）/ acr_kernels.cpp
   （ACR 域）/ `lib/infrastructure/scheduler/src/module_adapters.cpp` descriptor 占位。
 
 ## 14 SIMD 安全、取消点与复杂度

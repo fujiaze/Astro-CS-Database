@@ -3,7 +3,7 @@
 // Phase2 W3：输入发现 / 兼容校验 / coverage union / target_order。
 //
 // 语义（冻结；权威 = docs/science/PHASE2_UPM.md §5 与
-// docs/detail/algorithms_phase2/10_sampling.md）：
+// docs/detail/registry/acsd.phase2.sample.md）：
 // - 输入为多个 Phase1 单帧 HiPS（signal/support/snr），不重新校准/PlateSolve/PSF/DR3SP/Drizzle；
 // - 兼容：同一 equatorial/ICRS、同一 filter/passband、同一 signal/support 语义、NESTED；
 // - target_order = min(所有输入最高 leaf order)，禁止低 order 插值伪装分辨率；
@@ -75,7 +75,7 @@ P2_API int p2_coverage_free(P2CoverageResult* out);
 //                              Phase1 产稀疏 SNR 控制点 → Phase2 重建稠密 SNR 面
 //                              → 取逆方差（最优功率）定权 → 叠加；
 //                              w = SNR^2 / F_ref^2（docs/ACSD_DESIGN.md §3.1、
-//                              docs/science/PSF_SIGNAL_WEIGHT.md §4）；
+//                              docs/science/unified/UNIFIED_SCIENCE_MODEL.md §4）；
 //   FZ-MODE-RETIRED          : psfsw_robust 不得进生产路由 —— psfsw_robust_weight
 //                              不是现行对象（docs/ACSD_DESIGN.md §3.1；UNIFIED_MODEL.md:58），
 //                              显式拒绝 + 迁移提示（唯一口径 = 逆方差）；
@@ -86,7 +86,7 @@ P2_API int p2_coverage_free(P2CoverageResult* out);
 // 语义源：eng/contracts/data/clause_registry.json
 //         （forbidden.weight_source_tokens）
 //         + docs/ACSD_DESIGN.md §3.1（权重判据）与
-//         docs/science/PSF_SIGNAL_WEIGHT.md §1/§4（单一权重口径；退役对象的拒绝面见
+//         docs/science/unified/UNIFIED_SCIENCE_MODEL.md §1/§4（单一权重口径；退役对象的拒绝面见
 //         coverage.cpp 的 RETIRED-OBJECT-REJECT 注释块）。本头文件不得另造词表（C-004.3）。
 //
 // 单位（冻结表，本模块不重定义）：signal_sb=ADU/sr、sb_variance_out=

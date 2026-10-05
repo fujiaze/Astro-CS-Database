@@ -33,7 +33,7 @@
 冷像素检测（master bias 全局 median−cold_sigma·σ）、8 连通结构过滤
 （≥max_size 连通域不判坏）、坏点插值修复（5×5 镜像边界中值 / 4 方向
 1/dist IDW）、out_hot/out_cold 结构过滤后计数；数据语义
-DATA-P1-COS（DATA_SEMANTICS §10）。
+DATA-P1-COS（`docs/detail/registry/acsd.phase1.cosmetic.md`「输入输出端口、DATA、单位、坐标、invalid」一节）。
 
 不负责：master bias/dark/flat 生成与单帧校准算术（P1-CAL /
 acsd.p1.calibration）；FITS/XISF 读写（astro_image_io，调用方侧）；
@@ -42,7 +42,7 @@ cosmetic 参数与母版的接线决策（调用方/编排层；现状 p1_sessio
 剔除（叠加 rejection）；WCS/测光定标；线程池/ThreadLease 授予（现状
 OpenMP 默认 team，迁移后由 host 授予）；整 Phase 行为（禁止）。
 
-## 3. 输入与输出（DATA-P1-COS，DATA_SEMANTICS §10）
+## 3. 输入与输出（DATA-P1-COS）
 
 输入：全部内存数组，行主序 `idx=y·w+x` 0-based，单位 ADU；data 修复帧
 `[h][w]` float32（f64 ABI 经 double→float 降级执行）；master_dark /
@@ -52,7 +52,8 @@ master_bias `[h][w]` 均**可 NULL**（NULL 或对应 sigma<=0 = 禁用该检测
 IDW）；max_structure_size 像素个数（<=0 → 全域清除负面语义）；
 out_hot/out_cold 可 NULL。
 
-输出（单位/dtype/shape/invalid 全表见 DATA_SEMANTICS §10.2）：
+输出（单位/dtype/shape/invalid 全表见
+`docs/detail/registry/acsd.phase1.cosmetic.md`「输入输出端口、DATA、单位、坐标、invalid」一节）：
 
 - `out[h][w]` float32（f64 ABI 回转 double）：非坏点逐像素恒等；坏点=
   插值（空邻域回退原值，不虚构好值）；NaN 输入透传。
@@ -67,11 +68,12 @@ out_hot/out_cold 可 NULL。
 
 | 层 | ID | 权威文档 |
 |---|---|---|
-| SCI | SCI-CAL-001 | docs/science/CALIBRATION.md（FROZEN；与 P1-CAL 共享 SCI 层） |
+| SCI | SCI-CAL-001 | docs/science/calibration/CALIBRATION.md（FROZEN；与 P1-CAL 共享 SCI 层） |
 | ALG | ALG-COS-001..005 | docs/science/algorithms/COSMETIC_ALGORITHMS.md（逐公式源码锚定） |
-| DATA | DATA-P1-COS | docs/science/DATA_SEMANTICS.md §10（上游 DATA-P1-CAL §9） |
-| API | API-COS-001 / API-P1-002 | docs/engineering/PUBLIC_API.md / docs/engineering/PHASE1_API_V1.md §2 |
-| MOD/SRC | MOD-acsd-phase1-cosmetic / SRC-COS-001 | docs/engineering/TRACEABILITY_SPEC.md §9；实现源 cosmetic_corrector.cpp + ac_api.cpp（签名源 astro_calibration.h:97-103,142-148） |
+| DATA | DATA-P1-COS | `docs/detail/registry/acsd.phase1.cosmetic.md`「输入输出端口、DATA、单位、坐标、invalid」一节（上游
+  `docs/detail/registry/acsd.phase1.calibration.md`「输入输出端口、DATA、单位、坐标、invalid」一节） |
+| API | API-COS-001 / API-P1-002 | docs/engineering/api/PUBLIC_API.md / docs/engineering/api/PUBLIC_API.md §2 |
+| MOD/SRC | MOD-acsd-phase1-cosmetic / SRC-COS-001 | docs/engineering/governance/TRACEABILITY.md §9；实现源 cosmetic_corrector.cpp + ac_api.cpp（签名源 astro_calibration.h:97-103,142-148） |
 | TEST | TEST-COS-DESIGN-001 | docs/science/algorithms/COSMETIC_ALGORITHMS.md §9（可执行 TEST-P1-COS-001 由 P1-COS-TEST 落地） |
 
 ## 5. 实现事实（源码核对）
@@ -160,7 +162,8 @@ benchmark 决定，本合同不预设）。f32/f64 双 ABI 即现状的"精度�
 - 不变量 I1-I6：非坏点恒等、无检测条件恒等（dark/bias NULL 或
   sigma<=0 → out==data bitwise）、掩码极性 1=坏点、确定性（1/2/4
   线程 bitwise）、计数≤候选数、空邻域回退。
-- 负面：DATA_SEMANTICS §10.1/§10.2 invalid 列 + ALG-COS §9 参数矩阵
+- 负面：DATA-P1-COS 端口的 invalid 列（`docs/detail/registry/acsd.phase1.cosmetic.md`「输入输出端口、DATA、单位、坐标、invalid」一节）+
+  ALG-COS §9 参数矩阵
   逐行断言（含 method 非法值、max_size<=0、NaN 源帧现状行为）。
 - 串并行：1/2/4 线程 bitwise 一致；heavy run CPU/RSS 监控 + 内存上限
   断言（O(n) 常数界）；无嵌套并行。

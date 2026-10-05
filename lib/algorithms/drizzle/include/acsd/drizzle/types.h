@@ -5,7 +5,7 @@
  * 不含任何科学常量 (Van Oosterom 剖分、面积权重、NaN-Inf 传播语义全部留在
  * drizzle_engine / SCI-DRZ-001, 本迁移 scientific_change=false 零改动)。
  *
- * 合同链: SCI-DRZ-001 -> ALG-DRZ-001 -> API-DRZ-001 (docs/engineering/PUBLIC_API.md)
+ * 合同链: SCI-DRZ-001 -> ALG-DRZ-001 -> API-DRZ-001 (docs/engineering/api/PUBLIC_API.md)
  *         -> lib/algorithms/drizzle/module.yaml (module_id=acsd.p1.drizzle,
  *            dll_name=acsd_p1_drizzle.dll, threading_model=host_executor_lease)
  */

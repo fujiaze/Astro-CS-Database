@@ -99,7 +99,7 @@
       "variance_unit": null,
       "ivar_unit": "1/BUNIT^2",
       "domain": "Phase3",
-      "anchor": "FZ-P3-BUNIT-QUADRATIC; DATA_SEMANTICS §30.4",
+      "anchor": "FZ-P3-BUNIT-QUADRATIC; docs/science/unified/DATA_SEMANTICS.md「单位与量纲表」与「二次律只约束单位层」两节",
       "gate": "G-BUNIT-QUADRATIC"
     }
   ],

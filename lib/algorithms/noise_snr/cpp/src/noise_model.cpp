@@ -91,8 +91,8 @@ static void registry_erase(const NoiseWeightModelV1* m) {
 
 constexpr double kLn10 = 2.302585092994045684017991454684; // NOISE_ESTIMATION.md / NOISE_MODEL.md 科学定义 log10↔ln 换算
 // trimmed-mean-abs-residual → Gaussian σ 换算因子:
-// E[10-90% trimmed mean |r|] = 0.731673 σ (Gaussian N(0,σ²)) — 锚点: docs/science/NOISE_MODEL.md 数值精度 / PSF.md
-constexpr double kTrimMeanToSigma = 0.7316727929211932; // PSF.md 0.7316728 (7 位简写) ↔ NOISE_MODEL.md robust_residual_sigma
+// E[10-90% trimmed mean |r|] = 0.731673 σ (Gaussian N(0,σ²)) — 锚点: docs/science/psf/PSF.md（闭式与换算式正本；NOISE_SNR.md 只声明该因子与 MAD 因子不可互换）
+constexpr double kTrimMeanToSigma = 0.7316727929211932; // docs/science/psf/PSF.md 闭式 0.7316730952806130（7 位简写 0.7316728）↔ robust_residual_sigma 换算式
 
 [[maybe_unused]] bool finite(double x) { return std::isfinite(x); }
 
@@ -1360,7 +1360,8 @@ int fill_impl(const NoiseWeightModelV1* m, int h, int w,
         // 判据与拒绝时机（未绑定/非法 ⇒ SNR_FLOOR_UNBOUND）逐字不变。
         double floor = 0.0;
         if (!registry_get_floor(m, &floor)) return SNR_FLOOR_UNBOUND;
-        // SCI-NOISE-001 §5/§7/§9 + DATA_SEMANTICS §4a 三态表:
+        // SCI-NOISE-001 §5/§7/§9 + docs/science/unified/DATA_SEMANTICS.md
+        // 「方差与逆方差的三态编码」一节的三态表:
         //   平面是**外推**模型（控制点方差恒正，最小二乘平面可在帧内取非正值）。
         //   预测 > 0 ⇒ 该处方差**可用**：取 max(预测, floor)，floor 是数值保护，
         //               保证 ivar 有限（§7「clamp 只作用于可用方差」）。

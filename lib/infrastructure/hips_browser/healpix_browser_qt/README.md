@@ -107,5 +107,5 @@ setCentralWidget(view);
 
 ## 设计文档
 
-- 核心算法 / UI 前端 / 实现计划：`docs/detail/healpix_browser_qt.md`（模块页；原 superpowers 设计稿已删，见 git 历史）
+- 核心算法 / UI 前端 / 实现计划：`docs/detail/infrastructure/23_hips_browser.md`（模块页；原 superpowers 设计稿已删，见 git 历史）
 - 模块记忆：`memory.md`

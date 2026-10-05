@@ -26,7 +26,8 @@
   PHASE2_UPM.md、INTEGRATION.md、REJECTION.md，均 FROZEN，共享引用
   不改动；本任务零 SCI 改动）→ ALG-P2-SESSION-001
   （docs/science/algorithms/PHASE2_SESSION.md）→ DATA-P2-SESSION
-  （DATA_SEMANTICS §24）/ API-P2-SESSION-001（PUBLIC_API「Phase2
+  （`docs/detail/registry/acsd.phase2.session.md`，DATA-P2-SESSION 合同条）/
+  API-P2-SESSION-001（PUBLIC_API「Phase2
   装配会话 C API」节）→ TEST-P2-SESSION-001（可执行测试 MISSING，
   P2-SESSION-DOC 登记归 P2-SESSION-TEST，不冒认；设计冻结面=
   ALG 文档 TEST-DESIGN 节 + registry 页）；编排上游 API-P2-001

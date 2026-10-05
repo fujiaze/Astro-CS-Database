@@ -6,7 +6,7 @@
   "x-acsd-contract": {
     "kind": "product_family_field_constraints",
     "is_object_contract": false,
-    "authority": "docs/science/unified/DATA_SEMANTICS.md §31.6",
+    "authority": "docs/engineering/UNIFIED_OBJECTS.md 的「归属归一与产品族字段级约束落点」一节",
     "clause_registry": "eng/contracts/data/clause_registry.json",
     "change_id": "CHG-2026-09-22-V6-CONTRACT-MERGE",
     "def_index": {
@@ -134,7 +134,7 @@
       "$schema": "https://json-schema.org/draft/2020-12/schema",
       "$id": "https://acsd.local/schemas/v6/units.v1.schema.json",
       "title": "ACSD V6 冻结单位表",
-      "description": "[生产 schema] 语义权威 = eng/contracts/data/clause_registry.json（条款 id 见 x-acsd-production.clause_ids）。词表归一：weight.kind / weight.units / group_normalized / normalization.scope 为唯一 canonical 名，legacy 别名与双向映射见 eng/contracts/data/clause_registry.json 的 weight_vocabulary / migration_map 节。PENDING_OWNER_SIGNOFF 条款生效前 fail-closed，不得放宽。原描述：V6 目标态单位词汇表。语义源 = eng/contracts/data/clause_registry.json units_table 与 docs/science/unified/DATA_SEMANTICS.md §31.10 §1/§3.2；本文件是 DATA-DESIGN-001 的机器可读镜像，不改变冻结语义。任何下游 schema 的量纲字段必须引用本表符号与单位串。",
+      "description": "[生产 schema] 语义权威 = eng/contracts/data/clause_registry.json（条款 id 见 x-acsd-production.clause_ids）。词表归一：weight.kind / weight.units / group_normalized / normalization.scope 为唯一 canonical 名，legacy 别名与双向映射见 eng/contracts/data/clause_registry.json 的 weight_vocabulary / migration_map 节。PENDING_OWNER_SIGNOFF 条款生效前 fail-closed，不得放宽。原描述：V6 目标态单位词汇表。语义源 = eng/contracts/data/clause_registry.json units_table 与 docs/science/unified/DATA_SEMANTICS.md「单位与量纲表」一节；本文件是 DATA-DESIGN-001 的机器可读镜像，不改变冻结语义。任何下游 schema 的量纲字段必须引用本表符号与单位串。",
       "type": "object",
       "additionalProperties": false,
       "required": [
@@ -494,14 +494,14 @@
             "float64"
           ],
           "x-acsd": {
-            "anchor": "宪章 §5.3; DATA_SEMANTICS §6",
+            "anchor": "宪章 §5.3; `docs/science/unified/DATA_SEMANTICS.md`「精度」一节",
             "domain": "全部"
           }
         },
         "invalid_policy": {
           "const": "nan_or_support_le_0",
           "x-acsd": {
-            "anchor": "DATA_SEMANTICS §4/§30.4; DESIGN-P3 §3",
+            "anchor": "`docs/science/unified/DATA_SEMANTICS.md`「方差与逆方差的三态编码」一节; DESIGN-P3 §3",
             "domain": "全部",
             "fail_closed": "coverage=0 或输入 NaN 必须输出 NaN 并记录 provenance，不得 0 填充",
             "gate": "G-INVALID-NAN"
@@ -1264,7 +1264,7 @@
           "type": "string",
           "minLength": 1,
           "x-acsd": {
-            "anchor": "DESIGN-P1 §6; DATA_SEMANTICS §15",
+            "anchor": "DESIGN-P1 §6; docs/detail/registry/acsd.phase1.star-psf.md「输入输出端口、DATA、单位、坐标、invalid」一节",
             "domain": "全部"
           }
         },
@@ -2517,7 +2517,7 @@
       ],
       "x-acsd-retired-declaration-optional": {
         "note": "weight_mode / weight 是**退役对象** psfsw_robust_weight 的声明面，已从 required 移出 ⇒ 不再是强制要求。缺席 = 现行产品（新写出的产品不再声明该对象）；在场 = 可判定的**退役/迁移情形**，其形状必须逐条等于退役 canonical 形式（weight_mode=psfsw_robust、weight.kind=psfsw_robust_weight、units=1、group_normalized=true、scope=group、median_target=1.0），并必须被识别 + 显式拒绝 + 给迁移提示（不得静默接受）。",
-        "authority": "docs/ACSD_DESIGN.md §3.1（权重只能来自纯净信号与噪声之比/逆方差；PSF 拟合质量代理只作诊断）；docs/detail/UNIFIED_MODEL.md:58；docs/science/unified/DATA_SEMANTICS.md §31.1/§31.3/§31.7",
+        "authority": "docs/ACSD_DESIGN.md §3.1（权重只能来自纯净信号与噪声之比/逆方差；PSF 拟合质量代理只作诊断）；docs/detail/UNIFIED_MODEL.md:58；docs/science/unified/DATA_SEMANTICS.md 的「权重词表：登记面与输入面」与「单位与量纲表」两节；docs/engineering/UNIFIED_OBJECTS.md 的「归属归一与产品族字段级约束落点」一节",
         "migration_hint": "迁移提示：point_information（W_info=1/Var(F_hat)）用于点源，surface_gls（A^T C^-1 A）用于展源；Phase2 现场由帧 SNR 派生权重；PSF 质量代理（FWHM/residual）只作诊断。"
       },
       "properties": {
@@ -3121,8 +3121,8 @@
         "a_nea_unit": "px^2",
         "anchor": "ALG-P2-PSFSW-001 单位一致性规则",
         "registered_text_error": {
-          "file": "docs/science/unified/DATA_SEMANTICS.md §31.1",
-          "section": "§4.2 四分量表",
+          "file": "docs/science/unified/DATA_SEMANTICS.md（旧正本已重写出库，DOC-PURGE-01）",
+          "section": "四分量表（已出库；concentration 单位唯一权威 = component_flux_unit/px^2，承载页见 docs/engineering/UNIFIED_OBJECTS.md「归属归一与产品族字段级约束落点」一节登记的 psfsw 记录类）",
           "as_written": "ADU/px",
           "disposition": "待修文本错误；生产 schema 合法域不含 'ADU/px'（修正须负责人签字后方可改 FROZEN 正文）"
         }
@@ -3293,7 +3293,7 @@
             }
           },
           "x-acsd": {
-            "anchor": "宪章 §4.3; DATA_SEMANTICS §1",
+            "anchor": "宪章 §4.3; `docs/science/unified/DATA_SEMANTICS.md`「溯源最小集」一节",
             "domain": "全部"
           }
         },
@@ -3425,9 +3425,9 @@
             "fail_closed": "归一版本缺失 -> REJECT；未登记的归一版本 token -> REJECT（须先登记 value_domain 再产出）",
             "gate": "G-NORM-VERSION",
             "value_domain": {
-              "note": "P-187（R-42）：本字段此前只有「非空字符串」约束 ⇒ 值域无判据，任意 token 可过。现登记生产 token 值域（唯一机器源 = 本对象；文档面 = DATA_SEMANTICS.md §31.5a，须两处同步）。",
+              "note": "P-187（R-42）：本字段此前只有「非空字符串」约束 ⇒ 值域无判据，任意 token 可过。现登记生产 token 值域（唯一机器源 = 本对象；文档面 = `docs/science/unified/DATA_SEMANTICS.md`「溯源最小集」一节，须两处同步）。",
               "registered_tokens": {
-                "drizzle_drop_area_normalized_v1": "Phase1 normalize：drop-area 归一（归一分母 N_p = Σ_j w_jp·A_pixel,j，DATA_SEMANTICS §4a）",
+                "drizzle_drop_area_normalized_v1": "Phase1 normalize：drop-area 归一（归一分母 N_p = Σ_j w_jp·A_pixel,j，docs/science/unified/DATA_SEMANTICS.md「方差与逆方差的三态编码」一节）",
                 "phase2_group_normalized_v1": "Phase2 mosaic：按天球像素对应帧集合归一分组",
                 "drizzle_sb_normalization_v2_surface_brightness_preserving": "面亮度守恒归一的版本串（unit-face）",
                 "sb_a_pixel/v1": "面亮度像素面积幂族 v1（unit-face）"
@@ -3914,7 +3914,7 @@
             "resample_formula": {
               "const": "nearest: var_out = u_in; bilinear: var_out = Sum_k c_k^2 u_k (Sum c_k=1, Sum c_k^2 != 1)",
               "x-acsd": {
-                "anchor": "DATA_SEMANTICS §30.4; FZ-P3-BUNIT-QUADRATIC",
+                "anchor": "docs/science/unified/DATA_SEMANTICS.md「方差与逆方差的三态编码」与「二次律只约束单位层」两节; FZ-P3-BUNIT-QUADRATIC",
                 "domain": "Phase3 variance 传播",
                 "fail_closed": "误用 Sum c_k=1 归一 variance -> REJECT",
                 "gate": "G-P3-VARIANCE-FORM"

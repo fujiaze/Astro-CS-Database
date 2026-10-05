@@ -13,7 +13,7 @@
 // 本头不 include module.h（无依赖环）；估算结果独立结构 PlanEstimate，可与 ModulePlan
 // 字段一一对应投影。
 //
-// 单位/约定（权威=docs/science、docs/algorithms、lib/phase* 实现与 api 文档，勿臆测）：
+// 单位/约定（权威=docs/science、docs/science/algorithms、lib/phase* 实现与 api 文档，勿臆测）：
 //   - 图像/输出平面尺寸一律像素(px)；角尺度 deg/px；HiPS order=properties hips_order
 //     （0..20，docs/science/algorithms/HEALPIX_MAPPING.md + p3 hips_properties.h kMaxOrder=20）；
 //   - tile 宽 W=512（lib/phase3_session/hips_properties.h kHipsTileWidth=512；P2

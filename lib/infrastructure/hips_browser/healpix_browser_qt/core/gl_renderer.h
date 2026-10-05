@@ -5,7 +5,7 @@
 // healpix_math.h (球面坐标转换), logger.h (日志)
 // 编译: g++ -O2 -std=c++17 -Wall -Wextra -Icore -Iinclude -I../../astro_image_io/include
 // -c core/gl_renderer.cpp -o core/gl_renderer.o -lopengl32 -lgdi32
-// 设计文档: docs/detail/healpix_browser_qt.md
+// 设计文档: docs/detail/infrastructure/23_hips_browser.md
 
 #ifndef GL_RENDERER_H
 #define GL_RENDERER_H

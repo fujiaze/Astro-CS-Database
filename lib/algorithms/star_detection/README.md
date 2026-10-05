@@ -39,7 +39,7 @@ WCS（ipv/gaia_client，消费 star_det 块禁止重检测 orchestrator.cpp:1748
 
 ## 2. 输入 / 输出 ports、DATA ID、单位、dtype、shape、invalid
 
-权威=DATA-P1-STAR（docs/science/DATA_SEMANTICS.md §17）；下表为实现层摘要：
+权威=DATA-P1-STAR（docs/science/unified/DATA_SEMANTICS.md §17）；下表为实现层摘要：
 
 | 端口 | DATA ID | 方向 | 必/可 | 单位 | dtype/shape | invalid |
 |---|---|---|---|---|---|---|
@@ -58,8 +58,8 @@ WCS（ipv/gaia_client，消费 star_det 块禁止重检测 orchestrator.cpp:1748
 |---|---|---|---|
 | SCI | SCI-P1-STAR-001（共享 SCI 引用不改动） | FROZEN（本任务） | docs/science/STAR_DETECTION.md |
 | ALG | ALG-STARDET-001 | FROZEN（本任务） | docs/science/algorithms/STAR_DETECTION_ALGORITHMS.md#§11 |
-| DATA | DATA-P1-STAR | VERIFIED | docs/science/DATA_SEMANTICS.md#§17 |
-| API | API-STAR-001（编排占位 API-P1-003 仍有效） | VERIFIED | docs/engineering/PUBLIC_API.md#API-STAR-001；docs/engineering/PHASE1_API_V1.md |
+| DATA | DATA-P1-STAR | VERIFIED | docs/science/unified/DATA_SEMANTICS.md#§17 |
+| API | API-STAR-001（编排占位 API-P1-003 仍有效） | VERIFIED | docs/engineering/api/PUBLIC_API.md#API-STAR-001；docs/engineering/api/PUBLIC_API.md |
 | ARCH | ARCH-001 | VERIFIED | docs/engineering/ARCHITECTURE.md |
 | SRC | SRC-STAR-001 | VERIFIED | lib/algorithms/star_detection/src/sdet_api.cpp（本 README 全部行号锚） |
 | TEST | TEST-STAR-DESIGN-001 | FROZEN（设计） | docs/science/algorithms/STAR_DETECTION_ALGORITHMS.md#§11.4 |
@@ -88,7 +88,7 @@ C API（现行 6 导出，头 lib/algorithms/star_detection/include/star_detecto
 | `sdet_free_detect_ex` | :54-56 | :2344 | 十数组唯一释放（extras 同组） |
 | `sdet_detect_guided_ex_f64` | :87-96 | :2281 | **权威路径**：星表逆投影预测位置上的引导检测（拟合/质量门失败的位置直接丢弃，不计虚警），输出十数组 + `SDetGuidedStats` |
 
-注：`sdet_detect`、`sdet_detect_debug`、`sdet_free_coords`、`sdet_free_debug_maps` 为历史导出，现行源码已无定义、导出表已注销（`docs/engineering/PUBLIC_API.md:759-761` 记「四条 CC 路径符号不在导出面内」），不计入现行 6 导出。
+注：`sdet_detect`、`sdet_detect_debug`、`sdet_free_coords`、`sdet_free_debug_maps` 为历史导出，现行源码已无定义、导出表已注销（`docs/engineering/api/PUBLIC_API.md:759-761` 记「四条 CC 路径符号不在导出面内」），不计入现行 6 导出。
 
 内部核心（static/template，同文件）：`sdet_detect_impl<T>`（:1599-2353，
 float/double 双实例生产核心）、`sdet_compute_bgnoise`（:440-476，FnNoise1

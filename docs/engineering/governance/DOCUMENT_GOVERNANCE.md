@@ -35,8 +35,10 @@ docs/
 `docs/` 下**只有人读文档**。机读的合同 schema、合同数据与配置一律落 `eng/contracts/**`、
 `eng/packaging/config/**` 等工程目录，由代码按固定路径读取；文档域不承载机读资产
 （`docs/` 下的 `.csv` / `.json` 台账一律不新建，已存在的按本条迁出）。
-**豁免**：追溯与证据登记的落点是 `TRACEABILITY.md` [3]；`docs/DOCUMENT_INDEX.yaml` 是文档集自身的索引地图，按「检查项 C3——结构上抓不到、只能人读的缺陷类型」一节 与
-`../../ACSD_DESIGN.md` 作为唯一索引载体保留在 `docs/`，不适用本条迁出。
+**豁免**：追溯与证据登记的落点是 `TRACEABILITY.md` [3]；`docs/DOCUMENT_INDEX.yaml` 是文档集自身的索引地图，
+与 `../../ACSD_DESIGN.md` 并列为唯一索引载体保留在 `docs/`，不适用本条迁出。
+该索引地图自身的核对面见本文
+「检查项 C3——结构上抓不到、只能人读的缺陷类型」一节。
 另：已知限制台账的人读面为 已知限制台账，
 不在 `docs/` 根层。
 

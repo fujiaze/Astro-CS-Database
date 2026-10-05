@@ -63,7 +63,7 @@ G5 (ALG-P3-004) FITS 写:
   BITPIX=−32/−64, BSCALE=1, BZERO=0
   BUNIT = 源 properties 的 BUNIT（**必须经面亮度量纲校验**）；
           无 BUNIT 键 ⇒ canonical 'ADU/sr'（**禁**缺省 'ADU'，禁 Jy/beam）
-  # 依据 DATA_SEMANTICS §31.1/§31.1a（FZ-UNIT-SIGNAL-SB FROZEN）：重采样值是输入
+  # 依据 `docs/science/unified/DATA_SEMANTICS.md`「单位与量纲表」与「面亮度单位的推导」两节（FZ-UNIT-SIGNAL-SB FROZEN）：重采样值是输入
   # tile 值的凸组合 ⇒ 与输入同量纲（面亮度）；'ADU/sr' 是计数按立体角归一的合法串，
   # 裸 'ADU' 是每像素计数口径（与数值不符且量纲不可判）；§31.1a 同时否定 'ADU/px^2'。
   # 实现锚：p3_resample.cpp p3_sampler_open_ex（缺省串）→ p3_session.cpp 透传

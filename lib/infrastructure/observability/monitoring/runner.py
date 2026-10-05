@@ -20,7 +20,7 @@
     monitor.stop(); monitor.seal()
 
 本模块不启动私有线程池、不读核心数做私有决策、不绕过 ArtifactStore 猜路径；
-不触碰 lib/infrastructure/pipeline、lib/infrastructure/scheduler/core、lib/core（只读引用 trace 事件 dict）。
+不触碰 lib/infrastructure/pipeline、lib/infrastructure/scheduler/core、lib/infrastructure/scheduler（只读引用 trace 事件 dict）。
 """
 from __future__ import annotations
 

@@ -41,7 +41,8 @@ enum AioHipsProductFlag {
     // nused/nrej 诊断统计平面 (int32 子产品)
     // 位值由 DATA-UNC-001 §30.2 (DATA-P2-REJ-001) 冻结: NREJ=32 / NUSED=64;
     // 1/2/4/8/16 已被上述产品占用, 32/64 此前为空闲位。
-    // AIO_ALL 掩码扩展由本域实现任务登记 (DATA_SEMANTICS §30.2 原文:
+    // AIO_ALL 掩码扩展由本域实现任务登记 (DATA-P2-REJ-001 位值与诊断平面定位见
+    // docs/engineering/data/ARTIFACTS.md「DataArtifact schema 清单」一节，原文:
     // "AIO_ALL 掩码扩展由实现任务在 AIO 域合同登记, 本节只冻结位值不冻结掩码")。
     AIO_HIPS_PRODUCT_NREJ    = 32,
     AIO_HIPS_PRODUCT_NUSED   = 64,
@@ -215,7 +216,8 @@ AIO_HIPS_EXPORT int aio_hips_write_diag_tile(
 // ═══════════════════════════════════════════════════════════════════════════
 // DATA-UNC-001 §30.3 (DATA-P2-PROV-001) provenance 四键通道
 //
-// 四键 (键名由 DATA_SEMANTICS §30.3 冻结, 值语义同表):
+// 四键 (键名与值语义见 docs/science/unified/DATA_SEMANTICS.md
+// 「溯源最小集」一节):
 //   ACSD_INPUT_MANIFEST_HASH  64hex sha256 (§20.3 公式)
 //   ACSD_MODEL_HASH           UPM model_hash
 //   ACSD_UNCERTAINTY_AVAILABLE true/false (§30.1 unavailable 规则判定结果)

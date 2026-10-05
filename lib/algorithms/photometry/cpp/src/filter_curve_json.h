@@ -20,7 +20,7 @@
 //   - eng/packaging/config/filters.json#lookup.resolution_rule 逐字:
 //     「resolve(name) = filters[name] if name in keys(filters) else
 //       ERROR(unknown_filter)。比较为字节精确：不折叠大小写、不折叠空白、
-//       不做 Unicode 归一、不解析别名」+ docs/engineering/CONFIG_CONTRACT.md §4
+//       不做 Unicode 归一、不解析别名」+ docs/engineering/contracts/CONFIG.md §4
 //     （同一合同的文档化说明）。本头按该规则**只认曲线库内的对象键**。
 //   - docs/ACSD_DESIGN.md §10「统一 I/O 是文件级唯一边界」
 //     —— 读取经 aio_file::read_all（aio 内唯一实现, header-only），本头不自持

@@ -171,7 +171,7 @@ EVID ^EVID-[A-Z0-9]+(-[A-Z0-9]+)*$ 例如 EVID-P1-CAL-001
 
 - 本文件（「追溯链与分层」一节 分层 + 「逐模块追溯台账」一节 模块台账 + 「需求→实现→测试 登记册」一节 需求登记册）构成追溯正本；模块填充把行状态
  `MISSING` → `VERIFIED`，同时补 `EVID-*` 证据锚。
-- 科学公式/单位/容差以 docs/science、docs/algorithms 与测试 oracle 为权威；
+- 科学公式/单位/容差以 docs/science、docs/science/algorithms 与测试 oracle 为权威；
  本合同只做机器身份与断链报告，不判定科学正确性。
 - 冻结约束（项目负责人）优先于本文件；本文件只可在负责人确认后修订。
 

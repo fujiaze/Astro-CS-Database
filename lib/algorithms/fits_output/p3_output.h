@@ -76,7 +76,10 @@ P3OutputStatus p3_output_verify(const char* output_path, const P3WcsDescriptor* 
                                 int width, int height,
                                 P3OutputResult* result);
 
-/* ── 不确定度扩展面 (DATA-P3-UNC-001 §30.4; DATA_SEMANTICS §27.2 目标态行) ──
+/* ── 不确定度扩展面 (DATA-P3-UNC-001 传播产品合同; Phase3 FITS 写出端口见
+ * docs/detail/registry/acsd.phase3.writer.md「输入输出端口、DATA、单位、坐标、invalid」一节;
+ * 三态与二次律见 docs/science/unified/DATA_SEMANTICS.md
+ * 「方差与逆方差的三态编码」+「二次律只约束单位层」两节) ──
  * variance/ivar 同时非 NULL → 原子发布序内追加 EXTNAME="VARIANCE"/"IVAR"
  * 扩展 HDU (BITPIX 同主 HDU; BUNIT=<signal BUNIT>^2 与 1/(<BUNIT>^2);
  * DATASUM 逐 HDU 同 COVERAGE 模式), 单边 NULL → P3_OUT_PARAM (成对要求);

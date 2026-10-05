@@ -61,7 +61,7 @@ json forbidden_variance_sources_json() {
  *        标定。」⇒ docs/ACSD_DESIGN.md §3.1（订正后）「权重只能来自纯净信号与噪声之比……
  *        任何使偏差随帧而变的量（含 PSF 拟合质量代理）都不得进入科学叠加权重」；
  *        docs/detail/UNIFIED_MODEL.md:58（旧产品若声明该对象 ⇒ 显式拒绝 + 迁移提示，
- *        不得静默接受）；docs/science/PSF_SIGNAL_WEIGHT.md §1/§4。
+ *        不得静默接受）；docs/science/noise_snr/NOISE_SNR.md §1/§4。
  * 边界（PSFSW-RETIRE-03 合同收口后）:
  *        产品 schema 已把退役对象声明（psfsw.weight_mode / psfsw.weight /
  *        units.psfsw_robust_weight）从 required 移出 ⇒ 它是**可判定的退役/迁移
@@ -72,7 +72,7 @@ json forbidden_variance_sources_json() {
  *          - 产品面不据此 fail（否则 write 的原子发布自校验必然失败、整条 Phase1
  *            产品链不可用）；**硬拒绝落在消费面** consume_phase1_group_for_psfsw
  *            （该面整体退役，无条件 fail-closed）。
- *        留痕：docs/science/DATA_SEMANTICS.md §31（单位表 OBSOLETE 行 +
+ *        留痕：docs/science/unified/DATA_SEMANTICS.md §31（单位表 OBSOLETE 行 +
  *        退役说明）与 eng/contracts/data/clause_registry.json
  *        #x-acsd-canonical-object-retirement。 */
 const char* kRetiredCanonicalWeightObject = "psfsw_robust_weight";
@@ -635,7 +635,7 @@ Phase1WriteResult write_phase1_product(const Phase1FrameInputs& in,
     /* PSFSW-RETIRE-03（产品合同收口）：**不再写出**退役对象的单位项
      * units.psfsw_robust_weight。该对象已退役（FZ-MODE-RETIRED），产品 schema 不再
      * 要求携带它的任何声明；旧产品若仍携带，重开门按退役/迁移情形识别并登记
-     * （open_phase1_product (6)）。留痕见 docs/science/DATA_SEMANTICS.md §31.1
+     * （open_phase1_product (6)）。留痕见 docs/science/unified/DATA_SEMANTICS.md §31.1
      * 的 OBSOLETE 行与 eng/contracts/data/clause_registry.json
      * #x-acsd-canonical-object-retirement。 */
     units["support"] = in.units.support;

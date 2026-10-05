@@ -4,7 +4,7 @@
 
 > 上游 SCI: SCI-PSF-001（docs/science/psf/PSF.md，FROZEN 共享引用不改动）；本域冻结层
 > SCI-P1-STAR-001（§11.5，ALG 内冻结层，共享 SCI 不改动）
-> 下游: DATA-P1-STAR（DATA_SEMANTICS §17）、API-STAR-001（PUBLIC_API）、
+> 下游: DATA-P1-STAR（`docs/detail/registry/acsd.phase1.star-detection.md`）、API-STAR-001（PUBLIC_API）、
 > MOD-acsd-phase1-star（registry）
 > 唯一权威生产源: lib/algorithms/star_detection/src/sdet_api.cpp（2497 行；源文件唯一在役副本）；合同头
 > lib/algorithms/star_detection/include/star_detector.h（139 行）；取值与签名一律以本头文件为唯一来源。
@@ -243,7 +243,7 @@ sdet_detect_impl(image, w, h, params):            # sdet_api.cpp（模板双实�
   并发合同）。
 - TST: TEST-STAR-DESIGN-001（§11.4 冻结测试设计）；可执行 TEST-P1-STAR-001
   由 P1-STAR-TEST 落地。
-- DATA: DATA-P1-STAR（DATA_SEMANTICS §17，star_det v1 [N,6] 权威块十数组语义）。
+- DATA: DATA-P1-STAR（`docs/detail/registry/acsd.phase1.star-detection.md`，star_det v1 [N,6] 权威块十数组语义）。
 
 ## 11 冻结附录（SRC-STAR-001 源码实测）
 

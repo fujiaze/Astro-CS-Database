@@ -23,7 +23,7 @@
 > SCI-INT-001（signal/sup_max）+ SCI-REJ-001（排异判据）共享 FROZEN SCI
 > （零 SCI 改动）→ ALG-P2-HIPS-001..004（docs/science/algorithms/
 > PHASE2_MOSAIC_WRITE.md，P2-HIPS-DOC 冻结）→ DATA-P2-HIPS
-> （DATA_SEMANTICS §20）/ API-P2-HIPS-001（PUBLIC_API Phase2 mosaic write
+> （`docs/detail/registry/acsd.phase2.write.md`「输入输出端口、DATA、单位、坐标、invalid」一节）/ API-P2-HIPS-001（PUBLIC_API Phase2 mosaic write
 > 节）→ TEST-P2-HIPS-001（登记面=ALG 文档 §11.4 设计冻结 VERIFIED，
 > 依 P2-COV-DOC TEST-COV-DESIGN-001 先例；可执行测试 MISSING 归 P2-HIPS-TEST）。
 > 共用 writer 库 = lib/infrastructure/aio/src/hips/aio_hips_writer.cpp
@@ -97,7 +97,7 @@
 
 ## 3. 输入/输出 ports、DATA ID、单位、dtype、shape、invalid
 
-唯一权威 = DATA-P2-HIPS（docs/science/DATA_SEMANTICS.md §20）。端口
+唯一权威 = DATA-P2-HIPS（`docs/detail/registry/acsd.phase2.write.md`「输入输出端口、DATA、单位、坐标、invalid」一节）。端口
 词汇（module_adapters.cpp:1040-1057 p2_write_descriptor：integrated
 DATA-P2-INT in / mosaic DATA-P2-RES out，UnitId::SURFACE_BRIGHTNESS、
 CoordinateFrame::PIXEL）为编排层词汇，以 DATA-P2-HIPS 为准修订，P2-XX-INT 对齐。
@@ -171,7 +171,7 @@ PUBLIC_API.md Phase2 mosaic write 节（API-P2-HIPS-001）。
 - ALG：ALG-P2-HIPS-001..004（PHASE2_MOSAIC_WRITE.md）；库上游
   ALG-HIPS-001..005（HIPS_WRITER.md）、ALG-UPM-001、ALG-REJ-001..008、
   ALG-COV-001。
-- 契约：DATA-P2-HIPS（DATA_SEMANTICS §20）、API-P2-HIPS-001（PUBLIC_API）、
+- 契约：DATA-P2-HIPS（`docs/detail/registry/acsd.phase2.write.md`「输入输出端口、DATA、单位、坐标、invalid」一节）、API-P2-HIPS-001（PUBLIC_API）、
   API-P2-001（编排）、ARCH-001；IO-002（输入读）/IO-003（原子发布）。
 - 相邻（不改）：aio_hips_reader.cpp（HIPS_VERIFY 后端）、
   astro_sphere_sink.cpp（P1 写通道）、p2_session.cpp（编排 session，

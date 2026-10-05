@@ -691,7 +691,7 @@ bool write_moc_fits(const std::string& path,
 // properties 写出 (IVOA HiPS + ACSD_* provenance 唯一文本载体)。
 // M9-G-6/AIO-001: 原实现 fopen 失败即静默 return、fprintf/fclose 不查, 且直写正式路径
 // —— 违反 docs/ACSD_DESIGN §10(失败或取消须清理临时产物; 没有完成清单不算成功
-// 对象)与 docs/engineering/LOG_AND_ERROR_CONTRACT.md(错误须经统一状态码传播)。改为:
+// 对象)与 docs/engineering/contracts/LOG_AND_ERROR.md(错误须经统一状态码传播)。改为:
 // 同目录临时文件 → fflush →
 // fsync → 原子 rename (aio_atomic_file.h), 任一环节失败清理临时文件并返回 false,
 // 由调用方按子产品错误码 (-3..-8) 上报。
@@ -1092,7 +1092,9 @@ static bool write_hierarchy_cell(AioHipsProductSet* ps, int k, uint64_t A,
                 (uint64_t)i, 9u, 512u);
             const double area = acc.areaAt(i);
             const double vnum = acc.varAt(i);
-            // ── §12.4:423 损坏判定（先于一切映射；禁 clamp、禁静默跳过）────────
+            // ── 损坏判定（先于一切映射；禁 clamp、禁静默跳过；判据见
+            // docs/science/unified/DATA_SEMANTICS.md「方差与逆方差的三态编码」
+            // 一节的「损坏」行）────────────────────────────────────────────
             // 损坏 = **有覆盖**（area>0）而 vnum 非有限或 vnum<0（上游数值损坏）。
             // 判定必须**以覆盖为前提**：无覆盖（area<=0）时 vnum 为 NaN 是**正确的产品态**
             // （与 signal 面的 NaN 同态，见下方三态表第三行），不得判损坏——否则
@@ -1104,10 +1106,11 @@ static bool write_hierarchy_cell(AioHipsProductSet* ps, int k, uint64_t A,
                           std::to_string(k) + " ipix=" + std::to_string(A) +
                           " i=" + std::to_string(i) + " vnum=" + std::to_string(vnum) +
                           " area=" + std::to_string(area) +
-                          " ⇒ 硬失败 (DATA_SEMANTICS §12.4:423)");
+                          " ⇒ 硬失败 (docs/science/unified/DATA_SEMANTICS.md「方差与逆方差的三态编码」一节的损坏态)");
                 return false;
             }
-            // variance/ivar 三态（§4a:49 / §11.2:323 / §30.4:2698）：
+            // variance/ivar 三态（docs/science/unified/DATA_SEMANTICS.md
+            // 「方差与逆方差的三态编码」一节的三态 + 损坏态表）：
             //   有覆盖 ∧ 方差可用 (area>0 ∧ vnum>0) → vnum/area², 1/var
             //   有覆盖 ∧ 方差不可用 (area>0 ∧ vnum==0) → 0 / 0（显式不可用，禁 NaN）
             //   无覆盖 (area<=0)                        → NaN / NaN（与 signal NaN 同态）
@@ -1365,12 +1368,15 @@ int aio_hips_write_signal_support_tile(AioHipsProductSet* ps,
                 if (view->covered_area) area = ((const double*)view->covered_area)[i];
             }
             double sig = 0.0, sup = 0.0, area_true = 0.0;
-            // 覆盖与「信号是否可用」是两件事，必须解耦（DATA_SEMANTICS §4a 三态表）：
+            // 覆盖与「信号是否可用」是两件事，必须解耦（
+            // docs/science/unified/DATA_SEMANTICS.md「方差与逆方差的三态编码」
+            // 一节的三态表）：
             //   无覆盖 (area<=0 / 非有限)      → support=0 ∧ signal=NaN
             //   有覆盖 ∧ 信号可用 (flux 有限)   → support=area/A_cell ∧ signal=flux/area
             //   有覆盖 ∧ 信号不可用             → support=area/A_cell ∧ signal=NaN
             // 原实现把 support 的发布条件与 flux 有限性绑死，第三态被写成 support=0，
-            // 与**同一次写出的 variance=0** 自相矛盾（§4a 要求「无覆盖 ⟺ support=0」），
+            // 与**同一次写出的 variance=0** 自相矛盾（同篇「三个基本对象的语义」一节
+            // 要求「无覆盖 ⟺ support=0」），
             // 且使覆盖面积被低估（tile_covered 少计 ⇒ ps->covered_area_sr 偏小）。
             const bool covered = v && area > 0.0 && std::isfinite(area);
             if (covered) {
@@ -1519,7 +1525,8 @@ int aio_hips_write_signal_support_tile(AioHipsProductSet* ps,
 // ============================================================================
 // variance/ivar 叶级 Tile 写
 // variance = var_num_sum / covered_area² ; ivar = 1/variance
-// 三态（DATA_SEMANTICS §4a:49 / §11.2:323 / §12.4:423 / §30.4:2698）:
+// 三态（docs/science/unified/DATA_SEMANTICS.md「方差与逆方差的三态编码」一节的
+// 三态 + 损坏态表）:
 //   有覆盖 ∧ 方差可用 (area>0 ∧ vnum>0) -> variance=vnum/area², ivar=1/variance
 //   有覆盖 ∧ 方差不可用 (area>0 ∧ vnum==0) -> variance=0 ∧ ivar=0 (显式不可用, 禁 NaN)
 //   无覆盖 (covered_area<=0)               -> NaN (与 signal NaN 语义一致)
@@ -1578,7 +1585,9 @@ int aio_hips_write_variance_tile(AioHipsProductSet* ps,
                 if (view->var_num_sum) vnum = ((const double*)view->var_num_sum)[i];
                 if (view->covered_area) area = ((const double*)view->covered_area)[i];
             }
-            // ── §12.4:423 损坏判定（先于一切映射；禁 clamp、禁静默跳过）────────
+            // ── 损坏判定（先于一切映射；禁 clamp、禁静默跳过；判据见
+            // docs/science/unified/DATA_SEMANTICS.md「方差与逆方差的三态编码」
+            // 一节的「损坏」行）────────────────────────────────────────────
             // 损坏 = **有覆盖**（area>0）而 vnum 非有限或 vnum<0（上游数值损坏，
             // 禁止被静默写成 NaN/0）。判定必须**以覆盖为前提**：无覆盖（area<=0）时
             // vnum 为 NaN 是**正确的产品态**（与 signal 面的 NaN 同态，见下方三态表
@@ -1589,11 +1598,12 @@ int aio_hips_write_variance_tile(AioHipsProductSet* ps,
                 set_error("var_num_sum/covered_area 损坏 (vnum/area 非有限或 vnum<0) i=" +
                           std::to_string(i) + " vnum=" + std::to_string(vnum) +
                           " area=" + std::to_string(area) +
-                          " ⇒ rc=-6 硬失败 (DATA_SEMANTICS §12.4:423，禁 clamp/禁静默跳过)");
+                          " ⇒ rc=-6 硬失败 (docs/science/unified/DATA_SEMANTICS.md「方差与逆方差的三态编码」一节的损坏态，禁 clamp/禁静默跳过)");
                 return -6;
             }
             const bool covered = v && area > 0.0;
-            // variance/ivar 三态（§4a:49 / §11.2:323 / §30.4:2698）：
+            // variance/ivar 三态（docs/science/unified/DATA_SEMANTICS.md
+            // 「方差与逆方差的三态编码」一节的三态 + 损坏态表）：
             //   有覆盖 ∧ 方差可用 (vnum>0) → vnum/area², 1/var
             //   有覆盖 ∧ 方差不可用        → 0 / 0（显式不可用，禁 NaN）
             //   无覆盖 (area<=0)           → NaN / NaN（与 signal NaN 同态）

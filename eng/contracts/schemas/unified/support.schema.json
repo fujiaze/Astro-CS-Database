@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://acsd.local/schemas/unified/support/v1",
   "title": "ACSD 统一对象 support —— 有效输入/面积贡献",
-  "description": "UNIFIED_MODEL §2：support = 有效输入/面积贡献；可否作权重 = 否。DATA_SEMANTICS §4：support ∈ [0,1]，support=0 表示无覆盖；support 只作门，不作权重。",
+  "description": "UNIFIED_MODEL §2：support = 有效输入/面积贡献；可否作权重 = 否。`docs/science/unified/DATA_SEMANTICS.md`「三个基本对象的语义」一节：support ∈ [0,1]，support=0 表示无覆盖；support 只作门，不作权重。",
   "x-acsd-object": {
     "name": "support",
     "canonical_file": "eng/contracts/schemas/unified/support.schema.json",
@@ -45,7 +45,7 @@
         "support",
         "coverage"
       ],
-      "description": "禁止键守卫（FZ-FIELD-PSFSW-4COMP / FZ-GATE-PSFSW-COV）：诊断量/派生量不得作为裸键出现，禁止写成 ivar/Fisher/W_info/方差/SNR/support/coverage 等；见 docs/science/unified/DATA_SEMANTICS.md §31.7/§31.8"
+      "description": "禁止键守卫（FZ-FIELD-PSFSW-4COMP / FZ-GATE-PSFSW-COV）：诊断量/派生量不得作为裸键出现，禁止写成 ivar/Fisher/W_info/方差/SNR/support/coverage 等；判据见 docs/engineering/UNIFIED_OBJECTS.md「归属归一与产品族字段级约束落点」一节登记的 psfsw 记录类字段级约束"
     }
   },
   "properties": {
@@ -217,7 +217,7 @@
       }
     },
     "precision": {
-      "description": "精度：float32 / float64 / integer（与 DATA_SEMANTICS §6 一致，不得自定第二套）",
+      "description": "精度：float32 / float64 / integer（与 `docs/science/unified/DATA_SEMANTICS.md`「精度」一节 一致，不得自定第二套）",
       "enum": [
         "float32",
         "float64",

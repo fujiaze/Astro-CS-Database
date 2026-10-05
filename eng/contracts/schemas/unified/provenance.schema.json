@@ -46,7 +46,7 @@
         "support",
         "coverage"
       ],
-      "description": "禁止键守卫（FZ-FIELD-PSFSW-4COMP / FZ-GATE-PSFSW-COV）：诊断量/派生量不得作为裸键出现，禁止写成 ivar/Fisher/W_info/方差/SNR/support/coverage 等；见 docs/science/unified/DATA_SEMANTICS.md §31.7/§31.8"
+      "description": "禁止键守卫（FZ-FIELD-PSFSW-4COMP / FZ-GATE-PSFSW-COV）：诊断量/派生量不得作为裸键出现，禁止写成 ivar/Fisher/W_info/方差/SNR/support/coverage 等；判据见 docs/engineering/UNIFIED_OBJECTS.md「归属归一与产品族字段级约束落点」一节登记的 psfsw 记录类字段级约束"
     }
   },
   "properties": {
@@ -218,7 +218,7 @@
       }
     },
     "precision": {
-      "description": "精度：float32 / float64 / integer（与 DATA_SEMANTICS §6 一致，不得自定第二套）",
+      "description": "精度：float32 / float64 / integer（与 `docs/science/unified/DATA_SEMANTICS.md`「精度」一节 一致，不得自定第二套）",
       "enum": [
         "float32",
         "float64",
@@ -463,7 +463,7 @@
         "clause_id": "FZ-PROV-KCORR",
         "gate": "G-KCORR-DOMAIN",
         "rule": "k_corr 出现时必须给出 definition/domain/value/calibration，且 value != 1",
-        "source": "docs/science/unified/DATA_SEMANTICS.md §31.5"
+        "source": "docs/science/unified/DATA_SEMANTICS.md 的「溯源最小集」一节"
       }
     }
   ]

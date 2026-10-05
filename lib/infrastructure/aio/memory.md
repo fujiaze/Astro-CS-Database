@@ -243,8 +243,9 @@
 
 ## 2026-09-12 SCI-F3-001 — §30.2 nrej/nused int32 通道 + §30.3 五 provenance 键
 （控制包 Rmtxvlrtfa66eb7；finding 锚 05 号登记册 §STD-F3 / 原 F-P2-002-03）
-- **AIO 掩码扩展登记（DATA_SEMANTICS §30.2 授权"实现任务在 AIO 域合同登记"）**:
-  `AIO_HIPS_PRODUCT_NREJ=32` / `AIO_HIPS_PRODUCT_NUSED=64`（位值由 §30.2 冻结）,
+- **AIO 掩码扩展登记（DATA-P2-REJ-001 位值冻结与"实现任务在 AIO 域合同登记"
+  授权见 `docs/engineering/data/ARTIFACTS.md`「DataArtifact schema 清单」一节）**:
+  `AIO_HIPS_PRODUCT_NREJ=32` / `AIO_HIPS_PRODUCT_NUSED=64`（位值由该登记行冻结）,
   合法位域上界 `AIO_HIPS_PRODUCT_ALL_V20=127`（begin 校验由 `~ALL_V19` 抬到
   `~ALL_V20`; ALL=7 / ALL_V19=31 语义不变, 向后兼容）。
 - **写通道**: `aio_hips_write_diag_tile(ps, AioHipsDiagTileView*)` → `<out>/nrej/`
@@ -287,7 +288,7 @@
     面仍无五键、无 nrej/nused 子产品（`p2_final.json.pending_contracts` 文本随之
     过期）。AIO 侧通道已具备，接线为调用点 2~3 行改动，须 lib/infrastructure/scheduler 写域任务执行。
   - `F-SCI-F3-001-02`（P2, docs/engineering）：`docs/science/algorithms/HIPS_WRITER.md:44`
-    与 `docs/science/DATA_SEMANTICS.md:307`/`PUBLIC_API.md:324` 的产品位清单
+    与 `docs/science/unified/DATA_SEMANTICS.md:307`/`PUBLIC_API.md:324` 的产品位清单
     仍是 {1,2,4,8,16}/ALL_V19（未含 32/64 与 ALL_V20）；
     `eng/contracts/data/phase2_uncertainty_rejection_provenance_v1.json` 的
     `pending_aio_channels.writer_int32_tile|properties_key_channel` 仍为

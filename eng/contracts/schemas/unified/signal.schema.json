@@ -45,7 +45,7 @@
         "support",
         "coverage"
       ],
-      "description": "禁止键守卫（FZ-FIELD-PSFSW-4COMP / FZ-GATE-PSFSW-COV）：诊断量/派生量不得作为裸键出现，禁止写成 ivar/Fisher/W_info/方差/SNR/support/coverage 等；见 docs/science/unified/DATA_SEMANTICS.md §31.7/§31.8"
+      "description": "禁止键守卫（FZ-FIELD-PSFSW-4COMP / FZ-GATE-PSFSW-COV）：诊断量/派生量不得作为裸键出现，禁止写成 ivar/Fisher/W_info/方差/SNR/support/coverage 等；判据见 docs/engineering/UNIFIED_OBJECTS.md「归属归一与产品族字段级约束落点」一节登记的 psfsw 记录类字段级约束"
     }
   },
   "properties": {
@@ -232,7 +232,7 @@
       }
     },
     "precision": {
-      "description": "精度：float32 / float64 / integer（与 DATA_SEMANTICS §6 一致，不得自定第二套）",
+      "description": "精度：float32 / float64 / integer（与 `docs/science/unified/DATA_SEMANTICS.md`「精度」一节 一致，不得自定第二套）",
       "enum": [
         "float32",
         "float64",
@@ -445,7 +445,7 @@
         "clause_id": "FZ-BUNIT-SEMANTICS",
         "gate": "G-BUNIT-SEMANTICS",
         "rule": "bunit_semantics=written_px_power 且 pixel_area_power!=0 ⇒ BUNIT 必须显式含立体角幂次（量纲可判 (a)）",
-        "source": "docs/science/unified/DATA_SEMANTICS.md §31.2"
+        "source": "docs/science/unified/DATA_SEMANTICS.md 的「标度类别与线性标度律」一节"
       }
     },
     {
@@ -485,7 +485,7 @@
         "clause_id": "FZ-BUNIT-SEMANTICS",
         "gate": "G-BUNIT-SEMANTICS",
         "rule": "bunit_semantics=declared_via_provenance ⇒ BUNIT 仅写 ADU，量纲由 pixel_semantics + pixel_area_power 声明（量纲可判 (b)）",
-        "source": "docs/science/unified/DATA_SEMANTICS.md §31.2"
+        "source": "docs/science/unified/DATA_SEMANTICS.md 的「标度类别与线性标度律」一节"
       }
     },
     {
@@ -525,7 +525,7 @@
         "clause_id": "FZ-BUNIT-SEMANTICS",
         "gate": "G-BUNIT-SEMANTICS",
         "rule": "declared_via_provenance + surface_brightness ⇒ pixel_area_power=-2",
-        "source": "docs/science/unified/DATA_SEMANTICS.md §31.2"
+        "source": "docs/science/unified/DATA_SEMANTICS.md 的「标度类别与线性标度律」一节"
       }
     },
     {
@@ -565,7 +565,7 @@
         "clause_id": "FZ-BUNIT-SEMANTICS",
         "gate": "G-BUNIT-SEMANTICS",
         "rule": "declared_via_provenance + integrated_flux ⇒ pixel_area_power=0",
-        "source": "docs/science/unified/DATA_SEMANTICS.md §31.2"
+        "source": "docs/science/unified/DATA_SEMANTICS.md 的「标度类别与线性标度律」一节"
       }
     }
   ]

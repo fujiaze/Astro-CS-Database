@@ -93,7 +93,7 @@ if(TARGET acsd_cpu_baseline)
     RUNTIME DESTINATION ${ACSD_INSTALL_PROVIDER_SUBDIR} COMPONENT acsd_runtime)
 endif()
 
-# ── 可选 ISA 变体 provider DSO (docs/engineering/ISA_VARIANTS.md §0/§2 / R-28) ──
+# ── 可选 ISA 变体 provider DSO (docs/engineering/resources/cpu/ISA_VARIANTS.md §0/§2 / R-28) ──
 # avx2/avx512 变体是**独立动态库**（根 CMakeLists 以 SHARED 声明，编译旗标 target-local），
 # 随安装树进 providers/，运行期经 backend_loader 预检→dlopen→self_test 后按
 # cpu_profile/能力探测选取；主程序保持基线指令集，缺库或不支持即回退基线。

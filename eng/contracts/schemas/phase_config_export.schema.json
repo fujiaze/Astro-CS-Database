@@ -174,7 +174,7 @@
             "point_source_flux",
             "visualization"
           ],
-          "description": "输出模式必须显式（docs/ACSD_DESIGN.md §6.3:496）；默认 surface_brightness 见 docs/detail/algorithms_phase3/16_fits_output.md:45"
+          "description": "输出模式必须显式（docs/ACSD_DESIGN.md §6.3:496）；默认 surface_brightness 见 docs/detail/registry/acsd.phase3.writer.md:45"
         },
         "wcs": {
           "$ref": "#/$defs/export_wcs"
@@ -203,7 +203,7 @@
             "cea",
             "zea"
           ],
-          "description": "投影选择，缺省 TAN（docs/ACSD_DESIGN.md §6.3:493-495；docs/detail/algorithms_phase3/14_projection.md:37）"
+          "description": "投影选择，缺省 TAN（docs/ACSD_DESIGN.md §6.3:493-495；docs/detail/registry/acsd.phase3.wcs.md:37）"
         },
         "center_deg": {
           "type": "array",
@@ -242,7 +242,7 @@
         },
         "rotation_deg": {
           "type": "number",
-          "description": "旋转角（若用 CD）；默认 0（docs/detail/algorithms_phase3/14_projection.md:41）"
+          "description": "旋转角（若用 CD）；默认 0（docs/detail/registry/acsd.phase3.wcs.md:41）"
         },
         "crpix_px": {
           "type": "array",
@@ -256,7 +256,7 @@
               "type": "number"
             }
           ],
-          "description": "参考像素（FITS 1-based）；缺省=中心（docs/detail/algorithms_phase3/14_projection.md:38）"
+          "description": "参考像素（FITS 1-based）；缺省=中心（docs/detail/registry/acsd.phase3.wcs.md:38）"
         }
       }
     },

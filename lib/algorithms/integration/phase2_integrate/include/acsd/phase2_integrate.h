@@ -16,7 +16,7 @@
  *   FZ-WEIGHT-SINGLE-PATH  权重只有一个口径、没有可选择项：Phase1 产稀疏 SNR 控制点
  *                      → Phase2 重建稠密 SNR 面 → 取逆方差（最优功率）定权 → 叠加；
  *                      w = SNR^2/F_ref^2 = 1/sigma_F^2（docs/ACSD_DESIGN.md §3.1；
- *                      docs/science/PSF_SIGNAL_WEIGHT.md §4）
+ *                      docs/science/unified/UNIFIED_SCIENCE_MODEL.md §4）
  *   FZ-MODE-RETIRED    psfsw_robust 显式拒绝 + 迁移提示：psfsw_robust_weight 不是
  *                      现行对象（docs/ACSD_DESIGN.md §3.1；UNIFIED_MODEL.md:58）⇒
  *                      产品校验与权重来源拒绝面一律拒绝，不得静默接受
@@ -65,7 +65,7 @@ namespace v6 {
 namespace p2int {
 
 /* ------------------------------------------------------------------ */
-/* 冻结常数（逐字来自 docs/science/DATA_SEMANTICS.md §31，不重新定值）             */
+/* 冻结常数（逐字来自 docs/science/unified/DATA_SEMANTICS.md §31，不重新定值）             */
 /* ------------------------------------------------------------------ */
 constexpr double kEpsPixivar = 0.05;      /* FZ-AP2S-EPS-PIXIVAR */
 constexpr double kEpsPixivarSup = 0.20;   /* FZ-AP2S-EPS-PIXIVAR-SUP */

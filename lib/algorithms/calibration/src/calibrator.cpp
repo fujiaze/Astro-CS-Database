@@ -15,7 +15,7 @@
 // 黄金分割搜索最优 K，使背景区域（去边缘10% + 去最亮5%）MAD 最小。
 // 搜索范围 [0.5*k_init, 2.0*k_init]，收敛条件：区间宽度<0.001 或迭代>30。
 // 4. calibrate(light, w, h, dark, flat, bias, out, dark_opt, k_init, actual_k)
-// 契约来源 docs/science/CALIBRATION.md §5（BIAS-001 订正）:
+// 契约来源 docs/science/calibration/CALIBRATION.md §5（BIAS-001 订正）:
 // dark_opt=0（默认，标准式；master_dark 已减 bias）:
 //     out = (light - bias*[bias!=NULL] - K*dark*[dark!=NULL]) / max(flat, 0.1)
 // dark_opt=1（兼容式；master_dark 含 bias，显式 bias/dark 分离）:

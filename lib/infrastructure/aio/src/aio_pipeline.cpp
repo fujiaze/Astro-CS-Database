@@ -933,7 +933,7 @@ static int serialize_block_data(FILE* fp, const AioBlock* blk) {
     }
 }
 
-    /* 降级登记 (docs/engineering/io/IO_003_ATOMIC_OUTPUT_PUBLISH.md §7「非生产 /
+    /* 降级登记 (docs/engineering/contracts/ATOMIC_PUBLISH.md §7「非生产 /
      * 诊断接口登记」): 本函数是**非生产/诊断**接口 —— 禁止任何阶段内节点用它搬运
      * 数据。分级的正本是该节 §7 的逐符号表 (本符号在列); 判据按同节取「各符号在役
      * 调用链」, 本组 6 个符号在 aio 之外无任何调用点。仓内**无**自动核这条边界的
@@ -1165,7 +1165,7 @@ static int load_cache_parse(PipelineFrame* frame, const char* path) {
     return 0;
 }
 
-    /* 降级登记 (docs/engineering/io/IO_003_ATOMIC_OUTPUT_PUBLISH.md §7「非生产 /
+    /* 降级登记 (docs/engineering/contracts/ATOMIC_PUBLISH.md §7「非生产 /
      * 诊断接口登记」): 本函数是**非生产/诊断**接口 —— 禁止任何阶段内节点用它搬运
      * 数据。分级的正本是该节 §7 的逐符号表 (本符号在列); 判据按同节取「各符号在役
      * 调用链」, 本组 6 个符号在 aio 之外无任何调用点。仓内**无**自动核这条边界的
@@ -1279,7 +1279,7 @@ static std::string block_to_xml(const AioBlock* blk, const char* block_name_over
     return xml;
 }
 
-    /* 降级登记 (docs/engineering/io/IO_003_ATOMIC_OUTPUT_PUBLISH.md §7「非生产 /
+    /* 降级登记 (docs/engineering/contracts/ATOMIC_PUBLISH.md §7「非生产 /
      * 诊断接口登记」): 本函数是**非生产/诊断**接口 —— 禁止任何阶段内节点用它搬运
      * 数据。分级的正本是该节 §7 的逐符号表 (本符号在列); 判据按同节取「各符号在役
      * 调用链」, 本组 6 个符号在 aio 之外无任何调用点。仓内**无**自动核这条边界的
@@ -1324,7 +1324,7 @@ AIO_EXPORT int aio_frame_export_block_xml(const PipelineFrame* frame,
     }
 }
 
-    /* 降级登记 (docs/engineering/io/IO_003_ATOMIC_OUTPUT_PUBLISH.md §7「非生产 /
+    /* 降级登记 (docs/engineering/contracts/ATOMIC_PUBLISH.md §7「非生产 /
      * 诊断接口登记」): 本函数是**非生产/诊断**接口 —— 禁止任何阶段内节点用它搬运
      * 数据。分级的正本是该节 §7 的逐符号表 (本符号在列); 判据按同节取「各符号在役
      * 调用链」, 本组 6 个符号在 aio 之外无任何调用点。仓内**无**自动核这条边界的
@@ -1374,7 +1374,7 @@ AIO_EXPORT int aio_frame_export_all_xml(const PipelineFrame* frame, const char* 
     }
 }
 
-    /* 降级登记 (docs/engineering/io/IO_003_ATOMIC_OUTPUT_PUBLISH.md §7「非生产 /
+    /* 降级登记 (docs/engineering/contracts/ATOMIC_PUBLISH.md §7「非生产 /
      * 诊断接口登记」): 本函数是**非生产/诊断**接口 —— 禁止任何阶段内节点用它搬运
      * 数据。分级的正本是该节 §7 的逐符号表 (本符号在列); 判据按同节取「各符号在役
      * 调用链」, 本组 6 个符号在 aio 之外无任何调用点。仓内**无**自动核这条边界的
@@ -1398,7 +1398,7 @@ AIO_EXPORT int aio_pipeline_export_xml(const PipelineFrame* frame,
     }
 }
 
-    /* 降级登记 (docs/engineering/io/IO_003_ATOMIC_OUTPUT_PUBLISH.md §7「非生产 /
+    /* 降级登记 (docs/engineering/contracts/ATOMIC_PUBLISH.md §7「非生产 /
      * 诊断接口登记」): 本函数是**非生产/诊断**接口 —— 禁止任何阶段内节点用它搬运
      * 数据。分级的正本是该节 §7 的逐符号表 (本符号在列); 判据按同节取「各符号在役
      * 调用链」, 本组 6 个符号在 aio 之外无任何调用点。仓内**无**自动核这条边界的

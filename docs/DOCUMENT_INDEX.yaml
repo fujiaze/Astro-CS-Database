@@ -809,7 +809,7 @@ doc_index:
     - path: "docs/science/detection/STAR_DETECTION.md"
       status: ACTIVE_NORMATIVE
       duty: "星点检测科学口径（像元中心约定、检测阈值与其噪声单位换算、亚像素质心、召回域统计判据、饱和与边缘判据）"
-      upstream: "docs/ACSD_DESIGN.md §2.1（测光标定）、§4.2（节点流程）"
+      upstream: "docs/ACSD_DESIGN.md §2.1（P1 通量积分拟合：测光校准到测光星等坐标系）、§4.2（节点流程）"
       notes: "由原 STAR_DETECTION 迁入重写；逐档 99% 召回阈的复跑入口不在仓内，阈值表登记为待复算，取值路径在本分册给出。阈值等效倍数按生产 Young–van Vliet 核冻结，权威路径为星表引导检测、盲检为显式声明的诊断路径"
     - path: "docs/science/unified/UNIFIED_SCIENCE_MODEL.md"
       status: ACTIVE_NORMATIVE

@@ -12,7 +12,7 @@
 > lib/algorithms/fits_output/p3_output.h（176 行）+ WCS 关键字源
 > lib/algorithms/projection/p3_wcs.h；
 > API: API-P3-FITS-001（PUBLIC_API.md「Phase3 FITS 写出公共消费面」节）；
-> DATA: DATA-P3-FITS（DATA_SEMANTICS §27）；MOD: acsd.p3.fits_writer
+> DATA: DATA-P3-FITS（`docs/detail/registry/acsd.phase3.writer.md`）；MOD: acsd.p3.fits_writer
 > （MODULE_MIGRATION_MATRIX P3-FITS 行）；TEST: TEST-P3-WR-001
 > （设计冻结面=本文档 §12 + registry 手写页，可执行 MISSING 归
 > P3-FITS-TEST）。
@@ -33,12 +33,12 @@
 
 | 符号 | 类型 | 单位/值域 | 锚 |
 |---|---|---|---|
-| signal | f32 [W·H] | **面亮度**（surface brightness）；BUNIT 一律写 canonical `ADU/sr`（DATA_SEMANTICS §31.1/§31.1a：计数按立体角归一；裸 `ADU` 是每像素计数口径，与本平面数值不符且量纲不可判） | `lib/algorithms/fits_output/p3_output.cpp` |
+| signal | f32 [W·H] | **面亮度**（surface brightness）；BUNIT 一律写 canonical `ADU/sr`（`docs/science/unified/DATA_SEMANTICS.md`「单位与量纲表」与「面亮度单位的推导」两节：计数按立体角归一；裸 `ADU` 是每像素计数口径，与本平面数值不符且量纲不可判） | `lib/algorithms/fits_output/p3_output.cpp` |
 | coverage | f32 [W·H] | 二值门 {0,1}（>0.5f=covered） | `lib/algorithms/fits_output/p3_output.cpp` |
 | width,height | int px | [1,20000]（会话层 `lib/phase3_session/p3_session.cpp`；内核 width<1 拒） | `lib/algorithms/fits_output/p3_output.h` |
 | bitpix | int | -32 \| -64（真实决定 buffer，`lib/algorithms/fits_output/p3_output.h`） | `lib/algorithms/fits_output/p3_output.cpp` |
 | BSCALE/BZERO | f64 | 1.0 / 0.0（恒定；FITS 4.0 §4.4.2.4 规定浮点，取值 TDOUBLE） | `lib/algorithms/fits_output/p3_output.cpp` |
-| BUNIT | string | 主 HDU 面亮度单位；调用方给空串/`nullptr` ⇒ 取 canonical `ADU/sr`（唯一事实源 `lib/algorithms/fits_output/p3_output.cpp`，与 DATA_SEMANTICS §31.1a「产品写盘 BUNIT 一律取该串」同口径）。**上游同口径**：重采样器 `p3_sampler_open_ex` 对无 BUNIT 的源 properties 亦回填 `ADU/sr`（`lib/algorithms/resample/p3_resample.cpp`），会话 `lib/phase3_session/p3_session.cpp` 原样透传 ⇒ 全链缺省串一致，**不出现裸 `ADU`** | `lib/algorithms/fits_output/p3_output.cpp` / `lib/algorithms/resample/p3_resample.cpp` |
+| BUNIT | string | 主 HDU 面亮度单位；调用方给空串/`nullptr` ⇒ 取 canonical `ADU/sr`（唯一事实源 `lib/algorithms/fits_output/p3_output.cpp`，与 `docs/science/unified/DATA_SEMANTICS.md`「面亮度单位的推导」一节「产品写盘 BUNIT 一律取该串」同口径）。**上游同口径**：重采样器 `p3_sampler_open_ex` 对无 BUNIT 的源 properties 亦回填 `ADU/sr`（`lib/algorithms/resample/p3_resample.cpp`），会话 `lib/phase3_session/p3_session.cpp` 原样透传 ⇒ 全链缺省串一致，**不出现裸 `ADU`** | `lib/algorithms/fits_output/p3_output.cpp` / `lib/algorithms/resample/p3_resample.cpp` |
 | CRPIX1/2 | f64 px | FITS 1-based pixel-center | `lib/algorithms/projection/p3_wcs.h` / `lib/algorithms/fits_output/p3_output.cpp` |
 | CRVAL1/2 | f64 deg | ICRS 中心 | `lib/algorithms/projection/p3_wcs.h` / `lib/algorithms/fits_output/p3_output.cpp` |
 | CD1_1..CD2_2 | f64 deg/px | FITS 顺序 CD[i][j] | `lib/algorithms/projection/p3_wcs.h` / `lib/algorithms/fits_output/p3_output.cpp` |
@@ -322,7 +322,7 @@ function p3_output_verify(path, wcs, signal, coverage, W, H, out result):
 ## 13 容差与冻结清单（实测）
 
 - BITPIX ∈ {-32,-64}（kernel 侧 `lib/algorithms/fits_output/p3_output.cpp`；session 默认 -32，`lib/phase3_session/p3_session.cpp`）；
-  BSCALE=1/BZERO=0 恒定；BUNIT 一律 canonical `ADU/sr`（DATA_SEMANTICS §31.1/§31.1a）；CTYPE=TAN/CUNIT=deg。
+  BSCALE=1/BZERO=0 恒定；BUNIT 一律 canonical `ADU/sr`（`docs/science/unified/DATA_SEMANTICS.md`「单位与量纲表」与「面亮度单位的推导」两节）；CTYPE=TAN/CUNIT=deg。
 - W/H ∈ [1,20000]；abs(dec) ≤ 85°；sampler ∈ {nearest,bilinear}；
   parity ∈ {east_left,east_right}（east_left 默认，CD1_1<0）；
   coverage_output = mask（单一合法值）；bitpix/coverage_output 外
@@ -416,7 +416,7 @@ function p3_output_verify(path, wcs, signal, coverage, W, H, out result):
 
 - MATRIX 行：MOD-acsd-phase3-writer（`docs/engineering/governance/TRACEABILITY.md §9`
   / `docs/engineering/governance/TRACEABILITY.md §9` 的 P3-FITS 行）；合同落位=lib/algorithms/fits_output/ 三件套 + 本文件
-  + DATA_SEMANTICS §27 + PUBLIC_API API-P3-FITS-001 节 + registry
+  + `docs/detail/registry/acsd.phase3.writer.md` + PUBLIC_API API-P3-FITS-001 节 + registry
   手写页 + docs/detail/phase3_fits.md。
 - 冻结红线：SCI-P3 冻结面（`docs/science/`、`PHASE3_RESAMPLE.md` 的公式与容差）
   不得因实现偏差被反向修改；实现偏差一律登记（§14）不改 SCI。
@@ -427,7 +427,7 @@ function p3_output_verify(path, wcs, signal, coverage, W, H, out result):
 - WCS 关键字语义：Greisen & Calabretta 2002, A&A 395, 1061（Paper I）§2.1.1 式(1)（CRPIX 为参考像素、q=Σ m_ij(p_j−CRPIX_j)）与 §2.1.4（1-based）；Calabretta & Greisen 2002, A&A 395, 1077（Paper II）§2.3 式(2)–(7)/附录 A.1（旋转核与矩阵形式）。
 - HiPS 输入语义：IVOA HiPS 1.0（https://www.ivoa.net/documents/HiPS/）；Fernique et al. 2015, A&A 578, A114。
 - 原子写：POSIX rename(2) 原子性（IEEE Std 1003.1）；本文件 §4 write_atomic 为 Project-defined。
-- BUNIT/VARIANCE/IVAR 扩展：DATA_SEMANTICS §30；FITS Standard 3.0 §4.3。
+- BUNIT/VARIANCE/IVAR 扩展：`docs/science/unified/DATA_SEMANTICS.md`「方差与逆方差的三态编码」与「单位与量纲表」两节；FITS Standard 3.0 §4.3。
 
 
 ---

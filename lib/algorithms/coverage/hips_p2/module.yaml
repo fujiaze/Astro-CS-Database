@@ -71,8 +71,8 @@ doc_links:
   sci: docs/science/PHASE2_UPM.md
   sci_extra: docs/science/INTEGRATION.md
   alg: docs/science/algorithms/PHASE2_MOSAIC_WRITE.md
-  data: docs/science/DATA_SEMANTICS.md#§20
-  api: docs/engineering/PUBLIC_API.md#API-P2-HIPS-001
+  data: docs/science/unified/DATA_SEMANTICS.md#§20
+  api: docs/engineering/api/PUBLIC_API.md#API-P2-HIPS-001
 contract_ids:
   sci: SCI-UPM-001
   alg: ALG-P2-HIPS-001

@@ -9,7 +9,7 @@
 # 禁止手抄他版。
 # threading_model=host_executor_lease 为迁移目标合同值（11 号标准 §4 值域）；
 # adapter 经 host executor acquire/release 租约 + ac_set_num_threads 注入
-# OMP ICV（不改生产源；见 docs/engineering/PUBLIC_API.md API-CAL-001 与
+# OMP ICV（不改生产源；见 docs/engineering/api/PUBLIC_API.md API-CAL-001 与
 # ALG-CAL §6/§10）。
 id: MOD-acsd-phase1-calibration
 module_id: acsd.p1.calibration

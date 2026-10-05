@@ -36,7 +36,7 @@
 # :347 线程局部矩阵+整数归并 collapse(2) schedule(static)、
 # ipv_select.cpp:810/:1123/:1412/:1756 schedule(static)），求解主体单线程，
 # 输出 bitwise 与线程数无关，但 ThreadLease/omp_set_num_threads 无接线
-# （迁移整改点，见 docs/engineering/PUBLIC_API.md API-WCS-001 与
+# （迁移整改点，见 docs/engineering/api/PUBLIC_API.md API-WCS-001 与
 # docs/science/algorithms/PLATESOLVE.md §11.3 DISP-WCS-001..006）。
 # entrypoint=MISSING：registry 入口未接；descriptor 现状占位 ID
 # （lib/infrastructure/scheduler/src/module_adapters.cpp:450-464 p1_wcs_descriptor 的
@@ -71,10 +71,10 @@ api_contracts:
   - API-P1-004
   - API-WCS-001
 doc_links:
-  sci: docs/science/ASTROMETRY.md
+  sci: docs/science/detection/ASTROMETRY.md
   alg: docs/science/algorithms/PLATESOLVE.md#§11
-  data: docs/science/DATA_SEMANTICS.md#§18
-  api: docs/engineering/PUBLIC_API.md#API-WCS-001
+  data: docs/science/unified/DATA_SEMANTICS.md#§18
+  api: docs/engineering/api/PUBLIC_API.md#API-WCS-001
 contract_ids:
   sci: SCI-WCS-001
   alg: ALG-WCS-001
@@ -144,7 +144,7 @@ notes: >-
   P1-WCS-IMPL/INT（006 涉 P1-PHOT-IMPL）。matrix 行
   depends_on_int=CAT-GAIA-INT;P1-STAR-INT。像素中心双契约（统一契约
   index-is-center ↔ IPV 接口契约 center=index+0.5）由 orchestrator
-  :1867 显式桥接（DATA_SEMANTICS §18.1）；编排 port DATA 编目
+  :1867 显式桥接（`docs/science/unified/DATA_SEMANTICS.md`「坐标语义」一节）；编排 port DATA 编目
   （sources→DATA-P1-SOURCES/wcs→DATA-P1-WCS）由 P1-WCS-INT 对齐本合同
-  （模块 DATA 层=DATA-P1-WCS，DATA_SEMANTICS §18），不得反向作为冻结
+  （模块 DATA 层=DATA-P1-WCS，`docs/detail/registry/acsd.phase1.wcs-platesolve.md`「输入输出端口、DATA、单位、坐标、invalid」一节），不得反向作为冻结
   依据。禁止声明 IMPLEMENTED（迁移落码未发生）。

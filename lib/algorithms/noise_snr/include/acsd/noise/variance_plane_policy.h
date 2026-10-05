@@ -1,4 +1,5 @@
-// 方差面可用性策略（SCI-NOISE-001 §7/§9 + DATA_SEMANTICS §4a 逐像素三态表）
+// 方差面可用性策略（SCI-NOISE-001 §7/§9 +
+// docs/science/unified/DATA_SEMANTICS.md「方差与逆方差的三态编码」一节的逐像素三态表）
 //
 // 用途: 消费侧（阶段二 drizzle 节点）判定一张**已 fill 出来的逐像素 variance 面**
 //   是否可以挂到帧上。生产者是 snr_noise_model_v1_fill。
@@ -90,7 +91,7 @@ inline bool variance_plane_auditable(double hull_nonpositive_frac) {
 }
 
 // ── SCI-NOISE-001 §5d: 「可观测量（必须写入 provenance）」的**机检清单** ────────
-// 规范原文（docs/science/NOISE_MODEL.md §5d:270-271）:
+// 规范原文（docs/science/noise_snr/NOISE_SNR.md §5d:270-271）:
 //   「**可观测量（必须写入 provenance）**：控制点方差的动态范围、平面系数、
 //     凸包内预测 ≤ 0 的像素占比、被剔除 patch 数与 `R` 的分布。
 //     **缺任一项即视为该帧的方差面不可审计。**」

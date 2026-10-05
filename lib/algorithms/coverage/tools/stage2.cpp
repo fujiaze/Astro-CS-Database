@@ -383,7 +383,7 @@ int main(int argc, char** argv) {
     // ⇒ 原 local_snr_map 的构造与其权重消费点一并删除，不留"建了不用"的死面。
     // 仅保留「无局部星点的 control observation 回退整帧 SNR median」这一
     // **UPM 控制权重**语义（UPM 拟合内部诊断开关，不是 Phase2 集成权重枚举；
-    // docs/engineering/PUBLIC_API.md「边界登记」冻结两者不得互相映射）。
+    // docs/engineering/api/PUBLIC_API.md「边界登记」冻结两者不得互相映射）。
     std::uint64_t local_snr_unavailable = 0;
     for (const auto& o : obs) {
         if (!o.snr_available) ++local_snr_unavailable;
@@ -768,7 +768,7 @@ int main(int argc, char** argv) {
     }
     // ivar 产品 ——**唯一**权重口径（逐样本逆方差）。
     // docs/ACSD_DESIGN.md §3.1「全链没有「权重模式」这一可选概念」；
-    // docs/science/PSF_SIGNAL_WEIGHT.md §4「没有可选择的口径」。
+    // docs/science/unified/UNIFIED_SCIENCE_MODEL.md §4「没有可选择的口径」。
     // 整个 ivar 产品缺失时默认
     // → 显式 science/degraded 错误（无静默回退）；仅当显式配置
     // （原 legacy_allow_weight_fallback=true 降级分支已删除。）

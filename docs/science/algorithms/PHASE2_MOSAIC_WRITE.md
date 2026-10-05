@@ -11,7 +11,7 @@
 > 实现源（唯一权威生产源）: lib/algorithms/coverage/tools/stage2.cpp（2015 行实测；入口 main :112）。
 > 公式与默认容差以 SCI 层为权威，本文只登记实现锚点与实现自带语义；
 > no root science formula change（w_UPM / signal / sup_max / rejection 判据一律不改）。
-> 下游: DATA-P2-INT / DATA-P2-RES（DATA_SEMANTICS §20 DATA-P2-HIPS）、
+> 下游: DATA-P2-INT / DATA-P2-RES（DATA-P2-HIPS，`docs/detail/registry/acsd.phase2.write.md`）、
 > API-P2-001（docs/engineering/api/PUBLIC_API.md）+ PUBLIC_API Phase2 mosaic write 节、
 > 模块 MOD-acsd-phase2-hips-writer（registry 现状实测 acsd.phase2.write.md =
 > MOD-acsd-phase2-write，二者对齐归 P2-HIPS-INT，见 §11.6）。
@@ -412,7 +412,7 @@ main(stage2.json, CLI overrides):
   是 stage2 侧编排与集成语义，writer 域合同不在此重登记）。
 - DATA: DATA-P2-INT（integrated，registry acsd.phase2.integrate.md:43）、
   DATA-P2-RES（mosaic，acsd.phase2.write.md:23）；逐字段唯一权威见
-  DATA_SEMANTICS §20。
+  `docs/detail/registry/acsd.phase2.write.md`。
 - API: API-P2-001（docs/engineering/api/PUBLIC_API.md，FROZEN，所有权/并发合同）+
   PUBLIC_API Phase2 mosaic write 节（生产入口 = `acsd phase2 run` 编排；
   本节登记其底层写出实现 lib/algorithms/coverage/tools/stage2.cpp）。

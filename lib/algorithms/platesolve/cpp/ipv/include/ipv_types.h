@@ -224,7 +224,7 @@ struct FlipModeResult {
 //   log_only:       vote_threshold (仅日志; 判据为字面量 3)
 //   shadowed:       img_n_target (=60 硬覆盖), log_dir (上游清零)
 //   代码真实消费但配置不可达: gaia_* 两项 + m_lim_* 全部 + density_tolerance
-// 详见 ipv_api.h 尾部 [P27-DEAD-PARAMS] 注释、docs/engineering/PUBLIC_API.md §P27、
+// 详见 ipv_api.h 尾部 [P27-DEAD-PARAMS] 注释、docs/engineering/api/PUBLIC_API.md §P27、
 // run/perf-fix/P27-dead-params/REPORT.md。不改变任何默认值/公式/容差。
 // IPVSolver 参数
 struct IPVSolverParams {
@@ -253,7 +253,7 @@ struct IPVSolverParams {
     // 替换原 m_lim_step=0.5 线性步长 (割线迭代不需要固定步长)。
     // 依据: run/perf-fix/P4-magiter/REPORT.md (实测 alpha 中位 0.2885;
     // "FOV 内 >= n_target 颗" 需 safety>=3, 10/10 帧通过)。
-    // 偏差登记: 尚未在 docs/algorithms 登记 (proposed patch)。
+    // 偏差登记: 尚未在 docs/science/algorithms 登记 (proposed patch)。
     // alpha = dlog10(N)/dmag 的局部斜率; 先验取自 10 帧真实 N(m) 曲线中位拟合值
     // (实测 0.243–0.456, R^2>0.986), 迭代中用相邻两次查询有限差分更新。
     double m_lim_alpha_prior = 0.2885;      // alpha 先验

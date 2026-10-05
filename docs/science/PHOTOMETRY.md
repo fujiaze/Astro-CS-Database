@@ -176,7 +176,7 @@ Gaia DR3 官方文档［17］§5.4.1「External Calibration → Zero points」�
 
 ## 3a 坐标 frame
 
-光度定标**不做空间坐标变换**：参考星表为 Gaia DR3（ICRS/J2000，与 WCS 输出同系）；交叉匹配沿用 WCS 求解后的天球坐标（SCI-WCS），本层只工作在 flux/星等域；帧身份沿用 `frame_id`（DATA_SEMANTICS §5）。
+光度定标**不做空间坐标变换**：参考星表为 Gaia DR3（ICRS/J2000，与 WCS 输出同系）；交叉匹配沿用 WCS 求解后的天球坐标（SCI-WCS），本层只工作在 flux/星等域；帧身份沿用 `frame_id`（`docs/science/unified/DATA_SEMANTICS.md`「帧身份与输入清单摘要」一节）。
 
 ## 4 输入有效域
 
@@ -364,8 +364,8 @@ outlier_rate = 1 − |r_inliers|/|r_consistent|
 
 | 步 | 做什么 | 节点（§4.2） | 权威/细则 |
 |---|---|---|---|
-| ① **Gaia XP 逆映射定位** | 用本帧 WCS（近似指向来自 `wcs.init_source`）把 Gaia DR3 星表（ICRS/J2000，自行/视差传播到观测历元）**逆投影到像素域**，只在星表位置做质心/PSF 拟合；拟合失败直接丢弃（不计虚警、不报错）；上限按亮度取（规模由配置键 `star_detection.max_stars` 导出，数值/合同域正本 = `eng/contracts/schemas/phase_config_normalize.schema.json` 与 `docs/detail/algorithms_phase1/03_star_detection.md` §5.1；本节不复制数值），极限星等按焦距/画幅/曝光**派生估计**（**登记 P1-m12**：该句是**设计意图**；截至本轮，P1 实验单元**没有任何实验锚定该派生链**，其实锚是生产侧固定星等阶梯 {12,13,14,15,16}，且注释宣称的「上界 10000」**未实现**——引用时必须写成「设计意图、未验证」，见 `实验/photometric-magnitude/code/redo/route1/REPORT_route1.md` H6） | `platesolve`（星表匹配 + 稳健迭代精化）+ `star_detection` | `docs/detail/algorithms_phase1/03_star_detection.md` §4、`docs/detail/algorithms_phase1/05_platesolve.md`；研究包 §6（astrometry.net 盲解+精化、SCAMP 星表解算、astropy WCS 逆投影） |
-| ② **星点测光** | 在星表位置做 **PSF 拟合域**测光（全链唯一 `flux` 口径 `flux = 2πA·sx·sy/3`；孔径测光只作显式诊断）；`F_hat = Q/W`、`Var(F_hat)=1/W`；饱和/质量异常不入定标 | `psf` → `photometry` | `docs/detail/algorithms_phase1/06_photometry.md` §4、`docs/science/noise_snr/NOISE_SNR.md` §3.4「严格信息量口径」；研究包 §6（DAOPHOT/Anderson & King［35］的星表引导 PSF 测光族、photutils/SEP 的独立对照） |
+| ① **Gaia XP 逆映射定位** | 用本帧 WCS（近似指向来自 `wcs.init_source`）把 Gaia DR3 星表（ICRS/J2000，自行/视差传播到观测历元）**逆投影到像素域**，只在星表位置做质心/PSF 拟合；拟合失败直接丢弃（不计虚警、不报错）；上限按亮度取（规模由配置键 `star_detection.max_stars` 导出，数值/合同域正本 = `eng/contracts/schemas/phase_config_normalize.schema.json` 与 `docs/detail/registry/acsd.phase1.star-detection.md`「Registry descriptor 与配置 schema」一节；本节不复制数值），极限星等按焦距/画幅/曝光**派生估计**（**登记 P1-m12**：该句是**设计意图**；截至本轮，P1 实验单元**没有任何实验锚定该派生链**，其实锚是生产侧固定星等阶梯 {12,13,14,15,16}，且注释宣称的「上界 10000」**未实现**——引用时必须写成「设计意图、未验证」，见 `实验/photometric-magnitude/code/redo/route1/REPORT_route1.md` H6） | `platesolve`（星表匹配 + 稳健迭代精化）+ `star_detection` | `docs/detail/registry/acsd.phase1.star-detection.md`「输入输出端口、DATA、单位、坐标、invalid」一节、`docs/detail/registry/acsd.phase1.wcs-platesolve.md`；研究包 §6（astrometry.net 盲解+精化、SCAMP 星表解算、astropy WCS 逆投影） |
+| ② **星点测光** | 在星表位置做 **PSF 拟合域**测光（全链唯一 `flux` 口径 `flux = 2πA·sx·sy/3`；孔径测光只作显式诊断）；`F_hat = Q/W`、`Var(F_hat)=1/W`；饱和/质量异常不入定标 | `psf` → `photometry` | `docs/detail/registry/acsd.phase1.photometry.md`「输入输出端口、DATA、单位、坐标、invalid」一节、`docs/science/noise_snr/NOISE_SNR.md` §3.4「严格信息量口径」；研究包 §6（DAOPHOT/Anderson & King［35］的星表引导 PSF 测光族、photutils/SEP 的独立对照） |
 | ③ **光谱 × QE × 透过率积分（正向合成期望测光量）** | 用 Gaia DR3 XP 星点光谱 × 系统响应在**模型通带**内积分得 `F_syn`（定义式与量纲见本文件 §2a.1/§2a.2；与官方式 5.41 的对应见 §2a.3）；XP 采样网格 = 336–1020 nm、步长 2 nm、343 点，谱插值按 §14a［28］；`Q(λ)≡1` 与网格外无数据是**显式未建模项**，不外推 | `photometry`（参考侧） | 研究包 §3（Gaia DR3 官方文档 §20.12.3/§20.12.4［16］、Montegriffo 2023［19］、De Angeli 2023［20］）、§4（合成测光标准方法：Bessell 1990［25］、Bessell & Murphy 2012［15］、Sirianni 2005［27］、synphot/pysynphot） |
 | ④ **拟合 `k_photo` 与低阶空间增益 `m(x,y)`** | 逐星 `r_i = log10(F_instr/F_syn)` → 星等一致性预过滤 → IRLS/Tukey 稳健位置（§5）；同时用星点残差在帧内估计**低阶乘性空间增益** `m(x,y)`（平场/光学大尺度响应的低阶残余），与 `k_photo` 一并作为标定面 | `photometry` | 本文件 §5；`ACSD_DESIGN.md` §4.2（测光归一化落到像素，photometry 一步完成）；研究包 §7 ④（平场/大尺度残余的预算出处） |
 | ⑤ **应用到像素** | `I_photo = k_photo·m(x,y)·I_cal` 施加到**整帧像素**（不只星点）；其后所有节点与 drizzle 消费归一化后的像素；该步不可用时产品显式记录 `degraded_reason` 并 **fail-closed**。**施加是 `photometry` 节点内的步骤，不是独立节点**（合并成一步省一次中间产物落盘 = 省一次写 + 一次读的 IO 往返） | `photometry`（同一步内的施加步骤） | `ACSD_DESIGN.md` §4.2（含 fail-closed 条款） |
@@ -392,7 +392,7 @@ outlier_rate = 1 − |r_inliers|/|r_consistent|
 
 ### 16.4 误差预算的构成与出处
 
-判据形态与逐项预算见 `docs/detail/algorithms_phase1/06_photometry.md` §4.1；逐项读数正本见 `实验/photometric-magnitude/`。预算项与一手出处：
+判据形态与逐项预算见 `docs/detail/registry/acsd.phase1.photometry.md`「数值落地口径」一节；逐项读数正本见 `实验/photometric-magnitude/`。预算项与一手出处：
 
 | 预算项 | 一手出处（研究包 §7） | 仓内状态 |
 |---|---|---|
@@ -438,6 +438,6 @@ outlier_rate = 1 − |r_inliers|/|r_consistent|
 ### 16.6 指针
 
 - 一手出处与开源对照（项目+版本+文件:行）：`docs/science/PHOTOMETRY_RESEARCH_PACK.md`；
-- 模块算法与配置：`docs/detail/algorithms_phase1/06_photometry.md`、`docs/detail/algorithms_phase1/07_noise_snr.md`；
+- 模块算法与配置：`docs/detail/registry/acsd.phase1.photometry.md`、`docs/detail/registry/acsd.phase1.noise-snr.md`；
 - PSF 信息权重与最优性声明：`docs/science/noise_snr/NOISE_SNR.md` §3.4；
 - 方差与协方差传播：`docs/science/noise_snr/NOISE_SNR.md` §3.5。

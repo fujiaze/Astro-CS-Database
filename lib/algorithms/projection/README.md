@@ -23,7 +23,7 @@
 > 并登记 acsd_p3_projection_wcs STATIC + 共址 eng/tests/p3wcs/**；
 > 会话消费点 p3_session.cpp 的 include 同步改新址。
 > 文档口径见 docs/science/algorithms/PHASE3_PROJ_IMPL.md §15（v3 冻结口径 + §15.9
-> v1 偏差表）、docs/detail/algorithms_phase3/14_projection.md。
+> v1 偏差表）、docs/detail/registry/acsd.phase3.wcs.md。
 
 ## 1 身份
 
@@ -48,10 +48,10 @@
 |---|---|---|---|
 | SCI | SCI-P3-001 | docs/science/PHASE3_HIPS_TO_FITS.md（共享 FROZEN，映射声明 SCI-P3-WCS-001⇒SCI-P3-001 见 ALG-P3-PROJ-IMPL-001 §5） | FROZEN |
 | ALG | ALG-P3-PROJ-IMPL-001 | docs/science/algorithms/PHASE3_PROJ_IMPL.md（本域实现级合同，兼承接 ALG-P3-002 本域子面） | CONTRACT_READY |
-| DATA | DATA-P3-WCS | docs/science/DATA_SEMANTICS.md §28 | CONTRACT_READY |
-| API | API-P3-PROJ-001 | docs/engineering/PUBLIC_API.md（Phase3 投影公共消费面节） | CONTRACT_READY |
+| DATA | DATA-P3-WCS | docs/science/unified/DATA_SEMANTICS.md §28 | CONTRACT_READY |
+| API | API-P3-PROJ-001 | docs/engineering/api/PUBLIC_API.md（Phase3 投影公共消费面节） | CONTRACT_READY |
 | ARCH | ARCH-001 | eng/cmake/ARCH-001-migration-manifest.md | VERIFIED |
-| API(镜像) | API-P3-001 | docs/engineering/PUBLIC_API.md（p3_session 五段编排面 FROZEN 镜像，不变） | FROZEN 镜像 |
+| API(镜像) | API-P3-001 | docs/engineering/api/PUBLIC_API.md（p3_session 五段编排面 FROZEN 镜像，不变） | FROZEN 镜像 |
 | TEST | TEST-P3-WCS-001 | 登记面=TEST-P3-WCS-DESIGN-001（设计冻结 VERIFIED，ALG-P3-PROJ-IMPL-001 §11 + registry 页 §9 双重陈述）；可执行面=eng/tests/unit/p3_wcs_test.cpp（90 行）+ eng/tests/backend/test_p1002_gaps.py + eng/tests/backend/p3_wcs_main.cpp；验收升级归 P3-PROJ-TEST | 见右 |
 | EVID | EVID-MISSING | 待 P3-PROJ-INT/验收补 | MISSING |
 
@@ -98,8 +98,8 @@
 - SCI: [docs/science/PHASE3_HIPS_TO_FITS.md](../../docs/science/PHASE3_HIPS_TO_FITS.md)（FROZEN）
 - ALG: [docs/science/algorithms/PHASE3_PROJ_IMPL.md](../../docs/science/algorithms/PHASE3_PROJ_IMPL.md)
 - ALG(承接): [docs/science/algorithms/PHASE3_RESAMPLE.md](../../docs/science/algorithms/PHASE3_RESAMPLE.md)（ALG-P3-002 施工规格，公式零改动）
-- DATA: [docs/science/DATA_SEMANTICS.md](../../docs/science/DATA_SEMANTICS.md) §28
-- API: [docs/engineering/PUBLIC_API.md](../../docs/engineering/PUBLIC_API.md)
+- DATA: [docs/science/unified/DATA_SEMANTICS.md](../../docs/science/unified/DATA_SEMANTICS.md) §28
+- API: [docs/engineering/api/PUBLIC_API.md](../../docs/engineering/api/PUBLIC_API.md)
 - 模块页: [docs/detail/phase3_proj.md](../../docs/detail/phase3_proj.md)；
   registry 手写页: docs/detail/registry/acsd.phase3.wcs.md
 

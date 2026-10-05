@@ -21,7 +21,7 @@ extern "C" {
  * 都是按块名索引的块。模块按块名读取数据，计算结果写为新块或注入已有块。
  * 编排器按阶段丢弃不需要的块释放内存。
  *
- * ⚠ 块↔文件接口的归属 (docs/engineering/io/IO_003_ATOMIC_OUTPUT_PUBLISH.md §7):
+ * ⚠ 块↔文件接口的归属 (docs/engineering/contracts/ATOMIC_PUBLISH.md §7):
  *   本头下半部「缓存文件 (.aio)」与「调试导出」两组接口是**非生产/诊断**接口，
  *   **禁止**任何阶段内节点用它们搬运数据。分级的正本是该节 §7 的逐符号表, 处置
  *   按「删除或明确降级为非生产/诊断并登记」执行 —— 本头即代码侧登记面。阶段间交换
@@ -220,7 +220,7 @@ AIO_EXPORT double aio_frame_kv_get_double(const PipelineFrame* frame, const char
 /* ===========================================================================
  * 缓存文件 (.aio) - 无损读写所有块
  * ---------------------------------------------------------------------------
- * ⚠ 非生产 / 诊断接口 (降级登记; docs/engineering/io/IO_003_ATOMIC_OUTPUT_PUBLISH.md
+ * ⚠ 非生产 / 诊断接口 (降级登记; docs/engineering/contracts/ATOMIC_PUBLISH.md
  *   §7「非生产 / 诊断接口登记」)。分级的正本是该节 §7 的逐符号表: 本组这 **2** 个
  *   符号在该表 :239-240 两行在列 (该表共登记 6 个符号, 另 4 个属下方「调试导出」组)。
  *   处置按「删除或明确降级为非生产/诊断并登记」执行 —— 本头即代码侧登记面。
@@ -240,7 +240,7 @@ AIO_EXPORT int aio_frame_load_cache(PipelineFrame* frame, const char* path);
 
 /* ===========================================================================
  * 调试导出 (非生产 / 诊断接口; 降级登记;
- *   docs/engineering/io/IO_003_ATOMIC_OUTPUT_PUBLISH.md §7 —— 本组这 **4** 个符号
+ *   docs/engineering/contracts/ATOMIC_PUBLISH.md §7 —— 本组这 **4** 个符号
  *   在该表 :241-244 在列)。
  * ---------------------------------------------------------------------------
  * 判据同上一组取「各符号在役调用链」: 这 4 个符号在 aio 之外无任何调用点;
@@ -325,9 +325,9 @@ AIO_EXPORT int aio_pipeline_export_xml(const PipelineFrame* frame,
  * | healpix       | RAW      | [N]          | HEALPix 数据包                    |
  * | variance      | FLOAT32  | [H,W]        | 逐像素方差 (signal 单位²; ivar=1/variance; 无信息=0 显式不可用) |
  * | ivar          | FLOAT32  | [H,W]        | 逆方差 1/variance (variance 缺失/≤0 ⇒ 0 显式不可用) |
- * | star_measurements | FLOAT64 | [N,15]    | 星点权威测量块 (orchestrator 生产块; DATA_SEMANTICS §15/§18) |
- * | photometric_match | FLOAT64 | [N,6]     | 测光逐星匹配块 (orchestrator 生产块; DATA_SEMANTICS §18) |
- * | snr_model     | RAW      | [N]          | SNR 稀疏控制点模型块 (orchestrator 生产块; DATA_SEMANTICS §11.1) |
+ * | star_measurements | FLOAT64 | [N,15]    | 星点权威测量块 (orchestrator 生产块; 端口见 docs/detail/registry/acsd.phase1.star-psf.md 与 docs/detail/registry/acsd.phase1.wcs-platesolve.md) |
+ * | photometric_match | FLOAT64 | [N,6]     | 测光逐星匹配块 (orchestrator 生产块; 端口见 docs/detail/registry/acsd.phase1.wcs-platesolve.md 与 docs/detail/registry/acsd.phase1.photometry.md) |
+ * | snr_model     | RAW      | [N]          | SNR 稀疏控制点模型块 (orchestrator 生产块; 端口见 docs/detail/registry/acsd.phase1.noise-snr.md) |
  * ---------------------------------------------------------------------------
  * 注: 块名大小写敏感。**本表是帧内命名块的唯一登记处**：块名 ∉ 本表且未经
  *     aio_block_name_register 显式注册 ⇒ aio_frame_add_block /
@@ -335,7 +335,8 @@ AIO_EXPORT int aio_pipeline_export_xml(const PipelineFrame* frame,
  *     扩展路径只有一条 = 显式注册（先在本表增行、给出权威引用，再注册）。
  *     variance / ivar 的语义正本 = docs/detail/UNIFIED_MODEL.md §2 +
  *     eng/contracts/schemas/unified/{variance,ivar}.schema.json；
- *     消费面登记 = docs/science/DATA_SEMANTICS.md §11.1。
+ *     消费面登记 = docs/science/unified/DATA_SEMANTICS.md
+ *     「方差与逆方差的三态编码」一节。
  * ===========================================================================
  *
  * ===========================================================================

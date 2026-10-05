@@ -29,7 +29,7 @@
   docs/science/algorithms/PHASE2_SAMPLER.md §11.4，占位 ID 不入合同）
   → ALG-P2-SMP-001（docs/science/algorithms/PHASE2_SAMPLER.md，兼承接
   ALG-UPM-CONTROL-IVAR-001 方差子面）
-  → DATA-P2-SMP（DATA_SEMANTICS §23）/ API-P2-SMP-001
+  → DATA-P2-SMP（`docs/detail/registry/acsd.phase2.sample.md`「输入输出端口、DATA、单位、坐标、invalid」一节）/ API-P2-SMP-001
   （PUBLIC_API Phase2 sampling 公共消费面节）→
   TEST-P2-SMP-001（登记面=设计冻结 TEST-P2-SMP-DESIGN-001 VERIFIED，
   承载于 docs/detail/registry/acsd.phase2.sample.md §独立 synthetic
@@ -102,8 +102,8 @@ rtol 1e-12、F4 atol 1e-9 deg）。
 - SCI：docs/science/PHASE2_UPM.md（SCI-UPM-001，FROZEN T106
   2026-08-23，零改动）
 - ALG：docs/science/algorithms/PHASE2_SAMPLER.md（ALG-P2-SMP-001）
-- DATA：docs/science/DATA_SEMANTICS.md §23（DATA-P2-SMP）
-- API：docs/engineering/PUBLIC_API.md API-P2-SMP-001；
+- DATA：`docs/detail/registry/acsd.phase2.sample.md`「输入输出端口、DATA、单位、坐标、invalid」一节（DATA-P2-SMP）
+- API：docs/engineering/api/PUBLIC_API.md API-P2-SMP-001；
   API-P2-001（编排层既有）
 - 模块页：docs/detail/registry/acsd.phase2.sample.md
 - 新模块页：docs/detail/phase2_samp.md

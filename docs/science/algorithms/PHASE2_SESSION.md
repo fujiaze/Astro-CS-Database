@@ -12,7 +12,7 @@
 
 > 上游 SCI（共享引用零改动）: SCI-UPM-001 / SCI-INT-001 / SCI-REJ-001
 > （docs/science/，映射声明见 §11.6）。
-> 下游合同: DATA-P2-SESSION（DATA_SEMANTICS §24，并行任务生成）/ 
+> 下游合同: DATA-P2-SESSION（`docs/detail/registry/acsd.phase2.session.md`，并行任务生成）/ 
 > API-P2-SESSION-001（PUBLIC_API.md，并行任务生成）。
 > 模块: acsd.p2.session（本任务冻结的合同模块词汇）——迁移目标
 > acsd_p2_session.dll 为 MODULE_MIGRATION_MATRIX 矩阵合同值，
@@ -360,7 +360,7 @@ DATA-P2-SESSION（§24，并行任务生成）；本节为实现现状锚定。
 - `ALG-P2-SESSION-001` = 本文档整体（DAG §3/端口 §4/生命周期 §5/
   唯一性 §7；矩阵 P2-SESSION 行 algorithm_id，INDEX.yaml path 绑定
   本文件——由并行任务登记，此处引用 id 不引节号）。
-- `DATA-P2-SESSION`（DATA_SEMANTICS §24，生成中）= config 键集
+- `DATA-P2-SESSION`（`docs/detail/registry/acsd.phase2.session.md`，生成中）= config 键集
   （§5）/manifest 字段（§11.2）契约面；冲突以 §24 为准。
 - `API-P2-SESSION-001`（PUBLIC_API.md，生成中）= 五函数 C API +
   last_error 诊断面（§5）。

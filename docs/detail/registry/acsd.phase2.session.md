@@ -25,7 +25,7 @@
 - 导出符号：SRC-P2-SESSION-001 五 C API（p2_session.h：
   p2_session_create/validate/run/inspect/destroy）+ C++
   诊断面 last_error（p2_session.h，非 C ABI）；展开冻结=API-P2-SESSION-001。
-- 外部输入：config JSON 键集（DATA §24.1：hips_paths/output_dir
+- 外部输入：config JSON 键集（本页合同条：hips_paths/output_dir
   必填，upm{max_iterations,huber_delta,smoothing_lambda}/persist_upm/
   upm_save_path 可选；output_dir 现状 validate 必填、run 不消费，登记不改码）/
   host services 四通道（common_abi_v1.h：
@@ -37,9 +37,9 @@
   upm 整模型不写半成品）；内部并行仅 UPM blocks
   （cpu_workers=budget.max_workers 两处，预算驱动禁硬编码）。
 - 错误：ACS_ERR_*（PARAM/ABI_MISMATCH/NOMEM/STATE/IO/INTERNAL/
-  CANCELLED；map_rc p2_session.cpp，语义表=DATA §24.3）。
+  CANCELLED；map_rc p2_session.cpp，语义表=本页合同条）。
 - manifest 状态机：created→complete/failed（p2_session.cpp；
-  段内 running/ok/fail/cancelled；字段表=DATA §24.2）。
+  段内 running/ok/fail/cancelled；字段表=本页合同条）。
 - 已知差距（登记不改码）：API-P2-001（docs/engineering/api/PUBLIC_API.md「分阶段 API 面」）冻结段集 vs 现状四段
   （coverage/sample/upm_build/persist），补齐属迁移目标（未落地）；
   p2_session.h「拒未知键」与 validate 实现漂移；run 子键类型错未捕获路径。

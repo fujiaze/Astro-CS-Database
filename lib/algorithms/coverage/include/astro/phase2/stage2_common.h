@@ -149,7 +149,7 @@ struct P2Stage2Config {
     int minmax_min_kept = 4;
     std::string rcr_technique = "ss_median_dl";
     //（docs/ACSD_DESIGN.md §3.1:175「权重的产生链固定为两步、
-    // **没有可选择项**」；docs/science/PSF_SIGNAL_WEIGHT.md §4:72「没有可选择的
+    // **没有可选择项**」；docs/science/unified/UNIFIED_SCIENCE_MODEL.md §4:72「没有可选择的
     // 口径：不存在口径选择键、口径枚举、口径配置项或口径产物」）：
     // 原 legacy 整数权重模式域 int weight_mode{0,1,2} 与其字符串 token
     // （auto/ivar/equal/support_x_snr2）**已删除** —— 单一权重口径 =

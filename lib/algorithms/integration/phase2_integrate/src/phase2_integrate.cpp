@@ -197,7 +197,7 @@ std::vector<double> derive_psf_alpha(const FrameSet& fs) {
  *        **不是现行对象**：docs/ACSD_DESIGN.md §3.1「权重只能来自纯净信号与噪声
  *        之比……任何使偏差随帧而变的量（含 PSF 拟合质量代理）都不得进入科学叠加权重」；
  *        docs/detail/UNIFIED_MODEL.md:58（旧产品若声明该对象 ⇒ 显式拒绝 + 迁移提示，
- *        不得静默接受）；docs/science/PSF_SIGNAL_WEIGHT.md §1/§4（单一权重口径）。
+ *        不得静默接受）；docs/science/unified/UNIFIED_SCIENCE_MODEL.md §1/§4（单一权重口径）。
  * 纪律:  不得静默接受；本常量只用于**拒绝**路径，不得用于放行。
  * 迁移:  Phase2 由重建的稠密 SNR 面现场取逆方差（w = SNR^2/F_ref^2 = 1/sigma_F^2）；
  *        PSF 质量代理（FWHM/残差尺度）只作诊断。 */
@@ -1554,7 +1554,7 @@ UpmRejSampResult run_upm_rej_samp_wiring(const FrameSet& fs, const RunMeta& meta
    *   · 合法来源探针 tokens_ok 必须 rc=0：非 0 ⇒ 冻结词表误杀合法权重来源（过杀）；
    *   · 禁来源探针 tokens_bad 必须 rc=1：非 1 ⇒ 冻结词表被放宽，本门已失效（漏杀）。
    * 判红时按 p2_upm_ma_param_cov 的同型收尾（:1305）写 r.error、关模型、提前返回。
-   * 冻结依据：docs/science/DATA_SEMANTICS.md §31.8
+   * 冻结依据：docs/science/unified/DATA_SEMANTICS.md §31.8
    * 「weight 来源含诊断量（median(SNR_F)/support/coverage/FWHM/residual）→ REJECT；
    *  G-WEIGHT-SOURCES / G-DIAGNOSTIC-NOT-WEIGHT」+ §31.3/§31.7，
    * docs/detail/registry/acsd.phase2.integrate.md:214「权重来源受限表的在役判据面」。 */

@@ -6,7 +6,7 @@
 > 三概念分离权威=SCI-INT-001（docs/science/INTEGRATION.md，FROZEN，共享引用不改动）；
 > 处理链位置=SCI-SCOPE-001 §处理链第 5 步（coverage union 为 Phase2 首节点）。
 > 本域零 SCI 层改动（§11.5）。
-> 下游: DATA-COV-001（DATA_SEMANTICS §19）、API-COV-001（PUBLIC_API）、
+> 下游: DATA-COV-001（`docs/detail/registry/acsd.phase2.coverage.md`）、API-COV-001（PUBLIC_API）、
 > MOD-acsd-phase2-coverage（registry）
 > 唯一权威生产源: lib/algorithms/coverage/src/coverage.cpp（455 行，复测）+ 唯一权威签名头
 > lib/algorithms/coverage/include/astro/phase2/coverage.h（172 行，同上）；取值与签名一律以本头文件为唯一来源。
@@ -394,5 +394,5 @@ status 语义: 0=ok；错误路径部分分支置 1（`lib/algorithms/coverage/s
 
 - 球面交叠/覆盖几何：Project-defined（本文件 §2/§7）；独立几何 Oracle 可用 astropy-healpix（BSD-3-Clause）与 Górski et al. 2005, ApJ 622, 759。
 - 连通分量分解：Tarjan 1972, SIAM J. Comput. 1, 146（DOI 10.1137/0201010）；Hopcroft & Tarjan 1973, Comm. ACM 16, 372。
-- coverage 非权重：UNIFIED_SCIENCE_MODEL §3 与 docs/detail/algorithms_phase2/09_coverage.md §1；权威语义在本文件 §7 负向条款。
+- coverage 非权重：UNIFIED_SCIENCE_MODEL §3 与 `docs/detail/registry/acsd.phase2.coverage.md`「职责与明确非职责」一节；权威语义在本文件 §7 负向条款。
 - MOC 域表达：IVOA MOC 1.0（https://www.ivoa.net/documents/MOC/）。

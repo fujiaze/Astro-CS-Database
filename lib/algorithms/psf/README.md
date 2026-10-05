@@ -52,10 +52,10 @@ registry descriptor ports（module_adapters.cpp:437-441）：
 
 | 层 | ID | 状态 | 文档 |
 |---|---|---|---|
-| SCI | SCI-P1-PSF-001（文档合同 SCI-PSF-001） | MISSING→本任务冻结（见 §10） | docs/science/PSF.md；docs/science/algorithms/STAR_PSF_ALGORITHMS.md §11 |
+| SCI | SCI-P1-PSF-001（文档合同 SCI-PSF-001） | MISSING→本任务冻结（见 §10） | docs/science/psf/PSF.md；docs/science/algorithms/STAR_PSF_ALGORITHMS.md §11 |
 | ALG | ALG-STARPSF-001（descriptor 占位 ALG-002 同文档） | MISSING→本任务冻结 | docs/science/algorithms/STAR_PSF_ALGORITHMS.md#§11 |
-| DATA | DATA-P1-PSF（descriptor 占位 DATA-P1-SOURCES 为编排层误配） | VERIFIED | docs/science/DATA_SEMANTICS.md#§15 |
-| API | API-PSF-001（descriptor 占位 API-P1-003 仍有效） | VERIFIED | docs/engineering/PUBLIC_API.md#API-PSF-001；docs/engineering/PHASE1_API_V1.md |
+| DATA | DATA-P1-PSF（descriptor 占位 DATA-P1-SOURCES 为编排层误配） | VERIFIED | docs/science/unified/DATA_SEMANTICS.md#§15 |
+| API | API-PSF-001（descriptor 占位 API-P1-003 仍有效） | VERIFIED | docs/engineering/api/PUBLIC_API.md#API-PSF-001；docs/engineering/api/PUBLIC_API.md |
 | ARCH | ARCH-001 | VERIFIED | docs/engineering/ARCHITECTURE.md |
 | SRC | SRC-PSF-001 | VERIFIED | lib/algorithms/psf/src/dpsf_psf.cpp（本 README 全部行号锚） |
 | TEST | TEST-PSF-DESIGN-001 | VERIFIED（设计） | docs/science/algorithms/STAR_PSF_ALGORITHMS.md#§11.4 |
@@ -234,7 +234,7 @@ P14 起 `p1_op_noise` 的 SNR 样本 = `DATA-P1-SOURCES.sources` 的全部测光
   module_adapters.h）直接调用它，断言全量拟合仍能跑出真实结果。
 - 未来启用接线要点（一段话）：把 `kPrecisePsfEnabled` 置 true（或把节点
   `psf.max_stars` 置 0 并把光测光口径改为 PSF 测光），同步在 DATA-P1-PSF
-  （DATA_SEMANTICS §15）、registry `acsd.phase1.star-psf`、
+  （`docs/detail/registry/acsd.phase1.star-psf.md`「输入输出端口、DATA、单位、坐标、invalid」一节）、registry `acsd.phase1.star-psf`、
   module_ports.registry.json 与 `psf_mode` 字段登记由 fast 升 precise，
   并按 §10.5 重评资源门禁（全量拟合单帧 >150 s）与星↔行 compact 映射（B2-A2
   语义不变）。

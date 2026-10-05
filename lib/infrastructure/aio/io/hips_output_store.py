@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """IO-003 原子 HiPS/manifest 输出发布器（执行形态）— lib/infrastructure/aio/io/hips_output_store.py
 
-冻结语义（docs/engineering/io/IO_003_ATOMIC_OUTPUT_PUBLISH.md IO-003 +
-docs/engineering/io/IO_003_ATOMIC_OUTPUT_PUBLISH.md + 约束 A.3/A.4/A.6 +
+冻结语义（docs/engineering/contracts/ATOMIC_PUBLISH.md IO-003 +
+docs/engineering/contracts/ATOMIC_PUBLISH.md + 约束 A.3/A.4/A.6 +
 DATA-003 production_store 原子语义 + DATA-004 provenance sidecar 语义）:
 
   1. 唯一输出目标：每个输出落在唯一用户路径或 run ID 目录

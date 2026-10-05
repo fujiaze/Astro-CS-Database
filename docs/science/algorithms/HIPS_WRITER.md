@@ -42,7 +42,7 @@ docs/engineering/contracts/ATOMIC_PUBLISH.md，本文件仅登记对齐边界）
 - (1a) 叶级阶 K 与 tile 阶：`leaf_order = ilog2(nside)`，
   `tile_order = leaf_order − 9`（tile 宽恒 512=2^9），叶级
   nside = 2^K ≥ 512（拒绝 nside<512）、tile_width==512（同文件）。
-  与 DATA_SEMANTICS §2（leaf_order=tile_order+9）一致；与 SCI-P3-001 读侧
+  与 `docs/science/unified/DATA_SEMANTICS.md`「坐标语义」一节（leaf_order=tile_order+9）一致；与 SCI-P3-001 读侧
   默认一致。注意 hiss 侧 `compute_tile_depth`（`lib/infrastructure/aio/src/hips/hiss_common.cpp`，
   d=clamp(log2(nside)−4,0,9)）是独立中间容器语义，与本公式不同（不混用）。
 - (1b) 单叶球面元面积 `A_cell = 4π / (12·nside²)`，即 Górski 2005
@@ -72,15 +72,15 @@ docs/engineering/contracts/ATOMIC_PUBLISH.md，本文件仅登记对齐边界）
   （三处 scatter 写点全部同式）。权威实现
   `lib/algorithms/shared/healpix/healpix_core.cpp`：NESTED 交错位解（x=偶位、
   y=奇位，nested_local_to_xy→nest_to_xy）后
-  `fits = (511−x)·512 + y`——即 DATA_SEMANTICS §3 冻结的 (511−x)·512+y
+  `fits = (511−x)·512 + y`——即 `docs/science/unified/DATA_SEMANTICS.md`「坐标语义」一节冻结的 (511−x)·512+y
   （CDS Hipsgen MAPTILES 对拍冻结，`lib/algorithms/shared/healpix/healpix_core.h` 头注释）。tile 内
   512×512，与父 cell parent_ipix（NESTED，Norder K）拼接出全局 HEALPix 索引。
 - (2b) 归一（与 SCI-DRZ-001 的 support=D_p 语义一致，集合级细节由实现定，
-  DATA_SEMANTICS §4）：对 tile 内每局部像素 p（512²）：
+  `docs/science/unified/DATA_SEMANTICS.md`「面亮度单位的推导」一节）：对 tile 内每局部像素 p（512²）：
   `signal[p] = flux_sum[p] / covered_area[p]`，
   `support[p] = covered_area[p]/A_cell`，`>1 钳 1.0`（`lib/infrastructure/aio/src/hips/aio_hips_writer.cpp`）。
   **量纲（逐项）**：flux_sum [ADU]、covered_area [sr] ⇒ `signal` **[ADU/sr]**
-  （面亮度，`FZ-UNIT-SIGNAL-SB` FROZEN；推导见 DATA_SEMANTICS §31.1a 量纲链表）；
+  （面亮度，`FZ-UNIT-SIGNAL-SB` FROZEN；推导见 `docs/science/unified/DATA_SEMANTICS.md`「面亮度单位的推导」一节量纲链表）；
   `support` **无量纲**（sr/sr，∈[0,1]）。**`signal` 的读法 = 面亮度 [ADU/sr]**；另一种读数是"每像素计数"
   （裸 ADU）：两者相差 1/A_cell 的立体角因子，且跨像元尺度不可比。
 - (2b-上游) Phase1 编排（`lib/infrastructure/scheduler/src/module_adapters.cpp` 的 p1_op_writer）必须按
@@ -115,7 +115,7 @@ docs/engineering/contracts/ATOMIC_PUBLISH.md，本文件仅登记对齐边界）
 （参数校验；缓冲；主循环；全无效；
 FITS 写；hierarchy 登记，各段同文件）。SCI 锚：SCI-DRZ-001 的 finalize_tile 段
 （finalize_tile 方差传播，方差分子已由 P1-DRZ 链生产，本模块只做除法归一）；
-DATA_SEMANTICS §4a（DATA-HIPS-VAR-001/DATA-HIPS-IVAR-001）。
+`docs/science/unified/DATA_SEMANTICS.md`「方差与逆方差的三态编码」一节（DATA-HIPS-VAR-001/DATA-HIPS-IVAR-001）。
 
 - (3a) 归一：条件 `valid && area>0 && vnum>0 && isfinite(area) &&
   isfinite(vnum)`（`lib/infrastructure/aio/src/hips/aio_hips_writer.cpp`）下 `variance[p] = var_num_sum[p] / (covered_area[p])²`、
@@ -276,7 +276,7 @@ add_var 同文件）；finalize 落盘 `finalize_hierarchy`
 
 - SCI-DRZ-001 的 finalize_tile 方差实现锚与 support=D_p 锚为本模块
   唯二 SCI 锚；(2b)/(3a) 与之严格一致（support=min(D_p/A_cell,1) 的集合级
-  截断与无效规则为实现语义，DATA_SEMANTICS §4 冻结）。
+  截断与无效规则为实现语义，`docs/science/unified/DATA_SEMANTICS.md`「三个基本对象的语义」一节冻结）。
 - **SCI 缺口（如实登记）**：HiPS 写出合同（tile 切分/hierarchy 聚合/properties
   键集/publish 协议）在 docs/science/ 无 SCI 级条目——由本文件 ALG-HIPS 承接；
   `docs/science/unified/SCIENCE_SCOPE.md` 仅产品级目标，SCI-P3-001 为读侧消费合同。SCI 化候选
@@ -325,7 +325,7 @@ round-trip（(5c)）。容差冻结见 §9。
   须以解析值替代）。
 - **oracle**：独立朴素实现（不调用生产 symbol，不复制源码公式——用
   HEALPix 独立库或解析解）逐像素重算 signal/support/variance/ivar 与
-  FITS 局部索引（DATA_SEMANTICS §3 (511−x)·512+y；外部对拍可取 CDS
+  FITS 局部索引（`docs/science/unified/DATA_SEMANTICS.md`「坐标语义」一节 (511−x)·512+y；外部对拍可取 CDS
   Hipsgen 样例）；FITS 头键精确匹配；MOC UNIQ 精确（式见 (5a)）；
   hierarchy 父像素=子像素精确聚合（NESTED 4 分叉）；**层次闭合 oracle 的权重
   必须取 fixture 输入的未钳制覆盖面积（权重面唯一来源）；产物 support（钳后值）只作被检对象，不参与反乘
@@ -396,7 +396,7 @@ UTC 时间戳致 properties/manifest 字节不跨运行复现（合同，§7）�
   HEALPIX_MAPPING.md 索引卡，lib/algorithms/shared/healpix 权威实现——healpix_drizzle
   内 healpix_core.h 为 DEPRECATED shim，healpix_stack 系列函数全仓零调用
   已死代码化）。
-- 下游/合同：DATA-P1-HIPS（DATA_SEMANTICS §12）、API-HIPS-001
+- 下游/合同：DATA-P1-HIPS（`docs/detail/registry/acsd.phase1.hips-writer.md`）、API-HIPS-001
   （PUBLIC_API.md）、API-P1-007（编排级 hp_drizzle_run_hips 区间）、
   ARCH-001、IO-003（发布合同，对齐不越权）、SCI-P3-001（读侧消费）。
 - 模块：MOD-acsd-phase1-hips-writer（lib/algorithms/drizzle/hips/README.md、module.yaml、

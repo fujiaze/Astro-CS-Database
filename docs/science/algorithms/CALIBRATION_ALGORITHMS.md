@@ -339,7 +339,7 @@ bad_mask,H,W,window)`（window 奇数 3..15，偶数/<3/>15 返回 −1，15×15
 MinGW `Makefile`，仓内无消费者）。**已退役**：逐条分歧（`mad=0` 回退总体
 标准差 vs 生产源的 `σ=0`、窗口 clamp vs 镜像反射、参数化窗口 vs 固定
 5×5）见 COSMETIC_ALGORITHMS.md §8，现状依据与 oracle 一律取自生产源。
-`docs/detail/calibration.md` 中 "window 偶数/<3/>15 → −1" 即指此通道，
+`docs/detail/registry/acsd.phase1.calibration.md` 中 "window 偶数/<3/>15 → −1" 即指此通道，
 非 ac_correct_frame。
 
 ## 5 复杂度

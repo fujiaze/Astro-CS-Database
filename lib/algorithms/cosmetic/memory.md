@@ -39,8 +39,8 @@ lib/algorithms/cosmetic/ 是 acsd.p1.cosmetic / acsd_p1_cosmetic.dll 的
 - 产物: 新建 docs/science/algorithms/COSMETIC_ALGORITHMS.md（ALG-COS-001..005
   逐公式源码锚定 + TEST-COS-DESIGN-001 测试设计与冻结容差
   rtol=1e-6/atol=1e-7 + DISP-COS-001..011 缺陷清单）；
-  docs/science/DATA_SEMANTICS.md §10（DATA-P1-COS）；docs/engineering/
-  PUBLIC_API.md（API-COS-001，3 符号）；docs/detail/calibration.md
+  docs/science/unified/DATA_SEMANTICS.md §10（DATA-P1-COS）；docs/engineering/
+  PUBLIC_API.md（API-COS-001，3 符号）；docs/detail/registry/acsd.phase1.calibration.md
   与 docs/detail/registry/acsd.phase1.cosmetic.md 事实修订；
   本 README 新建 + module.yaml 冻结（MOD-acsd-phase1-cosmetic，
   CONTRACT_READY，entrypoint=MISSING，7 个生产符号）；

@@ -3,7 +3,7 @@
 """G-P1-WCS-CLOSURE v1 —— 天测精度外部闭环指标（冻结口径）的唯一可执行实现与门。
 
 口径定义（唯一事实源，不得在别处重述数值）：
-  docs/science/ASTROMETRY.md §11a（SCI-WCS-001）
+  docs/science/detection/ASTROMETRY.md §11a（SCI-WCS-001）
   docs/science/algorithms/GATES_AND_TOLERANCES.md §3（门行 G-P1-WCS-CLOSURE /
   G-P1-WCS-CLOSURE-REPRO）与 §2（SNR_det 定义行）。
 
@@ -44,7 +44,7 @@ MAX_SOURCES_DEFAULT = 20000
 SCAN_MAX_ARCSEC = 5.0
 FLAVORS = ("solved_cd_sip", "frame_header")
 
-# 冻结口径参数（唯一数值源；与 docs/science/ASTROMETRY.md §11a 表逐行对应）
+# 冻结口径参数（唯一数值源；与 docs/science/detection/ASTROMETRY.md §11a 表逐行对应）
 FROZEN_PARAMS = {
     "catalog_mag_max": 18.0,
     "detection_snr_min": 20.0,

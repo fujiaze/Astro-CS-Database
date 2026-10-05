@@ -243,7 +243,7 @@ large_scale 结构生长:
 
 ## 3a 坐标 frame
 
-排异在**像素候选栈域**逐像素独立进行；每候选绑定 `frame_id`（DATA_SEMANTICS §5），排异决策不跨像素共享状态；无 WCS 参与（空间邻域仅 `large_scale` 结构半径，pixel 域，默认关闭）。
+排异在**像素候选栈域**逐像素独立进行；每候选绑定 `frame_id`（`docs/science/unified/DATA_SEMANTICS.md`「帧身份与输入清单摘要」一节），排异决策不跨像素共享状态；无 WCS 参与（空间邻域仅 `large_scale` 结构半径，pixel 域，默认关闭）。
 
 ## 9a 口径问答：方法族归属、档界与 per-pixel 路由
 
@@ -336,7 +336,7 @@ large_scale 结构生长:
   （保守读法）；高电平（≳3400 e⁻/pix）实测显示 `N=3` 反而占优，
   翻转边界 ≈3000–3400 e⁻/pix（**超出实验网格上界 1734 e⁻/pix，属外延**）。
   **§8a 的 percentile 适用域（阈值随 `|median|/s` 漂移）与上述档位取舍是两件事**，各自独立表述。
-- **档位表归属**：逐像素冻结映射表见 `docs/detail/algorithms_phase2/12_rejection.md` §9（`1≤N≤3` none / `4≤N≤5` percentile /
+- **档位表归属**：逐像素冻结映射表见 `docs/detail/registry/acsd.phase2.reject.md`「数值落地口径」一节（`1≤N≤3` none / `4≤N≤5` percentile /
   `N≥6` winsorized）；本节 §5 的 `acsd_adaptive_pixel` 表为**生产 profile 解析面**，两者以 §5 冻结阈值为共同锚。
 
 ## 17 沿线排异的口径与分母定义（M42 真实帧面）

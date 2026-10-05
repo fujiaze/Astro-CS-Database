@@ -34,7 +34,7 @@
   → ALG-P3-FITS-IMPL-001（docs/science/algorithms/PHASE3_FITS_IMPL.md，
   P3-FITS-DOC 新建；兼承接既有 ALG-P3-002（输出 WCS，PHASE3_RESAMPLE
   G1/G2）与 ALG-P3-004（FITS 写，G5）的施工规格本域子面）
-  → DATA-P3-FITS（DATA_SEMANTICS §27）/ API-P3-FITS-001（PUBLIC_API
+  → DATA-P3-FITS（`docs/detail/registry/acsd.phase3.writer.md`「输入输出端口、DATA、单位、坐标、invalid」一节）/ API-P3-FITS-001（PUBLIC_API
   Phase3 FITS 写出公共消费面节）→ TEST-P3-WR-001（登记面=设计冻结
   TEST-P3-WR-DESIGN-001 VERIFIED，承载于
   docs/detail/registry/acsd.phase3.writer.md §独立 synthetic
@@ -115,8 +115,8 @@
 ## 关联文档
 
 - 合同权威：docs/science/algorithms/PHASE3_FITS_IMPL.md（ALG-P3-FITS-IMPL-001）
-- 数据语义：docs/science/DATA_SEMANTICS.md §27（DATA-P3-FITS）
-- API 面：docs/engineering/PUBLIC_API.md「Phase3 FITS 写出公共消费面
+- 数据语义：`docs/detail/registry/acsd.phase3.writer.md`「输入输出端口、DATA、单位、坐标、invalid」一节（DATA-P3-FITS）
+- API 面：docs/engineering/api/PUBLIC_API.md「Phase3 FITS 写出公共消费面
   （API-P3-FITS-001）」
 - SCI：docs/science/PHASE3_HIPS_TO_FITS.md（FROZEN，零改动）
 - 模块页：docs/detail/phase3_fits.md；registry 手写页：

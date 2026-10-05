@@ -362,7 +362,7 @@ void extract_wcs_sip(
             // A[i][j] = cd_inv · (trans.x_ij, trans.y_ij)
             // 单位: (像素/角秒) * (角秒/像素^(i+j)) = 1/像素^(i+j-1)
             // 注: 这是像素域约定; SIP 标准的 A_ij/B_ij 定义在中间世界坐标(度)上,
-            // 量纲为 deg/像素^(i+j), 与本数组相差一个 CD 量纲 (见 docs/science/ASTROMETRY.md §5).
+            // 量纲为 deg/像素^(i+j), 与本数组相差一个 CD 量纲 (见 docs/science/detection/ASTROMETRY.md §5).
             // 索引: A[i*6+j], i=x幂, j=y幂
             result->sip.order = trans_for_sip.order;
 

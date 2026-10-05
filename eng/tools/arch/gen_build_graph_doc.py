@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""把 docs/engineering/BUILD_GRAPH.md 的机器块从**真实构建图**导出。
+"""把 docs/engineering/build/BUILD_GRAPH.md 的机器块从**真实构建图**导出。
 
 存在理由
   该文档的「生产构建图」表原先手抄，三行的目标名与路径全部落空
@@ -30,7 +30,7 @@ import os
 import pathlib
 import sys
 
-DOC_REL = "docs/engineering/BUILD_GRAPH.md"
+DOC_REL = "docs/engineering/build/BUILD_GRAPH.md"
 MARKERS = ("BUILD-GRAPH-TABLE", "BUILD-GRAPH-NONPROD", "BUILD-GRAPH-NONROOT")
 
 # 非生产闭包面：真实存在于根构建图、但不在生产入口链接闭包内的目标（交付件与工具面）。

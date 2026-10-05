@@ -56,7 +56,7 @@
 
 ## 3. 输入/输出 ports、DATA ID、单位、坐标、dtype、shape、invalid
 
-唯一权威 = DATA-COV-001（docs/science/DATA_SEMANTICS.md §19）。
+唯一权威 = DATA-COV-001（docs/science/unified/DATA_SEMANTICS.md §19）。
 端口视图（descriptor 词汇，module_adapters.cpp:561-576）：
 
 | 端口 | DATA | 必/可 | 单位 | 坐标 | dtype/shape |
@@ -79,8 +79,8 @@ DISP-COV-003；K=0（空 MOC）合法 rc=0。
 - ALG: **ALG-COV-001**（docs/science/algorithms/PHASE2_COVERAGE.md，§2 逐公式
   源码行号锚定 + §11.4 TEST-COV-DESIGN-001 冻结容差 + §11.3
   DISP-COV-001..005）。
-- DATA: **DATA-COV-001**（docs/science/DATA_SEMANTICS.md §19）。
-- API: **API-COV-001**（docs/engineering/PUBLIC_API.md §Coverage union
+- DATA: **DATA-COV-001**（docs/science/unified/DATA_SEMANTICS.md §19）。
+- API: **API-COV-001**（docs/engineering/api/PUBLIC_API.md §Coverage union
   C API）+ 编排级 **API-P2-001**（docs/engineering/PHASE2_API_V1.md，FROZEN，
   所有权图 Coverage 行 / §2 并发五字段行 1）。
 - ARCH: **ARCH-001**（cpu_heavy 资源类/单线程 internal_parallel=none/
@@ -184,8 +184,8 @@ DISP-COV-003；K=0（空 MOC）合法 rc=0。
 - module.yaml: lib/algorithms/coverage/module.yaml（CONTRACT_READY）。
 - memory: lib/algorithms/coverage/memory.md（合同冻结追加段见文末）。
 - ALG: docs/science/algorithms/PHASE2_COVERAGE.md；DATA:
-  docs/science/DATA_SEMANTICS.md#§19；API:
-  docs/engineering/PUBLIC_API.md#API-COV-001；编排 API:
+  docs/science/unified/DATA_SEMANTICS.md#§19；API:
+  docs/engineering/api/PUBLIC_API.md#API-COV-001；编排 API:
   docs/engineering/PHASE2_API_V1.md；registry:
   docs/detail/registry/acsd.phase2.coverage.md。
 

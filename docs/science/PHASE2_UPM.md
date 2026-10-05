@@ -322,7 +322,7 @@
 
 ## 3a 坐标 frame
 
-UPM 在**像素域 control cell**（8×8 双线性网格）上工作，无 WCS/天球参与；帧绑定唯一由稳定 `frame_id`（truncated-64 SHA-256，DATA_SEMANTICS §5）决定，容器索引仅实现细节；每连通分量参考帧=最小 `frame_id`（gauge 锚，§5）。
+UPM 在**像素域 control cell**（8×8 双线性网格）上工作，无 WCS/天球参与；帧绑定唯一由稳定 `frame_id`（truncated-64 SHA-256，`docs/science/unified/DATA_SEMANTICS.md`「帧身份与输入清单摘要」一节）决定，容器索引仅实现细节；每连通分量参考帧=最小 `frame_id`（gauge 锚，§5）。
 
 ## 9a 口径问答：观测方程、gauge 与接缝指标
 

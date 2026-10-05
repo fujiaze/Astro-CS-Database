@@ -855,8 +855,8 @@
         "where": {
           "id": "filter-negative.bader r",
           "path": "docs/engineering/contracts/CONFIG.md",
-          "quote": "- **反例串的权威锚点**：`\"bader r\"`/`\"bader v\"` 的**唯一权威锚点 = 本文件 §10 负例表**（`eng/packaging/config/filters.json#lookup.non_key_examples[].where` 指向它）。最高设计全篇不含 `bader`，因此这两个串的锚点只落在本文件 §10 负例表。两个串仍登记为 `lookup.non_key_examples`（`kind=design_doc_negative_example`、`resolution=ERROR`，值与判据未变）——它们不是合法库键，也不能靠归一化变成合法键（`bader` ≠ `Baader`；且库内不存在 Baader V 曲线）。`non_key_examples` 只把反例与合法值分开，**不**把反例升级为别名。正反例与门见 §10。CFG002-ANCHOR: item3-filter-name-policy → eng/packaging/config/config_registry.json",
-          "sha256": "aacaaa55247654ff",
+          "quote": "- **反例串的权威锚点**：`\"bader r\"`/`\"bader v\"` 的**唯一权威锚点 = 本文件 「滤镜名匹配语义」一节 负例表**（`eng/packaging/config/filters.json#lookup.non_key_examples[].where` 指向它）。最高设计全篇不含 `bader`，因此这两个串的锚点只落在本文件 「滤镜名匹配语义」一节 负例表。两个串仍登记为 `lookup.non_key_examples`（`kind=design_doc_negative_example`、`resolution=ERROR`，值与判据未变）——它们不是合法库键，也不能靠归一化变成合法键（`bader` ≠ `Baader`；且库内不存在 Baader V 曲线）。`non_key_examples` 只把反例与合法值分开，**不**把反例升级为别名。正反例与门见 「滤镜名匹配语义」一节。CFG002-ANCHOR: item3-filter-name-policy → eng/packaging/config/config_registry.json",
+          "sha256": "bb44a976011971c6",
           "value_text": "bader r"
         },
         "kind": "design_doc_negative_example",
@@ -868,8 +868,8 @@
         "where": {
           "id": "filter-negative.bader v",
           "path": "docs/engineering/contracts/CONFIG.md",
-          "quote": "- **反例串的权威锚点**：`\"bader r\"`/`\"bader v\"` 的**唯一权威锚点 = 本文件 §10 负例表**（`eng/packaging/config/filters.json#lookup.non_key_examples[].where` 指向它）。最高设计全篇不含 `bader`，因此这两个串的锚点只落在本文件 §10 负例表。两个串仍登记为 `lookup.non_key_examples`（`kind=design_doc_negative_example`、`resolution=ERROR`，值与判据未变）——它们不是合法库键，也不能靠归一化变成合法键（`bader` ≠ `Baader`；且库内不存在 Baader V 曲线）。`non_key_examples` 只把反例与合法值分开，**不**把反例升级为别名。正反例与门见 §10。CFG002-ANCHOR: item3-filter-name-policy → eng/packaging/config/config_registry.json",
-          "sha256": "aacaaa55247654ff",
+          "quote": "- **反例串的权威锚点**：`\"bader r\"`/`\"bader v\"` 的**唯一权威锚点 = 本文件 「滤镜名匹配语义」一节 负例表**（`eng/packaging/config/filters.json#lookup.non_key_examples[].where` 指向它）。最高设计全篇不含 `bader`，因此这两个串的锚点只落在本文件 「滤镜名匹配语义」一节 负例表。两个串仍登记为 `lookup.non_key_examples`（`kind=design_doc_negative_example`、`resolution=ERROR`，值与判据未变）——它们不是合法库键，也不能靠归一化变成合法键（`bader` ≠ `Baader`；且库内不存在 Baader V 曲线）。`non_key_examples` 只把反例与合法值分开，**不**把反例升级为别名。正反例与门见 「滤镜名匹配语义」一节。CFG002-ANCHOR: item3-filter-name-policy → eng/packaging/config/config_registry.json",
+          "sha256": "bb44a976011971c6",
           "value_text": "bader v"
         },
         "kind": "design_doc_negative_example",
