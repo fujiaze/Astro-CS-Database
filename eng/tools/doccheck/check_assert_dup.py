@@ -190,6 +190,12 @@ MD_HEADING_RE = re.compile(r"^(#{1,6})\s+(.*\S)\s*$")
 COMMENTISH_RE = re.compile(r"^\s*(//|\*|/\*|#)")
 
 
+def die_usage(msg):
+    """用法/查询值错误：与 argparse 一致退 2，与内部崩溃的 1 区分开。"""
+    sys.stderr.write("用法错误：%s\n" % msg)
+    raise SystemExit(2)
+
+
 def classify_layer(relpath: str) -> str:
     p = relpath.replace(os.sep, "/")
     if p == "docs/ACSD_DESIGN.md":
@@ -325,7 +331,7 @@ def scan_regex(root, pattern, include_run, extra_exclude):
     try:
         rx = re.compile(pattern)
     except re.error as exc:
-        raise SystemExit(2, "正则不合法：%s" % exc)
+        die_usage("正则不合法：%s" % exc)
     for rel, full in iter_files(root, include_run, extra_exclude):
         text = read_text(full)
         if not rx.search(text):
@@ -354,7 +360,7 @@ def scan_ident(root, name, include_run, extra_exclude, prefix=False):
     hits = []
     target = fold_ident(name)
     if not target:
-        raise SystemExit(2, "--ident 折叠后为空：%r" % name)
+        die_usage("--ident 折叠后为空：%r" % name)
     for rel, full in iter_files(root, include_run, extra_exclude):
         text = read_text(full)
         if not text:
@@ -418,7 +424,7 @@ def scan_num(root, value, include_run, extra_exclude, prefix_min=5, tol=1e-3):
     try:
         v_f = float(v_str)
     except ValueError:
-        raise SystemExit(2, "数值不合法：%s" % value)
+        die_usage("数值不合法：%s" % value)
     v_digits = v_str.replace(".", "")
     v_int = v_str.split(".")[0]
     exact = 0
@@ -506,6 +512,8 @@ def annotate(hits, modes):
     registry_layers = {"R-INDEX", "R-GLOSSARY", "R-GOVERNANCE"}
 
     for h in hits:
+        if h.get("mode") == "num-canonical":
+            continue          # 正本自身已自带 verdict，不改写
         if "strength" in modes:
             q = h.get("qualifiers_in_window") or []
             if q:
