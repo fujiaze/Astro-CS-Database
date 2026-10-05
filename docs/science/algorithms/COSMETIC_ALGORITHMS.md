@@ -504,7 +504,6 @@ var_out[y][x] = (Σw² · var_in[y][x]) · κ      # 只对被修复列（掩膜
 
 ## 参考文献与参考代码库（含许可证）
 
-
 - **宇宙线剔除（单帧）**：van Dokkum 2001, PASP **113, 1420**（LA Cosmic，DOI 10.1086/323894，卷页已核）；Pych 2004, **PASP 116, 148–153**,"A Fast Algorithm for Cosmic-Ray Removal from Single Images"（DOI **10.1086/381786**，卷页与 DOI 经 Crossref + OpenAlex 双源核验）。
   **适用域（两层核验结论）**：这两篇解决的是**单帧宇宙线剔除**（拉普拉斯边缘检测 / 直方图分析），与坏点检测**不是同一问题**：数据源不同（单帧亮场 vs 母版 dark/bias）、统计量不同（边缘响应 / 直方图 vs 全局 median + k·MAD）、目标不同（瞬态事件 vs 固定坏点）。⇒ 二者**只作"同类图像缺陷处理"的领域背景**；本模块坏点检测的选型依据 = Project-defined（见下条）。
 - **坏点（hot/cold pixel）检测与修复**：本模块为 Project-defined 实现（§1–§5 即其完整规范），算法要素的通用依据见下条"稳健尺度"与"连通域"；**无**外部算法被引为该检测器的选型来源。
@@ -513,7 +512,6 @@ var_out[y][x] = (Σw² · var_in[y][x]) · κ      # 只对被修复列（掩膜
 - 连通域结构过滤（8 邻接）：二值图像连通分量标准算法（见 Rosenfeld & Kak 1982, Digital Picture Processing）；本模块 Project-defined 实现。
 - 插值修复（中值替换 / 4 方向 `1/dist` 距离反比加权 IDW——**现行实现口径**；方法常量名义 bilinear 实为 IDW，见 DISP-COS-003 与 `cosmetic_corrector.cpp:202-224`）：插值修复的教科书级背景（Press et al. 2007, Numerical Recipes 3rd ed.）。**差异**：本模块是坏点局部修复，不是通用的图像插值库。
 
-参考代码库（含许可证）正本 = docs/engineering/SCIENTIFIC_REFERENCES.md §M。
 
 **权威依据**：本文件 ALG-COS-001..006 的上游科学定义 = `docs/science/calibration/CALIBRATION.md`（SCI-CAL-001，FROZEN；§2 参数表与 §12 坏点检测/修复登记，ALG-CAL-004 关系见本文件 §0）；C API 合同面 = `docs/engineering/api/PUBLIC_API.md`（cosmetic 条目：SCI: SCI-CAL-001 / ALG: ALG-COS-001..006 / DATA: DATA-P1-COS）；算法口径的唯一算法文档落位 = 本文件。
 

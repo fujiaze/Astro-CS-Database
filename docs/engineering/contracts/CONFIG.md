@@ -62,7 +62,7 @@
 | noise（噪声模型默认配置） | 14 | **数值来源** = `lib/algorithms/noise_snr/cpp/src/noise_model.cpp` 的 `snr_noise_model_v1_default_config`（唯一实现，14 键的唯一取值处）；科学面 = `docs/science/noise_snr/NOISE_SNR.md` 的「3.1 背景方差面：空背景稳健方差」与「4 参数与常数」两节。**逐键标度类别（强制，封闭二分）**：① **承载 ADU 标度量的键只有 `noise.variance_floor`（ADU²）与 `noise.saturation_level`（ADU）**——两者标度必须与所作用数组同标度，数组为 `photo_scaled_adu` 时按 α²（方差）/ α（电平）换算，换算责任方 = 调用方；② 其余 12 键（`patch_grid`/`clip_sigma`/`min_patch_samples`/`max_clip_rounds`/`spatial_field_enabled`/`source_mask_radius_px`/`mask_radius_scale`/`mask_k_sigma`/`mask_r_min_px`/`mask_fwhm_floor_scale`/`mask_budget_min_patches`/`mask_budget_min_sky`）**不承载 ADU 标度量**——其量纲为像素几何长度 / 计数 / 无量纲比值，**标度不变**（对 α 免疫），不需要标度换算。标度词表 = `../standards/NUMERIC.md` |
 | rejection（排异阈值表） | 18 | `../../science/REJECTION.md` 的「5 连续定义」与「2 符号表」两节 |
 | photometry（mag_tolerance / Tukey c / IRLS / 最小星数） | 6 | `../../science/PHOTOMETRY.md` 的「4 输入有效域」「2 符号表」与 IRLS/Tukey biweight 记述三处 |
-| precision（默认精度） | 1 | `docs/science/unified/SCIENCE_SCOPE.md` 的「4 参数与常数」一节 |
+| precision（默认精度） | 1 | **无来源，需补充**：原指向的 `docs/science/unified/SCIENCE_SCOPE.md`「参数与常数」一节没有精度行，该文件全文不含精度条目；补源前该默认档不得当作已有权威背书 |
 | upm（k_corr） | 1 | `../../science/PHASE2_UPM.md`（定义 + 代码默认 1.4） |
 | hips（tile 宽） | 1 | `../../science/PHASE3_HIPS_TO_FITS.md`（W 默认 512=2⁹） |
 | drizzle（pixfrac） | 1 | 语义 `docs/science/drizzle/DRIZZLE.md`；**数值 0.8**（`defaults.json#drizzle.pixfrac`；通量守恒条件不变量见该文的条件不变量 FZ-COND-FLUX-CONSERV） |
@@ -100,10 +100,10 @@ normalize 只接受**多块**与**平铺单块**两形态；CLI 遇到逐帧 `{p
 | mosaic | `eng/packaging/config/templates/mosaic.phase_config.json` | 块级 `output_dir` + 块级 `hips_paths`（平铺单块简写 = `schema_version` + 同名两键；`{phase_name, config, inputs}` 形态的 `config` 键 = `{output_dir, precision}`） | `algorithm_rejection_method`（method/profile 词表与默认路由见 `../../science/REJECTION.md`）、`algorithm_upm_gauge`（`docs/detail/mosaic/modules/upm`）。权重是阶段二现场算出的派生量，本面**不存在** `algorithm_weight_mode` / `weight_mode` / `legacy_allow_weight_fallback` / `acr_route` 任一键名（见本节开头的键集合声明） | 块级 `hips_paths[]`（一组输入 HiPS）；`{phase_name, config, inputs}` 形态的 `inputs[]` 项 = `{product, filter?}` |
 | export | `eng/packaging/config/templates/export.phase_config.json` | 块级 `output_dir` + 块级 `source`（一个输入产品）+ **`output_mode`（**必须显式**，缺键即 REJECT）**；平铺单块简写 = `schema_version` + 同名三键；`{phase_name, config, inputs}` 形态的 `config` 键 = `{output_dir, precision, output_mode, wcs}` | `wcs.projection`（最高设计的「投影算法」一节：首批 8 种、缺省 TAN；`docs/detail/export/modules/projection`）、`wcs.{rotation_deg, crpix_px}`（同一 science 分册的投影卷）、**`crop`（导出裁剪范围，可选，缺省 = 不裁剪；在**已定义好的输出画幅**上取矩形子窗，不改画幅定义/投影/重采样）**：两种**互斥**形式 —— `pixels`（平面像素矩形，FITS 1-based 闭区间，用户到平面后手动裁剪）/ `sky`（天球轴对齐矩形 ICRS deg，GUI 的 HiPS 浏览器框选导出走这一形式）；键形固定可机器生成、GUI 直接填；判别键名取 `crop_form`（避开 `cpu_profile` 的 `mode`，统一模型卷的同名即同义条款，与 `output_mode` 同一处置）；fail-closed 全部具名报错（越界 / 宽高非正 / 两形式同时给 / 裁剪后为空 / `sky` 越出 TAN 半球），**禁静默夹取**；写出 FITS 的 WCS = 原画幅 WCS 在窗口上的**精确限制**（`CRVAL`/`CD` 逐位不变、`CRPIX` 减**整数**窗口原点）⇒ 窗口内像素与不裁剪时**逐位相同**。正本 = `../../detail/PHASE3_DETAILED_DESIGN.md` ；字段合同 = `eng/contracts/schemas/phase_config_export.schema.json#/$defs/export_crop`；几何唯一实现 = `lib/algorithms/projection/p3_wcs.h`（CLI 配置面与节点面共用）；接口登记 = `CLI_PROTOCOL.md` ；生产消费点 = scheduler p3 节点链 wcs/writer/verify（非死键）；`crop` 不进 `--template` 骨架（模板不替用户主张裁剪）；**`output_mode` 不在本列**（它**必填**：值域 `surface_brightness`/`point_source_flux`/`visualization`；合同登记的 `surface_brightness` **只作 `--template` 骨架值**，`--json` 运行的取值只走显式声明——见本节末条） | 块级 `source.hips_dir`（单值 = 一个输入产品；多产品 = 多块）；`{phase_name, config, inputs}` 形态的 `inputs[]` 项 = `{product}` |
 
-- **落盘形态键 `storage_form`（Phase1 专属）**：Phase1 产品落盘形态由**输入配置**选定 —— 块级（或平铺顶层）`storage_form` ∈ {`archive`（默认）, `bare`}；**键缺失、空串或 `null` ⇒ 取默认 `archive` 并报一条 `level=warn` 事件**（取默认与 warn 事件成对出现），形态来源记入 `manifest.json#storage.form_source`；显式给出则不报 warn。键名与取值的唯一词表 = `eng/contracts/schemas/hips_storage_form.schema.json#x-acsd-field-vocabulary`；合同与不变式 F0/F1..F4/M1..M4 = `HIPS_STORAGE_FORM.md` 「滤镜名匹配语义」一节，设计 = `../../detail/PRODUCT_STORAGE_FORM.md` 「滤镜名匹配语义」一节。**mosaic / export 的输入合同不设该键**（Phase2 固定裸服务面、Phase3 固定裸 FITS 不套壳），出现即 REJECT —— schema 面（`additionalProperties:false` / `propertyNames`）与 CLI 面（`validate_config_full` 的块内未知键门）双双生效。生产写出侧消费点属分阶段实现计划阶段 2；CLI 当前只识别并透传，写出侧尚未消费该键。
+- **落盘形态键 `storage_form`（Phase1 专属）**：Phase1 产品落盘形态由**输入配置**选定 —— 块级（或平铺顶层）`storage_form` ∈ {`archive`（默认）, `bare`}；**键缺失、空串或 `null` ⇒ 取默认 `archive` 并报一条 `level=warn` 事件**（取默认与 warn 事件成对出现），形态来源记入 `manifest.json#storage.form_source`；显式给出则不报 warn。键名与取值的唯一词表 = `eng/contracts/schemas/hips_storage_form.schema.json#x-acsd-field-vocabulary`；合同与不变式 F0–F4 与 M1–M4 的唯一正本 = `HIPS_STORAGE_FORM.md` 的「形态的输入配置与输出清单字段」一节（F0–F4 在该节的 normalize 输入配置键与输出清单两个子节，M1–M4 在其「运行完成清单 `manifest.json#storage`（加性）」子节）[6]；设计说明 = `../../detail/PRODUCT_STORAGE_FORM.md` 的「形态的输入配置与清单登记」一节。**mosaic / export 的输入合同不设该键**（Phase2 固定裸服务面、Phase3 固定裸 FITS 不套壳），出现即 REJECT —— schema 面（`additionalProperties:false` / `propertyNames`）与 CLI 面（`validate_config_full` 的块内未知键门）双双生效。生产写出侧消费点属分阶段实现计划阶段 2；CLI 当前只识别并透传，写出侧尚未消费该键。
 - **索引引用键 `coverage_index`（Phase2 专属，加性可选）**：块级（或平铺顶层）`coverage_index` 是字符串路径，指向数据集级 `coverage.index.json`；存在 ⇒ 阶段二载入它做块级查询，缺失 ⇒ 规定回退 = 读入全部产品级索引现场倒排。`hips_paths` 的元素**保持字符串**（不做元素对象化），逐帧产品级索引路径由命名规则派生（`<name>.hips` / `<name>.hips.zst` → `<name>.hips.index.json`）。生产消费点同属阶段 2。
-- **精度显式声明**：mosaic/export 用位深键显式声明（fp32/fp64；模板填 `fp64`，`docs/science/unified/SCIENCE_SCOPE.md` 默认 FP64）；normalize 用块级 `drizzle.precision_mode`（0=FP32 / 1=FP64，**必须显式**，缺失即拒绝）。CLI 精度键集只有上述键：键集外字段（含 `config.precision` 形态）一律拒绝（键集权威 = 最高设计的「输入合同」一节）。
-- **精度的科学不变量（强制，跨三命令同面）**：精度选择只改变**表示误差**，任何科学量的**标度类别**（`../standards/NUMERIC.md` 标度词表）与**量纲**保持不变。判据（非退化）：同一输入在 fp32 与 fp64 下，各产品面的标度类别与单位串必须逐项相同；数值差异只允许落在该面事前冻结的浮点容差内（`SCHEDULER.md` ）。**标度换算与精度无关**；`BUNIT` 与缺失编码在 fp32/fp64 下取值相同。三命令的精度键名不同（`precision` / `drizzle.precision_mode`）但**语义与不变量同面**；键名差异不构成两套口径。
+- **精度显式声明**：mosaic/export 用位深键显式声明（fp32/fp64；模板填 `fp64`）；normalize 用块级 `drizzle.precision_mode`（0=FP32 / 1=FP64，**必须显式**，缺失即拒绝）。CLI 精度键集只有上述键：键集外字段（含 `config.precision` 形态）一律拒绝（键集权威 = 最高设计的「输入合同」一节）。逐对象应归属档位的唯一正本 = `../UNIFIED_OBJECTS.md` 的对象对照表精度列（其判定规则与未决项见该表读法段）。**默认 FP64 的数值来源需补充**：`docs/science/unified/SCIENCE_SCOPE.md` 全文不含精度条目，其「参数与常数」一节没有精度行，本文件与 `../standards/NUMERIC.md` 的默认档声明在仓内**没有可核的数值源**；补源前该默认值不得当作已有权威背书。
+- **精度的科学不变量（强制，跨三命令同面）**：精度选择只改变**表示误差**，任何科学量的**标度类别**（`../standards/NUMERIC.md` 标度词表）与**量纲**保持不变。判据（非退化）：同一输入在 fp32 与 fp64 下，各产品面的标度类别与单位串必须逐项相同；数值差异只允许落在该面事前冻结的浮点容差内（通用浮点容差与 NaN/Inf 语义的唯一正本是 `../testing/TEST.md`，本合同不复述其数值[7]）。**标度换算与精度无关**；`BUNIT` 与缺失编码在 fp32/fp64 下取值相同。三命令的精度键名不同（`precision` / `drizzle.precision_mode`）但**语义与不变量同面**；键名差异不构成两套口径。
 - export 几何字段名与值域取自科学权威：`center_deg`/[`s_out_deg`]/`width_px`/`height_px`（`../../science/PHASE3_HIPS_TO_FITS.md` 的「2 符号表」一节：W/s_out/center/W_out,H_out）；约束 `../../science/PHASE3_HIPS_TO_FITS.md` 的「4 输入有效域」一节：abs(dec) ≤ 85°、W_out/H_out ∈ [1,20000]、s_out > 0）。原 `projection` 插件文档的 `mode` 在 phase_config 中命名为 `output_mode`，以避开 legacy cpu_profile v1 的 `mode` 字段名（统一模型卷的同名即同义条款，见本文件的「配置校验判据」一节 门表）。
 - **`output_mode` 的必填与默认值口径（三条分支同面，fail-closed）**：
   - **必填且必须显式**：`{phase_name, config, inputs[]}` 形态（`$defs.export_config.required`）、`blocks[]` 形态
@@ -164,7 +164,7 @@ normalize 只接受**多块**与**平铺单块**两形态；CLI 遇到逐帧 `{p
 
 ⇒ 「run manifest」在本仓存在**两个不相交的对象**：本节的 schema 预留字段名族，与生产写出点的运行清单字段名族。两套词表**不合并、不互相改写**；哪一套是正本需负责人裁决（UNRESOLVED，见交付审核包）。
 
-- 字段名族取自 DATA-001 锚点（`^run_id$`、`^software_sha$`、`^config_hash$`、`^manifest_(input|output)_hashes$`、`^toolchain_[a-z0-9_]+$`）；`additionalProperties:false` 拒绝 `workers`/`isa`/`block` 等。`input_hashes` 与 DATA-OBJ-PROVENANCE-001.provenance.input_hashes 同义（锚点 note）。**加性可选键 `storage`**：运行级落盘形态事实，**不属**上列哈希/版本字段名族，已在锚点 `config_classes[run_manifest].additive_field_names` 登记；**条款归属** = `HIPS_STORAGE_FORM.md` 的「形态的输入配置与输出清单字段」一节（字段词表与不变式 M1..M4 的唯一正本），**唯一机器事实源** = `eng/contracts/schemas/hips_storage_form.schema.json#/$defs.manifest_storage`——本 schema 故意**不复写**字段（只登记键位与 `type:object`），避免同名异型；缺失 ⇒ 无形态事实（不判红）。
+- 字段名族取自 DATA-001 锚点（`^run_id$`、`^software_sha$`、`^config_hash$`、`^manifest_(input|output)_hashes$`、`^toolchain_[a-z0-9_]+$`）；`additionalProperties:false` 拒绝 `workers`/`isa`/`block` 等。`input_hashes` 与 DATA-OBJ-PROVENANCE-001.provenance.input_hashes 同义（锚点 note）。**加性可选键 `storage`**：运行级落盘形态事实，**不属**上列哈希/版本字段名族，已在锚点 `config_classes[run_manifest].additive_field_names` 登记；**条款归属** = `HIPS_STORAGE_FORM.md` 的「运行完成清单 `manifest.json#storage`（加性）」一节（字段词表与不变式 M1..M4 的唯一正本，该组条款所在的大节是其上的「形态的输入配置与输出清单字段」一节）[6]，**唯一机器事实源** = `eng/contracts/schemas/hips_storage_form.schema.json#/$defs.manifest_storage`——本 schema 故意**不复写**字段（只登记键位与 `type:object`），避免同名异型；缺失 ⇒ 无形态事实（不判红）。
 
 ### 配置校验判据（当前无机器执行器，判据由人读）
 
@@ -226,7 +226,7 @@ negative: "bader r" | "bader v" | "baader r" | "BAADER R" | "Baader  R" | " Baad
 enum:      { "linux", "windows" }
 derivation: lib/infrastructure/benchmark/backend_host/hardware_inspect.cpp（_WIN32 -> "windows"，否则 -> "linux"）
             lib/infrastructure/benchmark/backend_host/profile_gen_v2.cpp（缺 os 字段回落 "linux"）
-platform:   ../build/BUILD_NODES.md 10+ amd64 / Linux amd64）
+platform:   最高设计的双平台发行一章（Windows 10+ amd64 / Linux amd64，两个平台均为交付平台）[3]
 consumer:   lib/infrastructure/benchmark/backend_host/cpu_routing.cpp（与 hw os.name 逐字比较，不等 -> stale_machine）
 negative:   eng/tests/config/fixtures/negative/cpu_profile_v2_bad_os_abi.json（os_abi=freebsd -> REJECT）
 ```
@@ -303,9 +303,7 @@ integration: precision(fp32) memory_limit_mb rejection{method
 
 rejection.method 说明：
   - 默认 `method=auto` + `profile=acsd_adaptive_pixel`
-    （**Astro Celestial Sphere Database（ACSD） 自研**，逐输出像素几何 N 内置映射：1≤N≤3→none；4≤N≤5→
-    percentile；N≥6→winsorized_sigma；线性拟合档不参与逐像素自动路由；阈值逐档继承
-    SCI-REJ 冻结锚点）；`wbpp_2_9_1` 为**对照档**（`wbpp_current` 为
+    （**Astro Celestial Sphere Database（ACSD） 自研**，逐输出像素几何 N 的三档自动映射见下方排异档位映射一条，本块不复述档位表与阈值来源）；`wbpp_2_9_1` 为**对照档**（`wbpp_current` 为
     alias，解析并序列化为 wbpp_2_9_1）；
   - auto 在 **planning 层**按 integration cohort/tile 的 nominal
     contributors（几何可贡献独立 exposure 数）解析一次，禁止在 pixel loop
@@ -352,7 +350,7 @@ output.hips / diagnostics
 默认值来源：`stage2_common.h`（C++ struct）与 `stage2_common.cpp`
 （parser）为唯一双实现，consistency test 保证一致。
 
-**排异档位映射**：**生产科学路由唯一权威** = 最高设计的「逐像素排异」一节：`1≤N≤3` none / `4≤N≤5` percentile / `N≥6` winsorized；N = 该输出像素的**几何可贡献帧数**，逐像素自动路由；**min/max 不用于生产**。内核同值见 `lib/algorithms/coverage/src/rejection.cpp` 的 `kPixelSmallNPolicy`。上方 fenced 块的 `acsd_adaptive_pixel` 档位与本条同值；WBPP 对照档（`nominal<6 / 6..15 / >15`）只描述 `wbpp_2_9_1` 对照 profile 自身，不参与生产路由。`docs/science/unified/DATA_SEMANTICS.md` 首注同面。
+**排异档位映射**（三档逐像素自动路由的**唯一正本**）：`1≤N≤3` none / `4≤N≤5` percentile / `N≥6` winsorized；N = 该输出像素的**几何可贡献帧数**，逐像素自动路由；**min/max 不用于生产**。阈值表的机器来源 = `lib/algorithms/coverage/src/rejection.cpp` 的 `kPixelSmallNPolicy` 与 `acsd_n_map_method`；**文档面无可核来源**——最高设计的逐像素排异一章只给「按 N 自动选择」与生产算法集四种（none、percentile、winsorized、linear fit），不含任何 N 阈值，把阈值挂到该章属误挂，阈值入库前须补文档层承载。`linear fit` 档可显式指定但不参与逐像素自动路由（自动路由只出上列三档），「生产算法集四种」与「自动路由三档」是两个不同集合，不是两套口径。上方 fenced 块的 `acsd_adaptive_pixel` 档位与本条同值；WBPP 对照档（`nominal<6 / 6..15 / >15`）只描述 `wbpp_2_9_1` 对照 profile 自身，不参与生产路由。`docs/science/unified/DATA_SEMANTICS.md` 首注同面。
 
 ## 配置面三 · 阶段生产调用链与 Stage1 配置
 
@@ -390,7 +388,7 @@ output.hips / diagnostics
 | upm_build | stage2.model.* | phase2/upm | p2_upm_build | serial | upm.n_components | TEST-UPMW-001 |
 | upm_persist | stage2.output.upm | astro_image_io | aio_upm_write_sparse | serial | upm.sha256 | UpmPersistAllPermutations |
 | block_calibrate | stage2.integration.* | phase2/block | p2_upm_calibrate_block | parallel_cpu | block.t_ms | TEST-P2-CALIB-001 |
-| rejection | stage2.integration.rejection.* | phase2/rejection | p2_reject_stack_ex (7 档自动选择 SD-18: 1-3 none/4-5 percentile/N>=6 winsorized) | tile 级并行 (p2_parallel_for,  std::thread) | rejection.n_rejected_low/high | TEST-REJ-* |
+| rejection | stage2.integration.rejection.* | phase2/rejection | p2_reject_stack_ex (三档自动选择，阈值表见下条) | tile 级并行 (p2_parallel_for,  std::thread) | rejection.n_rejected_low/high | TEST-REJ-* |
 | integration | stage2.integration.* | phase2/integrate | p2_integrate_pixel | tile 级并行 (p2_parallel_for,  std::thread) | integrate.signal/support | V17StatusesExplicit |
 | hips_write | stage2.output.hips | astro_image_io | aio_hips_writer | serial+async_io | hips.nside | TEST-HIPS-001 |
 
@@ -413,3 +411,7 @@ https://www.ivoa.net/documents/HiPS/
 [4] 内部文档 `CLI_PROTOCOL.md`，命令行协议合同。
 
 [5] 内部文档 `../governance/DOCUMENT_GOVERNANCE.md`，文档治理规范。
+
+[6] 内部文档 `HIPS_STORAGE_FORM.md`，落盘形态与归档容器合同，不变式 F0–F4 与 M1–M4 的唯一正本。
+
+[7] 内部文档 `../testing/TEST.md`，测试标准，通用浮点容差与 NaN/Inf 语义的唯一正本。

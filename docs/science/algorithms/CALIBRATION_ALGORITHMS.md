@@ -626,13 +626,9 @@ oracle 同容差；actual_k 精确相等。
 
 ## 参考文献与参考代码库（含许可证）
 
-
 - 母版约定与 ISR 顺序：ccdproc（BSD-3-Clause）reduction_toolbox/subtract_dark；LSST ip_isr（GPL-3.0）isrFunctions.py。
 - 探测器噪声/gain：Janesick 2001, SPIE PM83, Ch.2；Newberry 1991, PASP 103, 122；Howell 2006, Handbook of CCD Astronomy 2nd ed., CUP, Ch.4。
 - MAD→σ 常数 1.482602218505602：标准正态分位恒等式（实测 `1/0.6744897501960817` 逐位相同）；Rousseeuw & Croux 1993, JASA **88(424), 1273–1283**（DOI 10.1080/01621459.1993.10476408）——卷页成立，但该文研究 `S_n`/`Q_n` 并把 `1.4826·MAD` 当既有基线，**不**是本仓"有限样本校正"的来源；本仓用渐近常数、不做校正（要做则引 Akinshin 2022 arXiv:2207.12005 或 Park-Kim-Wang 2020 DOI 10.1080/03610918.2019.1699114）。
 - FITS BSCALE/BZERO：FITS Standard 4.0 §4.4.2.5（Eq. 3；`BZERO=32768` 见同节 BLANK 段 + Table 11，属存储约定）；CFITSIO 作独立读取器 Oracle。
 - XISF bounds 与 65535：XISF 1.0 Spec（PixInsight；PCL 自定义 source-available 许可）。
 - IRAF ccdproc/zerocombine（IRAF/NOAO 许可，非 OSI）：经典归约顺序对照。
-
-参考代码库（含许可证）正本 = docs/engineering/SCIENTIFIC_REFERENCES.md §M。
-

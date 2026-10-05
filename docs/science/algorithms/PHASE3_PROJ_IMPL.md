@@ -702,26 +702,15 @@ G-P1-WCS-BRIDGE / G-P1-WCS-BRIDGE-GLOBAL；推导依据
 
 ## 参考文献与参考代码库（含许可证）
 
-
 - 投影 native↔celestial：Calabretta & Greisen 2002, A&A 395, 1077（Paper II）§2.1/§2.3 式(2)–(7)/§5.1.3 式(54)（旋转矩阵形式见附录 A.1）；本文件 §15.8 已给逐条文献锚，本节只补代码库。
 - CRPIX/CRVAL 不变量：Greisen & Calabretta 2002, A&A 395, 1061（Paper I）§2.1.1 式(1)（q_i=Σ_j m_ij(p_j−r_j)）与 §2.1.4（1-based）。
 - 可执行标准：astropy 7.0.1（BSD-3-Clause）/WCSLIB（LGPL-3.0）逐点对拍（R-1 §2）。
 - 各投影原始定义（TAN/SIN/CAR/AIT/STG/MOL/CEA/ZEA）见 Paper II Table 12（投影代码表）及其引用（Aitoff 1889；Mollweide 1805；Lambert 1728–1777 等）、各投影公式见 §5；Astro Celestial Sphere Database（ACSD） 逐式以 Paper II 为准。
 - 3D 向量 oracle：Project-defined 第一性原理推导（§15.8）。
 
-参考代码库（含许可证）正本 = docs/engineering/SCIENTIFIC_REFERENCES.md §M。
 
 ---
 
 ## U 承接：`uncertainty_available=false`（fail-closed 唯一出口）
 
-本层产出/消费不确定度子产品时，`uncertainty_available=false` 的处置**承接
-`docs/engineering/data/ARTIFACTS.md` 的 fail-closed 唯一出口**（DATA-UNC-001 规则行；DATA-P2-PROV-001 显式登记行）：输入面不含 variance/ivar 子产品
-（或权重非纯逆方差、发生 fallback、合成输入非有限被拒等规则项）⇒ **不写**
-variance/ivar 子产品 + manifest 写 `uncertainty_available=false` +
-diagnostics 标红计数；**该键不是失败态**，是 unavailable 显式登记模式
-（禁占位子产品、禁静默缺键、禁用常量 0 冒充）。
-键名与取值口径以 `docs/engineering/data/ARTIFACTS.md` 为唯一权威，本层不另立第二套
-（本层此前零承接，P-154/DISP-P3UNC-001 勘误）。
-
-
+本层产出/消费不确定度子产品时，`uncertainty_available=false` 的处置**承接 《产物与清单登记面》 的 fail-closed 唯一出口**（DATA-UNC-001 规则行与 DATA-P2-PROV-001 显式登记行，按**内容锚**读、不按行号读）：不写 variance/ivar 子产品，manifest 写 `uncertainty_available=false` 并在 diagnostics 标红计数。该键不是失败态，是 unavailable 的显式登记模式；键名与取值口径以该处为唯一权威，本层不另立第二套。

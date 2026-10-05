@@ -291,7 +291,6 @@ F_syn = ∫ F_λ(λ)·T(λ)·Q(λ)·λ dλ        # W·m⁻²·nm；F_λ 单位 
 
 ## 参考文献与参考代码库（含许可证）
 
-
 - Tukey biweight c=4.685：Beaton & Tukey 1974, Technometrics 16, 147（DOI 10.1080/00401706.1974.10489171）；Mosteller & Tukey 1977。
 - MAD→σ 0.6744897501960817：标准正态分位恒等式；Rousseeuw & Croux 1993, JASA 88, 1273。
 - 最优提取/统计结构：Horne 1986, PASP 98, 609；Naylor 1998, MNRAS 296, 339。
@@ -300,6 +299,3 @@ F_syn = ∫ F_λ(λ)·T(λ)·Q(λ)·λ dλ        # W·m⁻²·nm；F_λ 单位 
 - **尺度路线三种并存（先验尺度 vs 同时迭代）——本条引用 Huber & Ronchetti 2009, *Robust Statistics* 2nd ed., Wiley（ISBN 978-0-470-12990-6）三处定位（节号、page 与逐字引文）**真正支撑的就是这一条文字结论**（三种路线在原文中并存）；**它不支撑本行的任何数字**。§6.4 p.133「Simultaneous M-Estimates of Location and Scale」、§6.5 p.137「M-Estimates with Preliminary Estimates of Scale」、§7.7 p.172「In practice, we calculate the estimates β and σ by simultaneous iterations」。**Tukey biweight 的效率/崩溃点常数 `c=4.685065 → eff 0.95 / breakdown 0.119414`的出处 = statsmodels**（**不是** Huber & Ronchetti 2009）：`statsmodels/robust/_tables.py` 的 `tukeybiweight_eff` 表，**版本腿 = tag `v0.15.0` = commit `278ff9950636cdd4939b4055e339a8e681d79cab`**；**并记：该表最近一次改动的不可变提交 = commit `781accd11ec9467b0a14cb1ba0e03197ab7ea9bd`**（GitHub API 一手证据；**本车道未拉树逐字核该表在这两个提交上的实际内容**，故标为「版本腿已登记、内容待核」）。引用该常数必须带 commit。
 - Gaia XP/CALSPEC：Gaia Collaboration et al. 2023, A&A 674, A1；Bohlin, Hubeny & Rauch 2020, AJ 160, 21（DOI 10.3847/1538-3881/ab94b4）；Bessell & Murphy 2012, PASP 124, 140。
 - Akima 子样条：Akima 1970, J. ACM **17(4), 589–602**（DOI 10.1145/321607.321609；**页域订正 P1-m06**：历史只给首页 589）。
-
-参考代码库（含许可证）正本 = docs/engineering/SCIENTIFIC_REFERENCES.md §M。
-

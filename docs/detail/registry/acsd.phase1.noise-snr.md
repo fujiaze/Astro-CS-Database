@@ -59,7 +59,7 @@ invalid = NaN/coverage=0（按 DATA 合同）。
 | `depth_m5` | 帧/位置深度表达 |
 | `point_information` | 点源严格权重（通量估计方差的倒数） |
 | `frame_snr` | 帧级 SNR，**写入 HiPS 文件头**；语义 = 点源（PSF）信号 SNR |
-| `sparse_snr_layer` | 帧内稀疏控制点 SNR 层（`sparse_snr_layer=true` 时请求产出）；控制点值 = 该点的**绝对**通量型 SNR，与帧级 SNR 同口径、同一个冻结的参考星等档 `m_ref`，无量纲；消费时由控制点**直接重建**为稠密 SNR 场。**交付状态 = 合同面已冻结、生产侧尚无产者**：Phase1 既无稀疏层侧车写者，也无 HiPS 属性载体发布者；产者落地前 `sparse_reconstruct` 路径不可兑现，只余 `frame_reconstruct` 与稠密路径 |
+| `sparse_snr_layer` | 帧内稀疏控制点 SNR 层（`sparse_snr_layer=true` 时请求产出）；控制点值 = 该点的**绝对**通量型 SNR，与帧级 SNR 同口径、同一个配置缺省的参考星等档 `m_ref`，无量纲；消费时由控制点**直接重建**为稠密 SNR 场。**交付状态 = 合同面已冻结、生产侧尚无产者**：Phase1 既无稀疏层侧车写者，也无 HiPS 属性载体发布者；产者落地前 `sparse_reconstruct` 路径不可兑现，只余 `frame_reconstruct` 与稠密路径 |
 
 `frame_snr` 与 `sparse_snr_layer` 是**相互独立**的两个对象，稀疏层**不作**
 帧级标量的尺度基准。`point_information` 是权重、帧级 SNR 是信噪比，两者不是同一
@@ -97,8 +97,8 @@ SNR 路径做**注入-回收** —— 已知真值信号 + 已知天光 + 已知
 位深时以 JSON 为准。稠密逐像素方差面属**稠密大面**，按同条取单精度，两类面不得互相
 代入（该归属与现行单一全局精度位的冲突登记见「已知限制」）。
 
-**参考通量按冻结的参考星等档取，不由数据派生**：参考星等 `m_ref`（配置键
-`snr.reference_mag`，缺省 6.0 等）在一次运行内冻结，参考通量是该星等档在**本帧
+**参考通量按参考星等档 `m_ref` 取，不由数据派生**：参考星等 `m_ref`（配置键
+`snr.reference_mag`，缺省 6.0，可被输入 JSON 覆盖）在一次运行内取值不变、参考通量是该星等档在**本帧
 仪器通量下的读数** `F_ref,k = 10^(−0.4·(m_ref − ZP_k))`，其中
 `ZP_k = ZP_syn,k − 2.5·log10(k_photo,k)` 只来自本帧自身的测光标定；产品另记与帧
 无关的**物理公共锚** `F0 = 10^(−0.4·(m_ref − ZP_syn))`，同波段同星场恒为同一数。
@@ -125,7 +125,7 @@ SNR 路径做**注入-回收** —— 已知真值信号 + 已知天光 + 已知
 HiPS 是数据库：帧产品长期保存、可被任意多次、任意科学目标的叠加消费，因此
 入库的是客观的未加权 SNR（与具体集成无关的观测量）；权重在 Phase2 集成时按
 天球像素对应的输入帧集合现场计算。稀疏帧内层启用时，每个控制点同样存
-**未加权的绝对 SNR**（与帧级同一物理定义、同一参考通量口径、同一个冻结的
+**未加权的绝对 SNR**（与帧级同一物理定义、同一参考通量口径、同一个
 `m_ref`），而非权重。
 
 #### SNR 三条路径与稀疏帧内层
@@ -281,7 +281,7 @@ docs/science/noise_snr/NOISE_SNR.md §3.1 数值地板与三态、§6.3 精度�
 - **定义域 = 层覆盖的 cell 并集**：cell 内非节点处由重建算子插值给出，最外
   半个 cell 由端点节点常数延拓；越出该并集即 **fail-closed**（不外推、不回退
   帧级）；
-- 稀疏控制点存**绝对** SNR（与帧级 SNR 同口径、同一个冻结的参考星等档 `m_ref`）；
+- 稀疏控制点存**绝对** SNR（与帧级 SNR 同口径、同一个配置缺省的参考星等档 `m_ref`）；
   重建算子在控制点上重建出稠密绝对 SNR 场；帧级标量与稀疏层相互独立，不作其
   尺度基准，消费时也不参与还原；
 - **重建算子（冻结词表；算子标识 = 唯一配置面）**。算子标识把「核 + 是否开
@@ -376,7 +376,7 @@ parallel_ok=True。配置 = phase config JSON：
 
 | 字段 | 默认 | 单位 | 说明 |
 |---|---|---|---|
-| `snr.reference_mag` | 6.0 | mag | 冻结的**参考星等档** `m_ref`，SNR 与深度定义必需。参考通量由该星等档按本帧测光零点换算（`F_ref,k = 10^(−0.4·(m_ref − ZP_k))`，见「数值落地口径」的参考通量条）；**不由数据派生**，`m_ref` 随产品落盘（合同必落字段见 `eng/contracts/schemas/unified/frame_snr.schema.json` 的 `reference_baseline`）。星等档是线性区外的形式外推，**用途限定为参考电平** |
+| `snr.reference_mag` | 6.0 | mag | **参考星等档** `m_ref`（缺省 6.0，可被输入 JSON 覆盖），SNR 与深度定义必需。参考通量由该星等档按本帧测光零点换算（`F_ref,k = 10^(−0.4·(m_ref − ZP_k))`，见「数值落地口径」的参考通量条）；**不由数据派生**，`m_ref` 随产品落盘（合同必落字段见 `eng/contracts/schemas/unified/frame_snr.schema.json` 的 `reference_baseline`）。星等档是线性区外的形式外推，**用途限定为参考电平** |
 | `snr.reference_flux_adu` | —— | ADU | 显式给出的参考通量（覆盖按 `m_ref` 换算的结果，优先级最高）；缺失 / 非有限 / ≤0 ⇒ 该帧 fail-closed，不回退到数据派生形态。单位以产物字段 `reference_flux_common_unit` 为准 |
 | `scalar_gate_rd` | —— | —— | 标量降级鲁棒离散门 |
 | `scalar_gate_trend` | —— | —— | 标量降级系统趋势门 |
@@ -384,7 +384,7 @@ parallel_ok=True。配置 = phase config JSON：
 | `sparse_snr_layer` | true | —— | 是否产出稀疏帧内 SNR 层（控制点值 = 绝对通量型 SNR，与帧级同口径、同参考通量）。**请求面已冻结；生产侧尚无产者**，落地前该键不产生可消费产物 |
 | `sparse_snr_spacing_px` | 64 | px | 稀疏层控制点间隔 Δ：复用 Phase2 UPM 的 8×8/tile 控制网格（tile_width / 8 = 512 / 8 = 64） |
 | `sparse_snr_density` | —— | 点/度² | 稀疏层控制点密度（按面积表述）；生产由像素域控制点间隔承载该量，本键不承载生产取值 |
-| `snr_path` | `sparse_reconstruct` | —— | SNR 重建路径：`dense` / `sparse_reconstruct`（默认）/ `frame_reconstruct`；三条路径的适用域由 `实验/absolute-snr` 给出 |
+| `snr_path` | —— | —— | **该键属 mosaic 配置，normalize 配置不含它**，本页只记 Phase1 侧的产出形态；取值域、缺省与登记正本见 `docs/detail/registry/acsd.phase2.integrate.md` 的配置表行 |
 
 **重建算子的声明面不是配置键**：算子标识由稀疏层自身声明
 （`sparse_snr_layer.reconstruction_operator`，冻结词表见本页「稀疏帧内层几何与
@@ -421,7 +421,7 @@ cache/内存按 ALG 合同（bounded）; I-O 单 writer。平面判定与审计�
 - 缺 `a_k` / PSF / 方差 ⇒ fail-closed（信息权重不可凭空造）；
 - 标量门失败 ⇒ 自动升级为空间模型（标量结果只保留具名降级登记）；
 - 参考通量取不到时 m5/SNR 不可输出。三条来源形态各自具名落盘
-  （`reference_flux_source`）：① `fixed_magnitude` = 冻结的 `m_ref` 按本帧测光
+  （`reference_flux_source`）：① `fixed_magnitude` = 配置缺省的 `m_ref` 按本帧测光
   零点换算（生效路径，作用域 `frame_independent_fixed_magnitude`）；② `config` =
   显式 `snr.reference_flux_adu`；③ `group_median` = **块级**公共 F0（块内逐帧检出
   通量中位数的中位数，作用域 `group`），只在 ①② 都不可得时启用，`scope` 随之落盘

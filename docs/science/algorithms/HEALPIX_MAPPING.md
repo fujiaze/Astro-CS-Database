@@ -85,11 +85,7 @@ lib/algorithms/shared/healpix/healpix_core.cpp）；oracle 面 `mismatch != 0` �
 
 ## 参考文献与参考代码库（含许可证）
 
-
 - HEALPix 定义/order/NESTED：Górski et al. 2005, ApJ 622, 759（DOI 10.1086/427976）。
 - 独立实现对照：astropy-healpix（BSD-3-Clause）、healpy（GPL-2.0）。
 - HiPS 层级与 tile：IVOA HiPS 1.0（https://www.ivoa.net/documents/HiPS/）；Fernique et al. 2015, A&A 578, A114。
 - round-trip 1e-12 度容差：Project-defined（本文件 Postconditions）。
-
-参考代码库（含许可证）正本 = docs/engineering/SCIENTIFIC_REFERENCES.md §M。
-

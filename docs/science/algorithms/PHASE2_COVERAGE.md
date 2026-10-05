@@ -392,11 +392,7 @@ status 语义: 0=ok；错误路径部分分支置 1（`lib/algorithms/coverage/s
 
 ## 参考文献与参考代码库（含许可证）
 
-
 - 球面交叠/覆盖几何：Project-defined（本文件 §2/§7）；独立几何 Oracle 可用 astropy-healpix（BSD-3-Clause）与 Górski et al. 2005, ApJ 622, 759。
 - 连通分量分解：Tarjan 1972, SIAM J. Comput. 1, 146（DOI 10.1137/0201010）；Hopcroft & Tarjan 1973, Comm. ACM 16, 372。
 - coverage 非权重：UNIFIED_SCIENCE_MODEL §3 与 docs/detail/algorithms_phase2/09_coverage.md §1；权威语义在本文件 §7 负向条款。
 - MOC 域表达：IVOA MOC 1.0（https://www.ivoa.net/documents/MOC/）。
-
-参考代码库（含许可证）正本 = docs/engineering/SCIENTIFIC_REFERENCES.md §M。
-

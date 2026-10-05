@@ -389,12 +389,8 @@ DATA-P2-SESSION（§24，并行任务生成）；本节为实现现状锚定。
 
 ## 参考文献与参考代码库（含许可证）
 
-
 - DAG/拓扑排序：Kahn 1962, Comm. ACM 5, 558（DOI 10.1145/368996.369025）；Cormen et al. 2009, Introduction to Algorithms 3rd ed., MIT Press, §22.4。
 - provenance/来源链：W3C PROV-DM（https://www.w3.org/TR/prov-dm/）；manifest 字段语义以 DATA_SEMANTICS 为准。
 - 内容寻址/哈希：Merkle 1988, Advances in Cryptology (CRYPTO 87), 369；SHA-256 NIST FIPS 180-4。
 - FITS checksum：FITS Standard 3.0 §5.5（DATASUM/CHECKSUM）；CFITSIO（宽松许可）。
 - 取消/生命周期语义：Project-defined（本文件 §5/§9）。
-
-参考代码库（含许可证）正本 = docs/engineering/SCIENTIFIC_REFERENCES.md §M。
-

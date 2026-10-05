@@ -120,13 +120,9 @@ function p2_upm_build(observations, cfg):
 
 ## 参考文献与参考代码库（含许可证）
 
-
 - Huber IRLS：Huber 1964, Ann. Math. Statist. 35, 73；Huber & Ronchetti 2009, Robust Statistics 2nd ed., Wiley。
-- 弱零锚：Tikhonov 1963, Soviet Math. Dokl. 4, 1035（外部文献条目，卷期页以 docs/engineering/SCIENTIFIC_REFERENCES.md 登记为准）。
+- 弱零锚：Tikhonov 1963, Soviet Math. Dokl. 4, 1035（正则化弱零锚的原始出处）。
 - 多帧相对定标：SCAMP（GPL-3.0；Bertin 2006, ASPC 351, 112）；Padmanabhan et al. 2008, ApJ 674, 1217。
 - 稀疏天光面样条（目标表示）：Duchon 1977；Wahba 1990。
 - var(median)≈πσ²/(2N)：Hoaglin et al. 1983（SCI-UPM §11）；实证比值读数（N=5 的 Var(median)/渐近式直接定征）正本 = `实验/healpix-polar/docs/audit/kcorr/tables.md` §T3。
 - k_corr 为 k_gauss(N)×k_geo 两因子几何查表（P3 单元承载）；MC 证据源 control_median_mc_test 可复跑；域外回退值与实现记录 = `实验/healpix-polar/docs/DERIVATIONS-P3.md` §D8。
-
-参考代码库（含许可证）正本 = docs/engineering/SCIENTIFIC_REFERENCES.md §M。
-

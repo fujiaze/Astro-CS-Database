@@ -27,12 +27,12 @@ Linux 仅从 product manifest 的绝对 canonical path `dlopen`。加载前后�
 
 ```text
 product manifest(host 解析) → unit 记录(绝对路径/sha/module_id/abi/build_id)
- → [1] 路径: 绝对 + realpath canonical + allowed_root 前缀
- → [2] ELF64-x86-64 头校验 + sha256 比对(manifest 期望)
- → [3] dlopen(canon, RTLD_NOW|RTLD_LOCAL) [Windows: LoadLibraryExW 安全 flags]
- → [4] 必需入口符号存在 + host_abi 握手(ACS_ABI_VERSION_V1)
- → [5] describe → head/abi_version/module_id/build_id/version 校验
- → [6] 句柄返回; 失败一律 *out=NULL + 非 0 + err(detail_code), 绝不 fallback
+ → ① 路径: 绝对 + realpath canonical + allowed_root 前缀
+ → ② ELF64-x86-64 头校验 + sha256 比对(manifest 期望)
+ → ③ dlopen(canon, RTLD_NOW|RTLD_LOCAL) [Windows: LoadLibraryExW 安全 flags]
+ → ④ 必需入口符号存在 + host_abi 握手(ACS_ABI_VERSION_V1)
+ → ⑤ describe → head/abi_version/module_id/build_id/version 校验
+ → ⑥ 句柄返回; 失败一律 *out=NULL + 非 0 + err(detail_code), 绝不 fallback
 ```
 
 关键点:
@@ -101,7 +101,7 @@ product manifest(host 解析) → unit 记录(绝对路径/sha/module_id/abi/bui
 | N11 | kind 不支持 | detail=17 |
 | L1-3 | 消息字面量/无文件写/拒绝输出无泄露 | 静态断言 |
 
-上表逐条对应本篇拒绝模型的 detail 码，是安全装载器在 Linux 技术预览面上的验收矩阵；
+上表逐条对应本篇拒绝模型的 detail 码，是安全装载器在 Linux 实现面上的验收矩阵；
 负路径与正路径的装配 fixture 由该面自行构建，不在仓内留脚本载体。
 
 ## 非目标

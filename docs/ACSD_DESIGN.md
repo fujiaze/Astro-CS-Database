@@ -138,7 +138,9 @@ flowchart LR
 - 各帧对齐到同一连续平面后，叠加结果在帧集变化处连续；接缝判据在保留背景前提下取有符号电平台阶，只对两侧都有数据的边界计入。
 - 参考面节点间距由输入几何导出，基函数能表示帧间天光差的空间尺度；乘性空间响应归 normalize 处理，mosaic 只做加性校正。
 
-科学推导见 science 各分册（测光、噪声与信噪比、drizzle、天光叠加），算法推导见 science/algorithms，实验单元编排见第 12 章。
+科学推导见 science 各分册（测光、噪声与信噪比、drizzle、天光叠加），算法推导见 science/algorithms，实验单元编排见本章「创新点实验单元」一节。
+
+本节的 P1–P5 指五个创新点，与「phase1/phase2/phase3」的阶段指代是两套记号，全文不混用：阶段一律写阶段全名 normalize / mosaic / export。
 
 ---
 
@@ -367,13 +369,13 @@ benchmark                           生成/更新机器画像
 
 ```mermaid
 flowchart LR
-    CLI["唯一入口"] -->|拉起| P1["normalize 调度器"]
-    CLI -->|拉起| P2["mosaic 调度器"]
-    CLI -->|拉起| P3["export 调度器"]
-    P1 --> H1[("单帧 HiPS")]
-    H1 -->|磁盘| P2
-    P2 --> H2[("马赛克 HiPS")]
-    H2 -->|磁盘| P3
+    CLI["唯一入口"] -->|拉起| NRM["normalize 调度器"]
+    CLI -->|拉起| MZC["mosaic 调度器"]
+    CLI -->|拉起| EXP["export 调度器"]
+    NRM --> H1[("单帧 HiPS")]
+    H1 -->|磁盘| MZC
+    MZC --> H2[("马赛克 HiPS")]
+    H2 -->|磁盘| EXP
 ```
 
 ### 8.2 命名块内存管线与块生命周期
@@ -559,7 +561,7 @@ flowchart TD
 
 ## 附录 A. 术语
 
-signal、variance、ivar、source_snr、frame_snr、point_information、sparse_snr_layer、support、coverage、validity、rejection、provenance、UPM、PSF、HiPS、HEALPix、WCS、projection、stacking、drizzle、机器画像、运行 manifest —— 定义见 detail 与 `docs/GLOSSARY.md`。
+signal、variance、ivar、source_snr、depth_m5、frame_snr、point_information、sparse_snr_layer、support、coverage、validity、rejection、provenance、UPM、PSF、HiPS、HEALPix、WCS、projection、stacking、drizzle、机器画像、运行 manifest —— 定义见 detail 与 `docs/GLOSSARY.md`（对象定义以 `docs/engineering/UNIFIED_OBJECTS.md` 的对照表与 canonical schema 为准，`docs/GLOSSARY.md` 只登记叫法与单位口径）。
 
 ## 附录 B. 外部标准与文献
 

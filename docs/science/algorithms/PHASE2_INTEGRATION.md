@@ -348,11 +348,7 @@ eligibility（逐候选 i，候选索引固定序）:
 
 ## 参考文献与参考代码库（含许可证）
 
-
 - 加权均值/逆方差聚合：教科书级（Bevington & Robinson 2003；Aitken 1935, Proc. Roy. Soc. Edinburgh 55, 42, DOI 10.1017/S0370164600014346 【出版年双源登记】本仓取 1935 = 论文出版年：一手依据 = 纸本合卷 Proc. R. Soc. Edin. Vol. LV 逐字「Read March 4, 1935」与「Issued separately March 6, 1935」（Internet Archive dli.ernet.7410）；另一源 CrossRef 与 Cambridge Core 卷期页记 1936 = **合卷印年**（同卷扉页逐字「VOL. LV. / 1934-1935 / MCMXXXVI」）。**结论：不改数字，保留 1935**；双源差异在此登记，不按错处理。）。**差异**：本层不编码 ivar 语义（§7）。
 - 最优叠加/信息保持：Zackay & Ofek 2017, ApJ 836, 187/188。**边界**：Naylor 1998, MNRAS 296, 339 是**最优源提取**（"An optimal extraction algorithm for imaging photometry"），**不是**最优叠加/信息保持的来源，引用时不得据此宣称叠加最优性。
 - support=max：Project-defined（§5）；与 SCI-INT §5 同构。
 - 并行归约容差：IEEE 754-2019；Higham 2002。
-
-参考代码库（含许可证）正本 = docs/engineering/SCIENTIFIC_REFERENCES.md §M。
-

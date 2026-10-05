@@ -405,26 +405,14 @@ fits_index = nested_local_to_fits_index(local, 9, 512)   # = (511-x)*512 + y（D
 
 ## 参考文献与参考代码库（含许可证）
 
-
 - HiPS 层级/tile：IVOA HiPS 1.0（https://www.ivoa.net/documents/HiPS/）；Fernique et al. 2015, A&A 578, A114。
 - HEALPix 几何：Górski et al. 2005, ApJ 622, 759；astropy-healpix（BSD-3-Clause）。
 - 双线性采样核与 tile 寻址：Project-defined（本文件 §6.4/§6.5，SCI-P3 §5）。
 - FITS tile 读取：FITS Standard 3.0；CFITSIO（宽松许可）。
 
-参考代码库（含许可证）正本 = docs/engineering/SCIENTIFIC_REFERENCES.md §M。
 
 ---
 
 ## U 承接：`uncertainty_available=false`（fail-closed 唯一出口）
 
-本层产出/消费不确定度子产品时，`uncertainty_available=false` 的处置**承接
-`docs/engineering/data/ARTIFACTS.md`（DATA-UNC-001 / DATA-P2-PROV-001 行）的 fail-closed 唯一出口**（不确定度
-fail-closed 规则与其显式登记项）：输入面不含 variance/ivar 子产品
-（或权重非纯逆方差、发生 fallback、合成输入非有限被拒等规则项）⇒ **不写**
-variance/ivar 子产品 + manifest 写 `uncertainty_available=false` +
-diagnostics 标红计数；**该键不是失败态**，是 unavailable 显式登记模式
-（禁占位子产品、禁静默缺键、禁用常量 0 冒充）。
-键名与取值口径以 `docs/engineering/data/ARTIFACTS.md` 为唯一权威，本层不另立第二套
-（本层此前零承接，P-154/DISP-P3UNC-001 勘误）。
-
-
+本层产出/消费不确定度子产品时，`uncertainty_available=false` 的处置**承接 《产物与清单登记面》 的 fail-closed 唯一出口**（DATA-UNC-001 规则行与 DATA-P2-PROV-001 显式登记行，按**内容锚**读、不按行号读）：不写 variance/ivar 子产品，manifest 写 `uncertainty_available=false` 并在 diagnostics 标红计数。该键不是失败态，是 unavailable 的显式登记模式；键名与取值口径以该处为唯一权威，本层不另立第二套。

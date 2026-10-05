@@ -238,7 +238,7 @@ Polar prune: if |dec|>45° use C/C45 disk B(q,C·radius), false_negative=0
 | 错误串编码归一 | lib/algorithms/platesolve/cpp/ipv/src/ipv_entry.cpp（`utf8_safe_copy`，§4b；`set_error_msg`；`to_c_result`） | error_msg 恒为合法 UTF-8：码点边界截断 + 非法字节替换为 '?' |
 | 三角形投票 | lib/algorithms/platesolve/cpp/ipv/src/ipv_triangle.cpp | 线程局部投票矩阵 + omp for schedule(dynamic,64) + 整数归并 collapse(2) schedule(static) |
 | iter_trans_solve | lib/algorithms/platesolve/cpp/ipv/src/ipv_itertrans.cpp | 迭代重投影多项式拟合（order 1→3） |
-| robust_refine_wcs | 调用点 lib/algorithms/platesolve/cpp/ipv/src/ipv_solver.cpp；irls_fit_one_step lib/algorithms/platesolve/cpp/ipv/src/ipv_robust_refine.cpp | 稳健扩增精化（CD 阻尼 + Tukey biweight；佐证链：`docs/engineering/SCIENTIFIC_REFERENCES.md` §E 20 Mosteller & Tukey 1977、§F 37 Beaton & Tukey 1974 biweight 原始出处），失败回退不破坏主解 |
+| robust_refine_wcs | 调用点 lib/algorithms/platesolve/cpp/ipv/src/ipv_solver.cpp；irls_fit_one_step lib/algorithms/platesolve/cpp/ipv/src/ipv_robust_refine.cpp | 稳健扩增精化（CD 阻尼 + Tukey biweight；佐证链：Mosteller & Tukey 1977（Data Analysis Using Regression and Multiresponse/Prediction, Addison-Wesley）稳健 M 估计与 biweight 原始出处、Beaton & Tukey 1974（Biweight, a Robust Alternative to the Gaussian, J. R. Statist. Soc. C, 23(3): 333–351，DOI 10.2307/2982349）），失败回退不破坏主解 |
 | extract_wcs_sip | lib/algorithms/platesolve/cpp/ipv/src/ipv_wcs.cpp | WCS+SIP 提取（生产路径） |
 | CD = trans 线性项/3600 | lib/algorithms/platesolve/cpp/ipv/src/ipv_wcs.cpp | 度/像素（F2） |
 | CRVAL/CRPIX 冻结 | lib/algorithms/platesolve/cpp/ipv/src/ipv_wcs.cpp | CRPIX=w/2+0.5, h/2+0.5（1-based，F1） |
@@ -358,13 +358,9 @@ API-P1-004/TEST-P1-WCS-001，`lib/infrastructure/scheduler/src/module_adapters.c
 
 ## 参考文献与参考代码库（含许可证）
 
-
 - WCS 框架/TAN/SIP：Paper I §2.1.1 式(1)（CRPIX 参考像素）/§2.1.2 式(3)（中间坐标 = CD·(p−CRPIX)）/§2.1.4（1-based）；Paper II §2.1/§2.3 式(2)–(7)（旋转核；矩阵形式见附录 A.1）/§5.1.3 式(54)（TAN）/Table 12（投影代码表）；Shupe et al. 2005, ASPC 347, 491（SIP）。
 - 可执行标准：WCSLIB（LGPL-3.0）、astropy.wcs（BSD-3-Clause）≥7.0.1。
 - 三角匹配/星表求解：Groth 1986, AJ 91, 1244（DOI 10.1086/114099）；Valdes et al. 1995, PASP 107, 1119（DOI 10.1086/133667）。
 - 多帧联合校准：SCAMP（GPL-3.0，https://github.com/astromatic/scamp，tag v2.14.0 = 控制节点实测；文件位置 `src/photsolve.c`；Bertin 2006, ASPC 351, 112）。
 - Astrometry.net 语义对照（本文件 §8）：Astrometry.net（GPL-3.0-or-later，https://github.com/dstndstn/astrometry.net，tag 0.98 = commit `1398028b`；文件位置 `solver/solve-field.c`、`solver/solver.c`、`solver/verify.c`（quad 匹配 `verify_field_preprocess`）、`solver/quad-builder.c`、`util/quadfile.c`、`libkd/dualtree.c`；**核验状态**：三腿已按 tag 0.98 文件树逐条实测）。 **许可证判定（已闭环，一手来源）**：上游 LICENSE 原文 "Parts of the code written by the Astrometry.net Team are licensed under the 3-clause BSD-style license below. HOWEVER, since this code uses libraries licensed under the GNU GPL (including a vendored GSL), the whole work must be distributed under the GPL version 3 or later." ⇒ 上游**整体分发形态取 GPL-3.0-or-later**；团队自写文件为 BSD-3-Clause，而 Debian 因剥离 vendored GSL（`Files-Excluded: demo gsl-an`）才整体标 BSD-3-Clause。仓址一手依据 = astrometry.net/use.html 逐字 "development version on github: github astrometry.net" 指向该仓；版本腿 tag 0.98 = commit `1398028b`。
 - Huber IRLS（SIP 拟合）：Huber 1964, Ann. Math. Statist. 35, 73。
-
-参考代码库（含许可证）正本 = docs/engineering/SCIENTIFIC_REFERENCES.md §M。
-

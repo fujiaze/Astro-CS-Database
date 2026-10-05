@@ -1,7 +1,7 @@
 # 模块 acsd.phase1.drizzle
 
 > 上游：docs/ACSD_DESIGN.md §8.5（模块与 ABI）、§4.4（输出合同：帧级 SNR 入文件头、
-> 稀疏层插入）、§2.2（创新点二：跨帧可用的绝对信噪比）、§5.5/§10（无覆盖 = NaN 语义）
+> 稀疏层插入）、§2.2（P2 跨帧绝对信噪比）、§5.5/§10（无覆盖 = NaN 语义）
 > 科学正本：docs/science/drizzle/DRIZZLE.md（SCI-DRZ-001/014/015/016，「参数与常数」表的
 > pixfrac / 叶面积 / `flux_conservation_factor`；「主题与目标」「几何闭合」的守恒不变量）、
 > docs/science/algorithms/DRIZZLE_GEOMETRY.md（ALG-DRZ-001，重采样几何、「TEST-DRZ-DESIGN-001」
@@ -111,16 +111,17 @@ covered_area ≤ 0 → variance 记 NaN）。`pixfrac ∈ (0,1]` 引擎层严格
 - **归一发布因子 `k = D_p/N_p`（`D_p = Σ_j a_jp` 为覆盖面积，
   `N_p = Σ_j w_jp·A_pixel,j` 为面亮度归一分母）**：在**平面（仿射）极限**下，
   由 `A_drop,j = pixfrac²·A_pixel,j` 与 `w_jp = a_jp/A_drop,j` 得
-  `N_p = Σ_j a_jp/pixfrac² = D_p/pixfrac²`，即 `k = pixfrac²`（与 `pixfrac`
-  取值无关，`pixfrac = 1` 时 `k ≡ 1`）。**球面上该等式只近似成立**：
+  `N_p = Σ_j a_jp/pixfrac² = D_p/pixfrac²`，即 `k = pixfrac²`（与各 `a_jp` 交叠面积的
+  具体取值无关；`pixfrac = 1` 时 `k ≡ 1`）。**球面上该等式只近似成立**：
   `A_drop,j` 与 `A_pixel,j` 各自由球面上不同四边形量得，二者之比与 `pixfrac²`
   的相对残差按
   `δ = (1−pixfrac²)·θ²·[0.25/(1+r_c²) − 0.625·ξ_c²/(1+r_c²)²] + O(θ⁴)`
   随源像元角尺度 `θ` 二次增长（pixfrac = 0.8、中心在参考点时 θ = 2″→8.5e-12、
   θ = 6.3″→8.4e-11、θ = 60″→7.6e-9、θ = 300″→1.9e-7）。把它代回
   `N_p = Σ_j (a_jp/A_drop,j)·A_pixel,j` 作一阶展开可知：`k` 相对 `pixfrac²` 的偏离
-  与 `δ` **同阶**（面积加权平均、符号相反）⇒ `θ ≲ 10″/px` 时该偏离 ≲ 1e-10，
-  `θ ≳ 100″/px` 时进入 1e-7–1e-6、与门禁容差同阶。
+  与 `δ` **同阶**（面积加权平均、符号相反）。由上式在 `r_c = ξ_c = 0` 下取
+  `δ = 0.09·θ²`（θ 以弧度计）直接读出边界：`θ ≲ 7″/px` 时偏离 ≲ 1e-10、
+  `θ ≳ 217″/px` 起进入 1e-7、`θ ≳ 688″/px` 起进入 1e-6（后两档才与门禁容差同阶）。
   残差律的推导、独立复算与实测读数正本 =
   docs/science/algorithms/DRIZZLE_GEOMETRY.md 的「DISP-DRZ-001..009」章末
   「面亮度保持权重的实现口径」段；实现侧 `k` 的取法 = `sb_publish_scale`
@@ -169,7 +170,7 @@ module_id=`acsd.p1.drizzle`; execution_class=`cpu_heavy`; parallel_ok=True。
 | `ordering` | `nested` | —— | HEALPix ordering（仅 NESTED） |
 | `precision` | —— | —— | FP32 / FP64（经 header KV `PRECISION`） |
 | `storage_form` | `archive` | —— | `archive`（zstd 归档包）/ `bare`（裸目录）；键缺失或留空取默认并报 warn |
-| `sparse_snr_layer` | true | —— | 是否将稀疏帧内 SNR 层插入 HiPS（来自 noise-snr；控制点值 = 绝对通量型 SNR，与帧级同口径、同一个冻结的参考星等档 `m_ref`）。**默认产出** |
+| `sparse_snr_layer` | true | —— | 是否将稀疏帧内 SNR 层插入 HiPS（来自 noise-snr；控制点值 = 绝对通量型 SNR，与帧级同口径、同一个配置缺省的参考星等档 `m_ref`，可被输入 JSON 覆盖）。配置缺省为**请求产出**；该层的生产侧产者落地状态见 `docs/detail/registry/acsd.phase1.noise-snr.md` 的输出面表 |
 
 ## Execution class、并行轴、ThreadBudget lease、确定性
 

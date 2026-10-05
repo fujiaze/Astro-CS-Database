@@ -109,7 +109,7 @@ V(y_p) = {V(r_p)+V(b_p)+alpha²[V(d_p)+V(b_p)]+y_p²V(f_p)} / f_p²
 
 - 背景模型 (B(x,y)) 与随机噪声 (C) 分开；Phase1 可估计背景，背景校正与 UPM 各占一层；
 - validity 包含 NaN/Inf、坏点、饱和、cosmetic、边界、插值、星轨/严重形变；
-- 检测阈值的**冻结定义**为全局背景噪声倍数 `median(img)+5.0·bgnoise`（`docs/science/detection/STAR_DETECTION.md`「O3 检测阈值」一节）；以逐像素 variance/ivar 做**局部噪声自适应**为目标态、当前未实现（`DISP-STAR-002`）；输出 selection function 和 completeness 相关参数；检测目录不是图像灵敏度本身；
+- 检测阈值的**冻结定义**为全局背景噪声倍数 `median(img)+5.0·bgnoise`（`docs/detail/STAR_DETECTION_IMPL_DESIGN.md`「O3 检测阈值」一节）；以逐像素 variance/ivar 做**局部噪声自适应**为目标态、当前未实现（`DISP-STAR-002`）；输出 selection function 和 completeness 相关参数；检测目录不是图像灵敏度本身；
 - 检测、PSF、WCS、测光、SNR 的 source row 都绑定同一 frame_id/source_id。
 
 ## 6. PSF 模型
@@ -158,7 +158,7 @@ PSF 拟合质量只能作 validity/诊断，不能未经概率模型直接乘入
 **星等的换算位置与公式**（派生表达，不改变产品 `BUNIT`、不改变数据面形态）：
 
 - 帧级 5σ 深度：`m_5 = ZP_k − 2.5·log10(F_5)`，`F_5 = 5·σ_F(ref)`（`docs/science/unified/DATA_SEMANTICS.md`「帧级信噪比的参考通量基准」一节、`docs/science/noise_snr/NOISE_SNR.md`「绝对信噪比」一节）；系数 `2.5` 是星等定义式 `m = ZP − 2.5·log10 F` 的换算常数，不是深度倍数；
-- 面亮度星等：`SB_mag = ZP_k − 2.5·log10(signal) + 2.5·log10(Ω_ref)`（`docs/science/unified/DATA_SEMANTICS.md` 的面亮度星等一段）；
+- 面亮度星等：`SB_mag = ZP_k − 2.5·log10(signal) − 2.5·log10(Ω_ref)`（`docs/science/unified/DATA_SEMANTICS.md` 的面亮度星等一段；由 `m = ZP_k − 2.5·log10(signal·Ω_ref)` 直接展开得**减号**，`Ω_ref = 1 sr` 时该项为零，写成加号仅在 `Ω_ref ≡ 1 sr` 时与正确式退化相同）；
 - 测光一致性 QA：`delta_i = −2.5·log10(F_instr,i) − G_Gaia,i`、`sigma_mag = 2.5·sigma_residual`（`docs/science/PHOTOMETRY.md` 的标度因子与 QA 两段）。
 
 ## 8. SNR、点源信息量与 Phase2 输入
@@ -183,7 +183,7 @@ W_psf,k = a_k² Σ_p P_k,p² / sigma_pix,k² = a_k² / (sigma_pix,k² A_NEA,k)
 
 ### 8.2 Phase1 的 SNR 与信息量产品边界
 
-Phase1 **只**产出帧级 SNR、稀疏控制点上的**绝对** SNR（`F_ref/σ_F(x,y)`，与帧级同口径、同参考通量 `F_ref`），以及 `W_psf = PᵀC⁻¹P` 作为点源充分统计量（`point_source_information`）；`F_ref` 的口径见 `docs/detail/UNIFIED_MODEL.md`「参考通量基准」一节；
+Phase1 **只**产出帧级 SNR、稀疏控制点上的**绝对** SNR（`F_ref/σ_F(x,y)`，与帧级同口径、同参考通量 `F_ref`），以及点源充分统计量 `point_information`，其标量度就是本节 8.1 的 `W_psf,k = a_k² P_kᵀ C_k⁻¹ P_k`（本页不另立第二套写法）；`F_ref` 的口径见 `docs/detail/UNIFIED_MODEL.md`「参考通量基准」一节；
 **不产生、不消费**任何叠加权重。叠加权重由**阶段二**按该天球像素对应的输入帧集合**现场算出**（派生量）。
 PSF 拟合质量代理（FWHM、残差尺度等）**只作诊断**，**权重面排除**该项（《ACSD 最高设计》的「核心科学方法：五个创新点」与「数据对象」两章）。
 
@@ -207,7 +207,7 @@ PSF 拟合质量代理（FWHM、残差尺度等）**只作诊断**，**权重面
 
 - HiPS signal；pixel variance/ivar；support；coverage/validity；
 - PSF 模型/地图；photometric response；WCS；背景/噪声模型；
-- `point_source_information`（map/model + summary）；`depth_m5`（map/model + summary）；
+- `point_information`（map/model + summary）；`depth_m5`（map/model + summary）；
 - source catalog（逐源 flux、variance、SNR、flags）；
 - drizzle correlation/transfer 描述；
 - product manifest：schema、算法/模块/provider、完整 SHA、输入/配置哈希、单位、参考尺度、近似和降级。

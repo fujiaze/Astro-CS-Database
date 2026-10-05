@@ -345,7 +345,6 @@ outlier_rate = 1 − |r_inliers|/|r_consistent|
 - **［47］ 通带失配 2–5% 的原始出处（被［37］引用）**：Saha et al. 2005【出处待补】题名/出处/DOI 未在本文件登记（本文件只经［37］转引其结论）。
 - **［48］ 通带失配 ~7 mmag 的出处（StarDICE III；§2a.5 量级登记）**：Souverin et al. 2024【出处待补】题名/出处/DOI 未在本文件登记。
 
-参考代码库（含许可证）正本 = docs/engineering/SCIENTIFIC_REFERENCES.md §M。
 
 ## 15 Acceptance
 

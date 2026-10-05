@@ -107,14 +107,12 @@ R-3 §2.9 实测同一 Moffat4 场 `SNR_peak=20` 时 sdet 检出 **0 星**、
 
 ## 参考文献与参考代码库（含许可证）
 
-
 - `SNR_det`/`SNR_peak`：**本仓 Project-defined 量**（两条定义式见本文件 §2 表，均非外部文献给出，引用时必须随定义同写）。外部文献只提供检测阈的**其它**口径：SExtractor（Bertin & Arnouts 1996, A&AS 117, 393）给出的是 ±3σ 背景裁剪（§2）、去混叠通量比 δ=5·10⁻³（§4.1）与 Kron 半径 k=2/2.5（§6），全文不含 SNR 型定义或阈值公式；DAOPHOT 见 Stetson 1987, PASP 99, 191（Bertin & Arnouts §2 只以一句提及 "in Stetson's DAOPHOT program"，该文本身未著录 Stetson 1987，两条引用各自独立、不得相邻解读为同一来源）。
 - 天测残差口径与大圆角距：Greisen & Calabretta 2002, A&A 395, 1061（Paper I）；Calabretta & Greisen 2002, A&A 395, 1077（Paper II）；astropy.wcs（BSD-3-Clause）作独立重建 Oracle。
 - Gaia G<18 样本与 1″ 匹配：Gaia DR3（Gaia Collaboration et al. 2023, A&A 674, A1）；匹配半径/统计量的冻结依据见本文件 §3 与 ASTROMETRY §11a。
 - MAD→σ 常数：Rousseeuw & Croux 1993, JASA 88, 1273。
 - 本表阈值均为 Project-defined 冻结门（阈值来源只此一表）；外部文献只提供量测域语义，不提供门值。
 
-参考代码库（含许可证）正本 = docs/engineering/SCIENTIFIC_REFERENCES.md §M。
 
 
 ---

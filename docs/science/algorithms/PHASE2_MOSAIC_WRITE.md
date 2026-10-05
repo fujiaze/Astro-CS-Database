@@ -506,12 +506,8 @@ f32 产品存取粒度所致，f64 oracle 不沿用）；fixture 生成器注记
 
 ## 参考文献与参考代码库（含许可证）
 
-
 - HiPS 写出：IVOA HiPS 1.0（https://www.ivoa.net/documents/HiPS/）；Fernique et al. 2015, A&A 578, A114。
 - 重采样/相关噪声：Fruchter & Hook 2002, PASP 114, 144；Zackay & Ofek 2017 II, ApJ 836, 188。
 - 逐帧背景/coadd 权重：SWarp（GPL-3.0；Bertin et al. 2002, ASPC 281, 228）；Gruen et al. 2014, PASP 126, 158。
 - HEALPix 几何：Górski et al. 2005, ApJ 622, 759；astropy-healpix（BSD-3-Clause）。
 - FITS 关键字/写出：FITS Standard 3.0；CFITSIO（宽松许可）。
-
-参考代码库（含许可证）正本 = docs/engineering/SCIENTIFIC_REFERENCES.md §M。
-

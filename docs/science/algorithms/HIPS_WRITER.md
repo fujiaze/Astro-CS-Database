@@ -410,13 +410,9 @@ UTC 时间戳致 properties/manifest 字节不跨运行复现（合同，§7）�
 
 ## 参考文献与参考代码库（含许可证）
 
-
 - HiPS 规范：IVOA HiPS 1.0 Recommendation（https://www.ivoa.net/documents/HiPS/；§3/§4.1/§4.2.1/§4.4.1/§6.3.1）。
 - HiPS 层级/目录：Fernique et al. 2015, A&A 578, A114（DOI 10.1051/0004-6361/201526075）。
 - HEALPix 几何：Górski et al. 2005, ApJ 622, 759。
 - FITS 写出/关键字：FITS Standard 3.0；CFITSIO（宽松许可）。
 - MOC/properties：IVOA MOC 1.0（https://www.ivoa.net/documents/MOC/）。
 - dtype/精度与 hierarchy 聚合：Project-defined（本文件 §2/§4/§8）。
-
-参考代码库（含许可证）正本 = docs/engineering/SCIENTIFIC_REFERENCES.md §M。
-

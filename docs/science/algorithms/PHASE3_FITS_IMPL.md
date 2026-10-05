@@ -423,27 +423,15 @@ function p3_output_verify(path, wcs, signal, coverage, W, H, out result):
 
 ## 参考文献与参考代码库（含许可证）
 
-
 - FITS 标准/关键字：FITS Standard 3.0（HDU/关键字/checksum）；CFITSIO（宽松许可，NASA/HEASARC）作独立读取器。
 - WCS 关键字语义：Greisen & Calabretta 2002, A&A 395, 1061（Paper I）§2.1.1 式(1)（CRPIX 为参考像素、q=Σ m_ij(p_j−CRPIX_j)）与 §2.1.4（1-based）；Calabretta & Greisen 2002, A&A 395, 1077（Paper II）§2.3 式(2)–(7)/附录 A.1（旋转核与矩阵形式）。
 - HiPS 输入语义：IVOA HiPS 1.0（https://www.ivoa.net/documents/HiPS/）；Fernique et al. 2015, A&A 578, A114。
 - 原子写：POSIX rename(2) 原子性（IEEE Std 1003.1）；本文件 §4 write_atomic 为 Project-defined。
 - BUNIT/VARIANCE/IVAR 扩展：DATA_SEMANTICS §30；FITS Standard 3.0 §4.3。
 
-参考代码库（含许可证）正本 = docs/engineering/SCIENTIFIC_REFERENCES.md §M。
 
 ---
 
 ## U 承接：`uncertainty_available=false`（fail-closed 唯一出口）
 
-本层产出/消费不确定度子产品时，`uncertainty_available=false` 的处置**承接
-`docs/engineering/data/ARTIFACTS.md` 的 fail-closed 唯一出口**（DATA-UNC-001 规则行
-与 DATA-P2-PROV-001 显式登记行，按**内容锚**读，不按行号读）：输入面不含 variance/ivar 子产品
-（或权重非纯逆方差、发生 fallback、合成输入非有限被拒等规则项）⇒ **不写**
-variance/ivar 子产品 + manifest 写 `uncertainty_available=false` +
-diagnostics 标红计数；**该键不是失败态**，是 unavailable 显式登记模式
-（禁占位子产品、禁静默缺键、禁用常量 0 冒充）。
-键名与取值口径以 `docs/engineering/data/ARTIFACTS.md` 为唯一权威，本层不另立第二套
-（本层此前零承接，P-154/DISP-P3UNC-001 勘误）。
-
-
+本层产出/消费不确定度子产品时，`uncertainty_available=false` 的处置**承接 《产物与清单登记面》 的 fail-closed 唯一出口**（DATA-UNC-001 规则行与 DATA-P2-PROV-001 显式登记行，按**内容锚**读、不按行号读）：不写 variance/ivar 子产品，manifest 写 `uncertainty_available=false` 并在 diagnostics 标红计数。该键不是失败态，是 unavailable 的显式登记模式；键名与取值口径以该处为唯一权威，本层不另立第二套。

@@ -518,7 +518,6 @@ PHASE2_SAMPLER.md 承载），本域只引用 control_ivar 消费面，不改不
 
 ## 参考文献与参考代码库（含许可证）
 
-
 - Huber IRLS：Huber 1964, Ann. Math. Statist. 35, 73；Huber & Ronchetti 2009, Robust Statistics 2nd ed., Wiley。
 - 弱零锚/正则化：Tikhonov 1963, Soviet Math. Dokl. 4, 1035（卷页需网络核验）。
 - 多帧相对定标：SCAMP（GPL-3.0；Bertin 2006, ASPC 351, 112）；Padmanabhan et al. 2008, ApJ 674, 1217。
@@ -526,7 +525,6 @@ PHASE2_SAMPLER.md 承载），本域只引用 control_ivar 消费面，不改不
 - 共轭梯度（C 更新）：Hestenes & Stiefel 1952, J. Res. NBS 49, 409。
 - var(median)≈πσ²/(2N)：Hoaglin et al. 1983。
 
-参考代码库（含许可证）正本 = docs/engineering/SCIENTIFIC_REFERENCES.md §M。
 
 
 ---

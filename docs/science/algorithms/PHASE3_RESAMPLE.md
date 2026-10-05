@@ -181,7 +181,6 @@ function phase3_resample(hips_dir, params):
 
 ## 参考文献与参考代码库（含许可证）
 
-
 - HiPS 层级/tile 与 order：IVOA HiPS 1.0（https://www.ivoa.net/documents/HiPS/）；Fernique et al. 2015, A&A 578, A114。
 - HEALPix 几何/ang2pix：Górski et al. 2005, ApJ 622, 759；astropy-healpix（BSD-3-Clause）。
 - 双线性插值：教科书级（Press et al. 2007, Numerical Recipes 3rd ed.）；本模块 order/邻域语义 Project-defined（SCI-P3 §5）。
@@ -191,7 +190,6 @@ function phase3_resample(hips_dir, params):
   FITS Standard 4.0（2016）§4.3/§4.4；astropy 7.0.1（WCSLIB）作独立 Oracle。
 - 方差传播（若涉及）：Fruchter & Hook 2002；docs/science/noise_snr/NOISE_SNR.md §3.5。
 
-参考代码库（含许可证）正本 = docs/engineering/SCIENTIFIC_REFERENCES.md §M。
 
 ---
 
@@ -205,5 +203,3 @@ diagnostics 标红计数；**该键不是失败态**，是 unavailable 显式登
 （禁占位子产品、禁静默缺键、禁用常量 0 冒充）。
 键名与取值口径以 `docs/engineering/data/ARTIFACTS.md` 为唯一权威，本层不另立第二套
 （本层此前零承接，P-154/DISP-P3UNC-001 勘误）。
-
-

@@ -29,7 +29,7 @@
 
 ## Data contract
 
-- HEALPix `order K → nside=2^K`，`ang2pix` 内归一 `ra` 任意值 `dec∈[-90,90]`，非法 `pix2ang` 返回 `0`；NESTED leaf local 18 bits `interleave(x,y)`，FITS index `(511-x)*512+y` 由 CDS Hipsgen oracle 冻结（`docs/science/unified/DATA_SEMANTICS.md`「HEALPix 索引与 tile 布局」一节）。
+- HEALPix `order K → nside=2^K`，`ang2pix` 内归一 `ra` 任意值 `dec∈[-90,90]`，非法 `pix2ang` 返回 `0`；NESTED leaf local 18 bits `interleave(x,y)`，FITS index `(511-x)*512+y` 由 CDS Hipsgen oracle 冻结（`docs/science/unified/DATA_SEMANTICS.md`「坐标语义」一节）。
 - frame_id = truncated-64(canonical SHA-256 of science payload)（`DATA-FRAME-ID-001`）。
 - 标量精度 `FP32/FP64` 经 `aio_set_precision_mode` 跨 DLL 传递；全局 `AstroScalarType` 是**计算路径**的精度开关，**发布面** dtype 另按《ACSD 最高设计》的「精度归属」一节与 `docs/engineering/standards/NUMERIC.md` 逐数据形态归属（稠密发布面 FP32、稀疏与元数据 FP64）——两者是不同面，不互相覆盖。
 

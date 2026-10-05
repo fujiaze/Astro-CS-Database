@@ -667,12 +667,8 @@ fill）。fixture 由固定 seed 合成 HiPS 树生成，不提交大二进制�
 
 ## 参考文献与参考代码库（含许可证）
 
-
 - 控制点/背景采样与相对定标：SCAMP（GPL-3.0；Bertin 2006, ASPC 351, 112）；SExtractor（GPL-3.0；Bertin & Arnouts 1996, A&AS 117, 393）。
 - 稳健尺度/clipping：Hoaglin et al. 1983；Rousseeuw & Croux 1993。
 - 稀疏天光面样条（目标表示）：Duchon 1977（薄板样条）；Wahba 1990, Spline Models for Observational Data, SIAM。
 - var(median)≈πσ²/(2N)：Hoaglin et al. 1983（中位数渐近方差）；本文件 §5.4 承接 ALG-UPM-CONTROL-IVAR-001。
 - SNR 加权采样：UNIFIED_SCIENCE_MODEL §4；docs/detail/algorithms_phase2/10_sampling.md §4.2。
-
-参考代码库（含许可证）正本 = docs/engineering/SCIENTIFIC_REFERENCES.md §M。
-

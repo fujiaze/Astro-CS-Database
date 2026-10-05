@@ -10,7 +10,7 @@
 ## 2. 权威依据
 
 - 《ACSD 最高设计》的「软件架构」一章（顶层结构：scheduler + pipeline 职责名全仓唯一）与「CPU 后端与资源」一章（内存极简化、编排连续性）
-- `docs/engineering/api/abi/ABI.md`（C ABI 规则）、`docs/engineering/contracts/LOG_AND_ERROR.md`「进程退出码」一节（退出码全集合）
+- `docs/engineering/api/abi/ABI.md`（C ABI 规则）、`docs/engineering/standards/ERROR_MODEL.md`「进程退出码」一节（退出码全集合）
 - `docs/detail/anchors/ANCHOR_CONTRACT.md`（行号锚合同）、`docs/detail/UNIFIED_MODEL.md`（数据对象）
 - `docs/detail/infrastructure/21_observability.md` 的「重计算负载资源门（G-RES-01）」一章
 
@@ -66,7 +66,7 @@ flowchart LR
 
 - 取消：协作取消 → checkpoint → 干净退出；
 - 资源监控：进程/线程 CPU、RSS/PSS、内存增长、读写字节、I/O wait、work units、队列深度、worker 均衡、进度、墙钟；
-- 重计算负载受 G-RES-01 **磁盘门**约束（内存/CPU/线程不设门；判据与 exit 10 见 `21_observability.md` 的「资源门」一章与《ACSD 最高设计》的「运行前预检」「CPU 后端与资源」两章）。
+- 重计算负载受 G-RES-01 **磁盘门**约束（内存/CPU/线程不设门；判据与 exit 10 见 `21_observability.md` 的「重计算负载资源门（G-RES-01）」一章与《ACSD 最高设计》的「运行前预检」「CPU 后端与资源」两章）。
 
 ## 5. 配置项
 
@@ -92,7 +92,7 @@ flowchart LR
 
 - ABI/签名/CPU 特征不匹配 → exit 5（BACKEND）；
 - 执行失败 → exit 6（COMPUTE）；
-- **磁盘写满 / 写盘失败 → exit 10（RESOURCE）**（与资源门判定域内的 exit 10 相互独立，见 `21_observability.md` 的「资源门判定与 exit 10」一段）；内存/CPU/线程不设门（《ACSD 最高设计》的「运行前预检」一章，退出码见其「命令行合同」一章的「机器输出与退出码」一节）；
+- **磁盘写满 / 写盘失败 → exit 10（RESOURCE）**（与资源门判定域内的 exit 10 相互独立，见 `21_observability.md` 的「record / enforce 划分与判定点」一节）；内存/CPU/线程不设门（《ACSD 最高设计》的「运行前预检」一章，退出码见其「命令行合同」一章的「机器输出与退出码」一节）；
 - 取消/超时 → exit 9（CANCELLED）；
 - **模块加载失败 / 阶段失败 → 显式 exit code + 日志**，不静默跳段、不产出半成品运行。
 - 内存预算内无法安排最小工作集时：调度器对就绪队列回压——谓词挂起等待在途节点释放内存（非自旋），并在无在途节点或取消时放行队首以保证推进；不静默退化、不改写数值路径。
@@ -113,7 +113,7 @@ flowchart LR
 - **降级显式**：构造上游产物缺失场景，断言 `degraded_reason` 落盘且 manifest 记录；注入静默回退（不写 `degraded_reason`）必红（判据见 `docs/engineering/contracts/LOG_AND_ERROR.md`「显式降级登记要件」一节）；
 - 资源监控记录完整性；磁盘门测试（能红能绿）。
 - **编排入口层**：单帧端到端验证；模块加载冒烟（缺符号 / 签名不符 / 加载失败必红）；阶段失败注入断言「显式 exit code + 日志」且不产出伪完整产物。编排层共址测试覆盖 logger 单测、checkpoint 单测、CLI 集成、legacy 编排入口冒烟 ×2、可执行级饱和接线门。
-- **退出码一致性**：编排层退出码集合与 `docs/engineering/contracts/LOG_AND_ERROR.md`「进程退出码」一节 全集合一致（唯一口径 = `lib/infrastructure/cli/exit_codes.h`）。
+- **退出码一致性**：编排层退出码集合与 `docs/engineering/standards/ERROR_MODEL.md`「进程退出码」一节 全集合一致（唯一口径 = `lib/infrastructure/cli/exit_codes.h`）。
 
 ---
 

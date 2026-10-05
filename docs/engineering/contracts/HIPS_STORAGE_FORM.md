@@ -48,7 +48,7 @@ schema 与不变式、哈希口径、裸形态体积削减口径、形态的输�
 | A1 | 归档内容 = 一个 tar 流的压缩结果；tar 根 = 产品根的内容（成员名以子产品名开头，不含前导 `./`） |
 | A2 | tar 成员集合 = 裸形态产品树的**全部常规文件**（`properties`、`NorderK/DirD/NpixN.fits`、`Moc.fits`、`metadata.fits`、产品集 `manifest.json` 等；FITS 文件的 HDU 与关键字语法依 FITS 标准 4.0[2]），不含目录项之外的额外文件[1] |
 | A3 | 成员顺序 = 成员路径的**字典序**（确定性）；成员头字段（mtime/uid/gid/uname/gname/mode）取固定值，使同一内容的两次打包字节一致 |
-| A4 | 归档内 `properties` 与裸形态 `properties` **逐字节一致**；`hips_tile_format` 取**两档词表**的登记值 —— **Image 产品**子产品（`signal`/`support`/`variance`/`ivar`）= `fits`；**HiPS 目录（catalogue）**子产品 `snr/` = `tsv`（承载 SNR-PREC-001 `%.9g/%.17g` 精度锚，science 分册的数据语义卷）。逐子产品档位表 = 机器事实源 `x-acsd-field-vocabulary.hips_tile_format_two_tiers.by_subproduct`；档位不符（`snr` 写 `fits`、Image 子产品写 `tsv`）或任何非标准 token（`zstd` / `fits.zst` / …）一律判红 |
+| A4 | 归档内 `properties` 与裸形态 `properties` **逐字节一致**；`hips_tile_format` 取**两档词表**的登记值 —— **Image 产品**子产品（`signal`/`support`/`variance`/`ivar`）= `fits`；**HiPS 目录（catalogue）**子产品 `snr/` = `tsv`（承载 SNR-PREC-001 `%.9g/%.17g` 精度锚，该锚的正本在 science 分册算法卷的 HiPS 写出器设计，不是数据语义卷——数据语义卷全篇不含该精度锚）。逐子产品档位表 = 机器事实源 `x-acsd-field-vocabulary.hips_tile_format_two_tiers.by_subproduct`；档位不符（`snr` 写 `fits`、Image 子产品写 `tsv`）或任何非标准 token（`zstd` / `fits.zst` / …）一律判红 |
 | A5 | 产品级索引与数据集级覆盖索引位于归档之外（产品同父目录 / 运行输出根）；归档形态的发布次序由 `ATOMIC_PUBLISH.md`[5] 冻结 |
 
 ### zstd 层

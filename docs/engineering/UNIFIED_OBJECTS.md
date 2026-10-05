@@ -47,9 +47,11 @@ canonical 定义 = eng/contracts/schemas/unified/<对象名>.schema.json
 | `rejection` | `https://acsd.local/schemas/unified/rejection/v1` | `eng/contracts/schemas/unified/rejection.schema.json` | 1（门/概率） | 0=未拒绝（无覆盖=0） | float32|float64|integer | 门/概率，不是 coverage | `DATA-OBJ-REJECTION-001` |
 | `provenance` | `https://acsd.local/schemas/unified/provenance/v1` | `eng/contracts/schemas/unified/provenance.schema.json` | 1（元数据，无量纲） | unavailable.{flag,reason,scope} 显式登记 | 非数值元数据（字符串 / 键值：来源链、输入哈希、运行标识、产品类型） | —— | `DATA-OBJ-PROVENANCE-001` |
 
-**精度列的读法**：`float32` / `float64` / `integer` 只对数值面有意义；非数值对象写其载荷形态，不套数值 dtype。归依据是最高设计的「精度归属」节与 science 分册数据语义卷的「精度」节——稠密大面（图像面、球面累加器、方差与覆盖面、HiPS tile）承载 FP32，稀疏与元数据（帧级信噪比、WCS 解、星表匹配、测光定标、控制点）承载 FP64；本列按该归属逐对象标注。
+**精度列的读法**：本列逐对象标注**应归属的精度**，取自权威顶点的精度归属律——稠密大面（图像面、球面累加器、方差/覆盖面、HiPS tile）默认单精度；稀疏与元数据（帧级信噪比、WCS 解、星表匹配、测光定标、manifest）全程双精度；JSON 显式指定位深时以 JSON 为准。列中只给一个 token 表示该对象的应归属档；给出多个 token 表示该对象的归属档可由 JSON 显式指定覆盖（第三款）。`float32` / `float64` / `integer` 只对数值面有意义，非数值对象写其载荷形态、不套数值 dtype。稀疏与元数据清单第五项在权威顶点与其下级 science 正本之间不一致，登记为 `governance/UNRESOLVED.md` 的方向裁决条目，裁决前本列按权威顶点原文取 `manifest`。
 
-**精度面当前的实现缺口（需负责人裁决）**：最高设计要求「稠密大面 FP32」与「稀疏与元数据 FP64」**同时成立**（两个可各自独立的归属），但机器侧统一 I/O 只有一个**全局精度模式位**——`lib/infrastructure/aio/src/aio_api.cpp` 的 `g_aio_precision_mode_fp64` 与 `aio_set_precision_mode(int is_fp64)`，模块内查询接口 `aio_internal_is_fp64()` 读同一变量，其头注自述 `PrecisionContext` 单例在动态库边界不共享，须显式设置。单个全局位**无法表达**「稠密 FP32 且稀疏/元数据 FP64」这一组合。因此：本表按对象语义标注的是**应归属**的精度，不是当前机器已强制执行的精度；「拆成两个独立精度量」还是「把最高设计的精度归属收敛为一个全局模式」属未决项，登记在 `governance/UNRESOLVED.md`，裁决前本列不得被读作运行时保证。
+**精度列与另外两个同名项不是同一断言，不得互相代入**：① canonical schema `eng/contracts/schemas/unified/<对象名>.schema.json` 的 `precision` 属性是**值域**（该属性取值只能是 `float32` / `float64` / `integer` 三个 token 之一），它不逐对象指派档位；② `../data/ARTIFACTS.md` 统一对象合同登记表的 `scalar` 列是 **DataArtifact 承载面的标量形态**，问的是该对象在承载面上的线格式，不是应归属档位。本列是逐对象应归属档位的唯一正本。
+
+**精度面当前的实现缺口（需负责人裁决）**：最高设计要求「稠密大面单精度」与「稀疏与元数据双精度」**同时成立**（两个可各自独立的归属），但机器侧统一 I/O 只有一个**全局精度模式位**——`lib/infrastructure/aio/src/aio_api.cpp` 的 `g_aio_precision_mode_fp64` 与 `aio_set_precision_mode(int is_fp64)`，模块内查询接口 `aio_internal_is_fp64()` 读同一变量，其头注自述 `PrecisionContext` 单例在动态库边界不共享，须显式设置。单个全局位**无法表达**「稠密 FP32 且稀疏/元数据 FP64」这一组合。因此：本表按对象语义标注的是**应归属**的精度，不是当前机器已强制执行的精度；「拆成两个独立精度量」还是「把最高设计的精度归属收敛为一个全局模式」属未决项，登记在 `governance/UNRESOLVED.md`。
 
 > 「可否作权重」列逐字照抄 `docs/detail/UNIFIED_MODEL.md` 的「数据对象（各自具名）」一节，机器以 `object_weight_verdict`（const）+ `object_weight_capability`（const）双字段固化，判定只取自该列原文。
 

@@ -158,13 +158,11 @@
 
 ## 14a 参考文献与参考代码库（含许可证）
 
-
 - **加权均值/逆方差聚合**：教科书级（加权最小二乘/逆方差加权平均，如 Bevington, P. R. & Robinson, D. K. 2003, Data Reduction and Error Analysis for the Physical Sciences, 3rd ed., McGraw-Hill；Aitken 1935, Proc. Roy. Soc. Edinburgh 55, 42（DOI 10.1017/S0370164600014346 【出版年双源登记】本仓取 1935 = 论文出版年：一手依据 = 纸本合卷 Proc. R. Soc. Edin. Vol. LV 逐字「Read March 4, 1935」与「Issued separately March 6, 1935」（Internet Archive dli.ernet.7410）；另一源 CrossRef 与 Cambridge Core 卷期页记 1936 = **合卷印年**（同卷扉页逐字「VOL. LV. / 1934-1935 / MCMXXXVI」）。**结论：不改数字，保留 1935**；双源差异在此登记，不按错处理。）的 GLS）。**差异**：Astro Celestial Sphere Database（ACSD） 的 reducer 不编码 ivar 语义（§9），权重策略在调用方（SCI-NOISE/SCI-UPM），故这里是**通用数值加权均值**而非“逆方差估计量”本身。
 - **最优叠加/信息保持组合**：Zackay & Ofek 2017, ApJ 836, 187/188；Naylor 1998, MNRAS 296, 339。
 - **support=max canonical reducer**：Project-defined（覆盖并集保守下界，§5/§10），无外部公式；可对照 coverage/几何并集语义。
 - **Fruchter & Hook 2002, PASP 114, 144**：重采样后相关噪声背景（与 §5 加权平均的适用域相关）。
 
-参考代码库（含许可证）正本 = docs/engineering/SCIENTIFIC_REFERENCES.md §M。
 
 ## 15 Acceptance
 
