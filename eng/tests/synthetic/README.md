@@ -177,3 +177,16 @@ PASP 103, 122）；但等价的是**分布**不是**实现**——同 seed 下�
 - 不堆叠豁免、不用空断言充数、不以「跳过」冒充「通过」。
 - 不把 `_kit.py` 的输出当期望值、不转调 `实验/shared/synthetic/noise_model.py`。
 - 不静默修上游的文档债（见「诚实边界」第 2 条）。
+## T07 吸收登记（RELEASE-10）
+
+| 判据 | 本层承接 | pipeline 层对应 |
+|---|---|---|
+| T01-D2 weight_mode 路由 | module/integration 已有路由面 | `pipe.mosaic.retired_weight_keys_rejected` + `pipe.mosaic.derived_weight_oracle` |
+| T01-D4 k_corr≥1 | unit 已有边界负例 | `pipe.norm.kcorr_reject`（阶段面） |
+| T01-D7 worker 无关性 1e-12 | integration 已有收紧测试 | `pipe.mosaic.worker_bitwise`（阶段面） |
+| release02 q1/q2/q3/unc/c_delta | synthetic P1–P5 已有不变量 | pipeline 三阶段重写吸收（解析 Oracle + 负例，不原样搬运） |
+| T05 N01–N36 / T10 十一族 | — | `test_negative_36.py` / `test_repro_ids.py`（构造待对拍） |
+
+删除记录：`eng/tests/validation/release02/` 与 `eng/tools/quality` 残留的删除由前台
+统一执行（e2e 层仍引用 `wcs_lib.py`，删前需先迁移该引用；quality 生成器仍被
+contracts 引用）。本层不自行删除。
