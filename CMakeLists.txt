@@ -566,12 +566,24 @@ if(MSVC)
     if(ENV{ACS_ZLIB_LIB})
       set(ACS_ZLIB_LIBRARY "${ACS_ZLIB_ROOT}/lib/$ENV{ACS_ZLIB_LIB}")
     endif()
-    # 库文件名跨来源不同：fatduck 本机 zlib-msvc 布局为 libz.lib；
+    # 库文件名跨来源不同：fatduck 本机 zlib-msvc 布局为 libz.lib（DLL 导入库，
+    # 链它会让 acsd.exe 静态依赖 libz.dll，构建目录直跑即 0xC0000135）与
+    # libzs.lib（静态库，/MD CRT 一致，可静默链入）；
     # vcpkg zlib 1.3.2 x64-windows-static-md (上游 madler/zlib v1.3.2
     # CMakeLists: zlibstatic OUTPUT_NAME z${zlib_static_suffix}, WIN32 下
     # suffix="s") 实际产物为 zs.lib —— NAMES 覆盖 z/libz/zlib/zlibstatic/zs。
-    find_library(ACS_ZLIB_LIBRARY NAMES z libz zlib zlibstatic zs
+    # T08b (RELEASE-10): MSVC 侧优先选静态库（libzs/zs/zlibstatic），找不到才
+    # 回退 DLL 导入库（libz/zlib）。静态优先的理由：构建目录直跑与安装树都不再
+    # 依赖第三方 libz.dll 随附；Linux 侧走系统 z 不受影响（本块仅 MSVC）。
+    find_library(ACS_ZLIB_LIBRARY_STATIC NAMES libzs zs zlibstatic
       HINTS "${ACS_ZLIB_ROOT}/lib" NO_DEFAULT_PATH)
+    if(ACS_ZLIB_LIBRARY_STATIC AND NOT ENV{ACS_ZLIB_LIB})
+      set(ACS_ZLIB_LIBRARY "${ACS_ZLIB_LIBRARY_STATIC}")
+    else()
+      find_library(ACS_ZLIB_LIBRARY NAMES z libz zlib zlibstatic zs
+        HINTS "${ACS_ZLIB_ROOT}/lib" NO_DEFAULT_PATH)
+    endif()
+    unset(ACS_ZLIB_LIBRARY_STATIC CACHE)
     if(NOT ACS_ZLIB_LIBRARY)
       message(FATAL_ERROR "ACS_ZLIB_ROOT=${ACS_ZLIB_ROOT} 下未找到 zlib 链接库 (z libz zlib zlibstatic zs; 或经 ACS_ZLIB_LIB 注入确切文件名)")
     endif()
