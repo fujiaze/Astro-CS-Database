@@ -186,8 +186,8 @@ p2_coverage_build(hips_paths, n_inputs, out):
 - **no use as implicit scientific weight**（matrix P2-COV 专项）: 本模块
   输出（union MOC/target_order/逐帧 tile 计数）是几何登记量，**用途 = 几何登记与分组，本量不**
   被任何下游作为科学权重、统计权重或置信度使用；科学权重唯一冻结公式
-  `w_UPM = quality_factor × geometric_reliability × control_ivar`
-  （docs/science/sky/UPM.md[S-1]「公式与推导」一节F2），其中 support 仅
+  `w_abs = quality × control_ivar`（绝对式），`w_cell = w_abs / Σ w_abs × reliability`（份额式）
+  （docs/science/sky/UPM.md「公式与推导」一节），其中 support 仅
   eligibility/coverage 语义（sky/UPM.md[S-1]「公式与推导」一节注释行
   "禁 production 乘 star SNR / snr²/(1+snr²) / support^p；support 仅
   eligibility/coverage"）、canonical reducer=max（SCI-INT-001 [S-1]「判据与误差」一节，
