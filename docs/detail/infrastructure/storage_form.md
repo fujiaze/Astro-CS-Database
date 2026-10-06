@@ -1,4 +1,4 @@
-# 产品落盘形态：裸 HiPS 与 zstd 归档包
+# 产品落盘形态
 
 > 上游：《ACSD 最高设计》的「I/O 与原子产品」一章、三阶段的输出合同各章，以及「外部标准与文献」附录
 
@@ -17,11 +17,11 @@
 
 **写侧**两形态都写产品级索引 `<name>.hips.index.json`（「索引：块粒度，两层」一章）——索引是产品不可缺的查询面，不是可选的调试附属物。**读侧缺失处理按形态分档**：归档形态缺索引 ⇒ 产品不完整，fail-closed（判定只走索引面，扫描归档与逐瓦片探测不在读路径内）；裸形态允许无索引 ⇒ 读端按目录枚举重建覆盖，并在 provenance 记降级。
 
-**标准依据**：IVOA HiPS 1.0 §4.1 与 §5.1 规定 HiPS 的**实现形态不是义务**，义务是"以目录与文件的形式可见"：
+**标准依据**：IVOA HiPS 1.0 第4.1节与第5.1节规定 HiPS 的**实现形态不是义务**，义务是"以目录与文件的形式可见"：
 
 > "The actual implementation of HiPS as directories and files is not an obligation, only the view as directories and files is required. … Internally, a HiPS may be stored in a data base, or any other appropriate packaging (tar or zip files…) rather than in a basic file system directory structure."
 
-⇒ 归档形态合法，**前提是解压后得到目录/文件视图**（"解压后合法"）；归档内容因此必须是**完整合法 HiPS**，`properties` 必须与裸形态逐字节一致（§8）。逐瓦片压缩（`.fits.zst` / `ZCMPTYPE=ZSTD`）**不在本设计内**：它违反 HiPS 1.0 §4.2.1.3 的扩展名 MUST 且 `hips_tile_format` 词表无对应 token（证据见 `docs/science/IVOA_HIPS_TILE_FORMAT_RESEARCH_PACK.md` 与 `docs/engineering/contracts/HIPS_STORAGE_FORM.md`「归档容器布局」一节 A4 档位规则、「压缩档位」一节）。
+⇒ 归档形态合法，**前提是解压后得到目录/文件视图**（"解压后合法"）；归档内容因此必须是**完整合法 HiPS**，`properties` 必须与裸形态逐字节一致（详见后文 properties 与哈希口径一章）。逐瓦片压缩（`.fits.zst` / `ZCMPTYPE=ZSTD`）**不在本设计内**：它违反 HiPS 1.0 第4.2.1.3小节的扩展名 MUST 且 `hips_tile_format` 词表无对应 token（证据见 `docs/science/IVOA_HIPS_TILE_FORMAT_RESEARCH_PACK.md` 与 `docs/engineering/contracts/HIPS_STORAGE_FORM.md`「归档容器布局」一节 A4 档位规则、「压缩档位」一节）。
 
 ## 2. 形态判据：由访问模式决定，不由全局一刀切
 
@@ -188,7 +188,7 @@ flowchart LR
 | 机制 | 作用层 | 判据落点 | 读回行为 | 前提 |
 |---|---|---|---|---|
 | **9.1 文件系统打洞**（sparse hole punching） | 文件分配层（**字节不变**） | 打洞前后逐字节不变 / 谓词字节级 / 释放量下降 / NaN 区不动（判据正文见「文件系统打洞（默认启用，裸形态）」一节）；收益读数 = `实验/engineering-evidence/compress-01/` | **逐字节不变**（稀疏区读出为零填充；打洞只作用于**本来就是零字节**的区域） | Linux ext4 上成立；Windows 有等价实现，**行为面待实测** |
-| **9.2 包围盒 TRIM**（WD-HiPS-2.0 §4.3.2，`TRIM1/TRIM2/ONAXIS1/ONAXIS2`） | 瓦片内容层（**改 FITS 结构**） | 「TRIM 默认形态 = 关闭」判据（判据正文见「包围盒 TRIM（可选形态，默认不启用）」一节）；收益读数 = `实验/engineering-evidence/compress-01/trim_scan.json` | **改变**：NAXIS1/NAXIS2 缩小，读者必须按 TRIM 关键字补边 | **不成立**——标准 FITS 读者读到的图像变小；草案特性、生态窄 |
+| **9.2 包围盒 TRIM**（WD-HiPS-2.0 第4.3.2小节，`TRIM1/TRIM2/ONAXIS1/ONAXIS2`） | 瓦片内容层（**改 FITS 结构**） | 「TRIM 默认形态 = 关闭」判据（判据正文见「包围盒 TRIM（可选形态，默认不启用）」一节）；收益读数 = `实验/engineering-evidence/compress-01/trim_scan.json` | **改变**：NAXIS1/NAXIS2 缩小，读者必须按 TRIM 关键字补边 | **不成立**——标准 FITS 读者读到的图像变小；草案特性、生态窄 |
 
 **关键区分**：包围盒 TRIM 的收益属于 9.2，不是打洞；两者收益**不可迁移**。原因：signal 层边距是 IEEE **NaN**（位型 `0x7FC00000`），**没有全零块可打**（结构必然：NaN 位型含非零字节）；而合同要求 signal 边距必须是 NaN（`docs/science/unified/DATA_SEMANTICS.md`「三个基本对象的语义」一节：NaN 是无效值的唯一载体、`invalid` 判据为「NaN 或 `support <= 0`」、无覆盖行的 `signal` 记 NaN 而非 0，**不可互换**），把 NaN 改写成 0.0 会把"无覆盖"变成"有效零流量"⇒ 语义破坏；`NaN` 与 `0.0` 两位型各自独立、不可互换。
 
@@ -213,7 +213,7 @@ flowchart LR
 - **对谁生效**：裸形态的 FITS 瓦片（四层同构）。归档形态不实施（「与归档形态的关系（不变）」一节）。
 - **失败怎么办**：读端不认 TRIM 关键字 ⇒ **必须 fail-closed**（拒绝该产品），**只**按未 TRIM 的 NAXIS 解释（按缩小后的 NAXIS 继续会把"缺边"当成"天区更小"，是静默科学错误）。
 - **如何验证**：① 读端补边后的像素与未 TRIM 的同源瓦片逐字节全等（补边位模式 = IEEE NaN；该冻结面的正本 = `docs/engineering/contracts/HIPS_STORAGE_FORM.md`「体积削减（裸形态）」一章 T2 判据①。《ACSD 最高设计》的「验证层级与四层验收」一节只冻结 NaN/Inf/缺失的**位置与语义**一致，不含位型）；② `ONAXIS1/ONAXIS2` 必须等于未 TRIM 的 NAXIS；③ 判据必须能红：把补边后的边距改成 0.0 或错位 1 像素都必须被判红。
-- **依据与其效力**：WD-HiPS-2.0-20260501 §4.3.2（**工作草案**）。Hipsgen 手册自述该族特性"not standardized by the IVOA … currently only recognised by Aladin Desktop" ⇒ 作为**可选形态**引入，不作为默认交付形态。
+- **依据与其效力**：WD-HiPS-2.0-20260501 第4.3.2小节（**工作草案**）。Hipsgen 手册自述该族特性"not standardized by the IVOA … currently only recognised by Aladin Desktop" ⇒ 作为**可选形态**引入，不作为默认交付形态。
 
 ### 9.3 与归档形态的关系（不变）
 
@@ -261,3 +261,12 @@ Phase1 的 `p1_products.json` 逐帧条目新增 `storage_form` / `index_path` /
 - 归档形态**不**作为 Phase2 的服务形态；Phase3 **不**套壳。
 - 索引不承载有效性判定，只承载块级候选与定位。
 - 形态选择只经**输入配置**（Phase1 的 `storage_form`）；Phase2/Phase3 的输入合同**不设**形态键，出现即 REJECT —— 不用「值域只允许 bare」的写法，因为运行期配置门是键白名单而非 JSON Schema，收窄值域会让 `archive` 静默透传成 no-op。
+
+## 落地对照与参考文献
+
+本页是支撑面的产品存储形态落地设计，对应最高设计输入输出与原子产品一章的落盘形态条目。定位是两种落盘形态与两层索引的磁盘表示，不改科学公式与归约顺序。数据对象是产品内容、容器指纹与索引指纹。接口签名以形态模式与清单字段为准。处理步骤按写路径一章执行。配置来自阶段输入文件的形态切换键。相邻关系是上游承接各阶段写出模块，下游供给跨阶段读取。调试入口是产品级索引与数据集级覆盖索引的重算核对。
+
+### 参考文献
+
+[1] Fernique P., Allen M. G., Boch T., Burke D., Castro-Ginard A., Davidson J., Durand D., Kreckel K. Hierarchical progressive surveys: Visualisation and streaming of astronomical images and catalogues with HiPS. Astronomy and Astrophysics, 2015, 578: A114. https://doi.org/10.1051/0004-6361/201526075
+[2] 工程产品存储形态合同，docs/engineering目录。

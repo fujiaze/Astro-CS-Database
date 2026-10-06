@@ -5,7 +5,7 @@
 > 「不可测量」）
 > 数据正本：docs/detail/registry/acsd.phase1.hips-writer.md（DATA-HIPS-001 端口表，读侧复用；
 > 依赖 DATA-HIPS-*）
-> 读侧：infrastructure/17_aio.md（读侧复用 aio，不复制 reader）
+> 读侧：infrastructure/aio.md（读侧复用 aio，不复制 reader）
 > 引用规范：[IVOA HiPS 1.0 Recommendation](https://www.ivoa.net/documents/HiPS/)
 > （IVOA 2017；渲染与层级切分规范）
 

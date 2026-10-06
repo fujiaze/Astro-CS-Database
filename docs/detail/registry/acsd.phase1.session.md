@@ -1,11 +1,11 @@
 # 模块 acsd.phase1.session
 
-> 上游：docs/ACSD_DESIGN.md §8.5（模块与 ABI）
+> 上游：`docs/ACSD_DESIGN.md`对应章节（模块与 ABI）
 > 数据正本：docs/detail/registry/acsd.phase1.session.md（DATA-P1-SESSION 端口表，本页输入输出端口表）
 > API 正本：docs/engineering/api/PUBLIC_API.md「Phase1 装配会话 C API」节
 > （API-P1-SESSION）、docs/engineering/api/PUBLIC_API.md「分阶段 API 面」（API-P1-001，FROZEN）
 > C ABI 与 host services 四通道：docs/engineering/api/abi/ABI.md
-> I/O：docs/detail/infrastructure/17_aio.md（IO-002 canonical deleter）
+> I/O：docs/detail/infrastructure/aio.md（IO-002 canonical deleter）
 
 Phase1 装配底座（`p1_session` 函数族）登记页。权威签名头
 `lib/phase1_session/p1_session.h`，实现 `lib/phase1_session/p1_session.cpp`。

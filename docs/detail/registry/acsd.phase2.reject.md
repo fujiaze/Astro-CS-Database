@@ -1,11 +1,11 @@
 # 模块 acsd.phase2.reject
 
-> 上游：docs/ACSD_DESIGN.md §8.5（模块与 ABI）、§5.2（固定科学流程）、
-> §5.5（逐像素排异：按几何覆盖帧数 N 自动选择算法）
-> 科学正本：docs/science/REJECTION.md（SCI-REJ-001；§5 档位条款、§8 空栈语义、
-> §14a 上游一手出处）、docs/detail/PHASE2_DETAILED_DESIGN.md §5
-> 算法正本：docs/science/algorithms/PHASE2_REJECTION.md（ALG-P2-REJ-001；§3 行号
-> 权威、§4.1 语义权威、§7/§11.3 缺陷登记、§11.4 测试设计、§11.5 映射声明）
+> 上游：`docs/ACSD_DESIGN.md`对应章节（模块与 ABI）、对应章节（固定科学流程）、
+> 对应章节（逐像素排异：按几何覆盖帧数 N 自动选择算法）
+> 科学正本：docs/science/REJECTION.md（SCI-REJ-001；对应章节 档位条款、对应章节 空栈语义、
+> 对应章节 上游一手出处）、`docs/detail/mosaic/pipeline.md`对应章节
+> 算法正本：docs/science/algorithms/PHASE2_REJECTION.md（ALG-P2-REJ-001；对应章节 行号
+> 权威、对应章节 语义权威、对应章节/对应章节 缺陷登记、对应章节 测试设计、对应章节 映射声明）
 > 数据正本：docs/detail/registry/acsd.phase2.reject.md（DATA-P2-REJ 端口表，本页输入输出端口表）、
 > eng/contracts/schemas/unified/rejection.schema.json（rejection 对象 canonical schema）
 > API 正本：docs/engineering/api/PUBLIC_API.md（API-P2-REJ-001）、
@@ -43,7 +43,7 @@ threshold → `REJECTED_LOW`、高于 upper → `REJECTED_HIGH`，**禁原始值
 **不是**：不是把异常值变成零；不是 coverage；不合并 / 积分样本（下游）；不做权重
 策略（weights 数组外置、构造在 Stage2；RCR 核消费同栈 weights 数组属官方加权
 语义，非策略）；不做像素外结构重建（large_scale 仅对已拒 mask 做 8 邻域扩张，只
-增不减）；无 session 依赖（无状态纯函数）；不做瞬变 / 卫星语义区分（SCI §1 非
+增不减）；无 session 依赖（无状态纯函数）；不做瞬变 / 卫星语义区分（SCI 对应章节 非
 目标）；单帧无排异（n = 1 进 `UNDERDETERMINED` 白名单）。移动源等科学信号可选择
 保留到独立层，**不默认当缺陷删除**。
 
@@ -69,7 +69,7 @@ threshold → `REJECTED_LOW`、高于 upper → `REJECTED_HIGH`，**禁原始值
 invalid 显式化：非 finite 输入 → `INVALID_INPUT`；AUTO 入 kernel → `INVALID_METHOD`；
 `PERCENTILE × norm ≠ MEDIAN_CENTER`、`RCR × norm ≠ NONE` → `INVALID_CONFIGURATION`；
 空栈 → `MIN_SAMPLES`（**非** `NO_CANDIDATES` —— 后者属积分域
-`P2IntegrateStatus`，语义权威 = ALG-P2-REJ-001 §4.1）。
+`P2IntegrateStatus`，语义权威 = ALG-P2-REJ-001）。
 
 模块注册 = `lib/infrastructure/pipeline/module_ports.registry.json` 的
 `acsd.phase2.reject`；生产接线 =
@@ -95,7 +95,7 @@ rejection.cpp 冻结头为准；本页只记落地方式与路由。
 | **N ≥ 6** | winsorized sigma clipping |
 
 生产档 `acsd_adaptive_pixel` 的档位表 = 上述三档。**依据（生产 kernel 受控
-评估，正本 = docs/science/REJECTION.md §5）**：linear fit 在 `N ≥ 16` 档的等效
+评估，正本 = `docs/science/REJECTION.md`对应章节）**：linear fit 在 `N ≥ 16` 档的等效
 上阈显著低于名义 3.5 倍拟合噪声（秩轴拟合的噪声估计被序统计量间距压小），表现为
 **干净像素过拒**与**显著点漏检**。对照档 `wbpp_2_9_1` / `acsd_adaptive` 仍为
 `N > 15 → linear fit`，作为 WBPP 档界对照基线。`linear_fit` 仍是合法显式方法
@@ -104,7 +104,7 @@ rejection.cpp 冻结头为准；本页只记落地方式与路由。
 生产排异算法集 = none / percentile / winsorized / linear fit；**min/max 极值法不
 用于生产**（WBPP 2.5.9 一手源码明文拒绝：`WeightedBatchPreprocessing-engine.js`
 的 `rejectionIsGood()`；其算法清单 `StackEngine.rejectionMethods` 亦不含 min/max。
-包 sha1 与可核验出处见 docs/science/REJECTION.md §14a）。**`none` 是显式档位，
+包 sha1 与可核验出处见 `docs/science/REJECTION.md`对应章节）。**`none` 是显式档位，
 不是「静默跳过」：必须写 provenance。**
 
 **显式指定的合法性窗口**（同 WBPP 2.5.9 `rejectionIsGood()`，**只告警、不硬
@@ -171,7 +171,7 @@ ESD tie-break = frame_id（1e-15 epsilon）、linear_fit 排序按
 `(value, orig_index)` 字典序。
 
 worker 数 = ThreadBudget.max_workers（禁 hardware_concurrency）；lease / 取消
-检查点接线属迁移整改点（与 coverage 域同构，见 ALG-COV-001 §11.3；未落地）。
+检查点接线属迁移整改点（与 coverage 域同构，见 ALG-COV-001；未落地）。
 determinism = `fixed_reduction_order`。
 
 ## 内存/cache/I-O/所有权
@@ -199,7 +199,7 @@ determinism = `fixed_reduction_order`。
 ## 独立 synthetic 验证命令与容差
 
 可执行 `TEST-P2-REJ-001` 待建（不冒认）；设计冻结 = `TEST-P2-REJ-DESIGN-001`
-（ALG-P2-REJ-001 §11.4 F1–F8：F1 ESD NIST Rosner 54 值拒集 bitwise、F2 AUTO 路由
+（ALG-P2-REJ-001 F1–F8：F1 ESD NIST Rosner 54 值拒集 bitwise、F2 AUTO 路由
 枚举精确、F3 small-N 状态穷尽、F4 卫星注入 mask 精确、F5 置换不变性 decision
 bitwise、F6 typed params 逐位、F7 Python oracle rtol 1e-12、F8 gather 逐元素精确；
 F1–F6/F8 无 epsilon 门、F7 rtol 1e-12、large_scale mask 精确）。
@@ -219,10 +219,10 @@ Oracle 面：
 
 ## 已知限制
 
-- 缺陷登记（不改码，正本 = ALG-P2-REJ-001 §7/§11.3）：rejection.h 的 percentile
-  `low_fraction` 注释「默认 0.1」与实现 / SCI 权威 0.2 漂移；SCI §8「空栈 →
+- 缺陷登记（不改码，正本 = ALG-P2-REJ-001/对应章节）：rejection.h 的 percentile
+  `low_fraction` 注释「默认 0.1」与实现 / SCI 权威 0.2 漂移；SCI 对应章节「空栈 →
   NO_CANDIDATES」与实现 MIN_SAMPLES 的口径差（NO_CANDIDATES 属积分域，语义
-  权威 = ALG §4.1）；SCI §2/§5 行号锚漂移（行号权威 = ALG §3 实测）；minmax
+  权威 = ALG 对应章节）；SCI 对应章节/对应章节 行号锚漂移（行号权威 = ALG 对应章节 实测）；minmax
   比较器 value-only tie-break 未显式冻结；整改面未落地；
 - 目标交付形态 acsd_p2_rejection.dll 未落地；descriptor 占位 module_id 与合同
   值 `acsd.p2.rejection` 的对齐属迁移目标（未落地）；

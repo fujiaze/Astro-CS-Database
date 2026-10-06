@@ -1,18 +1,18 @@
-# 插件文档：scheduler + pipeline（调度与资源）
+# scheduler + pipeline（调度与资源）
 
 > 上游：《ACSD 最高设计》的「软件架构」一章（总原则：阶段独立调度器；顶层结构）
 
 ## 1. 职责与边界
 
 - **职责**：typed DAG 的执行（注册、依赖、调度）、统一线程预算、**locality-aware 编排**、流式内存管理、资源监控、取消与 checkpoint。编排入口以阶段 JSON 驱动各 stage（READ / CALIBRATE / STAR / PSF / PLATESOLVE / PHOTOMETRIC / NOISE / DRIZZLE / HIPS_WRITE），并经加载面装配模块。
-- **不是**：不定义科学公式；不产生科学值；不实现科学算法 —— 各 stage 的科学实现一律委托各模块的冻结 C API；模块注册/加载与 ABI 校验由调度器承担（本模块负责执行与资源）。**模块名只有一份 = `scheduler` + `pipeline`（《ACSD 最高设计》「命令行合同」一章的命令树）；`runtime` 不是模块名（禁第二名字）**；本页文件名 `19_runtime.md` 是登记在册的文档路径，仅作路径使用。
+- **不是**：不定义科学公式；不产生科学值；不实现科学算法 —— 各 stage 的科学实现一律委托各模块的冻结 C API；模块注册/加载与 ABI 校验由调度器承担（本模块负责执行与资源）。**模块名只有一份 = `scheduler` + `pipeline`（《ACSD 最高设计》「命令行合同」一章的命令树）；`runtime` 不是模块名（禁第二名字）**；本页文件名 `runtime.md` 是登记在册的文档路径，仅作路径使用。
 
 ## 2. 权威依据
 
 - 《ACSD 最高设计》的「软件架构」一章（顶层结构：scheduler + pipeline 职责名全仓唯一）与「CPU 后端与资源」一章（内存极简化、编排连续性）
 - `docs/engineering/api/abi/ABI.md`（C ABI 规则）、`docs/engineering/standards/ERROR_MODEL.md`「进程退出码」一节（退出码全集合）
-- `docs/detail/anchors/ANCHOR_CONTRACT.md`（行号锚合同）、`docs/detail/UNIFIED_MODEL.md`（数据对象）
-- `docs/detail/infrastructure/21_observability.md` 的「重计算负载资源门（G-RES-01）」一章
+- `docs/detail/common/unified_model.md`（数据对象）
+- `docs/detail/infrastructure/observability.md` 的「重计算负载资源门（G-RES-01）」一章
 
 ## 3. 输入/输出数据合同
 
@@ -66,7 +66,7 @@ flowchart LR
 
 - 取消：协作取消 → checkpoint → 干净退出；
 - 资源监控：进程/线程 CPU、RSS/PSS、内存增长、读写字节、I/O wait、work units、队列深度、worker 均衡、进度、墙钟；
-- 重计算负载受 G-RES-01 **磁盘门**约束（内存/CPU/线程不设门；判据与 exit 10 见 `21_observability.md` 的「重计算负载资源门（G-RES-01）」一章与《ACSD 最高设计》的「运行前预检」「CPU 后端与资源」两章）。
+- 重计算负载受 G-RES-01 **磁盘门**约束（内存/CPU/线程不设门；判据与 exit 10 见可观测性页的「重计算负载资源门（G-RES-01）」一章与《ACSD 最高设计》的「运行前预检」「CPU 后端与资源」两章）。
 
 ## 5. 配置项
 
@@ -92,7 +92,7 @@ flowchart LR
 
 - ABI/签名/CPU 特征不匹配 → exit 5（BACKEND）；
 - 执行失败 → exit 6（COMPUTE）；
-- **磁盘写满 / 写盘失败 → exit 10（RESOURCE）**（与资源门判定域内的 exit 10 相互独立，见 `21_observability.md` 的「record / enforce 划分与判定点」一节）；内存/CPU/线程不设门（《ACSD 最高设计》的「运行前预检」一章，退出码见其「命令行合同」一章的「机器输出与退出码」一节）；
+- **磁盘写满 / 写盘失败 → exit 10（RESOURCE）**（与资源门判定域内的 exit 10 相互独立，见可观测性页的「record / enforce 划分与判定点」一节）；内存/CPU/线程不设门（《ACSD 最高设计》的「运行前预检」一章，退出码见其「命令行合同」一章的「机器输出与退出码」一节）；
 - 取消/超时 → exit 9（CANCELLED）；
 - **模块加载失败 / 阶段失败 → 显式 exit code + 日志**，不静默跳段、不产出半成品运行。
 - 内存预算内无法安排最小工作集时：调度器对就绪队列回压——谓词挂起等待在途节点释放内存（非自旋），并在无在途节点或取消时放行队首以保证推进；不静默退化、不改写数值路径。
@@ -125,9 +125,9 @@ flowchart LR
   与「命令行合同」一章（命令树）。
 - 对应登记：`docs/engineering/architecture/MODULE_MAP.md` 条目 `id: scheduler` /
   `module_id: acsd.infra.scheduler` / `target_dir: lib/infrastructure/scheduler`；
-  `docs/detail/00_INDEX.md` 的基建卡表列名 = `scheduler`。
-- `runtime` **不是模块名**，其用途仅限路径；本页文件名 `19_runtime.md` 是 `docs/DOCUMENT_INDEX.yaml` 登记在册的文档路径，仅作路径使用。
-- `pipeline` 在 `docs/engineering/architecture/MODULE_MAP.md` 中登记；本页与 `00_INDEX.md` 已覆盖其名。
+  细节文档索引的基础设施目录按组件列名登记。
+- `runtime` **不是模块名**，其用途仅限路径；本页文件名 `runtime.md` 是文档地图登记在册的文档路径，仅作路径使用。
+- `pipeline` 在 `docs/engineering/architecture/MODULE_MAP.md` 中登记；本页与细节文档索引已覆盖其名。
 
 ---
 

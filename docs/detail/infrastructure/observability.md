@@ -1,4 +1,4 @@
-# 插件文档：observability（可观测性）
+# observability（可观测性）
 
 > 上游：《ACSD 最高设计》的「命令行合同」一章（错误传播与运行日志）与「软件架构」一章（顶层结构）
 
@@ -10,7 +10,7 @@
 ## 2. 权威依据
 
 - 《ACSD 最高设计》的「命令行合同」一章（配置、事件与退出码：JSONL 事件流；错误传播与运行日志）、「CPU 后端与资源」一章（资源记录与重计算资源门）、「I/O 与原子产品」一章（run 产物）
-- `docs/detail/LOG_AND_ERROR_SYSTEM.md`（日志与错误系统详细设计）、`docs/engineering/contracts/LOG_AND_ERROR.md`（日志行/落点/降级/退出码映射合同）
+- `docs/detail/infrastructure/log_and_error_system.md`（日志与错误系统详细设计）、`docs/engineering/contracts/LOG_AND_ERROR.md`（日志行/落点/降级/退出码映射合同）
 - `eng/contracts/schemas/jsonl_event_v1.schema.json`（运行事件流唯一 schema）
 - `eng/contracts/resource_gate_v1.json`（G-RES-01 数值唯一源，判据正文见下文「重计算负载资源门（G-RES-01）」一章）
 
@@ -25,7 +25,7 @@
 - 事件类型统一 schema，跨模块一致；
 - stdout 无日志污染（CLI 合同）：日志走文件/JSONL；
 - 运行图（run-graph）是实际观测（trace），`plan` 是预期，**两者的值各按各自来源登记**；
-- 资源监控字段见 `19_runtime.md`（scheduler + pipeline）；与退出码联动（exit 10 资源门禁）。
+- 资源监控字段见运行时页（scheduler + pipeline）；与退出码联动（exit 10 资源门禁）。
 
 ## 5. 配置项
 
@@ -48,7 +48,7 @@
   **manifest verify/完整性失败**（status≠complete、artifact sha256/size 不匹配等）= exit 8
   （INTEGRITY）。唯一源 = `docs/engineering/contracts/MANIFEST_VERIFY.md`「manifest verify 合同」一节「校验序→错误码」
   （语法/schema=3、status≠complete=8、版本不一致=5、输入 hash 已变=3、产物缺失=3、
-  sha256/size 不匹配=8、全过=0；实现 `lib/infrastructure/cli/commands.cpp` :2396-2476）+
+  sha256/size 不匹配=8、全过=0；实现见命令行命令源文件）+
   域→码表 `docs/engineering/contracts/LOG_AND_ERROR.md`「错误对象与退出码映射」一节（IO→7 / INTEGRITY→8）；码值语义表见 `docs/engineering/standards/ERROR_MODEL.md`「进程退出码」一节。
 - 降级必须显式：写 `degraded_reason` 并入 manifest；静默回退到低优先输入/静默保持缺省值/静默跳过校验都按故障上行（`docs/engineering/contracts/LOG_AND_ERROR.md`「显式降级登记要件」一节）；
 - 日志/事件/诊断一律走脱敏处理，凭据、密钥与绝对用户路径按规则替换（脱敏规则唯一源 = `docs/engineering/contracts/LOG_AND_ERROR.md`「脱敏与大小上限」一节）。
@@ -106,7 +106,7 @@
 
 - **程序内恒 record_only**（《ACSD 最高设计》的「运行前预检」一节「资源门只管磁盘…内存、CPU、线程不设门」；数值与判据唯一源 = `eng/contracts/resource_gate_v1.json#enforcement`）：CLI 运行期只记录与报告，**不因资源判据改变退出码**；`--strict-resource-gate` / `--on-resource-gate strict` **保留接受但不改变门结论**（旗标请求事实由事件字段如实登记，见下「事件面登记」）。实现唯一收口 = `lib/infrastructure/cli/resource_gate.h::gate_enforcement`（恒返回 `RecordOnly`；`Enforced` 枚举值仅为既有 ABI/测试引用保留）。
 - **唯一判定点 = 重计算监控实测 + 发布验收**（判定参数与阈值唯一源 = `eng/contracts/resource_gate_v1.json`），以 `run_monitored.py --gate-required --gate-workers <registry 声明>` 形式实测。**`--gate-workers` 必须由 registry 显式声明**；未声明时利用率类判据不成立（记 `allocated_capacity_undeclared`），只有 ① 生效。
-- **exit 10（RESOURCE）在资源门判定域内的充分条件**：判定域内 ①②③ 任一违约且处于 enforce 面——该路径**只存在于资源门判定面**，程序内（CLI）无此路径。`NOT_APPLICABLE` 与 record-only 记录项**都不产生 exit 10**。本节只界定资源门判定域内的 exit 10；**磁盘写满 / 写盘失败 ⇒ exit 10** 是独立触发路径（`19_runtime.md` 的「错误与边界」一章与 `docs/engineering/contracts/LOG_AND_ERROR.md`「错误对象与退出码映射」一节）。
+- **exit 10（RESOURCE）在资源门判定域内的充分条件**：判定域内 ①②③ 任一违约且处于 enforce 面——该路径**只存在于资源门判定面**，程序内（CLI）无此路径。`NOT_APPLICABLE` 与 record-only 记录项**都不产生 exit 10**。本节只界定资源门判定域内的 exit 10；**磁盘写满 / 写盘失败 ⇒ exit 10** 是独立触发路径（运行时页的「错误与边界」一章与 `docs/engineering/contracts/LOG_AND_ERROR.md`「错误对象与退出码映射」一节）。
 
 **事件面登记（`resource` / `resource_gate`）**
 

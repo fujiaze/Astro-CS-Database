@@ -1,4 +1,4 @@
-# 插件文档：benchmark（CPU profile）
+# benchmark（CPU profile）
 
 > 上游：《ACSD 最高设计》的「CPU 后端与资源」一章
 

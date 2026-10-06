@@ -12,9 +12,9 @@
 - `point_source_flux`：Q/W/flux/detection 产品；
 - `visualization`：允许显示型降级，类别字段标为显示型，与测量产品分列。
 
-- 输入 signal **只接受面亮度语义**（写端口单位 `SURFACE_BRIGHTNESS`，落盘值 = `flux_sum / covered_area`）；flux-per-pixel 等其它语义**显式拒绝**（《ACSD 最高设计》的「投影算法」一章的输入语义守卫与硬约束；正本见 `docs/science/PHASE3_HIPS_TO_FITS.md`）。
-- 输入的 signal 是**线性**面亮度（Phase1 面亮度产品为 `ADU/sr`）：本阶段只做坐标/采样/格式变换，采样核是输入的**凸组合**，因此**不改量纲类别、不做星等换算**；输出 `BUNIT` 透传输入语义，variance/ivar 按二次律同幂传播（`docs/science/unified/DATA_SEMANTICS.md` 的量纲与二次律传播各段）。
-- 输入产品的落盘形态由落盘名判定，裸 `<name>.hips/` 与归档 `<name>.hips.zst` 语义相同，按天区取瓦片走输入产品的覆盖索引（`docs/detail/PRODUCT_STORAGE_FORM.md`）。
+- 输入 signal **只接受面亮度语义**（写端口单位 `SURFACE_BRIGHTNESS`，落盘值 = `flux_sum / covered_area`）；flux-per-pixel 等其它语义**显式拒绝**（《ACSD 最高设计》的「投影算法」一章的输入语义守卫与硬约束；正本见球面投影到平面文件的科学分册）。
+- 输入的 signal 是**线性**面亮度（Phase1 面亮度产品为 `ADU/sr`）：本阶段只做坐标/采样/格式变换，采样核是输入的**凸组合**，因此**不改量纲类别、不做星等换算**；输出 `BUNIT` 透传输入语义，variance/ivar 按二次律同幂传播（统一数据语义分册的量纲与二次律传播各段）。
+- 输入产品的落盘形态由落盘名判定，裸 `<name>.hips/` 与归档 `<name>.hips.zst` 语义相同，按天区取瓦片走输入产品的覆盖索引（`docs/detail/infrastructure/storage_form.md`）。
 - **Phase3 产物是交付物**：输出为**裸 FITS 文件，不压缩、不套壳**（用户与外部工具直接打开）；Phase3 不产出 HiPS，因此不使用 `.hips` / `.hips.zst` 命名。输入合同**不设** `storage_form` 键（形态由落盘名判定、对调用方透明），出现即 REJECT。
 
 缺少所选模式所需的不确定度/PSF 信息时拒绝或明确输出 unavailable。
@@ -104,7 +104,7 @@ C_y = R C_x Rᵀ
 - `sky` 的转换 = 边界**加密采样**（每边 257 点，确定性）→ 逐点 `world2pix` → **外扩**整数
   包围盒（`floor(min)` / `floor(max)+1`）⇒ 保证不切掉任何**中心落在矩形内**的像素。
 - 判别键名取 `crop_form` 而非 `mode`：`cpu_profile` 的 `legacy_v1`/`kernel_v1` 已占用
-  `mode`，同名异义与 `docs/detail/UNIFIED_MODEL.md`「三类配置严格分离」一章冲突（与 export 用 `output_mode`
+  `mode`，同名异义与 `docs/detail/common/unified_model.md`「三类配置严格分离」一章冲突（与 export 用 `output_mode`
   避开 `mode` 同一处置）。
 
 ### 8.3 fail-closed 判据（全部具名报错，禁静默夹取）
@@ -133,7 +133,7 @@ C_y = R C_x Rᵀ
 ## 9. 导出产品的视觉验收判据（V1a / V1b）
 
 工具 = `eng/tools/e2e/render_vis.py`（整幅 PNG + 分块 PNG + 逐块自检）；其接缝度量是**方差比**口径，只作渲染分块伪影的**粗筛**——方差比对电平阶跃**原理性失明**（阶跃不改变方差），**帧间无接缝不能由方差比判**：帧间接缝的唯一口径 = **有符号电平台阶 + 适用域**（判据与门槛见《ACSD 最高设计》的「验证层级与四层验收」一节（L4 真实视觉验收，由负责人目检判定）与 `docs/detail/registry/acsd.phase2.upm-fit.md` 的「接缝判据的唯一口径」段）；
-上游 = 《ACSD 最高设计》的「验证层级与四层验收」一节（L4 真实视觉验收）「无"黑洞"：无异常零值/死区/未填充孔洞」+ §6 L4
+上游 = 《ACSD 最高设计》的「验证层级与四层验收」一节（L4 真实视觉验收）「无"黑洞"：无异常零值/死区/未填充孔洞」+ 对应章节L4
 （真实数据端到端视觉验收）+ 本设计「导出裁剪范围（crop）」一章（导出保留全部有效像素，**允许**边界黑边）。
 
 ### 9.1 V1a：未覆盖却有值（幻影数据）
@@ -171,3 +171,14 @@ C_y = R C_x Rᵀ
 `covered_fraction` 与 `finite_fraction` 的差就是「覆盖 ≠ 有效数据」的量。判据不因该差值
 判红（见「V1b：内部空洞（阈值 0）」一节），但两者必须同时落盘，便于独立复核；真帧读数见 `实验/` 证据面。
 
+
+## 落地对照与参考文献
+
+本页是投影导出管线的落地描述，对应最高设计投影导出一章的输入语义、投影算法与输出产品条目。各环节的端口、配置、并行、内存、错误与验证口径以模块登记页为准：产品属性读取、天球坐标系规划、重采样、文件写出、独立校验。块读写遵循内存管线纪律。配置来自阶段输入文件，执行预算来自运行时。调试从阶段日志与各模块登记页的验证入口进入。
+
+### 参考文献
+
+[1] Calabretta M. R., Greisen E. W. Representations of celestial coordinates in FITS. Astronomy and Astrophysics, 2002, 395: 1077–1122. https://doi.org/10.1051/0004-6361:20021327
+[2] Fernique P., Allen M. G., Boch T., Burke D., Castro-Ginard A., Davidson J., Durand D., Kreckel K. Hierarchical progressive surveys: Visualisation and streaming of astronomical images and catalogues with HiPS. Astronomy and Astrophysics, 2015, 578: A114. https://doi.org/10.1051/0004-6361/201526075
+[3] 统一观测模型与数据对象细节页，本文common目录。
+[4] 投影导出各模块登记页，本文registry目录。

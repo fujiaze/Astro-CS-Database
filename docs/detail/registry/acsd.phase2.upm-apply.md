@@ -1,11 +1,11 @@
 # 模块 acsd.phase2.upm-apply
 
-> 上游：docs/ACSD_DESIGN.md §8.5（模块与 ABI）、§5.4（天光平面与统一相对模型 UPM）
-> 科学正本：docs/science/PHASE2_UPM.md（SCI-UPM-001，FROZEN；§5/§9a/§14a/§17）、
+> 上游：`docs/ACSD_DESIGN.md`对应章节（模块与 ABI）、对应章节（天光平面与统一相对模型 UPM）
+> 科学正本：docs/science/PHASE2_UPM.md（SCI-UPM-001，FROZEN；对应章节/对应章节/对应章节/对应章节）、
 > docs/science/algorithms/UPM_SOLVER.md（ALG-UPM-001，权威推导；F4/F6）、
-> docs/science/noise_snr/NOISE_SNR.md §3.5（参数协方差）
+> `docs/science/noise_snr/NOISE_SNR.md`对应章节（参数协方差）
 > 实现级合同：docs/science/algorithms/PHASE2_UPM_IMPL.md（ALG-P2-UPM-IMPL-001；
-> §11/§13 语义与缺陷清单、TEST-DESIGN 冻结容差、字段名与生产取值登记）
+> 对应章节/对应章节 语义与缺陷清单、TEST-DESIGN 冻结容差、字段名与生产取值登记）
 > 数据正本：docs/detail/registry/acsd.phase2.upm-apply.md（DATA-P2-UPM / DATA-P2-COR 端口表，本页输入输出端口表）
 > API 正本：docs/engineering/api/PUBLIC_API.md（API-P2-UPM-001）、
 > docs/engineering/api/PUBLIC_API.md「分阶段 API 面」（API-P2-001，FROZEN）
@@ -24,7 +24,7 @@ fit 职能见 registry/acsd.phase2.upm-fit.md（同一 module_id 的另一职能
 ## 职责与明确非职责
 
 职责（apply）：按 frame_id 稳定绑定逐块校准 —— **默认只扣偏差 `δ_k`、保留公共
-天光面 `B_ref`**（最高设计 §5.4「公共面语义：只扣『多退少补』的偏差，不剪掉整个
+天光面 `B_ref`**（最高设计对应章节「公共面语义：只扣『多退少补』的偏差，不剪掉整个
 背景」）。**记法消歧（强制）**：表示层全量 `C_k ≡ B_ref + δ_k`；**全量扣除
 `raw − C_k`（含 `B_ref`）不是默认** —— 凡写 `raw − C_k` 处必须写明「全量」还是
 「仅偏差」。
@@ -50,8 +50,8 @@ stale 拒绝 rc = 2。生产 apply 消费链 = lib/algorithms/coverage/tools/sta
 | `calibrated_frames` | `DATA-P2-CAL` | 必 | `UnitId::ADU` | `CoordinateFrame::PIXEL` |
 | `corrected` | `DATA-P2-COR` | 可 | `UnitId::ADU` | `CoordinateFrame::PIXEL` |
 
-内核级真实 I/O 合同 = DATA-P2-UPM（§25）模型 + DATA-P2-CAL 帧 → DATA-P2-COR
-（§26）校准输出：**默认语义 = 只扣偏差**（FP64 ADU，保留公共天光面 `B_ref`）；
+内核级真实 I/O 合同 = DATA-P2-UPM（对应章节）模型 + DATA-P2-CAL 帧 → DATA-P2-COR
+（对应章节）校准输出：**默认语义 = 只扣偏差**（FP64 ADU，保留公共天光面 `B_ref`）；
 sparse / dense 同一科学语义。
 
 invalid：null 参数 ⇒ rc = 1；未知 frame_id ⇒ `p2_upm_evaluate_c` 返回 NaN
@@ -136,7 +136,7 @@ rc 语义：0 = ok；1 = 参数 / open / parse / IO / 未知 frame；2 = dense s
   同时落盘；口径同「产品照出、rc 不变，判红由 `warning_codes` 非空承载」；
   **不得**静默变成「不校正」，**不得**回退到双重扣除；
 - 该形态的产品**不得用于「无接缝」主张**：全减后背景归零，接缝判据在分母上退化
-  （非退化判据口径见 registry/acsd.phase2.upm-fit.md 与 SCI-UPM-001 §9a/§17）。
+  （非退化判据口径见 registry/acsd.phase2.upm-fit.md 与 SCI-UPM-001/对应章节）。
 
 取消：会话消费面整模型不写半成品（p2_session.cpp 两处）；内核无取消检查点；无段内
 checkpoint（dense 物化整缓存一次写）。
@@ -166,7 +166,7 @@ Oracle 面：
 
 ## 已知限制
 
-- 现行语义与判据正本 = docs/science/algorithms/PHASE2_UPM_IMPL.md §11/§13；
+- 现行语义与判据正本 = `docs/science/algorithms/PHASE2_UPM_IMPL.md`对应章节/对应章节；
 - ALG 边界 = dense cache 为**空间求值缓存**、非科学重算（stale 拒绝语义）；未知
   frame_id → NaN 而非异常；
 - 缺陷登记（不改码，正本 = ALG-P2-UPM-IMPL-001 缺陷清单）：upm.h

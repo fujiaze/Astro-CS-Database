@@ -1,13 +1,13 @@
 # 模块 acsd.p2.hips_writer（MOD-acsd-phase2-write）
 
-> 上游：docs/ACSD_DESIGN.md §8.5（模块与 ABI）、§10（I/O 与原子产品：原子发布条款）
+> 上游：`docs/ACSD_DESIGN.md`对应章节（模块与 ABI）、对应章节（I/O 与原子产品：原子发布条款）
 > 科学正本：docs/science/algorithms/PHASE2_MOSAIC_WRITE.md（ALG-P2-HIPS-001..004；
-> §7 四概念分离、§8/§9 测试设计、§11.4 冻结容差）
-> 共享 FROZEN SCI（零改动）：docs/science/PHASE2_UPM.md（`w_UPM` 唯一冻结式 §5）、
+> 对应章节 四概念分离、对应章节/对应章节 测试设计、对应章节 冻结容差）
+> 共享 FROZEN SCI（零改动）：docs/science/PHASE2_UPM.md（`w_UPM` 唯一冻结式 对应章节）、
 > docs/science/INTEGRATION.md（signal / sup_max）、docs/science/REJECTION.md（排异判据）
 > 数据正本：docs/detail/registry/acsd.phase2.write.md（DATA-P2-HIPS 端口表，本页输入输出端口表）
 > API 正本：docs/engineering/api/PUBLIC_API.md（API-P2-HIPS-001，Phase2 mosaic write 节）
-> I/O：docs/detail/infrastructure/17_aio.md（IO-002 读合同、IO-003 原子发布）
+> I/O：docs/detail/infrastructure/aio.md（IO-002 读合同、IO-003 原子发布）
 
 模块级事实以 `lib/algorithms/coverage/hips_p2/` 三件套（README + module.yaml +
 memory.md，CONTRACT_READY，entrypoint 未落地）为准；module.yaml 登记
@@ -53,9 +53,9 @@ owner = SA-P2-I23；depends_on_int = P2-INT / IO-003；legacy_paths =
 提供）；叶级归一/FITS 写盘/hierarchy/MOC/properties（writer 库
 aio_hips_writer.cpp，P1-HIPS 域 ALG-HIPS-001..005）；HiPS 格式解析
 （IO-002/aio_hips_reader）；原子发布（IO-003 编排层；阶段二直写 out_hips 无
-staging，不满足最高设计 §10 的原子发布条款，属已登记的例外面）。
+staging，不满足最高设计对应章节 的原子发布条款，属已登记的例外面）。
 UPM/排异/积分公式（SCI-UPM-001/SCI-REJ-001/SCI-INT-001
-FROZEN，w_UPM 唯一冻结式 PHASE2_UPM.md §5）；P3 HiPS→FITS。
+FROZEN，w_UPM 唯一冻结式 PHASE2_UPM.md 对应章节）；P3 HiPS→FITS。
 
 **阶段二数据面**：帧 HiPS（signal / support / SNR catalogue）；UPM sparse 模型
 （落盘标识 `acsd-upm-v2`，DATA-UPM-MODEL-001）；马赛克产品 signal / support
@@ -76,7 +76,7 @@ schema 单一来源。
 invalid = NaN signal + support = 0（writer 库 aio_hips_writer.cpp）；ivar 缺产品 =
 rc=7 science / degraded（stage2.cpp）。
 
-**四概念分离红线（ALG-P2-HIPS §7）**：signal（SCI-INT §5 加权积分）、
+**四概念分离红线（ALG-P2-HIPS）**：signal（SCI-INT 加权积分）、
 variance / ivar（输入侧逐帧产品权重语义）、support（sup_max 几何覆盖 [0,1]）、
 mask（rejection reasons + large_scale grow，**不输出产品、不入权重式**）严格分离；
 **禁 support 冒充 ivar**。
@@ -147,7 +147,7 @@ HIPS_VERIFY 回读失败。**该工具不以裸整数冒充进程退出码**：�
 且语义不同，按任一面反查都会取到另一面的错值（该重叠已在
 docs/engineering/api/PUBLIC_API.md 的「acsd-stage2 工具返回值」处登记为未决项）。
 日志落点 = 块级 `log_dir`（默认 `<output_dir>/logs`），节点事件经 observability
-汇聚（最高设计 §7.3，阶段二工具侧同时输出 stderr）。指标 = diagnostics.json
+汇聚（最高设计对应章节，阶段二工具侧同时输出 stderr）。指标 = diagnostics.json
 （`rejection_resolved_methods` / `reject_hist` / `pixels_depth_*` / `acr_*` route /
 model_hash 等；stage2.cpp）。取消 = 无（长 run 无检查点，如实登记）。跨模块：
 orchestrator 的 `cleanup_partial_output` 用 `fs::remove_all` 修复（orchestrator.cpp，
@@ -179,7 +179,7 @@ synthetic_gate UPMW 组、G5 ivar 真值、SNR-015 ablation；这些读数的载
   「已知缺陷（DISP-P2HIPS，登记不改码，整改归 P2-HIPS-IMPL/INT）」段与
   ALG-P2-HIPS-001..004 缺陷清单（登记不改码，整改面未落地）：无 variance / ivar
   输出产品；hash 链未入 HiPS properties provenance；阶段二直写 `out_hips` 无
-  staging（原子发布归 IO-003，不满足最高设计 §10 的原子发布条款，属已登记的
+  staging（原子发布归 IO-003，不满足最高设计对应章节 的原子发布条款，属已登记的
   例外面）；O(T·N) 覆盖帧 probe。
 
 **日志落点**：本模块的日志一律落块级 `<output_dir>/logs`。开发过程日志

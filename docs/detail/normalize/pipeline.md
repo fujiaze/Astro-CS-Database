@@ -71,7 +71,7 @@ ingest → calibration → cosmetic/validity → background/noise
   `docs/engineering/contracts/LOG_AND_ERROR.md`「错误对象与退出码映射」一节）与节点 manifest（`frame_status`/`frame_errors`/
   `failed_frames`/`n_frames_failed`/`n_frames_ok`/`n_frames_applied`）。
   帧级失败**不是降级**：不写 `degraded_reason`（失败 ≠ 降级，判据见
-  `docs/engineering/contracts/LOG_AND_ERROR.md`「显式降级登记要件」一节与 `docs/detail/LOG_AND_ERROR_SYSTEM.md`）。
+  `docs/engineering/contracts/LOG_AND_ERROR.md`「显式降级登记要件」一节与 `docs/detail/infrastructure/log_and_error_system.md`）。
 - **全局失败**（换任何一帧都不会好：星表/响应曲线不可读、`gaia_data_dir`/`filter`/`filters_json`
   配置缺项、冻结 C 入口返回非零）⇒ **中止运行**（`ErrorDomain::CONFIG`/`IO` 上行到 CLI 收敛为退出码），
   不把整批帧逐帧判 fail。
@@ -109,7 +109,7 @@ V(y_p) = {V(r_p)+V(b_p)+alpha²[V(d_p)+V(b_p)]+y_p²V(f_p)} / f_p²
 
 - 背景模型 (B(x,y)) 与随机噪声 (C) 分开；Phase1 可估计背景，背景校正与 UPM 各占一层；
 - validity 包含 NaN/Inf、坏点、饱和、cosmetic、边界、插值、星轨/严重形变；
-- 检测阈值的**冻结定义**为全局背景噪声倍数 `median(img)+5.0·bgnoise`（`docs/detail/STAR_DETECTION_IMPL_DESIGN.md`「O3 检测阈值」一节）；以逐像素 variance/ivar 做**局部噪声自适应**为目标态、当前未实现（`DISP-STAR-002`）；输出 selection function 和 completeness 相关参数；检测目录不是图像灵敏度本身；
+- 检测阈值的**冻结定义**为全局背景噪声倍数 `median(img)+5.0·bgnoise`（`docs/detail/normalize/modules/star_detection.md`「O3 检测阈值」一节）；以逐像素 variance/ivar 做**局部噪声自适应**为目标态、当前未实现（`DISP-STAR-002`）；输出 selection function 和 completeness 相关参数；检测目录不是图像灵敏度本身；
 - 检测、PSF、WCS、测光、SNR 的 source row 都绑定同一 frame_id/source_id。
 
 ## 6. PSF 模型
@@ -183,7 +183,7 @@ W_psf,k = a_k² Σ_p P_k,p² / sigma_pix,k² = a_k² / (sigma_pix,k² A_NEA,k)
 
 ### 8.2 Phase1 的 SNR 与信息量产品边界
 
-Phase1 **只**产出帧级 SNR、稀疏控制点上的**绝对** SNR（`F_ref/σ_F(x,y)`，与帧级同口径、同参考通量 `F_ref`），以及点源充分统计量 `point_information`，其标量度就是本节 8.1 的 `W_psf,k = a_k² P_kᵀ C_k⁻¹ P_k`（本页不另立第二套写法）；`F_ref` 的口径见 `docs/detail/UNIFIED_MODEL.md`「参考通量基准」一节；
+Phase1 **只**产出帧级 SNR、稀疏控制点上的**绝对** SNR（`F_ref/σ_F(x,y)`，与帧级同口径、同参考通量 `F_ref`），以及点源充分统计量 `point_information`，其标量度就是本节 8.1 的 `W_psf,k = a_k² P_kᵀ C_k⁻¹ P_k`（本页不另立第二套写法）；`F_ref` 的口径见 `docs/detail/common/unified_model.md`「参考通量基准」一节；
 **不产生、不消费**任何叠加权重。叠加权重由**阶段二**按该天球像素对应的输入帧集合**现场算出**（派生量）。
 PSF 拟合质量代理（FWHM、残差尺度等）**只作诊断**，**权重面排除**该项（《ACSD 最高设计》的「核心科学方法：五个创新点」与「数据对象」两章）。
 
@@ -212,7 +212,7 @@ PSF 拟合质量代理（FWHM、残差尺度等）**只作诊断**，**权重面
 - drizzle correlation/transfer 描述；
 - product manifest：schema、算法/模块/provider、完整 SHA、输入/配置哈希、单位、参考尺度、近似和降级。
 
-产品的**落盘形态**由**输入配置键** `storage_form` 选定：默认归档形态 `<name>.hips.zst`（整包 tar + 逐成员 zstd 帧），可显式切裸形态 `<name>.hips/`；键缺失或留空 ⇒ 取默认 `archive` 并报一条 warn（取默认动作一律记 warn，形态来源记入 `manifest.json#storage.form_source`）。两形态都必须写出产品级索引 `<name>.hips.index.json`（不压缩：叶块覆盖集合 + 归档定位表），一次运行还写出数据集级覆盖索引 `coverage.index.json`（不压缩：块 → 帧集合）。逐帧产品清单 `p1_products.json` 自报 `storage_form` / `index_path` / `index_sha256` / `archive_sha256`，运行级记 `coverage_index`。归档内 `properties` 与裸形态逐字节一致，解压后必须通过既有 HiPS 校验（`docs/detail/PRODUCT_STORAGE_FORM.md`、`docs/engineering/contracts/HIPS_STORAGE_FORM.md`）。
+产品的**落盘形态**由**输入配置键** `storage_form` 选定：默认归档形态 `<name>.hips.zst`（整包 tar + 逐成员 zstd 帧），可显式切裸形态 `<name>.hips/`；键缺失或留空 ⇒ 取默认 `archive` 并报一条 warn（取默认动作一律记 warn，形态来源记入 `manifest.json#storage.form_source`）。两形态都必须写出产品级索引 `<name>.hips.index.json`（不压缩：叶块覆盖集合 + 归档定位表），一次运行还写出数据集级覆盖索引 `coverage.index.json`（不压缩：块 → 帧集合）。逐帧产品清单 `p1_products.json` 自报 `storage_form` / `index_path` / `index_sha256` / `archive_sha256`，运行级记 `coverage_index`。归档内 `properties` 与裸形态逐字节一致，解压后必须通过既有 HiPS 校验（`docs/detail/infrastructure/storage_form.md`、`docs/engineering/contracts/HIPS_STORAGE_FORM.md`）。
 
 上述对象各自具名字段，`snr` 只承载其中之一。
 
@@ -225,3 +225,15 @@ PSF 拟合质量代理（FWHM、残差尺度等）**只作诊断**，**权重面
 - 帧级标量门失败时必须升级为空间模型；
 - Drizzle 常量面亮度、积分通量、variance 与 correlation oracle 全过；
 - 产品从磁盘独立重开后足以执行 Phase2，不依赖进程内状态。
+
+## 落地对照与参考文献
+
+本页是单帧标准化管线的落地描述，对应最高设计单帧标准化一章的节点流程与输出合同条目。各节点的端口、配置、并行、内存、错误与验证口径以模块登记页为准：会话、校准、 cosmetic、星检测、星点建模、天体测量解算、测光拟合、噪声信噪比、球面映射、产品写出。块读写遵循内存管线纪律：读已声明块、写新块、消耗旧块。配置来自阶段输入文件，执行预算来自运行时。调试从阶段日志与各模块登记页的验证入口进入。
+
+### 参考文献
+
+[1] Horne K. An optimal extraction algorithm for CCD spectroscopy. Publications of the Astronomical Society of the Pacific, 1986, 98: 609–617. https://doi.org/10.1086/131801
+[2] Bertin E., Arnouts S. SExtractor: Software for source extraction. Astronomy and Astrophysics Supplement Series, 1996, 117(2): 393–404. https://doi.org/10.1051/aas:1996164
+[3] Zackay B., Ofek E. O. How to coadd images: A method for optimal coaddition of all-sky images. The Astrophysical Journal, 2017, 836(2): 187. https://doi.org/10.3847/1538-4357/836/2/187
+[4] 统一观测模型与数据对象细节页，本文common目录。
+[5] 单帧标准化各模块登记页，本文registry目录。
