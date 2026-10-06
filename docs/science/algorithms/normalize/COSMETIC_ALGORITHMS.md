@@ -1,6 +1,6 @@
 # Cosmetic Correction Algorithms (P1-COS)
 
-> 上游：ACSD_DESIGN.md §4.2（Phase1 节点流程）
+> 上游：ACSD_DESIGN.md [D-1]「节点流程」一节（Phase1 节点流程）
 
 > 实现唯一生产源 =
 > `lib/algorithms/calibration/src/cosmetic_corrector.cpp`（CMake 目标
@@ -8,14 +8,14 @@
 > `lib/algorithms/calibration/src/ac_api.cpp:108,228`，签名权威
 > `lib/algorithms/calibration/include/astro_calibration.h:97,142`）；迁移目标目录
 > `lib/algorithms/cosmetic/`（落码由 P1-COS-IMPL 执行，尚未存在生产符号）。
-> 科学定义见 `docs/science/calibration/CALIBRATION.md`（SCI-CAL-001，FROZEN，§2 参数表
-> `hot_sigma/cold_sigma/method/max_structure_size`、§6 假设、§9a mask 极性
+> 科学定义见 `docs/science/calibration/CALIBRATION.md`（SCI-CAL-001，FROZEN，[S-1]「物理模型」一节 参数表
+> `hot_sigma/cold_sigma/method/max_structure_size`、「与上下游的关系」一节假设、「判据与误差」一节mask极性
 > 1=坏点）。本文档只登记离散算法与实现事实，不修改 SCI；算法分层与
-> ALG-CAL-004 的重叠界定见 §0。状态词唯一口径 = `ACSD_DESIGN.md` §12.5；IMPLEMENTED 只由验收签发。
+> ALG-CAL-004的重叠界定见本文件范围界定一节。状态词唯一口径 = `ACSD_DESIGN.md` [D-1]「状态词口径」一节；IMPLEMENTED 只由验收签发。
 
 ## 0 范围与 ALG-CAL-004 重叠界定
 
-SCI-CAL-001 §12 将坏点检测/修复登记为 `ALG-CAL-004`（引用 cc_* 通道符号
+SCI-CAL-001 [S-1]「判据与误差」一节将坏点检测/修复登记为 `ALG-CAL-004`（引用 cc_* 通道符号
 cc_detect_hot/cold + cc_correct_median）。本模块按迁移矩阵独立冻结为
 ALG-COS-001..006，逐公式锚定 **现行唯一生产实现**
 `ac::detect_hot_pixels/detect_cold_pixels/filter_by_structure_size/
@@ -33,7 +33,7 @@ interpolate_pixels/correct_frame`（cosmetic_corrector.cpp:61-265，经
   与根 `CMakeLists.txt:617-626` 的 `add_library(acsd_calibration STATIC ...)`
   源清单均含它）；
   同名文件 `lib/algorithms/calibration/cpp/cosmetic_corrector.cpp` **已退役**，
-  登记见 §8。二者是两套独立实现，**本模块行为的口径唯一取自生产源；cpp/ 版本的公式、阈值或退化语义无资格**
+  登记见[S-1]「判据与误差」一节。二者是两套独立实现，**本模块行为的口径唯一取自生产源；cpp/ 版本的公式、阈值或退化语义无资格**
   解释或复算本模块行为。
 - 退役通道 cc_*（`lib/algorithms/calibration/cpp/cosmetic_corrector.{cpp,h}`：
   cc_detect_hot/cc_detect_cold/cc_correct_median/cc_last_error）**不在任何 CMake
@@ -47,7 +47,7 @@ interpolate_pixels/correct_frame`（cosmetic_corrector.cpp:61-265，经
   ADU，`[h][w]` 行主序 0-based），sigma 倍数 `threshold_sigma`
   （无量纲），结构尺寸上限 `max_size`（像素个数）。
 - **标度与量纲（冻结，逐项）**：`threshold_sigma` 无量纲；`med`/`mad`/`σ`/阈值与
-  `src` 同标度（ADU 域定义见 `docs/science/calibration/CALIBRATION.md` §3：
+  `src` 同标度（ADU 域定义见 `docs/science/calibration/CALIBRATION.md` [S-1]「公式与推导」一节：
   `物理值 = BSCALE·样本 + BZERO`）。
   - **检出集合对 `src` 的正标度变换严格不变**：`med`/`σ`/阈值三者同步缩放，
   比较 `src[i] > med + threshold_sigma·σ` 在 `c>0` 下等价；结构过滤只依赖
@@ -67,7 +67,7 @@ interpolate_pixels/correct_frame`（cosmetic_corrector.cpp:61-265，经
   - `med = median(src)`（`compute_global_median`，cosmetic_corrector.cpp:46-48，
     复制后 `std::nth_element`，O(n)，偶数长度取双中位均值——见 ALG-COS-005）；
   - `mad = median(|src − med|)`（`compute_global_mad`，cosmetic_corrector.cpp:51-54）；
-  - `sigma = 1.482602218505602 · mad`（高斯假设换算系数，单精度域：代码写作 `1.482602218505602f`，即该全精度字面量的 float 舍入，与双精度相对差 **+1.36e-08**；SCI-CAL-001 §9、与 SCI-NOISE-001 §14.2 同值）。
+  - `sigma = 1.482602218505602 · mad`（高斯假设换算系数，单精度域：代码写作 `1.482602218505602f`，即该全精度字面量的 float 舍入，与双精度相对差 **+1.36e-08**；SCI-CAL-001 [S-1]「参数与常数」一节、与 SCI-NOISE-001 [S-1]「判据与误差」一节 同值）。
 - 判定（离散公式，逐像素 i）:
   - 热: `hot_mask[i] = (dark[i] > med_d + hot_sigma · σ_d) ? 1 : 0`
     （阈值赋值 cosmetic_corrector.cpp:127、判定比较 :131；**严格大于**）。
@@ -104,7 +104,7 @@ interpolate_pixels/correct_frame`（cosmetic_corrector.cpp:61-265，经
      （label 自增），记录 `sizes[label]`；
   3. 过滤：`sizes[label] >= max_size` 的连通域全部清零
      （尺寸统计 cosmetic_corrector.cpp:103-106、清零循环 :108-113）——即**保留小连通域（孤立坏点/小
-     团簇），剔除大连通域**（SCI-CAL-001 §6 假设：坏点稀疏、与天体源
+     团簇），剔除大连通域**（SCI-CAL-001 [S-1]「与上下游的关系」一节 假设：坏点稀疏、与天体源
      不混淆，大结构按非坏点处理）；
   4. 背景（非候选像素）`labels[i] == 0`：`sizes` 数组只对 `labels[i] > 0` 的
      像素累加（cosmetic_corrector.cpp:104-106），故 `sizes[0]` 恒为初值 **0**；
@@ -125,7 +125,7 @@ interpolate_pixels/correct_frame`（cosmetic_corrector.cpp:61-265，经
 
 - 源锚: `lib/algorithms/calibration/src/cosmetic_corrector.cpp:160-226`（interpolate_pixels）。
 - 输入: 数据帧 `data`（float32 ADU）、掩码 `bad_mask`（**1=坏点**，SCI-CAL-001
-  §9a）、`method`（0=AC_METHOD_MEDIAN, 1=AC_METHOD_BILINEAR，
+  [S-1]「参数与常数」一节）、`method`（0=AC_METHOD_MEDIAN, 1=AC_METHOD_BILINEAR，
   `lib/algorithms/calibration/include/astro_calibration.h:23-24`）；
   输出 `out`（调用方分配）。
 - **极性口径（冻结，跨模块对照）**：本模块 `bad_mask`/`hot_mask`/`cold_mask`
@@ -164,10 +164,10 @@ interpolate_pixels/correct_frame`（cosmetic_corrector.cpp:61-265，经
   各方向 dist 不等，`1/dist` 权重使远处好像素权重下降，且**完全不含对角
   方向**，因而与"以四对角像素等权平均"或"对直接邻像素做双线性"都不同，
   在斜向坏点链上产生方向性偏差（量级随结构长度增长）。
-  **插值核的规范状态（冻结）**：SCI-CAL-001 §2 只登记 `method` 参数名，未规定
+  **插值核的规范状态（冻结）**：SCI-CAL-001 [S-1]「物理模型」一节 只登记 `method` 参数名，未规定
   插值核的数学形式；本模块的**唯一**插值核即本节两条（method=0 5×5 镜像反射
   中值、method=1 四方向 `1/dist` IDW），P1-COS-TEST 按本节公式冻结容差。
-  **插值核与 `method` 语义变更必须先改 SCI-CAL-001 §2 的冻结定义并走 ALG 变更流程**；
+  **插值核与 `method` 语义变更必须先改 SCI-CAL-001 [S-1]「物理模型」一节 的冻结定义并走 ALG 变更流程**；
   当前 `method=1` 的实际核 = 四方向 `1/dist` IDW（本节公式）。实现的取值面 = 本节
   公式，测试的 oracle 一律取自已冻结的核，没有测试按未冻结的核写 oracle。**要求**：任何 `method` 取值都必须落到本节两条之一，
   且核的适用域（孤立点 / 拉长结构 / 小帧）按本节声明，分支集合在本节内完整定义。
@@ -225,7 +225,7 @@ interpolate_pixels/correct_frame`（cosmetic_corrector.cpp:61-265，经
   `AC_ERR_PARAM(-1)`，否则恒 `AC_OK(0)`；`AC_ERR_MEMORY(-2)/
   AC_ERR_INTERNAL(-3)` **定义但从未返回**（无 extern "C" 异常屏障，
   bad_alloc 可穿越 C ABI；DISP-COS-001）。
-- 取消: 无取消检查点（PHASE1_API_V1 §2 登记 cosmetic 取消点=无；session
+- 取消: 无取消检查点（PHASE1_API_V1 [S-1]「物理模型」一节 登记 cosmetic 取消点=无；session
   层帧粒度取消覆盖整帧粒度）。API-P1-002 契约值。
 - FP64 ABI: `ac_correct_frame_f64`（ac_api.cpp:228-263）double 输入→
   float 降级→执行 f32 实现→double 输出（统计/mask/插值全程 float32；
@@ -246,7 +246,7 @@ interpolate_pixels/correct_frame`（cosmetic_corrector.cpp:61-265，经
 - `compute_global_mad(const float*, int, float med)`（:50-54）: 复制
   `absdev[i] = fabsf(data[i] − med)` 到向量后取中位（O(n) 时间 + O(n)
   内存）；float 单精度减法+fabsf。`σ = 1.482602218505602f · mad`（高斯假设，全精度字面量在 float 域舍入到 1.4826022，
-  SCI-CAL-001 §9）。
+  SCI-CAL-001 [S-1]「判据与误差」一节）。
   若 mad=0（常量帧）→ σ=0，阈值=±med（ALG-COS-001 行为不变）。
 - `median_inplace` 为比较选择（非稳定），但**中位值本身**由顺序统计量
   唯一确定（偶数分支 hi/lo 两元素也唯一）→ 结果与实现内部顺序
@@ -255,14 +255,14 @@ interpolate_pixels/correct_frame`（cosmetic_corrector.cpp:61-265，经
 
 ## 5a ALG-COS-006 坏列（linear defect）检测·修复·三路径仲裁·方差膨胀
 
-> **登记依据**：本节为 P-198 补登（原文档 §0/§11 只登记 `ALG-COS-001..005`，坏列/方差管线
+> **登记依据**：本节为 P-198 补登（原文档只登记 `ALG-COS-001..005`，坏列/方差管线
 > `:268-784` 与 6 个在役 `AC_API` 导出**零登记**；`docs` 全库 `bad_column` 符号 0 命中）。
 > SCI 侧无独立条款（`docs/science/calibration/CALIBRATION.md`「坏点与坏列的可分性」一节只登记坏点检测/修复判据 = ALG-CAL-004）；本族为
 > **Project-defined 实现**，其 `ALG-COS-006` 身份由本节首次落册。
 > **冻结面**：判据形式、`1.482602218505602` 常数、状态位语义、修复算子与**默认参数**均属冻结面
 > （`docs/detail/registry/acsd.phase1.cosmetic.md` 的坏列检测/修复行），本节只登记事实，不改公式/容差/默认值。
 
-- 源码锚（唯一生产源，口径同 §0「单一生产源（冻结）」）：`lib/algorithms/calibration/src/cosmetic_corrector.cpp:268-784`。
+- 源码锚（唯一生产源，口径同 [S-4]「推导补遗」一节「单一生产源（冻结）」）：`lib/algorithms/calibration/src/cosmetic_corrector.cpp:268-784`。
 - **独立路径（冻结）**：本节任何函数都不被 ALG-COS-001..005 的函数调用，也不改变其判据/阈值/语义；
   反之亦然（`:270-273` 的显式声明）——坏点路径按**像素**判定，本节按**列**判定。
 - 状态位（**降级必须留痕**，`:287-291`）：`OK=0`、`SCALE_DEGENERATE=1`（MAD(dev)==0 ⇒ 检测不可用）、
@@ -339,7 +339,7 @@ var_out[y][x] = (Σw² · var_in[y][x]) · κ      # 只对被修复列（掩膜
   `master_dark`/`master_bias`（`:2845` 明确登记"原实现两处都恒传 nullptr"的整改）。
   旧 `lib/phase1_session/p1_session.cpp` 路径**不调**坏列族（只调 `ac_correct_frame` `:481`）⇒
   两路径的坏列行为不同源，见 `DISP-COS-012` 同类登记口径。
-- **迁移面**：本族符号随 §8 的迁移落点（`lib/algorithms/cosmetic/`，P1-COS-IMPL）一并迁移；
+- **迁移面**：本族符号随迁移落点（`lib/algorithms/cosmetic/`，P1-COS-IMPL）一并迁移；
   本节不声明迁移已完成。
 
 ## 6 复杂度、确定性、并行归约汇总
@@ -351,13 +351,13 @@ var_out[y][x] = (Σw² · var_in[y][x]) · κ      # 只对被修复列（掩膜
 | 并行轴 | 像素域 omp parallel for schedule(static)（判定/合并/清零/插值/计数）；统计与 BFS 串行 | §1-§4 |
 | 归约 | 仅 out_hot/out_cold 计数归约（omp reduction(+)，顺序不确定但整数加法可交换→结果确定） | §4 |
 | 确定性 | 输出 bitwise 与线程数无关（逐像素独立 + 固定遍历顺序 + 中位/IDW 无跨像素顺序耦合） | §1-§5 |
-| 线程数控制 | 进程级 OpenMP ICV（ac_set_num_threads 可改写；现状调用点 p1_session 由 budget 注入——DISP-COS-008 整改点） | §10 |
+| 线程数控制 | 进程级 OpenMP ICV（ac_set_num_threads 可改写；现状调用点 p1_session 由 budget 注入——DISP-COS-008 整改点） | [S-1]「判据与误差」一节 |
 
 ## 7 误差来源与数值精度
 
 - 全程 float32（f64 ABI 同样降级，DISP-COS-004）：检测阈值比较、
   IDW 权重 `1/dist`、双中位均值 `(hi+lo)*0.5f` 均单精度。
-- 误差来源: ① MAD 高斯假设（非高斯分布时阈值偏移，SCI §9 已声明）；
+- 误差来源: ① MAD 高斯假设（非高斯分布时阈值偏移，SCI[S-1]「判据与误差」一节 已声明）；
   ② 偶数样本双中位均值（hi=上半区最小/lo=下半区最大）与"真中位数"
   定义差异（§5）；③ IDW 方向性偏差（§3，DISP-COS-003）；④ NaN 传播：检测统计不过滤 NaN——若检测源帧
   含 NaN，`data[i] > threshold` 等比较为 false → NaN 不判坏，
@@ -398,15 +398,15 @@ var_out[y][x] = (Σw² · var_in[y][x]) · κ      # 只对被修复列（掩膜
 
 > 可执行测试由 P1-COS-TEST 建立（TEST-P1-COS-001 目标 ID）；本节冻结
 > fixture/oracle/容差，P1-COS-TEST 一律按本节取值。全离线合成数据，零真实
-> 数据依赖。负面行必须逐条断言（ALG §1-§4 + DATA-P1-COS invalid 列）。
+> 数据依赖。负面行必须逐条断言（ALG [D-1]与DATA-P1-COS无效态列 + DATA-P1-COS无效态列）。
 
 - **FIX-COS-A 常量场**: data=常量 C、dark/bias=常量 → mad=0、无坏点、
   out==data（bitwise 恒等）；`out_hot=out_cold=0`。
   容差: bitwise 相等（max_abs==0，解析）。
 - **FIX-COS-B 解析注入坏点**: 常量场注入 k 个单像素坏点（含角点/边线/
   中心，镜像边界与 IDW 路径分别命中），独立 oracle = NumPy 复算
-  ALG-COS-001 判定 + §3 公式（median 双中位均值、IDW 权重 1/dist）。
-  容差: NumPy 对照 float32 rtol=1e-6, atol=1e-7（沿用 SCI-CAL-001 §11
+  ALG-COS-001 判定 + [S-1]「公式与推导」一节 公式（median 双中位均值、IDW 权重 1/dist）。
+  容差: NumPy 对照 float32 rtol=1e-6, atol=1e-7（沿用 SCI-CAL-001 [S-1]「判据与误差」一节
   预冻结标度；`rtol` 无量纲、`atol` 与 `data` 同标度 = ADU）；掩码/计数
   精确相等（无量纲像素个数）。**适用域（冻结）**：本容差组界定的是
   "同一输入下实现 vs NumPy oracle 的算术自洽性"，**对检测源标度错完全不
@@ -429,7 +429,7 @@ var_out[y][x] = (Σw² · var_in[y][x]) · κ      # 只对被修复列（掩膜
   → median = (hi+lo)*0.5 解析值（hi=上中位、lo=下半区最大）。
   容差: bitwise。
 - **不变量 I1-I6**: ①非坏点逐像素恒等；②无检测条件恒等（dark/bias
-  NULL 或 sigma<=0 → out==data bitwise）；③掩码极性 1=坏点（SCI §9a）；
+  NULL 或 sigma<=0 → out==data bitwise）；③掩码极性 1=坏点（SCI [S-1]「判据与误差」一节）；
   ④确定性（1/2/4 线程 bitwise 一致）；⑤计数=过滤后坏点数（≤掩码和）；
   ⑥空邻域回退原值。
 - **不变量②的非退化伴随断言（冻结）**：②在"检测关闭"时恒真，**单独使用
@@ -466,7 +466,7 @@ var_out[y][x] = (Σw² · var_in[y][x]) · κ      # 只对被修复列（掩膜
 ## 10 缺陷清单（DISP-COS，登记不改码）
 
 > 均为**现行实现事实**，迁移整改由 P1-COS-IMPL/INT 处理；本文档不改
-> 生产代码。编号与 ALG-CAL §10（DISP-CAL-001..011）独立。
+> 生产代码。编号与 ALG-CAL [S-1]「判据与误差」一节（DISP-CAL-001..011）独立。
 
 | ID | 缺陷（现状事实） | 锚 |
 |---|---|---|
@@ -476,7 +476,7 @@ var_out[y][x] = (Σw² · var_in[y][x]) · κ      # 只对被修复列（掩膜
 | DISP-COS-004 | ac_correct_frame_f64 非真双精度：double→float 降级执行（统计/mask/插值全程 f32），仅 I/O 层 double | ac_api.cpp:228-263；astro_calibration.h:105-115 |
 | DISP-COS-005 | `n = w·h` int 乘法无溢出防护（int31 域）；w·h>2^31 行为未定义 | cosmetic_corrector.cpp:231；ac_api.cpp:108-122 |
 | DISP-COS-006 | 检测/过滤 O(n) 额外内存（统计复制 + labels/sizes 向量）无上限防护（上限=帧大小，登记为常数界） | cosmetic_corrector.cpp:46-48,64-111 |
-| DISP-COS-007 | 无取消检查点（PHASE1_API_V1 §2 cosmetic 取消点=无；session 帧粒度取消为替代粒度） | cosmetic_corrector.cpp:229-265；PHASE1_API_V1 §2 |
+| DISP-COS-007 | 无取消检查点（PHASE1_API_V1 [S-1]「物理模型」一节 cosmetic 取消点=无；session 帧粒度取消为替代粒度） | cosmetic_corrector.cpp:229-265；PHASE1_API_V1 [S-1]「物理模型」一节 |
 | DISP-COS-008 | 并行=OpenMP 进程级默认 team（ICV 可被 ac_set_num_threads 全局改写），不满足 ThreadLease 约束 D.3/D.4 | cosmetic_corrector.cpp:126,147,166,254,258 |
 | DISP-COS-009 | 两条生产路径的检测源均为真实母版参考平面，母版尺寸不符显式判红（PARAM）不静默降级；边界 = 调度器路径配置未给母版时检测关闭，参与面由 hot_source/cold_source 记录 | `lib/phase1_session/p1_session.cpp:465-477`；`lib/infrastructure/scheduler/src/module_adapters.cpp:2928-2932` |
 | DISP-COS-010 | in-place（data==out 别名）未定义且未校验；out 与 data 重叠区域行为未登记 | ac_api.cpp:108-122 |
@@ -485,22 +485,29 @@ var_out[y][x] = (Σw² · var_in[y][x]) · κ      # 只对被修复列（掩膜
 
 ## 11 关联
 
-- SCI: SCI-CAL-001（docs/science/calibration/CALIBRATION.md，FROZEN；§2 参数表、
-  §6 坏点稀疏假设、§9a mask 极性 1=坏点、§11 oracle 容差标度）。
+- SCI: SCI-CAL-001（docs/science/calibration/CALIBRATION.md，FROZEN；[S-1]「物理模型」一节 参数表、
+  [S-1]「与上下游的关系」一节坏点稀疏假设、「判据与误差」一节mask极性1=坏点与oracle容差标度）。
 - DATA: DATA-P1-COS（docs/detail/registry/acsd.phase1.cosmetic.md）；上游输入
-  DATA-P1-CAL（§9）。
+  DATA-P1-CAL（[S-4]「推导补遗」一节）。
 - API: API-COS-001（docs/engineering/api/PUBLIC_API.md，ac_correct_frame/
   ac_correct_frame_f64/ac_set_num_threads）；API-P1-002
-  （docs/engineering/api/PUBLIC_API.md §2，编排合同，多模块共享）。
+  （docs/engineering/api/PUBLIC_API.md [S-5]「输入输出端口」一节，编排合同，多模块共享）。
 - MOD/SRC: MOD-acsd-phase1-cosmetic（lib/algorithms/cosmetic/module.yaml，
   CONTRACT_READY；lib/algorithms/cosmetic/README.md 实现事实）。
-- TEST: TEST-COS-DESIGN-001（本文档 §9）；可执行 TEST-P1-COS-001 由
+- TEST: TEST-COS-DESIGN-001（本文档[S-1]「公式与推导」一节）；可执行 TEST-P1-COS-001 由
   P1-COS-TEST 建立。
-- 摘要引用: ALG-CAL-004（docs/science/algorithms/CALIBRATION_ALGORITHMS.md §3.4，
+- 摘要引用: ALG-CAL-004（docs/science/algorithms/normalize/CALIBRATION_ALGORITHMS.md [A-1]「离散公式」一节，
   P1-CAL 合同视角同一实现）。
-- ALG-COS-006（本文档 §5a）: 坏列检测/修复/三路径仲裁/方差膨胀，无 SCI 独立条款
+- ALG-COS-006（本文档[S-1]「公式与推导」一节）: 坏列检测/修复/三路径仲裁/方差膨胀，无 SCI 独立条款
   （Project-defined），C ABI = `ac_correct_columns{,_f64,_ex,_ex2}`、
   `ac_detect_bad_columns_from_master`、`ac_column_variance_inflate`。
+
+> 本文引用上游正本（论文式编号，正文引用处均已改为自然语言节名，不再使用跨文档 §N 跳转）：
+> - [D-1] docs/ACSD_DESIGN.md（最高设计）。
+> - [S-1] docs/science/calibration/CALIBRATION.md（校准科学正本 SCI-CAL-001）。
+> - [S-4] docs/detail/registry/acsd.phase1.cosmetic.md（相关科学正本）。
+> - [S-5] docs/engineering/api/PUBLIC_API.md（相关科学正本）。
+> - [A-1] docs/science/algorithms/normalize/CALIBRATION_ALGORITHMS.md（标定算法分册）。
 
 ## 参考文献与参考代码库（含许可证）
 
@@ -513,5 +520,5 @@ var_out[y][x] = (Σw² · var_in[y][x]) · κ      # 只对被修复列（掩膜
 - 插值修复（中值替换 / 4 方向 `1/dist` 距离反比加权 IDW——**现行实现口径**；方法常量名义 bilinear 实为 IDW，见 DISP-COS-003 与 `lib/algorithms/calibration/src/cosmetic_corrector.cpp:202-224`）：插值修复的教科书级背景（Press et al. 2007, Numerical Recipes 3rd ed.）。**差异**：本模块是坏点局部修复，不是通用的图像插值库。
 
 
-**权威依据**：本文件 ALG-COS-001..006 的上游科学定义 = `docs/science/calibration/CALIBRATION.md`（SCI-CAL-001，FROZEN；§2 参数表与 §12 坏点检测/修复登记，ALG-CAL-004 关系见本文件 §0）；C API 合同面 = `docs/engineering/api/PUBLIC_API.md`（cosmetic 条目：SCI: SCI-CAL-001 / ALG: ALG-COS-001..006 / DATA: DATA-P1-COS）；算法口径的唯一算法文档落位 = 本文件。
+**权威依据**：本文件 ALG-COS-001..006 的上游科学定义 = `docs/science/calibration/CALIBRATION.md`（SCI-CAL-001，FROZEN；[S-1]「物理模型」一节参数表与「判据与误差」一节坏点检测/修复登记）；C API 合同面 = `docs/engineering/api/PUBLIC_API.md`（cosmetic 条目：SCI: SCI-CAL-001 / ALG: ALG-COS-001..006 / DATA: DATA-P1-COS）；算法口径的唯一算法文档落位 = 本文件。
 

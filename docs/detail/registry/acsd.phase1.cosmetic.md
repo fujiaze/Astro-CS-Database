@@ -1,9 +1,9 @@
 # 模块 acsd.phase1.cosmetic
 
-> 上游：`docs/ACSD_DESIGN.md`对应章节（模块与 ABI）
+> 上游：`docs/ACSD_DESIGN.md`「模块与 ABI」一节
 > 科学正本：docs/science/algorithms/COSMETIC_ALGORITHMS.md（ALG-COS-001..005）
 > 数据正本：docs/detail/registry/acsd.phase1.cosmetic.md（DATA-P1-COS 端口表，本页输入输出端口表）、
-> `docs/science/noise_snr/NOISE_SNR.md`对应章节（修正对协方差的影响）
+> `docs/science/noise_snr/NOISE_SNR.md`「协方差传播」一节
 > API 正本：docs/engineering/api/PUBLIC_API.md（API-COS-001）、
 > docs/engineering/api/PUBLIC_API.md「分阶段 API 面」（API-P1-002）
 
@@ -24,7 +24,7 @@ descriptor 词汇 module_id=`acsd.phase1.cosmetic`（`p1_cosmetic_descriptor`）
 可回退。
 
 现状生产调用 `p1_session.cpp` 未接线母版（检测全禁用、恒等 pass，登记见
-COSMETIC_ALGORITHMS.md 对应章节）。
+COSMETIC_ALGORITHMS.md［A-1］）。
 
 ## 输入输出端口、DATA、单位、坐标、invalid
 
@@ -116,7 +116,7 @@ rc != AC_OK）。极端情形（大片坏区）一律显式登记：零值填充
 
 ## 独立 synthetic 验证命令与容差
 
-`TEST-COS-DESIGN-001`（`docs/science/algorithms/COSMETIC_ALGORITHMS.md`对应章节：合成
+`TEST-COS-DESIGN-001`（`docs/science/algorithms/normalize/COSMETIC_ALGORITHMS.md`［A-1］：合成
 fixture FIX-COS-A..F、NumPy oracle rtol=1e-6/atol=1e-7、解析解 bitwise、I1–I6
 不变量）；可执行 `TEST-P1-COS-001` 待建；执行证据 NOT_VERIFIED（验收证据待补）。
 
@@ -129,7 +129,7 @@ Oracle 面：
 
 ## 已知限制
 
-- 缺陷与现行语义的登记面 = COSMETIC_ALGORITHMS.md 对应章节；模块级清单见
+- 缺陷与现行语义的登记面 = COSMETIC_ALGORITHMS.md［A-1］；模块级清单见
   `lib/algorithms/cosmetic/README.md`；
 - 现状生产调用未接线母版，检测全禁用、恒等 pass；
 - 现状无 ThreadLease，并行度取进程默认 team；

@@ -1,16 +1,16 @@
 # Drizzle Geometry Algorithms (P1-DRZ)
 
-> 上游：ACSD_DESIGN.md §5.2（固定科学流程）、§6.3（投影算法）
+> 上游：ACSD_DESIGN.md [D-1]「固定科学流程」一节程）、[D-1]「投影算法」一节（投影算法）
 
 > 本文档由源码逐函数核对后登记。实现唯一生产源 =
 > `lib/algorithms/drizzle/healpix_drizzle/`（CMake 目标 `acsd_drizzle`，
 > 在根 `CMakeLists.txt` 中登记；C ABI 导出 `lib/algorithms/drizzle/healpix_drizzle/
 > hp_drizzle_api.h`）；迁移目标目录 `lib/algorithms/drizzle/`。科学定义见
 > `docs/science/drizzle/DRIZZLE.md`（SCI-DRZ-001，FROZEN，集合 SCI-DRZ-001/014/015/016）。
-> 本文档只登记离散算法与实现事实；源码与 SCI 的差异全部登记于 §10（DISP-DRZ-*）。
-> **权威订正原则** = `docs/ACSD_DESIGN.md` §0（文档权威与索引）「科学正确性优先」：独立证据（外部标准 /
+> 本文档只登记离散算法与实现事实；源码与 SCI 的差异全部登记于 [S-1]「判据与误差」一节（DISP-DRZ-*）。
+> **权威订正原则** = `docs/ACSD_DESIGN.md` [D-1]「文档权威与索引」一节引）「科学正确性优先」：独立证据（外部标准 /
 > 文献 / 可复跑实验）证明文档与事实不符时，**订正文档是义务**（SCI 层订正走变更流程并
-> 记录证据与影响面）；文档已被证明正确而实现不符时改实现。状态词唯一口径 = `ACSD_DESIGN.md` §12.5；IMPLEMENTED 只由验收签发。
+> 记录证据与影响面）；文档已被证明正确而实现不符时改实现。状态词唯一口径 = `ACSD_DESIGN.md` [D-1]「状态词口径」一节；IMPLEMENTED 只由验收签发。
 
 ## 0 范围界定
 
@@ -26,7 +26,7 @@
   下游（`lib/algorithms/drizzle/healpix_drizzle/astro_sphere_sink.cpp` 传出原始累加量后由
   aio_hips_writer finalize_tile 完成，见 DISP-DRZ-007），不在本模块。
 
-## 1 ALG-DRZ-001 核心累加公式（与 SCI-DRZ-001 §5 对照）
+## 1 ALG-DRZ-001 核心累加公式（与 SCI-DRZ-001 [S-1]「判据与误差」一节 对照）
 
 - 源锚: `lib/algorithms/drizzle/healpix_drizzle/drizzle_engine.cpp`
   （`processPixelTiled` / `processPixelSharedTiled` 累加段；
@@ -37,10 +37,10 @@
   A_drop,j = drop 球面总面积 [sr]
   （S-H 裁剪前，双精度角点累积，<1e-20 拒绝，
   `build_drop_geometry_into` / `DropGeometryT::drop_area`）。
-- 离散公式（逐条源码锚；**单位逐项**与 `docs/science/unified/DATA_SEMANTICS.md` §3.4
+- 离散公式（逐条源码锚；**单位逐项**与 `docs/science/unified/DATA_SEMANTICS.md` [U-1]「面亮度单位的推导」一节
   的量纲链逐段一致，`FZ-UNIT-SIGNAL-SB` FROZEN）:
   - 权重: `w_jp = a_jp / A_drop,j`，**量纲 = 1（无量纲）**（a_jp 与 A_drop,j 同为 sr）。
-    **面亮度保持口径**（SCI-DRZ-001 §5 目标态面亮度保持权重），a_jp = drop ∩ target p
+    **面亮度保持口径**（SCI-DRZ-001 [S-1]「判据与误差」一节 目标态面亮度保持权重），a_jp = drop ∩ target p
     球面交叠面积 [sr]；`A_drop,j` = drop 球面面积 [sr]（`build_drop_geometry` 的
     `g.drop_area`），由 `spherical::polygon_area_consistent`（收缩四角）求值。
     `pixfrac==1` 时未收缩四角 ≡ drop 四角 ⇒ `A_drop,j ≡ A_pixel,j`（**逐位不变**）。
@@ -83,7 +83,7 @@
     [ADU²]，`FZ-UNIT-VAR-IN`；`(double)v · (double)w²` 中转再转 Scalar，
     仅当 v>0 累加，`lib/algorithms/drizzle/healpix_drizzle/drizzle_engine.cpp`）——"仅 v>0"即"方差不可用样本不进入方差项"，
     依据 `docs/science/unified/DATA_SEMANTICS.md`「方差与逆方差的三态编码」一节「无方差信息 ⇒ variance=0 ∧ ivar=0（显式不可用）」
-    与 §20.1「ivar==0 = 合法零权重」。
+    与 [U-1]「方差与逆方差的三态编码」一节。
     **α² 缩放律（代数恒等）**：`v_j → α²·v_j` ⇒ `sumVarNum_p → α²·sumVarNum_p`
     ⇒ `variance_p → α²·variance_p`（sumVarNum 对 v_j 线性、D_p 与 v 无关），
     ivar 按二次律 `→ α⁻²`；该律是恒等式而非近似，故回归门取逐像素 `worst_rel < 1e-4`
@@ -110,7 +110,7 @@
   `lib/algorithms/drizzle/healpix_drizzle/drizzle_engine.cpp` 锚注释一致。
 - 单位/dtype: 累加器 Scalar = float（precision_mode=0）或 double（=1）
   显式模板双实例（`lib/algorithms/drizzle/healpix_drizzle/drizzle_engine.cpp`）；a_jp/面积几何全程
-  double，FP32 仅发生在累加存储层（逐项舍入，容差门见 §9）。
+  double，FP32 仅发生在累加存储层（逐项舍入，容差门见[S-1]「判据与误差」一节）。
 
 ## 2 几何管线（drop footprint → 候选 → 交叠面积）
 
@@ -127,10 +127,10 @@
      外接半径 `r_circ`（像元中心→像元边界最远点角距）与等面积尺度 `hp_res = sqrt(A_cell)` 之比的
      全天 sup 为 **1.0415**（N=64 全天穷举实测，随 N 自下方单调升收敛；1.25/1.0415 = 1.2002，
      即裕量 ≥20.0%；该上界与裕量的读数正本 = 实验/healpix-polar/
-     （REPORT_experiment.md §4.3 与 docs/DERIVATIONS-P3.md §D3）。**另注意区分一个几何常数**：1.1284 = √2·ρ₁/hp_res
+     （REPORT_experiment.md [S-1]「参数与常数」一节 与 docs/DERIVATIONS-P3.md [S-4]「推导补遗」一节）。**另注意区分一个几何常数**：1.1284 = √2·ρ₁/hp_res
      = 2/√π 是"极冠 apex 叶对角（极点→叶远角）/hp_res"的叶对角尺度（ρ₁ = arccos(1−1/(3N²))
      ≈ √(2/3)/N）——外接半径必须按本节定义取值（像元中心→像元边界最远点角距）；相邻 ring 纬度中点法在极冠 apex 叶失效，只作叶对角尺度的取心，不用作外接半径。
-     阴性对照：等经纬网格的同度量显著高于该上界（读数与反例见 实验/healpix-polar/docs/DERIVATIONS-P3.md §D3）
+     阴性对照：等经纬网格的同度量显著高于该上界（读数与反例见 实验/healpix-polar/docs/DERIVATIONS-P3.md [S-4]「推导补遗」一节）
      ⇒ 1.25 的安全性只对 HEALPix 特化成立，相对该上界留 ≥20.0% 裕量，且覆盖跨
      face 边界（面内畸变已由 `hp_res` 的球面定义吸收）。
      零漏选由 9003 例全枚举 oracle 兜底（§9）。
@@ -213,7 +213,7 @@
 | SNR 面非有限 | 计入 `rejected_nonfinite_value` 同族掩膜路径（SNR 面参与权重/有效性判定，剔除项逐条计数登记） | `lib/algorithms/drizzle/healpix_drizzle/drizzle_engine.cpp` |
 | 权重面非有限或 ≤0 | 计入 `rejected_nonpositive_weight`（原因 3）后剔除该样本（**必须计数**，禁静默） | 同上 |
 | variance 面非有限（NaN/Inf） | 计入 `rejected_nonfinite_variance`（原因 2）后剔除该样本（**必须计数**，禁静默） | 同上 |
-| **variance 面 = 0（方差不可用）** | **不是无效像素**：样本合格性只判 `isfinite(x_j)`（DATA-002 §2a）；variance=0 按 `docs/science/unified/DATA_SEMANTICS.md`「方差与逆方差的三态编码」一节「无覆盖/无方差信息像素写 variance=0 且 ivar=0（显式不可用）」与 §20.1「ivar==0 = 合法零权重、variance==0 = 无信息」处理 ⇒ **只令方差项为 0，不丢信号、不丢几何支撑**。`V_j ≤ 0` 不构成掩膜授权（`ACSD_DESIGN.md` §5.5 只授权对 NaN 做样本级掩膜） | `lib/algorithms/drizzle/healpix_drizzle/drizzle_engine.cpp` V≤0 分支（置 0 不 continue）；证据见 实验/absolute-snr/（方差语义面）|
+| **variance 面 = 0（方差不可用）** | **不是无效像素**：样本合格性只判 `isfinite(x_j)`（DATA-002 [S-1]「判据与误差」一节）；variance=0 按 `docs/science/unified/DATA_SEMANTICS.md`「方差与逆方差的三态编码」一节「无覆盖/无方差信息像素写 variance=0 且 ivar=0（显式不可用）」与 [U-1]「方差与逆方差的三态编码」一节处理 ⇒ **只令方差项为 0，不丢信号、不丢几何支撑**。`V_j ≤ 0` 不构成掩膜授权（`ACSD_DESIGN.md` [D-1]「逐像素排异」一节只授权对NaN做样本级掩膜） | `lib/algorithms/drizzle/healpix_drizzle/drizzle_engine.cpp` V≤0 分支（置 0 不 continue）；证据见 实验/absolute-snr/（方差语义面）|
 | 几何 NaN（ra/dec 非有限） | 显式拒绝该像素 | `lib/algorithms/drizzle/healpix_drizzle/drizzle_engine.cpp` |
 | 半球检查失败（max_ang≥π/2） | 返回 NAN 面积 | `lib/algorithms/drizzle/healpix_drizzle/spherical_overlap.cpp` |
 | A_drop<1e-20 / w≤0 | 拒绝 | `lib/algorithms/drizzle/healpix_drizzle/drizzle_engine.cpp` |
@@ -289,13 +289,13 @@
   由真实测光 provenance `p1_phot.json`（DATA-P1-PHOTPROV-001，
   `p1_op_photometry` 产出）决定；未应用测光 → PHOTAPPL=0 + 帧头
   `PHOTDEGRADE=1`，引擎在显式声明时降级写 BUNIT=ADU（photappl=0），
-  未显式声明仍按 02_FROZEN §7 拒绝（`lib/algorithms/drizzle/healpix_drizzle/drizzle_engine.cpp`；
+  未显式声明仍按 02_FROZEN [S-1]「参考文献与参考代码」一节 拒绝（`lib/algorithms/drizzle/healpix_drizzle/drizzle_engine.cpp`；
   `lib/algorithms/drizzle/healpix_drizzle/hp_drizzle_api.cpp`；`lib/infrastructure/scheduler/src/module_adapters.cpp`）。
 - 输入通道: PipelineFrame "data"（f32/f64 二选一，bzero=0/bscale=1
   固定，`lib/algorithms/drizzle/healpix_drizzle/hp_drizzle_api.cpp`）+ header WCS/SIP KV + 可选 "snr_model" 块
   （KD-tree IDW 重建逐像素 SNR，snr_evaluator.h）。
 - **SIP 桥接**：编排 drizzle 节点从上游
-  `p1_wcs.json`（DATA-P1-WCS §18）读回 `wcs.sip`（order/ap_order/a/b/ap/bp，
+  `p1_wcs.json`（DATA-P1-WCS定义）读回 `wcs.sip`（order/ap_order/a/b/ap/bp，
   i*6+j），经 `p1_sip_write_header_frame` 写入 frame header 的 FITS 键：
 
   ```text
@@ -385,9 +385,9 @@
 | DISP-DRZ-004 | 值像素 NaN 按 `rule_id NAN-SAMPLE-MASK-COVERAGE-NAN` 处置 = 样本级掩膜 + 重归一 + 覆盖级 NaN + 强制计数（`docs/science/drizzle/DRIZZLE.md`）：不合格样本剔除并重归一、仅零合格样本输出 `NaN ∧ support≤0`、必须暴露 `n_rejected_nonfinite` | **约束**：主循环按原因分类计数（值/方差/权重三分类）并聚合暴露 `DrizzleStats::n_rejected_nonfinite*`（`lib/algorithms/drizzle/healpix_drizzle/drizzle_engine.cpp`）；**禁用**把非有限样本传播进 `F_p`/分母/方差——会污染整像素信号与几何支撑（负例判据：零合格样本必须输出 `NaN ∧ support≤0` 且分类计数非零） | `docs/science/drizzle/DRIZZLE.md` vs `lib/algorithms/drizzle/healpix_drizzle/drizzle_engine.cpp` |
 | DISP-DRZ-005 | `max_angle < 1e-3` 切平面分支是**实际执行路径，必须保留**：微小 drop（角跨度 < 1e-3 rad ≈ 206″）用切平面面积 | 三处活分支（均在 `lib/algorithms/drizzle/healpix_drizzle/spherical_overlap.cpp`）：`g.drop_area` 微小 drop 用切平面面积、nb=4 重叠 `<1e-3` 用 `planar_polygon_area_n`（否则球面 `spherical_polygon_area_n`）、三角形扇重叠同策略（与 g.drop_area 表示一致，避免 weight 偏差） | 同文件的三处活分支与其注释；θ=1e-3 时切平面偏差 ≈ −θ_max²/2 = −5.0e-7（恒负、单向下偏；θ_max 按 drop 最远顶点角距约定；旧注 "<4e-8" 缺符号且偏小 12.5 倍，撤换），球面 double 相消噪声 ~1e-4~5e-5 |
 | DISP-DRZ-006 | TileLeafAccumulatorT release 仅 3 字段（`lib/algorithms/drizzle/healpix_drizzle/drizzle_engine.h` 注释） | 实际 4 字段（sumVarNum 为正式产品） | 同一头文件的注释 vs 结构体定义 |
-| DISP-DRZ-007 | SCI §13 方差锚指向 `drizzle_engine.cpp`（该锚所在段已随引擎重构消失） | 锚漂移：现行方差锚在 `astro_sphere_sink.cpp` + aio_hips_writer finalize_tile | `docs/science/drizzle/DRIZZLE.md` vs `lib/algorithms/drizzle/healpix_drizzle/drizzle_engine.cpp` 的锚注释 |
+| DISP-DRZ-007 | SCI[S-1]「判据与误差」一节 方差锚指向 `drizzle_engine.cpp`（该锚所在段已随引擎重构消失） | 锚漂移：现行方差锚在 `astro_sphere_sink.cpp` + aio_hips_writer finalize_tile | `docs/science/drizzle/DRIZZLE.md` vs `lib/algorithms/drizzle/healpix_drizzle/drizzle_engine.cpp` 的锚注释 |
 | DISP-DRZ-008 | poly_clip.h 自述生产重叠面积用途 | PolyClip（平面 S-H/Shoelace）生产 tiled 路径零调用 | poly_clip.h vs `drizzle_engine.cpp` 全文 |
-| DISP-DRZ-009 | SCI-DRZ-001 §5 canonical 核 `w_jp=a_jp/A_drop,j` + 面亮度归一分母 `N_p=Σ_j w_jp·A_pixel,j`（`S_p=F_p/N_p=Σ_j B_j a_jp/Σ_j a_jp`） | **约束（覆盖正向与反向两条路径）**。**正向** `processPixelSharedTiled`：`weight = overlap_area / drop_area`（drop 面积归一，F&H 2002 §2 式(2)–(5)（原引 §7.2 撤换）/ drizzlepac `dover/=jaco`），归一分母 `acc.sumNorm`。**反向** `reverse_drizzle.cpp`：`S_p = Σ_j B_j·a_jp / Σ_j a_jp`（面亮度加权平均，分子分母各自累加后相除）。**禁用**把正向分母换成覆盖面积 `D_p=Σ_j a_jp`：`pixfrac<1` 时偏 `1/pixfrac²`（pf=0.8→+56.25%，与 `1/pf²−1` 逐位吻合）；反向路径若改用非面亮度归一，输出随**源 nside** 变化（实测 nside=16/64/256 偏 −99.98%/−99.70%/−95.23%，`S_p` 与 `B0·A_pixel/A_leaf` 逐位吻合）——两者均为负例判据 | docs/science/drizzle/DRIZZLE.md §5/§7 vs drizzle_engine.cpp `processPixelSharedTiled`（`weight=overlap_area/drop_area` + `sumNorm`）/ `astro_sphere_sink.cpp`（`k=sumArea/sumNorm`）/ reverse_drizzle.cpp（`weight` 累加 + 输出归一）/ `spherical_overlap.cpp` 的 `polygon_area_consistent`；契约 `FZ-FORMULA-DRIZZLE-SB`（docs/science/unified/DATA_SEMANTICS.md §3.4 面亮度单位推导；输出面见 `docs/detail/registry/acsd.phase1.drizzle.md`）；回归门 `p1drz_disp009` |
+| DISP-DRZ-009 | SCI-DRZ-001 [S-1]「判据与误差」一节 canonical 核 `w_jp=a_jp/A_drop,j` + 面亮度归一分母 `N_p=Σ_j w_jp·A_pixel,j`（`S_p=F_p/N_p=Σ_j B_j a_jp/Σ_j a_jp`） | **约束（覆盖正向与反向两条路径）**。**正向** `processPixelSharedTiled`：`weight = overlap_area / drop_area`（drop 面积归一，F&H 2002 §2 式(2)–(5)（原引 §7.2 撤换）/ drizzlepac `dover/=jaco`），归一分母 `acc.sumNorm`。**反向** `reverse_drizzle.cpp`：`S_p = Σ_j B_j·a_jp / Σ_j a_jp`（面亮度加权平均，分子分母各自累加后相除）。**禁用**把正向分母换成覆盖面积 `D_p=Σ_j a_jp`：`pixfrac<1` 时偏 `1/pixfrac²`（pf=0.8→+56.25%，与 `1/pf²−1` 逐位吻合）；反向路径若改用非面亮度归一，输出随**源 nside** 变化（实测 nside=16/64/256 偏 −99.98%/−99.70%/−95.23%，`S_p` 与 `B0·A_pixel/A_leaf` 逐位吻合）——两者均为负例判据 | docs/science/drizzle/DRIZZLE.md [S-1]「判据与误差」一节 vs drizzle_engine.cpp `processPixelSharedTiled`（`weight=overlap_area/drop_area` + `sumNorm`）/ `astro_sphere_sink.cpp`（`k=sumArea/sumNorm`）/ reverse_drizzle.cpp（`weight` 累加 + 输出归一）/ `spherical_overlap.cpp` 的 `polygon_area_consistent`；契约 `FZ-FORMULA-DRIZZLE-SB`（docs/science/unified/DATA_SEMANTICS.md [U-1]「面亮度单位的推导」一节 面亮度单位推导；输出面见 `docs/detail/registry/acsd.phase1.drizzle.md`）；回归门 `p1drz_disp009` |
 
 无差异项（核对通过）: F/D/sumVarNum 结构、HP_CIRCUMRADIUS
 _FACTOR=1.25、三层缓冲语义、NESTED 统一、按线程序合并确定性。
@@ -438,18 +438,25 @@ B0=1000、nside=512、W=H=16）：注入态（分母取 A_drop）逐 leaf `S_p/B
 
 ## 11 关联
 
-- SCI: SCI-DRZ-001（docs/science/drizzle/DRIZZLE.md，FROZEN；§5 公式、§7
-  不变量、§15 Acceptance；集合 SCI-DRZ-014 方差传播 / 015 支撑 /
+- SCI: SCI-DRZ-001（docs/science/drizzle/DRIZZLE.md，FROZEN；[S-1]「判据与误差」一节 公式、[S-1]「参考文献与参考代码」一节
+  不变量、[S-1]「判据与误差」一节验收；集合 SCI-DRZ-014 方差传播 / 015 支撑 /
   016 协方差）。
 - DATA: DATA-P1-DRZ（docs/detail/registry/acsd.phase1.drizzle.md）；上游
-  DATA-P1-CAL（§9）；编排现状引用 DATA-P1-STACK（descriptor）。
+  DATA-P1-CAL（[S-5]「输入输出端口」一节）；编排现状引用 DATA-P1-STACK（descriptor）。
 - API: API-DRZ-001（docs/engineering/api/PUBLIC_API.md）；API-P1-007
   （docs/engineering/api/PUBLIC_API.md，区间 API-P1-001..010 编排合同）。
 - MOD/SRC: MOD-acsd-phase1-drizzle（lib/algorithms/drizzle/module.yaml，
   CONTRACT_READY；lib/algorithms/drizzle/README.md 实现事实）；SRC-DRZ-001
   （lib/algorithms/drizzle/healpix_drizzle/hp_drizzle_api.h 等签名源）。
-- TEST: TEST-DRZ-DESIGN-001（本文档 §9）；可执行 TEST-P1-DRZ-001
+- TEST: TEST-DRZ-DESIGN-001（本文档[S-1]「公式与推导」一节）；可执行 TEST-P1-DRZ-001
   由 P1-DRZ-TEST 建立。
+
+> 本文引用上游正本（论文式编号，正文引用处均已改为自然语言节名，不再使用跨文档 §N 跳转）：
+> - [D-1] docs/ACSD_DESIGN.md（最高设计）。
+> - [S-1] docs/science/drizzle/DRIZZLE.md（守恒映射科学正本 SCI-DRZ-001）。
+> - [S-4] docs/DERIVATIONS-P3.md（相关科学正本）。
+> - [S-5] docs/detail/registry/acsd.phase1.drizzle.md（相关科学正本）。
+> - [U-1] docs/science/unified/DATA_SEMANTICS.md（数据语义正本）。
 
 ## 参考文献与参考代码库（含许可证）
 

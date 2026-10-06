@@ -1,18 +1,18 @@
 # Phase3 HiPS Resample 实现级算法合同（ALG-P3-RSMP-IMPL-001）
 
-> 上游：ACSD_DESIGN.md §6.2（export 流程）
+> 上游：ACSD_DESIGN.md [D-1]「流程」一节（export 流程）
 
 > 上游 SCI: SCI-P3-001（docs/science/PHASE3_HIPS_TO_FITS.md，
 > FROZEN，零改动；矩阵行 science_id 引用的
 > SCI-P3-RES-001 为 MISSING 占位，本域全部科学内容映射声明为
-> SCI-P3-001，见 §5）。承接既有 ALG-P3-003 本域子面（G3/G4 施工规格，
+> SCI-P3-001（映射声明见本节）。承接既有 ALG-P3-003 本域子面（G3/G4 施工规格，
 > docs/science/algorithms/PHASE3_RESAMPLE.md，公式零改动）。
 > 本文档为 HiPS 重采样域**实现级合同**：逐符号源码行号锚定 + 冻结公式 +
 > 错误语义 + 并发/确定性合同 + TEST 设计冻结 + 实测偏差登记。
 > 生产源: lib/algorithms/resample/p3_resample.h（202 行，唯一权威签名头）+
 > lib/algorithms/resample/p3_resample.cpp（586 行）。
 > 本层含 `P3SampleRejection` 与 `p3_sample_bilinear_nanmask_ex`（NaN 样本掩膜
-> 与对齐口径），逐项登记见 §4/§6.5/§6.6。
+> 与对齐口径），逐项登记见 [S-1]「参数与常数」一节。
 > 代码中的数学核心唯一 = healpix 权威函数（见 §6）。
 
 ## 1 目的与非目标
@@ -23,13 +23,13 @@
   NEAREST/BILINEAR 逐输出像素采样（含跨 tile 邻域读取）、tile 缓存——
   作为 P3-RSMP-IMPL/TEST/INT 的合同基线。
 - 非目标: 不把 variance/weight/ivar 作为 **signal 的输入模式**（`p3_resample_check_mode`
-  拒：`weight`/`flux-per-pixel` ⇒ `P3_RS_UNSUPPORTED`（SCI §9a-8）；`variance`/`ivar`
-  依 DATA-P3-UNC-001 §30.4-4 已**转 uncertainty 子产品消费面**
+  拒：`weight`/`flux-per-pixel` ⇒ `P3_RS_UNSUPPORTED`（SCI [S-1]「判据与误差」一节）；`variance`/`ivar`
+  依DATA-P3-UNC-001 [S-1]「判据与误差」一节已**转 uncertainty 子产品消费面**
   `p3_uncertainty_open/close/propagate`，故非「不实现」）；support 输入与
-  flux-per-pixel 面积换算仍不实现（SCI §9a-10/§9a-8）；不做 alpha channel/BLANK int tile
-  （SCI §9a-9 显式拒）；不改投影（G1/G2 属 ALG-P3-PROJ-IMPL-001）与 FITS 原子写
+  flux-per-pixel 面积换算仍不实现（SCI[S-1]「判据与误差」一节冻结项）；不做 alpha channel/BLANK int tile
+  （SCI [S-1]「判据与误差」一节 显式拒）；不改投影（G1/G2 属 ALG-P3-PROJ-IMPL-001）与 FITS 原子写
   （G5 属 writer 域）；不引入第三种采样核（nearest/bilinear 之外显式拒）。
-- 本层为合同冻结层：只登记，不修生产码；缺陷走 DISP 登记（§13），
+- 本层为合同冻结层：只登记，不修生产码；缺陷走DISP登记，
   由实现层与集成层整改。
 
 ## 2 身份与落位
@@ -41,12 +41,12 @@
 | dll_target | acsd_p3_resample.dll | 矩阵 CSV；entrypoint 实测未建（DISP-P3RSMP-005） |
 | owner | SA-P3-S26 | 矩阵 CSV |
 | 合同目录 | lib/algorithms/resample/（本域合同文件，无源码） | 生产源仍在 lib/phase3_session/ |
-| 依赖 | lib/algorithms/shared/healpix（leaf_to_tile_nest/tile_to_leaf_nest/nested_local_to_fits_index/ang2pix/pix2ang）、lib/algorithms/coverage/hips_properties.h 与同目录 hips_properties.cpp（properties 严格校验经 p3_sampler_open 间接消费） | §3 |
+| 依赖 | lib/algorithms/shared/healpix（leaf_to_tile_nest/tile_to_leaf_nest/nested_local_to_fits_index/ang2pix/pix2ang）、lib/algorithms/coverage/hips_properties.h 与同目录 hips_properties.cpp（properties 严格校验经 p3_sampler_open 间接消费） | [S-1]「公式与推导」一节 |
 | 下游 | P3-RSMP-IMPL（实现）、P3-RSMP-TEST（可执行测试）、P3-RSMP-INT（descriptor 对齐 acsd.p3.resample） | — |
 
 - 静态库落位: acsd_phase3_session（根 `CMakeLists.txt`，
   p3_resample.cpp 为五源文件之一）。
-- 会话编排消费: lib/phase3_session/p3_session.cpp（§8 逐点锚定）。
+- 会话编排消费: lib/phase3_session/p3_session.cpp（[S-1]「参数与常数」一节逐点锚定）。
 - descriptor 端口绑定（`lib/infrastructure/scheduler/src/module_adapters.cpp`）: 输入
   DATA-P3-WCS（必需）+ DATA-HIPS-001（必需），输出 DATA-P3-RES
   （可选产出）。
@@ -55,18 +55,17 @@
 
 ```text
 lib/algorithms/resample/p3_resample.h        202 行  唯一权威签名头（ALG-P3-003 施工面 11 个
-                                                     公共符号，§4；另有 P30 缓存观测面与
-                                                     DATA-P3-UNC-001 不确定度面符号，§4 表不重复列）
-lib/algorithms/resample/p3_resample.cpp     586 行  全部实现（§6 逐符号）
-lib/algorithms/resample/tests/p3rsmp/p3_nan_mask_test.cpp  437 行  样本级掩膜 Oracle+负例（§12）
-lib/phase3_session/p3_session.cpp      441 行  会话编排消费（§8）
+                                                     公共符号，[S-1]「参数与常数」一节；另有 P30 缓存观测面与
+                                                     DATA-P3-UNC-001 不确定度面符号，[S-1]「参数与常数」一节 表不重复列）
+lib/algorithms/resample/p3_resample.cpp     586 行  全部实现（[S-1]「与上下游的关系」一节 逐符号）
+lib/algorithms/resample/tests/p3rsmp/p3_nan_mask_test.cpp  437 行  样本级掩膜Oracle+负例（[S-1]「判据与误差」一节）
+lib/phase3_session/p3_session.cpp      441 行  会话编排消费（[S-1]「与上下游的关系」一节）
 lib/algorithms/shared/healpix/healpix_core.{h,cpp}         权威球面函数（第二套核心恒不接受）
 （探针 / 独立参考实现 / 并行域 / coverage 语义四组判据的载体文件**均已不在本仓**；
-  判据本体见 §12，引用时只引判据，不引载体路径。）
+  判据本体见 [S-1]「判据与误差」一节，引用时只引判据，不引载体路径。）
 ```
 
-- p3_resample.cpp 内部结构（按符号名定位，行号仅作导航）: `kTileWidth=512`（编译期常量，SCI
-  §9a-1 tile 宽冻结一致）；`kReaderBuf=512*512`（FITS 读缓冲）；
+- p3_resample.cpp 内部结构（按符号名定位，行号仅作导航）: `kTileWidth=512`（编译期常量，SCI [S-1]「判据与误差」一节 tile 宽冻结一致）；`kReaderBuf=512*512`（FITS 读缓冲）；
   `TileCache`（FIFO 最旧逐出有界缓存，§7）；匿名命名空间
   辅助；`read_leaf`；`p3_order_select`；
   `p3_resample_check_mode`；`P3SamplerImpl`（open/open_ex/
@@ -118,8 +117,8 @@ lib/algorithms/resample/p3_resample.h 全部公共符号（ALG-P3-003 施工面 
 - 本表锚注记: 表内**未改动符号**的锚沿用合同冻结时的版本（与本表同批冻结，未随
   P30/DATA-P3-UNC-001 两轮加符号而重排）；本次改动的两个符号按现行源重新锚定。
 - 头注合同（`lib/algorithms/resample/p3_resample.h` 文件头）: 覆盖跨 tile 采样、coverage/mask 二值、NaN 语义
-  （SCI §4）、单位固定 surface brightness、未支持输入模式显式拒
-  UNSUPPORTED。与 SCI §7 非目标清单一致。
+  （SCI [S-1]「参数与常数」一节）、单位固定 surface brightness、未支持输入模式显式拒
+  UNSUPPORTED。与 SCI [S-1]「参考文献与参考代码」一节 非目标清单一致。
 
 ## 5 SCI/ALG 映射声明
 
@@ -130,12 +129,12 @@ lib/algorithms/resample/p3_resample.h 全部公共符号（ALG-P3-003 施工面 
   `SCI-P3-RES-001 ⇒ SCI-P3-001`；矩阵行 id 占位保持原样（
   占位词汇与权威文档分离），由 SCI 层统一改名，本域不改 docs/science/。
 - ALG 层: docs/science/algorithms/PHASE3_RESAMPLE.md（ALG-P3-003 施工规格）
-  §2 的 **G3（order 选择）与 G4（leaf 采样）** 为本域子面；本合同承接
-  其全部公式（零改动，§6 给出等价性核对）。G1/G2（投影）属
+  [S-1]「公式与推导」一节的**G3（order 选择）与 G4（leaf 采样）** 为本域子面；本合同承接
+  其全部公式（零改动，等价性核对见[S-1]「公式与推导」一节）。G1/G2（投影）属
   ALG-P3-PROJ-IMPL-001，G5（FITS 写）属 writer 域，不在本合同。
 - DATA 层: 输出张量语义 = DATA-P3-RES（docs/detail/registry/acsd.phase3.resample2.md
-  §3 输入输出端口，本任务新建）；输入 properties/tile 语义 = DATA-HIPS-001/
-  DATA-TILE-001（§3 冻结）。
+  [S-5]「输入输出端口」一节，本任务新建）；输入 properties/tile 语义 = DATA-HIPS-001/
+  DATA-TILE-001（[S-5]「输入输出端口」一节冻结）。
 - API 层: 公共消费合同 = API-P3-RSMP-001（docs/engineering/api/PUBLIC_API.md
   本任务新节），登记上面 10 符号。
 
@@ -153,7 +152,7 @@ pixel_resolution_arcsec(nside=512 << k) / 3600 ≤ scale_deg_per_px
 （lib/algorithms/shared/healpix/healpix_core.cpp 权威实现）= `sqrt(π/3)/nside` rad。
 **该式是精确的等面积等效线尺度，不是近似**：HEALPix 在同一 nside 下**所有单元面积严格
 相等** = `4π/(12·nside²)`（Górski et al. 2005, ApJ 622, 759 §4；本仓实测
-实验/healpix-polar/（叶面积恒等式正本 = docs/DERIVATIONS-P3.md §D1）：nside=512/1024 × 9 档纬度
+实验/healpix-polar/（叶面积恒等式正本 = `docs/DERIVATIONS-P3.md` [S-7]「叶面积恒等式」一节）：nside=512/1024 × 9 档纬度
 面积相对偏差恒为 0.0；同一实验的等经纬网格阴性对照在 dec=89.9° 偏 −20.5%）。
 **适用域**：该式是**面平均**判据；HEALPix 单元的局部采样步长（邻元中心角距）随纬度与
 方向变化——实测 nside=512 共边邻元步长 ∈ [0.63,0.71]×该尺度、对角邻元 ∈ [1.95,2.94]×
@@ -163,17 +162,17 @@ pixel_resolution_arcsec(nside=512 << k) / 3600 ≤ scale_deg_per_px
 **数学等价**（nside = W·2^k，W=512）：取等价形式
 `k ≥ log2( sqrt(π/3)/(W·s_out_rad) )`，即同一 ceil 表达式。无更细层时
 （扫描完未命中）`*out_order = max_order`（欠采样降级为 survey 原生
-分辨率输出，SCI §9a-5 允许并记录）。守卫: `!out_order || max_order<0
+分辨率输出，SCI [S-1]「判据与误差」一节 允许并记录）。守卫: `!out_order || max_order<0
 || max_order>20 || !(scale_deg_per_px>0)` → `P3_RS_PARAM`（同文件）；
-kMaxOrder=20 来自 `lib/algorithms/coverage/hips_properties.h`（ARCH-P3 §3）。
+kMaxOrder=20 来自 `lib/algorithms/coverage/hips_properties.h`（ARCH-P3 [S-1]「公式与推导」一节）。
 会话消费（`lib/phase3_session/p3_session.cpp`）: `max_order = 输入实际 order`
 （open_ex 返回值，clamp ≤20）——**禁仅写 metadata 的 order**。
 
 ### 6.2 输入模式守卫——`p3_resample_check_mode`（`lib/algorithms/resample/p3_resample.cpp`）
 
 `input_mode == "surface_brightness"` 唯一返回 `P3_RS_OK`；`nullptr`/空串 ⇒ `P3_RS_PARAM`；
-`weight`/`flux-per-pixel` ⇒ `P3_RS_UNSUPPORTED`（SCI §9a-8）；其余（含 `flux`/`variance`/`ivar`）
-⇒ `P3_RS_PARAM`——**「未支持模式」≠「显式拒」**：`variance`/`ivar` 依 DATA-P3-UNC-001 §30.4-4 已转 uncertainty 子产品消费面（§4 符号表 `p3_uncertainty_*`；同文件逐字注记）。
+`weight`/`flux-per-pixel` ⇒ `P3_RS_UNSUPPORTED`（SCI [S-1]「判据与误差」一节）；其余（含 `flux`/`variance`/`ivar`）
+⇒ `P3_RS_PARAM`——**「未支持模式」≠「显式拒」**：`variance`/`ivar` 依DATA-P3-UNC-001 [S-1]「判据与误差」一节已转 uncertainty 子产品消费面（[S-1]「参数与常数」一节 符号表 `p3_uncertainty_*`；同文件逐字注记）。
 实测偏差: 会话编排层未接线（DISP-P3RSMP-003）。
 
 ### 6.3 sampler 生命周期
@@ -214,14 +213,14 @@ fits_index = nested_local_to_fits_index(local, 9, 512)   # = (511-x)*512 + y（D
  （HiPS 目录布局），FITS float tile 读入 `kReaderBuf`，插入缓存
  （可能触发 FIFO 逐出），再取像素（同文件路径）。
 - tile 文件不存在/读失败: 返回 false（= 无覆盖路径，**非错误抛出**），
-  语义见 §6.6；SCI §9a-9 要求 provenance 记 missing tile——聚合上报
+  语义见 §6.6；SCI [S-1]「判据与误差」一节 要求 provenance 记 missing tile——聚合上报
   未接线，DISP-P3RSMP-004。
 
 ### 6.5 G4 采样核（`lib/algorithms/resample/p3_resample.cpp`）
 
 - `p3_sample_nearest`（`p3_resample.cpp`）: 输出像素中心 → `pix2ang` →
   `ang2pix(nside_leaf)` → 精确 cell（tile=leaf>>18, local 如 §6.4）。
-  无插值误差（SCI §9a-12）。tile 像素 NaN → `*value=NaN,
+  无插值误差（SCI [S-1]「判据与误差」一节）。tile 像素 NaN → `*value=NaN,
   *coverage=1`；tile 缺失 → `*coverage=0, *value=NaN`。
 - `p3_sample_bilinear`（薄封装 → `p3_sample_bilinear_nanmask_ex`，
   均在 `p3_resample.cpp`）: ①输出像素中心 `pix2ang` → leaf 3×3 邻域
@@ -230,7 +229,7 @@ fits_index = nested_local_to_fits_index(local, 9, 512)   # = (511-x)*512 + y（D
   几何权重 `wg = {(1-u)(1-v), u(1-v), (1-u)v, uv}`（FP64，Σwg=1±k·ULP）；
   四角 tile 任一缺失 → `*coverage=0` 且 `*value=NaN`（无覆盖，非错误）
   ④**样本级掩膜 + 重归一**（rule_id `NAN-SAMPLE-MASK-COVERAGE-NAN`，权威 =
-  DATA-002 §2a `invalid_handling`；本文件 §11 DISP 台账与 §13 合同外实现同步）:
+  DATA-002 [S-1]「判据与误差」一节`invalid_handling`；本文件 [S-1]「判据与误差」一节DISP 台账与 [S-1]「判据与误差」一节合同外实现同步）:
   合格 = `isfinite(值)`（NaN 与 ±Inf 同类）；被剔除样本**从分子、分母、方差三项
   一并剔除**，剩余合格邻域重归一 `c_k = wg_k / Σ(合格 wg_j)`（FP64，固定 k 序 ⇒
   确定性）；仅 `n_eligible==0` 或有效权重和 `W_p==0` 时 `*value=NaN`（覆盖级 NaN，
@@ -238,10 +237,10 @@ fits_index = nested_local_to_fits_index(local, 9, 512)   # = (511-x)*512 + y（D
   C —— 4 个 tile 均可读 ⇒ C=1）⑥强制计数: `P3SampleRejection` 暴露
   `n_rejected_nonfinite`（= 值非有限 + 方差非有限 + 权重非正，互斥可加；信号核
   只消费 signal 平面 ⇒ variance 项恒 0；权重由几何唯一确定 ⇒ 权重非正项恒 0）。
-  六种坐标退化分支对应 SCI §9a-6 的 RA wrap/球面角差处理；退化象限由最近中心
+  六种坐标退化分支对应 SCI [S-1]「判据与误差」一节 的 RA wrap/球面角差处理；退化象限由最近中心
   填充（见 DISP-P3RSMP-001 偏差登记）。
 - **weights[4] 语义（本次对齐）**: 暴露**生效（重归一）权重** `c_k`，被剔除样本恰为
-  `0.0`（零合格样本时四权重全 0）。依据 DATA-002 §2a 规则 1「不合格样本从分子、
+  `0.0`（零合格样本时四权重全 0）。依据 DATA-002 [S-1]「判据与误差」一节规则一「不合格样本从分子、
   分母、**方差**三项一并剔除并重新归一」⇒ 方差传播 `Σ c_k²u_k` 必须消费该权重，
   权重取值 = 重归一生效权重 `c_k`（沿用未重归一几何权重即系统性偏差；回归锚 `p3_nan_mask_test.cpp` T6
   断言两者相对差 >5%）。全部样本合格时 `c_k = wg_k/(1±k·ULP)`，仍满足 Σc_k=1±k·ULP。
@@ -249,7 +248,7 @@ fits_index = nested_local_to_fits_index(local, 9, 512)   # = (511-x)*512 + y（D
   实现为**切平面四象限最近中心双线性**——同属一阶插值族、Σw=1
   不变量一致，离散化方案不同（DISP-P3RSMP-001 如实登记，不修码）。
 
-### 6.6 值语义（ALG-P3-003 §2 G4 / §4 冻结，实现一致）
+### 6.6 值语义（ALG-P3-003 [S-1]「公式与推导」一节G4与参数冻结 冻结，实现一致）
 
 | 输入状态 | *value | *coverage | n_rejected_nonfinite |
 |---|---|---|---|
@@ -260,13 +259,13 @@ fits_index = nested_local_to_fits_index(local, 9, 512)   # = (511-x)*512 + y（D
 | 采样器未打开（impl=nullptr） | NaN | 0 | 0 |
 
 - coverage 为**二值语义**（0/1，float 承载）；C=1 ⇔ 采样足迹内**存在 tile 像素**
-  （存在判定，ALG-P3-003 §2 G4 / §4：值非有限**不改** C；4 个 tile 均可读则 C=1；
+  （存在判定，ALG-P3-003 [S-1]「公式与推导」一节G4与参数冻结：值非有限**不改** C；4 个 tile 均可读则 C=1；
   任一角 tile 缺失 ⇒ C=0）。mask 输出由会话层从 coverage 生成
   （coverage_output 仅 `mask` 合法，`lib/phase3_session/p3_session.cpp`）。
 - **零填口径**: 零合格样本取 NaN（覆盖级 NaN）；`0`/`±Inf`/哨兵属另一形态；
   被剔除样本的权重必须**不进分母**（禁留在分母 ⇒ 系统性偏低），也**不进方差项**。
 - 计数语义: `n_rejected_nonfinite` 按原因分类（值非有限 / 方差非有限 / 权重非正，
-  互斥可加）；计数 0 与「字段缺失」必须可区分（DATA-002 §2a 规则 3）。信号核的
+  互斥可加）；计数 0 与「字段缺失」必须可区分（DATA-002 [S-1]「判据与误差」一节规则三）。信号核的
   方差/权重两类恒 0（不消费方差面；权重由几何唯一确定）。
 
 ## 7 TileCache 并发/确定性合同（`SharedTileCache`，`lib/algorithms/resample/p3_resample.cpp`）
@@ -336,17 +335,17 @@ fits_index = nested_local_to_fits_index(local, 9, 512)   # = (511-x)*512 + y（D
 
 > 表内 DISP-P3RSMP-001..005 为本合同首版登记的**未修码**偏差；006/007 为本次
 > NAN-SAMPLE-MASK 对齐任务的登记（其中「信号核 NaN 处置」一项已按冻结口径落地，
-> 见 §6.5/§6.6，不再单列 DISP）。
+> 见 [S-1]「与上下游的关系」一节，不再单列 DISP）。
 
 | ID | 偏差 | 实测依据 | SCI/ALG 依据 | 整改归属 |
 |---|---|---|---|---|
-| DISP-P3RSMP-001 | bilinear 为切平面**四象限最近中心**双线性；G4 施工规格写"面积重叠分数（投影线性化）"。同族一阶插值、Σw=1 不变量一致，离散化方案不同 | `lib/algorithms/resample/p3_resample.cpp` | ALG-P3-003 §2 G4 | P3-RSMP-IMPL 决策: 升级实现或修订 ALG 表述（须保持 SCI §9a-7 不变量） |
-| DISP-P3RSMP-002 | tile cache 逐出为 FIFO；ALG §3 伪代码写 "LRU" | `lib/algorithms/resample/p3_resample.cpp`（无访问序更新） | ALG-P3-003 §3 | P3-RSMP-IMPL（实现升级 LRU 或 ALG 修订为 FIFO 表述） |
-| DISP-P3RSMP-003 | `p3_resample_check_mode` 会话编排层无调用点（flux/variance 输入拒未经会话守卫；能力在内核、探针消费） | grep 全仓：仅探针载体（已不在本仓） | SCI §9a-8/10 | P3-RSMP-INT 接线（会话请求守卫增加 input_mode 检查） |
-| DISP-P3RSMP-004 | provenance.missing_tiles 恒 nullptr（缺 tile 聚合上报未接线；SCI §9a-9 要求记 missing） | `lib/phase3_session/p3_session.cpp` | SCI §9a-9 | P3-RSMP-IMPL/INT |
+| DISP-P3RSMP-001 | bilinear 为切平面**四象限最近中心**双线性；G4 施工规格写"面积重叠分数（投影线性化）"。同族一阶插值、Σw=1 不变量一致，离散化方案不同 | `lib/algorithms/resample/p3_resample.cpp` | ALG-P3-003 [S-1]「物理模型」一节 G4 | P3-RSMP-IMPL 决策: 升级实现或修订 ALG 表述（须保持 SCI [S-1]「判据与误差」一节不变量） |
+| DISP-P3RSMP-002 | tile cache 逐出为 FIFO；ALG [S-1]「公式与推导」一节 伪代码写 "LRU" | `lib/algorithms/resample/p3_resample.cpp`（无访问序更新） | ALG-P3-003 [S-1]「公式与推导」一节 | P3-RSMP-IMPL（实现升级 LRU 或 ALG 修订为 FIFO 表述） |
+| DISP-P3RSMP-003 | `p3_resample_check_mode` 会话编排层无调用点（flux/variance 输入拒未经会话守卫；能力在内核、探针消费） | grep 全仓：仅探针载体（已不在本仓） | SCI[S-1]「判据与误差」一节 | P3-RSMP-INT 接线（会话请求守卫增加 input_mode 检查） |
+| DISP-P3RSMP-004 | provenance.missing_tiles 恒 nullptr（缺 tile 聚合上报未接线；SCI[S-1]「判据与误差」一节 要求记 missing） | `lib/phase3_session/p3_session.cpp` | SCI[S-1]「判据与误差」一节 | P3-RSMP-IMPL/INT |
 | DISP-P3RSMP-005 | acsd_p3_resample.dll 未建（entrypoint 缺失） | 全仓无该 target | 矩阵 dll_target | P3-RSMP-IMPL |
-| DISP-P3RSMP-006 | **强制计数的产品承载面未冻结**：DATA-002 §2a 冻结了计数**字段名** `n_rejected_nonfinite`（按原因分类、per-pixel、mandatory），但**未**冻结 Phase3 产品里的承载面（`phase3_planar_fits_v1` 最小平面集 = signal/support/mask，plane_id 枚举 `{signal,support,variance,ivar,mask,sparse_snr}` 无计数字段；`p3_resampled.json` 的 `planes` 列表亦无）。内核面已按冻结字段名暴露（`P3SampleRejection`），**产品承载面不自行发明** | `eng/contracts/data/phase_product_exchange.schema.json`（无 `invalid_handling`/`count_field` 键，与 DATA-002 §2a「机器形态」声明不一致）；`eng/contracts/schemas/unified/rejection.schema.json` 仅有可选 `rejected_sample_count`；DATA-P2-REJ-001 登记（`docs/engineering/data/ARTIFACTS.md`，Phase2 诊断平面 `nrej/nused` 通道，语义为 P2 排异原因计数，非本规则） | DATA-002 §2a 规则 3；ALG-P3-003 §2 G4 | 待合同域登记：候选 =（a）逐像素诊断平面（沿用 §30.2 诊断平面通道，不入 science planes 枚举）；（b）`p3_resampled.json` 聚合键（drizzle 先例 `lib/algorithms/drizzle/src/module_entry.cpp` 的 `"n_rejected_nonfinite"`）；（c）provenance 计数。三者均需合同域登记后才可落产品 |
-| DISP-P3RSMP-007 | **C（coverage）语义的唯一正本 = `docs/detail/registry/acsd.phase3.resample2.md`**：Phase3 侧执行口径 = ALG-P3-003 §2 G4 / §4 与 §29.4「C 只判足迹内有无 tile 像素，值 NaN 不改 C」（零合格样本 ⇒ `S=NaN` ∧ `C=1`）；§29.2「C=1 ⇔ 足迹内存在**有限** tile 像素」与 DATA-002 §2a 规则 2「零合格样本 ⇒ signal=NaN ∧ **support≤0**」按 §29 正本订正 | 本层零合格样本输出 `S=NaN` 且 `C=1`（四角上游 support≤0），与 §29.4 一致 | ALG-P3-003 §2 G4/§4；DATA-P3-RES（`docs/detail/registry/acsd.phase3.resample2.md`）；DATA-002 §2a 规则 2 | 合同域登记面：§29.2 与 §29.4 的表述按 §29 正本收敛（订正动作落合同域） |
+| DISP-P3RSMP-006 | **强制计数的产品承载面未冻结**：DATA-002 [S-1]「判据与误差」一节冻结了计数**字段名** `n_rejected_nonfinite`（按原因分类、per-pixel、mandatory），但**未**冻结 Phase3 产品里的承载面（`phase3_planar_fits_v1` 最小平面集 = signal/support/mask，plane_id 枚举 `{signal,support,variance,ivar,mask,sparse_snr}` 无计数字段；`p3_resampled.json` 的 `planes` 列表亦无）。内核面已按冻结字段名暴露（`P3SampleRejection`），**产品承载面不自行发明** | `eng/contracts/data/phase_product_exchange.schema.json`（无 `invalid_handling`/`count_field` 键，与DATA-002 [S-1]「判据与误差」一节「机器形态」声明不一致）；`eng/contracts/schemas/unified/rejection.schema.json` 仅有可选 `rejected_sample_count`；DATA-P2-REJ-001 登记（`docs/engineering/data/ARTIFACTS.md`，Phase2 诊断平面 `nrej/nused` 通道，语义为 P2 排异原因计数，非本规则） | DATA-002 [S-6]「判据与误差」一节规则三；ALG-P3-003 [S-6]「输入输出端口」一节 G4 | 待合同域登记：候选 =（a）逐像素诊断平面（沿用 [S-6]「输入输出端口」一节 诊断平面通道，不入 science planes 枚举）；（b）`p3_resampled.json` 聚合键（drizzle 先例 `lib/algorithms/drizzle/src/module_entry.cpp` 的 `"n_rejected_nonfinite"`）；（c）provenance 计数。三者均需合同域登记后才可落产品 |
+| DISP-P3RSMP-007 | **C（coverage）语义的唯一正本 = `docs/detail/registry/acsd.phase3.resample2.md`**：Phase3 侧执行口径 = ALG-P3-003 [S-5]「输入输出端口」一节 G4 / [S-5]「输入输出端口」一节 与 [S-5]「输入输出端口」一节「C 只判足迹内有无 tile 像素，值 NaN 不改 C」（零合格样本 ⇒ `S=NaN` ∧ `C=1`）；[S-5]「输入输出端口」一节「C=1 ⇔ 足迹内存在**有限** tile 像素」与 DATA-002 [S-1]「判据与误差」一节规则二「零合格样本 ⇒ signal=NaN ∧ **support≤0**」按 [S-1]「判据与误差」一节正本订正 | 本层零合格样本输出 `S=NaN` 且 `C=1`（四角上游 support≤0），与 [S-1]「判据与误差」一节一致 | ALG-P3-003 [S-1]「物理模型」一节 G4/[S-1]「参数与常数」一节；DATA-P3-RES（`docs/detail/registry/acsd.phase3.resample2.md`）；DATA-002 [S-5]「输入输出端口」一节 规则 2 | 合同域登记面：[S-5]「输入输出端口」一节 与 [S-5]「输入输出端口」一节 的表述按 [S-5]「输入输出端口」一节 正本收敛（订正动作落合同域） |
 
 ## 12 TEST-P3-RSMP-DESIGN-001 设计冻结（登记面 VERIFIED）
 
@@ -354,7 +353,7 @@ fits_index = nested_local_to_fits_index(local, 9, 512)   # = (511-x)*512 + y（D
   TEST-P3-RES-001 状态 **DORMANT**。本节冻结**设计**（登记面
   TEST-P3-RSMP-DESIGN-001，VERIFIED），不冒认可执行覆盖。
 - 现有证据（引用不冒认，均测试独立参考实现或探针，非生产自证；载体文件均已不在本仓，
-  判据本体见 §12）:
+  判据本体见[S-1]「判据与误差」一节）:
   - 探针六模式: order 选择/
     mode 守卫/open/nearest/bilinear/pix2ang——pix2ang 用 nside=4 首子
     像素中心技巧。
@@ -373,8 +372,8 @@ fits_index = nested_local_to_fits_index(local, 9, 512)   # = (511-x)*512 + y（D
     正例/负例判据: 同一用例对「回退 any_nan→NaN」变体必须判红、对现行实现判绿；
     判红/判绿证据与日志正本 = 实验/engineering-evidence/。
 - P3-RSMP-TEST 设计要求（合同）: ①order 选择等价性（对拍
-  pixel_resolution_arcsec 公式，§6.1）②seam 连续性（SYN-007 预冻结
-  容差）③NaN/coverage 值语义全表（§6.6 五行，含样本级掩膜与覆盖级 NaN）
+  pixel_resolution_arcsec 公式，[S-1]「与上下游的关系」一节）②seam 连续性（SYN-007 预冻结
+  容差）③NaN/coverage 值语义全表（[S-1]「与上下游的关系」一节 五行，含样本级掩膜与覆盖级 NaN）
   ④缺 tile → C=0 ⑤nearest 精确 cell ⑥bilinear Σw=1 与背面跳过
   ⑦max_tiles 逐出行为（FIFO）⑧open 守卫（非 512 tile/frame≠ICRS/order 越界）
   ⑨样本级掩膜 + 重归一 + 强制计数 + 方差重归一权重（本次由
@@ -391,23 +390,32 @@ fits_index = nested_local_to_fits_index(local, 9, 512)   # = (511-x)*512 + y（D
   （缺省必须为 `ADU/sr`，见 §6.3）；仅写 metadata 的
   order；hardware_concurrency 决定线程数；静默默认 open；**静默剔除**
   （¬isfinite 样本必须计数暴露）；**零填替代**（零合格样本必须 NaN）；
-  **用未重归一的几何权重传播方差**（DATA-002 §2a 规则 1）。
-- DISP 台账: §11 表七项（DISP-P3RSMP-001..007）。006 = 强制计数产品承载面未冻结
+  **用未重归一的几何权重传播方差**（DATA-002 [S-1]「判据与误差」一节规则一）。
+- DISP 台账: [S-1]「判据与误差」一节表七项（DISP-P3RSMP-001..007）。006 = 强制计数产品承载面未冻结
   → 登记面 = 合同域；007 = C 语义以 `docs/detail/registry/acsd.phase3.resample2.md` 为唯一正本 → 订正动作
   登记面 = 合同域。
 
 ## 14 SCI 层零改动声明
 
 - 本任务对 docs/science/PHASE3_HIPS_TO_FITS.md 零改动（git status
-  验证）；全部科学公式/容差/拒绝清单以 SCI-P3-001 FROZEN V5 为准。
+  验证）；全部科学公式/容差/拒绝清单以 SCI-P3-001 [S-1]冻结为准。
 - ALG 层: docs/science/algorithms/PHASE3_RESAMPLE.md 仅做表述级修订
-  （tile cache 逐出表述、实现锚补记、§3 伪代码与 G4/§4 口径对齐），G1-G5 公式零改动。
+  （tile cache 逐出表述、实现锚补记、[S-1]「公式与推导」一节伪代码与 G4/[S-1]「公式与推导」一节口径对齐），G1-G5 公式零改动。
+
+> 本文引用上游正本（论文式编号，正文引用处均已改为自然语言节名，不再使用跨文档 §N 跳转）：
+> - [D-1] docs/ACSD_DESIGN.md（最高设计）。
+> - [S-1] docs/science/projection/HIPS_TO_FITS.md（投影导出科学正本 SCI-P3-001）。
+> - [S-5] docs/detail/registry/acsd.phase3.resample2.md（相关科学正本）。
+> - [S-6] docs/engineering/data/ARTIFACTS.md（相关科学正本）。
+> - [A-1] docs/science/algorithms/export/PHASE3_RESAMPLE.md（重采样施工规格分册）。
+> - [U-1] docs/science/unified/DATA_SEMANTICS.md（数据语义正本）。
+> - [S-7] docs/DERIVATIONS-P3.md（推导补遗）。
 
 ## 参考文献与参考代码库（含许可证）
 
 - HiPS 层级/tile：IVOA HiPS 1.0（https://www.ivoa.net/documents/HiPS/）；Fernique et al. 2015, A&A 578, A114。
 - HEALPix 几何：Górski et al. 2005, ApJ 622, 759；astropy-healpix（BSD-3-Clause）。
-- 双线性采样核与 tile 寻址：Project-defined（本文件 §6.4/§6.5，SCI-P3 §5）。
+- 双线性采样核与 tile 寻址：Project-defined（本文件 §6.4/§6.5，SCI-P3 [S-1]「判据与误差」一节）。
 - FITS tile 读取：FITS Standard 3.0；CFITSIO（宽松许可）。
 
 

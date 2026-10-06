@@ -1,11 +1,11 @@
 # Phase2 Coverage Union Algorithms (ALG-COV-001)
 
-> 上游：ACSD_DESIGN.md §5.2（固定科学流程）
+> 上游：ACSD_DESIGN.md [D-1]「固定科学流程」一节程）
 
-> 上游 SCI: SCI-UPM-001（docs/science/PHASE2_UPM.md，FROZEN，共享引用不改动）；
+> 上游 SCI: SCI-UPM-001（docs/science/sky/UPM.md，FROZEN，共享引用不改动）；
 > 三概念分离权威=SCI-INT-001（docs/science/INTEGRATION.md，FROZEN，共享引用不改动）；
 > 处理链位置=SCI-SCOPE-001 §处理链第 5 步（coverage union 为 Phase2 首节点）。
-> 本域零 SCI 层改动（§11.5）。
+> 本域零SCI层改动。
 > 下游: DATA-COV-001（`docs/detail/registry/acsd.phase2.coverage.md`）、API-COV-001（PUBLIC_API）、
 > MOD-acsd-phase2-coverage（registry）
 > 唯一权威生产源: lib/algorithms/coverage/src/coverage.cpp（455 行，复测）+ 唯一权威签名头
@@ -19,11 +19,11 @@
 - SCI-UPM-001（UPM 共享 SCI）：coverage union 天区 Ω 是 UPM 控制采样
   （"控制点布置于整个 coverage union"，`lib/algorithms/coverage/src/sampler.cpp`）与联合
   加性模型的范围前提；Ω 与逐帧 tile 覆盖数为几何量，不进入任何科学权重。
-- 三概念分离（本模块合同红线，登记为负向条款，见 §7）：`coverage` = 几何
+- 三概念分离（本模块合同红线，登记为负向条款，见 [S-1]「参考文献与参考代码」一节）：`coverage` = 几何
   球面集合量（本模块唯一产物）；`support` = 逐像素覆盖支撑 [0,1]（样本级，
-  SCI-INT-001 §2/§5，P2PixelStack.support，仅作 eligibility 与 canonical
+  SCI-INT-001 [S-2]「物理模型」一节，P2PixelStack.support，仅作 eligibility 与 canonical
   reducer `max`，integrator 语义）；`validity` = 数据有效性标志（finite/
-  accepted/排异接受掩码语义，SCI-INT-001 §5 valid(i)）。三者各自独立、各自具名，
+  accepted/排异接受掩码语义，SCI-INT-001 [S-2]「判据与误差」一节 valid(i)）。三者各自独立、各自具名，
   本模块不生产 support/validity，也不消费之（coverage.cpp 无任何 support/
   accepted 输入，实测 inspect_frame（`lib/algorithms/coverage/src/coverage.cpp`）只读 properties 与 Moc.fits
   tile 列表）。
@@ -110,7 +110,7 @@
 
 ## 3 伪代码
 
-（coverage.cpp 的 p2_coverage_build 结构直译；两次调用协议，见 §4）
+（coverage.cpp 的 p2_coverage_build 结构直译；两次调用协议，见 [S-1]「参数与常数」一节）
 
 ```text
 p2_coverage_build(hips_paths, n_inputs, out):
@@ -144,7 +144,7 @@ p2_coverage_build(hips_paths, n_inputs, out):
   `K` 个 P2MocCell 后第二次调用获得数据（头注释 `lib/algorithms/coverage/include/astro/phase2/coverage.h`；实测
   每次调用完整重新扫描全部输入，无缓存，inputs 指针同理两阶段回填）。
 - P2CoverageResult/P2MocCell/P2HipsInputInfo 全部为调用方分配（`lib/algorithms/coverage/include/astro/phase2/coverage.h` 注释）；
-  `p2_coverage_free` 仅 `memset(out,0)` 清零 POD（`lib/algorithms/coverage/src/coverage.cpp`）——不释放任何堆内存，无所有权转移（与 PHASE2_API_V1 §1 所有权
+  `p2_coverage_free` 仅 `memset(out,0)` 清零 POD（`lib/algorithms/coverage/src/coverage.cpp`）——不释放任何堆内存，无所有权转移（与 PHASE2_API_V1 [S-1]「主题与目标」一节 所有权
   图行 `Coverage: build/调用方持有/p2_coverage_free/只读借用` 一致，
   `docs/engineering/api/PUBLIC_API.md`）。
 - 重复调用幂等: 同输入两次 build 结果 bitwise 一致（纯函数式扫描，无
@@ -187,23 +187,23 @@ p2_coverage_build(hips_paths, n_inputs, out):
   输出（union MOC/target_order/逐帧 tile 计数）是几何登记量，**用途 = 几何登记与分组，本量不**
   被任何下游作为科学权重、统计权重或置信度使用；科学权重唯一冻结公式
   `w_UPM = quality_factor × geometric_reliability × control_ivar`
-  （docs/science/PHASE2_UPM.md §5 F2），其中 support 仅
-  eligibility/coverage 语义（PHASE2_UPM.md §5 注释行
+  （docs/science/sky/UPM.md[S-1]「公式与推导」一节F2），其中 support 仅
+  eligibility/coverage 语义（PHASE2_UPM.md[S-1]「公式与推导」一节注释行
   "禁 production 乘 star SNR / snr²/(1+snr²) / support^p；support 仅
-  eligibility/coverage"）、canonical reducer=max（SCI-INT-001 §5，
+  eligibility/coverage"）、canonical reducer=max（SCI-INT-001 [S-1]「判据与误差」一节，
   "覆盖并集保守下界"）——该式的输入 = 三项冻结因子，coverage 帧数/N_cover 只作几何登记、不进入该式、不替代
   control_ivar。
 - **coverage/support/validity 三概念分离**（matrix P2-COV 专项）: 本模块
-  只生产 coverage（几何集合）；support 样本级 [0,1]（SCI-INT-001 §2）
-  与 validity（有效/接受标志，SCI-INT-001 §5）不在本模块合同域；任何
+  只生产 coverage（几何集合）；support 样本级 [0,1]（SCI-INT-001 [S-2]「物理模型」一节）
+  与 validity（有效/接受标志，SCI-INT-001 [S-2]「判据与误差」一节）不在本模块合同域；任何
   把 union cell 数、n_tiles、覆盖帧数当作 support 数值或 validity
   判定的消费均违反本合同。
 - **不做**: 不重新校准/PlateSolve/PSF/DR3SP/Drizzle（`lib/algorithms/coverage/include/astro/phase2/coverage.h`）；
   不读 signal/support/snr 像素数据（只读 properties/Moc.fits）；不做
-  帧间交集/差集运算（只 union，§2）；不输出 depth/overlap 计数产品
+  帧间交集/差集运算（只 union，[S-1]「物理模型」一节）；不输出 depth/overlap 计数产品
   （§10）；不输出 HiPS（写盘归 P2-HIPS）；不跨滤镜统一（filter mismatch
   显式拒绝（`lib/algorithms/coverage/src/coverage.cpp`）；UPM 侧"不跨滤镜统一（filter 分组由调用方保证）"
-  SCI-UPM-001 §1 同构）。
+  SCI-UPM-001 [S-1]「主题与目标」一节 同构）。
 - **registry 端口语义修订**: descriptor 端口 coverage 坐标
   CoordinateFrame::PIXEL（`lib/infrastructure/scheduler/src/module_adapters.cpp`，出端口 coverage DATA-P2-COV/
   DIMENSIONLESS/PIXEL）与 NESTED 球面 MOC 实际不符，以本合同（HEALPix NESTED / equatorial/ICRS）为准，
@@ -212,7 +212,7 @@ p2_coverage_build(hips_paths, n_inputs, out):
 
 ## 8 参考实现/Oracle
 
-- Oracle 设计（独立于被测符号，不复制 §2 公式）:
+- Oracle 设计（独立于被测符号，不复制 [S-1]「物理模型」一节 公式）:
   - Python/astropy 参考: 对合成 HiPS 树（固定 seed 生成 properties +
     Moc.fits）用 astropy_healpix/astropy.io.fits 独立读 MOC，按
     NESTED 父移位 `t >> 2s` 重算 union 集合与 target_order，与
@@ -233,11 +233,11 @@ p2_coverage_build(hips_paths, n_inputs, out):
 ## 9 容差来源
 
 - 集合运算整数精确: union/target_order/ipix 无浮点，容差=0（bitwise
-  相等），无经验容差；任何"近似 union"实现都违反 §2。
+  相等），无经验容差；任何"近似union"实现都违反[D-1]几何定义。
 - 数值域容差仅存在于 AIO 读取层（tile 计数完整性由 Moc.fits 决定），
   本模块对 AIO 层的信任边界 = `aio_hips_open` rc 与
   `aio_hips_reader_last_error` 透传（同一 `coverage.cpp`）。
-- 上述容差在 P2-COV-TEST 落地时逐项写死（TEST-COV-DESIGN-001 §11.4），
+- 上述容差在 P2-COV-TEST 落地时逐项写死（TEST-COV-DESIGN-001 [D-1]），
   取值一律按本节；fixture 生成器须注记容差来源（本节）。
 
 ## 10 关联 ARC/API/TST
@@ -252,7 +252,7 @@ p2_coverage_build(hips_paths, n_inputs, out):
   并行不互斥。
 - ARC-001（CPU 自适应资源合同；现行 CPU 后端设计见 docs/engineering/resources/cpu/BACKEND.md）: cpu_heavy 资源类、
   单线程（internal_parallel=none）与 host_executor_lease 合同值依据。
-- TST: TEST-COV-DESIGN-001（§11.4，P2-COV-TEST 落 TEST-P2-COV-001）。
+- TST: TEST-COV-DESIGN-001（[S-5]「输入输出端口」一节，P2-COV-TEST 落 TEST-P2-COV-001）。
 
 ## 11 冻结附录（SRC-COV-001 源码实测）
 
@@ -290,9 +290,9 @@ status 语义: 0=ok；错误路径部分分支置 1（`lib/algorithms/coverage/s
   未置，DISP-COV-001；memset 在该分支之前执行，error
   strncpy 在其后写入——error 字段有效，status 与 rc 不一致的仅此
   分支）。
-- 并发合同（API-P2-001 §2 行 1）: reentrant=yes / threadsafe=no
+- 并发合同（API-P2-001行一）: reentrant=yes / threadsafe=no
   （独立对象）/ internal_parallel=none / 取消点=无 / TST-COV-*；
-  实测支撑: 无全局可变状态、无锁、单线程（§6）。
+  实测支撑: 无全局可变状态、无锁、单线程（[S-1]「与上下游的关系」一节）。
 
 ### 11.3 现状缺陷清单（DISP-COV-001..005，登记不改码，整改归 P2-COV-IMPL/INT）
 
@@ -305,7 +305,7 @@ status 语义: 0=ok；错误路径部分分支置 1（`lib/algorithms/coverage/s
   (i) **coverage frame_id**（本模块，路径基名截断，64 B 上限）：仅作本模块输入
   登记与 union 分组键，**不保证跨 run 稳定**、**不保证唯一**；
   (ii) **sampler/UPM frame_id**（内容 SHA-256 truncated-64，
-  `docs/science/algorithms/PHASE2_SAMPLER.md` §5.6 / DATA-FRAME-ID-001）：唯一持久化绑定键
+  `docs/science/algorithms/PHASE2_SAMPLER.md` [S-6]「输入输出端口」一节-FRAME-ID-001）：唯一持久化绑定键
   （manifest / UPM `parameter_rows ↔ frame_id`）。两者同名不同物：任何跨模块引用
   frame_id 的地方**必须**写明是哪一种；把 (i) 当 (ii) 使用会使持久化绑定在
   重命名/换根目录后失效。
@@ -328,7 +328,7 @@ status 语义: 0=ok；错误路径部分分支置 1（`lib/algorithms/coverage/s
   target_order，无逐 cell depth map（每 cell 覆盖帧数）、无交集
   Ω_1∩…∩Ω_N、无缺失 tile 列表输出——下游 sampler/UPM 现以逐帧
   tile 集合自行推导，且 UPM 侧 geometric_reliability 权重因子
-  （SCI-UPM-001 §2）与覆盖度关联的乘数实现恒 1.0（乘数未生效，
+  （SCI-UPM-001 [S-1]「物理模型」一节）与覆盖度关联的乘数实现恒 1.0（乘数未生效，
   R3-A 已登记，PUBLIC_API.md API-UPM-001 DISP-UPM-003）——本模块
   不以 depth 产品补齐该缺口（不改生产码），语义澄清: 覆盖度几何
   （本模块）≠ 权重因子（UPM 层），修正归 P2-UPM-IMPL 域；
@@ -337,13 +337,13 @@ status 语义: 0=ok；错误路径部分分支置 1（`lib/algorithms/coverage/s
 - DISP-COV-005 extern "C" 内 include + 两阶段全量重扫: AIO 头包含于
   独立 extern "C" 块（`lib/algorithms/coverage/src/coverage.cpp` 的 include 段，AIO 头自带 C 链接声明，双保险属维护
   歧义）；
-  两阶段协议每次调用全量重扫全部输入（§4，实测无缓存），大 N 输入
+  两阶段协议每次调用全量重扫全部输入（[S-1]「参数与常数」一节，实测无缓存），大 N 输入
   ×2 I/O 开销——记录为性能/卫生整改项（P2-COV-IMPL），非科学错误。
 - 线程数未接 ThreadBudget: 单线程实现天然满足 determinism，但
   threading_model=host_executor_lease（module.yaml 合同值）的
   ThreadLease/取消检查点无接线（P2-COV-IMPL 整改点，同 DISP-WCS-005
   先例）；阶段级取消点由编排 session 提供（`lib/phase2_session/p2_session.cpp`，
-  含取消检查），模块内无取消检查点（API-P2-001 §2 行 1 取消点=无，
+  含取消检查），模块内无取消检查点（API-P2-001行一 取消点=无，
   一致）。
 
 ### 11.4 TEST-COV-DESIGN-001 冻结测试设计（可执行 TEST-P2-COV-001 由 P2-COV-TEST 落地）
@@ -368,31 +368,41 @@ status 语义: 0=ok；错误路径部分分支置 1（`lib/algorithms/coverage/s
 - F6 确定性/资源: 同输入两次调用 bitwise 一致；单线程断言（无
   parallel axis）；I/O 次数 = 2×帧数 ×（properties+MOC）上界登记
   （DISP-COV-005 整改基线）。容差冻结: F1-F6 全部整数/bitwise 断言，
-  无数值容差；fixture 生成器注记容差来源（§9）。
+  无数值容差；fixture生成器注记容差来源（[S-1]「判据与误差」一节）。
 
 ### 11.5 SCI 层状态声明（本域零 SCI 改动）
 
 - 覆盖度几何语义已有 FROZEN 权威：SCI-UPM-001（docs/science/
-  PHASE2_UPM.md）§1 目的句「在多帧覆盖并集上」、
-  SCI-INT-001（docs/science/INTEGRATION.md）§5
+  PHASE2_UPM.md）[S-1]「主题与目标」一节 目的句「在多帧覆盖并集上」、
+  SCI-INT-001（docs/science/integration/INTEGRATION.md [S-1]「判据与误差」一节）
   support「覆盖并集保守下界」、SCI-SCOPE-001 §处理链第 5 步
   「coverage union → 控制采样 → …」。三者均**共享 SCI 引用不改动**
   （P1-WCS SCI-WCS-001=共享 docs/science/detection/ASTROMETRY.md 同构）。
 - 本域不新建 docs/science/ 冻结层文档：matrix P2-COV 行
   science_id=SCI-P2-COV-001 的语义映射由本节声明——
-  SCI-P2-COV-001 ⇒ 指向既有 FROZEN 共享 SCI（权威=PHASE2_UPM.md §1
-  覆盖并集 + INTEGRATION.md §5 support/validity 分离 + docs/science/unified/SCIENCE_SCOPE.md
-  §处理链），矩阵 science_doc=docs/science/PHASE2_UPM.md
+  SCI-P2-COV-001 ⇒ 指向既有 FROZEN 共享 SCI（权威=PHASE2_UPM.md [S-1]「主题与目标」一节
+  覆盖并集 + INTEGRATION.md [S-1]「判据与误差」一节 support/validity 分离 + 科学范围 [S-3]「假设与适用域」一节，矩阵 science_doc=docs/science/sky/UPM.md
   （MOD-acsd-phase2-coverage 行）。
   三概念分离/union 离散公式/负向条款的算法定义权威=ALG-COV-001
-  （本文档 §2/§7），SCI 公式语义不在此重复定义，两处冲突时以
+  （本文档[S-1]「公式与推导」一节），SCI 公式语义不在此重复定义，两处冲突时以
   docs/science/ 为准并回改本文档（方向 = 从 docs/science/ 到本文档）。
 - 本节是唯一冻结依据（编排层词汇只作对齐对象；descriptor acsd.phase2.coverage
   由 P2-COV-INT 对齐，不作冻结依据）。
+
+> 本文引用上游正本（论文式编号，正文引用处均已改为自然语言节名，不再使用跨文档 §N 跳转）：
+> - [D-1] docs/ACSD_DESIGN.md（最高设计）。
+> - [S-1] docs/science/sky/UPM.md（天光平面科学正本 SCI-UPM-001）。
+> - [S-2] docs/science/integration/INTEGRATION.md（集成科学正本 SCI-INT-001）。
+> - [S-3] docs/science/unified/SCIENCE_SCOPE.md（科学范围正本）。
+> - [E-1] docs/engineering/resources/cpu/BACKEND.md（工程正本）。
+> - [A-1] docs/science/algorithms/mosaic/PHASE2_SAMPLER.md（采样算法分册）。
+> - [S-9] docs/science/unified/UNIFIED_SCIENCE_MODEL.md（相关科学正本）。
+> - [S-5] docs/science/algorithms/common/GATES_AND_TOLERANCES.md（冻结门表分册）。
+> - [S-6] docs/engineering/api/PUBLIC_API.md（工程 API 正本）。
 
 ## 参考文献与参考代码库（含许可证）
 
 - 球面交叠/覆盖几何：Project-defined（本文件 §2/§7）；独立几何 Oracle 可用 astropy-healpix（BSD-3-Clause）与 Górski et al. 2005, ApJ 622, 759。
 - 连通分量分解：Tarjan 1972, SIAM J. Comput. 1, 146（DOI 10.1137/0201010）；Hopcroft & Tarjan 1973, Comm. ACM 16, 372。
-- coverage 非权重：UNIFIED_SCIENCE_MODEL §3 与 `docs/detail/registry/acsd.phase2.coverage.md`「职责与明确非职责」一节；权威语义在本文件 §7 负向条款。
+- coverage 非权重：统一科学模型 [S-9]「公式与推导」一节 与 `docs/detail/registry/acsd.phase2.coverage.md`「职责与明确非职责」一节；权威语义在本文件 §7 负向条款。
 - MOC 域表达：IVOA MOC 1.0（https://www.ivoa.net/documents/MOC/）。

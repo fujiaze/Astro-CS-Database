@@ -1,6 +1,6 @@
 # Phase2 UPM Fit/Apply Algorithms（P2-UPM / acsd.p2.upm）
 
-> 上游：ACSD_DESIGN.md §5.4（天光平面与统一相对模型）
+> 上游：ACSD_DESIGN.md [D-1]「天光平面（UPM）」一节（天光平面与统一相对模型）
 
 > 本文件是 Phase2 Unified Photometric Model（UPM）
 > fit+apply+persist+reload 的**实现级算法合同**：逐符号源码行号锚定 +
@@ -9,14 +9,14 @@
 > （docs/science/algorithms/UPM_SOLVER.md，公式与容差零改动）。
 > 实现源: lib/algorithms/coverage/src/upm.cpp（2981 行）+ 唯一权威签名头
 > lib/algorithms/coverage/include/astro/phase2/upm.h（453 行，实测）；
-> API: API-P2-UPM-001（矩阵词汇；PUBLIC_API.md 尚未落页，见 §16）；
+> API: API-P2-UPM-001（矩阵词汇；PUBLIC_API.md尚未落页）；
 > DATA: DATA-P2-UPM / DATA-P2-COR；MOD: acsd.p2.upm
 > （docs/engineering/governance/TRACEABILITY.md「逐模块追溯台账（人读正本）」一节 :21/:22 两行）；TEST: TEST-P2-UPM-001/002
-> （设计冻结面=本文档 §13，可执行 MISSING 归 P2-UPM-TEST）。
+> （设计冻结面=本文档 [S-4]「推导补遗」一节，可执行 MISSING 归 P2-UPM-TEST）。
 
 ## 1 目的与非目标
 
-**目的**（SCI-UPM-001 §1 承接；实现域=acsd.p2.upm 全链）：
+**目的**（SCI-UPM-001 [S-1]「主题与目标」一节 承接；实现域=acsd.p2.upm 全链）：
 
 - **fit**：从控制观测流（P2ControlObservation[]，上游
   ALG-P2-SMP-001 产出）联合求解 ONE UnifiedPhotometricModel——
@@ -40,7 +40,7 @@
 - 不解释 control_variance 科学定义（sampler 域
   ALG-UPM-CONTROL-IVAR-001 承接，本域只消费 control_ivar）。
 
-## 2 符号与单位（权威=本表 + SCI-UPM-001 §3）
+## 2 符号与单位（权威=本表 + SCI-UPM-001 [S-1]「公式与推导」一节）
 
 | 符号 | 含义 | 单位/域 | 实现锚 |
 |---|---|---|---|
@@ -62,7 +62,7 @@
 | quality/support | 观测质量因子 / 覆盖支持度 | 无量纲 [0,1] | upm.cpp:220-229（`quality_factor`：16→0.0 / 2→0.1 / 1→1.0 / 0→0.5 / 其余 0.5） |
 | dtype | 全链 FP64（P2ModelInfo.precision=1 fp64 reference） | — | upm.h:62 |
 
-单位面逐项冻结（**逐项与 SCI-UPM-001 §3 同标度**）：`C/M/raw/calibrated/σ_bg` = **面亮度 ADU·sr⁻¹**、
+单位面逐项冻结（**逐项与 SCI-UPM-001 [S-1]「公式与推导」一节 同标度**）：`C/M/raw/calibrated/σ_bg` = **面亮度 ADU·sr⁻¹**、
 `control_variance` = **(ADU·sr⁻¹)²**、`control_ivar` = **(ADU·sr⁻¹)⁻²**、`w_UPM` = **(ADU·sr⁻¹)⁻²**、
 `quality/support` 无量纲、`frame_id` 无量纲 uint64。
 **标度来源（正向约束）**：上游 Phase1 HiPS signal 层写盘 BUNIT 冻结集 {ADU/sr, ADU^2/sr^2, sr^2/ADU^2}，
@@ -137,9 +137,9 @@ function calibrate_block(model, frame_id, leaves, in, out, n):   # :1907-1941（
 - 语义权威已有 FROZEN SCI：**SCI-UPM-001**（docs/science/PHASE2_UPM.md；
   冻结集合 = SCI-UPM-001..010 + SCI-UPM-WEIGHT-001 +
   SCI-UPM-PERSIST-001）。**共享 SCI 引用不改动**
-  （P2-SAMP/P2-REJ 同构）。单位面（§2）直接承接
-  SCI-UPM-001 §3 实测文本。
-- **descriptor 占位映射声明**（仿 PHASE2_SAMPLER.md §11.4/§12 写法；
+  （P2-SAMP/P2-REJ 同构）。单位面直接承接
+  SCI-UPM-001 [S-1]「公式与推导」一节 实测文本。
+- **descriptor 占位映射声明**（仿 PHASE2_SAMPLER.md [S-1]「冻结附录」一节写法；
   占位 ID 是矩阵/descriptor 词汇，不注册 INDEX、不入合同）：
   - `SCI-P2-UPM-001`（fit descriptor sci_id，lib/infrastructure/scheduler/src/
     module_adapters.cpp:676）⇒ **SCI-UPM-001**；
@@ -154,7 +154,7 @@ function calibrate_block(model, frame_id, leaves, in, out, n):   # :1907-1941（
     回改本文档（方向 = 从 docs/science/ 到本文档）；descriptor 词汇 acsd.phase2.upm-fit/
     upm-apply 端口语义对齐归 P2-XX-INT（DISP-P2UPM-004），不作冻结依据。
 
-## 6 离散公式 F1-F6（公式语义与 UPM_SOLVER.md §2 一致，逐条实现锚）
+## 6 离散公式 F1-F6（公式语义与 UPM_SOLVER.md [S-1]「物理模型」一节 一致，逐条实现锚）
 
 **F1 raw weight**（p2_upm_raw_weight 单一实现 :1966-1997；upm.h:138-145）：
 
@@ -165,7 +165,7 @@ ablation（use_ivar_weight=0，仅诊断 SNR-015）:
   raw_w = qf · support^support_power · snr²/(1+snr²) / max(unc², sigma_floor²)
                                                    # :1989-1997
   # 天光控制点的被估量是**变化的背景电平**，SNR² 在该处不是有效逆方差代理；
-  # 生产一律取 control_ivar，SNR 只作 veto/质量门（SCI-UPM-001 §5）
+  # 生产一律取 control_ivar，SNR 只作 veto/质量门（SCI-UPM-001 [S-1]「判据与误差」一节）
 quality_factor: flags&16→0.0; &2→0.1; &1→1.0; 未知→0.5     # :220-229
 control_variance = k_corr·(π/2)·σ_bg²/N_retained; control_ivar = 1/control_variance
   （sampler 域 ALG-UPM-CONTROL-IVAR-001 承接产出；upm.h:43-50 冻结注释）
@@ -249,7 +249,7 @@ open 强校验: format(:1525-1526)、frames 存在/数组/无重复/类型、
   任何损坏 → rc=1 稳定错误；异常越界恒不接受（p2_upm_open :1506-1801）
 dense cache: format="acsd-upm-dense-v2"（aio_upm.cpp），
   source_hash=model_hash 校验（p2_upm_dense_read_block :2201-2216）
-dense/sparse 等价门: 1e-12（UPM_SOLVER.md §8/§9 冻结；§13 T5）
+dense/sparse 等价门: 1e-12（UPM_SOLVER.md [S-1]「离散公式」一节冻结）
 ```
 
 ## 7 确定性与归约
@@ -258,7 +258,7 @@ dense/sparse 等价门: 1e-12（UPM_SOLVER.md §8/§9 冻结；§13 T5）
   compute_raw 每 worker 写私有 tsums[tid]，join 后按 t 升序累加进
   sums（实现 :614-641：tsums :616、池 :620-635、按 worker 序合并 :636-639）——
   **冻结口径是三档、不是"worker 数无关"**（`:607-613` 注释冻结；权威
-  `docs/science/PHASE2_UPM.md` §7:184-191 与本处同文）：(a) **同配置重复构建 =
+  `docs/science/PHASE2_UPM.md` [S-1]「公式与推导」一节:184-191 与本处同文）：(a) **同配置重复构建 =
   位精确 + model_hash 逐字相同**（构造保证：连续块划分 + 不相交写 + 无共享
   浮点累加器）；(b) **跨 worker 数（1..N）= 1e-12 绝对容差，不是位精确** ——
   per-control 求和的结合顺序随 worker 切片变化（FP 加法非结合），
@@ -357,22 +357,22 @@ dense/sparse 等价门: 1e-12（UPM_SOLVER.md §8/§9 冻结；§13 T5）
 ## 11 Oracle（恢复真值面与等价 oracle）
 
 - **恒等/线性面恢复 oracle**：合成 k·f 线性真值场 → UPM 恢复后
-  evalrel(f)≈0.5f、maxdev<0.05（判据见 §13 T1/T2）；
+  evalrel(f)≈0.5f、maxdev<0.05（判据见[S-1]「判据与误差」一节T1/T2）；
 - **dense==sparse 等价 oracle**：同一模型 dense 缓存读回与
-  calibrate_block 稀疏求值 1e-12 等价（UPM_SOLVER.md §8/§9 冻结；
+  calibrate_block 稀疏求值 1e-12 等价（UPM_SOLVER.md [S-1]「离散公式」一节冻结；
   dense source_hash=model_hash 强校验 ：1530-1532）；
 - **权重门 UPMW-001..007**：snr 扰动不变（UPMW-001
   synthetic_gate.cpp:3915 起）、control_ivar 1:4 → raw 比率精确 1:4
   （UPMW-002 :3916/:3965）、星群不变性（UPMW-003 :3971-3998）等，
   锚定 §13 T6；
 - **save→open 幂等 oracle**：重开值 max_abs==0（帧绑定门；
-  UPM_SOLVER.md §12 承接，DATA-UPM-MODEL-001）。
+  UPM_SOLVER.md [S-1]「离散公式」一节承接，DATA-UPM-MODEL-001）。
 
 ## 12 TEST-DESIGN（TEST-P2-UPM-DESIGN 冻结）
 
 **双语声明**：本节为设计冻结面 **VERIFIED**（引用既有测试源容差）；
 可执行 TEST-P2-UPM-001/002 登记为 **MISSING**（归 P2-UPM-TEST 落地，
-本文件不冒认执行态；先例=PHASE2_SAMPLER.md §11.3 双面登记）。每条
+本文件不冒认执行态；先例=PHASE2_SAMPLER.md [D-1]双面登记）。每条
 阈值已在既有测试源冻结，**TEST 任务一律照录该冻结值**：
 
 | # | 设计面 | 冻结容差 | 现状测试锚 |
@@ -382,7 +382,7 @@ dense/sparse 等价门: 1e-12（UPM_SOLVER.md §8/§9 冻结；§13 T5）
 | T2 | 确定性：重复 build model_hash | 三次逐位一致（bit-exact） | 同组 test_03 :112-119 |
 | T3 | 并行等价：workers∈{1,2,4} 重复 build hash；1T/2T control_count | hash bit-exact（consistent=1）；count 精确相等 | 并行组 test_01 :82-89（reps=4）、test_02 :91-101 |
 | T4 | 资源：20 次 build/close 循环 RSS | 增长 < 1024 KB | 并行组 test_03 :103-110（rss_kb :26；driver :32-50） |
-| T5 | dense/sparse 等价 | 1e-12（dense source hash 强校验） | UPM_SOLVER.md §8/§9 冻结面；dense_read_block :1542-1557 |
+| T5 | dense/sparse 等价 | 1e-12（dense source hash 强校验） | UPM_SOLVER.md [S-1]「离散公式」一节冻结面；dense_read_block :1542-1557 |
 | T6 | 权重公式 UPMW-001..007 + raw_weight rc=2 门 | UPMW 判据 exact/double_eq（测试源冻结）；rc=2 exact | synthetic_gate.cpp:3915 起；upm.h:138-145 / upm.cpp:1966 |
 | T7 | 退化链：单帧区 continuation / 断开分量 gauge / 空 obs rc=1 / 未知帧 rc=1 | rc exact；gauge frame id exact | upm.h:99-101；:415-491；:215；:1252 |
 
@@ -442,7 +442,7 @@ converged = 0  ⇔ 迭代耗尽（max_iterations）                       # :105
 "k_corr_empirical = 1.3883，N_eff ≈ 181 < N_retained=251. 冻结保守值
 1.4"；常量 `kControlCorrDefault=1.4`（`sampler.cpp:83`）。
 **k_corr 属
-sampler 域合同**（ALG-P2-SMP-001 §5.4 / ALG-UPM-CONTROL-IVAR-001，
+sampler 域合同**（ALG-P2-SMP-001 [S-1]「判据与误差」一节-UPM-CONTROL-IVAR-001，
 PHASE2_SAMPLER.md 承载），本域只引用 control_ivar 消费面，不改不重复
 标定。**本表数值与公式为冻结面：任何修改必须走 SCI/合同变更（放宽动作只随变更落地），不
 在实现或测试内就地放宽。**
@@ -452,12 +452,12 @@ PHASE2_SAMPLER.md 承载），本域只引用 control_ivar 消费面，不改不
 | ID | 锚 | 内容 | 整改去向 |
 |---|---|---|---|
 | DISP-P2UPM-001 | upm.h:167-168 与 :173-175 | `p2_upm_materialize_dense` **重复声明**（同头文件重复声明同一函数 C++ 合法、非 ODR 违例，运行无影响；纯合同卫生问题） | 头文件注释清理面 |
-| DISP-P2UPM-002 | upm.h:92-94 | `cpu_workers` 注释漂移：前半句「CON-005 … 仅 P2_ENABLE_OPENMP 时并行 compute_raw/聚合」与实现不符（现无 OpenMP、std::thread 五段池，§8）；后半句 Runtime lease 语义正确 | 头文件注释清理面 |
+| DISP-P2UPM-002 | upm.h:92-94 | `cpu_workers` 注释漂移：前半句「CON-005 … 仅 P2_ENABLE_OPENMP 时并行 compute_raw/聚合」与实现不符（现无 OpenMP、std::thread 五段池）；后半句 Runtime lease 语义正确 | 头文件注释清理面 |
 | DISP-P2UPM-003 | p2_session.cpp:199-218 | upm 配置覆盖键仅 {max_iterations, huber_delta, smoothing_lambda}；`zero_anchor_weight` / `tolerance` / `tolerance_relative` 无 config 键（`upm.cpp:273-286` 只拦非法值，session 面不可配） | P2-SESSION-IMPL |
 | DISP-P2UPM-004 | `lib/infrastructure/scheduler/src/module_adapters.cpp` descriptor 段 | descriptor 端口语义占位：fit 行 upm_model=可选输出、apply 行 upm_model=必选输入，与真实数据流（fit 进程内 build→persist 落盘 upm_sparse.json；apply/reload 经文件 + `p2_upm_open`）不符 | P2-XX-INT |
 | DISP-P2UPM-005 | upm.h:78-80、:110-112、:143-149 | 收敛面**头文件注释三处漂移**：①`:80` 分母写 `max|M| 或 max|C|`，实现与生产均为 `scale_obs=median(|value|)`（`upm.cpp:707-718/:1024`）；②`:111-112` 写「生产显式 1 + 1e-3」，生产装配实为 `tolerance=1e-6`（`module_adapters.cpp:7808`）；③`:147` 写 `tol_step`/`tol_obj`，实现无此二字段（只有 `tolerance` + `tolerance_relative`） | 头文件注释清理面 |
 | DISP-P2UPM-006 | `module_adapters.cpp:7808-7813` vs `lib/phase2_session/p2_session.cpp:204` | **两个生产入口的收敛判据口径不一致**：适配器 `tolerance=1e-6` ∧ `tolerance_relative=1`（相对）；session `tolerance=1e-6` 且未设 `tolerance_relative`（零初始化 ⇒ 0 ⇒ 绝对）。同段注释（`:7797-7808` 要求回退冻结绝对容差、相对判据待裁决）与 `:7809-7813`（以「定案」名义启用相对判据）**对同一变更的授权状态表述互斥** | 待裁决（§16.3 同项） |
-| DISP-P2UPM-007 | upm.h:282-283 | 观测结构体字段单位注释写 `单位 ADU` / `单位 ADU^-2`，与 SCI §3 冻结面（面亮度 **ADU·sr⁻¹** / **(ADU·sr⁻¹)⁻²**）及上游写盘 BUNIT 冻结集不一致 | 头文件注释清理面 |
+| DISP-P2UPM-007 | upm.h:282-283 | 观测结构体字段单位注释写 `单位 ADU` / `单位 ADU^-2`，与 SCI [S-1]「公式与推导」一节 冻结面（面亮度 **ADU·sr⁻¹** / **(ADU·sr⁻¹)⁻²**）及上游写盘 BUNIT 冻结集不一致 | 头文件注释清理面 |
 
 登记原则：本域只登记不改码；头文件注释类漂移（001/002/005/007）整改编入头文件注释清理面，
 003 归 P2-SESSION-IMPL，004 归 P2-XX-INT 对齐，006 待定案。
@@ -488,17 +488,17 @@ PHASE2_SAMPLER.md 承载），本域只引用 control_ivar 消费面，不改不
 
 ## 16 关联 ID 映射（本文件承接）
 
-- `ALG-P2-UPM-IMPL-001` = 本文档整体（逐符号锚 §3/§6；实现级合同）。
-- 上游：SCI-UPM-001（FROZEN 集合零改动，§5）；ALG-UPM-001
+- `ALG-P2-UPM-IMPL-001` = 本文档整体（逐符号锚 [S-1]「公式与推导」一节；实现级合同）。
+- 上游：SCI-UPM-001（FROZEN 集合零改动，[S-1]「判据与误差」一节）；ALG-UPM-001
   （docs/science/algorithms/UPM_SOLVER.md，推导权威，本批原位修订）；ALG-
-  UPM-CONTROL-IVAR-001（PHASE2_SAMPLER.md §5.4/§12 承载）；ALG-P2-
+  UPM-CONTROL-IVAR-001（PHASE2_SAMPLER.md [S-1]「逐公式定义」一节承载）；ALG-P2-
   SMP-001（obs/frame_id 上游）。
 - 下游 DATA：DATA-P2-UPM（fit 产物）/ DATA-P2-COR（apply 产物）
   （descriptor data_id :612/:632；矩阵行 ：21/:22）。
 - API 面：**API-P2-UPM-001**（矩阵/descriptor 词汇；PUBLIC_API.md
   尚未落 upm 节，本文件只登记词汇、不冒认条目存在）。
 - TEST：TEST-P2-UPM-001（fit 面）/ TEST-P2-UPM-002（apply 面）
-  ——设计冻结=本文档 §12；可执行 MISSING 归 P2-UPM-TEST。
+  ——设计冻结=本文档[S-1]「公式与推导」一节；可执行 MISSING 归 P2-UPM-TEST。
 - MOD：acsd.p2.upm（fit/apply 两模块页
   docs/detail/registry/acsd.phase2.upm-fit.md /
   acsd.phase2.upm-apply.md）。
@@ -510,11 +510,17 @@ PHASE2_SAMPLER.md 承载），本域只引用 control_ivar 消费面，不改不
   MOD-acsd-phase2-upm-apply（:21，SCI-P2-UPM-002/ALG-P2-UPM-002/
   DATA-P2-COR/TEST-P2-UPM-002）。
 - 占位 ID 与本文件关系：矩阵 algorithm_id=ALG-P2-UPM-001/002 为
-  descriptor 占位词汇，其语义由 §5 映射声明分解为 ALG-UPM-001
+  descriptor 占位词汇，其语义由 [S-1]「判据与误差」一节 映射声明分解为 ALG-UPM-001
   （推导，UPM_SOLVER.md）+ ALG-P2-UPM-IMPL-001（本文件实现合同）；
-  占位 ID 本身不注册 INDEX、不入合同（与 PHASE2_SAMPLER.md §12 同构）。
+  占位 ID 本身不注册 INDEX、不入合同（与 PHASE2_SAMPLER.md [S-1]「冻结附录」一节同构）。
 - ALG-UPM-001（UPM_SOLVER.md）与本文档同步登记：行号/并行表述按实测，
   公式与容差零改动。
+
+> 本文引用上游正本（论文式编号，正文引用处均已改为自然语言节名，不再使用跨文档 §N 跳转）：
+> - [D-1] docs/ACSD_DESIGN.md（最高设计）。
+> - [S-1] docs/science/sky/UPM.md（天光平面科学正本 SCI-UPM-001）。
+> - [S-4] docs/engineering/governance/TRACEABILITY.md（相关科学正本）。
+> - [A-1] docs/science/algorithms/mosaic/UPM_SOLVER.md（UPM 求解器分册）。
 
 ## 参考文献与参考代码库（含许可证）
 

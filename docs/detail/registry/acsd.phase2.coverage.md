@@ -1,12 +1,12 @@
 # 模块 acsd.p2.coverage
 
-> 上游：`docs/ACSD_DESIGN.md`对应章节（模块与 ABI）、对应章节（固定科学流程：coverage 重叠图）、
-> 科学正本：`docs/science/PHASE2_UPM.md`对应章节（覆盖并集）、`docs/science/INTEGRATION.md`对应章节
+> 上游：`docs/ACSD_DESIGN.md`「模块与 ABI」一节与「固定科学流程」一节（coverage重叠图）、
+> 科学正本：`docs/science/sky/UPM.md`「覆盖并集」口径、`docs/science/integration/INTEGRATION.md`「判据与误差」一节
 > （support/validity 分离）、docs/science/unified/SCIENCE_SCOPE.md（处理链第 5 环节，`## 2 物理模型`）、
-> `docs/science/noise_snr/NOISE_SNR.md`对应章节（适用域与失效域）、
-> `docs/science/noise_snr/NOISE_SNR.md`对应章节（信息量定义）
-> 算法正本：docs/science/algorithms/PHASE2_COVERAGE.md（ALG-COV-001；状态声明 对应章节、
-> 逐公式锚 对应章节、缺陷登记 对应章节、测试设计 对应章节）
+> `docs/science/noise_snr/NOISE_SNR.md`「适用域与失效域」一节、
+> `docs/science/noise_snr/NOISE_SNR.md`「定权」一节
+> 算法正本：docs/science/algorithms/PHASE2_COVERAGE.md（ALG-COV-001；状态声明一节、
+> 逐公式锚、缺陷登记与测试设计三节）
 > 数据正本：docs/detail/registry/acsd.phase2.coverage.md（DATA-COV-001 端口表，本页输入输出端口表）、
 > eng/contracts/schemas/unified/coverage.schema.json（coverage 对象 canonical schema）
 > API 正本：docs/engineering/api/PUBLIC_API.md（API-COV-001，Coverage union C API 节）、
@@ -28,9 +28,9 @@ acsd_p2_coverage.dll 为合同值，尚未落地。
 inverse-variance 或 SNR 权重**；不做集成。
 
 **科学红线（负向条款）**：coverage / support / validity 三概念分离（support =
-SCI-INT-001 样本级 [0,1]、validity = 对应章节 有效性标志，均不在本模块域）；
+SCI-INT-001 样本级 [0,1]、validity = 有效性标志（SCI-INT-001 [S-1]「判据与误差」一节），均不在本模块域）；
 **no use as implicit scientific weight** —— union cell / n_tiles / 覆盖帧数是
-几何登记量，禁入任何权重式（`w_UPM` 的唯一冻结式 = PHASE2_UPM.md 对应章节，support
+几何登记量，禁入任何权重式（`w_UPM`的唯一冻结式 = `docs/science/sky/UPM.md`「公式与推导」一节，support
 仅承担 eligibility / coverage 语义）。
 
 **归属边界**：处理链阶段序 = coverage → sampler → …，后续环节不属本模块。
@@ -65,7 +65,7 @@ SCI-INT-001 样本级 [0,1]、validity = 对应章节 有效性标志，均不�
 - 重叠图：帧间球面交叠（几何有效域交集），以 MOC 表达（NESTED）；
 - 记录有效面积（球面交叠面积积分，单位 deg² / sr）与信息量（可推导到
   `point_information` 的域面；该量的定义与推导正本 =
-  `docs/science/noise_snr/NOISE_SNR.md`对应章节，模块侧口径见
+  `docs/science/noise_snr/NOISE_SNR.md`「适用域与失效域」一节，模块侧口径见
   registry/acsd.phase1.noise-snr.md）；
 - 连通分量：在几何有效域上按球面邻接求连通分量，互不相连的分量一律分组件输出，
   **不**按同一零点 / 背景基准合并；分量划分由 `connected_components` 键控制；
@@ -129,7 +129,7 @@ rc：0 = 成功（含 K = 0）/ 1 = 失败 + `error[512]` 载因；status 与 rc
 
 ## 独立 synthetic 验证命令与容差
 
-测试设计 = `TEST-COV-DESIGN-001`（PHASE2_COVERAGE.md 对应章节，冻结容差 = 整数 /
+测试设计 = `TEST-COV-DESIGN-001`（PHASE2_COVERAGE.md [S-1]「判据与误差」一节，冻结容差 = 整数 /
 bitwise 断言，零数值容差）；可执行 `TEST-P2-COV-001` 待建。gate
 `Phase2Coverage.RealHipsUnion` / `FilterMismatchRejected`（均 synthetic_gate.cpp）
 依赖本地大数据路径 GTEST_SKIP，合成 fixture 待建。

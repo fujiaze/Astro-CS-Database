@@ -1,6 +1,6 @@
 # 模块 acsd.p1.hips_writer
 
-> 上游：`docs/ACSD_DESIGN.md`对应章节（模块与 ABI）
+> 上游：`docs/ACSD_DESIGN.md`「模块与 ABI」一节
 
 > 合同：ALG-HIPS-001（docs/science/algorithms/HIPS_WRITER.md）/
 > DATA-HIPS-001（本页输入输出端口表）/ API-HIPS-001
@@ -53,7 +53,7 @@ versioned config schema 待落地（窗口期以 product_begin 参数为冻结�
 零命中（现状调用方线程直连执行——迁移整改点）。确定性：tile 字节随输入
 与写序可复现（FITS checksum 内嵌）；hierarchy 归约按 k 降序 + NESTED
 索引确定性顺序；properties 的 UTC 时间戳（hips_creation_date 等）不跨
-运行复现（真实时间合同，`docs/science/unified/DATA_SEMANTICS.md`对应章节）。
+运行复现（真实时间合同，`docs/science/unified/DATA_SEMANTICS.md`「精度」一节）。
 
 ## 内存/cache/I-O/所有权
 
@@ -72,7 +72,7 @@ abort 不清理已写文件，处置归调用方/IO-003 层（缺陷登记 = ALG
 
 ## 原子发布边界
 
-最高设计对应章节 要求所有产品（含 HiPS tile）走「临时文件/目录 + 校验 + fsync + 原子
+最高设计「I/O 与原子产品」一节要求所有产品（含 HiPS tile）走「临时文件/目录 + 校验 + fsync + 原子
 rename 提交」。本模块现状为 `remove → fits_create → write_chksum → close`
 （lib/infrastructure/aio/src/hips/aio_hips_writer.cpp 的 `std::remove`），不构成原子发布，
 属已登记的例外面（缺陷登记 = ALG-HIPS-001）。闭合判据 = tile 走
@@ -81,14 +81,14 @@ HiPS tile 的原子发布宣称不成立。
 
 ## 独立 synthetic 验证命令与容差
 
-`TEST-HIPS-DESIGN-001`（HIPS_WRITER.md 对应章节）：解析 oracle（独立朴素实现）
+`TEST-HIPS-DESIGN-001`（HIPS_WRITER.md［A-1］）：解析 oracle（独立朴素实现）
 逐像素校验 signal/support/variance/ivar 与 FITS 序映射（CDS Hipsgen 外部
-点，`docs/science/unified/DATA_SEMANTICS.md`对应章节）、MOC UNIQ/sky fraction、hierarchy 聚合闭合；
+点，`docs/science/unified/DATA_SEMANTICS.md`「坐标语义」一节）、MOC UNIQ/sky fraction、hierarchy 聚合闭合；
 冻结容差=FP64 逐像素 bitwise、f32 存储 rtol=1e-7、MOC/properties 精确。
 可执行 TEST-P1-HIPS-001 待建。
 
 ## 已知限制
 
 ALG-HIPS-001 缺陷登记（abort 无 rollback、CFITSIO 裸调无 mutex、错误码混用、
-hips_estsize 硬编码、moc_order 静默 clamp、无取消）+ README 对应章节；
+hips_estsize 硬编码、moc_order 静默 clamp、无取消）+ README相应章节；
 全局限制登记 = artifacts/evidence/known-limitations-ledger/LIMITATIONS.md。

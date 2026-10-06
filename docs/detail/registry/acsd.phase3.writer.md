@@ -1,19 +1,19 @@
 # 模块 acsd.phase3.writer
 
-> 上游：`docs/ACSD_DESIGN.md`对应章节（模块与 ABI）、对应章节（export 流程：投影到平面、
-> WCS 直接计算生成）、对应章节（输出模式显式声明）、对应章节（I/O 与原子产品：输出不带权重、
+> 上游：`docs/ACSD_DESIGN.md`「模块与 ABI」一节与「流程」一节（投影到平面、
+> WCS直接计算生成）、「输出模式显式声明」一节与「I/O 与原子产品」一节（输出不带权重、
 > 原子提交）
 > 科学正本：docs/science/PHASE3_HIPS_TO_FITS.md（SCI-P3-001，FROZEN，零改动；
-> 对应章节 面、对应章节 真值阈、对应章节）
+> 相关章节（面、真值阈与判据三节）［S-1］
 > 算法正本：docs/science/algorithms/PHASE3_FITS_IMPL.md（ALG-P3-FITS-IMPL-001；
-> 对应章节 错误触发锚、对应章节 T1–T7、对应章节 合同边界）；承接 ALG-P3-002 / ALG-P3-004 本域子面
+> 错误触发锚、T1–T7与合同边界三节）；承接ALG-P3-002 / ALG-P3-004本域子面
 > 数据正本：docs/detail/registry/acsd.phase3.writer.md（DATA-P3-FITS 输出行与 HDU 合同，本页输入输出端口表）；
-> 单位定义与 BUNIT 语义 = `docs/science/unified/DATA_SEMANTICS.md`对应章节/对应章节，规则项 = 同文件对应章节
+> 单位定义与 BUNIT 语义 = `docs/science/unified/DATA_SEMANTICS.md`「面亮度单位的推导」与「单位与量纲表」两节，规则项见同文件「判据与误差」一节
 > API 正本：docs/engineering/api/PUBLIC_API.md（API-P3-FITS-001，Phase3 FITS 写出
 > 公共消费面节）、docs/engineering/api/PUBLIC_API.md「分阶段 API 面」（API-P3-001，p3_session 五段
 > FROZEN 镜像）
 > 原子发布：docs/engineering/contracts/ATOMIC_PUBLISH.md（IO_003，章节「错误语义」）
-> 落地设计：`docs/detail/export/pipeline.md`对应章节对应章节
+> 落地设计：`docs/detail/export/pipeline.md`相应章节
 > 引用文献：见文末「参考文献」（角标用全角 `［N］`，因本文正文的半角 `[...]` 已被
 > 数值域区间占用）
 
@@ -83,11 +83,11 @@
   「已知限制与缺陷登记（登记不改码）」。
 - **BUNIT 语义**：主 HDU 的 `BUNIT` = 输入 HiPS `signal/properties#BUNIT` 声明的
   canonical 串（canonical 值 `ADU/sr`；写端口单位 `UnitId::SURFACE_BRIGHTNESS`，
-  落盘值 = 通量和 / 覆盖面积 = 面亮度）。缺声明时按 `docs/science/unified/DATA_SEMANTICS.md`对应章节 的量纲可判条件
+  落盘值 = 通量和 / 覆盖面积 = 面亮度）。缺声明时按`docs/science/unified/DATA_SEMANTICS.md`「面亮度单位的推导」一节的量纲可判条件
   处理 —— `BUNIT = "ADU"` 要求 provenance 声明
   `pixel_semantics = "surface_brightness"`；`VARIANCE` / `IVAR` 扩展 HDU 的
   `BUNIT` = 主 HDU BUNIT 的平方 / 倒数（`FZ-P3-BUNIT-QUADRATIC`）。单位口径唯一
-  权威 = `docs/science/unified/DATA_SEMANTICS.md`对应章节 / 对应章节。
+  权威 = `docs/science/unified/DATA_SEMANTICS.md`「面亮度单位的推导」与「单位与量纲表」两节。
 - **provenance**：源 product / hash、软件完整 SHA、配置、投影、核、order、近似、
   生成时间。
 - **节点产物**：`output_phase3.fits`、`p3_writer.json`（写侧自述）、`p3_verify.json`
@@ -99,10 +99,10 @@
   `coverage_ok` / `reopen_ok` / `covered_px` /
   `total_px`。
 - **不确定度可得性（fail-closed，唯一出口）**：输入 HiPS 不含 variance / ivar
-  子产品（或权重非纯逆方差、发生 fallback 等 对应章节 规则项）时 → **不写**
+  子产品（或权重非纯逆方差、发生fallback等规则项）时 → **不写**
   VARIANCE / IVAR 扩展 HDU（禁静默丢弃、禁用常量 0 冒充）+ manifest 写
   `uncertainty_available=false` + diagnostics 标红计数；**该键不是失败态**，是
-  unavailable 显式登记模式。正本 = `docs/science/unified/DATA_SEMANTICS.md`对应章节（状态与失败语义）
+  unavailable 显式登记模式。正本 = `docs/science/unified/DATA_SEMANTICS.md`「状态与失败语义」一节
   （禁占位 / 静默缺键 / 空输出冒充）。
 
 ## 4 公共 header、核心 symbol 与生命周期
@@ -177,7 +177,7 @@
 
 - 错误: rc 语义 P3_OUT_OK=0/P3_OUT_PARAM=1/P3_OUT_IO=2/
   P3_OUT_CANCELLED=3（`lib/algorithms/fits_output/p3_output.h`，逐触发锚=ALG-P3-FITS-
-  IMPL-001 对应章节 表）；会话层映射 ACS_OK/ACS_ERR_PARAM/ACS_ERR_IO/
+  IMPL-001［A-1］表）；会话层映射 ACS_OK/ACS_ERR_PARAM/ACS_ERR_IO/
   ACS_ERR_CANCELLED；g_last_err→last_error 脱敏出口（`lib/phase3_session/p3_session.h`）。
 - 失败不变量: 任一步失败 unlink(tmp)/产物，不产生完整假文件、
   不发布无完整性锚输出；sha256 失败→IO 且删产物（`lib/algorithms/fits_output/p3_output.cpp`）。
@@ -234,10 +234,10 @@
 
 ## NaN 与写端口
 
-- NaN 规则（权威 = `ACSD_DESIGN.md`对应章节）：**样本级掩膜 + 重归一 + 覆盖级 NaN + 强制计数**；
+- NaN规则（权威 = `ACSD_DESIGN.md`「逐像素排异」一节）：**样本级掩膜 + 重归一 + 覆盖级NaN + 强制计数**；
   剔除项逐条进场级计数。无覆盖/无数据 = NaN；0 与 ±Inf 不作有效值。
 - signal 语义 = **面亮度**，写端口 `UnitId::SURFACE_BRIGHTNESS`；输出模式显式声明
-  （`surface_brightness` / `point_source_flux` / `visualization`，最高设计对应章节）。
+  （`surface_brightness` / `point_source_flux` / `visualization`，最高设计「输出模式显式声明」一节）。
 
 ## 参考文献
 

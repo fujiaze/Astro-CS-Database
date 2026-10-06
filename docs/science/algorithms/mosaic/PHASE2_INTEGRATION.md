@@ -1,6 +1,6 @@
 # Phase2 Integration Algorithms（P2-INT / acsd.p2.integration）
 
-> 上游：ACSD_DESIGN.md §5.3（SNR 重建与逆方差叠加）
+> 上游：ACSD_DESIGN.md [D-1]「信噪比重建与逆方差叠加」一节（SNR 重建与逆方差叠加）
 
 > 实现源: lib/algorithms/coverage/src/integrate.cpp（89 行，acsd_phase2 静态库成员，
 > 根 `CMakeLists.txt` 的 acsd_phase2 段）+ 唯一权威签名头
@@ -8,11 +8,11 @@
 > 权威: 本文档（算法级逐符号锚）。SCI 上游: SCI-INT-001
 > （docs/science/INTEGRATION.md，FROZEN，集合
 > SCI-INT-001/002/004/008，零改动）。DATA: DATA-P2-INT（DATA_SEMANTICS
-> §21）。API: API-P2-INT-001（PUBLIC_API.md）。TEST: TEST-P2-INT-001
-> （MISSING，P2-INT-TEST 落地；设计冻结面=本文档 §11.4）。
+> [S-1]「与上下游的关系」一节）。API: API-P2-INT-001（PUBLIC_API.md）。TEST: TEST-P2-INT-001
+> （MISSING，P2-INT-TEST 落地；设计冻结面=本文档[S-1]「公式与推导」一节）。
 > 本文档为 Phase2 逐像素加权积分 reducer 的算法级权威（逐符号锚 +
 > 冻结公式 + 状态语义 + 并行归约容差）；ALG-INT-001/002 ID 语义由
-> 本文件 §12 映射承接。
+> 本文件关联映射承接。
 
 ## 1 目的与非目标
 
@@ -38,7 +38,7 @@
 | `n_used` | 实际参与积分样本数 | 无量纲 u32 | 同上 |
 | `wsum` | Σ wᵢ（eligible ∧ w>0） | 与 `weights` 同量纲（像素域 ⇒ ADU⁻²） | `lib/algorithms/coverage/src/integrate.cpp` |
 | `vs` | Σ wᵢxᵢ | `weights`×`values` 量纲（像素域 ⇒ ADU⁻¹） | 同上 |
-| `sup_max` | max(accepted support) —— **canonical 语义**（``lib/algorithms/coverage/src/integrate.cpp``，位于权重分支之前；约束见 §7/§11.3） | 无量纲 | 同上 |
+| `sup_max` | max(accepted support) —— **canonical 语义**（``lib/algorithms/coverage/src/integrate.cpp``，位于权重分支之前；约束见 [S-1]「参考文献与参考代码」一节） | 无量纲 | 同上 |
 
 > **单位口径的证据面**：本表的 `values`/`weights` 取**面亮度域**（`ADU/sr`），由三条
 > 可核证据共同锁定：
@@ -51,7 +51,7 @@
 > 3. **真实产物**：`run/` 下 121 份 signal/properties 中 29 份 `ADU/sr`、
 >    2 份 `ADU/px^2`（手工语料）、**零份裸 `ADU`**。
 >
-> ⇒ **本表按面亮度口径判读**（与 `docs/science/algorithms/PHASE2_REJECTION.md` §2、
+> ⇒ **本表按面亮度口径判读**（与`docs/science/algorithms/mosaic/PHASE2_REJECTION.md` [A-2]「逐公式定义」一节、
 > `docs/science/algorithms/PHASE2_MOSAIC_WRITE.md` 一致）。`docs/detail/registry/acsd.phase2.integrate.md`
 > 的输入/输出端口面若给出像素域 ADU 字面读法，以本表的面亮度口径为准。
 
@@ -107,11 +107,11 @@ ivar/SNR 策略（SNR 只作 veto/质量门，不直接加权）。
 - rc（函数返回）与 status 正交：rc=1 仅 stack/result null（``lib/algorithms/coverage/src/integrate.cpp``）；
   rc=0 时 status 载全部语义。**wsum==0 不做除法**（无正权重分支先行），
   无除零/NaN 泄漏路径。
-- 状态穷尽/互斥为 SCI §11 状态穷尽门冻结面；显式计数器
+- 状态穷尽/互斥为 SCI[S-1]「判据与误差」一节 状态穷尽门冻结面；显式计数器
   （n_candidates/n_accepted/n_finite/n_positive_weight/n_used）供
   状态判据自证（synthetic_gate 冻结）。
 
-## 5 逐公式定义（算法级，与 SCI §5 同构；单位见 §2）
+## 5 逐公式定义（算法级，与 SCI [S-1]「判据与误差」一节 同构；单位见 §2）
 
 ```text
 eligibility（逐候选 i，候选索引固定序）:
@@ -141,15 +141,15 @@ eligibility（逐候选 i，候选索引固定序）:
 - 权重语义（调用方构造，本层无知）: **逐样本 `ivar`（1/ADU²），无任何
   fallback** —— 缺失 ivar 是显式科学错误
   （产品级 `lib/algorithms/coverage/tools/stage2.cpp` rc=7 / 像素级同文件 fail=2），
-  与 SCI-UPM §5、DATA-UNC-001（「逆方差权重，无 fallback」）、
-  DESIGN §3.1/§5.3 一致；权重是 Phase2 按该天球像素对应帧集合现场算出
+  与 SCI-UPM [S-1]「判据与误差」一节、DATA-UNC-001（「逆方差权重，无 fallback」）、
+  DESIGN [S-1]「公式与推导」一节 一致；权重是 Phase2 按该天球像素对应帧集合现场算出
   的派生量，SNR 只作 veto/质量门、不直接加权；
   等权分支/weights=null → 等权 1.0（`lib/algorithms/coverage/tools/stage2.cpp`）。
   权重面只认逐样本 ivar：`legacy_allow_weight_fallback` 不是合同键，
   该键出现在输入中即被拒绝（`lib/infrastructure/scheduler/src/module_adapters.cpp`）；缺 ivar 乘积的样本由
   `ivar_product_missing` 计数，全部齐备时取 1.0、否则取 0.0（`lib/algorithms/coverage/tools/stage2.cpp`）
   ⇒ 缺失一律 fail-closed；该情形下 DATA-UNC-001 要求不写 variance/ivar 产品。
-- 本层冻结的改动面 = 空（SCI §10 逐条承接，本层为合同）: support 改 mean/sum 二次
+- 本层冻结的改动面 = 空（SCI[S-1]「判据与误差」一节 逐条承接，本层为合同）: support 改 mean/sum 二次
   聚合；w==0 改判 INVALID_INPUT；INVALID_INPUT 并入
   ZERO_VALID_WEIGHT；在本层引入 ivar/SNR 策略；改变求和顺序。
 
@@ -179,9 +179,9 @@ eligibility（逐候选 i，候选索引固定序）:
 
 ## 7 与 SCI 的对应与偏差（如实登记）
 
-- SCI §5 伪码与本文档 §5 逐行同构（eligibility/wsum/vs/
+- SCI [S-1]「判据与误差」一节 伪码与本文档 §5 逐行同构（eligibility/wsum/vs/
   signal/support reducer/状态分支）。
-- **support reducer 唯一口径**: `max_{accepted} support[i]`（SCI §5、`lib/algorithms/coverage/include/astro/phase2/integrate.h`、SCI §2/§5/§7 同文，**本口径即全部口径**）。
+- **support reducer 唯一口径**: `max_{accepted} support[i]`（SCI [S-1]「判据与误差」一节、`lib/algorithms/coverage/include/astro/phase2/integrate.h`、SCI [S-1]「物理模型」一节 同文，**本口径即全部口径**）。
   `sup_max` 更新必须置于权重分支**之前**（`lib/algorithms/coverage/src/integrate.cpp`），
   作用域 = 通过资格门的全部 accepted 样本；零权重 accepted 样本的
   support 必须进入 max。**禁用**把 `sup_max` 更新置于 `w==0 continue`
@@ -199,7 +199,7 @@ eligibility（逐候选 i，候选索引固定序）:
 - 整数登记量（status/counters）bitwise 确定；浮点仅 vs/wsum 累加
   与 signal 除法三步。
 
-## 9 边界与退化（SCI §8 逐条实现现状）
+## 9 边界与退化（SCI [S-1]「判据与误差」一节 逐条实现现状）
 
 | 条件 | 行为 | 实现锚 |
 |---|---|---|
@@ -218,8 +218,8 @@ eligibility（逐候选 i，候选索引固定序）:
 2. support canonical reducer 语义 = max(accepted support)（`lib/algorithms/coverage/include/astro/phase2/integrate.h`
    文本口径；`sup_max` 更新位置 = `lib/algorithms/coverage/src/integrate.cpp`，位于权重分支之前，
    **语义解释与更新位置均取上列值**）。
-3. 零权重=合法零贡献（`lib/algorithms/coverage/src/integrate.cpp` / SCI §10）。
-4. 候选索引固定序归约（确定性合同，§6）。
+3. 零权重=合法零贡献（`lib/algorithms/coverage/src/integrate.cpp` / SCI[S-1]「判据与误差」一节）。
+4. 候选索引固定序归约（确定性合同，[S-1]「与上下游的关系」一节）。
 5. policy/reducer 分离（本层不引入权重策略；weights 数组外置）。
 6. 调用方对 pr.support 的用法 = 只消费（`lib/algorithms/coverage/tools/stage2.cpp`
    注释冻结；ACR 同型）。
@@ -228,12 +228,12 @@ eligibility（逐候选 i，候选索引固定序）:
 
 ### 11.1 逐符号锚
 
-见 §3 表（锚=`grep`/read 实测；锚一律给到文件/符号级）。
+见 [S-1]「公式与推导」一节 表（锚=`grep`/read 实测；锚一律给到文件/符号级）。
 
 ### 11.2 返回码/状态码语义
 
 - rc: 0=语义由 status 承载；1=stack/result null（`lib/algorithms/coverage/src/integrate.cpp`）。
-- status: §4 表（五态互斥显式；wsum==0 无除法路径）。
+- status: [S-1]「参数与常数」一节 表（五态互斥显式；wsum==0 无除法路径）。
 - 并发合同: reentrant=yes（无全局/静态可变状态，纯函数）；
   threadsafe=no（无内部锁，并发由调用方像素划分）；internal_parallel
   =none；取消点=无（ThreadLease 接线迁移保持取消点=无，
@@ -250,13 +250,13 @@ eligibility（逐候选 i，候选索引固定序）:
   `{w=1,1,0}`、全 accepted，必须输出 `support=0.9`；置于分支之后的实现输出
   `support=0.3` ⇒ 判红（证明该判据有判别力）；两臂 `signal` 逐位相同（=11），
   即 support 与 signal 正交。
-- **约束（`DISP-P2INT-002` 面）**：`docs/science/INTEGRATION.md` §5/§7、`docs/detail/registry/acsd.phase2.integrate.md` 的错误/边界面
+- **约束（`DISP-P2INT-002` 面）**：`docs/science/integration/INTEGRATION.md` [S-1]「判据与误差」一节、`docs/detail/registry/acsd.phase2.integrate.md`的错误/边界面
   与 ``lib/algorithms/coverage/include/astro/phase2/integrate.h`` 的文本口径必须同为 `max_{accepted} support[i]`，
   **该口径即唯一口径**。
 
 ### 11.4 TEST-P2-INT-DESIGN-001 冻结测试设计（可执行 TEST-P2-INT-001 由 P2-INT-TEST 落地）
 
-- **F1 常量场门**（SCI §11）: `values[i]=C`（多权重组合
+- **F1常量场门**: `values[i]=C`（多权重组合
   equal/snr²/support_x_snr2/ivar 形状）→ `signal==C`
   （max_abs==0，rtol 0）；与权重分布无关。
   **判据非退化声明**：常量场门对任何满足 `ΣwᵢC/Σwᵢ` 的实现恒真，
@@ -268,7 +268,7 @@ eligibility（逐候选 i，候选索引固定序）:
   再构造 `weights = {1, 1, 0}`（含零权重）→ 断言 `signal == 1.5` 且 `n_used == 2`。
   负例（能红）：把权重整列替换为常数或按 support 替代，`signal` 必须偏离 2.75/1.5。
   该门对「权重被静默替换/降级」有判别力，是 F1 的补集。
-- **F2 零权重门**（SCI §11 零权重惰性）: 含 w=0 样本（含
+- **F2 零权重门**（SCI [S-1]「判据与误差」一节 零权重惰性）: 含 w=0 样本（含
   零权重 accepted 且 support 不同的样本）→ signal 与移除该样本
   bitwise 等价；n_accepted/n_finite 计入、n_used/n_positive_weight
   不计；全零权重 → ZERO_VALID_WEIGHT 且计数器五元组精确断言
@@ -281,7 +281,7 @@ eligibility（逐候选 i，候选索引固定序）:
 - **F5 DISP-P2INT-001 回归门**: 构造零权重 accepted 样本
   （support 高于正权样本）→ 断言输出 support=全局 max（按 header
   注释口径）。
-- **F6 Python 参考 Oracle**（SCI §11）: NumPy 对同
+- **F6 Python 参考 Oracle**（SCI[S-1]「判据与误差」一节）: NumPy 对同
   values/weights/support/accepted 复算 signal/support/status/
   全计数器，`rtol 1e-12`。
 - **F7 并行一致性门**（§6）: 同输入 1..N 线程（Stage2 路径
@@ -308,28 +308,28 @@ eligibility（逐候选 i，候选索引固定序）:
   docs/science/INTEGRATION.md，MOD-acsd-phase2-integrate 行）。
   SCI 公式语义不在此重复定义，
   两处冲突时以 docs/science/ 为准并回改本文档（方向 = 从 docs/science/ 到本文档）。
-  ALG-INT-001/002（SCI §12）⇒ 本文档 §3/§5 算法定义承接。
+  ALG-INT-001/002（SCI[S-1]「判据与误差」一节）⇒ 本文档 [S-1]「公式与推导」一节 算法定义承接。
 - 本节是唯一冻结依据（编排层词汇只作对齐对象；descriptor acsd.phase2.integrate
   由 P2-XX-INT 对齐，不作冻结依据）。
 
 ## 12 关联 ID 映射（本文件承接）
 
-- `ALG-P2-INT-001` = 本文档整体（逐符号锚 §3/§5；矩阵 P2-INT 行
+- `ALG-P2-INT-001` = 本文档整体（逐符号锚 [S-1]「公式与推导」一节；矩阵 P2-INT 行
   algorithm_id）。
-- `ALG-INT-001`（SCI §12, p2_integrate_pixel 加权均值+max reducer）
-  ⇒ 本文档 §3/§5；`ALG-INT-002`（p2_validate_candidate_weights）
-  ⇒ 本文档 §3（``lib/algorithms/coverage/src/integrate.cpp``）。两 ID 为共享 SCI 层 ALG 词汇，本文件不
+- `ALG-INT-001`（SCI[S-1]「判据与误差」一节, p2_integrate_pixel 加权均值+max reducer）
+  ⇒ 本文档 [S-1]「公式与推导」一节；`ALG-INT-002`（p2_validate_candidate_weights）
+  ⇒ 本文档 [S-1]「公式与推导」一节（``lib/algorithms/coverage/src/integrate.cpp``）。两 ID 为共享 SCI 层 ALG 词汇，本文件不
   抢注、不重复登记（INDEX.yaml ALG-INT-001 path 绑定本文件后，
-  经 §13 指向语义承接）。
+  经[S-1]语义承接）。
 - `INTEGRATION_ZERO_WEIGHT_CONTRACT`（冻结名，`lib/algorithms/coverage/include/astro/phase2/integrate.h` 注释）
-  = §5 零权重条款 + §10.3 冻结项。
+  = [S-1]「判据与误差」一节 零权重条款 + [S-1]冻结项。
 
 ## 13 追溯
 
 - 实现: lib/algorithms/coverage/src/integrate.cpp（89 行）+
   lib/algorithms/coverage/include/astro/phase2/integrate.h（83 行）。
 - 合同: DATA-P2-INT（`docs/detail/registry/acsd.phase2.integrate.md`）/ API-P2-INT-001
-  （PUBLIC_API.md）/ TEST-P2-INT-001（MISSING，§11.4 设计冻结）。
+  （PUBLIC_API.md）/ TEST-P2-INT-001（MISSING，[S-4]「推导补遗」一节 设计冻结）。
 - 交叉: `docs/detail/registry/acsd.phase2.integrate.md`（手写合同页）+
   lib/algorithms/integration/ 三件套。
 - 消费者: stage2.cpp（`docs/detail/registry/acsd.phase2.write.md` 域）/ acr_kernels.cpp
@@ -346,9 +346,16 @@ eligibility（逐候选 i，候选索引固定序）:
   行带为原子单元。
 - **复杂度**：每像素 O(k)，`k` 为该像素的候选数。
 
+> 本文引用上游正本（论文式编号，正文引用处均已改为自然语言节名，不再使用跨文档 §N 跳转）：
+> - [D-1] docs/ACSD_DESIGN.md（最高设计）。
+> - [S-1] docs/science/integration/INTEGRATION.md（集成科学正本 SCI-INT-001）。
+> - [S-4] docs/detail/registry/acsd.phase2.integrate.md（相关科学正本）。
+> - [U-1] docs/science/unified/DATA_SEMANTICS.md（数据语义正本）。
+> - [A-2] docs/science/algorithms/mosaic/PHASE2_REJECTION.md（排异算法分册）。
+
 ## 参考文献与参考代码库（含许可证）
 
 - 加权均值/逆方差聚合：教科书级（Bevington & Robinson 2003；Aitken 1935, Proc. Roy. Soc. Edinburgh 55, 42, DOI 10.1017/S0370164600014346 【出版年双源登记】本仓取 1935 = 论文出版年：一手依据 = 纸本合卷 Proc. R. Soc. Edin. Vol. LV 逐字「Read March 4, 1935」与「Issued separately March 6, 1935」（Internet Archive dli.ernet.7410）；另一源 CrossRef 与 Cambridge Core 卷期页记 1936 = **合卷印年**（同卷扉页逐字「VOL. LV. / 1934-1935 / MCMXXXVI」）。**结论：不改数字，保留 1935**；双源差异在此登记，不按错处理。）。**差异**：本层不编码 ivar 语义（§7）。
 - 最优叠加/信息保持：Zackay & Ofek 2017, ApJ 836, 187/188。**边界**：Naylor 1998, MNRAS 296, 339 是**最优源提取**（"An optimal extraction algorithm for imaging photometry"），**不是**最优叠加/信息保持的来源，引用时不得据此宣称叠加最优性。
-- support=max：Project-defined（§5）；与 SCI-INT §5 同构。
+- support=max：Project-defined（§5）；与 SCI-INT [S-1]「判据与误差」一节 同构。
 - 并行归约容差：IEEE 754-2019；Higham 2002。

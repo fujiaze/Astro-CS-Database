@@ -1,12 +1,12 @@
 # 模块 acsd.phase1.noise-snr
 
-> 上游：`docs/ACSD_DESIGN.md`对应章节（模块与 ABI）、对应章节（跨帧可用的绝对信噪比）、
-> 对应章节（全程只有 SNR）、对应章节（Phase1 节点流程）、对应章节（输出合同）
-> 科学正本：docs/science/noise_snr/NOISE_SNR.md（噪声模型 A，对应章节/对应章节 连续定义与平面场、对应章节 缓变谓词、对应章节 精度归属）、
-> docs/science/noise_snr/NOISE_SNR.md（帧级 SNR 对应章节 与点源信息权重 对应章节 的定义式）、
-> docs/science/algorithms/NOISE_ESTIMATION.md（ALG-NOISE-001..003，对应章节对应章节 推导与
-> 对应章节 逐符号锚 / 缺陷登记）、`docs/science/noise_snr/NOISE_SNR.md`对应章节（适用域与失效域）
-> 数据正本：docs/detail/registry/acsd.phase1.noise-snr.md（DATA-P1-NOISE 端口表，本页输入输出端口表）；三态表见 `docs/science/unified/DATA_SEMANTICS.md`对应章节
+> 上游：`docs/ACSD_DESIGN.md`「模块与 ABI」一节、「P2 跨帧绝对信噪比」一节、
+> 「全程只有 SNR」口径、「Phase1 节点流程」一节与「输出合同」一节
+> 科学正本：docs/science/noise_snr/NOISE_SNR.md（噪声模型A，「公式与推导」一节连续定义与平面场、「缓变」谓词与「精度归属」三节）、
+> docs/science/noise_snr/NOISE_SNR.md（帧级SNR与点源信息权重两节的定义式）、
+> docs/science/algorithms/common/NOISE_ESTIMATION.md（ALG-NOISE-001..003，「离散公式」一节推导与
+> 「逐符号锚」与「缺陷登记」两节）、`docs/science/noise_snr/NOISE_SNR.md`「适用域与失效域」一节
+> 数据正本：docs/detail/registry/acsd.phase1.noise-snr.md（DATA-P1-NOISE 端口表，本页输入输出端口表）；三态表见 `docs/science/unified/DATA_SEMANTICS.md`「方差与逆方差的三态编码」一节
 > API 正本：docs/engineering/api/PUBLIC_API.md（API-NOISE-001）、API-P1-006
 > （docs/engineering/api/PUBLIC_API.md「分阶段 API 面」）
 > 数据对象：docs/detail/common/unified_model.md（frame_snr、sparse_snr_layer）
@@ -26,7 +26,7 @@ Registry production 模块（唯一源 = module_adapters.cpp 的 p1_noise_snr_de
 
 三层噪声模型：`PhotometricCalibrationQuality` / `PsfFitQuality` /
 `NoiseWeightModelV1`（空背景稳健方差 → ivar）。噪声模型 A = `NoiseWeightModelV1`
-（逐像素，正本 `docs/science/noise_snr/NOISE_SNR.md`对应章节/对应章节）为**唯一生产模型**；噪声 σ 来源 =
+（逐像素，正本`docs/science/noise_snr/NOISE_SNR.md`「背景方差面」与「加权方差面」两节）为**唯一生产模型**；噪声 σ 来源 =
 局部 patch + 星点掩膜 + 饱和过滤。生产内核 = `cpp/src/noise_model.cpp`（patch
 采集与 σ 估计），模块入口 = `src/module_entry.cpp`，phase1 包装面 =
 `wrapper_phase1/snr_frame_science.{h,cpp}`。
@@ -64,21 +64,21 @@ invalid = NaN/coverage=0（按 DATA 合同）。
 `frame_snr` 与 `sparse_snr_layer` 是**相互独立**的两个对象，稀疏层**不作**
 帧级标量的尺度基准。`point_information` 是权重、帧级 SNR 是信噪比，两者不是同一
 对象。权重不落盘：HiPS 里只存帧级 SNR 与稀疏**绝对** SNR，权重由 Phase2 集成
-时现场派生（最高设计对应章节）。端口只接同一种对象：Phase2 集成端口只接受
+时现场派生（最高设计数据对象口径）。端口只接同一种对象：Phase2 集成端口只接受
 `frame_snr` / `sparse_snr_layer` 与 `point_information`，接错判红。
 
 **不输出**：Phase2 / Phase3 产物不含 SNR 面/块。
 
 ### 数值落地口径
 
-信息核、帧级 SNR 与换算的定义式正本 = `docs/science/noise_snr/NOISE_SNR.md`对应章节/对应章节；本页只记落地约束。
+信息核、帧级SNR与换算的定义式正本 = `docs/science/noise_snr/NOISE_SNR.md`「绝对信噪比」与「定权」两节；本页只记落地约束。
 
 #### 帧级 SNR（frame_snr）
 
 - 是**唯一帧级参考**，写入 HiPS 文件头；
 - **是未加权的原始信噪比，不是权重** —— 它只描述「这一帧的真实源信号相对真实
   噪声有多强」这一客观测量事实，不包含任何为某次叠加服务的加权；权重由 Phase2
-  逆方差集成时从 SNR 现场计算（最高设计对应章节）；
+  逆方差集成时从SNR现场计算（最高设计「信噪比重建与逆方差叠加」一节）；
 - **信号经独立的局部背景估计与扣除**：天光不进入信号项；把天光计入信号的普通
   SNR 会随天光变亮而虚高，不能作唯一帧级参考；
 - **天光只通过散粒噪声进入噪声项**：天光变亮 ⇒ 噪声增大 ⇒ SNR 单调下降，
@@ -88,7 +88,7 @@ invalid = NaN/coverage=0（按 DATA 合同）。
 背景**；天光**只作为噪声项**进入 `σ_F`；固定源通量、增大天光 ⇒ SNR **单调下降**
 （`B → ∞` 时 `SNR → 0`），该性质必须可复现；帧级 SNR 是**点源（PSF）量**，与
 面亮度 SNR **各自独立、互不代用**。`F_signal` 的测光口径与 `σ_F` 的稳健噪声
-估计以 `docs/science/noise_snr/NOISE_SNR.md`对应章节/对应章节 为正本。**验收方式**：对每条
+估计以`docs/science/noise_snr/NOISE_SNR.md`「绝对信噪比」与「定权」两节为正本。**验收方式**：对每条
 SNR 路径做**注入-回收** —— 已知真值信号 + 已知天光 + 已知噪声，回收的 SNR
 必须等于真值 `F_s/σ_F`；不满足者修正或退回重检。
 
@@ -183,7 +183,7 @@ HiPS 是数据库：帧产品长期保存、可被任意多次、任意科学目
 3. gain 未知（≤ 0，PSF 行路径）⇒ **源泊松项同样不可加**（该项含增益倒数，无
    增益即无法计算）⇒ 退回**天空受限**口径，此口径下 SNR **系统性偏高**，是
    **上界**而不是绝对 SNR ⇒ 产品必须标 `snr_caliber = upper_bound_no_gain`
-   并带 `snr_degraded_reason`，该值**仅限上界诊断**（最高设计对应章节 的交付物
+   并带 `snr_degraded_reason`，该值**仅限上界诊断**（最高设计交付物口径
    是绝对 SNR）；
 4. 声明与实际来源不一致（声称散粒而来源为经验总 rms，或反之）⇒ **fail-closed
    拒绝**，告警不构成放行。
@@ -220,7 +220,7 @@ docs/science/noise_snr/NOISE_SNR.md。
 输出值在 float32 中不可表示（下溢为 0、上溢为非有限）的像素取不可用态；
 不可用方差的落盘值 = 显式不可用态本身 —— floor clamp 会把「模型在此处失效」
 发布成极大逆方差；`(0, +inf)` 这类自相矛盾的对同样按不可用态处理。正本 =
-`docs/science/noise_snr/NOISE_SNR.md`对应章节 数值地板与三态、对应章节 精度归属 与 `docs/science/unified/DATA_SEMANTICS.md`对应章节 三态表。
+`docs/science/noise_snr/NOISE_SNR.md`「适用域与失效域」一节数值地板与三态、「精度归属」一节与`docs/science/unified/DATA_SEMANTICS.md`「方差与逆方差的三态编码」一节三态表。
 该组判据的负例面（平面预测不可用、float32 下溢/上溢对）与自证面（证明判据能红、
 非恒真）已取证，载体不在本仓可复算路径上。
 
@@ -231,7 +231,7 @@ docs/science/noise_snr/NOISE_SNR.md。
 #### 背景方差面的自适应拟合与审计面
 
 背景方差面的**控制点有效性**与**拟合可行域**都由数据自身给出，**不含按数据集
-标定的常数**（正本 = `docs/science/noise_snr/NOISE_SNR.md`对应章节 空间方差场）。
+标定的常数**（正本 = `docs/science/noise_snr/NOISE_SNR.md`「背景方差面」一节空间方差场）。
 
 - **控制点有效性判据是自校准统计量** `R` = 该 patch 的稳健尺度 / 同一 patch
   在**白噪声零假设**下的等价尺度。该判据的**零假设值恒为 1**，是恒等式而不是
@@ -338,7 +338,7 @@ docs/science/noise_snr/NOISE_SNR.md。
   未分辨结构仍被算进稳健尺度）。控制点的局部 σ **必须**用**结构感知**估计器：
   mesh 局部背景扣除后的逐区域残差稳健尺度，或跨帧差分（唯一零结构偏差口径）；
   估计器标识、`sigma_rho` 与 `quality_flags` 一并入 manifest。估计器认证、逐
-  区域偏差与适用域见 `docs/science/noise_snr/NOISE_SNR.md`对应章节/对应章节。
+  区域偏差与适用域见`docs/science/noise_snr/NOISE_SNR.md`「适用域与失效域」一节。
 
 ## 公共 header、核心 symbol 与生命周期
 
@@ -444,7 +444,7 @@ cache/内存按 ALG 合同（bounded）; I-O 单 writer。平面判定与审计�
   拒绝。
 
 取消 = 协作取消（契约：宿主 cancel 通道 → 停止调度新单元 → 等运行中单元完成
-→ exit 9，最高设计对应章节；接线以实测为准）；模块内无 checkpoint。
+→ exit 9，最高设计协作取消口径；接线以实测为准）；模块内无 checkpoint。
 
 ## 独立 synthetic 验证命令与容差
 
@@ -495,7 +495,7 @@ Oracle 面：
 
 ## 已知限制
 
-- 缺陷与整改登记 = `docs/science/algorithms/NOISE_ESTIMATION.md`对应章节；
+- 缺陷与整改登记 = `docs/science/algorithms/common/NOISE_ESTIMATION.md`［A-1］；
 - gain 未知时源泊松项不可加，帧级 SNR 退化为天空受限上界口径
   （`snr_caliber = upper_bound_no_gain`），该值仅限上界诊断；
 - 以本帧检出通量中位数充当本帧参考通量的形态为 fail-closed（数据派生参考通量

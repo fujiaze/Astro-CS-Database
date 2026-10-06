@@ -1,6 +1,6 @@
 # PSF Algorithms (ALG-PSF)
 
-> 上游：ACSD_DESIGN.md §4.2（Phase1 节点流程）
+> 上游：ACSD_DESIGN.md [D-1]「节点流程」一节（Phase1 节点流程）
 
 ## 1 上游 SCI 与输入输出
 
@@ -19,7 +19,7 @@
 - 列数/shape：[N,9]；dtype/单位：B/A/flux/ADU 域、x0/y0/sx/sy/fwhm=px、
   θ=rad、residual_scale=ADU、q_psf=无量纲（均为 double/FLOAT64）。
 - 使用面：LM 拟合参数向量序（常数与维数 `lib/algorithms/psf/src/dpsf_psf.cpp`）、
-  §3 伪代码 init/回填、测试 oracle（§10 解析 Moffat4 合成图回收 B,A,cx,cy,sx,sy,θ）。
+  [S-1]「公式与推导」一节 伪代码 init/回填、测试oracle（[S-1]「判据与误差」一节解析Moffat4 合成图回收 B,A,cx,cy,sx,sy,θ）。
 - 逐列 dtype/invalid 详见 `docs/detail/registry/acsd.phase1.star-psf.md`（DATA-P1-PSF 端口，
   `DPSFFitResult` 逐列面）的生产表布局 B 对照。
 
@@ -39,10 +39,10 @@
   cx/cy/fwhm/eccentricity 如上。
 - **θ 列不在此布局中**（布局 B 无 θ 列）；布局 A 的 θ 单位 rad，**规范值域
   `[0, π)`**，消费方必须先归约再作位置角解释（实测真实产物 `|θ|>π` 占 63.1%，
-  见 `docs/science/psf/PSF.md` §4）。
+  见 `docs/science/psf/PSF.md` [S-1]「参数与常数」一节）。
 - **[7] 列名 `mad` 与语义**：权威语义 = 10–90% 截尾均值 |残差|（`residual_scale`，
   单位 ADU），**不是**中位绝对偏差；`robust_residual_sigma = [7]/0.7316727929211932`
-  仅在 Gaussian 残差且 `m ≥ 441` 时具绝对标度意义（`docs/science/psf/PSF.md` §3.5）。
+  仅在 Gaussian 残差且 `m ≥ 441` 时具绝对标度意义（`docs/science/psf/PSF.md` [S-1]「拟合残差的截尾标度」一节）。
 - 消费者：PHOTOMETRIC（必需块，缺失退出码 3，`lib/infrastructure/pipeline/orchestrator/cpp/src/orchestrator.cpp`）、
   snr_psf_fit_quality（`lib/algorithms/noise_snr/cpp/include/snr_estimator.h` PsfFitQualityRow 同序映射）；
   逐列 dtype/invalid 权威表见 **`docs/detail/registry/acsd.phase1.star-psf.md` 的
@@ -173,7 +173,7 @@ Batch deterministic: input order fixed, per-star independent, reduction none cro
 
 ## 11 冻结附录（SRC-PSF-001 源码实测）
 
-> 本节为冻结附录：只登记现状与测试设计，不改 §1–§10 科学公式。
+> 本节为冻结附录：只登记现状与测试设计，不改[S-1]科学公式。
 > 实测基准 = `lib/algorithms/psf/src/dpsf_psf.cpp`（**1432 行**；原文「934 行」为旧稿）与
 > `lib/algorithms/psf/include/dynamic_psf.h`。模块合同入口 =
 > `lib/algorithms/psf/README.md`（r1）+ `lib/algorithms/psf/module.yaml`（CONTRACT_READY）。
@@ -203,9 +203,9 @@ Batch deterministic: input order fixed, per-star independent, reduction none cro
 | 批拟合 OpenMP `schedule(dynamic) reduction(+:success_count)` 4 处 | dpsf_psf.cpp |
 
 §3 伪代码与实测一致：LM 实参 tol=1e-8、max_iter=200（dpsf_psf.cpp 调用点，硬编码）；
-`DPSFFitParams.maxIter/tolerance` 字段不被消费（DISP-PSF-003）。§4 NaN/Inf 行为 =
+`DPSFFitParams.maxIter/tolerance` 字段不被消费（DISP-PSF-003）。[S-1]「参数与常数」一节 NaN/Inf 行为 =
 **逐像素**采样过滤 + 整窗全非有限时 `INVALID_PARAMS`(2)（均在 dpsf_psf.cpp）；
-状态码域 = {0,1,2,3}（dynamic_psf.h）。§4 饱和掩膜 reject 属 star_detector 侧，
+状态码域 = {0,1,2,3}（dynamic_psf.h）。[S-1]「参数与常数」一节 饱和掩膜 reject 属 star_detector 侧，
 dynamic_psf 不消费饱和列 [4]/[5]（列注释见 dpsf_psf.cpp；两处批循环均不索引 detections 第 4/5 列）。
 
 ### 11.2 拟合失败语义（冻结，P1-PSF-TEST 逐码负例）
@@ -234,7 +234,7 @@ dynamic_psf 不消费饱和列 [4]/[5]（列注释见 dpsf_psf.cpp；两处批�
 
 ### 11.4 TEST-PSF-DESIGN-001（测试设计，P1-PSF-TEST 执行）
 
-- unit：4 状态码逐码负例（§11.2 表）；rect 面积<9/越界/空 rect；饱和列不消费断言。
+- unit：4 状态码逐码负例（[D-1]冻结表）；rect 面积<9/越界/空 rect；饱和列不消费断言。
 - oracle：解析 Moffat4（β=4）合成图回收 B,A,cx,cy,sx,sy,θ；flux=2πAsxsy/3 与
   FWHM=1.230310·σ 恒等复核；独立参考不调用生产 symbol（11 号标准 §5）。
 - property：θ 消歧确定性（同输入同 θ 回选）；eccentricity∈[0,1)；批输出成功行
@@ -248,10 +248,14 @@ dynamic_psf 不消费饱和列 [4]/[5]（列注释见 dpsf_psf.cpp；两处批�
 
 ### 11.5 SCI-P1-PSF-001 状态声明
 
-科学专项（matrix P1-PSF 行）映射：known Gaussian/Moffat parameters=§2 公式 + §11.1
-参数序/初值/常量锚；fit failure semantics=§11.2（四码语义冻结，无含糊）；degenerate/
+科学专项（matrix P1-PSF 行）映射：known Gaussian/Moffat parameters=[S-1]「物理模型」一节公式 + 「判据与误差」一节
+参数序/初值/常量锚；fit failure semantics=[S-1]「判据与误差」一节（四码语义冻结，无含糊）；degenerate/
 saturated=§11.2 简并兜底 + §11.1 饱和列不消费登记（P1-PSF-TEST 专项）；covariance=
 现状缺失，DISP-PSF-005 显式登记为 P1-PSF-IMPL 整改项，状态词停在登记态。
+
+> 本文引用上游正本（论文式编号，正文引用处均已改为自然语言节名，不再使用跨文档 §N 跳转）：
+> - [D-1] docs/ACSD_DESIGN.md（最高设计）。
+> - [S-1] docs/science/psf/PSF.md（PSF 建模科学正本 SCI-PSF-001）。
 
 ## 参考文献与参考代码库（含许可证）
 

@@ -1,12 +1,12 @@
 # Phase3 HiPS→FITS Resample Algorithms (ALG-P3)
 
-> 上游：ACSD_DESIGN.md §6.2（export 流程）、§6.3（投影算法）
+> 上游：ACSD_DESIGN.md [D-1]「流程」一节（export 流程）、[D-1]「投影算法」一节法）
 
 > 施工规格（重采样域实现级合同 = `docs/science/algorithms/PHASE3_RSMP_IMPL.md`，投影域 = `docs/science/algorithms/PHASE3_PROJ_IMPL.md`，写出域 = `docs/science/algorithms/PHASE3_FITS_IMPL.md`）；生产源 `lib/algorithms/resample/p3_resample.cpp`（586 行，实测在库）。
 
 ## 1 上游 SCI 与输入输出
 
-- 上游: `SCI-P3-001`（PHASE3_HIPS_TO_FITS.md §5 连续定义 + §9a 十二项冻结）
+- 上游: `SCI-P3-001`（PHASE3_HIPS_TO_FITS.md [S-1]「判据与误差」一节 连续定义 + [S-1]「判据与误差」一节十二项冻结）
 - 输入: HiPS 目录(properties+tiles, float FITS) + 用户参数 center(RA,Dec)/s_out/W_out/H_out/sampler(nearest|bilinear)/parity(east_left|east_right)/bitpix(-32|-64)
 - 输出: 单张 FITS image(S+C=coverage, 经掩膜合成或独立 COV 扩展由 API-004 冻结) + provenance(HISTORY); 落盘原子(tmp+rename)
 - 前置依赖: `lib/algorithms/shared/healpix`（ALG-HEALPIX-*，round-trip ≤1e-12 deg, NESTED 父子一致）
@@ -27,7 +27,7 @@ G2 (ALG-P3-002) 反向映射 (逐输出像素 (x,y), 1-based→中间平面):
   TAN 参考点含 CRVAL2（θ0=CRVAL2，Paper II §2.2；CRPIX 处 world == CRVAL）
   gnomonic: (ξ,η)=atan2 形式; 球面角差按 RA wrap 归一
 
-G3 (ALG-P3-003) order 选择 (SCI-P3 §5 冻结):
+G3 (ALG-P3-003) order 选择 (SCI-P3 [S-1]「判据与误差」一节 冻结):
   s_out_rad = s_out · π/180                         # s_out 单位 deg/px（量纲声明，M7-A-209）
   s_tile_rad(order) = sqrt(π/3) / (2^order · W)     # 叶级像素**等面积等效线尺度**（精确，非近似）
   order_needed = ceil( log2( sqrt(π/3) / (W · s_out_rad) ) )
@@ -52,12 +52,12 @@ G4 (ALG-P3-003) leaf 采样:
             （唯一实现；p3_sample_bilinear_ex 为其薄封装，同一数学路径）。
             已对齐项: ①样本级掩膜 + 剩余有效邻域重归一（FP64，固定 k 序）；
             ②weights[4] 暴露**生效（重归一）权重** c_k = w_k / Σ(合格 w_j)，被剔除样本
-            恰为 0 —— 方差项必须消费该权重（DATA-002 §2a 规则 1「从分子、分母、方差
+            恰为 0 —— 方差项必须消费该权重（DATA-002 [S-1]「判据与误差」一节规则一「从分子、分母、方差
             三项一并剔除并重新归一」）；③强制计数经 P3SampleRejection 暴露，字段名取
             权威冻结名 n_rejected_nonfinite（按原因分类，互斥可加）；
             ④C 不变（只判足迹内有无 tile 像素）。
             未冻结项: 该计数的**产品承载面**（逐像素平面 / JSON / provenance）未见权威
-            规定 → 不自行发明，登记 ALG-P3-RSMP-IMPL-001 §11 DISP-P3RSMP-006。
+            规定 → 不自行发明，登记 ALG-P3-RSMP-IMPL-001 [S-1]「判据与误差」一节DISP-P3RSMP-006。
 
 G5 (ALG-P3-004) FITS 写:
   BITPIX=−32/−64, BSCALE=1, BZERO=0
@@ -75,14 +75,14 @@ G5 (ALG-P3-004) FITS 写:
   coverage: C=1 ⇔ 足迹内存在 tile 像素（值可为 NaN；NaN 只进 S 不改 C）; 无覆盖 S=NaN/C=0
 ```
 
-推导来源: **SCI-P3-001 §5 连续定义与 §9a 冻结回答的离散化**（G1↔§9a-4, G2↔§5 反向映射, G3↔§9a-5, G4↔§9a-6/7, G5↔§9a-11）；实现一致性锚（非推导依据）:
+推导来源: **SCI-P3-001 [S-1]「判据与误差」一节连续定义与冻结回答的离散化**（G1↔[S-1]「判据与误差」一节, G2↔[S-1]「判据与误差」一节 反向映射, G3↔[S-1]「判据与误差」一节, G4↔[S-1]「判据与误差」一节, G5↔[S-1]「判据与误差」一节）；实现一致性锚（非推导依据）:
 `lib/algorithms/resample/p3_resample.cpp`（G3=`p3_order_select`、G4=nearest/bilinear 采样核）
 与 `lib/algorithms/projection/p3_wcs.cpp`（G1/G2）。
 
 **G3 的适用域与量纲（证据锚）**：`s_tile_rad` 是**等面积等效**线尺度——HEALPix 同 nside
 下所有单元面积严格等于 `4π/(12·nside²)`（Górski et al. 2005, ApJ 622, 759 §4），故
 `sqrt(π/3)/(2^order·W)` 与该面积的平方根**逐位恒等**（非近似）；本仓实验
-实验/healpix-polar/（叶面积恒等式正本 = docs/DERIVATIONS-P3.md §D1）：nside=512/1024 × 9 档纬度面积
+实验/healpix-polar/（叶面积恒等式正本 = `docs/DERIVATIONS-P3.md` [S-3]「协方差传播」一节）：nside=512/1024 × 9 档纬度面积
 相对偏差恒 0.0（阴性对照：等经纬网格在 dec=89.9° 偏 −20.5%）。**但它不是各向同性分辨率
 上界**：单元局部采样步长（邻元中心角距）随纬度/方向变化，nside=512 实测共边邻元 ∈
 [0.63,0.71]×该尺度、对角邻元 ∈ [1.95,2.94]×该尺度。要求方向性分辨率保证的消费方须按局部
@@ -94,7 +94,7 @@ G5 (ALG-P3-004) FITS 写:
 function phase3_resample(hips_dir, params):
   props = read_properties(hips_dir)                    # ALG-P3-001: 必需键校验, 非法显式拒
   validate(params): frame=icrs, W,H∈[1,20000], s_out>0, |center.Dec|≤85°(距极点 ≥5°), pixfrac N/A
-    # |center.Dec| ≤ 85°（离两极 ≥5°），与 SCI-P3 §4 的 abs(dec)<=85° 一致。
+    # |center.Dec| ≤ 85°（离两极 ≥5°），与 SCI-P3 [S-1]「参数与常数」一节 的 abs(dec)<=85° 一致。
   order_sel = G3(props.hips_order, W=props.hips_tile_width, s_out)
   cd = G1(params); tiles = TileCache(order_sel)        # 有界 **LRU** 缓存（SharedTileCache：get 时 splice 到表头 = 访问序更新，超容逐出表尾；跨 worker 共享 + 负缓存 + 每 sampler 8 槽热缓存；p3_resample.cpp 与 `p3_sampler_attach_cache`）
   parallel for row_band in rows(out):                  # worker pool by affinity, 禁硬编码线程数
@@ -157,7 +157,7 @@ function phase3_resample(hips_dir, params):
 
 ## 8 参考实现/Oracle
 
-- reference 实现即生产实现(首版)；Oracle=SCI-P3 §11 全集, **Oracle 不调用本模块**（独立小规模球面 reference + 独立 FITS/WCS 读取器）；容差: WCS roundtrip ≤1e-8 px（生产注册表 `p3_wcs.cpp`（`kTanApplicability`，单一事实源 `p3_wcs_applicability()`））；常数场（nearest）逐值相等；常数场（bilinear）|S−B0| ≤ k·ULP·B0（**不作 max_abs=0 逐位断言**，M7-F-201：Σw=1±k·ULP 经 S=Σw·B0 传递）；解析场容差由 SYN-007 预冻结。
+- reference 实现即生产实现(首版)；Oracle=SCI-P3 [S-1]全集, **Oracle 不调用本模块**（独立小规模球面 reference + 独立 FITS/WCS 读取器）；容差: WCS roundtrip ≤1e-8 px（生产注册表 `p3_wcs.cpp`（`kTanApplicability`，单一事实源 `p3_wcs_applicability()`））；常数场（nearest）逐值相等；常数场（bilinear）|S−B0| ≤ k·ULP·B0（**不作 max_abs=0 逐位断言**，M7-F-201：Σw=1±k·ULP 经 S=Σw·B0 传递）；解析场容差由 SYN-007 预冻结。
 
 - 掩膜口径 Oracle（非生产自证）：lib/algorithms/resample/tests/p3rsmp/p3_nan_mask_test.cpp ——
   在四角 leaf 逐像素注入 NaN/±Inf，期望值 = 剩余合格邻域**重归一**加权和（本文件独立复算，
@@ -166,7 +166,7 @@ function phase3_resample(hips_dir, params):
 
 ## 9 容差来源
 
-- WCS roundtrip 1e-8 px：SCI-P3 §7 不变量(FP64 反向映射+Paper I/II 语义)；
+- WCS roundtrip 1e-8 px：SCI-P3 [S-1]「参考文献与参考代码」一节 不变量(FP64 反向映射+Paper I/II 语义)；
 - 常数场（bilinear）：|S−B0| ≤ k·ULP·B0——由 Σw = 1 ± k·ULP 传递（不是逐位 0；M7-F-201）；
 - 解析球面场容差：h≤s_out 约束下 bilinear O(h²) 误差界 → SYN-007 表冻结(任务 SYN-007 落实具体数值)；
 - 样本级掩膜后的重归一为恒等 ± 舍入（全部样本合格时 c'_k = w_k/(1±k·ULP)）⇒ 不引入
@@ -179,16 +179,21 @@ function phase3_resample(hips_dir, params):
 - API: `API-004`(CLI JSONL 输入/输出, 待建)
 - TST: `SYN-007` 五件套(oracle 独立性)；`TST-P3-*` 编号随 API-004 建立
 
+> 本文引用上游正本（论文式编号，正文引用处均已改为自然语言节名，不再使用跨文档 §N 跳转）：
+> - [D-1] docs/ACSD_DESIGN.md（最高设计）。
+> - [S-1] docs/science/projection/HIPS_TO_FITS.md（投影导出科学正本 SCI-P3-001）。
+> - [S-3] docs/science/noise_snr/NOISE_SNR.md（噪声与信噪比正本）。
+
 ## 参考文献与参考代码库（含许可证）
 
 - HiPS 层级/tile 与 order：IVOA HiPS 1.0（https://www.ivoa.net/documents/HiPS/）；Fernique et al. 2015, A&A 578, A114。
 - HEALPix 几何/ang2pix：Górski et al. 2005, ApJ 622, 759；astropy-healpix（BSD-3-Clause）。
-- 双线性插值：教科书级（Press et al. 2007, Numerical Recipes 3rd ed.）；本模块 order/邻域语义 Project-defined（SCI-P3 §5）。
+- 双线性插值：教科书级（Press et al. 2007, Numerical Recipes 3rd ed.）；本模块 order/邻域语义 Project-defined（SCI-P3 [S-1]「判据与误差」一节）。
 - WCS 反变换：Paper I = Greisen & Calabretta 2002, A&A 395, 1061（DOI 10.1051/0004-6361:20021326）
   §2.1.2 式(3)（中间坐标 = CD·(p−CRPIX)）；Paper II = Calabretta & Greisen 2002, A&A 395, 1077
   （DOI 10.1051/0004-6361:20021327）§2.3 式(2)–(7)（三 Euler 角旋转核；矩阵形式见附录 A.1）/ §5.1.3 式(54)（TAN: R=(180/π)·cotθ）；
   FITS Standard 4.0（2016）§4.3/§4.4；astropy 7.0.1（WCSLIB）作独立 Oracle。
-- 方差传播（若涉及）：Fruchter & Hook 2002；docs/science/noise_snr/NOISE_SNR.md §3.5。
+- 方差传播（若涉及）：Fruchter & Hook 2002；`docs/science/noise_snr/NOISE_SNR.md` [S-3]「协方差传播」一节。
 
 
 ---

@@ -1,6 +1,6 @@
 # UPM Solver Algorithms (ALG-UPM)
 
-> 上游：ACSD_DESIGN.md §5.4（天光平面与统一相对模型）
+> 上游：ACSD_DESIGN.md [D-1]「天光平面（UPM）」一节（天光平面与统一相对模型）
 > 行号与并行表述按源码实测登记；实现级合同见 ALG-P2-UPM-IMPL-001 (docs/science/algorithms/PHASE2_UPM_IMPL.md)
 
 ## 1 上游 SCI 与输入输出
@@ -15,7 +15,7 @@
 F1: w_UPM = quality·control_ivar（绝对式，ADU⁻²，唯一生产式）或
     qf·support^p·snr²/(1+snr²)/unc²（非生产：use_ivar_weight=0 的 ablation/诊断域）
     天光控制点的被估量是**变化的背景电平**，SNR² 在该处不是有效逆方差代理，
-    生产一律取 control_ivar，SNR 只作 veto/质量门（docs/science/PHASE2_UPM.md §5）
+    生产一律取 control_ivar，SNR 只作 veto/质量门（docs/science/sky/UPM.md[S-1]「公式与推导」一节）
     control_ivar=1/(k_corr·π/2·σ²/N_retained)，定义域 1 < k_corr
     （k_corr=1 ⇔ 忽略相关，p2_upm_control_variance 显式拒 rc=2；k_corr<1 拒 rc=1
     ）
@@ -57,7 +57,7 @@ function p2_upm_build(observations, cfg):
 
 ## 5 确定性与归约
 
-- 求解串行reference; **无 OpenMP**（实测 grep `#pragma omp` 于 upm.cpp 零命中）。并行=std::thread 池五段（均在 `lib/algorithms/coverage/src/upm.cpp`）: raw+归一化聚合、Huber w、M 更新、C 更新逐帧 CG、dense materialize (kChunk=16); worker-local 分块 + 按 tid 升序合并（确定性三档见 §9：同配置重复位精确；跨 worker 数 1e-12，非位精确——`compute_raw` 的 per-control 求和结合顺序随 worker 数变化）, worker 数=cfg.cpu_workers (Runtime lease 唯一来源, `lib/phase2_session/p2_session.cpp`; 无 hardware_concurrency 硬件探测, 同 `upm.cpp`); IRLS 迭代顺序固定。
+- 求解串行reference; **无 OpenMP**（实测 grep `#pragma omp` 于 upm.cpp 零命中）。并行=std::thread 池五段（均在 `lib/algorithms/coverage/src/upm.cpp`）: raw+归一化聚合、Huber w、M 更新、C 更新逐帧 CG、dense materialize (kChunk=16); worker-local 分块 + 按 tid 升序合并（确定性三档见[S-1]「判据与误差」一节：同配置重复位精确；跨 worker 数 1e-12，非位精确——`compute_raw` 的 per-control 求和结合顺序随 worker 数变化）, worker 数=cfg.cpu_workers (Runtime lease 唯一来源, `lib/phase2_session/p2_session.cpp`; 无 hardware_concurrency 硬件探测, 同 `upm.cpp`); IRLS 迭代顺序固定。
 
 ## 6 复杂度
 
@@ -80,13 +80,13 @@ function p2_upm_build(observations, cfg):
 
 - 1e-12 (dense/sparse)，预冻结；
 - **跨 worker 数（1..N）= 1e-12 绝对容差**（实测 ΔC_max=2.22e-15 ≈ 1 ulp @10 ADU，
-  见 `docs/science/PHASE2_UPM.md` §11）；**同配置重复 = 位精确 +
+  见 `docs/science/sky/UPM.md` [S-1]「公式与推导」一节）；**同配置重复 = 位精确 +
   `model_hash` 逐字相同**（`synthetic_gate.cpp` CON-009 门）；门的等价面 = 同配置重复（跨后端等价不在门内）。
 
 ## 10 关联 ARC/API/TST
 
-- API: upm.h: p2_upm_build/calibrate_block/raw_weight; API 面=API-P2-UPM-001 (PUBLIC_API.md 尚未落页, 登记于 ALG-P2-UPM-IMPL-001 §16/§17)
-- TST: PR-UPM-001..010, UPMW-001..007; TEST-P2-UPM-001/002 设计冻结=ALG-P2-UPM-IMPL-001 §12
+- API: upm.h: p2_upm_build/calibrate_block/raw_weight; API 面=API-P2-UPM-001 (PUBLIC_API.md 尚未落页, 登记于ALG-P2-UPM-IMPL-001 [S-1]「判据与误差」一节）
+- TST: PR-UPM-001..010, UPMW-001..007; TEST-P2-UPM-001/002 设计冻结=ALG-P2-UPM-IMPL-001 [S-1]「判据与误差」一节
 - 实现级合同: docs/science/algorithms/PHASE2_UPM_IMPL.md (ALG-P2-UPM-IMPL-001, 逐符号锚/DISP 登记/DISP-P2UPM-001..004)
 
 ## 11 数据布局
@@ -118,11 +118,18 @@ function p2_upm_build(observations, cfg):
   `F3`→`lib/algorithms/coverage/src/upm.cpp`（Huber，δ 默认同文件，`UPMW-*`）；`F4`→`p2_upm_calibrate_block`；
   `F5`→分量 gauge（同上文件）。
 
+> 本文引用上游正本（论文式编号，正文引用处均已改为自然语言节名，不再使用跨文档 §N 跳转）：
+> - [D-1] docs/ACSD_DESIGN.md（最高设计）。
+> - [S-1] docs/science/sky/UPM.md（天光平面科学正本 SCI-UPM-001）。
+> - [S-4] docs/DERIVATIONS-P3.md（相关科学正本）。
+> - [A-1] docs/science/algorithms/mosaic/PHASE2_UPM_IMPL.md（UPM 实现级合同分册）。
+> - [S-5] 实验/healpix-polar/（实验单元读数）。
+
 ## 参考文献与参考代码库（含许可证）
 
 - Huber IRLS：Huber 1964, Ann. Math. Statist. 35, 73；Huber & Ronchetti 2009, Robust Statistics 2nd ed., Wiley。
 - 弱零锚：Tikhonov 1963, Soviet Math. Dokl. 4, 1035（正则化弱零锚的原始出处）。
 - 多帧相对定标：SCAMP（GPL-3.0；Bertin 2006, ASPC 351, 112）；Padmanabhan et al. 2008, ApJ 674, 1217。
 - 稀疏天光面样条（目标表示）：Duchon 1977；Wahba 1990。
-- var(median)≈πσ²/(2N)：Hoaglin et al. 1983（SCI-UPM §11）；实证比值读数（N=5 的 Var(median)/渐近式直接定征）正本 = `实验/healpix-polar/docs/audit/kcorr/tables.md` §T3。
-- k_corr 为 k_gauss(N)×k_geo 两因子几何查表（P3 单元承载）；MC 证据源 control_median_mc_test 可复跑；域外回退值与实现记录 = `实验/healpix-polar/docs/DERIVATIONS-P3.md` §D8。
+- var(median)≈πσ²/(2N)：Hoaglin et al. 1983（SCI-UPM [S-1]「判据与误差」一节）；实证比值读数（N=5 的 Var(median)/渐近式直接定征）正本 = `实验/healpix-polar/`docs/audit/kcorr/tables.md` [S-5]「输入输出端口」一节。
+- k_corr 为 k_gauss(N)×k_geo 两因子几何查表（P3 单元承载）；MC 证据源 control_median_mc_test 可复跑；域外回退值与实现记录 = `实验/healpix-polar/docs/DERIVATIONS-P3.md` [S-4]「推导补遗」一节。
