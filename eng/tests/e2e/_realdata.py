@@ -176,6 +176,10 @@ REGISTERED_MASTER_CENSUS: Dict[str, Dict[str, Any]] = {
     "T4 calibration files": {"n_masters": 9, "geometry": (4500, 3600, 1)},
 }
 
+#: REG-D1b `CD` / `CDELT` 矛盾帧数登记（**当前是真实数据缺陷的读数**，见 REG-01）。
+#: `m42` 的 166 个有 WCS 帧**全部**命中；`galaxy_center` 无 `CDELT1`，命中 0 帧。
+REGISTERED_CD_CDELT_CONFLICT_FRAMES: Dict[str, int] = {"m42": 166, "galaxy_center": 0}
+
 #: REG-D2 畸变解关键词面（**当前两套互不相同的畸变口径**，见 README REG-01b）。
 #: FITS 标准里畸变有两条互不兼容的承载：`PV*_i_jm`（老式不规则畸变）与
 #: `A_i_j / B_i_j`（SIP，须由 `CTYPE` 末尾 `-SIP` 声明）。
@@ -202,6 +206,12 @@ REGISTERED_DISTORTION_FACE: Dict[str, Dict[str, Any]] = {
         "nonstandard_prefixes": [],
     },
 }
+
+#: V2 视觉往返判据的**余量条**（越界像元比例上限）。1:1 栅格化在图边界存在亚像元效应；
+#: 实测 46/1048576 = 4.4e-5，取 1e-3 留 20× 余量。
+#: ⚠ 这**不是**承重条：承重条是「往返偏差中位数 == 0」，任何全局变换（gamma / LUT /
+#: 再次归一化）都先破中位数条。见 `test_visual_acceptance.py` 的 V2。
+PNG_EDGE_FRACTION_MAX = 1e-3
 
 #: 畸变系数关键词前缀（用于实算计数面）。
 DISTORTION_KEYWORD_PREFIXES = ("PV1_", "PV2_", "A_", "B_", "AP_", "BP_", "TR1_", "TR2_")
@@ -267,6 +277,13 @@ REGISTERED_INDEX_OBSERVATION_DATES = (
 )
 #: 磁盘实测的日期集合（逐帧 `DATE-OBS` 前 10 字独立实算）。
 REGISTERED_DISK_OBSERVATION_DATES = REGISTERED_INDEX_OBSERVATION_DATES + ("2025-08-13",)
+
+#: REG-06b 索引对账缺口的**冻结签名**。索引缺、磁盘有的日期集合。
+#: 实测 `{Galaxy_Center_T4: ['2025-08-13']}`。守卫断言缺口恰为该集合：
+#: 数据补齐（缺口消失）或换了别的缺口，都会判红并要求重新裁定。
+REGISTERED_INDEX_GAPS: Dict[str, tuple] = {REGISTERED_INDEX_DATASET_ID: ("2025-08-13",)}
+#: 索引自陈、磁盘没有的日期集合（实测为空集）。
+REGISTERED_INDEX_PHANTOMS: Dict[str, tuple] = {REGISTERED_INDEX_DATASET_ID: ()}
 
 # ---------------------------------------------------------------------------
 # §2 具名异常（fail-closed；无一条走 `pytest.skip`）
@@ -554,13 +571,57 @@ def wcs_roundtrip_tolerance_px() -> float:
 
 
 def wcs_cd_cdelt_ratio(header, rel_path: str) -> Optional[float]:
-    """`|CD1_1| / |CDELT1|`。任一缺失返回 `None`（**不是** 0.0，也不是默认值）。"""
+    """`|CD1_1| / |CDELT1|`。任一缺失返回 `None`（**不是** 0.0，也不是默认值）。
+
+    ⚠ 这**不是**像元尺度比。FITS WCS Papers II 里 `CDELTi` 是「x 步长在 RA 上的投影」的
+    无旋转表述，`CDi_j` 是完整线性变换。实测 `m42` 的 166 个有 WCS 帧 **CD 矩阵全部强非对角**
+    （对角 ≈0.0165″、非对角 ≈±0.966″，约 90° 旋转），故 `|CD1_1|` 与 `|CDELT1|` 相差约 50 倍
+    **不蕴含**像元尺度差 50 倍——两者的**面积尺度** `sqrt(|det CD|)` 与
+    `sqrt(|CDELT1·CDELT2|)` 实测只差 1.4e-4 相对量。
+
+    ⇒ 本量的正确语义是「**两种表述对 x 步长的描述是否自洽**」，偏离 1 即判矛盾；
+    **不是**「像元尺度差多少」。判红是**表述自洽性**缺陷，不是尺度缺陷（README REG-01）。
+    """
     if "CD1_1" not in header or "CDELT1" not in header:
         return None
     den = abs(float(header["CDELT1"]))
     if den == 0.0:
         raise FrameUnparsable(f"FRAME_UNPARSABLE: {rel_path} CDELT1 == 0（比例无定义）")
     return abs(float(header["CD1_1"])) / den
+
+
+def wcs_x_axis_step_arcsec(header, rel_path: str, drop_cd: bool = False) -> float:
+    """x 方向单位步长在天球上的实际位移（角秒，`|Δ(RA·cos δ)|`），在 `(0, 0)` 处取值。
+
+    `drop_cd=True` 时先删掉全部 `CD*` 卡片再构造 WCS，得到「**只按 `CDELT` 解释**」的读数。
+    两读数的比值就是「WCS 读入器究竟承重哪张卡」的**可观测量**。
+
+    为何用 x 步长而不用 `proj_plane_pixel_scales`：实测 `m42` 的 CD 矩阵强非对角，
+    投影平面尺度取的是**面积尺度**，`sqrt(|det CD|)` 与 `sqrt(|CDELT1·CDELT2|)` 只差
+    1.4e-4 相对量——用面积尺度做这张判据**不可观测**（会退化成恒真）。
+    x 轴步长则相差 **496 倍**，判据有牙。
+    """
+    import math
+
+    from astropy.wcs import WCS
+
+    hdr = header.copy()
+    if drop_cd:
+        for key in list(hdr.keys()):
+            if key.startswith("CD"):
+                del hdr[key]
+        if "CTYPE1" not in hdr:
+            raise FrameUnparsable(
+                f"FRAME_UNPARSABLE: {rel_path} 去掉 CD 后无 CTYPE，无对照面"
+            )
+    try:
+        w = WCS(hdr, naxis=2)
+        ra0, dec0 = w.pixel_to_world_values(0.0, 0.0)
+        ra1, _dec1 = w.pixel_to_world_values(1.0, 0.0)
+    except Exception as exc:  # noqa: BLE001
+        raise FrameUnparsable(f"FRAME_UNPARSABLE: {rel_path} WCS 步长求值失败 :: {exc}") from exc
+    step = abs(float(ra1) - float(ra0)) * math.cos(math.radians(float(dec0))) * 3600.0
+    return step
 
 
 # ---------------------------------------------------------------------------
@@ -1052,12 +1113,15 @@ def stretch_to_unit(arr: np.ndarray, mode: str = "asinh") -> Tuple[np.ndarray, D
         out[np.isfinite(data)] = (f - vmin) / (vmax - vmin)
         readings = {"vmin": vmin, "vmax": vmax, "mode": mode}
     elif mode == "log":
-        floor = vmin if vmin > 0 else 0.0
-        shifted = f - floor
-        if np.any(shifted <= 0):
-            raise FrameUnparsable("STRETCH_LOG_NONPOSITIVE: log 拉伸遇到非正像元，拒绝出图")
-        out[np.isfinite(data)] = np.log10(shifted) / np.log10(vmax - floor)
-        readings = {"vmin": vmin, "vmax": vmax, "mode": mode, "log_floor": floor}
+        # log 要求像元**严格为正**。把 [vmin, vmax] 归一到 [1, vmax/vmin] 再取 log10，
+        # 单调且端点精确映到 0 / 1；不做任何偏移兜底（有非正像元就判红，拒绝出图）。
+        if vmin <= 0.0:
+            raise FrameUnparsable(
+                f"STRETCH_LOG_NONPOSITIVE: log 拉伸遇到非正像元（vmin={vmin}），拒绝出图"
+            )
+        span = np.log10(vmax / vmin)
+        out[np.isfinite(data)] = np.log10(f / vmin) / span
+        readings = {"vmin": vmin, "vmax": vmax, "mode": mode, "log_reference": vmin}
     elif mode == "asinh":
         # 零点取稳健背景（median），强度取动态范围；天文拉伸的标准做法。
         background = float(np.median(f))
@@ -1075,12 +1139,17 @@ def render_stretch_png(
     mode: str = "asinh",
     title: Optional[str] = None,
     cmap: str = "gray",
+    dpi: int = 100,
 ) -> Dict[str, Any]:
     """把真实帧写成**供人目检**的拉伸 PNG。返回 `{path, shape, readings, png_bytes}`。
 
+    渲染**逐像元 1:1**：`figsize = (w/dpi, h/dpi)` + `dpi` ⇒ 输出恰好 `w×h` 像素；
+    坐标轴满幅、无标题条。标题写进 PNG 元数据（`Description`），不占像素网格
+    ——否则输出网格会被重采样，与阵列对不齐，判据 V2 的往返一致性就失去意义。
+
     ⚠⚠ **本函数只产出供人看的图，不产出任何「合格 / 不合格」判决。**
     目视判定只属项目负责人（`AGENTS.md` §11、`docs/ACSD_DESIGN.md:558`）。
-    本层**不得**据此发明布尔门并挂 `pass`。
+    本层**不得**据此发明布尔门并挂 `pass`（由 `test_visual_acceptance.py` 的 V7 可执行地禁止）。
     """
     import matplotlib
 
@@ -1088,25 +1157,26 @@ def render_stretch_png(
     import matplotlib.pyplot as plt
 
     mapped, readings = stretch_to_unit(arr, mode=mode)
-    fig = plt.figure(figsize=(10, 10), dpi=110)
-    ax = fig.add_axes((0.0, 0.0, 1.0, 0.94))
-    # `set_bad` 决定非有限像元的显示色；不透明 ⇒ 黑洞在图上是真的看得见的黑块。
-    cmap_obj = plt.get_cmap(cmap).copy()
-    cmap_obj.set_bad((1.0, 0.0, 1.0, 1.0))
+    height, width = mapped.shape
+    fig = plt.figure(figsize=(width / dpi, height / dpi), dpi=dpi)
+    ax = fig.add_axes((0.0, 0.0, 1.0, 1.0))
+    # `bad` 决定非有限像元的显示色；不透明洋红 ⇒ 黑洞在图上是真的看得见的色块。
+    cmap_obj = plt.get_cmap(cmap).with_extremes(bad=(1.0, 0.0, 1.0, 1.0))
     ax.imshow(mapped, cmap=cmap_obj, origin="lower", vmin=0.0, vmax=1.0,
               interpolation="nearest")
     ax.set_xticks([])
     ax.set_yticks([])
-    if title:
-        ax.set_title(title, fontsize=11)
     out_dir = os.path.dirname(os.path.abspath(out_path))
     if out_dir and not os.path.isdir(out_dir):
         os.makedirs(out_dir, exist_ok=True)
-    fig.savefig(out_path, format="png")
+    metadata = {"Software": "ACSD e2e visual-acceptance auxiliary"}
+    if title:
+        metadata["Description"] = title
+    fig.savefig(out_path, format="png", metadata=metadata)
     plt.close(fig)
     return {
         "path": out_path,
-        "shape": list(mapped.shape),
+        "shape": [height, width],
         "readings": readings,
         "png_bytes": os.path.getsize(out_path),
     }
@@ -1302,10 +1372,9 @@ def judge_dataset_reachable(dataset_id: str) -> List[str]:
     """D1 可达性：数据集目录存在、至少一帧、每帧是**非空普通文件**且头可解析。"""
     rel_dir = DATASET_DIR[dataset_id]
     viol: List[str] = []
-    if not os.path.isdir(repo_abs(rel_dir)):
-        viol.append(f"ANCHOR_STALE: DATASET_DIR[{dataset_id}] {rel_dir}")
-        return viol
-    rels = frame_relpaths(dataset_id)  # 零帧在此抛 ZERO_OBJECT_GUARD（fail-closed）
+    # 目录缺失 ⇒ 具名异常（fail-closed），**不**返回一条违规串后继续：
+    # 「目录没了」是锚存活失败，必须响，不能与「帧内容有问题」混在同一层面。
+    rels = frame_relpaths(dataset_id)  # 目录缺失⇒ANCHOR_STALE；零帧⇒ZERO_OBJECT_GUARD
     for rel in rels:
         abs_path = repo_abs(rel)
         if os.path.getsize(abs_path) == 0:
@@ -1393,7 +1462,10 @@ def judge_wcs_usable(dataset_id: str) -> List[str]:
             continue
         if not np.isfinite(scale) or scale <= 0.0:
             viol.append(f"WCS_SCALE_INVALID: {rel} 像元尺度={scale}″")
-        if err > tol:
+        # 非有限误差必须判红（禁 fail-open：NaN 与任何门限比较都返回 False）。
+        if not np.isfinite(err):
+            viol.append(f"WCS_ROUNDTRIP_NOT_FINITE: {rel} 往返误差非有限（={err}）")
+        elif err > tol:
             viol.append(f"WCS_ROUNDTRIP_EXCEEDED: {rel} 往返误差={err:.6e} px > 门限 {tol:.6e} px")
     return viol
 
@@ -1494,6 +1566,50 @@ def judge_cd_cdelt_conflict(dataset_id: str) -> List[str]:
         if abs(ratio - 1.0) > CD_CDELT_CONFLICT_RATIO:
             viol.append(f"CD_CDELT_CONFLICT: {rel} |CD1_1|/|CDELT1| = {ratio:.6g}")
     return viol
+
+
+def judge_wcs_consumes_cd_matrix(dataset_id: str) -> Dict[str, Any]:
+    """D9a WCS 读入器**承重哪张卡**的可观测判据。
+
+    对每个「`CD` 与 `CDELT` 同时在场」的帧，构造两个读数面：
+    (a) `wcs_x_axis_step_arcsec(header)` —— 本层**唯一**的读入路径（astropy WCS）；
+    (b) `wcs_x_axis_step_arcsec(header, drop_cd=True)` —— 删掉 `CD*` 后只按 `CDELT` 解释，
+        由**本函数独立实现**的第二条解释路径。
+
+    判据：(a)/(b) 的比值必须落在 `CD` 侧（`<= CD_CDELT_CONFLICT_RATIO`），
+    即两个面必须**相差一个量级以上** ⇒ 判据不是恒真比较：若读入器改为承重 `CDELT`
+    （比值趋 1）立即判红。
+
+    返回 `{viol, n_observable, n_both, ratios}`。`n_observable` 供冻结登记比对。
+    """
+    viol: List[str] = []
+    ratios: List[float] = []
+    n_both = 0
+    for rel in frame_relpaths(dataset_id):
+        header = read_frame_header(rel)
+        if "CTYPE1" not in header or "CDELT1" not in header:
+            continue
+        n_both += 1
+        try:
+            step_cd = wcs_x_axis_step_arcsec(header, rel)
+            step_cdelt = wcs_x_axis_step_arcsec(header, rel, drop_cd=True)
+        except FrameUnparsable as exc:
+            viol.append(str(exc))
+            continue
+        if step_cdelt <= 0.0 or not np.isfinite(step_cdelt):
+            viol.append(f"CDELT_FACE_DEGENERATE: {rel} 只按 CDELT 解释的步长={step_cdelt}″")
+            continue
+        if not np.isfinite(step_cd):
+            viol.append(f"CD_FACE_NOT_FINITE: {rel} 本层读数的 x 步长非有限")
+            continue
+        ratio = step_cd / step_cdelt
+        ratios.append(ratio)
+        if ratio > CD_CDELT_CONFLICT_RATIO:
+            viol.append(
+                f"WCS_READER_FELL_ONTO_CDELT: {rel} 本层 x 步长 {step_cd:.6g}″ / "
+                f"仅 CDELT 解释 {step_cdelt:.6g}″ = {ratio:.6g}，落在 CDELT 面上"
+            )
+    return {"viol": viol, "n_both": n_both, "n_observable": len(ratios), "ratios": ratios}
 
 
 def judge_master_reachable_and_parsable(master_dir_name: str) -> List[str]:
@@ -1652,9 +1768,12 @@ def judge_reference_images_absent() -> List[str]:
     return viol
 
 
-def judge_index_reconciliation(dataset_id_in_index: str) -> List[str]:
-    """REG-06 索引对账：`testdata/index.json` 的 `observation_dates` 与逐帧 `DATE-OBS`
-    实算日期集合的差集（两个方向都报）。索引是**被对账对象**，差集即漂移。"""
+def index_date_reconciliation(dataset_id_in_index: str) -> Dict[str, Any]:
+    """索引自陈日期集合 vs 逐帧 `DATE-OBS` 实算日期集合，**双向**求差。
+
+    返回 `{self_dates, disk_dates, only_index, only_disk}`。索引是**被对账对象**
+    （`REG-06`），预期值不取自索引自身。
+    """
     index = load_index()
     entry = index_dataset_entry(index, dataset_id_in_index)
     self_dates = tuple(entry.get("observation_dates") or ())
@@ -1662,22 +1781,51 @@ def judge_index_reconciliation(dataset_id_in_index: str) -> List[str]:
         raise AnchorStale(
             f"ANCHOR_MISSING_FIELD: TESTDATA_INDEX.datasets[{dataset_id_in_index}].observation_dates"
         )
-    viol: List[str] = []
     disk_rel = next(
         rel for rel in DATASET_DIR.values() if rel.endswith(dataset_id_in_index)
     )
     dataset_id = next(k for k, v in DATASET_DIR.items() if v == disk_rel)
     disk_dates = tuple(sorted({r["hdr_date"] for r in frame_manifest(dataset_id)}))
-    only_index = sorted(set(self_dates) - set(disk_dates))
-    only_disk = sorted(set(disk_dates) - set(self_dates))
-    if only_disk:
+    return {
+        "index_dataset_id": dataset_id_in_index,
+        "repo_dataset_id": dataset_id,
+        "self_dates": self_dates,
+        "disk_dates": disk_dates,
+        "only_index": tuple(sorted(set(self_dates) - set(disk_dates))),
+        "only_disk": tuple(sorted(set(disk_dates) - set(self_dates))),
+    }
+
+
+def judge_index_gap_matches_registration(dataset_id_in_index: str) -> List[str]:
+    """REG-06b 索引对账缺口的**漂移守卫**。
+
+    断言「索引缺、磁盘有」的日期集合恰为 `REGISTERED_INDEX_GAPS`，
+    且「索引自陈、磁盘没有」的集合恰为 `REGISTERED_INDEX_PHANTOMS`。
+
+    ⚠ 缺口**非零**是数据缺陷的真实读数（当前缺 `2025-08-13`），不是判据失效。
+    本守卫保证的是「这个缺口的签名不悄悄漂移」，并把缺陷持续挂在报告上；
+    **不**把它写成「期望缺口为空」的绿用例——那等于要求数据没这个缺陷，等于降级判据。
+    与模块层 REG-03 同一处置体例（登记 + 漂移守卫，不私自改数据）。
+    """
+    rec = index_date_reconciliation(dataset_id_in_index)
+    viol: List[str] = []
+    if rec["only_disk"] != REGISTERED_INDEX_GAPS.get(dataset_id_in_index, ()):
         viol.append(
-            f"INDEX_DATE_SET_STALE: {dataset_id_in_index} 索引缺 {only_disk}（磁盘实算 {len(disk_dates)} 天，"
-            f"索引自陈 {len(self_dates)} 天）"
+            f"INDEX_GAP_SIGNATURE_DRIFT: {dataset_id_in_index} 索引缺 {list(rec['only_disk'])}，"
+            f"登记 {list(REGISTERED_INDEX_GAPS.get(dataset_id_in_index, ()))}"
         )
-    if only_index:
+    if rec["only_index"] != REGISTERED_INDEX_PHANTOMS.get(dataset_id_in_index, ()):
         viol.append(
-            f"INDEX_DATE_PHANTOM: {dataset_id_in_index} 索引自陈了磁盘上不存在的日期 {only_index}"
+            f"INDEX_PHANTOM_SIGNATURE_DRIFT: {dataset_id_in_index} 索引多出 {list(rec['only_index'])}，"
+            f"登记 {list(REGISTERED_INDEX_PHANTOMS.get(dataset_id_in_index, ()))}"
+        )
+    if rec["self_dates"] != REGISTERED_INDEX_OBSERVATION_DATES:
+        viol.append(
+            f"INDEX_DATES_DRIFT: {dataset_id_in_index} 索引自陈日期集合变化：{list(rec['self_dates'])}"
+        )
+    if rec["disk_dates"] != REGISTERED_DISK_OBSERVATION_DATES:
+        viol.append(
+            f"DISK_DATES_DRIFT: {dataset_id_in_index} 磁盘实算日期集合变化：{list(rec['disk_dates'])}"
         )
     return viol
 

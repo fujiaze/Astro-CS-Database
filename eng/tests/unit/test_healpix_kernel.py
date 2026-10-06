@@ -1521,8 +1521,12 @@ def _s10_oracle_is_exhaustive():
                               what=f"nside={nside} 超集法与全域穷举的真交叠集合不一致")
                 a_drop = H.polygon_area(corners)
                 rel = abs(sum(brute.values()) - a_drop) / a_drop
-                harness.less_equal(rel, 1e-12,
-                                   what=f"nside={nside} 几何闭合 L1：Σ_p a_jp = A_drop")
+                # ⚠ R1 指出这里曾**另立** L1 容差 1e-12，与冻结表
+                #   `tolerances.DRIZZLE_L1_COMPLETENESS = 6.6e-12` 冲突（同层两条 L1 门不同值）。
+                #   改为直接取冻结值。
+                harness.less_equal(rel, tol.DRIZZLE_L1_COMPLETENESS.value,
+                                   what=f"nside={nside} 几何闭合 L1：Σ_p a_jp = A_drop "
+                                        f"（门限取冻结值 DRIZZLE_L1_COMPLETENESS）")
             ev.record(f"nside={nside} 超集/穷举一致", 1.0, note="逐位相同的 drop 数 = 8")
 
 

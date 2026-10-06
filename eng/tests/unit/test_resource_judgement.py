@@ -168,7 +168,7 @@ def test_res_monitor_guard_declaration_removal_is_detected():
     intent="E9「错误域不坍缩」：attach 的 run_id 不一致必须显式失败，不得静默接受",
     inputs="把 run_id='other' 的 monitor attach 到 run_id='u4' 的 guard",
     expected="抛 ValueError（错误域是 run_id 不一致，不是别的什么）",
-    source="lib/infrastructure/observability/monitoring/runner.py:74-78 逐字"
+    source="lib/infrastructure/observability/monitoring/runner.py:77-80 逐字"
            "「monitor.run_id != self.run_id → raise ValueError」；"
            "判据 E9 见审核包-R2/T02 §2.4「错误域不坍缩」",
     criteria=("E9",),
@@ -232,24 +232,25 @@ def test_res_denominator_prefers_granted_peak_then_fallback():
 
 @harness.test(
     "res.sentinel_zero_must_not_be_backfilled_by_config",
-    intent="P5 负向：契约 forbid 逐字「以配置值冒充观测（哨兵 0 不得回填配置预算）」",
-    inputs="granted=0 且 selected=0，机器 available_cpus=16",
-    expected="allocated 必须为 0，且 evaluate_frozen_gate 必须把 "
-             "allocated_capacity_undeclared 记入 recorded（利用率类判据不成立）",
-    source="eng/contracts/resource_gate_v1.json#denominator.forbid[0] 逐字"
-           "「以配置值冒充观测（哨兵 0 不得回填配置预算）」与 forbid[1]「以机器有效核"
-           "（available_cpus）单独充当已分配容量」；"
-           "docs/detail/infrastructure/21_observability.md §8.2 第 ③ 行",
+    intent="P5：granted/selected 皆哨兵 0 时分母必须是 0，利用率类判据不成立并记入 recorded",
+    inputs="resolve_allocated_capacity(granted=0, selected=0, available=16) 与其后的门判定",
+    expected="allocated 恒为 0（绝不拿机器有效核冒充）；utilization_evaluated 为假；"
+             "recorded 里出现 allocated_capacity_undeclared；不产生硬失败",
+    source="eng/contracts/resource_gate_v1.json#denominator.forbid[0,1] 逐字"
+           "「以配置值冒充观测（哨兵 0 不得回填配置预算）」「以机器有效核（available_cpus）"
+           "单独充当已分配容量」与 #denominator.zero_denominator_effect 逐字"
+           "「利用率类判据不成立 → 记入 recorded（allocated_capacity_undeclared），不参与裁决」",
     criteria=("P5",),
-    kind=harness.NEGATIVE,
-    inject="DEF-DENOM-BACKFILL：哨兵 0 被回填成配置 worker 数或机器有效核",
+    kind=harness.POSITIVE,
 )
 def test_res_sentinel_zero_must_not_be_backfilled_by_config():
+    """⚠ 对抗复核 R1 更正：本条初版被标成 `NEGATIVE`，但函数体里**没有任何注入**——
+    只是调用在库实现并断言它返回 0。那是**正例**，标成负例会把负例计数虚增。已改正。"""
     m = _product()
     leaked = m.resolve_allocated_capacity(granted_workers=0, selected_workers=0,
                                           available_cpus=16)
     with harness.evidence() as ev:
-        ev.record("缺陷生效后的 allocated（应为 0）", leaked)
+        ev.record("granted=0, selected=0, available=16 → allocated（必须 0）", leaked)
     harness.exact(leaked, 0, "哨兵 0 被回填：分母冒充已分配容量")
 
     res = m.evaluate_frozen_gate(
@@ -260,20 +261,15 @@ def test_res_sentinel_zero_must_not_be_backfilled_by_config():
     with harness.evidence() as ev:
         ev.record("verdict", res["verdict"])
         ev.record("utilization_evaluated", res["metrics"]["utilization_evaluated"])
-        ev.record("recorded", [s.split(":")[0] for s in res["recorded"]])
+        ev.record("recorded", [x.split(":")[0] for x in res["recorded"]])
     harness.is_false(res["metrics"]["utilization_evaluated"],
                      "分母未声明时利用率类判据必须不成立，不得评估")
-    harness.is_true(any(s.startswith("allocated_capacity_undeclared")
-                        for s in res["recorded"]),
+    harness.is_true(any(x.startswith("allocated_capacity_undeclared")
+                        for x in res["recorded"]),
                     f"必须记入 allocated_capacity_undeclared，实测 {res['recorded']}")
-    # 关键：未声明 ≠ 通过，也 ≠ 判红进 violations；它是 recorded
     harness.is_false(any("allocated_capacity_undeclared" in v for v in res["violations"]),
                      "未声明容量不得进硬失败清单（契约 zero_denominator_effect）")
 
-
-# ---------------------------------------------------------------------------
-# E3 · 三情况判红（**活产品对拍**）
-# ---------------------------------------------------------------------------
 
 @harness.test(
     "res.missing_or_bad_evidence_is_fail_not_pass",
@@ -425,44 +421,14 @@ def test_res_utilization_is_load_dependent_and_formula_checked():
                     "恒值算法在两组负载上给出不同输出——构造错误，P12 的负例不成立")
 
 
-@harness.test(
-    "res.constant_utilization_algorithm_is_flagged",
-    intent="P11 负向：「0.5×100」式常量与「(min+max)/2」式恒值算法一律判红",
-    inputs="退化检测器分别喂入恒定序列 50.00 与真实变化序列",
-    expected="恒定序列被判红；变化序列判绿。检测器本身不得恒真",
-    source="审核包-R2/T02 §2.2 P11 逐字「判据算法必须与负载相关：『0.5×100』式常量与"
-           "『(min+max)/2』式恒值算法**一律判红**」；"
-           "docs/detail/infrastructure/21_observability.md §8 判据表（④⑤⑥ 均随负载变化）",
-    criteria=("P11",),
-    kind=harness.NEGATIVE,
-    inject="DEF-CONSTANT-UTIL-ALG：利用率算法退化为与负载无关的常量",
-)
-def test_res_constant_utilization_algorithm_is_flagged():
-    degenerate = [50.00] * 30
-    varying = [10.0 + 5.0 * (i % 7) for i in range(30)]
-    red_flag = _constant_series_detector(degenerate)
-    green_flag = _constant_series_detector(varying)
-    with harness.evidence() as ev:
-        ev.record("恒定序列的取值集合", sorted(set(degenerate)))
-        ev.record("退化检测器对恒定序列的判定", red_flag)
-        ev.record("退化检测器对变化序列的判定", green_flag)
-    harness.is_true(red_flag, "缺陷生效：恒定利用率序列未被判红（P11 要求一律判红）")
-    harness.is_false(green_flag, "检测器恒红——无判别力")
-    # 反证：序列确实在变化
-    harness.is_true(len(set(varying)) > 1, "对照臂序列不变化，构造错误")
+# ⚠ 对抗复核 R1 的否决已执行：本文件原先有一条
+#   `res.constant_utilization_algorithm_is_flagged`，其判据 `_constant_series_detector`
+#   是**用例内本地函数**、输入是两条**字面序列**，断言退化为「单元素集合 == 1」——
+#   没有任何实现、产品或 `*_ref.py` 被执行，属自指型空转。**已删除**。
+#   它要守的性质由 `res.worker_balance_shape_is_degenerate_by_construction` 覆盖：
+#   那条喂入的是**在库调用点形态**（`commands.cpp:943,962` 同值写两列）产生的真实序列。
+# 本地退化检测器仍在，但只作为被测对象出现，不再单独充当负例。
 
-
-def _constant_series_detector(series):
-    """P11 退化检测：判据算法与负载相关 ⇒ 输出序列不得恒定。"""
-    finite = [v for v in series if isinstance(v, (int, float)) and math.isfinite(v)]
-    if len(finite) < 2:
-        return True          # E6 非退化锚：样本不足 ⇒ 无证据资格 ⇒ 判红
-    return len(set(finite)) == 1
-
-
-# ---------------------------------------------------------------------------
-# P11 · worker_balance 的**已知红**登记（在库实现的退化形状）
-# ---------------------------------------------------------------------------
 
 def _worker_balance_utilization(active: int, runnable: int) -> float:
     """`lib/infrastructure/cli/resource_recorder.h:368-369` 的逐行转写。
@@ -472,6 +438,19 @@ def _worker_balance_utilization(active: int, runnable: int) -> float:
     """
     denom = active + runnable
     return active * 100.0 / denom if denom > 0 else 0.0
+
+
+def _constant_series_detector(series):
+    """P11 退化检测：判据算法与负载相关 ⇒ 输出序列不得恒定。
+
+    ⚠ 本函数**不是**用例；它是被测对象之一，由
+    `res.worker_balance_shape_is_degenerate_by_construction` 喂入**在库调用点形态**
+    产生的真实序列。
+    """
+    finite = [v for v in series if isinstance(v, (int, float)) and math.isfinite(v)]
+    if len(finite) < 2:
+        return True          # E6 非退化锚：样本不足 ⇒ 无证据资格 ⇒ 判红
+    return len(set(finite)) == 1
 
 
 @harness.test(
@@ -574,34 +553,66 @@ def test_res_queue_low_window_requires_queued_work():
 
 @harness.test(
     "res.dropping_the_queue_predicate_is_detected",
-    intent="P7 负向：去掉「runnable_p50 > 已分配容量」前置后，宽度不足会被误判为饥饿",
-    inputs="对 runnable_p50=2 / allocated=16 的样本，比较带前置与不带前置两种判定",
-    expected="不带前置的判定会把该样本判成队列有工作 ⇒ 判据力丢失，必须被检出",
+    intent="P7 负例：**对在库实现**做半边消融——去掉「就绪线程 ≥ 2」这一半后，"
+           "宽度不足仍不得判 CPU 饥饿 ⇒ 判别力只能来自 `runnable_p50 > 已分配容量`",
+    inputs="对在库 `evaluate_frozen_gate` 注入：把 FROZEN_GATE_MIN_QUEUED_THREADS 临时置 0，"
+           "在 runnable_p50=2 / allocated=16 的低利用窗上重跑",
+    expected="注入后该样本**仍不判硬失败**（落 recorded）；对照臂 runnable_p50=20 时"
+             "仍是硬失败。两臂之差只能由 `stat > allocated` 解释",
     source="eng/contracts/resource_gate_v1.json#compute.queued_work_note 逐字"
            "「就绪（/proc R 态）线程数中位数必须**同时**满足 > 已分配容量核数 与 >= 2 —— "
            "就绪线程多于可用槽位才叫队列有工作；仅有 2 个线程在 16 核配额上跑是"
-           "**并行宽度不足（记录项）**，不是 CPU 饥饿」",
+           "**并行宽度不足（记录项）**，不是 CPU 饥饿」；在库实现 "
+           "`eng/tools/monitoring/run_monitored.py:807-808` 的 "
+           "`queued_work = (stat > allocated and stat >= FROZEN_GATE_MIN_QUEUED_THREADS)`",
     criteria=("P7",),
     kind=harness.NEGATIVE,
-    inject="DEF-QUEUE-PREDICATE-DROPPED：只用 `runnable >= 2`，去掉 `> allocated` 前置",
+    inject="DEF-QUEUE-MINRUNNABLE-REMOVED：把「就绪线程 ≥ 2」这一半前置去掉（置 0）",
+    defect_id="RES-N-QUEUE-MINRUNNABLE",
 )
 def test_res_dropping_the_queue_predicate_is_detected():
-    runnable_p50, allocated, min_runnable = 2.0, 16, 2
+    """⚠ 对抗复核 R1 更正：本条初版用两个**用例内本地 lambda** 比较，
+    产品 `evaluate_frozen_gate` 根本没被调用 —— 那是「对 Python 运算符语义的断言」，
+    不是对 ACSD 的断言，等价于自指型空转。已改写为**对在库实现的真差分**。"""
+    m = _product()
+    allocated = 16
 
-    def with_predicate(stat, alloc, minr):     # 正确口径
-        return stat > alloc and stat >= minr
+    def judge(runnable, min_runnable):
+        saved = m.FROZEN_GATE_MIN_QUEUED_THREADS
+        m.FROZEN_GATE_MIN_QUEUED_THREADS = min_runnable
+        try:
+            return m.evaluate_frozen_gate(
+                {"duration_seconds": 30.0, "poll_interval": 0.5,
+                 "cpu_samples": _low_util_samples(40, 5.0, runnable),
+                 "threads_max": 24 if runnable > 16 else 8},
+                effective_cpus=16, allocated_workers=allocated)
+        finally:
+            m.FROZEN_GATE_MIN_QUEUED_THREADS = saved
 
-    def without_predicate(stat, alloc, minr):  # 缺陷：丢了 `> allocated`
-        return stat >= minr
+    starved_hard = judge(20, 2)
+    starved_soft = judge(20, 0)              # 注入：去掉「≥ 2」这一半
+    width_hard = judge(2, 2)
+    width_soft = judge(2, 0)                # 注入：去掉「≥ 2」这一半
 
-    a, b = with_predicate(runnable_p50, allocated, min_runnable), \
-        without_predicate(runnable_p50, allocated, min_runnable)
+    def hard(r):
+        return any("frozen_low_utilization_window:" in v for v in r["violations"])
+
     with harness.evidence() as ev:
-        ev.record("正确口径的判定", a)
-        ev.record("缺陷口径的判定", b)
-    harness.is_false(a, "正确口径必须把宽度不足判为『无队列积压』")
-    harness.is_true(b, "缺陷生效：宽度不足被误判为队列有工作")
-    harness.is_false(a == b, "两个口径给出同一结论 ⇒ 前置条件未起作用，判据恒真")
+        ev.record("runnable=20（真实饥饿）· 正常 / 注入后是否硬失败",
+                  f"{hard(starved_hard)} / {hard(starved_soft)}")
+        ev.record("runnable=2 （宽度不足）· 正常 / 注入后是否硬失败",
+                  f"{hard(width_hard)} / {hard(width_soft)}")
+        ev.record("在库自报的判据参考串", width_hard["metrics"].get("queued_work_reference"))
+    harness.is_true(hard(starved_hard), "真实饥饿必须硬失败（正本判据）")
+    harness.is_false(hard(width_hard),
+                     "宽度不足不得判 CPU 饥饿（正本判据）")
+    harness.is_false(hard(width_soft),
+                     "缺陷未生效：去掉「≥ 2」后宽度不足被误判成饥饿")
+    harness.is_true(hard(starved_soft), "去掉「≥ 2」后真实饥饿仍应硬失败（对照臂）")
+    # 反证：两臂之差确实由 `stat > allocated` 承担，而不是被注入改掉
+    harness.exact(width_hard["metrics"].get("queued_work_reference"),
+                  "runnable_p50 > allocated",
+                  "在库必须自报判据参考串，证明差分打在同一谓词上")
 
 
 # ---------------------------------------------------------------------------
@@ -711,34 +722,41 @@ def test_res_coverage_verdict_is_undetermined_until_frozen():
 
 
 @harness.test(
-    "res.unfrozen_coverage_reported_as_pass_is_detected",
-    intent="C3 负向：未冻结的覆盖被报成「通过」——即「没人读」被记成「已通过」",
-    inputs="在 threshold=None 上调用一个会返回 'pass' 的判定器",
-    expected="'pass' 必须被判红（这是 fail-open 形态）",
-    source="审核包-R2/T02 §2.6 V1 否决理由逐字「与三处 fail-closed 原则**正面冲突**。"
-           "登记进去直接制造一条 **fail-open 判据**」；"
-           "docs/engineering/testing/TEST.md §10「失败处置」的 fail-closed 纪律",
+    "res.unfrozen_coverage_is_undetermined_not_pass",
+    intent="C3：冻结前覆盖结论一律「未判」，不得给通过也不得给判红（判据设计自身的正确性）",
+    inputs="同一组读数在 threshold=None 与 threshold=0.6 两种冻结状态下的结论",
+    expected="未冻结 ⇒ 'undetermined'，且**与读数无关**；冻结后才可能 pass/fail",
+    source="审核包-R2/T02 判据清单 §2.3 C3 逐字「**冻结前覆盖结论一律「未判」**」"
+           "（源自已退役的 coverage_baseline_v1.md:31；该路径**已从版本库删除**，"
+           "此处按审核包-R2 §2.1 已登记的判据文本重建，**不把该路径当活指针**）；"
+           "审核包-R2 §2.6 V1 否决理由逐字「与三处 fail-closed 原则**正面冲突**……"
+           "登记进去直接制造一条 **fail-open 判据**」",
     criteria=("C3", "E6"),
-    kind=harness.NEGATIVE,
-    inject="DEF-COVERAGE-FAIL-OPEN：threshold 未冻结时返回 'pass'",
+    kind=harness.POSITIVE,
 )
-def test_res_unfrozen_coverage_reported_as_pass_is_detected():
-    def fail_open(threshold, measured):
-        if threshold is None:
-            return "pass" if measured >= 0.0 else "fail"   # 缺陷：把未冻结当已通过
-        return _coverage_verdict(threshold, measured)
-
+def test_res_unfrozen_coverage_is_undetermined_not_pass():
+    """⚠ 对抗复核 R1 更正：本条初版被标成 `NEGATIVE` 并注入一个本地 `fail_open`
+    判定器 —— 注入臂、判据、被测对象三者全是本用例内的本地函数，无任何产品面覆盖。
+    仓内**没有**覆盖率度量实现可对拍（覆盖门载体整体退役），因此这条只能是**判据设计
+    自身的正确性**，改正为 `POSITIVE`。fail-open 形态由 `E6` 的非退化锚在别处覆盖。"""
     def fail_open_detected(verdict: str) -> bool:
-        """判据：未冻结时的 verdict 若落在 pass/fail 上，即为 fail-open。"""
+        """E3/E6 判据：未冻结时的 verdict 若落在 pass/fail 上，即为 fail-open。"""
         return verdict in ("pass", "fail")
 
-    honest = _coverage_verdict(None, 0.0)
-    defective = fail_open(None, 0.0)
+    honest_zero = _coverage_verdict(None, 0.0)
+    honest_one = _coverage_verdict(None, 1.0)
     with harness.evidence() as ev:
-        ev.record("诚实口径（threshold=None）的输出", honest)
-        ev.record("缺陷口径（threshold=None）的输出", defective)
-        ev.record("fail-open 检测器对诚实口径的判定", fail_open_detected(honest))
-        ev.record("fail-open 检测器对缺陷口径的判定", fail_open_detected(defective))
-    harness.is_false(fail_open_detected(honest), "诚实口径被判 fail-open——检测器恒红")
-    harness.is_true(fail_open_detected(defective), "缺陷生效：未冻结覆盖被判为 pass")
-    harness.is_false(defective == honest, "缺陷口径与诚实口径同值 ⇒ 注入无效")
+        ev.record("未冻结 · measured=0.0", honest_zero)
+        ev.record("未冻结 · measured=1.0", honest_one)
+        ev.record("fail-open 检测器对二者的判定",
+                  f"{fail_open_detected(honest_zero)} / {fail_open_detected(honest_one)}")
+        ev.record("冻结 0.6 · 0.75 / 0.45",
+                  f"{_coverage_verdict(0.6, 0.75)} / {_coverage_verdict(0.6, 0.45)}")
+    harness.exact(honest_zero, "undetermined", "未冻结且 measured=0 必须『未判』")
+    harness.exact(honest_one, "undetermined", "未冻结且 measured=1 必须『未判』")
+    harness.exact(honest_zero, honest_one,
+                  "未冻结时结论不得随读数变化（否则它不是『未判』而是隐藏的判定）")
+    harness.is_false(fail_open_detected(honest_zero), "fail-open 检测器对诚实口径恒红")
+    harness.is_false(fail_open_detected(honest_one), "fail-open 检测器对诚实口径恒红")
+    harness.exact(_coverage_verdict(0.6, 0.75), "pass", "冻结后 0.75 ≥ 0.6 判通过")
+    harness.exact(_coverage_verdict(0.6, 0.45), "fail", "冻结后 0.45 < 0.6 判红")

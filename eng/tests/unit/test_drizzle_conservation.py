@@ -1168,7 +1168,7 @@ def test_aux_positive_product_signal_budget():
              "（正本预算门必须绿）",
     source="docs/science/drizzle/DRIZZLE.md §5.1「常量面亮度门（产品级）」红侧逐字",
     criteria=("S7", "G-PROD"),
-    kind=harness.NEGATIVE,
+    kind=harness.POSITIVE,
     inject="以 1e-3 作为产品级 signal 的验收门（无视 8bit 量化预算 0.5/q）",
     defect_id="DZ-PRODUCT-SIGNAL-1EM3",
 )

@@ -134,7 +134,11 @@ def test_s6_scope_degrades_exactly_at_rho_lo_zero():
     harness.is_false(mad_sigma_bound_factor(12) > 0, "n=12 的 rho_lo 必须 ≤ 0")
     harness.is_true(mad_sigma_bound_factor(13) > 0, "n=13 的 rho_lo 必须 > 0")
     # 纯比值比较，未声明 scale 域 ⇒ 不触发 §4.3 的 1 ulp 绝对容差下限
-    harness.close(pivot, 12.2364, rtol=1e-4, atol=0.0, what="分界 n 的解析值")
+    # 正本写的是 12.236（`实验/photometric-magnitude/README.md` §2.3 逐字），
+    # 解析精确值是 (3×1.166)² = 12.236004 —— 正本是它的 6 位有效数字取整。
+    # 两个都断言：正本值必须被解析值在 1e-4 内覆盖，且正本值本身逐字相符。
+    harness.close(pivot, 12.236, rtol=0.0, atol=5e-4,
+                  what="分界 n 的解析值必须覆盖正本写下的 12.236")
     for n, expect in ((10, "upper_only"), (12, "upper_only"), (13, "two_sided"),
                       (20, "two_sided"), (50, "two_sided")):
         with harness.evidence() as ev:
@@ -550,28 +554,31 @@ def test_s16_real_frame_rate_must_not_be_named_false_reject():
     harness.is_true(len(naming_violations(real_frame_en)) >= 1,
                     "缺陷未生效：英文线索的真实帧违规未被抓到")
 
-
-@harness.test(
-    "s16.two_rates_must_be_distinct_field_names",
-    intent="S16 负向：把两率压进同一个字段名（判据力归零）必须被检出",
-    inputs="一段文本同时定义 observed 与 false 两率，却只用一个共享字段名承载",
-    expected="字段名去重后只剩一个 ⇒ 判红（两率不可区分）",
-    source="审核包-R2/T02 §2.1 S16 处置列逐字「迁为**命名约束**：**两率必须是不同字段名**」",
-    criteria=("S16",),
-    kind=harness.NEGATIVE,
-    inject="DEF-RATE-COLLAPSE：observed 与 false 两率共用同一个字段名",
-)
-def test_s16_two_rates_must_be_distinct_field_names():
-    payload = ('{"rejection_rate": 0.031}   '
-               '# 真值同时是 observed 与 false —— 字段名塌成一个')
-    names = _RATE_NAME.findall(payload)
+    # 扫描器必须作用在**真实仓内文件**上，并且有非空命中面（否则对真实数据是空的）
+    subjects, total_hits = [], 0
+    for rel in ("lib/algorithms/coverage/tools/satellite_gate_metrics.py",
+                "lib/algorithms/coverage/tools/satellite_gate_real_metrics.py",
+                "eng/tools/monitoring/run_monitored.py"):
+        path = os.path.join(_REPO, rel)
+        if not os.path.exists(path):
+            continue
+        with open(path, encoding="utf-8") as fh:
+            text = fh.read()
+        subjects.append(rel)
+        if FALSE_FIELD in text:
+            total_hits += text.count(FALSE_FIELD)
+        for lineno, line in naming_violations(text):
+            harness.is_false(line, f"{rel}:{lineno} 真实帧侧出现 false reject 字段名")
     with harness.evidence() as ev:
-        ev.record("抽取到的率字段名", names)
-        ev.record("去重后字段名数", len(set(names)))
-    harness.exact(len(set(names)), 1, "夹具必须只含一个字段名（缺陷形态）")
-    harness.is_false(OBSERVED_FIELD in payload,
-                     "缺陷未生效：文本仍带 observed 字段名")
-    harness.is_false(FALSE_FIELD in payload,
-                     "缺陷未生效：文本仍带 false 字段名")
-    harness.is_true(len(set(names)) < 2,
-                    "缺陷未生效：两率字段名未被压成一个")
+        ev.record("扫描的真实文件", subjects or "无")
+        ev.record("其中 FALSE_FIELD 出现次数（扫描器的真实命中面）", total_hits)
+    harness.is_true(len(subjects) >= 1, "没有扫到任何真实文件，扫描器是空的")
+    harness.is_true(total_hits >= 1,
+                    "扫描器在真实文件上零命中：S16 判据对真实数据没有作用面")
+
+
+# ⚠ 对抗复核 R1 的否决已执行：原先有一条 `s16.two_rates_must_be_distinct_field_names`，
+#   其「注入」是一个硬编码字面量、判据是对该字面量做集合基数比较 ——
+#   断言退化为「单元素集合的元素数 < 2」，没有任何实现/产品/`*_ref.py` 被执行。**已删除**。
+#   S16 现在只有下面那条正例：它把扫描器接到**真实仓内文件**上，并做非退化检查
+#   （扫描器在真实数据上必须有非空命中面，否则它对真实数据是空的）。
