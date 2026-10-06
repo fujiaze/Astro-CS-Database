@@ -27,7 +27,7 @@
 ```text
 calibrated = raw − C，C 为双线性插值的加性校正场
 w_abs = quality × reliability × control_ivar
-w_cell = w_abs / Σ w_abs × reliability，同一格点内归一
+w_cell = w_abs / Σ w_abs，同一格点内归一
 control_variance = k_corr × (π/2) × σ² / N_retained
 control_ivar = 1 / control_variance
 ```
