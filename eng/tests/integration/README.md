@@ -279,3 +279,16 @@ B10/B11 的解析注入与 B12 的签名面排他性。
 以上清单里的任何一条，本层都**不**给出「已通过」的读数；本层的绿灯只支撑
 「合同面成立」这一个结论（`VALIDATION_EVIDENCE.md:164`
 「给不出注入负例的判据不进清单」的同类纪律：给不出证据资格的不许被读作已执行）。
+## T07 吸收登记（RELEASE-10）
+
+| 判据 | 本层承接 | pipeline 层对应 |
+|---|---|---|
+| T01-D2 weight_mode 路由 | module/integration 已有路由面 | `pipe.mosaic.retired_weight_keys_rejected` + `pipe.mosaic.derived_weight_oracle` |
+| T01-D4 k_corr≥1 | unit 已有边界负例 | `pipe.norm.kcorr_reject`（阶段面） |
+| T01-D7 worker 无关性 1e-12 | integration 已有收紧测试 | `pipe.mosaic.worker_bitwise`（阶段面） |
+| release02 q1/q2/q3/unc/c_delta | synthetic P1–P5 已有不变量 | pipeline 三阶段重写吸收（解析 Oracle + 负例，不原样搬运） |
+| T05 N01–N36 / T10 十一族 | — | `test_negative_36.py` / `test_repro_ids.py`（构造待对拍） |
+
+删除记录：`eng/tests/validation/release02/` 与 `eng/tools/quality` 残留的删除由前台
+统一执行（e2e 层仍引用 `wcs_lib.py`，删前需先迁移该引用；quality 生成器仍被
+contracts 引用）。本层不自行删除。
