@@ -1,6 +1,6 @@
 # 模块 acsd.phase3.verify
 
-> 上游：docs/ACSD_DESIGN.md §8.5（模块与 ABI）
+> 上游：`docs/ACSD_DESIGN.md`对应章节（模块与 ABI）
 
 Registry production 节点（唯一源 = module_adapters.cpp 的 p3_verify_descriptor，
 节点操作 `verify_output`）。职责：对已写 FITS 做独立重开校验（READONLY 重开 →
@@ -44,7 +44,7 @@ cache/内存按 ALG 合同(bounded); I-O 单 writer; 所有权=调用方分配 b
 
 ## 错误、日志、指标、取消和 checkpoint
 
-错误码与退出码唯一源=lib/infrastructure/cli/exit_codes.h（本页不复制数值表）；取消=协作取消（契约：宿主 cancel 通道 → 停止调度新单元 → 等运行中单元完成 → exit 9，最高设计 §7.2；接线以实测为准）；模块内无 checkpoint（无断点续算）。
+错误码与退出码唯一源=lib/infrastructure/cli/exit_codes.h（本页不复制数值表）；取消=协作取消（契约：宿主 cancel 通道 → 停止调度新单元 → 等运行中单元完成 → exit 9，最高设计对应章节；接线以实测为准）；模块内无 checkpoint（无断点续算）。
 
 ## 独立 synthetic 验证命令与容差
 

@@ -1,7 +1,7 @@
 # 模块 acsd.phase1.drizzle
 
-> 上游：docs/ACSD_DESIGN.md §8.5（模块与 ABI）、§4.4（输出合同：帧级 SNR 入文件头、
-> 稀疏层插入）、§2.2（P2 跨帧绝对信噪比）、§5.5/§10（无覆盖 = NaN 语义）
+> 上游：`docs/ACSD_DESIGN.md`对应章节（模块与 ABI）、对应章节（输出合同：帧级 SNR 入文件头、
+> 稀疏层插入）、对应章节（P2 跨帧绝对信噪比）、对应章节/对应章节（无覆盖 = NaN 语义）
 > 科学正本：docs/science/drizzle/DRIZZLE.md（SCI-DRZ-001/014/015/016，「参数与常数」表的
 > pixfrac / 叶面积 / `flux_conservation_factor`；「主题与目标」「几何闭合」的守恒不变量）、
 > docs/science/algorithms/DRIZZLE_GEOMETRY.md（ALG-DRZ-001，重采样几何、「TEST-DRZ-DESIGN-001」
@@ -12,7 +12,7 @@
 > eng/contracts/schemas/run_manifest.schema.json
 > API 正本：docs/engineering/api/PUBLIC_API.md（API-DRZ-001）、API-P1-007
 > （docs/engineering/api/PUBLIC_API.md「分阶段 API 面」）
-> 数据对象：docs/detail/UNIFIED_MODEL.md §1（重采样线性算子）
+> 数据对象：`docs/detail/common/unified_model.md`对应章节（重采样线性算子）
 
 合同 = SCI-DRZ-001 / ALG-DRZ-001 / TEST-DRZ-DESIGN-001（与
 `lib/algorithms/drizzle/module.yaml`、registry descriptor 同口径）。事实源 =
@@ -88,7 +88,7 @@ covered_area ≤ 0 → variance 记 NaN）。`pixfrac ∈ (0,1]` 引擎层严格
   variance 时**必须**另存 correlation kernel / scale 或可重建算子摘要；
 - signal 单位、源/目标像素面积、pixfrac、归一必须统一，不得隐含；
 - **核按 drop 面积归一（canonical）**：交叠面积除以该 drop 的面积。依据 F&H 2002
-  式 (2)–(5) 的累加式与 §7 式 (7) 后「`a + b = 1`」的定义句（双锚；原引 §7.2 已由
+  式 (2)–(5) 的累加式与 对应章节 式 (7) 后「`a + b = 1`」的定义句（双锚；原引 对应章节 已由
   docs/science/algorithms/DRIZZLE_GEOMETRY.md 撤换），以及 drizzlepac
   `src/cdrizzlebox.c` 的 `do_kernel_square`（`dover /= jaco`，`jaco` 为映射后的 drop
   面积）；在这一口径**且几何闭合成立**时，累加的通量总和等于源端积分
@@ -196,7 +196,7 @@ run generation 切换清空，原子化替换）。计数新增 `target_boundary
 （DrizzleStats + `[ops]` 行）。缓存的科学等价由 candidate oracle、freeze 闭合门
 与 MC 复算结果给出（判据见 DRIZZLE_GEOMETRY.md）；`k_corr` 的规范式 = 因子分解式
 `k_corr = k_gauss(N_retained) × k_geo(几何)`、逐帧查表标定
-（`docs/science/noise_snr/NOISE_SNR.md` §3.5 `k_corr` 因子分解式），标定域两端的冻结单数 1.4 低估，
+（`docs/science/noise_snr/NOISE_SNR.md`对应章节 `k_corr` 因子分解式），标定域两端的冻结单数 1.4 低估，
 不作规范取值。
 
 所有权 = 调用方分配 frame / result / 输出缓冲；模块内 RAII（SNR 控制点 vector，
@@ -218,7 +218,7 @@ run generation 切换清空，原子化替换）。计数新增 `target_boundary
 - **无覆盖 / 无数据 = NaN**（与支撑度 ≤ 0 一致），不用 0 或 ±Inf 冒充无效。NaN
   采用**样本级掩膜**：被掩除的样本不参与该输出像素，剩余样本权重**重归一**；
   整个输出像素无有效覆盖则置 NaN（**覆盖级 NaN**）并**强制计数**（最高设计
-  §5.5/§10，规则见 DRIZZLE.md）；
+  对应章节/对应章节，规则见 DRIZZLE.md）；
 - **逐像素方差/ivar 产品面**：生产调度路径**已挂** `variance` 帧内命名块 ——
   module_adapters.cpp（`p1_op_drizzle`）按噪声模型 A 的 blank-sky variance 填面后
   `aio_frame_add_block(frame, "variance", AIO_BLOCK_FLOAT32, …)`；引擎侧按权重

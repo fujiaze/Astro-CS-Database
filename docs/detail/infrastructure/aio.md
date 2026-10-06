@@ -9,7 +9,7 @@
 > API 正本：docs/engineering/api/PUBLIC_API.md（API-AIO-001..）
 > 科学 ID：SCI-DRZ-014/016（产品语义）
 > 精度：docs/engineering/resources/PERFORMANCE_MODEL.md（FP64 reference）
-> 落盘形态说明：docs/detail/PRODUCT_STORAGE_FORM.md
+> 落盘形态说明：docs/detail/infrastructure/storage_form.md
 > 引用文献：见文末「参考文献」（角标用全角 `［N］`）
 
 ## 1. 职责与边界
@@ -51,7 +51,7 @@
 
 ## 4. 形态与原子提交
 
-- 形态（docs/detail/PRODUCT_STORAGE_FORM.md）：归档形态 = 产品在 stage 内先按裸
+- 形态（docs/detail/infrastructure/storage_form.md）：归档形态 = 产品在 stage 内先按裸
   形态写出并逐瓦片校验，再按成员边界切分为独立 zstd 帧串接；归档、索引、完成
   manifest 依次 fsync 后原子落位，**manifest 最后落**；
 - **形态来源与登记**：Phase1 的落盘形态由输入配置键 `storage_form`

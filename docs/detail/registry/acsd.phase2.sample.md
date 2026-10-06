@@ -1,13 +1,13 @@
 # 模块 acsd.phase2.sample
 
-> 上游：docs/ACSD_DESIGN.md §8.5（模块与 ABI）、§5.2（固定科学流程：控制采样）、
-> §5.4（天光平面与统一相对模型）
-> 科学正本：docs/science/PHASE2_UPM.md（SCI-UPM-001，FROZEN，§1/§4/§5）、
-> docs/science/noise_snr/NOISE_SNR.md §3.5（控制点定权）、docs/detail/PHASE2_DETAILED_DESIGN.md §4
+> 上游：`docs/ACSD_DESIGN.md`对应章节（模块与 ABI）、对应章节（固定科学流程：控制采样）、
+> 对应章节（天光平面与统一相对模型）
+> 科学正本：docs/science/PHASE2_UPM.md（SCI-UPM-001，FROZEN，对应章节/对应章节/对应章节）、
+> `docs/science/noise_snr/NOISE_SNR.md`对应章节（控制点定权）、`docs/detail/mosaic/pipeline.md`对应章节
 > 算法正本：docs/science/algorithms/PHASE2_SAMPLER.md（ALG-P2-SMP-001；语义与判据
-> §11.3、缺陷登记 §11.2/§11.3、测试设计 §11.3 F1–F9）
+> 对应章节、缺陷登记 对应章节/对应章节、测试设计 对应章节 F1–F9）
 > 数据正本：docs/detail/registry/acsd.phase2.sample.md（DATA-P2-SMP 端口表，本页输入输出端口表）；
-> control_variance / k_corr 冻结式见 docs/science/noise_snr/NOISE_SNR.md §3.5
+> control_variance / k_corr 冻结式见 `docs/science/noise_snr/NOISE_SNR.md`对应章节
 > API 正本：docs/engineering/api/PUBLIC_API.md（API-P2-SMP-001）、
 > docs/engineering/api/PUBLIC_API.md「分阶段 API 面」（API-P2-001，FROZEN）
 
@@ -41,7 +41,7 @@ lib/algorithms/coverage/include/astro/phase2/sampler.h；构建 = 根 CMakeLists
 `out_n_controls` = n_union × G²，含空覆盖占位（与 accepted / overlap_controls
 区分）。control estimator 方差的口径 = k_corr × (π/2) × σ_bg² / N_retained
 （ALG-UPM-CONTROL-IVAR-001；公式与 k_corr 定义域正本 =
-docs/science/algorithms/PHASE2_SAMPLER.md §5.4 与本页输入输出端口表；
+`docs/science/algorithms/PHASE2_SAMPLER.md`对应章节 与本页输入输出端口表；
 k_corr 逐帧按 Drizzle provenance 查表，代码回退值 1.4）。`frame_id` 是内容稳定
 身份（truncated-64 canonical SHA-256，DATA-FRAME-ID-001）。
 
@@ -70,12 +70,12 @@ per-pixel 科学场产品；session 依赖（coverage 数据面显式传入）�
 - 输入 = `P2CoverageResult`（n_union 上限 1e6、cells 上限 2e8）+ `hips_paths` /
   `frame_ids`（cached 版可空 = 内部重算；0 = 非法哨兵）+ `P2SamplerConfig` 15 字段
   （默认单一来源 sampler.cpp；`<=0 → 默认` 修补吞显式 0，登记见 ALG-P2-SMP-001
-  §11.3）；
+  对应章节）；
 - 输出 = `P2ControlObservation` 13 字段（frame_id / control_id / leaf_ipix u64，
   ra_deg / dec_deg / value / uncertainty / snr / ivar / control_variance /
   control_ivar / support f64，snr_available int，quality_flags u32）+
   `P2SampleStats` 10 字段 u64 诊断计数（`insufficient_retained` 现状双计数，登记
-  见 ALG-P2-SMP-001 §11.3）+ `P2ControlNode` 7 字段；
+  见 ALG-P2-SMP-001）+ `P2ControlNode` 7 字段；
 - invalid 显式化 = bad args / frame_id 0 / open failed / n_union > 1e6 /
   cells > 2e8 / 首 tile 越界 / exception ⇒ rc = 1（err 8KB 文本）。**容量不足
   不报错**（probe/fill 截断拷贝 + `out_n_*` 给真实需求，sampler.h 冻结）。
@@ -100,7 +100,7 @@ flowchart LR
     F["每帧校准图像"] --> M["套用星点掩膜"]
     M --> GRID["空间分层网格"]
     GRID --> P["每格取稀疏背景采样点<br/>（局部稳健背景 + 方差）"]
-    P --> W["每点赋 control_ivar 权重<br/>（= 1 / control_variance；<br/>control_variance 冻结式见<br/>docs/science/noise_snr/NOISE_SNR.md §3.5）"]
+    P --> W["每点赋 control_ivar 权重<br/>（= 1 / control_variance；<br/>control_variance 冻结式见<br/>`docs/science/noise_snr/NOISE_SNR.md`对应章节）"]
     W --> OUT["sky_samples 稀疏点表"]
 ```
 
@@ -160,7 +160,7 @@ registry/acsd.phase2.upm-fit.md（采样模块只产点表，不施加归一化�
 
 worker 数 = Runtime lease（`cfg.cpu_workers` = ThreadBudget.max_workers 经 stage2.cpp
 透传，模块无 hardware_concurrency 自行开线程）；取消检查点接线为迁移整改点
-（与 coverage 域同构，见 ALG-COV-001 §11.3；未落地）。
+（与 coverage 域同构，见 ALG-COV-001；未落地）。
 determinism = `fixed_reduction_order`。
 
 ## 内存/cache/I-O/所有权
@@ -174,7 +174,7 @@ AIO 缓存面。reentrant = yes / threadsafe = no（头文件无线程注记，�
 
 ## 错误、日志、指标、取消和 checkpoint
 
-错误面 = rc 二值 + err 8KB 文本（细分语义 = 本页「输入输出端口、DATA、单位、坐标、invalid」一节 / ALG §11.1）；无状态机
+错误面 = rc 二值 + err 8KB 文本（细分语义 = 本页「输入输出端口、DATA、单位、坐标、invalid」一节 / ALG 对应章节）；无状态机
 （accept / reason u8 0..5 逐观测承载，同上）；容量不足不报错（probe/fill）。
 
 - 控制点 / 采样点不足、连通性断裂 → fail-closed（UPM 欠定 / 不可辨识）；
@@ -190,7 +190,7 @@ AIO 缓存面。reentrant = yes / threadsafe = no（头文件无线程注记，�
 ## 独立 synthetic 验证命令与容差
 
 可执行 `TEST-P2-SMP-001` 待建（不冒认）；设计冻结 = `TEST-P2-SMP-DESIGN-001`
-（ALG-P2-SMP-001 §11.3 F1–F9：F1 统计量逐值 bitwise、F2 k_corr 角点 exact / 插值
+（ALG-P2-SMP-001 F1–F9：F1 统计量逐值 bitwise、F2 k_corr 角点 exact / 插值
 rtol 1e-12、F3 control_variance Python oracle rtol 1e-12 + UPMW-004 MC、
 F4 坐标 atol 1e-9 deg、F5 constant/gradient/impulse rtol 1e-12、F6 边界 / seam
 exact、F7 missing / invalid exact、F8 串并行 bitwise、F9 计数守恒现状口径）。
@@ -207,7 +207,7 @@ Oracle 面：
 - **control_ivar 加权验证**：注入低 SNR / 光污染帧，联合天光面不被拉高（与等权
   拟合对照，偏差显著减小）。三臂对照（`control_ivar` / `uniform` / `SNR²`）的
   结论 = `control_ivar` 是**偏差漏入**最小的一臂；与等权相比其**噪声项**优势落在
-  MC 误差内，决定性优势在偏差漏入（依据 = docs/science/noise_snr/NOISE_SNR.md §3.4/§3.5）；
+  MC 误差内，决定性优势在偏差漏入（依据 = `docs/science/noise_snr/NOISE_SNR.md`对应章节/对应章节）；
 - 稀疏性验证：采样点数量级远低于像素数，峰值内存随采样点数而非像素数增长；子集
   现场求值与全网格求值**逐位相同**；
 - 欠定检测（点数不足 / 连通性断裂时报错）；
@@ -215,7 +215,7 @@ Oracle 面：
 
 ## 已知限制
 
-- 缺陷与现行语义正本 = docs/science/algorithms/PHASE2_SAMPLER.md §11.3（登记不
+- 缺陷与现行语义正本 = `docs/science/algorithms/PHASE2_SAMPLER.md`对应章节（登记不
   改码）：cfg `<=0 → 默认` 吞显式 0；`insufficient_retained` 双计数；stderr 直写；
   veto 阈值与半径硬编码；零背景尺度收敛阈值退化全迭代；整改面未落地；
 - ThreadLease / 取消检查点接线未落地；目标交付形态

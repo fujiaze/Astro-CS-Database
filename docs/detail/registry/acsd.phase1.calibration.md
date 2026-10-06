@@ -1,7 +1,7 @@
 # 模块 acsd.phase1.calibration
 
-> 上游：docs/ACSD_DESIGN.md §8.5（模块与 ABI）
-> 科学正本：docs/science/calibration/CALIBRATION.md（SCI-CAL-001）、docs/science/noise_snr/NOISE_SNR.md（噪声模型 §2.2 分类学、§3.5 方差传播）、
+> 上游：`docs/ACSD_DESIGN.md`对应章节（模块与 ABI）
+> 科学正本：docs/science/calibration/CALIBRATION.md（SCI-CAL-001）、docs/science/noise_snr/NOISE_SNR.md（噪声模型 对应章节 分类学、对应章节 方差传播）、
 > docs/science/algorithms/CALIBRATION_ALGORITHMS.md（ALG-CAL-001..006）
 > 数据正本：docs/detail/registry/acsd.phase1.calibration.md（DATA-P1-CAL 端口表，本页输入输出端口表）
 > API 正本：docs/engineering/api/PUBLIC_API.md（API-CAL-001）、docs/engineering/api/PUBLIC_API.md「分阶段 API 面」（API-P1-001）
@@ -43,9 +43,9 @@ SCI-CAL-001 与 ALG-CAL-001..006；本页只记落地约束：
 - 共享 master 的相关性以共同 master ID 保留，按相关样本处理，不得因重复
   减同一 master 而把方差低估；
 - gain、Poisson、read noise、量化、master 方差分别标识，不合并为单一噪声项；
-- flat floor 0.1 下界与 median 归一行为按 ALG-CAL §3（F1–F3）执行。
+- flat floor 0.1 下界与 median 归一行为按 ALG-CAL（F1–F3）执行。
 
-归约口径 = ALG-CAL §6。
+归约口径 = ALG-CAL。
 
 ## 公共 header、核心 symbol 与生命周期
 
@@ -92,7 +92,7 @@ parallel_ok=True; 目标交付形态 acsd_p1_calibration.dll。配置 = phase co
 | `read_noise` | —— | e⁻ | 由元数据或显式覆盖 |
 | `clip_negative` | false | —— | true 仅用于显式声明的具名降级路径：必须写 `degraded_reason` 并入 manifest |
 
-sigma-clip 参数族按 ALG-CAL §8。现状接线为 C 参数直传 + phase1_session JSON
+sigma-clip 参数族按 ALG-CAL。现状接线为 C 参数直传 + phase1_session JSON
 （`master_*` 路径、`input_lights`、`dark_optimization`、`dark_scale_factor`）；
 `K=t_light/t_dark` 的计算在调用方完成。
 
@@ -104,7 +104,7 @@ ThreadBudget.max_workers（唯一取值源，禁 hardware_concurrency）。
 现状并行 = OpenMP parallel-for 像素/帧域，schedule 默认 team（线程数非 16
 硬编码）；现状无 ThreadLease，取进程默认 team（迁移整改点）。全部函数
 reentrant、threadsafe（无共享可变全局）。例外：`ac_set_num_threads` 在进程级
-改写 OpenMP ICV（迁移整改点，缺陷登记 = ALG-CAL §10）。
+改写 OpenMP ICV（迁移整改点，缺陷登记 = ALG-CAL）。
 
 确定性 = NOT_VERIFIED（未取得验收证据）。
 
@@ -124,7 +124,7 @@ orchestration/调用方层缓存）。
 错误码与退出码唯一源 = lib/infrastructure/cli/exit_codes.h（本页不复制数值表）。
 模块级：`AC_OK(0)` / `AC_ERR_PARAM(-1)`（astro_calibration.h）；`AC_ERR_MEMORY(-2)`
 与 `AC_ERR_INTERNAL(-3)` 定义但从未返回（无 extern "C" 异常屏障，缺陷登记 =
-ALG-CAL §10）。母版缺失/滤镜不匹配由 orchestrator 层报 CONFIG/NO_DATA。缺关键
+ALG-CAL）。母版缺失/滤镜不匹配由 orchestrator 层报 CONFIG/NO_DATA。缺关键
 单位、gain 或 read-noise 口径 → fail-closed；master 与 light 尺寸/帧身份不一致
 → 拒绝；NaN/Inf 输入 → 标记 validity，不静默置零。`cc_*` 通道 window 偶数 / <3 /
 >15 → −1（cpp/cosmetic_corrector.cpp，非 `ac_correct_frame`）。
@@ -134,13 +134,13 @@ Diagnostics：stderr 日志 `ac_log`，`generate_master` / `generate_master_flat
 `actual_k`/`out_hot`/`out_cold` 为可选输出统计。
 
 取消 = 协作取消（契约：宿主 cancel 通道 → 停止调度新单元 → 等运行中单元完成
-→ exit 9，最高设计 §7.2；接线以实测为准）；模块内无 checkpoint（无断点续算）。
+→ exit 9，最高设计对应章节；接线以实测为准）；模块内无 checkpoint（无断点续算）。
 
 ## 独立 synthetic 验证命令与容差
 
 测试标识 = `TEST-P1-CAL-001`（registry descriptor 单源）；执行证据 =
 NOT_VERIFIED（未取得验收证据）；容差 = NOT_VERIFIED（未取得验收证据）；设计
-冻结容差 = `TEST-CAL-DESIGN-001`（CALIBRATION_ALGORITHMS.md §9，合成 fixture
+冻结容差 = `TEST-CAL-DESIGN-001`（CALIBRATION_ALGORITHMS.md 对应章节，合成 fixture
 FIX-CAL-A..F、NumPy 独立 oracle、不变量 I1–I6、负面/串并行/ISA/资源设计）。
 
 Oracle 面：
@@ -154,7 +154,7 @@ Oracle 面：
 
 ## 已知限制
 
-- 缺陷与现行语义的登记面 = ALG-CAL §10；
+- 缺陷与现行语义的登记面 = ALG-CAL；
 - `AC_ERR_MEMORY` / `AC_ERR_INTERNAL` 为死值，无异常屏障；
 - `ac_set_num_threads` 改写进程级 OpenMP ICV，与「模块不私建线程池」纪律
   不一致，属迁移整改点；

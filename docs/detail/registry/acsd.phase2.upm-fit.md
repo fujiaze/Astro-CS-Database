@@ -1,12 +1,12 @@
 # 模块 acsd.phase2.upm-fit
 
-> 上游：docs/ACSD_DESIGN.md §8.5（模块与 ABI）、§5.2（固定科学流程）、
-> §5.4（天光平面与统一相对模型 UPM）
-> 科学正本：docs/science/PHASE2_UPM.md（SCI-UPM-001，FROZEN；§1/§4/§5/§10/§14a/§17）、
+> 上游：`docs/ACSD_DESIGN.md`对应章节（模块与 ABI）、对应章节（固定科学流程）、
+> 对应章节（天光平面与统一相对模型 UPM）
+> 科学正本：docs/science/PHASE2_UPM.md（SCI-UPM-001，FROZEN；对应章节/对应章节/对应章节/对应章节/对应章节/对应章节）、
 > docs/science/algorithms/UPM_SOLVER.md（ALG-UPM-001，权威推导；F3/F5/F6）、
-> docs/science/noise_snr/NOISE_SNR.md §3.5（参数协方差）
+> `docs/science/noise_snr/NOISE_SNR.md`对应章节（参数协方差）
 > 实现级合同：docs/science/algorithms/PHASE2_UPM_IMPL.md（ALG-P2-UPM-IMPL-001；
-> §11/§13 语义与缺陷清单、TEST-DESIGN 冻结容差、字段名与生产取值登记）
+> 对应章节/对应章节 语义与缺陷清单、TEST-DESIGN 冻结容差、字段名与生产取值登记）
 > 数据正本：docs/detail/registry/acsd.phase2.upm-fit.md（DATA-P2-UPM / DATA-P2-COR 端口表，本页输入输出端口表）；
 > DATA-P2-SMP 端口表见 docs/detail/registry/acsd.phase2.sample.md
 > API 正本：docs/engineering/api/PUBLIC_API.md（API-P2-UPM-001）、
@@ -80,7 +80,7 @@ build rc = 2（**显式 INVALID，禁静默回退 support / SNR**，upm.h）；�
 ### 数值落地口径
 
 模型的冻结形式、判据式与字段名的**唯一正本 = docs/science/PHASE2_UPM.md**
-（SCI-UPM-CONV-001 收敛与容差、§5/§10 权重禁令、§14a 依据、§17 接缝门槛推导）
+（SCI-UPM-CONV-001 收敛与容差、对应章节/对应章节 权重禁令、对应章节 依据、对应章节 接缝门槛推导）
 与 ALG-UPM-001 / PHASE2_UPM_IMPL.md；本页只记落地方式与可读数。
 
 **权重口径 = 逆方差，禁止读作裸 SNR²**：拟合目标是采样点上的逆方差加权最小二乘（GLS 最优权重；文献与出版年双源登记见 docs/science/PHASE2_UPM.md），与 P2 定权
@@ -108,13 +108,13 @@ build rc = 2（**显式 INVALID，禁静默回退 support / SNR**，upm.h）；�
 
 **接缝判据的唯一口径 = 有符号电平台阶 + 适用域**：沿真实帧足迹边界取法向差分，
 判据量为相对台阶（`bg` = 边界处局部背景电平），门 = 台阶绝对值的逐边最大值不超
-门限；**门槛的推导与实测标定正本 = docs/science/PHASE2_UPM.md §17**（观测量与
+门限；**门槛的推导与实测标定正本 = `docs/science/PHASE2_UPM.md`对应章节**（观测量与
 零假设分布、虚警率、可检出下限与漏检面）。
 只对两侧都在数据内部的边界计入（法向两侧都能放对照线且各 ≥ 最小样本数），被排除
 的边界仍逐条落盘 `exclude` / `margin_px`。噪声比、扣对照线的净台阶、`d` 扫描与
 `excess` 口径**全部只作诊断量、不判红**；**方差比对电平阶跃原理性失明**（阶跃
 不改变方差），**方差比的引用面 = 诊断量本身**。该门隐含前提 = 保留背景
-（SCI-UPM-001 §9a）。
+（SCI-UPM-001）。
 
 **失败条件**：欠定（点数不足）、断图（天区不连通）、不可辨识或显著模型失配 ⇒
 显式失败或分组件，**不假装同基准**；欠定与病态**统一走同一个返回码** rc = 3。
@@ -174,7 +174,7 @@ build rc = 2（**显式 INVALID，禁静默回退 support / SNR**，upm.h）；�
 **适用域**：无接缝 ⟺ 公共面可表示 —— 帧间天光差含「`B_ref` 不可表示且沿单轴
 相干」的分量时残余接缝与该分量 RMS 线性相关；接缝随尺度的放大按跨实现稳健的
 「峰值/长尺度比 ≈ 8」（肘点 ≈ 2h、非单调形状）刻画，端点比属实现条件依赖读数，
-**不复现为固定倍数**（正本 = docs/science/PHASE2_UPM.md §17 与
+**不复现为固定倍数**（正本 = `docs/science/PHASE2_UPM.md`对应章节 与
 `实验/additive-sky-seamless/`）。**纯加性前提**：帧间乘性差必须先在 Phase1 吸收；
 不可吸收的基外高频分量对**电平**接缝贡献有界，但可被分块 PSD 定位。
 **不可检验域**：图平滑权重为 0 时 per-(frame,cell) 自由加性场恰好定解，
@@ -220,7 +220,7 @@ parallel_ok=True; abi=c++17; api_id=API-P2-001。descriptor 派生的占位 ID
 persist→reload 语义，与内核 probe/fill 语义的桥接未验证。
 
 配置面分三处结构体，字段名一律以签名头为准：`P2UpmBuildConfig`
-（upm.h，20 字段；本页登记装配面字段见下表 A）、
+（统一头文件，字段数以签名头为准；本页登记装配面字段见下表 A）、
 `P2UpmMaBuildConfig`（upm.h，乘法/加性观测求解器；判据与 gauge 字段见表 B）、
 `P2SkyPlaneConfig`（sky_plane.h，天光面表示与逐帧梯度；字段见表 B）。production
 默认取值单一来源 = lib/phase2_session/p2_session.cpp。
@@ -354,7 +354,7 @@ Oracle 面：
   materialize_dense 重复声明；upm.h 注释漂移（OpenMP vs std::thread 实现）；
   p2_session.cpp 覆盖键缺口；descriptor 端口静态声明的 persist→reload 语义；
 - ALG 边界：覆盖并集非凸区外推仅经 tile 内 cell 界锚点（外推锚只引用真实存在
-  cell）；单帧区 = harmonic continuation，非数据约束解（SCI-UPM-001 §4）；
+  cell）；单帧区 = harmonic continuation，非数据约束解（SCI-UPM-001）；
   legacy `snr²` / `snr²/(1+snr²)` / `uncertainty²` 权重臂（含 support 幂与 σ_floor
   分母）由 `use_ivar_weight = 0` 选择，**仅 ablation / 诊断**（SNR-015）；它**不是**
   `quality_mode` —— `quality_mode` 只决定 quality 因子的分支，实现在

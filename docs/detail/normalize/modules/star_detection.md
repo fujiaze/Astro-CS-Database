@@ -1,4 +1,4 @@
-# 星检测模块实现细节设计（逐算子论文锚定规格）
+# 星检测模块逐算子落地规格
 
 > 上游：《ACSD 最高设计》的「核心科学方法：五个创新点」一章与 normalize 一章的「节点流程」一节、
 > `docs/science/algorithms/STAR_DETECTION_ALGORITHMS.md`（算法推导与冻结定义，下称 ALG）、
@@ -53,7 +53,7 @@ O13 排异门、O14 孔径测光、O15 输出整理、O16 星表引导检测。
 
 - 标定协议：每档 1000 次 Monte Carlo，Clopper–Pearson［1］下界，n≥298 有效样本（`docs/science/algorithms/STAR_DETECTION_ALGORITHMS.md`「TEST-STAR-DESIGN-001 冻结测试设计」一节）。
 - 实现向该表收敛：任一档超出即不合格。「与参考实现一致」不构成通过理由。
-- **判据非退化三必须（承接上游，逐字同源）**：召回场**必须**在每一档都有域内真星；**必须**包含落在过渡带内（`10 ≤ SNR_peak <` 该档 99% 召回阈）的真星，总数 ≥8 且覆盖 ≥4 个 σ 档；**必须**同时报告过渡带负例召回率，且该召回率**必须**低于 99%。上游正本 = `docs/science/detection/STAR_DETECTION.md` §3.3「召回域的统计判据」的「非退化要求」条与 `docs/science/algorithms/GATES_AND_TOLERANCES.md` G-P1-STAR-RECALL 行（`docs/science/algorithms/STAR_DETECTION_ALGORITHMS.md`「TEST-STAR-DESIGN-001 冻结测试设计」一节 F1 同源）；本设计不另立口径，三必须缺一即该召回判据不成立。
+- **判据非退化三必须（承接上游，逐字同源）**：召回场**必须**在每一档都有域内真星；**必须**包含落在过渡带内（`10 ≤ SNR_peak <` 该档 99% 召回阈）的真星，总数 ≥8 且覆盖 ≥4 个 σ 档；**必须**同时报告过渡带负例召回率，且该召回率**必须**低于 99%。上游正本 = `docs/science/detection/STAR_DETECTION.md`对应章节「召回域的统计判据」的「非退化要求」条与 `docs/science/algorithms/GATES_AND_TOLERANCES.md` G-P1-STAR-RECALL 行（`docs/science/algorithms/STAR_DETECTION_ALGORITHMS.md`「TEST-STAR-DESIGN-001 冻结测试设计」一节 F1 同源）；本设计不另立口径，三必须缺一即该召回判据不成立。
 - 真帧行为统计（检测数、检出中心差、阈值日志值、oracle 容差）属**实验证据面**（`实验/`），
   由实验单元按各自协议重取并登记；本设计只承载召回阈表与规范常数。
 
@@ -146,7 +146,7 @@ IEEE Trans. Signal Processing 54(6), 2365–2367（DOI 10.1109/TSP.2006.871980�
 
 构造出处：Bertin & Arnouts 1996［7］, *SExtractor: Software for source extraction*,
 A&AS 117(2), 393–404 — §3（检测阈值化：对「模板帧」（原图与所选卷积核的即时卷积结果）做单遍
-连通域提取）。模板帧在本实现中即 O2 平滑图（平滑核对点源检测最优，B&A96 §3 引 Irwin 1985 结论）。
+连通域提取）。模板帧在本实现中即 O2 平滑图（平滑核对点源检测最优，B&A96 §3引 Irwin 1985 结论）。
 
 规格：候选像素 = 平滑图 S 中
 
@@ -155,7 +155,7 @@ A&AS 117(2), 393–404 — §3（检测阈值化：对「模板帧」（原图�
 其中 `bg` = 帧中位背景（与 O4 的 median 基线同一量），`σn` = O1 在**未平滑原图**上的噪声估计，
 κ = 5.0 即「未平滑原图噪声的 5 倍」（冻结，不重推）。阈值量纲声明随 `docs/science/algorithms/STAR_DETECTION_ALGORITHMS.md`「离散公式」一章：
 阈值作用于平滑图时按 σsm·‖k‖₂ 折算（σs=2.0 时 ‖k‖₂ 折算系数 35.45/σsm 声明项）。
-论文锚定说明：B&A96 §3 给出的是「阈值+连通域」构造本身；κ 与 median 基线为本项目按
+论文锚定说明：B&A96 §3给出的是「阈值+连通域」构造本身；κ 与 median 基线为本项目按
 召回验收独立标定的项目参数（`docs/science/algorithms/STAR_DETECTION_ALGORITHMS.md`「TEST-STAR-DESIGN-001 冻结测试设计」一节），两者分层，不混注。
 
 ### 5.4 O4 饱和预标记 —— [Project-defined：文献无出处，引用时不注文献出处]
@@ -180,7 +180,7 @@ float 定标帧上 dynrange 退化为「帧自身 max 与 65535 的较小者减�
   pixel0 − minhigh ≤ 0.1·dynrange（pixel0 为峰中心原图像素值；邻域高像素计数 < 3 的峰
   直接剔除；此处 dynrange 取 min(max(img), 65535) − bg 全式）。
 
-注：Stetson 1987［8］（PASP 99, 191–222, §II FIND）亦有「饱和像素从核拟合中剔除」条款，但本算子族的
+注：Stetson 1987［8］星检测程序 FIND 节亦有「饱和像素从核拟合中剔除」条款，但本算子族的
 单阈岛标记与 3×3 双条件形式均为本项目构造（0.7/0.1 为工程标定值，冻结），不注文献出处。
 
 ### 5.5 O5 质心（一阶导过零） —— [Project-defined：文献无出处，引用时不注文献出处]
@@ -206,10 +206,10 @@ sdet_zero_cross_dir）。**读数 = 峰到零交叉的像素距离**：`dist = |
 
 ### 5.8 O8 局部极大扫描 —— [论文锚定]
 
-构造出处：Stetson 1987［8］, PASP 99, 191–222 — §II「FIND」：在核卷积响应图上找局部极大
-H(i0,j0) > Hmin 且大于规定半径内所有邻值，半径由星像 FWHM 推出（原文 §II.2）。
+构造出处：Stetson 1987［8］星检测程序 FIND 节：在核卷积响应图上找局部极大
+H(i0,j0) > Hmin 且大于规定半径内所有邻值，半径由星像 FWHM 推出（该程序 FIND 节星像半径一段）。
 本实现以 O2 平滑图替代 DAOFIND 的零积分核响应图 H（O3 已按平滑图量纲冻结阈值表，
-两者在点源检测上同构——B&A96 §3 同样以 PSF 形状核为点源最优），扫描半径与邻域语义为项目参数。
+两者在点源检测上同构——B&A96 §3同样以 PSF 形状核为点源最优），扫描半径与邻域语义为项目参数。
 
 规格细节：扫描域 = `[r, h−r) × [r, w−r)`（`r = 5`），**域外像素不产峰**；11×11 邻域访问
 落在该域内，不越界读、无需钳位。**等价性论证**：召回阈表标定用 256² 居中单星，
@@ -228,7 +228,7 @@ R = σp·√(2 ln 1000) = σp·3.71692）加工程钳位 R ≤ 200。
 现行构造（**不**替换为 DAOFIND 门）：以 dA/dSr/dSc 三个对称性统计在 LM 前剔除非星形状
 ——dA = amax/amin、dSr = drmax/drmin、dSc = dcmax/dcmin 为**峰中心四方向零交叉估计量**的
 两两比值，任一门值 > 2.0 即剔除。理由（判据级）：DAOFIND 的 roundness/sharpness 门
-（Stetson 1987［8］§II：0.2 < sharp < 1.0、−1.0 < round < 1.0 默认域，论文 §II.F 明示）
+（Stetson 1987［8］星检测程序 FIND 节：0.2 < sharp < 1.0、−1.0 < round < 1.0 默认域，该节判据参数一段明示）
 要求以零积分核响应图 H 为输入，切换输入图即移动 O3 阈值表的量纲（`docs/science/algorithms/STAR_DETECTION_ALGORITHMS.md`「离散公式」一章 的 ‖k‖₂ 折算
 随核改变），触发全表重标定（「实现边界」一章条款）；现行对称门在冻结阈表下已达标。
 切换路径完整规格见「DAOFIND roundness / sharpness 门」一节，作为谱系化备置，不在本次实施。
@@ -244,7 +244,7 @@ R = σp·√(2 ln 1000) = σp·3.71692）加工程钳位 R ≤ 200。
   重建亮度树；自枝叶向根，在任一结点阈值 t(i) 处，若某枝满足
   (1) 该枝高于 t(i) 的积分流量 > δc × **父（根）复合天体在检出阈值之上的总流量**，且
   (2) 同层至少另有枝同样满足 (1)，
-  （**权重基准 = 父复合天体总流量**，不是枝自身流量；两侧刻意不对称。B&A96 §4.1 原文
+  （**权重基准 = 父复合天体总流量**，不是枝自身流量；两侧刻意不对称。B&A96 §4.1原文
   p.395 逐字：「(1) the integrated pixel intensity (above t_i) of the branch is greater
   than a certain fraction δ_c of **the total intensity of the composite object**;
   (2) condition (1) is verified for at least one more branch at the same level i.」
@@ -257,9 +257,9 @@ R = σp·√(2 ln 1000) = σp·3.71692）加工程钳位 R ≤ 200。
   `total_flux = Σ_{comp}(smooth − thr)`（父组分在检出阈之上的积分流量），与 SExtractor
   `fdflux`（阈值像素值直接求和，含阈底）存在有界约定偏差（实测样例帧约 13%，见
    仓外 `run/` 留档树，该留档未随本仓跟踪、无法在本仓复核）。）
-  则判为独立成分（B&A96 §4.1 双准则；原文 p.395：「we find a good value for δ_c of
+  则判为独立成分（B&A96 §4.1双准则；原文 p.395：「we find a good value for δ_c of
   5 10⁻³」，与 SExtractor/SEP 默认 DEBLEND_MINCONT = 0.005 同值）。
-  两项操作化规则（B&A96 §4.1–4.2 语义）：
+  两项操作化规则（B&A96 §4.1–4.2语义）：
   - **未存活枝归父**：任一枝在结点 t(i) 不满足双准则时不生成独立成分，其像素并入其父枝，
     父枝以并入后的积分流量继续沿树向根参与上层双准则评估；直至树根仍单枝的组分即单星，
     全组分像素归该成分。
@@ -268,7 +268,7 @@ R = σp·√(2 ln 1000) = σp·3.71692）加工程钳位 R ≤ 200。
     P_c(p) ∝ exp(−½ (p−μ_c)ᵀ Σ_c⁻¹ (p−μ_c))（μ_c 为成分内像素的峰值位置，Σ_c 由成分
     面积/二阶矩估计），判归 argmax_c P_c(p)；概率按浮点严格比较，平局判归树中登记序
     靠前的成分（确定性规则，项目定义）。
-  上述两式为按 B&A96 §4.1–4.2 语义的操作化转述；编码时以原文 §4.1–4.2 提取件为准，
+  上述两式为按 B&A96 §4.1–4.2语义的操作化转述；编码时以原文 §4.1–4.2提取件为准，
   显式公式若有出入按原文订正并登记「诚实边界与存疑清单」一章。
 - **适用极限**（B&A96 §4.3）：双星可分离极限为存在鞍点（高斯轮廓下间隔 < 2σ 不可分）。
 - **接入位置**：替换 O3 连通域之后、O5/O7 初值之前（deblending 属检测段），
@@ -294,8 +294,8 @@ R = σp·√(2 ln 1000) = σp·3.71692）加工程钳位 R ≤ 200。
 
 - 母函数：DISP-STAR-007 唯一椭圆高斯（「三条冻结合同定案」一章），参数 (x0, y0, σx, σy, θ, A, B)。
 - 求解器：信赖域 Levenberg–Marquardt［11］（Moré 1978［2］, *The Levenberg–Marquardt algorithm:
-  implementation and theory*, Numer. Anal. LNM 630, 105 — §4 信赖域与 λ 调整；
-  Madsen, Nielsen & Tingleff 2004［3］, IMM-DTU Lecture Note — §3 教材式流程；
+  implementation and theory*, Numer. Anal. LNM 630, 105 — §4信赖域与 λ 调整；
+  Madsen, Nielsen & Tingleff 2004［3］, IMM-DTU Lecture Note — §3教材式流程；
   MINPACK-1［4］ lmder/lmpar 结构）。实现为 `src/nls_lm.h`（谱系已核，不改）。
 - 冻结参数：20 迭代上限、饱和 3×、xtol = gtol = ftol = 1e-3、avmax = 0.75。
   步长/信赖域控制因子：3/2 为**信赖域因子**（nls_lm.h Options::factor_up=3.0/
@@ -359,9 +359,9 @@ sj = c·FWHMj/2.3548，c ∈ [1.0, 2.0) 项目待标定；
 
 ### 6.3 DAOFIND roundness / sharpness 门
 
-出处：Stetson 1987［8］ — §II FIND：sharpness = (H(i0,j0) − d)/H(i0,j0) 族
-（d 为中心像素与拟合区邻域均值之差、H 为零积分核响应峰高；原文 §II.E）；
-roundness 由 x/y 两个一维高斯拟合峰高 hx, hy 构成（原文 §II.E–F；
+出处：Stetson 1987［8］星检测程序 FIND 节：sharpness = (H(i0,j0) − d)/H(i0,j0) 族
+（d 为中心像素与拟合区邻域均值之差、H 为零积分核响应峰高；该节星像锐度一段）；
+roundness 由 x/y 两个一维高斯拟合峰高 hx, hy 构成（该节星像圆度一段；
 OCR 未复得显式公式，按 DAOPHOT 语义补全 round = 2(hx − hy)/(hx + hy)——
 坏行/坏列特征值 ±2 与星像 ≈0 与原文一致，登记在「诚实边界与存疑清单」一章）；
 默认接受域论文明示 0.2 < sharp < 1.0、−1.0 < round < 1.0（原文 Fig. 2 caption）。
@@ -381,23 +381,23 @@ OCR 未复得显式公式，按 DAOPHOT 语义补全 round = 2(hx − hy)/(hx + 
 |---|---|---|---|
 | O1 背景噪声 | Project-defined | 行差分 Var(d)=2σ²(1−ρ) + 3×5σ clip | 否 |
 | O2 高斯平滑 | 论文锚定 | YvV95［5］ Signal Processing 44(2) + T&S06［6］ IEEE TSP 54(6) | 否（σs=2.0 冻结） |
-| O3 检测阈值 | 论文锚定 | B&A96［7］ §3 构造 + `docs/science/algorithms/STAR_DETECTION_ALGORITHMS.md`「TEST-STAR-DESIGN-001 冻结测试设计」一节 项目 κ 表 | 否（表冻结） |
+| O3 检测阈值 | 论文锚定 | B&A96［7］§3构造 + `docs/science/algorithms/STAR_DETECTION_ALGORITHMS.md`「TEST-STAR-DESIGN-001 冻结测试设计」一节 项目 κ 表 | 否（表冻结） |
 | O4 饱和预标记 | Project-defined | O4a 单阈岛标记 + O4b 3×3 双条件（0.7/0.1·dynrange 相对式） | 否 |
 | O5 质心 | Project-defined | 一阶导过零内插 | 否 |
 | O6 饱和中心行走 | Project-defined | 饱和岛梯度行走 | 否 |
 | O7 宽度/振幅门读数 | Project-defined | √e 恒等式二阶导（供 O9/O10/O13；LM 初值＝halfA） | 否 |
-| O8 局部极大扫描 | 论文锚定 | Stetson 1987［8］ §II FIND 构造 + 项目参数 | 否（越界读修复不触标定域） |
+| O8 局部极大扫描 | 论文锚定 | Stetson 1987［8］星检测程序 FIND 节构造 + 项目参数 | 否（越界读修复不触标定域） |
 | O9 拟合盒 R | Project-defined | 99.9% 能量半径 + 钳位 200 | 否 |
 | O10 形状预门 | Project-defined（保留） | 对称性三统计；DAOFIND 门备置见「DAOFIND roundness / sharpness 门」一节 | 切换则移动（故不切换） |
-| O11 多星去重 | **替换为论文构造** | B&A96［7］ §4 deblending 树（30 层/δc=5e-3） | 否（孤立单星域不触发） |
+| O11 多星去重 | **替换为论文构造** | B&A96［7］§4 deblending树（30 层/δc=5e-3） | 否（孤立单星域不触发） |
 | O12 椭圆高斯 LM | 论文锚定 | DISP-STAR-007 母函数 + Moré 1978［2］ / Madsen 2004［3］ / MINPACK-1［4］ | 否 |
 | O13 排异五码 | Project-defined | 五判式冻结 | 否 |
-| O14 孔径测光 | 论文锚定 | B&A96［7］ §6 孔径族（Kron 1980［12］备置） | 否 |
+| O14 孔径测光 | 论文锚定 | B&A96［7］§6孔径族（Kron 1980［12］备置） | 否 |
 | O15 输出整理 | Project-defined | 输出合同冻结（「三条冻结合同定案」一章） | 否 |
 | O16 星表引导检测 | Project-defined | 引导窗主链 + 六计数 | 否 |
 
 计数：**论文锚定 5**（O2、O3、O8、O12、O14），
-**替换为论文构造 1**（O11，含「CLEAN 门（B&A96 §5）」与「DAOFIND roundness / sharpness 门」「Kron 自适应孔径」两节备置构造），
+**替换为论文构造 1**（O11，含「CLEAN门（B&A96 §5）」与「DAOFIND roundness / sharpness 门」「Kron 自适应孔径」两节备置构造），
 **Project-defined 10**（O1、O4、O5、O6、O7、O9、O10、O13、O15、O16）。
 计 16 项全覆盖。
 
@@ -426,11 +426,11 @@ OCR 未复得显式公式，按 DAOPHOT 语义补全 round = 2(hx − hy)/(hx + 
 5. **[存疑-物理] κ 残差的候选成因**：O2 的 σeff > σs（重尾所致），代入 `docs/science/algorithms/STAR_DETECTION_ALGORITHMS.md`「TEST-STAR-DESIGN-001 冻结测试设计」一节 朴素式
    在 σp=1 处给出约 1.25× 的放大，量级上对上未定位残差。
    本设计**不**据此修改任何 κ 表（表为冻结验收线），仅作为 κ 成因定位实验的候选假设登记。
-6. **[存疑-引文] B&A96 未给显式 μ+kσ 阈值公式**：论文 §3 给出阈值化+连通域构造；
+6. **[存疑-引文] B&A96 未给显式 μ+kσ 阈值公式**：论文 §3给出阈值化+连通域构造；
    检测阈值的量纲与 κ 语义以 `docs/science/algorithms/STAR_DETECTION_ALGORITHMS.md`「离散公式」一章 冻结声明为准（本设计不替论文代言）。
 7. **[常数核实] s_factor 常数**：√(2 ln 1000) 取 double 全精度解析值入常量，
    不写 3.71692 式短字面量。
-8. **[诚实边界] 本设计的文献转述边界**：B&A96 §2–§6 与 Stetson 1987 §II 的使用均基于
+8. **[诚实边界] 本设计的文献转述边界**：B&A96 检测与流量章节与 Stetson 1987 星检测程序 FIND 节的使用均基于
    全文提取路径；B&A96 的页码级核验未达（见本清单第 3 条），Stetson 1987 取 ADS 存档 PDF。
    转述引入的个别字符噪声已在引用处核对语义；除本节所列外无未登记的引文不确定项。
 9. **[诚实边界] 判据纪律**：O10 不切换为 DAOFIND 门、CLEAN/Kron 门备而不启，
@@ -486,7 +486,7 @@ OCR 未复得显式公式，按 DAOPHOT 语义补全 round = 2(hx − hy)/(hx + 
   DOI [10.1137/0111030](https://doi.org/10.1137/0111030)
 - ［12］ Kron, R. G. (1980). 自适应孔径一阶矩算法（r1 = ΣrI/ΣI、孔径 k·r1）。本条
   **在本仓写作时未取得一手核验**：正文所据 r1 定义与 k = 2.5 / ≈6% 流量损失口径来自
-  ［7］ §6 的转述，未直接读取 Kron 原文。引用时按「转述自 ［7］」理解，不得标为
+  ［7］§6的转述，未直接读取 Kron 原文。引用时按「转述自 ［7］」理解，不得标为
   Kron 原文页码级证据。
 
 ### 讲义与数值库
@@ -505,7 +505,15 @@ OCR 未复得显式公式，按 DAOPHOT 语义补全 round = 2(hx − hy)/(hx + 
 
 ### 未能核实的转引
 
-- 「O3 检测阈值」一节的「平滑核对点源检测最优」在仓内只能追到 B&A96 ［7］ §3 对 Irwin 1985 的转引；
+- 「O3 检测阈值」一节的「平滑核对点源检测最优」在仓内只能追到 B&A96 ［7］ §3对 Irwin 1985 的转引；
   Irwin 1985 的完整著录未取得，故不单列条目，引用时按「［7］ 转引」理解。
 - 「O12 椭圆高斯 LM 拟合」一节的「λ 更新由 Nielsen 1999 因子承担」为项目内部注释口径，Nielsen 1999 的完整著录
   未取得，不单列条目。
+
+## 落地对照与参考文献
+
+本页是单帧标准化管线内星检测模块的逐算子落地规格，对应最高设计单帧标准化一章的星表引导检测条目。定位是星表引导检测，输入是本帧权威天球坐标系下的校准像素，输出是检测目录与拟合参数。块读写遵循内存管线纪律。接口签名以公开头与导出函数为准。处理步骤按算子盘点顺序执行，分支见各算子规格。配置来自阶段输入文件。相邻关系是上游承接天体测量解算的权威坐标系，下游供给点扩散函数建模、测光拟合与噪声估计共用同一份检测结果。调试入口是召回阈表对应的冻结测试设计。
+
+### 参考文献
+
+本页文末已有逐算子论文出处，此处不再复列，统一沿用页内编号。

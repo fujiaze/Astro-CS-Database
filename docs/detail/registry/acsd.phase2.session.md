@@ -1,6 +1,6 @@
 # 模块 acsd.phase2.session
 
-> 上游：docs/ACSD_DESIGN.md §8.5（模块与 ABI）
+> 上游：`docs/ACSD_DESIGN.md`对应章节（模块与 ABI）
 
 > Phase2 装配会话（p2_session 函数族）登记页；权威签名头
 > lib/phase2_session/p2_session.h，实现 lib/phase2_session/p2_session.cpp。
@@ -30,7 +30,7 @@
   upm_save_path 可选；output_dir 现状 validate 必填、run 不消费，登记不改码）/
   host services 四通道（common_abi_v1.h：
   allocator/logger/cancel/budget）/ 输出落盘仅 upm_save_path 注入
-  （persist 段单文件直写，§24.4(4)）。
+  （persist 段单文件直写，对应章节(4)）。
 - 并发与取消：threadsafe:no（handle 级）+ reentrant:yes
   （p2_session.h 注释锚）；取消点=阶段边界 4 检查点
   （p2_session.h 注释锚；p2_session.cpp 四处；

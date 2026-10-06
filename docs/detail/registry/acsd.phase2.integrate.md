@@ -1,16 +1,16 @@
 # 模块 acsd.phase2.integrate
 
-> 上游：docs/ACSD_DESIGN.md §8.5（模块与 ABI）、§5.2（固定科学流程）、
-> §5.3（SNR 重建与逆方差叠加）
+> 上游：`docs/ACSD_DESIGN.md`对应章节（模块与 ABI）、对应章节（固定科学流程）、
+> 对应章节（SNR 重建与逆方差叠加）
 > 科学正本：docs/science/INTEGRATION.md（SCI-INT-001，FROZEN，零改动）、
-> docs/science/noise_snr/NOISE_SNR.md（PSF 与信息权重 §3.4、§6.4 诊断面不作权重）
-> 算法正本：docs/science/algorithms/PHASE2_INTEGRATION.md（ALG-P2-INT-001；§3 锚表、
-> §11.3 约束与回归门、§11.4 测试设计、§11.5 映射声明）
+> docs/science/noise_snr/NOISE_SNR.md（PSF 与信息权重 对应章节、对应章节 诊断面不作权重）
+> 算法正本：docs/science/algorithms/PHASE2_INTEGRATION.md（ALG-P2-INT-001；对应章节 锚表、
+> 对应章节 约束与回归门、对应章节 测试设计、对应章节 映射声明）
 > 数据正本：docs/detail/registry/acsd.phase2.integrate.md（DATA-P2-INT 端口表，本页输入输出端口表）；
-> 权重来源受限表见 docs/science/unified/DATA_SEMANTICS.md §3.9（权重词表：登记面与输入面）
+> 权重来源受限表见 `docs/science/unified/DATA_SEMANTICS.md`对应章节（权重词表：登记面与输入面）
 > API 正本：docs/engineering/api/PUBLIC_API.md（API-P2-INT-001）、
 > docs/engineering/api/PUBLIC_API.md「分阶段 API 面」（API-P2-001，FROZEN）
-> 数据对象：docs/detail/UNIFIED_MODEL.md（frame_snr、sparse_snr_layer）
+> 数据对象：docs/detail/common/unified_model.md（frame_snr、sparse_snr_layer）
 
 LIB 面 = `lib/algorithms/integration/` 三件套（README / module.yaml ，
 CONTRACT_READY，entrypoint 未落地）。MOD ID = MOD-acsd-phase2-integrate；
@@ -31,7 +31,7 @@ CPU-005；legacy_paths = 「lib/algorithms/coverage integration sources」。
   **固定序**）；权重和为零时**不做除法**；零权重 = 合法零贡献；
 - **support canonical reducer**：取 accepted 样本 support 的**最大值**（integrate.h
   冻结语义；零权重 accepted 样本**计入** max；全零权时**仍发布**该 max；
-  ALL_REJECTED 保持 0）。约束与回归门 = ALG-P2-INT-001 §11.3；
+  ALL_REJECTED 保持 0）。约束与回归门 = ALG-P2-INT-001；
 - **五态显式 status**：`OK` / `NO_CANDIDATES` / `ALL_REJECTED` /
   `ZERO_VALID_WEIGHT` / `INVALID_INPUT`；**零权重合法**（`ZERO_VALID_WEIGHT`），
   NaN / Inf / 负权重 → `INVALID_INPUT`；**reducer 不持有权重键**
@@ -83,14 +83,14 @@ support 是无量纲几何量、等权不是信号/噪声之比，两者都不�
 
 输出被 export 消费（**不要求来自同一进程**）。
 
-invalid 显式化：非法输入 → `INVALID_INPUT`（0 / ±Inf 属非法值；§4 同源条款）；
+invalid 显式化：非法输入 → `INVALID_INPUT`（0 / ±Inf 属非法值；对应章节 同源条款）；
 无候选 → `NO_CANDIDATES`；全拒 → `ALL_REJECTED`；全零权重 →
 `ZERO_VALID_WEIGHT`。
 
 ### 数值落地口径
 
 GLS 扩展源解、点源 Q / W 定义式与 effective PSF 的推导正本 = SCI-INT-001 与
-docs/science/noise_snr/NOISE_SNR.md §3.4/§3.5；本页只记落地方式：
+`docs/science/noise_snr/NOISE_SNR.md`对应章节/对应章节；本页只记落地方式：
 
 - **扩展源 / 面亮度**：按设计矩阵与协方差的广义最小二乘求解；**工程近似独立样本
   才退化到像素 ivar 加权平均**。Drizzle 相关、共同 master、UPM 参数、重叠重采样
@@ -130,7 +130,7 @@ docs/science/noise_snr/NOISE_SNR.md §3.4/§3.5；本页只记落地方式：
   实际路径**（`snr_path_effective = frame_reconstruct` + 计数），**不静默**；
   稀疏层存在但损坏 / 不可重建 → 明确失败（帧级回退属另一路径）；
 - **三条路径没有全局最优、只有适用域**：完整适用域图谱由 `实验/absolute-snr`
-  给出（最高设计 §5.3）；其中 HST 类高对比域的结论**与重建算子绑定**。
+  给出（最高设计对应章节）；其中 HST 类高对比域的结论**与重建算子绑定**。
 
 **逆方差叠加**：每个天球像素接收多个源像素输入，用每个源像素的 SNR 计算对应
 权重（SNR → 逆方差权重）得到最优检测 / 测光功率 —— **不是直接用 SNR 加权**。换算
@@ -224,13 +224,13 @@ Oracle 面：
 
 ## 已知限制
 
-- 现行语义与判据正本 = docs/science/algorithms/PHASE2_INTEGRATION.md §11.3；
+- 现行语义与判据正本 = `docs/science/algorithms/PHASE2_INTEGRATION.md`对应章节；
   support 输出现状为**保守方向偏差**（不改覆盖并集保守下界语义）；
 - **权重来源受限表的在役判据面**：`coverage.cpp` 的 `kForbiddenWeightSourceTokens`
   （含 `psfsw_robust_weight`、`psfsw` 等 token）与其同文件内的权重来源检查门、
-  以及 `rejection.cpp` 的同源词表，是 docs/science/unified/DATA_SEMANTICS.md §3.9（权重词表）
-  与 docs/science/noise_snr/NOISE_SNR.md §6.4（质量面与信息面的分离）的
-  执行面 —— **不是死代码**。**收缩路径**：docs/science/unified/DATA_SEMANTICS.md §3.9 受限来源表与代码
+  以及 `rejection.cpp` 的同源词表，是 `docs/science/unified/DATA_SEMANTICS.md`对应章节（权重词表）
+  与 `docs/science/noise_snr/NOISE_SNR.md`对应章节（质量面与信息面的分离）的
+  执行面 —— **不是死代码**。**收缩路径**：`docs/science/unified/DATA_SEMANTICS.md`对应章节 受限来源表与代码
   词表**同源**，任一侧收缩一律走变更流程并在**同一次提交**内同步另一侧；两侧不同步
   会**放宽**冻结科学门（使 `psfsw` 重新成为合法权重来源）。生产权重来源仍是单一
   现场派生量（逐样本 ivar），该受限来源表只负责**拒绝**非法来源，不产生权重；

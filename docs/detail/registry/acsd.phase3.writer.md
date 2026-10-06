@@ -1,19 +1,19 @@
 # 模块 acsd.phase3.writer
 
-> 上游：docs/ACSD_DESIGN.md §8.5（模块与 ABI）、§6.2（export 流程：投影到平面、
-> WCS 直接计算生成）、§6.3（输出模式显式声明）、§10（I/O 与原子产品：输出不带权重、
+> 上游：`docs/ACSD_DESIGN.md`对应章节（模块与 ABI）、对应章节（export 流程：投影到平面、
+> WCS 直接计算生成）、对应章节（输出模式显式声明）、对应章节（I/O 与原子产品：输出不带权重、
 > 原子提交）
 > 科学正本：docs/science/PHASE3_HIPS_TO_FITS.md（SCI-P3-001，FROZEN，零改动；
-> §96 面、§7 真值阈、§5c）
+> 对应章节 面、对应章节 真值阈、对应章节）
 > 算法正本：docs/science/algorithms/PHASE3_FITS_IMPL.md（ALG-P3-FITS-IMPL-001；
-> §10 错误触发锚、§12 T1–T7、§14 合同边界）；承接 ALG-P3-002 / ALG-P3-004 本域子面
+> 对应章节 错误触发锚、对应章节 T1–T7、对应章节 合同边界）；承接 ALG-P3-002 / ALG-P3-004 本域子面
 > 数据正本：docs/detail/registry/acsd.phase3.writer.md（DATA-P3-FITS 输出行与 HDU 合同，本页输入输出端口表）；
-> 单位定义与 BUNIT 语义 = docs/science/unified/DATA_SEMANTICS.md §3.4/§3.6，规则项 = 同文件 §4.5
+> 单位定义与 BUNIT 语义 = `docs/science/unified/DATA_SEMANTICS.md`对应章节/对应章节，规则项 = 同文件对应章节
 > API 正本：docs/engineering/api/PUBLIC_API.md（API-P3-FITS-001，Phase3 FITS 写出
 > 公共消费面节）、docs/engineering/api/PUBLIC_API.md「分阶段 API 面」（API-P3-001，p3_session 五段
 > FROZEN 镜像）
 > 原子发布：docs/engineering/contracts/ATOMIC_PUBLISH.md（IO_003，章节「错误语义」）
-> 落地设计：docs/detail/PHASE3_DETAILED_DESIGN.md §5–§6
+> 落地设计：`docs/detail/export/pipeline.md`对应章节对应章节
 > 引用文献：见文末「参考文献」（角标用全角 `［N］`，因本文正文的半角 `[...]` 已被
 > 数值域区间占用）
 
@@ -47,7 +47,7 @@
 
 - 职责: 把上游重采样结果（signal+coverage）写成 FITS 单文件
   （主 HDU signal + COVERAGE 扩展 HDU）——WCS/BUNIT/provenance
-  关键字全量（SCI-P3 §96 面）、原子发布序（tmp→`fits_flush_file`→close→
+  关键字全量（SCI-P3 面）、原子发布序（tmp→`fits_flush_file`→close→
   `fsync(fd)`→rename，
   `lib/algorithms/fits_output/p3_output.cpp`）、失败/取消清理不发布（签名面见
   `lib/algorithms/fits_output/p3_output.h`）、发布后 sha256 完整性锚（同上两文件，
@@ -61,10 +61,10 @@
 
 | 端口 | DATA | 必/可 | 单位 | 坐标/dtype |
 |---|---|---|---|---|
-| `resampled` | `DATA-P3-RES`（descriptor 词汇；实际承载=DATA-P3-FITS §27.1 in 面） | 必 | UnitId::SURFACE_BRIGHTNESS（BUNIT，缺省 ADU） | PIXEL 行主序 f32 [W·H]，W,H∈[1,20000] |
+| `resampled` | `DATA-P3-RES`（descriptor 词汇；实际承载=DATA-P3-FITS in 面） | 必 | UnitId::SURFACE_BRIGHTNESS（BUNIT，缺省 ADU） | PIXEL 行主序 f32 [W·H]，W,H∈[1,20000] |
 | `fits` | `DATA-P3-FITS` | 可 | UnitId::SURFACE_BRIGHTNESS | FITS 文件 BITPIX=-32/-64 + COVERAGE 扩展 + sha256 |
 
-- invalid 权威源=DATA-P3-FITS §27：signal 无覆盖=NaN（禁 ±Inf
+- invalid 权威源=DATA-P3-FITS：signal 无覆盖=NaN（禁 ±Inf
   伪装；NaN==NaN 回环一致 `lib/algorithms/fits_output/p3_output.cpp`）；coverage 二值门
   >0.5f（同上文件）；bitpix∉{-32,-64}→PARAM（同上文件）；WCS 守卫
   abs(dec)≤85°+四角同半球（`lib/algorithms/projection/p3_wcs.h`）。
@@ -83,26 +83,26 @@
   「已知限制与缺陷登记（登记不改码）」。
 - **BUNIT 语义**：主 HDU 的 `BUNIT` = 输入 HiPS `signal/properties#BUNIT` 声明的
   canonical 串（canonical 值 `ADU/sr`；写端口单位 `UnitId::SURFACE_BRIGHTNESS`，
-  落盘值 = 通量和 / 覆盖面积 = 面亮度）。缺声明时按 docs/science/unified/DATA_SEMANTICS.md §3.6 的量纲可判条件
+  落盘值 = 通量和 / 覆盖面积 = 面亮度）。缺声明时按 `docs/science/unified/DATA_SEMANTICS.md`对应章节 的量纲可判条件
   处理 —— `BUNIT = "ADU"` 要求 provenance 声明
   `pixel_semantics = "surface_brightness"`；`VARIANCE` / `IVAR` 扩展 HDU 的
   `BUNIT` = 主 HDU BUNIT 的平方 / 倒数（`FZ-P3-BUNIT-QUADRATIC`）。单位口径唯一
-  权威 = docs/science/unified/DATA_SEMANTICS.md §3.4 / §3.6。
+  权威 = `docs/science/unified/DATA_SEMANTICS.md`对应章节 / 对应章节。
 - **provenance**：源 product / hash、软件完整 SHA、配置、投影、核、order、近似、
   生成时间。
 - **节点产物**：`output_phase3.fits`、`p3_writer.json`（写侧自述）、`p3_verify.json`
   （独立复核面）。所有 HDU shape / WCS 对齐。
-- **out 面细节**（DATA-P3-FITS §27.2）：FITS 文件 BITPIX = -32 / -64、
+- **out 面细节**（DATA-P3-FITS）：FITS 文件 BITPIX = -32 / -64、
   CTYPE = `RA---TAN` / `DEC--TAN`、CUNIT = deg、BSCALE = 1 / BZERO = 0、
   HIPSID / RUNID / ORDERSEL / SAMPLER / SWVER + HISTORY、DATASUM（32-bit）；
   上述头卡与数据模型的依据 = FITS 标准［1］［2］。`P3OutputResult` = `sha256[65]` /
   `coverage_ok` / `reopen_ok` / `covered_px` /
   `total_px`。
 - **不确定度可得性（fail-closed，唯一出口）**：输入 HiPS 不含 variance / ivar
-  子产品（或权重非纯逆方差、发生 fallback 等 §30 规则项）时 → **不写**
+  子产品（或权重非纯逆方差、发生 fallback 等 对应章节 规则项）时 → **不写**
   VARIANCE / IVAR 扩展 HDU（禁静默丢弃、禁用常量 0 冒充）+ manifest 写
   `uncertainty_available=false` + diagnostics 标红计数；**该键不是失败态**，是
-  unavailable 显式登记模式。正本 = docs/science/unified/DATA_SEMANTICS.md §4.5（状态与失败语义）
+  unavailable 显式登记模式。正本 = `docs/science/unified/DATA_SEMANTICS.md`对应章节（状态与失败语义）
   （禁占位 / 静默缺键 / 空输出冒充）。
 
 ## 4 公共 header、核心 symbol 与生命周期
@@ -177,7 +177,7 @@
 
 - 错误: rc 语义 P3_OUT_OK=0/P3_OUT_PARAM=1/P3_OUT_IO=2/
   P3_OUT_CANCELLED=3（`lib/algorithms/fits_output/p3_output.h`，逐触发锚=ALG-P3-FITS-
-  IMPL-001 §10 表）；会话层映射 ACS_OK/ACS_ERR_PARAM/ACS_ERR_IO/
+  IMPL-001 对应章节 表）；会话层映射 ACS_OK/ACS_ERR_PARAM/ACS_ERR_IO/
   ACS_ERR_CANCELLED；g_last_err→last_error 脱敏出口（`lib/phase3_session/p3_session.h`）。
 - 失败不变量: 任一步失败 unlink(tmp)/产物，不产生完整假文件、
   不发布无完整性锚输出；sha256 失败→IO 且删产物（`lib/algorithms/fits_output/p3_output.cpp`）。
@@ -190,12 +190,12 @@
   exit_code/output_fits_path/sha256/order_sel_used/sampler_used/
   coverage_stats/provenance）；无独立 metrics 通道。
 - 取消: kernel 行粒度 cancelled_at_row（session 恒 -1，见 `lib/phase3_session/p3_session.cpp`）；
-  无 checkpoint（原子写整文件单元，SCI-P3 §5c/ALG-P3-001）。
+  无 checkpoint（原子写整文件单元，SCI-P3/ALG-P3-001）。
 
 ## 9 独立 synthetic 验证命令与容差
 
 - 本节承载 TEST-P3-WR-001 登记面：设计冻结 = TEST-P3-WR-DESIGN-001
-  （ALG-P3-FITS-IMPL-001 §12 T1-T7）；可执行测试待建，验收证据待补。
+  （ALG-P3-FITS-IMPL-001 T1-T7）；可执行测试待建，验收证据待补。
   已取证的相邻读数为 4 段写出测试，引用不冒认。
 - T1 原子写+mask: 64×48 渐变场+分段 mask、BITPIX=-32、prov 全字段 → rc=0、
   coverage_ok=1、reopen_ok=1、sha256 64hex。
@@ -203,11 +203,11 @@
   sha256 重算一致。
 - T3 原子性: 无 .tmp 残留（filesystem 遍历替代 popen；前缀弱匹配差异
   见本页「已知限制与缺陷登记（登记不改码）」，不误报）。
-- T4 WCS roundtrip oracle: pix→world→pix ≤1e-4 px（SCI-P3 §7
+- T4 WCS roundtrip oracle: pix→world→pix ≤1e-4 px（SCI-P3
   真值阈 ≤1e-6 px）+ 采样值锚 100.0+0.5·32（≤1e-3）。
 - T5-T7 设计面（现状未覆盖，可执行测试待建）: 取消不落盘、
   sha256 注入失败不产假哈希、bitpix=-64 全链。
-- **容差登记**：WCS roundtrip ≤ 1e-8 px（SCI-P3 §7 真值；适用域与门限由
+- **容差登记**：WCS roundtrip ≤ 1e-8 px（SCI-P3 真值；适用域与门限由
   `p3_wcs_applicability()` 单一事实源给出，执行测试观测阈 1e-4 px）；采样值锚
   ≤ 1e-3；sha256 64hex；逐值精确回环（NaN == NaN 一致）。
 - 命令面（落地后冻结）: 构建产物侧的用例接入（验收证据域）。
@@ -225,19 +225,19 @@
   rename 原子性语义不变，但残留检查所用前缀与实际命名不匹配（残留检查空转）；
   命名统一属迁移目标（未落地，含用例修正）。
 - 整改项（非缺陷）: prov.manifest_hash 恒 nullptr（`lib/phase3_session/p3_session.cpp`，HISTORY
-  manifest 字段写空，SCI-P3 §96 接线属迁移目标（未落地））；p3_output_verify
+  manifest 字段写空，SCI-P3 接线属迁移目标（未落地））；p3_output_verify
   忽略 wcs 参数（`lib/algorithms/fits_output/p3_output.cpp` 内 `(void)wcs`，设计如此）；DATASUM 为 32-bit
   数值校验和，不是 FITS 标准的 ASCII CHECKSUM 约定［1］（如实冻结）。
-- 其余: 见 ALG-P3-FITS-IMPL-001 §14 合同边界；全局限制登记 =
+- 其余: 见 ALG-P3-FITS-IMPL-001 合同边界；全局限制登记 =
   artifacts/evidence/known-limitations-ledger/LIMITATIONS.md；
   SCI-P3 FROZEN 零改动声明（本页不承载公式）。
 
 ## NaN 与写端口
 
-- NaN 规则（权威 = `ACSD_DESIGN.md` §5.5）：**样本级掩膜 + 重归一 + 覆盖级 NaN + 强制计数**；
+- NaN 规则（权威 = `ACSD_DESIGN.md`对应章节）：**样本级掩膜 + 重归一 + 覆盖级 NaN + 强制计数**；
   剔除项逐条进场级计数。无覆盖/无数据 = NaN；0 与 ±Inf 不作有效值。
 - signal 语义 = **面亮度**，写端口 `UnitId::SURFACE_BRIGHTNESS`；输出模式显式声明
-  （`surface_brightness` / `point_source_flux` / `visualization`，最高设计 §6.3）。
+  （`surface_brightness` / `point_source_flux` / `visualization`，最高设计对应章节）。
 
 ## 参考文献
 

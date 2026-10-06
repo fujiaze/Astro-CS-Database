@@ -1,21 +1,21 @@
 # 模块 acsd.phase1.photometry
 
-> 上游：docs/ACSD_DESIGN.md §8.5（模块与 ABI）、§4.2（Phase1 节点流程）、
-> §4.4（产品基数不变量）
-> 科学正本：docs/science/PHOTOMETRY.md（SCI-PHOT-001，含 §1 判据与 §5 观测统计量、
-> §16 平移精化判据）、docs/science/algorithms/PHOTOMETRIC_FIT.md（ALG-PHOT-001..002
-> §13 逐符号锚）、docs/science/noise_snr/NOISE_SNR.md §3.3（逐源通量不确定度）
+> 上游：`docs/ACSD_DESIGN.md`对应章节（模块与 ABI）、对应章节（Phase1 节点流程）、
+> 对应章节（产品基数不变量）
+> 科学正本：docs/science/PHOTOMETRY.md（SCI-PHOT-001，含 对应章节 判据与 对应章节 观测统计量、
+> 对应章节 平移精化判据）、docs/science/algorithms/PHOTOMETRIC_FIT.md（ALG-PHOT-001..002
+> 对应章节 逐符号锚）、`docs/science/noise_snr/NOISE_SNR.md`对应章节（逐源通量不确定度）
 > 数据正本：docs/detail/registry/acsd.phase1.photometry.md（DATA-P1-PHOT 端口表，本页输入输出端口表）
 > API 正本：docs/engineering/api/PUBLIC_API.md（API-PHOT-001）、
 > docs/engineering/api/abi/ABI.md、API-P1-005（docs/engineering/api/PUBLIC_API.md「分阶段 API 面」）
-> 数据对象：docs/detail/UNIFIED_MODEL.md §1（观测模型）
+> 数据对象：`docs/detail/common/unified_model.md`对应章节（观测模型）
 
 模块级事实以 `lib/algorithms/photometry/README.md` + `lib/algorithms/photometry/module.yaml`
 （acsd.p1.photometry，迁移目标 acsd_p1_photometry.dll，entrypoint 未落地）
 为准。现状构建 = `lib/algorithms/photometry/cpp/Makefile` + `lib/algorithms/photometry/cpp/build.ps1` → `photometric_calib.dll`，
-未编入根 CMake 主构建。缺陷与整改登记 = PHOTOMETRIC_FIT §13.3。
+未编入根 CMake 主构建。缺陷与整改登记 = PHOTOMETRIC_FIT 对应章节。
 `lib/algorithms/photometry/wrapper_phase1` 的 Photometer aperture 面为迁移目标面
-（README §9），当前无仓内可复算的用例引用。
+（README 对应章节），当前无仓内可复算的用例引用。
 
 ## 职责与明确非职责
 
@@ -77,7 +77,7 @@ dex 残差 + `sigma_mag` / `sigma_cal_rel`。`a_k` 随产品输出，供 Phase2 
 固定阈值属另一口径。
 
 落地形态为三个量：**观测量散度**（本帧匹配星 — Gaia inlier 残差的 MAD，按
-SCI-PHOT-001 §5 的换算因子还原为标准差）、**上界**（本帧九项误差预算合成的
+SCI-PHOT-001 的换算因子还原为标准差）、**上界**（本帧九项误差预算合成的
 预算上限，按本帧匹配星数放宽）、**下界**（本帧匹配星数给统计涨落设的物理
 下限，按星数收缩）。判定 = 观测量落在下界与上界之间；三个量与逐项分解无论
 通过与否都报出。九项预算为：拟合（白 / 含天光结构）、生产拟合器对独立孔径的
@@ -158,13 +158,13 @@ cache/内存按 ALG 合同（bounded）; I-O 单 writer。
 
 错误码与退出码唯一源 = lib/infrastructure/cli/exit_codes.h（本页不复制数值表）。
 输入校验失败 → 负返回码（API-PHOT-001）。参考星 / PSF 星 / 光谱星不足或滤光片
-失败 → 退化恒等校正（scale = 1.0、rc = 0，diag/records 显式登记，README §6）。
+失败 → 退化恒等校正（scale = 1.0、rc = 0，diag/records 显式登记，README 对应章节）。
 
 边界：源太暗/太亮 → 测光 flags，不产出无意义通量；`a_k` 不确定度缺失 → 标记
 不可跨帧合并；饱和/拖线源标记，不进默认路径。
 
-**失败作用域（帧级 vs 全局，各自具名；正本见 docs/detail/LOG_AND_ERROR_SYSTEM.md
-§10）**：
+**失败作用域（帧级 vs 全局，各自具名；正本见 docs/detail/infrastructure/log_and_error_system.md
+对应章节）**：
 
 - **帧级失败**（该帧自身条件不成立）⇒ 该帧记 `status=fail` + `error_domain` /
   `error_status` / `error`、不产出 `photoapplied_<base>`、不进 `photscales`，
@@ -178,7 +178,7 @@ cache/内存按 ALG 合同（bounded）; I-O 单 writer。
 - **全局失败**（星表 / 响应曲线不可读、`gaia_data_dir` / `filter` /
   `filters_json` 缺项、冻结 C 入口返回非零）⇒ **中止运行**
   （`ErrorDomain::CONFIG` / `IO` 上行到 CLI 收敛为退出码），不把整批帧逐帧判 fail；
-- **运行级判红**由产品基数不变量给出（最高设计 §4.4「任何一帧未被处理、跳过
+- **运行级判红**由产品基数不变量给出（最高设计对应章节「任何一帧未被处理、跳过
   或失败都显式判红」）：失败帧没有 HiPS 产品 ⇒ `write_hips` 上抛
   `SCIENCE_PRECONDITION`（退出码 4）且**不发布** `p1_products.json`；其他帧已
   写出的产品保留在磁盘上；
@@ -190,14 +190,14 @@ cache/内存按 ALG 合同（bounded）; I-O 单 writer。
   消费并如实登记）。
 
 取消 = 协作取消（契约：宿主 cancel 通道 → 停止调度新单元 → 等运行中单元完成
-→ exit 9，最高设计 §7.2；接线以实测为准）；模块内无 checkpoint。
+→ exit 9，最高设计对应章节；接线以实测为准）；模块内无 checkpoint。
 
 ## 独立 synthetic 验证命令与容差
 
 测试标识 = `TEST-P1-PHOT-001`（registry descriptor 单源）；执行证据 = NOT_VERIFIED
 （未取得验收证据）；容差 = NOT_VERIFIED（同源）。测试设计 = `TEST-PHOT-DESIGN-001`
-（PHOTOMETRIC_FIT §13.4，冻结容差：fixture F1–F6、不变量 I1–I6、负面矩阵、
-SCI-PHOT-001 §11 容差 —— 注入 rtol 1e-4、20% 离群 Δlocation < 0.1 dex、NumPy
+（PHOTOMETRIC_FIT 对应章节，冻结容差：fixture F1–F6、不变量 I1–I6、负面矩阵、
+SCI-PHOT-001 容差 —— 注入 rtol 1e-4、20% 离群 Δlocation < 0.1 dex、NumPy
 rtol 1e-9）。
 
 已取证的相邻锚：Photometer 4 组读数与对齐回归读数；其载体不在本仓可复算路径上，
@@ -218,7 +218,7 @@ Oracle 面：
 
 ## 已知限制
 
-- 缺陷与整改登记 = docs/science/algorithms/PHOTOMETRIC_FIT.md §13.3；
+- 缺陷与整改登记 = `docs/science/algorithms/PHOTOMETRIC_FIT.md`对应章节；
 - 测光一致性门判据尚未在代码中生效（缺逐星残差表、每帧系统比值散度、冻结的
   误差预算表、能红能绿负例四项前置产物）；
 - 平场大尺度残差、Gaia XP 合成通量定标误差、光学/大气/差分消光三项误差无实测

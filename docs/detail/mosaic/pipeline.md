@@ -8,9 +8,9 @@
 
 输入可来自不同 Phase1 运行，但必须兼容：天球 frame、滤镜/波段、signal 物理语义、通量尺度可变换、PSF/噪声模型可解释、产品 schema 和 provenance 完整。混合积分通量/面亮度、未知单位、缺少必要响应或损坏 manifest 时拒绝。
 
-输入的 signal 是**线性**面亮度（单位随产品 `BUNIT`，Phase1 面亮度产品为 `ADU/sr`；逐帧相对测光零点由 `PHOTSCAL`/`PHOTAPPL` 承载，量纲正本见 `docs/science/unified/DATA_SEMANTICS.md`「面亮度单位的推导」一节）：本阶段的全部运算是**线性**的——UPM 加性天光校正（`y_k = s + C_k + ε_k`）与逆方差加权求和（`signal = Σ w_i·x_i / Σ w_i`）——因此**不做星等换算**（星等是对数量，星等的加权平均在物理上无意义；星等只在派生/展示时按 `m = ZP_k − 2.5·log10 F` 换算，见 `docs/detail/PHASE1_DETAILED_DESIGN.md`）。
+输入的 signal 是**线性**面亮度（单位随产品 `BUNIT`，Phase1 面亮度产品为 `ADU/sr`；逐帧相对测光零点由 `PHOTSCAL`/`PHOTAPPL` 承载，量纲正本见 `docs/science/unified/DATA_SEMANTICS.md`「面亮度单位的推导」一节）：本阶段的全部运算是**线性**的——UPM 加性天光校正（`y_k = s + C_k + ε_k`）与逆方差加权求和（`signal = Σ w_i·x_i / Σ w_i`）——因此**不做星等换算**（星等是对数量，星等的加权平均在物理上无意义；星等只在派生/展示时按 `m = ZP_k − 2.5·log10 F` 换算，见 `docs/detail/normalize/pipeline.md`）。
 
-输入产品的**落盘形态不进入科学语义**：`hips_paths` 的元素可以是裸 `<name>.hips/` 或归档 `<name>.hips.zst`，调用方不感知形态（形态由落盘名判定，见 `docs/detail/PRODUCT_STORAGE_FORM.md`）。**`hips_paths` 的元素保持字符串**（不做元素对象化）：逐帧产品级索引路径由命名规则派生 —— `<name>.hips` / `<name>.hips.zst` → `<name>.hips.index.json`（与 `hips_path` 同父目录）。按天区查输入帧走**块级覆盖索引**（数据集级 `coverage.index.json`，不压缩；由**加性可选键** `coverage_index` 显式引用，缺失时由各产品级索引现场倒排），不逐瓦片探测：索引给出块 → 候选帧集合与覆盖分数，**像素级裁决仍由 support/validity/排异语义执行**。输入合同**不设** `storage_form` 键——阶段二产物固定裸形态（服务面），出现该键（含 `archive` 值）一律 REJECT。
+输入产品的**落盘形态不进入科学语义**：`hips_paths` 的元素可以是裸 `<name>.hips/` 或归档 `<name>.hips.zst`，调用方不感知形态（形态由落盘名判定，见 `docs/detail/infrastructure/storage_form.md`）。**`hips_paths` 的元素保持字符串**（不做元素对象化）：逐帧产品级索引路径由命名规则派生 —— `<name>.hips` / `<name>.hips.zst` → `<name>.hips.index.json`（与 `hips_path` 同父目录）。按天区查输入帧走**块级覆盖索引**（数据集级 `coverage.index.json`，不压缩；由**加性可选键** `coverage_index` 显式引用，缺失时由各产品级索引现场倒排），不逐瓦片探测：索引给出块 → 候选帧集合与覆盖分数，**像素级裁决仍由 support/validity/排异语义执行**。输入合同**不设** `storage_form` 键——阶段二产物固定裸形态（服务面），出现该键（含 `archive` 值）一律 REJECT。
 
 ## 2. 固定科学流程
 
@@ -18,7 +18,7 @@
 
 每步产物持久或可重建，七个 operation 逐一具名调用。
 
-SNR 重建口径由 JSON 显式指定：`dense`（稠密帧内 SNR）、`sparse_reconstruct`（默认，稀疏控制点插值重建）、`frame_reconstruct`（仅帧级）；实际生效口径记录在 `snr_path_effective`。三条口径都**直接**产出同一物理量 `SNR = F_ref/σ_F` 的稠密表示，只在重建方式上不同：`sparse_reconstruct` 由稀疏**绝对** SNR 控制点重建为稠密场（控制点值即绝对信噪比本身，不再乘/除帧级标量）；叠加权重由 SNR **现场换算**为逆方差 `w = SNR²/F_ref²`（`F_ref,k = 10^(−0.4·(m_ref − ZP_k))`，配置缺省的参考星等档 `m_ref` 在本帧的仪器通量（缺省 6.0，可被输入 JSON 覆盖）；该档随产品落盘，口径见 `docs/detail/UNIFIED_MODEL.md`「参考通量基准」一节），不由上游落盘（《ACSD 最高设计》的「信噪比重建与逆方差叠加」一节）。
+SNR 重建口径由 JSON 显式指定：`dense`（稠密帧内 SNR）、`sparse_reconstruct`（默认，稀疏控制点插值重建）、`frame_reconstruct`（仅帧级）；实际生效口径记录在 `snr_path_effective`。三条口径都**直接**产出同一物理量 `SNR = F_ref/σ_F` 的稠密表示，只在重建方式上不同：`sparse_reconstruct` 由稀疏**绝对** SNR 控制点重建为稠密场（控制点值即绝对信噪比本身，不再乘/除帧级标量）；叠加权重由 SNR **现场换算**为逆方差 `w = SNR²/F_ref²`（`F_ref,k = 10^(−0.4·(m_ref − ZP_k))`，配置缺省的参考星等档 `m_ref` 在本帧的仪器通量（缺省 6.0，可被输入 JSON 覆盖）；该档随产品落盘，口径见 `docs/detail/common/unified_model.md`「参考通量基准」一节），不由上游落盘（《ACSD 最高设计》的「信噪比重建与逆方差叠加」一节）。
 
 ## 3. Coverage 与重叠图
 
@@ -143,3 +143,13 @@ Phase2 产物是**服务面天球数据库**，落盘形态固定为**裸 `<name
 - 扩展源常量场、梯度、总通量与方差无偏；
 - UPM 断图/欠定/不可辨识、排异小样本、零信息量和相关噪声失配能红；拟合不收敛或判红时产品**照出**、`warning_codes` 非空、构建 rc **不变**；
 - M42/银心真实数据检查接缝（**有符号**电平台阶门槛 + 适用域，见《ACSD 最高设计》的「验证层级与四层验收」一节（L4 真实视觉验收））、背景、星形、卫星线、黑洞和预测/实测噪声。
+
+## 落地对照与参考文献
+
+本页是马赛克合成管线的落地描述，对应最高设计相对定标与集成一章的固定科学流程条目。各环节的端口、配置、并行、内存、错误与验证口径以模块登记页为准：会话、覆盖图、控制采样、天光平面拟合与施加、排异、集成、产品写出。块读写遵循内存管线纪律。配置来自阶段输入文件，执行预算来自运行时。调试从阶段日志与各模块登记页的验证入口进入。
+
+### 参考文献
+
+[1] Zackay B., Ofek E. O. How to coadd images: A method for optimal coaddition of all-sky images. The Astrophysical Journal, 2017, 836(2): 187. https://doi.org/10.3847/1538-4357/836/2/187
+[2] 统一观测模型与数据对象细节页，本文common目录。
+[3] 马赛克合成各模块登记页，本文registry目录。

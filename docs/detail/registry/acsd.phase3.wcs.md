@@ -1,11 +1,11 @@
 # 模块 acsd.phase3.wcs
 
-> 上游：docs/ACSD_DESIGN.md §8.5（模块与 ABI）、§6.2（export 流程）、
-> §6.3（投影算法：内置多种）
+> 上游：`docs/ACSD_DESIGN.md`对应章节（模块与 ABI）、对应章节（export 流程）、
+> 对应章节（投影算法：内置多种）
 > 科学正本：docs/science/PHASE3_HIPS_TO_FITS.md（SCI-P3-001，FROZEN，零改动）
 > 算法正本：docs/science/algorithms/PHASE3_PROJ_IMPL.md（ALG-P3-PROJ-IMPL-001；
-> §5 映射声明、§6/§7 公式、§11 实测偏差、§12 测试设计 T1–T7、§13 合同边界、
-> §15 registry 冻结表 + 逐投影六要素）；承接
+> 对应章节 映射声明、对应章节/对应章节 公式、对应章节 实测偏差、对应章节 测试设计 T1–T7、对应章节 合同边界、
+> 对应章节 registry 冻结表 + 逐投影六要素）；承接
 > docs/science/algorithms/PHASE3_RESAMPLE.md（ALG-P3-002 G1/G2 施工规格，零改动）
 > 数据正本：docs/detail/registry/acsd.phase3.wcs.md（DATA-P3-WCS 端口表，本页输入输出端口表）、
 > eng/contracts/schemas/projection_registry.schema.json（registry 冻结集合，
@@ -13,8 +13,8 @@
 > API 正本：docs/engineering/api/PUBLIC_API.md（API-P3-PROJ-001，Phase3 投影公共消费面节；
 > API-P3-001 = p3_session 五段编排面 FROZEN 镜像）
 > 架构正本：docs/engineering/architecture/ARCHITECTURE.md
-> 门表事实源：docs/science/algorithms/GATES_AND_TOLERANCES.md §3
-> 落地设计：docs/detail/PHASE3_DETAILED_DESIGN.md §2
+> 门表事实源：`docs/science/algorithms/GATES_AND_TOLERANCES.md`对应章节
+> 落地设计：`docs/detail/export/pipeline.md`对应章节
 > 引用文献：见文末「参考文献」（角标用全角 `［N］`，因本文正文的半角 `[...]` 已被
 > 数值域区间与数组下标占用）
 
@@ -33,7 +33,7 @@ ALG-P3-002 / API-P3-001 / TEST-P3-WCS-001）与 module_id 合同值
 - 合同落位: lib/algorithms/projection/ 三件套（CONTRACT_READY）。
 - 生产源: lib/algorithms/projection/p3_wcs.cpp + 同目录签名头正本 p3_wcs.h。
 - 合同链: SCI-P3-001（docs/science/PHASE3_HIPS_TO_FITS.md，FROZEN；映射声明
-  SCI-P3-WCS-001 ⇒ SCI-P3-001 见 ALG §5）→ ALG-P3-PROJ-IMPL-001（兼承接
+  SCI-P3-WCS-001 ⇒ SCI-P3-001 见 ALG 对应章节）→ ALG-P3-PROJ-IMPL-001（兼承接
   ALG-P3-002 本域子面 G1/G2）→ DATA-P3-WCS（本页输入输出端口表）+
   API-P3-PROJ-001 → TEST-P3-WCS-001（设计冻结 = TEST-P3-WCS-DESIGN-001，见本页
   「验证与测试面（TEST-P3-WCS-DESIGN-001 设计冻结 VERIFIED）」）；
@@ -41,7 +41,7 @@ ALG-P3-002 / API-P3-001 / TEST-P3-WCS-001）与 module_id 合同值
 - 上游依赖: acsd_phase3_session（采样/重采样/写出编排域同库）；
   depends_on_int=ABI-005;DATA-004;RT-006（ABI-005=模块 C ABI 承接、
   DATA-004=WCS descriptor 数据面、RT-006=线程泄漏守卫由纯函数无状态
-  结构性满足，ALG §10）。
+  结构性满足，ALG 对应章节）。
 
 ## 2 职责与明确非职责
 
@@ -52,7 +52,7 @@ ALG-P3-002 / API-P3-001 / TEST-P3-WCS-001）与 module_id 合同值
   域）、不做 FITS 文件读写（ALG-P3-FITS-IMPL-001 域）、不做请求
   解析与编排（p3_session run 段）、**除 TAN 以外的投影**、不改 SCI 公式
   （SCI-P3 FROZEN 零改动）。
-- **投影集口径（最高设计 §6.3）**：**设计冻结 8 种**
+- **投影集口径（最高设计对应章节）**：**设计冻结 8 种**
   （`TAN/SIN/CAR/AIT/STG/MOL/CEA/ZEA`）；每种投影必须声明六要素：适用域、奇点、
   经度 wrap、轴手性、CRPIX/CRVAL/CD/PC/CDELT、CTYPE。**当前登记：仅 `TAN` 已
   实现**（声明集 D = 实现集 I = `{TAN}`，`p3_projection_registry.h`；
@@ -69,7 +69,7 @@ ALG-P3-002 / API-P3-001 / TEST-P3-WCS-001）与 module_id 合同值
 
   registry 冻结要点（FITS WCS Paper II［2］）：CAR / AIT 把 CRVAL2（含 LONPOLE 默认
   0/180）纳入三 Euler 角映射；AIT 椭圆域要求半长轴 ≤ 1；CAR native 极行
-  |θ| ≥ 90° fail-closed。冻结表与逐投影六要素的正本 = ALG-P3-PROJ-IMPL-001 §15
+  |θ| ≥ 90° fail-closed。冻结表与逐投影六要素的正本 = ALG-P3-PROJ-IMPL-001
   与 `lib/algorithms/projection/` 的 `Spec` 六要素字段与 `registry_frozen_set()`
   导出（schema 不复制公式）。
 
@@ -83,9 +83,9 @@ ALG-P3-002 / API-P3-001 / TEST-P3-WCS-001）与 module_id 合同值
 | 端口 | DATA | 必/可 | 单位 | 坐标/dtype |
 |---|---|---|---|---|
 | `props` | `DATA-P3-PROPS`（descriptor 词汇；HiPS properties 面） | 必 | `UnitId::DIMENSIONLESS` | `CoordinateFrame::HEALPIX`，文本键值 |
-| `wcs_plan` | `DATA-P3-WCS`（§28 实际承载=构造入参/映射面） | 可 | `UnitId::DEGREE` | `CoordinateFrame::ICRS` deg + 0-based px + CD deg/px，FP64 |
+| `wcs_plan` | `DATA-P3-WCS`（对应章节 实际承载=构造入参/映射面） | 可 | `UnitId::DEGREE` | `CoordinateFrame::ICRS` deg + 0-based px + CD deg/px，FP64 |
 
-- invalid 权威源=DATA-P3-WCS §28：parity 非法/|dec|>85°/scale≤0/
+- invalid 权威源=DATA-P3-WCS：parity 非法/|dec|>85°/scale≤0/
   W,H∉[1,20000]→P3_WCS_PARAM（p3_wcs.cpp）；映射空指针→
   PARAM（p3_wcs.cpp 两处）；world2pix |dec|>85°→PARAM（p3_wcs.cpp）、|det|<
   1e-300→PARAM（p3_wcs.cpp）；r≥π/2/denom≤0→
@@ -117,7 +117,7 @@ ALG-P3-002 / API-P3-001 / TEST-P3-WCS-001）与 module_id 合同值
 
 - descriptor（p3_wcs_descriptor，编排层口径）: module_id=`acsd.phase3.wcs`；
   execution_class=cpu_heavy；parallel_ok=true（纯函数 const-only
-  并发安全，与 §7 结构性一致）；ports props(DATA-P3-PROPS 必)
+  并发安全，与 对应章节 结构性一致）；ports props(DATA-P3-PROPS 必)
   +wcs_plan(DATA-P3-WCS 可)；sci_id=SCI-P3-WCS-001、alg_id=
   ALG-P3-002、data_id=DATA-P3-WCS、api_id=API-P3-001、test_id=
   TEST-P3-WCS-001——descriptor 派生的占位 ID/端口与
@@ -134,7 +134,7 @@ ALG-P3-002 / API-P3-001 / TEST-P3-WCS-001）与 module_id 合同值
 | `cd_matrix` / `cdelt` | —— | deg/px | 尺度 |
 | `rotation` | 0 | deg | 旋转（用 CD 时） |
 
-## 6 冻结公式（G1/G2 摘要；权威源=ALG-P3-PROJ-IMPL-001 §6/§7）
+## 6 冻结公式（G1/G2 摘要；权威源=ALG-P3-PROJ-IMPL-001/对应章节）
 
 - G1（p3_wcs.cpp）: CRPIX=((W+1)/2,(H+1)/2)；PA=0 对角
   east_left diag(−s,+s)/east_right diag(+s,−s)；PA≠0 推广
@@ -144,12 +144,12 @@ ALG-P3-002 / API-P3-001 / TEST-P3-WCS-001）与 module_id 合同值
 - G2 正向（p3_wcs.cpp）: (ξ,η)=CD·(pix−CRPIX)→θ=atan(1/r)→球面角
   （Calabretta & Greisen 2002［2］ 形式）→RA wrap [0,360)。
 - G2 反向（p3_wcs.cpp）: gnomonic (ξ,η)→δ=CD⁻¹·(ξ,η)→0-based 像素。
-- 容差: roundtrip **紧门** <1e-8 px（SCI §7 冻结；适用域与门限由
+- 容差: roundtrip **紧门** <1e-8 px（SCI 对应章节 冻结；适用域与门限由
   `p3_wcs_applicability()` 单一事实源给出，`kTanApplicability`）——
   **适用域 `scale ≥ min_scale_arcsec = 0.9″/px`**，
   低于该尺度紧门不适用（报「超出适用域」而非判红），退回**全域保守门** 1e-6 px
   （`roundtrip_tol_global_px`）；机器可读判定 = `p3_wcs_roundtrip_gate()`；FOV≤20° 适用域
-  （SCI §9a-12）。门表事实源 = `docs/science/algorithms/GATES_AND_TOLERANCES.md` §3
+  （SCI 对应章节）。门表事实源 = `docs/science/algorithms/GATES_AND_TOLERANCES.md`对应章节
   （G-P1-WCS-BRIDGE / -GLOBAL / -RT-ITER / -RT-APBP）。
 
 ## 7 执行类、并行轴、ThreadBudget lease、确定性
@@ -161,9 +161,9 @@ ALG-P3-002 / API-P3-001 / TEST-P3-WCS-001）与 module_id 合同值
   ThreadBudget.max_workers，禁 hardware_concurrency）；本域逐像素
   调用（p3_session.cpp）失败 continue（半球外像素 NaN）。
 - 确定性: 同入参 bitwise（无求和序）；双平台数值合同由测试层
-  承载（§9 T6）。
+  承载（对应章节 T6）。
 
-## 8 实测偏差与现行语义（权威源 = ALG-P3-PROJ-IMPL-001 §11）
+## 8 实测偏差与现行语义（权威源 = ALG-P3-PROJ-IMPL-001）
 
 - 未注册投影 → 拒绝；超适用域（极点 / 奇点）→ 明确处理（wrap 或拒绝），错位
   一律显式登记；轴手性 / CRPIX 单位错误 → fail-closed。
@@ -175,12 +175,12 @@ ALG-P3-002 / API-P3-001 / TEST-P3-WCS-001）与 module_id 合同值
   8 冻结码 = `TAN/SIN/CAR/AIT/STG/MOL/CEA/ZEA`，声明/实现集当前 = `{TAN}`。
 - acsd_p3_projection.dll 未建（entrypoint 未落地）；探针/回归为内联编译；
   WCSLIB 验收 oracle 与可执行测试待建。
-- 合同边界与缺陷登记 = ALG-P3-PROJ-IMPL-001 §11/§13；全局限制登记 =
+- 合同边界与缺陷登记 = ALG-P3-PROJ-IMPL-001/对应章节；全局限制登记 =
   artifacts/evidence/known-limitations-ledger/LIMITATIONS.md。
 
 ## 9 验证与测试面（TEST-P3-WCS-DESIGN-001 设计冻结 VERIFIED）
 
-- 设计冻结: ALG-P3-PROJ-IMPL-001 §12 T1-T7（T1 正向解析解/T2
+- 设计冻结: ALG-P3-PROJ-IMPL-001 T1-T7（T1 正向解析解/T2
   roundtrip 1e-8 px 冻结容差/T3 G1 精确断言/T4 手性极性关键词/
   T5 负面清单/T6 oracle=现状独立解析解→验收级 WCSLIB/T7 不变量
   回归）。
@@ -209,10 +209,10 @@ ALG-P3-002 / API-P3-001 / TEST-P3-WCS-001）与 module_id 合同值
 
 ## NaN 与输出语义
 
-- NaN 规则（权威 = `ACSD_DESIGN.md` §5.5）：**样本级掩膜 + 重归一 + 覆盖级 NaN + 强制计数**；
+- NaN 规则（权威 = `ACSD_DESIGN.md`对应章节）：**样本级掩膜 + 重归一 + 覆盖级 NaN + 强制计数**；
   剔除项逐条进场级计数。无覆盖/无数据 = NaN；0 与 ±Inf 不作有效值。
 - 输出语义守卫：只接受**面亮度**语义输入，端口 `UnitId::SURFACE_BRIGHTNESS`；输出模式
-  `surface_brightness` / `point_source_flux` / `visualization` 显式声明（最高设计 §6.3）。
+  `surface_brightness` / `point_source_flux` / `visualization` 显式声明（最高设计对应章节）。
 
 ## 参考文献
 

@@ -1,4 +1,4 @@
-# 日志与错误系统（详细设计）
+# 日志与错误系统落地设计
 
 > 上游：《ACSD 最高设计》的「命令行合同」一章（错误传播与运行日志：顶层约束）与「I/O 与原子产品」一章
 
@@ -129,7 +129,7 @@ flowchart LR
   **manifest verify/完整性失败**（status≠complete、artifact sha256/size 不匹配等）= exit 8
   （INTEGRITY）。唯一源 = `docs/engineering/contracts/MANIFEST_VERIFY.md`「manifest verify 合同」一节「校验序→错误码」
   （语法/schema=3、status≠complete=8、版本不一致=5、输入 hash 已变=3、产物缺失=3、
-  sha256/size 不匹配=8、全过=0；实现 `lib/infrastructure/cli/commands.cpp` :2396-2476）+
+  sha256/size 不匹配=8、全过=0；实现见命令行命令源文件）+
   域→码表 `docs/engineering/contracts/LOG_AND_ERROR.md`「错误对象与退出码映射」一节（IO→7 / INTEGRITY→8）；码值语义表见 `docs/engineering/standards/ERROR_MODEL.md`「进程退出码」一节。
 
 **日志写失败一律显式**：任何一步失败都在 stderr 输出一条脱敏摘要，并让本次运行以非 0 退出码结束。
@@ -172,14 +172,14 @@ flowchart LR
 
 | 旋钮 | 登记点（权威） | 默认 | 值域/约束 |
 |---|---|---|---|
-| `log_dir` | `docs/detail/infrastructure/21_observability.md` 的「配置项」一章（`log_dir` / `log_keep` / `log_level`） | `<output_dir>/logs` | 绝对路径，或由 `output_dir` 派生；CWD 相对路径属判据红 |
+| `log_dir` | `docs/detail/infrastructure/observability.md` 的「配置项」一章（`log_dir` / `log_keep` / `log_level`） | `<output_dir>/logs` | 绝对路径，或由 `output_dir` 派生；CWD 相对路径属判据红 |
 | `log_level` | 同上 | `info` | `debug\|info\|warn\|error` |
 | `log_keep` | 同上 | `all` | `all`（保留全部运行日志）或正整数（保留最近 N 次运行） |
 
 - 缺省即默认值，且**落点与旋钮设置无关**：不设任何旋钮时落点恒为 `<output_dir>/logs`；
 - `log_dir` 显式给出时，其解析结果必须落在本次运行的 `output_dir` 可写域内（跨块写同一目录 = 配置错 ⇒ exit 2）；
 - 旋钮的**取值通道**（CLI 旗标 / 环境变量）由实现任务接线；通道一旦落地，其登记点随之迁移到对应文档面
-  （CLI 旗标 → `18_cli.md` 的 `cli_surface` 行），并由 `CFG002-01` 强制唯一登记点。
+  （CLI 旗标 → 命令行入口页的 `cli_surface` 行），并由 `CFG002-01` 强制唯一登记点。
 
 ---
 
@@ -212,3 +212,13 @@ flowchart LR
 
 **逐帧判决表是唯一真相**：组级摘要（如 `photometry_applied`）只表示「至少一帧成立」，下游节点必须按逐帧表选择输入面；
 下游对上游判 fail 的帧**显式跳过**并在自己的 manifest 记跳过原因与上游错误码，记录完整。
+
+## 落地对照与参考文献
+
+本页是支撑面的日志错误落地设计，对应最高设计命令行合同一章的错误传播与运行日志条目。定位是事件产生到落盘再到退出码收敛的整条链，数据对象是日志事件、运行日志、错误报告与降级记录。块读写经统一输入输出边界，日志落点由块输出目录派生。接口签名以日志事件模式与退出码表为准。处理步骤按生命周期六步执行。配置旋钮是运行期策略，不进阶段科学配置。相邻关系是上游承接各模块的错误返回，下游供给命令行收敛与可观测性。调试入口是阶段日志目录与运行清单登记。
+
+### 参考文献
+
+[1] 工程日志错误合同，docs/engineering目录。
+[2] 命令行入口落地页，本文infrastructure目录。
+[3] 可观测性落地页，本文infrastructure目录。
