@@ -364,6 +364,7 @@ static int build_impl(const P2ControlObservation* obs, std::uint64_t n_obs,
         cfg.smoothing_lambda = 0.0;
         cfg.zero_anchor_weight = 1e-3;
         cfg.max_iterations = 100;
+        cfg.max_iterations_cap = 5000;
         cfg.tolerance = 1e-6;
         cfg.target_order = -1;
         cfg.sigma_floor = 1e-3;
@@ -381,6 +382,16 @@ static int build_impl(const P2ControlObservation* obs, std::uint64_t n_obs,
     }
     if (cfg.huber_delta <= 0.0) cfg.huber_delta = 1.345;
     if (cfg.max_iterations <= 0) cfg.max_iterations = 100;
+    // 自适应迭代预算：max_iterations 为"下界/试跑预算"语义（小 κ 早停，
+    // 行为逐位不变）；max_iterations_cap 为可配上界（默认 5000，防病态发散）。
+    // 零/负/非有限 cap 一律退回 5000（与 max_iterations<=0→100 的既有退回同族）。
+    // cap < 下界时钳到下界（不反转区间）；超上界仍未收敛走既有
+    // stalled(2)/invalid(3)/max_iter(0) 路径，不得静默。
+    if (!(cfg.max_iterations_cap > 0.0) ||
+        !std::isfinite((double)cfg.max_iterations_cap))
+        cfg.max_iterations_cap = 5000;
+    if (cfg.max_iterations_cap < cfg.max_iterations)
+        cfg.max_iterations_cap = cfg.max_iterations;
     // 与 max_iterations 同源的健壮性缺口：调用方传零初始化 config 时
     // tolerance=0 会让收敛判据 `max_dM < tol && max_dC < tol` 永假
     // (生产显式设 1e-6，不受影响；此处补齐默认化以消除静默不收敛)。
@@ -767,9 +778,107 @@ static int build_impl(const P2ControlObservation* obs, std::uint64_t n_obs,
     }
     const double kStallPatience = 5;      // 连续低改善轮数阈值
     const double kObjImproveFloor = 1e-12;  // 相对改善数值地板
+    // 自适应迭代预算（下界语义 + κ 保守追加，上界钳制）：
+    // - budget 起于 cfg.max_iterations（下界，默认 100）：小 κ 早停的既有
+    //   路径逐位不变（100 轮内收敛则循环行为与旧实现完全一致）；
+    // - 试跑耗尽仍未收敛、且末轮 rel_improve 仍显著（> stall 地板，排除
+    //   数值停滞）时，按剩余相对距离追加预算，而非一次定死：
+    //     收敛率 rho ≈ ((κ-1)/(κ+1))²（交替最小化线性收敛的保守估计；
+    //     κ 取 control 块法方程 κ 的最大值 = identifiability 口径的 out.kappa，
+    //     此处在试跑权重下复算同一装配，不引入第二套判据）；
+    //     追加轮数 ≈ log(tol_rel / 当前相对步长) / log(rho)，向上取整 + 10%
+    //     裕量（至少 +1 轮，保证严格推进），钳制到 max_iterations_cap；
+    // - 追加可重估：每次预算耗尽时若仍未收敛/未 stall/改善仍显著，则按
+    //   **当前**剩余距离重估并延长（rho 为保守估计，可能乐观欠估；重估使
+    //   欠估自动补足）。每次严格增加 budget（至少 +1），cap 钳制保证终止；
+    //   超上界仍未收敛按既有 max_iter(0)/stalled(2)/invalid(3) 路径返回，
+    //   不得静默；
+    // - 预算按**相对**距离估算（tol_rel = tolerance，tolerance_relative=1 时
+    //   步长先除以 max(scale_obs,1.0) 再比）：不受下面 max(·,1.0) 钳制的
+    //   阈值语义影响——钳制只决定"何时判敛"，不决定"还要走多远"。
+    int iter_budget = cfg.max_iterations;
+    auto upm_block_kappa = [&]() -> double {
+        // 与下方 identifiability 诊断段**同一装配**（块参数 = M_k + 非参考帧
+        // C 列，H_k = Σ w a aᵀ，块参考帧优先分量参考帧）：此处用试跑末轮权重
+        // w 复算 κ（保守取 max_k）；权重面变化时调用方重算，不缓存。
+        double kappa_max = 0.0;
+        bool any = false;
+        std::vector<std::pair<std::size_t, double>> wfk;
+        std::vector<double> block;
+        std::vector<double> avec;
+        auto is_ref_frame = [&](std::size_t f) {
+            if (f >= m->frame_component.size() ||
+                f >= m->frame_id_by_index.size() ||
+                m->frame_component[f] >= m->component_ref_frame.size())
+                return false;
+            return m->frame_id_by_index[f] ==
+                   m->component_ref_frame[m->frame_component[f]];
+        };
+        for (std::size_t k = 0; k < K; ++k) {
+            wfk.clear();
+            for (std::size_t ii : m->controls[k].obs_idx) {
+                const double wi = w[ii];
+                if (!(wi > 0.0) || !std::isfinite(wi)) continue;
+                const std::size_t f = m->frame_index[obs[ii].frame_id];
+                bool seen = false;
+                for (auto& e : wfk)
+                    if (e.first == f) { e.second += wi; seen = true; break; }
+                if (!seen) wfk.push_back({f, wi});
+            }
+            if (wfk.empty()) continue;
+            std::size_t blk_ref = 0;
+            bool ref_is_comp = false;
+            for (std::size_t j = 0; j < wfk.size(); ++j) {
+                if (is_ref_frame(wfk[j].first)) {
+                    blk_ref = j;
+                    ref_is_comp = true;
+                    break;
+                }
+            }
+            if (!ref_is_comp) {
+                for (std::size_t j = 1; j < wfk.size(); ++j)
+                    if (m->frame_id_by_index[wfk[j].first] <
+                        m->frame_id_by_index[wfk[blk_ref].first])
+                        blk_ref = j;
+            }
+            std::vector<int> col_of(wfk.size(), -1);
+            std::size_t nb = 1;
+            for (std::size_t j = 0; j < wfk.size(); ++j) {
+                if (j == blk_ref) continue;
+                col_of[j] = static_cast<int>(nb);
+                ++nb;
+            }
+            block.assign(nb * nb, 0.0);
+            avec.assign(nb, 0.0);
+            for (std::size_t j = 0; j < wfk.size(); ++j) {
+                std::fill(avec.begin(), avec.end(), 0.0);
+                avec[0] = 1.0;
+                if (col_of[j] >= 0)
+                    avec[static_cast<std::size_t>(col_of[j])] = 1.0;
+                for (std::size_t p = 0; p < nb; ++p)
+                    for (std::size_t q = 0; q < nb; ++q)
+                        block[p * nb + q] += wfk[j].second * avec[p] * avec[q];
+            }
+            P2Identifiability bid{};
+            if (p2_identifiability_assess(
+                    block.data(), (std::uint64_t)nb,
+                    static_cast<std::uint64_t>(m->controls[k].obs_idx.size()),
+                    kRankRtolFrozen, &bid) != 0)
+                return std::numeric_limits<double>::infinity();
+            if (!std::isfinite(bid.kappa))
+                return std::numeric_limits<double>::infinity();
+            kappa_max = std::max(kappa_max, bid.kappa);
+            any = true;
+        }
+        if (!any) return std::numeric_limits<double>::infinity();
+        return kappa_max;
+    };
     double obj_prev = std::numeric_limits<double>::quiet_NaN();
     int stall_run = 0;
-    for (int iter = 0; iter < cfg.max_iterations; ++iter) {
+    // max_dM/max_dC 留循环外：追加预算判定需要末轮步长（相对口径）。
+    double max_dM_last = 0.0;
+    double max_dC_last = 0.0;
+    for (int iter = 0; iter < iter_budget; ++iter) {
         // 1. 权重（每轮：raw per-control 归一化 + Huber）
         {
             const int rc = compute_raw();
@@ -1066,6 +1175,10 @@ static int build_impl(const P2ControlObservation* obs, std::uint64_t n_obs,
         //   （control 观测值的稳健尺度，**不是** max|M| / max|C|，
         //    docs/science/PHASE2_UPM.md §5 明文）；
         // max(...,1.0) 保证小尺度合成数据与 legacy 绝对判据逐位等价。
+        // 钳制说明：scale_obs<1 时该 max(·,1.0) 使相对判据退化为空转的绝对
+        // 判据（阈值语义冻结，本次不改）；自适应预算按**相对**距离估算
+        // （步长先除 max(scale_obs,1.0) 再与 tolerance 比），不受该钳制
+        // 影响——钳制只收紧"何时判敛"，不缩短"还要走多远"的估计。
         // tolerance_relative=0 时 tol_M=tol_C=cfg.tolerance（legacy，逐位不变）。
         double tol_M = cfg.tolerance;
         double tol_C = cfg.tolerance;
@@ -1074,6 +1187,9 @@ static int build_impl(const P2ControlObservation* obs, std::uint64_t n_obs,
             tol_M = cfg.tolerance * s_eff;
             tol_C = cfg.tolerance * s_eff;
         }
+        // 末轮步长留档：试跑预算耗尽时的追加判定用（相对口径换算见下方）。
+        max_dM_last = max_dM;
+        max_dC_last = max_dC;
         // SCI-502: 状态枚举 + stalled 检测（可证伪：改善量低于数值地板连续 N 次）
         m->rel_improve = std::isfinite(obj_prev)
                              ? std::fabs(m->objective - obj_prev) /
@@ -1096,6 +1212,49 @@ static int build_impl(const P2ControlObservation* obs, std::uint64_t n_obs,
         if (static_cast<double>(stall_run) >= kStallPatience) {
             m->converged = 2;   // stalled
             break;
+        }
+        // 自适应追加：预算耗尽、未收敛、未 stall、且改善仍显著时，按
+        // κ 保守收敛率估算剩余轮数并延长 budget（可重估，上限 cap）。
+        // 不满足任一条件则自然落出循环，按既有 max_iter(0) 路径返回。
+        if (iter + 1 >= iter_budget &&
+            iter_budget < cfg.max_iterations_cap &&
+            std::isfinite(m->rel_improve) &&
+            m->rel_improve > kObjImproveFloor) {
+            const double kappa = upm_block_kappa();
+            // 相对步长 = max_dX / max(scale_obs,1.0)（与判敛阈值同分母；
+            // tolerance_relative=0 时分母为 1，退化为绝对口径，公式自洽）。
+            const double s_rel = cfg.tolerance_relative
+                                     ? std::max(m->scale_obs, 1.0)
+                                     : 1.0;
+            const double step_rel =
+                std::max(max_dM_last, max_dC_last) / s_rel;
+            const double tol_rel = cfg.tolerance;
+            bool extended = false;
+            if (std::isfinite(kappa) && kappa > 1.0 && step_rel > tol_rel &&
+                std::isfinite(step_rel) && tol_rel > 0.0) {
+                const double rho =
+                    ((kappa - 1.0) / (kappa + 1.0)) *
+                    ((kappa - 1.0) / (kappa + 1.0));
+                if (std::isfinite(rho) && rho > 0.0 && rho < 1.0) {
+                    const double need =
+                        std::log(tol_rel / step_rel) / std::log(rho);
+                    if (std::isfinite(need) && need > 0.0) {
+                        int extra = (int)std::ceil(need * 1.1) + 1;
+                        if (extra < 1) extra = 1;
+                        int grown = iter_budget + extra;
+                        if (grown > cfg.max_iterations_cap)
+                            grown = cfg.max_iterations_cap;
+                        if (grown > iter_budget) {
+                            iter_budget = grown;
+                            extended = true;
+                        }
+                    }
+                }
+            }
+            // κ 非有限/秩亏（+inf）或已在容差内（step<=tol）时不追加：
+            // 前者按现有 stalled/invalid 路径处理（不得静默发散），
+            // 后者下一轮判敛自然收敛，不消耗预算。
+            (void)extended;
         }
         obj_prev = m->objective;
     }
@@ -1467,6 +1626,7 @@ int p2_upm_save(const void* model, const char* path) {
     j["smoothing_lambda"] = m->cfg.smoothing_lambda;
     j["zero_anchor_weight"] = m->cfg.zero_anchor_weight;
     j["max_iterations"] = m->cfg.max_iterations;
+    j["max_iterations_cap"] = m->cfg.max_iterations_cap;
     j["tolerance"] = m->cfg.tolerance;
     j["sigma_floor"] = m->cfg.sigma_floor;
     j["support_power"] = m->cfg.support_power;
@@ -1611,6 +1771,8 @@ int p2_upm_open(const char* path, void** out_model) {
         m->cfg.smoothing_lambda = j.value("smoothing_lambda", 0.0);
         m->cfg.zero_anchor_weight = j.value("zero_anchor_weight", 1e-3);
         m->cfg.max_iterations = j.value("max_iterations", 100);
+        // 旧文件无键 → 默认上界 5000（新文件由 save 写入本键）。
+        m->cfg.max_iterations_cap = j.value("max_iterations_cap", 5000);
         m->cfg.tolerance = j.value("tolerance", 1e-6);
         m->cfg.sigma_floor = j.value("sigma_floor", 1e-3);
         m->cfg.support_power = j.value("support_power", 1.0);

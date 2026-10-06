@@ -81,6 +81,12 @@ struct P2UpmBuildConfig {
     double smoothing_lambda;      // 图平滑权重（默认 0=关闭）
     double zero_anchor_weight;    // 弱零校正锚权重（生产装配显式 1e-3，SCI §9a:133）
     int    max_iterations;        // IRLS 最大迭代（默认 100）
+    // 自适应迭代预算上界（默认 5000）：max_iterations 取"下界/试跑预算"
+    // 语义（小规模早停行为逐位不变）；求解器在 100 轮试跑未收敛且相对改善仍
+    // 显著时，按 κ 保守收敛率 ((κ-1)/(κ+1))² 追加预算，上限为本值。
+    // 超上界仍未收敛按既有 stalled(2)/invalid(3)/max_iter(0) 路径返回，不得静默。
+    // 零/负/非有限一律退回 5000。max_iterations<=0 仍退回 100（既有逻辑保留）。
+    int    max_iterations_cap = 5000;
     // 收敛容差（默认 1e-6）。语义由 tolerance_relative 决定：
     // 0=绝对（legacy，max_dM/max_dC < tolerance）；
     // 1=相对（< tolerance × max(scale_obs,1.0)）。
