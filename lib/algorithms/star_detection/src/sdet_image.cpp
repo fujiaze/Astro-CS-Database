@@ -391,7 +391,15 @@ inline F sdet_median_inplace(std::vector<F>* v) {
     if (n % 2 == 1) return (*v)[mid];
     // 偶数需第 mid-1 与第 mid 小的两个。nth_element 只就位后者，
     // 而前 mid 个元素都不大于它 ⇒ 第 mid-1 小的就是前 mid 个里的最大值。
-    const std::size_t lo = *std::max_element(v->begin(), v->begin() + mid);
+    //
+    // 缺陷修复 WIN-MEDIAN-01（本单由 MSVC C4244 暴露）：原写法把 F（float/double）
+    // 的像素/噪声值存进 std::size_t 再转回 double。v 的元素是**浮点量**，转整型会
+    // 截断：背景扣除后的像素常为负 ⇒ 负浮点转 std::size_t 在 C++ 里是**未定义行为**；
+    // [0,1) 区间的值一律截成 0。lo 必须保持 F。
+    // ⚠ **这是改变行为的修复**：偶数样本的中位数由「截断值」变为「原值」，MAD/σ
+    // 估计随之变化（原先对负值是 UB）。它修的是错，不是引入新自由度；下游任何
+    // 冻结了旧数值的回归基线都需重跑（本单不跑测试，见验证范围声明）。
+    const F lo = *std::max_element(v->begin(), v->begin() + mid);
     return (F)(0.5 * ((double)lo + (double)(*v)[mid]));
 }
 

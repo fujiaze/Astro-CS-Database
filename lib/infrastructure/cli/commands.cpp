@@ -68,7 +68,12 @@ uint64_t acsd_cpu_detect_features_v1(void);
 #include "runtime_contract.h"   // RUNTIME-CI-001: 统一预算/模式路由/SO-05 策略单一来源
 
 #ifdef _WIN32
+// 守卫：构建系统已在编译命令行定义 NOMINMAX（CMakeLists MSVC 分支的
+// add_compile_definitions），此处原先无守卫地重复定义 ⇒ MSVC C4005「宏重定义」。
+// 加 #ifndef 后宏的最终取值不变，windows.h 侧的 min/max 抑制效果相同 ⇒ 零行为变化。
+#ifndef NOMINMAX
 #define NOMINMAX
+#endif
 #include <windows.h>
 #endif
 
@@ -755,8 +760,10 @@ static void write_run_graphs(const std::string& out_dir, acsd::JsonlEmitter& ev,
         const char* env_repo = std::getenv("ACSD_REPO");
         const std::string repo = (env_repo && env_repo[0]) ? env_repo : ".";
         const std::string renderer = repo + "/eng/tools/quality/gen_run_graphs.py";
-        std::error_code ec;
-        if (std::filesystem::is_regular_file(std::filesystem::u8path(renderer), ec)) {
+        // 重命名 ec_fs：本块内层 ec 遮蔽了同函数外层 ec（:642），MSVC C4456。两者各自
+        // 只服务自己那次文件系统查询，互不读取；分名后判定与副作用逐位不变 ⇒ 零行为变化。
+        std::error_code ec_fs;
+        if (std::filesystem::is_regular_file(std::filesystem::u8path(renderer), ec_fs)) {
             const acsd::process::RunResult cr = acsd::process::run_process(
                 {"python3", renderer, "--graph-dir", gdir}, {}, 30.0, {}, true);
             bool rendered = acsd::process::ok(cr);

@@ -1574,8 +1574,7 @@ bool Orchestrator::init_platesolve_env(std::string& error_msg) {
         cleanup_platesolve_env();
         return false;
     }
-    SDetParams sdet_params;
-    std::memset(&sdet_params, 0, sizeof(sdet_params));
+    SDetParams sdet_params{};
     sdet_params.structureLayers = 5;
     sdet_params.hotPixelFilterRadius = 1;
     sdet_params.iterativeClipSigma = 9.0f;

@@ -83,10 +83,14 @@ static unsigned long long read_xcr0_impl() {
 
 uint64_t xcr0_cached() {
 #if defined(__x86_64__) || defined(_M_X64)
-    unsigned int eax = 0, ebx = 0, ecx = 0, edx = 0;
+    // 声明按平台分支下移：MSVC(_M_X64) 分支走 __cpuidex(info[...]) 取值，eax/ebx
+    // 从不被引用，原先在分支外统一声明 ⇒ MSVC C4189。ecx/edx 两个分支都要用，故
+    // 各自声明。已初始化但从未被读的局部变量无可观测效应 ⇒ 零行为变化。
 #if defined(__x86_64__)
+    unsigned int eax = 0, ebx = 0, ecx = 0, edx = 0;
     if (!__get_cpuid_count(1, 0, &eax, &ebx, &ecx, &edx) || !(ecx & (1u << 27))) return 0;
 #else
+    unsigned int ecx = 0, edx = 0;
     int info[4];
     __cpuidex(info, 1, 0);
     ecx = static_cast<unsigned int>(info[2]);

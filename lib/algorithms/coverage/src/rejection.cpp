@@ -2492,7 +2492,10 @@ void large_scale_grow_side(std::uint8_t* mask, int width, int height,
     // 迭代扩张（Chebyshev 邻域；每轮把已合格像素的 8 邻域并入）
     std::vector<std::uint8_t> ring((std::size_t)N, 0);
     for (int it = 0; it < radius; ++it) {
-        std::fill(ring.begin(), ring.end(), 0);
+        // 填充值写成元素类型本身：0 是 int，std::fill 按值同化到 _Ty=uint8_t 时
+        // MSVC 在 <xutility> 报 C4244（GCC 把 STL 头当系统头，不报 ⇒ 双平台差异）。
+        // 显式给 std::uint8_t 消除隐式窄化；填的仍是 0，语义与之前**逐位相同**。
+        std::fill(ring.begin(), ring.end(), std::uint8_t{0});
         for (int y = 0; y < height; ++y) {
             for (int x = 0; x < width; ++x) {
                 const int i = y * width + x;

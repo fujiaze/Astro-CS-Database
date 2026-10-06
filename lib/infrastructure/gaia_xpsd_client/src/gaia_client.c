@@ -2436,6 +2436,12 @@ int gaia_client_cone_search(GaiaClient *client, double ra, double dec, double ra
     if (!sc_arr) return -1;
     for (int i = 0; i < nfiles; i++) collector_init(&sc_arr[i], 4096);
 
+    {
+    /* 作用域收紧（原为函数级的 `int f;`）: 该索引变量只服务于紧随的
+     * OpenMP 文件循环。此前它的函数级作用域使**后续** 9 处 `for (int f = ...)`
+     * 形成同名遮蔽 ⇒ MSVC C4456（cone_search 侧 6 处 / cone_search_with_spectrum
+     * 侧 3 处）。把它圈进本块，循环之后 f 不再可见 ⇒ 遮蔽自然消失，
+     * 循环体、pragma、OpenMP 私有化语义与求值顺序逐字不变 ⇒ 零行为变化。 */
     int f;
     /* WIN-PORT: MSVC 传统 OpenMP (=2.0) 的 C 前端不接受 for-init 里的变量声明 (for (int f = 0; ...) ⇒ C3015 "initialization ... improper form"); 将索引变量提到 pragma 之前声明、init 用纯赋值即可被 2.0 接受；循环体与语义逐字不变。 */
     #pragma omp parallel for schedule(dynamic) num_threads(gaia_omp_team_size())
@@ -2467,6 +2473,7 @@ int gaia_client_cone_search(GaiaClient *client, double ra, double dec, double ra
                                   cos_dec_q, sin_dec_q, cos_radius, &sc_arr[f], scratch, &trace);
         }
         free(scratch);
+    }
     }
 
     /* FAILCLOSED-01: 任一文件发生丢弃（单星扩容失败 / 整叶解压失败 / scratch
@@ -2700,6 +2707,12 @@ int gaia_client_cone_search_with_spectrum(
         spec_collector_init(&sc_arr[i], 4096, spec_count);
     }
 
+    {
+    /* 作用域收紧（原为函数级的 `int f;`）: 该索引变量只服务于紧随的
+     * OpenMP 文件循环。此前它的函数级作用域使**后续** 9 处 `for (int f = ...)`
+     * 形成同名遮蔽 ⇒ MSVC C4456（cone_search 侧 6 处 / cone_search_with_spectrum
+     * 侧 3 处）。把它圈进本块，循环之后 f 不再可见 ⇒ 遮蔽自然消失，
+     * 循环体、pragma、OpenMP 私有化语义与求值顺序逐字不变 ⇒ 零行为变化。 */
     int f;
     /* WIN-PORT: MSVC 传统 OpenMP (=2.0) 的 C 前端不接受 for-init 里的变量声明 (for (int f = 0; ...) ⇒ C3015 "initialization ... improper form"); 将索引变量提到 pragma 之前声明、init 用纯赋值即可被 2.0 接受；循环体与语义逐字不变。 */
     #pragma omp parallel for schedule(dynamic) num_threads(gaia_omp_team_size())
@@ -2723,6 +2736,7 @@ int gaia_client_cone_search_with_spectrum(
                                   cos_dec_q, sin_dec_q, cos_radius, &sc_arr[f], scratch, &trace);
         }
         free(scratch);
+    }
     }
 
     /* FAILCLOSED-01: 同 cone_search —— 任一文件丢弃 ⇒ 不返回不完整星表。 */
@@ -2894,6 +2908,10 @@ int gaia_client_query_spectrum_by_coords(
     drop_ledger_init(&q_drop);
 
     /* 并行搜索: 每个坐标独立搜索所有文件，找角距离最近的星 */
+    /* 作用域收紧（与 cone_search 同款）: int i 只服务紧随的 OpenMP 坐标循环;
+     * 原函数级作用域使后续 `for (int i = ...)` 形成同名遮蔽 ⇒ MSVC C4456。
+     * 圈进本块后遮蔽消失, 循环体/pragma/OpenMP 私有化语义逐字不变 ⇒ 零行为变化。 */
+    {
     int i;
     /* WIN-PORT: MSVC 传统 OpenMP (=2.0) 的 C 前端不接受 for-init 里的变量声明 (for (int i = 0; ...) ⇒ C3015 "initialization ... improper form"); 将索引变量提到 pragma 之前声明、init 用纯赋值即可被 2.0 接受；循环体与语义逐字不变。 */
     #pragma omp parallel for schedule(dynamic) num_threads(gaia_omp_team_size())
@@ -2976,6 +2994,7 @@ int gaia_client_query_spectrum_by_coords(
                                  sc.drop.dropped_leaves, sc.drop.reason);
             spec_collector_free(&sc);
         }
+    }
     }
 
     /* FAILCLOSED-01: 任一坐标发生丢弃 ⇒ 不返回不完整星表（输出全部置空）。 */
@@ -3062,6 +3081,10 @@ int gaia_client_cone_search_with_photometry(
         phot_collector_init(&pc_arr[i], 4096);
     }
 
+    {
+    /* 作用域收紧（与 cone_search 同款）: int f 只服务紧随的 OpenMP 文件循环;
+     * 原函数级作用域使后续 6 处 `for (int f = ...)` 形成同名遮蔽 ⇒ MSVC C4456。
+     * 圈进本块后遮蔽消失, 循环体/pragma/OpenMP 私有化语义逐字不变 ⇒ 零行为变化。 */
     int f;
     /* WIN-PORT: MSVC 传统 OpenMP (=2.0) 的 C 前端不接受 for-init 里的变量声明 (for (int f = 0; ...) ⇒ C3015 "initialization ... improper form"); 将索引变量提到 pragma 之前声明、init 用纯赋值即可被 2.0 接受；循环体与语义逐字不变。 */
     #pragma omp parallel for schedule(dynamic) num_threads(gaia_omp_team_size())
@@ -3085,6 +3108,7 @@ int gaia_client_cone_search_with_photometry(
                                   cos_dec_q, sin_dec_q, cos_radius, &pc_arr[f], scratch, &trace);
         }
         free(scratch);
+    }
     }
 
     /* FAILCLOSED-01: 同 cone_search —— 任一文件丢弃 ⇒ 不返回不完整星表。 */

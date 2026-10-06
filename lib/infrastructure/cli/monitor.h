@@ -271,7 +271,12 @@ inline void read_cpu_time(ProcSample& s) {
 // 读 /proc/self/task/<tid>/stat; 字段 14/15 = utime/stime(clock ticks)。
 // 无 /proc(Windows)或读取失败 → 保持空/0(未观测哨兵; 不臆造、不硬编码线程数)。
 inline void read_thread_cpu(ProcSample& s) {
-#if !defined(_WIN32)
+#if defined(_WIN32)
+    // Windows 无 /proc 逐线程 CPU 面 ⇒ 保持未观测哨兵（不臆造、不硬编码线程数）。
+    // 形参 s 在本平台不被写，按实际语义显式标注以消 MSVC C4100；调用面与 POSIX 侧
+    // 同签名，采样结果两侧都是「未观测」这一既定语义 ⇒ 零行为变化。
+    (void)s;
+#else
     DIR* d = opendir("/proc/self/task");
     if (d == nullptr) return;
     long hz = sysconf(_SC_CLK_TCK);

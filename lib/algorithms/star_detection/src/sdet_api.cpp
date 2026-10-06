@@ -1739,7 +1739,10 @@ static int sdet_detect_impl(StarDetectorHandle handle,
     const T* smooth = pr.smooth_data;
     if (!std::isfinite(pr.thr)) return 0;   // 全非有限帧 → 空输出（rc = 0, count = 0）
     const double& bg = pr.bg;
-    const double& bgnoise = pr.bgnoise;
+    // 原先此处有 `const double& bgnoise = pr.bgnoise;` —— 该别名**全函数零引用**
+    // （MSVC C4189）。背景噪声并未被丢弃：它在 sdet_prepare_field 经
+    // pr.locthreshold = 5*pr.bgnoise / pr.thr = pr.bg + 5*pr.bgnoise 正常进入判定。
+    // 删的是冗余引用别名（绑定到已有对象，无副作用），不是删噪声 ⇒ 零行为变化。
     const double& dynrange = pr.dynrange;
     const double& sat_threshold = pr.sat_threshold;
     const double& locthreshold = pr.locthreshold;
@@ -2149,7 +2152,7 @@ static int sdet_detect_guided_impl(StarDetectorHandle handle,
     const T* smooth = pr.smooth_data;
     if (!std::isfinite(pr.thr)) return 0;
     const double& bg = pr.bg;
-    const double& bgnoise = pr.bgnoise;
+    // 同上：bgnoise 别名在本函数零引用（MSVC C4189）；噪声本身经 pr.thr 正常消费。
     const double& dynrange = pr.dynrange;
     const double& sat_threshold = pr.sat_threshold;
     const double& thr = pr.thr;

@@ -84,6 +84,18 @@ acsd_cfitsio_apply_third_party_deps(acsd_p1_drizzle)
 # cfitsio 源, 不该把 drvrnet.c C4206 / zuncompress.c C4267 之类灌进项目告警面。
 acsd_cfitsio_isolate_warnings(acsd_p1_drizzle)
 
+# WIN-LNK4217: 本 target 是 **SHARED**, 但 module_entry.cpp 与 hp_drizzle_api.cpp /
+# hp_drizzle_hips_api.cpp 被编进**同一个 DLL**。两个 hp_drizzle TU 在文件头自带
+# `#define HP_DRIZZLE_EXPORTS` ⇒ 拿 dllexport; module_entry.cpp 不定义 ⇒ 落 dllimport
+# ⇒ 引用 __imp_hp_drizzle_* 而被「导入」的正是它自己所在的这个 DLL。link.exe 靠本地
+# 定义回退放行, 但报 2 条 LNK4217 —— Windows 装载期禁止真自导入, 现在能过纯粹靠这个回退。
+# 处置: 定义 HP_DRIZZLE_STATIC (三态中间态, 与根 CMakeLists 对 acsd_drizzle 的同款处置
+# 同构)。⚠ hp_drizzle_api.h:17-27 把 EXPORTS 放**最前**先判, 而两个定义侧 TU 在
+# include 之前已自行定义 HP_DRIZZLE_EXPORTS ⇒ 它们的 dllexport 导出面**原样保留**,
+# 只有 module_entry.cpp 脱离 dllimport ⇒ DLL 对外导出面零变化, 内部调用由
+# call *__imp_X 变为 call X (同一地址、同一语义) ⇒ 零行为变化。
+target_compile_definitions(acsd_p1_drizzle PRIVATE HP_DRIZZLE_STATIC)
+
 set_target_properties(acsd_p1_drizzle PROPERTIES
     POSITION_INDEPENDENT_CODE ON
     PREFIX ""

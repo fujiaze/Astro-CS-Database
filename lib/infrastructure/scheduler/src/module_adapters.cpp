@@ -1963,7 +1963,18 @@ static void p1_parallel_for(uint32_t workers, uint64_t n, uint32_t thread_budget
   // + §8.3:647（线程池唯一来源是调度器、单进程唯一预算源）。fail-closed：收紧后
   // in_flight×inner_u ≤ budget 由下面的同一公式保证；越界配置不放大、只报一次。
   {
-    const std::uint32_t frame_cap = acsd::runtime_resources::kP1MaxFramesInFlight;
+    // C4127 是**真阳性**，不是噪声。kP1MaxFramesInFlight 是 configure 期固化的
+    // inline constexpr（eng/packaging/config/runtime_resources_generated.h.in:55 ←
+    // runtime_resources.json:61，当前值 **0**），故 `frame_cap > 0u` 编译期恒假 ⇒
+    // 整个块**永不执行**：配置键已接通、实现已写好，却不可达。
+    // 处置（不给常量加豁免、不删这段已写好的 fail-closed 逻辑）：按标准 §1
+    // 「运行参数优先由程序 config 目录读取」，给同一旋钮一条**运行期**通路，机制与
+    // 紧邻下方的 ACSD_P1_AXIS_* env 覆盖同族。未设置时取值恒等于原常量 ⇒
+    // **默认部署逐位不变**；只有显式设置该环境变量时该上限才真正生效（届时改变的是
+    // 并行轴形态，科学输出不变 —— 见本函数上方「四档产品逐位相同 ⇒ 轴形态不改科学结果」）。
+    std::uint32_t frame_cap = acsd::runtime_resources::kP1MaxFramesInFlight;
+    const std::uint32_t cap_env = p1_axis_env_u32("ACSD_P1_MAX_FRAMES_IN_FLIGHT");
+    if (cap_env > 0u) frame_cap = cap_env;
     if (frame_cap > 0u && frame_cap < frame_w) {
       std::fprintf(stderr,
                    "[p1axis] 配置帧并发度上限生效 frame_workers=%u -> %u (budget=%u n=%llu)\n",
@@ -1971,9 +1982,13 @@ static void p1_parallel_for(uint32_t workers, uint64_t n, uint32_t thread_budget
       frame_w = frame_cap;
     }
   }
+  // in_flight 的唯一引用在下面 #ifdef _OPENMP 分支内。非 OpenMP 构建下它恒未被读
+  // ⇒ MSVC C4189。Windows/MSVC 侧的 OpenMP 链接全部被 if(UNIX AND OpenMP_CXX_FOUND)
+  // 门控（CMakeLists.txt:1086/1119/1132/1195/1227）⇒ _OPENMP 必不定义，此告警必然触发。
+  // 声明随之搬进用它的分支：Linux 侧字面不变，std::min 无副作用 ⇒ 零行为变化。
+#ifdef _OPENMP
   const uint64_t in_flight =
       std::min<uint64_t>(n, static_cast<uint64_t>(frame_w));
-#ifdef _OPENMP
   uint32_t inner_u =
       (in_flight > 0)
           ? std::max<uint32_t>(1u, budget / static_cast<uint32_t>(in_flight))
@@ -4028,8 +4043,7 @@ Result<void> p1_op_star_psf_impl(const Json& doc, Json* man, int n_fit_limit) {
       }
       // ④ 权威拟合：只对星表预测位置做质心/椭圆高斯拟合，失败直接丢弃
       if (!ghandles[w]) {
-        SDetParams sp;
-        std::memset(&sp, 0, sizeof(sp));
+        SDetParams sp{};
         sp.structureLayers = 5;
         sp.hotPixelFilterRadius = 2;
         sp.iterativeClipSigma = 5.0f;
@@ -4162,16 +4176,18 @@ Result<void> p1_op_star_psf_impl(const Json& doc, Json* man, int n_fit_limit) {
       std::sort(fit_idx.begin(), fit_idx.end());
       N_fit = static_cast<size_t>(n_fit_limit);
     }
-    std::vector<double> dets(N_fit * 6, 0.0);
+    // 重命名 dets_buf：本块内 dets 遮蔽外层同名成员（MSVC C4458），两者是不同量
+    // （外层 = StarDetector 句柄表，本处 = 打平后的 6*N_fit 匹配向量）。分名后取值不变。
+    std::vector<double> dets_buf(N_fit * 6, 0.0);
     for (size_t k = 0; k < N_fit; ++k) {
       const auto& s = cat.sources[static_cast<size_t>(fit_idx[k])];
-      dets[k * 6 + 0] = s.x;
-      dets[k * 6 + 1] = s.y;
-      dets[k * 6 + 2] = s.flux;
-      dets[k * 6 + 3] = (s.flux > 0.0)
+      dets_buf[k * 6 + 0] = s.x;
+      dets_buf[k * 6 + 1] = s.y;
+      dets_buf[k * 6 + 2] = s.flux;
+      dets_buf[k * 6 + 3] = (s.flux > 0.0)
           ? -2.5 * std::log10(s.flux) : 99.0;
-      dets[k * 6 + 4] = (s.quality & 1) ? 1.0 : 0.0;   // saturated
-      dets[k * 6 + 5] = (cat.n_saturated > 0) ? 1.0 : 0.0;
+      dets_buf[k * 6 + 4] = (s.quality & 1) ? 1.0 : 0.0;   // saturated
+      dets_buf[k * 6 + 5] = (cat.n_saturated > 0) ? 1.0 : 0.0;
     }
     // 真实 PSF 拟合: dpsf_fit_batch_f64（float32 检测帧 → double 全链拟合,
     // 数据保真升精度; 默认拟合参数）
@@ -4184,7 +4200,7 @@ Result<void> p1_op_star_psf_impl(const Json& doc, Json* man, int n_fit_limit) {
     if (N_fit > 0) {
       // dbuf 已在本帧检测阶段按 FP64 构造（引导检测与 PSF 拟合共用一份缓冲）
       const int drc = dpsf_fit_batch_f64(
-          dbuf.data(), im.w(), im.h(), dets.data(), static_cast<int>(N_fit),
+          dbuf.data(), im.w(), im.h(), dets_buf.data(), static_cast<int>(N_fit),
           nullptr, psf_params.data(), &n_valid, psf_status.data());
       if (drc != 0) {
         f_err[fi] = Result<void>::fail(Error(ErrorDomain::DATA,
@@ -4916,8 +4932,7 @@ Result<void> p1_op_wcs(const Json& doc, Json* man) {
     if (gaia) { gaia_client_destroy(gaia); gaia = nullptr; }
   };
   // 1) StarDetector 句柄（A 线 orchestrator 同款默认: fitRadius=0 自动）
-  SDetParams sp;
-  std::memset(&sp, 0, sizeof(sp));
+  SDetParams sp{};
   sp.structureLayers = 5;
   sp.hotPixelFilterRadius = 2;
   sp.iterativeClipSigma = 5.0f;
@@ -5072,7 +5087,15 @@ Result<void> p1_op_wcs(const Json& doc, Json* man) {
     // （ipv_wcs.cpp:732-770 / ipv_solver.cpp:1260,1281-1294）。本层只回答
     // 「还没解出时, 再多看/多找一些星有没有用」, 不回答「多差算好」。
     // 第 0 级恒 = 生产现行采集面 ⇒ 成功路径**零行为变化**; 只有失败才进入更宽级。
-    IpvWcsResult r;
+    // 缺陷修复 WIN-WCSRES-01（本单由 MSVC C4701 暴露）：原为 `IpvWcsResult r;`（未初始化）。
+    // 稳健化阶梯循环体内才有 memset(&r,0,...)，循环**一次都不执行**时（solve_ladder 为空）
+    // 紧随其后的 `if (src != 1 || r.success != 1)` 与 WcsMakeEvidence(...r.n_detected...)
+    // 会读**未初始化栈内存** —— 其中 r.error_msg[0] 还可能被当成有效 C 串构造 std::string ⇒ UB。
+    // 值初始化（零初始化聚合体，与循环内 memset 语义一致）：
+    //   · 阶梯至少跑一级时 ⇒ memset 随后全覆盖，取值逐位不变；
+    //   · 阶梯为空时 ⇒ 由「读栈垃圾」变为「读全零」，即成功=0 ⇒ 走既有 unsolved 降级分支。
+    // 这是**行为修正**（把 UB 变成确定的 fail-closed 降级），不是新自由度。
+    IpvWcsResult r{};
     int src = 0;
     std::vector<acsd::core::WcsSolveAttempt> wcs_attempts;
     for (size_t si = 0; si < solve_ladder.size(); ++si) {
@@ -5083,8 +5106,7 @@ Result<void> p1_op_wcs(const Json& doc, Json* man) {
       StarDetectorHandle rung_sdet = nullptr;
       if (strat.max_stars != static_cast<int>(sp.maxStars)) {
         // 只在采集面与节点默认句柄不同的级上另建检测句柄（第 0 级复用 = 零行为变化）
-        SDetParams sp_s;
-        std::memset(&sp_s, 0, sizeof(sp_s));
+        SDetParams sp_s{};
         sp_s.structureLayers      = 5;
         sp_s.hotPixelFilterRadius = 2;
         sp_s.iterativeClipSigma   = 5.0f;
@@ -6242,7 +6264,11 @@ Result<void> p1_op_photometry(const Json& doc, Json* man) {
     // photscales / photscale_detail / ks）在 join 之后按下标升序执行 ⇒ 与串行逐字
     // 一致（含 Json object 的插入顺序）、与 worker 数无关。
     const uint32_t ph_workers = p1_frame_workers(doc);
-    std::vector<Result<void>> f_err(n_lights, Result<void>::success());
+    // 重命名 f_apply_err：本块内 f_err 遮蔽同函数外层 f_err（:5395, n_cat 的星表读错误
+    // 累加器），MSVC C4456。两者是**不同阶段、不同元素类型集合**的错误通道：
+    // 外层记 catalog 读取失败，本块记 per-light 施加失败。分名后两通道互不遮蔽，
+    // 归约顺序与返回值逐位不变 ⇒ 零行为变化。
+    std::vector<Result<void>> f_apply_err(n_lights, Result<void>::success());
     std::vector<std::string> f_apath(n_lights), f_key(n_lights);
     std::vector<double> f_k(n_lights, 0.0);
     std::vector<Json> f_detail(n_lights);
@@ -6257,7 +6283,7 @@ Result<void> p1_op_photometry(const Json& doc, Json* man) {
       const std::string src_path_i = p1_calibrated_path(doc, lp);
       P1Image im = p1_read_image(src_path_i);
       if (!im.ok()) {
-        f_err[fi] = Result<void>::fail(Error(ErrorDomain::IO,
+        f_apply_err[fi] = Result<void>::fail(Error(ErrorDomain::IO,
             "photometry apply: cannot read " + src_path_i));
         return;
       }
@@ -6288,14 +6314,14 @@ Result<void> p1_op_photometry(const Json& doc, Json* man) {
           : calibration::apply_photometry(im.px(), im.w(), im.h(),
                                           sc->k_photo, im.px());
       if (arc != 0) {
-        f_err[fi] = Result<void>::fail(Error(ErrorDomain::DATA,
+        f_apply_err[fi] = Result<void>::fail(Error(ErrorDomain::DATA,
             "apply_photometry failed rc=" + std::to_string(arc) + " for " + key));
         return;
       }
       const std::string apath = p1_photoapplied_path(doc, lp);
       std::string werr;
       if (!p1_write_fits_atomic(im, apath, &werr)) {
-        f_err[fi] = Result<void>::fail(Error(ErrorDomain::IO,
+        f_apply_err[fi] = Result<void>::fail(Error(ErrorDomain::IO,
             "photometry apply write failed: " + werr));
         return;
       }
@@ -6322,7 +6348,7 @@ Result<void> p1_op_photometry(const Json& doc, Json* man) {
     std::vector<double> ks;
     for (size_t i = 0; i < n_lights; ++i) {
       if (!do_apply[i]) continue;   // 拟合失败的帧不参与施加归约
-      if (!f_err[i].ok()) return f_err[i];
+      if (!f_apply_err[i].ok()) return f_apply_err[i];
       applied_artifacts.push_back(f_apath[i]);
       photscales[f_key[i]] = f_k[i];
       photscale_detail[f_key[i]] = f_detail[i];
@@ -12556,7 +12582,10 @@ Result<void> p2_op_integrate(const Json& doc, Json* man) {
             ++l_skip;
           continue;
         }
-        double w = 1.0;
+        // 重命名 wgt：此处 w 遮蔽了本 lambda 的形参 w（frame worker 下标，:12448），
+        // MSVC C4457。两者是完全不同的量（一个是 worker 下标，一个是像素权重）；
+        // 分名后权重取值与累加顺序逐位不变 ⇒ 零行为变化。
+        double wgt = 1.0;
         if (!fallback) {
           if (corr_var_ready) {
             // P2b-2 priority 1: w = 1/Var(corrected)（逐像素归一化方差）
@@ -12570,7 +12599,7 @@ Result<void> p2_op_integrate(const Json& doc, Json* man) {
               return;
             }
             std::string verr;
-            if (!acsd::v6::p2weight::weight_from_corrected_variance(vv, &w,
+            if (!acsd::v6::p2weight::weight_from_corrected_variance(vv, &wgt,
                                                                        &verr)) {
               t_errd[ti_s] = static_cast<int>(ErrorDomain::DATA);
               t_err[ti_s] = "weight_from_corrected_variance failed at frame " +
@@ -12629,11 +12658,11 @@ Result<void> p2_op_integrate(const Json& doc, Json* man) {
                               " " + pres.error;
                 return;
               }
-              w = pres.weight;
+              wgt = pres.weight;
             } else {
-              w = snr_weights[it.slot[d]];
+              wgt = snr_weights[it.slot[d]];
             }
-            if (!std::isfinite(w) || !(w > 0.0)) {
+            if (!std::isfinite(wgt) || !(wgt > 0.0)) {
               t_errd[ti_s] = static_cast<int>(ErrorDomain::DATA);
               t_err[ti_s] = "frame-SNR weight invalid (non-finite/<=0) at frame " +
                             std::to_string(it.slot[d]) + " (frame-SNR weight chain)";
@@ -12649,8 +12678,8 @@ Result<void> p2_op_integrate(const Json& doc, Json* man) {
                             std::to_string(tip) + ")";
               return;
             }
-            w = static_cast<double>(ivar_v[d][static_cast<size_t>(p)]);
-            if (!std::isfinite(w) || w < 0.0) {
+            wgt = static_cast<double>(ivar_v[d][static_cast<size_t>(p)]);
+            if (!std::isfinite(wgt) || wgt < 0.0) {
               t_errd[ti_s] = static_cast<int>(ErrorDomain::DATA);
               t_err[ti_s] = "non-finite/negative input ivar at frame " +
                             std::to_string(it.slot[d]) + " tile " +
@@ -12662,7 +12691,7 @@ Result<void> p2_op_integrate(const Json& doc, Json* man) {
           }
         }
         vals.push_back(v);
-        weights.push_back(w);
+        weights.push_back(wgt);
         supports.push_back(sp);
         accs.push_back(1);
       }
@@ -14385,8 +14414,24 @@ bool p3n_crop_window(const Json& doc, const acsd::phase3::P3WcsDescriptor& frame
   std::string why;
   P3CropStatus st = P3_CROP_PARAM;
   if (mode == "pixels") {
-    st = p3_crop_window_from_fits(f["x0"].get<long long>(), f["y0"].get<long long>(),
-                                  f["x1"].get<long long>(), f["y1"].get<long long>(),
+    // 缺陷修复 WIN-LLP64-01（本单由 MSVC C4244 暴露）。P3CropWindow 与
+    // p3_crop_window_from_fits 的坐标是 `long`（p3_wcs.h:186-212）。Windows 的 long
+    // 是 32 位、Linux 是 64 位（LLP64 vs LP64）⇒ `get<long long>()` 在**调用点**被
+    // 隐式截断，而函数内全部校验都作用在**已截断的形参**上，原理上看不见原值 ⇒
+    // 越界坐标在 Windows 上被静默改写后放行（fail-open），Linux 上具名拒绝，违反本
+    // 文件上方「全部非法输入 fail-closed 具名拒绝，禁静默夹取」的自陈契约。
+    // 处置：在**窄化之前**用 long long 做值域校验，越界即具名拒绝；合法值经显式
+    // static_cast<long>（已证明在范围内）传入 ⇒ 合法输入产物逐位不变，
+    // 非法输入两平台一致地 fail-closed。
+    const long long cx0 = f["x0"].get<long long>();
+    const long long cy0 = f["y0"].get<long long>();
+    const long long cx1 = f["x1"].get<long long>();
+    const long long cy1 = f["y1"].get<long long>();
+    if (cx0 < 0 || cy0 < 0 || cx1 > w || cy1 > h)
+      return fail("crop." + mode + ": window outside output frame "
+                  "(x0/y0>=0 and x1<=width_px, y1<=height_px required)");
+    st = p3_crop_window_from_fits(static_cast<long>(cx0), static_cast<long>(cy0),
+                                  static_cast<long>(cx1), static_cast<long>(cy1),
                                   w, h, win, &why);
   } else {
     st = p3_crop_window_from_sky(&frame, f["ra_min_deg"].get<double>(),
@@ -14422,11 +14467,20 @@ bool p3n_crop_from_plan(const Json& plan, int w, int h,
     if (!c.contains(k) || !c[k].is_number_integer())
       return fail(std::string("p3_wcs.json crop.") + k + " missing/not integer");
   }
+  // 同 WIN-LLP64-01：win->x0..y1 是 `long`（32 位 @Windows）。先把 long long 读出来
+  // 做值域校验，再窄化 ⇒ 消除 C4244 的隐式截断并把 fail-open 变成两平台一致的
+  // 具名拒绝。合法 artifact 的取值与判定逐位不变。
+  const long long px0 = c["x0"].get<long long>();
+  const long long py0 = c["y0"].get<long long>();
+  const long long px1 = c["x1"].get<long long>();
+  const long long py1 = c["y1"].get<long long>();
+  if (px0 < 0 || py0 < 0 || px1 > w || py1 > h)
+    return fail("p3_wcs.json crop window outside the output frame (artifact drift)");
+  win->x0 = static_cast<long>(px0);
+  win->y0 = static_cast<long>(py0);
+  win->x1 = static_cast<long>(px1);
+  win->y1 = static_cast<long>(py1);
   win->active = true;
-  win->x0 = c["x0"].get<long long>();
-  win->y0 = c["y0"].get<long long>();
-  win->x1 = c["x1"].get<long long>();
-  win->y1 = c["y1"].get<long long>();
   if (win->width() < 1 || win->height() < 1 || win->x0 < 0 || win->y0 < 0 ||
       win->x1 > w || win->y1 > h)
     return fail("p3_wcs.json crop window outside the output frame (artifact drift)");

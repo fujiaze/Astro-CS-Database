@@ -7,15 +7,31 @@
 // 将 ipv::IPVSolver (C++ 类) 封装为 extern "C" 接口, 供 Python ctypes 调用。
 // 所有结构体均为 POD (固定大小数组, 无构造函数), 字符串字段使用 char[]。
 //
-// 编译宏 IPV_EXPORTS 控制 dllexport/dllimport:
+// 编译宏控制 dllexport / dllimport / 静态链（**三态**）:
 // - 编译 DLL 时定义 IPV_EXPORTS -> dllexport
-// - 使用 DLL 时不定义 -> dllimport
+// - 静态链接时定义 IPV_STATIC   -> 不加 declspec
+// - 使用 DLL 时两者都不定义       -> dllimport
+//
+// 缺陷修复 WIN-LNK4217（本单由 MSVC 链接期 8 条 LNK4217 暴露）。原先本宏只有两态：
+// 仓内 CMake 生产构建把 acsd_p1_ipv 建为 **STATIC**（CMakeLists.txt:1141），定义侧 TU
+// 因 IPV_EXPORTS 拿 dllexport（其 /EXPORT: 以 .drectve 存进 .lib），而消费侧
+// module_adapters.cpp 不定义 IPV_EXPORTS ⇒ 落 dllimport ⇒ 引用 __imp_ipv_*。两者落进
+// 同一 image，link.exe 用本地定义满足 __imp_ 并报「已在 … 中定义)的符号被 … 导入」
+// (LNK4217)。
+// 修法与本仓已对同族问题采用的三态同款（照 hp_drizzle_api.h:17-27 的 HP_DRIZZLE_API
+// 与 status_codes.h:55-64 的 ACSD_EXPORT）：静态链加第三态，使标注与产物真实形态一致。
+// 行为不变性：MinGW 独立构建的 ipv_solver.dll（cpp/ipv/Makefile:15 -DIPV_EXPORTS）及其
+// ctypes 消费者完全不受影响（仍走 dllexport 分支）；只有 CMake 静态路径从「假 dllimport」
+// 变成「无 declspec」，调用目标由 call *__imp_X（链接器填成 X）变为 call X —— 同一地址、
+// 同一语义。
 //
 // ============================================================================
 
 #ifdef _WIN32
     #ifdef IPV_EXPORTS
         #define IPV_API __declspec(dllexport)
+    #elif defined(IPV_STATIC)
+        #define IPV_API          /* 静态链接: 无 __imp_ 间接层, 不加 declspec */
     #else
         #define IPV_API __declspec(dllimport)
     #endif
