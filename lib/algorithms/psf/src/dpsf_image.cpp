@@ -1,3 +1,6 @@
+// dpsf_image.cpp — PSF 拟合图像工具（ACSD phase1 psf 模块内部实现）
+// 职责: 拟合窗裁剪与镜像取数（mirror_fetch）；输入块: cleaned 帧 + 检测目录窗口几何；
+// 线程模型: 调用方按星点并行，本文件无内部并行、无全局状态。
 #include "dpsf_image.h"
 #include "dpsf_log.h"
 #include <algorithm>

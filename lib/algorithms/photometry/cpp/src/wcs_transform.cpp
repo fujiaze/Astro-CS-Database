@@ -1,7 +1,6 @@
-// wcs_transform.cpp - TAN+SIP投影坐标转换
-// 功能: 实现天球坐标(RA/Dec)与像素坐标(x/y)之间的转换
-// 算法: TAN gnomonic投影 + SIP多项式畸变修正
-// 参考: lib/algorithms/drizzle/healpix_drizzle/wcs_sip.cpp, astropy.wcs.WCS
+// wcs_transform.cpp - TAN+SIP投影坐标转换（ACSD phase1 photometry 模块内部实现）
+// 职责: 天球坐标(RA/Dec)与像素坐标(x/y)互转（gnomonic TAN + SIP 畸变修正）；输入块: Gaia 星表 + WCS 参数；
+// 输出: 像素坐标；线程模型: 单线程调用（无内部并行）。数值对照: astropy.wcs 方法对照（非代码引用）。
 
 #include "wcs_transform.h"
 
@@ -49,7 +48,8 @@ WcsTransform::WcsTransform(double crval1, double crval2,
         throw std::invalid_argument("WcsTransform: SIP order 越界 (正式支持 [0,5])");
     }
 
-    // CD矩阵行列式与逆
+    // CD矩阵行列式与逆（|det| < 1e-15 视为退化：逆矩阵置零，后续 skyToPixel/pixelToSky
+    // 按退化输入处理，调用方按失败-置信度语义拒绝伪解；阈值为数值奇异守卫，见 ALG-WCS 落地约束）
     m_cdDet = m_cd[0] * m_cd[3] - m_cd[1] * m_cd[2];
     if (std::fabs(m_cdDet) < 1e-15) {
         std::fprintf(stderr, "[wcs_transform] 警告: CD矩阵行列式接近0 (det=%.3e)\n", m_cdDet);
@@ -163,7 +163,8 @@ void WcsTransform::tanWorldToIntermediate(double ra, double dec,
     const double cdra  = std::cos(dra);
     const double sdra  = std::sin(dra);
 
-    // cos(c) = 点到切点的角距离余弦
+    // cos(c) = 点到切点的角距离余弦；|cosc| < 1e-12 视为投影背面/发散（数值奇异守卫），
+    // 返回 1e6 哨兵像素（单位 px），调用方按无效匹配拒绝，不计入定标。
     const double cosc = sdec0 * sdec + cdec0 * cdec * cdra;
     if (std::fabs(cosc) < 1e-12) {
         // 投影发散 (点在投影背面)

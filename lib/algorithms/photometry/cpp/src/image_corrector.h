@@ -6,15 +6,14 @@
 
 namespace pc {
 
-// 图像校正器: 全局scale校正
-// 算法:
-// scale = median(F_syn[i] / F_instr[i]) (对所有匹配星)
-// I_cal = I * scale
+// 图像校正器: 全局scale施加（scale 由调用方传入）
+// 生产口径: scale = 10^(-location)（IRLS/Tukey，见 star_matcher.cpp cleanAndScale）；
+// I_cal = I * scale。computeScale 的 median 比值仅为遗留诊断入口，不是生产口径。
 class ImageCorrector {
 public:
     ImageCorrector();
 
-    // 计算scale因子: median(F_syn / F_instr)
+    // 计算scale因子（遗留诊断入口）: median(F_syn / F_instr)
     // 排除 F_instr<=0 或 F_syn<=0
     // 无有效匹配星时返回1.0
     static double computeScale(const std::vector<StarMatch>& matches);

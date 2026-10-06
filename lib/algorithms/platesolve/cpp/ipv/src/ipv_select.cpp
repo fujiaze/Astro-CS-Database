@@ -1,7 +1,8 @@
 // ============================================================================
-// ipv_select.cpp - IPV StarSelector 模块 (Phase 0) (从 迁移, 复用 算法)
+// ipv_select.cpp - IPV StarSelector 模块（ACSD phase1 platesolve 模块内部实现）
 //
-// 职责: 图像侧选星 + Gaia 侧不对称密度匹配查询
+// 职责: 图像侧选星 + Gaia 侧不对称密度匹配查询；输入块: 校准后像素帧 + Gaia 句柄（外部注入）；
+// 输出: 图像星表与参考星表匹配集；线程模型: 选星循环 OpenMP 并行（整数归并，bitwise 与线程数无关）。
 // 从 vm45_select.cpp 迁移, 仅做 namespace/前缀替换:
 // - namespace v45 -> ipv
 // - 常量前缀 VM45_ -> IPV_

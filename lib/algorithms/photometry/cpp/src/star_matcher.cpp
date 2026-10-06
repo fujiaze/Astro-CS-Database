@@ -1,10 +1,7 @@
-// star_matcher.cpp - 星-图匹配器 ( 改进版)
-// 功能: 将Gaia参考星与图像PSF拟合星进行空间匹配, IRLS+Tukey 稳健清洗
-// 算法:
-// - KD-tree 最近邻匹配 (在 Gaia 星像素坐标上建树, 对每颗 PSF 星查询)
-// - 星等一致性预过滤 (|delta - median_delta| > 3 mag 拒绝)
-// - IRLS + Tukey biweight 稳健位置估计 (c=4.685, 50 次迭代, 收敛 1e-6)
-// 参考: lib/algorithms/photometry/flux_calibrator/python/star_matcher.py
+// star_matcher.cpp - 星-图匹配器（ALG-PHOT-001..002 落地）
+// 职责: Gaia↔PSF 双向最近邻配对（KD-tree，2.0px）→ 星等预过滤 → IRLS/Tukey 稳健零点
+//   （scale = 10^(-location)）；输入块: Gaia 星表 + PSF 星表 + WCS；线程模型: 匹配与 IRLS 单线程。
+// 常数: Tukey c=4.685（稳健回归标准常数，见 PHOTOMETRIC_FIT），50 次迭代上限、收敛 1e-6 为工程实现参数。
 
 #include "star_matcher.h"
 #include "log_macros.h"

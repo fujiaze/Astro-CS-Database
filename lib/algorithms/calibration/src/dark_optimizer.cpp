@@ -2,7 +2,7 @@
 // dark_optimizer.cpp - 最优 Dark 系数估计（鲁棒回归 + 失败回退）
 // ============================================================
 // 所属模块: astro_calibration（lib/algorithms/calibration）
-// 规范依据: 02_FROZEN §2.3
+// 规范依据: ALG-CAL dark_opt 双分支（K = t_light/t_dark 由调用方传入 k_init）
 //
 // 估计模型:
 // L - B = c + k * (D - B)
@@ -15,7 +15,7 @@
 // → 迭代 5 轮逐步剔除离群点
 // 4. 合理性判定：样本不足 / 回归残差异常 / k 值越界(k<=0 或 k>10) 任一触发即判失败
 //
-// 失败回退（02_FROZEN §2.3 强制要求）:
+// 失败回退（ALG-CAL 冻结语义）:
 // - 最优估计失败时输出结构化诊断（acsd::Stage1Diagnostics）
 // - 自动回退曝光时间比例缩放: k_t = t_light / t_dark（由调用方传入 k_init）
 // - 设置 diagnostics.fell_back=1, fallback_from="OPTIMAL", fallback_to="EXPOSURE_RATIO"

@@ -1,3 +1,6 @@
+// sdet_image.cpp — 星检测图像工具（ACSD phase1 star_detection 模块内部实现）
+// 职责: YvV 递归高斯平滑（O2）与行差分背景噪声统计（O1）；输入块: 灰度单通道帧；
+// 线程模型: 像素域 OpenMP 并行（线程数由宿主注入），输出与线程数无关。
 #include "sdet_image.h"
 #include "sdet_log.h"
 #include <algorithm>

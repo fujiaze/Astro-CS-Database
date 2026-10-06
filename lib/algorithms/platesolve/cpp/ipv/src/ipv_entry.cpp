@@ -1,9 +1,9 @@
 // ============================================================================
-// ipv_entry.cpp - IPV C API 入口实现
+// ipv_entry.cpp - IPV C API 入口实现（ACSD phase1 platesolve 模块 C ABI 实现）
 //
-// 将 ipv::IPVSolver (C++ 类) 封装为 extern "C" 接口, 供 Python ctypes 调用。
-//
-// 职责:
+// 职责: ipv::IPVSolver 封装为 extern "C" 接口；输入块: star_measurements 权威块（+ star_det 回退）
+// 与 Gaia 句柄（外部注入）；输出块: IpvWcsResult POD（ICRS，失败 success=0 + 非空 error_msg）；
+// 线程模型: 求解主体单线程、句柄级互斥使用（线程数由宿主注入）。
 // 1. 实例生命周期管理 (create/destroy)
 // 2. 句柄注入 (GaiaClient / StarDetector)
 // 3. POD 参数 <-> IPVSolverParams 转换

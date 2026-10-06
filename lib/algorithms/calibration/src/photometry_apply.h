@@ -6,12 +6,14 @@
 // ============================================================================
 // photometry_apply.h - Gaia 测光比例应用模块
 //
-// 规范依据: 02_FROZEN_STAGE1_HISS_SPEC §7 / spec.md 步骤9
+// 规范依据: normalize 目标态管线（photometry 节点内施加，
+// I_photo = k_photo·I_cal 落到像素；空间增益见 SCI-PHOT-001 §16.1 ④⑤）
 // Gaia 光谱积分校准是 Stage1 正式步骤。测光比例在 Drizzle 前应用:
 // I_photo = k_photo * I_cal
 // HISS signal 保存已应用 Gaia 光谱积分校准的统一相对测光累计通量。
 //
-// 公共契约: 00_COMMON_CONTRACTS.md §1.1
+// 公共契约: 模块合同见 docs/detail/registry/acsd.phase1.photometry.md
+// （DATA-P1-PHOTPROV）与 docs/detail/normalize/pipeline.md §3 强制语义④⑤
 // 模块: lib/algorithms/calibration/src/photometry_apply.h/.cpp
 // 职责: Gaia 测光比例应用
 // ============================================================================
@@ -19,7 +21,7 @@
 namespace calibration {
 
 // 应用 Gaia 测光比例到已校准图像
-// 公式: I_photo = k_photo * I_cal (02_FROZEN §7)
+// 公式: I_photo = k_photo * I_cal（线性乘性因子，单位见 DATA_SEMANTICS）
 //
 // light: 输入已校准图像 (float32, W*H, 行主序)
 // w, h: 图像宽高
