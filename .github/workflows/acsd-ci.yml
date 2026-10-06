@@ -1,0 +1,315 @@
+# ACSD 持续集成
+#
+# ⚠️ 本工作流**不是门禁**。
+# `standards/05_INDEPENDENT_TEST_SUITE.md:37` 逐字「测试集可以接入 CI，但以非阻塞为常态：
+# 默认报告结果与警告（warn），不因为重构中的中间状态频繁阻断。」
+# `docs/engineering/testing/TEST.md:203` 逐字「红项是缺陷信号，按修复或回退处理；
+# 测试不裁决合入，合入由提交纪律决定。」
+#
+# ⇒ 除「阻塞清单」（eng/ci/steps.yaml 的 `blocking: true`，**当前 0 项**）之外，
+#   任何步骤的红都不让工作流失败。红项的出口是**报告**，不是构建状态。
+#
+# ⚠️ 但「工作流绿」**不等于**「通过且符合预期」。
+#   本工作流额外在 job summary 里输出一条显式裁决行 `ACSD-CI-VERDICT:`，
+#   它区分「跑通且符合预期」与「跳过/未收集也算绿」——后者不是绿灯。
+#
+# 构建入口严格取自 docs/engineering/build/BUILD_NODES.md:58-66；
+# 不得改用 `-G Ninja` 或 `-B build`（BUILD_NODES.md:76-82 明文禁止）。
+
+name: acsd-ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+# 工作流本身不裁决合入：并发取消即可。
+concurrency:
+  group: acsd-ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  # ══════════════════════════════════════════════════════════════════════
+  # Linux amd64 控制节点车道
+  #   docs/engineering/build/BUILD_NODES.md:14「Linux amd64 控制节点：开发迭代、
+  #   常在线控制、静态分析、轻量编译、小合成实验、合成、真实数据终验」
+  # ══════════════════════════════════════════════════════════════════════
+  linux:
+    name: Linux 控制节点
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+
+    steps:
+      - name: 检出
+        uses: actions/checkout@v4
+        with:
+          # 可复现性判据见 BUILD_NODES.md:35-36：任何把构建输入变成隐式的改动都会让它转红。
+          fetch-depth: 1
+
+      - name: 准备 Python 测试面
+        # TEST.md:249-262 逐字登记测试侧依赖（不进产品运行依赖面）。
+        run: python3 -m pip install --quiet pytest astropy numpy
+
+      - name: 建产物目录
+        run: mkdir -p ci-raw ci-report
+
+      # ── 车道 A：快速档 ────────────────────────────────────────────────
+      - name: 文档锚点检查
+        continue-on-error: true
+        timeout-minutes: 5
+        run: python3 eng/tools/doccheck/check_anchors.py 2>&1 | tee ci-raw/doccheck-anchors.txt
+
+      - name: 断言重复检查
+        continue-on-error: true
+        timeout-minutes: 10
+        run: python3 eng/tools/doccheck/check_assert_dup.py 2>&1 | tee ci-raw/doccheck-assert-dup.txt
+
+      - name: 源文件清单扫描
+        continue-on-error: true
+        timeout-minutes: 10
+        run: python3 eng/tools/source_scan.py 2>&1 | tee ci-raw/source-scan.txt
+
+      # ⚠️ 当前必红：BUILD_NODES.md:91-92 点名的 eng/cmake/toolchain/verify_toolchain.py
+      #    整个目录不存在。这是**配置缺口**，如实登记，不下调该步。
+      - name: 冻结工具链 fail-closed 核验
+        continue-on-error: true
+        timeout-minutes: 2
+        run: python3 eng/cmake/toolchain/verify_toolchain.py 2>&1 | tee ci-raw/toolchain-freeze.txt
+
+      # ── 车道 B：Linux 构建 ────────────────────────────────────────────
+      # BUILD_NODES.md:58-66 逐字：唯一构建入口，生成器/二进制目录/配置类型
+      # 全部取自 CMakePresets.json，**不得在命令行另指定**。
+      - name: Linux configure
+        continue-on-error: true
+        timeout-minutes: 30
+        run: cmake --preset linux-control 2>&1 | tee ci-raw/linux-configure.txt
+
+      - name: Linux build
+        continue-on-error: true
+        timeout-minutes: 60
+        run: cmake --build --preset linux 2>&1 | tee ci-raw/linux-build.txt
+
+      # 07_DYNAMIC_RUNTIME_AND_BUILD.md:28 逐字「清除全部编译警告；警告视为需要处理的问题」。
+      # ⚠️ 当前必红（配置缺口）：全仓无 -Werror / /WX。
+      - name: 编译告警清零核验
+        continue-on-error: true
+        timeout-minutes: 2
+        run: |
+          grep -ciE 'warning' ci-raw/linux-build.txt > ci-raw/linux-warning-clean.count || true
+          n=$(cat ci-raw/linux-warning-clean.count)
+          echo "警告行数：$n"
+          { echo "编译告警行数 $n"; } > ci-raw/linux-warning-clean.txt
+          test "$n" -eq 0
+
+      # 07 §3「两个平台都能完整编译」。⚠️ 当前必红（配置缺口）：
+      #    90 个非工具类生产 .cpp 不在任何构建文件里。
+      - name: 源文件编译覆盖核验
+        continue-on-error: true
+        timeout-minutes: 2
+        run: |
+          python3 - <<'PY' > ci-raw/source-coverage.txt
+          import pathlib, subprocess
+          files = subprocess.run(["git", "-c", "core.quotepath=false", "ls-files", "lib/**/*.cpp"],
+                                 capture_output=True, text=True).stdout.split()
+          bset = subprocess.run(["git", "-c", "core.quotepath=false", "ls-files"],
+                                capture_output=True, text=True).stdout.split()
+          cm = [f for f in bset if f.endswith("CMakeLists.txt") or f.endswith(".cmake")]
+          cm = [f for f in cm if not f.startswith("run/")]
+          blob = "\n".join(pathlib.Path(c).read_text(encoding="utf-8", errors="ignore") for c in cm)
+          missing = [f for f in files if f not in blob and "/tools/" not in f]
+          print(f"未编译的非工具类生产源文件 {len(missing)} 个")
+          for f in missing[:10]:
+              print(f"  - {f}")
+          raise SystemExit(1 if missing else 0)
+          PY
+
+      # ── 车道 D：测试集各层 ────────────────────────────────────────────
+      # ⚠️ 05_INDEPENDENT_TEST_SUITE.md:37-38：这些一律**非阻塞**。
+      #    仓内运行器默认退出码恒 0（harness 逐字「退出码。默认恒 0」），
+      #    所以红项只能靠 collect_report.py 从 stdout 取数——本工作流不依赖退出码判红。
+      - name: 单元层测试集
+        continue-on-error: true
+        timeout-minutes: 15
+        run: python3 -m eng.tests.unit.run_unit 2>&1 | tee ci-raw/test-unit.txt
+
+      - name: 模块层测试集
+        continue-on-error: true
+        timeout-minutes: 15
+        run: python3 -m pytest eng/tests/module -q 2>&1 | tee ci-raw/test-module.txt
+
+      - name: 集成层测试集
+        continue-on-error: true
+        timeout-minutes: 20
+        run: python3 -m pytest eng/tests/integration -q 2>&1 | tee ci-raw/test-integration.txt
+
+      - name: 合成全链层测试集
+        continue-on-error: true
+        timeout-minutes: 60
+        run: python3 -m eng.tests.synthetic.run_synthetic 2>&1 | tee ci-raw/test-synthetic.txt
+
+      - name: 合同/ABI 一致性面
+        continue-on-error: true
+        timeout-minutes: 10
+        run: |
+          python3 -m pytest eng/tests/integration/test_registry_code_parity.py -q 2>&1 \
+            | tee ci-raw/test-conformance.txt
+
+      - name: 真实数据端到端与视觉验收辅助
+        continue-on-error: true
+        timeout-minutes: 60
+        run: python3 -m pytest eng/tests/e2e -q 2>&1 | tee ci-raw/test-e2e.txt
+
+      - name: 阶段管线层
+        continue-on-error: true
+        timeout-minutes: 1
+        run: |
+          # 05_INDEPENDENT_TEST_SUITE.md:19 要求的 eng/tests/pipeline/ 目录不存在。
+          # 登记为**缺口**，不记为通过（TEST.md:215-216 逐字「不得记为已执行」）。
+          if [ -d eng/tests/pipeline ]; then
+            python3 -m pytest eng/tests/pipeline -q 2>&1 | tee ci-raw/test-pipeline-layer.txt
+          else
+            echo "eng/tests/pipeline/ 不存在：本步记为缺口" | tee ci-raw/test-pipeline-layer.txt
+          fi
+
+      # ── 车道 E：科学口径（候选，当前 0 项启用） ────────────────────────
+      # 四条候选的判别力论证见 eng/ci/steps.yaml；均标 blocking_candidate 但
+      # **blocking: false** —— 被测对象不含产品可执行程序（TEST.md:265）。
+      - name: 守恒不变量（候选未启用）
+        continue-on-error: true
+        timeout-minutes: 15
+        run: python3 -m eng.tests.unit.run_unit --only drizzle 2>&1 | tee ci-raw/sci-conservation.txt
+
+      - name: 恒真门检测（候选未启用）
+        continue-on-error: true
+        timeout-minutes: 5
+        run: python3 -m eng.tests.unit.run_unit --only meta 2>&1 | tee ci-raw/sci-tautology.txt
+
+      - name: 归约容差混用检测（候选未启用）
+        continue-on-error: true
+        timeout-minutes: 5
+        run: python3 -m eng.tests.unit.run_unit --only quantization 2>&1 | tee ci-raw/sci-reduction-u.txt
+
+      - name: 指令集核与基线数学等价（候选未启用 · 比较器未落位）
+        continue-on-error: true
+        timeout-minutes: 60
+        run: |
+          # 07:24 要求，但比较器未实现（test_science_gate.py:12-13 自陈「执行面未落位」）。
+          echo "比较器未落位：本步记为缺口，不得记为通过" | tee ci-raw/sci-isa-equivalence.txt
+
+      # ── 车道 F/G：端到端与数值等价（测量档） ──────────────────────────
+      - name: 构建可重复性（构建指纹自检）
+        continue-on-error: true
+        timeout-minutes: 5
+        run: python3 eng/tools/gen_build_stamp.py --self-test 2>&1 | tee ci-raw/build-reproducible.txt
+
+      - name: 双平台数值等价
+        continue-on-error: true
+        timeout-minutes: 120
+        run: |
+          echo "等价比较器未落位：本步记为缺口" | tee ci-raw/numeq-cross-platform.txt
+
+      - name: 并行度等价（1 worker vs N worker）
+        continue-on-error: true
+        timeout-minutes: 60
+        run: |
+          echo "判据未落位：本步记为缺口" | tee ci-raw/numeq-parallel.txt
+
+      # ── 报告 ─────────────────────────────────────────────────────────
+      - name: 收集报告
+        # ⚠️ if: always() —— 前面步骤即便「失败」，报告必须照产，否则就假绿了。
+        if: always()
+        run: python3 eng/ci/collect_report.py --raw ci-raw --out ci-report --steps eng/ci/steps.yaml --lane linux
+
+      - name: 上传报告产物
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: acsd-ci-report-linux
+          path: |
+            ci-report/report.json
+            ci-report/summary.md
+            ci-raw/
+          if-no-files-found: error
+
+      - name: 判定并写入 job summary
+        if: always()
+        run: python3 eng/ci/summarize_verdict.py ci-report/report.json >> "$GITHUB_STEP_SUMMARY"
+
+      # ── 阻塞清单 ─────────────────────────────────────────────────────
+      # 只对 steps.yaml 里 blocking: true 的步骤 fail/not_collected/skipped 破线。
+      # **当前该清单为空** ⇒ 本步恒返回 0。这是规范允许的诚实取值：
+      # 05:38 的阻塞例外类当前没有合格对象（见设计正本 §2 判别力论证）。
+      - name: 阻塞清单裁决
+        if: always()
+        run: python3 eng/ci/collect_report.py --raw ci-raw --out ci-report --steps eng/ci/steps.yaml --lane linux --enforce
+
+  # ══════════════════════════════════════════════════════════════════════
+  # Windows x64 正式工具链车道
+  #   BUILD_NODES.md:13「Windows x64 正式工具链节点：Windows 侧编译、用例执行、
+  #   真实数据复验」
+  # ══════════════════════════════════════════════════════════════════════
+  windows:
+    name: Windows 正式工具链
+    runs-on: windows-2022
+    timeout-minutes: 120
+    defaults:
+      run:
+        shell: pwsh
+
+    steps:
+      - name: 检出
+        uses: actions/checkout@v4
+
+      - name: 建产物目录
+        run: New-Item -ItemType Directory -Force -Path ci-raw, ci-report | Out-Null
+
+      # BUILD_NODES.md:58-66 逐字：Windows 正式入口；preset 名里的版本号是提示不是选择依据。
+      - name: Windows configure
+        continue-on-error: true
+        timeout-minutes: 30
+        run: |
+          cmake --preset win-msvc-17.14.39-x64 2>&1 |
+            Tee-Object -FilePath ci-raw/win-configure.txt
+          if ($LASTEXITCODE -ne 0) { exit 0 }
+
+      - name: Windows build
+        continue-on-error: true
+        timeout-minutes: 60
+        run: |
+          cmake --build --preset win-rel 2>&1 |
+            Tee-Object -FilePath ci-raw/win-build.txt
+          if ($LASTEXITCODE -ne 0) { exit 0 }
+
+      # ⚠️ 当前必红（配置缺口）：CMakeLists.txt 无 enable_testing()/add_test()/gtest，
+      #    构建全树无 CTestTestfile.cmake ⇒ ctest 打印「No tests were found!!!」且退出码 0。
+      #    这是「配置缺口型绿」的反面：不是红，是**根本没跑**。
+      - name: Windows CTest 用例执行
+        continue-on-error: true
+        timeout-minutes: 30
+        run: |
+          ctest --preset win-rel --output-on-failure 2>&1 |
+            Tee-Object -FilePath ci-raw/win-ctest.txt
+          if ($LASTEXITCODE -ne 0) { exit 0 }
+
+      - name: 收集报告
+        if: always()
+        run: python eng/ci/collect_report.py --raw ci-raw --out ci-report --steps eng/ci/steps.yaml --lane windows
+
+      - name: 上传报告产物
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: acsd-ci-report-windows
+          path: |
+            ci-report/report.json
+            ci-report/summary.md
+            ci-raw/
+          if-no-files-found: error
+
+      - name: 判定并写入 job summary
+        if: always()
+        run: python eng/ci/summarize_verdict.py ci-report/report.json >> $env:GITHUB_STEP_SUMMARY
