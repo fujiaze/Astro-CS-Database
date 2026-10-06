@@ -106,38 +106,44 @@ def test_meta_no_orphan_module():
 
 @harness.test(
     "meta.every_registered_case_is_executed",
-    intent="被登记的用例必须真的被执行——「被登记≠在跑」的机器落法",
-    inputs="harness._REGISTRY 全量",
-    expected="run_all() 返回的结果条数 == 注册条数，且每条都带 kind∈{positive,negative} "
-             "与可核对的 id",
-    source="审核包-R2/T02-门禁退役与判据清单.md §2.1 S17 逐字「被登记≠在跑」",
+    intent="S17「被登记≠在跑」：本条排到整轮**最后**执行，逐条核对执行台账与注册表",
+    inputs="harness._EXECUTED_IDS（整轮实际执行过的用例 id）对照 harness._REGISTRY",
+    expected="台账覆盖注册表全集 − 本条自身；本条自身必须在注册表里（否则豁免成逃逸口）",
+    source="审核包-R2/T02 门禁退役与判据清单.md §2.1 S17 逐字「被登记≠在跑」；"
+           "docs/engineering/testing/TEST.md §2 逐字「恒真的比较没有证据资格」",
     criteria=("S17",),
+    defer=True,
 )
 def test_meta_every_registered_case_is_executed():
+    """⚠ **本条有两次自我纠错，如实记录，因为都是判据强度问题**：
+
+    ① 2026-10-06 08:17 我把它从 `run_all()` 全表改成只跑 `meta.*` 族，
+       全表侧降级为 `callable(c.func)`，理由是「全量重跑太慢」。
+       对抗复核 R1 判其**判据强度回退**：S17 对 148/160 条用例归零，
+       而回退动机恰好是让它自己跑得快。**我复核后认定 R1 是对的**——
+       所谓「慢」是并行写入期的假象；写入收敛后全量单元档实测 11 秒。
+    ② 恢复全表后又出现无限递归（本条从内部触发全表执行）。
+       解法不是再掏空，而是给它 `defer=True`：**排到整轮最后**，
+       这样它看到的是**完整的执行台账**，覆盖强度比原版还高（原版只数条数）。
+    """
     registered = harness.registered()
     harness.is_true(len(registered) > 0, "注册表为空")
+    executed = harness._EXECUTED_IDS
+    _SELF = "meta.every_registered_case_is_executed"
     with harness.evidence() as ev:
         ev.record("注册用例数", len(registered))
+        ev.record("本轮实际执行过的用例数", len(executed))
         ev.record("正例 / 负例",
                   f"{sum(1 for c in registered if c.kind == harness.POSITIVE)} / "
                   f"{sum(1 for c in registered if c.kind == harness.NEGATIVE)}")
-    # 只跑**元判据自己这一族**（`meta.*`）：本条要验的是「登记 ↔ 执行」的映射，
-    # 不是各科学判据的结论；把别人的蒙特卡洛与密集域用例一并拉进来会让本条
-    # 从「秒级自检」退化成「分钟级全量重跑」，反而掩盖它要守的性质。
-    family = [c for c in registered if c.id.startswith("meta.")]
-    harness.is_true(len(family) >= 3,
-                    "元判据族应至少有 3 条（无孤儿模块 / 登记即执行 / 四字段完整）")
-    results = harness.run_all(predicate=lambda c: c.id.startswith("meta."))
-    harness.exact(len(results), len(family),
-                  "本族执行条数必须等于本族登记条数")
-    harness.is_true(len(results) <= len(registered), "执行条数不得超过登记条数")
-    # 全表侧只核对「每条已登记的用例都有可调用的 func」（不执行）
+        ev.record("台账未覆盖的已登记用例",
+                  sorted({c.id for c in registered} - executed - {_SELF}) or "无")
+    harness.is_true(_SELF in {c.id for c in registered},
+                    "本条自身必须在注册表里（否则 defer 豁免就成了逃逸口）")
+    harness.exact(len(executed), len(registered) - 1,
+                  "执行台账必须覆盖「注册表 − 本条自身」")
     for c in registered:
         harness.is_true(callable(c.func), f"{c.id}: 已登记但没有可调用的实现")
-    for r in results:
-        harness.is_true(r.case.kind in (harness.POSITIVE, harness.NEGATIVE),
-                        f"{r.case.id}: kind 未登记")
-        harness.is_true(r.evidence is not None, f"{r.case.id}: 缺证据容器")
 
 
 @harness.test(
@@ -258,18 +264,23 @@ def test_meta_expected_value_source_is_not_the_unit_under_test():
 
 
 @harness.test(
-    "meta.negative_case_teeth_probe",
-    intent="E4「双向」：负例必须能红。探测「把判据换成恒真比较」会不会被本层发现",
+    "meta.non_degenerate_anchor_rejects_tautology",
+    intent="E6：非退化锚能拒一个恒真判据 —— **骨架自检**（本条不扫描全层，见正文声明）",
     inputs="一个故意恒真的判据（恒返回 True）与一个真实判据",
     expected="恒真判据被 E6 非退化锚拒绝；真实判据正常通过",
     source="docs/engineering/testing/TEST.md §2 逐字「每个度量具备非退化判据：真值无效应时"
            "度量必须归零或报警。恒真的比较没有证据资格」；审核包-R2 §2.4 E6 逐字"
            "「非退化锚：没找到 / 空集 / 零样本必须判红」",
     criteria=("E6", "E4"),
-    kind=harness.NEGATIVE,
-    inject="DEF-TAUTOLOGY：判据退化为 `return True`（无输入敏感性的恒真比较）",
+    kind=harness.POSITIVE,
 )
-def test_meta_negative_case_teeth_probe():
+def test_meta_non_degenerate_anchor_rejects_tautology():
+    """⚠ 对抗复核 R1 更正：本条初版被标成 `NEGATIVE`，但 `tautological_judge` 与判据
+    `_assert_non_degenerate` 都是**本用例内定义的本地函数** —— 本层真实的判据一条都没被
+    扫到，属自指型空转，已改正为 `POSITIVE`（它是**骨架自身**的自检，不是对全层的负例）。
+
+    「全层非退化扫描」为什么没做：绝大多数判据是带 fixture 参数的闭包，无法用统一探针
+    喂输入；要覆盖就得逐条声明豁免，代价与收益不成比例。**这是已知缺口，不是遗漏。**"""
     def real_judge(x: float) -> bool:
         return abs(x - 1.0) < 0.5
 
@@ -293,9 +304,7 @@ def test_meta_negative_case_teeth_probe():
                    lambda: _assert_non_degenerate(tautological_judge, probes),
                    "恒真判据必须被非退化锚拒绝")
     _assert_non_degenerate(real_judge, probes)
-    # 真判据必须对退化输入判红（零样本 / 空集 / 未找到）
     harness.is_false(real_judge(0.0), "真实判据必须对域外输入判红")
-    _assert_non_degenerate(real_judge, probes)
 
 
 def _assert_non_degenerate(judge, probes) -> None:

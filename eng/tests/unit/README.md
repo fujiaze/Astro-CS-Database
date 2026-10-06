@@ -35,8 +35,10 @@ python3 -m eng.tests.unit.run_unit --exit-code      # 开发期自查：退出�
 | `run_unit.py` | 报告器（非阻塞） | `TEST.md` §9 |
 | `test_criterion_meta.py` | **本测试集自身的判据**：S17 三条元口径的可执行落法、E4/E5/E6/E13、`TEST.md` §4.1/§4.3/§4.4/§5 | 审核包-R2 §2.1 S17、§2.4 |
 | `test_resource_judgement.py` | 资源判据，**直接对拍在库产品实现本体** | 审核包-R2 §2.2 P5/P7/P10/P11/P12、§2.3 C3、§2.4 E1/E3/E6/E9 |
+| `test_science_gate.py` | 测光双边界门（S6）+ 三条「就地即正本」判据（S14/S15/S16）的可执行落法 | `实验/photometric-magnitude/README.md`、审核包-R2 §2.1 |
 | `test_rejection_routing.py` | 排异路由（S1/S2 成对、S3 否定式、S4 耦合不变量） | `docs/science/REJECTION.md` §5 |
 | `test_drizzle_conservation.py` | 守恒映射算子（S7/S8/S9 同批迁移） | `docs/science/drizzle/DRIZZLE.md` §3/§5 |
+| `test_area_ratio_l2.py` | 面积比级 L2：**两条负例**，证明该级门在反推路径与切平面分支下**都恒零**、无判别力 | `docs/science/drizzle/DRIZZLE.md` §3.7 / §5.2 |
 | `test_healpix_kernel.py` | HEALPix 核与候选枚举（S10/S11，**重建已失的 oracle**） | `docs/science/algorithms/HEALPIX_MAPPING.md` |
 | `test_quantization.py` / `test_wcs_plausibility.py` | 量化往返（S12/S13）与 WCS 拒绝组（S5/S5b 同批） | `GAIA_QUERY.md`、`ipv_wcs.cpp` |
 | `*_ref.py` | 各用例的**被测参考实现**（按产品源码/正本逐行转写）。它们**不是**期望值来源 | — |

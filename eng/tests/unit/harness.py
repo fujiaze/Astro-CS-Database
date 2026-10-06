@@ -60,11 +60,12 @@ class TestCase:
     func: Callable[[], None]
     inject: str = ""       # negative 专用：注入的缺陷是什么
     defect_id: str = ""    # negative 专用：缺陷代号，便于报告逐条登记
+    defer: bool = False    # True = 本条在整轮**最后**执行（元判据要观测全轮的执行台账）
 
 
 def test(case_id: str, *, intent: str, inputs: str, expected: str,
          source: str, criteria: Sequence[str] = (), kind: str = POSITIVE,
-         inject: str = "", defect_id: str = ""):
+         inject: str = "", defect_id: str = "", defer: bool = False):
     """注册一条用例。
 
     参数全部必填（除 `criteria`）：**不提供意图与来源的用例不得进本测试集**，
@@ -83,7 +84,7 @@ def test(case_id: str, *, intent: str, inputs: str, expected: str,
         _REGISTRY.append(TestCase(
             id=case_id, intent=intent, inputs=inputs, expected=expected,
             source=source, criteria=tuple(criteria), kind=kind, func=fn,
-            inject=inject, defect_id=defect_id or case_id,
+            inject=inject, defect_id=defect_id or case_id, defer=defer,
         ))
         return fn
     return deco
@@ -206,6 +207,12 @@ class Result:
 
 _current_evidence: List[Evidence] = []
 
+#: 本进程已执行过的用例 id（整轮台账）。元判据在**整轮最后**核对它，
+#: 以此把「被登记」与「被真的执行过」对上——S17 第二条的可执行落法。
+_EXECUTED_IDS: set = set()
+#: run_all 的重入守卫：元判据若在整轮中再触发一次全表执行，会无限递归。
+_RUNNING = [False]
+
 
 class evidence:
     """上下文管理器：块内 `record()` 的读数挂到**当前执行的用例**上。
@@ -295,8 +302,18 @@ def run_all(predicate=None) -> List[Result]:
     单这一条就要跑几分钟。元判据要验的是「登记 ↔ 执行」的映射，不是各用例的结论，
     因此允许它自选子集。
     """
-    cases = [c for c in _REGISTRY if predicate is None or predicate(c)]
+    if _RUNNING[0]:
+        raise RuntimeError(
+            "harness.run_all() 被重入调用：元判据若在执行全表时又触发全表执行，"
+            "会无限递归。调用方必须用 predicate 排除自己。")
+    selected = [c for c in _REGISTRY if predicate is None or predicate(c)]
+    # `defer=True` 的用例排到本轮最后：它们要观测**整轮**的执行台账，
+    # 若夹在中途执行，看到的只是台账的一个前缀。
+    cases = [c for c in selected if not c.defer] + [c for c in selected if c.defer]
     results: List[Result] = []
+    _RUNNING[0] = True
+    if predicate is None:
+        _EXECUTED_IDS.clear()
     for case in cases:
         ev = Evidence()
         _current_evidence.append(ev)
@@ -312,6 +329,8 @@ def run_all(predicate=None) -> List[Result]:
         finally:
             dt = time.perf_counter() - t0
             _current_evidence.pop()
+        _EXECUTED_IDS.add(case.id)
         results.append(Result(case=case, passed=passed, detail=detail,
                               evidence=ev, seconds=dt))
+    _RUNNING[0] = False
     return results

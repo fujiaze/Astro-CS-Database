@@ -249,8 +249,8 @@ HEALPIX_CELL_AREA_SR = Frozen(
 GAIA_QUANT = Frozen(
     "gaia.quant_rel", {"median": 0.0021, "p95": 0.018},
     "无量纲相对残差；被量化量 1e0–1e6 量级（XP 系数 / BP-RP 通带采样）",
-    "审核包-R2/T02 判据 S12 引 STANDARDS_REGISTRY.md:206「median 0.21% / p95 1.8%」；"
-    "上游正本 docs/science/algorithms/GAIA_QUERY.md",
+    "冻结读数取自审核包-R2/T02 判据 S12（其原引 `STANDARDS_REGISTRY.md:206`，该文件**已从版本库删除**）；"
+    "可直接核对的上游正本 = `docs/science/algorithms/GAIA_QUERY.md` 的 8-bit 量化残差一节",
 )
 
 GAIA_STATISTIC_NOTE = """\
@@ -264,7 +264,8 @@ XPSD_QUANT = Frozen(
     "xpsd.quant_step", {"pos_uas_per_lsb": 2.0, "dra_uas_per_lsb": 10.0,
                         "mag_per_lsb": 0.001},
     "位置 µas/LSB；dra µas/LSB；星等 mag/LSB",
-    "审核包-R2/T02 判据 S13 引 STANDARDS_REGISTRY.md:205；上游正本 docs/science/algorithms/GAIA_QUERY.md",
+    "冻结读数取自审核包-R2/T02 判据 S13（其原引 `STANDARDS_REGISTRY.md:205`，该文件**已从版本库删除**）；"
+    "可直接核对的上游正本 = `docs/science/algorithms/GAIA_QUERY.md` 的 XPSD 本地编码一节",
 )
 
 #: 量化往返误差上限 = 半个 LSB（对称量化器的最大往返误差）。

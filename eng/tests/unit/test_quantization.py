@@ -917,16 +917,15 @@ def _case_s13_neg_gridshift() -> None:
 
 
 @harness.test(
-    "quantization.s13.negative.lsb_wrong_7p2",
-    intent="`GAIA_QUERY.md` §2.3 逐字「**禁用 7.2 µas/LSB 这一取值：它对应 "
-           "1/5e8 deg，与实码分母 1.8e9 不符（负例判据）**」。"
-           "本条即该正本点名要求的负例。",
-    inputs="独立推导的 pos 步长 vs 冻结值 2.0 µas/LSB；缺陷 = 步长误取 7.2 µas/LSB",
-    expected="正本：推导步长 = 2.0 µas/LSB；注入后 = 7.2，超界 3.6 倍",
+    "quantization.s13.positive_disallowed_lsb_7p2_rejected_by_value",
+    intent="`GAIA_QUERY.md` §2.3 逐字「**禁用 7.2 µas/LSB 这一取值**」——本条核对"
+           "冻结步长取值不落在禁用集合内（判据设计自身的正确性）",
+    inputs="独立推导的 pos 步长 vs 冻结值 2.0 µas/LSB，与正本点名禁用的 7.2",
+    expected="冻结步长 = 2.0；7.2 属禁用集合且与冻结值相差 3.6 倍",
     source="docs/science/algorithms/GAIA_QUERY.md §2.3 逐字禁用条款；"
            "冻结值 tolerances.XPSD_QUANT",
-    kind=harness.NEGATIVE,
-    inject="位置步长误取 7.2 µas/LSB（对应 1/5e8 deg，正本点名禁用）",
+    kind=harness.POSITIVE,
+    inject="（无代码注入 —— 对抗复核 R1 指出初版把字面量比较标成了负例；已改正）",
     defect_id="XPSD-N-LSB72",
     criteria=("S13",),
 )
