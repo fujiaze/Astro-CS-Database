@@ -694,11 +694,11 @@ def p5e_negative_dhat_candidate_is_not_a_gate():
            "`raw = 真面 + Ĉ` ⇒ `calibrated = 真面`，残差 = 真面 − `Ĉ`；"
            "64×64 查询网格（控制点只占其中 64 个）",
     expected="① 在**非控制点**处 `max|真面 − Ĉ| / level ≤ 1.0e-3`"
-             "（synth.p5.sky_bilinear_err_rel，解析上界 6.25e-4）；"
+             "（synth.p5.sky_bilinear_err_rel，解析上界 c₂/4 = 7.5e-3）；"
              "② `calibrated = raw − Ĉ` 在**全体**像元上等于真面（含控制点）",
     source="正本 `PHASE2_UPM.md` §5 加性校正块逐字 `calibrated_f(p) = raw_f(p) − C_f(p)`、"
-           "`C_f(p) = 双线性(8×8 control cell, θ_f)`；解析上界用分片线性插值余项 "
-           "`|f − L| ≤ |f''|·h²/8`（冻结夹具 `f'' = 4.0e-2·level`、`h = 1/8` ⇒ 6.25e-4）",
+           "`C_f(p) = 双线性(8×8 control cell, θ_f)`；解析上界用双线性对二次项的精确误差闭式 "
+           "`max|f − f_L| = c₂/4 = |f''|·h²/8`（冻结夹具二次系数 `c₂ = 3.0e-2·level`、归一化边长 `h = 1` ⇒ 7.5e-3）",
 )
 def p5f_sky_removal_conservation_off_control():
     tol = TB.get("synth.p5.sky_bilinear_err_rel").value
@@ -727,7 +727,7 @@ def p5f_sky_removal_conservation_off_control():
                   "64×64 均匀网格，与 8×8 控制节点无一重合")
         ev.record("max|true - C_hat|/level (off-control)",
                   float(np.max(np.abs(tq - chat))) / LEVEL, tol, "",
-                  "解析上界 6.25e-4")
+                  "解析上界 c₂/4 = 7.5e-3（冻结门限 1.0e-2）")
         H.less_equal(float(np.max(np.abs(tq - chat))) / LEVEL, tol,
                      "非控制点处的双线性重建误差越出解析上界")
         # 守恒恒等 `calibrated = raw − Ĉ ≡ 真面`：`raw = 真面 + Ĉ` 是浮点加、

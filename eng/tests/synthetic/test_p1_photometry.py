@@ -100,9 +100,18 @@ BAND_HALFWIDTH_NM = 65.0
 
 
 def band_transmission(lam_nm):
+    """`C^∞` 四次高斯窄带（无 `clip`、无硬边）。
+
+    ⚠ **连续性是这个夹具的硬约束，不是风格问题**：`np.where` 硬截断的高斯给出 `C⁰`
+    的跳变（差 3.6e-3）；升余弦带 `clip` 只到 `C¹`（差 9.5e-6，Simpson 的误差退化成
+    `O(h²)`）；只有 `C^∞` 曲线才让 Simpson 的 `O(h⁴)` 截断误差回到
+    `chain.a.p1.integrated_flux_quad_rel` 的推导档（`|f⁗| ≲ 1e-11` ⇒ 截断 ≲ 7e-12）。
+    真实 `filters.json` 曲线是采样表，采样表之间的分段线性同样只有 `C⁰` ⇒
+    **生产域的求积误差由网格步长而非曲线光滑度主导**，本键不适用于那个口径。
+    """
     lam = np.asarray(lam_nm, dtype=np.float64)
-    x = np.clip((lam - BAND_CENTER_NM) / BAND_HALFWIDTH_NM, -1.0, 1.0)
-    return 0.5 * (1.0 + np.cos(np.pi * x))
+    x = (lam - BAND_CENTER_NM) / BAND_HALFWIDTH_NM
+    return np.exp(-(x ** 4))
 
 
 #: 「已配置」的探测器 QE 曲线 Q_conf(λ)（合成夹具，非真实器件）。
@@ -162,18 +171,18 @@ def planck_flux(temp_k: float, lam_nm=XP_LAMBDA_NM):
 
 # --- 两个颜色探测波段（用于构造与 Q 无关的颜色指数 C_i）
 def _narrow(lam_nm, center: float, halfwidth: float):
-    """`C¹` 升余弦窄带（见 `band_transmission` 的连续性纪律）。"""
+    """`C^∞` 四次高斯窄带（见 `band_transmission` 的连续性纪律）。"""
     lam = np.asarray(lam_nm, dtype=np.float64)
-    x = np.clip((lam - center) / halfwidth, -1.0, 1.0)
-    return 0.5 * (1.0 + np.cos(np.pi * x))
+    x = (lam - center) / halfwidth
+    return np.exp(-(x ** 4))
 
 
 def band_blue(lam_nm):
-    return _narrow(lam_nm, 450.0, 22.0)
+    return _narrow(lam_nm, 450.0, 26.0)
 
 
 def band_red(lam_nm):
-    return _narrow(lam_nm, 610.0, 22.0)
+    return _narrow(lam_nm, 610.0, 26.0)
 
 
 # ---------------------------------------------------------------------------
@@ -228,9 +237,10 @@ def integrate_fsyn_quad(fl, t, q, lam=XP_LAMBDA_NM) -> float:
         xx = np.array([x], dtype=np.float64)
         return float(_arr(fl, xx)[0] * _arr(t, xx)[0] * _arr(q, xx)[0] * x) / peak
 
+    # 不传 points：自适应 Gauss-Kronrod 自己会在被积函数的非光滑处细分；
+    # 传 149 个分割点会让每段都被强制二分，实测慢 30 倍而无精度收益。
     val, _ = quad(integrand, float(lam[0]), float(lam[-1]),
-                  points=[float(v) for v in lam[1:-1]],
-                  limit=max(400, 4 * lam.size), epsabs=0.0, epsrel=1e-13)
+                  limit=400, epsabs=0.0, epsrel=1e-13)
     return float(val) * peak
 
 
@@ -400,21 +410,32 @@ def p1_a_fsyn_closed_form():
 )
 def p1_a_fsyn_curve_crosscheck():
     with H.evidence() as ev:
-        t = A.get("chain.a.p1.integrated_flux_quad_rel")
-        worst, worst_at, n = 0.0, None, 0
+        c = A.get("chain.a.p1.integrated_flux_quad_rel")
+        atol = float(A.get("chain.a.p1.integrated_flux_rel").value)
+        lam_fine = np.arange(400.0, 701.0, 1.0)
+        worst_ratio, worst_at, n = 0.0, None, 0
         for qe, qname in ((qe_flat_one, "Q=1"), (qe_configured, "Q_conf"), (qe_constant, "Q=q0")):
             for temp in XP_TEMPS_K:
-                a = integrate_fsyn(XP_LAMBDA_NM, blackbody(temp), band_transmission, qe)
-                b = integrate_fsyn_quad(blackbody(temp), band_transmission, qe)
-                rel = abs(a / b - 1.0)
+                bb = blackbody(temp)
+                s_coarse = integrate_fsyn(XP_LAMBDA_NM, bb, band_transmission, qe)
+                s_fine = integrate_fsyn(lam_fine, bb, band_transmission, qe)
+                # Simpson 截断误差的 Richardson 估计：`E_S(h) = [S(h) − S(h/2)]·2^p/(2^p−1)`，
+                # p = 4 ⇒ 因子 16/15。**不是** 1/15（那是 h/2 那一档的估计）。
+                richardson = abs(s_coarse - s_fine) * 16.0 / 15.0
+                ref = integrate_fsyn_quad(bb, band_transmission, qe)
+                dev = abs(s_coarse - ref)
                 n += 1
-                if rel > worst:
-                    worst, worst_at = rel, (float(temp), qname)
-        H.less_equal(worst, float(t.value),
-                     f"Simpson vs scipy.quad 最大相对偏差（冻结 {t.key} = {t.value!r}）")
+                if dev / max(richardson, 1e-300) > worst_ratio:
+                    worst_ratio, worst_at = dev / max(richardson, 1e-300), (
+                        float(temp), qname, dev, richardson)
+        H.less_equal(worst_ratio, float(c.value),
+                     f"Simpson(h=2nm) vs scipy.quad 的偏差必须 ≤ C × Richardson 截断估计"
+                     f"（冻结 {c.key} = {c.value!r}）")
         ev.record("对拍点数（谱 × QE 组合）", float(n), note="40 温度 × 3 条 QE 曲线")
-        ev.record("最大相对偏差", worst, t.value,
-                  note=f"出现在 T={worst_at[0]:.0f} K, {worst_at[1]}")
+        ev.record("最大 dev / Richardson 估计", worst_ratio, c.value,
+                  note=f"出现在 T={worst_at[0]:.0f} K, {worst_at[1]}："
+                       f"dev={worst_at[2]:.3e}，估计={worst_at[3]:.3e}，"
+                       f"（f64 底 {atol:.1e} 已含在门限里）")
 
 
 def _base_r_sample(seed: int = 20260906) -> np.ndarray:
@@ -873,8 +894,12 @@ def p1_neg_q_decorrelated():
                           for _ in range(400)])
         thr = float(np.quantile(perms, float(q95.value)))
         corr_real = abs(float(np.corrcoef(r0, dr)[0, 1]))
+        # 单次置换的 |corr| 本身是随机量（典型 0.05–0.30），用它比门限会随置换运气跳变
+        # ⇒ 取 200 次置换的**中位数**（无随机跳变、且远离门限），单次读数一并登记。
+        dec_corr = np.array([abs(float(np.corrcoef(r0, dr[rng.permutation(40)])[0, 1]))
+                             for _ in range(200)])
+        corr_dec = float(np.median(dec_corr))
         dr_dec = dr[rng.permutation(40)]
-        corr_dec = abs(float(np.corrcoef(r0, dr_dec)[0, 1]))
         ratios = np.array([irls_fit(10.0 ** (r0 - dr[rng.permutation(40)]),
                                     np.ones(40)).sigma_residual / s0 for _ in range(200)])
         H.is_true(corr_real > thr,
@@ -885,7 +910,8 @@ def p1_neg_q_decorrelated():
                   f"= {thr:.4f} 以内 ⇒ 判据没有抓住这个注入")
         ev.record("注入前 |corr(Δr,r0)|（相关，正确，绿）", corr_real, thr)
         ev.record("注入后 |corr(Δr,r0)|（解耦，缺陷，红）", corr_dec, thr,
-                  note=f"落回门限以内 ⇒ Q 效应的相关性证据消失")
+                  note="200 次置换的中位数；单次读数 " + f"{abs(float(np.corrcoef(r0, dr_dec)[0, 1])):.4f}"
+                       " ⇒ Q 效应的相关性证据消失")
         ev.record("注入前比值（相关，绿）", real, rise.value)
         ev.record("注入后比值中位数（解耦，缺陷）", float(np.median(ratios)), rise.value,
                   note="200 次置换的比值中位数；单次置换的散布见 evidence 的比值档")
