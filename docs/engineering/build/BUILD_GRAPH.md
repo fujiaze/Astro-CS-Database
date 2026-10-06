@@ -126,6 +126,11 @@ target_link_libraries 的传递闭包内的全部 target；唯一事实源 = 根
 逐行的 `sources` 与 `src_fingerprint` 均由 `eng/tools/arch/cmake_graph.py` 的
 `parse_cmake_graph` / `production_entry` / `production_closure` / `source_fingerprint` 直接产出。
 
+**可复现轮 T05–T10 诚实化（BUILD 复算 2 项）**：
+
+- T-BLD-01（复算链三阻断：落点常量错路 / 生成器 fail-closed 拦截 / 三个非根图目标）：复现三件套齐备（阻断本身可复现，不是可复跑通过）。命令 `grep -n 'DOC_REL = ' eng/tools/arch/gen_build_graph_doc.py`（读数：常量值 `docs/engineering/BUILD_GRAPH.md`，该路径在仓内不存在，本文真实落点是 `docs/engineering/build/BUILD_GRAPH.md`）；命令 `python3 eng/tools/arch/gen_build_graph_doc.py --out /tmp/bg.md`（读数：退出码 1，stderr `NONPROD 登记项不在根构建图: acsd-stage2`）；同命令逐项核对 `acsd-stage2` / `calibrated_pair_diag` / `rejection_cli`（读数：三者由 `lib/algorithms/coverage/CMakeLists.txt` 声明但未被根 `CMakeLists.txt` 纳入）。版本：当前仓内生成器与 CMake 图即版本；产物 hash 指针：本次复现读数即上表三行，订正后须由生成器就地重导一次并以该次输出为准。
+- T-BLD-02（三张机器块内容本身）：**不可验收为机器生成（缺复现载体）**。三张机器块目前由本车道手工重导（内容与生成器渲染函数逐字一致，但生成器跑不出这个结果）；生产值域（入口 `acsd`、闭包 34 target、逐行 sources/src_fingerprint）可由 `eng/tools/arch/cmake_graph.py` 四函数独立复算，但整链 `gen_build_graph_doc.py` 以 0 退出重导的前提是 T-BLD-01 三阻断由代码侧订正。在此之前三张机器块为手工重导值，不得冒认为生成器输出。
+
 ## 关联
 
 - 安装树：eng/cmake/install_layout.cmake + eng/packaging/install-tree.contract.json；

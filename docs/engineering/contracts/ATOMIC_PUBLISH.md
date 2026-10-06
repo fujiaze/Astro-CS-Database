@@ -261,15 +261,17 @@
 
 | 验收 | 合同条款（现行口径） | 状态 |
 |---|---|---|
-| 每个输出以唯一用户路径或 run ID 目录 | 「唯一目标与 run 隔离」一节 | 判据无载体 |
-| 临时写、关闭、fitsverify、SHA256、原子 rename、最终完成 manifest | 「发布流水线」一节 | 判据无载体 |
-| 默认不覆盖，显式 overwrite 才可 | 「发布流水线」一节的覆盖清理步 | 判据无载体 |
-| 并发不同 run 不互相覆盖 | 「唯一目标与 run 隔离」一节 | 判据无载体 |
-| 中断后无完成标记 | 「发布流水线」一节的完成 manifest 步 | 判据无载体 |
-| 文件权限 / 路径穿越拒绝 | 「词法拒绝」与「文件系统层拒绝」两节 | 判据无载体 |
-| tree hash 可重算 | 「完成 manifest 形态」一节的 `tree_hash` 归一规则（实现 = `tree_hash` / `recompute_tree_hash` / `verify_tree_hash` 三个入口） | 判据无载体 |
-| fitsverify 与 C verifier 同一判定 | 「发布流水线」一节的 fitsverify 步（实现 = `lib/infrastructure/aio/io/fits_verify.py`[2]） | 判据无载体 |
-| 非生产 / 诊断接口不被生产路径引用 | 「非生产 / 诊断接口登记」一节 + 在役调用链扫描 | 可人工复跑 |
+| T-ATOM-01 每个输出以唯一用户路径或 run ID 目录 | 「唯一目标与 run 隔离」一节 | 判据无载体 |
+| T-ATOM-02 临时写、关闭、fitsverify、SHA256、原子 rename、最终完成 manifest | 「发布流水线」一节 | 判据无载体 |
+| T-ATOM-03 默认不覆盖，显式 overwrite 才可 | 「发布流水线」一节的覆盖清理步 | 判据无载体 |
+| T-ATOM-04 并发不同 run 不互相覆盖 | 「唯一目标与 run 隔离」一节 | 判据无载体 |
+| T-ATOM-05 中断后无完成标记 | 「发布流水线」一节的完成 manifest 步 | 判据无载体 |
+| T-ATOM-06 文件权限 / 路径穿越拒绝 | 「词法拒绝」与「文件系统层拒绝」两节 | 判据无载体 |
+| T-ATOM-07 tree hash 可重算 | 「完成 manifest 形态」一节的 `tree_hash` 归一规则（实现 = `tree_hash` / `recompute_tree_hash` / `verify_tree_hash` 三个入口） | 判据无载体 |
+| T-ATOM-08 fitsverify 与 C verifier 同一判定 | 「发布流水线」一节的 fitsverify 步（实现 = `lib/infrastructure/aio/io/fits_verify.py`[2]） | 判据无载体 |
+| T-ATOM-09 非生产 / 诊断接口不被生产路径引用 | 「非生产 / 诊断接口登记」一节 + 在役调用链扫描 | 可人工复跑 |
+
+**可复现轮 T05–T10 诚实化（ATOMIC 九项统一口径）**：T-ATOM-01..08 **不可验收（缺复现载体）**——承载它们的测试类在 `lib/` 与 `eng/` 下均无实现，本表登记的是验收要求，不是已生效判据；待建实验单元：原子发布契约测试单元（`eng/tests/io/` 目录 + 契约/负测文件 + tile fixture 未建）。T-ATOM-09 可人工复跑：在役调用链扫描（`aio_frame_save_cache` / `aio_frame_load_cache` / `aio_frame_export_block_fits` / `aio_frame_export_block_xml` / `aio_frame_export_all_xml` / `aio_pipeline_export_xml` 六符号不在生产路径引用），复跑路径为全仓符号引用扫描，人工执行、结果可复核。另有两条判据无载体同步登记：`tile_diskfull` / `tile_write_fail` 负例（`lib/infrastructure/aio/` 无 `tests/` 目录）与 `ACSD_TEST_CORRUPT_AFTER_RENAME` 注入判据（仓内无实现该注入的加载器），均不得写成已有可执行证据。
 
 ## 已知限制
 

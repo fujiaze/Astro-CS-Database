@@ -290,6 +290,12 @@ function p3_output_verify(path, wcs, signal, coverage, W, H, out result):
   reference + 独立 FITS/WCS 读取器，PHASE3_RESAMPLE.md [A-1]「离散公式」一节同源）。
 - 执行测试现状锚（相邻证据，引用不冒认）：输出测试组4段（[S-1]「判据与误差」一节，载体已撤）；WCS oracle=p3_wcs roundtrip。
 
+**可复现轮 T05–T10 诚实化（export 载体 3 项）**：
+
+- T-EXP-01（输出测试组 1a/1b 段：T1 原子写+mask / T2 独立 verify）：**不可验收（载体已撤）**。承载这两段的输出测试组载体已撤，本文 TEST-DESIGN T1–T2 登记的是设计冻结面（TEST-P3-WR-DESIGN-001），不是可复跑判据。复算路径预留：64×48 渐变场 + 分段 mask（x<40）、BITPIX=-32、prov 全字段 → rc=0、coverage_ok=1、reopen_ok=1、sha256 64hex；待建实验单元：P3-FITS-TEST（可执行 TEST-P3-WR-001 未建，验收证据待补）。
+- T-EXP-02（输出测试组 3b 段：T2b WCS 篡改负例 / T2c 标准校验和）：**不可验收（载体已撤）**。同上，写后翻转 CRPIX1+1 → reopen_ok=0、恢复后 reopen_ok=1 的负例与 astropy fits.verify 校验和段均随载体撤下而无复跑入口。WCS oracle=p3_wcs roundtrip 仍为有效 oracle 面（合同紧门 roundtrip_tol_px = 1e-8 px，唯一事实源 [S-1]「容差与冻结清单」一节），但本段的执行证据待补。
+- T-EXP-03（输出测试组 4c 段：T3 原子性无 .tmp 残留）：**不可验收（载体已撤）**。filesystem 遍历替代 popen 的残留检查随载体撤下而无复跑入口；tmp 命名前缀弱匹配偏差（DISP-P3FITS-002）如实登记，不误报。T5–T7（取消不落盘 / sha256 注入失败 / bitpix=-64 全链）为设计面，现状未覆盖，可执行测试待建。
+
 ## 12 TEST-DESIGN（TEST-P3-WR-DESIGN-001 冻结）
 
 可执行 TEST-P3-WR-001 MISSING（P3-FITS-TEST 建立，不冒认）；设计

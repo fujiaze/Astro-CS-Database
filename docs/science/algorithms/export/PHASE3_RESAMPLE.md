@@ -33,7 +33,7 @@ G3 (ALG-P3-003) order 选择 (SCI-P3 [S-1]「判据与误差」一节 冻结):
   order_needed = ceil( log2( sqrt(π/3) / (W · s_out_rad) ) )
   order_sel = clamp(order_needed, 0, hips_order)    # = min(hips_order, max(0, order_needed))
 
-G4 (ALG-P3-003) leaf 采样:
+G4 (ALG-P3-003) leaf 采样（桥接口径：本 G4 只承接 SCI 的连续定义到离散采样的映射声明，数值实现面以施工规格与生产源为准，本文件不另立与 SCI 冲突的采样语义）:
   leaf_order = order_sel + log2(W)                  # W=hips_tile_width（支持子集 W=512 ⇒ +9）
   ipix = ang2pix_NESTED(nside=2^leaf_order, RA, Dec)
   tile = ipix >> (2·log2(W));  local = ipix & ((1<<2·log2(W))−1); (lx,ly)=nested_local_to_xy(local)

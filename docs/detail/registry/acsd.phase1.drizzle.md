@@ -232,6 +232,11 @@ run generation 切换清空，原子化替换）。计数新增 `target_boundary
   数大于 0 的磁盘证据；双实现分裂项见 registry/acsd.phase1.noise-snr.md。
 
 取消 = 模块内无检查点（登记限制）；checkpoint 无（HiPS 由编排层 overwrite 清理）。
+- **负例与归零分支 N26（T05–T07 负向轮，本卡死值与静默 scale）**：负例输入构造甲 =
+  零合格样本的输出像元；负例输入构造乙 = `pixfrac = 0/负/> 1` / 非有限。预期行为甲 =
+  `NaN ∧ support ≤ 0` + 强制计数（覆盖级 NaN）。落盘标记甲 = 分类计数
+  `n_rejected_nonfinite*`。预期行为乙 = 引擎层严格拒绝，不夹逼。落盘标记乙 =
+  拒绝码；文件通道接受 `pixfrac = 0.0` 即判红（值域双轨缺陷面）；
 
 ## 独立 synthetic 验证命令与容差
 
@@ -249,6 +254,12 @@ reverse false_hole / false_fill；Monte Carlo 方差（SNR-011/012）。
   「分母取覆盖面积必判红」负例控制；
 - `drizzle_acceptance`：`Σ_p sumFlux = Σ_j x_j`，`pixfrac ∈ {0.1, 0.5, 0.8, 1.0}`
   + `--inject-legacy-pixfrac2` 负例注入。
+- **负例与归零分支 N04（T05–T07 负向轮，DRIZZLE 协方差分档）**：负例输入构造 =
+  同一面亮度场分别跑 `pixfrac = 1` 与 `pixfrac = 0.8`（`k = pixfrac²` 分档）。
+  预期行为 = `pixfrac = 1` 档 `k ≡ 1` 逐位一致；`pixfrac = 0.8` 档 signal 乘 `k`、
+  variance 乘 `k²`（漏 `k²` 把方差压低 `pixfrac⁴ ≈ 2.44` 倍 ⇒ 判红）；分母换成
+  覆盖面积 `D_p` 使面亮度偏 `1/pixfrac² = +56.25%` ⇒ 判红。落盘标记 = 产物
+  `k/provenance.flux_conservation_factor`（恒 1）+ `operation_counts.json`；
 
 Oracle 面：常量面亮度、积分通量、variance、correlation oracle 全过；重采样
 协方差与高精度矩阵 oracle 对比；不同 pixfrac / order 下科学值一致性；产品从

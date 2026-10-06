@@ -197,6 +197,11 @@ worker 数 = ThreadBudget.max_workers（禁 hardware_concurrency）；lease / �
 - PSF 信号权重复合分量缺共同星集 / selection function → fail-closed；
 - 稀疏 SNR 层存在但损坏 / 不可重建 → 明确失败；
 - 错误码与退出码唯一源 = lib/infrastructure/cli/exit_codes.h（本页不复制数值表）。
+- **负例与归零分支 N36（T05–T07 负向轮，本卡死值与静默 scale）**：负例输入构造甲 =
+  受限权重来源 token（含 `psfsw_robust_weight` / `psfsw`）的权重请求；负例输入构造乙 =
+  null 栈输入。预期行为甲 = 拒绝（`kForbiddenWeightSourceTokens` 门），生产权重
+  仍是逐样本 ivar 现场派生。落盘标记甲 = 拒绝登记。预期行为乙 = `rc = 1` 空栈失败。
+  落盘标记乙 = 空栈码；把 `psfsw` 当合法权重 ⇒ 判红。
 
 ## 独立 synthetic 验证命令与容差
 

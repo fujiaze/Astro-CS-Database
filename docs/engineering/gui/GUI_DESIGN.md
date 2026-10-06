@@ -57,6 +57,16 @@ flowchart TD
 
 - 订阅命令行 JSONL 事件流，实时显示：当前阶段与节点、帧/块进度、日志（带级别）、CPU/内存/worker、已产出文件、最终结果与退出码。
 - 提供取消（协作取消）、运行历史与日志导出。
+- **负例与归零分支 N17/N18（T05–T07 负向轮，GUI 事件中断归零与取消失败语义）**：
+  N17 事件中断输入构造 = 运行中 JSONL 事件流中断（进程被杀 / 管道断开 / `final`
+  事件缺失）。预期行为 = 运行态归零：进度与资源面板清零并置 `interrupted`，
+  不保留最后一次 `progress/resource` 当完成态，已产出文件只认 `artifact` 事件
+  落盘项。落盘标记 = 运行历史 `interrupted` + 事件断点偏移；把中断前最后一帧
+  进度冒充完成 ⇒ 判红。N18 取消失败输入构造 = 用户点取消后命令行在取消点
+  仍返回非零 / 超时未退出。预期行为 = 显式 `cancelled/failed` 语义：`cancelled`
+  只在宿主 cancel 通道 → 停调度 → 等运行中单元完成 → exit 9 全链成立时落盘，
+  否则记 `cancel_failed` + 退出码与 `error`，不写伪完整产物。落盘标记 = 运行历史
+  `cancelled/cancel_failed` + 退出码；
 
 ### 3.5 产物查阅
 
@@ -134,6 +144,8 @@ flowchart TD
 - 多块合写为一个 normalize 阶段 JSON，形状与最高设计「输入合同」一节完全一致。
 - 用户可勾选要运行的块；分组方案可保存/载入，便于重复观测复用。
 
+**可复现轮 T05–T10 诚实化（T-GUI-01 分组 JSON 复现路径）**：分组结果 → normalize 阶段 JSON 的复现路径 = 扫描索引（§4.1：路径/文件名/目录/文件头键值/大小/修改时间）→ 文件头归类（§4.2：IMAGETYP/FILTER/EXPTIME/CCD-TEMP/INSTRUME/GAIN/OFFSET + 别名归一化）→ 正则细分（§4.3：PCRE，Qt QRegularExpression，规则顺序应用、可启停、可拖拽排序、命名捕获组映射分组维度）→ 校准帧匹配（§4.4：BIAS/DARK/FLAT 匹配键与容差来自 config，GUI 不硬编码）→ 数据块产出（本节 block 字段：name/input_lights/master_bias/master_dark/master_flat/filter_passband/output_dir/wcs）。复现要求：同一批输入帧 + 同一份正则规则集（含顺序与启停态）+ 同一份 config 容差 + 同一批手动调整（含锁定组）→ 同一份阶段 JSON（块划分与路径指派逐项一致）；分组方案保存/载入即该复现的载体。正则语法错误在编辑时即报并定位，不进入分组——该拒绝本身是复现路径的一环。
+
 ### 4.6 手动调整
 
 - 分组结果以“帧类型 × 滤镜 × 会话/日期”的树与表格展示；支持拖拽改派、合并/拆分小组、锁定某组、忽略指定帧。
@@ -171,6 +183,8 @@ GUI 依赖命令行 JSONL 事件流，事件合同在 engineering/contracts；�
 
 - 现有事件缺节点级进度或独立 log 事件时，由命令行侧补齐并保持 JSONL 合同；GUI 不解析命令行内部数据结构。
 - 时间戳由命令行统一给出，GUI 按本地时区展示。
+
+**可复现轮 T05–T10 诚实化（T-GUI-02 事件回放复现路径）**：运行状态展示的复现路径 = 命令行 stdout JSONL 事件流（事件合同 `docs/engineering/contracts/CLI_PROTOCOL.md`「JSONL 运行事件流」一节；唯一 schema `eng/contracts/schemas/jsonl_event_v1.schema.json`，派生件）→ GUI 事件流解析与状态展示（§3.4：阶段/节点、帧/块进度、日志级别、CPU/内存/worker、已产出文件、最终结果与退出码）。事件回放复现要求：同一份 JSONL 事件流文件（含 `sequence` 单调递增、`run_id` 一致、各类 kind 扩展字段齐全）→ 同一份运行状态呈现（进度、资源、产出文件、收尾结果逐项一致）；运行历史与日志导出即该复现的载体。负例 N17/N18（§3.4：事件中断归零与取消失败语义）是回放路径的负向判据：`final` 缺失时运行态归零并置 `interrupted`，不保留最后一次 progress/resource 当完成态。GUI 仅 Windows 独立外挂（Qt6/MSVC，不与命令行一起编译），本复现路径不含科学算法复算——科学计算一律由 `acsd.exe` 完成，GUI 只做配置编辑、分组、调度、状态展示与产物查阅。
 
 ## 7. 构建与部署
 

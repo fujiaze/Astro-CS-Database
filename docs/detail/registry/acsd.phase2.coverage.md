@@ -126,6 +126,10 @@ rc：0 = 成功（含 K = 0）/ 1 = 失败 + `error[512]` 载因；status 与 rc
 - 断图 → 输出分组件，不假装同一基准；
 - coverage 缺失的输入 → fail-closed；
 - 错误码与退出码唯一源 = lib/infrastructure/cli/exit_codes.h（本页不复制数值表）。
+- **负例与归零分支 N30（T05–T07 负向轮，本卡死值与静默 scale）**：负例输入构造甲 =
+  空 filter 输入；负例输入构造乙 = 把 union cell 计数当权重的消费。预期行为甲 =
+  fail-closed，不静默放行。落盘标记甲 = 拒绝原因。预期行为乙 = 拒绝，
+  coverage 禁作隐式科学权重。落盘标记乙 = 权重拒绝登记；静默放行或作权重 ⇒ 判红。
 
 ## 独立 synthetic 验证命令与容差
 

@@ -151,7 +151,7 @@ add_var 同文件）；finalize 落盘 `finalize_hierarchy`
 - (4b) 逐父 cell 确定性累加（叶级缓存、归约，同文件）：
   `flux_n += sig·a`、`area_n += a`，其中 **`a` = 未钳制真实覆盖面积**
   （叶级 `area_true`→`scratch_area_n`），`sig` = 发布面叶级
-  signal（f32 产品取 float 截断后的值）。**归约权重取自未钳制真实覆盖面积；钳后的 support 只作发布值，不进入
+  signal（f32 产品取 float 截断后的值）。父级面积恒等式为 `area_parent = Σ area_child`（未钳制真实覆盖面积之和），发布面再取 `support = min(area_parent/A_cell_k, 1)`；钳后值不可反推真实面积，Σa>A_cell_k 的倍数信息在发布面丢失并按计数键登记（见 (4c)）。**归约权重取自未钳制真实覆盖面积；钳后的 support 只作发布值，不进入
   权重**：support 是 a/A_cell 的钳后发布值，用它反乘等于把父级面亮度降为
   sup 加权均值；异质覆盖（a>A_cell）下父级通量出现**本可避免的损失**
   （M2a-H-3；R-7 实测 sb=10@c=4 与 sb=0.1@c=1 混合域：面积加权 8.02 vs

@@ -177,12 +177,25 @@ AIO 缓存面。reentrant = yes / threadsafe = no（头文件无线程注记，�
 （accept / reason u8 0..5 逐观测承载，同上）；容量不足不报错（probe/fill）。
 
 - 控制点 / 采样点不足、连通性断裂 → fail-closed（UPM 欠定 / 不可辨识）；
+- **负例与归零分支 N09/N10/N11（T05–T07 负向轮，persist 缺失 / K=0 / 缺 cell）**：
+  N09 persist 缺失输入构造 = `persist_upm` 指向不存在 / 未写完的 UPM 文件后 reload。
+  预期行为 = fail-closed（`P2_SKY_PLANE_GEOMETRY_REQUIRED` 或 open/parse 失败），
+  不以外推或回退帧级冒充。落盘标记 = `rc = 1` + `error[512]` 载因 + 无半成品模型。
+  N10 K=0 输入构造 = coverage 两阶段 probe 返回 `n_union_cells = 0`（空 union）。
+  预期行为 = `rc = 0` 空结果合法，不写 `union_cells/inputs`，下游按空集处理。
+  落盘标记 = `K = 0` + 空 union；把空 union 当失败 ⇒ 判红（与失败分支分开断言）。
+  N11 缺 cell 输入构造 = 缺 tile / 覆盖并集非凸区外推锚引用不存在 cell。
+  预期行为 = 该像元 `NaN` + `support ≤ 0` 并强制计数，不以零填充。落盘标记 =
+  缺失计数 + `support` 面；
 - 高结构区域误入 → 标记，不进拟合；
 - 帧内大片掩膜（星云占满视场）导致采样点空间分布退化 → 报告覆盖缺口，降阶或分
   组件处理；
 - 移动源区域标记（供 rejection 参考）。
 
 诊断进度日志直写 stderr（结构化通道整改面未落地）。无内部取消检查点 / checkpoint。
+- **负例与归零分支 N31（T05–T07 负向轮，本卡死值与静默 scale）**：负例输入构造 =
+  `cfg <= 0` 的显式零配置。预期行为 = 显式拒绝，不吞显式 0 取默认。落盘标记 =
+  参数拒绝码；吞零取默认 ⇒ 判红。
 
 **错误码与退出码唯一源** = lib/infrastructure/cli/exit_codes.h（本页不复制数值表）。
 

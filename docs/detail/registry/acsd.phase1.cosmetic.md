@@ -107,6 +107,12 @@ schedule(static)（ThreadLease 迁移整改点）。
 错误码 = `AC_OK` / `AC_ERR_PARAM`（模块级，`ac_correct_frame`；`AC_ERR_MEMORY` /
 `AC_ERR_INTERNAL` 死值）；编排级 `ACS_ERR_INTERNAL`（session 映射
 rc != AC_OK）。极端情形（大片坏区）一律显式登记：零值填充只作具名降级。
+- **负例与归零分支 N20（T05–T07 负向轮，本卡死值与静默 scale）**：负例输入构造甲 =
+  触发 `AC_ERR_MEMORY/AC_ERR_INTERNAL` 的路径；负例输入构造乙 = 未接线母版的
+  light 帧（检测全禁用）。预期行为甲 = 该两码为死值，永不返回，由编排级
+  `ACS_ERR_INTERNAL` 承载。落盘标记甲 = 死值登记 + 编排映射。预期行为乙 =
+  恒等 pass + 具名降级登记，不静默输出伪修复像素。落盘标记乙 = 降级原因 +
+  零值填充计数；把恒等 pass 冒充已修复 ⇒ 判红。
 
 饱和态不进入本模块输入面也不被改写：饱和像素的识别与表示由上游（定标/检测
 侧）承载，本模块只按 dark/bias 统计与列跳变判据判坏点/坏列。

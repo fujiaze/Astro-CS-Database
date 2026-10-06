@@ -86,6 +86,11 @@ API（API-P1-SESSION）」章内「返回码」。失败短路返回，**不留�
 唯一源 = lib/infrastructure/cli/exit_codes.h（本页不复制数值表）。
 
 取消传播：本层负责把宿主取消通道下传到各段。
+- **负例与归零分支 N29（T05–T07 负向轮，本卡死值与静默 scale）**：负例输入构造甲 =
+  取消到达后仍在排队的段；负例输入构造乙 = 失败段的产物。预期行为甲 = 停止调度
+  新单元 → 等运行中单元完成 → exit 9，不留伪完整产物。落盘标记甲 =
+  `status = failed/cancelled` + `error/error_kind`。预期行为乙 = 短路返回，
+  manifest 记失败。落盘标记乙 = manifest 失败位；把失败产物冒充完整 ⇒ 判红。
 
 ## 独立 synthetic 验证命令与容差
 
