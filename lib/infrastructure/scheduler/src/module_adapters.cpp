@@ -9812,7 +9812,11 @@ Result<void> p2_op_upm_fit(const Json& doc, Json* man) {
   uc.robust_loss = 0;              // huber(首版冻结)
   uc.snr_weight_mode = 0;          // snr2_normalized
   uc.huber_delta = 1.345;
+  // 自适应迭代预算：max_iterations 为"下界/试跑预算"语义（默认 100，
+  // 小规模早停行为逐位不变）；上界由 upm.max_iterations_cap 可配（默认 5000）。
+  // 求解器（upm.cpp）在试跑耗尽未收敛且改善仍显著时按 κ 保守收敛率追加预算。
   uc.max_iterations = 100;
+  uc.max_iterations_cap = 5000;
   // CONFORM-FIX-B-001（合规回退）：FZ-UPM-CONVERGENCE 冻结
   // tol=1e-6（docs/science/algorithms/GATES_AND_TOLERANCES.md，
   // 明文「改动 tol/σ_floor → rc!=0」），PHASE2_UPM_IMPL.md:379/:400-401 与
@@ -9852,6 +9856,8 @@ Result<void> p2_op_upm_fit(const Json& doc, Json* man) {
   const Json& upm_cfg = doc.contains("upm") ? doc["upm"] : Json::object();
   if (upm_cfg.contains("max_iterations"))
     uc.max_iterations = upm_cfg["max_iterations"].get<int>();
+  if (upm_cfg.contains("max_iterations_cap"))
+    uc.max_iterations_cap = upm_cfg["max_iterations_cap"].get<int>();
   if (upm_cfg.contains("huber_delta"))
     uc.huber_delta = upm_cfg["huber_delta"].get<double>();
   // CONFORM-FIX-B-009：与 stage2 工具同一「smoothing」键语义
