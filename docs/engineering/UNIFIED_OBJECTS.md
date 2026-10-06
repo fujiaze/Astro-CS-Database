@@ -113,7 +113,7 @@ canonical 定义 = eng/contracts/schemas/unified/<对象名>.schema.json
   - **默认档的适用域（正向约束）**：`natural_bicubic_spline_clip_v1` 的适用域 = **地面 seeing-limited 与一般情形**。在 HST 类高对比域上，其 Δ*（E 首次劣于帧级臂的最小控制点间隔）小于生产控制点间隔，落于失效区 ⇒ 该域**必须**显式改用 `..._mesh_median_v1`（其 Δ* 大于生产控制点间隔，处于有效区）。默认档是**回退**，不是「域无关的安全选择」；未声明域时取默认档属**显式降级**，必须随层入 manifest 可追溯。逐域 Δ* 与失效倍数见 `实验/absolute-snr`。
 - **几何**：控制点坐标是像素中心坐标；规则网格下节点落在**所属 Δ×Δ cell 的中心**（cell i 覆盖 `[origin_x + i·Δ, origin_x + (i+1)·Δ − 1]`）。把节点当 cell 角点会使重建场整体平移半个 cell（Δ/2）。层定义域 = 层覆盖的 cell 并集，越出即消费侧 fail-closed（不外推、不回退帧级）。
   - **与 Phase2 UPM 控制网格的关系（强制，同一约定）**：默认 Δ = `hips.tile_width / 8 = 512 / 8 = 64` px 复用 Phase2 UPM 的 8×8/tile 控制网格 ⇒ **两处必须是同一套几何约定**：节点 = 所属 cell 的**中心**、cell 编号自 `origin` 起、`origin` 缺省 0、层定义域 = cell 并集。稀疏层一侧的约定按本行；UPM一侧按 `docs/science/algorithms/mosaic/PHASE2_UPM_IMPL.md`「离散公式F1-F6」一节（公式语义与求解器分册「离散公式」一节一致，逐条实现锚；控制点几何）——**两处不一致即 fail-closed**：同一套几何约定在两处逐项相同，换算不在消费侧发生。
-- 依据：`实验/absolute-snr` EXP-04相应章节；算子定义、钳制与滤波的实测代价见 `docs/detail/registry/acsd.phase1.noise-snr.md`「稀疏帧内层几何与重建算子」一节。合同判据分两面：对象级由 `eng/contracts/schemas/unified/sparse_snr_layer.schema.json` 的 `enum` / `const` 冻结，声明面由本节表格约束；两面的机器门当前均无仓内执行器，按人读对抗性审核逐条核对。
+- 依据：`实验/absolute-snr` EXP-04 的重建实验记录；算子定义、钳制与滤波的实测代价见 `docs/detail/registry/acsd.phase1.noise-snr.md`「稀疏帧内层几何与重建算子」一节。合同判据分两面：对象级由 `eng/contracts/schemas/unified/sparse_snr_layer.schema.json` 的 `enum` / `const` 冻结，声明面由本节表格约束；两面的机器门当前均无仓内执行器，按人读对抗性审核逐条核对。
 
 ## 4a. 合同 ID → 统一对象映射（MODULE_MAP 引用面）
 

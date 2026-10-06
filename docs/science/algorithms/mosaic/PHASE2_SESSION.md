@@ -262,8 +262,7 @@ p2_upm_build 的委托断言与段序断言冻结于 §11.5 T1。
 | ACS_ERR_INTERNAL | 域 rc 其他（非 0/1/2） | map_rc |
 
 域 rc→ACS_ERR 归并 map_rc（`lib/phase2_session/p2_session.cpp`）：rc=0→OK；last_error 记
-"<what> rc=<n>"；error_kind 标 "input"。域内 rc 细分语义见各域文档
-（PHASE2_SAMPLER相应章节等）；本层不重解释域返回码。
+"<what> rc=<n>"；error_kind 标 "input"。域内 rc 细分语义见采样器算法分册的返回码语义等各域文档；本层不重解释域返回码。
 
 ### 11.2 manifest 状态机与字段
 

@@ -132,7 +132,7 @@ parallel_ok=True。
 
 本段一切「规模/上限」类数字都由配置键与星表查询口径导出：检测定义域 =
 `star_detection.max_stars`（设计自定算力上界，非科学常数，语义正本 =
-ACSD_DESIGN.md 相应章节）；拟合样本上限 = `photometry.fit.max_stars`（默认 5000）；
+最高设计的 normalize 节点流程一节）；拟合样本上限 = `photometry.fit.max_stars`（默认 5000）；
 交付 SNR 样本上限 = `snr.max_sources`（默认 0 = 不限，只截断交付样本行、**不**
 截断检测定义域）。三者各自只承担自己的口径，合同域正本 =
 `phase_config_normalize.schema.json`。

@@ -14,7 +14,7 @@
 > API-P3-001 = p3_session 五段编排面 FROZEN 镜像）
 > 架构正本：docs/engineering/architecture/ARCHITECTURE.md
 > 门表事实源：`docs/science/algorithms/common/GATES_AND_TOLERANCES.md`［A-1］
-> 落地设计：`docs/detail/export/pipeline.md`相应章节
+> 落地设计：`docs/detail/export/pipeline.md`「WCS 计划」一节与「反向映射与采样」一节
 > 引用文献：见文末「参考文献」（角标用全角 `［N］`，因本文正文的半角 `[...]` 已被
 > 数值域区间与数组下标占用）
 
@@ -52,7 +52,7 @@ ALG-P3-002 / API-P3-001 / TEST-P3-WCS-001）与 module_id 合同值
   域）、不做 FITS 文件读写（ALG-P3-FITS-IMPL-001 域）、不做请求
   解析与编排（p3_session run 段）、**除 TAN 以外的投影**、不改 SCI 公式
   （SCI-P3 FROZEN 零改动）。
-- **投影集口径（最高设计相应章节）**：**设计冻结 8 种**
+- **投影集口径（最高设计「投影算法」一节）**：**设计冻结 8 种**
   （`TAN/SIN/CAR/AIT/STG/MOL/CEA/ZEA`）；每种投影必须声明六要素：适用域、奇点、
   经度 wrap、轴手性、CRPIX/CRVAL/CD/PC/CDELT、CTYPE。**当前登记：仅 `TAN` 已
   实现**（声明集 D = 实现集 I = `{TAN}`，`p3_projection_registry.h`；

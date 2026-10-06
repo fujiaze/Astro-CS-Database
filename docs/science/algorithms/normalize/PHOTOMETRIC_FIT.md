@@ -299,7 +299,7 @@ F_syn = ∫ F_λ(λ)·T(λ)·Q(λ)·λ dλ        # W·m⁻²·nm；F_λ 单位 
   =aperture 测光待迁移符号（静态库 acsd_phase1_phot，`CMakeLists.txt`；
   单测覆盖已撤，
   未接 orchestrator 管线），aperture 合同并入 lib/algorithms/photometry/
-  README.md相应章节。
+  README.md「计划迁移旧符号」一节。
 
 > 本文引用上游正本（论文式编号，正文引用处均已改为自然语言节名，不再使用跨文档 §N 跳转）：
 > - [D-1] docs/ACSD_DESIGN.md（最高设计）。

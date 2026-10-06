@@ -3,7 +3,7 @@
 > 上游：`docs/ACSD_DESIGN.md`「模块与 ABI」一节与「固定科学流程」一节、
 > 「逐像素排异」一节（按几何覆盖帧数N自动选择算法）
 > 科学正本：docs/science/integration/REJECTION.md（SCI-REJ-001；「档位条款」与「空栈语义」两节、
-> 上游一手出处节）、`docs/detail/mosaic/pipeline.md`相应章节
+> 上游一手出处节）、`docs/detail/mosaic/pipeline.md`「Rejection」一节（排异目标态设计）
 > 算法正本：docs/science/algorithms/PHASE2_REJECTION.md（ALG-P2-REJ-001；行号权威一节
 > 权威、语义权威、缺陷登记、测试设计与映射声明四节）
 > 数据正本：docs/detail/registry/acsd.phase2.reject.md（DATA-P2-REJ 端口表，本页输入输出端口表）、
@@ -227,7 +227,7 @@ Oracle 面：
 - 缺陷登记（不改码，正本 = ALG-P2-REJ-001［A-1］）：rejection.h 的 percentile
   `low_fraction` 注释「默认 0.1」与实现 / SCI 权威 0.2 漂移；SCI「判据与误差」一节「空栈 →
   NO_CANDIDATES」与实现 MIN_SAMPLES 的口径差（NO_CANDIDATES 属积分域，语义
-  权威 = ALG相应章节）；SCI行号锚漂移（行号权威 = ALG实测）；minmax
+  权威 = 排异算法分册的逐公式定义一节）；SCI行号锚漂移（行号权威 = ALG实测）；minmax
   比较器 value-only tie-break 未显式冻结；整改面未落地；
 - 目标交付形态 acsd_p2_rejection.dll 未落地；descriptor 占位 module_id 与合同
   值 `acsd.p2.rejection` 的对齐属迁移目标（未落地）；

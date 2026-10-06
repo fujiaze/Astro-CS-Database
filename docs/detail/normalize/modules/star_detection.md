@@ -53,7 +53,7 @@ O13 排异门、O14 孔径测光、O15 输出整理、O16 星表引导检测。
 
 - 标定协议：每档 1000 次 Monte Carlo，Clopper–Pearson［1］下界，n≥298 有效样本（`docs/science/algorithms/STAR_DETECTION_ALGORITHMS.md`「TEST-STAR-DESIGN-001 冻结测试设计」一节）。
 - 实现向该表收敛：任一档超出即不合格。「与参考实现一致」不构成通过理由。
-- **判据非退化三必须（承接上游，逐字同源）**：召回场**必须**在每一档都有域内真星；**必须**包含落在过渡带内（`10 ≤ SNR_peak <` 该档 99% 召回阈）的真星，总数 ≥8 且覆盖 ≥4 个 σ 档；**必须**同时报告过渡带负例召回率，且该召回率**必须**低于 99%。上游正本 = `docs/science/detection/STAR_DETECTION.md`对应章节「召回域的统计判据」的「非退化要求」条与 `docs/science/algorithms/common/GATES_AND_TOLERANCES.md` G-P1-STAR-RECALL 行（`docs/science/algorithms/STAR_DETECTION_ALGORITHMS.md`「TEST-STAR-DESIGN-001 冻结测试设计」一节 F1 同源）；本设计不另立口径，三必须缺一即该召回判据不成立。
+- **判据非退化三必须（承接上游，逐字同源）**：召回场**必须**在每一档都有域内真星；**必须**包含落在过渡带内（`10 ≤ SNR_peak <` 该档 99% 召回阈）的真星，总数 ≥8 且覆盖 ≥4 个 σ 档；**必须**同时报告过渡带负例召回率，且该召回率**必须**低于 99%。上游正本 = `docs/science/detection/STAR_DETECTION.md`「召回域的统计判据」一节的「非退化要求」条与 `docs/science/algorithms/common/GATES_AND_TOLERANCES.md` G-P1-STAR-RECALL 行（`docs/science/algorithms/STAR_DETECTION_ALGORITHMS.md`「TEST-STAR-DESIGN-001 冻结测试设计」一节 F1 同源）；本设计不另立口径，三必须缺一即该召回判据不成立。
 - 真帧行为统计（检测数、检出中心差、阈值日志值、oracle 容差）属**实验证据面**（`实验/`），
   由实验单元按各自协议重取并登记；本设计只承载召回阈表与规范常数。
 
