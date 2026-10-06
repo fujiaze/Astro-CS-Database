@@ -4,6 +4,9 @@
  *  lm_solve 求导步长 h=max(|x|·1e-6,1e-8)、moffat4_fit_tmpl_core 的 sx/sy 下界 0.3、
  *  fwhm>rect 拒绝、背景比 0.5（|B−bkg0|/max(bkg0,0.01)）；
  *  对照表见 docs/science/psf/PSF.md / docs/science/algorithms/STAR_PSF_ALGORITHMS.md。
+ *  模块头: 职责 = 帧级椭圆 Moffat4 拟合（θ 四候选消歧）；输入块 = cleaned 帧 + star_det 检测目录；
+ *  输出块 = psf_params FLOAT64[N,9] + 逐星状态；线程模型 = 按星点 OpenMP 并行（dynamic，
+ *  线程数由宿主注入），逐星独立、输出确定。
  */
 #include "dpsf_psf.h"
 #include "dpsf_log.h"
@@ -140,6 +143,10 @@ void dpsf_diag_flush() {
 }
 
 void dpsf_diag_record(const DpsfDiagRec& r) {
+    // 诊断面（编译期 DPSF_FIT_DIAG + 运行期 DPSF_DIAG_PATH 均启用才记录）：
+    // atexit 注册仅在本函数首次被调用（即诊断启用路径）时发生，生产构建（未定义
+    // DPSF_FIT_DIAG）不编入本块、无 atexit 注册；路径为空时 DPSF_DIAG_ON() 为假，
+    // record 不被调用。
     static const bool registered = [] {
         std::atexit(dpsf_diag_flush);
         return true;

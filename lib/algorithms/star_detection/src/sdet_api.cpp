@@ -1,12 +1,11 @@
 /**
  * @file sdet_api.cpp
- * @brief Star Detector API实现
+ * @brief Star Detector API实现（ACSD phase1 star_detection 模块生产入口）
  *
- * 主要功能：
- * 1. 椭圆高斯 PSF拟合（Levenberg-Marquardt优化, 母函数=sdet_gaussian_f/df; PSF 侧 Moffat4 见 SCI-PSF-001 §5, DISP-STAR-007）
- * 2. 星点检测流水线（正常星+饱和星）
- * 3. FWHM/圆度过滤
- * 4. 半阈值饱和星检测
+ * 职责: 全图盲检测（诊断/初值，O1–O15）与星表引导检测（权威路径 O16，共用同一 flux 口径）；
+ * 输入块: cleaned 帧（FP32/FP64）+ SDetParams（阈值倍数默认 5.0）+ 星表预测位置（引导路径）；
+ * 输出块: star_det 十数组（经 sdet_free_detect_ex 整组释放）；线程模型: 候选拟合 OpenMP 并行
+ * （dynamic + reduction，线程数由宿主注入），dedup/sort/截断串行，输出与线程数无关。
  */
 
 #include "../include/star_detector.h"

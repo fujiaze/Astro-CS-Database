@@ -1,6 +1,6 @@
-// pc_api.cpp - C API包装层
-// 功能: 将C++测光校准流程包装为C接口, 供Python ctypes调用
-// 流程: WCS投影 -> 星匹配 -> MAD清洗 -> scale计算 -> 图像校正
+// pc_api.cpp - C API包装层（ACSD phase1 photometry 模块 C ABI 实现）
+// 职责: WCS投影 → 星匹配 → IRLS/Tukey 稳健零点 → scale 施加到像素；输入块: 定标后像素 + Gaia 星表 + PSF 星表 + WCS；
+// 输出块: photoapplied 像素 + scale/sigma_residual/diag；线程模型: F_syn 与像素施加按 OpenMP 并行（线程数由宿主注入）。
 
 #include "../include/photometric_calib.h"
 #include "pc_api_qf.h"
@@ -111,9 +111,8 @@ static int run_simple_impl(
         return 0;
     }
 
-    // 注: pc_calibrate_simple 不在 DLL 内部计算 F_syn (gaia_fsyn 由调用方外部传入)
-    // QE 参数仅为 API 一致性保留, 此处不做处理. 若需用 QE 计算 F_syn, 请使用
-    // pc_calibrate_simple_with_gaia 接口.
+    // 注: pc_calibrate_simple 不在 DLL 内部计算 F_syn (gaia_fsyn 由调用方外部传入)；
+    // QE 三参数为冻结签名保留，此处显式不消费（DISP-PHOT-005 登记行为，保持）。
     (void)qe_wl; (void)qe_trans; (void)qe_count;
 
     std::fprintf(stderr, "[pc_api] 图像: %dx%d, Gaia星: %d, PSF星: %d, SIP阶数: %d\n",
@@ -214,7 +213,8 @@ int pc_calibrate_simple(
 static int run_with_gaia_f32_impl(
     void* gaia_client_handle,
     double ra_center, double dec_center, double radius_deg,
-    double mag_min, double /*mag_max*/,
+    double mag_min, double /*mag_max: 冻结签名保留；实现走自适应 mag_max_arr{12..16}，
+    传入值不消费（DISP-PHOT-005 登记行为，保持）*/,
     const double* filter_wl, const double* filter_trans, int filter_count,
     const double* qe_wl, const double* qe_trans, int qe_count,
     const double* spectrum_wl, int spectrum_count,
@@ -635,7 +635,8 @@ int pc_calibrate_simple_f64(
 int pc_calibrate_simple_with_gaia_f64(
     void* gaia_client_handle,
     double ra_center, double dec_center, double radius_deg,
-    double mag_min, double /*mag_max*/,
+    double mag_min, double /*mag_max: 冻结签名保留；实现走自适应 mag_max_arr{12..16}，
+    传入值不消费（DISP-PHOT-005 登记行为，保持）*/,
     const double* filter_wl, const double* filter_trans, int filter_count,
     const double* qe_wl, const double* qe_trans, int qe_count,
     const double* spectrum_wl, int spectrum_count,
@@ -896,7 +897,8 @@ template<typename T>
 int run_with_gaia_impl(
     void* gaia_client_handle,
     double ra_center, double dec_center, double radius_deg,
-    double mag_min, double /*mag_max*/,
+    double mag_min, double /*mag_max: 冻结签名保留；实现走自适应 mag_max_arr{12..16}，
+    传入值不消费（DISP-PHOT-005 登记行为，保持）*/,
     const double* filter_wl, const double* filter_trans, int filter_count,
     const double* qe_wl, const double* qe_trans, int qe_count,
     const double* spectrum_wl, int spectrum_count,

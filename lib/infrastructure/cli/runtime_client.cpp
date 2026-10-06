@@ -403,7 +403,7 @@ int run_pipeline(const std::vector<int>& phases, const std::string& config_json,
   auto rr = register_cli_modules(reg);
   if (rr.failed()) {
     if (fail_reason) *fail_reason = rr.error().message();
-    return 70;
+    return acsd::INTERNAL;
   }
   // 生产路径必须把内存上限
   // 交给 Runtime（旧写法 create_runtime(budget) ⇒ Scheduler memory_limit_bytes=0 ⇒
@@ -439,7 +439,7 @@ int run_pipeline(const std::vector<int>& phases, const std::string& config_json,
   auto rt = acsd::core::create_runtime(rrb);
   if (rt.failed()) {
     if (fail_reason) *fail_reason = rt.error().message();
-    return 70;
+    return acsd::INTERNAL;
   }
   std::string err;
   std::string ir_json = build_pipeline_ir(phases, config_json, &err);
@@ -453,7 +453,7 @@ int run_pipeline(const std::vector<int>& phases, const std::string& config_json,
   }
   if (ir_json.empty()) {
     if (fail_reason) *fail_reason = err;
-    return 2;
+    return acsd::ARGS;
   }
   // F-EXIT-MAP 可达矩阵测试钩子(非用户接口; 不设环境变量时零影响, 与
   // ACSD_TEST_PIPELINE_SLEEP_MS / ACSD_TEST_PIPELINE_IR 同款): 强制一个
@@ -473,7 +473,7 @@ int run_pipeline(const std::vector<int>& phases, const std::string& config_json,
     else if (d == "INTERNAL") forced = ErrorDomain::INTERNAL;
     else {
       if (fail_reason) *fail_reason = "unknown forced ErrorDomain: " + d;
-      return 70;
+      return acsd::INTERNAL;
     }
     if (fail_reason) *fail_reason = "forced ErrorDomain=" + d;
     return exit_code_for_error_domain(forced);
@@ -541,8 +541,8 @@ int run_pipeline(const std::vector<int>& phases, const std::string& config_json,
           } catch (...) {}
         }
       }
-      if (disk_full) return 10;
-      if (input_err) return 3;
+      if (disk_full) return acsd::RESOURCE;
+      if (input_err) return acsd::INPUT;
     }
     // F-EXIT-MAP 归零（P-158 同因）：域→码不再各自硬编码，一律走
     // exit_code_for_error_domain（唯一实现，依据 docs/engineering/contracts/LOG_AND_ERROR.md §5

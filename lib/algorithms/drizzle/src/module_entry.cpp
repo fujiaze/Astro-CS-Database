@@ -308,7 +308,7 @@ typedef struct {
     char     op[16];              /* ACSD_DRIZZLE_OP_* */
     uint32_t nside;               /* 2 的幂 */
     int      nested;              /* 0/1 */
-    double   pixfrac;             /* [0,1] (DISP-DRZ-003 口径, 不改语义) */
+    double   pixfrac;             /* (0,1] (引擎层冻结口径, 与 drizzle_engine/validate_pixfrac 一致) */
     int      precision_mode;      /* 0/1/-1 */
     char*    output_path;         /* 可选 (legacy .hiss) */
     char*    hips_dir;            /* 可选 (HiPS 产品集根目录) */
@@ -357,10 +357,10 @@ static acsd_status drz_cfg_parse(const char* json, drz_cfg* c,
 
     int found = 0;
     double pixfrac = json_get_f64(json, DRZ_CFG_KEY_PIXFRAC, &found);
-    if (!found) pixfrac = 1.0;                     /* 缺键默认 1.0 (契约只约束 (0,1]) */
-    if (!isfinite(pixfrac) || pixfrac < 0.0 || pixfrac > 1.0) {
+    if (!found) pixfrac = 1.0;                     /* 缺键默认 1.0 (契约约束 (0,1], 与引擎层一致) */
+    if (!isfinite(pixfrac) || pixfrac <= 0.0 || pixfrac > 1.0) {
         efill(err, ACS_ERR_PARAM, ACS_ERR_DOMAIN_CONFIG,
-              DRZ_ECODE_BAD_VALUE, "drizzle: pixfrac must be finite in [0,1]");
+              DRZ_ECODE_BAD_VALUE, "drizzle: pixfrac must be finite in (0,1]");
         return ACS_ERR_PARAM;
     }
     c->pixfrac = pixfrac;

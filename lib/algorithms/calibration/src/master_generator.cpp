@@ -1,5 +1,6 @@
-// master_generator.cpp
-// 主帧生成模块 - 天文CCD校准 (Astro Calibration)
+// master_generator.cpp — 主帧生成（ALG-CAL-001..006 落地；模块头见本文件职责段）
+// 职责: sigma-clip + median/mean 合并生成 master bias/dark/flat（flat 归一 median=1.0、floor 0.1）。
+// 输入块: 原始帧栈（调用方提供内存数组）；输出块: master 面（调用方分配）；线程模型: 宿主租约注入线程数。
 //
 // 功能：
 // 对多帧CCD图像执行 sigma-clip 离群值剔除后合并，生成主帧（Master Frame）。

@@ -1,7 +1,8 @@
 // ============================================================================
-// ipv_solver.cpp - IPV 主求解器实现 ( 统一求解)
+// ipv_solver.cpp - IPV 主求解器实现（ACSD phase1 platesolve 模块内部实现）
 //
-// 统一求解路径 (无 flip_mode 区分):
+// 职责: 星表匹配 + 稳健迭代精化输出权威 WCS（本帧唯一解）；输入块: 选星匹配集；输出块: TAN/SIP WCS
+// （ICRS，精度归属稀疏/元数据双精度）；线程模型: 求解主体单线程（三角形投票/选星并行除外）。
 // 1. StarSelector (复用 ipv_select)
 // 2. triangle_match (三角形匹配, 替代 polygon_match)
 // 3. iter_trans_solve (sigma-clip 多项式拟合)

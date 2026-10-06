@@ -215,9 +215,9 @@ HP_DRIZZLE_API int hp_drizzle_fits_to_ahpx(
         return 2;
     }
 
-    if (pixfrac < 0.0 || pixfrac > 1.0) {
-        fprintf(stderr, "[hp_drizzle_api] pixfrac=%.4f 超出范围 [0.0, 1.0]\n", pixfrac);
-        setErrorMsg(result, "pixfrac 超出范围 [0.0, 1.0]");
+    if (pixfrac <= 0.0 || pixfrac > 1.0) {
+        fprintf(stderr, "[hp_drizzle_api] pixfrac=%.4f 超出范围 (0.0, 1.0]\n", pixfrac);
+        setErrorMsg(result, "pixfrac 超出范围 (0.0, 1.0]");
         return 3;
     }
 
@@ -547,10 +547,10 @@ try {
         return -2;
     }
 
-    if (pixfrac < 0.0 || pixfrac > 1.0) {
-        fprintf(stderr, "[hp_drizzle_api] hp_drizzle_run: pixfrac=%.4f 超出范围 [0.0, 1.0]\n", pixfrac);
+    if (pixfrac <= 0.0 || pixfrac > 1.0) {
+        fprintf(stderr, "[hp_drizzle_api] hp_drizzle_run: pixfrac=%.4f 超出范围 (0.0, 1.0]\n", pixfrac);
         std::memset(result, 0, sizeof(HpDrizzleResult));
-        setErrorMsg(result, "pixfrac 超出范围 [0.0, 1.0]");
+        setErrorMsg(result, "pixfrac 超出范围 (0.0, 1.0]");
         return -3;
     }
 

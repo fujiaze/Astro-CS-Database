@@ -1,7 +1,7 @@
-// image_corrector.cpp - 图像全局scale校正
-// 功能: 计算scale=median(F_syn/F_instr), 应用I_cal=I*scale
-// 算法: 简化版测光校准, 去掉梯度拟合, 仅做全局乘性校正
-// 参考: lib/algorithms/photometry/flux_calibrator/python/image_corrector.py
+// image_corrector.cpp - 图像全局scale校正（施加侧；标度拟合见 star_matcher cleanAndScale）
+// 功能: 应用 I_cal = I*scale（scale 由调用方传入，本文件 computeScale 仅为遗留诊断入口）
+// 注意: 生产口径 scale = 10^(-location)（IRLS/Tukey 稳健位置，见 star_matcher.cpp）；
+// 本文件的 median(F_syn/F_instr) 不是生产口径，不用于生产施加。
 
 #include "image_corrector.h"
 
