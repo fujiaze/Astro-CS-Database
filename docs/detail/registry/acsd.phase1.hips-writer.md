@@ -100,5 +100,5 @@ HiPS tile 的原子发布宣称不成立。
 ## 已知限制
 
 ALG-HIPS-001 缺陷登记（abort 无 rollback、CFITSIO 裸调无 mutex、错误码混用、
-hips_estsize 硬编码、moc_order 静默 clamp、无取消）+ README相应章节；
+hips_estsize 硬编码、moc_order 静默 clamp、无取消）+ HiPS 模块 README 的测试验证与已知限制一节；
 全局限制登记 = artifacts/evidence/known-limitations-ledger/LIMITATIONS.md。

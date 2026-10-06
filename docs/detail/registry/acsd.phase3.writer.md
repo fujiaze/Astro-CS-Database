@@ -13,7 +13,7 @@
 > 公共消费面节）、docs/engineering/api/PUBLIC_API.md「分阶段 API 面」（API-P3-001，p3_session 五段
 > FROZEN 镜像）
 > 原子发布：docs/engineering/contracts/ATOMIC_PUBLISH.md（IO_003，章节「错误语义」）
-> 落地设计：`docs/detail/export/pipeline.md`相应章节
+> 落地设计：`docs/detail/export/pipeline.md`「FITS 产品」一节
 > 引用文献：见文末「参考文献」（角标用全角 `［N］`，因本文正文的半角 `[...]` 已被
 > 数值域区间占用）
 

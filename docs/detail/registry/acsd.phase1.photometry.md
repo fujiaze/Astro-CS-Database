@@ -15,7 +15,7 @@
 为准。现状构建 = `lib/algorithms/photometry/cpp/Makefile` + `lib/algorithms/photometry/cpp/build.ps1` → `photometric_calib.dll`，
 未编入根 CMake 主构建。缺陷与整改登记 = PHOTOMETRIC_FIT［A-1］。
 `lib/algorithms/photometry/wrapper_phase1` 的 Photometer aperture 面为迁移目标面
-（README相应章节），当前无仓内可复算的用例引用。
+（测光模块 README 的计划迁移旧符号一节），当前无仓内可复算的用例引用。
 
 ## 职责与明确非职责
 
@@ -158,13 +158,12 @@ cache/内存按 ALG 合同（bounded）; I-O 单 writer。
 
 错误码与退出码唯一源 = lib/infrastructure/cli/exit_codes.h（本页不复制数值表）。
 输入校验失败 → 负返回码（API-PHOT-001）。参考星 / PSF 星 / 光谱星不足或滤光片
-失败 → 退化恒等校正（scale = 1.0、rc = 0，diag/records显式登记，README相应章节）。
+失败 → 退化恒等校正（scale = 1.0、rc = 0，diag/records显式登记，测光模块 README 的错误语义一节）。
 
 边界：源太暗/太亮 → 测光 flags，不产出无意义通量；`a_k` 不确定度缺失 → 标记
 不可跨帧合并；饱和/拖线源标记，不进默认路径。
 
-**失败作用域（帧级 vs 全局，各自具名；正本见 docs/detail/infrastructure/log_and_error_system.md
-相应章节）**：
+**失败作用域（帧级 vs 全局，各自具名；正本见日志错误系统落地设计的失败作用域一节）**：
 
 - **帧级失败**（该帧自身条件不成立）⇒ 该帧记 `status=fail` + `error_domain` /
   `error_status` / `error`、不产出 `photoapplied_<base>`、不进 `photscales`，

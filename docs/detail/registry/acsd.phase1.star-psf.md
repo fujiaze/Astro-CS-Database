@@ -134,7 +134,7 @@ Oracle 面：
   恢复（PSF-001..008）与残差 Gaussian 假设检查；
 - 空间变化模型在位置变化时的残差验证；
 - 有效面积与信息权重一致性 Oracle（PSF 归一化与信息核正本 =
-  `docs/science/noise_snr/NOISE_SNR.md`相应章节）；
+  `docs/science/noise_snr/NOISE_SNR.md`「定权：逆方差与信息量」一节）；
 - PSF 不变量（逐位置归一为和为一、含像素响应对称性按模型）。
 - **负例与归零分支 N02（T05–T07 负向轮，`f_out` 降级标签）**：负例输入构造 =
   窗截断使 `f_out = (1 + r_win²/(2σ²))⁻³ > 3%`（即 `r_win > 2.1063228378790524·σ`，

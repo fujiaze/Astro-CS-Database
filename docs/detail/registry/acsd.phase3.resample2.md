@@ -13,7 +13,7 @@
 > API 正本：docs/engineering/api/PUBLIC_API.md（API-P3-RSMP-001，重采样公共消费面节）、
 > docs/engineering/api/PUBLIC_API.md「分阶段 API 面」（API-P3-001，p3_session 五段 FROZEN 镜像）
 > 架构正本：docs/engineering/architecture/ARCHITECTURE.md
-> 落地设计：`docs/detail/export/pipeline.md`相应章节
+> 落地设计：`docs/detail/export/pipeline.md`「反向映射与采样」一节
 
 模块 = `acsd.p3.resample`（module_id 合同值）；registry 行
 MOD-acsd-phase3-resample2；dll_target = `acsd_p3_resample.dll`（迁移合同值，
@@ -104,7 +104,7 @@ TEST-P3-RES-001）与 module_id 合同值 `acsd.p3.resample` 的对齐属迁移�
 - 生命周期: open(_ex)→set_max_tiles（可选，≤0 恢复默认 8）→
   逐像素 sample_nearest/sample_bilinear N 次→close（幂等）；
   sampler 自含 TileCache，**单实例非线程安全**（无内部锁）；使用方式 = 每 worker 独立实例，以免
-  跨线程共享——每 worker 独立实例（相应章节）；会话编排面 API-P3-001
+  跨线程共享——每 worker 独立实例（详见重采样实现分册的会话编排合同）；会话编排面 API-P3-001
   FROZEN 五段 create→validate→run→inspect→destroy 不变，run 内
   主 sampler open_ex（p3_session.cpp）→每 worker 独立
   open_ex→逐像素分派→close（均 p3_session.cpp）。

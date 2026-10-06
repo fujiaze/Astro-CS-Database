@@ -3,7 +3,7 @@
 > 上游：`docs/ACSD_DESIGN.md`「模块与 ABI」一节与「固定科学流程」一节（控制采样）、
 > 「天光平面与统一相对模型」一节
 > 科学正本：docs/science/sky/UPM.md（SCI-UPM-001，FROZEN，相关章节）、
-> `docs/science/noise_snr/NOISE_SNR.md`「定权」一节、`docs/detail/mosaic/pipeline.md`相应章节
+> `docs/science/noise_snr/NOISE_SNR.md`「定权」一节、`docs/detail/mosaic/pipeline.md`「UPM：联合相对模型」一节
 > 算法正本：docs/science/algorithms/PHASE2_SAMPLER.md（ALG-P2-SMP-001；语义与判据、缺陷登记与测试设计F1–F9三节）
 > 数据正本：docs/detail/registry/acsd.phase2.sample.md（DATA-P2-SMP 端口表，本页输入输出端口表）；
 > control_variance / k_corr冻结式见 `docs/science/noise_snr/NOISE_SNR.md`「定权」一节
@@ -68,8 +68,7 @@ per-pixel 科学场产品；session 依赖（coverage 数据面显式传入）�
 
 - 输入 = `P2CoverageResult`（n_union 上限 1e6、cells 上限 2e8）+ `hips_paths` /
   `frame_ids`（cached 版可空 = 内部重算；0 = 非法哨兵）+ `P2SamplerConfig` 15 字段
-  （默认单一来源 sampler.cpp；`<=0 → 默认` 修补吞显式 0，登记见 ALG-P2-SMP-001
-  相应章节）；
+  （默认单一来源 sampler.cpp；`<=0 → 默认` 修补吞显式 0，登记见采样算法分册的冻结附录一节）；
 - 输出 = `P2ControlObservation` 13 字段（frame_id / control_id / leaf_ipix u64，
   ra_deg / dec_deg / value / uncertainty / snr / ivar / control_variance /
   control_ivar / support f64，snr_available int，quality_flags u32）+
