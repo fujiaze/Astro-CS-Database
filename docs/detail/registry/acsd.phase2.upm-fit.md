@@ -83,7 +83,7 @@ build rc = 2（**显式 INVALID，禁静默回退 support / SNR**，upm.h）；�
 （SCI-UPM-CONV-001收敛与容差、权重禁令、依据与接缝门槛推导四节）
 与 ALG-UPM-001 / PHASE2_UPM_IMPL.md；本页只记落地方式与可读数。
 
-**权重口径 = 逆方差，禁止读作裸 SNR²**：拟合目标是采样点上的逆方差加权最小二乘（GLS 最优权重；文献与出版年双源登记见 docs/science/PHASE2_UPM.md），与 P2 定权
+**权重口径 = 逆方差，禁止读作裸 SNR²**：拟合目标是采样点上的逆方差加权最小二乘（GLS 最优权重；文献与出版年双源登记见 docs/science/sky/UPM.md），与 P2 定权
 式「权重 ∝ 平方信噪比 / 参考通量平方 = 逆方差」同源（SNR 以配置缺省的参考星等档
 `m_ref` 归一，缺省 6.0、可被输入 JSON 覆盖；口径正本 = `eng/contracts/schemas/unified/frame_snr.schema.json` 的
 `reference_baseline`）。

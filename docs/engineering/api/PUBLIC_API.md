@@ -463,7 +463,7 @@
 > SRC: lib/algorithms/noise_snr/cpp/src/noise_model.cpp（现状构建=cpp/Makefile:5,12
 > g++ -shared → snr_estimator.dll + cpp/build.ps1:29，未编入根 CMake 主
 > 构建；dll_loader.cpp:59/73 加载名与路径吻合）；SCI: SCI-NOISE-001..015；
-> ALG: ALG-NOISE-001..003（NOISE_ESTIMATION 逐符号锚）；DATA:
+> ALG: ALG-NOISE-001..003（docs/science/algorithms/common/NOISE_ESTIMATION 逐符号锚）；DATA:
 > DATA-P1-NOISE（DATA_SEMANTICS ）；MOD: acsd.p1.noise-snr（目标 DLL = acsd_p1_noise.dll）。编排级合同见
 > API-P1-006（PUBLIC_API.md 「request」一节，多模块共享）；本节只冻结 noise 路径
 > 9 个导出符号的语义。
@@ -522,8 +522,8 @@
  build 与 fill 对 floor 的处理不一致；`SnrNoiseModelConfig` 的 gain 三字段
  不参与计算；`snr_noise_scale_law` 不做参数校验；掩膜通道互斥；超范围
  参数按静默钳位处理；空 patch 计数与有效 patch 计数混同。完整清单见
- NOISE_ESTIMATION 。
-- plan/execute/cancel/inspect 编排语义见 NOISE_ESTIMATION 与
+ docs/science/algorithms/common/NOISE_ESTIMATION 。
+- plan/execute/cancel/inspect 编排语义见 docs/science/algorithms/common/NOISE_ESTIMATION 与
  lib/algorithms/noise_snr/module.yaml（acsd.p1.noise-snr /
  acsd_p1_noise.dll）。
 
@@ -531,7 +531,7 @@
 
 > 权威签名头，PC_API :7-11 `extern "C"` 不抛异常）
 > SRC: lib/algorithms/photometry/cpp/src/pc_api.cpp
-> SCI: SCI-PHOT-001（docs/science/PHOTOMETRY.md，FROZEN，共享引用不改动）
+> SCI: SCI-PHOT-001（docs/science/photometry/PHOTOMETRY.md，FROZEN，共享引用不改动）
 > ALG: ALG-PHOT-001..002（docs/science/algorithms/PHOTOMETRIC_FIT.md，逐符号锚）
 > DATA: DATA-P1-PHOT（DATA_SEMANTICS ）；编排级合同 API-P1-005
 > （PUBLIC_API.md，descriptor 引用，与本节并行不互斥）

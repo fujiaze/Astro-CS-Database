@@ -304,7 +304,7 @@ x = δx + CRPIX_x − 1, y = δy + CRPIX_y − 1（0-based 输出）    # :140-1
 独立不变量 + [S-1]「判据与误差」一节冻结。**适用域**：`scale ≥ min_scale_arcsec = 0.9″/px`
 （覆盖仓内最小真实尺度 0.9586″/px）；低于该尺度时紧门**不适用**（报「超出适用域」，
 **不判红**——判红会误拒），退回**全域保守门 1e-6 px**（SCI-WCS-001 [S-1]「判据与误差」一节STD-F1）。
-门值/适用域/证据 = 门表 `docs/science/algorithms/GATES_AND_TOLERANCES.md` [S-4]「推导补遗」一节 的
+门值/适用域/证据 = 门表 `docs/science/algorithms/common/GATES_AND_TOLERANCES.md` [S-4]「推导补遗」一节 的
 G-P1-WCS-BRIDGE / G-P1-WCS-BRIDGE-GLOBAL；推导依据
 实验/engineering-evidence/（TAN 闭式截断项恒等于 0 ⇒ 误差 100% 来自 FP64 舍入）。
 解析oracle回归现状由
@@ -702,7 +702,7 @@ G-P1-WCS-BRIDGE / G-P1-WCS-BRIDGE-GLOBAL；推导依据
 > 本文引用上游正本（论文式编号，正文引用处均已改为自然语言节名，不再使用跨文档 §N 跳转）：
 > - [D-1] docs/ACSD_DESIGN.md（最高设计）。
 > - [S-1] docs/science/projection/HIPS_TO_FITS.md（投影导出科学正本 SCI-P3-001）。
-> - [S-4] docs/science/algorithms/GATES_AND_TOLERANCES.md（相关科学正本）。
+> - [S-4] docs/science/algorithms/common/GATES_AND_TOLERANCES.md（相关科学正本）。
 > - [S-5] docs/detail/registry/acsd.phase3.wcs.md（相关科学正本）。
 > - [A-1] docs/science/algorithms/export/PHASE3_RESAMPLE.md（重采样施工规格分册）。
 > - [U-1] docs/science/unified/DATA_SEMANTICS.md（数据语义正本）。

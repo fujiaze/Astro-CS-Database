@@ -5,7 +5,7 @@
 > 本文件是 Phase2 Unified Photometric Model（UPM）
 > fit+apply+persist+reload 的**实现级算法合同**：逐符号源码行号锚定 +
 > 冻结容差 + 现状缺陷登记。科学语义权威=SCI-UPM-001（docs/science/
-> PHASE2_UPM.md，FROZEN 集合，零改动）；推导级算法权威=ALG-UPM-001
+> sky/UPM.md，FROZEN 集合，零改动）；推导级算法权威=ALG-UPM-001
 > （docs/science/algorithms/UPM_SOLVER.md，公式与容差零改动）。
 > 实现源: lib/algorithms/coverage/src/upm.cpp（2981 行）+ 唯一权威签名头
 > lib/algorithms/coverage/include/astro/phase2/upm.h（453 行，实测）；
@@ -134,7 +134,7 @@ function calibrate_block(model, frame_id, leaves, in, out, n):   # :1907-1941（
 
 ## 5 上游 SCI 与映射声明（本域零 SCI 改动）
 
-- 语义权威已有 FROZEN SCI：**SCI-UPM-001**（docs/science/PHASE2_UPM.md；
+- 语义权威已有 FROZEN SCI：**SCI-UPM-001**（docs/science/sky/UPM.md；
   冻结集合 = SCI-UPM-001..010 + SCI-UPM-WEIGHT-001 +
   SCI-UPM-PERSIST-001）。**共享 SCI 引用不改动**
   （P2-SAMP/P2-REJ 同构）。单位面直接承接
@@ -258,7 +258,7 @@ dense/sparse 等价门: 1e-12（UPM_SOLVER.md [S-1]「离散公式」一节冻�
   compute_raw 每 worker 写私有 tsums[tid]，join 后按 t 升序累加进
   sums（实现 :614-641：tsums :616、池 :620-635、按 worker 序合并 :636-639）——
   **冻结口径是三档、不是"worker 数无关"**（`:607-613` 注释冻结；权威
-  `docs/science/PHASE2_UPM.md` [S-1]「公式与推导」一节:184-191 与本处同文）：(a) **同配置重复构建 =
+  `docs/science/sky/UPM.md` [S-1]「公式与推导」一节:184-191 与本处同文）：(a) **同配置重复构建 =
   位精确 + model_hash 逐字相同**（构造保证：连续块划分 + 不相交写 + 无共享
   浮点累加器）；(b) **跨 worker 数（1..N）= 1e-12 绝对容差，不是位精确** ——
   per-control 求和的结合顺序随 worker 切片变化（FP 加法非结合），
@@ -308,7 +308,7 @@ dense/sparse 等价门: 1e-12（UPM_SOLVER.md [S-1]「离散公式」一节冻�
   `ACS_ERR_CANCELLED`：coverage 前 `p2_session.cpp:122`、sample 前 `:160`、
   **upm_build 前 :195**、persist 前 `:240-242`。故"取消不写半成品"由
   **阶段边界 + 整模型单元提交**保证，**不是**"迭代边界取消点"（旧表述勘误）；
-  权威口径见 `docs/science/PHASE2_UPM.md:215-217`。
+  权威口径见 `docs/science/sky/UPM.md:215-217`。
 
 ## 9 复杂度
 

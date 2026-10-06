@@ -1,12 +1,12 @@
 # 统一数据对象合同（13 个 canonical 数据对象与 canonical schema 的对照登记）
 
 > 上游：docs/ACSD_DESIGN.md 「数据对象」一节（数据对象）。
-> 上位正本：`docs/detail/UNIFIED_MODEL.md` 的「数据对象与字段歧义消解」一节——该节登记 13 个 canonical 数据对象，逐对象给出语义与「可否作权重」判定，并规定 `weight`/`value`/`mask`/`snr` 各字段各自具名、一个字段只承载一个含义。本文是**索引与语义登记**，不改任何科学定义、公式、阈值、容差或推导；对象身份/单位/无效值/精度/可否作权重一律以 canonical schema 为准。
+> 上位正本：`docs/detail/common/unified_model.md` 的「数据对象与字段歧义消解」一节——该节登记 13 个 canonical 数据对象，逐对象给出语义与「可否作权重」判定，并规定 `weight`/`value`/`mask`/`snr` 各字段各自具名、一个字段只承载一个含义。本文是**索引与语义登记**，不改任何科学定义、公式、阈值、容差或推导；对象身份/单位/无效值/精度/可否作权重一律以 canonical schema 为准。
 > 现行对象集 = **13 个**；全链没有「权重模式」这一可选概念，`weight_mode` 家族与 `sci_weight_mode` 键**不存在**（叠加权重是阶段二按该天球像素对应帧集合现场换算的派生量，见 `docs/ACSD_DESIGN.md` 「数据对象」一节（数据对象））。
 
 ## 1. 唯一事实源声明
 
-`eng/contracts/schemas/` 是数据合同的**唯一事实源**（`docs/ACSD_DESIGN.md` 「数据对象」一节）。对上位正本 `docs/detail/UNIFIED_MODEL.md`「数据对象与字段歧义消解」一节的 **13** 个 canonical 对象：
+`eng/contracts/schemas/` 是数据合同的**唯一事实源**（`docs/ACSD_DESIGN.md` 「数据对象」一节）。对上位正本 `docs/detail/common/unified_model.md`「数据对象与字段歧义消解」一节的 **13** 个 canonical 对象：
 
 ```text
 canonical 定义 = eng/contracts/schemas/unified/<对象名>.schema.json
@@ -53,7 +53,7 @@ canonical 定义 = eng/contracts/schemas/unified/<对象名>.schema.json
 
 **精度面当前的实现缺口（需负责人裁决）**：最高设计要求「稠密大面单精度」与「稀疏与元数据双精度」**同时成立**（两个可各自独立的归属），但机器侧统一 I/O 只有一个**全局精度模式位**——`lib/infrastructure/aio/src/aio_api.cpp` 的 `g_aio_precision_mode_fp64` 与 `aio_set_precision_mode(int is_fp64)`，模块内查询接口 `aio_internal_is_fp64()` 读同一变量，其头注自述 `PrecisionContext` 单例在动态库边界不共享，须显式设置。单个全局位**无法表达**「稠密 FP32 且稀疏/元数据 FP64」这一组合。因此：本表按对象语义标注的是**应归属**的精度，不是当前机器已强制执行的精度；「拆成两个独立精度量」还是「把最高设计的精度归属收敛为一个全局模式」属未决项，登记在 `governance/UNRESOLVED.md`。
 
-> 「可否作权重」列逐字照抄 `docs/detail/UNIFIED_MODEL.md` 的「数据对象与字段歧义消解」一节，机器以 `object_weight_verdict`（const）+ `object_weight_capability`（const）双字段固化，判定只取自该列原文。
+> 「可否作权重」列逐字照抄 `docs/detail/common/unified_model.md` 的「数据对象与字段歧义消解」一节，机器以 `object_weight_verdict`（const）+ `object_weight_capability`（const）双字段固化，判定只取自该列原文。
 
 ## 3. 模糊字段名禁令（机器门）
 

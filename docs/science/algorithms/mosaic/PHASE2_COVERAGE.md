@@ -188,7 +188,7 @@ p2_coverage_build(hips_paths, n_inputs, out):
   被任何下游作为科学权重、统计权重或置信度使用；科学权重唯一冻结公式
   `w_UPM = quality_factor × geometric_reliability × control_ivar`
   （docs/science/sky/UPM.md[S-1]「公式与推导」一节F2），其中 support 仅
-  eligibility/coverage 语义（PHASE2_UPM.md[S-1]「公式与推导」一节注释行
+  eligibility/coverage 语义（sky/UPM.md[S-1]「公式与推导」一节注释行
   "禁 production 乘 star SNR / snr²/(1+snr²) / support^p；support 仅
   eligibility/coverage"）、canonical reducer=max（SCI-INT-001 [S-1]「判据与误差」一节，
   "覆盖并集保守下界"）——该式的输入 = 三项冻结因子，coverage 帧数/N_cover 只作几何登记、不进入该式、不替代
@@ -373,14 +373,14 @@ status 语义: 0=ok；错误路径部分分支置 1（`lib/algorithms/coverage/s
 ### 11.5 SCI 层状态声明（本域零 SCI 改动）
 
 - 覆盖度几何语义已有 FROZEN 权威：SCI-UPM-001（docs/science/
-  PHASE2_UPM.md）[S-1]「主题与目标」一节 目的句「在多帧覆盖并集上」、
+  sky/UPM.md）[S-1]「主题与目标」一节 目的句「在多帧覆盖并集上」、
   SCI-INT-001（docs/science/integration/INTEGRATION.md [S-1]「判据与误差」一节）
   support「覆盖并集保守下界」、SCI-SCOPE-001 §处理链第 5 步
   「coverage union → 控制采样 → …」。三者均**共享 SCI 引用不改动**
   （P1-WCS SCI-WCS-001=共享 docs/science/detection/ASTROMETRY.md 同构）。
 - 本域不新建 docs/science/ 冻结层文档：matrix P2-COV 行
   science_id=SCI-P2-COV-001 的语义映射由本节声明——
-  SCI-P2-COV-001 ⇒ 指向既有 FROZEN 共享 SCI（权威=PHASE2_UPM.md [S-1]「主题与目标」一节
+  SCI-P2-COV-001 ⇒ 指向既有 FROZEN 共享 SCI（权威=sky/UPM.md [S-1]「主题与目标」一节
   覆盖并集 + INTEGRATION.md [S-1]「判据与误差」一节 support/validity 分离 + 科学范围 [S-3]「假设与适用域」一节，矩阵 science_doc=docs/science/sky/UPM.md
   （MOD-acsd-phase2-coverage 行）。
   三概念分离/union 离散公式/负向条款的算法定义权威=ALG-COV-001
