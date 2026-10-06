@@ -16,10 +16,10 @@
 |---|---|---|
 | 背景方差面 `variance_bg` | 空背景随机分量的逐像素方差（天光散粒、暗流散粒、读出、量化、偏置残差） | 天光建模、误差报告、诊断 |
 | 加权方差面 `variance_w` | 该像素的总方差，额外含源光子散粒项 | 叠加与拟合的最优加权 |
-| 绝对信噪比 `SNR = F_ref/σ_F` | 帧级标量与帧内稀疏控制点共用的量 | 稠密重建、逆方差定权 |
+| 绝对信噪比 `SNR = F_ref/σ_F`（无量纲；分子分母同取帧面 ADU 标度，数值仅在同一 `m_ref` 档内可比） | 帧级标量与帧内稀疏控制点共用的量 | 稠密重建、逆方差定权 |
 | 协方差传播律 `C_out = R C_in Rᵀ` | 线性重采样与积分下的不确定度传播 | 守恒映射、投影导出 |
 
-两个方差面**各自独立、取值互不代用**：把背景方差面当加权方差面会系统性低估源受限像素的噪声、把权重抬高；把加权方差面当背景方差面会丢失「空背景随机分量」这一物理语义，使天光建模失去依据。
+两个方差面**各自独立、取值互不代用**：把背景方差面当加权方差面会系统性低估源受限像素的噪声、把权重抬高；把加权方差面当背景方差面会丢失「空背景随机分量」这一物理语义，使天光建模失去依据。量纲数值声明：本册方差面量纲为 ADU²，通量与标准差量纲为 ADU，`SNR` 无量纲，像素坐标取内部 0 基像素计，计数类阈值无量纲。
 
 ### 1.2 与创新点的对应
 
@@ -528,7 +528,7 @@ E = Var_w / Var_opt - 1
 |---|---|---|---|
 | `variance` / `ivar` | 帧级与球面产品的方差面与逆方差面 | 已交付，三态编码 | 天光平面拟合、集成、导出 |
 | `frame_snr` | 帧级绝对信噪比标量，写入产品头 | 口径冻结；电平存在**逐帧共模偏差**，真实带结构帧实测偏低 15%–77%，多帧叠加不消 ⇒ 不得单独作为选帧或定权依据 [23] | 帧级重建口径、帧级摘要 |
-| `sparse_snr_layer` | 帧内稀疏控制点处的绝对信噪比 | 口径与合同已冻结、消费面已接线并红绿验证；**产者侧车写者与载体发布者尚未落地**，在产者到位前不得由下游直接消费 [23] | 稠密重建 |
+| `sparse_snr_layer` | 帧内稀疏控制点处的绝对信噪比 | 口径与合同已冻结、消费面已接线并红绿验证；**生产者侧写者与载体发布者尚未落地**，在产者到位前不得由下游直接消费 [23] | 稠密重建 |
 | `point_information` | 点源通量估计的逆方差 | 已交付 | 点源目标的严格权重 |
 | `depth_m5` | 5σ 点源深度（空间变化时给深度图） | 已交付；缺测光零点时写空 | 帧级质量摘要、筛选 |
 
@@ -548,6 +548,8 @@ E = Var_w / Var_opt - 1
 
 ## 7 参考文献与参考代码
 
+本节编号不连续是因为文献按类别分组编号（7.1 文献 [1]–[11]、[16]–[17]，7.2 软件 [12]–[15]，7.3 内部文档 [18]–[25]），同类内连续、跨类保留原号，不另重排。
+
 ### 7.1 文献与标准
 
 [1] Horne K. An optimal extraction algorithm for CCD spectroscopy. Publications of the Astronomical Society of the Pacific, 1986, 98: 609. https://doi.org/10.1086/131801
@@ -562,7 +564,7 @@ E = Var_w / Var_opt - 1
 [10] Newberry M. V. Signal-to-noise considerations for sky-subtracted CCD data. Publications of the Astronomical Society of the Pacific, 1991, 103: 122. https://doi.org/10.1086/132801
 [11] Starck J.-L., Murtagh F. Automatic noise estimation from the multiresolution support. Publications of the Astronomical Society of the Pacific, 1998, 110: 193–199. https://doi.org/10.1086/316124
 [16] FITS Standard Working Group. FITS Standard, Version 4.0 (2018-08-13). https://fits.gsfc.nasa.gov/standard40/fits_standard40aa-le.pdf （LaTeX 源 https://fits.gsfc.nasa.gov/standard40/fits_standard40aa-le.tex ）— 图像极值关键字 `DATAMAX` 的定义见 Sect. 4.4.2.5「描述数组的关键字」，该节亦含 `DATAMIN`；全标准正文不含 `SATURATE` 关键字。
-[17] Huber P. J. Robust estimation of location. Annals of Mathematical Statistics, 1964, 35(3): 899–906. https://doi.org/10.1214/aoms/1177703732
+[17] Huber P. J. Robust estimation of location. Annals of Mathematical Statistics, 1964, 35: 73-101. https://doi.org/10.1214/aoms/1177703732
 
 ### 7.2 软件与文档条目
 
@@ -577,7 +579,7 @@ E = Var_w / Var_opt - 1
 [19] 《ACSD 统一科学模型与跨阶段合同》`docs/science/unified/UNIFIED_SCIENCE_MODEL.md` — 量纲、信号与方差语义总纲、点源最优统计。
 [20] 《跨阶段数据语义》`docs/science/unified/DATA_SEMANTICS.md` — 参考通量与参考星等档、方差三态编码。
 [21] 《守恒映射与球面投影》`docs/science/drizzle/DRIZZLE.md` — 方差传播在守恒映射下的归一化口径、`c_jp` 的参数无关性。
-[22] 《统一天光平面》`docs/science/PHASE2_UPM.md` — 控制点估计量的方差与相关校正因子。
+[22] 《统一天光平面》`docs/science/sky/UPM.md` — 控制点估计量的方差与相关校正因子。
 [23] 《实验单元 · 绝对信噪比》`实验/absolute-snr/` — 本册判据的仓内实验证据与读数正本。
 [24] 《实验单元 · 重建稠密信噪比》`实验/dense-snr-reconstruct/` — 三种重建方式的适用域证据。
 [25] 《实验单元 · 守恒映射》`实验/healpix-polar/` — 控制点方差的相关校正因子证据。
@@ -594,4 +596,4 @@ E = Var_w / Var_opt - 1
    - [16] 取 FITS Standard 4.0 的官方 LaTeX 源 `fits_standard40aa-le.tex`：`\paragraph{4.4.2.5. Keywords that describe arrays}` 之下有独立的 `\paragraph{\kwd{DATAMAX} keyword.}`，逐字作「shall give the maximum valid physical value represented by the array (from Eq. 3), exclusive of any IEEE special values」；同一源文件全文 `SATURATE` 命中数为 0。
    - [15] 取 PixInsight 图像加权参考页，页内含「The PSF Signal Weight Estimator of Image Quality」与「The PSF SNR Robust Estimator of Signal-To-Noise Ratio」两节。
 3. **未核对到原文者，单列**：[1] 的页码范围端；[10] Newberry 1991、[11] Starck & Murtagh 1998 的正文（出版方屏蔽，只核到书目层与出版方摘要）。[11] 的出版方摘要逐字含「the à trous wavelet transform」，故「多尺度**小波**」得摘要级证实；「**稳健**」二字在摘要中零次命中，正文未取得前不作断言。
-3. **本册内自证**：MAD 一致化常数、相对标准误系数 `c_se`、控制块预算式的代数关系、`k_corr` 的两因子分解，全部由本册给出解析推导并给出可复跑的蒙特卡洛复核。`c_se` 的复核口径为标准正态样本、`N = 4096`、每档 `R = 4000` 次重复、种子 20240901–20240904，读数 `sqrt(N)·sd(sigma_bg)/sigma`（`sd` 取 R 次重复的**样本标准差**，不再除 `sqrt(R)`）四档得 `1.14684 / 1.16790 / 1.16411 / 1.17040`、均值 `1.16231`，落在解析值 `c_se = 1.1663872874444212` 的种子间散布 `c_se/sqrt(2R) = 0.0130` 之内。`k_corr` 的有限样本因子按同一口径独立复算：`1/median(MAD·kappa)²` 与渐近中位数方差因子之积在 `N = 5/9/17/25/49/121` 处得 `1.65 / 1.26 / 1.12 / 1.08 / 1.03 / 1.01`，与统一天光平面分册登记的表值在 0.5%–4% 内一致；`E[MAD·kappa]/sigma` 在同一组 `N` 处为 `0.673 / 0.822 / 0.909 / 0.969 / 0.987 / 0.994`，全部小于 1（低估），其平方在 `N = 5` 处为 `0.907`，与该分册登记的 `E[sigma²_hat]/sigma² = 0.906 (N=5)` 逐位吻合。
+4. **本册内自证**：MAD 一致化常数、相对标准误系数 `c_se`、控制块预算式的代数关系、`k_corr` 的两因子分解，全部由本册给出解析推导并给出可复跑的蒙特卡洛复核。`c_se` 的复核口径为标准正态样本、`N = 4096`、每档 `R = 4000` 次重复、种子 20240901–20240904，读数 `sqrt(N)·sd(sigma_bg)/sigma`（`sd` 取 R 次重复的**样本标准差**，不再除 `sqrt(R)`）四档得 `1.14684 / 1.16790 / 1.16411 / 1.17040`、均值 `1.16231`，落在解析值 `c_se = 1.1663872874444212` 的种子间散布 `c_se/sqrt(2R) = 0.0130` 之内。`k_corr` 的有限样本因子按同一口径独立复算：`1/median(MAD·kappa)²` 与渐近中位数方差因子之积在 `N = 5/9/17/25/49/121` 处得 `1.65 / 1.26 / 1.12 / 1.08 / 1.03 / 1.01`，与统一天光平面分册登记的表值在 0.5%–4% 内一致；`E[MAD·kappa]/sigma` 在同一组 `N` 处为 `0.673 / 0.822 / 0.909 / 0.969 / 0.987 / 0.994`，全部小于 1（低估），其平方在 `N = 5` 处为 `0.907`，与该分册登记的 `E[sigma²_hat]/sigma² = 0.906 (N=5)` 逐位吻合。
