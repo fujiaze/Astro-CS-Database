@@ -37,16 +37,10 @@
 #include <functional>
 #include <omp.h>
 
-#ifdef _WIN32
-#include <windows.h>
-#else
-// 非 Windows (Linux amd64 正式入口, 宪章 §3.1): 依赖的生产 C API 与本源静态
-// 链接进同一二进制。与 Windows 的 LoadLibraryA+GetProcAddress 是同一 ABI 面,
-// 仅绑定方式不同 —— 上层算法体因此只有一份共享实现。
+// 依赖的生产 C API 与本源静态链接进同一二进制（跨平台同一条路径）。
 #include "astro_image_io.h"
 #include "star_detector.h"
 #include "gaia_client.h"
-#endif
 
 namespace ipv {
 
@@ -109,30 +103,21 @@ typedef int (*gaia_cone_search_for_solver_fn)(
     double** out_ra, double** out_dec, float** out_mag,
     int* out_count);
 
-// 缓存的 DLL 函数指针
+// 缓存的依赖 C API 函数指针（静态直连；T10-Windows 前为 Windows-DLL 运行时解析）
 struct DllApi {
     bool loaded = false;
     bool load_failed = false;
 
-#ifdef _WIN32
-    HMODULE aio_dll = nullptr;
-#endif
     aio_read_fn aio_read = nullptr;
     aio_get_pixel_data_fn aio_get_pixel_data = nullptr;
     aio_get_width_fn aio_get_width = nullptr;
     aio_get_height_fn aio_get_height = nullptr;
     aio_free_image_data_fn aio_free = nullptr;
 
-#ifdef _WIN32
-    HMODULE sdet_dll = nullptr;
-#endif
     sdet_detect_ex_fn sdet_detect_ex = nullptr;
     sdet_detect_ex_f64_fn sdet_detect_ex_f64 = nullptr;
     sdet_free_detect_ex_fn sdet_free_ex = nullptr;
 
-#ifdef _WIN32
-    HMODULE gaia_dll = nullptr;
-#endif
     gaia_cone_search_for_solver_fn gaia_cone_search = nullptr;
 };
 
@@ -140,72 +125,23 @@ static DllApi g_dll;
 
 // 加载所有依赖 DLL (首次调用时加载, 后续复用)
 // 返回 true 表示全部加载成功
-#ifdef _WIN32
+//
+// T10-Windows (RELEASE-10): Windows 与非 Windows 走同一条静态直连路径。
+// 旧 Windows 分支用 LoadLibraryA("astro_image_io.dll"/"star_detector.dll"/
+// "gaia_client.dll") 运行时解析，但这三个 legacy DLL 在现构建树里不存在
+// （acsd_p1_ipv 已含 gaia_client.c、acsd_p1_sdet、acsd_aio 全是 STATIC，经
+// acsd_module_adapters 进同一 exe 链接闭包）⇒ Windows 上全部 49 帧 WCS
+// "unsolved DEGRADED"（M42-E2E T10-Windows 实证），且降级路径疑似串行、
+// CPU 只有单核。静态直连与 Linux 同路径，签名不匹配在编译/链接期即失败。
 static bool load_dlls(Logger* logger) {
     if (g_dll.loaded) return true;
     if (g_dll.load_failed) return false;
 
-    // astro_image_io.dll
-    g_dll.aio_dll = LoadLibraryA("astro_image_io.dll");
-    if (!g_dll.aio_dll) {
-        if (logger) logger->error("ipv_select: 无法加载 astro_image_io.dll");
-        g_dll.load_failed = true;
-        return false;
-    }
-    g_dll.aio_read = reinterpret_cast<aio_read_fn>(reinterpret_cast<void*>(GetProcAddress(g_dll.aio_dll, "aio_read")));
-    g_dll.aio_get_pixel_data = reinterpret_cast<aio_get_pixel_data_fn>(reinterpret_cast<void*>(GetProcAddress(g_dll.aio_dll, "aio_get_pixel_data")));
-    g_dll.aio_get_width = reinterpret_cast<aio_get_width_fn>(reinterpret_cast<void*>(GetProcAddress(g_dll.aio_dll, "aio_get_width")));
-    g_dll.aio_get_height = reinterpret_cast<aio_get_height_fn>(reinterpret_cast<void*>(GetProcAddress(g_dll.aio_dll, "aio_get_height")));
-    g_dll.aio_free = reinterpret_cast<aio_free_image_data_fn>(reinterpret_cast<void*>(GetProcAddress(g_dll.aio_dll, "aio_free_image_data")));
-    if (!g_dll.aio_read || !g_dll.aio_get_pixel_data ||
-        !g_dll.aio_get_width || !g_dll.aio_get_height || !g_dll.aio_free) {
-        if (logger) logger->error("ipv_select: astro_image_io 函数符号解析失败");
-        g_dll.load_failed = true;
-        return false;
-    }
-
-    // star_detector.dll
-    g_dll.sdet_dll = LoadLibraryA("star_detector.dll");
-    if (!g_dll.sdet_dll) {
-        if (logger) logger->error("ipv_select: 无法加载 star_detector.dll");
-        g_dll.load_failed = true;
-        return false;
-    }
-    g_dll.sdet_detect_ex = reinterpret_cast<sdet_detect_ex_fn>(reinterpret_cast<void*>(GetProcAddress(g_dll.sdet_dll, "sdet_detect_ex")));
-    g_dll.sdet_detect_ex_f64 = reinterpret_cast<sdet_detect_ex_f64_fn>(reinterpret_cast<void*>(GetProcAddress(g_dll.sdet_dll, "sdet_detect_ex_f64")));
-    g_dll.sdet_free_ex = reinterpret_cast<sdet_free_detect_ex_fn>(reinterpret_cast<void*>(GetProcAddress(g_dll.sdet_dll, "sdet_free_detect_ex")));
-    if (!g_dll.sdet_detect_ex || !g_dll.sdet_detect_ex_f64 || !g_dll.sdet_free_ex) {
-        if (logger) logger->error("ipv_select: star_detector 函数符号解析失败");
-        g_dll.load_failed = true;
-        return false;
-    }
-
-    // gaia_client.dll
-    g_dll.gaia_dll = LoadLibraryA("gaia_client.dll");
-    if (!g_dll.gaia_dll) {
-        if (logger) logger->error("ipv_select: 无法加载 gaia_client.dll");
-        g_dll.load_failed = true;
-        return false;
-    }
-    g_dll.gaia_cone_search = reinterpret_cast<gaia_cone_search_for_solver_fn>(reinterpret_cast<void*>(GetProcAddress(
-        g_dll.gaia_dll, "gaia_client_cone_search_for_solver")));
-    if (!g_dll.gaia_cone_search) {
-        if (logger) logger->error("ipv_select: gaia_client_cone_search_for_solver 符号解析失败");
-        g_dll.load_failed = true;
-        return false;
-    }
-
-    g_dll.loaded = true;
-    if (logger) logger->info("ipv_select: 依赖 DLL 全部加载成功");
-    return true;
-}
-#else
-
-// 非 Windows 生产绑定: 依赖的公开 C API 与生产源静态链接进同一二进制。
-// 逐符号取函数地址即完成绑定; 任何签名不匹配在编译期 (引用的声明) 或链接期
-// (缺符号) 立即失败 —— 不存在"运行时缺库"的静默降级路径。
-static bool load_dlls(Logger* logger) {
-    if (g_dll.loaded) return true;
+    // 跨平台静态直连：依赖的公开 C API 与生产源静态链接进同一二进制
+    // （acsd_p1_ipv 含 gaia_client.c、acsd_p1_sdet、acsd_aio，经
+    // acsd_module_adapters 进 exe 闭包）。逐符号取函数地址即完成绑定；
+    // 任何签名不匹配在编译期（引用的声明）或链接期（缺符号）立即失败 ——
+    // 不存在"运行时缺库"的静默降级路径。
     g_dll.aio_read           = &aio_read;
     g_dll.aio_get_pixel_data = &aio_get_pixel_data;
     g_dll.aio_get_width      = &aio_get_width;
@@ -217,11 +153,9 @@ static bool load_dlls(Logger* logger) {
     g_dll.gaia_cone_search   = reinterpret_cast<gaia_cone_search_for_solver_fn>(
                                    &gaia_client_cone_search_for_solver);
     g_dll.loaded = true;
-    if (logger) logger->info("ipv_select: 依赖 C API 全部绑定成功 (非 Windows 静态链接)");
+    if (logger) logger->info("ipv_select: 依赖 C API 全部绑定成功 (静态链接)");
     return true;
 }
-
-#endif // _WIN32
 // gaia_query_count 已删除 (不再使用密度迭代)
 // 保留 gaia_query_stars 用于一次性查询
 
