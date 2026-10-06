@@ -8,10 +8,10 @@
 > （PHASE2_SAMPLER.md）、upm=ALG-UPM-001 域（UPM_SOLVER.md）、
 > persist=upm 持久化（SCI-UPM-PERSIST-001 面）；HiPS 马赛克写不进
 > p2 会话（`PUBLIC_API.md`「Phase2 会话装配」节冻结表述）。
-> 上游：ACSD_DESIGN.md §5.2（固定科学流程）、§8.2（数据流形态）
+> 上游：ACSD_DESIGN.md [D-1]「固定科学流程」一节与「数据流形态」一节
 
 > 上游 SCI（共享引用零改动）: SCI-UPM-001 / SCI-INT-001 / SCI-REJ-001
-> （docs/science/，映射声明见 §11.6）。
+> （docs/science/，映射声明见本节）。
 > 下游合同: DATA-P2-SESSION（`docs/detail/registry/acsd.phase2.session.md`，并行任务生成）/ 
 > API-P2-SESSION-001（PUBLIC_API.md，并行任务生成）。
 > 模块: acsd.p2.session（本任务冻结的合同模块词汇）——迁移目标
@@ -36,10 +36,10 @@ budget/allocator）、manifest 状态机与错误映射，供 CLI 直调（CLI-0
 - 不做任何科学计算：无 coverage union/采样/UPM 求解公式（p2_session
   全文零科学实现；facade 委托断言冻结"不复制算法"）；
 - 不做 HiPS 马赛克写（upm_apply/reject/integrate/write 四域不在现状
-  4 段内；`PUBLIC_API.md`「Phase2 会话装配」节；补齐归 P2-SESSION-IMPL，§11.4）；
+  4 段内；`PUBLIC_API.md`「Phase2 会话装配」节；补齐归P2-SESSION-IMPL；
 - 不做线程创建/并行调度决策：worker 数一律经 host->budget 注入域内
   C API（`lib/phase2_session/p2_session.cpp`，禁硬编码）；
-- 不重复科学数值容差：装配层 bitwise 透传，容差归各域 TEST（§11.5）。
+- 不重复科学数值容差：装配层 bitwise 透传，容差归各域TEST。
 
 ## 2 层级定位与构建面
 
@@ -62,13 +62,13 @@ budget/allocator）、manifest 状态机与错误映射，供 CLI 直调（CLI-0
 
 `lib/phase2_session/p2_session.h` 冻结注释"coverage → sampler → UPM build → persist
 (可选); 全部直调 lib/algorithms/coverage 生产函数"；段名与运行 trace 的冻结断言为
-{"coverage","sample","upm_build","persist"} 四节点。**段序不可重排**（§10.1）。
+{"coverage","sample","upm_build","persist"} 四节点。**段序不可重排**。
 
-| # | 段 | 输入端口（DATA-P2-SESSION §24） | 输出端口 | 被调用符号（path::symbol 实测锚） | 取消点 | 段内并行 |
+| # | 段 | 输入端口（DATA-P2-SESSION） | 输出端口 | 被调用符号（path::symbol 实测锚） | 取消点 | 段内并行 |
 |---|---|---|---|---|---|---|
 | 1 | coverage | `hips_paths`: 非空 string[]（N 个 Phase1 单帧 HiPS 根） | P2CoverageResult（n_union_cells/union_cells/target_order，`lib/algorithms/coverage/include/astro/phase2/coverage.h`） | `lib/phase2_session/p2_session.cpp`：两遍 probe/fill p2_coverage_build（首查 inputs=nullptr 查 union 容量），RAII guard p2_coverage_free | 段边界 | 无（串行 properties/MOC 读取） |
 | 2 | sample | 段 1 cov + `hips_paths` | P2ControlObservation[n_obs]（`lib/algorithms/coverage/include/astro/phase2/upm.h`）+ P2ControlNode[n_controls] + P2SampleStats | `lib/phase2_session/p2_session.cpp`：p2_sampler_default_config；两处 p2_sample_controls（两遍 probe/fill，err 512B） | 段边界 | 域内 worker 池（sc.cpu_workers=host->budget.max_workers；池在 `lib/algorithms/coverage/src/sampler.cpp` 域内，本层不开线程） |
-| 3 | upm_build | 段 2 obs + uc 配置（§5 常量面） | opaque model（void*）+ P2ModelInfo（`lib/algorithms/coverage/include/astro/phase2/upm.h`） | `lib/phase2_session/p2_session.cpp`：p2_upm_build；p2_upm_info | 段边界（段内无检查点——**整模型不写半成品**，`lib/phase2_session/p2_session.h`） | 域内 blocks 并行（uc.cpu_workers=budget） |
+| 3 | upm_build | 段 2 obs + uc 配置（[S-1]「判据与误差」一节 常量面） | opaque model（void*）+ P2ModelInfo（`lib/algorithms/coverage/include/astro/phase2/upm.h`） | `lib/phase2_session/p2_session.cpp`：p2_upm_build；p2_upm_info | 段边界（段内无检查点——**整模型不写半成品**，`lib/phase2_session/p2_session.h`） | 域内 blocks 并行（uc.cpu_workers=budget） |
 | 4 | persist（可选） | model + `upm_save_path` + `persist_upm` | .upm 文件 + manifest artifacts[] | `lib/phase2_session/p2_session.cpp`：p2_upm_save；三处 p2_upm_close（所有权合同 `lib/phase2_session/p2_session.h`——session 持有，恰一次释放） | 取消先 close model | 无（串行 IO） |
 
 数据所有权（`lib/phase2_session/p2_session.h` 冻结）：session 持有 Coverage/
@@ -122,14 +122,14 @@ owner=创建者、threadsafe:no（handle 级）、reentrant:yes。
    规范要求该组合缺失时显式判 PARAM（登记 DISP-P2SES-004，整改归 P2-SESSION-IMPL）。
 3. **p2_session_run**（`lib/phase2_session/p2_session.cpp`）：parse（失败文案
    "config parse failed (validate first)"）→ hips 装配→
-   预算日志 → 四段（§3）。常量面（冻结首版值）：
+   预算日志 → 四段（[S-1]「公式与推导」一节）。常量面（冻结首版值）：
    robust_loss=0（huber）、upm_weight_source=0、weight 由 Phase2 按该天球像素
    对应帧集合现场算出（逐样本 ivar；SNR 只作 veto/质量门）、
    huber_delta=1.345（**无量纲**；高斯参考分布下渐近效率 95% 的 Huber 阈值，
    出处 Huber 1964, Ann. Math. Statist. 35, 73, DOI 10.1214/aoms/1177703732；
    Holland & Welsch 1977, Comm. Statist. A6, 813, DOI 10.1080/03610927708827533；
    适用域=标准化残差 z=r/sigma_eff 且 sigma_eff 由观测标度主导，见
-   `docs/science/PHASE2_UPM.md` §7）、max_iterations=100（无量纲；域 ≥1，
+   `docs/science/sky/UPM.md` [S-1]「参考文献与参考代码」一节）、max_iterations=100（无量纲；域 ≥1，
    达上限时 converged 必须记 0=max_iter 而非「已收敛」）、
    tolerance=1e-6（**本入口为绝对阈值**：`lib/phase2_session/p2_session.cpp` 只赋 `uc.tolerance`，
    **未设** `uc.tolerance_relative`（`P2UpmBuildConfig uc{}` 零初始化 ⇒ 0），
@@ -138,14 +138,14 @@ owner=创建者、threadsafe:no（handle 级）、reentrant:yes。
    仅在 `tolerance_relative=1` 时生效（`lib/algorithms/coverage/src/upm.cpp`，default 0），
    由编排入口显式 opt-in（`lib/infrastructure/scheduler/src/module_adapters.cpp`）——
    **口径依入口而变，引用 `converged`/`tolerance_relative` 必须先写明入口**
-   （`docs/science/PHASE2_UPM.md` §16 正向约束）。在面亮度 ADU·sr⁻¹ 标度上
+   （`docs/science/sky/UPM.md` [S-1]「公式与推导」一节 正向约束）。在面亮度 ADU·sr⁻¹ 标度上
    绝对 1e-6 低于 ULP 5–8 个数量级、原理上不可达（`lib/algorithms/coverage/src/upm.cpp`；
    实测 iterations=100, converged=0））、
    sigma_floor=1e-3（**量纲 = σ(ADU)，帧面标度**，与所消费的 `uncertainty` 同标度；
    权威 = `docs/detail/registry/acsd.phase2.upm-fit.md` 的单位/dtype 面标度条与「三地板互不代用」条
    （**不是**面亮度 ADU·sr⁻¹；`photo_scaled_adu` 时按 α 换算）；
    当 `|uncertainty| < sigma_floor` 时 Huber 的 z 失去统计尺度意义，
-   见 `docs/science/PHASE2_UPM.md` §7）、support_power=1.0、use_ivar_weight=1、
+   见 `docs/science/sky/UPM.md` [S-1]「公式与推导」一节）、support_power=1.0、use_ivar_weight=1、
    control_reliability=1.0、target_order=cov 实测值；config
    `upm.{max_iterations,huber_delta,smoothing_lambda}` 可覆盖
    ；persist 条件 `persist_upm && upm_save_path`。
@@ -200,7 +200,7 @@ passthrough 交会话拒——两道防线，语义一致。
 
 反断言（grep 实测）：`lib/phase2_session/p2_session.cpp` 不含 p2_integrate_
 pixel / p2_reject_* / p2_upm_apply 族 / hips writer 任何符号——7 节点
-链其余四域不在现状 4 段（§11.4 差距表）。p2_coverage_build / p2_sample_controls /
+链其余四域不在现状 4 段（[S-1]差距表）。p2_coverage_build / p2_sample_controls /
 p2_upm_build 的委托断言与段序断言冻结于 §11.5 T1。
 
 ## 8 预算绑定与并发语义
@@ -215,7 +215,7 @@ p2_upm_build 的委托断言与段序断言冻结于 §11.5 T1。
 - **线程创建归零**：`lib/phase2_session/p2_session.cpp` 无 std::thread/omp 原语（grep 实
   测）——并行全部在域内实现（sampler.cpp worker 池 / upm.cpp blocks），
   会话层单线程顺序编排四段。
-- **预算注释矛盾**（DISP-P2SES-008，§11.3）：`lib/phase2_session/p2_session.h`
+- **预算注释矛盾**（DISP-P2SES-008）：`lib/phase2_session/p2_session.h`
   "sampler=1(串行 reference)" 与 "内部并行仅 UPM blocks" 为陈旧
   表述，与实现（sample 亦 budget 多 worker）矛盾——以实现为
   现状口径，合同文本归一归 P2-SESSION-IMPL。
@@ -226,11 +226,11 @@ p2_upm_build 的委托断言与段序断言冻结于 §11.5 T1。
   stage 标 "cancelled" + 返回 ACS_ERR_CANCELLED。
 - **upm 整模型不写半成品**：upm_build 段内无取消检查点（求解原子）；
   persist 取消先 p2_upm_close 释放再返回（同文件，所有权合同优先）。
-- **取消后 manifest 歧义**（DISP-P2SES-003，§11.3）：顶层 status 未
+- **取消后 manifest 歧义**（DISP-P2SES-003）：顶层 status 未
   设 cancelled，inspect 回落 "created"——整改归
   P2-SESSION-IMPL。
 - 域内无检查点与 DISP-COV-005/P2-SMP ThreadLease 缺口同构（PHASE2_
-  SAMPLER.md §11.1），段粒度取消为会话层唯一取消面。
+  SAMPLER.md [S-1]「冻结附录」一节），段粒度取消为会话层唯一取消面。
 
 ## 10 已冻结禁改清单（本层不可接受变化）
 
@@ -241,11 +241,11 @@ p2_upm_build 的委托断言与段序断言冻结于 §11.5 T1。
    `lib/infrastructure/scheduler/src/module_adapters.cpp`）。
 4. validate 无 silent default（`lib/phase2_session/p2_session.h`；缺必需键/类型错
    →PARAM）。
-5. 错误映射 rc=1→PARAM / rc=2→STATE（合同 §4）/ persist IO→ACS_ERR_
+5. 错误映射 rc=1→PARAM / rc=2→STATE（合同 [S-1]「参数与常数」一节）/ persist IO→ACS_ERR_
    IO（`lib/phase2_session/p2_session.cpp` 的头部注释与 map_rc 分支）。
 6. 每段恰一取消检查点=段边界；upm 段整模型原子（`lib/phase2_session/p2_session.h`）。
 7. 预算零硬编码：worker 数恒经 host->budget 注入（`lib/phase2_session/p2_session.cpp`）。
-8. NODE-CALL 唯一性（§7 矩阵）；facade 不内联科学。
+8. NODE-CALL 唯一性（[S-1]「参考文献与参考代码」一节 矩阵）；facade 不内联科学。
 
 ## 11 冻结附录（SRC-P2-SESSION-001 源码实测）
 
@@ -263,7 +263,7 @@ p2_upm_build 的委托断言与段序断言冻结于 §11.5 T1。
 
 域 rc→ACS_ERR 归并 map_rc（`lib/phase2_session/p2_session.cpp`）：rc=0→OK；last_error 记
 "<what> rc=<n>"；error_kind 标 "input"。域内 rc 细分语义见各域文档
-（PHASE2_SAMPLER §11.1 等）；本层不重解释域返回码。
+（PHASE2_SAMPLER相应章节等）；本层不重解释域返回码。
 
 ### 11.2 manifest 状态机与字段
 
@@ -278,20 +278,20 @@ inspect   → created | complete | failed（"cancelled" 未单列）    # p2_ses
 
 字段全集：kind/stages[]（name/status/rc/err/计数，§6）/artifacts[]/
 n_inputs/n_obs/status/error_kind/error。dtype/键集唯一权威=
-DATA-P2-SESSION（§24，并行任务生成）；本节为实现现状锚定。
+DATA-P2-SESSION（并行任务生成）；本节为实现现状锚定。
 
 ### 11.3 现状缺陷清单（DISP-P2SES-001..008，登记不改码，整改归 P2-SESSION-IMPL/TEST）
 
 | ID | 锚 | 内容 | 整改归属 |
 |---|---|---|---|
-| DISP-P2SES-001 | `lib/phase2_session/p2_session.cpp` vs `lib/phase2_session/p2_session.h` | validate 实际**未拒未知键**（仅必需键/类型/upm 形状）；`lib/phase2_session/p2_session.h` 头注释"拒未知键/缺必需键"与实现出入——config 键白名单缺失，拼错键静默忽略 | P2-SESSION-IMPL（补键白名单或修正头注释）+ TEST 负面门（§11.5 T3） |
+| DISP-P2SES-001 | `lib/phase2_session/p2_session.cpp` vs `lib/phase2_session/p2_session.h` | validate 实际**未拒未知键**（仅必需键/类型/upm 形状）；`lib/phase2_session/p2_session.h` 头注释"拒未知键/缺必需键"与实现出入——config 键白名单缺失，拼错键静默忽略 | P2-SESSION-IMPL（补键白名单或修正头注释）+ TEST负面门（[S-1]「判据与误差」一节T3） |
 | DISP-P2SES-002 | `lib/phase2_session/p2_session.cpp` | run 未复用/未强制 validate：parse 后直接 doc["hips_paths"]（缺键或非 object 时 nlohmann type_error 未捕获，**异常可穿越 extern "C" ABI**；try 仅覆盖 parse） | P2-SESSION-IMPL（run 前置 validate 或 try/catch 全包） |
 | DISP-P2SES-003 | `lib/phase2_session/p2_session.cpp` | 取消路径未设顶层 status（"cancelled"），ran=false 且 last_error 空 → inspect 回落 "created"，取消态不可辨识 | P2-SESSION-IMPL（status 状态机补 cancelled）+ TEST |
 | DISP-P2SES-004 | `lib/phase2_session/p2_session.cpp` | persist_upm=true 而 upm_save_path 缺失 → **静默跳过 persist**（无告警无 stage 记录）；validate 不校验该组合，违背"无 silent default"精神 | P2-SESSION-IMPL（validate 增组合校验或 run 显式报错） |
-| DISP-P2SES-005 | `lib/phase2_session/p2_session.cpp` | UPM 首版常量硬编码且仅 max_iterations/huber_delta/smoothing_lambda 可经 config 覆盖；tolerance/sigma_floor/support_power/use_ivar_weight/control_reliability/zero_anchor_weight 等不可配置（与 DISP-P2SMP-004 schema 缺口同构） | P2-SESSION-IMPL（config 键集扩面须同步 DATA-P2-SESSION §24） |
+| DISP-P2SES-005 | `lib/phase2_session/p2_session.cpp` | UPM 首版常量硬编码且仅 max_iterations/huber_delta/smoothing_lambda 可经 config 覆盖；tolerance/sigma_floor/support_power/use_ivar_weight/control_reliability/zero_anchor_weight 等不可配置（与 DISP-P2SMP-004 schema 缺口同构） | P2-SESSION-IMPL（config 键集扩面须同步DATA-P2-SESSION [S-1]） |
 | DISP-P2SES-006 | `lib/phase2_session/p2_session.cpp` | error_kind 分类粗粒度：map_rc 一律标 "input"，仅 persist 显式 "output"——HiPS 打开失败（IO 性质）亦标 input，诊断分流失真 | P2-SESSION-IMPL（观察级） |
 | DISP-P2SES-007 | `lib/phase2_session/p2_session.cpp` | 两遍 probe/fill 的**部分失败容错**未定义于合同：首查 rc≠0 且已得容量（cov.n_union_cells>0 / n_obs>0）时静默续跑 fill，首查错误被丢弃（coverage 的 `rc!=0 && n_union_cells==0` 才失败；sample 同型） | P2-SESSION-IMPL（合同化容错语义或收紧为 rc==0）+ TEST |
-| DISP-P2SES-008 | `lib/phase2_session/p2_session.h` vs `lib/phase2_session/p2_session.cpp` | 预算绑定头注释陈旧（"sampler=1 串行 reference"/"内部并行仅 UPM blocks"）与实现（sample 亦 budget 多 worker）矛盾；API-P2-001 合同 §3 表述同步归口 | P2-SESSION-IMPL（合同文本归一） |
+| DISP-P2SES-008 | `lib/phase2_session/p2_session.h` vs `lib/phase2_session/p2_session.cpp` | 预算绑定头注释陈旧（"sampler=1 串行 reference"/"内部并行仅 UPM blocks"）与实现（sample 亦 budget 多 worker）矛盾；API-P2-001 合同 [S-1]「公式与推导」一节 表述同步归口 | P2-SESSION-IMPL（合同文本归一） |
 
 ### 11.4 IMPL-COMPLETE 全链 artifact 目标合同与现状差距表
 
@@ -325,7 +325,7 @@ DATA-P2-SESSION（§24，并行任务生成）；本节为实现现状锚定。
   （manifest 门先例）。
 - **T3 descriptor 集成/validate 负面矩阵**（台账）：坏 JSON/非
   object/缺 hips_paths/缺 output_dir/hips_paths 空与非 string 项/
-  upm 非对象/未知键（DISP-P2SES-001 现状口径：不拒——按 §11.3 登记断
+  upm 非对象/未知键（DISP-P2SES-001 现状口径：不拒——按[S-1]登记断
   言，整改后翻转为拒）/output_dir 注入面（`lib/infrastructure/cli/parser.cpp` 拒、
   `lib/infrastructure/cli/runtime_client.cpp` 补/直通不补）；取消注入点：四段边界各
   一（mock host cancel → ACS_ERR_CANCELLED + persist 段取消 model
@@ -351,22 +351,22 @@ DATA-P2-SESSION（§24，并行任务生成）；本节为实现现状锚定。
   域），调用面随 typed DAG 扩面接入。
 - SCI 公式语义不在此重复定义；两处冲突以 docs/science/ 为准并回改
   本文档（方向 = 从 docs/science/ 到本文档）。
-- descriptor 占位词汇（SCI-P2-RES-001 等，§4）与本页冲突时以本页为
+- descriptor 占位词汇（SCI-P2-RES-001 等，[S-1]「参数与常数」一节）与本页冲突时以本页为
   准；本节是唯一冻结依据（编排层词汇只作对齐对象；acsd.p2.session 由
   P2-SESSION-INT 对齐，不作冻结依据）。
 
 ## 12 关联 ID 映射（本文件承接）
 
-- `ALG-P2-SESSION-001` = 本文档整体（DAG §3/端口 §4/生命周期 §5/
-  唯一性 §7；矩阵 P2-SESSION 行 algorithm_id，INDEX.yaml path 绑定
+- `ALG-P2-SESSION-001` = 本文档整体（DAG [S-1]「公式与推导」一节/端口 [S-1]「参数与常数」一节/生命周期 [S-1]「判据与误差」一节/
+  唯一性 [S-1]「参考文献与参考代码」一节；矩阵 P2-SESSION 行 algorithm_id，INDEX.yaml path 绑定
   本文件——由并行任务登记，此处引用 id 不引节号）。
 - `DATA-P2-SESSION`（`docs/detail/registry/acsd.phase2.session.md`，生成中）= config 键集
-  （§5）/manifest 字段（§11.2）契约面；冲突以 §24 为准。
+  （[S-5]「输入输出端口」一节）/manifest 字段（[S-5]「输入输出端口」一节）契约面；冲突以 [S-5]「输入输出端口」一节 为准。
 - `API-P2-SESSION-001`（PUBLIC_API.md，生成中）= 五函数 C API +
-  last_error 诊断面（§5）。
-- `TEST-P2-SESSION-001`（MISSING）= §11.5 设计冻结的可执行载体
+  last_error 诊断面（[S-1]「判据与误差」一节）。
+- `TEST-P2-SESSION-001`（MISSING）= [S-1]设计冻结的可执行载体
   （P2-SESSION-TEST 落地）；`TEST-P2-SESSION-DESIGN-001` = 本文件
-  §11.5（双面登记不冒认）。
+  [S-1]双面登记不冒认。
 - `SRC-P2-SESSION-001` = lib/phase2_session/ 源码实测面（p2_session.h
   39 行 + `lib/phase2_session/p2_session.cpp` 318 行（复测）+ 根 `CMakeLists.txt` 相应段），本文件全部锚的权威。
 - `MOD-acsd-phase2-session` = lib/phase2_session/module.yaml（本
@@ -381,11 +381,18 @@ DATA-P2-SESSION（§24，并行任务生成）；本节为实现现状锚定。
 - 编排消费面：CLI 直调（CLI-005）与 RT-005/RT-008 SessionModule
   （`lib/infrastructure/scheduler/src/module_adapters.cpp` 的 P2Api 与两处注册段）。
 - 对拍先例：lib/phase1_session/ + registry 页
-  acsd.phase1.session.md；PHASE2_SAMPLER.md §11/§12 结构。
+  acsd.phase1.session.md；PHASE2_SAMPLER.md [S-1]「冻结附录」一节结构。
 - 消费域：ALG-COV-001（PHASE2_COVERAGE.md）/ ALG-P2-SMP-001
   （PHASE2_SAMPLER.md）/ ALG-UPM-001（UPM_SOLVER.md）。
-- 差距整改：§11.4（IMPL/INT）+ §11.3 DISP-P2SES-001..008；
-  测试落地：P2-SESSION-TEST（§11.5）。
+- 差距整改：[S-1]（IMPL/INT）+ [S-1]「判据与误差」一节DISP-P2SES-001..008；
+  测试落地：P2-SESSION-TEST。
+
+> 本文引用上游正本（论文式编号，正文引用处均已改为自然语言节名，不再使用跨文档 §N 跳转）：
+> - [D-1] docs/ACSD_DESIGN.md（最高设计）。
+> - [S-1] docs/science/sky/UPM.md（天光平面科学正本）。
+> - [S-2] docs/science/integration/INTEGRATION.md（集成科学正本）。
+> - [S-3] docs/science/integration/REJECTION.md（排异科学正本）。
+> - [S-5] docs/detail/registry/acsd.phase2.session.md（相关科学正本）。
 
 ## 参考文献与参考代码库（含许可证）
 

@@ -1,6 +1,6 @@
 # WCS / PlateSolve Algorithms (ALG-WCS)
 
-> 上游：ACSD_DESIGN.md §4.2（Phase1 节点流程）
+> 上游：ACSD_DESIGN.md [D-1]「节点流程」一节（Phase1 节点流程）
 
 ## 1 上游 SCI 与输入输出
 
@@ -15,7 +15,7 @@ F1: CRPIX = w/2+0.5, h/2+0.5 (1-based), 0-based x0=CRPIX−1
 F2: CD = trans.linear/3600 (deg/pixel), cd_inv = inv(trans.linear) (pixel/arcsec)
 F3: SIP前向 A[i][j]=cd_inv·trans.x_ij, B[i][j]=cd_inv·trans.y_ij (解析)
 F4: SIP逆向 AP/BP = argmin ||UV − [ (u,v) + SIP_A/B(u,v) ]||² on 采样网格 ≥7×7, AP[1,0]-=1, BP[0,1]-=1
-    # 与 SCI-WCS-001 §5 同式同括号; SIP 自变量为像素偏移(px); 采样网格实现值
+    # 与 SCI-WCS-001 [S-1]「判据与误差」一节 同式同括号; SIP 自变量为像素偏移(px); 采样网格实现值
     # AP/BP 41×41(阶 5)/APx/BPx 81×81(阶 7) — DISP-WCS-008
 F5: Y-down: cd12,cd22 取反; A'=A·(-1)^j, B'=−B·(-1)^j, AP/BP 同规则
 F6: 投影 TAN + SIP畸变 + J2000, 极区 Lipschitz C=π/2 / C45=π/(2√2) conservative prune
@@ -144,7 +144,7 @@ Polar prune: if |dec|>45° use C/C45 disk B(q,C·radius), false_negative=0
 
 - `IpvWcsResult.error_msg` 与内部 `WcsFitResult.error` 是**对外可见**的失败信息载体，
   其内容**必须**是**合法 UTF-8**（承接 ``docs/engineering/``「文件编码 UTF-8」与
-  `docs/engineering/contracts/LOG_AND_ERROR.md` §8「超限按 UTF-8 边界截断」的口径）。
+  `docs/engineering/contracts/LOG_AND_ERROR.md` [S-3]「协方差传播」一节「超限按 UTF-8 边界截断」的口径）。
 - **写入定长缓冲的规则**：
   1. 截断**只**发生在 UTF-8 码点边界，多字节序列整体保留；
   2. 非法字节（孤立续字节 / 非法首字节 / 过长编码 / 代理区 / 越界码点 / 被 NUL 截断的序列）
@@ -232,10 +232,10 @@ Polar prune: if |dec|>45° use C/C45 disk B(q,C·radius), false_negative=0
 | ipv_solve_from_memory_with_callback_d | lib/algorithms/platesolve/cpp/ipv/src/ipv_entry.cpp（ipv_api.h） | 回调变体 FP64 |
 | do_solve_from_detections_v1_impl | lib/algorithms/platesolve/cpp/ipv/src/ipv_entry.cpp | 参数装配 → IPVSolver::solve_from_memory；try/catch → set_error_msg（同文件） |
 | IPVSolver::solve_from_memory | lib/algorithms/platesolve/cpp/ipv/src/ipv_solver.cpp | 主求解流程（含入口日志） |
-| 选星 + U 构建 | lib/algorithms/platesolve/cpp/ipv/src/ipv_select.cpp（`select_image_stars`：非饱和候选按 mag(box积分) 升序取前 img_n_target，§4a.1；样本不足报错点名 n_detected/n_saturated/n_unsat） | U=(det_x−cx, −(det_y−cy)) 像素、Y-up、原点图像中心；s0=206.265·pixel_um/focal_mm（同文件） |
-| 密度/目标星数 | lib/algorithms/platesolve/cpp/ipv/src/ipv_select.cpp（`compute_fov_density`，rho_img 分子 = 实际样本基数，§4a.2） | n_target = min(60, max(50, round(ρ_target·query_area/img_area))) |
-| 极限星等迭代与交付 | lib/algorithms/platesolve/cpp/ipv/src/ipv_select.cpp（`estimate_mag_lim_iterative`，§4a.3/§4a.4 空扫描 provenance；`gaia_query_mag_iterative`：空扫描/触顶样本 fail-closed） | 空结果向更暗步进；全空扫描 empty_sweep；触顶样本一律走显式错误 |
-| 错误串编码归一 | lib/algorithms/platesolve/cpp/ipv/src/ipv_entry.cpp（`utf8_safe_copy`，§4b；`set_error_msg`；`to_c_result`） | error_msg 恒为合法 UTF-8：码点边界截断 + 非法字节替换为 '?' |
+| 选星 + U 构建 | lib/algorithms/platesolve/cpp/ipv/src/ipv_select.cpp（`select_image_stars`：非饱和候选按mag(box积分)升序取前img_n_target；样本不足报错点名 n_detected/n_saturated/n_unsat） | U=(det_x−cx, −(det_y−cy)) 像素、Y-up、原点图像中心；s0=206.265·pixel_um/focal_mm（同文件） |
+| 密度/目标星数 | lib/algorithms/platesolve/cpp/ipv/src/ipv_select.cpp（`compute_fov_density`，rho_img分子 = 实际样本基数） | n_target = min(60, max(50, round(ρ_target·query_area/img_area))) |
+| 极限星等迭代与交付 | lib/algorithms/platesolve/cpp/ipv/src/ipv_select.cpp（`estimate_mag_lim_iterative`，[S-1]空扫描provenance；`gaia_query_mag_iterative`：空扫描/触顶样本 fail-closed） | 空结果向更暗步进；全空扫描 empty_sweep；触顶样本一律走显式错误 |
+| 错误串编码归一 | lib/algorithms/platesolve/cpp/ipv/src/ipv_entry.cpp（`utf8_safe_copy`；`set_error_msg`；`to_c_result`） | error_msg 恒为合法 UTF-8：码点边界截断 + 非法字节替换为 '?' |
 | 三角形投票 | lib/algorithms/platesolve/cpp/ipv/src/ipv_triangle.cpp | 线程局部投票矩阵 + omp for schedule(dynamic,64) + 整数归并 collapse(2) schedule(static) |
 | iter_trans_solve | lib/algorithms/platesolve/cpp/ipv/src/ipv_itertrans.cpp | 迭代重投影多项式拟合（order 1→3） |
 | robust_refine_wcs | 调用点 lib/algorithms/platesolve/cpp/ipv/src/ipv_solver.cpp；irls_fit_one_step lib/algorithms/platesolve/cpp/ipv/src/ipv_robust_refine.cpp | 稳健扩增精化（CD 阻尼 + Tukey biweight；佐证链：Mosteller & Tukey 1977（Data Analysis Using Regression and Multiresponse/Prediction, Addison-Wesley）稳健 M 估计与 biweight 原始出处、Beaton & Tukey 1974（Biweight, a Robust Alternative to the Gaussian, J. R. Statist. Soc. C, 23(3): 333–351，DOI 10.2307/2982349）），失败回退不破坏主解 |
@@ -299,11 +299,11 @@ Polar prune: if |dec|>45° use C/C45 disk B(q,C·radius), false_negative=0
   为合同值，接线归 P1-WCS-IMPL。
 - DISP-WCS-006 三套 TAN 实现并存：ipv（生产）、wcs_tan（lib/algorithms/platesolve/wrapper_phase1，
   仅 WcsTan 桥回归面消费）、wcs_transform（P1-PHOT 域）
-  ——像素中心契约不一致（§11.2 双契约），维护歧义，去留归
+  ——像素中心契约不一致（双契约），维护歧义，去留归
   P1-WCS-IMPL/P1-PHOT-IMPL。
 - DISP-WCS-008 SIP 逆映射网格/阶扩展 + 迭代反演：生产 `ipv_wcs.cpp` AP/BP 用
   41×41 网格（`NB_GRID=41`）、APx/BPx 用 81×81（`NB_GRID_X=81`，阶 7）；SCI
-  §7/§11 的现行口径为「采样网格 ≥7×7 + 独立
+  [S-1]「参考文献与参考代码」一节 的现行口径为「采样网格 ≥7×7 + 独立
   密集域不变量 ≤1e-4 px」；本机 `p1wcs_tests apbp` low/mid/high 三档独立域
   roundtrip max 3.299e-10/1.518e-9/1.655e-9 px 全过（R-3 §3.6）⇒ 「1e-4 px
   数学不可达」对当前实现为假。维护歧义已消除；本清单 DISP-WCS-006 为
@@ -312,26 +312,26 @@ Polar prune: if |dec|>45° use C/C45 disk B(q,C·radius), false_negative=0
 ### 11.4 TEST-WCS-DESIGN-001 冻结测试设计（可执行 TEST-P1-WCS-001 由 P1-WCS-TEST 落地）
 
 - F1 合成线性场（order=1，已知 CD/CRVAL/CRPIX 合成星表）：求解成功且
-  n_pairs≥12；rms_arcsec ≤0.5″；CD 元素相对误差 ≤2%（§9 尺度容差 0.002 同源）；
+  n_pairs≥12；rms_arcsec ≤0.5″；CD 元素相对误差 ≤2%（[D-1]尺度容差0.002同源）；
   |ΔCRVAL|≤1″。F1 不以任何单一实场实测值为标定依据；产品级外部闭环口径已冻结在
-  SCI-WCS-001 §11a 与 GATES_AND_TOLERANCES §3（G-P1-WCS-CLOSURE / -REPRO）。
+  SCI-WCS-001 [S-1]「判据与误差」一节与 GATES_AND_TOLERANCES [S-1]「公式与推导」一节（G-P1-WCS-CLOSURE / -REPRO）。
   **量测域冻结**：本项 `rms_arcsec` 定义在 `trans` 拟合的**内点集**（`n_pairs≥12`）
   与**合成线性场**（order=1，已知 CD/CRVAL/CRPIX 合成星表）上；它**不是**产品级
   天测精度门。产品级外部闭环量（全帧头域 median/p95）另立证据面
   **G-P1-WCS-CLOSURE**，其阈值需另行标定；该门与 F1 量测域不同，两者**各自独立出证，不
   互为证据**。门表见 `docs/science/algorithms/GATES_AND_TOLERANCES.md`。
 - F2 SIP 场 oracle（注入已知 A/B，order=2）：astropy WCS（隔离 test-only
-  oracle，§5 规则）前向/逆向 |Δ|≤1e-4 px 于中心 90% 区域（承接 §8 预冻结
+  oracle，[S-4]「推导补遗」一节 规则）前向/逆向 |Δ|≤1e-4 px 于中心 90% 区域（承接 §8 预冻结
   值，不放宽）；AP/BP 逆向一致性 roundtrip 同容差。
 - F3 CRPIX/Y-down 不变量：CRPIX=(w/2+0.5, h/2+0.5) 精确断言（F1）；Y 翻转
-  后 CD 第 2 列符号翻转与 F5 公式一致；docs/science/detection/ASTROMETRY.md §7 CRPIX 不变量不破。
+  后 CD 第 2 列符号翻转与 F5 公式一致；docs/science/detection/ASTROMETRY.md [S-1]「参考文献与参考代码」一节 CRPIX 不变量不破。
 - F4 失败语义负例：0 星/<3 星 → ret=0 或 success=0 且 error_msg 非空，进程
   不崩溃；指向偏差 >FOV → 显式失败；**CD det 退化注入（DISP-WCS-001）→
   success=0 即最终取值，坍缩值只作诊断量**；DLL 缺失 → orchestrator 非零退出码
   （`lib/infrastructure/pipeline/orchestrator/cpp/src/orchestrator.cpp`）。
 - F5 确定性：同输入同线程数 3 次运行 IpvWcsResult bitwise 一致；线程
   1/2/4 下 bitwise 一致（投票归并为整数求和 lib/algorithms/platesolve/cpp/ipv/src/ipv_triangle.cpp、
-  拟合单线程，无跨线程浮点重结合——§5c 禁令；若实测违背，P1-WCS-TEST
+  拟合单线程，无跨线程浮点重结合——[S-1]禁令；若实测违背，P1-WCS-TEST
   如实登记，语义取值照本节）。
 - F6 WcsTan 桥回归：WcsTan pix2sky/sky2pix roundtrip <1e-6 deg
   （§10 冻结值）；另有**独立前向交叉绝对门**：pix2sky 输出与
@@ -347,14 +347,20 @@ Polar prune: if |dec|>45° use C/C45 disk B(q,C·radius), false_negative=0
 ### 11.5 SCI-WCS-001 状态声明
 
 科学专项（matrix P1-WCS 行）映射：plate solving TAN+SIP=本 ALG F1-F5 公式
-与 §11.1 生产通道；ICRS/J2000=RADESYS=ICRS/EQUINOX=2000 写回
+与[S-1]生产通道；ICRS/J2000=RADESYS=ICRS/EQUINOX=2000 写回
 （`lib/infrastructure/pipeline/orchestrator/cpp/src/orchestrator.cpp` 的 RADESYS/EQUINOX 写回处，docs/science/detection/ASTROMETRY.md 的「坐标参考系」一节）；degenerate conditions=
-ASTROMETRY §8 ↔ DISP-WCS-001 退化语义（坍缩禁冒充解）；astropy oracle=
-ASTROMETRY §11 ↔ F2。共享 SCI（docs/science/detection/ASTROMETRY.md SCI-WCS-001，FROZEN）
+ASTROMETRY [S-1]「判据与误差」一节 ↔ DISP-WCS-001 退化语义（坍缩禁冒充解）；astropy oracle=
+ASTROMETRY [S-1]「判据与误差」一节 ↔ F2。共享 SCI（docs/science/detection/ASTROMETRY.md SCI-WCS-001，FROZEN）
 不因本附录改动；本节是唯一冻结依据（编排层词汇只作对齐对象；descriptor
 acsd.phase1.wcs-platesolve 占位 ID SCI-P1-WCS-001/ALG-002/DATA-P1-WCS/
 API-P1-004/TEST-P1-WCS-001，`lib/infrastructure/scheduler/src/module_adapters.cpp`，由 P1-WCS-INT
 对齐本合同，不作冻结依据）。
+
+> 本文引用上游正本（论文式编号，正文引用处均已改为自然语言节名，不再使用跨文档 §N 跳转）：
+> - [D-1] docs/ACSD_DESIGN.md（最高设计）。
+> - [S-1] docs/science/detection/ASTROMETRY.md（天体测量与 WCS 科学正本 SCI-WCS-001）。
+> - [S-3] docs/engineering/contracts/LOG_AND_ERROR.md（相关科学正本）。
+> - [S-4] docs/science/algorithms/GATES_AND_TOLERANCES.md（相关科学正本）。
 
 ## 参考文献与参考代码库（含许可证）
 

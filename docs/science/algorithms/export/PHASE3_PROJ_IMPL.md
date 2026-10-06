@@ -1,13 +1,13 @@
 # Phase3 Projection/WCS 实现级算法合同（ALG-P3-PROJ-IMPL-001）
 
-> 上游：ACSD_DESIGN.md §6.3（投影算法）
+> 上游：ACSD_DESIGN.md [D-1]「投影算法」一节法）
 
 > 上游 SCI: SCI-P3-001（docs/science/PHASE3_HIPS_TO_FITS.md，FROZEN，
-> 同步口径见 §14）；承接 ALG-P3-002 本域子面
+> 同步口径见[S-1]「公式与推导」一节）；承接ALG-P3-002本域子面
 > （G1/G2 施工规格，docs/science/algorithms/PHASE3_RESAMPLE.md）。
-> **本域现行口径**：§15 依据 = `ACSD_DESIGN.md` §6.3 八投影 +
+> **本域现行口径**：[S-1]「判据与误差」一节依据 = `ACSD_DESIGN.md` [D-1]「投影算法」一节八投影 +
 > projection registry（现行集合：CRVAL2 进映射 / AIT A≤1 / CAR 极行 fail-closed）+ 对照口径偏差表（离线对照用）；
-> §14 = 以独立证据判定、不预设谁为准。订正原则见 `docs/ACSD_DESIGN.md` §0（文档权威与索引）。
+> [D-1]「文档权威与索引」一节 = 以独立证据判定、不预设谁为准。订正原则见`docs/ACSD_DESIGN.md` [D-1]「文档权威与索引」一节）。
 > 本文档为 WCS/投影域**实现级合同**：逐符号源码行号锚定 + 冻结公式 +
 > 错误语义 + 并发/确定性合同 + TEST 设计冻结 + 实测偏差登记。
 > 生产源: lib/algorithms/projection/p3_wcs.h（373 行，唯一权威签名头）+
@@ -21,13 +21,13 @@
   FITS 关键词文本输出、极点/半球/参数守卫——作为 P3-PROJ-IMPL/TEST/
   INT 的合同基线。
 - 非目标: **生产 alpha 路径仍只走 TAN**（lib/algorithms/projection/p3_wcs.cpp，
-  会话合同 SCI-P3 §9a-3 收窄）；registry 冻结集合按 ACSD_DESIGN §6.3
+  会话合同 SCI-P3 [S-1]「判据与误差」一节 收窄）；registry冻结集合按ACSD_DESIGN [D-1]「投影算法」一节
   八投影（TAN/SIN/CAR/AIT/STG/MOL/CEA/ZEA），已实现 4/8、
   STG/MOL/CEA/ZEA 实施归 P3-001（新增投影必须落在冻结集合内并附独立
-  Oracle）；本文件不臆造未实现投影的公式（§15.1/§15.3）；不做重采样
+  Oracle）；本文件不臆造未实现投影的公式；不做重采样
   （ALG-P3-001/003，phase3_resample2 域）；不做 FITS 文件读写
   （ALG-P3-FITS-IMPL-001 域）；不做会话编排/请求解析（p3_session 域）；
-  不修改 SCI 公式（SCI-P3 FROZEN 零改动，§14）。
+  不修改SCI公式（SCI-P3 FROZEN零改动）。
 
 ## 2 身份与落位
 
@@ -46,7 +46,7 @@
   兼承接 ALG-P3-002 本域子面）→ DATA-P3-WCS（`docs/detail/registry/acsd.phase3.wcs.md`）+
   API-P3-PROJ-001（PUBLIC_API.md Phase3 投影公共消费面节）→
   TEST-P3-WCS-001（登记面=TEST-P3-WCS-DESIGN-001 设计冻结 VERIFIED，
-  §12；可执行面升级归 P3-PROJ-TEST）；编排面 API-P3-001（p3_session
+  见[S-1]「判据与误差」一节；可执行面升级归P3-PROJ-TEST）；编排面按API-P3-001（p3_session
   五段 FROZEN）镜像不变。
 
 ## 3 生产源图（实测）
@@ -114,7 +114,7 @@ std::string p3_wcs_fits_keywords(const P3WcsDescriptor* d);     // h:60
 ```
 
 - **投影拒绝（冻结，取值一律按本节）**：请求面**唯一语义源** =
-  `lib/algorithms/projection/p3_projection_registry.h`（自述 = 「DESIGN §6.3 的
+  `lib/algorithms/projection/p3_projection_registry.h`（自述 = 「DESIGN [S-1]「与上下游的关系」一节 的
   唯一产品声明权威」）。三层集合（该头 :14-20 冻结，**唯一权威**）：
   ① 冻结集 **F** = 八投影 `TAN/SIN/CAR/AIT/STG/MOL/CEA/ZEA`
   （`p3_proj_frozen_table` :66-89）；
@@ -150,7 +150,7 @@ std::string p3_wcs_fits_keywords(const P3WcsDescriptor* d);     // h:60
 > 与注册表头三层模型（**D = I = {TAN}**）矛盾。现按注册表头（唯一权威）恢复
 > 三层表述：**产品面受理集 = {TAN}**；内核 4/8 属内部事实，不作产品能力表述。
 > 本节更早版本「projection 仅接受 TAN」的**结论正确、依据缺三层模型**，一并
-> 按注册表重述。`ACSD_DESIGN.md` §6.3:493「（当前仅 TAN 可用）」与注册表
+> 按注册表重述。`ACSD_DESIGN.md` [D-1]「投影算法」一节:493「（当前仅 TAN 可用）」与注册表
 > **一致**，不改顶层（原上呈的"跨层冲突"经复核**不成立、已撤销**）。
 
 - 语义冻结: parity 接受 "east_left"（默认，nullptr 归一为
@@ -164,15 +164,15 @@ std::string p3_wcs_fits_keywords(const P3WcsDescriptor* d);     // h:60
 
 - SCI-P3-WCS-001（descriptor 占位 sci_id）⇒ **SCI-P3-001**（共享
   FROZEN，docs/science/PHASE3_HIPS_TO_FITS.md，V5 SCI-007）：
-  G1↔§9a-4（FITS 1-based/CRPIX/CD-only/parity 方向）、G2↔§5 反向
-  映射连续定义、TAN-only↔§9a-3、极点拒/半球↔§4+§9a-6、roundtrip
-  容差↔§7 不变量（<1e-8 px FP64，生产注册表 `p3_wcs.cpp`（`kTanApplicability`，单一事实源 `p3_wcs_applicability()`））与 §9a-12、FOV≤20°/中心距极点
+  G1↔[S-1]「判据与误差」一节（FITS 1-based/CRPIX/CD-only/parity 方向）、G2↔[S-1]「公式与推导」一节反向
+  映射连续定义、TAN-only↔[S-1]「判据与误差」一节、极点拒/半球↔[S-1]「判据与误差」一节、roundtrip
+  容差↔[S-1]「参考文献与参考代码」一节 不变量（<1e-8 px FP64，生产注册表 `p3_wcs.cpp`（`kTanApplicability`，单一事实源 `p3_wcs_applicability()`））与 §9a-12、FOV≤20°/中心距极点
   ≥5°↔§9a-12；descriptor 占位 ID 不入合同，由 P3-PROJ-INT 对齐。
-- ALG-P3-002（docs/science/algorithms/PHASE3_RESAMPLE.md §2 施工规格，
+- ALG-P3-002（docs/science/algorithms/export/PHASE3_RESAMPLE.md [A-1]「离散公式」一节施工规格，
   DERIVED V5 ALG-007）: 本域子面=**G1（输出 WCS 构造）+G2（反向
-  映射）**，实现承接于 p3_wcs.cpp（§6/§7）；G3/G4/G5 属重采样/写出
+  映射）**，实现承接于p3_wcs.cpp；G3/G4/G5属重采样/写出
   域（ALG-P3-003/004→ALG-P3-FITS-IMPL-001），非本合同。既有
-  ALG-P3-002 公式零改动，本文档为实现级细化（含 P0 修复陈述 §6.3）。
+  ALG-P3-002 公式零改动，本文档为实现级细化（含 P0 修复陈述 [S-1]「与上下游的关系」一节）。
 - API-P3-001（会话五段编排 FROZEN）为镜像合同不变：WCS 消费点在
   run 段（p3_session.cpp:160 make/:232 逐像素 pix2world）。
 
@@ -191,7 +191,7 @@ P3_WCS_UNSUPPORTED，见下），out 已被零初始化。
 **投影门是校验序的第 2 步、先于一切数值构造**（旧版本节漏记此步、
 与 §15.4 同文两说，DISP-P3PROJ-001 勘误）：`p3_wcs_validate_request`
 （:64-84）经**产品声明门** `p3_proj_declare`（:68）判**非声明码**
-（D = {TAN}，见 §5）；`p3_wcs_make` 另设两道保险：(a) `frame` 非 icrs
+（D = {TAN}，见 [S-1]「判据与误差」一节）；`p3_wcs_make` 另设两道保险：(a) `frame` 非 icrs
 （:74）、(b) canonical 码查不到（:99）、(c) `!p3_proj_is_implemented`
 （:100，**防 D ⊄ I 回归的保险；D = I = {TAN} 下当前不可达**）——
 **绝不静默回落 TAN**，也不产半成品 descriptor（:91 注释冻结）。
@@ -213,7 +213,7 @@ PA≠0 一致复合推广（:56-64 展开式）:
 - 手性约束（:59-61 注释冻结）: TAN 切平面中间坐标 (ξ,η) 沿
   (东,北) 为右手系（det>0）；两种 parity 均要求 det(CD)=
   sgn_x·sgn_y·s²=−s²<0（平面映像镜像一次，保持天球手性），与
-  SCI-P3-001 §9a-4 收紧 CD1_1 符号后的 G1 一致。
+  SCI-P3-001 [S-1]「判据与误差」一节收紧 CD1_1 符号后的 G1 一致。
 - PA 语义（:67-68 冻结）: 天北相对 +y 的位置角，逆时针为正；
   PA=0 时 cos=1/sin=0 精确退化到 G1 对角形式；east_left 分支与
   lib/algorithms/projection/p3_wcs.cpp 生产实现逐元素 bitwise 一致。
@@ -300,11 +300,11 @@ x = δx + CRPIX_x − 1, y = δy + CRPIX_y − 1（0-based 输出）    # :140-1
 
 ### 7.3 往返容差（冻结 + 尺度感知分层）
 
-`pixel→world→pixel` 误差 **<1e-8 px**（FP64，**紧门**）——SCI-P3-001 §7
-独立不变量 + §9a-12 冻结。**适用域**：`scale ≥ min_scale_arcsec = 0.9″/px`
+`pixel→world→pixel` 误差 **<1e-8 px**（FP64，**紧门**）——SCI-P3-001 [S-1]「参考文献与参考代码」一节
+独立不变量 + [S-1]「判据与误差」一节冻结。**适用域**：`scale ≥ min_scale_arcsec = 0.9″/px`
 （覆盖仓内最小真实尺度 0.9586″/px）；低于该尺度时紧门**不适用**（报「超出适用域」，
-**不判红**——判红会误拒），退回**全域保守门 1e-6 px**（SCI-WCS-001 §11 STD-F1）。
-门值/适用域/证据 = 门表 `docs/science/algorithms/GATES_AND_TOLERANCES.md` §3 的
+**不判红**——判红会误拒），退回**全域保守门 1e-6 px**（SCI-WCS-001 [S-1]「判据与误差」一节STD-F1）。
+门值/适用域/证据 = 门表 `docs/science/algorithms/GATES_AND_TOLERANCES.md` [S-4]「推导补遗」一节 的
 G-P1-WCS-BRIDGE / G-P1-WCS-BRIDGE-GLOBAL；推导依据
 实验/engineering-evidence/（TAN 闭式截断项恒等于 0 ⇒ 误差 100% 来自 FP64 舍入）。
 解析oracle回归现状由
@@ -318,7 +318,7 @@ G-P1-WCS-BRIDGE / G-P1-WCS-BRIDGE-GLOBAL；推导依据
   `CTYPE1= 'RA---TAN'`、`CTYPE2= 'DEC--TAN'`、`CUNIT1/2= 'deg'`、
   `CRPIX1/CRPIX2`（%.10f）、`CRVAL1/CRVAL2`（%.10f）、
   `CD1_1..CD2_2`（%.12e）——与 G5 关键词面（ALG-P3-FITS-IMPL-001
-  §8、p3_output.cpp:157-182）同族；本函数为 descriptor→文本的
+  与p3_output.cpp同族；本函数为 descriptor→文本的
   探针/调试面，生产 FITS 头写路径在 p3_output 域（本域不写文件）。
 - 数值格式化经 std::snprintf（:147 buf[128]），无缓冲溢出面
   （最长行 "CD1_1  = -1.234567890123e-05 / comment" 量级 <80 字节）。
@@ -361,9 +361,9 @@ G-P1-WCS-BRIDGE / G-P1-WCS-BRIDGE-GLOBAL；推导依据
 - 并行仅上游采样 worker 池（p3_session.cpp:247-253，worker 数=
   host budget.max_workers，:209 注释禁 hardware_concurrency）；本域
   逐像素 pix2world 在 worker 内串行调用（:232），失败 continue
-  （半球外像素保持 NaN/无覆盖语义，DATA-P3-WCS §28.1）。
+  （半球外像素保持NaN/无覆盖语义）。
 - 确定性: 纯函数无浮点求和序问题；同入参跨平台/跨线程 bitwise
-  一致（libm 超越函数平台差由测试层双平台数值合同覆盖，§12）。
+  一致（libm超越函数平台差由测试层双平台数值合同覆盖）。
 - 资源: 无动态分配（除 fits_keywords std::string）；O(1) 每调用。
 
 ## 11 实测偏差与整改登记（不修码，如实冻结）
@@ -376,7 +376,7 @@ G-P1-WCS-BRIDGE / G-P1-WCS-BRIDGE-GLOBAL；推导依据
   上限 20000 为默认值语义（PHASE3_API_V1 §2 资源/配置合同，
   :16-17 注释锚），覆盖属构建期显式行为，非静默偏差；如实登记。
 - **projection 硬编码**: §6.5——UNSUPPORTED 枚举备而不用；非 TAN
-  扩展按 SCI §9a-3 须独立测试并走变更流程。
+  扩展按 SCI [S-1]「判据与误差」一节 须独立测试并走变更流程。
 - **acsd_p3_projection.dll 未建**: entrypoint=MISSING；探针/
   回归现状以独立解析解对拍替代，非 DLL 挂载；由 P3-PROJ-IMPL 建立。
 - descriptor 占位词汇（module_id=acsd.phase3.wcs、sci_id=
@@ -396,7 +396,7 @@ G-P1-WCS-BRIDGE / G-P1-WCS-BRIDGE-GLOBAL；推导依据
   独立解析解（Calabretta & Greisen 论文 II 形式直接计算）比对，
   容差 <1e-9 px（FP64 机器精度量级）。
 - **T2 往返不变量（冻结容差）**: 像素网格全扫描
-  p3_wcs_pix2world∘p3_wcs_world2pix 误差 <1e-8 px（SCI §7 冻结值，
+  p3_wcs_pix2world∘p3_wcs_world2pix 误差 <1e-8 px（SCI [S-1]「参考文献与参考代码」一节 冻结值，
   禁放宽）；半球边界附近（r→π/2）除外（HEMISPHERE 拒绝语义）。
 - **T3 G1 构造精确断言**: PA=0 ⇒ CD 精确等于 diag(±s,∓s)
   （east_left/east_right 两分支，bitwise 级）；PA=90° ⇒ CD1_2=
@@ -429,9 +429,9 @@ G-P1-WCS-BRIDGE / G-P1-WCS-BRIDGE-GLOBAL；推导依据
 
 ## 14 SCI 侧一致性：以独立证据判定，不预设谁为准
 
-- docs/science/PHASE3_HIPS_TO_FITS.md（SCI-P3-001）的 TAN 面（§5 G1/G2、
-  §9a-3 TAN-only、§7 容差）仍为 alpha 会话冻结口径，本文件与其一致。
-- **订正原则（`docs/ACSD_DESIGN.md` §0（文档权威与索引））**：`docs/science/**` 与
+- docs/science/PHASE3_HIPS_TO_FITS.md（SCI-P3-001）的 TAN 面（[S-5]「输入输出端口」一节 G1/G2、
+  [S-5]「输入输出端口」一节TAN-only、[S-1]「判据与误差」一节容差）仍为 alpha 会话冻结口径，本文件与其一致。
+- **订正原则（`docs/ACSD_DESIGN.md` [D-1]「文档权威与索引」一节）**：`docs/science/**` 与
   `docs/science/algorithms/**` 必须科学正确。当独立证据（外部标准/文献/可复跑实验）
   证明文档与标准或事实不符时，**订正文档是义务**；反之文档已被证明正确而
   实现不符时，改实现。**权威方向 = 从 SCI 到实现**：不接受「以代码为准」式权威
@@ -439,18 +439,18 @@ G-P1-WCS-BRIDGE / G-P1-WCS-BRIDGE-GLOBAL；推导依据
 - 现行口径：SCI-P3 的 CAR/AIT CRVAL2 语义、AIT 域界、CAR 极行、order/leaf
   公式、coverage/权重容差表述与 `docs/science/unified/DATA_SEMANTICS.md`「方差与逆方差的三态编码」一节的传播式，均以外部标准
   （Paper I/II、astropy/WCSLIB）与可复跑实验为准；正本见
-  `docs/science/PHASE3_HIPS_TO_FITS.md` §14/§15。
+  `docs/science/projection/HIPS_TO_FITS.md` [S-1]「判据与误差」一节。
 
-## 15 projection registry 与 DESIGN §6.3 八投影冻结集合
+## 15 projection registry 与 最高设计 [D-1]「投影算法」一节 八投影冻结集合
 
-> **权威依据**：`ACSD_DESIGN.md §6.3`（原文：内置多种投影算法，
+> **权威依据**：`最高设计 [D-1]「投影算法」一节`（原文：内置多种投影算法，
 > 首批冻结 **TAN / SIN / CAR / AIT / STG / MOL / CEA / ZEA**，每种声明适用域、
 > 奇点、经度 wrap、轴手性、CRPIX/CRVAL/CD/PC/CDELT/CTYPE；新增投影经
 > projection registry 注册并附独立往返 Oracle）+
 > `docs/detail/registry/acsd.phase3.wcs.md`（⑥ 级）+ Calabretta & Greisen (2002) FITS WCS Paper II。
-> 投影集合按 DESIGN §6.3 的**八投影**为准。
+> 投影集合按 最高设计 [D-1]「投影算法」一节 的**八投影**为准。
 > **可执行标准**：astropy 7.0.1（WCSLIB）逐点对拍，22 组配置最大球面偏差
-> 6.854e-13°；证据与逐项判据见 `docs/science/PHASE3_HIPS_TO_FITS.md` §14/§15。
+> 6.854e-13°；证据与逐项判据见 `docs/science/projection/HIPS_TO_FITS.md` [S-1]「判据与误差」一节。
 > **三项科学口径**：
 > ① CAR/AIT **把 CRVAL2（含 LONPOLE 标准默认 0/180）纳入映射**——三 Euler 角
 > 旋转核（「CRVAL2 仅记录于 header 不进入映射」与 SCI-P3 `CRVAL=center`
@@ -458,12 +458,12 @@ G-P1-WCS-BRIDGE / G-P1-WCS-BRIDGE-GLOBAL；推导依据
 > ② AIT 域界取 **`A≤1`**（A = xp²/4 + yp²；A=1 即 φ=±180° 边界合法）；
 > ③ CAR **native 极行 θ=±90° fail-closed**（整行塌缩：Ω=0、RA 无定义；
 > `|θ|>90` 会放行 `=90`，故判据取 `|θ| ≥ 90°`）。
-> SCI 侧口径见 §14；本层与 SCI 冲突时按 `docs/ACSD_DESIGN.md` §0（文档权威与索引） 以独立
+> SCI 侧口径见 §14；本层与 SCI 冲突时按 `docs/ACSD_DESIGN.md` [D-1]「文档权威与索引」一节引） 以独立
 > 证据判定谁错、改错的一边。
 
 ### 15.1 registry 冻结集合、实现状态与版本
 
-- **权威冻结集合 = DESIGN §6.3 八投影，顺序冻结**：
+- **权威冻结集合 = DESIGN [D-1]「投影算法」一节 八投影，顺序冻结**：
   `TAN / SIN / CAR / AIT / STG / MOL / CEA / ZEA`。registry 导出该集合
   （`registry_frozen_set()` / `registry_is_frozen_code()`），表内 code 必须属于
   该集合（`registry_selfcheck()` 强制；不属于 → 自检失败）。
@@ -477,13 +477,13 @@ G-P1-WCS-BRIDGE / G-P1-WCS-BRIDGE-GLOBAL；推导依据
   未实现——`registry_find()` 返回 nullptr（fail-closed，无 fallback），
   实施归 P3-001（GAP-011），逐式公式与独立 Oracle 随后续变更引入
   （本文不臆造未验证公式，只冻结集合成员/适用域声明面）。
-- **会话面收窄不变**：alpha 会话仅接受 TAN（SCI-P3 §9a-3 + `p3_wcs_validate_request`）；
+- **会话面收窄不变**：alpha 会话仅接受 TAN（SCI-P3 [S-1]「判据与误差」一节 + `p3_wcs_validate_request`）；
   该收窄是**会话层**行为，与 registry 八投影注册面不冲突——registry 面已登记
-  冻结集合，会话未接线（见 §15.5 与 SCI §9a-3 注记）。
+  冻结集合，会话未接线（见本文件登记面与SCI[S-1]「判据与误差」一节注记）。
 
 | 行 | id | code | CTYPE1/CTYPE2 | 中心守卫 | 合法 FOV 声明 | 域 | 状态 |
 |---|---|---|---|---|---|---|---|
-| 0 | TAN | "TAN" | RA---TAN / DEC--TAN | \|CRVAL2\|≤85° | 20°（SCI §9a-12 冻结） | zenithal, (φ0,θ0)=(0,90°)，LC=180° | 已实现 |
+| 0 | TAN | "TAN" | RA---TAN / DEC--TAN | \|CRVAL2\|≤85° | 20°（SCI [S-1]「判据与误差」一节 冻结） | zenithal, (φ0,θ0)=(0,90°)，LC=180° | 已实现 |
 | 1 | SIN | "SIN" | RA---SIN / DEC--SIN | \|CRVAL2\|≤85° | 60°（声明值） | zenithal, (φ0,θ0)=(0,90°)，LC=180° | 已实现 |
 | 2 | CAR | "CAR" | RA---CAR / DEC--CAR | \|CRVAL2\|≤85° | <180°（声明值） | cylindrical, (φ0,θ0)=(0,0)，LC 默认 | 已实现 |
 | 3 | AIT | "AIT" | RA---AIT / DEC--AIT | \|CRVAL2\|≤85° | 180°（声明值；= 参考点最大球面角距 90° 的**直径**，同表 SIN/CAR 惯例） | pseudo-cylindrical, (φ0,θ0)=(0,0)，LC 默认 | 已实现 |
@@ -503,12 +503,12 @@ G-P1-WCS-BRIDGE / G-P1-WCS-BRIDGE-GLOBAL；推导依据
 - 「LC」= LONPOLE 取 Paper II 标准默认：`δ0 ≥ θ0 ⇒ 0°，否则 180°`；实现等价
   形式见 §15.2。八投影全部落在 Paper II 标准集合内（astropy/WCSLIB 8/8 可构造，
   R-1 §2.4）。
-- max_fov_deg 为 registry **声明字段**（DESIGN §6.3「每种声明适用域」），**且是 make 期硬门**：
+- max_fov_deg 为 registry **声明字段**（最高设计 [D-1]「投影算法」一节「每种声明适用域」），**且是 make 期硬门**：
   `lib/algorithms/projection/p3_wcs.cpp` 的适用性检查内有
   `if (!(fov <= ap->max_fov_deg)) { … return P3_WCS_PARAM; }`（TAN 侧 `max_fov_deg = 20.0`，
-  同文件标注「SCI §9a-12 alpha 冻结, 禁放宽」）；超限即**拒 make**，不是会话层才判。
+  同文件标注「SCI[S-1]「判据与误差」一节 alpha 冻结, 禁放宽」）；超限即**拒 make**，不是会话层才判。
   会话层（`lib/phase3_session/p3_export.*`）只是该 make 的调用方，不是 FOV 判定的所在层。
-  投影域本身另由四角守卫 + 投影域界（§15.4）承载（与 FOV 门是两道独立判据）。
+  投影域本身另由四角守卫 + 投影域界承载（与 FOV 门是两道独立判据）。
   口径 = **直径**（球面上离参考点的
   最大合法角距 ×2）：TAN 20°/SIN 60°/CAR 180°/AIT 180°；域界为整球者上限即
   `2×90° = 180°`（改前 AIT=360° 把整球角周长当成了视场直径；R-40/P-081，判据
@@ -544,7 +544,7 @@ G-P1-WCS-BRIDGE / G-P1-WCS-BRIDGE-GLOBAL；推导依据
 - **TAN**（§6/§7 冻结零改动，冻结逐式路径）: R=cotθ；
   X=−R sinφ, Y=R cosφ。逆: r=√(X²+Y²) (rad)，r≥π/2 → HEMISPHERE；
   θ=atan2(1,r)，φ=atan2(−X,Y)。与 lib/algorithms/projection/p3_wcs.cpp 生产实现
-  bitwise 一致（§15.6 T3 对拍承载）。
+  bitwise一致（[S-1]「判据与误差」一节T3对拍承载）。
 - **SIN**（orthographic）: R=cosθ；X=−R sinφ, Y=R cosφ。逆:
   ρ=√(X²+Y²) (rad)，ρ>1 → HEMISPHERE（ρ=1 边界合法，θ=0）；
   θ=acos(ρ)，φ=atan2(−X,Y)。奇点声明：半球边界圆 ρ=1；中心守卫
@@ -591,7 +591,7 @@ G-P1-WCS-BRIDGE / G-P1-WCS-BRIDGE-GLOBAL；推导依据
   不产 CTYPE 面）。CRVAL2 为**映射量**，参与投影映射；LONPOLE 采用
   Paper II 标准默认语义，读方无需额外关键字即可复现映射。
 
-### 15.5 六要素声明（DESIGN §6.3 逐投影）
+### 15.5 六要素声明（最高设计 [D-1]「投影算法」一节 逐投影）
 
 | 投影 | 适用天区 | 奇点 | 经纬方向 | CRPIX/CRVAL/CD/CTYPE 规则 | 合法 FOV | 独立往返 Oracle |
 |---|---|---|---|---|---|---|
@@ -599,11 +599,11 @@ G-P1-WCS-BRIDGE / G-P1-WCS-BRIDGE-GLOBAL；推导依据
 | SIN | \|CRVAL dec\|≤85°, 半球内 | 半球边界 ρ=1 | parity 显式 | 同 G1；CRVAL=投影点（含 CRVAL2） | ≤60°（声明值） | 3D 向量 orthographic 重建 |
 | CAR | \|CRVAL dec\|≤85°, native \|θ\|<90° | **native 极行 θ=±90°（整行塌缩：Ω=0、RA 无定义；fail-closed）** | parity 显式 | 同 G1；**CRVAL1/CRVAL2 均进映射**（§15.2） | <180°（声明值，球面行跨度） | 三 Euler 角独立式 + astropy 绝对对拍 |
 | AIT | \|CRVAL dec\|≤85°, 椭圆域 A≤1 | 椭圆域边界 A=1（φ=±180°）+ native 极 θ=±90°（非塌缩：Ω>0） | parity 显式 | 同 G1；**CRVAL1/CRVAL2 均进映射** | ≤180°（声明值，**直径惯例** = 参考点最大球面角距 90°×2；椭圆域半轴 162.0569°×81.0285° 是**平面**像量，不参与本字段）；**可构造矩形帧上限 229.24°×114.56°（63.7% 天空）** 同属平面量，全天空帧在四角守卫下必拒（§15.3） | Paper II 反演独立式 + astropy 绝对对拍 |
-| STG/MOL/CEA/ZEA | 待 P3-001 声明（zenithal/pseudo-cylindrical/cylindrical/zenithal 等积） | 待声明 | 待声明 | 同 G1（占位） | 待声明 | 待建立（每投影独立 Oracle，DESIGN §6.3 硬要求） |
+| STG/MOL/CEA/ZEA | 待 P3-001 声明（zenithal/pseudo-cylindrical/cylindrical/zenithal 等积） | 待声明 | 待声明 | 同 G1（占位） | 待声明 | 待建立（每投影独立 Oracle，DESIGN [D-1]「投影算法」一节 硬要求） |
 
 - 「保守收窄」：已实现四投影中心守卫统一沿用 85° 单一条件（与 TAN 同值），
   属冻结域收窄（alpha 原则），极点中心视场排除；放宽须经变更流程。
-- parity/PA 语义四投影统一（§6.2 冻结式原样）：CD 构造与投影无关
+- parity/PA 语义四投影统一（[D-1]「流程」一节 冻结式原样）：CD 构造与投影无关
   （G1 对角 + PA 推广 + P0 修复内含）。
 
 ### 15.6 TEST-P3-PROJ-REG-001（判据清单冻结）
@@ -677,9 +677,9 @@ G-P1-WCS-BRIDGE / G-P1-WCS-BRIDGE-GLOBAL；推导依据
 
 ## 16 登记面：C1–C9 的实现侧缺口（**只登记，不改码**）
 
-> 依据：`ACSD_DESIGN.md` §6.3（导出只接受面亮度语义输入）+ §11.1.1 第 8 条（未满足 ⇒ 如实登记为未验证）；
-> 证据：Phase2 信号量纲判据正本 = `docs/science/PHASE3_HIPS_TO_FITS.md` §16（C1–C9）；
-> 本节**只登记**实现侧缺口与归属，**不改动**任何公式、阈值、容差、锚点与冻结集合；科学侧口径见 `docs/science/PHASE3_HIPS_TO_FITS.md` §16（同一实验单元，文字只有这一份）。
+> 依据：`ACSD_DESIGN.md` [D-1]「投影算法」一节（导出只接受面亮度语义输入）；
+> 证据：Phase2 信号量纲判据正本 = `docs/science/PHASE3_HIPS_TO_FITS.md` [S-1]「判据与误差」一节（C1–C9）；
+> 本节**只登记**实现侧缺口与归属，**不改动**任何公式、阈值、容差、锚点与冻结集合；科学侧口径见 `docs/science/PHASE3_HIPS_TO_FITS.md` [S-1]「判据与误差」一节（同一实验单元，文字只有这一份）。
 
 | # | 位置 | 现状（实测） | 归属 |
 |---|---|---|---|
@@ -687,7 +687,7 @@ G-P1-WCS-BRIDGE / G-P1-WCS-BRIDGE-GLOBAL；推导依据
 | C1b | 同页 `:63-64` / `lib/algorithms/coverage/hips_p2/README.md:100` / `lib/algorithms/coverage/hips_p2/module.yaml:33` | 行锚 `module_adapters.cpp:1166-1188` / `:677-694` 已漂移 | ✅ 现址 `:1040-1057`（`grep -n p2_write_descriptor → :1040`） |
 | **C1a** | `lib/infrastructure/scheduler/src/module_adapters.cpp:1040-1057`（`p2_write_descriptor`） | `mosaic` 端口仍 `UnitId::ADU`（:1049），`integrated` 亦为 `UnitId::ADU`（:1048）；`UnitId::SURFACE_BRIGHTNESS` 枚举已存在但 phase2 未用 | **lib/** ⇒ FIX / P2-XX-INT（本包只登记） |
 | C2 | `docs/detail/registry/acsd.phase2.write.md` 的写出链「逆归一」小节（`acsd.phase2.write.md:41`） | writer 视图中间量 `flux` 与产品语义混淆 | ✅ 已补「该 `flux` 是 writer 视图中间量、落盘值 = `flux_sum/covered_area`」 |
-| C3 | `docs/science/unified/DATA_SEMANTICS.md` §3.4 | `ADU surface brightness` 措辞歧义 | ✅ 已明确为 `ADU/sr` 并登记「产品 tile 无 `BUNIT`、properties 无像素语义 provenance」 |
+| C3 | `docs/science/unified/DATA_SEMANTICS.md` [U-1]「面亮度单位的推导」一节 | `ADU surface brightness` 措辞歧义 | ✅ 已明确为 `ADU/sr` 并登记「产品 tile 无 `BUNIT`、properties 无像素语义 provenance」 |
 | **C4** | `lib/phase3_session/p3_session.cpp:166-172,396` + `CMakeLists.txt:759-760` | export **无**输入语义守卫：只透传 BUNIT（缺省 "ADU"）；守卫内核 `p3_rsmp_units.cpp:137-171` 与会话接线层 `p3_export.cpp` **未进构建**（`grep -c p3_export CMakeLists.txt` = **0**） | **lib/** ⇒ FIX / Phase3 export 域（本包只登记；§6.3 生效与否以接线实测为准） |
 | **C5** | `lib/infrastructure/aio/src/hips/aio_hips_writer.cpp` finalize | signal 产品不写 `BUNIT="ADU/sr"`，properties 无 `pixel_semantics`/`pixel_area_power` ⇒ 即使接线，当前产品会被自己的守卫 REJECT | **lib/** ⇒ FIX（本包只登记） |
 | C6 | 上游 P1 产品 | 真实 Phase1 `signal` 含 `±1e14–1e15` 量级值（低覆盖像素分母退化） | P1 域单独处理（登记） |
@@ -695,9 +695,17 @@ G-P1-WCS-BRIDGE / G-P1-WCS-BRIDGE-GLOBAL；推导依据
 | C8 | `docs/detail/registry/acsd.phase2.write.md` | 未说明「输入 support 恒为 1 时 `acsd_support_clamped_pixels` 也非零」 | ✅ 已补注（实测常量场 = 262144） |
 | **C9** | `lib/infrastructure/aio/src/hips/aio_hips_writer.cpp:495-499,776-800` | hierarchy 归约在 **f32** 累加器上做：dk=1 逐位精确、dk=9 偏差 **2.5e-3**（合成）/ **3.95e-4**（真实）；`f32_accum_repro.json` 复现发布值到 1.5e-9，float64 理想值差 2.52e-3 | **lib/** ⇒ FIX（本包只登记；修法 = `sumFluxD/sumAreaD` 分支或 Kahan/分块补偿求和） |
 
-- **判据冻结**：`docs/science/PHASE3_HIPS_TO_FITS.md` §16 结论表 + 实验/engineering-evidence/ 的 `results/PREREGISTRATION*`。
+- **判据冻结**：`docs/science/PHASE3_HIPS_TO_FITS.md` [S-1]「判据与误差」一节 结论表 + 实验/engineering-evidence/ 的 `results/PREREGISTRATION*`。
 - **负例（判据非退化）**：FLUX-IN 支同二进制下 `R_cross = 4.0`、`T ≈ −1`；面积标度错注入 `T = −0.75` ⇒ 判据能红能绿。
-- **不在本节范围（已知偏差，现行）**：现行 SIN 内核用 `ctheta = sqrt(1 − stheta²)` 反算，存在**灾难性消去**，往返误差**无上界**（0.5″/px 实测 2.5e-5 px，超 SCI §7 冻结容差 1e-8 px 三个量级以上）。该内核**生产不可达**（生产注册表仅 TAN 可用）；其已知偏差不入生产判据；入库复现判据在 SIN 内核修好（`ctheta` 改用数值稳定形式）时由绿转红，须复核 §15.9 偏差表。
+- **不在本节范围（已知偏差，现行）**：现行 SIN 内核用 `ctheta = sqrt(1 − stheta²)` 反算，存在**灾难性消去**，往返误差**无上界**（0.5″/px 实测 2.5e-5 px，超 SCI [S-1]「参考文献与参考代码」一节 冻结容差 1e-8 px 三个量级以上）。该内核**生产不可达**（生产注册表仅 TAN 可用）；其已知偏差不入生产判据；入库复现判据在 SIN 内核修好（`ctheta` 改用数值稳定形式）时由绿转红，须复核 §15.9 偏差表。
+
+> 本文引用上游正本（论文式编号，正文引用处均已改为自然语言节名，不再使用跨文档 §N 跳转）：
+> - [D-1] docs/ACSD_DESIGN.md（最高设计）。
+> - [S-1] docs/science/projection/HIPS_TO_FITS.md（投影导出科学正本 SCI-P3-001）。
+> - [S-4] docs/science/algorithms/GATES_AND_TOLERANCES.md（相关科学正本）。
+> - [S-5] docs/detail/registry/acsd.phase3.wcs.md（相关科学正本）。
+> - [A-1] docs/science/algorithms/export/PHASE3_RESAMPLE.md（重采样施工规格分册）。
+> - [U-1] docs/science/unified/DATA_SEMANTICS.md（数据语义正本）。
 
 ## 参考文献与参考代码库（含许可证）
 

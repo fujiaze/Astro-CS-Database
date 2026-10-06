@@ -1,6 +1,6 @@
 # HEALPix Mapping
 
-> 上游：ACSD_DESIGN.md §6.3（投影算法）、§3.1（数据对象）
+> 上游：ACSD_DESIGN.md [D-1]「投影算法」一节法）、[D-1]「数据对象」一节（数据对象）
 
 关联：SCI-DRZ-001（科学正本 = `docs/science/drizzle/DRIZZLE.md`）；core 实现正本 = `lib/algorithms/shared/healpix`（pix2ang/ang2pix/nested_local_to_xy 唯一实现，drizzle 依赖该单源）；tile/leaf 层级拆解实现面 = `lib/algorithms/coverage/src/upm.cpp` 与 `lib/infrastructure/aio/src/aio_upm.cpp`。
 
@@ -8,7 +8,7 @@
 
 RA/Dec 或 NESTED leaf/tile。
 
-**科学量五件事**（`ACSD_DESIGN.md` §3.3「单位、坐标系、归一化、精度要求、
+**科学量五件事**（`ACSD_DESIGN.md` [S-1]「面亮度归一分母」一节「单位、坐标系、归一化、精度要求、
 有效有限域」）—— 冻结在实现头，本文档只作**指针级承接**：
 
 | 量 | 单位 | 坐标系 | 归一化 | 精度要求 | 有效有限域 | 锚 |
@@ -82,6 +82,10 @@ TEST-HEALPIX-*。
 超域移位必须抛 `std::overflow_error`（healpix_core.h +
 lib/algorithms/shared/healpix/healpix_core.cpp）；oracle 面 `mismatch != 0` 或往返角距超
 `1.2 × hp_res + 1e-9` 必须判红（`lib/algorithms/shared/healpix/tests/test_healpix_oracle.cpp`）。
+
+> 本文引用上游正本（论文式编号，正文引用处均已改为自然语言节名，不再使用跨文档 §N 跳转）：
+> - [D-1] docs/ACSD_DESIGN.md（最高设计）。
+> - [S-1] docs/science/drizzle/DRIZZLE.md（守恒映射科学正本 SCI-DRZ-001）。
 
 ## 参考文献与参考代码库（含许可证）
 

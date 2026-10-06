@@ -1,9 +1,9 @@
 # 模块 acsd.phase1.wcs-platesolve
 
-> 上游：`docs/ACSD_DESIGN.md`对应章节（模块与 ABI）、对应章节（WCS 解算：近似指向 + 星表匹配精化）、
+> 上游：`docs/ACSD_DESIGN.md`「模块与 ABI」一节与WCS解算口径（近似指向 + 星表匹配精化）、
 
 > 科学正本：docs/science/detection/ASTROMETRY.md（SCI-WCS-001）、docs/science/algorithms/PLATESOLVE.md
-> （ALG-WCS-001，解算算法推导）、`docs/science/PHOTOMETRY.md`对应章节（平移精化判据与读数）
+> （ALG-WCS-001，解算算法推导）、`docs/science/photometry/PHOTOMETRY.md`「平移精化」判据一节
 > 数据正本：docs/detail/registry/acsd.phase1.wcs-platesolve.md（DATA-P1-WCS 端口表，本页输入输出端口表）
 > API 正本：docs/engineering/api/PUBLIC_API.md（API-WCS-001）、API-P1-004
 > （docs/engineering/api/PUBLIC_API.md「分阶段 API 面」）
@@ -49,7 +49,7 @@ EQUINOX=2000 / SIP。
 （实现 = 注入的 sdet 检测算子句柄：module_adapters.cpp 调
 `ipv_solve_from_memory_with_callback_d`，内部单次检测 + callback 同步导出供
 PSF 复用），**不消费** `star_detection` 节点的星表，因此本节点在节点序上先于
-`star-psf`（最高设计对应章节）。上表为模块级（算法）端口合同，节点级端口以
+`star-psf`（最高设计星表引导检测口径）。上表为模块级（算法）端口合同，节点级端口以
 `module_adapters.cpp` 的 p1_wcs_descriptor 为准。
 
 invalid = NaN/coverage=0（按 DATA 合同）；求解失败 → `PLATESOLVE_FAILED`，
@@ -71,7 +71,7 @@ invalid = NaN/coverage=0（按 DATA 合同）；求解失败 → `PLATESOLVE_FAI
 - 系统误差与随机误差分开报告（与测光一致）；
 - **二轮精化 = 平移精化**：上游 WCS 与 Gaia DR3 之间存在系统平移，设计须能覆盖
   2″ 量级；精化的必要性取决于上游 WCS 质量，不是流程固定开销（判据与读数
-  正本 = `docs/science/PHOTOMETRY.md`对应章节）；
+  正本 = `docs/science/photometry/PHOTOMETRY.md`「平移精化」判据一节）；
 - 经度 wrap、极点、轴手性按投影规则处理。
 
 ## 公共 header、核心 symbol 与生命周期
@@ -128,19 +128,19 @@ inlier 缓冲由调用方预分配（`ipv_get_last_inliers`）。
 「WCS 求解 C API（API-WCS-001）」章内「返回码」）：几何退化 / 星数
 不足 → ret=0 / success=0（error_msg 载因）→ 编排 `PLATESOLVE_FAILED`；
 `BLOCK_MISSING`（必需块缺失）；CD 退化坍缩按失败处理（失败-置信度语义见
-PLATESOLVE.md 对应章节）。
+PLATESOLVE.md［A-1］）。
 
 匹配不足 / 无法收敛 → fail-closed（输出面 = 无 WCS 产物）；残差超门 → 拒绝或
 标记两态之一（"尽力拟合"属另一口径）。
 
-取消 = 协作取消（契约：宿主 cancel 通道 → exit 9，最高设计对应章节；现状缺失）；
+取消 = 协作取消（契约：宿主cancel通道 → exit 9，最高设计协作取消口径；现状缺失）；
 模块内无 checkpoint（无断点续算）。
 
 ## 独立 synthetic 验证命令与容差
 
 测试标识 = `TEST-P1-WCS-001`（registry descriptor 单源）；执行证据 = NOT_VERIFIED
 （未取得验收证据）；容差 = NOT_VERIFIED（同源）。测试设计 = `TEST-WCS-DESIGN-001`
-（PLATESOLVE.md 对应章节：F1 合成线性场 rms ≤ 0.5″ / F2 astropy SIP oracle
+（PLATESOLVE.md［A-1］：F1合成线性场rms ≤ 0.5″ / F2 astropy SIP oracle
 ≤ 1e-4 px / F3 CRPIX 不变量 / F4 失败语义负例含 CD 退化注入 / F5 bitwise 确定性 /
 F6 WcsTan roundtrip < 1e-6 deg + 独立前向交叉 ≤ 1e-9 deg），fixture 生成器注记
 容差来源。
@@ -154,7 +154,7 @@ Oracle 面：
 
 ## 已知限制
 
-- 缺陷登记 = PLATESOLVE.md 对应章节：CD 退化静默坍缩、AP/BP 半静默、取消点缺失、
+- 缺陷登记 = PLATESOLVE.md［A-1］：CD 退化静默坍缩、AP/BP 半静默、取消点缺失、
   三套 TAN 并存；
 - ThreadLease 未接线；协作取消现状缺失；
 - 合同三件套 entrypoint 未落地；现状构建产物 `ipv_solver.dll` 未编入根 CMake

@@ -1,6 +1,6 @@
 # 模块 acsd.phase3.properties
 
-> 上游：`docs/ACSD_DESIGN.md`对应章节（模块与 ABI）
+> 上游：`docs/ACSD_DESIGN.md`「模块与 ABI」一节
 
 Registry production 节点（唯一源 = module_adapters.cpp 的 p3_properties_descriptor，
 节点操作 `read_properties`）。职责：从 HiPS 树读出并严格解析 properties
@@ -42,7 +42,7 @@ cache/内存按 ALG 合同(bounded); I-O 单 writer; 所有权=调用方分配 b
 
 ## 错误、日志、指标、取消和 checkpoint
 
-错误码与退出码唯一源=lib/infrastructure/cli/exit_codes.h（本页不复制数值表）；取消=协作取消（契约：宿主 cancel 通道 → 停止调度新单元 → 等运行中单元完成 → exit 9，最高设计对应章节；接线以实测为准）；模块内无 checkpoint（无断点续算）。
+错误码与退出码唯一源=lib/infrastructure/cli/exit_codes.h（本页不复制数值表）；取消=协作取消（契约：宿主 cancel 通道 → 停止调度新单元 → 等运行中单元完成 → exit 9，最高设计协作取消口径；接线以实测为准）；模块内无 checkpoint（无断点续算）。
 
 ## 独立 synthetic 验证命令与容差
 

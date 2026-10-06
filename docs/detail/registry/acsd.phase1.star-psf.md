@@ -1,17 +1,17 @@
 # 模块 acsd.phase1.star-psf
 
-> 上游：`docs/ACSD_DESIGN.md`对应章节（模块与 ABI）、对应章节（星表引导检测：候选星来自
-> 星表位置拟合）、对应章节（科学叠加权重的边界）
+> 上游：`docs/ACSD_DESIGN.md`「模块与 ABI」一节与星表引导检测口径（候选星来自
+> 星表位置拟合）、科学叠加权重边界口径
 > 科学正本：docs/science/algorithms/STAR_PSF_ALGORITHMS.md（SCI-P1-PSF-001、
-> ALG-STARPSF-001）、`docs/science/noise_snr/NOISE_SNR.md`对应章节（PSF 与信息权重）、
-> `docs/detail/common/unified_model.md`对应章节（观测模型）
+> ALG-STARPSF-001）、`docs/science/noise_snr/NOISE_SNR.md`「定权」一节、
+> `docs/detail/common/unified_model.md`「观测模型」一节
 > 数据正本：docs/detail/registry/acsd.phase1.star-psf.md（DATA-P1-PSF 端口表，本页输入输出端口表）
 > API 正本：docs/engineering/api/PUBLIC_API.md（API-PSF-001）、API-P1-003
 > （docs/engineering/api/PUBLIC_API.md「分阶段 API 面」）
 
 模块级事实以 `lib/algorithms/psf/README.md` + `lib/algorithms/psf/module.yaml`
 （acsd.p1.psf，迁移目标 acsd_p1_psf.dll）为准。现状构建 Makefile →
-`dynamic_psf.dll`，未编入根 CMake 主构建。缺陷登记 = STAR_PSF_ALGORITHMS.md 对应章节。
+`dynamic_psf.dll`，未编入根 CMake 主构建。缺陷登记 = STAR_PSF_ALGORITHMS.md［A-1］。
 
 ## 职责与明确非职责
 
@@ -21,7 +21,7 @@ Registry production 模块（唯一源 = module_adapters.cpp 的 p1_star_psf_des
 （dynamic_psf.dll）。
 
 不做：星点检测（P1-STAR）、测光定标（P1-PHOT）、盘面 I/O。PSF 拟合质量代理
-（FWHM、残差尺度等）只作诊断，不计入科学叠加权重（最高设计对应章节）；本模块
+（FWHM、残差尺度等）只作诊断，不计入科学叠加权重（最高设计「精度归属」一节）；本模块
 不产生像素噪声权重、不进 Phase2 science weight。
 
 ## 输入输出端口、DATA、单位、坐标、invalid
@@ -109,17 +109,17 @@ cache/内存按 ALG 合同（bounded）; I-O 单 writer。逐星工作区 RAII�
 
 边界：候选星不足 → 明确失败或降级（并记录），不静默把帧级 PSF 当空间模型交付；
 残差超门 → validity 标记，按拟合质量不足登记；PSF 拟合质量代理（FWHM、残差
-尺度等）只作诊断，不计入科学叠加权重（最高设计对应章节），本模块不产生像素噪声
+尺度等）只作诊断，不计入科学叠加权重（最高设计「精度归属」一节），本模块不产生像素噪声
 权重、不进 Phase2 science weight。
 
 取消 = 协作取消（契约：宿主 cancel 通道 → 停止调度新单元 → 等运行中单元完成
-→ exit 9，最高设计对应章节；接线以实测为准）；模块内无 checkpoint。
+→ exit 9，最高设计协作取消口径；接线以实测为准）；模块内无 checkpoint。
 
 ## 独立 synthetic 验证命令与容差
 
 测试标识 = `TEST-P1-PSF-001`（registry descriptor 单源）；执行证据 = NOT_VERIFIED
 （未取得验收证据）；容差 = NOT_VERIFIED（同源）。测试设计 = `TEST-PSF-DESIGN-001`
-（STAR_PSF_ALGORITHMS 对应章节：四状态码负例 / 解析 Moffat4 oracle / θ 消歧确定性 /
+（STAR_PSF_ALGORITHMS［A-1］：四状态码负例 / 解析 Moffat4 oracle / θ 消歧确定性 /
 NaN 占位一致性，逐码逐锚），fixture 生成器注记容差来源。
 
 Oracle 面：
@@ -128,12 +128,12 @@ Oracle 面：
   恢复（PSF-001..008）与残差 Gaussian 假设检查；
 - 空间变化模型在位置变化时的残差验证；
 - 有效面积与信息权重一致性 Oracle（PSF 归一化与信息核正本 =
-  `docs/science/noise_snr/NOISE_SNR.md`对应章节）；
+  `docs/science/noise_snr/NOISE_SNR.md`相应章节）；
 - PSF 不变量（逐位置归一为和为一、含像素响应对称性按模型）。
 
 ## 已知限制
 
-- 缺陷登记 = STAR_PSF_ALGORITHMS.md 对应章节：covariance 缺口、`maxIter` /
+- 缺陷登记 = STAR_PSF_ALGORITHMS.md［A-1］：covariance 缺口、`maxIter` /
   `tolerance` 死参数；
 - 空间变化 PSF 模型与其协方差未落码，唯一实现路径 = 帧级 Moffat4；
 - 逐像素 variance/ivar 加权拟合与 validity 掩膜未落码；

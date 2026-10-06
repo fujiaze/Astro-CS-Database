@@ -1,20 +1,20 @@
 # ALG-HIPS-001..005 — acsd.p1.hips_writer HiPS 产品集写出算法
 
-> 上游：ACSD_DESIGN.md §4.2（Phase1 节点流程）、§10（I/O 与原子产品）
+> 上游：ACSD_DESIGN.md [D-1]「节点流程」一节（Phase1 节点流程）、[D-1]「I/O 与原子产品」一节（I/O 与原子产品）
 
 > SCI 上游: SCI-DRZ-001（docs/science/drizzle/DRIZZLE.md，FROZEN，共享引用不改动；
 > 实现锚 finalize_tile 方差语义与 support=D_p 归一语义两处）
-> 与 SCI-SCOPE-001（docs/science/unified/SCIENCE_SCOPE.md，产品目标）；读侧消费合同
+> 与 SCI-SCOPE-001（docs/science/unified/科学范围 [S-2]「处理链」一节，产品目标）；读侧消费合同
 > SCI-P3-001（docs/science/PHASE3_HIPS_TO_FITS.md，只读引用）。
 > 实现源（逐公式锚定）: lib/infrastructure/aio/src/hips/aio_hips_writer.cpp
 > （合同头 lib/infrastructure/aio/include/aio_hips.h）。
 > 数据语义权威: docs/detail/registry/acsd.phase1.hips-writer.md（DATA-P1-HIPS；上游 docs/detail/registry/acsd.phase1.drizzle.md 的 DATA-P1-DRZ、
-> §4a DATA-HIPS-VAR-001/DATA-HIPS-IVAR-001、§3 FITS 局部像素映射、§5 帧身份）。
+> [S-5]「输入输出端口」一节 DATA-HIPS-VAR-001/DATA-HIPS-IVAR-001、[S-6]「输入输出端口」一节 FITS 局部像素映射、[S-6]「输入输出端口」一节 帧身份）。
 > HiPS 1.0/1.4 外部参照: IVOA HiPS 推荐（Fernique et al. 2015）、HEALPix 算法
 > （Górski et al. 2005）——经 SCI-P3-001 收录的文献锚，本文件不另立外部断言。
 > 本文件为逐公式"算法+源码锚点"登记：凡 SCI 层无覆盖而实现自带的语义（HiPS 写出
 > 合同细节），以实现为准登记并标注；凡实现与 SCI 语义冲突处，登记 DISP- 条目。
-> **权威订正原则** = `docs/ACSD_DESIGN.md` §0（文档权威与索引）「科学正确性优先」：独立证据（外部标准 /
+> **权威订正原则** = `docs/ACSD_DESIGN.md` [D-1]「文档权威与索引」一节引）「科学正确性优先」：独立证据（外部标准 /
 > 文献 / 可复跑实验）证明文档与事实不符时，**订正文档是义务**（SCI 层订正走变更流程并
 > 记录证据与影响面）；文档已被证明正确而实现不符时改实现。
 >
@@ -224,7 +224,7 @@ add_var 同文件）；finalize 落盘 `finalize_hierarchy`
   （同文件，%.6f）** / **hips_initial_fov="60" 硬编码（DISP-HIPS-002）** /
   **moc_sky_fraction（与 manifest.json 共用唯一格式化函数
   fmt_sky_fraction = %.17g（三处共用，同文件）；DBL_DECIMAL_DIG ⇒
-  strtod 回程精确，§9 的 <1e-9 绝对容差与键值精确两条无条件成立；**禁用**
+  strtod回程精确，[S-1]「判据与误差」一节的 <1e-9 绝对容差与键值精确两条无条件成立；**禁用**
   properties 与 manifest 各用一套格式化（std::to_string 6dp / %.8f）——
   双面字面量必然分叉，违反逐字符相等）** /
   acsd_covered_sky_fraction / acsd_signal_dtype /
@@ -258,7 +258,7 @@ add_var 同文件）；finalize 落盘 `finalize_hierarchy`
   **无 COMPLETE 状态字、无 sha256 树哈希**——发布侧语义在 IO-003
   （lib/infrastructure/aio/io/hips_output_store.py 临时写→fsync→fitsverify→sha256→原子
   rename→manifest COMPLETE），C++ writer 与发布层的对齐边界=DATA-P1-HIPS
-  §12.5，两合同均如实登记（writer 无事务、发布层有；tree hash 仅存在于
+  [S-1]「判据与误差」一节，两合同均如实登记（writer 无事务、发布层有；tree hash 仅存在于
   发布层）。
 - (5e) 终止语义：`finalize`——重复 finalize rc=−2（finalized
   位）；逐产品失败 rc=−3（signal 子产品）/−4（support）
@@ -279,15 +279,15 @@ add_var 同文件）；finalize 落盘 `finalize_hierarchy`
   截断与无效规则为实现语义，`docs/science/unified/DATA_SEMANTICS.md`「三个基本对象的语义」一节冻结）。
 - **SCI 缺口（如实登记）**：HiPS 写出合同（tile 切分/hierarchy 聚合/properties
   键集/publish 协议）在 docs/science/ 无 SCI 级条目——由本文件 ALG-HIPS 承接；
-  `docs/science/unified/SCIENCE_SCOPE.md` 仅产品级目标，SCI-P3-001 为读侧消费合同。SCI 化候选
-  变更走 SCI 变更流程（`docs/ACSD_DESIGN.md` §0：独立证据证明文档有误时订正文档是义务，
+  `docs/science/unified/科学范围 [S-2]「处理链」一节 仅产品级目标，SCI-P3-001 为读侧消费合同。SCI 化候选
+  变更走 SCI 变更流程（`docs/ACSD_DESIGN.md` [D-1]「文档权威与索引」一节：独立证据证明文档有误时订正文档是义务，
   SCI 层订正须记录证据与影响面并做一致性回归）。
 - `docs/science/drizzle/DRIZZLE.md` 指向的 DISP-DRZ-007（方差行漂移）涉 `lib/algorithms/drizzle/healpix_drizzle/astro_sphere_sink.cpp`
   与本文件 (3a) 接口，本模块不改传播公式。
 - 上游 drizzle 计算为 OpenMP 行级并行（`lib/algorithms/drizzle/healpix_drizzle/drizzle_engine.cpp`，
   schedule(static)，线程数不污染 ICV），线程私有 tile 累加 + 线程 0
   串行合并后单线程调 writer（`lib/algorithms/drizzle/healpix_drizzle/astro_sphere_sink.cpp`）——
-  writer 自身单线程串行消费，与 §7 确定性一致。
+  writer 自身单线程串行消费，与 [S-1]「参考文献与参考代码」一节 确定性一致。
 
 ## 7. 确定性
 
@@ -359,7 +359,7 @@ round-trip（(5c)）。容差冻结见 §9。
   （单次乘除舍入界）；hierarchy f64 累加对 oracle bitwise、f32 累加路径
   rtol=1e-6（f32 累加器漂移界；DISP-HIPS-009）；sky fraction
   绝对误差 <1e-9 **且字面量必须 strtod 回程精确（%.17g；判别点取 1/12 这类
-  十进制非有限小数，见 §9 oracle）**；MOC/properties 键值精确相等
+  十进制非有限小数，见[S-1]「判据与误差」一节oracle）**；MOC/properties 键值精确相等
   （moc_sky_fraction 在 properties 与 manifest 两面**逐字符**相等）；checksum
   字段由 CFITSIO 重算一致。
 - **精度分层**：f32/f64 两 data_type 全矩阵重跑；f32 输入 + f64 累加器
@@ -373,7 +373,7 @@ round-trip（(5c)）。容差冻结见 §9。
 | DISP-HIPS-001 | 高 | abort 仅 `delete ps`，不删除已写文件；`lib/infrastructure/aio/include/aio_hips.h` 注释称"清理已写部分(尽力)"——合同与实现不符，部分失败产品残留无 rollback。matrix 专项"partial failure rollback"如实登记为缺口 | `lib/infrastructure/aio/src/hips/aio_hips_writer.cpp`（abort 段）；`lib/infrastructure/aio/include/aio_hips.h` | IMPL 事务化（写临时目录+发布切换）或头注释降级声明+文档化调用方清理责任（与 IO-003 对齐） |
 | DISP-HIPS-002 | 中 | properties `hips_estsize="1000000"`、`hips_initial_fov="60"`（image 与 SNR 两处）硬编码占位，无真实估算/校验 | `lib/infrastructure/aio/src/hips/aio_hips_writer.cpp`（image 与 SNR 两处） | 按产品目录真实字节数与天区极值估算；e2e fixture 生成器照抄处需同步 |
 | DISP-HIPS-003 | 低 | properties `hips_status` 恒 "private master"，无公开/克隆状态参数化 | `lib/infrastructure/aio/src/hips/aio_hips_writer.cpp`（image 与 SNR 两处） | 参数化或确认产品定位恒私有 |
-| DISP-HIPS-004 | 高 | C++ 写出无原子发布：FITS/MOC/metadata 先 remove 后 create 直写、make_dirs 无 fsync（同文件）、properties/manifest 直写、manifest 无 COMPLETE 状态字/树哈希；finalize 中途失败（−3..−8）已写子产品残留；同 out_dir 重跑与旧运行残留混合。原子语义由 IO-003 Python 发布层承接（临时写→fsync→fitsverify→sha256→原子 rename→manifest COMPLETE）——两合同边界在 DATA-P1-HIPS §12.5 登记对齐，writer 层不冒认已原子。对照：HISS 容器有 .partial/.tmppool+atomic_replace（`lib/infrastructure/aio/src/hiss_stream_writer.cpp`）但 writer 未采用 | `lib/infrastructure/aio/src/hips/aio_hips_writer.cpp`；`docs/engineering/contracts/ATOMIC_PUBLISH.md` | INT 层接线（writer 写 staging 由 IO-003 消费）或 writer 内嵌事务；tree hash 归属待定 |
+| DISP-HIPS-004 | 高 | C++ 写出无原子发布：FITS/MOC/metadata 先 remove 后 create 直写、make_dirs 无 fsync（同文件）、properties/manifest 直写、manifest 无 COMPLETE 状态字/树哈希；finalize 中途失败（−3..−8）已写子产品残留；同 out_dir 重跑与旧运行残留混合。原子语义由 IO-003 Python 发布层承接（临时写→fsync→fitsverify→sha256→原子 rename→manifest COMPLETE）——两合同边界在DATA-P1-HIPS [S-1]「判据与误差」一节登记对齐，writer 层不冒认已原子。对照：HISS 容器有 .partial/.tmppool+atomic_replace（`lib/infrastructure/aio/src/hiss_stream_writer.cpp`）但 writer 未采用 | `lib/infrastructure/aio/src/hips/aio_hips_writer.cpp`；`docs/engineering/contracts/ATOMIC_PUBLISH.md` | INT 层接线（writer 写 staging 由 IO-003 消费）或 writer 内嵌事务；tree hash 归属待定 |
 | DISP-HIPS-005 | 低/中 | 入参 moc_order 静默 clamp（min 与 tile_order）无告警；且 moc_order<K 时 Moc.fits 含低阶 UNIQ，而自家读侧 `lib/infrastructure/aio/src/hips/aio_hips_reader.cpp` 仅保留 order==K——低阶 MOC 对自家 reader 无效（Moc.fits 为 optional hint，不影响覆盖判定） | `lib/infrastructure/aio/src/hips/aio_hips_writer.cpp`；`aio_hips_reader.cpp` | 强制 moc_order=K 或 reader 兼容低阶 UNIQ |
 | DISP-HIPS-006 | 中 | CFITSIO 裸调未包装进程级互斥锁（同库 `lib/infrastructure/aio/src/aio_fits.cpp` 与 `aio_hips_reader.cpp` 均用 aio::cfitsio_io_mutex）——writer 写路径完全无锁；单句柄串行使用无影响，未来多句柄/多线程写同进程将静默竞争（现生产链=drizzle 合并后单线程写，`lib/algorithms/drizzle/healpix_drizzle/astro_sphere_sink.cpp`，暂无并发场景） | `lib/infrastructure/aio/src/hips/aio_hips_writer.cpp` 全文件无 mutex | 统一包装 mutex 或显式登记单句柄使用约束 |
 | DISP-HIPS-007 | 低 | 错误码无集中枚举且正负混用（write/finalize 负码 −1..−9（含 ABI 不匹配 −9，V11-N-01）vs provenance 正码 1/2；语义仅注释）——ABI 演进风险；last_error 每入口 clear，跨调用不可追溯 | `lib/infrastructure/aio/src/hips/aio_hips_writer.cpp`（各公开入口与各子产品写出/收尾段） | 集中枚举 + 头文件公开 |
@@ -407,6 +407,14 @@ UTC 时间戳致 properties/manifest 字节不跨运行复现（合同，§7）�
   （独立中间容器，legacy_hiss_compare 开关封闭，CFG-002 关闭 HISS_VERIFY
   `lib/infrastructure/pipeline/orchestrator/cpp/src/orchestrator.cpp`）、orchestrator.cpp（stage 编排）、
   `lib/algorithms/coverage/tools/stage2.cpp`（Phase2 写方）。
+
+> 本文引用上游正本（论文式编号，正文引用处均已改为自然语言节名，不再使用跨文档 §N 跳转）：
+> - [D-1] docs/ACSD_DESIGN.md（最高设计）。
+> - [S-1] docs/science/drizzle/DRIZZLE.md（守恒映射科学正本）。
+> - [S-2] docs/science/unified/科学范围 [S-2]「处理链」一节。
+> - [S-3] docs/science/projection/HIPS_TO_FITS.md（投影导出科学正本）。
+> - [S-5] docs/detail/registry/acsd.phase1.hips-writer.md（相关科学正本）。
+> - [S-6] docs/detail/registry/acsd.phase1.drizzle.md（相关科学正本）。
 
 ## 参考文献与参考代码库（含许可证）
 

@@ -1,11 +1,11 @@
 # Phase2 HiPS Mosaic Write Algorithms (ALG-P2-HIPS-001..004)
 
 > 本文件条款为冻结定义，变更走变更流程。
-> 上游：ACSD_DESIGN.md §10（I/O 与原子产品）
+> 上游：ACSD_DESIGN.md [D-1]「I/O 与原子产品」一节（I/O 与原子产品）
 
-> 上游 SCI（只读引用，全部 FROZEN，共享引用不改动）: SCI-UPM-001（docs/science/PHASE2_UPM.md §5 w_UPM 公式）、
-> SCI-INT-001（docs/science/INTEGRATION.md §5 signal/sup_max 公式）、SCI-REJ-001（docs/science/REJECTION.md，
-> SCI-REJ-001..008）、SCI-SCOPE-001（docs/science/unified/SCIENCE_SCOPE.md）。共享 SCI 引用不改动；
+> 上游 SCI（只读引用，全部 FROZEN，共享引用不改动）: SCI-UPM-001（docs/science/sky/UPM.md[S-1]「公式与推导」一节 w_UPM 公式）、
+> SCI-INT-001（docs/science/integration/INTEGRATION.md [S-1]「判据与误差」一节signal/sup_max公式）、SCI-REJ-001（docs/science/integration/REJECTION.md，
+> SCI-REJ-001..008）、SCI-SCOPE-001（docs/science/unified/科学范围 [S-4]「处理链」一节。共享 SCI 引用不改动；
 > 本文件登记实现级语义（SCI 公式语义不在本文重复定义，两处冲突以
 > docs/science/ 为准并回改本文档，方向 = 从 docs/science/ 到本文档）。
 > 实现源（唯一权威生产源）: lib/algorithms/coverage/tools/stage2.cpp（2015 行实测；入口 main :112）。
@@ -14,22 +14,22 @@
 > 下游: DATA-P2-INT / DATA-P2-RES（DATA-P2-HIPS，`docs/detail/registry/acsd.phase2.write.md`）、
 > API-P2-001（docs/engineering/api/PUBLIC_API.md）+ PUBLIC_API Phase2 mosaic write 节、
 > 模块 MOD-acsd-phase2-hips-writer（registry 现状实测 acsd.phase2.write.md =
-> MOD-acsd-phase2-write，二者对齐归 P2-HIPS-INT，见 §11.6）。
+> MOD-acsd-phase2-write，二者对齐归P2-HIPS-INT。
 > 矩阵行: docs/engineering/governance/TRACEABILITY.md「逐模块追溯台账（人读正本）」一节（module_id=acsd.phase2.write 现状域）。
 
 ## 1 上游 SCI 与输入输出
 
-- SCI-UPM-001（PHASE2_UPM.md §5）: `w_UPM = quality_factor × geometric_reliability ×
+- SCI-UPM-001（PHASE2_UPM.md [S-6]「输入输出端口」一节）: `w_UPM = quality_factor × geometric_reliability ×
   control_ivar`（:46 权威行）。stage2 侧实现锚 = UPM 构建消费该权重语义
   （`p2_upm_build_geo` :432-433），本文不改公式，只登记其进入马赛克链的编排位置。
-- SCI-INT-001（INTEGRATION.md §5）: `signal` = accepted 样本加权积分输出（ADU）；
+- SCI-INT-001（INTEGRATION.md [S-2]「判据与误差」一节）: `signal` = accepted 样本加权积分输出（ADU）；
   `sup_max = max(accepted support)` canonical reducer（:21/:75）。stage2 侧实现锚 =
   `p2_integrate_pixel` 输出 `pr.signal/pr.support`（:1222-1223/:1524-1527，
   注释 "support 唯一 canonical reducer（max accepted support）由 p2_integrate_pixel
   计算，Stage2 只消费" :1525-1526），writer 视图换算 `flux=signal×area`、
   `area=support×A_cell`（:1227-1228/:1531-1532，见 §2）。
 - SCI-REJ-001（REJECTION.md SCI-REJ-001..008，FROZEN）: rejection 判据权威。
-  stage2 侧只做计划解析与 kernel 调度（§2），不改任何判据。
+  stage2 侧只做计划解析与 kernel 调度（[S-3]「物理模型」一节），不改任何判据。
 - SCI-SCOPE-001: 处理链位置权威（Phase2 末节点 coverage→…→马赛克写出）。
 - 输入: N 个 Phase1 单帧 HiPS 目录（`cfg.hips`），每帧消费 signal/support 两数据集
   （`aio_hips_open(AIO_HIPS_RD_SIGNAL/:AIO_HIPS_RD_SUPPORT)` :536-537）+
@@ -43,7 +43,7 @@
   diagnostics.json（:1748-1750）与 upm_sparse.json/upm_dense.cache（:472-483）。
 - 下游消费: 编排层 p2_session（lib/phase2_session/p2_session.cpp:81-92 仅验证
   hips_paths/输出目录键，不做 HiPS 写）；P3 重采样经 aio_hips_reader（P3 域）；
-  HIPS_VERIFY 为 stage2 自回读（§2 ALG-P2-HIPS-004）。
+  HIPS_VERIFY 为 stage2 自回读（[S-1]「物理模型」一节 ALG-P2-HIPS-004）。
 
 ## 2 离散公式（锚=stage2.cpp 实测行号，正文按源码照录）
 
@@ -80,7 +80,7 @@
     `wbpp_2_9_1`（**对照档；工具链现状默认**）→ group-level 一次解析
     （:639-658，`p2_reject_plan_resolve` :650，nominal_contributors=帧总数
     :646，tile 不重选 :675 采纳 group_plan）；**生产编排入口默认**
-    `acsd_adaptive_pixel`（自研，逐输出像素几何 n，见 SCI-REJ §5）；
+    `acsd_adaptive_pixel`（自研，逐输出像素几何 n，见 SCI-REJ [S-3]「判据与误差」一节）；
     `acsd_adaptive` → tile 级按 nominal geometric depth 解析（:677-690）；
     normalization 三态映射（:691-696）+ floor（:697）；typed params 逐字段
     注入（sigma/winsorized/averaged/linear_fit/esd/percentile/median_sigma/
@@ -156,7 +156,7 @@
     `signal_out=pr.signal`、`support_out=pr.support`（:1524-1527）。
   - 逆归一（writer 视图换算）: `area = support_out × A_cell`、
     `flux = signal_out × area`（:1531-1532）；注意 signal/support 本身为
-    SCI-INT §5 语义，`flux_sum/covered_area` 为 writer 视图约定
+    SCI-INT [S-2]「判据与误差」一节 语义，`flux_sum/covered_area` 为 writer 视图约定
     （aio_hips_writer.cpp:476-479 `sig=flux/area, sup=area/A_cell 钳 1.0`
     逆过程，P2 共用该 writer 归一公式 ALG-HIPS-002）。
   - OMP 并行（CON-006，:1279-1322）: 仅 `!large_scale_active &&
@@ -316,7 +316,7 @@ main(stage2.json, CLI overrides):
 
 ## 7 合同负向条款（科学红线，P2-HIPS 专项）
 
-- **四概念分离红线**: `signal`（SCI-INT §5 加权积分输出；产品语义 = **面亮度**，
+- **四概念分离红线**: `signal`（SCI-INT [S-2]「判据与误差」一节 加权积分输出；产品语义 = **面亮度**，
   写端口 `UnitId::SURFACE_BRIGHTNESS`，落盘值 = `flux_sum / covered_area`，
   **量纲 = ADU·sr⁻¹**，写盘 BUNIT 字面量取冻结串 `ADU/sr`（其方差层 `ADU^2/sr^2`、
   逆方差层 `sr^2/ADU^2`）——合法集与判红规则见
@@ -324,15 +324,15 @@ main(stage2.json, CLI overrides):
   **标度 ≠ 量纲类别**：测光归一化只改零点，标度由 PHOTAPPL/PHOTSCAL 承载）、
   `variance/ivar`（输入侧逐帧产品消费，w_i=ivar_i；生产权重 = 逐样本 ivar，
   由 Phase2 按该天球像素对应帧集合现场算出），
-  `support`（SCI-INT §5 sup_max=max(accepted support)，几何覆盖 [0,1]，
+  `support`（SCI-INT [S-2]「判据与误差」一节 sup_max=max(accepted support)，几何覆盖 [0,1]，
   A_cell 归一）、`mask`（rejection reasons→accepted 掩码，large_scale grow
   后处理）在缓冲/产品/命名上严格分离；**support 与 ivar 各自独立；科学权重面只取
   ivar**——缺 ivar 产品 → rc=7 或显式标红 fallback（:565-577），
   像素级缺 ivar 仅显式 fallback 路径可达并降级 support 计数（:1372-1375）；
   **权重式的输入 = ivar/support**（valid_mask 仅 writer 视图层
   `view.valid_mask` :1628，权重式只取 ivar/support）。
-- **no root science formula change**: w_UPM（PHASE2_UPM.md §5）、signal/sup_max
-  （INTEGRATION.md §5）、rejection 判据（REJECTION.md SCI-REJ-001..008）
+- **no root science formula change**: w_UPM（PHASE2_UPM.md [S-1]「判据与误差」一节）、signal/sup_max
+  （INTEGRATION.md [S-1]「判据与误差」一节）、rejection 判据（REJECTION.md SCI-REJ-001..008）
   一律不改；本模块实现锚只登记 stage2 侧编排语义。
 - **分辨率上限 = 最低输入 order**: target_order ≤ 输入最高 order，违者 rc=3
   （:205-208）。
@@ -354,9 +354,9 @@ main(stage2.json, CLI overrides):
   "CPU reference 路径" 注释 :1061）。
 - Oracle 设计（独立于被测符号，不复制 §2 公式）:
   - Python/NumPy 参考实现: 合成 3 帧单 tile HiPS（signal/support/ivar），
-    按 SCI-INT §5 语义独立复算 signal（weighted mean, w=ivar）与
+    按 SCI-INT [S-2]「判据与误差」一节 语义独立复算 signal（weighted mean, w=ivar）与
     sup_max=max(accepted support)，与生产输出比对 rtol=1e-12（f64 产品）
-    ——现状 MISSING，见 §9。
+    ——现状MISSING。
   - 序转换往返恒等: `nested_local_to_fits_index(i,9,512)` ↔
     `fits_index_to_nested_local`（stage2.cpp:825-827 消费后者）对全
     262144 索引双射断言（整数精确，无容差）。
@@ -390,7 +390,7 @@ main(stage2.json, CLI overrides):
   diagnostics 字段断言）现状缺失——上述 Phase2IvarWiring/Wiring 域测试
   覆盖 ivar 接线与确定性，但不覆盖: f64 产品数值 oracle、多 tile、
   large_scale 两遍、ACR 块路径与 CPU reference 数值等价。TEST-DESIGN
-  建议（TEST-P2-HIPS-001，命名沿用 PHASE2_COVERAGE.md §8/§11.4 先例）:
+  建议（TEST-P2-HIPS-001，命名沿用 PHASE2_COVERAGE.md [D-1]先例）:
   F1 NumPy 参考复算 signal/sup_max（f64，rtol=1e-12）；F2 序转换往返
   恒等（bitwise）；F3 ivar 门负测（rc=7/显式 fallback 诊断）；F4
   large_scale 两遍（grow 后二次积分=手工 grow 复算）；F5 ACR vs CPU
@@ -398,9 +398,9 @@ main(stage2.json, CLI overrides):
 
 ## 10 关联 ARC/API/TST
 
-- 上游 SCI: SCI-UPM-001（PHASE2_UPM.md §5）、SCI-INT-001（INTEGRATION.md
-  §5）、SCI-REJ-001（REJECTION.md，SCI-REJ-001..008）、SCI-SCOPE-001
-  （docs/science/unified/SCIENCE_SCOPE.md）——全部共享只读引用，不改动。
+- 上游 SCI: SCI-UPM-001（PHASE2_UPM.md [S-1]「判据与误差」一节）、SCI-INT-001（INTEGRATION.md
+  [S-1]「判据与误差」一节）、SCI-REJ-001（REJECTION.md，SCI-REJ-001..008）、SCI-SCOPE-001
+  （docs/science/unified/科学范围 [S-4]「处理链」一节，不改动。
 - ALG 上游: ALG-UPM-001（docs/science/algorithms/UPM_SOLVER.md）、
   ALG-REJ-001..008（docs/science/algorithms/PHASE2_REJECTION.md，DERIVED）、
   ALG-COV-001（docs/science/algorithms/PHASE2_COVERAGE.md，ACTIVE）、
@@ -418,14 +418,14 @@ main(stage2.json, CLI overrides):
   本节登记其底层写出实现 lib/algorithms/coverage/tools/stage2.cpp）。
 - 模块: MOD-acsd-phase2-hips-writer（registry 现状实测
   acsd.phase2.write.md，module_id=acsd.phase2.write，execution_class=io；
-  对齐归 P2-HIPS-INT，见 §11.6）。
+  对齐归P2-HIPS-INT。
 - IO: IO-002（docs/science/IO_002_HIPS_INPUT_INTERFACE.md，读输入）、
   IO-003（docs/engineering/contracts/ATOMIC_PUBLISH.md，发布层，
   DISP-P2HIPS-003 承接方）。
 - 相邻不改: aio_hips_reader.cpp（P3/HIPS_VERIFY 后端）、
   lib/algorithms/drizzle/healpix_drizzle/astro_sphere_sink.cpp（P1 写通道）、
   p2_session.cpp（编排层，hips_paths 验证 :81-92，不做 HiPS 写）。
-- TST: TEST-P2-HIPS-001（登记面 = 本文档 §11.4 设计冻结 VERIFIED；
+- TST: TEST-P2-HIPS-001（登记面 = 本文档[S-1]「公式与推导」一节 设计冻结 VERIFIED；
   VERIFIED 对象为设计+容差，
   可执行测试显式 MISSING 归 P2-HIPS-TEST）；既有基线
   Phase2IvarWiring/Phase2Routing/test_p2004_reject_integrate.py（§8）。
@@ -463,7 +463,7 @@ main(stage2.json, CLI overrides):
 
 ### 11.4 TEST-P2-HIPS-001 设计冻结（MISSING，可执行测试归 P2-HIPS-TEST）
 
-见 §9 Oracle 设计与 F1-F6 负测/边界矩阵；容差冻结 = f64 oracle rtol=1e-12、
+见[S-1]「判据与误差」一节Oracle设计与 F1-F6 负测/边界矩阵；容差冻结 = f64 oracle rtol=1e-12、
 索引/集合 bitwise、1T/2T/repeat 差数==0（现状阈值 1e-4/1e-6 见 §9，为
 f32 产品存取粒度所致，f64 oracle 不沿用）；fixture 生成器注记容差来源
 （§9）。EVIDENCE 显式 MISSING，不冒认 IMPLEMENTED。
@@ -475,9 +475,9 @@ f32 产品存取粒度所致，f64 oracle 不沿用）；fixture 生成器注记
 - matrix P2 域 science_id 占位（registry acsd.phase2.write.md:7
   upstream=SCI-P2-WR-001/ALG-P2-WR-001）无 docs/science 权威页：语义映射
   由本节声明——SCI-P2-WR-001 ⇒ 指向既有 FROZEN 共享 SCI（权威=INTEGRATION.md
-  §5 + PHASE2_UPM.md §5 + REJECTION.md + docs/science/unified/SCIENCE_SCOPE.md）；
+  [S-1]「判据与误差」一节 + PHASE2_UPM.md [S-1]「判据与误差」一节 + REJECTION.md + docs/science/unified/科学范围 [S-4]「处理链」一节；
   ALG-P2-WR-001 ⇒ ALG-P2-HIPS-001..004（本文档
-  §2/§7）。两处冲突以 docs/science/ 为准并回改本文档（方向 = 从 docs/science/ 到本文档）。
+  [S-4]「物理模型」一节）。两处冲突以 docs/science/ 为准并回改本文档（方向 = 从 docs/science/ 到本文档）。
 
 ### 11.6 与任务给定事实的实测差异记录（以实测为准，供 P2-HIPS-INT 对齐）
 
@@ -492,7 +492,7 @@ f32 产品存取粒度所致，f64 oracle 不沿用）；fixture 生成器注记
   其余给定锚全部实测吻合。
 - 模块 ID: MOD-acsd-phase2-hips-writer 在 matrix/registry 无现状
   （实测 MOD-acsd-phase2-write / acsd.phase2.write.md，execution_class=io）。
-- DATA_SEMANTICS 现状止于 §19（DATA-COV-001）；§20 DATA-P2-HIPS 为新增登记位
+- DATA_SEMANTICS现状止于DATA-COV-001；DATA-P2-HIPS为新增登记位
   （DATA-P2-INT/DATA-P2-RES 现定义于
   docs/engineering/governance/TRACEABILITY.md「逐模块追溯台账（人读正本）」一节与 registry acsd.phase2.integrate.md:43/
   acsd.phase2.write.md:23）。
@@ -503,6 +503,14 @@ f32 产品存取粒度所致，f64 oracle 不沿用）；fixture 生成器注记
   （直接跑生产 acsd-stage2）、routing_test.cpp、synthetic_gate.cpp
   Phase2Integrate/Phase2Robust（reducer 级，:2622/:3360）、
   排异/积分 oracle 组。
+
+> 本文引用上游正本（论文式编号，正文引用处均已改为自然语言节名，不再使用跨文档 §N 跳转）：
+> - [D-1] docs/ACSD_DESIGN.md（最高设计）。
+> - [S-1] docs/science/sky/UPM.md（天光平面科学正本）。
+> - [S-2] docs/science/integration/INTEGRATION.md（集成科学正本）。
+> - [S-3] docs/science/integration/REJECTION.md（排异科学正本）。
+> - [S-4] docs/science/unified/科学范围 [S-4]「处理链」一节。
+> - [S-6] docs/engineering/governance/TRACEABILITY.md（相关科学正本）。
 
 ## 参考文献与参考代码库（含许可证）
 

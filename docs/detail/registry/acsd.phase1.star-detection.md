@@ -1,11 +1,11 @@
 # 模块 acsd.phase1.star-detection
 
-> 上游：`docs/ACSD_DESIGN.md`对应章节（模块与 ABI）、对应章节（节点流程：星表引导检测与 WCS 解算）、
-对应章节（P1 通量积分拟合）
+> 上游：`docs/ACSD_DESIGN.md`「模块与 ABI」一节、「节点流程」一节（星表引导检测与WCS解算）、
+「P1 通量积分拟合」一节
 > 科学正本：docs/science/detection/STAR_DETECTION.md（SCI-P1-STAR-001）、
 > docs/science/algorithms/STAR_DETECTION_ALGORITHMS.md（ALG-STARDET-001）、
-> `docs/science/algorithms/GATES_AND_TOLERANCES.md`对应章节（冻结门表）、
-> `docs/science/detection/STAR_DETECTION.md`对应章节/对应章节（质心/矩不确定度）
+> `docs/science/algorithms/common/GATES_AND_TOLERANCES.md`「冻结门表」一节、
+> `docs/science/detection/STAR_DETECTION.md`「亚像素质心」一节（质心/矩不确定度）
 > 数据正本：docs/detail/registry/acsd.phase1.star-detection.md（DATA-P1-STAR 端口表，本页输入输出端口表）
 > API 正本：docs/engineering/api/PUBLIC_API.md（API-STAR-001）、
 > docs/engineering/api/PUBLIC_API.md「分阶段 API 面」（API-P1-003）
@@ -45,7 +45,7 @@ cosmetic 校正（消费 cleaned 帧）；排异（Phase2 推断）。检测目�
 | `image` | `DATA-P1-COSMETIC` | 必 | `UnitId::ADU` | `CoordinateFrame::PIXEL` |
 | `star_det` | `DATA-P1-STAR` | 可 | 位置 px / 通量 ADU / 星等 mag | `CoordinateFrame::PIXEL` |
 
-输入 image = FP32 通道 uint16 量化（登记见 STAR_DETECTION_ALGORITHMS 对应章节）/
+输入 image = FP32 通道 uint16 量化（登记见STAR_DETECTION_ALGORITHMS［A-1］）/
 FP64 通道 double 不降级，加 `SDetParams`；另有逆投影先验，取值优先级见本页
 「Registry descriptor 与配置 schema」的先验链（显式天测键 → 本帧解算产物 →
 初始指向 + 旋转 / 视向）。
@@ -62,7 +62,7 @@ x/y 为 0-based double 像素坐标（像素中心 = 索引 + 0.5）、flux 为 
 ### 数值落地口径与实现落点
 
 检测阈值的冻结定义正本 = SCI-P1-STAR-001（语义要求）、
-STAR_DETECTION_ALGORITHMS 对应章节（离散公式）、GATES_AND_TOLERANCES 对应章节（冻结门表）；
+STAR_DETECTION_ALGORITHMS［A-1］（离散公式）、GATES_AND_TOLERANCES［A-1］（冻结门表）；
 本页只记落地方式：阈值 = 全图中位数 + 阈值倍数 × 全局背景噪声 RMS，倍数由
 `detection_threshold` 给出（默认 5.0），作用在 σ=2 平滑图上，`bgnoise` 由 FnNoise1
 行差分族估计，实现落在 `sdet_detect_ex`（`pr.thr` 由 `pr.bg` 与 `pr.bgnoise`
@@ -132,7 +132,7 @@ parallel_ok=True。
 
 本段一切「规模/上限」类数字都由配置键与星表查询口径导出：检测定义域 =
 `star_detection.max_stars`（设计自定算力上界，非科学常数，语义正本 =
-ACSD_DESIGN.md 对应章节）；拟合样本上限 = `photometry.fit.max_stars`（默认 5000）；
+ACSD_DESIGN.md 相应章节）；拟合样本上限 = `photometry.fit.max_stars`（默认 5000）；
 交付 SNR 样本上限 = `snr.max_sources`（默认 0 = 不限，只截断交付样本行、**不**
 截断检测定义域）。三者各自只承担自己的口径，合同域正本 =
 `phase_config_normalize.schema.json`。

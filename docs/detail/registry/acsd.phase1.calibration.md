@@ -1,7 +1,7 @@
 # 模块 acsd.phase1.calibration
 
-> 上游：`docs/ACSD_DESIGN.md`对应章节（模块与 ABI）
-> 科学正本：docs/science/calibration/CALIBRATION.md（SCI-CAL-001）、docs/science/noise_snr/NOISE_SNR.md（噪声模型 对应章节 分类学、对应章节 方差传播）、
+> 上游：`docs/ACSD_DESIGN.md`「模块与 ABI」一节
+> 科学正本：docs/science/calibration/CALIBRATION.md（SCI-CAL-001）、docs/science/noise_snr/NOISE_SNR.md（噪声模型「噪声项分类学」与「协方差传播」两节）、
 > docs/science/algorithms/CALIBRATION_ALGORITHMS.md（ALG-CAL-001..006）
 > 数据正本：docs/detail/registry/acsd.phase1.calibration.md（DATA-P1-CAL 端口表，本页输入输出端口表）
 > API 正本：docs/engineering/api/PUBLIC_API.md（API-CAL-001）、docs/engineering/api/PUBLIC_API.md「分阶段 API 面」（API-P1-001）
@@ -134,13 +134,13 @@ Diagnostics：stderr 日志 `ac_log`，`generate_master` / `generate_master_flat
 `actual_k`/`out_hot`/`out_cold` 为可选输出统计。
 
 取消 = 协作取消（契约：宿主 cancel 通道 → 停止调度新单元 → 等运行中单元完成
-→ exit 9，最高设计对应章节；接线以实测为准）；模块内无 checkpoint（无断点续算）。
+→ exit 9，最高设计协作取消口径；接线以实测为准）；模块内无 checkpoint（无断点续算）。
 
 ## 独立 synthetic 验证命令与容差
 
 测试标识 = `TEST-P1-CAL-001`（registry descriptor 单源）；执行证据 =
 NOT_VERIFIED（未取得验收证据）；容差 = NOT_VERIFIED（未取得验收证据）；设计
-冻结容差 = `TEST-CAL-DESIGN-001`（CALIBRATION_ALGORITHMS.md 对应章节，合成 fixture
+冻结容差 = `TEST-CAL-DESIGN-001`（CALIBRATION_ALGORITHMS.md［A-1］「判据与误差」一节，合成fixture
 FIX-CAL-A..F、NumPy 独立 oracle、不变量 I1–I6、负面/串并行/ISA/资源设计）。
 
 Oracle 面：

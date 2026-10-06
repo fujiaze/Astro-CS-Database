@@ -1,12 +1,12 @@
 # 模块 acsd.phase2.upm-fit
 
-> 上游：`docs/ACSD_DESIGN.md`对应章节（模块与 ABI）、对应章节（固定科学流程）、
-> 对应章节（天光平面与统一相对模型 UPM）
-> 科学正本：docs/science/PHASE2_UPM.md（SCI-UPM-001，FROZEN；对应章节/对应章节/对应章节/对应章节/对应章节/对应章节）、
+> 上游：`docs/ACSD_DESIGN.md`「模块与 ABI」一节与「固定科学流程」一节、
+> 「天光平面」一节
+> 科学正本：docs/science/sky/UPM.md（SCI-UPM-001，FROZEN，相关章节）、
 > docs/science/algorithms/UPM_SOLVER.md（ALG-UPM-001，权威推导；F3/F5/F6）、
-> `docs/science/noise_snr/NOISE_SNR.md`对应章节（参数协方差）
+> `docs/science/noise_snr/NOISE_SNR.md`「协方差传播」一节
 > 实现级合同：docs/science/algorithms/PHASE2_UPM_IMPL.md（ALG-P2-UPM-IMPL-001；
-> 对应章节/对应章节 语义与缺陷清单、TEST-DESIGN 冻结容差、字段名与生产取值登记）
+> 语义与缺陷清单、TEST-DESIGN冻结容差、字段名与生产取值登记三节）
 > 数据正本：docs/detail/registry/acsd.phase2.upm-fit.md（DATA-P2-UPM / DATA-P2-COR 端口表，本页输入输出端口表）；
 > DATA-P2-SMP 端口表见 docs/detail/registry/acsd.phase2.sample.md
 > API 正本：docs/engineering/api/PUBLIC_API.md（API-P2-UPM-001）、
@@ -79,8 +79,8 @@ build rc = 2（**显式 INVALID，禁静默回退 support / SNR**，upm.h）；�
 
 ### 数值落地口径
 
-模型的冻结形式、判据式与字段名的**唯一正本 = docs/science/PHASE2_UPM.md**
-（SCI-UPM-CONV-001 收敛与容差、对应章节/对应章节 权重禁令、对应章节 依据、对应章节 接缝门槛推导）
+模型的冻结形式、判据式与字段名的**唯一正本 = docs/science/sky/UPM.md**
+（SCI-UPM-CONV-001收敛与容差、权重禁令、依据与接缝门槛推导四节）
 与 ALG-UPM-001 / PHASE2_UPM_IMPL.md；本页只记落地方式与可读数。
 
 **权重口径 = 逆方差，禁止读作裸 SNR²**：拟合目标是采样点上的逆方差加权最小二乘（GLS 最优权重；文献与出版年双源登记见 docs/science/PHASE2_UPM.md），与 P2 定权
@@ -108,7 +108,7 @@ build rc = 2（**显式 INVALID，禁静默回退 support / SNR**，upm.h）；�
 
 **接缝判据的唯一口径 = 有符号电平台阶 + 适用域**：沿真实帧足迹边界取法向差分，
 判据量为相对台阶（`bg` = 边界处局部背景电平），门 = 台阶绝对值的逐边最大值不超
-门限；**门槛的推导与实测标定正本 = `docs/science/PHASE2_UPM.md`对应章节**（观测量与
+门限；**门槛的推导与实测标定正本 = `docs/science/sky/UPM.md`「判据与误差」一节**（观测量与
 零假设分布、虚警率、可检出下限与漏检面）。
 只对两侧都在数据内部的边界计入（法向两侧都能放对照线且各 ≥ 最小样本数），被排除
 的边界仍逐条落盘 `exclude` / `margin_px`。噪声比、扣对照线的净台阶、`d` 扫描与
@@ -174,7 +174,7 @@ build rc = 2（**显式 INVALID，禁静默回退 support / SNR**，upm.h）；�
 **适用域**：无接缝 ⟺ 公共面可表示 —— 帧间天光差含「`B_ref` 不可表示且沿单轴
 相干」的分量时残余接缝与该分量 RMS 线性相关；接缝随尺度的放大按跨实现稳健的
 「峰值/长尺度比 ≈ 8」（肘点 ≈ 2h、非单调形状）刻画，端点比属实现条件依赖读数，
-**不复现为固定倍数**（正本 = `docs/science/PHASE2_UPM.md`对应章节 与
+**不复现为固定倍数**（正本 = `docs/science/sky/UPM.md`「判据与误差」一节与
 `实验/additive-sky-seamless/`）。**纯加性前提**：帧间乘性差必须先在 Phase1 吸收；
 不可吸收的基外高频分量对**电平**接缝贡献有界，但可被分块 PSD 定位。
 **不可检验域**：图平滑权重为 0 时 per-(frame,cell) 自由加性场恰好定解，

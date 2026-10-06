@@ -1,6 +1,6 @@
 # Phase3 FITS Write-out Algorithms（P3-FITS / acsd.p3.fits_writer）
 
-> 上游：ACSD_DESIGN.md §6.2（export 流程）、§10（I/O 与原子产品）
+> 上游：ACSD_DESIGN.md [D-1]「流程」一节（export 流程）、[D-1]「I/O 与原子产品」一节（I/O 与原子产品）
 
 > 本文件是 Phase3 HiPS→FITS 写出域的**实现级算法合同**：
 > 逐符号源码对照（文件 + 符号） + 冻结容差 + 现状缺陷登记。科学语义权威=SCI-P3-001
@@ -14,7 +14,7 @@
 > API: API-P3-FITS-001（PUBLIC_API.md「Phase3 FITS 写出公共消费面」节）；
 > DATA: DATA-P3-FITS（`docs/detail/registry/acsd.phase3.writer.md`）；MOD: acsd.p3.fits_writer
 > （MODULE_MIGRATION_MATRIX P3-FITS 行）；TEST: TEST-P3-WR-001
-> （设计冻结面=本文档 §12 + registry 手写页，可执行 MISSING 归
+> （设计冻结面=本文档 [S-4]「推导补遗」一节 + registry 手写页，可执行 MISSING 归
 > P3-FITS-TEST）。
 
 ## 1 目的与非目标
@@ -25,11 +25,11 @@
   独立重开验证与 sha256 完整性锚。
 - 非目标：不做重采样/tile 读取（ALG-P3-001/003，p3_resample/
   p3_sampler 域）、不做请求解析与参数拒绝清单（p3_session run 段
-  职责，§15 引用）、不做读路径 FITS/HiPS 解析（AIO/hips 域）、
+  职责，[S-1]「与上下游的关系」一节引用）、不做读路径 FITS/HiPS 解析（AIO/hips 域）、
   不改 vendored cfitsio（third_party/cfitsio 隔离，acsd_cfitsio
   静态库，根 CMakeLists.txt）、不改 SCI 公式。
 
-## 2 符号与单位（权威=本表 + SCI-P3-001 §9a/§96）
+## 2 符号与单位（权威=本表 + SCI-P3-001 [S-1]「参数与常数」一节）
 
 | 符号 | 类型 | 单位/值域 | 锚 |
 |---|---|---|---|
@@ -37,7 +37,7 @@
 | coverage | f32 [W·H] | 二值门 {0,1}（>0.5f=covered） | `lib/algorithms/fits_output/p3_output.cpp` |
 | width,height | int px | [1,20000]（会话层 `lib/phase3_session/p3_session.cpp`；内核 width<1 拒） | `lib/algorithms/fits_output/p3_output.h` |
 | bitpix | int | -32 \| -64（真实决定 buffer，`lib/algorithms/fits_output/p3_output.h`） | `lib/algorithms/fits_output/p3_output.cpp` |
-| BSCALE/BZERO | f64 | 1.0 / 0.0（恒定；FITS 4.0 §4.4.2.4 规定浮点，取值 TDOUBLE） | `lib/algorithms/fits_output/p3_output.cpp` |
+| BSCALE/BZERO | f64 | 1.0 / 0.0（恒定；FITS 4.0 [S-1]「参数与常数」一节 规定浮点，取值 TDOUBLE） | `lib/algorithms/fits_output/p3_output.cpp` |
 | BUNIT | string | 主 HDU 面亮度单位；调用方给空串/`nullptr` ⇒ 取 canonical `ADU/sr`（唯一事实源 `lib/algorithms/fits_output/p3_output.cpp`，与 `docs/science/unified/DATA_SEMANTICS.md`「面亮度单位的推导」一节「产品写盘 BUNIT 一律取该串」同口径）。**上游同口径**：重采样器 `p3_sampler_open_ex` 对无 BUNIT 的源 properties 亦回填 `ADU/sr`（`lib/algorithms/resample/p3_resample.cpp`），会话 `lib/phase3_session/p3_session.cpp` 原样透传 ⇒ 全链缺省串一致，**不出现裸 `ADU`** | `lib/algorithms/fits_output/p3_output.cpp` / `lib/algorithms/resample/p3_resample.cpp` |
 | CRPIX1/2 | f64 px | FITS 1-based pixel-center | `lib/algorithms/projection/p3_wcs.h` / `lib/algorithms/fits_output/p3_output.cpp` |
 | CRVAL1/2 | f64 deg | ICRS 中心 | `lib/algorithms/projection/p3_wcs.h` / `lib/algorithms/fits_output/p3_output.cpp` |
@@ -170,7 +170,7 @@ function p3_output_verify(path, wcs, signal, coverage, W, H, out result):
 
 - 语义权威已有 FROZEN SCI：**SCI-P3-001**（docs/science/
   PHASE3_HIPS_TO_FITS.md；冻结集合 SCI-P3-001..020）。**共享 SCI 引用不改动**
-  （P2-SAMP/P2-REJ/P2-UPM 同构）。FITS 关键字面权威=SCI-P3 §96（BITPIX
+  （P2-SAMP/P2-REJ/P2-UPM 同构）。FITS 关键字面权威=SCI-P3 [S-1]「判据与误差」一节（BITPIX
   -32/-64、BSCALE=1/BZERO=0、BUNIT 取 canonical `ADU/sr`、WCS
   CRPIX/CRVAL/CD/CTYPE=TAN/CUNIT=deg、HISTORY+provenance 必写）。
 - **descriptor 占位映射声明**（占位 ID 是矩阵/descriptor 词汇，不注册
@@ -178,7 +178,7 @@ function p3_output_verify(path, wcs, signal, coverage, W, H, out result):
   - `SCI-P3-WR-001`（writer descriptor sci_id，
     `lib/infrastructure/scheduler/src/module_adapters.cpp` 的 p3_writer_descriptor）⇒
     **SCI-P3-001**（docs/science/PHASE3_HIPS_TO_FITS.md 共享 FROZEN；
-    §9a-11 G5 FITS 写 + §96 关键字冻结为科学语义来源）；
+    [S-1]「公式与推导」一节G5 FITS写 + [S-1]「参数与常数」一节关键字冻结为科学语义来源）；
   - `ALG-P3-004`（writer descriptor alg_id）⇒ **ALG-P3-004**
     （PHASE3_RESAMPLE.md G5 施工规格）+ **ALG-P3-FITS-IMPL-001**
     （本文件，实现级合同；ALG-P3-002 G1/G2 WCS 构造子面同承接）；
@@ -191,7 +191,7 @@ function p3_output_verify(path, wcs, signal, coverage, W, H, out result):
 
 ## 6 实现级合同 F1-F4（非 SCI 新公式；G5/G1/G2 引用 PHASE3_RESAMPLE.md 零改动）
 
-- **F1 原子发布序**（IO_003 §4/§6 实现，见 `lib/algorithms/fits_output/p3_output.cpp` 注释冻结）:
+- **F1 原子发布序**（IO_003 [S-1]「参数与常数」一节 实现，见 `lib/algorithms/fits_output/p3_output.cpp` 注释冻结）:
   tmp 建写 → fits_flush_file（cfitsio dirty buffer 全量到 OS，失败
   即无成功对象）→ close → fsync(fd)（机制下沉 aio
   `aio_atomic::fsync_path`）→ rename。任何一步失败
@@ -207,14 +207,14 @@ function p3_output_verify(path, wcs, signal, coverage, W, H, out result):
   ACSD_HASH_FAIL_INJECT 仅测试构建。
 - **F3 coverage 二值门**（`lib/algorithms/fits_output/p3_output.cpp` 的写面计数点 + verify 回环比对点）: covered ⇔ value>0.5f；回环
   比对在二值化后进行（浮点 0.7 与 0.9 等价 covered），与 DATA-P3-FITS
-  §27 二值语义同源。
+  [S-1]「判据与误差」一节二值语义同源。
 - **F4 NaN 回环语义**（`p3_output_verify_ex` 的 HDU1 signal 回环段）: 双方 NaN 视为一致（源无覆盖=NaN
   传播），否则逐值精确相等（float bitwise 经 fits_write_pix/read_pix
   TFLOAT 往返无损，bitpix=-32 时 dtype 不变；-64 时 f32 上游已定，
   写入仍 TFLOAT 请求按文件 bitpix 缩放）。
 - 依赖声明：F1-F4 为实现级协议合同，不含新科学公式；G1/G2（WCS
   构造/反变换）与 G5（FITS 写公式面）推导权威=PHASE3_RESAMPLE.md
-  §2（ALG-P3-002/004），冲突时以 SCI-P3-001 为准（§5 红线）。
+  [S-1]「物理模型」一节（ALG-P3-002/004），冲突时以 SCI-P3-001 为准（[S-1]「判据与误差」一节 红线）。
 
 ## 7 确定性与归约
 
@@ -244,12 +244,12 @@ function p3_output_verify(path, wcs, signal, coverage, W, H, out result):
   |---|---|---|
   | `#pragma omp` | lib/phase3_session/*.cpp **0 处** | 无 |
   | `hardware_concurrency` | `lib/phase3_session/p3_session.cpp`（仅注释，禁用声明） | 合规 |
-  | `std::thread` | `lib/phase3_session/p3_session.cpp`（采样池，非写面） | §8 声明面 |
+  | `std::thread` | `lib/phase3_session/p3_session.cpp`（采样池，非写面） | [S-1]「与上下游的关系」一节声明面 |
   | `#pragma omp`（AIO 域） | `lib/infrastructure/aio/src/aio_fits.cpp` 唯一 `parallel for schedule(static)` | 属 AIO 域非本域（QA-001 -fopenmp 编译处理），登记不改 |
   | `CfitsioLockGuard`（计数式 `cfitsio_io_mutex` 守卫） | `lib/algorithms/fits_output/p3_output.cpp` / `lib/infrastructure/aio/src/aio_fits.cpp` / `lib/infrastructure/aio/src/aio_cfitsio_mutex.h`（`cfitsio_io_mutex` 与 `CfitsioLockGuard` 定义同文件） | RT-008 合规；PERF-401 起取锁点统一走计数式守卫，阻塞等待进 `resource_timeseries.csv` 的 `lock_wait_ns`（**Phase2 读路径已不使用本锁**，见 EXECUTION_MODEL §2/§3） |
 - **取消点**：内核级 cancelled_at_row 参数（`lib/algorithms/fits_output/p3_output.h`，行粒度，session
   层恒 -1）；会话级取消在采样循环；写面一旦进入
-  R10-C 发布序不可中断（半成品不可见，符合 IO_003 §6）。
+  R10-C 发布序不可中断（半成品不可见，符合 IO_003 [S-1]「与上下游的关系」一节）。
 
 ## 9 复杂度
 
@@ -271,24 +271,24 @@ function p3_output_verify(path, wcs, signal, coverage, W, H, out result):
 
 - 失败清理不变量：任一步失败 → unlink(tmp)（或发布后失败 →
   unlink(产物)），**不产生完整假文件、不发布无完整性锚输出**
-  （`lib/algorithms/fits_output/p3_output.h` 冻结注；IO_003 §6）。g_last_err 承载最近错误摘要
+  （`lib/algorithms/fits_output/p3_output.h` 冻结注；IO_003 [S-1]「与上下游的关系」一节）。g_last_err 承载最近错误摘要
   （同头文件，last_error 脱敏出口 `lib/phase3_session/p3_session.h`）。
 - 边界值：W/H∈[1,20000]（会话层）；abs(dec)≤85° TAN 极点
   守卫（`lib/phase3_session/p3_session.cpp`）；输出四角**投影域守卫** P3_WCS_HEMISPHERE
-  （`lib/algorithms/projection/p3_wcs.h`；判据语义见 ALG-P3-PROJ-IMPL-001 §6.4/§9：r=tanρ<π/2 即
+  （`lib/algorithms/projection/p3_wcs.h`；判据语义见 ALG-P3-PROJ-IMPL-001 [S-1]「与上下游的关系」一节：r=tanρ<π/2 即
   ρ<atan(π/2)=57.5184°，**不是**半球界）；max_tiles 请求可降不可升 →
   ACS_ERR_BUDGET（`lib/phase3_session/p3_session.cpp`）。
   **四角检查的充分性**：域守卫集是仿射映射下圆盘的原像 ⇒ 凸集 ⇒ 矩形帧
   "四角在域内 ⇔ 全域在域内"（证明与 1e6 点稠密扫描实证见
-  ALG-P3-PROJ-IMPL-001 §6.4）；**适用域** = 矩形输出帧 + 线性 CD 映射。
+  ALG-P3-PROJ-IMPL-001 [S-1]「与上下游的关系」一节）；**适用域** = 矩形输出帧 + 线性 CD 映射。
 
 ## 11 Oracle
 
 - 独立 FITS/WCS 读取器重开（verify 即进程内 oracle：独立 fits_open_file
   READONLY + 逐 HDU 回环 + sha256 重算，不复用写缓冲状态）；
-  SCI-P3 §11 全集为真值面（Oracle 不调用本模块——独立小规模球面
-  reference + 独立 FITS/WCS 读取器，PHASE3_RESAMPLE.md §8 同源）。
-- 执行测试现状锚（相邻证据，引用不冒认）：输出测试组 4 段（§12，载体已撤）；WCS oracle=p3_wcs roundtrip。
+  SCI-P3 [S-1]全集为真值面（Oracle 不调用本模块——独立小规模球面
+  reference + 独立 FITS/WCS 读取器，PHASE3_RESAMPLE.md [A-1]「离散公式」一节同源）。
+- 执行测试现状锚（相邻证据，引用不冒认）：输出测试组4段（[S-1]「判据与误差」一节，载体已撤）；WCS oracle=p3_wcs roundtrip。
 
 ## 12 TEST-DESIGN（TEST-P3-WR-DESIGN-001 冻结）
 
@@ -309,7 +309,7 @@ function p3_output_verify(path, wcs, signal, coverage, W, H, out result):
   `test_09_fits_standard_checksum_and_wcs_provenance`）。
 - T3 原子性：无 .tmp 残留（filesystem 目录遍历，WIN-001 替代
   popen；前缀匹配弱匹配偏差 DISP-P3FITS-002 如实，不误报）
-- T4 WCS roundtrip oracle：pix→world→pix <1e-4 px + 采样值锚（**本条阈为观测阈**，只用于是否触发人工复核；**合同紧门 = `roundtrip_tol_px = 1e-8 px`，唯一事实源见 §13 容差与冻结清单）
+- T4 WCS roundtrip oracle：pix→world→pix <1e-4 px + 采样值锚（**本条阈为观测阈**，只用于是否触发人工复核；**合同紧门 = `roundtrip_tol_px = 1e-8 px`，唯一事实源见[S-1]「容差与冻结清单」一节）
   sig[24,32]=100.0+0.5·32（同文件 WCS roundtrip 段）。
 - T5（设计面，现状未覆盖）取消不落盘：cancelled_at_row≥0 → rc=3
   且产物不存在、无 tmp 残留（取消门语义；归 P3-FITS-TEST）。
@@ -335,9 +335,9 @@ function p3_output_verify(path, wcs, signal, coverage, W, H, out result):
   全域保守门 `roundtrip_tol_global_px = 1e-6 px`（覆盖全部真实仪器尺度，
   代价是判别力弱）、`max_fov_deg = 20°`、`max_abs_crval_dec_deg = 85°`、
   `envelope_c_env = 128`（解析包络设计常数，实测 max 78）。门值/适用域/推导
-  以 `docs/science/algorithms/GATES_AND_TOLERANCES.md` §3 为准（推导证据见
+  以 `docs/science/algorithms/GATES_AND_TOLERANCES.md` [S-5]「输入输出端口」一节 为准（推导证据见
   实验/engineering-evidence/）。执行测试的 `1e-4 px` 是**观测阈**（比合同紧门松 1e4 倍）——
-  它只用于"是否触发人工复核"，**合同容差 = §3 门值**；
+  它只用于"是否触发人工复核"，**合同容差 = [S-1]「公式与推导」一节 门值**；
   常数场 0（bilinear 权重和=1 构造保证）；
   回环逐值精确（F4 NaN 语义）；sha256 64hex 小写。
 - 原子发布序（F1）与 sha256 严格封装（F2）为冻结协议，整改归
@@ -357,8 +357,8 @@ function p3_output_verify(path, wcs, signal, coverage, W, H, out result):
   前缀 ".acsd_p3_out_test."（输出测试组 4c 段）
   与实际命名恒不匹配 → 残留检查弱匹配空转（不误报亦捕不到本实现
   形态残留）。命名统一归 P3-FITS-IMPL（含测试修正）。
-- **DISP-P3FITS-003**：实现面已扩展，本文件 §2-§8 的**逐符号对照表**已按现行实现重定位
-  （改按「文件 + 符号」定位；原 `ANCHOR_CONTRACT.md` §2 的「只改数字」一节随仓内行锚撤销**作废**，
+- **DISP-P3FITS-003**：实现面已扩展，本文件逐符号对照表已按现行实现重定位
+  （改按「文件 + 符号」定位；原 `ANCHOR_CONTRACT.md` [S-1]「物理模型」一节 的「只改数字」一节随仓内行锚撤销**作废**，
   「不动符号/公式/门」义务不变）——(a) 主实现体更名为
   `p3_output_write_atomic_ex`（`lib/algorithms/fits_output/p3_output.cpp`；新增 variance/ivar 双平面入参，
   单边 NULL → P3_OUT_PARAM；`p3_output_write_atomic` 同文件为旧签名薄壳）；
@@ -389,7 +389,7 @@ function p3_output_verify(path, wcs, signal, coverage, W, H, out result):
   coverage_stats/provenance）。
 - 会话五段式（create/validate/run/inspect/destroy）=API-P3-001
   FROZEN（`lib/phase3_session/p3_session.h`）；本域内核消费面=API-P3-FITS-001
-  （PUBLIC_API.md 新节，§16）。
+  （PUBLIC_API.md新节）。
 - CLI 直调会话不 shell-out（`lib/phase3_session/p3_session.h` 注释）；输出路径默认
   `<hips_dir>/../output_phase3.fits`，请求 output_dir 可覆盖
   （`lib/phase3_session/p3_session.cpp`）。
@@ -397,7 +397,7 @@ function p3_output_verify(path, wcs, signal, coverage, W, H, out result):
 ## 16 关联 ID 映射（本文件承接）
 
 - ALG-P3-FITS-IMPL-001 = 本文件（实现级合同；upstream SCI-P3-001 +
-  ALG-P3-001 + ALG-P3-002 + ALG-P3-004，PHASE3_RESAMPLE.md §1-§10
+  ALG-P3-001 + ALG-P3-002 + ALG-P3-004，PHASE3_RESAMPLE.md [A-1]「离散公式」一节
   推导权威不重复）。
 - DATA-P3-FITS = docs/detail/registry/acsd.phase3.writer.md（in signal f32[W·H] ADU /
   coverage f32{0,1} / out FITS BITPIX/WCS/BUNIT/checksum 唯一权威）。
@@ -405,7 +405,7 @@ function p3_output_verify(path, wcs, signal, coverage, W, H, out result):
   （p3_output_write_atomic/p3_output_verify 符号级冻结 + 会话编排
   p3_session 五段镜像 API-P3-001 不变）。
 - TEST-P3-WR-001 = 登记面 TEST-P3-WR-DESIGN-001 设计冻结 VERIFIED
-  （§12 + docs/detail/registry/acsd.phase3.writer.md）；可执行
+  （本文件关联章节 + docs/detail/registry/acsd.phase3.writer.md）；可执行
   MISSING 归 P3-FITS-TEST。
 - MOD-acsd-phase3-writer / acsd.p3.fits_writer /
   acsd_p3_fits_writer.dll（合同值未建，P3-FITS-IMPL）；
@@ -418,7 +418,14 @@ function p3_output_verify(path, wcs, signal, coverage, W, H, out result):
   的 P3-FITS 行）；合同落位=lib/algorithms/fits_output/ 三件套 + 本文件
   + `docs/detail/registry/acsd.phase3.writer.md`（registry 手写页）+ PUBLIC_API API-P3-FITS-001 节。
 - 冻结红线：SCI-P3 冻结面（`docs/science/`、`PHASE3_RESAMPLE.md` 的公式与容差）
-  不得因实现偏差被反向修改；实现偏差一律登记（§14）不改 SCI。
+  不得因实现偏差被反向修改；实现偏差一律登记（本文件缺陷登记一节）不改SCI。
+
+> 本文引用上游正本（论文式编号，正文引用处均已改为自然语言节名，不再使用跨文档 §N 跳转）：
+> - [D-1] docs/ACSD_DESIGN.md（最高设计）。
+> - [S-1] docs/science/projection/HIPS_TO_FITS.md（投影导出科学正本 SCI-P3-001）。
+> - [S-4] docs/detail/registry/acsd.phase3.writer.md（相关科学正本）。
+> - [S-5] docs/science/algorithms/GATES_AND_TOLERANCES.md（相关科学正本）。
+> - [A-1] docs/science/algorithms/export/PHASE3_RESAMPLE.md（重采样施工规格分册）。
 
 ## 参考文献与参考代码库（含许可证）
 

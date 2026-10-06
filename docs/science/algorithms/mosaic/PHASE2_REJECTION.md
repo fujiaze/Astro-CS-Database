@@ -1,6 +1,6 @@
 # Phase2 Rejection Algorithms（P2-REJ / acsd.p2.rejection）
 
-> 上游：ACSD_DESIGN.md §5.5（逐像素排异）
+> 上游：ACSD_DESIGN.md [D-1]「逐像素排异」一节异）
 
 > 实现源: lib/algorithms/coverage/src/rejection.cpp（2965 行，acsd_phase2 静态库
 > 成员，根 CMakeLists.txt:337-344/:340）+ 唯一权威签名头
@@ -8,10 +8,10 @@
 > 权威: 本文档（算法级逐符号锚）。SCI 上游: SCI-REJ-001
 > （docs/science/REJECTION.md，FROZEN，集合
 > SCI-REJ-001..008，零改动；descriptor 占位 SCI-P2-REJ-001 ⇒
-> SCI-REJ-001 映射声明见 §11.5）。共享 L2: ALG-REJ-001
-> （本文件 §12 承接，方法核与数据布局见 §5/§15/§16）。DATA: DATA-P2-REJ（`docs/detail/registry/acsd.phase2.reject.md`）。API:
+> SCI-REJ-001映射声明见[S-1]「判据与误差」一节）。共享 L2: ALG-REJ-001
+> （本文件方法核与数据布局节承接，方法核与数据布局见本文件逐公式定义一节）。DATA: DATA-P2-REJ（`docs/detail/registry/acsd.phase2.reject.md`）。API:
 > API-P2-REJ-001（PUBLIC_API.md）。TEST: TEST-P2-REJ-001（设计冻结
-> 面=本文档 §11.4；可执行落地归 P2-REJ-TEST）。迁移目标
+> 面=本文档 [S-4]「推导补遗」一节；可执行落地归 P2-REJ-TEST）。迁移目标
 > acsd_p2_rejection.dll 为矩阵合同值（MISSING），由 P2-REJ-IMPL
 > 建立，本文件不声明 IMPLEMENTED；descriptor 占位
 > module_id=acsd.phase2.reject（module_adapters.cpp:705-724）由
@@ -30,10 +30,10 @@
   做权重策略（weights 数组外置，由 Stage2 按该天球像素对应帧集合现场计算派生量；RCR 核
   消费同栈 weights 数组属官方加权语义，非策略）；不做像素外结构
   重建（large_scale 仅对已拒 mask 做 8 邻域扩张，只增不减）；无
-  session 依赖（无状态纯函数）；不做瞬变/卫星语义区分（SCI §1
+  session 依赖（无状态纯函数）；不做瞬变/卫星语义区分（SCI [S-1]「主题与目标」一节
   非目标）；单帧无排异（n=1 进 UNDERDETERMINED 白名单）。
 
-## 2 符号与单位（权威=本表 + `docs/detail/registry/acsd.phase2.reject.md` + SCI §3）
+## 2 符号与单位（权威=本表 + `docs/detail/registry/acsd.phase2.reject.md` + SCI [S-4]「推导补遗」一节）
 
 | 符号 | 含义 | 单位/dtype | 锚 |
 |---|---|---|---|
@@ -53,7 +53,7 @@
 权重语义（调用方构造，本层无知）: 逐样本 ivar（权重是阶段二按该天球
 像素对应帧集合现场算出的派生量，经
 `source_indices` 回映射原始 slot，stage2.cpp:1098/:1361/:1379）；
-null → 等权。reducer 只消费权重数组本身（与 ALG-P2-INT-001 §2
+null → 等权。reducer 只消费权重数组本身（与 ALG-P2-INT-001 [S-1]「物理模型」一节
 同一政策）。
 
 ## 3 逐符号锚（rejection.cpp 2965 行 / rejection.h 602 行；锚 = `grep -n` + 花括号配对，行号一律照录实测值）
@@ -150,7 +150,7 @@ null → 等权。reducer 只消费权重数组本身（与 ALG-P2-INT-001 §2
 | INVALID_METHOD | 6 | plan.method 出界（含 AUTO=10 进 kernel） | :2029-2042（status :2040） | V17InvalidMethodStatus |
 | INTERNAL_ERROR | 7 | kernel 内部不变量破坏（现状不可达；保留态） | rejection.h 枚举定义 P2_STATUS_INTERNAL_ERROR = 7（kernel 不可达，无 rejection.cpp 锚） | —（设计保留） |
 
-### 4.2 per-sample reason（rejection.h:71-77；与 status 分离，SCI §7 状态分离不变量）
+### 4.2 per-sample reason（rejection.h:71-77；与 status 分离，SCI [S-1]「参考文献与参考代码」一节 状态分离不变量）
 
 | reason | 值 | 语义 | 锚 |
 |---|---|---|---|
@@ -182,12 +182,12 @@ kernel 外层迭代（ESD=k_out；RCR=3 常量；percentile/minmax=1）。
 - 调用方合同: 对 ex 返回 status ∈ {OK, UNDERDETERMINED} 才可继续
   积分，其余 hard fail（stage2.cpp 冻结门）。
 
-## 5 逐公式定义（算法级，与 SCI §5 同构；单位见 §2）
+## 5 逐公式定义（算法级，与 SCI [S-1]「判据与误差」一节 同构；单位见 §2）
 
 ### F1 planning 解析（p2_reject_plan_resolve :1182-1288）
 
 ```text
-typed 默认值（冻结阈值表;SCI §5 阈值冻结锚点逐项一致）:
+typed 默认值（冻结阈值表;SCI [S-1]「判据与误差」一节 阈值冻结锚点逐项一致）:
   underdetermined_n = req>0 ? req : <profile 默认>            :1218-1225
     profile 默认: acsd_adaptive_pixel ∧ AUTO → 3
                   acsd_adaptive_pixel ∧ EXTREME_PRIOR → 1
@@ -388,7 +388,7 @@ else ACCEPTED;  iterations=1（单轮，不迭代）                  :1829
   阈值随 |median|/s 线性漂移：真实天光电平（|median|/s ≈ 50）下退化为只剔 10%/20% 天光以上的样本
   （惰性）；`|median|/s ≲ 10` 时等效阈值落进噪声宽度 ⇒ **对干净数据过拒**（比值 3.33 时
   96.65%（n=6）的干净栈至少被剔一个样本）；`≲ 2` 时退化为全拒。完整三段域、实测值与
-  「任何电平下都不是噪声尺度判据」的结论见 docs/science/REJECTION.md §8a。
+  「任何电平下都不是噪声尺度判据」的结论见 docs/science/integration/REJECTION.md [S-1]「判据与误差」一节。
 ```
 
 ### F11 median_sigma（:1833-1875）
@@ -441,7 +441,7 @@ tally: accepted_count/rejected_low/rejected_high/iterations  :2163-2177
   accepted_count==0 ∧ n≤4 → reasons 全 UNDERDETERMINED,
     accepted_count=n, status=UNDERDETERMINED（:2185-2192；
     可达根因=percentile 判据带在 |median|/s ≲ 3.3 时全拒，见 §5 F10 与
-    docs/science/REJECTION.md §8a）
+    docs/science/integration/REJECTION.md [S-1]「判据与误差」一节）
   accepted_count==0 ∧ n>4 → status=ALL_REJECTED（:2194）
   否则 status = any_underdetermined ? UNDERDETERMINED : OK（:2196-2199）
 ```
@@ -481,34 +481,34 @@ tally: accepted_count/rejected_low/rejected_high/iterations  :2163-2177
   该域由 §11.3 DISP-P2REJ-004 登记。
   验证锚: G6PermutationInvariance（method 0..6）、
   V15ExPermutationInvarianceTyped（锚 = lib/algorithms/coverage/tests/
-  synthetic_gate.cpp，以该文件实测为准）；冻结容差见 §11.4。
+  synthetic_gate.cpp，以该文件实测为准）；冻结容差见[S-1]「判据与误差」一节。
 
 ## 7 与 SCI 的对应与偏差（如实登记）
 
-- SCI §5 连续定义（7 方法+auto profile+阈值冻结锚点+eligibility
+- SCI [S-1]「判据与误差」一节 连续定义（7 方法+auto profile+阈值冻结锚点+eligibility
   分层+large_scale 语义）与本文档 §5 逐项同构；阈值表逐值一致
   （§5 F1；rejection.cpp:1-12 冻结头注释同表）。auto 路由=nominal n
-  一次解析（SCI §6/§7 阈值不变量；:1254-1269 实测一致）。
+  一次解析（SCI [S-1]「与上下游的关系」一节 阈值不变量；:1254-1269 实测一致）。
 - **percentile 默认注释漂移（DISP-P2REJ-001，文档级）**:
   rejection.h:139 P2PercentileParams 注释 low_fraction "默认 0.1 =
   10%" 与实现 plan_resolve 默认 low_fraction=0.2（:1237）、SCI 权威
   （REJECTION.md §5 percentile low 0.2/high 0.1）不一致——**以 SCI 与
   实现为准**（0.2/0.1），header 注释为待对齐项。
-- **空栈状态命名（DISP-P2REJ-002，文档级）**: SCI §8 表
+- **空栈状态命名（DISP-P2REJ-002，文档级）**: SCI[S-1]「判据与误差」一节 表
   "无候选 → NO_CANDIDATES" 与实现八态枚举（rejection.h:102-111）不一致：
   本层无 NO_CANDIDATES，空栈 → P2_STATUS_MIN_SAMPLES
   （ex :2018 / compat :2228）；NO_CANDIDATES 属积分域
   P2IntegrateStatus（integrate.h，非本模块域）。**语义权威=本文件 §4.1**。
-- **行号锚（DISP-P2REJ-003，非语义缺陷）**: 本文档 §3/§5 的行号锚一律以
+- **行号锚（DISP-P2REJ-003，非语义缺陷）**: 本文档 [S-1]「公式与推导」一节 的行号锚一律以
    本次实测（rejection.cpp 2950 行 / rejection.h 602 行）为准；外部文档引用
-   行号与实测不符时，以本文档 §3 为准（与 DISP-P2INT-002 同类）。
+   行号与实测不符时，以本文档 [S-1]「公式与推导」一节 为准（与 DISP-P2INT-002 同类）。
 - **minmax tie-break 未显式冻结（DISP-P2REJ-004，合同级限制）**:
   :1897-1898 比较器仅按 value（std::sort 非稳定）——同输入同编译器
   确定；等值样本 permutation 不变性未承诺（G6 覆盖 method 0..6 不含
   MINMAX）。整改候选=显式 index tie-break（需评估冻结语义）+ 等值门。
-- SCI §2 符号表引用行号 → 实测 reason :94-99 / status :102-111
+- SCI [S-1]「物理模型」一节 符号表引用行号 → 实测 reason :94-99 / status :102-111
   （并入 DISP-P2REJ-003 锚漂移）。
-- SCI §13 公开 API 名 `p2_reject`（compat）与生产入口
+- SCI[S-1]「判据与误差」一节 公开 API 名 `p2_reject`（compat）与生产入口
   `p2_reject_stack_ex` 并存——API 面=API-P2-REJ-001（PUBLIC_API.md）
   冻结两符号；compat 仅测试/旧调用（h:299 冻结注释"生产 Stage2
   不再调用"）。
@@ -523,7 +523,7 @@ tally: accepted_count/rejected_low/rejected_high/iterations  :2163-2177
 - MINMAX 判定直接用原始域值（:2150 分派 stack->values）；PERCENTILE
   scale=原始域 |median|（同 `values` 标度）；σ 族/ESD/RCR 在工作域
   （normalization 后）——单位在 MEDIAN_SCALE 下无量纲化
-  （work/max(|median|,floor)，floor 默认 1e-12），DATA §22.4 登记。
+  （work/max(|median|,floor)，floor 默认 1e-12），数据语义 [U-1]「方差与逆方差的三态编码」一节登记。
 - **跨方法单位不可比（正向约束）**：同一候选栈在不同方法下处于不同判定域
   （MINMAX/PERCENTILE = 原始域；σ 族/ESD/RCR = 工作域）⇒ 各方法的
   阈值数值**只在方法内可比**；RCR 的加权分支只在 normalization=NONE
@@ -533,7 +533,7 @@ tally: accepted_count/rejected_low/rejected_high/iterations  :2163-2177
   同 tcrit 路径；libm 差异域=lgamma/exp/log/sin，oracle 门以 rtol
   承接，§11.4 F7）。
 
-## 9 边界与退化（SCI §8 逐条实现现状）
+## 9 边界与退化（SCI [S-1]「判据与误差」一节 逐条实现现状）
 
 | 条件 | 行为 | 实现锚 |
 |---|---|---|
@@ -558,14 +558,14 @@ tally: accepted_count/rejected_low/rejected_high/iterations  :2163-2177
 
 1. 十一方法枚举 name/value/顺序 + AUTO=10（rejection.h:45-62）。
 2. reason 4 值/status 8 值（rejection.h:94-111）与"reason/status
-   分离"（SCI §7 状态分离不变量）。
+   分离"（SCI [S-1]「参考文献与参考代码」一节 状态分离不变量）。
 3. 阈值表（4.0/3.0/8；5.0/3.5/8；0.05/10；0.2/0.1；1/1/4；
    minimum_n 注册表）——rejection.cpp:1-12/:1226-1251/:982-999；
-   阈值表取值 = 上列冻结值（"效果好"不是重定义依据，SCI §9a）。
+   阈值表取值 = 上列冻结值（"效果好"不是重定义依据，SCI [S-1]「判据与误差」一节）。
 4. AUTO 路由（生产档 1≤N≤3 none / 4≤N≤5 percentile / **N≥6 winsorized**，
    `n ≥ 16` 档同投 winsorized；对照档 `wbpp_2_9_1` 档界 = N<6 percentile /
    6..15 winsorized / N>15 linear_fit）
-   与 nominal n 一次解析（解析结果即最终值，per-pixel n_eff 重选不在其列，SCI §7/§10）。
+   与 nominal n 一次解析（解析结果即最终值，per-pixel n_eff 重选不在其列，SCI [S-1]「参考文献与参考代码」一节）。
 5. normalization 默认 MEDIAN_CENTER + floor 1e-12；PERCENTILE/RCR/
    EXTREME_PRIOR 的 normalization 绑定（:2036-2062）。
 6. RCR technique=0（SS_MEDIAN_DL）唯一支持 + 3-pass 链序
@@ -585,11 +585,11 @@ tally: accepted_count/rejected_low/rejected_high/iterations  :2163-2177
 
 ### 11.1 逐符号锚
 
-见 §3 表（锚=`grep -n`/read 实测；行号一律照录实测值）。
+见 [S-1]「公式与推导」一节 表（锚=`grep -n`/read 实测；行号一律照录实测值）。
 
 ### 11.2 返回码/并发合同
 
-- rc 语义: §4.3（ex rc=1 仅 null 三态；科学语义全在 status；
+- rc 语义: [S-1]「参数与常数」一节（ex rc=1 仅 null 三态；科学语义全在 status；
   plan_resolve/eligibility/gather/large_scale rc=1=参数非法）。
 - 并发合同: reentrant=yes（无全局/静态可变状态；kRcrSS* 为只读
   const 表）；threadsafe=no（无内部锁，并发由调用方像素划分）；
@@ -603,16 +603,16 @@ tally: accepted_count/rejected_low/rejected_high/iterations  :2163-2177
 ### 11.3 现状缺陷/限制清单（DISP-P2REJ-001..004，登记不改码）
 
 - **DISP-P2REJ-001**（文档级）: rejection.h:139 percentile
-  low_fraction 注释 "默认 0.1" 与实现/SCI 权威 0.2 不一致（§7）；
+  low_fraction 注释 "默认 0.1" 与实现/SCI 权威 0.2 不一致（[S-1]「参考文献与参考代码」一节）；
   以 SCI 与实现为准，header 注释为待对齐项。
-- **DISP-P2REJ-002**（文档级）: SCI §8 "无候选→NO_CANDIDATES" 与
+- **DISP-P2REJ-002**（文档级）: SCI[S-1]「判据与误差」一节 "无候选→NO_CANDIDATES" 与
   实现 MIN_SAMPLES 不一致（八态无 NO_CANDIDATES；NO_CANDIDATES 属积分域
-  P2IntegrateStatus）（§7）；语义权威=本文件 §4.1。
+  P2IntegrateStatus）（[S-1]「参考文献与参考代码」一节）；语义权威=本文件 [S-1]「参数与常数」一节。
 - **DISP-P2REJ-003**（锚漂移，非语义）: 外部文档行号引用与实测
-  （rejection.cpp 2965 行 / rejection.h 602 行）不符时（§7）；
-  行号权威=本文件 §3。
+  （rejection.cpp 2965 行 / rejection.h 602 行）不符时（[S-1]「参考文献与参考代码」一节）；
+  行号权威=本文件 [S-1]「公式与推导」一节。
 - **DISP-P2REJ-004**（合同级限制）: minmax 比较器仅 value，等值
-  tie-break 未显式冻结（§7）；整改候选=显式 index tie-break + 等值门。
+  tie-break 未显式冻结（[S-1]「参考文献与参考代码」一节）；整改候选=显式 index tie-break + 等值门。
 - 附注（冻结事实，非缺陷）: n≤4 全拒 fallback（:2178-2192 冻结
   注释）、winsor/median_sigma 保底 (nc−r)≤4（:1562/:1863）、ESD tie
   epsilon 1e-15 + 较小 frame_id（:1747-1748）、winsor 内层 64 轮/
@@ -620,15 +620,15 @@ tally: accepted_count/rejected_low/rejected_high/iterations  :2163-2177
 
 ### 11.4 TEST-P2-REJ-DESIGN-001 冻结测试设计（可执行 TEST-P2-REJ-001 由 P2-REJ-TEST 落地）
 
-锚归属声明: 本节及 §6 的测试锚 = **测试名**（`TEST(Suite, Name)` 的
+锚归属声明: 本节及[D-1]的测试锚 = **测试名**（`TEST(Suite, Name)` 的
 `Name`），落盘文件 = `lib/algorithms/coverage/tests/synthetic_gate.cpp`；
 **行号不作为权威**（测试文件随测试面演进，行号以文件内 `TEST` 宏实测为准）。
 
-- **F1 ESD NIST 门**（SCI §11）: 54 值 NIST Rosner 集恰拒
+- **F1 ESD NIST 门**（SCI[S-1]「判据与误差」一节）: 54 值 NIST Rosner 集恰拒
   {5.34, 5.42, 6.01}（V15EsdSingleSqrtExactRosnerSet 拒集逐位=索引
   {51,52,53}；G6EsdNistRosner54 n_reject==3；"双 sqrt bug 会误拒"
   负向对照）；masking 对检出（G6EsdMaskingCase ≥2 拒）。容差=拒集精确（bitwise）。
-- **F2 AUTO 路由/profile 门**（SCI §11 阈值不变量）:
+- **F2 AUTO 路由/profile 门**（SCI [S-1]「判据与误差」一节 阈值不变量）:
   V15AutoPlanResolvesByNominal（n=2/5→PERCENTILE、6/15→
   WINSORIZED、16/20→LINEAR_FIT；非法 profile rc≠0）；
   V16ProfileGroupVsAdaptive（wbpp_current（wbpp_2_9_1 的别名）
@@ -637,7 +637,7 @@ tally: accepted_count/rejected_low/rejected_high/iterations  :2163-2177
   下界；生产档 \`acsd_adaptive_pixel\` 的 \`1≤N≤3 → none\` 与 \`4≤N≤5 →
   percentile\` 边界由 \`p2_rejection_percentile_band_min_n\` 查询值锁定，
   该值必须与路由表同源（改一处必须同时改另一处）。
-- **F3 small-N/状态穷尽门**（SCI §7/§8）:
+- **F3 small-N/状态穷尽门**（SCI [S-1]「参考文献与参考代码」一节）:
   V15SatelliteN2Underdetermined（n=2 全 UNDERDETERMINED、
   accepted_count=2）；R2MinSamples（status==1）；V17InvalidMethodStatus；
   V16InvalidConfigurationCombos；V16RejectionNormalizationValidation；
@@ -646,7 +646,7 @@ tally: accepted_count/rejected_low/rejected_high/iterations  :2163-2177
   M4A01N5PercentileMedianAlwaysInBand / M4A01N6AllRejectedIsHardFailure
   （**容错域边界：n=3/5 时中位样本必在带内、n=4 全拒降级、n=6 全拒 hard fail**）。
   八态互斥显式断言；容差=枚举/计数精确。
-- **F4 注入门**（SCI §11 卫星线注入）:
+- **F4 注入门**（SCI [S-1]「判据与误差」一节 卫星线注入）:
   V15SatelliteTrail20Frames（AUTO 20 帧→LINEAR_FIT、
   reasons[7]=REJECTED_HIGH、accepted≥15、clean false-reject ≤4）；
   large_scale 结构门: V17LargeScaleGrowsTrailNotCosmic
@@ -654,7 +654,7 @@ tally: accepted_count/rejected_low/rejected_high/iterations  :2163-2177
   V17LargeScaleSparseNotGrown、V17LargeScaleDisabledNoop、
   V17LargeScaleInvalidParams（min_structure_pixels=0 →rc=1）。
   容差=mask/计数精确。
-- **F5 置换不变性门**（SCI §11 确定性门）:
+- **F5 置换不变性门**（SCI [S-1]「判据与误差」一节 确定性门）:
   G6PermutationInvariance（method 0..6，fid=1000+i 稳定帧
   identity，σ_low=−4/σ_high=3/min_samples=3，shuffle 决策一致）；
   V15ExPermutationInvarianceTyped（ex typed 面）。容差=
@@ -668,7 +668,7 @@ tally: accepted_count/rejected_low/rejected_high/iterations  :2163-2177
   V15TypedMinmaxParams；V16MinMaxFixedCountExact；
   V15RejectionTypedParseAndDefaultAuto（typed 参数透传+默认 AUTO）。
   容差=逐位/计数精确。
-- **F7 Python 参考 Oracle**（SCI §11）: Astropy
+- **F7 Python 参考 Oracle**（SCI [S-1]「判据与误差」一节）: Astropy
   sigma_clip(median+mad_std) 对 robust_mad_clip 复算 reject set；
   SciPy stats 对 ESD/RCR 决策复算（新增设计面，落地归 P2-REJ-TEST）。
   容差=rtol 1e-12（Python 参考域）；decision 集合精确一致。
@@ -699,26 +699,26 @@ tally: accepted_count/rejected_low/rejected_high/iterations  :2163-2177
 - descriptor 占位 alg_id=ALG-P2-REJ-001 恰与本文件 ID 同名——以
   本文件（docs/science/algorithms/PHASE2_REJECTION.md）为该 ID 的唯一
   权威页；descriptor 占位 data_id=DATA-P2-REJ 与 DATA_SEMANTICS
-  §22 同名对齐；api_id=API-P2-001（编排层词汇）的 kernel 消费面
+  [S-1]「判据与误差」一节同名对齐；api_id=API-P2-001（编排层词汇）的 kernel 消费面
   细化=API-P2-REJ-001（PUBLIC_API.md），两 ID 并存（API-P2-001
   编排层仍 VERIFIED）。本节是唯一冻结依据（编排层词汇只作对齐对象；descriptor
   acsd.phase2.reject 由 P2-XX-INT 对齐，不作冻结依据）。
 
 ## 12 关联 ID 映射（本文件承接）
 
-- `ALG-P2-REJ-001` = 本文档整体（逐符号锚 §3/§5；矩阵 P2-REJ 行
+- `ALG-P2-REJ-001` = 本文档整体（逐符号锚 [S-1]「公式与推导」一节；矩阵 P2-REJ 行
   algorithm_id）。
-- `ALG-REJ-001..008`（SCI §12；共享层 ALG 词汇）
-  ⇒ 本文档 §5: ALG-REJ-001 None（F4 前置 none :1465-1467）；
+- `ALG-REJ-001..008`（SCI[S-1]「判据与误差」一节；共享层 ALG 词汇）
+  ⇒ 本文档 [S-1]「判据与误差」一节: ALG-REJ-001 None（F4 前置 none :1465-1467）；
   ALG-REJ-002 Sigma/robust_mad（F4）；ALG-REJ-003 Winsorized
   （F5）；ALG-REJ-004 AveragedSigma（F6）；ALG-REJ-005 LinearFit
   （F7）；ALG-REJ-006 ESD（F8）；ALG-REJ-007 RCR（F9）；
   ALG-REJ-008 Percentile/Minmax + large_scale + wbpp 路由/状态
-  分层（F1/F10/F12/F13/F14）。数据布局与误差预算分别见 §15/§16。
+  分层（F1/F10/F12/F13/F14）。数据布局与误差预算分别见本文件相应章节。
   共享 ID 不抢注、不重复登记（INDEX.yaml 的 ALG-REJ-001 path 改指本文件，
   downstream 追加 ALG-P2-REJ-001 指向语义承接）。
 - `RJ-001..008` = SCI-REJ-001..008 别名（SCI 头注）；NONE 对非有限候选
-  的读法 = 不接受、ESD 单 sqrt（:1737）由本文档 §5 冻结承接。
+  的读法 = 不接受、ESD 单 sqrt（:1737）由本文档 [S-1]「判据与误差」一节 冻结承接。
 
 ## 13 追溯
 
@@ -731,19 +731,19 @@ tally: accepted_count/rejected_low/rejected_high/iterations  :2163-2177
   lib/algorithms/rejection/ 三件套
   （README/module.yaml/memory.md，按 lib/algorithms/integration/ 先例新建；
   lib/algorithms/coverage/ 三件套已被 P2-COV 占用）。
-- 消费者: stage2.cpp（§6；`docs/detail/registry/acsd.phase2.write.md` 编排域）/
+- 消费者: stage2.cpp（[S-1]「与上下游的关系」一节；`docs/detail/registry/acsd.phase2.write.md` 编排域）/
   acr_kernels.cpp（ACR 域）/ P2-005 语义 id/解析面判据/
   排异/积分生产 Oracle 组/ module_adapters.cpp:704-720
   descriptor 占位。
 - SCI: docs/science/REJECTION.md（SCI-REJ-001..008，FROZEN）。**阈值表、
-  判据带定义、§10 禁改清单零改动**；本文档只同步行号锚、profile 依赖的
-  `underdetermined_n` 取值与 percentile 适用域（§8a）的量化表述。
+  判据带定义、本文件禁改清单零改动**；本文档只同步行号锚、profile依赖的
+  `underdetermined_n` 取值与 percentile 适用域的量化表述。
 
 ## 14 合同落位
 
 - DATA-P2-REJ = docs/detail/registry/acsd.phase2.reject.md：输入
   eligibility/gather/kernel 三层 + P2RejectionDecision 输出 +
-  八态状态机 + 单位/确定性唯一权威；与 §21 DATA-P2-INT 的消费
+  八态状态机 + 单位/确定性唯一权威；与 [S-4]「推导补遗」一节 DATA-P2-INT 的消费
   边界 = accepted mask → P2PixelStack.accepted。
 - API-P2-REJ-001 = docs/engineering/api/PUBLIC_API.md 末节：
   planning/eligibility/gather/kernel/large_scale 导出符号冻结；
@@ -756,9 +756,9 @@ tally: accepted_count/rejected_low/rejected_high/iterations  :2163-2177
   算法/锚权威，DATA/API 以各自文件为单位/dtype/消费面权威；
   SCI 权威永远在 docs/science/（方向 = 从 docs/science/ 到本文档）。
 - 缺陷联动: DISP-P2REJ-001..004 同时登记于 registry 页与
-  module.yaml known_defects；本文件 §7 为权威表述。
+  module.yaml known_defects；本文件 [S-1]「参考文献与参考代码」一节 为权威表述。
 - docs/engineering/governance/TRACEABILITY.md「逐模块追溯台账（人读正本）」一节 MOD-acsd-phase2-reject 行:
-  science_id=SCI-REJ-001（映射 §11.5）/
+  science_id=SCI-REJ-001（映射 [S-5]「输入输出端口」一节）/
   algorithm_id=ALG-P2-REJ-001（本文件）/data_id=DATA-P2-REJ/
   api_id=API-P2-REJ-001/src_id=SRC-P2-REJ-001（src_path=lib/
   phase2/include/astro/phase2/rejection.h::p2_reject_plan_resolve,
@@ -773,7 +773,7 @@ tally: accepted_count/rejected_low/rejected_high/iterations  :2163-2177
 
 - **输入**：每像素候选栈 `values[]`、`weights[]`、`support[]`、`accepted[]`、`frame_id[]`，打包在 `P2EligibilityGatherInput`（`lib/algorithms/coverage/include/astro/phase2/rejection.h`）。布局为**帧主序**：`value_stride = support_stride = chunk_pixels`，元素寻址 `gidx = s·stride + pixel`，`s` 为帧槽序号、`pixel` 为该子域像素序号；kernel 与 ACR 共享同一布局。
 - **规划层**：`p2_reject_plan_resolve` 以 `n`（该输出像素的 nominal contributors，一次解析）路由到 method，request 与 plan 两处结构同源；同一 `n` 的 method 解析结果唯一（§5 F1）。
-- **布局单位**：`values` = 面亮度 ADU·sr⁻¹；`weights` = (ADU·sr⁻¹)⁻²；`support` 无量纲 [0,1]；`frame_id` 无量纲 u64。单位权威 = `docs/science/REJECTION.md` §3 与 `docs/detail/registry/acsd.phase2.reject.md` 的单位/dtype 面。
+- **布局单位**：`values` = 面亮度 ADU·sr⁻¹；`weights` = (ADU·sr⁻¹)⁻²；`support` 无量纲 [0,1]；`frame_id` 无量纲 u64。单位权威 = `docs/science/integration/REJECTION.md` [S-1]「判据与误差」一节 与 `docs/detail/registry/acsd.phase2.reject.md` 的单位/dtype 面。
 - **输出**：reject plan（method + 阈值）、per-sample reason（`P2_REASON_*`）、stack status（`P2_STATUS_*`）。large_scale 结构按两种形态给出——**trail 生长**（被拒掩膜的连通分量达标后作 Chebyshev 半径扩张）与 **compact 不生长**（cosmic 形态，分量不达标时原样保留）。
 - **内存**：候选栈占用 O(n)；逐像素拒绝就地完成；无整帧副本。
 
@@ -803,18 +803,26 @@ tally: accepted_count/rejected_low/rejected_high/iterations  :2163-2177
 - **取消点**：kernel 自身无内部取消点（并发合同见 §11.2，纯函数、reentrant）。取消由调用方在**像素行带**粒度执行——取消时该行带的 accepted 掩膜不落盘，掩膜以帧为原子单元，整帧重做。
 - **复杂度**：候选栈的排序与 ESD/RCR 迭代为 O(n log n)（`n` 为该像素的候选数）；其余方法核为 O(n)。
 
+> 本文引用上游正本（论文式编号，正文引用处均已改为自然语言节名，不再使用跨文档 §N 跳转）：
+> - [D-1] docs/ACSD_DESIGN.md（最高设计）。
+> - [S-1] docs/science/integration/REJECTION.md（排异科学正本 SCI-REJ-001）。
+> - [S-4] docs/detail/registry/acsd.phase2.reject.md（相关科学正本）。
+> - [S-5] docs/engineering/governance/TRACEABILITY.md（相关科学正本）。
+> - [A-1] docs/science/algorithms/mosaic/PHASE2_INTEGRATION.md（集成算法分册）。
+> - [U-1] docs/science/unified/DATA_SEMANTICS.md（相关科学正本）。
+
 ## 参考文献与参考代码库（含许可证）
 
 > 本节只给可核验出处与参考实现，不改动本文件任何公式、锚点、阈值与容差。
 
 - **Generalized ESD**：Rosner, B. 1983, *Percentage Points for a Generalized ESD Many-Outlier Procedure*, Technometrics **25**, 165-172（DOI [10.1080/00401706.1983.10487848](https://doi.org/10.1080/00401706.1983.10487848)，Crossref 元数据核验：题名/卷/页/作者一致）——**支持**本层 ESD 的「多离群、回看定 k_out」判据。独立可执行实现与临界值表：NIST/SEMATECH e-Handbook §1.3.5.17/§7.1.6。
 - **RCR**：Maples, M. P., Reichart, D. E., Konz, N. C., et al. 2018, *Robust Chauvenet Outlier Rejection*, ApJS **238**, 2（DOI [10.3847/1538-4365/aad23d](https://doi.org/10.3847/1538-4365/aad23d)；[arXiv:1807.05276](https://arxiv.org/abs/1807.05276)，题名/作者核验一致）——**支持**本层 3-pass 链（序贯更换集中趋势测度）与经验修正因子表；后续方法学 Konz, N. & Reichart, D. E. 2023, [arXiv:2301.07838](https://arxiv.org/abs/2301.07838)（摘要逐字：sequentially applying different measures of central tendency and empirically determining the rejective sigma value）。
-- **percentile 判据带**：Siril 1.4.3 `src/stacking/rejection_float.c:31-44`（`percentile_clipping`：`median - pixel > median*plow` ⇒ 低拒、`pixel - median > median*phigh` ⇒ 高拒）与 `:163-171`（`if (median == 0.0) return 0;` 零中位提前返回）——**支持**本层 §5 F10 的判据带形式与 `scale=|median|` 语义；本层不采用 `:163-171` 的提前返回分支（理由见 docs/science/REJECTION.md §8a）。
+- **percentile 判据带**：Siril 1.4.3 `src/stacking/rejection_float.c:31-44`（`percentile_clipping`：`median - pixel > median*plow` ⇒ 低拒、`pixel - median > median*phigh` ⇒ 高拒）与 `:163-171`（`if (median == 0.0) return 0;` 零中位提前返回）——**支持**本层 §5 F10 的判据带形式与 `scale=|median|` 语义；本层不采用 `:163-171` 的提前返回分支（理由见 docs/science/integration/REJECTION.md [S-1]「判据与误差」一节）。
 - **winsorization/稳健尺度**：Hoaglin, Mosteller & Tukey (eds.) 1983, *Understanding Robust and Exploratory Data Analysis*, Wiley（ISBN 0-471-09777-2）——书籍级背景。
 - **Tukey biweight**：Beaton, A. E. & Tukey, J. W. 1974, *The Fitting of Power Series, Meaning Polynomials, Illustrated on Band-Spectroscopic Data*, Technometrics **16**, 147-185（DOI [10.1080/00401706.1974.10489171](https://doi.org/10.1080/00401706.1974.10489171)）——**本层 11 个方法均不使用 biweight 核**，该引用只作稳健估计背景，不作为任何方法的语义依据。
 - **clipped-mean/伪影**：Gruen, D., Seitz, S. & Bernstein, G. M. 2014, PASP **126**, 158（页面级未核验）。
 - **档界来源**：PixInsight WBPP **2.5.9** `WeightedBatchPreprocessing-engine.js:1421-1429` `bestRejectionMethod()`（官方包 sha1 `712cc7c3fdb523643ad0e685104592d511996f82`；非学术软件来源）。IRAF `combine`/`imcombine`（方法族命名来源；`reject` 值域 `none|minmax|ccdclip|crreject|sigclip|avsigclip|pclip`，**无 `lfitclip`/`winsorize`**）。
-- **核语义来源**：`linear_fit` = 官方**式[21]/[22]** + NR 3rd ed. §15.7.3；`winsorized_sigma` = 官方式[18]/[19]（Huber 体系）；`percentile` = `docs/science/REJECTION.md` §5/§8a 本层定义。**Siril 1.4.3 是次生参考实现**（上列 `:31-44` 用于掩码逐元素对拍），**不是核语义归属**。
+- **核语义来源**：`linear_fit` = 官方**式[21]/[22]** + NR 3rd ed. §15.7.3；`winsorized_sigma` = 官方式[18]/[19]（Huber 体系）；`percentile` = `docs/science/integration/REJECTION.md` [S-1]「判据与误差」一节 本层定义。**Siril 1.4.3 是次生参考实现**（上列 `:31-44` 用于掩码逐元素对拍），**不是核语义归属**。
 
 
 
@@ -826,5 +834,5 @@ tally: accepted_count/rejected_low/rejected_high/iterations  :2163-2177
 - **pixel any-rejection FPR = 26.3%**（任一帧被拒即计）。
 - 科学量偏差：星点通量 **−0.07%**、FWHM **+0.012%**、faint structure **−0.29%**、背景噪声效率 **1.045**、三类 outlier recall = **1.0**。
 - 该组数字只作**对照档行为证据**登记，不改变 §5 四档路由与阈值表；复跑入口 = `lib/algorithms/coverage/tools/controlled_rejection_truth.py`（受控真值）与 `lib/algorithms/coverage/tools/rejection_oracle_compare.py`（Siril 1.4.3 harness 逐位对照，**次生参考实现对拍**）。
-- **真实数据判据（M42 沿线，口径与分母显式）**：显著点以「卫星帧留一稳健 z>5」判定，分母口径 = 全域显著点；漏检率与检出率按分档（`n ≥ 16`、`n = 6..15`）分别统计。读数正本 = 实验/m42-realdata/。权威口径见 `docs/science/REJECTION.md` §17；复现入口 = 生产 kernel 与受控真值脚本 `lib/algorithms/coverage/tools/controlled_rejection_truth.py`。
+- **真实数据判据（M42 沿线，口径与分母显式）**：显著点以「卫星帧留一稳健 z>5」判定，分母口径 = 全域显著点；漏检率与检出率按分档（`n ≥ 16`、`n = 6..15`）分别统计。读数正本 = 实验/m42-realdata/。权威口径见 `docs/science/integration/REJECTION.md` [S-1]「判据与误差」一节；复现入口 = 生产 kernel 与受控真值脚本 `lib/algorithms/coverage/tools/controlled_rejection_truth.py`。
 

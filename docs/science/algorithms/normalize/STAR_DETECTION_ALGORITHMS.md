@@ -1,9 +1,9 @@
 # Star Detection Algorithms (ALG-STARDET-001)
 
-> 上游：ACSD_DESIGN.md §4.2（Phase1 节点流程）
+> 上游：ACSD_DESIGN.md [D-1]「节点流程」一节（Phase1 节点流程）
 
 > 上游 SCI: SCI-PSF-001（docs/science/psf/PSF.md，FROZEN 共享引用不改动）；本域冻结层
-> SCI-P1-STAR-001（§11.5，ALG 内冻结层，共享 SCI 不改动）
+> SCI-P1-STAR-001（[S-2]「判据与误差」一节，ALG内冻结层，共享 SCI 不改动）
 > 下游: DATA-P1-STAR（`docs/detail/registry/acsd.phase1.star-detection.md`）、API-STAR-001（PUBLIC_API）、
 > MOD-acsd-phase1-star（registry）
 > 唯一权威生产源: lib/algorithms/star_detection/src/sdet_api.cpp（2497 行；源文件唯一在役副本）；合同头
@@ -114,7 +114,7 @@
   自研信赖域 LM（nls_lm），7 参数）:
   `f(x,y)=B+A·exp(−(x′²/SX+(y′/r)²/SX)/1)`，参数 `{B,A,x0,y0,SX=2σ²,fr,alpha}`，
   `r=0.5·(cos fr+1)`，`sx=√(SX/2)`，`sy=sx·r`，`fwhm=2.3548·σ`（TWO_SQRT_2_LOG2），
-  PSF 侧 = 椭圆 Moffat4（SCI-PSF-001 §5）；同 sx 下 FWHM 相差 1.9140×，两块的 FWHM 各自独立取值（DISP-STAR-007）。
+  PSF 侧 = 椭圆 Moffat4（SCI-PSF-001 [S-2]「判据与误差」一节）；同 sx 下 FWHM 相差 1.9140×，两块的 FWHM 各自独立取值（DISP-STAR-007）。
   `theta=−alpha` 归一到 (−90°,90°]。残差坐标 `dx=x+0.5−cx`（像素中心=索引+0.5，
   `sdet_api.cpp`）。
 - 初始化（sdet_lm_fit，见 `sdet_api.cpp`）: halfA 边界搜索（`max_val=A0+bkg0`，沿中心行列向外走到
@@ -226,7 +226,7 @@ sdet_detect_impl(image, w, h, params):            # sdet_api.cpp（模板双实�
 ## 9 容差来源
 
 - 亚像素质心: 一阶导/零交叉为连续估计（无 0.5px 网格量化损失），**椭圆高斯**中心
-  由自研信赖域 LM（nls_lm；XTOL/GTOL/FTOL 编译期常量）收敛；合成高斯场 oracle 容差于 §11.4
+  由自研信赖域 LM（nls_lm；XTOL/GTOL/FTOL 编译期常量）收敛；合成高斯场 oracle 容差于[D-1]设计冻结
   冻结，取值一律按本节。检测侧高斯 / PSF 侧 Moffat4 双母函数语义与换算见 §2 与
   DISP-STAR-007。
 - FP32 通道经 uint16 量化（DISP-STAR-001），其容差与 FP64 通道分别冻结。
@@ -241,7 +241,7 @@ sdet_detect_impl(image, w, h, params):            # sdet_api.cpp（模板双实�
   注销为死符号）+ 常量；编排合同
   PHASE1_API_V1 §2 表行 `sdet_create/destroy/detect/detect_ex`（handle 级
   并发合同）。
-- TST: TEST-STAR-DESIGN-001（§11.4 冻结测试设计）；可执行 TEST-P1-STAR-001
+- TST: TEST-STAR-DESIGN-001（[D-1]设计冻结）；可执行 TEST-P1-STAR-001
   由 P1-STAR-TEST 落地。
 - DATA: DATA-P1-STAR（`docs/detail/registry/acsd.phase1.star-detection.md`，star_det v1 [N,6] 权威块十数组语义）。
 
@@ -255,20 +255,20 @@ sdet_detect_impl(image, w, h, params):            # sdet_api.cpp（模板双实�
 | YvV 平滑 σ=2.0 | `lib/algorithms/star_detection/src/sdet_api.cpp` | 阶段2 **调用面**（sdet_gaussian_blur_yvv/_d；**实现不在本文件**：`lib/algorithms/star_detection/src/sdet_image.cpp`） |
 | sdet_compute_bgnoise | `lib/algorithms/star_detection/src/sdet_api.cpp` | 阶段3 行差分 FnNoise1 族 |
 | threshold=median+5·bgnoise | `lib/algorithms/star_detection/src/sdet_api.cpp` | 阶段3 全局阈值（含 locthreshold） |
-| peaker 主扫描 | `lib/algorithms/star_detection/src/sdet_api.cpp` | 阶段4 七步（§2 候选公式锚） |
+| peaker 主扫描 | `lib/algorithms/star_detection/src/sdet_api.cpp` | 阶段4 七步（[S-1]「物理模型」一节 候选公式锚） |
 | 候选 mag_est 降序（impl 无截断） | `lib/algorithms/star_detection/src/sdet_api.cpp` | 阶段5 排序闸门 |
 | sdet_gauss_fit | `lib/algorithms/star_detection/src/sdet_api.cpp` | 阶段6 采样/饱和 mask/bkg0/初始值（检测侧母函数=椭圆高斯，DISP-STAR-007） |
 | sdet_lm_fit（自研 TR-LM 7 参） | `lib/algorithms/star_detection/src/sdet_api.cpp` | 阶段6 拟合主体（含 halfA 边界搜索） |
 | reject_star | `lib/algorithms/star_detection/src/sdet_api.cpp` | 阶段8 质量门（含 SfError 码） |
 | StarRecord 构建+mag | `lib/algorithms/star_detection/src/sdet_api.cpp` | 阶段8（含 is_saturated 与 mag 计算） |
-| sdet_dedup_stars | `lib/algorithms/star_detection/src/sdet_api.cpp` | 阶段10a（语义见 §2） |
+| sdet_dedup_stars | `lib/algorithms/star_detection/src/sdet_api.cpp` | 阶段10a（语义见 [S-1]「物理模型」一节） |
 | sdet_sort_stars | `lib/algorithms/star_detection/src/sdet_api.cpp` | 阶段10b（mag 升序 NaN 末尾） |
 | 输出构造 10 数组 | `lib/algorithms/star_detection/src/sdet_api.cpp` | `sdet_emit_records`：malloc+赋值+extras |
 | sdet_detect_ex（FP32 入口） | `lib/algorithms/star_detection/src/sdet_api.cpp` | uint16→float 转换后 impl<float> |
 | sdet_detect_ex_f64（FP64 入口） | `lib/algorithms/star_detection/src/sdet_api.cpp` | impl<double> 全程双精度 |
 | sdet_create / sdet_destroy | `lib/algorithms/star_detection/src/sdet_api.cpp` | 句柄生命周期（含默认参数） |
-| edge_walking_center | `lib/algorithms/star_detection/src/sdet_api.cpp` | 独立饱和中心实现（**现仅由下一行消费**，见 §10） |
-| sdet_detect_saturated_stars | `lib/algorithms/star_detection/src/sdet_api.cpp` | 半阈值 CC 饱和检测（**本文件内零调用者**；其 debug 入口已注销，见 §10） |
+| edge_walking_center | `lib/algorithms/star_detection/src/sdet_api.cpp` | 独立饱和中心实现（**现仅由下一行消费**） |
+| sdet_detect_saturated_stars | `lib/algorithms/star_detection/src/sdet_api.cpp` | 半阈值 CC 饱和检测（**本文件内零调用者**；其debug入口已注销） |
 | get_extra_field / parse_extra_name | `lib/algorithms/star_detection/src/sdet_api.cpp`（两处） | extras 列解析 |
 
 SDetParams 9 字段（`lib/algorithms/star_detection/include/star_detector.h`）生产消费面（DISP-STAR-003；实测口径，`grep params\.` 于 `lib/algorithms/star_detection/src/sdet_api.cpp`）:
@@ -292,7 +292,7 @@ SDetParams 9 字段（`lib/algorithms/star_detection/include/star_detector.h`）
   SF_ROUNDNESS_BELOW_CRIT/SF_RMSE_TOO_LARGE/SF_FWHM_TOO_LARGE（同文件）。
 - 编排级: 检测失败或 0 星 → 退出码 STAR_DETECT_FAILED；star_det 权威块写入失败 →
   BLOCK_MISSING（两处均在 `lib/infrastructure/pipeline/orchestrator/cpp/src/orchestrator.cpp`）。
-- 线程安全: handle 级互斥使用（PHASE1_API_V1 §2 表行登记 handle 级 no/no）；
+- 线程安全: handle 级互斥使用（PHASE1_API_V1 [S-1]「物理模型」一节 表行登记 handle 级 no/no）；
   无内部锁，句柄共享面 = 单线程。
 
 ### 11.3 现状缺陷清单（DISP-STAR-001..007，登记不改码，整改归 P1-STAR-IMPL/INT）
@@ -311,7 +311,7 @@ SDetParams 9 字段（`lib/algorithms/star_detection/include/star_detector.h`）
   **负对照**：平坦背景合成场上同一统计量的取值必须非空（正例），该子样本为空集
   ⇒ 全局阈不构成星云/银道面域的检出下限；两域**必须**分开声明。读数正本尚未确立，
   须由对抗性审核重新推导并构造反例确认。
-- DISP-STAR-003 SDetParams 9 字段生产消费面缺口（§11.1 表后注）: 编排
+- DISP-STAR-003 SDetParams 9 字段生产消费面缺口（表后注）: 编排
   platesolve.* 传参（`lib/infrastructure/pipeline/orchestrator/cpp/src/orchestrator.cpp`）部分字段无效；fwhmClipSigma
   生产路径半失效。
 - DISP-STAR-004 饱和星 mag 与正常星 mag 量纲不一致（振幅 vs box 流量，
@@ -400,7 +400,7 @@ SDetParams 9 字段（`lib/algorithms/star_detection/include/star_detector.h`）
   |Δ中心|≤0.05 px、A/B 相对误差 ≤1e−3（生产 nls_lm 对独立实现，双精度）；FP32 通道
   经 uint16 量化容差独立冻结 |Δc|≤0.5 px（DISP-STAR-001）—— 本项**只覆盖
   FP32→uint16 量化通道**（实测 u16 量化对质心贡献 median 0.0018 / p95 0.0036 /
-  max 0.0056 px，余量约 90×，可达且未超标；R-3 §2.6），**不构成端到端位置门**；
+  max 0.0056 px，余量约 90×，可达且未超标；R-3 [S-1]「物理模型」一节），**不构成端到端位置门**；
   端到端绝对位置门 = **G-P1-CENTROID-1**（正例 + 负例两臂，
   判据见 `docs/science/algorithms/GATES_AND_TOLERANCES.md`）。
 - F5 状态码负例: NULL/空图/0 尺寸 → −1；空场 → count=0 且 rc=0。
@@ -409,9 +409,9 @@ SDetParams 9 字段（`lib/algorithms/star_detection/include/star_detector.h`）
 
 ### 11.5 SCI-P1-STAR-001 状态声明
 
-科学专项（matrix P1-STAR 行）映射：subpixel centroid=§2 一阶导/零交叉/椭圆高斯
+科学专项（matrix P1-STAR 行）映射：subpixel centroid=[S-1]「物理模型」一节 一阶导/零交叉/椭圆高斯
 中心（连续估计，无网格量化）；completeness/false positive synthetic fields=
-§11.4 F1（检测完备性/虚警由合成场验收，非解析保证；召回域按 σ_psf 分档，
+[S-1]「判据与误差」一节F1（检测完备性/虚警由合成场验收，非解析保证；召回域按 σ_psf 分档，
   由逐档 99% 召回阈表定义，非单一 5σ 语义）；saturation/
 blend/edge=§2 饱和双条件+edge-walking+dedup 保饱和+§4 边界丢弃；deterministic
 ordering=§5 全序确定（mag 升序+NaN 末尾+串行 dedup/sort）。共享 SCI（PSF/
@@ -420,13 +420,20 @@ PHOTOMETRY/ASTROMETRY）不因本附录改动；本节是唯一冻结依据（�
 
 > 本域门与容差的量测域/统计量/SNR 定义/阈值来源见 `docs/science/algorithms/GATES_AND_TOLERANCES.md`（F-2 冻结门表；门值来源只此一表）。
 
+> 本文引用上游正本（论文式编号，正文引用处均已改为自然语言节名，不再使用跨文档 §N 跳转）：
+> - [D-1] docs/ACSD_DESIGN.md（最高设计）。
+> - [S-1] docs/science/detection/STAR_DETECTION.md（星点检测科学正本 SCI-P1-STAR-001）。
+> - [S-2] docs/science/psf/PSF.md（PSF 建模科学正本 SCI-PSF-001）。
+> - [S-5] docs/science/algorithms/GATES_AND_TOLERANCES.md（相关科学正本）。
+> - [A-1] docs/science/algorithms/common/GATES_AND_TOLERANCES.md（冻结门表分册）。
+
 ## 参考文献与参考代码库（含许可证）
 
 - 阈值检测/去混叠：Bertin & Arnouts 1996, A&AS 117, 393（SExtractor）；源码 SExtractor（GPL-3.0，tag 2.8.6）scan.c（扫描/阈值）/extract.c（提取）/back.c（背景）/photom.c（测光）。
 - 质心估计：Stetson 1987, PASP 99, 191（DAOPHOT）；photutils（BSD-3-Clause）centroid_sources。
 - 椭圆高斯 LM：Levenberg 1944, Quart. Appl. Math. 2, 164；Marquardt 1963, SIAM J. Appl. Math. 11, 431；Moré 1978, LNM 630, 105；实现对照 GSL（GPL-3.0）。
 - IIR 递归高斯平滑：Young & van Vliet 1995, Signal Processing 44, 139。
-- SNR_peak/门：docs/science/algorithms/GATES_AND_TOLERANCES.md §2/§3。
+- SNR_peak/门：docs/science/algorithms/GATES_AND_TOLERANCES.md [S-5]「输入输出端口」一节。
 - 检测侧椭圆高斯与 PSF 侧 Moffat4 的 FWHM 不可跨块比较（DISP-STAR-007；Moffat 1969, A&A 3, 455）。
 
 

@@ -264,7 +264,7 @@ Phase3 ──(原子发布: 磁盘 planar FITS + manifest/hash/provenance)──
 
 | 来源 | 字段 | 取值 |
 |---|---|---|
-| HiPS 产品 `properties`（生产者写出） | `hips_frame` | `equatorial`（IVOA HiPS 1.0 §4.4.1 关键字表的标准写法，即 ICRS；`galactic`/`ecliptic` 是同表另两值） |
+| HiPS 产品 `properties`（生产者写出） | `hips_frame` | `equatorial`（IVOA HiPS 1.0关键字表的标准写法，即ICRS；`galactic`/`ecliptic`是同表另两值，详见该标准关键字表一节） |
 | 交换对象文档（本文合同） | `product_content.coordinate.frame` | `icrs`（唯一允许值） |
 
 **映射规则**：读侧从 HiPS `properties` 构造交换对象文档时，

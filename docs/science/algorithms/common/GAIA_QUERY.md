@@ -1,6 +1,6 @@
 # Gaia XPSD 查询（ALG-GAIA-001）
 
-> 上游：ACSD_DESIGN.md §3.3（科学量与星表）、§4.2（Phase1 节点流程）、
+> 上游：ACSD_DESIGN.md [D-1]「精度归属」一节（科学量与星表）、[D-1]「节点流程」一节（Phase1 节点流程）、
 > SCI-AST-001（docs/science/detection/ASTROMETRY.md，别名 SCI-WCS-001）
 > 权威源码: lib/infrastructure/gaia_xpsd_client/src/gaia_client.c（本文件全部离散公式、常量、
 > 行为边界均从该文件逐函数核对；与 lib/infrastructure/gaia_xpsd_client/README.md 的
@@ -180,11 +180,11 @@ spectrum_start/step/count 取自 XPSD XML <Data parameters="...">（缺省 0，
 
 ## 3. 数据与 API 契约
 
-- DATA 合同：DATA-GAIA-001（docs/detail/infrastructure/22_gaia_xpsd_client.md §2 输入/输出数据合同）——输入
+- DATA 合同：DATA-GAIA-001（docs/detail/infrastructure/22_gaia_xpsd_client.md [S-4]「推导补遗」一节 输入/输出数据合同）——输入
   XPSD 目录、输出星表行单位/dtype/shape/invalid。
-- API 合同：API-GAIA-001（docs/engineering/api/PUBLIC_API.md §gaia-client）——
+- API 合同：API-GAIA-001（docs/engineering/api/PUBLIC_API.md [S-5]「输入输出端口」一节）——
   12 个 GAIA_EXPORT 符号、返回码、所有权、线程安全。
-- 唯一生产源符号清单与迁移映射：lib/infrastructure/gaia_xpsd_client/README.md §6、
+- 唯一生产源符号清单与迁移映射：lib/infrastructure/gaia_xpsd_client/README.md [S-5]「输入输出端口」一节、
   module.yaml `source_symbols`。
 - **装载 fail-closed**：目录内任一 `*.xpsd` 装载
   失败（open/mmap/魔数/头字段非法）或条目数 > `MAX_FILES`(32) ⇒
@@ -270,10 +270,17 @@ spectrum_start/step/count 取自 XPSD XML <Data parameters="...">（缺省 0，
 ## 6. ID 索引
 
 - ALG-GAIA-001（本文件）；SCI 上游 SCI-AST-001；
-- DATA-GAIA-001（docs/detail/infrastructure/22_gaia_xpsd_client.md §2；星表行语义另见 `docs/science/unified/DATA_SEMANTICS.md` §4.3）；
+- DATA-GAIA-001（docs/detail/infrastructure/22_gaia_xpsd_client.md [S-4]「推导补遗」一节；星表行语义另见 `docs/science/unified/DATA_SEMANTICS.md` [S-4]「推导补遗」一节）；
 - API-GAIA-001（docs/engineering/api/PUBLIC_API.md）；
-- TEST-GAIA-DESIGN-001（本文 §5，设计冻结；可执行 TEST-GAIA-* 待
+- TEST-GAIA-DESIGN-001（本文 [U-1]「判据与误差」一节，设计冻结；可执行 TEST-GAIA-* 待
   CAT-GAIA-TEST）。
+
+> 本文引用上游正本（论文式编号，正文引用处均已改为自然语言节名，不再使用跨文档 §N 跳转）：
+> - [D-1] docs/ACSD_DESIGN.md（最高设计）。
+> - [S-1] docs/science/detection/ASTROMETRY.md（天体测量与 WCS 科学正本 SCI-AST-001）。
+> - [S-4] docs/detail/infrastructure/22_gaia_xpsd_client.md（相关科学正本）。
+> - [S-5] docs/engineering/api/PUBLIC_API.md（相关科学正本）。
+> - [U-1] docs/science/unified/DATA_SEMANTICS.md（数据语义正本）。
 
 ## 参考文献与参考代码库（含许可证）
 
