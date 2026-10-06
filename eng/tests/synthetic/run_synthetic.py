@@ -39,6 +39,8 @@ if _REPO_ROOT not in sys.path:
     sys.path.insert(0, _REPO_ROOT)
 
 from eng.tests.unit import harness as _shared_harness  # noqa: E402
+# `_tol` 只 import 不引用是**刻意**的：容差冻结表必须在任何用例跑之前就完成导入，
+# 这样 `tolerances.py` 的语法/引用错误在启动时暴露，而不是跑到一半才炸。
 from eng.tests.synthetic import tolerances as _tol  # noqa: E402,F401
 
 #: 本层自己的注册表视图。注册/执行/裁决全部委托给共享骨架，
