@@ -19,8 +19,7 @@
 
 ## 1 上游 SCI 与输入输出
 
-- SCI-UPM-001（sky/UPM.md [S-6]「输入输出端口」一节）: `w_UPM = quality_factor × geometric_reliability ×
-  control_ivar`（:46 权威行）。stage2 侧实现锚 = UPM 构建消费该权重语义
+- SCI-UPM-001（sky/UPM.md「公式与推导」一节）: `w_abs = quality × control_ivar`（绝对式），`w_cell = w_abs / Σ w_abs × reliability`（份额式）。stage2 侧实现锚 = UPM 构建消费该权重语义
   （`p2_upm_build_geo` :432-433），本文不改公式，只登记其进入马赛克链的编排位置。
 - SCI-INT-001（INTEGRATION.md [S-2]「判据与误差」一节）: `signal` = accepted 样本加权积分输出（ADU）；
   `sup_max = max(accepted support)` canonical reducer（:21/:75）。stage2 侧实现锚 =
