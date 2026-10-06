@@ -402,7 +402,7 @@ SDetParams 9 字段（`lib/algorithms/star_detection/include/star_detector.h`）
   FP32→uint16 量化通道**（实测 u16 量化对质心贡献 median 0.0018 / p95 0.0036 /
   max 0.0056 px，余量约 90×，可达且未超标；R-3 [S-1]「物理模型」一节），**不构成端到端位置门**；
   端到端绝对位置门 = **G-P1-CENTROID-1**（正例 + 负例两臂，
-  判据见 `docs/science/algorithms/GATES_AND_TOLERANCES.md`）。
+  判据见 `docs/science/algorithms/common/GATES_AND_TOLERANCES.md`）。
 - F5 状态码负例: NULL/空图/0 尺寸 → −1；空场 → count=0 且 rc=0。
 - F6 回归锚: Galaxy_Center 类饱和平台场多检/漏检回归 fixture（源码教训已固化，见 `lib/algorithms/star_detection/src/sdet_api.cpp`）。容差冻结: 上述数值在 TEST 落地时逐项写死，
   P1-STAR-TEST 取值一律按本节；fixture 生成器注记容差来源（本节）。
@@ -418,13 +418,13 @@ ordering=§5 全序确定（mag 升序+NaN 末尾+串行 dedup/sort）。共享 
 PHOTOMETRY/ASTROMETRY）不因本附录改动；本节是唯一冻结依据（编排层词汇只作对齐对象）
 （descriptor acsd.phase1.star-psf 由 P1-PSF-INT 对齐，不作冻结依据）。
 
-> 本域门与容差的量测域/统计量/SNR 定义/阈值来源见 `docs/science/algorithms/GATES_AND_TOLERANCES.md`（F-2 冻结门表；门值来源只此一表）。
+> 本域门与容差的量测域/统计量/SNR 定义/阈值来源见 `docs/science/algorithms/common/GATES_AND_TOLERANCES.md`（F-2 冻结门表；门值来源只此一表）。
 
 > 本文引用上游正本（论文式编号，正文引用处均已改为自然语言节名，不再使用跨文档 §N 跳转）：
 > - [D-1] docs/ACSD_DESIGN.md（最高设计）。
 > - [S-1] docs/science/detection/STAR_DETECTION.md（星点检测科学正本 SCI-P1-STAR-001）。
 > - [S-2] docs/science/psf/PSF.md（PSF 建模科学正本 SCI-PSF-001）。
-> - [S-5] docs/science/algorithms/GATES_AND_TOLERANCES.md（相关科学正本）。
+> - [S-5] docs/science/algorithms/common/GATES_AND_TOLERANCES.md（相关科学正本）。
 > - [A-1] docs/science/algorithms/common/GATES_AND_TOLERANCES.md（冻结门表分册）。
 
 ## 参考文献与参考代码库（含许可证）
@@ -433,7 +433,7 @@ PHOTOMETRY/ASTROMETRY）不因本附录改动；本节是唯一冻结依据（�
 - 质心估计：Stetson 1987, PASP 99, 191（DAOPHOT）；photutils（BSD-3-Clause）centroid_sources。
 - 椭圆高斯 LM：Levenberg 1944, Quart. Appl. Math. 2, 164；Marquardt 1963, SIAM J. Appl. Math. 11, 431；Moré 1978, LNM 630, 105；实现对照 GSL（GPL-3.0）。
 - IIR 递归高斯平滑：Young & van Vliet 1995, Signal Processing 44, 139。
-- SNR_peak/门：docs/science/algorithms/GATES_AND_TOLERANCES.md [S-5]「输入输出端口」一节。
+- SNR_peak/门：docs/science/algorithms/common/GATES_AND_TOLERANCES.md [S-5]「输入输出端口」一节。
 - 检测侧椭圆高斯与 PSF 侧 Moffat4 的 FWHM 不可跨块比较（DISP-STAR-007；Moffat 1969, A&A 3, 455）。
 
 

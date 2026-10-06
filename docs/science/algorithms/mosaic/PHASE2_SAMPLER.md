@@ -620,7 +620,7 @@ fill）。fixture 由固定 seed 合成 HiPS 树生成，不提交大二进制�
 ### 11.4 SCI 层状态声明（本域零 SCI 改动）
 
 - 采样语义权威已有 FROZEN SCI：SCI-UPM-001（docs/science/
-  PHASE2_UPM.md，集合 SCI-UPM-001..010 + SCI-UPM-WEIGHT-001 +
+  sky/UPM.md，集合 SCI-UPM-001..010 + SCI-UPM-WEIGHT-001 +
   SCI-UPM-PERSIST-001；页头明示模块 "phase2 (upm/sampler)"）。
   **共享 SCI 引用不改动**（P1-WCS SCI-WCS-001=共享 docs/science/detection/ASTROMETRY.md、
   P2-COV SCI-UPM-001/SCI-INT-001、P2-INT SCI-INT-001、P2-REJ
@@ -646,7 +646,7 @@ fill）。fixture 由固定 seed 合成 HiPS 树生成，不提交大二进制�
   与 k_corr 域）；两 ID 并存不冲突——ALG-P2-SMP-001 为模块合同
   全集，ALG-UPM-CONTROL-IVAR-001 为其方差子面（UPM 权重消费方
   引用），本文件为两 ID 共同权威页（多 ID 同文档先例：
-  NOISE_ESTIMATION.md 承载 ALG-NOISE-001..003）。
+  docs/science/algorithms/common/NOISE_ESTIMATION.md 承载 ALG-NOISE-001..003）。
 - 本域 ID 一律用 `ALG-P2-SMP-001` / `TEST-P2-SMP-001`；二者注册
   INDEX 与矩阵，不另设同义 ID。
 - `UPMW-004/005/007`（MC 验证项词汇）⇒ 测试锚对应本文件[S-1]「判据与误差」一节

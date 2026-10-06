@@ -314,12 +314,12 @@ Polar prune: if |dec|>45° use C/C45 disk B(q,C·radius), false_negative=0
 - F1 合成线性场（order=1，已知 CD/CRVAL/CRPIX 合成星表）：求解成功且
   n_pairs≥12；rms_arcsec ≤0.5″；CD 元素相对误差 ≤2%（[D-1]尺度容差0.002同源）；
   |ΔCRVAL|≤1″。F1 不以任何单一实场实测值为标定依据；产品级外部闭环口径已冻结在
-  SCI-WCS-001 [S-1]「判据与误差」一节与 GATES_AND_TOLERANCES [S-1]「公式与推导」一节（G-P1-WCS-CLOSURE / -REPRO）。
+  SCI-WCS-001 [S-1]「判据与误差」一节与 docs/science/algorithms/common/GATES_AND_TOLERANCES [S-1]「公式与推导」一节（G-P1-WCS-CLOSURE / -REPRO）。
   **量测域冻结**：本项 `rms_arcsec` 定义在 `trans` 拟合的**内点集**（`n_pairs≥12`）
   与**合成线性场**（order=1，已知 CD/CRVAL/CRPIX 合成星表）上；它**不是**产品级
   天测精度门。产品级外部闭环量（全帧头域 median/p95）另立证据面
   **G-P1-WCS-CLOSURE**，其阈值需另行标定；该门与 F1 量测域不同，两者**各自独立出证，不
-  互为证据**。门表见 `docs/science/algorithms/GATES_AND_TOLERANCES.md`。
+  互为证据**。门表见 `docs/science/algorithms/common/GATES_AND_TOLERANCES.md`。
 - F2 SIP 场 oracle（注入已知 A/B，order=2）：astropy WCS（隔离 test-only
   oracle，[S-4]「推导补遗」一节 规则）前向/逆向 |Δ|≤1e-4 px 于中心 90% 区域（承接 §8 预冻结
   值，不放宽）；AP/BP 逆向一致性 roundtrip 同容差。
@@ -360,7 +360,7 @@ API-P1-004/TEST-P1-WCS-001，`lib/infrastructure/scheduler/src/module_adapters.c
 > - [D-1] docs/ACSD_DESIGN.md（最高设计）。
 > - [S-1] docs/science/detection/ASTROMETRY.md（天体测量与 WCS 科学正本 SCI-WCS-001）。
 > - [S-3] docs/engineering/contracts/LOG_AND_ERROR.md（相关科学正本）。
-> - [S-4] docs/science/algorithms/GATES_AND_TOLERANCES.md（相关科学正本）。
+> - [S-4] docs/science/algorithms/common/GATES_AND_TOLERANCES.md（相关科学正本）。
 
 ## 参考文献与参考代码库（含许可证）
 

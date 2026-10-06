@@ -335,7 +335,7 @@ function p3_output_verify(path, wcs, signal, coverage, W, H, out result):
   全域保守门 `roundtrip_tol_global_px = 1e-6 px`（覆盖全部真实仪器尺度，
   代价是判别力弱）、`max_fov_deg = 20°`、`max_abs_crval_dec_deg = 85°`、
   `envelope_c_env = 128`（解析包络设计常数，实测 max 78）。门值/适用域/推导
-  以 `docs/science/algorithms/GATES_AND_TOLERANCES.md` [S-5]「输入输出端口」一节 为准（推导证据见
+  以 `docs/science/algorithms/common/GATES_AND_TOLERANCES.md` [S-5]「输入输出端口」一节 为准（推导证据见
   实验/engineering-evidence/）。执行测试的 `1e-4 px` 是**观测阈**（比合同紧门松 1e4 倍）——
   它只用于"是否触发人工复核"，**合同容差 = [S-1]「公式与推导」一节 门值**；
   常数场 0（bilinear 权重和=1 构造保证）；
@@ -424,7 +424,7 @@ function p3_output_verify(path, wcs, signal, coverage, W, H, out result):
 > - [D-1] docs/ACSD_DESIGN.md（最高设计）。
 > - [S-1] docs/science/projection/HIPS_TO_FITS.md（投影导出科学正本 SCI-P3-001）。
 > - [S-4] docs/detail/registry/acsd.phase3.writer.md（相关科学正本）。
-> - [S-5] docs/science/algorithms/GATES_AND_TOLERANCES.md（相关科学正本）。
+> - [S-5] docs/science/algorithms/common/GATES_AND_TOLERANCES.md（相关科学正本）。
 > - [A-1] docs/science/algorithms/export/PHASE3_RESAMPLE.md（重采样施工规格分册）。
 
 ## 参考文献与参考代码库（含许可证）

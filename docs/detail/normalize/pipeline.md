@@ -132,7 +132,7 @@ PSF 拟合质量只能作 validity/诊断，不能未经概率模型直接乘入
 
 ### 7.1 测光链路的逐层物理量与单位
 
-**“校准到测光星等坐标系”的实现形态**：标度 `k_photo = 10^{−location}`（`docs/science/PHOTOMETRY.md` 的「物理量和单位」与「连续定义」两章）
+**“校准到测光星等坐标系”的实现形态**：标度 `k_photo = 10^{−location}`（`docs/science/photometry/PHOTOMETRY.md` 的「物理量和单位」与「连续定义」两章）
 是**线性乘性因子**（单位 [F_syn 单位]/ADU），作用是把各帧对齐到**统一相对测光零点**；它不把数据变成星等。
 逐层承载的物理量与单位（唯一正本 = `docs/science/unified/DATA_SEMANTICS.md` 的「单位与量纲表」与「面亮度单位的推导」两节）：
 
@@ -148,7 +148,7 @@ PSF 拟合质量只能作 validity/诊断，不能未经概率模型直接乘入
 
 **`k_photo` 的语义**：对齐各帧的**相对零点**，使帧间信号处于同一测光体系。其**绝对值无物理意义**——
 增益、口径、曝光、`hc` 等未建模常数被 `location` 吸收，因此它只作相对零点使用，取值窗口取相对量
-（`docs/science/PHOTOMETRY.md` 的「物理量和单位」与「假设」两章）。逐帧 `k_photo` 与“是否真的乘进像素”记入 `p1_phot.json`
+（`docs/science/photometry/PHOTOMETRY.md` 的「物理量和单位」与「假设」两章）。逐帧 `k_photo` 与“是否真的乘进像素”记入 `p1_phot.json`
 （DATA-P1-PHOTPROV-001），可由独立读者用“calibrated 面 × k”逐像素复算核对。
 
 **为什么必须保持线性**：Phase2 的固定科学流程是加性天光校正（UPM：`y_k = s + C_k + ε_k`，纯加性）与
@@ -159,7 +159,7 @@ PSF 拟合质量只能作 validity/诊断，不能未经概率模型直接乘入
 
 - 帧级 5σ 深度：`m_5 = ZP_k − 2.5·log10(F_5)`，`F_5 = 5·σ_F(ref)`（`docs/science/unified/DATA_SEMANTICS.md`「帧级信噪比的参考通量基准」一节、`docs/science/noise_snr/NOISE_SNR.md`「绝对信噪比」一节）；系数 `2.5` 是星等定义式 `m = ZP − 2.5·log10 F` 的换算常数，不是深度倍数；
 - 面亮度星等：`SB_mag = ZP_k − 2.5·log10(signal) − 2.5·log10(Ω_ref)`（`docs/science/unified/DATA_SEMANTICS.md` 的面亮度星等一段；由 `m = ZP_k − 2.5·log10(signal·Ω_ref)` 直接展开得**减号**，`Ω_ref = 1 sr` 时该项为零，写成加号仅在 `Ω_ref ≡ 1 sr` 时与正确式退化相同）；
-- 测光一致性 QA：`delta_i = −2.5·log10(F_instr,i) − G_Gaia,i`、`sigma_mag = 2.5·sigma_residual`（`docs/science/PHOTOMETRY.md` 的标度因子与 QA 两段）。
+- 测光一致性 QA：`delta_i = −2.5·log10(F_instr,i) − G_Gaia,i`、`sigma_mag = 2.5·sigma_residual`（`docs/science/photometry/PHOTOMETRY.md` 的标度因子与 QA 两段）。
 
 ## 8. SNR、点源信息量与 Phase2 输入
 

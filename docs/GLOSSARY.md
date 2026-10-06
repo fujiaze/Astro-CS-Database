@@ -15,8 +15,8 @@
 | ivar | 逆方差 = 1/variance，与同承载面的 variance 严格互倒（有限域）；variance=0（方差不可用）→ ivar=0，是显式不可用标记；无覆盖 → NaN（与 signal 同态，对象级缺失登记为 null）；方差分子非有限或为负 = 产品损坏，硬失败；禁 1/0→Inf | 信号单位⁻²（面亮度域为 sr²/ADU²） | - | `docs/science/unified/DATA_SEMANTICS.md`「方差与逆方差的三态编码」一节 |
 | pixel_weight | 像素级科学权重 = ivar（UPM/integration 共用）；数据层没有权重对象，权重是消费时按该输出像素对应样本集合现场换算的派生量；snr² 权重只用于 ablation 对照 | 无量纲 | snr²-weight → pixel_weight（ivar） | `docs/science/unified/DATA_SEMANTICS.md`「方差与逆方差的三态编码」与「权重词表：登记面与输入面」两节 |
 | frame_quality_weight | 帧质量权重 = support×snr_v²（SCI-CW 域专用，非生产；权重是阶段二按天球像素对应帧集合现场算出的派生量）；生产 = 逐样本 ivar；snr = 1.0 一律按 unknown 显式标注 | 无量纲 | - | `docs/science/noise_snr/NOISE_SNR.md`「质量面与信息面的分离」一节 |
-| support | 有效输入/面积贡献度，连续 [0,1]；0 = 无覆盖；只作门，不作权重 | 无量纲 | - | `docs/engineering/UNIFIED_OBJECTS.md`「13 个对象 → canonical schema → schema ID（对照表）」一节；`docs/detail/UNIFIED_MODEL.md`「数据对象与字段歧义消解」一节 |
-| coverage | 几何/数据有效域，连续 [0,1]；0 = 无覆盖（空域）；与 support 是**各自独立的 canonical 对象**，语义不同且互不替代；也不是 rejection | 无量纲 | - | `docs/engineering/UNIFIED_OBJECTS.md`「13 个对象 → canonical schema → schema ID（对照表）」一节；`docs/detail/UNIFIED_MODEL.md`「数据对象与字段歧义消解」一节 |
+| support | 有效输入/面积贡献度，连续 [0,1]；0 = 无覆盖；只作门，不作权重 | 无量纲 | - | `docs/engineering/UNIFIED_OBJECTS.md`「13 个对象 → canonical schema → schema ID（对照表）」一节；`docs/detail/common/unified_model.md`「数据对象与字段歧义消解」一节 |
+| coverage | 几何/数据有效域，连续 [0,1]；0 = 无覆盖（空域）；与 support 是**各自独立的 canonical 对象**，语义不同且互不替代；也不是 rejection | 无量纲 | - | `docs/engineering/UNIFIED_OBJECTS.md`「13 个对象 → canonical schema → schema ID（对照表）」一节；`docs/detail/common/unified_model.md`「数据对象与字段歧义消解」一节 |
 | invalid | 非法样本判定：NaN 或 support<=0；有效样本 = finite 且 support>0 | 布尔判定 | - | `docs/science/unified/DATA_SEMANTICS.md`「三个基本对象的语义」一节 |
 | nan | 非法值唯一载体；无有效样本必须有明确 status，0 或 ±Inf 不作非法值载体 | 浮点值 | - | `docs/science/unified/DATA_SEMANTICS.md`「三个基本对象的语义」一节 |
 | bad_mask | 校准域坏点掩膜（char 数组）：**1=坏点（需修复/替换），0=好点（保留）**；判据是 bad_mask[i]≠0 即该像元判坏，不参与邻居取样、由插值结果替换 | 极性：1=bad | mask（裸用） → 必须写 bad_mask | `docs/science/algorithms/COSMETIC_ALGORITHMS.md` 的坏点修复段 |

@@ -19,7 +19,7 @@
 
 ## 1 上游 SCI 与输入输出
 
-- SCI-UPM-001（PHASE2_UPM.md [S-6]「输入输出端口」一节）: `w_UPM = quality_factor × geometric_reliability ×
+- SCI-UPM-001（sky/UPM.md [S-6]「输入输出端口」一节）: `w_UPM = quality_factor × geometric_reliability ×
   control_ivar`（:46 权威行）。stage2 侧实现锚 = UPM 构建消费该权重语义
   （`p2_upm_build_geo` :432-433），本文不改公式，只登记其进入马赛克链的编排位置。
 - SCI-INT-001（INTEGRATION.md [S-2]「判据与误差」一节）: `signal` = accepted 样本加权积分输出（ADU）；
@@ -331,7 +331,7 @@ main(stage2.json, CLI overrides):
   像素级缺 ivar 仅显式 fallback 路径可达并降级 support 计数（:1372-1375）；
   **权重式的输入 = ivar/support**（valid_mask 仅 writer 视图层
   `view.valid_mask` :1628，权重式只取 ivar/support）。
-- **no root science formula change**: w_UPM（PHASE2_UPM.md [S-1]「判据与误差」一节）、signal/sup_max
+- **no root science formula change**: w_UPM（sky/UPM.md [S-1]「判据与误差」一节）、signal/sup_max
   （INTEGRATION.md [S-1]「判据与误差」一节）、rejection 判据（REJECTION.md SCI-REJ-001..008）
   一律不改；本模块实现锚只登记 stage2 侧编排语义。
 - **分辨率上限 = 最低输入 order**: target_order ≤ 输入最高 order，违者 rc=3
@@ -398,7 +398,7 @@ main(stage2.json, CLI overrides):
 
 ## 10 关联 ARC/API/TST
 
-- 上游 SCI: SCI-UPM-001（PHASE2_UPM.md [S-1]「判据与误差」一节）、SCI-INT-001（INTEGRATION.md
+- 上游 SCI: SCI-UPM-001（sky/UPM.md [S-1]「判据与误差」一节）、SCI-INT-001（INTEGRATION.md
   [S-1]「判据与误差」一节）、SCI-REJ-001（REJECTION.md，SCI-REJ-001..008）、SCI-SCOPE-001
   （docs/science/unified/科学范围 [S-4]「处理链」一节，不改动。
 - ALG 上游: ALG-UPM-001（docs/science/algorithms/UPM_SOLVER.md）、
@@ -475,7 +475,7 @@ f32 产品存取粒度所致，f64 oracle 不沿用）；fixture 生成器注记
 - matrix P2 域 science_id 占位（registry acsd.phase2.write.md:7
   upstream=SCI-P2-WR-001/ALG-P2-WR-001）无 docs/science 权威页：语义映射
   由本节声明——SCI-P2-WR-001 ⇒ 指向既有 FROZEN 共享 SCI（权威=INTEGRATION.md
-  [S-1]「判据与误差」一节 + PHASE2_UPM.md [S-1]「判据与误差」一节 + REJECTION.md + docs/science/unified/科学范围 [S-4]「处理链」一节；
+  [S-1]「判据与误差」一节 + sky/UPM.md [S-1]「判据与误差」一节 + REJECTION.md + docs/science/unified/科学范围 [S-4]「处理链」一节；
   ALG-P2-WR-001 ⇒ ALG-P2-HIPS-001..004（本文档
   [S-4]「物理模型」一节）。两处冲突以 docs/science/ 为准并回改本文档（方向 = 从 docs/science/ 到本文档）。
 

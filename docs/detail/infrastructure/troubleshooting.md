@@ -45,7 +45,7 @@
 | 权重全等权（ivar 失效） | normalize · NOISE | 诊断字段 `ivar_product_missing>0` | 输入帧没有 ivar 产品 | 重跑 Phase1 生成含 variance/ivar 的帧；或接受 support 回退 |
 | 候选权重为 NaN | mosaic · INTEGRATE | 输入无效状态 | 候选权重含负值/NaN/Inf | 生产侧有校验拒绝；此处说明为何会见到 |
 | stage2 权重全为 0 | mosaic · INTEGRATE | 零有效权重 | 帧无 ivar/variance 产品 ⇒ 全部样本权重为 0（`n_accepted>0 ∧ n_positive_weight==0`）。**注意这不是 support=0**——该状态下 support 仍按已接受样本的 max 发布（`docs/detail/registry/acsd.phase2.integrate.md`） | 确认 Phase1 输出了 variance/ivar；重跑 Phase1 |
-| 接缝处出现阶跃 | mosaic · UPM | 条件结论 | 接缝压缩只在可表示域内成立，域外结论不成立 | 见 `docs/science/PHASE2_UPM.md` 的适用域与边界声明 |
+| 接缝处出现阶跃 | mosaic · UPM | 条件结论 | 接缝压缩只在可表示域内成立，域外结论不成立 | 见 `docs/science/sky/UPM.md` 的适用域与边界声明 |
 | 星云带 / 银道面附近误检多 | normalize · 星检测 | 检出域 · 诊断 | 该区域不属星检测方法的标定适用域 | 见 `docs/science/algorithms/STAR_DETECTION_ALGORITHMS.md` 的适用域段 |
 | 排异配置被拒 | mosaic · REJECTION | 配置错误 | 归一化组合非法 | percentile 必须配 median_center；rcr 必须为 none |
 | HiPS verify 失败 | export · HIPS_WRITE | 产品校验 · 校验日志 | tile 布局或产品缺失 | 用 HiPS 读取器复读；检查 variance/ivar 字段 |

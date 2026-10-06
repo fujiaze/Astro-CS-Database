@@ -62,7 +62,7 @@ x/y 为 0-based double 像素坐标（像素中心 = 索引 + 0.5）、flux 为 
 ### 数值落地口径与实现落点
 
 检测阈值的冻结定义正本 = SCI-P1-STAR-001（语义要求）、
-STAR_DETECTION_ALGORITHMS［A-1］（离散公式）、GATES_AND_TOLERANCES［A-1］（冻结门表）；
+STAR_DETECTION_ALGORITHMS［A-1］（离散公式）、docs/science/algorithms/common/GATES_AND_TOLERANCES［A-1］（冻结门表）；
 本页只记落地方式：阈值 = 全图中位数 + 阈值倍数 × 全局背景噪声 RMS，倍数由
 `detection_threshold` 给出（默认 5.0），作用在 σ=2 平滑图上，`bgnoise` 由 FnNoise1
 行差分族估计，实现落在 `sdet_detect_ex`（`pr.thr` 由 `pr.bg` 与 `pr.bgnoise`

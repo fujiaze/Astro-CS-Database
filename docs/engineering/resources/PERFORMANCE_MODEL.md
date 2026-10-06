@@ -17,7 +17,7 @@
   - **UPM dense cache**：稠密缓存与逐点稀疏求值必须给出同一结果；
     验证方式 = 缓存命中域上的最大相对偏差不超过第 4 节冻结的双精度非归约档容差，
     适用量级域 = 缓存命中域上的缓存值量级 `scale`，超出该域按同值的相对形式判[4]。
-    定义见 `../../science/PHASE2_UPM.md`；容差数值不在本篇复述。
+    定义见 `../../science/sky/UPM.md`；容差数值不在本篇复述。
   - **NoiseWeightModelV1**：权重模型以 oracle 矩阵与 Monte Carlo 双向核对；
     定义见 `../../science/noise_snr/NOISE_SNR.md`[5]。
   - **Gaia 极区 prune**：剪枝用**可证明保守**的球面判据（不丢候选）；cache 键精确匹配，
