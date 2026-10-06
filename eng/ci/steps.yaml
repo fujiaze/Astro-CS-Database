@@ -1,0 +1,470 @@
+# ACSD 持续集成步骤清单
+#
+# ⚠️ 本文件是 CI 阻塞清单的**唯一数值源**。`collect_report.py --enforce` 只读本文件的
+# `blocking: true`；没有本文件时 `--enforce` 走兜底，兜底把全部步骤记为非阻塞
+# （`collect_report.py` 的 `_discover()`），即**阻塞机制空转**。
+#
+# 逐条依据见设计正本 `run/GOVERN-08/审核包-R2/T12-持续集成设计.md`。
+#
+# ── 阻塞性总口径（逐字） ────────────────────────────────────────────────
+# `standards/05_INDEPENDENT_TEST_SUITE.md:37`
+#   「测试集可以接入 CI，但以非阻塞为常态：默认报告结果与警告（warn），
+#     不因为重构中的中间状态频繁阻断。」
+# `standards/05_INDEPENDENT_TEST_SUITE.md:38`
+#   「只有科学口径错误（如公式错误、守恒被破坏、错误结果被当作正确）这类
+#     关键问题设为阻塞项。」
+# `docs/engineering/testing/TEST.md:11-13`
+#   「以非阻塞为常态……只有科学口径错误这类关键问题才作为阻塞项。」
+#
+# ⇒ 阻塞是**例外**，需要论证；豁免/跳过是被禁手段（`05:10`「不堆叠豁免」、
+#   `05:44`「不用豁免盖过」），不是常态。
+#
+# ── 当前 `blocking: true` 的步骤数：0 ──────────────────────────────────
+# 理由见下方 science 车道逐条论证：四条候选**没有一条**同时满足
+# 「有可执行面 + 绑定对齐 + 能红 + 被测对象含产品可执行程序」四要件。
+
+meta:
+  schema: acsd.ci-steps/1
+  design_doc: run/GOVERN-08/审核包-R2/T12-持续集成设计.md
+  blocking_default: false
+  blocking_enabled_count: 0
+  blocking_discipline: >-
+    阻塞项须先证明在生产参数域内有判别力；判据恒为常数或结构上永不触发者，
+    设为阻塞等于给一道永远不会响的门加硬失败。
+  green_rule: >-
+    绿灯 = 在册判据全跑、全过、无跳过、无未收集。分子只累加 pass；
+    fail / skipped / not_collected 三态一律不进分子且必须单列可见。
+
+steps:
+
+  # ══ 车道 A：快速档（docs/engineering/testing/TEST.md:180「秒级一致性面：静态、合同、文档、轻量单测」）══
+  - id: doccheck-anchors
+    name: 文档锚点检查
+    lane: 快速档
+    tier: fast
+    parser: pytest
+    command: python3 eng/tools/doccheck/check_anchors.py
+    spec: docs/engineering/testing/TEST.md:180
+    blocking: false
+    blocking_reason: 静态文档面，非科学口径错误；按 05:37 默认非阻塞
+    timeout_s: 300
+    current_state: 待实测（本单不跑持续集成）
+
+  - id: doccheck-assert-dup
+    name: 断言重复检查
+    lane: 快速档
+    tier: fast
+    parser: pytest
+    command: python3 eng/tools/doccheck/check_assert_dup.py
+    spec: standards/05_INDEPENDENT_TEST_SUITE.md:45「定期清理失效、重复与无断言测试」
+    blocking: false
+    blocking_reason: 同上
+    timeout_s: 600
+    current_state: 待实测
+
+  - id: source-scan
+    name: 源文件清单扫描
+    lane: 快速档
+    tier: fast
+    parser: pytest
+    command: python3 eng/tools/source_scan.py
+    spec: docs/engineering/build/BUILD_NODES.md:28「全仓无未锁定编译旗标，无全域告警屏蔽」
+    blocking: false
+    blocking_reason: 同上
+    timeout_s: 600
+    current_state: 待实测
+
+  - id: toolchain-freeze
+    name: 冻结工具链 fail-closed 核验
+    lane: 快速档
+    tier: fast
+    parser: pytest
+    command: python3 eng/cmake/toolchain/verify_toolchain.py
+    spec: docs/engineering/build/BUILD_NODES.md:45-48「显式 pin → 构建后实测 → fail-closed」
+    blocking: false
+    blocking_reason: >-
+      条款本身写的是「即判红不放行」，但它**没有可执行载体**：
+      BUILD_NODES.md:91-92 点名的 eng/cmake/toolchain/verify_toolchain.py
+      整个目录不存在（实测）。无载体者不得设为阻塞项 —— 那会是一道
+      永远因缺文件而红、或被跳过而永不红的空门。
+    current_state: >-
+      **当前必红（配置缺口）**：eng/cmake/toolchain/ 目录不存在；
+      schema 侧 eng/packaging/schemas/preset-contract.json 在位，
+      但 CMakePresets.json 引用的 preset-contract.schema.json 不存在。
+    timeout_s: 120
+
+  # ══ 车道 B：Linux 构建（standards/07_DYNAMIC_RUNTIME_AND_BUILD.md:14-31）══
+  - id: linux-configure
+    name: Linux 控制节点 configure
+    lane: Linux 构建
+    tier: build
+    parser: none
+    command: cmake --preset linux-control
+    spec: docs/engineering/build/BUILD_NODES.md:58-66（唯一构建入口）
+    blocking: false
+    blocking_reason: 构建失败不是科学口径错误；按 05:37 默认非阻塞，红项进报告
+    timeout_s: 1800
+    current_state: 待实测
+
+  - id: linux-build
+    name: Linux 控制节点 build
+    lane: Linux 构建
+    tier: build
+    parser: none
+    command: cmake --build --preset linux
+    spec: docs/engineering/build/BUILD_NODES.md:58-66
+    blocking: false
+    blocking_reason: 同上
+    timeout_s: 3600
+    current_state: 待实测
+
+  - id: linux-warning-clean
+    name: 编译告警清零核验
+    lane: Linux 构建
+    tier: build
+    parser: layer
+    command: "python3 eng/ci/collect_report.py --raw ci-raw/linux-build.txt ... （取 linux-build 日志里的 warning 行）"
+    spec: standards/07_DYNAMIC_RUNTIME_AND_BUILD.md:28「清除全部编译警告；警告视为需要处理的问题」
+    blocking: false
+    blocking_reason: 告警是构建质量问题，不是科学口径错误
+    timeout_s: 120
+    current_state: >-
+      **当前必红（配置缺口，非代码缺陷）**：全仓无 -Werror / /WX
+      （实测，仅 vendored cfitsio 注释提及）⇒ 警告永不升级为失败；
+      且严格告警档只覆盖 18/44 个 target（CMakeLists.txt:1361-1374）。
+      ⚠️ 注意：若改为加 -Werror 又与 BUILD_NODES.md:28「全仓无未锁定编译旗标」
+      相抵 —— 正确落法是把旗标写进 CMakePresets.json 的 cacheVariables，
+      使其成为已锁定的 preset 合同。**本单不动既有构建配置**，故如实登记为红。
+
+  - id: source-coverage
+    name: 源文件编译覆盖核验
+    lane: Linux 构建
+    tier: build
+    parser: log_scan
+    command: "python3 eng/ci/collect_report.py --raw ci-raw/source-coverage.txt（未编译 .cpp 清单必须为空）"
+    spec: standards/07_DYNAMIC_RUNTIME_AND_BUILD.md:28「两个平台都能完整编译」
+    blocking: false
+    blocking_reason: 构建图完整性不是科学口径错误
+    timeout_s: 120
+    current_state: >-
+      **当前必红（配置缺口）**：223 个受跟踪 lib/**/*.cpp 中 93 个不在任何
+      CMakeLists.txt/.cmake 里；扣除 3 个 /tools/ 独立 CLI 后仍有 **90 个
+      非工具类生产源码从未被编译**，含 lib/algorithms/platesolve/ 13 个、
+      lib/algorithms/drizzle/ 4 个、lib/algorithms/noise_snr/ 2 个、
+      lib/phase3_session/p3_export.cpp。
+      ⚠️ 部分可能是有意排除（如 hips_browser/benchmark），需按
+      BUILD_GRAPH.md 逐条裁定，本单如实登记为红、不下调该步。
+
+  # ══ 车道 C：Windows 构建 ══
+  - id: win-configure
+    name: Windows 正式工具链 configure
+    lane: Windows 构建
+    tier: build
+    parser: none
+    command: cmake --preset win-msvc-17.14.39-x64
+    spec: docs/engineering/build/BUILD_NODES.md:58-66
+    blocking: false
+    blocking_reason: 同 Linux 车道
+    timeout_s: 1800
+    current_state: 本机无 Windows 侧产物，须由 Actions runner 执行
+
+  - id: win-build
+    name: Windows 正式工具链 build
+    lane: Windows 构建
+    tier: build
+    parser: none
+    command: cmake --build --preset win-rel
+    spec: standards/07_DYNAMIC_RUNTIME_AND_BUILD.md:16-19
+    blocking: false
+    blocking_reason: 同上
+    timeout_s: 3600
+    current_state: 同上
+
+  - id: win-ctest
+    name: Windows CTest 用例执行
+    lane: Windows 构建
+    tier: build
+    parser: pytest
+    command: ctest --preset win-rel --output-on-failure
+    spec: standards/05_INDEPENDENT_TEST_SUITE.md:88-89「GoogleTest 命名」「GTEST_SKIP」
+    blocking: false
+    blocking_reason: 同上
+    timeout_s: 1800
+    current_state: >-
+      **当前必红（配置缺口）**：CMakeLists.txt 无 enable_testing() /
+      add_test() / gtest 引用；构建全树无 CTestTestfile.cmake。
+      ⇒ CMakePresets.json 的 testPresets 指向一个**零测试**的 CTest 面。
+      这是「配置缺口型绿」的反面：不是红，是**根本没跑**。
+
+  # ══ 车道 D：测试集各层（standards/05_INDEPENDENT_TEST_SUITE.md:12-27）══
+  - id: test-unit
+    name: 单元层测试集
+    lane: 测试各层
+    tier: fast
+    parser: layer
+    command: python3 -m eng.tests.unit.run_unit
+    spec: standards/05_INDEPENDENT_TEST_SUITE.md:16「单元：函数与核（含 Oracle 对拍、归零负例）」
+    blocking: false
+    blocking_reason: 单元层为报告面；按 05:37 非阻塞
+    timeout_s: 900
+    current_state: >-
+      **当前红 1 项（代码缺陷，非配置缺口）**：实测 160 条 / 通过 159 / 红 1，
+      红项 quantization.s12.statistic_vs_spec_threshold
+      （p95 超正本门限 1.8%，实测 0.0194794437321 > 门限 0.018，超界 1.08×）。
+      ⚠️ 运行器默认退出码恒 0，故直接挂 CI 会**假绿** —— 本步必须经
+      collect_report.py 取数。
+
+  - id: test-module
+    name: 模块层测试集
+    lane: 测试各层
+    tier: fast
+    parser: pytest
+    command: python3 -m pytest eng/tests/module -q
+    spec: standards/05_INDEPENDENT_TEST_SUITE.md:17「模块：单模块输入输出、块读写、生命周期」
+    blocking: false
+    blocking_reason: 按 05:37 非阻塞
+    timeout_s: 900
+    current_state: 待实测（pytest 风格，无仓内 runner）
+
+  - id: test-integration
+    name: 集成层测试集
+    lane: 测试各层
+    tier: integration
+    parser: pytest
+    command: python3 -m pytest eng/tests/integration -q
+    spec: standards/05_INDEPENDENT_TEST_SUITE.md:18「集成：多模块协同、合同/ABI、方差传播」
+    blocking: false
+    blocking_reason: 按 05:37 非阻塞；TEST.md:203「测试不裁决合入」
+    timeout_s: 1200
+    current_state: 待实测
+
+  - id: test-synthetic
+    name: 合成全链层测试集（P1–P5 不变量）
+    lane: 测试各层
+    tier: integration
+    parser: layer
+    command: python3 -m eng.tests.synthetic.run_synthetic
+    spec: standards/05_INDEPENDENT_TEST_SUITE.md:20「合成全链：哈勃仿真与代数合成端到端」
+    blocking: false
+    blocking_reason: 按 05:37 非阻塞
+    timeout_s: 3600
+    current_state: 待实测
+
+  - id: test-conformance
+    name: 合同/ABI 一致性面
+    lane: 测试各层
+    tier: integration
+    parser: pytest
+    command: python3 -m pytest eng/tests/integration/test_registry_code_parity.py -q
+    spec: docs/ACSD_DESIGN.md:528-529「L1 合成科学性 / 合同测试」
+    blocking: false
+    blocking_reason: 按 05:37 非阻塞
+    timeout_s: 600
+    current_state: 待实测
+
+  - id: test-e2e
+    name: 真实数据端到端与视觉验收辅助
+    lane: 测试各层
+    tier: measurement
+    parser: pytest
+    command: python3 -m pytest eng/tests/e2e -q
+    spec: standards/05_INDEPENDENT_TEST_SUITE.md:21「e2e：真实数据端到端与视觉验收辅助」
+    blocking: false
+    blocking_reason: 按 05:37 非阻塞；视觉终验权属负责人（ACSD_DESIGN.md:533）
+    timeout_s: 3600
+    current_state: >-
+      **当前「绿但含缺口」（实测）**：55 passed、**9 skipped**、退出码 0。
+      9 条 B 类判据带 @pytest.mark.skip，理由「需构建产品并运行」。
+      ⚠️ 其 requires 写的是 build/acsd，而 preset 合同下产物在
+      build/linux-control/acsd（实测在位）⇒ skip 理由与 preset 合同不符，
+      属文档滞后。**该步在「跳过也算绿」口径下是绿，在「跑通且符合预期」
+      口径下不是绿。**
+
+  - id: test-pipeline-layer
+    name: 阶段管线层（05:19 要求）
+    lane: 测试各层
+    tier: integration
+    parser: pytest
+    command: "—（目录不存在）"
+    spec: standards/05_INDEPENDENT_TEST_SUITE.md:19「pipeline：阶段管线：normalize/mosaic/export 阶段内流程」
+    blocking: false
+    blocking_reason: 目录不存在，无判据可跑；登记为**缺口**而非豁免
+    timeout_s: 60
+    current_state: >-
+      **缺口**：eng/tests/pipeline/ 不存在（05:19 分层树要求它）。
+      仓内另有 05 未列的 conformance/ 与 validation/ 两目录。
+      按 TEST.md:215-216 计为未覆盖路径，**不得记为已执行**。
+    uncovered:
+      - 阶段管线层（eng/tests/pipeline/ 目录不存在）
+
+  # ══ 车道 E：科学口径（唯一允许阻塞的车道，当前 0 项启用）══
+  - id: sci-conservation
+    name: 守恒不变量（P3 通量守恒）
+    lane: 科学口径
+    tier: integration
+    parser: layer
+    command: python3 -m eng.tests.unit.run_unit --only drizzle
+    spec: standards/05_INDEPENDENT_TEST_SUITE.md:38「守恒被破坏」
+    blocking: false
+    blocking_candidate: true
+    blocking_reason: >-
+      **候选未启用**。判别力本身合格：test_drizzle_conservation.py 有具名负例
+      （drizzle.s7.neg-swallowed-leaf-breaks-closure 等），且实测求和型守恒门
+      在同一注入下读数为 0（绿）而逐叶读数 O(0.4)（红）⇒ 判据有牙齿。
+      **但被测对象不合格**：eng/tests/unit/drizzle_ref.py 自述「不是产品代码的
+      绑定层……本单元层不链接 lib/」，而 TEST.md:265 逐字要求被测对象集合
+      「至少含产品可执行程序本身」。⇒ 该门挡不住产品回归。
+      启用条件：改为对 acsd 可执行程序跑两遍并比对逐叶通量。
+    discriminating_power: >-
+      生产参数域内会响：注入一个被剔除的叶即令条件 A 破裂，Σ a_jp ≠ A_drop,j，
+      实测注入点已逐条落为负例。**但被测对象不含产品可执行程序 ⇒ 不足以阻塞。**
+    timeout_s: 900
+    uncovered:
+      - 球面重采样 SCI-DRZ-001/014（TEST.md §11 载体列：无载体）
+
+  - id: sci-tautology
+    name: 恒真门检测（错误结果被当作正确）
+    lane: 科学口径
+    tier: fast
+    parser: layer
+    command: python3 -m eng.tests.unit.run_unit --only meta
+    spec: standards/05_INDEPENDENT_TEST_SUITE.md:38「错误结果被当作正确」
+    blocking: false
+    blocking_candidate: true
+    blocking_reason: >-
+      **候选未启用**。该判据测的是**测试集自身**的判据质量，不测产品；
+      TEST.md:31「判据必须能红，注入缺陷时读数不随之变红即判该判据失效」
+      是对判据的要求，不是对产品的要求。设为阻塞会给出「科学口径已被守住」
+      的**假保证**。启用条件：产品侧存在被测对象后重评。
+    discriminating_power: >-
+      能响（元判据 meta.every_registered_case_is_executed 实测可红），
+      **但作用域不含产品** ⇒ 不构成科学口径阻塞项。
+    timeout_s: 300
+
+  - id: sci-reduction-u
+    name: 归约容差单位舍入混用检测
+    lane: 科学口径
+    tier: fast
+    parser: layer
+    command: python3 -m eng.tests.unit.run_unit --only quantization
+    spec: docs/engineering/testing/TEST.md:61「γ_n 取的是同一 dtype 的 u……混用属判据失效」
+    blocking: false
+    blocking_candidate: true
+    blocking_reason: >-
+      **候选未启用**。混用会把门限放宽约 2²⁹ 倍，属判据失效（TEST.md:61 自陈），
+      确实是「公式错误」类；但当前判据只作用于 Python 侧容差模块，
+      不作用于产品可执行程序的归约实现 ⇒ 挡不住产品公式错误。
+      启用条件：把该检查接到 acsd 的归约输出上。
+    discriminating_power: >-
+      在容差模块域内会响（f32 用 2⁻²⁴ 与 f64 用 2⁻⁵³ 的门限差 2²⁹ 倍，实测可构造）。
+      **作用域不含产品 ⇒ 不足以阻塞。**
+    timeout_s: 300
+
+  - id: sci-isa-equivalence
+    name: 指令集核与基线数学等价
+    lane: 科学口径
+    tier: build
+    parser: none
+    command: "—（比较器未落位）"
+    spec: standards/07_DYNAMIC_RUNTIME_AND_BUILD.md:24「指令集核与基线数学等价」
+    blocking: false
+    blocking_candidate: true
+    blocking_reason: >-
+      **候选未启用**。这是四条候选里最接近合格的：被测对象本应是**产品
+      可执行程序**（acsd + 三个 provider so，均已在位）。但
+      eng/tests/unit/test_science_gate.py:12-13 逐字自陈「S14 的完整形态……
+      需要构建与两次运行，本阶段无构建 ⇒ 只测判定器本身并如实登记执行面未落位」。
+      ⇒ 比较器未实现。启用条件：实现一个跑两遍比逐成员散列的比较器
+      （判别力已由 test_science_gate.py 的 S14 正负夹具对证明合格）。
+    discriminating_power: >-
+      **成立且已证明**：test_science_gate.py 的 S14 负例实测能抓到
+      「成员丢失 / 新增成员 / 内容漂移」三类差异（output_diff 三张清单均非空），
+      正例给空清单 ⇒ 判据双向可判、在生产域内有触发点。
+      **唯一缺口是执行面（产品两遍运行），不是判别力。**
+    timeout_s: 3600
+    uncovered:
+      - 优化前后 science 输出等价（S14 执行面未落位）
+
+  # ══ 车道 F：端到端（standards/07_DYNAMIC_RUNTIME_AND_BUILD.md:33-38）══
+  - id: e2e-linux
+    name: Linux M42 全流程 normalize → mosaic → export
+    lane: 端到端
+    tier: measurement
+    parser: none
+    command: python3 eng/tools/e2e/run_e2e_chain.py
+    spec: standards/07_DYNAMIC_RUNTIME_AND_BUILD.md:36「再在 Windows 与 Linux 上分别跑 M42 全流程」
+    blocking: false
+    blocking_reason: 端到端属验收面（ACSD_DESIGN.md §12.4），非日常阻塞项
+    timeout_s: 14400
+    current_state: 待实测（属测量档，负责人触发）
+
+  - id: e2e-windows
+    name: Windows M42 全流程
+    lane: 端到端
+    tier: measurement
+    parser: none
+    command: python3 eng/tools/e2e/run_e2e_chain.py
+    spec: standards/07_DYNAMIC_RUNTIME_AND_BUILD.md:36
+    blocking: false
+    blocking_reason: 同上
+    timeout_s: 14400
+    current_state: 须由 Windows Actions runner 执行
+
+  - id: vis-acceptance
+    name: 视觉验收辅助（拉伸 PNG + 切块）
+    lane: 端到端
+    tier: measurement
+    parser: pytest
+    command: python3 eng/tools/e2e/render_vis.py
+    spec: standards/07_DYNAMIC_RUNTIME_AND_BUILD.md:38
+    blocking: false
+    blocking_reason: >-
+      视觉终验权属负责人（docs/ACSD_DESIGN.md:533「由负责人目检判定」），
+      CI 只做辅助，不做判决
+    timeout_s: 3600
+    uncovered:
+      - 视觉验收终验（人工面，无机器执行载体）
+
+  # ══ 车道 G：数值等价 ══
+  - id: numeq-cross-platform
+    name: 双平台数值等价
+    lane: 数值等价
+    tier: measurement
+    parser: none
+    command: "—（等价比较器未落位）"
+    spec: standards/07_DYNAMIC_RUNTIME_AND_BUILD.md:37「两平台数值结果等价，允许少量可解释的编译器浮点精度差异」
+    blocking: false
+    blocking_reason: >-
+      差异超出容差要「定位归因」，属缺陷排查流程，不是自动判决；
+      且当前无比较器实现（eng/tools 与 eng/tests 全文无跨平台等价比较器）
+    timeout_s: 7200
+    uncovered:
+      - 双平台数值等价矩阵（TEST.md:244 要求，无比较器实现）
+
+  - id: numeq-parallel
+    name: 并行度等价（1 worker vs N worker）
+    lane: 数值等价
+    tier: integration
+    parser: none
+    command: "—（判据未落位）"
+    spec: docs/engineering/testing/TEST.md:38「并行度不改变科学产品：1 worker 与 N worker 在冻结容差内等价」
+    blocking: false
+    blocking_reason: 无执行面，不得设为阻塞
+    timeout_s: 3600
+    uncovered:
+      - 并行归约等价（TEST.md §7 长期回归集合项，无判据载体）
+
+  - id: build-reproducible
+    name: 构建可重复性（构建指纹自检）
+    lane: 数值等价
+    tier: build
+    parser: pytest
+    command: python3 eng/tools/gen_build_stamp.py --self-test
+    spec: >-
+      standards/07_DYNAMIC_RUNTIME_AND_BUILD.md:30「构建可重复：同一份源码在同一工具链下产物一致」；
+      docs/engineering/build/BUILD_NODES.md:35-36「同一提交重构建得到相同构建标识」
+    blocking: false
+    blocking_reason: 可重复性是构建面性质，不是科学口径错误
+    timeout_s: 300
+    current_state: 载体在位（gen_build_stamp.py --self-test 含 deterministic /
+      content_change_red / commit_only_green 判别力自检）
