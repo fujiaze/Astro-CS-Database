@@ -1030,6 +1030,114 @@ def name_refs_in(line):
 
 
 # --------------------------------------------------------------------------
+# 散文裸文件名（修「裸名从未被检查」用）
+#
+# `iter_candidates`(:674) 只产出两路：反引号内(TICK_RE) 与带仓根前缀的
+# (BARE_RE)。**反引号外、无目录前缀的裸文件名**两路都不在，从未被抽取，
+# 因此从未判过存在性、其后的 §N 锚也从未判过 —— 整类计数是零。
+#
+# ⚠ **这一层的假阳性会爆炸**：普通英文词、代码标识符、成员访问残片、
+# 占位形态尾巴全都会落进来。所以判据逐条写死，每条都带仓内实证：
+#
+#   B1 反引号外          TICK_RE(:189) 已覆盖反引号内，重复计入即虚增
+#   B2 非 markdown 链接目标  带目录者已由 BARE_RE(:190) 覆盖
+#   B3 扩展名 ∈ FILE_EXTS(:346)  本仓实测：这一刀去掉 904934 条，
+#                        剩下的「误报词」桶实测为 0（`1.5`/`Sec.2`/`v1.0` 全灭）
+#   B4 词干须为文件名形态   含 _ - . 或全大写≥3。这一刀去掉 4972 条普通词
+#   B5 排除占位残片        `<tag>_conditions.json` 的尾巴（eng/tools/perf/README.md:93-97）
+#   B6 排除 C++ 成员访问残片 `ts_utc.c_str()` 被切成 `ts_utc.c`
+#                        （lib/infrastructure/scheduler/src/logging.cpp:37 实测）
+#
+# ⚠ **判据边界**（写在这里挡住后来者为「让数字下降」而放宽）：
+#   · 本层**只做存在性可见性**，不新增硬判定类。
+#     裸名解析不到时，它可能是运行期产物（`p1_phot.json`）、已删文件的历史
+#     叙述（`PROJECT_ARCHITECTURE.md`）、第三方上游仓内文件（nanoflann 的
+#     `examples/saveload_example.cpp`）—— 三者形态上不可分，判成悬空就是
+#     假缺陷。实测这三类合计占解析不到桶的多数。
+#   · 裸名解析到**唯一**目标时，才拿它做 §N 锚判定（这一层不产生新缺陷，
+#     只是让原本「不可查」的锚变得可查）。
+#   · 同名多份一律交给既有 `ambiguous_target`，工具不替人选。
+# --------------------------------------------------------------------------
+
+# 裸文件名词法：不含 `/`（带目录的归 BARE_RE）
+BARE_NAME_RE = re.compile(r"[A-Za-z0-9_+-]*[A-Za-z0-9_+-]\.[A-Za-z0-9]{1,6}")
+# markdown 链接目标 `](…)`
+MD_LINK_SPAN_RE = re.compile(r"\]\([^)\n]{0,300}\)")
+
+# B6：`ts_utc.c_str()` 里 token 之后紧跟的是 `_str(`（被截掉的尾巴）
+BARE_CPP_TAIL_RE = re.compile(r"^_[A-Za-z0-9_]*\s*\(")
+# B6：`v.error_status.c_str()` 里 token 之前紧邻 `.error`
+BARE_CPP_HEAD_RE = re.compile(r"\.[A-Za-z_][A-Za-z0-9_]*$")
+# B5：占位残片，词干以下划线开头（`<tag>_conditions.json` 的尾巴）
+BARE_PLACEHOLDER_RESIDUE_RE = re.compile(r"^_+[A-Za-z0-9]*\.[A-Za-z0-9]+$")
+# B7：**排除全路径的末段**。`docs/.../ATOMIC_PUBLISH.md` 里本层会抽出
+# `ATOMIC_PUBLISH.md`，而 BARE_RE(:190) 已经按仓根前缀把整条路径收走了 ——
+# 不挡这一刀就是同一条引用报两次（`dangling_anchor` 与 `bare_anchor_missing`
+# 各一条），是纯粹的虚增。实测挡掉 71 条。
+#    判据：token 紧邻的前一个非空白字符是 `/`（或紧邻的前一个是仓根段名）。
+BARE_PATH_TAIL_RE = re.compile(r"[A-Za-z0-9_.\-]?[/\\]$")
+# B7b：**同一条判据的另一半**。B7 只挡了「前面是 `/`」（目录分隔），
+# 漏了「前面是 `.`」——`docs/detail/registry/acsd.phase1.noise-snr.md` 里本层
+# 会抽出 `noise-snr.md`（词干 `noise-snr` 过 B4、扩展名 `.md` 过 B3），
+# 而 BARE_RE(:190) 已按仓根前缀把整条路径收走了。不挡这一支就是同一条引用
+# 抽两次。实测这一支单独占抽取器假阳性的绝大多数。
+#    判据：token 紧邻的前一个字符是 `/` 或 `.`（路径续接，不是独立裸名）。
+BARE_PATH_TAIL_DOT_RE = re.compile(r"\.$")
+
+# 裸名之后的定位符：§N、「x」一节、:行号。三者都表示「作者断言了一个位置」
+BARE_LOCATOR_AFTER_RE = re.compile(
+    r"^\s*(?:§\s*[0-9]+(?:\.[0-9]+)*[a-z]?|「[^」]{1,30}」\s*一节|[:：][0-9]+)")
+
+
+def bare_name_shape_ok(tok):
+    """B4：词干长得像文件名吗（含 _ - . ，或全大写≥3）。
+
+    ⚠ 这一刀是本层**最关键**的一道闸：`the` / `value` / `e.g` / `Sec.2`
+    全被它挡在外面（实测去掉 4972 条）。它不是停用词表，是形态判据 ——
+    仓内真实的裸名几乎都带分隔符或全大写（实测 666 个唯一解析成功的裸名
+    全部满足），所以它在本仓语料上「杀真」为零。
+    """
+    stem, _, ext = tok.rpartition(".")
+    if not stem or ext.lower() not in {e[1:] for e in FILE_EXTS}:
+        return False
+    if any(c in stem for c in "_-."):
+        return True
+    return stem.isupper() and len(stem) >= 3
+
+
+def bare_name_candidates(line):
+    """抽出该行的裸文件名词法候选。返回 [(tok, start, end)]，已施加 B1–B6。"""
+    ticks = [(m.start(1), m.end(1)) for m in TICK_RE.finditer(line)]
+    links = [(m.start(), m.end()) for m in MD_LINK_SPAN_RE.finditer(line)]
+    out = []
+    for m in BARE_NAME_RE.finditer(line):
+        s, e = m.start(), m.end()
+        tok = m.group(0)
+        if any(a <= s and e <= b for a, b in ticks):        # B1
+            continue
+        if any(a <= s and e <= b for a, b in links):        # B2
+            continue
+        if tok.rsplit(".", 1)[-1].lower() not in {e[1:] for e in FILE_EXTS}:
+            continue                                        # B3
+        if not bare_name_shape_ok(tok):                     # B4
+            continue
+        if BARE_PLACEHOLDER_RESIDUE_RE.match(tok):          # B5
+            continue
+        before = line[max(0, s - 32):s]
+        after = line[e:e + 32]
+        if BARE_PATH_TAIL_RE.search(before):                # B7
+            continue
+        if BARE_PATH_TAIL_DOT_RE.search(before):            # B7b
+            continue
+        if BARE_CPP_TAIL_RE.match(after.lstrip()):          # B6
+            continue
+        if BARE_CPP_HEAD_RE.search(before):                 # B6
+            continue
+        out.append((tok, s, e - s))
+    return out
+
+
+# --------------------------------------------------------------------------
 # 发现
 # --------------------------------------------------------------------------
 
@@ -1059,6 +1167,12 @@ CLASSES = {
     "external_ref": "外部引用：指向仓外标准/文献，仓内不可判定（仅列出，不判缺陷）",
     "path_placeholder": "占位路径形态：`X.md` 形如 `<output_dir>/logs`，尖括号里的内容"
                         "无法机械展开，按 C1 不判存在性——单列是「不判不等于吞掉」",
+    "bare_name_unresolved": "散文裸名 · 解析不到：反引号外、无目录前缀的裸文件名在仓内"
+                            "解析不到。可能是运行期产物、已删文件的历史叙述或第三方"
+                            "上游仓内路径，三者形态不可分，故**不判缺陷**，单列可见",
+    "bare_anchor_missing": "裸名锚 · 章节缺失：裸文件名在仓内**唯一**解析到一份 .md，"
+                           "其后又带 §N，但该文件没有这个章节。与 dangling_anchor 同性质，"
+                           "但走的是「裸名」这一路抽取，故单列以便与全路径锚区分",
 }
 
 SOFT = ("unresolved_bare_anchor", "external_ref", "unresolved_relative",
@@ -1071,7 +1185,29 @@ SOFT = ("unresolved_bare_anchor", "external_ref", "unresolved_relative",
 # 三十来条假悬空，判成 SOFT 又会被淹没。ADVISORY 是唯一不撒谎的位置：
 # 单列、可单独计数、不混进硬判定合计。是否升级为硬闸需负责人裁定。
 ADVISORY = ("ambiguous_target", "anchor_title_mismatch", "replacement_residue",
-            "anchor_title_not_literal", "path_placeholder")
+            "anchor_title_not_literal", "path_placeholder", "bare_name_unresolved",
+            "bare_anchor_missing")
+
+# `bare_anchor_missing` 定为 ADVISORY 而**不是**硬判定，理由与 `dangling_anchor`
+# 不同，必须写清楚：全路径锚的 `dangling_anchor` 是硬判定，因为它假设作者写下的
+# 就是那一条路径；裸名锚走的是「仓内唯一同名」这一**推断**——仓里恰好只有一份
+# 同名文件，并不等于作者指的就是它（作者可能指仓外那份、或上游那份）。
+# 本单实测：裸名锚 61 条可判定，49 条命中、3 条确认缺失、9 条目标非 .md。
+# 3 条缺失已逐条 grep 独立核实为真（见审核包 T13 §3.3），
+# 但**唯一性是推断来的**，把它升成硬闸需要负责人先裁定「唯一同名即作者所指」
+# 这条假设。故先单列 ADVISORY，性质与真缺陷相同，可见性不缺。
+
+# `bare_name_unresolved` 列在 ADVISORY，理由与上面两类都不同，写清楚免得后来者
+# 想当然地升级：前两单是「**判据缺失**」（尖括号不可展开）/「**比例失衡**」
+# （括注散文描述占多数）。本单两者都不是 —— 裸名解析不到时它**确实**是个指针，
+# 但仓内实测这一桶里混着三类形态上不可分的东西：
+#   · 运行期产物（`p1_phot.json`、`manifest.json`、`vis_report.json`）—— 按设计不在源树；
+#   · 已删/已迁文件的历史叙述（`PROJECT_ARCHITECTURE.md`、`P1_SYMBOL_MAP.md`）—— 是历史不是活指针；
+#   · 第三方上游仓内路径（nanoflann 的 `examples/saveload_example.cpp`）—— 不属本仓。
+# 实测这三类合计占该桶的多数，判成硬判定就是批量注入假悬空（这正是 T12 §6.1
+# 已经因此返工过一次的那一类错误）。而**不判**又不能等于**看不见**：这一整类
+# 在本单之前从未进入任何计数，漏报规模是本单动机的来源。
+# ⇒ ADVISORY + 单列计数 + 单列统计项，是当前唯一不撒谎的位置。
 
 
 class Finding:
@@ -1468,6 +1604,43 @@ def scan(root, surfaces):
                 placeholder_seen.add(emitted_placeholder)
                 add(Finding("path_placeholder", rel, lineno, expr[:200], expr,
                             None, "占位形态，按 C1 不判存在性：%s" % expr))
+
+            # 散文裸名（反引号外、无目录前缀）：这一整类在本单之前**从未被检查过**。
+            # 只做存在性可见性 + 唯一解析时的 §N 锚判定，不新增硬判定类。
+            for tok, bstart, blen in bare_name_candidates(line):
+                stats["bare_name_forms"] += 1
+                cands = index._suffix_candidates(tok)
+                if len(cands) > 1:
+                    # 同名多份：工具不替人选，交给既有 ambiguous_target。
+                    stats["bare_name_ambiguous"] += 1
+                    add(Finding("ambiguous_target", rel, lineno, tok, tok, None,
+                                "裸文件名同名多义：仓内 %d 份同名，工具不替人选"
+                                % len(cands), cands))
+                    continue
+                if not cands:
+                    stats["bare_name_unresolved"] += 1
+                    # 只记统计项，不逐条发条目：裸名在同一份文档里会被
+                    # 反复提及，逐条发会淹没下游。统计项 + 详情可复跑。
+                    continue
+                stats["bare_name_resolved"] += 1
+                resolved = cands[0]
+                if resolved not in tracked:
+                    stats["bare_name_untracked"] += 1
+                if BARE_LOCATOR_AFTER_RE.match(line[bstart + blen:bstart + blen + 32]):
+                    stats["bare_name_with_locator"] += 1
+                    if not resolved.lower().endswith((".md", ".markdown")):
+                        stats["bare_anchor_on_code"] += 1
+                        continue
+                    for araw, num, _at in anchors_after(line, bstart, blen):
+                        if not num or num.startswith("APX:"):
+                            continue
+                        if heads.has_section(resolved, num):
+                            stats["bare_anchor_resolved"] += 1
+                        else:
+                            stats["bare_anchor_missing"] += 1
+                            add(Finding("bare_anchor_missing", rel, lineno,
+                                        "%s %s" % (tok, araw), tok, resolved,
+                                        "裸名解析到唯一目标，但该文件无章节 §%s" % num))
 
             # 路径 token
             for raw, start, length in iter_candidates(line):
@@ -1919,6 +2092,57 @@ SELFTEST_TREE = {
     "docs/t_sub/README.md": "# 子目录招牌件\n",
     "docs/t_ambig_a/x.md": "# 甲文件同名\n\n## 1 节甲\n",
     "docs/t_ambig_b/x.md": "# 乙文件同名\n\n## 9 节乙\n",
+    # ---- 回归夹具三：散文裸名（本次修的盲区）----
+    # 承载体：唯一一份、且带 §N —— 正例（锚缺失）。
+    "docs/t_bare_target.md": "# 裸名承载体\n\n## 1 存在的一节\n\n正文。\n",
+    # A2 夹具：markdown 链接目标（不是裸名）。它能过 B3/B4，唯一的区别是
+    # 它在 `](…)` 里 —— 撤掉 B2 它就会被当裸名抽走。
+    "docs/t_bare_linked.md": "# 只经链接引用的承载体\n\n## 1 存在的一节\n",
+    # A7 夹具：C++ 成员访问**头侧**残片 → `-b.c`（`cfg.a-b.c` 被切开后的后半）。
+    # 与 A6 的尾侧（`ts_utc.c_str()` → `ts_utc.c`）是两处不同的锚点。
+    # ⚠ 词干**必须含连字符**而不是下划线：B5 的 `^_+[A-Za-z0-9]*\.` 只吃
+    #   下划线开头，用 `cfg.a_b.c` 造出来的 `_b.c` 会同时命中 B5，撤掉 B6 头侧
+    #   仍被 B5 挡住 —— 那是**歧义夹具**，消融必然抓不到（首轮就是这样漏的）。
+    #   `cfg.a-b.c` 切出的 `-b.c` 只有 B6 头侧能挡。
+    "docs/t_bare_residue.cpp": "void f(){ cfg.a-b.c = 1; }\n",
+    "docs/t_bare_doc.md": (
+        "# 裸名夹具\n\n"
+        "【正例·裸名锚章节缺失】步序正本唯一 = t_bare_target.md §9（该节不存在）。\n\n"
+        "【负例·裸名锚章节存在】口径见 t_bare_target.md §1（该节真实存在）。\n\n"
+        # ⚠ 每条负例行都**自带一个 §N 裸名真引用**，唯一区别是该抽的该挡、
+        # 该挡的没挡。断言按「**行 + 禁用令牌**」双条件判：把真引用也一起
+        # 挡掉就成了空夹具（撤掉规则反而不红），只按行判又会把真引用误当误报。
+        "【负例·全路径锚不得重复报】见 docs/t_bare_target.md §9 —— 走 BARE_RE 那一路。\n\n"
+        # ⚠ B7b 夹具：**点**连接的路径尾巴。`acsd.phase1.noise-snr.md` 切出的
+        #   `noise-snr.md` 词干含连字符、扩展名合法，B4/B3 都挡不住 ——
+        #   首轮就是这样漏掉的（实测占抽取器假阳性的绝大多数）。
+        # ⚠ 该行**只能出现路径尾巴那一次**。若同句再裸写一遍同一个名字，
+        #   那一处是合法裸名，断言按令牌判定就会把正例一起否掉。
+        "【负例·B7b点接路径尾巴】registry/acsd.phase1.t_tail.md 这条只以路径形态出现。\n\n"
+        "【负例·B1反引号】`t_bare_target.md` §9 反引号内由 TICK_RE 负责。\n\n"
+        "【负例·B3B4数值缩写】v1.0 与 Sec.2 是数值与缩写，不是文件名。\n\n"
+        "【负例·B6C++成员访问】成员 ts_utc.c_str() 与 path.c_str() 里的 c 不是扩展名。\n\n"
+        # ⚠ B2 夹具必须与 B7 区分开：链接目标写成 **裸名**（不带目录），
+        # 否则 `](t_bare_linked.md)` 里的 token 前面紧邻 `/`，会被 B7 先挡掉，
+        # 撤掉 B2 也看不出差别 —— 那就是 T11 §6.5 说的空夹具。
+        "【负例·B7链接目标不是裸名】[契约](t_bare_linked.md) §1 见此，"
+        "链接目标不走裸名那一路。\n\n"
+        # A3 夹具：扩展名**不在** FILE_EXTS 内的 Rust 源文件名。它能过 B4
+        # （词干含分隔符），唯一的区别是扩展名不在白名单。
+        "【负例·B3扩展名白名单】见 t_other.rs 与 t_gone.rs，仓内无 .rs 源。\n\n"
+        # A4 夹具：词干**无分隔符且非全大写**的小写单词型文件名。它能过 B3
+        # （.md 在白名单），唯一的区别是词干不像文件名。
+        "【负例·B4词干形态】泛指 target.md 这类无分隔符小写名，不是本仓引用形态。\n\n"
+        "【负例·B5占位残片】evidence/<tag>_conditions.json 的尾巴是占位残片。\n\n"
+        "【负例·同名多义交既有类】t_dup_name.md 在仓内有两份同名，工具不替人选。\n\n"
+        # 这一条喂 `bare_name_unresolved` 统计项：裸名形态成立、仓内解析不到。
+        # 它**不得**产出任何判定（运行期产物 / 历史叙述 / 第三方源三类形态
+        # 不可分，判成悬空就是假缺陷），但必须被计数——「不判」不等于「吞掉」。
+        "【负例·裸名解析不到只计数】产物 t_gone_product.json 运行期才落盘，"
+        "仓内不存在，只计数不判定。\n"
+    ),
+    "docs/t_bare_a/t_dup_name.md": "# 甲\n\n## 1\n",
+    "docs/t_bare_b/t_dup_name.md": "# 乙\n\n## 2\n",
     "eng/contracts/t.json": (
         "{\n"
         '  "target": "docs/t_other.md",\n'
@@ -2090,7 +2314,35 @@ SELFTEST_EXPECT = {
     "clause_anchor_retired": [("ALG-RETIRED-001", "eng/t_clause.md")],
     "clause_id_unregistered": [("ALG-TOK", "eng/t_clause.md"),
                                ("ALG-TOK-001-EXTRA", "eng/t_clause.md")],
+    # ↓ 裸名层：正例只有一个，且必须唯一命中 t_bare_target.md
+    "bare_anchor_missing": [("t_bare_target.md", "docs/t_bare_doc.md")],
+    # ↓ 裸名同名多义：复用既有类，不新造
+    "ambiguous_target": [("x.md", "docs/t_doc.md"),
+                         ("t_dup_name.md", "docs/t_bare_doc.md")],
 }
+
+# 裸名层的**负例断言**：按「行首标记 → 该行禁止被抽出的令牌」双条件判。
+# ⚠ 为什么不用「按 token 全局断言」：`t_bare_target.md` 在正例那一行是合法
+#   裸名（必须报），在反引号那一行必须被 B1 挡掉（不得报）——全局断言会把
+#   正例一起否掉，那就成了 T11 §6.5 点名的**空夹具**。
+# ⚠ 为什么不用「只看该行有没有判定」：撤掉 B3/B4/B5/B6 时那些行根本产不出
+#   锚判定，消融会「抓不到」——首轮消融正是这样漏掉 A1–A7 的。直接断言
+#   **抽取结果**才抓得住：规则被撤掉 ⇒ 残片被抽出来 ⇒ 本项变红。
+SELFTEST_BARE_NAME_NEGATIVE_LINES = {
+    "【负例·B1反引号】": ("t_bare_target.md",),
+    "【负例·B3B4数值缩写】": ("v1.0", "Sec.2"),
+    "【负例·B3扩展名白名单】": ("t_other.rs", "t_gone.rs"),
+    "【负例·B4词干形态】": ("target.md",),
+    "【负例·B6C++成员访问】": ("ts_utc.c", "path.c"),
+    "【负例·B7链接目标不是裸名】": ("t_bare_linked.md",),
+    "【负例·B7b点接路径尾巴】": ("t_tail.md",),
+    "【负例·B5占位残片】": ("_conditions.json",),
+}
+
+# B6 头侧（`v.error_status.c_str()` → `_status.c`）必须写在**代码文件**里：
+# 它的判据是「token 之前紧邻 `.ident`」，这个上下文只有 C/C++ 源文件才有。
+SELFTEST_BARE_CPP_HEAD_TOKEN = "-b.c"
+SELFTEST_BARE_CPP_HEAD_SRC = "docs/t_bare_residue.cpp"
 
 # 缺陷 A 回归：这几条**必须**被豁免（退役登记语义），压掉之后不得出现在报告里。
 SELFTEST_MUST_EXEMPT = (
@@ -2267,6 +2519,79 @@ def selftest():
         dead = [k for k in need if not stats.get(k)]
         if dead:
             bad.append("抽取器统计项恒为 0（等于没接执行）：%s" % dead)
+        else:
+            ok += 1
+
+        # ---- 裸名层回归：每条负例行都不得产出裸名层的任何判定 ----
+        # ⚠ 按「行 + 禁用令牌」双条件判：把真引用一起挡掉就成了空夹具，
+        # 只按行判又会把真引用误当误报。理由见 SELFTEST_BARE_NAME_NEGATIVE_LINES。
+        BARE_LAYER_CLASSES = ("bare_anchor_missing", "bare_name_unresolved")
+        bare_lines = SELFTEST_TREE["docs/t_bare_doc.md"].splitlines()
+        neg_line_nos = {}
+        for i, l in enumerate(bare_lines, 1):
+            for mk in SELFTEST_BARE_NAME_NEGATIVE_LINES:
+                if l.startswith(mk):
+                    neg_line_nos[i] = SELFTEST_BARE_NAME_NEGATIVE_LINES[mk]
+        leaked_bare = [(f.cls, f.line, f.token) for f in findings
+                       if f.src == "docs/t_bare_doc.md" and f.line in neg_line_nos
+                       and f.cls in BARE_LAYER_CLASSES
+                       and f.token in neg_line_nos[f.line]]
+        if leaked_bare:
+            bad.append("裸名层过宽：负例行上出现判定 %s" % leaked_bare)
+        else:
+            ok += 1
+
+        # ---- 裸名层回归：禁用令牌不得被抽取器抽出来（直接查抽取器） ----
+        # 这一条独立于上面的判定断言：撤掉 B1/B3/B4/B5/B6 时残片会被抽出来，
+        # 但未必落成上面任何一个判定类，直接断言抽取结果才抓得住。
+        residue = []
+        for i, toks in neg_line_nos.items():
+            got = {t for t, _s, _n in bare_name_candidates(bare_lines[i - 1])}
+            residue += [(t, bare_lines[i - 1][:24]) for t in sorted(got & set(toks))]
+        if residue:
+            bad.append("B1/B2/B3/B4/B5/B6 抽取器过宽：%s" % residue)
+        else:
+            ok += 1
+
+        # ---- 裸名层回归：B6 头侧残片（`_status.c`）不得被抽出 ----
+        cpp_line = SELFTEST_TREE[SELFTEST_BARE_CPP_HEAD_SRC].splitlines()[0]
+        if any(t == SELFTEST_BARE_CPP_HEAD_TOKEN
+               for t, _s, _n in bare_name_candidates(cpp_line)):
+            bad.append("B6 头侧失效：C++ 成员访问残片 %s 被抽成裸名"
+                       % SELFTEST_BARE_CPP_HEAD_TOKEN)
+        else:
+            ok += 1
+
+        # ---- 裸名层回归：全路径那一行只许出既有 dangling_anchor，不许重复 ----
+        # 这一条抓的是 B7 被撤掉的情形：不挡全路径末段时，同一条引用会同时
+        # 产出 dangling_anchor 与 bare_anchor_missing，读数凭空翻倍。
+        full_path_line = next(i for i, l in enumerate(bare_lines, 1)
+                              if l.startswith("【负例·全路径锚不得重复报】"))
+        on_line = [f.cls for f in findings
+                   if f.src == "docs/t_bare_doc.md" and f.line == full_path_line]
+        if "bare_anchor_missing" in on_line:
+            bad.append("裸名层与全路径层重复报同一处：%s" % on_line)
+        elif on_line.count("dangling_anchor") != 1:
+            bad.append("全路径锚应当出且只出一条 dangling_anchor，实得 %s" % on_line)
+        else:
+            ok += 1
+
+        # ---- 裸名层回归：统计项必须真的在计数（防空跑） ----
+        need_bare = ("bare_name_forms", "bare_name_resolved",
+                     "bare_name_unresolved", "bare_name_ambiguous",
+                     "bare_name_with_locator", "bare_anchor_missing")
+        dead_bare = [k for k in need_bare if not stats.get(k)]
+        if dead_bare:
+            bad.append("裸名层统计项恒为 0（等于没接执行）：%s" % dead_bare)
+        else:
+            ok += 1
+
+        # ---- 裸名层回归：新类别必须留在 ADVISORY，不得进硬判定合计 ----
+        # 判据边界（见 CLASSES['bare_anchor_missing'] 的说明）：裸名锚的
+        # 「唯一同名即作者所指」是**推断**，升级为硬闸需负责人裁定。
+        if "bare_anchor_missing" not in ADVISORY or \
+                "bare_name_unresolved" not in ADVISORY:
+            bad.append("裸名层新类别被移出 ADVISORY，须负责人裁定后才能升级")
         else:
             ok += 1
 
