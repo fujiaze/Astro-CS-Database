@@ -1041,9 +1041,12 @@ def name_refs_in(line):
 #
 #   B1 反引号外          TICK_RE(:189) 已覆盖反引号内，重复计入即虚增
 #   B2 非 markdown 链接目标  带目录者已由 BARE_RE(:190) 覆盖
-#   B3 扩展名 ∈ FILE_EXTS(:346)  本仓实测：这一刀去掉 904934 条，
-#                        剩下的「误报词」桶实测为 0（`1.5`/`Sec.2`/`v1.0` 全灭）
-#   B4 词干须为文件名形态   含 _ - . 或全大写≥3。这一刀去掉 4972 条普通词
+#   B3 扩展名 ∈ FILE_EXTS(:346)  本仓实测：这一刀去掉 **912 910** 处
+#                        （口径：反引号外候选 929 028 处，逐条施加）。
+#                        它是最有效的一刀，且**完全非直觉**：判据是「这个后缀
+#                        在扫描面里真实存在」，`np.median` / `os.path.join` /
+#                        `e.g` 的「扩展名」不是仓内后缀，于是全灭 —— 不需要停用词表
+#   B4 词干须为文件名形态   含 _ - . 或全大写≥3。这一刀去掉 5 146 处普通词
 #   B5 排除占位残片        `<tag>_conditions.json` 的尾巴（eng/tools/perf/README.md:93-97）
 #   B6 排除 C++ 成员访问残片 `ts_utc.c_str()` 被切成 `ts_utc.c`
 #                        （lib/infrastructure/scheduler/src/logging.cpp:37 实测）
@@ -1073,16 +1076,30 @@ BARE_PLACEHOLDER_RESIDUE_RE = re.compile(r"^_+[A-Za-z0-9]*\.[A-Za-z0-9]+$")
 # B7：**排除全路径的末段**。`docs/.../ATOMIC_PUBLISH.md` 里本层会抽出
 # `ATOMIC_PUBLISH.md`，而 BARE_RE(:190) 已经按仓根前缀把整条路径收走了 ——
 # 不挡这一刀就是同一条引用报两次（`dangling_anchor` 与 `bare_anchor_missing`
-# 各一条），是纯粹的虚增。实测挡掉 71 条。
+# 各一条），是纯粹的虚增。实测去掉 5 606 处候选；**更关键的是它让
+#   `bare_anchor_missing` 从 73 条降到 20 条** —— 撤掉 B7 后多出的 53 条与既有
+#   `dangling_anchor` 同源（同一条引用报两次）。
 #    判据：token 紧邻的前一个非空白字符是 `/`（或紧邻的前一个是仓根段名）。
 BARE_PATH_TAIL_RE = re.compile(r"[A-Za-z0-9_.\-]?[/\\]$")
 # B7b：**同一条判据的另一半**。B7 只挡了「前面是 `/`」（目录分隔），
 # 漏了「前面是 `.`」——`docs/detail/registry/acsd.phase1.noise-snr.md` 里本层
 # 会抽出 `noise-snr.md`（词干 `noise-snr` 过 B4、扩展名 `.md` 过 B3），
 # 而 BARE_RE(:190) 已按仓根前缀把整条路径收走了。不挡这一支就是同一条引用
-# 抽两次。实测这一支单独占抽取器假阳性的绝大多数。
+# 抽两次。实测去掉 160 处候选。
+#    ⚠ 对抗复核更正了我先前的说法：这一支**不是**抽取器假阳性的「绝大多数」
+#    （B7 去掉 5 606、B3 去掉 912 910，B7b 只占 0.02%）。它单列的理由是
+#    `acsd.phase1.noise-snr.md` 这类**点接**尾巴与 B7 的斜杠尾巴形态不同。
 #    判据：token 紧邻的前一个字符是 `/` 或 `.`（路径续接，不是独立裸名）。
 BARE_PATH_TAIL_DOT_RE = re.compile(r"\.$")
+# B8：**目录树图**里的条目不是引用。`│   ├── __init__.py` 是 ASCII 目录树的一行
+#    （对抗复核实测：`lib/algorithms/photometry/memory.md:136`）。
+_TREE_CHARS = "\u251c\u2514\u2502\u2500\u250c\u2510\u2518\u2534\u252c"
+BARE_TREE_PREFIX_RE = re.compile("[" + _TREE_CHARS + r"]\s*[" + _TREE_CHARS + r"]*\s*$")
+# B9：**通用词形态**的 `__init__.py` 不是引用。「无 __init__.py」讲的是 Python
+#    namespace package 语义，不是在指某一份仓内文件
+#    （`lib/infrastructure/pipeline/orchestrator/memory.md:484` 实测）。
+#    只挡 `__init__` 这一个约定名，不挡其它 dunder，也不挡带目录前缀的写法。
+BARE_GENERIC_STEMS = frozenset({"__init__"})
 
 # 裸名之后的定位符：§N、「x」一节、:行号。三者都表示「作者断言了一个位置」
 BARE_LOCATOR_AFTER_RE = re.compile(
@@ -1093,7 +1110,7 @@ def bare_name_shape_ok(tok):
     """B4：词干长得像文件名吗（含 _ - . ，或全大写≥3）。
 
     ⚠ 这一刀是本层**最关键**的一道闸：`the` / `value` / `e.g` / `Sec.2`
-    全被它挡在外面（实测去掉 4972 条）。它不是停用词表，是形态判据 ——
+    全被它挡在外面（实测去掉 5 146 处）。它不是停用词表，是形态判据 ——
     仓内真实的裸名几乎都带分隔符或全大写（实测 666 个唯一解析成功的裸名
     全部满足），所以它在本仓语料上「杀真」为零。
     """
@@ -1128,6 +1145,10 @@ def bare_name_candidates(line):
         if BARE_PATH_TAIL_RE.search(before):                # B7
             continue
         if BARE_PATH_TAIL_DOT_RE.search(before):            # B7b
+            continue
+        if BARE_TREE_PREFIX_RE.search(before):             # B8
+            continue
+        if tok.rpartition(".")[0] in BARE_GENERIC_STEMS:  # B9
             continue
         if BARE_CPP_TAIL_RE.match(after.lstrip()):          # B6
             continue
@@ -1167,9 +1188,6 @@ CLASSES = {
     "external_ref": "外部引用：指向仓外标准/文献，仓内不可判定（仅列出，不判缺陷）",
     "path_placeholder": "占位路径形态：`X.md` 形如 `<output_dir>/logs`，尖括号里的内容"
                         "无法机械展开，按 C1 不判存在性——单列是「不判不等于吞掉」",
-    "bare_name_unresolved": "散文裸名 · 解析不到：反引号外、无目录前缀的裸文件名在仓内"
-                            "解析不到。可能是运行期产物、已删文件的历史叙述或第三方"
-                            "上游仓内路径，三者形态不可分，故**不判缺陷**，单列可见",
     "bare_anchor_missing": "裸名锚 · 章节缺失：裸文件名在仓内**唯一**解析到一份 .md，"
                            "其后又带 §N，但该文件没有这个章节。与 dangling_anchor 同性质，"
                            "但走的是「裸名」这一路抽取，故单列以便与全路径锚区分",
@@ -1185,22 +1203,33 @@ SOFT = ("unresolved_bare_anchor", "external_ref", "unresolved_relative",
 # 三十来条假悬空，判成 SOFT 又会被淹没。ADVISORY 是唯一不撒谎的位置：
 # 单列、可单独计数、不混进硬判定合计。是否升级为硬闸需负责人裁定。
 ADVISORY = ("ambiguous_target", "anchor_title_mismatch", "replacement_residue",
-            "anchor_title_not_literal", "path_placeholder", "bare_name_unresolved",
-            "bare_anchor_missing")
+            "anchor_title_not_literal", "path_placeholder", "bare_anchor_missing")
 
 # `bare_anchor_missing` 定为 ADVISORY 而**不是**硬判定，理由与 `dangling_anchor`
 # 不同，必须写清楚：全路径锚的 `dangling_anchor` 是硬判定，因为它假设作者写下的
 # 就是那一条路径；裸名锚走的是「仓内唯一同名」这一**推断**——仓里恰好只有一份
 # 同名文件，并不等于作者指的就是它（作者可能指仓外那份、或上游那份）。
-# 本单实测：裸名锚 61 条可判定，49 条命中、3 条确认缺失、9 条目标非 .md。
-# 3 条缺失已逐条 grep 独立核实为真（见审核包 T13 §3.3），
-# 但**唯一性是推断来的**，把它升成硬闸需要负责人先裁定「唯一同名即作者所指」
-# 这条假设。故先单列 ADVISORY，性质与真缺陷相同，可见性不缺。
+# 本单实测（口径：与基线工具**同一路径**并排跑、同一棵树，见审核包 T13 §4.1）：
+#   裸名锚可判定 878 条 = 命中 215 + 锚打在非 .md 上 643；
+#   `bare_anchor_missing` = **20 条**，逐条用独立 grep 复核为真（误报 0），
+#   20 条的源行**全部**是真正的裸名（无目录前缀）。
+# ⚠ 但**唯一性是推断来的**：仓里恰好只有一份同名正本（历史副本已被
+#   `_suffix_candidates`(:517) 排除），不等于作者指的就是它。对抗复核给出三个
+#   反例，最硬的是 `eng/tools/pack_audit_package.py:39` 的 `ROOT_FILES` 集合
+#   字面量声明**仓根**文件名（含 `CHANGELOG.md`，仓根没有），唯一解析会把它
+#   悄悄钉到 `lib/algorithms/star_detection/CHANGELOG.md`。
+#   ⇒ 升成硬闸需负责人先裁定「唯一同名即作者所指」这条假设。
 
-# `bare_name_unresolved` 列在 ADVISORY，理由与上面两类都不同，写清楚免得后来者
-# 想当然地升级：前两单是「**判据缺失**」（尖括号不可展开）/「**比例失衡**」
-# （括注散文描述占多数）。本单两者都不是 —— 裸名解析不到时它**确实**是个指针，
-# 但仓内实测这一桶里混着三类形态上不可分的东西：
+# 「裸名解析不到」这一桶（`bare_name_unresolved`，实测 1 188 处 / 520 个唯一名）
+# **只做统计项，不产条目**。写在这里免得后来者以为它是又一个可见类别：
+#
+#   ⚠ 对抗复核抓到的披露缺陷（已修正）：我先前把 `bare_name_unresolved` 写进了
+#     `CLASSES` 与 `ADVISORY`，但代码里它只有 `stats[...] += 1`，**永远不产条目**
+#     —— JSON 里 grep 这个串是 0 次。下游读 JSON 会以为「这一类一条都没有」。
+#     类别名必须对应真实可产出的条目，否则就是在虚报可见性。
+#     ⇒ 已从 `CLASSES`/`ADVISORY` 移除，它现在**只是统计项**。
+#
+# 为什么只计数不产条目：这一桶里混着三类形态上不可分的东西 ——
 #   · 运行期产物（`p1_phot.json`、`manifest.json`、`vis_report.json`）—— 按设计不在源树；
 #   · 已删/已迁文件的历史叙述（`PROJECT_ARCHITECTURE.md`、`P1_SYMBOL_MAP.md`）—— 是历史不是活指针；
 #   · 第三方上游仓内路径（nanoflann 的 `examples/saveload_example.cpp`）—— 不属本仓。
@@ -2098,6 +2127,8 @@ SELFTEST_TREE = {
     # A2 夹具：markdown 链接目标（不是裸名）。它能过 B3/B4，唯一的区别是
     # 它在 `](…)` 里 —— 撤掉 B2 它就会被当裸名抽走。
     "docs/t_bare_linked.md": "# 只经链接引用的承载体\n\n## 1 存在的一节\n",
+    # B8 夹具：仓内确有一份同名文件，规则撤掉时它会被抽走 —— 非空夹具。
+    "docs/t_bare_tree/t_tree.md": "# 树图夹具\n",
     # A7 夹具：C++ 成员访问**头侧**残片 → `-b.c`（`cfg.a-b.c` 被切开后的后半）。
     # 与 A6 的尾侧（`ts_utc.c_str()` → `ts_utc.c`）是两处不同的锚点。
     # ⚠ 词干**必须含连字符**而不是下划线：B5 的 `^_+[A-Za-z0-9]*\.` 只吃
@@ -2134,6 +2165,8 @@ SELFTEST_TREE = {
         # （.md 在白名单），唯一的区别是词干不像文件名。
         "【负例·B4词干形态】泛指 target.md 这类无分隔符小写名，不是本仓引用形态。\n\n"
         "【负例·B5占位残片】evidence/<tag>_conditions.json 的尾巴是占位残片。\n\n"
+        "【负例·B8目录树图】│   ├── t_tree.md 是树图一行，不是引用。\n\n"
+        "【负例·B9通用词形态】无 __init__.py 讲的是 Python 语义，不是引用。\n\n"
         "【负例·同名多义交既有类】t_dup_name.md 在仓内有两份同名，工具不替人选。\n\n"
         # 这一条喂 `bare_name_unresolved` 统计项：裸名形态成立、仓内解析不到。
         # 它**不得**产出任何判定（运行期产物 / 历史叙述 / 第三方源三类形态
@@ -2336,6 +2369,8 @@ SELFTEST_BARE_NAME_NEGATIVE_LINES = {
     "【负例·B6C++成员访问】": ("ts_utc.c", "path.c"),
     "【负例·B7链接目标不是裸名】": ("t_bare_linked.md",),
     "【负例·B7b点接路径尾巴】": ("t_tail.md",),
+    "【负例·B8目录树图】": ("t_tree.md",),
+    "【负例·B9通用词形态】": ("__init__.py",),
     "【负例·B5占位残片】": ("_conditions.json",),
 }
 
@@ -2525,7 +2560,7 @@ def selftest():
         # ---- 裸名层回归：每条负例行都不得产出裸名层的任何判定 ----
         # ⚠ 按「行 + 禁用令牌」双条件判：把真引用一起挡掉就成了空夹具，
         # 只按行判又会把真引用误当误报。理由见 SELFTEST_BARE_NAME_NEGATIVE_LINES。
-        BARE_LAYER_CLASSES = ("bare_anchor_missing", "bare_name_unresolved")
+        BARE_LAYER_CLASSES = ("bare_anchor_missing",)
         bare_lines = SELFTEST_TREE["docs/t_bare_doc.md"].splitlines()
         neg_line_nos = {}
         for i, l in enumerate(bare_lines, 1):
@@ -2589,9 +2624,20 @@ def selftest():
         # ---- 裸名层回归：新类别必须留在 ADVISORY，不得进硬判定合计 ----
         # 判据边界（见 CLASSES['bare_anchor_missing'] 的说明）：裸名锚的
         # 「唯一同名即作者所指」是**推断**，升级为硬闸需负责人裁定。
-        if "bare_anchor_missing" not in ADVISORY or \
-                "bare_name_unresolved" not in ADVISORY:
+        if "bare_anchor_missing" not in ADVISORY:
             bad.append("裸名层新类别被移出 ADVISORY，须负责人裁定后才能升级")
+        else:
+            ok += 1
+
+        # ---- 披露回归：只统计、不产条目的名字**不得**出现在类别表里 ----
+        # 对抗复核抓到的缺陷：`bare_name_unresolved` 曾被写进 CLASSES/ADVISORY，
+        # 但它只 `stats[...] += 1`、永远不产条目，JSON 里 grep 是 0 次 ——
+        # 类别表里放一个永远不产出的名字，等于虚报可见性。
+        if "bare_name_unresolved" in CLASSES or \
+                "bare_name_unresolved" in ADVISORY:
+            bad.append("bare_name_unresolved 只是统计项，不得出现在类别表里")
+        elif not stats.get("bare_name_unresolved"):
+            bad.append("bare_name_unresolved 统计项恒为 0（等于没接执行）")
         else:
             ok += 1
 
