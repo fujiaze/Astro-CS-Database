@@ -296,11 +296,23 @@ inline int punch_range_at(int fd, std::uint64_t off, std::uint64_t len,
 }
 
 // 位置读（不改文件游标；打洞扫描用）。返回 true = 恰读 count 字节。
+//
+// ⚠ 登记缺陷 WIN-PREAD-01（本单只如实登记，未改行为）：Windows 分支用 `_read` 顺序读，
+//   **静默丢弃 off 且会推进 CRT 文件游标** ⇒ 本函数注释声明的「不改游标」契约在
+//   Windows 上不成立（POSIX 侧 pread 两项都满足）。
+//   严重性定级（实测复核后的准确口径，勿夸大）：唯一生产调用点
+//   aio_sparse_punch.h:537 的扫描循环严格自 0 起顺序推进（chunk_off = b*kPunchBlockBytes，
+//   除末块外 in_file == chunk_len），故 CRT 游标恒等于 chunk_off ⇒ **当前调用图上
+//   读到的字节与 pread 逐字节相同**，不是活跃的错误结果。实际风险是：(a) 契约违反；
+//   (b) 脆性 —— 任何乱序/复用调用都会静默读到错数据且不报错；(c) 游标终态停在文件尾
+//   而非原位。真正的定位读实现（_lseeki64 定位 + 读 + 复原游标）属功能改动、需配套测试，
+//   不在本「零警告」单内做。
 inline bool read_at(int fd, std::uint64_t off, unsigned char* buf,
                     std::size_t count) {
     std::size_t done = 0;
     while (done < count) {
 #ifdef _WIN32
+        (void)off;   // 见上方 WIN-PREAD-01：Windows 侧退化为顺序读，off 不参与
         const int n = _read(fd, buf + done, static_cast<unsigned>(count - done));
 #else
         const ssize_t n = pread(fd, buf + done, count - done,

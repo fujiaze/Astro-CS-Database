@@ -1169,7 +1169,10 @@ int run_with_gaia_impl(
     int total = width * height;
     #pragma omp parallel for schedule(static)
     for (int i = 0; i < total; ++i) {
-        out_pixels[i] = pixels[i] * scale;
+        // scale 是 double、out_pixels 是 float* ⇒ 赋值处 double→float 隐式窄化，
+        // MSVC /W4 报 C4244。赋值转换本就等价于 static_cast<float>，显式写出只把
+        // 隐式意图变成明示，转换时机与舍入点完全不变 ⇒ 零行为变化。
+        out_pixels[i] = static_cast<float>(pixels[i] * scale);
     }
 
     *out_n_matched = n_matched;

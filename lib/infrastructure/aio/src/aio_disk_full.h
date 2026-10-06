@@ -90,12 +90,17 @@ inline bool errno_is_disk_full(int err) {
 }
 
 // path: 失败发生处的路径 (statvfs 用; 可为文件或目录)。err: 失败处 errno (0=未知)。
+// 平台差: statvfs 是 POSIX 面，Windows 侧无此判据 ⇒ 该平台上 path 形参不被读，
+// MSVC /W4 报 C4100。签名保持两平台同形（调用点不需分平台），Windows 分支显式
+// (void)path 标明「有意不读」而非漏用；判定逻辑与返回值两侧完全相同 ⇒ 零行为变化。
 inline bool space_exhausted(const std::string& path, int err) {
     if (errno_is_disk_full(err)) return true;
 #ifndef _WIN32
     struct statvfs vfs;
     if (!path.empty() && ::statvfs(path.c_str(), &vfs) == 0 && vfs.f_bavail == 0)
         return true;
+#else
+    (void)path;   // Windows 无 statvfs 容量面；形参保留以维持两平台同签名
 #endif
     return false;
 }

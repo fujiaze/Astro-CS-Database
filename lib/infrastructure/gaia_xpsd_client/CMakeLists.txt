@@ -35,8 +35,15 @@ if(WIN32)
         PREFIX ""
         OUTPUT_NAME "acsd_catalog_gaia"     # → acsd_catalog_gaia.dll
         RUNTIME_OUTPUT_DIRECTORY $<1:${CMAKE_BINARY_DIR}>)
+    # 只保留 /Zc:__cplusplus。原先此处另有 /W3，叠加在根 CMakeLists 的全局 /W4 之上：
+    # CMake 把目录级 add_compile_options 排在目标级之前，编译行实际是
+    # `/W4 … /Zc:__cplusplus /W3`，而 MSVC 的 /Wn **后者胜** ⇒ 该目标的**有效级别是
+    # /W3 而非 /W4**，即全局严格档被这一行静默降级；且 /Wn 覆写本身正是仓内
+    # cfitsio_platform.cmake 所述的 D9025 形态（零告警门禁下命令行告警同样算告警）。
+    # 删掉 /W3 与全局口径对齐。该 target 的 2 个第一方 C TU（gaia_client.c /
+    # module_entry.c）自此按 /W4 编译 —— 即其告警面**变宽**，这是收紧不是放宽。
     target_compile_options(acsd_catalog_gaia PRIVATE
-        /Zc:__cplusplus /W3)
+        /Zc:__cplusplus)
 else()
     set_target_properties(acsd_catalog_gaia PROPERTIES
         PREFIX ""

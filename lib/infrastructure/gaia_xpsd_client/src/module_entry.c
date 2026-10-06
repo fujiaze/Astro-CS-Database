@@ -290,7 +290,9 @@ static acsd_status gaia_cfg_parse(const char* config_json, gaia_cfg* c,
               ACS_GAIA_ECODE_CATALOG_DIR_MISSING, "gaia: missing catalog_dir");
         return ACS_ERR_PARAM;
     }
-    int f = 0;
+    /* 原先此处有 `int f = 0;` —— 全函数零引用（MSVC /W4 C4189）。该 target 原带
+       * /W3（叠加全局 /W4 且后者被前者覆盖），本单删掉 /W3 后告警面变宽才暴露。
+       * 未初始化即无读点 ⇒ 删除零行为变化。 */
     int ra_ok = 0, dec_ok = 0, rad_ok = 0, lo_ok = 0, hi_ok = 0, mr_ok = 0;
     c->ra          = json_get_f64(config_json, ACSD_GAIA_CFG_KEY_RA, &ra_ok);
     c->dec         = json_get_f64(config_json, ACSD_GAIA_CFG_KEY_DEC, &dec_ok);

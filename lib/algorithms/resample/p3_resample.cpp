@@ -102,7 +102,10 @@ struct SharedTileCache {
     }
     void mark_absent(uint64_t k) {
         std::lock_guard<std::mutex> lk(mu);
-        absent.emplace(k, 1u);
+        // absent 的 value_type 是 uint8_t；原先写 1u（unsigned int）在 emplace 时
+        // 隐式窄化，MSVC 在 <utility> 的 pair 构造处报 C4244（GCC 把 STL 头当系统头
+        // 不报 ⇒ 双平台差异）。显式给元素类型，落入的值仍是 1，语义不变。
+        absent.emplace(k, uint8_t{1});
         ++stat_absent;
     }
     // P30 证据/回归: 真实失败的 tile open 次数 (与负缓存命中区分)。负缓存关闭时

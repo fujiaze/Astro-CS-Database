@@ -31,7 +31,10 @@
 #include <thread>
 
 
-#define NOMINMAX
+// NOMINMAX 只由下面的平台块（已用 #ifndef 守卫）定义。此处原先另有一行**无守卫**的
+// `#define NOMINMAX`，而构建系统已在编译命令行定义该宏 ⇒ MSVC C4005「宏重定义」。
+// NOMINMAX 是 windows.h 专用宏（非 Windows 侧无意义），故删除无守卫那一行即可，
+// 平台块内的定义与守卫保持原样；宏的最终取值不变，零行为变化。
 #if defined(_WIN32) && defined(__has_include)
 #if __has_include(<windows.h>)
 #ifndef WIN32_LEAN_AND_MEAN

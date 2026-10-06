@@ -24,9 +24,12 @@ extern "C" {
 //      用 `>0 ? 取值 : 内置默认` 归一, 故不影响任何判定;
 //   ③ 无任何行为读点的字段（只被赋值 / 只进日志）→ 取同一组默认以保持自文档, 不改判定。
 // 作用: 消除「SDetParams x;」未初始化即使用这一未定义行为（读到栈垃圾 ⇒ 形状门用
-// 随机阈值判星 ⇒ 误杀）。对既有「先 memset(0) 再逐字段赋」的调用方**零影响**:
-// memset 在其后覆盖全部字段, 本组初值不参与任何判定。
-typedef struct {
+// 随机阈值判星 ⇒ 误杀）。调用方一律以 `SDetParams x{};` 值初始化后逐字段赋，本组初值
+// 不参与任何判定；对 SDetParams  memset 属对非平凡类型清零（-Wclass-memaccess），停用。
+// 具名结构体而非 `typedef struct { ... } SDetParams;` 的匿名 typedef：匿名类只能经
+// typedef 名使用，MSVC /W4 报 C5208。具名与否类型、布局、成员默认初值、可聚合性全同
+// ⇒ 纯写法修正，零行为变化。
+struct SDetParams {
     int   structureLayers      = 5;     // ③ 无行为读点; 取 sdet_create 默认
     int   hotPixelFilterRadius = 1;     // ③ 同上
     float iterativeClipSigma   = 9.0f;  // ③ 同上
@@ -67,7 +70,7 @@ typedef struct {
     float psfFwhmHiRatio      = 0.0f;   // ② 读点 sdet_api.cpp:438/444: <0 关 / 0 内置默认 2.5
     float maxPeakFraction     = 0.0f;   // ② 读点 sdet_api.cpp:439/446: <0 关 / 0 内置默认 0.35
     int   minQuarterMaxPixels = 0;      // ② 读点 sdet_api.cpp:440/448: <0 关 / 0 内置默认 4
-} SDetParams;
+};
 
 typedef struct StarDetectorHandle_s *StarDetectorHandle;
 

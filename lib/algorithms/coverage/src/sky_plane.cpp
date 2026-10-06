@@ -756,11 +756,13 @@ int p2_sky_plane_build(const P2SkySample* samples, std::uint64_t n,
             for (double x : v) orig += x * x;
             orig = std::sqrt(orig);
             for (const auto& q : cols) {   // 修正 Gram-Schmidt（固定列序，确定性）
-                double d = 0.0;
+                // 重命名 proj：内层 d 遮蔽了外层同名局部量（MSVC C4456）。此处内外
+                // 各自独立、求值顺序与数值不变，只是把两个不同的量分名 ⇒ 零行为变化。
+                double proj = 0.0;
                 for (int f = 0; f < n_free; ++f)
-                    d += q[static_cast<std::size_t>(f)] * v[static_cast<std::size_t>(f)];
+                    proj += q[static_cast<std::size_t>(f)] * v[static_cast<std::size_t>(f)];
                 for (int f = 0; f < n_free; ++f)
-                    v[static_cast<std::size_t>(f)] -= d * q[static_cast<std::size_t>(f)];
+                    v[static_cast<std::size_t>(f)] -= proj * q[static_cast<std::size_t>(f)];
             }
             double nrm = 0.0;
             for (double x : v) nrm += x * x;
@@ -1026,17 +1028,20 @@ int p2_sky_plane_build(const P2SkySample* samples, std::uint64_t n,
         // δ_k
         for (int k = 0; k < n_frames; ++k) {
             if (k == model->ref_frame) { std::fill(model->deltas[static_cast<std::size_t>(k)].begin(), model->deltas[static_cast<std::size_t>(k)].end(), 0.0); continue; }
-            std::vector<double> d = tk[static_cast<std::size_t>(k)];
+            // 重命名 dvec：此处 d 遮蔽了外层的样条阶数 d（本文件:565
+            // `const int d = cfg.spline_degree;`），MSVC C4456。两者本就是不同的量，
+            // 分名后求值顺序与数值逐位不变 ⇒ 零行为变化。
+            std::vector<double> dvec = tk[static_cast<std::size_t>(k)];
             const std::vector<double>& Sk_ = Sk[static_cast<std::size_t>(k)];
             for (int q = 0; q < m; ++q) {
                 double s = 0.0;
                 for (int i = 0; i < n_free; ++i) s += Sk_[static_cast<std::size_t>(i) * m + q] * B[static_cast<std::size_t>(i)];
-                d[static_cast<std::size_t>(q)] -= s;
+                dvec[static_cast<std::size_t>(q)] -= s;
             }
             std::vector<double> Lk;
             chol_spd(Mk[static_cast<std::size_t>(k)], m, Lk);
-            chol_solve(Lk, m, d);
-            model->deltas[static_cast<std::size_t>(k)] = d;
+            chol_solve(Lk, m, dvec);
+            model->deltas[static_cast<std::size_t>(k)] = dvec;
         }
         // 残差 → Huber 权重
         std::uint64_t nrej = 0;
@@ -1070,9 +1075,11 @@ int p2_sky_plane_build(const P2SkySample* samples, std::uint64_t n,
             long bestd = 0;
             for (int f = 0; f < n_free; ++f) {
                 const int fi = full_of_free[static_cast<std::size_t>(f)];
-                const long d = std::abs(static_cast<long>(fi % model->nx - ix)) +
-                               std::abs(static_cast<long>(fi / model->nx - iy));
-                if (best < 0 || d < bestd) { bestd = d; best = f; }
+                // 重命名 dman：此处 d 遮蔽外层样条阶数 d（:565），MSVC C4456。
+                // dman = 切比雪夫邻域距离，与阶数无关；比较与赋值语义不变 ⇒ 零行为变化。
+                const long dman = std::abs(static_cast<long>(fi % model->nx - ix)) +
+                                  std::abs(static_cast<long>(fi / model->nx - iy));
+                if (best < 0 || dman < bestd) { bestd = dman; best = f; }
             }
             model->coeff[static_cast<std::size_t>(idx)] = (best >= 0) ? B[static_cast<std::size_t>(best)] : 0.0;
         }

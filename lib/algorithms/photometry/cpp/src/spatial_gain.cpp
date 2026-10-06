@@ -612,12 +612,15 @@ SpatialGainField fit_spatial_gain(const SpatialGainSample* s, int n,
                     }
                 }
                 if (npix > 0) {
-                    const double n = static_cast<double>(npix);
+                    // 重命名 npx：此处 n 遮蔽了函数形参 n（fit_spatial_gain 的**样本数**，
+                    // :306；本处是**帧内像素数**，两个不同的量），MSVC C4457。分名后
+                    // 均值/方差公式逐字不变 ⇒ 零行为变化。
+                    const double npx = static_cast<double>(npix);
                     f.field_ptp_dex = std::fabs(lmax - lmin);
-                    const double mean_lm = sum_lm / n;
-                    const double var_lm = std::max(0.0, sumsq_lm / n - mean_lm * mean_lm);
+                    const double mean_lm = sum_lm / npx;
+                    const double var_lm = std::max(0.0, sumsq_lm / npx - mean_lm * mean_lm);
                     f.field_rms_dex = std::sqrt(var_lm);
-                    const double mean_v = sum_v / n;
+                    const double mean_v = sum_v / npx;
                     if (mean_v > 0.0) f.noise_floor_dex = S * std::sqrt(mean_v);
                     if (max_v > 0.0) f.noise_floor_max_dex = S * std::sqrt(max_v);
                     // 逐系数解析标准差 sqrt(S²·(H⁻¹)_jj)（诊断：系数是否受数据约束）
