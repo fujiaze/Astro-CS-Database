@@ -1,7 +1,0 @@
-== C5 采样权重与收敛枚举 ==
-  [PASS] W1p_arms_statistically_indistinguishable {'snr2': {'margin': 0.142914, 'se': 0.06954, 'z': 2.0551, 'verdict': 'control_ivar 显著更优'}, 'uniform': {'margin': -0.011721, 'se': 0.046178, 'z': -0.2538, 'verdict': '不可分辨'}}
-  [PASS] W2_leakage_min               {'best': 'control_ivar', 'leak': {'control_ivar': 0.07611577417013965, 'snr2': 0.359029446752821, 'uniform': 0.12160902935273533}}
-  [PASS] W3_full_chain                {'n_samples': 1374, 'per_frame': {1001: 381, 1002: 369, 1003: 368, 1004: 256}, 'star_mask_hit_rate': 1.0, 'mask_area_fraction': 0.011882781982421875, 'n_nodes': 49, 'n_frames': 4, 'rank': 49, 'delta_nonzero': True, 'chi2_red': 0.7625233308244302}
-  [PASS] W4_convergence_enum_spec     {'converged': 1, 'max_iter': 0, 'stalled': 2, 'invalid': 3}
-  [PASS] W5_enum_gap                  {'converged_case': 1, 'maxiter_case': 0, 'stalled_case': 0, 'iters': [3, 1, 300]}
-  -> /workspace/Astro CS Database/实验/additive-sky-seamless/results/c5_weights.json
