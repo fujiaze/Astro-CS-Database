@@ -55,11 +55,21 @@ else()
   # WIN-PORT C4996 策略 (登记面 = ENGINEERING_SPEC.md §1「MSVC C4996 策略」):
   # C4996 是 MSVC 对 ISO C 函数的**咨询性**告警 (strncpy/fopen/getenv/_open/...),
   # 同一份代码在 Linux/GCC 侧编译零告警 —— 这是平台口径差, 不是代码缺陷。
-  # 处置 = 项目级关闭该咨询面, **不重写 206 个调用点** (行为风险 > 收益):
-  #   _CRT_SECURE_NO_WARNINGS  : 关 strncpy/fopen/getenv/sscanf/strerror/strdup 的 C4996;
-  #   _CRT_NONSTDC_NO_WARNINGS : 关 POSIX 名 (_open/_wfopen/getpid/...) 的弃用 C4996。
+  # 处置 = 项目级关闭该咨询面, **不逐点重写调用点** (行为风险 > 收益)。
+  # ⚠ 调用点面 (T10 Windows 实测口径, 可复跑; 原注释写的「206 处」经查**不可复现** ——
+  #   git log -S '206 个调用点' -- CMakeLists.txt 只有一条 7d4c0aa2 一次性写入该数字,
+  #   仓内无任何测量记录支撑, 故此处不再引用具体数字):
+  #   范围 = lib/ 下第一方 (排除 third_party), 486 个文件; CODE 口径 (剥注释与字符串字面量,
+  #   即真正会触发 C4996 的调用点) = SECURE 245 + NONSTDC 48 = **293 处**;
+  #   RAW 口径 (含注释/字符串) = 278 + 68 = **346 处**。
+  #   `_CRT_SECURE_NO_WARNINGS` : 关 strncpy/fopen/getenv/sscanf/strerror/strdup 的 C4996;
+  #   `_CRT_NONSTDC_NO_WARNINGS` : 关 POSIX 名 (_open/_wfopen/getpid/...) 的弃用 C4996。
   # 二者只关**这两个宏观咨询类别**; 其余告警类别 (C4244/C4334/C4324/C4310/C4190/
   # C4127/C4100/C4456 等) 一律逐点真修或按语言标准正当处理, 不得靠全局降级掩盖。
+  # ⚠ 未决 (登记面): 本定义是**目录级、无作用域**, 第一方与第三方同等覆盖 ——
+  #   即「关得没有边界」。裁决要求收紧到按目标受控 (第三方保留、第一方默认不覆盖),
+  #   但第一方一旦失去该宏就会暴露上面 293 处 C4996, 与「本单零警告」不可兼得,
+  #   需独立车道逐点/逐文件处置。本单不擅自改口径, 登记为遗留项。
   add_compile_definitions(_CRT_SECURE_NO_WARNINGS _CRT_NONSTDC_NO_WARNINGS)
 endif()
 
@@ -1170,12 +1180,16 @@ target_include_directories(acsd_p1_ipv PUBLIC
 #   注: 与本仓 :100-103 注释已写明的历史修复同源 —— 当时只覆盖 5 个**测试**消费者,
 #   漏了生产目标 acsd_p1_ipv (连带 acsd_phase1_photcal :1098 与求解器链 :1384-1393)。
 target_link_libraries(acsd_p1_ipv PUBLIC acsd_platform_zlib acsd_gaia_zlib_include Threads::Threads)
-# WIN-PORT C2491: ipv_api.h 用 IPV_EXPORTS 区分 dllexport/dllimport —— 本 target
-# 编入的是**定义侧** TU (ipv_entry.cpp 等), Windows 下不定义该宏就会把定义
-# 声明成 __declspec(dllimport) ⇒ MSVC C2491「不允许 dllimport 函数的定义」×12。
-# 与源内既有构建面同口径 (cpp/ipv/Makefile:15 的 -DIPV_EXPORTS、
-# build.ps1:27 的 -DIPV_EXPORTS); Linux 侧 IPV_API 为空, 定义与否行为相同。
-target_compile_definitions(acsd_p1_ipv PRIVATE IPV_EXPORTS)
+# WIN-LNK4217: acsd_p1_ipv 是 **STATIC** 库, 但其头 ipv_api.h 原先只有两态
+# (IPV_EXPORTS -> dllexport / 否则 -> dllimport)。定义侧 TU 拿 dllexport、消费者
+# module_adapters.cpp 拿 dllimport ⇒ 消费侧引用 __imp_ipv_* 而定义就在同一 image ⇒
+# link.exe 报 8 条 LNK4217。ipv_api.h 已补第三态 IPV_STATIC, 此处定义它:
+#   PUBLIC (不是 PRIVATE) —— 头会被**消费者** include, 消费侧也必须落「静态链」态。
+# 与源内既有构建面同口径不变: MinGW 独立构建的 ipv_solver.dll 仍 -DIPV_EXPORTS
+# (cpp/ipv/Makefile:15, build.ps1:27) 走 dllexport 分支; CMake/MSVC 生产构建全程
+# 不产出 ipv DLL (全仓仅此一处 add_library 命中 ipv), 故删除 dllexport 不丢任何导出面。
+# Linux 侧 IPV_API 为空, 定义与否行为相同。
+target_compile_definitions(acsd_p1_ipv PUBLIC IPV_STATIC)
 set_property(SOURCE ${CMAKE_CURRENT_SOURCE_DIR}/lib/infrastructure/gaia_xpsd_client/src/gaia_client.c
   PROPERTY C_STANDARD 11)
 
