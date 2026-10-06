@@ -195,6 +195,11 @@ determinism = `fixed_reduction_order`。
 - 无日志 / 指标输出（纯函数；编排层日志在 stage2.cpp）；无内部取消检查点 /
   checkpoint；
 - 错误码与退出码唯一源 = lib/infrastructure/cli/exit_codes.h（本页不复制数值表）。
+- **负例与归零分支 N35（T05–T07 负向轮，本卡死值与静默 scale）**：负例输入构造甲 =
+  空栈输入；负例输入构造乙 = 预测残差方差缺失。预期行为甲 = `NO_CANDIDATES`
+  状态（积分域口径），`rc = 0` 语义全由 status 承载。落盘标记甲 = status 码。
+  预期行为乙 = fail-closed，不用猜测阈值。落盘标记乙 = 缺方差登记；静默删样本
+  或猜阈值 ⇒ 判红。
 
 ## 独立 synthetic 验证命令与容差
 

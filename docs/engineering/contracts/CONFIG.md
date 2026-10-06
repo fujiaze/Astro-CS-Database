@@ -172,6 +172,11 @@ normalize 只接受**多块**与**平铺单块**两形态；CLI 遇到逐帧 `{p
 
 下表中的测试 ID 与脚本路径为判据的既有标识，仓内无对应实现，改动判据时同步更新本节与登记面。
 
+**可复现轮 T05–T10 诚实化（CONFIG 门表 2 项）**：
+
+- T-CFG-01（门表全部 20 行：三模板过 schema / 负例必败 / defaults 计数 / 转录保真 / 跨类不相交 / 滤镜库 / cpu_profile / CFG002-01..12）：**不可验收（缺复现载体）**。本节已明示门表在本仓没有执行器（`eng/tests/` 下只有 `conformance/` 与 `validation/` 两个目录，其中不含配置合同测试；`eng/tools/` 下无 `config_consistency_check.py`；门脚本 `check_cfg002_registry.py` 与测试 `test_cfg001_contracts.py`/`test_cfg002_registry.py` 在跟踪集内不存在；运行期 `jsonschema` 依赖不在仓内）。下表列出的是应门禁的判据，不是可复跑的命令；逐条核对判据由人读执行，登记为需代码侧订正项。实验单元指向：配置合同执行器单元（待建：门脚本 + 测试文件 + jsonschema 依赖落地）。
+- T-CFG-02（转录保真 11 个关键 source 锚点）：**不可验收（缺复现载体，人工可核）**。与 T-CFG-01 同一缺口；11 个锚点（文件 + 值文本 + 内容指纹）可由人读逐条核对，但无机器复跑入口，不得写成已生效判据。改动判据时同步更新本节与登记面。
+
 | 门 | 断言 | 测试 |
 |---|---|---|
 | 三模板通过对应 schema | 逐模板 `validate()==[]`；phase 身份：mosaic/export 由 `phase_name`、normalize 由 `x-acsd-phase` + 非空 `blocks[]` | `TestPhaseConfigFamily::test_templates_pass_their_schema` |

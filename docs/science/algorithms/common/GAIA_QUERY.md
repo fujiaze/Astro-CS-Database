@@ -256,6 +256,11 @@ spectrum_start/step/count 取自 XPSD XML <Data parameters="...">（缺省 0，
   见 API-GAIA-001）按平台断言。
 - **串并行**：1/N worker 加速比（fixture 足量叶块）；64 并发查询 +
   ACSD_GAIA_TRACE=1 无混合（V18R3 结论复验）。
+- **负例与归零分支 N13（T05–T07 负向轮，GAIA 截断）**：负例输入构造 = 单文件候选
+  > 200000（fixture 缩小参数复现逻辑而非规模）。预期行为 = 输出恰为 200000
+  （文档化截断上限 `MAX_STARS_RESULT`，不属丢弃），截断事实记账。落盘标记 =
+  输出计数 200000 + 截断记账；把超限部分静默丢弃且无记账、或返回不完整星表
+  当完整 ⇒ 判红；
 - **ISA**：baseline（无 -march）与 -march=native 输出 bitwise 一致（本模块无
   手写 SIMD，默认 bitwise 合同）。
 - **资源**：RSS 结束回落有解释高水位；块缓存 total_memory ≤ 4GB；trace 关闭

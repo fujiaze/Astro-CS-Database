@@ -253,6 +253,8 @@ control_variance = k_corr × (π/2) × σ_bg² / N_retained    # :875（N_ret = 
 control_ivar     = 1 / control_variance（cvar>0；否则 0）   # :877
 uncertainty      = sqrt(control_variance)                  # :878
 # σ_bg = σ_bg_raw；σ_bg_raw==0 的分支见下方「零尺度分支发布口径」
+# 本式的导出式登记：渐近基线 Var(median) = πσ²/(2N) 的完整推导见本节「公式的精确形式与适用域」，
+# 有限 N 修正 k_gauss(N) 与几何因子 k_geo 的乘积形式见本节 k_corr 定义，N < 65 时引用必须同时声明所用口径（纯公式/端到端/生产链裁剪臂）
 ```
 
 **公式的精确形式与适用域（本条是 (π/2) 因子的唯一依据）**：
@@ -380,6 +382,11 @@ uncertainty      = sqrt(control_variance)                  # :878
 - UPMW-004 独立 MC 基线：Var(median) ≈ πσ²/(2N)（先例 `synthetic_gate.cpp`）；
   本式为该基线乘 k_corr 的 Drizzle 相关放大。该基线的成立条件见本节「公式的精确形式
   与适用域」：iid + 高斯 + N ≥ 65；(π/2) 因子的适用面 = 高斯样本。
+
+**可复现轮 T05–T10 诚实化（SAMPLER MC 2 项）**：
+
+- T-SMP-01（k_corr 几何 MC：紧凑 patch ≈1.27±0.03 / 全 touched ≈1.43–1.45 / 远散 ≈1.00）：复现三件套齐备。命令 `python3 实验/additive-sky-seamless/code/audit_rework/route3/exp04_kcorr_mc.py`（route2 对照 `实验/additive-sky-seamless/code/audit_rework/route2/e2_kcorr_drizzle_mc.py`，healpix-polar kcorr 补实验 `实验/healpix-polar/code/audit/kcorr/mc_kcorr.py`）；seed：route3 SEED=20260926、route2 SEED=20250926、kcorr SEED_BASE=20260816（各脚本头部写死，无命令行覆盖）；版本：纯 numpy 脚本，Python ≥ 3.10 + numpy；产物 hash 指针：输出 JSON 与 `实验/additive-sky-seamless/results/audit_rework/` 及 `实验/healpix-polar/results/audit/kcorr/` 存档逐位可对照。受控复现 1.3445±0.0416（16 相位 × 8 seed）的证据源 `control_median_mc_test` 判据覆盖该复现。
+- T-SMP-02（逐帧标定在生产数据恒不生效：标定域 [300,600]″/px vs 生产 ≈1″/px）：**不可验收为"已标定"（缺生产尺度复现载体）**。本节已实测标定域与生产尺度相差 300× 以上，逐帧标定在所有已知生产数据上恒不生效、回退代码默认 1.4；任何「control_variance 已做 Drizzle 相关校正」的表述必须写明此点并按消费规则声明标定元组与 N 档（不一致时 fail-closed 或现场 MC 重标，P3 补实验 code/ 可复用）。provenance 缺失时的静默回退（`ACSD_DRIZZLE_*` 键缺失）与已打标域外回退必须区分引用。
 
 ### 5.5 Stage C/D/E 局部门控（:952-1009 + :847-867）
 

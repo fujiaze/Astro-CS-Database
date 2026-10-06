@@ -36,7 +36,7 @@ order ≤ 29（`lib/algorithms/shared/healpix/healpix_core.cpp` 合法域注释�
 
 ## Postconditions
 
-round-trip 误差 ≤ 1e-12 度（FP64）；NESTED 父子一致性。
+round-trip 误差 ≤ 1e-12 度（FP64）；NESTED 父子一致性。退化面：极区角点与 RA 跨界锚点处的 round-trip 按退化面单独登记，其容差包络为 `1.2 × hp_res + 1e-9` 角距（见下表 oracle 判据），不得与全天内部点的 `1e-12` 度后条件混读。
 
 **外部 Oracle 承接**（三个载体**已实存**，此前本文件零承接）：
 

@@ -140,6 +140,11 @@ rc 语义：0 = ok；1 = 参数 / open / parse / IO / 未知 frame；2 = dense s
 
 取消：会话消费面整模型不写半成品（p2_session.cpp 两处）；内核无取消检查点；无段内
 checkpoint（dense 物化整缓存一次写）。
+- **负例与归零分支 N34（T05–T07 负向轮，本卡死值与静默 scale）**：负例输入构造甲 =
+  未知 `frame_id` 的求值请求；负例输入构造乙 = dense 缓存 stale（source hash
+  不匹配）。预期行为甲 = 返回 NaN，不以 frame 0 伪装，不抛异常。落盘标记甲 =
+  NaN + 未知帧登记。预期行为乙 = `rc = 2` 拒绝。落盘标记乙 = stale 拒绝码；
+  伪装或静默重算 ⇒ 判红。
 
 错误码与退出码唯一源 = lib/infrastructure/cli/exit_codes.h（本页不复制数值表）。
 

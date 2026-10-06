@@ -210,6 +210,11 @@ lib/infrastructure/cli/exit_codes.h（本页不复制数值表）。
 | 近似 WCS 不可解析（指向/板尺度缺失或退化） | DATA 拒绝（禁 silent default） |
 | 星表逆投影后帧内 0 星，或全部拟合被质量门拒绝 | DATA 拒绝（`0/N catalog-guided fits survived`），不回退全图盲检测冒充成功 |
 | `max_stars` 越出 [20000, 50000] | DATA 拒绝（禁静默夹取） |
+- **负例与归零分支 N22（T05–T07 负向轮，本卡死值与静默 scale）**：负例输入构造甲 =
+  `max_stars` 取 19999 / 50001；负例输入构造乙 = 空场（0 星）输入。预期行为甲 =
+  DATA 拒绝，不静默夹取到边界。落盘标记甲 = 拒绝原因 + 越界值。预期行为乙 =
+  `rc = 0` + 输出全 NULL + `count = 0`（非错误，归零分支）。落盘标记乙 =
+  `count = 0` 空场标记；把空场当失败、或把越界静默夹取 ⇒ 判红；
 
 manifest 顶层与逐帧记录 `detection_mode`、`detection_authoritative`、
 `detection_degraded_reason`、`star_detection_max_stars` 与 `gaia` 溯源块。
@@ -229,6 +234,11 @@ Oracle 面：
 - selection function 与注入分布一致；
 - 改变星表亮度分布只改变 source-SNR 摘要，不改变信息权重（跨模块验证）；
 - 1 worker vs N worker 输出一致；
+- **负例与归零分支 N03（T05–T07 负向轮，检测浮点帧两态）**：负例输入构造甲 = 浮点帧上
+  `snr.max_sources = 0`（不限）；负例输入构造乙 = 同一帧上 `snr.max_sources = K > 0`。
+  预期行为甲 = 只截断交付样本行、不截断检测定义域（`maxStars` 只管交付上限）；
+  预期行为乙 = 同甲，且交付行数 ≤ K 并落盘 `truncated` 标志与被计入样本数。落盘标记 =
+  交付样本 `truncated` 布尔 + 计入数；把样本上限解释成定义域截断 ⇒ 判红；
 - 权威路径判据 `p1star_guided`：真值位置召回与质心（|Δc| ≤ 0.3px @ SNR ≥ 20）、
   纯噪声场虚警 ≤ 0.1/千像素（发布门 `G-P1-STAR-FP`）、定义域丢弃计数守恒、
   1/4 线程逐位一致、定义域非退化（预测位置整体偏移后输出不落在真星上）、

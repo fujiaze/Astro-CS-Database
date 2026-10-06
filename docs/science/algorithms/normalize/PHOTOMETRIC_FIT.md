@@ -66,6 +66,12 @@ function photometric_fit(F_instr, F_syn, G_Gaia):
 **`sigma_residual=0` 的双义与下游消歧（正向约束）**：`0` 同时表示「不可估计（`|r_inliers|<2`）」与「实测零散度（S=0 分支）」。下游 `snr_phot_cal_quality`（`lib/algorithms/noise_snr/cpp/src/noise_model.cpp`）把 `sigma≤0` 映射为 `fit_status=2`（未估计）并**不发布** `sigma_mag/sigma_cal_rel`，故两种含义在 SNR 面被消歧为「无不确定度可用」；**任何其他消费方**必须按同一规则处理，`0` 的解释 = 「无不确定度可用」；「零不确定度」是另一含义。
 **S=0 分支的可达性判据**：n=3 两值相等 ⇒ S=0；n=3 三值互异 ⇒ S>0（负例对照）；证据与读数正本 = `实验/photometric-magnitude/README.md` [S-1]「参数与常数」一节「`S=0` 退化」行与 `实验/photometric-magnitude/code/redo/route3/REPORT_route3.md`实验读数（H5c 构型）。
 
+**负例与归零分支 N05（T05–T07 负向轮，PHOTOMETRIC_FIT 未收敛状态位）**：负例输入构造 =
+IRLS 达最大迭代仍未收敛（或 `|r_consistent| < 3` 拟合失败）。预期行为 = `scale = 1.0`、
+`fit_used = 0`、`sigma_residual = 0`，不写标度并置未收敛状态位 / `fit_status = 2`
+（未估计），不发布 `sigma_mag/sigma_cal_rel`。落盘标记 = `p1_phot.json.frames[]`
+`fit_used/sigma_residual` + 状态位；把未收敛写成数值标度继续用 ⇒ 判红；
+
 ## 5 确定性与归约
 
 - 排序 median/MAD 确定性；IRLS 按 r 索引固定顺序加权和，无跨样本归约。
@@ -274,6 +280,12 @@ F_syn = ∫ F_λ(λ)·T(λ)·Q(λ)·λ dλ        # W·m⁻²·nm；F_λ 单位 
 - 负面矩阵: 空指针/h·w=0/n_gaia=0/PSF 全 status≠0/锥搜失败(rc=−3)/
   handle=null(rc=−2)；断言错误码与退化登记齐全。
 - 可执行 TEST-P1-PHOT-001 由 P1-PHOT-TEST 落地后更新矩阵 test 层。
+
+**可复现轮 T05–T10 诚实化（合成三实验 3 项）**：
+
+- T-PHOT-01（step1 纯解析代数合成 Oracle + 负例 + 收敛性）：复现三件套齐备。命令 `bash 实验/photometric-magnitude/code/run_all.sh`（单步 `python3 -u 实验/photometric-magnitude/code/step1_analytic.py`）；seed：固定种子 20260921（`run_all.sh` 头部声明；合成随机由 `scia_sim.py` 的 `rng(seed_tag:tag)` 派生，`seed_tag = "sim"`）；产物 hash 指针：判据汇总 `实验/photometric-magnitude/docs/GATES.md`，复跑日志落 `run/SCI-401/logs/step1.log`，输出与既有判据表逐项可对照。
+- T-PHOT-02（step2 HST M16 真实信号模板前向仿真帧 A/B/C）：复现三件套齐备。命令同上（单步 `python3 -u 实验/photometric-magnitude/code/step2_hst_sim.py`）；seed 同上（20260921，`rng` 派生）；产物 hash 指针：同上（`run/SCI-401/logs/step2.log` + `docs/GATES.md` 判据表）。前向仿真模板来源见该单元 `REPORT_experiment.md`。
+- T-PHOT-03（step3 XP 合成通量 vs HST PHOTFLAM 绝对定标对拍）：复现三件套齐备。命令同上（单步 `python3 -u 实验/photometric-magnitude/code/step3_forward_vs_photflam.py`）；seed 同上（20260921）；产物 hash 指针：同上（`run/SCI-401/logs/step3.log` + `docs/GATES.md` 判据表）。注意 step0 外部参考数据是唯一需网络步骤（缓存 + SHA256 固定），离线复跑用缓存。
 
 ### 13.5 非生产通道与待迁移符号（去留归 P1-PHOT-IMPL 登记）
 

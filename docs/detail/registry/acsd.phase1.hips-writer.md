@@ -29,6 +29,11 @@ invalid：covered_area≤0 或非有限 → signal=NaN/support=0/variance=NaN；
 variance tile 全无效 → rc=-5 显式失败；nside<512 / tile_width≠512 /
 dtype 非法 / flags 越位 → begin NULL。
 
+**负例与归零分支 N12（T05–T07 负向轮，shim 非法）**：负例输入构造 = 非法
+`nside`（非 2 的幂 / `< 512`）、`tile_width ≠ 512`、非法 dtype、flags 越位。
+预期行为 = `begin NULL` / 显式拒绝，不容忍、不钳制。落盘标记 = `last_error`
+文本 + NULL 句柄；把 shim 非法输入静默 clamp 后继续写 ⇒ 判红；
+
 ## 公共 header、核心 symbol 与生命周期
 
 现状 C ABI 九导出（aio_hips.h；API-HIPS-001，PUBLIC_API.md）：
@@ -69,6 +74,11 @@ finalize -1..-8；provenance 1/2——无集中枚举（缺陷登记 = ALG-HIPS-
 last_error=thread_local 文本。日志=stderr [hips]/[sink]。指标=stderr
 profile 计时（transform/fits_write/hierarchy/finalize 分段）。取消=无检查点；
 abort 不清理已写文件，处置归调用方/IO-003 层（缺陷登记 = ALG-HIPS-001）。
+- **负例与归零分支 N27（T05–T07 负向轮，本卡死值与静默 scale）**：负例输入构造甲 =
+  `moc_order` 越界请求；负例输入构造乙 = abort 后已写文件。预期行为甲 = 显式拒绝，
+  禁静默 clamp。落盘标记甲 = 拒绝码。预期行为乙 = 不清理 + 归调用方处置，不冒充
+  原子发布（`remove → create` 非原子）。落盘标记乙 = abort 登记 + 残留清单；
+  静默 clamp 或冒充原子 ⇒ 判红；
 
 ## 原子发布边界
 

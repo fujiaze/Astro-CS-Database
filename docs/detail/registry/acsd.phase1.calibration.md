@@ -128,6 +128,12 @@ ALG-CAL）。母版缺失/滤镜不匹配由 orchestrator 层报 CONFIG/NO_DATA�
 单位、gain 或 read-noise 口径 → fail-closed；master 与 light 尺寸/帧身份不一致
 → 拒绝；NaN/Inf 输入 → 标记 validity，不静默置零。`cc_*` 通道 window 偶数 / <3 /
 >15 → −1（cpp/cosmetic_corrector.cpp，非 `ac_correct_frame`）。
+- **负例与归零分支 N19（T05–T07 负向轮，本卡死值与静默 scale）**：负例输入构造甲 =
+  触发 `AC_ERR_MEMORY/AC_ERR_INTERNAL` 的分配 / 内部异常路径；负例输入构造乙 =
+  缺 gain 口径仍要求施加标度的帧。预期行为甲 = 该两码为死值，永不返回，
+  异常无屏障，直接上抛，不伪造错误码。落盘标记甲 = 缺该两码的错误登记。
+  预期行为乙 = fail-closed，不以 `scale = 1.0` 静默代替标度。落盘标记乙 =
+  `CONFIG/NO_DATA` + `validity` 标记；任一静默代替 ⇒ 判红。
 
 Diagnostics：stderr 日志 `ac_log`，`generate_master` / `generate_master_flat`
 每次调用 2 行（参数 + 耗时），`apply_photometry` 2 行；无每帧 FITS 头写入；

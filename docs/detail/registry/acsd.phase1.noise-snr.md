@@ -432,6 +432,15 @@ cache/内存按 ALG 合同（bounded）; I-O 单 writer。平面判定与审计�
   **逐像素方差的产出主张以 `variance` 块在盘为准**；
 - 帧级 SNR 无法计算（如缺真实信号参考）⇒ fail-closed；受天光影响的普通 SNR 属
   另一个量，两者互不代用；
+- **负例与归零分支 N06/N07/N08（T05–T07 负向轮，零尺度 / NaN / sigma=0 显式拒绝）**：
+  N06 零尺度输入构造 = `σ_bg_raw = 0` 的常数 patch（≥50% 像素同值）。预期行为 =
+  `control_ivar == 0` 且 `control_variance` 非有限，不发布伪方差。落盘标记 =
+  控制点 `ivar/variance` 对；<50% 同值 patch 走正常分支（正负例各一）。
+  N07 NaN 输入构造 = 全 NaN patch（`isfinite` 归约全败）。预期行为 = 显式判红，
+  不静默通过。落盘标记 = 错误码 + 拒收计数。N08 `sigma = 0` 输入构造 =
+  `hot_sigma <= 0` 或 `dark == NULL`（或 `sigma_bg = 0`）。预期行为 = 检测禁用、
+  `out == data` 且 `out_hot == 0`，归零而不断言虚假修正。落盘标记 = 禁用位 +
+  零修正计数；任一分支静默落数值地板继续产出 SNR ⇒ 判红；
 - 指定 `sparse_reconstruct` 路径而输入无稀疏层 → 按帧级执行并**显式记录实际
   路径**（不静默）；稀疏层损坏/不可重建 → fail-closed；
 - **稀疏层值语义判红**：把控制点值按**相对因子**解释（含乘 / 除帧级标量做
@@ -442,6 +451,12 @@ cache/内存按 ALG 合同（bounded）; I-O 单 writer。平面判定与审计�
 - **σ_sky 声明义务**：**生产调用点**（module_adapters 的 `p1_op_noise`）必须
   显式声明 `sigma_sky_source`，缺失即判红；声明与实际来源不一致 ⇒ fail-closed
   拒绝。
+- **负例与归零分支 N21（T05–T07 负向轮，本卡死值与静默 scale）**：负例输入构造甲 =
+  缺 `variance` 块仍要求逐像素方差产品；负例输入构造乙 = 缺 `sigma_sky_source`
+  声明的 `p1_op_noise` 调用。预期行为甲 = `uncertainty_available = false`，
+  两位均不置位，禁占位子产品，产出主张以 `variance` 块在盘为准。落盘标记甲 =
+  `uncertainty_available` + 缺块计数。预期行为乙 = 判红 / fail-closed。
+  落盘标记乙 = 缺声明登记；静默回退 support/SNR 代替 ivar ⇒ 判红；
 
 取消 = 协作取消（契约：宿主 cancel 通道 → 停止调度新单元 → 等运行中单元完成
 → exit 9，最高设计协作取消口径；接线以实测为准）；模块内无 checkpoint。
