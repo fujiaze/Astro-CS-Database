@@ -465,7 +465,7 @@ def _constant_series_detector(series):
 # ---------------------------------------------------------------------------
 
 def _worker_balance_utilization(active: int, runnable: int) -> float:
-    """`lib/infrastructure/cli/resource_recorder.h:367-369` 的逐行转写。
+    """`lib/infrastructure/cli/resource_recorder.h:368-369` 的逐行转写。
 
         const double denom = r.active_workers + r.runnable_workers;
         const double util  = denom > 0 ? r.active_workers * 100.0 / denom : 0.0;
@@ -477,11 +477,11 @@ def _worker_balance_utilization(active: int, runnable: int) -> float:
 @harness.test(
     "res.worker_balance_shape_is_degenerate_by_construction",
     intent="P11：worker_balance 的利用率算法在**在库调用点**上退化为常量（已知红登记）",
-    inputs="resource_recorder.h:367-369 的形状 + commands.cpp:943/962 的调用点形态"
+    inputs="resource_recorder.h:368-369 的形状 + commands.cpp:943/962 的调用点形态"
            "（两处都以同值写入 active 与 runnable 两列）",
     expected="对任意 (a,a) 输入，utilization ≡ 50.00；退化检测器必须判红。"
              "**本用例锁住一个在库缺陷，不是认可它**：修复 product 后应改本用例",
-    source="lib/infrastructure/cli/resource_recorder.h:367-369（util 分式本体）"
+    source="lib/infrastructure/cli/resource_recorder.h:368-369（util 分式本体）"
            "与 lib/infrastructure/cli/commands.cpp:943 `set_workers(planned_start, "
            "planned_start)`、:962 `set_workers(eff, eff)`（同值写入两列）；"
            "审核包-R2/T02 §6.2 C3 逐字登记「`worker_balance` 判据当前正是它自己明令判红的形态」",

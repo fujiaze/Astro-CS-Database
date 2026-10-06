@@ -33,6 +33,21 @@ schema 是本层 A1/A2 判据的被测对象（判据见
 报成一条错误，而不是静默忽略——静默忽略会把「schema 写了本层没实现的约束」读成
 「通过」，属`VALIDATION_EVIDENCE.md` 第 12.3 节禁止的「读不到就按全部合规处理」。
 
+**`x-` 扩展面必须显式放行，不接受「前缀即注记」**（对抗复核修正）。
+早期版本把任何 `x-*` 当注记无条件跳过，实测
+`validate("x", {"type": "string", "x-must-be-positive": True})` 判 `ok=True`
+—— 约束只要藏进 `x-` 键就静默失效，是一个真实的 fail-open。
+现在只有 `ANNOTATION_PREFIXES` 白名单里的前缀被放行（本仓实测只用到
+`x-acsd`、`x-acsd-gate`、`x-acsd-object`），其余 `x-*` 一律报
+`UnsupportedKeyword`。负例 `test_ContractVariance_NegUnknownXKeywordFailOpen` 盯这条。
+
+**数组形 `items`（draft-07 的 tuple 形式）不实现，且必须具名报错**（对抗复核修正）。
+实测 `validate(["a", 5], {"items": [{"type": "string"}, {"type": "integer"}]})`
+在早期版本里返回 `ok=True`（数组形被当成「不是 dict ⇒ 不适用」而跳过）——
+同类的 fail-open。现在数组形 `items` 报 `UnsupportedKeyword`。
+当前 14 个 canonical schema 全部只用对象形 `items`，故不丢覆盖面。
+负例 `test_ContractVariance_NegArrayFormItemsIgnored` 盯这条。
+
 ## 错误位置编码
 
 每条错误带三个可归因字段（`VALIDATION_EVIDENCE.md` 第 6 节 Q3）：
@@ -209,10 +224,27 @@ ANNOTATION_KEYWORDS = frozenset(
     {"$schema", "$id", "title", "description", "default", "examples", "$comment"}
 )
 
+#: 本仓 `x-` 扩展注记面的**白名单前缀**。
+#:
+#: 为什么不能「任何 `x-` 前缀都当注记」：对抗复核实测
+#: `validate("x", {"type": "string", "x-must-be-positive": True})` 判 `ok=True`
+#: —— 约束藏进 `x-` 键即静默失效，是真实的 fail-open。
+#: 实测本仓 14 个 canonical schema 只用到 `x-acsd`、`x-acsd-gate`、
+#: `x-acsd-object`，故白名单取 `x-acsd` 前缀。
+ANNOTATION_PREFIXES = ("x-acsd",)
+
 
 def _is_annotation(key: str) -> bool:
-    # `x-` 前缀是本仓的扩展注记面（`x-acsd-object` / `x-acsd-gate` / `x-acsd`）。
-    return key in ANNOTATION_KEYWORDS or key.startswith("x-")
+    """判断一个 schema 位置的键是否允许作为**注记**出现。
+
+    只有两种情形放行：标准注记关键字，或命中 `ANNOTATION_PREFIXES` 白名单的
+    `x-` 扩展键。其余一律不当注记 → 由调用方报 `UnsupportedKeyword`。
+    """
+    if key in ANNOTATION_KEYWORDS:
+        return True
+    if key.startswith("x-"):
+        return any(key == p or key.startswith(p + "-") for p in ANNOTATION_PREFIXES)
+    return False
 
 
 def join(path: str, key: str) -> str:
@@ -370,6 +402,14 @@ def validate(
                 for index, item in enumerate(inst):
                     if not walk(item, sch["items"], join(path, str(index)), sink):
                         ok = False
+            elif isinstance(sch.get("items"), list):
+                # 数组形 `items`（draft-07 的 tuple 形式）**未实现**。必须具名报错，
+                # 不能因为「不是 dict」就跳过——跳过等于把「本层没实现这个约束」
+                # 读成「实例满足它」，是 fail-open（对抗复核实证）。
+                emit("UnsupportedKeyword", path,
+                     "数组形 items（draft-07 tuple 形式）本层未实现："
+                     "不按逐位校验也不放行", sink=sink)
+                ok = False
 
         # --- 对象面 ---
         if isinstance(inst, dict):

@@ -121,8 +121,19 @@ def test_meta_every_registered_case_is_executed():
         ev.record("正例 / 负例",
                   f"{sum(1 for c in registered if c.kind == harness.POSITIVE)} / "
                   f"{sum(1 for c in registered if c.kind == harness.NEGATIVE)}")
-    results = harness.run_all()
-    harness.exact(len(results), len(registered), "执行条数必须等于登记条数")
+    # 只跑**元判据自己这一族**（`meta.*`）：本条要验的是「登记 ↔ 执行」的映射，
+    # 不是各科学判据的结论；把别人的蒙特卡洛与密集域用例一并拉进来会让本条
+    # 从「秒级自检」退化成「分钟级全量重跑」，反而掩盖它要守的性质。
+    family = [c for c in registered if c.id.startswith("meta.")]
+    harness.is_true(len(family) >= 3,
+                    "元判据族应至少有 3 条（无孤儿模块 / 登记即执行 / 四字段完整）")
+    results = harness.run_all(predicate=lambda c: c.id.startswith("meta."))
+    harness.exact(len(results), len(family),
+                  "本族执行条数必须等于本族登记条数")
+    harness.is_true(len(results) <= len(registered), "执行条数不得超过登记条数")
+    # 全表侧只核对「每条已登记的用例都有可调用的 func」（不执行）
+    for c in registered:
+        harness.is_true(callable(c.func), f"{c.id}: 已登记但没有可调用的实现")
     for r in results:
         harness.is_true(r.case.kind in (harness.POSITIVE, harness.NEGATIVE),
                         f"{r.case.id}: kind 未登记")

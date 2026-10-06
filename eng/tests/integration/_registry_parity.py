@@ -618,7 +618,7 @@ def extract_g1_tokens(unit: CppUnit, span: FunctionSpan) -> List[str]:
     2. 内容从**原文**同下标切出（掩码等长）；
     3. `G1_PRODUCT_LITERAL.fullmatch(内容)` 命中即收。
 
-    实测抽取规模（HEAD bf944fad，20 个 module、21 个 op/模板入口共 76 个 G1 token）：
+    实测抽取规模（HEAD bf944fad，20 个 module、21 个不同 `symbol`、共 **77** 个 G1 token；下表逐行相加 = 77）：
 
     | module | G1 token 数 | 未声明 |
     |---|---|---|
@@ -700,6 +700,39 @@ HIPS_PRODUCER_CALL = re.compile(
 HIPS_CONSUMER_CALL = re.compile(r"(?<![A-Za-z0-9_:])aio_hips_read_[a-z0-9_]+\s*\(")
 
 
+def c3b_role_triggers(facts: Facts) -> Tuple[List[str], List[str]]:
+    """用 C3b 判定器**自己**的正则在**自己定位的**函数体区间上复算角色触发面。
+
+    返回 `(producers, consumers)` 两个 module_id 列表。
+    这是 `judge_c3b_carrier_consistency` 的取证面，供「零对象守卫」与证据复核用；
+    它与判定器共用同一段逻辑（`find_definitions` + `masked` 区间 + 两条正则），
+    因此不会与判定结果漂移。**必须走函数体区间**：整文件拼接会得到 20 个 module
+    （每个 op 都在同一文件里），是错误的计数口径。
+    """
+    producers: List[str] = []
+    consumers: List[str] = []
+    for m in facts.modules:
+        mid = m["module_id"]
+        sym_files: Dict[str, str] = {}
+        for op in m.get("operations") or []:
+            for p in op.get("ports") or []:
+                for c in p.get("code") or []:
+                    sym_files.setdefault(c["symbol"], c["file"])
+        body = ""
+        for symbol, rel in sorted(sym_files.items()):
+            unit = facts.units.get(rel)
+            if unit is None:
+                raise ParityError("RESOLUTION_FAILED",
+                                  "C3b 无法取到锚文件 %s（module %s）" % (rel, mid))
+            span = unit.resolve_unique(symbol)
+            body += unit.masked[span.body_start:span.body_end + 1]
+        if HIPS_PRODUCER_CALL.search(body):
+            producers.append(mid)
+        if HIPS_CONSUMER_CALL.search(body):
+            consumers.append(mid)
+    return producers, consumers
+
+
 def judge_c3b_carrier_consistency(facts: Facts) -> List[Violation]:
     """C3b 载体一致：节点触碰 HiPS 产品树 ⇒ 必须有对应 `carrier=hips_product_tree`
     且方向一致的端口。
@@ -707,10 +740,24 @@ def judge_c3b_carrier_consistency(facts: Facts) -> List[Violation]:
     来源依据：`docs/engineering/contracts/PIPELINE_BLOCK.md:94`、:77。
 
     「触碰」的判定是代码侧命名约定闭合的（见 `HIPS_PRODUCER_CALL` /
-    `HIPS_CONSUMER_CALL`）。实测触发规模（HEAD bf944fad）：
-    生产者角色 2 个 module（`acsd.phase1.drizzle`、`acsd.phase2.write`），
-    消费者角色 5 个 module（`acsd.phase1.writer`、`acsd.phase2.upm-apply`、
-    `acsd.phase2.reject`、`acsd.phase2.integrate`）。
+    `HIPS_CONSUMER_CALL`）。实测触发规模（HEAD bf944fad；用本判定器自己的
+    `find_definitions` + `masked` 函数体区间复算，**不是**整文件拼接）：
+
+    | 角色 | 计数 | module |
+    |---|---|---|
+    | 生产者角色 | **2** | `acsd.phase1.drizzle`、`acsd.phase2.write` |
+    | 消费者角色 | **4** | `acsd.phase1.writer`、`acsd.phase2.upm-apply`、`acsd.phase2.reject`、`acsd.phase2.integrate` |
+    | 触发 module 去重 | **6** | 上两集合的并 |
+
+    角色判定的**最小反例**（防止把「有任意 `aio_hips_*` 调用」误当「生产者角色」）：
+    `acsd.phase1.writer` 的 `p1_op_writer` 函数体里有 6 个 `aio_hips_*` 调用
+    （`aio_hips_open` / `aio_hips_close` / `aio_hips_read_tile_f32` /
+    `aio_hips_tile_count` / `aio_hips_tile_ipix` / `aio_hips_reader_last_error`），
+    但 `HIPS_PRODUCER_CALL.search(body)` = **False**、`HIPS_CONSUMER_CALL.search(body)` =
+    **True**；对称地，`acsd.phase1.drizzle` 的 `p1_op_drizzle` + `write_hips_phase1`
+    函数体里 `HIPS_PRODUCER_CALL.search` = **True**、`HIPS_CONSUMER_CALL.search` =
+    **False**。两个角色集合**不重叠**，并集 6；把并集 6 报成「生产 6 / 消费 6」是
+    计数错误（两侧各把对方的成员填了进来）。
     """
     out: List[Violation] = []
     for m in facts.modules:
@@ -1441,6 +1488,39 @@ class Sandbox:
 # --------------------------------------------------------------------------
 # 负例注入原语（**只作用于沙箱副本**）
 # --------------------------------------------------------------------------
+
+
+#: 缺陷登记 R1：C3 在基线上判红的**具名身份集合** `(产物 token, 触发的 module@symbol)`。
+#:
+#: 这是**缺陷钉桩**（钉「已登记的缺陷是谁」），**不是规模锚**：预期值逐条由
+#: `文件:行` 的代码证据给出，不是「拿当前输出生成」。因此产品合法增删端口时，
+#: 本集合不变；若这三条真的被修好，负例会红并要求复核方重新裁决预期值。
+#:
+#: 证据：
+#: - `/master_refs.json` @ `acsd.phase1.calibration@p1_op_calibrate`
+#:   —— `lib/infrastructure/scheduler/src/module_adapters.cpp:2761` 写
+#:      `const std::string refs_path = out_dir + "/master_refs.json";`
+#: - `/master_refs.json` @ `acsd.phase1.cosmetic@p1_op_cosmetic`
+#:   —— 同文件 `:2910` 读 `doc.value("output_dir", …) + "/master_refs.json"` 做母版回填
+#: - `/badcol_report.json` @ `acsd.phase1.cosmetic@p1_op_cosmetic`
+#:   —— 同文件 `:3290` 写 `… + "/badcol_report.json"`
+#:
+#: 注册表 `module_ports.registry.json` 对 `master_refs` / `badcol` / `bad_column`
+#: 全文命中均为 **0**。
+BASELINE_UNDECLARED: Tuple[Tuple[str, str], ...] = (
+    ("/master_refs.json", "acsd.phase1.calibration@p1_op_calibrate"),
+    ("/master_refs.json", "acsd.phase1.cosmetic@p1_op_cosmetic"),
+    ("/badcol_report.json", "acsd.phase1.cosmetic@p1_op_cosmetic"),
+)
+
+#: 缺陷登记 R2：PC-C5 第 4 子句 `EXTERNAL_INPUT_CARRIER` 在基线上判红的**具名身份**。
+#: 证据：`module_ports.registry.json:424-439` 声明 `acsd.phase1.photometry:p1_photscale`
+#: 为 `carrier=output_dir_file` + `direction=input`，而全注册表无任何生产者；
+#: 代码侧 `lib/infrastructure/scheduler/src/module_adapters.cpp:6071`
+#: 读 `out_dir + "/p1_photscale.json"`；派生 IR
+#: `eng/contracts/block_flow/stage_block_flow.json:411-417` 记 `EXTERNAL_IN` /
+#: `produced_by: []`。按 `PIPELINE_BLOCK.md:21`，阶段外部输入的载体枚举值是 `config_path`。
+BASELINE_PC_C5_EXTERNAL_INPUT = (("acsd.phase1.photometry:p1_photscale",),)
 
 
 def module_by_id(facts: Facts, module_id: str) -> Dict[str, Any]:

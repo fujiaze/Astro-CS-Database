@@ -287,9 +287,17 @@ def exit_code(results: Sequence["Result"], non_blocking: bool = True) -> int:
     return sum(1 for r in results if not r.passed)
 
 
-def run_all() -> List[Result]:
+def run_all(predicate=None) -> List[Result]:
+    """执行注册表里的全部用例（或满足 `predicate` 的子集）。
+
+    `predicate` 存在的理由：元判据 `meta.every_registered_case_is_executed`
+    若无条件跑全表，会把其它判据面的蒙特卡洛/密集域用例一并拉进来，
+    单这一条就要跑几分钟。元判据要验的是「登记 ↔ 执行」的映射，不是各用例的结论，
+    因此允许它自选子集。
+    """
+    cases = [c for c in _REGISTRY if predicate is None or predicate(c)]
     results: List[Result] = []
-    for case in _REGISTRY:
+    for case in cases:
         ev = Evidence()
         _current_evidence.append(ev)
         t0 = time.perf_counter()

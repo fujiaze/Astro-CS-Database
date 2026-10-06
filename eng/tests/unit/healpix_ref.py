@@ -458,9 +458,10 @@ def pix2ang_nest(nside: int, ipix: int) -> Tuple[float, float]:
 def angular_distance_deg(ra1: float, dec1: float, ra2: float, dec2: float) -> float:
     """healpix_core.cpp:304 `angular_distance_deg`（度，**逐字转写**：`acos` 形式）。
 
-    ⚠ **本函数的分辨地板约 `8.5e-7` 度**：当两点几乎重合时 `acos(1−δ)` ≈ `√(2δ)`，
-    `δ ~ u = 2⁻⁵³` ⇒ 误差地板 `√(2u)·180/π ≈ 8.5e-7` 度，比 `HEALPIX_MAPPING.md`
-    「Postconditions」冻结的 `1e-12` 度往返门**粗 8.5e5 倍**。
+    ⚠ **本函数在 1e-12 度量级上没有分辨力**：`acos` 在 `c → 1` 处丢掉一半有效位，
+    绝对误差上界 `√(2u)·180/π ≈ 8.5e-7` 度（比 `HEALPIX_MAPPING.md`「Postconditions」
+    冻结的 `1e-12` 度往返门粗 8 个数量级）；实测对本就重合的两点返回 `0.0`，
+    而 `atan2` 形式能读出真实的 `6.36e-15` 度。
     ⇒ **判 1e-12 度往返门不能用本函数当尺子**，必须用
     `angular_distance_deg_stable`（`atan2(|u×v|, u·v)` 形式）。本函数保留是为了
     逐行核对产品实现（且产品自己也用它），不是判门工具。

@@ -21,9 +21,15 @@ python3 -m pytest eng/tests/module/ -v
 不需要构建整个产品**。实测读数（HEAD `bf944fad`）：
 
 ```
-collected 24 items
-24 passed in 0.32s
+$ python3 -m pytest eng/tests/module/test_block_lifecycle.py --collect-only -q
+25 tests collected in 0.15s        # 收集返回 0 条错误
+
+$ python3 -m pytest eng/tests/module/ -q
+25 passed in 0.22s
 ```
+
+> **收尾纪律提示**：另一个代理并发编辑本目录时，`--collect-only` 会返回 RC=2 且一条不跑
+> （半成品窗口）。**报数前必须先跑 `--collect-only -q` 确认 0 条错误**。
 
 ## 3 本层不产出阻塞退出码
 
@@ -127,7 +133,7 @@ collected 24 items
 | **B2b** | `nodes[acsd.phase1.writer].reads` | 追加 `ghost_block` | A3 | `CONSUME_NONEXISTENT_BLOCK: (normalize, ghost_block) 被节点消费但无块声明` |
 | **B3** | `blocks[normalize/p1_wcs].lifecycle` | `STAGE` → `SHORT`（消费者数 3） | **A1 与 A5 都红** | A1：`LIFECYCLE_MISMATCH: ('normalize', 'p1_wcs') 规则重算=STAGE 规格声明=SHORT`；A5：`CONSUMER_SPAN_MISMATCH: ('normalize', 'p1_wcs') 消费者数=3 ⇒ 应为 STAGE，规格声明 SHORT` |
 | **B4** | `blocks[normalize/p1_snr].lifecycle` | `SHORT` → `STAGE`（消费者数 1） | A1（**与 A5 都红**） | A1：`LIFECYCLE_MISMATCH: ('normalize', 'p1_snr') 规则重算=SHORT 规格声明=STAGE`；A5：`CONSUMER_SPAN_MISMATCH: ('normalize', 'p1_snr') 消费者数=1 ⇒ 应为 SHORT，规格声明 STAGE` |
-| **B5** | `nodes[acsd.phase1.writer].reads` | 追加 `p1_snr`（`consumed_by` **不**更新 ⇒ 声明释放点 pos=6，实际读到 pos=7） | A7 `judge_prompt_release`（**3 条**同时红）；A7 第 2 条拓扑不倒置仍判绿 | `READ_AFTER_RELEASE_OR_UNDECLARED_READ: ('normalize', 'p1_snr') 声明消费者=['acsd.phase1.drizzle'] 但 nodes 面重算=['acsd.phase1.drizzle', 'acsd.phase1.writer']`；`SHORT_RELEASE_POINT: 声明释放点 pos=6 ≠ 节点面最后一个读者 pos=7（读者位置 [6, 7]）`；`READ_AFTER_RELEASE: 声明在 pos=6 释放，但 pos=[7] 的节点仍在读它` |
+| **B5** | `nodes[acsd.phase1.writer].reads` | 追加 `p1_snr`（`consumed_by` **不**更新 ⇒ 声明释放点 pos=6，实际读到 pos=7） | A7 `judge_prompt_release`：**逐条断言 3 条红侧子句各自变红**（`READ_AFTER_RELEASE_OR_UNDECLARED_READ` 声明/节点面不一致、`SHORT_RELEASE_POINT` 释放点≠最后读者 pos、`READ_AFTER_RELEASE` **use-after-release 专指读法**）；并逐条断言 `TOPOLOGY_INVERTED`、`STAGE_NOT_CROSS_NODE` **不存在**，A7'（`PromptReleaseLastConsumerAfterProducer`）仍判绿 | `READ_AFTER_RELEASE_OR_UNDECLARED_READ: ('normalize', 'p1_snr') 声明消费者=['acsd.phase1.drizzle'] 但 nodes 面重算=['acsd.phase1.drizzle', 'acsd.phase1.writer']`；`SHORT_RELEASE_POINT: ('normalize', 'p1_snr') 声明释放点 pos=6 ≠ 节点面最后一个读者 pos=7（读者位置 [6, 7]）`；`READ_AFTER_RELEASE: ('normalize', 'p1_snr') 声明在 pos=6 释放，但 pos=[7] 的节点仍在读它（释放后使用）` |
 | **B6** | `blocks[export/p3_verify].lifecycle` | `EXTERNAL_OUT` → `STAGE`（等价于从终产物集合删掉 `p3_verify`） | A6 `judge_stage_terminals` + `StageTerminalSetIsExact` | `TERMINAL_NOT_EXTERNAL_OUT: (export, p3_verify) 合同点名的终产物未标 EXTERNAL_OUT` / `阶段终产物缺失: {'export': ['p3_verify']}` |
 | **B7** | `blocks` / `nodes` 数组 | 各置为 `[]` 一次 | `ZERO_OBJECT_GUARD`（**10 条判定逐条红**） | `ZERO_OBJECT_GUARD: 实算对象数为 0（VALIDATION_EVIDENCE.md:172 第 1 条）：nodes=20 blocks=0`（另一路 `nodes=0 blocks=36`） |
 | **B8-1** | `nodes` + `blocks` | 删掉 `normalize` 阶段全部对象 | B8 `judge_non_degenerate` | `NONDEGENERATE_STAGES: 实算阶段数=2，下界=3（PHASE_TO_STAGE 的键数）` |
@@ -138,10 +144,12 @@ collected 24 items
 | **B9-4** | `blocks[normalize/p1_psf].block` | `p1_psf` → `P1_Psf` | A9 块名正则子句 | `BLOCK_NAME_PATTERN: ('normalize', 'P1_Psf') 块名不匹配 schema 的 '^[a-z][a-z0-9_]*$'` |
 | **B9-5** | `blocks[normalize/p1_snr].produced_by` | 改为 `["acsd.phase2.coverage"]`（跨阶段生产者） | A2 生产者作用域子句 | `PRODUCER_NOT_IN_STAGE: ('normalize', 'p1_snr') 生产者 'acsd.phase2.coverage' 不在本阶段节点集合里` |
 | **B9-6** | `blocks[normalize/frame_hips].produced_by` | 清空 `[]`（仍标 `EXTERNAL_OUT`） | A3 悬空消费子句 | `DANGLING_CONSUMPTION: ('normalize', 'frame_hips') 被 1 个节点消费、本阶段无生产者、且未声明 EXTERNAL_IN` |
+| **B10-1** | `_blockflow.oracle_lifecycle`（**判定自身的求值器**，S6） | 换成 `_literal_order_lifecycle`（按 docstring 书写顺序 first-match） | REG-01 登记守卫判红（歧义面塌成空集）**且 A1 本体判红** | `by_evaluators = []`；`A1 违规数 = 10`，首条 `LIFECYCLE_MISMATCH: ('export', 'mosaic_hips') 规则重算=STAGE 规格声明=EXTERNAL_IN` |
+| **B10-2** | `_blockflow._literal_order_lifecycle`（对照侧求值器） | 换成本层裁决的 `oracle_lifecycle` | REG-01 登记守卫判红（歧义面塌成空集）；**A1 仍判绿**（A1 不依赖对照侧） | `by_evaluators = []`；`A1 违规数 = 0` |
 | **FC** | 临时文件 | 路径不存在 / JSON 不可解析 / 缺 `blocks` / 空 `blocks` | `AnchorStale` / `SpecUnparsable` / `AssertionError` | `ANCHOR_STALE: INJECTED_SPEC /tmp/.../no_such_anchor.json`；`ANCHOR_UNPARSABLE: INJECTED_SPEC …`；`ANCHOR_MISSING_FIELD: SPEC.blocks`；`ZERO_OBJECT_GUARD …` |
 
 **同时验证绿（S2）**：每条负例在注入前先对未注入的仓内规格复跑一次并断言判绿
-（B1、B2、B3、B8 内含显式 `assert not judge_*`）。
+（B1、B2、B3、B8、B9、B10 内含显式 `assert not judge_*`）。
 
 ## 8 恒成立 / 恒不成立的判据（如实登记，不写成永远绿的测试）
 
@@ -195,11 +203,51 @@ A7 的第 4 子句判「多消费者 `STAGE` 块的消费者必须落在 ≥2 �
 **已改写**：`_reader_positions()` 从 `nodes[*].reads` 独立实算读者位置，再与声明面对照；
 B5 证明它有牙（`SHORT_RELEASE_POINT` + `READ_AFTER_RELEASE` 两条同时红）。
 
+### 8.6 ⚠️ `assert … or True` = **字面恒真**，由对抗复核发现（已修）
+
+**发现**：只读对抗复核。**我复核确认成立。**
+
+**原位置**：`test_block_lifecycle.py` 的 `test_..._LifecycleRulePrecedenceIsRegistered` 内，
+原第 220 行：
+
+```python
+for stage, name in affected:
+    assert stage in bf.stage_terminals() or True   # ← 字面恒真
+    assert isinstance(name, str) and name
+```
+
+**最小反例**：把 `bf.stage_terminals()` 整个函数删掉，该断言**仍然绿**——
+`X or True` 恒为真，左项从不参与判定。同一循环体的 `assert isinstance(name, str) and name`
+也偏弱：键由 `precedence_sensitive_keys()` 从注册表端口名构造，`name` 非空字符串是构造保证。
+
+**这是我自己的漏报**：本节 §8.1–§8.5 逐条登记了别人指出的恒真/恒假判据与我自己识别出的
+恒真子句，但**没有登记这一条**——它不在我的自审清单里，是对抗复核抓出来的。
+
+**修法（不是换成另一条恒真断言）**：整个循环体删除，改为**三条由不同代码路径算出的
+独立面**逐条断言（`_blockflow.py` 新增 `rule_predicates()` / `multi_rule_keys()` /
+`terminal_with_consumer_keys()` / `all_block_keys()`）：
+
+1. `precedence_sensitive_keys()`（两个求值器之差）非空；
+2. `multi_rule_keys()`（docstring 5 条谓词计数，**不经过任何求值器**）非空且是①的**子集**；
+3. ①与②的**差集恰为** `terminal_with_consumer_keys()`（终产物 ∧ nc ≥ 1）；
+4. ①是块全集的**真子集**。
+
+**能红的负例**：新增 B10（`test_..._NegOraclePriorityAblation`），注入点是
+**判定自身的求值器**（S6）——把 `oracle_lifecycle` 换成按 docstring 书写顺序求值的版本，
+歧义面即塌成空集 ⇒ 第 1 条判红，**且 A1 本体同时判红（10 条 `LIFECYCLE_MISMATCH`）**，
+后者顺带证明 A1 的 Oracle 是承重的、不是把被测规格读回来。
+
+**顺带发现（REG-01 的第二层歧义）**：三面对照实测 **10 / 8 / 2**（求值器差分面 10 项、
+docstring 谓词面 8 项、差集 2 项）。差集恰是 `(normalize, frame_hips)` 与
+`(export, p3_fits)` ——「阶段终产物且 nc ≥ 1」。成因：docstring 把终产物规则写成规则 2/3
+并**以 `nc == 0` 为前提**；本层裁决把 `is_stage_terminal` 提成**独立分支**排在消费者数之前。
+即裁决不仅改了「谁优先」，还**把歧义面从 8 项扩到 10 项**。已登记进 REG-01。
+
 ## 9 登记项（实现与正本的冲突 / 缺口）
 
 | ID | 事项 | 实测证据 | 处置 |
 |---|---|---|---|
-| **REG-01** | `gen_block_flow_spec.py:7-13` 的 5 条派生规则是**并列条目、没有写优先级**。多条同时命中时结论歧义。实测受影响的 `(stage, block)` 共 **10** 个：8 个 `EXTERNAL_IN`（`normalize/lights`、`master_bias`、`master_dark`、`master_flat`、`p1_photscale`、`mosaic/frame_hips`、`export/mosaic_hips`、`export/run_context`）+ `normalize/frame_hips` + `export/p3_fits`（零消费者终产物）。若按 docstring **书写顺序** first-match，后两类会被判成 `SHORT`、前 8 个里 6 个会被判成 `SHORT`。 | `bf.precedence_sensitive_keys(bf.derive_nodes(reg))` 实算 10 项；由 `test_..._LifecycleRulePrecedenceIsRegistered` 做**登记漂移守卫**（清单为空即判红） | 本层 Oracle 采用的优先级：**无生产者 → 阶段终产物 → 消费者数**（理由见 `_blockflow.oracle_lifecycle` docstring：溯源事实 + 发布义务优先于内存跨度；且「按书写顺序」会把跨阶段 HiPS 输入判成 `STAGE`，与 `PIPELINE_BLOCK.md:20` 矛盾）。**建议上游在 docstring 里补一句显式优先级**，本层的裁决随之可以删除。 |
+| **REG-01** | `gen_block_flow_spec.py:7-13` 的 5 条派生规则是**并列条目、没有写优先级**。多条同时命中时结论歧义。实测受影响的 `(stage, block)` 共 **10** 个：8 个 `EXTERNAL_IN`（`normalize/lights`、`master_bias`、`master_dark`、`master_flat`、`p1_photscale`、`mosaic/frame_hips`、`export/mosaic_hips`、`export/run_context`）+ `normalize/frame_hips` + `export/p3_fits`（阶段终产物且 nc=1）。若按 docstring **书写顺序** first-match，后两类会被判成 `SHORT`、前 8 个里 6 个会被判成 `SHORT`。**歧义面分两层**：(i) 规则**先后**未定（10 项）；(ii) 终产物规则在 docstring 里以 `nc == 0` 为前提，本层裁决把它提成独立分支 → 歧义面由 docstring 谓词计数的 **8** 项扩到求值器差分的 **10** 项，差集恰为「终产物 ∧ nc ≥ 1」（见 §8.6）。 | 三面实测 **10 / 8 / 2**（`precedence_sensitive_keys` / `multi_rule_keys` / 差集）；由 `test_..._LifecycleRulePrecedenceIsRegistered` 做**三面登记漂移守卫**（任一面塌成空集或差集错位即判红），负例 B10 证明守卫有牙 | 本层 Oracle 采用的优先级：**无生产者 → 阶段终产物 → 消费者数**（理由见 `_blockflow.oracle_lifecycle` docstring：溯源事实 + 发布义务优先于内存跨度；且「按书写顺序」会把跨阶段 HiPS 输入判成 `STAGE`，与 `PIPELINE_BLOCK.md:20` 矛盾）。**建议上游在 docstring 里补一句显式优先级**，本层的裁决随之可以删除。<br>⚠️ **A1 的准确表述是「与本层裁决后的规则逐项一致」，不是「与正本无条件一致」**（对抗复核的降级提醒，已采纳并写入 A1 的 docstring）。 |
 | **REG-02** | 「生产了但本阶段零消费者、又不是合同点名终产物」的块有 **2** 个：`normalize/p1_flux`（生产者 `acsd.phase1.photometry`）、`normalize/p1_psf`（生产者 `acsd.phase1.star-psf`）。按 `gen_block_flow_spec.py:10` 的字面规则它们**应当** `STAGE`，按 `PIPELINE_BLOCK.md:36` 它们**就是**终态块，注册表 `carrier_contract.statement` 也明写「**无任何消费者**的产物，用 output_dir 文件约定」，两个端口的 `note` 逐字写「生产链路零消费者：本端口只登记事实」。**但** `PIPELINE_BLOCK.md:55` 逐字写「阶段结束时块残留数 = 0」，`ACSD_DESIGN.md:386` 把峰值内存绑在「在途块集合」上。一个**从未被任何消费者读**的块活到阶段末，是否与这两条的意图相容，需要负责人裁定。 | `bf.observe_zero_consumer_stage_blocks(spec)` 实算 2 项；A1/A5/A7/A8 全部判绿；已列为 A7/A8 的**观察项**输出 | 本层**不判红**（规则支持它们判绿）。登记为口径分歧，等裁定。 |
 | **REG-03** | `stage_block_flow.json` 与 `pipeline_block.schema.json` 是**两份不同 `$id` 的产物**（`acsd.stage-block-flow/v1` vs `acsd.pipeline-block/v1`），但 `PIPELINE_BLOCK.md:8` 把后者称作「本合同的机器取值源」。实测差异：(a) **`lifecycle` 词表不相交** —— 规格侧 `{EXTERNAL_IN, EXTERNAL_OUT, SHORT, STAGE}`，schema 侧 `{short, frame, run}`（`pipeline_block.schema.json:68-74`），**交集为空集**；(b) schema 要求的物理元数据字段 `name`/`shape`/`dtype`/`unit`/`optional`/`producer`/`consumers`/`provenance`（`:20-28`）在块流规格里**一个都没有**，规格用的是 `stage`/`block`/`lifecycle`/`produced_by`/`consumed_by`。 | A9 只判两者**共有**的形态；`test_..._SchemaVocabularyDivergenceRegistration` 把差异登记为 `_blockflow.SCHEMA_LIFECYCLE_VOCAB` 并做漂移守卫 | **如实登记，不私自改规格、不降级判据**。「块流规格整体符合 `pipeline_block.schema.json`」这条判据在仓库现状下**判红**，故未写成绿的正例用例；漂移守卫会在两侧被对齐时判红并要求更新登记。**需负责人裁决**：是补一份 `acsd.stage-block-flow/v1` 的 schema，还是把 `PIPELINE_BLOCK.md:8` 的措辞改成「块物理元数据的机器取值源（不是流拓扑规格）」。 |
 | **REG-04** | `gen_block_flow_spec.py:13` 逐字引用 `check_block_flow_spec.py` 的 **R7 复核**，但 `eng/tools/quality/check_block_flow_spec.py` **在当前仓内不存在**（只在 `run/**` 的历史快照里能找到）。锚存活失效。 | `ls eng/tools/quality/` 实测无该文件；`VALIDATION_EVIDENCE.md:413`「判据中硬编码引用的仓库路径必须存在」 | **登记，不在本层修**。本层 A1 自己做了独立重算 + 逐项精确比对，实际上替代了 R7 的角色；但 docstring 的引用应补文件或删引用。 |
@@ -223,7 +271,7 @@ B5 证明它有牙（`SHORT_RELEASE_POINT` + `READ_AFTER_RELEASE` 两条同时�
 
 ## 11 需要构建产品才能跑的测试
 
-**0 条。** 本目录 24 条用例全部是纯静态 / 纯数据测试：
+**0 条。** 本目录 25 条用例全部是纯静态 / 纯数据测试：
 
 - 只读仓内 4 个锚：`stage_block_flow.json`、`module_ports.registry.json`、
   `gen_block_flow_spec.py`（**源码文本**，用 `ast` 解析，不执行）、
@@ -236,13 +284,35 @@ B5 证明它有牙（`SHORT_RELEASE_POINT` + `READ_AFTER_RELEASE` 两条同时�
 映射表在 `test_block_lifecycle.py` 的**模块 docstring** 里逐条列出
 （`docs/engineering/testing/TEST.md:88`）。
 
-## 13 纪律自检
+## 13 对抗复核发现与处置
+
+只读对抗复核开出 **2 处不合格**，均**复核确认成立**，已全部修掉。
+
+| # | 位置 | 复核意见 | 最小反例 | 修法 | 复跑读数 |
+|---|---|---|---|---|---|
+| **①** | `test_block_lifecycle.py` 的 `test_..._LifecycleRulePrecedenceIsRegistered`，原第 **220** 行 | `assert stage in bf.stage_terminals() or True` 字面恒真；同一循环体内另一条断言也偏弱；且**我的恒真/恒假清单漏登了这条** | 把 `bf.stage_terminals()` 整个函数删掉，该断言**仍然绿**（`X or True` 恒真，左项从不参与判定） | 删掉整个循环体，改为**三条由不同代码路径算出的独立面**逐条断言；`_blockflow.py` 新增 `rule_predicates()` / `multi_rule_keys()` / `terminal_with_consumer_keys()` / `all_block_keys()`；**补能红的负例 B10** | 三面实测 **10 / 8 / 2**（求值器差分面 / docstring 谓词面 / 差集 = `{('normalize','frame_hips'), ('export','p3_fits')}`），块全集 36 项，守卫绿。B10-1 消融后 `by_evaluators = []` ⇒ 守卫判红**且** A1 判红 10 条；B10-2 消融后 `by_evaluators = []` ⇒ 守卫判红、A1 仍绿 0 条。登记见 §8.6 与 REG-01。 |
+| **②** | `test_..._NegPromptReleaseViolation`（B5） | 只断言了 A7 三条红侧里**最弱**的 `READ_AFTER_RELEASE_OR_UNDECLARED_READ`（声明/节点面不一致），漏了**实测同样变红**的 `READ_AFTER_RELEASE`（use-after-release 的**专指**读法，落 S1） | — | 改为**逐条断言 A7 的每条红侧子句各自变红**，并**保持**断言 `TOPOLOGY_INVERTED` 与 `STAGE_NOT_CROSS_NODE` 不存在、A7' 仍判绿；`_run_against_injection` 的返回文本也逐条点名 | B5 注入后 A7 报 **3 条**：`READ_AFTER_RELEASE_OR_UNDECLARED_READ`（声明消费者 `['acsd.phase1.drizzle']` vs nodes 面 `['…drizzle','…writer']`）、`SHORT_RELEASE_POINT`（声明释放点 pos=6 ≠ 节点面最后读者 pos=7，读者位置 `[6, 7]`）、`READ_AFTER_RELEASE`（声明在 pos=6 释放，但 `pos=[7]` 的节点仍在读它）；`TOPOLOGY_INVERTED` 不存在、`STAGE_NOT_CROSS_NODE` 不存在、A7' 判绿。 |
+
+**另采纳一条降级提醒（复核提出）**：A1 的结论句已改为
+「与**本层裁决后**的规则逐项一致」，不再写成「与正本无条件一致」；
+REG-01 的登记条目里也加了同一句限定。A1 的 docstring 里同时补上
+「Oracle 是承重的」自证指针（B10-1）。
+
+**复核明确认可、本轮未改动的部分**：A1 的 Oracle 真异源（规则文本 + `ast` 字面量 +
+注册表重算，不读被测规格任何现值）；B1 的输入面互斥断言；B3/B4/B5 用
+`_run_against_injection` 真复跑正例函数本体；B5「不同时改 `consumed_by`」的设计；
+派单「6 个块」错误的拒收与订正为 7；A3/A8/A7 三条恒成立/恒不成立的改写；
+拒按与正本冲突的 `consumers==0` 口径写。
+
+## 14 纪律自检
 
 - **不编造**：每条断言的预期值来自 (a) `gen_block_flow_spec.py` docstring 的规则文本 /
   (b) `PIPELINE_BLOCK.md` / `ACSD_DESIGN.md` / `module_ports.registry.json` 的条款 /
   (c) `TEST.md:46` 的容差档。每条用例 docstring 末尾有 `**来源依据**：<文件:行>`。
 - **不迁就实现**：REG-01…REG-06 如实登记，未改规格、未改 schema、未降级判据。
 - **不堆叠豁免**：全文件**无** `pytest.skip` / `pytest.xfail` / `xfail` 标记 / 空断言。
+- **不写恒真断言**：每条断言写前自问「字面读法下是否恒为真/恒为假」；恒成立的一律不写成
+  永远绿的测试，改写成可红判据并补能红的负例。**对抗复核抓到的漏报已补进 §8.6。**
 - **fail-closed**：4 个锚任一缺失 ⇒ `ANCHOR_STALE: <常量名> <路径>`；JSON 不可解析 ⇒
   `ANCHOR_UNPARSABLE`；结构缺字段 ⇒ `ANCHOR_MISSING_FIELD`；零对象 ⇒ `ZERO_OBJECT_GUARD`。
   **无一条 skip、无一条静默降级**。

@@ -403,7 +403,13 @@ def oracle_lifecycle(n_producers: int, n_consumers: int, is_stage_terminal: bool
 
 
 def precedence_sensitive_keys(nodes: Sequence[Dict[str, Any]]) -> List[Tuple[str, str]]:
-    """列出「按 docstring 书写顺序 first-match 会得出不同结论」的 `(stage, block)`。"""
+    """列出「按 docstring 书写顺序 first-match 会得出不同结论」的 `(stage, block)`。
+
+    这里的判据是**两个求值器之差**：`oracle_lifecycle`（本层裁决的优先级）
+    vs `_literal_order_lifecycle`（docstring 书写顺序 first-match）。
+    负例 `NegOraclePriorityAblation` 把其中任一求值器换掉，本函数即塌成空集、
+    与 `multi_rule_keys` 不等 ⇒ 登记守卫判红（S6：换掉的是判定自身的判定逻辑）。
+    """
     produced, consumed = production_and_consumption(nodes)
     terminals = stage_terminals()
     out: List[Tuple[str, str]] = []
@@ -416,6 +422,74 @@ def precedence_sensitive_keys(nodes: Sequence[Dict[str, Any]]) -> List[Tuple[str
         if adopted != literal:
             out.append(key)
     return out
+
+
+def rule_predicates(n_producers: int, n_consumers: int, is_stage_terminal: bool) -> Tuple[bool, ...]:
+    """`gen_block_flow_spec.py:8-12` 的 5 条规则各自的命中情况，**顺序即书写顺序**。
+
+    这是 docstring 规则文本的直接谓词化，**独立于任何求值器**。返回 5 元组：
+    `(消费者数>=2, 消费者数==0且终产物, 消费者数==0且非终产物, 消费者数==1, 无生产者)`。
+    """
+    return (
+        n_consumers >= 2,
+        n_consumers == 0 and is_stage_terminal,
+        n_consumers == 0 and not is_stage_terminal,
+        n_consumers == 1,
+        n_producers == 0,
+    )
+
+
+def multi_rule_keys(nodes: Sequence[Dict[str, Any]]) -> List[Tuple[str, str]]:
+    """实测「按 docstring 5 条规则的**谓词**计数，≥2 条同时命中」的 `(stage, block)` 键。
+
+    本函数**不经过** `oracle_lifecycle` / `_literal_order_lifecycle` 任何一方：它只按
+    `rule_predicates()` 的 5 条谓词计数。它与 `precedence_sensitive_keys()`（两个求值器
+    之差）互为**独立定义面**，两者的关系由用例逐项核对（不是简单的相等，见 docstring）。
+
+    **两面的实测关系（HEAD `bf944fad`）**：求值器差分面 **10** 项，谓词计数面 **8** 项，
+    差集恰为 `terminal_with_consumer_keys()`（阶段终产物**且**消费者数 ≥1 的键，
+    实测 `(normalize, frame_hips)` 与 `(export, p3_fits)`）。
+
+    差集的成因（不是 bug，是 REG-01 的第二层歧义）：docstring 把「终产物」规则写成
+    规则 2/3 并**以 `nc == 0` 为前提**；本层裁决的 `oracle_lifecycle` 把 `is_stage_terminal`
+    提成**独立分支**、排在消费者数之前。于是「终产物 ∧ nc ≥ 1」这批键在 docstring 的规则集
+    下只命中 1 条（规则 4 ⇒ SHORT），在裁决分支下命中 2 条（B、E ⇒ EXTERNAL_OUT），
+    两种求值因此给出不同答案。
+    """
+    produced, consumed = production_and_consumption(nodes)
+    terminals = stage_terminals()
+    out: List[Tuple[str, str]] = []
+    for key in sorted(produced.keys() | consumed.keys()):
+        stage, name = key
+        hits = sum(rule_predicates(
+            len(produced.get(key, [])), len(consumed.get(key, [])),
+            name in terminals.get(stage, frozenset()),
+        ))
+        if hits >= 2:
+            out.append(key)
+    return out
+
+
+def terminal_with_consumer_keys(nodes: Sequence[Dict[str, Any]]) -> List[Tuple[str, str]]:
+    """实测「阶段终产物**且**本阶段有消费者」的 `(stage, block)` 键。
+
+    这是 REG-01 歧义面的**第三面**：docstring 把终产物规则以 `nc == 0` 为前提，
+    本层裁决把它提成独立分支，两者的差集恰好落在这批键上。
+    """
+    produced, consumed = production_and_consumption(nodes)
+    terminals = stage_terminals()
+    out: List[Tuple[str, str]] = []
+    for key in sorted(produced.keys() | consumed.keys()):
+        stage, name = key
+        if name in terminals.get(stage, frozenset()) and consumed.get(key):
+            out.append(key)
+    return out
+
+
+def all_block_keys(nodes: Sequence[Dict[str, Any]]) -> List[Tuple[str, str]]:
+    """注册表重算出的全部 `(stage, block)` 键（升序），供计数守卫复核。"""
+    produced, consumed = production_and_consumption(nodes)
+    return sorted(produced.keys() | consumed.keys())
 
 
 def _literal_order_lifecycle(n_producers: int, n_consumers: int, is_terminal: bool) -> str:

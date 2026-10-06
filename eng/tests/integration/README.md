@@ -13,7 +13,7 @@ schema 符合性、对象判别式与端口的配对关系、单位与缺失值�
 | 不做什么 | **不链接 `libacsd`、不调 CLI、不起子进程、不编译、不跑构建、不跑端到端** |
 | 输入面 | `eng/contracts/schemas/unified/**`、`eng/contracts/data/*.json`、`lib/algorithms/integration/phase2_integrate/include/acsd/{variance_propagation,weight_chain}.h` |
 | 实算对象数 | 14 个 schema 文件（13 个 canonical 数据对象 + 1 个端口合同）、14 个正例夹具、6 个负例夹具、5 环方差链、2 组数值注入向量 |
-| 用例数 | 27 条：25 条绿 + 2 条红（两条红同源，见第 6 节） |
+| 用例数 | 31 条：29 条绿 + 2 条红（两条红同源，见第 7 节） |
 
 文件清单：
 
@@ -124,9 +124,14 @@ schema 符合性、对象判别式与端口的配对关系、单位与缺失值�
 
 本目录是**工具，不是门禁**。具体地：
 
-- 本层测试代码**不含** `sys.exit` / `SystemExit` / `os._exit`
-  （由 `test_ContractVariance_NoBlockingExitCodeInTestCode` 扫描本目录两个文件自证）；
-- 本层测试代码**不含** `pytest.skip` / `pytest.xfail` / `unittest.skip` 充数；
+- 本层测试代码**不含** `sys.exit` / `SystemExit` / `os._exit` / `pytest.skip` /
+  `pytest.xfail` / `pytest.importorskip`；
+  判据是 `test_ContractVariance_NoBlockingExitCodeInTestCode`（A11），**用 AST 的
+  `Call` / `Raise` 节点**扫描整个 `eng/tests/integration/` 与 `eng/tests/module/`
+  两棵树（实算 8 个 `.py`），不砍前缀、不做文本匹配；
+- A11 的有牙自证 = `test_ContractVariance_NegBlockingExitAfterA11`（B15）：
+  在临时副本的 A11 **之后**注入 `return sys.exit(0)` ⇒ A11 必须判红
+  （实测读数 `injected.py:2522 调用 sys.exit`），且 docstring/注释里的同名字样 0 误报；
 - 本层**不产出流水线判决**、不裁决合入。`TEST.md:203`：
   「红项是缺陷信号，按修复或回退处理；测试不裁决合入，合入由提交纪律决定」；
 - 本层**不做豁免**：没有 `xfail`、没有容差放宽、没有「已知问题」白名单。
@@ -162,6 +167,56 @@ schema 符合性、对象判别式与端口的配对关系、单位与缺失值�
 所以 n2 仍**逐条命中** `unified_object:const` / `object_schema_id:const` /
 `variance_value`，与 `oracle_ref` 那条毫无关系 —— 负例有效性不受影响。
 A2 内有一条守护断言 `len(hit) == len(must_match)`，0 命中蒙混不过去。
+
+### 7.1b 第三态判据的**未覆盖**面（fail-closed 登记，不写成永远绿的测试）
+
+`TEST.md:79` 的「非有限值与缺失的**位置集合**必须与产品逐项精确一致」这半条
+**本层未覆盖**。它需要产品产出的像素面（两者各自的实际位置集合）；本层读的是
+标量 JSON 合同文档，仓内没有该对象面（需构建产品并跑真实数据面，见第 9 节）。
+
+A10 原版曾用两个**自造同值**的集合 `positions_nan = {3,7,11}` 与
+`positions_missing = {3,7,11}` 取 `==` 冒充这条判据，并用 `math.isnan(float("nan"))`
+冒充「非有限值不被折叠」—— 两者都是 `A−A=0` 型恒真（`TEST.md:26`
+「恒真的比较没有证据资格」）。**已删除**，不迁就、不留恒真。
+
+A10 现只保留能在 **14 个真实夹具 × 14 个真实 schema** 上判红的那一半：
+①每个夹具的 `missing_repr` / `invalid_repr` 必须落在**其自身 schema 的枚举**内；
+②`missing_repr != "nan"`（`TEST.md:80` 的可判定规则）；
+③折叠守卫：缺必填键的 `ivar` 实例必须被 `ivar` schema 拒绝（不是裸 float 断言）；
+④缺失值族的**实算分布**读出来（当前 4 个夹具落在 `('zero','zero',False)` 族，
+其余 10 个落在 `('null','nan',True)` 族）——任一夹具漂移即判红。
+
+### 7.1c §4(f) 登记的校验器退化已固化为正式负例 B16
+
+交付报告 §4(f) 记录的两个退化 —— **`if`/`not`/`anyOf` 子模式错误混进主错误表**
+（M1：恒取 `then`）与 **子模式布尔值不上传**（M2：丢弃 `walk()` 返回值）——
+现固化为 `test_ContractVariance_NegValidatorIfThenErrorLeak`（B16）。
+实测读数：M1 使 **13/14** 个干净正例转红（与 §4(f) 的记录一致）；
+**M1+M2 呈现「5 条错误但 `ok=True`」的假绿形态** —— 这是任何只读错误表的比较器
+都发现不了的形状。
+
+## 7.1d 对抗复核发现与处置
+
+只读对抗复核指出本层 6 处不合格，逐条已修，基线红项未变（见交付报告同名节）：
+
+| 复核指出的问题 | 最小反例 | 修法 | 复跑读数 |
+|---|---|---|---|
+| A11 用 `text.split(...)[0]` 砍前缀 ⇒ 只扫自身之前，`sys.exit` 放进 A11 之后扫不到 | 该判据对最该抓的位置 fail-open | 改 AST `Call`/`Raise` 扫描，不砍前缀；扫描面扩到 `integration/` + `module/` 两棵树 | A11：AST 扫描 8 个文件 0 违规；B15：注入后 `injected.py:2522 调用 sys.exit` 判红；docstring/注释 0 误报 |
+| `assert "signal" not in mode_rows`（`mode_rows` 是硬编码 5 字面量）⇒ 恒真 | `TEST.md:26` 教科书案例 | 新增 `parse_mode_table()`，从 `VALIDATION_EVIDENCE.md` 第 4.2 节**解析**表格，逐行断言权重对象/单位/权威式非空且不含 `signal` | A6：模式表解析 **6** 行（原硬编码只有 5 行，漏 `psf_snr_power`） |
+| A10 后半段自造同值集合互比 ⇒ 恒真 | `{3,7,11} == {3,7,11}` | 删除；改为 14 真实夹具的枚举一致性 + 折叠守卫；位置集合那半条登记为**未覆盖**（见 7.1b） | A10：族实算 `('zero','zero',False)`×4；折叠守卫 11 条 required |
+| `assert len(files) == 14` 无来源魔数 | `VALIDATION_EVIDENCE.md:192` S5 | 改 `> 0` + 与磁盘实算 schema 文件数、登记表实算数对账 | A0：正例夹具 14 / schema 文件 14 / canonical 对象 13，实算对账一致 |
+| B7 的 S6 资格不成立（注入点在共用参数、路径(ii) 构造性恒真、没复跑判据本体） | `skip_required` 被 A1/A2/A3/B1–B6 共用 | 抽出 `judge_positive_examples`（A1 本体）与 `judge_negative_expectations`（A2 本体），对**本体**注入并断言 verdict 逐 fixture 翻转 | B7-A1：`['variance.example.json'] → []`；B7-A2：n2 `required×4→0` 且 hit `3→2`、n3 `required×1→0` 且 hit `3→2`，两条均转为「A2 有问题」 |
+| `_object_contracts` 两条 latent fail-open | ①`validate("x", {"type":"string","x-must-be-positive":True})` ⇒ `ok=True`；②`validate(["a",5], {"items":[…]})` ⇒ `ok=True` | ①`x-` 改白名单放行（`ANNOTATION_PREFIXES = ("x-acsd",)`），其余 `x-*` 报 `UnsupportedKeyword`；②数组形 `items` 具名报 `UnsupportedKeyword` | B17：`x-must-be-positive` 判红、`x-acsd*` 仍放行；B18：数组形判红、对象形正常工作；14 个 canonical schema 的 `UnsupportedKeyword` 命中数 **0**（未丢覆盖面） |
+
+复核**认可并要求保持**的三条未改：A1/A5b 的红项（`variance.example.json` 缺
+`oracle_ref`，真实产品缺陷）、A2 的 `must_match` 子集语义、B2 的反向自证与
+B10/B11 的解析注入与 B12 的签名面排他性。
+
+**复核指出的 `PC-C5` 第 4 子句（`EXTERNAL_INPUT_CARRIER`）缺负例 —— 不在本单授权面。**
+`grep -rn "PC-C5\|EXTERNAL_INPUT_CARRIER"` 实测全部命中都在
+`eng/tests/integration/_registry_parity.py` 与 `eng/tests/integration/test_registry_code_parity.py`
+（另一并行代理的两个文件，本单明令不得触碰）。本层三个文件里该标识**零命中**，
+本层不产生 PC-C5 基线红项，故该缺口不属于本单，已回报前台转派给该代理。
 
 ### 7.2 `ivar` 的缺失表示与 `DATA_SEMANTICS` §3.3 冲突（待裁决，未编码为断言）
 
