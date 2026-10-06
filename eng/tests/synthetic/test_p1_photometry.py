@@ -849,25 +849,37 @@ def p1_neg_tukey_truncation_disabled():
 
 @H.test(
     "p1-neg-q-differenced-shape",
-    intent="负例：向 P1-f 的 `Q(λ)` 判别力注入「QE 曲线与颜色项无关」"
-           "（换成一条在带内**等值**的常数曲线以外、但使 `Δr_i` 退化成与 `r0` 无关的形状）"
-           "这一具名缺陷，断言独立判据 `chain.a.p1.q_sigma_rise_min` 在缺陷侧给超界/不超界"
-           "读数。注入实现：`Δr` 被**独立置换**（等价于把 QE 的形状误差打到与恒星颜色无关）。",
-    inputs="40 颗黑体星；β = 2e-2 dex（比值最接近 1 的那一档 ⇒ 门限余量最小）；400 次对照",
-    expected="装饰后的 `Δr`（与 `r0` 无关）使比值落回 1 附近 ⇒ 门限 `1.05` 越界；"
-             "读数记入 evidence",
-    source="正本条款 PHOTOMETRY.md §2a.4(:110) 逐字「⇒ 效应来自『`Δr` 与 `r0` 的相关性"
-           "（共同的**颜色项**）』，**不是**新增独立散度、**也不是** inlier 集合变化」；"
-           "冻结容差 chain.a.p1.q_sigma_rise_min",
+    intent="负例：向 P1-f 的 `Q(λ)` 判别力注入「QE 曲线形状误差与恒星颜色项**解耦**」"
+           "这一具名缺陷（`Δr` 被一次与 `r0` 无关的独立置换 = 保留边际分布、破坏配对），"
+           "断言置换相关系数判据的判别力：注入前后统计量的**分离度**必须达到冻结下界。"
+           "⚠ 头条断言是**分离度** `|corr| 相关臂 − |corr| 解耦臂| ≥ 冻结门限`，"
+           "**不是**旧版的 `median(200 iid) ≤ q95(400 iid)` —— 后者对任意分布恒成立"
+           "（阶统计恒等式），是与科学内容无关的恒真比较。",
+    inputs="40 颗黑体星；β = 2e-2 dex（比值最接近 1 的那一档 ⇒ 门限余量最小）；"
+           "400 次置换取零分布 q95（门限沿用 `chain.a.p1.q_perm_corr_q95`）；"
+           "解耦臂取**一次冻结种子**（`20260907`）的独立置换读数 + 200 次（种子 `20260908`）"
+           "的稳健均值与其标准误",
+    expected="①（绿臂，沿用复核认可的真判据）`corr_real = |corr(r0, Δr)|` 越出置换 q95；"
+             "②（缺陷臂）解耦臂读数落回零分布带内（≤ q95），且"
+             "**`corr_real − stat_dec ≥ 0.25`**（冻结容差 "
+             "`chain.a.p1.q_corr_dec_sep_min`，解析推导下界 0.861）；"
+             "③（登记臂）方向性口径偏差如实落盘，见 docstring 的「⚠ 口径偏差」一节",
+    source="正本条款 PHOTOMETRY.md §2a.4(:100,:106,:107) 逐字「`Q` 曲线在带内的形状对不同 "
+           "SED 给出不同的乘性因子，该因子与恒星颜色相关、并与既有残差 `r0` **正相关** ⇒ "
+           "`sigma_residual` 近似按 **(1+k)** 放大」、:107 逐字「置换检验（打乱 `Δr`–`r0` "
+           "配对、保留边际分布）| 比值向 1 回落 ⇒ 效应来源为 `Δr` 与 `r0` 的相关性」；"
+           "冻结容差 chain.a.p1.q_sigma_rise_min / q_perm_corr_q95 / **q_corr_dec_sep_min**",
     criteria=["P1-f"],
     kind=H.NEGATIVE,
     inject="把 `Δr`（计入 QE 造成的参考通量变化）与恒星颜色项解耦："
-           "对 `Δr` 做一次与 `r0` 无关的独立置换，等价于 QE 曲线形状误差与颜色无关",
+           "对 `Δr` 做一次与 `r0` 无关的独立置换（保留边际分布），"
+           "等价于 QE 曲线形状误差与颜色无关",
     defect_id="P1-NEG-Q-DECORRELATED",
 )
 def p1_neg_q_decorrelated():
     with H.evidence() as ev:
         rise = A.get("chain.a.p1.q_sigma_rise_min")
+        sep_min = A.get("chain.a.p1.q_corr_dec_sep_min")
         tband = band_transmission
         fsys = np.array([integrate_fsyn(XP_LAMBDA_NM, blackbody(x), tband, qe_true)
                          for x in XP_TEMPS_K])
@@ -890,31 +902,75 @@ def p1_neg_q_decorrelated():
         H.less_equal(float(rise.value), real,
                      "未注入时比值必须过门限（否则这条负例的『注入前绿读数』不成立）")
         q95 = A.get("chain.a.p1.q_perm_corr_q95")
-        perms = np.array([abs(float(np.corrcoef(r0, dr[rng.permutation(40)])[0, 1]))
+        g_null = _kit.make_rng(5150)                    # 零分布专用流（与构造流分开）
+        perms = np.array([abs(float(np.corrcoef(r0, dr[g_null.permutation(40)])[0, 1]))
                           for _ in range(400)])
         thr = float(np.quantile(perms, float(q95.value)))
         corr_real = abs(float(np.corrcoef(r0, dr)[0, 1]))
-        # 单次置换的 |corr| 本身是随机量（典型 0.05–0.30），用它比门限会随置换运气跳变
-        # ⇒ 取 200 次置换的**中位数**（无随机跳变、且远离门限），单次读数一并登记。
-        dec_corr = np.array([abs(float(np.corrcoef(r0, dr[rng.permutation(40)])[0, 1]))
-                             for _ in range(200)])
-        corr_dec = float(np.median(dec_corr))
-        dr_dec = dr[rng.permutation(40)]
-        ratios = np.array([irls_fit(10.0 ** (r0 - dr[rng.permutation(40)]),
-                                    np.ones(40)).sigma_residual / s0 for _ in range(200)])
+        # 缺陷臂：**一次冻结种子**的独立置换（保留边际分布、破坏配对）
+        g_dec = _kit.make_rng(20260907)
+        dr_dec = dr[g_dec.permutation(40)]
+        stat_dec = abs(float(np.corrcoef(r0, dr_dec)[0, 1]))
+        # 稳健 companion：200 次置换的均值 ± 标准误（用来核对零分布模型本身）
+        g_rob = _kit.make_rng(20260908)
+        dec200 = np.array([abs(float(np.corrcoef(r0, dr[g_rob.permutation(40)])[0, 1]))
+                           for _ in range(200)])
+        dec_mean = float(dec200.mean())
+        dec_se = float(dec200.std(ddof=1) / math.sqrt(200))
+        e_abs_corr = math.sqrt(2.0 / (math.pi * (40 - 2)))   # 零分布解析中心
+        # 头条判据 = **分离度**。门限是冻结值、与被比较的零分布分位数无关 ⇒
+        # 不会退化成「median(200 iid) ≤ q95(400 iid)」那种阶统计恒等式。
+        sep = corr_real - stat_dec
         H.is_true(corr_real > thr,
                   f"未注入时 |corr(Δr,r0)| = {corr_real:.4f} 必须越出置换 q{q95.value}"
                   f" = {thr:.4f}（否则负例的绿读数不成立）")
-        H.is_true(corr_dec <= thr,
-                  f"注入『Δr 与颜色项解耦』后 |corr| = {corr_dec:.4f} 未落回置换 q95 "
-                  f"= {thr:.4f} 以内 ⇒ 判据没有抓住这个注入")
-        ev.record("注入前 |corr(Δr,r0)|（相关，正确，绿）", corr_real, thr)
-        ev.record("注入后 |corr(Δr,r0)|（解耦，缺陷，红）", corr_dec, thr,
-                  note="200 次置换的中位数；单次读数 " + f"{abs(float(np.corrcoef(r0, dr_dec)[0, 1])):.4f}"
-                       " ⇒ Q 效应的相关性证据消失")
+        H.is_true(sep >= float(sep_min.value),
+                  f"注入『Δr 与颜色项解耦』后统计量只从 {corr_real:.4f} 落到 {stat_dec:.4f}，"
+                  f"分离度 {sep:.4f} < 冻结下界 {float(sep_min.value)} ⇒ "
+                  "该判据对『Δr 与颜色项解耦』这个具名缺陷无判别力")
+        H.is_true(dec_mean <= thr,
+                  f"解耦臂 200 次置换均值 {dec_mean:.4f} ± {dec_se:.4f} 未落回零分布带内"
+                  f"（q{q95.value} = {thr:.4f}）⇒ 零分布带的位置本身不可信，需复核构造")
+
+        ev.record("注入前 |corr(Δr,r0)|（相关，正确，绿）", corr_real, thr,
+                  note=f"超界 {corr_real / thr:.3g}×；判据沿用 chain.a.p1.q_perm_corr_q95")
+        ev.record("注入后 |corr(Δr,r0)|（解耦一次置换，缺陷，红）", stat_dec, thr,
+                  note="冻结种子 20260907；这是**一次实测观测值**，不是零分布抽样")
+        ev.record("注入后 200 次置换均值 ± 标准误（稳健 companion）", dec_mean, thr,
+                  note=f"± {dec_se:.4f}（n=200）；解析零分布中心 E|corr| = "
+                       f"√(2/(π(n−2))) = {e_abs_corr:.4f} ⇒ 实测与零分布模型一致")
+        ev.record("**头条判据** 分离度 |corr|绿 − |corr|红", sep, float(sep_min.value),
+                  note="门限是冻结值、与零分布分位数无关 ⇒ 不是阶统计恒等式；"
+                       "把注入关掉该数变 0 ⇒ 必红")
+        # ---- ⚠ 口径偏差登记（PHOTOMETRY.md §2a.4:100 的「正相关」在本夹具上不成立）----
+        signed_real = float(np.corrcoef(r0, dr)[0, 1])
+        signed_dr_ci = float(np.corrcoef(dr, ci)[0, 1])
+        stat_anti = abs(float(np.corrcoef(r0, -dr)[0, 1]))
+        ratio_real = float(real)
+        ratio_anti = irls_fit(10.0 ** (r0 + dr), np.ones(40)).sigma_residual / s0
+        ratio_dec = irls_fit(10.0 ** (r0 - dr_dec), np.ones(40)).sigma_residual / s0
+        ev.record("【口径偏差登记】signed corr(r0, Δr)（本夹具）", signed_real, None, "",
+                  "⚠ 为**负**。PHOTOMETRY.md §2a.4(:100) 逐字写「与既有残差 `r0` "
+                  "**正相关**」，本夹具的 QE 形状项与颜色项**反**相关 ⇒ 实测的 (1+k) "
+                  "放大来自颜色项系数由 β 加倍到 β−slope(Δr~C)，**不是**正本所说的同向叠加。"
+                  "本条不裁决 QE 夹具，只如实登记读数")
+        ev.record("【口径偏差登记】signed corr(Δr, 颜色项 C)", signed_dr_ci, None, "",
+                  "同上：Δr 与颜色项近乎完全反相关")
+        ev.record("【口径偏差登记】|corr(r0, −Δr)|（完美**反**相关臂）", stat_anti, thr,
+                  note=f"{stat_anti:.4f} 同样越出 q95 ⇒ `|corr|` **分不出方向**："
+                       "它测的是「Δr 与 r0 线性相关（不分正负）」，"
+                       "**不是**正本 §2a.4:107 说的「来自共同的颜色项」。"
+                       "如需方向，须改用正本的比值统计量")
+        ev.record("【口径偏差登记】正本比值统计量 +Δr / −Δr / 解耦 三臂读数",
+                  float(ratio_real), None, "",
+                  f"+Δr = {ratio_real:.4f}（门限 {float(rise.value)}）；"
+                  f"−Δr = {float(ratio_anti):.4f}；解耦 = {float(ratio_dec):.4f}。"
+                  "⇒ 比值统计量**带方向**（反号时降到 1 以下），这是它与 `|corr|` 的关键差别；"
+                  "本条只把它落盘、不作 pass/fail 断言，因为它是夹具的代数后果而非独立观测")
         ev.record("注入前比值（相关，绿）", real, rise.value)
-        ev.record("注入后比值中位数（解耦，缺陷）", float(np.median(ratios)), rise.value,
-                  note="200 次置换的比值中位数；单次置换的散布见 evidence 的比值档")
+        ev.record("注入后比值（解耦一次置换，缺陷）", float(ratio_dec), rise.value,
+                  note="⚠ 实测仍高于门限 1.05 ⇒ 正本的**比值**判据本身抓不住这个注入；"
+                       "真正抓住它的是置换相关系数判据（见上面的分离度读数）")
 
 
 @H.test(

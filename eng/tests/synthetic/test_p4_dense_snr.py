@@ -78,6 +78,9 @@ fail-closed（不外推、不回退帧级）。」
 | 单域判 mesh 中值好坏 | ❌ 恒真 | 必须两域都跑；P4-e 负例即此 |
 | 跨帧 `Σ SNR_k² = F0²/Var(F̂)` | ❌ 恒真（定义式） | 黑名单，本文件不写 |
 | `E = Var_w/Var_opt − 1` | ❌ 对整体乘性偏差免疫 | `NOISE_SNR.md:484-492`；本文件不用 |
+| 「两条**不同**算子（spline_clip vs 双线性）的逐像素 `w` 相等」 | ❌ **构造上不成立**（恒红侧） | 两条算子的层值本就不同（实测最大相对差 17.4%、本文件夹具上 0.069%）。拿它们做「一致性」pass/fail 对照只能崩（`np.max` 空集）或恒红 ⇒ P4-h 把它**降为诊断项**，只记录差值、不判红 |
+| 「oracle 只要换个 `operator=` 字符串就算独立」 | ❌ **伪独立**（D 类） | 对抗复核判定的缺陷 1：旧版 P4-h 的 oracle 与主实现共用同一个 `Reconstructor` 类、比较面只取 232/841 个**已逐位相等**的像元、断言是 `H.exact(...)` ⇒ 必然恒真（余量 `0×`）。整改见 P4-h 的两条独立代码路径 + 全域比较 |
+| 「P4-a 的 scipy oracle 对拍证明了节点间重建正确」 | ⚠ **覆盖面缺口**（非恒真） | 那次对拍只在**控制节点坐标**上采样（`dx = 1` ⇒ 查询点恰是节点），任何插值器在节点上都等于输入值 ⇒ 只能证明「节点自复现」。实测把同一 oracle 移到非节点坐标上，主实现与 scipy 仍一致到 2.2e-16 ⇒ **主实现的样条是对的**，登记的是判据覆盖面 |
 
 ## 3 容差
 
@@ -90,9 +93,12 @@ fail-closed（不外推、不回退帧级）。」
 
 from __future__ import annotations
 
+import ast
+import inspect
 import math
 import os
 import sys
+import textwrap
 
 import numpy as np
 
@@ -381,6 +387,25 @@ CTRL_PROFILE = np.array([1.0 / 3.0, 5.0 / 3.0, 101.0 / 17.0, 7.0,
 #: 单调剖面（P4-b 的真实性质用）。同样含 1/3、101/17。
 CTRL_MONOTONE = np.array([1.0 / 3.0, 1.0, 2.0, 101.0 / 17.0, 5.0, 6.0, 7.5, 9.0])
 
+def ctrl_ramp_with_edge(n=8):
+    """**P4-a 对照臂的判别构型**：天光斜坡 + 星系边缘阶跃。
+
+    ```text
+    C(u, v) = 1/3 + 2u + 1.5v + 6·[u > 1/2] + 4·[v > 1/2]
+    ```
+
+    逐字取值理由：`1/3` 是 binary64 不可精确表示的值（纪律二第 2 条）；
+    斜坡项落在二次基张成空间内、阶跃项**不在** ⇒ 总次数 2 的最小二乘拟合面
+    在这个构型上给出的是**真实的 O(1) 偏差**而不是舍入。
+    阶跃代表稀疏信噪比层在星系边缘上的真实结构（HST/地面帧常见），不是人为构造。
+    旧夹具 `10 + 6uv + 3u³` 的 `6uv` 项同样在张成空间内、且把跨度从 3 抬到 9，
+    把 3u³ 的残差稀释到门限的 1.02 倍（余量 2%）⇒ 本构型替换它。
+    """
+    j, i = np.meshgrid(np.linspace(0, 1, n), np.linspace(0, 1, n), indexing="ij")
+    return (1.0 / 3.0 + 2.0 * i + 1.5 * j
+            + 6.0 * (i > 0.5) + 4.0 * (j > 0.5))
+
+
 #: 非共线控制面（含二次项 ⇒ 样条与双线性**不同构**）。
 #: ⚠ 常量场/共线场上两个算子同值 ⇒ 判据恒真，P4-b 负例即此。
 def ctrl_curved(n=8):
@@ -477,27 +502,35 @@ def p4a_node_reproduction_interpolants():
     "p4a_negative_fit_arm_is_not_reproduced",
     intent="证明「node_reproduction ≈ 0」不是恒真：把插值型求值面换成**拟合型**"
            "（二次最小二乘）后，同一判据给出显著非零残差",
-    inputs="与正例同一控制面（10 + 5v + 3u + 2uv + 1.5u²，含二次项），"
-           "对照臂用总次数 2 的最小二乘拟合面（真面含三次分量时拟合面**不在**其张成空间内）",
+    inputs="判别构型 = **天光斜坡 + 星系边缘阶跃**：`C(u,v) = 1/3 + 2u + 1.5v "
+           "+ 6·[u > 1/2] + 4·[v > 1/2]`（8×8 网格，u = i/7、v = j/7；"
+           "含 1/3 这个 binary64 不可精确表示的值）。"
+           "对照臂用总次数 2 的最小二乘拟合面。"
+           "⚠ **为什么不用旧夹具 `10 + 6uv + 3u³`**：那个构型里 `6uv` 项本身落在二次基的"
+           "张成空间内、且把值域跨度从 3 抬到 9，于是 3u³ 的拟合残差被稀释到门限的 1.02 倍"
+           "——余量只有 2%。改成「平滑斜坡 + 陡阶跃」后，二次拟合面离数据面**远得多**，"
+           "残差读数 0.2998、余量 **30×**（门限未动，改的是夹具不是门限）",
     expected="拟合臂的相对节点残差 ≥ 1.0e-2（冻结容差 synth.p4.fit_node_repro_min_rel），"
              "即比插值臂的 1e-13 宽 ≥ 11 个数量级 ⇒ 判据有牙",
     source="闭式解析（最小二乘投影的残差定义）+ `05_INDEPENDENT_TEST_SUITE.md` §1 "
-           "「恒真的比较没有证据资格」；对照面构造 = 非插值型算子类别的一般代表",
+           "「恒真的比较没有证据资格」；对照面构造 = 非插值型算子类别的一般代表；"
+           "阶跃项 `[u > 1/2]` 代表稀疏信噪比层在星系边缘上的真实结构（HST 帧常见），"
+           "它**不属于**任何总次数 2 的多项式张成空间",
     kind=H.NEGATIVE,
     inject="把控制点求值从插值型（三次 Hermite 段）换成二次最小二乘拟合面——"
            "实现族里最容易混进来的「重建」：能出图、量级对，但不复现控制点",
     defect_id="P4-A-FIT-INSTEAD-OF-INTERP",
 )
 def p4a_negative_fit_arm_is_not_reproduced():
-    j, i = np.meshgrid(np.linspace(0, 1, 8), np.linspace(0, 1, 8), indexing="ij")
-    grid = 10.0 + 6.0 * j * i + 3.0 * i ** 3     # 3u³ 项不在二次基张成空间内
+    grid = ctrl_ramp_with_edge(n=8)
     span = float(grid.max() - grid.min())
     fit = lsq_quadratic_fit(grid)
     rel = float(np.max(np.abs(fit - grid))) / span
     tol = TB.get("synth.p4.fit_node_repro_min_rel").value
     with H.evidence() as ev:
         ev.record("lsq_fit_arm.rel_node_residual", rel, tol, "",
-                  "对照臂（非插值型）应显著越界")
+                  f"对照臂（非插值型）应显著越界；门限未动，夹具换成 "
+                  f"「斜坡+阶跃」判别构型（跨度 {span:.4f}）")
         ev.record("interpolant_arm.rel_node_residual",
                   float(Reconstructor(np.tile(CTRL_PROFILE, (8, 1))).node_reproduction_max_abs())
                   / float(CTRL_PROFILE.max() - CTRL_PROFILE.min()),
@@ -1012,54 +1045,225 @@ CAI27 = (
     "**不裁决** `w ≡ 1/σ_F²` 是否成立、也不裁决重建量是否随源亮度变。"
 )
 
+#: 本条必须逐字出现在 `intent` 与 `source` 里的裁-27 声明（对抗复核的硬性要求）。
+CAI27_NOT_ADJUDICATED = "⚠ 裁-27 未裁决，本条不构成裁决"
+
+#: 独立 oracle 夹具：控制层、cell 宽、像素采样步长（字面常量）。
+#: ⚠ `dx = 4` 而不是 1：`dx = 1` 时 cell 中心偏移 `(dx−1)/2 ≡ 0`，角点约定与中心约定
+#: **重合** ⇒ 几何门（P4-f）在该夹具上恒真。`dx = 4` 让偏移 = 1.5 px 可分辨。
+#: ⚠ 采样步长 1.0 px ⇒ 查询点**全部是非节点**的像素中心（节点在 `x0 + i·dx`）。
+#: 这是本条与 P4-a 的 scipy 对拍的关键差别：P4-a 只在**节点坐标**上比较，而任何插值器
+#: 在节点上都等于输入值 ⇒ 那里的一致性**按构造**成立（P4-a 的 oracle 只能在节点族上
+#: 提供证据，见 §2 恒真清单的 `p4.scipy_oracle_only_on_nodes` 登记）。
+P4H_DX = 4
+P4H_STEP_PX = 1.0
+#: 该帧自己的 `F_ref,k`（ADU）与乘性光度响应 `g_k`。`F_ref,k` 取 binary64 不可精确
+#: 表示的值，使 `F_ref,k²` 与 `F_ref,k` 的舍入路径不同（避免逐位相同掩盖装配错）。
+P4H_F_REF = 1234.5678901234
+P4H_G_K = 1.37
+#: 邻帧的 `k_photo`（用于「配错 `F_ref,k`」的牙齿见证臂）。
+P4H_K_SELF = 1.0
+P4H_K_NEIGHBOUR = 2.8
+
+
+def bilinear_cell_value_oracle(values: np.ndarray, xs: np.ndarray, ys: np.ndarray,
+                               dx: float, dy: float) -> np.ndarray:
+    """**独立**双线性层值重建 —— 本条 P4-h 的 oracle（`PHASE2_UPM.md` §5 逐字
+    `C_f(p) = 双线性(8×8 cell, θ)`）。
+
+    **为什么它是独立代码路径**：函数体里不出现 `Reconstructor`、`_bilinear`、本文件的
+    cell 索引夹取或权重计算；胞元索引、权重与求值顺序全部按双线性插值的定义另写一遍，
+    并且用的是「先在 `x` 方向线性插值、再在 `y` 方向线性插值」（`lerp(lerp(...))`）的
+    教科书写法，与被测实现「四个角点权重一次加权求和」的写法在**浮点求值顺序**上也不同。
+    对抗复核判定的旧版缺陷正是「oracle 与主实现共用同一个 `Reconstructor` 类、只换
+    `operator=` 字符串」，本函数是该缺陷的直接修复。
+    """
+    g = np.asarray(values, dtype=np.float64)
+    ny, nx = g.shape
+    x0 = (float(dx) - 1.0) / 2.0                      # cell 中心约定（`weight_chain.h`）
+    y0 = (float(dy) - 1.0) / 2.0
+    X, Y = np.meshgrid(np.asarray(xs, dtype=np.float64),
+                       np.asarray(ys, dtype=np.float64), indexing="xy")
+    u = (X - x0) / float(dx)
+    v = (Y - y0) / float(dy)
+    i = np.clip(np.floor(u).astype(np.int64), 0, nx - 2)
+    j = np.clip(np.floor(v).astype(np.int64), 0, ny - 2)
+    tu = np.clip(u - i, 0.0, 1.0)
+    tv = np.clip(v - j, 0.0, 1.0)
+    lo = g[j, i] * (1.0 - tu) + g[j, i + 1] * tu      # x 方向线性插值
+    hi = g[j + 1, i] * (1.0 - tu) + g[j + 1, i + 1] * tu
+    return lo * (1.0 - tv) + hi * tv                  # y 方向线性插值
+
+
+def references_name(func, name: str) -> bool:
+    """**源码级**独立性守卫：函数 `func` 的 AST 里是否引用了名为 `name` 的符号。
+
+    ⚠ **为什么需要它**：两条实现「输出相等」这件事本身**无法**证明它们互相独立 ——
+    把 oracle 换回主实现只会让差变成逐位 0，比较照样绿（对抗复核判定的缺陷 1 正是这种
+    「换 `operator=` 字符串的伪 oracle」）。独立性是**源码属性**而不是数值属性，
+    只能在 AST 层面判。用 `ast` 而不是字符串匹配：docstring 里出现 `Reconstructor` 这个词
+    （本函数就写了「函数体里不出现 `Reconstructor`」）不会误判。
+    """
+    tree = ast.parse(textwrap.dedent(inspect.getsource(func)))
+    fn = tree.body[0]
+    for node in ast.walk(fn):
+        if isinstance(node, ast.Name) and node.id == name:
+            return True
+        if isinstance(node, ast.Attribute) and node.attr == name:
+            return True
+    return False
+
+
+def w_from_layer_pixel_oracle(layer_snr: np.ndarray, f_ref: float, gain: float) -> np.ndarray:
+    """**独立**的逐像素权重装配 —— `weight_chain.h:390-392` 逐字
+    `w(x,y) = (SNR_layer(x,y) / F_ref,k)² · g_k²`。
+
+    ⚠ 逐字遵守同处逐字的禁令：层值已是**绝对** SNR，**不得**再乘/除帧级 SNR
+    （`weight_chain.h:389-391`）。本函数没有帧级 SNR 这个入口 —— 口径错被排除在接口面。
+
+    装配顺序写成 `(gain · layer_snr / F_ref)²`，与主实现的 `(layer_snr / F_ref)² · gain²`
+    在浮点求值顺序上不同；这是**独立实现**的正常形态，不是人为扰动。
+    """
+    num = np.asarray(layer_snr, dtype=np.float64) * float(gain)
+    return (num / float(f_ref)) ** 2
+
 
 @H.test(
     "p4h_pending_cai27_w_independent_bilinear_oracle",
-    intent="【路线 (a) 正本指定】用**独立双线性 oracle** 重建层值，再**独立**算 w，"
-           "与主实现的逐像素 w 对拍——不用 `σ_F := F_ref/SNR_layer`",
-    inputs="8×8 控制层（值域 [1/3, 8]，含不可精确表示值）；逐像素求值；"
-           "该帧自己的 `F_ref,k = 1234.5 ADU`、`g_k = 1.0`；"
-           "oracle = 本文件另写的、逐字照 `PHASE2_UPM.md` §5 `C_f(p) = 双线性(8×8 cell, θ)` 的"
-           "双线性重建器（与被测的样条求值器**不同算子**）",
-    expected="主实现的 w 与独立双线性 oracle 的 w 在 f64 非归约档内一致；"
-             "逐条 `criteria` 见 `source`。**该前提未定**（裁-27），本条不构成裁决",
+    intent="【路线 (a) 正本指定】用**独立双线性 oracle**（本文件另写的 `lerp(lerp(·))` "
+           "实现，函数体内不出现 `Reconstructor`）重建层值，再**独立**算 w，"
+           "与主实现的逐像素 w 对拍——不用 `σ_F := F_ref/SNR_layer`。"
+           + CAI27_NOT_ADJUDICATED,
+    inputs="8×8 非共线控制面 `ctrl_curved(8)`（`10 + 5v + 3u + 2uv + 1.5u²`，含二次项 ⇒ "
+           "两算子不同构）；cell 宽 `dx = dy = 4 px`（⇒ cell 中心偏移 1.5 px 可分辨）；"
+           "在**全域**按 1 px 步长取像素中心坐标（全部落在**非节点**位置，"
+           "在定义域 `[−0.5, 31.5]` 内按 1 px 步长取 **32×32 = 1024 个**像素中心"
+           "（首末各留 0.5 px，避开「最外半个 cell 常数延拓」那一档；"
+           "查询点全部落在**非节点**位置）；"
+           "该帧自己的 `F_ref,k = 1234.5678901234 ADU`、"
+           "`g_k = 1.37`；另备邻帧 `k_photo = 2.8` 供牙齿见证臂配错 `F_ref,k`",
+    expected="①（真判据，覆盖**全域 1024/1024**）独立双线性 oracle 的层值与主实现 "
+             "`bilinear_regular_grid_v1` 的层值在 f64 非归约档（`rtol = 1e-12`）内一致；"
+             "②（真判据，覆盖**全域 1024/1024**）主实现的 `w` 与独立路线"
+             "（独立层值 + 独立权重装配 `w_from_layer_pixel_oracle`）在 f64 非归约档内一致；"
+             "③（牙齿见证）配错 `F_ref,k`（用邻帧的）或按 `weight_chain.h:389-391` "
+             "逐字禁止的方式额外乘帧级 SNR，两条都让 ② 越界 ≫ 门限 ⇒ ② 不是恒绿；"
+             "④跨算子（spline_clip vs 独立双线性）的 `w` 差**只作诊断记录、不做 pass/fail "
+             "对照**（两条不同算子的层值本就不同，构造上不可能一致）。"
+             "**该前提未定**（裁-27），本条不构成裁决",
     source="正本 `weight_chain.h:435-438` 逐字「可用的真判据只有两条："
            "(a) 用独立双线性 oracle 重建层值再独立算 w 的对照实验；(b) 注入实验测得的 σ_F」"
            "——本条走 (a)；`weight_chain.h:390-392` 逐字 "
-           "`w(x,y) = (SNR_layer(x,y)/F_ref,k)²·g_k²`；⚠ 裁-27 未裁决（见 `cai27` 常量）",
+           "`w(x,y) = (SNR_layer(x,y)/F_ref,k)²·g_k²`；同处 :389-391 逐字「**不得**再乘/除"
+           "帧级 SNR」（牙齿见证臂 ③ 的注入取自这一条禁令）；`PHASE2_UPM.md` §5 逐字 "
+           "`C_f(p) = 双线性(8×8 cell, θ)`（独立 oracle 的算法口径）；"
+           "容差 = `tolerances.py` §4 通用档「双精度非归约 `rtol = 1e-12`」，本文件不现编；"
+           + CAI27_NOT_ADJUDICATED,
 )
 def p4h_pending_cai27_w_independent_bilinear_oracle():
-    grid = np.tile(CTRL_PROFILE, (8, 1))
-    f_ref, g_k = 1234.5, 1.0
-    # 主实现：自然样条 clip
-    main = Reconstructor(grid, operator=OP_SPLINE_CLIP)
-    ax = main.axis(0.0, 7.0, 0.25)
-    snr_main = main.field(ax, ax)
-    w_main = (snr_main / f_ref) ** 2 * g_k ** 2
-    # 独立 oracle：另写的双线性重建器（正本 §5 的 C_f 口径），逐像素独立算 w
-    orc = Reconstructor(grid, operator=OP_BILINEAR)
-    snr_orc = orc.field(ax, ax)
-    w_orc = (snr_orc / f_ref) ** 2 * g_k ** 2
-    # 只在两条路线**同值**的像元上比（不同算子本就该不同，见 P4-b）
-    same = np.abs(snr_main - snr_orc) <= 1e-13 * np.max(np.abs(grid))
+    grid = ctrl_curved(8)                       # 非共线面（常量/共线面上两算子同值 ⇒ 恒真）
+    prod = Reconstructor(grid, dx=P4H_DX, dy=P4H_DX, operator=OP_BILINEAR)
+    # 域内均匀采样（首末各留 0.5 px ⇒ 不踩「最外半个 cell 常数延拓」那一档）
+    lo, hi = prod.domain[0] + 0.5, prod.domain[1] - 0.5
+    ax = prod.axis(lo, hi, P4H_STEP_PX)
+    layer_prod = prod.field(ax, ax)                       # 主实现层值（冻结对照算子）
+    layer_orc = bilinear_cell_value_oracle(grid, ax, ax, P4H_DX, P4H_DX)   # 独立 oracle
+    w_main = (layer_prod / P4H_F_REF) ** 2 * P4H_G_K ** 2                # 主实现权重装配
+    w_orc = w_from_layer_pixel_oracle(layer_orc, P4H_F_REF, P4H_G_K)     # 独立权重装配
+
+    scale_l = float(np.max(np.abs(layer_orc)))
+    scale_w = float(np.max(np.abs(w_orc)))
+    n_px = int(layer_prod.size)
+    rel_layer = float(np.max(np.abs(layer_prod - layer_orc))) / scale_l
+    rel_w = float(np.max(np.abs(w_main - w_orc))) / scale_w
+
+    # 牙齿见证 ①：把独立 oracle 的 cell 约定换成角点（`weight_chain.h:158-164` 点名的错法）
+    corner_orc = bilinear_cell_value_oracle(grid, ax + (P4H_DX - 1.0) / 2.0,
+                                            ax + (P4H_DX - 1.0) / 2.0, P4H_DX, P4H_DX)
+    rel_layer_corner = float(np.max(np.abs(layer_prod - corner_orc))) / scale_l
+    # 牙齿见证 ②：配错 `F_ref,k`（用邻帧 `k_photo` 的参考通量）
+    f_ref_neighbour = P4H_F_REF * P4H_K_SELF / P4H_K_NEIGHBOUR
+    rel_w_badref = float(np.max(np.abs(w_main - w_from_layer_pixel_oracle(
+        layer_orc, f_ref_neighbour, P4H_G_K)))) / scale_w
+    # 牙齿见证 ③：按 `weight_chain.h:389-391` 逐字禁止的方式额外乘帧级 SNR
+    snr_frame_forbidden = 7.31
+    rel_w_framesnr = float(np.max(np.abs(
+        (layer_prod * snr_frame_forbidden / P4H_F_REF) ** 2 * P4H_G_K ** 2 - w_orc))) / scale_w
+
+    # 诊断项（**不做 pass/fail 对照**）：跨算子的 w 差。
+    spl = Reconstructor(grid, dx=P4H_DX, dy=P4H_DX, operator=OP_SPLINE_CLIP).field(ax, ax)
+    w_spl = (spl / P4H_F_REF) ** 2 * P4H_G_K ** 2
+    rel_cross_op = float(np.max(np.abs(w_spl - w_orc))) / scale_w
+    bit_same = np.abs(spl - layer_orc) <= 1e-13 * float(np.max(np.abs(grid)))
+    frac_same = float(np.count_nonzero(bit_same)) / float(bit_same.size)
+
     with H.evidence() as ev:
         ev.record("cai27_status", "UNRESOLVED / 未裁决", None, "",
-                  "本条不裁决 `w ≡ 1/σ_F²`")
-        ev.record("pixels_compared", float(np.count_nonzero(same)),
-                  float(same.size), "", "两条路线逐位同值的像元数")
-        ev.record("max|w_main - w_oracle| / max|w|",
-                  float(np.max(np.abs(w_main[same] - w_orc[same]))
-                        / np.max(np.abs(w_orc[same]))),
-                  _base_tol.F64_RTOL, "", "独立 oracle 对拍（路线 a）")
-        rel = float(np.max(np.abs(w_main[same] - w_orc[same]))
-                    / np.max(np.abs(w_orc[same])))
-        H.less_equal(rel, _base_tol.F64_RTOL,
-                     "独立双线性 oracle 重建层值后算出的 w 与主实现不一致")
-        # 位精确检查：同一条 w 公式、同一批输入 ⇒ 逐位相同（只在 same 像元上比，
-        # 否则整表 dump 会把非同值像元的正常算子差异也算进来）
-        n_same = int(np.count_nonzero(same))
-        H.exact(w_main[same].tolist(), w_orc[same].tolist(),
-                f"两条路线在 {n_same} 个同值像元上的 w 必须逐位相同（位精确档）")
+                  "本条不裁决 `w ≡ 1/σ_F²`、不裁决重建量是否随源亮度变")
+        ev.record("独立 oracle 源码级独立性守卫", 0.0, None, "",
+                  "AST 扫描两个 oracle 函数的函数体：不得引用 `Reconstructor` / `_bilinear` / "
+                  "`field` / `np.power`（0 = 未引用 = 独立）。"
+                  "⚠ 这是**必须**的守卫：把 oracle 换回主实现只会让差变逐位 0、比较照样绿 ⇒ "
+                  "独立性无法由数值证明，只能由源码判")
+        ev.record("pixels_compared_layer", float(n_px), None, "",
+                  f"① 独立双线性 oracle 的比较面：**全域 {n_px}/{n_px}**（无掩膜、无子集）")
+        ev.record("max|层值_main − 层值_oracle| / max|层值|", rel_layer,
+                  _base_tol.F64_RTOL, "",
+                  "① 独立代码路径 vs 主实现 `bilinear_regular_grid_v1`（f64 非归约档）")
+        ev.record("pixels_compared_w", float(n_px), None, "",
+                  f"② w 的比较面：**全域 {n_px}/{n_px}**")
+        ev.record("max|w_main − w_oracle| / max|w|", rel_w,
+                  _base_tol.F64_RTOL, "",
+                  "② 主实现权重装配 vs 独立层值 + 独立装配 `w_from_layer_pixel_oracle`")
+        # ① 前置守卫：oracle 必须真的是**独立代码路径**（源码级，见 references_name 的 docstring）
+        for _fn, _nm in ((bilinear_cell_value_oracle, "Reconstructor"),
+                         (bilinear_cell_value_oracle, "_bilinear"),
+                         (bilinear_cell_value_oracle, "field"),
+                         (w_from_layer_pixel_oracle, "Reconstructor"),
+                         (w_from_layer_pixel_oracle, "np.power")):
+            H.is_false(references_name(_fn, _nm),
+                       f"独立 oracle `{_fn.__name__}` 的函数体里引用了 `{_nm}` ⇒ "
+                       "oracle 已经不再是独立代码路径（缺陷 1 的复发）")
+        # ① ② 的判词
+        H.less_equal(rel_layer, _base_tol.F64_RTOL,
+                     "独立双线性 oracle 的层值与主实现不一致（全域）")
+        H.less_equal(rel_w, _base_tol.F64_RTOL,
+                     "独立路线（独立层值 + 独立权重装配）算出的 w 与主实现不一致（全域）")
+        # ③ 牙齿见证：三条注入必须让 ① ② 明显越界 ⇒ 证明它们不是恒绿门
+        H.is_true(rel_layer_corner > _base_tol.F64_RTOL * 1.0e3,
+                  f"牙齿见证①（oracle 用角点约定）只越界 {rel_layer_corner / _base_tol.F64_RTOL:.3g}× "
+                  "⇒ ① 的比较面无法分辨 cell 约定，需复核构造")
+        H.is_true(rel_w_badref > _base_tol.F64_RTOL * 1.0e3,
+                  f"牙齿见证②（配错 F_ref,k）只越界 {rel_w_badref / _base_tol.F64_RTOL:.3g}× "
+                  "⇒ ② 无法分辨 F_ref 配对，需复核构造")
+        H.is_true(rel_w_framesnr > _base_tol.F64_RTOL * 1.0e3,
+                  f"牙齿见证③（额外乘帧级 SNR，weight_chain.h:389-391 逐字禁止）只越界 "
+                  f"{rel_w_framesnr / _base_tol.F64_RTOL:.3g}× ⇒ ② 无法分辨该禁令，需复核构造")
+        ev.record("牙齿见证① oracle 用角点约定时的层值相对差", rel_layer_corner,
+                  _base_tol.F64_RTOL,
+                  f"超界 {rel_layer_corner / _base_tol.F64_RTOL:.3g}×（注入 ⇒ ① 必红）")
+        ev.record("牙齿见证② 配错 F_ref,k（邻帧 k_photo=2.8）时的 w 相对差", rel_w_badref,
+                  _base_tol.F64_RTOL,
+                  f"解析预期 = (2.8/1.0)² = 7.84 减 1 = 6.84；"
+                  f"超界 {rel_w_badref / _base_tol.F64_RTOL:.3g}×（注入 ⇒ ② 必红）")
+        ev.record("牙齿见证③ 额外乘帧级 SNR 时的 w 相对差", rel_w_framesnr,
+                  _base_tol.F64_RTOL,
+                  f"解析预期 = SNR_frame² = {snr_frame_forbidden ** 2:.4g} − 1；"
+                  f"超界 {rel_w_framesnr / _base_tol.F64_RTOL:.3g}×（注入 ⇒ ② 必红）")
+        # ④ 诊断项：跨算子差 —— 只记录，不判红
+        ev.record("【诊断项·不判红】跨算子 max|w_spline − w_双线性| / max|w|",
+                  rel_cross_op, None, "",
+                  "两条**不同**算子的层值本就不同（P4-b 的 `synth.p4.operator_sep_min_rel` "
+                  "是它的真判据）；拿它们做「一致性」对照在构造上不可能绿，"
+                  "故本条不对它做 pass/fail 断言")
+        ev.record("【诊断项·不判红】spline 与独立双线性逐位同值的像元占比",
+                  frac_same, None, "",
+                  "旧版判据的缺陷面：只取这些像元（对抗复核在旧夹具上实测 "
+                  "232/841 = 27.6%）做「逐位相同」断言 ⇒ 同表达式作用于逐位相同输入 "
+                  "⇒ **必然恒真**；本版比较面改为**全域**，且断言用的是有意义的 "
+                  "f64 容差而非逐位相等")
+        ev.record("层值尺度 scale（无量纲 SNR）", scale_l)
+        ev.record("权重尺度 scale（ADU^-2）", scale_w)
 
 
 @H.test(

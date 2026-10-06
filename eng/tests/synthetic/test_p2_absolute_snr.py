@@ -173,6 +173,52 @@ def frame_variance_at_k(f_adu: float, p: np.ndarray, sky_adu: float, k_photo: fl
     return assemble_variance(f_adu, p, sky_adu) / float(k_photo) ** 2
 
 
+def frame_variance_k_scope_misspecified(f_adu: np.ndarray, p: np.ndarray,
+                                        sky_adu: float, k_photo: float) -> np.ndarray:
+    """**缺陷臂**：`k_photo` 只作用在**源散粒项**上，天光/暗流/读噪不随 `k_photo` 缩放。
+
+    ```text
+    var_i(k) = S_sky + DARK + (RN/g)^2 + F*P_i/(g*k^2)
+    ```
+
+    这正是本文件 docstring「⚠ 本层实测踩到并否决的另一种读法」描述的**错建模**：
+    真实帧换了测光标度后 ADU 电平与噪声**一起**变，只缩放源项会让
+    `σ_F^{frame,k}` 不再按 `1/k_photo` 缩放 —— 「整除消去」看起来被推翻，
+    **那不是消去被推翻，是帧的建模错了**。
+
+    它的闭式（可复算，与本函数逐位一致到 1.4e-16）：
+    `SNR_k = F0·sqrt(Σ_i P_i²/(k²·base + S_i))`、
+    `W_k = Σ_i P_i²/(k²·base + S_i)`，其中 `base = S_sky + DARK + (RN/g)²`、
+    `S_i = F·P_i/g`。**跨帧散布在这个错建模下恒不为 0**（源项占比越大越接近
+    `std(k)/mean(k) = 0.41728`）⇒ 它是 P2-a 的 ②③ 判别力来源。
+    """
+    base = (float(sky_adu) + float(DARK_ADU)
+            + (float(READ_NOISE_E) / float(GAIN_E_PER_ADU)) ** 2)
+    src = np.asarray(f_adu, dtype=np.float64) * np.asarray(p, dtype=np.float64) \
+        / (float(GAIN_E_PER_ADU) * float(k_photo) ** 2)
+    return base + src
+
+
+def snr_k_misspecified_closed_form(p: np.ndarray, sky_adu: float,
+                                   f0: float, k_photo: float) -> float:
+    """`frame_variance_k_scope_misspecified` 的 **闭式解析** SNR
+    （闭式与实现逐位一致到 1.4e-16；用作该缺陷臂的**独立**参照量）。
+
+    ```text
+    SNR_k = F0·sqrt(Σ_i P_i²/(k²·base + S_i)),  base = S_sky+DARK+(RN/g)², S_i = F·P_i/g
+    ```
+
+    ⚠ 分子是 **`F0`（公共锚）不是 `F_ref,k`**：`F_ref,k = F0/k` 已经并进 `k²·base` 那一项，
+    写成 `F_ref,k·sqrt(Σ P²/(k²base+S))` 会多带一个 `1/k`。
+    """
+    base = (float(sky_adu) + float(DARK_ADU)
+            + (float(READ_NOISE_E) / float(GAIN_E_PER_ADU)) ** 2)
+    s_i = np.asarray(p, dtype=np.float64) * float(F_SRC_ADU) / float(GAIN_E_PER_ADU)
+    k = float(k_photo)
+    return float(f0) * math.sqrt(float(np.sum(
+        np.asarray(p, dtype=np.float64) ** 2 / (k * k * base + s_i))))
+
+
 def f_ref(k_photo: float, f0: float) -> float:
     """参考通量 `F_ref,k = F0 / k_photo,k`（NOISE_SNR.md §3.3:267 逐字）。"""
     return float(f0) / float(k_photo)
@@ -256,21 +302,35 @@ def _exceeds(actual: float, limit: float, what: str, tol_key: str) -> None:
            "`σ_F^{sys,k} = k_photo,k·σ_F^{frame,k}` ⇒ `k_photo` 在 "
            "`SNR = F_ref,k/σ_F^{frame,k} = F0/σ_F^{sys,k}` 中**整除消去** ⇒ SNR 对测光标度"
            "**无条件不变**（正本 :278 逐字「跨帧可比性是这条代数恒等式的推论，"
-           "不依赖任何附加假设」）。⚠ 单独判「两条写法同值」是**同源恒等**（恒真），"
-           "因此本条真正的牙在**第二个不同口径的参照量**：定种子蒙特卡洛实测的通量散度 "
-           "`σ̂(F̂)` 对上闭式 `1/Σ_k W_k`。",
-    inputs="6 帧 `k_photo ∈ {0.8, 1.0, 1.35, 1.7, 2.1, 2.8}`（3.5 倍跨度），"
-           "每帧的 ADU 读数与噪声同步缩放（见 docstring 的「k_photo 的物理解释」）；"
+           "不依赖任何附加假设）。"
+           "⚠⚠ **本条的三条恒真/夹具恒等必须逐条标明（A/C 类，TAUTOLOGY_REGISTER §0）**："
+           "①「两条代数写法同值」是**同源恒等**；"
+           "②「跨帧 SNR 散布 ≤ 1e-12」与 ③「逐帧 `W_k` 散布 ≤ 1e-12」在**给定夹具 "
+           "`frame_variance_at_k`（把整个方差面除 `k²`）下是构造级恒真**——"
+           "`σ_F^{frame,k} ≡ σ_F^{frame,1}/k` 逐位成立 ⇒ `SNR_k ≡ F0/σ_F^{frame,1}`、"
+           "`W_k ≡ 常数`，**任何输入都不能让它们变红**。"
+           "⇒ 本条据此重写：②③ 改成**作用域敏感性**双臂判据（绿臂 = 同步缩放 ⇒ 散布 ≤ "
+           "f64 非归约档；红臂 = `k_photo` 只作用于源散粒项的错建模 ⇒ 散布必须越出冻结下界 "
+           "`chain.a.p2.kscope_spread_min`，并与闭式解析对拍）。判别力在红臂与 ④。",
+    inputs="6 帧 `k_photo ∈ {0.8, 1.0, 1.35, 1.7, 2.1, 2.8}`（3.5 倍跨度）、"
+           "`S_sky = 1e4 ADU/px`、400 像元 PSF；绿臂 = ADU 读数与噪声**同步**缩放"
+           "（见 docstring 的「k_photo 的物理解释」）；"
+           "红臂（错建模）= `k_photo` **只作用在源散粒项**、天光/暗流/读噪不缩放；"
            "R = 200 次定种子重复",
-    expected="①每帧的 `F_ref/σ_F^{frame}` 与 `F0/σ_F^{sys}` 在 f64 非归约档一致；"
-             "②逐帧 `SNR` 的相对散布 ≤ 1e-12（整除消去 ⇒ 跨帧相同）；"
-             "③`W_k` 对 `k_photo` 逐帧相同；④并合 GLS 的 `σ̂(F̂)` 与 `√(1/Σ_k W_k)` "
-             "相对偏差 ≤ 1.1e-1（**第二个不同口径的参照量**，判别力在此）",
+    expected="①每帧的 `F_ref/σ_F^{frame}` 与 `F0/σ_F^{sys}` 在 f64 非归约档一致"
+             "（**同源恒等的对照臂**，不承担判别力）；"
+             "②绿臂：同步缩放下逐帧 `SNR` 相对散布 ≤ 1e-12、`W_k` 散布 ≤ 1e-12"
+             "（**夹具构造级恒真**，已标注）；"
+             "③红臂（判别力）：错建模下两个散布都 **≥ 1e-1**，且逐帧 `SNR` 与闭式 "
+             "`F0·√(ΣP²/(k²·base+S_i))` 相对一致到 1e-12；"
+             "④并合 GLS 的 `σ̂(F̂)` 与 `√(1/Σ_k W_k)` 相对偏差 ≤ 1.1e-1"
+             "（**第二个不同口径的参照量**）",
     source="正本条款 docs/science/noise_snr/NOISE_SNR.md §3.3(:267,:270,:273-278) 与 "
            "§3.4(:343-351)（统一线性模型 `d_k = (1/k_photo,k)·F_sys,k·P_k + n_k`、`Q_k`、"
            "`W_k`、`F_hat = sum_k Q_k / sum_k W_k`、`Var(F_hat) = 1/sum_k W_k`）；"
            "统计口径分位数法见骨架表 synth.mc.method；"
-           "冻结容差 chain.a.p2.information_rel（③ 另用骨架表 F64_RTOL = 1e-12 通用档）",
+           "冻结容差 chain.a.p2.information_rel（② 绿臂用骨架表 F64_RTOL = 1e-12 通用档；"
+           "**③ 红臂用新增冻结 chain.a.p2.kscope_spread_min**）",
     criteria=["P2-a", "P2-f"],
 )
 def p2_a_kphoto_cancels():
@@ -291,19 +351,65 @@ def p2_a_kphoto_cancels():
             snrs.append(a)
             snr_sys.append(b)
         H.less_equal(worst_two, F64_RTOL,
-                     "两条代数写法的相对差（同源恒等的辅助断言，见 docstring 的黑名单）")
+                     "两条代数写法的相对差（同源恒等的对照臂，见 docstring 的标注）")
         spread = float(np.std(snrs) / np.mean(snrs))
         H.less_equal(spread, F64_RTOL,
-                     "整除消去 ⇒ 跨帧 SNR 逐帧相同（相对散布必须 ≤ f64 非归约档）")
+                     "整除消去 ⇒ 跨帧 SNR 逐帧相同（绿臂：夹具构造级恒真，已标注）")
         w_spread = float(np.std(ws) / np.mean(ws))
         H.less_equal(w_spread, F64_RTOL,
-                     "纯测光标度重标定不改变信息量 ⇒ `W_k` 逐帧相同")
-        ev.record("两条代数写法的最大相对差", worst_two, F64_RTOL,
-                  note="恒真型对照：它是同源恒等，不是判据的牙")
-        ev.record("跨帧 SNR 相对散布", spread, F64_RTOL,
-                  note=f"k_photo 跨度 {max(K_PHOTO_SET) / min(K_PHOTO_SET):.2f}× 下的读数")
-        ev.record("逐帧 W_k 相对散布", w_spread, F64_RTOL, note="参照：1/σ_F^{sys,2}")
-        ev.record("SNR（k_photo=1 档）", snrs[K_PHOTO_SET.index(1.0)])
+                     "纯测光标度重标定不改变信息量 ⇒ `W_k` 逐帧相同（绿臂：同上）")
+
+        # ---- 红臂（判别力）：`k_photo` 的**作用域**错建模 -------------------------
+        # 绿臂之所以恒真，是因为夹具把整个方差面除 `k²`。一旦 `k_photo` 只作用在源散粒项
+        # （天光/暗流/读噪不缩放），`σ_F^{frame,k}` 不再按 `1/k_photo` 缩放，
+        # 跨帧散布立刻张开 ⇒ 这才是 ②③ 的牙。
+        kscope = A.get("chain.a.p2.kscope_spread_min")
+        snrs_bad, ws_bad = [], []
+        for k in K_PHOTO_SET:
+            vb = frame_variance_k_scope_misspecified(F_SRC_ADU, p, sky, k)
+            sfb = sigma_F_frame(p, vb)
+            snrs_bad.append(snr_frame(f_ref(k, f0), sfb))
+            ws_bad.append(frame_weight(p, vb, k))
+        spread_bad = float(np.std(snrs_bad) / np.mean(snrs_bad))
+        w_spread_bad = float(np.std(ws_bad) / np.mean(ws_bad))
+        # 闭式解析对拍（独立于 `frame_variance_k_scope_misspecified` 的实现路径）
+        snrs_cf = [snr_k_misspecified_closed_form(p, sky, f0, k)
+                   for k in K_PHOTO_SET]
+        cf_rel = float(np.max(np.abs(np.array(snrs_cf) - np.array(snrs_bad)))
+                       / np.max(np.abs(np.array(snrs_bad))))
+
+        H.is_true(spread_bad >= float(kscope.value),
+                  f"红臂：`k_photo` 只作用于源散粒项时跨帧 SNR 散布 {spread_bad:.4f} "
+                  f"未达冻结下界 {float(kscope.value)} ⇒ 该判据对作用域错建模无判别力")
+        H.is_true(w_spread_bad >= float(kscope.value),
+                  f"红臂：同一错建模下 `W_k` 散布 {w_spread_bad:.4f} "
+                  f"未达冻结下界 {float(kscope.value)} ⇒ 无判别力")
+        H.less_equal(cf_rel, F64_RTOL,
+                     "红臂 SNR 与闭式 `F0·√(ΣP²/(k²·base+S_i))` 不一致（闭式参照量）")
+
+        ev.record("①两条代数写法的最大相对差", worst_two, F64_RTOL,
+                  note="**A 类恒真对照**：同源恒等，不承担判别力")
+        ev.record("②绿臂 跨帧 SNR 相对散布", spread, F64_RTOL,
+                  note="**A 类夹具恒等**：`frame_variance_at_k` 把整个方差面除 k² ⇒ "
+                       f"σ_F^{{frame,k}} ≡ σ_F^{{frame,1}}/k 逐位成立；"
+                       f"k_photo 跨度 {max(K_PHOTO_SET) / min(K_PHOTO_SET):.2f}× 下的读数")
+        ev.record("②绿臂 逐帧 W_k 相对散布", w_spread, F64_RTOL,
+                  note="**A 类夹具恒等**：同上；参照量 1/σ_F^{sys,2}")
+        ev.record("③红臂 跨帧 SNR 相对散布（作用域错建模）", spread_bad,
+                  float(kscope.value),
+                  note=f"**判别力读数**：超界 {spread_bad / float(kscope.value):.3g}×；"
+                       f"极限 std(k)/mean(k) = "
+                       f"{float(np.std(np.array(K_PHOTO_SET)) / np.mean(K_PHOTO_SET)):.4f}")
+        ev.record("③红臂 逐帧 W_k 相对散布（作用域错建模）", w_spread_bad,
+                  float(kscope.value),
+                  note=f"**判别力读数**：超界 {w_spread_bad / float(kscope.value):.3g}×")
+        ev.record("③红臂 SNR vs 闭式解析的最大相对差", cf_rel, F64_RTOL,
+                  note="闭式 `SNR_k = F0·√(Σ_i P_i²/(k²·base + S_i))`，"
+                       "`base = S_sky + DARK + (RN/g)²`、`S_i = F·P_i/g`")
+        ev.record("③红臂逐帧 SNR（错建模）", float(snrs_bad[0]), None, "",
+                  note="k = 0.8 档；同族读数 " +
+                       ", ".join(f"{s:.4f}" for s in snrs_bad))
+        ev.record("SNR（k_photo=1 档，正确建模）", snrs[K_PHOTO_SET.index(1.0)])
 
         # 第二个不同口径的参照量：蒙特卡洛实测通量散度
         rng = _kit.make_rng(777)
@@ -590,50 +696,104 @@ def p2_neg_sky_in_numerator():
                   note="> 1 即「随天光上升」，与信噪比定义相反")
 
 
+#: 读噪主导子域的天光档（ADU/px）。⚠ **为什么不是 `p2-a` 用的 1e4**：
+#: `(RN/g)²` 在解析方差里的占比随天光**下降**；在 1e4 ADU/px 档上它只占 2.8%，
+#: 双重计数的 σ 相对高估被 P² 加权稀释到 1.1% —— 门限 1e-1 根本走不到。
+#: 本负例取**读噪 + 暗流主导**的子域（S_sky = 1e2 ADU/px ⇒ 占比 ≈ 70%），
+#: 这也正是双重计数危害最大的域（正本 :293「会高估通量不确定度」在该域最重）。
+VAR_SKY_ADU_DOUBLE_COUNT = 1.0e2
+
+
 @H.test(
     "p2-neg-variance-double-count",
-    intent="负例：把「已含读噪的经验总均方根」**再叠加** `(RN/g)²`"
-           "（NOISE_SNR.md §3.3(:293) 逐字点名的「双重计数，会高估通量不确定度」）。"
-           "断言独立判据（实测方差 / 解析方差之比）越出冻结下界 `1.02`。",
-    inputs="`F_src = 1e4 ADU`、`S_sky = 1e4 ADU/px`、`RN = 25 e⁻`、`g = 1.5`；"
-           "400 像元 × 64 次定种子采样；缺陷 = 解析方差再加 `(RN/g)²`",
-    expected="正确组装：比值落在 ±20% 内（负例的绿读数）；双重计数：比值越出 1.02，"
-             "超界量 = `(RN/g)²/解析方差` 的解析值",
-    source="正本条款 docs/science/noise_snr/NOISE_SNR.md §3.3(:285,:291-293) 逐字"
-           "（`empirical_total_rms`「**不再叠加** `(RN/g)²`」；「把含读噪的经验总均方根填进"
-           "散粒项、又在增益可用时叠加读噪项，是**双重计数**，会高估通量不确定度」）；"
+    intent="负例：把「已含读噪的**经验总均方根**」**再叠加** `(RN/g)²`"
+           "（NOISE_SNR.md §3.3(:291-293) 逐字点名的「双重计数，会高估通量不确定度」）。"
+           "⚠ **两侧读数都来自定种子蒙特卡洛实测**：缺陷侧的被比较量是"
+           "「MC 实测的经验总方差」与「该实测值再加一次 `(RN/g)²`」之比，"
+           "**不是**由夹具字面量算出的解析量（对抗复核判定的缺陷 4：旧版 `over` 完全由 "
+           "`S_sky`/`RN`/`g` 算出，函数里的 MC 只用来守绿臂 ⇒ 负例钉在夹具选值上、不钉在实现上）。"
+           "判据 = 逐像素方差的相对高估越出冻结下界 `chain.a.p2.var_double_count_min`。",
+    inputs="`F_src = 1e4 ADU`、**`S_sky = 1e2 ADU/px`（读噪 + 暗流主导子域，见上方常量说明）**、"
+           "`RN = 25 e⁻`、`g = 1.5`、`DARK = 20 ADU/px`；400 像元 × 64 次定种子采样，"
+           "采样在**电子域**做：`n_e = Poisson(λ_i·g²) + N(0, RN²)`、"
+           "`λ_i = S_sky + DARK + F_src·P_i`；"
+           "缺陷 = 把 MC 实测的 `Var(n_e)/g²`（已含读噪）再加 `(RN/g)²`",
+    expected="①（绿臂）`median(实测经验总方差 / 解析总方差)` 落在 `±20%` 内"
+             "（`synth.mc.var_ratio_ci95`）⇒ 实测确实代表「已含读噪」的经验总均方根；"
+             "②（缺陷臂，`over`）`median(缺陷方差/实测方差 − 1)` 越出冻结下界 1e-1"
+             "（读数 ≈ 0.71 ⇒ 余量 ≈ 7×）；"
+             "③（支撑读数，只落盘）由同一份实测导出的 `σ_F` 相对高估与 `W` 相对亏损",
+    source="正本条款 docs/science/noise_snr/NOISE_SNR.md §3.3(:285,:290-293) 逐字"
+           "（`sigma_i^2 = sigma_sky^2 + (RN/g)^2 + F * P_i / g`；`empirical_total_rms`"
+           "「是经验总均方根、已含读噪噪声，此时**不再叠加** `(RN/g)^2`」；"
+           "「把含读噪的经验总均方根填进散粒项、又在增益可用时叠加读噪项，是**双重计数**，"
+           "会高估通量不确定度」）；统计口径：分位数法 `synth.mc.method`、"
+           "`synth.mc.var_ratio_ci95`（绿臂）、`synth.mc.replicates`；"
            "冻结容差 chain.a.p2.var_double_count_min",
     criteria=["P2-c"],
     kind=H.NEGATIVE,
-    inject="在已含读噪的方差面上再叠加一次 `(RN/g)²`（双重计数）",
+    inject="把「已含读噪的经验总均方根」当作散粒项，再在增益可用时**叠加一次** `(RN/g)²`"
+           "（双重计数）",
     defect_id="P2-NEG-VAR-DOUBLE-COUNT",
 )
 def p2_neg_variance_double_count():
     with H.evidence() as ev:
         c = A.get("chain.a.p2.var_double_count_min")
         p = gauss_profile(VAR_N_PX, FWHM_PX)
+        rn2_adu = (READ_NOISE_E / GAIN_E_PER_ADU) ** 2
+        # 电子域采样：泊松（光子）+ 读噪高斯。**这条采样就是「经验总均方根」的真实来源**，
+        # 它在物理上已经含读噪 ⇒ 后续任何再加一次 `(RN/g)²` 的实现都是双重计数。
         rng = _kit.make_rng(4242)
-        var_ok = assemble_variance(F_SRC_ADU, p, 1.0e3)
-        var_true = var_ok.copy()
-        analytic = float((READ_NOISE_E / GAIN_E_PER_ADU) ** 2 / np.median(var_ok))
-        var_bad = var_ok + (READ_NOISE_E / GAIN_E_PER_ADU) ** 2
-        n_e = rng.poisson((var_true * GAIN_E_PER_ADU ** 2)[None, :],
-                          size=(VAR_N_DRAW, VAR_N_PX)).astype(np.float64)
-        meas = np.var(n_e, axis=0, ddof=1) / GAIN_E_PER_ADU ** 2
-        r_ok = float(np.median(meas / var_true))
+        lam_adu = (VAR_SKY_ADU_DOUBLE_COUNT + DARK_ADU
+                   + F_SRC_ADU * p)                     # 每像元平均入射（ADU）
+        n_e = (rng.poisson(lam_adu[None, :] * GAIN_E_PER_ADU ** 2,
+                           size=(VAR_N_DRAW, VAR_N_PX))
+               + rng.normal(0.0, READ_NOISE_E, size=(VAR_N_DRAW, VAR_N_PX)))
+        var_emp = np.var(n_e, axis=0, ddof=1) / GAIN_E_PER_ADU ** 2   # **实测**经验总方差
+        var_analytic_total = lam_adu + rn2_adu                        # 解析总方差（含读噪）
+
+        # ---- 绿臂：实测确实等于「已含读噪」的经验总均方根 --------------------------
+        r_ok = float(np.median(var_emp / var_analytic_total))
         H.less_equal(abs(r_ok - 1.0), float(tol.get("synth.mc.var_ratio_ci95").value),
-                     "未注入时 实测方差/解析方差 必须落在统计散布内（负例的绿读数）")
-        # 判据量 = **解析方差相对真值的相对高估**（双重计数的直接后果）
-        over = float(np.max(var_bad / var_true - 1.0))
-        _exceeds(over, float(c.value), "双重计数造成的方差相对高估",
+                     "实测经验总方差 / 解析总方差 必须落在统计散布内"
+                     "（否则「var_emp 已含读噪」这个前提不成立）")
+        # ---- 缺陷臂：两侧读数都来自同一份**实测** ---------------------------------
+        var_bad = var_emp + rn2_adu                   # 缺陷实现：再加一次 (RN/g)²
+        over = float(np.median(var_bad / var_emp - 1.0))
+        _exceeds(over, float(c.value), "双重计数造成的逐像素方差相对高估（实测基准）",
                  "chain.a.p2.var_double_count_min")
-        ev.record("注入前 中位(实测/解析)", r_ok, note="正确组装：比值 1 附近")
-        ev.record("注入后 max(解析/真值 − 1)", over, c.value,
-                  note=f"解析预期 = (RN/g)²/var = {analytic:.6f}；"
-                       f"超界 {over / float(c.value):.4g}×")
-        ev.record("(RN/g)²/解析方差", analytic,
-                  note="冻结门限 1e-1 取在「(RN/g)² 必须占解析方差 10% 以上」⇒ "
-                       "S_sky ≤ 2.5e3 ADU/px（本夹具取 1e3）")
+        # 支撑读数：由同一份实测导出的 σ_F 高估与 W 亏损（只落盘，不作门限）
+        sf_ok = sigma_F_frame(p, var_emp)
+        sf_bad = sigma_F_frame(p, var_bad)
+        sigma_over = float(sf_bad / sf_ok - 1.0)
+        w_ok = float(np.sum(p ** 2 / var_emp))
+        w_bad = float(np.sum(p ** 2 / var_bad))
+        w_drop = float(w_ok / w_bad - 1.0)
+        share_meas = float(np.median(rn2_adu / var_emp))
+
+        ev.record("①绿臂 中位(实测经验总方差 / 解析总方差)", r_ok,
+                  tol.get("synth.mc.var_ratio_ci95").value,
+                  note=f"S_sky = {VAR_SKY_ADU_DOUBLE_COUNT:.0e} ADU/px；"
+                       f"{VAR_N_DRAW}×{VAR_N_PX} 定种子采样；"
+                       "解析总方差含 `(RN/g)²`，实测值来自电子域 Poisson+高斯采样")
+        ev.record("②缺陷臂 中位(缺陷方差/实测方差 − 1)", over, float(c.value),
+                  note=f"**判别力读数**：超界 {over / float(c.value):.4g}×；"
+                       "两侧（缺陷/实测）都来自同一份 MC 实测，"
+                       "不再是由 `S_sky`/`RN`/`g` 字面量算出的解析量")
+        ev.record("②支撑读数 (RN/g)² / 实测经验总方差（中位）", share_meas,
+                  note=f"理论 = (RN/g)²/median(λ+(RN/g)²) = "
+                       f"{rn2_adu / float(np.median(var_analytic_total)):.4f}；"
+                       "两臂之差只来自实测散度的蒙特卡洛噪声")
+        ev.record("③支撑读数 σ_F 相对高估（不由同一份实测导出）", sigma_over, None, "",
+                  note="**不作门限**：`σ_F = (ΣP²/σ_i²)^{1/2}` 按 P² 加权，"
+                       "中心像元的源项把读噪占比压低 ⇒ σ 层面的高估被稀释到门限以下。"
+                       "正本 :293 的「高估通量不确定度」的直接后果在**方差面**上，"
+                       "故门限挂在方差上")
+        ev.record("③支撑读数 W = ΣP²/σ_i² 的相对亏损", w_drop, None, "",
+                  note="同一份实测；`Var(F̂) = 1/Σ_k W_k` ⇒ W 亏损等效于通量方差高估")
+        ev.record("λ（每像元平均入射）范围 [min, max]", float(lam_adu.min()),
+                  note=f"max = {lam_adu.max():.4f} ADU/px；`(RN/g)²` = {rn2_adu:.4f} ADU²")
+
 
 
 @H.test(

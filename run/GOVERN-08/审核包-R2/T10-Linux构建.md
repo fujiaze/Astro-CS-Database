@@ -1,9 +1,13 @@
 # T10 之一：Linux 平台全量构建，零编译警告
 
-基线：仓库 `/workspace/Astro CS Database`，HEAD `10e84432a402fbd131cbc37cb06e299b96072015`。
-判据：`run/GOVERN-08/工作包-RECTIFY-09原件/standards/07_DYNAMIC_RUNTIME_AND_BUILD.md` §2、§3（逐字引用见下）。
+基线：仓库 `/workspace/Astro CS Database`，本单开工时 HEAD = `10e84432a402fbd131cbc37cb06e299b96072015`。
+判据：`run/GOVERN-08/工作包-RECTIFY-09原件/standards/07_DYNAMIC_RUNTIME_AND_BUILD.md` §2（双平台构建）、§3:29（构建产物结构）、§1:5-12（动态运行）。
 
-**一句话结论**：Linux 全量构建通过，编译警告实测为零（完整检索命令与输出见 §3）；但这个「零」只在**当前旗标覆盖面**下成立 —— 55 个 target 中有 **33 个从未接受过任何告警检查**，本单已如实登记（§5）。为消除警告共改 **4 处**（全部为同一缺陷类），**行为零变化**（逐条论证见 §4）。登记缺陷 **12 条**（§5），其中 **3 条是真实功能缺陷**而非告警问题。
+⚠️ **行号引用约定**：本文中「§N:M」= 该标准的第 N 节第 M 行。经复核修正：产物结构要求在 **§3:29**（不在 §2），引用已全量改正。
+
+**一句话结论**：Linux 全量构建通过，编译警告实测为零（完整检索命令与输出见 §3）；但这个「零」只在**当前旗标覆盖面**下成立 —— 55 个 target 中有 **33 个从未接受过任何告警检查**，本单已如实登记（§5）。为消除警告共改 **4 处**（全部为同一缺陷类），**行为零变化**（逐条论证见 §4）。登记缺陷 **13 条**（§5），其中 **4 条是真实功能缺陷**而非告警问题。
+
+⚠️ **基线漂移**：本单执行期间前台已把 HEAD 推进到 `1ef0849c`（Windows 侧车道提交），且该提交**已吸收本单的 4 处修复**。本单全部数据仍以派单指定的 `10e84432` 为基线；§5.1 D13 的 Clang 缺陷已额外在 `1ef0849c` 上复测，**仍然存在**。
 
 ---
 
@@ -55,13 +59,18 @@ avx avx2 fma
 ### 1.3 构建命令（逐字可复跑）
 
 ```bash
-# 导出 HEAD 的纯净快照（只读 git 操作，不触碰仓库历史与索引）
+# ── 步骤 1：导出 HEAD 的纯净快照（只读 git 操作，不触碰仓库历史与索引）──
 mkdir -p /tmp/acsd-t10/pristine
 cd "/workspace/Astro CS Database"
 git archive HEAD | tar -x -C /tmp/acsd-t10/pristine
 cp -a .git /tmp/acsd-t10/pristine/.git     # CMake 对非 git 树 fail-closed（CMakeLists.txt:79-89）
 
-# 配置 + 构建（二进制目录在仓库外）
+# ── 步骤 2：施加本单的 4 处修复（§4）──
+# ⚠️ 这一步不可省略：快照 = HEAD + 本单补丁，不是裸 HEAD。
+#    裸 HEAD 的构建结果见 §3.1（恰好 1 条 -Wclass-memaccess）。
+#    施加后核验：git -C /tmp/acsd-t10/pristine status --porcelain 应只列 3 个文件。
+
+# ── 步骤 3：配置 + 构建（二进制目录在仓库外）──
 cmake -S /tmp/acsd-t10/pristine -B /tmp/acsd-t10/pristine-build \
       -G "Unix Makefiles" -DCMAKE_BUILD_TYPE=Release
 cd /tmp/acsd-t10/pristine-build && make -j16 > /tmp/acsd-t10/pristine-build.log 2>&1
@@ -417,9 +426,9 @@ gaia_client.c:1748: warning: ignoring '#pragma omp atomic'
 
 ### 5.3 规范符合性缺陷
 
-**D7 — 发行目录缺 `config` 与滤镜库（§2:29 明文要求）**
+**D7 — 发行目录缺 `config` 与滤镜库（§3:29 明文要求）**
 
-§2:29 要求「构建产物结构符合发行目录：可执行 + 动态库 + schemas + **config** + 滤镜库」。实测 §2.3 的安装树：
+§3:29 要求「构建产物结构符合发行目录：可执行 + 动态库 + schemas + **config** + 滤镜库」。实测 §2.3 的安装树：
 
 ```
 $ [ -d /tmp/acsd-t10/install/config ] && echo YES || echo NO
@@ -460,7 +469,7 @@ $ find /tmp/acsd-t10/install -name 'filters.json' | wc -l
 | 2 | 「自有生产: core/common/phase2/phase3/cpu/**CLI** 全量 `-Wall -Wextra -Wpedantic -Wconversion`」 | `CMakeLists.txt:1346` | CLI 侧三个 target 全部无旗标：`acsd_cli_runtime`、`acsd_module_adapters`（D1 顺序 bug）、`acsd_cli_process`。 |
 | 3 | 「少一个 target 就等于悄悄放松了 `-Wconversion` 的覆盖面」被当作**已生效的防线** | `CMakeLists.txt:1352-1353` | 这条防线自身因声明顺序漏掉 2 个 target（D1）。注释描述的风险正是它自己造成的。 |
 | 4 | `CODE.md:112`「警告策略：`-Wall -Wextra` first-party 无新增警告」在 Linux 控制节点**成立** | `docs/engineering/standards/CODE.md:112` | 55 个 target 中 28 个连 `-W*` 都没有、5 个被 `-w` 静默；`CODE.md` 未把 `-Werror` 列为 MUST，但配合 33/55 的零覆盖面，「无新增警告」在 Linux 侧**无任何机器抓手**。 |
-| 5 | §2:29「构建产物结构符合发行目录：可执行 + 动态库 + schemas + config + 滤镜库」**已满足** | `standards/07_DYNAMIC_RUNTIME_AND_BUILD.md:29` | 实测安装树无 `config/` 目录、无 `filters.json`（D7）。 |
+| 5 | §3:29「构建产物结构符合发行目录：可执行 + 动态库 + schemas + config + 滤镜库」**已满足** | `standards/07_DYNAMIC_RUNTIME_AND_BUILD.md:29` | 实测安装树无 `config/` 目录、无 `filters.json`（D7）。 |
 | 6 | §2:23「计算核按指令集分别编译动态库，调度器运行时选取」**已端到端满足** | `standards/07_DYNAMIC_RUNTIME_AND_BUILD.md:23` | 构建产物层面满足（三族核 + 真 ymm/zmm 差异化）；执行路径层面不满足（D10：kernel 表未接入 pipeline）。 |
 | 7 | `BUILD_NODES.md:28`「全仓无全域告警屏蔽」⇒ 告警口径是干净的 | `docs/engineering/build/BUILD_NODES.md:28` | 全局屏蔽确实没有，但 5 个 target 整 target `-w`（D5），其中 3 个连带静默 65 个本项目编译单元 —— 属「目标级降级」而非「全域屏蔽」，措辞成立而实质有洞。 |
 
@@ -516,7 +525,7 @@ $ find /tmp/acsd-t10/install -name 'filters.json' | wc -l
 2. **D2**：`acsd_p1_ipv` 接 `-fopenmp` —— 涉及行为变更（并行化生效），须评估数值影响后再动。
 3. **D4/D5**：33 个 target 的告警覆盖面 —— 按「先产品件、后内部件」分批，每批配 `-Werror` 防回退。
 4. **D6**：给 CI 加 `-Werror`（T12 的活），让上述修复不被静默回退。
-5. **D7**：补 `config/` 与滤镜库的 install 规则，或修订 §2:29。
+5. **D7**：补 `config/` 与滤镜库的 install 规则，或修订 §3:29。
 6. **D9/D10**：三核等价性判据程序与 kernel 表接线 —— 决定 §2:23/§2:24 是形式满足还是实质满足。
 
 ---

@@ -298,7 +298,33 @@ P1_Q_PERM_CORR_Q95 = Frozen(
     "判据写成「实测 |corr(Δr, r0)| > 置换分布 q95」。0.95 是分位法口径 `synth.mc.method` 的标准档",
     "⚠ **这是否定「比值」读数不是放弃判据**：效应的来源（`Δr` 与 `r0` 的相关性）由相关系数"
     "直接量化，「比值向 1 回落」的**定性**结论仍以 `chain.a.p1.q_sigma_rise_min` + 置换后"
-    "相关系数归零两条一并承载。换 N（星数）必须同时回填本键。",
+    "相关系数归零两条一并承载。换 N（星数）必须同时回填本键。"
+    "⚠ **本键只判位置、不判强度**：判「注入后统计量落回零分布带内」用的是"
+    "「零分布的某个分位数 vs 被检验量」这一构造；把零分布换成任意同分布抽样，"
+    "「median(200) ≤ q95(400)」仍然恒成立 ⇒ **只这么判没有证据资格**。"
+    "判别力由 `chain.a.p1.q_corr_dec_sep_min` 的**分离度**承担。",
+)
+
+P1_Q_CORR_DEC_SEP_MIN = Frozen(
+    "chain.a.p1.q_corr_dec_sep_min", 0.25,
+    "无量纲；`|corr(r0, Δr)|` 在「相关臂 − 解耦臂」上的**分离度**，"
+    "解耦臂 = 一次冻结种子的独立置换读数。域 0–1；n = 40 颗星",
+    "科学推导（两侧各自有闭式，差即门限）："
+    "①**相关臂下界**：`Δr_i = log10(F_syn^Q/F_syn^1)` 是恒星温度的光滑函数、"
+    "`C_i = log10(F_red/F_blue)` 也是 ⇒ `Δr = β_q·C + ε`（ε = 非线性残差），"
+    "`r0 = β·C + η`（`η ~ N(0, σ_n)`）。`corr(Δr, r0) = β_q σ_C²/(σ_Δr σ_r0)`；"
+    "在 `σ_ε ≪ |β_q| σ_C` 的成立域内 `|corr| → σ_C/σ_r0 = 1/√(β² + (σ_n/σ_C)²)`。"
+    "冻结输入 β = 2.0e-2 dex、σ_n = 2.0e-5 dex、σ_C = 0.2889 dex ⇒ "
+    "`1/√(4.0e-4 + 4.79e-9) = 49.9997` ⇒ 相关臂 `|corr| ≥ 0.99`（上截到 1）。"
+    "②**解耦臂中心**：`Δr` 与 `r0` 独立时 `t = r√((n−2)/(1−r²)) ~ t_{n−2}`，"
+    "`E|r| ≈ √(2/(π(n−2)))`；n = 40 ⇒ `√(2/(38π)) = 0.12943`。"
+    "⇒ **必需分离度** = `0.99 − 0.12943 = 0.8606`。"
+    "**冻结 0.25**（比推导宽 3.4 倍，只放宽不收紧）",
+    "**本键是负例的判别力来源**（`p1-neg-q-differenced-shape` 的头条断言）："
+    "它把「注入前后统计量的**落差**」与一条**与零分布无关**的冻结门限比，"
+    "因此判红与否取决于注入是否真的把配对拆开，而不取决于阶统计关系。"
+    "把注入关掉（解耦臂 = 相关臂）该数**逐位为 0** ⇒ 必红。"
+    "⚠ **换 N（星数）必须同时回填本键**：② 的 `√(2/(π(n−2)))` 与 ① 的 `σ_C/σ_r0` 都含 n。",
 )
 
 P1_MATCHED_Q_SIGMA = Frozen(
@@ -437,12 +463,52 @@ P2_VAR_DOUBLE_COUNT_MIN = Frozen(
     "`sigma_i^2 = sigma_sky^2 + (RN/g)^2 + F * P_i / g`，并逐字「`empirical_total_rms`："
     "是经验总均方根、已含读噪噪声，此时**不再叠加** `(RN/g)^2`」＋「声明与实际来源不一致时"
     "显式失败。把含读噪的经验总均方根填进散粒项、又在增益可用时叠加读噪项，是**双重计数**，"
-    "会高估通量不确定度」。推导：双重计数使解析方差多出 `(RN/g)²` ⇒ 相对高估 = "
-    "`(RN/g)²/σ_i²`。冻结输入 `RN = 25 e⁻`、`g = 1.5` ⇒ `(RN/g)² = 277.78 ADU²`。"
-    "⇒ 门限取 **10%** ⇒ 要求 `(RN/g)²` 占解析方差 ≥ 10% ⇒ "
-    "`σ_i² ≲ 2778 ADU²` ⇒ 天光档必须 `S_sky ≲ 2.5e3 ADU/px`（本夹具取 1e3 ⇒ 高估 18.4%）",
-    "⚠ **已知失效面**：`RN → 0` 时双重计数不可触发。冻结输入必须让 `(RN/g)²` 占解析方差的"
-    "几个百分点以上，否则门限恒绿、负例失效。",
+    "会高估通量不确定度」。推导：双重计数使被比较的方差多出 `(RN/g)²` ⇒ 相对高估 = "
+    "`(RN/g)²/σ_i^measured`。冻结输入 `RN = 25 e⁻`、`g = 1.5` ⇒ `(RN/g)² = 277.78 ADU²`。"
+    "⇒ 门限取 **10%** ⇒ 要求 `(RN/g)²` 占被比较方差 ≥ 10%。",
+    "⚠ **已知失效面**：`RN → 0` 时双重计数不可触发。冻结输入必须让 `(RN/g)²` 占被比较方差的"
+    "几个百分点以上，否则门限恒绿、负例失效。\n"
+    "⚠ **被比较量的口径（对抗复核缺陷 4 的整改）**：本键**不**再与「由夹具字面量算出的解析方差」"
+    "比较，而是与**定种子蒙特卡洛实测的经验总方差** `Var(n_e)/g²` 比较——"
+    "`n_e = Poisson(λ·g²) + N(0, RN²)` 是「已含读噪的经验总均方根」的真实来源。"
+    "两侧（缺陷值 / 实测值）都从同一份实测导出 ⇒ 负例钉在实现上而不是夹具选值上。\n"
+    "**实测读数**：`S_sky = 1e2 ADU/px`（读噪 + 暗流主导子域，`λ ∈ [120, 3251] ADU/px`）⇒ "
+    "`median(缺陷/实测 − 1) = 0.7061`，**余量 7.06×**。"
+    "该子域是必需的：`(RN/g)²` 的占比随天光下降，`S_sky = 1e4` 档上它只占 2.8%，"
+    "σ 层面的高估被 `P²` 加权稀释到 1.1% ⇒ 门限走不到、负例失效。"
+    "**同一子域下的两个派生读数不作门限**（如实登记）：`σ_F` 相对高估 0.0570（< 0.1）、"
+    "`W` 相对亏损 0.1173。`σ_F = (ΣP²/σ_i²)^{1/2}` 按 `P²` 加权，中心像元的源项把读噪"
+    "占比压低 ⇒ σ 层面被稀释；正本 :293 的「高估通量不确定度」的直接后果落在**方差面**上。",
+)
+
+P2_KSCOPE_SPREAD_MIN = Frozen(
+    "chain.a.p2.kscope_spread_min", 1.0e-1,
+    "无量纲；**红臂下界**：把 `k_photo` 的作用域写错（只作用于源散粒项、"
+    "天光/暗流/读噪不随 `k_photo` 缩放）时，跨帧 `SNR` 与跨帧 `W_k` 的**相对散布**"
+    "必须**越出**本门限。域 1e-2–1；`k_photo ∈ {0.8,1.0,1.35,1.7,2.1,2.8}`、"
+    "`S_sky = 1e4 ADU/px`、`F_src = 1e4 ADU`、`RN = 25 e⁻`、`g = 1.5`、400 像元",
+    "科学推导（闭式，可复算）+ 引用骨架表的量级冻结占位：错建模下 "
+    "`var_i(k) = base + S_i/k²`（`base = S_sky + DARK + (RN/g)²`、`S_i = F·P_i/g`）⇒ "
+    "`σ_F = (Σ P²/var_i)^{1/2}`、`F_ref,k = F0/k` ⇒ "
+    "**闭式** `SNR_k = F0·√(Σ_i P_i²/(k²·base + S_i))`、"
+    "`W_k = Σ_i P_i²/(k²·base + S_i)`。"
+    "冻结输入代入：SNR 散布闭式 = 0.380409、`W_k` 散布闭式 = 0.716970"
+    "（与 `frame_variance_k_scope_misspecified` 的实现逐位一致到 1.4e-16 / 8.5e-22）。"
+    "极限（源项占比 → 0，即天光压过一切）下 `SNR_k ∝ 1/k` ⇒ 散布 → "
+    "`std(k)/mean(k) = 0.41728` = 本族散布的**上界**。"
+    "本键取 **1e-1**，它同时是骨架表 `synth.p2.cross_frame_snr_spread_rel` 的量级冻结占位"
+    "（「跨帧绝对信噪比在统一坐标系上可比」的量级门限）—— 本键把它从「占位」"
+    "**登记为跨帧散布的判据级下界**，与 `chain.a.p2.mixed_arm_min` 引用同一条占位的"
+    "做法一致（那里取 3 倍）。余量：SNR 3.80×、`W_k` 7.17×",
+    "**本键是 P2-a ②③ 的判别力来源**：绿臂（`frame_variance_at_k` 把整个方差面除 `k²`）"
+    "的散布读数是**夹具构造级恒真**（实测 9.6e-17 / 1.5e-16，任何输入都不能让它变红），"
+    "已按 `TAUTOLOGY_REGISTER` §0 的 C 类「拆出恒真那一支单独标注」处理；"
+    "判别力全部由本键的红臂承担。\n"
+    "⚠ **依赖骨架表那条占位**：与 `chain.a.p2.mixed_arm_min` 同一条caveat —— "
+    "写实 `synth.p2.cross_frame_snr_spread_rel = 1.0e-1` 的来源是别的代理的活；"
+    "本键额外给出**闭式推导**（0.380409 / 0.716970）作为独立锚，占位若被改写需重跑闭式对拍。\n"
+    "⚠ **换 `K_PHOTO_SET` 必须同时重算闭式**：散布对该集合的 `std/mean` 敏感，"
+    "且极限值 `std(k)/mean(k)` 给出了「红臂最多能张开多少」。",
 )
 
 P2_SKY_LIMITED_DRIFT_REL = Frozen(
@@ -626,12 +692,13 @@ CHAIN_A_TABLE: Dict[str, Frozen] = {
         P1_ROBUST_SHIFT_DEX, P1_OUTLIER_WEIGHT_MAX, P1_INLIER_WEIGHT_MIN,
         P1_ZERO_POINT_ITERATIONS, P1_MIN_ITERATIONS_CONTROL, P1_NO_CUT_SHIFT_DEX,
         P1_Q_CONST_INVARIANCE_REL, P1_Q_SIGMA_RISE_MIN, P1_Q_PERM_CORR_Q95,
+        P1_Q_CORR_DEC_SEP_MIN,
         P1_MATCHED_Q_SIGMA, P1_FSYN_ZERO_EXACT, P1_NO_DATA_MIN_REFS,
         # P2
         P2_SKY_ASYMPTOTE_REL, P2_SKY_MONOTONIC_MARGIN, P2_CONTROL_MEDIAN_VAR_REL,
         P2_INFORMATION_REL, P2_WRONG_NORM_MIN, P2_M5_ROUNDTRIP_REL,
         P2_M5_WRONG_DOMAIN_MIN, P2_VAR_DOUBLE_COUNT_MIN,
-        P2_SKY_LIMITED_DRIFT_REL, P2_MIXED_ARM_MIN,
+        P2_SKY_LIMITED_DRIFT_REL, P2_MIXED_ARM_MIN, P2_KSCOPE_SPREAD_MIN,
         # P3
         P3_CHART_JACOBIAN_REL, P3_CHART_AREA_REL, P3_NON_EQUAL_AREA_MIN,
         P3_AREA_RATIO_DELTA_VACUUM, P3_AREA_RATIO_SHAPE_REL, P3_CHORD_DEFICIT_REL, P3_CHORD_DEFICIT_ABS_REL,
@@ -680,6 +747,55 @@ REGISTERED_TAUTOLOGIES: Dict[str, str] = {
         "同乘 `F_instr` 给出 `r → r + log10 k`（**平移**），而 `r → k·r` 是**缩放**。"
         "实测 `irls(k·r)` 给出的 `location = k·location`，与 `log10 k` 无关。"
         "⇒ 本层把该写法判为**错误口径**，不写成用例；正确落法见 `chain.a.p1.shift_scale_rel`。",
+
+    "p1.q_null_order_statistic_identity":
+        "**对抗复核判定的缺陷 2**：`p1-neg-q-differenced-shape` 的头条断言曾是 "
+        "`median(200 个同分布抽样) ≤ q95(400 个同分布抽样)`。`median(200 iid) ≤ q95(400 iid)` "
+        "对**任意**分布恒成立（阶统计恒真），该断言与科学内容无关 ⇒ 该负例当时无效。"
+        "复核实测：把 `Δr` 换成真实 QE 导出 / 纯随机 / `dr = −r0`（完美反相关）三种构造，"
+        "**全部为真**；只有 `dr` 为常数（夹具退化 → NaN）才为假，那是崩溃不是设计出的判红。"
+        "⇒ 落法：头条断言换成**分离度** `|corr|相关臂 − |corr|解耦臂| ≥ "
+        "`chain.a.p1.q_corr_dec_sep_min`（冻结值，与零分布分位数无关），"
+        "并把解耦臂改成**一次冻结种子的实测观测值**而非零分布抽样的中位数。"
+        "旧式的「零分布带内」比较降为 companion 断言（只核对零分布模型本身）。",
+
+    "p1.abs_corr_is_direction_blind":
+        "**口径偏差如实登记**（对抗复核指出，非恒真但口径不符）："
+        "`chain.a.p1.q_perm_corr_q95` 用的统计量是 `|corr(Δr, r0)|`，**取绝对值 ⇒ 分不出方向**。"
+        "本夹具实测 `signed corr(r0, Δr) = −0.9996`（**反**相关）、`corr(Δr, C) = −0.9996`，"
+        "而 PHOTOMETRY.md §2a.4(:100) 逐字写「与既有残差 `r0` **正相关**」"
+        "⇒ 本夹具上该机制**不成立**；实测的 `(1+k)` 放大来自颜色项系数由 β **加倍**到 "
+        "β − slope(Δr~C)，不是正本所说的同向叠加。"
+        "对照读数：`|corr(r0, −Δr)| = 0.9996` 同样越出 q95（完美反相关也判 True），"
+        "而正本的**比值**统计量带方向（`+Δr = 1.9446`、`−Δr = 0.0503`）。"
+        "⇒ 该统计量测的是「Δr 与 r0 线性相关（不分正负）」，**不是**「来自共同的颜色项」。"
+        "**本链不裁决 QE 夹具的符号**（那要动正本与夹具，超出判据面），只在用例 docstring "
+        "与 evidence 里逐条落盘。若日后需要方向性判据，应改用正本的比值统计量。",
+
+    "p2.frame_variance_k_scope_fixture_identity":
+        "**对抗复核判定的缺陷 3**：`p2-a-kphoto-cancels-in-snr` 的 ②「跨帧 SNR 相对散布 ≤ 1e-12」"
+        "与 ③「逐帧 `W_k` 相对散布 ≤ 1e-12」是**未标注的夹具代数恒等**。"
+        "成因：`frame_variance_at_k()` 把**整个**方差面（含暗流与读噪）除 `k²` ⇒ "
+        "`σ_F^{frame,k} ≡ σ_F^{frame,1}/k` 逐位成立、`F_ref,k ≡ F0/k` 按定义成立 ⇒ "
+        "`SNR_k ≡ 常数`、`W_k ≡ 常数`（实测散布 9.59e-17 / 1.50e-16）。"
+        "**任何输入都不能让它们变红**；旧 docstring 只把 ① 标成「同源恒等」，②③ 未标注。"
+        "⇒ 按 `TAUTOLOGY_REGISTER` §0 的 **C 类**处置「拆出恒真那一支单独标注」："
+        "②③ 改成**作用域敏感性**双臂判据 —— 绿臂保留（并逐条标注为 A 类夹具恒真），"
+        "红臂注入「`k_photo` 只作用于源散粒项、天光/暗流/读噪不缩放」这一具名错建模，"
+        "跨帧散布实测张开到 0.3804（SNR）/ 0.7170（`W_k`），"
+        "并与闭式 `SNR_k = F0·√(ΣP²/(k²·base+S_i))` 对拍到 1.4e-16。"
+        "门限见 `chain.a.p2.kscope_spread_min`。",
+
+    "p2.double_count_reading_was_literal_arithmetic":
+        "**对抗复核判定的缺陷 4**：`p2-neg-variance-double-count` 的缺陷侧读数曾是 "
+        "`over = max(var_bad/var_true − 1)`，其中 `var_bad = var_true + (RN/g)²`、"
+        "`var_true = assemble_variance(...)` —— **完全由夹具字面量"
+        "（`S_sky = 1e3`、`RN = 25`、`g = 1.5`）算出，不含任何测量**；"
+        "函数里的蒙特卡洛只用来守绿臂 ⇒ 该负例钉在夹具选值上、不钉在任何实现上。"
+        "⇒ 整改：两侧读数都改为**定种子蒙特卡洛实测** —— 在电子域按 "
+        "`n_e = Poisson(λ·g²) + N(0, RN²)` 采样，"
+        "`Var(n_e)/g²` 就是「已含读噪的经验总均方根」；缺陷值 = 该实测值再加 `(RN/g)²`。"
+        "并把子域移到读噪 + 暗流主导档（`S_sky = 1e2`），实测 `over = 0.7061`、余量 7.06×。",
 
     "p2.sum_snr_squared_equals_F0sq_over_var":
         "NOISE_SNR.md §3.4(:353-359) 逐字：`Σ_k SNR_k² = F0²·Σ_k W_k = F0²/Var(F_hat)` 是"

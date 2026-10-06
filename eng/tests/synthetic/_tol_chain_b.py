@@ -46,6 +46,7 @@ P5-i gauge 归零），不占本表的数值条。
 from __future__ import annotations
 
 import math
+from typing import Dict
 
 from eng.tests.synthetic import tolerances as _base
 
@@ -82,17 +83,23 @@ P4_NODE_REPRO_ABS = Frozen(
 
 #: P4-a 对照臂（非插值型最小二乘拟合面）的控制点残差**下界**。
 #: `NOISE_SNR.md` §5.3 的判据方向是「控制点自身复现」——只有插值型算子才有资格。
-#: **推导**：冻结夹具的控制值取 `v(u) = 10 + 6uv + 3u³`（`u = i/7`），
-#: 对照臂用总次数 2 的最小二乘面拟合。`3u³` 项不在二次基张成空间内，
-#: 其拟合残差在节点上的量级由 `u³` 对二次基的最佳 L2 逼近给出，
+#: **推导**：冻结夹具的控制面取
+#: `C(u,v) = 1/3 + 2u + 1.5v + 6·[u > 1/2] + 4·[v > 1/2]`（`u = i/7`、`v = j/7`），
+#: 对照臂用总次数 2 的最小二乘面拟合。斜坡项落在二次基张成空间内、
+#: **阶跃项不在** ⇒ 拟合残差是真实的 O(1) 偏差而非舍入；
 #: 冻结下界取 **1.0e-2（相对控制值跨度）**——它比插值算子的 1e-14 宽十个数量级，
 #: 因此「插值 vs 拟合」这条判据在任何合理实现下都判得开。
+#: ⚠ **余量**：对抗复核实测旧夹具（`10 + 6uv + 3u³`）的读数只有 0.010204 = **门限的 1.02 倍**
+#: ——`6uv` 项本身落在张成空间内且把跨度从 3 抬到 9，把 `3u³` 的残差稀释掉了。
+#: 本键的**值未动**，改的是用例侧的夹具（见 `ctrl_ramp_with_edge`）：
+#: 新读数 0.299824 ⇒ **余量 30×**。
 P4_FIT_NODE_REPRO_MIN_REL = Frozen(
     "synth.p4.fit_node_repro_min_rel", 1.0e-2,
     "无量纲相对量；|拟合面(节点) − 控制值|_max / 控制值跨度；域 1e-4–1",
-    "科学推导 + 量级冻结：对照面总次数 2、控制值含 `3u³`（u = i/7）项，"
-    "该三次项不在二次基张成空间内 ⇒ 节点残差是真实的 O(h²) 偏差而非舍入；"
-    "冻结下界 1e-2 取「插值档 1e-14 与拟合档之间」的分隔量级，只放宽不收紧",
+    "科学推导 + 量级冻结：对照面总次数 2、控制值含**阶跃项** `6·[u>1/2] + 4·[v>1/2]`，"
+    "该阶跃不在二次基张成空间内 ⇒ 节点残差是真实的 O(1) 偏差而非舍入；"
+    "冻结下界 1e-2 取「插值档 1e-14 与拟合档之间」的分隔量级，只放宽不收紧；"
+    "冻结输入下实测 0.299824（余量 30×）",
     "**本条是 P4-a 的判别力来源，不是产品门限**：它只用于证明「node_reproduction ≈ 0」"
     "不是恒真——一个把插值换成拟合的实现会在本条上判红，"
     "而真正的两个冻结插值算子（本文件服务的产品算子 `natural_bicubic_spline_clip_v1` 与"
@@ -443,6 +450,69 @@ FROZEN_TABLE_B = {f.key: f for f in (
     P5_SIGMA_SEAM_ANALYTIC_OVER_MIN, P5_SKY_BILINEAR_ERR_REL,
     P5_KCORR_SCALING_RTOL, P5_ZERO_SCALE_FRAC, P5_HUBER_DELTA,
 )}
+
+
+#: **判定为恒真 / 恒不成立 / 口径不符、因而不能当证据位**的判据逐条登记
+#: （`docs/engineering/testing/TEST.md` §2「恒真的比较没有证据资格」；
+#: `实验/TAUTOLOGY_REGISTER.md` §0 的 A/B/C/D 四类处置）。
+#: 链 A 的同名字段见 `eng/tests/synthetic/_tol_chain_a.py` 的同名登记表。
+REGISTERED_TAUTOLOGIES: Dict[str, str] = {
+    "p4.w_cross_operator_consistency_is_unreachable":
+        "**对抗复核判定的缺陷 1**（原 `p4h_pending_cai27_w_independent_bilinear_oracle`）。"
+        "旧版号称「独立双线性 oracle 对照实验」，实为**伪独立**：① oracle 用的是**同一个** "
+        "`Reconstructor` 类、只换 `operator=` 字符串；② `w_main` 与 `w_oracle` 是**逐字相同**的"
+        "表达式 `(snr/f_ref)**2 * g**2`；③ 比较面 `same` 只取两条算子**已经逐位相等**的像元"
+        "（复核实测 232/841 = 27.6%），其余 72.4% 按构造不看；④ 断言是 "
+        "`H.exact(w_main[same], w_orc[same])` ⇒ 同表达式作用于逐位相同输入 ⇒ **必然逐位相同**。"
+        "证据表自己写着余量 `0×`。⇒ 处置（按复核给的两条路取**降级 + 真判据**）："
+        "「两条**不同**算子的 w 逐点相等」在构造上不可能（样条与双线性在本夹具上差 17.4%），"
+        "把它当 pass/fail 对照只会崩或恒红 ⇒ **降为诊断项**（只记录差值、不判红）；"
+        "真正的 pass/fail 改成**同算子、全域、两条独立代码路径**：本文件另写的 "
+        "`bilinear_cell_value_oracle`（lerp-of-lerp，函数体内不出现 `Reconstructor`）+ "
+        "`w_from_layer_pixel_oracle`（独立权重装配）对拍主实现，"
+        "比较面 **1024/1024 全域**，容差用 f64 非归约档而非逐位相等；"
+        "另加三条**牙齿见证**（角点约定 / 配错 `F_ref,k` / 额外乘帧级 SNR）证明它不是恒绿门。",
+
+    "p4.oracle_independence_is_not_provable_by_numbers":
+        "**残留缺口（如实登记，未修）**：`p4h_pending_cai27_w_independent_bilinear_oracle` "
+        "新增了**源码级**独立性守卫（AST 扫描两个 oracle 的函数体，禁止出现 "
+        "`Reconstructor` / `_bilinear` / `field` / `np.power`）。扰动实测：把 oracle 的"
+        "**函数体**换成 `Reconstructor(..., operator=OP_BILINEAR).field(...)`"
+        "（= 对抗复核判定的缺陷 1 形态）⇒ 守卫判红 ✅。"
+        "但把**调用点**改成 `layer_orc = layer_prod.copy()`（整个绕开 oracle）⇒ **仍然绿**。"
+        "⇒ 原因：oracle 独立性是**源码属性**，调用点绕开等于「把断言改成 `assert True`」，"
+        "**任何用例内断言都无法判**。"
+        "未采用的伪修法（登记以免被误采纳）：断言两条场**不逐位相同**——"
+        "在权重可精确表示的夹具（如 `dx = 1`）上正确的独立实现会逐位相同 ⇒ 那是一条"
+        "**脆性恒红门**，比原缺陷更坏。"
+        "⇒ 处置：如实登记；该面真正的护栏是**代码审查**（AST 守卫已把 90% 的复发形态挡住）"
+        "与本文件这条登记。",
+
+    "p4.scipy_oracle_only_sampled_on_nodes":
+        "`p4a_node_reproduction_interpolants` 的第三方 oracle 对拍"
+        "（`scipy.interpolate.CubicSpline(bc_type='natural')`）**只在控制节点坐标上采样**"
+        "（`axis(0, 7, 1.0)`，`dx = 1` ⇒ `x0 = 0` ⇒ 查询点恰是节点）。"
+        "任何插值型算子在节点上都等于输入值 ⇒ 该处的一致性**按构造**成立，"
+        "因此这条 oracle 对拍**只能证明「节点自复现」**，无法分辨节点间的重建是否正确。"
+        "⚠ 实测：把同一 oracle 移到**非节点**坐标（`dx = 4`、1 px 步长）上，"
+        "主实现的自然双三次与 scipy 的可分离自然双三次仍一致到 2.2e-16 —— "
+        "**结论：主实现的样条是对的**，登记的是**判据覆盖面**的缺口，不是实现缺陷。",
+
+    "p5a.residual_margin_only_1p05x":
+        "⚠ **只登记、不改**：`p5a_negative_analytic_sigma_seam_shortcut` 的读数相对门限只有 "
+        "**1.05 倍余量**（对抗复核实测）。与 `p4a_negative_fit_arm_is_not_reproduced` 的 "
+        "**1.02 倍**同族（门限按推导冻结、夹具选值贴近门限 ⇒ 读数贴着门限跑）。"
+        "**处置建议（本次派单未授权修改 `test_p5_additive_sky.py`，故只登记）**："
+        "按 P4-a 的同款做法——**加厚夹具的判别构型**（让被注入的解析捷径与真解之间的"
+        "偏离更大），**而不是放宽门限**；门限只按 `TEST.md` §4 档位或正本条款定。",
+
+    "p4.fit_arm_margin_thinned_by_fixture":
+        "（历史登记，**已整改**）`p4a_negative_fit_arm_is_not_reproduced` 的旧夹具 "
+        "`10 + 6uv + 3u³`：读数 0.010204 vs 门限 0.01 ⇒ 余量只有 **1.02×**。"
+        "成因：`6uv` 项本身落在总次数 2 的基张成空间内、且把值域跨度从 3 抬到 9，"
+        "把 `3u³` 的拟合残差稀释掉。⇒ 整改：**门限未动**，夹具换成 "
+        "`ctrl_ramp_with_edge`（斜坡 + 阶跃）⇒ 读数 0.299824、余量 **30×**。",
+}
 
 
 def get(key: str) -> Frozen:
