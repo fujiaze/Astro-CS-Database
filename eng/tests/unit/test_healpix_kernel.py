@@ -42,9 +42,12 @@
    （healpy 1.20.1 与 numpy 2.x 不兼容）⇒ S10 的 oracle 改用闭式解析面积；
    `astropy.coordinates.polygon`（`SphericalPolygonCrossIntersection`）在本环境**未安装**
    ⇒ 同样降级。两者都**没有**用「跳过」冒充通过。
-2. **产品自身的尺子不可用于 1e-12 度门**：`healpix_core.cpp:304 angular_distance_deg` 用
-   `acos`，实测分辨地板 `8.5e-7` 度（比门粗 `8.5e5` 倍）⇒ 判 1e-12 度门改用
-   `atan2(|u×v|, u·v)` 形式的 `angular_distance_deg_stable`（见该函数注释）。
+2. **产品自身的尺子不可用于 1e-12 度门**：`healpix_core.cpp:304 angular_distance_deg`
+   用 `acos`，在 `c → 1` 处丢一半有效位，绝对误差上界 `√(2u)·180/π`。
+   实测：**同一次**正确实现上的复合往返，该函数读出 `8.537736462515939e-07` 度
+   （超 1e-12 度门 `8.54e5` 倍），而 `atan2(|u×v|, u·v)` 形式的
+   `angular_distance_deg_stable` 读出 `0.0` 度 ⇒ 判门必须改用后者
+   （证据见 `healpix.s11.roundtrip.floor_is_structural`）。
 3. **正本与实现冲突 1（order 上限的落点）**：`HEALPIX_MAPPING.md`「Preconditions」写
    `order ≤ 29`，但「非法输入的显式失败面」清单里没有它的对应异常，且 `healpix_core.h:60`
    逐字只查 2 的幂 ⇒ 上限实际由调用方强制
@@ -57,9 +60,11 @@
    落在 `TEST.md` §4 归约档 `C·γ_n·Σ|terms|` 内），
    绝对量级为 `O(nside⁻⁴)` sr，与文档常数不吻合。复算入口见 `healpix_chord_tiling_note()`。
 5. **正本 1e-12 度门的可测性边界**：同一物理量的两条独立实现（参考实现 vs astropy-healpix）
-   的像元中心角差在 `nside ≤ 128` 上 ≤ `3.44e-13` 度（门内余量 ≥ 2.9×），但随 `nside` 增大
-   恶化到 `nside=256: 1.35e-12`、`nside=1024: 1.06e-11`、`nside=4096: 2.13e-11` 度
-   ⇒ **该跨实现角差门只在 `nside ≤ 16` 注册为门**（余量 ≥ 9.7×），更高阶读数只作证据登记。
+   的像元中心角差，在**全域**（含基面边界锚点）上实测随 `nside` 恶化：
+   `nside=32: 3.43e-13`、`64: 3.43e-13`、`128: 3.44e-13`、`256: 1.35e-12`、
+   `1024: 1.06e-11`、`4096: 2.13e-11` 度（超门）；只在随机子集上才稳定在 `1.4e-13`
+   ⇒ **该跨实现角差门只在 `nside ≤ 16` 注册为门**（实测 ≤ `1.09e-13` 度，余量 ≥ 9.1×），
+   更高阶读数只作证据登记。
 """
 
 from __future__ import annotations
@@ -461,6 +466,12 @@ def _s11_cell_area_missing_factor12():
         for nside in (4, 16, 64):
             closed = closed_hp_res_arcsec(nside)
             good = H.pixel_resolution_arcsec(nside)
+            # 消融自证的前置条件：未注入时守恒式必须成立
+            a_cell = CELL_AREA_SR.value(nside)
+            harness.exact(H.npix(nside) * a_cell, 4.0 * math.pi,
+                          what=f"nside={nside} 天球守恒前置条件")
+            harness.exact(good, closed,
+                          what=f"nside={nside} 角尺度前置条件")
             with H.inject(cell_area_factor12=False):
                 bad = H.pixel_resolution_arcsec(nside)
             rel = abs(bad - closed) / closed
@@ -468,7 +479,8 @@ def _s11_cell_area_missing_factor12():
             ev.record(f"nside={nside} 角尺度相对偏差", rel, note=f"good={good!r}")
         worst = max(ratios)
         ev.record("worst_rel", worst, 2.0,
-                  note="门 = 2.0；正确实现给 0，漏因子 12 给 √12 ≈ 3.4641")
+                  note="门 = 2.0；正确实现给 0；漏因子 12 使角尺度放大 √12 倍，"
+                       "即相对偏差 √12 − 1 = 2.4641")
         harness.is_true(worst > 2.0,
                         "守恒式/角尺度判据没抓住漏因子 12 的缺陷（该判据恒绿）")
 
@@ -525,10 +537,14 @@ def _s11_child_quad_identity():
                               what=f"parent − tile 首叶 != leaf_local (leaf_order={leaf_order})")
                 harness.exact(H.leaf_to_tile(first_leaf), t_parent,
                               what=f"tile 首叶落回不同 tile (leaf_order={leaf_order})")
+                # 子叶的 tile = `parent >> 16`（tile 层是 NESTED 索引，4·parent
+                # 在 tile 阶上再细化一层）：闭式 expected，不经被测方
+                expect_tile = parent >> 16
                 for k in range(4):
                     child = 4 * parent + k
-                    harness.exact(H.leaf_to_tile(child), t_parent,
-                                  what=f"子叶 {k} 落到不同 tile")
+                    harness.exact(H.leaf_to_tile(child), expect_tile,
+                                  what=f"子叶 {k} 的 tile 不符"
+                                       f"（leaf_order={leaf_order}）")
                     # 局部索引必须落在 mask 内且 xy 反解还原
                     local = H.leaf_local(child)
                     harness.is_true(local <= TOL_TILE_MASK,
@@ -536,10 +552,11 @@ def _s11_child_quad_identity():
                     x, y = H.leaf_to_tile_xy(child)
                     harness.is_true(x < 512 and y < 512,
                                     f"tile xy 越界 ({x},{y})")
-                    harness.exact(H.tile_xy_to_leaf(t_parent, x, y), child,
+                    harness.exact(H.tile_xy_to_leaf(expect_tile, x, y), child,
                                   what="tile xy -> leaf 逆映射不闭合")
-                    harness.exact(child - first_leaf, local,
-                                  what="子叶在 tile 内的偏移 != leaf_local")
+                    harness.exact(child - (expect_tile << (2 * TOL_TILE_SHIFT)),
+                                  local,
+                                  what="子叶在该 tile 内的偏移 != leaf_local")
                     n_checked += 1
         ev.record("child_identity_checks", float(n_checked), 0.0,
                   note="child = 4·parent + k 与 tile 拆解的逐位核对条数")
@@ -559,6 +576,14 @@ def _s11_child_quad_identity():
 def _s11_child_offset_one_negative():
     rng = np.random.default_rng(H.SAMPLE_SEED + 8)
     with harness.evidence() as ev:
+        # 消融自证的前置条件：未注入时 child = 4·parent + k 逐位成立
+        clean = 0
+        for _ in range(500):
+            p0 = int(rng.integers(0, H.npix(1 << 12)))
+            for k in range(4):
+                if H.child_nest(p0, 1) + k != 4 * p0 + k:
+                    clean += 1
+        harness.exact(clean, 0, what="未注入时 child = 4·parent + k 的前置条件")
         mismatch = 0
         n = 0
         with H.inject(child_offset=1):
@@ -732,8 +757,11 @@ def _s11_tile_shift_wrong_negative():
                     harness.is_true(width != 512,
                                     f"tile_shift={sh} 的 HiPS tile 宽异常没被抓住"
                                     f"（恒绿）")
-                    harness.is_true(over > 0,
-                                    f"tile_shift={sh} 下 FITS 映射仍单射（恒绿）")
+                    if sh > 9:
+                        # shift > 9 ⇒ 局部 x 可越出 511，FITS 行主序映射在该
+                        # local 上撞列（非单射）⇒ HiPS tile 排列合同被破坏
+                        harness.is_true(over > 0,
+                                        f"tile_shift={sh} 下 FITS 映射仍单射（恒绿）")
 
 
 # ===========================================================================
@@ -800,10 +828,14 @@ def _s11_roundtrip_dense_oracle():
                                np.int64, len(interior))
             o_ah = oracle_ang2pix_astropy(nside, ra, dec)
             o_hp = oracle_ang2pix_healpy(nside, ra, dec)
-            mm_ah = int(np.count_nonzero(mine != o_ah))
-            mm_hp = int(np.count_nonzero(mine != o_hp))
+            stable = stability_mask(nside, interior)
+            mm_ah = int(np.count_nonzero(mine[stable] != o_ah[stable]))
+            mm_hp = int(np.count_nonzero(mine[stable] != o_hp[stable]))
+            knife_ah = int(np.count_nonzero(mine[~stable] != o_ah[~stable]))
+            knife_hp = int(np.count_nonzero(mine[~stable] != o_hp[~stable]))
             harness.exact(mm_ah, 0,
-                          what=f"nside={nside} 与 astropy-healpix 的 ang2pix mismatch")
+                          what=f"nside={nside} 与 astropy-healpix 的 ang2pix mismatch"
+                               f"（稳定域 {int(stable.sum())}/{len(interior)} 点）")
             harness.exact(mm_hp, 0,
                           what=f"nside={nside} 与 healpy 的 ang2pix mismatch")
             worst_mismatch_ah = max(worst_mismatch_ah, mm_ah)
@@ -811,15 +843,19 @@ def _s11_roundtrip_dense_oracle():
 
             c_ra, c_dec = oracle_pix2ang_astropy(nside, mine)
             mm_c = int(sum(1 for i in range(len(interior))
-                           if H.ang2pix_nest(nside, float(c_ra[i]),
-                                             float(c_dec[i])) != int(mine[i])))
+                           if stable[i] and H.ang2pix_nest(nside, float(c_ra[i]),
+                                                           float(c_dec[i]))
+                           != int(mine[i])))
             harness.exact(mm_c, 0,
                           what=f"nside={nside} 与 astropy-healpix 的 pix2ang mismatch")
             worst_center_mm_ah = max(worst_center_mm_ah, mm_c)
-            ev.record(f"nside={nside} oracle_mismatch(ah/hp/center)",
+            ev.record(f"nside={nside} oracle_mismatch(稳定域 ah/hp/center)",
                       float(max(mm_ah, mm_hp, mm_c)), 0.0,
-                      note=f"非并列域 ang2pix: ah={mm_ah} hp={mm_hp}；"
-                           f"pix2ang 回代: {mm_c}")
+                      note=f"稳定域 {int(stable.sum())}/{len(interior)}；"
+                           f"不稳定域（并列）分歧取证 ah={knife_ah} hp={knife_hp}")
+            ev.record(f"nside={nside} 不稳定域点数", float((~stable).sum()), 0.0,
+                      note=f"扰动 δ={STABILITY_DELTA_DEG} 度下归属翻转；"
+                           f"第三方分歧 {knife_ah + knife_hp} 点全部落在该域")
 
             # 并列点：被测口径自洽往返仍必须精确；第三方 tie-break 分歧只取证
             tie_st = roundtrip_stats(nside, ties)
@@ -879,13 +915,27 @@ def _s11_roundtrip_floor_is_structural():
             ev.record(f"nside={nside} 复合往返角残差", st["ang_residual_deg"],
                       TOL_ROUNDTRIP_DEG, unit="deg",
                       note="实测 0 ⇒ 余量 ∞；该门是地板触发门")
-            # 不可满足性演示：用产品自身的 acos 尺子去测 1e-12 度的门
-            p = pts[0]
-            ra_c, dec_c = H.pix2ang_nest(nside, H.ang2pix_nest(nside, *p))
-            floor = abs(H.angular_distance_deg(p[0], p[1], ra_c, dec_c)
-                        - H.angular_distance_deg_stable(p[0], p[1], ra_c, dec_c))
-            ev.record(f"nside={nside} acos 尺子相对稳定尺子的偏差", floor,
-                      note="healpix_core.cpp:304 的 acos 形式分辨地板 ≈ 8.5e-7 度")
+        # 不可满足性演示（TEST.md §4.3）：产品自身的 acos 尺子量不出 1e-12 度的门。
+        # 用**同一条复合往返**分别以两把尺子测量：产品函数 `angular_distance_deg`
+        # （acos 形式）的读数被它自己的 O(√u) 条件数支配，稳定尺子读到逐位 0。
+        for nside in (4, 16, 64):
+            q1 = [H.ang2pix_nest(nside, ra, dec) for ra, dec in pts]
+            c1 = [H.pix2ang_nest(nside, q) for q in q1]
+            c2 = [H.pix2ang_nest(nside,
+                                H.ang2pix_nest(nside, c[0], c[1])) for c in c1]
+            acos_worst = max(H.angular_distance_deg(a[0], a[1], b[0], b[1])
+                             for a, b in zip(c1, c2))
+            stable_worst = max(H.angular_distance_deg_stable(a[0], a[1], b[0], b[1])
+                               for a, b in zip(c1, c2))
+            harness.exact(stable_worst, 0.0,
+                          what=f"nside={nside} 稳定尺子的复合往返残差应当逐位为 0")
+            harness.is_true(acos_worst > TOL_ROUNDTRIP_DEG,
+                            f"nside={nside} 的 acos 尺子未能展示其分辨率下限"
+                            f"（本演示前提不成立）")
+            ev.record(f"nside={nside} acos 尺子的复合往返读数", acos_worst,
+                      TOL_ROUNDTRIP_DEG, unit="deg",
+                      note=f"同一次往返，稳定尺子读 {stable_worst!r}；"
+                           f"acos 形式的 O(√u) 条件数使读数不可用于 1e-12 度门")
 
 
 @harness.test(
@@ -947,7 +997,8 @@ def _s11_roundtrip_quantization_bound():
             ev.record(f"nside={nside} 往返角距", worst, limit, unit="arcsec",
                       note=f"= {ratio:.4f}·hp_res")
         ev.record("worst_ratio_hp_res", worst_ratio, QUANT_BOUND_HP_RES,
-                  note="实测最坏 / hp_res；余量 = 1.2/该值")
+                  note="实测最坏 / hp_res（余量倍数 = 门限/该值 = "
+                       f"{QUANT_BOUND_HP_RES / worst_ratio:.4f}×）")
 
 
 @harness.test(
@@ -956,7 +1007,7 @@ def _s11_roundtrip_quantization_bound():
            "在 1e-12 度内 —— 这是同一物理量在独立算法路径上的 FP64 一致性门。",
     inputs=f"独立密集域 7744 点（非并列域）；nside ∈ {CROSS_ORACLE_NSIDES}。"
            "更宽的 nside 域只作读数登记（见文件头「正本 1e-12 度门的可测性边界」）。",
-    expected="最坏角差 ≤ 1e-12 度；实测 ≤ 1.03e-13 度，余量 ≥ 9.7×。",
+    expected="最坏角差 ≤ 1e-12 度；实测 ≤ 1.09e-13 度（nside ≤ 16），余量 ≥ 9.1×。",
     source="docs/engineering/testing/TEST.md §13 表逐字：「astropy-healpix = HEALPix 几何的"
            "独立 Oracle」；docs/science/algorithms/HEALPIX_MAPPING.md「Postconditions」"
            "1e-12 度（FP64）为该量级的正本阈值；eng/tests/unit/tolerances.py#healpix.roundtrip_deg。",
@@ -988,9 +1039,9 @@ def _s11_cross_oracle_angle_agreement():
             ev.record(f"nside={nside} vs healpy", w_hp, TOL_ROUNDTRIP_DEG, unit="deg")
         ev.record("worst_cross_oracle_deg", worst, TOL_ROUNDTRIP_DEG, unit="deg",
                   note=f"nside ≤ {CROSS_ORACLE_MAX_NSIDE} 的注册域")
-        # 域外读数登记（只记录，不判门）
+        # 域外读数登记（只记录，不判门）；跑在**全域**上（含基面边界锚点）
         for nside in EVIDENCE_NSIDES:
-            q = [H.ang2pix_nest(nside, ra, dec) for ra, dec in pts[:2000]]
+            q = [H.ang2pix_nest(nside, ra, dec) for ra, dec in pts]
             c = [H.pix2ang_nest(nside, i) for i in q]
             idx = np.fromiter(q, np.int64, len(q))
             ra_ah, dec_ah = oracle_pix2ang_astropy(nside, idx)
@@ -1134,15 +1185,18 @@ def _s11_roundtrip_deg_normalize_negative():
         ra = np.fromiter((p[0] for p in pts), float, len(pts))
         dec = np.fromiter((p[1] for p in pts), float, len(pts))
         o_ah = oracle_ang2pix_astropy(nside, ra, dec)
+        stable = stability_mask(nside, pts)
+        ev.record("stable_points", float(stable.sum()),
+                  note=f"共 {len(pts)} 点；跨实现判据只在稳定域上取 mismatch")
         harness.exact(int(np.count_nonzero(
             np.fromiter((H.ang2pix_nest(nside, p[0], p[1]) for p in pts),
-                        np.int64, len(pts)) != o_ah)), 0,
+                        np.int64, len(pts))[stable] != o_ah[stable])), 0,
             what="未注入时与 astropy-healpix 的前置条件")
         with H.inject(deg_normalize_mode="div"):
             mm, ang = _roundtrip_probe(nside)
             mine = np.fromiter((H.ang2pix_nest(nside, p[0], p[1]) for p in pts),
                                np.int64, len(pts))
-            mm_oracle = int(np.count_nonzero(mine != o_ah))
+            mm_oracle = int(np.count_nonzero(mine[stable] != o_ah[stable]))
         ev.record("index_mismatch", float(mm), 0.0, note=f"共 {len(pts)} 点")
         ev.record("oracle_mismatch", float(mm_oracle), 0.0,
                   note="与 astropy-healpix 的 ang2pix 逐点对拍")
@@ -1525,6 +1579,11 @@ def _s10_candidate_zero_false_negative():
 )
 def _s10_buffer_075_negative():
     with harness.evidence() as ev:
+        # 消融自证的前置条件：同一批几何在冻结缓冲 3.0·hp_res 下必须零漏选
+        for nside in (8, 16, 32):
+            _, _, fn3, _, _ = s10_measure(nside, s10_drop_geometries(nside, 32), 3.0)
+            harness.exact(fn3, 0,
+                          what=f"nside={nside} 缓冲 3.0·hp_res 的前置条件（应零漏选）")
         fn_total = 0
         samples = []
         for nside in (8, 16, 32):
@@ -1555,6 +1614,11 @@ def _s10_buffer_075_negative():
 )
 def _s10_buffer_050_negative():
     with harness.evidence() as ev:
+        # 消融自证的前置条件：同一批几何在冻结缓冲 3.0·hp_res 下必须零漏选
+        for nside in (8, 16, 32):
+            _, _, fn3, _, _ = s10_measure(nside, s10_drop_geometries(nside, 32), 3.0)
+            harness.exact(fn3, 0,
+                          what=f"nside={nside} 缓冲 3.0·hp_res 的前置条件（应零漏选）")
         fn_total = 0
         samples = []
         for nside in (8, 16, 32):

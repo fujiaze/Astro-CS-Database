@@ -76,7 +76,7 @@
 | C1 | 20 module / 20 operation / 85 端口 / 101 锚点，`n_violations=0` | 绿 |
 | C2 | 101/101 锚点解析，`n_violations=0` | 绿 |
 | **C3** | 抽到 **77** 个产物 token（21 个符号），**3 条未声明** | **红（缺陷登记 R1）** |
-| C3b | 触发 7 个 module（2 生产 + 5 消费），`n_violations=0` | 绿 |
+| C3b | 触发 module 去重 **6**（生产者角色 **2** + 消费者角色 **4**，两集合不重叠），`n_violations=0` | 绿 |
 | PC-C4（注册表侧） | `n_violations=0` | 绿 |
 | **PC-C5** | **恰好 1 条 `EXTERNAL_INPUT_CARRIER`**（`output_dir_file` 跨阶段产物 0 个） | **红（缺陷登记 R2）** |
 | PC-C6 | `n_violations=0` | 绿 |
@@ -303,10 +303,15 @@ def test_RegistryParity_C2AnchorResolves(facts: R.Facts) -> None:
     `test_RegistryParity_Neg_AnchorFileMissing`、
     `test_RegistryParity_Neg_NodeFunctionRenamed`。
     """
+    # 零对象守卫（`VALIDATION_EVIDENCE.md:170-173` 第 1 条）：读真实对象，
+    # 实算对象数 > 0。**不钉基线绝对数**——见 `SelfCheck` 的「为什么不做强规模锚」。
     anchors = facts.anchors()
-    assert len(anchors) == 101, (
-        "锚点数变了（基线 101）——先确认是产品改动还是读数漂移；"
-        "PC-C6 的锚点下界依赖它（VALIDATION_EVIDENCE.md:192 S5）")
+    assert len(anchors) > 0, "锚点面为空，C2 是恒真的（TEST.md:26）"
+    # 正本有据的关系式（不是魔数）：`PIPELINE_BLOCK.md:91`「端口 … code 齐全」
+    # ⇒ 每端口至少 1 条锚点。
+    assert len(anchors) >= len(facts.ports()), (
+        "锚点数 %d < 端口数 %d，违反 PIPELINE_BLOCK.md:91「端口 … code 齐全」"
+        % (len(anchors), len(facts.ports())))
     _fail_if(_judge(R.judge_c2_anchor_resolves, facts, "C2"), "C2_ANCHOR_VIOLATION")
 
 
@@ -339,6 +344,17 @@ def test_RegistryParity_C3ImplementationToDeclaration(facts: R.Facts) -> None:
 
 def _c3_violation_subjects(facts_obj: R.Facts) -> set:
     return R.subjects(_judge(R.judge_c3_implementation_to_declaration, facts_obj, "C3"))
+
+
+def _c3_identity(violation: R.Violation) -> tuple:
+    """把 C3 违例折成 `(产物 token, 触发的 module@symbol)`，用于比对具名缺陷集合。
+
+    `Violation.detail` 的形态由 `judge_c3_implementation_to_declaration` 单点产生
+    （「代码侧抽到产物 token 'X'，注册表未声明」），这里只抽那个 token 字面量。
+    """
+    m = re.search(r"产物 token '([^']+)'", violation.detail)
+    assert m is not None, "C3 违例 detail 形态已变，无法折成具名身份: %r" % violation.detail
+    return (m.group(1), violation.subject)
 
 
 def test_RegistryParity_C3_UndeclaredFlowMasterRefsProducedByCalibration(facts: R.Facts) -> None:
@@ -427,10 +443,14 @@ def test_RegistryParity_C3bCarrierConsistency(facts: R.Facts) -> None:
     消费者角色 = 调用 `aio_hips_read_*`。两者都只按 `aio_hips_` 这个代码侧命名空间的
     前缀判定。
 
-    实测触发规模（HEAD `bf944fad`）：生产者角色 **2** 个 module
-    （`acsd.phase1.drizzle`、`acsd.phase2.write`），消费者角色 **5** 个 module
+    实测触发规模（HEAD `bf944fad`；用判定器自己的 `find_definitions` + `masked`
+    函数体区间复算，**不是**整文件拼接）：生产者角色 **2** 个
+    （`acsd.phase1.drizzle`、`acsd.phase2.write`）、消费者角色 **4** 个
     （`acsd.phase1.writer`、`acsd.phase2.upm-apply`、`acsd.phase2.reject`、
-    `acsd.phase2.integrate`），共 7 个触发、`n_violations=0`，方向全部一致。
+    `acsd.phase2.integrate`）、触发 module 去重 **6**、`n_violations=0`，方向全部一致。
+    两个角色集合**不重叠**（`p1_op_writer` 体内 `HIPS_PRODUCER_CALL` = False、
+    `HIPS_CONSUMER_CALL` = True；`p1_op_drizzle` 对称相反），把并集 6 报成
+    「生产 6 / 消费 6」是计数错误。
 
     本条**非恒真**：删除任一 hips 端口即判红（见负例 `test_RegistryParity_Neg_C3bDirectionFlipped`）。
     本条**非恒假**：`⇒` 方向成立（触碰 ⇒ 有端口），反向不成立且不要求成立
@@ -706,7 +726,10 @@ def test_RegistryParity_IrC8NoExecutionSurface(facts: R.Facts) -> None:
         "而是 descriptor 缺失" % surface["missing_descriptor"])
     # 前置 2：IR 端口引用面非零（零引用 ⇒ 计数恒真）
     assert surface["n_ir_refs"] > 0, "IR 端口引用数为 0，IR-C8 的计数是恒真的"
-    # 登记断言：逐字口径与桥接口径都不闭合 ⇒ 判据无在位执行面
+    # 登记断言：逐字口径与桥接口径都不闭合 ⇒ 判据无在位执行面。
+    # ⚠ `== 0` 是**登记项**（钉「两套端口词表不相交」这一已取证事实，且配了能红的
+    # 负例 `Neg_IrC8VocabularyInjected` 证明它非恒真），**不是**规模锚：
+    # 它不因产品增删端口而漂移，漂移的是「IR 端口引用数 `n_ir_refs`」而不是「命中数」。
     assert surface["n_name_hits"] == 0, (
         "descriptor↔IR 端口名已出现公共词表（%d/%d 命中）⇒ IR-C8 转为可判，"
         "本登记条目需要重写并改写为真正的判据"
@@ -1148,16 +1171,17 @@ def test_RegistryParity_Neg_C3PhantomArtifactLiteral() -> None:
     `const char* probe = "/injected_probe_artifact.json";`——一个注册表未声明的
     第 4 条产物字面量。
 
-    断言：注入后的违例集合 **恰好** 是基线那 3 条 **加** 这一条
-    （`acsd.phase3.verify@p3_op_verify`），基线那 3 条仍在。
+    断言：注入后的违例集合 **恰好** 是基线那 3 条（按 `文件:行` 具名的
+    `R.BASELINE_UNDECLARED`，不是按计数——计数是规模锚，具名身份才是缺陷钉桩）
+    **加** 这一条（`acsd.phase3.verify@p3_op_verify`），基线那 3 条仍在。
     这同时证明判定器既不是恒真（会多报），也不是恒假（会漏报）。
     """
     with _sandbox() as sb:
         base = _judge(R.judge_c3_implementation_to_declaration, sb.facts(), "C3")
-        base_pairs = sorted((v.subject, v.detail) for v in base)
-        assert len(base_pairs) == 3, (
-            "基线 C3 违例数不再是 3 条（现 %d）——本负例的「恰好新增一条」前提需重算: %s"
-            % (len(base_pairs), R.render(base)))
+        base_pairs = sorted(_c3_identity(v) for v in base)
+        assert base_pairs == sorted(R.BASELINE_UNDECLARED), (
+            "基线 C3 违例与 R1 登记的具名身份集合不一致（登记项漂移或缺陷已修，需人工裁决）: "
+            "期望 %s，实际 %s" % (sorted(R.BASELINE_UNDECLARED), base_pairs))
         src = sb.text("adapters")
         unit = R.CppUnit("adapters", src)
         span = unit.resolve_unique("p3_op_verify")
@@ -1167,15 +1191,15 @@ def test_RegistryParity_Neg_C3PhantomArtifactLiteral() -> None:
                    + src[insert_at:])
         sb.set_text("adapters", mutated)
         after = _judge(R.judge_c3_implementation_to_declaration, sb.facts(), "C3")
-        after_pairs = sorted((v.subject, v.detail) for v in after)
+        after_pairs = sorted(_c3_identity(v) for v in after)
         added = [p for p in after_pairs if p not in base_pairs]
-        assert len(after_pairs) == len(base_pairs) + 1, (
-            "注入后 C3 违例数不是基线+1（%d → %d），判定器要么多报要么漏报（负例无效）: %s"
-            % (len(base_pairs), len(after_pairs), R.render(after)))
-        assert len(added) == 1 and "acsd.phase3.verify@p3_op_verify" in added[0][0] \
-            and "/injected_probe_artifact.json" in added[0][1], (
-            "新增的那一条不是被注入的 token: %s" % added)
-        # 基线三条仍在
+        assert len(added) == 1, (
+            "注入后 C3 新增违例不恰好是 1 条（新增 %d 条），判定器要么多报要么漏报"
+            "（负例无效）: %s" % (len(added), added))
+        assert added[0] == ("/injected_probe_artifact.json",
+                            "acsd.phase3.verify@p3_op_verify"), (
+            "新增的那一条不是被注入的 token: %s" % (added[0],))
+        # 基线三条仍在（判定器状态不泄漏）
         for pair in base_pairs:
             assert pair in after_pairs, "注入后基线违例消失了（判定器状态泄漏）: %s" % (pair,)
 
@@ -1356,6 +1380,57 @@ def test_RegistryParity_Neg_IrC5bDeclaredOrder() -> None:
             "对调同阶段节点序后 IR-C5b 未报 DECLARED_ORDER（负例无效）: %s" % R.render(after)
 
 
+def test_RegistryParity_Neg_PcC5ExternalInputCarrier() -> None:
+    """INTEGRATION.RegistryParity.Neg.PcC5ExternalInputCarrier
+    —— 负例：PC-C5 第 4 子句 `EXTERNAL_INPUT_CARRIER`（此前**无负例**，本轮补上）。
+
+    补这条的理由：PC-C5 有四条子句，原先只有子句 2（跨阶段边）、子句 3（载体合同缺失）
+    各配了一条负例；子句 4（`PIPELINE_BLOCK.md:21` 载体枚举推论：`direction=input` 且
+    `carrier ∈ {output_dir_file, hips_product_tree}` 的端口必须有生产者，否则按 :21 它就是
+    「阶段外部输入（本阶段无生产者）」、载体应为 `config_path`）与子句 1（节点间端口载体
+    取值）**都没有能红的负例** —— 本条补子句 4，子句 1 由 `Neg_CrossStageEdge` 顺带覆盖
+    （注入的端口带生产者，走子句 1 + 子句 2）。
+
+    注入形态：在临时副本注册表里给 `acsd.phase2.reject` 加一个 `direction=input`、
+    `carrier=output_dir_file` 的端口 `p2_injected_no_producer`——**全注册表无任何同名
+    生产者**（注入的就是「无生产者的非 config_path 输入」这个形态本身）。
+
+    对照读数形态：与 `Neg_C3PhantomArtifactLiteral` 同款——基线该子句**已红 1 条**
+    （缺陷登记 R2：`acsd.phase1.photometry:p1_photscale`），所以不能断言 `before == []`，
+    改为**具名身份集合**（`R.BASELINE_PC_C5_EXTERNAL_INPUT`，逐条带 `文件:行`）比对 +
+    「恰好新增一条且新增那条逐字等于注入的端口」。
+    这同时证明该子句既不是恒真（不多报）、也不是恒假（不漏报）。
+    """
+    with _sandbox() as sb:
+        base = [v for v in _judge(R.judge_pc_c5_carrier_contract, sb.facts(), "PC-C5")
+                if v.criterion == "PC-C5/EXTERNAL_INPUT_CARRIER"]
+        base_ids = sorted((v.subject,) for v in base)
+        assert base_ids == sorted(R.BASELINE_PC_C5_EXTERNAL_INPUT), (
+            "基线 PC-C5 第 4 子句违例与 R2 登记的具名身份不一致（登记漂移或缺陷已修）: "
+            "期望 %s，实际 %s" % (sorted(R.BASELINE_PC_C5_EXTERNAL_INPUT), base_ids))
+        reg = sb.load("registry")
+        mod = R.module_by_id(R.Facts(reg, {"nodes": []}, {}), "acsd.phase2.reject")
+        mod["operations"][0]["ports"].append({
+            "name": "p2_injected_no_producer", "direction": "input",
+            "carrier": "output_dir_file", "artifacts": ["p2_injected_no_producer.bin"],
+            "data_schema_id": "DATA-P2-INJECTED", "unit": "ADU", "coordinate": "PIXEL",
+            "scalar": "f32", "shape_hint": "[H,W]",
+            "code": [{"file": "lib/infrastructure/scheduler/src/module_adapters.cpp",
+                      "symbol": "p2_op_reject", "token": "/p2_injected_no_producer.bin"}],
+        })
+        sb.save("registry", reg)
+        after = [v for v in _judge(R.judge_pc_c5_carrier_contract, sb.facts(), "PC-C5")
+                 if v.criterion == "PC-C5/EXTERNAL_INPUT_CARRIER"]
+        after_ids = sorted((v.subject,) for v in after)
+        added = [x for x in after_ids if x not in base_ids]
+        assert len(added) == 1, (
+            "注入后第 4 子句新增违例不恰好是 1 条（新增 %d 条），子句无牙或误报: %s"
+            % (len(added), after_ids))
+        assert added[0] == ("acsd.phase2.reject:p2_injected_no_producer",), (
+            "新增的那一条不是被注入的端口: %s" % (added[0],))
+        for pair in base_ids:
+            assert pair in after_ids, "注入后基线违例消失了（判定器状态泄漏）: %s" % (pair,)
+
 def test_RegistryParity_Neg_C3bDirectionFlipped() -> None:
     """INTEGRATION.RegistryParity.Neg.C3bDirectionFlipped —— 负例：HiPS 端口方向写反。
 
@@ -1401,8 +1476,9 @@ def test_RegistryParity_Neg_IrC8VocabularyInjected() -> None:
     """
     with _sandbox() as sb:
         before = _judge(R.ir_c8_execution_surface, sb.facts(), "IR-C8")
+        # 注入前提：基线的「公共词表不存在」是 R4 登记项（非规模锚），本条证明它可翻转
         assert before["n_name_hits"] == 0 and not before["has_execution_surface"], \
-            "注入前提不成立：基线已存在公共词表"
+            "注入前提不成立：基线已存在公共词表，R4 登记项需重写"
         src = sb.text("adapters")
         # 在 p1_cosmetic_descriptor 里改端口名：{"cleaned", ...} → {"p1_cleaned", ...}
         fn = R.DESCRIPTOR_FN.search(src)
@@ -1498,16 +1574,50 @@ def test_RegistryParity_SelfCheck_JudgesNotVacuouslyTrue(facts: R.Facts) -> None
 
     本条不注入缺陷（逐判定的注入由各自的 Neg.* 负例承担），它守的是**零对象守卫**
     （`VALIDATION_EVIDENCE.md:170-173` 第 1 条）。
+
+    ## 为什么**不做**强规模锚（`VALIDATION_EVIDENCE.md:192` S5）
+
+    对抗复核指出：本单元原先在多处断言了 `101 / 85 / 20 / 20 / 51 / 77` 这类**基线读数**，
+    它们既不是正本下界，也不是零对象守卫（零对象守卫是 `> 0`）。最小反例：产品合法地
+    增删一个端口即判红——那是把「读数漂移」当成「违规」，与 S5「规模锚用实算值…
+    禁止任何无来源的魔数阈值」相悖。处置：
+
+    - **实算面**一律降为 `> 0` 的零对象守卫（本条 + `C1Structure` + `C2AnchorResolves`）；
+    - **规模关系**改用**正本条款直接蕴含的不等式**，不用绝对数：
+      `n_modules ≥ 3`（`gen_block_flow_spec.py:24` 三相映射 + `PIPELINE_BLOCK.md:6`）、
+      `n_operations == n_modules`（`PIPELINE_BLOCK.md:91`「每 module 恰一个 operation」）、
+      `n_ports ≥ 2 × n_modules`（`PIPELINE_BLOCK.md:13`）、
+      `n_anchors ≥ n_ports`（`PIPELINE_BLOCK.md:91`「端口 … code 齐全」）、
+      每阶段生产→消费边数 `≥ 1`（`VALIDATION_EVIDENCE.md:170-173` 零对象守卫第 1 条）；
+    - **缺陷钉桩**（`Neg_C3PhantomArtifactLiteral` 用到的基线 3 条未声明流）改用
+      **具名 token 身份集合** `BASELINE_UNDECLARED`（逐条带 `文件:行`），而不是计数——
+      它钉的是「已登记的缺陷身份」，不是「规模」，产品合法增删端口不会误伤。
     """
-    assert len(facts.anchors()) == 101
-    assert len(facts.ports()) == 85
-    assert len(facts.operations()) == 20
-    assert len(facts.ir_nodes()) == 20
-    assert len(facts.registry_edges()) == 51
-    # C3 的抽取面必须非零，否则 C3 恒真
+    # --- 零对象守卫（> 0）：各判定器在自己的输入面上必须读到真实对象 ---
+    assert len(facts.anchors()) > 0, "锚点面为空，C2 恒真"
+    assert len(facts.ports()) > 0, "端口面为空，C1 恒真"
+    assert len(facts.operations()) > 0, "operation 面为空，PC-C6 恒真"
+    assert len(facts.ir_nodes()) > 0, "IR 节点面为空，IR-C4/IR-C5/IR-C7 恒真"
+    assert len(facts.registry_edges()) > 0, "注册表端口图无边，IR-C4/PC-C6 恒真"
+    assert len(facts.ir_reads()) > 0, "IR 读边面为空，IR-C4 恒真"
+
+    # --- 正本有据的规模关系（不是魔数；来源逐条写在上面的表里） ---
+    assert len(facts.operations()) == len(facts.modules), (
+        "operation 数 %d ≠ module 数 %d，违反 PIPELINE_BLOCK.md:91「每 module 恰一个 operation」"
+        % (len(facts.operations()), len(facts.modules)))
+    assert len(facts.ports()) >= 2 * len(facts.modules), (
+        "端口数 %d < 2×%d，违反 PIPELINE_BLOCK.md:13「模块从帧读入参块、产出新块写回」"
+        % (len(facts.ports()), len(facts.modules)))
+    assert len(facts.anchors()) >= len(facts.ports()), (
+        "锚点数 %d < 端口数 %d，违反 PIPELINE_BLOCK.md:91「端口 … code 齐全」"
+        % (len(facts.anchors()), len(facts.ports())))
+    assert len(facts.modules) >= len(R.PHASE_TO_STAGE), (
+        "module 数 %d < 阶段数 %d，违反 gen_block_flow_spec.py:24 三相映射 + "
+        "PIPELINE_BLOCK.md:6 三命令各占一阶段" % (len(facts.modules), len(R.PHASE_TO_STAGE)))
+
+    # --- C3 文法的抽取面必须非零，否则 C3 恒真 ---
     total_g1 = 0
     for m in facts.modules:
-        declared = facts.declared_tokens(m["module_id"])
         sym_files = {}
         for op in m.get("operations") or []:
             for p in op.get("ports") or []:
@@ -1516,8 +1626,15 @@ def test_RegistryParity_SelfCheck_JudgesNotVacuouslyTrue(facts: R.Facts) -> None
         for symbol, rel in sym_files.items():
             unit = facts.units[rel]
             total_g1 += len(R.extract_g1_tokens(unit, unit.resolve_unique(symbol)))
-    assert total_g1 > 0, "C3 文法在基线上一个 token 都抽不到 —— C3 是恒真的"
-    assert total_g1 == 77, (
-        "C3 抽取数不再是 77（现 %d）——词表或文法漂移，请人工确认" % total_g1)
-    # C3b 的触发面必须非零
-    assert _judge(R.ir_c8_execution_surface, facts, "IR-C8")["n_ir_refs"] == 85
+    assert total_g1 > 0, "C3 文法一个 token 都抽不到 —— C3 是恒真的"
+
+    # --- C3b 的两个角色触发面都必须非零，否则 C3b 的 ⇒ 方向无判别力 ---
+    c3b_prod, c3b_cons = R.c3b_role_triggers(facts)
+    assert c3b_prod, "C3b 生产者角色触发面为空 ⇒ 该方向恒真"
+    assert c3b_cons, "C3b 消费者角色触发面为空 ⇒ 该方向恒真"
+    assert not (set(c3b_prod) & set(c3b_cons)), (
+        "生产者与消费者角色集合重叠（%s）——角色正则写坏了" % sorted(set(c3b_prod) & set(c3b_cons)))
+
+    # --- IR-C8 的读数面必须非零（其「无在位执行面」结论不能读成「IR 没有端口」） ---
+    assert _judge(R.ir_c8_execution_surface, facts, "IR-C8")["n_ir_refs"] > 0, \
+        "IR 端口引用面为空，IR-C8 登记结论恒真"

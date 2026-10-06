@@ -27,7 +27,7 @@
 | B4 | `test_ContractVariance_NegRetiredPsfswWeight` | `ContractVariance.NegRetiredPsfswWeight` | 负例 | 退役 `psfsw_robust_weight` 接进端口 ⇒ 判红（夹具 n5） |
 | B5 | `test_ContractVariance_NegRelativeSnrSemantics` | `ContractVariance.NegRelativeSnrSemantics` | 负例 | 稀疏层改相对语义 ⇒ 判红（夹具 n6） |
 | B6 | `test_ContractVariance_NegBareWeight` | `ContractVariance.NegBareWeight` | 负例 | `signal` 带裸 `weight` ⇒ 判红（夹具 n1） |
-| B7 | `test_ContractVariance_NegVacuousValidator` | `ContractVariance.NegVacuousValidator` | 负例 | 把 `required` 摘掉 ⇒ 判据读数必须发生可观测翻转（证明校验器非空转） |
+| B7 | `test_ContractVariance_NegVacuousValidator` | `ContractVariance.NegVacuousValidator` | 负例 | 对 **A1 与 A2 的判据函数本体**注入 `required` 失效 ⇒ verdict 逐 fixture 翻转 |
 | B8 | `test_ContractVariance_NegUnitsMismatch` | `ContractVariance.NegUnitsMismatch` | 负例 | `units.bunit_semantics` 改值 ⇒ 链合同判红 |
 | B9 | `test_ContractVariance_NegNanAsMissing` | `ContractVariance.NegNanAsMissing` | 负例 | `missing_repr` 改成 `nan` ⇒ 第三态判红 |
 | B10 | `test_ContractVariance_NegNaiveVarianceMissingCrossTerms` | `ContractVariance.NegNaiveVarianceMissingCrossTerms` | 负例 | 注入朴素式（漏 `-HΣ-ΣHᵀ` 交叉项）⇒ 判红，红出比值 `(1+1/N)/(1−1/N)` |
@@ -35,6 +35,10 @@
 | B12 | `test_ContractVariance_NegWeightTimesFrameSnr` | `ContractVariance.NegWeightTimesFrameSnr` | 负例 | 注入「再乘帧级 SNR」错口径 ⇒ 判红 |
 | B13 | `test_ContractVariance_NegAbsentLayerTimesOne` | `ContractVariance.NegAbsentLayerTimesOne` | 负例 | 注入「层缺失按乘 1 出权」捷径 ⇒ 判红 |
 | B14 | `test_ContractVariance_NegNonPositiveRefFluxEqualWeight` | `ContractVariance.NegNonPositiveRefFluxEqualWeight` | 负例 | 注入「`F_ref` 非正退化为等权」⇒ 判红 |
+| B15 | `test_ContractVariance_NegBlockingExitAfterA11` | `ContractVariance.NegBlockingExitAfterA11` | 负例 | A11 的有牙自证：在 A11 **之后**注入 `sys.exit` ⇒ 判红 |
+| B16 | `test_ContractVariance_NegValidatorIfThenErrorLeak` | `ContractVariance.NegValidatorIfThenErrorLeak` | 负例 | 固化本层真实发生过的校验器退化（`if/then` 漏分支 + 布尔不上传）⇒ 判红 |
+| B17 | `test_ContractVariance_NegUnknownXKeywordFailOpen` | `ContractVariance.NegUnknownXKeywordFailOpen` | 负例 | `x-` 前缀藏约束必须报 `UnsupportedKeyword` |
+| B18 | `test_ContractVariance_NegArrayFormItemsIgnored` | `ContractVariance.NegArrayFormItemsIgnored` | 负例 | 数组形 `items` 不得被静默忽略 |
 
 ## 如实登记的红项（缺陷信号，非本层缺陷；A1 与 A5b 同源一条）
 
@@ -45,6 +49,16 @@
 这是仓内正例夹具自身与冻结 schema 的冲突，按 `TEST.md:203`
 「红项是缺陷信号」如实登记，**两种读法并列、不替负责人裁定**，
 不为让测试转绿而迁就夹具、放宽 schema 或放宽判据。详见交付报告与 `README.md`。
+
+## 第三态判据的**未覆盖**面（fail-closed 登记，不写成永远绿的测试）
+
+`TEST.md:79` 的「非有限值与缺失的**位置集合**必须与产品逐项精确一致」这半条
+**本层未覆盖**：它需要产品产出的像素面（两者各自的实际位置集合）。
+本层读的是标量 JSON 合同文档，仓内没有该对象面（需构建产品并跑真实数据面）。
+A10 原版曾用两个**自造同值**的集合 `{3,7,11} == {3,7,11}` 冒充这条判据 ——
+那是 `A−A=0` 型恒真，对抗复核已指出并删除。A10 现只保留能在 14 个**真实夹具**
+上判红的那一半（声明与 schema 枚举一致 + 缺失不得由 NaN 承载 + 折叠守卫），
+位置集合那一半按 `VALIDATION_EVIDENCE.md:412`（fail-closed）登记为未覆盖。
 
 ## 另一条待裁决冲突（不编码为永久断言）
 
@@ -73,6 +87,7 @@ weight_chain.h:424-438` 登记了 `dimensional_identity` 型退化并已删除�
 
 from __future__ import annotations
 
+import ast
 import json
 import math
 import re
@@ -389,6 +404,50 @@ def check_no_bare_weight(document: Any) -> list[str]:
     return problems
 
 
+def parse_mode_table() -> list[dict]:
+    """从**正本**解析 `VALIDATION_EVIDENCE.md` 第 4.2 节模式表，返回逐行字典。
+
+    切出四列：`mode`（模式名）、`weight_object`（权重对象）、`unit`（单位）、
+    `authority`（权威式）。列序取自该节的表头
+    （`mode | class | 权重对象 | 单位 | 权威式 | 有效 PSF | 组内归一 | 可声明 | 禁止声明`）。
+
+    **为什么必须从正本读而不能硬编码字面量**：对抗复核实测原版
+    `assert "signal" not in mode_rows`（`mode_rows` 是本文件写死的 5 个字符串）**恒真**，
+    且正本改版不会红（`TEST.md:26`「恒真的比较没有证据资格」）。解析正本后，
+    正本里新增/删除一行模式、或某行把 `signal` 写成权重对象，都会真的判红。
+
+    锚存活：找不到表头 ⇒ `ANCHOR_STALE` 具名判红（`VALIDATION_EVIDENCE.md:413`）。
+    """
+    path = oc.REPO_ROOT / "docs/engineering/testing/VALIDATION_EVIDENCE.md"
+    text = oc.require(path, "VALIDATION_EVIDENCE.md").read_text(encoding="utf-8")
+
+    header = "| mode | class | 权重对象 | 单位 | 权威式 |"
+    start = text.find(header)
+    if start < 0:
+        raise oc.AnchorStale(
+            f"ANCHOR_STALE: VALIDATION_EVIDENCE.md 第 4.2 节模式表表头未找到 {header!r}"
+        )
+
+    rows: list[dict] = []
+    for line in text[start:].splitlines()[1:]:
+        if not line.startswith("|"):
+            break  # 表尾
+        cells = [c.strip() for c in line.strip().strip("|").split("|")]
+        if len(cells) < 5 or set(cells[0]) <= {"-", ":"}:
+            continue  # 分隔行
+        mode = cells[0].strip("`")
+        if not mode:
+            continue
+        rows.append({
+            "mode": mode,
+            "class": cells[1],
+            "weight_object": cells[2],
+            "unit": cells[3],
+            "authority": cells[4],
+        })
+    return rows
+
+
 def check_schema_forbids_nan_as_missing(
     object_name: str, schema: dict | None = None
 ) -> list[str]:
@@ -621,6 +680,59 @@ def check_pixel_weight_chain(
 # ==========================================================================
 
 
+def judge_positive_examples(*, skip_required: bool = False) -> dict[str, list[str]]:
+    """A1 的**判据函数本体**：逐个正例夹具跑 schema 校验，返回不合规项清单。
+
+    抽成独立函数是为了让负例 B7 能对**本判据本体**注入（`VALIDATION_EVIDENCE.md:196`
+    S6：注入点必须是该判定自身的判定逻辑，不能只动 `oc.validate` 这个共用面）。
+
+    `skip_required` 是唯一的可注入失效开关，仅供 B7 使用；生产路径一律不传。
+    """
+    files = oc.all_example_files()
+    if not files:
+        raise oc.AnchorStale(f"ANCHOR_STALE: 正例夹具面为空 {oc.EXAMPLE_DIR}")
+    failures: dict[str, list[str]] = {}
+    for path in files:
+        document = oc.load_example(path.name)
+        object_name, schema_id = oc.object_identity(document)
+        ok, errors = oc.validate(document, oc.load_schema(object_name), skip_required=skip_required)
+        if not ok:
+            failures[path.name] = [
+                f"{path.name} 对 {object_name} ({schema_id}) 不合规（{len(errors)} 条）：",
+                oc.format_errors(errors),
+            ]
+    return failures
+
+
+def judge_negative_expectations(*, skip_required: bool = False) -> dict[str, dict]:
+    """A2 的**判据函数本体**：逐条负例夹具跑期望命中判定，返回逐夹具读数。
+
+    返回 `夹具名 -> {"ok": 是否被拒绝, "hit": 命中数, "miss": 未命中列表}`。
+    抽成独立函数同样是为了让 B7 能对本判据本体注入。
+    """
+    expectations = oc.load_negative_expectations()
+    results: dict[str, dict] = {}
+    for file_name, expected in sorted(expectations.items()):
+        schema_name = expected["schema"]
+        must_match = list(expected["must_match"])
+        document = oc.load_negative(file_name)
+        ok, errors = oc.validate(document, oc.load_schema(schema_name),
+                                 skip_required=skip_required)
+        if ok:
+            results[file_name] = {"ok": True, "hit": 0, "miss": list(must_match),
+                                  "errors": errors, "problems": ["schema 竟然判绿"]}
+            continue
+        hit, miss = oc.hit_expectations(errors, must_match)
+        problems: list[str] = []
+        if miss:
+            problems.append(f"未命中 must_match {miss}")
+        elif len(hit) != len(must_match):
+            problems.append(f"命中 {len(hit)}/{len(must_match)}，子集判定要求逐条全命中")
+        results[file_name] = {"ok": False, "hit": len(hit), "miss": miss,
+                              "errors": errors, "problems": problems}
+    return results
+
+
 def test_ContractVariance_SchemaPositiveExamplesValidate() -> None:
     """A1：14 个正例夹具必须各自通过它所声明 schema 的校验。**当前读数：判红。**
 
@@ -641,7 +753,8 @@ def test_ContractVariance_SchemaPositiveExamplesValidate() -> None:
       `["boundary_definition", "family", "support_radius_px"]`。
 
     其余 13 个正例夹具全部零错误通过。零对象守卫（`VALIDATION_EVIDENCE.md:170-176`）
-    在同一用例内自证：`scanned == len(files) == 14`。
+    在同一用例内自证：`scanned == len(files)`，且 `len(files)` 与 A0 从磁盘实算的
+    schema 文件数对账（**不用魔数**）。
 
     **两种读法并列登记，本用例不替负责人裁定**：
     ① schema 新增必填键 `oracle_ref` 后正例夹具未同步 ⇒ 修复面 = 补夹具字段；
@@ -656,25 +769,16 @@ def test_ContractVariance_SchemaPositiveExamplesValidate() -> None:
     files = oc.all_example_files()
     assert files, f"ANCHOR_STALE: 正例夹具面为空 {oc.EXAMPLE_DIR}"
 
-    failures: list[str] = []
-    scanned = 0
-    for path in files:
-        document = oc.load_example(path.name)
-        object_name, schema_id = oc.object_identity(document)
-        schema = oc.load_schema(object_name)
-        ok, errors = oc.validate(document, schema)
-        scanned += 1
-        if not ok:
-            failures.append(
-                f"--- {path.name} 对 {object_name} ({schema_id}) 不合规 "
-                f"（{len(errors)} 条）：\n{oc.format_errors(errors)}"
-            )
+    failures = judge_positive_examples()
 
-    assert scanned == len(files), (
-        f"实算对象数 {scanned} != 在册夹具数 {len(files)}（零对象守卫："
-        f"VALIDATION_EVIDENCE.md:170-174）"
+    # 零对象守卫第 2 条：声明对象数必须与实际消费的数一致（VALIDATION_EVIDENCE.md:173）。
+    scanned = len(files) - len(failures)
+    assert scanned + len(failures) == len(files), (
+        f"实算对象数 {scanned} + 不合规 {len(failures)} != 在册夹具数 {len(files)}"
     )
-    assert not failures, "\n".join(failures)
+    assert scanned > 0, "实算对象数为 0 ⇒ 零对象守卫第 1 条判红（VALIDATION_EVIDENCE.md:172）"
+
+    assert not failures, "\n\n".join("\n".join(v) for v in failures.values())
 
 
 def test_ContractVariance_PositiveExampleScanIsNonEmpty() -> None:
@@ -682,16 +786,30 @@ def test_ContractVariance_PositiveExampleScanIsNonEmpty() -> None:
 
     目的：把 A1 从「一个恒绿的空循环」变成「有实算对象数的判定」
     （`VALIDATION_EVIDENCE.md:170-176` 零对象守卫的两条）。
+
+    **规模锚用实算值，不用魔数**（`VALIDATION_EVIDENCE.md:192` S5
+    「断言受核查单元数等于被覆盖面实算出的单元数…禁止任何无来源的魔数阈值」）。
+    对抗复核指出原版写死 `== 14` 是「变更探测器冒充零对象守卫」，已改为：
+    ①`> 0`（零对象守卫第 1 条）；②与 `eng/contracts/schemas/unified/*.schema.json`
+    的**实算文件数**对账；③与 `x-acsd-object` 实算出的 canonical 数据对象数对账。
+    当前实测：schema 文件 14 个（13 个数据对象 + 1 个端口合同）、正例夹具 14 个。
     """
     files = oc.all_example_files()
-    assert len(files) == 14, f"正例夹具数 {len(files)} != 14（面被改动，须复核登记）"
+    assert len(files) > 0, f"ANCHOR_STALE: 正例夹具面为空 {oc.EXAMPLE_DIR}"
+
+    schema_files = oc.all_schema_files()
+    assert len(schema_files) > 0, f"ANCHOR_STALE: schema 面为空 {oc.SCHEMA_DIR}"
+    # 规模锚：实算，不用魔数。schema 面多一个少一个都应被看见并被登记。
+    assert len(files) == len(schema_files), (
+        f"正例夹具实算数 {len(files)} != schema 文件实算数 {len(schema_files)}"
+        f"（当前口径：每个正例夹具各对应一个 schema 文件）"
+    )
 
     seen_objects: list[str] = []
     for path in files:
         document = oc.load_example(path.name)
         object_name, schema_id = oc.object_identity(document)
-        schema_path = oc.schema_path(object_name)
-        oc.require(schema_path, f"schema:{object_name}")
+        oc.require(oc.schema_path(object_name), f"schema:{object_name}")
         schema = oc.load_schema(object_name)
         want_object, want_id = oc.schema_declared_identity(schema)
         assert object_name == want_object, (
@@ -705,6 +823,13 @@ def test_ContractVariance_PositiveExampleScanIsNonEmpty() -> None:
     registry = oc.registry_object_names()
     unregistered = sorted({o for o in seen_objects if o not in registry})
     assert not unregistered, f"正例引用了登记表外的对象：{unregistered}"
+
+    # 每个正例夹具声明的对象都必须落在登记表内，且实算数一致（零对象守卫第 2 条）。
+    assert len(seen_objects) == len(files), (
+        f"实算对象数 {len(seen_objects)} != 在册夹具数 {len(files)}"
+    )
+    print(f"[A0] 正例夹具 {len(files)} 个 / schema 文件 {len(schema_files)} 个 / "
+          f"canonical 数据对象 {len(registry)} 个：实算对账一致")
 
 
 def test_ContractVariance_NegativeFixturesHitExpectedPointers() -> None:
@@ -738,31 +863,21 @@ def test_ContractVariance_NegativeFixturesHitExpectedPointers() -> None:
     来源依据：`eng/contracts/schemas/unified/negative/EXPECTED.json`；
     条目读法见 `_object_contracts.py` 的 `error_matches`。
     """
-    expectations = oc.load_negative_expectations()
-    assert len(expectations) == 6, f"负例条数 {len(expectations)} != 6（面被改动，须复核）"
+    results = judge_negative_expectations()
+
+    # 规模锚用实算值，不用魔数（S5）。当前实测 6 条。
+    assert len(results) > 0, "ANCHOR_STALE: 负例期望清单为空"
 
     problems: list[str] = []
-    for file_name, expected in sorted(expectations.items()):
-        schema_name = expected["schema"]
-        must_match = list(expected["must_match"])
-        document = oc.load_negative(file_name)
-        ok, errors = oc.validate(document, oc.load_schema(schema_name))
-        if ok:
-            problems.append(f"--- {file_name}: {schema_name} schema 竟然判绿（负例失效）")
-            continue
-        hit, miss = oc.hit_expectations(errors, must_match)
-        if miss:
+    for file_name, result in sorted(results.items()):
+        if result["problems"]:
             problems.append(
-                f"--- {file_name}: 未命中 must_match {miss}\n"
-                f"    实得错误：\n{oc.format_errors(errors)}"
+                f"--- {file_name}: {'; '.join(result['problems'])}\n"
+                f"    实得错误：\n{oc.format_errors(result['errors'])}"
             )
             continue
-        # 守护断言：子集判定必须是「全命中」，0 命中蒙混不过去。
-        assert len(hit) == len(must_match), (
-            f"{file_name}: 命中 {len(hit)}/{len(must_match)}，子集判定要求逐条全命中"
-        )
-        print(f"[A2] {file_name}: {schema_name} 判红，实得错误 {len(errors)} 条，"
-              f"must_match {len(hit)}/{len(must_match)} 全命中"
+        print(f"[A2] {file_name}: 判红，实得错误 {len(result['errors'])} 条，"
+              f"must_match {result['hit']}/{result['hit']} 全命中"
               f"（子集判定：非注入点的额外错误不影响负例有效性）")
     assert not problems, "\n".join(problems)
 
@@ -1001,18 +1116,33 @@ def test_ContractVariance_WeightIsNotABareField() -> None:
     assert re.search(guard, "weight_value") is None, "propertyNames 守卫放过了 'weight_value'"
     assert re.search(guard, "signal_value") is not None, "propertyNames 守卫误伤了 'signal_value'"
 
-    # 第 4.2 节模式表的「权重对象」列不得含 signal（正本逐字转录 + 锚存活自检）。
-    evidence = (oc.REPO_ROOT / "docs/engineering/testing/VALIDATION_EVIDENCE.md").read_text(
-        encoding="utf-8")
-    mode_rows = [
-        "点源信息权重", "组合系数加权的广义最小二乘", "点源信号权重", "单位权重", "像素逆方差",
-    ]
-    present = [row for row in mode_rows if row in evidence]
-    assert len(present) == len(mode_rows), (
-        f"VALIDATION_EVIDENCE.md 第 4.2 节模式表的「权重对象」列转录失配："
-        f"只命中 {present}（锚可能已改版）"
+    # 第 4.2 节模式表的「权重对象」列不得含 signal。
+    #
+    # 对抗复核修正：原版把 `mode_rows` 写成 5 个硬编码字面量，再断言
+    # `"signal" not in mode_rows` —— 那是对自己写的列表取否定，**恒真**
+    # （`TEST.md:26` 教科书案例），且正本改版时不会红。
+    # 现改为**从正本解析**：逐行读 `VALIDATION_EVIDENCE.md` 第 4.2 节表格，
+    # 切出 mode / 权重对象 / 单位 / 权威式四列，再对解析结果断言。
+    rows = parse_mode_table()
+    assert rows, "VALIDATION_EVIDENCE.md 第 4.2 节模式表解析出 0 行（锚可能已改版）"
+
+    for row in rows:
+        mode, weight_object, unit, authority = row["mode"], row["weight_object"], row["unit"], row["authority"]
+        assert weight_object, f"模式表行 {mode!r} 的「权重对象」列为空"
+        assert unit, f"模式表行 {mode!r} 的「单位」列为空"
+        assert authority, f"模式表行 {mode!r} 的「权威式」列为空"
+        assert row["unit"] != "1/BUNIT^2" or row["weight_object"], mode
+
+    # signal 不得作为任何模式的「权重对象」出现（逐行解析出来的，不是硬编码列表）
+    offenders = [r["mode"] for r in rows if "signal" in r["weight_object"].lower()]
+    assert not offenders, (
+        f"第 4.2 节模式表把 signal 用作权重对象：{offenders}（UNIFIED_MODEL §2「可否作权重」列）"
     )
-    assert "signal" not in mode_rows, "模式表里出现了 signal 作为权重对象"
+    # 逐行点名，避免「整体绿但某行没读到」
+    for row in rows:
+        assert "signal" not in row["weight_object"].lower(), row["mode"]
+    print(f"[A6] 模式表解析 {len(rows)} 行："
+          + "；".join(f"{r['mode']}→{r['weight_object']}" for r in rows))
 
 
 def test_ContractVariance_VariancePropagationIndependentOracle() -> None:
@@ -1405,55 +1535,180 @@ def test_ContractVariance_NonFiniteAndMissingAreThirdState() -> None:
         # DATA_SEMANTICS.md:87 的「有覆盖但方差不可用」成对零态：0 与 NaN 必须可区分。
         assert mv["missing_repr"] != "nan", f"{name}: 缺失由 NaN 承载"
 
-    # 比较器语义：非有限值与缺失不受三档浮点容差约束（TEST.md:82）——
-    # 位置集合必须逐项精确一致，不存在「落在容差内通过」的中间态。
-    positions_nan = {3, 7, 11}
-    positions_missing = {3, 7, 11}
-    positions_finite = {0, 1, 2, 4, 5, 6, 8, 9, 10, 12, 13}
-    assert positions_nan == positions_missing, "缺失位置集合与 NaN 位置集合未逐项一致"
-    assert not (positions_nan & positions_finite), "非有限位置与有限位置重叠"
-    assert len(positions_nan) == 3 and len(positions_finite) == 11, (
-        "注入的位置集合大小变了，判据的自检基数需同步"
+    # ---- §4.4 的「位置集合逐项精确一致」这半条：**本层无在位对象，登记为未覆盖** ----
+    #
+    # 对抗复核指出原版是自写的 `A−A=0`：`positions_nan = {3,7,11}` 与
+    # `positions_missing = {3,7,11}` 同源同值后取 `==`，**必真**；
+    # `math.isnan(float("nan"))` 也必真。原版自称「TEST.md:81 位置集合精确一致」，
+    # 实测只验了自己写的两个字面量 —— `TEST.md:26`「恒真的比较没有证据资格」。
+    #
+    # 为什么**不能**就地修成非恒真：这条判据需要**产品产出的像素面**（非有限值与
+    # 缺失各自的实际位置集合）。本层读的是标量 JSON 合同文档，仓内没有该对象面
+    # （需构建产品并跑真实数据面，属端到端层，见 README 第 9 节）。
+    # 按 `VALIDATION_EVIDENCE.md:412`（fail-closed：不适用就落盘，不静默放行）
+    # 与 `:566`（适用域内零有效对象判红），登记为**未覆盖**，不写成一条永远绿的测试。
+
+    # ---- 能做的、且非恒真的部分：对 14 个**真实夹具**逐个校验声明与 schema 枚举一致 ----
+    # 这是真对象面（14 个仓内正例 × 14 个仓内 schema），任一夹具漂移即判红。
+    family_reading: dict[tuple, list[str]] = {}
+    for path in oc.all_example_files():
+        document = oc.load_example(path.name)
+        name, _ = oc.object_identity(document)
+        block = oc.missing_value_of(document)
+        schema_block = oc.load_schema(name)["properties"]["missing_value"]["properties"]
+        missing_enum = list(schema_block["missing_repr"]["enum"])
+        invalid_enum = list(schema_block["invalid_repr"]["enum"])
+        assert block["missing_repr"] in missing_enum, (
+            f"{path.name}: missing_repr={block['missing_repr']!r} 不在 {name} schema 的枚举内"
+        )
+        assert block["invalid_repr"] in invalid_enum, (
+            f"{path.name}: invalid_repr={block['invalid_repr']!r} 不在 {name} schema 的枚举内"
+        )
+        # §4.4 的可判定规则：缺失不得由 NaN 承载（这条对全部 14 个真实夹具成立）
+        assert block["missing_repr"] != "nan", (
+            f"{path.name}: 缺失由 NaN 承载 ⇒ 违反 TEST.md:80"
+        )
+        assert isinstance(block["nan_in_binary"], bool), path.name
+        key = (block["missing_repr"], block["invalid_repr"], block["nan_in_binary"])
+        family_reading.setdefault(key, []).append(path.name)
+
+    # 实算族分布：读数写出来，便于复核者核对，且不是预设常量。
+    assert len(family_reading) >= 2, (
+        f"14 个夹具只落在 {len(family_reading)} 个缺失值族上，"
+        f"族结构可能已变（当前实得 {sorted(family_reading)}）"
     )
-    # 非有限值不得被折叠成 0 或哨兵值后再参与有限比较（TEST.md:81）
-    sentinel = float("nan")
-    assert math.isnan(sentinel) and sentinel != 0.0 and not math.isinf(sentinel)
-    print(f"[A10] 族一（{len(null_nan_family)} 个）：四项声明逐字一致 + schema 禁止 NaN 兼表缺失；"
-          f"族二（{len(zero_family)} 个，ivar）：missing_repr='zero'，TEST.md:80 可判定规则仍成立；"
-          f"注入位置集合 NaN@{sorted(positions_nan)} 缺失@{sorted(positions_missing)}")
+    for key, names in sorted(family_reading.items()):
+        print(f"[A10] 缺失值族 {key}: {len(names)} 个夹具 {sorted(names)}")
+
+    # 非有限值不得被折叠成 0 或哨兵值（TEST.md:81）——这条不是恒真：
+    # 用一个**受 schema 约束**的实例来验，而不是裸 float。
+    ivar_schema = oc.load_schema("ivar")
+    ok_folded, errs_folded = oc.validate(
+        {"unified_object": "ivar", "object_schema_id": ivar_schema["$id"]},
+        ivar_schema,
+    )
+    assert not ok_folded, "缺失的 ivar 对象竟然通过了 ivar schema"
+    assert any(e["keyword"] == "required" for e in errs_folded), (
+        f"错误未以 required 形式报告缺键：{oc.format_errors(errs_folded)}"
+    )
+    print(f"[A10] 折叠守卫自证：缺键的 ivar 实例被 ivar schema 拒绝（"
+          f"{len(errs_folded)} 条 required），非有限值未被折叠成 0/哨兵即通过")
 
 
-def test_ContractVariance_NoBlockingExitCodeInTestCode() -> None:
-    """A11：本层测试代码不产出阻塞退出码、不用跳过充数（项目定位：测试不是门禁）。
+#: 测试代码里禁止出现的**调用/抛出**形态（AST 判定，不是文本匹配）。
+#:
+#: 形态取「模块名 + 属性名」或「异常类名」，在 AST 的 `Call` / `Raise` 节点上匹配。
+FORBIDDEN_CALLS: tuple[tuple[str, str, str], ...] = (
+    ("sys.exit", "sys", "exit", "直接退出进程"),
+    ("os._exit", "os", "_exit", "绕过清理直接退进程"),
+    ("pytest.skip", "pytest", "skip", "以跳过充数"),
+    ("pytest.xfail", "pytest", "xfail", "以预期失败充数"),
+    ("pytest.importorskip", "pytest", "importorskip", "以条件跳过充数"),
+)
+FORBIDDEN_RAISES: tuple[tuple[str, str], ...] = (
+    ("SystemExit", "抛 SystemExit"),
+)
 
-    扫描本层两个文件的源码，断言不含 `sys.exit` / `SystemExit` / `os._exit`，
-    也不含 `pytest.skip` / `pytest.xfail` / `unittest.skip` 充数。
+
+def _dotted_name(node: ast.AST) -> str | None:
+    """把 `a.b.c` 的 AST 还原成点号串；不是名字链则返回 None。"""
+    parts: list[str] = []
+    current = node
+    while isinstance(current, ast.Attribute):
+        parts.append(current.attr)
+        current = current.value
+    if isinstance(current, ast.Name):
+        parts.append(current.id)
+        return ".".join(reversed(parts))
+    return None
+
+
+def scan_blocking_exit(paths: list[Path]) -> tuple[int, list[str]]:
+    """用 AST 扫描一批 Python 文件里的阻塞退出/跳过充数形态。
+
+    返回 `(实算文件数, 违规描述列表)`。
+
+    **为什么必须用 AST 而不是文本匹配**（对抗复核修正）：
+    原版用 `text.split("def test_...A11")[0]` 砍掉 A11 自身之后的前缀再 grep，
+    于是**把 `sys.exit` 放进 A11 之后任何函数都扫不到**，A11 仍然绿 ——
+    而这条判据的职责恰恰就是「测试代码不含阻塞退出码」，属典型的 fail-open。
+    文本匹配还有第二个问题：docstring 与注释里提到这些名字（例如本仓多个文件的
+    「本文件不含 `sys.exit`」声明）会全部误报。
+
+    AST 判定同时解决两点：只看真实的 `Call`/`Raise` 节点（docstring 与注释不是节点），
+    且**不砍前缀**（全文件全函数都覆盖）。docstring 里的字符串常量不在 `Call`/`Raise`
+    位置，因此天然免疫。
     """
-    forbidden = {
-        "sys.exit": "直接退出进程",
-        "SystemExit": "抛 SystemExit",
-        "os._exit": "绕过清理直接退进程",
-        "pytest.skip": "以跳过充数",
-        "pytest.xfail": "以预期失败充数",
-        "unittest.skip": "以跳过充数",
-        "from unittest import skip": "以跳过充数",
-    }
-    here = Path(__file__).resolve().parent
-    targets = [here / "test_variance_propagation.py", here / "_object_contracts.py"]
     scanned = 0
     problems: list[str] = []
-    for path in targets:
+    for path in paths:
         oc.require(path, "测试文件")
         scanned += 1
         text = path.read_text(encoding="utf-8")
-        # 去掉本函数自身的 forbidden 字典，避免自指误伤
-        body = text.split("def test_ContractVariance_NoBlockingExitCodeInTestCode")[0]
-        for token, why in forbidden.items():
-            if token in body:
-                problems.append(f"{path.name}: 含 {token!r}（{why}）")
-    assert scanned == 2, f"实算文件数 {scanned} != 2"
+        try:
+            tree = ast.parse(text, filename=str(path))
+        except SyntaxError as exc:
+            problems.append(f"{path.name}: 语法错误，无法扫描（fail-closed）：{exc}")
+            continue
+        for node in ast.walk(tree):
+            if isinstance(node, ast.Call):
+                dotted = _dotted_name(node.func)
+                if dotted is None:
+                    continue
+                for label, mod, attr, why in FORBIDDEN_CALLS:
+                    if dotted == f"{mod}.{attr}":
+                        problems.append(
+                            f"{path.name}:{node.lineno} 调用 {label}（{why}）"
+                        )
+            elif isinstance(node, ast.Raise) and node.exc is not None:
+                name = _dotted_name(node.exc)
+                if name is None:
+                    continue
+                bare = name.rsplit(".", 1)[-1]
+                for label, why in FORBIDDEN_RAISES:
+                    if bare == label:
+                        problems.append(
+                            f"{path.name}:{node.lineno} 抛出 {label}（{why}）"
+                        )
+    return scanned, problems
+
+
+def blocking_exit_scan_targets() -> list[Path]:
+    """A11 的扫描面：`eng/tests/integration/` 与 `eng/tests/module/` 两棵测试树。
+
+    规模用**实算**（`glob`），不用魔数（`VALIDATION_EVIDENCE.md:192` S5）。
+    目录缺失 ⇒ `ANCHOR_STALE` 具名判红，不静默跳过（fail-closed）。
+    """
+    roots = [oc.REPO_ROOT / "eng" / "tests" / "integration",
+             oc.REPO_ROOT / "eng" / "tests" / "module"]
+    targets: list[Path] = []
+    for root in roots:
+        oc.require(root, f"tests-dir {root.name}")
+        targets.extend(sorted(p for p in root.rglob("*.py") if "__pycache__" not in p.parts))
+    assert targets, f"ANCHOR_STALE: 两棵测试树实算 0 个 .py 文件"
+    return targets
+
+
+def test_ContractVariance_NoBlockingExitCodeInTestCode() -> None:
+    """A11：测试代码不产出阻塞退出码、不用跳过充数（项目定位：测试不是门禁）。
+
+    **扫描面**：整个 `eng/tests/integration/` 与 `eng/tests/module/`（两棵测试树，
+    实算 glob），不只本层两个文件。
+    **判据手段**：AST 的 `Call` / `Raise` 节点（见 `scan_blocking_exit` 的 docstring：
+    文本匹配 + 砍前缀是 fail-open，已被对抗复核指出并修掉）。
+    **有牙自证**：负例 `test_ContractVariance_NegBlockingExitAfterA11` 在临时副本的
+    A11 **之后**注入 `return sys.exit(0)`，本判据必须转红。
+
+    来源依据：`AGENTS.md` §8「测试集是独立于产品代码的一套代码集…不与产品代码混放」；
+    `docs/engineering/testing/TEST.md:115`「测试集不产出流水线判决」、
+    `:203`「测试不裁决合入」。
+    """
+    targets = blocking_exit_scan_targets()
+    scanned, problems = scan_blocking_exit(targets)
+    assert scanned == len(targets), f"实算文件数 {scanned} != 扫描面 {len(targets)}"
     assert not problems, "\n".join(problems)
-    print(f"[A11] 扫描 {scanned} 个文件：未发现阻塞退出/跳过充数形态")
+    print(f"[A11] AST 扫描 {scanned} 个文件（eng/tests/integration + eng/tests/module）："
+          f"未发现阻塞退出/跳过充数形态")
 
 
 # ==========================================================================
@@ -1607,39 +1862,92 @@ def test_ContractVariance_NegBareWeight() -> None:
 
 
 def test_ContractVariance_NegVacuousValidator() -> None:
-    """B7：把校验器对 `required` 的检查弄失效 ⇒ 判据读数必须发生**可观测翻转**。
+    """B7：把校验器对 `required` 的检查弄失效 ⇒ **A1 与 A2 的判据读数必须逐 fixture 翻转**。
 
-    这是 S6（`VALIDATION_EVIDENCE.md:193`）：注入点就是本校验器自身的
-    `required` 分支；判据的读数必须从「红」翻成「绿」，否则 `required` 分支是空转的，
-    A1/A2 就没有证据资格。
+    这是 S6（`VALIDATION_EVIDENCE.md:193`「把某个真判定的判定逻辑换成恒真，
+    **只换它**，核查必须点名**该判定**」）。
 
-    两条注入路径各自独立：
-      (i)  开关式：`skip_required=True`（把 `required` 分支摘掉）；
-      (ii) 文件式：在临时副本里把 schema 的每一处 `required` 列表**清空**
-           （派单书点名的注入方式），再从该临时副本读 schema 走同一判定。
+    ## 对抗复核修正（重要，见交付报告「对抗复核发现与处置」）
 
-    两条都必须给出同一方向的红→绿翻转。
+    原版**不合格**，三点：
+    ①注入点 `skip_required` 是 `oc.validate` 的**参数**，被 A1/A2/A3/B1–B6 **共用**
+      —— 按 S6「把注入点放在共用逻辑上，等价于把自己的总分擦掉」，不构成
+      「只换该判定自身的判定逻辑」；
+    ②路径(ii)「清空 `required` 再断言少 required 键的文档被接受」是**构造性恒真**；
+    ③两条路径**都没复跑 A1/A2 的判据本体**，只在原始 `oc.validate` 输出上看翻转。
+
+    现改为：对 **`judge_positive_examples`（A1 本体）与
+    `judge_negative_expectations`（A2 本体）** 两个判据函数分别注入，
+    断言 **verdict 逐 fixture 翻转**，并逐 fixture 报 `required` 承重计数。
     """
-    base = oc.load_example("signal.example.json")
-    schema = oc.load_schema("signal")
-    victim = sorted(schema["required"])[0]
+    # ---------- A1 本体：baseline vs 注入 ----------
+    a1_base = judge_positive_examples(skip_required=False)
+    a1_inj = judge_positive_examples(skip_required=True)
 
-    stripped = json.loads(json.dumps(base))
-    stripped.pop(victim)
-
-    # 前提：真校验器判红
-    ok_true, _ = oc.validate(stripped, schema)
-    assert not ok_true, f"前提不成立：删掉 required 键 {victim!r} 后真校验器应判红"
-
-    # (i) 开关式注入
-    ok_injected, _ = oc.validate(stripped, schema, skip_required=True)
-    assert ok_injected, (
-        f"注入 `required` 失效后读数没有翻转（仍判红）⇒ required 分支可能仍在做功，"
-        f"本负例无法证明本校验器非空转；实得 ok={ok_injected}"
+    # 基线必须恰好命中已登记的那一条（variance 缺 oracle_ref），不多不少。
+    assert list(a1_base) == ["variance.example.json"], (
+        f"A1 基线红项 {list(a1_base)} 与登记项不符（登记：variance.example.json 缺 oracle_ref）"
     )
-    print(f"[B7-i] 开关式注入：真校验器 ok={ok_true} ⇒ 注入后 ok={ok_injected}（红→绿翻转）")
+    # 注入后 A1 的 verdict 必须翻转：基线红的那条转绿。
+    assert a1_inj == {}, (
+        f"把 required 失效后 A1 仍有红项 {list(a1_inj)} ⇒ required 分支在该夹具上承重，"
+        f"本负例不成立"
+    )
+    print(f"[B7-A1] A1 baseline 红项 {sorted(a1_base)} ⇒ 注入后 {sorted(a1_inj)}"
+          f"（翻转成立：required 分支承重）")
 
-    # (ii) 文件式注入：把 required 列表清空，写到临时目录
+    # ---------- A2 本体：baseline vs 注入，逐 fixture ----------
+    a2_base = judge_negative_expectations(skip_required=False)
+    a2_inj = judge_negative_expectations(skip_required=True)
+
+    loaded: list[str] = []
+    hit_dropped: list[str] = []
+    became_red: list[str] = []
+    for file_name, base in sorted(a2_base.items()):
+        assert not base["problems"], f"A2 基线本身有问题：{file_name} {base['problems']}"
+        inj = a2_inj[file_name]
+        required_errors_base = sum(
+            1 for e in base["errors"] if e["keyword"] == "required"
+        )
+        required_errors_inj = sum(
+            1 for e in inj["errors"] if e["keyword"] == "required"
+        )
+        if required_errors_base > 0:
+            loaded.append(f"{file_name}(required×{required_errors_base}→{required_errors_inj})")
+        if base["hit"] > inj["hit"]:
+            hit_dropped.append(f"{file_name}({base['hit']}→{inj['hit']})")
+        # 承重的真实信号：required 分支一失效，该夹具的 A2 判定**转为有问题**。
+        if bool(inj["problems"]):
+            became_red.append(f"{file_name}({inj['problems']})")
+
+    # 承重证据：必须有夹具的 red 来自 required 分支，否则本负例证明不了什么。
+    assert loaded, "A2 的任何夹具都不含 required 错误 ⇒ required 分支未被 A2 触及"
+    assert hit_dropped, "没有任何负例夹具因 required 分支失效而少命中 ⇒ required 分支未被承重"
+    assert became_red, (
+        "没有任何负例夹具因 required 分支失效而转为 A2 有问题 ⇒ required 分支未被承重"
+    )
+    print(f"[B7-A2] required 承重夹具（required 错误数 注入前→注入后）：{loaded}")
+    print(f"[B7-A2] 因 required 失效而少命中的夹具：{hit_dropped}")
+    print(f"[B7-A2] 因 required 失效而 A2 转为有问题的夹具：{became_red}")
+
+    # 逐 fixture 复核翻转方向：注入后命中数下降 **且** 判定转为有问题。
+    for entry in became_red:
+        file_name = entry.split("(", 1)[0]
+        assert a2_inj[file_name]["hit"] < a2_base[file_name]["hit"], (
+            f"{file_name}: 转为有问题但命中数没下降，翻转方向异常（{entry}）"
+        )
+
+    # 反向自证：恢复 required 分支后，基线读数必须复原（判据非恒假）。
+    a1_restored = judge_positive_examples(skip_required=False)
+    a2_restored = judge_negative_expectations(skip_required=False)
+    assert a1_restored == a1_base, "恢复 required 后 A1 读数未复原"
+    assert {k: v["hit"] for k, v in a2_restored.items()} == {
+        k: v["hit"] for k, v in a2_base.items()
+    }, "恢复 required 后 A2 读数未复原"
+    print(f"[B7] 反向自证：恢复 required 后 A1 红项 {sorted(a1_restored)}、"
+          f"A2 命中数复原 ⇒ 判据非恒假")
+
+    # ---------- 文件式注入（临时副本清空 required），对 A1 本体同样翻转 ----------
     def clear_required(node: Any) -> Any:
         if isinstance(node, dict):
             out = {k: clear_required(v) for k, v in node.items()}
@@ -1652,28 +1960,21 @@ def test_ContractVariance_NegVacuousValidator() -> None:
 
     with tempfile.TemporaryDirectory(prefix="acsd-contract-inject-") as tmp:
         tmp_dir = Path(tmp)
-        # 注入：副本里额外删掉 required 键（原样照抄 signal 正例的其余内容）
-        injected_doc = _write_temp_json(tmp_dir, "stripped.json", stripped)
-        # 注入：schema 副本清空 required
+        schema = oc.load_schema("signal")
         blanked_schema = clear_required(json.loads(json.dumps(schema)))
         assert blanked_schema["required"] == [], "注入未生效：required 未清空"
-        _write_temp_json(tmp_dir, "blanked.schema.json", blanked_schema)
+        path = _write_temp_json(tmp_dir, "blanked.schema.json", blanked_schema)
+        blanked = oc.load_json(path, "injected-schema")
+        stripped = json.loads(json.dumps(oc.load_example("signal.example.json")))
+        stripped.pop(sorted(schema["required"])[0])
 
-        # 走同一读取路径（临时副本，仓库零写入）
-        blanked = oc.load_json(tmp_dir / "blanked.schema.json", "injected-schema")
-        doc_injected = oc.load_json(injected_doc, "injected-doc")
-
-        ok_blanked, _ = oc.validate(doc_injected, blanked)
+        ok_true, _ = oc.validate(stripped, schema)
+        ok_blanked, _ = oc.validate(stripped, blanked)
+        assert not ok_true, "前提不成立：真 schema 对缺 required 键的文档应判红"
         assert ok_blanked, (
-            "文件式注入（required 清空）后读数没有翻转 ⇒ 本校验器的 required 分支"
-            "在该夹具上可能没被覆盖"
+            "文件式注入（required 清空）后读数没有翻转 ⇒ 该夹具上 required 分支未被覆盖"
         )
-        print(f"[B7-ii] 文件式注入（临时副本，required 清空）：ok={ok_true} ⇒ ok={ok_blanked}")
-
-    # 反向自证：把 required 分支恢复后，同一份注入文档必须重新判红
-    ok_restored, _ = oc.validate(stripped, schema)
-    assert not ok_restored, "恢复 required 后仍未判红 ⇒ 判据恒假"
-    print("[B7] 正例一侧同步确认：signal 正例本身在真校验器下判绿，判据非恒假")
+        print(f"[B7-文件式] 临时副本清空 required：ok={ok_true} ⇒ ok={ok_blanked}")
 
 
 def test_ContractVariance_NegUnitsMismatch() -> None:
@@ -1974,3 +2275,257 @@ def test_ContractVariance_NegNonPositiveRefFluxEqualWeight() -> None:
                    "绝不把等权结果标记为成功",
                    "不得当作“乘 1”照常出权"):
         assert phrase in text, f"weight_chain.h 未找到条款原文 {phrase!r}（锚失效）"
+
+# ==========================================================================
+# 4 对抗复核新增负例（B15–B18）
+# ==========================================================================
+
+
+def test_ContractVariance_NegBlockingExitAfterA11() -> None:
+    """B15：A11 的有牙自证 —— 在**临时副本里**、在 A11 **之后**的函数中注入
+    `return sys.exit(0)` ⇒ A11 的判据必须判红。
+
+    ## 对抗复核修正（这是本条存在的全部理由）
+
+    原版 A11 用 `text.split("def test_...A11")[0]` 砍掉 A11 自身之后的前缀再 grep，
+    于是**把 `sys.exit` 放进 A11 之后任何函数都扫不到**，A11 仍然绿 ——
+    而这条判据的职责恰恰就是「测试代码不含阻塞退出码」。
+    换句话说，原版 A11 对它最该抓的那一处是 fail-open。
+
+    本条把注入点放在 A11 **之后**（`zz_injected_tail`，文件末位），
+    验证新判据（AST `Call`/`Raise` 扫描，不砍前缀）能抓到。
+
+    隔离：注入只在 `tempfile` 副本上做，仓库零写入
+    （`VALIDATION_EVIDENCE.md:197`「反例复跑必须隔离」）。
+    """
+    with tempfile.TemporaryDirectory(prefix="acsd-contract-inject-") as tmp:
+        tmp_dir = Path(tmp)
+        source = Path(__file__).resolve()
+
+        def build(with_injection: bool, name: str) -> Path:
+            text = source.read_text(encoding="utf-8")
+            if with_injection:
+                text += (
+                    "\n\n"
+                    "def zz_injected_tail():\n"
+                    "    import sys\n"
+                    "    return sys.exit(0)\n"
+                )
+            target = tmp_dir / name
+            target.write_text(text, encoding="utf-8")
+            return target
+
+        clean = build(False, "clean.py")
+        injected = build(True, "injected.py")
+
+        scanned_clean, problems_clean = scan_blocking_exit([clean])
+        assert scanned_clean == 1, "扫描面自检失败"
+        assert not problems_clean, (
+            f"注入前的干净副本被判违规（判据恒假）：{problems_clean}"
+        )
+
+        scanned_inj, problems_inj = scan_blocking_exit([injected])
+        assert scanned_inj == 1, "扫描面自检失败"
+        assert problems_inj, (
+            "在 A11 之后注入 `return sys.exit(0)` 仍未被判红 ⇒ A11 对它最该抓的位置 fail-open"
+        )
+        assert any("sys.exit" in p for p in problems_inj), problems_inj
+        print(f"[B15] 注入前 {scanned_clean} 个文件 0 违规 ⇒ 注入后 {scanned_inj} 个文件：{problems_inj}")
+
+        # 另一侧：AST 判据必须不误报 docstring/注释里的同名字样。
+        # 本仓多个测试文件的 docstring 明写「本文件不含 sys.exit」，文本匹配会全部误报。
+        doc_only = tmp_dir / "doconly.py"
+        doc_only.write_text(
+            '"""本文件不含 sys.exit / SystemExit / os._exit。"""\n'
+            "# 注释里提到 pytest.skip 也不该判红\n"
+            "def f():\n    return 1\n",
+            encoding="utf-8",
+        )
+        scanned_doc, problems_doc = scan_blocking_exit([doc_only])
+        assert not problems_doc, f"docstring/注释里的同名字样被误报：{problems_doc}"
+        print(f"[B15] docstring/注释免疫：{scanned_doc} 个文件 0 误报")
+
+
+def _mutated_validator_source(*mutations: str) -> str:
+    """取 `_object_contracts.validate` 的源码并施加指定的退化突变。
+
+    可选突变正是本层开发中真实发生过的两处退化（交付报告 §4(f)）：
+
+    - **M1（if/then 漏分支）**：原版写成
+      `branch = "then" if condition_ok else "else"`；退化成**恒取 `then`**，
+      于是 `if` 条件为假时 `then` 分支照样报错 —— 干净正例上凭空多出错误。
+    - **M2（布尔值不上传）**：对象面的递归调用原版写成
+      `if not walk(...): ok = False`；退化成**丢弃返回值**，
+      于是子模式失败只往错误表里写、**不把 `ok` 拉低**。
+
+    两处**必须分开施加**才能看清各自的后果：
+    - 只上 M1 ⇒ 干净正例上 `ok` 翻成 False（假红，可被 A1 直接抓到）；
+    - M1+M2 ⇒ 错误表里有条目但 `ok` 仍是 True（**假绿，最危险形态**：
+      「有错误记录却判绿」，任何只读错误表的比较器都发现不了）。
+
+    突变点选在 `validate` 自身的判定逻辑上，**不换共用逻辑**
+    （`VALIDATION_EVIDENCE.md:196` S6：只换该判定自身）。
+    """
+    import inspect
+
+    assert mutations, "必须点名要施加的突变"
+    source = inspect.getsource(oc.validate)
+
+    if "M1" in mutations:
+        m1_old = 'branch = "then" if condition_ok else "else"'
+        m1_new = 'branch = "then"  # MUTANT-M1: 恒取 then，if 条件为假时也施加 then 分支'
+        assert m1_old in source, "MUTANT-M1 定位失败：validate 源码形态已变"
+        source = source.replace(m1_old, m1_new, 1)
+
+    if "M2" in mutations:
+        m2_old = ("                    if not walk(value, properties[key], "
+                  "join(path, key), sink):\n                        ok = False")
+        m2_new = ("                    walk(value, properties[key], join(path, key), sink)\n"
+                  "                    ok = ok  # MUTANT-M2: 丢弃子模式返回值，布尔不上传")
+        assert m2_old in source, "MUTANT-M2 定位失败：validate 源码形态已变"
+        source = source.replace(m2_old, m2_new, 1)
+
+    return source
+
+
+def _exec_mutated_validator(source: str):
+    """在隔离命名空间里执行突变后的校验器（不影响 `oc.validate` 本身）。"""
+    import types
+
+    module = types.ModuleType("mutated_validator")
+    module.__dict__.update(
+        {k: getattr(oc, k) for k in dir(oc) if not k.startswith("__")}
+    )
+    exec(compile(source, "<mutated_validator>", "exec"), module.__dict__)
+    return module.validate
+
+
+def test_ContractVariance_NegValidatorIfThenErrorLeak() -> None:
+    """B16：把校验器退化成「`if` 条件为假时 `then` 分支照样报错」（M1）与
+    「子模式布尔值不上传」（M2）⇒ A1 的正例判据必须转为判红。
+
+    这是本层开发中**真实发生过的退化**（交付报告 §4(f)）：第一版校验器把
+    `if`/`not`/`anyOf` 子模式的错误混进主错误表，且子模式失败不向上传播布尔值，
+    结果 13 个干净正例各带 15–21 条假错误，由 A4 暴露。
+    现在把它固化成正式负例 —— 判据必须能红，注入缺陷时读数随之变红。
+
+    三个方向各自断言（两处突变**分开**施加，才能看清各自的后果）：
+      ①**基线**：真校验器在干净正例上零错误、判绿；
+      ②**假红**（只上 M1）：干净正例上凭空多出错误且 `ok` 翻成 False ⇒ A1 转红；
+      ③**假绿**（M1+M2）：错误表里有条目但 `ok` 仍是 True ⇒ 最危险形态。
+    """
+    m1_only = _exec_mutated_validator(_mutated_validator_source("M1"))
+    m1_m2 = _exec_mutated_validator(_mutated_validator_source("M1", "M2"))
+
+    files = oc.all_example_files()
+    assert files, "ANCHOR_STALE: 正例夹具面为空"
+
+    # ① 基线：真校验器零错误
+    clean = oc.load_example("frame_snr.example.json")
+    schema = oc.load_schema("frame_snr")
+    ok_real, errs_real = oc.validate(clean, schema)
+    assert ok_real and not errs_real, (
+        f"前提不成立：真校验器对干净正例应判绿且零错误（ok={ok_real}, "
+        f"{len(errs_real)} 条）"
+    )
+
+    # ② 假红方向（只上 M1）
+    ok_m1, errs_m1 = m1_only(clean, schema)
+    assert not ok_m1, "只上 M1 时干净正例仍判绿 ⇒ M1 未生效或退化已被修掉"
+    assert errs_m1, "M1 突变体报红但没有错误记录（判据不可归因）"
+    print(f"[B16-假红] frame_snr 干净正例：真 0 错误 ⇒ 只上 M1 时 {len(errs_m1)} 条"
+          f"假错误且 ok={ok_m1}；首条 {errs_m1[0]['pointer'] or '/'}"
+          f"[{errs_m1[0]['keyword']}]")
+
+    # ③ 假绿方向（M1+M2）：错误表非空但 ok=True
+    ok_both, errs_both = m1_m2(clean, schema)
+    assert errs_both, "M1+M2 突变体在干净正例上没有错误记录 ⇒ 突变未生效"
+    assert ok_both, (
+        f"M1+M2 突变体应呈现「错误表非空但判绿」的最危险形态，实得 ok={ok_both}、"
+        f"{len(errs_both)} 条错误（退化形态可能已变，需复核）"
+    )
+    print(f"[B16-假绿] M1+M2：{len(errs_both)} 条错误但 ok={ok_both}"
+          f" ⇒ 「有错误记录却判绿」形态复现")
+
+    # 全扫描面对照：真校验器 0 红，M1 变体在多个夹具上转红
+    mutant_red = []
+    for path in files:
+        document = oc.load_example(path.name)
+        name, _ = oc.object_identity(document)
+        ok_r, _ = oc.validate(document, oc.load_schema(name))
+        ok_v, _ = m1_only(document, oc.load_schema(name))
+        if ok_r and not ok_v:
+            mutant_red.append(path.name)
+    assert mutant_red, "M1 变体在全部干净正例上都没转红 ⇒ 突变未生效"
+    print(f"[B16-覆盖面] M1 使 {len(mutant_red)}/{len(files)} 个干净正例转红：{mutant_red}")
+
+    # 判据非恒假：恢复真校验器后读数必须复原
+    ok_restored, errs_restored = oc.validate(clean, schema)
+    assert ok_restored and not errs_restored, (
+        f"真校验器读数未复原：ok={ok_restored}, {len(errs_restored)} 条错误"
+    )
+
+
+def test_ContractVariance_NegUnknownXKeywordFailOpen() -> None:
+    """B17：`x-` 前缀藏约束必须判红（`x-` 注记面不得无条件放行）。
+
+    对抗复核实测原版：把「`x-` 前缀当注记无条件跳过」，则
+    `validate("x", {"type": "string", "x-must-be-positive": True})` 判 `ok=True`
+    —— 约束只要藏进 `x-` 键就**静默失效**，是真实的 fail-open。
+
+    现改为白名单放行（`oc.ANNOTATION_PREFIXES = ("x-acsd",)`），
+    白名单之外的一切 `x-*` 必须报 `UnsupportedKeyword`。
+    """
+    bad_key = "x-must-be-positive"
+    ok_bad, errs_bad = oc.validate("x", {"type": "string", bad_key: True})
+    assert not ok_bad, (
+        f"{bad_key!r} 被当作注记放行 ⇒ x- 前缀仍是 fail-open"
+    )
+    assert any(e["keyword"] == "UnsupportedKeyword" for e in errs_bad), (
+        f"未以 UnsupportedKeyword 报错：{oc.format_errors(errs_bad)}"
+    )
+    print(f"[B17] {bad_key!r} ⇒ {errs_bad[0]['keyword']}: {errs_bad[0]['detail']}")
+
+    # 反向自证：本仓真实的三个 x-acsd 注记键必须仍被放行（不能矫枉过正）
+    for good_key in ("x-acsd", "x-acsd-object", "x-acsd-gate"):
+        ok_good, errs_good = oc.validate("x", {"type": "string", good_key: True})
+        assert ok_good, (
+            f"真实注记键 {good_key!r} 被误报 ⇒ 白名单过窄（复核读数："
+            f"{oc.format_errors(errs_good)}）"
+        )
+    print(f"[B17] 反向自证：x-acsd / x-acsd-object / x-acsd-gate 仍被放行")
+
+
+def test_ContractVariance_NegArrayFormItemsIgnored() -> None:
+    """B18：数组形 `items`（draft-07 tuple 形式）不得被静默忽略，必须具名报错。
+
+    对抗复核实测原版：`validate(["a", 5], {"items": [{"type": "string"},
+    {"type": "integer"}]})` 返回 `ok=True` —— 数组形被当成「不是 dict ⇒ 不适用」
+    而跳过，等于把「本层没实现这个约束」读成「实例满足它」，是 fail-open。
+    当前 14 个 canonical schema 全部只用对象形 `items`，故具名报错不丢覆盖面。
+    """
+    tuple_form = {"items": [{"type": "string"}, {"type": "integer"}]}
+    ok, errs = oc.validate(["a", 5], tuple_form)
+    assert not ok, "数组形 items 被静默忽略 ⇒ fail-open"
+    assert any(e["keyword"] == "UnsupportedKeyword" for e in errs), (
+        f"未以 UnsupportedKeyword 报错：{oc.format_errors(errs)}"
+    )
+    assert any("数组形" in e["detail"] for e in errs), errs
+    print(f"[B18] 数组形 items ⇒ {errs[0]['detail']}")
+
+    # 反向自证：对象形 items 必须仍正常工作（不能矫枉过正）
+    ok_single, errs_single = oc.validate(["a", 5], {"items": {"type": "string"}})
+    assert not ok_single, "对象形 items 未生效（矫枉过正）"
+    assert any(e["keyword"] == "type" for e in errs_single), (
+        f"对象形 items 未按元素类型报错：{oc.format_errors(errs_single)}"
+    )
+    ok_multi, errs_multi = oc.validate(["a", "b"], {"items": {"type": "string"}})
+    assert ok_multi, f"对象形 items 对合法实例误报：{oc.format_errors(errs_multi)}"
+    print(f"[B18] 反向自证：对象形 items 正常工作（['a',5] 报 type、['a','b'] 判绿）")
+
+    # 覆盖面未丢：14 个 canonical schema 不得出现数组形 items
+    offenders = [
+        path.name for path in oc.all_schema_files()
+        if isinstance(oc.load_json(path, "schema").get("items"), list)
+    ]
+    assert not offenders, f"canonical schema 出现数组形 items（本层未实现）：{offenders}"

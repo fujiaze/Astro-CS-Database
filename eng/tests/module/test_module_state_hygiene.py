@@ -1344,9 +1344,14 @@ def test_ModuleStateHygiene_neg_file_scope_frame_copy():
 
         viol = eval_a1(tmp)
         assert_new_violation_appeared(before, viol, "g_frame_cache", "B1")
-        # 三条判定规则中至少两条同时命中：登记面多出未登记对象 + 像素域写入
-        assert any("UNDECLARED_STATIC_OBJECT" in v for v in viol), viol
-        assert any("PIXEL_SIZED_STATIC_MUTATION" in v for v in viol), viol
+        # 锁新增条数：注入物只造成**恰好 2 条**新增违规——登记面多出未登记对象 1 条、
+        # 像素域写入 1 条，两条分别落在 A1 的两条独立判定规则上。
+        # 不锁条数的话，扫描器某个无关缺陷带来的额外红项会被混进证据里，
+        # 让「哪条红来自注入」不可复核（与注册表组锁 `+1` 同口径）。
+        new = [v for v in viol if v not in set(before)]
+        assert len(new) == 2, f"B1 预期恰好新增 2 条违规（未登记对象 + 像素域写入），实测 {len(new)}：{new}"
+        assert sum("UNDECLARED_STATIC_OBJECT" in v for v in new) == 1, new
+        assert sum("PIXEL_SIZED_STATIC_MUTATION" in v for v in new) == 1, new
     finally:
         shutil.rmtree(tmp, ignore_errors=True)
 

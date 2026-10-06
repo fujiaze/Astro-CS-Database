@@ -88,6 +88,7 @@
 | `MODULE.BlockLifecycle.NegEmptySpec` | `test_MODULE_BlockLifecycle_NegEmptySpec` | 负例 B7 |
 | `MODULE.BlockLifecycle.NegNonDegenerateCount` | `test_MODULE_BlockLifecycle_NegNonDegenerateCount` | 负例 B8 |
 | `MODULE.BlockLifecycle.NegSupplementalSubClauses` | `test_MODULE_BlockLifecycle_NegSupplementalSubClauses` | 补充负例 B9 |
+| `MODULE.BlockLifecycle.NegOraclePriorityAblation` | `test_MODULE_BlockLifecycle_NegOraclePriorityAblation` | 补充负例 B10 |
 
 ## 不产出阻塞退出码
 
@@ -177,13 +178,23 @@ def test_MODULE_BlockLifecycle_LifecycleFromDocumentedRules(spec, reg):
     从 `module_ports.registry.json` **独立重算**每个 `(stage, block)` 的生命周期，
     与 `stage_block_flow.json` 逐项精确一致（`TEST.md:46` 元数据/端口/选择结果档）。
 
+    ⚠️ **结论句的准确表述（对抗复核的降级提醒，已采纳）**：本判据证明的是
+    「规格与**本层裁决后**的规则逐项一致」，**不是**「与正本无条件一致」。
+    原因：docstring 的 5 条规则**并列、无先后声明**，而 `oracle_lifecycle` 采用的优先级
+    （无生产者 → 阶段终产物 → 消费者数）是**裁决出来的**，不是文本里写的；
+    `_literal_order_lifecycle`（按书写顺序 first-match）已证明两种读法在 **10/36** 个
+    `(stage, block)` 上给出**不同答案**。裁决理由见 `_blockflow.oracle_lifecycle` 的
+    docstring，歧义面读数与披露见 README 登记项 REG-01。
+    ⇒ 本用例的绿**不等于**「docstring 规则文本本身无歧义」；后者需要上游在 docstring 里
+    补一句显式优先级才成立。
+
     **Oracle 来源**：规则文本 = `gen_block_flow_spec.py` 文件头 docstring 的 5 行
     （逐行断言仍在）+ `STAGE_TERMINALS` 字面量（`gen_block_flow_spec.py:30-32`，用 `ast`
     从源码提取）；重算输入 = 注册表端口 `direction`。**不读规格现值生成预期值。**
 
-    **口径**：规则 5「无生产者 ⇒ EXTERNAL_IN」的优先级高于规则 1「消费者数 ≥2 ⇒ STAGE」，
-    裁决理由与受影响的 `(stage, block)` 清单见 `_blockflow.oracle_lifecycle` 的 docstring
-    与 README 登记项 REG-01。
+    **Oracle 是承重的（不是读回被测规格）**：负例
+    `test_..._NegOraclePriorityAblation` 把 `oracle_lifecycle` 换成按 docstring 书写顺序
+    求值的版本，本用例即判红 ⇒ 证明它在真的套规则，而不是把规格读回来。
 
     **来源依据**：`gen_block_flow_spec.py:7-13,24,30-32,50,52-61`；
     `PIPELINE_BLOCK.md:40-44`；`TEST.md:46`。
@@ -198,27 +209,71 @@ def test_MODULE_BlockLifecycle_LifecycleFromDocumentedRules(spec, reg):
 def test_MODULE_BlockLifecycle_LifecycleRulePrecedenceIsRegistered(spec, reg):
     """`MODULE.BlockLifecycle.LifecycleRulePrecedenceIsRegistered`
 
-    **意图**：把「docstring 的 5 条规则没有写优先级」这一**歧义**变成可执行事实：
-    枚举受该裁决影响的 `(stage, block)`，要求清单**非空**（否则歧义不存在，本层
-    的优先级裁决就是多余的、需要复核）并与 README 登记项 REG-01 的实测读数一致。
+    **意图**：把「docstring 的 5 条规则没有写优先级」这一**歧义**变成可执行事实，
+    并把歧义面的范围钉死。
 
-    **为什么这条不是恒真**：清单内容由「注册表实算的无生产者块 / 终产物块」决定，
-    注册表一改它就变；清单为空时本用例判红，强制复核方重审 Oracle 的优先级裁决。
+    **判的内容（四条，逐条可红）**：
+
+    1. `precedence_sensitive_keys()`（两个求值器之差：本层裁决的
+       `oracle_lifecycle` vs docstring 书写顺序的 `_literal_order_lifecycle`）
+       非空 —— 为空则歧义不存在，本层的优先级裁决就是多余的、须复核。
+    2. `multi_rule_keys()`（**规则侧独立定义面**：按 `rule_predicates()` 的 5 条 docstring
+       谓词计数，**不经过任何求值器**）非空，且是第 1 项的**子集**。
+    3. 两面的**差集恰为** `terminal_with_consumer_keys()`（阶段终产物**且** nc ≥ 1）——
+       这条把「裁决把终产物提成独立分支、比 docstring 多覆盖 2 个键」钉死。
+    4. 歧义面是块全集的**真子集**（若全部块都歧义，则规则文本实际已隐含优先级）。
+
+    **为什么第 2/3 条不是恒真**：第 1 项走「两个求值器之差」，第 2 项走「谓词计数」，
+    第 3 项走「终产物 ∧ 有消费者」—— 三条由**不同代码路径**算出的独立面。
+    负例 `test_..._NegOraclePriorityAblation` 把 `oracle_lifecycle` 换成按书写顺序求值的
+    版本、或把 `_literal_order_lifecycle` 换成本层裁决的版本，第 1 项即塌成空集 ⇒ 判红。
+
+    **实测读数（HEAD `bf944fad`）**：求值器差分面 **10** 项 / docstring 谓词面 **8** 项 /
+    差集 **2** 项 = `(normalize, frame_hips)`、`(export, p3_fits)` / 块全集 **36** 项。
+    差集成因见 `_blockflow.multi_rule_keys` 的 docstring（REG-01 的第二层歧义）：
+    docstring 把终产物规则以 `nc == 0` 为前提，裁决把它提成独立分支排在消费者数之前。
+
+    ⚠️ 本用例的前身含一条 `assert stage in bf.stage_terminals() or True`，字面恒真
+    （对抗复核发现，见 README §8.6）。已删除，改为上面四条。
 
     **来源依据**：`gen_block_flow_spec.py:7-13`（5 条规则并列、无先后声明）；
     `PIPELINE_BLOCK.md:21`（`config_path` 本阶段无生产者）；`PIPELINE_BLOCK.md:66`。
     """
-    affected = bf.precedence_sensitive_keys(bf.derive_nodes(reg))
-    assert affected, (
+    nodes = bf.derive_nodes(reg)
+    by_evaluators = bf.precedence_sensitive_keys(nodes)          # 面 1：两个求值器之差
+    by_predicates = bf.multi_rule_keys(nodes)                    # 面 2：docstring 5 条谓词计数
+    terminal_consumed = bf.terminal_with_consumer_keys(nodes)    # 面 3：终产物 ∧ nc≥1
+
+    assert by_evaluators, (
         "REG-01 登记漂移：docstring 5 条规则的优先级歧义当前影响 0 个块，"
         "与 README REG-01 的登记读数不一致；请重审 _blockflow.oracle_lifecycle 的优先级裁决"
     )
-    assert len(affected) <= bf.object_counts(spec)["n_blocks"]
-    # 每一项都必须是「多条规则同时命中」的块：至少一条规则给 EXTERNAL_IN/EXTERNAL_OUT、
-    # 另一条规则给别的值。
-    for stage, name in affected:
-        assert stage in bf.stage_terminals() or True   # 阶段名合法性由 A1/A6 把关
-        assert isinstance(name, str) and name
+    assert by_predicates, (
+        "REG-01 登记漂移：按 rule_predicates() 实测，0 个 (stage, block) 同时命中 ≥2 条规则；"
+        "若歧义面确实为空，本用例与 README REG-01 的登记读数都须更新"
+    )
+    assert set(by_predicates) <= set(by_evaluators), (
+        "REG-01 面关系被破坏：docstring 谓词面不是求值器差分面的子集\n"
+        f"  仅在谓词面里: {sorted(set(by_predicates) - set(by_evaluators))}"
+    )
+    extra = sorted(set(by_evaluators) - set(by_predicates))
+    assert extra == sorted(terminal_consumed), (
+        "REG-01 面关系被破坏：求值器差分面与 docstring 谓词面的差集，"
+        "必须恰为「阶段终产物且本阶段有消费者」的键\n"
+        f"  实测差集: {extra}\n"
+        f"  期望差集: {sorted(terminal_consumed)}"
+    )
+    # 歧义面必须是块全集的真子集：若全部块都歧义，则「5 条规则并列」实际上已隐含优先级。
+    all_keys = bf.all_block_keys(nodes)
+    assert len(by_evaluators) < len(all_keys), (
+        f"REG-01 口径异常：{len(by_evaluators)}/{len(all_keys)} 个块歧义，"
+        f"规则文本与裁决几乎完全重合；请复核 docstring 的规则是否真的并列无先后"
+    )
+    print(
+        f"\n[REG-01 三面对照] 求值器差分面={len(by_evaluators)} 项 / "
+        f"docstring 谓词面={len(by_predicates)} 项 / "
+        f"差集={len(extra)} 项 {extra} / 块全集={len(all_keys)} 项"
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -925,15 +980,47 @@ def test_MODULE_BlockLifecycle_NegPromptReleaseViolation(tmp_path, monkeypatch):
     doc = bf.load_spec_from(path)
 
     bad = bf.judge_prompt_release(doc)
-    assert any("READ_AFTER_RELEASE_OR_UNDECLARED_READ" in v and "'normalize', 'p1_snr'" in v
-               for v in bad), f"负例失效：B5 注入后 A7 仍判绿；实测 A7={bad}"
-    # 第 2 条（拓扑不倒置）必须仍然判绿：注入不制造倒置，只制造「释放后使用」
+
+    # S1：逐条断言 A7 的**每一条**红侧子句各自变红，不接受「任一条红就算过」。
+    # 三条子句各有独立语义：
+    #   (a) READ_AFTER_RELEASE_OR_UNDECLARED_READ —— 声明面与节点面不一致（弱读法）
+    #   (b) SHORT_RELEASE_POINT                 —— 声明释放点 ≠ 节点面最后一个读者 pos
+    #   (c) READ_AFTER_RELEASE                  —— **use-after-release 的专指读法**
+    # 对抗复核指出：本负例原先只断言了 (a)，漏掉了同样实测变红的 (c)（S1）。
+    expected_red = {
+        "READ_AFTER_RELEASE_OR_UNDECLARED_READ": "声明面与节点面不一致",
+        "SHORT_RELEASE_POINT": "声明释放点 ≠ 节点面最后一个读者 pos",
+        "READ_AFTER_RELEASE": "use-after-release（释放点之后仍有节点读它）",
+    }
+    for token, meaning in expected_red.items():
+        hits = [v for v in bad if v.startswith(token)]
+        assert hits, (
+            f"负例失效：B5 注入后 A7 的子句「{token}」（{meaning}）仍判绿；"
+            f"实测 A7 全部违规={bad}"
+        )
+        assert any("'normalize', 'p1_snr'" in v for v in hits), (
+            f"子句「{token}」红了但没点名注入对象：{hits}"
+        )
+
+    # 必须判绿的那一侧同样逐条断言（S2：防止「一律判红」的假判定）
     assert not [v for v in bad if v.startswith("TOPOLOGY_INVERTED")], (
-        f"B5 的预期红侧只有 READ_AFTER_RELEASE；实测混入了 TOPOLOGY_INVERTED={bad}"
+        f"B5 的预期红侧不含拓扑倒置（注入不制造倒置，只制造释放后使用）；实测={bad}"
     )
+    assert not [v for v in bad if v.startswith("STAGE_NOT_CROSS_NODE")], (
+        f"B5 不应触发跨节点存活子句；实测={bad}"
+    )
+    # A7'（逐块拓扑序判定）在同一次注入下必须仍判绿 ⇒ A7 的红侧不是被共用逻辑撑起来的
+    try:
+        test_MODULE_BlockLifecycle_PromptReleaseLastConsumerAfterProducer(doc)
+    except AssertionError as exc:
+        raise AssertionError(
+            f"B5 注入不应让 A7' 拓扑倒置判定变红（缺陷形态是释放后使用，不是倒置）；实测={exc}"
+        ) from exc
+
     msg = _run_against_injection(monkeypatch, test_MODULE_BlockLifecycle_PromptRelease, path)
     assert "A7 PROMPT_RELEASE 判红" in msg, msg
-    assert "acsd.phase1.writer" in msg, msg
+    for token in expected_red:
+        assert token in msg, f"A7 判红输出未点名子句 {token}：{msg}"
 
 
 def test_MODULE_BlockLifecycle_NegTerminalBlockMissing(tmp_path, monkeypatch):
@@ -1167,3 +1254,72 @@ def test_MODULE_BlockLifecycle_NegSupplementalSubClauses(tmp_path):
     bad = bf.judge_no_dangling_consumption(d5)
     assert any("DANGLING_CONSUMPTION" in v and "'normalize', 'frame_hips'" in v for v in bad), (
         f"负例失效：A3 悬空消费子句未红；实测={bad}")
+
+def test_MODULE_BlockLifecycle_NegOraclePriorityAblation(spec, reg, monkeypatch):
+    """`MODULE.BlockLifecycle.NegOraclePriorityAblation` — 补充负例 B10
+
+    **为什么需要它**：`test_..._LifecycleRulePrecedenceIsRegistered` 的第三条断言
+    （`precedence_sensitive_keys()` 与 `multi_rule_keys()` 双向相等）在对抗复核前
+    没有能红的负例——它的前身是一条 `assert … or True` 的字面恒真断言（README §8.6）。
+    本条给出它的负例，并把「A1 的 Oracle 是承重的、不是把规格读回来」一并自证。
+
+    **注入点 = 判定自身的判定逻辑**（`VALIDATION_EVIDENCE.md:193` S6）：
+    只换 `_blockflow` 的生命周期求值器，**不换共用逻辑**（注册表读取、`production_and_
+    consumption`、`stage_terminals`、被测规格全部不动）：
+
+    - **消融 1**：把 `oracle_lifecycle` 换成 `_literal_order_lifecycle`
+      （即按 docstring **书写顺序** first-match）。
+      ⇒ `precedence_sensitive_keys()` 塌成空集 ⇒ 登记守卫的「非空」断言判红；
+      ⇒ `judge_lifecycle_from_documented_rules()` 也判红（规格服从裁决后的优先级，
+      不服从书写顺序）⇒ **A1 本体判红**，证明 A1 不是读回规格。
+    - **消融 2**：把 `_literal_order_lifecycle` 换成 `oracle_lifecycle`。
+      ⇒ 同样塌成空集 ⇒ 登记守卫判红；A1 **仍判绿**（它不依赖被消融的那一侧）。
+
+    两次消融都只动**本层 Oracle 的一个函数**，共用逻辑与被测对象一字未改。
+
+    **来源依据**：`gen_block_flow_spec.py:7-13`（规则并列无先后 = REG-01 的成因）；
+    `VALIDATION_EVIDENCE.md:189（S2 同时验证绿）,193（S6 内容级负例）,164`。
+    """
+    nodes = bf.derive_nodes(reg)
+
+    # S2：注入前两条判定都绿
+    assert bf.precedence_sensitive_keys(nodes)
+    assert bf.multi_rule_keys(nodes)
+    assert not bf.judge_lifecycle_from_documented_rules(spec, reg)
+
+    # --- 消融 1：oracle 换成「按书写顺序 first-match」 ---
+    monkeypatch.setattr(bf, "oracle_lifecycle", bf._literal_order_lifecycle)
+    ablated1 = bf.precedence_sensitive_keys(nodes)
+    assert ablated1 == [], (
+        f"负例失效：消融 1 后 ambiguity 面未塌成空集（实测 {len(ablated1)} 项）"
+    )
+    assert bf.multi_rule_keys(nodes), "消融 1 不应影响规则侧谓词计数面（它不经过求值器）"
+    bad_a1 = bf.judge_lifecycle_from_documented_rules(spec, reg)
+    assert bad_a1, (
+        "负例失效：把 Oracle 换成 docstring 书写顺序求值后，A1 仍判绿 ⇒ "
+        "A1 没有真的在套规则（或规格恰好服从书写顺序）；"
+        "本断言是 A1「独立 Oracle 非读回」的直接证据"
+    )
+    assert any("LIFECYCLE_MISMATCH" in v for v in bad_a1), (
+        f"消融 1 后 A1 的红侧应为 LIFECYCLE_MISMATCH；实测前 3 条={bad_a1[:3]}"
+    )
+    # 登记守卫必须因此判红
+    with pytest.raises(AssertionError) as excinfo:
+        test_MODULE_BlockLifecycle_LifecycleRulePrecedenceIsRegistered(spec, reg)
+    assert "REG-01" in str(excinfo.value), str(excinfo.value)
+    monkeypatch.undo()
+
+    # --- 消融 2：对照面（书写顺序求值器）换成本层裁决 ---
+    monkeypatch.setattr(bf, "_literal_order_lifecycle", bf.oracle_lifecycle)
+    ablated2 = bf.precedence_sensitive_keys(nodes)
+    assert ablated2 == [], (
+        f"负例失效：消融 2 后 ambiguity 面未塌成空集（实测 {len(ablated2)} 项）"
+    )
+    with pytest.raises(AssertionError) as excinfo:
+        test_MODULE_BlockLifecycle_LifecycleRulePrecedenceIsRegistered(spec, reg)
+    assert "REG-01" in str(excinfo.value), str(excinfo.value)
+    # 对照面被换掉不影响 A1：A1 只依赖本层裁决那一侧
+    assert not bf.judge_lifecycle_from_documented_rules(spec, reg), (
+        "消融 2 不应让 A1 判红：A1 用的是 oracle_lifecycle，不是 _literal_order_lifecycle"
+    )
+    monkeypatch.undo()
