@@ -5,7 +5,7 @@
 
 ⚠️ **行号引用约定**：本文中「§N:M」= 该标准的第 N 节第 M 行。经复核修正：产物结构要求在 **§3:29**（不在 §2），引用已全量改正。
 
-**一句话结论**：Linux 全量构建通过，编译警告实测为零（完整检索命令与输出见 §3）；但这个「零」只在**当前旗标覆盖面**下成立 —— 55 个 target 中有 **33 个从未接受过任何告警检查**，本单已如实登记（§5）。为消除警告共改 **4 处**（全部为同一缺陷类），**行为零变化**（逐条论证见 §4）。登记缺陷 **13 条**（§5），其中 **4 条是真实功能缺陷**而非告警问题。
+**一句话结论**：Linux 全量构建通过，编译警告实测为零（完整检索命令与输出见 §3）；但这个「零」只在**当前旗标覆盖面**下成立 —— 55 个 target 中有 **33 个从未接受过任何告警检查**，本单已如实登记（§5）。为消除警告共改 **4 处**（全部为同一缺陷类），**行为零变化**（逐条论证见 §4）。登记缺陷 **14 条**（§5），其中 **4 条是真实功能缺陷**而非告警问题（D1 旗标顺序 bug、D2 OpenMP 静默失效、D3 AVX-512 核无 ISA 实现、D4 Clang 编不过整树）。
 
 ⚠️ **基线漂移**：本单执行期间前台已把 HEAD 推进到 `1ef0849c`（Windows 侧车道提交），且该提交**已吸收本单的 4 处修复**。本单全部数据仍以派单指定的 `10e84432` 为基线；§5.1 D4 的 Clang 缺陷已额外在 `1ef0849c` 上复测，**仍然存在**。
 
@@ -243,7 +243,16 @@ PRISTINE_EXIT=0
 1. **GNU Make 会不会吞掉告警？** 不会。Make 只把子进程 stdout/stderr 原样转发到自身输出；编译器写告警到 stderr，Make 不解析、不过滤。本单的 1 条对照告警就是通过同一条链路（`make` 默认输出，非 `-s`）被抓到的 —— 链路本身已被证明有效。
 2. **日志会不会被截断？** 616 行 / 70623 字节，`wc` 实测；`PRISTINE_EXIT=0` 行在日志**末尾**，说明 Make 正常收尾而非被 kill。
 3. **编译单元有没有被整体跳过？** 503 个 `.o` 产物 + 日志里 503 条 `Building C/CXX object` 行，两条独立计数一致；`Built target` 行 57 条。
-4. **有没有 target 因条件而根本没编？** 有：`acsd_probes`（`CMakeLists.txt:24` option `ACSD_PROBES` 默认 `OFF`，`:489` 声明）。因此本单结论的准确措辞是「**默认配置下被编的全部 target 的全部编译单元零告警**」，而不是「所有 target 零告警」。该条并入 D5 的覆盖面问题一并处置。
+4. **有没有 target 因条件而根本没编？** 有 1 个相关事实，但性质不同：`acsd_probes`（`CMakeLists.txt:24` option `ACSD_PROBES` 默认 `OFF`）。独立复核代理查 File API codemodel 确认：OFF 时 `acsd_probes` 退化为 **INTERFACE 库、零编译单元**，其实现 `lib/infrastructure/observability/probes/src/probe.cpp` 在任何默认构建中都不参与编译；File API 的 55 个非 UTILITY target **全部 BUILT、缺失 0**（57−55=2 是只生成 json 的 UTILITY target）。复核代理补测 `-DACSD_PROBES=ON`：构建通过、该 TU 零告警；**本单另行独立复核**：
+```
+$ g++ -Wall -Wextra -Wpedantic -Wconversion -O3 -DNDEBUG -std=gnu++17 \
+      -Ilib/include -Ilib -fsyntax-only \
+      lib/infrastructure/observability/probes/src/probe.cpp 2>&1 | grep -c 'warning:'
+0
+```
+即该 TU 在**本仓最高告警级**下亦零告警。
+
+   ⇒ **属口径缺陷，非代码缺陷。** 本单结论的准确措辞是「**默认配置下被实际编出的全部 target 的全部编译单元零告警**」；`ACSD_PROBES=ON` 亦已实测为零。
 
 ### 3.4 独立复现（第二名复核代理，不复用本单任何构建目录）
 
@@ -470,7 +479,7 @@ $ clang++ <module_adapters 的真实 D/I/FLAGS> -fopenmp -fsyntax-only \
           1 [-Wrange-loop-construct]  1 [-Wmaybe-uninitialized]
 ```
 
-**口径并列**：target 口径 33/55 = 60%；编译单元口径（对抗复核代理独立统计）**115/175 = 65.7%** 的本项目自有编译单元从未被严格告警编过。§2:23 的头条卖点 `acsd_cpuprov_*` 六件产物**全部落在零告警档**。
+**口径并列（三套，互为交叉验证）**：target 口径 **33/55 = 60%** 从未接受过告警检查；编译单元口径 **186/257 = 72.4%** 的本项目自有编译单元未被检查（即仅 **71/257 = 27.6%** 被真正检查过）。另有对抗复核代理按更严口径统计得 **115/175 = 65.7%**，该口径的分母（175）与本单的 257 不同，**本单不引用该数**，以本单的 186/257 为准。§2:23 的头条卖点 `acsd_cpuprov_*` 六件产物**全部落在零告警档**。
 
 即：**只把 `-Wall -Wextra` 铺开，当前树就会出 52 条告警**，其中 36 条是 D2 的直接后果。本单修掉的 4 处 `-Wclass-memaccess` 中有 3 处正在这 52 条里。
 
@@ -480,7 +489,18 @@ $ clang++ <module_adapters 的真实 D/I/FLAGS> -fopenmp -fsyntax-only \
 |---|---|---|
 | 被 `-w` 静默（`SILENCED_by_-w`） | **65** | **9** |
 | 完全无 `-W` 旗标（`NO_W_FLAG`） | **121**（其中 109 个成功重编） | **139** |
-| 合计 | 186 | **≥ 148** |
+| 合计 | 186 | **148** |
+
+完整类别分布（复核代理实测，174 个单元编译成功、12 个因 `-Wpedantic` 拒绝 `AC_API`/`GAIA_EXPORT` 的 `__attribute__((visibility("default")))` 展开而失败 —— **探针口径限制，非代码缺陷**）：
+
+```
+51 -Wsign-conversion   36 -Wconversion    33 -Wunknown-pragmas   9 -Wunused-function
+ 4 -Wformat-truncation  3 -Wfloat-conversion   3 -Wunused-variable   3 -Wclass-memaccess
+ 2 -Wunused-but-set-variable   2 -Wmisleading-indentation
+ 1 -Wrange-loop-construct      1 -Wunused-parameter
+```
+
+告警最密集的源文件：`gaia_client.c` 75 条、`sdet_image.cpp` 14、`dpsf_image.cpp` 11、`ipv_ransac.cpp` 7、`module_adapters.cpp` 7。**其中 3 条 `-Wclass-memaccess` 正是本单已修的三处**（复核代理在自己的裸 HEAD 构建上看不到修复，故列为未修）。
 
 被 `-w` 静默的那 65 个单元里已确证的 9 条，按 target 分布：`acsd_p1_drizzle` 1 条（`aio_hips_writer.cpp:239` `tile_rel_path_legacy` 未使用函数）、`acsd_p1_hips_writer` 1 条（`module_entry.cpp:982` `finalized_ok` 设置未使用）、`acsd_phase2_integrate` 4 条（`phase2_integrate.cpp:277`/`:294` `-Wmisleading-indentation`、`:1288` 未使用参数 `meta`、`:167` `nearest_rank_percentile` 未使用函数）、其余 3 条为 `aio_hips_writer.cpp:239` 在另两个 target 下的同一处重复。
 
@@ -539,6 +559,14 @@ $ find /tmp/acsd-t10/install -name 'filters.json' | wc -l
 
 `CMakeLists.txt:77` 引用 `eng/tools/check_warning_suppression.py`（已删除，仅余 `__pycache__/*.pyc`）；`eng/cmake/cfitsio_platform.cmake:120` 与 `CMakeLists.txt:571` 引用 `.github/workflows/ci-windows.yml`（`.github` 目录不存在）。`CODE.md:95-96` 明确禁止把未在位的检查项记为门已生效。同型：`eng/tools/quality/check_budget_single_source.py` 也只剩 `.pyc`，其声称守护的「配置唯一源」因此无机器抓手。
 
+**D14 — `lib/` 下存在从未进入任何构建图的源文件，且其中有失效的假追溯声明**
+
+两例已单点取证（§6.3）：`lib/phase3_session/p3_export.cpp`、`lib/infrastructure/scheduler/src/executor.cpp`。二者 `grep -rn <file> --include=CMakeLists.txt .` 均为 0 命中，构建树中无对应 `.o`。
+
+危害与前几条不同：它们不是「没被检查」，而是**根本没被编译**。`executor.cpp` 的文件头自述「RT-004 唯一共享执行器实现」「进程内只此一个」，若属实则 `AGENTS.md` §7 的「模块不私建线程池」依赖一份不在构建里的实现；`p3_export.cpp` 的 STATUS 块声称的构建入口 `CMakeLists.txt:1510` 实际不存在，构成 `AGENTS.md` §7 明令禁止的「假追溯」。
+
+⚠️ **本单不给出「从未编译的源文件总数」**：两次复算（`build.make` 抽 `-c` 路径 / `.o` 路径反推）分别因未处理 CMake 空格路径转义、未处理 `add_subdirectory` 对象目录前缀而系统性失真（详见 §6.3）。复核代理给出的数字同样不予采信。需要专用枚举工具，属独立于本单的代码治理问题。
+
 ---
 
 ## 6 推翻的既有判定
@@ -583,6 +611,38 @@ $ find /tmp/acsd-t10/install -name 'filters.json' | wc -l
 | 「`route_kernel_from_profile`（`cpu_routing.cpp:155` / `.h:145`）全仓零调用点，是死代码」 | **成立** | 并入 D11（kernel 选路链断裂）作为旁证。 |
 | 「干净 `10e84432` 克隆构建 = 恰好 1 条警告，位置 `orchestrator.cpp:1578`」 | **与本单完全一致**（本单的对照构建走的是 `git archive` + 复制 `.git`，其走的是 `git clone`） | 两条独立路径互证，§3.1 结论加固。 |
 | 「115/175 = 65.7% 的自有 TU 从未被严格告警检查」 | **口径不同，两个数都保留** | 本单用 target 口径（33/55 = 60%），复核用 TU 口径（115/175 = 65.7%）。§5.2 D5 两个口径并列，避免单一口径被质疑。 |
+
+### 6.3 第二名复核代理的指控，逐条裁决
+
+该代理用自己的构建目录独立复现（`EXIT=0`、503 单元、57 target、**恰好 1 条告警且恰在 `orchestrator.cpp:1578`**），并做了一次比「能复现」更强的交叉校验：把两份日志归一化后逐行 `comm`，**仅差 7 行告警块 + 1 行 `PRISTINE_EXIT=0`，其余 623−616 行逐字相同** ⇒ 本单的 4 处修改**只**消掉了那 1 条告警，没有多删/少编任何目标或编译单元。
+
+它提出的 8 条指控，裁决如下：
+
+| 指控 | 裁决 | 依据 |
+|---|---|---|
+| 「它修的缺陷模式还有 3 处没修（`module_adapters.cpp` 4032/4920/5087）」 | ❌ **不成立** | 该代理构建的是**裸 `10e84432`**（不带本单补丁）—— 这正是 §3.1 的修复前对照态。本单 4 处**全部**已修，实测：`grep -rn "memset(&sp\|memset(&sp_s\|memset(&sdet_params" lib/` → **无残留**；HEAD 上四处均为 `SDetParams x{};`（`module_adapters.cpp:4046/4935/5109`、`orchestrator.cpp:1577`）。**该指控源于把「修复前对照构建」误当作「本单的修复后构建」。** |
+| 「覆盖面只有 14.1%：自有 257 单元只有 71（27.6%）被真正检查」 | ✅ **成立，且比本单原述更精确** | §5.2 D5 已补入该口径：`-w` 静默 65 单元 + 无 `-W` 旗标 121 单元 = 186 单元未被检查，257−186 = 71 被检查。 |
+| 「判决性实验：这 186 个未检查单元实际藏 148 条告警」 | ✅ **成立** | §5.2 D5 已补入完整类别分布，见下。 |
+| 「`ACSD_PROBES` 默认 OFF ⇒ `acsd_probes` 是 INTERFACE 库、零编译单元，`probe.cpp` 从不编，『所有编译单元』按字面不成立；补测 `ON` 后该 TU 本身零告警」 | ✅ **成立且是重要细化** | §3.3 第 4 点据此改写：`ACSD_PROBES=OFF` 时该 target 零编译单元，所以**不是**「有 target 未编译」而是「该 target 本就不存在编译单元」；补测 `-DACSD_PROBES=ON` 构建通过且该 TU 零告警 ⇒ **属口径缺陷，非代码缺陷**。 |
+| 「`-w` 第三方隔离是 target 粒度，泄漏到 65 个第一方单元」 | ✅ **成立** | §5.2 D6 已采纳，并补入其给出的分档（31/27/7）。 |
+| 「`acsd_cpuprov_avx512.so` 0 条 zmm：三变体共用纯标量 `baseline_kernels_impl.inc`（`grep -E 'immintrin\|__m256\|__m512\|_mm256\|_mm512\|avx'` 零命中）」 | ✅ **成立** | §5.1 D3 已采纳。补充实测：该 `.inc` 全文唯一 `#if` 是 `ACSD_NO_EXCEPTIONS`；**第一族**之所以有真 AVX2/AVX-512 机器码，靠的是 `CMakeLists.txt:829/864-865` 的 `-mavx2 -mfma` / `-mavx512f…` 旗标触发编译器向量化，而非手写 intrinsics。 |
+| 「`acsd_cpu_baseline.so` 落在构建树根目录而非 `providers/`，与其余五核布局不一致（`acsd_pin_provider_output_dir` 只对变体调用）」 | ✅ **成立**（布局不一致，非缺陷） | §2.4 已注明该库位置；install 规则仍把它装进 `providers/`，故**发行树布局是一致的**，只有构建树布局不一致。 |
+| 「45 个第一方源从未被编译，含 `lib/phase3_session/p3_export.cpp`」 | ⚠️ **部分成立，数字不采信** | 见下。 |
+
+**关于「从未被编译的源文件」这一指控的裁决**：
+
+我先复算了它的口径，**第一次复算脚本有 bug**（用正则从 `build.make` 抽 `-c "<path>"`，未处理 CMake 对空格路径的 `\ ` 转义，导致抽出 0 条、误判「322 个源全部从未编译」）。已废弃该结果。
+
+改用「`.o` 路径反推源路径」复算，**第二次仍有系统性缺陷**：`add_subdirectory` target 的对象目录路径形如 `<build>/<子目录>/CMakeFiles/<tgt>.dir/<相对该子目录的源路径>.o`，用 `CMakeFiles/[^/]+\.dir/(.+)\.o$` 匹配会丢掉子目录前缀，把已编译的 `lib/infrastructure/pipeline/orchestrator/cpp/src/orchestrator.cpp` 误判为未编译。⇒ **该代理给出的「45 个」与本单复算得到的「53/57 个」两个数字均不可采信，本单不予引用。**
+
+但**指控的方向成立**，且有两例可单点取证（逐条查证，不依赖计数）：
+
+| 文件 | 取证 | 判定 |
+|---|---|---|
+| `lib/phase3_session/p3_export.cpp` | ① `acsd_phase3_session` 名下实际只编出 `p3_session.cpp.o` 一个对象；② `find pristine-build -name 'p3_export*.o'` → **空**；③ `grep -rn p3_export --include=CMakeLists.txt .` → **0 命中** | 该文件**从未被任何构建编译**。而它自己的文件头 STATUS 块写「仅由 `CMakeLists.txt:1510` 的 `eng/tests/integration/p3_export` `add_subdirectory` 编译」—— `CMakeLists.txt:1510` 处**并无**该 `add_subdirectory`。⇒ **文件头声明的构建入口是失效的假追溯**，且它连测试子图都没进。 |
+| `lib/infrastructure/scheduler/src/executor.cpp` | `grep -rn executor.cpp --include=CMakeLists.txt .` → **0 命中** | 从未被任何构建编译。而其文件头自述「**RT-004 唯一共享执行器实现**（CPU heavy + 有界 I/O）」「进程内只此一个」—— 一份自称是冻结合同唯一实现、却不在任何构建图里的源文件。 |
+
+登记为 **D14**（见 §5.3）。**本单不给出「从未编译的源文件总数」** —— 需要一个正确处理 `add_subdirectory` 对象路径前缀的枚举工具，该工具本单没有，且这是独立于构建告警的代码治理问题。
 
 ## 7 自证段
 
