@@ -326,6 +326,15 @@ const std::set<std::string>& session_keys() {
         // （「权重模式」概念不存在；权重是消费 SNR 时的派生量）⇒ 配置里出现即 rc=3。
         "hips_paths", "upm", "upm_save_path", "persist_upm",
         "reject", "reject_profile",
+        // task-7（PHASE2_SAMPLER.md §5.9 口径）：mosaic 白名单加 model 七键门。
+        // 顶层 "model" 只识别并透传到 pdoc（phase_config 直通分支），子键值域
+        // 校验在 scheduler 面 p2_sample_cfg_from_doc（与 stage2_common.cpp 同口径）。
+        // 此处仅做键门：model 须为对象；七子键
+        // halo_mag_thresh/halo_r8/halo_a/halo_r_min/halo_r_max/
+        // seam_fallback_factor/seam_fallback_r_max 之外出现即 rc=3。
+        // 缺键 = 编译期默认（p2_sampler_default_config 单一来源），非法值 =
+        // DATA fail-closed（调度器面，不夹取）。normaliza/export 不认 model。
+        "model",
         // HIPS-IDX-01（合同 = phase_config_mosaic.schema.json#/$defs/coverage_index_path；P-180 分名：
         // **字符串**输入路径，勿与 hips_storage_form.schema.json#/$defs/coverage_index_ref 对象混读）：
         // 阶段二输入的**加性可选键**，指向数据集级覆盖索引 coverage.index.json；hips_paths 元素保持
@@ -537,6 +546,74 @@ std::vector<std::string> session_blocks_errors(const std::string& session_name,
     }
     if (!errs.empty()) return errs;                        // 结构错优先（与平铺同序）
     if (!include_unknown_keys) return errs;                // 预检页：结构错面
+    // task-7 mosaic 白名单 model 七键门（与 stage2_common.cpp 同子键口径）：
+    // model 须为对象；七子键之外出现即未知键（与顶层 unknown key 同码 3）。
+    // normalize/export 不认 model（其块内出现即未知键）。CLI 面再做与
+    // p2_sample_cfg_from_doc / stage2_common.cpp 同口径的值域门（须为数值、
+    // 有限、r8/rmin/rmax>0 且 rmin<=rmax、a>1、fallback>=1 且 fbmax>0），
+    // 非法值同样 rc=3（调度器面 DATA fail-closed 复核，不夹取）。
+    auto mosaic_model_errors = [&](const std::string& at,
+                                   const nlohmann::json& b) {
+        std::vector<std::string> out;
+        if (session_name != "mosaic") {
+            if (b.contains("model"))
+                out.push_back(at + " has unknown key 'model'");
+            return out;
+        }
+        if (!b.contains("model")) return out;
+        const auto& m = b["model"];
+        if (!m.is_object()) {
+            out.push_back(at + ".model must be an object");
+            return out;
+        }
+        static const std::set<std::string> kModel = {
+            "halo_mag_thresh", "halo_r8", "halo_a",
+            "halo_r_min", "halo_r_max",
+            "seam_fallback_factor", "seam_fallback_r_max"};
+        for (auto it = m.begin(); it != m.end(); ++it) {
+            if (kModel.count(it.key()) == 0)
+                out.push_back(at + ".model has unknown key '" + it.key() + "'");
+        }
+        if (!out.empty()) return out;
+        auto num_fin = [&](const char* k, double* v) -> bool {
+            if (!m.contains(k)) return true;
+            if (!m[k].is_number()) {
+                out.push_back(at + ".model." + k + " must be number");
+                return false;
+            }
+            const double x = m[k].get<double>();
+            if (!std::isfinite(x)) {
+                out.push_back(at + ".model." + k + " 须为有限数");
+                return false;
+            }
+            *v = x;
+            return true;
+        };
+        double thresh = 8.0, r8 = 150.0, a = 1.5, rmin = 30.0, rmax = 300.0,
+               fb = 1.5, fbmax = 450.0;
+        if (!num_fin("halo_mag_thresh", &thresh)) return out;
+        if (!num_fin("halo_r8", &r8)) return out;
+        if (!(r8 > 0.0)) { out.push_back(at + ".model.halo_r8 必须 > 0"); return out; }
+        if (!num_fin("halo_a", &a)) return out;
+        if (!(a > 1.0)) { out.push_back(at + ".model.halo_a 必须 > 1"); return out; }
+        if (!num_fin("halo_r_min", &rmin)) return out;
+        if (!num_fin("halo_r_max", &rmax)) return out;
+        if (!(rmin > 0.0) || !(rmax > 0.0) || rmin > rmax) {
+            out.push_back(at + ".model.halo_r_min/halo_r_max 必须 > 0 且 r_min<=r_max");
+            return out;
+        }
+        if (!num_fin("seam_fallback_factor", &fb)) return out;
+        if (!(fb >= 1.0)) {
+            out.push_back(at + ".model.seam_fallback_factor 必须 >= 1");
+            return out;
+        }
+        if (!num_fin("seam_fallback_r_max", &fbmax)) return out;
+        if (!(fbmax > 0.0)) {
+            out.push_back(at + ".model.seam_fallback_r_max 必须 > 0");
+            return out;
+        }
+        return out;
+    };
     // 块内未知键（结构可达才报；与顶层 unknown key 同码 3）
     for (std::size_t i = 0; i < blocks.size(); ++i) {
         const std::string at = "blocks[" + std::to_string(i) + "]";
@@ -545,6 +622,7 @@ std::vector<std::string> session_blocks_errors(const std::string& session_name,
                 errs.push_back(at + " has unknown key '" + it.key() + "'");
             }
         }
+        for (const auto& e : mosaic_model_errors(at, blocks[i])) errs.push_back(e);
     }
     if (!errs.empty() && exit_code) *exit_code = acsd::INPUT;   // 3: 未知键
     return errs;
@@ -597,6 +675,71 @@ int validate_config_full(const std::string& path, nlohmann::json* doc_out,
             std::fprintf(stderr, "acsd: config has unknown key '%s'\n", it.key().c_str());
             return acsd::INPUT;                   // 防拼写静默忽略 → 3
         }
+    }
+    // task-7 mosaic 平铺面 model 七键门（与块内同口径；normalize/export 不认 model）。
+    // 键门（对象形态 + 七子键白名单）+ 与 p2_sample_cfg_from_doc /
+    // stage2_common.cpp 同口径的值域门；非法值同样 rc=3。
+    if (session_mode && session_name == "mosaic" && doc.contains("model")) {
+        const auto& m = doc["model"];
+        if (!m.is_object()) {
+            std::fprintf(stderr, "acsd: model must be an object\n");
+            return acsd::INPUT;
+        }
+        static const std::set<std::string> kModel = {
+            "halo_mag_thresh", "halo_r8", "halo_a",
+            "halo_r_min", "halo_r_max",
+            "seam_fallback_factor", "seam_fallback_r_max"};
+        for (auto it = m.begin(); it != m.end(); ++it) {
+            if (kModel.count(it.key()) == 0) {
+                std::fprintf(stderr, "acsd: model has unknown key '%s'\n",
+                             it.key().c_str());
+                return acsd::INPUT;
+            }
+        }
+        auto num_fin = [&](const char* k, double* v) -> bool {
+            if (!m.contains(k)) return true;
+            if (!m[k].is_number()) {
+                std::fprintf(stderr, "acsd: model.%s must be number\n", k);
+                return false;
+            }
+            const double x = m[k].get<double>();
+            if (!std::isfinite(x)) {
+                std::fprintf(stderr, "acsd: model.%s 须为有限数\n", k);
+                return false;
+            }
+            *v = x;
+            return true;
+        };
+        double thresh = 8.0, r8 = 150.0, a = 1.5, rmin = 30.0, rmax = 300.0,
+               fb = 1.5, fbmax = 450.0;
+        bool ok = true;
+        ok = num_fin("halo_mag_thresh", &thresh) && ok;
+        ok = num_fin("halo_r8", &r8) && ok;
+        if (!(r8 > 0.0)) { std::fprintf(stderr, "acsd: model.halo_r8 必须 > 0\n"); ok = false; }
+        ok = num_fin("halo_a", &a) && ok;
+        if (!(a > 1.0)) { std::fprintf(stderr, "acsd: model.halo_a 必须 > 1\n"); ok = false; }
+        ok = num_fin("halo_r_min", &rmin) && ok;
+        ok = num_fin("halo_r_max", &rmax) && ok;
+        if (!(rmin > 0.0) || !(rmax > 0.0) || rmin > rmax) {
+            std::fprintf(stderr, "acsd: model.halo_r_min/halo_r_max 必须 > 0 且 r_min<=r_max\n");
+            ok = false;
+        }
+        ok = num_fin("seam_fallback_factor", &fb) && ok;
+        if (!(fb >= 1.0)) {
+            std::fprintf(stderr, "acsd: model.seam_fallback_factor 必须 >= 1\n");
+            ok = false;
+        }
+        ok = num_fin("seam_fallback_r_max", &fbmax) && ok;
+        if (!(fbmax > 0.0)) {
+            std::fprintf(stderr, "acsd: model.seam_fallback_r_max 必须 > 0\n");
+            ok = false;
+        }
+        (void)thresh;
+        if (!ok) return acsd::INPUT;
+    }
+    if (session_mode && session_name != "mosaic" && doc.contains("model")) {
+        std::fprintf(stderr, "acsd: config has unknown key 'model'\n");
+        return acsd::INPUT;
     }
     // 平铺会话格式特征: 任一 session 键出现即脱离 V1 顶层必填面
     const bool flat_session = session_mode &&
