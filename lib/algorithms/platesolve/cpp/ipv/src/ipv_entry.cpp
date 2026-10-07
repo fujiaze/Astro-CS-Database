@@ -48,6 +48,13 @@ namespace {
 void* g_gaia_handle    = nullptr;
 void* g_detector_handle = nullptr;
 
+// P1-WCS-PARALLEL-01: 线程本地检测句柄覆盖（帧级并行）。
+// 进程级单例 g_detector_handle 是"最后一次写入 wins"；多帧并发时各 worker
+// 若都经 ipv_set_detector_handle 写入会互相覆盖。覆盖是线程本地的：
+// 设置后本线程的 get 路径优先返回覆盖值，全局单例不受影响。
+thread_local void* t_detector_override = nullptr;
+thread_local bool t_detector_override_set = false;
+
 std::mutex& g_handle_mutex() {
     static std::mutex m;   // 函数局部 static: 跨翻译单元首次调用线程安全初始化
     return m;
@@ -64,8 +71,21 @@ void* get_gaia_client_handle() {
 }
 
 void* get_star_detector_handle() {
+    // P1-WCS-PARALLEL-01: 本线程若设置了覆盖，优先使用覆盖（全局单例不动）。
+    if (t_detector_override_set) return t_detector_override;
     std::lock_guard<std::mutex> lk(g_handle_mutex());
     return g_detector_handle;
+}
+
+// P1-WCS-PARALLEL-01 覆盖的设置/清除（C ABI 薄壳见本文件尾部）。
+void set_detector_handle_local_override_impl(void* h) {
+    t_detector_override = h;
+    t_detector_override_set = true;
+}
+
+void clear_detector_handle_local_override_impl() {
+    t_detector_override = nullptr;
+    t_detector_override_set = false;
 }
 
 } // namespace ipv
@@ -408,6 +428,23 @@ IPV_API void ipv_set_detector_handle(void* solver, intptr_t handle) {
         s->set_detector_handle(handle);
         // 同步设置全局访问器 (供 ipv_select 使用)
         set_detector_handle_internal(reinterpret_cast<void*>(handle));  // B4-P1-4: 加锁写入
+    } catch (...) {
+        // 吞掉异常, 防止泄漏到 C 边界
+    }
+}
+
+// P1-WCS-PARALLEL-01: 线程本地检测句柄覆盖（帧级并行；见 ipv_api.h 注释）。
+IPV_API void ipv_set_detector_handle_local_override(void* handle) {
+    try {
+        ipv::set_detector_handle_local_override_impl(handle);
+    } catch (...) {
+        // 吞掉异常, 防止泄漏到 C 边界
+    }
+}
+
+IPV_API void ipv_clear_detector_handle_local_override(void) {
+    try {
+        ipv::clear_detector_handle_local_override_impl();
     } catch (...) {
         // 吞掉异常, 防止泄漏到 C 边界
     }

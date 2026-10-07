@@ -132,6 +132,39 @@ HP_DRIZZLE_API int hp_drizzle_run_phase1_hips(PipelineFrame* frame,
                                               HpDrizzleResult* result,
                                               int precision_mode);
 
+// P1-DRZ-ASYNC-01: Phase1 写盘异步化（跨帧流水, 帧内仍单线程且仍按
+// parent_ipix 升序）。形态：
+//   compute（parse/SNR/drizzle, 帧 worker 线程）
+//     → tiles 随任务 move 进 shared_ptr, 投递进程级写池
+//     → 帧 worker 立即返回（可原子认领下一帧）
+//     → p1_parallel_for join 后按帧下标升序 wait 回收（复现同步判定次序）。
+// begin: 执行计算并把 HiPS 直写投递写池；返回时写盘在飞, *out_job 非空
+//   （写池宽度 0/未启用时退化为同步路径, *out_job = nullptr）。
+// wait: 等待写盘完成并合并 rc/error_msg（返回写盘 rc）。
+// disk_full: 写线程内的磁盘满归因（thread_local FailureEpoch 的跨线程回传）。
+// free: 释放 job。
+// 语义保全：同一 write_hips_phase1、同一 tile 升序、同一 aio 原子落盘 ⇒
+// 成功路径逐位不变；p1_stack.json 由调用方在 wait 成功后落盘（写盘失败时
+// 同样不产出，与同步路径一致）；失败判定按帧序。
+// 线程安全：写池宽度由 P1-DRZ-ASYNC-01 的内存门控决定（见调用方）；
+// 写线程内新建 FailureEpoch 取快照（不得复用帧体线程的 epoch：base_ 取自
+// 构造线程的 tl_fail_seq() 会假阳性）；g_hips_error 在写线程内读取回传。
+typedef struct HpDrizzleJob HpDrizzleJob;
+// P1-DRZ-ASYNC-01: 写池宽度的生产侧查询（供调用方保守预检；返回 0 = 未启用）。
+// 定义在 hp_drizzle_hips_api.cpp（DrzWritePool 实例侧）；同步路径不调用。
+HP_DRIZZLE_API int hp_drizzle_write_pool_width(void);
+HP_DRIZZLE_API int hp_drizzle_write_pool_ensure(int width);
+HP_DRIZZLE_API int hp_drizzle_run_phase1_hips_begin(PipelineFrame* frame,
+                                                    int nside, int nested, double pixfrac,
+                                                    const char* hips_dir,
+                                                    const char* filter_passband,
+                                                    HpDrizzleJob** out_job,
+                                                    HpDrizzleResult* result,
+                                                    int precision_mode);
+HP_DRIZZLE_API int hp_drizzle_job_wait(HpDrizzleJob* job, HpDrizzleResult* result);
+HP_DRIZZLE_API int hp_drizzle_job_disk_full(const HpDrizzleJob* job);
+HP_DRIZZLE_API void hp_drizzle_job_free(HpDrizzleJob* job);
+
 // ============================================================================
 // P17-NSIDE: 自动 NSIDE 决策 (采样率等价 drizzle 1x-2x) 的正式 C ABI。
 //

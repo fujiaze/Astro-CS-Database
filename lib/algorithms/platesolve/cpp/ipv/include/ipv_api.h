@@ -136,6 +136,17 @@ IPV_API void ipv_set_gaia_handle(void* solver, intptr_t handle);
 // 设置 StarDetector 句柄
 IPV_API void ipv_set_detector_handle(void* solver, intptr_t handle);
 
+// P1-WCS-PARALLEL-01: 帧级并行检测句柄覆盖（线程本地）。
+// 背景: 检测句柄经 ipv_select.cpp 的进程级单例 get_star_detector_handle()
+// 分发；多帧并发求解时各帧需绑定各自的 sdet 实例。语义：
+//   · 未设置覆盖（nullptr）⇒ 回退进程级单例（串行路径逐位不变）；
+//   · 已设置覆盖 ⇒ 本线程的 select 路径使用覆盖句柄，全局单例保持不变；
+//   · 覆盖是线程本地的，不影响其他线程；ipv_set_detector_handle 的全局
+//     写入语义不变（仍同步单例，供串行路径使用）。
+// 线程安全：调用线程专属；不得跨线程设置/读取。
+IPV_API void ipv_set_detector_handle_local_override(void* handle);
+IPV_API void ipv_clear_detector_handle_local_override(void);
+
 // 执行求解
 // 返回: 0=失败, 1=成功 (结果写入 result)
 IPV_API int ipv_solve(

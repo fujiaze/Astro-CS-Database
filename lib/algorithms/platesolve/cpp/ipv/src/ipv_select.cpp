@@ -31,6 +31,7 @@
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
+#include <mutex>   // P1-WCS-PARALLEL-01: load_dlls 首次并发绑定互斥
 #include <string>
 #include <vector>
 #include <algorithm>
@@ -134,6 +135,11 @@ static DllApi g_dll;
 // "unsolved DEGRADED"（M42-E2E T10-Windows 实证），且降级路径疑似串行、
 // CPU 只有单核。静态直连与 Linux 同路径，签名不匹配在编译/链接期即失败。
 static bool load_dlls(Logger* logger) {
+    // P1-WCS-PARALLEL-01: 帧级并行下多 worker 首次并发进入本函数。
+    // 函数体是幂等赋值（同一组函数地址），但 loaded/load_failed 的读写竞争
+    // 本身是 UB。加互斥：首个线程执行绑定，其余等待后直接返回结果。
+    static std::mutex dll_mu;
+    std::lock_guard<std::mutex> lk(dll_mu);
     if (g_dll.loaded) return true;
     if (g_dll.load_failed) return false;
 

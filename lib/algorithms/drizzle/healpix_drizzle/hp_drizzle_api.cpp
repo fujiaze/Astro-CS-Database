@@ -18,6 +18,7 @@
 // docs/ACSD_DESIGN §10「统一 I/O 是文件级唯一边界」+ 原子产品:
 // 产品面落盘一律经 aio 机制原语 (aio_atomic_file.h), 本 TU 不得自持文件通道。
 #include "aio_atomic_file.h"
+#include "aio_disk_full.h"   // P1-DRZ-ASYNC-01: 写线程内 FailureEpoch 归因
 
 #include <cstdio>
 #include <cstring>
@@ -513,7 +514,8 @@ int run_drizzle_internal(PipelineFrame* frame,
                                 HpDrizzleResult* result,
                                 int precision_mode,
                                 int hips_profile,
-                                const char* hips_filter_passband)
+                                const char* hips_filter_passband,
+                                HpDrizzleJob** out_job)
 try {
     // 0. G4: actual-buffer trace 状态清理 (env 由 drizzleTiledImpl 内读取)
     drizzle_trace::reset();
@@ -1108,7 +1110,61 @@ try {
         meta.fits_meta["src_pixel_scale_arcsec"] = std::to_string(
             std::fabs(img.wcs.cd[0]) * 3600.0);
         bool hips_ok = true;
-        if (hips_profile == 1) {
+        // P1-DRZ-ASYNC-01: 异步直写判定（仅 Phase1 生产末端 profile=1）。
+        // 同步路径（out_job==nullptr 或写池宽度 0）逐位不变。
+        const bool drz_async =
+            (out_job != nullptr) && (hips_profile == 1) &&
+            (DrzWritePool::inst().width() > 0);
+        if (hips_profile == 1 && drz_async) {
+            // 异步直写: 计算已完成，写盘投递写池后本帧立即返回。
+            // tiles move 进 shared_ptr（写队列存活期）；config/路径按值拷贝。
+            const std::string filter_pb =
+                hips_filter_passband ? std::string(hips_filter_passband) : std::string();
+            const std::string hips_dir_s = hips_dir ? hips_dir : std::string();
+            const DrizzleConfig cfg_copy = config;
+            HpDrizzleJob* job = new HpDrizzleJob();
+            job->has_variance = variancePtr ? 1 : 0;
+            job->dir = hips_dir_s;
+            if (img.use_f64) {
+                auto tp = std::make_shared<std::vector<drizzle::TileAccumulatorT<double>>>(
+                    std::move(tiles_f64));
+                job->fut = DrzWritePool::inst().submit(
+                    [tp, cfg_copy, hips_dir_s, filter_pb, job]() -> int {
+                        std::string e2;
+                        // 写线程内新建归因窗口（不得复用帧体线程的 epoch）。
+                        aio_disk::FailureEpoch ep;
+                        const auto t0 = std::chrono::steady_clock::now();
+                        const bool ok = write_hips_phase1<double>(
+                            *tp, cfg_copy, hips_dir_s, filter_pb, job->has_variance, e2);
+                        job->write_s = std::chrono::duration<double>(
+                            std::chrono::steady_clock::now() - t0).count();
+                        job->disk_full = ep.failed() ? 1 : 0;
+                        if (!ok) { job->err = e2; return -13; }
+                        return 0;
+                    });
+            } else {
+                auto tp = std::make_shared<std::vector<drizzle::TileAccumulatorT<float>>>(
+                    std::move(tiles_f32));
+                job->fut = DrzWritePool::inst().submit(
+                    [tp, cfg_copy, hips_dir_s, filter_pb, job]() -> int {
+                        std::string e2;
+                        aio_disk::FailureEpoch ep;
+                        const auto t0 = std::chrono::steady_clock::now();
+                        const bool ok = write_hips_phase1<float>(
+                            *tp, cfg_copy, hips_dir_s, filter_pb, job->has_variance, e2);
+                        job->write_s = std::chrono::duration<double>(
+                            std::chrono::steady_clock::now() - t0).count();
+                        job->disk_full = ep.failed() ? 1 : 0;
+                        if (!ok) { job->err = e2; return -13; }
+                        return 0;
+                    });
+            }
+            *out_job = job;
+            std::fprintf(stderr,
+                "[drz_async_submit] dir=%s width=%d queued=%d active=%d\n",
+                hips_dir_s.c_str(), DrzWritePool::inst().width(),
+                DrzWritePool::inst().queued(), DrzWritePool::inst().active());
+        } else if (hips_profile == 1) {
             // Phase1 生产末端: 与旧 writer 节点逐字节等价的标准 HiPS 直写。
             const std::string filter_pb =
                 hips_filter_passband ? std::string(hips_filter_passband) : std::string();
@@ -1129,11 +1185,14 @@ try {
                 : write_hips_direct<float>(tiles_f32, config, meta, hips_dir, snr_pts,
                                            variancePtr ? 1 : 0, errMsg);
         }
-        if (!hips_ok) {
+        // P1-DRZ-ASYNC-01: 异步路径跳过同步失败判定与"已直写"行（写盘在飞，
+        // 结果在 job_wait 回收；产物集后缀由调用方在 wait 成功后落盘）。
+        if (!drz_async && !hips_ok) {
             fprintf(stderr, "[hp_drizzle_api] hp_drizzle_run: HiPS 直写失败: %s\n", errMsg.c_str());
             setErrorMsg(result, "HiPS 直写失败: " + errMsg);
             return -13;
         }
+        if (!drz_async)
         fprintf(stderr, "[hp_drizzle_api] hp_drizzle_run: HiPS 已直写 %s (无 HISS 中转)\n",
                 hips_dir);
         // 操作计数证据 (仅通用档; Phase1 档产物目录与旧 writer 保持同一文件集)
