@@ -270,6 +270,18 @@ int main(int argc, char** argv) {
     sccfg.background_tolerance = cfg.background_tolerance;
     sccfg.background_neighbor_radius = cfg.background_neighbor_radius;
     sccfg.background_catalog_veto = cfg.background_catalog_veto;
+    // task-5 sampler 透传 10 键（与 p2_sampler_default_config 同默认；
+    // 既有三键消除工具/编排分叉，新七键 halo 五键 + seam 回退两键）。
+    sccfg.control_k_corr = cfg.control_k_corr;
+    sccfg.star_mask_snr_factor = cfg.star_mask_snr_factor;
+    sccfg.star_mask_radius_deg = cfg.star_mask_radius_deg;
+    sccfg.halo_mag_thresh = cfg.halo_mag_thresh;
+    sccfg.halo_r8 = cfg.halo_r8;
+    sccfg.halo_a = cfg.halo_a;
+    sccfg.halo_r_min = cfg.halo_r_min;
+    sccfg.halo_r_max = cfg.halo_r_max;
+    sccfg.seam_fallback_factor = cfg.seam_fallback_factor;
+    sccfg.seam_fallback_r_max = cfg.seam_fallback_r_max;
     // CON-004: 并行 worker 预算唯一来源 = ExecutionOptions (CON-002)
     sccfg.cpu_workers = cfg.exec.cpu_workers;
     std::uint64_t n_obs = 0, n_ctrl = 0;
@@ -330,6 +342,8 @@ int main(int argc, char** argv) {
         " tolerance=" + std::to_string(sstats.rejected_bright_tolerance) +
         " contamination=" + std::to_string(sstats.rejected_high_contamination) +
         " catalog=" + std::to_string(sstats.rejected_catalog_veto) +
+        " simple_mask=" + std::to_string(sstats.rejected_simple_mask) +
+        " gaia_halo=" + std::to_string(sstats.rejected_gaia_halo) +
         " lt2frames=" + std::to_string(sstats.rejected_lt_two_clean_frames) +
         "] accepted_controls=" + std::to_string(sstats.accepted_controls) +
         " overlap_controls=" + std::to_string(sstats.overlap_controls));

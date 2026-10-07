@@ -9589,18 +9589,57 @@ bool p2_sample_cfg_from_doc(const Json& doc, P2SamplerConfig* sc,
   if (sc->background_catalog_veto != 0 && sc->background_catalog_veto != 1) {
     *err = "model.background_catalog_veto 必须 ∈ {0,1}"; return false;
   }
-  // sampler.h:56-59 声明的 veto/掩膜口径（与 catalog veto 同源，见 005）
+  // task-5 sampler 透传：既有三键 control_k_corr/star_mask_* 与工具
+  // stage2_common.cpp 同口径（>0 有限），消除 CONFIG.md「现状分叉声明」的
+  // 工具/编排分叉；新七键 halo 五键 + seam 回退两键（CONFIG.md「掩膜三组键文法」，
+  // 与 sampler.cpp 入口修补同口径）。缺键 = 编译期默认（p2_sampler_default_config
+  // 单一来源），非法值 = DATA fail-closed。注意：num()/i32() 缺键即 true，
+  // 故 halo_r_min/r_max 联合域（r_min<=r_max）在两键都读完后判。
   if (!num("control_k_corr", &sc->control_k_corr)) return false;
-  if (sc->control_k_corr <= 0.0) {
-    *err = "model.control_k_corr 必须 > 0"; return false;
+  if (!(sc->control_k_corr > 0.0) || !std::isfinite(sc->control_k_corr)) {
+    *err = "model.control_k_corr 必须 > 0 且有限"; return false;
   }
   if (!num("star_mask_snr_factor", &sc->star_mask_snr_factor)) return false;
-  if (!(sc->star_mask_snr_factor > 0.0)) {
-    *err = "model.star_mask_snr_factor 必须 > 0"; return false;
+  if (!(sc->star_mask_snr_factor > 0.0) ||
+      !std::isfinite(sc->star_mask_snr_factor)) {
+    *err = "model.star_mask_snr_factor 必须 > 0 且有限"; return false;
   }
   if (!num("star_mask_radius_deg", &sc->star_mask_radius_deg)) return false;
-  if (!(sc->star_mask_radius_deg > 0.0)) {
-    *err = "model.star_mask_radius_deg 必须 > 0"; return false;
+  if (!(sc->star_mask_radius_deg > 0.0) ||
+      !std::isfinite(sc->star_mask_radius_deg)) {
+    *err = "model.star_mask_radius_deg 必须 > 0 且有限"; return false;
+  }
+  // task-5 新七键：Gaia 晕组五键 + 缝回退组两键。
+  auto fin = [&](const char* k, double* out) -> bool {
+    if (!m.contains(k)) return true;
+    if (!m[k].is_number()) { *err = std::string("model.") + k + " must be number"; return false; }
+    const double v = m[k].get<double>();
+    if (!std::isfinite(v)) { *err = std::string("model.") + k + " 须为有限数"; return false; }
+    *out = v;
+    return true;
+  };
+  if (!fin("halo_mag_thresh", &sc->halo_mag_thresh)) return false;
+  if (!fin("halo_r8", &sc->halo_r8)) return false;
+  if (!(sc->halo_r8 > 0.0)) {
+    *err = "model.halo_r8 必须 > 0"; return false;
+  }
+  if (!fin("halo_a", &sc->halo_a)) return false;
+  if (!(sc->halo_a > 1.0)) {
+    *err = "model.halo_a 必须 > 1"; return false;
+  }
+  if (!fin("halo_r_min", &sc->halo_r_min)) return false;
+  if (!fin("halo_r_max", &sc->halo_r_max)) return false;
+  if (!(sc->halo_r_min > 0.0) || !(sc->halo_r_max > 0.0) ||
+      sc->halo_r_min > sc->halo_r_max) {
+    *err = "model.halo_r_min/halo_r_max 必须 > 0 且 r_min<=r_max"; return false;
+  }
+  if (!fin("seam_fallback_factor", &sc->seam_fallback_factor)) return false;
+  if (!(sc->seam_fallback_factor >= 1.0)) {
+    *err = "model.seam_fallback_factor 必须 >= 1"; return false;
+  }
+  if (!fin("seam_fallback_r_max", &sc->seam_fallback_r_max)) return false;
+  if (!(sc->seam_fallback_r_max > 0.0)) {
+    *err = "model.seam_fallback_r_max 必须 > 0"; return false;
   }
   return true;
 }

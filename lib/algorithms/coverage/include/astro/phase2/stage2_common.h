@@ -50,6 +50,22 @@ struct P2Stage2Config {
     double background_tolerance = 3.0;
     int    background_neighbor_radius = 2;
     int    background_catalog_veto = 1;
+    // task-5 sampler 透传（p2_sample_cfg 相关；默认值与 sampler.cpp
+    // p2_sampler_default_config 同源：control_k_corr=1.4 / factor=10.0 /
+    // radius=0.012 / halo{8.0,150,1.5,30,300} / seam{1.5,450}）。
+    // 既有三键 control_k_corr / star_mask_*：工具与编排同口径解析，消除分叉
+    // （CONFIG.md「现状分叉声明」）；新七键 halo 五键 + seam 回退两键
+    // （CONFIG.md「掩膜三组键文法」）。
+    double control_k_corr = 1.4;
+    double star_mask_snr_factor = 10.0;
+    double star_mask_radius_deg = 0.012;
+    double halo_mag_thresh = 8.0;
+    double halo_r8 = 150.0;
+    double halo_a = 1.5;
+    double halo_r_min = 30.0;
+    double halo_r_max = 300.0;
+    double seam_fallback_factor = 1.5;
+    double seam_fallback_r_max = 450.0;
     int robust_loss = 0;
     int snr_weight_mode = 0;
     double huber_delta = 1.345;

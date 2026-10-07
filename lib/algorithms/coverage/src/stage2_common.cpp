@@ -111,7 +111,16 @@ bool p2_stage2_parse_config(const nlohmann::json& j, P2Stage2Config* cfg, std::s
                                       "background_contamination_sigma",
                                       "background_min_retained_fraction",
                                       "background_tolerance", "background_neighbor_radius",
-                                      "background_catalog_veto", "huber_delta",
+                                      "background_catalog_veto",
+                                       // task-5 sampler 透传 10 键（CONFIG.md 掩膜三组键文法；
+                                       // 既有三键 control_k_corr/star_mask_* +
+                                       // 新七键 halo 五键/seam 回退两键）
+                                       "control_k_corr",
+                                       "star_mask_snr_factor", "star_mask_radius_deg",
+                                       "halo_mag_thresh", "halo_r8", "halo_a",
+                                       "halo_r_min", "halo_r_max",
+                                       "seam_fallback_factor", "seam_fallback_r_max",
+                                       "huber_delta",
                                       "smoothing", "zero_anchor_weight",
                                       "max_irls_iterations", "tolerance",
                                       "robust_loss", "snr_weight_mode", "sigma_floor",
@@ -205,6 +214,68 @@ bool p2_stage2_parse_config(const nlohmann::json& j, P2Stage2Config* cfg, std::s
             }
             cfg->background_catalog_veto =
                 m.value("background_catalog_veto", 1);
+            // task-5 sampler 透传 10 键：缺键回 sampler 默认（与
+            // p2_sampler_default_config 同值），非法值 fail-closed。
+            // 既有三键 control_k_corr/star_mask_*：与编排 p2_sample_cfg_from_doc
+            // 同口径（>0），消除 CONFIG.md「现状分叉声明」的工具/编排分叉。
+            cfg->control_k_corr = m.value("control_k_corr", 1.4);
+            if (!(cfg->control_k_corr > 0.0) ||
+                !std::isfinite(cfg->control_k_corr)) {
+                *err = "control_k_corr 必须 > 0 且有限";
+                return false;
+            }
+            cfg->star_mask_snr_factor = m.value("star_mask_snr_factor", 10.0);
+            if (!(cfg->star_mask_snr_factor > 0.0) ||
+                !std::isfinite(cfg->star_mask_snr_factor)) {
+                *err = "star_mask_snr_factor 必须 > 0 且有限";
+                return false;
+            }
+            cfg->star_mask_radius_deg = m.value("star_mask_radius_deg", 0.012);
+            if (!(cfg->star_mask_radius_deg > 0.0) ||
+                !std::isfinite(cfg->star_mask_radius_deg)) {
+                *err = "star_mask_radius_deg 必须 > 0 且有限";
+                return false;
+            }
+            // 新七键 halo 五键 + seam 回退两键（CONFIG.md「掩膜三组键文法」；
+            // 与 sampler.cpp 入口修补同口径：halo_mag_thresh 须有限，
+            // halo_r8/r_min/r_max 须>0 有限且 r_min<=r_max，halo_a 须>1 有限，
+            // seam_fallback_factor 须>=1 有限，seam_fallback_r_max 须>0 有限）。
+            // 编排 p2_sample_cfg_from_doc 同口径解析（工具与编排一致）。
+            cfg->halo_mag_thresh = m.value("halo_mag_thresh", 8.0);
+            if (!std::isfinite(cfg->halo_mag_thresh)) {
+                *err = "halo_mag_thresh 须为有限数";
+                return false;
+            }
+            cfg->halo_r8 = m.value("halo_r8", 150.0);
+            if (!(cfg->halo_r8 > 0.0) || !std::isfinite(cfg->halo_r8)) {
+                *err = "halo_r8 必须 > 0 且有限";
+                return false;
+            }
+            cfg->halo_a = m.value("halo_a", 1.5);
+            if (!(cfg->halo_a > 1.0) || !std::isfinite(cfg->halo_a)) {
+                *err = "halo_a 必须 > 1 且有限";
+                return false;
+            }
+            cfg->halo_r_min = m.value("halo_r_min", 30.0);
+            cfg->halo_r_max = m.value("halo_r_max", 300.0);
+            if (!(cfg->halo_r_min > 0.0) || !std::isfinite(cfg->halo_r_min) ||
+                !(cfg->halo_r_max > 0.0) || !std::isfinite(cfg->halo_r_max) ||
+                cfg->halo_r_min > cfg->halo_r_max) {
+                *err = "halo_r_min/halo_r_max 必须 > 0 有限且 r_min<=r_max";
+                return false;
+            }
+            cfg->seam_fallback_factor = m.value("seam_fallback_factor", 1.5);
+            if (!(cfg->seam_fallback_factor >= 1.0) ||
+                !std::isfinite(cfg->seam_fallback_factor)) {
+                *err = "seam_fallback_factor 必须 >= 1 且有限";
+                return false;
+            }
+            cfg->seam_fallback_r_max = m.value("seam_fallback_r_max", 450.0);
+            if (!(cfg->seam_fallback_r_max > 0.0) ||
+                !std::isfinite(cfg->seam_fallback_r_max)) {
+                *err = "seam_fallback_r_max 必须 > 0 且有限";
+                return false;
+            }
             cfg->huber_delta = m.value("huber_delta", 1.345);
             if (cfg->huber_delta <= 0.0) {
                 *err = "huber_delta 必须 > 0";
