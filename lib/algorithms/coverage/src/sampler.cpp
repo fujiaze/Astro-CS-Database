@@ -1245,7 +1245,12 @@ static int p2_sample_controls_impl(
     for (std::size_t ci = 0; ci < cells.size(); ++ci)
         tile_cells[cells[ci].tile].push_back(ci);
     std::vector<std::size_t> tile_cell_list;  // 预取同 tile 列表（当前 cell）
-    for (std::size_t ci = 0; ci < cells.size(); ++ci) {
+    // pass2 单 cell 体：串行/并行共用（杜绝双份漂移）。只写 cells[ci] 自身的
+    // accepted/reason；读侧仅消费 pass1 已冻结字段与同 tile 只读量（m/n_total/
+    // frames/gx/gy），与写集不交 ⇒ 按 cell 区间切分无数据竞争。局部计数经引用
+    // 返回，调用方（串行直加 / 并行 worker-local 聚合后按序合并）负责合并。
+    auto pass2_cell = [&](std::size_t ci, std::uint64_t& l_tol,
+                            std::uint64_t& l_con, std::uint64_t& l_ret) {
         CellStat& cs = cells[ci];
         const auto& same_tile = tile_cells[cs.tile];
         for (std::size_t fi = 0; fi < cs.frames.size(); ++fi) {
@@ -1282,31 +1287,108 @@ static int p2_sample_controls_impl(
             if (cs.m[fi] > B + cfg.background_tolerance * S) {
                 cs.accepted[fi] = false;
                 cs.reason[fi] = 3;
-                ++stats.rejected_bright_tolerance;
+                ++l_tol;
             } else if (cs.bfrac[fi] > cfg.background_max_contamination) {
                 cs.accepted[fi] = false;
                 cs.reason[fi] = 4;
-                ++stats.rejected_high_contamination;
+                ++l_con;
             } else if ((double)cs.n_retained[fi] <
                        cfg.background_min_retained_fraction *
                            (double)cs.n_total[fi]) {
                 cs.accepted[fi] = false;
                 cs.reason[fi] = 2;
-                ++stats.rejected_insufficient_retained;
+                ++l_ret;
+            }
+        }
+    };
+    // pass2 并行（workers 由同一 Runtime lease 驱动；pass1 线程池已 join，
+    // 无重叠；UPM 是独立函数调用，函数作用域内建池+join，不共享/不私建
+    // 全局池 ⇒ 与 UPM 任务不撞车）。写集按 cell 区间正交、计数 worker-local
+    // 聚合后加总（整数加法交换律 ⇒ 位精确）；workers=1 恒走串行 reference。
+    {
+        const int workers23 = (cfg.cpu_workers > 0) ? cfg.cpu_workers : 1;
+        const bool par23 = (workers23 > 1);
+        if (par23) {
+            std::uint64_t sum_tol = 0, sum_con = 0, sum_ret = 0;
+            std::mutex m23;
+            std::atomic<std::uint64_t> next_ci{0};
+            const std::size_t n_cells = cells.size();
+            std::vector<std::thread> pool23;
+            pool23.reserve((std::size_t)workers23);
+            for (int w = 0; w < workers23; ++w) {
+                pool23.emplace_back([&]() {
+                    std::uint64_t lt = 0, lc = 0, lr = 0;
+                    for (;;) {
+                        const std::uint64_t ci =
+                            next_ci.fetch_add(1);
+                        if (ci >= n_cells) break;
+                        pass2_cell((std::size_t)ci, lt, lc, lr);
+                    }
+                    std::lock_guard<std::mutex> lk(m23);
+                    sum_tol += lt;
+                    sum_con += lc;
+                    sum_ret += lr;
+                });
+            }
+            for (auto& th : pool23) th.join();
+            stats.rejected_bright_tolerance += sum_tol;
+            stats.rejected_high_contamination += sum_con;
+            stats.rejected_insufficient_retained += sum_ret;
+        } else {
+            for (std::size_t ci = 0; ci < cells.size(); ++ci) {
+                std::uint64_t lt = 0, lc = 0, lr = 0;
+                pass2_cell(ci, lt, lc, lr);
+                stats.rejected_bright_tolerance += lt;
+                stats.rejected_high_contamination += lc;
+                stats.rejected_insufficient_retained += lr;
             }
         }
     }
 
     // 第三遍：≥2 帧 clean 的 control 才输出观测；
     // 同时输出 sky_samples（每帧全部 clean 采样点，**含单帧区**，P0-08）。
-    for (std::size_t ci = 0; ci < cells.size(); ++ci) {
+    // 并行：按 cell 区间切分，worker-local obs/sky 分片 + 计数，结束后按 worker
+    // 序依次拼接（obs/sky 元素顺序与串行 ci 递增恒同 ⇒ 位精确）。ivar 读用
+    // worker 独立只读句柄（cfitsio 同句柄非线程安全 ⇒ 禁共享 ivr[]；串行路径
+    // 继续用共享句柄，逐位不变）。
+    struct SamplerIvarReader {
+        const char* const* paths = nullptr;
+        AioHipsDataset* const* shared = nullptr;
+        std::size_t n = 0;
+        bool own = false;
+        std::vector<AioHipsDataset*> cds;
+        void init_shared(AioHipsDataset* const* s, std::size_t n_) {
+            shared = s; n = n_; own = false;
+        }
+        void init_own(const char* const* p, std::size_t n_) {
+            paths = p; n = n_; own = true; cds.assign(n, nullptr);
+        }
+        AioHipsDataset* get(std::size_t f) {
+            if (!own) return shared[f];
+            if (!cds[f]) cds[f] = aio_hips_open(paths[f], AIO_HIPS_RD_IVAR);
+            return cds[f];
+        }
+        void close_all() {
+            if (!own) return;
+            for (AioHipsDataset* p : cds) if (p) aio_hips_close(p);
+            cds.clear();
+        }
+    };
+    auto pass3_cell = [&](std::size_t ci, SamplerIvarReader& ivrdr,
+                          std::vector<P2ControlObservation>& l_obs,
+                          std::vector<P2SkySample>& l_sky,
+                          std::uint64_t& l_acc_ctl,
+                          std::uint64_t& l_ovl,
+                          std::uint64_t& l_lt2,
+                          std::uint64_t& l_acc_obs,
+                          std::uint64_t& l_cand_obs) {
         const CellStat& cs = cells[ci];
         int nclean = 0;
         for (std::size_t fi = 0; fi < cs.frames.size(); ++fi)
             if (cs.accepted[fi]) ++nclean;
-        if (nclean == 0) continue;
-        ++stats.accepted_controls;
-        if (nclean >= 2) ++stats.overlap_controls;
+        if (nclean == 0) return;
+        ++l_acc_ctl;
+        if (nclean >= 2) ++l_ovl;
         for (std::size_t fi = 0; fi < cs.frames.size(); ++fi) {
             if (!cs.accepted[fi]) {
                 // DISP-P2SMP-002: 本循环**不再**累加
@@ -1327,10 +1409,10 @@ static int p2_sample_controls_impl(
                 // 时置 NO_LOCAL_SNR 标记（帧级回退由消费方决定）。
                 sk.snr = (cs.unc[fi] > 0.0) ? std::fabs(cs.m[fi]) / cs.unc[fi] : 0.0;
                 sk.flags = cs.snr_avail[fi] ? P2_SKY_FLAG_NONE : P2_SKY_FLAG_NO_LOCAL_SNR;
-                sky.push_back(sk);
+                l_sky.push_back(sk);
             }
             if (nclean < 2) {
-                ++stats.rejected_lt_two_clean_frames;
+                ++l_lt2;
                 continue;
             }
             P2ControlObservation o{};
@@ -1373,11 +1455,84 @@ static int p2_sample_controls_impl(
                     }
                 }
             }
+            {
+                AioHipsDataset* iv = ivrdr.get(static_cast<std::size_t>(cs.frames[fi]));
+                if (iv) {
+                    float v = 0.0f;
+                    if (aio_hips_read_leaf_f32(iv, cs.leaf, &v) == 0 &&
+                        std::isfinite(v) && v > 0.0f) {
+                        o.ivar = (double)v;
+                    }
+                }
+            }
             o.support = cs.sup[fi];
             o.quality_flags = cs.qual[fi];
-            obs.push_back(o);
-            ++stats.accepted_observations;
-            ++stats.candidate_observations;
+            l_obs.push_back(o);
+            ++l_acc_obs;
+            ++l_cand_obs;
+        }
+    };
+    // pass3 调度：串行 reference（workers=1）与并行（worker 区间 + 按序拼接）。
+    // obs 递增恒等式（:1504-1511 重算 candidate）不受本遍 obs 累加影响。
+    {
+        const int workers3 = (cfg.cpu_workers > 0) ? cfg.cpu_workers : 1;
+        const bool par3 = (workers3 > 1);
+        if (par3) {
+            struct Shard3 {
+                std::vector<P2ControlObservation> obs;
+                std::vector<P2SkySample> sky;
+                std::uint64_t acc_ctl = 0, ovl = 0, lt2 = 0;
+                std::uint64_t acc_obs = 0, cand_obs = 0;
+            };
+            std::vector<Shard3> shards((std::size_t)workers3);
+            std::vector<std::thread> pool3;
+            pool3.reserve((std::size_t)workers3);
+            for (int w = 0; w < workers3; ++w) {
+                pool3.emplace_back([&, w]() {
+                    SamplerIvarReader rdr;
+                    rdr.init_own(hips_paths, (std::size_t)n_frames);
+                    Shard3& sh = shards[(std::size_t)w];
+                    const std::uint64_t n_cells = cells.size();
+                    const std::uint64_t b =
+                        (n_cells * (std::uint64_t)w) / (std::uint64_t)workers3;
+                    const std::uint64_t e =
+                        (n_cells * (std::uint64_t)(w + 1)) / (std::uint64_t)workers3;
+                    for (std::uint64_t ci = b; ci < e; ++ci)
+                        pass3_cell((std::size_t)ci, rdr, sh.obs, sh.sky,
+                                   sh.acc_ctl, sh.ovl, sh.lt2,
+                                   sh.acc_obs, sh.cand_obs);
+                    rdr.close_all();
+                });
+            }
+            for (auto& th : pool3) th.join();
+            for (int w = 0; w < workers3; ++w) {
+                Shard3& sh = shards[(std::size_t)w];
+                obs.insert(obs.end(), sh.obs.begin(), sh.obs.end());
+                if (want_sky)
+                    sky.insert(sky.end(), sh.sky.begin(), sh.sky.end());
+                stats.accepted_controls += sh.acc_ctl;
+                stats.overlap_controls += sh.ovl;
+                stats.rejected_lt_two_clean_frames += sh.lt2;
+                stats.accepted_observations += sh.acc_obs;
+                stats.candidate_observations += sh.cand_obs;
+            }
+        } else {
+            SamplerIvarReader rdr;
+            rdr.init_shared(ivr.data(), (std::size_t)n_frames);
+            for (std::size_t ci = 0; ci < cells.size(); ++ci) {
+                std::uint64_t acc_ctl = 0, ovl = 0, lt2 = 0;
+                std::uint64_t acc_obs = 0, cand_obs = 0;
+                const std::size_t obs0 = obs.size();
+                const std::size_t sky0 = sky.size();
+                pass3_cell(ci, rdr, obs, sky,
+                           acc_ctl, ovl, lt2, acc_obs, cand_obs);
+                (void)obs0; (void)sky0;
+                stats.accepted_controls += acc_ctl;
+                stats.overlap_controls += ovl;
+                stats.rejected_lt_two_clean_frames += lt2;
+                stats.accepted_observations += acc_obs;
+                stats.candidate_observations += cand_obs;
+            }
         }
     }
 
