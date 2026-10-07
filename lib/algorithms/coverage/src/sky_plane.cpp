@@ -35,11 +35,15 @@
 #include <nlohmann/json.hpp>
 
 #include <algorithm>
+#include <atomic>
+#include <climits>
 #include <cmath>
 #include <cstdio>
+#include <cstdlib>
 #include <cstring>
 #include <limits>
 #include <map>
+#include <mutex>
 #include <new>
 #include <string>
 #include <thread>
@@ -50,6 +54,85 @@ namespace {
 constexpr double kPi = 3.14159265358979323846;
 constexpr double kMadToSigma = 1.482602218505602;   // 1/Φ⁻¹(3/4)
 constexpr double kPiHalf = 1.57079632679489661923;  // π/2
+
+// ---- task-10 自适应求解并行化：瞬态线程预算（局部 helper，不进公共头） ----
+// 并行形态（docs/engineering/standards/CONCURRENCY.md）：科学计算路径只用显式
+// 并行区；本 TU 历史上无 OpenMP 依赖（P2_ENABLE_OPENMP 硬禁用），故用瞬态
+// std::thread 并行区（求解函数作用域内创建+join，不私建长期线程池）。
+//   parallel region：下述 par_for_rows / par_for_range 调用的全部行分片循环；
+//   shared：只读输入 + disjoint 行分片输出（互斥行区间，无竞争）；
+//   thread-local：Z 求解的列暂存 col（各线程栈上私有）；
+//   reduction：无跨线程浮点归约——装配循环的 H_data/rhs/Mk/Sk/tk 跨样本累加
+//     保持串行（见 IRLS 注释），只并行「输出行互斥」的循环；
+//   determinism：所有并行循环的浮点求值顺序与单线程逐行顺序逐位一致
+//     （行 i 的内层求和顺序不变；行间无交叉累加），故线程数不改变数值结果；
+//   线程数：外部可配置——OMP_NUM_THREADS（>0 才认；否则 hardware_concurrency），
+//     上限钳 64（防 oversubscription），下限 1；解析失败/线程创建失败 ⇒ 回退串行。
+inline unsigned sky_plane_thread_budget() {
+    unsigned budget = 0;
+    if (const char* env = std::getenv("OMP_NUM_THREADS")) {
+        char* end = nullptr;
+        const long v = std::strtol(env, &end, 10);
+        if (end != env && v > 0 && v <= 64) budget = static_cast<unsigned>(v);
+    }
+    if (budget == 0) {
+        const unsigned hw = std::thread::hardware_concurrency();
+        budget = (hw == 0) ? 1u : hw;
+        if (budget > 64u) budget = 64u;
+    }
+    return budget;
+}
+
+// 行分片并行：[0,n) 按行均分给 T 个线程，fn(lo,hi) 处理互斥行区间。
+// T<=1 或 n 太小（< min_rows_per_thread*T）⇒ 直接串行调用，避免线程开销。
+// 异常语义：工作线程内异常被吞记（first_err，未用——本 TU 内所有 fn 均为纯
+// 数值循环，无抛点；std::thread 创建失败则剩余区间由主线程串行补跑）。
+// 数值与串行逐位一致是调用方保证的（输出行区间互斥 + 行内求和顺序不变）。
+template <typename Fn>
+void sky_plane_par_for_rows(int n, unsigned budget, int min_rows_per_thread,
+                            Fn&& fn) {
+    if (n <= 0) return;
+    if (budget <= 1) { fn(0, n); return; }
+    const unsigned t = std::min<unsigned>(
+        budget, static_cast<unsigned>((n + min_rows_per_thread - 1) / min_rows_per_thread));
+    if (t <= 1) { fn(0, n); return; }
+    std::vector<std::thread> workers;
+    workers.reserve(t - 1u);
+    std::string first_err;
+    std::mutex err_mu;
+    auto run = [&](int lo, int hi) {
+        try {
+            fn(lo, hi);
+        } catch (const std::exception& e) {
+            std::lock_guard<std::mutex> lk(err_mu);
+            if (first_err.empty()) first_err = e.what();
+        } catch (...) {
+            std::lock_guard<std::mutex> lk(err_mu);
+            if (first_err.empty()) first_err = "unknown";
+        }
+    };
+    const int chunk = (n + static_cast<int>(t) - 1) / static_cast<int>(t);
+    for (unsigned k = 1; k < t; ++k) {
+        const int lo = static_cast<int>(k) * chunk;
+        const int hi = std::min(n, lo + chunk);
+        if (lo >= hi) break;
+        try {
+            workers.emplace_back(run, lo, hi);
+        } catch (...) {
+            break;   // 创建失败 ⇒ 剩余区间由主线程串行补跑（见下）
+        }
+    }
+    // 主线程跑 [0, chunk)，再补跑因创建失败未被认领的区间。
+    // 为跟踪哪些区间已有线程，先记录已启动区间数。
+    const std::size_t started = workers.size();
+    run(0, std::min(n, chunk));
+    for (std::size_t k = started + 1; k < t; ++k) {
+        const int lo = static_cast<int>(k) * chunk;
+        const int hi = std::min(n, lo + chunk);
+        if (lo < hi) run(lo, hi);
+    }
+    for (auto& th : workers) { if (th.joinable()) th.join(); }
+}
 
 inline bool finite_pos(double v) { return std::isfinite(v) && v > 0.0; }
 
@@ -139,21 +222,98 @@ void delta_basis(double u, double v, double uc, double vc, double us, double vs,
 }
 
 // 无 jitter Cholesky：A = L Lᵀ（A 对称 SPD）。返回 false 表示非 SPD。
-bool chol_spd(const std::vector<double>& A, int n, std::vector<double>& L) {
+// task-10 并行：分块左视 Cholesky（blocked left-looking）。
+// 块宽 B 内：块面板先一次性减去已完成块列 k∈[0,jb) 的贡献（GEMM 形态，行分片
+// 并行，一次同步/块），再块内逐列左视串行（含 k∈[jb,j) 的累加）。
+// 位精确论证：L[i][j] 的 k 累减顺序恒为 0→j-1 连续（先 0..jb-1 再 jb..j-1，
+// 左结合顺序减），与逐列左视串行逐位一致；输出 (i,j) 行互斥 ⇒ 线程数不影响结果。
+// budget<=1 或 n < kCholParMin ⇒ 纯串行（原逐位路径）。
+// 失败语义与串行一致：NaN 沿 L 传播、只在后续对角元判失败。
+//
+// 线程团队生命周期 = 单次 chol_spd 调用（瞬态并行区，非长期池）：块面板更新
+// 时按需 fork/join（同步 ~n/B 次/分解），块内面板串行。barrier 开销可忽略。
+bool chol_spd(const std::vector<double>& A, int n, std::vector<double>& L,
+              unsigned budget = 1) {
     L.assign(static_cast<std::size_t>(n) * n, 0.0);
-    for (int i = 0; i < n; ++i) {
-        for (int j = 0; j <= i; ++j) {
-            double sum = A[static_cast<std::size_t>(i) * n + j];
+    constexpr int kCholParMin = 128;   // 小于此阶并行无收益，直接串行
+    constexpr int kBlock = 64;         // 块宽（L1 友好；同步 n/B 次/分解）
+    const bool parallel =
+        (budget > 1 && n >= kCholParMin);
+    const unsigned team = parallel
+        ? std::min<unsigned>(budget, static_cast<unsigned>((n + 31) / 32))
+        : 1u;
+    auto serial_col = [&](int j) -> bool {
+        double sum = A[static_cast<std::size_t>(j) * n + j];
+        for (int k = 0; k < j; ++k) {
+            const double l = L[static_cast<std::size_t>(j) * n + k];
+            sum -= l * l;
+        }
+        if (!(sum > 0.0) || !std::isfinite(sum)) return false;
+        const double djj = std::sqrt(sum);
+        L[static_cast<std::size_t>(j) * n + j] = djj;
+        if (!(djj > 0.0)) return false;
+        for (int i = j + 1; i < n; ++i) {
+            double s2 = A[static_cast<std::size_t>(i) * n + j];
             for (int k = 0; k < j; ++k)
-                sum -= L[static_cast<std::size_t>(i) * n + k] *
-                       L[static_cast<std::size_t>(j) * n + k];
-            if (i == j) {
-                if (!(sum > 0.0) || !std::isfinite(sum)) return false;
-                L[static_cast<std::size_t>(i) * n + i] = std::sqrt(sum);
-            } else {
-                const double d = L[static_cast<std::size_t>(j) * n + j];
-                if (!(d > 0.0)) return false;
-                L[static_cast<std::size_t>(i) * n + j] = sum / d;
+                s2 -= L[static_cast<std::size_t>(i) * n + k] *
+                      L[static_cast<std::size_t>(j) * n + k];
+            L[static_cast<std::size_t>(i) * n + j] = s2 / djj;
+        }
+        return true;
+    };
+    if (!parallel) {
+        for (int j = 0; j < n; ++j)
+            if (!serial_col(j)) return false;
+        return true;
+    }
+    for (int jb = 0; jb < n; jb += kBlock) {
+        const int jend = std::min(n, jb + kBlock);
+        // (1) 块面板更新：L[i][j] -= Σ_{k<jb} L[i][k]·L[j][k]，
+        // j∈[jb,jend)，i>j。行 i 分片并行（输出行互斥；k 求和顺序不变）。
+        // 注意：i>j 整体是上梯形；按行 i 分片时行 i 只负责 j∈[jb,min(jend,i))。
+        sky_plane_par_for_rows(
+            n - jb, team, 32,
+            [&](int lo, int hi) {
+                for (int ii = lo; ii < hi; ++ii) {
+                    const int i = jb + ii;
+                    const int jlast = std::min(jend, i + 1);
+                    for (int j = jb; j < jlast; ++j) {
+                        if (i == j) {
+                            double sum = A[static_cast<std::size_t>(i) * n + i];
+                            for (int k = 0; k < jb; ++k) {
+                                const double l =
+                                    L[static_cast<std::size_t>(i) * n + k];
+                                sum -= l * l;
+                            }
+                            L[static_cast<std::size_t>(i) * n + i] = sum;
+                        } else if (i > j) {
+                            double s2 = A[static_cast<std::size_t>(i) * n + j];
+                            for (int k = 0; k < jb; ++k)
+                                s2 -= L[static_cast<std::size_t>(i) * n + k] *
+                                      L[static_cast<std::size_t>(j) * n + k];
+                            L[static_cast<std::size_t>(i) * n + j] = s2;
+                        }
+                    }
+                }
+            });
+        // (2) 块内逐列左视串行：对角开方 + 除法 + k∈[jb,j) 累减。
+        // (1) 已把 k<jb 的贡献减入 L[i][j]（对角是未开方的 sum），此处继续累减。
+        for (int j = jb; j < jend; ++j) {
+            double sum = L[static_cast<std::size_t>(j) * n + j];
+            for (int k = jb; k < j; ++k) {
+                const double l = L[static_cast<std::size_t>(j) * n + k];
+                sum -= l * l;
+            }
+            if (!(sum > 0.0) || !std::isfinite(sum)) return false;
+            const double djj = std::sqrt(sum);
+            L[static_cast<std::size_t>(j) * n + j] = djj;
+            if (!(djj > 0.0)) return false;
+            for (int i = j + 1; i < n; ++i) {
+                double s2 = L[static_cast<std::size_t>(i) * n + j];
+                for (int k = jb; k < j; ++k)
+                    s2 -= L[static_cast<std::size_t>(i) * n + k] *
+                          L[static_cast<std::size_t>(j) * n + k];
+                L[static_cast<std::size_t>(i) * n + j] = s2 / djj;
             }
         }
     }
@@ -977,6 +1137,18 @@ int p2_sky_plane_build(const P2SkySample* samples, std::uint64_t n,
     // 派生数值岭 λ_eff（每次 IRLS 迭代按当次 H_red 的尺度重算；见下方说明）。
     double lam = 0.0;
     int iterations = 0;
+    // task-10：瞬态线程预算（每 build 解析一次；IRLS 迭代间复用同一个 budget 值，
+    // 使「线程数」在同一次求解内恒定 ⇒ 同输入同线程数逐位可复现）。
+    // 取值来源 = 运行环境（OMP_NUM_THREADS / hardware_concurrency），上限 64。
+    const unsigned par_budget = sky_plane_thread_budget();
+    // task-10 符号复用（attempt 间亦可复用思想的 build 内版本）：样本 gi→used
+    // 局部下标 t 的映射在 IRLS 迭代间不变（used 不变），逐样本 lower_bound 是
+    // O(log n) 的重复符号工作。一次性建成 gi→t 位置表（-1 = 非 used），每次
+    // 迭代 O(1) 查表。数值路径不变（只把查找换成查表，遍历顺序/累加顺序不变）。
+    // n == 0 已在入口拒绝；gi < n 恒成立（used 元素均来自 [0,n)）。
+    std::vector<int> sample_pos(static_cast<std::size_t>(n), -1);
+    for (std::size_t t = 0; t < used.size(); ++t)
+        sample_pos[static_cast<std::size_t>(used[t])] = static_cast<int>(t);
     for (int iter = 0; iter < cfg.max_iterations; ++iter) {
         ++iterations;
         std::fill(H_data.begin(), H_data.end(), 0.0);
@@ -995,9 +1167,9 @@ int p2_sky_plane_build(const P2SkySample* samples, std::uint64_t n,
             std::vector<double>& Sk_ = Sk[static_cast<std::size_t>(k)];
             std::vector<double>& tk_ = tk[static_cast<std::size_t>(k)];
             for (std::uint64_t gi : frames[static_cast<std::size_t>(k)].idx) {
-                // 找到该样本在 used 中的局部下标 t
+                // task-10：gi→t 查表复用（符号工作 hoist；数值路径不变）。
                 const std::size_t t = static_cast<std::size_t>(
-                    std::lower_bound(used.begin(), used.end(), gi) - used.begin());
+                    sample_pos[static_cast<std::size_t>(gi)]);
                 const double wi = w[t];
                 if (!(wi > 0.0) || !std::isfinite(wi)) continue;
                 const double y = samples[gi].value;
@@ -1053,21 +1225,51 @@ int p2_sky_plane_build(const P2SkySample* samples, std::uint64_t n,
                 rhs[static_cast<std::size_t>(i)] -= s;
             }
             // Z = M⁻¹ Sᵀ（m×n_free）：逐列解 M z = S[:,i]
+            // task-10 并行：列 i 只写 Z[:,i]（互斥列区间），内层 q 求和顺序不变 ⇒
+            // 位精确。col 曾是循环内 vector 分配（每列一次堆分配）；改为线程栈上
+            // 定长暂存（m<=6），同时消掉每列分配开销。chol_solve 只读 Lk/Sk_。
             std::vector<double> Z(static_cast<std::size_t>(m) * n_free, 0.0);
-            for (int i = 0; i < n_free; ++i) {
-                std::vector<double> col(static_cast<std::size_t>(m));
-                for (int q = 0; q < m; ++q) col[static_cast<std::size_t>(q)] = Sk_[static_cast<std::size_t>(i) * m + q];
-                chol_solve(Lk, m, col);
-                for (int q = 0; q < m; ++q)
-                    Z[static_cast<std::size_t>(q) * n_free + i] = col[static_cast<std::size_t>(q)];
-            }
-            for (int i = 0; i < n_free; ++i)
-                for (int j = 0; j < n_free; ++j) {
-                    double s = 0.0;
-                    for (int q = 0; q < m; ++q)
-                        s += Sk_[static_cast<std::size_t>(i) * m + q] * Z[static_cast<std::size_t>(q) * n_free + j];
-                    H_red[static_cast<std::size_t>(i) * n_free + j] -= s;
-                }
+            sky_plane_par_for_rows(
+                n_free, par_budget, 64,
+                [&](int lo, int hi) {
+                    double col[6];
+                    for (int i = lo; i < hi; ++i) {
+                        for (int q = 0; q < m; ++q)
+                            col[static_cast<std::size_t>(q)] =
+                                Sk_[static_cast<std::size_t>(i) * m + q];
+                        // chol_solve 原型取 vector&；此处 m<=6，用固定小矩阵手解
+                        // 前代/回代（与 chol_solve 同顺序：先 y 后 x，逐位一致）。
+                        double y[6];
+                        for (int r = 0; r < m; ++r) {
+                            double sum = col[r];
+                            for (int c = 0; c < r; ++c)
+                                sum -= Lk[static_cast<std::size_t>(r) * m + c] * y[c];
+                            y[r] = sum / Lk[static_cast<std::size_t>(r) * m + r];
+                        }
+                        for (int r = m - 1; r >= 0; --r) {
+                            double sum = y[r];
+                            for (int c = r + 1; c < m; ++c)
+                                sum -= Lk[static_cast<std::size_t>(c) * m + r] * col[c];
+                            col[r] = sum / Lk[static_cast<std::size_t>(r) * m + r];
+                        }
+                        for (int q = 0; q < m; ++q)
+                            Z[static_cast<std::size_t>(q) * n_free + i] = col[static_cast<std::size_t>(q)];
+                    }
+                });
+            // task-10 并行：H_red 行分片（行 i 只写 H_red[i,:]，互斥；内层 q
+            // 求和顺序不变 ⇒ 位精确）。只读 Sk_/Z。
+            sky_plane_par_for_rows(
+                n_free, par_budget, 32,
+                [&](int lo, int hi) {
+                    for (int i = lo; i < hi; ++i)
+                        for (int j = 0; j < n_free; ++j) {
+                            double s = 0.0;
+                            for (int q = 0; q < m; ++q)
+                                s += Sk_[static_cast<std::size_t>(i) * m + q] *
+                                     Z[static_cast<std::size_t>(q) * n_free + j];
+                            H_red[static_cast<std::size_t>(i) * n_free + j] -= s;
+                        }
+                });
         }
         // 求解矩阵 = 约化数据矩阵 + **派生**数值岭 λ_eff·DᵀD（二阶差分，两个方向）。
         //   λ_eff = τ · mean(diag(H_red))   （τ = rank_rtol，唯一判据阈值）
@@ -1124,7 +1326,8 @@ int p2_sky_plane_build(const P2SkySample* samples, std::uint64_t n,
         // Tikhonov 锚使其严格 SPD，再用 deflation 校正把锚偏置精确扣回（科学解不变）。
         bool solved = false;
         std::vector<double> Bnew;
-        if (chol_spd(H_solve, n_free, L)) {
+        // task-10：大 Cholesky 走列内行分片并行（budget 复用；位精确，见 chol_spd）。
+        if (chol_spd(H_solve, n_free, L, par_budget)) {
             Bnew = rhs;
             chol_solve(L, n_free, Bnew);
             solved = true;
@@ -1138,15 +1341,21 @@ int p2_sky_plane_build(const P2SkySample* samples, std::uint64_t n,
                 if (pdiag > alpha) alpha = pdiag;
             }
             if (alpha > 0.0) {
-                for (int i = 0; i < n_free; ++i)
-                    for (int j = 0; j < n_free; ++j) {
-                        double s = 0.0;
-                        for (int k = 0; k < mq; ++k)
-                            s += gauge_q[static_cast<std::size_t>(i) * mq + k] *
-                                 gauge_q[static_cast<std::size_t>(j) * mq + k];
-                        H_solve[static_cast<std::size_t>(i) * n_free + j] += alpha * s;
-                    }
-                if (chol_spd(H_solve, n_free, L)) {
+                // task-10：锚加法行分片并行（行 i 只写 H_solve[i,:]，互斥；内层
+                // k 求和顺序不变 ⇒ 位精确）+ 第二次大 Cholesky 并行。
+                sky_plane_par_for_rows(
+                    n_free, par_budget, 32,
+                    [&](int lo, int hi) {
+                        for (int i = lo; i < hi; ++i)
+                            for (int j = 0; j < n_free; ++j) {
+                                double s = 0.0;
+                                for (int k = 0; k < mq; ++k)
+                                    s += gauge_q[static_cast<std::size_t>(i) * mq + k] *
+                                         gauge_q[static_cast<std::size_t>(j) * mq + k];
+                                H_solve[static_cast<std::size_t>(i) * n_free + j] += alpha * s;
+                            }
+                    });
+                if (chol_spd(H_solve, n_free, L, par_budget)) {
                     Bnew = rhs;
                     chol_solve(L, n_free, Bnew);
                     // Deflation 校正（只对惩罚零空间方向；O(n_free^2 * mq)）：
@@ -1155,15 +1364,22 @@ int p2_sky_plane_build(const P2SkySample* samples, std::uint64_t n,
                     // 校正后的 B 满足 (H_red + λDᵀD) B = rhs（至浮点精度），即把锚
                     // 偏置精确扣回，与直接求解惩罚法方程等价。
                     std::vector<double> HrQ(static_cast<std::size_t>(n_free) * mq, 0.0);
-                    for (int i = 0; i < n_free; ++i) {
-                        const double* row = &H_red[static_cast<std::size_t>(i) * n_free];
-                        for (int k = 0; k < mq; ++k) {
-                            double s = 0.0;
-                            for (int j = 0; j < n_free; ++j)
-                                s += row[j] * gauge_q[static_cast<std::size_t>(j) * mq + k];
-                            HrQ[static_cast<std::size_t>(i) * mq + k] = s;
-                        }
-                    }
+                    // task-10 并行：行 i 只写 HrQ[i,:]（互斥；内层 j 求和顺序不变）。
+                    sky_plane_par_for_rows(
+                        n_free, par_budget, 64,
+                        [&](int lo, int hi) {
+                            for (int i = lo; i < hi; ++i) {
+                                const double* row =
+                                    &H_red[static_cast<std::size_t>(i) * n_free];
+                                for (int k = 0; k < mq; ++k) {
+                                    double s = 0.0;
+                                    for (int j = 0; j < n_free; ++j)
+                                        s += row[j] *
+                                             gauge_q[static_cast<std::size_t>(j) * mq + k];
+                                    HrQ[static_cast<std::size_t>(i) * mq + k] = s;
+                                }
+                            }
+                        });
                     std::vector<double> G(static_cast<std::size_t>(mq) * mq, 0.0);
                     for (int p = 0; p < mq; ++p)
                         for (int q = 0; q < mq; ++q) {
@@ -1174,6 +1390,7 @@ int p2_sky_plane_build(const P2SkySample* samples, std::uint64_t n,
                             G[static_cast<std::size_t>(p) * mq + q] = s;
                         }
                     std::vector<double> corr(static_cast<std::size_t>(mq), 0.0);
+                    // corr 长度 mq<=4：保持串行（并行无收益；跨 p 归约顺序不变）。
                     for (int p = 0; p < mq; ++p) {
                         double s = 0.0;
                         for (int i = 0; i < n_free; ++i)
@@ -1187,13 +1404,18 @@ int p2_sky_plane_build(const P2SkySample* samples, std::uint64_t n,
                     std::vector<double> Lg;
                     if (chol_spd(G, mq, Lg)) {
                         chol_solve(Lg, mq, corr);
-                        for (int i = 0; i < n_free; ++i) {
-                            double s = 0.0;
-                            for (int k = 0; k < mq; ++k)
-                                s += gauge_q[static_cast<std::size_t>(i) * mq + k] *
-                                     corr[static_cast<std::size_t>(k)];
-                            Bnew[static_cast<std::size_t>(i)] += s;
-                        }
+                        // task-10 并行：行 i 只写 Bnew[i]（互斥；内层 k 求和不变）。
+                        sky_plane_par_for_rows(
+                            n_free, par_budget, 64,
+                            [&](int lo, int hi) {
+                                for (int i = lo; i < hi; ++i) {
+                                    double s = 0.0;
+                                    for (int k = 0; k < mq; ++k)
+                                        s += gauge_q[static_cast<std::size_t>(i) * mq + k] *
+                                             corr[static_cast<std::size_t>(k)];
+                                    Bnew[static_cast<std::size_t>(i)] += s;
+                                }
+                            });
                         solved = true;
                     }
                 }
@@ -1230,22 +1452,69 @@ int p2_sky_plane_build(const P2SkySample* samples, std::uint64_t n,
             model->deltas[static_cast<std::size_t>(k)] = dvec;
         }
         // 残差 → Huber 权重
+        // task-10：样本点间独立（只读 B/deltas/basis，只写 w[t]/局部计数），故按
+        // 样本分片并行；nrej 用线程局部分片计数再相加（整数加法精确，无浮点归约）。
+        // fit 的两段内层求和顺序与串行一致（a 升序、q 升序）⇒ 位精确。
         std::uint64_t nrej = 0;
-        for (std::size_t t = 0; t < used.size(); ++t) {
-            const std::uint64_t gi = used[t];
-            const P2SkySample& s = samples[gi];
-            double fit = 0.0;
-            const int* bi = &bfree[t * static_cast<std::size_t>(nb)];
-            const double* bv = &bval[t * static_cast<std::size_t>(nb)];
-            for (int a = 0; a < nb; ++a) { if (bi[a] < 0) continue; fit += bv[a] * B[static_cast<std::size_t>(bi[a])]; }
-            const int k = frame_pos[s.frame_id];
-            const std::vector<double>& dk = model->deltas[static_cast<std::size_t>(k)];
-            for (int q = 0; q < m; ++q) fit += pu[t][static_cast<std::size_t>(q)] * dk[static_cast<std::size_t>(q)];
-            const double sigma = (cfg.weight_mode == 0) ? std::sqrt(s.variance) : (1.0 / std::max(s.snr, 1e-12));
-            const double r = s.value - fit;
-            const double z = (sigma > 0.0) ? r / sigma : 0.0;
-            w[t] = base_w[t] * huber_w(z, cfg.huber_delta);
-            if (std::fabs(z) > 5.0) ++nrej;
+        {
+            const std::size_t n_used = used.size();
+            const int n_used_i =
+                (n_used > static_cast<std::size_t>(INT_MAX)) ? INT_MAX
+                                                             : static_cast<int>(n_used);
+            const unsigned t_used =
+                std::min<unsigned>(par_budget,
+                                   static_cast<unsigned>((n_used_i + 1023) / 1024));
+            if (t_used <= 1) {
+                for (std::size_t t = 0; t < used.size(); ++t) {
+                    const std::uint64_t gi = used[t];
+                    const P2SkySample& s = samples[gi];
+                    double fit = 0.0;
+                    const int* bi = &bfree[t * static_cast<std::size_t>(nb)];
+                    const double* bv = &bval[t * static_cast<std::size_t>(nb)];
+                    for (int a = 0; a < nb; ++a) { if (bi[a] < 0) continue; fit += bv[a] * B[static_cast<std::size_t>(bi[a])]; }
+                    const int k = frame_pos[s.frame_id];
+                    const std::vector<double>& dk = model->deltas[static_cast<std::size_t>(k)];
+                    for (int q = 0; q < m; ++q) fit += pu[t][static_cast<std::size_t>(q)] * dk[static_cast<std::size_t>(q)];
+                    const double sigma = (cfg.weight_mode == 0) ? std::sqrt(s.variance) : (1.0 / std::max(s.snr, 1e-12));
+                    const double r = s.value - fit;
+                    const double z = (sigma > 0.0) ? r / sigma : 0.0;
+                    w[t] = base_w[t] * huber_w(z, cfg.huber_delta);
+                    if (std::fabs(z) > 5.0) ++nrej;
+                }
+            } else {
+                std::vector<std::uint64_t> rej_part(t_used, 0);
+                sky_plane_par_for_rows(
+                    n_used_i, par_budget, 1024,
+                    [&](int lo, int hi) {
+                        // 认领行区间 [lo,hi) 的线程 id：区间是均分的，第 p 个区间
+                        // 由第 p 个线程跑；用 lo 反推 p（chunk 上取整划分）。
+                        const int chunk =
+                            (n_used_i + static_cast<int>(t_used) - 1) / static_cast<int>(t_used);
+                        const unsigned pid =
+                            static_cast<unsigned>(lo / (chunk > 0 ? chunk : 1));
+                        const unsigned slot = (pid < t_used) ? pid : t_used - 1u;
+                        std::uint64_t local_rej = 0;
+                        for (int tt = lo; tt < hi; ++tt) {
+                            const std::size_t t = static_cast<std::size_t>(tt);
+                            const std::uint64_t gi = used[t];
+                            const P2SkySample& s = samples[gi];
+                            double fit = 0.0;
+                            const int* bi = &bfree[t * static_cast<std::size_t>(nb)];
+                            const double* bv = &bval[t * static_cast<std::size_t>(nb)];
+                            for (int a = 0; a < nb; ++a) { if (bi[a] < 0) continue; fit += bv[a] * B[static_cast<std::size_t>(bi[a])]; }
+                            const int k = frame_pos[s.frame_id];
+                            const std::vector<double>& dk = model->deltas[static_cast<std::size_t>(k)];
+                            for (int q = 0; q < m; ++q) fit += pu[t][static_cast<std::size_t>(q)] * dk[static_cast<std::size_t>(q)];
+                            const double sigma = (cfg.weight_mode == 0) ? std::sqrt(s.variance) : (1.0 / std::max(s.snr, 1e-12));
+                            const double r = s.value - fit;
+                            const double z = (sigma > 0.0) ? r / sigma : 0.0;
+                            w[t] = base_w[t] * huber_w(z, cfg.huber_delta);
+                            if (std::fabs(z) > 5.0) ++local_rej;
+                        }
+                        rej_part[slot] += local_rej;
+                    });
+                for (unsigned p = 0; p < t_used; ++p) nrej += rej_part[p];
+            }
         }
         if (iter > 0 && db <= cfg.tolerance * std::max(1.0, sb)) break;
     }
