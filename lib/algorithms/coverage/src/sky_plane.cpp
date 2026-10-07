@@ -345,6 +345,80 @@ struct SkyFrame {
     std::vector<std::uint64_t> idx;   // usable sample indices
 };
 
+// ---- task-3 多尺度低频 δ_k（PHASE2_SAMPLER.md §5.11；P5 单元 C9 推荐档 cS16T20） ----
+// 落点：只在 δ_k 求值段叠加，不碰 Schur/IRLS 求解器、不碰方差链、不碰 gauge。
+// 管线（与 C9 离线 fit_multiscale 同构，稀疏控制点口径独立实现）：
+//   逐帧 δ 多项式残差 → 粗网格聚合(步长≈σ_ms/2) → 全局 median/MAD 高阈 mask
+//   → mask 区最近有效填充 → 可分离高斯低通(σ_ms) → 减中位保 B_ref（只扣起伏）。
+// 配置经环境变量（不进公共头：task 范围只写本文件 δ_k 相关段）：
+//   ACSD_DELTA_MS_SIGMA_PX（默认 16.0，钳 [12,24]；C9 本网格 1.0″/px 口径，
+//     生产按像素尺度换角度：σ_deg = σ_px × pixel_scale_arcsec/3600，中位回退 16″）；
+//   ACSD_DELTA_MS_THRESH（默认 2.0，下限钳 ≥1.5；C9 否决档 ≤0.5 不可达）；
+//   ACSD_DELTA_MS_ENABLE（默认开；显式 0 关闭 → 纯多项式 δ_k，旧行为逐位一致）。
+// 方差链不动：修正只进 δ 求值，不碰样本 variance/snr/权重。
+struct SkyDeltaMsGrid {
+    int nu = 0;                 // 切平面 u 轴格点数（≥1 才有效）
+    int nv = 0;                 // 切平面 v 轴格点数
+    double u0 = 0.0, v0 = 0.0;  // 格点原点（切平面角度）
+    double step = 1.0;          // 格距（切平面角度，>0）
+    std::vector<double> vals;   // nu*nv，中位已扣（均值≈0，保 B_ref）
+    double sigma_px = 16.0;     // 生效 σ（像素口径，审计用）
+    double thresh = 2.0;        // 生效高阈（审计用）
+};
+
+struct SkyDeltaMsConfig {
+    int enabled = 1;
+    double sigma_px = 16.0;     // C9 推荐档
+    double thresh = 2.0;        // C9 推荐档
+};
+
+// task-3：环境配置解析（纯函数；失败/缺键 → 默认推荐档；钳位按 §5.11 区间）。
+inline SkyDeltaMsConfig sky_delta_ms_config_from_env() {
+    SkyDeltaMsConfig c;
+    if (const char* e = std::getenv("ACSD_DELTA_MS_ENABLE")) {
+        if (e[0] == '0' && e[1] == '\0') c.enabled = 0;
+    }
+    if (const char* e = std::getenv("ACSD_DELTA_MS_SIGMA_PX")) {
+        char* end = nullptr;
+        const double v = std::strtod(e, &end);
+        if (end != e && std::isfinite(v)) c.sigma_px = v;
+    }
+    if (const char* e = std::getenv("ACSD_DELTA_MS_THRESH")) {
+        char* end = nullptr;
+        const double v = std::strtod(e, &end);
+        if (end != e && std::isfinite(v)) c.thresh = v;
+    }
+    // 口径钳位（§5.11：σ∈[12,24]，阈值≥1.5；σ 上探 32 欠拟合、下探 8 吃壳层，
+    // 阈值 0.5 过保护——三者皆有否决性证据，不可达）。
+    if (!(c.sigma_px >= 12.0) || !std::isfinite(c.sigma_px)) c.sigma_px = 12.0;
+    if (c.sigma_px > 24.0) c.sigma_px = 24.0;
+    if (!(c.thresh >= 1.5) || !std::isfinite(c.thresh)) c.thresh = 1.5;
+    return c;
+}
+
+// task-3：切平面格点双线性求值（纯函数；越域钳边，不外插发散）。
+inline double sky_delta_ms_eval_grid(const SkyDeltaMsGrid& g, double u, double v) {
+    if (g.nu < 2 || g.nv < 2 || !(g.step > 0.0)) {
+        if (g.nu == 1 && g.nv == 1 && !g.vals.empty()) return g.vals[0];
+        return 0.0;
+    }
+    double fu = (u - g.u0) / g.step;
+    double fv = (v - g.v0) / g.step;
+    if (!std::isfinite(fu) || !std::isfinite(fv)) return 0.0;
+    fu = std::min(std::max(fu, 0.0), static_cast<double>(g.nu - 1));
+    fv = std::min(std::max(fv, 0.0), static_cast<double>(g.nv - 1));
+    int iu = static_cast<int>(fu);
+    int iv = static_cast<int>(fv);
+    if (iu >= g.nu - 1) iu = g.nu - 2;
+    if (iv >= g.nv - 1) iv = g.nv - 2;
+    const double tu = fu - iu, tv = fv - iv;
+    const std::size_t s00 = static_cast<std::size_t>(iv) * g.nu + iu;
+    const double v00 = g.vals[s00], v10 = g.vals[s00 + 1];
+    const double v01 = g.vals[s00 + g.nu], v11 = g.vals[s00 + g.nu + 1];
+    return (1 - tu) * (1 - tv) * v00 + tu * (1 - tv) * v10 +
+           (1 - tu) * tv * v01 + tu * tv * v11;
+}
+
 struct SkyPlaneModel {
     P2SkyPlaneConfig cfg{};
     P2SkyPlaneInfo info{};
@@ -362,6 +436,13 @@ struct SkyPlaneModel {
     std::vector<std::uint64_t> frame_ids;
     std::map<std::uint64_t, std::size_t> frame_index;
     std::vector<std::vector<double>> deltas;
+    // task-3 多尺度低频 δ_k（§5.11）：逐帧粗网格低频修正（中位已扣，只扣起伏、
+    // 保 B_ref）。与 deltas 同下标（每帧一项；空 grid = 该帧无修正）。求解器不
+    // 消费它（拟合/判据/Schur 语义不动），只在 δ_k 求值段叠加；方差链不动。
+    std::vector<SkyDeltaMsGrid> delta_ms;
+    double delta_ms_sigma_px = 16.0;   // 生效 σ（审计/provenance）
+    double delta_ms_thresh = 2.0;      // 生效高阈（审计/provenance）
+    int delta_ms_enabled = 1;          // 修正是否生效（0 = 纯多项式旧行为）
     int ref_frame = 0;
     std::vector<double> last_weights;   // 最后使用的样本权重（诊断/残差）
     std::vector<std::uint64_t> used_idx;
@@ -374,6 +455,192 @@ struct SkyPlaneModel {
 };
 
 void sky_plane_free(void* p) { delete static_cast<SkyPlaneModel*>(p); }
+
+// ---- task-3：逐帧 δ 多项式残差 → 多尺度低频修正（§5.11/C9 fit_multiscale 同构） ----
+// 输入：build 已收敛的 B 系数/Deltas/基函数与样本残差（只读），输出逐帧 grid。
+// 确定性：样本遍历顺序固定（used 序），聚合/排序/填充/平滑均为串行固定序；
+//   线程无关（build 内调用一次，IRLS 之后；不进任何 task-10 并行区）。
+// fail-soft：任一环节退化（点过少/全 mask/σ 非正）→ 该帧 grid 留空（无修正），
+//   不失败 build（修正是叠加项，不是判据）。
+void sky_delta_ms_build_frame(const std::vector<double>& resid_u,
+                              const std::vector<double>& resid_v,
+                              const std::vector<double>& resid_r,
+                              double u_min, double u_max, double v_min, double v_max,
+                              const SkyDeltaMsConfig& ms_cfg,
+                              double pixel_scale_arcsec,
+                              SkyDeltaMsGrid& out) {
+    out = SkyDeltaMsGrid{};
+    out.sigma_px = ms_cfg.sigma_px;
+    out.thresh = ms_cfg.thresh;
+    const std::size_t np = resid_r.size();
+    if (np < 4 || resid_u.size() != np || resid_v.size() != np) return;
+    // σ 像素口径 → 切平面角度：σ_deg = σ_px × px/3600；px 缺失 → 16″（C9 网格
+    // 1.0″/px × 16px）。C9 σ 特征尺度 ~2σ，故格距取 σ_deg/2（≥跨度/64 保护）。
+    const double px = (std::isfinite(pixel_scale_arcsec) && pixel_scale_arcsec > 0.0)
+                          ? pixel_scale_arcsec
+                          : 1.0;
+    const double sigma_deg = ms_cfg.sigma_px * px / 3600.0;
+    if (!(sigma_deg > 0.0) || !std::isfinite(sigma_deg)) return;
+    double step = 0.5 * sigma_deg;
+    const double span_u = u_max - u_min, span_v = v_max - v_min;
+    if (!(span_u > 0.0) || !(span_v > 0.0) || !std::isfinite(span_u) ||
+        !std::isfinite(span_v))
+        return;
+    const double min_step = std::min(span_u, span_v) / 64.0;
+    if (step < min_step) step = min_step;
+    int nu = static_cast<int>(std::ceil(span_u / step)) + 1;
+    int nv = static_cast<int>(std::ceil(span_v / step)) + 1;
+    if (nu < 3) nu = 3;
+    if (nv < 3) nv = 3;
+    if (nu > 129) nu = 129;   // 上限：(129² ≈ 1.7e4) 内存可忽略；超限只粗化
+    if (nv > 129) nv = 129;
+    step = std::max(span_u / (nu - 1), span_v / (nv - 1));
+    // 粗网格聚合：每格残差 median（空位=NaN，占位不参与）。
+    const double NaN = std::numeric_limits<double>::quiet_NaN();
+    std::vector<std::vector<double>> acc(static_cast<std::size_t>(nu) * nv);
+    for (std::size_t t = 0; t < np; ++t) {
+        if (!std::isfinite(resid_r[t])) continue;
+        int iu = static_cast<int>(std::floor((resid_u[t] - u_min) / step));
+        int iv = static_cast<int>(std::floor((resid_v[t] - v_min) / step));
+        if (iu < 0) iu = 0;
+        if (iv < 0) iv = 0;
+        if (iu >= nu) iu = nu - 1;
+        if (iv >= nv) iv = nv - 1;
+        acc[static_cast<std::size_t>(iv) * nu + iu].push_back(resid_r[t]);
+    }
+    std::vector<double> grid(static_cast<std::size_t>(nu) * nv, NaN);
+    std::vector<char> has(static_cast<std::size_t>(nu) * nv, 0);
+    std::size_t n_has = 0;
+    for (std::size_t i = 0; i < acc.size(); ++i) {
+        if (acc[i].empty()) continue;
+        grid[i] = median_sorted_inplace(acc[i]);
+        has[i] = 1;
+        ++n_has;
+    }
+    if (n_has < 4) return;   // 格点过少：低频无意义，留空
+    // 全局 median/MAD → 高阈结构保护 mask（C9 struct_mask_from_threshold 同构：
+    // mask = {v > med + k·1.4826·mad}，只 veto 亮端；MAD=0 → 无尺度信息 → 留空）。
+    std::vector<double> all;
+    all.reserve(n_has);
+    for (std::size_t i = 0; i < grid.size(); ++i)
+        if (has[i]) all.push_back(grid[i]);
+    const double med = median_sorted_inplace(all);
+    for (double& v : all) v = std::fabs(v - med);
+    const double mad = median_sorted_inplace(all);
+    const double sig = kMadToSigma * mad;
+    if (!(sig > 0.0) || !std::isfinite(sig)) return;
+    const double thr = med + ms_cfg.thresh * sig;
+    std::vector<char> masked(static_cast<std::size_t>(nu) * nv, 0);
+    std::size_t n_kept = 0;
+    for (std::size_t i = 0; i < grid.size(); ++i) {
+        if (!has[i]) continue;
+        if (grid[i] > thr) {
+            masked[i] = 1;
+        } else {
+            ++n_kept;
+        }
+    }
+    if (n_kept < 4) return;   // 过保护：有效样本杀伤殆尽（C9 cS16T05 负例），留空
+    // mask 区最近有效值填充（C9 最近有效值填充同构；BFS 菱形推进，固定序确定）。
+    std::vector<double> filled = grid;
+    {
+        std::vector<int> dist(static_cast<std::size_t>(nu) * nv, -1);
+        std::vector<std::size_t> frontier, next;
+        for (std::size_t i = 0; i < grid.size(); ++i)
+            if (has[i] && !masked[i]) {
+                dist[i] = 0;
+                frontier.push_back(i);
+            }
+        std::size_t head = 0;
+        // BFS 用队列序推进（head 指针，层序确定）；每个 mask 格取首次到达源值。
+        std::vector<std::size_t> src(static_cast<std::size_t>(nu) * nv,
+                                     static_cast<std::size_t>(-1));
+        for (auto i : frontier) src[i] = i;
+        while (head < frontier.size()) {
+            const std::size_t cur = frontier[head++];
+            const int cx = static_cast<int>(cur % static_cast<std::size_t>(nu));
+            const int cy = static_cast<int>(cur / static_cast<std::size_t>(nu));
+            const int dx[4] = {1, -1, 0, 0};
+            const int dy[4] = {0, 0, 1, -1};
+            for (int d = 0; d < 4; ++d) {
+                const int nx = cx + dx[d], ny = cy + dy[d];
+                if (nx < 0 || ny < 0 || nx >= nu || ny >= nv) continue;
+                const std::size_t ni =
+                    static_cast<std::size_t>(ny) * static_cast<std::size_t>(nu) +
+                    static_cast<std::size_t>(nx);
+                if (dist[ni] >= 0) continue;
+                dist[ni] = dist[cur] + 1;
+                src[ni] = src[cur];
+                frontier.push_back(ni);
+            }
+        }
+        for (std::size_t i = 0; i < grid.size(); ++i) {
+            if (has[i] && masked[i] && src[i] != static_cast<std::size_t>(-1))
+                filled[i] = grid[src[i]];
+            else if (!has[i] && src[i] != static_cast<std::size_t>(-1))
+                filled[i] = grid[src[i]];
+            else if (!has[i])
+                filled[i] = med;
+        }
+        (void)next;
+    }
+    // 可分离高斯低通（σ 网格口径 = sigma_deg/step；半径 3σ 截断；NaN 已填完）。
+    // C9 lowfreq2d 同构（nearest 边界），此处稀疏格点实现、串行固定序。
+    const double s_grid = sigma_deg / step;
+    if (!(s_grid > 0.0) || !std::isfinite(s_grid)) return;
+    const int rad = std::max(1, static_cast<int>(std::ceil(3.0 * s_grid)));
+    std::vector<double> kernel(static_cast<std::size_t>(2 * rad + 1), 0.0);
+    {
+        double ksum = 0.0;
+        for (int i = -rad; i <= rad; ++i) {
+            const double z = static_cast<double>(i) / s_grid;
+            kernel[static_cast<std::size_t>(i + rad)] = std::exp(-0.5 * z * z);
+            ksum += kernel[static_cast<std::size_t>(i + rad)];
+        }
+        if (!(ksum > 0.0)) return;
+        for (double& kv : kernel) kv /= ksum;
+    }
+    std::vector<double> tmp = filled, smooth = filled;
+    // 行向
+    for (int iy = 0; iy < nv; ++iy) {
+        for (int ix = 0; ix < nu; ++ix) {
+            double accv = 0.0;
+            for (int k = -rad; k <= rad; ++k) {
+                int jx = ix + k;
+                if (jx < 0) jx = 0;
+                if (jx >= nu) jx = nu - 1;
+                accv += kernel[static_cast<std::size_t>(k + rad)] *
+                        filled[static_cast<std::size_t>(iy) * nu + jx];
+            }
+            tmp[static_cast<std::size_t>(iy) * nu + ix] = accv;
+        }
+    }
+    // 列向
+    for (int iy = 0; iy < nv; ++iy) {
+        for (int ix = 0; ix < nu; ++ix) {
+            double accv = 0.0;
+            for (int k = -rad; k <= rad; ++k) {
+                int jy = iy + k;
+                if (jy < 0) jy = 0;
+                if (jy >= nv) jy = nv - 1;
+                accv += kernel[static_cast<std::size_t>(k + rad)] *
+                        tmp[static_cast<std::size_t>(jy) * nu + ix];
+            }
+            smooth[static_cast<std::size_t>(iy) * nu + ix] = accv;
+        }
+    }
+    // 施加 raw−(S−median(S))：减中位保 B_ref（C9 apply_keep 同构；全减禁用）。
+    std::vector<double> sc = smooth;
+    const double lvl = median_sorted_inplace(sc);
+    if (!std::isfinite(lvl)) return;
+    for (double& v : smooth) v -= lvl;
+    out.nu = nu;
+    out.nv = nv;
+    out.u0 = u_min;
+    out.v0 = v_min;
+    out.step = step;
+    out.vals = std::move(smooth);
+}
 
 }  // namespace
 
@@ -1652,6 +1919,50 @@ int p2_sky_plane_build(const P2SkySample* samples, std::uint64_t n,
         return P2_SKY_PLANE_NOT_IDENTIFIABLE;
     }
 
+    // ---- task-3 多尺度低频 δ_k（§5.11）：IRLS 收敛后、判据判绿后构建 ----
+    // 位置说明：判据（H_red）与 gauge 语义都不动——grid 由已收敛解的逐帧残差
+    // 派生，只在 δ_k 求值段叠加；方差链（base_w/Huber）早已冻结，不回写。
+    {
+        const SkyDeltaMsConfig ms_cfg = sky_delta_ms_config_from_env();
+        model->delta_ms_sigma_px = ms_cfg.sigma_px;
+        model->delta_ms_thresh = ms_cfg.thresh;
+        model->delta_ms_enabled = ms_cfg.enabled ? 1 : 0;
+        model->delta_ms.assign(static_cast<std::size_t>(n_frames), SkyDeltaMsGrid{});
+        if (ms_cfg.enabled) {
+            // 逐帧残差 = y − (B + δ_poly)（gauge_shift 此时仍为 0，gauge 在下方
+            // 处理；grid 中位已扣，gauge 常数平移与之正交）。
+            for (int k = 0; k < n_frames; ++k) {
+                std::vector<double> ru, rv, rr;
+                ru.reserve(frames[static_cast<std::size_t>(k)].idx.size());
+                rv.reserve(frames[static_cast<std::size_t>(k)].idx.size());
+                rr.reserve(frames[static_cast<std::size_t>(k)].idx.size());
+                for (std::uint64_t gi : frames[static_cast<std::size_t>(k)].idx) {
+                    const std::size_t t =
+                        static_cast<std::size_t>(sample_pos[static_cast<std::size_t>(gi)]);
+                    double fit = 0.0;
+                    const int* bi = &bfree[t * static_cast<std::size_t>(nb)];
+                    const double* bv = &bval[t * static_cast<std::size_t>(nb)];
+                    for (int a = 0; a < nb; ++a) {
+                        if (bi[a] < 0) continue;
+                        fit += bv[a] * B[static_cast<std::size_t>(bi[a])];
+                    }
+                    const std::vector<double>& dk =
+                        model->deltas[static_cast<std::size_t>(k)];
+                    for (int q = 0; q < m; ++q)
+                        fit += pu[t][static_cast<std::size_t>(q)] * dk[static_cast<std::size_t>(q)];
+                    ru.push_back(su[t]);
+                    rv.push_back(sv[t]);
+                    rr.push_back(samples[gi].value - fit);
+                }
+                SkyDeltaMsGrid g;
+                sky_delta_ms_build_frame(ru, rv, rr, model->u_min, model->u_max,
+                                         model->v_min, model->v_max, ms_cfg,
+                                         cfg.geometry.pixel_scale_arcsec, g);
+                model->delta_ms[static_cast<std::size_t>(k)] = std::move(g);
+            }
+        }
+    }
+
     // ---- gauge ----
     model->gauge_shift = 0.0;
     if (cfg.gauge_mode == 1 && n_frames > 1) {
@@ -1752,6 +2063,18 @@ int p2_sky_plane_build(const P2SkySample* samples, std::uint64_t n,
         add(model->coeff.data(), model->coeff.size() * sizeof(double));
         for (const auto& dk : model->deltas) add(dk.data(), dk.size() * sizeof(double));
         add(&model->gauge_shift, sizeof(double));
+        // task-3：grid 纳入 hash（同系数不同修正 → 不同 hash）。
+        add(&model->delta_ms_sigma_px, sizeof(double));
+        add(&model->delta_ms_thresh, sizeof(double));
+        add(&model->delta_ms_enabled, sizeof(int));
+        for (const auto& g : model->delta_ms) {
+            add(&g.nu, sizeof(int));
+            add(&g.nv, sizeof(int));
+            add(&g.u0, sizeof(double));
+            add(&g.v0, sizeof(double));
+            add(&g.step, sizeof(double));
+            if (!g.vals.empty()) add(g.vals.data(), g.vals.size() * sizeof(double));
+        }
         const std::string hx = acsd::crypto::sha256_hex(blob.data(), blob.size());
         std::snprintf(info.model_hash, sizeof(info.model_hash), "%s", hx.c_str());
     }
@@ -2158,7 +2481,13 @@ int p2_sky_plane_eval_delta(const void* model_in, std::uint64_t frame_id,
     for (int q = 0; q < m->m; ++q)
         dv += basis[static_cast<std::size_t>(q)] * dk[static_cast<std::size_t>(q)];
     // B 口径：δ_k = b_k − B_ref = gauge_shift + δ_k 多项式项。
-    *out_value = m->gauge_shift + dv;
+    // task-3 多尺度低频（§5.11）：叠加逐帧低频修正（中位已扣，只扣起伏保 B_ref；
+    // 参考帧 δ≡0 规范下参考帧不叠加——修正派生自残差，参考帧残差恒归 B_ref）。
+    double ms = 0.0;
+    if (m->delta_ms_enabled && it->second != static_cast<std::size_t>(m->ref_frame) &&
+        it->second < m->delta_ms.size())
+        ms = sky_delta_ms_eval_grid(m->delta_ms[it->second], u, v);
+    *out_value = m->gauge_shift + dv + ms;
     if (out_status) *out_status = P2_SKY_EVAL_OK;
     return P2_SKY_PLANE_OK;
 }
@@ -2269,6 +2598,25 @@ int p2_sky_plane_save(const void* model_in, const char* path) {
         j["coeff"] = m->coeff;
         j["frame_ids"] = m->frame_ids;
         j["deltas"] = m->deltas;
+        // task-3 多尺度低频 δ_k（§5.11）：逐帧修正 grid 落盘（中位已扣）。
+        // 旧文件无该段 → open 侧回退为空（纯多项式），前向兼容。
+        {
+            nlohmann::json jms = nlohmann::json::array();
+            for (const auto& g : m->delta_ms) {
+                nlohmann::json jg;
+                jg["nu"] = g.nu;
+                jg["nv"] = g.nv;
+                jg["u0"] = g.u0;
+                jg["v0"] = g.v0;
+                jg["step"] = g.step;
+                jg["vals"] = g.vals;
+                jms.push_back(std::move(jg));
+            }
+            j["delta_ms"] = std::move(jms);
+            j["delta_ms_sigma_px"] = m->delta_ms_sigma_px;
+            j["delta_ms_thresh"] = m->delta_ms_thresh;
+            j["delta_ms_enabled"] = m->delta_ms_enabled;
+        }
         // kappa_data 在 H_red 浮点不正定（chol 失败）时不可计算：写 null 而非 NaN，
         // 避免 JSON 消费者把不可计算读成 0。
         auto num_or_null = [](double v) -> nlohmann::json {
@@ -2408,6 +2756,35 @@ int p2_sky_plane_open(const char* path, void** out_model) {
         m->coeff = j["coeff"].get<std::vector<double>>();
         m->frame_ids = j["frame_ids"].get<std::vector<std::uint64_t>>();
         m->deltas = j["deltas"].get<std::vector<std::vector<double>>>();
+        // task-3 多尺度低频 δ_k 回读（tolerant：旧文件无段 → 空 grid + 默认口径）。
+        m->delta_ms.assign(m->frame_ids.size(), SkyDeltaMsGrid{});
+        m->delta_ms_sigma_px = 16.0;
+        m->delta_ms_thresh = 2.0;
+        m->delta_ms_enabled = 1;
+        if (j.contains("delta_ms") && j["delta_ms"].is_array()) {
+            const std::size_t nms = std::min<std::size_t>(
+                j["delta_ms"].size(), m->frame_ids.size());
+            for (std::size_t k = 0; k < nms; ++k) {
+                const auto& jg = j["delta_ms"][k];
+                SkyDeltaMsGrid g;
+                g.nu = jg.value("nu", 0);
+                g.nv = jg.value("nv", 0);
+                g.u0 = jg.value("u0", 0.0);
+                g.v0 = jg.value("v0", 0.0);
+                g.step = jg.value("step", 0.0);
+                if (jg.contains("vals") && jg["vals"].is_array())
+                    g.vals = jg["vals"].get<std::vector<double>>();
+                if (g.nu > 0 && g.nv > 0 && g.vals.size() ==
+                    static_cast<std::size_t>(g.nu) * static_cast<std::size_t>(g.nv))
+                    m->delta_ms[k] = std::move(g);
+            }
+        }
+        if (j.contains("delta_ms_sigma_px"))
+            m->delta_ms_sigma_px = j.value("delta_ms_sigma_px", 16.0);
+        if (j.contains("delta_ms_thresh"))
+            m->delta_ms_thresh = j.value("delta_ms_thresh", 2.0);
+        if (j.contains("delta_ms_enabled"))
+            m->delta_ms_enabled = j.value("delta_ms_enabled", 1);
         for (std::size_t k = 0; k < m->frame_ids.size(); ++k) m->frame_index[m->frame_ids[k]] = k;
         m->ref_frame = 0;
         if (j.contains("info")) {
