@@ -12,8 +12,8 @@
 > §处理链第 5 步"控制采样"（链位置）。
 > 关联 ALG: ALG-UPM-CONTROL-IVAR-001（本文件[S-2]「误差传播的登记面」一节冻结承接）；
 > ALG-UPM-001（UPM 拟合，下游消费方）。
-> 实现源: lib/algorithms/coverage/src/sampler.cpp（1503 行）+ 唯一权威签名头
-> lib/algorithms/coverage/include/astro/phase2/sampler.h（273 行，实测）；
+> 实现源: lib/algorithms/coverage/src/sampler.cpp（1544 行）+ 唯一权威签名头
+> lib/algorithms/coverage/include/astro/phase2/sampler.h（278 行，实测）；
 > DATA: DATA-P2-SMP（`docs/detail/registry/acsd.phase2.sample.md`）；API: API-P2-SMP-001
 > （PUBLIC_API.md）；MOD: acsd.p2.sampling（合同三件套
 > lib/algorithms/sampling/，迁移目标 acsd_p2_sampling.dll 为矩阵合同值
@@ -43,18 +43,18 @@ y_ik/σ_ik/snr_ik/support_ik/quality_ik，产出 UPM 联合加性校准的
 |---|---|---|---|
 | Ω | coverage union（上游 MOC） | — | coverage.h（P2-COV 域） |
 | tile_ipix | union tile 的 NESTED 像素号（order=target_order） | 无量纲 | coverage.h P2CoverageCell.ipix |
-| grid=G | 每 tile 的 cell 网格边长（默认 8） | 无量纲 | sampler.cpp:303-304/:519（锚：grid 默认 8 在 :304、再默认 :519） |
-| cell_side | tile 边长/G=64（kTileWidth=512） | leaf 像素 | sampler.cpp:76/:630 |
-| cell (t,gx,gy) | 控制点拓扑 = tile × 网格坐标 | — | sampler.cpp:771-780 |
-| leaf_ipix | cell 中心 leaf 像素（order+9） | 无量纲 | sampler.cpp:773-774 |
-| y_ik | 控制观测（patch 位置估计） | **面亮度 ADU·sr⁻¹**（与上游 Phase1 HiPS signal 层同标度；帧间标度差由 PHOTAPPL/PHOTSCAL 承载） | sampler.cpp:818-822/:870 |
-| σ_bg | patch 内样本的稳健尺度（MAD×1.482602218505602）；**量的是 patch 样本离散度**，含结构分量 | ADU·sr⁻¹（同 y_ik 标度） | sampler.cpp:837-864 |
-| k_corr | Drizzle 输出协方差导致的 control estimator 方差放大因子；定义域 **1 < k_corr**（无量纲） | 无量纲 | sampler.cpp:83/:874 |
-| N_retained | clipping 后保留样本数；域 [min_samples, (2·background_patch_radius+1)²]，默认 [5, 289] | 无量纲 | sampler.cpp:868 |
-| control_variance | 控制点估计统计方差 | (ADU·sr⁻¹)² | sampler.cpp:875 |
-| control_ivar | 1/control_variance | (ADU·sr⁻¹)⁻² | sampler.cpp:877 |
-| snr_available | 局部星点存在性标志 | 0/1 | sampler.cpp:893/:1056 |
-| reason | 内部拒绝原因 0..5 | 无量纲 | sampler.cpp:642/:776/:1012-1022 |
+| grid=G | 每 tile 的 cell 网格边长（默认 8） | 无量纲 | sampler.cpp:306/:560（锚：grid 默认 8 在 :306、再默认 :560） |
+| cell_side | tile 边长/G=64（kTileWidth=512） | leaf 像素 | sampler.cpp:78/:671 |
+| cell (t,gx,gy) | 控制点拓扑 = tile × 网格坐标 | — | sampler.cpp:812-821 |
+| leaf_ipix | cell 中心 leaf 像素（order+9） | 无量纲 | sampler.cpp:815-816 |
+| y_ik | 控制观测（patch 位置估计） | **面亮度 ADU·sr⁻¹**（与上游 Phase1 HiPS signal 层同标度；帧间标度差由 PHOTAPPL/PHOTSCAL 承载） | sampler.cpp:878-906/:909 |
+| σ_bg | patch 内样本的稳健尺度（MAD×1.482602218505602）；**量的是 patch 样本离散度**，含结构分量 | ADU·sr⁻¹（同 y_ik 标度） | sampler.cpp:882-906 |
+| k_corr | Drizzle 输出协方差导致的 control estimator 方差放大因子；定义域 **1 < k_corr**（无量纲） | 无量纲 | sampler.cpp:85/:915 |
+| N_retained | clipping 后保留样本数；域 [min_samples, (2·background_patch_radius+1)²]，默认 [5, 289] | 无量纲 | sampler.cpp:909 |
+| control_variance | 控制点估计统计方差 | (ADU·sr⁻¹)² | sampler.cpp:916 |
+| control_ivar | 1/control_variance | (ADU·sr⁻¹)⁻² | sampler.cpp:918 |
+| snr_available | 局部星点存在性标志 | 0/1 | sampler.cpp:939/:1149 |
+| reason | 内部拒绝原因 0..5 | 无量纲 | sampler.cpp:684/:775-791/:1100-1119 |
 
 **单位约束（正向）**：value / uncertainty / σ_bg / y_ik = 面亮度 **ADU·sr⁻¹**；
 control_variance = **(ADU·sr⁻¹)²**；control_ivar = **(ADU·sr⁻¹)⁻²**；
@@ -65,13 +65,13 @@ ra_deg / dec_deg = 度（J2000）；snr / support / quality_flags = 无量纲；
 
 - 上游 Phase1 HiPS signal 层的量纲由写盘门冻结为面亮度族：合法 BUNIT 集 =
   {`ADU/sr`, `ADU^2/sr^2`, `sr^2/ADU^2`}，裸 `ADU` 判红（rc=-2）——
-  `lib/infrastructure/aio/src/hiss_writer.cpp:335-365`（其依据注释 `:319-334`
+  `lib/infrastructure/aio/src/hiss_writer.cpp:338-365`（其依据注释 `:321-334`
   指向 `docs/science/unified/DATA_SEMANTICS.md` [U-1]「面亮度单位的推导」一节：全链
   signal 承载的物理量是面亮度；帧间标度由 PHOTAPPL/PHOTSCAL 承载，标度 ≠ 量纲类别）；
-- 本模块逐 leaf 直读该层 tile 值、**不做任何面积乘除**（`sampler.cpp:818-822`），
+- 本模块逐 leaf 直读该层 tile 值、**不做任何面积乘除**（`sampler.cpp:851-867`），
   故 value / σ_bg 的量纲与该层一致；
 - 面积换算只发生在下游写盘前：`area = support×A_cell`、`flux = signal×area`
-  （`lib/algorithms/coverage/tools/stage2.cpp:1149-1152` / `:1368-1369`），
+  （`lib/algorithms/coverage/tools/stage2.cpp:1222-1223` / `:1530-1531`），
   即 signal 是**单位面积通量**；
 - 实测闭环（本仓 `实验/absolute-snr/REPORT_experiment.md`）：真实 M42
   300 s R 帧（raw 像素尺度 0.9890″/px，Ω_px = 2.2991e-11 sr）上 4096 个 17×17 patch
@@ -79,43 +79,43 @@ ra_deg / dec_deg = 度（J2000）；snr / support / quality_flags = 无量纲；
   control_variance = 1.684 (ADU/px)²、control_ivar = 0.5937 (ADU/px)⁻²；按 ADU·sr⁻¹
   标度换算（因子 **Ω_px² = 5.2859e-22**；量纲 px²·ADU⁻² × sr²·px⁻² = sr²·ADU⁻²）
    得 control_ivar = **3.14e-22**，与生产代码
-  实测记录 control_ivar 中位 **5.6e-22**（`lib/algorithms/coverage/src/upm.cpp:644-646`）
+  实测记录 control_ivar 中位 **5.6e-22**（`lib/algorithms/coverage/src/upm.cpp:705`）
   同量级（1.78×）。**若单位为裸 ADU，推出值应为 0.594，与生产实测相差 22 dex** ⇒
   单位是 ADU·sr⁻¹，不是 ADU。
 - **退化条件**：把本表的 ADU·sr⁻¹ 当裸 ADU 消费（例如与 ADU 域孔径测光量直接
   相加/相除）会使标度类消费面整体偏 Ω_px 的幂次倍；本模块输出的混用面 = 已声明
   标度换算的前提下与 ADU 域量混用。
 
-## 3 逐符号锚（sampler.cpp 1503 行 / sampler.h 273 行）
+## 3 逐符号锚（sampler.cpp 1544 行 / sampler.h 278 行）
 
 **导出符号（sampler.h 声明 / sampler.cpp 实现）**：
 
 | 符号 | 声明（sampler.h） | 实现（sampler.cpp） | 语义 |
 |---|---|---|---|
-| p2_sampler_default_config | :66 | :294-312 | 默认配置单一来源（15 字段） |
-| p2_frame_id | :99 | :314-438 | truncated-64 canonical SHA-256 帧身份 |
-| p2_stats_median | :103 | :450-457 | 共享 median（NaN 过滤） |
-| p2_stats_mad | :104-105 | :449-461 | 共享 MAD×1.482602218505602（out_median 回传） |
-| p2_sample_controls | :103-114 | :1236-1251 | 采样入口（frame_id 内部计算） |
-| p2_sample_controls_cached | :141-153 | :1255-1271 | 采样入口（外部透传 frame_id 缓存） |
+| p2_sampler_default_config | :67 | :304-324 | 默认配置单一来源（15 字段） |
+| p2_frame_id | :104 | :326-489 | truncated-64 canonical SHA-256 帧身份 |
+| p2_stats_median | :108 | :491-498 | 共享 median（NaN 过滤） |
+| p2_stats_mad | :109-110 | :500-512 | 共享 MAD×1.482602218505602（out_median 回传） |
+| p2_sample_controls | :114-125 | :1277-1294 | 采样入口（frame_id 内部计算） |
+| p2_sample_controls_cached | :146-158 | :1296-1314 | 采样入口（外部透传 frame_id 缓存） |
 
 **内部符号（匿名/静态）**：
 
 | 符号 | 锚（sampler.cpp） | 语义 |
 |---|---|---|
-| kTileWidth/kTileShift | :75-76 | 512×512 tile，shift=log2(512)=9 |
-| kSnrCatalogMax | :78 | SNR catalogue 上限 65536 |
-| kControlCorrDefault | :83 | k_corr 代码默认 1.4（实现记录；公式面 = 两因子 k_gauss(N)×k_geo 几何查表，§5.4） |
-| kPiHalf | :84 | π/2 常数（UPMW-004 中位数方差） |
-| kcorr_lookup | :88-109 | pixfrac×scale 双线性标定表 |
-| frame_drizzle_provenance | :112-137 | 帧 properties 解析 pixfrac/scale |
-| read_tile_pair | :163-180 | signal+support tile 成对读（g_aio_mu :161 串行化） |
-| median_of | :191-204 | nth_element median（偶数取 [begin,mid) 最大值均值；P0-01 修复） |
-| SnrIndex::build/query/any_above | :206-288 | dec 排序索引 + RA 保守窗口 + 精确角距 |
-| p2_sample_controls_impl | :463-1119 | 三阶段采样管线本体 |
-| CellStat | :634-647 | 每 (cell,frame) 候选统计载体 |
+| kTileWidth/kTileShift | :78-79 | 512×512 tile，shift=log2(512)=9 |
+| kSnrCatalogMax | :80 | SNR catalogue 上限 65536 |
+| kControlCorrDefault | :85 | k_corr 代码默认 1.4（实现记录；公式面 = 两因子 k_gauss(N)×k_geo 几何查表，§5.4） |
+| kPiHalf | :86 | π/2 常数（UPMW-004 中位数方差） |
+| kcorr_lookup | :95-121 | pixfrac×scale 双线性标定表 |
+| frame_drizzle_provenance | :122-150 | 帧 properties 解析 pixfrac/scale |
+| read_tile_pair | :174-190 | signal+support tile 成对读（cfitsio 句柄线程栈私有，锁见 aio_cfitsio_mutex.h） |
+| median_of | :201-216 | nth_element median（偶数取 [begin,mid) 最大值均值；P0-01 修复） |
+| SnrIndex::build/query/any_above | :218-296 | dec 排序索引 + RA 保守窗口 + 精确角距 |
+| p2_sample_controls_impl | :514-1275 | 三阶段采样管线本体 |
+| CellStat | :675-688 | 每 (cell,frame) 候选统计载体 |
 
-**配置面（P2SamplerConfig，sampler.h:33-62，声明注释 ：31）**：15 字段默认值见
+**配置面（P2SamplerConfig，sampler.h:33-64，声明注释见结构体内联）**：15 字段默认值见
 §3 表 p2_sampler_default_config 实现行；`control_grid_per_tile=8`/
 `patch_radius_leaf=2`/`min_samples=5`/`snr_search_radius_deg=0.05`/
 `background_patch_radius=8`/`background_clip_sigma=3.0`/
@@ -123,37 +123,37 @@ ra_deg / dec_deg = 度（J2000）；snr / support / quality_flags = 无量纲；
 `background_contamination_sigma=3.0`/
 `background_min_retained_fraction=0.60`/`background_tolerance=3.0`/
 `background_neighbor_radius=2`/`background_catalog_veto=1`/
-`control_k_corr=1.4`/`cpu_workers=1`（sampler.cpp:303-320；cpu_workers=1 实际赋值行 :320）。
-显式 cfg 覆盖路径：sampler.cpp:501（`if (cfg_in) cfg = *cfg_in;`）。
+`control_k_corr=1.4`/`cpu_workers=1`（sampler.cpp:304-324；star_mask 两键 :320-321）。
+显式 cfg 覆盖路径：sampler.cpp:543（`if (cfg_in) cfg = *cfg_in;`）。
 
 ## 4 算法结构：三阶段 background-clean 采样管线
 
-sampler.cpp:614-620 冻结注释将管线映射为
+sampler.cpp:656-672 冻结注释将管线映射为
 BACKGROUND_SAMPLER_SPEC.md Stage A-E；实现按三遍组织：
 
 | 阶段 | 遍 | 锚（sampler.cpp） | 语义 |
 |---|---|---|---|
-| 预备 | 0 | :485-502 配置修补；:512-523 frame_id 0 拒绝；:529-546 帧打开；:547-555 per-frame k_corr；:562-578 SNR catalogue 读入；:579-581 ivar 产品（可缺） | 输入装配 |
-| Stage A+B（第一遍） | 1 | :699-934 pass1_cell（lambda :699-878）+ worker 池/串行（:886-934）：:702-714 越界 tile 占位；:715-717 覆盖帧收集；:719-733 tile pair 读；:735-791 每 cell patch 收集/过滤；:793-800 min_samples 拒绝；:802-833 亮端迭代 clipping（Stage B）；:838-844 cvar 组装；:847-867 SNR 邻域+catalog veto（Stage E） | 候选统计 |
-| Stage C+D（第二遍） | 2 | :952-1009 同 tile 邻域 tolerance gate（C）+contamination/retained gate（D） | 局部门控 |
-| 输出（第三遍） | 3 | :1011-1063 ≥2 clean 帧 control 输出 + obs 组装 | 观测流 |
-| 收尾 | — | :1071-1088 容量上限+stats 补偿；:1089-1097 异常兜底；:1098-1119 输出拷贝 | 账目 |
+| 预备 | 0 | :542-563 配置修补；:575-590 frame_id 0 拒绝；:592-629 帧打开；:605-629 per-frame k_corr；:635-655 SNR catalogue 读入；:652-655 ivar 产品（可缺） | 输入装配 |
+| Stage A+B（第一遍） | 1 | :775-1020 pass1_cell（lambda :775-953）+ worker 池/串行（:955-1020）：:779-791 越界 tile 占位；:792-793 覆盖帧收集；:797-811 tile pair 读；:812-867 每 cell patch 收集/过滤；:868-875 min_samples 拒绝；:878-905 亮端迭代 clipping（Stage B）；:907-920 cvar 组装；:923-952 SNR 邻域+catalog veto（Stage E） | 候选统计 |
+| Stage C+D（第二遍） | 2 | :1041-1098 同 tile 邻域 tolerance gate（C）+contamination/retained gate（D） | 局部门控 |
+| 输出（第三遍） | 3 | :1100-1182 ≥2 clean 帧 control 输出 + obs 组装 | 观测流 |
+| 收尾 | — | :1222-1243 容量上限+stats 补偿；:1244-1268 异常兜底；:1269-1275 输出拷贝 | 账目 |
 
 ## 5 逐公式定义（算法级，与 SCI-UPM-001 [S-1]「判据与误差」一节 同构；单位见 [S-1]「物理模型」一节）
 
 ### 5.1 坐标/tile 映射（matrix 专项 1）
 
 控制点几何**只由 union 几何与目标角间距决定**（sampler.h:6 语义
-冻结；实现 :729-736）：
+冻结；实现 :812-818）：
 
 ```text
-cell_side   = kTileWidth / G                                  # :595, =64
-cx          = gx * cell_side + cell_side/2                    # :737
-cy          = gy * cell_side + cell_side/2                    # :738
-center_local= xy_to_nested_local(cx, cy, kTileShift=9)        # :739
-center_leaf = leaf_of_tile(tile_ipix, 9) + center_local       # :740
-(ra,dec)    = pix2ang_nest(1<<(target_order+9), center_leaf)  # :742
-cell 索引   = c*G² + gy*G + gx                                # :708-709/:870-871
+cell_side   = kTileWidth / G                                  # :671, =64
+cx          = gx * cell_side + cell_side/2                    # :813
+cy          = gy * cell_side + cell_side/2                    # :814
+center_local= xy_to_nested_local(cx, cy, kTileShift=9)        # :815
+center_leaf = leaf_of_tile(tile_ipix, 9) + center_local       # :816
+(ra,dec)    = pix2ang_nest(1<<(target_order+9), center_leaf)  # :818
+cell 索引   = c*G² + gy*G + gx                                # :784-786/:825-826
 ```
 
 - **cell 网格的角尺度（量纲与适用域，正向约束）**：`G = control_grid_per_tile` 是
@@ -167,49 +167,49 @@ cell 索引   = c*G² + gy*G + gx                                # :708-709/:870
   `docs/science/sky/UPM.md` [S-1]「公式与推导」一节 的表示能力规则**由输入几何导出**（非标定常数、非 2×cell）。
   `cell_side = kTileWidth/G = 64` 的量纲是**叶像素**（order+9 层），不是角秒。
 - control_id = cells 索引（uint64，稠密 0..n_union×G²-1，含空覆盖
-  占位；:947 与 :1031/:1105 一致）；
+  占位；:1035-1036 与 :1121/:1138 一致）；
 - out_n_controls = n_union×G²（几何节点总数，与
-  stats.accepted_controls/overlap_controls 区分；sampler.h:153-153
+  stats.accepted_controls/overlap_controls 区分；sampler.h:81 后
   注释冻结）；
-- P2ControlNode 填充 :1105-1111（control_id=索引、tile_ipix、gx/gy、
+- P2ControlNode 填充 :1245-1255（control_id=索引、tile_ipix、gx/gy、
   ra/dec、leaf_ipix）。
 
 ### 5.2 patch 收集与 signal/variance/weight 对齐（matrix 专项 2）
 
 每 (cell,frame) 候选 patch = cell 中心 ±`background_patch_radius`
-（默认 8 → 17×17；:596 r=cfg.background_patch_radius）：
+（默认 8 → 17×17；:672 r=cfg.background_patch_radius）：
 
-- 逐 leaf 扫描 :775-790：`fi_idx = nested_local_to_fits_index(z, 9,
-  512)`，**signal/support 同一 fi_idx 对齐读取**（:783-784）——
+- 逐 leaf 扫描 :851-867：`fi_idx = nested_local_to_fits_index(z, 9,
+  512)`，**signal/support 同一 fi_idx 对齐读取**（:859-860）——
   signal 值与其支持度按同一 leaf 索引成对消费，索引对齐即唯一配对方式；
-- 无效值过滤 :785-786：非 finite signal 剔除；非 finite support 或
+- 无效值过滤 :861-862：非 finite signal 剔除；非 finite support 或
   support≤0 剔除（support域(0,1]上游DATA-COV-001）；
-- 累计 ：787-789：vals.push(s)、sup_sum+=sp、n_valid++；
-- support 输出 = patch 均值 `sup_sum/n_valid`（:844）；
-- 边界处理：patch 越 tile 边界像素丢弃（:779-780 x/y 范围门），
+- 累计 ：863-865：vals.push(s)、sup_sum+=sp、n_valid++；
+- support 输出 = patch 均值 `sup_sum/n_valid`（:920）；
+- 边界处理：patch 越 tile 边界像素丢弃（:855 x/y 范围门），
   patch 不跨 tile 读取（每 cell 只消费本 tile pair，§9）。
 
-### 5.3 Stage B：亮端迭代 sigma-clipping（:802-815）
+### 5.3 Stage B：亮端迭代 sigma-clipping（:878-905）
 
 对 patch 值集 vals（保留负值，仅剔非 finite）：
 
 ```text
-m0 = median_of(vals)                          # :802
-s0 = 1.482602218505602 × median(|v−m0|)                  # :806-809
-迭代 it = 1..background_clip_iters (默认 3):   # :812
-  nr = { v ∈ ret : v ≤ m0 + clip_sigma·s0 }   # :815 单侧亮端
-  若 |nr| < min_samples: break                 # :816
-  nm = median_of(nr)                           # :817
-  若 |nm−m0| < 1e-12 × max(|m0|, 1e-12): ret=nr; break   # :818 相对收敛
+m0 = median_of(vals)                          # :878
+s0 = 1.482602218505602 × median(|v−m0|)                  # :882-885
+迭代 it = 1..background_clip_iters (默认 3):   # :887
+  nr = { v ∈ ret : v ≤ m0 + clip_sigma·s0 }   # :891 单侧亮端
+  若 |nr| < min_samples: break                 # :892
+  nm = median_of(nr)                           # :893
+  若 |nm−m0| < 1e-12 × max(|m0|, 1e-12): ret=nr; break   # :894 相对收敛
   m0 = nm; ret = nr
-  s0 = 1.482602218505602 × median(|v−m0|)（ret 上重算）    # :821-826
-  若 s1 ≤ 0: break                             # :825
-y_ik = m0（收敛集位置估计）                     # :863
-σ_bg_raw = s0                                  # :864 未加地板的稳健尺度
+  s0 = 1.482602218505602 × median(|v−m0|)（ret 上重算）    # :896-901
+  若 s1 ≤ 0: break                             # :900
+y_ik = m0（收敛集位置估计）                     # :906
+σ_bg_raw = s0                                  # :906 未加地板的稳健尺度
 ```
 
 细节锚：迭代序号按实际行为（先收缩后重算尺度）；`n_total` 为
-过滤后 patch 原始样本数（:827）；`n_retained = |ret|`（:868）。
+过滤后 patch 原始样本数（:868）；`n_retained = |ret|`（:909）。
 
 **MAD→σ 一致性因子 1.482602218505602 的适用域**（本常数取值的依据）：
 
@@ -230,7 +230,7 @@ y_ik = m0（收敛集位置估计）                     # :863
   **0.727（拉普拉斯）**（非高斯，判红）⇒ 因子在高斯 patch 上成立；在非高斯
   （强结构、重尾、量化平台）patch 上偏差可达 ±30% 以上，此时 σ_bg 不是 σ 的相合估计。
 - **单侧亮端 clipping 的影响（实测澄清）**：本模块 clipping 只剪亮端
-  （`v ≤ m0 + clip_sigma·s0`，:850）。MAD 是 50% 分位量、截断点位于 ≈3σ
+  （`v ≤ m0 + clip_sigma·s0`，:891）。MAD 是 50% 分位量、截断点位于 ≈3σ
   （高斯下第 99.87 百分位），故剪除亮尾对 MAD 影响可忽略：实测高斯 + 8σ 亮端污染
   （5% / 20% 像素）下 E[s0]/σ_true = **0.9951 / 0.9947**（同证据文件 `mad_factor`
   的 `gauss+sampler_clip` 行）⇒ "单侧剪裁使 MAD 系统性偏" 在 clip_sigma=3.0 配置下
@@ -249,9 +249,9 @@ y_ik = m0（收敛集位置估计）                     # :863
 ### 5.4 control estimator 方差（ALG-UPM-CONTROL-IVAR-001 冻结承接）
 
 ```text
-control_variance = k_corr × (π/2) × σ_bg² / N_retained    # :875（N_ret = N_retained）
-control_ivar     = 1 / control_variance（cvar>0；否则 0）   # :877
-uncertainty      = sqrt(control_variance)                  # :878
+control_variance = k_corr × (π/2) × σ_bg² / N_retained    # :916（N_ret = N_retained）
+control_ivar     = 1 / control_variance（cvar>0；否则 0）   # :918
+uncertainty      = sqrt(control_variance)                  # :919
 # σ_bg = σ_bg_raw；σ_bg_raw==0 的分支见下方「零尺度分支发布口径」
 # 本式的导出式登记：渐近基线 Var(median) = πσ²/(2N) 的完整推导见本节「公式的精确形式与适用域」，
 # 有限 N 修正 k_gauss(N) 与几何因子 k_geo 的乘积形式见本节 k_corr 定义，N < 65 时引用必须同时声明所用口径（纯公式/端到端/生产链裁剪臂）
@@ -317,15 +317,15 @@ uncertainty      = sqrt(control_variance)                  # :878
   参与 UPM 加性面求解。合成算例（24 cell × 2 帧，λ=1 粗糙度正则，注入 +50 的零点离群；
   `evidence/e3c_weight_pollution.json`）实测：按「无信息」处置时帧间相对零点误差
   = **1.31**（噪声量级，判绿）；按现行伪方差发布时误差 = **28.56**（判红）。
-- 与 `lib/algorithms/coverage/src/upm.cpp:2766-2790`（`p2_upm_control_variance`）的
+- 与 `lib/algorithms/coverage/src/upm.cpp:3174-3199`（`p2_upm_control_variance`）的
   输入门一致：该函数已对 `n_retained < 1`、`σ_bg ≤ 0/非有限` 显式返回 rc=1
   ⇒ 生产侧已具备「无尺度信息即拒」的接口；采样侧当前把地板值送进该接口，
   绕过了这一语义。
 
-- 常数权威：kPiHalf=1.57079632679489661923（:84）；k_corr 定义域 **1 < k_corr**
+- 常数权威：kPiHalf=1.57079632679489661923（:86）；k_corr 定义域 **1 < k_corr**
   （k_corr = 1 ⇔ 忽略相关，`p2_upm_control_variance` 返回 rc=2；
   k_corr < 1 ⇔ N_eff > N_retained，正相关样本的有效样本量不可能大于样本数，物理不可达，
-  返回 rc=1 —— `lib/algorithms/coverage/src/upm.cpp:2954-2975`（rc=1 @ :2966））；
+  返回 rc=1 —— `lib/algorithms/coverage/src/upm.cpp:3180-3187`（rc=1 @ :3180/:3186））；
 - **k_corr 的定义（两因子公式＋几何查表）**：k_corr 不是普适常数、也不含于
   F&H 2002（全文不含 1.3883/1.4/k_corr；其相关噪声量 = §7 式(8)–(10) 的 R），
   而是**几何与估计器口径的条件量**：
@@ -349,15 +349,15 @@ uncertainty      = sqrt(control_variance)                  # :878
     **fail-closed 拒绝或现场 MC 重标**（P3 补实验 code/ 可复用）。
     冻结单数 1.4 即使在**其声明标定域内**也不保守：N=5 端 k_corr(5, 紧凑) ≈ 2.05±0.09
     → 低估 control_variance 约 32%（标准误低估约 14%）；源尺度 583–600″ 端
-    k_corr ≈ 2.5–3.0 → 低估约 2 倍。`upm.cpp:2265-2275` 已把声明要求落成写盘门
+    k_corr ≈ 2.5–3.0 → 低估约 2 倍。`upm.cpp:2700-2710` 已把声明要求落成写盘门
     （FZ-PROV-KCORR）：`k_corr_applicability_domain` 为空即 rc=7；k_corr ≠ 1.4 时必须另给
     `k_corr_calibration_run_id`。
 - **K_CORR_DOMAIN 选项 B（逐帧标定）：仅 pixfrac 维参与标定（SC-005）**：
   仅当帧 Drizzle provenance 的源像素角尺度落在**标定域 [300,600]″/px** 才取
-  kcorr_lookup(pixfrac, scale)（:93-117）；**域外一律保留 kcorr=0**（回退链
-  `frames[i].kcorr>0 ? per-frame : cfg.control_k_corr`，:874），**域外一律走回退链，300″ 档只用于标定域内**；
-  lookup 表 :96-99 冻结数值 {1.2112,1.3925,1.4980 | 2.3958,2.8971,3.2035}
-  （300″/600″ × pixfrac 0.5/0.8/1.0），两段分段线性插值（非均匀网格）:100-116；
+  kcorr_lookup(pixfrac, scale)（:95-121）；**域外一律保留 kcorr=0**（回退链
+  `frames[i].kcorr>0 ? per-frame : cfg.control_k_corr`，:915），**域外一律走回退链，300″ 档只用于标定域内**；
+  lookup 表 :98-101 冻结数值 {1.2112,1.3925,1.4980 | 2.3958,2.8971,3.2035}
+  （300″/600″ × pixfrac 0.5/0.8/1.0），两段分段线性插值（非均匀网格）:108-120；
   pixfrac 维仍 clamp [0.5,1.0]（表列有界性保留）；
   旧行为「域外 clamp」把静默饱和固化成合同（旧 kcorr_lookup_test.domain_clamp），
   已被 `kcorr.domain_fallback_to_frozen_default_not_clamp` 取代；
@@ -370,7 +370,7 @@ uncertainty      = sqrt(control_variance)                  # :878
   (ii) 因此**逐帧标定在所有已知生产数据上恒不生效**，生产实现现仍回退未在本尺度标定的
   代码默认 1.4（实现记录）；任何「control_variance 已做 Drizzle 相关校正」的表述必须写明这一点，
   并按上文消费规则声明标定元组与 N 档（不一致时 fail-closed 或现场 MC 重标）；
-  (iii) 域外回退的**可观测性边界**：`sampler.cpp:575-584` 只在 `pixfrac > 0 且
+  (iii) 域外回退的**可观测性边界**：`sampler.cpp:610-629` 只在 `pixfrac > 0 且
   尺度 ∉ [300,600]` 时打 `[sampler] k_corr 域外回退` 标；**provenance 键缺失
   （pixfrac 不可解析）时回退是静默的**——本仓 probe 产品的 signal properties 内
   **不含** `ACSD_DRIZZLE_*` 键（同上 properties 文件），即该产品走的是静默回退路径。
@@ -378,7 +378,7 @@ uncertainty      = sqrt(control_variance)                  # :878
   合法 provenance 的键名与量纲：`ACSD_DRIZZLE_PIXFRAC`（无量纲，域 (0,1]）、
   `ACSD_DRIZZLE_SCALE_ARCSEC`（**角秒/像素**，域 (0,∞)；写侧
   `lib/infrastructure/aio/src/hips/aio_hips_writer.cpp:1771-1774`，读侧
-  `sampler.cpp:135-140`）。
+  `sampler.cpp:129-143`）。
 - UPMW-004 独立 MC 基线：Var(median) ≈ πσ²/(2N)（先例 `synthetic_gate.cpp`）；
   本式为该基线乘 k_corr 的 Drizzle 相关放大。该基线的成立条件见本节「公式的精确形式
   与适用域」：iid + 高斯 + N ≥ 65；(π/2) 因子的适用面 = 高斯样本。
@@ -388,30 +388,30 @@ uncertainty      = sqrt(control_variance)                  # :878
 - T-SMP-01（k_corr 几何 MC：紧凑 patch ≈1.27±0.03 / 全 touched ≈1.43–1.45 / 远散 ≈1.00）：复现三件套齐备。命令 `python3 实验/additive-sky-seamless/code/audit_rework/route3/exp04_kcorr_mc.py`（route2 对照 `实验/additive-sky-seamless/code/audit_rework/route2/e2_kcorr_drizzle_mc.py`，healpix-polar kcorr 补实验 `实验/healpix-polar/code/audit/kcorr/mc_kcorr.py`）；seed：route3 SEED=20260926、route2 SEED=20250926、kcorr SEED_BASE=20260816（各脚本头部写死，无命令行覆盖）；版本：纯 numpy 脚本，Python ≥ 3.10 + numpy；产物 hash 指针：输出 JSON 与 `实验/additive-sky-seamless/results/audit_rework/` 及 `实验/healpix-polar/results/audit/kcorr/` 存档逐位可对照。受控复现 1.3445±0.0416（16 相位 × 8 seed）的证据源 `control_median_mc_test` 判据覆盖该复现。
 - T-SMP-02（逐帧标定在生产数据恒不生效：标定域 [300,600]″/px vs 生产 ≈1″/px）：**不可验收为"已标定"（缺生产尺度复现载体）**。本节已实测标定域与生产尺度相差 300× 以上，逐帧标定在所有已知生产数据上恒不生效、回退代码默认 1.4；任何「control_variance 已做 Drizzle 相关校正」的表述必须写明此点并按消费规则声明标定元组与 N 档（不一致时 fail-closed 或现场 MC 重标，P3 补实验 code/ 可复用）。provenance 缺失时的静默回退（`ACSD_DRIZZLE_*` 键缺失）与已打标域外回退必须区分引用。
 
-### 5.5 Stage C/D/E 局部门控（:952-1009 + :847-867）
+### 5.5 Stage C/D/E 局部门控（:1041-1098 + :923-952）
 
-**Stage C 局部 tolerance gate（DBE-like baseline）**（:959-1007）：
+**Stage C 局部 tolerance gate（DBE-like baseline）**（:1041-1098）：
 对每个第一遍 accepted（reason=0）候选，收集**同 tile** 内
 Chebyshev 距 ≤ background_neighbor_radius（默认 2）邻域 cells 的
 该帧 cleaned median `m`：
 
 ```text
-B = median(neigh)                    # :987-988（<3 → 回退 :977-985）
-S = 1.482602218505602 × median(|v−B|)           # :989-992
-若 m > B + background_tolerance × S:  # :993-996
+B = median(neigh)                    # :1077-1078（<3 → 回退 :1067-1076）
+S = 1.482602218505602 × median(|v−B|)           # :1079-1081
+若 m > B + background_tolerance × S:  # :1082-1085
   拒绝，reason=3，++rejected_bright_tolerance
-邻域 <3（回退后仍 <3）: 不 gate（保守保留）          # :977/:986
+邻域 <3（回退后仍 <3）: 不 gate（保守保留）          # :1067/:1076
 ```
 
-**Stage D 双门**（:997-1006，else-if 链互斥）：
+**Stage D 双门**（:1086-1096，else-if 链互斥）：
 
 ```text
-bfrac = #{v > y + contamination_sigma·σ} / n_total     # :865-867
+bfrac = #{v > y + contamination_sigma·σ} / n_total     # :907-908
 若 bfrac > background_max_contamination: reason=4，++rejected_high_contamination
 若 N_retained < min_retained_fraction × n_total: reason=2，++rejected_insufficient_retained
 ```
 
-（bfrac 计算在 :865-867 于 Stage B 后立即落账，gate 于第二遍判定。）
+（bfrac 计算在 :907-908 于 Stage B 后立即落账，gate 于第二遍判定。）
 
 **bfrac 的适用域（正向约束）**：bfrac 是**单侧**（亮端）污染占比：分子只统计
 `v > y + contamination_sigma·σ`，分母 n_total 为过滤后 patch 原始样本数。
@@ -421,74 +421,174 @@ bfrac = #{v > y + contamination_sigma·σ} / n_total     # :865-867
 Stage C 的 tolerance gate 承担，两者同样只作用于亮端 ⇒ 暗端离群在本模块内
 **无判别面**，必须由上游坏帧/坏列掩膜承担。
 
-**Stage E catalogue veto**（:844-849，第一遍内）：仅当
+**Stage E catalogue veto**（:923-936，第一遍内）：仅当
 background_catalog_veto 且该帧 SNR catalogue 非空且
 frame_snr_med>0：
 
 ```text
-thr = cfg.star_mask_snr_factor × frame_snr_med[frame]   # :849/:1149（默认 10.0，无量纲倍数）
-rad = cfg.star_mask_radius_deg           # :514 默认 0.012°（度；已入配置面，DISP-P2SMP-004 闭环）
+thr = cfg.star_mask_snr_factor × frame_snr_med[frame]   # :933-934/:1190（默认 10.0，无量纲倍数）
+rad = cfg.star_mask_radius_deg           # :554-555 默认 0.012°（度；已入配置面，DISP-P2SMP-004 闭环）
 any_above(thr, ra, dec, rad) → reason=5 拒绝，++rejected_catalog_veto
 ```
 
-frame_snr_med 为该帧 catalogue SNR 排序中位（:615-627 预计算；
-:616 frame_snr_med_exact 声明、:623 精确 median_of 赋值供 fallback）。
+frame_snr_med 为该帧 catalogue SNR 排序中位（:691-703 预计算；
+:692 frame_snr_med_exact 声明、:699 精确 median_of 赋值供 fallback）。
 
-**SNR 邻域值与可用性**（:853-867）：query(ra,dec,
+**SNR 邻域值与可用性**（:938-949）：query(ra,dec,
 snr_search_radius_deg) 收集半径内星 SNR → 中位数为 snr_val 且
 snr_available=1；半径内无星 → snr_val=frame_snr_med_exact（整帧
 精确中位）且 snr_available=0（**该档标记 = 0；1.0 只属可用档**，upm.h:51-53
-冻结）；catalogue 缺失帧 → snr=0.0/available=0（:861/:862-864）。
+冻结）；catalogue 缺失帧 → snr=0.0/available=0（:946/:947-948）。
 
-**SnrIndex 等价性冻结**（:206-288）：dec 升序排序索引 + RA 保守
+**SnrIndex 等价性冻结**（:218-296）：dec 升序排序索引 + RA 保守
 窗口（ra_win=radius/cos_guard，cos_guard=max(cos(|dec|+r),1e-4)，
-:244-248 / :270-274）+ 最终判据恒为
-`angular_distance_deg ≤ radius_deg`（:254-255 / :280-283）——
+:254-258 / :280-284）+ 最终判据恒为
+`angular_distance_deg ≤ radius_deg`（:264-265 / :290-292）——
 索引路径与全扫描**完全一致**（同一精确判据，无近似替代）。
 
-### 5.6 frame_id 内容稳定标识（:314-438；DATA-FRAME-ID-001）
+### 5.6 frame_id 内容稳定标识（:326-489；DATA-FRAME-ID-001）
 
 ```text
-frame_id = uint64(SHA-256 前缀 16 hex 大端截断)          # :422-430
+frame_id = uint64(SHA-256 前缀 16 hex 大端截断)          # :473-481
 SHA 流 = 9 关键 properties（creator_did/obs_title/obs_filter/
   obs_exptime/obs_date/hips_order/hips_release_date/
-  hips_pixel_scale/moc_sky_fraction，缺 key 记空值；:349-352）
-  + 各 tile（升序）"t=" + signal tile 原始 float 字节 + ";"（:360-379）
-  + 各 tile "St=" + support tile 字节 + ";"（:381-393）
-  + SNR catalogue 逐条 "i:ra,dec,snr,qf;"（max_digits10 格式化；:394-421）
+  hips_pixel_scale/moc_sky_fraction，缺 key 记空值；:372-380）
+  + 各 tile（升序）"t=" + signal tile 原始 float 字节 + ";"（:382-408）
+  + 各 tile "St=" + support tile 字节 + ";"（:410-431）
+  + SNR catalogue 逐条 "i:ra,dec,snr,qf;"（max_digits10 格式化；:455-469）
 路径/重命名/换根目录不变；任何科学 payload 变化 → 改变；失败/异常
-→ 0（调用方 :512-523 拒绝 rc=1；静默继续恒不接受）。
+→ 0（调用方 :575-585 拒绝 rc=1；静默继续恒不接受）。
 ```
 
-派生口径 = SHA-256 前缀 16 hex 大端截断（FNV-1a 与路径派生属另一类标识；sampler.h:97 注释冻结）。
+派生口径 = SHA-256 前缀 16 hex 大端截断（FNV-1a 与路径派生属另一类标识；sampler.h:91-103 注释冻结）。
 
-### 5.7 统计量共享实现（:191-204/:440-459）
+### 5.7 统计量共享实现（:201-216/:491-512）
 
-- median_of：nth_element 取中，偶数 n 取 [begin,mid) 最大值均值（P0-01 修复，:196-202）；
-- p2_stats_median：先过滤非 finite（:444-445），空/全 NaN 经 median_of :192 → 0.0
-  （sampler.h:101 冻结）；
-- p2_stats_mad：median 后 1.482602218505602×median(|x−med|)（:452-460），
-  out_median 回传收敛 median；UPM 侧共享同一实现（sampler.h:102-104 导出声明；upm.h:43-48 冻结注释同源定义）。
+- median_of：nth_element 取中，偶数 n 取 [begin,mid) 最大值均值（P0-01 修复，:208-215）；
+- p2_stats_median：先过滤非 finite（:495-496），空/全 NaN 经 median_of :202 → 0.0
+  （sampler.h:106-108 冻结）；
+- p2_stats_mad：median 后 1.482602218505602×median(|x−med|)（:508-511），
+  out_median 回传收敛 median；UPM 侧共享同一实现（sampler.h:109-110 导出声明；upm.h:43-48 冻结注释同源定义）。
+
+### 5.8 普通星简单掩膜（现状口径与适用域）
+
+普通亮星简单掩膜是 SNR 域相对阈值加球面圆帽的保底分支，与星等无关。
+阈值取帧级 SNR 中位数的固定倍数，半径取固定角半径（sampler.h:56-58
+声明；sampler.cpp:320-321 默认值；:554-555 配置修补）：
+
+```text
+thr = star_mask_snr_factor × frame_snr_med[frame]   # factor 默认 10.0，无量纲
+rad = star_mask_radius_deg                          # 默认 0.012° = 43.2″
+```
+
+同一对阈值与半径在两处以同口径消费。第一遍 Stage E 按
+`any_above(thr, ra, dec, rad)` 命中即拒绝该候选（reason=5，
+计 `rejected_catalog_veto`，:923-936/:951）；星帽生成对跨帧阈值上
+星表按位置量化 1e-4° 去重后产出 `P2StarMaskCap` 球面圆帽
+（`radius_deg = star_mask_radius_deg`，`kind = P2_STAR_MASK_STAR`，
+:1184-1209）。帽的几何谓词为球面余弦定理加角距终判
+（`sky_plane.cpp:349-364`，声明 `sky_plane.h:140-142`），成帽函数
+为按信噪比阈值筛选的直通构造（`sky_plane.cpp:326-347`，
+声明 `sky_plane.h:132-138`）。
+
+**适用域（正向约束）**：本分支只对 SNR 相对口径敏感，随帧级中位数
+浮动，不含星等绝对口径。生产固定帽 0.012° 按实测掩膜公式倒查只够
+罩住约 11 等星的晕与点扩散函数图案，对 8 等以上亮星的散射晕欠
+4–6 倍。适用域为普通星保底；亮星晕由 §5.9 分支承担，两分支正交
+叠加。暗端离群（坏列、暗斑、负向结构）不落本分支判别面，由上游
+坏帧与坏列掩膜承担（§5.5 bfrac 适用域同理）。
+
+### 5.9 Gaia 晕掩膜（星等定半径分支）
+
+星等定半径分支处理普通掩膜罩不住的亮星散射晕。触发按 Gaia 星等
+绝对口径，半径按星等函数给出，与 SNR 相对阈值正交。默认阈值为
+G=8：亮于该值的星进入晕掩膜分支，暗于该值的星只走 §5.8 普通掩膜。
+阈值对应的 Gaia 内部校准通量为 `F = 10^(-0.4·(G-ZP))`（e⁻/s 量级，
+ZP 取 EDR3 G 波段 Vega 星等零点 25.6874）[5]：G=8 对应约 1.19e7，
+G=6 对应约 7.50e7，G=10 对应约 1.88e6。该通量是 Gaia 内部校准
+口径，不得直接与图像 ADU 比较；比较在星等域做，或经逐帧参考
+通量换算到 ADU 域。
+
+晕半径保守函数（成品像素口径；帧像素口径按像素尺度比换算）：
+
+```text
+r_raw(m) = R8 × A^(8-m)，m ≤ 8
+r(m)     = clip(r_raw(m), R_MIN, R_MAX)
+```
+
+默认参数为 R8=150、A=1.5、R_MIN=30、R_MAX=300，上限回退档 450
+（像素单位与锚定帧相同）。R8 取实测晕 pedestal 上沿，与独立巡天
+掩膜公式在 G=8 处预测值互印到约 1%。每星等倍数 A=1.5 换算到通量
+指数为 p=ln1.5/ln2.512=0.44，即 `r ∝ F^0.44`。该指数落在散射翼
+阈值交叉半径的物理档内：点扩散函数翼按高斯计指数趋于 0，按
+Moffat 外翼计为 `1/(2β)`（β=2.5 时 p=0.20），按散射光下限的
+平方反比翼计为 0.5（[2] 下限 `r^-2` 衰减）；实测晕外段拟合指数对应半径指数上限约
+1.2。保守性主要来自锚点取实测上沿与回退再放大，而非指数本身
+取极端值。G<9 段另加 bleed 矩形（长 1.5×r、宽 0.15×r），反射
+鬼像首版不单独建模（含在 R8 包络内）。
+
+G<8 阈值的依据有三层。第一，实测：7.2 等晕星的 pedestal 延伸
+100–150 像素，生产 24 像素固定帽欠 4–6 倍；保守函数在 7.2 等给出
+172 像素，覆盖上沿余量约 15%。第二，独立巡天实测公式互印：按星等
+分档堆叠源密度定包络的两段指数拟合（分界 G=9）在 G=7.2 处预测
+167 像素，与实测同量级且偏保守约 11–67%（[1] 两段指数拟合，
+分界 G=9；另加 bleed 矩形）；该公式在 G=8 处预测
+152 像素，与 R8=150 互印差约 1%。第三，方法证据：大半径处点扩散
+函数翼以下限平方反比幂律下降（[2] 下限 `r^-2` 衰减），光环成分需用
+幂律翼描述而高斯
+与 Moffat 核心拟合到大半径必欠（[3] 15 星等动态范围解析拟合），故公式半径只到数十像素而晕
+延伸上百像素时必须按星等另给晕帽。比阈值暗的星无独立晕：10 等星
+自己的晕按标度外推埋在点扩散函数核内，只需下限 30 像素普通掩膜
+覆盖；8–10 等段函数仍给数十至上百像素，不漏边界。减法路线是互补
+选项（[4] 延展点扩散函数建模并相减）；本分支取掩膜路线。
+
+本分支当前为算法分册新增语义，生产采样器内无星等输入与星等转
+半径函数（`sampler.cpp` 全文件无 Gaia 引用；星帽生成 :1184-1209
+只消费 SNR 星表）。落地时星等查询走锥形查询星等窗
+（`mag_low=-1.5, mag_high=8.0`），排序与取最亮由掩膜模块自做；
+成帽逻辑不得复用固定 `star_mask_radius_deg`，需新增星等转半径
+函数；普通星阈值与半径键同 Gaia 星等限与晕半径规则键分键配置，
+不可共用 SNR 中位数倍数语义。
+
+### 5.10 缝回退（回退放大与全量重跑语义）
+
+缝回退是验收失败时的保守重算规则。回退将 §5.9 半径整体乘 1.5，
+并以回退上限封顶：
+
+```text
+r_fb(m) = min(1.5 × r(m), R_MAX_FB=450px)
+```
+
+7.2 等星回退后为 258 像素，对实测 150 像素上沿余量约 70%。
+回退触发判据为缝验收失败（晕段台阶超限且暗段不动）；仍失败时
+检查触发源（例如饱和亮星缺席星表导致的漏触发），不继续放大
+半径，上限 450 像素封顶且仅用于缝邻域。
+
+重算语义为全量重跑：换更大掩膜半径后重跑采样、拟合、施加与集成
+整链。两条生产链均为全 union 全量一次跑完，覆盖构建（stage2
+:189-216）、采样 probe 与 fill（:280-307）、模型持久化与分块
+求值（`upm.h:135-150/:169-179`）均无区域子集重算入口；像素级
+单点求值存在但编排按全量驱动。区域重算（只重算缝带分片并合并）
+不存在，需新增缝带判定、区域入口与分片合并面后才成立，在此之前
+引用回退重算一律按全量语义解释。
 
 ## 6 消费链与并行语义
 
 **生产消费（唯一消费方 stage2.cpp）**：frame_id 预计算
-stage2.cpp:219-231（p2_frame_id :222）→ sccfg 组装 :256-274（14 字段显式透传；control_k_corr 未透传，零初始化经 impl :497-498 修补回退默认 1.4；cpu_workers=cfg.exec.cpu_workers，CON-004 Runtime lease 唯一来源 ：273-274）→ probe/fill 两遍调用 p2_sample_controls_cached :279-311（probe :279-281 out_obs=nullptr 查容量；计数上限拒绝 ：296-300；分配 ：301；fill :306-311）；cov 来自 coverage union（上游 P2-COV 域）。
+stage2.cpp:189-216（p2_coverage_build :190/:196）→ sccfg 组装 :257-274（14 字段显式透传；control_k_corr 未透传，零初始化经 impl :558-559 修补回退默认 1.4；cpu_workers=cfg.exec.cpu_workers，CON-004 Runtime lease 唯一来源 ：273-274）→ probe/fill 两遍调用 p2_sample_controls_cached :280-307（probe :280 out_obs=nullptr 查容量；分配 ：301；fill :307）；cov 来自 coverage union（上游 P2-COV 域）。
 
-**并行模型**（:880-930）：worker 数=cfg.cpu_workers（0 视为 1，:883；:881 无 hardware_concurrency——线程只由调用方提供，注释冻结 ：880-882）；workers>1 时 std::thread 池 + `next_c.fetch_add` 动态
-领取 tile（:886-913），**每 worker 独立 AIO 句柄**（SamplerReader
-rdr.init_own :894；避免共享句柄竞争），per-cell 结果写回固定槽位
-cells[idx]（:870-872，无跨线程数据竞争面），veto/insufficient 经
-原子计数器归并（声明 ：887-889；归并 ：901-902/:907-908）；workers=1 串行 reference 共享
-主线程句柄（:916 init_shared，循环 ：917-933）。
+**并行模型**（:955-1020）：worker 数=cfg.cpu_workers（0 视为 1，:968；:966 无 hardware_concurrency——线程只由调用方提供，注释冻结 ：966-967）；workers>1 时 std::thread 池 + `next_c.fetch_add` 动态
+领取 tile（:974-1003），**每 worker 独立 AIO 句柄**（SamplerReader
+rdr.init_own :979；避免共享句柄竞争），per-cell 结果写回固定槽位
+cells[idx]（:957，无跨线程数据竞争面），veto/insufficient 经
+原子计数器归并（声明 ：975-976；归并 ：990-991）；workers=1 串行 reference 共享
+主线程句柄（:1005 init_shared，循环 ：1006-1019）。
 
 **确定性冻结**：cell 输出按 cells 索引固定槽位、第三遍单线程顺序
 扫描、SNR 中位数经排序 median——**输出 obs 序列 bitwise 与 worker
 数无关**（1/N worker 等价，sampler_parallel_consistency_test.cpp:29
-TEST(Phase2SamplerParallel, OneTvsTwoTDeterminism) 承载）；全局
-g_aio_mu（:161 声明，read_tile_pair :166 加锁；并行路径 per-worker 独立句柄不经此锁）。
-
-**并行路径唯一口径**：`std::thread` 为唯一并行路径（:879-880 注释）；
+TEST(Phase2SamplerParallel, OneTvsTwoTDeterminism) 承载）。
+**并行路径唯一口径**：`std::thread` 为唯一并行路径（:964-965 注释）；
 lib/algorithms/coverage/CMakeLists.txt:28 的 `P2_ENABLE_OPENMP` option 仅影响
 旧 target 编译面，**禁用**据此启用 OpenMP 路径。
 本节是`ACSD_DESIGN.md` [D-1]「软件架构」一节（资源与并行的强制条款：确定性合同 = 浮点归约顺序冻结、并行开关不改科学数值、输出不依赖线程调度；线程预算唯一来源）与 [D-1]「命令树」一节（模块边界）在本模块的**落地细化**，**不另立权威**（[D-1]「文档写法」一节：只有一份权威链）。
@@ -497,13 +597,13 @@ lib/algorithms/coverage/CMakeLists.txt:28 的 `P2_ENABLE_OPENMP` option 仅影�
 
 | SCI-UPM-001 语义 | 实现现状 | 判定 |
 |---|---|---|
-| 控制点几何由 union 几何+角间距决定，不由 SNR 决定（sampler.h:6） | cell 网格规则布置 ：737-742；SNR 只进 veto/可信度 | 一致 |
-| y_ik 从实际 Phase1 HiPS 读取 | AIO 唯一 I/O（:719-733 read_tile_pair） | 一致 |
-| patch robust median/MAD 保留负值 | :802-829（无符号过滤） | 一致 |
-| SNR 来自 Catalogue 查询路径 | :851-867 纯查询 | 一致 |
-| control_variance 公式（SCI-UPM-WEIGHT-001） | :840-842 逐项一致 | 一致 |
-| k_corr MC 校准非猜测（sampler.h:50-51） | :83/:89-112（选项 B 逐帧，pixfrac 维） | 公式面 = 两因子 k_gauss(N)×k_geo 几何查表（冻结单数 1.4 在标定域两端低估 32%/2 倍，不再作普适常数）；**MC 证据源 `control_median_mc_test` 已注册 ⇒ 可复跑** |
-| per-control `control_reliability`（`geometric_reliability` 为**禁用**旧名）参与归一化 | 采样器不产出 per-control 可靠度；UPM 侧实现为**配置常量 1.0**（`upm.cpp:565` 归一化消费） | 不在本模块域（UPM 侧缺陷，已登记 SC-005） |
+| 控制点几何由 union 几何+角间距决定，不由 SNR 决定（sampler.h:6） | cell 网格规则布置 ：812-818；SNR 只进 veto/可信度 | 一致 |
+| y_ik 从实际 Phase1 HiPS 读取 | AIO 唯一 I/O（:797-811 read_tile_pair） | 一致 |
+| patch robust median/MAD 保留负值 | :878-905（无符号过滤） | 一致 |
+| SNR 来自 Catalogue 查询路径 | :938-949 纯查询 | 一致 |
+| control_variance 公式（SCI-UPM-WEIGHT-001） | :914-919 逐项一致 | 一致 |
+| k_corr MC 校准非猜测（sampler.h:49-53） | :85/:95-121（选项 B 逐帧，pixfrac 维） | 公式面 = 两因子 k_gauss(N)×k_geo 几何查表（冻结单数 1.4 在标定域两端低估 32%/2 倍，不再作普适常数）；**MC 证据源 `control_median_mc_test` 已注册 ⇒ 可复跑** |
+| per-control `control_reliability`（`geometric_reliability` 为**禁用**旧名）参与归一化 | 采样器不产出 per-control 可靠度；UPM 侧实现为**配置常量 1.0**（`upm.cpp:374/403` 归一化消费） | 不在本模块域（UPM 侧缺陷，已登记 SC-005） |
 | wiki 语义版本 34A532A2...B2EB308 | sampler.cpp:3/:86-87 注释锚定 | 一致 |
 
 ## 8 单位与 dtype 登记（唯一权威=`docs/detail/registry/acsd.phase2.sample.md`）
@@ -512,64 +612,63 @@ lib/algorithms/coverage/CMakeLists.txt:28 的 `P2_ENABLE_OPENMP` option 仅影�
   leaf_ipix u64；ra_deg/dec_deg/value/uncertainty/snr/ivar/
   control_variance/control_ivar/support f64；snr_available int；
   quality_flags u32；
-- P2SampleStats 10 字段 u64（sampler.h:68-79）；
-- tile payload float32（aio read_tile_f32；:359-361/:375-379）；
+- P2SampleStats 10 字段 u64（sampler.h:69-81）；
+- tile payload float32（aio read_tile_f32；:383-389/:417-422）；
 - 输出 dtype/shape/invalid/可空语义唯一权威=`docs/detail/registry/acsd.phase2.sample.md`；
   本节单位表（[S-5]「输入输出端口」一节）与之一致，冲突以 [S-5]「输入输出端口」一节 为准。
 
 ## 9 边界与退化（matrix 专项 4/5）
 
-- **tile 边界/seam**：patch 采样限制在单 tile 512×512 内（:779-780
+- **tile 边界/seam**：patch 采样限制在单 tile 512×512 内（:855
   出界丢弃），**不跨 tile 读取**——跨 tile 接缝处 patch 有效面积
-  收缩，min_samples 门（:793-800）显式拒绝而非补读邻 tile；第二遍
-  邻域 gate 同样按 tile 分组限定（:954-957 `tile_cells` 映射，
+  收缩，min_samples 门（:868-875）显式拒绝而非补读邻 tile；第二遍
+  邻域 gate 同样按 tile 分组限定（:1043-1046 `tile_cells` 映射，
   邻域只遍历同 tile cells）——tile 间不共享邻域基线（设计边界，
   冻结；跨 tile 平滑语义归 UPM Laplacian，不归采样器）；
 - **空覆盖/越界 tile**：union cell 无覆盖帧 → CellStat 无 frames，
-  不产 obs 但计入 control_id 占位（:946-947）；tile_ipix ≥
-  12·4^order → 整 tile 占位跳过 tile=-1（:702-714）；首 tile 预读
-  校验（:657-664）显式 rc=1；
-- **异常/极端输入**：n_union>1e6（:634-638）、cells>2×10⁸
-  （:644-648/:1071-1077）、resize OOM（:649-654）、单 cell frames
-  >10000（:1083-1086）→ rc=1 或跳过；MSVC /EHa 下 SEH 兜底捕获
-  （:936-944）；
+  不产 obs 但计入 control_id 占位（:1035-1036）；tile_ipix ≥
+  12·4^order → 整 tile 占位跳过 tile=-1（:779-791）；
+- **异常/极端输入**：n_union>1e6（:710-714）、cells>2×10⁸
+  （:719-724/:1220-1223）、resize OOM（:725-729）、单 cell frames
+  >10000（:1229-1232）→ rc=1 或跳过；MSVC /EHa 下 SEH 兜底捕获
+  （:1021-1029）；
 - **缺失与无效值**（matrix 专项 5）：signal NaN/Inf 剔除
-  （:785）；support≤0/非 finite 剔除（:786）；全 NaN 统计输入 →
-  median/mad 返回 0.0（:441/:444-445，经 median_of :192）；ivar 产品缺失或 leaf 无值
-  → o.ivar=0.0（"不可用"，不伪装；:1039-1056）；SNR catalogue
-  缺失 → snr=0/available=0（:861-864）；frame_id=0（哈希失败
-  哨兵）→ rc=1（:512-523）；
+  （:861）；support≤0/非 finite 剔除（:862）；全 NaN 统计输入 →
+  median/mad 返回 0.0（:491-497，经 median_of :202）；ivar 产品缺失或 leaf 无值
+  → o.ivar=0.0（"不可用"，不伪装；:1158-1181）；SNR catalogue
+  缺失 → snr=0/available=0（:946-948）；frame_id=0（哈希失败
+  哨兵）→ rc=1（:575-585）；
 - **退化数值（正向约束，口径见 §5.3/§5.4）**：
   (i) σ_bg_raw=0（patch 内 ≥ 半数像素同值）⇒ control_ivar 必须为 0 且
   control_variance 必须标为无尺度信息；**发布面 = 无尺度信息标记**（1e-12 数值保护量只作数值保护，不当
   物理方差发布（§5.4「零尺度分支的发布口径」）；
   (ii) `N_retained = 0` **不可达**：patch 先经 `n_total ≥ min_samples` 门
-  （:828-836），而 `min_samples` 被配置修补钳到 ≥1（:521），clipping 收缩也以
-  `nr.size() ≥ min_samples` 为前提（:851）⇒ `|ret| ≥ min_samples ≥ 1`。
-  代码中的 `n_ret = max(N_retained, 1.0)`（:873）是**死分支**（防御性写法），
+  （:868-875），而 `min_samples` 被配置修补钳到 ≥1（:562），clipping 收缩也以
+  `nr.size() ≥ min_samples` 为前提（:892）⇒ `|ret| ≥ min_samples ≥ 1`。
+  代码中的 `n_ret = max(N_retained, 1.0)`（:914）是**死分支**（防御性写法），
   该分支只作防御性写法，「无样本却有置信度」的推断依据不在此；
-  (iii) cvar ≤ 0 ⇒ civar = 0（:877），仅当 σ_bg 或 N_retained 非法时才可达，
+  (iii) cvar ≤ 0 ⇒ civar = 0（:918），仅当 σ_bg 或 N_retained 非法时才可达，
   与 (i) 同口径：ivar=0 表示「无信息」，下游 `p2_upm_raw_weight` 对
   `use_ivar_weight=1 ∧ control_ivar ≤ 0` 显式 rc=2（`upm.cpp` / SCI-UPM [S-1]「参数与常数」一节）。
 - **reason 编码**（内部）：0=ok、1=insufficient_support（tile 读
   失败/坐标越界/min_samples）、2=insufficient_retained、
   3=bright_tolerance、4=high_contamination、5=catalog_veto
-  （:608 注释/:759-799/:866/:995-1005）；reason 不外发
+  （:684 注释/:832-875/:951/:1082-1096）；reason 不外发
   （P2ControlObservation 无该字段），下游唯一拒绝观测面=
-  P2SampleStats 六类计数（§23 §23.4）。
+  P2SampleStats 六类计数（§9 本节统计面）。
 
 ## 10 已冻结禁改清单（本层不可接受变化）
 
 1. 控制点几何解耦 SNR（sampler.h:6；改动即 SCI 违约）；
-2. control_variance 公式与常数（:82-83/:840-842；含 k_corr 冻结
-   默认 1.4 与标定表 :91-94 九值）；
-3. frame_id canonical SHA-256 输入白名单与序（:349-421；
+2. control_variance 公式与常数（:85-86/:914-919；含 k_corr 冻结
+   默认 1.4 与标定表 :98-101 九值）；
+3. frame_id canonical SHA-256 输入白名单与序（:372-469；
    DATA-FRAME-ID-001，改任一输入面即破坏持久化绑定）；
-4. patch 保留负值（:787-789 无符号过滤）；
-5. snr_available=0 不伪装 1.0（:853-861；upm.h:51-55）；
-6. ≥2 clean 帧才入 UPM（:1013-1027；相对光度约束）；
-7. 输出 obs 序列 bitwise 独立于 worker 数（:886-934 槽位设计）；
-8. 星点检测面 = Phase1 SNR Catalogue 查询（：851-867）。
+4. patch 保留负值（:863-865 无符号过滤）；
+5. snr_available=0 不伪装 1.0（:938-948；upm.h:51-55）；
+6. ≥2 clean 帧才入 UPM（:1100-1135；相对光度约束）；
+7. 输出 obs 序列 bitwise 独立于 worker 数（:955-1020 槽位设计）；
+8. 星点检测面 = Phase1 SNR Catalogue 查询（:938-949）。
 
 ## 11 冻结附录（SRC-P2-SMP-001 源码实测）
 
@@ -577,17 +676,17 @@ lib/algorithms/coverage/CMakeLists.txt:28 的 `P2_ENABLE_OPENMP` option 仅影�
 
 - rc=0：成功（含空 obs 输出——空覆盖 union 合法）；
 - rc=1：错误（err 缓冲 8KB 文本，不区分细分码）：bad args（null
-  coverage/hips_paths/out_n_obs/out_n_controls；:476-479）、
-  frame_id 0 invalid（:512-523）、open frame failed（:536-546）、
-  n_union too large（:634-638）、cells too large（:644-648 /
-  :1071-1077）、cells resize failed（:649-654）、tile ipix out of
-  range（:657-664）、pairs resize failed（lambda :721；并行 err :909-912；串行 err :919-923）、
-  exception（:1089-1097）。错误粒度=rc 二值 + err 文本（编排层
+  coverage/hips_paths/out_n_obs/out_n_controls；:534-537）、
+  frame_id 0 invalid（:575-585）、open frame failed（:593-603）、
+  n_union too large（:710-714）、cells too large（:719-724 /
+  :1220-1223）、cells resize failed（:725-729）、tile ipix out of
+  range（:779-791）、pairs resize failed（lambda :796；并行 err :994-998；串行 err :1009-1013）、
+  exception（:1235-1243）。错误粒度=rc 二值 + err 文本（编排层
   ACS_ERR 映射归 API-P2-001 编排面，不在本模块域）；
 - out_obs/out_controls 容量不足**不报错**：按 capacity 截断拷贝、
-  out_n_* 返回真实需求量（:1101-1117；probe/fill 协议
-  sampler.h:107 冻结）；
-- 并发安全：无共享可变全局态（g_aio_mu 锁仅覆盖 read_tile_pair :166；并行路径 per-worker 独立句柄），reentrant
+  out_n_* 返回真实需求量（:1244-1275；probe/fill 协议
+  sampler.h:112-125 冻结）；
+- 并发安全：无共享可变全局态（读路径句柄线程栈私有，锁见 aio_cfitsio_mutex.h；并行路径 per-worker 独立句柄），reentrant
   yes；无取消检查点（ThreadLease 接线归 P2-SAMP-IMPL 整改点，与
   DISP-COV-005 同构）。
 
@@ -595,13 +694,13 @@ lib/algorithms/coverage/CMakeLists.txt:28 的 `P2_ENABLE_OPENMP` option 仅影�
 
 | ID | 锚（sampler.cpp） | 内容 | 来源 |
 |---|---|---|---|
-| DISP-P2SMP-001 | :485-502 | 配置修补 `<=0→默认` 吞显式 0（意图"禁用"的 0 被静默改写为默认值，如 background_clip_iters=0 想关 clipping 反而得 3） | 实测 |
-| DISP-P2SMP-002 | :1022 | 第三遍 ：1022 对 accepted=false 且 reason==2 的帧再次 `++rejected_insufficient_retained`，与第二遍 ：1006 递增重复——P2SampleStats.rejected_insufficient_retained 对该类拒绝双计数（统计面偏差，obs 输出不受影响；:1078-1079 注释自述曾修 double-count，此残留与其意图矛盾） | 实测 |
-| DISP-P2SMP-003 | :641-643/:655/:666-672/:705-713 等 17 处 | 诊断进度日志直写 stderr（fprintf/fflush），未走结构化日志通道，err 缓冲外；生产可观测性债（静默失败排查依赖 stderr 文本） | 实测 |
-| DISP-P2SMP-004 | sampler.h:58-59; sampler.cpp:318-319,513-514,1149 | **配置面口径（约束）**：星掩膜阈值与半径必须由配置面承载——`P2SamplerConfig.star_mask_snr_factor`（默认 10.0）/ `star_mask_radius_deg`（默认 0.012），`sampler.h:58-59` 声明、`sampler.cpp:318-319` 默认值、`:513-514` 配置修补、`:1149` 消费；单位：factor 无量纲（帧 SNR 中位数的倍数）、radius = 度 | 实测 |
-| DISP-P2SMP-005 | :853 | clipping 相对收敛阈值 `1e-12×max(|m0|,1e-12)`：m0≈0 时阈值≈1e-24 过严，实际退化为固定 background_clip_iters 轮全迭代（结果仍确定、单调收缩、min_samples 兜底；无科学输出影响，性能观察级） | 实测 |
-| DISP-P2SMP-006 | :575-584 | **域外回退的可观测性缺口**：`[sampler] k_corr 域外回退` 标只在 `pixfrac > 0 且 尺度 ∉ [300,600]″` 时打；Drizzle provenance 键缺失（pixfrac 不可解析）时回退到 `cfg.control_k_corr` 是**静默**的，provenance 无法区分两条回退路径 | 实测（provenance 无 `ACSD_DRIZZLE_*` 键时仍以 1.4 参与生产） |
-| DISP-P2SMP-007 | :864-877 | **零尺度伪方差**：`σ_bg_raw=0` 时以 1e-12 生成有限 control_variance（7.609e-27）与 control_ivar（1.314e26）并随 obs 发布；[S-1]「判据与误差」一节 已冻结「无尺度信息」发布口径，**禁用**以 1e-12 之类的占位尺度生成伪有限 control_variance/control_ivar | 实测 |
+| DISP-P2SMP-001 | :542-563 | 配置修补 `<=0→默认` 吞显式 0（意图"禁用"的 0 被静默改写为默认值，如 background_clip_iters=0 想关 clipping 反而得 3） | 实测 |
+| DISP-P2SMP-002 | :1113-1119 | 第三遍 :1113-1119 对 accepted=false 且 reason==2 的帧再次 `++rejected_insufficient_retained`，与第二遍 :1090-1096 递增重复——P2SampleStats.rejected_insufficient_retained 对该类拒绝双计数（统计面偏差，obs 输出不受影响；:1224-1225 注释自述曾修 double-count，此残留与其意图矛盾） | 实测 |
+| DISP-P2SMP-003 | :580/:583/:717/:780/:806 等 | 诊断进度日志直写 stderr（fprintf/fflush），未走结构化日志通道，err 缓冲外；生产可观测性债（静默失败排查依赖 stderr 文本） | 实测 |
+| DISP-P2SMP-004 | sampler.h:57-58; sampler.cpp:320-321,554-555,933-935 | **配置面口径（约束）**：星掩膜阈值与半径必须由配置面承载——`P2SamplerConfig.star_mask_snr_factor`（默认 10.0）/ `star_mask_radius_deg`（默认 0.012），`sampler.h:57-58` 声明、`sampler.cpp:320-321` 默认值、`:554-555` 配置修补、`:933-935` 消费；单位：factor 无量纲（帧 SNR 中位数的倍数）、radius = 度 | 实测 |
+| DISP-P2SMP-005 | :894 | clipping 相对收敛阈值 `1e-12×max(|m0|,1e-12)`：m0≈0 时阈值≈1e-24 过严，实际退化为固定 background_clip_iters 轮全迭代（结果仍确定、单调收缩、min_samples 兜底；无科学输出影响，性能观察级） | 实测 |
+| DISP-P2SMP-006 | :610-629 | **域外回退的可观测性缺口**：`[sampler] k_corr 域外回退` 标只在 `pixfrac > 0 且 尺度 ∉ [300,600]″` 时打；Drizzle provenance 键缺失（pixfrac 不可解析）时回退到 `cfg.control_k_corr` 是**静默**的，provenance 无法区分两条回退路径 | 实测（provenance 无 `ACSD_DRIZZLE_*` 键时仍以 1.4 参与生产） |
+| DISP-P2SMP-007 | :905-918 | **零尺度伪方差**：`σ_bg_raw=0` 时以 1e-12 生成有限 control_variance（7.609e-27）与 control_ivar（1.314e26）并随 obs 发布；[S-1]「判据与误差」一节 已冻结「无尺度信息」发布口径，**禁用**以 1e-12 之类的占位尺度生成伪有限 control_variance/control_ivar | 实测 |
 
 ### 11.3 TEST-P2-SMP-DESIGN-001 冻结测试设计（可执行 TEST-P2-SMP-001 由 P2-SAMP-TEST 落地，双面登记不冒认）
 
@@ -611,10 +710,10 @@ lib/algorithms/coverage/CMakeLists.txt:28 的 `P2_ENABLE_OPENMP` option 仅影�
 | # | 设计面 | 冻结容差 | 现状测试锚 |
 |---|---|---|---|
 | F1 | 统计量单元：median odd/even/负值/重复/乱序/NaN 过滤；MAD=1.482602218505602×median 偏差 | 逐值 bitwise（EXPECT_DOUBLE_EQ） | synthetic_gate.cpp:3594 G1StatisticsCorrectness（先例在库） |
-| F2 | kcorr_lookup 边界与角点：pf∈{0.5,0.8,1.0}×sc∈{300,600} 九值、**域外回退冻结默认 1.4（禁 clamp）**、provenance 缺失/尺度未知回退 1.4 | 角点值 exact；插值点 rtol 1e-12；域外 == 1.4 exact | phase2_sampler.kcorr.corner_exact / .domain_fallback_to_frozen_default_not_clamp（表值 :94-97） |
+| F2 | kcorr_lookup 边界与角点：pf∈{0.5,0.8,1.0}×sc∈{300,600} 九值、**域外回退冻结默认 1.4（禁 clamp）**、provenance 缺失/尺度未知回退 1.4 | 角点值 exact；插值点 rtol 1e-12；域外 == 1.4 exact | phase2_sampler.kcorr.corner_exact / .domain_fallback_to_frozen_default_not_clamp（表值 :98-101） |
 | F3 | control_variance 解析 oracle（Python 复算 k_corr×(π/2)×σ²/N_ret） | **两档分开**：(a) 解析复算 rtol 1e-12（f64 复算域，判据=逐值相等）；(b) 与 MC 实测 Var(median) 比对的**相对**判据：N=289 时 |比值/k_corr − 1| ≤ 0.02、N=17 时 ≤ 0.05（实测 (a) 恒真、(b) 读数正本 = `实验/absolute-snr/REPORT_paper.md` [S-1]「参数与常数」一节 与 `实验/absolute-snr/code/audit/supplement_control_variance/finiteN_control_variance.py` 的 `DOC_ANCHOR_RATIOS`）。**统计判据必须显式声明 N 与分布**（「3σ」这类写法不含声明） | synthetic_gate.cpp:4001/:4061/:4089（先例在库）；域判据见 `实验/absolute-snr/REPORT_experiment.md` |
 | F4 | 坐标/tile 映射：单 tile 合成 → 64 cell (ra,dec,leaf_ipix) 对独立 HEALPix 参考实现（astropy-healpix，BSD-3-Clause） | atol 1e-9 deg（≈3.6e-6″；适用域=本模块 order ≤ 12 的 f64 pix2ang_nest，参考实现同域；**高于该 order 或跨实现差异 >1e-9 deg 时判据不成立**，须先做参考实现一致性预检再启用本门）；cell 索引单射 exact | 无（新建） |
-| F5 | constant/gradient/impulse 验证面：constant patch（σ_bg_raw=0 分支）、线性梯度 patch（亮端 clipping 方向性）、单像素 impulse（bfrac=1/n_total 路径） | (a) 有尺度 patch：cvar rtol 1e-12；(b) **零尺度分支（非退化判据）**：σ_bg_raw=0 时断言 `control_ivar == 0` 且 control_variance 非有限，**且**断言该分支在 ≥50% 像素同值的 patch 上触发、在 <50% 的 patch 上不触发（正/负例各一，§5.3 判据）；(c) 梯度 patch：E[σ_bg]/σ_true 在 slope=0 时 ≤1.01、slope=1.0/σ 时 ≥3.0（能红能绿，证据 `evidence/e3e4_floor_structure.json:E4_structure_vs_noise`）；接受/拒绝判定 exact | 无（新建；公式 :864-878） |
+| F5 | constant/gradient/impulse 验证面：constant patch（σ_bg_raw=0 分支）、线性梯度 patch（亮端 clipping 方向性）、单像素 impulse（bfrac=1/n_total 路径） | (a) 有尺度 patch：cvar rtol 1e-12；(b) **零尺度分支（非退化判据）**：σ_bg_raw=0 时断言 `control_ivar == 0` 且 control_variance 非有限，**且**断言该分支在 ≥50% 像素同值的 patch 上触发、在 <50% 的 patch 上不触发（正/负例各一，§5.3 判据）；(c) 梯度 patch：E[σ_bg]/σ_true 在 slope=0 时 ≤1.01、slope=1.0/σ 时 ≥3.0（能红能绿，证据 `evidence/e3e4_floor_structure.json:E4_structure_vs_noise`）；接受/拒绝判定 exact | 无（新建；公式 :905-919） |
 | F6 | 边界/seam：patch 跨 tile 边界截断、相邻 tile 互不污染、第二遍邻域同 tile 限定、空覆盖 tile 占位 | obs 集合 exact；node 占位数 exact | 无（新建） |
 | F7 | missing/invalid：NaN/support≤0 过滤、全 NaN patch reason=1、ivar 产品缺失 o.ivar=0、frame_id=0 rc=1、tile 读失败 rc=1 | 判定 exact；rc exact | ivar_wiring_test.cpp:223（ivar 面先例）；其余新建 |
 | F8 | 串行/并行等价：1 worker vs N worker 全输出 bitwise | bitwise | sampler_parallel_consistency_test.cpp:29（先例在库，扩展 grid/worker 矩阵） |
@@ -688,3 +787,8 @@ fill）。fixture 由固定 seed 合成 HiPS 树生成，不提交大二进制�
 - 稀疏天光面样条（目标表示）：Duchon 1977（薄板样条）；Wahba 1990, Spline Models for Observational Data, SIAM。
 - var(median)≈πσ²/(2N)：Hoaglin et al. 1983（中位数渐近方差）；本文件 §5.4 承接 ALG-UPM-CONTROL-IVAR-001。
 - SNR 加权采样：统一科学模型 [S-9]「参数与常数」一节；`docs/detail/registry/acsd.phase2.sample.md`（该页「职责与明确非职责」一节载明科学权重一律 `control_ivar`、`SNR²` 为对照臂，与本条标题口径相冲，按 UNRESOLVED-8 待裁）。
+- [1] Coupon, J., Czakon, N., Bosch, J., et al. 2017, The bright-star masks for the HSC-SSP survey, [arXiv:1705.00622](https://arxiv.org/abs/1705.00622)（§5.9 星等分档包络与两段指数拟合的依据）。
+- [2] Sandin, C. 2014, The influence of diffuse scattered light I, A&A 567, A97, [arXiv:1406.5508](https://arxiv.org/abs/1406.5508)（§5.9 散射光下限平方反比翼的依据）。
+- [3] Racine, R. 1996, The telescopic point-spread function, PASP 108, 699, DOI [10.1086/133788](https://doi.org/10.1086/133788)（§5.9 光环幂律翼方法证据）。
+- [4] Bazkiaei, A., et al. 2024, Bright Star Subtraction Pipeline for LSST: Phase one report, [arXiv:2408.04387](https://arxiv.org/abs/2408.04387)（§5.9 减法路线的互补选项对照，只读不复制）。
+- [5] Riello, M., De Angeli, F., Evans, D. W., et al. 2021, Gaia Early Data Release 3: Photometric content and validation, [arXiv:2012.01916](https://arxiv.org/abs/2012.01916)（§5.9 G 波段 Vega 星等零点 25.6874 与内部校准通量口径的依据）。
