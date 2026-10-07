@@ -506,9 +506,13 @@ int p2_star_mask_caps(const double* ra_deg, const double* dec_deg,
     return 0;
 }
 
+// 晕掩膜证伪停用：本函数实现只注释不删除（性能优化与 export slim 保留）。
+// RERUN2/RERUN3 对比洞为次因，缝主因为 M1/M4 混合 pedestal 差。
 // 普通星阈值+连通区→P2StarMaskCap（§5.8 第二口径：阈值+8连通区）。
 // 与 sampler 第一遍 simple veto 同数学定义（阈值/8连通/min_pixels），
 // 此处输出帽（质心+radius_deg），sampler 第一遍输出 veto 判决；两者正交叠加。
+#if 0
+// [晕掩膜证伪停用：原实现保留，见本 #if 0 分支；#else 分支为留桩]
 int p2_star_mask_caps_simple_bright(const double* values,
                                           const std::uint8_t* valid,
                                           std::uint64_t w, std::uint64_t h,
@@ -603,6 +607,21 @@ int p2_star_mask_caps_simple_bright(const double* values,
     if (out_n) *out_n = k;
     return 0;
 }
+#else
+// [晕掩膜证伪停用留桩：原实现见 #if 0 分支；停用期间恒不成帽（*out_n=0, rc=0）；声明保留在 sky_plane.h]
+int p2_star_mask_caps_simple_bright(const double*,
+                                    const std::uint8_t*,
+                                    std::uint64_t, std::uint64_t,
+                                    double, double,
+                                    double,
+                                    double, int,
+                                    double,
+                                    P2StarMaskCap*, std::uint64_t,
+                                    std::uint64_t* out_n) {
+    if (out_n) *out_n = 0;
+    return 0;
+}
+#endif
 
 int p2_star_mask_contains(const P2StarMaskCap* caps, std::uint64_t n,
                           double ra_deg, double dec_deg) {
@@ -621,8 +640,12 @@ int p2_star_mask_contains(const P2StarMaskCap* caps, std::uint64_t n,
     return 0;
 }
 
+// 晕掩膜证伪停用：以下三函数实现只注释不删除（性能优化与 export slim 保留）。
+// RERUN2/RERUN3 对比洞为次因，缝主因为 M1/M4 混合 pedestal 差。
 // Gaia 晕掩膜：星等定半径（PHASE2_SAMPLER.md §5.9）与缝回退（§5.10）。
 // r_raw(mag)=r8*a^(thresh-mag)，仅 mag<=thresh 成帽，再 clip 到 [r_min, r_max]。
+#if 0
+// [晕掩膜证伪停用：原实现保留，见本 #if 0 分支；#else 分支为留桩]
 int p2_gaia_halo_radius_px(double mag_g, double mag_thresh,
                                  double r8, double a,
                                  double r_min, double r_max,
@@ -708,6 +731,37 @@ int p2_star_mask_caps_gaia_halo(const double* ra_deg, const double* dec_deg,
     if (out_n) *out_n = k;
     return 0;
 }
+#else
+// [晕掩膜证伪停用留桩：原实现见上 #if 0 分支；停用期间恒不成帽/非法（rc=1, *out=0）；声明保留在 sky_plane.h]
+int p2_gaia_halo_radius_px(double, double,
+                            double, double,
+                            double, double,
+                            double* out_radius_px) {
+    if (out_radius_px) *out_radius_px = 0.0;
+    return 1;
+}
+
+// [晕掩膜证伪停用留桩：原实现见上 #if 0 分支；停用期间恒非法（rc=1, *out=0）]
+int p2_gaia_halo_radius_fallback_px(double, double,
+                                    double,
+                                    double* out_radius_px) {
+    if (out_radius_px) *out_radius_px = 0.0;
+    return 1;
+}
+
+// [晕掩膜证伪停用留桩：原实现见上 #if 0 分支；停用期间恒不成帽（*out_n=0, rc=0）]
+int p2_star_mask_caps_gaia_halo(const double*, const double*,
+                                const double*, std::uint64_t,
+                                double, double, double,
+                                double, double,
+                                double,
+                                double,
+                                P2StarMaskCap*, std::uint64_t,
+                                std::uint64_t* out_n) {
+    if (out_n) *out_n = 0;
+    return 0;
+}
+#endif
 
 // ===========================================================================
 // sky plane

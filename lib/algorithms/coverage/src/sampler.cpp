@@ -296,12 +296,16 @@ struct SnrIndex {
     }
 };
 
+// 晕掩膜证伪停用：整分支只注释不删除（性能优化与 export slim 保留）。
+// RERUN2/RERUN3 对比洞为次因，缝主因为 M1/M4 混合 pedestal 差。
 // task-4 双通道掩膜与 veto helper（匿名命名空间；纯内存判定，无 I/O）。
 // (a) 普通星阈值+8连通 veto：patch 内亮像素（v > y+contam_sigma*sigma）的
 // 8-连通最大分量像素数 >= min_samples 即否决（reason=6）。patch 以行主序
 // H×W=2r+1 网格给出（vals 按 (dy+r)*W+(dx+r)，越界/无效已在收集时丢弃，
 // 以 NaN 占位标记缺失）。与 sky_plane p2_star_mask_caps_simple_bright
 // 同数学定义（阈值/8连通/min 像素数），此处输出 veto 判决，那边输出帽。
+#if 0
+// [晕掩膜证伪停用：simple veto helper 原实现保留，见 #else 分支留桩]
 bool simple_mask_connected_veto(const std::vector<double>& grid, int w,
                                 double y, double sigma, double contam_sigma,
                                 int min_samples) {
@@ -401,6 +405,19 @@ bool gaia_halo_hit(const P2GaiaHaloCaps* halos, double ra_c, double dec_c) {
     }
     return false;
 }
+#else
+// [晕掩膜证伪停用留桩：原实现见 #if 0 分支；停用期间恒 false，veto 调用点同步注释]
+[[maybe_unused]] bool simple_mask_connected_veto(const std::vector<double>&, int,
+                                double, double, double,
+                                int) {
+    return false;
+}
+
+// [晕掩膜证伪停用留桩：原实现见 #if 0 分支；停用期间恒 false，veto 调用点同步注释]
+[[maybe_unused]] bool gaia_halo_hit(const P2GaiaHaloCaps*, double, double) {
+    return false;
+}
+#endif
 
 } // namespace
 
@@ -655,6 +672,8 @@ static int p2_sample_controls_impl(
     *out_n_controls = 0;
     if (out_n_sky) *out_n_sky = 0;
     if (out_n_mask) *out_n_mask = 0;
+    // [晕掩膜证伪停用：halos_in 暂停消费（simple(6)/halo(7) 分支已注释），保留形参与 with_halos 入口]
+    (void)halos_in;
     P2SampleStats stats{};
     P2SamplerConfig cfg = p2_sampler_default_config();
     if (cfg_in) cfg = *cfg_in;
@@ -1098,6 +1117,10 @@ static int p2_sample_controls_impl(
                         // 先后：catalog veto 未命中才执行；互斥 else-if 链。
                         // 阈值复用 background_contamination_sigma，
                         // 最小连通像素数复用 min_samples，不另立配置键。
+                        // 晕掩膜证伪停用（保留 catalog(5)；simple(6)/halo(7) 整分支注释，
+                        // 只注释不删除；性能优化与 export slim 保留）：
+                        // RERUN2/RERUN3 对比洞为次因，缝主因为 M1/M4 混合 pedestal 差。
+#if 0
                         if (!veto) {
                             if (simple_mask_connected_veto(
                                     patch_grid, pw, y, sigma,
@@ -1107,17 +1130,21 @@ static int p2_sample_controls_impl(
                                 veto_reason = 6;
                             }
                         }
+#endif
                         // task-4 分支 3：Gaia 晕帽 veto（§5.9 星等定半径）。
                         // 先后：catalog/simple 均未命中才执行；晕帽由调用方经
                         // P2GaiaHaloCaps 传入（无晕帽=null/0→静默跳过）；
                         // 回退半径（use_fallback）由调用方在缝验收失败→全量重跑
                         // 时置位，本模块不自动放大。
+                        // 晕掩膜证伪停用（同上；只注释不删除）。
+#if 0
                         if (!veto) {
                             if (gaia_halo_hit(halos_in, ra_deg, dec_deg)) {
                                 veto = 1;
                                 veto_reason = 7;
                             }
                         }
+#endif
                         double snr_val = 1.0;
                         int snr_avail = 0;
                         std::uint32_t qual = 0;
