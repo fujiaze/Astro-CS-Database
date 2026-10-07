@@ -9806,14 +9806,15 @@ Result<void> p2_op_sample(const Json& doc, Json* man) {
     halo_dec.swap(dec2);
     halo_mag.swap(mag2);
   }
-  // 锚定像素尺度：首帧 HiPS properties hips_pixel_scale（角秒/像素）；
+  // 锚定像素尺度：首帧 HiPS signal/properties 的 hips_pixel_scale（度/像素→×3600为角秒/像素）；
   // 缺失/非法 → 采样器侧 gaia_halo_hit 按 anchor<=0 恒 false（空帽语义），不停流程。
   double anchor_scale = 0.0;
   if (!view.hips_paths.empty()) {
     // properties 经 aio 读面取（与 p2_frame_id 同源键 hips_pixel_scale）。
+    // 路径为 <frame>/signal/properties（frame根下无properties文件）；值域为度，需×3600。
     // 轻量实现：直接解析 HiPS properties 文本首个 hips_pixel_scale 行。
     std::string ptext;
-    const std::string ppath = view.hips_paths[0] + "/properties";
+    const std::string ppath = view.hips_paths[0] + "/signal/properties";
     if (aio_fs::read_all(ppath, &ptext)) {
       std::istringstream iss(ptext);
       std::string line;
@@ -9822,7 +9823,7 @@ Result<void> p2_op_sample(const Json& doc, Json* man) {
         if (pos == std::string::npos) continue;
         if (line.compare(0, pos, "hips_pixel_scale") == 0) {
           try {
-            anchor_scale = std::stod(line.substr(pos + 1));
+            anchor_scale = std::stod(line.substr(pos + 1)) * 3600.0;
           } catch (...) {
             anchor_scale = 0.0;
           }
