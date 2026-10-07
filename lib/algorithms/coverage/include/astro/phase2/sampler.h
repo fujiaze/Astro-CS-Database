@@ -61,6 +61,25 @@ typedef struct {
     // 否则恒串行。worker 数唯一来源 = Runtime lease 传入的 budget.max_workers
     // （ExecutionOptions 透传），模块不读硬件并发数、不自建线程预算。
     int cpu_workers;                      // 来自 Runtime lease(p2_session 传 budget.max_workers); 1=串行 reference
+    // 普通星简单掩膜（PHASE2_SAMPLER.md §5.8）：沿用既有两键
+    // star_mask_snr_factor / star_mask_radius_deg（CONFIG 普通星组），
+    // 第一遍 catalog veto（reason=5）与星帽生成同口径消费；阈值+8连通区
+    // veto 分支复用 background_contamination_sigma（亮阈）与 min_samples
+    //（最小连通像素数），不另立配置键。
+    // Gaia 晕掩膜（星等定半径；PHASE2_SAMPLER.md §5.9；CONFIG 掩膜三组键文法）。
+    // 半径函数见 sky_plane.h p2_gaia_halo_radius_px：r_raw=R8×A^(thresh-mag)，
+    // 仅 mag<=thresh 成帽，再 clip 到 [r_min, r_max]；像素口径与锚定帧相同。
+    double halo_mag_thresh;               // 默认 8.0（Gaia 星等，须有限）
+    double halo_r8;                       // 默认 150（像素，须>0）
+    double halo_a;                        // 默认 1.5（无量纲，须>1）
+    double halo_r_min;                    // 默认 30（像素，须>0）
+    double halo_r_max;                    // 默认 300（像素，须>0，且 r_min<=r_max）
+    // 缝回退（PHASE2_SAMPLER.md §5.10；CONFIG 掩膜三组键文法）。
+    // 回退半径见 sky_plane.h p2_gaia_halo_radius_fallback_px：
+    // r_fb=min(factor×r, r_max_fb)；触发与重算语义由调用方（缝验收失败→全量重跑）
+    // 驱动，本模块仅承载参数与半径函数，不自动放大。
+    double seam_fallback_factor;          // 默认 1.5（无量纲，须>=1）
+    double seam_fallback_r_max;           // 默认 450（像素，须>0）
 } P2SamplerConfig;
 
 // sampler 默认配置单一来源（null cfg 时使用；显式 cfg 覆盖）。
@@ -74,10 +93,14 @@ typedef struct {
     std::uint64_t rejected_insufficient_retained;  // clipping 后保留比例过低
     std::uint64_t rejected_bright_tolerance;       // 超过局部 tolerance
     std::uint64_t rejected_high_contamination;     // 亮像素占比过高
-    std::uint64_t rejected_catalog_veto;           // 星表 veto
+    std::uint64_t rejected_catalog_veto;           // 星表 veto（§5.8 普通星口径：SNR 阈值+固定帽）
     std::uint64_t rejected_lt_two_clean_frames;    // clean 帧数 <2 未入拟合
     std::uint64_t accepted_controls;               // 有 ≥1 clean obs 的 control
     std::uint64_t overlap_controls;                // 有 ≥2 clean obs 的 control
+    // task-4 双通道新增：与 catalog veto 先后明确的两分支（第一遍 veto 内执行，
+    // 顺序 = catalog veto → simple mask → gaia halo；reason 6/7 见 sampler.cpp）。
+    std::uint64_t rejected_simple_mask;     // 普通星阈值+连通区 veto（§5.8 第二口径）
+    std::uint64_t rejected_gaia_halo;       // Gaia 晕帽 veto（§5.9 星等定半径）
 } P2SampleStats;
 
 // control 几何节点（全 coverage 网格；与观测解耦）
@@ -148,6 +171,28 @@ P2_API int p2_sample_controls_cached(
     const char* const* hips_paths,
     const std::uint64_t* frame_ids,  // n_inputs 长度，可空则内部计算；0 非法
     const P2SamplerConfig* cfg,
+    P2ControlObservation* out_obs,
+    std::uint64_t out_capacity,
+    std::uint64_t* out_n_obs,
+    std::uint64_t* out_n_controls,
+    P2SampleStats* out_stats,
+    P2ControlNode* out_controls,
+    std::uint64_t ctrl_capacity,
+    char* err, std::size_t err_size);
+
+// task-4 双通道掩膜与 veto 入口：与 cached 同语义，另接受 Gaia 晕帽输入
+// （P2GaiaHaloCaps，sky_plane.h 定义；可空=null/0 即无晕帽，halo 分支静默跳过）。
+// 第一遍 veto 先后顺序冻结：catalog veto（reason=5，计 rejected_catalog_veto）
+// → simple mask 阈值+8连通（reason=6，计 rejected_simple_mask）
+// → gaia halo 帽命中（reason=7，计 rejected_gaia_halo）。三分支互斥（else-if 链），
+// 命中即拒绝，不再进入后续分支与 SNR 邻域回退之外的统计。
+// 老入口 p2_sample_controls_cached 等价于本入口 halos=null（晕分支恒跳过）。
+P2_API int p2_sample_controls_cached_with_halos(
+    const P2CoverageResult* coverage,
+    const char* const* hips_paths,
+    const std::uint64_t* frame_ids,
+    const P2SamplerConfig* cfg,
+    const P2GaiaHaloCaps* halos,   // 可空
     P2ControlObservation* out_obs,
     std::uint64_t out_capacity,
     std::uint64_t* out_n_obs,

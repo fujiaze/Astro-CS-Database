@@ -346,6 +346,104 @@ int p2_star_mask_caps(const double* ra_deg, const double* dec_deg,
     return 0;
 }
 
+// 普通星阈值+连通区→P2StarMaskCap（§5.8 第二口径：阈值+8连通区）。
+// 与 sampler 第一遍 simple veto 同数学定义（阈值/8连通/min_pixels），
+// 此处输出帽（质心+radius_deg），sampler 第一遍输出 veto 判决；两者正交叠加。
+int p2_star_mask_caps_simple_bright(const double* values,
+                                          const std::uint8_t* valid,
+                                          std::uint64_t w, std::uint64_t h,
+                                          double ra0_deg, double dec0_deg,
+                                          double pixel_scale_deg,
+                                          double bright_sigma, int min_pixels,
+                                          double radius_deg,
+                                          P2StarMaskCap* out, std::uint64_t cap,
+                                          std::uint64_t* out_n) {
+    if (out_n) *out_n = 0;
+    if (!values || w == 0 || h == 0) return 1;
+    if (w > (std::uint64_t)100000 || h > (std::uint64_t)100000) return 1;
+    if (w > 0 && h > (std::uint64_t)SIZE_MAX / w) return 1;
+    if (!std::isfinite(ra0_deg) || !std::isfinite(dec0_deg)) return 1;
+    if (!(pixel_scale_deg > 0.0) || !std::isfinite(pixel_scale_deg)) return 1;
+    if (!(bright_sigma > 0.0) || !std::isfinite(bright_sigma)) return 1;
+    if (min_pixels < 1) return 1;
+    if (!(radius_deg > 0.0) || !std::isfinite(radius_deg)) return 1;
+    const std::size_t n = (std::size_t)(w * h);
+    std::vector<double> all;
+    all.reserve(n);
+    for (std::size_t i = 0; i < n; ++i) {
+        if (valid && valid[i] == 0) continue;
+        const double v = values[i];
+        if (!std::isfinite(v)) continue;
+        all.push_back(v);
+    }
+    if (all.empty()) return 0;
+    std::vector<double> tmp = all;
+    const double med = median_sorted_inplace(tmp);
+    for (double& v : tmp) v = std::fabs(v - med);
+    const double mad = kMadToSigma * median_sorted_inplace(tmp);
+    if (!(mad > 0.0) || !std::isfinite(mad)) return 0;  // 无尺度信息：不成帽
+    const double thr = med + bright_sigma * mad;
+    // 8-连通分量（BFS，行主序索引 iy*W+ix）。
+    std::vector<char> bright(n, 0);
+    for (std::size_t i = 0; i < n; ++i) {
+        if (valid && valid[i] == 0) continue;
+        const double v = values[i];
+        if (std::isfinite(v) && v > thr) bright[i] = 1;
+    }
+    std::vector<char> seen(n, 0);
+    std::vector<std::size_t> stack;
+    std::uint64_t k = 0;
+    for (std::uint64_t iy = 0; iy < h; ++iy) {
+        for (std::uint64_t ix = 0; ix < w; ++ix) {
+            const std::size_t s0 = (std::size_t)(iy * w + ix);
+            if (!bright[s0] || seen[s0]) continue;
+            // BFS 收集本分量
+            stack.clear();
+            stack.push_back(s0);
+            seen[s0] = 1;
+            double sumx = 0.0, sumy = 0.0;
+            std::uint64_t cnt = 0;
+            std::size_t head = 0;
+            while (head < stack.size()) {
+                const std::size_t s = stack[head++];
+                const std::uint64_t sy = (std::uint64_t)(s / (std::size_t)w);
+                const std::uint64_t sx = (std::uint64_t)(s % (std::size_t)w);
+                sumx += (double)sx;
+                sumy += (double)sy;
+                ++cnt;
+                for (int dy = -1; dy <= 1; ++dy) {
+                    for (int dx = -1; dx <= 1; ++dx) {
+                        if (dx == 0 && dy == 0) continue;
+                        const long long nx = (long long)sx + dx;
+                        const long long ny = (long long)sy + dy;
+                        if (nx < 0 || ny < 0) continue;
+                        if ((std::uint64_t)nx >= w || (std::uint64_t)ny >= h)
+                            continue;
+                        const std::size_t ns =
+                            (std::size_t)((std::uint64_t)ny * w +
+                                          (std::uint64_t)nx);
+                        if (!bright[ns] || seen[ns]) continue;
+                        seen[ns] = 1;
+                        stack.push_back(ns);
+                    }
+                }
+            }
+            if ((long long)cnt < (long long)min_pixels) continue;
+            const double cx = sumx / (double)cnt;
+            const double cy = sumy / (double)cnt;
+            if (out && k < cap) {
+                out[k].ra_deg = ra0_deg + cx * pixel_scale_deg;
+                out[k].dec_deg = dec0_deg + cy * pixel_scale_deg;
+                out[k].radius_deg = radius_deg;
+                out[k].kind = P2_STAR_MASK_STAR;
+            }
+            ++k;
+        }
+    }
+    if (out_n) *out_n = k;
+    return 0;
+}
+
 int p2_star_mask_contains(const P2StarMaskCap* caps, std::uint64_t n,
                           double ra_deg, double dec_deg) {
     if (!caps) return -1;
@@ -360,6 +458,94 @@ int p2_star_mask_contains(const P2StarMaskCap* caps, std::uint64_t n,
         c = std::min(1.0, std::max(-1.0, c));
         if (std::acos(c) <= rad) return 1;
     }
+    return 0;
+}
+
+// Gaia 晕掩膜：星等定半径（PHASE2_SAMPLER.md §5.9）与缝回退（§5.10）。
+// r_raw(mag)=r8*a^(thresh-mag)，仅 mag<=thresh 成帽，再 clip 到 [r_min, r_max]。
+int p2_gaia_halo_radius_px(double mag_g, double mag_thresh,
+                                 double r8, double a,
+                                 double r_min, double r_max,
+                                 double* out_radius_px) {
+    if (out_radius_px) *out_radius_px = 0.0;
+    if (!std::isfinite(mag_g) || !std::isfinite(mag_thresh)) return 1;
+    if (!(r8 > 0.0) || !std::isfinite(r8)) return 1;
+    if (!(a > 1.0) || !std::isfinite(a)) return 1;
+    if (!(r_min > 0.0) || !std::isfinite(r_min)) return 1;
+    if (!(r_max > 0.0) || !std::isfinite(r_max)) return 1;
+    if (r_min > r_max) return 1;
+    if (mag_g > mag_thresh) return 1;  // 暗于阈值：不成帽（§5.9：只走普通掩膜）
+    const double dm = mag_thresh - mag_g;  // >=0
+    // 防溢出：a^dm 按 exp(dm*ln a) 计算，dm 过大时钳到 r_max。
+    const double raw = r8 * std::exp(dm * std::log(a));
+    if (!std::isfinite(raw)) {
+        if (out_radius_px) *out_radius_px = r_max;
+        return 0;
+    }
+    double r = raw;
+    if (r < r_min) r = r_min;
+    if (r > r_max) r = r_max;
+    if (out_radius_px) *out_radius_px = r;
+    return 0;
+}
+
+// 缝回退：r_fb=min(factor*r, r_max_fb)（§5.10；仅用于缝邻域，全量重跑由调用方驱动）。
+int p2_gaia_halo_radius_fallback_px(double r_px, double fallback_factor,
+                                          double fallback_r_max,
+                                          double* out_radius_px) {
+    if (out_radius_px) *out_radius_px = 0.0;
+    if (!(r_px > 0.0) || !std::isfinite(r_px)) return 1;
+    if (!(fallback_factor >= 1.0) || !std::isfinite(fallback_factor)) return 1;
+    if (!(fallback_r_max > 0.0) || !std::isfinite(fallback_r_max)) return 1;
+    double r = fallback_factor * r_px;
+    if (!std::isfinite(r)) return 1;
+    if (r > fallback_r_max) r = fallback_r_max;
+    if (out_radius_px) *out_radius_px = r;
+    return 0;
+}
+
+int p2_star_mask_caps_gaia_halo(const double* ra_deg, const double* dec_deg,
+                                      const double* mag_g, std::uint64_t n,
+                                      double mag_thresh, double r8, double a,
+                                      double r_min, double r_max,
+                                      double anchor_pixel_scale_arcsec,
+                                      double pixel_scale_ratio,
+                                      P2StarMaskCap* out, std::uint64_t cap,
+                                      std::uint64_t* out_n) {
+    if (!ra_deg || !dec_deg || !mag_g || n == 0) return 1;
+    if (!std::isfinite(mag_thresh)) return 1;
+    if (!(r8 > 0.0) || !std::isfinite(r8)) return 1;
+    if (!(a > 1.0) || !std::isfinite(a)) return 1;
+    if (!(r_min > 0.0) || !std::isfinite(r_min)) return 1;
+    if (!(r_max > 0.0) || !std::isfinite(r_max)) return 1;
+    if (r_min > r_max) return 1;
+    if (!(anchor_pixel_scale_arcsec > 0.0) ||
+        !std::isfinite(anchor_pixel_scale_arcsec))
+        return 1;
+    // 像素口径换算：ratio=frame/anchor，同口径=1；<=0/非有限→按 1.0 保守处理。
+    double ratio = pixel_scale_ratio;
+    if (!(ratio > 0.0) || !std::isfinite(ratio)) ratio = 1.0;
+    std::uint64_t k = 0;
+    for (std::uint64_t i = 0; i < n; ++i) {
+        if (!std::isfinite(ra_deg[i]) || !std::isfinite(dec_deg[i]) ||
+            !std::isfinite(mag_g[i]))
+            continue;
+        double r_px = 0.0;
+        if (p2_gaia_halo_radius_px(mag_g[i], mag_thresh, r8, a, r_min,
+                                         r_max, &r_px) != 0)
+            continue;
+        const double radius_deg =
+            r_px * anchor_pixel_scale_arcsec / 3600.0 / ratio;
+        if (!(radius_deg > 0.0) || !std::isfinite(radius_deg)) continue;
+        if (out && k < cap) {
+            out[k].ra_deg = ra_deg[i];
+            out[k].dec_deg = dec_deg[i];
+            out[k].radius_deg = radius_deg;
+            out[k].kind = P2_STAR_MASK_GAIA_HALO;
+        }
+        ++k;
+    }
+    if (out_n) *out_n = k;
     return 0;
 }
 

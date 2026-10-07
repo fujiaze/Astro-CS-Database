@@ -296,6 +296,112 @@ struct SnrIndex {
     }
 };
 
+// task-4 双通道掩膜与 veto helper（匿名命名空间；纯内存判定，无 I/O）。
+// (a) 普通星阈值+8连通 veto：patch 内亮像素（v > y+contam_sigma*sigma）的
+// 8-连通最大分量像素数 >= min_samples 即否决（reason=6）。patch 以行主序
+// H×W=2r+1 网格给出（vals 按 (dy+r)*W+(dx+r)，越界/无效已在收集时丢弃，
+// 以 NaN 占位标记缺失）。与 sky_plane p2_star_mask_caps_simple_bright
+// 同数学定义（阈值/8连通/min 像素数），此处输出 veto 判决，那边输出帽。
+bool simple_mask_connected_veto(const std::vector<double>& grid, int w,
+                                double y, double sigma, double contam_sigma,
+                                int min_samples) {
+    if (w <= 0 || grid.empty() || min_samples < 1) return false;
+    if (!(sigma > 0.0) || !std::isfinite(sigma)) return false;
+    if (!(contam_sigma > 0.0) || !std::isfinite(contam_sigma)) return false;
+    if (!std::isfinite(y)) return false;
+    if ((int)grid.size() % w != 0) return false;
+    const int h = (int)grid.size() / w;
+    const double thr = y + contam_sigma * sigma;
+    const std::size_t n = grid.size();
+    std::vector<char> bright(n, 0);
+    for (std::size_t i = 0; i < n; ++i) {
+        const double v = grid[i];
+        if (std::isfinite(v) && v > thr) bright[i] = 1;
+    }
+    std::vector<char> seen(n, 0);
+    std::vector<std::size_t> stack;
+    for (int iy = 0; iy < h; ++iy) {
+        for (int ix = 0; ix < w; ++ix) {
+            const std::size_t s0 = (std::size_t)(iy * w + ix);
+            if (!bright[s0] || seen[s0]) continue;
+            stack.clear();
+            stack.push_back(s0);
+            seen[s0] = 1;
+            std::size_t cnt = 0;
+            std::size_t head = 0;
+            while (head < stack.size()) {
+                const std::size_t s = stack[head++];
+                ++cnt;
+                if ((int)cnt >= min_samples) return true;  // 早停
+                const int sy = (int)(s / (std::size_t)w);
+                const int sx = (int)(s % (std::size_t)w);
+                for (int dy = -1; dy <= 1; ++dy) {
+                    for (int dx = -1; dx <= 1; ++dx) {
+                        if (dx == 0 && dy == 0) continue;
+                        const int nx = sx + dx;
+                        const int ny = sy + dy;
+                        if (nx < 0 || ny < 0 || nx >= w || ny >= h) continue;
+                        const std::size_t ns = (std::size_t)(ny * w + nx);
+                        if (!bright[ns] || seen[ns]) continue;
+                        seen[ns] = 1;
+                        stack.push_back(ns);
+                    }
+                }
+            }
+        }
+    }
+    return false;
+}
+
+// (b) Gaia 晕帽命中判定：候选 (ra,dec) 是否落在任一晕帽内（含边界）。
+// 晕帽由调用方传入的 P2GaiaHaloCaps 按星等定半径现场求出
+// （p2_gaia_halo_radius_px / fallback），半径像素→度换算与
+// p2_star_mask_caps_gaia_halo 同式。无晕帽（null/n==0）→ false。
+// P2GaiaHaloCaps 定义在 sky_plane.h（sampler.h 已包含该头）。
+bool gaia_halo_hit(const P2GaiaHaloCaps* halos, double ra_c, double dec_c) {
+    if (!halos || halos->n == 0) return false;
+    if (!halos->ra_deg || !halos->dec_deg || !halos->mag_g) return false;
+    if (!std::isfinite(ra_c) || !std::isfinite(dec_c)) return false;
+    if (!(halos->anchor_pixel_scale_arcsec > 0.0) ||
+        !std::isfinite(halos->anchor_pixel_scale_arcsec))
+        return false;
+    double ratio = halos->pixel_scale_ratio;
+    if (!(ratio > 0.0) || !std::isfinite(ratio)) ratio = 1.0;
+    const double d2r = 3.14159265358979323846 / 180.0;
+    const double r = ra_c * d2r, d = dec_c * d2r;
+    const double sd = std::sin(d), cd = std::cos(d);
+    for (std::uint64_t i = 0; i < halos->n; ++i) {
+        const double hra = halos->ra_deg[i];
+        const double hdec = halos->dec_deg[i];
+        const double mag = halos->mag_g[i];
+        if (!std::isfinite(hra) || !std::isfinite(hdec) ||
+            !std::isfinite(mag))
+            continue;
+        double r_px = 0.0;
+        if (p2_gaia_halo_radius_px(mag, halos->mag_thresh, halos->r8,
+                                         halos->a, halos->r_min, halos->r_max,
+                                         &r_px) != 0)
+            continue;
+        if (halos->use_fallback) {
+            double rfb = 0.0;
+            if (p2_gaia_halo_radius_fallback_px(
+                    r_px, halos->fallback_factor, halos->fallback_r_max,
+                    &rfb) != 0)
+                continue;
+            r_px = rfb;
+        }
+        const double rad_deg =
+            r_px * halos->anchor_pixel_scale_arcsec / 3600.0 / ratio;
+        if (!(rad_deg > 0.0) || !std::isfinite(rad_deg)) continue;
+        const double c0 = hra * d2r, d0 = hdec * d2r;
+        const double rad = rad_deg * d2r;
+        double c = std::sin(d0) * sd + std::cos(d0) * cd * std::cos(r - c0);
+        c = std::min(1.0, std::max(-1.0, c));
+        if (std::acos(c) <= rad) return true;
+    }
+    return false;
+}
+
 } // namespace
 
 extern "C" {
@@ -320,6 +426,16 @@ P2SamplerConfig p2_sampler_default_config(void) {
     c.star_mask_snr_factor = 10.0;      // 与 catalog veto 同口径
     c.star_mask_radius_deg = 0.012;     // 与 veto 半径同口径
     c.cpu_workers = 1;                  // 默认 1(串行 reference); 生产由 p2_session 传 lease
+    // 普通星简单掩膜沿用既有两键（CONFIG 普通星组），无新增字段。
+    // Gaia 晕组（CONFIG 掩膜三组键文法；PHASE2_SAMPLER.md §5.9）。
+    c.halo_mag_thresh = 8.0;
+    c.halo_r8 = 150.0;
+    c.halo_a = 1.5;
+    c.halo_r_min = 30.0;
+    c.halo_r_max = 300.0;
+    // 缝回退组（CONFIG 掩膜三组键文法；PHASE2_SAMPLER.md §5.10）。
+    c.seam_fallback_factor = 1.5;
+    c.seam_fallback_r_max = 450.0;
     return c;
 }
 
@@ -516,6 +632,7 @@ static int p2_sample_controls_impl(
                       const char* const* hips_paths,
                       const std::uint64_t* frame_ids_in,
                       const P2SamplerConfig* cfg_in,
+                      const P2GaiaHaloCaps* halos_in,
                       P2ControlObservation* out_obs,
                       std::uint64_t out_capacity,
                       std::uint64_t* out_n_obs,
@@ -553,6 +670,27 @@ static int p2_sample_controls_impl(
     if (cfg.background_tolerance <= 0.0) cfg.background_tolerance = 3.0;
     if (!(cfg.star_mask_snr_factor > 0.0)) cfg.star_mask_snr_factor = 10.0;
     if (!(cfg.star_mask_radius_deg > 0.0)) cfg.star_mask_radius_deg = 0.012;
+    // task-4 双通道掩膜与 veto 修补（CONFIG 新节口径；与默认值同源）：
+    // halo_mag_thresh 须有限（NaN/Inf→默认 8.0）；halo_r8/r_min/r_max 须>0 有限；
+    // halo_a 须>1 有限；r_min<=r_max 否则双双回默认；fallback_factor 须>=1 有限；
+    // fallback_r_max 须>0 有限。修补只回退非法值，不吞合法显式值。
+    if (!std::isfinite(cfg.halo_mag_thresh)) cfg.halo_mag_thresh = 8.0;
+    if (!(cfg.halo_r8 > 0.0) || !std::isfinite(cfg.halo_r8))
+        cfg.halo_r8 = 150.0;
+    if (!(cfg.halo_a > 1.0) || !std::isfinite(cfg.halo_a))
+        cfg.halo_a = 1.5;
+    if (!(cfg.halo_r_min > 0.0) || !std::isfinite(cfg.halo_r_min) ||
+        !(cfg.halo_r_max > 0.0) || !std::isfinite(cfg.halo_r_max) ||
+        cfg.halo_r_min > cfg.halo_r_max) {
+        cfg.halo_r_min = 30.0;
+        cfg.halo_r_max = 300.0;
+    }
+    if (!(cfg.seam_fallback_factor >= 1.0) ||
+        !std::isfinite(cfg.seam_fallback_factor))
+        cfg.seam_fallback_factor = 1.5;
+    if (!(cfg.seam_fallback_r_max > 0.0) ||
+        !std::isfinite(cfg.seam_fallback_r_max))
+        cfg.seam_fallback_r_max = 450.0;
     if (cfg.background_neighbor_radius <= 0)
         cfg.background_neighbor_radius = 2;
     if (cfg.control_k_corr <= 0.0)
@@ -681,7 +819,7 @@ static int p2_sample_controls_impl(
         std::vector<int> n_total, n_retained, snr_avail;
         std::vector<std::uint32_t> qual;
         std::vector<bool> accepted;
-        std::vector<int> reason;                  // 0=ok 1..5=原因
+        std::vector<int> reason;                  // 0=ok 1..7=原因（6=simple mask，7=gaia halo）
         double ra = 0, dec = 0;
         std::uint64_t leaf = 0;
         int tile = -1, gx = 0, gy = 0;
@@ -745,6 +883,8 @@ static int p2_sample_controls_impl(
         }
     }
     std::uint64_t sum_catalog_veto = 0;
+    std::uint64_t sum_simple_mask = 0;
+    std::uint64_t sum_gaia_halo = 0;
     std::uint64_t sum_insufficient_support = 0;
 
     const auto t0 = std::chrono::steady_clock::now();
@@ -773,8 +913,9 @@ static int p2_sample_controls_impl(
 
     // per-cell body：串行与并行共用（杜绝双份漂移）。返回 0 或错误码(1=pairs resize OOM)。
     auto pass1_cell = [&](std::uint64_t c, SamplerReader& rdr,
-                         std::uint64_t& cv, std::uint64_t& ci) -> int {
-        cv = 0; ci = 0;   // 本 cell 输出计数（入口清零）；调用方须用独立局部量接收后累加
+                         std::uint64_t& cv, std::uint64_t& ci,
+                         std::uint64_t& csm, std::uint64_t& ch) -> int {
+        cv = 0; ci = 0; csm = 0; ch = 0;   // 本 cell 输出计数（入口清零）；调用方须用独立局部量接收后累加
         const std::uint64_t tile_ipix = coverage->union_cells[c].ipix;
         {
             const std::uint64_t npix = 12ULL * ((std::uint64_t)1 << (2u * (unsigned)coverage->target_order));
@@ -821,6 +962,7 @@ static int p2_sample_controls_impl(
                 cs.ra = ra_deg; cs.dec = dec_deg; cs.leaf = center_leaf;
                 cs.tile = (int)tile_ipix; cs.gx = gx; cs.gy = gy;
                 std::uint64_t local_veto = 0, local_insupp = 0;
+                std::uint64_t local_simple = 0, local_halo = 0;
                 for (std::size_t fi = 0; fi < cov_frames.size(); ++fi) {
                     const std::uint64_t frame_id = cov_frames[fi];
                     const TilePair& tp = pairs[fi];
@@ -846,12 +988,25 @@ static int p2_sample_controls_impl(
                     }
                     std::vector<double> vals;
                     vals.reserve(400);
+                    // task-4：普通星阈值+8连通 veto 用行主序网格（W=2r+1；
+                    // 越界/无效以 NaN 占位，与 vals 过滤口径一致）。
+                    const int pw = 2 * r + 1;
+                    std::vector<double> patch_grid;
+                    try {
+                        patch_grid.assign((std::size_t)pw * (std::size_t)pw,
+                                          std::numeric_limits<double>::quiet_NaN());
+                    } catch (...) {
+                        return 1;
+                    }
                     double sup_sum = 0.0;
                     std::uint32_t n_valid = 0;
                     for (int dy = -r; dy <= r; ++dy) {
                         for (int dx = -r; dx <= r; ++dx) {
                             const int x = cx + dx;
                             const int y = cy + dy;
+                            const std::size_t gi =
+                                (std::size_t)(dy + r) * (std::size_t)pw +
+                                (std::size_t)(dx + r);
                             if (x < 0 || y < 0 || x >= kTileWidth || y >= kTileWidth) continue;
                             const std::uint64_t z = acsd::healpix::xy_to_nested_local((unsigned)x, (unsigned)y, (unsigned)kTileShift);
                             const std::uint64_t fi_idx = acsd::healpix::nested_local_to_fits_index(z, (unsigned)kTileShift, kTileWidth);
@@ -861,6 +1016,9 @@ static int p2_sample_controls_impl(
                             if (!std::isfinite(s)) continue;
                             if (!std::isfinite(sp) || sp <= 0.0f) continue;
                             vals.push_back(s);
+                            // patch_grid 与 vals 同过滤口径：有效才落值。
+                            if (gi < patch_grid.size())
+                                patch_grid[gi] = (double)s;
                             sup_sum += sp;
                             ++n_valid;
                         }
@@ -920,7 +1078,8 @@ static int p2_sample_controls_impl(
                         cs.sup.push_back(n_valid ? sup_sum / (double)n_valid : 0.0);
                         cs.n_total.push_back(n_total);
                         cs.n_retained.push_back(n_retained);
-                        int veto = 0;
+                        int veto = 0;       // 0=ok 5=catalog 6=simple 7=halo
+                        int veto_reason = 0;
                         if (cfg.background_catalog_veto && !frames[frame_id].snr.empty() && frame_snr_med[frame_id] > 0.0) {
                             // CONFORM-FIX-B-005：catalog veto 必须消费
                             // cfg.star_mask_snr_factor / cfg.star_mask_radius_deg
@@ -933,7 +1092,31 @@ static int p2_sample_controls_impl(
                             const double thr =
                                 cfg.star_mask_snr_factor * frame_snr_med[frame_id];
                             const double rad = cfg.star_mask_radius_deg;
-                            if (snr_idx[frame_id].any_above(thr, ra_deg, dec_deg, rad)) veto = 1;
+                            if (snr_idx[frame_id].any_above(thr, ra_deg, dec_deg, rad)) { veto = 1; veto_reason = 5; }
+                        }
+                        // task-4 分支 2：普通星阈值+8连通区 veto（§5.8 第二口径）。
+                        // 先后：catalog veto 未命中才执行；互斥 else-if 链。
+                        // 阈值复用 background_contamination_sigma，
+                        // 最小连通像素数复用 min_samples，不另立配置键。
+                        if (!veto) {
+                            if (simple_mask_connected_veto(
+                                    patch_grid, pw, y, sigma,
+                                    cfg.background_contamination_sigma,
+                                    cfg.min_samples)) {
+                                veto = 1;
+                                veto_reason = 6;
+                            }
+                        }
+                        // task-4 分支 3：Gaia 晕帽 veto（§5.9 星等定半径）。
+                        // 先后：catalog/simple 均未命中才执行；晕帽由调用方经
+                        // P2GaiaHaloCaps 传入（无晕帽=null/0→静默跳过）；
+                        // 回退半径（use_fallback）由调用方在缝验收失败→全量重跑
+                        // 时置位，本模块不自动放大。
+                        if (!veto) {
+                            if (gaia_halo_hit(halos_in, ra_deg, dec_deg)) {
+                                veto = 1;
+                                veto_reason = 7;
+                            }
                         }
                         double snr_val = 1.0;
                         int snr_avail = 0;
@@ -948,8 +1131,14 @@ static int p2_sample_controls_impl(
                         cs.snr_avail.push_back(snr_avail);
                         cs.qual.push_back(qual);
                         cs.accepted.push_back(veto == 0);
-                        cs.reason.push_back(veto ? 5 : 0);
-                        if (veto) ++local_veto;
+                        // reason 编码扩展：0=ok 1=support 2=retained 3=tolerance
+                        // 4=contamination 5=catalog veto 6=simple mask 7=gaia halo。
+                        cs.reason.push_back(veto ? veto_reason : 0);
+                        if (veto) {
+                            ++local_veto;
+                            if (veto_reason == 6) ++local_simple;
+                            if (veto_reason == 7) ++local_halo;
+                        }
                     }
                 }
                 const std::size_t idx = (std::size_t)c * (std::size_t)grid * (std::size_t)grid +
@@ -957,6 +1146,8 @@ static int p2_sample_controls_impl(
                 cells[idx] = std::move(cs);
                 cv += local_veto;
                 ci += local_insupp;
+                csm += local_simple;
+                ch += local_halo;
             }
         }
         return 0;
@@ -971,30 +1162,35 @@ static int p2_sample_controls_impl(
     if (par) {
         std::atomic<int> pass1_fail{0};
         std::atomic<std::uint64_t> a_veto{0}, a_insuff{0};
+        std::atomic<std::uint64_t> a_simple{0}, a_halo{0};
         std::atomic<std::uint64_t> next_c{0};
         std::vector<std::thread> pool;
         pool.reserve((std::size_t)workers);
         for (int w = 0; w < workers; ++w) {
             pool.emplace_back([&]() {
                 SamplerReader rdr; rdr.init_own(hips_paths, n_frames);
-                std::uint64_t cv = 0, ci = 0;   // 本 worker 的跨 cell 累加器
+                std::uint64_t cv = 0, ci = 0, csm = 0, chl = 0;   // 本 worker 的跨 cell 累加器
                 for (;;) {
                     const std::uint64_t c = next_c.fetch_add(1);
                     if (c >= n_union) break;
                     // pass1_cell 的 cv/ci 是本 cell 输出（入口清零）⇒ 必须用
                     // 每次调用独立的局部量接收后再累加（复用累加器只剩最后一个 cell 计数）。
-                    std::uint64_t cell_cv = 0, cell_ci = 0;
-                    const int cell_rc = pass1_cell(c, rdr, cell_cv, cell_ci); cv += cell_cv; ci += cell_ci;
+                    std::uint64_t cell_cv = 0, cell_ci = 0, cell_cs = 0, cell_ch = 0;
+                    const int cell_rc = pass1_cell(c, rdr, cell_cv, cell_ci, cell_cs, cell_ch); cv += cell_cv; ci += cell_ci; csm += cell_cs; chl += cell_ch;
                     if (cell_rc != 0) { pass1_fail.store(1); break; }
                 }
                 a_veto.fetch_add(cv);
                 a_insuff.fetch_add(ci);
+                a_simple.fetch_add(csm);
+                a_halo.fetch_add(chl);
                 rdr.close_all();
             });
         }
         for (auto& th : pool) th.join();
         sum_catalog_veto += a_veto.load();
         sum_insufficient_support += a_insuff.load();
+        sum_simple_mask += a_simple.load();
+        sum_gaia_halo += a_halo.load();
         if (pass1_fail.load()) {
             if (err && err_size) std::snprintf(err, err_size, "pass1 pairs resize failed (parallel)");
             for (std::uint64_t i = 0; i < n_frames; ++i) { if (sig[i]) aio_hips_close(sig[i]); if (sup[i]) aio_hips_close(sup[i]); if (ivr[i]) aio_hips_close(ivr[i]); }
@@ -1004,14 +1200,16 @@ static int p2_sample_controls_impl(
     {
         SamplerReader rdr; rdr.init_shared(sig.data(), sup.data(), n_frames);
         for (std::uint64_t c = 0; c < n_union; ++c) {
-            std::uint64_t cv = 0, ci = 0;
-            if (pass1_cell(c, rdr, cv, ci) != 0) {
+            std::uint64_t cv = 0, ci = 0, csm = 0, chl = 0;
+            if (pass1_cell(c, rdr, cv, ci, csm, chl) != 0) {
                 if (err && err_size) std::snprintf(err, err_size, "pairs resize failed at c=%llu", (unsigned long long)c);
                 for (std::uint64_t i = 0; i < n_frames; ++i) { if (sig[i]) aio_hips_close(sig[i]); if (sup[i]) aio_hips_close(sup[i]); if (ivr[i]) aio_hips_close(ivr[i]); }
                 return 1;
             }
             sum_catalog_veto += cv;
             sum_insufficient_support += ci;
+            sum_simple_mask += csm;
+            sum_gaia_halo += chl;
             ++progress;
             if (progress % 100 == 0 || progress == n_union) {
                 const auto now = std::chrono::steady_clock::now();
@@ -1035,6 +1233,8 @@ static int p2_sample_controls_impl(
     // 空覆盖占位：control_id 仍需覆盖所有 grid
     control_id = cells.size();
     stats.rejected_catalog_veto += sum_catalog_veto;
+    stats.rejected_simple_mask += sum_simple_mask;
+    stats.rejected_gaia_halo += sum_gaia_halo;
     stats.rejected_insufficient_support += sum_insufficient_support;
     // 补偿：空覆盖 tiles 对应 cells 无 frames，跳过即等于未处理，已占位
 
@@ -1285,7 +1485,7 @@ int p2_sample_controls(const P2CoverageResult* coverage,
                        P2ControlNode* out_controls,
                        std::uint64_t ctrl_capacity,
                        char* err, std::size_t err_size) {
-    return p2_sample_controls_impl(coverage, hips_paths, nullptr, cfg_in,
+    return p2_sample_controls_impl(coverage, hips_paths, nullptr, cfg_in, nullptr,
                                    out_obs, out_capacity, out_n_obs,
                                    out_n_controls, out_stats, out_controls,
                                    ctrl_capacity,
@@ -1305,7 +1505,29 @@ int p2_sample_controls_cached(const P2CoverageResult* coverage,
                               P2ControlNode* out_controls,
                               std::uint64_t ctrl_capacity,
                               char* err, std::size_t err_size) {
-    return p2_sample_controls_impl(coverage, hips_paths, frame_ids, cfg_in,
+    return p2_sample_controls_impl(coverage, hips_paths, frame_ids, cfg_in, nullptr,
+                                   out_obs, out_capacity, out_n_obs,
+                                   out_n_controls, out_stats, out_controls,
+                                   ctrl_capacity,
+                                   nullptr, 0, nullptr, nullptr, 0, nullptr,
+                                   err, err_size);
+}
+
+int p2_sample_controls_cached_with_halos(
+                              const P2CoverageResult* coverage,
+                              const char* const* hips_paths,
+                              const std::uint64_t* frame_ids,
+                              const P2SamplerConfig* cfg_in,
+                              const P2GaiaHaloCaps* halos,
+                              P2ControlObservation* out_obs,
+                              std::uint64_t out_capacity,
+                              std::uint64_t* out_n_obs,
+                              std::uint64_t* out_n_controls,
+                              P2SampleStats* out_stats,
+                              P2ControlNode* out_controls,
+                              std::uint64_t ctrl_capacity,
+                              char* err, std::size_t err_size) {
+    return p2_sample_controls_impl(coverage, hips_paths, frame_ids, cfg_in, halos,
                                    out_obs, out_capacity, out_n_obs,
                                    out_n_controls, out_stats, out_controls,
                                    ctrl_capacity,
