@@ -13748,63 +13748,126 @@ Result<void> p2_op_write(const Json& doc, Json* man) {
   for (uint64_t i = 0; i < kP2TileLeafSpan; ++i)
     fits_to_local[static_cast<size_t>(i)] = static_cast<uint32_t>(
         acsd::healpix::fits_index_to_nested_local(i, kP2TileShift, 512u));
-  std::vector<float> flux_buf(kP2TileLeafSpan), cov_buf(kP2TileLeafSpan),
-      varnum_buf(kP2TileLeafSpan);
-  int64_t n_tiles_written = 0;
-  for (const auto& t : tiles) {
-    const uint64_t tip = t.value("tile_ipix", 0ull);
-    const uint64_t off = t.value("offset", 0ull);
-    std::vector<double> sig_v, sup_v, wsum_v;
-    if (!p2_read_bin_range<double>(files.value("signal", ""), off, tile_span, &sig_v) ||
-        !p2_read_bin_range<double>(files.value("support", ""), off, tile_span, &sup_v) ||
-        !p2_read_bin_range<double>(files.value("wsum", ""), off, tile_span, &wsum_v))
-      return Result<void>::fail(Error(ErrorDomain::IO,
-          "integrated bin read failed (tile " + std::to_string(tip) + ")"));
-    for (uint64_t i = 0; i < tile_span; ++i) {
-      const size_t local = fits_to_local[static_cast<size_t>(i)];   // NESTED local
-      const double sup = sup_v[static_cast<size_t>(i)];
-      const double cov = (std::isfinite(sup) && sup > 0.0) ? sup * a_cell : 0.0;
-      const double sig = sig_v[static_cast<size_t>(i)];
-      // P1 writer 同构: flux_sum = signal × cov（writer 归约 signal = flux/area）
-      flux_buf[local] = static_cast<float>(sig * cov);
-      cov_buf[local] = static_cast<float>(cov);
-      // §30.1: var_num_sum = variance_mosaic × cov² = cov²/W（writer 归约
-      // variance = var_num_sum/cov²）。三态（docs/science/unified/DATA_SEMANTICS.md
-      // 「方差与逆方差的三态编码」一节的三态 + 损坏态表）：
-      //   无覆盖 (cov<=0)        → **有限 0**：writer 按 covered_area<=0 输出 NaN
-      //                            （无覆盖态的 variance 用 NaN，不用「有覆盖但方差
-      //                            不可用」态的 0）。
-      //                            此处**不得**用 NaN 当哨兵 —— 「损坏」态下方差分子
-      //                            非有限或为负时是 rc=-6 硬失败（禁 clamp/禁静默跳过）。
-      //   有覆盖 ∧ W 有效 (w>0)   → cov²/W（逆方差）。
-      //   有覆盖 ∧ W==0          → **0 = 显式不可用**（§4a:49「有覆盖但方差不可用
-      //                            ⇒ variance=0 ∧ ivar=0」，禁 NaN）。这一行是
-      //                            三态表的第三态，不是损坏：W==0 的来源是全部样本
-      //                            方差不可用（p1 variance=0 ⇒ ivar=0 ⇒ Σw=0）。
-      //   有覆盖 ∧ W 非有限或负  → NaN = **真损坏** ⇒ writer rc=-6 硬失败（信号保留）。
-      if (uncertainty_available) {
-        const double w = wsum_v[static_cast<size_t>(i)];
-        if (!(cov > 0.0)) {
-          varnum_buf[local] = 0.0f;
-        } else if (std::isfinite(w) && w > 0.0) {
-          varnum_buf[local] = static_cast<float>((cov * cov) / w);
-        } else if (w == 0.0) {
-          varnum_buf[local] = 0.0f;
-        } else {
-          varnum_buf[local] = std::numeric_limits<float>::quiet_NaN();
+  // PERF-P2 S1.3: write 面 tile 级并行（变换并行 + 写串行）。
+  // 并行轴 = tile 重排变换（bin 读 + fits→NESTED scatter + flux/cov/varnum
+  // 三通道逐像素纯函数；每 tile 只写自己下标的输出槽 ⇒ 与串行逐位一致）。
+  // 写串行 = cfitsio 句柄写 + writer 内共享 scratch（ps->scratch_*）+
+  // HiPS 祖先归约（AncestorAcc 累加/完备即写出/流式释放）三者皆非线程安全，
+  // 故 aio_hips_write_*_tile 调用保持调用线程原序串行（tile 升序 ⇒ 祖先归约
+  // 到达序与串行一致，确定性顺序不变）。bin 区间读沿用
+  // reject/integrate 并行范式（p2_read_bin_range 经 aio 边界按调用打开/读/
+  // 关闭，无共享句柄，可并发）。失败语义 = 串行首错（按 tile 升序取首个
+  // 失败，错误串/域与串行一致）。
+  // X1: 预算唯一权威 = 运行期配额（node_thread_budget_of；与 reject/integrate
+  // 同源；1 = 串行 reference）。
+  const uint32_t write_workers = node_thread_budget_of(doc);
+  ACSD_PROBE_GAUGE("phase2", "write.tiles", static_cast<double>(tiles.size()));
+  // 预分配 tile 输出槽（内存管线：读块后写新块，不私藏大块长期副本）。
+  // 三通道 float NESTED local 序；varnum 仅 uncertainty_available 时分配。
+  const size_t n_write_tiles = tiles.size();
+  std::vector<uint64_t> write_tip(n_write_tiles, 0);
+  std::vector<float> write_flux(n_write_tiles * static_cast<size_t>(kP2TileLeafSpan));
+  std::vector<float> write_cov(n_write_tiles * static_cast<size_t>(kP2TileLeafSpan));
+  std::vector<float> write_varnum(
+      uncertainty_available
+          ? n_write_tiles * static_cast<size_t>(kP2TileLeafSpan) : 0);
+  std::vector<std::string> write_err(n_write_tiles);
+  std::vector<int> write_errd(n_write_tiles, 0);
+  {
+    std::vector<uint64_t> write_off(n_write_tiles, 0);
+    for (size_t wi = 0; wi < n_write_tiles; ++wi) {
+      write_tip[wi] = tiles[wi].value("tile_ipix", 0ull);
+      write_off[wi] = tiles[wi].value("offset", 0ull);
+    }
+    const std::string sig_path = files.value("signal", "");
+    const std::string sup_path = files.value("support", "");
+    const std::string wsum_path = files.value("wsum", "");
+    p2_parallel_for(write_workers, static_cast<uint64_t>(n_write_tiles),
+                    [&](uint64_t ti, uint32_t w) {
+      (void)w;
+      const size_t ti_s = static_cast<size_t>(ti);
+      const uint64_t tip = write_tip[ti_s];
+      const uint64_t off = write_off[ti_s];
+      // [probe] 逐 tile 热点: write（变换段）
+      ACSD_PROBE_SCOPE_CTX(_probe_write_tile, "phase2", "write.tile");
+      ACSD_PROBE_TAG(_probe_write_tile, "tile_id",
+                     static_cast<unsigned long long>(tip));
+      std::vector<double> sig_v, sup_v, wsum_v;
+      if (!p2_read_bin_range<double>(sig_path, off, tile_span, &sig_v) ||
+          !p2_read_bin_range<double>(sup_path, off, tile_span, &sup_v) ||
+          !p2_read_bin_range<double>(wsum_path, off, tile_span, &wsum_v)) {
+        write_errd[ti_s] = static_cast<int>(ErrorDomain::IO);
+        write_err[ti_s] =
+            "integrated bin read failed (tile " + std::to_string(tip) + ")";
+        return;
+      }
+      float* flux_out = write_flux.data() + ti_s * kP2TileLeafSpan;
+      float* cov_out = write_cov.data() + ti_s * kP2TileLeafSpan;
+      float* varnum_out = uncertainty_available
+                              ? write_varnum.data() + ti_s * kP2TileLeafSpan
+                              : nullptr;
+      for (uint64_t i = 0; i < tile_span; ++i) {
+        const size_t local = fits_to_local[static_cast<size_t>(i)];   // NESTED local
+        const double sup = sup_v[static_cast<size_t>(i)];
+        const double cov = (std::isfinite(sup) && sup > 0.0) ? sup * a_cell : 0.0;
+        const double sig = sig_v[static_cast<size_t>(i)];
+        // P1 writer 同构: flux_sum = signal × cov（writer 归约 signal = flux/area）
+        flux_out[local] = static_cast<float>(sig * cov);
+        cov_out[local] = static_cast<float>(cov);
+        // §30.1: var_num_sum = variance_mosaic × cov² = cov²/W（writer 归约
+        // variance = var_num_sum/cov²）。三态（docs/science/unified/DATA_SEMANTICS.md
+        // 「方差与逆方差的三态编码」一节的三态 + 损坏态表）：
+        //   无覆盖 (cov<=0)        → **有限 0**：writer 按 covered_area<=0 输出 NaN
+        //                            （无覆盖态的 variance 用 NaN，不用「有覆盖但方差
+        //                            不可用」态的 0）。
+        //                            此处**不得**用 NaN 当哨兵 —— 「损坏」态下方差分子
+        //                            非有限或为负时是 rc=-6 硬失败（禁 clamp/禁静默跳过）。
+        //   有覆盖 ∧ W 有效 (w>0)   → cov²/W（逆方差）。
+        //   有覆盖 ∧ W==0          → **0 = 显式不可用**（§4a:49「有覆盖但方差不可用
+        //                            ⇒ variance=0 ∧ ivar=0」，禁 NaN）。这一行是
+        //                            三态表的第三态，不是损坏：W==0 的来源是全部样本
+        //                            方差不可用（p1 variance=0 ⇒ ivar=0 ⇒ Σw=0）。
+        //   有覆盖 ∧ W 非有限或负  → NaN = **真损坏** ⇒ writer rc=-6 硬失败（信号保留）。
+        if (uncertainty_available) {
+          const double w = wsum_v[static_cast<size_t>(i)];
+          if (!(cov > 0.0)) {
+            varnum_out[local] = 0.0f;
+          } else if (std::isfinite(w) && w > 0.0) {
+            varnum_out[local] = static_cast<float>((cov * cov) / w);
+          } else if (w == 0.0) {
+            varnum_out[local] = 0.0f;
+          } else {
+            varnum_out[local] = std::numeric_limits<float>::quiet_NaN();
+          }
         }
       }
+    });
+  }
+  // tile 升序取首个变换失败（= 串行首个失败；写前触发，错误串/域与串行一致）。
+  for (size_t wi = 0; wi < n_write_tiles; ++wi)
+    if (!write_err[wi].empty()) {
+      // 失败路径清临时产物（§10；与下方写失败路径同契约）。
+      std::vector<float>().swap(write_flux);
+      std::vector<float>().swap(write_cov);
+      std::vector<float>().swap(write_varnum);
+      return Result<void>::fail(
+          Error(static_cast<ErrorDomain>(write_errd[wi]), write_err[wi]));
     }
+  int64_t n_tiles_written = 0;
+  for (size_t wi = 0; wi < n_write_tiles; ++wi) {
+    const uint64_t tip = write_tip[wi];
     AstroSphereTileView view;
     std::memset(&view, 0, sizeof(view));
     view.parent_ipix = tip;
     view.leaf_order = static_cast<uint32_t>(target_order + 9);   // == ps->leaf_order
     view.width = 512;
     view.data_type = AIO_HIPS_FLOAT32;
-    view.flux_sum = flux_buf.data();
-    view.covered_area = cov_buf.data();
+    view.flux_sum = write_flux.data() + wi * kP2TileLeafSpan;
+    view.covered_area = write_cov.data() + wi * kP2TileLeafSpan;
     view.valid_mask = nullptr;
-    view.var_num_sum = uncertainty_available ? varnum_buf.data() : nullptr;
+    view.var_num_sum = uncertainty_available
+                           ? write_varnum.data() + wi * kP2TileLeafSpan
+                           : nullptr;
     aio_hips_tile_view_abi_init(&view);
     const int wr = aio_hips_write_signal_support_tile(ps, &view);
     if (wr != 0) {
@@ -13831,6 +13894,14 @@ Result<void> p2_op_write(const Json& doc, Json* man) {
     }
     ++n_tiles_written;
   }
+  // 内存管线：变换缓冲使命结束即释放（不带 3×n_tiles×1MB 进 finalize/verify/
+  // publish；523 tiles 下约 1.5GB 常驻的峰值窗口到此关闭）。
+  std::vector<float>().swap(write_flux);
+  std::vector<float>().swap(write_cov);
+  std::vector<float>().swap(write_varnum);
+  std::vector<uint64_t>().swap(write_tip);
+  std::vector<std::string>().swap(write_err);
+  std::vector<int>().swap(write_errd);
   if (aio_hips_finalize(ps) != 0) {
     aio_hips_abort(ps);
     if (man && dsk_epoch.failed()) (*man)["error_kind"] = "disk_full";
@@ -14490,13 +14561,13 @@ std::unique_ptr<IModule> make_p2_node_module(ModuleDescriptor desc, P2NodeSpec s
 // 完整 phase3_session_run()" + §8.2 每节点唯一 entrypoint/call count;
 // P1-001/P2-001 整改同构——原工厂委托 P3Api session adapter = 每个子节点
 // 调用完整 p3_session_run, 5 节点链重复执行全链 5 次, 违规）:
-//   properties → p3_sampler_open_ex + p3_uncertainty_open探测 (ALG-P3-001)
+//   properties → p3_sampler_open_ex (ALG-P3-001; slim: 不探测 uncertainty)
 //   wcs        → p3_wcs_make + p3_wcs_fits_keywords (ALG-P3-002)
-//   resample   → p3_order_select + p3_sample_{nearest,bilinear}_ex +
-//                p3_uncertainty_propagate (ALG-P3-003 + DATA-P3-UNC-001 §30.4)
-//   writer     → p3_output_write_atomic_ex (ALG-P3-004 + §30.4 VARIANCE/IVAR
-//                HDU 目标态)
-//   verify     → p3_output_verify_ex (独立重开; unavailable 双向防占位)
+//   resample   → p3_order_select + p3_sample_{nearest,bilinear}_ex
+//                (ALG-P3-003; slim 唯一形态: 不传播 uncertainty)
+//   writer     → p3_output_write_atomic_ex (ALG-P3-004; slim 唯一形态:
+//                仅 PRIMARY signal 单 HDU)
+//   verify     → p3_output_verify_ex (独立重开; 单 HDU 预期)
 // 节点间 typed artifact 经 output_dir 文件约定传递（P2 先例同构）:
 //   p3_props.json → p3_wcs.json → p3_resampled.{json,bin} →
 //   output_phase3.fits + p3_writer.json → p3_verify.json。
@@ -15005,7 +15076,7 @@ Result<void> p3n_guard_fail(const P3InputUnit& g, Json* man) {
 }
 
 // ── op: properties (ALG-P3-001 唯一真实入口 = 严格 properties 校验 + 实测
-//    order/BUNIT + uncertainty 子产品探测) ────────────────────────────────────
+//    order/BUNIT; slim 唯一形态: 不探测 uncertainty) ───────────────────────────
 Result<void> p3_op_properties(const Json& doc, Json* man) {
   P3nGeom g;
   std::string err;
@@ -15032,14 +15103,8 @@ Result<void> p3_op_properties(const Json& doc, Json* man) {
     return Result<void>::fail(Error(dom, "p3_sampler_open_ex: " + serr));
   }
   p3_sampler_close(&samp);
-  // uncertainty 子产品探测 (properties/order 非法 = 产品损坏显式拒, §30.4)
-  P3UncertaintySource src = P3_UNC_NONE;
-  const P3ResampleStatus ust = p3_uncertainty_open(g.hips_dir.c_str(), order, &src, nullptr);
-  if (ust == P3_RS_PARAM)
-    return Result<void>::fail(Error(ErrorDomain::DATA,
-        "uncertainty sub-product corrupt (properties/order mismatch)"));
-  if (ust != P3_RS_OK)
-    return Result<void>::fail(Error(ErrorDomain::IO, "uncertainty sub-product open failed"));
+  // slim 唯一形态（task-9）：不探测 uncertainty 子产品
+  //（variance/ivar 输入不属拒绝项，只是不输出扩展 HDU）。
 
   // BUNIT 一致性: reader 解析出的 BUNIT 必须与守卫所见逐字一致
   // （两份解析面分叉 = 产品被并发改写/解析漂移 → 显式拒，禁静默采信任一）。
@@ -15059,11 +15124,10 @@ Result<void> p3_op_properties(const Json& doc, Json* man) {
              {"pixel_semantics", "surface_brightness"},
              {"pixel_area_power", -2},
              {"variance_propagation", "C_out = R C_in R^T"},
-             {"variance_available", src == P3_UNC_VARIANCE},
-             {"ivar_available", src == P3_UNC_IVAR},
-             {"uncertainty_source",
-              src == P3_UNC_VARIANCE ? "variance"
-                                     : (src == P3_UNC_IVAR ? "ivar" : "none")}};
+             {"variance_available", false},
+             {"ivar_available", false},
+             {"uncertainty_source", std::string("none")},
+             {"uncertainty_available", false}};
   // §9 原子提交（临时文件 + fsync + rename）: 不留半成品
   if (!p2_write_text_atomic(path, props.dump(2) + "\n"))
     return Result<void>::fail(Error(ErrorDomain::IO, "p3_props.json atomic write failed"));
@@ -15132,9 +15196,9 @@ Result<void> p3_op_wcs(const Json& doc, Json* man) {
   return Result<void>::success();
 }
 
-// ── op: resample (ALG-P3-003 唯一真实入口 = order 选择 + 反向映射采样 +
-//    DATA-P3-UNC-001 §30.4 不确定度传播; 重计算面, 行带 work unit 经 Runtime
-//    唯一 executor 执行 — RT-001) ─
+// ── op: resample (ALG-P3-003 唯一真实入口 = order 选择 + 反向映射采样;
+//    slim 唯一形态: 不探测/不打开/不传播 uncertainty; 重计算面, 行带 work unit
+//    经 Runtime 唯一 executor 执行 — RT-001) ─
 Result<void> p3_op_resample(const Json& doc, Json* man, uint32_t cap,
                             RunContext* ctx) {
   // ── FZ-P3-MODES / G-P3-MODE: output_mode 生产消费（三模式显式声明）───────
@@ -15205,22 +15269,8 @@ Result<void> p3_op_resample(const Json& doc, Json* man, uint32_t cap,
     const ErrorDomain dom = (sst == P3_RS_IO) ? ErrorDomain::IO : ErrorDomain::DATA;
     return Result<void>::fail(Error(dom, "p3_sampler_open_ex: " + serr));
   }
-  P3UncertaintySource src = P3_UNC_NONE;
-  P3Sampler u_samp{};
-  {
-    const P3ResampleStatus ust =
-        p3_uncertainty_open(g.hips_dir.c_str(), input_order, &src, &u_samp);
-    if (ust == P3_RS_PARAM) {
-      p3_sampler_close(&samp);
-      return Result<void>::fail(Error(ErrorDomain::DATA,
-          "uncertainty sub-product corrupt (properties/order mismatch)"));
-    }
-    if (ust != P3_RS_OK) {
-      p3_sampler_close(&samp);
-      return Result<void>::fail(Error(ErrorDomain::IO,
-          "uncertainty sub-product open failed"));
-    }
-  }
+  // slim 唯一形态（task-9）：不探测/不打开 uncertainty 子产品
+  //（variance/ivar 输入不属拒绝项，只是不输出扩展 HDU）。
   // p3_props.json 的 canonical 单位与实时守卫必须一致（上游 artifact
   // 漂移 → 显式拒, 禁把旧声明当事实）。
   const std::string props_bunit = props.value("bunit", std::string());
@@ -15228,19 +15278,11 @@ Result<void> p3_op_resample(const Json& doc, Json* man, uint32_t cap,
     return Result<void>::fail(Error(ErrorDomain::DATA,
         "p3_props.json bunit drift: '" + props_bunit + "' != live input '" +
         guard.bunit_canonical + "' (输入语义守卫)"));
-  const bool input_unc_available = (src != P3_UNC_NONE);
-  // FZ-P3-MODES: visualization 不产出/不消费测量层（禁写 VARIANCE/IVAR 作测量层）
-  const bool unc_available = measure_face && input_unc_available;
-  // props artifact 的 uncertainty 声明与实测一致性 (上游/下游不漂移)
-  const std::string props_src = props.value("uncertainty_source", std::string("none"));
-  const std::string live_src =
-      src == P3_UNC_VARIANCE ? "variance" : (src == P3_UNC_IVAR ? "ivar" : "none");
-  if (props_src != live_src) {
-    p3_uncertainty_close(&u_samp);
-    p3_sampler_close(&samp);
-    return Result<void>::fail(Error(ErrorDomain::DATA,
-        "uncertainty_source drift between p3_props.json and live scan"));
-  }
+  // slim 唯一形态（task-9）：单 HDU 产品形态，uncertainty 恒不可用
+  //（显式登记，非失败态；下游校验与 manifest 按单 HDU 预期执行）。
+  const bool input_unc_available = false;
+  const bool unc_available = false;
+  const std::string live_src = "none";
 
   // max_tiles 内存守卫 (ARCH-P3 §3; 请求可降不可升, 同 p3_session)
   {
@@ -15250,21 +15292,15 @@ Result<void> p3_op_resample(const Json& doc, Json* man, uint32_t cap,
     const int64_t default_max = std::min<int64_t>(1024, std::max<int64_t>(8, need));
     int64_t mt = doc.value("max_tiles", (int)default_max);
     if (mt > default_max) {
-      p3_uncertainty_close(&u_samp);
       p3_sampler_close(&samp);
       return Result<void>::fail(Error(ErrorDomain::RESOURCE,
           "max_tiles above default memory guard (可降不可升)"));
     }
     p3_sampler_set_max_tiles(&samp, (int)std::max<int64_t>(1, mt));
-    // P30: 修复前 max_tiles 只设到主 sampler; 每个行带 worker 新建的 sampler
-    // 回落默认 cap=8 (工作集 523 tile 时逐行抖动重复解码)。此处同样约束
-    // uncertainty sampler (它有自己的缓存, 键同为 tile ipix, 禁与 signal 共享)。
-    p3_sampler_set_max_tiles(&u_samp, (int)std::max<int64_t>(1, mt));
   }
 
   int order_sel = -1;
   if (p3_order_select(input_order, g.scale, &order_sel) != P3_RS_OK) {
-    p3_uncertainty_close(&u_samp);
     p3_sampler_close(&samp);
     return Result<void>::fail(Error(ErrorDomain::DATA, "p3_order_select failed"));
   }
@@ -15289,7 +15325,8 @@ Result<void> p3_op_resample(const Json& doc, Json* man, uint32_t cap,
   {
     std::string werr;
     const uint64_t plane_bytes = (uint64_t)nelem * sizeof(float);
-    const uint64_t total_bytes = plane_bytes * (unc_available ? 4u : 2u);
+    // slim 唯一形态（task-9）：bin 只存 signal+coverage 双平面。
+    const uint64_t total_bytes = plane_bytes * 2u;
     if (!binw.open(bin_tmp.c_str(), &werr) || !binw.reserve(total_bytes, &werr)) {
       binw.close();
       aio_atomic::remove_file(bin_tmp);
@@ -15297,11 +15334,9 @@ Result<void> p3_op_resample(const Json& doc, Json* man, uint32_t cap,
           "p3_resampled.bin (tmp) open/reserve failed: " + werr));
     }
   }
-  std::atomic<long long> missing_px{0};
-  std::atomic<int> corrupt{-1};          // 行号 (u 产品损坏 §30.4-3)
+  std::atomic<int> corrupt{-1};          // work unit 缺失/取消哨位（slim：无 u 面）
   std::atomic<bool> cancelled{false};    // P30: 协作取消 (子块循环安全点)
   std::atomic<bool> write_failed{false}; // 位置写失败 (fail-closed, 不发布)
-  const int npts = (g.sampler == "nearest") ? 1 : 4;
 
   // 子块位置写：平面 p 的第 y 行第 x 列 = (p*nelem + y*g.w + x) 个 float。
   // 行内连续 ⇒ 每行一次位置写（与子块 x0 对齐，行区间互不重叠）。
@@ -15312,8 +15347,9 @@ Result<void> p3_op_resample(const Json& doc, Json* man, uint32_t cap,
     for (int yy = 0; yy < bh; ++yy) {
       const uint64_t row = (uint64_t)(y0 + yy) * (uint64_t)g.w + (uint64_t)x0;
       const std::size_t nbytes = (std::size_t)bw * sizeof(float);
+      // slim 唯一形态（task-9）：只写 signal+coverage 双平面（pv/pi 恒空）。
       const float* planes[4] = {ps, pc, pv, pi};
-      const int nplanes = unc_available ? 4 : 2;
+      const int nplanes = 2;
       for (int p = 0; p < nplanes; ++p) {
         if (!planes[p]) continue;
         const uint64_t off =
@@ -15335,17 +15371,9 @@ Result<void> p3_op_resample(const Json& doc, Json* man, uint32_t cap,
     // 数无关 → 内存有界; 同一 tile 全节点只解码一次)。只读数据 + 缺失负缓存,
     // 不改变任何像素值; 每个 worker 仍各有独立 AioHipsDataset/句柄。
     p3_sampler_attach_cache(&w_samp, &samp);
-    P3Sampler w_u{};
-    P3UncertaintySource w_src = P3_UNC_NONE;
-    if (unc_available &&
-        p3_uncertainty_open(g.hips_dir.c_str(), input_order, &w_src, &w_u) != P3_RS_OK) {
-      p3_sampler_close(&w_samp);
-      corrupt.store(-2);
-      return;
-    }
-    if (unc_available) p3_sampler_attach_cache(&w_u, &u_samp);   // P30: 同上
+    // slim 唯一形态（task-9）：不打开 uncertainty 子产品。
     P3WcsDescriptor w_wcs = wcs;
-    std::vector<float> bsig, bcov, bvar, bivar;
+    std::vector<float> bsig, bcov;
     for (long b = b0; b < b1 && corrupt.load() == -1 && !write_failed.load(); ++b) {
       // P30: 协作取消安全点（与 p3_session 路径同款语义）。每个子块检查一次，
       // 取消后立即置位并跳出，由下方统一 fail-closed 返回，**不落任何半成品**
@@ -15360,10 +15388,6 @@ Result<void> p3_op_resample(const Json& doc, Json* man, uint32_t cap,
       const std::size_t bn = (std::size_t)bw * (std::size_t)bh;
       bsig.assign(bn, std::nanf(""));
       bcov.assign(bn, 0.0f);
-      if (unc_available) {
-        bvar.assign(bn, std::nanf(""));
-        bivar.assign(bn, std::nanf(""));
-      }
       for (int yy = 0; yy < bh && corrupt.load() == -1; ++yy) {
         for (int xx = 0; xx < bw; ++xx) {
           const int x = x0 + xx, y = y0 + yy;
@@ -15383,43 +15407,17 @@ Result<void> p3_op_resample(const Json& doc, Json* man, uint32_t cap,
           if (rst != P3_RS_OK) continue;
           bsig[i] = (c == 1) ? v : std::nanf("");
           bcov[i] = (c == 1) ? 1.0f : 0.0f;
-          if (!unc_available) continue;
-          if (c == 0) {   // 无覆盖 → var/ivar=NaN + C=0 (signal NaN 同态)
-            bvar[i] = std::nanf("");
-            bivar[i] = std::nanf("");
-            continue;
-          }
-          double u_out = 0;
-          P3UncPixelState u_st = P3_U_OK;
-          const P3ResampleStatus urst =
-              p3_uncertainty_propagate(&w_u, w, lf, npts, &u_out, &u_st);
-          if (urst == P3_RS_PARAM) { corrupt.store(y); break; }   // 产品损坏
-          if (urst != P3_RS_OK) continue;
-          if (u_st == P3_U_MISSING) {
-            missing_px.fetch_add(1);
-            bvar[i] = std::nanf("");
-            bivar[i] = std::nanf("");
-            continue;
-          }
-          bvar[i] = std::isnan(u_out) ? std::nanf("") : static_cast<float>(u_out);
-          bivar[i] =
-              std::isnan(u_out)
-                  ? std::nanf("")
-                  : (u_out > 0.0 ? static_cast<float>(1.0 / u_out)
-                                 : (u_out == 0.0 ? 0.0f : std::nanf("")));
         }
       }
       if (corrupt.load() != -1 || cancelled.load()) break;
       // 子块 → p3_resampled.bin 位置写（行内连续；行区间互不重叠 ⇒ 与写出
       // 顺序无关，1/N worker 逐位一致）
       if (!write_block_planes(x0, y0, bw, bh, bsig.data(), bcov.data(),
-                              unc_available ? bvar.data() : nullptr,
-                              unc_available ? bivar.data() : nullptr)) {
+                              nullptr, nullptr)) {
         write_failed.store(true);
         break;
       }
     }
-    p3_uncertainty_close(&w_u);
     p3_sampler_close(&w_samp);
   };
 
@@ -15480,7 +15478,6 @@ Result<void> p3_op_resample(const Json& doc, Json* man, uint32_t cap,
   } else {
     band_task(0, nblocks, no_ctx);
   }
-  p3_uncertainty_close(&u_samp);
   p3_sampler_close(&samp);
   // P30: 取消优先于"work unit 被丢弃"判定 (两者都 fail-closed; 取消更具体)。
   // 取消时 p3_resampled.bin 只在临时对象里 → 无半成品产物。
@@ -15516,22 +15513,13 @@ Result<void> p3_op_resample(const Json& doc, Json* man, uint32_t cap,
                                 {"absent_reads", cs.absent_reads},
                                 {"evictions", cs.evictions}};
   }
-  if (corrupt.load() != -1) {
-    if (corrupt.load() == -2)
-      return Result<void>::fail(Error(ErrorDomain::IO,
-          "uncertainty sampler open failed in worker"));
-    return Result<void>::fail(Error(ErrorDomain::DATA,
-        "uncertainty product corrupt (negative/inf variance pixel) at row " +
-            std::to_string(corrupt.load())));
-  }
-
   if (write_failed.load()) {
     binw.close();
     aio_atomic::remove_file(bin_tmp);
     return Result<void>::fail(Error(ErrorDomain::IO,
         "p3_resampled.bin positional write failed (fail-closed, no partial product)"));
   }
-  // typed artifact: p3_resampled.bin = 平面连续拼接 (f32: sig, cov[, var, ivar])
+  // typed artifact: p3_resampled.bin = 平面连续拼接 (f32: sig, cov)
   // —— 子块已按平面行主序区间**位置写**进临时对象；此处只做 §9 原子提交
   //（fflush → fsync → rename），不再有整幅平面的写出步骤。
   {
@@ -15553,10 +15541,10 @@ Result<void> p3_op_resample(const Json& doc, Json* man, uint32_t cap,
   if (!aio_file::sha256_hex(bin_path.c_str(), &bin_sha))
     return Result<void>::fail(Error(ErrorDomain::IO,
         "p3_resampled.bin sha256 failed: " + bin_path));
+  // slim 唯一形态（task-9）：bin/planes 只存 signal+coverage 双平面。
   Json planes = Json::array();
   planes.push_back("signal");
   planes.push_back("coverage");
-  if (unc_available) { planes.push_back("variance"); planes.push_back("ivar"); }
   // BUNIT 一致性: reader 解析面与守卫面必须逐字一致。
   if (!bunit.empty() && bunit != guard.bunit_raw)
     return Result<void>::fail(Error(ErrorDomain::DATA,
@@ -15589,16 +15577,14 @@ Result<void> p3_op_resample(const Json& doc, Json* man, uint32_t cap,
            {"input_covariance_representation", "diagonal"},
            {"output_covariance_representation", "diagonal"},
            {"planes", planes},
-           {"uncertainty_available", unc_available},
-           {"input_uncertainty_available", input_unc_available},
-           {"uncertainty_source", unc_available ? live_src : std::string("none")},
-           {"input_uncertainty_source", live_src},
+           {"uncertainty_available", false},
+           {"input_uncertainty_available", false},
+           {"uncertainty_source", std::string("none")},
+           {"input_uncertainty_source", std::string("none")},
            {"uncertainty_not_consumed_reason",
-            (!measure_face && input_unc_available)
-                ? std::string("visualization: measurement layers are not produced"
-                              " (measurement_capable=false)")
-                : std::string()},
-           {"uncertainty_missing_pixels", missing_px.load()},
+            std::string("slim single-HDU product: variance/ivar layers are not"
+                        " produced (uncertainty_available=false)")},
+           {"uncertainty_missing_pixels", 0},
            {"bin", "p3_resampled.bin"},
            {"bin_sha256", bin_sha}};
   // §9 原子提交
@@ -15607,10 +15593,10 @@ Result<void> p3_op_resample(const Json& doc, Json* man, uint32_t cap,
   (*man)["resampled_artifact"] = json_path;
   (*man)["artifacts"] = Json::array({json_path, bin_path});
   (*man)["order_sel"] = order_sel;
-  (*man)["uncertainty_available"] = unc_available;
-  (*man)["input_uncertainty_available"] = input_unc_available;
-  (*man)["uncertainty_source"] = live_src;
-  (*man)["uncertainty_missing_pixels"] = missing_px.load();
+  (*man)["uncertainty_available"] = false;
+  (*man)["input_uncertainty_available"] = false;
+  (*man)["uncertainty_source"] = std::string("none");
+  (*man)["uncertainty_missing_pixels"] = 0;
   (*man)["output_mode"] = omode;
   (*man)["measurement_capable"] = measure_face;
   (*man)["bunit"] = guard.bunit_canonical;
@@ -15686,7 +15672,9 @@ Result<void> p3_op_writer(const Json& doc, Json* man, uint32_t cap,
           : std::string();
   const long nelem = (long)g.w * g.h;        // 平面元素数（未裁剪画幅）
   const long onelem = (long)ow * (long)oh;   // 产品元素数（裁剪后画幅）
-  const bool unc = res.value("uncertainty_available", false);
+  // slim 唯一形态（task-9）：单 HDU 产品形态，uncertainty 恒不可用
+  //（显式登记，非失败态；下游校验与 manifest 按单 HDU 预期执行）。
+  const bool unc = false;
   // 输出面单位必须来自 resample 的 canonical 面亮度声明（禁 loose default
   // "ADU"）; 输出模式/可测量性同样必须显式随产物落盘（FZ-P3-MODES）。
   const std::string bunit_canon = res.value("bunit", std::string());
@@ -15739,11 +15727,9 @@ Result<void> p3_op_writer(const Json& doc, Json* man, uint32_t cap,
   prov.run_id = run_id_str.c_str();
   prov.order_sel_used = order_sel_str.c_str();
   prov.sampler_used = sampler_str.c_str();
-  const std::string unc_src = res.value("uncertainty_source", std::string("none"));
-  prov.uncertainty_source = (unc_src == "variance" || unc_src == "ivar")
-                                ? unc_src.c_str() : nullptr;
-  prov.uncertainty_missing_pixels =
-      (long)res.value("uncertainty_missing_pixels", 0ll);
+  // slim 唯一形态（task-9）：provenance uncertainty 面恒 unavailable。
+  prov.uncertainty_source = nullptr;
+  prov.uncertainty_missing_pixels = 0;
   const std::string fits_path = g.out_dir + "/output_phase3.fits";
   const std::string bin_p = g.out_dir + "/p3_resampled.bin";
   if (!aio_fs::exists(bin_p))
@@ -15774,9 +15760,8 @@ Result<void> p3_op_writer(const Json& doc, Json* man, uint32_t cap,
   std::size_t stream_blocks = 0;
   if (whole_frame) {
     // ── 参考路径（P3-STREAM-01 改前形态）：整幅驻留 ─────────────────────
+    // slim 唯一形态（task-9）：只读 signal+coverage 双平面，只写 PRIMARY 单 HDU。
     std::vector<float> sig((size_t)nelem), cov((size_t)nelem);
-    std::vector<float> var_p, ivar_p;
-    if (unc) { var_p.resize((size_t)nelem); ivar_p.resize((size_t)nelem); }
     {
       const std::size_t plane_bytes = sizeof(float) * static_cast<std::size_t>(nelem);
       std::string pbuf;
@@ -15787,32 +15772,23 @@ Result<void> p3_op_writer(const Json& doc, Json* man, uint32_t cap,
         off += plane_bytes;
         return true;
       };
-      if (!read_plane(sig.data()) || !read_plane(cov.data()) ||
-          (unc && (!read_plane(var_p.data()) || !read_plane(ivar_p.data()))))
+      if (!read_plane(sig.data()) || !read_plane(cov.data()))
         return Result<void>::fail(Error(ErrorDomain::DATA,
             "p3_resampled.bin truncated (planes vs manifest drift)"));
     }
     // 裁剪：整幅驻留参考路径同样只写出窗口（与流式路径逐字节一致；
     // 该路径只在 ACSD_P3_EXPORT_FAULT 下可达，必须与生产路径同产品语义）
-    std::vector<float> wsig, wcov, wvar, wivar;
+    std::vector<float> wsig, wcov;
     const float* psig = sig.data();
     const float* pcov = cov.data();
-    const float* pvar = unc ? var_p.data() : nullptr;
-    const float* pivar = unc ? ivar_p.data() : nullptr;
     if (crop.active) {
       p3n_window_plane(sig.data(), g.w, crop, &wsig);
       p3n_window_plane(cov.data(), g.w, crop, &wcov);
-      if (unc) {
-        p3n_window_plane(var_p.data(), g.w, crop, &wvar);
-        p3n_window_plane(ivar_p.data(), g.w, crop, &wivar);
-      }
       psig = wsig.data();
       pcov = wcov.data();
-      pvar = unc ? wvar.data() : nullptr;
-      pivar = unc ? wivar.data() : nullptr;
     }
     const P3OutputStatus ost = p3_output_write_atomic_ex(
-        psig, pcov, pvar, pivar, ow, oh, &owcs,
+        psig, pcov, nullptr, nullptr, ow, oh, &owcs,
         bunit_canon.c_str(), fits_path.c_str(), &prov, g.bitpix, -1, &ores);
     if (ost != P3_OUT_OK)
       return Result<void>::fail(Error(ErrorDomain::IO,
@@ -15822,7 +15798,8 @@ Result<void> p3_op_writer(const Json& doc, Json* man, uint32_t cap,
   } else {
     // ── 生产路径：子块流式（ExportStreamScheduler + FITS 子集写）─────────
     // 驻留面 = 单个子块 × 在途上限（2·queue_depth），**与 W×H 无关**。
-    const int nplanes = unc ? 4 : 2;
+    // slim 唯一形态（task-9）：只写 plane=0（PRIMARY signal 单 HDU）。
+    const int nplanes = 1;
     std::atomic<bool> read_failed{false};
     P3FitsStream fs;
     if (fs.open(fits_path.c_str(), &owcs, ow, oh, g.bitpix,
@@ -15901,7 +15878,7 @@ Result<void> p3_op_writer(const Json& doc, Json* man, uint32_t cap,
     // 独立重开对拍（与整幅路径同判据；按子块流式，不整幅驻留）
     {
       P3FitsVerifyStream vs;
-      if (vs.open(fits_path.c_str(), &owcs, ow, oh, unc) != P3_OUT_OK)
+      if (vs.open(fits_path.c_str(), &owcs, ow, oh, false) != P3_OUT_OK)
         return Result<void>::fail(Error(ErrorDomain::IO,
             std::string("p3_stream verify open failed: ") + p3_output_last_error()));
       std::vector<float> fb;
@@ -15962,10 +15939,9 @@ Result<void> p3_op_writer(const Json& doc, Json* man, uint32_t cap,
           {"crop", p3n_crop_plan_json(crop, crop_mode)},
           {"frame_width_px", g.w},
           {"frame_height_px", g.h},
-          {"uncertainty_available", unc},
-          {"uncertainty_source", unc_src},
-          {"uncertainty_missing_pixels",
-           (long long)res.value("uncertainty_missing_pixels", 0ll)},
+          {"uncertainty_available", false},
+          {"uncertainty_source", std::string("none")},
+          {"uncertainty_missing_pixels", 0},
           // B2-A10（宪章 §4.3）: 真实 provenance（非占位）随节点 manifest 落盘。
           {"run_id", run_id_str},
           {"software_version", version_str},
@@ -16010,7 +15986,7 @@ Result<void> p3_op_writer(const Json& doc, Json* man, uint32_t cap,
   (*man)["canonical_sha256"] = canon.canonical_sha256;
   (*man)["canonical_hash_spec"] = acsd::core::kCanonicalProductHashSpec;
   (*man)["integrity_sha256"] = std::string(ores.sha256);
-  (*man)["uncertainty_available"] = unc;
+  (*man)["uncertainty_available"] = false;
   // B2-A10（宪章 §4.3）: writer 节点 manifest 携带真实 provenance，供 CLI
   // run manifest 汇总（input_product_hashes / units / coordinate_frames 等）。
   (*man)["run_id"] = run_id_str;
@@ -16070,7 +16046,8 @@ Result<void> p3_op_verify(const Json& doc, Json* man) {
   const int ow = owcs.width_px;
   const int oh = owcs.height_px;
   const long nelem = (long)g.w * g.h;
-  const bool unc = res.value("uncertainty_available", false);
+  // slim 唯一形态（task-9）：单 HDU 预期（无 COVERAGE / VARIANCE / IVAR 层）。
+  const bool unc = false;
   // verify 独立重开面同样消费 canonical 单位/模式声明（禁 loose default）;
   // resampled ↔ writer 声明分叉 → 显式拒（不把分叉当"已验证"）。
   const std::string v_bunit = res.value("bunit", std::string());
@@ -16087,8 +16064,8 @@ Result<void> p3_op_verify(const Json& doc, Json* man) {
     return Result<void>::fail(Error(ErrorDomain::DATA,
         "verify: measurement_capable drift between resampled and writer artifacts"));
   // ── P3-STREAM-01：独立重开**子块流式**对拍（不整幅驻留）─────────────────
-  // 判据与 p3_output_verify_ex 逐条同面：尺寸/WCS 关键字/HDU 面/逐像素回环
-  // （NaN==NaN 同态）/COVERAGE 掩码语义；驻留面 = 单个子块。
+  // 判据与 p3_output_verify_ex 逐条同面：尺寸/WCS 关键字/单 HDU 面/逐像素回环
+  // （NaN==NaN 同态）；驻留面 = 单个子块。
   const std::string bin_p = g.out_dir + "/p3_resampled.bin";
   if (!aio_fs::exists(bin_p))
     return Result<void>::fail(Error(ErrorDomain::DATA,
@@ -16100,10 +16077,11 @@ Result<void> p3_op_verify(const Json& doc, Json* man) {
   P3OutputResult vres{};
   {
     P3FitsVerifyStream vs;
-    if (vs.open(verify_fits.c_str(), &owcs, ow, oh, unc) != P3_OUT_OK)
+    if (vs.open(verify_fits.c_str(), &owcs, ow, oh, false) != P3_OUT_OK)
       return Result<void>::fail(Error(ErrorDomain::IO,
           std::string("p3_stream verify open failed: ") + p3_output_last_error()));
-    const int nplanes = unc ? 4 : 2;
+    // slim 唯一形态（task-9）：只校验 plane=0（PRIMARY signal 单 HDU）。
+    const int nplanes = 1;
     std::vector<float> fb;
     for (int plane = 0; plane < nplanes; ++plane) {
       for (int y0 = 0; y0 < oh; y0 += sb) {
@@ -16155,7 +16133,7 @@ Result<void> p3_op_verify(const Json& doc, Json* man) {
            {"integrity_sha256", std::string(vres.sha256)},
            {"coverage_stats",
             {{"covered_px", vres.covered_px}, {"total_px", vres.total_px}}},
-           {"uncertainty_available", unc},
+           {"uncertainty_available", false},
            // B2-A10: verify 侧同源透传 writer 的真实 provenance（禁 CLI 侧再猜）。
            {"run_id", wr.value("run_id", std::string())},
            {"software_version", wr.value("software_version", std::string())},
