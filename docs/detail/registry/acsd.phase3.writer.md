@@ -45,8 +45,8 @@
 
 ## 2 职责与明确非职责
 
-- 职责: 把上游重采样结果（signal+coverage）写成 FITS 单文件
-  （主 HDU signal + COVERAGE 扩展 HDU）——WCS/BUNIT/provenance
+- 职责: 把上游重采样结果写成单 HDU 的 FITS 文件
+  （仅 PRIMARY signal 数据层，无扩展 HDU）——WCS/BUNIT/provenance
   关键字全量（SCI-P3 面）、原子发布序（tmp→`fits_flush_file`→close→
   `fsync(fd)`→rename，
   `lib/algorithms/fits_output/p3_output.cpp`）、失败/取消清理不发布（签名面见
@@ -62,11 +62,10 @@
 | 端口 | DATA | 必/可 | 单位 | 坐标/dtype |
 |---|---|---|---|---|
 | `resampled` | `DATA-P3-RES`（descriptor 词汇；实际承载=DATA-P3-FITS in 面） | 必 | UnitId::SURFACE_BRIGHTNESS（BUNIT，缺省 ADU） | PIXEL 行主序 f32 [W·H]，W,H∈[1,20000] |
-| `fits` | `DATA-P3-FITS` | 可 | UnitId::SURFACE_BRIGHTNESS | FITS 文件 BITPIX=-32/-64 + COVERAGE 扩展 + sha256 |
+| `fits` | `DATA-P3-FITS` | 可 | UnitId::SURFACE_BRIGHTNESS | FITS 文件 BITPIX=-32/-64，单 HDU + sha256 |
 
 - invalid 权威源=DATA-P3-FITS：signal 无覆盖=NaN（禁 ±Inf
-  伪装；NaN==NaN 回环一致 `lib/algorithms/fits_output/p3_output.cpp`）；coverage 二值门
-  >0.5f（同上文件）；bitpix∉{-32,-64}→PARAM（同上文件）；WCS 守卫
+  伪装；NaN==NaN 回环一致 `lib/algorithms/fits_output/p3_output.cpp`）；bitpix∉{-32,-64}→PARAM（同上文件）；WCS 守卫
   abs(dec)≤85°+四角同半球（`lib/algorithms/projection/p3_wcs.h`）。
 - 端口词汇（resampled/fits、DATA-P3-RES、UnitId/CoordinateFrame）为 descriptor
   派生（p3_writer_descriptor），其与 DATA-P3-FITS 的对齐属迁移目标（未落地），
@@ -75,8 +74,9 @@
   `.hips` / `.hips.zst` 命名。输入 HiPS 产品的落盘形态由落盘名判定（裸/归档同义），
   输入合同**不设** `storage_form` 键，出现即 REJECT。
 - **输出不需要带权重** —— 上游已完成叠加，这里只投影到平面并直接计算生成对应
-  WCS。PRIMARY = 所选科学 signal / flux / statistic；扩展 HDU = COVERAGE、
-  VARIANCE / IVAR（**语义择一且一致**）；其余候选面（VALIDITY、SUPPORT、
+  WCS。产品形态为默认唯一的单 HDU 瘦身形态：只写 PRIMARY signal 数据层，
+  不写 COVERAGE / VARIANCE / IVAR 三层，不设形态选择开关，不留双路径。
+  其余候选面（VALIDITY、SUPPORT、
   REJECTION、POINT_INFORMATION/W、PSF 表/图与 correlation 描述）为待实现项，
   落盘前须先在本页「输入输出端口、DATA、单位、坐标、invalid」立输出行与 HDU 合同。
   标准 WCS 为**直接计算生成**；DATASUM / CHECKSUM 的口径与整改登记见本页
@@ -85,25 +85,22 @@
   canonical 串（canonical 值 `ADU/sr`；写端口单位 `UnitId::SURFACE_BRIGHTNESS`，
   落盘值 = 通量和 / 覆盖面积 = 面亮度）。缺声明时按`docs/science/unified/DATA_SEMANTICS.md`「面亮度单位的推导」一节的量纲可判条件
   处理 —— `BUNIT = "ADU"` 要求 provenance 声明
-  `pixel_semantics = "surface_brightness"`；`VARIANCE` / `IVAR` 扩展 HDU 的
-  `BUNIT` = 主 HDU BUNIT 的平方 / 倒数（`FZ-P3-BUNIT-QUADRATIC`）。单位口径唯一
+  `pixel_semantics = "surface_brightness"`。单位口径唯一
   权威 = `docs/science/unified/DATA_SEMANTICS.md`「面亮度单位的推导」与「单位与量纲表」两节。
 - **provenance**：源 product / hash、软件完整 SHA、配置、投影、核、order、近似、
   生成时间。
 - **节点产物**：`output_phase3.fits`、`p3_writer.json`（写侧自述）、`p3_verify.json`
-  （独立复核面）。所有 HDU shape / WCS 对齐。
+  （独立复核面）。单 HDU 落盘，无扩展 HDU shape 对齐事项。
 - **out 面细节**（DATA-P3-FITS）：FITS 文件 BITPIX = -32 / -64、
   CTYPE = `RA---TAN` / `DEC--TAN`、CUNIT = deg、BSCALE = 1 / BZERO = 0、
   HIPSID / RUNID / ORDERSEL / SAMPLER / SWVER + HISTORY、DATASUM（32-bit）；
   上述头卡与数据模型的依据 = FITS 标准［1］［2］。`P3OutputResult` = `sha256[65]` /
   `coverage_ok` / `reopen_ok` / `covered_px` /
   `total_px`。
-- **不确定度可得性（fail-closed，唯一出口）**：输入 HiPS 不含 variance / ivar
-  子产品（或权重非纯逆方差、发生fallback等规则项）时 → **不写**
-  VARIANCE / IVAR 扩展 HDU（禁静默丢弃、禁用常量 0 冒充）+ manifest 写
-  `uncertainty_available=false` + diagnostics 标红计数；**该键不是失败态**，是
-  unavailable 显式登记模式。正本 = `docs/science/unified/DATA_SEMANTICS.md`「状态与失败语义」一节
-  （禁占位 / 静默缺键 / 空输出冒充）。
+- **不确定度可得性（单 HDU 形态下的显式登记）**：产品为默认唯一的单 HDU 形态，
+  manifest 写 `uncertainty_available=false` + diagnostics 标红计数；**该键不是失败态**，是
+  单 HDU 产品形态的显式登记。正本 = `docs/science/unified/DATA_SEMANTICS.md`「状态与失败语义」一节
+  （禁占位 / 静默缺键 / 空输出冒充）。下游校验与 manifest 按单 HDU 预期执行。
 
 ## 4 公共 header、核心 symbol 与生命周期
 
@@ -164,8 +161,8 @@
 
 ## 7 内存、cache、I-O、所有权
 
-- 内存: 调用方分配 sig/cov 缓冲（O(W·H)×2×4B），本域不复制
-  （verify 内逐 HDU 临时 vector 除外）；内存不依赖 tile 数
+- 内存: 调用方分配 signal 缓冲（O(W·H)×4B），本域不复制
+  （verify 内单 HDU 临时 vector 除外）；内存不依赖 tile 数
   （tile 缓冲在上游，max_tiles 守卫在 `lib/phase3_session/p3_session.cpp`）。
 - I-O: 单 writer 串行（cfitsio 锁内）；磁盘临时文件
   `<path>.<pid>.tmp` 同目录（`lib/algorithms/fits_output/p3_output.cpp` 的 make_temp_path；协议注与实测命名的差异见本页「已知限制与缺陷登记（登记不改码）」）；
@@ -197,9 +194,9 @@
 - 本节承载 TEST-P3-WR-001 登记面：设计冻结 = TEST-P3-WR-DESIGN-001
   （ALG-P3-FITS-IMPL-001 T1-T7）；可执行测试待建，验收证据待补。
   已取证的相邻读数为 4 段写出测试，引用不冒认。
-- T1 原子写+mask: 64×48 渐变场+分段 mask、BITPIX=-32、prov 全字段 → rc=0、
+- T1 原子写: 64×48 渐变场、BITPIX=-32、prov 全字段 → rc=0、
   coverage_ok=1、reopen_ok=1、sha256 64hex。
-- T2 独立 verify: 重开 dims/像素回环（NaN==NaN）/coverage 二值门/
+- T2 独立 verify: 重开 dims/像素回环（NaN==NaN）/
   sha256 重算一致。
 - T3 原子性: 无 .tmp 残留（filesystem 遍历替代 popen；前缀弱匹配差异
   见本页「已知限制与缺陷登记（登记不改码）」，不误报）。

@@ -1860,7 +1860,7 @@ worker 数无关、同 worker 数下位精确；dense 物化 bit-identical
  const char* bunit, const char* output_path, const P3Provenance* prov,
  int bitpix, int cancelled_at_row, P3OutputResult* result)`
  （h:45-53 声明，实现 p3_output.cpp:117-335）: 原子写入口——
- signal 主 HDU + COVERAGE 扩展 HDU 合成单文件；tmp → fits_flush_file
+ signal 单 HDU（仅 PRIMARY 数据层，无扩展 HDU）合成单文件；tmp → fits_flush_file
  → close → fsync(fd) → rename（R10-C 冻结序，:221-273）；取消
  （cancelled_at_row≥0）/任一步失败 → unlink 不发布（h:41-44）。
  数据域=DATA-P3-FITS ；bitpix∈{-32,-64}（:140-145）；
@@ -1874,8 +1874,8 @@ worker 数无关、同 worker 数下位精确；dense 物化 bit-identical
  P3WcsDescriptor* wcs, const float* signal, const float* coverage,
  int width, int height, P3OutputResult* result)`
  （h:57-60 声明，实现 p3_output.cpp:310-382）: 独立重开验证
- （READONLY fits_open_file :312）——逐 HDU 尺寸/像素回环
- （NaN==NaN 一致 :327-330）+ coverage 二值门（>0.5f :346）+
+ （READONLY fits_open_file :312）——单 HDU 尺寸/像素回环
+ （NaN==NaN 一致 :327-330）+
  sha256 重算（失败→IO 不带假哈希 :356-366）。wcs 参数现状忽略
  （:305 (void)wcs，WCS 一致性由写路径单点保证，:301-302 注释）。
  rc: 0=OK / 1=PARAM（path/result null、W/H<1）/ 2=IO。线程安全=
@@ -2263,12 +2263,11 @@ acsd_status p3_session_destroy(acsd_handle);
 | `sampler` | 枚举 | "nearest"|"bilinear"(默认 bilinear, SCI-P3 a-7) |
 | `longitude_parity` | 枚举 | "east_left"(默认, CD1_1<0)|"east_right" |
 | `bitpix` | 枚举 | -32|-64 |
-| `coverage_output` | 枚举 | "mask"(二值) 单值;通道/weight 模式不存在 |
 | `max_tiles` | int | 可降不可升超内存守卫(ARCH-P3 「result」一节) |
 
 ### `export` 结果（inspect JSON）
 
-`{run_id, exit_code, output_fits_path, sha256, order_sel_used, sampler_used, provenance{hips_id, manifest_hash, missing_tiles[], software_version}, coverage_stats{covered_px, total_px}, timings}`;输出 FITS 本体=原子产物(S+C 合成或 COV 扩展, 由 CODE-P3 按 API-002 manifest 落实, 二选一在实现中冻结)。
+`{run_id, exit_code, output_fits_path, sha256, order_sel_used, sampler_used, provenance{hips_id, manifest_hash, missing_tiles[], software_version}, coverage_stats{covered_px, total_px}, timings}`;输出 FITS 本体=单 HDU 原子产物（仅 PRIMARY signal 数据层，无扩展 HDU）。
 
 ### `export` 显式拒绝清单（输入不明确即确定错误，不做猜测）
 
@@ -2284,11 +2283,9 @@ acsd_status p3_session_destroy(acsd_handle);
 | tile 内 NaN | 非错误:S=NaN+C=1 |
 | IO/运行失败 | ACS_ERR_IO/安全中止(ARCH-P3 「显式拒绝清单」一节) |
 
-- variance/ivar 子产品输入**不属拒绝项**（SCI-P3 a-10 / DATA-P3-UNC-001）：输入 HiPS 含
- variance/ivar 时必须显式消费传播，输出 `VARIANCE`/`IVAR` 扩展 HDU；两者皆无时显式
- `unavailable`（禁静默）。实现锚：`lib/algorithms/resample/p3_resample.cpp`
- （`p3_uncertainty_open` / `p3_uncertainty_propagate`）、`lib/phase3_session/p3_export.cpp`
- （`VARIANCE` HDU 写出）。失败路径错误码（`p3_uncertainty_open`，`p3_resample.cpp`）：
+- variance/ivar 子产品输入**不属拒绝项**（SCI-P3 a-10 / DATA-P3-UNC-001）：产品为默认唯一的单 HDU 形态，只写 PRIMARY signal 数据层，**不输出** `VARIANCE`/`IVAR` 扩展 HDU；manifest 显式写
+ `uncertainty_available=false`（单 HDU 产品形态的显式登记，禁静默）。实现锚：`lib/algorithms/resample/p3_resample.cpp`
+ （`p3_uncertainty_open` / `p3_uncertainty_propagate`）。失败路径错误码（`p3_uncertainty_open`，`p3_resample.cpp`）：
  参数 NULL → `P3_RS_PARAM`（p3_resample.cpp）；properties 读取失败或 sampler 分配/HiPS 打开失败 →
  `P3_RS_IO`（p3_resample.cpp 三处，fail-closed 不静默跳过）；properties 键集解析失败或 order 与
  signal 覆盖面错位 → `P3_RS_PARAM`（p3_resample.cpp，无 silent default）；variance/ivar 两者皆无 →
@@ -2306,7 +2303,7 @@ acsd_status p3_session_destroy(acsd_handle);
 
 ### 机器检查项
 
-eng/tests/api/test_p3_api.py：生命周期五函数/request 十字段/拒绝清单与 SCI-P3 文本同源交叉核对/锚点齐。
+eng/tests/api/test_p3_api.py：生命周期五函数/request 九字段/拒绝清单与 SCI-P3 文本同源交叉核对/锚点齐。
 
 ## 参考文献
 
