@@ -9644,8 +9644,13 @@ bool p2_sample_cfg_from_doc(const Json& doc, P2SamplerConfig* sc,
   return true;
 }
 
-// ── op: sample_frames（唯一真实入口 p2_frame_id + p2_sample_controls_cached;
+// ── op: sample_frames（唯一真实入口 p2_frame_id + p2_sample_controls_cached_with_halos;
 //      两阶段查询/回填; 消费上游 coverage artifact, 缺失即 DATA fail-closed）──
+// task-7（PHASE2_SAMPLER.md §5.9 流程必经语义，无开关）：
+//   按 coverage union 裁剪查询区域 → gaia_client_cone_search
+//   （mag_low=-1.5，mag_high=halo_mag_thresh 默认 8.0）→ 阈值以上全部逐星
+//   按 r(m) 成帽 → p2_sample_controls_cached_with_halos。
+//   查询不到即空帽通过，不停流程。半径函数/截断/回退上限不归本段（sampler 侧）。
 Result<void> p2_op_sample(const Json& doc, Json* man) {
   const std::string out_dir = doc.value("output_dir", std::string("."));
   Json cov_doc;
@@ -9687,22 +9692,189 @@ Result<void> p2_op_sample(const Json& doc, Json* man) {
   (*man)["sampler_config_source"] =
       doc.contains("model") ? "config.model+defaults" : "compiled_defaults";
 
+  // task-7 Gaia 晕掩膜必经查询（PHASE2_SAMPLER.md §5.9，无开关）：
+  // (i) 查询区域 = coverage union（union 不可用时取各帧 footprint 并集——
+  //     此处 union cell 即 footprint 并集的去重形态，之外天区不发起查询）；
+  // (ii) 星等窗 mag_low=-1.5 至 mag_high=halo_mag_thresh（显式改阈值上沿同动）。
+  // 阈值以上查出的星全部逐星按 r(m) 成帽，无颗数限制。
+  // 成帽逻辑不复用固定 star_mask_radius_deg：只透传 ra/dec/mag，半径由采样器
+  // 侧 p2_gaia_halo_radius_px 按星等定半径现场求出。查询不到（无星表目录/
+  // 查询失败/零返回）即空帽（halos.n=0）通过，不停流程。
+  std::vector<double> halo_ra, halo_dec, halo_mag;
+  std::string halo_src = "absent";
+  std::size_t halo_regions = 0, halo_queried = 0;
+  {
+    std::string gaia_dir;
+    if (doc.contains("gaia_data_dir") && doc["gaia_data_dir"].is_string())
+      gaia_dir = doc["gaia_data_dir"].get<std::string>();
+    else if (doc.contains("model") && doc["model"].is_object() &&
+             doc["model"].contains("gaia_data_dir") &&
+             doc["model"]["gaia_data_dir"].is_string())
+      gaia_dir = doc["model"]["gaia_data_dir"].get<std::string>();
+    if (const char* env = std::getenv("ACSD_GAIA_DATA_DIR")) {
+      if (gaia_dir.empty() && env[0] != '\0') gaia_dir = env;
+    }
+    GaiaClient* gaia = gaia_dir.empty() ? nullptr : gaia_client_create(gaia_dir.c_str());
+    if (gaia) {
+      const double kDeg2Rad = 3.14159265358979323846 / 180.0;
+      const double kRad2Deg = 180.0 / 3.14159265358979323846;
+      // union cell 中心方向 + 保守外接圆半径：cell 角边长 = sqrt(4π/(12·4^o))，
+      // 外接圆半径 = 边长/√2（正方形 cell 对角线一半），再 ×1.25 裕量防漏边。
+      const double kCellPad = 1.25;
+      auto cell_radius = [&](uint64_t order) {
+        const double side = kRad2Deg * std::sqrt(3.14159265358979323846 /
+                                                (3.0 * std::pow(4.0, (double)order)));
+        return side / std::sqrt(2.0) * kCellPad;
+      };
+      const double mag_low = -1.5;
+      const double mag_high = sc.halo_mag_thresh;  // 缺键=8.0（默认单一来源）
+      for (const auto& c : view.cells) {
+        const uint64_t nside = 1ull << c.order;
+        double ra = 0.0, dec = 0.0;
+        acsd::healpix::pix2ang_nest((uint32_t)nside, c.ipix, ra, dec);
+        if (!std::isfinite(ra) || !std::isfinite(dec)) continue;
+        const double rad = cell_radius(c.order);
+        if (!(rad > 0.0) || !std::isfinite(rad)) continue;
+        ++halo_regions;
+        GaiaStar* stars = nullptr;
+        int n_stars = 0;
+        if (gaia_client_cone_search(gaia, ra, dec, rad, mag_low, mag_high,
+                                    &stars, &n_stars) != 0) {
+          if (stars) free(stars);
+          continue;  // 单区域失败不阻断：该区域按空帽通过
+        }
+        if (n_stars <= 0 || !stars) {
+          if (stars) free(stars);
+          continue;
+        }
+        // 阈值以上查出的星全部逐星成帽（无颗数限制），按 G 升序稳定以保证确定性。
+        std::vector<int> idx((size_t)n_stars);
+        for (int i = 0; i < n_stars; ++i) idx[(size_t)i] = i;
+        std::sort(idx.begin(), idx.end(),
+                  [&](int a, int b) {
+                    if (stars[a].magG != stars[b].magG) return stars[a].magG < stars[b].magG;
+                    return a < b;
+                  });
+        for (int k = 0; k < n_stars; ++k) {
+          const GaiaStar& s = stars[idx[(size_t)k]];
+          if (!std::isfinite(s.ra) || !std::isfinite(s.dec) || !std::isfinite(s.magG))
+            continue;
+          if (s.magG > mag_high) continue;  // 窗上沿（阈值同动）
+          halo_ra.push_back(s.ra);
+          halo_dec.push_back(s.dec);
+          halo_mag.push_back(s.magG);
+          ++halo_queried;
+        }
+        free(stars);
+      }
+      gaia_client_destroy(gaia);
+      halo_src = gaia_dir;
+    }
+  }
+  // 位置量化 1e-4° 去重（跨区域重复星；与普通星帽同口径），再按 G 升序稳定。
+  {
+    std::vector<size_t> ord(halo_ra.size());
+    for (size_t i = 0; i < ord.size(); ++i) ord[i] = i;
+    std::sort(ord.begin(), ord.end(), [&](size_t a, size_t b) {
+      const long long qa = (long long)std::llround(halo_ra[a] * 1e4);
+      const long long qb = (long long)std::llround(halo_ra[b] * 1e4);
+      if (qa != qb) return qa < qb;
+      const long long da = (long long)std::llround(halo_dec[a] * 1e4);
+      const long long db = (long long)std::llround(halo_dec[b] * 1e4);
+      if (da != db) return da < db;
+      if (halo_mag[a] != halo_mag[b]) return halo_mag[a] < halo_mag[b];
+      return a < b;
+    });
+    std::vector<double> ra2, dec2, mag2;
+    ra2.reserve(halo_ra.size());
+    dec2.reserve(halo_dec.size());
+    mag2.reserve(halo_mag.size());
+    long long pra = 0, pdec = 0;
+    bool have = false;
+    for (size_t k : ord) {
+      const long long qa = (long long)std::llround(halo_ra[k] * 1e4);
+      const long long qd = (long long)std::llround(halo_dec[k] * 1e4);
+      if (have && qa == pra && qd == pdec) continue;
+      have = true;
+      pra = qa;
+      pdec = qd;
+      ra2.push_back(halo_ra[k]);
+      dec2.push_back(halo_dec[k]);
+      mag2.push_back(halo_mag[k]);
+    }
+    halo_ra.swap(ra2);
+    halo_dec.swap(dec2);
+    halo_mag.swap(mag2);
+  }
+  // 锚定像素尺度：首帧 HiPS properties hips_pixel_scale（角秒/像素）；
+  // 缺失/非法 → 采样器侧 gaia_halo_hit 按 anchor<=0 恒 false（空帽语义），不停流程。
+  double anchor_scale = 0.0;
+  if (!view.hips_paths.empty()) {
+    // properties 经 aio 读面取（与 p2_frame_id 同源键 hips_pixel_scale）。
+    // 轻量实现：直接解析 HiPS properties 文本首个 hips_pixel_scale 行。
+    std::string ptext;
+    const std::string ppath = view.hips_paths[0] + "/properties";
+    if (aio_fs::read_all(ppath, &ptext)) {
+      std::istringstream iss(ptext);
+      std::string line;
+      while (std::getline(iss, line)) {
+        const auto pos = line.find('=');
+        if (pos == std::string::npos) continue;
+        if (line.compare(0, pos, "hips_pixel_scale") == 0) {
+          try {
+            anchor_scale = std::stod(line.substr(pos + 1));
+          } catch (...) {
+            anchor_scale = 0.0;
+          }
+          break;
+        }
+      }
+    }
+  }
+  P2GaiaHaloCaps halos{};
+  halos.ra_deg = halo_ra.empty() ? nullptr : halo_ra.data();
+  halos.dec_deg = halo_dec.empty() ? nullptr : halo_dec.data();
+  halos.mag_g = halo_mag.empty() ? nullptr : halo_mag.data();
+  halos.n = (uint64_t)halo_ra.size();
+  halos.mag_thresh = sc.halo_mag_thresh;
+  halos.r8 = sc.halo_r8;
+  halos.a = sc.halo_a;
+  halos.r_min = sc.halo_r_min;
+  halos.r_max = sc.halo_r_max;
+  halos.anchor_pixel_scale_arcsec = anchor_scale;
+  halos.pixel_scale_ratio = 1.0;  // 同口径帧（跨帧尺度比由调用方逐帧注入时扩展）
+  halos.use_fallback = 0;         // 常规 r；缝回退由验收失败→全量重跑驱动
+  halos.fallback_factor = sc.seam_fallback_factor;
+  halos.fallback_r_max = sc.seam_fallback_r_max;
+  (*man)["gaia_halo"] = Json{{"source", halo_src},
+                             {"regions", halo_regions},
+                             {"stars_queried", halo_queried},
+                             {"stars_retained", halos.n},
+                             {"mag_low", -1.5},
+                             {"mag_high", sc.halo_mag_thresh}};
+
+  auto run_sample = [&](P2ControlObservation* obs_ptr, uint64_t obs_cap,
+                        P2ControlNode* node_ptr, uint64_t node_cap,
+                        uint64_t* o_nobs, uint64_t* o_nctrl,
+                        P2SampleStats* o_stats, char* ebuf, size_t esz) {
+    return p2_sample_controls_cached_with_halos(
+        &view.cov, view.path_ptrs.data(), frame_ids.data(), &sc, &halos,
+        obs_ptr, obs_cap, o_nobs, o_nctrl, o_stats, node_ptr, node_cap,
+        ebuf, esz);
+  };
   uint64_t n_obs = 0, n_controls = 0;
   P2SampleStats stats{};
-  int rc = p2_sample_controls_cached(&view.cov, view.path_ptrs.data(),
-                                     frame_ids.data(), &sc, nullptr, 0,
-                                     &n_obs, &n_controls, &stats,
-                                     nullptr, 0, nullptr, 0);
+  int rc = run_sample(nullptr, 0, nullptr, 0, &n_obs, &n_controls, &stats,
+                      nullptr, 0);
   if (rc != 0 && n_obs == 0)
     return Result<void>::fail(Error(ErrorDomain::DATA,
-        std::string("p2_sample_controls_cached(query) failed rc=") + std::to_string(rc)));
+        std::string("p2_sample_controls_cached_with_halos(query) failed rc=") +
+        std::to_string(rc)));
   std::vector<P2ControlObservation> obs(n_obs > 0 ? n_obs : 1);
   std::vector<P2ControlNode> nodes(n_controls > 0 ? n_controls : 1);
   char errbuf[512] = {0};
-  rc = p2_sample_controls_cached(&view.cov, view.path_ptrs.data(),
-                                 frame_ids.data(), &sc, obs.data(), n_obs,
-                                 &n_obs, &n_controls, &stats, nodes.data(),
-                                 n_controls, errbuf, sizeof(errbuf));
+  rc = run_sample(obs.data(), n_obs, nodes.data(), n_controls, &n_obs,
+                  &n_controls, &stats, errbuf, sizeof(errbuf));
   if (rc != 0)
     return Result<void>::fail(Error(ErrorDomain::DATA,
         std::string("p2_sample_controls_cached failed rc=") + std::to_string(rc) +
@@ -9740,7 +9912,7 @@ Result<void> p2_op_sample(const Json& doc, Json* man) {
 
   const std::string out_path = out_dir + "/p2_samples.json";
   Json artifact = Json{{"schema", "DATA-P2-SMP"},
-                       {"entry", "p2_sample_controls_cached"},
+                       {"entry", "p2_sample_controls_cached_with_halos"},
                        {"input_manifest_hash", manifest_hash},
                        {"target_order", view.cov.target_order}, {"control_grid_per_tile", sc.control_grid_per_tile},
                        // CONFORM-FIX-B-014: 生效 sampler 配置全量落盘（调参后
@@ -9762,7 +9934,20 @@ Result<void> p2_op_sample(const Json& doc, Json* man) {
                             {"control_k_corr", sc.control_k_corr},
                             {"star_mask_snr_factor", sc.star_mask_snr_factor},
                             {"star_mask_radius_deg", sc.star_mask_radius_deg},
+                            {"halo_mag_thresh", sc.halo_mag_thresh},
+                            {"halo_r8", sc.halo_r8},
+                            {"halo_a", sc.halo_a},
+                            {"halo_r_min", sc.halo_r_min},
+                            {"halo_r_max", sc.halo_r_max},
+                            {"seam_fallback_factor", sc.seam_fallback_factor},
+                            {"seam_fallback_r_max", sc.seam_fallback_r_max},
                             {"cpu_workers", sc.cpu_workers}}},
+                       // task-7 Gaia 晕掩膜查询面（PHASE2_SAMPLER.md §5.9 可审计面）
+                       {"gaia_halo", Json{{"regions", halo_regions},
+                                          {"stars_queried", halo_queried},
+                                          {"stars_retained", halos.n},
+                                          {"mag_low", -1.5},
+                                          {"mag_high", sc.halo_mag_thresh}}},
                        {"frame_ids", fid_j},
                        {"n_obs", n_obs},
                        {"n_controls", n_controls},
@@ -9773,6 +9958,8 @@ Result<void> p2_op_sample(const Json& doc, Json* man) {
                                       {"rejected_bright_tolerance", stats.rejected_bright_tolerance},
                                       {"rejected_high_contamination", stats.rejected_high_contamination},
                                       {"rejected_catalog_veto", stats.rejected_catalog_veto},
+                                      {"rejected_simple_mask", stats.rejected_simple_mask},
+                                      {"rejected_gaia_halo", stats.rejected_gaia_halo},
                                       {"rejected_lt_two_clean_frames", stats.rejected_lt_two_clean_frames},
                                       {"accepted_controls", stats.accepted_controls},
                                       {"overlap_controls", stats.overlap_controls}}},
