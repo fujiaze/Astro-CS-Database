@@ -67,7 +67,7 @@ per-pixel 科学场产品；session 依赖（coverage 数据面显式传入）�
 内核级真实 I/O 合同 = DATA-P2-SMP（本页输入输出端口表）：
 
 - 输入 = `P2CoverageResult`（n_union 上限 1e6、cells 上限 2e8）+ `hips_paths` /
-  `frame_ids`（cached 版可空 = 内部重算；0 = 非法哨兵）+ `P2SamplerConfig` 15 字段
+  `frame_ids`（cached 版可空 = 内部重算；0 = 非法哨兵）+ `P2SamplerConfig` 17 字段
   （默认单一来源 sampler.cpp；`<=0 → 默认` 修补吞显式 0，登记见采样算法分册的冻结附录一节）；
 - 输出 = `P2ControlObservation` 13 字段（frame_id / control_id / leaf_ipix u64，
   ra_deg / dec_deg / value / uncertainty / snr / ivar / control_variance /
@@ -131,21 +131,67 @@ entrypoint = 产品组 + coverage + validity + 检测目录 + SNR → star_mask 
 ## Registry descriptor 与配置 schema
 
 module_id=`acsd.phase2.sample`（占位）；execution_class=`cpu_heavy`;
-parallel_ok=True。配置 = `P2SamplerConfig` 15 字段（sampler.h；默认
+parallel_ok=True。配置 = `P2SamplerConfig` 17 字段（sampler.h；默认
 `p2_sampler_default_config`）+ sccfg 14 字段显式透传（stage2.cpp；`control_k_corr`
 未透传，零初始化经 impl 修补回退默认）。
 
+`P2SamplerConfig` 逐字段登记（声明 = sampler.h，默认单一来源 =
+sampler.cpp 的 `p2_sampler_default_config`，修补语义 = impl 入口
+`<=0 → 默认`，吞显式 0）［1］［2］［3］：
+
+| 字段 | 默认 | 单位 | 口径说明 |
+|---|---|---|---|
+| `control_grid_per_tile` | 8 | —— | 每 union tile 内 control cell 网格数（`control_id` = cell 索引） |
+| `patch_radius_leaf` | 2 | leaf | 观测 patch 半径（5×5 窗） |
+| `min_samples` | 5 | 像素 | 观测 patch 有效样本最小数 |
+| `snr_search_radius_deg` | 0.05 | deg | SNR 邻域值检索半径（缺星回退帧精确中位，`snr_available = 0` 不伪装） |
+| `background_patch_radius` | 8 | leaf | 背景 patch 半径（17×17 窗；Stage A 候选 patch） |
+| `background_clip_sigma` | 3.0 | MAD | 亮端迭代 clipping 阈值（Stage B，保留负值） |
+| `background_clip_iters` | 3 | 次 | 亮端 clipping 迭代次数 |
+| `background_max_contamination` | 0.20 | 占比 | 亮像素占比上限（Stage D 双门之一） |
+| `background_contamination_sigma` | 3.0 | MAD | 污染判定 sigma |
+| `background_min_retained_fraction` | 0.60 | 占比 | clipping 后保留比例下限（Stage D 双门之一） |
+| `background_tolerance` | 3.0 | MAD | DBE-like 局部 tolerance gate（Stage C，同 tile 邻域基线） |
+| `background_neighbor_radius` | 2 | cell | 局部 baseline 邻域 cell 半径 |
+| `background_catalog_veto` | 1 | 开关 | 允许 SNR catalogue veto（Stage E 总开关；关 = 跳过该 veto） |
+| `control_k_corr` | 1.4 | —— | Drizzle 相关放大（冻结保守值；逐帧按 provenance 查表，回退用此值） |
+| `star_mask_snr_factor` | 10.0 | —— | 星掩膜口径：星表 snr > 该倍数 × 帧级 SNR 中位数即入掩膜（无量纲；与 catalog veto 同源） |
+| `star_mask_radius_deg` | 0.012 | deg | 星掩膜口径：入选星按此半径膨胀为球面圆帽（与 catalog veto 半径同源） |
+| `cpu_workers` | 1 | —— | Runtime lease 唯一来源（`budget.max_workers` 透传；1 = 串行 reference；模块不读硬件并发数） |
+
+星掩膜两字段是同一物理量的两处消费：第一遍 catalog veto 阈值
+`thr = star_mask_snr_factor × frame_snr_med`、半径 `rad = star_mask_radius_deg`
+（sampler.cpp 第一遍 veto 块；`veto = 1, reason = 5`，计入
+`P2SampleStats.rejected_catalog_veto`）［4］；星帽生成跨帧阈值与半径用同一对
+配置（位置量化 1e-4° 去重，`kind = P2_STAR_MASK_STAR`）［5］。新掩膜通道
+（普通星简单掩膜、Gaia 晕掩膜）尚无配置字段：结构体无对应键，默认值与修补
+均未落地，属新增面（见本页星掩膜函数登记）。
+
 | 字段 | 默认 | 单位 | 说明 |
 |---|---|---|---|
-| `spacing` | —— | px/deg | 空间采样间隔（光度控制点） |
-| `sky_sample_spacing` | —— | px/deg | 天光采样点网格间距（粗于像素网格；须与**由输入几何导出**的样条节点间距相容 —— 每个节点邻域内有足够采样点） |
-| `bright_star_mask` | —— | —— | 亮星排除半径（按 PSF 倍数） |
-| `min_control_points` | —— | —— | 光度控制点数量下限 |
-| `min_sky_samples` | —— | —— | 每帧天光采样点数量下限 |
-| `local_estimator` | `robust_median` | —— | 局部背景估计器（robust_median / trimmed_mean） |
+| `spacing` | —— | px/deg | 空间采样间隔（光度控制点；编排层 descriptor 词汇，无内核映射） |
+| `sky_sample_spacing` | —— | px/deg | 天光采样点网格间距（粗于像素网格；须与**由输入几何导出**的样条节点间距相容 —— 每个节点邻域内有足够采样点；编排层词汇） |
+| `bright_star_mask` | 见实现映射 | —— | 亮星排除 = `star_mask_snr_factor`（默认 10.0，无量纲）+ `star_mask_radius_deg`（默认 0.012°）：星表 snr 超阈星按半径膨胀为球面圆帽，随控制点集分发（`P2StarMaskCap[]`，`kind = P2_STAR_MASK_STAR`）；按 PSF 倍数可调的半径不是本模块的实现口径 |
+| `min_control_points` | —— | —— | 光度控制点数量下限（编排层词汇，无内核映射） |
+| `min_sky_samples` | —— | —— | 每帧天光采样点数量下限（编排层词汇，无内核映射） |
+| `local_estimator` | `robust_median` | —— | 局部背景估计器（robust_median / trimmed_mean；内核实现为 median + MAD 亮端 clipping，同 `p2_sky_patch_estimate` 数学定义） |
 
 采样 / 天光面的**施加侧**配置（`additive_mode`、`sky_plane.enabled`）登记在
 registry/acsd.phase2.upm-fit.md（采样模块只产点表，不施加归一化）。
+
+### 星掩膜函数登记
+
+掩膜载体 = `P2StarMaskCap`（`ra_deg / dec_deg / radius_deg / kind`），kind 枚举仅
+`P2_STAR_MASK_STAR = 0 / SATURATION = 1 / HIGH_STRUCTURE = 2` 三值；生产路径只产
+`STAR`，`SATURATION` 与 `HIGH_STRUCTURE` 尚无生产者（sampler 星帽生成固定
+`kind = P2_STAR_MASK_STAR`）［6］。
+
+| 函数 | 签名语义 | 调用方与现状 |
+|---|---|---|
+| `p2_star_mask_caps` | 输入星表 `ra / dec / snr` 与阈值 `snr_threshold`、半径 `radius_deg`，`snr > threshold` 者逐星成帽（`kind = STAR`）；`out` 可空查容量，`out_n` 写真实需求；参数错误回 1；非有限坐标与 snr 逐点跳过 | 公共函数（sky_plane.h 声明、sky_plane.cpp 实现）［6］［7］；采样生产路径（veto 与星帽）不调用此函数：veto 经 `SnrIndex::any_above` 查询，星帽经内联量化去重块生成；实验侧有独立消费者（`实验/absolute-snr` 重建驱动） |
+| `p2_star_mask_contains` | 点 `(ra, dec)` 是否落任一圆帽（含边界）：球面余弦定理 + `acos` 终判；1 = 命中，0 = 未命中，-1 = 参数错误（空指针或非有限坐标） | 公共函数（同上）［6］［7］；采样生产路径不调用（同上）；合流后的两类新掩膜帽经此查询执行 veto 属设计目标态（未落地） |
+| `p2_simple_bright_mask_*`（候选新增） | 普通星简单掩膜：图像阈值 + 连通区 → `P2StarMaskCap[]`（固定小半径），覆盖全星等普通星（含星表缺失与饱和情形）；输入 = Phase1 HiPS signal / support，输出 = 与现有帽数组直接合并的帽集 | 现状无实现：采样器与天光面内无图像阈值掩膜生成器（`nbright / bright_fraction` 只是 patch 内污染统计量，不是掩膜），仓内阈值连通区实现均在 Phase1 或排异域；落点候选三选一（sampler 内静态函数、sky_plane 旁新函数、独立模块），未定 |
+| `p2_star_mask_caps_gaia_halo`（候选新增） | Gaia 晕掩膜：区域最亮星（默认 G < 8，可迭代）按星等定晕半径成帽；半径规则含亮度幂次系数，与固定 `star_mask_radius_deg` 不能复用同一参数；`kind` 新增晕值或复用 `STAR`，二选一未定 | 现状无实现、无输入：采样器只消费 SNR catalogue，不消费 Gaia；Gaia 帽输入需由调用方（stage2 工具或编排层采样算子）经 `gaia_client_cone_search` 查询后传入，`p2_sample_controls_cached` 签名是否扩展未定；星等→半径函数的推导归科学分册 |
 
 ## Execution class、并行轴、ThreadBudget lease、确定性
 
@@ -228,8 +274,29 @@ Oracle 面：
 
 - 缺陷与现行语义正本 = `docs/science/algorithms/mosaic/PHASE2_SAMPLER.md`［A-1］（登记不
   改码）：cfg `<=0 → 默认` 吞显式 0；`insufficient_retained` 双计数；stderr 直写；
-  veto 阈值与半径硬编码；零背景尺度收敛阈值退化全迭代；整改面未落地；
+  catalog veto 与星帽的阈值半径已入配置面（`star_mask_snr_factor` /
+  `star_mask_radius_deg` 两处同源消费，DISP-P2SMP-004 闭环）；新掩膜通道（普通星简单掩膜、Gaia 晕掩膜）无配置字段、无实现、无调用
+  方，`SATURATION / HIGH_STRUCTURE` kind 尚无生产者；`P2SampleStats` 尚无新 veto
+  的独立计数器（新增 veto 若落地，混入既有 `rejected_catalog_veto` 则诊断不可分）；
+  零背景尺度收敛阈值退化全迭代；整改面未落地；
 - ThreadLease / 取消检查点接线未落地；目标交付形态
   `acsd_p2_sampling.dll` 尚未落地；descriptor 占位 module_id 与合同值
   `acsd.p2.sampling` 的对齐属迁移目标（未落地）；
 - 全局限制登记 = artifacts/evidence/known-limitations-ledger/LIMITATIONS.md。
+
+## 参考文献
+
+- ［1］ `lib/algorithms/coverage/include/astro/phase2/sampler.h`（`P2SamplerConfig`
+  声明、`p2_sampler_default_config` 与 `p2_sample_controls_cached` 签名）
+- ［2］ `lib/algorithms/coverage/src/sampler.cpp`（默认值单一来源、配置修补、
+  第一遍 catalog veto、星帽生成）
+- ［3］ `lib/algorithms/coverage/src/sampler.cpp`（`SnrIndex::any_above / query`
+  的 dec 排序 + RA 保守窗 + 精确角距终判）
+- ［4］ `lib/algorithms/coverage/src/sampler.cpp`（第一遍 veto 块：阈值、半径、
+  `veto = 1, reason = 5`）
+- ［5］ `lib/algorithms/coverage/src/sampler.cpp`（星帽生成块：跨帧阈值、
+  位置量化 1e-4° 去重、`kind = P2_STAR_MASK_STAR`）
+- ［6］ `lib/algorithms/coverage/include/astro/phase2/sky_plane.h`
+ （`P2StarMaskCap`、`P2_STAR_MASK_*` kind、`p2_star_mask_caps / contains` 声明）
+- ［7］ `lib/algorithms/coverage/src/sky_plane.cpp`（`p2_star_mask_caps / contains`
+  实现：阈值成帽、`kind = STAR`、球面余弦定理 + `acos` 终判）
