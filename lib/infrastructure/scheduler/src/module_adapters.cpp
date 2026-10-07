@@ -9700,9 +9700,15 @@ Result<void> p2_op_sample(const Json& doc, Json* man) {
   // 成帽逻辑不复用固定 star_mask_radius_deg：只透传 ra/dec/mag，半径由采样器
   // 侧 p2_gaia_halo_radius_px 按星等定半径现场求出。查询不到（无星表目录/
   // 查询失败/零返回）即空帽（halos.n=0）通过，不停流程。
+  // 晕掩膜证伪停用：以下 Gaia 查询整段只注释不删除（性能优化与 export slim 保留）。
+  // RERUN2/RERUN3 对比洞为次因，缝主因为 M1/M4 混合 pedestal 差。
+  // 停用期间走空帽语义（halos.n=0，查询计数恒 0，source="disabled-halo-falsified"），
+  // with_halos 入口保留（不停采样流程）。
   std::vector<double> halo_ra, halo_dec, halo_mag;
-  std::string halo_src = "absent";
+  std::string halo_src = "disabled-halo-falsified";
   std::size_t halo_regions = 0, halo_queried = 0;
+#if 0
+// [晕掩膜证伪停用：Gaia 查询原实现保留，见本 #if 0 分支；#endif 后为空帽直通]
   {
     std::string gaia_dir;
     if (doc.contains("gaia_data_dir") && doc["gaia_data_dir"].is_string())
@@ -9771,7 +9777,12 @@ Result<void> p2_op_sample(const Json& doc, Json* man) {
       halo_src = gaia_dir;
     }
   }
+#else
+// [晕掩膜证伪停用：查询段整体停用，空帽直通；halo_* 计数恒 0，anchor_scale=0 → 采样侧恒 false]
+#endif
   // 位置量化 1e-4° 去重（跨区域重复星；与普通星帽同口径），再按 G 升序稳定。
+#if 0
+// [晕掩膜证伪停用：去重段随查询段停用（空向量上去重恒空操作），原实现保留]
   {
     std::vector<size_t> ord(halo_ra.size());
     for (size_t i = 0; i < ord.size(); ++i) ord[i] = i;
@@ -9806,9 +9817,13 @@ Result<void> p2_op_sample(const Json& doc, Json* man) {
     halo_dec.swap(dec2);
     halo_mag.swap(mag2);
   }
+#endif
   // 锚定像素尺度：首帧 HiPS signal/properties 的 hips_pixel_scale（度/像素→×3600为角秒/像素）；
   // 缺失/非法 → 采样器侧 gaia_halo_hit 按 anchor<=0 恒 false（空帽语义），不停流程。
+  // 晕掩膜证伪停用：锚定尺度恒 0（空帽语义），原 properties 解析保留在下 #if 0 分支。
   double anchor_scale = 0.0;
+#if 0
+// [晕掩膜证伪停用：锚定尺度解析原实现保留]
   if (!view.hips_paths.empty()) {
     // properties 经 aio 读面取（与 p2_frame_id 同源键 hips_pixel_scale）。
     // 路径为 <frame>/signal/properties（frame根下无properties文件）；值域为度，需×3600。
@@ -9832,6 +9847,8 @@ Result<void> p2_op_sample(const Json& doc, Json* man) {
       }
     }
   }
+#endif
+// [晕掩膜证伪停用结束：以下 halos 组装为空帽直通（恒 n=0），with_halos 入口保留]
   P2GaiaHaloCaps halos{};
   halos.ra_deg = halo_ra.empty() ? nullptr : halo_ra.data();
   halos.dec_deg = halo_dec.empty() ? nullptr : halo_dec.data();

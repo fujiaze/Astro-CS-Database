@@ -546,6 +546,11 @@ std::vector<std::string> session_blocks_errors(const std::string& session_name,
     }
     if (!errs.empty()) return errs;                        // 结构错优先（与平铺同序）
     if (!include_unknown_keys) return errs;                // 预检页：结构错面
+    // 晕掩膜证伪停用：mosaic model 七键门恢复此改动前形态（只注释不删除；
+    // 性能优化与 export slim 保留）。RERUN2/RERUN3 对比洞为次因，
+    // 缝主因为 M1/M4 混合 pedestal 差。model 键识别保留；七子键一律按
+    // unknown-key 拒绝（配了也不生效，由 stage2_common 白名单与
+    // module_adapters 解析保留兜底注释）。
     // task-7 mosaic 白名单 model 七键门（与 stage2_common.cpp 同子键口径）：
     // model 须为对象；七子键之外出现即未知键（与顶层 unknown key 同码 3）。
     // normalize/export 不认 model（其块内出现即未知键）。CLI 面再做与
@@ -566,6 +571,8 @@ std::vector<std::string> session_blocks_errors(const std::string& session_name,
             out.push_back(at + ".model must be an object");
             return out;
         }
+#if 0
+// [晕掩膜证伪停用：model 七子键白名单+值域门原实现保留，见本 #if 0 分支]
         static const std::set<std::string> kModel = {
             "halo_mag_thresh", "halo_r8", "halo_a",
             "halo_r_min", "halo_r_max",
@@ -613,6 +620,22 @@ std::vector<std::string> session_blocks_errors(const std::string& session_name,
             return out;
         }
         return out;
+#else
+// [晕掩膜证伪停用：七子键一律 unknown-key 拒绝；model 空对象仍可通过]
+        static const char* kHaloSeven[] = {
+            "halo_mag_thresh", "halo_r8", "halo_a",
+            "halo_r_min", "halo_r_max",
+            "seam_fallback_factor", "seam_fallback_r_max"};
+        for (auto it = m.begin(); it != m.end(); ++it) {
+            for (const char* k : kHaloSeven) {
+                if (it.key() == k) {
+                    out.push_back(at + ".model has unknown key '" + it.key() + "'");
+                    break;
+                }
+            }
+        }
+        return out;
+#endif
     };
     // 块内未知键（结构可达才报；与顶层 unknown key 同码 3）
     for (std::size_t i = 0; i < blocks.size(); ++i) {
@@ -676,6 +699,8 @@ int validate_config_full(const std::string& path, nlohmann::json* doc_out,
             return acsd::INPUT;                   // 防拼写静默忽略 → 3
         }
     }
+    // 晕掩膜证伪停用：平铺面 model 七键门同步恢复改动前形态（只注释不删除）。
+    // model 键识别保留；七子键一律 unknown-key 拒绝（rc=3），配了也不生效。
     // task-7 mosaic 平铺面 model 七键门（与块内同口径；normalize/export 不认 model）。
     // 键门（对象形态 + 七子键白名单）+ 与 p2_sample_cfg_from_doc /
     // stage2_common.cpp 同口径的值域门；非法值同样 rc=3。
@@ -685,6 +710,8 @@ int validate_config_full(const std::string& path, nlohmann::json* doc_out,
             std::fprintf(stderr, "acsd: model must be an object\n");
             return acsd::INPUT;
         }
+#if 0
+// [晕掩膜证伪停用：平铺面七子键白名单+值域门原实现保留，见本 #if 0 分支]
         static const std::set<std::string> kModel = {
             "halo_mag_thresh", "halo_r8", "halo_a",
             "halo_r_min", "halo_r_max",
@@ -736,6 +763,22 @@ int validate_config_full(const std::string& path, nlohmann::json* doc_out,
         }
         (void)thresh;
         if (!ok) return acsd::INPUT;
+#else
+// [晕掩膜证伪停用：七子键一律 unknown-key 拒绝；model 空对象仍可通过]
+        static const char* kHaloSevenFlat[] = {
+            "halo_mag_thresh", "halo_r8", "halo_a",
+            "halo_r_min", "halo_r_max",
+            "seam_fallback_factor", "seam_fallback_r_max"};
+        for (auto it = m.begin(); it != m.end(); ++it) {
+            for (const char* k : kHaloSevenFlat) {
+                if (it.key() == k) {
+                    std::fprintf(stderr, "acsd: model has unknown key '%s'\n",
+                                 it.key().c_str());
+                    return acsd::INPUT;
+                }
+            }
+        }
+#endif
     }
     if (session_mode && session_name != "mosaic" && doc.contains("model")) {
         std::fprintf(stderr, "acsd: config has unknown key 'model'\n");
