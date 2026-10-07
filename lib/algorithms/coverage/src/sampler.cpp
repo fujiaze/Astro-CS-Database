@@ -744,24 +744,41 @@ static int p2_sample_controls_impl(
     const int leaf_shift = 9;  // tile 内 512×512 leaf
 
     // 打开每帧 signal/support/snr 并收集 tile 集合
+    // PERF-P2 S2.2（sampler pass1 读路径）：逐帧 setup（open + tile 枚举 +
+    // SNR catalogue 读 + ivar 探测 open）按帧并行。位精确论证：
+    //   · 每帧只写自己下标的 sig[i]/sup[i]/ivr[i]/frames[i]（disjoint 写）；
+    //   · frames[i].tiles 是 std::set<ipix>，插入顺序无关（有序容器，内容恒同）；
+    //   · frames[i].snr_* 向量由单次 read_snr_catalog 回填后按 got 截断（与串行同值）；
+    //   · kcorr 由本帧 properties 纯函数得出（frame_drizzle_provenance 只读本帧）；
+    //   · 失败语义：按帧下标升序取首个失败（= 串行首个失败），错误串逐字一致；
+    //     串行 reference = workers=1。stderr 的 k_corr 域外回退行按帧序重排后输出
+    //     （内容逐行一致，顺序恒为帧升序 ⇒ 与串行逐字节一致）。
+    //   · aio_hips_open/read 系调用方各自 open/read/close 零共享可变状态
+    //     （read_tile_pair 注释 PERF-401 同款契约），跨帧并发安全。
     std::vector<AioHipsDataset*> sig(n_frames, nullptr);
     std::vector<AioHipsDataset*> sup(n_frames, nullptr);
     std::vector<AioHipsDataset*> ivr(n_frames, nullptr);   // ivar 产品 (可缺)
     std::vector<FrameData> frames(n_frames);
-    for (std::uint64_t i = 0; i < n_frames; ++i) {
-        sig[i] = aio_hips_open(hips_paths[i], AIO_HIPS_RD_SIGNAL);
-        sup[i] = aio_hips_open(hips_paths[i], AIO_HIPS_RD_SUPPORT);
-        if (!sig[i] || !sup[i]) {
-            if (err && err_size)
-                std::snprintf(err, err_size, "open frame %llu failed: %s",
-                              (unsigned long long)i,
-                              aio_hips_reader_last_error());
-            for (std::uint64_t j = 0; j <= i; ++j) {
-                if (sig[j]) aio_hips_close(sig[j]);
-                if (sup[j]) aio_hips_close(sup[j]);
+    {
+        const int setup_workers =
+            (cfg.cpu_workers > 0) ? cfg.cpu_workers : 1;
+        const bool setup_par =
+            (setup_workers > 1 && n_frames > 1);
+        std::vector<int> setup_rc(n_frames, 0);
+        std::vector<std::string> setup_err(n_frames);
+        std::vector<std::string> setup_note(n_frames);
+        auto setup_frame = [&](std::uint64_t i) {
+            sig[i] = aio_hips_open(hips_paths[i], AIO_HIPS_RD_SIGNAL);
+            sup[i] = aio_hips_open(hips_paths[i], AIO_HIPS_RD_SUPPORT);
+            if (!sig[i] || !sup[i]) {
+                setup_rc[i] = 1;
+                setup_err[i] = std::string("open frame ") +
+                              std::to_string((unsigned long long)i) +
+                              " failed: " + aio_hips_reader_last_error();
+                if (sig[i]) { aio_hips_close(sig[i]); sig[i] = nullptr; }
+                if (sup[i]) { aio_hips_close(sup[i]); sup[i] = nullptr; }
+                return;
             }
-            return 1;
-        }
         // （K_CORR_DOMAIN 选项 B，scale 维已退役）：读帧 Drizzle provenance。
         // 仅当 scale 落在标定域 [300,600]″ 才取逐帧标定值；域外/未知一律保留
         // frames[i].kcorr=0（→ 既有回退链 cfg.control_k_corr，默认即冻结 1.4）
@@ -773,12 +790,16 @@ static int p2_sample_controls_impl(
             if (pf > 0.0 && in_domain) {
                 frames[i].kcorr = kcorr_lookup(pf, sc);
             } else if (pf > 0.0) {
-                std::fprintf(stderr,
-                             "[sampler] k_corr 域外回退: frame=%llu "
-                             "src_pixel_scale=%.6f\"/px ∉ [300,600] → 冻结默认 "
-                             "%.4f（scale 维退役，禁 clamp）\n",
-                             (unsigned long long)i, sc,
-                             (double)cfg.control_k_corr);
+                // 并行确定性：stderr 行先攒入 setup_note，join 后按帧序输出
+                // （内容与串行逐行一致，顺序恒为帧升序）。
+                char nbuf[256];
+                std::snprintf(nbuf, sizeof(nbuf),
+                              "[sampler] k_corr 域外回退: frame=%llu "
+                              "src_pixel_scale=%.6f\"/px ∉ [300,600] → 冻结默认 "
+                              "%.4f（scale 维退役，禁 clamp）",
+                              (unsigned long long)i, sc,
+                              (double)cfg.control_k_corr);
+                setup_note[i] = nbuf;
             }
         }
         const int n = aio_hips_tile_count(sig[i]);
@@ -787,6 +808,7 @@ static int p2_sample_controls_impl(
             if (aio_hips_tile_ipix(sig[i], t, &ip) == 0)
                 frames[i].tiles.insert(ip);
         }
+        // SNR catalogue（质量/可信度场，不参与空间基函数）
         // SNR catalogue（质量/可信度场，不参与空间基函数）
         AioHipsDataset* snr = aio_hips_open(hips_paths[i], AIO_HIPS_RD_SNR);
         if (snr) {
@@ -807,6 +829,44 @@ static int p2_sample_controls_impl(
         // 逐像素 ivar 产品 (Drizzle 方差传播)
         // 缺失 → o.ivar=0 (UPM 权重回退 1/uncertainty², 如实降级)
         ivr[i] = aio_hips_open(hips_paths[i], AIO_HIPS_RD_IVAR);
+        };  // setup_frame 结束（disjoint 写；join 后按帧序合并）
+        if (setup_par) {
+            std::atomic<std::uint64_t> setup_next{0};
+            std::vector<std::thread> setup_pool;
+            setup_pool.reserve((std::size_t)setup_workers);
+            for (int sw = 0; sw < setup_workers; ++sw) {
+                setup_pool.emplace_back([&]() {
+                    for (;;) {
+                        const std::uint64_t ii =
+                            setup_next.fetch_add(1);
+                        if (ii >= n_frames) break;
+                        setup_frame(ii);
+                    }
+                });
+            }
+            for (auto& th : setup_pool) th.join();
+        } else {
+            for (std::uint64_t i = 0; i < n_frames; ++i) setup_frame(i);
+        }
+        // 失败语义：按帧下标升序取首个失败（= 串行首个失败）。
+        for (std::uint64_t i = 0; i < n_frames; ++i) {
+            if (!setup_note[i].empty()) {
+                std::fprintf(stderr, "%s\n", setup_note[i].c_str());
+                std::fflush(stderr);
+            }
+        }
+        for (std::uint64_t i = 0; i < n_frames; ++i) {
+            if (setup_rc[i] != 0) {
+                if (err && err_size)
+                    std::snprintf(err, err_size, "%s",
+                                  setup_err[i].c_str());
+                for (std::uint64_t j = 0; j < n_frames; ++j) {
+                    if (sig[j]) aio_hips_close(sig[j]);
+                    if (sup[j]) aio_hips_close(sup[j]);
+                }
+                return 1;
+            }
+        }
     }
 
     // ================= background-clean sampler =================

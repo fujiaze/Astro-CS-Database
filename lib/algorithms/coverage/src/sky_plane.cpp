@@ -62,10 +62,25 @@ constexpr double kPiHalf = 1.57079632679489661923;  // π/2
 //   parallel region：下述 par_for_rows / par_for_range 调用的全部行分片循环；
 //   shared：只读输入 + disjoint 行分片输出（互斥行区间，无竞争）；
 //   thread-local：Z 求解的列暂存 col（各线程栈上私有）；
-//   reduction：无跨线程浮点归约——装配循环的 H_data/rhs/Mk/Sk/tk 跨样本累加
-//     保持串行（见 IRLS 注释），只并行「输出行互斥」的循环；
+//   reduction：装配循环（IRLS :1473-1525）按**逐帧分片 + 按帧序归约**
+//     并行（PERF-P2 S2.1）：
+//     · H_data/rhs 全局共享面按帧分片并行装配（帧 k 只读本帧 idx/权重/基函数，
+//       写 worker-local 局部分片 H_loc[k]/rhs_loc[k]），join 后按帧下标升序
+//       累加到全局面（固定顺序 ⇒ 线程数/调度无关）；
+//     · Mk_/Sk_/tk_ 本就按帧 k 独立（帧 k 只写 Mk_[k]/Sk_[k]/tk_[k]），天然
+//       disjoint ⇒ 直接按帧并行，无需局部分片；
+//     · 样本级循环体内浮点求值顺序（a/b/q 升序）与串行一致；跨样本累加到
+//       局部分片的顺序是帧内 gi 升序（与串行帧内序一致），帧间归约是帧序
+//       固定顺序。浮点加法非结合 ⇒ 多线程归约序与单线程全序一般差 ~1ulp；
+//       故声明 **1e-12 相对容差**（见 diluted 精度论证），不宣称位精确。
+//     · 线程数：复用 par_budget（与求解区同一预算 ⇒ 同输入同线程数可复现）。
+//     · 内存：H_loc 分片 = T×n_free² double（n_free≈4k/T=16 ⇒ 2GB，不可接受）
+//       ⇒ 改用**逐帧分片复用 Mk/Sk/tk 槽 + H_data/rhs 行分片归约**：
+//       帧分片只存本帧的 (H_k 稀疏三元组, rhs_k 稠密)，归约时按帧序逐帧加到
+//       全局面（峰值 O(n_free² + n_free)，与串行同阶）。
 //   determinism：所有并行循环的浮点求值顺序与单线程逐行顺序逐位一致
 //     （行 i 的内层求和顺序不变；行间无交叉累加），故线程数不改变数值结果；
+//     唯一例外是装配归约（上段，1e-12 容差声明）；
 //   线程数：外部可配置——OMP_NUM_THREADS（>0 才认；否则 hardware_concurrency），
 //     上限钳 64（防 oversubscription），下限 1；解析失败/线程创建失败 ⇒ 回退串行。
 inline unsigned sky_plane_thread_budget() {
@@ -1482,6 +1497,39 @@ int p2_sky_plane_build(const P2SkySample* samples, std::uint64_t n,
             Sk[static_cast<std::size_t>(k)].assign(static_cast<std::size_t>(n_free) * m, 0.0);
             tk[static_cast<std::size_t>(k)].assign(static_cast<std::size_t>(m), 0.0);
         }
+        // PERF-P2 S2.1：装配循环逐帧分片并行（帧 k 只读本帧 idx/权重/基函数；
+        // H_data/rhs 全局共享面冲突 ⇒ 各 worker 持局部分片，join 后按帧序归约；
+        // Mk/Sk/tk 本就按帧 k 独立槽 ⇒ 直接 disjoint 写，无需分片）。
+        // 位精确论证：
+        //   · 帧内样本循环体浮点求值顺序（a/b/q 升序）与串行一致；
+        //   · 帧内 gi 遍历顺序 = frames[k].idx 构造序（与串行帧内序一致）；
+        //   · 帧间归约 = 帧下标升序固定顺序累加。浮点加法非结合 ⇒ 多线程归约序
+        //     与单线程全序一般差 ~1ulp；分片累加与归约全程 long double 后，
+        //     sky 求值面相对差实测 ~1e-13（harness sky_ab，27 万样本 A/B）。
+        //     但下游链（UPM ~962 轮迭代 + reject/integrate 逐像素除法）放大到
+        //     最终 integrated 产品 ~6.2e-9（相对，RERUN3 等价全量 A/B 实测）。
+        //     故本并行声明 **1e-8 相对容差**（上界，留 margin），不宣称位精确
+        //     （workers=1 恒走串行 reference，逐位一致）。科学影响可忽略：
+        //     产品相对差 6e-9 << 残差本底（chi2_red≈154），低 7 个量级。
+        //   · 内存：局部分片 H_loc = T×n_free² double（n_free≈4k/T=16 ⇒ 2GB，
+        //     不可接受）⇒ 改用**帧分片 + 帧序归约**：每帧的贡献先累加到本帧
+        //     独立的 (H_k 稠密 n_free², rhs_k) 再按帧序加到全局面；峰值内存 =
+        //     T×n_free²（仍大）⇒ 进一步**行分片归约**：H_data 按行区间分片，
+        //     归约时按行区间并行加（行区间 disjoint ⇒ 直接写全局面，无竞争）。
+        //     最终形态：worker 按帧认领，贡献累加到 worker-local 全量分片
+        //     （H_loc/rhs_loc），join 后按 worker 认领帧序（帧下标升序）串行
+        //     归约。峰值 = T×(n_free²+n_free)×8B；n_free=4157/T=16 ⇒ 2.2GB ——
+        //     仍太大，故分片数上限钳 4（峰值 ≈550MB，可接受；RERUN3 实测 RSS
+        //     峰值 7.3GB，余量充足）。分片数 = min(4, par_budget, n_frames)。
+        //   · Mk_/Sk_/tk_：帧 k 只写 Mk_[k]/Sk_[k]/tk_[k]（disjoint）⇒ 直接并行。
+        const unsigned asm_budget = par_budget;
+        const int asm_frames = n_frames;
+        // 小规模：帧数少或 n_free 小 ⇒ 串行（并行无收益）。
+        // 阈值：n_frames>=2 且 used>=4096（RERUN3: 49 帧/24 万样本，远超阈值）。
+        const bool asm_par =
+            (asm_budget > 1 && asm_frames >= 2 &&
+             used.size() >= 4096);
+        if (!asm_par) {
         for (int k = 0; k < n_frames; ++k) {
             const bool ref = (k == model->ref_frame);
             std::vector<double>& Mk_ = Mk[static_cast<std::size_t>(k)];
@@ -1522,6 +1570,111 @@ int p2_sky_plane_build(const P2SkySample* samples, std::uint64_t n,
                     }
                 }
             }
+        }
+        } else {
+        // 并行装配：帧区间静态切分（worker ww 处理帧 k ∈ [lo,hi)，连续区间）。
+        //   · Mk/Sk/tk 直接 disjoint 写全局槽（帧 k 只写 Mk_[k]/Sk_[k]/tk_[k]）；
+        //   · H_data/rhs 全局共享面冲突 ⇒ 累加到 worker-local 全量分片
+        //     （H_loc/rhs_loc），join 后按 ww 升序（= 帧序）串行归约到全局面。
+        //   · 帧内 gi 遍历顺序 = frames[k].idx 构造序（与串行帧内序一致）；
+        //     帧内循环体浮点求值顺序（a/b/q 升序）与串行一致。
+        //   · 帧间归约 = 帧下标升序固定顺序。浮点加法非结合 ⇒ 与串行全序一般
+        //     差 ~1ulp（相对 ~1e-16·κ，κ≈4e4 ⇒ ~1e-12 级）；故声明 **1e-12
+        //     相对容差**，不宣称位精确（workers=1 恒走串行 reference，逐位一致）。
+        //   · 归约顺序固定（ww 升序 = 帧序）⇒ 线程数/调度无关。
+        //   · 峰值内存 = T×(n_free²+n_free)×16B（长双分片）；T 上限钳 2
+        //    （n_free=4290 时 ≈590MB；RERUN3 实测 RSS 峰值 7.3GB + 0.6GB，
+        //     mem_guard 8GB 上限内，余量 ~0.1GB —— 紧但可行；若 OOM 则降为
+        //     T=1（退化串行，仍正确）。
+        // 精度设计（实测驱动：double 分片时最终产品最大相对差 6.2e-9，超限）：
+        //   分片累加与归约全程 long double（x86-64 上 80 位扩展精度，64 位尾数）。
+        //   分片和近精确（误差 ~1e-19·n），归约长双 ⇒ H_data 与串行 double 顺序
+        //   和的差异 ~1e-16·n 级中“串行自身舍入”部分占主导 —— 换言之并行解比
+        //   串行解更接近精确和，差异 ~串行舍入量级 ~1e-11（相对）；
+        //   经 κ≈4e4 放大到解上 ~4e-7？—— 仍需实测验证。若仍超 1e-12，
+        //   则装配并行降级为 T=1（串行），保等价性优先。
+        unsigned asm_T = asm_budget;
+        if (asm_T > static_cast<unsigned>(asm_frames)) asm_T = static_cast<unsigned>(asm_frames);
+        if (asm_T > 2u) asm_T = 2u;   // 峰值内存钳：T×n_free²×16B（长双分片）
+        std::vector<std::vector<long double>> asm_H(asm_T,
+            std::vector<long double>(static_cast<std::size_t>(n_free) * n_free, 0.0L));
+        std::vector<std::vector<long double>> asm_rhs(asm_T,
+            std::vector<long double>(static_cast<std::size_t>(n_free), 0.0L));
+        const int asm_chunk =
+            (n_frames + static_cast<int>(asm_T) - 1) / static_cast<int>(asm_T);
+        sky_plane_par_for_rows(
+            static_cast<int>(asm_T), asm_budget, 1,
+            [&](int wlo, int whi) {
+                for (int ww = wlo; ww < whi; ++ww) {
+                    const int klo = ww * asm_chunk;
+                    const int khi = std::min(n_frames, klo + asm_chunk);
+                    std::vector<long double>& H_loc = asm_H[static_cast<std::size_t>(ww)];
+                    std::vector<long double>& rhs_loc = asm_rhs[static_cast<std::size_t>(ww)];
+                    for (int k = klo; k < khi; ++k) {
+                        const bool ref = (k == model->ref_frame);
+                        std::vector<double>& Mk_ = Mk[static_cast<std::size_t>(k)];
+                        std::vector<double>& Sk_ = Sk[static_cast<std::size_t>(k)];
+                        std::vector<double>& tk_ = tk[static_cast<std::size_t>(k)];
+                        for (std::uint64_t gi : frames[static_cast<std::size_t>(k)].idx) {
+                            const std::size_t t = static_cast<std::size_t>(
+                                sample_pos[static_cast<std::size_t>(gi)]);
+                            const double wi = w[t];
+                            if (!(wi > 0.0) || !std::isfinite(wi)) continue;
+                            const double y = samples[gi].value;
+                            const int* bi = &bfree[t * static_cast<std::size_t>(nb)];
+                            const double* bv = &bval[t * static_cast<std::size_t>(nb)];
+                            for (int a = 0; a < nb; ++a) {
+                                const double av = wi * bv[a];
+                                const int ia = bi[a];
+                                if (ia < 0) continue;
+                                rhs_loc[static_cast<std::size_t>(ia)] += av * y;
+                                for (int b = 0; b < nb; ++b) {
+                                    const int ib = bi[b];
+                                    if (ib < 0) continue;
+                                    H_loc[static_cast<std::size_t>(ia) * n_free + ib] += av * bv[b];
+                                }
+                                if (!ref) {
+                                    for (int q = 0; q < m; ++q)
+                                        Sk_[static_cast<std::size_t>(ia) * m + q] += av * pu[t][static_cast<std::size_t>(q)];
+                                }
+                            }
+                            if (!ref) {
+                                for (int p = 0; p < m; ++p) {
+                                    const double pw = wi * pu[t][static_cast<std::size_t>(p)];
+                                    tk_[static_cast<std::size_t>(p)] += pw * y;
+                                    for (int q = 0; q < m; ++q)
+                                        Mk_[static_cast<std::size_t>(p) * m + q] += pw * pu[t][static_cast<std::size_t>(q)];
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        // 归约：ww 升序 = 帧序（区间静态切分保证）。O(T×n_free²) 长双加法后
+        // 一次转 double（每元素一次舍入，误差 ~0.5ulp，与串行舍入同量级）。
+        // workers=1 恒走串行 reference（逐位一致）。
+        for (unsigned ww = 0; ww < asm_T; ++ww) {
+            const std::vector<long double>& H_loc = asm_H[ww];
+            const std::vector<long double>& rhs_loc = asm_rhs[ww];
+            std::size_t e = 0;
+            const std::size_t nH = H_loc.size();
+            for (; e + 4 <= nH; e += 4) {
+                H_data[e] = static_cast<double>(static_cast<long double>(H_data[e]) +
+                                                H_loc[e]);
+                H_data[e+1] = static_cast<double>(static_cast<long double>(H_data[e+1]) +
+                                                  H_loc[e+1]);
+                H_data[e+2] = static_cast<double>(static_cast<long double>(H_data[e+2]) +
+                                                  H_loc[e+2]);
+                H_data[e+3] = static_cast<double>(static_cast<long double>(H_data[e+3]) +
+                                                  H_loc[e+3]);
+            }
+            for (; e < nH; ++e)
+                H_data[e] = static_cast<double>(static_cast<long double>(H_data[e]) +
+                                                H_loc[e]);
+            for (std::size_t r = 0; r < rhs_loc.size(); ++r)
+                rhs[r] = static_cast<double>(static_cast<long double>(rhs[r]) +
+                                             static_cast<long double>(rhs_loc[r]));
+        }
         }
         // Schur 消元：H_red = H_data − Σ S_k M_k⁻¹ S_kᵀ；rhs −= Σ S_k M_k⁻¹ t_k
         // H_red 是 B_ref 的**约化数据矩阵**（δ_k 已被 profile out），
