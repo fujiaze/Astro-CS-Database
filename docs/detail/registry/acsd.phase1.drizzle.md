@@ -175,8 +175,11 @@ module_id=`acsd.p1.drizzle`; execution_class=`cpu_heavy`; parallel_ok=True。
 ## Execution class、并行轴、ThreadBudget lease、确定性
 
 `cpu_heavy`。并行轴 = 源图像行（schedule(static) 条带 + per-thread tile 累加器，
-drizzle_engine.cpp）；按线程序合并 touched leaf。ThreadLease 零命中（omp 内部
-通道）—— 迁移整改。
+drizzle_engine.cpp）；按线程序合并 touched leaf。帧级并行经 p1_parallel_for
+（帧在飞数 = min(lease, 内存闸门)）。算写交叠（P1-DRZ-ASYNC-01）：计算完成
+即把 tiles 投递进程级写池，帧 worker 立即领下一帧，join 后按帧序 wait 回收；
+开启条件 = 帧数 > 在飞数且内存能容下双倍在飞帧且写池宽度 ≥ 4；
+p1_stack.json 延迟到 wait 成功后落盘；与同步路径逐位一致。
 
 **1/N 确定性** = 同输入同线程数 bitwise 可复现；跨线程数浮点和序不同，不保证
 bitwise。geometry cache：per-thread LRU + per-run generation 原子清空；
