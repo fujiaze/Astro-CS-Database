@@ -80,7 +80,10 @@ typedef struct {
 enum {
     P2_STAR_MASK_STAR           = 0u,
     P2_STAR_MASK_SATURATION     = 1u,
-    P2_STAR_MASK_HIGH_STRUCTURE = 2u
+    P2_STAR_MASK_HIGH_STRUCTURE = 2u,
+    // Gaia 晕掩膜专用 kind（PHASE2_SAMPLER.md §5.9；二选一落定：新增晕值，
+    // 不复用 STAR，保证晕帽与普通星帽在 kind 面可分；旧三值语义不变）。
+    P2_STAR_MASK_GAIA_HALO      = 3u
 };
 
 typedef struct {
@@ -137,9 +140,81 @@ P2_API int p2_star_mask_caps(const double* ra_deg, const double* dec_deg,
                              P2StarMaskCap* out, std::uint64_t cap,
                              std::uint64_t* out_n);
 
+// 普通星阈值+连通区→P2StarMaskCap（PHASE2_SAMPLER.md §5.8 第二口径）。
+// 输入为行主序 H×W 像素网格（values/valid，valid 空=全部有效）与该网格左上
+// 角天球坐标及像素角尺度：(ra,dec)[iy*W+ix] = (ra0+ix*scale, dec0+iy*scale)。
+// 阈值：v > med + bright_sigma*mad_sigma（med/mad 由全部有效有限像素的
+// median/MAD 给出，mad<=0 时不成帽）；连通区：8-连通亮像素分量像素数
+// >= min_pixels 才成帽；每分量质心按 radius_deg 膨胀为球面圆帽
+//（kind=P2_STAR_MASK_STAR）。out 可空查容量；返回 0=ok，1=参数错误。
+P2_API int p2_star_mask_caps_simple_bright(const double* values,
+                                           const std::uint8_t* valid,
+                                           std::uint64_t w, std::uint64_t h,
+                                           double ra0_deg, double dec0_deg,
+                                           double pixel_scale_deg,
+                                           double bright_sigma, int min_pixels,
+                                           double radius_deg,
+                                           P2StarMaskCap* out, std::uint64_t cap,
+                                           std::uint64_t* out_n);
+
 // 点 (ra,dec) 是否落在任一圆帽内（含边界）。1=命中，0=未命中，-1=参数错误。
 P2_API int p2_star_mask_contains(const P2StarMaskCap* caps, std::uint64_t n,
                                  double ra_deg, double dec_deg);
+
+// ===========================================================================
+// Gaia 晕掩膜：星等定半径（PHASE2_SAMPLER.md §5.9）与缝回退（§5.10）
+// ---------------------------------------------------------------------------
+//   r_raw(mag) = r8 * pow(a, mag_thresh - mag)，仅 mag <= mag_thresh 成帽；
+//   r(mag)     = clip(r_raw, r_min, r_max)（像素，锚定帧口径）；
+//   r_fb(mag)  = min(fallback_factor * r(mag), fallback_r_max)（像素）。
+// 参数合法性：r8>0 有限、a>1 有限、0<r_min<=r_max 有限、mag_thresh 有限、
+// fallback_factor>=1 有限、fallback_r_max>0 有限；mag 非有限或 mag>thresh
+// → 不成帽（rc=1）。纯函数，无 I/O，可单测。
+// Gaia 晕帽输入（采样器 veto 用；调用方经锥形查询星等窗取得后传入）。
+// mag_g 为 Gaia G 星等（Vega）；n==0 表示无晕帽（veto 分支静默跳过）。
+typedef struct {
+    const double* ra_deg;    // 长度 n（可空当 n==0）
+    const double* dec_deg;   // 长度 n
+    const double* mag_g;     // 长度 n
+    std::uint64_t n;
+    double mag_thresh;       // 与 P2SamplerConfig.halo_mag_thresh 同口径
+    double r8;               // 像素
+    double a;                // 每星等倍数
+    double r_min;            // 像素
+    double r_max;            // 像素
+    double anchor_pixel_scale_arcsec;  // 锚定帧像素尺度（角秒/像素，>0）
+    double pixel_scale_ratio;          // frame/anchor（<=0→1.0）
+    int use_fallback;                  // 0=常规 r；!=0 回退 r_fb（缝验收失败→全量重跑时由调用方置位）
+    double fallback_factor;            // use_fallback 时用（>=1）
+    double fallback_r_max;             // use_fallback 时用（像素，>0）
+} P2GaiaHaloCaps;
+// ===========================================================================
+
+// 由单星 Gaia 星等求晕半径（像素）。返回 0=成帽（out_radius_px 写半径），
+// 1=不成帽/参数非法（out_radius_px 写 0）。
+P2_API int p2_gaia_halo_radius_px(double mag_g, double mag_thresh,
+                                  double r8, double a,
+                                  double r_min, double r_max,
+                                  double* out_radius_px);
+
+// 缝回退半径（像素）：r_fb=min(factor*r+0, r_max_fb)。r<=0 或参数非法→rc=1。
+P2_API int p2_gaia_halo_radius_fallback_px(double r_px, double fallback_factor,
+                                           double fallback_r_max,
+                                           double* out_radius_px);
+
+// 由 Gaia 星表（ra/dec/mag）按星等定半径成帽（kind=P2_STAR_MASK_GAIA_HALO）。
+// 半径先按上式求像素，再按 pixel_scale_ratio 换算为度：
+//   radius_deg = r_px * anchor_pixel_scale_arcsec / 3600 / pixel_scale_ratio，
+// 其中 pixel_scale_ratio = frame_scale / anchor_scale（同口径帧=1.0；<=0→取 1.0）。
+// out 可空（查询容量）；返回 0=ok（out_n 写真实需求），1=参数错误。
+P2_API int p2_star_mask_caps_gaia_halo(const double* ra_deg, const double* dec_deg,
+                                       const double* mag_g, std::uint64_t n,
+                                       double mag_thresh, double r8, double a,
+                                       double r_min, double r_max,
+                                       double anchor_pixel_scale_arcsec,
+                                       double pixel_scale_ratio,
+                                       P2StarMaskCap* out, std::uint64_t cap,
+                                       std::uint64_t* out_n);
 
 // ===========================================================================
 // 2. 稀疏天光面求解
