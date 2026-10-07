@@ -108,8 +108,13 @@ module.yaml 登记 `acsd.p1.wcs`。execution_class=`cpu_heavy`; parallel_ok=True
 ## Execution class、并行轴、ThreadBudget lease、确定性
 
 `cpu_heavy`; parallel=是（资源门拒绝 heavy+serial 组合）; worker 数 =
-ThreadBudget.max_workers（唯一取值源）。句柄级互斥使用；现状 OpenMP 仅三角形
-投票/选星（整数归并，bitwise 与线程数无关），ThreadLease 未接线。
+ThreadBudget.max_workers（唯一取值源）。帧级并行（P1-WCS-PARALLEL-01）：
+Gaia 客户端跨帧共享（查询/块缓存有锁）；sdet/ipv 按 worker 分实例，检测
+句柄分发经 ipv 线程本地覆盖；每帧只写自己下标槽，join 后按下标升序归约
+（首个硬失败/产物序/首帧 provenance 均复现串行）⇒ 与串行逐位一致。
+帧内 OpenMP（三角形投票/选星）全是 disjoint 写、无浮点归约；
+RANSAC 固定种子 42。内存：在飞每帧一份 FP64 像面（W×H×8B），受
+p1_frame_workers 内存闸门约束。
 
 确定性 = 固定顺序输出（determinism=fixed_reduction_order，ALG-WCS-001 F5
 冻结断言）。
