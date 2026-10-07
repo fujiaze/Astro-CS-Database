@@ -15,7 +15,84 @@
 
 #include "hp_drizzle_api.h"
 
+#include <atomic>
+#include <condition_variable>
+#include <functional>
+#include <future>
+#include <memory>
+#include <mutex>
+#include <queue>
 #include <string>
+#include <thread>
+
+// P1-DRZ-ASYNC-01: Phase1 写盘异步化的进程级写池（与公共头 HpDrizzleJob 配对）。
+// 宽度 = 调用方经 drz_write_pool_ensure() 传入（0 = 关闭，走同步路径）。
+// 线程 detach + 池对象 new 后不析构 ⇒ 进程退出不 terminate。
+struct HpDrizzleJob {
+    std::future<int> fut;      // 写盘任务的 rc（-13 = HiPS 直写失败）
+    int has_variance = 0;
+    int disk_full = 0;         // 写线程内 FailureEpoch 判定的跨线程回传
+    double write_s = 0.0;      // 写线程内实测写盘时长
+    double wait_s = 0.0;       // 帧线程 wait 阻塞时长
+    std::string err;           // 写线程内的错误串（g_hips_error 是 thread_local）
+    std::string dir;
+};
+
+class DrzWritePool {
+  public:
+    static DrzWritePool& inst() {
+        static DrzWritePool* p = new DrzWritePool();   // 故意不析构（detach 线程）
+        return *p;
+    }
+    // 确保写池宽度（幂等；只在宽度为 0 时建池；不得缩池/重建）。
+    // 返回实际宽度。调用方保证 width ≤ 64 且内存门控已通过。
+    int ensure(int width) {
+        std::call_once(once_, [this, width] {
+            width_ = width;
+            for (int i = 0; i < width; ++i)
+                std::thread([this] { worker(); }).detach();
+        });
+        return width_;
+    }
+    int width() const { return width_; }
+    int active() const { return active_.load(std::memory_order_relaxed); }
+    int queued() {
+        std::lock_guard<std::mutex> lk(m_);
+        return static_cast<int>(q_.size());
+    }
+    std::future<int> submit(std::function<int()> fn) {
+        auto task = std::make_shared<std::packaged_task<int()>>(std::move(fn));
+        std::future<int> f = task->get_future();
+        {
+            std::lock_guard<std::mutex> lk(m_);
+            q_.push([task] { (*task)(); });
+        }
+        cv_.notify_one();
+        return f;
+    }
+
+  private:
+    void worker() {
+        for (;;) {
+            std::function<void()> job;
+            {
+                std::unique_lock<std::mutex> lk(m_);
+                cv_.wait(lk, [this] { return !q_.empty(); });
+                job = std::move(q_.front());
+                q_.pop();
+            }
+            active_.fetch_add(1, std::memory_order_relaxed);
+            job();
+            active_.fetch_sub(1, std::memory_order_relaxed);
+        }
+    }
+    std::once_flag once_;
+    int width_ = 0;
+    std::queue<std::function<void()>> q_;
+    mutable std::mutex m_;
+    std::condition_variable cv_;
+    std::atomic<int> active_{0};
+};
 
 /* 将 std::string 错误信息拷贝到 result->error_msg (截断到 511 字节)。
  * 原为 hp_drizzle_api.cpp 内 static 辅助, 迁入本头为 static inline
@@ -41,6 +118,7 @@ int run_drizzle_internal(PipelineFrame* frame,
                          HpDrizzleResult* result,
                          int precision_mode,
                          int hips_profile,
-                         const char* hips_filter_passband);
+                         const char* hips_filter_passband,
+                         HpDrizzleJob** out_job = nullptr);
 
 #endif /* HP_DRIZZLE_INTERNAL_H */
