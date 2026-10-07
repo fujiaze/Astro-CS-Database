@@ -243,7 +243,8 @@ P3OutputStatus p3_output_write_atomic(const float* signal, const float* coverage
                                       int bitpix,
                                       int cancelled_at_row,
                                       P3OutputResult* result) {
-    // 旧签名 = unavailable 面 (variance/ivar 双 NULL)
+    // slim 唯一形态（task-9）：只写 PRIMARY signal 单 HDU。coverage 入参保留
+    // 仅供覆盖统计（covered_px），不落盘。
     return p3_output_write_atomic_ex(signal, coverage, nullptr, nullptr, width,
                                      height, wcs, bunit, output_path, prov,
                                      bitpix, cancelled_at_row, result);
@@ -261,8 +262,12 @@ P3OutputStatus p3_output_write_atomic_ex(const float* signal, const float* cover
                                          P3OutputResult* result) {
     if (!signal || !coverage || !wcs || !output_path || width < 1 || height < 1)
         return P3_OUT_PARAM;
-    // uncertainty 平面成对要求 (单边 NULL = 合同违规, 禁半可用发布)
-    if ((variance == nullptr) != (ivar == nullptr)) return P3_OUT_PARAM;
+    // slim 唯一形态（task-9）：禁 variance/ivar（整幅+流式+参考路径均不写
+    // VARIANCE/IVAR；见 docs/detail/registry/acsd.phase3.writer.md 单 HDU 节）。
+    if (variance != nullptr || ivar != nullptr) {
+        g_last_err = "slim: variance/ivar planes are not written (single-HDU product)";
+        return P3_OUT_PARAM;
+    }
     // B2-A4: 投影由已校验 descriptor 决定；未实现投影 fail-closed —— 在创建任何
     // 临时/输出文件之前拒绝 (不写 FITS, 不与请求不符的 CTYPE 混淆)。
     {
@@ -384,69 +389,8 @@ P3OutputStatus p3_output_write_atomic_ex(const float* signal, const float* cover
         }
     }
 
-    // 追加 coverage 扩展 HDU
-    long cnaxes[2] = {width, height};
-    if (fits_create_img(f, bitpix, 2, cnaxes, &status)) {
-        fits_close_file(f, &status);   // P-076: close 先于 remove (Windows _unlink 必败点)
-        aio_atomic::remove_file(tmp);
-        g_last_err = "coverage create_img: " + std::to_string(status);
-        return P3_OUT_IO;
-    }
-    fits_write_key(f, TSTRING, (char*)"EXTNAME", (void*)"COVERAGE", nullptr, &status);
-    fits_write_pix(f, TFLOAT, fpix, nelem, (void*)coverage, &status);
-    // B2-A9: COVERAGE HDU 标准校验和。旧实现在 COVERAGE HDU 写 signal 数据的
-    // 自算 DATASUM（归属错 + 值非法），ASTROPY 对 COVERAGE/VARIANCE/IVAR 报
-    // "Datasum verification failed"。
-    {
-        std::string why;
-        if (!fits_write_std_chksum(f, &why)) {
-            g_last_err = "coverage " + why;
-            fits_close_file(f, &status);
-            aio_atomic::remove_file(tmp);
-            return P3_OUT_IO;
-        }
-    }
-
-    // 追加 uncertainty 扩展 HDU (DATA-P3-UNC-001 §30.4/§27.2 目标态行):
-    // VARIANCE (BUNIT=<BUNIT>^2) + IVAR (BUNIT=1/(<BUNIT>^2)), DATASUM 逐 HDU;
-    // 与主/扩展 HDU 同一原子发布序 (取消不落盘语义由上方 cancelled 分支保持)。
-    if (variance && ivar) {
-        const char* unit = (bunit && *bunit) ? bunit : "ADU/sr";
-        // 二次律 canonical 推导（FZ-P3-BUNIT-QUADRATIC）; 单位不在冻结
-        // 表内 → 显式拒绝, 不写出不可判的 variance BUNIT。
-        std::string var_bunit, ivar_bunit;
-        if (!bunit_square_canonical(unit, &var_bunit, &ivar_bunit)) {
-            g_last_err = std::string("variance BUNIT undecidable for signal BUNIT '") +
-                         unit + "' (FZ-P3-BUNIT-QUADRATIC)";
-            fits_close_file(f, &status);
-            aio_atomic::remove_file(tmp);
-            return P3_OUT_PARAM;
-        }
-        for (int h = 0; h < 2; ++h) {
-            if (fits_create_img(f, bitpix, 2, cnaxes, &status)) {
-                fits_close_file(f, &status);   // P-076: close 先于 remove (Windows _unlink 必败点)
-                aio_atomic::remove_file(tmp);
-                g_last_err = std::string(h == 0 ? "variance" : "ivar") +
-                             " create_img: " + std::to_string(status);
-                return P3_OUT_IO;
-            }
-            fits_write_key(f, TSTRING, (char*)"EXTNAME",
-                           (void*)(h == 0 ? "VARIANCE" : "IVAR"), nullptr, &status);
-            fits_write_key(f, TSTRING, (char*)"BUNIT",
-                           (void*)(h == 0 ? var_bunit.c_str() : ivar_bunit.c_str()),
-                           nullptr, &status);
-            fits_write_pix(f, TFLOAT, fpix, nelem,
-                           (void*)(h == 0 ? variance : ivar), &status);
-            // B2-A9: 每个 uncertainty HDU 的标准 DATASUM/CHECKSUM，归属自身数据。
-            std::string why;
-            if (!fits_write_std_chksum(f, &why)) {
-                g_last_err = std::string(h == 0 ? "variance " : "ivar ") + why;
-                fits_close_file(f, &status);
-                aio_atomic::remove_file(tmp);
-                return P3_OUT_IO;
-            }
-        }
-    }
+    // slim 唯一形态（task-9）：只写 PRIMARY signal 单 HDU，不写 COVERAGE /
+    // VARIANCE / IVAR 扩展层。coverage 入参只用于 covered_px 统计。
 
     // 发布序（正本 = IO_003 §4 / ACSD_DESIGN.md §10:732）:
     //   私有临时区 → 关闭/fsync → 校验（结构 + DATASUM/CHECKSUM）→ 算哈希 → 原子改名
@@ -538,7 +482,8 @@ P3OutputStatus p3_output_write_atomic_ex(const float* signal, const float* cover
 P3OutputStatus p3_output_verify(const char* output_path, const P3WcsDescriptor* wcs,
                                 const float* signal, const float* coverage,
                                 int width, int height, P3OutputResult* result) {
-    // 旧签名 = unavailable 面 (variance/ivar 双 NULL)
+    // slim 唯一形态（task-9）：单 HDU（仅 PRIMARY signal）。
+    // coverage 入参只用于 covered_px 统计，不对应落盘 HDU。
     return p3_output_verify_ex(output_path, wcs, signal, coverage, nullptr, nullptr,
                                width, height, result);
 }
@@ -549,13 +494,16 @@ P3OutputStatus p3_output_verify_ex(const char* output_path,
                                    const float* variance, const float* ivar,
                                    int width, int height, P3OutputResult* result) {
     if (!output_path || !result || width < 1 || height < 1) return P3_OUT_PARAM;
-    if ((variance == nullptr) != (ivar == nullptr)) return P3_OUT_PARAM;
+    // slim 唯一形态（task-9）：禁 variance/ivar（下游校验按单 HDU 预期执行）。
+    if (variance != nullptr || ivar != nullptr) {
+        g_last_err = "slim: variance/ivar verify is not supported (single-HDU product)";
+        return P3_OUT_PARAM;
+    }
     // B2-A9: verify 对 WCS 零鉴别力是审计缺陷（AUD-COORD F-05）。此处读回
     // CTYPE/CUNIT/CRPIX/CRVAL/CD 与传入 descriptor 逐项对拍，任何 CRPIX 平移、
     // origin 双桥接或 CD 篮改都会被检出并置 reopen_ok=0（AUD-P2P3 F24）。
     // P-075 (台账 A1): BUNIT 同入对拍面 —— PRIMARY 要求存在且在冻结单位表内
-    // （bunit_square_canonical 可解析），VARIANCE/IVAR 要求等于从读回 signal
-    // BUNIT 经冻结二次律推导的 canonical 串；不一致 ⇒ reopen_ok=0。
+    // （bunit_square_canonical 可解析）；不一致 ⇒ reopen_ok=0。
     // 容差来源: 写路径以 TDOUBLE 写 double，读回亦为 double，round-trip 应为
     // 位精确；1e-12(度/像素) / 1e-15(CD deg/px) 仅吸收格式层十进制往返。
     std::memset(result, 0, sizeof(*result));
@@ -564,9 +512,7 @@ P3OutputStatus p3_output_verify_ex(const char* output_path,
     // P-206 (在册 P-085): 逐 HDU 的 DATASUM/CHECKSUM 对拍位（含于 reopen_ok）。
     int chksumok = 1;
     int hdus = 1;
-    // P-075: uncertainty BUNIT 的期望串（由读回的 PRIMARY BUNIT 推导）；
-    // PRIMARY BUNIT 表外/缺失时保持空 ⇒ uncertainty 对拍必失败（双重检出）。
-    std::string want_var_bunit, want_ivar_bunit;
+    // slim 唯一形态（task-9）：无 VARIANCE/IVAR BUNIT 二次律对拍。
 
     fitsfile* f = nullptr; int status = 0;
     if (fits_open_file(&f, output_path, READONLY, &status) != 0) {
@@ -613,8 +559,7 @@ P3OutputStatus p3_output_verify_ex(const char* output_path,
         // P-075 (台账 A1): BUNIT 读回对拍 —— 与 CTYPE/CUNIT 同模式（读键→去
         // 补白→比较）。写侧只发布冻结单位表内的 signal BUNIT（缺省 canonical
         // "ADU/sr"），故读回要求: 键存在、非空、bunit_square_canonical 可解析；
-        // 表外串只能来自篡改/损坏 ⇒ bunitok=0。二次律期望串由读回的 signal
-        // BUNIT 推导（写侧 VARIANCE/IVAR BUNIT 同源公式），供 uncertainty HDU 对拍。
+        // 表外串只能来自篡改/损坏 ⇒ bunitok=0。
         {
             char bunit_val[81] = {0};
             status = 0;
@@ -625,8 +570,7 @@ P3OutputStatus p3_output_verify_ex(const char* output_path,
                 std::string got(bunit_val);
                 while (!got.empty() && (got.back() == ' ' || got.back() == '\t'))
                     got.pop_back();
-                if (got.empty() || !bunit_square_canonical(got, &want_var_bunit,
-                                                           &want_ivar_bunit))
+                if (got.empty() || !bunit_square_canonical(got, nullptr, nullptr))
                     bunitok = 0;   // 表外/空串单位: 写侧禁发布, 读回即篡改/损坏
             }
         }
@@ -662,80 +606,12 @@ P3OutputStatus p3_output_verify_ex(const char* output_path,
         } else ok = 0;
     } else ok = 0;
 
-    // extension (HDU 2) = coverage
-    if (hdus >= 2 && fits_movabs_hdu(f, 2, nullptr, &status) == 0) {
-        // P-206: COVERAGE HDU 的 DATASUM/CHECKSUM 对拍
-        if (!verify_hdu_chksum(f, nullptr)) chksumok = 0;
-        int naxis = 0, imgtype = 0;
-        long nax[2] = {0, 0};
-        fits_get_img_param(f, 2, &imgtype, &naxis, nax, &status);
-        if ((long)nax[0] == width && (long)nax[1] == height) {
-            std::vector<float> cov((size_t)nelem);
-            long fp[2] = {1, 1};
-            fits_read_pix(f, TFLOAT, fp, (LONGLONG)nelem, NULL, cov.data(), NULL, &status);
-            for (long i = 0; i < nelem; ++i)
-                if ((cov[(size_t)i] > 0.5f) != (coverage[i] > 0.5f)) { covok = 0; break; }
-        } else covok = 0;
-    }
-
-    // uncertainty HDU 面 (双向防: available 静默缺 HDU / unavailable 静默占位)
-    if (variance && ivar) {
-        const float* unc[2] = {variance, ivar};
-        const char* want[2] = {"VARIANCE", "IVAR"};
-        for (int h = 0; h < 2 && uncok; ++h) {
-            if (hdus < 3 + h || fits_movabs_hdu(f, 3 + h, nullptr, &status) != 0) {
-                uncok = 0; break;          // 静默缺 HDU
-            }
-            // P-206: VARIANCE/IVAR HDU 的 DATASUM/CHECKSUM 对拍
-            if (!verify_hdu_chksum(f, nullptr)) chksumok = 0;
-            char card[81] = {0};
-            if (fits_read_keyword(f, "EXTNAME", card, nullptr, &status) != 0 ||
-                !std::strstr(card, want[h])) {
-                uncok = 0; break;
-            }
-            // P-075 (台账 A1): BUNIT 读回对拍 —— VARIANCE/IVAR 的 BUNIT 必须等于
-            // 从读回 signal BUNIT 经冻结二次律推导的 canonical 串（与 CTYPE/CUNIT
-            // 对拍同模式）; PRIMARY BUNIT 已判表外时期望串为空, 此处必失败。
-            {
-                char bunit_val[81] = {0};
-                status = 0;
-                if (fits_read_key(f, TSTRING, (char*)"BUNIT", bunit_val, nullptr,
-                                  &status) != 0) {
-                    uncok = 0; break;   // BUNIT 缺失
-                }
-                std::string got(bunit_val);
-                while (!got.empty() && (got.back() == ' ' || got.back() == '\t'))
-                    got.pop_back();
-                const std::string& want_bunit = (h == 0) ? want_var_bunit
-                                                         : want_ivar_bunit;
-                if (got != want_bunit) { uncok = 0; break; }
-            }
-            status = 0;
-            int naxis = 0, imgtype = 0;
-            long nax[2] = {0, 0};
-            fits_get_img_param(f, 2, &imgtype, &naxis, nax, &status);
-            if ((long)nax[0] != width || (long)nax[1] != height) { uncok = 0; break; }
-            std::vector<float> plane((size_t)nelem);
-            long fp[2] = {1, 1};
-            if (fits_read_pix(f, TFLOAT, fp, (LONGLONG)nelem, NULL, plane.data(),
-                              NULL, &status)) {
-                uncok = 0; break;
-            }
-            for (long i = 0; i < nelem; ++i) {
-                const bool sn = (unc[h][i] != unc[h][i]);
-                const bool rd = (plane[(size_t)i] != plane[(size_t)i]);
-                if (plane[(size_t)i] != unc[h][i] && !(sn && rd)) { uncok = 0; break; }
-            }
-        }
-    } else if (hdus >= 3) {
-        // unavailable → 不允许任何占位 uncertainty HDU
-        if (fits_movabs_hdu(f, 3, nullptr, &status) == 0) {
-            char card[81] = {0};
-            if (fits_read_keyword(f, "EXTNAME", card, nullptr, &status) == 0 &&
-                (std::strstr(card, "VARIANCE") || std::strstr(card, "IVAR")))
-                uncok = 0;
-            status = 0;
-        }
+    // slim 唯一形态（task-9）：单 HDU 预期 —— 任何扩展 HDU（COVERAGE /
+    // VARIANCE / IVAR / 其他占位）一律判红（下游校验按单 HDU 预期执行）。
+    if (hdus != 1) {
+        uncok = 0;
+        covok = 0;
+        status = 0;
     }
     fits_close_file(f, &status);
 
@@ -779,15 +655,12 @@ struct P3FitsStream::Impl {
     std::string out;
     int width = 0, height = 0, bitpix = -32;
     std::string bunit;
-    int cur_hdu = 0;          // 0=PRIMARY(signal) 1=COVERAGE 2=VARIANCE 3=IVAR
+    int cur_hdu = 0;          // slim 唯一形态（task-9）：恒 0=PRIMARY(signal)
     bool hdu_open = false;    // 当前 HDU 已建、尚未写 DATASUM/CHECKSUM
     bool failed = false;
-    // P-077 (台账 A3): 发布门状态 —— hdu_done[i] = 第 i 个 HDU 已 end_hdu 收尾
-    // （DATASUM/CHECKSUM 已写）; unc_mode = begin_hdu(2) 成功置位（unc 成对模式）。
-    // publish 据此校验 HDU 集合成对完整: unc 模式必须 PRIMARY+COVERAGE+VARIANCE
-    // +IVAR 全齐才可发布（对齐整幅路径 p3_output_write_atomic 的成对强制语义）。
+    // slim 唯一形态（task-9）：发布门状态 —— hdu_done[0] = PRIMARY 已 end_hdu
+    // 收尾（DATASUM/CHECKSUM 已写）即可发布。
     bool hdu_done[4] = {false, false, false, false};
-    bool unc_mode = false;
 };
 
 P3FitsStream::P3FitsStream() : impl_(new Impl()) {}
@@ -894,59 +767,13 @@ P3OutputStatus P3FitsStream::begin_hdu(int plane) {
         if (impl_->cur_hdu != 0 || !impl_->hdu_open) return P3_OUT_PARAM;
         return P3_OUT_OK;
     }
-    if (plane < 1 || plane > 3) return P3_OUT_PARAM;
-    if (impl_->hdu_open) return P3_OUT_PARAM;   // 上一 HDU 未收尾（校验和未写）
-    // P-077 (台账 A3): HDU **成员齐全**门（不只是"已收尾个数"）—— 该 plane 已收尾
-    // 即集合内成员已固定；重复进入会产出同名 EXTNAME 的第二个扩展（假 COVERAGE /
-    // 双 VARIANCE），下游按 EXTNAME 取面时读到错的那一个。fail-closed 拒，不静默重复。
-    if (impl_->hdu_done[plane]) {
-        g_last_err = "hdu already finished (duplicate EXTNAME): plane " +
-                     std::to_string(plane);
-        impl_->failed = true;
-        return P3_OUT_PARAM;
-    }
-    fitsfile* f = impl_->f;
-    int& status = impl_->status;
-    long cnaxes[2] = {impl_->width, impl_->height};
-    if (fits_create_img(f, impl_->bitpix, 2, cnaxes, &status)) {
-        g_last_err = "extension create_img: " + std::to_string(status);
-        impl_->failed = true;
-        return P3_OUT_IO;
-    }
-    if (plane == 1) {
-        fits_write_key(f, TSTRING, (char*)"EXTNAME", (void*)"COVERAGE", nullptr, &status);
-    } else {
-        // P-077 (台账 A3): unc 成对序门 —— IVAR 不得先于/脱离已收尾的 VARIANCE
-        // 出现（单边 uncertainty HDU = 合同违规, 对齐整幅路径的成对强制语义）。
-        if (plane == 3 && !impl_->hdu_done[2]) {
-            g_last_err = "IVAR requires finished VARIANCE (unc pair violation)";
-            impl_->failed = true;
-            return P3_OUT_PARAM;
-        }
-        // 二次律 canonical 推导（FZ-P3-BUNIT-QUADRATIC）; 表外单位显式拒绝
-        std::string var_bunit, ivar_bunit;
-        if (!bunit_square_canonical(impl_->bunit, &var_bunit, &ivar_bunit)) {
-            g_last_err = std::string("variance BUNIT undecidable for signal BUNIT '") +
-                         impl_->bunit + "' (FZ-P3-BUNIT-QUADRATIC)";
-            impl_->failed = true;
-            return P3_OUT_PARAM;
-        }
-        fits_write_key(f, TSTRING, (char*)"EXTNAME",
-                       (void*)(plane == 2 ? "VARIANCE" : "IVAR"), nullptr, &status);
-        fits_write_key(f, TSTRING, (char*)"BUNIT",
-                       (void*)(plane == 2 ? var_bunit.c_str() : ivar_bunit.c_str()),
-                       nullptr, &status);
-    }
-    if (status) {
-        g_last_err = "extension header write failed: " + std::to_string(status);
-        impl_->failed = true;
-        return P3_OUT_IO;
-    }
-    impl_->cur_hdu = plane;
-    impl_->hdu_open = true;
-    if (plane == 2) impl_->unc_mode = true;   // P-077: 进入 unc 成对模式
-    return P3_OUT_OK;
+    // slim 唯一形态（task-9）：只写 PRIMARY signal 单 HDU，禁 COVERAGE /
+    // VARIANCE / IVAR 扩展层（流式路径与整幅路径同口径）。
+    g_last_err = "slim: only PRIMARY HDU is written (single-HDU product)";
+    impl_->failed = true;
+    return P3_OUT_PARAM;
 }
+
 
 P3OutputStatus P3FitsStream::write_block(int x0, int y0, int w, int h,
                                          const float* data) {
@@ -986,17 +813,10 @@ P3OutputStatus P3FitsStream::end_hdu() {
 
 P3OutputStatus P3FitsStream::publish(P3OutputResult* result) {
     if (!impl_ || !impl_->f || impl_->failed || impl_->hdu_open) return P3_OUT_IO;
-    // P-077 (台账 A3): 发布门 —— HDU 集合成对完整才可发布（对齐整幅路径
-    // p3_output_write_atomic 的 uncertainty 成对强制语义: 双边成对=合法,
-    // 单边/缺失=合同违规）。unc 模式必须 PRIMARY+COVERAGE+VARIANCE+IVAR 全齐;
-    // 缺任一 ⇒ 不发布（fail-closed, 不产半成品产品面）。
-    if (!impl_->hdu_done[0] || !impl_->hdu_done[1]) {
-        g_last_err = "publish gate: PRIMARY+COVERAGE HDUs not both finished";
-        abort();
-        return P3_OUT_IO;
-    }
-    if (impl_->unc_mode && (!impl_->hdu_done[2] || !impl_->hdu_done[3])) {
-        g_last_err = "publish gate: uncertainty pair (VARIANCE+IVAR) incomplete";
+    // slim 唯一形态（task-9）：发布门 —— 仅 PRIMARY 单 HDU 收尾即可发布
+    //（无 COVERAGE / VARIANCE / IVAR 扩展层；fail-closed，不产半成品产品面）。
+    if (!impl_->hdu_done[0]) {
+        g_last_err = "publish gate: PRIMARY HDU not finished";
         abort();
         return P3_OUT_IO;
     }
@@ -1096,9 +916,14 @@ P3OutputStatus P3FitsVerifyStream::open(const char* output_path,
                                         const P3WcsDescriptor* wcs, int width,
                                         int height, bool has_uncertainty) {
     if (!output_path || !wcs || width < 1 || height < 1) return P3_OUT_PARAM;
+    // slim 唯一形态（task-9）：单 HDU 预期；has_uncertainty=true 即显式拒绝。
+    if (has_uncertainty) {
+        g_last_err = "slim: has_uncertainty=true is not supported (single-HDU product)";
+        return P3_OUT_PARAM;
+    }
     impl_->width = width;
     impl_->height = height;
-    impl_->unc = has_uncertainty;
+    impl_->unc = false;
     impl_->path = output_path;
     impl_->lock.reset(new aio::CfitsioLockGuard());
     int& status = impl_->status;
@@ -1156,46 +981,12 @@ P3OutputStatus P3FitsVerifyStream::open(const char* output_path,
     } else {
         impl_->ok = 0;
     }
-    // extension (HDU 2) = coverage
-    if (impl_->hdus >= 2 && fits_movabs_hdu(f, 2, nullptr, &status) == 0) {
-        int naxis = 0, imgtype = 0;
-        long nax[2] = {0, 0};
-        status = 0;
-        fits_get_img_param(f, 2, &imgtype, &naxis, nax, &status);
-        if ((long)nax[0] != width || (long)nax[1] != height) impl_->covok = 0;
-    } else {
+    // slim 唯一形态（task-9）：单 HDU 预期 —— 无 COVERAGE / VARIANCE /
+    // IVAR 扩展层；任何扩展 HDU 一律判红（下游校验按单 HDU 预期执行）。
+    // coverage 统计改由 check_block(plane=0) 的 signal NaN 计数承载（见下）。
+    if (impl_->hdus != 1) {
         impl_->covok = 0;
-    }
-    // uncertainty HDU 面（双向防: available 静默缺 HDU / unavailable 静默占位）
-    if (impl_->unc) {
-        const char* want[2] = {"VARIANCE", "IVAR"};
-        for (int h = 0; h < 2 && impl_->uncok; ++h) {
-            if (impl_->hdus < 3 + h ||
-                fits_movabs_hdu(f, 3 + h, nullptr, &status) != 0) {
-                impl_->uncok = 0;
-                break;
-            }
-            char card[81] = {0};
-            status = 0;
-            if (fits_read_keyword(f, "EXTNAME", card, nullptr, &status) != 0 ||
-                !std::strstr(card, want[h])) {
-                impl_->uncok = 0;
-                break;
-            }
-            int naxis = 0, imgtype = 0;
-            long nax[2] = {0, 0};
-            status = 0;
-            fits_get_img_param(f, 2, &imgtype, &naxis, nax, &status);
-            if ((long)nax[0] != width || (long)nax[1] != height) { impl_->uncok = 0; break; }
-        }
-    } else if (impl_->hdus >= 3) {
-        if (fits_movabs_hdu(f, 3, nullptr, &status) == 0) {
-            char card[81] = {0};
-            status = 0;
-            if (fits_read_keyword(f, "EXTNAME", card, nullptr, &status) == 0 &&
-                (std::strstr(card, "VARIANCE") || std::strstr(card, "IVAR")))
-                impl_->uncok = 0;
-        }
+        impl_->uncok = 0;
     }
     impl_->status = 0;
     return P3_OUT_OK;
@@ -1204,10 +995,10 @@ P3OutputStatus P3FitsVerifyStream::open(const char* output_path,
 P3OutputStatus P3FitsVerifyStream::check_block(int plane, int x0, int y0, int w,
                                                int h, const float* expected) {
     if (!impl_ || !impl_->f || !expected) return P3_OUT_PARAM;
-    if (plane < 0 || plane > 3 || w < 1 || h < 1) return P3_OUT_PARAM;
+    // slim 唯一形态（task-9）：只校验 plane=0（PRIMARY signal 单 HDU）。
+    if (plane != 0 || w < 1 || h < 1) return P3_OUT_PARAM;
     if (x0 < 0 || y0 < 0 || x0 + w > impl_->width || y0 + h > impl_->height)
         return P3_OUT_PARAM;
-    if (plane >= 2 && !impl_->unc) return P3_OUT_PARAM;
     int status = 0;
     if (fits_movabs_hdu(impl_->f, plane + 1, nullptr, &status) != 0) {
         if (plane == 0) impl_->ok = 0;
@@ -1227,23 +1018,20 @@ P3OutputStatus P3FitsVerifyStream::check_block(int plane, int x0, int y0, int w,
         g_last_err = "fits_read_subset failed: " + std::to_string(status);
         return P3_OUT_IO;
     }
+    // slim 唯一形态（task-9）：仅 plane=0 signal 回环（NaN==NaN 同态）；
+    // 覆盖统计 = signal 有限像素计数（无 COVERAGE HDU）。
     const std::size_t n = static_cast<std::size_t>(w) * h;
-    if (plane == 1) {
-        for (std::size_t i = 0; i < n; ++i) {
-            if ((buf[i] > 0.5f) != (expected[i] > 0.5f)) { impl_->covok = 0; break; }
+    for (std::size_t i = 0; i < n; ++i) {
+        // NaN 语义: 双方都是 NaN → 一致（源无覆盖 = NaN）；否则逐值精确回环
+        const bool sn = (expected[i] != expected[i]);
+        const bool rd = (buf[i] != buf[i]);
+        if (buf[i] != expected[i] && !(sn && rd)) {
+            impl_->ok = 0;
+            break;
         }
-        for (std::size_t i = 0; i < n; ++i) if (buf[i] > 0.5f) ++impl_->covered;
-    } else {
-        for (std::size_t i = 0; i < n; ++i) {
-            // NaN 语义: 双方都是 NaN → 一致（源无覆盖 = NaN）；否则逐值精确回环
-            const bool sn = (expected[i] != expected[i]);
-            const bool rd = (buf[i] != buf[i]);
-            if (buf[i] != expected[i] && !(sn && rd)) {
-                if (plane == 0) impl_->ok = 0;
-                else impl_->uncok = 0;
-                break;
-            }
-        }
+    }
+    for (std::size_t i = 0; i < n; ++i) {
+        if (buf[i] == buf[i]) ++impl_->covered;
     }
     return P3_OUT_OK;
 }

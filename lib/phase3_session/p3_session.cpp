@@ -125,8 +125,7 @@ static acsd_status parse_request(SessionState* s, const acsd_span_u8 req, json* 
     }
     const int bitpix = doc.value("bitpix", -32);
     if (bitpix != -32 && bitpix != -64) { s->last_error = "bitpix must be -32|-64"; return ACS_ERR_PARAM; }
-    const std::string covout = doc.value("coverage_output", std::string("mask"));
-    if (covout != "mask") { s->last_error = "coverage_output must be mask"; return ACS_ERR_PARAM; }
+    // slim 唯一形态（task-9）：无 coverage_output 请求键（task-8 十字段→九字段）。
     *out = doc;
     return ACS_OK;
 }
@@ -177,7 +176,7 @@ acsd_status p3_session_run(acsd_handle h, const acsd_span_u8 request_json) {
     }
 
     // P3-006/DOC-003: max_tiles 内存守卫(ARCH-P3 §3): 请求可降不可升, 默认 min(1024, ceil(W·H/W²)+16)
-    int64_t mt = 8;   // P30: 提升到守卫块外 —— uncertainty sampler 之后也要套同一上限
+    int64_t mt = 8;
     {
         const int64_t wh = (int64_t)wpx * hpx;
         int64_t default_max = 1024;
@@ -199,42 +198,14 @@ acsd_status p3_session_run(acsd_handle h, const acsd_span_u8 request_json) {
     int order_sel = -1;
     p3_order_select(max_order, scale, &order_sel);
 
-    // DATA-P3-UNC-001 §30.4: uncertainty 子产品探测/打开 (variance 优先, 次ivar;
-    // 皆无 → P3_UNC_NONE 显式 unavailable)。properties 存在但非法/order 错位 →
-    // 产品损坏显式拒 (不静默降级 unavailable)。
-    P3UncertaintySource unc_src = P3_UNC_NONE;
-    P3Sampler u_samp{};
-    {
-        const P3ResampleStatus ust = p3_uncertainty_open(hips_dir.c_str(), input_order,
-                                                         &unc_src, &u_samp);
-        if (ust == P3_RS_PARAM) {
-            p3_sampler_close(&samp);
-            s->last_error = "uncertainty sub-product corrupt (properties/order mismatch)";
-            return ACS_ERR_PARAM;
-        }
-        if (ust != P3_RS_OK) {
-            p3_sampler_close(&samp);
-            s->last_error = "uncertainty sub-product open failed";
-            return ACS_ERR_IO;
-        }
-    }
-    const bool unc_available = (unc_src != P3_UNC_NONE);
-    // P30: uncertainty sampler 有自己的缓存 (键同为 tile ipix, 禁与 signal 共享),
-    // 同样按 max_tiles 约束; 修复前该上限只作用在主 signal sampler 上。
-    if (unc_available) p3_sampler_set_max_tiles(&u_samp, (int)std::max<int64_t>(1, mt));
+    // slim 唯一形态（task-9）：单 HDU 产品形态，不探测/不打开/不传播
+    // uncertainty 子产品（variance/ivar 输入不属拒绝项，只是不输出扩展 HDU；
+    // manifest 按单 HDU 显式登记 uncertainty_available=false）。
 
-    // 输出平面: S/C (+ uncertainty V/I, available 时)
+    // 输出平面: S/C（slim 唯一形态：无 V/I 平面；coverage 只做内存统计）
     const long nelem = (long)wpx * hpx;
     std::vector<float> sig((size_t)nelem, std::nanf(""));
     std::vector<float> cov((size_t)nelem, 0.0f);
-    std::vector<float> var_plane;
-    std::vector<float> ivar_plane;
-    if (unc_available) {
-        var_plane.assign((size_t)nelem, std::nanf(""));
-        ivar_plane.assign((size_t)nelem, std::nanf(""));
-    }
-    std::atomic<long long> missing_px{0};   // 覆盖不一致计数 (§30.4 invalid 表)
-    std::atomic<int> corrupt_at{-3};        // u 产品损坏 → run 拒绝 (§30.4-3)
     int cancelled_row = -1;
 
     // 按 row-band 生成 work units, Runtime lease 多 worker 并行采样。
@@ -260,19 +231,9 @@ acsd_status p3_session_run(acsd_handle h, const acsd_span_u8 request_json) {
         // P30: 与本 run 唯一的有界 tile 缓存共享 (容量 = max_tiles 总量, 与
         // worker 数无关 → 峰值内存有界; 同一 tile 只解码一次)。只读 + 缺失负缓存。
         p3_sampler_attach_cache(&w_samp, &samp);
-        // uncertainty 子产品: 每 worker 独立实例 (P3Sampler 非线程安全, 同款纪律)
-        P3Sampler w_u{};
-        P3UncertaintySource w_src = P3_UNC_NONE;
-        if (unc_available &&
-            p3_uncertainty_open(hips_dir.c_str(), input_order, &w_src, &w_u) !=
-                P3_RS_OK) {
-            p3_sampler_close(&w_samp);
-            corrupt_at.store(-2);
-            return;
-        }
-        if (unc_available) p3_sampler_attach_cache(&w_u, &u_samp);   // P30: 同上
+        // slim 唯一形态（task-9）：不打开 uncertainty 子产品。
         P3WcsDescriptor w_wcs = wcs;   // 值拷贝, worker 本地
-        for (int y = y0; y < y1 && cancelled_at.load() < 0 && corrupt_at.load() == -3;
+        for (int y = y0; y < y1 && cancelled_at.load() < 0;
              ++y) {
             if (s->cancelled()) { cancelled_at.store(y); break; }
             for (int x = 0; x < wpx; ++x) {
@@ -292,43 +253,8 @@ acsd_status p3_session_run(acsd_handle h, const acsd_span_u8 request_json) {
                 if (rst != P3_RS_OK) continue;
                 sig[(size_t)i] = (c == 1) ? v : std::nanf("");
                 cov[(size_t)i] = (c == 1) ? 1.0f : 0.0f;
-                if (!unc_available) continue;
-                // ── DATA-P3-UNC-001 §30.4 invalid policy (输出面唯一权威) ──
-                if (c == 0) {
-                    // 无覆盖 → variance/ivar=NaN, C=0 (signal NaN 同态)
-                    var_plane[(size_t)i] = std::nanf("");
-                    ivar_plane[(size_t)i] = std::nanf("");
-                    continue;
-                }
-                double u_out = 0;
-                P3UncPixelState u_st = P3_U_OK;
-                const P3ResampleStatus urst = p3_uncertainty_propagate(
-                    &w_u, w, lf, (sampler == "nearest") ? 1 : 4, &u_out, &u_st);
-                if (urst == P3_RS_PARAM) {
-                    // u<0/Inf 产品损坏 → run 显式拒绝 (禁 clamp/补 0/静默跳过)
-                    corrupt_at.store((int)y);
-                    break;
-                }
-                if (urst != P3_RS_OK) continue;
-                if (u_st == P3_U_MISSING) {
-                    // 覆盖不一致 (signal 有限而 u 缺失) → var=NaN + C=1 + 计数
-                    missing_px.fetch_add(1);
-                    var_plane[(size_t)i] = std::nanf("");
-                    ivar_plane[(size_t)i] = std::nanf("");
-                    continue;
-                }
-                // u_st==OK(数值) 或 NAN(传播态): NaN→var=NaN; 数值→Σc²u/ivar 同态
-                var_plane[(size_t)i] = std::isnan(u_out)
-                                           ? std::nanf("")
-                                           : static_cast<float>(u_out);
-                ivar_plane[(size_t)i] =
-                    std::isnan(u_out)
-                        ? std::nanf("")
-                        : (u_out > 0.0 ? static_cast<float>(1.0 / u_out)
-                                       : (u_out == 0.0 ? 0.0f : std::nanf("")));
             }
         }
-        p3_uncertainty_close(&w_u);
         p3_sampler_close(&w_samp);
     };
     if (n_workers >= 2 && rows_per_worker >= 1) {
@@ -344,31 +270,21 @@ acsd_status p3_session_run(acsd_handle h, const acsd_span_u8 request_json) {
     }
     cancelled_row = cancelled_at.load();
     if (cancelled_row >= 0) {
-        p3_uncertainty_close(&u_samp);
         p3_sampler_close(&samp);
         s->last_error = "cancelled at row " + std::to_string(cancelled_row);
         return ACS_ERR_CANCELLED;
     }
     if (cancelled_row == -2) {
-        p3_uncertainty_close(&u_samp);
         p3_sampler_close(&samp);
         return ACS_ERR_IO;
-    }
-    if (corrupt_at.load() != -3) {
-        // u 产品损坏 (负/Inf) → run 显式拒绝, 不落盘 (§30.4-3)
-        p3_uncertainty_close(&u_samp);
-        p3_sampler_close(&samp);
-        s->last_error = "uncertainty product corrupt (negative/inf variance pixel)";
-        return ACS_ERR_PARAM;
     }
 
     // provenance
     const std::string order_sel_str = std::to_string(order_sel);
     const std::string version_str = ACSD_VERSION_STRING;
     const std::string run_id_str = std::string("p3-") + ACSD_COMMIT_SHA;
-    const char* unc_src_str = (unc_src == P3_UNC_VARIANCE) ? "variance"
-                              : (unc_src == P3_UNC_IVAR)   ? "ivar"
-                                                           : nullptr;
+    // slim 唯一形态（task-9）：单 HDU 显式登记（非失败态）。
+    const char* unc_src_str = nullptr;
     P3Provenance prov{};
     prov.hips_id = "ivo://acsd/phase3";
     prov.manifest_hash = nullptr;
@@ -379,7 +295,7 @@ acsd_status p3_session_run(acsd_handle h, const acsd_span_u8 request_json) {
     prov.order_sel_used = order_sel_str.c_str();
     prov.sampler_used = sampler.c_str();
     prov.uncertainty_source = unc_src_str;
-    prov.uncertainty_missing_pixels = (long)missing_px.load();
+    prov.uncertainty_missing_pixels = 0;
 
     const std::string out_path = std::string(hips_dir) + "/../output_phase3.fits";
     // 用 output_dir 若在请求中
@@ -390,12 +306,9 @@ acsd_status p3_session_run(acsd_handle h, const acsd_span_u8 request_json) {
     P3OutputResult ores{};
     const int out_bitpix = doc.value("bitpix", -32);
     const P3OutputStatus ost = p3_output_write_atomic_ex(
-        sig.data(), cov.data(),
-        unc_available ? var_plane.data() : nullptr,
-        unc_available ? ivar_plane.data() : nullptr,
+        sig.data(), cov.data(), nullptr, nullptr,
         wpx, hpx, &wcs, bunit.c_str(), opath.c_str(), &prov,
         out_bitpix, -1, &ores);
-    p3_uncertainty_close(&u_samp);
     p3_sampler_close(&samp);
     if (ost != P3_OUT_OK) {
         s->last_error = "output write failed";
@@ -412,9 +325,9 @@ acsd_status p3_session_run(acsd_handle h, const acsd_span_u8 request_json) {
                  {"sha256", ores.sha256},
                  {"order_sel_used", order_sel},
                  {"sampler_used", sampler},
-                 {"uncertainty_available", unc_available},
-                 {"uncertainty_source", unc_src_str ? unc_src_str : "none"},
-                 {"uncertainty_missing_pixels", (long long)missing_px.load()},
+                 {"uncertainty_available", false},
+                 {"uncertainty_source", "none"},
+                 {"uncertainty_missing_pixels", 0},
                  {"coverage_stats", {{"covered_px", covn}, {"total_px", nelem}}},
                  {"provenance",
                   {{"hips_id", "ivo://acsd/phase3"},
