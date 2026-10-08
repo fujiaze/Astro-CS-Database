@@ -125,6 +125,8 @@ UTC 时间戳字段除外——writer 合同 ALG-HIPS-005）。
 
 性能特征：block planner 做内存估算并据此切块；dense cache 加速面求值。
 
+另落地写面 tile 级并行（`lib/infrastructure/scheduler/src/module_adapters.cpp` 的 `p2_op_write`：变换并行与写串行；并行轴为 tile 重排变换，每 tile 只写自己下标的输出槽 ⇒ 与串行逐位一致；写面保持调用线程原序串行，失败语义按 tile 升序取首个失败，与串行一致）。
+
 ## 内存/cache/I-O/所有权
 
 memory_limit_mb 经 p2_block_plan（safety_factor=0.75）产出

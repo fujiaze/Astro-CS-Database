@@ -207,6 +207,8 @@ worker 数 = Runtime lease（`cfg.cpu_workers` = ThreadBudget.max_workers 经 st
 （与 coverage 域同构，见 ALG-COV-001；未落地）。
 determinism = `fixed_reduction_order`。
 
+另落地 setup 逐帧并行与 pass2/pass3 并行（`lib/algorithms/coverage/src/sampler.cpp`，worker 数由同一 Runtime lease 驱动，`workers = 1` 恒走串行 reference）：setup 段（open + tile 枚举 + SNR catalogue 读 + ivar 探测 open）按帧并行，按帧下标升序取首个失败、stderr 行按帧序重排后输出 ⇒ 与串行逐位一致；pass2 按 cell 区间切分（写集正交、计数 worker-local 聚合后加总）⇒ 位精确；pass3 按 cell 区间切分、worker-local 分片结束后按 worker 序拼接（obs/sky 元素顺序与串行恒同）⇒ 位精确；ivar 读用 worker 独立只读句柄（禁共享句柄，串行路径逐位不变）。
+
 ## 内存/cache/I-O/所有权
 
 I/O = astro_image_io（AIO）HiPS tile 读（signal / support / snr / ivar 四产品；
@@ -283,6 +285,7 @@ Oracle 面：
   `acsd_p2_sampling.dll` 尚未落地；descriptor 占位 module_id 与合同值
   `acsd.p2.sampling` 的对齐属迁移目标（未落地）；
 - 全局限制登记 = artifacts/evidence/known-limitations-ledger/LIMITATIONS.md。
+- 证伪停用口径（有合同、无消费、空帽直通，合同面见 `docs/engineering/contracts/CONFIG.md` 掩膜三组键文法一节）：`model` 七子键合同先行、消费面未落地，现状使用即被未知键门拒绝（`rc = 3`，`model` 空对象可通过）；编排侧 Gaia 查询整段停用，恒走空帽直通（`halos.n = 0`，查询计数恒 `0`，`source = "disabled-halo-falsified"`，`anchor_scale = 0`，`with_halos` 入口保留），不停采样流程；函数侧 `p2_star_mask_caps_simple_bright` 停用期间恒不成帽（`*out_n = 0`，`rc = 0`）、`p2_gaia_halo_radius_px` / `p2_gaia_halo_radius_fallback_px` / `p2_star_mask_caps_gaia_halo` 恒非法或恒不成帽（半径侧 `rc = 1`、成帽侧 `*out_n = 0`），声明保留在 `sky_plane.h`，原实现只注释不删除；采样器侧 simple(6)/halo(7) 整分支注释，仅保留 catalog(5)。
 
 ## 参考文献
 

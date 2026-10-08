@@ -158,6 +158,7 @@
   纯函数）；取消点=行（kernel cancelled_at_row，签名见 `lib/algorithms/fits_output/p3_output.h`；session 层
   取消在采样循环，同 `p3_session.cpp`），写面发布序不可中断（IO_003 的
   「发布流水线（原子语义）」）。
+- slim 透传（编排侧 `p3_op_writer`，写段保持串行确定序）：单 HDU 瘦身形态下不探测、不打开、不传播 uncertainty 子产品（variance/ivar 输入不属拒绝项，只是不输出扩展 HDU），uncertainty 恒不可用为显式登记（非失败态，下游校验与 manifest 按单 HDU 预期执行）。
 
 ## 7 内存、cache、I-O、所有权
 

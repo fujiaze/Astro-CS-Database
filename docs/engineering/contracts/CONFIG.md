@@ -369,6 +369,8 @@ Gaia 晕组共五键：`model.halo_mag_thresh`（默认 8.0，Gaia 星等，须�
 
 现状分叉声明：既有三键 `model.control_k_corr`（默认 1.4）、`model.star_mask_snr_factor`、`model.star_mask_radius_deg` 在编排采样算子可读，在阶段二结构体、解析白名单与工具组装三处均无对应，工具链路以零初始化后按实现修补回默认运行，两条链路对同一配置给出不同生效面，引用时必须区分。新七键在采样器结构体、阶段二解析白名单、阶段二工具组装、编排采样算子四处均无读取，现状使用即被未知键门拒绝，本节为合同先行，消费面落地前不得视为可用。分叉事实的登记面为注册表模块页的逐字段登记、星掩膜函数登记与已知限制三节。
 
+停用现状（证伪停用，只注释不删除；性能优化与 export slim 保留）：`model` 七子键（`halo_mag_thresh`、`halo_r8`、`halo_a`、`halo_r_min`、`halo_r_max`、`seam_fallback_factor`、`seam_fallback_r_max`）现状使用即被未知键门拒绝——块内面与平铺面均按 unknown-key 判错（`rc = 3`），`model` 空对象仍可通过；编排侧 Gaia 查询整段停用，恒走空帽直通（`halos.n = 0`，查询计数恒 `0`，`source = "disabled-halo-falsified"`，`anchor_scale = 0`，`with_halos` 入口保留），查询不到不停采样流程。停用原因一句话：RERUN2/RERUN3 对比洞为次因，缝主因为 M1/M4 混合 pedestal 差；恢复条件为 task-4 UPM 路先落地。停用期间的函数留桩口径见注册表采样页的星掩膜函数登记与已知限制两节。
+
 ## 配置面三 · 阶段生产调用链与 Stage1 配置
 
 **本块只描述阶段生产调用链与 Stage1 配置面，作用域仅限编排入口到实现符号的登记与阶段一配置**：它登记每个生产入口由哪条配置门控制、落到哪个实现符号、以何种执行模式运行、写出哪个诊断字段，以及 Stage1 配置文件面的取值。本块**不承担**三命令 `phase_config` 的键集合与值域（见配置面一）、也**不承担** orchestrator Stage2 配置文法（见配置面二）；表中「配置门」列引用的是本文件对应配置面已声明的键，不在本块另行定义键集合。
