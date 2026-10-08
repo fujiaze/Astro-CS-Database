@@ -272,7 +272,7 @@ JSON 覆盖（lib/phase2_session/p2_session.cpp）。
 `cpu_heavy`。并行轴 = 观测间 compute_raw / 聚合（worker-local 局部和、逐观测
 独立权重）与 dense tile 求值（同文件 `std::thread` 池，workers 由调用方传 lease）。
 模块内用 `std::thread` 实现，**无 OpenMP**（upm.h 另有一处注释仍写 OpenMP，属
-注释漂移，登记见 ALG-P2-UPM-IMPL-001）。
+注释漂移，登记见 ALG-P2-UPM-IMPL-001）。天光面求解侧分块 Cholesky 行分片并行（`lib/algorithms/coverage/src/sky_plane.cpp`：行区间互斥输出、行内求和顺序不变、跨线程无浮点归约）⇒ 位精确（`budget ≤ 1` 或规模过小走纯串行原路径）。
 
 worker 数 = **Runtime lease 唯一来源**：`cfg.cpu_workers` = ThreadBudget.max_workers
 经 lib/phase2_session/p2_session.cpp 与 stage2.cpp 传入；模块无
@@ -282,6 +282,8 @@ hardware_concurrency 自行开线程。**0 = 单线程串行**、1 = 单线程 r
 确定性 = 聚合用 worker-local 局部和 + **线程号升序归并**（determinism class D1 =
 worker 数无关、同 worker 数位精确）；gauge / 连通分量 / 收敛 / 归并固定顺序；稠密
 缓存 bit-identical。
+
+另落地天光面装配逐帧分片并行与 UPM 轮内常驻线程池（`lib/algorithms/coverage/src/sky_plane.cpp` / `upm.cpp`，worker 数由调用方传 lease，`workers = 1` 恒走串行 reference）：装配循环按帧分片（帧只读本帧输入，各 worker 持局部分片，join 后按帧下标升序串行归约；帧内求值顺序与串行一致）⇒ 声明 **1e-8 相对容差**上界，不宣称位精确；常驻池一次 build 建池、全部 IRLS 轮次复用，不跨 build 常驻（`cpu_workers ≤ 1` 退化串行直调；下标轴动态切分领取）⇒ 同配置重复运行位精确，跨 worker 数为冻结的 1e-12 绝对容差（口径不变）。
 
 ## 内存/cache/I-O/所有权
 
