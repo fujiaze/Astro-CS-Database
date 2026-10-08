@@ -2600,6 +2600,11 @@ int p2_sky_plane_eval_block(const void* model, std::uint64_t frame_id,
 // 与 p2_sky_plane_eval 共用同一 gnomonic/越域/basis 约定，但**不触碰**
 // p2_sky_plane_eval 本体（其他调用方仍取 b_k=B_ref+δ_k，语义不变）。
 // δ_k = gauge_shift + δ_k 多项式项（gauge_mode=0 ⇒ gauge_shift=0，参考帧 δ≡0）。
+// task-4 施加路径声明（PHASE2_SAMPLER §5.11）：生产扣除以 UPM C 场为准，
+// 本函数（含多尺度 grid 叠加）只作旁路/诊断求值，不进入
+// p2_upm_calibrate_block 扣除链；两条求值路不同时施加。
+// task-4B：旁路诊断默认行为不变（delta_ms_enabled 既有缺省）；生产开关
+// 只走 UPM 侧 model.ms_* 三键，环境变量 ACSD_DELTA_MS_* 不属生产配置面。
 int p2_sky_plane_eval_delta(const void* model_in, std::uint64_t frame_id,
                             double ra_deg, double dec_deg,
                             double* out_value, int* out_status) {
@@ -2636,6 +2641,7 @@ int p2_sky_plane_eval_delta(const void* model_in, std::uint64_t frame_id,
     // B 口径：δ_k = b_k − B_ref = gauge_shift + δ_k 多项式项。
     // task-3 多尺度低频（§5.11）：叠加逐帧低频修正（中位已扣，只扣起伏保 B_ref；
     // 参考帧 δ≡0 规范下参考帧不叠加——修正派生自残差，参考帧残差恒归 B_ref）。
+    // task-4：本叠加只作旁路/诊断，生产施加走 UPM C 场（见 PHASE2_SAMPLER §5.11）。
     double ms = 0.0;
     if (m->delta_ms_enabled && it->second != static_cast<std::size_t>(m->ref_frame) &&
         it->second < m->delta_ms.size())

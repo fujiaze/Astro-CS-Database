@@ -40,6 +40,7 @@ extern "C" {
 
 #include <algorithm>
 #include <cmath>
+#include <cstdlib>
 #include <cstring>
 #include <iomanip>
 #include <limits>
@@ -241,6 +242,13 @@ struct Model {
     // 对所有帧施加同一扣除（corrected = y - C - G）。空 = 关闭（legacy，
     // 等价 G≡0），保证旧模型文件/旧行为逐位不变。
     std::vector<double> gauge;
+    // task-4 多尺度低频修正（PHASE2_SAMPLER §5.11 生产施加路径）：
+    // 逐帧逐 control 低频修正场 ms[f][k]（中位已扣，只扣起伏、保公共面）。
+    // 空/全零 = 关闭（legacy，旧行为逐位不变）。
+    std::vector<std::vector<double>> ms;
+    double ms_sigma_px{16.0};   // 生效 σ（审计/provenance）
+    double ms_thresh{2.0};      // 生效高阈（审计/provenance）
+    int ms_enabled{1};          // 修正是否生效（0 = 纯 C 场旧行为）
     std::vector<std::vector<std::size_t>> adj;  // control 邻接（tile 内网格）
     std::vector<std::vector<double>> obs_w;     // 最终每轮权重缓存
     std::map<std::pair<std::uint64_t, std::pair<int, int>>, std::size_t>
@@ -371,7 +379,22 @@ double evaluate_field_row(const Model* m, const std::vector<double>& row,
 
 double evaluate_c_field(const Model* m, std::size_t frame_idx,
                         std::uint64_t tile, int x, int y) {
-    return evaluate_field_row(m, m->C[frame_idx], tile, x, y);
+    // task-4 生产施加路径（§5.11）：C 场 + 逐帧低频修正 ms 同一语义叠加。
+    // ms 行与 C 行同索引（逐 control），共用 evaluate_field_row 的
+    // cell 中心双线性/外推语义；ms 为空/帧越界/参考帧恒零 ⇒ 纯 C 场。
+    double c = evaluate_field_row(m, m->C[frame_idx], tile, x, y);
+    if (m->ms_enabled && frame_idx < m->ms.size() &&
+        m->ms[frame_idx].size() == m->controls.size()) {
+        // 参考帧按 gauge 恒零不叠加（修正派生自残差，参考帧残差归公共面）。
+        bool is_ref = false;
+        if (frame_idx < m->frame_component.size() &&
+            frame_idx < m->frame_id_by_index.size() &&
+            m->frame_component[frame_idx] < m->component_ref_frame.size())
+            is_ref = (m->frame_id_by_index[frame_idx] ==
+                      m->component_ref_frame[m->frame_component[frame_idx]]);
+        if (!is_ref) c += evaluate_field_row(m, m->ms[frame_idx], tile, x, y);
+    }
+    return c;
 }
 
 inline double quality_factor(std::uint32_t flags, int mode) {
@@ -403,6 +426,66 @@ inline double huber_w(double r, double d) {
     const double a = std::fabs(r);
     if (a <= d) return 1.0;
     return d / a;
+}
+
+// task-4 多尺度低频修正派生（PHASE2_SAMPLER §5.11 同构；UPM 内自实现）。
+// 输入：收敛后逐帧逐 control 残差 r = y − M − C（只读），输出逐帧 grid 场
+// （中位已扣，只扣起伏、保公共面）。串行固定序（单线程 reference）：
+// 样本遍历用 control 下标升序；排序/填充/平滑均为串行固定序 ⇒ workers=1
+// reference 位精确。fail-soft：退化（点过少/全 mask/无尺度）⇒ 该帧全零
+// （无修正），不失败 build（修正是叠加项，不是判据）。
+inline double upm_median_sorted(std::vector<double>& v) {
+    if (v.empty()) return 0.0;
+    const std::size_t n = v.size(), mid = n / 2;
+    auto it = v.begin() + static_cast<std::ptrdiff_t>(mid);
+    std::nth_element(v.begin(), it, v.end());
+    if (n % 2 == 1) return v[mid];
+    return 0.5 * (v[mid] + *std::max_element(v.begin(), it));
+}
+struct UpmMsConfig {
+    int enabled = 0;
+    double sigma_px = 16.0;   // §5.11 推荐档；钳 [12,24]
+    double thresh = 2.0;      // §5.11 推荐档；下限钳 ≥1.5
+};
+// task-4 配置优先级（B）：cfg 键 > 测试覆写环境变量 > 默认关闭。
+// ACSD_UPM_MS_* 仅测试覆写（默认关；文档声明测试专用）：
+//   缺省（cfg.ms_enabled==0 且无环境键）⇒ 关闭（legacy 逐位一致）。
+static UpmMsConfig upm_ms_config_resolve(const P2UpmBuildConfig& cfg) {
+    UpmMsConfig c;
+    c.enabled = (cfg.ms_enabled != 0) ? 1 : 0;
+    c.sigma_px = cfg.ms_sigma_px;
+    c.thresh = cfg.ms_thresh;
+    bool env_seen = false;
+    if (const char* e = std::getenv("ACSD_UPM_MS_ENABLE")) {
+        env_seen = true;
+        if (e[0] == '0' && e[1] == '\0') c.enabled = 0;
+        else if (e[0] == '1' && e[1] == '\0') c.enabled = 1;
+    }
+    if (const char* e = std::getenv("ACSD_UPM_MS_SIGMA_PX")) {
+        env_seen = true;
+        char* end = nullptr;
+        const double v = std::strtod(e, &end);
+        if (end != e && std::isfinite(v)) c.sigma_px = v;
+    }
+    if (const char* e = std::getenv("ACSD_UPM_MS_THRESH")) {
+        env_seen = true;
+        char* end = nullptr;
+        const double v = std::strtod(e, &end);
+        if (end != e && std::isfinite(v)) c.thresh = v;
+    }
+    // 缺省关闭：cfg 关且无环境覆写 ⇒ 关（旧行为逐位一致）。
+    if (cfg.ms_enabled == 0 && !env_seen) c.enabled = 0;
+    if (!(c.sigma_px >= 12.0) || !std::isfinite(c.sigma_px)) c.sigma_px = 12.0;
+    if (c.sigma_px > 24.0) c.sigma_px = 24.0;
+    if (!(c.thresh >= 1.5) || !std::isfinite(c.thresh)) c.thresh = 1.5;
+    return c;
+}
+inline UpmMsConfig upm_ms_config_from_env() {
+    P2UpmBuildConfig d{};
+    d.ms_enabled = 0;
+    d.ms_sigma_px = 16.0;
+    d.ms_thresh = 2.0;
+    return upm_ms_config_resolve(d);
 }
 
 // control 平滑邻接图的**唯一**构造算子。build（求解）与 open（读回模型）
@@ -536,6 +619,10 @@ static int build_impl(const P2ControlObservation* obs, std::uint64_t n_obs,
         cfg.m_full_frame = 0;
         cfg.final_gauge = 0;
         cfg.tolerance_relative = 0;
+        // task-4：缺省 = 关闭（legacy；旧行为逐位一致）。
+        cfg.ms_enabled = 0;
+        cfg.ms_sigma_px = 16.0;
+        cfg.ms_thresh = 2.0;
     }
     if (cfg.huber_delta <= 0.0) cfg.huber_delta = 1.345;
     if (cfg.max_iterations <= 0) cfg.max_iterations = 100;
@@ -567,6 +654,13 @@ static int build_impl(const P2ControlObservation* obs, std::uint64_t n_obs,
     cfg.m_full_frame = (cfg.m_full_frame != 0) ? 1 : 0;
     cfg.final_gauge = (cfg.final_gauge != 0) ? 1 : 0;
     cfg.tolerance_relative = (cfg.tolerance_relative != 0) ? 1 : 0;
+    // task-4：ms 三键归一化（缺省关闭；零初始化/越域一律退回 legacy）。
+    cfg.ms_enabled = (cfg.ms_enabled != 0) ? 1 : 0;
+    if (!(cfg.ms_sigma_px >= 12.0) || !std::isfinite(cfg.ms_sigma_px))
+        cfg.ms_sigma_px = 12.0;
+    if (cfg.ms_sigma_px > 24.0) cfg.ms_sigma_px = 24.0;
+    if (!(cfg.ms_thresh >= 1.5) || !std::isfinite(cfg.ms_thresh))
+        cfg.ms_thresh = 1.5;
     if (cfg.target_order < 0) {
         // 空间 UPM 必须知道 control leaf 层级（order = target+9）
         return 1;
@@ -1343,7 +1437,6 @@ static int build_impl(const P2ControlObservation* obs, std::uint64_t n_obs,
                     for (std::size_t k = 0; k < K; ++k) {
                         m->obs_w[f][k] = 0.0;
                         for (std::size_t ii : m->controls[k].obs_idx) {
-                            const auto& o = obs[ii];
                             if (obs_fi[ii] != f) continue;
                             m->obs_w[f][k] += w[ii];
                         }
@@ -1396,7 +1489,6 @@ static int build_impl(const P2ControlObservation* obs, std::uint64_t n_obs,
                     for (std::size_t k = 0; k < K; ++k) {
                         m->obs_w[f][k] = 0.0;
                         for (std::size_t ii : m->controls[k].obs_idx) {
-                            const auto& o = obs[ii];
                             if (obs_fi[ii] != f) continue;
                             m->obs_w[f][k] += w[ii];
                         }
@@ -1634,6 +1726,140 @@ static int build_impl(const P2ControlObservation* obs, std::uint64_t n_obs,
         }
     }
 
+    // ===== task-4 多尺度低频修正（§5.11 生产施加路径）=====
+    // 位置：IRLS 收敛 + 调和延拓 + G 之后、hash 之前。派生输入是**求解后**
+    // 残差 r=y−M−C（M 为收敛公共场、C 为收敛帧间场；求解前 r=y−M 会把已由
+    // C 拟合的帧间差再派生一次 = 双重扣除）。逐帧残差经 control 邻接图做
+    // §5.11 同构派生（mask→填充→邻接低通→减中位），只在 evaluate_c_field
+    // 求值段叠加；判据/求解器/方差链不动。
+    // 串行 reference（workers=1）位精确；缺省关闭 ⇒
+    // ms 全空，旧行为逐位一致。
+    {
+        const UpmMsConfig mscfg = upm_ms_config_resolve(cfg);
+        m->ms_sigma_px = mscfg.sigma_px;
+        m->ms_thresh = mscfg.thresh;
+        m->ms_enabled = mscfg.enabled ? 1 : 0;
+        m->ms.assign(F, std::vector<double>(K, 0.0));
+        if (mscfg.enabled && K > 0 && F > 0) {
+            constexpr double kMad2Sig = 1.482602218505602;
+            // σ 口径重推导（§5.11）：σ 与 control 格距的无量纲比 ρ。
+            // σ_px（leaf 像素）→ 角度：σ_angle = σ_px × leaf_angle，
+            // control 格距 h_angle = cell_side × leaf_angle ⇒
+            // ρ = σ_angle/h_angle = σ_px/cell_side（leaf_angle 约掉，
+            // order 无关；cell_side = 512/grid，当前 64）。
+            // Jacobi 邻接均值（自+4 邻 /5）每轮对方差的贡献 ≈0.16h²
+            // （5 点 stencil 独立近似：4×(1/5)²=0.16）⇒ p 轮等效
+            // σ_eff ≈ h√(0.16p)；反解 p = (σ/h)²/0.16 = ρ²/0.16。
+            // σ∈[12,24]px、h=64px ⇒ ρ∈[0.19,0.38] ⇒ p∈[0.22,0.88]<1：
+            // 亚格——图上不可表示亚格平滑，取下限 1 轮（最小可表示平滑，
+            // 等效 σ_eff≈0.4h≈25.6px leaf，为名义 σ 的 1.6 倍；亚格近似，
+            // 此处声明）。上 clamp 3 轮（多轮抹掉缝台阶本身）。
+            const double rho =
+                mscfg.sigma_px / (double)m->cell_side;
+            int passes = static_cast<int>(
+                std::lround(rho * rho / 0.16));
+            if (passes < 1) passes = 1;
+            if (passes > 3) passes = 3;
+            for (std::size_t f = 0; f < F; ++f) {
+                // 参考帧按 gauge 恒零不派生（残差归公共面）。
+                bool is_ref = false;
+                if (f < m->frame_component.size() &&
+                    f < m->frame_id_by_index.size() &&
+                    m->frame_component[f] < m->component_ref_frame.size())
+                    is_ref = (m->frame_id_by_index[f] ==
+                              m->component_ref_frame[m->frame_component[f]]);
+                if (is_ref) continue;
+                std::vector<double> r(K, 0.0);
+                std::vector<char> has(K, 0);
+                for (std::size_t k = 0; k < K; ++k) {
+                    double num = 0.0, den = 0.0;
+                    for (std::size_t ii : m->controls[k].obs_idx) {
+                        // obs_fi = 循环外一次算好的每 obs frame 槽（拓扑不变，
+                        // 查表与原 map 逐字一致；见 compute_raw 定义前缓存）。
+                        if (ii >= obs_fi.size() || obs_fi[ii] != f) continue;
+                        const double v = obs[ii].value;
+                        if (!std::isfinite(v)) continue;
+                        // 求解后残差（减本帧 C，见上）；无偏估计用均值（与 C 同
+                        // 一 control 聚合口径；中位/均值差异为二阶，低频派生
+                        // 只取其低频分量）。
+                        num += v - M[k] - m->C[f][k];
+                        den += 1.0;
+                    }
+                    if (den > 0.0) { r[k] = num / den; has[k] = 1; }
+                }
+                std::size_t n_has = 0;
+                for (char h : has) if (h) ++n_has;
+                if (n_has < 4) continue;   // 格点过少：低频无意义，留零
+                std::vector<double> all;
+                all.reserve(n_has);
+                for (std::size_t k = 0; k < K; ++k)
+                    if (has[k]) all.push_back(r[k]);
+                const double med = upm_median_sorted(all);
+                for (double& v : all) v = std::fabs(v - med);
+                const double mad = upm_median_sorted(all);
+                const double sig = kMad2Sig * mad;
+                if (!(sig > 0.0) || !std::isfinite(sig)) continue;  // 无尺度信息
+                const double thr = med + mscfg.thresh * sig;
+                std::vector<char> masked(K, 0), kept(K, 0);
+                std::size_t n_kept = 0;
+                for (std::size_t k = 0; k < K; ++k) {
+                    if (!has[k]) continue;
+                    if (r[k] > thr) { masked[k] = 1; }
+                    else { kept[k] = 1; ++n_kept; }
+                }
+                if (n_kept < 4) continue;  // 过保护：有效样本杀伤殆尽，留零
+                // mask 区 + 无观测节点由邻接最近有效值填充（BFS 菱形推进，
+                // control 下标升序固定序确定；孤立节点回退全局中位）。
+                std::vector<double> filled = r;
+                {
+                    std::vector<int> dist(K, -1);
+                    std::vector<std::size_t> src(K, static_cast<std::size_t>(-1));
+                    std::vector<std::size_t> q;
+                    for (std::size_t k = 0; k < K; ++k)
+                        if (kept[k]) { dist[k] = 0; src[k] = k; q.push_back(k); }
+                    std::size_t head = 0;
+                    while (head < q.size()) {
+                        const std::size_t cur = q[head++];
+                        for (std::size_t nb : m->adj[cur]) {
+                            if (nb >= K || dist[nb] >= 0) continue;
+                            dist[nb] = dist[cur] + 1;
+                            src[nb] = src[cur];
+                            q.push_back(nb);
+                        }
+                    }
+                    for (std::size_t k = 0; k < K; ++k) {
+                        if ((masked[k] || !has[k]) && src[k] != static_cast<std::size_t>(-1))
+                            filled[k] = r[src[k]];
+                        else if (!has[k])
+                            filled[k] = med;
+                    }
+                }
+                // 可分离邻接低通 passes 轮（Jacobi 均值；串行 k 升序固定序；
+                // 轮内用上一轮快照 sm，不用 nxt——Gauss-Seidel 会使结果依赖
+                // k 扫描序，此处固定用 sm 保证串行 reference 语义清晰）。
+                std::vector<double> sm = filled, nxt = filled;
+                for (int p = 0; p < passes; ++p) {
+                    for (std::size_t k = 0; k < K; ++k) {
+                        double acc = sm[k];
+                        int n = 1;
+                        for (std::size_t nb : m->adj[k]) {
+                            if (nb >= K) continue;
+                            acc += sm[nb];
+                            ++n;
+                        }
+                        nxt[k] = acc / static_cast<double>(n);
+                    }
+                    sm.swap(nxt);
+                }
+                std::vector<double> sc = sm;
+                const double lvl = upm_median_sorted(sc);
+                if (!std::isfinite(lvl)) continue;
+                for (std::size_t k = 0; k < K; ++k)
+                    m->ms[f][k] = sm[k] - lvl;   // 减中位保公共面（只扣起伏）
+            }
+        }
+    }
+
     // 模型哈希：精确序列化（max_digits10）+ frame manifest + 拓扑 + 系数
     {
         std::string payload;
@@ -1678,6 +1904,19 @@ static int build_impl(const P2ControlObservation* obs, std::uint64_t n_obs,
             payload += "|G";
             for (std::size_t k = 0; k < K; ++k)
                 payload += fmt(m->gauge[k]) + ";";
+        }
+        // task-4：ms 纳入 hash（同系数不同修正 → 不同 hash；ms 全空/全零 ⇒
+        // payload 与 legacy 逐位一致，缺省关闭旧行为不变）。
+        bool ms_any = false;
+        for (const auto& row : m->ms)
+            for (double v : row)
+                if (v != 0.0) { ms_any = true; break; }
+        if (ms_any) {
+            payload += "|MS" + std::to_string(m->ms_sigma_px) + "," +
+                       std::to_string(m->ms_thresh) + ";";
+            for (std::size_t f = 0; f < F; ++f)
+                for (std::size_t k = 0; k < K; ++k)
+                    payload += fmt(m->ms[f][k]) + ";";
         }
         const std::string h = acsd::crypto::sha256_hex(
             payload.data(), payload.size());
@@ -1987,6 +2226,28 @@ int p2_upm_save(const void* model, const char* path) {
         }
         j["gauge"] = Gj;
     }
+    // task-4：ms 持久化（逐帧逐 control 稀疏；空/全零 = legacy，不写键）。
+    {
+        bool any = false;
+        for (const auto& row : m->ms)
+            for (double v : row)
+                if (v != 0.0 && std::isfinite(v)) { any = true; break; }
+        if (any) {
+            nlohmann::json Mj = nlohmann::json::array();
+            for (std::size_t f = 0; f < m->ms.size(); ++f) {
+                nlohmann::json row = nlohmann::json::array();
+                for (std::size_t k = 0; k < m->ms[f].size(); ++k) {
+                    const double v = m->ms[f][k];
+                    if (v != 0.0) row.push_back({k, v});
+                }
+                Mj.push_back(row);
+            }
+            j["ms"] = Mj;
+            j["ms_sigma_px"] = m->ms_sigma_px;
+            j["ms_thresh"] = m->ms_thresh;
+            j["ms_enabled"] = m->ms_enabled;
+        }
+    }
     // 唯一 AIO：模型稀疏持久化走 aio_upm_write_sparse
     const std::string text = j.dump(2);
     return aio_upm_write_sparse(path, text.c_str());
@@ -2265,6 +2526,38 @@ int p2_upm_open(const char* path, void** out_model) {
                 if (v != 0.0) { any = true; break; }
             if (!any) m->gauge.clear();
         }
+        // task-4：恢复 ms（旧文件无键 ⇒ 空向量 = legacy，施加恒零）。
+        // 类型非法一律拒绝；行数与帧数不一致拒绝。
+        if (j.contains("ms")) {
+            if (!j["ms"].is_array() || j["ms"].size() != F) {
+                delete m;
+                return 1;
+            }
+            m->ms.assign(F, std::vector<double>(K, 0.0));
+            for (std::size_t f = 0; f < j["ms"].size(); ++f) {
+                const auto& row = j["ms"][f];
+                if (!row.is_array()) { delete m; return 1; }
+                for (const auto& item : row) {
+                    if (!item.is_array() || item.size() < 2 ||
+                        !item[0].is_number_unsigned() ||
+                        !item[1].is_number()) {
+                        delete m;
+                        return 1;
+                    }
+                    const std::size_t k = item[0].get<std::size_t>();
+                    if (k >= K) { delete m; return 1; }
+                    m->ms[f][k] = item[1].get<double>();
+                }
+            }
+            m->ms_sigma_px = j.value("ms_sigma_px", 16.0);
+            m->ms_thresh = j.value("ms_thresh", 2.0);
+            m->ms_enabled = j.value("ms_enabled", 1);
+            bool any = false;
+            for (const auto& row : m->ms)
+                for (double v : row)
+                    if (v != 0.0) { any = true; break; }
+            if (!any) m->ms.clear();
+        }
         // 邻接图必须与 build 逐字同构：本文件过去在这里另写了一份「只做网格
         // 邻接」的简化版，漏掉跨 tile 几何邻接、漏 a==b 自环守卫、漏去重。
         // 后果是 upm-fit 求解用的平滑约束与 upm-apply 读回后施加的不是同一个
@@ -2538,80 +2831,26 @@ int p2_upm_materialize_dense_n(const void* model, int target_order,
         cache_path, m->info.model_hash, target_order, 1 /* fp64 缓存 */,
         m->C.size(), tiles.size());
     if (!d) return 1;
-    const int tile_shift = 9;
     const std::size_t kLeafPx = 512ull * 512ull;
     const std::size_t kChunk = 16;
-    // 逐 tile 求值体：像素级双线性（cell 中心 + axis 外推/夹取），
-    // 语义与 evaluate_c_field 一致；读写均为只读输入(m->cell_index/C)+独立 out。
+    // 逐 tile 求值体：逐像素调同一求值语义（C）。sparse/dense 同语义的
+    // 唯一实现 = evaluate_c_field（C 场 + 同一 ms 叠加 + 同一 gauge 外的
+    // 参考帧恒零）；dense 缓存折入必须与 sparse 口径逐位等价，故逐像素
+    // 调同一函数而非逐点加 ms / 另写插值。
     auto compute_tile = [&](std::size_t f, std::uint64_t tile,
                             double* out, std::size_t npx) {
-        double node[8][8];
-        bool node_ok[8][8];
-        for (int gy = 0; gy < 8; ++gy)
-            for (int gx = 0; gx < 8; ++gx) {
-                const auto key =
-                    std::make_pair(tile, std::make_pair(gx, gy));
-                const auto it = m->cell_index.find(key);
-                if (it != m->cell_index.end()) {
-                    node[gy][gx] = m->C[f][it->second];
-                    // P2a-2：稠密缓存必须与 sparse calibrate_block
-                    // 逐位等价 ⇒ 同一公共 gauge G 折入缓存值（G 空 = legacy）。
-                    if (!m->gauge.empty())
-                        node[gy][gx] += m->gauge[it->second];
-                    node_ok[gy][gx] = true;
-                } else {
-                    node[gy][gx] = 0.0;
-                    node_ok[gy][gx] = false;
-                }
-            }
-        const int cell = m->cell_side;
-        const int half = cell / 2;
-        const auto itb = m->tile_gx_bounds.find(tile);
-        const int gmin = (itb != m->tile_gx_bounds.end())
-                             ? itb->second.first : 0;
-        const int gmax = (itb != m->tile_gx_bounds.end())
-                             ? itb->second.second : 7;
-        const auto itb2 = m->tile_gy_bounds.find(tile);
-        const int vmin = (itb2 != m->tile_gy_bounds.end())
-                             ? itb2->second.first : 0;
-        const int vmax = (itb2 != m->tile_gy_bounds.end())
-                             ? itb2->second.second : 7;
-        auto axis = [&](int v, int* c0, int* c1, int lo, int hi) {
-            if (lo == hi) { *c0 = *c1 = lo * cell + half; return; }
-            if (v <= lo * cell + half) { *c0 = lo * cell + half;
-                                         *c1 = lo * cell + half + cell; }
-            else if (v >= hi * cell + half) { *c0 = hi * cell + half - cell;
-                                              *c1 = hi * cell + half; }
-            else {
-                const int idx = std::clamp(v / cell, lo, hi);
-                const int cc = idx * cell + half;
-                if (v <= cc) { *c0 = cc - cell; *c1 = cc; }
-                else { *c0 = cc; *c1 = cc + cell; }
-            }
-        };
-        auto at = [&](int cx, int cy) {
-            const int gxi = std::clamp((cx - half) / cell, 0, 7);
-            const int gyi = std::clamp((cy - half) / cell, 0, 7);
-            return node_ok[gyi][gxi] ? node[gyi][gxi] : 0.0;
-        };
+        // gauge 与 C/ms 一样是逐 control 场、同求值语义：此处与 sparse
+        // calibrate_block 同口径叠加（G 空 = legacy）。
+        const int tile_shift = 9;   // 与 p2_upm_evaluate_c 同口径
         for (std::uint64_t local = 0; local < npx; ++local) {
             std::uint32_t x = 0, y = 0;
             acsd::healpix::nested_local_to_xy(
                 local, (std::uint32_t)tile_shift, x, y);
-            int x0, x1, y0, y1;
-            axis((int)x, &x0, &x1, gmin, gmax);
-            axis((int)y, &y0, &y1, vmin, vmax);
-            const double c00 = at(x0, y0), c10 = at(x1, y0);
-            const double c01 = at(x0, y1), c11 = at(x1, y1);
-            const double tx = (x1 != x0)
-                                  ? (double)((int)x - x0) / (double)(x1 - x0)
-                                  : 0.0;
-            const double ty = (y1 != y0)
-                                  ? (double)((int)y - y0) / (double)(y1 - y0)
-                                  : 0.0;
-            const double top = c00 + tx * (c10 - c00);
-            const double bot = c01 + tx * (c11 - c01);
-            out[local] = top + ty * (bot - top);
+            double c = evaluate_c_field(m, f, tile, (int)x, (int)y);
+            double g = 0.0;
+            if (!m->gauge.empty())
+                g = evaluate_field_row(m, m->gauge, tile, (int)x, (int)y);
+            out[local] = c + g;
         }
     };
     // dense tile 求值并行(std::thread; workers 由调用方传 lease, 无 OpenMP)。

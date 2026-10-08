@@ -120,6 +120,8 @@ bool p2_stage2_parse_config(const nlohmann::json& j, P2Stage2Config* cfg, std::s
                                        "halo_mag_thresh", "halo_r8", "halo_a",
                                        "halo_r_min", "halo_r_max",
                                        "seam_fallback_factor", "seam_fallback_r_max",
+                                       // task-4 多尺度低频修正三键（缺省关闭）
+                                       "ms_enabled", "ms_sigma_px", "ms_thresh",
                                        "huber_delta",
                                       "smoothing", "zero_anchor_weight",
                                       "max_irls_iterations", "tolerance",
@@ -274,6 +276,25 @@ bool p2_stage2_parse_config(const nlohmann::json& j, P2Stage2Config* cfg, std::s
             if (!(cfg->seam_fallback_r_max > 0.0) ||
                 !std::isfinite(cfg->seam_fallback_r_max)) {
                 *err = "seam_fallback_r_max 必须 > 0 且有限";
+                return false;
+            }
+            // task-4 多尺度低频修正三键（缺省关闭；非法值 fail-closed）。
+            cfg->ms_enabled = m.value("ms_enabled", 0);
+            if (cfg->ms_enabled != 0 && cfg->ms_enabled != 1) {
+                *err = "ms_enabled 必须为 0 或 1";
+                return false;
+            }
+            cfg->ms_sigma_px = m.value("ms_sigma_px", 16.0);
+            if (!(cfg->ms_sigma_px >= 12.0) ||
+                !(cfg->ms_sigma_px <= 24.0) ||
+                !std::isfinite(cfg->ms_sigma_px)) {
+                *err = "ms_sigma_px 必须在 [12,24] 且有限";
+                return false;
+            }
+            cfg->ms_thresh = m.value("ms_thresh", 2.0);
+            if (!(cfg->ms_thresh >= 1.5) ||
+                !std::isfinite(cfg->ms_thresh)) {
+                *err = "ms_thresh 必须 >= 1.5 且有限";
                 return false;
             }
             cfg->huber_delta = m.value("huber_delta", 1.345);
@@ -807,5 +828,9 @@ P2UpmBuildConfig p2_stage2_make_upm_cfg(const P2Stage2Config& cfg,
     mcfg.target_order = target_order;
     mcfg.cpu_workers = cfg.exec.cpu_workers;   // CON-005: UPM build 并行 worker 预算(CON-002 唯一来源)
     mcfg.grid = cfg.control_grid_per_tile;     // M7-C-001: UPM G 必须 == 采样器 G（UPM 侧校验）
+    // task-4：model 面三键透传（缺省关闭；旧行为逐位一致）。
+    mcfg.ms_enabled = cfg.ms_enabled;
+    mcfg.ms_sigma_px = cfg.ms_sigma_px;
+    mcfg.ms_thresh = cfg.ms_thresh;
     return mcfg;
 }

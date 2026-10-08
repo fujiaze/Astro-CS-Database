@@ -66,6 +66,11 @@ struct P2Stage2Config {
     double halo_r_max = 300.0;
     double seam_fallback_factor = 1.5;
     double seam_fallback_r_max = 450.0;
+    // task-4 多尺度低频修正（PHASE2_SAMPLER §5.11）：model 面三键，缺省关闭。
+    // enabled=0（默认）⇒ 纯 C 场旧行为（逐位一致）；环境变量仅测试覆写。
+    int ms_enabled = 0;
+    double ms_sigma_px = 16.0;
+    double ms_thresh = 2.0;
     int robust_loss = 0;
     int snr_weight_mode = 0;
     double huber_delta = 1.345;

@@ -245,6 +245,9 @@ persist→reload 语义，与内核 probe/fill 语义的桥接未验证。
 | `smoothing_lambda` | 键缺省时编译期默认 0.0 | —— | **UPM 图平滑权重**（对天光 / δ 面的拟合正则项，默认 0 = 关闭）。`P2_SMOOTHING_LAMBDA_AUTO = 0.1` 仅在 auto 路径生效 |
 | `cpu_workers` | 调用方给 lease | —— | 并行 worker 数；0 = 单线程串行（不是 auto） |
 | `input_manifest_hash` | 可空 | —— | 输入稳定 manifest 哈希；非空时参与模型 hash |
+| `ms_enabled` | 0 | —— | task-4 多尺度低频修正总开关（0 = 关闭即纯 C 场旧行为，逐位一致；1 = 启用）。环境变量 `ACSD_UPM_MS_ENABLE` 只作测试覆写（默认关，测试专用） |
+| `ms_sigma_px` | 16.0 | 像素 | task-4 多尺度口径（钳 [12,24]）。环境变量 `ACSD_UPM_MS_SIGMA_PX` 只作测试覆写（测试专用） |
+| `ms_thresh` | 2.0 | —— | task-4 结构保护高阈（下限钳 ≥1.5）。环境变量 `ACSD_UPM_MS_THRESH` 只作测试覆写（测试专用） |
 
 表 A 未列但同属 `P2UpmBuildConfig` 的字段（阻尼 / 参考场装配 / 控制网格边长）已在
 upm.h 带冻结注记登记，本页不复制其语义。

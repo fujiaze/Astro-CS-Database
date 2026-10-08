@@ -588,7 +588,17 @@ r_fb(m) = min(1.5 × r(m), R_MAX_FB=450px)
 不存在，需新增缝带判定、区域入口与分片合并面后才成立，在此之前
 引用回退重算一律按全量语义解释。
 
-### 5.11 多尺度低频天光面推导（采样侧，离线验证语义）
+### 5.11 多尺度低频天光面推导与生产施加路径（UPM C 场为准）
+
+生产施加路径以 UPM C 场为准：多尺度低频修正在 UPM 构建侧
+按本节同构算法派生，随 UPM 模型持久化，在 `evaluate_c_field`
+求值段与 C 场同一科学语义叠加后经 `p2_upm_calibrate_block`
+扣除（`lib/algorithms/coverage/src/upm.cpp` 求值与施加段）。
+天光面 `p2_sky_plane_eval_delta`
+（`lib/algorithms/coverage/src/sky_plane.cpp` 求值段）只作
+旁路与诊断求值，不进入生产扣除；两条求值路不同时施加。
+该选择使 MS-VERIFY 成品与 RERUN3 逐位一致的旧分叉闭合：
+修正在 C 场内即改变扣除，不过 C 场则成品逐位不变。
 
 本分支回答采样之后的一个问题：给定含缝台阶与梯度突变信号的采样读入场，如何求一个低频面，
 使其既表示局地缝差，又不把星系核心、亮星、云丝、行星状星云壳层当低频吃掉。
@@ -661,6 +671,49 @@ calibrated = raw − (S − median(S))          # 只扣起伏、保留 B_ref
 与 Stage B 亮端迭代 clipping、Stage C 局部 tolerance 门、Stage D 亮端污染门、
 普通星简单掩膜分支、星等定半径晕掩膜分支同向叠加，不改变既有门的判据与计数；
 暗端离群在本模块内无判别面，仍由上游坏帧与坏列掩膜承担。
+
+生产施加的实现口径登记如下。UPM 侧在构建收敛后取逐帧
+逐 control 求解后残差 `r = y − M − C`（M 为收敛公共场、C 为收敛
+帧间场；求解前 `r = y − M` 会把已由 C 拟合的帧间差再派生一次 =
+双重扣除，禁用），按 control 邻接图做本节同构
+的低频派生：全局 median/MAD 高阈结构保护 mask（亮端 veto，
+推荐阈值 2.0、下限 1.5），mask 区与无观测几何节点由邻接
+最近有效值填充，可分离邻接低通（σ 推荐 16px 口径、区间
+[12, 24]px，上探 32px 欠拟合、下探 8px 吃壳层；control 格距
+64px 下 σ 为亚格，邻接跳数按角度/格距无量纲比推导，
+见下），减中位保
+公共面（只扣起伏）。派生场随 UPM 模型持久化，
+求值时与 C 场同一双线性语义叠加后扣除；参考帧按
+gauge 恒零不叠加。`p2_upm_calibrate_block` 与稠密缓存
+sparse/dense 同语义（dense 逐像素调同一求值语义）。
+精度口径为串行 reference 位精确，
+跨 worker 数声明 1e-12。`p2_sky_plane_eval_delta` 的
+天光面求值只作旁路诊断：它验证同一修正量级，不进入
+`p2_upm_calibrate_block` 扣除链。
+
+验证诚实边界（合成自门 ≠ 生产门）：MS-VERIFY 的 V2 合成台阶实测
+D≈5.35e-04（2 帧 × 8×8 control 网格、偏置 0.5 + 右半坡 0.3、判据
+0<D<bias），约为生产门 5e-06 的 107 倍 ⇒ V2 只判合成自门 PASS，
+生产门待 M42 真缝验证；不得把 D 说成过生产门（源码载体见
+`lib/algorithms/coverage/tools/ms_verify.cpp`）。V3 对照窗取缝两侧各
+两列（off 方差恒>0，无零分母退化；旧右半窗 off spread 恒零、
+ratio 置零 PASS 的退化口径已退役），容差门 ratio≤1.01（ms 微纹波
+±3e-04 在 0.3 台阶上带来约 0.2% spread 增量，判不恶化；C-spread
+只作辅助），零分母一律判 FAIL。V5 五类拒绝自足
+（enabled 越界 / sigma 下探 8 / sigma 上探 32 / thresh 下限 /
+未知键），无补测旧账。
+
+σ 口径重推导（control 格距 64px 下的亚格问题）：
+σ_px（leaf 像素）与 control 格距 h（leaf 像素，= cell_side =
+512/grid，当前 64）的无量纲比 ρ = σ_px/h（同乘 leaf 角尺度
+即角度比，order 无关）。Jacobi 邻接均值（自 + 4 邻 /5）每轮
+对方差的贡献约 0.16h²（5 点 stencil 独立近似），p 轮等效
+σ_eff ≈ h√(0.16p），反解 passes = round(ρ²/0.16)。σ ∈
+[12, 24]px、h = 64px 时 ρ ∈ [0.19, 0.38]，passes ∈ [0.22,
+0.88] < 1：亚格不可表示，取下限 1 轮（等效 σ_eff ≈ 0.4h ≈
+25.6px leaf，为名义 σ 的约 1.6 倍，此处声明为亚格近似），
+上 clamp 3 轮。旧式 passes = round(σ/8) 无角度/格距依据，
+退役。
 
 ## 6 消费链与并行语义
 
