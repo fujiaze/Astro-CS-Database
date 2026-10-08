@@ -129,6 +129,12 @@ struct P2UpmBuildConfig {
     // control_grid_per_tile 且 == UPM 网格常数 8；不等时 p2_upm_build* 返回 3
     // （禁静默错格架：control 场会按错误格架插值）。
     int    grid = 8;
+    // task-4 多尺度低频修正（PHASE2_SAMPLER §5.11）：三键默认关闭（legacy）。
+    // ms_enabled=0 ⇒ 派生跳过、ms 空、evaluate/dense 纯 C 场（旧行为逐位一致）。
+    // 环境变量 ACSD_UPM_MS_* 仅测试覆写（默认关；文档声明测试专用）。
+    int    ms_enabled = 0;          // 0=关闭（默认），非 0=启用
+    double ms_sigma_px = 16.0;      // 口径（钳 [12,24]；见 §5.11）
+    double ms_thresh = 2.0;         // 高阈（下限钳 ≥1.5；见 §5.11）
 };
 
 // ===== 构建 / 持久化 / 求值 =====

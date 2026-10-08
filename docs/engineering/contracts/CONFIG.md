@@ -275,6 +275,7 @@ model: control_grid_per_tile(8) patch_radius_leaf(2) min_samples(5)
        background_min_retained_fraction(0.60)
        background_tolerance(3.0) background_neighbor_radius(2)
        background_catalog_veto(1)
+       ms_enabled(0) ms_sigma_px(16.0) ms_thresh(2.0)
        huber_delta(1.345) smoothing(auto→0.1) zero_anchor_weight(1e-3)
        max_irls_iterations(100) tolerance(1e-6) sigma_floor(1e-3)
        support_power(1.0) robust_loss(huber) snr_weight_mode(snr2_normalized)  # UPM fit 内部诊断开关（键名以实现解析点 lib/algorithms/coverage/src/stage2_common.cpp 为准；最高设计的「数据对象」一节（数据对象）的「无权重模式可选概念」约束的是 Phase2 集成 weight_mode 概念，与本键无关）
@@ -366,6 +367,8 @@ output.hips / diagnostics
 Gaia 晕组共五键：`model.halo_mag_thresh`（默认 8.0，Gaia 星等，须为有限数）、`model.halo_r8`（默认 150，单位为像素，必须大于零）、`model.halo_a`（默认 1.5，无量纲，每星等倍数，必须大于一）、`model.halo_r_min`（默认 30，单位为像素，必须大于零）、`model.halo_r_max`（默认 300，单位为像素，必须大于零，且下限不得大于上限）。半径函数为星等定半径：原始半径等于晕锚点半径乘每星等倍数的阈值减星等次方，只对亮于阈值的星成帽，再按上下限截断。取默认时即还原采样算法分册的成品公式。半径像素口径与锚定帧相同，帧像素口径按像素尺度比换算。阈值对应的星等窗查询、排序与取最亮由掩膜模块自做。普通星阈值半径键与 Gaia 星等限晕半径键分键配置，不可共用信噪比中位数倍数语义，成帽逻辑不得复用固定星掩膜半径。语义与默认数值正本为采样算法分册的 Gaia 晕掩膜一节。
 
 缝回退组共两键：`model.seam_fallback_factor`（默认 1.5，无量纲，不得小于一）与 `model.seam_fallback_r_max`（默认 450，单位为像素，必须大于零，对应成品公式的回退上限）。回退半径等于该因子乘常规晕半径再按回退上限封顶。触发判据为缝验收失败且暗段不动，仍失败时检查触发源而不继续放大，上限只用于缝邻域。重算语义为全量重跑：覆盖构建、采样探查与回填、模型持久化与分块求值均无区域子集重算入口，引用回退重算一律按全量语义解释。语义与默认数值正本为采样算法分册的缝回退一节。
+
+多尺度低频组共三键：`model.ms_enabled`（默认 0，无量纲，只能取 0 或 1；0 = 关闭即纯 C 场旧行为，1 = 启用多尺度低频修正）、`model.ms_sigma_px`（默认 16.0，单位为像素，必须在 [12, 24] 且有限）、`model.ms_thresh`（默认 2.0，无量纲，必须 ≥1.5 且有限）。三键缺省关闭：缺键取默认即旧行为逐位一致。显式给出须满足值域，否则拒绝并报错。环境变量 `ACSD_UPM_MS_ENABLE` / `ACSD_UPM_MS_SIGMA_PX` / `ACSD_UPM_MS_THRESH` 只作测试覆写（默认关；优先级为 config 键 > 环境覆写 > 默认关闭），文档声明测试专用，不得作为生产配置面。语义与默认数值正本为采样算法分册的多尺度低频天光面推导与生产施加路径一节。
 
 现状分叉声明：既有三键 `model.control_k_corr`（默认 1.4）、`model.star_mask_snr_factor`、`model.star_mask_radius_deg` 在编排采样算子可读，在阶段二结构体、解析白名单与工具组装三处均无对应，工具链路以零初始化后按实现修补回默认运行，两条链路对同一配置给出不同生效面，引用时必须区分。新七键在采样器结构体、阶段二解析白名单、阶段二工具组装、编排采样算子四处均无读取，现状使用即被未知键门拒绝，本节为合同先行，消费面落地前不得视为可用。分叉事实的登记面为注册表模块页的逐字段登记、星掩膜函数登记与已知限制三节。
 
