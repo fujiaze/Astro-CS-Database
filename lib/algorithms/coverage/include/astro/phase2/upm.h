@@ -181,8 +181,14 @@ P2_API int p2_upm_calibrate_block(
     std::uint64_t count);
 
 // 直接求值空间校正场 C_frame(leaf_ipix)（sparse/dense 同一科学语义）。
+// task-8：默认产物口径 = raw−G−delta−ms（含 ms 叠加；delta 加回须用纯 C）。
 P2_API double p2_upm_evaluate_c(const void* model, std::uint64_t frame_id,
                                 std::uint64_t leaf_ipix);
+
+// task-8：纯 C 场求值（不含 ms 叠加；delta 模式加回段专用）。
+// 缺省（ms 关闭）与 p2_upm_evaluate_c 逐位一致；ms 启用时返回 C 纯场。
+P2_API double p2_upm_evaluate_c_plain(const void* model, std::uint64_t frame_id,
+                                      std::uint64_t leaf_ipix);
 
 // 观测 raw weight（production UPM 权重公式，单一实现）。
 // production（cfg.use_ivar_weight != 0，SCI-UPM-WEIGHT-001）：

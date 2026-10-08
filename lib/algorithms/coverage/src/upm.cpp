@@ -377,24 +377,41 @@ double evaluate_field_row(const Model* m, const std::vector<double>& row,
     return top + ty * (bot - top);
 }
 
+// task-8：纯 C 求值 / ms 求值拆分（§5.11 加回纯 C 语义）。
+// evaluate_c_field = 纯 C + ms（旧行为逐位一致）；delta 加回段改调
+// evaluate_c_field_plain（纯 C），使默认产物 = raw−G−delta−ms。
+// 缺省（ms 关闭）ms 项恒 0，两路逐位一致。
+double evaluate_c_field_plain(const Model* m, std::size_t frame_idx,
+                              std::uint64_t tile, int x, int y) {
+    // task-4 生产施加路径（§5.11）：纯 C 场（不含 ms 叠加）。
+    return evaluate_field_row(m, m->C[frame_idx], tile, x, y);
+}
+
+double evaluate_ms_field(const Model* m, std::size_t frame_idx,
+                         std::uint64_t tile, int x, int y) {
+    // task-4 生产施加路径（§5.11）：逐帧低频修正 ms 同一语义。
+    // ms 行与 C 行同索引（逐 control），共用 evaluate_field_row 的
+    // cell 中心双线性/外推语义；ms 为空/关闭/帧越界/参考帧恒零 ⇒ 0.0。
+    if (!m->ms_enabled || frame_idx >= m->ms.size() ||
+        m->ms[frame_idx].size() != m->controls.size())
+        return 0.0;
+    // 参考帧按 gauge 恒零不叠加（修正派生自残差，参考帧残差归公共面）。
+    bool is_ref = false;
+    if (frame_idx < m->frame_component.size() &&
+        frame_idx < m->frame_id_by_index.size() &&
+        m->frame_component[frame_idx] < m->component_ref_frame.size())
+        is_ref = (m->frame_id_by_index[frame_idx] ==
+                  m->component_ref_frame[m->frame_component[frame_idx]]);
+    if (is_ref) return 0.0;
+    return evaluate_field_row(m, m->ms[frame_idx], tile, x, y);
+}
+
 double evaluate_c_field(const Model* m, std::size_t frame_idx,
                         std::uint64_t tile, int x, int y) {
     // task-4 生产施加路径（§5.11）：C 场 + 逐帧低频修正 ms 同一语义叠加。
-    // ms 行与 C 行同索引（逐 control），共用 evaluate_field_row 的
-    // cell 中心双线性/外推语义；ms 为空/帧越界/参考帧恒零 ⇒ 纯 C 场。
-    double c = evaluate_field_row(m, m->C[frame_idx], tile, x, y);
-    if (m->ms_enabled && frame_idx < m->ms.size() &&
-        m->ms[frame_idx].size() == m->controls.size()) {
-        // 参考帧按 gauge 恒零不叠加（修正派生自残差，参考帧残差归公共面）。
-        bool is_ref = false;
-        if (frame_idx < m->frame_component.size() &&
-            frame_idx < m->frame_id_by_index.size() &&
-            m->frame_component[frame_idx] < m->component_ref_frame.size())
-            is_ref = (m->frame_id_by_index[frame_idx] ==
-                      m->component_ref_frame[m->frame_component[frame_idx]]);
-        if (!is_ref) c += evaluate_field_row(m, m->ms[frame_idx], tile, x, y);
-    }
-    return c;
+    // 缺省（ms 关闭）ms 项恒 0 ⇒ 纯 C 场旧行为逐位一致。
+    return evaluate_c_field_plain(m, frame_idx, tile, x, y) +
+           evaluate_ms_field(m, frame_idx, tile, x, y);
 }
 
 inline double quality_factor(std::uint32_t flags, int mode) {
@@ -2734,6 +2751,26 @@ double p2_upm_evaluate_c(const void* model, std::uint64_t frame_id,
     acsd::healpix::nested_local_to_xy(local, (std::uint32_t)tile_shift,
                                          x, y);
     return evaluate_c_field(m, fi, tile, (int)x, (int)y);
+}
+
+// task-8：纯 C 场求值（不含 ms 叠加；delta 模式加回段专用）。
+// 缺省（ms 关闭）与 p2_upm_evaluate_c 逐位一致（ms 项恒 0）。
+double p2_upm_evaluate_c_plain(const void* model, std::uint64_t frame_id,
+                               std::uint64_t leaf_ipix) {
+    if (model == nullptr) return std::numeric_limits<double>::quiet_NaN();
+    const Model* m = static_cast<const Model*>(model);
+    const auto it = m->frame_index.find(frame_id);
+    if (it == m->frame_index.end())
+        return std::numeric_limits<double>::quiet_NaN();
+    const std::size_t fi = it->second;
+    const int tile_shift = 9;
+    const std::uint64_t mask = (1ULL << (2u * (unsigned)tile_shift)) - 1ULL;
+    const std::uint64_t tile = leaf_ipix >> (2u * (unsigned)tile_shift);
+    const std::uint64_t local = leaf_ipix & mask;
+    std::uint32_t x = 0, y = 0;
+    acsd::healpix::nested_local_to_xy(local, (std::uint32_t)tile_shift,
+                                         x, y);
+    return evaluate_c_field_plain(m, fi, tile, (int)x, (int)y);
 }
 
 // production UPM 观测 raw weight（单一实现，build 内部复用）

@@ -10167,6 +10167,53 @@ Result<void> p2_op_upm_fit(const Json& doc, Json* man) {
     uc.m_full_frame = upm_cfg["m_full_frame"].get<int>();
   if (upm_cfg.contains("final_gauge"))
     uc.final_gauge = upm_cfg["final_gauge"].get<int>();
+  // task-8：生产 p2_op_upm_fit 消费 doc["model"].ms_* 三键（白名单/解析/
+  // 透传参照 stage2_common 已有实现）。缺省关闭逐位一致，非法 fail-closed。
+  // 白名单 = ms_enabled/ms_sigma_px/ms_thresh（其余 model 子键本节点不消费，
+  // 与 stage2_common 白名单同；未知键由校验层拒绝，本节点不静默夹取）。
+  {
+    if (doc.contains("model") && !doc["model"].is_object())
+      return Result<void>::fail(Error(ErrorDomain::DATA,
+          "model 必须是对象"));
+    const Json model_cfg = (doc.contains("model") && doc["model"].is_object())
+                               ? doc["model"] : Json::object();
+    if (model_cfg.contains("ms_enabled")) {
+      const Json& v = model_cfg["ms_enabled"];
+      if (!v.is_number_integer())
+        return Result<void>::fail(Error(ErrorDomain::DATA,
+            "model.ms_enabled 必须为 0 或 1"));
+      const int e = v.get<int>();
+      if (e != 0 && e != 1)
+        return Result<void>::fail(Error(ErrorDomain::DATA,
+            "model.ms_enabled 必须为 0 或 1"));
+      uc.ms_enabled = e;
+    }
+    if (model_cfg.contains("ms_sigma_px")) {
+      const Json& v = model_cfg["ms_sigma_px"];
+      if (!v.is_number())
+        return Result<void>::fail(Error(ErrorDomain::DATA,
+            "model.ms_sigma_px 必须在 [12,24] 且有限"));
+      const double s = v.get<double>();
+      if (!(s >= 12.0) || !(s <= 24.0) || !std::isfinite(s))
+        return Result<void>::fail(Error(ErrorDomain::DATA,
+            "model.ms_sigma_px 必须在 [12,24] 且有限"));
+      uc.ms_sigma_px = s;
+    }
+    if (model_cfg.contains("ms_thresh")) {
+      const Json& v = model_cfg["ms_thresh"];
+      if (!v.is_number())
+        return Result<void>::fail(Error(ErrorDomain::DATA,
+            "model.ms_thresh 必须 >= 1.5 且有限"));
+      const double t = v.get<double>();
+      if (!(t >= 1.5) || !std::isfinite(t))
+        return Result<void>::fail(Error(ErrorDomain::DATA,
+            "model.ms_thresh 必须 >= 1.5 且有限"));
+      uc.ms_thresh = t;
+    }
+  }
+  (*man)["upm_ms_enabled"] = uc.ms_enabled;
+  (*man)["upm_ms_sigma_px"] = uc.ms_sigma_px;
+  (*man)["upm_ms_thresh"] = uc.ms_thresh;
 
   void* model = nullptr;
   const int rc = p2_upm_build_geo(obs.data(), obs.size(),
@@ -11071,13 +11118,18 @@ Result<void> p2_op_upm_apply(const Json& doc, Json* man) {
         p2_upm_calibrate_block(model, fid, leaves.data(), in_v.data(),
                                out_v.data(), n_valid);   // 唯一真实校正入口
         // P2a-1：单次加性扣除（见本函数头 seam.additive_mode）。
-        // calibrate_block 已输出 raw − C（并含 P2a-2 末端公共 gauge G）。
+        // calibrate_block 已输出 raw − C − ms（并含 P2a-2 末端公共 gauge G）。
+        // task-8：delta 模式加回纯 C（不含 ms），默认产物 = raw − G − δ − ms；
+        // c 模式（sub_c）不加回，保持 raw − C − ms − G。缺省（ms 关闭）两条路
+        // 逐位一致（ms 项恒 0，加回纯 C ≡ 加回 C+ms）。
         if (!sub_c) {
-          // delta 模式：把 C 加回（raw − C → raw − G），只保留 δ 一次扣除。
+          // delta 模式：把纯 C 加回（raw − C − ms → raw − G − δ − ms），只保留 δ/ms 扣除。
           // G 是"对所有帧相同"的公共残差场（P2a-2，full_frame=1 时≈0），
-          // 不产生帧间/接缝差异，故保留。
+          // 不产生帧间/接缝差异，故保留。ms 是逐帧低频修正（§5.11），
+          // 加回须用纯 C（p2_upm_evaluate_c_plain），用含 ms 的 evaluate_c
+          // 会把 ms 一并抵消（task-8 前 ms 零效应根因）。
           for (uint64_t k = 0; k < n_valid; ++k) {
-            const double cval = p2_upm_evaluate_c(model, fid, leaves[k]);
+            const double cval = p2_upm_evaluate_c_plain(model, fid, leaves[k]);
             if (std::isfinite(cval) &&
                 std::isfinite(out_v[static_cast<size_t>(k)]))
               out_v[static_cast<size_t>(k)] += cval;

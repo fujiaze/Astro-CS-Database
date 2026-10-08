@@ -594,6 +594,13 @@ r_fb(m) = min(1.5 × r(m), R_MAX_FB=450px)
 按本节同构算法派生，随 UPM 模型持久化，在 `evaluate_c_field`
 求值段与 C 场同一科学语义叠加后经 `p2_upm_calibrate_block`
 扣除（`lib/algorithms/coverage/src/upm.cpp` 求值与施加段）。
+默认产物口径 = `raw−G−δ−ms`：`calibrate_block` 输出 `raw−C−ms−G`
+（含 P2a-2 末端公共 gauge G），delta 模式加回段改调纯 C 求值
+（`p2_upm_evaluate_c_plain`，不含 ms 叠加），c 模式保持
+`raw−C−ms−G`（不加回）。缺省（ms 关闭）两条路逐位一致
+（ms 项恒 0）。生产三键经 `p2_op_upm_fit` 消费 `doc["model"]`
+的 `ms_enabled/ms_sigma_px/ms_thresh`（白名单/解析/透传参照
+`stage2_common` 已有实现；缺省关闭逐位一致，非法 fail-closed）。
 天光面 `p2_sky_plane_eval_delta`
 （`lib/algorithms/coverage/src/sky_plane.cpp` 求值段）只作
 旁路与诊断求值，不进入生产扣除；两条求值路不同时施加。
