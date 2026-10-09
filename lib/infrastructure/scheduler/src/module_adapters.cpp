@@ -14467,6 +14467,23 @@ struct P2NodeModule : public IModule {
       // 权威, 禁硬编码; 节点 op 内以 doc 键覆盖注入）。
       Json cfg2 = doc;
       cfg2["__workers"] = cap;
+      // P10-UTIL2-006 同款节点级观测：阶段二七节点此前无 nodetrace（瀑布失明，
+      // 只能靠 lease 留证），性能归因只能靠猜。此处按同一格式补 BEGIN/END，
+      // 同一 env 开关（ACSD_NODE_TRACE），默认零开销（不置 env 不进分支）。
+      const char* p2_node_name = "unknown";
+      switch (spec_.op) {
+        case P2NodeOp::Coverage:  p2_node_name = "coverage";  break;
+        case P2NodeOp::Sample:    p2_node_name = "sample";    break;
+        case P2NodeOp::UpmFit:    p2_node_name = "upm-fit";   break;
+        case P2NodeOp::UpmApply:  p2_node_name = "upm-apply"; break;
+        case P2NodeOp::Reject:    p2_node_name = "reject";    break;
+        case P2NodeOp::Integrate: p2_node_name = "integrate"; break;
+        case P2NodeOp::Write:     p2_node_name = "write";     break;
+      }
+      const double p2_node_t0 = p10_monotonic_s();
+      if (std::getenv("ACSD_NODE_TRACE"))
+        std::fprintf(stderr, "[nodetrace] BEGIN acsd.phase2.%s %.6f\n",
+                     p2_node_name, p2_node_t0);
       switch (spec_.op) {
         // [probe] Phase2 七阶段边界 (coverage/sample/upm_fit/upm_apply/reject/integrate/write)
         case P2NodeOp::Coverage: {
@@ -14498,6 +14515,9 @@ struct P2NodeModule : public IModule {
           r = p2_op_write(cfg2, &man); break;
         }
       }
+      if (std::getenv("ACSD_NODE_TRACE"))
+        std::fprintf(stderr, "[nodetrace] END acsd.phase2.%s %.6f\n",
+                     p2_node_name, p10_monotonic_s() - p2_node_t0);
       }
     } catch (const Json::exception& e) {
       man["error"] = std::string("config value type error: ") + e.what();
