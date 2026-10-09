@@ -89,6 +89,19 @@
 - **单写者前提**：跨进程不取文件锁，同一产品路径同一时刻只允许一个写者（双写者
   同目标 = 原子 rename 的 last-writer-wins）；并发读安全，并发写由调用方在更高
   层串行化。
+- **发布尾部后台并行（发布池）**：单文件步序不动（临时写 → 校验 → fsync → 打洞 →
+  原子 rename → 父目录 fsync），但**多个产物文件的发布尾部彼此独立**，串行等待把
+  写段变成瓶颈：本机实测单文件 `fsync` 延迟与文件大小无关（延迟型而非带宽型），
+  并发后吞吐可扩展数倍。因此内容仍由调用线程写进私有临时文件（写入时序与语义
+  不变），尾部四步交 aio 内部一个有界工作池执行；对调用线程而言，文件一交给 aio
+  即视为卸载，可继续生产下一瓦片。并发度 = `min(16, 硬件并发)`，环境键
+  `ACSD_IO_PUBLISH_WORKERS` 可覆盖（`0` = 关闭池、退回全同步路径）。
+- **排空是硬前置**：完成 manifest 是「全部产物已原子发布」的唯一标记，故
+  `finalize` 在写 manifest 之前必须排空发布池（产品 → 排空 → manifest），
+  排空失败即 fail-closed、不留孤儿临时文件。`finalize` 自身也会写产物（各层聚合
+  瓦片、properties、SNR 等），故排空在 `finalize` 入口与 manifest 之前各做一次。
+- **发布池不缓冲文件内容**：队列里每个任务只持有临时路径与目标路径两个串，
+  内存增量与并发度成正比、与文件大小无关；池不改变任何科学值。
 
 ## 5. 配置项
 
@@ -100,7 +113,8 @@
 | `compression` | —— | —— | 压缩级别（zstd / lz4，块级） |
 | `order` | —— | —— | HiPS order 参数 |
 
-无全局 config（模块不读全局配置）。
+无全局 config（模块不读全局配置）。发布池并发度是运行期资源绑定，不是配置键：
+环境键 `ACSD_IO_PUBLISH_WORKERS`（缺省 `min(16, 硬件并发)`，`0` = 关闭池）。
 
 ## 6. 接口/ABI
 
@@ -138,6 +152,9 @@
 
 - 性能特征：流式读写；compression 块级；HiPS 写**先 tile 后 properties**；
 - 线程：独立句柄可并行；同一句柄顺序访问；dense cache 写 / 读分离；
+- 发布池线程是**IO 线程**（绝大部分时间等在 `fsync` 上，不占计算预算），
+  与计算侧 ThreadBudget lease 分离：lease 约束的是算线程，池约束的是在途发布
+  数；池的线程数由硬件并发导出，可用环境键收窄以限制并发落盘；
 - 缓存：**无进程级缓存**（读路径为句柄级）；缓存只缓存不改变科学值，容量有界、
   可失效；
 - 确定性：只读路径 = 校验 + 哈希重算，无求和序变化。
@@ -158,11 +175,9 @@
 ## 10. 已知限制
 
 - UPM sparse 走 temp + rename 原子写（IO_003）；
-- **HiPS tiles 非原子 —— 已登记的未闭合缺口**：partial-file 策略 = abort 尽力
-  清理、finalize 写 CHECKSUM / DATASUM 后交付；单 tile 为 remove → create →
-  write_chksum → close（lib/infrastructure/aio/src/hips/aio_hips_writer.cpp 的
-  `std::remove`），**不是** temp + rename 原子发布。**HiPS tile 原子发布的宣称以
-  该缺口闭合为前提**（《ACSD 最高设计》的「I/O 与原子产品」一章的原子发布条款；缺口如实登记）；
+- HiPS tile 与其余 FITS 产物**同走** `write_fits_atomic` 的私有临时文件 + 校验 +
+  fsync + 打洞 + 原子 rename 路径（临时名形如 `<name>.fits.tmp.<pid>.<seq>`，
+  取号原子、并发不重名）；发布池只改变尾部执行时机，不改变该步序。
 - 归档形态的写出与读取、产品级索引与完成清单 `storage` 段写出未落地，生产只落
   裸形态；
 - 标准块定义表未收录 `variance` 块，且块名越表无自动兜底；
