@@ -1222,6 +1222,17 @@ P2SkyPlaneConfig p2_sky_plane_default_config(void) {
     c.joint_outer_iterations = 1;   // §5.11 联合解：块坐标迭代外层次数（实测一步收敛）
     c.huber_delta = 1.345;
     c.max_iterations = 30;
+    // 候选对比实验旋钮（缺省缺失即冻结值 30，缺省行为不变）：信号面求解的
+    // 迭代上限。用途：实测「30 轮是否够、截断对产物有无影响」——该求解器
+    // 目前**没有任何未收敛上报**（真数据 info/iterations=30 即打满上限）。
+    {
+        const char* v = std::getenv("ACSD_SKY_MAX_ITER");
+        if (v) {
+            char* e = nullptr;
+            const long n = std::strtol(v, &e, 10);
+            if (e != v && n > 0) c.max_iterations = static_cast<int>(n);
+        }
+    }
     c.tolerance = 1e-10;
     c.gauge_mode = 0;
     c.weight_mode = 0;
