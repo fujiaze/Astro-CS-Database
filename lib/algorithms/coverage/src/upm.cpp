@@ -130,11 +130,17 @@ public:
             }
             return true;
         }
-        RunState st;
+        // RunState 为**成员**（不是调用栈对象）：worker 在锁内取到 cur_ 后释放锁
+        // 才进 steal，若 st 落在 run_for 栈上，worker 可能在 run_for 返回、栈帧
+        // 失效之后仍持有该指针（悬垂读；栈地址被下一轮复用则串到错代）。
+        RunState& st = st_;
         st.total = total;
         st.chunk = chunk;
         st.body = &body;
         st.nchunks = (total + chunk - 1) / chunk;
+        st.cursor.store(0, std::memory_order_relaxed);
+        st.done.store(0, std::memory_order_relaxed);
+        st.abort.store(false, std::memory_order_relaxed);
         {
             std::lock_guard<std::mutex> lk(mu_);
             cur_ = &st;
@@ -147,6 +153,14 @@ public:
         done_cv_.wait(lk, [&] {
             return st.done.load(std::memory_order_acquire) == st.nchunks;
         });
+        // done==nchunks 只保证 chunk 全部领完；仍须等已持本轮指针的 worker 退出
+        // steal（它们随后可能回到 wait，不再触碰 st）。参与者计数在锁内增减，
+        // 与这里同锁 ⇒ 不会漏计。
+        while (active_.load(std::memory_order_acquire) != 0) {
+            lk.unlock();
+            std::this_thread::yield();
+            lk.lock();
+        }
         cur_ = nullptr;
         return eptr_ == nullptr;
     }
@@ -199,11 +213,16 @@ private:
                 if (stop_) return;
                 local_gen = generation_;
                 st = cur_;
+                if (st != nullptr)
+                    active_.fetch_add(1, std::memory_order_acq_rel);
             }
             // run_for 返回（done==nchunks）后才置 cur_=nullptr 并可开始下一
             // 个 run_for；worker 领完 chunk 即回 wait，不触碰已返回调用栈
             // 的 st（done 计数保证返回时无 worker 仍在执行 body）。
-            if (st != nullptr) steal(*st, slot);
+            if (st != nullptr) {
+                steal(*st, slot);
+                active_.fetch_sub(1, std::memory_order_acq_rel);
+            }
         }
     }
 
@@ -214,7 +233,9 @@ private:
     std::condition_variable done_cv_;
     std::uint64_t generation_{0};
     bool stop_{false};
+    RunState st_;                       // 本轮任务状态（成员生命周期，见 run_for）
     RunState* cur_{nullptr};
+    std::atomic<int> active_{0};        // 正持有 cur_ 指针、尚未退出 steal 的线程数
     std::exception_ptr eptr_{nullptr};
 };
 
