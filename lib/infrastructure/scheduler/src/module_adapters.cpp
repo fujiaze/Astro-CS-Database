@@ -10052,283 +10052,10 @@ Result<void> p2_op_upm_fit(const Json& doc, Json* man) {
     nodes.push_back(x);
   }
 
-  P2UpmBuildConfig uc{};
-  uc.robust_loss = 0;              // huber(首版冻结)
-  uc.snr_weight_mode = 0;          // snr2_normalized
-  uc.huber_delta = 1.345;
-  // 自适应迭代预算：max_iterations 为"下界/试跑预算"语义（默认 100，
-  // 小规模早停行为逐位不变）；上界由 upm.max_iterations_cap 可配（默认 5000）。
-  // 求解器（upm.cpp）在试跑耗尽未收敛且改善仍显著时按 κ 保守收敛率追加预算。
-  uc.max_iterations = 100;
-  uc.max_iterations_cap = 5000;
-  // CONFORM-FIX-B-001（合规回退）：FZ-UPM-CONVERGENCE 冻结
-  // tol=1e-6（docs/science/algorithms/GATES_AND_TOLERANCES.md，
-  // 明文「改动 tol/σ_floor → rc!=0」），PHASE2_UPM_IMPL.md:379/:400-401 与
-  // DATA_SEMANTICS:1874 同值且标注「冻结面，任何修改必须走 SCI/合同变更」。
-  // 上一版实现就地改为 tolerance=1e-3 + tolerance_relative=1（未走变更流程）
-  // ⇒ 生产门 ≈1e-3·max|M| ≈3e12 ADU，比冻结门宽 18 个数量级，且与
-  // p2_session.cpp:204（仍 1e-6）分叉。现回退到冻结值，恢复符合性；
-  // 相对判据（尺度无关）的**授权路径**见变更 claim 草案
-  // CONFORM-FIX-B-001（tolerance-relative 变更 claim 草案）
-  // 未经变更流程批准不得在实现内启用。
-  // 显式 opt-in 覆盖键 upm.tolerance / upm.tolerance_relative 保留（默认 0）。
-  uc.tolerance = 1e-6;
-  // SCI-502 定案（DOC-502 / 11_upm.md 4.6 / PHASE2_UPM_IMPL 496）：
-  // 收敛判据必须**无量纲**、分母用观测量尺度。绝对容差 1e-6 在 ~300 e⁻ 尺度
-  // 永不收敛（300 次迭代 converged=0，SCI-C C1 A7b）⇒ 生产默认走相对判据；
-  // upm.cpp 内部以 max(scale_obs, 1.0) 保留近零尺度下的绝对容差保护。
-  uc.tolerance_relative = 1;
-  // P2a-2/P2a-4（科学行为变更）：阻尼 α=0.5（naive α=1 在
-  // 链式/二部覆盖图有特征值 -1、周期 2 振荡）；M 全帧加权；末端残差场
-  // gauge 使叠加 ≡ 公共场 ⇒ 覆盖子集突变处阶跃恒 0。
-  uc.gs_damping = 0.5;
-  uc.m_full_frame = 1;
-  uc.final_gauge = 1;
-  // target_order = coverage 实测值（p2_session 同款; 空间 UPM 显式 control
-  // leaf 层级 order=target+9 由模型内部展开）
-  uc.target_order = smp_doc.value("target_order", -1);
-  uc.sigma_floor = 1e-3; uc.zero_anchor_weight = 1e-3; uc.grid = smp_doc.value("control_grid_per_tile", 8);  // SCI-UPM-001 §9a:133; M7-C-001 G
-  uc.support_power = 1.0;
-  uc.use_ivar_weight = 1;          // production（SCI-UPM-WEIGHT-001 冻结）
-  uc.control_reliability = 1.0;
-  // CON-005: cpu_workers = Runtime lease 权威（execute 注入 __workers）
-  // X1: 预算唯一权威 = 运行期配额（lease 注入则以其为准；无 lease 取进程有效 CPU 预算，缺省非 1）。
-  uc.cpu_workers = static_cast<int>(node_thread_budget_of(doc));
-  const std::string manifest_hash = smp_doc.value("input_manifest_hash", std::string());
-  std::string manifest_hold = manifest_hash;
-  uc.input_manifest_hash = manifest_hold.empty() ? nullptr : manifest_hold.c_str();
-  const Json& upm_cfg = doc.contains("upm") ? doc["upm"] : Json::object();
-  if (upm_cfg.contains("max_iterations"))
-    uc.max_iterations = upm_cfg["max_iterations"].get<int>();
-  if (upm_cfg.contains("max_iterations_cap"))
-    uc.max_iterations_cap = upm_cfg["max_iterations_cap"].get<int>();
-  if (upm_cfg.contains("huber_delta"))
-    uc.huber_delta = upm_cfg["huber_delta"].get<double>();
-  // CONFORM-FIX-B-009：与 stage2 工具同一「smoothing」键语义
-  // （CONFIG_SCHEMA.md:19 smoothing(auto→0.1)；"auto" 的解析值单一来源 =
-  // P2_SMOOTHING_LAMBDA_AUTO）。缺键保持 upm.h:75 的编译期默认 0.0 ——
-  // 该默认属 docs/science/algorithms/PHASE2_UPM_IMPL.md §13「冻结面」，改动须走
-  // SCI/合同变更；λ 不能为 0 是硬约束，
-  // 生产 λ 取值归 SMOOTH-LAMBDA 配置面，本节点不擅自改冻结默认。
-  {
-    const Json model_cfg = (doc.contains("model") && doc["model"].is_object())
-                               ? doc["model"] : Json::object();
-    if (model_cfg.contains("smoothing")) {
-      const Json& sm = model_cfg["smoothing"];
-      if (sm.is_string()) {
-        if (sm.get<std::string>() != "auto")
-          return Result<void>::fail(Error(ErrorDomain::DATA,
-              "model.smoothing 只支持 'auto' 或 number: " +
-              sm.get<std::string>()));
-        uc.smoothing_lambda = P2_SMOOTHING_LAMBDA_AUTO;
-      } else if (sm.is_number()) {
-        uc.smoothing_lambda = sm.get<double>();
-      } else {
-        return Result<void>::fail(Error(ErrorDomain::DATA,
-            "model.smoothing 类型错误（'auto' 或 number）"));
-      }
-      if (!(uc.smoothing_lambda >= 0.0))
-        return Result<void>::fail(Error(ErrorDomain::DATA,
-            "model.smoothing 必须 >= 0"));
-    } else if (model_cfg.contains("smoothing_lambda")) {
-      if (!model_cfg["smoothing_lambda"].is_number())
-        return Result<void>::fail(Error(ErrorDomain::DATA,
-            "model.smoothing_lambda must be number"));
-      uc.smoothing_lambda = model_cfg["smoothing_lambda"].get<double>();
-      if (!(uc.smoothing_lambda >= 0.0))
-        return Result<void>::fail(Error(ErrorDomain::DATA,
-            "model.smoothing_lambda 必须 >= 0"));
-    }
-  }
-  if (upm_cfg.contains("smoothing_lambda"))
-    uc.smoothing_lambda = upm_cfg["smoothing_lambda"].get<double>();
-  (*man)["upm_smoothing_lambda"] = uc.smoothing_lambda;
-  (*man)["upm_smoothing_lambda_source"] =
-      (upm_cfg.contains("smoothing_lambda")
-           ? "config.upm.smoothing_lambda"
-           : ((doc.contains("model") && doc["model"].is_object() &&
-               (doc["model"].contains("smoothing") ||
-                doc["model"].contains("smoothing_lambda")))
-                  ? "config.model.smoothing"
-                  : "compiled_default_alg13_frozen_0.0"));
-  // M4-C-02: 与 stage2_common 对称的显式覆盖面；缺省保持 SCI §9a:133 λ0=1e-3。
-  if (upm_cfg.contains("zero_anchor_weight"))
-    uc.zero_anchor_weight = upm_cfg["zero_anchor_weight"].get<double>();
-  // P2a 显式可配置（缺省 = 上面的生产值；便于对照/回归。
-  // additive_mode 三档已退役，不再有「按模式裁决策略」这一面；
-  // 原注所引 `c-delta-ruling` 指向已退役的 `reports/`，该目录两读法皆无
-  // —— 裁决现以实测为准，见本文件 P2a-1 段与 apply 节点「单一扣除语义」段）。
-  if (upm_cfg.contains("tolerance"))
-    uc.tolerance = upm_cfg["tolerance"].get<double>();
-  if (upm_cfg.contains("tolerance_relative"))
-    uc.tolerance_relative = upm_cfg["tolerance_relative"].get<int>();
-  if (upm_cfg.contains("gs_damping"))
-    uc.gs_damping = upm_cfg["gs_damping"].get<double>();
-  if (upm_cfg.contains("m_full_frame"))
-    uc.m_full_frame = upm_cfg["m_full_frame"].get<int>();
-  if (upm_cfg.contains("final_gauge"))
-    uc.final_gauge = upm_cfg["final_gauge"].get<int>();
-  // 单语义：model.ms_* 三键退役，出现即判错（计划 PLAN-SEAM-SINGLE-PASS）。
-  {
-    if (doc.contains("model") && !doc["model"].is_object())
-      return Result<void>::fail(Error(ErrorDomain::DATA,
-          "model 必须是对象"));
-    const Json model_cfg = (doc.contains("model") && doc["model"].is_object())
-                               ? doc["model"] : Json::object();
-    for (const char* k : {"ms_enabled", "ms_sigma_px", "ms_thresh"})
-      if (model_cfg.contains(k))
-        return Result<void>::fail(Error(ErrorDomain::DATA,
-            std::string("model.") + k + " 已退役：扣除语义唯一，不再接受该键"));
-  }
-
-  void* model = nullptr;
-  const int rc = p2_upm_build_geo(obs.data(), obs.size(),
-                                  nodes.empty() ? nullptr : nodes.data(),
-                                  nodes.size(), &uc, &model);
-  if (rc != 0 || !model)
-    return Result<void>::fail(Error(ErrorDomain::DATA,
-        std::string("p2_upm_build_geo failed rc=") + std::to_string(rc) +
-        " (production control-ivar weight: missing/invalid control ivar is an"
-        " explicit error, no silent fallback)"));
-
-  P2ModelInfo info{};
-  char geometry_hash[128] = {0};
-  std::vector<uint64_t> gauges;
-  uint64_t n_components = 0;
-  if (p2_upm_info(model, &info) != 0)
-    std::memset(&info, 0, sizeof(info));
-  if (p2_upm_geometry_hash(model, geometry_hash, sizeof(geometry_hash)) != 0)
-    geometry_hash[0] = '\0';
-  if (p2_upm_component_gauges(model, &n_components, nullptr) == 0 &&
-      n_components > 0) {
-    gauges.resize(static_cast<size_t>(n_components));
-    if (p2_upm_component_gauges(model, &n_components, gauges.data()) != 0)
-      gauges.clear();
-  }
-  // P2a-3（收敛状态可见）：iterations/converged/objective 此前
-  // 只进 .bin（模型 JSON 文本），p2_upm_model.json 契约面缺失、且本节点从不
-  // 调用 p2_upm_convergence。此处显式读取并落盘到 .json + manifest，使
-  // "不收敛"在数据面上可见（禁 rc=0 冒充已收敛）。
-  uint64_t upm_iterations = 0;
-  double upm_objective = 0.0;
-  int upm_converged = 0;
-  if (p2_upm_convergence(model, &upm_iterations, &upm_objective,
-                         &upm_converged) != 0) {
-    upm_iterations = 0;
-    upm_objective = 0.0;
-    upm_converged = 0;   // 读不到一律按"未证明收敛"
-  }
-  // PHASE2_UPM 7a 规则 4/5：可辨识性读数与产品级警告。**必须在 p2_upm_close 之前取**
-  // （close 后句柄失效）。旧的两把绝对尺（天光面 kappa_max=1e8 与 UPM 侧 1e6）已退休：
-  // 同一份数据被两个常数一放一拦，说明门控口径本身没有物理依据。
-  P2UpmIdentifiability upm_idn{};
-  const bool upm_idn_ok = (p2_upm_identifiability(model, &upm_idn) == 0);
-  std::string upm_warn_json;
-  {
-    char wbuf[8192] = {0};
-    if (p2_upm_warnings_json(model, wbuf, sizeof(wbuf)) == 0 && wbuf[0])
-      upm_warn_json.assign(wbuf);
-  }
-  const std::string bin_path = out_dir + "/p2_upm_model.bin";
-  if (p2_upm_save(model, bin_path.c_str()) != 0) {
-    p2_upm_close(model);
-    return Result<void>::fail(Error(ErrorDomain::IO,
-        "p2_upm_save failed: " + bin_path));
-  }
-  p2_upm_close(model);   // 所有权合同 §1: 调用方持有, p2_upm_close 释放
-
-  Json gauges_j = Json::array();
-  for (uint64_t g : gauges) gauges_j.push_back(g);
-  const std::string out_path = out_dir + "/p2_upm_model.json";
-  Json artifact = Json{{"schema", "DATA-P2-UPM"},
-                       {"entry", "p2_upm_build_geo/p2_upm_save"},
-                       {"model_hash", std::string(info.model_hash)},
-                       {"geometry_hash", std::string(geometry_hash)},
-                       {"control_count", info.control_count},
-                       {"observation_count", info.observation_count},
-                       {"component_count", info.component_count},
-                       {"target_order", info.target_order},
-                       {"precision", info.precision},
-                       {"gauges", gauges_j},
-                       {"input_manifest_hash", manifest_hash},
-                       {"artifact_bin", bin_path},
-                       {"use_ivar_weight", 1},
-                       // P2a-3：IRLS 收敛状态（只读访问器）
-                       {"iterations", upm_iterations},
-                       {"converged", upm_converged},
-                       {"objective", upm_objective},
-                       // P2a-2/P2a-3/P2a-4 求解器行为 provenance
-                       {"tolerance", uc.tolerance},
-                       {"tolerance_relative", uc.tolerance_relative},
-                       {"gs_damping", uc.gs_damping},
-                       {"m_full_frame", uc.m_full_frame},
-                       {"final_gauge", uc.final_gauge}};
-  if (upm_idn_ok) {
-    // identifiability 段**逐字取自 p2_upm_save 写的模型文件**（同一份序列化），
-    // 不在此处手工重建键表：手工键表会随算法侧新增字段而漂移，且漂移是静默的
-    // ——产品少一个键，消费方无法区分「本就没有这个量」与「拷贝时漏了」。
-    // 模型文件是 JSON 文本（.bin 是历史约定的后缀），可直接读回。
-    {
-      Json bin_doc = Json::object();
-      const bool bin_ok = p2_read_json(bin_path, &bin_doc);
-      if (bin_ok && bin_doc.contains("identifiability") &&
-          bin_doc["identifiability"].is_object()) {
-        artifact["identifiability"] = bin_doc["identifiability"];
-      } else {
-        // 读不回就如实登记不可得，不静默给一个空段冒充完整。
-        artifact["identifiability"] = Json(nullptr);
-        artifact["identifiability_unavailable_reason"] =
-            "model file unreadable or carries no identifiability section";
-      }
-    }
-  }
-  // 不收敛/判红的**产品级警告**（报警告，不影响运行，不 fail-closed）：机器可检，
-  // 下游与 CI 按 warning_codes 判定；构建 rc 不变。
-  if (!upm_warn_json.empty()) {
-    const Json wj = Json::parse(upm_warn_json, nullptr, false);
-    if (!wj.is_discarded() && wj.is_object())
-      for (auto it = wj.begin(); it != wj.end(); ++it) artifact[it.key()] = it.value();
-  }
-  if (upm_converged != 1) {
-    std::fprintf(stderr,
-                 "[upm] WARNING: IRLS not converged (converged=%d iterations=%d"
-                 " objective=%.6g) -> product written WITH WARNING, rc unchanged\n",
-                 upm_converged, (int)upm_iterations, upm_objective);
-  }
-  if (!p2_write_text(out_path, artifact.dump(2))) {
-    aio_fs::remove(bin_path);
-    return Result<void>::fail(Error(ErrorDomain::IO, "artifact write failed: " + out_path));
-  }
-  // A4: upm_save_path/persist_upm 是已登记 session 键（p2_session 语义）; 正式
-  // 节点链为唯一写者, 故在此按其语义把模型落盘到指定路径（键可达, 非 silent 忽略）。
-  Json upm_arts = Json::array({out_path, bin_path});
-  if (doc.value("persist_upm", false) && doc.contains("upm_save_path") &&
-      doc["upm_save_path"].is_string() && !doc["upm_save_path"].get<std::string>().empty()) {
-    const std::string save_path = doc["upm_save_path"].get<std::string>();
-    // CLEAN-403: 复制经 aio (copy_file = 分块流式 → 临时文件 → fsync → 原子 rename,
-    // overwrite=true 覆盖目标; 不出现半写副本)。
-    const int crc = aio_atomic::copy_file(bin_path, save_path, true);
-    if (crc != 0)
-      return Result<void>::fail(Error(ErrorDomain::IO,
-          "upm_save_path copy failed: " + save_path + " (errno=" +
-              std::to_string(crc) + ")"));
-    upm_arts.push_back(save_path);
-  }
-  (*man)["artifacts"] = upm_arts;
-  (*man)["upm_model_artifact"] = out_path;
-  (*man)["upm_model_bin"] = bin_path;
-  (*man)["model_hash"] = std::string(info.model_hash);
-  (*man)["observation_count"] = info.observation_count;
-  // P2a-3：收敛状态进 manifest（不收敛必须对机器消费者可见）
-  (*man)["upm_iterations"] = upm_iterations;
-  (*man)["upm_converged"] = upm_converged;
-  (*man)["upm_objective"] = upm_objective;
-  (*man)["upm_tolerance"] = uc.tolerance;
-  (*man)["upm_tolerance_relative"] = uc.tolerance_relative;
-  (*man)["upm_gs_damping"] = uc.gs_damping;
-  (*man)["upm_m_full_frame"] = uc.m_full_frame;
-  (*man)["upm_final_gauge"] = uc.final_gauge;
-
+  // UPM 加性联合模型（M+C 块坐标求解）已退役：它在生产链上没有任何数值消费者
+  // —— apply 只把它当依赖门、write 只读它的 provenance 文本，reject/integrate/export
+  // 均不读，同节点内的信号面拟合也不以它为输入（见 run/P5-REDO/TASKS.md 任务二）。
+  // 其 M/C 数值、模型产物与 manifest 字段一并移除；本节点保留信号面联合解。
   // ── 公共连续信号面（生产必需产物）─────────────────────────────────────
   // 正本 = 最高设计 §2.5/§5.4 与 docs/science/sky/UPM.md：星点掩膜之外每帧取
   // 稀疏背景采样点（带逆方差权重），**全部帧联合**（含每帧自身样本，不排除任何
@@ -10739,22 +10466,10 @@ static bool p2b_load_control_var(const std::string& out_dir,
 
 Result<void> p2_op_upm_apply(const Json& doc, Json* man) {
   const std::string out_dir = doc.value("output_dir", std::string("."));
-  Json model_doc;
-  const std::string model_path = out_dir + "/p2_upm_model.json";
-  if (!p2_read_json(model_path, &model_doc))
-    return Result<void>::fail(Error(ErrorDomain::DATA,
-        "upstream upm model artifact missing: " + model_path +
-        " (upm-apply consumes upm-fit output)"));
-  const std::string bin_path = model_doc.value("artifact_bin",
-                                               out_dir + "/p2_upm_model.bin");
-  void* model = nullptr;
-  if (p2_upm_open(bin_path.c_str(), &model) != 0 || !model)
-    return Result<void>::fail(Error(ErrorDomain::DATA,
-        "p2_upm_open failed: " + bin_path));
-  struct ModelGuard {
-    void* m;
-    ~ModelGuard() { if (m) p2_upm_close(m); }
-  } model_guard{model};
+  // UPM 加性联合模型已退役：本节点曾 `p2_upm_open` 打开它，但**打开后一次都
+  // 没有用于计算**（真正的扣除用 p2_sky_plane.bin、方差用 p2_samples.json），
+  // 它只是一道依赖门。门随产物一并去掉；生产真实依赖 p2_sky_plane.bin 的
+  // fail-closed 判定仍在本函数下方保留（缺面即拒绝运行）。
 
   std::vector<std::string> paths;
   for (const auto& p : doc["hips_paths"]) paths.push_back(p.get<std::string>());
@@ -11148,7 +10863,10 @@ Result<void> p2_op_upm_apply(const Json& doc, Json* man) {
       any_var_ok && all_pixel_noise && param_cov_included;
   Json artifact = Json{{"schema", "DATA-P2-COR"},
                        {"entry", "p2_sky_plane_open/p2_sky_plane_eval_delta_block"},
-                       {"model_hash", model_doc.value("model_hash", "")},
+                       // model_hash 取**生产模型**（公共信号面）的哈希：
+                       // UPM 加性联合模型已退役，本校正只由信号面产生，
+                       // 故 model_hash 与 surface_model_hash 同源（单一模型）。
+                       {"model_hash", sky_surface_hash},
                        {"surface_model_hash", sky_surface_hash},
                        {"sky_plane_applied", true},
                        {"sky_plane_loaded", true},
@@ -13324,8 +13042,6 @@ bool declare_hips_surface_brightness_units(const std::string& product_root,
 // 就写），只是**缺失不判红**——判红只针对「可观测量本身不见了」。
 constexpr const char* kP2SkyAuditRequiredFields[] = {
     "kappa", "rank", "n_params", "chi2_red", "node_spacing_deg"};
-constexpr const char* kP2UpmAuditRequiredFields[] = {
-    "converged", "iterations", "objective", "model_hash"};
 
 // 缺哪些字段（不存在 / 非有限数 / 空串）。返回顺序 = 清单顺序。
 std::vector<std::string> p2_audit_missing(const Json& j,
@@ -13495,13 +13211,18 @@ Result<void> p2_op_write(const Json& doc, Json* man) {
 
   // provenance 面（§30.3 键值来源; 键写入 properties 的 AIO 通道缺口见 artifact）
   std::string manifest_hash, model_hash, reject_profile;
-  Json umd_doc = Json::object();
   {
     Json smp_doc;
     if (p2_read_json(out_dir + "/p2_samples.json", &smp_doc))
       manifest_hash = smp_doc.value("input_manifest_hash", "");
-    if (p2_read_json(out_dir + "/p2_upm_model.json", &umd_doc))
-      model_hash = umd_doc.value("model_hash", "");
+    // 模型哈希取自**生产模型**（公共信号面，p2_sky_plane.bin 的 info.model_hash）：
+    // UPM 加性联合模型已退役、其产物不再生产（run/P5-REDO/TASKS.md 任务二）。
+    Json sky_doc;
+    if (p2_read_json(out_dir + "/p2_sky_plane.bin", &sky_doc)) {
+      const Json& si = (sky_doc.contains("info") && sky_doc["info"].is_object())
+                           ? sky_doc["info"] : sky_doc;
+      model_hash = si.value("model_hash", "");
+    }
     Json rej_doc;
     if (p2_read_json(out_dir + "/p2_rejection.json", &rej_doc))
       reject_profile = rej_doc.value("profile", "");
@@ -13547,134 +13268,10 @@ Result<void> p2_op_write(const Json& doc, Json* man) {
     sp_audit["present"] = sp_present;
     solvers["sky_plane"] = sp_audit;
 
-    // ② UPM/GLS 正规矩阵（§7a:211-216 的 κ 口径 ②）
-    Json upm_audit = Json::object();
-    upm_audit["solver"] = "p2_upm_build_geo (W2 frozen production path)";
-    upm_audit["present"] = umd_doc.is_object() && !umd_doc.empty();
-    upm_audit["artifact"] = out_dir + "/p2_upm_model.json";
-    upm_audit["converged"] = umd_doc.contains("converged")
-                                 ? umd_doc["converged"] : Json(nullptr);
-    upm_audit["iterations"] = umd_doc.contains("iterations")
-                                  ? umd_doc["iterations"] : Json(nullptr);
-    upm_audit["objective"] = umd_doc.contains("objective")
-                                 ? umd_doc["objective"] : Json(nullptr);
-    upm_audit["model_hash"] = umd_doc.contains("model_hash")
-                                  ? umd_doc["model_hash"] : Json(nullptr);
-    upm_audit["control_count"] = umd_doc.contains("control_count")
-                                     ? umd_doc["control_count"] : Json(nullptr);
-    upm_audit["observation_count"] = umd_doc.contains("observation_count")
-                                         ? umd_doc["observation_count"] : Json(nullptr);
-    upm_audit["component_count"] = umd_doc.contains("component_count")
-                                       ? umd_doc["component_count"] : Json(nullptr);
-    // ── §7a:211-216 的 κ 口径 ②（UPM/GLS 正规矩阵）────────────────────────
-    // 口径统一（UPM-KAPPA-UNIFY-01）之后，生产入口 p2_upm_build_geo **自己算**
-    // 这些量，并落在 p2_upm_model.json 的 identifiability 段（访问器
-    // p2_upm_identifiability，upm.h:426 / upm.cpp:1739）。因此本审计块**从产品
-    // 读回真值**；只有在旧产品（无 identifiability 段）上才落具名不可得。
-    // 两条已退休的绝对常数尺（天光面 kappa_max=1e8、UPM 侧 1e6）**不再登记**：
-    // 留一个描述已退休条款的键，等于把死条款伪装成现行 provenance。
-    // rank_rtol 仍登记，但取**产品里的实际值**（地板 = max(m,n)·eps，可被输入
-    // 覆盖），不是冻结常数 1e-10。
-    Json upm_idn = Json::object();
-    const bool upm_idn_present = umd_doc.contains("identifiability") &&
-                                 umd_doc["identifiability"].is_object();
-    if (upm_idn_present) upm_idn = umd_doc["identifiability"];
-    // §7a:219 最小集里的 rank/rank_rtol/kappa/model_hash 逐项读回（求解器 ② 口径）。
-    upm_audit["rank"] = upm_idn.contains("rank_eff") ? upm_idn["rank_eff"] : Json(nullptr);
-    upm_audit["n_params"] = upm_idn.contains("n_params") ? upm_idn["n_params"] : Json(nullptr);
-    upm_audit["n_unidentified"] = upm_idn.contains("n_unidentified")
-                                      ? upm_idn["n_unidentified"] : Json(nullptr);
-    upm_audit["identifiable"] = upm_idn.contains("identifiable")
-                                    ? upm_idn["identifiable"] : Json(nullptr);
-    upm_audit["chi2"] = upm_idn.contains("chi2") ? upm_idn["chi2"] : Json(nullptr);
-    upm_audit["dof_eff"] = upm_idn.contains("dof_eff") ? upm_idn["dof_eff"] : Json(nullptr);
-    upm_audit["chi2_red"] = upm_idn.contains("chi2_red") ? upm_idn["chi2_red"] : Json(nullptr);
-    upm_audit["rank_rtol"] = upm_idn.contains("rank_rtol")
-                                 ? upm_idn["rank_rtol"] : Json(nullptr);
-    upm_audit["rank_rtol_effective"] = upm_idn.contains("rank_rtol_effective")
-                                           ? upm_idn["rank_rtol_effective"] : Json(nullptr);
-    upm_audit["n_blocks_rank_deficient"] =
-        upm_idn.contains("n_blocks_rank_deficient")
-            ? upm_idn["n_blocks_rank_deficient"] : Json(nullptr);
-    upm_audit["n_unobserved_geometry_nodes"] =
-        upm_idn.contains("n_unobserved_geometry_nodes")
-            ? upm_idn["n_unobserved_geometry_nodes"] : Json(nullptr);
-    // identifiability 段**逐字随行**：手工挑键会随算法侧新增字段而漂移，而漂移是
-    // 静默的（产品少一个键，消费方分不清「本就没有这个量」与「拷贝时漏了」）。
-    // 上面的具名键是给「按名直查」用的稳定子集，整段随行是给「一个都不许漏」用的。
-    if (upm_idn_present) upm_audit["identifiability"] = upm_idn;
-    // κ 在秩亏块上取 +inf ⇒ 产品里如实写 null（JSON 不能表示非有限值）。这不是
-    // 「字段丢了」，而是「量存在但发散」，故**不进 missing_fields**，改记具名状态。
-    upm_audit["kappa"] = upm_idn.contains("kappa") ? upm_idn["kappa"] : Json(nullptr);
-    if (upm_idn_present && upm_audit["kappa"].is_null()) {
-      upm_audit["kappa_infinite"] = true;
-      upm_audit["kappa_note"] =
-          "kappa=+inf on a rank-deficient block; the product records null because"
-          " JSON cannot represent non-finite values (not a missing field)";
-    }
-    // χ²_red 同理但原因不同：dof_eff ≤ 0 时 χ²_red **数学上无定义**（加性模型在
-    // rank(X) = n_obs 时饱和；真实 M42 也是这一情形，277255 观测 / 秩 277255），
-    // 产品写 null + chi2_red_defined=false + chi2_red_note。判据是「键必须在、且
-    // null 必须带具名理由」，**不是**「必须是数字」—— 否则会把一个如实登记的
-    // 「量存在但无定义」判成「字段丢了」，那是把诚实登记当缺陷罚。
-    if (upm_idn_present && !upm_audit["chi2_red"].is_number()) {
-      if (!upm_audit.contains("chi2_red_defined"))
-        upm_audit["chi2_red_defined"] = false;
-      if (!upm_audit.contains("chi2_red_note") ||
-          !upm_audit["chi2_red_note"].is_string())
-        upm_audit["chi2_red_note"] =
-            "chi2_red is undefined because dof_eff <= 0 (rank(X) = n_obs: the"
-            " additive model saturates); registered as null with a named reason"
-            " instead of a fabricated number";
-    }
-    if (!upm_idn_present) {
-      // 旧产品（口径统一之前落盘的 p2_upm_model.json）才走这条：具名不可得，
-      // 禁静默缺键。理由**不再是**「没有访问器」（现在有了），而是「这份产品里
-      // 没有该段」——重跑 mosaic 即可消除。
-      upm_audit["rank_unavailable_reason"] =
-          "p2_upm_model.json carries no identifiability section (product written"
-          " before the kappa/rank unification; re-run mosaic to obtain it). The"
-          " section is produced by p2_upm_identifiability (upm.h:426).";
-      upm_audit["kappa_unavailable_reason"] = upm_audit["rank_unavailable_reason"];
-      upm_audit["unavailable_fields"] = Json::array({"rank", "kappa", "chi2_red",
-                                                     "dof_eff", "n_unidentified",
-                                                     "identifiable", "rank_rtol"});
-    }
-    {
-      std::vector<std::string> upm_missing =
-          p2_audit_missing(upm_audit, kP2UpmAuditRequiredFields,
-                           sizeof(kP2UpmAuditRequiredFields) /
-                               sizeof(kP2UpmAuditRequiredFields[0]));
-      upm_audit["required_fields"] = Json::array();
-      for (const char* k : kP2UpmAuditRequiredFields)
-        upm_audit["required_fields"].push_back(k);
-      // 产品带 identifiability 段 ⇒ §7a 规则 4/5 点名的量**必须**读到（真值而非
-      // 具名不可得）；这一段本身就是「期望存在」的证据。
-      if (upm_idn_present) {
-        upm_audit["required_fields"].push_back("rank");
-        upm_audit["required_fields"].push_back("chi2_red");
-        upm_audit["required_fields"].push_back("rank_rtol");
-        // 校验**映射之后**的审计键（产品的 identifiability 段用的是 rank_eff，
-        // 审计块统一叫 rank；拿产品键名去查会把一个已读回的真值误判成缺失）。
-        //  · rank / rank_rtol：必须是有限数（这两个量任何情形下都有定义）；
-        //  · chi2_red：键必须在；null 只允许在**带具名理由**时（dof_eff ≤ 0 ⇒
-        //    数学上无定义），此时要求 chi2_red_defined == false ∧ chi2_red_note 非空。
-        for (const char* k : {"rank", "rank_rtol"}) {
-          if (!upm_audit.contains(k) || !upm_audit[k].is_number()) upm_missing.push_back(k);
-        }
-        const bool chi2_ok =
-            upm_audit["chi2_red"].is_number() ||
-            (upm_audit.value("chi2_red_defined", true) == false &&
-             upm_audit.contains("chi2_red_note") &&
-             upm_audit["chi2_red_note"].is_string() &&
-             !upm_audit["chi2_red_note"].get<std::string>().empty());
-        if (!chi2_ok) upm_missing.push_back("chi2_red");
-      }
-      upm_audit["missing_fields"] = upm_missing;
-      upm_audit["audit_available"] = upm_missing.empty();
-      for (const auto& m : upm_missing) all_missing.push_back("upm_gls." + m);
-    }
-    solvers["upm_gls"] = upm_audit;
+    // ② UPM/GLS 正规矩阵的口径 ② —— **随退役移除**：该审计段从已退役产物
+    // p2_upm_model.json 读回 κ/秩/χ² 等读数。UPM 加性联合模型退役后不再有该
+    // 求解器参与生产，审计只登记**参与生产的**求解器（公共信号面样条求解器）。
+    // 详见 run/P5-REDO/TASKS.md 任务二。
 
     phase2_audit["solvers"] = solvers;
     phase2_audit["missing_fields"] = all_missing;
@@ -14377,8 +13974,14 @@ struct P2NodeModule : public IModule {
       if (!p.is_string())
         return Result<void>::fail(Error(ErrorDomain::DATA,
             "hips_paths items must be strings"));
-    if (doc.contains("upm") && !doc["upm"].is_object())
-      return Result<void>::fail(Error(ErrorDomain::DATA, "upm must be object"));
+    // UPM 加性联合模型（M+C 块坐标求解）已退役：它在生产链上没有任何数值
+    // 消费者（apply 只当依赖门、write 只读 provenance 文本），其产物与配置一并
+    // 移除。该配置段出现即拒绝，不做类型校验后放行（禁静默忽略）。
+    if (doc.contains("upm"))
+      return Result<void>::fail(Error(ErrorDomain::DATA,
+          "upm 已退役：UPM 加性联合模型在生产链上没有数值消费者，"
+          "生产扣除唯一由公共信号面给出（calibrated = raw − δ_k）；"
+          "该段不得再出现。"));
     if (doc.contains("reject") && !doc["reject"].is_object())
       return Result<void>::fail(Error(ErrorDomain::DATA, "reject must be object"));
     // 不存在「权重模式」⇒ 该键既不能被设、也不能被读。
