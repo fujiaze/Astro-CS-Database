@@ -1034,11 +1034,52 @@ static int build_impl(const P2ControlObservation* obs, std::uint64_t n_obs,
         return 0;
     };
 
+    // 分段计时（ACSD_UPM_PROFILE=1；默认零开销）：把每轮成本分到
+    // 「权重 / M 更新 / C 更新（逐帧 CG）/ 收敛检查」四段。这是块坐标求解，
+    // 每轮成本结构与帧数、控制点数、CG 迭代数的关系决定优化方向。
+    struct UpmPhaseProfile {
+        double w{0.0}, m{0.0}, c{0.0}, chk{0.0};
+        long long iters{0};
+        // CG 口径：总迭代数与被打满（触到 max_cg 上限）的次数 —— 判定当前
+        // 绝对收敛判据是否形同虚设（rs_new < 1e-24 对大 K 几不可达）。
+        long long cg_iters{0}, cg_solves{0}, cg_capped{0};
+        bool on{false};
+        UpmPhaseProfile() { const char* v = std::getenv("ACSD_UPM_PROFILE"); on = (v && v[0] == '1'); }
+        ~UpmPhaseProfile() {
+            if (!on) return;
+            std::fprintf(stderr, "[upm_profile] iters=%lld weights=%.3fs m_update=%.3fs "
+                         "c_update=%.3fs check=%.3fs total=%.3fs\n",
+                         iters, w, m, c, chk, w + m + c + chk);
+            std::fprintf(stderr, "[upm_cg] solves=%lld iters=%lld capped=%lld avg_iter=%.2f\n",
+                         cg_solves, cg_iters, cg_capped,
+                         cg_solves ? (double)cg_iters / (double)cg_solves : 0.0);
+        }
+        static double el(const std::chrono::steady_clock::time_point& t0) {
+            return std::chrono::duration<double>(std::chrono::steady_clock::now() - t0).count();
+        }
+    };
+    UpmPhaseProfile upp;
+
+    // CSR 镜像（位精确访存优化）：cg_solve_frame 的内层热循环按行遍历邻接表，
+    // `m->adj` 是 vector-of-vectors —— 每行一次指针解引用、行间不连续，缓存不
+    // 友好；而该循环是 fit 的绝对大头（C 更新占 92%，其中每次帧求解平均 173 次
+    // CG 迭代）。这里建一份扁平镜像供热循环使用，**行内顺序与 adj 逐元素一致**
+    // （逐行累加顺序不变 ⇒ 浮点结果位精确），`m->adj` 本身保持原样不动 —— 它的
+    // 内容与顺序进了几何哈希（见本 TU 内 geometry hash 注释），改它会改变对外
+    // 模型 hash。
+    std::vector<std::size_t> adj_off(K + 1, 0);
+    for (std::size_t k = 0; k < K; ++k)
+        adj_off[k + 1] = adj_off[k] + m->adj[k].size();
+    std::vector<std::size_t> adj_idx(adj_off[K]);
+    for (std::size_t k = 0; k < K; ++k)
+        std::copy(m->adj[k].begin(), m->adj[k].end(), adj_idx.begin() + adj_off[k]);
+
     auto cg_solve_frame = [&](std::size_t fi, std::vector<double>& x,
                               const std::vector<double>& rhs) {
         // (W + λs L + λ0 I) x = rhs；未知数 = 覆盖该帧的 control 子集
         // 简化为全 K 维 CG（K 几千，100 迭代可控）
         const std::size_t max_cg = 200;
+        ++upp.cg_solves;
         // 每轮目标随 M 更新变化：从 0 开始解，避免沿用旧解
         std::fill(x.begin(), x.end(), 0.0);
         std::vector<double> r = rhs;
@@ -1049,11 +1090,13 @@ static int build_impl(const P2ControlObservation* obs, std::uint64_t n_obs,
         std::vector<double> Ap(K, 0.0);
         for (std::size_t s = 0; s < max_cg; ++s) {
             // Ap = W p + λs L p + λ0 p（逐元素覆盖写，无需清零）
+            const double* wf = m->obs_w[fi].data();
             for (std::size_t k = 0; k < K; ++k) {
                 double lp = 0.0;
-                for (std::size_t nb : m->adj[k]) lp += p[k] - p[nb];
-                Ap[k] = m->obs_w[fi][k] * p[k] + lambda_s * lp +
-                        anchor * p[k];
+                const std::size_t e0 = adj_off[k], e1 = adj_off[k + 1];
+                for (std::size_t e = e0; e < e1; ++e)
+                    lp += p[k] - p[adj_idx[e]];
+                Ap[k] = wf[k] * p[k] + lambda_s * lp + anchor * p[k];
             }
             double pAp = 0.0, num = 0.0;
             for (std::size_t k = 0; k < K; ++k) {
@@ -1068,10 +1111,12 @@ static int build_impl(const P2ControlObservation* obs, std::uint64_t n_obs,
                 r[k] -= alpha_v * Ap[k];
                 rs_new += r[k] * r[k];
             }
+            ++upp.cg_iters;
             if (rs_new < 1e-24) break;
             const double beta = rs_new / num;
             for (std::size_t k = 0; k < K; ++k)
                 p[k] = r[k] + beta * p[k];
+            if (s + 1 == max_cg) ++upp.cg_capped;
         }
     };
 
@@ -1272,25 +1317,6 @@ static int build_impl(const P2ControlObservation* obs, std::uint64_t n_obs,
             f_seg_start[1] = fids.size();
         }
     }
-    // 分段计时（ACSD_UPM_PROFILE=1；默认零开销）：把每轮成本分到
-    // 「权重 / M 更新 / C 更新（逐帧 CG）/ 收敛检查」四段。这是块坐标求解，
-    // 每轮成本结构与帧数、控制点数、CG 迭代数的关系决定优化方向。
-    struct UpmPhaseProfile {
-        double w{0.0}, m{0.0}, c{0.0}, chk{0.0};
-        long long iters{0};
-        bool on{false};
-        UpmPhaseProfile() { const char* v = std::getenv("ACSD_UPM_PROFILE"); on = (v && v[0] == '1'); }
-        ~UpmPhaseProfile() {
-            if (!on) return;
-            std::fprintf(stderr, "[upm_profile] iters=%lld weights=%.3fs m_update=%.3fs "
-                         "c_update=%.3fs check=%.3fs total=%.3fs\n",
-                         iters, w, m, c, chk, w + m + c + chk);
-        }
-        static double el(const std::chrono::steady_clock::time_point& t0) {
-            return std::chrono::duration<double>(std::chrono::steady_clock::now() - t0).count();
-        }
-    };
-    UpmPhaseProfile upp;
     const auto upp_loop0 = std::chrono::steady_clock::now();
     for (int iter = 0; iter < iter_budget; ++iter) {
         ++upp.iters;

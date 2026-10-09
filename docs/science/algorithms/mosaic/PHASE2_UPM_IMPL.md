@@ -270,6 +270,10 @@ dense/sparse 等价门: 1e-12（UPM_SOLVER.md [S-1]「离散公式」一节冻�
   实测 ΔC_max 2.22e-15 ≈ 1 ulp @10 ADU；(c) 跨后端等价 = **无此合同**。
   可执行证据只在**同 worker 数**下断言位精确（reps=4、test_02 :91-101），**不跨 worker 数**断言；
   M/C 更新的 max 归约同构
+- **CG 热循环的邻接表镜像亦是位精确档**：`cg_solve_frame` 内层按行遍历邻接表，
+  实现为 `m->adj` 的**扁平 CSR 镜像**（构建时按行逐元素复制，行内顺序不变），
+  逐行累加顺序与 `m->adj` 逐元素一致 ⇒ 浮点结果位精确。`m->adj` 本身不参与改写
+  —— 它的内容与顺序进几何哈希，改动会改变对外模型 hash。
   （tmax per-worker + join 合并 ：793-795/:848-852、:915-917/:965-969）；
 - **IRLS 迭代序固定**：每轮严格 raw→w→M→C→objective（:736-1065）；
   CG 从零初值起步（"每轮目标随 M 更新变化：从 0 开始解"：568-573）；
@@ -317,9 +321,17 @@ dense/sparse 等价门: 1e-12（UPM_SOLVER.md [S-1]「离散公式」一节冻�
 
 ## 9 复杂度
 
-- build 主体 O(iter × (n_obs + Σ_k deg(k) + F×CG))；单帧 CG 每次
-  max_cg=200 迭代 × O(K + Σdeg)（`cg_solve_frame` :676-733）；rhs/obs_w
-  每 frame 每 control 聚合该帧 obs；
+- build 主体是**块坐标**外层循环：每轮 = 权重（O(n_obs)）→ M 更新（O(n_obs)）
+  → C 更新（逐帧 CG）→ 收敛检查（O(n_obs)）；总成本
+  O(iter × (n_obs + F × CG))，CG = max_cg × O(K + Σdeg)（`cg_solve_frame`）；
+  rhs/obs_w 每 frame 每 control 聚合该帧 obs。
+- **实测成本结构**（`ACSD_UPM_PROFILE=1`，读数与技术条件落在实验单元）：C 更新
+  （逐帧 CG）占 build 的 **92%**，权重 / M 更新 / 收敛检查合计 8%。故复杂度分析的
+  主项是 `iter × F × max_cg × (K + Σdeg)`。
+- **CG 终止判据是绝对量**（`rs_new < 1e-24`，:676-733 段内），在实测残差量级下
+  不可达：4 帧合成档 14 805 次帧求解中 **67.8% 触到 `max_cg=200` 上限**，平均
+  173.3 次迭代。即当前 CG 事实上按固定迭代数运行，收敛判据不起作用——这是 C 更新
+  占比的直接原因，也是后续收敛口径改动的着力点（**登记为待优化项，本轮不改判据**）。
 - 连通分量/邻接建图 O(n_obs + K + 边界对粗筛)（:475-552）；
 - model_hash O(n_obs 序列化 + F×K)（:1161-1209）；
 - persist O(F×K)；materialize
