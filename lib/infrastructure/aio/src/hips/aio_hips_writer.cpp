@@ -35,6 +35,9 @@
 #include <cstdlib>
 #include <cerrno>
 #include <functional>
+#include <condition_variable>
+#include <deque>
+#include <mutex>
 #include <limits>
 #include <thread>
 #include <memory>
@@ -541,34 +544,21 @@ bool verify_fits_checksum(const std::string& path, std::string* err) {
 
 // 私有临时文件 → 内容写出 → 哈希校验 → fsync → punch 全零块（P-084 台账 C2;
 // 体积削减步, 读回不符拒发布 / 卷不支持降级 warn）→ 原子 rename → 父目录 fsync。
-bool write_fits_atomic(const std::string& final_path,
-                       const std::function<bool(const std::string&)>& body,
-                       std::string* err) {
-    if (!body || final_path.empty()) {
-        if (err) *err = "write_fits_atomic: 参数无效";
-        return false;
-    }
-    const std::string tmp = aio_atomic::make_tmp_path(final_path);
-    const bool inj_diskfull = tile_fault("tile_diskfull");
-    const bool inj_write = tile_fault("tile_write_fail");
-    if (inj_diskfull || inj_write || !body(tmp)) {
-        // 磁盘满必须在**清理之前**、失败发生处分类 (见 aio_disk_full.h 头注:
-        // 清理会释放空间, 事后探针必然 fail-open)。注入面 tile_diskfull 等价于 ENOSPC。
-        if (inj_diskfull) aio_disk::note_full();
-        else aio_disk::note_failure(tmp, errno);
-        aio_atomic::remove_file(tmp);
-        if (err)
-            *err = inj_diskfull ? "ENOSPC (injected: tile_diskfull)"
-                   : inj_write ? "write failed (injected: tile_write_fail)"
-                               : ("FITS write failed: " + final_path);
-        return false;
-    }
-    // kill 中断测试锚点 (测试专用; 生产零行为差异): 内容已写进**私有临时文件**、
-    // 尚未校验/rename 时驻留, 供父进程在该窗口 kill 子进程。断言"正式路径无
-    // 半成品 tile"正是在此窗口成立 (修复前该窗口直接写在正式路径上)。
-    if (tile_fault("tile_slow_write")) {
-        std::this_thread::sleep_for(std::chrono::milliseconds(400));
-    }
+// ── 产品文件发布池 ──────────────────────────────────────────────────────
+// 每个产品文件的落盘尾部 = 校验（整文件读回）+ fsync + 打洞（读回验证）+
+// 原子 rename + 父目录 fsync，**逐文件完全独立**。实测本机单文件 fsync 延迟
+// 与文件大小无关（延迟型，非带宽型），串行等待是写段成为瓶颈的唯一原因：
+// 并发 fsync 实测可扩展（1 路 43 文件/s → 16 路 224 → 32 路 287）。
+// 数据内容仍由调用线程同步写进私有临时文件（写入时序与语义不变），只把上述
+// 尾部交后台线程池并行，使其延迟互相重叠；调用线程随即返回，「数据已交给
+// aio」= 对 worker 而言该文件已卸载。发布语义一条不省。
+//   · 故障注入（tile_slow_write / tile_checksum_fail / tile_fsync_fail /
+//     tile_rename_fail）任一开启 ⇒ 全程同步，注入面行为逐位不变；
+//   · 线程数 = min(16, max(1, hardware_concurrency))，ACSD_IO_PUBLISH_WORKERS
+//     可覆盖（0 = 关闭池退回同步）；
+//   · 内存增量 = 队列中每任务两条路径串（百字节级），不缓存文件内容。
+bool publish_finish(const std::string& tmp, const std::string& final_path,
+                    std::string* err) {
     std::string cerr;
     if (tile_fault("tile_checksum_fail") || !verify_fits_checksum(tmp, &cerr)) {
         aio_atomic::remove_file(tmp);
@@ -646,6 +636,161 @@ bool write_fits_atomic(const std::string& final_path,
     }
     aio_atomic::fsync_parent_dir(final_path);
     return true;
+}
+
+class PublishPool {
+public:
+    static PublishPool& instance() { static PublishPool p; return p; }
+    bool enabled() const { return workers_ > 0; }
+
+    // 入队失败（池不可用）由调用方退回同步路径。
+    bool defer(const std::string& tmp, const std::string& final_path) {
+        {
+            std::lock_guard<std::mutex> lk(mu_);
+            if (workers_ == 0) return false;
+            q_.push_back(Task{tmp, final_path});
+        }
+        cv_.notify_one();
+        return true;
+    }
+
+    // 等队列排空；返回 false = 有文件发布失败（err 给首个失败原因）。
+    bool drain(std::string* err, std::string* fail_tmp, int* fail_errno) {
+        std::unique_lock<std::mutex> lk(mu_);
+        done_cv_.wait(lk, [&] { return q_.empty() && inflight_ == 0; });
+        if (!fail_msg_.empty()) {
+            if (err) *err = fail_msg_;
+            if (fail_tmp) *fail_tmp = fail_tmp_;
+            if (fail_errno) *fail_errno = fail_errno_;
+            return false;
+        }
+        return true;
+    }
+
+private:
+    struct Task { std::string tmp, final_path; };
+    PublishPool() {
+        const char* env = std::getenv("ACSD_IO_PUBLISH_WORKERS");
+        int want = -1;
+        if (env) {
+            char* e = nullptr;
+            const long v = std::strtol(env, &e, 10);
+            if (e != env && v >= 0) want = static_cast<int>(v);
+        }
+        if (want < 0) {
+            unsigned hw = std::thread::hardware_concurrency();
+            if (hw == 0) hw = 1;
+            want = static_cast<int>(std::min<unsigned>(hw, 16u));
+        }
+        workers_ = want;
+        for (int i = 0; i < workers_; ++i) {
+            try { th_.emplace_back([this] { loop(); }); }
+            catch (...) { break; }
+        }
+        workers_ = static_cast<int>(th_.size());
+    }
+    ~PublishPool() {
+        {
+            std::lock_guard<std::mutex> lk(mu_);
+            stop_ = true;
+        }
+        cv_.notify_all();
+        for (auto& t : th_) if (t.joinable()) t.join();
+    }
+    void loop() {
+        for (;;) {
+            Task t;
+            {
+                std::unique_lock<std::mutex> lk(mu_);
+                cv_.wait(lk, [&] { return stop_ || !q_.empty(); });
+                if (stop_ && q_.empty()) return;
+                t = q_.front();
+                q_.pop_front();
+                ++inflight_;
+            }
+            std::string e;
+            const bool ok = publish_finish(t.tmp, t.final_path, &e);
+            const int eno = errno;
+            {
+                std::lock_guard<std::mutex> lk(mu_);
+                --inflight_;
+                if (!ok && fail_msg_.empty()) {
+                    fail_msg_ = e.empty() ? ("publish failed: " + t.final_path) : e;
+                    fail_tmp_ = t.tmp;
+                    fail_errno_ = eno;
+                }
+                done_cv_.notify_all();
+            }
+        }
+    }
+    std::vector<std::thread> th_;
+    std::deque<Task> q_;
+    std::mutex mu_;
+    std::condition_variable cv_, done_cv_;
+    int workers_{0}, inflight_{0};
+    bool stop_{false};
+    std::string fail_msg_, fail_tmp_;
+    int fail_errno_{0};
+};
+
+// 池可用且未开注入 ⇒ 尾部交后台；否则同步（与历史路径逐位一致）。
+bool publish_defer_or_sync(const std::string& tmp, const std::string& final_path,
+                           std::string* err) {
+    const bool any_fault = tile_fault("tile_slow_write") ||
+                           tile_fault("tile_checksum_fail") ||
+                           tile_fault("tile_fsync_fail") ||
+                           tile_fault("tile_rename_fail");
+    if (!any_fault) {
+        PublishPool& pool = PublishPool::instance();
+        if (pool.enabled() && pool.defer(tmp, final_path)) return true;
+    }
+    return publish_finish(tmp, final_path, err);
+}
+
+// 发布池排空（finalize/abort 前调用）：失败即 fail-closed，并把磁盘满归因
+// 回填到**调用线程**（aio_disk 的归因计数是 thread-local，worker 里记不下）。
+bool publish_drain(std::string* err) {
+    PublishPool& pool = PublishPool::instance();
+    if (!pool.enabled()) return true;
+    std::string e, tmp;
+    int eno = 0;
+    if (!pool.drain(&e, &tmp, &eno)) {
+        aio_disk::note_failure(tmp, eno);
+        if (err) *err = e;
+        return false;
+    }
+    return true;
+}
+
+bool write_fits_atomic(const std::string& final_path,
+                       const std::function<bool(const std::string&)>& body,
+                       std::string* err) {
+    if (!body || final_path.empty()) {
+        if (err) *err = "write_fits_atomic: 参数无效";
+        return false;
+    }
+    const std::string tmp = aio_atomic::make_tmp_path(final_path);
+    const bool inj_diskfull = tile_fault("tile_diskfull");
+    const bool inj_write = tile_fault("tile_write_fail");
+    if (inj_diskfull || inj_write || !body(tmp)) {
+        // 磁盘满必须在**清理之前**、失败发生处分类 (见 aio_disk_full.h 头注:
+        // 清理会释放空间, 事后探针必然 fail-open)。注入面 tile_diskfull 等价于 ENOSPC。
+        if (inj_diskfull) aio_disk::note_full();
+        else aio_disk::note_failure(tmp, errno);
+        aio_atomic::remove_file(tmp);
+        if (err)
+            *err = inj_diskfull ? "ENOSPC (injected: tile_diskfull)"
+                   : inj_write ? "write failed (injected: tile_write_fail)"
+                               : ("FITS write failed: " + final_path);
+        return false;
+    }
+    // kill 中断测试锚点 (测试专用; 生产零行为差异): 内容已写进**私有临时文件**、
+    // 尚未校验/rename 时驻留, 供父进程在该窗口 kill 子进程。断言"正式路径无
+    // 半成品 tile"正是在此窗口成立 (修复前该窗口直接写在正式路径上)。
+    if (tile_fault("tile_slow_write")) {
+        std::this_thread::sleep_for(std::chrono::milliseconds(400));
+    }
+    return publish_defer_or_sync(tmp, final_path, err);
 }
 
 // 原子 tile 写入口 (签名与 write_fits_image_raw 逐字一致): 全部调用点自动经
@@ -2314,6 +2459,14 @@ int aio_hips_finalize(AioHipsProductSet* ps)  {
         g_hips_error.clear();
         if (!ps) { set_error("null handle"); return -1; }
         if (ps->finalized) { set_error("已 finalize"); return -2; }
+        // 发布池排空：产品文件必须先全部原子发布到位，finalize 才能扫盘/发清单。
+        {
+            std::string perr;
+            if (!publish_drain(&perr)) {
+                set_error("发布池排空失败（fail-closed）: " + perr);
+                return -9;
+            }
+        }
         ps->finalized = true;
         // finalize 分段计时（粗粒度，低开销）
         const auto t_fin0 = std::chrono::steady_clock::now();
@@ -2426,6 +2579,17 @@ int aio_hips_finalize(AioHipsProductSet* ps)  {
                      ps->prof_hierarchy_write, ps->prof_finalize_snr,
                      std::chrono::duration<double>(
                          std::chrono::steady_clock::now() - t_fin0).count());
+        // 发布池二次排空：finalize 自身也写产品文件（各层聚合瓦片、properties、
+        // SNR 等），这些在 finalize 内部入队的发布必须在此完成 —— manifest 是
+        // 「全部产品已原子发布」的完成标记，顺序固定为 产品 → 排空 → manifest。
+        // 缺这一步的后果实测：staging 改名后留下孤儿 .tmp（池开 21 个 / 池关 0 个）。
+        {
+            std::string perr;
+            if (!publish_drain(&perr)) {
+                set_error("发布池排空失败（finalize 出口，fail-closed）: " + perr);
+                return -9;
+            }
+        }
         // manifest.json = 产品集完成标记。§9 原子产品: 统一 tmp → fsync → rename,
         // 失败即 fail-closed (不得静默留下/缺失半成品 manifest)。
         {
@@ -2531,6 +2695,10 @@ int aio_hips_finalize(AioHipsProductSet* ps)  {
 }
 
 int aio_hips_abort(AioHipsProductSet* ps)  {
+    {
+        std::string perr;
+        (void)publish_drain(&perr);   // 中止路径：等在途发布收尾，不给失败面
+    }
     // P1 (R9-A): C 边界异常屏障
     try {
         if (!ps) return 0;
