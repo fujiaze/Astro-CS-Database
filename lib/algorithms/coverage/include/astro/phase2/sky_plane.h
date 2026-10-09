@@ -11,11 +11,13 @@
 // 模型（加性天光面，与 11_upm.md §4.1 一致）：
 //     y_k(x) = b_k(x) + ε_k(x)
 //     b_k(x) = B_ref(x) + δ_k(x)
-//   B_ref  全帧联合参考天光面，稀疏二维张量积 B 样条系数（不建稠密栅格）；
-//   δ_k    每帧相对参考面的平缓梯度（低阶多项式，阶数 frame_gradient_order）。
+//   B_ref  全帧联合参考信号面，稀疏二维张量积 B 样条系数（不建稠密栅格）；
+//   δ_k    每帧的加性偏差 = 低阶多项式项（阶数 frame_gradient_order）+ 联合解逐帧场
+//          F_k（建在拟合残差上、已去跨帧公共模；格点间距 own_surface_step_deg）。
 //
 // 表示与内存：
-//   - B_ref 只存 (nx*ny) 个样条系数；δ_k 只存每帧 m=(p+1)(p+2)/2 个多项式系数；
+//   - B_ref 只存 (nx*ny) 个样条系数；多项式项只存每帧 m=(p+1)(p+2)/2 个系数；
+//   - F_k 只存格点值（格点无采样 ⇒ NaN，构建时平滑外延）；
 //   - 求解时按帧 Schur 消元（profile out δ_k），约化正规矩阵只有 nx*ny 阶，
 //     **内存与帧数无关**，也不随像素数增长；像素值一律现场求值（eval/eval_block）；
 //   - 稀疏持久化：save/open 只写系数与网格参数。
@@ -287,6 +289,17 @@ typedef struct {
     //        （**显式失败**，禁止回退常数）。
     double node_spacing_deg;      // 默认 0.0 = 未给出（由输入导出）
     int    frame_gradient_order;  // δ_k 阶数：0=偏移 1=平面 2=二次；默认 1
+    // §5.11 生产扣除：δ_k = δ_poly,k + F_k。F_k 是该帧在**拟合残差**上的逐帧场，
+    // 构建时已扣除跨帧公共模（每个格点 Σ_k w_k F_k ≡ 0）：残差本就是拟合没解释掉的
+    // 部分，故与低阶项相加不构成重复扣除；去公共模保证扣除只把各帧电平互相拉齐、
+    // 不动公共信号（不需要结构保护 mask）。
+    // own_surface_enabled：默认 1（生产口径）；own_surface_step_deg：F 的格点间距
+    // （表示基频），实测 0.02–0.04° 为甜点，过粗中段变差、过细吃噪声。
+    int    own_surface_enabled;   // 默认 1
+    double own_surface_step_deg;  // 默认 0.02
+    // §5.11 联合解：块坐标迭代的外层次数（0 = 只用 B_ref + 低阶多项式，不建逐帧场）。
+    // 每层 = 解 (B_ref, δ_poly) → 残差建逐帧场 F（去跨帧公共模）→ 样本扣 F → 重解。
+    int    joint_outer_iterations;  // 默认 1
     double huber_delta;           // 稳健 Huber δ；默认 1.345
     int    max_iterations;        // 稳健 IRLS 外层迭代上限；默认 30
     double tolerance;             // 收敛门（max|ΔB| 相对量）；默认 1e-10
@@ -511,6 +524,17 @@ P2_API int p2_sky_plane_build_adaptive(const P2SkySample* samples, std::uint64_t
                                        void** out_model,
                                        P2SkyPlaneAdaptiveReport* out_report,
                                        char* err, std::size_t err_size);
+
+// §5.11 **联合解**（块坐标迭代）：在自适应联合拟合之上，用拟合残差构建逐帧场 F_k
+// （按跨帧公共模去除，Σ_k w_k F_k ≡ 0），把 F 从样本里扣掉后重解 (B_ref, δ_poly)，
+// 迭代 cfg->joint_outer_iterations 次。生产施加 = `δ_k = δ_poly,k + F_k`。
+// 与 `_adaptive` 同参数、同返回码；joint_outer_iterations = 0 时等价于 `_adaptive`。
+P2_API int p2_sky_plane_build_joint(const P2SkySample* samples, std::uint64_t n,
+                                    const P2SkyPlaneConfig* cfg,
+                                    const P2SkyPlaneAdaptiveConfig* adaptive,
+                                    void** out_model,
+                                    P2SkyPlaneAdaptiveReport* out_report,
+                                    char* err, std::size_t err_size);
 
 // 取回模型上记录的自适应 provenance（由 p2_sky_plane_build_adaptive 写入；
 // 单次 build 时 n_attempts=0）。返回 0=ok，1=参数错误。

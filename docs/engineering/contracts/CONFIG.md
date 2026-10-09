@@ -258,7 +258,7 @@ docs、tests 必须一致。该一致性门在本仓无执行器（`eng/tools/co
 
 **本块只描述 orchestrator Stage2 配置面，作用域仅限 orchestrator 阶段二配置文法与解析缺省**（parser = `lib/algorithms/coverage/src/stage2_common.cpp`）。它**不是**三命令 `phase_config` 合同、不是生产写出侧的运行清单面、也不承担三类配置的字段与登记（本文件的配置面一才是三命令 `phase_config` 与三类配置的正本）。三命令 `phase_config` 的语义与索引以本文件的配置面一为准。
 
-**本块键集合（Stage2 配置面）** = 下列文法给出的键。**三套退役键 `integration.weight_mode`、`integration.legacy_allow_weight_fallback`、`integration.acr_route` 出现即 fail-closed 拒绝**（既不能被设、也不能被读）：出现本块以外的键名、或出现这三个键名，一律判错。`weight_mode` 作为现行键只出现在 `sky_plane` 子段（稀疏天光面的定权口径），与被拒的 `integration.weight_mode` 是两个不同键位，不得混用。
+**本块键集合（Stage2 配置面）** = 下列文法给出的键。**三套退役键 `integration.weight_mode`、`integration.legacy_allow_weight_fallback`、`integration.acr_route` 出现即 fail-closed 拒绝**（既不能被设、也不能被读）：出现本块以外的键名、或出现这三个键名，一律判错。`weight_mode` 作为现行键只出现在 `sky_plane` 子段（稀疏信号面的定权口径），与被拒的 `integration.weight_mode` 是两个不同键位，不得混用。
 
 - 本块的 `precision(fp32)` 是 **orchestrator** 的解析缺省（仅用于「doc ↔ parser/struct 一致」判据）；三命令 `phase_config` 的精度**必须显式**（normalize = 块级 `drizzle.precision_mode`；mosaic/export = 位深键），口径见本文件的配置面一。
 - **`output_mode` 不属本块**（它只出现在 export 的 `phase_config`）：**必填且必须显式** —— `blocks[]` 分支、平铺单块简写分支、`{phase_name, config, inputs[]}` 简写分支的 `required` **都含 `output_mode`**（fail-closed）；合同登记的 `surface_brightness` **只作 `--template` 骨架值**，运行期缺省另有显式来源。⇒ 本块与配置面一在此点上**两边同向**。
@@ -275,7 +275,6 @@ model: control_grid_per_tile(8) patch_radius_leaf(2) min_samples(5)
        background_min_retained_fraction(0.60)
        background_tolerance(3.0) background_neighbor_radius(2)
        background_catalog_veto(1)
-       ms_enabled(0) ms_sigma_px(16.0) ms_thresh(2.0)
        huber_delta(1.345) smoothing(auto→0.1) zero_anchor_weight(1e-3)
        max_irls_iterations(100) tolerance(1e-6) sigma_floor(1e-3)
        support_power(1.0) robust_loss(huber) snr_weight_mode(snr2_normalized)  # UPM fit 内部诊断开关（键名以实现解析点 lib/algorithms/coverage/src/stage2_common.cpp 为准；最高设计的「数据对象」一节（数据对象）的「无权重模式可选概念」约束的是 Phase2 集成 weight_mode 概念，与本键无关）
@@ -358,7 +357,9 @@ output.hips / diagnostics
 
 **排异档位映射**（三档逐像素自动路由的**唯一正本**）：`1≤N≤3` none / `4≤N≤5` percentile / `N≥6` winsorized；N = 该输出像素的**几何可贡献帧数**，逐像素自动路由；**min/max 不用于生产**。阈值表的机器来源 = `lib/algorithms/coverage/src/rejection.cpp` 的 `kPixelSmallNPolicy` 与 `acsd_n_map_method`；**文档面无可核来源**——最高设计的逐像素排异一章只给「按 N 自动选择」与生产算法集四种（none、percentile、winsorized、linear fit），不含任何 N 阈值，把阈值挂到该章属误挂，阈值入库前须补文档层承载。`linear fit` 档可显式指定但不参与逐像素自动路由（自动路由只出上列三档），「生产算法集四种」与「自动路由三档」是两个不同集合，不是两套口径。上方 fenced 块的 `acsd_adaptive_pixel` 档位与本条同值；WBPP 对照档（`nominal<6 / 6..15 / >15`）只描述 `wbpp_2_9_1` 对照 profile 自身，不参与生产路由。`docs/science/unified/DATA_SEMANTICS.md` 首注同面。
 
-### 掩膜三组键文法（普通星 / Gaia 晕 / 缝回退）
+### 掩膜三组键文法（普通星 / Gaia 晕 / 缝回退，已废弃）
+
+**废弃声明**：星掩膜通道已停止使用——采样器侧 simple(6)/halo(7) 两个拒绝分支在代码中整段注释，只保留 catalog(5)；编排侧 Gaia 查询整段停用、恒走空帽直通。本节三组键只作停用前的合同与「为什么停用」论证保留，**不是现行可用配置面**：现状使用即被未知键门拒绝（`rc = 3`），`model` 空对象仍可通过。语义正本（含停用原因与恢复条件）见采样算法分册的普通星简单掩膜、Gaia 晕掩膜、缝回退三节及其废弃声明。
 
 本节给出 Stage2 配置面 `model` 段内掩膜三组的键集合、缺省与值域。本节键属配置面二，在三命令 `phase_config` 或运行清单面出现即判错。缺键取默认，显式给出须满足值域，否则拒绝并报错，本面以外的任何键名同样判错。
 
@@ -368,7 +369,7 @@ Gaia 晕组共五键：`model.halo_mag_thresh`（默认 8.0，Gaia 星等，须�
 
 缝回退组共两键：`model.seam_fallback_factor`（默认 1.5，无量纲，不得小于一）与 `model.seam_fallback_r_max`（默认 450，单位为像素，必须大于零，对应成品公式的回退上限）。回退半径等于该因子乘常规晕半径再按回退上限封顶。触发判据为缝验收失败且暗段不动，仍失败时检查触发源而不继续放大，上限只用于缝邻域。重算语义为全量重跑：覆盖构建、采样探查与回填、模型持久化与分块求值均无区域子集重算入口，引用回退重算一律按全量语义解释。语义与默认数值正本为采样算法分册的缝回退一节。
 
-多尺度低频组共三键：`model.ms_enabled`（默认 0，无量纲，只能取 0 或 1；0 = 关闭即纯 C 场旧行为，1 = 启用多尺度低频修正）、`model.ms_sigma_px`（默认 16.0，单位为像素，必须在 [12, 24] 且有限）、`model.ms_thresh`（默认 2.0，无量纲，必须 ≥1.5 且有限）。三键缺省关闭：缺键取默认即旧行为逐位一致。显式给出须满足值域，否则拒绝并报错。环境变量 `ACSD_UPM_MS_ENABLE` / `ACSD_UPM_MS_SIGMA_PX` / `ACSD_UPM_MS_THRESH` 只作测试覆写（默认关；优先级为 config 键 > 环境覆写 > 默认关闭），文档声明测试专用，不得作为生产配置面。语义与默认数值正本为采样算法分册的多尺度低频天光面推导与生产施加路径一节。
+多尺度低频组退役：`model.ms_enabled/ms_sigma_px/ms_thresh` 不再是生产配置面（单语义一次扣除下无开关；`ms_verify` 测试程序内自带口径）。`model` 内出现三键中任一即判错。环境变量 `ACSD_UPM_MS_*` 只作测试覆写，不得作为生产配置面。
 
 现状分叉声明：既有三键 `model.control_k_corr`（默认 1.4）、`model.star_mask_snr_factor`、`model.star_mask_radius_deg` 在编排采样算子可读，在阶段二结构体、解析白名单与工具组装三处均无对应，工具链路以零初始化后按实现修补回默认运行，两条链路对同一配置给出不同生效面，引用时必须区分。新七键在采样器结构体、阶段二解析白名单、阶段二工具组装、编排采样算子四处均无读取，现状使用即被未知键门拒绝，本节为合同先行，消费面落地前不得视为可用。分叉事实的登记面为注册表模块页的逐字段登记、星掩膜函数登记与已知限制三节。
 

@@ -1,7 +1,7 @@
 # 模块 acsd.phase2.sample
 
 > 上游：`docs/ACSD_DESIGN.md`「模块与 ABI」一节与「固定科学流程」一节（控制采样）、
-> 「天光平面与统一相对模型」一节
+> 「信号面与统一相对模型」一节
 > 科学正本：docs/science/sky/UPM.md（SCI-UPM-001，FROZEN，相关章节）、
 > `docs/science/noise_snr/NOISE_SNR.md`「定权」一节、`docs/detail/mosaic/pipeline.md`「UPM：联合相对模型」一节
 > 算法正本：docs/science/algorithms/PHASE2_SAMPLER.md（ALG-P2-SMP-001；语义与判据、缺陷登记与测试设计F1–F9三节）
@@ -24,7 +24,7 @@ lib/algorithms/coverage/include/astro/phase2/sampler.h；构建 = 根 CMakeLists
 ## 职责与明确非职责
 
 职责：为 UPM 拟合提供两类稀疏采样 —— ① **光度控制点**（定每帧**加性**校正场；
-本期乘性响应恒为 1，不估计乘性项）；② **天光背景采样点**（定加性天光面）。
+本期乘性响应恒为 1，不估计乘性项）；② **天光背景采样点**（定加性信号面）。
 落地为三阶段 background-clean 控制点采样（sampler.cpp 冻结注释）：
 
 - Stage A 候选 patch（cell 中心 ±`background_patch_radius`，默认 17×17）；
@@ -103,10 +103,10 @@ flowchart LR
 ```
 
 **光度控制点**：避开源（检测目录）、饱和、坏点、高结构区域；空间均匀 + 按
-背景 / 噪声分层，保证加性场与天光面可辨识；记录每个控制点的 signal、variance、
+背景 / 噪声分层，保证加性场与信号面可辨识；记录每个控制点的 signal、variance、
 validity、是否参与拟合。
 
-**公共面与逐帧梯度的分工**：采样点用于**全部帧联合**拟合公共天光面；每帧只在其
+**公共面与逐帧梯度的分工**：采样点用于**全部帧联合**拟合公共信号面；每帧只在其
 上拟合平缓梯度，归一施加量为逐帧梯度（**保留公共面**）；全减（含公共面）不是
 默认路径（详见 registry/acsd.phase2.upm-fit.md）。
 
@@ -176,10 +176,20 @@ sampler.cpp 的 `p2_sampler_default_config`，修补语义 = impl 入口
 | `min_sky_samples` | —— | —— | 每帧天光采样点数量下限（编排层词汇，无内核映射） |
 | `local_estimator` | `robust_median` | —— | 局部背景估计器（robust_median / trimmed_mean；内核实现为 median + MAD 亮端 clipping，同 `p2_sky_patch_estimate` 数学定义） |
 
-采样 / 天光面的**施加侧**配置（`additive_mode`、`sky_plane.enabled`）登记在
-registry/acsd.phase2.upm-fit.md（采样模块只产点表，不施加归一化）。
+采样 / 信号面的**施加侧**配置（唯一扣除语义、`sky_plane.enabled`）登记在
+registry/acsd.phase2.upm-apply.md 与 registry/acsd.phase2.upm-fit.md
+（采样模块只产点表，不施加归一化；`additive_mode` 已随单一扣除语义退役）。
 
-### 星掩膜函数登记
+### 星掩膜函数登记（已废弃）
+
+**废弃声明**：星掩膜通道已停止使用——采样器侧 simple(6)/halo(7) 两个拒绝分支在
+代码中整段注释，只保留 catalog(5)；`p2_star_mask_caps_simple_bright` /
+`p2_gaia_halo_radius_px` / `p2_gaia_halo_radius_fallback_px` /
+`p2_star_mask_caps_gaia_halo` 停用期间恒不成帽（或半径侧恒非法），声明保留在
+`sky_plane.h`、原实现只注释不删除；编排侧 Gaia 查询整段停用、恒走空帽直通。
+本节只作停用前的函数台账与留桩口径保留，**不代表现行可用能力**。停用原因、
+恢复条件与配置面登记见本节末的已知限制与
+`docs/engineering/contracts/CONFIG.md` 掩膜三组键文法一节。
 
 掩膜载体 = `P2StarMaskCap`（`ra_deg / dec_deg / radius_deg / kind`），kind 枚举仅
 `P2_STAR_MASK_STAR = 0 / SATURATION = 1 / HIGH_STRUCTURE = 2` 三值；生产路径只产
@@ -190,7 +200,7 @@ registry/acsd.phase2.upm-fit.md（采样模块只产点表，不施加归一化�
 |---|---|---|
 | `p2_star_mask_caps` | 输入星表 `ra / dec / snr` 与阈值 `snr_threshold`、半径 `radius_deg`，`snr > threshold` 者逐星成帽（`kind = STAR`）；`out` 可空查容量，`out_n` 写真实需求；参数错误回 1；非有限坐标与 snr 逐点跳过 | 公共函数（sky_plane.h 声明、sky_plane.cpp 实现）［6］［7］；采样生产路径（veto 与星帽）不调用此函数：veto 经 `SnrIndex::any_above` 查询，星帽经内联量化去重块生成；实验侧有独立消费者（`实验/absolute-snr` 重建驱动） |
 | `p2_star_mask_contains` | 点 `(ra, dec)` 是否落任一圆帽（含边界）：球面余弦定理 + `acos` 终判；1 = 命中，0 = 未命中，-1 = 参数错误（空指针或非有限坐标） | 公共函数（同上）［6］［7］；采样生产路径不调用（同上）；合流后的两类新掩膜帽经此查询执行 veto 属设计目标态（未落地） |
-| `p2_simple_bright_mask_*`（候选新增） | 普通星简单掩膜：图像阈值 + 连通区 → `P2StarMaskCap[]`（固定小半径），覆盖全星等普通星（含星表缺失与饱和情形）；输入 = Phase1 HiPS signal / support，输出 = 与现有帽数组直接合并的帽集 | 现状无实现：采样器与天光面内无图像阈值掩膜生成器（`nbright / bright_fraction` 只是 patch 内污染统计量，不是掩膜），仓内阈值连通区实现均在 Phase1 或排异域；落点候选三选一（sampler 内静态函数、sky_plane 旁新函数、独立模块），未定 |
+| `p2_simple_bright_mask_*`（候选新增） | 普通星简单掩膜：图像阈值 + 连通区 → `P2StarMaskCap[]`（固定小半径），覆盖全星等普通星（含星表缺失与饱和情形）；输入 = Phase1 HiPS signal / support，输出 = 与现有帽数组直接合并的帽集 | 现状无实现：采样器与信号面内无图像阈值掩膜生成器（`nbright / bright_fraction` 只是 patch 内污染统计量，不是掩膜），仓内阈值连通区实现均在 Phase1 或排异域；落点候选三选一（sampler 内静态函数、sky_plane 旁新函数、独立模块），未定 |
 | `p2_star_mask_caps_gaia_halo`（候选新增） | Gaia 晕掩膜：区域最亮星（默认 G < 8，可迭代）按星等定晕半径成帽；半径规则含亮度幂次系数，与固定 `star_mask_radius_deg` 不能复用同一参数；`kind` 新增晕值或复用 `STAR`，二选一未定 | 现状无实现、无输入：采样器只消费 SNR catalogue，不消费 Gaia；Gaia 帽输入需由调用方（stage2 工具或编排层采样算子）经 `gaia_client_cone_search` 查询后传入，`p2_sample_controls_cached` 签名是否扩展未定；星等→半径函数的推导归科学分册 |
 
 ## Execution class、并行轴、ThreadBudget lease、确定性
@@ -261,9 +271,9 @@ G6LocalSnrAvailabilityThreeZones、G1StatisticsCorrectness、UPMW-004 MC、cvar�
 
 Oracle 面：
 
-- 构造已知背景梯度 / 已知加性天光面场景 → 采样点估计无偏、覆盖与统计符合预期；
+- 构造已知背景梯度 / 已知加性信号面场景 → 采样点估计无偏、覆盖与统计符合预期；
 - 亮星 / 坏点 / 星云边缘排除验证；
-- **control_ivar 加权验证**：注入低 SNR / 光污染帧，联合天光面不被拉高（与等权
+- **control_ivar 加权验证**：注入低 SNR / 光污染帧，联合信号面不被拉高（与等权
   拟合对照，偏差显著减小）。三臂对照（`control_ivar` / `uniform` / `SNR²`）的
   结论 = `control_ivar` 是**偏差漏入**最小的一臂；与等权相比其**噪声项**优势落在
   MC 误差内，决定性优势在偏差漏入（依据 = `docs/science/noise_snr/NOISE_SNR.md`「定权」一节）；

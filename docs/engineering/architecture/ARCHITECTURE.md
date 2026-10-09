@@ -87,7 +87,7 @@ flowchart LR
 ```mermaid
 flowchart LR
  A["coverage 重叠图 union"] --> B["sample 控制采样 + patch 估计"]
- B --> C["upm_fit 公共天光面 + 逐帧偏差"]
+ B --> C["upm_fit 公共信号面 + 逐帧偏差"]
  C --> D["upm_apply 加性归一化"]
  D --> E["reject 逐像素排异推断"]
  E --> F["integrate 逆方差集成 + support 归约"]
