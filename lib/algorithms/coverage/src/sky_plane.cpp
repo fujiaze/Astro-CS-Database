@@ -475,15 +475,73 @@ inline bool sky_own_eval(const SkyOwnGrid& g, double u, double v, double* out_va
     return true;
 }
 
+// 逐帧场空格填充方式（候选对比实验旋钮，env-gated；缺省缺失 ⇒ 既有行为）。
+// 语义：
+//   diffuse（0，缺省）迭代扩散平滑外延——现行生产口径，逐位不变；
+//   nearest（1）      最近有效格值外铺（4 邻域 BFS，扫序固定 ⇒ 与线程/时间无关）；
+//   none   （2）      不外延：空格保持 NaN ⇒ sky_own_eval 四角不全即判无效 ⇒
+//                     该位置**不施加**逐帧场 F_k（不丢像素、不改方差链，
+//                     只是那一处少一项扣除；扣除链其余部分照常）。
+// 只影响 sky_own_fill 的行为；缺省不设该 env 时执行路径与既有实现逐位相同。
+inline int sky_own_fill_mode_from_env() {
+    const char* e = std::getenv("ACSD_SKY_FILL_MODE");
+    if (e) {
+        if (std::strcmp(e, "nearest") == 0) return 1;
+        if (std::strcmp(e, "none") == 0) return 2;
+    }
+    return 0;
+}
+
 // 逐帧场空格外延：迭代扩散（4 邻域平均，Gauss-Seidel），把无采样的格子平滑外延。
 // **不得用最近值填充**——最近值在填充边界自身就产生台阶，而逐帧场是修正量的载体，
 // 台阶会直接变成成品上的缝。外延只为消除「四角缺一 ⇒ 求值判无效」的边界。
+// （该禁令是可裁决的经验命题，不是定义：对照臂由 ACSD_SKY_FILL_MODE 打开，
+//   判据与读数见 实验/additive-sky-seamless/docs/D1-fill-adjudication.md。）
 inline void sky_own_fill(SkyOwnGrid& g) {
     if (g.nu < 2 || g.nv < 2 ||
         g.vals.size() != static_cast<std::size_t>(g.nu) * static_cast<std::size_t>(g.nv))
         return;
     const int dx[4] = {1, -1, 0, 0};
     const int dy[4] = {0, 0, 1, -1};
+    const std::size_t ncell = g.vals.size();
+    const int fill_mode = sky_own_fill_mode_from_env();
+    if (fill_mode == 2) return;   // none：不外延，空格保持 NaN
+    if (fill_mode == 1) {
+        // nearest：多源 BFS（4 邻域菱形推进；扫序入队 + head 指针层序推进，
+        // 顺序固定），每个空格取首次到达的源格值。源值取快照，避免链式改写。
+        const std::vector<double> orig = g.vals;
+        std::vector<int> dist(ncell, -1);
+        std::vector<std::size_t> src(ncell, static_cast<std::size_t>(-1));
+        std::vector<std::size_t> frontier;
+        for (std::size_t i = 0; i < ncell; ++i)
+            if (std::isfinite(g.vals[i])) {
+                dist[i] = 0;
+                src[i] = i;
+                frontier.push_back(i);
+            }
+        if (frontier.empty()) return;
+        std::size_t head = 0;
+        while (head < frontier.size()) {
+            const std::size_t cur = frontier[head++];
+            const int cx = static_cast<int>(cur % static_cast<std::size_t>(g.nu));
+            const int cy = static_cast<int>(cur / static_cast<std::size_t>(g.nu));
+            for (int d = 0; d < 4; ++d) {
+                const int x = cx + dx[d], y = cy + dy[d];
+                if (x < 0 || y < 0 || x >= g.nu || y >= g.nv) continue;
+                const std::size_t ni = static_cast<std::size_t>(y) *
+                                           static_cast<std::size_t>(g.nu) +
+                                       static_cast<std::size_t>(x);
+                if (dist[ni] >= 0) continue;
+                dist[ni] = dist[cur] + 1;
+                src[ni] = src[cur];
+                frontier.push_back(ni);
+            }
+        }
+        for (std::size_t i = 0; i < ncell; ++i)
+            if (!std::isfinite(g.vals[i]) && src[i] != static_cast<std::size_t>(-1))
+                g.vals[i] = orig[src[i]];
+        return;
+    }
     const int max_iter = 4 * (g.nu + g.nv);
     for (int iter = 0; iter < max_iter; ++iter) {
         bool changed = false;
