@@ -411,7 +411,7 @@ doc_index:
     - path: "docs/science/algorithms/mosaic/PHASE2_SAMPLER.md"
       status: ACTIVE_NORMATIVE
       duty: "天光采样点选择与采样算法"
-      upstream: "docs/ACSD_DESIGN.md §5.4（天光平面（UPM））"
+      upstream: "docs/ACSD_DESIGN.md §5.4（信号面（UPM））"
       downstream: "anchor_contract.json、sampler.h、sampler.cpp 等 11 处"
     - path: "docs/science/algorithms/mosaic/PHASE2_SESSION.md"
       status: ACTIVE_NORMATIVE
@@ -422,7 +422,7 @@ doc_index:
     - path: "docs/science/algorithms/mosaic/PHASE2_UPM_IMPL.md"
       status: ACTIVE_NORMATIVE
       duty: "Phase2 UPM fit+apply 实现级算法合同"
-      upstream: "docs/ACSD_DESIGN.md §5.4（天光平面（UPM））"
+      upstream: "docs/ACSD_DESIGN.md §5.4（信号面（UPM））"
       downstream: "stage2_common.h、memory.md、README.md 等 7 处"
       notes: "冻结点：`ALG-P2-UPM-IMPL-001`、`DISP-P2UPM-001`、`SCI-UPM-001`"
     - path: "docs/science/algorithms/export/PHASE3_FITS_IMPL.md"
@@ -474,7 +474,7 @@ doc_index:
     - path: "docs/science/algorithms/mosaic/UPM_SOLVER.md"
       status: ACTIVE_NORMATIVE
       duty: "UPM 求解器算法（稀疏平面/阻尼迭代）"
-      upstream: "docs/ACSD_DESIGN.md §5.4（天光平面（UPM））"
+      upstream: "docs/ACSD_DESIGN.md §5.4（信号面（UPM））"
       downstream: "clause_registry.json、bad_id_format.json、chain_break.json 等 12 处"
     - path: "docs/science/unified/DATA_SEMANTICS.md"
       status: ACTIVE_NORMATIVE
@@ -763,7 +763,7 @@ doc_index:
     - path: "docs/science/sky/UPM.md"
       status: ACTIVE_NORMATIVE
       duty: "统一相对模型（UPM）的科学公式与可辨识性"
-      upstream: "docs/ACSD_DESIGN.md §5.4（天光平面（UPM））"
+      upstream: "docs/ACSD_DESIGN.md §5.4（信号面（UPM））"
       downstream: "ACCEPTANCE_SPEC.md、config_registry.json 等 201 处"
     - path: "docs/science/projection/HIPS_TO_FITS.md"
       status: ACTIVE_NORMATIVE

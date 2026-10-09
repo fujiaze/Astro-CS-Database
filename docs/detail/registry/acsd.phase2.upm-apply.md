@@ -1,6 +1,6 @@
 # 模块 acsd.phase2.upm-apply
 
-> 上游：`docs/ACSD_DESIGN.md`「模块与 ABI」一节与「天光平面」一节
+> 上游：`docs/ACSD_DESIGN.md`「模块与 ABI」一节与「信号面」一节
 > 科学正本：docs/science/sky/UPM.md（SCI-UPM-001，FROZEN，相关章节）、
 > docs/science/algorithms/UPM_SOLVER.md（ALG-UPM-001，权威推导；F4/F6）、
 > `docs/science/noise_snr/NOISE_SNR.md`「协方差传播」一节
@@ -23,18 +23,20 @@ fit 职能见 registry/acsd.phase2.upm-fit.md（同一 module_id 的另一职能
 
 ## 职责与明确非职责
 
-职责（apply）：按 frame_id 稳定绑定逐块校准 —— **默认只扣偏差 `δ_k`、保留公共
-天光面`B_ref`**（最高设计「天光平面」一节「公共面语义：只扣『多退少补』的偏差，不剪掉整个
-背景」）。**记法消歧（强制）**：表示层全量 `C_k ≡ B_ref + δ_k`；**全量扣除
-`raw − C_k`（含 `B_ref`）不是默认** —— 凡写 `raw − C_k` 处必须写明「全量」还是
-「仅偏差」。
+职责（apply）：按 frame_id 稳定绑定逐块校准 —— **只扣偏差 `δ_k = δ_poly,k + F_k`、
+保留公共信号面**（最高设计「信号面」一节「公共面语义：只扣『多退少补』的偏差，不剪掉
+整个背景」）。**记法消歧（强制）**：UPM 内核表示层全量 `C_k ≡ B_ref + δ_k`；**全量
+扣除 `raw − C_k`（含 `B_ref`）不是生产默认** —— 凡写 `raw − C_k` 处必须写明「全量」
+还是「仅偏差」。
 
-内核锚 = `p2_upm_calibrate_block`，与 `p2_upm_evaluate_c` 的 sparse / dense 走同一
-科学语义（ALG-UPM-001 F4）。dense cache 物化 / 读取：`p2_upm_materialize_dense_n`
+生产内核锚 = `p2_sky_plane_eval_delta_block`（信号面：公共面 + 联合解逐帧残差场，
+见 §5.11 与 `p2_sky_plane_build_joint`）；本页同 module_id 的 UPM 内核
+`p2_upm_calibrate_block` / `p2_upm_evaluate_c` 走同一"仅偏差"科学语义
+（ALG-UPM-001 F4），但**不在生产扣除链上**（其逐帧分块场跨瓦片不连续、无观测格取 0，
+见「已知限制」）。dense cache 物化 / 读取：`p2_upm_materialize_dense_n`
 分批并行求值 → (f, tile) 单调序串行写、bit-identical；`p2_upm_dense_read_block`
-stale 拒绝 rc = 2。生产 apply 消费链 = lib/algorithms/coverage/tools/stage2.cpp
-（四处调用点：`p2_upm_build_geo`、`save`、`materialize_dense_n`、
-`calibrate_block` ×2）。
+stale 拒绝 rc = 2。生产 apply 消费链 = lib/infrastructure/scheduler/src/module_adapters.cpp
+的 `p2_op_upm_apply`（`p2_sky_plane_open` + 逐像素 `p2_sky_plane_eval_delta_block`）。
 
 不做：UPM 拟合 / 权重归一（fit 职能）；控制点采样 / 几何、coverage union、积分、
 排异、马赛克写出；跨滤镜统一（模型 filter 分组由调用方保证）；per-frame gradient
@@ -51,7 +53,7 @@ stale 拒绝 rc = 2。生产 apply 消费链 = lib/algorithms/coverage/tools/sta
 | `corrected` | `DATA-P2-COR` | 可 | `UnitId::ADU` | `CoordinateFrame::PIXEL` |
 
 内核级真实I/O合同 = DATA-P2-UPM模型 + DATA-P2-CAL帧 → DATA-P2-COR
-校准输出：**默认语义 = 只扣偏差**（FP64 ADU，保留公共天光面 `B_ref`）；
+校准输出：**默认语义 = 只扣偏差**（FP64 ADU，保留公共信号面 `B_ref`）；
 sparse / dense 同一科学语义。
 
 invalid：null 参数 ⇒ rc = 1；未知 frame_id ⇒ `p2_upm_evaluate_c` 返回 NaN
@@ -90,12 +92,17 @@ parallel_ok=True（p2_upm_apply_descriptor）。descriptor 派生词汇（其对
 
 | 字段 | 默认 | 单位 | 说明 |
 |---|---|---|---|
-| `seam.additive_mode` | `delta` | —— | 归一施加模式：`delta` = `raw − δ_k`（**设计默认**，保留公共天光面 `B_ref`）/ `c` = `raw − C_k`（全减，非默认）/ `both` = `raw − C_k − δ_k`（双重扣除，仅对照 / 回归） |
-| `sky_plane.enabled` | 随 `additive_mode ∈ {delta, both}` | —— | 是否构建 / 落盘公共天光面 `B_ref` 产品；缺省 = 「要施加 `δ_k` 才构建」，显式值优先（实现 = module_adapters.cpp 的 `sp_cfg.value("enabled", delta_wanted)`） |
+| 施加语义（唯一） | `corrected = raw − δ_k` | —— | 一次扣除单语义：`δ_k = δ_poly,k + F_k`，`F_k` 为拟合残差上的逐帧场（构建时已去跨帧公共模，每个格点 `Σ_k w_k F_k ≡ 0`），由块坐标联合解给出（`p2_sky_plane_build_joint`）。产物加权平均电平不变，真实信号按构造保留。`seam.additive_mode` 三档（c/delta/both）退役，出现即判错 |
+| `sky_plane.enabled` | 开（`true`） | —— | 是否构建 / 落盘信号面产品（公共面 + 联合解逐帧场）。面是生产必需产物，缺省必建；显式 `false` 时 apply 侧缺面即 fail-closed（实现 = module_adapters.cpp 的 `sp_cfg.value("enabled", true)`） |
+| `sky_plane.own_surface_step_deg` | 0.02 | deg | 逐帧场 F 的格点间距（表示基频）。0.02–0.04° 为实测甜点；过粗中段变差、过细吃噪声。实现 = `spc.own_surface_step_deg` |
+| `sky_plane.joint_outer_iterations` | 1 | 层 | 块坐标联合解的迭代层数（0 = 退回"公共面 + 低阶项"）。实现 = `spc.joint_outer_iterations` |
 
-**设计与实现的默认值不一致，以设计为准**：设计的施加侧默认是 `delta`（仅偏差、
-保留 `B_ref`）；实现锚 = 阶段二 apply 节点的 `seam.additive_mode` 读取与施加
-分支（按**符号**定位），该读取点的现网默认取 `c`（全量扣除）。
+**施加口径的文字正本**：生产施加取 `docs/science/sky/UPM.md`「公式与推导」一节的
+`calibrated = raw − δ_k`（δ_k = δ_poly,k + F_k）。F 由拟合残差构建并去跨帧公共模，
+故 `Σ_k w_k F_k ≡ 0`；实现锚 = 阶段二 apply 节点对 `p2_sky_plane_eval_delta_block`
+的单次求值与扣除（原 `seam.additive_mode` 读取、
+逐帧分块校正场扣除与加回分支均已删除）。逐帧分块校正场（另一条曾被接入的路）
+因跨瓦片不连续、无观测格子取 0 而退出生产，见「已知限制」。
 
 ## Execution class、并行轴、ThreadBudget lease、确定性
 
@@ -129,14 +136,17 @@ rc 语义：0 = ok；1 = 参数 / open / parse / IO / 未知 frame；2 = dense s
 （source hash 不匹配）。未知 frame_id 的 `evaluate_c` = NaN。**无 `ACS_ERR_*`**
 （模块级返回码独立于会话层 ACS 语义）。
 
-- **无天光面产物而 `additive_mode ∈ {delta, both}` ⇒ `δ_k` 不存在 ⇒ 显式退化为 `c`
-  （全减，公共天光面被整场扣除）⇒ 判红**。判红面 = 具名
-  `degraded_reason = no_sky_plane_artifact` + `warning_codes` 含
-  `P2-ADDITIVE-MODE-DEGRADED-NO-SKY-PLANE`，随 `p2_corrected.json` 与节点 manifest
-  同时落盘；口径同「产品照出、rc 不变，判红由 `warning_codes` 非空承载」；
-  **不得**静默变成「不校正」，**不得**回退到双重扣除；
-- 该形态的产品**不得用于「无接缝」主张**：全减后背景归零，接缝判据在分母上退化
-  （非退化判据口径见registry/acsd.phase2.upm-fit.md与SCI-UPM-001［S-1］）。
+- **公共信号面缺席即 fail-closed**：生产扣除需要 `p2_sky_plane.bin`。面缺失或
+  打不开时本节点直接失败（不静默回退、不改扣别的场）。正常路径下
+  `degraded_reason` 恒 `null`、`warning_codes` 恒空数组，
+  `sky_plane_applied` / `sky_plane_loaded` 恒 `true`。fit 侧显式
+  `sky_plane.enabled=false`、无采样点或构建/落盘失败时记
+  `sky_plane_status`（`disabled_by_config` / `skipped_no_samples` /
+  `build_failed` / `save_failed`）并置 `sky_plane_degraded = true`。
+- 口径字段：`additive_mode_requested` / `additive_mode_effective` 恒 `single`，
+  `additive_combination` 恒 `raw_minus_delta_to_shared_surface`，
+  `c_subtracted = false`、`delta_subtracted = true`、
+  `sky_plane_mode = delta_to_shared_surface`。
 
 取消：会话消费面整模型不写半成品（p2_session.cpp 两处）；内核无取消检查点；无段内
 checkpoint（dense 物化整缓存一次写）。
@@ -163,8 +173,13 @@ Oracle 面：
 - **非退化接缝判据**（见 fit 页）：在**保留 `B_ref`** 的前提下比较帧间一致性；
   判据量取有符号台阶并套适用域；负例 = 注入已知台阶必判红、两侧噪声差大但无台阶
   必判绿、旧方差比口径在同一输入上判绿（盲区复现）；
-- **additive_mode 退化判红能红能绿**：无天光面产物 + `delta` ⇒
-  `degraded_reason` 与 `warning_codes` 必落；正常帧 ⇒ 两者为空；
+- **施加语义判别 oracle**：在控制点重叠面上复算死约束
+  `D_i − D_j = raw_i − raw_j`，逐臂比较扣除量。生产臂 = 逐帧低阶偏差 δ_k
+  （落回公共面）；负例 = 用逐帧分块校正场（跨瓦片不连续、无观测格子取 0），
+  成品上必现瓦片菱形格与帧足迹矩形台阶，实测瓦片边界跳变 5e-06 ~ 1.5e-04、
+  转 0 处可达 7e-04（复算脚本 `run/SEAM-C-ONLY/upm_eval.py`）；
+- **缺面必红**：删/损坏 `p2_sky_plane.bin` 后 apply 必 fail-closed；
+  正常路径 `degraded_reason = null`、`warning_codes = []`；
 - sparse / dense 逐点等价（1e-12 基线）；`calibrate_block` 不破坏星 flux；
 - 未知 frame_id 返回 NaN 而非异常、不以 frame 0 伪装；dense stale 拒绝必红；
 - 1 worker vs N worker 输出一致。
@@ -177,7 +192,20 @@ Oracle 面：
 - 缺陷登记（不改码，正本 = ALG-P2-UPM-IMPL-001 缺陷清单）：upm.h
   materialize_dense 重复声明；upm.h 注释漂移（OpenMP vs std::thread 实现）；
   p2_session.cpp 覆盖键缺口；descriptor 端口静态声明的 persist→reload 语义；
-- `seam.additive_mode` 的现网默认取 `c`（全量扣除），与设计默认 `delta` 不一致，
-  口径以设计为准；
+- 施加口径唯一（`corrected = raw − δ_k`，δ_k 为逐帧低阶偏差，落回公共连续信号面）：
+  `seam.additive_mode` 退役；**逐帧分块校正场不得再接入生产扣除**——它跨瓦片
+  不连续（瓦片各自外推）且无观测格子取 0，修复前会引入瓦片菱形格与帧足迹台阶
+  （实测跳变 5e-06 ~ 1.5e-04、转 0 处 7e-04，复算 `run/SEAM-C-ONLY/upm_eval.py`）；
+  该项为待修缺陷，修复内容 = 跨瓦片连续求值 + 无观测格子平滑补值；
+- **信号面的多尺度低频 overlay 必须关闭**：该 overlay 逐帧幅值实测达 2.8e-02
+  （单侧形状：min −2.8e-02 / max +3.2e-05），随 δ_k 扣进成品会在星云核心形成
+  撕裂台阶（把真实信号的低频结构当帧间差吃掉）。生产要求模型里
+  `delta_ms_enabled = 0`；复现/审计时才用 `ACSD_DELTA_MS_ENABLE=1` 打开。
+  判据与实测见采样算法分册的公共信号面施加路径一节；
+- **`sky_plane` 段不在 CLI 配置白名单**：三命令的未知键门会拒绝该顶层键，故
+  `enabled` / `joint_outer_iterations` / `own_surface_step_deg` /
+  `own_surface_enabled` 目前**只能由编译缺省决定**（缺省即生产口径：面必建、
+  联合解 1 层、格点 0.02°）。要把它们做成可调科学参数，须先补配置合同
+  （白名单 + 文法 + 登记），在此之前不得按"可配"引用；
 - 目标交付形态 acsd_p2_upm.dll 未落地；
 - 全局限制登记 = artifacts/evidence/known-limitations-ledger/LIMITATIONS.md。

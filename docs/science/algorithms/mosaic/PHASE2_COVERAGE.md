@@ -391,7 +391,7 @@ status 语义: 0=ok；错误路径部分分支置 1（`lib/algorithms/coverage/s
 
 > 本文引用上游正本（论文式编号，正文引用处均已改为自然语言节名，不再使用跨文档 §N 跳转）：
 > - [D-1] docs/ACSD_DESIGN.md（最高设计）。
-> - [S-1] docs/science/sky/UPM.md（天光平面科学正本 SCI-UPM-001）。
+> - [S-1] docs/science/sky/UPM.md（信号面科学正本 SCI-UPM-001）。
 > - [S-2] docs/science/integration/INTEGRATION.md（集成科学正本 SCI-INT-001）。
 > - [S-3] docs/science/unified/SCIENCE_SCOPE.md（科学范围正本）。
 > - [E-1] docs/engineering/resources/cpu/BACKEND.md（工程正本）。

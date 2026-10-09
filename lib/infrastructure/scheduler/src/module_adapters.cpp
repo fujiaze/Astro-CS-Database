@@ -10154,9 +10154,10 @@ Result<void> p2_op_upm_fit(const Json& doc, Json* man) {
   // M4-C-02: 与 stage2_common 对称的显式覆盖面；缺省保持 SCI §9a:133 λ0=1e-3。
   if (upm_cfg.contains("zero_anchor_weight"))
     uc.zero_anchor_weight = upm_cfg["zero_anchor_weight"].get<double>();
-  // P2a 显式可配置（缺省 = 上面的生产值；便于对照/回归与
-  // 负责人按 additive_mode 裁决切换；原注所引 `c-delta-ruling` 指向已退役的
-  // `reports/`，该目录两读法皆无 —— 裁决现以 oracle 实测为准，见本文件 P2a-1 段）。
+  // P2a 显式可配置（缺省 = 上面的生产值；便于对照/回归。
+  // additive_mode 三档已退役，不再有「按模式裁决策略」这一面；
+  // 原注所引 `c-delta-ruling` 指向已退役的 `reports/`，该目录两读法皆无
+  // —— 裁决现以实测为准，见本文件 P2a-1 段与 apply 节点「单一扣除语义」段）。
   if (upm_cfg.contains("tolerance"))
     uc.tolerance = upm_cfg["tolerance"].get<double>();
   if (upm_cfg.contains("tolerance_relative"))
@@ -10167,53 +10168,18 @@ Result<void> p2_op_upm_fit(const Json& doc, Json* man) {
     uc.m_full_frame = upm_cfg["m_full_frame"].get<int>();
   if (upm_cfg.contains("final_gauge"))
     uc.final_gauge = upm_cfg["final_gauge"].get<int>();
-  // task-8：生产 p2_op_upm_fit 消费 doc["model"].ms_* 三键（白名单/解析/
-  // 透传参照 stage2_common 已有实现）。缺省关闭逐位一致，非法 fail-closed。
-  // 白名单 = ms_enabled/ms_sigma_px/ms_thresh（其余 model 子键本节点不消费，
-  // 与 stage2_common 白名单同；未知键由校验层拒绝，本节点不静默夹取）。
+  // 单语义：model.ms_* 三键退役，出现即判错（计划 PLAN-SEAM-SINGLE-PASS）。
   {
     if (doc.contains("model") && !doc["model"].is_object())
       return Result<void>::fail(Error(ErrorDomain::DATA,
           "model 必须是对象"));
     const Json model_cfg = (doc.contains("model") && doc["model"].is_object())
                                ? doc["model"] : Json::object();
-    if (model_cfg.contains("ms_enabled")) {
-      const Json& v = model_cfg["ms_enabled"];
-      if (!v.is_number_integer())
+    for (const char* k : {"ms_enabled", "ms_sigma_px", "ms_thresh"})
+      if (model_cfg.contains(k))
         return Result<void>::fail(Error(ErrorDomain::DATA,
-            "model.ms_enabled 必须为 0 或 1"));
-      const int e = v.get<int>();
-      if (e != 0 && e != 1)
-        return Result<void>::fail(Error(ErrorDomain::DATA,
-            "model.ms_enabled 必须为 0 或 1"));
-      uc.ms_enabled = e;
-    }
-    if (model_cfg.contains("ms_sigma_px")) {
-      const Json& v = model_cfg["ms_sigma_px"];
-      if (!v.is_number())
-        return Result<void>::fail(Error(ErrorDomain::DATA,
-            "model.ms_sigma_px 必须在 [12,24] 且有限"));
-      const double s = v.get<double>();
-      if (!(s >= 12.0) || !(s <= 24.0) || !std::isfinite(s))
-        return Result<void>::fail(Error(ErrorDomain::DATA,
-            "model.ms_sigma_px 必须在 [12,24] 且有限"));
-      uc.ms_sigma_px = s;
-    }
-    if (model_cfg.contains("ms_thresh")) {
-      const Json& v = model_cfg["ms_thresh"];
-      if (!v.is_number())
-        return Result<void>::fail(Error(ErrorDomain::DATA,
-            "model.ms_thresh 必须 >= 1.5 且有限"));
-      const double t = v.get<double>();
-      if (!(t >= 1.5) || !std::isfinite(t))
-        return Result<void>::fail(Error(ErrorDomain::DATA,
-            "model.ms_thresh 必须 >= 1.5 且有限"));
-      uc.ms_thresh = t;
-    }
+            std::string("model.") + k + " 已退役：扣除语义唯一，不再接受该键"));
   }
-  (*man)["upm_ms_enabled"] = uc.ms_enabled;
-  (*man)["upm_ms_sigma_px"] = uc.ms_sigma_px;
-  (*man)["upm_ms_thresh"] = uc.ms_thresh;
 
   void* model = nullptr;
   const int rc = p2_upm_build_geo(obs.data(), obs.size(),
@@ -10363,57 +10329,27 @@ Result<void> p2_op_upm_fit(const Json& doc, Json* man) {
   (*man)["upm_m_full_frame"] = uc.m_full_frame;
   (*man)["upm_final_gauge"] = uc.final_gauge;
 
-  // ── FIX-A 天光面（P0-08/P0-09）接入生产 mosaic 链 ─────────────────────────
-  // DESIGN §4.4: 星点掩膜后逐帧稀疏天光采样 → 全部帧联合建参考天光面
-  // B_ref(x)+δ_k(x)（稀疏样条, 按需求值, 不建稠密栅格）。采样点直接由
-  // background-clean control observations 映射（与 sampler patch estimator
-  // 同源）; 成功后 save 供 upm-apply 逐像素扣除。失败显式降级（保留 UPM C
-  // 场）并记日志, 不静默、不写半成品。**降级的下游后果在 apply 节点闭合**：
-  // 请求 δ 而无天光面产物时，apply 只能退化为全减（背景归零），该产品按
-  // docs/detail/registry/acsd.phase2.upm-apply.md「错误、日志、指标、取消和 checkpoint」一节判红 —— 具名 degraded_reason +
-  // warning_codes 随 p2_corrected.json 与节点 manifest 落盘。
-  // config: doc["sky_plane"]。
+  // ── 公共连续信号面（生产必需产物）─────────────────────────────────────
+  // 正本 = 最高设计 §2.5/§5.4 与 docs/science/sky/UPM.md：星点掩膜之外每帧取
+  // 稀疏背景采样点（带逆方差权重），**全部帧联合**（含每帧自身样本，不排除任何
+  // 帧）迭代拟合出**一张连续的公共信号面** B_ref，并把各帧相对该面的低阶偏差
+  // δ_k = b_k − B_ref 一并解出。生产施加 = 扣 δ_k（apply 节点），每帧落回同一张
+  // 连续面 ⇒ 帧交界连续、无接缝。面是生产必需，缺省**必建**；构建/落盘失败即
+  // 在 apply 侧 fail-closed（那里拒绝缺面运行）。config: doc["sky_plane"]。
   {
     const Json sp_cfg = (doc.contains("sky_plane") && doc["sky_plane"].is_object())
                             ? doc["sky_plane"] : Json::object();
-    // CONFORM-FIX-B-011：默认值 = 「本次是否真的会施加 δ」。
-    // 依据：① FIX-SCI-SNR-CANON-001 §2/§3.1 明文
-    //   「FIX-P2a 默认路径为**保留 C 去 δ**，raw − C_k，g_k ≡ 1 本期不启用」
-    //   ⇒ 生产默认 additive_mode = "c"（本文件第 5503 行起），δ 从不施加；
-    //   ② docs/ 内**无任何**规定 sky_plane.enabled 默认值的条款
-    //   （grep docs/ 仅命中 UNIFIED_MODEL.md:49 对象描述与
-    //   UNIFIED_SCIENCE_MODEL.md:122 的 UNRESOLVED 登记）；
-    //   ③ 唯一「默认开启」记录是 FIX-A 目标模型前提下的前台选项 a
-    //   （FIX-A 报告的唯一「默认开启」记录；报告已退役），
-    //   而 FIX-A-UPM-001 已被 FIX-SCI-SNR-CANON-001 否决 ⇒ 该前提消失。
-    // 处置：缺省 = (additive_mode ∈ {delta,both})，即「要施加才构建」；
-    // 显式 sky_plane.enabled 始终优先。默认路径不再产出无消费方的
-    // p2_sky_plane.bin（其稀疏样条拟合 + Schur 解是纯成本）。该缺省只保证
-    // **默认配置**下 δ 与天光面同来同去：天光面被显式关闭或构建失败时，
-    // 请求 δ 的施加节点仍退化为全减 c。该退化**不是静默**——apply 节点写
-    // degraded_reason=no_sky_plane_artifact + warning_codes=
-    // P2-ADDITIVE-MODE-DEGRADED-NO-SKY-PLANE（判红面，下游/门禁按码判定）。
-    const Json seam_pre =
-        (doc.contains("seam") && doc["seam"].is_object()) ? doc["seam"]
-                                                         : Json::object();
-    // 默认 "delta"（多退少补到公共天光面，保留 B_ref）
-    const std::string additive_mode_pre =
-        seam_pre.value("additive_mode", std::string("delta"));
-    const bool delta_wanted =
-        (additive_mode_pre == "delta" || additive_mode_pre == "both");
-    const bool sky_enabled = sp_cfg.value("enabled", delta_wanted);
+    const bool sky_enabled = sp_cfg.value("enabled", true);
     (*man)["sky_plane_enabled"] = sky_enabled;
     (*man)["sky_plane_enabled_default_source"] =
-        sp_cfg.contains("enabled")
-            ? "config"
-            : (delta_wanted ? "additive_mode_applies_delta" : "additive_mode_c");
+        sp_cfg.contains("enabled") ? "config" : "production_surface_required";
     if (!sky_enabled) {
-      (*man)["sky_plane_status"] = "disabled";
-      (*man)["sky_plane_degraded"] = true;   // 显式登记：本次 mosaic 无天光面扣除
+      (*man)["sky_plane_status"] = "disabled_by_config";
+      (*man)["sky_plane_degraded"] = true;   // 生产链需要面；显式关闭 ⇒ apply 必失败
     } else if (obs.empty()) {
-      std::fprintf(stderr, "[sky_plane] no control observations -> fallback to UPM C field\n");
-      (*man)["sky_plane_status"] = "fallback_no_samples";
-      (*man)["sky_plane_degraded"] = true;   // 顶层可见：天光面未生效
+      std::fprintf(stderr, "[sky_plane] no control observations -> surface cannot be built\n");
+      (*man)["sky_plane_status"] = "skipped_no_samples";
+      (*man)["sky_plane_degraded"] = true;
     } else {
       std::vector<P2SkySample> sky_samples;
       sky_samples.reserve(obs.size());
@@ -10534,6 +10470,10 @@ Result<void> p2_op_upm_fit(const Json& doc, Json* man) {
         }
       }
       spc.frame_gradient_order = sp_cfg.value("frame_gradient_order", 1);
+      // §5.11 生产扣除：逐帧自身面 b_k（该帧自己采样点的光滑面）减公共面 B_common。
+      spc.own_surface_enabled = sp_cfg.value("own_surface_enabled", 1);
+      spc.own_surface_step_deg = sp_cfg.value("own_surface_step_deg", 0.02);
+      spc.joint_outer_iterations = sp_cfg.value("joint_outer_iterations", 1);
       spc.gauge_mode = sp_cfg.value("gauge_mode", 0);
       spc.weight_mode = sp_cfg.value("weight_mode", 0);
       if (sp_cfg.contains("huber_delta")) spc.huber_delta = sp_cfg["huber_delta"].get<double>();
@@ -10571,15 +10511,18 @@ Result<void> p2_op_upm_fit(const Json& doc, Json* man) {
       // 细化节点重解」在生产面上**不可达**（UPM-NODE-ADAPT-01 7.3 实测：生产数据
       // 的权重尺度下 lambda 要到 1e3 量级才影响 kappa，默认 1e-3 差 6 个数量级
       // ⇒ 惩罚分支事实上不具调节能力，真正干活的是节点细化分支）。
-      // 现改用 p2_sky_plane_build_adaptive：两条分支都在同一个有界回路里，
+      // 现走 p2_sky_plane_build_joint（内部仍调 p2_sky_plane_build_adaptive）：
+      // 两条分支都在同一个有界回路里，
       // 搜索区间由输入几何给（上界 = 规则 1 的值，下界 = 数据分辨率极限），
       // 逐次尝试的 (h, lambda, rc, action, adopted) 全部入 provenance。
       // 放宽 kappa_max 求绿仍属禁止项（FZ-AP2S-KAPPA-MAX 负例）。
       P2SkyPlaneAdaptiveConfig spad = p2_sky_plane_default_adaptive_config();
       P2SkyPlaneAdaptiveReport spread{};
-      int src = p2_sky_plane_build_adaptive(sky_samples.data(), sky_samples.size(),
-                                            &spc, &spad, &spm, &spread,
-                                            sperr, sizeof(sperr));
+      // §5.11 联合解：在自适应联合拟合之上做块坐标迭代（残差建逐帧场 F，去跨帧公共模，
+      // 把 F 从样本扣掉后重解），生产施加 = δ_k = δ_poly,k + F_k。
+      int src = p2_sky_plane_build_joint(sky_samples.data(), sky_samples.size(),
+                                         &spc, &spad, &spm, &spread,
+                                         sperr, sizeof(sperr));
       // 节点间距自适应是否真的被触发过（7a:199-200：无触发记录的路径视为未实现）。
       (*man)["sky_plane_node_adaptive_used"] = (spread.node_adaptive_used != 0);
       (*man)["sky_plane_adaptive_attempts"] = spread.n_attempts;
@@ -10631,14 +10574,12 @@ Result<void> p2_op_upm_fit(const Json& doc, Json* man) {
       (*man)["sky_plane_lambda_numerical"] = spread.lambda_numerical;
       if (src != P2_SKY_PLANE_OK) {
         std::fprintf(stderr,
-                     "[sky_plane] build FAILED rc=%d %s -> explicit fallback to UPM C field\n",
+                     "[sky_plane] surface build FAILED rc=%d %s -> production deduction unavailable\n",
                      src, sperr);
-        (*man)["sky_plane_status"] = "fallback_build_failed";
+        (*man)["sky_plane_status"] = "build_failed";
         (*man)["sky_plane_rc"] = src;
         (*man)["sky_plane_error"] = std::string(sperr);
-        // DATA-UNC-001 §30.1（unavailable 显式登记）：顶层置降级标志，机器消费者
-        // 无法把本次 mosaic 读成"天光面已生效"。rc=6 是否升为硬 fail-closed 由
-        // rc=6 当前为记录级降级，是否升硬 fail-closed 属前台裁量面。
+        // 生产链需要这张面：置降级标志；apply 侧缺面即 fail-closed。
         (*man)["sky_plane_degraded"] = true;
         if (spm) p2_sky_plane_close(spm);
       } else {
@@ -10646,8 +10587,8 @@ Result<void> p2_op_upm_fit(const Json& doc, Json* man) {
         if (p2_sky_plane_info(spm, &spinfo) != 0) std::memset(&spinfo, 0, sizeof(spinfo));
         const std::string sp_path = out_dir + "/p2_sky_plane.bin";
         if (p2_sky_plane_save(spm, sp_path.c_str()) != 0) {
-          std::fprintf(stderr, "[sky_plane] save FAILED -> explicit fallback to UPM C field\n");
-          (*man)["sky_plane_status"] = "fallback_save_failed";
+          std::fprintf(stderr, "[sky_plane] surface save FAILED -> production deduction unavailable\n");
+          (*man)["sky_plane_status"] = "save_failed";
           (*man)["sky_plane_degraded"] = true;
           p2_sky_plane_close(spm);
         } else {
@@ -10822,105 +10763,65 @@ Result<void> p2_op_upm_apply(const Json& doc, Json* man) {
   for (uint64_t i = 0; i < kP2TileLeafSpan; ++i)
     local_lut[i] = acsd::healpix::fits_index_to_nested_local(i, kP2TileShift, 512u);
 
-  // ── FIX-A 天光面 / FIX-GK 方案 B 归一化面接入生产 mosaic 链 ───────────────
-  // upm-fit 成功时落盘 p2_sky_plane.bin; 此处 open 并按需逐像素取 δ_k
-  // （δ_k = b_k − B_ref, 不建稠密栅格），把每帧归一化到公共面 B_ref。
-  // 文件存在但 open 失败 = 产物损坏 → DATA fail-closed（禁静默跳过）。
+  // ── 生产扣除 = 每帧相对公共连续信号面的低阶偏差（多退少补）──────────────
+  // 口径（正本 = docs/science/sky/UPM.md 与最高设计 §2.5/§5.4）：把所有帧的
+  // 带权采样点**联合**拟合出**一张连续的公共信号面** B_ref（含每帧自身样本，
+  // 不排除任何帧）；每帧相对该面只保留自身的低阶偏差 δ_k = b_k − B_ref。
+  // 施加时把 δ_k 扣掉，每帧即落到同一张连续面上 ⇒ 帧交界由构造连续、无接缝；
+  // 采样点带逆方差权重、修正是确定性加法 ⇒ 信噪比/不确定度正确传递。
+  //
+  // 不再扣除 UPM 的逐帧分块校正场 C：C 按 leaf tile 分块存储与求值（瓦片边缘
+  // 各自外推、无观测格子取 0），跨瓦片不连续、帧足迹处不完整，会引入瓦片菱形格
+  // 与帧矩形台阶（实测见 run/SEAM-C-ONLY/upm_eval.py 与注册表 apply 页）。
+  //
+  // 面缺失/损坏 = 生产链不可用：fail-closed，不静默回退、不改扣别的场。
+  // seam.additive_mode 三档（c/delta/both）退役：出现即 fail-closed。
+  const Json seam_cfg = (doc.contains("seam") && doc["seam"].is_object())
+                            ? doc["seam"] : Json::object();
+  if (seam_cfg.contains("additive_mode"))
+    return Result<void>::fail(Error(ErrorDomain::DATA,
+        "seam.additive_mode 已退役：扣除语义唯一（每帧低阶偏差贴到公共信号面），不再接受该键"));
+  const std::string combo("raw_minus_delta_to_shared_surface");
+
+  // 载入公共信号面（生产必需产物）
   void* sky_model = nullptr;
   {
     const std::string sky_path = out_dir + "/p2_sky_plane.bin";
-    std::error_code sec;
-    if (aio_fs::exists(sky_path)) {
-      if (p2_sky_plane_open(sky_path.c_str(), &sky_model) != 0 || !sky_model)
-        return Result<void>::fail(Error(ErrorDomain::DATA,
-            "p2_sky_plane_open failed (corrupted sky plane artifact): " + sky_path));
-    }
+    if (!aio_fs::exists(sky_path))
+      return Result<void>::fail(Error(ErrorDomain::DATA,
+          "public signal surface artifact missing: " + sky_path));
+    if (p2_sky_plane_open(sky_path.c_str(), &sky_model) != 0 || !sky_model)
+      return Result<void>::fail(Error(ErrorDomain::DATA,
+          "p2_sky_plane_open failed (corrupted signal surface): " + sky_path));
   }
   struct SkyGuard {
     void* m;
     ~SkyGuard() { if (m) p2_sky_plane_close(m); }
   } sky_guard{sky_model};
+  std::string sky_surface_hash;
+  {
+    P2SkyPlaneInfo spinfo{};
+    if (p2_sky_plane_info(sky_model, &spinfo) == 0)
+      sky_surface_hash = std::string(spinfo.model_hash);
+  }
   // 叶级 nside（ra/dec 求值需要）: coverage target_order → nside=2^(order+9)
   uint32_t nside = 0;
-  if (sky_guard.m) {
+  {
     Json cov_doc;
     if (!p2_read_json(out_dir + "/p2_coverage.json", &cov_doc))
       return Result<void>::fail(Error(ErrorDomain::DATA,
-          "coverage artifact missing (sky plane eval needs target_order): " +
+          "coverage artifact missing (signal surface eval needs target_order): " +
           out_dir + "/p2_coverage.json"));
     const int target_order = cov_doc.value("target_order", -1);
     if (target_order < 0 || target_order > 20)
       return Result<void>::fail(Error(ErrorDomain::DATA,
-          "coverage target_order out of range for sky plane eval"));
+          "coverage target_order out of range for signal surface eval"));
     nside = 1u << static_cast<uint32_t>(target_order + 9);
   }
 
-  // ── P2a-1：单次加性扣除（去掉有害的双重扣除）────────────────
-  // 生产原为 corrected = (raw − C_k) − δ_k，两次逐帧加性扣除。C 已把每帧对齐到
-  // 公共面，δ 是在已对齐场上的第二次扣除。
-  //
-  // 实测帧间失配（百分比，组合失配/未归一化场景、λs=0、>=2 帧 control）：
-  //   raw 6.4904% / raw−δ 5.0762% / **raw−C 0.0130%** / raw−C−δ 1.4013%
-  // 出处：`eng/tests/validation/release02/fix_p2a_seam_oracle/oracle_out.txt`
-  //   （两读法确认在版本库内；计算脚本 `p2a_oracle.cpp`）。
-  // **⇒ 方向性结论不变：单扣 C 最优（0.0130%），双重扣除最差。**
-  //
-  // ⚠ 订正记录（2026-09-30）：本注释原写「raw−C 0.131% / raw−δ 2.799% /
-  // raw−C−δ 13.974% / 不校正 13.454%」并引 `c-delta-ruling §2` ——
-  //   该出处指向 `reports/RELEASE-02/c-delta-ruling.md`，而 **`reports/` 目录
-  //   两读法皆无**（已随控制包清理退役），且数字与在库 oracle 输出逐项不符
-  //   （raw 差 2.07×，raw−C 与 raw−C−δ 各差约 10×）。现按在库 oracle 输出订正。
-  //   **该 oracle 未被任何门登记执行**（validation 层 160 件在 424 个门中零登记），
-  //   故上述数字目前无自动回归保护。
-  // 配置 doc["seam"]["additive_mode"] ∈ {"delta"(默认), "c", "both"}：
-  //   delta = raw − δ_k         （**默认**；多退少补到公共天光面，保留 B_ref）
-  //   c     = raw − C_k         （全减，含 B_ref ⇒ 背景被剪掉；仅对照）
-  //   both  = raw − C_k − δ_k   （legacy 双重扣除，仅供对照/回归）
-  // ⚠ 默认值语义「**多退少补到公共天光面**」：
-  //   原默认 "c" 的依据是**接缝**判据；该判据经复核**是退化的**——
-  //   `raw−C` 把整张背景减掉后各帧都 ≈0，两帧相减自然 ≈0 ⇒ **接缝小是因为背景没了，
-  //   不是因为对齐做好了**。用「接缝」当判据必然收敛到「全减光」。
-  //   负责人定案：`calibrated_k = raw_k − δ_k`，**保留公共天光面 B_ref**。
-  //   实测（组合失配/未归一化场景，oracle 出处见上方 P2a-1 段）：
-  //   raw 6.4904% / raw−δ 5.0762% / raw−C **0.0130%**；
-  //   `raw−δ` 的 5.0762% 是 **δ 拟合不足**（工程问题），不是概念错。
-  const Json seam_cfg = (doc.contains("seam") && doc["seam"].is_object())
-                            ? doc["seam"] : Json::object();
-  std::string additive_mode =
-      seam_cfg.value("additive_mode", std::string("delta"));
-  if (additive_mode != "c" && additive_mode != "delta" &&
-      additive_mode != "both")
-    return Result<void>::fail(Error(ErrorDomain::DATA,
-        "seam.additive_mode invalid (expect c|delta|both): " + additive_mode));
-  // ── 加性施加模式的显式降级登记（判红面）────────────────────────────────
-  // 依据 docs/detail/registry/acsd.phase2.upm-apply.md「错误、日志、指标、取消和 checkpoint」一节：请求 δ（delta 或 both）
-  // 而无天光面产物 ⇒ δ 不存在，只能退化为单次 C 扣除（**全减**，背景归零）；
-  // 该形态必须判红，不得以"看起来没有警告"通过。判红面 = 具名
-  // degraded_reason + warning_codes（产品照出、rc 不变，口径同 §4.6/§7 的
-  // warning_codes 约定），随 p2_corrected.json 与节点 manifest 同时落盘，
-  // 下游/门禁按警告码判定。绝不静默变成 raw 不校正，也绝不回退到双重扣除。
-  std::string additive_mode_effective = additive_mode;
-  std::string additive_degraded_reason;
-  std::vector<std::string> additive_warning_codes;
-  if ((additive_mode == "delta" || additive_mode == "both") && !sky_guard.m) {
-    additive_mode_effective = "c";
-    additive_degraded_reason = "no_sky_plane_artifact";
-    additive_warning_codes.push_back("P2-ADDITIVE-MODE-DEGRADED-NO-SKY-PLANE");
-    std::fprintf(stderr,
-                 "[upm-apply] WARNING: seam.additive_mode=%s but no usable sky plane"
-                 " artifact -> additive_mode_effective=c (whole background subtracted);"
-                 " judged RED via warning_codes=%s degraded_reason=%s\n",
-                 additive_mode.c_str(), additive_warning_codes.front().c_str(),
-                 additive_degraded_reason.c_str());
-  }
-  const bool sub_c = (additive_mode_effective == "c" ||
-                      additive_mode_effective == "both");
-  const bool sub_delta = (additive_mode_effective == "delta" ||
-                          additive_mode_effective == "both");
-
   // ── PERF-P2 S1.1: frame 级并行（work unit = 一帧）───────────
   // 每帧独立 sig/sup 句柄、独立 p2_corrected_f<fid>.bin 输出文件; 帧间零共享写、
-  // 零浮点归约; model/sky_model/local_lut 只读共享。帧结果按下标写各自槽位, join
+  // 零浮点归约; model/local_lut 只读共享。帧结果按下标写各自槽位, join
   // 后按 paths 序组装 ⇒ 产物与串行逐位一致、与线程数/调度顺序无关。
   //
   // 上游 frame_id 复用: sample 阶段已按 coverage 路径序对每帧算过 p2_frame_id
@@ -11055,15 +10956,11 @@ Result<void> p2_op_upm_apply(const Json& doc, Json* man) {
     std::vector<float> sig_buf(kP2TileLeafSpan), sup_buf(kP2TileLeafSpan);
     std::vector<float> var_buf(kP2TileLeafSpan);
     std::vector<double> in_v(kP2TileLeafSpan), out_v(kP2TileLeafSpan);
-    std::vector<uint64_t> leaves(kP2TileLeafSpan);
     std::vector<double> tile_out(kP2TileLeafSpan);
     std::vector<double> var_tile(kP2TileLeafSpan);
     uint64_t tile_offset = 0;
     for (int t = 0; t < n_tiles; ++t) {
       const uint64_t tip = tile_ipix[static_cast<size_t>(t)];
-      // [probe] 逐 tile: sky_plane 应用 (库层 eval_block 已计时, 此处补 tile 上下文)
-      ACSD_PROBE_SCOPE_CTX(_probe_sky_tile, "phase2", "sky_plane.apply.tile");
-      ACSD_PROBE_TAG(_probe_sky_tile, "tile_id", static_cast<unsigned long long>(tip));
       std::fill(var_tile.begin(), var_tile.end(),
                 std::numeric_limits<double>::quiet_NaN());
       bool has_var_tile = false;
@@ -11079,78 +10976,50 @@ Result<void> p2_op_upm_apply(const Json& doc, Json* man) {
                  " tile " + std::to_string(tip) + "): " + path;
         return;
       }
-      // 天光面求值用逐像素 ra/dec（leaf ipix 只依赖 tile 与局部 LUT, 与帧无关）
-      std::vector<double> tile_ra, tile_dec;
-      if (sky_guard.m) {
-        tile_ra.resize(static_cast<size_t>(kP2TileLeafSpan));
-        tile_dec.resize(static_cast<size_t>(kP2TileLeafSpan));
-        for (uint64_t i = 0; i < kP2TileLeafSpan; ++i) {
-          const uint64_t leaf =
-              (tip << (2 * kP2TileShift)) | local_lut[static_cast<size_t>(i)];
-          acsd::healpix::pix2ang_nest(
-              nside, leaf, tile_ra[static_cast<size_t>(i)],
-              tile_dec[static_cast<size_t>(i)]);
-        }
+      // 公共信号面求值用逐像素 ra/dec（leaf ipix 只依赖 tile 与局部 LUT, 与帧无关）
+      std::vector<double> tile_ra(static_cast<size_t>(kP2TileLeafSpan));
+      std::vector<double> tile_dec(static_cast<size_t>(kP2TileLeafSpan));
+      for (uint64_t i = 0; i < kP2TileLeafSpan; ++i) {
+        const uint64_t leaf =
+            (tip << (2 * kP2TileShift)) | local_lut[static_cast<size_t>(i)];
+        acsd::healpix::pix2ang_nest(nside, leaf, tile_ra[static_cast<size_t>(i)],
+                                    tile_dec[static_cast<size_t>(i)]);
       }
-      // valid 像素集（support>0 且 finite）→ 块校正; 无效位置保留 NaN
+      // valid 像素集（support>0 且 finite）→ 逐像素扣该帧相对公共面的低阶偏差 δ_k;
+      // 无效位置保留 NaN
       uint64_t n_valid = 0;
       std::vector<double> valid_ra, valid_dec;
-      if (sky_guard.m) {
-        valid_ra.reserve(static_cast<size_t>(kP2TileLeafSpan));
-        valid_dec.reserve(static_cast<size_t>(kP2TileLeafSpan));
-      }
+      valid_ra.reserve(static_cast<size_t>(kP2TileLeafSpan));
+      valid_dec.reserve(static_cast<size_t>(kP2TileLeafSpan));
       for (uint64_t i = 0; i < kP2TileLeafSpan; ++i) {
         const double sv = static_cast<double>(sup_buf[static_cast<size_t>(i)]);
         const double xv = static_cast<double>(sig_buf[static_cast<size_t>(i)]);
         out_v[static_cast<size_t>(i)] = std::numeric_limits<double>::quiet_NaN();
         if (std::isfinite(sv) && sv > 0.0 && std::isfinite(xv)) {
-          const uint64_t leaf = (tip << (2 * kP2TileShift)) | local_lut[static_cast<size_t>(i)];
-          leaves[static_cast<size_t>(n_valid)] = leaf;
           in_v[static_cast<size_t>(n_valid)] = xv;
-          if (sky_guard.m) {
-            valid_ra.push_back(tile_ra[static_cast<size_t>(i)]);
-            valid_dec.push_back(tile_dec[static_cast<size_t>(i)]);
-          }
+          valid_ra.push_back(tile_ra[static_cast<size_t>(i)]);
+          valid_dec.push_back(tile_dec[static_cast<size_t>(i)]);
           ++n_valid;
         }
       }
       if (n_valid > 0) {
-        p2_upm_calibrate_block(model, fid, leaves.data(), in_v.data(),
-                               out_v.data(), n_valid);   // 唯一真实校正入口
-        // P2a-1：单次加性扣除（见本函数头 seam.additive_mode）。
-        // calibrate_block 已输出 raw − C − ms（并含 P2a-2 末端公共 gauge G）。
-        // task-8：delta 模式加回纯 C（不含 ms），默认产物 = raw − G − δ − ms；
-        // c 模式（sub_c）不加回，保持 raw − C − ms − G。缺省（ms 关闭）两条路
-        // 逐位一致（ms 项恒 0，加回纯 C ≡ 加回 C+ms）。
-        if (!sub_c) {
-          // delta 模式：把纯 C 加回（raw − C − ms → raw − G − δ − ms），只保留 δ/ms 扣除。
-          // G 是"对所有帧相同"的公共残差场（P2a-2，full_frame=1 时≈0），
-          // 不产生帧间/接缝差异，故保留。ms 是逐帧低频修正（§5.11），
-          // 加回须用纯 C（p2_upm_evaluate_c_plain），用含 ms 的 evaluate_c
-          // 会把 ms 一并抵消（task-8 前 ms 零效应根因）。
-          for (uint64_t k = 0; k < n_valid; ++k) {
-            const double cval = p2_upm_evaluate_c_plain(model, fid, leaves[k]);
-            if (std::isfinite(cval) &&
-                std::isfinite(out_v[static_cast<size_t>(k)]))
-              out_v[static_cast<size_t>(k)] += cval;
-          }
+        // 生产扣除：corrected = raw − δ_k（δ_k = b_k − B_ref，逐帧相对公共信号面的
+        // 低阶偏差）。所有帧落回同一张连续面 ⇒ 帧交界连续、无接缝。
+        // 越域/未知帧点不扣（状态非 OK → 保持原值），如实登记面定义域外。
+        std::vector<double> dvals(static_cast<size_t>(n_valid), 0.0);
+        std::vector<uint8_t> dstat(static_cast<size_t>(n_valid), P2_SKY_EVAL_INVALID);
+        (void)p2_sky_plane_eval_delta_block(sky_guard.m, fid, valid_ra.data(),
+                                            valid_dec.data(), n_valid, dvals.data(),
+                                            dstat.data());
+        for (uint64_t k = 0; k < n_valid; ++k) {
+          const double base = in_v[static_cast<size_t>(k)];
+          if (dstat[static_cast<size_t>(k)] == P2_SKY_EVAL_OK &&
+              std::isfinite(dvals[static_cast<size_t>(k)]) && std::isfinite(base))
+            out_v[static_cast<size_t>(k)] = base - dvals[static_cast<size_t>(k)];
+          else
+            out_v[static_cast<size_t>(k)] = base;
         }
-        // FIX-GK / 方案 B：δ_k(x) = b_k(x) − B_ref(x)（逐帧相对公共参考面的偏差）。
-        // 越域/未知帧点不扣（状态非 OK → 保持当前值；与 stage2 生产接线同口径）。
-        if (sub_delta && sky_guard.m) {
-          std::vector<double> dvals(static_cast<size_t>(n_valid), 0.0);
-          std::vector<uint8_t> dstat(static_cast<size_t>(n_valid), P2_SKY_EVAL_INVALID);
-          p2_sky_plane_eval_delta_block(sky_guard.m, fid, valid_ra.data(),
-                                        valid_dec.data(), n_valid, dvals.data(),
-                                        dstat.data());
-          for (uint64_t k = 0; k < n_valid; ++k) {
-            if (dstat[static_cast<size_t>(k)] == P2_SKY_EVAL_OK &&
-                std::isfinite(dvals[static_cast<size_t>(k)]) &&
-                std::isfinite(out_v[static_cast<size_t>(k)]))
-              out_v[static_cast<size_t>(k)] -= dvals[static_cast<size_t>(k)];
-          }
-        }
-        // 回填 valid 位置（calibrate_block 按输入序输出; 重新扫描映射）
+        // 回填 valid 位置（按输入序输出; 重新扫描映射）
         // 同时算 P2b-1 逐像素 Var(corrected)：最近 control 的
         // 残差制造者方差（(c) 排除自身），加可选帧 Phase1 逐像素方差。
         const uint64_t tile_side = (1ull << kP2TileShift);
@@ -11264,12 +11133,11 @@ Result<void> p2_op_upm_apply(const Json& doc, Json* man) {
   }
 
   const std::string out_path = out_dir + "/p2_corrected.json";
-  // CONFORM-FIX-B-012：provenance 自洽。sky_plane_loaded = 天光面产物被成功
-  // 载入；sky_plane_applied = δ_k **真的被扣除**。旧实现把 loaded 直接当
-  // applied ⇒ 同一 JSON 内 sky_plane_applied=true 与 delta_subtracted=false /
-  // sky_plane_mode="none" / additive_combination="raw_minus_C" 并列为互斥声明，
-  // 按「本次 mosaic 是否做了天光面扣除」取值的消费者必被误导。
-  const bool sky_loaded = (sky_guard.m != nullptr);
+  // provenance：唯一扣除 = 每帧低阶偏差 δ_k（贴到公共信号面）。面是生产必需
+  // 产物，缺失即 fail-closed（上面已拦），故 sky_plane_applied/loaded 恒 true、
+  // degraded_reason 恒 null、warning_codes 恒空数组。消费者按 additive_combination
+  // 判口径（旧 additive_mode_requested/effective 三档键随配置面一并退役）。
+  //
   // P2b-5: 过渡期诚实标记。方差面 = 残差制造者 PΣPᵀ（(c) 排除自身
   // 控制级耦合）+ 可选逐像素 Phase1 噪声 + 参数协方差 J_out C_θ J_outᵀ。
   // 当前生产模型无 C_θ API（参数项缺失）且 L4 输入帧无 variance 产品
@@ -11278,41 +11146,21 @@ Result<void> p2_op_upm_apply(const Json& doc, Json* man) {
   const bool param_cov_included = false;
   const bool uncertainty_available =
       any_var_ok && all_pixel_noise && param_cov_included;
-  const bool delta_applied = sub_delta && sky_loaded;
-  const bool sky_applied = delta_applied;   // CONFORM-FIX-B-012: applied == δ 实扣
-  // P2a-1：单次加性扣除 provenance（组合语义对机器消费者可见）
-  std::string combo;
-  if (sub_c && delta_applied) combo = "raw_minus_C_minus_delta(legacy)";
-  else if (sub_c) combo = "raw_minus_C";
-  else if (delta_applied) combo = "raw_minus_delta";
-  else combo = "raw(no_additive_correction)";
   Json artifact = Json{{"schema", "DATA-P2-COR"},
-                       {"entry", "p2_upm_open/p2_upm_calibrate_block" +
-                                     std::string(delta_applied ? "/p2_sky_plane_eval_delta_block" : "")},
+                       {"entry", "p2_sky_plane_open/p2_sky_plane_eval_delta_block"},
                        {"model_hash", model_doc.value("model_hash", "")},
-                       // CONFORM-FIX-B-012: applied(实扣) 与 loaded(仅载入) 分离
-                       {"sky_plane_applied", sky_applied},
-                       {"sky_plane_loaded", sky_loaded},
-                       // P2a-1：单次加性扣除（默认 raw−C；双重扣除已证有害：
-                       // oracle 实测 raw−C−δ 1.4013% vs raw−C 0.0130%，
-                       // 出处 fix_p2a_seam_oracle/oracle_out.txt）。
-                       {"additive_mode_requested", additive_mode},
-                       {"additive_mode_effective", additive_mode_effective},
+                       {"surface_model_hash", sky_surface_hash},
+                       {"sky_plane_applied", true},
+                       {"sky_plane_loaded", true},
+                       {"additive_mode_requested", "single"},
+                       {"additive_mode_effective", "single"},
                        {"additive_combination", combo},
-                       // 判红面（11_upm §7）：请求 δ 而无天光面产物 ⇒ 具名
-                       // degraded_reason + 警告码；无降级时 degraded_reason=null、
-                       // warning_codes 为空数组（可断言的成功态，与 §4.6 同口径）。
-                       {"degraded_reason",
-                        additive_degraded_reason.empty()
-                            ? Json(nullptr) : Json(additive_degraded_reason)},
-                       {"warning_codes", additive_warning_codes},
-                       {"c_subtracted", sub_c},
-                       {"delta_subtracted", delta_applied},
-                       // FIX-GK 方案 B: 施加的是逐帧 δ_k=b_k−B_ref（保留公共面 B_ref），
-                       // 不是整个 b_k（旧口径会把背景归零并产生大量负像素）。
-                       {"sky_plane_mode", delta_applied ? "delta_to_B_ref" : "none"},
-                       {"sky_plane_artifact",
-                        sky_loaded ? (out_dir + "/p2_sky_plane.bin") : std::string()},
+                       {"degraded_reason", Json(nullptr)},
+                       {"warning_codes", Json::array()},
+                       {"c_subtracted", false},
+                       {"delta_subtracted", true},
+                       {"sky_plane_mode", "delta_to_shared_surface"},
+                       {"sky_plane_artifact", out_dir + "/p2_sky_plane.bin"},
                        {"n_pixels_total", total_pixels},
                        {"tile_leaf_span", kP2TileLeafSpan},
                        // ── P2b-1/5: 逐像素方差面与诚实标记 ──
@@ -11340,23 +11188,17 @@ Result<void> p2_op_upm_apply(const Json& doc, Json* man) {
   (*man)["artifacts"] = cor_arts;
   (*man)["corrected_artifact"] = out_path;
   (*man)["n_pixels_total"] = total_pixels;
-  (*man)["sky_plane_applied"] = sky_applied;
-  (*man)["sky_plane_loaded"] = sky_loaded;   // CONFORM-FIX-B-012
+  (*man)["sky_plane_applied"] = true;
+  (*man)["sky_plane_loaded"] = true;
   (*man)["variance_available"] = any_var_ok;
   (*man)["pixel_noise_included"] = any_var_ok && all_pixel_noise;
   (*man)["param_covariance_included"] = param_cov_included;
   (*man)["uncertainty_available"] = uncertainty_available;
-  // P2a-1：组合语义与降级显式登记
-  (*man)["additive_mode_requested"] = additive_mode;
-  (*man)["additive_mode_effective"] = additive_mode_effective;
+  // 单语义登记：唯一扣除 = 逐帧低阶偏差贴到公共信号面（面缺失已 fail-closed）。
+  (*man)["additive_mode_requested"] = "single";
+  (*man)["additive_mode_effective"] = "single";
   (*man)["additive_combination"] = combo;
-  // 判红面（11_upm §7）：无降级时 warning_codes 为空数组（可断言的成功态）；
-  // 有降级时同时给具名 degraded_reason，下游/门禁按警告码判红。
-  (*man)["warning_codes"] = additive_warning_codes;
-  if (!additive_degraded_reason.empty()) {
-    (*man)["degraded_reason"] = additive_degraded_reason;
-    (*man)["additive_mode_degraded"] = additive_degraded_reason;   // 兼容既有键
-  }
+  (*man)["warning_codes"] = Json::array();
   return Result<void>::success();
 }
 
@@ -13432,7 +13274,7 @@ bool p2_sky_plane_audit_from_product(const Json& sp, Json* out,
   const Json cfg = sp.contains("cfg") && sp["cfg"].is_object()
                        ? sp["cfg"] : Json::object();
   Json a = Json::object();
-  a["solver"] = "p2_sky_plane_build_adaptive";
+  a["solver"] = "p2_sky_plane_build_joint/p2_sky_plane_build_adaptive";
   // §7a:219 最小集在**天光面求解器**上的对应量（口径逐项注明）。
   a["kappa"] = info.contains("kappa") ? info["kappa"] : Json(nullptr);
   a["kappa_data"] = info.contains("kappa_data") ? info["kappa_data"] : Json(nullptr);
@@ -13607,9 +13449,10 @@ Result<void> p2_op_write(const Json& doc, Json* man) {
       phase2_audit["sources"]["sky_plane"] = sp_path;
       for (const auto& m : sp_missing) all_missing.push_back("sky_plane." + m);
     } else {
-      // 天光面未建（如 additive_mode=c 的默认路径）**不是**缺字段：如实登记
-      // 「本次没有这张面」以及为什么，使消费方不会把「无此产品」读成「字段丢了」。
-      sp_audit["solver"] = "p2_sky_plane_build_adaptive";
+      // 天光面未建（现默认口径 raw−C−G，δ 不在生产扣除链上）**不是**缺字段：
+      // 如实登记「本次没有这张面」以及为什么，使消费方不会把「无此产品」读成
+      // 「字段丢了」。
+      sp_audit["solver"] = "p2_sky_plane_build_joint/p2_sky_plane_build_adaptive";
       sp_audit["present"] = false;
       sp_audit["reason"] =
           sp_read ? "p2_sky_plane.bin present but not a usable sky-plane product"

@@ -1,7 +1,7 @@
 # 模块 acsd.phase2.upm-fit
 
 > 上游：`docs/ACSD_DESIGN.md`「模块与 ABI」一节与「固定科学流程」一节、
-> 「天光平面」一节
+> 「信号面」一节
 > 科学正本：docs/science/sky/UPM.md（SCI-UPM-001，FROZEN，相关章节）、
 > docs/science/algorithms/UPM_SOLVER.md（ALG-UPM-001，权威推导；F3/F5/F6）、
 > `docs/science/noise_snr/NOISE_SNR.md`「协方差传播」一节
@@ -26,7 +26,7 @@ apply 职能见 registry/acsd.phase2.upm-apply.md（同一 module_id 的另一�
 ## 职责与明确非职责
 
 职责（fit）：消费 DATA-P2-SMP 控制观测（sampler 产物），**联合求解唯一 UPM**。
-模型 = 全部帧联合构建的**公共天光面 `B_ref(x)`** + 每帧只拟合自己的**平缓梯度
+模型 = 全部帧联合构建的**公共信号面 `B_ref(x)`** + 每帧只拟合自己的**平缓梯度
 `δ_k(x)`**；表示层全量 `C_k ≡ B_ref + δ_k`；**实际施加量为 `δ_k`**（多退少补到
 公共面，`B_ref` 保留）。本期为**纯加性**模型，不引入乘性尺度。
 
@@ -94,7 +94,7 @@ build rc = 2（**显式 INVALID，禁静默回退 support / SNR**，upm.h）；�
 传播到最终 covariance（重采样为线性算子：输出协方差由输入协方差经该算子双向
 作用得到）。
 
-**稀疏天光面表示**：天光面用稀疏二维样条 / 插值基表示，节点间距与
+**稀疏信号面表示**：信号面用稀疏二维样条 / 插值基表示，节点间距与
 `sky_sample_spacing` 匹配，存储的只有少量样条系数与采样点表，**内存随节点数而非
 像素数增长**；**不构建稠密背景栅格** —— 需要某像素的背景值时由样条系数现场求值
 （分块进行，最小单元可到一个像素）。节点间距由**输入几何**导出（上界 = 重叠带
@@ -208,7 +208,7 @@ Model；nullptr = rc 0 幂等）。模型 / 缓冲所有权 = 调用方。ABI = 
 api_id = API-P2-001。
 
 entrypoint = 产品组 + 掩膜 + 控制点 + 天光采样点 → 加性校正场参数（公共面样条
-系数 + 逐帧梯度）、协方差、归一化产品；天光面以稀疏系数对象传递与落盘；下游按块
+系数 + 逐帧梯度）、协方差、归一化产品；信号面以稀疏系数对象传递与落盘；下游按块
 取背景值时调用样条求值接口，**不取稠密栅格**。
 
 ## Registry descriptor 与配置 schema
@@ -222,8 +222,16 @@ persist→reload 语义，与内核 probe/fill 语义的桥接未验证。
 配置面分三处结构体，字段名一律以签名头为准：`P2UpmBuildConfig`
 （统一头文件，字段数以签名头为准；本页登记装配面字段见下表 A）、
 `P2UpmMaBuildConfig`（upm.h，乘法/加性观测求解器；判据与 gauge 字段见表 B）、
-`P2SkyPlaneConfig`（sky_plane.h，天光面表示与逐帧梯度；字段见表 B）。production
-默认取值单一来源 = lib/phase2_session/p2_session.cpp。
+`P2SkyPlaneConfig`（sky_plane.h，公共信号面表示与联合解逐帧场）；字段见表 B）。
+production 默认取值单一来源 = lib/phase2_session/p2_session.cpp。信号面是
+**生产必需产物**：生产扣除 = `raw − δ_k`（δ_k = δ_poly,k + F_k，见 apply 注册页），
+`sky_plane.enabled` 缺省开；缺面即 apply 侧 fail-closed。
+§5.11 联合解字段：`joint_outer_iterations`（缺省 1；块坐标迭代层数，0 层退回
+"公共面 + 低阶项"，实测一层即到不动点）、`own_surface_step_deg`（缺省 0.02°，
+逐帧场 F 的格点间距即表示基频）、`own_surface_enabled`（缺省 1）。
+构建入口 = `p2_sky_plane_build_joint`：解 (公共面, 低阶项) → 在**拟合残差**上建
+逐帧场 F 并扣除跨帧公共模（每个格点 Σ_k w_k F_k ≡ 0）→ 把 F 从样本扣掉 → 重解。
+F 的空格由迭代扩散平滑外延，求值不外插、不硬切换。
 
 表 A —— `P2UpmBuildConfig` 的装配面字段：
 
@@ -245,21 +253,19 @@ persist→reload 语义，与内核 probe/fill 语义的桥接未验证。
 | `smoothing_lambda` | 键缺省时编译期默认 0.0 | —— | **UPM 图平滑权重**（对天光 / δ 面的拟合正则项，默认 0 = 关闭）。`P2_SMOOTHING_LAMBDA_AUTO = 0.1` 仅在 auto 路径生效 |
 | `cpu_workers` | 调用方给 lease | —— | 并行 worker 数；0 = 单线程串行（不是 auto） |
 | `input_manifest_hash` | 可空 | —— | 输入稳定 manifest 哈希；非空时参与模型 hash |
-| `ms_enabled` | 0 | —— | task-4 多尺度低频修正总开关（0 = 关闭即纯 C 场旧行为，逐位一致；1 = 启用）。环境变量 `ACSD_UPM_MS_ENABLE` 只作测试覆写（默认关，测试专用） |
-| `ms_sigma_px` | 16.0 | 像素 | task-4 多尺度口径（钳 [12,24]）。环境变量 `ACSD_UPM_MS_SIGMA_PX` 只作测试覆写（测试专用） |
-| `ms_thresh` | 2.0 | —— | task-4 结构保护高阈（下限钳 ≥1.5）。环境变量 `ACSD_UPM_MS_THRESH` 只作测试覆写（测试专用） |
+| `ms_enabled/ms_sigma_px/ms_thresh` | 退役 | —— | 多尺度低频三键退役，不再是生产配置面（`model` 内出现即判错；`ms_verify` 测试程序内自带口径）。环境变量 `ACSD_UPM_MS_*` 只作测试覆写 |
 
 表 A 未列但同属 `P2UpmBuildConfig` 的字段（阻尼 / 参考场装配 / 控制网格边长）已在
 upm.h 带冻结注记登记，本页不复制其语义。
 
-表 B —— 判据与天光面表示字段（分属另两个结构体）：
+表 B —— 判据与信号面表示字段（分属另两个结构体）：
 
 | 字段 | 所在结构体 | 默认 | 说明 |
 |---|---|---|---|
-| `rank_rtol` | `P2UpmMaBuildConfig` / `P2SkyPlaneConfig` | 1e-10 | **唯一**判据阈值 τ（相对量，冻结值 `FZ-AP2S-RANK-RTOL`；与天光面侧同符号、同值、同一实现） |
-| `gauge_mode` | `P2UpmMaBuildConfig` / `P2SkyPlaneConfig` | 0 | UPM 侧 0 = `min_frame_id` gauge（其他值 → 参数错误）；天光面侧 0 = `reference_frame`、1 = `sum_zero` |
+| `rank_rtol` | `P2UpmMaBuildConfig` / `P2SkyPlaneConfig` | 1e-10 | **唯一**判据阈值 τ（相对量，冻结值 `FZ-AP2S-RANK-RTOL`；与信号面侧同符号、同值、同一实现） |
+| `gauge_mode` | `P2UpmMaBuildConfig` / `P2SkyPlaneConfig` | 0 | UPM 侧 0 = `min_frame_id` gauge（其他值 → 参数错误）；信号面侧 0 = `reference_frame`、1 = `sum_zero` |
 | `frame_gradient_order` | `P2SkyPlaneConfig` | 1 | 逐帧梯度修正的阶数（0 = 仅偏移、1 = 平面、2 = 二次；越界夹到 0..2） |
-| `spline_degree` | `P2SkyPlaneConfig` | 1 | 公共天光面 `B_ref` 的样条阶数（1 = 双线性，3 = 双三次） |
+| `spline_degree` | `P2SkyPlaneConfig` | 1 | 公共信号面 `B_ref` 的样条阶数（1 = 双线性，3 = 双三次） |
 | `node_spacing_deg` | `P2SkyPlaneConfig` | 0 | `B_ref` 节点间距（切平面角度，度）：>0 = 调用方显式给定；≤0 = 由输入几何经 `p2_sky_plane_derive_node_spacing` 导出；几何量缺失 ⇒ `P2_SKY_PLANE_GEOMETRY_REQUIRED` 显式失败（禁回退标定常数） |
 
 `upm` / `smoothing_lambda` / `huber_delta` / `max_iterations` 可被 phase config
@@ -275,7 +281,7 @@ JSON 覆盖（lib/phase2_session/p2_session.cpp）。
 `cpu_heavy`。并行轴 = 观测间 compute_raw / 聚合（worker-local 局部和、逐观测
 独立权重）与 dense tile 求值（同文件 `std::thread` 池，workers 由调用方传 lease）。
 模块内用 `std::thread` 实现，**无 OpenMP**（upm.h 另有一处注释仍写 OpenMP，属
-注释漂移，登记见 ALG-P2-UPM-IMPL-001）。天光面求解侧分块 Cholesky 行分片并行（`lib/algorithms/coverage/src/sky_plane.cpp`：行区间互斥输出、行内求和顺序不变、跨线程无浮点归约）⇒ 位精确（`budget ≤ 1` 或规模过小走纯串行原路径）。
+注释漂移，登记见 ALG-P2-UPM-IMPL-001）。信号面求解侧分块 Cholesky 行分片并行（`lib/algorithms/coverage/src/sky_plane.cpp`：行区间互斥输出、行内求和顺序不变、跨线程无浮点归约）⇒ 位精确（`budget ≤ 1` 或规模过小走纯串行原路径）。
 
 worker 数 = **Runtime lease 唯一来源**：`cfg.cpu_workers` = ThreadBudget.max_workers
 经 lib/phase2_session/p2_session.cpp 与 stage2.cpp 传入；模块无
@@ -286,7 +292,7 @@ hardware_concurrency 自行开线程。**0 = 单线程串行**、1 = 单线程 r
 worker 数无关、同 worker 数位精确）；gauge / 连通分量 / 收敛 / 归并固定顺序；稠密
 缓存 bit-identical。
 
-另落地天光面装配逐帧分片并行与 UPM 轮内常驻线程池（`lib/algorithms/coverage/src/sky_plane.cpp` / `upm.cpp`，worker 数由调用方传 lease，`workers = 1` 恒走串行 reference）：装配循环按帧分片（帧只读本帧输入，各 worker 持局部分片，join 后按帧下标升序串行归约；帧内求值顺序与串行一致）⇒ 声明 **1e-8 相对容差**上界，不宣称位精确；常驻池一次 build 建池、全部 IRLS 轮次复用，不跨 build 常驻（`cpu_workers ≤ 1` 退化串行直调；下标轴动态切分领取）⇒ 同配置重复运行位精确，跨 worker 数为冻结的 1e-12 绝对容差（口径不变）。
+另落地信号面装配逐帧分片并行与 UPM 轮内常驻线程池（`lib/algorithms/coverage/src/sky_plane.cpp` / `upm.cpp`，worker 数由调用方传 lease，`workers = 1` 恒走串行 reference）：装配循环按帧分片（帧只读本帧输入，各 worker 持局部分片，join 后按帧下标升序串行归约；帧内求值顺序与串行一致）⇒ 声明 **1e-8 相对容差**上界，不宣称位精确；常驻池一次 build 建池、全部 IRLS 轮次复用，不跨 build 常驻（`cpu_workers ≤ 1` 退化串行直调；下标轴动态切分领取）⇒ 同配置重复运行位精确，跨 worker 数为冻结的 1e-12 绝对容差（口径不变）。
 
 ## 内存/cache/I-O/所有权
 
@@ -308,7 +314,7 @@ tile 的 C_i(p) 值，同模型 hash / 目标 order / frame hash 校验，stale 
 2 = production 缺 control ivar 与 dense stale cache。模块面错误码词汇 = P2UPM 内核
 rc，**不使用**编排层 `ACS_ERR_*` 词汇。
 
-- 天光面几何量缺失 ⇒ fail-closed（`P2_SKY_PLANE_GEOMETRY_REQUIRED`）；
+- 信号面几何量缺失 ⇒ fail-closed（`P2_SKY_PLANE_GEOMETRY_REQUIRED`）；
 - 欠定 / 病态 / 断图 / 不可辨识 ⇒ rc = 3（两条共用这一条路径）；
 - 显著模型失配（如样条面无法表达的强局部背景）⇒ 失败并报告残差结构；
 - 参数协方差不输出 ⇒ 下游 covariance 不可信，标记；
@@ -344,7 +350,7 @@ Oracle 面：
   与等权拟合对照有显著改善；
 - 稀疏性 / 内存：内存占用随样条节点数与采样点数增长，现场求值与稠密参考实现
   数值一致（容差内）；
-- 平滑性：注入星点 / 星云残差不被天光面拟合（掩膜 + 节点间距联合验证）；
+- 平滑性：注入星点 / 星云残差不被信号面拟合（掩膜 + 节点间距联合验证）；
 - 断图 / 欠定 / 不可辨识能红：判据在**未正则化**矩阵上、阈值只有 `rank_rtol`
   一个；「加大岭参数把红买成绿」必须判红（正则化后矩阵上的门是恒真门）；
 - **可辨识性判据正/负例**：良性强相关系统判绿；精确秩亏、零对角、不定矩阵必须

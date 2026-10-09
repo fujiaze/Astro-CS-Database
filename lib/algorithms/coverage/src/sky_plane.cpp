@@ -381,17 +381,35 @@ struct SkyDeltaMsGrid {
     double thresh = 2.0;        // 生效高阈（审计用）
 };
 
+// 逐帧自身面减公共面（§5.11 生产扣除口径）：每帧用**自己的**带权采样点拟合的
+// 光滑面 b_k；公共面 B_common 取各帧自身面的跨帧加权平均；扣除量 δ_k = b_k − B_common。
+// 公共真实信号在相减时消去（不需要结构保护 mask），且每个位置上 Σ_k w_k δ_k ≡ 0，
+// 产物加权平均电平不变。格点无采样 ⇒ 该点不参与（求值按 0，不外铺、不插补）。
+struct SkyOwnGrid {
+    int nu = 0;                 // 切平面 u 轴格点数
+    int nv = 0;                 // 切平面 v 轴格点数
+    double u0 = 0.0, v0 = 0.0;  // 格点原点（切平面角度）
+    double step = 1.0;          // 格距（切平面角度，>0）
+    std::vector<double> vals;   // nu*nv，格点加权均值；NaN = 该格点无采样
+};
+
 struct SkyDeltaMsConfig {
-    int enabled = 1;
+    // 多尺度低频 overlay 默认**关**：它是旁路诊断量，不属于生产扣除链。
+    // 生产实测（49 帧 M42）：overlay 逐帧 |max| 达 2.8e-02（与天光同量级，且
+    // 单侧：min −2.8e-02 / max +3.2e-05），扣进成品后在星云核心形成撕裂状
+    // 台阶——即把真实信号的低频结构当帧间差吃掉。需要复现/审计时用
+    // ACSD_DELTA_MS_ENABLE=1 显式打开。
+    int enabled = 0;
     double sigma_px = 16.0;     // C9 推荐档
     double thresh = 2.0;        // C9 推荐档
 };
 
-// task-3：环境配置解析（纯函数；失败/缺键 → 默认推荐档；钳位按 §5.11 区间）。
+// task-3：环境配置解析（纯函数；失败/缺键 → 默认关闭；显式 =1 打开诊断档；
+// σ/阈值钳位按 §5.11 区间）。
 inline SkyDeltaMsConfig sky_delta_ms_config_from_env() {
     SkyDeltaMsConfig c;
     if (const char* e = std::getenv("ACSD_DELTA_MS_ENABLE")) {
-        if (e[0] == '0' && e[1] == '\0') c.enabled = 0;
+        if (e[0] == '1' && e[1] == '\0') c.enabled = 1;
     }
     if (const char* e = std::getenv("ACSD_DELTA_MS_SIGMA_PX")) {
         char* end = nullptr;
@@ -434,6 +452,67 @@ inline double sky_delta_ms_eval_grid(const SkyDeltaMsGrid& g, double u, double v
            (1 - tu) * tv * v01 + tu * tv * v11;
 }
 
+// 逐帧场双线性求值：四角都必须有值（空格已由 sky_own_fill 平滑外延），
+// 否则返回 false。不外插、不硬切换——硬切换会在格点边界换估计量、留下台阶。
+inline bool sky_own_eval(const SkyOwnGrid& g, double u, double v, double* out_val) {
+    if (g.nu < 2 || g.nv < 2 || !(g.step > 0.0)) return false;
+    if (g.vals.size() != static_cast<std::size_t>(g.nu) * static_cast<std::size_t>(g.nv))
+        return false;
+    const double fu = (u - g.u0) / g.step;
+    const double fv = (v - g.v0) / g.step;
+    if (!std::isfinite(fu) || !std::isfinite(fv)) return false;
+    const int iu = static_cast<int>(std::floor(fu));
+    const int iv = static_cast<int>(std::floor(fv));
+    if (iu < 0 || iv < 0 || iu + 1 >= g.nu || iv + 1 >= g.nv) return false;
+    const std::size_t s00 = static_cast<std::size_t>(iv) * g.nu + static_cast<std::size_t>(iu);
+    const double v00 = g.vals[s00], v10 = g.vals[s00 + 1];
+    const double v01 = g.vals[s00 + g.nu], v11 = g.vals[s00 + g.nu + 1];
+    if (!(std::isfinite(v00) && std::isfinite(v10) && std::isfinite(v01) && std::isfinite(v11)))
+        return false;
+    const double tu = fu - static_cast<double>(iu), tv = fv - static_cast<double>(iv);
+    *out_val = (1 - tu) * (1 - tv) * v00 + tu * (1 - tv) * v10 +
+               (1 - tu) * tv * v01 + tu * tv * v11;
+    return true;
+}
+
+// 逐帧场空格外延：迭代扩散（4 邻域平均，Gauss-Seidel），把无采样的格子平滑外延。
+// **不得用最近值填充**——最近值在填充边界自身就产生台阶，而逐帧场是修正量的载体，
+// 台阶会直接变成成品上的缝。外延只为消除「四角缺一 ⇒ 求值判无效」的边界。
+inline void sky_own_fill(SkyOwnGrid& g) {
+    if (g.nu < 2 || g.nv < 2 ||
+        g.vals.size() != static_cast<std::size_t>(g.nu) * static_cast<std::size_t>(g.nv))
+        return;
+    const int dx[4] = {1, -1, 0, 0};
+    const int dy[4] = {0, 0, 1, -1};
+    const int max_iter = 4 * (g.nu + g.nv);
+    for (int iter = 0; iter < max_iter; ++iter) {
+        bool changed = false;
+        for (int iv = 0; iv < g.nv; ++iv) {
+            for (int iu = 0; iu < g.nu; ++iu) {
+                const std::size_t i =
+                    static_cast<std::size_t>(iv) * static_cast<std::size_t>(g.nu) +
+                    static_cast<std::size_t>(iu);
+                if (std::isfinite(g.vals[i])) continue;
+                double s = 0.0;
+                int n = 0;
+                for (int d = 0; d < 4; ++d) {
+                    const int x = iu + dx[d], y = iv + dy[d];
+                    if (x < 0 || y < 0 || x >= g.nu || y >= g.nv) continue;
+                    const double v =
+                        g.vals[static_cast<std::size_t>(y) * static_cast<std::size_t>(g.nu) +
+                               static_cast<std::size_t>(x)];
+                    if (std::isfinite(v)) { s += v; ++n; }
+                }
+                if (n > 0) {
+                    g.vals[i] = s / static_cast<double>(n);
+                    changed = true;
+                }
+            }
+        }
+        if (!changed) break;
+    }
+}
+
 struct SkyPlaneModel {
     P2SkyPlaneConfig cfg{};
     P2SkyPlaneInfo info{};
@@ -458,6 +537,11 @@ struct SkyPlaneModel {
     double delta_ms_sigma_px = 16.0;   // 生效 σ（审计/provenance）
     double delta_ms_thresh = 2.0;      // 生效高阈（审计/provenance）
     int delta_ms_enabled = 1;          // 修正是否生效（0 = 纯多项式旧行为）
+    // §5.11 生产扣除：逐帧自身面 b_k（该帧自己采样点的光滑面）与公共面 B_common
+    // （各帧自身面的跨帧加权平均）。δ_k = b_k − B_common；Σ_k w_k δ_k ≡ 0。
+    std::vector<SkyOwnGrid> own;
+    int own_enabled = 1;
+    double own_step_deg = 0.02;
     int ref_frame = 0;
     std::vector<double> last_weights;   // 最后使用的样本权重（诊断/残差）
     std::vector<std::uint64_t> used_idx;
@@ -591,11 +675,9 @@ void sky_delta_ms_build_frame(const std::vector<double>& resid_u,
         }
         for (std::size_t i = 0; i < grid.size(); ++i) {
             if (has[i] && masked[i] && src[i] != static_cast<std::size_t>(-1))
-                filled[i] = grid[src[i]];
-            else if (!has[i] && src[i] != static_cast<std::size_t>(-1))
-                filled[i] = grid[src[i]];
+                filled[i] = grid[src[i]];      // 结构保护 mask：最近有效值填充（C9 同构）
             else if (!has[i])
-                filled[i] = med;
+                filled[i] = 0.0;               // 无采样格：不校正（不得用最近值外铺）
         }
         (void)next;
     }
@@ -1135,6 +1217,9 @@ P2SkyPlaneConfig p2_sky_plane_default_config(void) {
     // 调用方给不出几何量时 p2_sky_plane_build 显式失败（GEOMETRY_REQUIRED）。
     c.node_spacing_deg = 0.0;
     c.frame_gradient_order = 1;
+    c.own_surface_enabled = 1;      // §5.11 生产扣除：逐帧自身面减公共面
+    c.own_surface_step_deg = 0.02;  // 格点间距（实测甜点 0.02–0.04°）
+    c.joint_outer_iterations = 1;   // §5.11 联合解：块坐标迭代外层次数（实测一步收敛）
     c.huber_delta = 1.345;
     c.max_iterations = 30;
     c.tolerance = 1e-10;
@@ -2492,6 +2577,165 @@ int p2_sky_plane_build_adaptive(const P2SkySample* samples, std::uint64_t n,
     if (err && err_size) err[0] = '\0';
     return P2_SKY_PLANE_OK;
 }
+
+// §5.11 联合解的一步：用当前模型在样本上的**残差**构建逐帧场 F_k。
+//   F_k = (第 k 帧自己的残差格点场) − (各帧残差格点场的跨帧加权平均)
+// 去掉跨帧公共模后，F_k 只承载帧间差、不含公共信号，且每个格点 Σ_k w_k F_k ≡ 0：
+// 扣除只是把各帧电平互相拉齐，产物在该位置的加权平均电平不变。
+static int sky_make_residual_fields(const SkyPlaneModel* m, const P2SkySample* samples,
+                                    std::uint64_t n, double step_deg,
+                                    std::vector<SkyOwnGrid>* out) {
+    if (!m || !samples || n == 0 || !out) return P2_SKY_PLANE_INVALID_ARGS;
+    if (!(step_deg > 0.0) || !std::isfinite(step_deg)) step_deg = 0.02;
+    const double span_u = m->u_max - m->u_min;
+    const double span_v = m->v_max - m->v_min;
+    if (!(span_u > 0.0) || !(span_v > 0.0) || !std::isfinite(span_u) || !std::isfinite(span_v))
+        return P2_SKY_PLANE_INVALID_ARGS;
+    const int nu = std::max(3, static_cast<int>(std::ceil(span_u / step_deg)) + 1);
+    const int nv = std::max(3, static_cast<int>(std::ceil(span_v / step_deg)) + 1);
+    const std::size_t ncell = static_cast<std::size_t>(nu) * static_cast<std::size_t>(nv);
+    const int nf = static_cast<int>(m->frame_ids.size());
+    if (nf <= 0) return P2_SKY_PLANE_INVALID_ARGS;
+    std::vector<std::vector<double>> fsum(static_cast<std::size_t>(nf)),
+                                     fw(static_cast<std::size_t>(nf));
+    for (int k = 0; k < nf; ++k) {
+        fsum[static_cast<std::size_t>(k)].assign(ncell, 0.0);
+        fw[static_cast<std::size_t>(k)].assign(ncell, 0.0);
+    }
+    for (std::uint64_t t = 0; t < n; ++t) {
+        const P2SkySample& s = samples[t];
+        if (s.flags & (P2_SKY_FLAG_MASKED | P2_SKY_FLAG_LOW_SUPPORT |
+                       P2_SKY_FLAG_HIGH_CONTAMINATION | P2_SKY_FLAG_REJECTED))
+            continue;
+        const auto itk = m->frame_index.find(s.frame_id);
+        if (itk == m->frame_index.end()) continue;
+        double bk = 0.0;
+        int st = P2_SKY_EVAL_INVALID;
+        if (p2_sky_plane_eval(m, s.frame_id, s.ra_deg, s.dec_deg, &bk, &st) != P2_SKY_PLANE_OK)
+            continue;
+        if (st != P2_SKY_EVAL_OK || !std::isfinite(bk) || !std::isfinite(s.value)) continue;
+        double u = 0.0, v = 0.0, cosc = 0.0;
+        if (!gnomonic(m->ra0_deg, m->dec0_deg, s.ra_deg, s.dec_deg, &u, &v, &cosc)) continue;
+        if (u < m->u_min || u > m->u_max || v < m->v_min || v > m->v_max) continue;
+        int iu = static_cast<int>(std::floor((u - m->u_min) / step_deg));
+        int iv = static_cast<int>(std::floor((v - m->v_min) / step_deg));
+        if (iu < 0) iu = 0;
+        if (iv < 0) iv = 0;
+        if (iu >= nu) iu = nu - 1;
+        if (iv >= nv) iv = nv - 1;
+        const std::size_t c =
+            static_cast<std::size_t>(iv) * static_cast<std::size_t>(nu) +
+            static_cast<std::size_t>(iu);
+        const double w = (m->cfg.weight_mode == 0)
+                             ? ((s.variance > 0.0 && std::isfinite(s.variance))
+                                    ? 1.0 / s.variance : 1.0)
+                             : std::max(s.snr * s.snr, 1e-12);
+        const std::size_t k = itk->second;
+        fsum[k][c] += (s.value - bk) * w;
+        fw[k][c] += w;
+    }
+    const double NaN = std::numeric_limits<double>::quiet_NaN();
+    out->assign(static_cast<std::size_t>(nf), SkyOwnGrid{});
+    std::vector<double> csum(ncell, 0.0), cw(ncell, 0.0);
+    for (int k = 0; k < nf; ++k) {
+        SkyOwnGrid g;
+        g.nu = nu; g.nv = nv; g.u0 = m->u_min; g.v0 = m->v_min; g.step = step_deg;
+        g.vals.assign(ncell, NaN);
+        for (std::size_t c = 0; c < ncell; ++c) {
+            if (!(fw[static_cast<std::size_t>(k)][c] > 0.0)) continue;
+            const double val = fsum[static_cast<std::size_t>(k)][c] /
+                               fw[static_cast<std::size_t>(k)][c];
+            g.vals[c] = val;
+            csum[c] += val * fw[static_cast<std::size_t>(k)][c];
+            cw[c] += fw[static_cast<std::size_t>(k)][c];
+        }
+        (*out)[static_cast<std::size_t>(k)] = std::move(g);
+    }
+    // 去跨帧公共模（按格点权重）：F_k ← R_k − R_common。
+    for (std::size_t c = 0; c < ncell; ++c) {
+        if (!(cw[c] > 0.0)) continue;
+        const double common = csum[c] / cw[c];
+        for (int k = 0; k < nf; ++k) {
+            double& val = (*out)[static_cast<std::size_t>(k)].vals[c];
+            if (std::isfinite(val)) val -= common;
+        }
+    }
+    for (auto& g : *out) sky_own_fill(g);
+    return P2_SKY_PLANE_OK;
+}
+
+// §5.11 联合解（块坐标迭代）：解 (B_ref, δ_poly) → 用残差建逐帧场 F（已去公共模）
+// → 把 F 从样本里扣掉 → 重解 (B_ref, δ_poly) → 再更新 F …… 直至迭代次数用尽。
+// 每步都是精确最小二乘，块坐标迭代收敛到联合解；不需要把逐帧样条塞进 Schur。
+int p2_sky_plane_build_joint(const P2SkySample* samples, std::uint64_t n,
+                             const P2SkyPlaneConfig* cfg_in,
+                             const P2SkyPlaneAdaptiveConfig* adaptive_in,
+                             void** out_model, P2SkyPlaneAdaptiveReport* out_report,
+                             char* err, std::size_t err_size) {
+    if (!out_model || !samples || n == 0) return P2_SKY_PLANE_INVALID_ARGS;
+    *out_model = nullptr;
+    P2SkyPlaneConfig cfg = cfg_in ? *cfg_in : p2_sky_plane_default_config();
+    std::vector<P2SkySample> work(samples, samples + n);
+    void* m = nullptr;
+    int rc = p2_sky_plane_build_adaptive(work.data(), n, &cfg, adaptive_in, &m,
+                                         out_report, err, err_size);
+    if (rc != P2_SKY_PLANE_OK || !m) return rc;
+    const int n_outer = std::max(0, cfg.joint_outer_iterations);
+    std::vector<SkyOwnGrid> ftot;
+    for (int it = 0; it < n_outer; ++it) {
+        SkyPlaneModel* mm = static_cast<SkyPlaneModel*>(m);
+        mm->own.clear();
+        mm->own_enabled = 0;   // 残差相对纯 (B_ref + δ_poly)
+        std::vector<SkyOwnGrid> f;
+        if (sky_make_residual_fields(mm, work.data(), n, cfg.own_surface_step_deg, &f) !=
+            P2_SKY_PLANE_OK)
+            break;
+        if (ftot.empty()) {
+            ftot = std::move(f);
+        } else {
+            const std::size_t nk = std::min(ftot.size(), f.size());
+            for (std::size_t k = 0; k < nk; ++k) {
+                const std::size_t nc = std::min(ftot[k].vals.size(), f[k].vals.size());
+                for (std::size_t c = 0; c < nc; ++c) {
+                    const double a = ftot[k].vals[c], b = f[k].vals[c];
+                    if (std::isfinite(a) && std::isfinite(b)) ftot[k].vals[c] = a + b;
+                    else if (!std::isfinite(a)) ftot[k].vals[c] = b;
+                }
+            }
+        }
+        // 样本值扣掉累计 F：work[t] = 原始 y − F_k(u,v)
+        for (std::uint64_t t = 0; t < n; ++t) {
+            const P2SkySample& s0 = samples[t];
+            work[t] = s0;
+            const auto itk = mm->frame_index.find(s0.frame_id);
+            if (itk == mm->frame_index.end() || itk->second >= ftot.size()) continue;
+            double u = 0.0, v = 0.0, cosc = 0.0;
+            if (!gnomonic(mm->ra0_deg, mm->dec0_deg, s0.ra_deg, s0.dec_deg, &u, &v, &cosc))
+                continue;
+            double fv = 0.0;
+            if (sky_own_eval(ftot[itk->second], u, v, &fv) && std::isfinite(fv))
+                work[t].value = s0.value - fv;
+        }
+        void* m2 = nullptr;
+        const int rc2 = p2_sky_plane_build_adaptive(work.data(), n, &cfg, adaptive_in, &m2,
+                                                    out_report, err, err_size);
+        if (rc2 != P2_SKY_PLANE_OK || !m2) {
+            if (m2) p2_sky_plane_close(m2);
+            break;
+        }
+        p2_sky_plane_close(m);
+        m = m2;
+    }
+    if (!ftot.empty()) {
+        SkyPlaneModel* mm = static_cast<SkyPlaneModel*>(m);
+        mm->own = std::move(ftot);
+        mm->own_enabled = 1;
+        mm->own_step_deg = cfg.own_surface_step_deg;
+    }
+    *out_model = m;
+    return P2_SKY_PLANE_OK;
+}
+
 int p2_sky_plane_info(const void* model, P2SkyPlaneInfo* out) {
     if (!model || !out) return P2_SKY_PLANE_INVALID_ARGS;
     *out = static_cast<const SkyPlaneModel*>(model)->info;
@@ -2646,7 +2890,15 @@ int p2_sky_plane_eval_delta(const void* model_in, std::uint64_t frame_id,
     if (m->delta_ms_enabled && it->second != static_cast<std::size_t>(m->ref_frame) &&
         it->second < m->delta_ms.size())
         ms = sky_delta_ms_eval_grid(m->delta_ms[it->second], u, v);
-    *out_value = m->gauge_shift + dv + ms;
+    // §5.11 联合解：δ_k = δ_poly,k + F_k。F_k 是该帧在**拟合残差**上的逐帧场，
+    // 且已按跨帧公共模去除（Σ_k w_k F_k ≡ 0）——它只承载帧间差、不含公共信号，
+    // 故与多项式项**相加**不构成重复扣除（残差本就是拟合没解释掉的部分）。
+    double own = 0.0;
+    if (m->own_enabled && it->second < m->own.size()) {
+        double fv = 0.0;
+        if (sky_own_eval(m->own[it->second], u, v, &fv) && std::isfinite(fv)) own = fv;
+    }
+    *out_value = m->gauge_shift + dv + ms + own;
     if (out_status) *out_status = P2_SKY_EVAL_OK;
     return P2_SKY_PLANE_OK;
 }
@@ -2748,6 +3000,10 @@ int p2_sky_plane_save(const void* model_in, const char* path) {
             // 唯一判据阈值（FZ-AP2S-RANK-RTOL）。已退休键：roughness_penalty / kappa_max。
             {"rank_rtol", m->cfg.rank_rtol},
             {"max_extrapolation_deg", m->cfg.max_extrapolation_deg},
+            // §5.11 逐帧自身面减公共面（生产扣除口径）
+            {"own_surface_enabled", m->cfg.own_surface_enabled},
+            {"own_surface_step_deg", m->cfg.own_surface_step_deg},
+            {"joint_outer_iterations", m->cfg.joint_outer_iterations},
             // §7a：节点间距导出所需的输入几何（原样落盘，供独立复核导出规则）
             {"geometry", {
                 {"overlap_band_width_deg", m->cfg.geometry.overlap_band_width_deg},
@@ -2775,6 +3031,29 @@ int p2_sky_plane_save(const void* model_in, const char* path) {
             j["delta_ms_sigma_px"] = m->delta_ms_sigma_px;
             j["delta_ms_thresh"] = m->delta_ms_thresh;
             j["delta_ms_enabled"] = m->delta_ms_enabled;
+        }
+        // §5.11 逐帧自身面与公共面落盘（NaN 写 null，回读还原）。
+        // 旧文件无该段 → open 侧 own_enabled=0（不施加），前向兼容。
+        {
+            auto grid_json = [](const SkyOwnGrid& g) {
+                nlohmann::json jg;
+                jg["nu"] = g.nu;
+                jg["nv"] = g.nv;
+                jg["u0"] = g.u0;
+                jg["v0"] = g.v0;
+                jg["step"] = g.step;
+                nlohmann::json jv = nlohmann::json::array();
+                for (double v : g.vals)
+                    jv.push_back(std::isfinite(v) ? nlohmann::json(v)
+                                                  : nlohmann::json(nullptr));
+                jg["vals"] = std::move(jv);
+                return jg;
+            };
+            nlohmann::json jo = nlohmann::json::array();
+            for (const auto& g : m->own) jo.push_back(grid_json(g));
+            j["own"] = std::move(jo);
+            j["own_enabled"] = m->own_enabled;
+            j["own_step_deg"] = m->own_step_deg;
         }
         // kappa_data 在 H_red 浮点不正定（chol 失败）时不可计算：写 null 而非 NaN，
         // 避免 JSON 消费者把不可计算读成 0。
@@ -2903,6 +3182,9 @@ int p2_sky_plane_open(const char* path, void** out_model) {
             // （它们属已退休的绝对常数口径），不再回读——回读会让旧值悄悄复活。
             m->cfg.rank_rtol = c.value("rank_rtol", m->cfg.rank_rtol);
             m->cfg.max_extrapolation_deg = c.value("max_extrapolation_deg", m->cfg.max_extrapolation_deg);
+            m->cfg.own_surface_enabled = c.value("own_surface_enabled", m->cfg.own_surface_enabled);
+            m->cfg.own_surface_step_deg = c.value("own_surface_step_deg", m->cfg.own_surface_step_deg);
+            m->cfg.joint_outer_iterations = c.value("joint_outer_iterations", m->cfg.joint_outer_iterations);
             if (c.contains("geometry")) {
                 const auto& gg = c["geometry"];
                 m->cfg.geometry.overlap_band_width_deg =
@@ -2944,6 +3226,37 @@ int p2_sky_plane_open(const char* path, void** out_model) {
             m->delta_ms_thresh = j.value("delta_ms_thresh", 2.0);
         if (j.contains("delta_ms_enabled"))
             m->delta_ms_enabled = j.value("delta_ms_enabled", 1);
+        // §5.11 逐帧自身面与公共面回读（NaN 由 null 还原）。
+        // 旧文件无该段 ⇒ own_enabled = 0（不施加），前向兼容。
+        m->own.assign(m->frame_ids.size(), SkyOwnGrid{});
+        m->own_enabled = 0;
+        m->own_step_deg = 0.0;
+        auto load_own = [](const nlohmann::json& jg, SkyOwnGrid& g) {
+            SkyOwnGrid t;
+            t.nu = jg.value("nu", 0);
+            t.nv = jg.value("nv", 0);
+            t.u0 = jg.value("u0", 0.0);
+            t.v0 = jg.value("v0", 0.0);
+            t.step = jg.value("step", 0.0);
+            if (jg.contains("vals") && jg["vals"].is_array()) {
+                t.vals.reserve(jg["vals"].size());
+                for (const auto& e : jg["vals"])
+                    t.vals.push_back(e.is_null()
+                                         ? std::numeric_limits<double>::quiet_NaN()
+                                         : e.get<double>());
+            }
+            const bool ok = t.nu > 0 && t.nv > 0 && t.step > 0.0 &&
+                            t.vals.size() == static_cast<std::size_t>(t.nu) *
+                                                 static_cast<std::size_t>(t.nv);
+            g = ok ? std::move(t) : SkyOwnGrid{};
+        };
+        if (j.contains("own") && j["own"].is_array()) {
+            const std::size_t no =
+                std::min<std::size_t>(j["own"].size(), m->frame_ids.size());
+            for (std::size_t k = 0; k < no; ++k) load_own(j["own"][k], m->own[k]);
+        }
+        if (j.contains("own_enabled")) m->own_enabled = j.value("own_enabled", 0);
+        if (j.contains("own_step_deg")) m->own_step_deg = j.value("own_step_deg", 0.0);
         for (std::size_t k = 0; k < m->frame_ids.size(); ++k) m->frame_index[m->frame_ids[k]] = k;
         m->ref_frame = 0;
         if (j.contains("info")) {

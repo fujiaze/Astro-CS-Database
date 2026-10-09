@@ -1,6 +1,6 @@
 # Phase2 UPM Fit/Apply Algorithms（P2-UPM / acsd.p2.upm）
 
-> 上游：ACSD_DESIGN.md [D-1]「天光平面（UPM）」一节（天光平面与统一相对模型）
+> 上游：ACSD_DESIGN.md [D-1]「信号面（UPM）」一节（信号面与统一相对模型）
 
 > 本文件是 Phase2 Unified Photometric Model（UPM）
 > fit+apply+persist+reload 的**实现级算法合同**：逐符号源码行号锚定 +
@@ -22,9 +22,14 @@
   ALG-P2-SMP-001 产出）联合求解 ONE UnifiedPhotometricModel——
   M_k latent reference + C_i(p) 每帧空间校正场，Huber IRLS 坐标
   下降 + 图平滑 + 弱零锚 + 分量 gauge（upm.cpp:500-889）；
-- **apply**：calibrated = raw − C(frame, leaf)，运行时唯一入口
-  p2_upm_calibrate_block（upm.h:12-13 冻结"不暴露 per-frame
-  gradient 产品；运行时只经 p2_upm_calibrate_block 使用"）；
+- **apply**：本内核的运行时求值入口 p2_upm_calibrate_block 给出
+  raw − C(frame, leaf)（upm.h:12-13 冻结"不暴露 per-frame gradient 产品"）。
+  **该场不是生产扣除场**：C 按 leaf tile 分块求值（瓦片首末圈各自外推、
+  无观测格子取 0），跨瓦片不连续。生产扣除 = 每帧相对公共连续信号面的
+  低阶偏差 δ_k（`docs/science/sky/UPM.md`「公式与推导」一节，
+  实现 = `p2_sky_plane_eval_delta_block`）；见采样算法分册的施加路径一节
+  与注册表 apply 页。此前把 calibrate_block 接入生产扣除的做法因上述
+  不连续/取 0 已退役；
 - **persist**：稀疏 json（acsd-upm-v2）+ 稠密缓存
   （acsd-upm-dense-v2）双形态落盘，frame 绑定显式持久化；
 - **reload**：p2_upm_open 强校验重开，save→open 绑定不变
@@ -203,7 +208,7 @@ objective += raw_w·huber_rho(z)                      # :1023-1026
       max_dM < tol_M && max_dC < tol_C → converged=1  # :1034-1050（详见 §13）
 ```
 
-**F4 calibrated = raw − C(frame, leaf)**（C 场 = centered 双线性 8×8）：
+**F4 内核求值 = raw − C(frame, leaf)**（C 场 = centered 双线性 8×8）——这是**内核**的求值口径；**生产扣除**走信号面 `δ_k = δ_poly,k + F_k`（见采样算法分册 §5.11），本内核的分块 C 场不在生产扣除链上：
 
 ```text
 calibrate_block: out[i] = in[i] − evaluate_c_field(...)   # :1907-1941
@@ -518,7 +523,7 @@ PHASE2_SAMPLER.md 承载），本域只引用 control_ivar 消费面，不改不
 
 > 本文引用上游正本（论文式编号，正文引用处均已改为自然语言节名，不再使用跨文档 §N 跳转）：
 > - [D-1] docs/ACSD_DESIGN.md（最高设计）。
-> - [S-1] docs/science/sky/UPM.md（天光平面科学正本 SCI-UPM-001）。
+> - [S-1] docs/science/sky/UPM.md（信号面科学正本 SCI-UPM-001）。
 > - [S-4] docs/engineering/governance/TRACEABILITY.md（相关科学正本）。
 > - [A-1] docs/science/algorithms/mosaic/UPM_SOLVER.md（UPM 求解器分册）。
 
@@ -527,7 +532,7 @@ PHASE2_SAMPLER.md 承载），本域只引用 control_ivar 消费面，不改不
 - Huber IRLS：Huber 1964, Ann. Math. Statist. 35, 73；Huber & Ronchetti 2009, Robust Statistics 2nd ed., Wiley。
 - 弱零锚/正则化：Tikhonov 1963, Soviet Math. Dokl. 4, 1035（卷页需网络核验）。
 - 多帧相对定标：SCAMP（GPL-3.0；Bertin 2006, ASPC 351, 112）；Padmanabhan et al. 2008, ApJ 674, 1217。
-- 稀疏天光面样条（目标表示）：Duchon 1977；Wahba 1990。
+- 稀疏信号面样条（目标表示）：Duchon 1977；Wahba 1990。
 - 共轭梯度（C 更新）：Hestenes & Stiefel 1952, J. Res. NBS 49, 409。
 - var(median)≈πσ²/(2N)：Hoaglin et al. 1983。
 

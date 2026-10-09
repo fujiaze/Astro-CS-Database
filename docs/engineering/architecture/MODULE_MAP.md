@@ -59,7 +59,7 @@
 | 模块 | 路径 | 职责 | 证据锚 |
 | --- | --- | --- | --- |
 | 运行时与唯一执行器 | `lib/infrastructure/scheduler` | 类型化有向无环图调度、线程预算租约、进程唯一 worker 池 | `lib/infrastructure/scheduler/src/executor_runtime.h`、`lib/infrastructure/scheduler/src/module_adapters.cpp` |
-| 模块注册表（三阶段节点） | `lib/infrastructure/scheduler` | `normalize` 八节点（校准、修饰、天体定位、星点与 PSF、测光、噪声信噪比、球面重采样、产品写出）、`mosaic` 七节点（覆盖、采样、天光面拟合、天光面施加、排异、集成、写出）、`export` 五节点（properties、WCS、重采样、验证、写出），各绑唯一真实 operation（节点序以最高设计各阶段流程章为准） | `lib/infrastructure/scheduler/src/module_adapters.cpp` |
+| 模块注册表（三阶段节点） | `lib/infrastructure/scheduler` | `normalize` 八节点（校准、修饰、天体定位、星点与 PSF、测光、噪声信噪比、球面重采样、产品写出）、`mosaic` 七节点（覆盖、采样、信号面拟合、信号面施加、排异、集成、写出）、`export` 五节点（properties、WCS、重采样、验证、写出），各绑唯一真实 operation（节点序以最高设计各阶段流程章为准） | `lib/infrastructure/scheduler/src/module_adapters.cpp` |
 | `normalize` 会话 | `lib/phase1_session` | `io_read → calibrate → cosmetic → io_write` | `lib/phase1_session/p1_session.cpp`（`manifest["stages"]`）；unit `entrypoint: p1_session_run` |
 | `normalize` 科学内核 | `lib/algorithms/photometry`、`lib/algorithms/star_detection`、`lib/algorithms/psf`、`lib/algorithms/platesolve`、`lib/algorithms/calibration`、`lib/algorithms/cosmetic`、`lib/algorithms/noise_snr` | 校准、检测 / PSF、天文定位、测光定标、噪声模型 | 各目录 `src/` 内真实源文件（逐内核 operation 见 `module_adapters.cpp`） |
 | `mosaic` 会话 | `lib/phase2_session` | 七节点链组装（coverage → sample → upm-fit → upm-apply → reject → integrate → write） | `lib/phase2_session/p2_session.cpp` |

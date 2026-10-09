@@ -1,6 +1,6 @@
 # UPM Solver Algorithms (ALG-UPM)
 
-> 上游：ACSD_DESIGN.md [D-1]「天光平面（UPM）」一节（天光平面与统一相对模型）
+> 上游：ACSD_DESIGN.md [D-1]「信号面（UPM）」一节（信号面与统一相对模型）
 > 行号与并行表述按源码实测登记；实现级合同见 ALG-P2-UPM-IMPL-001 (docs/science/algorithms/PHASE2_UPM_IMPL.md)
 
 ## 1 上游 SCI 与输入输出
@@ -25,7 +25,8 @@ F3: Huber IRLS (标准无量纲残差, 对齐 `lib/algorithms/coverage/src/upm.c
     z = r/sigma_eff; r = value − M − C; sigma_eff=max(|uncertainty|,sigma_floor)
     loss(z)=0.5z² if |z|≤δ else δ(|z|−0.5δ);  w(z)=1 if |z|≤δ else δ/|z|
     δ=1.345 (无量纲, 单位=sigma_eff), iterative reweight + 弱零锚 + 平滑
-F4: calibrated = raw − C(frame, leaf) 双线性 8×8
+F4: 内核求值 calibrated = raw − C(frame, leaf) 双线性 8×8（分块、仅供 fit 侧与诊断，不在生产扣除链上；
+    生产扣除 = raw − δ_k，δ_k 为每帧相对公共连续信号面的低阶偏差，见 PHASE2_SAMPLER §5.11）
 F5: 連通分量 gauge = min frame_id per component, harmonic continuation 单帧区
 F6: hash = SHA256(C), persist: sparse json + dense cache materialize, 1e-12等价
 ```
@@ -120,7 +121,7 @@ function p2_upm_build(observations, cfg):
 
 > 本文引用上游正本（论文式编号，正文引用处均已改为自然语言节名，不再使用跨文档 §N 跳转）：
 > - [D-1] docs/ACSD_DESIGN.md（最高设计）。
-> - [S-1] docs/science/sky/UPM.md（天光平面科学正本 SCI-UPM-001）。
+> - [S-1] docs/science/sky/UPM.md（信号面科学正本 SCI-UPM-001）。
 > - [S-4] docs/DERIVATIONS-P3.md（相关科学正本）。
 > - [A-1] docs/science/algorithms/mosaic/PHASE2_UPM_IMPL.md（UPM 实现级合同分册）。
 > - [S-5] 实验/healpix-polar/（实验单元读数）。
@@ -130,6 +131,6 @@ function p2_upm_build(observations, cfg):
 - Huber IRLS：Huber 1964, Ann. Math. Statist. 35, 73；Huber & Ronchetti 2009, Robust Statistics 2nd ed., Wiley。
 - 弱零锚：Tikhonov 1963, Soviet Math. Dokl. 4, 1035（正则化弱零锚的原始出处）。
 - 多帧相对定标：SCAMP（GPL-3.0；Bertin 2006, ASPC 351, 112）；Padmanabhan et al. 2008, ApJ 674, 1217。
-- 稀疏天光面样条（目标表示）：Duchon 1977；Wahba 1990。
+- 稀疏信号面样条（目标表示）：Duchon 1977；Wahba 1990。
 - var(median)≈πσ²/(2N)：Hoaglin et al. 1983（SCI-UPM [S-1]「判据与误差」一节）；实证比值读数（N=5 的 Var(median)/渐近式直接定征）正本 = `实验/healpix-polar/`docs/audit/kcorr/tables.md` [S-5]「输入输出端口」一节。
 - k_corr 为 k_gauss(N)×k_geo 两因子几何查表（P3 单元承载）；MC 证据源 control_median_mc_test 可复跑；域外回退值与实现记录 = `实验/healpix-polar/docs/DERIVATIONS-P3.md` [S-4]「推导补遗」一节。
