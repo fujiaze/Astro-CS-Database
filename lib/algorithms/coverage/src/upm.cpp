@@ -3096,6 +3096,24 @@ bool ma_eig(std::vector<double> A, int n, std::vector<double>& evals,
     return true;
 }
 
+// GN-IRLS 分段计时（ACSD_UPM_PROFILE=1；默认零开销）：判定每轮成本落在
+// 「正规矩阵分配清零 / 观测装配 / Cholesky / 目标函数」哪一段。n_free =
+// 控制点数 + 2×帧数时 H 是 n_free² 稠密矩阵，逐轮重建的代价可能远大于装配与
+// 求解本身 —— 先量再改。
+struct UpmProfile {
+    double alloc{0.0}, assemble{0.0}, chol{0.0}, objective{0.0};
+    long long nsolve{0};
+    bool on{false};
+    UpmProfile() { const char* v = std::getenv("ACSD_UPM_PROFILE"); on = (v && v[0]=='1'); }
+    ~UpmProfile() {
+        if (!on) return;
+        std::fprintf(stderr, "[upm_profile] n_solve=%lld alloc=%.3fs assemble=%.3fs "
+                     "chol=%.3fs objective=%.3fs total=%.3fs\n",
+                     nsolve, alloc, assemble, chol, objective,
+                     alloc+assemble+chol+objective);
+    }
+};
+
 // Cholesky 解 A x = b（A row-major n×n SPD，按值传入可加 jitter）。b 输出 x。
 bool ma_chol_solve(std::vector<double> A, std::vector<double>& b, int n) {
     if (n <= 0) return true;
@@ -3399,13 +3417,19 @@ int p2_upm_ma_build(const P2UpmMaObservation* obs, std::uint64_t n_obs,
 
     // ---- GN-IRLS（Huber，FZ-UPM-CONVERGENCE）----
     double lambda = 1e-6;
+    UpmProfile upm_prof;
+    const auto t_ob0 = std::chrono::steady_clock::now();
     double obj_old = ma_objective(*m, recs);
+    upm_prof.objective += std::chrono::duration<double>(std::chrono::steady_clock::now() - t_ob0).count();
     int iters = 0;
     for (int iter = 0; iter < cfg.max_iterations; ++iter) {
         ++iters;
         // GN/IRLS 正规矩阵只含 robust 权重 w=ivar*huber（不得叠加统计权重）
+        const auto t_al0 = std::chrono::steady_clock::now();
         std::vector<double> H(m->n_free * m->n_free, 0.0);
         std::vector<double> gv(m->n_free, 0.0);
+        upm_prof.alloc += std::chrono::duration<double>(std::chrono::steady_clock::now() - t_al0).count();
+        const auto t_as0 = std::chrono::steady_clock::now();
         for (const MaObsRec& o : recs) {
             const double gk = m->theta_full[np + (std::size_t)o.fi];
             const double sp = m->theta_full[(std::size_t)o.ci];
@@ -3431,20 +3455,27 @@ int p2_upm_ma_build(const P2UpmMaObservation* obs, std::uint64_t n_obs,
         for (std::size_t j = 0; j < m->n_free; ++j)
             H[j * m->n_free + j] *= (1.0 + lambda);
         std::vector<double> delta = gv;
+        upm_prof.assemble += std::chrono::duration<double>(std::chrono::steady_clock::now() - t_as0).count();
+        const auto t_ch0 = std::chrono::steady_clock::now();
+        ++upm_prof.nsolve;
         if (!ma_chol_solve(H, delta, (int)m->n_free)) {
+            upm_prof.chol += std::chrono::duration<double>(std::chrono::steady_clock::now() - t_ch0).count();
             lambda *= 10.0;
             if (lambda > 1e12) break;
             continue;
         }
         const std::vector<double> theta_before = m->theta_full;
         double maxstep = 0.0;
+        upm_prof.chol += std::chrono::duration<double>(std::chrono::steady_clock::now() - t_ch0).count();
         for (std::size_t j = 0; j < m->n_free; ++j) {
             const double d = delta[j];
             if (!std::isfinite(d)) { maxstep = std::numeric_limits<double>::infinity(); break; }
             m->theta_full[m->full_of_free[j]] += d;
             maxstep = std::max(maxstep, std::fabs(d));
         }
+        const auto t_ob1 = std::chrono::steady_clock::now();
         const double obj_new = ma_objective(*m, recs);
+        upm_prof.objective += std::chrono::duration<double>(std::chrono::steady_clock::now() - t_ob1).count();
         if (std::isfinite(obj_new) && obj_new <= obj_old) {
             obj_old = obj_new;
             lambda = std::max(lambda * 0.3, 1e-12);
