@@ -1043,9 +1043,12 @@ static int build_impl(const P2ControlObservation* obs, std::uint64_t n_obs,
         std::fill(x.begin(), x.end(), 0.0);
         std::vector<double> r = rhs;
         std::vector<double> p = r;
+        // Ap 提到 CG 循环外复用：原实现每次 CG 迭代分配并清零一个 K 维向量，
+        // 单次 fit 的分配次数 ≈ max_cg(200) × 帧数 × 外层轮数（万级到千万级），
+        // 纯分配/清零开销。提到循环外不改变任何浮点运算与求和顺序 ⇒ 位精确。
+        std::vector<double> Ap(K, 0.0);
         for (std::size_t s = 0; s < max_cg; ++s) {
-            // Ap = W p + λs L p + λ0 p
-            std::vector<double> Ap(K, 0.0);
+            // Ap = W p + λs L p + λ0 p（逐元素覆盖写，无需清零）
             for (std::size_t k = 0; k < K; ++k) {
                 double lp = 0.0;
                 for (std::size_t nb : m->adj[k]) lp += p[k] - p[nb];
@@ -1269,7 +1272,29 @@ static int build_impl(const P2ControlObservation* obs, std::uint64_t n_obs,
             f_seg_start[1] = fids.size();
         }
     }
+    // 分段计时（ACSD_UPM_PROFILE=1；默认零开销）：把每轮成本分到
+    // 「权重 / M 更新 / C 更新（逐帧 CG）/ 收敛检查」四段。这是块坐标求解，
+    // 每轮成本结构与帧数、控制点数、CG 迭代数的关系决定优化方向。
+    struct UpmPhaseProfile {
+        double w{0.0}, m{0.0}, c{0.0}, chk{0.0};
+        long long iters{0};
+        bool on{false};
+        UpmPhaseProfile() { const char* v = std::getenv("ACSD_UPM_PROFILE"); on = (v && v[0] == '1'); }
+        ~UpmPhaseProfile() {
+            if (!on) return;
+            std::fprintf(stderr, "[upm_profile] iters=%lld weights=%.3fs m_update=%.3fs "
+                         "c_update=%.3fs check=%.3fs total=%.3fs\n",
+                         iters, w, m, c, chk, w + m + c + chk);
+        }
+        static double el(const std::chrono::steady_clock::time_point& t0) {
+            return std::chrono::duration<double>(std::chrono::steady_clock::now() - t0).count();
+        }
+    };
+    UpmPhaseProfile upp;
+    const auto upp_loop0 = std::chrono::steady_clock::now();
     for (int iter = 0; iter < iter_budget; ++iter) {
+        ++upp.iters;
+        const auto upp_t0 = std::chrono::steady_clock::now();
         // 1. 权重（每轮：raw per-control 归一化 + Huber）
         {
             const int rc = compute_raw();
@@ -1316,6 +1341,8 @@ static int build_impl(const P2ControlObservation* obs, std::uint64_t n_obs,
                 }
             }
         }
+        upp.w += UpmPhaseProfile::el(upp_t0);
+        const auto upp_tm = std::chrono::steady_clock::now();
         // 2. M 更新（固定 C）：每分量 gauge = 分量内最小 frame_id C=0 →
         // M 由该分量参考帧观测定义；参考帧未覆盖节点用全部帧（延拓）。
         double max_dM = 0.0;
@@ -1437,6 +1464,8 @@ static int build_impl(const P2ControlObservation* obs, std::uint64_t n_obs,
                 }
             }
         }
+        upp.m += UpmPhaseProfile::el(upp_tm);
+        const auto upp_tc = std::chrono::steady_clock::now();
         // 3. C 更新（固定 M；逐帧 CG + 参考帧 gauge）
         double max_dC = 0.0;
         std::vector<std::uint64_t> fids;
@@ -1546,6 +1575,7 @@ static int build_impl(const P2ControlObservation* obs, std::uint64_t n_obs,
                 }
             }
         }
+        upp.c += UpmPhaseProfile::el(upp_tc);
         // 4. objective + 收敛
         m->iterations = iter + 1;
         m->objective = 0.0;
@@ -1653,6 +1683,10 @@ static int build_impl(const P2ControlObservation* obs, std::uint64_t n_obs,
     // 数据充分性闸（fail-closed；与 compute_raw 的 rc=2 同一语义族，
     // p2_session map_rc: rc=2 → ACS_ERR_STATE「build fail」）：
     // 若**没有任何**观测携带「正且有限」的拟合权重，则目标恒 0、max_dM 与
+    // 「收敛检查」段 = 整轮总时长 − 已计三段（含 break 提前退出与自适应追加
+    // 判定；用残差口径避免 break 跳过累加）。
+    upp.chk = UpmPhaseProfile::el(upp_loop0) - (upp.w + upp.m + upp.c);
+    if (upp.chk < 0.0) upp.chk = 0.0;
     // max_dC 恒 0 ⇒ 第一轮就判 converged；而下方可辨识性判据的每个块都会
     // 因 wfk 为空被跳过（:1256）⇒ **判据一步都没跑过**，却报
     // identifiable=1、chi2=0、chi2_red=0（即「全部可辨识 + 完美拟合」的
@@ -3096,24 +3130,6 @@ bool ma_eig(std::vector<double> A, int n, std::vector<double>& evals,
     return true;
 }
 
-// GN-IRLS 分段计时（ACSD_UPM_PROFILE=1；默认零开销）：判定每轮成本落在
-// 「正规矩阵分配清零 / 观测装配 / Cholesky / 目标函数」哪一段。n_free =
-// 控制点数 + 2×帧数时 H 是 n_free² 稠密矩阵，逐轮重建的代价可能远大于装配与
-// 求解本身 —— 先量再改。
-struct UpmProfile {
-    double alloc{0.0}, assemble{0.0}, chol{0.0}, objective{0.0};
-    long long nsolve{0};
-    bool on{false};
-    UpmProfile() { const char* v = std::getenv("ACSD_UPM_PROFILE"); on = (v && v[0]=='1'); }
-    ~UpmProfile() {
-        if (!on) return;
-        std::fprintf(stderr, "[upm_profile] n_solve=%lld alloc=%.3fs assemble=%.3fs "
-                     "chol=%.3fs objective=%.3fs total=%.3fs\n",
-                     nsolve, alloc, assemble, chol, objective,
-                     alloc+assemble+chol+objective);
-    }
-};
-
 // Cholesky 解 A x = b（A row-major n×n SPD，按值传入可加 jitter）。b 输出 x。
 bool ma_chol_solve(std::vector<double> A, std::vector<double>& b, int n) {
     if (n <= 0) return true;
@@ -3417,19 +3433,13 @@ int p2_upm_ma_build(const P2UpmMaObservation* obs, std::uint64_t n_obs,
 
     // ---- GN-IRLS（Huber，FZ-UPM-CONVERGENCE）----
     double lambda = 1e-6;
-    UpmProfile upm_prof;
-    const auto t_ob0 = std::chrono::steady_clock::now();
     double obj_old = ma_objective(*m, recs);
-    upm_prof.objective += std::chrono::duration<double>(std::chrono::steady_clock::now() - t_ob0).count();
     int iters = 0;
     for (int iter = 0; iter < cfg.max_iterations; ++iter) {
         ++iters;
         // GN/IRLS 正规矩阵只含 robust 权重 w=ivar*huber（不得叠加统计权重）
-        const auto t_al0 = std::chrono::steady_clock::now();
         std::vector<double> H(m->n_free * m->n_free, 0.0);
         std::vector<double> gv(m->n_free, 0.0);
-        upm_prof.alloc += std::chrono::duration<double>(std::chrono::steady_clock::now() - t_al0).count();
-        const auto t_as0 = std::chrono::steady_clock::now();
         for (const MaObsRec& o : recs) {
             const double gk = m->theta_full[np + (std::size_t)o.fi];
             const double sp = m->theta_full[(std::size_t)o.ci];
@@ -3455,27 +3465,20 @@ int p2_upm_ma_build(const P2UpmMaObservation* obs, std::uint64_t n_obs,
         for (std::size_t j = 0; j < m->n_free; ++j)
             H[j * m->n_free + j] *= (1.0 + lambda);
         std::vector<double> delta = gv;
-        upm_prof.assemble += std::chrono::duration<double>(std::chrono::steady_clock::now() - t_as0).count();
-        const auto t_ch0 = std::chrono::steady_clock::now();
-        ++upm_prof.nsolve;
         if (!ma_chol_solve(H, delta, (int)m->n_free)) {
-            upm_prof.chol += std::chrono::duration<double>(std::chrono::steady_clock::now() - t_ch0).count();
             lambda *= 10.0;
             if (lambda > 1e12) break;
             continue;
         }
         const std::vector<double> theta_before = m->theta_full;
         double maxstep = 0.0;
-        upm_prof.chol += std::chrono::duration<double>(std::chrono::steady_clock::now() - t_ch0).count();
         for (std::size_t j = 0; j < m->n_free; ++j) {
             const double d = delta[j];
             if (!std::isfinite(d)) { maxstep = std::numeric_limits<double>::infinity(); break; }
             m->theta_full[m->full_of_free[j]] += d;
             maxstep = std::max(maxstep, std::fabs(d));
         }
-        const auto t_ob1 = std::chrono::steady_clock::now();
         const double obj_new = ma_objective(*m, recs);
-        upm_prof.objective += std::chrono::duration<double>(std::chrono::steady_clock::now() - t_ob1).count();
         if (std::isfinite(obj_new) && obj_new <= obj_old) {
             obj_old = obj_new;
             lambda = std::max(lambda * 0.3, 1e-12);
