@@ -52,6 +52,9 @@ stale 拒绝 rc = 2。生产 apply 消费链 = lib/infrastructure/scheduler/src/
 | `calibrated_frames` | `DATA-P2-CAL` | 必 | `UnitId::ADU` | `CoordinateFrame::PIXEL` |
 | `corrected` | `DATA-P2-COR` | 可 | `UnitId::ADU` | `CoordinateFrame::PIXEL` |
 
+`upm_model` 端口为 descriptor 的静态声明；生产 apply 节点不打开任何 UPM 模型产物，
+真实依赖 = `p2_sky_plane.bin`（缺面即 fail-closed），端口语义对齐见 DISP-P2UPM-004。
+
 内核级真实I/O合同 = DATA-P2-UPM模型 + DATA-P2-CAL帧 → DATA-P2-COR
 校准输出：**默认语义 = 只扣偏差**（FP64 ADU，保留公共信号面 `B_ref`）；
 sparse / dense 同一科学语义。
@@ -74,7 +77,7 @@ invalid：null 参数 ⇒ rc = 1；未知 frame_id ⇒ `p2_upm_evaluate_c` 返�
 **全仓零消费者**，不列入在役导出。`p2_upm_materialize_dense` 的 wrap 恒传
 `workers = 0` ⇒ **单线程串行，不是 auto**。
 
-生命周期 = open（或 fit 侧 build 产物传递）→ info / dense_info →
+生命周期（内核面）= open（或同进程 build 产物直通）→ info / dense_info →
 calibrate_block / evaluate_c / dense_read_block → materialize → `p2_upm_close`
 （delete Model；nullptr = rc 0 幂等）。模型 / 缓冲所有权 = 调用方。ABI = c++17；
 api_id = API-P2-001。
@@ -87,8 +90,9 @@ integration 消费。
 module_id=`acsd.phase2.upm-apply`（占位）；execution_class=`cpu_heavy`;
 parallel_ok=True（p2_upm_apply_descriptor）。descriptor 派生词汇（其对齐属迁移
 目标，未落地）：SCI-P2-UPM-002 / ALG-P2-UPM-002 / TEST-P2-UPM-002；descriptor
-端口为静态声明的 persist→reload 语义。apply 侧无独立求解配置（消费 fit 侧
-`P2UpmBuildConfig` 的产物模型）；dense 物化 worker 数经 stage2.cpp 与积分一致传入。
+端口为静态声明的 persist→reload 语义。apply 侧无独立求解配置：生产消费 fit 侧落盘的
+公共信号面 `p2_sky_plane.bin`（无 UPM 模型产物参与）；dense 物化 worker 数经
+stage2.cpp 与积分一致传入（内核面）。
 
 | 字段 | 默认 | 单位 | 说明 |
 |---|---|---|---|
@@ -100,9 +104,8 @@ parallel_ok=True（p2_upm_apply_descriptor）。descriptor 派生词汇（其对
 **施加口径的文字正本**：生产施加取 `docs/science/sky/UPM.md`「公式与推导」一节的
 `calibrated = raw − δ_k`（δ_k = δ_poly,k + F_k）。F 由拟合残差构建并去跨帧公共模，
 故 `Σ_k w_k F_k ≡ 0`；实现锚 = 阶段二 apply 节点对 `p2_sky_plane_eval_delta_block`
-的单次求值与扣除（原 `seam.additive_mode` 读取、
-逐帧分块校正场扣除与加回分支均已删除）。逐帧分块校正场（另一条曾被接入的路）
-因跨瓦片不连续、无观测格子取 0 而退出生产，见「已知限制」。
+的单次求值与扣除。逐帧分块校正场
+不在生产扣除链上：它跨瓦片不连续、无观测格子取 0，见「已知限制」。
 
 ## Execution class、并行轴、ThreadBudget lease、确定性
 

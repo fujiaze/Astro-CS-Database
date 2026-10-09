@@ -2,6 +2,10 @@
 
 > 上游：ACSD_DESIGN.md [D-1]「信号面（UPM）」一节（信号面与统一相对模型）
 > 行号与并行表述按源码实测登记；实现级合同见 ALG-P2-UPM-IMPL-001 (docs/science/algorithms/PHASE2_UPM_IMPL.md)
+> 本分册的公式与容差锚定 UPM 内核（`lib/algorithms/coverage/src/upm.cpp`）的 M+C
+> 求解；**生产扣除链不由该内核承载**——生产施加 = `calibrated = raw − δ_k`
+> （逐帧相对公共连续信号面的低阶偏差，见 `docs/science/sky/UPM.md` 与
+> PHASE2_SAMPLER 的施加路径一节）。
 
 ## 1 上游 SCI 与输入输出
 
