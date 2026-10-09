@@ -11332,6 +11332,27 @@ Result<void> p2_op_reject(const Json& doc, Json* man) {
       p.extreme_prior.center_mode = 0;
     plan_cache.emplace(n, p);
   }
+  // ── acsd.large_scale_rejection.v1（大尺度结构生长 / 卫星线 trail 扩张）──
+  // 契约（注册表 reject 页）生命周期 = plan_resolve → gather → stack_ex →
+  // large_scale；此前生产节点只实现前三步，`p2_large_scale_apply` 仅被旧工具
+  // stage2.cpp 调用 ⇒ 卫星线只吃到逐像素核、mask 不扩张，trail 两翼残留。
+  // 现按契约补上最后一步；开关与三个参数经 `reject` 块给（该块在 CLI 白名单内）。
+  // 语义：只增不减（小分量保留），低/高侧独立半径。
+  const Json rej_cfg = (doc.contains("reject") && doc["reject"].is_object())
+                           ? doc["reject"] : Json::object();
+  const Json ls_cfg =
+      (rej_cfg.contains("large_scale") && rej_cfg["large_scale"].is_object())
+          ? rej_cfg["large_scale"] : Json::object();
+  P2LargeScaleParams ls_params{};
+  ls_params.enabled = ls_cfg.value("enabled", 1);
+  ls_params.min_structure_pixels = ls_cfg.value("min_structure_pixels", 8);
+  ls_params.low_grow_radius_pixels = ls_cfg.value("low_grow_radius_pixels", 2);
+  ls_params.high_grow_radius_pixels = ls_cfg.value("high_grow_radius_pixels", 2);
+  if (ls_params.min_structure_pixels < 1) ls_params.min_structure_pixels = 1;
+  if (ls_params.low_grow_radius_pixels < 0) ls_params.low_grow_radius_pixels = 0;
+  if (ls_params.high_grow_radius_pixels < 0) ls_params.high_grow_radius_pixels = 0;
+  const bool ls_active = ls_params.enabled != 0;
+
   // 各帧 support 层（逐像素几何 n 的唯一来源）: corrected 数据面 NaN 无法区分
   // "无覆盖"与"覆盖但信号非有限", 故不得以 corrected finiteness 冒充覆盖。
   std::vector<AioHipsDataset*> fsup(frames.size(), nullptr);
@@ -11504,6 +11525,13 @@ Result<void> p2_op_reject(const Json& doc, Json* man) {
     // 映射到 eligible 样本的原始 slot（src_idx 权威, compact→original）。
     std::vector<uint8_t> tile_mask(
         static_cast<size_t>(depth) * static_cast<size_t>(tile_span), 0);
+    // large_scale（trail 扩张）用的逐帧低/高侧拒绝 mask（frame-major，与
+    // tile_mask 同布局）。只有 ls_active 时才真正填。
+    std::vector<uint8_t> ls_lo, ls_hi;
+    if (ls_active) {
+      ls_lo.assign(static_cast<size_t>(depth) * static_cast<size_t>(tile_span), 0);
+      ls_hi.assign(static_cast<size_t>(depth) * static_cast<size_t>(tile_span), 0);
+    }
     uint64_t l_acc_total = 0, l_rej_low = 0, l_rej_high = 0, l_rej_samp = 0;
     uint64_t l_undet_low = 0, l_undet_tot = 0;
     std::vector<double> compact_vals;  // kernel 候选栈（工作缓冲）
@@ -11582,8 +11610,14 @@ Result<void> p2_op_reject(const Json& doc, Json* man) {
           if (ok_s) acc = 1;
           else ++l_rej_samp;
           const uint32_t slot_s = src_idx[s];
-          if (slot_s < depth)
-            tile_mask[static_cast<size_t>(slot_s) * tile_span + p] = ok_s ? 1 : 0;
+          if (slot_s < depth) {
+            const std::size_t bi = static_cast<size_t>(slot_s) * tile_span + p;
+            tile_mask[bi] = ok_s ? 1 : 0;
+            if (ls_active) {
+              if (reasons[s] == P2_REASON_REJECTED_LOW) ls_lo[bi] = 1;
+              else if (reasons[s] == P2_REASON_REJECTED_HIGH) ls_hi[bi] = 1;
+            }
+          }
         }
         nrej = static_cast<uint16_t>(dec.rejected_low + dec.rejected_high);
         l_rej_low += dec.rejected_low;
@@ -11614,6 +11648,45 @@ Result<void> p2_op_reject(const Json& doc, Json* man) {
       l_acc_total += acc;
       if (cand > 0 && (cand <= plan.underdetermined_n ||
                        cand < static_cast<std::uint32_t>(plan.minimum_n))) ++l_undet_tot;
+    }
+    if (ls_active) {
+      // 契约最后一步：对每帧 low/high mask 做 connected-component 生长
+      // （只增不减；tile 内 leaf 索引与栅格只差转置+翻转 ⇒ 8-邻接保持）。
+      if (p2_large_scale_apply(ls_lo.data(), ls_hi.data(), 512, 512,
+                               static_cast<int>(depth), &ls_params) != 0) {
+        t_errd[ti_s] = static_cast<int>(ErrorDomain::INTERNAL);
+        t_err[ti_s] = std::string("p2_large_scale_apply failed (tile ") +
+                      std::to_string(tip) + ")";
+        return;
+      }
+      // 二次投影：生长只增不减 ⇒ 重新求 accepted / nrej 与计数。
+      // 资格 = 原 accepted 或 新被拒（tile_mask 为 0 且两侧 mask 也为 0 = 未入栈）。
+      l_acc_total = 0;
+      l_rej_low = 0;
+      l_rej_high = 0;
+      l_rej_samp = 0;
+      for (uint64_t p = 0; p < tile_span; ++p) {
+        uint16_t nr = 0;
+        uint8_t any_acc = 0;
+        for (size_t d = 0; d < depth; ++d) {
+          const std::size_t bi = d * static_cast<size_t>(tile_span) + p;
+          const bool rej = (ls_lo[bi] != 0) || (ls_hi[bi] != 0);
+          const bool elig = rej || (tile_mask[bi] != 0);
+          if (!elig) continue;
+          if (rej) {
+            ++nr;
+            tile_mask[bi] = 0;
+            if (ls_lo[bi] != 0) ++l_rej_low;
+            else ++l_rej_high;
+          } else {
+            any_acc = 1;
+          }
+        }
+        accepted_bin[base + p] = any_acc;
+        nrej_bin[base + p] = nr;
+        l_acc_total += any_acc;
+        l_rej_samp += nr;
+      }
     }
     std::memcpy(sample_mask.data() + rt.mask_off, tile_mask.data(), tile_mask.size());
     t_acc[ti_s] = l_acc_total;
@@ -11714,7 +11787,7 @@ Result<void> p2_op_reject(const Json& doc, Json* man) {
       prior_unavailable_pixels > 0 ? "prior_sigma_unavailable" : "none";
   const std::string out_path = out_dir + "/p2_rejection.json";
   Json artifact = Json{{"schema", "DATA-P2-REJ"},
-                       {"entry", "p2_reject_plan_resolve_n/p2_collect_candidate_stack/p2_reject_stack_ex"},
+                       {"entry", "p2_reject_plan_resolve_n/p2_collect_candidate_stack/p2_reject_stack_ex/p2_large_scale_apply"},
                        {"profile", profile},
                        // 低 n（几何 n<=3）实际不排异 = 不排异 + 加权积分。
                        {"low_n_policy", "underdetermined_no_rejection"},
@@ -11760,6 +11833,15 @@ Result<void> p2_op_reject(const Json& doc, Json* man) {
                                      {"fallback", fallback_token}}},
                        {"plans", plans_j},
                        {"geometric_n_source", "frame_support_gt0"},
+                       // acsd.large_scale_rejection.v1：契约生命周期的最后一步
+                       // （connected-component 生长 / trail 扩张）。此前生产节点
+                       // 未接；现按契约接入，参数与生效值如实登记。
+                       {"large_scale",
+                        Json{{"enabled", ls_active},
+                             {"semantic_id", P2_SEMANTIC_LARGE_SCALE},
+                             {"min_structure_pixels", ls_params.min_structure_pixels},
+                             {"low_grow_radius_pixels", ls_params.low_grow_radius_pixels},
+                             {"high_grow_radius_pixels", ls_params.high_grow_radius_pixels}}},
                        {"prior_unavailable_pixels", prior_unavailable_pixels},
                        {"tile_leaf_span", tile_span},
                        {"n_pixels", n_pixels_processed},

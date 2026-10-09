@@ -136,20 +136,23 @@ reason / status 三处定义段）。
 核心 symbol（rejection.h 声明、rejection.cpp 定义）：`p2_reject_plan_resolve`
 （AUTO 路由**唯一**解析点）、`p2_eligibility_filter`、
 `p2_collect_candidate_stack`（生产 strided gather）、`p2_reject_stack_ex`
-（生产入口）、`p2_rejection_semantic_id`、`p2_large_scale_apply`（生产 stage2
-唯一调用点）；compat 入口 `p2_reject_stack`（仅测试路径调用，同头文件有冻结注释
+（生产入口）、`p2_rejection_semantic_id`、`p2_large_scale_apply`（生产调用点 =
+调度器排异节点 `p2_op_reject`）；compat 入口 `p2_reject_stack`（仅测试路径调用，同头文件有冻结注释
 「生产 Stage2 不调用」）。
 
-生命周期 = 调用方顺序 `plan_resolve → gather → stack_ex → large_scale`；无
-create / destroy，无状态纯函数（reentrant）。
+生命周期 = 调用方顺序 `plan_resolve → gather → stack_ex → large_scale`；生产节点
+`p2_op_reject` 按此顺序**四步全接**（large_scale 由 `reject` 块开关与三参数控制，
+缺省开）；无 create / destroy，无状态纯函数（reentrant）。
 
 ## Registry descriptor 与配置 schema
 
 module_id=`acsd.phase2.reject`（占位）；execution_class=`cpu_heavy`;
 parallel_ok=True。配置面 = lib/algorithms/coverage/include/astro/phase2/stage2_common.h
 的 `reject_method` / `reject_profile` / `reject_underdetermined_n` /
-`reject_normalization`（+ floor 1e-12）/ `large_scale_*`；typed params 的唯一默认
-源 = cfg（stage2.cpp）。
+`reject_normalization`（+ floor 1e-12）；生产三命令面另有 `reject` 块
+`large_scale{enabled, min_structure_pixels, low_grow_radius_pixels,
+high_grow_radius_pixels}`（与旧工具面同一文法），缺省 1 / 8 / 2 / 2，
+实现 = `p2_op_reject`；缺省开是生产口径（旧工具面缺省关），见已知限制。
 
 | 字段 | 默认 | 单位 | 说明 |
 |---|---|---|---|
@@ -229,6 +232,11 @@ Oracle 面：
   NO_CANDIDATES」与实现 MIN_SAMPLES 的口径差（NO_CANDIDATES 属积分域，语义
   权威 = 排异算法分册的逐公式定义一节）；SCI行号锚漂移（行号权威 = ALG实测）；minmax
   比较器 value-only tie-break 未显式冻结；整改面未落地；
+- **large_scale 缺省值两处口径**：旧工具面（`integration.rejection.large_scale`，
+  stage2_common.h）缺省 `enabled=false`（WBPP 2.5.9 默认）；三命令面（`reject`
+  块，`p2_op_reject`）缺省 `enabled=1`。生产选 1 的理由：卫星线的亮核虽被逐像素
+  核拒绝，但 mask 不扩张时 trail 两翼残留；契约生命周期本就含 large_scale 一步，
+  此前生产节点未接。要回到旧缺省，显式给 `reject.large_scale.enabled = 0`；
 - 目标交付形态 acsd_p2_rejection.dll 未落地；descriptor 占位 module_id 与合同
   值 `acsd.p2.rejection` 的对齐属迁移目标（未落地）；
 - 全局限制登记 = artifacts/evidence/known-limitations-ledger/LIMITATIONS.md。
