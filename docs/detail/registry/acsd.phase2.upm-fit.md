@@ -292,7 +292,7 @@ hardware_concurrency 自行开线程。**0 = 单线程串行**、1 = 单线程 r
 worker 数无关、同 worker 数位精确）；gauge / 连通分量 / 收敛 / 归并固定顺序；稠密
 缓存 bit-identical。
 
-另落地信号面装配逐帧分片并行与 UPM 轮内常驻线程池（`lib/algorithms/coverage/src/sky_plane.cpp` / `upm.cpp`，worker 数由调用方传 lease，`workers = 1` 恒走串行 reference）：装配循环按帧分片（帧只读本帧输入，各 worker 持局部分片，join 后按帧下标升序串行归约；帧内求值顺序与串行一致）⇒ 声明 **1e-8 相对容差**上界，不宣称位精确；常驻池一次 build 建池、全部 IRLS 轮次复用，不跨 build 常驻（`cpu_workers ≤ 1` 退化串行直调；下标轴动态切分领取）⇒ 同配置重复运行位精确，跨 worker 数为冻结的 1e-12 绝对容差（口径不变）。
+另落地 CG 热循环的邻接表扁平 CSR 镜像（`m->adj` 内容与顺序不动、镜像行内逐元素一致 ⇒ 位精确，仅改善访存；同时把 `Ap` 缓冲提到 CG 循环外复用）、信号面装配逐帧分片并行与 UPM 轮内常驻线程池（`lib/algorithms/coverage/src/sky_plane.cpp` / `upm.cpp`，worker 数由调用方传 lease，`workers = 1` 恒走串行 reference）：装配循环按帧分片（帧只读本帧输入，各 worker 持局部分片，join 后按帧下标升序串行归约；帧内求值顺序与串行一致）⇒ 声明 **1e-8 相对容差**上界，不宣称位精确；常驻池一次 build 建池、全部 IRLS 轮次复用，不跨 build 常驻（`cpu_workers ≤ 1` 退化串行直调；下标轴动态切分领取）⇒ 同配置重复运行位精确，跨 worker 数为冻结的 1e-12 绝对容差（口径不变）。
 
 ## 内存/cache/I-O/所有权
 
