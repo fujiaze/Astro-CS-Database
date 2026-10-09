@@ -414,7 +414,8 @@ P2_API int p2_reject_stack_ex(const P2CandidateStack* stack,
 // 逐 stack 解析 + 执行由调用方分两步完成：p2_reject_plan_resolve_n 解析，
 // p2_reject_stack_ex 执行。合成入口已撤下（全仓零消费者）。
 
-// 大尺度 grow 后处理（生产 stage2 唯一调用点）。
+// 大尺度 grow 后处理（生产调用点 = 调度器排异节点 p2_op_reject，
+// 契约生命周期 plan_resolve → gather → stack_ex → large_scale 的最后一步）。
 // low/high 为 frame-major 每帧 width*height 字节（1=rejected），原地修改。
 // 仅扩张"分量大小 >= min_structure_pixels"的结构；低/高侧独立半径。
 // 返回 0=OK；参数非法返回 1（err 可空）。
