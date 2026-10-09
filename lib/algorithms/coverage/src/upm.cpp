@@ -1067,6 +1067,17 @@ static int build_impl(const P2ControlObservation* obs, std::uint64_t n_obs,
     // （逐行累加顺序不变 ⇒ 浮点结果位精确），`m->adj` 本身保持原样不动 —— 它的
     // 内容与顺序进了几何哈希（见本 TU 内 geometry hash 注释），改它会改变对外
     // 模型 hash。
+    // 实验旋钮（候选对比用，缺省 = 冻结值 200）：内层 CG 迭代上限。
+    // 用途：验证「内层被截断是否让外层块坐标多跑几十倍轮数」这一假设。
+    // 生产缺省不变；调参结果只作候选对比依据，落地前须走容差类准入。
+    const std::size_t cg_max_cfg = [] {
+        const char* v = std::getenv("ACSD_UPM_CG_MAX");
+        if (!v) return std::size_t{200};
+        char* e = nullptr;
+        const long n = std::strtol(v, &e, 10);
+        return (e != v && n > 0) ? static_cast<std::size_t>(n) : std::size_t{200};
+    }();
+    const std::size_t max_cg_dummy = cg_max_cfg;
     std::vector<std::size_t> adj_off(K + 1, 0);
     for (std::size_t k = 0; k < K; ++k)
         adj_off[k + 1] = adj_off[k] + m->adj[k].size();
@@ -1078,7 +1089,8 @@ static int build_impl(const P2ControlObservation* obs, std::uint64_t n_obs,
                               const std::vector<double>& rhs) {
         // (W + λs L + λ0 I) x = rhs；未知数 = 覆盖该帧的 control 子集
         // 简化为全 K 维 CG（K 几千，100 迭代可控）
-        const std::size_t max_cg = 200;
+        const std::size_t max_cg = cg_max_cfg;
+        (void)max_cg_dummy;
         ++upp.cg_solves;
         // 每轮目标随 M 更新变化：从 0 开始解，避免沿用旧解
         std::fill(x.begin(), x.end(), 0.0);
