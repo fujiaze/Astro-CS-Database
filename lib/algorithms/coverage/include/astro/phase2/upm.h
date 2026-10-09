@@ -185,10 +185,8 @@ P2_API int p2_upm_calibrate_block(
 P2_API double p2_upm_evaluate_c(const void* model, std::uint64_t frame_id,
                                 std::uint64_t leaf_ipix);
 
-// task-8：纯 C 场求值（不含 ms 叠加；delta 模式加回段专用）。
-// 缺省（ms 关闭）与 p2_upm_evaluate_c 逐位一致；ms 启用时返回 C 纯场。
-P2_API double p2_upm_evaluate_c_plain(const void* model, std::uint64_t frame_id,
-                                      std::uint64_t leaf_ipix);
+// 声明已撤下：p2_upm_evaluate_c_plain（全仓零消费者；它唯一服务的是「delta 加回
+// 段取纯 C 场」，生产扣除改为公共信号面 δ_k = b_k − B_ref 后该段不再存在）。
 
 // 观测 raw weight（production UPM 权重公式，单一实现）。
 // production（cfg.use_ivar_weight != 0，SCI-UPM-WEIGHT-001）：
@@ -406,13 +404,15 @@ P2_API int p2_upm_ma_provenance(
     const void* model, char* out_json, std::size_t buf_size);
 
 // ===========================================================================
-// 生产链（p2_upm_build_geo）的可辨识性与拟合诊断 —— 只读访问器
+// 可辨识性与拟合诊断的**持久化形状**（P2UpmIdentifiability）
 // ===========================================================================
-// 背景：生产链走冻结的 p2_upm_build_geo（坐标下降 Huber IRLS），**不是** V6
-// MA 求解器，而 P2ModelInfo（本文件 :60-68）没有 rank/kappa 访问器。此前
-// p2_upm_model.json 只能把 rank/kappa 记成 null + 「不可得原因」。
+// 背景：生产拟合入口是 p2_sky_plane_build_joint 的公共信号面联合解（坐标下降
+// Huber IRLS），**不是** V6 MA 求解器；该诊断由 P2ModelInfo（本文件 :62-70）之外
+// 的这段携带，随模型文件持久化（p2_upm_save 写 `identifiability` 段、p2_upm_open
+// 读回）。**其公开只读访问器已退役**（见本结构下方的退役说明）：现存端口只有模型
+// 文件本身，消费者按该 JSON 段读。
 //
-// 本访问器用**同一个判据函数**（astro/phase2/identifiability.h）在**生产求解器
+// 判据用**同一个判据函数**（astro/phase2/identifiability.h）在**生产求解器
 // 实际面对的法方程**上算判决：
 //   · 生产默认 λs = smoothing_lambda = 0 ⇒ 联合法方程在 (M_k, C_{f,k}) 参数化下
 //     **按 control 分块对角**（每个观测只耦合「本 control 的 M」与「本帧的 C」），
@@ -448,19 +448,15 @@ typedef struct {
     int coupling_assembled;              // 0 = λs>0 时块间耦合未装配（边界登记）
 } P2UpmIdentifiability;
 
-// 取回上述诊断。model 为 p2_upm_build / p2_upm_build_geo 返回的模型（也可为
-// p2_upm_open 打开的模型：诊断随模型持久化）。返回 0=ok；1=参数错误或该模型
-// 未记录诊断（旧模型文件）。
-P2_API int p2_upm_identifiability(const void* model, P2UpmIdentifiability* out);
+// 声明已撤下：p2_upm_identifiability（全仓零消费者；最后一个调用点是 upm-fit
+// 节点内的 UPM 装配块，随该模型于 a1fae494 退役一并移除）。诊断本体与落盘字段
+// 一字未动：本结构即 `p2_upm_save` 写出的 `identifiability` 段（`p2_upm_open`
+// 读回）的形状定义。
 
-// **不收敛/判红的产品级警告块**（报警告，不影响运行，不 fail-closed）。
-// 输出可直接并入产品 JSON 的机器可检标记，形如：
-//   {"warnings":[{"code":"P2-UPM-NOT-CONVERGED","severity":"warning",...}],
-//    "warning_codes":["P2-UPM-NOT-CONVERGED"],"upm_converged_warning":true,...}
-// 语义：**只描述状态，不改变 rc**（构建仍成功）。下游/CI 按 warning_codes 判定。
-// 无警告时 warnings 为空数组、warning_codes 为空数组。
-// 返回 0=ok（含「无警告」）；1=参数错误；2=缓冲区不足（out_json 写空串）。
-P2_API int p2_upm_warnings_json(const void* model, char* out_json, std::size_t buf_size);
+// 声明已撤下：p2_upm_warnings_json（全仓零消费者；最后一个调用点随 UPM 加性联合
+// 模型于 a1fae494 退役一并移除）。语义未变、落点改成唯一一处：不收敛/判红的产品
+// 级告警仍由 `p2_upm_save` 写进模型文件，**只描述状态、不改变 rc**（构建仍成功），
+// 下游/CI 按产物里的 warning 标记判定。
 
 P2_API void p2_upm_ma_close(void* model);
 

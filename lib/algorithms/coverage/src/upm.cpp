@@ -518,13 +518,10 @@ static UpmMsConfig upm_ms_config_resolve(const P2UpmBuildConfig& cfg) {
     if (!(c.thresh >= 1.5) || !std::isfinite(c.thresh)) c.thresh = 1.5;
     return c;
 }
-inline UpmMsConfig upm_ms_config_from_env() {
-    P2UpmBuildConfig d{};
-    d.ms_enabled = 0;
-    d.ms_sigma_px = 16.0;
-    d.ms_thresh = 2.0;
-    return upm_ms_config_resolve(d);
-}
+/* RETIRED 2026-10-09 (P5-REDO 任务二 / 死码清理): upm_ms_config_from_env 定义已删
+   —— 全仓零调用者。ms 配置的唯一解析入口是 upm_ms_config_resolve(cfg)（build 侧
+   调用），ACSD_UPM_MS_* 环境变量覆写已内含于该函数，故「只从环境变量构造」这条
+   第二入口没有任何消费者。删除为纯删减：不触及任何缺省值。 */
 
 // control 平滑邻接图的**唯一**构造算子。build（求解）与 open（读回模型）
 // 必须走同一份代码，否则 save→open 往返会静默换掉平滑约束：|adj| 进
@@ -2179,7 +2176,7 @@ static int build_impl(const P2ControlObservation* obs, std::uint64_t n_obs,
         m->ident_valid = 1;
 
         // ---- 不收敛/不可辨识 ⇒ **stderr 警告**（报警告，不阻塞）----
-        // 构建 rc 不变（产品照出）；警告同时写进产品（p2_upm_save / p2_upm_warnings_json），
+        // 构建 rc 不变（产品照出）；警告同时写进产品（p2_upm_save 的落盘面），
         // 这里只是让跑批的人**立刻**在终端看到，不用等产品解析。
         if (m->converged != 1) {
             std::fprintf(stderr,
@@ -2256,8 +2253,8 @@ int p2_upm_save(const void* model, const char* path) {
     j["component_count"] = m->component_count;
     j["geometry_component_count"] = m->geometry_component_count;
     j["unobserved_geometry_nodes"] = m->unobserved_geometry_nodes;
-    // 唯一可辨识性判据 + 拟合诊断 + 产品级警告（§7a；报警告不阻塞）。
-    // 写进模型文件（= 产品 artifact，manifest 的 upm_model_bin）使下游/CI 可机检。
+    // 唯一可辨识性判据 + 拟合诊断 + 产品级告警（§7a；告警不阻塞）。
+    // 一并写进模型文件（p2_upm_save 的落盘面），使下游/CI 可直接从产物机检。
     if (m->ident_valid) {
         const P2UpmIdentifiability& d = m->ident;
         j["identifiability"] = {
@@ -2691,87 +2688,16 @@ int p2_upm_info(const void* model, P2ModelInfo* out_info) {
     return 0;
 }
 
-// 唯一可辨识性判据 + 拟合诊断的只读访问器（不改 P2ModelInfo 冻结布局）。
-int p2_upm_identifiability(const void* model, P2UpmIdentifiability* out) {
-    if (model == nullptr || out == nullptr) return 1;
-    const Model* m = static_cast<const Model*>(model);
-    if (!m->ident_valid) return 1;   // 旧模型文件未记录 ⇒ 具名不可得，不猜
-    *out = m->ident;
-    return 0;
-}
+/* RETIRED 2026-10-09 (P5-REDO 任务二 / 死码清理): p2_upm_identifiability 定义已删
+   —— 全仓零调用者：a1fae494 移除 upm-fit 节点内的 UPM 装配块后，最后一个调用点
+   一并消失。诊断本体不受影响：它仍由 p2_upm_save 写进模型文件的 `identifiability`
+   段、由 p2_upm_open 读回，结构 P2UpmIdentifiability 保留为该落盘段的形状定义
+   （见 upm.h）。删除只去掉没有人调用的 C 入口，不改任何落盘字段。 */
 
-// 产品级警告块（报警告，不影响运行；不 fail-closed）。
-// 判据只描述状态：converged != 1 ⇒ P2-UPM-NOT-CONVERGED；
-// ident_valid && !identifiable ⇒ P2-UPM-NOT-IDENTIFIABLE。
-// 两个码都**不改变** p2_upm_build* 的 rc。
-int p2_upm_warnings_json(const void* model, char* out_json, std::size_t buf_size) {
-    if (model == nullptr || out_json == nullptr || buf_size == 0) return 1;
-    out_json[0] = '\0';
-    const Model* m = static_cast<const Model*>(model);
-    nlohmann::json j;
-    nlohmann::json warn = nlohmann::json::array();
-    nlohmann::json codes = nlohmann::json::array();
-    if (m->converged != 1) {
-        codes.push_back("P2-UPM-NOT-CONVERGED");
-        nlohmann::json w = {
-            {"code", "P2-UPM-NOT-CONVERGED"},
-            {"severity", "warning"},
-            {"meaning", "IRLS did not reach tolerance within max_iterations; "
-                        "product is still emitted (owner ruling: warn, do not block)"},
-            {"converged", m->converged},   // 0=max_iter 1=converged 2=stalled 3=invalid
-            {"iterations", m->iterations},
-            {"objective", m->objective},
-            {"rel_improve", m->rel_improve},
-            {"scale_obs", m->scale_obs},
-            {"stall_count", m->stall_count}};
-        if (m->ident_valid) {
-            w["rank_eff"] = m->ident.rank_eff;
-            w["n_params"] = m->ident.n_params;
-            w["n_unidentified"] = m->ident.n_unidentified;
-            w["kappa"] = std::isfinite(m->ident.kappa) ? nlohmann::json(m->ident.kappa)
-                                                       : nlohmann::json(nullptr);
-            w["chi2_red"] = m->ident.chi2_red_defined ? nlohmann::json(m->ident.chi2_red)
-                                                      : nlohmann::json(nullptr);
-            w["chi2_red_defined"] = m->ident.chi2_red_defined;
-            w["dof_eff"] = m->ident.dof_eff;
-            w["chi2"] = m->ident.chi2;
-        }
-        warn.push_back(w);
-    }
-    if (m->ident_valid && !m->ident.identifiable) {
-        codes.push_back("P2-UPM-NOT-IDENTIFIABLE");
-        warn.push_back({{"code", "P2-UPM-NOT-IDENTIFIABLE"},
-                        {"severity", "warning"},
-                        {"meaning", "r_eff < n_params at tau = rank_rtol: some parameter "
-                                    "directions are not constrained by the data; "
-                                    "product is still emitted (report-only on this path)"},
-                        {"rank_eff", m->ident.rank_eff},
-                        {"n_params", m->ident.n_params},
-                        {"n_unidentified", m->ident.n_unidentified},
-                        {"n_unidentified_raw", m->ident.n_unidentified_raw},
-                        {"n_blocks_rank_deficient", m->ident.n_blocks_rank_deficient},
-                        {"n_blocks_gauge_pinned", m->ident.n_blocks_gauge_pinned},
-                        {"n_blocks_single_frame", m->ident.n_blocks_single_frame},
-                        {"n_unobserved_geometry_nodes", m->ident.n_unobserved_geometry_nodes},
-                        {"rank_rtol_effective", m->ident.rank_rtol_effective},
-                        {"kappa", std::isfinite(m->ident.kappa)
-                                      ? nlohmann::json(m->ident.kappa)
-                                      : nlohmann::json(nullptr)},
-                        {"chi2", m->ident.chi2},
-                        {"chi2_red", m->ident.chi2_red_defined ? nlohmann::json(m->ident.chi2_red)
-                                                                : nlohmann::json(nullptr)},
-                        {"chi2_red_defined", m->ident.chi2_red_defined},
-                        {"dof_eff", m->ident.dof_eff}});
-    }
-    j["warnings"] = warn;
-    j["warning_codes"] = codes;
-    j["upm_converged_warning"] = (m->converged != 1);
-    j["upm_identifiable_warning"] = (m->ident_valid && !m->ident.identifiable);
-    const std::string s = j.dump();
-    if (s.size() + 1 > buf_size) return 2;
-    std::memcpy(out_json, s.c_str(), s.size() + 1);
-    return 0;
-}
+/* RETIRED 2026-10-09 (P5-REDO 任务二 / 死码清理): p2_upm_warnings_json 定义已删
+   —— 全仓零调用者：a1fae494 之后没有任何调用点。语义不受影响：产品级告警仍由
+   p2_upm_save 写进模型文件（报警告、不改变 rc）；本函数只是同一判据的第二个
+   JSON 序列化入口，删掉它不改变任何产物的字段与取值。 */
 
 // M7-H-101：迭代收敛状态的只读访问器（不改 P2ModelInfo 冻结布局）。
 int p2_upm_convergence(const void* model, std::uint64_t* out_iterations,
@@ -2846,25 +2772,11 @@ double p2_upm_evaluate_c(const void* model, std::uint64_t frame_id,
     return evaluate_c_field(m, fi, tile, (int)x, (int)y);
 }
 
-// task-8：纯 C 场求值（不含 ms 叠加；delta 模式加回段专用）。
-// 缺省（ms 关闭）与 p2_upm_evaluate_c 逐位一致（ms 项恒 0）。
-double p2_upm_evaluate_c_plain(const void* model, std::uint64_t frame_id,
-                               std::uint64_t leaf_ipix) {
-    if (model == nullptr) return std::numeric_limits<double>::quiet_NaN();
-    const Model* m = static_cast<const Model*>(model);
-    const auto it = m->frame_index.find(frame_id);
-    if (it == m->frame_index.end())
-        return std::numeric_limits<double>::quiet_NaN();
-    const std::size_t fi = it->second;
-    const int tile_shift = 9;
-    const std::uint64_t mask = (1ULL << (2u * (unsigned)tile_shift)) - 1ULL;
-    const std::uint64_t tile = leaf_ipix >> (2u * (unsigned)tile_shift);
-    const std::uint64_t local = leaf_ipix & mask;
-    std::uint32_t x = 0, y = 0;
-    acsd::healpix::nested_local_to_xy(local, (std::uint32_t)tile_shift,
-                                         x, y);
-    return evaluate_c_field_plain(m, fi, tile, (int)x, (int)y);
-}
+/* RETIRED 2026-10-09 (P5-REDO 任务二 / 死码清理): p2_upm_evaluate_c_plain 定义已删
+   —— 全仓零调用者。它唯一的用途是 delta 加回段取「不含 ms 叠加的纯 C 场」；生产
+   扣除改为公共信号面（δ_k = b_k − B_ref，走 p2_sky_plane_eval_delta_block）后，
+   UPM C 场不再参与任何计算，该「纯 C」变体没有消费者。内部同义函数
+   evaluate_c_field_plain 仍被 evaluate_c_field 使用，故保留。 */
 
 // production UPM 观测 raw weight（单一实现，build 内部复用）
 int p2_upm_raw_weight(const P2ControlObservation* obs,
