@@ -408,7 +408,15 @@ typedef struct {
 // 自适应回路配置。默认值见 p2_sky_plane_default_adaptive_config。
 // **没有任何标定常数**：搜索区间由输入几何给，判据是相对量。
 typedef struct {
-    int    enabled;                   // 0=关闭（单次求解）；默认 1
+    // **现状：本字段不被任何实现读取（静默 no-op）**。p2_sky_plane_build_adaptive
+    // 无条件走有界自适应回路，`enabled=0` 不会退回单次求解；要单次求解只能把
+    // max_attempts 置 1、max_node_refinements 置 0。p2_sky_plane_default_adaptive_config
+    // 仍把它写成 1，是本结构里唯一的写入点（读取点为零）。
+    // 字段保留在位的原因：本结构以指针跨模块 C ABI 传递（PUBLIC_API.md「C ABI 声明
+    // 面与生产调用面」），删字段会改变 struct 布局（后续四个成员的偏移全变），属
+    // 破坏性 ABI 变更，须走显式变更流程；登记见
+    // 实验/additive-sky-seamless/docs/D3-D5-adjudication.md 的 D3D5-FIX-1。
+    int    enabled;
     int    max_attempts;              // 总尝试上限（含首次）；<=0 → 默认 6
     int    max_node_refinements;      // 细化次数上限；<0 → 默认 4
     int    max_node_coarsenings;      // 放粗次数上限；<0 → 默认 4

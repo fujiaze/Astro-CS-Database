@@ -20,8 +20,9 @@
 //   原工厂委托 P2Api session adapter = 子节点调用完整 p2_session_run 违规）:
 //   coverage   → p2_coverage_build         (lib/algorithms/coverage C ABI, 两阶段容量协议)
 //   sample     → p2_frame_id + p2_sample_controls_cached (两阶段查询/回填)
-//   upm-fit    → p2_upm_build_geo + p2_upm_save          (production ivar 权重)
-//   upm-apply  → p2_upm_open + p2_upm_calibrate_block    (帧 HiPS signal 真读)
+//   upm-fit    → p2_sky_plane_build_joint                (公共信号面联合解)
+//   upm-apply  → p2_sky_plane_open + p2_sky_plane_eval_delta_block
+//                                                        (帧 HiPS signal 真读)
 //   reject     → p2_reject_plan_resolve + p2_collect_candidate_stack
 //                + p2_reject_stack_ex (AUTO 只在 planning 层解析)
 //   integrate  → p2_validate_candidate_weights + p2_integrate_pixel
@@ -32,8 +33,11 @@
 // 子节点一律不调用完整 phase_session_run; operation/entry 名与
 // lib/infrastructure/pipeline/module_ports.registry.json 冻结绑定表一致。
 // 节点间 typed artifact 经 output_dir 文件约定传递（p2_coverage.json →
-// p2_samples.json → p2_upm_model.{bin,json} → p2_corrected.{json,bin} →
+// p2_samples.json → p2_sky_plane.bin → p2_corrected.{json,bin} →
 // p2_rejection.{json,bin} → p2_integrated.{json,bin} → mosaic HiPS + p2_final.json）。
+// UPM 加性联合模型（p2_upm_model.{bin,json}）已于 a1fae494 退役，不在产物链上；
+// 模型端口表（p2_upm_fit/apply descriptor 的 `upm_model` 键）沿用旧名待随契约改，
+// 属待改项，不改本文件行为。
 #include "acsd/core/module_adapters.h"
 
 // DET-001: 规范产品哈希（canonical product hash）—— 产品指纹口径的唯一实现
@@ -10002,9 +10006,11 @@ Result<void> p2_op_sample(const Json& doc, Json* man) {
   return Result<void>::success();
 }
 
-// ── op: fit_upm（唯一真实入口 p2_upm_build_geo + p2_upm_save; production
-//      control_ivar 权重（SCI-UPM-WEIGHT-001, use_ivar_weight=1 冻结;
-//      control_ivar<=0/非有限 → 生产模式显式拒绝, 禁静默回退））──
+// ── op: fit_upm（唯一真实入口 p2_sky_plane_build_joint：联合拟合公共信号面 B_ref
+//      + 逐帧低阶偏差 δ_poly,k + 去跨帧公共模的逐帧残差场 F_k；生产施加 =
+//      δ_k = b_k − B_ref）。本节点名字与阶段列表不变，仍建信号面；UPM 加性联合
+//      模型的 M+C 块坐标求解（p2_upm_build_geo → p2_upm_save 整块）已于 a1fae494
+//      退役 —— 其数值输出在生产链零消费者。──
 Result<void> p2_op_upm_fit(const Json& doc, Json* man) {
   const std::string out_dir = doc.value("output_dir", std::string("."));
   Json smp_doc;
@@ -10363,8 +10369,9 @@ Result<void> p2_op_upm_fit(const Json& doc, Json* man) {
 
 // ── upm-apply 共用: 读单帧全部 tile 的 signal/support, 生成 leaf 升序
 //    (tile_ipix 升序 × tile 内 NESTED local 升序) 的 valid 像素校正集。
-//    唯一真实入口 p2_upm_calibrate_block（冻结核心接口）; 每帧每 tile
-//    恰好一次块调用; support<=0/非 finite 像素不进校正（保留 NaN 占位,
+//    施加口径 = 公共信号面：δ_k = δ_poly,k + F_k = b_k − B_ref，每帧每 tile 经
+//    p2_sky_plane_eval_delta_block 求值一次（UPM C 场分块求值路 p2_upm_calibrate_block
+//    随该模型于 a1fae494 退役）；support<=0/非 finite 像素不进校正（保留 NaN 占位,
 //    下游 integrate 面按 §30 invalid policy 收敛 NaN）。──
 struct P2FrameTiles {
   // 每 tile: {tile_ipix, leaves(valid), corrected(valid 位置回填)}; bin 内
@@ -13022,17 +13029,18 @@ bool declare_hips_surface_brightness_units(const std::string& product_root,
 //   :219 provenance 最小集：gauge_mode、每分量 ref_frame_id、rank、rank_rtol、
 //            kappa、kappa_max、k_corr、model_hash、any_fail_closed_reason。
 // 落点（自定）：阶段二**产品级摘要** p2_final.json（DATA-P2-RES）新增 phase2_audit
-//   块，内容从磁盘产品 **读回**（p2_sky_plane.bin 是求解器自己落盘的 §7a 记录，
-//   JSON 文本；p2_upm_model.json 是模型面），不做节点间内存传递。
+//   块，内容从磁盘产品 **读回**（p2_sky_plane.bin 是求解器自己落盘的 §7a 记录与
+//   模型面，JSON 文本），不做节点间内存传递。
 //
 // 两个求解器的口径必须**分开登记**（§7a:205-216「κ 上限是两个不同求解器的两个不同
 // 口径，必须逐求解器写明」）:
 //   ① 天光面样条求解器 p2_sky_plane_build_adaptive：κ 门 kappa_max 由 rank_rtol
 //      派生（见 kappa_max_source），实测 M42 κ=3.35e8；
 //   ② UPM/GLS 正规矩阵 p2_upm_ma_build：冻结 FZ-AP2S-KAPPA-MAX=1e6 —— 但**生产链
-//      不调用该求解器**（生产入口是冻结的 p2_upm_build_geo，其 P2ModelInfo 无
-//      rank/kappa 访问器，见 upm.h:60-68 与 upm.h:311-328）。故本块对 ② 的
-//      rank/kappa 作**具名不可得登记**（不是静默缺键），并同时给出冻结门值，
+//      不调用该求解器**（生产拟合入口是 p2_sky_plane_build_joint；UPM 加性联合模型
+//      的 M+C 求解连同其装配块已于 a1fae494 退役，故 ② 在生产链上不再产生任何读数）。
+//      故本块对 ② 的 rank/kappa 作**具名不可得登记**（不是静默缺键），并同时给出
+//      冻结门值，
 //      使「是否把 converged=0 与 rank≪n_params 升级为 fail-closed」这条待裁决项
 //      有可机读的数据面（本任务不改该行为）。
 // 必落字段 = §7a 点名的可观测量本身（rank / kappa / chi2_red / node_spacing 与
@@ -13658,7 +13666,7 @@ Result<void> p2_op_write(const Json& doc, Json* man) {
                              " pending AIO-domain contract registration"}}},
                         // ── SCI-UPM §7a 审计块（产品级摘要；AUDIT-PERSIST-01）────
                         // 落点理由：p2_final.json 是阶段二**产品级摘要**
-                        // （DATA-P2-RES，与 p2_upm_model.json / p2_sky_plane.bin
+                        // （DATA-P2-RES，与 p2_sky_plane.bin
                         // 同目录同生命周期），消费方读「阶段二可辨识性/表示能力
                         // 的 provenance」只需读这一个文件；内容全部**从磁盘产品
                         // 读回**，不做节点间内存传递。
