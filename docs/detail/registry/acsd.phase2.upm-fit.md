@@ -25,12 +25,17 @@ apply 职能见 registry/acsd.phase2.upm-apply.md（同一 module_id 的另一�
 
 ## 职责与明确非职责
 
-职责（fit）：消费 DATA-P2-SMP 控制观测（sampler 产物），**联合求解唯一 UPM**。
-模型 = 全部帧联合构建的**公共信号面 `B_ref(x)`** + 每帧只拟合自己的**平缓梯度
-`δ_k(x)`**；表示层全量 `C_k ≡ B_ref + δ_k`；**实际施加量为 `δ_k`**（多退少补到
+职责（fit）：消费 DATA-P2-SMP 控制观测（sampler 产物），**联合求解公共信号面与
+逐帧偏差**。模型 = 全部帧联合构建的**公共信号面 `B_ref(x)`** + 每帧相对它的
+加性偏差 `δ_k(x) = δ_poly,k(x) + F_k(x)`（`F_k` 建在拟合残差上并已去跨帧公共模）；
+表示层全量 `C_k ≡ B_ref + δ_k`；**实际施加量为 `δ_k`**（多退少补到
 公共面，`B_ref` 保留）。本期为**纯加性**模型，不引入乘性尺度。
 
-落地链路：**production 控制点权重 = `quality_factor × control_ivar`**
+落地链路：生产 fit 节点的真实计算 = `p2_sky_plane_build_joint`（解公共面与逐帧
+低阶项 → 在拟合残差上建逐帧场 F 并去跨帧公共模 → 从样本扣 F 后重解），落盘
+`p2_sky_plane.bin`；编排入口 = `lib/infrastructure/scheduler/src/module_adapters.cpp`
+的 `p2_op_upm_fit`。同一 module_id 的 **UPM 内核**（`upm.cpp` 的 M+C 求解）在生产
+扣除链上没有数值消费者，其口径如下：**内核缺省控制点权重 = `quality_factor × control_ivar`**
 （签名头 `lib/algorithms/coverage/include/astro/phase2/upm.h` 的
 `p2_upm_raw_weight` 是**单一实现**：几何可靠性**不在分子乘 geom**，而是在
 per-control 归一化里施加 —— `out_norm = raw / Σ_cell raw × control_reliability`，
@@ -63,16 +68,19 @@ per-frame gradient 产品的对外暴露（upm.h 冻结）；session 依赖（�
 | `upm_model` | `DATA-P2-UPM` | 可 | `UnitId::ADU` | `CoordinateFrame::PIXEL` |
 
 入口面：Phase1 产品组、coverage、星点掩膜、光度控制点、天光背景采样点（每点带
-值 / variance / SNR 权重）。落盘标识 = `acsd-upm-v2`
-（DATA-UPM-MODEL-001）。**畸形模型 = 硬科学错误 `ERR-P2-UPM-001`**。
+值 / variance / SNR 权重）。生产落盘产物 = `p2_sky_plane.bin`（公共信号面与联合解
+逐帧场）；`upm_model` 端口是 descriptor 的静态声明，生产 fit 节点不产出对应的模型
+产物（端口语义对齐见 DISP-P2UPM-004），内核侧的模型落盘标识 `acsd-upm-v2`
+（DATA-UPM-MODEL-001）只在库/工具面使用。**畸形内核模型 = 硬科学错误
+`ERR-P2-UPM-001`**（内核 open 面）。
 
-输出面：`P2ModelInfo`（version / precision：0=fp32, 1=fp64 / target_order /
+输出面：内核输出（库面，不在生产链上）= `P2ModelInfo`（version / precision：0=fp32, 1=fp64 / target_order /
 control_count / observation_count / component_count / `model_hash[65]`）+
 `C[frame][control]` FP64 + 参数协方差 + gauge 约束 + 连通性 + 加权残差 RMS +
 **可辨识性判决与读数**（见下「可辨识性」）+ 收敛诊断量。**不输出** `g_k`（本期
 恒等）。
 
-invalid：null 参数 / n_obs = 0 / frame 绑定不一致 / open / parse 失败 ⇒ rc = 1；
+内核 invalid（库面）：null 参数 / n_obs = 0 / frame 绑定不一致 / open / parse 失败 ⇒ rc = 1；
 production 模式 control_ivar ≤ 0 或非有限 ⇒ `p2_upm_raw_weight` rc = 2 →
 build rc = 2（**显式 INVALID，禁静默回退 support / SNR**，upm.h）；未知 frame_id
 ⇒ `p2_upm_evaluate_c` 返回 NaN（显式不可用，**禁 frame 0 参数伪装**）。
@@ -128,12 +136,12 @@ build rc = 2（**显式 INVALID，禁静默回退 support / SNR**，upm.h）；�
 **不存在 `tol_step` / `tol_obj` 两个字段。** `converged` 为状态枚举
 `0 = max_iter` / `1 = converged` / `2 = stalled` / `3 = invalid`。
 
-**拟合质量三元组独立落盘**（写进 `p2_upm_model.json`）：加权残差 RMS、权重和与
+**拟合质量三元组独立落盘**：加权残差 RMS、权重和与
 原始权重和之比、残差散度（dex）。**门 = 拟合质量三元组本身**；「帧间残差平均
 绝对差」只作诊断读数。**实现现状（零承载，登记为缺口）**：该三元组在当前实现中
-不产出 —— 全仓无 `rms_z` 命中，`p2_upm_model.json` 的现行键表（module_adapters.cpp
-的 upm 落盘段）不含这三个键；当前数据面只落 `iterations` / `objective` /
-`converged` 与可辨识性读数。判据口径为「门 = 三元组」，改动属科学口径变更。
+不产出 —— 全仓无 `rms_z` 命中；生产 fit 节点落的是公共信号面读数（`p2_sky_plane.bin`
+与节点 manifest 的 `sky_plane_*` 键），不含这三个键。判据口径为「门 = 三元组」，
+改动属科学口径变更。
 
 **不收敛 / 判红不阻塞**：产品照出、构建 rc 不变，但必须在产品里落**机器可检**的
 警告：顶层 `warnings[]` / `warning_codes[]` / `upm_converged_warning`（警告码
@@ -154,13 +162,16 @@ build rc = 2（**显式 INVALID，禁静默回退 support / SNR**，upm.h）；�
 式 (9)），`χ²_red` 的分母**必须**用它（用参数数作分母在秩亏时系统性高估并掩盖
 未被约束的方向数）；`χ²` 本身**不参与**判决。
 
-**产品键**（`p2_upm_model.json#identifiability`）：`rank_eff`（有效秩**计数**）、
-`n_params`、`n_unidentified`、`rank_rtol` / `rank_rtol_effective`、`kappa`、
-`chi2`、`dof_eff`、`chi2_red`、`chi2_red_defined`、`identifiable`、`n_blocks`、
-`n_blocks_rank_deficient`、`n_blocks_single_frame`、
-`n_unobserved_geometry_nodes`、`coupling_assembled`。
+**产品键**：生产信号面侧的可辨识性读数落 `p2_sky_plane.bin` 的 `P2SkyPlaneInfo`
+（`rank` = 有效秩**计数**、`n_params`、`n_unidentified`、`rank_rtol` /
+`rank_rtol_effective`、`kappa`、`kappa_solve`、`chi2_red`、`dof_eff`、`identifiable`、
+`lambda_numerical` / `lambda_max` / `lambda_min`、`rank_solve`）与 fit 节点 manifest
+的 `sky_plane_*` 键（含 `sky_plane_adaptive_search` 的逐次尝试记录）。内核模型键表
+里的 `n_blocks`、`n_blocks_rank_deficient`、`n_blocks_single_frame`、
+`n_unobserved_geometry_nodes`、`coupling_assembled` 属该模型产物的分块结构，不在
+生产信号面读数内。
 
-**发散 ≠ 缺失**：κ 在秩亏块上发散 ⇒ 产品写 `null`（JSON 不能表示非有限值），
+**发散 ≠ 缺失**（内核模型产品的 JSON 语义，库面）：κ 在秩亏块上发散 ⇒ 产品写 `null`（JSON 不能表示非有限值），
 消费方必须按「量存在但发散」读；「字段缺失」是另一个状态；自由度 ≤ 0 ⇒
 `chi2_red` 写 `null` 且 `chi2_red_defined = false`（无定义，取值 = `null`；0 会
 冒充完美拟合）；产品无该段 ⇒ 具名不可得（`rank_unavailable_reason`），缺键一律
@@ -223,7 +234,9 @@ persist→reload 语义，与内核 probe/fill 语义的桥接未验证。
 （统一头文件，字段数以签名头为准；本页登记装配面字段见下表 A）、
 `P2UpmMaBuildConfig`（upm.h，乘法/加性观测求解器；判据与 gauge 字段见表 B）、
 `P2SkyPlaneConfig`（sky_plane.h，公共信号面表示与联合解逐帧场）；字段见表 B）。
-production 默认取值单一来源 = lib/phase2_session/p2_session.cpp。信号面是
+**生产 fit 节点的配置面 = `P2SkyPlaneConfig`**（`p2_op_upm_fit` 从
+`p2_sky_plane_default_config()` 起装配）；`P2UpmBuildConfig` / `P2UpmMaBuildConfig`
+是 UPM 内核（库 / 工具面）的配置面，生产节点不再装配。信号面是
 **生产必需产物**：生产扣除 = `raw − δ_k`（δ_k = δ_poly,k + F_k，见 apply 注册页），
 `sky_plane.enabled` 缺省开；缺面即 apply 侧 fail-closed。
 §5.11 联合解字段：`joint_outer_iterations`（缺省 1；块坐标迭代层数，0 层退回
@@ -268,12 +281,13 @@ upm.h 带冻结注记登记，本页不复制其语义。
 | `spline_degree` | `P2SkyPlaneConfig` | 1 | 公共信号面 `B_ref` 的样条阶数（1 = 双线性，3 = 双三次） |
 | `node_spacing_deg` | `P2SkyPlaneConfig` | 0 | `B_ref` 节点间距（切平面角度，度）：>0 = 调用方显式给定；≤0 = 由输入几何经 `p2_sky_plane_derive_node_spacing` 导出；几何量缺失 ⇒ `P2_SKY_PLANE_GEOMETRY_REQUIRED` 显式失败（禁回退标定常数） |
 
-`upm` / `smoothing_lambda` / `huber_delta` / `max_iterations` 可被 phase config
-JSON 覆盖（lib/phase2_session/p2_session.cpp）。
+`upm` 段在节点配置里出现即被拒绝（该段已不在生产配置面）；`smoothing_lambda` /
+`huber_delta` / `max_iterations` 的 phase config 覆盖键属内核（库面）配置面，
+由 `lib/phase2_session/p2_session.cpp` 消费（该通道不在生产调用面上）。
 
-**三个互不相同、并存不冲突的量**（勿混）：① 迭代阻尼（naive Gauss-Seidel 在
-链式 / 二部覆盖图上会周期 2 振荡，故取阻尼 ≈ 0.5）；② 上表的
-`smoothing_lambda`（对天光 / δ 面的拟合正则项，现行机制）；③ 堆叠平滑项
+**三个互不相同、并存不冲突的量**（勿混）：① UPM 内核的迭代阻尼（naive
+Gauss-Seidel 在链式 / 二部覆盖图上会周期 2 振荡，故取阻尼 ≈ 0.5；库面配置）；② 上表的
+`smoothing_lambda`（对天光 / δ 面的拟合正则项，内核现行机制）；③ 堆叠平滑项
 （拟合目标里的新项，本期不加，做实验验证）。
 
 ## Execution class、并行轴、ThreadBudget lease、确定性

@@ -739,24 +739,22 @@ calibrated = raw − (S − median(S))          # 只扣起伏、保留 B_ref
 普通星简单掩膜分支、星等定半径晕掩膜分支同向叠加，不改变既有门的判据与计数；
 暗端离群在本模块内无判别面，仍由上游坏帧与坏列掩膜承担。
 
-生产施加的实现口径登记如下（诊断位，不进成品）。UPM 侧在构建收敛后取逐帧
-逐 control 求解后残差 `r = y − M − C`（M 为收敛公共场、C 为收敛
-帧间场；求解前 `r = y − M` 会把已由 C 拟合的帧间差再派生一次 =
-双重扣除，禁用），按 control 邻接图做本节同构
+生产施加的实现口径登记如下（overlay 为诊断位、缺省关，不进成品）。信号面侧在
+联合解收敛后取逐帧残差 `r = y − (B_ref + δ_poly,k)`（拟合残差；用解出 δ_k 全量
+之前的量会把已由低阶项吸收的帧间差再派生一次 =
+双重扣除，禁用），按采样点邻接图做本节同构
 的低频派生：全局 median/MAD 高阈结构保护 mask（亮端 veto，
 推荐阈值 2.0、下限 1.5），mask 区与无观测几何节点由邻接
 最近有效值填充，可分离邻接低通（σ 推荐 16px 口径、区间
 [12, 24]px，上探 32px 欠拟合、下探 8px 吃壳层；control 格距
 64px 下 σ 为亚格，邻接跳数按角度/格距无量纲比推导，
 见下），减中位保
-公共面（只扣起伏）。派生场随 UPM 模型持久化，
-求值时与 C 场同一双线性语义叠加后扣除；参考帧按
-gauge 恒零不叠加。`p2_upm_calibrate_block` 与稠密缓存
-sparse/dense 同语义（dense 逐像素调同一求值语义）。
-精度口径为串行 reference 位精确，
-跨 worker 数声明 1e-12。`p2_sky_plane_eval_delta` 的
-信号面求值只作旁路诊断：它验证同一修正量级，不进入
-`p2_upm_calibrate_block` 扣除链。
+公共面（只扣起伏）。派生场随公共信号面模型持久化（`p2_sky_plane.bin` 的
+`delta_ms` 段），求值时叠加进 δ_k，与低阶项同一双线性语义；参考帧按
+gauge 恒零不叠加。实现 = `lib/algorithms/coverage/src/sky_plane.cpp` 的
+`sky_delta_ms_*` 段，经 `p2_sky_plane_eval_delta` /
+`p2_sky_plane_eval_delta_block` 求值（后者 = 生产扣除入口）。
+精度口径为串行 reference 位精确，跨 worker 数声明 1e-12。
 
 验证诚实边界（合成自门 ≠ 生产门）：MS-VERIFY 的 V2 合成台阶实测
 D≈5.35e-04（2 帧 × 8×8 control 网格、偏置 0.5 + 右半坡 0.3、判据

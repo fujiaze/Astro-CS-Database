@@ -21,7 +21,11 @@
 - **fit**：从控制观测流（P2ControlObservation[]，上游
   ALG-P2-SMP-001 产出）联合求解 ONE UnifiedPhotometricModel——
   M_k latent reference + C_i(p) 每帧空间校正场，Huber IRLS 坐标
-  下降 + 图平滑 + 弱零锚 + 分量 gauge（upm.cpp:500-889）；
+  下降 + 图平滑 + 弱零锚 + 分量 gauge（upm.cpp:500-889）。**该内核求解不在生产
+  扣除链上**（其模型产物在生产链上没有数值消费者）：生产 fit 节点的真实计算 =
+  `p2_sky_plane_build_joint`——解 (公共面, 逐帧低阶项) → 残差上建逐帧场 F 并去
+  跨帧公共模 → 扣 F 重解，落盘 `p2_sky_plane.bin`；编排入口 = `p2_op_upm_fit`
+  （`lib/infrastructure/scheduler/src/module_adapters.cpp`）；
 - **apply**：本内核的运行时求值入口 p2_upm_calibrate_block 给出
   raw − C(frame, leaf)（upm.h:12-13 冻结"不暴露 per-frame gradient 产品"）。
   **该场不是生产扣除场**：C 按 leaf tile 分块求值（瓦片首末圈各自外推、
@@ -243,10 +247,9 @@ model_hash = SHA-256(payload)                          # :1161-1209
   controls(tile,gx,gy,M) | cell_index | C 全量（max_digits10 序列化 :1166）
   [|G gauge 段]  ——  final_gauge=1 时追加：`payload += "|G"` 后逐 control 写
     `fmt(m->gauge[k])`（**段头 :1199-1205**；G 的产生段 = 末端残差场 :1109-1160）。
-    **该段此前在本清单中缺失**（DISP-P2UPM-005 勘误）：生产恒置 final_gauge=1
-    （`module_adapters.cpp:9642`）⇒ |G 在生产 payload 里**必然存在**、
-    model_hash 必须是含 G 的 hash；final_gauge=0 时 m->gauge 为空、
-    payload 与 legacy 逐位一致（:1199-1201 注释冻结，既有 model_hash 门不受影响）。
+    生产 fit 节点不再装配 `P2UpmBuildConfig`（`final_gauge` 等求解入口参数随 UPM
+    内核退出生产调用图），该段只在库 / 工具面按调用方取值出现；final_gauge=0 时
+    m->gauge 为空、payload 与无 G 段逐位一致（:1199-1201 注释冻结）。
 sparse json: format="acsd-upm-v2"（:1390），frames[](:1468)+C[](:1490)
   行序显式持久化，唯一 AIO 出口 aio_upm_write_sparse（原子写）  # :1501-1503
 open 强校验: format(:1525-1526)、frames 存在/数组/无重复/类型、
@@ -317,7 +320,8 @@ dense/sparse 等价门: 1e-12（UPM_SOLVER.md [S-1]「离散公式」一节冻�
   `ACS_ERR_CANCELLED`：coverage 前 `p2_session.cpp:122`、sample 前 `:160`、
   **upm_build 前 :195**、persist 前 `:240-242`。故"取消不写半成品"由
   **阶段边界 + 整模型单元提交**保证，**不是**"迭代边界取消点"（旧表述勘误）；
-  权威口径见 `docs/science/sky/UPM.md:215-217`。
+  权威口径见《ACSD 最高设计》的「命令行合同」一节（协作取消）与「I/O 与原子产品」
+  一节（原子发布、失败或取消清理临时产物）。
 
 ## 9 复杂度
 
@@ -334,9 +338,9 @@ dense/sparse 等价门: 1e-12（UPM_SOLVER.md [S-1]「离散公式」一节冻�
   占比的直接原因，也是后续收敛口径改动的着力点（**登记为待优化项，本轮不改判据**）。
 - **内层精度与产物的关系（实测）**：内层 CG 上限从 200 降到 50，C 更新成本降到约
   1/3.6，而**产物逐位不变**（295 个科学面文件中 272 个逐位相同、0 处差异）——
-  自生产扣除改走信号面后，UPM 的 C 场不在产物链上，其精度只影响
-  `p2_upm_model` 这份审计产物。故「内层精度取多少」属于**审计精度与耗时的取舍**，
-  不是产物等价性问题；上限的取值须按该口径单独裁决。
+  自生产扣除改走信号面后，UPM 的 C 场不在产物链上，其精度不影响任何生产产物
+  （内核模型产物不再落盘）。故「内层精度取多少」属于**内核审计精度与耗时的
+  取舍**，不是产物等价性问题；上限的取值须按该口径单独裁决。
 - 连通分量/邻接建图 O(n_obs + K + 边界对粗筛)（:475-552）；
 - model_hash O(n_obs 序列化 + F×K)（:1161-1209）；
 - persist O(F×K)；materialize
@@ -415,25 +419,26 @@ frames 重复 rc=1、C 行数≠frame 数 rc=1、dense stale rc=2。fixture
 ## 13 容差与冻结清单（默认值实测）
 
 **P2UpmBuildConfig 默认值**（`cfg_in` 缺省面 = upm.cpp:255-292 的整块零值回填；
-两处生产组装 `p2_session.cpp:199-211` 与 `module_adapters.cpp:7795-7813` 均显式赋
-`zero_anchor_weight=1e-3`、`sigma_floor=1e-3`）：
+内核现存装配面 = `p2_session.cpp:199-211`，显式赋
+`zero_anchor_weight=1e-3`、`sigma_floor=1e-3`；该会话通道不在生产调用面上，
+生产 fit 节点不装配本结构）：
 
 | 参数 | 默认 | 锚（upm.cpp / upm.h） |
 |---|---|---|
 | huber_delta | 1.345（无量纲，单位=sigma_eff） | upm.h: 74；upm.cpp:267/:286 |
 | max_iterations | 100 | upm.h: 77；upm.cpp:270/:287 |
 | tolerance | 1e-6 | upm.h: 81；upm.cpp:271/:291 |
-| tolerance_relative | 0（=tolerance 作绝对量）；**生产两入口不一致，见 §14** | upm.h: 78；upm.cpp:284/:305 |
+| tolerance_relative | 0（=tolerance 作绝对量）；内核现存入口 = 会话通道，未设该键 ⇒ 0 | upm.h: 78；upm.cpp:284/:305 |
 | sigma_floor | 1e-3 | upm.h: 83；upm.cpp:273/:292 |
 | zero_anchor_weight（λ0） | 1e-3 | upm.h:76；upm.cpp:269/:297 |
 | smoothing_lambda（λs） | 0.0（默认关闭平滑） | upm.h:75；upm.cpp:268/:299 |
-| use_ivar_weight | 1（production；仅显式 0 进 ablation） | upm.h: 89；upm.cpp:276 |
+| use_ivar_weight | 1（缺省；仅显式 0 进 ablation） | upm.h: 89；upm.cpp:276 |
 | control_reliability | 1.0 | upm.h: 90；upm.cpp:277/:296 |
-| cpu_workers | 1（串行 reference；生产=Runtime lease） | upm.h: 94；upm.cpp:278 |
+| cpu_workers | 1（串行 reference；调用方经 Runtime lease 传入） | upm.h: 94；upm.cpp:278 |
 | support_power | 1.0（仅 ablation 路径消费） | upm.h: 84；upm.cpp:274/:293 |
-| gs_damping | 1.0（legacy）；生产 0.5 | upm.h: 101；upm.cpp:281/:302 |
-| m_full_frame | 0（legacy）；生产 1 | upm.h: 104；upm.cpp:282/:303 |
-| final_gauge | 0（legacy）；生产 1 | upm.h: 108；upm.cpp:283/:304 |
+| gs_damping | 1.0 | upm.h: 101；upm.cpp:281/:302 |
+| m_full_frame | 0 | upm.h: 104；upm.cpp:282/:303 |
+| final_gauge | 0 | upm.h: 108；upm.cpp:283/:304 |
 
 **数值常数**：CG max_cg=200、CG 早停 pAp≤1e-30 / rs_new<1e-24、
 归一化门 s>0 && isfinite(s)、per-control sums 门 den>1e-12、`kChunk=16`、
@@ -484,22 +489,27 @@ PHASE2_SAMPLER.md 承载），本域只引用 control_ivar 消费面，不改不
 登记原则：本域只登记不改码；头文件注释类漂移（001/002/005/007）整改编入头文件注释清理面，
 003 归 P2-SESSION-IMPL，004 归 P2-XX-INT 对齐，006 待定案。
 
-## 15 消费链（生产编排与 apply/reload 面）
+## 15 消费链（内核与会话/工具面；生产编排见首条）
 
-- **编排（fit+persist）**：lib/phase2_session/p2_session.cpp:180-233
-  upm_build+persist 段——生产 cfg 组装 :187-195（含
+- **生产编排**：调度器 7 节点链（`coverage → sample → fit_upm → apply_upm →
+  reject → integrate → write`）；fit 节点的真实计算 = `p2_sky_plane_build_joint`
+  + `p2_sky_plane_save`（`p2_op_upm_fit`），apply 节点的真实扣除 =
+  `p2_sky_plane_eval_delta_block`（`p2_op_upm_apply`）；节点配置里的 `upm` 段
+  出现即拒绝；
+- **会话通道（不在生产调用面上）**：lib/phase2_session/p2_session.cpp:180-233
+  upm_build+persist 段——cfg 组装 :187-195（含
   uc.cpu_workers = s->host->budget.max_workers，:195，Runtime lease
   唯一来源；sampler 同源 :155）；config 覆盖键 ：196-202（三键，
   DISP-P2UPM-003）；p2_upm_build 调用 ：204；info 上账 ：206-219；
   persist 段 ：221-233（persist_upm+upm_save_path 门控、失败
   ACS_ERR_IO）；
-- **dense 物化**：lib/algorithms/coverage/tools/stage2.cpp:470-495——
+- **dense 物化（内核面）**：lib/algorithms/coverage/tools/stage2.cpp:470-495——
   p2_upm_save :472 → p2_upm_materialize_dense_n :481-483（workers=
   effective_cpu_workers(cfg.exec)，与积分一致）；
-- **apply 面**：stage2.cpp 经 p2_upm_calibrate_block（stage2.cpp:1158 与 :1516
+- **apply 面（内核面）**：stage2.cpp 经 p2_upm_calibrate_block（stage2.cpp:1158 与 :1516
   两处逐块校准；进程内 model 直通，无二次 open）；
-- **reload 消费（p2_upm_open）**：lib/algorithms/coverage/tools/
-  calibrated_pair_diag.cpp:205（诊断工具读取 upm_sparse.json +
+- **reload 消费（p2_upm_open，内核面）**：lib/algorithms/coverage/tools/
+  calibrated_pair_diag.cpp:205（诊断工具读取内核模型 JSON +
   p2_upm_calibrate_block :337 注释锚）；测试面 synthetic_gate.cpp
   多处 save→open 幂等门（:325/:380/:391/:1824/:2066/:2257/:2335/
   :5007/:5019/:5082）；
@@ -562,6 +572,6 @@ PHASE2_SAMPLER.md 承载），本域只引用 control_ivar 消费面，不改不
 - **收敛配置面只有两个字段**：`tolerance`（默认 1e-6）与 `tolerance_relative`（默认 0）。**不存在** `tol_step`/`tol_obj`/`tolerance_obj` 字段（`upm.h:77-81/:113`、`upm.cpp:1013-1027`）。
 - **判据（逐位）**：`tolerance_relative=0` ⇒ `max_dM < tolerance ∧ max_dC < tolerance`；`tolerance_relative=1` ⇒ `max_dM < tolerance·max(scale_obs,1) ∧ max_dC < tolerance·max(scale_obs,1)`，`scale_obs = median(|value|)`。目标相对改善 `|Δobj|/max(|obj_old|,1e-300) < 1e-12` 连续 5 轮 ⇒ `converged=2`（stalled）；目标非有限 ⇒ `converged=3`。
 - **`converged` 状态枚举**：`0=max_iter / 1=converged / 2=stalled / 3=invalid`（`upm.cpp:1028-1052`，只读访问器 `p2_upm_convergence` `:1577-1589`；模型文件未记录读作 0 = 未证明收敛）。
-- **求解入口四参数须登记**：`gs_damping`、`m_full_frame`、`final_gauge`、`tolerance_relative`（缺省取 legacy 值，生产装配显式启用；`upm.cpp:266-271/:287-292`）。
+- **求解入口四参数须登记**：`gs_damping`、`m_full_frame`、`final_gauge`、`tolerance_relative`（缺省取编译期回填值；内核现存装配面 = 会话通道，`upm.cpp:266-271/:287-292`）。
 - **参考通量报告字段**：`reference_flux_spread_rel` / `reference_flux_spread_gate` / `reference_flux_spread_noncommon`。逐帧 `F_ref,k` 的配对性只在**同一帧内**成立；**组间一致不是门**。
 

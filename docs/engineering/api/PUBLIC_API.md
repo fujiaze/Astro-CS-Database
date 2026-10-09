@@ -116,13 +116,16 @@
 - **消费者名册**：① 本模块诊断/工具面（`lib/algorithms/coverage/tools/stage2.cpp`、
  `rejection_cli.cpp`、`tests/synthetic_gate.cpp`、`tests/sanitize_driver.cpp`）；
  ② 契约与 Oracle 测试（`eng/tests/unit/p2_*`、`eng/tests/validation/release02/`）；
- ③ 生产路径的变体入口（`p2_reject_stack_ex` / `p2_sky_plane_eval_delta` /
- `p2_sample_controls*` / `p2_upm_build_geo` / `p3_sample_*_ex` 等，已接线）。
+ ③ 生产路径的变体入口（`p2_reject_stack_ex` / `p2_sky_plane_eval_delta_block` /
+ `p2_sample_controls*` / `p3_sample_*_ex` 等，已接线）。UPM 内核族（`p2_upm_*`）
+ **不在生产调用图上**：其数值输出在生产链上没有消费者，生产拟合与扣除由信号面族
+ （`p2_sky_plane_*`）承载。
 - **豁免退出条件**（任一即撤下对应豁免）：该符号进入三个命令的生产调用图；或按本合同
  变更流程退役该符号（删声明 + 实现 + 测例迁移）；或被并入已接线的变体入口。
-- **接线面依据**：`p2_upm_ma_*`（UPM 矩阵装配族）的生产链走
- `lib/algorithms/coverage/include/astro/phase2/upm.h:386` 冻结的 `p2_upm_build_geo`
- （坐标下降 Huber IRLS）；`p2_reject_stack`（兼容签名）为 COMPAT adapter，生产 Stage2
+- **接线面依据**：逐族核对符号是否在生产调用图上——信号面族（`p2_sky_plane_*`）承载
+ 生产拟合（`p2_sky_plane_build_joint`）与扣除（`p2_sky_plane_eval_delta_block`）；
+  UPM 内核族（`p2_upm_build_geo` / `p2_upm_calibrate_block` 等）只在库 / 工具 / 会话面
+  使用；`p2_reject_stack`（兼容签名）为 COMPAT adapter，生产 Stage2
  不调用；`p3_projection_*` / `p3_sample_*` 的生产 export 走 `acsd_p3_projection_wcs`
  与 `p3_sample_*_ex` / `p3_sampler_open_ex` / `p3_output_*_ex` 变体。
 

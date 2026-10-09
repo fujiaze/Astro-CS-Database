@@ -57,8 +57,8 @@ staging，不满足最高设计「I/O 与原子产品」一节的原子发布条
 UPM/排异/积分公式（SCI-UPM-001/SCI-REJ-001/SCI-INT-001
 FROZEN，w_UPM唯一冻结式见`docs/science/sky/UPM.md`「公式与推导」一节）；P3 HiPS→FITS。
 
-**阶段二数据面**：帧 HiPS（signal / support / SNR catalogue）；UPM sparse 模型
-（落盘标识 `acsd-upm-v2`，DATA-UPM-MODEL-001）；马赛克产品 signal / support
+**阶段二数据面**：帧 HiPS（signal / support / SNR catalogue）；公共信号面模型
+（`p2_sky_plane.bin`，fit 节点落盘、apply 节点消费）；马赛克产品 signal / support
 HiPS（variance / ivar 为可选诊断）。
 
 **阶段二配置面**：single JSON（模型 / integration / output），typed parser +
