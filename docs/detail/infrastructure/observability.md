@@ -153,6 +153,16 @@ G-RES-01 的采样面是**进程级**的：它能判「利用率低」，不能�
 （或外挂 `resource_monitor.py` 的 `samples.csv`）按时间轴对齐，输出**节点瀑布 + 逐节点并行宽度**
 （`--self-test` 自证解析与归因口径）。
 
+节点探针覆盖两个阶段：阶段一各节点经 `P10NodeTraceGuard` 落 `[nodetrace]`；阶段二
+的七个节点（coverage / sample / upm-fit / upm-apply / reject / integrate / write）
+在 `p2_op_*` 分发点按同一格式、同一开关落行（节点名与既有阶段探针同名），
+故阶段二也可直接进节点瀑布。
+
+同一归因面另有一个**节点内**分段开关：`ACSD_UPM_PROFILE=1` 落
+`[upm_profile] n_solve=… alloc=… assemble=… chol=… objective=… total=…`，
+把 GN-IRLS 每轮成本分到「正规矩阵分配清零 / 观测装配 / Cholesky / 目标函数」四段。
+它只在节点内部细分，不改变调度与数值路径。
+
 **两个 I/O 口径不可混用**：
 
 - `resource_timeseries.csv` 的 `io_wait_pct` / `resource_summary.json` 的 `io_wait_pct_mean`
