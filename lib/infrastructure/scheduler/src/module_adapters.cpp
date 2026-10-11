@@ -3454,21 +3454,7 @@ bool p1_guided_cfg(const Json& doc, P1GuidedCfg* out, std::string* why) {
   // 「禁止静默回退/静默跳过校验」）。合同声明 =
   // eng/contracts/schemas/phase_config_normalize.schema.json#/$defs/star_detection_config
   // （approx_wcs.required = 六天测键）。
-  if (p1_has(sd, "approx_wcs")) {
-    if (!sd["approx_wcs"].is_object()) {
-      *why = "star_detection.approx_wcs must be an object with the six astrometric keys "
-             "crval1/crval2/cd11/cd12/cd21/cd22";
-      return false;
-    }
-    for (const char* k : {"crval1", "crval2", "cd11", "cd12", "cd21", "cd22"}) {
-      if (!p1_has(sd["approx_wcs"], k)) {
-        *why = std::string("star_detection.approx_wcs missing key '") + k +
-               "' (six astrometric keys must be complete; silent fallback to the wcs "
-               "section is forbidden)";
-        return false;
-      }
-    }
-  }
+
   const Json aw = (p1_has(sd, "approx_wcs") && sd["approx_wcs"].is_object())
                       ? sd["approx_wcs"] : wc;
   if (p1_has(aw, "crval1") && p1_has(aw, "crval2") && p1_has(aw, "cd11") &&
@@ -3557,117 +3543,6 @@ bool p1_guided_wcs_product_prior(const Json& wprod, acsd::phase1::WcsTan* out,
 //      "北向上/东向左" ⇒ *assumed=true 留痕，不静默当已知）。
 // 任一不可得 → false + *why（调用方 DATA fail-closed）。
 // solved: 该帧已解出的 WCS（nullptr = 该帧无产物先验）。
-bool p1_guided_approx_wcs(const P1GuidedCfg& cfg, const Json& doc, const P1Image& im,
-                          const acsd::phase1::WcsTan* solved,
-                          acsd::phase1::WcsTan* wcs, double* out_focal_mm,
-                          double* out_pixel_um, double* out_s0, std::string* src,
-                          bool* assumed, std::string* why) {
-  *assumed = false;
-  double ra0 = std::numeric_limits<double>::quiet_NaN();
-  double dec0 = std::numeric_limits<double>::quiet_NaN();
-  double focal_mm = std::numeric_limits<double>::quiet_NaN();
-  double pixel_um = std::numeric_limits<double>::quiet_NaN();
-  double s0 = std::numeric_limits<double>::quiet_NaN();
-  std::string center_src;
-  if (cfg.have_explicit_wcs) {
-    *wcs = cfg.explicit_wcs;
-    wcs->crpix1 = 0.5 * (double)im.w() + 0.5;   // FITS 1-based 中心
-    wcs->crpix2 = 0.5 * (double)im.h() + 0.5;
-    // 显式 WCS 的板尺度 = |CD 第 1 列|（deg/px → ″/px）；focal/pixel 由 s0 反演
-    // 只为把同一物理量喂给 compute_fov_density（等价换算，不引入新常数）。
-    s0 = std::sqrt(wcs->cd11 * wcs->cd11 + wcs->cd21 * wcs->cd21) * 3600.0;
-    if (!std::isfinite(s0) || !(s0 > 0.0)) {
-      *why = "star_detection approximate WCS degenerate (|CD column 1| = 0)";
-      return false;
-    }
-    pixel_um = 1.0;
-    focal_mm = kP1GuidedAsecPerUmPerMm / s0;
-    *out_focal_mm = focal_mm;
-    *out_pixel_um = pixel_um;
-    *out_s0 = s0;
-    *src = "config_astrometric_keys";
-    return true;
-  }
-  if (solved != nullptr) {
-    // ② 本帧解算产物: 完整线性 WCS（含取向与镜像）, 无需假设。
-    *wcs = *solved;
-    // 板尺度同显式分支口径 = |CD 第 1 列|（deg/px → ″/px）; focal/pixel 由 s0 反演,
-    // 只为把同一物理量喂给 compute_fov_density（等价换算，不引入新常数）。
-    s0 = std::sqrt(wcs->cd11 * wcs->cd11 + wcs->cd21 * wcs->cd21) * 3600.0;
-    if (!std::isfinite(s0) || !(s0 > 0.0)) {
-      *why = "solved WCS product degenerate (|CD column 1| = 0)";
-      return false;
-    }
-    pixel_um = 1.0;
-    focal_mm = kP1GuidedAsecPerUmPerMm / s0;
-    *out_focal_mm = focal_mm;
-    *out_pixel_um = pixel_um;
-    *out_s0 = s0;
-    *src = "solved_wcs_product(<frame_dir>/p1_wcs.json)";
-    return true;   // 产物含取向 ⇒ *assumed 保持 false（不假设、不冒充）
-  }
-  const Json wc = (p1_has(doc, "wcs") && doc["wcs"].is_object()) ? doc["wcs"] : Json::object();
-  const std::string init_source = wc.value("init_source", std::string("header_pointing"));
-  if (init_source == "header_pointing") {
-    if (!p1_header_pointing(im, &ra0, &dec0, &focal_mm, &pixel_um, &s0, &center_src, why)) {
-      return false;
-    }
-  } else if (init_source == "config" || init_source == "neighbor_crval") {
-    focal_mm = p1_num(wc, "focal_length_mm", std::numeric_limits<double>::quiet_NaN());
-    pixel_um = p1_num(wc, "pixel_size_um", std::numeric_limits<double>::quiet_NaN());
-    if (!std::isfinite(focal_mm) || !std::isfinite(pixel_um) ||
-        !(focal_mm > 0.0) || !(pixel_um > 0.0)) {
-      *why = "wcs.init_source=" + init_source +
-             " requires config focal_length_mm/pixel_size_um (no silent defaults)";
-      return false;
-    }
-    s0 = kP1GuidedAsecPerUmPerMm * pixel_um / focal_mm;
-    if (init_source == "config") {
-      ra0 = p1_num(wc, "ra0", ra0);
-      dec0 = p1_num(wc, "dec0", dec0);
-      center_src = "config.wcs.ra0/dec0";
-    } else {
-      ra0 = p1_num(wc, "neighbor_ra0", ra0);
-      dec0 = p1_num(wc, "neighbor_dec0", dec0);
-      center_src = "config.wcs.neighbor_ra0/neighbor_dec0(own_solved_product)";
-    }
-  } else {
-    *why = "wcs.init_source must be one of header_pointing|config|neighbor_crval (got '" +
-           init_source + "')";
-    return false;
-  }
-  if (!std::isfinite(ra0) || !std::isfinite(dec0)) {
-    *why = "approx WCS center unavailable (ra0/dec0 missing; 禁 silent default)";
-    return false;
-  }
-  if (!std::isfinite(s0) || !(s0 > 0.0)) {
-    *why = "approx WCS plate scale unavailable (s0=206.265*XPIXSZ/FOCALLEN invalid)";
-    return false;
-  }
-  const double s_deg = s0 / 3600.0;
-  // 缺省取向 = 北向上/东向左（本管线像素 y 沿行号向下 ⇒ CD2_2 取负）；
-  // rotation_deg 为像面相对该取向的旋转（逆时针为正）。
-  if (!cfg.have_rotation) *assumed = true;
-  const double th = cfg.rotation_deg * M_PI / 180.0;
-  const double ct = std::cos(th), st = std::sin(th);
-  const double par = (cfg.parity == "neg") ? -1.0 : 1.0;
-  const double cd0_11 = -s_deg, cd0_12 = 0.0, cd0_21 = 0.0, cd0_22 = -s_deg * par;
-  wcs->crpix1 = 0.5 * (double)im.w() + 0.5;
-  wcs->crpix2 = 0.5 * (double)im.h() + 0.5;
-  wcs->crval1 = ra0;
-  wcs->crval2 = dec0;
-  wcs->cd11 = ct * cd0_11 - st * cd0_21;
-  wcs->cd12 = ct * cd0_12 - st * cd0_22;
-  wcs->cd21 = st * cd0_11 + ct * cd0_21;
-  wcs->cd22 = st * cd0_12 + ct * cd0_22;
-  *out_focal_mm = focal_mm;
-  *out_pixel_um = pixel_um;
-  *out_s0 = s0;
-  *src = "init_pointing(" + center_src + ")+s0=206.265*XPIXSZ/FOCALLEN" +
-         (cfg.have_rotation ? "+rotation_deg" : "+orientation_assumed_north_up_east_left") +
-         (cfg.parity == "neg" ? "+parity_neg" : "");
-  return true;
-}
 
 // 星表引导预测: 极限星等派生（焦距/画幅/曝光）→ Gaia 圆锥查询 →
 // 逆投影到像素域 → 按亮度（G 星等升序）取 top cfg.max_stars。
@@ -4020,7 +3895,6 @@ Result<void> p1_op_star_psf_impl(const Json& doc, Json* man, int n_fit_limit) {
     std::string guided_ctx;
     if (guided) {
       // ① 逆投影先验: 显式配置 CD > 本帧解算产物 > 初始指向(+rotation/parity)
-      acsd::phase1::WcsTan awcs;
       acsd::phase1::WcsTan solved_prior;
       const acsd::phase1::WcsTan* solved_ptr = nullptr;
       if (have_solved_wcs[fi]) {
@@ -4032,15 +3906,20 @@ Result<void> p1_op_star_psf_impl(const Json& doc, Json* man, int n_fit_limit) {
         }
         solved_ptr = &solved_prior;
       }
-      std::string wsrc, why;
-      bool orientation_assumed = false;
-      double g_focal = 0.0, g_pixel = 0.0, g_s0 = 0.0;
-      if (!p1_guided_approx_wcs(gcfg, doc, im, solved_ptr, &awcs, &g_focal, &g_pixel, &g_s0,
-                                &wsrc, &orientation_assumed, &why)) {
+      // 锥搜索中心与视场尺度由**本帧权威 WCS 产物**（solved_prior）提供：
+      // s0 = |CD 第 1 列| · 3600（arcsec/px），与已退役的近似 WCS 同口径。
+      // 丢畸变的近似 WCS 路径已整体删除；引导预测只用完整变换（含 SIP）。
+      std::string why;
+      double g_s0 = std::sqrt(solved_prior.cd11 * solved_prior.cd11
+                              + solved_prior.cd21 * solved_prior.cd21) * 3600.0;
+      if (!std::isfinite(g_s0) || !(g_s0 > 0.0)) {
         f_err[fi] = Result<void>::fail(Error(ErrorDomain::DATA,
-            "catalog_guided: approx WCS unavailable (" + why + "): " + path));
+            "catalog_guided: solved WCS degenerate (|CD column 1| = 0): " + path));
         return;
       }
+      double g_focal = kP1GuidedAsecPerUmPerMm / g_s0;
+      double g_pixel = 1.0;
+
       // ② 星表查询 + 逆投影到像素域 + 按亮度取 top max_stars
       std::vector<double> px, py;
       Json pred_prov;
@@ -4060,7 +3939,7 @@ Result<void> p1_op_star_psf_impl(const Json& doc, Json* man, int n_fit_limit) {
               g_sip_b[i] = sp["b"][i].get<double>();
         }
       }
-      if (!p1_guided_predict(gcfg, im, path, awcs, g_focal, g_pixel,
+      if (!p1_guided_predict(gcfg, im, path, solved_prior, g_focal, g_pixel,
                              g_sip_order, g_sip_a, g_sip_b, gaia,
                              &px, &py, &pred_prov, &why)) {
         f_err[fi] = Result<void>::fail(Error(ErrorDomain::DATA,
@@ -4154,18 +4033,10 @@ Result<void> p1_op_star_psf_impl(const Json& doc, Json* man, int n_fit_limit) {
       cat.n_detected = static_cast<uint32_t>(cat.sources.size());
       sdet_free_detect_ex(gx, gy, gflux, gsat, gmag, ghas, gex, 4);
       guided_prov = pred_prov;
-      guided_prov["approx_wcs_source"] = wsrc;
       guided_prov["guided_wcs_source"] = "pc_project_sky_to_pixel";
-      guided_prov["approx_wcs_orientation_assumed"] = orientation_assumed;
       // 取向先验来源可审计: 是否来自本帧解算产物（含取向）, 还是配置/初始指向。
       guided_prov["orientation_from_solved_wcs"] =
           (solved_ptr != nullptr) && !gcfg.have_explicit_wcs;
-      guided_prov["approx_wcs_crval1_deg"] = awcs.crval1;
-      guided_prov["approx_wcs_crval2_deg"] = awcs.crval2;
-      guided_prov["approx_wcs_cd11"] = awcs.cd11;
-      guided_prov["approx_wcs_cd12"] = awcs.cd12;
-      guided_prov["approx_wcs_cd21"] = awcs.cd21;
-      guided_prov["approx_wcs_cd22"] = awcs.cd22;
       guided_prov["n_predicted"] = gstats.n_predicted;
       guided_prov["n_dropped"] = gstats.n_dropped;
       guided_prov["n_fit_failed"] = gstats.n_fit_failed;
