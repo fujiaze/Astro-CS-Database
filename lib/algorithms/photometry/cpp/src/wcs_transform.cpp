@@ -260,3 +260,29 @@ void WcsTransform::skyToPixel(double ra, double dec, double& x, double& y) const
 }
 
 } // namespace pc
+
+// ---------------------------------------------------------------------------
+// 公开 C ABI：天球 -> 像素（含 SIP），输出 **0-based 像素**。
+// 实现复用本文件的 pc::WcsTransform::skyToPixel —— 单一事实来源，不在别处重写畸变数学。
+// ---------------------------------------------------------------------------
+extern "C" int pc_project_sky_to_pixel(
+    double crval1, double crval2, double crpix1, double crpix2,
+    double cd11, double cd12, double cd21, double cd22,
+    int sip_order, const double* sip_a, const double* sip_b,
+    const double* ra, const double* dec, int n,
+    double* out_x, double* out_y) {
+  if (ra == nullptr || dec == nullptr || out_x == nullptr || out_y == nullptr || n < 0)
+    return -1;
+  if (sip_order < 0 || sip_order > 5) return -2;
+  try {
+    const double* A = (sip_order == 0) ? nullptr : sip_a;
+    const double* B = (sip_order == 0) ? nullptr : sip_b;
+    pc::WcsTransform w(crval1, crval2, crpix1, crpix2, cd11, cd12, cd21, cd22,
+                       sip_order, A, B, nullptr, nullptr);
+    for (int i = 0; i < n; ++i)
+      w.skyToPixel(ra[i], dec[i], out_x[i], out_y[i]);
+    return 0;
+  } catch (...) {
+    return -3;
+  }
+}
