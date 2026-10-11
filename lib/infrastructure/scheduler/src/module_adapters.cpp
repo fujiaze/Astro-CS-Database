@@ -122,6 +122,7 @@
 //  - fit_frame_photometry: 装配 gaia_client + filters/QE → 生产 star_matcher
 //    Tukey-IRLS k_photo (acsd_phase1_photcal)
 #include "photometry_apply.h"
+#include "photometric_calib.h"   // pc_project_sky_to_pixel（含 SIP 的完整天球→像素）
 #include "frame_photometry_fit.h"
 
 // P7-UTIL-001: 节点级 OpenMP 并行度注入的保存/恢复需要 ICV 访问器。
@@ -3673,6 +3674,7 @@ bool p1_guided_approx_wcs(const P1GuidedCfg& cfg, const Json& doc, const P1Image
 // prov 逐项记录派生输入（可审计）；失败写 *why（调用方 DATA fail-closed）。
 bool p1_guided_predict(const P1GuidedCfg& cfg, const P1Image& im, const std::string& frame_path,
                        const acsd::phase1::WcsTan& wcs, double focal_mm, double pixel_um,
+                       int sip_order, const double* sip_a, const double* sip_b,
                        GaiaClient* gaia,
                        std::vector<double>* px, std::vector<double>* py, Json* prov,
                        std::string* why) {
@@ -3778,10 +3780,21 @@ bool p1_guided_predict(const P1GuidedCfg& cfg, const P1Image& im, const std::str
   for (int k : order) {
     if ((int)px->size() >= cfg.max_stars) break;
     double x = 0.0, y = 0.0;
-    wcs.sky2pix((double)cat_ra[(size_t)k], (double)cat_dec[(size_t)k], &x, &y);
+    // 引导预测必须用**本帧权威 WCS 的完整变换（含畸变）**：pc_project_sky_to_pixel
+    // 内部复用 pc::WcsTransform::skyToPixel（与求解器同源的 SIP 展开），输出即
+    // **0-based 像素**，故此处**不得**再做 -1.0 换算。
+    // 依据 docs/science/detection/STAR_DETECTION.md:197（用本帧权威 WCS 逆投影）、
+    // docs/science/detection/ASTROMETRY.md:71（前向模型 (ξ,η)=CD·[(xp−CRPIX)+SIP_A/B]）、
+    // ASTROMETRY.md:107（数十像元畸变下逆向多项式精度不成立、判据须分层）——本批帧角
+    // SIP 达 25.6 px 正落该适用域 ⇒ 根因修法是**根本不走逆向**，用前向 skyToPixel。
+    const double ra_k = (double)cat_ra[(size_t)k], dec_k = (double)cat_dec[(size_t)k];
+    if (pc_project_sky_to_pixel(wcs.crval1, wcs.crval2, wcs.crpix1, wcs.crpix2,
+                                wcs.cd11, wcs.cd12, wcs.cd21, wcs.cd22,
+                                sip_order, sip_a, sip_b, &ra_k, &dec_k, 1,
+                                &x, &y) != 0) continue;
     if (!std::isfinite(x) || !std::isfinite(y)) continue;
-    const double xi = x - 1.0;   // FITS 1-based → 0-based 数组下标（索引即中心）
-    const double yi = y - 1.0;
+    const double xi = x;   // 0-based（公开 API 口径）
+    const double yi = y;
     // 边界: 距边界 <2px 允许丢弃（SCI-P1-STAR-001 §1，与引导拟合同判据）
     if (xi < 2.0 || yi < 2.0 || xi > (double)im.w() - 3.0 || yi > (double)im.h() - 3.0) continue;
     px->push_back(xi);
@@ -4031,7 +4044,24 @@ Result<void> p1_op_star_psf_impl(const Json& doc, Json* man, int n_fit_limit) {
       // ② 星表查询 + 逆投影到像素域 + 按亮度取 top max_stars
       std::vector<double> px, py;
       Json pred_prov;
-      if (!p1_guided_predict(gcfg, im, path, awcs, g_focal, g_pixel, gaia,
+      // 由本帧权威 WCS 产物取完整变换参数（含 SIP），供引导预测使用。
+      double g_sip_a[36] = {0.0}, g_sip_b[36] = {0.0};
+      int g_sip_order = 0;
+      if (have_solved_wcs[fi] && p1_has(solved_wcs_doc[fi], "wcs")) {
+        const Json& wj = solved_wcs_doc[fi]["wcs"];
+        if (p1_has(wj, "sip") && wj["sip"].is_object()) {
+          const Json& sp = wj["sip"];
+          if (p1_has(sp, "order")) g_sip_order = sp["order"].get<int>();
+          if (p1_has(sp, "a"))
+            for (int i = 0; i < 36 && i < (int)sp["a"].size(); ++i)
+              g_sip_a[i] = sp["a"][i].get<double>();
+          if (p1_has(sp, "b"))
+            for (int i = 0; i < 36 && i < (int)sp["b"].size(); ++i)
+              g_sip_b[i] = sp["b"][i].get<double>();
+        }
+      }
+      if (!p1_guided_predict(gcfg, im, path, awcs, g_focal, g_pixel,
+                             g_sip_order, g_sip_a, g_sip_b, gaia,
                              &px, &py, &pred_prov, &why)) {
         f_err[fi] = Result<void>::fail(Error(ErrorDomain::DATA,
             "catalog_guided: prediction failed (" + why + "): " + path));
@@ -4125,6 +4155,7 @@ Result<void> p1_op_star_psf_impl(const Json& doc, Json* man, int n_fit_limit) {
       sdet_free_detect_ex(gx, gy, gflux, gsat, gmag, ghas, gex, 4);
       guided_prov = pred_prov;
       guided_prov["approx_wcs_source"] = wsrc;
+      guided_prov["guided_wcs_source"] = "pc_project_sky_to_pixel";
       guided_prov["approx_wcs_orientation_assumed"] = orientation_assumed;
       // 取向先验来源可审计: 是否来自本帧解算产物（含取向）, 还是配置/初始指向。
       guided_prov["orientation_from_solved_wcs"] =
