@@ -77,12 +77,14 @@ STAR_DETECTION_ALGORITHMS［A-1］（离散公式）、docs/science/algorithms/c
 | 诊断/初值（全图盲检测） | `sdet_detect_ex` / `sdet_detect_ex_f64` | 平滑（含背景统计与饱和岛预标记）→ 阈值化与 8 连通组分 → deblending 解混 → 局部极大峰 → 边缘行走与零交叉宽度 → 拟合盒/对称门 → 并行 trust-region LM 拟合 → 质量排异；保留，非权威路径 |
 
 节点侧接线在 `lib/infrastructure/scheduler/src/module_adapters.cpp` 的
-`p1_op_star_psf_impl`：星表位置由 `p1_guided_predict` 产生（`p1_guided_approx_wcs`
-给出的逆投影先验做 sky→pix 逆投影）。先验按固定优先级取：① `star_detection.approx_wcs`
-/ `wcs` 段的显式天测键 → ② 本帧解算产物 `<frame_dir>/p1_wcs.json`
-（`p1_guided_wcs_product_prior` 解析，天测可用性用与 photometry 同一判据
-`p1_wcs_astrometry_usable` 确认）→ ③ `wcs.init_source` 初始指向 +
-`rotation_deg` / `parity`。极限星等复用 `ipv::estimate_mag_lim_iterative` /
+`p1_op_star_psf_impl`：星表位置由 `p1_guided_predict` 产生，逆投影经
+`pc_project_sky_to_pixel` 走**本帧权威 WCS 的完整变换（含畸变）**。锥搜索中心与视场
+尺度取自本帧解算产物 `<frame_dir>/p1_wcs.json`（`p1_guided_wcs_product_prior` 解析，
+天测可用性用与 photometry 同一判据 `p1_wcs_astrometry_usable` 确认；尺度由
+`s0 = sqrt(cd11² + cd21²) · 3600` 现场导出，`s0 > 0` 为显式检查）。显式天测键与
+`wcs.init_source` 初始指向**只参与取向先验判据 `have_explicit_wcs`，不参与预测位置**；
+本帧解算产物缺失时按本页 fail-closed 表处置（`catalog_guided` 拒绝、`auto` 显式降级）。
+极限星等复用 `ipv::estimate_mag_lim_iterative` /
 `ipv::compute_fov_density`，不另立常数。
 
 **节点序上解算先于引导检测**：`platesolve` 节点按帧自读校准后像素自行检测与
@@ -142,7 +144,7 @@ parallel_ok=True。
 | `mode` | `auto` | —— | `auto` = 有参考星表且取向先验可得时走权威路径，否则**显式降级**为 `blind_diagnostic` 并把原因写进 manifest 的 `detection_degraded_reason`；`catalog_guided` = 显式声明权威路径，前置条件不满足即 DATA fail-closed；`blind_diagnostic` = 显式声明的非权威诊断路径 |
 | `gaia_data_dir` | 无 | path | 本地 XPSD 星表目录（权威路径必需；亦可用 `wcs.gaia_data_dir`） |
 | `max_stars` | 20000 | 颗 | 检测定义域上限（按 G 星等升序取 top-N）。合同域 = [20000, 50000]，越界即 DATA 拒绝，禁静默夹取 |
-| `approx_wcs` | 无 | —— | 逆投影先验的显式覆盖：天测键 `{crval1, crval2, cd11, cd12, cd21, cd22}`。给出即优先于本帧解算产物。**六键必须齐备**，缺键即 DATA 拒绝，禁静默回退 |
+| `approx_wcs` | 无 | —— | 显式天测键 `{crval1, crval2, cd11, cd12, cd21, cd22}`，**仅服务取向先验判据**（是否有显式取向先验），**不再参与引导投影**——引导预测使用本帧权威 WCS 的完整变换（含畸变）。六键齐备时记入 `have_explicit_wcs` |
 | `rotation_deg` + `parity` | 无 / `pos` | deg / `pos\|neg` | 逆投影先验的兜底给法（无解算产物且无显式 CD 时生效）：像面相对「北向上/东向左」的旋转（逆时针为正）与镜像标志；板尺度由 `wcs.init_source` 派生的 `s0` 给出 |
 | `limiting_mag` | 由焦距/画幅/曝光派生 | mag | 显式指定极限星等；缺省时由 `ipv::estimate_mag_lim_iterative` 按 `focal_length_mm`、画幅、`EXPTIME` 迭代派生（宁多勿少） |
 | `limiting_mag_safety` | 3.0 | —— | 极限星等迭代的目标星数倍率（目标星数 = 目标星数基值 × safety）。缺省 = `ipv::IPVSolverParams::m_lim_safety` |
@@ -154,8 +156,8 @@ parallel_ok=True。
 typed 边 `artifact:p1_wcs` 保证序）；配置的 `approx_wcs` / `rotation_deg` + `parity`
 是覆盖与兜底。两种来源都不可得时：`catalog_guided` 直接 DATA 拒绝，`auto` 显式
 降级（`detection_authoritative=false`），**权威取向只出自已解 WCS 或显式声明的
-先验**。先验来源逐帧记入 manifest 溯源（`approx_wcs_source` /
-`approx_wcs_orientation_assumed` / `orientation_from_solved_wcs`）。
+先验**。先验来源逐帧记入 manifest 溯源（`guided_wcs_source` /
+`guided_wcs_crval1_deg` / `guided_wcs_crval2_deg`）。
 
 全图盲检测路径的键（诊断/初值，非权威）：
 
