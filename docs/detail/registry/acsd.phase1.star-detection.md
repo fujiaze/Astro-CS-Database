@@ -205,11 +205,14 @@ lib/infrastructure/cli/exit_codes.h（本页不复制数值表）。
 | `catalog_guided` 且未配置星表目录 | DATA 拒绝（点名 `gaia_data_dir`），不回退全图盲检测 |
 | 星表目录 0 个 `.xpsd` | DATA 拒绝（`gaia catalog is empty`） |
 | 星表 shard 装载失败或装载数 ≠ 条目数 | DATA 拒绝（`gaia catalog is incomplete` / `gaia_client_create failed`） |
-| 逆投影先验缺失（无本帧 `p1_wcs.json` 产物，且无 `approx_wcs` CD、无 `rotation_deg`） | `catalog_guided` DATA 拒绝；`auto` 显式降级并把原因写入 manifest 的 `detection_degraded_reason` |
+| 逆投影先验缺失（无本帧 `p1_wcs.json` 产物，且无 `rotation_deg`） | `catalog_guided` DATA 拒绝；`auto` 显式降级并把原因写入 manifest 的 `detection_degraded_reason` |
 | 本帧 `p1_wcs.json` 存在但天测不可用（缺 crval/CD、非有限、CD 退化） | DATA 拒绝（判据 `p1_wcs_astrometry_usable`，禁 silent default） |
-| 近似 WCS 不可解析（指向/板尺度缺失或退化） | DATA 拒绝（禁 silent default） |
 | 星表逆投影后帧内 0 星，或全部拟合被质量门拒绝 | DATA 拒绝（`0/N catalog-guided fits survived`），不回退全图盲检测冒充成功 |
 | `max_stars` 越出 [20000, 50000] | DATA 拒绝（禁静默夹取） |
+
+**对上游 WCS 的消费口径**：本块**消费 `wcs-platesolve` 的完整 WCS（含 SIP 畸变项）**，用于把参考星表逆投影到像素域；**不接受丢弃畸变的降级载体**——逆投影必须用与解算器同一套系数的完整变换，近似指向只用于锥搜索中心与视场尺度，不用于预测位置。引导路径对预测位置不做搜索（直接在该位置拟合质心与椭圆高斯），因此预测偏差必须小于星像尺度；帧角畸变可达二十余像素，丢畸变即意味着场边参考星全部检不出。
+
+**往返门口径分层**：全链往返冻结门为 `1e-4` px。畸变模型给出的是**前向**变换（天球到像素），逆方向（像素到天球）由解算器以最小二乘拟合的逆多项式或迭代反演给出，二者的表示误差不同量级：在边缘畸变达数十像素的仪器上，**逆多项式与迭代反演不得共用同一个往返数**，判据必须分层给出。因此本块不依赖逆多项式做预测，预测走前向完整变换，避免引入逆方向的表示误差。畸变模型与往返门的定义见天体测量分册。
 - **负例与归零分支 N22（T05–T07 负向轮，本卡死值与静默 scale）**：负例输入构造甲 =
   `max_stars` 取 19999 / 50001；负例输入构造乙 = 空场（0 星）输入。预期行为甲 =
   DATA 拒绝，不静默夹取到边界。落盘标记甲 = 拒绝原因 + 越界值。预期行为乙 =
