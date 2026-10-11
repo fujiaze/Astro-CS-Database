@@ -271,6 +271,23 @@ PC_API int pc_calibrate_simple_with_gaia_f64_v2(
     double* out_sigma_residual,
     PhotometricDiag* out_diag);
 
+
+// ---------------------------------------------------------------------------
+// 天球 -> 像素 投影（完整高精度 WCS，含 SIP）
+//
+// 输出 out_x/out_y 为 **0-based 像素坐标**（与 pc::WcsTransform::skyToPixel 同口径），
+// 调用方不得再做 −1.0 换算。sip_order 合法域 [0,5]；sip_a/sip_b 长度 36（i*6+j），
+// 可为 nullptr（等价 sip_order=0）。本函数不抛异常：非法入参/阶数越界返回负错误码。
+// 用途：阶段一星表引导检出的预测位置必须由本帧权威 WCS（含畸变）给出；丢畸变的
+// 线性近似在场边的预测偏差可超出星像尺度（本批帧角 SIP 达 25.6 px）而必然检不出星。
+// ---------------------------------------------------------------------------
+PC_API int pc_project_sky_to_pixel(
+    double crval1, double crval2, double crpix1, double crpix2,
+    double cd11, double cd12, double cd21, double cd22,
+    int sip_order, const double* sip_a, const double* sip_b,
+    const double* ra, const double* dec, int n,
+    double* out_x, double* out_y);
+
 #ifdef __cplusplus
 }
 #endif

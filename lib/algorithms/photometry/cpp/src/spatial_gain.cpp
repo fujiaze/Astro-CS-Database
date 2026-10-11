@@ -421,21 +421,19 @@ SpatialGainField fit_spatial_gain(const SpatialGainSample* s, int n,
         return f;
     }
 
-    // ---- 覆盖门（§2.5）：放在星数/秩阶梯之后，使 degraded_reason 报**根因**
-    //      （星数不足 vs 分布聚集 vs 加权秩亏），而不是被最先命中的那一项掩盖。----
-    if (p.coverage_check &&
-        (f.coverage_blocks < p.coverage_min_blocks ||
-         f.coverage_bbox_frac < p.coverage_min_bbox_frac)) {
-        char buf[192];
-        std::snprintf(buf, sizeof(buf),
-                      "degraded_coverage(blocks=%d<%d, bbox_frac=%.4f<%.4f)",
-                      f.coverage_blocks, p.coverage_min_blocks,
-                      f.coverage_bbox_frac, p.coverage_min_bbox_frac);
-        f.order = 0;
-        f.status = SpatialGainStatus::kDegradedCoverage;
-        f.degraded_reason = buf;
-        return f;
-    }
+    // ---- 覆盖（§2.5）：**只作诊断读数，不再决定放行** ----
+    // 依据 run/PHOT-FIX/REPORT.md 的一手证据：本批 16 帧匹配到的盖亚星点在像面上
+    // 强烈中心聚集（中心块 27–121 星，四角块 0–4 星），3×3 分块 + 每块 ≥5 星的组合
+    // 使过门块数中位只有 5 < 6，于是 16 帧全被降级为 order=0（恒等）。
+    // 而"分块铺得够不够开"**不是可辨识性判据**：真正决定空间场能否拟合的是设计矩阵的
+    // 秩与条件数 kappa，二者已在上方星数/秩阶梯检查（rank_deficient_precheck_order 与
+    // identifiable/rank_eff/kappa）。因此放行不再看 blocks/bbox，只保留可辨识性检查，
+    // 让所有非饱和匹配星点都参与拟合。
+    // coverage_blocks / coverage_bbox_frac 仍原样写入产物，作为分布诊断读数。
+    // 外推护栏：无星覆盖的块是**外推区**，其场幅度须由调用方按覆盖率掩膜处理
+    //（外推区不施加修正，或按边界值延拓），不得仅凭 status 判定通过。
+    // 原降级原因串把 `||` 的两个条件都渲染成 X<Y（产生 bbox_frac=0.7135<0.5000 这种
+    // 自相矛盾），随本门一并移除；覆盖率不足不再构成降级原因。
 
     // ---- 阶段 3 固定尺度（与 star_matcher 的固定尺度 M 估计路线同口径）----
     std::vector<double> d(static_cast<std::size_t>(N));
