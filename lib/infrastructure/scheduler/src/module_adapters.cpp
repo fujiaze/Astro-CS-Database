@@ -3448,12 +3448,11 @@ bool p1_guided_cfg(const Json& doc, P1GuidedCfg* out, std::string* why) {
     return false;
   }
   out->max_stars = max_stars;
-  // 显式近似 WCS（star_detection.approx_wcs 优先, 回退 wcs 段的天测键）。
-  // B3 fail-closed：approx_wcs **显式给出**时六键必须齐备 —— 缺键不得静默回退到
-  // wcs 段（那会把用户输入静默丢弃，违 docs/engineering/contracts/LOG_AND_ERROR.md §6
-  // 「禁止静默回退/静默跳过校验」）。合同声明 =
-  // eng/contracts/schemas/phase_config_normalize.schema.json#/$defs/star_detection_config
-  // （approx_wcs.required = 六天测键）。
+  // 显式天测键（wcs 段，或 star_detection.approx_wcs 段）读取：
+  // 本读取**仅服务取向先验判据** `have_explicit_wcs`，**不再参与引导投影**——
+  // 引导预测已改为使用本帧权威 WCS 的完整变换（含 SIP），不再有近似 WCS 路径。
+  // 合同声明 = eng/contracts/schemas/phase_config_normalize.schema.json
+  // #/$defs/star_detection_config。
 
   const Json aw = (p1_has(sd, "approx_wcs") && sd["approx_wcs"].is_object())
                       ? sd["approx_wcs"] : wc;
@@ -3532,17 +3531,6 @@ bool p1_guided_wcs_product_prior(const Json& wprod, acsd::phase1::WcsTan* out,
   return true;
 }
 
-// 近似 WCS 解析（权威路径逆投影的锚）。来源优先级:
-//   ① star_detection.approx_wcs / wcs 段的天测键（crval1/2 + CD，方向完整）——
-//      调用方显式给定的先验, 最高优先（诊断/负例注入亦走此路）。
-//   ② **本帧解算产物** <frame_dir>/p1_wcs.json（psf 节点排在 wcs 之后, 由 IR 的
-//      typed 边 artifact:p1_wcs 保证先落盘）—— 生产默认先验: 含完整取向, 无需
-//      调用方预先知道像面取向, 且经求解器 roundtrip/前向交叉绝对门。
-//   ③ wcs.init_source 的初始指向（header_pointing|config|neighbor_crval）+
-//      板尺度 s0=206.265·XPIXSZ/FOCALLEN + 方向（rotation_deg/parity；缺省
-//      "北向上/东向左" ⇒ *assumed=true 留痕，不静默当已知）。
-// 任一不可得 → false + *why（调用方 DATA fail-closed）。
-// solved: 该帧已解出的 WCS（nullptr = 该帧无产物先验）。
 
 // 星表引导预测: 极限星等派生（焦距/画幅/曝光）→ Gaia 圆锥查询 →
 // 逆投影到像素域 → 按亮度（G 星等升序）取 top cfg.max_stars。
@@ -3778,8 +3766,7 @@ Result<void> p1_op_star_psf_impl(const Json& doc, Json* man, int n_fit_limit) {
       eff_mode = "blind_diagnostic";
       degrade_reason = "reference catalog configured but no orientation prior: neither the "
                        "solved WCS product <frame_dir>/p1_wcs.json (" + solved_wcs_why + ") "
-                       "nor star_detection.approx_wcs {crval1,crval2,cd11,cd12,cd21,cd22} / "
-                       "star_detection.rotation_deg+parity is available; catalog inverse "
+                       "nor star_detection.rotation_deg+parity is available; catalog inverse "
                        "projection would use an assumed north-up/east-left orientation; "
                        "falling back to the declared non-authoritative blind path";
       std::fprintf(stderr, "[star-psf] WARNING (recorded): %s\n", degrade_reason.c_str());
@@ -3797,8 +3784,7 @@ Result<void> p1_op_star_psf_impl(const Json& doc, Json* man, int n_fit_limit) {
       return Result<void>::fail(Error(ErrorDomain::DATA,
           "star_detection.mode=catalog_guided requires an orientation prior: the solved WCS "
           "product <frame_dir>/p1_wcs.json is unavailable for every frame (" + solved_wcs_why +
-          ") and neither star_detection.approx_wcs {crval1,crval2,cd11,cd12,cd21,cd22} (or the "
-          "same keys under the wcs section) nor star_detection.rotation_deg + "
+          ") and neither the wcs section nor star_detection.rotation_deg + "
           "star_detection.parity is configured; refusing to inverse-project the catalog with "
           "an assumed orientation (docs/ACSD_DESIGN.md §4.2: 权威路径必须高纯度, 不得以假设取向冒充)"));
     }
