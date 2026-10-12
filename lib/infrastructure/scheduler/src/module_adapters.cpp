@@ -1540,12 +1540,128 @@ std::string p1_product_path(const Json& doc, const std::string& light,
   return out_dir + "/" + prefix + "_" + p1_base_name(light);
 }
 
-// 节点输入帧路径: 优先 cal 节点产物 calibrated_<base>（节点链约定）, 无则原帧
+// 节点输入帧路径: 优先 cal 节点产物 calibrated_<base>（节点链约定）。
+// 产物缺失时的行为由**构建期**开关决定（正本
+// docs/engineering/architecture/DEV_MODE.md《运行前检查与中间产物》"运行期的静默回退"）：
+//   · 发布构建（ACSD_DEV_INTERMEDIATE_CACHE 未定义）：**不编入**回退分支——绝不静默
+//     改用原帧，而是返回那个**不存在的**产物路径，使缺失以明确的上游错误暴露；
+//   · 开发构建：保留回退，但必须显式留痕——由 p1_prerun_calibrated_check 把
+//     fell_out/why 落进 manifest（见该函数）。
 std::string p1_calibrated_path(const Json& doc, const std::string& light) {
   const std::string cand = p1_product_path(doc, light, "calibrated");
   if (aio_fs::exists(cand)) return cand;
-  return light;
+#if defined(ACSD_DEV_INTERMEDIATE_CACHE)
+  return light;   // 开发模式：回退原帧（留痕在运行前检查）
+#else
+  return cand;    // 发布模式：无静默回退分支；缺失路径交由统一 I/O 报错
+#endif
 }
+
+// ── 运行前输入面校验 ────────────────────────────────────────────────────────
+// 正本 docs/engineering/architecture/DEV_MODE.md《运行前检查与中间产物》与
+// docs/detail/normalize/pipeline.md「输入合同」。口径（负责人已定，不得放宽）：
+//   · 运行前只查三件事：**存在 / 匹配 / 合法**；运行期间不重复检查；
+//   · **匹配判据 = 尺寸一致即可**（不比较滤镜/增益/温度等）；
+//   · 几何一律走 aio_read_header_only + aio_get_geometry，**不加载整幅像素**。
+// 失败信息一律**点名文件并给出双方尺寸**。
+// 与 ACSD_DESIGN 第 13 章「不设门禁」的关系：门禁指阻塞流程的关卡；本处是**输入域
+// 合法性判定**（负责人明确要求 fail-closed），不是门禁，文档已写明该区分。
+
+// E1 + E2：母版清单式存在性、母版之间、以及每个母版 vs 每一帧 light 的尺寸一致性。
+static Result<void> p1_prerun_input_check(const Json& doc, Json* man) {
+  std::vector<std::pair<std::string, std::string>> masters;   // (config key, path)
+  for (const char* k : {"master_bias", "master_dark", "master_flat"})
+    if (p1_has(doc, k)) masters.emplace_back(k, doc[k].get<std::string>());
+
+  if (man) (*man)["prerun_input_check"] =
+      Json{{"schema", "acsd.p1.prerun_input_check/v1"}, {"masters", Json::array()},
+           {"lights", Json::array()}};
+
+  // (E2) 清单式存在性 + (E1a) 母版之间尺寸一致
+  int mw = -1, mh = -1;
+  std::string mw_file, mw_key;
+  for (const auto& kv : masters) {
+    AIOImageData* h = aio_read_header_only(kv.second.c_str());
+    if (!h) {
+      return Result<void>::fail(Error(ErrorDomain::IO,
+          "prerun: required master '" + kv.first + "' missing or unreadable: " + kv.second));
+    }
+    const AIOImageGeometry g = aio_get_geometry(h);
+    aio_free_image_data(h);
+    if (man)
+      (*man)["prerun_input_check"]["masters"].push_back(Json{
+          {"key", kv.first}, {"path", kv.second}, {"width", g.width}, {"height", g.height}});
+    if (mw < 0) {
+      mw = g.width; mh = g.height; mw_file = kv.second; mw_key = kv.first;
+    } else if (g.width != mw || g.height != mh) {
+      return Result<void>::fail(Error(ErrorDomain::DATA,
+          "prerun: master frame size mismatch: master '" + mw_key + "' (" + mw_file + ") is " +
+              std::to_string(mw) + "x" + std::to_string(mh) + " but master '" + kv.first +
+              "' (" + kv.second + ") is " + std::to_string(g.width) + "x" +
+              std::to_string(g.height)));
+    }
+  }
+
+  // (E1b) 每个母版 vs 每一帧 light
+  std::vector<std::string> lights;
+  if (p1_has(doc, "input_lights"))
+    for (const auto& v : doc["input_lights"]) lights.push_back(v.get<std::string>());
+  for (const auto& lp : lights) {
+    AIOImageData* h = aio_read_header_only(lp.c_str());
+    if (!h) {
+      return Result<void>::fail(Error(ErrorDomain::IO,
+          "prerun: input light missing or unreadable: " + lp));
+    }
+    const AIOImageGeometry gl = aio_get_geometry(h);
+    aio_free_image_data(h);
+    for (const auto& kv : masters) {
+      AIOImageData* mh2 = aio_read_header_only(kv.second.c_str());
+      if (!mh2) continue;
+      const AIOImageGeometry gm = aio_get_geometry(mh2);
+      aio_free_image_data(mh2);
+      if (gl.width != gm.width || gl.height != gm.height) {
+        return Result<void>::fail(Error(ErrorDomain::DATA,
+            "prerun: light vs master size mismatch: light '" + lp + "' is " +
+                std::to_string(gl.width) + "x" + std::to_string(gl.height) + " but master '" +
+                kv.first + "' (" + kv.second + ") is " + std::to_string(gm.width) + "x" +
+                std::to_string(gm.height)));
+      }
+    }
+    if (man)
+      (*man)["prerun_input_check"]["lights"].push_back(
+          Json{{"path", lp}, {"width", gl.width}, {"height", gl.height}});
+  }
+  if (man) (*man)["prerun_input_check"]["status"] = "ok";
+  return Result<void>::success();
+}
+
+// E3：calibrated 产物**取数之前**的判定。只在消费 calibrated 的节点调用
+// （cal 节点本身是生产者，不调用）。
+//   · 发布构建：产物缺失 ⇒ fail-closed（点名文件），绝不进入静默回退；
+//   · 开发构建：放行，但把 fell_out/why 逐帧落进 manifest（不得静默）。
+static Result<void> p1_prerun_calibrated_check(const Json& doc, Json* man) {
+  if (!p1_has(doc, "input_lights")) return Result<void>::success();
+  for (const auto& v : doc["input_lights"]) {
+    const std::string lp = v.get<std::string>();
+    const std::string cand = p1_product_path(doc, lp, "calibrated");
+    if (aio_fs::exists(cand)) continue;
+#if defined(ACSD_DEV_INTERMEDIATE_CACHE)
+    if (man)
+      (*man)["calibrated_fell_out"].push_back(Json{
+          {"frame", lp},
+          {"requested_product", cand},
+          {"fell_out", true},
+          {"why", "calibrated_<base> missing; dev build falls back to the original light frame "
+                  "(ACSD_DEV_INTERMEDIATE_CACHE=1)"}});
+#else
+    return Result<void>::fail(Error(ErrorDomain::DATA,
+        "prerun: calibrated product required but missing: " + cand +
+            " (release build has no silent fallback to the original frame)"));
+#endif
+  }
+  return Result<void>::success();
+}
+
 
 // cosmetic 节点产物路径（DATA-P1-COSMETIC / artifact:cos）: cleaned_<base>。
 // 独立于 artifact:cal —— cos 不再就地覆写上游产物（CORE-RACE-001）。
@@ -2391,6 +2507,17 @@ Result<void> p1_op_calibrate(const Json& doc, Json* man) {
   for (const auto& l : doc["input_lights"]) lights.push_back(l.get<std::string>());
   const std::string out_dir = doc.value("output_dir", std::string("."));
 
+  // ── 运行前输入面校验（E1/E2；正本 DEV_MODE.md《运行前检查与中间产物》）──────
+  // 只在这里做一次：清单式存在性、母版之间、以及每个母版 vs 每一帧 light 的尺寸一致。
+  // 走 header-only 取几何，不加载像素；失败点名文件并给出双方尺寸。
+  {
+    auto rc = p1_prerun_input_check(doc, man);
+    if (rc.failed()) {
+      (*man)["error_kind"] = "input";
+      return rc;
+    }
+  }
+
   // io_read（取消点=文件粒度语义保留: 逐文件读校验; 数据缺字坏帧 → IO fail-closed）
   (*man)["stages"] = Json::array();
   Json& st_rd = (*man)["stages"].emplace_back(Json{{"name", "io_read"}, {"status", "running"}});
@@ -2849,6 +2976,11 @@ static const double kP1BadcolMasterWideFracMax = 1e-3;
 Result<void> p1_op_cosmetic(const Json& doc, Json* man) {
   auto p1_lights_rc = p1_require_lights(doc);
   if (p1_lights_rc.failed()) return p1_lights_rc;
+  // E3：calibrated 取数前的判定（发布构建缺失即 fail-closed；开发构建落 fell_out/why）
+  {
+    auto rc = p1_prerun_calibrated_check(doc, man);
+    if (rc.failed()) return rc;
+  }
   Json stages = Json::array();
   Json artifacts = Json::array();
   // LINDEF-IMPL-01（依据 eng/packaging/config/defaults.json 的
@@ -4603,6 +4735,11 @@ Result<void> p1_op_wcs(const Json& doc, Json* man) {
   if (!p1_has(doc, "input_lights") || doc["input_lights"].empty()) {
     return Result<void>::fail(Error(ErrorDomain::DATA, "input_lights required"));
   }
+  // E3：calibrated 取数前的判定（发布构建缺失即 fail-closed；开发构建落 fell_out/why）
+  {
+    auto rc = p1_prerun_calibrated_check(doc, man);
+    if (rc.failed()) return rc;
+  }
   // P0-21: 每帧一个 WCS 产物目录 ⇒ frame_key 必须唯一（重复即 fail-closed）。
   {
     auto uniq = p1_require_unique_frame_keys(doc);
@@ -5256,6 +5393,11 @@ Result<void> p1_op_wcs(const Json& doc, Json* man) {
 // ── op: measure_flux（唯一真实入口 Photometer::measure; 无源 → 如实空输出）──
 Result<void> p1_op_photometry(const Json& doc, Json* man) {
   const std::string out_dir = doc.value("output_dir", std::string("."));
+  // E3：calibrated 取数前的判定（发布构建缺失即 fail-closed；开发构建落 fell_out/why）
+  {
+    auto rc = p1_prerun_calibrated_check(doc, man);
+    if (rc.failed()) return rc;
+  }
   const std::string src_path = out_dir + "/p1_sources.json";
   // ── B2-A16: 上游 DATA-P1-SOURCES 是本节点唯一输入 ─────────────────────
   // 旧实现: 文件打不开/解析失败 → cat=[] → 空循环 → 仍写 p1_flux.json 并
@@ -7569,6 +7711,11 @@ Json p1_variance_audit_block(const Json& var_diag, const std::string& status,
 Result<void> p1_op_drizzle(const Json& doc, Json* man) {
   auto p1_lights_rc = p1_require_lights(doc);
   if (p1_lights_rc.failed()) return p1_lights_rc;
+  // E3：calibrated 取数前的判定（发布构建缺失即 fail-closed；开发构建落 fell_out/why）
+  {
+    auto rc = p1_prerun_calibrated_check(doc, man);
+    if (rc.failed()) return rc;
+  }
   const std::string out_dir = doc.value("output_dir", std::string("."));
   // P0-21 §3.4: WCS 头来源改为**逐帧** <frame_dir>/p1_wcs.json（回退 config.wcs）,
   // 在下方逐帧循环内解析（每帧独立 WCS ⇒ 每帧独立 HiPS 产品）。
