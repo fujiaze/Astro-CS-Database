@@ -499,3 +499,23 @@ ADS 记录页（`ui.adsabs.harvard.edu`）对脚本返回 405/JS 挑战；OUP(MN
   ⇒ 颜色项缺失会引入**星色相关**的系统差，建议升级为显式降级标志。
 - **场景差异**：不适用。
 - **核对状态**：**已核对**（逐行读源码）。
+
+---
+
+## 追加 · 曲线口径更新（R4）
+
+本条记录按 §13.2 **只追加、不改写既有条目**；上面各条里出现的 `filters_json` / `qe_json`
+是**已退役**的文件路径键，其指向的聚合文件（`eng/packaging/config/filters.json`、
+`lib/algorithms/photometry/data/response_curves/{filters,qe_curves}.json`）已按 R4 删除。
+当前口径：
+
+- 曲线库 = **运行期扫描** `<可执行文件目录>/config/response_curves/`（一文件一曲线，每条自带
+  `provenance`）；`channel == "Q"` 为 QE 曲线，其余为通带曲线；两类同目录、同格式、同一身份核对。
+- 配置只给**名字键**：`photometry.fit.filter`（否则块级 `filter_passband`）与
+  `photometry.fit.qe_name`，两者**必填**；缺 ⇒ 生产节点具名中止
+  （`PHOT_CONFIG_FILTER_MISSING` / `PHOT_CONFIG_QE_MISSING`）。
+- ⇒ 生产路径**没有**「缺 QE 就只用 \(T(\lambda)\)」的降级路径（本条 [F-36] 记录的
+  `compute_f_syn` 对 `Q=nullptr` 的容错只服务非生产调用方）；[F-19] 的"场景差异"里那对键名
+  应按本条读作已退役口径。
+- 依据 `docs/engineering/contracts/CONFIG.md`「响应曲线库（代码内单一路径 + 运行时扫描）」一节；
+  配套定案 `docs/f-instr-canon.md` §1.5 第 3 条已同步为当前口径。
