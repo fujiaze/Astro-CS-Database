@@ -230,15 +230,39 @@ clean/polluted 两次拟合之差，隔离伪影漏入。NMC=20。
 rank 49 = n_nodes，χ²_red 0.771，δ_k 非零。
 
 收敛枚举：规范转写的 0/1/2/3 状态机四例自洽（**meta**）；生产 `p2_upm_convergence`
-只能给 0/1 —— max_iter 与 stalled 都返回 0（**FIX-2**）。
+在旧判据面下只能给 0/1 —— max_iter 与 stalled 都返回 0（**FIX-2**）。当前修订下该缺陷
+已不复存在（实测出现 `2=stalled`），故「登记缺陷」的 `W5_enum_gap` 门随之翻红，见下。
 
 **读数来源与当前修订差异**：上表与完整链路读数取自**旧判据面**的 C5 读数
 （副本见 `run/FINAL-07/gate-reds/baseline/实验/additive-sky-seamless/results/c5_weights.json`）。
 当前修订重跑（`results/rerun_1f6d0a64/c5_weights.json`，同 seed）把加权 RMS 中位改为
 `control_ivar` 1.755 ± 0.697、`uniform` 1.789、`SNR²` 2.128，伪影漏入改为
 0.0761 / 0.1216 / 0.3590（`control_ivar` 仍最优，对 `uniform` 的优势由 2.7× 降为 1.6×）。
-`W1p` 与 `W2` 判词不变；**`W5_enum_gap` 在当前修订下判红**：`stalled_case` 0 → 1、
-`iters` [3, 1, 300] → [3, 3496, 1361]。
+`W1p` 与 `W2` 判词不变。**`W5_enum_gap` 翻红的正确读法：红 = 缺陷已被修好，不是退化。**
+该门断言的是「缺陷存在」（`maxiter_case == 0 and stalled_case == 0`）⇒ 缺陷在则绿、
+缺陷修好则红，**其绿红与质量方向相反**；任何人看到红都会误判为退化。按 `AGENTS.md` §13
+「本项目不设门禁；已有的门禁式机制按退役处置——删除，或改为显式的诊断/校验读数，但不得
+阻塞」，该门已**退役为显式诊断读数**（`code/c5_weights.py` 的
+`convergence_enum_diagnostic`：逐例记录 scenario / iters / objective / Δobj÷obj /
+converged 枚举 / tolerance / max_iterations / max_iterations_cap，并给出「三例在枚举上
+是否可区分」的诊断结论，**不判 PASS/FAIL、不影响退出码**）。
+
+归因：`36267e1a`「UPM自适应收敛：迭代预算按 κ 追加（下界 100／上界 5000 可配）」把
+`max_iterations` 的语义由**上限**改为**下界/试跑预算**，生产返回值随之出现 0/1/2 三种，
+门的前提被修好（详见 `docs/audit/ARTIFACT_GAP.md` §16）。上限实验表明不是「触上限」：
+stall 档在 `max_iterations` 50→20000 下迭代数恒为 1361，且容差放宽六个数量级时目标函数
+相对变化 ≤ 9.7e-6。
+
+**当前修订的收敛状态枚举诊断读数**（`results/rerun_1f6d0a64/c5_weights.json`，
+`distinguishable=True`、`distinct=[0,1,2]`）：
+
+| 场景 | 枚举 | iters | objective | Δobj÷obj（对 converged 档） | tolerance | max_iterations | cap |
+|---|---|---|---|---|---|---|---|
+| `converged` | **1** = converged | 3 | 0.0121118916393 | 0 | 1e-3 | 300 | 5000 |
+| `max_iter` | **0** = max_iter | 3496 | 0.012059161484 | 4.35e-3 | 1e-12 | 300 | 5000 |
+| `stalled` | **2** = stalled | 1493 | 39.7455159559 | 3.28e3 | 1e-15 | 300 | 5000 |
+
+`3=invalid` 需目标非有限，未由配置构造出，**如实登记为未行使**（不硬凑）。
 
 ### 4.6 C6 稀疏现场求值 vs 稠密（`【复现：bash 实验/additive-sky-seamless/code/run_all.sh 重跑后读 c6_sparse_dense.json；当前修订读数见 results/rerun_1f6d0a64/c6_sparse_dense.json】`，4/4 PASS）
 
@@ -343,8 +367,9 @@ rank 49 = n_nodes，χ²_red 0.771，δ_k 非零。
     信号加权平均；1% 幅度下**未检出**（3σ 上界 0.069）。
 13. **C2 M6 的原判据（Spearman>0.8）实测不成立**（ρ=0.50）：电平接缝沿 y 取中位，
     对 y 向细结构本就不敏感；现判据是"有界"，见 §11 判据变更登记。
-14. **C5 W5 的 "stalled" 臂实际跑满 300 轮**，不是真 stall ⇒ FIX-2 目前只有**代码事实**
-    （`upm.cpp:1527-1536` 只有 0/1），没有实验证据。
+14. **C5 W5 已退役为诊断读数**（原门断言「缺陷存在」，其绿红与质量方向相反）。
+    `0=max_iter`、`1=converged`、`2=stalled` 三条分支现已各有能真正行使的场景与读数（见 §4.5）；
+    `3=invalid` 需目标非有限，未由配置构造出，如实登记为未行使。
 
 ### 6.B 接缝门与定权的四条失效域（逐条带定量触发阈值）
 
@@ -631,7 +656,7 @@ C6 ≈ 1 min、C7 ≈ 1 min；审计重做三路＋补实验全量 ≈ 10 min；
 | **非退化接缝判据** | 完成 | `python3 .../c4_seam_criterion.py` | 退化 0.09σ vs 非退化 **36.4σ**；FP 0/60；检测限 6.98 e⁻ |
 | 采样权重 control_ivar/SNR²/uniform | 完成 | `python3 .../c5_weights.py` | 漏入 0.0245 / 0.3203 / 0.0651 e⁻ |
 | 星点掩膜 + 稀疏采样 + 联合参考面 + 梯度标定 | 完成 | 同上 | 掩膜覆盖 100%；1374 点/4 帧；49 节点；χ²_red 0.771 |
-| 无量纲收敛判据 0/1/2/3 | 规范转写 + 对拍 | 同上 | 状态机四例自洽（meta）；生产只 0/1（**FIX-2**） |
+| 无量纲收敛判据 0/1/2/3 | 规范转写 + 对拍 | `python3 .../c5_weights.py` | 状态机四例自洽（meta）；生产 `0/1/2` 三例可分别行使（FIX-2 已修），`3=invalid` 未行使 |
 | 稀疏按需 vs 稠密等价（冻结容差） | 完成 | `python3 .../c6_sparse_dense.py` | 3.11e-15 ≤ 1e-12；体积 0.167%；RSS 更低 |
 | 真实数据接缝度量分布 + VIS-401 对照 | 完成（M42 一路） | `python3 .../c7_realdata.py` | 20.89 → 0.460 e⁻（45×）；相对 3.9e-4 |
 | 三类证据互相佐证 | 完成 | 见 §8 | 文献 11 + 开源 35 + 仓内实测 |
@@ -645,7 +670,7 @@ C6 ≈ 1 min、C7 ≈ 1 min；审计重做三路＋补实验全量 ≈ 10 min；
 | ID | 位置 | 现象 | 证据 |
 |---|---|---|---|
 | FIX-1 | `lib/infrastructure/scheduler/src/module_adapters.cpp:5948-5949`（`tolerance=1e-6`, `tolerance_relative=0`；行号在 2026-09-21 由并行任务的合规回退改动后核对于 15:0x） | 绝对容差在 ~300 e⁻ 尺度下**永不收敛**（300 次迭代仍 `converged=0`） | C1 A7b；C5 W5 |
-| FIX-2 | 同上 `out_converged` | 只有 0/1，**无法区分** max_iter 与 stalled（规范要求 0/1/2/3） | C5 W4/W5（maxiter 与 stalled 均返回 0） |
+| FIX-2 | 同上 `out_converged` | 只有 0/1，**无法区分** max_iter 与 stalled（规范要求 0/1/2/3）——**已修**：当前修订实测出现 `0/1/2` 三种取值 | 旧判据面：C5 W4/W5（maxiter 与 stalled 均返回 0）；当前修订：C5 收敛状态枚举诊断读数（三例 enum = 0/1/2） |
 | FIX-3 | 天光面正规方程 | 真实 M42 样本上 κ = **3.16e7**（近奇异，接近默认 `kappa_max`） | C7 R2 |
 
 建议（供前台裁决，本单元不实施）：FIX-1 改 `tolerance_relative=1` 或按观测尺度归一；
@@ -723,7 +748,8 @@ FIX-2 按 `docs/algorithms` 的 0/1/2/3 语义补 `stalled` 分支；FIX-3 提�
 ### 11.2 审稿后仍存的边界（不整改，如实登记）
 
 - **C2 M5 的 0.693 是下界**，不是无偏幅度估计（分块 sinc 衰减 + 信号加权）；
-- **C5 W5 无实验证据**支持 stalled 分支缺失（只有代码事实）；
+- **C5 W5 的 stalled 分支缺失已有实验证据并已修复**：当前修订下 `0/1/2` 三例可分别行使
+  （`3=invalid` 未行使）；该门已按 AGENTS.md §13 退役为诊断读数；
 - **C7 的斜率/截距不可辨识**（杠杆臂 8.5 ADU），只有 `level_ratio` 可用；
 - **`实验/additive-sky-seamless/` 整目录未被 git 跟踪**（工作树有 357 个并行任务的改动），故"零生产代码改动"
   由**证据方向**（本单元所有写操作只落在 `实验/additive-sky-seamless/**`、`run/SCI-403/**`）与
