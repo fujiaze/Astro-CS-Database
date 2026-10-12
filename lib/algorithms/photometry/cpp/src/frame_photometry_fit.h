@@ -59,17 +59,19 @@ struct FramePhotFitRequest {
   // 配置
   std::string gaia_data_dir;   // XPSD 数据目录（光谱星必需, 通常 .../GaiaDR3SP）
   // 配置**声明**的通带名（`photometry.fit.filter`，否则块级 `filter_passband`）。
-  // 它是曲线的**唯一来源**：按 filters.json 的库键**字节精确**解析（无归一、无别名，
-  // 见 docs/engineering/contracts/CONFIG.md「滤镜名匹配语义」一节）；声明了库外名字
+  // 它是曲线的**唯一来源**：在**运行期扫描集**里按库键**字节精确**解析（无归一、
+  // 无别名；曲线库 = <可执行文件目录>/config/response_curves/，见
+  // docs/engineering/contracts/CONFIG.md「响应曲线库」一节）；声明了扫描集外的名字
   // ⇒ 拟合**拒绝产出标度**（具名环境作用域失败）。
   std::string filter_name;
   // 块级 `filter_passband`（配置声明）。非空时与 `filter_name` **字节精确**核对：
   // 不等 ⇒ 拟合**拒绝产出标度**（配置内部两条声明不是同一条曲线）。
   // 空 = 该处未声明，跳过该核对。
   std::string declared_filter_passband;
-  std::string filters_json;    // filters.json 路径
-  std::string qe_json;         // qe_curves.json 路径（生产运行必需，见 module_adapters 的 PHOT_CONFIG_QE_MISSING）
-  std::string qe_name;         // QE 曲线键（生产运行必需；库内键，字节精确）
+  // QE 曲线键（生产运行必需；扫描集内 `channel == "Q"` 的库键，字节精确）。
+  // 曲线文件路径**不再由配置给出**：目录是代码内单一路径（`filters_json`/`qe_json`
+  // 两个文件路径键已退役）。
+  std::string qe_name;
   double mag_min = 6.0;
   double mag_max = 16.0;
   // ── PHOT-MXY-01: 低阶乘性空间增益 m(x,y)（SCI-PHOT-001 §16.1 ④⑤）───────────
@@ -99,9 +101,9 @@ inline constexpr int kMinFitStars = 3;
 //                  |r_consistent|>=3 不成立）、非物理标度。**只该帧 fail**：
 //                  同一批输入里的其他帧照常拟合与施加（帧间独立，SCI-PHOT-001
 //                  §1/§16.5；「拟合失败这帧报 error/fail，不阻塞其他帧」）。
-//   kEnvironment : 运行环境/配置问题 —— 配置缺项（gaia_data_dir / filter /
-//                  filters_json）、响应曲线文件不可读、星表目录不可打开、
-//                  光谱参数不可得、冻结 C 入口自身 rc!=0（含锥形搜索失败）。
+//   kEnvironment : 运行环境/配置问题 —— 配置缺项（gaia_data_dir / filter / qe_name）、
+//                  曲线库目录不可达或为空、曲线文件不可解析或身份核对失败、星表目录
+//                  不可打开、光谱参数不可得、冻结 C 入口自身 rc!=0（含锥形搜索失败）。
 //                  **必须中止**：这不是数据问题，换一帧也不会好（AGENTS §10
 //                  「权限/数据/环境缺失」；LOG 合同 §6 D3「科学语义改变 ⇒ 不是
 //                  降级，必须 fail-closed 上行」）。
@@ -153,12 +155,14 @@ struct FramePhotFitResult {
   // p1_phot.json 的 provenance，使「配置声明的通带」与「实际用的曲线」在产品里
   // 可独立核对（docs/science/PHOTOMETRY.md §2a.4「比较不同帧/不同模型的
   // sigma_residual 时必须声明所用模型通带」）。
-  // filter_key：配置声明的通带名（= filters.json 对象键；字节精确，无别名解析）。
+  // filter_key：配置声明的通带名（= 扫描集内的库键；字节精确，无别名解析）。
   // filter_curve_name：该对象 name 字段的自述值；身份门要求它与 filter_key 相等
   //   （不等 ⇒ fit 失败，不会有结果产出）。
   // n_points / wl_min_nm / wl_max_nm / val_min / val_max：实际装载数组的统计量。
+  // filter_curve_source：实际装载的曲线文件（扫描集内的绝对路径，供 provenance 记录）。
   std::string filter_key;
   std::string filter_curve_name;
+  std::string filter_curve_source;
   int filter_n_points = 0;
   double filter_wl_min_nm = 0.0;
   double filter_wl_max_nm = 0.0;
@@ -168,8 +172,9 @@ struct FramePhotFitResult {
   // Q 是通带的组成部分（docs/science/photometry/PHOTOMETRY.md §2 公式的 T·Q），
   // 故与滤镜同等记录：配置声明名 + 实际装载的库键与数组统计量，供产品 provenance
   // 并列核对「声明的是哪条、用的是哪条」。装载失败 ⇒ 拟合拒绝产出标度（不回退 Q≡1）。
-  std::string qe_key;            // 实际装载的 QE 库键（= qe_curves.json 对象键）
+  std::string qe_key;            // 实际装载的 QE 库键（扫描集内 `channel == "Q"` 的 name）
   std::string qe_curve_name;     // 该对象 name 字段自述值
+  std::string qe_curve_source;   // 实际装载的 QE 曲线文件（绝对路径）
   int qe_n_points = 0;
   double qe_wl_min_nm = 0.0;
   double qe_wl_max_nm = 0.0;

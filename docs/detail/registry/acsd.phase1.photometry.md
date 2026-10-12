@@ -328,8 +328,9 @@ cache/内存按 ALG 合同（bounded）; I-O 单 writer。
   `PHOT_PASSBAND_IDENTITY_INCONSISTENT`（该帧曲线身份与组内首帧不一致；同时置
   `passband_identity_inconsistent` 标志）。帧级失败**不是降级**，不写
   `degraded_reason`；
-- **全局失败**（星表 / 响应曲线不可读、`gaia_data_dir` / `filter` /
-  `filters_json` 缺项、冻结 C 入口返回非零）⇒ **中止运行**
+- **全局失败**（星表不可读、曲线库目录不可达或为空、目录内曲线文件不可解析或身份核对
+  失败、名字不在扫描集（`unknown_filter`）、`gaia_data_dir` / `filter` / `qe_name`
+  缺项、冻结 C 入口返回非零）⇒ **中止运行**
   （`ErrorDomain::CONFIG` / `IO` 上行到 CLI 收敛为退出码），不把整批帧逐帧判 fail；
 - **运行级判红**由产品基数不变量给出（最高设计「输出合同」一节「任何一帧未被处理、跳过
   或失败都显式判红」）：失败帧没有 HiPS 产品 ⇒ `write_hips` 上抛
