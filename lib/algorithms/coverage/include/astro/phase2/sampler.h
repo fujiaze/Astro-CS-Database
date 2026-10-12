@@ -2,7 +2,7 @@
 //
 // Phase2 W4：稀疏光度控制点采样器（control sampler）。
 //
-// 语义（冻结；权威 = docs/science/algorithms/PHASE2_SAMPLER.md）：
+// 语义（冻结；权威 = docs/science/algorithms/mosaic/PHASE2_SAMPLER.md）：
 // - 控制点 geometry 由 union 几何与目标角间距决定，**不由 SNR 决定**；
 // - 每个覆盖控制节点的 frame 提供观测 y_ik/sigma_ik/snr_ik/support_ik/quality_ik，
 // y_ik 必须从实际 Phase1 HiPS 数据读取；
@@ -52,7 +52,7 @@ typedef struct {
     // （UPMW-005 control_median_mc_test，pixfrac=0.8 实证 1.3883），
     // 冻结保守值 1.4（>= 实证，余量 <1%）。<=0 时回退冻结默认。
     double control_k_corr;                // 默认 1.4
-    // 星点掩膜（10_sampling.md §4.1）：星表中 snr > factor × 帧级 SNR 中位数
+    // 星点掩膜（docs/detail/registry/acsd.phase2.sample.md）：星表中 snr > factor × 帧级 SNR 中位数
     // 的星按 radius 膨胀进 star_mask（P0-08；原 catalog veto 硬编码整改）。
     double star_mask_snr_factor;          // 默认 10.0
     double star_mask_radius_deg;          // 默认 0.012
@@ -148,7 +148,7 @@ P2_API int p2_sample_controls(
     char* err, std::size_t err_size);
 
 // ===========================================================================
-// P0-08：天光采样点 + 星点掩膜（10_sampling.md §3/§4.1/§4.2）
+// P0-08：天光采样点 + 星点掩膜（docs/detail/registry/acsd.phase2.sample.md）
 // ---------------------------------------------------------------------------
 // 与 p2_sample_controls* 同一遍扫描，额外输出：
 //   - sky_samples：每帧掩膜外**全部 clean 采样点**（含单帧区，不要求 ≥2 帧），
@@ -220,7 +220,7 @@ P2_API int p2_sample_controls_cached_with_halos(
 // 单位（冻结表，不在此重定义）：signal_sb=ADU/sr、sb_variance_out=
 // ADU^2/sr^2、W_info=ADU^-2、Q=ADU^-1、flux=ADU。
 // 历史单位项 psfsw_robust_weight=1 随该对象退役（docs/ACSD_DESIGN.md §3.1；
-// UNIFIED_MODEL.md:58）：本求值器不消费也不接受该对象。
+// docs/detail/common/unified_model.md）：本求值器不消费也不接受该对象。
 // 求值器按调用方声明的量求值，不改变单位、不发明权重、不把值当 variance。
 // 值必须来自 Phase1 模型；缺失/NaN 一律 fail-closed，禁止零填。
 // ===========================================================================

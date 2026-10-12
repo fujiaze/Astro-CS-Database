@@ -267,7 +267,8 @@ struct P2SkyPlaneGeometryInputs {
     double pixel_scale_arcsec = 0.0;
 };
 
-// 导出过程的全部中间可观测量（写入 provenance，供 §7a 的「触发过」复核）。
+// 导出过程的全部中间可观测量（写入 provenance，供
+// docs/science/sky/UPM.md「物理模型」一节 的「触发过」复核）。
 struct P2SkyPlaneGeometryProvenance {
     std::size_t n_obs = 0;
     std::size_t n_frames = 0;

@@ -375,7 +375,7 @@ namespace {
 //             参考帧。而是绝对标定。」⇒ 受 PixInsight PSFSW 启发的稳健复合帧权重
 //             psfsw_robust_weight **不是现行对象**：docs/ACSD_DESIGN.md §3.1
 //             「权重只能来自纯净信号与噪声之比……任何使偏差随帧而变的量（含 PSF 拟合
-//             质量代理）都不得进入科学叠加权重」；docs/detail/UNIFIED_MODEL.md:58；
+//             质量代理）都不得进入科学叠加权重」；docs/detail/common/unified_model.md；
 //             docs/science/noise_snr/NOISE_SNR.md §1/§4；
 //             统一对象退役登记 eng/contracts/data/unified_object_compatibility_map_v1.json:133-143。
 // STATUS:     生产可达的合同门：p2_weight_source_token_reject
@@ -383,7 +383,7 @@ namespace {
 //             并在 coverage target 内编译。
 // EXIT:       无（拒绝面必须保留）。
 // AUTHORITY:  docs/ACSD_DESIGN.md §3.1；docs/science/noise_snr/NOISE_SNR.md §1/§4；
-//             docs/detail/UNIFIED_MODEL.md:58；ENGINEERING_SPEC.md §2/§3；
+//             docs/detail/common/unified_model.md；ENGINEERING_SPEC.md §2/§3；
 //             eng/contracts/data/unified_object_compatibility_map_v1.json:133-143（14→13 退役登记）。
 // ──────────────────────────────────────────────────────────────────────
 // 冻结 forbidden.weight_source_tokens（大小写不敏感全等匹配）。
@@ -432,7 +432,8 @@ int p2_weight_source_token_reject(const char* const* tokens, std::uint64_t n,
                         std::snprintf(err, err_size,
                                       "forbidden weight source token '%s' "
                                       "(FZ-MODE-RETIRED: not a current object - "
-                                      "docs/ACSD_DESIGN.md 3.1; UNIFIED_MODEL.md:58; "
+                                      "docs/ACSD_DESIGN.md 3.1; "
+                                      "docs/detail/common/unified_model.md; "
                                       "migration: Phase2 reconstructs the dense SNR field "
                                       "and derives inverse-variance weights "
                                       "w = SNR^2/F_ref^2; there is no selectable weight "

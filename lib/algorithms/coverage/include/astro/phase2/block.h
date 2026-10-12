@@ -2,7 +2,7 @@
 //
 // Phase2 W6：动态分块（Block Planner）。
 //
-// 语义（冻结；权威 = docs/science/algorithms/PHASE2_MOSAIC_WRITE.md
+// 语义（冻结；权威 = docs/science/algorithms/mosaic/PHASE2_MOSAIC_WRITE.md
 // （micro-chunk 内存规划、逐 tile 真实 depth 重算 p2_block_plan）与
 // docs/engineering/contracts/OWNERSHIP_LIFETIME.md）：
 // - 峰值估算 ≈ P·N_B·B_sample + P·B_scratch + M_AIO + M_UPM + M_ACR；

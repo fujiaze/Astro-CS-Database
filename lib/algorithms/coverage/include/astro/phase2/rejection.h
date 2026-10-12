@@ -57,7 +57,7 @@ enum P2RejectionMethod {
     // 已知先验 σ 的极值检验（FIX-REJ §3；见 P2ExtremeValuePriorSigmaParams）。
     // **显式 opt-in 方法**：永不参与任何 AUTO 路由（含 acsd_adaptive_pixel
     // 的逐几何 n 映射——SD-18 起 n<=3 走 none 保守路径；依据见
-    // docs/science/REJECTION.md §5/§16）。
+    // docs/science/integration/REJECTION.md §5/§16）。
     // API 保留供调用方显式指定并自带外部先验时使用。
     P2_REJECT_EXTREME_VALUE_PRIOR_SIGMA = 11
 };
@@ -85,7 +85,7 @@ enum P2RejectionMethod {
 // bestRejectionMethod()**（WeightedBatchPreprocessing-engine.js:1421-1429，
 // 包 sha1 712cc7c3fdb523643ad0e685104592d511996f82）：N<6 → percentile；
 // **N ≥ 6 → winsorized_sigma**（原 N≥16 → linear_fit 档改投；WBPP 该档
-// N>15 为 Rejection_ESD，本表两者都不取，偏离依据见 docs/science/REJECTION.md §5）；
+// N>15 为 Rejection_ESD，本表两者都不取，偏离依据见 docs/science/integration/REJECTION.md §5）；
 // 逐像素粒度是 ACSD 自定扩展。原四档表（n≤3 不排异 /
 // 4–7 percentile / 8–15 winsorized / ≥16 linear）已由现行档位替换。
 // 「N<6 档的下界是否含 N≤3」是**单一显式决策点**
@@ -247,7 +247,7 @@ typedef struct {
 // 冻结 profile 的 Auto 路由（**本仓解析表**）：
 // 对照档（wbpp_2_9_1 / wbpp_current / acsd_adaptive）：
 //   nominal < 6 → percentile；6..15 → winsorized_sigma；>15 → linear_fit。
-// 生产档（acsd_adaptive_pixel，M3 后；依据 docs/science/REJECTION.md §5）：
+// 生产档（acsd_adaptive_pixel，M3 后；依据 docs/science/integration/REJECTION.md §5）：
 //   nominal < 6 → percentile；**nominal ≥ 6 → winsorized_sigma**。
 // 注：档界与 WBPP 2.5.9 bestRejectionMethod()（engine.js:1421-1429）一致，
 // 但 >15 档两档都不取 WBPP 2.4.0+ 的 ESD（对照档取 ≤2.3.x 旧表 linear_fit）。
@@ -259,7 +259,7 @@ typedef struct {
 // acsd_adaptive_pixel → ACSD 自有「按逐输出像素几何 N」内置映射
 // （档界取自 WBPP 2.5.9：N<6 percentile；**N≥6 winsorized**（
 // 原 N≥16 → linear_fit 档改投，该档既不取 WBPP 2.4.0+ 的
-// ESD、也不取 ≤2.3.x 的 linear_fit，依据见 docs/science/REJECTION.md §5）；
+// ESD、也不取 ≤2.3.x 的 linear_fit，依据见 docs/science/integration/REJECTION.md §5）；
 // 原四档表已由现行档位替换）。AUTO 路由**禁止**产出 min/max 与
 // NoRejection（WBPP 2.5.9 engine.js:1349-1412）⇒ 命中即 fail-closed（返回非 0）。
 // 「N<6 档的下界是否含 N≤3」= 单一显式决策点

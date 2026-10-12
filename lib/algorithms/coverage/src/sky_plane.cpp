@@ -20,7 +20,7 @@
 // - gauge：参考帧 δ≡0（reference_frame）或 δ 常数项和为零（sum）。
 #include "astro/phase2/sky_plane.h"
 
-// 唯一「可辨识性/病态」判据（与 UPM/GLS 侧**同一个函数**；§7a:196-198）。
+// 唯一「可辨识性/病态」判据（与 UPM/GLS 侧**同一个函数**；docs/science/sky/UPM.md「公式与推导」一节）。
 #include "astro/phase2/identifiability.h"
 
 #include "acsd/probe.h"  // 探针 (ACSD_PROBES=OFF 时宏为空语句)
@@ -603,7 +603,7 @@ struct SkyPlaneModel {
     int ref_frame = 0;
     std::vector<double> last_weights;   // 最后使用的样本权重（诊断/残差）
     std::vector<std::uint64_t> used_idx;
-    // §7a：节点间距自适应的完整 provenance（单次 build 时 n_attempts=0）。
+    // docs/science/sky/UPM.md「物理模型」一节：节点间距自适应的完整 provenance（单次 build 时 n_attempts=0）。
     P2SkyPlaneAdaptiveReport adaptive{};
     // 诊断（审计用）：仅当 cfg.retain_normal_matrices != 0 时保留，
     // 供 p2_sky_plane_normal_matrices 导出做离线谱分析；否则为空（零内存）。
@@ -1193,7 +1193,8 @@ int p2_star_mask_caps_gaia_halo(const double*, const double*,
 // 节点间距的输入自适应导出（SCI-UPM-CAP-001；docs/science/sky/UPM.md「物理模型」一节）
 // ---------------------------------------------------------------------------
 //
-// 规则 1（§7a）：节点间距 ≤ (该产品实际约束帧间改正量的最小尺度) / 2。
+// 规则 1（docs/science/sky/UPM.md「物理模型」一节）：
+// 节点间距 ≤ (该产品实际约束帧间改正量的最小尺度) / 2。
 // 对「帧间加性天光差」这一目标量，该尺度 = min(重叠带宽度, 指向间距)——它们才是
 // 真正约束 δ_k 的量（重叠带决定 δ_k 的横向可辨识宽度，指向间距决定帧间差的空间
 // 尺度）。**本函数不含任何标定常数**：所有输出都是这四个输入几何量的显式函数。
@@ -1271,7 +1272,8 @@ int p2_sky_plane_derive_node_spacing(const P2SkyPlaneGeometry* geom,
 P2SkyPlaneConfig p2_sky_plane_default_config(void) {
     P2SkyPlaneConfig c{};
     c.spline_degree = 3;   // 研究 Q4：三次张量 B 样条条件数 ~30 且与节点数无关
-    // §7a：**禁止**在配置里留「默认节点间距」标定值。0 = 未给出 ⇒ 由输入几何导出；
+    // docs/science/sky/UPM.md「物理模型」一节：**禁止**在配置里留
+    // 「默认节点间距」标定值。0 = 未给出 ⇒ 由输入几何导出；
     // 调用方给不出几何量时 p2_sky_plane_build 显式失败（GEOMETRY_REQUIRED）。
     c.node_spacing_deg = 0.0;
     c.frame_gradient_order = 1;
@@ -1318,7 +1320,8 @@ int p2_sky_plane_build(const P2SkySample* samples, std::uint64_t n,
     *out_model = nullptr;
     P2SkyPlaneConfig cfg = cfg_in ? *cfg_in : p2_sky_plane_default_config();
     if (cfg.spline_degree != 1 && cfg.spline_degree != 3) cfg.spline_degree = 1;
-    // §7a：节点间距不得回退标定常数。未显式给出 ⇒ 由输入几何导出；
+    // docs/science/sky/UPM.md「物理模型」一节：节点间距不得回退标定常数。
+    // 未显式给出 ⇒ 由输入几何导出；
     // 几何量缺失/不受支持 ⇒ 显式失败（GEOMETRY_REQUIRED）。
     int node_spacing_source = 1;   // 1 = 调用方显式给出
     double node_spacing_upper_deg = 0.0;   // 规则 1 上界（仅导出时已知）
@@ -2175,7 +2178,7 @@ int p2_sky_plane_build(const P2SkySample* samples, std::uint64_t n,
     // 「欠定」与「病态」是同一条不等式的两种读法：λ_n 最先跌破 τ·λ_1，
     // 故 κ > 1/τ ⟺ r_eff < n（自证；Hansen RTv4.1 §2.2/§2.3.1 把二者并列）。
     //
-    // 为什么判决矩阵是 H_red 而不是 H_solve（订正 §7a:218 的旧口径）：
+    // 为什么判决矩阵是 H_red 而不是 H_solve（docs/science/sky/UPM.md「公式与推导」一节）：
     //   κ(H_red + λP) 对 λ 有上界且 →1（P 半正定），即「把 λ 调大」总能把 κ
     //   压到任何门以下 ⇒ 在 H_solve 上设门是**恒真门**，对可辨识性零信息。
     //   Hansen RTv4.1 §1 第 2 条明列此陷阱（"replacing A by a well-conditioned
@@ -2183,7 +2186,7 @@ int p2_sky_plane_build(const P2SkySample* samples, std::uint64_t n,
     //   §2.7.3 把正则化刻画为引入一个 "new problem"。成熟实现一律在未正则化矩阵
     //   上判秩（LAPACK A / numpy A / Eigen 被分解矩阵 / GSL X / Ceres Jacobian J /
     //   R dqrdc2 逐列相对 / astropy 未正则化正规矩阵）。
-    //   §7a:218 当年要求取 H_solve 的**理由**是「让 λ 提升分支可能成功」；
+    //   取 H_solve 的**理由**是「让 λ 提升分支可能成功」；
     //   该分支本次已退休（实测惰性 + 归一后能买绿门），理由随之消失。
     // H_solve 的 κ 降为**求解稳定性**诊断量，单独记账、不参与判决。
     P2Identifiability id{};
@@ -2395,7 +2398,7 @@ int p2_sky_plane_build(const P2SkySample* samples, std::uint64_t n,
 
 
 // ===========================================================================
-// 节点间距自适应重试（§7a「节点间距必须进入自适应重试回路」）
+// 节点间距自适应重试（docs/science/sky/UPM.md「物理模型」一节「节点间距必须进入自适应重试回路」）
 // ===========================================================================
 //
 // **唯一旋钮 = 节点间距 h；唯一判据 = 相对有效秩**（负责人原则①：不得多路径）。
@@ -2442,7 +2445,7 @@ int p2_sky_plane_build_adaptive(const P2SkySample* samples, std::uint64_t n,
     if (!(ad.residual_improve_ratio > 0.0) || !(ad.residual_improve_ratio < 1.0))
         ad.residual_improve_ratio = 0.5;
 
-    // 搜索区间**必须**由输入几何给（§7a：不得引入标定常数）。
+    // 搜索区间**必须**由输入几何给（docs/science/sky/UPM.md「物理模型」一节：不得引入标定常数）。
     P2SkyPlaneNodeSpacing ns{};
     char gerr[512] = {0};
     if (p2_sky_plane_derive_node_spacing(&cfg.geometry, &ns, gerr, sizeof(gerr)) !=
@@ -3074,7 +3077,8 @@ int p2_sky_plane_save(const void* model_in, const char* path) {
             {"own_surface_enabled", m->cfg.own_surface_enabled},
             {"own_surface_step_deg", m->cfg.own_surface_step_deg},
             {"joint_outer_iterations", m->cfg.joint_outer_iterations},
-            // §7a：节点间距导出所需的输入几何（原样落盘，供独立复核导出规则）
+            // docs/science/sky/UPM.md「物理模型」一节：节点间距导出所需的输入几何
+            // （原样落盘，供独立复核导出规则）
             {"geometry", {
                 {"overlap_band_width_deg", m->cfg.geometry.overlap_band_width_deg},
                 {"pointing_spacing_deg", m->cfg.geometry.pointing_spacing_deg},
@@ -3155,7 +3159,8 @@ int p2_sky_plane_save(const void* model_in, const char* path) {
             {"node_spacing_source", m->info.node_spacing_source},
             {"node_spacing_upper_deg", m->info.node_spacing_upper_deg},
             {"node_spacing_lower_deg", m->info.node_spacing_lower_deg}};
-        // §7a：自适应重试的**逐次尝试**与最终生效值（provenance 最小集之外的自适应记录）
+        // docs/science/sky/UPM.md「物理模型」一节：自适应重试的**逐次尝试**与最终生效值
+        // （provenance 最小集之外的自适应记录）
         {
             const P2SkyPlaneAdaptiveReport& a = m->adaptive;
             nlohmann::json ja;

@@ -2,9 +2,9 @@
 
 > 上游：`docs/ACSD_DESIGN.md`「模块与 ABI」一节与「信号面」一节
 > 科学正本：docs/science/sky/UPM.md（SCI-UPM-001，FROZEN，相关章节）、
-> docs/science/algorithms/UPM_SOLVER.md（ALG-UPM-001，权威推导；F4/F6）、
+> docs/science/algorithms/mosaic/UPM_SOLVER.md（ALG-UPM-001，权威推导；F4/F6）、
 > `docs/science/noise_snr/NOISE_SNR.md`「协方差传播」一节
-> 实现级合同：docs/science/algorithms/PHASE2_UPM_IMPL.md（ALG-P2-UPM-IMPL-001；
+> 实现级合同：docs/science/algorithms/mosaic/PHASE2_UPM_IMPL.md（ALG-P2-UPM-IMPL-001；
 > 语义与缺陷清单、TEST-DESIGN冻结容差、字段名与生产取值登记三节）
 > 数据正本：docs/detail/registry/acsd.phase2.upm-apply.md（DATA-P2-UPM / DATA-P2-COR 端口表，本页输入输出端口表）
 > API 正本：docs/engineering/api/PUBLIC_API.md（API-P2-UPM-001）、
