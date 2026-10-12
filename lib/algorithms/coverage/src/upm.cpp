@@ -290,11 +290,13 @@ struct Model {
     double objective{0.0};
     // M7-H-101: 收敛状态（1 = 在 cfg.max_iterations 内 max_dM/max_dC 均达到
     // cfg.tolerance；0 = 迭代耗尽未达容差，或旧模型文件未记录该标志）。
-    // SCI-502（状态枚举 0/1/2/3，见 docs/detail/registry/acsd.phase2.upm-fit.md 4.6）:
+    // SCI-502（状态枚举 0/1/2/3，见 docs/detail/registry/acsd.phase2.upm-fit.md
+    // 「数值落地口径」一节）:
     //   0 = max_iter（迭代耗尽未达容差）
-    //   1 = converged（tol_step 与 tol_obj 同时满足）
+    //   1 = converged（max_dM < tol_M ∧ max_dC < tol_C；tol 由 tolerance 与
+    //       tolerance_relative 决定，相对档取 tolerance × max(scale_obs, 1)）
     //   2 = stalled（目标相对改善量连续 stall_patience 次低于数值地板）
-    //   3 = invalid（目标非有限 / 无有效数据项）
+    //   3 = invalid（目标非有限）
     // 旧模型文件未记录该标志时一律读作 0（不证明收敛）。
     int converged{0};
     // SCI-502 provenance（随模型持久化，供只读诊断）
@@ -885,8 +887,9 @@ static int build_impl(const P2ControlObservation* obs, std::uint64_t n_obs,
 
     // ===== Huber IRLS 坐标下降求解 =====
     // 残差 r_ik = y_ik - M_k - C_i,k
-    // 排异锚点：迭代剔除/阈值契约见 docs/science/REJECTION.md；权重来源见
-    // docs/science/PHASE2_UPM.md（SCI-UPM-WEIGHT-001）。
+    // 排异锚点：迭代剔除/阈值契约见
+    // docs/science/integration/REJECTION.md；权重来源见
+    // docs/science/sky/UPM.md（SCI-UPM-WEIGHT-001）。
     // 权重 raw_w = quality × control_ivar（SCI-UPM-WEIGHT-001）；
     // per-control 归一化后 × huber_w。legacy snr² 路径仅在
     // use_ivar_weight=0（ablation/诊断）时由 p2_upm_raw_weight 选择。
@@ -955,7 +958,8 @@ static int build_impl(const P2ControlObservation* obs, std::uint64_t n_obs,
         // 并行 worker 数来自 Runtime lease(cfg.cpu_workers, p2_session 传
         // budget.max_workers)。无 hardware_concurrency; 1 => 串行 reference。
         // 规约: worker-local tsums + 按 worker 顺序合并。确定性三档（冻结，
-        // 见 docs/science/PHASE2_UPM.md §7/§9）：同配置重复=位精确+model_hash
+        // 见 docs/science/algorithms/mosaic/PHASE2_UPM_IMPL.md
+        // §7/§9）：同配置重复=位精确+model_hash
         // exact；**跨 worker 数=1e-12 绝对容差，不是位精确**——本 per-control
         // 求和的结合顺序随 worker 切片变化（FP 加法非结合），实测 ΔC_max
         // 2.22e-15 ≈ 1 ulp @10 ADU；跨后端等价不允许。
@@ -1132,8 +1136,12 @@ static int build_impl(const P2ControlObservation* obs, std::uint64_t n_obs,
     // P2a-2：w 提升到迭代循环外——末端残差场 gauge 必须复用
     // 最后一轮的拟合权重（"拟合权重 = 叠加权重"同源，q2-snr-smooth §5）。
     std::vector<double> w(n_obs, 0.0);
-    // SCI-502: 相对容差的尺度基准 = **观测量的稳健尺度**（11_upm.md 4.6:
-    // 「分母用观测量的尺度，**不得**用 max|M|」）。取 |value| 的中位数，退化时 0。
+    // SCI-502: 相对容差的尺度基准 = **观测量的稳健尺度**
+    // （docs/science/sky/UPM.md「物理模型」一节：
+    // 收敛判据必须随观测尺度归一，禁止绝对容差；
+    // docs/science/algorithms/mosaic/PHASE2_UPM_IMPL.md
+    // 「收敛容差与报告字段」一节：「分母用观测量的尺度，
+    // **不得**用 max|M|」）。取 |value| 的中位数，退化时 0。
     // 与 max(scale,1.0) 组合：scale_obs<1 时退化为 legacy 绝对容差（近零尺度保护）。
     {
         std::vector<double> absv;
@@ -1629,7 +1637,8 @@ static int build_impl(const P2ControlObservation* obs, std::uint64_t n_obs,
         // tolerance_relative=1 时改为相对判据：
         //   阈值 = tolerance × max(scale_obs, 1.0)；分母 = **观测量尺度** scale_obs
         //   （control 观测值的稳健尺度，**不是** max|M| / max|C|，
-        //    docs/science/PHASE2_UPM.md §5 明文）；
+        //    docs/science/algorithms/mosaic/PHASE2_UPM_IMPL.md
+        //    「收敛容差与报告字段」一节 明文）；
         // max(...,1.0) 保证小尺度合成数据与 legacy 绝对判据逐位等价。
         // 钳制说明：scale_obs<1 时该 max(·,1.0) 使相对判据退化为空转的绝对
         // 判据（阈值语义冻结，本次不改）；自适应预算按**相对**距离估算
@@ -2246,7 +2255,8 @@ int p2_upm_save(const void* model, const char* path) {
     j["input_manifest_hash"] = m->input_manifest_hash;
     j["iterations"] = m->iterations;
     j["objective"] = m->objective;
-    j["converged"] = m->converged;   // SCI-502: 0/1/2/3（见 upm.h / 11_upm.md 4.6）
+    j["converged"] = m->converged;   // SCI-502: 0/1/2/3（见 upm.h 的
+                                     // p2_upm_convergence 注释）
     j["scale_obs"] = m->scale_obs;   // SCI-502 provenance（相对容差基准）
     j["rel_improve"] = m->rel_improve;
     j["stall_count"] = m->stall_count;
@@ -2707,7 +2717,8 @@ int p2_upm_convergence(const void* model, std::uint64_t* out_iterations,
     if (out_iterations != nullptr)
         *out_iterations = (std::uint64_t)m->iterations;
     if (out_objective != nullptr) *out_objective = m->objective;
-    // SCI-502 状态枚举（11_upm.md 4.6 / PHASE2_UPM_IMPL 496）:
+    // SCI-502 状态枚举（唯一口径见
+    // docs/science/algorithms/mosaic/PHASE2_UPM_IMPL.md「收敛容差与报告字段」一节）:
     //   0 = max_iter / 1 = converged / 2 = stalled / 3 = invalid；
     //   旧模型文件未记录 ⇒ 0（一律按未证明收敛处理）。
     if (out_converged != nullptr) *out_converged = m->converged;

@@ -2,8 +2,9 @@
 //
 // Phase2 Unified Photometric Model (UPM) 公共接口。
 //
-// 权威：docs/science/PHASE2_UPM.md（SCI-UPM-001..010）与
-//        docs/science/algorithms/PHASE2_UPM_IMPL.md / UPM_SOLVER.md。
+// 权威：docs/science/sky/UPM.md（SCI-UPM-001..010）与
+//        docs/science/algorithms/mosaic/PHASE2_UPM_IMPL.md /
+//        docs/science/algorithms/mosaic/UPM_SOLVER.md。
 //
 // 语义（冻结）：
 // - 输入为多个 Phase1 单帧 HiPS；覆盖并集 Ω = MOC union；
@@ -91,7 +92,8 @@ struct P2UpmBuildConfig {
     // 0=绝对（legacy，max_dM/max_dC < tolerance）；
     // 1=相对（< tolerance × max(scale_obs,1.0)）。
     // scale_obs = control 观测值的稳健尺度（upm.cpp 的 m->scale_obs）；
-    // **不得**用 max|M| 或 max|C|（docs/science/PHASE2_UPM.md §5 明文）。
+    // **不得**用 max|M| 或 max|C|（docs/science/algorithms/mosaic/PHASE2_UPM_IMPL.md
+    // 「收敛容差与报告字段」一节 明文）。
     double tolerance;
     int    target_order;          // 模型目标 order（-1=auto）
     double sigma_floor;           // uncertainty 下限（默认 1e-3）
@@ -122,7 +124,8 @@ struct P2UpmBuildConfig {
     int    final_gauge = 0;
     // P2a-3：1 = tolerance 解释为相对判据，阈值 = tolerance × max(scale_obs,1.0)，
     // scale_obs = control 观测值的稳健尺度（**不是** max|M| / max|C|，
-    // docs/science/PHASE2_UPM.md §5 明文）；0 = 绝对判据（legacy）。生产显式 1 + 1e-3。
+    // docs/science/algorithms/mosaic/PHASE2_UPM_IMPL.md「收敛容差与报告字段」一节
+    // 明文）；0 = 绝对判据（legacy）。生产显式 1 + 1e-3。
     // 绝对 1e-6 在 max|M|~3e15 时低于 ULP(0.5) 5-8 个数量级，原理上不可达。
     int    tolerance_relative = 0;
     // M7-C-001: UPM 控制 cell 网格边长 G，必须 == 采样器
@@ -160,13 +163,16 @@ P2_API int p2_upm_info(const void* model, P2ModelInfo* out_info);
 // 收敛与否必须由本访问器显式读取，禁止用 rc=0 冒充"已收敛"）。
 //   out_iterations：实际执行迭代数（1..cfg.max_iterations）
 //   out_objective ：末轮 Huber 目标值（ADU² 量纲）
-//   out_converged ：**状态枚举**（唯一口径见 docs/science/PHASE2_UPM.md
-//                   「converged 状态枚举」一节）：
+//   out_converged ：**状态枚举**（唯一口径见
+//                   docs/science/algorithms/mosaic/PHASE2_UPM_IMPL.md
+//                   「收敛容差与报告字段」一节）：
 //                     0 = max_iter（迭代耗尽未达容差；模型文件未记录时同样读作 0，
 //                         一律按"未证明收敛"处理）
-//                     1 = converged（tol_step 与 tol_obj 同时满足）
+//                     1 = converged（max_dM < tol_M ∧ max_dC < tol_C；tol 由
+//                         tolerance 与 tolerance_relative 决定，相对档取
+//                         tolerance × max(scale_obs, 1)，scale_obs = |value| 的中位数）
 //                     2 = stalled（目标相对改善量连续 N_stall 次低于数值地板）
-//                     3 = invalid（目标非有限 / 无有效数据项）
+//                     3 = invalid（目标非有限）
 // 三个出参均可空。返回值：0 成功；1 model==nullptr。
 P2_API int p2_upm_convergence(const void* model, std::uint64_t* out_iterations,
                               double* out_objective, int* out_converged);
