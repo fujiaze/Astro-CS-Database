@@ -473,3 +473,114 @@ stalled 不可区分（登记 FIX-2）。这是一条**缺陷登记门**：缺�
 - **C5 `W5_enum_gap` 的门与场景更新**：归因已定（§16），但改 `code/c5_weights.py`
   未在本轮授权内，待派单。
 - **`o3` 档 `converged=1` 与 science 枚举口径的逐条比对**：见 §16.4 残余。
+
+## 18. P1：`W5_enum_gap` 退役为显式诊断读数
+
+**为什么退役而不是放宽**：该门断言 `maxiter_case == 0 and stalled_case == 0`——断言的正是
+「缺陷存在」（缺陷在则绿、缺陷修好则红），**其绿红与质量方向相反**。按 `AGENTS.md` §13
+「本项目不设门禁；已有的门禁式机制按退役处置——删除，或改为显式的诊断/校验读数（记录、上报、
+可复核），但不得阻塞」，处置为**退役为记录**。
+
+**改动点**（`code/c5_weights.py`）：
+
+- 删去 `g.add("W5_enum_gap", …, ok=…)` 这条判据行 ⇒ 它不再进入 `gates.rows`，
+  因而不参与 `n_fail`、不影响 `main()` 的退出码；
+- 新增 `res["convergence_enum_diagnostic"]`：逐例记录
+  `scenario / converged / converged_name / iterations / objective / tolerance /
+  tolerance_relative / max_iterations / max_iterations_cap / rc_build /
+  dobj_over_obj_vs_converged`，并给出诊断结论字段
+  `distinguishable`（三例枚举是否两两不同）、`distinct_enum_values`、`enum_names`；
+- 输出新增 `[DIAG]` 行（不判 PASS/FAIL）；
+- 模块 docstring 的 W5 条目同步改写。
+
+**新读数样例**（真实输出尾部，`results/rerun_1f6d0a64/c5_weights.json`）：
+
+```
+  [PASS] W4_convergence_enum_spec     {'converged': 1, 'max_iter': 0, 'stalled': 2, 'invalid': 3}
+  [DIAG] 收敛状态枚举（非门禁，不阻塞） distinguishable=True distinct=[0, 1, 2]
+  [DIAG]   converged  enum=1(converged) iters=3      obj=0.0121118916393  Δobj/obj=0            tol=0.001    max_iter=300 cap=5000
+  [DIAG]   max_iter   enum=0(max_iter ) iters=3496   obj=0.012059161484   Δobj/obj=0.004354     tol=1e-12    max_iter=300 cap=5000
+  [DIAG]   stalled    enum=2(stalled  ) iters=1493   obj=39.7455159559    Δobj/obj=3281         tol=1e-15    max_iter=300 cap=5000
+[mem_guard] peak_rss_gb=0.795 limit_gb=8.0 label=python3 exit=0
+```
+
+退出码由原来的 1（门翻红）变为 **0**：这不是「把门改绿」，而是**退役了一条与质量方向相反的门**，
+且**未调任何参数、未改任何阈值**。`gates` 现为 4 条（`W1p`/`W2`/`W3`/`W4`）全绿。
+
+**`max_iterations_cap` 的取值依据**：探针不覆写该键（`upm_probe.cpp:131` 为
+`P2UpmBuildConfig cfg{}` 值初始化，其后的字段赋值列表里没有 `max_iterations_cap`），
+而 `upm.h:89` 给出默认成员初值 `= 5000` ⇒ 逐次运行的取值确定为 5000。诊断行如实记该值，
+并在 `c5_weights.py` 注释里写明这条依据（不是猜测）。
+
+## 19. P2：`o2`/`o3` 场景语义修复（每条分支都要被真正行使）
+
+原场景的语义已被 `36267e1a` 破坏：`o2` 用 `max_iterations=1` 想「强制 max_iter」，
+但该键自该提交起是**下界/试跑预算**，1 会被自适应延长；`o3` 原为
+`tolerance=1e-12 + smoothing_lambda=50`，实测判为 `converged=1`，并未行使 stalled。
+
+按 `upm.cpp:1649-1670` 的三条判定分支重新构造场景，并用
+`results/rerun_1f6d0a64/c5_branch_probe.py`（只扫探针已暴露的 cfg 键）做了
+`smoothing_lambda × tolerance` 扫描以确认分支可稳定行使：
+
+| `smoothing_lambda` | `tolerance` | 枚举 | iters |
+|---|---|---|---|
+| 0 | 1e-9 | 2 stalled | 3497 |
+| 0 | **1e-12** | **0 max_iter** | 3496 |
+| 0 | 1e-15 | 2 stalled | 3497 |
+| 50 / 200 / 1000 / 5000 / 20000 | 1e-9 | 1 converged | 984–988 |
+| 50 / 200 / 1000 / 5000 / 20000 | 1e-12 | 1 converged | 1361–1362 |
+| 50 / 200 / 1000 / 5000 / 20000 | **1e-15** | **2 stalled** | 1493 |
+
+重复性：对 6 个配置各跑两遍，`enum` 与 `iters` **逐位相同**（稳定），例：
+`l0_t1e-12 → 0/0 @3496`、`l1000_t1e-15 → 2/2 @1493`。
+
+**采纳的场景**：
+
+- `converged`：`tolerance=1e-3, tolerance_relative=1, max_iterations=300` → **enum=1**
+- `max_iter` ：`tolerance=1e-12, tolerance_relative=1, smoothing_lambda=0.0` → **enum=0**
+- `stalled`  ：`tolerance=1e-15, tolerance_relative=1, smoothing_lambda=1000.0` → **enum=2**
+
+**未达项（如实登记）**：`3=invalid`（目标非有限 / 无有效数据项）**未由配置构造出**——
+探针已暴露的 cfg 键无法稳定制造非有限目标。不硬凑，登记为未行使。
+
+**硬约束遵守**：本项**没有为了让任何判词变绿而调参**——`o1`（converged 档）的容差未动，
+`o2`/`o3` 改的是「行使哪条分支」的场景构造；`W1p`/`W2`/`W3`/`W4` 的判据与阈值一字未改。
+
+## 20. P3：`o3` 与 science 枚举口径逐条比对
+
+规范来源：`docs/science/algorithms/mosaic/PHASE2_UPM_IMPL.md`
+「收敛容差与报告字段（现行登记）」一节（第 571–578 行）。逐条对照：
+
+| 规范条目 | 规范要求 | 生产实现（`lib/algorithms/coverage/src/upm.cpp`） | 本次实测 | 判定 |
+|---|---|---|---|---|
+| 配置面 | 只有 `tolerance`（默认 1e-6）与 `tolerance_relative`（默认 0）；**不存在** `tol_step`/`tol_obj`/`tolerance_obj` | 同（`upm.h:77-81/:113`） | — | 生产自洽 |
+| 判据（`tolerance_relative=0`） | `max_dM < tolerance ∧ max_dC < tolerance` | `:1639-1640` | — | 生产自洽 |
+| 判据（`tolerance_relative=1`） | `max_dM < tolerance·max(scale_obs,1) ∧ max_dC < tolerance·max(scale_obs,1)` | `:1642-1644`（`s_eff = max(scale_obs,1.0)`） | — | 生产自洽 |
+| `scale_obs` 定义 | `median(\|value\|)` | `:1140-1148`（`nth_element` 取 `size/2`） | — | 生产自洽 |
+| `1=converged` 成立条件 | 「`tol_step` 与 `tol_obj` **同时**满足」 | `:1659`：`max_dM < tol_M && max_dC < tol_C` | `converged` 档 → enum=1 | **生产自洽**（按规范正文的 `max_dM/max_dC` 口径）；但规范正文用词与 `upm.h:166` 注释的 `tol_step/tol_obj` 不一致，见下 |
+| `2=stalled` 成立条件 | `\|Δobj\|/max(\|obj_old\|,1e-300) < 1e-12` 连续 5 轮 | `:1150-1151`（`kStallPatience=5`、`kObjImproveFloor=1e-12`）、`:1661-1670` | `stalled` 档 → enum=2 | 生产自洽 |
+| `3=invalid` 成立条件 | 目标非有限 | `:1655-1656` | 未行使 | 未行使（见 §19） |
+| `0=max_iter` 成立条件 | 迭代耗尽未达容差 | 循环自然落出（`:1716` 之后） | `max_iter` 档 → enum=0 | 生产自洽 |
+| 枚举定义 | `0=max_iter / 1=converged / 2=stalled / 3=invalid` | `upm.h:294-296`、`:445` | `distinct=[0,1,2]` | 生产自洽 |
+| 访问器 | `p2_upm_convergence` 只读、不写任何出参（null model） | `:2703-2713` | 三例均正常返回 | 生产自洽 |
+
+**结论：生产自洽，无缺陷线索。** `o3` 判为 `converged=1` 与规范不矛盾——规范把 `1` 定义为
+「步长判据同时满足」，而该场景在 1493 轮确实满足了步长判据（其目标函数已在平台上，
+`Δobj÷obj ≤ 9.7e-6` 是对容差放宽的响应，与步长判据是两条独立通道）。原 `o3` 之所以
+「看起来该是 stalled」，是因为旧场景的**设计意图**而非规范要求；按 §19 重设场景后
+`2=stalled` 可被稳定行使。
+
+**顺带登记两处非行为性不一致（文档/注释层面，不改生产实现）**：
+
+1. `lib/algorithms/coverage/include/astro/phase2/upm.h:166` 的注释写
+   「`1 = converged（tol_step 与 tol_obj 同时满足）`」，而规范明写**不存在**
+   `tol_step`/`tol_obj` 字段、实际量是 `max_dM`/`max_dC` 对 `tol_M`/`tol_C` ⇒ 注释用词陈旧。
+2. 规范同节引用的行号 `upm.cpp:1028-1052`（枚举）与 `:1577-1589`（访问器）**已漂移**：
+   当前实际位置是 `:1649-1670` 与 `:2703-2713`。
+
+## 21. 仍未收敛（照旧登记）
+
+- **`P5_订正` rerun_HEAD（`6808a7e4`）与 baseline 的 `A6_subset_invariance` /
+  `A9_final_gauge_noop` 判词翻转**：仍未裁决。
+- **`3=invalid` 分支未被行使**：需目标非有限，配置面无法稳定构造。
+- **`upm.h:166` 注释用词**与**规范行号漂移**：属文档/注释订正，未在本轮授权内。

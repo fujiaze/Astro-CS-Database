@@ -11,7 +11,10 @@
   W2  control_ivar 臂的伪影漏入（对干净帧 δ_k 的差分影响）最小
   W3  完整链路：星点掩膜覆盖最亮 0.1% 像素 >90%；每帧 ≥4 采样点；联合面 4 帧；δ_k 非零
   W4  规范转写的无量纲收敛状态机 0/1/2/3 四例自洽（meta：非实现对拍）
-  W5  生产 p2_upm_convergence 只能区分 0/1，无法区分 max_iter 与 stalled（登记 FIX）
+  W5  （已退役为诊断读数）生产 p2_upm_convergence 的状态枚举逐例记录，不判 PASS/FAIL。
+      原 W5_enum_gap 门断言的是「缺陷存在」（缺陷在则绿、缺陷修好则红），其绿红与
+      质量方向相反；按 AGENTS.md §13「不设门禁，已有的门禁式机制改为显式诊断/校验
+      读数、不得阻塞」退役为记录。枚举口径：0=max_iter 1=converged 2=stalled 3=invalid。
 """
 from __future__ import annotations
 
@@ -247,30 +250,78 @@ def main():
           cases, cases == {"converged": 1, "max_iter": 0, "stalled": 2, "invalid": 3},
           level="meta")
 
-    o1, _, _ = S.run_upm_probe(scenario(w, dict(UPM_BASE, max_iterations=300,
-                                                tolerance=1e-3, tolerance_relative=1)),
-                               "c5_conv_ok")
-    o2, _, _ = S.run_upm_probe(scenario(w, dict(UPM_BASE, max_iterations=1,
-                                                tolerance=1e-9, tolerance_relative=1)),
-                               "c5_conv_maxiter")
-    o3, _, _ = S.run_upm_probe(scenario(w, dict(UPM_BASE, max_iterations=300,
-                                                tolerance=1e-12, tolerance_relative=1,
-                                                smoothing_lambda=50.0)), "c5_conv_stall")
-    res["production_convergence"] = dict(converged_case=o1.get("converged"),
-                                         maxiter_case=o2.get("converged"),
-                                         stalled_case=o3.get("converged"),
-                                         iters=[o1.get("iterations"), o2.get("iterations"),
-                                                o3.get("iterations")])
-    g.add("W5_enum_gap", "生产 out_converged 仅 0/1：max_iter 与 stalled 不可区分（登记 FIX）",
-          res["production_convergence"],
-          res["production_convergence"]["maxiter_case"] == 0 and
-          res["production_convergence"]["stalled_case"] == 0)
+    # ---- 生产收敛状态枚举：**显式诊断读数**（非门禁）
+    #
+    # 本段原为 W5_enum_gap 门，断言「maxiter_case == 0 and stalled_case == 0」——
+    # 即断言「缺陷存在」：缺陷在则绿、缺陷被修好则红，其绿红与质量方向相反。
+    # 按 AGENTS.md §13「本项目不设门禁；已有的门禁式机制按退役处置——删除，或改为
+    # 显式的诊断/校验读数（记录、上报、可复核），但不得阻塞正常流程」退役为记录：
+    # 只逐例输出读数与一个诊断结论，不判 PASS/FAIL、不影响退出码。
+    #
+    # 枚举口径（docs/science 的 converged 状态枚举一节；upm.h:163-172）：
+    #   0=max_iter（迭代耗尽未达容差） 1=converged（tol_step 与 tol_obj 同时满足）
+    #   2=stalled（目标相对改善量连续 N_stall 次低于数值地板） 3=invalid（目标非有限）
+    #
+    # 场景按 upm.cpp:1649-1670 的三条判定分支构造（每条分支都要被真正行使）：
+    #   converged：常规档，步长容差可达
+    #   max_iter ：预算耗尽且未 stall（smoothing_lambda=0 + 相对容差 1e-12）
+    #   stalled  ：目标相对改善连续 5 轮低于 1e-12 地板（强平滑 1000 + 相对容差 1e-15）
+    # 注：max_iterations 自生产提交 36267e1a 起是「下界/试跑预算」语义，不再是上限；
+    #     其可配上界 max_iterations_cap 的默认值为 5000（upm.h:89 的默认成员初值，
+    #     探针以 P2UpmBuildConfig cfg{} 值初始化且不覆写该键 ⇒ 逐次运行的取值为 5000）。
+    ENUM_NAME = {0: "max_iter", 1: "converged", 2: "stalled", 3: "invalid"}
+    conv_cases = [
+        ("converged", dict(UPM_BASE, max_iterations=300, tolerance=1e-3,
+                           tolerance_relative=1)),
+        ("max_iter", dict(UPM_BASE, max_iterations=300, tolerance=1e-12,
+                          tolerance_relative=1, smoothing_lambda=0.0)),
+        ("stalled", dict(UPM_BASE, max_iterations=300, tolerance=1e-15,
+                         tolerance_relative=1, smoothing_lambda=1000.0)),
+    ]
+    diag_rows = []
+    for name, ccfg in conv_cases:
+        o, _, _ = S.run_upm_probe(scenario(w, ccfg), "c5_conv_" + name)
+        diag_rows.append(dict(
+            scenario=name, converged=o.get("converged"),
+            converged_name=ENUM_NAME.get(o.get("converged"), "unknown"),
+            iterations=o.get("iterations"), objective=o.get("objective"),
+            tolerance=ccfg["tolerance"], tolerance_relative=ccfg["tolerance_relative"],
+            max_iterations=ccfg["max_iterations"], max_iterations_cap=5000,
+            rc_build=o.get("rc_build")))
+    # Δobj/obj：相对 converged 档末轮目标的相对差（诊断量，不设阈值）
+    ref_obj = next((r["objective"] for r in diag_rows if r["scenario"] == "converged"),
+                   diag_rows[0]["objective"])
+    for r in diag_rows:
+        r["dobj_over_obj_vs_converged"] = (
+            abs(r["objective"] - ref_obj) / max(abs(ref_obj), 1e-300)
+            if r["objective"] is not None and ref_obj is not None else None)
+    enums = [r["converged"] for r in diag_rows]
+    res["production_convergence"] = dict(
+        converged_case=diag_rows[0]["converged"],
+        maxiter_case=diag_rows[1]["converged"],
+        stalled_case=diag_rows[2]["converged"],
+        iters=[r["iterations"] for r in diag_rows])
+    res["convergence_enum_diagnostic"] = dict(
+        cases=diag_rows, enum_names=ENUM_NAME,
+        distinct_enum_values=sorted(set(enums)),
+        distinguishable=len(set(enums)) == len(enums),
+        note="显式诊断读数（非门禁）：只记录与上报，不判 PASS/FAIL、不影响退出码。"
+             "distinguishable = 三例的 converged 枚举值两两不同。")
 
     res["gates"] = g.summary()
     p = S.json_dump(res, "c5_weights.json")
     print("== C5 采样权重与收敛枚举 ==")
     for r in res["gates"]["rows"]:
         print("  [%s] %-28s %s" % ("PASS" if r["ok"] else "FAIL", r["id"], r["value"]))
+    print("  [DIAG] 收敛状态枚举（非门禁，不阻塞） distinguishable=%s distinct=%s"
+          % (res["convergence_enum_diagnostic"]["distinguishable"],
+             res["convergence_enum_diagnostic"]["distinct_enum_values"]))
+    for r in diag_rows:
+        print("  [DIAG]   %-10s enum=%s(%-9s) iters=%-6s obj=%-16.12g "
+              "Δobj/obj=%-12.4g tol=%-8g max_iter=%s cap=%s"
+              % (r["scenario"], r["converged"], r["converged_name"], r["iterations"],
+                 r["objective"], r["dobj_over_obj_vs_converged"], r["tolerance"],
+                 r["max_iterations"], r["max_iterations_cap"]))
     print("  -> %s" % p)
     return 0 if res["gates"]["n_fail"] == 0 else 1
 
