@@ -515,7 +515,8 @@ int run_drizzle_internal(PipelineFrame* frame,
                                 int precision_mode,
                                 int hips_profile,
                                 const char* hips_filter_passband,
-                                HpDrizzleJob** out_job)
+                                HpDrizzleJob** out_job,
+                                const char* hips_geometry_json)
 try {
     // 0. G4: actual-buffer trace 状态清理 (env 由 drizzleTiledImpl 内读取)
     drizzle_trace::reset();
@@ -1134,8 +1135,11 @@ try {
                         // 写线程内新建归因窗口（不得复用帧体线程的 epoch）。
                         aio_disk::FailureEpoch ep;
                         const auto t0 = std::chrono::steady_clock::now();
+                        // 异步族（hp_drizzle_run_phase1_hips_begin）不入几何参
+                        // ⇒ 该路径恒不写 geometry（无仓内调用方；同步生产路径走下面）。
                         const bool ok = write_hips_phase1<double>(
-                            *tp, cfg_copy, hips_dir_s, filter_pb, job->has_variance, e2);
+                            *tp, cfg_copy, hips_dir_s, filter_pb, job->has_variance, e2,
+                            nullptr);
                         job->write_s = std::chrono::duration<double>(
                             std::chrono::steady_clock::now() - t0).count();
                         job->disk_full = ep.failed() ? 1 : 0;
@@ -1151,7 +1155,8 @@ try {
                         aio_disk::FailureEpoch ep;
                         const auto t0 = std::chrono::steady_clock::now();
                         const bool ok = write_hips_phase1<float>(
-                            *tp, cfg_copy, hips_dir_s, filter_pb, job->has_variance, e2);
+                            *tp, cfg_copy, hips_dir_s, filter_pb, job->has_variance, e2,
+                            nullptr);
                         job->write_s = std::chrono::duration<double>(
                             std::chrono::steady_clock::now() - t0).count();
                         job->disk_full = ep.failed() ? 1 : 0;
@@ -1175,15 +1180,15 @@ try {
             // ivar_product_missing>0 ⇒ rc=7。无方差块时逐字节不变。
             hips_ok = img.use_f64
                 ? write_hips_phase1<double>(tiles_f64, config, hips_dir, filter_pb,
-                                            variancePtr ? 1 : 0, errMsg)
+                                            variancePtr ? 1 : 0, errMsg, hips_geometry_json)
                 : write_hips_phase1<float>(tiles_f32, config, hips_dir, filter_pb,
-                                           variancePtr ? 1 : 0, errMsg);
+                                           variancePtr ? 1 : 0, errMsg, hips_geometry_json);
         } else {
             hips_ok = img.use_f64
                 ? write_hips_direct<double>(tiles_f64, config, meta, hips_dir, snr_pts,
-                                            variancePtr ? 1 : 0, errMsg)
+                                            variancePtr ? 1 : 0, errMsg, hips_geometry_json)
                 : write_hips_direct<float>(tiles_f32, config, meta, hips_dir, snr_pts,
-                                           variancePtr ? 1 : 0, errMsg);
+                                           variancePtr ? 1 : 0, errMsg, hips_geometry_json);
         }
         // P1-DRZ-ASYNC-01: 异步路径跳过同步失败判定与"已直写"行（写盘在飞，
         // 结果在 job_wait 回收；产物集后缀由调用方在 wait 成功后落盘）。

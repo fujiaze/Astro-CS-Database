@@ -2972,18 +2972,18 @@
       },
       {
         "item": "解算后的几何（CRVAL/CRPIX/CD/SIP）并入逐帧 HiPS 产品树",
-        "status": "写出面已落地；生产接线待做",
+        "status": "已落地",
         "judgement": "解算后的几何今天只活在 p1_wcs.json 里：帧产物头部**没有回写**解算 WCS（实测：calibrated_*.fts 头 WCS ≡ input_light 头 WCS，4/4 帧逐位相同），产品清单 frames[] 与 HiPS properties 均**不承载**几何（frames[] 无 crval/crpix/cd/wcs 键；properties 无 CRVAL；tile 头只有 NSIDE）。若把 p1_wcs.json 移入可清理的工作区而不先并入产品，解算几何即变成调试产物 ⇒ 违反 AGENTS §13.1「几何取自产品自身」，产品不可解释",
-        "disposition": "解算几何（含 SIP）已作为**加性**对象并入逐帧 HiPS 产品集清单：正本 = docs/engineering/contracts/HIPS_STORAGE_FORM.md「逐帧 HiPS 产品集清单 manifest.json#geometry（加性）」一节；机器事实源 = eng/contracts/schemas/hips_storage_form.schema.json#/$defs/manifest_geometry；写出面 = aio_hips_set_geometry + aio_hips_writer.cpp 组装块（实测：设置后 manifest 出现 geometry、字段与 p1_wcs.json#wcs 逐位一致、§30.3 四键与 V6 双写面仍通过；未设置 ⇒ 该键不出现且其余键逐字节不变）。**待做**：drizzle 节点 → sink 的几何入参接线（需在 hp_drizzle_api.h / hp_drizzle_hips_api.cpp / hp_drizzle_internal.h / hp_drizzle_api.cpp 加一个可选 geometry 入参并转发，sink 侧入参已就位）。接线完成后本项才可标「已落地」，「几何取自产品」才在生产路径上可满足。",
-        "blocked_by": "drizzle 节点→sink 几何入参接线（4 个 drizzle API 文件，未在上一单写面内）",
-        "evidence": "aio_hips_writer.cpp 组装块 geometry 加性写出 + aio_hips_set_geometry（aio_hips.h）；探针实测 run/PHOT-FILTER-QE/probe/hips_geometry_probe.cpp；未设置路径实测：1 帧真实 M42 normalize （exit 0）manifest 无 geometry 键"
+        "disposition": "解算几何（含 SIP）已作为**加性**对象并入逐帧 HiPS 产品集清单：正本 = docs/engineering/contracts/HIPS_STORAGE_FORM.md「逐帧 HiPS 产品集清单 manifest.json#geometry（加性）」一节；机器事实源 = eng/contracts/schemas/hips_storage_form.schema.json#/$defs/manifest_geometry；写出面 = aio_hips_set_geometry + aio_hips_writer.cpp 组装块（实测：设置后 manifest 出现 geometry、字段与 p1_wcs.json#wcs 逐位一致、§30.3 四键与 V6 双写面仍通过；未设置 ⇒ 该键不出现且其余键逐字节不变）。生产接线已完成：drizzle 节点从**解算产物** `p1_wcs.json#wcs` 构造几何 JSON（全套字段、`pixel_origin` 恒 0）经 `hp_drizzle_run_phase1_hips` → `run_drizzle_internal` → `write_hips_phase1` 传入 sink（可选入参，缺省 nullptr）；**无解算几何（config 回退 WCS / 字段不齐）⇒ 传 nullptr，该键缺席**，不以指向 WCS 冒充。实测（1 帧真实 M42）：manifest 含 geometry、与 p1_wcs.json#wcs 逐位一致、产品集核验 rc=0（无 rc 7/8）。",
+        "blocked_by": "",
+        "evidence": "写出面：aio_hips_writer.cpp 组装块 + aio_hips_set_geometry（aio_hips.h）；接线：module_adapters.cpp drizzle 节点构造几何 → hp_drizzle_api.h / hp_drizzle_hips_api.cpp / hp_drizzle_internal.h / hp_drizzle_api.cpp 逐层转发；实测：1 帧真实 M42 normalize（exit 0）manifest 16 顶层键含 geometry、12 字段+SIP 四数组与 p1_wcs.json#wcs 逐位一致、aio_hips_verify_product_set rc=0；未设置路径：探针 + 生产 manifest 无该键且结构合法"
       },
       {
         "item": "p1_wcs.json 移入工作区",
         "status": "待做",
         "judgement": "依赖「移走之后产品还剩什么」这一事实：只有上一条落地（解算几何已在产品树内）之后，移走它才不产生『移走即断』的依赖",
-        "disposition": "**前置 = 解算几何并入逐帧 HiPS 产品树**：写出面已落地（见上一条），但生产路径接线待做 ⇒ 前置**部分满足**。接线完成前 p1_wcs.json **仍不可移走**；前置整体落地后随 11 项一并移出。",
-        "blocked_by": "解算几何并入逐帧 HiPS 产品树（写出面已落地、生产接线待做）"
+        "disposition": "**前置 = 解算几何并入逐帧 HiPS 产品树**：已**完全满足**（上一条已落地，几何随产品落盘、生产路径实测通过）。本项**仍待做**：p1_wcs.json 的移出属 B 轮第二步，本单**不移动**任何中间产物；随 11 项一并移出。",
+        "blocked_by": ""
       },
       {
         "item": "`manifest.json` 同名两份（阶段一逐帧 HiPS 产品集清单 / 导出·product 面完成清单）",

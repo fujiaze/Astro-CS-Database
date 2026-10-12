@@ -2099,3 +2099,43 @@ U.5 的换算实验得到的正是这个结论（实测散度贡献 0.0048–0.0
 **:125 / :136 / :145**（「分通带」在实现上必须读作**分「(滤镜曲线, QE 曲线) 二元组」**）、
 **:151 / :156 / :158**（按二元组在文档化参考域上冻结、适用域仅对该二元组成立）、
 **:177-184**（二元组守卫按声明查表）。本条与正本一致，无冲突。
+
+## 追加 · 解算几何并入逐帧 HiPS 产品集清单（加性 `geometry`）
+
+**为什么**：阶段一逐帧 HiPS 产品树原先不承载解算几何（帧产物头部只有原始指向 WCS，
+解算几何含 SIP 只活在 `p1_wcs.json`）。`p1_wcs.json` 若要移入可清理工作区，几何必须先随
+产品落盘，否则违反 `AGENTS §13.1`「几何取自产品自身」。本条记录该接线的过程与读数。
+
+**口径正本**：`docs/engineering/contracts/HIPS_STORAGE_FORM.md`
+《逐帧 HiPS 产品集清单 `manifest.json#geometry`（加性）》；机器事实源 =
+`eng/contracts/schemas/hips_storage_form.schema.json#/$defs/manifest_geometry`。
+加性 ⇒ `format_version` 保持 1；未设置 ⇒ 该键整体不出现。
+
+**链路**（每层只加一个可选 `const char* hips_geometry_json = nullptr`，不新建通道）：
+`module_adapters.cpp` drizzle 节点（从**解算产物** `p1_wcs.json#wcs` 构造几何 JSON）
+→ `hp_drizzle_run_phase1_hips`（`hp_drizzle_hips_api.cpp`）
+→ `run_drizzle_internal`（`hp_drizzle_api.cpp`）
+→ `write_hips_phase1`（`astro_sphere_sink.cpp`）
+→ `aio_hips_set_geometry`（`aio_hips_writer.cpp` 组装块加性写出）。
+**无解算几何时传 `nullptr`**（config 回退 WCS 或字段不齐）⇒ 该键缺席，不以指向 WCS 冒充。
+
+**调用方清单（A1）**：`hp_drizzle_run_phase1_hips` 的生产调用方**唯一** =
+`lib/infrastructure/scheduler/src/module_adapters.cpp` 的 drizzle 节点（静态库直链 ⇒
+同批重建即覆盖两侧）；`eng/tests/**` 无直接调用方（历史日志里出现的
+`eng/tests/unit/p1001_real_nodes_test.cpp` 在树内**已不存在**）；`docs/engineering/api/PUBLIC_API.md`
+记录该导出签名（**文档面**，非调用方）。异步族 `hp_drizzle_run_phase1_hips_begin`
+无仓内调用方，本单**不**为其加几何入参（其写池 lambda 显式传 `nullptr`）。
+
+**实测读数（1 帧真实 M42 `normalize`，exit 0）**：
+1. 产物 manifest 顶层 **16** 键、含 `geometry`；
+2. `geometry` 12 字段（`ctype1/2`、`crval1/2`、`crpix1/2`、`cd11/cd12/cd21/cd22`）+ `sip`
+   四数组（各 36）与同帧 `p1_wcs.json#wcs` **逐位一致**，`pixel_origin = 0`；
+3. `aio_hips_verify_product_set` 对该产物目录 **rc=0**（无 rc 7/8）；几何与 provenance 同设的
+   writer 面探针同样 `rc=0`、`manifest_keys=4`、`value_mismatch=0`；
+4. manifest 可被 `json.load` 解析；
+5. 未设置路径：探针产物 manifest 与设置几何的产物**只差 `geometry` 一键**、结构合法；
+   生产侧「无解算几何」帧本数据集未能构造（本数据集各帧均解算成功），该分支由
+   `wcs_from_product` 判据 + 「字段不齐 ⇒ 不写」具名日志承担。
+
+**探针**：`run/PHOT-FILTER-QE/probe/hips_geometry_probe.cpp`（驱动公开 C API；`--verify <dir>`
+模式对既有产品目录跑核验）。
