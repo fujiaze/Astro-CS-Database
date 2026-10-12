@@ -82,3 +82,32 @@ but master 'master_bias' (/workspace/Astro CS Database/testdata/T2 calibration f
   `p1_tan_forward_reference_sip`；新增 `max_sip_effect_deg` 与 `sample_geometry` 两个读数键。
 
 编译：`flock /tmp/astrocs_build.lock cmake --build build/linux-control --target acsd -j 8` → RC=0。
+
+## 追加登记 · 曲线键迁移后复跑（R4 预备）
+
+本单元三份配置原先使用**已退役**的曲线文件路径键 `filters_json`
+（指向已退役聚合文件 `eng/packaging/config/filters.json`），且未声明 QE ⇒ 按现状**不可复跑**
+（测光节点会以 `PHOT_CONFIG_QE_MISSING` 中止）。本单元的用途是**可复跑的判据**（E1a/E1b 反例 +
+正例对照，判据 = 开工前具名失败 / 正例不误报，README 已给出复现命令），故按当前口径**改对配置**：
+
+- 三份配置的 `photometry.fit`：删 `filters_json`，加 `qe_name`，`filter` 不变 ⇒
+  `{"enabled": true, "gaia_data_dir": …, "filter": "Baader R", "qe_name": "KAF-16803"}`
+  （QE 键依据 T2 相机 = FLI Proline 16803；曲线库 = 运行期扫描
+  `<可执行文件目录>/config/response_curves/`）。
+- **归档日志与 run manifest 未改**（`bad.log`/`lightbad.log`/`ok.log`/`out_*__acsd_run_*.json`
+  仍是原次运行的证据）；下表是改键后的复跑读数。
+
+| 组 | 命令 | RC | `io_read` 命中 | 输出目录条目 / 帧产品 | 是否开工前失败 |
+|---|---|---|---|---|---|
+| 反例 E1a | `./build/linux-control/acsd normalize -y --json cfg_bad.json` | **3** | **0** | 7 / **0** | 是 |
+| 反例 E1b | `./build/linux-control/acsd normalize -y --json cfg_lightbad.json` | **3** | **0** | 7 / **0** | 是 |
+| 正例对照 | `./build/linux-control/acsd normalize -y --json cfg_ok.json` | **0** | **23** | 22 / 5 | 不误报 |
+
+反例错误串（复跑 run manifest 的 `error.message`，与归档同判据）：
+
+```
+E1a: phase1 failed: node cal failed: prerun: master frame size mismatch: master 'master_bias'
+     (…/masterBias_BIN-1_4096x4096.xisf) is 4096x4096 but master 'master_flat' …
+E1b: phase1 failed: node cal failed: prerun: light vs master size mismatch: light
+     '/tmp/e1check/masterFlat_bad_4096x4112.fits' is 4096x4112 but master 'master_bias' …
+```

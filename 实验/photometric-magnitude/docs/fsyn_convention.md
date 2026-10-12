@@ -156,3 +156,28 @@ GaiaXPy `Gaia_DR3_Vega` 零点 `−26.4899` 复算合成星等，与同一记录
   （inlier 成员变化 0/448 与 4/515）。
 - 上述判别实验的**剩余未解释量**：`(1+k)` 模型解释 T2/M1 的 87%、T3/M1 的 78%；
   余量来自 inlier 集合的少量变化与二阶效应，**未**进一步分解。
+
+## 6 曲线库的当前口径
+
+曲线库**不再是固定清单文件**：运行期扫描**可执行文件所在目录**下的固定相对路径
+`config/response_curves/`（一文件一曲线，每条自带 `provenance`），按库键**逐字**命中
+（不折叠大小写/空白、不做 Unicode 归一、不解析别名）；`channel == "Q"` 为 QE 曲线，
+其余为通带曲线；两类共用同一目录、同一格式与同一身份核对。
+
+- **配置只给名字键**：`photometry.fit.filter`（否则块级 `filter_passband`）与
+  `photometry.fit.qe_name`；两者必填（缺 ⇒ `PHOT_CONFIG_FILTER_MISSING` /
+  `PHOT_CONFIG_QE_MISSING` 中止运行），QE 不再有「未配置即 `Q(λ)≡1`」的隐式默认
+  （确需理想平坦探测器时显式声明库内 `Ideal QE curve`）。
+- **装配期身份核对四项**（逐条对每个扫描到的文件执行）：对象 `name` 与库键逐字节相等；
+  `n_points` == `wavelength_nm` 数组长度；`provenance.curve_stats` 的
+  `wl_min/wl_max/val_min/val_max` == 实际数组；逐元素指纹
+  `wl_sum`/`val_sum`/`val_sumsq` == 实际数组。任一项不成立 ⇒ 具名 fail-closed。
+- **旧聚合文件按 R4 退役**：`eng/packaging/config/filters.json` 与
+  `lib/algorithms/photometry/data/response_curves/{filters,qe_curves}.json`
+  （代码侧读取路径已删除；本单元脚本 `code/scia_common.py` 已改读新目录，取到的曲线
+  与旧路径**逐元素相同**）。§5 引用的 `eng/packaging/config/filters.json →
+  provenance.status` 与缺口编号 `GAP-025` 已被替代：真实器件/滤光片曲线为
+  `source_recorded`，`None` 与 `Ideal QE curve` 为 `defined_by_construction`，
+  当前缺口 **`GAP-035`**「原始 PixInsight 文件校验和缺失（滤镜 45 条 + QE 12 条）」。
+- 依据 `docs/engineering/contracts/CONFIG.md`「响应曲线库（代码内单一路径 + 运行时扫描）」
+  一节（唯一口径来源）。

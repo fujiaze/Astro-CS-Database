@@ -298,3 +298,22 @@ bash    run/M42-SCIA-ROOTCAUSE-01/code/run_verify_curve.sh
 *本文件为只读复核后的订正记录：未改 `REPORT_paper.md` 与 `实验/m42-realdata/`，
 未做 git 写操作；唯一代码改动是 `lib/algorithms/photometry/cpp/src/frame_photometry_fit.cpp`
 的曲线解析修复与 QE 告警。*
+
+---
+
+## 附录 · 曲线库的当前口径（R4 迁移）
+
+- 曲线库 = **运行期扫描** `<可执行文件目录>/config/response_curves/`（一文件一曲线，
+  每条自带 `provenance`）；`channel == "Q"` 为 QE 曲线，其余为通带曲线。
+- 运行配置只给**名字键**：`photometry.fit.filter`（否则块级 `filter_passband`）与
+  `photometry.fit.qe_name`，两者**必填**（缺 ⇒ `PHOT_CONFIG_FILTER_MISSING` /
+  `PHOT_CONFIG_QE_MISSING` 中止）；`Q(λ)≡1` 不再是隐式默认（确需理想平坦探测器时
+  显式声明库内 `Ideal QE curve`）。
+- 本文件正文引用的 `filters_json` / `qe_json` 两键与
+  `eng/packaging/config/filters.json`、`lib/algorithms/photometry/data/response_curves/
+  {filters,qe_curves}.json` 两份聚合文件**按 R4 退役**（代码侧读取路径已删除）；正文读数
+  按过程记录原样保留，不回写。迁移后同名曲线**逐元素相同**（57 条实测 `max|Δ| = 0`，
+  同一曲线算出的 `F_syn` 逐位相同）。
+- 依据 `docs/engineering/contracts/CONFIG.md`「响应曲线库（代码内单一路径 + 运行时扫描）」
+  一节；曲线 provenance 状态词表当前为 `source_recorded`（真实器件/滤光片）与
+  `defined_by_construction`（`None`、`Ideal QE curve`），当前缺口 `GAP-035`。
