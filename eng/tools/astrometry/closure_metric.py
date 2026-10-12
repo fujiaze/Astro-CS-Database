@@ -166,13 +166,32 @@ def build_solved_wcs(product: Path):
     return out
 
 
+def _frame_lights(product: Path):
+    """帧集取自**产品清单** `p1_products.json` 的 `frames[]`（不再枚举 `calibrated_*.fts`）。
+
+    头部来源 = `frames[].input_light`：
+      · **为何不取自产品**：产品侧不承载几何——`frames[]` 无 `crval/crpix/cd/wcs` 键，
+        HiPS `properties` 无 `CRVAL`，tile 头只有 `NSIDE`。
+      · **为何不改变 `frame_header` 口径**：`calibrated_*.fts` 头部 WCS 与 `input_light`
+        头部 WCS **逐位相同**（4/4 帧实测）⇒ 换来源后本指标的 `frame_header` 数值不变。
+      · 帧键两套拼写：`input_light` basename 保 `@`，`frame_id` 用 `_`；正向
+        `replace('@','_')` 安全，**反向严禁**对 `frame_id` 朴素 `replace('_','@')`
+        （`frame_id` 含多个 `_`，会过度替换）⇒ 反查须经 `frames[].input_light`。
+    """
+    import json
+    pj = product / "p1_products.json"
+    if not pj.exists():
+        return []
+    return [f["input_light"] for f in json.load(open(pj)).get("frames", [])]
+
+
 def build_header_wcs(product: Path):
     from astropy.io import fits
     from astropy.wcs import WCS
-    cands = sorted(glob.glob(str(product / "calibrated_*.fts")))
-    if not cands:
+    lights = _frame_lights(product)
+    if not lights:
         return None
-    hdr = fits.getheader(cands[0])
+    hdr = fits.getheader(lights[0])
     return WCS(hdr, naxis=2)
 
 
@@ -195,11 +214,11 @@ def compute_record(product: Path, cat_path: Path, flavor: str, params: dict) -> 
     w_solved = build_solved_wcs(product)
     w = w_solved if flavor == "solved_cd_sip" else build_header_wcs(product)
     if w is None:
-        raise Red("frame_header 口径不可用：无 calibrated_*.fts（fail-closed）")
+        raise Red("frame_header 口径不可用：产品清单无逐帧 input_light（fail-closed）")
 
     # 视场中心/半径与像素尺度：一律取 solved WCS 的线性 CD（口径第 6 条）
     import astropy.io.fits as _fits  # noqa: F401  (保持 astropy 依赖显式)
-    hdr_paths = sorted(glob.glob(str(product / "calibrated_*.fts")))
+    hdr_paths = _frame_lights(product)   # 帧集来自产品清单；头部取 input_light（见 _frame_lights）
     if hdr_paths:
         from astropy.io import fits
         H = int(fits.getheader(hdr_paths[0])["NAXIS2"])
