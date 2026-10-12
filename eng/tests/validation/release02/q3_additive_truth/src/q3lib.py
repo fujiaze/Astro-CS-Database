@@ -12,24 +12,39 @@ REPO = '/workspace/Astro CS Database'
 L4 = os.path.join(REPO, 'run/RELEASE-02/L4-rebuild')
 
 def registry():
+    """帧集来自**产品清单** `p1_products.json` 的 `frames[]`（不再枚举 `calibrated_*.fts`）。
+
+    来源口径：
+      · 几何与观测元数据取自 `frames[].input_light` 的**头部**（原始输入亮场）。
+        **为何不取自产品**：产品侧不承载几何——`frames[]` 无 `crval/crpix/cd/wcs` 键，
+        HiPS `properties` 无 `CRVAL`，tile 头只有 `NSIDE`。
+        **为何可以这样取**：`calibrated_*.fts` 头部 WCS 与 `input_light` 头部 WCS
+        **逐位相同**（4/4 帧实测）⇒ 换来源数值不变；且 `input_light` 是输入，
+        不是中间产物、不是调试输出。
+      · 帧键有**两套拼写**：`input_light` basename 保 `@`（`…-20251212@020002-…`），
+        `frame_id` 用 `_`（`…-20251212_020002-…`）。正向 `stem.replace('@','_')` 安全；
+        **反向严禁**对 `frame_id` 朴素 `replace('_','@')`（`frame_id` 含多个 `_`，
+        会过度替换）⇒ 反查**必须**经 `frames[].input_light`。
+    """
     out = []
-    for f in sorted(glob.glob(os.path.join(L4, 'norm', '*', 'calibrated_*.fts'))):
-        grp = os.path.basename(os.path.dirname(f))
-        base = os.path.basename(f)
-        stem = base.replace('calibrated_', '').replace('.fts', '')
-        # frame dir key
-        key = stem.replace('@', '_')
-        fdir = os.path.join(os.path.dirname(f), key)
-        m = re.match(r'M42_(M\d)_(T\d)_flying_dutchman-(\d{8})@(\d{6})', stem)
-        panel, tel, date, tm = m.groups()
-        h = fits.getheader(f)
-        out.append(dict(path=f, group=grp, stem=stem, key=key, fdir=fdir,
-                        panel=panel, tel=tel, date=date, time=tm,
-                        wcs_json=os.path.join(fdir, 'p1_wcs.json'),
-                        phot_json=os.path.join(os.path.dirname(f), 'p1_phot.json'),
-                        crval1=h.get('CRVAL1'), crval2=h.get('CRVAL2'),
-                        exptime=h.get('EXPTIME'), airmass=h.get('AIRMASS'),
-                        dateobs=h.get('DATE-OBS')))
+    for pj in sorted(glob.glob(os.path.join(L4, 'norm', '*', 'p1_products.json'))):
+        grp = os.path.basename(os.path.dirname(pj))
+        prods = json.load(open(pj))
+        for fr in prods.get('frames', []):
+            light = fr['input_light']
+            stem = os.path.basename(light).rsplit('.', 1)[0]   # '@' 形态（权威来源）
+            key = fr['frame_id']                               # '_' 形态
+            fdir = fr['hips_path']
+            m = re.match(r'M42_(M\d)_(T\d)_flying_dutchman-(\d{8})@(\d{6})', stem)
+            panel, tel, date, tm = m.groups()
+            h = fits.getheader(light)                          # 输入亮场头（见上口径）
+            out.append(dict(path=light, group=grp, stem=stem, key=key, fdir=fdir,
+                            panel=panel, tel=tel, date=date, time=tm,
+                            wcs_json=os.path.join(fdir, 'p1_wcs.json'),
+                            phot_json=os.path.join(os.path.dirname(pj), 'p1_phot.json'),
+                            crval1=h.get('CRVAL1'), crval2=h.get('CRVAL2'),
+                            exptime=h.get('EXPTIME'), airmass=h.get('AIRMASS'),
+                            dateobs=h.get('DATE-OBS')))
     return out
 
 def load_wcs(frame):

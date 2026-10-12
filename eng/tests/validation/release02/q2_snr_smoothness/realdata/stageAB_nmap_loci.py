@@ -9,7 +9,17 @@ ROOT = '/workspace/Astro CS Database'
 OUT  = ROOT + '/run/RELEASE-02/q2-snr-smooth/realdata'
 os.makedirs(OUT, exist_ok=True)
 
-frames = sorted(glob.glob(ROOT + '/run/RELEASE-02/L4-rebuild/norm/*/calibrated_*.fts'))
+# 帧集取自**产品清单** p1_products.json 的 frames[]（不再枚举 calibrated_*.fts）。
+# 帧键两套拼写：input_light basename 保 '@'，frame_id 用 '_'；正向 stem.replace('@','_')
+# 安全，**反向严禁**对 frame_id 朴素 replace('_','@')（会过度替换）⇒ 反查须经 input_light。
+def _frame_lights():
+    lights = []
+    for pj in sorted(glob.glob(ROOT + '/run/RELEASE-02/L4-rebuild/norm/*/p1_products.json')):
+        for fr in json.load(open(pj)).get('frames', []):
+            lights.append(fr['input_light'])
+    return lights
+
+frames = _frame_lights()
 print('frames found:', len(frames))
 
 w3 = WCS(naxis=2)

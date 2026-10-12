@@ -2859,7 +2859,7 @@
       },
       {
         "item": "产品面与工作区分离（12 项中间产物移出产品面）",
-        "status": "B 轮待做（A 轮已完成消费侧切换）",
+        "status": "B 轮待做（A 轮已完成消费侧切换：q3lib/stageAB_nmap_loci/closure_metric 帧集与头部来源）",
         "evidence": "实验/photometric-magnitude/docs/P1-product-surface-boundary-design.md（边界逐项表、工作区位置与清理语义、不可移出清单）",
         "disposition": "工作区 = <output_dir> 同级兄弟目录（同文件系统以保持落盘原子替换语义；/tmp 为 tmpfs 会把 ≈64 MiB/帧 放进内存）；缺省启用，位置可配置；运行收尾按开关决定是否保留。A 轮已把 eng/** 消费者的帧集来源改为产品清单；B 轮才实际移动 12 项",
         "blocked_by": "B 轮（移 12 项 + 收尾清理 + 配置键 + W4 五项实测）"
@@ -2904,6 +2904,13 @@
         "status": "已落地（A 轮）",
         "evidence": "该字段无真实读者（lib 内零读点）；且指向的阶段一中间产物将移入可清理的工作区，留在产品里会构成指向调试目录的指针。产品 frames[] 的帧级状态已由 nside/n_tiles/n_*_tiles/uncertainty_available/variance_* 等字段自身承载",
         "disposition": "移除 frames[].final；其消费者 eng/tests/validation/release02/unc_propagation/audit_evidence.py 改按 frame_id 从 p1_products.json 的 frames[] 取状态",
+        "blocked_by": ""
+      },
+      {
+        "item": "帧键两套拼写（'@' / '_'）：正向/反向映射规则与禁用做法",
+        "status": "已定案（静默陷阱，必须留痕）",
+        "evidence": "平面件基名来自 p1_base_name（保原样 ⇒ 含 '@'，如 …-20251212@020002-300S-Red）；frame_id 来自 p1_frame_key（字符白名单 isalnum||_||-||. ⇒ '@' 变 '_'，如 …-20251212_020002-300S-Red）。实测：对 frame_id 做朴素 replace('_','@') 会过度替换（frame_id 含多个 '_'），由此反查 calibrated_* 候选数 = 0",
+        "disposition": "正向映射 = input_light basename 去扩展名后 stem.replace('@','_') → frame_id（安全，实测 4/4 命中）；反向映射 = 必须经 p1_products.json 的 frames[].input_light 的 basename 反查；**严禁**对 frame_id 做朴素 replace('_','@')",
         "blocked_by": ""
       }
     ]
