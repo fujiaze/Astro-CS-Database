@@ -9318,7 +9318,6 @@ Result<void> p1_op_writer(const Json& doc, Json* man) {
                                   {"input_light", lp},
                                   {"hips_path", fdir},
                                   {"properties", props},
-                                  {"final", final_path},
                                   {"nside", nside},
                                   {"n_tiles", n_tiles_written},
                                   {"n_support_tiles", n_support_tiles},

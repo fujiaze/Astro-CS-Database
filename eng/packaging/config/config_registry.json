@@ -2859,10 +2859,10 @@
       },
       {
         "item": "产品面与工作区分离（12 项中间产物移出产品面）",
-        "status": "本批落地（设计已定，实施中）",
+        "status": "B 轮待做（A 轮已完成消费侧切换）",
         "evidence": "实验/photometric-magnitude/docs/P1-product-surface-boundary-design.md（边界逐项表、工作区位置与清理语义、不可移出清单）",
-        "disposition": "工作区 = <output_dir> 同级兄弟目录（同文件系统以保持落盘原子替换语义；/tmp 为 tmpfs 会把 ≈64 MiB/帧 放进内存）；缺省启用，位置可配置；运行收尾按开关决定是否保留",
-        "blocked_by": "消费者更新（见下条）"
+        "disposition": "工作区 = <output_dir> 同级兄弟目录（同文件系统以保持落盘原子替换语义；/tmp 为 tmpfs 会把 ≈64 MiB/帧 放进内存）；缺省启用，位置可配置；运行收尾按开关决定是否保留。A 轮已把 eng/** 消费者的帧集来源改为产品清单；B 轮才实际移动 12 项",
+        "blocked_by": "B 轮（移 12 项 + 收尾清理 + 配置键 + W4 五项实测）"
       },
       {
         "item": "检查点与续跑",
@@ -2897,6 +2897,13 @@
         "status": "待办",
         "evidence": "标准发布的产物目录不得留工作区（负责人：标准模式真正的产物只有逐帧 HiPS 与一个阶段二输入 JSON）",
         "disposition": "发布/打包路径须显式设「运行收尾清理工作区」；该取值随打包配置固定，不由操作者临时决定",
+        "blocked_by": ""
+      },
+      {
+        "item": "产品清单不再含逐帧 p1_final.json 指针（frames[].final）",
+        "status": "已落地（A 轮）",
+        "evidence": "该字段无真实读者（lib 内零读点）；且指向的阶段一中间产物将移入可清理的工作区，留在产品里会构成指向调试目录的指针。产品 frames[] 的帧级状态已由 nside/n_tiles/n_*_tiles/uncertainty_available/variance_* 等字段自身承载",
+        "disposition": "移除 frames[].final；其消费者 eng/tests/validation/release02/unc_propagation/audit_evidence.py 改按 frame_id 从 p1_products.json 的 frames[] 取状态",
         "blocked_by": ""
       }
     ]
