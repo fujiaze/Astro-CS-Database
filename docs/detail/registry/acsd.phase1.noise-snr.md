@@ -100,8 +100,8 @@ SNR 路径做**注入-回收** —— 已知真值信号 + 已知天光 + 已知
 **参考通量按参考星等档 `m_ref` 取，不由数据派生**：参考星等 `m_ref`（配置键
 `snr.reference_mag`，缺省 6.0，可被输入 JSON 覆盖）在一次运行内取值不变、参考通量是该星等档在**本帧
 仪器通量下的读数** `F_ref,k = 10^(−0.4·(m_ref − ZP_k))`，其中
-`ZP_k = ZP_syn,k − 2.5·log10(k_photo,k)` 只来自本帧自身的测光标定；产品另记与帧
-无关的**物理公共锚** `F0 = 10^(−0.4·(m_ref − ZP_syn))`，同波段同星场恒为同一数。
+`ZP_k = C_abs − 2.5·log10(k_photo,k)` 只来自本帧自身的测光标定（`C_abs` 是固定的通带常数，作为常数使用时不随星族/天区变化；取值取自文档化的参考域，与完全锚定在 Gaia G 绝对通量刻度上的“纯通带常数”相差参考域样本的中位合成颜色——该量尚未测定，故当前系统的绝对刻度锚定在参考域）；产品另记与帧
+无关的**物理公共锚** `F0 = 10^(−0.4·(m_ref − C_abs))`，由常数给出、同波段恒为同一数。
 该口径的合同正本 = `eng/contracts/schemas/unified/frame_snr.schema.json` 的
 `reference_baseline`（必落 `scope` / `reference_flux_source` /
 `reference_flux_common` / `reference_mag` / `reference_mag_system`，

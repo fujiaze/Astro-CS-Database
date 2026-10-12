@@ -347,7 +347,7 @@
           ]
         },
         "reference_flux_common": {
-          "description": "**物理公共锚** F0（配对性定理的 F_ref）。fixed_magnitude 作用域下 = 10^(-0.4*(m_ref-ZP_syn))，ZP_syn 由 Gaia DR3 XP 绝对谱 (XPSD) 经本帧滤光片/QE 曲线正向合成，只依赖 (filter, QE, 天区星族) ⇒ 跨帧恒等。相位 2 的公共通量闸门（ACSD_REFERENCE_FLUX 组内一致，相对容差 1e-9）读此值。禁止用它反推增益/口径/曝光。",
+          "description": "**物理公共锚** F0（配对性定理的 F_ref）。fixed_magnitude 作用域下 = 10^(-0.4*(m_ref-C_abs))，`C_abs` 是固定的通带常数（把绝对通量换成星等的约定常数，作为常数使用时不随星族/天区变化，取值取自文档化的参考域）⇒ 跨帧恒等；它与完全锚定在 Gaia G 绝对通量刻度上的“纯通带常数”相差参考域样本的中位合成颜色（该量尚未测定 ⇒ 当前系统的绝对刻度锚定在参考域；该差值为常数，只影响 m5 的绝对数值）。定义正本 = docs/science/noise_snr/NOISE_SNR.md 的「绝对信噪比」一节；参考域/参考通带与取值、不确定度 = docs/detail/registry/acsd.phase1.photometry.md 的「正确的仪器零点式」一节。相位 2 的公共通量闸门（ACSD_REFERENCE_FLUX 组内一致，相对容差 1e-9）读此值。禁止用它反推增益/口径/曝光。",
           "type": "number",
           "exclusiveMinimum": 0
         },
@@ -367,11 +367,11 @@
           ]
         },
         "reference_zero_point_syn_mag": {
-          "description": "绝对合成星等零点 ZP_syn [mag]，满足 mag = ZP_syn - 2.5*log10(F_syn)。只依赖 (filter, QE, 天区星族)，与帧无关。",
+          "description": "绝对刻度零点（键名沿用旧名，现承载固定通带常数，不再是逐天区合成零点）：`C_abs` [mag]，是固定通带常数，作为常数使用时不随星族/天区变化、与帧无关；取值取自文档化的参考域，与完全锚定在 Gaia G 绝对通量刻度上的“纯通带常数”相差参考域样本的中位合成颜色（该量尚未测定，故当前系统的绝对刻度锚定在参考域）。定义正本 = docs/science/noise_snr/NOISE_SNR.md 的「绝对信噪比」一节。",
           "type": "number"
         },
         "frame_zero_point_mag": {
-          "description": "本帧测光零点 ZP_k = ZP_syn - 2.5*log10(k_photo,k) [mag]，满足 mag = ZP_k - 2.5*log10(F_adu)。F_ref,k = 10^(-0.4*(m_ref-ZP_k))。",
+          "description": "本帧测光零点 ZP_k = C_abs - 2.5*log10(k_photo,k) [mag]（`C_abs` = 固定通带常数，作为常数使用时不随星族/天区变化，取值取自文档化的参考域），满足 mag = ZP_k - 2.5*log10(F_adu)。F_ref,k = 10^(-0.4*(m_ref-ZP_k))。",
           "type": "number"
         },
         "frame_k_photo": {
