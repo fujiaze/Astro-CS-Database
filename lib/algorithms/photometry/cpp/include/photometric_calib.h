@@ -57,6 +57,13 @@ typedef struct {
     int32_t status;         // 0=unmatched, 1=matched+used, 2=matched+rejected, 3=psf-invalid
     int32_t reject_reason;  // 0=used, 1=mag-rejected, 2=IRLS-outlier, 3=invalid-flux,
                             // 4=no-spatial-match, 5=unmatched-other, 6=psf-invalid
+    // PER-STAR-EXPORT-01: 逐星导出路径填充的两个量（加法字段，既有字段语义不动）。
+    // **填充责任在逐星导出路径**：本字段由 photometric_calib 的逐星导出实现写入。
+    // **在该填充路径落地之前，这两个字段不得被任何消费方读取**——`records` 经
+    // vector::resize 值初始化，未填充时读出为 0.0，会被误读成"通量为 0 的星"。
+    // 填充路径落地时须保证：未匹配 / 非有限值显式写 NaN，不得留 0.0。
+    double f_instr;         // 仪器通量 (PSF 域解析通量)；未匹配/非有限时 = NaN
+    double gaia_mag;        // 该星 Gaia G 星等；未匹配时 = NaN
 } PcMatchRecord;
 
 // ============================================================================

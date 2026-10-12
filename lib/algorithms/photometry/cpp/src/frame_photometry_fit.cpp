@@ -204,16 +204,32 @@ FramePhotFitResult fit_frame_photometry(const FramePhotFitRequest& req) {
     PhotometricDiag diag;
     std::memset(&diag, 0, sizeof(diag));
 
-    // ── PHOT-MXY-01: 逐星 inlier 记录（仅空间增益开启时申请）─────────────────
+    // ── PER-STAR-EXPORT-01: 逐星 inlier 记录（**无条件申请**）──────────────
     // records[i] 与 PSF 行 i 对齐（pc_api.cpp 的 per-star 记录块）；status==1 表示
     // matched+used（IRLS inlier），residual = r_i = log10(F_instr/F_syn)。
-    // **关闭空间增益时传 nullptr**：C 入口调用参数与改动前逐位一致。
-    std::vector<PcMatchRecord> records;
-    PcMatchRecord* records_out = nullptr;
-    if (req.spatial_gain_order > 0) {
-        records.resize(static_cast<std::size_t>(req.n_psf));
-        records_out = records.data();
+    // 逐星导出是**独立记录面**，与空间增益是否开启无关；此前"仅空间增益开启时申请"
+    // 会让未开空间增益的帧没有逐星记录。下游消费（:355 段）仍只在 spatial_gain_order>0
+    // 时读取本容器，故放宽申请条件不改变既有行为。
+    std::vector<PcMatchRecord> records(static_cast<std::size_t>(req.n_psf));
+    PcMatchRecord* records_out = records.empty() ? nullptr : records.data();
+    // NaN 占位：records 经 vector 值初始化读出为 0.0，而 0.0 会被下游误读成
+    // "通量为 0 的星"。**在逐星填充路径落地之前，f_instr/gaia_mag 不得被消费**；
+    // 填充路径必须对未匹配/非有限值显式写 NaN，不得留 0.0。
+    for (PcMatchRecord& rec : records) {
+        rec.f_instr = NAN;
+        rec.gaia_mag = NAN;
     }
+
+    // ── PER-STAR-EXPORT-01: 零点路逐星记录 ─────────────────────────────────
+    // **与 records 不是同一索引域**：本容器按零点锥形搜索返回的星表 `zp_stars`
+    // 索引（长度 `zp_n`），records 按 PSF 行索引（长度 `req.n_psf`）。
+    // 两者**不得混用索引**，也不得假定二者等长或同序。
+    struct ZpStarRow {
+        double fsyn;     // 该星按 (filter, QE, 本帧光谱模板) 正向合成的 F_syn；非有限 = NaN
+        double mag_g;    // 该星 Gaia G 星等；非有限 = NaN
+        bool in_stats;   // 是否真正进入零点统计样本（进入 zp_vals 且样本量达 kMinFitStars）
+    };
+    std::vector<ZpStarRow> zp_rows;
 
     const int rc = pc_calibrate_simple_with_gaia_f64_v2_qf(
         reinterpret_cast<void*>(client),
@@ -263,16 +279,28 @@ FramePhotFitResult fit_frame_photometry(const FramePhotFitRequest& req) {
             if (!zcache.spectrum_wl.empty()) {
                 std::vector<double> zp_vals;
                 zp_vals.reserve(static_cast<size_t>(zp_n));
+                zp_rows.clear();
+                zp_rows.reserve(static_cast<size_t>(zp_n));
                 for (int i = 0; i < zp_n; ++i) {
                     const uint8_t* sp_i =
                         zp_spectra + static_cast<size_t>(i) * static_cast<size_t>(wl_count);
                     const double fsyn = photo_calib::compute_f_syn_cached_xpsd(
                         zcache, sp_i, wl_count,
                         zp_stars[i].flux_min, zp_stars[i].flux_mul);
+                    // 逐星登记（与 records 不同索引域，见上方声明处）：值一律如实登记，
+                    // 非有限写 NaN；in_stats 先置 false，仅当该星真正进入 zp_vals 才置 true。
+                    ZpStarRow row;
+                    row.fsyn = (std::isfinite(fsyn) && fsyn > 0.0) ? fsyn : NAN;
+                    row.mag_g = std::isfinite(zp_stars[i].magG) ? zp_stars[i].magG : NAN;
+                    row.in_stats = false;
+                    zp_rows.push_back(row);
                     if (!(std::isfinite(fsyn) && fsyn > 0.0)) continue;
                     if (!std::isfinite(zp_stars[i].magG)) continue;
                     const double z = zp_stars[i].magG + 2.5 * std::log10(fsyn);
-                    if (std::isfinite(z)) zp_vals.push_back(z);
+                    if (std::isfinite(z)) {
+                        zp_vals.push_back(z);
+                        zp_rows.back().in_stats = true;
+                    }
                 }
                 if (static_cast<int>(zp_vals.size()) >= kMinFitStars) {
                     std::sort(zp_vals.begin(), zp_vals.end());
@@ -288,10 +316,14 @@ FramePhotFitResult fit_frame_photometry(const FramePhotFitRequest& req) {
                     const double zmad = (zn % 2 == 1)
                         ? zdev[zn / 2]
                         : 0.5 * (zdev[zn / 2 - 1] + zdev[zn / 2]);
-                    out.zero_point_mag = zmed;
-                    out.zero_point_n_stars = static_cast<int>(zn);
-                    out.zero_point_scatter_mag = 1.482602218505602 * zmad;
-                    out.zero_point_valid = true;
+                    out.synthetic_colour_median_mag = zmed;
+                    out.synthetic_colour_n_stars = static_cast<int>(zn);
+                    out.synthetic_colour_scatter_mag = 1.482602218505602 * zmad;
+                    out.synthetic_colour_valid = true;
+                } else {
+                    // 样本量不足 ⇒ 颜色项未成立，**没有任何星进入统计样本**：
+                    // 逐星标记必须如实清掉，否则会与 synthetic_colour_valid=false 自相矛盾。
+                    for (ZpStarRow& row : zp_rows) row.in_stats = false;
                 }
             }
         }
