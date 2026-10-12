@@ -5703,13 +5703,15 @@ Result<void> p1_op_photometry(const Json& doc, Json* man) {
     // F-INSTR-CONFORM-FIX: F_instr 域 provenance（SCI-PHOT-001 §9a）
     int64_t n_psf_domain = 0;   // F_instr 有效域星数（有 PSF 拟合行且 flux 有限 >0）
     int64_t n_psf_skipped = 0;  // psf_status != OK / 未进拟合子集 ⇒ 跳过, 不回退盒和
-    // ── FREF-BASELINE-001: 绝对合成星等零点（帧自身测光零点）────────────
-    // mag = zero_point_mag - 2.5*log10(F_adu)，由 Gaia DR3 XP 绝对谱 + 本帧
-    // 滤光片/QE 曲线正向合成（frame_photometry_fit.cpp）。与帧无关 ⇒ 跨帧公共。
-    bool zero_point_valid = false;
-    double zero_point_mag = 0.0;
-    int zero_point_n_stars = 0;
-    double zero_point_scatter_mag = 0.0;
+    // ── 天区样本的合成颜色项（原名 zero_point_*「帧自身测光零点」, 已改名）──
+    // 旧名会被读成"本帧的星等零点"，曾导致真实误诊（被当成与 k_photo 算同一件事）。
+    // 输入只来自星表与滤镜/QE 曲线，**不含任何帧的观测数据**；实现在
+    // frame_photometry_fit.cpp，取值 = median_i(G-R)_i + C_R（通带/SED 诊断项）。
+    // **帧的测光标度是 `k_photo`**；帧的星等零点由 k_photo 换算即得。
+    bool synthetic_colour_valid = false;
+    double synthetic_colour_median_mag = 0.0;
+    int synthetic_colour_n_stars = 0;
+    double synthetic_colour_scatter_mag = 0.0;
     // ── PASSBAND-IDENTITY-GATE-01: 通带身份（帧级自述）───────────────────
     // 拟合入口自报的「实际用于合成 F_syn 的曲线身份」；组级一致性由
     // passband_identity 落盘（见 provenance 段）。空 filter_key ⇒ 该帧的标度
@@ -6166,10 +6168,10 @@ Result<void> p1_op_photometry(const Json& doc, Json* man) {
         sc.filter_wl_min_nm = fr.filter_wl_min_nm;
         sc.filter_wl_max_nm = fr.filter_wl_max_nm;
         // FREF-BASELINE-001: 帧自身测光零点（正向合成, 与帧噪声无关）
-        sc.zero_point_valid = fr.zero_point_valid;
-        sc.zero_point_mag = fr.zero_point_mag;
-        sc.zero_point_n_stars = fr.zero_point_n_stars;
-        sc.zero_point_scatter_mag = fr.zero_point_scatter_mag;
+        sc.synthetic_colour_valid = fr.synthetic_colour_valid;
+        sc.synthetic_colour_median_mag = fr.synthetic_colour_median_mag;
+        sc.synthetic_colour_n_stars = fr.synthetic_colour_n_stars;
+        sc.synthetic_colour_scatter_mag = fr.synthetic_colour_scatter_mag;
         // ── PASSBAND-IDENTITY-GATE-01: 通带身份（组级一致性）─────────────
         // 首帧落定组级身份；后续帧必须与首帧**逐项**一致（同一组只能有一条
         // 模型通带）。不一致 ⇒ 该帧 fail（帧间不得混装不同通带的产品）。
@@ -6463,11 +6465,11 @@ Result<void> p1_op_photometry(const Json& doc, Json* man) {
                           // ZP-LANDING-01: 帧自身 Gaia XP 零点落盘（值直接取自既有字段，
                           // 不重算、不改拟合）。与 k_photo 同帧同星样本、同参考（Gaia DR3
                           // XP + 本帧滤光片/QE 曲线），供"同参考自洽检验"与外部复核。
-                          {"zero_point_mag", sc->zero_point_mag},
-                          {"zero_point_valid", sc->zero_point_valid},
-                          {"zero_point_n_stars", sc->zero_point_n_stars},
-                          {"zero_point_scatter_mag", sc->zero_point_scatter_mag},
-                          {"zero_point_reference",
+                          {"synthetic_colour_median_mag", sc->synthetic_colour_median_mag},
+                          {"synthetic_colour_valid", sc->synthetic_colour_valid},
+                          {"synthetic_colour_n_stars", sc->synthetic_colour_n_stars},
+                          {"synthetic_colour_scatter_mag", sc->synthetic_colour_scatter_mag},
+                          {"synthetic_colour_reference",
                            std::string("Gaia DR3 XP absolute spectrum x filter/QE curve; "
                                        "filter_key=") + sc->filter_key +
                                "; curve=" + sc->filter_curve_name + "; n_points=" +
@@ -6546,10 +6548,10 @@ Result<void> p1_op_photometry(const Json& doc, Json* man) {
              {"fitted", sc->fitted},
              {"source", sc->source},
              {"f_instr_domain", "psf_analytic_flux_2pi_A_sx_sy_over_3"},
-             {"zero_point_valid", sc->zero_point_valid},
-             {"zero_point_mag", sc->zero_point_mag},
-             {"zero_point_n_stars", sc->zero_point_n_stars},
-             {"zero_point_scatter_mag", sc->zero_point_scatter_mag},
+             {"synthetic_colour_valid", sc->synthetic_colour_valid},
+             {"synthetic_colour_median_mag", sc->synthetic_colour_median_mag},
+             {"synthetic_colour_n_stars", sc->synthetic_colour_n_stars},
+             {"synthetic_colour_scatter_mag", sc->synthetic_colour_scatter_mag},
              // PHOT-MXY-01: m(x,y)（逐帧; 与 photscale_detail 同源同值）
              {"spatial_gain", p1_spatial_gain_json(*sc)}};
   }
@@ -7309,7 +7311,7 @@ Result<void> p1_op_noise(const Json& doc, Json* man) {
   //        Convention A; 逐帧 F_ref,f 会丢掉 a_f²）。
   // ZP_syn 取块中位数: 它是 (filter, QE, 星族) 的系统常数, 逐帧差异只来自锥形
   // 边界抽样; 取中位数使 F0 成为**单一常数**（闸门要求），而 F_ref,k 仍逐帧。
-  // 不可得（无 photscale_fit / zero_point_valid=false）⇒ 保持既有来源, 不伪造。
+  // 不可得（无 photscale_fit / synthetic_colour_valid=false）⇒ 保持既有来源, 不伪造。
   double ref_mag = 6.0;
   if (doc.contains("snr") && doc["snr"].is_object())
     ref_mag = doc["snr"].value("reference_mag", 6.0);
@@ -7334,9 +7336,11 @@ Result<void> p1_op_noise(const Json& doc, Json* man) {
               if (!pj["photscale_fit"].contains(key)) continue;
               const Json& e = pj["photscale_fit"][key];
               if (!e.is_object()) continue;
-              if (!e.value("zero_point_valid", false)) continue;
+              if (!e.value("synthetic_colour_valid", false)) continue;
               const double kp = e.value("k_photo", 0.0);
-              const double zps = e.value("zero_point_mag", 0.0);
+              // 注意：zps 是**天区合成颜色项**（原名 zero_point_mag），不含帧信息。
+              // 下游把它当帧零点用（zp_inst = zps − 2.5·log10 kp）是本批登记的下游缺陷。
+              const double zps = e.value("synthetic_colour_median_mag", 0.0);
               if (!(std::isfinite(kp) && kp > 0.0)) continue;
               if (!std::isfinite(zps)) continue;
               kphoto_of_key[key] = kp;

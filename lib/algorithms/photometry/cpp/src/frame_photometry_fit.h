@@ -127,19 +127,22 @@ struct FramePhotFitResult {
   int robust_iterations = 0;
   std::string degraded_reason;  // fit_ok=false 时说明退化分支（机器可读）
   std::string error;
-  // ── FREF-BASELINE-001: 绝对合成星等零点 ZP_syn ─────────────────────────
-  // 约定与 snr_science.cpp:234 的 m_5 = ZP - 2.5*log10(F) 一致:
-  //     mag = ZP_syn - 2.5*log10(F_syn)      [F_syn = XPSD 绝对谱积分]
-  // 取值 = 锥形搜索星族上 median_i( magG_i + 2.5*log10 F_syn,i )，由 Gaia DR3
-  // XP **绝对**谱 (XPSD: F(λ)=byte*flux_mul+flux_min) 经本帧滤光片+QE 曲线
-  // **正向**合成得到。只依赖 (filter, QE, 天区星族)，**与帧无关** ⇒ 可作跨帧
-  // 公共绝对参考锚（不依赖任何逐帧检出星群统计）。
-  // 严禁用它反推增益/口径/曝光（§9.42 物理闭合禁令）：它只是星等↔合成通量换算。
-  // zero_point_n_stars < kMinFitStars ⇒ zero_point_valid=false（不得使用）。
-  bool zero_point_valid = false;
-  double zero_point_mag = 0.0;          // ZP_syn [mag]
-  int zero_point_n_stars = 0;           // 参与中位数的锥形搜索星数
-  double zero_point_scatter_mag = 0.0;  // 1.482602218505602*MAD(ZP_i) [mag]（星族 SED 散布）
+  // ── 天区样本的合成颜色项（原名 ZP_syn「绝对合成星等零点」, 已改名）──────
+  // 旧名 `zero_point_*` 会被读成"本帧的星等零点"，曾导致真实误诊：把它与
+  // `k_photo`（帧级测光标度）当成"同一件事的两条独立实现"去比对不一致。
+  // **它的输入只来自星表与滤镜/QE 曲线，不含任何帧的观测数据**：
+  //     取值 = 锥形搜索星族上 median_i( magG_i + 2.5*log10 F_syn,i )，其中
+  //     magG_i 是星表的 Gaia G 星等，F_syn,i 由该星 XPSD **绝对**谱
+  //     (F(λ)=byte*flux_mul+flux_min) 经本帧滤光片+QE 曲线**正向**合成。
+  // 由 2.5*log10 F_syn = C_R - m_syn^R 推得 median_i = median_i(G-R)_i + C_R
+  // ⇒ 它本质是**该天区样本的中位颜色项**（通带/SED 一致性诊断），与帧无关。
+  // **帧的测光标度是 `k_photo`**；帧的星等零点由 k_photo 换算即得。
+  // 严禁用它反推增益/口径/曝光（§9.42 物理闭合禁令），也**不得用作帧零点**。
+  // synthetic_colour_n_stars < kMinFitStars ⇒ synthetic_colour_valid=false（不得使用）。
+  bool synthetic_colour_valid = false;
+  double synthetic_colour_median_mag = 0.0;   // median_i(G-R)_i + C_R [mag]
+  int synthetic_colour_n_stars = 0;           // 参与中位数的锥形搜索星数
+  double synthetic_colour_scatter_mag = 0.0;  // 1.482602218505602*MAD(...) [mag]（星族 SED 散布）
   // ── 通带身份自述（PASSBAND-IDENTITY-GATE-01）─────────────────────────────
   // 「实际用于合成 F_syn 的那条曲线是谁」的机器可读记录：由**曲线对象自身**的
   // 自述字段 + 实际数组算出（不是把请求名回抄一遍）。调用方必须把它落进

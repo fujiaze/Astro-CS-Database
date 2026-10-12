@@ -60,39 +60,59 @@ dex 残差 + `sigma_mag` / `sigma_cal_rel`。`a_k` 随产品输出，供 Phase2 
 （生产入口即 `_f64` 变体）；JSON 显式指定位深时以 JSON 为准。像素面属**稠密大面**
 （单精度），定标标度施加到该面时按面自身的位深落盘，两类面的精度归属不得互相代入。
 
-### 帧级 Gaia XP 零点读数键
+### 帧级天区合成颜色项读数键
 
 `p1_phot.json` 的逐帧标度证据分两段：`photscale_fit`（对全部有标度记录的帧无条件
 落盘的拟合证据表）与 `photscale_detail`（**已施加**帧的标度证据，与顶层
-`photscales` / `photoapplied_artifacts` 同帧集合）。两段都带帧级 Gaia XP 合成零点
+`photscales` / `photoapplied_artifacts` 同帧集合）。两段都带帧级天区合成颜色项
 读数，取值直接来自帧级拟合结果的既有字段，不重算、不改拟合；`photscale_detail` 与
-`photscale_fit` 的同名键同源同值。五个键的语义、单位、参考与来源如下。
+`photscale_fit` 的键同源同值。五个键的语义、单位、参考与来源如下。
 
 | 键 | 单位 | 语义 | 来源 |
 |---|---|---|---|
-| `zero_point_mag` | mag | 本帧合成零点 `ZP_syn`，满足 `mag = ZP_syn − 2.5·log10(F_syn)`；`F_syn` 为 Gaia DR3 XP 绝对谱经本帧滤光片与量子效率曲线正向合成的通量 | 帧级拟合结果的 `ZP_syn` 字段，直接落盘 |
-| `zero_point_valid` | 1（布尔） | 该零点是否可用于星等换算；`false` 表示不得使用（参与中位数的星数不足求解前提） | 同上 |
-| `zero_point_n_stars` | 颗 | 参与零点中位数的锥形搜索星数 | 同上 |
-| `zero_point_scatter_mag` | mag | 星族谱能量分布散布的稳健标准差 `1.482602218505602·MAD(ZP_i)` | 同上 |
-| `zero_point_reference` | 字符串 | 参考自述：`Gaia DR3 XP absolute spectrum × filter/QE curve`，附 `filter_key` / `curve` / `n_points` / 波长范围 `wl_nm`，供核对「实际使用的曲线是谁」 | 由本帧通带身份字段拼接 |
+| `synthetic_colour_median_mag` | mag | 锥形搜索星族上的 `median_i( magG_i + 2.5·log10 F_syn,i )`。`magG` 是**星表**的 Gaia G 星等，`F_syn` 由该星 Gaia DR3 XP **绝对**谱经本帧滤光片与量子效率曲线正向合成；由 `2.5·log10 F_syn = C_R − m_syn^R` 推得它等于 `median_i(G−R)_i + C_R`，即**该天区样本的中位颜色项** | 帧级拟合结果，直接落盘 |
+| `synthetic_colour_valid` | 1（布尔） | 该颜色项是否可用；`false` 表示不得使用（参与中位数的星数不足求解前提） | 同上 |
+| `synthetic_colour_n_stars` | 颗 | 参与中位数的锥形搜索星数 | 同上 |
+| `synthetic_colour_scatter_mag` | mag | 星族谱能量分布散布的稳健标准差 `1.482602218505602·MAD(...)` | 同上 |
+| `synthetic_colour_reference` | 字符串 | 参考自述：`Gaia DR3 XP absolute spectrum × filter/QE curve`，附 `filter_key` / `curve` / `n_points` / 波长范围 `wl_nm`，供核对「实际使用的曲线是谁」 | 由本帧通带身份字段拼接 |
 
-- **两条独立实现，同参考时才应紧**：帧级标度 `k_photo` 来自星表匹配对数比的稳健
-  位置，帧级零点 `ZP_syn` 来自 Gaia XP 正向合成拟合，二者是两条独立实现。只有二者
-  锚在**同一参考**（同一 Gaia DR3 XP 绝对谱、同一滤光片与量子效率曲线）时，
-  `ZP_k = ZP_syn − 2.5·log10(k_photo)` 才成立；`zero_point_reference` 与
-  `passband_identity` 是这两个参考身份的可核对面。
-- **无跨帧归一化 gauge**：该规范是帧内的，产物字段 `photscale_spread_gate =
+- **该组是通带/SED 一致性诊断项，不是帧的星等零点**：它的两个输入——`magG`（星表
+  星等）与 `F_syn`（谱 × 滤镜/QE 的**绝对**辐照度积分）——**都只来自星表与本帧的
+  滤镜/量子效率曲线，不含任何该帧的观测数据**（无像素、无实测流量）。唯一与帧有关
+  的是通带曲线 `T(λ)`/`Q(λ)`，那是**仪器配置参数，不是观测数据**。因此它**不可能测到
+  帧的增益或透过率**，**不得用作帧零点**，也**不得据此反推增益/口径/曝光**。
+- **帧的测光标度是 `k_photo`**：帧级标度 `k_photo` 来自星表匹配对数比的稳健位置，
+  是唯一的帧级测光标度；**帧的星等零点由 `k_photo` 换算即得**。该颜色项与 `k_photo`
+  不是「同一件事的两条实现」，二者本就不该相互比对一致性——它们量的是不同的东西。
+- **旧名（仅作追溯）**：该组键曾名为 `zero_point_mag` / `zero_point_valid` /
+  `zero_point_n_stars` / `zero_point_scatter_mag` / `zero_point_reference`。旧名把
+  它表述为「本帧合成零点」，曾导致把它与 `k_photo` 当成两条独立实现去比对不一致的
+  真实误诊（详见《阶段一测光标定》实验单元的追记）。
+- **无跨帧归一化 gauge**：标度规范是帧内的，产物字段 `photscale_spread_gate =
   "none (frame-independent)"`。跨帧 `k_photo` 不同是正常的帧间独立事实，不得据此
-  写出「跨帧对齐」「组内公共零点」之类不存在的语义；`zero_point_mag` 是逐帧量，
-  不是公共锚。与帧无关的公共锚 `F0` 由固定参考星等 `m_ref` 与合成零点导出，口径
-  正本见统一模型的参考通量基准。
-- **下游为何需要**：噪声与信噪比节点按 `ZP_k = ZP_syn − 2.5·log10(k_photo)` 复算
-  本帧仪器零点，并据此锚定参考通量 `F_ref,k = 10^(−0.4·(m_ref − ZP_k))` 与 5σ 深度
-  `m_5`；该节点消费的是无条件落盘的 `photscale_fit`。`photscale_detail` 把同一零点
-  与已施加帧的 `k_photo`、施加产物并列落盘，使「零点—标度—施加」三者在同一段内可
-  被独立读者复核。
+  写出「跨帧对齐」「组内公共零点」之类不存在的语义。
+- **下游为何需要**：该组键是**通带身份与天区星族**的可核对面（配合 `passband_identity`
+  可回答「实际用的是哪条曲线」「该天区的 SED 散布多大」）。它**不**是下游锚定参考通量
+  或深度的合法输入；正本不宣称绝对通量刻度，故任何绝对量都不得由内部值"制造"。
+- **已登记的下游缺陷（待修，见下）**：噪声与信噪比节点当前把该颜色项当作帧零点用。
 - **标准产物**：逐帧 JSON 是节点之间的标准产物，不受开发模式开关管辖，其键面不随
   运行模式变化。
+
+### 已登记的下游缺陷：颜色项被当作帧零点用
+
+噪声与信噪比节点读 `photscale_fit` 的该组键，按
+`zp_inst = synthetic_colour_median_mag − 2.5·log10(k_photo)` 复算「本帧仪器零点」，
+再据此锚定参考通量 `F_ref = 10^(−0.4·(m_ref − zp_inst))` 与 5σ 深度 `m_5`。
+其中 `k_photo` 是帧可比量，而 `synthetic_colour_median_mag` 是**逐天区**的颜色项
+（同一指向组跨夜仅变约 0.0004 mag，**跨指向组变约 0.0587 mag**），于是：
+
+- `m_5` 被带入**最多约 0.06 mag 的天区间系统差**——该差来自天区星族颜色，不是帧的条件差异；
+- `F_ref ∝ 10^(0.4·zp_inst)` ⇒ 帧间权重 `w ∝ 1/F_ref²` 的**天区间相对误差可达约 11%**；
+- 因此受影响的**不止深度，还包括阶段二的帧间权重**。
+
+修法方向（不在本轮）：`zp_inst` 只用**与帧可比的量**（`−2.5·log10(k_photo)` 加任意与帧
+无关的常数，该常数在 `w ∝ 1/F_ref²` 里全体同比例抵消）；绝对深度按设计**不制造**——
+或留未知（`m_5 = NaN`），或取配置显式给出的外部绝对值，内部值不得覆盖。
 
 ### 数值落地口径
 
