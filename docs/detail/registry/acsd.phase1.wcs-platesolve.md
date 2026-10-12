@@ -90,15 +90,33 @@ WCS 产物的 `samples[]` 是像素坐标与天球坐标的配对表（取样步
   含 SIP A/B/AP/BP 正本 = `docs/science/algorithms/normalize/PLATESOLVE.md` 的
   「上游 SCI 与输入输出」一节。
 - 自洽要求：`samples[]` 的 `ra`/`dec` 必须与同一份 `wcs` 对象的 `crpix` / `crval` /
-  `cd` / `sip` 前向映射一致；`forward_cross_deg` 的独立参考解必须与所用映射同阶
-  —— 有 SIP 的帧必须用含 SIP 的参考解，否则该自检对 SIP 零判别力（纯线性参考解在
-  有 SIP 的帧上恒给零残差）。
+  `cd` / `sip` 前向映射一致。
+- **自检为什么不是恒真**：交叉残差门 `forward_cross_deg` 比的是**两条独立实现**的
+  含 SIP 前向 —— 产品前向（SIP A/B 多项式叠加在线性投影之上）对独立 gnomonic
+  参考解（同样含 SIP）。两条实现必须刻意保持独立，**不得合并成一条**，否则该门
+  退化为恒真 0。但只有这条**对「漏施加 SIP」零判别力**：两边都漏照样为 0，这正是
+  该缺陷能长期隐藏的原因。因此另立一条**作用量断言**：SIP 声明非零时，「含 SIP 的
+  产品前向」与「同一 `wcs` 的无 SIP 线性前向」在同一点的角距必须 **> 1e-9 deg**，
+  否则判失败（漏施加、系数全零、阶数为 0 都会让作用量塌到 0）。下界取 1e-9 deg 的
+  依据 = 线性前向在本尺度的双精度舍入量级（实测约 1e-15 deg），1e-9 deg 高出该舍入
+  6 个量级，是安全下界；SIP 有效时场角作用量实测 `0.006919 deg = 24.91″`，高出下界
+  7 个量级。
+- **产物读数键（供事后审计）**：
+  - `max_sip_effect_deg`：SIP 实际作用量，即上述作用量断言的判据量；逐帧并入
+    `p1_wcs.json`（无 SIP 的帧取 0）。
+  - `sample_geometry`：自述 `samples[]` 的 `ra/dec` = 含 SIP A/B 的完整前向。
+  - `max_roundtrip_px`：**含 SIP 的帧上不再是小量**（实测由 8.1e-11 px 变为
+    25.77 px）—— `wcs.sky2pix` 不含 SIP 逆多项式，该往返不变量在含 SIP 时不成立。
+    该键**仅作审计读数、不是契约**；无 SIP 时 1e-6 px 往返契约仍成立（代码按含 /
+    不含 SIP 分别守卫）。任何消费方都不得把 `max_roundtrip_px` 当作含 SIP 帧的
+    1e-6 px 契约断言。
+  - `forward_cross_ref`：登记交叉门实际所用参考解的实现名（有 SIP 的帧为
+    `p1_tan_forward_reference_sip`），供审计核对参考解是否与所用映射同阶。
 - 求解失败帧不写 `wcs` 对象，也不写 `samples[]`（下游按该帧未解出 fail-closed）。
 
-落地偏差（如实登记）：生产 ipv 路径当前以纯线性 `WcsTan` 生成 `samples[]`
-（`lib/infrastructure/scheduler/src/module_adapters.cpp` 的 `p1_op_wcs`），与本节契约
-不符；explicit-config 路径已按含 SIP 的完整前向映射生成。两者口径统一归该模块的
-落地整改。
+两条路径（`explicit_config` 与 `ipv`）已统一到同一含 SIP 前向实现：samples 循环与
+交叉门共用同一产品前向，ipv 路径的 SIP 系数构造在采样循环之前完成。本节即该统一
+口径的契约本身；产物读数键不随路径而变。
 
 ## 公共 header、核心 symbol 与生命周期
 
