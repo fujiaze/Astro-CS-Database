@@ -129,7 +129,7 @@ testdata M42 M1 T3 Red 4 帧（WCS + FFT 相位相关对齐）；生产代码静
 
 ## 4. 结果（含不确定度与对照）
 
-### 4.1 C1 纯加性世界（`【复现：bash 实验/additive-sky-seamless/code/run_all.sh 重跑后读 c1_additive.json；该读数需重跑取得，当前不可离线核验】`）
+### 4.1 C1 纯加性世界（`【复现：bash 实验/additive-sky-seamless/code/run_all.sh 重跑后读 c1_additive.json；当前修订读数见 results/rerun_1f6d0a64/c1_additive.json】`）
 
 | 门 | 量 | 实测 | 对照/不确定度 |
 |---|---|---|---|
@@ -145,6 +145,16 @@ testdata M42 M1 T3 Red 4 帧（WCS + FFT 相位相关对齐）；生产代码静
 | A10 | 接缝 vs 参考面不可表示分量 | slope **0.798**，Pearson **0.896** | 按台账 A-P5-11 订正：端点比 **×5.07** 不复现（复算 2.95/2.43）；改用峰值/长尺度比 **≈8**（8.03/8.02/9.21）＋非单调＋肘点 2h |
 | A11 | 星点通量守恒 | 相对最大 6.6e-6 | — |
 
+**读数来源**：上表各行取自**旧判据面**的 C1 读数（判据 id 为 `A3`/`A6`/`A9`；副本见
+`run/FINAL-07/gate-reds/baseline/实验/additive-sky-seamless/results/c1_additive.json`）。
+当前修订下同一批量改由 `A6p`/`A9p`/`A9q`/`A6_subset_invariance_scale` 承担，见 §11.3；
+两份读数的对应关系（旧 → 当前修订重跑，读数文件 `results/rerun_1f6d0a64/c1_additive.json`）：
+`A3` 0.0087 → 0.0077、`A4` 0.383/0.850 → 0.397/0.804、`A6` 0.0236 → 0.4078、
+`A9` 0.00372 → 0.13272、`A10` slope 0.798 → 0.7687、Pearson 0.896 → 0.8822、
+端点比 ×5.07 → ×6.139、`A11` 6.6e-6 → 6.69e-6。**A10 下方 6 点表同为旧判据面读数**：
+当前修订的 `oob_rms` 不变，但 `seam_max` 为 0.738/1.796/1.779/3.626/7.213/4.531、
+`seam_med` 为 0.325/0.563/0.350/1.938/1.278/2.479。
+
 **A10 是 H1 的可证伪边界**：横轴 = 帧间天光差中「B_ref 不可表示且沿 y 相干」分量的 RMS
 （σ=64 px 一维高通），纵轴 = 残余接缝最大值。6 个空间尺度点：
 
@@ -156,7 +166,7 @@ testdata M42 M1 T3 Red 4 帧（WCS + FFT 相位相关对齐）；生产代码静
 
 **如实登记**：该标度关系在 400 px 与 50 px 两点**不单调**（代理量 σ=64 px 高通在小尺度端（50 px）与注入波长同量级、无法把注入图案与接缝分离而低估，在大尺度端（400 px）把台阶低频成分泄入基外 RMS 而非接缝通道——该代理量只给出正确的标度趋势（slope 0.80），不应被读作精确的样条投影，见 §6.3 第 3 条）<!-- 订正: 检查-行文逻辑 Y4——原句括号未闭合、解释缺失，据 §4.1 表与 §6.3 第 3 条补完 -->
 
-### 4.2 C2 乘性世界（`【复现：bash 实验/additive-sky-seamless/code/run_all.sh 重跑后读 c2_multiplicative.json；该读数需重跑取得，当前不可离线核验】`，7/7 PASS）
+### 4.2 C2 乘性世界（`【复现：bash 实验/additive-sky-seamless/code/run_all.sh 重跑后读 c2_multiplicative.json；当前修订读数见 results/rerun_1f6d0a64/c2_multiplicative.json】`，7/7 PASS）
 
 注入 `g_k = {A:1.00, B:1.56, C:0.85, D:1.20}`（含历史 1.56×）+ 低阶 m(x,y)（5%）
 + 基外高频（1%@24 px）；星表引导孔径测光（180 颗注入 Moffat4 星，类比 Gaia XP 星表）。
@@ -168,7 +178,7 @@ testdata M42 M1 T3 Red 4 帧（WCS + FFT 相位相关对齐）；生产代码静
 | M2 | Phase1 后 MA 的 g_k 残差 | 0.0376（无梯度域）/ 0.107（有梯度域）；**Phase1 5.89e-4** |
 | M3 | 未吸收臂 MA 恢复注入 g_k | 相对误差 0.0295（无梯度）/ 0.0477（有梯度） |
 | M4 | 纯加性 UPM 后接缝 | 未做 Phase1 **27.37 e⁻** vs 做了 **6.31 e⁻**（**4.33×**） |
-| M5 | 基外高频分量量化（匹配滤波，对**模板**做比） | 10% 幅度：恢复 **0.693 ± 0.005**（58σ，分块下界）、PSD 峰 k=26 vs 预期 21.33（±6 bin 内）；1% 幅度：**未检出**（amp −0.0004 ± 0.038），3σ 检测限 **0.069** |
+| M5 | 基外高频分量量化（匹配滤波，对**模板**做比） | 10% 幅度：恢复 **0.693 ± 0.005**（58σ，分块下界）、PSD 峰 k=26 vs 预期 21.33（±6 bin 内）；1% 幅度：匹配滤波恢复 **0.672 ± 0.023**（14σ，同为分块下界），但 PSD 判据的峰**不在**注入频率（`detected_at_1pct=false`），3σ 检测限 **0.069** |
 | M6 | 高频分量对**电平**接缝的贡献（同 seed 扫描） | max|Δseam| 2.14 e⁻ < 50% 基线 17.50 e⁻（原 Spearman 判据实测 ρ=0.50 **不成立**，见 §11） |
 
 **历史 1.56× 的机制量化**：来源 = Phase1 未施加的乘性归一（`photometry_applied=false`,
@@ -176,7 +186,7 @@ testdata M42 M1 T3 Red 4 帧（WCS + FFT 相位相关对齐）；生产代码静
 幅度 = 帧间乘性比偏离 1 达 0.560；空间频率 = 低阶（多项式，Phase1 可完全吸收）
 + 基外高频（Phase1 不可吸收，1%@24 px 量级）；对纯加性 UPM 的影响 = 接缝 4.33×。
 
-### 4.3 C3 多退少补与公共面（`【复现：bash 实验/additive-sky-seamless/code/run_all.sh 重跑后读 c3_public_plane.json；该读数需重跑取得，当前不可离线核验】`，7/7 PASS）
+### 4.3 C3 多退少补与公共面（`【复现：bash 实验/additive-sky-seamless/code/run_all.sh 重跑后读 c3_public_plane.json；当前修订读数见 results/rerun_1f6d0a64/c3_public_plane.json】`，7/7 PASS）
 
 | 门 | 量 | 实测 |
 |---|---|---|
@@ -188,7 +198,7 @@ testdata M42 M1 T3 Red 4 帧（WCS + FFT 相位相关对齐）；生产代码静
 | B6 | gauge 0↔1 的 δ_k 逐帧常数偏移 | 5.33e-15；接缝差 0.0 |
 | B7 | 接缝 | 未校正 5.19 e⁻ → `raw−δ_k` **0.386 e⁻**（13.4×） |
 
-### 4.4 C4 非退化接缝判据（`【复现：bash 实验/additive-sky-seamless/code/run_all.sh 重跑后读 c4_seam_criterion.json；该读数需重跑取得，当前不可离线核验】`，6/6 PASS）
+### 4.4 C4 非退化接缝判据（`【复现：bash 实验/additive-sky-seamless/code/run_all.sh 重跑后读 c4_seam_criterion.json；当前修订读数见 results/rerun_1f6d0a64/c4_seam_criterion.json】`，6/6 PASS）
 
 120 次实现；注入接缝在帧 B 的 x≥256（B 覆盖 gx2-4 ⇒ 左子集 {B}，右子集 {B,C}）。
 
@@ -204,7 +214,7 @@ testdata M42 M1 T3 Red 4 帧（WCS + FFT 相位相关对齐）；生产代码静
 **这就是「非退化」的证明**：同一注入下，退化判据 100% 不响应，本判据 36σ 响应；
 且真值无效应时（平滑公共梯度）假阳性为 0。
 
-### 4.5 C5 采样权重与收敛枚举（`【复现：bash 实验/additive-sky-seamless/code/run_all.sh 重跑后读 c5_weights.json；该读数需重跑取得，当前不可离线核验】`，5/5 PASS）
+### 4.5 C5 采样权重与收敛枚举（`【复现：bash 实验/additive-sky-seamless/code/run_all.sh 重跑后读 c5_weights.json；当前修订读数见 results/rerun_1f6d0a64/c5_weights.json】`，4/5 PASS）
 
 一帧被污染（5× 读出噪声 + x≥256 的 25 e⁻ 系统伪影）；**差分度量**：同 seed 下
 clean/polluted 两次拟合之差，隔离伪影漏入。NMC=20。
@@ -222,7 +232,15 @@ rank 49 = n_nodes，χ²_red 0.771，δ_k 非零。
 收敛枚举：规范转写的 0/1/2/3 状态机四例自洽（**meta**）；生产 `p2_upm_convergence`
 只能给 0/1 —— max_iter 与 stalled 都返回 0（**FIX-2**）。
 
-### 4.6 C6 稀疏现场求值 vs 稠密（`【复现：bash 实验/additive-sky-seamless/code/run_all.sh 重跑后读 c6_sparse_dense.json；该读数需重跑取得，当前不可离线核验】`，4/4 PASS）
+**读数来源与当前修订差异**：上表与完整链路读数取自**旧判据面**的 C5 读数
+（副本见 `run/FINAL-07/gate-reds/baseline/实验/additive-sky-seamless/results/c5_weights.json`）。
+当前修订重跑（`results/rerun_1f6d0a64/c5_weights.json`，同 seed）把加权 RMS 中位改为
+`control_ivar` 1.755 ± 0.697、`uniform` 1.789、`SNR²` 2.128，伪影漏入改为
+0.0761 / 0.1216 / 0.3590（`control_ivar` 仍最优，对 `uniform` 的优势由 2.7× 降为 1.6×）。
+`W1p` 与 `W2` 判词不变；**`W5_enum_gap` 在当前修订下判红**：`stalled_case` 0 → 1、
+`iters` [3, 1, 300] → [3, 3496, 1361]。
+
+### 4.6 C6 稀疏现场求值 vs 稠密（`【复现：bash 实验/additive-sky-seamless/code/run_all.sh 重跑后读 c6_sparse_dense.json；当前修订读数见 results/rerun_1f6d0a64/c6_sparse_dense.json】`，4/4 PASS）
 
 | 门 | 量 | 实测 |
 |---|---|---|
@@ -231,7 +249,7 @@ rank 49 = n_nodes，χ²_red 0.771，δ_k 非零。
 | E3 | 峰值 RSS | 按需 64² 块 **11,688 kB** < 稠密物化 512² **14,568 kB** |
 | E4 | 天光面节点占比 / 子集一致性 | 49/262,144 = **1.87e-4**；子集 δ_k、b_k 逐位相同（0.0） |
 
-### 4.7 C7 真实数据衔接（`【复现：bash 实验/additive-sky-seamless/code/run_all.sh 重跑后读 c7_realdata.json；该读数需重跑取得，当前不可离线核验】`，5/5 PASS）
+### 4.7 C7 真实数据衔接（`【复现：bash 实验/additive-sky-seamless/code/run_all.sh 重跑后读 c7_realdata.json；当前修订读数见 results/rerun_1f6d0a64/c7_realdata.json】`，5/5 PASS）
 
 数据：`testdata/M42_T2T3_mosaic_Flying_dutchman/T3/M1/*Red.fts` 取 4 帧（300 s），
 512² 中心裁剪，WCS 预估 + FFT 相位相关对齐（实测位移 [0,0]/[0,0]/[8,6]/[10,8] px）。
@@ -673,7 +691,8 @@ FIX-2 按 `docs/algorithms` 的 0/1/2/3 语义补 `stalled` 分支；FIX-3 提�
 门为 `margin ≥ −z·SE`（`z = 1.6449` 单侧 95 %）。**未达显著时判词是「不可分辨」而不是 FAIL**，
 且 W1 已从「三条红门的共同前提」里摘出——它与 `A6p`/`A9p` 不同源。
 
-实跑读数（NMC = 20，`【复现：bash 实验/additive-sky-seamless/code/run_all.sh 重跑后读 c5_weights.json；该读数需重跑取得，当前不可离线核验】` 的 `W1_prime`）：
+实跑读数（NMC = 20；字段名为 `W1p_arms_statistically_indistinguishable`，读数文件
+`results/rerun_1f6d0a64/c5_weights.json`）：
 
 | 对照臂 | margin | SE | z（单侧 95 %） | 判词 |
 |---|---:|---:|---:|---|
@@ -689,7 +708,7 @@ FIX-2 按 `docs/algorithms` 的 0/1/2/3 语义补 `stalled` 分支；FIX-3 提�
 | 审稿意见 | 整改 |
 |---|---|
 | A10 六点表与 JSON 不符 | 已按 JSON 逐位改正（§4.1），并披露非单调 |
-| M5 PSD 单位错位（分块后每样本 4 px） | 期望 k 改为 `nb/(24/BIN)=21.33`；改为**对模板做比 + 匹配滤波**（帧比值会代数抵消 m）；10% 幅度下恢复 0.693±0.005、PSD 峰 k=26（±6 bin），1% 未检出并给出 3σ 检测限 |
+| M5 PSD 单位错位（分块后每样本 4 px） | 期望 k 改为 `nb/(24/BIN)=21.33`；改为**对模板做比 + 匹配滤波**（帧比值会代数抵消 m）；10% 幅度下恢复 0.693±0.005、PSD 峰 k=26（±6 bin）；1% 幅度下匹配滤波恢复 0.672±0.023（14σ），PSD 峰不在注入频率，并给出 3σ 检测限 |
 | M6 每点换 seed、判据被替换 | 改为**同 seed** 扫描；判据变更写入本表 |
 | C4 N1 恒真反证 | 标注为 `meta`；§5.2 的"参考面必要"改由 C3 B3/B4 与 C4 N2/N3 支撑 |
 | C4 检测器单边 | 改为**双边** \|D−mu\| > 5σ（FP 0/60、检出率 0.975、检测限 6.98 e⁻ 在新判据下不变） |

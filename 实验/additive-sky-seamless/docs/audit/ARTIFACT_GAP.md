@@ -225,3 +225,108 @@ A9（0.00372 vs 0.132719）。即 README 的 §4.1 行对应订正前判据面�
    避免同一判据出现两个未标注版本的读数。
 4. 若要让 `results/` 不再依赖磁盘，需要一条与 `.gitignore` 策略相容的固化路径
    （例如把固化读数落到单元 `docs/` 下的证据目录）；这属策略决定，不在本单元自行改定。
+
+## 9. 探针构建入口修复
+
+`code/build_probes.sh` 原先引用 `build/libastrocs_*.a` 与 `ninja -C build`，两者都已不存在。
+现改为按实际布局解析：
+
+- **构建目录**：`$ACSD_BUILD_DIR` > `build/linux-control` > `build`（不写死绝对路径）；
+- **静态库名**：`libacsd_*.a`，兼容历史名 `libastrocs_*.a`；
+- **触发库构建**：用该目录自带的 `Makefile`（或 `build.ninja`），且**在锁内**做；
+- **全流程持 `flock ${ACSD_BUILD_LOCK:-/tmp/astrocs_build.lock}`**，等待上限 `$ACSD_LOCK_WAIT`
+  （默认 7200 s）；取不到锁即放弃，不并发链接；
+- 去掉只在 `ASTROCS_PROBES=ON` 时才存在的探针库（两个探针源都不使用 `ACSD_PROBE_*` 宏）；
+- 新增 `$ACSD_PROBE_SRC_DIR`：探针源目录可指向一份同源副本，用于在不改动 `code/**` 的前提下构建。
+
+真实输出尾部：
+
+```
+[build_probes] 已取构建锁 /tmp/astrocs_build.lock
+== build upm_probe
+[build_probes] 构建树 = …/build/linux-control
+[build_probes] 源目录 = …/results/rerun_1f6d0a64/probe_src
+[build_probes] 静态库 = …/libacsd_phase2.a …/libacsd_identifiability.a …/libacsd_hips.a …/libacsd_aio.a …/libacsd_common.a …/libacsd_cfitsio.a
+== build sky_probe
+…
+built -> …/run/SCI-403/{upm_probe,sky_probe}
+[mem_guard] peak_rss_gb=0.323 limit_gb=8.0 label=bash exit=0
+```
+
+## 10. 探针驱动源的陈旧点（未改 `code/**`）
+
+`code/upm_probe.cpp` 有 **3 处** `astrocs::healpix::`，而 `lib/algorithms/shared/healpix/healpix_core.h`
+的命名空间已改为 `acsd::healpix`（该头文件第 20–21 行），故原样编译报
+`error: 'astrocs' has not been declared`。`code/sky_probe.cpp` 无此问题，原样编译通过。
+
+`code/**` 本轮只允许改 `build_probes.sh`，故**未改动驱动源**；改为在本单元写面内保留一份
+同源副本 `results/rerun_1f6d0a64/probe_src/`：`sky_probe.cpp` 与原文件逐位相同，
+`upm_probe.cpp` 仅上述 3 处命名空间不同（`diff` 只有这 3 行）。用 `$ACSD_PROBE_SRC_DIR`
+指向该副本构建，已实测两个探针都能编出（见 §9）。
+
+**待裁决**：是否授权把 `code/upm_probe.cpp` 的 3 处命名空间就地订正，使 `code/` 本身
+可直接构建（避免长期依赖副本）。
+
+## 11. 当前修订重跑（读数 `results/rerun_1f6d0a64/`）
+
+命令形式与 `run_all.sh:86-95` 一致（从仓库根、`mem_guard` 看门狗、日志名 `${step%%_*}.log`），
+由 `results/rerun_1f6d0a64/run_leg.sh` 逐腿执行；新读数落 `results/rerun_1f6d0a64/`，
+`results/` 根目录里的 `bf25c085` 固化读数原样放回，两套并存。
+
+| 腿 | rc | peak_rss_gb | 判词翻转 | 备注 |
+|---|---|---|---|---|
+| C1 `c1_additive` | 0 | 0.554 | 无 | 14 门全绿；`A7b` iters 300 → 3283 |
+| C2 `c2_multiplicative` | 0 | 0.571 | 无 | 7 门全绿；`M4` ratio 4.3344 → 4.3367 |
+| C3 `c3_public_plane` | 0 | 0.646 | 无 | 7 门全绿 |
+| C4 `c4_seam_criterion` | 0 | 0.549 | 无 | 6 门全绿 |
+| C5 `c5_weights` | **1** | 0.602 | **`W5_enum_gap` PASS → FAIL** | 见下 |
+| C6 `c6_sparse_dense` | 0 | 0.569 | 无 | 4 门全绿；`E1` 3.1e-15 → 0.0 |
+| C7 `c7_realdata` | 0 | 0.257 | 无 | 5 门全绿 |
+
+- **C5 是本轮唯一判红的腿**：`W5_enum_gap` 的 `stalled_case` 由 0 变 1、`iters` 由
+  [3, 1, 300] 变 [3, 3496, 1361]。同一 seed、未改判据、未调参。
+- **C4 两次独立重跑逐位相同**（md5 `5513aa64…`），且与 `bf25c085` 判词一致、数值仅差浮点末位
+  （最大相对差约 4e-14）；说明该腿确定可复现。
+- C1/C2/C3/C6/C7 与 `bf25c085` 逐门对照**无判词翻转**，数值差异见 §11 与 README 各节的来源标注。
+
+## 12. 对 §7.4 的更正（上轮结论有误）
+
+上轮把 `W1_prime` 记为「C5 里不存在该字段 ⇒ 未能核验」，**该结论错误**：
+`W1_prime` 是 `c5_weights.json` 的**顶层键**，不是 `gates.rows` 里的判据 id
+（判据 id 为 `W1p_arms_statistically_indistinguishable`）。上轮只在 `gates.rows` 里找 id，
+故漏判。实际情况：
+
+- `bf25c085` 的 `c5_weights.json` **有** `W1_prime` 顶层键，内容与 `README.md` §11.3 的表一致
+  （`snr2` margin 0.1429135268084416 / se 0.0695398598814922 / z 2.05513107…；
+  `uniform` margin −0.011721… / se 0.046178… / z −0.2538…）；
+- 当前修订重跑给出**逐位相同**的 `W1_prime`；
+- 旧判据面快照（md5 `863e4b47…`）的 `W1_prime` 为 `null`。
+
+因此 `README.md` §11.3 的 `W1_prime` 表**有据可核**，本轮已把 README 的字段名与读数文件
+标注为实际值（`W1p_arms_statistically_indistinguishable` / `results/rerun_1f6d0a64/c5_weights.json`）。
+
+## 13. `README.md` 本轮改动（依据）
+
+| 位置 | 改动 | 依据读数 |
+|---|---|---|
+| §4.2 `M5` 行 | 1% 幅度由「未检出（−0.0004 ± 0.038）」改为「匹配滤波恢复 **0.672 ± 0.023**（14σ），PSD 峰不在注入频率，3σ 检测限 0.069」 | `results/rerun_1f6d0a64/c2_multiplicative.json` 的 `hf_matched_filter`（`amp_hat`/`amp_err`/`n_sigma`）与 `hf_component`（`psd_peak_at_injected=false`、`detection_limit_3sigma`） |
+| §11.1 `M5` 行 | 同步订正 1% 幅度表述 | 同上 |
+| §4.1 表下 | 新增「读数来源」注：本表为旧判据面读数，并列出与当前修订重跑的逐项对应值 | 旧判据面 `run/FINAL-07/gate-reds/baseline/…/c1_additive.json`；当前 `results/rerun_1f6d0a64/c1_additive.json` |
+| §4.5 表下 | 新增「读数来源与当前修订差异」注：RMS/漏入为旧判据面读数，给出当前修订值；登记 `W5_enum_gap` 判红 | 旧判据面 `…/gate-reds/baseline/…/c5_weights.json`；当前 `results/rerun_1f6d0a64/c5_weights.json` |
+| §11.3 `W1_prime` | 标注实际字段名与读数文件 | `results/rerun_1f6d0a64/c5_weights.json` 的 `W1_prime` |
+| §4.1–§4.7 小节标题 | 「当前不可离线核验」改为指向 `results/rerun_1f6d0a64/` 的当前修订读数 | 本轮重跑 |
+| §4.5 标题 | 「5/5 PASS」改为「4/5 PASS」 | 本轮重跑 `n_fail=1` |
+
+`§8.1`/`§8.2`/`§1` 中指向 `evidence_lit.json`/`evidence_code.json`/`audit_rework_summary.json`
+的「不可离线核验」标签**未改**：这三个文件不在盘上，标签仍准确。
+
+## 14. 仍未收敛
+
+- **C5 `W5_enum_gap` 判红**：当前修订下 `stalled_case=1`、`iters=[3, 3496, 1361]`，
+  与旧判据面的 `stalled_case=0`、`iters=[3, 1, 300]` 不一致。未裁决该判红属实现缺陷
+  还是判据口径需更新。
+- **`P5_订正` rerun_HEAD（`6808a7e4`）与 baseline 的 A6/A9 判词翻转**：仍未裁决。
+- **`code/upm_probe.cpp` 的 3 处命名空间**：未授权改动，暂以 `results/rerun_1f6d0a64/probe_src/`
+  的同源副本构建。
+- **`sci_c_common.py` 的改动时刻晚于本批读数**：本轮重跑已把该差距消除（重跑用的就是当前
+  共享库），但 `bf25c085` 固化读数与当前共享库的对应关系仍未逐项核对。
