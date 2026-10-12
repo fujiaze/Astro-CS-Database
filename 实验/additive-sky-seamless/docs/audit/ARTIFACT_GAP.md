@@ -330,3 +330,146 @@ built -> …/run/SCI-403/{upm_probe,sky_probe}
   的同源副本构建。
 - **`sci_c_common.py` 的改动时刻晚于本批读数**：本轮重跑已把该差距消除（重跑用的就是当前
   共享库），但 `bf25c085` 固化读数与当前共享库的对应关系仍未逐项核对。
+
+## 15. 三项裁决的落地
+
+**裁决 1（探针驱动源）**：已就地订正 `code/upm_probe.cpp` 的 3 处
+`astrocs::healpix::` → `acsd::healpix::`（第 34、187、194 行），依据
+`lib/algorithms/shared/healpix/healpix_core.h` 第 20–21 行的现命名空间 `acsd::healpix`。
+订正后用**仓库自身源**重建，真实输出尾部：
+
+```
+[build_probes] 已取构建锁 /tmp/astrocs_build.lock
+[build_probes] 源目录 = …/实验/additive-sky-seamless/code
+== build upm_probe … == build sky_probe
+built -> …/run/SCI-403/{upm_probe,sky_probe}
+[mem_guard] peak_rss_gb=0.323 limit_gb=8.0 label=bash exit=0
+```
+
+`$ACSD_PROBE_SRC_DIR` 兼容口子**已不再需要**：仓库源现在可直接构建，且
+`results/rerun_1f6d0a64/probe_src/upm_probe.cpp` 与 `code/upm_probe.cpp` 已逐位相同。
+保留该口子的唯一价值是「让某次重跑把自己的驱动副本钉在记录里」；若以最小面为准可删。
+本轮**保留**（不改动已交付的 `build_probes.sh` 行为），并在 `code/upm_probe.cpp` 的注释里
+不引入任何副本依赖。
+
+**裁决 2（越界写出的图）**：`docs/figs/fig_c7_real_crop.png` 由 C7 脚本派生写出、在写面外，
+但它是**当前修订的派生图**且**未被 git 跟踪**（`.gitignore:60 *.png`）⇒ 回滚无意义、
+新版更正确。**经复核保留新版**，不回滚；新图另存一份 in-scope：
+`results/rerun_1f6d0a64/fig_c7_real_crop.png`。
+
+**裁决 3（两套读数的版本归属口径）**：
+`results/` 根目录的固化读数是 `bf25c085` 版（删除前固化），`results/rerun_1f6d0a64/`
+是**当前修订**读数（探针构建已修、与生产库同修订）；引用任何数字时必须写明取自哪一套；
+两套并存不是歧义，是版本归属。
+
+## 16. C5 `W5_enum_gap` 翻红归因
+
+### 16.1 判据本身是什么
+
+`code/c5_weights.py` 第 250–267 行：三例收敛枚举，判据条件是
+
+```python
+res["production_convergence"]["maxiter_case"] == 0 and
+res["production_convergence"]["stalled_case"] == 0
+```
+
+即**它断言的正是「缺陷存在」**——生产 `p2_upm_convergence` 只返回 0/1、max_iter 与
+stalled 不可区分（登记 FIX-2）。这是一条**缺陷登记门**：缺陷在 ⇒ 绿；缺陷被修 ⇒ 红。
+`lib/algorithms/coverage/include/astro/phase2/upm.h` 第 445 行给出枚举口径
+`0=max_iter 1=converged 2=stalled 3=invalid`。
+
+### 16.2 候选改动清单与证据
+
+`bf25c085`（固化读数产出于 2026-09-30 21:27）之后、与 C5 权重/枚举相关的改动：
+
+| 路径 | `bf25c085..HEAD` 的提交 | 是否候选 |
+|---|---|---|
+| `实验/…/code/c5_weights.py` | 无提交 | 否（判据与场景未动） |
+| `实验/…/code/sci_c_common.py` | 仅 `1fa477a7`（删归档，不涉求解） | 否 |
+| `lib/algorithms/coverage/src/upm.cpp` | **`36267e1a`**、`e0997984`、`918325a6`、`303cc74f`、`bdc350df`、`40088560`、`a24a8d2f` … | **是** |
+
+**根因提交：`36267e1a`**（2026-10-07 00:27:32）
+「UPM自适应收敛：迭代预算按κ保守收敛率追加（下界100/上界5000可配），判敛阈值不动；
+修M42 converged=0顶满导致的x2030残余缝」。其 diff 的关键行：
+
+```diff
++ cfg.max_iterations_cap = 5000;
++ // 自适应迭代预算：max_iterations 为"下界/试跑预算"语义（小 κ 早停，行为逐位不变）；
++ // max_iterations_cap 为可配上界（默认 5000，防病态发散）。
++ int iter_budget = cfg.max_iterations;
+- for (int iter = 0; iter < cfg.max_iterations; ++iter) {
++ for (int iter = 0; iter < iter_budget; ++iter) {
++   // 自适应追加：预算耗尽、未收敛、未 stall、且改善仍显著时，按 κ 保守收敛率
++   // 估算剩余轮数并延长 budget（可重估，上限 cap）。
+```
+
+即 `max_iterations` 的**语义由「上限」改为「下界/试跑预算」**，另加可配 `max_iterations_cap`
+（默认 5000）。这同时解释了两个观测：
+
+- 固化读数 `iters=[3, 1, 300]`（上限被遵守）→ 当前修订 `iters=[3, 3496, 1361]`；
+- `maxiter_case` 的 `max_iterations=1` 现在跑出 3496 轮 —— 预算被自适应延长到 `[1, 5000]` 内。
+
+### 16.3 上限实验：是「卡住」还是「触上限」
+
+复现脚本 `results/rerun_1f6d0a64/c5_w5_attrib.py`（只读，世界构造与 c5 一致：
+`S.build_world(seed_tag="c5_0", blur=12.0, level=20.0)`），读数
+`results/rerun_1f6d0a64/c5_w5_attrib.json`。
+
+**(i) stall 档（o3）迭代数上限扫描 —— iters 恒定 ⇒ 不是触上限**
+
+| `max_iterations` | 50 | 100 | 300 | 600 | 1200 | 2400 | 4800 | 9600 | 20000 |
+|---|---|---|---|---|---|---|---|---|---|
+| `iters` | 1361 | 1361 | 1361 | 1361 | 1361 | 1361 | 1361 | 1361 | 1361 |
+| `converged` | 1 | 1 | 1 | 1 | 1 | 1 | 1 | 1 | 1 |
+
+上限从 50 提到 20000，迭代数**一位不变**、判词恒为 1 ⇒ 求解器是**按自身判据停下**的，
+不是被上限截断。
+
+**(ii) stall 档目标函数平台证据**
+
+| `tolerance` | 1e-12 | 1e-9 | 1e-6 | 1e-3 |
+|---|---|---|---|---|
+| `iters` | 1361 | 984 | 824 | 30 |
+| `objective` | 39.2927482808 | 39.2927258943 | 39.2923694520 | 52.7709677785 |
+| `Δobj/obj` | 0 | 5.70e-07 | 9.64e-06 | 3.43e-01 |
+
+容差放宽六个数量级，目标函数相对变化 ≤ 9.7e-6 ⇒ 目标函数**已落到平台**。
+
+**(iii) o2 档：`max_iterations` 已不再是上限**
+
+| `max_iterations` | 1 | 2 | 5 | 10 | 50 | 300 |
+|---|---|---|---|---|---|---|
+| `iters` | 3496 | 3496 | 3491 | 3497 | 3493 | 3497 |
+| `converged` | 0 | 0 | 0 | **2** | 0 | **2** |
+
+上限 1→300，迭代数恒在 ~3491–3497；且 `converged` 出现 **2（stalled）**——证明生产返回值
+**已不止 0/1**，即 FIX-2 所述缺陷已不复存在。
+
+### 16.4 结论：**(b) 判据口径需更新**
+
+理由：
+
+1. `W5_enum_gap` 是一条**缺陷登记门**，其断言（`maxiter_case == 0 and stalled_case == 0`）
+   成立的前提是「生产只给 0/1」。当前修订实测出现 0、1、**2** 三种取值（§16.3(iii)），
+   前提已不成立 ⇒ 门翻红是**门的前提被修好**，不是实现退化。
+2. 不是「触上限」：stall 档在上限 50→20000 下 iters 恒为 1361（§16.3(i)），且目标函数
+   在容差放宽六个数量级下相对变化 ≤ 9.7e-6（§16.3(ii)）——它按自身判据停下。
+3. 因此不需要（也不允许）为变绿而调参或改判据；正确的处置是**更新这条门**：
+   它应改为断言「三例在枚举上可区分」（例如 `converged_case=1`、`maxiter_case∈{0}`、
+   `stalled_case∈{2}` 或至少 `maxiter_case != stalled_case`），或直接退役。
+4. **附带需一并更新**：`o2` 场景（`max_iterations=1, tolerance=1e-9`）的**语义已失效**——
+   `max_iterations` 不再是上限（§16.3(iii)），该场景已无法"用 1 轮强制 max_iter"；
+   `o3` 场景在当前求解器下判为 `converged=1`（不再是 stalled），要真正行使 `stalled(2)`
+   分支需重新设定容差/平滑档。这两点属**判据口径更新**，不在本轮改动（未授权改 `c5_weights.py`）。
+
+**未裁决的残余**：`o3` 判为 `converged=1` 是否符合
+`docs/science` 中「converged 状态枚举」一节的口径（`1 = converged` 需 `tol_step` 与
+`tol_obj` 同时满足），本轮只给出「生产自洽且按自身判据停下」的证据，未逐条比对阈值定义。
+
+## 17. 仍未收敛（照旧登记）
+
+- **`P5_订正` rerun_HEAD（`6808a7e4`）与 baseline 的 `A6_subset_invariance` /
+  `A9_final_gauge_near_noop` 判词翻转**：仍未裁决。
+- **C5 `W5_enum_gap` 的门与场景更新**：归因已定（§16），但改 `code/c5_weights.py`
+  未在本轮授权内，待派单。
+- **`o3` 档 `converged=1` 与 science 枚举口径的逐条比对**：见 §16.4 残余。

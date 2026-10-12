@@ -31,7 +31,7 @@ constexpr int kShift = 9;   // leaf order = target_order + 9
 
 std::uint64_t cell_center_leaf(int gx, int gy, std::uint64_t tile) {
     const int cell_side = 512 / 8;
-    const std::uint64_t local = astrocs::healpix::xy_to_nested_local(
+    const std::uint64_t local = acsd::healpix::xy_to_nested_local(
         (std::uint32_t)(gx * cell_side + cell_side / 2),
         (std::uint32_t)(gy * cell_side + cell_side / 2), (std::uint32_t)kShift);
     return (tile << (2u * (unsigned)kShift)) | local;
@@ -184,14 +184,14 @@ int main(int argc, char** argv) {
     std::vector<std::uint64_t> leaf((std::size_t)nx * (std::size_t)ny);
     for (int y = 0; y < ny; ++y)
         for (int x = 0; x < nx; ++x) {
-            const std::uint64_t local = astrocs::healpix::xy_to_nested_local(
+            const std::uint64_t local = acsd::healpix::xy_to_nested_local(
                 (std::uint32_t)(x0 + x), (std::uint32_t)(y0 + y), (std::uint32_t)kShift);
             leaf[(std::size_t)y * (std::size_t)nx + (std::size_t)x] =
                 (tile << (2u * (unsigned)kShift)) | local;
         }
     {
         std::uint32_t rx = 0, ry = 0;
-        astrocs::healpix::nested_local_to_xy(leaf[0], (std::uint32_t)kShift, rx, ry);
+        acsd::healpix::nested_local_to_xy(leaf[0], (std::uint32_t)kShift, rx, ry);
         if ((int)rx != x0 || (int)ry != y0) {
             std::fprintf(stderr, "leaf round-trip mismatch\n");
             return 3;
