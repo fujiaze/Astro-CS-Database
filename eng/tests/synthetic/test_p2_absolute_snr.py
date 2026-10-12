@@ -99,7 +99,7 @@ SKY_LIMITED_FACTOR = 100.0
 ARM_SKY_ADU = 1.0e8
 ARM_FLUX_DECADES = (-1.0, 1.0)
 ARM_STEPS = 11
-#: 参考星等档与合成零点（NOISE_SNR.md §3.3:261-267 的 `m_ref` / `ZP_syn`）。
+#: 参考星等档与固定零点常数（NOISE_SNR.md「绝对信噪比」一节的 `m_ref` 与常数 `C_abs`；本测试以一个固定常数承载）。
 M_REF = 18.0
 ZP_SYN = 26.4899
 #: 方差面蒙特卡洛的抽样次数与每档像元数（两点差分 → 1 自由度）。
@@ -241,7 +241,7 @@ def snr_systemic(k_photo: float, f0: float, sigma_f_frame: float) -> float:
 
 
 def zp_frame(k_photo: float, zp_syn: float = ZP_SYN) -> float:
-    """帧测光零点 `ZP_k = ZP_syn - 2.5 * log10( k_photo,k )`（NOISE_SNR.md §3.3:264 逐字）。"""
+    """帧测光零点 `ZP_k = C_abs - 2.5 * log10( k_photo,k )`（NOISE_SNR.md「绝对信噪比」一节；本测试以固定常数 `zp_syn` 承载 `C_abs`）。"""
     return float(zp_syn) - 2.5 * math.log10(float(k_photo))
 
 
@@ -260,7 +260,7 @@ def snr_from_m5(m5_mag: float, k_photo: float, sigma_f_ref: float,
 
 
 def f0_anchor(m_ref: float = M_REF, zp_syn: float = ZP_SYN) -> float:
-    """物理公共锚 `F0 = 10^{−0.4·(m_ref − ZP_syn)}`（NOISE_SNR.md §3.3:266 逐字，与帧无关）。"""
+    """物理公共锚 `F0 = 10^{−0.4·(m_ref − C_abs)}`（与帧无关；NOISE_SNR.md「绝对信噪比」一节；本测试以固定常数 `zp_syn` 承载 `C_abs`）。"""
     return 10.0 ** (-0.4 * (float(m_ref) - float(zp_syn)))
 
 
@@ -537,8 +537,8 @@ def p2_c_variance_assembly():
     inputs="`m_ref = 18`、`ZP_syn = 26.4899`、`k_photo ∈ {0.8, 1.0, 1.35, 1.7, 2.1, 2.8}`、"
            "`S_sky = 1e4 ADU/px`、`RN = 25 e⁻`、`g = 1.5`",
     expected="逐档 `|SNR(m_5) − 5| / 5 ≤ 1e-12`；并给出 `ZP_k` 与 `σ_F^{frame}` 的逐档读数",
-    source="正本条款 docs/science/noise_snr/NOISE_SNR.md §3.3(:264,:311,:314) 逐字"
-           "（`ZP_k = ZP_syn - 2.5*log10(k_photo,k)`、`m_5` 式、系数 2.5 的三处同源要求）；"
+    source="正本条款 docs/science/noise_snr/NOISE_SNR.md 的「绝对信噪比」一节"
+           "（`ZP_k = C_abs - 2.5*log10(k_photo,k)`、`m_5` 式、系数 2.5 的三处同源要求）；"
            "冻结容差 chain.a.p2.m5_roundtrip_rel",
     criteria=["P2-d"],
 )
