@@ -322,3 +322,139 @@ generated_utc, output_hash, unavailable.{flag, reason, scope}
 ## 6 一句话汇总
 
 标准模式一次运行的磁盘产物面现状是：**逐帧 HiPS 树 + 7 个 JSON（其中 6 个在 `lib/` 内零阶段二消费者）+ 5 类帧级平面中间件（3 项各 ≈64 MiB/帧，且都是同进程写盘后读回）+ 记账/资源/图**；阶段二真正需要的跨阶段载荷只有**逐帧 HiPS 树**与树内的 `<frame_key>/p1_stack.json`（`finest_input_arcsec`）。四个构建期开关里**三个零消费者**，唯一有消费者的那个**改变执行路径两次**（取数来源 + 流程存续），与「开关只决定额外输出」的口径冲突。收敛到「逐帧 HiPS + 一个 JSON」的关键不在删文件，而在**把阶段一内部依赖边的载体从磁盘换成内存块**（`DEV_MODE.md` 第二批），且必须与写侧门控**同批落地**。
+
+---
+
+## 7 T1 全仓消费方清查（删除/门控的硬前置）
+
+范围：`实验/**`、`eng/**`、`run/**`、`tools/**`（不存在）、`lib/**`。方法：按文件名与路径字面量递归检索，逐文件记录。**`run/**` 含源码树副本**（`/wsrc/`、`/selftest/`、`/gate-reds/`、`/审核包/`、`/baseline/`、`/bisect/`、`/scratch/`、`/evidence/`），这些是既有文档/测试树的快照，**不计为独立消费者**，下表单列。
+
+### 7.1 活树消费者（`实验/**` + `eng/**`，维护中）
+
+| 对象 | 脚本消费者 | 文档引用 | 证据/日志 | 小计 | 有外部消费者 |
+|---|---|---|---|---|---|
+| `calibrated_*` | **22** | 13 | 10 | 55 | **是（不许无条件闸）** |
+| `cleaned_*` | **49** | 14 | 11 | 81 | **是（不许无条件闸）** |
+| `photoapplied_*` | **3** | 9 | 3 | 17 | **是** |
+| `badcol_*` | **6** | 3 | 2 | 16 | **是** |
+| `badcolsrc_*` | 0 | 1 | 2 | 3 | 否（仅文档/证据） |
+| `p1_wcs.json` | **38** | 12 | 5 | 62 | **是** |
+| `p1_flux.json` | **37** | 14 | 1 | 55 | **是** |
+| `p1_phot.json` | **32** | 15 | 2 | 53 | **是** |
+| `p1_sources.json` | **19** | 13 | 2 | 37 | **是** |
+| `p1_snr.json` | **13** | 12 | 3 | 30 | **是** |
+| `p1_final.json` | **2** | 2 | 3 | 7 | **是** |
+| `p1_psf.json` | **0** | 6 | 2 | 8 | 否（仅文档/证据） |
+
+活树里最要紧的**契约级消费者**（`eng/**`，属工程测试与工具面，非实验过程）：
+
+- `eng/tests/validation/release02/q1_photometry_gradient/src/star_residual.py`、`q3_additive_truth/src/q3core.py`、`q3lib.py` → 读 `p1_flux.json`
+- `eng/tests/validation/release02/unc_propagation/audit_evidence.py`、`eng/tools/monitoring/concurrency_sweep.py` → 读 `p1_final.json`
+- `eng/tests/validation/release02/**` 与 `eng/tools/**` 另有读 `p1_phot.json`/`p1_wcs.json`/`p1_sources.json`/`cleaned_*`/`calibrated_*` 的脚本（见下条清单）
+
+实验面最大的两个消费者簇：`实验/P5-signal-extraction/code/p5m*.py`（约 24 个脚本读 `p1_flux.json`，另读 `p1_wcs.json`/`p1_phot.json`/`cleaned_*.fts`）与 `实验/photometric-magnitude/code/p1fix/*.py`（读 `p1_phot.json`/`p1_flux.json`）。
+
+### 7.2 `run/**` 消费者（历史脚本，排除树副本）
+
+| 对象 | 总命中 | 树副本 | **真历史脚本** |
+|---|---|---|---|
+| `calibrated_*` | 126 | 75 | **51** |
+| `p1_wcs.json` | 54 | 19 | **35** |
+| `p1_phot.json` | 48 | 15 | **33** |
+| `p1_sources.json` | 65 | 45 | **20** |
+| `photoapplied_*` | 24 | 9 | **15** |
+| `p1_snr.json` | 49 | 35 | **14** |
+| `cleaned_*` | 39 | 28 | **11** |
+| `p1_final.json` | 18 | 9 | **9** |
+| `p1_psf.json` | 12 | 4 | **8** |
+| `badcol_*` | 8 | 1 | **7** |
+| `p1_flux.json` | 24 | 19 | **5** |
+| `badcolsrc_*` | 2 | 0 | **2** |
+
+真历史脚本集中在 `run/M42-E2E-01/tools/*`、`run/M42-VARIANCE-RCA-01/*`、`run/LINDEF-IMPL-01/*`、`run/PHOT-FIX/*`、`run/SCI-VAR-ZERO-01/tools/*`、`run/M42-SCIA-ROOTCAUSE-01/code/*` 等。**另需剔除误命中**：`run/LINDEF-IMPL-01/lit-src/**`、`run/SCI-NOISE-OSS-01/src/repos/**` 下的 `lsst/pipe/tasks/calibrateImage.py` 与 `ccdproc/core.py` 是**第三方源码副本**（GPL/BSD 只读对照），其 `calibrated_`/`cleaned_` 命中与 ACSD 产物无关。
+
+### 7.3 判定与处置（按 `AGENTS.md` §7/§13）
+
+**硬规则**：凡有外部消费者 ⇒ **不许删、不许无条件闸**。
+
+| 对象 | 判定 | 处置 |
+|---|---|---|
+| `p1_psf.json` | 活树**零脚本消费者** | 可**停止产出**；6 份文档引用与 8 个历史脚本登记为待更新（历史脚本不构成维护承诺） |
+| `badcolsrc_*` | 活树**零脚本消费者** | 同上，或并入 `badcol_*` |
+| 其余 10 项 | **均有活树脚本消费者** | **保留能力**，改为「开关控制的额外输出」；**缺省关**时消费者须显式开启开关（文档标注 + 消费者侧登记），**不得**把开关当作"关掉即永久消失" |
+
+**关键推论（改变下一批范围）**：把这些输出改成「缺省关」，对现有消费者是一次**行为变更**——`实验/**` 与 `eng/**` 的脚本在标准构建下将读不到文件。因此门控与「消费者更新」必须同批，否则留下"批量失败"的半坏状态。`eng/tests/validation/release02/**` 与 `eng/tools/**` 是**契约级**消费者，优先级高于实验过程脚本。
+
+---
+
+## 8 T2 第二条链的落盘面追踪
+
+**结论：第二条链存在、已进构建图、但不是 `acsd` 命令的路径，目前不参与「逐帧 HiPS + 一个 JSON」的收敛面。**
+
+事实（逐条带证据）：
+
+1. **两条链并存**：`CONFIG.md` 配置面三登记 orchestrator 链（配置门 `stage1.*.enabled` → 实现符号 `Orchestrator::run_stage_*`）；`module_adapters.cpp:2032` 的 `kChain[]` 是另一条 8 节点链（`cal→cos→wcs→psf→phot→snr→drz→wr`）。
+2. **orchestrator 链的构建面**：`CMakeLists.txt:536-547`（ORCH-001 批次 1）明写「**改前**根 CMake 对 orchestrator 命中 0，全仓只有 `run/**` 下的历史副本提到它 ⇒ `lib/infrastructure/pipeline/orchestrator/cpp/**` **从未进任何构建图**，在 `orchestrator.cpp` 的改动从未被编译过」，现经 `add_subdirectory` 引入。
+3. **目标形态**：`lib/infrastructure/pipeline/orchestrator/cpp/CMakeLists.txt:54` 建静态库 `acsd_infra_orchestrator`（源 = `cpp/src` 全部编译单元，`main.cpp` 除外）；`:100` 建可执行 `orchestrator_legacy_cli`（源 `src/main.cpp`）；`:106` 两者链接。
+4. **不是 `acsd` 的路径**：`acsd` 不链接 `acsd_infra_orchestrator`（CMake 中除注释与目标定义外无引用）；`lib/infrastructure/cli/**` 内**无** `Orchestrator` 引用 ⇒ `normalize` 子命令不走该链。
+5. **不进打包/发布面**：`eng/packaging/**` 内无 `orchestrator_legacy_cli` 命中 ⇒ 不在交付物清单内。
+6. **落盘面**：`orchestrator.cpp:576-581` 设 `output_dir`（缺省 `"run"`）与检查点目录 `<output_dir>/.checkpoint/`；`orchestrator.cpp:2469` 写 `trace_selection.json`；其余产物由它调用的生产 API（`healpix_drizzle`、`snr_estimator`、`photometric_calib`、`ipv_solver`、`calibrate`）各自写出——**即它也能写帧与 HiPS**。
+7. **配置文件面**：`lib/infrastructure/pipeline/orchestrator/configs/` 下 `stage1.template.json`、`stage1.schema.json`、`stage1_gc_panel{1,2,3}_Red.json`；`lib/` 内**无**对这些模板的引用（除 orchestrator 自身）。
+
+**对收敛面的影响**：第二条链**不在 `acsd normalize` 的执行路径上**，因此「标准模式产物 = 逐帧 HiPS + 一个 JSON」这条收敛不因它而受阻；但它**能写出帧与 HiPS**，且检查点目录 `.checkpoint/` 与 `trace_selection.json` 是它自己的额外落盘面。⇒ **裁决所需的边界**：第二链是「未接线遗留可执行」还是「待接线的第二条生产路径」——若是后者，收敛面必须同时覆盖它；若是前者，应登记其归属（`CMakeLists.txt:541-543` 已把「职责家 = scheduler/**」与「物理位 = pipeline/」的冲突登记为 `ORCH-HOME-01` 交前台裁决）。
+
+---
+
+## 9 T5 实施计划（一批式）与不可逆点
+
+**总原则（`DEV_MODE.md` 现已订正为同一口径）**：写侧门控、取数侧改内存块、逐帧 JSON 读回改块、阶段二输入 JSON 接线、消费者更新——**同一批**。任何一侧单独落地都会产生不可运行或行为分叉的中间态。
+
+### 9.1 内部顺序（批内）
+
+| 序 | 动作 | 前置 | 不可逆点 |
+|---|---|---|---|
+| 1 | **T1 消费者清点完成**（本轮已做） | — | — |
+| 2 | 消费者更新：`eng/tests/validation/release02/**`、`eng/tools/**` 改为「显式开启开关」或改读新载体 | 序 1 | 否 |
+| 3 | `block_flow` 接线（**编辑已有文件、暴露公开 API，禁复制实现**）：R1/R2/R3 平面件 + R4–R7 四个 JSON 的边 | 序 1；核 `block_flow.h` 公开面 | 否（可回滚） |
+| 4 | 取数侧改造：`p1_calibrated_path`/`p1_cleaned_input_path`/`p1_photoapplied_path` 与 11 处 JSON 读回点改块 | 序 3 | **是**：一旦取数改块而写侧未门控，两套载体并存，行为归因变难 |
+| 5 | **同时**删除 `ACSD_DEV_INTERMEDIATE_CACHE` 的两处 `#if`（D1/D2）＋ 取数侧只留一条路径 | 序 4 | **是**：与序 4 必须在同一次原子改动内 |
+| 6 | 写侧门控：平面件与逐帧 JSON 的写出改为「开关控制的额外输出」 | 序 4、5 | 否 |
+| 7 | 阶段二输入 JSON：接线 `p1_products.json` 为唯一输入 JSON + 汇总四处散落字段 + 阶段二改为从它读帧列表 | 序 1 | **是**：阶段二读取面变更，须端到端复测 |
+| 8 | 开关收敛：删除零消费者的 `ACSD_DEV_MODE`/`CHECKPOINT`/`PROBES`（或明确标注未实现） | 序 6 | 否 |
+| 9 | 文档收口：`DEV_MODE.md`（本轮已订正）、registry 页、`CONFIG.md` 配置面三 | 序 5–8 | 否 |
+
+### 9.2 必须先在序 1 通过的项
+
+`p1_psf.json` 停止产出、`badcolsrc_*` 停止产出、`calibrated_`/`cleaned_`/`photoapplied_`/`badcol_` 门控、四个 JSON 转调试——**每一项都必须先通过 T1 清点**，否则会打断活树消费者（本轮已确证 10 项有活树脚本消费者）。
+
+### 9.3 不可逆点（逐个）
+
+- **I-1**：序 4+5+6 必须在同一次原子改动内（`DEV_MODE.md:58` 的耦合）——中间态是「取数读块、写侧仍落盘」或「取数读盘、写侧已门控」，两者都不可运行或不可归因。
+- **I-2**：序 7 改变阶段二的帧列表来源（配置 `hips_paths` → 该 JSON），影响面跨命令，须端到端复测。
+- **I-3**：`p1_stack.json` **不得**随本批进开关——它是跨进程契约（阶段二在另一进程读 `finest_input_arcsec`），本条已写入 `DEV_MODE.md`「标准模式下的产物面」。
+- **I-4**：门控缺省关会改变实验/工程脚本的可读面 ⇒ 序 2 必须先于序 6 完成。
+
+### 9.4 K8（峰值 RSS）本轮未测
+
+内存批把 ≈64 MiB/帧 的平面件从磁盘移到内存，峰值 RSS 必然上升（当前形态以磁盘换内存）。**本轮未运行构建与端到端，未测任何 RSS 读数**；该项登记为待测，测量条件（帧数、并行度、tile 数）须与既有性能读数同口径。
+
+---
+
+## 10 三个派生问题的回答
+
+**Q1 `block_flow` 零消费者如何接线**：按 `AGENTS.md` §13「同一件事只允许一份实现」——**只在已有文件上暴露并使用该公开 API**，不新建等价机制、不复制校准或施加的实现。具体：核 `lib/infrastructure/scheduler/src/block_flow.{h,cpp}` 的四个符号（`set_input`/`set_input_f64`/`product`/`run_unit`）的签名与角色/生命周期语义；生产端节点用 `set_input*` 按名注入，消费端用 `product` 按名取产物；块的角色与生命周期取自该公开面，**不在调用方各自约定**。R1/R2/R3 的边（`calibrated → cos`、`cleaned → *`、`photoapplied → drz`）与 R4–R7 的四个 JSON 边共用同一接线方式。若现有签名不足以承载结构化辅助量，**扩签名（编辑已有头）**而不是另加传递通道。
+
+**Q2 R4–R7 四个 JSON 的读回是否同一批**：**必须同一批**。理由：R4–R7 与 R1–R3 共用同一套「输出目录文件约定」取数机制（同一个 `output_dir` 拼接 helpers），只把平面件改块而 JSON 仍走盘，会留下两套载体并存、且 `DEV_MODE.md` 所述「中间产物不经磁盘」在文档上不成立。**若强行分两批，中间态不可运行**：门控写侧后 JSON 文件消失，而 R4–R7 的 11 处读回点仍按文件路径取数 ⇒ 上游节点必然失败（不是"降级"）。故 R4–R7 与 R1–R3 同批，不存在可运行的中间态。
+
+**Q3 `p1_stack.json` 与裁决①是否冲突**：**不冲突，且已写入正本**。它是**跨进程契约**（阶段二在另一个 `acsd mosaic` 进程里读 `<hips_paths[i]>/p1_stack.json` 的 `finest_input_arcsec`），并按注册表 `:1071` 属「跨阶段唯一载体 = HiPS 产品树」的一部分；裁决①说的是**阶段一内部**节点之间交换的 JSON 转调试输出，两者不同层。该边界已写进 `DEV_MODE.md`「标准模式下的产物面」一节（`p1_stack.json` 属契约、不随开关关闭）。
+
+---
+
+## 11 本轮 UNRESOLVED（新增）
+
+1. **K4 语义边界**：`run/**` 的历史脚本是否算「外部消费者」——它们是历史产物（`AGENTS.md` §10「历史审核包在收尾阶段清理」），我按「不构成维护承诺」处理，但其数量（10 项共 200 余个脚本）如要逐个改读新载体，工作量远超本批。
+2. **K5 的归属**：第二条链是「未接线遗留可执行」还是「待接线的第二条生产路径」——`CMakeLists.txt:541-543` 已登记 `ORCH-HOME-01` 待前台裁决；未裁前无法判定收敛面是否须覆盖它。
+3. **第三方源码副本的误命中**：`run/**/lit-src/**` 与 `run/SCI-NOISE-OSS-01/src/repos/**`（lsst `calibrateImage.py`、`ccdproc/core.py`）命中的 `calibrated_`/`cleaned_` 与 ACSD 产物无关，已在 §7.2 剔除；是否还有同类未识别副本**未穷尽**。
+4. **`badcol_*` 与 `badcolsrc_*` 的关系**：两者是否可合并、`badcolsrc_*` 停止产出是否安全，未追其语义差异。
+5. **K8 峰值 RSS**：未测（见 §9.4）。
+6. 本轮**未运行构建与端到端**；T1 为静态字面量检索，动态路径拼接（如变量拼出的文件名）**可能漏检**。
