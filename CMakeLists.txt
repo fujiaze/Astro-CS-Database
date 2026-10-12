@@ -23,6 +23,14 @@ option(ACSD_ENABLE_TSAN "Enable ThreadSanitizer (targeted, mutually exclusive wi
 # 测试行为完全不变。ON 时仍需运行期环境变量 ACSD_PROBE_LOG=<path> 才产出。
 option(ACSD_PROBES "Enable low-overhead runtime performance probes (default OFF; runtime gate ACSD_PROBE_LOG)" OFF)
 
+# 开发模式与构建期能力边界（正本 docs/engineering/architecture/DEV_MODE.md）。
+# 一个主开关 + 三个子开关，子开关默认跟随主开关；发布打包以 -DACSD_DEV_MODE=OFF 构建。
+# 这些能力是**构建期**的：同一个能力要么在二进制里，要么不在（不做运行期开关）。
+option(ACSD_DEV_MODE               "开发模式：启用中间产物落盘/检查点/探针（发布版 OFF）" OFF)
+option(ACSD_DEV_INTERMEDIATE_CACHE "开发模式子项：中间产物落盘" ${ACSD_DEV_MODE})
+option(ACSD_DEV_CHECKPOINT         "开发模式子项：检查点与续跑" ${ACSD_DEV_MODE})
+option(ACSD_DEV_PROBES             "开发模式子项：性能探针"     ${ACSD_DEV_MODE})
+
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
@@ -1428,6 +1436,21 @@ target_include_directories(acsd_module_adapters PUBLIC
   ${CMAKE_CURRENT_SOURCE_DIR}/lib/infrastructure/aio/include)
 # aio_healpix_io.h(HISS 读面) 由 AIO_ENABLE_HEALPIX 门卫（drizzle 同款语义）
 target_compile_definitions(acsd_module_adapters PUBLIC AIO_ENABLE_HEALPIX=1)
+# 开发模式开关传播（正本 docs/engineering/architecture/DEV_MODE.md「开关」一节）：
+# 各能力以编译期条件包裹 —— 关闭时对应分支不编进二进制。
+# 注意：用 PUBLIC 以便同链路（acsd / session / 测试）看到同一取值，避免同 TU 语义分叉。
+if(ACSD_DEV_MODE)
+  target_compile_definitions(acsd_module_adapters PUBLIC ACSD_DEV_MODE=1)
+endif()
+if(ACSD_DEV_INTERMEDIATE_CACHE)
+  target_compile_definitions(acsd_module_adapters PUBLIC ACSD_DEV_INTERMEDIATE_CACHE=1)
+endif()
+if(ACSD_DEV_CHECKPOINT)
+  target_compile_definitions(acsd_module_adapters PUBLIC ACSD_DEV_CHECKPOINT=1)
+endif()
+if(ACSD_DEV_PROBES)
+  target_compile_definitions(acsd_module_adapters PUBLIC ACSD_DEV_PROBES=1)
+endif()
 
 # RT-008 CLI Runtime client: CLI 经公开 Runtime API 驱动 pipeline（不 include session/IO 内部头）
 add_library(acsd_cli_runtime STATIC lib/infrastructure/cli/runtime_client.cpp)
