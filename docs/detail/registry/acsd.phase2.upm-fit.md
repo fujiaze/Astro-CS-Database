@@ -335,6 +335,20 @@ rc，**不使用**编排层 `ACS_ERR_*` 词汇。
 - 参考面受单帧主导（权重失衡）⇒ 权重分布审计并标记；
 - 错误码与退出码唯一源 = lib/infrastructure/cli/exit_codes.h（本页不复制数值表）。
 
+**参考通量跨帧一致性 = 报告字段，不是门**：配对性只要求**同一帧内** SNR 与 `F_ref`
+同源（`w_k = SNR_k²/F_ref,k²`），**不要求跨帧相等**——`F_ref,k = 10^(−0.4(m_ref−ZP_k))`
+的 `ZP_k` 依赖该帧自己的光学系统与滤镜，故不同指向 / 不同光学系统的帧**合法地**有不同
+的 `F_ref,k`（配对性口径见统一模型的配对性一节）。跨帧一致性因此只作报告、不参与任何
+拒绝判定。生产在 fit 节点 manifest 落四个键（`lib/infrastructure/scheduler/src/module_adapters.cpp`
+`:12908-12913` 与 `:12952-12957` 两处同源发布，逐帧判定处 `:12265-12286`）：
+
+| 键 | 单位/域 | 语义 | 来源 |
+|---|---|---|---|
+| `reference_flux_spread_rel` | 无量纲 ≥ 0 | 逐帧 `abs(F_ref,k − F_ref,首帧) / abs(F_ref,首帧)` 的跨帧最大值 | 调度器 fit 节点装配面 |
+| `reference_flux_spread_frame` | uint64 frame_id | 上述最大值取到的那一帧的 `frame_id` | 同上 |
+| `reference_flux_noncommon` | 布尔 | 任一帧的相对偏离 > 1e-9 即置真（帧间不一致标志位） | 同上 |
+| `reference_flux_gate` | 字符串常量 | 恒为「none (owner ruling 9.49: frame-independent; pairing is per-frame SNR_k^2/F_ref,k^2)」，是"不设门"的机器可检声明 | 同上 |
+
 取消：会话消费面整模型不写半成品（p2_session.cpp 的 upm_build 入口检查、persist
 段取消点；取消即 close 模型返回 `ACS_ERR_CANCELLED`，无半成品文件）；内核无取消
 检查点。无段内 checkpoint（dense 物化整缓存一次写）；stage2 消费链的逐阶段 stage
