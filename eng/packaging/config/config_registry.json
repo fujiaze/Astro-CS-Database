@@ -2858,11 +2858,11 @@
         "blocked_by": "块流装配器 + 帧级节点体改造 + 公开块 API 扩展"
       },
       {
-        "item": "产品面与工作区分离（12 项中间产物移出产品面）",
+        "item": "产品面与工作区分离（11 项中间产物移出产品面）",
         "status": "B 轮待做（A 轮已完成消费侧切换：q3lib/stageAB_nmap_loci/closure_metric 帧集与头部来源）",
         "evidence": "实验/photometric-magnitude/docs/P1-product-surface-boundary-design.md（边界逐项表、工作区位置与清理语义、不可移出清单）",
-        "disposition": "工作区 = <output_dir> 同级兄弟目录（同文件系统以保持落盘原子替换语义；/tmp 为 tmpfs 会把 ≈64 MiB/帧 放进内存）；缺省启用，位置可配置；运行收尾按开关决定是否保留。A 轮已把 eng/** 消费者的帧集来源改为产品清单；B 轮才实际移动 12 项",
-        "blocked_by": "B 轮（移 12 项 + 收尾清理 + 配置键 + W4 五项实测）"
+        "disposition": "工作区 = <output_dir> 同级兄弟目录（同文件系统以保持落盘原子替换语义；/tmp 为 tmpfs 会把 ≈64 MiB/帧 放进内存）；缺省启用，位置可配置；运行收尾按开关决定是否保留。移出清单 = **11 项**（原 12 项中的 p1_wcs.json，其**解算几何须先并入逐帧 HiPS 产品树**，见下条）",
+        "blocked_by": "B 轮；且 p1_wcs.json 的移出前置 = 解算几何并入产品树（见下条）"
       },
       {
         "item": "检查点与续跑",
@@ -2911,6 +2911,41 @@
         "status": "已定案（静默陷阱，必须留痕）",
         "evidence": "平面件基名来自 p1_base_name（保原样 ⇒ 含 '@'，如 …-20251212@020002-300S-Red）；frame_id 来自 p1_frame_key（字符白名单 isalnum||_||-||. ⇒ '@' 变 '_'，如 …-20251212_020002-300S-Red）。实测：对 frame_id 做朴素 replace('_','@') 会过度替换（frame_id 含多个 '_'），由此反查 calibrated_* 候选数 = 0",
         "disposition": "正向映射 = input_light basename 去扩展名后 stem.replace('@','_') → frame_id（安全，实测 4/4 命中）；反向映射 = 必须经 p1_products.json 的 frames[].input_light 的 basename 反查；**严禁**对 frame_id 做朴素 replace('_','@')",
+        "blocked_by": ""
+      },
+      {
+        "item": "解算后的几何（CRVAL/CRPIX/CD/SIP）并入逐帧 HiPS 产品树",
+        "status": "B 轮必做",
+        "judgement": "解算后的几何今天只活在 p1_wcs.json 里：帧产物头部**没有回写**解算 WCS（实测：calibrated_*.fts 头 WCS ≡ input_light 头 WCS，4/4 帧逐位相同），产品清单 frames[] 与 HiPS properties 均**不承载**几何（frames[] 无 crval/crpix/cd/wcs 键；properties 无 CRVAL；tile 头只有 NSIDE）。若把 p1_wcs.json 移入可清理的工作区而不先并入产品，解算几何即变成调试产物 ⇒ 违反 AGENTS §13.1「几何取自产品自身」，产品不可解释",
+        "disposition": "把解算几何（含 SIP 系数）承载进逐帧 HiPS 产品树（manifest.json / properties；承载字段与位置由 B 轮设计给出），使「几何取自产品」**可满足**；此后独立的 p1_wcs.json 才允许移入工作区",
+        "blocked_by": ""
+      },
+      {
+        "item": "p1_wcs.json 移入工作区",
+        "status": "B 轮",
+        "judgement": "依赖「移走之后产品还剩什么」这一事实：只有上一条落地（解算几何已在产品树内）之后，移走它才不产生『移走即断』的依赖",
+        "disposition": "**前置 = 解算几何并入逐帧 HiPS 产品树**；前置落地后随 11 项一并移出",
+        "blocked_by": "解算几何并入逐帧 HiPS 产品树"
+      },
+      {
+        "item": "p1_phot.json 经 dirname(p1_products.json) 拼接的依赖（q3lib 的 phot_json）",
+        "status": "B 轮",
+        "judgement": "依赖「移走之后产品还剩什么」：p1_phot.json 属拟移出的运行级 JSON，其正确接收方要在产品面收敛定案后才清楚",
+        "disposition": "B 轮随产品面收敛一并处置（改读产品内等价物，或登记该用法的退役）",
+        "blocked_by": "产品面与工作区分离（B 轮）"
+      },
+      {
+        "item": "p1_flux.json 与 cleaned_ 名派生 stem 的依赖（q1_photometry_gradient/star_residual.py、q3_additive_truth/q3core.py）",
+        "status": "B 轮",
+        "judgement": "这两处按 dirname 拼接 p1_flux.json、并按 cleaned_ 名派生 stem；真实依赖是 B 轮把平面件与运行级 JSON 移入工作区这一事实",
+        "disposition": "B 轮随工作区分离一并改指向；本轮不动（避免在半移状态下出现双重来源）",
+        "blocked_by": "产品面与工作区分离（B 轮）"
+      },
+      {
+        "item": "run/RELEASE-02/L4-rebuild 不在本工作区（eng/** 校验脚本硬编码指向不在场的树）",
+        "status": "既存缺口（只登记）",
+        "judgement": "实测 os.path.isdir('run/RELEASE-02/L4-rebuild') = False ⇒ 相关 release02 校验脚本**在当前工作区无法端到端复跑**；其等价性证据改用数据级重导对比（帧集逐项一致、9 项头部键 × 4 帧逐键一致、NAXIS 一致）",
+        "disposition": "改硬编码路径不属本批；**只登记**。复跑这些校验需先恢复 L4 树或提供其路径配置",
         "blocked_by": ""
       }
     ]

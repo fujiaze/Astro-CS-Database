@@ -205,3 +205,34 @@
 | `p1_prerun_calibrated_check` 返回值 | 仅 `Result<void>::success()`（不阻塞） |
 
 ⇒ 不存在「文件路径取数 / 原帧取数」并存的第二条路，也不存在「按构建形态分叉」的第二种行为。
+
+---
+
+## B 轮登记与设计：解算几何并入逐帧 HiPS 产品树（SIP 裁决）
+
+### 问题（实测事实）
+
+| 事实 | 证据 |
+|---|---|
+| 解算后的几何**今天只活在** `p1_wcs.json` 里 | 帧产物头部**没有回写**解算 WCS：`calibrated_*.fts` 头 WCS ≡ `input_light` 头 WCS，4/4 帧逐位相同 |
+| 产品侧**不承载**几何 | `p1_products.json` 的 `frames[]` 无 `crval/crpix/cd/wcs` 键；HiPS `signal/properties` 无 `CRVAL`；tile 头只有 `NSIDE` |
+| 故若直接移走 `p1_wcs.json` | 解算几何变成**可清理的调试产物** ⇒ 违 `AGENTS §13.1`「几何取自产品自身」，产品不可解释 |
+
+### 裁决与前置关系
+
+**B 轮必做**：把解算几何（`CRVAL` / `CRPIX` / `CD` / **SIP** 系数）**承载进逐帧 HiPS 产品树**（`manifest.json` 与/或 `properties`），使「几何取自产品」**可满足**。
+**前置关系**：`p1_wcs.json` 移入工作区 **前置 = 上一条落地**。
+⇒ 移出清单由 **12 项改为 11 项**（`p1_wcs.json` 的解算几何先并入产品树，再移走该文件）。
+
+**登记落点**：`eng/packaging/config/config_registry.json#engineering_status`（条目「解算后的几何…并入逐帧 HiPS 产品树」= B 轮必做；「p1_wcs.json 移入工作区」= B 轮，`blocked_by` 指向前者）。
+
+### 承载面设计（B 轮定稿，此处为方向）
+
+- **位置**：逐帧 HiPS 产品树的 `manifest.json` 增一个 `geometry` 对象（该文件已是机器可读 JSON 且是产品集完成标记，不新增载体，合 §13）；`properties` 内同时落可读键供人查阅。
+- **字段（方向）**：`ctype1/2`、`crval1/2`、`crpix1/2`、`cd11/cd12/cd21/cd22`、`pixel_origin`（像素口径必须显式，沿用 `p1_wcs.json` 的 "0-based array index (index-is-center); FITS 1-based xp = x + 1"）、`sip{a,b,ap,bp,order}`。
+- **一致性判据**：新承载面与 `p1_wcs.json` 的几何**逐位一致**（B 轮须给逐帧比对读数），否则不得移走原文件。
+- **消费者**：`q3lib.load_wcs()` 等改读产品内 `geometry`，此后**不再有"移走即断"的依赖**。
+
+### 本轮不做
+
+不写实现代码（含 `module_adapters.cpp`），不移动任何文件，不改 `docs/` 正本（随 B 轮实现同批改）。
