@@ -91,7 +91,7 @@ SExtractor 官方文档已把 `MAG_ISOCOR` 标为 **deprecated**（原文："Cor
    文献依据：能量型 vs 光子型通带的区别与 pivot wavelength 约定见 `[F-23]`；HST/ACS 的同类约定见 `[F-24]`。
 2. **单位与常数**：`F_syn` 与 `F_instr` **量纲不同**（W·m⁻²·nm vs ADU），其比值的对数就是 `location`；
    `1/(hc)` 等绝对归一常数**由 `location` 吸收**（`docs/science/PHOTOMETRY.md:69`）⇒ **`k_photo` 绝对值无物理意义**。
-3. **颜色项**：`T(λ)` 必须用**本帧滤光片 × CCD QE** 的乘积；缺 QE 时 `compute_f_syn` 会退化为只用 `T(λ)`（`spectrum_integrator.cpp:230` 有 LOG_INFO 提示）⇒ **颜色项在蓝端/红端会偏**，必须确保 `qe_json` 有值，否则 `k_photo` 会吸收一个**星色相关**的系统差。
+3. **颜色项**：`T(λ)` 必须用**本帧滤光片 × CCD QE** 的乘积。QE 曲线由配置的**名字键** `photometry.fit.qe_name` 声明且**必填**（缺 ⇒ 生产节点具名中止 `PHOT_CONFIG_QE_MISSING`），滤镜同为名字键（`photometry.fit.filter`，否则块级 `filter_passband`）；两条曲线都由**运行期扫描** `<可执行文件目录>/config/response_curves/` 提供（`channel == "Q"` 为 QE）。⇒ 生产路径**没有**「缺 QE 就只用 `T(λ)`」的降级路径；若 QE 缺失或取错，颜色项在蓝端/红端会偏，`k_photo` 会吸收一个**星色相关**的系统差 —— 这正是把 QE 设为必填的原因。
 4. **模型通带不含大气消光与光学系统透过率**（`PHOTOMETRY.md:7/69` 明示为"未建模项"）⇒ 跨帧（airmass 不同）会成为**帧间系统差**，这正好是 §2.5 判据 (b) 要卡的。
 5. **不宣称绝对通量刻度**（`PHOTOMETRY.md:69` 原话）。
 

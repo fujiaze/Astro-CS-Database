@@ -2477,7 +2477,7 @@
         "SDSS u",
         "SDSS z"
       ],
-      "device_qe_curve": "KAF-16803（本设备 FLI Proline 16803 的传感器；曲线在库内，但当前生产配置无 QE 键 ⇒ 实际相当于 Q≡1）。",
+      "device_qe_curve": "KAF-16803（本设备 FLI Proline 16803 的传感器；曲线在库内，生产配置以名字键 photometry.fit.qe_name 显式声明且必填）。",
       "curve_dir": "config/response_curves/（仓内源目录与运行期相对路径同名；exe-relative 解析）",
       "curve_files_total": 58,
       "definitional_keys": [
@@ -2488,7 +2488,21 @@
         "lib/algorithms/photometry/data/response_curves/filters.json",
         "lib/algorithms/photometry/data/response_curves/qe_curves.json"
       ],
-      "retired_aggregate_note": "旧聚合库退役、保留不删、不再随包发布；打包侧 eng/packaging/config/filters.json 的 transcription/lookup 面同步退役。删除属机械改动，另行提交。",
+      "retired_aggregate_note": "旧聚合库（上述两份）已删除；打包侧 eng/packaging/config/filters.json 的 transcription/lookup 面同步退役、已无读取方。删除属收尾清理（AGENTS §10「只保留最新生产代码与持续维护的自解释文档」＋ §7「退役代码删除」）。",
+      "retired_transcription": {
+        "why_kept": "该转录面随旧聚合文件删除后，本记录是这条「源文件 → 库逐字转录」链的唯一字节级锚；原始 PixInsight 文件的校验和仍缺（缺口 GAP-035），故保留转录来源与指纹供追溯。",
+        "source_path": "lib/algorithms/photometry/data/response_curves/filters.json",
+        "source_sha256": "76e919a0fd3745db1daa423e227ce4b7e5e4cfe1c5800e195ff0fed340cc5dcc",
+        "source_bytes": 183763,
+        "mode": "verbatim",
+        "filter_count": 45,
+        "statement": "逐字转录：名称/channel/波长网格/响应曲线/n_points 原样复制，未重采样、未插值、未改数值。"
+      },
+      "retired_transcription_deviation": {
+        "key": "Astronomik UV-IR Block L-2",
+        "deviation": "源文件该条多一个 `default` 字段（转录字段集 = name/channel/wavelength_nm/value/n_points）。",
+        "status": "历史事实，保留登记；新形态（一文件一曲线 + provenance）无 `default` 语义，不承载「库默认曲线」含义。"
+      },
       "bandwidth_semantics": "曲线以 wavelength_nm[]/value[] 承载响应（一文件一曲线、自带 provenance；旧 filters.json 的逐字转录面已退役），无带宽标量列。"
     },
     "provenance_status_vocabulary": {

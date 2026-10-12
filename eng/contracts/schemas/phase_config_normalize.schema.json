@@ -305,7 +305,7 @@
     },
     "photometry": {
       "type": "object",
-      "description": "可选测光归一配置块（fit.enabled/gaia_data_dir/filter/qe_json/qe_name/max_stars）；缺失 = 不施加（如实中性 applied=false，不伪造 1.0），消费 = p1_op_photometry。**`filters_json`（文件路径语义）已退役**，滤镜与 QE 曲线改由运行时扫描 <可执行文件目录>/config/response_curves/（正本 = docs/engineering/contracts/CONFIG.md 的「响应曲线库」一节）；本键在代码侧退役落地前仍被读取，属迁移期形态。"
+      "description": "可选测光归一配置块（fit.enabled/gaia_data_dir/filter/qe_name/max_stars）；缺失 = 不施加（如实中性 applied=false，不伪造 1.0），消费 = p1_op_photometry。**`filters_json` / `qe_json`（文件路径语义）已退役**：代码侧读取路径已删除，本键不再被读取；滤镜与 QE 曲线改由运行时扫描 <可执行文件目录>/config/response_curves/，配置只给**名字键**（`filter` / `qe_name`，两者必填），正本 = docs/engineering/contracts/CONFIG.md 的「响应曲线库」一节。"
     },
     "star_detection_config": {
       "type": "object",
