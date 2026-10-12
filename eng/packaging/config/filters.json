@@ -2,6 +2,12 @@
   "filters_schema": "acsd.filter-library/v1",
   "library_id": "config.filters",
   "task": "CFG-001",
+  "retired": {
+    "state": "retired",
+    "retired_at": "response-curve split to one file per curve",
+    "replaced_by": "config/response_curves/ (58 files: 45 filter curves + 12 QE curves + None; 每条自带 provenance)",
+    "note": "本文件及 lib/algorithms/photometry/data/response_curves/filters.json 退役、保留不删、不再随包发布。transcription/lookup 面同步退役；匹配语义改为运行时扫描（字节精确、无别名）。删除属机械改动，另行提交。"
+  },
   "authority": {
     "design": "docs/ACSD_DESIGN.md §3.3（eng/packaging/config/filters.json 滤镜库：型号、通带、波长等；滤镜型号必须与滤镜库匹配，未知滤镜 -> error）",
     "preflight": "docs/ACSD_DESIGN.md §4.5（滤镜不匹配/未知滤镜 -> 红色 error，强制阻断，-y 亦不可越过）"

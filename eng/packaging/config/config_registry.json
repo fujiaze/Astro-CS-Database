@@ -2447,15 +2447,23 @@
     "dead_filter_enum_note": "枚举锁定退役：$defs/filter_name 的 45 键枚举与「运行时扫描、用户可增减」根本矛盾，schema 只约束字符串形态（normalize filter_passband=anyOf[{const:\"\"},{type:string,minLength:1}]、mosaic inputs[].filter 可选、export 删除该 $defs）。存在性判据从 schema 移到运行时扫描集；旧 test_filter_enum_equals_library_keys 退役（职责由运行时扫描器承担）。",
     "library_facts": {
       "keys": 45,
-      "keys_semantics": "45 = 随包发布的滤镜曲线条数；可用集合 = 运行时扫描 <可执行文件目录>/config/response_curves/ 的结果，用户可增减（不再有固定清单文件、不再有枚举锁定）。",
+      "keys_semantics": "45 = 随包发布的滤镜曲线条数（一文件一曲线，源目录 = 仓内 config/response_curves/）；可用集合 = 运行时扫描 <可执行文件目录>/config/response_curves/ 的结果，用户可增减（无固定清单文件、无枚举锁定）。",
       "qe_keys": 12,
-      "qe_keys_semantics": "12 = 随包发布的 QE 曲线条数；与滤镜同目录、同扫描器、同身份核对，channel=Q。",
+      "qe_keys_semantics": "12 = 随包发布的 QE 曲线条数（含 Ideal QE curve）；与滤镜同目录、同扫描器、同身份核对，channel=Q。",
       "case_or_space_collisions": 0,
       "brand_case_inconsistency": ["Optolong B/G/R", "OPTOLONG L-PRO Light Pollution"],
       "channel_domain": ["B", "G", "R", "L", "HA", "OIII", "PAN", "Q", "NONE", ""],
       "channel_domain_note": "Q = QE 曲线类别（本就在用，本次显式补登记）；NONE = 显式无通带（单位透过率，允许通带积分）；空串 = 未声明通带类别（F_syn 路径 fail-closed）。",
       "channel_empty_keys": ["Johnson I", "Johnson U", "SDSS g", "SDSS i", "SDSS r", "SDSS u", "SDSS z"],
       "device_qe_curve": "KAF-16803（本设备 FLI Proline 16803 的传感器；曲线在库内，但当前生产配置无 QE 键 ⇒ 实际相当于 Q≡1）。",
+      "curve_dir": "config/response_curves/（仓内源目录与运行期相对路径同名；exe-relative 解析）",
+      "curve_files_total": 58,
+      "definitional_keys": ["None", "Ideal QE curve"],
+      "retired_aggregate_files": [
+        "lib/algorithms/photometry/data/response_curves/filters.json",
+        "lib/algorithms/photometry/data/response_curves/qe_curves.json"
+      ],
+      "retired_aggregate_note": "旧聚合库退役、保留不删、不再随包发布；打包侧 eng/packaging/config/filters.json 的 transcription/lookup 面同步退役。删除属机械改动，另行提交。",
       "bandwidth_semantics": "曲线以 wavelength_nm[]/value[] 承载响应（一文件一曲线、自带 provenance；旧 filters.json 的逐字转录面已退役），无带宽标量列。"
     },
     "provenance_status_vocabulary": {

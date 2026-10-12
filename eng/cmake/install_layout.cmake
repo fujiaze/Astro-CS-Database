@@ -64,12 +64,12 @@ set(ACSD_INSTALL_LICENSE_SUBDIR "licenses")
 # 故解为 <prefix>/config/response_curves/。
 set(ACSD_INSTALL_CONFIG_SUBDIR "config/response_curves")
 
-# ── 响应曲线库（迁移期形态：整目录装入现有两份聚合 JSON）──
-# 终态形态 = 一文件一曲线（每条自带 provenance），见 CONFIG.md「响应曲线库」一节；
-# 数据拆分落地前，先把现有 filters.json / qe_curves.json 装到该目录，使目录与
-# 单一路径机制存在且可被扫描。
+# ── 响应曲线库（终态形态：一文件一曲线，每条自带 provenance）──
+# 源目录 = 仓内 config/response_curves/（与运行期相对路径同名）；整目录装到
+# <prefix>/config/response_curves/。旧聚合文件 filters.json / qe_curves.json 已退役、
+# 不再随包发布（保留在 lib/algorithms/photometry/data/response_curves/ 供追溯）。
 install(DIRECTORY
-    ${CMAKE_CURRENT_SOURCE_DIR}/lib/algorithms/photometry/data/response_curves/
+    ${CMAKE_CURRENT_SOURCE_DIR}/config/response_curves/
   DESTINATION ${ACSD_INSTALL_CONFIG_SUBDIR}
   COMPONENT acsd_runtime
   FILES_MATCHING PATTERN "*.json")
