@@ -2641,8 +2641,15 @@ bool Orchestrator::run_stage_photometric(TaskResult& result) {
     std::string filter_str;
     const char* filter_cstr = fn_kv_get(frame_, "header", "FILTER");
     if (filter_cstr) filter_str = filter_cstr;
-    std::string filter_name = curve_json::map_filter_name(filter_str);
-    LOG_INFO("orchestrator", "[PHOTOMETRIC] FILTER='" + filter_str + "' -> '" + filter_name + "'");
+    // 曲线名按库键**字节精确**解析：FILTER 关键字原值直接用作键，不再经别名表
+    // （`Red`/`R` 之类不再被折叠成 `Baader R`；`Red` 不是库键 ⇒ 具名加载失败）。
+    // 依据 docs/engineering/contracts/CONFIG.md「滤镜名匹配语义」一节
+    // （match=exact / case_sensitive=true / normalization=none / aliases={}）。
+    // 注：本 legacy 入口仍以头值为名字来源；「名字只来自配置声明、头值只作
+    // provenance」的收口与 stage1 配置面的 `photometric.filter` 键同批落地。
+    std::string filter_name = filter_str;
+    LOG_INFO("orchestrator", "[PHOTOMETRIC] FILTER='" + filter_str + "' -> library key '" +
+                             filter_name + "' (exact, no aliases)");
 
     // 加载滤光片曲线 (: typed Stage1Config 直接驱动; schema 已必需
     // filter_response, 缺失时硬失败, 禁止默认路径兜底)

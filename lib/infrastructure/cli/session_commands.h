@@ -182,9 +182,9 @@ inline const std::vector<ConfigField>& config_fields(SessionId s) {
          "drizzle 累加参数；nside 缺省即 auto（由最细输入采样派生，"
          "docs/science/algorithms/DRIZZLE_GEOMETRY.md §3），显式填 nside 或 nside.mode 则按 explicit 校验；"
          "precision_mode 必须显式 0=FP32/1=FP64（无 silent 缺省）", "block"},
-        {"filter_passband", "\"Baader R\"",
-         "观测滤镜/波段标识（空 = 显式无 filter；非空必须逐字命中 eng/packaging/config/filters.json）；"
-         "本块整组 light 共用", "block"},
+        {"filter_passband", "\"None\"",
+         "观测滤镜/波段标识（空 = 显式无 filter；非空必须逐字命中 config/response_curves/ "
+         "的**运行期扫描集**，逐字比较、无归一、无别名）；本块整组 light 共用", "block"},
         {"wcs", "{\"gaia_data_dir\": \"path/to/gaia\"}",
          "指向来源与解算输入：填 wcs.gaia_data_dir 走真实 IPV 解算；"
          "或改为显式线性 WCS 八参数 crpix1/crpix2/crval1/crval2/cd11/cd12/cd21/cd22", "block"},

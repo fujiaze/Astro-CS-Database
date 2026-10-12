@@ -58,14 +58,18 @@ struct FramePhotFitRequest {
   const double* sip_bp = nullptr;
   // 配置
   std::string gaia_data_dir;   // XPSD 数据目录（光谱星必需, 通常 .../GaiaDR3SP）
-  std::string filter_name;     // FITS FILTER 关键字值（内部映射到 filters.json 键）
-  // 配置**声明**的通带名（块级 filter_passband）。非空时按
-  // map_filter_name(filter_name) 与它核对：不等 ⇒ 拟合**拒绝产出标度**
-  // （配置声明与实际使用的通带不是同一条曲线）。空 = 未声明，跳过该核对。
+  // 配置**声明**的通带名（`photometry.fit.filter`，否则块级 `filter_passband`）。
+  // 它是曲线的**唯一来源**：按 filters.json 的库键**字节精确**解析（无归一、无别名，
+  // 见 docs/engineering/contracts/CONFIG.md「滤镜名匹配语义」一节）；声明了库外名字
+  // ⇒ 拟合**拒绝产出标度**（具名环境作用域失败）。
+  std::string filter_name;
+  // 块级 `filter_passband`（配置声明）。非空时与 `filter_name` **字节精确**核对：
+  // 不等 ⇒ 拟合**拒绝产出标度**（配置内部两条声明不是同一条曲线）。
+  // 空 = 该处未声明，跳过该核对。
   std::string declared_filter_passband;
   std::string filters_json;    // filters.json 路径
-  std::string qe_json;         // qe_curves.json 路径（可空）
-  std::string qe_name;         // QE 曲线键（可空）
+  std::string qe_json;         // qe_curves.json 路径（生产运行必需，见 module_adapters 的 PHOT_CONFIG_QE_MISSING）
+  std::string qe_name;         // QE 曲线键（生产运行必需；库内键，字节精确）
   double mag_min = 6.0;
   double mag_max = 16.0;
   // ── PHOT-MXY-01: 低阶乘性空间增益 m(x,y)（SCI-PHOT-001 §16.1 ④⑤）───────────
@@ -149,7 +153,7 @@ struct FramePhotFitResult {
   // p1_phot.json 的 provenance，使「配置声明的通带」与「实际用的曲线」在产品里
   // 可独立核对（docs/science/PHOTOMETRY.md §2a.4「比较不同帧/不同模型的
   // sigma_residual 时必须声明所用模型通带」）。
-  // filter_key：声明名经 map_filter_name 解析出的库键（= filters.json 对象键）。
+  // filter_key：配置声明的通带名（= filters.json 对象键；字节精确，无别名解析）。
   // filter_curve_name：该对象 name 字段的自述值；身份门要求它与 filter_key 相等
   //   （不等 ⇒ fit 失败，不会有结果产出）。
   // n_points / wl_min_nm / wl_max_nm / val_min / val_max：实际装载数组的统计量。
@@ -160,6 +164,17 @@ struct FramePhotFitResult {
   double filter_wl_max_nm = 0.0;
   double filter_val_min = 0.0;
   double filter_val_max = 0.0;
+  // ── QE（传感器）身份自述（与滤镜同一套规则、同一份解析实现）─────────────────
+  // Q 是通带的组成部分（docs/science/photometry/PHOTOMETRY.md §2 公式的 T·Q），
+  // 故与滤镜同等记录：配置声明名 + 实际装载的库键与数组统计量，供产品 provenance
+  // 并列核对「声明的是哪条、用的是哪条」。装载失败 ⇒ 拟合拒绝产出标度（不回退 Q≡1）。
+  std::string qe_key;            // 实际装载的 QE 库键（= qe_curves.json 对象键）
+  std::string qe_curve_name;     // 该对象 name 字段自述值
+  int qe_n_points = 0;
+  double qe_wl_min_nm = 0.0;
+  double qe_wl_max_nm = 0.0;
+  double qe_val_min = 0.0;
+  double qe_val_max = 0.0;
   // ── PHOT-MXY-01: m(x,y) 空间增益场 ───────────────────────────────────────
   // order==0 ⇒ m ≡ 1（未启用 / 分布不足降级）；此时调用方必须走**未改动**的
   // 全局路径（calibration::apply_photometry），以保证与改动前逐位一致。

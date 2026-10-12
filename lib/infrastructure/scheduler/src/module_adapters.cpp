@@ -5814,6 +5814,17 @@ Result<void> p1_op_photometry(const Json& doc, Json* man) {
   double passband_identity_val_min = 0.0;
   double passband_identity_val_max = 0.0;
   std::string passband_identity_curve_source;  // filters.json 路径（实际读的那个）
+  // QE（传感器）身份：与滤镜**并列**记录（声明名 + 实际装载的库键与统计量）。
+  // 生产运行的 QE 声明由 PHOT_CONFIG_QE_MISSING 强制；此处只做记录，不新增门禁。
+  std::string qe_declared_name;                // 配置声明名（photometry.fit.qe_name）
+  std::string qe_resolved_key;                 // 实际装载的库键（= qe_curves.json 对象键）
+  std::string qe_curve_name;                   // 曲线对象自述 name
+  int qe_n_points = 0;
+  double qe_wl_min_nm = 0.0;
+  double qe_wl_max_nm = 0.0;
+  double qe_val_min = 0.0;
+  double qe_val_max = 0.0;
+  std::string qe_curve_source;                 // qe_curves.json 路径（实际读的那个）
   std::string photscale_source = "none";
   const Json phot_cfg = (p1_has(doc, "photometry") && doc["photometry"].is_object())
                             ? doc["photometry"] : Json::object();
@@ -5900,6 +5911,22 @@ Result<void> p1_op_photometry(const Json& doc, Json* man) {
     if (filters_json.empty()) {
       return fail_global(ErrorDomain::CONFIG, "PHOT_CONFIG_FILTERS_JSON_MISSING",
           "photometry.fit.filters_json required (response curve file)"
+          "（全局性失败: 配置缺项, 中止运行）");
+    }
+    // QE（传感器）与滤镜**同等要求**：必须显式声明、必须命中曲线库。
+    // 依据 docs/science/photometry/PHOTOMETRY.md §2 的 F_syn 公式（Q 是通带的
+    // 组成部分而非可选项）与负责人的运行合同「运行 JSON 必须显式指定，不得静默
+    // 解析」。缺任一项 ⇒ 具名配置错误、中止运行；**不**回退到 Q(λ)≡1。
+    // 需要 Q≡1 的运行应显式声明库内已有的 `Ideal QE curve`。
+    if (qe_json.empty()) {
+      return fail_global(ErrorDomain::CONFIG, "PHOT_CONFIG_QE_MISSING",
+          "photometry.fit.qe_json required (QE curve file; Q is part of the passband,"
+          " not optional)（全局性失败: 配置缺项, 中止运行）");
+    }
+    if (qe_name.empty()) {
+      return fail_global(ErrorDomain::CONFIG, "PHOT_CONFIG_QE_MISSING",
+          "photometry.fit.qe_name required (declare a library key, e.g. KAF-16803;"
+          " the implicit Q(lambda)=1 default is not available to production runs)"
           "（全局性失败: 配置缺项, 中止运行）");
     }
     {
@@ -6187,6 +6214,15 @@ Result<void> p1_op_photometry(const Json& doc, Json* man) {
           passband_identity_val_min = fr.filter_val_min;
           passband_identity_val_max = fr.filter_val_max;
           passband_identity_curve_source = filters_json;
+          qe_declared_name = qe_name;
+          qe_resolved_key = fr.qe_key;
+          qe_curve_name = fr.qe_curve_name;
+          qe_n_points = fr.qe_n_points;
+          qe_wl_min_nm = fr.qe_wl_min_nm;
+          qe_wl_max_nm = fr.qe_wl_max_nm;
+          qe_val_min = fr.qe_val_min;
+          qe_val_max = fr.qe_val_max;
+          qe_curve_source = qe_json;
         } else if (fr.filter_key != passband_identity_key ||
                    fr.filter_n_points != passband_identity_n_points ||
                    fr.filter_wl_min_nm != passband_identity_wl_min_nm ||
@@ -6609,6 +6645,21 @@ Result<void> p1_op_photometry(const Json& doc, Json* man) {
     if (!passband_identity_valid)
       return Json{{"gate", "not_applicable (no fitted scale)"},
                   {"declared_filter_passband", doc.value("filter_passband", std::string())}};
+    // QE（传感器）与滤镜并列记录（同一套规则、同一份解析实现）：声明名 + 实际
+    // 装载的库键与数组统计量，使「声明的是哪条 QE、用的是哪条」在产品里可独立核对。
+    const Json qe_json_block =
+        passband_identity_valid
+            ? Json{{"declared_qe_name", qe_declared_name},
+                   {"resolved_library_key", qe_resolved_key},
+                   {"curve_name", qe_curve_name},
+                   {"n_points", qe_n_points},
+                   {"wl_min_nm", qe_wl_min_nm},
+                   {"wl_max_nm", qe_wl_max_nm},
+                   {"val_min", qe_val_min},
+                   {"val_max", qe_val_max},
+                   {"curve_source", qe_curve_source}}
+            : Json{{"declared_qe_name", qe_declared_name},
+                   {"gate", "not_applicable (no fitted scale)"}};
     return Json{{"gate", "enforced (curve identity == declared filter name)"},
                 {"declared_filter_passband", passband_identity_declared},
                 {"filter_keyword", passband_identity_filter},
@@ -6619,7 +6670,8 @@ Result<void> p1_op_photometry(const Json& doc, Json* man) {
                 {"wl_max_nm", passband_identity_wl_max_nm},
                 {"val_min", passband_identity_val_min},
                 {"val_max", passband_identity_val_max},
-                {"curve_source", passband_identity_curve_source}};
+                {"curve_source", passband_identity_curve_source},
+                {"qe", qe_json_block}};
   };
 
   // ── B2-A14: 真实测光 provenance sidecar (DATA-P1-PHOTPROV-001) ─────────────

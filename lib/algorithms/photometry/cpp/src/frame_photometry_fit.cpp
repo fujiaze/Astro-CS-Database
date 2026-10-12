@@ -4,7 +4,8 @@
 // 装配步骤与 orchestrator::run_stage_photometric 同源同口径
 //   （PHOTOCURVE-ORCH-01 后该阶段的曲线装载段见 orchestrator.cpp 的
 //    "辅助: 滤光片名称映射 + 响应曲线装载" 注释块；两处都只做委托）:
-//   1. FILTER 名称映射 (curve_json::map_filter_name, 唯一实现)
+//   1. 通带名 = 配置声明值（`photometry.fit.filter`，否则块级 `filter_passband`），
+//      按库键**字节精确**解析（无归一、无别名；别名表已退役，见 filter_curve_json.h）
 //   2. filters.json / qe_curves.json 曲线加载 (curve_json::load_curve, 唯一实现)
 //   3. gaia_client 锥形搜索光谱参数 → spectrum_wl 网格
 //   4. FOV 半径 = pixel_scale * sqrt(W²+H²)/2 * 1.2；越界保护（≤0 或 ≥30 deg）
@@ -48,7 +49,7 @@ namespace {
 // 依据 docs/engineering/standards/CODE.md「MUST」一节「禁止重复 production science
 // implementation（单一实现 + oracle）」。本 TU 与 orchestrator 路径
 // (lib/infrastructure/pipeline/orchestrator/cpp/src/orchestrator.cpp) 共用同一份
-// 定位/抽取代码与同一张 FILTER→库键表（curve_json::map_filter_name）。
+// 定位/抽取代码；通带名与 QE 名都按库键**字节精确**解析（无别名表）。
 // 修复前两处各持一份**文本搜索**实现：在转录版 eng/packaging/config/filters.json
 // 上会把 "Baader R" 解析成 filters 段的第一条曲线 "Antlia V Pro Series B"
 // （53 点 / 420–524 nm）—— 缺陷记录与规范依据见 filter_curve_json.h 文件头。
@@ -90,11 +91,14 @@ FramePhotFitResult fit_frame_photometry(const FramePhotFitRequest& req) {
         return out;
     }
 
-    const std::string filter_key = curve_json::map_filter_name(req.filter_name);
+    // 曲线名**只**来自配置声明（req.filter_name = photometry.fit.filter / 块级
+    // filter_passband），按库键字节精确解析：不折叠大小写/空白、不做 Unicode 归一、
+    // 不解析别名（docs/engineering/contracts/CONFIG.md「滤镜名匹配语义」一节）。
+    const std::string filter_key = req.filter_name;
     // ── 通带身份门（装配期 fail-closed；PASSBAND-IDENTITY-GATE-01）──────────
-    // (a) 声明名核对：配置**声明**的通带（块级 filter_passband）必须与
-    //     FILTER 关键字解析出的库键一致。不一致 ⇒ 两者不是同一条曲线，
-    //     合成 F_syn 用的通带与配置声明不符 ⇒ 拒绝产出标度（具名，环境作用域）。
+    // (a) 声明名核对：块级 `filter_passband` 与 `photometry.fit.filter` 必须
+    //     **字节相等**（同一配置内的两条声明必须指向同一条曲线）。不一致 ⇒
+    //     合成 F_syn 用的通带与声明不符 ⇒ 拒绝产出标度（具名，环境作用域）。
     //     依据 docs/science/PHOTOMETRY.md §2a.4「比较不同帧/不同模型的
     //     sigma_residual 时必须声明所用模型通带」+ §2a.5（通带形状不被零点吸收）
     //     + eng/packaging/config/filters.json#lookup.resolution_rule（名字解析
@@ -103,9 +107,9 @@ FramePhotFitResult fit_frame_photometry(const FramePhotFitRequest& req) {
     if (!req.declared_filter_passband.empty() &&
         req.declared_filter_passband != filter_key) {
         out.error = "passband identity mismatch: declared filter_passband '" +
-                    req.declared_filter_passband + "' but FILTER '" + req.filter_name +
-                    "' resolves to library key '" + filter_key +
-                    "' -- refusing to synthesize F_syn with a passband other than the"
+                    req.declared_filter_passband + "' but photometry.fit.filter '" +
+                    req.filter_name + "' (library key '" + filter_key +
+                    "') -- refusing to synthesize F_syn with a passband other than the"
                     " declared one";
         out.failure_scope = FitFailureScope::kEnvironment;   // 配置声明矛盾, 非帧数据
         return out;
@@ -123,6 +127,16 @@ FramePhotFitResult fit_frame_photometry(const FramePhotFitRequest& req) {
         // 写进判词（否则下游只能看到一个"某条曲线"）。
         out.error = "filter curve load failed: '" + filter_key + "' in " + req.filters_json +
                     " (" + curve_json::status_name(filter_st) + ")";
+        // 名字不在库里 ⇒ 列候选（与 QE 同一份扫描实现、同一报错风格）
+        if (filter_st == curve_json::LoadStatus::kCurveNotFound ||
+            filter_st == curve_json::LoadStatus::kCurveNameOutsideLibrary) {
+            std::string f_content;
+            if (aio_file::read_all(req.filters_json.c_str(), &f_content)) {
+                out.error += "; library keys: " +
+                             curve_json::format_key_candidates(
+                                 curve_json::list_curve_keys(f_content));
+            }
+        }
         if (filter_st == curve_json::LoadStatus::kCurveIdentityMismatch) {
             out.error += " [passband identity: requested='" + filter_id.requested +
                          "' object_name='" +
@@ -144,23 +158,44 @@ FramePhotFitResult fit_frame_photometry(const FramePhotFitRequest& req) {
     out.filter_val_max = *std::max_element(filter_trans.begin(), filter_trans.end());
     std::vector<double> qe_wl, qe_trans;
     if (!req.qe_json.empty() && !req.qe_name.empty()) {
+        // QE 与滤镜**同一套规则、同一份解析实现**：名字按库键字节精确解析（无归一、
+        // 无别名）；命中后由 load_curve 做曲线身份核对；失败 ⇒ 具名报错并列出库内候选。
+        // 不得静默退化为 Q(λ)≡1（通带错配是合成测光定标的主误差项，见
+        // 实验/photometric-magnitude/docs/PHOTOMETRY_LITERATURE_REVIEW_ARCHIVE.md §1.4）。
         const curve_json::LoadStatus qe_st =
             curve_json::load_curve(req.qe_json, req.qe_name, &qe_wl, &qe_trans);
         if (qe_st != curve_json::LoadStatus::kOk) {
             qe_wl.clear();
             qe_trans.clear();
-            // 曲线名/文件存在但解析失败 ⇒ 不得静默退化为 Q(λ)≡1（通带错配是合成
-            // 测光定标的主误差项，见 实验/photometric-magnitude/docs/PHOTOMETRY_LITERATURE_REVIEW_ARCHIVE.md
-            // §1.4）；如实报出，由调用方决定是否判红。
-            std::fprintf(stderr, "[photometry] WARNING: QE 曲线 '%s' 在 %s 中解析失败, "
-                                 "按 Q(lambda)=1 继续 (显式未建模项)\n",
-                         req.qe_name.c_str(), req.qe_json.c_str());
+            out.error = "QE curve load failed: '" + req.qe_name + "' in " + req.qe_json +
+                        " (" + curve_json::status_name(qe_st) + ")";
+            std::string qe_content;
+            if (aio_file::read_all(req.qe_json.c_str(), &qe_content)) {
+                out.error += "; library keys: " +
+                             curve_json::format_key_candidates(
+                                 curve_json::list_curve_keys(qe_content));
+            }
+            out.failure_scope = FitFailureScope::kEnvironment;   // 配置输入, 非帧数据
+            return out;
         }
+        out.qe_key = req.qe_name;
+        out.qe_curve_name = req.qe_name;
+        out.qe_n_points = static_cast<int>(qe_wl.size());
+        out.qe_wl_min_nm = *std::min_element(qe_wl.begin(), qe_wl.end());
+        out.qe_wl_max_nm = *std::max_element(qe_wl.begin(), qe_wl.end());
+        out.qe_val_min = *std::min_element(qe_trans.begin(), qe_trans.end());
+        out.qe_val_max = *std::max_element(qe_trans.begin(), qe_trans.end());
     } else {
-        // 配置未提供 QE ⇒ Q(λ)≡1（既有语义，不阻断）；补一条显式告警，避免"没配 QE"
-        // 与"QE 已计入"在下游不可区分。
-        std::fprintf(stderr, "[photometry] WARNING: qe_json/qe_name 未配置, "
-                             "F_syn 按 Q(lambda)=1 合成 (显式未建模项)\n");
+        // 未声明 QE ⇒ **具名失败**，不得静默按 Q(λ)≡1 合成。
+        // 依据 docs/science/photometry/PHOTOMETRY.md §2（Q 是通带的组成部分而非可选项；
+        // 必须显式声明并命中曲线库；确需理想平坦探测器时显式声明库内 `Ideal QE curve`）
+        // 与负责人的运行合同「QE 和滤镜是一样的要求」——静默回退就是第二条路径。
+        // 生产运行另有同一语义的配置校验点（module_adapters 的 PHOT_CONFIG_QE_MISSING）。
+        out.error = "qe_json/qe_name required (Q is part of the passband, not optional;"
+                    " declare a library key, e.g. KAF-16803, or `Ideal QE curve` for a"
+                    " flat detector)";
+        out.failure_scope = FitFailureScope::kEnvironment;   // 配置输入, 非帧数据
+        return out;
     }
 
     // FOV 半径（与 Orchestrator::run_stage_photometric 的 "计算 FOV 半径" 段同式同钳位）

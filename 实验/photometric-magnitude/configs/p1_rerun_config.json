@@ -40,7 +40,9 @@
      "enabled": true,
      "gaia_data_dir": "/workspace/Astro CS Database/gaia/GaiaDR3SP",
      "filter": "Astrodon E-series R",
-     "filters_json": "/workspace/Astro CS Database/eng/packaging/config/filters.json"
+     "filters_json": "/workspace/Astro CS Database/eng/packaging/config/filters.json",
+     "qe_json": "/workspace/Astro CS Database/lib/algorithms/photometry/data/response_curves/qe_curves.json",
+     "qe_name": "KAF-16803"
     }
    },
    "dark_optimization": true,
@@ -113,7 +115,9 @@
      "enabled": true,
      "gaia_data_dir": "/workspace/Astro CS Database/gaia/GaiaDR3SP",
      "filter": "Astrodon E-series R",
-     "filters_json": "/workspace/Astro CS Database/eng/packaging/config/filters.json"
+     "filters_json": "/workspace/Astro CS Database/eng/packaging/config/filters.json",
+     "qe_json": "/workspace/Astro CS Database/lib/algorithms/photometry/data/response_curves/qe_curves.json",
+     "qe_name": "KAF-16803"
     }
    },
    "dark_optimization": true,
