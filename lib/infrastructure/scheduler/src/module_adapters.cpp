@@ -6460,6 +6460,20 @@ Result<void> p1_op_photometry(const Json& doc, Json* man) {
                           {"f_instr_domain", "psf_analytic_flux_2pi_A_sx_sy_over_3"},
                           {"n_psf_domain", sc->n_psf_domain},
                           {"n_psf_skipped", sc->n_psf_skipped},
+                          // ZP-LANDING-01: 帧自身 Gaia XP 零点落盘（值直接取自既有字段，
+                          // 不重算、不改拟合）。与 k_photo 同帧同星样本、同参考（Gaia DR3
+                          // XP + 本帧滤光片/QE 曲线），供"同参考自洽检验"与外部复核。
+                          {"zero_point_mag", sc->zero_point_mag},
+                          {"zero_point_valid", sc->zero_point_valid},
+                          {"zero_point_n_stars", sc->zero_point_n_stars},
+                          {"zero_point_scatter_mag", sc->zero_point_scatter_mag},
+                          {"zero_point_reference",
+                           std::string("Gaia DR3 XP absolute spectrum x filter/QE curve; "
+                                       "filter_key=") + sc->filter_key +
+                               "; curve=" + sc->filter_curve_name + "; n_points=" +
+                               std::to_string(sc->filter_n_points) + "; wl_nm=[" +
+                               std::to_string(sc->filter_wl_min_nm) + "," +
+                               std::to_string(sc->filter_wl_max_nm) + "]"},
                           // PHOT-MXY-01: m(x,y) 的系数/规范/基函数清单/残差（审计面）
                           {"spatial_gain", p1_spatial_gain_json(*sc)}};
     });
