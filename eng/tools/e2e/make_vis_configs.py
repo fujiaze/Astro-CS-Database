@@ -21,15 +21,21 @@ VIS = os.path.join(REPO, "run/RELEASE-05/vis")
 # 星表目录：光度阶段需要含光谱的 GaiaDR3SP（docs/science/unified/DATA_SEMANTICS.md「星表行语义」一节：DR3 记录无光谱、
 # BP/RP 恒 0 sentinel），且 orchestrator 的 PLATESOLVE 默认 db_type 即 DR3SP。
 GAIA = os.path.join(REPO, "gaia/GaiaDR3SP")
-# 声明的通带库键（逐字命中运行期扫描集 config/response_curves/）。
-FILTER_KEY = "Baader R"
+# 各数据集声明的通带库键——**逐数据集显式声明**（不是"型号名 → 库键"的映射表，
+# 那正是被禁的别名解析）。依据 = `testdata/index.json` 中该数据集的 `filters` 项 +
+# 负责人指定的库键；库键必须在运行期扫描集 `config/response_curves/` 内逐字命中。
+#   Galaxy_Center_T4：index 记 Red = Baader / RGB 50mm ⇒ 库键 "Baader R"
+#   M42_T2T3_mosaic_Flying_dutchman：index 记 Red = Astrodon / 50mm RGB
+#     ⇒ 负责人指定库键 "Astrodon E-series R"
+FILTER_KEY_GC = "Baader R"
+FILTER_KEY_M42 = "Astrodon E-series R"
 # 传感器 QE 库键（按 testdata/index.json 的相机：T4 = FLI Microline/Proline 16200、
 # T2/T3 = FLI Proline 16803 ⇒ KAF-16200 / KAF-16803，均在扫描集内）。
 QE_KEY_T4 = "KAF-16200"
 QE_KEY_T2T3 = "KAF-16803"
 
 
-def block(name, lights, cal, bias, dark, flat, out_dir, k, qe_name):
+def block(name, lights, cal, bias, dark, flat, out_dir, k, filter_key, qe_name):
     return {
         "name": name,
         "input_lights": lights,
@@ -38,7 +44,7 @@ def block(name, lights, cal, bias, dark, flat, out_dir, k, qe_name):
         "master_flat": os.path.join(cal, flat),
         "output_dir": out_dir,
         "drizzle": {"nested": 1, "pixfrac": 1.0, "precision_mode": 1},
-        "filter_passband": FILTER_KEY,
+        "filter_passband": filter_key,
         "wcs": {"init_source": "header_pointing", "gaia_data_dir": GAIA},
         # 测光标定通道：滤镜名与 QE 名都只写**名字键**，按库键逐字命中运行期扫描集
         # （<可执行文件目录>/config/response_curves/）；已退役的曲线文件路径键不再写。
@@ -49,7 +55,7 @@ def block(name, lights, cal, bias, dark, flat, out_dir, k, qe_name):
             "fit": {
                 "enabled": True,
                 "gaia_data_dir": GAIA,
-                "filter": FILTER_KEY,
+                "filter": filter_key,
                 "qe_name": qe_name,
             }
         },
@@ -85,7 +91,8 @@ def main():
                                 "masterBias_BIN-1_4500x3600.xisf",
                                 "masterDark_BIN-1_4500x3600_EXPOSURE-180.00s.xisf",
                                 "masterFlat_BIN-1_4500x3600_FILTER-Red_mono.xisf",
-                                os.path.join(VIS, "out/gc_p1", panel), 1.0, QE_KEY_T4))
+                                os.path.join(VIS, "out/gc_p1", panel), 1.0,
+                                FILTER_KEY_GC, QE_KEY_T4))
         write(os.path.join(VIS, "configs/p1_gc.json"), {"schema_version": "1", "blocks": blocks})
         write(os.path.join(VIS, "configs/mosaic_gc.json"), {
             "schema_version": "1",
@@ -117,7 +124,7 @@ def main():
                                 "masterDark_BIN-1_4096x4096_EXPOSURE-600.00s.xisf",
                                 "masterFlat_BIN-1_4096x4096_FILTER-Red_mono.xisf",
                                 os.path.join(VIS, "out/m42_p1_%s" % tel.lower()), 0.5,
-                                QE_KEY_T2T3))
+                                FILTER_KEY_M42, QE_KEY_T2T3))
         write(os.path.join(VIS, "configs/p1_m42.json"), {"schema_version": "1", "blocks": blocks})
         write(os.path.join(VIS, "configs/mosaic_m42.json"), {
             "schema_version": "1",

@@ -344,11 +344,14 @@ lib/algorithms/photometry/
 - `cpp/src/spectrum_integrator.cpp` - `compute_f_syn` 中: QE 排序去重 + QE 范围参与积分范围计算 + 被积函数改为 `S(λ)·T(λ)·Q(λ)·λ`；`prepare_filter_cache` 中: QE Akima 插值重采样到光谱网格 + `weighted_wl[i] = λ_i × T(λ_i) × Q(λ_i)`；QE 为 nullptr 时 Q=1.0 并 LOG_WARNING `"QE curve not provided, F_syn without Q(λ)"`
 - `cpp/include/photometric_calib.h` - `pc_calibrate_simple` / `pc_calibrate_simple_with_gaia` 签名均扩展: 在 filter 参数后新增 `const double* qe_wl, const double* qe_trans, int qe_count`（向后兼容: 传 nullptr 即可）
 - `cpp/src/pc_api.cpp` - `pc_calibrate_simple` 签名同步扩展（标记 `(void)qe_wl; (void)qe_trans; (void)qe_count;` 因为此接口不在 DLL 内部计算 F_syn）；`pc_calibrate_simple_with_gaia` 签名同步扩展，`prepare_filter_cache` 调用传入 QE
-- `lib/infrastructure/pipeline/orchestrator/cpp/src/orchestrator.cpp` - 新增 `load_qe_curve`（委托给 `load_filter_curve`，JSON 格式完全一致）+ `extract_qe_curve_name`（从 stage1_config.json 文本解析 "qe_curve" 字段值，简单字符串扫描无 nlohmann::json 依赖）；`run_stage_photometric` 中: 加载滤光片曲线后加载 QE 曲线（路径 `lib/algorithms/photometry/data/response_curves/qe_curves.json`）+ 函数指针类型签名新增三个 QE 参数 + 函数调用传入 `qe_wl.empty() ? nullptr : qe_wl.data()` 等
+- `lib/infrastructure/pipeline/orchestrator/cpp/src/orchestrator.cpp` - legacy 编排入口的曲线选择已退役（走到测光即具名失败 `PHOT_CURVE_SELECTION_RETIRED`）；曲线解析的唯一实现 = `cpp/src/filter_curve_json.h` 的 `curve_json::scan_curve_library`
 
-配置支持:
-- `lib/infrastructure/pipeline/orchestrator/configs/stage1_config.json` 已包含 `"frame": { "qe_curve": "GSENSE2020BSI" }`
-- `lib/algorithms/photometry/data/response_curves/qe_curves.json` 格式: `{"<name>": {"name":"...", "channel":"Q", "wavelength_nm":[...], "value":[...]}}`（**数组键名是 "value" 不是 "qe"**，与 filters.json 一致，故 load_qe_curve 可直接复用 load_filter_curve）
+曲线库与配置（当前口径）:
+- **运行期扫描**：曲线库 = 目录 `config/response_curves/`，按**可执行文件所在目录**解析该固定相对路径；非递归、`*.json`、按文件名字节序稳定排序、不跟随指向目录外的符号链接、文件数与文件大小设硬上限；目录不可达/为空、文件不可解析、重名（`curve_name_duplicate`）、身份核对失败 ⇒ 具名 fail-closed；不设环境变量/CLI 覆盖、不设优先级链。依据 `docs/engineering/contracts/CONFIG.md`「响应曲线库（代码内单一路径 + 运行时扫描）」一节
+- **名字键必填**：`photometry.fit.filter`（否则块级 `filter_passband`）与 `photometry.fit.qe_name`；按库键**字节精确**命中扫描集（不折叠大小写/空白、不做 Unicode 归一、无别名）；缺 ⇒ `PHOT_CONFIG_FILTER_MISSING` / `PHOT_CONFIG_QE_MISSING` 中止运行。旧的文件路径键 `filters_json` / `qe_json` 已退役
+- **身份核对四项**（逐条对每个扫描到的文件执行）：对象 `name` 与库键逐字节相等；`n_points` == `wavelength_nm` 数组长度；`provenance.curve_stats` 的 `wl_min/wl_max/val_min/val_max` == 实际数组；逐元素指纹 `wl_sum`/`val_sum`/`val_sumsq` == 实际数组（缺字段即 fail-closed）
+- **曲线文件格式（唯一格式，一文件一曲线）**：`name` / `channel`（QE 曲线 = `"Q"`）/ `wavelength_nm` / `value` / `n_points` / `provenance`；滤镜曲线与 QE 曲线同目录、同格式、同一套扫描与身份核对
+- **provenance 状态与缺口**：真实器件/滤光片曲线 `status = source_recorded`（来源/版本/获取方式齐备、原始校验和缺失并如实标注）；`None` 与 `Ideal QE curve` 为 `defined_by_construction`；当前缺口 `GAP-035`「原始 PixInsight 文件校验和缺失（滤镜 45 条 + QE 12 条）」，登记面 `eng/packaging/config/config_registry.json#filter_name_policy.provenance_gaps`
 
 **GAP-013 修复（亮度比例 IRLS + Tukey）**:
 

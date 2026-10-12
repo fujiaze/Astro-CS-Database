@@ -74,6 +74,24 @@ install(DIRECTORY
   COMPONENT acsd_runtime
   FILES_MATCHING PATTERN "*.json")
 
+# ── 构建树：把曲线目录放到**可执行文件旁**（与安装树同一相对布局）──
+# 运行期按「可执行文件所在目录」解析 config/response_curves/，构建树同样必须满足，
+# 否则全新构建后直接跑构建树里的 acsd 会 curve_dir_unreachable。
+# 写法选择：仓内既有同类先例是「生成物的 add_custom_command(OUTPUT)+add_custom_target(ALL)」
+# （见根 CMakeLists 的 providers/backends.manifest.json）；此处产物是**目录副本**、
+# 没有单一输出文件，且要求「每次构建都刷新」——用总是执行的 custom target 并作为
+# acsd 的依赖：`--target acsd` 会先跑它（新增/替换曲线文件后无需手工复制、也无需
+# reconfigure），且不依赖 acsd 是否重链接。
+add_custom_target(acsd_response_curves ALL
+  COMMAND ${CMAKE_COMMAND} -E copy_directory
+          "${CMAKE_CURRENT_SOURCE_DIR}/config/response_curves"
+          "$<TARGET_FILE_DIR:acsd>/config/response_curves"
+  COMMENT "ACSD: 同步响应曲线库 → $<TARGET_FILE_DIR:acsd>/config/response_curves"
+  VERBATIM)
+if(TARGET acsd)
+  add_dependencies(acsd acsd_response_curves)
+endif()
+
 # ── 安装主 CLI ──
 install(TARGETS acsd
   RUNTIME DESTINATION . COMPONENT acsd_runtime)
