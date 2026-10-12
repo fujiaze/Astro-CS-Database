@@ -191,7 +191,7 @@ IRLS 达最大迭代仍未收敛（或 `|r_consistent| < 3` 拟合失败）。�
 F_syn = ∫ F_λ(λ)·T(λ)·Q(λ)·λ dλ        # W·m⁻²·nm；F_λ 单位 W·m⁻²·nm⁻¹；λ、dλ 单位 nm
 ```
 
-**不含** `10^(−0.4·G)`；`G`（Gaia G 星等）不进入 `F_syn`。与官方定义（Gaia DR3 文档 §5.4.1 式 5.41：`⟨f_λ⟩ = ∫f_λ S λ dλ / ∫S λ dλ`）只差与星无关的归一化分母 `∫TQλdλ`，该分母被 `location`/`ZP_syn` 吸收。
+**不含** `10^(−0.4·G)`；`G`（Gaia G 星等）不进入 `F_syn`。与官方定义（Gaia DR3 文档 §5.4.1 式 5.41：`⟨f_λ⟩ = ∫f_λ S λ dλ / ∫S λ dλ`）只差与星无关的归一化分母 `∫TQλdλ`，该分母被 `location`/天区合成颜色项 `synthetic_colour_median_mag` 吸收。
 
 | 步骤 | 符号/位置 | 锚 |
 |---|---|---|
@@ -204,7 +204,8 @@ F_syn = ∫ F_λ(λ)·T(λ)·Q(λ)·λ dλ        # W·m⁻²·nm；F_λ 单位 
 | **非生产通道（数值对拍用）** | `compute_f_syn` / `compute_f_syn_cached`：`∫uint8·T·Q·λdλ × 10^(−0.4·magG)`；仅作数值对拍，**生产定标面不含该通道** | `spectrum_integrator.cpp`（两处非生产符号） |
 
 **生产路径的实证判据**（真实 M42 产物；读数与证据正本 = `实验/photometric-magnitude/docs/fsyn_convention.md` [S-3]「协方差传播」一节「真实数据（生产链逐位复现）」）：
-`zero_point_mag = median_i(magG_i + 2.5·log10 F_syn,i)` 必须由上式**逐位复现**（落盘值与复算值相对差 ≤1e-12）。
+`synthetic_colour_median_mag = median_i(magG_i + 2.5·log10 F_syn,i)` 必须由上式**逐位复现**（落盘值与复算值相对差 ≤1e-12）。
+该量是**天区样本的中位颜色项**：输入只来自星表与本帧滤镜/QE 曲线，不含该帧任何观测数据，用途是通带/SED 一致性诊断。它**不得用作帧零点**——帧的测光标度是 `k_photo`，帧的星等零点由 `k_photo` 换算即得；把该颜色项当帧零点会把逐天区颜色差带进深度与帧间权重。（旧名 `zero_point_mag`，仅作追溯。）
 
 **生产编排**（`lib/algorithms/photometry/cpp/src/pc_api.cpp`）: 生产主路径 = `run_with_gaia_impl<T>`；参数校验；退化（无 PSF / 无光谱星 / 滤光片-QE 失败 → scale=1.0、rc=0）；自适应锥搜 `mag_max_arr{12..16}`×5；F_syn OpenMP `schedule(dynamic,64)` 逐星（整数 `reduction(+:n_valid_fsyn)`）；匹配+清洗；逐星 PcMatchRecord；f64 内联像素校正；`make_dr3sp_id`；v2 封装三支（`pc_calibrate_simple_with_gaia_v2` / `_f64_v2` / `_f64_v2_qf`）。旧 ABI 通道：`pc_calibrate_simple`、`_with_gaia`、`_f64`、`_with_gaia_f64`（均在同一文件）。
 
