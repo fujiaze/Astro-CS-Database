@@ -129,13 +129,17 @@ HP_DRIZZLE_API int hp_drizzle_run_hips(PipelineFrame* frame,
 //   产品集清单（口径正本 = docs/engineering/contracts/HIPS_STORAGE_FORM.md「逐帧 HiPS
 //   产品集清单 manifest.json#geometry（加性）」一节）；缺省 nullptr ⇒ 该键**缺席**
 //   （既有调用方不受影响；不得以零值或未解算 WCS 冒充解算几何）。
+// snr_sidecar_path: 可选。非空 ⇒ 从该路径读 p1_snr.json 的本帧 snr_reference
+//   （工作区位置由配置决定 ⇒ 由持有配置的调用方显式传入）；缺省 nullptr ⇒ 保持
+//   既有语义 <产品面>/p1_snr.json。读不到 ⇒ 不写帧级 SNR 键（fail-closed 不变）。
 HP_DRIZZLE_API int hp_drizzle_run_phase1_hips(PipelineFrame* frame,
                                               int nside, int nested, double pixfrac,
                                               const char* hips_dir,
                                               const char* filter_passband,
                                               HpDrizzleResult* result,
                                               int precision_mode,
-                                              const char* hips_geometry_json = nullptr);
+                                              const char* hips_geometry_json = nullptr,
+                                              const char* snr_sidecar_path = nullptr);
 
 // P1-DRZ-ASYNC-01: Phase1 写盘异步化（跨帧流水, 帧内仍单线程且仍按
 // parent_ipix 升序）。形态：

@@ -1460,6 +1460,48 @@ std::string p1_frame_dir(const Json& doc, const std::string& light) {
   return doc.value("output_dir", std::string(".")) + "/" + p1_frame_key(light);
 }
 
+// ── 工作区（产品面之外）──────────────────────────────────────────────────────
+// 中间产物落在 <output_dir> 的**同级兄弟目录**：同文件系统 ⇒ 保持既有「同目录
+// 临时文件 → rename 原子替换」语义（rename 不跨文件系统）；不用系统临时区——/tmp
+// 常为 tmpfs，会把 ≈64 MiB/帧 的平面件放进内存、恶化峰值 RSS。
+// 位置可由配置键 work_dir 覆盖（缺省 = <output_dir 基名>.p1-work）。
+// 正本：docs/engineering/architecture/DEV_MODE.md《中间产物的工作区与开关》与
+// 实验/photometric-magnitude/docs/P1-product-surface-boundary-design.md（D1）。
+std::string p1_work_dir(const Json& doc) {
+  if (p1_has(doc, "work_dir") && doc["work_dir"].is_string()) {
+    const std::string w = doc["work_dir"].get<std::string>();
+    if (!w.empty()) return w;
+  }
+  std::string out = doc.value("output_dir", std::string("."));
+  while (out.size() > 1 && out.back() == '/') out.pop_back();
+  const size_t slash = out.find_last_of('/');
+  const std::string base =
+      (slash == std::string::npos) ? out : out.substr(slash + 1);
+  const std::string parent =
+      (slash == std::string::npos) ? std::string() : out.substr(0, slash + 1);
+  return parent + base + ".p1-work";
+}
+
+// 工作区内的运行级中间产物路径（p1_sources/p1_phot/p1_snr/p1_flux/p1_psf/
+// badcol_report 等）。
+std::string p1_work_path(const Json& doc, const std::string& name) {
+  return p1_work_dir(doc) + "/" + name;
+}
+
+// 工作区内的逐帧中间产物目录（<frame_key>/p1_wcs.json、<frame_key>/p1_final.json）。
+std::string p1_work_frame_dir(const Json& doc, const std::string& light) {
+  return p1_work_dir(doc) + "/" + p1_frame_key(light);
+}
+
+// 中间产物是否**保留**（唯一开关口径）：只决定工作区在运行收尾是否被清理，
+// **不改变**执行路径/数值/判据/节点顺序/产品面内容。缺省 = 保留（多项有活树
+// 消费者；翻转默认待消费者更新后再做，顺序见注册表 engineering_status）。
+bool p1_keep_intermediates(const Json& doc) {
+  if (p1_has(doc, "keep_intermediates") && doc["keep_intermediates"].is_boolean())
+    return doc["keep_intermediates"].get<bool>();
+  return true;
+}
+
 // 同块 frame_key 唯一性门。任何按帧派生落位的操作器（wcs/drizzle/writer）
 // 必须先过此门; 重复 key 直接 DATA fail-closed, 不再静默覆盖。
 Result<void> p1_require_unique_frame_keys(const Json& doc) {
@@ -1494,6 +1536,14 @@ std::string p1_staging_path(const std::string& final_path) {
          std::to_string(s);
 }
 
+// 中间产物写盘前的父目录幂等创建：工作区是**新增落点**，节点不预建它（产品目录由
+// 节点入口创建）。aio 的 write_atomic 明确「父目录由调用方经 make_dirs 建」。
+void p1_ensure_parent_dir(const std::string& path) {
+  const size_t slash = path.find_last_of('/');
+  if (slash != std::string::npos && slash > 0)
+    (void)aio_fs::make_dirs(path.substr(0, slash));
+}
+
 bool p1_atomic_publish(const std::string& staging, const std::string& final_path,
                        std::string* err) {
   // CLEAN-403: 原子替换机制经 aio 唯一实现 (aio_atomic::atomic_replace =
@@ -1521,6 +1571,7 @@ bool p1_write_fits_atomic(const P1Image& im, const std::string& final_path,
     im.p->bits_per_sample = 32;
     im.p->float_sample = 1;
   }
+  p1_ensure_parent_dir(final_path);
   const std::string staging = p1_staging_path(final_path);
   if (aio_write_fits(im.p, staging.c_str()) != 0) {
     if (err) *err = "write failed: " + final_path;
@@ -1534,10 +1585,11 @@ bool p1_write_fits_atomic(const P1Image& im, const std::string& final_path,
 // 阶段一帧级平面产物路径的**唯一实现**：<前缀>_<base>.fts 落在该块的 output_dir。
 // 写侧（各节点写产物）与回写侧（解算完成后补写几何键）都必须调用本函数；
 // 调用方不得自行拼接命名规则——否则命名约定会变成两处各写一遍（违 §13 复用条）。
+// 帧级平面件（calibrated/cleaned/badcol/photoapplied）——**额外输出**，不属产品面：
+// 落工作区（位置见 p1_work_dir）。取数仍走本函数这一条路径。
 std::string p1_product_path(const Json& doc, const std::string& light,
                             const std::string& prefix) {
-  const std::string out_dir = doc.value("output_dir", std::string("."));
-  return out_dir + "/" + prefix + "_" + p1_base_name(light);
+  return p1_work_path(doc, prefix + "_" + p1_base_name(light));
 }
 
 // 节点输入帧路径: 取 cal 节点产物 calibrated_<base>（节点链约定）。
@@ -1668,15 +1720,13 @@ std::string p1_badcol_path(const Json& doc, const std::string& light) {
 // "科学帧判出 / dark 判出 / bias 判出 / 多路一致"，按置信度筛选而不必信任
 // 单一布尔掩膜。
 std::string p1_badcol_src_path(const Json& doc, const std::string& light) {
-  const std::string out_dir = doc.value("output_dir", std::string("."));
-  return out_dir + "/badcolsrc_" + p1_base_name(light);
+  return p1_work_path(doc, "badcolsrc_" + p1_base_name(light));
 }
 
 // cosmetic 下游节点的输入帧路径: 优先 cos 节点产物 cleaned_<base>, 无则退回
 // cal 产物/原帧（节点单独运行时缺上游产物 = 确定性回退, 不 silent 造数据）。
 std::string p1_cleaned_input_path(const Json& doc, const std::string& light) {
-  const std::string out_dir = doc.value("output_dir", std::string("."));
-  const std::string cand = out_dir + "/cleaned_" + p1_base_name(light);
+  const std::string cand = p1_work_path(doc, "cleaned_" + p1_base_name(light));
   if (aio_fs::exists(cand)) return cand;
   return p1_calibrated_path(doc, light);
 }
@@ -1696,6 +1746,7 @@ bool p1_write_text(const std::string& path, const std::string& text) {
   // 原子发布（同目录临时文件 → fflush → fsync → rename）: 并发消费者不会读到
   // 半写 JSON。CLEAN-403: 机制经 aio 唯一实现 (aio_atomic::write_file_atomic),
   // 本 TU 不再自持 ofstream 通道。
+  p1_ensure_parent_dir(path);
   return aio_fs::write_atomic(path, text);
 }
 
@@ -2801,7 +2852,7 @@ Result<void> p1_op_calibrate(const Json& doc, Json* man) {
       return;
     }
     std::memcpy(wim.px(), out.data(), out.size() * sizeof(float));
-    const std::string outp = out_dir + "/calibrated_" + p1_base_name(lp);
+    const std::string outp = p1_work_path(doc, "calibrated_" + p1_base_name(lp));
     // CORE-RACE-001: 原子发布（临时文件 + rename）——本路径是 drz/wcs 等并发
     // 消费者的共享输入, 任何时刻只允许存在完整文件。
     std::string werr;
@@ -3431,9 +3482,10 @@ Result<void> p1_op_cosmetic(const Json& doc, Json* man) {
                       {"per_frame", col_frames}};
       (*man)["badcol_report"] = rep;
       const std::string rpath =
-          doc.value("output_dir", std::string(".")) + "/badcol_report.json";
+          p1_work_path(doc, "badcol_report.json");
       const std::string rtmp = p1_staging_path(rpath);
       bool ok = false;
+      p1_ensure_parent_dir(rpath);
       std::FILE* rf = std::fopen(rtmp.c_str(), "wb");
       if (rf) {
         const std::string txt = rep.dump(1);
@@ -3844,7 +3896,7 @@ Result<void> p1_op_star_psf_impl(const Json& doc, Json* man, int n_fit_limit) {
   const bool need_wcs_prior = (gcfg.mode != "blind_diagnostic") && !gcfg.gaia_dir.empty();
   for (size_t i = 0; need_wcs_prior && i < n_frames; ++i) {
     const std::string lp = doc["input_lights"][i].get<std::string>();
-    const std::string wpath = p1_frame_dir(doc, lp) + "/p1_wcs.json";
+    const std::string wpath = p1_work_frame_dir(doc, lp) + "/p1_wcs.json";
     std::string wtext;
     if (!aio_fs::read_all(wpath, &wtext)) {
       solved_wcs_why = "no solved WCS product at " + wpath;
@@ -4336,8 +4388,8 @@ Result<void> p1_op_star_psf_impl(const Json& doc, Json* man, int n_fit_limit) {
     const size_t n = v.size();
     return (n % 2 == 1) ? v[n / 2] : 0.5 * (v[n / 2 - 1] + v[n / 2]);
   };
-  const std::string src_path = out_dir + "/p1_sources.json";
-  const std::string psf_path = out_dir + "/p1_psf.json";
+  const std::string src_path = p1_work_path(doc, "p1_sources.json");
+  const std::string psf_path = p1_work_path(doc, "p1_psf.json");
   Json cat_out = Json{{"schema", "DATA-P1-SOURCES"}, {"frames", frames}};
   Json psf_out = Json{{"schema", "DATA-P1-PSF"},
                       {"detection_schema", DPSF_STAR_DET_SCHEMA_V1},
@@ -4913,7 +4965,7 @@ Result<void> p1_op_wcs(const Json& doc, Json* man) {
         (*man)["error_kind"] = "input";
         return Result<void>::fail(Error(ErrorDomain::IO, "cannot read: " + frame_path));
       }
-      const std::string fdir = p1_frame_dir(doc, lp);
+      const std::string fdir = p1_work_frame_dir(doc, lp);
       (void)aio_fs::make_dirs(fdir);   // CLEAN-403: 目录创建经 aio
       const std::string out_path = fdir + "/p1_wcs.json";
       if (!p1_write_text(out_path, wcs_out.dump(2)))
@@ -5261,7 +5313,7 @@ Result<void> p1_op_wcs(const Json& doc, Json* man) {
       // 注: 产物**刻意不含** "wcs" 键 —— 下游 p1_wcs_astrometry_usable /
       // p1_guided_wcs_product_prior 读不到它 ⇒ 该帧按「未解出」fail-closed,
       // 不会把一个不存在的解当成可用 WCS（改变科学语义的降级不是降级）。
-      const std::string udir = p1_frame_dir(doc, lp);
+      const std::string udir = p1_work_frame_dir(doc, lp);
       (void)aio_fs::make_dirs(udir);
       const std::string upath = udir + "/p1_wcs.json";
       if (!p1_write_text(upath, unsolved.dump(2))) {
@@ -5420,7 +5472,7 @@ Result<void> p1_op_wcs(const Json& doc, Json* man) {
                                          "FITS 1-based xp = x + 1"},
                         {"fits_pixel_origin", kP1FitsPixelOrigin},
                         {"samples", samples}};
-    const std::string fdir = p1_frame_dir(doc, lp);
+    const std::string fdir = p1_work_frame_dir(doc, lp);
     (void)aio_fs::make_dirs(fdir);   // CLEAN-403: 目录创建经 aio
     const std::string out_path = fdir + "/p1_wcs.json";
     if (!p1_write_text(out_path, wcs_out.dump(2))) {
@@ -5461,7 +5513,7 @@ Result<void> p1_op_photometry(const Json& doc, Json* man) {
     auto rc = p1_prerun_calibrated_check(doc, man);
     if (rc.failed()) return rc;
   }
-  const std::string src_path = out_dir + "/p1_sources.json";
+  const std::string src_path = p1_work_path(doc, "p1_sources.json");
   // ── B2-A16: 上游 DATA-P1-SOURCES 是本节点唯一输入 ─────────────────────
   // 旧实现: 文件打不开/解析失败 → cat=[] → 空循环 → 仍写 p1_flux.json 并
   // success（fail-open）；帧缺失仅记 {"error":"frame not found"} 后继续。
@@ -5510,7 +5562,8 @@ Result<void> p1_op_photometry(const Json& doc, Json* man) {
       f_missing_name[fi] = "(empty file name)";
       return;
     }
-    const std::string path = out_dir + "/" + file;
+    // p1_sources.json 的 frames[].file 指向帧级平面件（cleaned_*）⇒ 工作区。
+    const std::string path = p1_work_path(doc, file);
     if (!aio_fs::exists(path)) {
       // B2-A16: 帧缺失按合同计数, 循环后显式上抛（不再静默跳过记 error）。
       f_missing[fi] = true;
@@ -5599,7 +5652,7 @@ Result<void> p1_op_photometry(const Json& doc, Json* man) {
     return Result<void>::fail(Error(ErrorDomain::DATA,
         std::to_string(missing_frames) + " frame(s) referenced by p1_sources.json "
         "not found (first: " + first_missing + ")"));
-  const std::string out_path = out_dir + "/p1_flux.json";
+  const std::string out_path = p1_work_path(doc, "p1_flux.json");
   Json flux_out = Json{{"schema", "DATA-P1-FLUX"}, {"frames", frames}};
   if (!p1_write_text(out_path, flux_out.dump(2)))
     return Result<void>::fail(Error(ErrorDomain::IO, "artifact write failed"));
@@ -5999,7 +6052,7 @@ Result<void> p1_op_photometry(const Json& doc, Json* man) {
         // WCS: 逐帧 p1_wcs.json（回退 config.wcs）
         Json wj = Json::object();
         {
-          const std::string wpath = p1_frame_dir(doc, lp) + "/p1_wcs.json";
+          const std::string wpath = p1_work_frame_dir(doc, lp) + "/p1_wcs.json";
           std::string wtext;
           if (aio_fs::read_all(wpath, &wtext)) {
             try {
@@ -6652,7 +6705,7 @@ Result<void> p1_op_photometry(const Json& doc, Json* man) {
   // ── B2-A14: 真实测光 provenance sidecar (DATA-P1-PHOTPROV-001) ─────────────
   // drizzle 消费本产物决定 PHOTSCAL/PHOTAPPL; 禁止硬编码 1。如实声明是否已对
   // 像素施加测光缩放（施加后 applied=true, operation 记录两步）。
-  const std::string prov_path = out_dir + "/p1_phot.json";
+  const std::string prov_path = p1_work_path(doc, "p1_phot.json");
   // operation 保持冻结绑定值 measure_flux（module_ports.registry.json）; 施加
   // 步骤以 pixel_scaling/apply_entry/photometry_applied 如实登记。
   Json prov = Json{{"schema", "DATA-P1-PHOTPROV-001"},
@@ -7158,7 +7211,7 @@ Result<void> p1_op_noise(const Json& doc, Json* man) {
   // 本函数改用 snr_noise_model_v1 (A)，配置/模型对象在逐帧循环内构造与释放。
 
   // ── P8: 上游 DATA-P1-SOURCES = 逐源 SNR 目录的唯一来源 (fail-fast) ──
-  const std::string src_path = out_dir + "/p1_sources.json";
+  const std::string src_path = p1_work_path(doc, "p1_sources.json");
   Json src_frames = Json::array();
   {
     if (!aio_fs::exists(src_path))
@@ -7413,7 +7466,7 @@ Result<void> p1_op_noise(const Json& doc, Json* man) {
   }
 
   if (ref_mag_usable && cabs_pair_ok) {
-    const std::string pp = out_dir + "/p1_phot.json";
+    const std::string pp = p1_work_path(doc, "p1_phot.json");
     if (aio_fs::exists(pp)) {
       std::string ptext;
       if (aio_fs::read_all(pp, &ptext)) {
@@ -7784,7 +7837,7 @@ Result<void> p1_op_noise(const Json& doc, Json* man) {
     }
     frames.push_back(f_frame[fi]);
   }
-  const std::string out_path = out_dir + "/p1_snr.json";
+  const std::string out_path = p1_work_path(doc, "p1_snr.json");
   const bool fref_fixed_out = (ref_flux_source == "fixed_magnitude");
   // 逐帧 snr_caliber 的聚合（口径定义见逐帧写入处的注释）。
   size_t n_abs = 0, n_ub = 0;
@@ -8032,7 +8085,7 @@ Result<void> p1_op_drizzle(const Json& doc, Json* man) {
   Json frame_status = Json::object();
   bool have_frame_status = false;
   {
-    const std::string prov_path = out_dir + "/p1_phot.json";
+    const std::string prov_path = p1_work_path(doc, "p1_phot.json");
     if (aio_fs::exists(prov_path)) {
       std::string ptext;
       if (!aio_fs::read_all(prov_path, &ptext))
@@ -8198,7 +8251,7 @@ Result<void> p1_op_drizzle(const Json& doc, Json* man) {
     // 才允许并入逐帧产品集清单的加性 geometry（config 回退的指向 WCS 不是解算几何）。
     bool wcs_from_product = false;
     {
-      const std::string wcs_prod_path = p1_frame_dir(doc, lp) + "/p1_wcs.json";
+      const std::string wcs_prod_path = p1_work_frame_dir(doc, lp) + "/p1_wcs.json";
       std::string wtext;
       Json wcs_prod;
       bool have_prod = false;
@@ -8406,7 +8459,7 @@ Result<void> p1_op_drizzle(const Json& doc, Json* man) {
       Json nm_src_frames = Json::array();
       {
         std::string sftext;
-        if (aio_fs::read_all(out_dir + "/p1_sources.json", &sftext)) {
+        if (aio_fs::read_all(p1_work_path(doc, "p1_sources.json"), &sftext)) {
           try {
             const Json sj = Json::parse(sftext);
             if (sj.is_object() && sj.contains("frames") && sj["frames"].is_array())
@@ -8802,9 +8855,14 @@ Result<void> p1_op_drizzle(const Json& doc, Json* man) {
                      "(frame %s)\n", frame_path.c_str());
       }
     }
+    // 帧级 SNR sidecar：p1_snr.json 现落**工作区**（中间产物不属产品面）⇒ 由本节点
+    // （持有配置、知道工作区位置）**显式**把路径告知 sink；sink 缺省仍按既有语义读
+    // <产品面>/p1_snr.json，不自推工作区命名规则（同一件事一份实现）。
+    const std::string snr_sidecar = p1_work_path(doc, "p1_snr.json");
     rc = hp_drizzle_run_phase1_hips(frame, frame_nside, nested, pixfrac, fdir.c_str(),
                                     filter_passband.c_str(), &res, precision_mode,
-                                    geom_text.empty() ? nullptr : geom_text.c_str());
+                                    geom_text.empty() ? nullptr : geom_text.c_str(),
+                                    snr_sidecar.c_str());
     aio_pipeline_frame_destroy(frame);
     if (rc != 0) {
       // §10 原子产品 + §7.2 退出码表「10 = 磁盘写满/写盘失败」:
@@ -9018,7 +9076,7 @@ Result<void> p1_op_writer(const Json& doc, Json* man) {
   Json phot_failed = Json::object();      // frame_key -> 上游逐帧失败记录
   Json failed_frame_list = Json::array();
   {
-    const std::string pp = out_dir + "/p1_phot.json";
+    const std::string pp = p1_work_path(doc, "p1_phot.json");
     std::string ptext;
     if (aio_fs::read_all(pp, &ptext)) {
       Json pj = Json::object();
@@ -9326,7 +9384,7 @@ Result<void> p1_op_writer(const Json& doc, Json* man) {
             "phase1 HiPS 单位/像素语义声明失败 (frame " + lp + "): " + uerr));
       }
     }
-    const std::string final_path = fdir + "/p1_final.json";
+    const std::string final_path = p1_work_frame_dir(doc, lp) + "/p1_final.json";
     Json products = Json::array({"signal", "support"});
     if (variance_products_present) { products.push_back("variance"); products.push_back("ivar"); }
     Json final_out = Json{{"schema", "DATA-P1-HIPS"},
@@ -9469,6 +9527,19 @@ Result<void> p1_op_writer(const Json& doc, Json* man) {
     return Result<void>::fail(Error(ErrorDomain::IO,
         "artifact write failed: " + products_path));
   artifacts.push_back(products_path);
+  // ── 工作区收尾清理（唯一开关 `keep_intermediates`）────────────────────────────
+  // 本节点是阶段一最后一个节点（phot→snr→drz→wr）⇒ 收尾清理点。开关**只**决定
+  // 中间产物是否保留：`false` ⇒ 工作区整体删除；缺省/`true` ⇒ 保留（供逐节点复核
+  // 与复算）。它不改执行路径、数值、判据、节点顺序与产品面内容；清理只在产品清单
+  // 已成功发布之后执行（清理失败只报具名读数，不回滚已发布的产品）。
+  // 正本 = docs/engineering/architecture/DEV_MODE.md《中间产物的工作区与开关》。
+  if (!p1_keep_intermediates(doc)) {
+    const std::string wdir = p1_work_dir(doc);
+    if (aio_fs::is_dir(wdir) && aio_atomic::remove_tree(wdir, 0) != 0)
+      std::fprintf(stderr,
+                   "[writer] 工作区清理失败（keep_intermediates=false）: %s\n",
+                   wdir.c_str());
+  }
   (*man)["n_frames"] = static_cast<uint64_t>(n_inputs);
   (*man)["n_products"] = static_cast<uint64_t>(hips_paths.size());
   (*man)["hips_paths"] = hips_paths;

@@ -286,6 +286,13 @@ const std::set<std::string>& session_keys() {
         // 期间由 eng/contracts/ledgers/dead_config_keys.json 显式登记（不得静默 no-op）。
         // 仅 normalize 认本键：Phase2/Phase3 固定裸形态，其输入出现本键即 rc=3。
         "storage_form",
+        // B 轮第二步（中间产物移出产品面）：工作区位置与「是否保留」开关。
+        // 语义正本 = docs/engineering/architecture/DEV_MODE.md《中间产物的工作区与开关》
+        // 与 docs/engineering/contracts/CONFIG.md（Phase1 专属、加性、可选）。
+        // work_dir 缺省 = <output_dir 基名>.p1-work 同级兄弟目录（同文件系统）；
+        // keep_intermediates 缺省 = true（保留）。二者都不改执行路径/数值/判据/
+        // 节点顺序/产品面内容。
+        "work_dir", "keep_intermediates",
         // P1-001: 真实节点域科学参数（drizzle: nside/nested/pixfrac/precision;
         // wcs: ipv 求解链参数——非 silent default, 缺失即节点 DATA 拒绝）
         "drizzle", "wcs",
