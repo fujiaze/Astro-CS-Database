@@ -177,20 +177,21 @@ photometric scale、新 runtime I/O DLL。
   （不改码），仅文档/manifest 落位。
 - 产物：README.md r1 重写（原 42 行构建说明保留 §13）+ module.yaml
   （CONTRACT_READY，entrypoint=MISSING）+ 本段；ALG-COV-001=
-  docs/science/algorithms/PHASE2_COVERAGE.md（§2 逐公式行号锚 + §11.3
+  docs/science/algorithms/mosaic/PHASE2_COVERAGE.md（§2 逐公式行号锚 + §11.3
   DISP-COV-001..005 + §11.4 TEST-COV-DESIGN-001）；DATA-COV-001=
   DATA_SEMANTICS.md §19；API-COV-001=PUBLIC_API.md；registry 页
   docs/detail/registry/acsd.phase2.coverage.md 事实修订 + 矩阵行
   MOD-acsd-phase2-coverage 更新（SCI/ALG/SRC/TEST 转 Verified）。
 - SCI 层：零改动——SCI-P2-COV-001 指向既有 FROZEN 共享 SCI
-  （PHASE2_UPM.md §1 覆盖并集 / INTEGRATION.md §5 support「覆盖并集
+  （docs/science/sky/UPM.md §1 覆盖并集 /
+  docs/science/integration/INTEGRATION.md §5 support「覆盖并集
   保守下界」/ SCIENCE_SCOPE.md §处理链第 5 步），状态声明=
   PHASE2_COVERAGE.md §11.5（P1-WCS-DOC SCI-WCS-001=共享
   ASTROMETRY.md 先例）。
 - 合同红线（matrix 专项，显式负向条款）：coverage/support/validity
   三概念分离；**no use as implicit scientific weight**——union cell/
   n_tiles/覆盖帧数为几何登记量，禁入任何权重式（w_UPM 唯一冻结式
-  PHASE2_UPM.md §5，support 仅 eligibility 语义）。
+  docs/science/sky/UPM.md §3，support 仅 eligibility 语义）。
 - 关键缺陷登记（不改码，整改归 P2-COV-IMPL/INT）：DISP-COV-001
   "no inputs" 分支 status 不一致（:154-157）、002 frame_id 基名截断
   （:113-118）、003 空 filter 静默放行（:182/:186）、004
@@ -302,5 +303,6 @@ photometric scale、新 runtime I/O DLL。
   NIST 54 点算例复现 3 outliers、每步 α=0.05 实测校准 4.95%；kernel 侧纯高斯栈 G=1500 复跑
   k=1 → 3.47%、k=10 → 10.07%）——但 n=16/17 的**逐像素**路由下空假设错误率被 **k=10 级联**
   抬到 **11.36%**，干净面像素过拒 5.167%、样本过拒 2.5851%，142/6000 干净像素被剔满上限 10 个
-  （NIST 明说 n≥25 才准确；仓内 W_ESD_LT25 同义）。⇒ 偏离登记写进 docs/science/REJECTION.md §5：
+  （NIST 明说 n≥25 才准确；仓内 W_ESD_LT25 同义）。⇒ 偏离登记写进
+  docs/science/integration/REJECTION.md §5：
   WBPP 2.4.0+ 该档是 ESD，本表取 winsorized，依据是实测不是偏好。
