@@ -1,0 +1,134 @@
+{
+ "schema_version": "1",
+ "blocks": [
+  {
+   "name": "m42_t2_red",
+   "input_lights": [
+    "/workspace/Astro CS Database/testdata/M42_T2T3_mosaic_Flying_dutchman/T2/M1/M42_M1_T2_flying_dutchman-20251212@012404-300S-Red.fts",
+    "/workspace/Astro CS Database/testdata/M42_T2T3_mosaic_Flying_dutchman/T2/M1/M42_M1_T2_flying_dutchman-20251224@031410-300S-Red.fts",
+    "/workspace/Astro CS Database/testdata/M42_T2T3_mosaic_Flying_dutchman/T2/M2/M42_M2_T2_flying_dutchman-20251212@020002-300S-Red.fts",
+    "/workspace/Astro CS Database/testdata/M42_T2T3_mosaic_Flying_dutchman/T2/M2/M42_M2_T2_flying_dutchman-20251216@033550-300S-Red.fts",
+    "/workspace/Astro CS Database/testdata/M42_T2T3_mosaic_Flying_dutchman/T2/M2/M42_M2_T2_flying_dutchman-20251224@033141-300S-Red.fts",
+    "/workspace/Astro CS Database/testdata/M42_T2T3_mosaic_Flying_dutchman/T2/M2/M42_M2_T2_flying_dutchman-20251224@033733-300S-Red.fts",
+    "/workspace/Astro CS Database/testdata/M42_T2T3_mosaic_Flying_dutchman/T2/M3/M42_M3_T2_flying_dutchman-20251216@043245-300S-Red.fts",
+    "/workspace/Astro CS Database/testdata/M42_T2T3_mosaic_Flying_dutchman/T2/M3/M42_M3_T2_flying_dutchman-20251224@042543-300S-Red.fts",
+    "/workspace/Astro CS Database/testdata/M42_T2T3_mosaic_Flying_dutchman/T2/M4/M42_M4_T2_flying_dutchman-20251216@050117-300S-Red.fts",
+    "/workspace/Astro CS Database/testdata/M42_T2T3_mosaic_Flying_dutchman/T2/M4/M42_M4_T2_flying_dutchman-20251224@045919-300S-Red.fts",
+    "/workspace/Astro CS Database/testdata/M42_T2T3_mosaic_Flying_dutchman/T2/M4/M42_M4_T2_flying_dutchman-20251228@044805-300S-Red.fts",
+    "/workspace/Astro CS Database/testdata/M42_T2T3_mosaic_Flying_dutchman/T2/M5/M42_M5_T2_flying_dutchman-20251212@035959-300S-Red.fts",
+    "/workspace/Astro CS Database/testdata/M42_T2T3_mosaic_Flying_dutchman/T2/M5/M42_M5_T2_flying_dutchman-20251224@053804-300S-Red.fts",
+    "/workspace/Astro CS Database/testdata/M42_T2T3_mosaic_Flying_dutchman/T2/M5/M42_M5_T2_flying_dutchman-20260108@030531-300S-Red.fts",
+    "/workspace/Astro CS Database/testdata/M42_T2T3_mosaic_Flying_dutchman/T2/M6/M42_M6_T2_flying_dutchman-20251212@043619-300S-Red.fts",
+    "/workspace/Astro CS Database/testdata/M42_T2T3_mosaic_Flying_dutchman/T2/M6/M42_M6_T2_flying_dutchman-20251224@061438-300S-Red.fts"
+   ],
+   "master_bias": "/workspace/Astro CS Database/testdata/T2 calibration files/masterBias_BIN-1_4096x4096.xisf",
+   "master_dark": "/workspace/Astro CS Database/testdata/T2 calibration files/masterDark_BIN-1_4096x4096_EXPOSURE-600.00s.xisf",
+   "master_flat": "/workspace/Astro CS Database/testdata/T2 calibration files/masterFlat_BIN-1_4096x4096_FILTER-Red_mono.xisf",
+   "output_dir": "/workspace/Astro CS Database/run/PHOT-FIX/p1_rerun/t2",
+   "drizzle": {
+    "nested": 1,
+    "pixfrac": 0.8,
+    "precision_mode": 1
+   },
+   "filter_passband": "Astrodon E-series R",
+   "wcs": {
+    "init_source": "header_pointing",
+    "gaia_data_dir": "/workspace/Astro CS Database/gaia/GaiaDR3SP"
+   },
+   "photometry": {
+    "fit": {
+     "enabled": true,
+     "gaia_data_dir": "/workspace/Astro CS Database/gaia/GaiaDR3SP",
+     "filter": "Astrodon E-series R",
+     "filters_json": "/workspace/Astro CS Database/eng/packaging/config/filters.json"
+    }
+   },
+   "dark_optimization": true,
+   "dark_scale_factor": 0.5,
+   "master_flat_normalize": "median",
+   "master_units": {
+    "bias": "normalized",
+    "dark": "normalized",
+    "flat": "normalized"
+   },
+   "master_scale": {
+    "bias": 65535,
+    "dark": 65535,
+    "flat": 65535
+   }
+  },
+  {
+   "name": "m42_t3_red",
+   "input_lights": [
+    "/workspace/Astro CS Database/testdata/M42_T2T3_mosaic_Flying_dutchman/T3/M1/M42_M1_T3_flying_dutchman-20251126@041940-300S-Red.fts",
+    "/workspace/Astro CS Database/testdata/M42_T2T3_mosaic_Flying_dutchman/T3/M1/M42_M1_T3_flying_dutchman-20251127@042719-300S-Red.fts",
+    "/workspace/Astro CS Database/testdata/M42_T2T3_mosaic_Flying_dutchman/T3/M1/M42_M1_T3_flying_dutchman-20251128@043530-300S-Red.fts",
+    "/workspace/Astro CS Database/testdata/M42_T2T3_mosaic_Flying_dutchman/T3/M1/M42_M1_T3_flying_dutchman-20251211@013548-300S-Red.fts",
+    "/workspace/Astro CS Database/testdata/M42_T2T3_mosaic_Flying_dutchman/T3/M1/M42_M1_T3_flying_dutchman-20251212@021119-300S-Red.fts",
+    "/workspace/Astro CS Database/testdata/M42_T2T3_mosaic_Flying_dutchman/T3/M1/M42_M1_T3_flying_dutchman-20251213@021555-300S-Red.fts",
+    "/workspace/Astro CS Database/testdata/M42_T2T3_mosaic_Flying_dutchman/T3/M2/M42_M2_T3_flying_dutchman-20251126@044822-300S-Red.fts",
+    "/workspace/Astro CS Database/testdata/M42_T2T3_mosaic_Flying_dutchman/T3/M2/M42_M2_T3_flying_dutchman-20251128@050425-300S-Red.fts",
+    "/workspace/Astro CS Database/testdata/M42_T2T3_mosaic_Flying_dutchman/T3/M2/M42_M2_T3_flying_dutchman-20251213@024656-300S-Red.fts",
+    "/workspace/Astro CS Database/testdata/M42_T2T3_mosaic_Flying_dutchman/T3/M2/M42_M2_T3_flying_dutchman-20251226@043524-300S-Red.fts",
+    "/workspace/Astro CS Database/testdata/M42_T2T3_mosaic_Flying_dutchman/T3/M3/M42_M3_T3_flying_dutchman-20251126@053045-300S-Red.fts",
+    "/workspace/Astro CS Database/testdata/M42_T2T3_mosaic_Flying_dutchman/T3/M3/M42_M3_T3_flying_dutchman-20251128@054705-300S-Red.fts",
+    "/workspace/Astro CS Database/testdata/M42_T2T3_mosaic_Flying_dutchman/T3/M3/M42_M3_T3_flying_dutchman-20251211@025101-300S-Red.fts",
+    "/workspace/Astro CS Database/testdata/M42_T2T3_mosaic_Flying_dutchman/T3/M3/M42_M3_T3_flying_dutchman-20251213@032412-300S-Red.fts",
+    "/workspace/Astro CS Database/testdata/M42_T2T3_mosaic_Flying_dutchman/T3/M3/M42_M3_T3_flying_dutchman-20251213@033010-300S-Red.fts",
+    "/workspace/Astro CS Database/testdata/M42_T2T3_mosaic_Flying_dutchman/T3/M3/M42_M3_T3_flying_dutchman-20251226@053121-300S-Red.fts",
+    "/workspace/Astro CS Database/testdata/M42_T2T3_mosaic_Flying_dutchman/T3/M4/M42_M4_T3_flying_dutchman-20251126@060505-300S-Red.fts",
+    "/workspace/Astro CS Database/testdata/M42_T2T3_mosaic_Flying_dutchman/T3/M4/M42_M4_T3_flying_dutchman-20251128@062504-300S-Red.fts",
+    "/workspace/Astro CS Database/testdata/M42_T2T3_mosaic_Flying_dutchman/T3/M4/M42_M4_T3_flying_dutchman-20251211@032428-300S-Red.fts",
+    "/workspace/Astro CS Database/testdata/M42_T2T3_mosaic_Flying_dutchman/T3/M4/M42_M4_T3_flying_dutchman-20251212@035745-300S-Red.fts",
+    "/workspace/Astro CS Database/testdata/M42_T2T3_mosaic_Flying_dutchman/T3/M4/M42_M4_T3_flying_dutchman-20251213@041231-300S-Red.fts",
+    "/workspace/Astro CS Database/testdata/M42_T2T3_mosaic_Flying_dutchman/T3/M4/M42_M4_T3_flying_dutchman-20251228@040115-300S-Red.fts",
+    "/workspace/Astro CS Database/testdata/M42_T2T3_mosaic_Flying_dutchman/T3/M5/M42_M5_T3_flying_dutchman-20251127@065758-300S-Red.fts",
+    "/workspace/Astro CS Database/testdata/M42_T2T3_mosaic_Flying_dutchman/T3/M5/M42_M5_T3_flying_dutchman-20251128@070149-300S-Red.fts",
+    "/workspace/Astro CS Database/testdata/M42_T2T3_mosaic_Flying_dutchman/T3/M5/M42_M5_T3_flying_dutchman-20251211@040400-300S-Red.fts",
+    "/workspace/Astro CS Database/testdata/M42_T2T3_mosaic_Flying_dutchman/T3/M5/M42_M5_T3_flying_dutchman-20251213@045149-300S-Red.fts",
+    "/workspace/Astro CS Database/testdata/M42_T2T3_mosaic_Flying_dutchman/T3/M5/M42_M5_T3_flying_dutchman-20251228@043447-300S-Red.fts",
+    "/workspace/Astro CS Database/testdata/M42_T2T3_mosaic_Flying_dutchman/T3/M6/M42_M6_T3_flying_dutchman-20251126@072610-300S-Red.fts",
+    "/workspace/Astro CS Database/testdata/M42_T2T3_mosaic_Flying_dutchman/T3/M6/M42_M6_T3_flying_dutchman-20251127@073052-300S-Red.fts",
+    "/workspace/Astro CS Database/testdata/M42_T2T3_mosaic_Flying_dutchman/T3/M6/M42_M6_T3_flying_dutchman-20251128@074615-300S-Red.fts",
+    "/workspace/Astro CS Database/testdata/M42_T2T3_mosaic_Flying_dutchman/T3/M6/M42_M6_T3_flying_dutchman-20251211@044714-300S-Red.fts",
+    "/workspace/Astro CS Database/testdata/M42_T2T3_mosaic_Flying_dutchman/T3/M6/M42_M6_T3_flying_dutchman-20251213@053612-300S-Red.fts",
+    "/workspace/Astro CS Database/testdata/M42_T2T3_mosaic_Flying_dutchman/T3/M6/M42_M6_T3_flying_dutchman-20251228@051525-300S-Red.fts"
+   ],
+   "master_bias": "/workspace/Astro CS Database/testdata/T3 calibration files/masterBias_BIN-1_4096x4096.xisf",
+   "master_dark": "/workspace/Astro CS Database/testdata/T3 calibration files/masterDark_BIN-1_4096x4096_EXPOSURE-600.00s.xisf",
+   "master_flat": "/workspace/Astro CS Database/testdata/T3 calibration files/masterFlat_BIN-1_4096x4096_FILTER-Red_mono.xisf",
+   "output_dir": "/workspace/Astro CS Database/run/PHOT-FIX/p1_rerun/t3",
+   "drizzle": {
+    "nested": 1,
+    "pixfrac": 0.8,
+    "precision_mode": 1
+   },
+   "filter_passband": "Astrodon E-series R",
+   "wcs": {
+    "init_source": "header_pointing",
+    "gaia_data_dir": "/workspace/Astro CS Database/gaia/GaiaDR3SP"
+   },
+   "photometry": {
+    "fit": {
+     "enabled": true,
+     "gaia_data_dir": "/workspace/Astro CS Database/gaia/GaiaDR3SP",
+     "filter": "Astrodon E-series R",
+     "filters_json": "/workspace/Astro CS Database/eng/packaging/config/filters.json"
+    }
+   },
+   "dark_optimization": true,
+   "dark_scale_factor": 0.5,
+   "master_flat_normalize": "median",
+   "master_units": {
+    "bias": "normalized",
+    "dark": "normalized",
+    "flat": "normalized"
+   },
+   "master_scale": {
+    "bias": 65535,
+    "dark": 65535,
+    "flat": 65535
+   }
+  }
+ ]
+}
