@@ -63,7 +63,12 @@ say("      p2_rejection.json entry=%r plan=%s" % (rej.get("entry"), json.dumps(r
 
 say()
 say("  Phase1 input frames carry NO variance/ivar product (so mode-2 has no source):")
-p1 = json.load(open(os.path.join(L4, "norm/t2_m1_red/M42_M1_T2_flying_dutchman-20251212_012404-300S-Red/p1_final.json")))
+# 帧级状态从**产品清单**读（p1_products.json 的 frames[]，按 frame_id 取）:
+# 产品清单不再指向逐帧 p1_final.json（后者属阶段一中间产物）。帧身份拼写注意:
+# frame_id 用 '_'（p1_frame_key 白名单派生），而平面件基名保原样含 '@'。
+_FK = "M42_M1_T2_flying_dutchman-20251212_012404-300S-Red"
+_prods = json.load(open(os.path.join(L4, "norm/t2_m1_red/p1_products.json")))
+p1 = next((f for f in _prods.get("frames", []) if f.get("frame_id") == _FK), {})
 say("      n_ivar_tiles=%r n_variance_tiles=%r products=%r uncertainty_available=%r"
     % (p1.get("n_ivar_tiles"), p1.get("n_variance_tiles"), p1.get("products"), p1.get("uncertainty_available")))
 
