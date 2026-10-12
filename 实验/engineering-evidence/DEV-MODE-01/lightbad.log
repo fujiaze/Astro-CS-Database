@@ -1,0 +1,29 @@
+  [correct] blocks[0] 'm42_t2_red' output_dir = /tmp/e1check/out_light，input_lights 条目数 = 1
+  [correct] blocks[0].master_bias = /workspace/Astro CS Database/testdata/T2 calibration files/masterBias_BIN-1_4096x4096.xisf
+  [correct] blocks[0].master_dark = /workspace/Astro CS Database/testdata/T2 calibration files/masterDark_BIN-1_4096x4096_EXPOSURE-600.00s.xisf
+  [correct] blocks[0].master_flat = /workspace/Astro CS Database/testdata/T2 calibration files/masterFlat_BIN-1_4096x4096_FILTER-Red_mono.xisf
+  [correct] 磁盘预估：output_dir = /tmp/e1check/out_light 可用 182597 MiB；预估需求下限 256 MiB（输入 4 文件/0 目录）
+{"event_id":"evt-0e4cebdaed90-0","kind":"stage_start","message":"stage started","phase":"normalize","run_id":"0e4cebdaed90","schema_version":"1","sequence":0,"severity":"info","stage":"phase1_session","timestamp_utc":"2026-10-12T08:47:18Z"}
+[2026-10-12T08:47:18Z] seq=0 info stage_start (normalize/phase1_session)：stage started
+{"completed":0,"eta_seconds":null,"event_id":"evt-0e4cebdaed90-1","kind":"progress","message":"progress update","phase":"normalize","rate":null,"run_id":"0e4cebdaed90","schema_version":"1","sequence":1,"severity":"info","stage":"progress","timestamp_utc":"2026-10-12T08:47:19Z","total":1,"unit":"phases"}
+[2026-10-12T08:47:19Z] seq=1 info progress (normalize/progress)：progress update
+session run: cpu_profile source=user-data-fallback path=/workspace/.local/share/ACSD/cpu_profile.json
+acsd: cpu profile invalid: schema != acsd.cpu-profile/v2 — rerun 'acsd benchmark cpu'
+acsd: cpu_profile '/workspace/.local/share/ACSD/cpu_profile.json' rejected (rc=5) — conservative baseline
+session run: memory budget=16882410905 B (available=17770958848 B, percent=95, source=probe)
+session run: backend=acsd.cpu.baseline provider=baseline (route table: 0/12 kernels on variant provider)
+session run: memory pressure ledger=/tmp/e1check/out_light/memory_pressure_ledger.jsonl
+[2026-10-12 16:47:19][INFO][XISF] Reading header only: /workspace/Astro CS Database/testdata/T2 calibration files/masterBias_BIN-1_4096x4096.xisf
+[2026-10-12 16:47:19][INFO][XISF] Reading header only: /workspace/Astro CS Database/testdata/T2 calibration files/masterDark_BIN-1_4096x4096_EXPOSURE-600.00s.xisf
+[2026-10-12 16:47:19][INFO][XISF] Reading header only: /workspace/Astro CS Database/testdata/T2 calibration files/masterFlat_BIN-1_4096x4096_FILTER-Red_mono.xisf
+[2026-10-12 16:47:19][INFO][FITS] Reading header only: /tmp/e1check/masterFlat_bad_4096x4112.fits
+[2026-10-12 16:47:19][INFO][XISF] Reading header only: /workspace/Astro CS Database/testdata/T2 calibration files/masterBias_BIN-1_4096x4096.xisf
+{"completed":1,"eta_seconds":null,"event_id":"evt-0e4cebdaed90-2","kind":"progress","message":"progress update","phase":"normalize","rate":6.476351353692465,"run_id":"0e4cebdaed90","schema_version":"1","sequence":2,"severity":"info","stage":"progress","timestamp_utc":"2026-10-12T08:47:19Z","total":1,"unit":"phases"}
+[2026-10-12T08:47:19Z] seq=2 info progress (normalize/progress)：progress update
+{"event_id":"evt-0e4cebdaed90-3","kind":"stage_end","message":"stage finished","phase":"normalize","run_id":"0e4cebdaed90","schema_version":"1","sequence":3,"severity":"info","stage":"phase1_session","timestamp_utc":"2026-10-12T08:47:19Z"}
+[2026-10-12T08:47:19Z] seq=3 info stage_end (normalize/phase1_session)：stage finished
+{"event_id":"evt-0e4cebdaed90-4","kind":"artifact","message":"run manifest written","path":"/tmp/e1check/out_light/acsd_run_0e4cebdaed90.json","phase":"normalize","role":"run_manifest","run_id":"0e4cebdaed90","schema_version":"1","sequence":4,"severity":"info","sha256":"7df8c774023cd6772ec4071aa61687f695f20a5ca48bbb64c8ee3fc7f2c97632","size_bytes":1905,"stage":"manifest","timestamp_utc":"2026-10-12T08:47:19Z"}
+[2026-10-12T08:47:19Z] seq=4 info artifact (normalize/manifest)：run manifest written
+acsd: phase1 failed: node cal failed: prerun: light vs master size mismatch: light '/tmp/e1check/masterFlat_bad_4096x4112.fits' is 4096x4112 but master 'master_bias' (/workspace/Astro CS Database/testdata/T2 calibration f
+{"event_id":"evt-0e4cebdaed90-5","exit_code":3,"kind":"final","message":"node cal failed: prerun: light vs master size mismatch: light '<redacted>' is 4096x4112 but master 'master_bias' (/workspace/Astro CS Database/testdata/T2 calibration files/masterBias_BIN-1_4096x4096.xisf) is 4096x4096","phase":"normalize","run_id":"0e4cebdaed90","run_manifest":"/tmp/e1check/out_light/acsd_run_0e4cebdaed90.json","schema_version":"1","sequence":5,"severity":"error","stage":"n/a","status":"phase1_failed","summary":"node cal failed: prerun: light vs master size mismatch: light '<redacted>' is 4096x4112 but master 'master_bias' (/workspace/Astro CS Database/testdata/T2 calibration files/masterBias_BIN-1_4096x4096.xisf) is 4096x4096","timestamp_utc":"2026-10-12T08:47:19Z"}
+[2026-10-12T08:47:19Z] seq=5 error final (normalize/n/a)：node cal failed: prerun: light vs master size mismatch: light '<redacted>' is 4096x4112 but master 'master_bias' (/workspace/Astro CS Database/testdata/T2 calibration files/masterBias_BIN-1_4096x4096.xisf) is 4096x4096（exit_code=3）
