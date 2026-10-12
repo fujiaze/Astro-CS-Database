@@ -203,3 +203,10 @@ run/GOVERN-08/*
 !run/GOVERN-08/审核包-R2/
 run/GOVERN-08/审核包-R2/归档快照/
 run/GOVERN-08/审核包-R2/_work/
+
+# 实验单元：大体积二进制中间产物与交付包不入库（过程文档、脚本与 JSON 证据入库）
+实验/**/*.fits
+实验/**/*.fts
+实验/**/*.npy
+实验/**/*.tar.gz
+实验/**/*.zip
