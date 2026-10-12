@@ -66,8 +66,15 @@ set(ACSD_INSTALL_CONFIG_SUBDIR "config/response_curves")
 
 # ── 响应曲线库（终态形态：一文件一曲线，每条自带 provenance）──
 # 源目录 = 仓内 config/response_curves/（与运行期相对路径同名）；整目录装到
-# <prefix>/config/response_curves/。旧聚合文件 filters.json / qe_curves.json 已退役、
-# 不再随包发布（保留在 lib/algorithms/photometry/data/response_curves/ 供追溯）。
+# <prefix>/config/response_curves/。旧聚合文件 filters.json / qe_curves.json **已删除**
+# （不再随包发布，也不留在源树）；其承载过而仍需可追溯的事实登记在
+# eng/packaging/config/config_registry.json 的 filter_name_policy.library_facts。
+#
+# ⚠ 构建期陷阱（删除被 git 跟踪的文件后必读）：CMakeLists 的构建期指纹规则
+# （build_stamp_generated.h）其 DEPENDS 来自 **configure 时由 git ls-files 派生的显式
+# 文件清单**。因此**删除/重命名任何被 git 跟踪的文件后，已存在的构建树必须重新 configure**
+# （cmake -S . -B <build>），否则构建报「没有规则可制作目标 …（已删除的文件）」而失败；
+# **全新检出不受影响**。该失败不代表改动弄坏了构建，先重新 configure 再判断。
 install(DIRECTORY
     ${CMAKE_CURRENT_SOURCE_DIR}/config/response_curves/
   DESTINATION ${ACSD_INSTALL_CONFIG_SUBDIR}
