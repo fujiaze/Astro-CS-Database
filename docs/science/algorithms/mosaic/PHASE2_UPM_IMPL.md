@@ -89,7 +89,7 @@
 | p2_upm_save | :137-137 | :1383-1504 | 稀疏 json 原子写（aio_upm_write_sparse） |
 | p2_upm_open | :138-138 | :1506-1801 | 强校验重开（format/frames/controls/C） |
 | p2_upm_info | :139-139 | :1803-1808 | P2ModelInfo 快照（hash/control_count） |
-| p2_upm_convergence | :154-155 | :1893-1905 | 迭代/目标/收敛**只读**访问器（不改 P2ModelInfo 冻结布局） |
+| p2_upm_convergence | :171-172 | :2703-2715 | 迭代/目标/收敛**只读**访问器（不改 P2ModelInfo 冻结布局） |
 | p2_upm_calibrate_block | :158-164 | :1907-1941 | 逐块校准（唯一运行时 apply 面） |
 | p2_upm_evaluate_c | :167-168 | :1943-1963 | 直接求值 C(frame,leaf) |
 | p2_upm_raw_weight | :179-181 | :1966-1997 | raw 权重单一实现（production/ablation） |
@@ -209,7 +209,7 @@ C 更新（固定 M，逐帧 CG）: cg_solve_frame (:676-733, max_cg=200 :680)
   图平滑 λs·Σ_{k~l}(C_ik−C_il)² + 弱零锚 λ0·Σ C_ik²
 objective += raw_w·huber_rho(z)                      # :1023-1026
 收敛: tol_M/tol_C 由 tolerance × (tolerance_relative ? max(scale_obs,1) : 1) 决定
-      max_dM < tol_M && max_dC < tol_C → converged=1  # :1034-1050（详见 §13）
+      max_dM < tol_M && max_dC < tol_C → converged=1  # :1649-1671（详见 §13）
 ```
 
 **F4 内核求值 = raw − C(frame, leaf)**（C 场 = centered 双线性 8×8）——这是**内核**的求值口径；**生产扣除**走信号面 `δ_k = δ_poly,k + F_k`（见采样算法分册 §5.11），本内核的分块 C 场不在生产扣除链上：
@@ -358,7 +358,7 @@ dense/sparse 等价门: 1e-12（UPM_SOLVER.md [S-1]「离散公式」一节冻�
 | p2_upm_raw_weight | :179-181 | ok / 参数错 / production 缺 control_ivar | :1650-1681；语义注释 upm.h:138-145 |
 | p2_upm_calibrate_block | :158-164 | ok / 参数 null 或 **未知 frame_id（显式失败禁回退 frame 0）** | :1591-1625 |
 | p2_upm_evaluate_c | :167-168 | **未知 frame_id 与 null model 一律返回 NaN**（显式不可用；0.0 是 gauge 参考帧的合法 C 值，禁作哨兵） | :1627-1647 |
-| p2_upm_convergence | :154-155 | ok / null model（不写任何出参；`converged` 为**状态枚举** `0=max_iter / 1=converged / 2=stalled / 3=invalid`，旧模型文件未记录读作 0） | :1577-1589 |
+| p2_upm_convergence | :171-172 | ok / null model（不写任何出参；`converged` 为**状态枚举** `0=max_iter / 1=converged / 2=stalled / 3=invalid`，旧模型文件未记录读作 0） | :2703-2715 |
 | p2_upm_dense_read_block | :208-215 | ok / 参数 null·未知 frame_id·io/parse / **stale-cache（source hash 不匹配）** | :2201-2216；语义注释 upm.h:176-177 |
 | p2_upm_materialize_dense_n | :219-220 | ok / null、tile_set 空、aio 失败 | :1756-1885 |
 | p2_upm_component_gauges | :192-194 | ok / null model / ref_frame 容量不足 | :1735-1747 |
@@ -569,9 +569,9 @@ PHASE2_SAMPLER.md 承载），本域只引用 control_ivar 消费面，不改不
 
 ## 收敛容差与报告字段（现行登记）
 
-- **收敛配置面只有两个字段**：`tolerance`（默认 1e-6）与 `tolerance_relative`（默认 0）。**不存在** `tol_step`/`tol_obj`/`tolerance_obj` 字段（`upm.h:77-81/:113`、`upm.cpp:1013-1027`）。
+- **收敛配置面只有两个字段**：`tolerance`（默认 1e-6）与 `tolerance_relative`（默认 0）。**不存在** `tol_step`/`tol_obj`/`tolerance_obj` 字段（`upm.h:90-95/:127`、`upm.cpp:643/:656/:677/:691`；JSON 反序列化 `:2405/:2412`）。
 - **判据（逐位）**：`tolerance_relative=0` ⇒ `max_dM < tolerance ∧ max_dC < tolerance`；`tolerance_relative=1` ⇒ `max_dM < tolerance·max(scale_obs,1) ∧ max_dC < tolerance·max(scale_obs,1)`，`scale_obs = median(|value|)`。目标相对改善 `|Δobj|/max(|obj_old|,1e-300) < 1e-12` 连续 5 轮 ⇒ `converged=2`（stalled）；目标非有限 ⇒ `converged=3`。
-- **`converged` 状态枚举**：`0=max_iter / 1=converged / 2=stalled / 3=invalid`（`upm.cpp:1028-1052`，只读访问器 `p2_upm_convergence` `:1577-1589`；模型文件未记录读作 0 = 未证明收敛）。
-- **求解入口四参数须登记**：`gs_damping`、`m_full_frame`、`final_gauge`、`tolerance_relative`（缺省取编译期回填值；内核现存装配面 = 会话通道，`upm.cpp:266-271/:287-292`）。
+- **`converged` 状态枚举**：`0=max_iter / 1=converged / 2=stalled / 3=invalid`（`upm.cpp:1649-1671`，只读访问器 `p2_upm_convergence` `:2703-2715`；模型文件未记录读作 0 = 未证明收敛）。
+- **求解入口四参数须登记**：`gs_damping`、`m_full_frame`、`final_gauge`、`tolerance_relative`（缺省取编译期回填值；内核现存装配面 = 会话通道，`upm.cpp:653-656` 缺省回填、`:688-691` 归一化；声明 `upm.h:115/:118/:122/:127`）。
 - **参考通量报告字段**：`reference_flux_spread_rel` / `reference_flux_spread_gate` / `reference_flux_spread_noncommon`。逐帧 `F_ref,k` 的配对性只在**同一帧内**成立；**组间一致不是门**。
 
