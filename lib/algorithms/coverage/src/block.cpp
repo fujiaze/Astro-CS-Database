@@ -36,7 +36,7 @@ int p2_block_plan(const P2BlockPlannerInput* in, P2BlockPlan* out) {
     // safety_factor **无默认**：非有限 / ≤0 / >1 一律不可行。
     // 为什么不给隐式兜底：0.75 在本仓的唯一在册出处是调用点
     // lib/algorithms/coverage/tools/stage2.cpp（tile 级与 tile 循环各一处
-    // 都显式写 0.75）与 docs/science/algorithms/PHASE2_MOSAIC_WRITE.md 对
+    // 都显式写 0.75）与 docs/science/algorithms/mosaic/PHASE2_MOSAIC_WRITE.md 对
     // 同一字面量的登记——两处都只是**登记**不是推导；而峰值公式的每一项
     // 都来自 N_B / 像素数 / 每样本字节三类输入，没有任何一项能定出「余量」，
     // 它属**需标定的工程参数**（给公式未建模的运行期分配留份额），不能由

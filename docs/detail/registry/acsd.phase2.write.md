@@ -1,10 +1,11 @@
 # 模块 acsd.p2.hips_writer（MOD-acsd-phase2-write）
 
 > 上游：`docs/ACSD_DESIGN.md`「模块与 ABI」一节与「I/O 与原子产品」一节
-> 科学正本：docs/science/algorithms/PHASE2_MOSAIC_WRITE.md（ALG-P2-HIPS-001..004；
+> 科学正本：docs/science/algorithms/mosaic/PHASE2_MOSAIC_WRITE.md（ALG-P2-HIPS-001..004；
 > 「四概念分离」、测试设计与冻结容差三节）
 > 共享 FROZEN SCI（零改动）：docs/science/sky/UPM.md（`w_UPM`唯一冻结式一节）、
-> docs/science/INTEGRATION.md（signal / sup_max）、docs/science/REJECTION.md（排异判据）
+> docs/science/integration/INTEGRATION.md（signal / sup_max）、
+> docs/science/integration/REJECTION.md（排异判据）
 > 数据正本：docs/detail/registry/acsd.phase2.write.md（DATA-P2-HIPS 端口表，本页输入输出端口表）
 > API 正本：docs/engineering/api/PUBLIC_API.md（API-P2-HIPS-001，Phase2 mosaic write 节）
 > I/O：docs/detail/infrastructure/aio.md（IO-002 读合同、IO-003 原子发布）

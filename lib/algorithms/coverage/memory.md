@@ -323,11 +323,17 @@ photometric scale、新 runtime I/O DLL。
   （节点间距必须由输入自适应导出）的现行正本 =
   `docs/science/sky/UPM.md`「物理模型」一节。处置：同上。
 - **无承载的文档名/节号**（本模块注释内仍在用，指向的对象不在树内）：
-  `11_MODULE_SOURCE_TEST_STANDARD.md`（`hips_p2/module.yaml:10`；
-  `docs/engineering/standards/` 十项标准内无此件）；节号 `§7a`
-  （`src/sky_plane.cpp` 11 处、`include/astro/phase2/sky_plane.h` 9 处、
-  `include/astro/phase2/stage2_common.h` 1 处；`docs/` 内无任何文档带该节号）。
-  处置：只登记，不改名、不删注。
+  `11_MODULE_SOURCE_TEST_STANDARD.md`（`module.yaml:9`、`hips_p2/module.yaml:10`）、
+  `ENGINEERING_SPEC.md`、`BACKGROUND_SAMPLER_SPEC.md`、`PSF_SIGNAL_WEIGHT.md`、
+  `ASYNC_IO_CONTRACT.md`、`SCIENCE_FREEZE.md`、`ERROR_HANDLING_STANDARD.md`
+  ——以上裸文件名在全仓（排除 `run/` 历史树）均无活正本。
+  节号 `§7a`：本模块 `src/sky_plane.cpp` / `include/astro/phase2/sky_plane.h` /
+  `include/astro/phase2/stage2_common.h` 三文件内已全部换成真实节名锚
+  （`docs/science/sky/UPM.md`「物理模型」/「公式与推导」一节）；
+  仓内其余 `§7a` 仍在 `lib/infrastructure/scheduler/src/module_adapters.cpp`（20 处）、
+  `lib/infrastructure/pipeline/module_ports.registry.json`（1 处）、
+  `lib/algorithms/coverage/tools/stage2.cpp`（2 处）、
+  `lib/algorithms/coverage/src/upm.cpp`（1 处）。处置：只登记，不改名、不删注。
 - **实验单元指针缺失**：`src/sky_plane.cpp:499` 引
   `实验/additive-sky-seamless/docs/D1-fill-adjudication.md`、
   `include/astro/phase2/sky_plane.h:418` 引同目录 `D3-D5-adjudication.md`；

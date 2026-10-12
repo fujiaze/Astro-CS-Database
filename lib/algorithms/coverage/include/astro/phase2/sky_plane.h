@@ -234,7 +234,8 @@ P2_API int p2_star_mask_caps_gaia_halo(const double* ra_deg, const double* dec_d
 //   节点间距 ≤ (该产品实际约束帧间改正量的最小尺度) / 2；
 //   对「帧间加性天光差」这一目标量，该尺度是**重叠带宽度**与**指向间距**中的较小者。
 //
-// 为什么不能取标定常数：节点间距是 B_ref **表示能力的唯一决定量**（§7a 首条），
+// 为什么不能取标定常数：节点间距是 B_ref **表示能力的唯一决定量**
+// （docs/science/sky/UPM.md「物理模型」一节 首条），
 // 而「约束 δ_k 的最小尺度」是**逐产品**由输入几何决定的。取固定值会在几何不同的
 // 产品上要么粗到不可表示（M42 实测：1.0° vs 需要 0.075°，见 run/UPM-NODE-ADAPT-01），
 // 要么细到欠定。
@@ -263,7 +264,8 @@ typedef struct {
     double upper_deg;                 // 规则 1 上界 = constraining_scale_deg / 2
     double lower_deg;                 // 下界 = 数据自身分辨率极限 = max(sample_pitch_deg, 像素角尺度)
     double node_spacing_deg;          // 导出节点间距（= upper_deg；自适应从它向 lower_deg 细化）
-    double representable_scale_deg;   // 2·h：B_ref 可表示的最小尺度（§7a）
+    double representable_scale_deg;   // 2·h：B_ref 可表示的最小尺度
+                                      // （docs/science/sky/UPM.md「物理模型」一节）
     double pixel_scale_deg;           // pixel_scale_arcsec / 3600（供调用方复核换算）
     double node_spacing_px;           // h 换算到源像素：h_deg·3600 / pixel_scale_arcsec
     double representable_scale_px;    // 2h 的源像素数
@@ -287,7 +289,8 @@ P2_API int p2_sky_plane_derive_node_spacing(const P2SkyPlaneGeometry* geom,
 typedef struct {
     int    spline_degree;         // B_ref 样条阶数：1（双线性）或 3（双三次）；默认 1
     // B_ref 节点间距（切平面角度，度）。
-    //   >0：调用方显式给定（**不再有默认标定值**，§7a 禁止配置里留「默认节点间距」）；
+    //   >0：调用方显式给定（**不再有默认标定值**，
+    //       docs/science/sky/UPM.md「物理模型」一节 禁止配置里留「默认节点间距」）；
     //   <=0：未显式给出 ⇒ 由 geometry 字段经 p2_sky_plane_derive_node_spacing 导出；
     //        几何量缺失 ⇒ p2_sky_plane_build 返回 P2_SKY_PLANE_GEOMETRY_REQUIRED
     //        （**显式失败**，禁止回退常数）。
@@ -313,7 +316,8 @@ typedef struct {
     // 默认 1e-10 = FZ-AP2S-RANK-RTOL（与 UPM/GLS 侧**同一个符号、同一个值、
     // 同一个实现**）。它由浮点精度给出（地板 = max(m,n)·eps），不是按数据集
     // 标定的物理常数——见 astro/phase2/identifiability.h 的论证。
-    // 已退休：原 kappa_max 绝对常数（1e8）与 κ(H_solve) 门控口径（§7a 规则 4）。
+    // kappa_max 绝对常数（1e8）与 κ(H_solve) 门控口径均**不属阈值面**
+    // （docs/science/sky/UPM.md「公式与推导」一节）。
     double rank_rtol;             // 默认 1e-10（FZ-AP2S-RANK-RTOL）
     // 诊断（审计用，默认 0 = 不保留，零内存代价）：置 1 时模型保留本次构建的
     // 列均衡**数据信息矩阵** H_red 与粗糙度算子 P = DᵀD，供
@@ -337,7 +341,8 @@ typedef struct {
 } P2SkyPlaneConfig;
 
 // ---------------------------------------------------------------------------
-// 2b. 节点间距自适应重试（§7a「节点间距必须进入自适应重试回路」）
+// 2b. 节点间距自适应重试
+// （docs/science/sky/UPM.md「物理模型」一节「节点间距必须进入自适应重试回路」）
 // ---------------------------------------------------------------------------
 //
 // **唯一旋钮 = 节点间距 h；唯一判据 = 相对有效秩**（负责人原则①：不得多路径）。
@@ -350,7 +355,8 @@ typedef struct {
 //   ② 一旦把 λ 归一到求解系统自身尺度，它就**真的**能压 κ——正因为如此它不能进判决：
 //      κ(H_red + λP) 随 λ→∞ 有上界 →1，在 H_solve 上设门等于恒真门
 //      （Hansen《Regularization Tools》v4.1 手册 §1 第 2 条、§2.7.3）；
-//   ③ §7a:193-195 禁止用强平滑掩盖不可表示分量，而 λ 提升正是这件事。
+//   ③ docs/science/sky/UPM.md「物理模型」一节 禁止用强平滑掩盖不可表示分量，
+//      而 λ 提升正是这件事。
 // λ 只剩一个**派生**的数值角色：λ_eff = τ·mean(diag(H_red))，即「判据自己的分辨率
 // 下限」——低于 τ 的方向按定义不可分辨，故把谱底垫到 τ·λ_max 是无损的数值正则化，
 // 由判据派生、无自由参数（task 选项 (a)）。它**不参与**判决（判决只看 H_red）。
@@ -384,7 +390,8 @@ typedef struct {
 enum { P2_SKY_ADAPT_MAX_ATTEMPTS = 12 };
 
 // 自适应回路的完整 provenance。n_node_refinements>0 或 n_node_coarsenings>0
-// 即「节点间距自适应确实被触发过」（§7a：无触发记录的路径视为未实现）。
+// 即「节点间距自适应确实被触发过」
+// （docs/science/sky/UPM.md「物理模型」一节：无触发记录的路径视为未实现）。
 typedef struct {
     std::int32_t n_attempts;
     std::int32_t n_node_refinements;      // 细化次数
@@ -500,7 +507,8 @@ enum {
     P2_SKY_PLANE_NONFINITE_SOLUTION  = 8,
     P2_SKY_PLANE_IO_ERROR            = 9,
     // 未给出 node_spacing_deg 且无法由输入几何导出（几何量缺失/不受支持）。
-    // **显式失败**：§7a 禁止回退到「默认节点间距」标定常数。
+    // **显式失败**：docs/science/sky/UPM.md「物理模型」一节 禁止回退到
+    // 「默认节点间距」标定常数。
     P2_SKY_PLANE_GEOMETRY_REQUIRED   = 10
 };
 
@@ -524,7 +532,8 @@ P2_API int p2_sky_plane_build(const P2SkySample* samples, std::uint64_t n,
                               const P2SkyPlaneConfig* cfg, void** out_model,
                               char* err, std::size_t err_size);
 
-// 带**节点间距自适应**的联合拟合（§7a「节点间距必须进入自适应重试回路」）。
+// 带**节点间距自适应**的联合拟合
+// （docs/science/sky/UPM.md「物理模型」一节「节点间距必须进入自适应重试回路」）。
 // 搜索区间由输入几何给（上界 = 规则 1 的值，下界 = 数据自身分辨率极限），
 // 起点默认取上界（在规则内最粗 ⇒ 条件数最好），按表示收敛判据向下细化。
 // cfg->geometry 必须有效；否则返回 P2_SKY_PLANE_GEOMETRY_REQUIRED。

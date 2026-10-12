@@ -1,12 +1,12 @@
 // lib/algorithms/coverage/src/rejection.cpp — Phase2 Rejection Framework CPU reference
 //
-// 权威 = docs/science/REJECTION.md 与 docs/science/algorithms/PHASE2_REJECTION.md：
+// 权威 = docs/science/integration/REJECTION.md 与 docs/science/algorithms/mosaic/PHASE2_REJECTION.md：
 // - 输入：UPM-calibrated 样本栈 values[]/valid[]/support[]/weights[]/quality[]；
 // - 输出 accepted mask + low/high 计数 + 迭代数 + status。
 // - 排异阈值/迭代冻结锚点 SCI-REJ-*/ALG-REJ-001..008：
 // sigma/winsorized/averaged 4.0/3.0/8、linear_fit 5.0/3.5/8、ESD alpha 0.05/max 10、
-// percentile 0.2/0.1、minmax 1/1/4 等与 docs/science/REJECTION.md、
-// docs/science/algorithms/PHASE2_REJECTION.md 一致（见本文件 p2_reject_plan_resolve）；
+// percentile 0.2/0.1、minmax 1/1/4 等与 docs/science/integration/REJECTION.md、
+// docs/science/algorithms/mosaic/PHASE2_REJECTION.md 一致（见本文件 p2_reject_plan_resolve）；
 // 本文件为阈值/迭代权威实现，禁止阈值漂移。
 #include "astro/phase2/rejection.h"
 
@@ -993,7 +993,7 @@ int method_minimum_n(int method) {
         case P2_REJECT_PERCENTILE: return 2;
         case P2_REJECT_MINMAX: return 3;  // 固定删 low+high 后须 >= min_kept
         // n=2 档：至少 2 个候选才有"对照"意义；n=1 单帧无排异
-        // （docs/science/REJECTION.md §1 非目标）。
+        // （docs/science/integration/REJECTION.md §1 非目标）。
         case P2_REJECT_EXTREME_VALUE_PRIOR_SIGMA: return 2;
         default: return 0;
     }
@@ -1109,7 +1109,7 @@ const char* p2_rejection_semantic_id(int method) {
 // n < 6 → PercentileClip；6 ≤ n ≤ 15（或 BIAS/DARK）→ WinsorizedSigmaClip；
 // n > 15 → Rejection_ESD。**本表 n ≥ 16 也取 winsorized_sigma**，与 WBPP 2.4.0+
 // 该分支不同（逐像素粒度是 ACSD 自定扩展，偏离依据见
-// docs/science/REJECTION.md §5；WBPP 按帧组 activeFrames().length 路由，无逐像素行为）。
+// docs/science/integration/REJECTION.md §5；WBPP 按帧组 activeFrames().length 路由，无逐像素行为）。
 //
 // ╔════════════════════════════════════════════════════════════════════╗
 // ║ **唯一显式决策点**（**只改这一处**）                                 ║
@@ -1117,7 +1117,7 @@ const char* p2_rejection_semantic_id(int method) {
 // 小 N 档位科学问题 **已定案**：
 //   「N < 6 → percentile 档的**下界是否含 N ≤ 3**？」⇒ **不含**（保守读法）。
 //   - PixelSmallNPolicy::kConservativeNone（**定案值，当前生效**）：
-//     1 ≤ N ≤ 3 → none（不排异 + 直接加权积分；依据 docs/science/REJECTION.md §16
+//     1 ≤ N ≤ 3 → none（不排异 + 直接加权积分；依据 docs/science/integration/REJECTION.md §16
 //     「小 N 档位取舍的依据」：低/中电平下强制 percentile 有损 ⇒ 该段取保守读法）。
 //     依据：三数据面实验 + 6 轮独立复核 + 对抗轮（判据冻结 sha256 bd8982d6…）：
 //     低/中电平（≲2700 e⁻/pix）下强制 percentile 有损/无益/不可用（N=3 ρ−1 达
@@ -1156,7 +1156,7 @@ static int acsd_n_map_method(std::uint32_t n) {
         return P2_REJECT_NONE;
     if (n < 6u) return P2_REJECT_PERCENTILE;
     if (n <= 15u) return P2_REJECT_WINSORIZED_SIGMA;
-    // M3（依据 docs/science/REJECTION.md §5「n ≥ 6 → winsorized_sigma」）：
+    // M3（依据 docs/science/integration/REJECTION.md §5「n ≥ 6 → winsorized_sigma」）：
     // n ≥ 16 由 linear_fit 改投 winsorized_sigma。
     // 实测依据（生产 kernel 受控评估）：
     // 干净像素过拒 12.200% → 0.067%、显著点漏检 3.92% → 1.44%、
@@ -1277,7 +1277,7 @@ int p2_reject_plan_resolve(const P2RejectionPlanRequest* req,
             // bestRejectionMethod engine.js:1421-1429；n>15 档本表取
             // linear_fit，WBPP 2.4.0+ 该档为 ESD。**M3 后与生产档不再同表**：
             // 生产档 acsd_adaptive_pixel 的 n≥16 已改投 winsorized_sigma，
-            // 本分支不动，见头文件与 docs/science/REJECTION.md §5）
+            // 本分支不动，见头文件与 docs/science/integration/REJECTION.md §5）
             if (n < 6u) method = P2_REJECT_PERCENTILE;
             else if (n <= 15u) method = P2_REJECT_WINSORIZED_SIGMA;
             else method = P2_REJECT_LINEAR_FIT;
