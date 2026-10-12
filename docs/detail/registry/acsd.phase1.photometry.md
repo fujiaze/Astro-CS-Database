@@ -60,6 +60,40 @@ dex 残差 + `sigma_mag` / `sigma_cal_rel`。`a_k` 随产品输出，供 Phase2 
 （生产入口即 `_f64` 变体）；JSON 显式指定位深时以 JSON 为准。像素面属**稠密大面**
 （单精度），定标标度施加到该面时按面自身的位深落盘，两类面的精度归属不得互相代入。
 
+### 帧级 Gaia XP 零点读数键
+
+`p1_phot.json` 的逐帧标度证据分两段：`photscale_fit`（对全部有标度记录的帧无条件
+落盘的拟合证据表）与 `photscale_detail`（**已施加**帧的标度证据，与顶层
+`photscales` / `photoapplied_artifacts` 同帧集合）。两段都带帧级 Gaia XP 合成零点
+读数，取值直接来自帧级拟合结果的既有字段，不重算、不改拟合；`photscale_detail` 与
+`photscale_fit` 的同名键同源同值。五个键的语义、单位、参考与来源如下。
+
+| 键 | 单位 | 语义 | 来源 |
+|---|---|---|---|
+| `zero_point_mag` | mag | 本帧合成零点 `ZP_syn`，满足 `mag = ZP_syn − 2.5·log10(F_syn)`；`F_syn` 为 Gaia DR3 XP 绝对谱经本帧滤光片与量子效率曲线正向合成的通量 | 帧级拟合结果的 `ZP_syn` 字段，直接落盘 |
+| `zero_point_valid` | 1（布尔） | 该零点是否可用于星等换算；`false` 表示不得使用（参与中位数的星数不足求解前提） | 同上 |
+| `zero_point_n_stars` | 颗 | 参与零点中位数的锥形搜索星数 | 同上 |
+| `zero_point_scatter_mag` | mag | 星族谱能量分布散布的稳健标准差 `1.482602218505602·MAD(ZP_i)` | 同上 |
+| `zero_point_reference` | 字符串 | 参考自述：`Gaia DR3 XP absolute spectrum × filter/QE curve`，附 `filter_key` / `curve` / `n_points` / 波长范围 `wl_nm`，供核对「实际使用的曲线是谁」 | 由本帧通带身份字段拼接 |
+
+- **两条独立实现，同参考时才应紧**：帧级标度 `k_photo` 来自星表匹配对数比的稳健
+  位置，帧级零点 `ZP_syn` 来自 Gaia XP 正向合成拟合，二者是两条独立实现。只有二者
+  锚在**同一参考**（同一 Gaia DR3 XP 绝对谱、同一滤光片与量子效率曲线）时，
+  `ZP_k = ZP_syn − 2.5·log10(k_photo)` 才成立；`zero_point_reference` 与
+  `passband_identity` 是这两个参考身份的可核对面。
+- **无跨帧归一化 gauge**：该规范是帧内的，产物字段 `photscale_spread_gate =
+  "none (frame-independent)"`。跨帧 `k_photo` 不同是正常的帧间独立事实，不得据此
+  写出「跨帧对齐」「组内公共零点」之类不存在的语义；`zero_point_mag` 是逐帧量，
+  不是公共锚。与帧无关的公共锚 `F0` 由固定参考星等 `m_ref` 与合成零点导出，口径
+  正本见统一模型的参考通量基准。
+- **下游为何需要**：噪声与信噪比节点按 `ZP_k = ZP_syn − 2.5·log10(k_photo)` 复算
+  本帧仪器零点，并据此锚定参考通量 `F_ref,k = 10^(−0.4·(m_ref − ZP_k))` 与 5σ 深度
+  `m_5`；该节点消费的是无条件落盘的 `photscale_fit`。`photscale_detail` 把同一零点
+  与已施加帧的 `k_photo`、施加产物并列落盘，使「零点—标度—施加」三者在同一段内可
+  被独立读者复核。
+- **标准产物**：逐帧 JSON 是节点之间的标准产物，不受开发模式开关管辖，其键面不随
+  运行模式变化。
+
 ### 数值落地口径
 
 通量尺度、误差传播与判据的推导正本 = SCI-PHOT-001 与 ALG-PHOT-001..002；本页
