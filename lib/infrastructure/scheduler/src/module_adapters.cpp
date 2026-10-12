@@ -4561,6 +4561,25 @@ void p1_tan_forward_reference_sip(const P1SipCoeffs& sip, double crpix1,
                            cd22, crpix1 + (dx + A), crpix2 + (dy + B), ra, dec);
 }
 
+// 产品前向 = **含 SIP 的完整前向**，是 explicit_config 与 ipv 两条路径的**唯一实现**
+// （AGENTS §13「同一件事只允许一份实现」）。契约见
+// docs/detail/registry/acsd.phase1.wcs-platesolve.md《p1_wcs.json 的 samples[] 几何契约》：
+// samples[] 的 ra/dec 必须是含 SIP A/B 的完整前向。语义 = SIP A/B 叠加在 WcsTan
+// 线性 pix2sky 之上（WcsSip 同式：U = dx + A, V = dy + B），入参为 FITS 1-based。
+// 注意：本函数与 p1_tan_forward_reference_sip 是**两条独立实现**，交叉门
+// （max_forward_cross_deg）正是靠这种独立性才有判别力；不得合并成一条。
+void p1_product_forward_sip(acsd::phase1::WcsTan& wcs, const P1SipCoeffs& sip,
+                            double xp, double yp, double* ra, double* dec) {
+  if (sip.present && sip.order > 0) {
+    double A = 0.0, B = 0.0;
+    p1_sip_poly(sip.a, xp - wcs.crpix1, yp - wcs.crpix2, sip.order, &A);
+    p1_sip_poly(sip.b, xp - wcs.crpix1, yp - wcs.crpix2, sip.order, &B);
+    wcs.pix2sky(xp + A, yp + B, ra, dec);
+  } else {
+    wcs.pix2sky(xp, yp, ra, dec);
+  }
+}
+
 // 把 SIP 系数写入 frame header KV (drizzle 读面 hp_drizzle_api.cpp:586-645)。
 // 返回 false 表示 kv_set 失败。CTYPE 由调用方按是否含 SIP 选择 -SIP 后缀。
 bool p1_sip_write_header_frame(void* frame, const P1SipCoeffs& sip,
@@ -4802,17 +4821,21 @@ Result<void> p1_op_wcs(const Json& doc, Json* man) {
     // 修复前缺该桥接: samples[] 的 ra/dec 与自带 (x,y) 标签恒差 1px, 且
     // 两道门 (roundtrip / forward-cross) 与参考解共用同一 (未桥接) 原点
     // ⇒ 对原点平移零判别力 (M1a-C-003)。
+    double max_sip_effect_deg = 0.0;   // SIP 实际作用量（判别性断言用）
     for (const auto& [x, y] : pts) {
       const double xp = x + kP1FitsPixelOrigin;   // 内部 0-based → FITS 1-based
       const double yp = y + kP1FitsPixelOrigin;
       double ra = 0.0, dec = 0.0, bx = 0.0, by = 0.0;
-      if (sip.present && sip.order > 0) {
-        double A = 0.0, B = 0.0;
-        p1_sip_poly(sip.a, xp - wcs.crpix1, yp - wcs.crpix2, sip.order, &A);
-        p1_sip_poly(sip.b, xp - wcs.crpix1, yp - wcs.crpix2, sip.order, &B);
-        wcs.pix2sky(xp + A, yp + B, &ra, &dec);
-      } else {
-        wcs.pix2sky(xp, yp, &ra, &dec);
+      // 契约（docs/detail/registry/acsd.phase1.wcs-platesolve.md《p1_wcs.json 的
+      // samples[] 几何契约》）：samples 的 ra/dec = **含 SIP 的完整前向**。
+      // 唯一实现 = p1_product_forward_sip（与 ipv 路径同一处）。
+      p1_product_forward_sip(wcs, sip, xp, yp, &ra, &dec);
+      // SIP 作用量 = 含 SIP 与无 SIP 两条前向在同一点上的角距。
+      {
+        double ra_lin = 0.0, dec_lin = 0.0;
+        wcs.pix2sky(xp, yp, &ra_lin, &dec_lin);
+        const double eff = p1_angular_sep_deg(ra, dec, ra_lin, dec_lin);
+        if (eff > max_sip_effect_deg) max_sip_effect_deg = eff;
       }
       wcs.sky2pix(ra, dec, &bx, &by);
       const double rt = std::sqrt((bx - xp) * (bx - xp) + (by - yp) * (by - yp));
@@ -4849,6 +4872,22 @@ Result<void> p1_op_wcs(const Json& doc, Json* man) {
           "explicit WcsTan forward cross " + std::to_string(max_cross_deg) +
           " deg exceeds 1e-9 absolute contract"));
     }
+    // ── 判别性断言：SIP 系数非零时，SIP 必须**确实有作用** ──────────────────
+    // 为什么**不是恒真**：本断言把「含 SIP 的完整前向」与「同一 wcs 的无 SIP
+    // 线性前向」互比，两条前向由不同代码路径产生（前者 = SIP A/B 多项式叠加，
+    // 后者 = WcsTan 线性 pix2sky）。因此"漏施加 SIP / 系数全零 / 阶数为 0"都会
+    // 让作用量塌到 0 而**失败**。上面那条 max_forward_cross_deg 是「含 SIP 对
+    // 含 SIP」，对"漏 SIP"零判别力 —— 这正是本单要修的自检恒真问题。
+    // 下界 1e-9 deg 与线性前向的舍入量级一致；SIP 有效时场角作用量实测约
+    // 1e-2 deg（~16"），高出下界 7 个量级。
+    if (sip.present && sip.order > 0) {
+      if (!std::isfinite(max_sip_effect_deg) || max_sip_effect_deg <= 1e-9) {
+        return Result<void>::fail(Error(ErrorDomain::DATA,
+            "explicit WcsTan: SIP declared (order=" + std::to_string(sip.order) +
+            ") but forward effect is " + std::to_string(max_sip_effect_deg) +
+            " deg (<= 1e-9) — SIP coefficients present but inoperative"));
+      }
+    }
 
     Json wcs_obj = Json{{"crpix1", wcs.crpix1}, {"crpix2", wcs.crpix2},
                         {"crval1", wcs.crval1}, {"crval2", wcs.crval2},
@@ -4865,7 +4904,10 @@ Result<void> p1_op_wcs(const Json& doc, Json* man) {
                         {"n_samples", samples.size()},
                         {"max_roundtrip_px", max_rt},
                         {"max_forward_cross_deg", max_cross_deg},
-                        {"forward_cross_ref", "p1_tan_forward_reference"},
+                        {"forward_cross_ref", "p1_tan_forward_reference_sip"},
+                        {"max_sip_effect_deg", max_sip_effect_deg},
+                        {"sample_geometry", "ra/dec = full forward INCLUDING SIP A/B "
+                                            "(contract: p1_wcs.json samples[] geometry)"},
                         // M1a-C-003: samples[] 的 (x,y) 原点必须显式声明
                         // (内部 0-based 数组下标 = index-is-center); 其 ra/dec 已
                         // 经单次 +1 桥接至 FITS 1-based 与 (x,y) 配对。消费方不得
@@ -5268,43 +5310,11 @@ Result<void> p1_op_wcs(const Json& doc, Json* man) {
     Json samples = Json::array();
     double max_rt = 0.0;
     double max_cross_deg = 0.0;
-    // M1a-C-003: 同 explicit 路径 —— 0-based 数组下标经**恰好一次**
-    // FITS 1-based 桥接后喂 WcsTan / 独立参考解 (SCI-WCS-001 §3a/§5a)。
-    for (const auto& [x, y] : pts) {
-      const double xp = x + kP1FitsPixelOrigin;   // 内部 0-based → FITS 1-based
-      const double yp = y + kP1FitsPixelOrigin;
-      double ra = 0.0, dec = 0.0, bx = 0.0, by = 0.0;
-      wcs.pix2sky(xp, yp, &ra, &dec);
-      wcs.sky2pix(ra, dec, &bx, &by);
-      const double rt = std::sqrt((bx - xp) * (bx - xp) + (by - yp) * (by - yp));
-      if (rt > max_rt) max_rt = rt;
-      // B2-A1: 绝对门 (同 explicit 路径; 独立前向参考解, 1-based 入参)
-      double ra_ref = 0.0, dec_ref = 0.0;
-      p1_tan_forward_reference(wcs.crpix1, wcs.crpix2, wcs.crval1, wcs.crval2,
-                               wcs.cd11, wcs.cd12, wcs.cd21, wcs.cd22,
-                               xp, yp, &ra_ref, &dec_ref);
-      const double cross = p1_angular_sep_deg(ra, dec, ra_ref, dec_ref);
-      if (cross > max_cross_deg) max_cross_deg = cross;
-      samples.push_back(Json{{"x", x}, {"y", y}, {"ra", ra}, {"dec", dec},
-                             {"ra_ref", ra_ref}, {"dec_ref", dec_ref},
-                             {"forward_cross_deg", cross},
-                             {"roundtrip_px", rt}});
-    }
-    if (max_rt >= 1e-6) {
-      cleanup();
-      return Result<void>::fail(Error(ErrorDomain::DATA,
-          "WcsTan roundtrip " + std::to_string(max_rt) + " px exceeds 1e-6 contract"));
-    }
-    // B2-A1 绝对正确性门 (阈值依据同 explicit 路径): <=1e-9 deg。
-    if (!std::isfinite(max_cross_deg) || max_cross_deg > 1e-9) {
-      cleanup();
-      return Result<void>::fail(Error(ErrorDomain::DATA,
-          "WcsTan forward cross " + std::to_string(max_cross_deg) +
-          " deg exceeds 1e-9 absolute contract"));
-    }
     // B2-A17: 解算器 SIP 系数 (IpvWcsResult sip_a/sip_b/sip_ap/sip_bp, 36 项
-    // i*6+j 布局) 落盘到 p1_wcs.json 的 wcs.sip; 无 SIP (order==0) 不写该键,
-    // 下游 drizzle 因此走原线性路径 (无畸变产物与基线逐字节等价)。
+    // i*6+j 布局)。SIP 必须在生成 samples 之前构造：samples 的 ra/dec 是
+    // **含 SIP 的完整前向**（契约见 docs/detail/registry/acsd.phase1.wcs-platesolve.md
+    //《p1_wcs.json 的 samples[] 几何契约》）；修复前本路径用纯线性 WcsTan 生成
+    // samples 却照样落盘 wcs.sip，同一份 JSON 自相矛盾（场角约 16" 假偏移）。
     P1SipCoeffs sip;
     sip.order = r.sip_order;
     sip.ap_order = r.sip_ap_order;
@@ -5318,6 +5328,68 @@ Result<void> p1_op_wcs(const Json& doc, Json* man) {
       return Result<void>::fail(Error(ErrorDomain::DATA,
           "solver SIP order out of drizzle contract [0,5] (order=" +
           std::to_string(r.sip_order) + ", ap_order=" + std::to_string(r.sip_ap_order) + ")"));
+    }
+    double max_sip_effect_deg = 0.0;   // SIP 实际作用量（判别性断言用）
+    // M1a-C-003: 同 explicit 路径 —— 0-based 数组下标经**恰好一次**
+    // FITS 1-based 桥接后喂前向 / 独立参考解 (SCI-WCS-001 §3a/§5a)。
+    for (const auto& [x, y] : pts) {
+      const double xp = x + kP1FitsPixelOrigin;   // 内部 0-based → FITS 1-based
+      const double yp = y + kP1FitsPixelOrigin;
+      double ra = 0.0, dec = 0.0, bx = 0.0, by = 0.0;
+      // samples 的 ra/dec = 含 SIP 的完整前向；唯一实现 =
+      // p1_product_forward_sip（与 explicit 路径同一处）。
+      p1_product_forward_sip(wcs, sip, xp, yp, &ra, &dec);
+      {
+        double ra_lin = 0.0, dec_lin = 0.0;
+        wcs.pix2sky(xp, yp, &ra_lin, &dec_lin);   // 无 SIP 线性（仅作作用量对照）
+        const double eff = p1_angular_sep_deg(ra, dec, ra_lin, dec_lin);
+        if (eff > max_sip_effect_deg) max_sip_effect_deg = eff;
+      }
+      wcs.sky2pix(ra, dec, &bx, &by);
+      const double rt = std::sqrt((bx - xp) * (bx - xp) + (by - yp) * (by - yp));
+      if (rt > max_rt) max_rt = rt;
+      // B2-A1: 绝对门（参考解同样含 SIP，与产品前向互为一体两面：
+      // 本门查"两条独立实现的含 SIP 前向是否一致"）。
+      double ra_ref = 0.0, dec_ref = 0.0;
+      p1_tan_forward_reference_sip(sip, wcs.crpix1, wcs.crpix2, wcs.crval1,
+                                   wcs.crval2, wcs.cd11, wcs.cd12, wcs.cd21,
+                                   wcs.cd22, xp, yp, &ra_ref, &dec_ref);
+      const double cross = p1_angular_sep_deg(ra, dec, ra_ref, dec_ref);
+      if (cross > max_cross_deg) max_cross_deg = cross;
+      samples.push_back(Json{{"x", x}, {"y", y}, {"ra", ra}, {"dec", dec},
+                             {"ra_ref", ra_ref}, {"dec_ref", dec_ref},
+                             {"forward_cross_deg", cross},
+                             {"roundtrip_px", rt}});
+    }
+    // roundtrip 只在无 SIP 时有 1e-6 px 契约：wcs 是纯线性 WcsTan，其天空到像素
+    // 逆变换不含 SIP 逆多项式，含 SIP 时该不变量不成立（同 explicit 路径的守卫）。
+    if (!sip.present && max_rt >= 1e-6) {
+      cleanup();
+      return Result<void>::fail(Error(ErrorDomain::DATA,
+          "WcsTan roundtrip " + std::to_string(max_rt) + " px exceeds 1e-6 contract"));
+    }
+    // B2-A1 绝对正确性门 (阈值依据同 explicit 路径): <=1e-9 deg。
+    if (!std::isfinite(max_cross_deg) || max_cross_deg > 1e-9) {
+      cleanup();
+      return Result<void>::fail(Error(ErrorDomain::DATA,
+          "WcsTan forward cross " + std::to_string(max_cross_deg) +
+          " deg exceeds 1e-9 absolute contract"));
+    }
+    // ── 判别性断言：SIP 系数非零时，SIP 必须**确实有作用** ──────────────────
+    // 为什么**不是恒真**：本断言把「含 SIP 的完整前向」与「同一 wcs 的无 SIP
+    // 线性前向」互比，两条前向由不同代码路径产生。因此"解算器给了 SIP 系数但
+    // 生成 samples 时漏施加 / 系数全零"都会让作用量塌到 0 而**失败**。修复前
+    // 本路径的 max_forward_cross_deg 是"无 SIP 对无 SIP"，对该缺陷零判别力。
+    // 下界 1e-9 deg 与线性前向舍入量级一致；SIP 有效时场角作用量实测约
+    // 1e-2 deg（~16"）。
+    if (sip.present && sip.order > 0) {
+      if (!std::isfinite(max_sip_effect_deg) || max_sip_effect_deg <= 1e-9) {
+        cleanup();
+        return Result<void>::fail(Error(ErrorDomain::DATA,
+            "ipv WcsTan: SIP declared (order=" + std::to_string(sip.order) +
+            ") but forward effect is " + std::to_string(max_sip_effect_deg) +
+            " deg (<= 1e-9) — SIP coefficients present but inoperative"));
+      }
     }
     Json wcs_obj = Json{{"crpix1", wcs.crpix1}, {"crpix2", wcs.crpix2},
                         {"crval1", wcs.crval1}, {"crval2", wcs.crval2},
@@ -5349,7 +5421,10 @@ Result<void> p1_op_wcs(const Json& doc, Json* man) {
                         {"n_samples", samples.size()},
                         {"max_roundtrip_px", max_rt},
                         {"max_forward_cross_deg", max_cross_deg},
-                        {"forward_cross_ref", "p1_tan_forward_reference"},
+                        {"forward_cross_ref", "p1_tan_forward_reference_sip"},
+                        {"max_sip_effect_deg", max_sip_effect_deg},
+                        {"sample_geometry", "ra/dec = full forward INCLUDING SIP A/B "
+                                            "(contract: p1_wcs.json samples[] geometry)"},
                         // M1a-C-003: 同 explicit 路径的像素原点声明 ——
                         // samples[] 的 (x,y) 为内部 0-based 数组下标 (index-is-center),
                         // ra/dec 已经单次 +1 桥接至 FITS 1-based 与其配对。
