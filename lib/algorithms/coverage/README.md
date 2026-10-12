@@ -49,7 +49,7 @@
   DISP-COV-004 如实登记）；
 - 不计算任何科学权重（**合同红线：coverage 禁作隐式科学权重**，
   ALG-COV-001 §7；科学权重唯一冻结式 w_UPM=quality_factor×
-  geometric_reliability×control_ivar，docs/science/PHASE2_UPM.md §5）；
+  geometric_reliability×control_ivar，docs/science/sky/UPM.md「公式与推导」一节）；
 - 不做控制采样/UPM/排异/积分/HiPS 写出（sampler/upm/rejection/
   integrate/写盘各归其模块合同）；
 - 不做坐标系转换（frame 只校验不转换）。
@@ -72,11 +72,11 @@ DISP-COV-003；K=0（空 MOC）合法 rc=0。
 ## 4. SCI/ALG/API/ARCH/TEST 链接
 
 - SCI: SCI-P2-COV-001 ⇒ 既有 FROZEN 共享 SCI（SCI-UPM-001
-  docs/science/PHASE2_UPM.md / SCI-INT-001 docs/science/INTEGRATION.md /
+  docs/science/sky/UPM.md / SCI-INT-001 docs/science/integration/INTEGRATION.md /
   SCI-SCOPE-001 docs/science/unified/SCIENCE_SCOPE.md；共享 SCI 不改动，状态
-  声明 = docs/science/algorithms/PHASE2_COVERAGE.md §11.5，P1-WCS-DOC
+  声明 = docs/science/algorithms/mosaic/PHASE2_COVERAGE.md §11.5，P1-WCS-DOC
   SCI-WCS-001=共享 ASTROMETRY.md 先例）。
-- ALG: **ALG-COV-001**（docs/science/algorithms/PHASE2_COVERAGE.md，§2 逐公式
+- ALG: **ALG-COV-001**（docs/science/algorithms/mosaic/PHASE2_COVERAGE.md，§2 逐公式
   源码行号锚定 + §11.4 TEST-COV-DESIGN-001 冻结容差 + §11.3
   DISP-COV-001..005）。
 - DATA: **DATA-COV-001**（`docs/detail/registry/acsd.phase2.coverage.md`「输入输出端口、DATA、单位、坐标、invalid」一节）。
@@ -84,7 +84,7 @@ DISP-COV-003；K=0（空 MOC）合法 rc=0。
   C API）+ 编排级 **API-P2-001**（docs/engineering/api/PUBLIC_API.md，FROZEN，
   所有权图 Coverage 行 / §2 并发五字段行 1）。
 - ARCH: **ARCH-001**（cpu_heavy 资源类/单线程 internal_parallel=none/
-  host_executor_lease 合同值依据 docs/science/algorithms/PHASE2_COVERAGE.md）。
+  host_executor_lease 合同值依据 docs/science/algorithms/mosaic/PHASE2_COVERAGE.md）。
 - MOD: docs/detail/registry/acsd.phase2.coverage.md（本模块 registry
   合同页）。
 
@@ -138,7 +138,7 @@ DISP-COV-003；K=0（空 MOC）合法 rc=0。
 
 ## 9. oracle/property/boundary/performance/容差来源
 
-- TEST-COV-DESIGN-001（docs/science/algorithms/PHASE2_COVERAGE.md §11.4，
+- TEST-COV-DESIGN-001（docs/science/algorithms/mosaic/PHASE2_COVERAGE.md §11.4，
   唯一权威）：F1 astropy 独立 union oracle（bitwise 相等，无浮点
   容差）→ F6 确定性/资源；可执行 TEST-P2-COV-001 由 P2-COV-TEST
   落地（EVIDENCE 届时落 EVID-*）。
@@ -183,7 +183,7 @@ DISP-COV-003；K=0（空 MOC）合法 rc=0。
 
 - module.yaml: lib/algorithms/coverage/module.yaml（CONTRACT_READY）。
 - memory: lib/algorithms/coverage/memory.md（合同冻结追加段见文末）。
-- ALG: docs/science/algorithms/PHASE2_COVERAGE.md；DATA:
+- ALG: docs/science/algorithms/mosaic/PHASE2_COVERAGE.md；DATA:
   docs/science/unified/DATA_SEMANTICS.md#§19；API:
   docs/engineering/api/PUBLIC_API.md#API-COV-001；编排 API:
   docs/engineering/api/PUBLIC_API.md；registry:

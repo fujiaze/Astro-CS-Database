@@ -1,7 +1,7 @@
 # UPM Solver Algorithms (ALG-UPM)
 
 > 上游：ACSD_DESIGN.md [D-1]「信号面（UPM）」一节（信号面与统一相对模型）
-> 行号与并行表述按源码实测登记；实现级合同见 ALG-P2-UPM-IMPL-001 (docs/science/algorithms/PHASE2_UPM_IMPL.md)
+> 行号与并行表述按源码实测登记；实现级合同见 ALG-P2-UPM-IMPL-001 (docs/science/algorithms/mosaic/PHASE2_UPM_IMPL.md)
 > 本分册的公式与容差锚定 UPM 内核（`lib/algorithms/coverage/src/upm.cpp`）的 M+C
 > 求解；**生产扣除链不由该内核承载**——生产施加 = `calibrated = raw − δ_k`
 > （逐帧相对公共连续信号面的低阶偏差，见 `docs/science/sky/UPM.md` 与
@@ -92,7 +92,7 @@ function p2_upm_build(observations, cfg):
 
 - API: upm.h: p2_upm_build/calibrate_block/raw_weight; API 面=API-P2-UPM-001 (PUBLIC_API.md 尚未落页, 登记于ALG-P2-UPM-IMPL-001 [S-1]「判据与误差」一节）
 - TST: PR-UPM-001..010, UPMW-001..007; TEST-P2-UPM-001/002 设计冻结=ALG-P2-UPM-IMPL-001 [S-1]「判据与误差」一节
-- 实现级合同: docs/science/algorithms/PHASE2_UPM_IMPL.md (ALG-P2-UPM-IMPL-001, 逐符号锚/DISP 登记/DISP-P2UPM-001..004)
+- 实现级合同: docs/science/algorithms/mosaic/PHASE2_UPM_IMPL.md (ALG-P2-UPM-IMPL-001, 逐符号锚/DISP 登记/DISP-P2UPM-001..004)
 
 ## 11 数据布局
 
@@ -126,7 +126,7 @@ function p2_upm_build(observations, cfg):
 > 本文引用上游正本（论文式编号，正文引用处均已改为自然语言节名，不再使用跨文档 §N 跳转）：
 > - [D-1] docs/ACSD_DESIGN.md（最高设计）。
 > - [S-1] docs/science/sky/UPM.md（信号面科学正本 SCI-UPM-001）。
-> - [S-4] docs/DERIVATIONS-P3.md（相关科学正本）。
+> - [S-4] 实验/healpix-polar/docs/DERIVATIONS-P3.md（相关科学正本）。
 > - [A-1] docs/science/algorithms/mosaic/PHASE2_UPM_IMPL.md（UPM 实现级合同分册）。
 > - [S-5] 实验/healpix-polar/（实验单元读数）。
 
@@ -136,5 +136,5 @@ function p2_upm_build(observations, cfg):
 - 弱零锚：Tikhonov 1963, Soviet Math. Dokl. 4, 1035（正则化弱零锚的原始出处）。
 - 多帧相对定标：SCAMP（GPL-3.0；Bertin 2006, ASPC 351, 112）；Padmanabhan et al. 2008, ApJ 674, 1217。
 - 稀疏信号面样条（目标表示）：Duchon 1977；Wahba 1990。
-- var(median)≈πσ²/(2N)：Hoaglin et al. 1983（SCI-UPM [S-1]「判据与误差」一节）；实证比值读数（N=5 的 Var(median)/渐近式直接定征）正本 = `实验/healpix-polar/`docs/audit/kcorr/tables.md` [S-5]「输入输出端口」一节。
+- var(median)≈πσ²/(2N)：Hoaglin et al. 1983（SCI-UPM [S-1]「判据与误差」一节）；实证比值读数（N=5 的 Var(median)/渐近式直接定征）正本 = `实验/healpix-polar/docs/audit/kcorr/tables.md` [S-5]「输入输出端口」一节。
 - k_corr 为 k_gauss(N)×k_geo 两因子几何查表（P3 单元承载）；MC 证据源 control_median_mc_test 可复跑；域外回退值与实现记录 = `实验/healpix-polar/docs/DERIVATIONS-P3.md` [S-4]「推导补遗」一节。

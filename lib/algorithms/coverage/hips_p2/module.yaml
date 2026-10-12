@@ -68,9 +68,9 @@ api_contracts:
   - API-P2-001
   - API-P2-HIPS-001
 doc_links:
-  sci: docs/science/PHASE2_UPM.md
-  sci_extra: docs/science/INTEGRATION.md
-  alg: docs/science/algorithms/PHASE2_MOSAIC_WRITE.md
+  sci: docs/science/sky/UPM.md
+  sci_extra: docs/science/integration/INTEGRATION.md
+  alg: docs/science/algorithms/mosaic/PHASE2_MOSAIC_WRITE.md
   data: docs/science/unified/DATA_SEMANTICS.md#§20
   api: docs/engineering/api/PUBLIC_API.md#API-P2-HIPS-001
 contract_ids:

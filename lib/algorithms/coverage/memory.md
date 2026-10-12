@@ -306,3 +306,30 @@ photometric scale、新 runtime I/O DLL。
   （NIST 明说 n≥25 才准确；仓内 W_ESD_LT25 同义）。⇒ 偏离登记写进
   docs/science/integration/REJECTION.md §5：
   WBPP 2.4.0+ 该档是 ESD，本表取 winsorized，依据是实测不是偏好。
+
+## 无正本承载的契约 ID 与指针（只登记，不改名、不改码）
+
+- **`SCI-502`**：`docs/` 全仓零命中——没有任何正本承载该 ID。出现位置 =
+  `lib/infrastructure/scheduler/src/module_adapters.cpp:10421/:10520/:10522`，以及
+  `lib/algorithms/coverage/src/upm.cpp` 的收敛面注释（`:293`、`:302`、`:1139`、
+  `:1658`、`:2258`、`:2260`、`:2720`）。影响面 = 它被当作「收敛状态枚举 + 相对容差
+  尺度」的契约号引用，读者按该 ID 检索不到任何规范条文。现行口径正本 =
+  `docs/detail/registry/acsd.phase2.upm-fit.md`「数值落地口径」一节与
+  `docs/science/algorithms/mosaic/PHASE2_UPM_IMPL.md`「收敛容差与报告字段」一节。
+  处置：**不自行改名、不自行立条款**，登记待负责人裁决。
+- **`SCI-UPM-CAP-001`**：`docs/` 全仓零命中——同为无正本承载的契约 ID。出现位置 =
+  `lib/algorithms/coverage/src/sky_plane.cpp:1193`、
+  `lib/algorithms/coverage/include/astro/phase2/sky_plane.h:226`。其承载内容
+  （节点间距必须由输入自适应导出）的现行正本 =
+  `docs/science/sky/UPM.md`「物理模型」一节。处置：同上。
+- **无承载的文档名/节号**（本模块注释内仍在用，指向的对象不在树内）：
+  `11_MODULE_SOURCE_TEST_STANDARD.md`（`hips_p2/module.yaml:10`；
+  `docs/engineering/standards/` 十项标准内无此件）；节号 `§7a`
+  （`src/sky_plane.cpp` 11 处、`include/astro/phase2/sky_plane.h` 9 处、
+  `include/astro/phase2/stage2_common.h` 1 处；`docs/` 内无任何文档带该节号）。
+  处置：只登记，不改名、不删注。
+- **实验单元指针缺失**：`src/sky_plane.cpp:499` 引
+  `实验/additive-sky-seamless/docs/D1-fill-adjudication.md`、
+  `include/astro/phase2/sky_plane.h:418` 引同目录 `D3-D5-adjudication.md`；
+  两件在该实验单元 `docs/` 内均不存在，也未找到改名后的同内容件。
+  处置：只登记——不猜路径、不删原句。
