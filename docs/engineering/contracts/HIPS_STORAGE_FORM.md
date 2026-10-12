@@ -259,6 +259,42 @@ zstd 帧格式与 `application/zstd` 媒体类型依 RFC 8878[3]。
 - `tree` 记录**解压后内容**的条目（与裸形态相同），`tree_hash` 与 「哈希口径」一节 同口径；形态事实的落点 = 本段与产品级索引（HiPS `properties` 的字段面保持科学属性，「形态的输入配置与输出清单字段」一节）。
 - 机器事实源：`$defs.manifest_storage`。
 
+### 逐帧 HiPS 产品集清单 `manifest.json#geometry`（加性）
+
+**落点**：阶段一逐帧 HiPS 产品集清单 `<output_dir>/<frame_key>/manifest.json`（写出侧 = `lib/infrastructure/aio/src/hips/aio_hips_writer.cpp` 的组装块；产品集句柄 = `AioHipsProductSet`）。本键是**加性可选对象**：设置了几何 ⇒ 出现；未设置 ⇒ **不出现**，清单其余部分逐字节不变。
+
+```json
+"geometry": {
+ "ctype1": "RA---TAN-SIP", "ctype2": "DEC--TAN-SIP",
+ "crval1": 83.28357233693426, "crval2": -6.374461934745007,
+ "crpix1": 2048.5, "crpix2": 2048.5,
+ "cd11": 4.551029629190523e-06, "cd12": 0.00026860497761203454,
+ "cd21": -0.00026854492605997654, "cd22": 4.6740662299943e-06,
+ "pixel_origin": 0,
+ "sip": {"order": 3, "ap_order": 5,
+         "a": [/* 36 */], "b": [/* 36 */], "ap": [/* 36 */], "bp": [/* 36 */]}
+}
+```
+
+| 字段 | 类型 | 不变式 |
+|---|---|---|
+| `ctype1` / `ctype2` | string | 与解算产物 `p1_wcs.json#wcs.ctype1/2` **逐字相同**（含 `-SIP` 后缀，当且仅当 SIP 系数在场） |
+| `crval1` / `crval2` | number | 参考点赤经/赤纬 [deg]；与解算产物**逐位相同** |
+| `crpix1` / `crpix2` | number | 参考像素（**0-based 数组下标**，见 `pixel_origin`）；与解算产物逐位相同 |
+| `cd11` / `cd12` / `cd21` / `cd22` | number | 线性变换矩阵 [deg/pix]；与解算产物逐位相同 |
+| `pixel_origin` | integer | 恒 `0` = **0-based 数组下标（index-is-center）**；FITS 1-based `xp = x + 1`。沿用解算产物 `p1_wcs.json#pixel_origin` 的同一约定 |
+| `sip.order` / `sip.ap_order` | integer | SIP 正/逆多项式阶；无 SIP 时 `sip` 整体为 `null` |
+| `sip.a` / `sip.b` / `sip.ap` / `sip.bp` | number[] | SIP 系数数组；与解算产物**逐位相同**（长度由阶决定，实测各 36） |
+
+- **G1 加性 ⇒ `format_version` 保持 1**：本键是加性对象，既有读侧无未知键拒绝 ⇒ **不升版**（与 `storage` 段成例同）。
+- **G2 几何取自产品自身**（`AGENTS §13.1`）：解算几何（含 SIP）随产品落盘后，「几何取自产品自身」不再依赖 `p1_wcs.json` ⇒ 该中间产物移入可清理工作区的前置由此满足。
+- **G3 与 provenance 四键无关**：`geometry` 的键名**不得**与 §30.3 双写的四个 provenance 键（`acsd_input_manifest_hash` / `acsd_model_hash` / `acsd_reject_profile` / `acsd_uncertainty_available`）**同名**——manifest 的取键函数是朴素文本搜索（`json_scalar`，非 JSON 解析），同名会污染双写面核对。本键及其子键均不与之同名。
+- **G4 值一致性**：在场时 `geometry` 各字段必须与同一帧的解算产物 `p1_wcs.json#wcs`（含 `sip`）**逐位一致**；不一致 ⇒ 产品几何不可解释，判红。
+- **G5 未设置即不出现**：不传几何的写出路径（如非解算来源的直写）清单**不含** `geometry`，且其余键面与设置前**逐字节相同**。
+- 机器事实源：`$defs.manifest_geometry`（`eng/contracts/schemas/hips_storage_form.schema.json`）。
+- **同名两份 `manifest.json` 消歧（勿据路径前缀互推）**：① 阶段一逐帧 HiPS **产品集清单** `<output_dir>/<frame_key>/manifest.json`（唯一正本 = 本文件，含 `storage` / `geometry` 加性段）；② 导出/product 面**完成清单** `products/{user_path}/manifest.json`（正本 = `docs/engineering/contracts/MANIFEST_VERIFY.md`）。两者由**同一写出函数**服务但**不同产品实例**，字段面与判据各依其正本，不得据路径前缀互推。
+
+
 ### mosaic 输入：索引引用是加性可选键
 
 - `hips_paths` 的元素**保持字符串**（不做元素对象化）：逐帧产品级索引路径由命名规则派生 —— `<name>.hips` / `<name>.hips.zst` → `<name>.hips.index.json`（与 `hips_path` 同父目录）。

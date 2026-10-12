@@ -2972,17 +2972,25 @@
       },
       {
         "item": "解算后的几何（CRVAL/CRPIX/CD/SIP）并入逐帧 HiPS 产品树",
-        "status": "B 轮必做",
+        "status": "写出面已落地；生产接线待做",
         "judgement": "解算后的几何今天只活在 p1_wcs.json 里：帧产物头部**没有回写**解算 WCS（实测：calibrated_*.fts 头 WCS ≡ input_light 头 WCS，4/4 帧逐位相同），产品清单 frames[] 与 HiPS properties 均**不承载**几何（frames[] 无 crval/crpix/cd/wcs 键；properties 无 CRVAL；tile 头只有 NSIDE）。若把 p1_wcs.json 移入可清理的工作区而不先并入产品，解算几何即变成调试产物 ⇒ 违反 AGENTS §13.1「几何取自产品自身」，产品不可解释",
-        "disposition": "把解算几何（含 SIP 系数）承载进逐帧 HiPS 产品树（manifest.json / properties；承载字段与位置由 B 轮设计给出），使「几何取自产品」**可满足**；此后独立的 p1_wcs.json 才允许移入工作区",
-        "blocked_by": ""
+        "disposition": "解算几何（含 SIP）已作为**加性**对象并入逐帧 HiPS 产品集清单：正本 = docs/engineering/contracts/HIPS_STORAGE_FORM.md「逐帧 HiPS 产品集清单 manifest.json#geometry（加性）」一节；机器事实源 = eng/contracts/schemas/hips_storage_form.schema.json#/$defs/manifest_geometry；写出面 = aio_hips_set_geometry + aio_hips_writer.cpp 组装块（实测：设置后 manifest 出现 geometry、字段与 p1_wcs.json#wcs 逐位一致、§30.3 四键与 V6 双写面仍通过；未设置 ⇒ 该键不出现且其余键逐字节不变）。**待做**：drizzle 节点 → sink 的几何入参接线（需在 hp_drizzle_api.h / hp_drizzle_hips_api.cpp / hp_drizzle_internal.h / hp_drizzle_api.cpp 加一个可选 geometry 入参并转发，sink 侧入参已就位）。接线完成后本项才可标「已落地」，「几何取自产品」才在生产路径上可满足。",
+        "blocked_by": "drizzle 节点→sink 几何入参接线（4 个 drizzle API 文件，未在上一单写面内）",
+        "evidence": "aio_hips_writer.cpp 组装块 geometry 加性写出 + aio_hips_set_geometry（aio_hips.h）；探针实测 run/PHOT-FILTER-QE/probe/hips_geometry_probe.cpp；未设置路径实测：1 帧真实 M42 normalize （exit 0）manifest 无 geometry 键"
       },
       {
         "item": "p1_wcs.json 移入工作区",
-        "status": "B 轮",
+        "status": "待做",
         "judgement": "依赖「移走之后产品还剩什么」这一事实：只有上一条落地（解算几何已在产品树内）之后，移走它才不产生『移走即断』的依赖",
-        "disposition": "**前置 = 解算几何并入逐帧 HiPS 产品树**；前置落地后随 11 项一并移出",
-        "blocked_by": "解算几何并入逐帧 HiPS 产品树"
+        "disposition": "**前置 = 解算几何并入逐帧 HiPS 产品树**：写出面已落地（见上一条），但生产路径接线待做 ⇒ 前置**部分满足**。接线完成前 p1_wcs.json **仍不可移走**；前置整体落地后随 11 项一并移出。",
+        "blocked_by": "解算几何并入逐帧 HiPS 产品树（写出面已落地、生产接线待做）"
+      },
+      {
+        "item": "`manifest.json` 同名两份（阶段一逐帧 HiPS 产品集清单 / 导出·product 面完成清单）",
+        "status": "已定案（登记）",
+        "judgement": "两处同名文件由**同一写出函数**服务但**不同产品实例**：① 阶段一逐帧 HiPS 产品集清单 `<output_dir>/<frame_key>/manifest.json`（唯一正本 = docs/engineering/contracts/HIPS_STORAGE_FORM.md，含 storage / geometry 加性段）；② 导出·product 面完成清单 `products/{user_path}/manifest.json`（正本 = docs/engineering/contracts/MANIFEST_VERIFY.md:81）。据路径前缀互推会把两份不同合同的字段面混为一谈。",
+        "disposition": "字段面与判据各依其正本；本登记即消歧条目，不改任何写出点。",
+        "blocked_by": ""
       },
       {
         "item": "p1_phot.json 经 dirname(p1_products.json) 拼接的依赖（q3lib 的 phot_json）",

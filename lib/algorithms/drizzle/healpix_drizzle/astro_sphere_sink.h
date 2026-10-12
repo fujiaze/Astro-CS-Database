@@ -57,13 +57,17 @@ inline double sb_publish_scale(double sum_area, double sum_norm) {
 // has_variance: 1=累加器已含 sumVarNum, 写 variance/ivar 产品。
 // 返回: true=成功 (句柄已 finalize); false=失败, err 含原因。
 template <typename Scalar>
+// geometry_json: 可选。非空 ⇒ 把该 JSON 对象文本作为**加性** `geometry` 写进逐帧产品集
+//   清单（口径正本 = docs/engineering/contracts/HIPS_STORAGE_FORM.md「逐帧 HiPS 产品集
+//   清单 manifest.json#geometry（加性）」一节）；缺省 nullptr ⇒ 不写该键（既有调用方不受影响）。
 bool write_hips_direct(const std::vector<TileAccumulatorT<Scalar>>& tiles,
                        const DrizzleConfig& config,
                        const DrizzleMeta& meta,
                        const std::string& hips_dir,
                        const std::vector<AioHipsSnrPoint>& snr_pts,
                        int has_variance,
-                       std::string& err);
+                       std::string& err,
+                       const char* geometry_json = nullptr);
 
 // Phase1 生产末端: 与旧 writer 节点 (读取 legacy 单文件容器后写 HiPS)
 // 逐字节等价的直写 sink。产物 = 标准 HiPS 树 (signal/ + support/ + Moc.fits +
@@ -104,12 +108,15 @@ bool write_hips_direct(const std::vector<TileAccumulatorT<Scalar>>& tiles,
 // 时不写两键（Phase2 权重链据此 fail-closed, 禁伪造）——此时产物与旧 writer
 // 逐字节等价; 有值时两键是唯一增补。
 template <typename Scalar>
+// geometry_json: 可选，语义同 write_hips_direct 的同一入参（加性 `geometry`；
+//   缺省 nullptr ⇒ 不写该键）。
 bool write_hips_phase1(const std::vector<TileAccumulatorT<Scalar>>& tiles,
                        const DrizzleConfig& config,
                        const std::string& hips_dir,
                        const std::string& filter_passband,
                        int has_variance,
-                       std::string& err);
+                       std::string& err,
+                       const char* geometry_json = nullptr);
 
 } // namespace drizzle
 

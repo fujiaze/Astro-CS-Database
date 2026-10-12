@@ -322,6 +322,24 @@ AIO_HIPS_EXPORT int aio_hips_set_frame_snr(
 // 释放句柄。返回 0=成功。
 AIO_HIPS_EXPORT int aio_hips_finalize(AioHipsProductSet* ps);
 
+// ═══════════════════════════════════════════════════════════════════════════
+// aio_hips_set_geometry — 逐帧 HiPS 产品集清单的**加性** `geometry` 对象
+// ---------------------------------------------------------------------------
+// 参数取**字符串**（完整 JSON 对象文本），避免在公开 C 面引入 JSON 类型依赖。
+// 设置后 finalize 在 manifest.json 顶层以 `"geometry": <json>` 加性写出；
+// **未调用本 setter ⇒ 该键整体不出现**（清单其余部分逐字节不变，legacy 产品面不变）。
+// 字段面（唯一正本 = docs/engineering/contracts/HIPS_STORAGE_FORM.md
+// 「逐帧 HiPS 产品集清单 manifest.json#geometry（加性）」一节；机器事实源 =
+// hips_storage_form.schema.json#/$defs/manifest_geometry）：
+//   ctype1/ctype2, crval1/crval2, crpix1/crpix2, cd11/cd12/cd21/cd22,
+//   pixel_origin（恒 0 = 0-based 数组下标）, sip{a,b,ap,bp,order,ap_order}（无 SIP 为 null）。
+// **键名禁忌**：不得与 §30.3 双写的四个 provenance 键
+// （acsd_input_manifest_hash / acsd_model_hash / acsd_reject_profile /
+//  acsd_uncertainty_available）同名 —— manifest 的取键函数是朴素文本搜索，非 JSON 解析。
+// 返回 0=成功；ps/geometry_json 为空指针 ⇒ 返回非 0（不设置、不伪造）。
+AIO_HIPS_EXPORT int aio_hips_set_geometry(AioHipsProductSet* ps,
+                                          const char* geometry_json);
+
 // 中止: 清理已写部分 (尽力) 并释放句柄
 AIO_HIPS_EXPORT int aio_hips_abort(AioHipsProductSet* ps);
 

@@ -1084,6 +1084,12 @@ HierFaults hier_faults() {
 // ============================================================================
 struct AioHipsProductSet {
     std::string out_dir;
+    // 逐帧产品集清单的**加性** geometry 对象（默认未设置 → manifest 不写该键）。
+    // 由 aio_hips_set_geometry 以字符串传入（不在公开 C 面引入 JSON 类型依赖）；
+    // 口径正本 = docs/engineering/contracts/HIPS_STORAGE_FORM.md
+    // 「逐帧 HiPS 产品集清单 manifest.json#geometry（加性）」一节。
+    bool geometry_set = false;
+    std::string geometry_json;
     // Drizzle provenance（默认未设置 → properties 不写）
     bool drizzle_prov_set = false;
     double drizzle_pixfrac = 0.0;
@@ -1145,6 +1151,17 @@ struct AioHipsProductSet {
     // nused/nrej 诊断平面 scratch (int32, FITS 序写缓冲)
     std::vector<int32_t> scratch_diag_nrej, scratch_diag_nused;
 };
+
+// 逐帧产品集清单的加性 geometry 对象 setter（声明见 aio_hips.h）。
+// 取字符串：调用方给完整 JSON 对象文本；本函数不解析、不改写，finalize 时原样写出。
+// ps / geometry_json 为空指针 ⇒ 返回非 0（不设置、不伪造）。
+AIO_HIPS_EXPORT int aio_hips_set_geometry(AioHipsProductSet* ps,
+                                          const char* geometry_json) {
+    if (!ps || !geometry_json) return -1;
+    ps->geometry_json = geometry_json;
+    ps->geometry_set = true;
+    return 0;
+}
 
 namespace {
 
@@ -2647,6 +2664,12 @@ int aio_hips_finalize(AioHipsProductSet* ps)  {
                                  ? ps->leaf_ipix_list.size() : 0),
                     (size_t)(ps->flags & AIO_HIPS_PRODUCT_NUSED
                                  ? ps->leaf_ipix_list.size() : 0));
+                // 逐帧产品集清单的**加性** geometry 对象（未设置 ⇒ 整键不出现）。
+                // 口径正本 = docs/engineering/contracts/HIPS_STORAGE_FORM.md
+                // 「逐帧 HiPS 产品集清单 manifest.json#geometry（加性）」一节。
+                // 键名禁忌：不得与下面 §30.3 四键同名（json_scalar 是朴素文本搜索）。
+                if (ps->geometry_set)
+                    std::fprintf(f, ",\n  \"geometry\": %s", ps->geometry_json.c_str());
                 // DATA-UNC-001 §30.3: provenance 四键与 properties 双写
                 // (JSON 键同名小写; 调用方 schema 见 DATA-P2-PROV-001)
                 // 旧「权重模式」JSON 键已删除 (四键 → 四键)。
