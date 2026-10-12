@@ -6533,7 +6533,7 @@ Result<void> p1_op_photometry(const Json& doc, Json* man) {
   // ── FREF-BASELINE-001: 逐帧测光拟合证据表（**无条件**落盘）───────────────
   // 组间 k 散度门只决定"是否把 k 施加到像素"（photometry_applied），**不得**
   // 把已经算出的逐帧拟合结果丢弃：帧级 SNR 的绝对参考通量
-  //   F_ref,k = 10^(-0.4*(m_ref - ZP_k)),  ZP_k = ZP_syn,k - 2.5*log10(k_photo,k)
+  //   F_ref,k = 10^(-0.4*(m_ref - ZP_k)),  ZP_k = C_abs - 2.5*log10(k_photo,k)
   // 需要它，且按帧间独立口径（跨帧 k 不同是正常的）必须逐帧可得。
   // 无此表时 SNR 节点无法把 F_ref 锚到固定星等 ⇒ 只能退化为块级中位数。
   Json photscale_fit = Json::object();
@@ -7297,21 +7297,23 @@ Result<void> p1_op_noise(const Json& doc, Json* man) {
   // 中位数"（数据派生、随帧集漂移）改为**同一颗参考星**在各帧的仪器通量:
   //
   //     F_ref,k = 10^(-0.4*(m_ref - ZP_k))      [ADU]
-  //     ZP_k    = ZP_syn,k - 2.5*log10(k_photo,k)
+  //     ZP_k    = C_abs - 2.5*log10(k_photo,k)
   //
-  // ZP_syn 由 Gaia DR3 XP **绝对**谱 + 本帧滤光片/QE 曲线正向合成
-  // （frame_photometry_fit.cpp），只依赖 (filter, QE, 天区星族)。
+  // C_abs 是把绝对辐照度换成星等的**一次算定的固定常数**（G∈[6,18] 参考域上的中位
+  // 一致性；定义、取值与两档不确定度见正本《正确的仪器零点式》）。它**不得逐帧用
+  // 该帧自身的星样本重算**——否则会重新变成"样本相关项"。绝对刻度由正向合成锚定：
+  // 合成通量是绝对谱辐照度，由 frame_photometry_fit.cpp 经本帧滤光片/QE 曲线算出。
   // 由此同时满足三条硬要求:
   //   (i)  帧间可比: 各帧报的是**同一颗**参考星的 SNR, 不再混入本帧检出亮度;
   //   (ii) 帧间独立: F_ref 只依赖本帧自身的测光标定 ⇒ **不需要"组"的概念**
   //        （帧间独立; 跨帧 k_photo 不同是正常的, 不是错误）;
   //   (iii) 配对性: 头部 ACSD_REFERENCE_FLUX 写**物理公共锚**
-  //        F0 = 10^(-0.4*(m_ref - ZP_syn_block)), 对同波段同星场恒为同一数
+  //        F0 = 10^(-0.4*(m_ref - C_abs)), 对同波段同星场恒为同一数
   //        ⇒ 闸门恒过, 且 w = SNR_f²/F0² = a_f²/σ_f²（WEIGHT-SCI-001
   //        Convention A; 逐帧 F_ref,f 会丢掉 a_f²）。
-  // ZP_syn 取块中位数: 它是 (filter, QE, 星族) 的系统常数, 逐帧差异只来自锥形
-  // 边界抽样; 取中位数使 F0 成为**单一常数**（闸门要求），而 F_ref,k 仍逐帧。
-  // 不可得（无 photscale_fit / synthetic_colour_valid=false）⇒ 保持既有来源, 不伪造。
+  // `zp_syn_vals` 现装入的**就是该常数**（每帧同一个值）⇒ 其后的取中位数步骤退化为
+  // 恒等；保留该结构以不改动归约路径的行为。
+  // 不可得（无 photscale_fit / 该帧 k_photo 非有限或 ≤0）⇒ 保持既有来源, 不伪造。
   double ref_mag = 6.0;
   if (doc.contains("snr") && doc["snr"].is_object())
     ref_mag = doc["snr"].value("reference_mag", 6.0);
@@ -7336,16 +7338,20 @@ Result<void> p1_op_noise(const Json& doc, Json* man) {
               if (!pj["photscale_fit"].contains(key)) continue;
               const Json& e = pj["photscale_fit"][key];
               if (!e.is_object()) continue;
-              if (!e.value("synthetic_colour_valid", false)) continue;
+              // 帧的仪器零点按**绝对刻度**定义（正本《正确的仪器零点式》）：
+              //     zp_inst = C_abs − 2.5·log10(k_photo)
+              // `C_abs` 是**一次算定的固定常数**（G∈[6,18] 参考域上「合成星等与星表 G 星等
+              // 之差的中位一致性归零」的常数），**不得逐帧用该帧自身的星样本重算** —— 否则
+              // 它又重新变成"样本相关项"，正是此前缺陷的成因。取值与两档不确定度见正本。
+              // **天区合成颜色项不进入 zp_inst**（synthetic_colour_* 一族只作通带/SED 诊断）。
+              constexpr double kCAbsMag = -0.003651;   // C_abs [mag]；域内 MAD 0.0033、含域依赖约 ±0.014
               const double kp = e.value("k_photo", 0.0);
-              // 注意：zps 是**天区合成颜色项**（原名 zero_point_mag），不含帧信息。
-              // 下游把它当帧零点用（zp_inst = zps − 2.5·log10 kp）是本批登记的下游缺陷。
-              const double zps = e.value("synthetic_colour_median_mag", 0.0);
               if (!(std::isfinite(kp) && kp > 0.0)) continue;
-              if (!std::isfinite(zps)) continue;
               kphoto_of_key[key] = kp;
-              zp_inst_of_key[key] = zps - 2.5 * std::log10(kp);
-              zp_syn_vals.push_back(zps);
+              zp_inst_of_key[key] = kCAbsMag - 2.5 * std::log10(kp);
+              // 公共绝对锚 F0 的零点亦用常数 C_abs（不再取逐帧颜色项的中位）：
+              // 与帧无关的常数在 w ∝ 1/F_ref² 中整体抵消，但决定 m5 的绝对正确性。
+              zp_syn_vals.push_back(kCAbsMag);
             }
           }
         } catch (const std::exception&) {
