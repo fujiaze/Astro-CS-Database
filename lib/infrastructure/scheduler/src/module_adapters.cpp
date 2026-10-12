@@ -7350,26 +7350,64 @@ Result<void> p1_op_noise(const Json& doc, Json* man) {
   std::map<std::string, double> zp_inst_of_key;  // p1_frame_key -> ZP_k [mag]
   std::vector<double> zp_syn_vals;
   bool phot_fit_available = false;
-  // ── `C_abs` 参考通带守卫（fail-closed）──────────────────────────────────────
-  // `C_abs` **分通带**（`C^G ≠ C^R`），而方案 A 的常数只在**参考通带**上测定 ⇒ 非参考
-  // 通带**不得复用**该常数：静默复用会使 `m5` 的绝对数值错（偏差可达 1 等量级），
-  // 且**不会自暴露**——常数在 `w ∝ 1/F_ref²` 中整体抵消，权重侧完全不受影响。
-  // 因此本运行的通带身份**必须确认等于参考通带**；不等于或取不到 ⇒ fail-closed：
-  // 不产出绝对深度（沿用既有「缺该帧标定 ⇒ 本帧 fail-closed，不伪造、不回退」的模式），
-  // 并记录原因。这是**数据有效性**的 fail-closed，不引入新的门禁式机制（章程 §13）。
-  const std::string kCAbsReferencePassband = "Baader R";
-  const std::string run_passband = doc.value("filter_passband", std::string());
-  const bool cabs_passband_ok = (run_passband == kCAbsReferencePassband);
-  if (!cabs_passband_ok) {
+  // ── `C_abs` 二元组守卫（fail-closed）────────────────────────────────────────
+  // `C_abs` 分 **(滤镜曲线, QE 曲线) 二元组**：同帧集**只变 QE** ⇒ `Baader R` 下
+  // `Ideal QE curve`→`KAF-16803` **−0.806 mag**、`Astrodon E-series R` 下 **−0.864 mag**；
+  // **只变滤镜** ⇒ **−0.580 / −0.639 mag**（实测与依据见正本
+  // docs/detail/registry/acsd.phase1.photometry.md《`C_abs` 的通带适用范围与守卫》）。
+  // ⇒ 只按 `filter_passband` 一个字符串取常数，会在 QE 不同时**静默复用**为另一 QE 测的
+  // 常数：`m5` 的绝对数值错（偏差可达 1 等量级），且**不会自暴露**——常数在
+  // `w ∝ 1/F_ref²` 中整体抵消，权重侧完全不受影响。故按键**查表**：
+  //   命中 ⇒ 用**该对**的常数产出深度；未命中（含名字取不到/为空）⇒ fail-closed：
+  //   不产出绝对深度 `m5`、**不复用**其它对的常数、具名原因行写运行日志。
+  // 这是**数据有效性**的 fail-closed，不引入新的门禁式机制（章程 §13）。
+  // 登记面（同步维护）= eng/packaging/config/config_registry.json 的
+  // `cabs_reference_constants`；本表是它的实现落点。
+  struct CAbsPair {
+    const char* filter;   // 配置声明的滤镜库键
+    const char* qe;       // 配置声明的 QE 库键；"" = 未声明 QE（`Q≡1`）
+    double cabs;          // 该二元组的冻结常数 [mag]
+  };
+  // QE 侧空串 = 「未声明 QE（`Q≡1`）」。库内 `Ideal QE curve` **归一到同一键**：该曲线
+  // 6 点全为 1.0、波长域 1–2500 nm ⊇ XP 网格 336–1020 nm ⇒ 对 `F_syn` 积分与 `Q≡1`
+  // 逐位等价（这是**QE 因子等价**，依据 = 该曲线文件内容，不是名字别名）。
+  static constexpr CAbsPair kCAbsTable[] = {
+      {"Baader R", "", -14.276811281840642},                    // 方案 A 原始参考对（16 帧 T2）
+      {"Astrodon E-series R", "KAF-16803", -15.711040624768852}, // 同参考域重测（A4）
+  };
+  // 与 p1_op_photometry 同一解析口径：滤镜 = `photometry.fit.filter`，否则块级
+  // `filter_passband`；QE = `photometry.fit.qe_name`。
+  const Json cabs_phot_cfg = (doc.contains("photometry") && doc["photometry"].is_object())
+                                 ? doc["photometry"] : Json::object();
+  const Json cabs_fit_cfg = (cabs_phot_cfg.contains("fit") && cabs_phot_cfg["fit"].is_object())
+                                ? cabs_phot_cfg["fit"] : Json::object();
+  std::string run_filter = cabs_fit_cfg.value("filter", std::string());
+  if (run_filter.empty()) run_filter = doc.value("filter_passband", std::string());
+  const std::string run_qe_declared = cabs_fit_cfg.value("qe_name", std::string());
+  std::string run_qe = run_qe_declared;
+  const bool qe_normalized = (run_qe == "Ideal QE curve");
+  if (qe_normalized) run_qe.clear();   // QE 因子等价归一（见上）
+  const double* cabs_value = nullptr;
+  for (const auto& entry : kCAbsTable) {
+    if (run_filter == entry.filter && run_qe == entry.qe) {
+      cabs_value = &entry.cabs;
+      break;
+    }
+  }
+  const bool cabs_pair_ok = (cabs_value != nullptr);
+  if (!cabs_pair_ok) {
+    const std::string qe_note = qe_normalized ? "（Ideal QE curve 归一为未声明 QE）" : "";
     std::fprintf(stderr,
-                 "[module_adapters] C_abs 参考通带守卫: fail-closed "
-                 "(运行通带='%s', 参考通带='%s', 原因=%s) ⇒ 本运行不产出绝对深度 m5\n",
-                 run_passband.c_str(), kCAbsReferencePassband.c_str(),
-                 run_passband.empty() ? "passband_identity_unavailable"
-                                      : "passband_not_reference");
+                 "[module_adapters] C_abs 二元组守卫: fail-closed "
+                 "(运行二元组=(滤镜='%s', QE='%s'%s), 已登记对数=%zu, 原因=%s) "
+                 "⇒ 本运行不产出绝对深度 m5\n",
+                 run_filter.c_str(), run_qe_declared.c_str(), qe_note.c_str(),
+                 sizeof(kCAbsTable) / sizeof(kCAbsTable[0]),
+                 run_filter.empty() ? "filter_identity_unavailable"
+                                    : "cabs_pair_not_registered");
   }
 
-  if (ref_mag_usable && cabs_passband_ok) {
+  if (ref_mag_usable && cabs_pair_ok) {
     const std::string pp = out_dir + "/p1_phot.json";
     if (aio_fs::exists(pp)) {
       std::string ptext;
@@ -7399,16 +7437,11 @@ Result<void> p1_op_noise(const Json& doc, Json* man) {
               // 权重里整体抵消，只影响 `m5` 的绝对数值。**不得**称它为"与星族无关的通带常数"。
               // 精化（锚到 Gaia G，需双通带 `C_abs = median(z^R) − median(G−R)_synth`）登记在
               // 测试 `photometry_gpassband_absolute_constant`，不在生产路径。
-              // ⚠ **已登记缺陷：`C_abs` 分通带，而此处是编译期字面量、不按运行通带判定**。
-              // 该常数只在**参考通带（Baader R）**上测定 ⇒ 任何**非参考通带**的运行会**静默
-              // 复用**参考通带的常数，`m5` 的绝对数值错误（偏差可达 1 等量级）；且**不会自暴露**
-              // ——常数在 `w ∝ 1/F_ref²` 中整体抵消，**权重侧完全不受影响**，只有深度绝对值错。
-              // ⇒ **当前实现仅对参考通带正确**。管道选项（未实施，见正本《已登记的缺陷：
-              // `C_abs` 的通带适用范围》）：①按运行通带 fail-closed（非参考通带即把 `m5` 置未知，
-              // 取不到通带亦 fail-closed）；②按通带登记常数、按名查表；③双通带绝对锚定（精化）。
               // 常数式下**颜色项不再进入零点** ⇒ 颜色项有效性闸门**撤除**：`zp_inst` 只由常数
               // 与 `k_photo` 决定，帧内颜色项无效（其键保留初值 0.0）**不再**污染零点。
-              constexpr double kCAbsMag = -14.276811281840642;  // 方案 A 冻结常数 [mag]
+              // 常数取值 = 本运行 **(滤镜曲线, QE 曲线) 二元组**在守卫处查表命中的那一项
+              // （未命中已在守卫处 fail-closed 并跳过本段，不会走到这里）。
+              const double kCAbsMag = *cabs_value;   // 该二元组的冻结常数 [mag]
               const double kp = e.value("k_photo", 0.0);
               if (!(std::isfinite(kp) && kp > 0.0)) continue;
               kphoto_of_key[key] = kp;

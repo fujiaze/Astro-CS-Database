@@ -2534,6 +2534,33 @@
       }
     ]
   },
+  "cabs_reference_constants": {
+    "authority": "docs/detail/registry/acsd.phase1.photometry.md《`C_abs` 的通带适用范围与守卫》",
+    "implementation": "lib/infrastructure/scheduler/src/module_adapters.cpp 的 kCAbsTable（按二元组查表；未命中 ⇒ fail-closed：不产出绝对深度 m5、不复用其它对的常数、具名原因行 cabs_pair_not_registered）",
+    "key": "(滤镜曲线, QE 曲线) 二元组 —— 滤镜 = photometry.fit.filter，否则块级 filter_passband；QE = photometry.fit.qe_name。QE 侧空串 = 未声明 QE（Q≡1）；库内 Ideal QE curve 归一到同一键（QE 因子等价：6 点全 1.0、波长域 1–2500 nm ⊇ XP 网格 336–1020 nm）",
+    "why_pair": "同帧集只变 QE ⇒ Baader R 下 Ideal QE curve→KAF-16803 −0.806 mag、Astrodon E-series R 下 −0.864 mag；只变滤镜 ⇒ −0.580/−0.639 mag ⇒ QE 的影响与滤镜同量级甚至更大（与 PHOTOMETRY.md §2「Q 是通带的组成部分」一致）。只按 filter_passband 单键取值会在 QE 不同时静默复用为另一 QE 测的常数",
+    "reference_domain": "16 帧 T2 参考集；统计量 = median(z^R) 的块中位（口径见正本）",
+    "boundary": "按声明测量：二元组两条曲线的物理正确性未经外部标准核对（Astrodon E-series R 的来源为负责人指定，见 实验/photometric-magnitude/configs/README.md）；每个登记项并列给出 (T, Q) 声明对、参考域与统计量；声明本身是否正确由单帧测光一致性残差判据承担；不得把某对的值描述为「本设备滤镜的常数」",
+    "entries": [
+      {
+        "filter": "Baader R",
+        "qe": "",
+        "qe_note": "未声明 QE（Q≡1）／Ideal QE curve（等价）",
+        "cabs_mag": -14.276811281840642,
+        "mad": 9.212e-3,
+        "peak_to_peak": 5.872e-2,
+        "source": "方案 A 原始参考对；历史基线产物复算 Δ=0.000000"
+      },
+      {
+        "filter": "Astrodon E-series R",
+        "qe": "KAF-16803",
+        "cabs_mag": -15.711040624768852,
+        "mad": 8.381e-3,
+        "peak_to_peak": 3.539e-2,
+        "source": "同参考域重测（A4）；跨域跨 build 复现差 0.0011 mag；Δ vs 参考对 = −1.434229343 mag"
+      }
+    ]
+  },
   "os_abi": {
     "source_of_truth": "eng/contracts/schemas/cpu_profile.schema.json#/$defs/profile_v2/properties/host/properties/os_abi",
     "enum": [
