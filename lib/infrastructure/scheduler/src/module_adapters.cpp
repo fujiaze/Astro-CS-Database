@@ -5633,8 +5633,8 @@ Result<void> p1_op_photometry(const Json& doc, Json* man) {
   //   k_photo 两个显式来源:
   //   (1) photometry.fit.enabled=true → 本节点直接调生产 star_matcher 链
   //       (frame_photometry_fit → pc_calibrate_simple_with_gaia_f64_v2_qf);
-  //       配置 gaia_data_dir / filter / filters_json / qe_json / qe_name /
-  //       max_stars（缺 gaia/filter/filters_json 即不拟合, 不造 1.0）。
+  //       配置 gaia_data_dir / filter / qe_name / max_stars（缺 gaia/filter/qe_name
+  //       即中止；曲线库 = 运行期扫描 <可执行文件目录>/config/response_curves/）。
   //   (2) 否则读 p1_photscale.json (DATA-P1-PHOTSCALE-001) 逐帧标量
   //       （star_matcher 外部/离线标定通道）。
   //   两者皆无 → 如实中性 (applied=false, pixel_scaling="none") +
@@ -5813,7 +5813,7 @@ Result<void> p1_op_photometry(const Json& doc, Json* man) {
   double passband_identity_wl_max_nm = 0.0;
   double passband_identity_val_min = 0.0;
   double passband_identity_val_max = 0.0;
-  std::string passband_identity_curve_source;  // filters.json 路径（实际读的那个）
+  std::string passband_identity_curve_source;  // 实际装载的曲线文件（扫描集内路径）
   // QE（传感器）身份：与滤镜**并列**记录（声明名 + 实际装载的库键与统计量）。
   // 生产运行的 QE 声明由 PHOT_CONFIG_QE_MISSING 强制；此处只做记录，不新增门禁。
   std::string qe_declared_name;                // 配置声明名（photometry.fit.qe_name）
@@ -5824,7 +5824,7 @@ Result<void> p1_op_photometry(const Json& doc, Json* man) {
   double qe_wl_max_nm = 0.0;
   double qe_val_min = 0.0;
   double qe_val_max = 0.0;
-  std::string qe_curve_source;                 // qe_curves.json 路径（实际读的那个）
+  std::string qe_curve_source;                 // 实际装载的 QE 曲线文件（扫描集内路径）
   std::string photscale_source = "none";
   const Json phot_cfg = (p1_has(doc, "photometry") && doc["photometry"].is_object())
                             ? doc["photometry"] : Json::object();
@@ -5892,8 +5892,6 @@ Result<void> p1_op_photometry(const Json& doc, Json* man) {
       gaia_dir = doc["wcs"].value("gaia_data_dir", std::string());
     std::string filter_name = fit_cfg.value("filter", std::string());
     if (filter_name.empty()) filter_name = doc.value("filter_passband", std::string());
-    const std::string filters_json = fit_cfg.value("filters_json", std::string());
-    const std::string qe_json = fit_cfg.value("qe_json", std::string());
     const std::string qe_name = fit_cfg.value("qe_name", std::string());
     const int max_stars = p1_int(fit_cfg, "max_stars", 5000);
     // FAILSEM-01: 配置缺项是**全局性失败**（不是数据问题）⇒ 立即中止, 不把整批
@@ -5908,26 +5906,19 @@ Result<void> p1_op_photometry(const Json& doc, Json* man) {
           "photometry.fit.filter (或 filter_passband) required"
           "（全局性失败: 配置缺项, 中止运行）");
     }
-    if (filters_json.empty()) {
-      return fail_global(ErrorDomain::CONFIG, "PHOT_CONFIG_FILTERS_JSON_MISSING",
-          "photometry.fit.filters_json required (response curve file)"
-          "（全局性失败: 配置缺项, 中止运行）");
-    }
-    // QE（传感器）与滤镜**同等要求**：必须显式声明、必须命中曲线库。
+    // 曲线文件路径键 `photometry.fit.filters_json` / `qe_json` 已退役：曲线库 =
+    // <可执行文件目录>/config/response_curves/（运行期扫描，代码内单一路径，无覆盖键）。
+    // 依据 docs/engineering/contracts/CONFIG.md「响应曲线库（代码内单一路径 + 运行时扫描）」。
+    // QE（传感器）与滤镜**同等要求**：必须显式声明、必须命中扫描集。
     // 依据 docs/science/photometry/PHOTOMETRY.md §2 的 F_syn 公式（Q 是通带的
     // 组成部分而非可选项）与负责人的运行合同「运行 JSON 必须显式指定，不得静默
-    // 解析」。缺任一项 ⇒ 具名配置错误、中止运行；**不**回退到 Q(λ)≡1。
-    // 需要 Q≡1 的运行应显式声明库内已有的 `Ideal QE curve`。
-    if (qe_json.empty()) {
-      return fail_global(ErrorDomain::CONFIG, "PHOT_CONFIG_QE_MISSING",
-          "photometry.fit.qe_json required (QE curve file; Q is part of the passband,"
-          " not optional)（全局性失败: 配置缺项, 中止运行）");
-    }
+    // 解析」。缺 ⇒ 具名配置错误、中止运行；**不**回退到 Q(λ)≡1。
+    // 需要 Q≡1 的运行应显式声明扫描集内已有的 `Ideal QE curve`。
     if (qe_name.empty()) {
       return fail_global(ErrorDomain::CONFIG, "PHOT_CONFIG_QE_MISSING",
-          "photometry.fit.qe_name required (declare a library key, e.g. KAF-16803;"
-          " the implicit Q(lambda)=1 default is not available to production runs)"
-          "（全局性失败: 配置缺项, 中止运行）");
+          "photometry.fit.qe_name required (declare a scanned library key, e.g."
+          " KAF-16803; the implicit Q(lambda)=1 default is not available to production"
+          " runs)（全局性失败: 配置缺项, 中止运行）");
     }
     {
       channel_present = true;   // FAILSEM-01: fit 通道已启用（配置齐备）
@@ -6085,8 +6076,7 @@ Result<void> p1_op_photometry(const Json& doc, Json* man) {
         // 依据 docs/science/PHOTOMETRY.md §2a.4/§2a.5（通带形状不被零点吸收、
         // 比较 sigma_residual 必须声明所用模型通带）。
         freq.declared_filter_passband = doc.value("filter_passband", std::string());
-        freq.filters_json = filters_json;
-        freq.qe_json = qe_json; freq.qe_name = qe_name;
+        freq.qe_name = qe_name;
         // PHOT-MXY-01: m(x,y) 请求阶与降级门（0 = 关闭 ⇒ 空间路径完全不被触碰）
         freq.spatial_gain_order = spatial_gain_order;
         freq.spatial_gain_min_stars_order1 = spatial_min_stars_order1;
@@ -6213,7 +6203,7 @@ Result<void> p1_op_photometry(const Json& doc, Json* man) {
           passband_identity_wl_max_nm = fr.filter_wl_max_nm;
           passband_identity_val_min = fr.filter_val_min;
           passband_identity_val_max = fr.filter_val_max;
-          passband_identity_curve_source = filters_json;
+          passband_identity_curve_source = fr.filter_curve_source;
           qe_declared_name = qe_name;
           qe_resolved_key = fr.qe_key;
           qe_curve_name = fr.qe_curve_name;
@@ -6222,7 +6212,7 @@ Result<void> p1_op_photometry(const Json& doc, Json* man) {
           qe_wl_max_nm = fr.qe_wl_max_nm;
           qe_val_min = fr.qe_val_min;
           qe_val_max = fr.qe_val_max;
-          qe_curve_source = qe_json;
+          qe_curve_source = fr.qe_curve_source;
         } else if (fr.filter_key != passband_identity_key ||
                    fr.filter_n_points != passband_identity_n_points ||
                    fr.filter_wl_min_nm != passband_identity_wl_min_nm ||
@@ -6647,7 +6637,7 @@ Result<void> p1_op_photometry(const Json& doc, Json* man) {
                   {"declared_filter_passband", doc.value("filter_passband", std::string())}};
     // QE（传感器）与滤镜并列记录（同一套规则、同一份解析实现）：声明名 + 实际
     // 装载的库键与数组统计量，使「声明的是哪条 QE、用的是哪条」在产品里可独立核对。
-    const Json qe_json_block =
+    const Json qe_identity_block =
         passband_identity_valid
             ? Json{{"declared_qe_name", qe_declared_name},
                    {"resolved_library_key", qe_resolved_key},
@@ -6671,7 +6661,7 @@ Result<void> p1_op_photometry(const Json& doc, Json* man) {
                 {"val_min", passband_identity_val_min},
                 {"val_max", passband_identity_val_max},
                 {"curve_source", passband_identity_curve_source},
-                {"qe", qe_json_block}};
+                {"qe", qe_identity_block}};
   };
 
   // ── B2-A14: 真实测光 provenance sidecar (DATA-P1-PHOTPROV-001) ─────────────
