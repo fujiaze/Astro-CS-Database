@@ -103,8 +103,8 @@ F_λ,i(λ_j) = byte_j × flux_mul_i + flux_min_i       # 单位 W·m⁻²·nm⁻
 
 其中：
 - `F_λ,i(λ)`: 参考星的**绝对**谱辐照度（W·m⁻²·nm⁻¹）。生产路径由 XPSD 记录内的**逐星** float32 量化参数解码：`F_λ = byte×flux_mul + flux_min`（`gaia_xpsd_client` 模块；记录布局 `32B EncodedStarData | float fluxMin | float fluxMul | uint8 flux[343]`）。**`byte` 数组本身不是与星无关的相对谱形**——`flux_min/flux_mul` 逐星不同（真实数据实测跨 6 个数量级），忽略它们会引入与星等相关的偏差。
-- `T(λ)`: 滤光片透过率曲线，无量纲 `[0,1]`（从 `data/response_curves/filters.json` 或 `eng/packaging/config/filters.json` 加载）
-- `Q(λ)`: CCD 量子效率曲线，无量纲 `[0,1]`，**是通带的组成部分**；未配置时 `Q≡1`（显式未建模项，物理含义 = 假设理想平坦 QE）
+- `T(λ)`: 滤光片透过率曲线，无量纲 `[0,1]`（按库键逐字命中**运行期扫描集** `<可执行文件目录>/config/response_curves/`）
+- `Q(λ)`: 探测器量子效率曲线，无量纲 `[0,1]`，**是通带的组成部分而非可选项**：必须由运行配置显式声明（`photometry.fit.qe_name`）并命中同一扫描集；确需理想平坦探测器时，显式声明扫描集内的 `Ideal QE curve`
 - `λ`、`dλ`: 波长与积分元（nm）
 
 **量纲**：`W·m⁻²·nm⁻¹ × 1 × 1 × nm × nm = W·m⁻²·nm`；物理含义 `F_syn = hc·N_γ`（`N_γ` 为通带内光子计数率 photons·s⁻¹·m⁻²，`hc` 以 J·nm 计）。
@@ -137,8 +137,8 @@ m_syn,i = -2.5 × log10(F_syn,i) + C
 | 数据 | 来源 | 格式 |
 |------|------|------|
 | Gaia 光谱数据 | `gaia_xpsd_client` 模块 (Gaia DR3SP 数据集) | uint8[343] 数组 + **逐星** `flux_min`/`flux_mul`（float32），336–1020 nm，步长 2 nm；`F_λ=byte·flux_mul+flux_min`（W·m⁻²·nm⁻¹） |
-| 滤光片透过率 T(λ) | `data/response_curves/filters.json` / `eng/packaging/config/filters.json` | JSON (波长,透过率对)；曲线 provenance 状态见 `provenance.status`（当前 `unverified`，GAP-025） |
-| CCD QE 曲线 Q(λ) | `data/response_curves/qe_curves.json` | JSON (波长,QE对)；**是通带组成部分**，未配置时 `Q≡1` 为显式未建模项 |
+| 滤光片透过率 T(λ) | 运行期扫描 `config/response_curves/`（一文件一曲线，按库键逐字命中） | JSON 对象（`name`/`channel`/`wavelength_nm`/`value`/`n_points`/`provenance`）；45 条滤镜曲线 `provenance.status = source_recorded`（来源/版本/获取方式齐备、原始校验和缺失，见缺口 `GAP-035`），`None` 为 `defined_by_construction` |
+| CCD QE 曲线 Q(λ) | 运行期扫描 `config/response_curves/`（`channel = "Q"`，按库键逐字命中） | 同上；12 条 QE 曲线 `provenance.status = source_recorded`（`Ideal QE curve` 为 `defined_by_construction`）；**是通带组成部分**，必须显式声明 |
 
 Gaia DR3SP 光谱以 uint8 (0-255) 存储，积分时转换为 float64 直接作为 S(λ) 输入。绝对标度在 F_syn/F_instr 比值中消去，故无需标定转换系数。
 
