@@ -29,6 +29,7 @@
     { "unit_id": "PROV-QUERYV1-BASELINE", "kind": "provider", "install_path": "providers/acsd_cpuprov_baseline.so", "required": true },
     { "unit_id": "PROV-QUERYV1-AVX2", "kind": "provider", "install_path": "providers/acsd_cpuprov_avx2.so", "required": true },
     { "unit_id": "PROV-QUERYV1-AVX512", "kind": "provider", "install_path": "providers/acsd_cpuprov_avx512.so", "required": true },
-    { "unit_id": "MANIFEST-PROVIDERS", "kind": "manifest", "install_path": "providers/providers.manifest.json", "required": true }
+    { "unit_id": "MANIFEST-PROVIDERS", "kind": "manifest", "install_path": "providers/providers.manifest.json", "required": true },
+    { "unit_id": "CFG-RESPONSE-CURVES", "kind": "config", "install_path": "config/response_curves", "required": true }
   ]
 }

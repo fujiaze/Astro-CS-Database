@@ -76,6 +76,15 @@ def main() -> int:
 
     # 1) 唯一用户 exe(Windows 需 .exe 扩展名)
     shutil.copy2(args.exe, os.path.join(root, "acsd.exe"))
+    # 1b) 响应曲线库：可执行文件所在目录（包根）下的固定相对路径 config/response_curves/
+    #     合同 = docs/engineering/contracts/CONFIG.md「响应曲线库」一节；迁移期形态 = 装入
+    #     现有聚合 JSON（终态形态 = 一文件一曲线，数据拆分落地后随构建更新）。
+    curves_dst = os.path.join(root, "config", "response_curves")
+    os.makedirs(curves_dst, exist_ok=True)
+    curves_src = os.path.join(REPO, "lib", "algorithms", "photometry", "data", "response_curves")
+    for fn in sorted(os.listdir(curves_src)):
+        if fn.endswith(".json"):
+            shutil.copy2(os.path.join(curves_src, fn), os.path.join(curves_dst, fn))
     # 2) 私有运行时 DLL
     for d in dll_paths:
         shutil.copy2(d, os.path.join(root, os.path.basename(d)))

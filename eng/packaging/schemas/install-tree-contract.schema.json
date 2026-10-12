@@ -22,9 +22,9 @@
         "required": ["unit_id", "kind", "install_path", "required"],
         "properties": {
           "unit_id": { "type": "string", "pattern": "^[A-Z0-9-]+$" },
-          "kind": { "type": "string", "enum": ["exe", "runtime", "io", "module", "provider", "schema", "license", "manifest"] },
-          "install_path": { "type": "string", "pattern": "^(acsd|libacsd_|modules/|providers/|schemas/|licenses/)" },
-          "required": { "type": "boolean", "description": "true=验收必须存在 (缺任一 required 文件 → verify FAIL); false=白名单可选 (存在但不额外校验)" }
+          "kind": { "type": "string", "enum": ["exe", "runtime", "io", "module", "provider", "schema", "license", "manifest", "config"] },
+          "install_path": { "type": "string", "pattern": "^(acsd|libacsd_|modules/|providers/|schemas/|licenses/|config/)" },
+          "required": { "type": "boolean", "description": "true=验收必须存在 (缺任一 required 文件 → verify FAIL); false=白名单可选 (存在但不额外校验)。kind=config 时 install_path 指**目录**（响应曲线库，正本 = docs/engineering/contracts/CONFIG.md「响应曲线库」一节）" }
         },
         "additionalProperties": false
       }

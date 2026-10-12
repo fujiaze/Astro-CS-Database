@@ -59,6 +59,20 @@ set(ACSD_INSTALL_MODULE_SUBDIR "modules")
 set(ACSD_INSTALL_PROVIDER_SUBDIR "providers")
 set(ACSD_INSTALL_SCHEMA_SUBDIR "schemas")
 set(ACSD_INSTALL_LICENSE_SUBDIR "licenses")
+# 响应曲线库目录（合同 = docs/engineering/contracts/CONFIG.md「响应曲线库」一节）：
+# 运行期按「可执行文件所在目录」解析该**固定相对路径**。安装树中 acsd 位于前缀根，
+# 故解为 <prefix>/config/response_curves/。
+set(ACSD_INSTALL_CONFIG_SUBDIR "config/response_curves")
+
+# ── 响应曲线库（迁移期形态：整目录装入现有两份聚合 JSON）──
+# 终态形态 = 一文件一曲线（每条自带 provenance），见 CONFIG.md「响应曲线库」一节；
+# 数据拆分落地前，先把现有 filters.json / qe_curves.json 装到该目录，使目录与
+# 单一路径机制存在且可被扫描。
+install(DIRECTORY
+    ${CMAKE_CURRENT_SOURCE_DIR}/lib/algorithms/photometry/data/response_curves/
+  DESTINATION ${ACSD_INSTALL_CONFIG_SUBDIR}
+  COMPONENT acsd_runtime
+  FILES_MATCHING PATTERN "*.json")
 
 # ── 安装主 CLI ──
 install(TARGETS acsd

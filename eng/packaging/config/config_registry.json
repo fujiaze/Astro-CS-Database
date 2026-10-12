@@ -2462,15 +2462,16 @@
       "values": {
         "unverified_source_missing": "原始来源未记录；verified 恒 false。",
         "source_recorded": "来源 + 版本 + 获取方式齐备、原始文件校验和缺失并已如实标注；verified 恒 false。",
-        "verified": "来源/版本/获取方式齐备且原始文件校验和存在并与原始文件核对通过；verified 恒 true。"
+        "verified": "来源/版本/获取方式齐备且原始文件校验和存在并与原始文件核对通过；verified 恒 true。",
+        "defined_by_construction": "按定义构造（None：生产积分网格上的单位透过率；Ideal QE curve：理想平坦 Q）；verified 恒 false、exact_by_definition=true、checksum_status=not_applicable；不套用 PixInsight 出处；不主张与本设备匹配。"
       },
       "no_alias": "不保留旧名 unverified 作别名。",
-      "pending_adjudication": "定义性条目（None 无滤镜通带；Ideal QE curve 理想 QE）的 status 归类待裁决（候选新增 defined_by_construction）。"
+      "adjudicated": "定义性条目（None / Ideal QE curve）的 status 归类已裁决 = defined_by_construction（OPEN-ADJ-01 关闭）。"
     },
     "provenance_gaps": [
       {"id": "GAP-025", "state": "closed", "statement": "原始曲线来源未记录（旧状态）。", "superseded_by": "GAP-035"},
       {"id": "GAP-035", "state": "open", "statement": "原始 PixInsight 文件校验和缺失（滤镜 45 条 + QE 12 条）；来源/版本/获取方式已记录，status=source_recorded。"},
-      {"id": "OPEN-ADJ-01", "state": "open", "statement": "定义性条目（None / Ideal QE curve）的 status 归类待裁决。"}
+      {"id": "OPEN-ADJ-01", "state": "closed", "statement": "定义性条目（None / Ideal QE curve）的 status 归类已裁决 = defined_by_construction。"}
     ]
   },
   "os_abi": {

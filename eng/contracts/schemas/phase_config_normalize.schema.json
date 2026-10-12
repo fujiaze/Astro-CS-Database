@@ -34,54 +34,9 @@
   "$defs": {
     "filter_name": {
       "type": "string",
-      "enum": [
-        "Antlia V Pro Series B",
-        "Antlia V Pro Series G",
-        "Antlia V Pro Series R",
-        "Astrodon E-series B",
-        "Astrodon E-series G",
-        "Astrodon E-series R",
-        "Astrodon I-series B",
-        "Astrodon I-series G",
-        "Astrodon I-series R",
-        "Astronomik Deep Sky B",
-        "Astronomik Deep Sky G",
-        "Astronomik Deep Sky R",
-        "Astronomik Typ 2c B",
-        "Astronomik Typ 2c G",
-        "Astronomik Typ 2c R",
-        "Astronomik UV-IR Block L-1",
-        "Astronomik UV-IR Block L-2",
-        "Astronomik UV-IR Block L-3",
-        "Baader B",
-        "Baader G",
-        "Baader R",
-        "Baader UV/IR Cut / L CMOS Optimized",
-        "Baader 7nm H-alpha",
-        "Baader 8.5nm OIII",
-        "Chroma B",
-        "Chroma G",
-        "Chroma R",
-        "IDAS LPS P3 Light Pollution",
-        "Johnson B",
-        "Johnson I",
-        "Johnson R",
-        "Johnson U",
-        "Johnson V",
-        "Optolong B",
-        "Optolong G",
-        "OPTOLONG L-PRO Light Pollution",
-        "Optolong R",
-        "SDSS g",
-        "SDSS i",
-        "SDSS r",
-        "SDSS u",
-        "SDSS z",
-        "ZWO B",
-        "ZWO G",
-        "ZWO R"
-      ],
-      "description": "滤镜库键，必须逐字命中 eng/packaging/config/filters.json 的 filters 键（未知滤镜 -> error，docs/ACSD_DESIGN.md §3.3）"
+      "minLength": 1,
+      "maxLength": 128,
+      "description": "曲线名（运行时扫描 config/response_curves/ 得到的集合内的名字；存在性由运行时判定，未知名 -> unknown_filter。正本 = docs/engineering/contracts/CONFIG.md 的「响应曲线库」与「滤镜名匹配语义」两节）"
     },
     "output_dir": {
       "type": "string",
@@ -117,7 +72,7 @@
           "$ref": "#/$defs/filter_name"
         }
       ],
-      "description": "本块整组 light 共用的观测滤镜/波段标识；空串 = 显式无 filter；非空必须逐字命中 eng/packaging/config/filters.json（未知滤镜 -> error，§3.3/§9.68）"
+      "description": "本块整组 light 共用的观测滤镜/波段标识；空串 = 本次未使用滤镜（通带积分不适用）；非空只约束字符串形态，**存在性由运行时扫描**（<可执行文件目录>/config/response_curves/）判定，未知名 -> unknown_filter（正本 = docs/engineering/contracts/CONFIG.md 的「响应曲线库」一节；旧 45 键枚举已退役）"
     },
     "drizzle_config": {
       "type": "object",
@@ -350,7 +305,7 @@
     },
     "photometry": {
       "type": "object",
-      "description": "可选测光归一配置块（fit.enabled/gaia_data_dir/filter/filters_json/qe_json/qe_name/max_stars）；缺失 = 不施加（如实中性 applied=false，不伪造 1.0），消费 = p1_op_photometry"
+      "description": "可选测光归一配置块（fit.enabled/gaia_data_dir/filter/qe_json/qe_name/max_stars）；缺失 = 不施加（如实中性 applied=false，不伪造 1.0），消费 = p1_op_photometry。**`filters_json`（文件路径语义）已退役**，滤镜与 QE 曲线改由运行时扫描 <可执行文件目录>/config/response_curves/（正本 = docs/engineering/contracts/CONFIG.md 的「响应曲线库」一节）；本键在代码侧退役落地前仍被读取，属迁移期形态。"
     },
     "star_detection_config": {
       "type": "object",
