@@ -74,6 +74,32 @@ invalid = NaN/coverage=0（按 DATA 合同）；求解失败 → `PLATESOLVE_FAI
   正本 = `docs/science/photometry/PHOTOMETRY.md`「平移精化」判据一节）；
 - 经度 wrap、极点、轴手性按投影规则处理。
 
+### `p1_wcs.json` 的 `samples[]` 几何契约
+
+WCS 产物的 `samples[]` 是像素坐标与天球坐标的配对表（取样步长 = 图像长边 / 8，
+4096² 帧为 8×8 = 64 点）。**表内的 `ra`/`dec` 是完整前向映射的输出，含 `wcs.sip`
+的 A/B 修正**：它已经是最终几何，**消费方不得**再自行叠加 `wcs.sip`。
+
+- 像素口径：`samples[].x`/`y` 是内部 0-based 数组下标（像素中心 = 下标 + 0.5，
+  index-is-center）；`ra`/`dec` 由 `xp = x + 1` 的 FITS 1-based 坐标算出。
+  **消费方不得再叠加一次 `+1`**（双重桥接 = 恒定 1 px 系统偏移）。该口径由产物内
+  `pixel_origin` / `fits_pixel_origin` 两键显式声明，逐帧可核。
+- 含 SIP 时，前向映射先以 `xp − crpix1` / `yp − crpix2` 求 A、B 多项式，再以
+  `xp + A`、`yp + B` 进切平面投影；无 SIP 时退化为线性项。前向映射含 SIP 的定义
+  正本 = `docs/science/detection/ASTROMETRY.md` 的「正向与逆向」一节；解算器输出
+  含 SIP A/B/AP/BP 正本 = `docs/science/algorithms/normalize/PLATESOLVE.md` 的
+  「上游 SCI 与输入输出」一节。
+- 自洽要求：`samples[]` 的 `ra`/`dec` 必须与同一份 `wcs` 对象的 `crpix` / `crval` /
+  `cd` / `sip` 前向映射一致；`forward_cross_deg` 的独立参考解必须与所用映射同阶
+  —— 有 SIP 的帧必须用含 SIP 的参考解，否则该自检对 SIP 零判别力（纯线性参考解在
+  有 SIP 的帧上恒给零残差）。
+- 求解失败帧不写 `wcs` 对象，也不写 `samples[]`（下游按该帧未解出 fail-closed）。
+
+落地偏差（如实登记）：生产 ipv 路径当前以纯线性 `WcsTan` 生成 `samples[]`
+（`lib/infrastructure/scheduler/src/module_adapters.cpp` 的 `p1_op_wcs`），与本节契约
+不符；explicit-config 路径已按含 SIP 的完整前向映射生成。两者口径统一归该模块的
+落地整改。
+
 ## 公共 header、核心 symbol 与生命周期
 
 模块级 API = API-WCS-001（docs/engineering/api/PUBLIC_API.md；签名头正本
