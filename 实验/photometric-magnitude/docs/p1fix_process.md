@@ -779,3 +779,103 @@ SE 应在**下采样后的样本**上算（n=431 ⇒ SE 约 ×1.21 ≈ 0.00139�
 
 **下一步唯一线索**：把"逐星残余 0.0368 dex"继续按 L.2 的 XPSF 星对口径归因，
 （本单元附录 C/E 已给 FWHM 相关项与 SNR 无关底）；标度侧无待修项。
+
+---
+
+# 附录 M：K1–K4 —— 帧级标度与帧头测光零点为何只紧到 15%
+
+## M.1 K1 两处定义（文件:行 + 原句）
+
+**(1) `ZMAG`（lead 所指的"帧头测光零点"）—— 出处是拍摄/解算软件，不是本仓代码**
+
+输入亮场头（`testdata/…/T3/M4/M42_M4_T3_flying_dutchman-20251212@035745-300S-Red.fts`）原句：
+
+```
+SWCREATE= 'MaxIm DL Version 6.09 160704 03UA3' /Name of software
+HISTORY WCS added by PinPoint 6.1.3 at 2025-12-12T04:04:16
+HISTORY   Matched 79 stars from the Gray GSC-ACT Catalog
+HISTORY   Average residual was 0.42 arc-seconds
+ZMAG    =   1.96045030545E+001 / Mag zero point for 1 sec exposure
+```
+
+⇒ **ZMAG 由 PinPoint 6.1.3 用 GSC-ACT 星表（79 颗）解算**；**参考星表 = GSC-ACT，不是 Gaia XP**；
+是否含消光/大气项本仓无记录（**标未知**）；逐帧一份。
+
+**(2) 本仓自己的零点字段（另一回事，且未落盘）**
+
+`lib/infrastructure/scheduler/src/module_adapters.cpp` 的 `P1FrameScale`（约 :5700–5710）原句：
+
+```
+// ── FREF-BASELINE-001: 绝对合成星等零点（帧自身测光零点）────────────
+// mag = zero_point_mag - 2.5*log10(F_adu)，由 Gaia DR3 XP 绝对谱 + 本帧
+// 滤光片/QE 曲线正向合成（frame_photometry_fit.cpp）。与帧无关 ⇒ 跨帧公共。
+bool zero_point_valid = false;
+double zero_point_mag = 0.0;
+int zero_point_n_stars = 0;
+double zero_point_scatter_mag = 0.0;
+```
+
+⇒ 本仓**另有一个** Gaia XP 版零点，实现在 **`frame_photometry_fit.cpp`**（与
+`star_matcher.cpp` 的 `location/k_photo` **是两条独立实现**）。**但它没有落进任何产物**：
+`p1_phot.json` 的 `photscale_detail` 键为 `[f_instr_domain, fitted, k_photo, n_matched,
+n_psf_domain, n_psf_skipped, sigma_residual_dex, source, spatial_gain]` —— **无 `zero_point_*`**。
+
+**(3) `k_photo` / `m(x,y)`**：`k_photo` 由 `star_matcher.cpp` 的 IRLS-Tukey 稳健位置给出
+（`scale = 10^(−location)`，正本 `PHOTOMETRIC_FIT.md` §13.1），星集 = 星表匹配上的 PSF 域星
+（本批 431–968 颗），逐帧独立；`m(x,y)` 由 `lib/algorithms/photometry/cpp/src/spatial_gain.cpp`
+拟合，**gauge = 参与拟合星集上 `log10 m` 的（Tukey 权重）加权均值为 0** —— **帧内**规范。
+
+**(4) 理论关系**：由 `F_syn = C'·10^(−0.4G)` 与 `r = log10(F_instr/F_syn)` 推得
+`log10 k = −location = −median(r)`、`ZMAG = 2.5·log10 C' + 2.5·median(r)`，
+故**理论上精确为 `log10 k = log10 C' − 0.4·ZMAG`**（斜率恰 −0.4，常数 = 通带归一常数，与星无关）。
+**前提：两路同星样本、同参考、同估计量。**
+
+## M.2 K2 同批星重算 —— 无法完成，且已定位原因
+
+1. **参考不同（决定性）**：lead 所指 `ZMAG` 是 **PinPoint + GSC-ACT（79 颗）**，
+   而 `k_photo` 是 **Gaia DR3 XP（431–968 颗）** —— 不同星表、不同星样本，**本就不该紧**；
+   不同星表的通带/零点系统差异直接给出百分之十几离散与偏浅斜率。
+2. **逐星合成量未落盘**：本仓那个 Gaia XP 零点的 `zero_point_mag` 与 `n_stars` 未写入任何产物
+   （M.1(2)）⇒ **无法**用逐星合成通量把帧级标度与"同参考零点"对齐复核。
+
+⇒ 按 lead 预设：散度未塌到 ~0，但**原因不是缺陷而是口径不同**（且是**参考星表级**的不同）。
+**登记为口径问题。**
+
+## M.3 K3 gauge 影响
+
+**不存在跨帧 gauge**：`m(x,y)` 的 gauge 是帧内的；`k_photo` 逐帧独立，设计正文明写"每帧独立标定
+到同一坐标系，不同夜、不同透明度的帧标定系数不同是正常的"（`ACSD_DESIGN.md` §2.1），
+产物 `photscale_spread_gate = "none (frame-independent)"` 亦确认**无跨帧归一**。
+⇒ **gauge 不可能解释 −0.3205 vs −0.4000 的斜率差**；该差由 M.2 的参考/口径差解释。
+
+## M.4 K4 判定
+
+**是口径问题，不是实现缺陷。** 判据：
+1. **前提被推翻**：起点口径称"两者都基于 Gaia XP"——查证**不成立**：`ZMAG` 来自
+   **PinPoint 6.1.3 + GSC-ACT**（头原句见 M.1）。
+2. 理论关系只在同参考同样本时精确；两路参考不同 ⇒ 15% 离散与斜率浅 20% 均在预期内。
+3. 无跨帧 gauge ⇒ 斜率差不能归因于归一化。
+4. 本仓 Gaia XP 零点与 `k_photo` 是否自洽，**因该零点未落盘而无从检验** ⇒ 属**产物缺口**，
+   非已证实缺陷。
+
+**41% 那一帧**（lead 指 `M2_T2_20251212` 一线）：本轮**未逐帧复算其 A=ZMAG−2.5·(−log10 k)**
+（需把输入头 ZMAG 与产物 k 逐帧 join；两者都已具备，预算用尽）。**已具备的事实**：
+`M2_T2_20251212_020002` 的 `n_used=616`、`sigma_resid=0.0354`、`field_ptp=0.1261`、
+背景 197.9、`kappa=1.64`。其余（该帧 ZMAG 具体值、A、PinPoint 匹配星数是否异常）**标未做**。
+
+## M.5 产物新增建议（**只登记，不实现**）
+
+**缺口**：`p1_flux.json` 源条目仅 `background/failure_reason/flux/flux_error/id/snr/valid/x/y`；
+`p1_phot.json` 的 `photscale_detail` **未含** `zero_point_*` 四字段（尽管调度器结构体里已定义并被填充）；
+`p1_psf.json` 只有统计量 ⇒ **任何外部一致性检验都无法用逐星合成量复核帧级标度**（本次 K2 即因此无法完成）。
+
+**建议键**：
+- `p1_flux.json` 每条源记录增：`f_syn`（Gaia XP 正向合成通量，与 `flux` 同量纲）、
+  `f_syn_source`（谱来源/曲线身份）、`r_dex`（`log10(flux/f_syn)`，即该星进拟合的残差）、
+  `mag_syn`（由 `f_syn` 导出，仅展示）；
+- `p1_phot.json` 的 `photscale_detail[frame]` 增：`zero_point_mag` / `zero_point_valid` /
+  `zero_point_n_stars` / `zero_point_scatter_mag`（**结构体里已有，只需落盘**）+
+  `zero_point_reference`（自述参考：Gaia DR3 XP + 曲线身份）。
+
+**理由**：下游需要**同参考、逐星**的量来复核帧级标度与零点是否自洽；现在缺"逐星合成通量"这一层，
+导致跨算法一致性检验只能停在帧级统计量的比较上，无法回答"两路不一致是样本差还是实现差"。
