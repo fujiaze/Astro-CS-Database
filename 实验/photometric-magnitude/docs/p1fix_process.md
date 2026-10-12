@@ -963,3 +963,63 @@ MAD/0.6745 0.02588 dex；峰峰 **0.19682**。
 源数最少、背景偏高**同时出现**；而零点的星数与 scatter 与兄弟帧**几乎相同**。
 ⇒ 偏离只出现在 `k_photo` 一侧（零点侧正常）。**证不了的**：具体成因与解算质量（rms_px/best_inliers）
 本轮未取，**标未做 / 未知**。
+
+---
+
+# 附录 O：A2 逐星合成量落盘 —— 结论：需新增输出面（本轮不实现）
+
+## O.1 数据已经物化，但没有出口
+
+`lib/algorithms/photometry/cpp/src/star_matcher.h:26-34` 的 `StarMatch` **恰好含所需键**：
+
+```cpp
+struct StarMatch {
+    double x;         // 图像像素x (PSF质心)
+    double y;         // 图像像素y (PSF质心)
+    double f_instr;   // 仪器流量 (PSF flux)
+    double f_syn;     // 合成流量 (Gaia)
+    double gaia_mag;  // Gaia G 星等
+    int psf_idx = -1; // PSF 星原始行号 (供 per-star lineage 回连 star_id)
+    int gaia_idx = -1;// Gaia 星索引
+};
+```
+且 `star_matcher.cpp:316` 确有 `m.f_syn = gaia_fsyn[g];`（另见 :326 的逐星打印）。
+
+## O.2 但该行只活在 `pc_api.cpp` 内部，**公开 ABI 无逐星输出面**
+
+`lib/algorithms/photometry/cpp/src/pc_api.cpp:133-150`：
+```cpp
+std::vector<pc::StarMatch> raw_matches = matcher.matchWithKdTree(...);   // 逐星行
+std::vector<pc::StarMatch> matches = matcher.cleanAndScale(              // 逐星行
+    raw_matches, &match_rows, quality_flags, 3.0, &scale, &sigma_residual, out_diag);
+int n_matched = (int)matches.size();
+fprintf(stderr, "[pc_api] 匹配+清洗完成: %d 颗, scale=%.6e, sigma_residual=%.6f\n", ...);
+```
+⇒ 逐星行只被用于产出 **两个 double**（`scale`/`sigma_residual`）与 `out_diag`（`PhotometricDiag`，
+**只含计数**，如 `photometric_calib.h:24` 的 `int valid_fsyn;`）。
+`lib/algorithms/photometry/cpp/include/photometric_calib.h` 中 `gaia_mag` / `gaia_fsyn` 均出现于
+**入参**位置（:110、:195），**没有任何逐星输出数组**。
+
+## O.3 结论：A2 **不是纯落盘**，需要新增输出面
+
+`AGENTS.md` §7 明写模块"不写未声明文件、不绕过统一 I/O"，§13 要求"同一件事只允许一份实现；
+需要跨模块使用时把实现暴露为**公开 API**"。因此**不能**让 `pc_api.cpp` 直接写 `p1_phot_stars.json`。
+正确做法（**设计方案，本轮未实现**）：
+
+1. **扩展模块输出面**（API-PHOT-001，编辑既有头 + 既有实现，不新增源文件）：在
+   `_v2` 入口的输出结构里追加逐星行数组（`star_id`(=由 `psf_idx` 回连) / `f_syn` / `f_instr` /
+   `r_dex`(=`log10(f_instr/f_syn)`，**由已落盘的两量现算，不新增谱积分**) / `gaia_mag` /
+   `inlier`(= IRLS 权重>0，取自 `cleanAndScale` 的 inlier 判据) / `reject_reason`)；
+   空指针 ⇒ 不产出该面（既有调用方零影响，保持加法语义）。
+2. **编排层落盘**：`module_adapters.cpp` 的 `p1_op_photometry` 接收该数组并写逐帧侧车
+   `p1_phot_stars.json`（逐帧目录，与 `p1_phot.json` 同级）。
+3. **端口正本**：`docs/detail/registry/acsd.phase1.photometry.md` 增该侧车的键表与语义
+   （**必须在实现同批落地**；本轮未实现故未改该页）。
+
+**为什么这比"在 p1_flux 路径新做谱积分"好**：谱积分与新计算都不需要——数据已在 `StarMatch` 里，
+只缺一条出口；新增谱积分会引入第二份实现（违反 §13）。
+
+## O.4 L1 仍缺输入（与本附录一致）
+
+L1 的 (a)/(b) 都需要**逐星** `f_syn`/`r`。产物中实测 `f_syn`/`r_dex`/`mag_syn` **三键均无**
+（见附录 N.4）。⇒ **在 O.3 落地之前，L1 无法构造**，判定停在 A4.2 的"不一致（根因未细分）"。
