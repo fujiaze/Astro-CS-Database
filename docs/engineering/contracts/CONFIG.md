@@ -96,7 +96,7 @@ normalize 只接受**多块**与**平铺单块**两形态；CLI 遇到逐帧 `{p
 
 | phase | 模板 | 必填 | 可选算法选择（逐项权威） | 输入项 |
 |---|---|---|---|---|
-| normalize（多块） | `eng/packaging/config/templates/normalize.phase_config.json` | 块级 `input_lights` + `output_dir`；顶层 `schema_version` + `blocks` | `algorithm_psf_model`（`docs/science/psf/PSF.md`，当前唯一实现 Moffat4）；`sparse_snr_layer`（最高设计的「输出合同」一节）；**`algorithm_drizzle_pixfrac`** 与 **`drizzle.pixfrac`**（语义/值域权威 `docs/science/drizzle/DRIZZLE.md` + `../../science/algorithms/DRIZZLE_GEOMETRY.md`，schema 机器强制 `0 < pixfrac <= 1`；数值默认 0.8 落 defaults.json 的 `drizzle.pixfrac`）；`drizzle.precision_mode`（0=FP32/1=FP64，**必须显式**） | 块级 `input_lights[]`（每帧一个 FITS 路径）+ 块级母版 `master_bias/master_dark/master_flat` + `filter_passband`（必须命中滤镜库；空串 = 显式无 filter）。**命中后的解析责任（强制）**：`resolve(name)` 必须按本文滤镜库一节的三条冻结条款执行——① 匹配语义（字节精确、无归一、无别名）；② **曲线身份核对**（对象 `name` / `n_points` / `curve_stats` 逐项对账，缺字段即 fail-closed）；③ **`channel` 非空校验**（`channel == ""` 的曲线只走不依赖通带类别的路径；`F_syn` 通带积分需要通带类别）。**取错通带的后果与判据**：通带错配表现为 `F_syn` 的跨星散度 ⇒ 单帧测光一致性残差是通带声明正确性的机器判据（正本 = science 分册的测光卷的通带公式一节，读数见其证据面）。**适用域**：本条只约束 `filter_passband` → 曲线的解析与消费，不改变滤镜库内容 |
+| normalize（多块） | `eng/packaging/config/templates/normalize.phase_config.json` | 块级 `input_lights` + `output_dir`；顶层 `schema_version` + `blocks` | `algorithm_psf_model`（`docs/science/psf/PSF.md`，当前唯一实现 Moffat4）；`sparse_snr_layer`（最高设计的「输出合同」一节）；**`algorithm_drizzle_pixfrac`** 与 **`drizzle.pixfrac`**（语义/值域权威 `docs/science/drizzle/DRIZZLE.md` + `../../science/algorithms/DRIZZLE_GEOMETRY.md`，schema 机器强制 `0 < pixfrac <= 1`；数值默认 0.8 落 defaults.json 的 `drizzle.pixfrac`）；`drizzle.precision_mode`（0=FP32/1=FP64，**必须显式**） | 块级 `input_lights[]`（每帧一个 FITS 路径）+ 块级母版 `master_bias/master_dark/master_flat` + `filter_passband`（必须命中**运行时扫描集**，否则 `unknown_filter`；空串 = 本次未使用滤镜）。**命中后的解析责任（强制）**：`resolve(name)` 必须按本文「响应曲线库」一节的三条冻结条款执行——① 匹配语义（字节精确、无归一、无别名）；② **曲线身份核对**（对象 `name` / `n_points` / `curve_stats` 逐项对账，缺字段即 fail-closed）；③ **`channel` 校验**（`channel == ""` 的曲线在 `F_syn` 通带积分路径 fail-closed；`channel == "NONE"` 允许积分）。**取错通带的后果与判据**：通带错配表现为 `F_syn` 的跨星散度 ⇒ 单帧测光一致性残差是通带声明正确性的机器判据（正本 = science 分册的测光卷的通带公式一节，读数见其证据面）。**适用域**：本条只约束 `filter_passband` → 曲线的解析与消费，不改变滤镜库内容 |
 | mosaic | `eng/packaging/config/templates/mosaic.phase_config.json` | 块级 `output_dir` + 块级 `hips_paths`（平铺单块简写 = `schema_version` + 同名两键；`{phase_name, config, inputs}` 形态的 `config` 键 = `{output_dir, precision}`） | `algorithm_rejection_method`（method/profile 词表与默认路由见 `../../science/REJECTION.md`）、`reject` 块（接受与 integration 段同一 `large_scale{enabled, min_structure_pixels, low_grow_radius_pixels, high_grow_radius_pixels}` 文法；三命令面缺省 enabled=1）、`algorithm_upm_gauge`（`docs/detail/registry/acsd.phase2.upm-fit.md` 的配置键表 `gauge_mode` 行）。权重是阶段二现场算出的派生量，本面**不存在** `algorithm_weight_mode` / `weight_mode` / `legacy_allow_weight_fallback` / `acr_route` 任一键名（见本节开头的键集合声明） | 块级 `hips_paths[]`（一组输入 HiPS）；`{phase_name, config, inputs}` 形态的 `inputs[]` 项 = `{product, filter?}` |
 | export | `eng/packaging/config/templates/export.phase_config.json` | 块级 `output_dir` + 块级 `source`（一个输入产品）+ **`output_mode`（**必须显式**，缺键即 REJECT）**；平铺单块简写 = `schema_version` + 同名三键；`{phase_name, config, inputs}` 形态的 `config` 键 = `{output_dir, precision, output_mode, wcs}` | `wcs.projection`（最高设计的「投影算法」一节：首批 8 种、缺省 TAN；`docs/detail/registry/acsd.phase3.wcs.md` 的「投影集口径」条目（口径源自最高设计「投影算法」一节））、`wcs.{rotation_deg, crpix_px}`（同一 science 分册的投影卷）、**`crop`（导出裁剪范围，可选，缺省 = 不裁剪；在**已定义好的输出画幅**上取矩形子窗，不改画幅定义/投影/重采样）**：两种**互斥**形式 —— `pixels`（平面像素矩形，FITS 1-based 闭区间，用户到平面后手动裁剪）/ `sky`（天球轴对齐矩形 ICRS deg，GUI 的 HiPS 浏览器框选导出走这一形式）；键形固定可机器生成、GUI 直接填；判别键名取 `crop_form`（避开 `cpu_profile` 的 `mode`，统一模型卷的同名即同义条款，与 `output_mode` 同一处置）；fail-closed 全部具名报错（越界 / 宽高非正 / 两形式同时给 / 裁剪后为空 / `sky` 越出 TAN 半球），**禁静默夹取**；写出 FITS 的 WCS = 原画幅 WCS 在窗口上的**精确限制**（`CRVAL`/`CD` 逐位不变、`CRPIX` 减**整数**窗口原点）⇒ 窗口内像素与不裁剪时**逐位相同**。正本 = `docs/detail/export/pipeline.md`「导出裁剪范围（crop）」一节；字段合同 = `eng/contracts/schemas/phase_config_export.schema.json#/$defs/export_crop`；几何唯一实现 = `lib/algorithms/projection/p3_wcs.h`（CLI 配置面与节点面共用）；接口登记 = `CLI_PROTOCOL.md` ；生产消费点 = scheduler p3 节点链 wcs/writer/verify（非死键）；`crop` 不进 `--template` 骨架（模板不替用户主张裁剪）；**`output_mode` 不在本列**（它**必填**：值域 `surface_brightness`/`point_source_flux`/`visualization`；合同登记的 `surface_brightness` **只作 `--template` 骨架值**，`--json` 运行的取值只走显式声明——见本节末条） | 块级 `source.hips_dir`（单值 = 一个输入产品；多产品 = 多块）；`{phase_name, config, inputs}` 形态的 `inputs[]` 项 = `{product}` |
 
@@ -114,35 +114,50 @@ normalize 只接受**多块**与**平铺单块**两形态；CLI 遇到逐帧 `{p
   - **合同登记的 `surface_brightness` 不是「运行默认值」**：它只用于 `<cmd> --template` 的**骨架值**
     （`eng/packaging/config/templates/export.phase_config.json`；`eng/packaging/config/config_registry.json` 的 `export.config.output_mode` 登记点）。
   - 因此本表 export 行的「可选算法选择」列**不列 `output_mode`**（它只属「必填」列）。
-- **模板示例值声明**：模板中的 `path/to/...` 路径、`filter: "Baader R"`、export 的 `center_deg: [0,0]` 与 `s_out_deg: 0.001`、`width_px/height_px: 512` 都是**示例占位**（用户必须按观测改写），**不是**科学默认值；**示例滤镜串必须始终是滤镜库的合法键**（`"Baader R"` 是合法键；改成库外串会让模板自身通不过 schema 枚举 ⇒ 模板回归必红）——示例值不主张「本次观测的真实通带就是它」，通带声明正确性由本文件的滤镜库一节的曲线身份核对与测光残差判据承担；除 `precision`/`projection`/`rotation_deg` 等有权威默认者外，模板不主张任何数值默认（**`output_mode` 不在其列**：它**必填**，模板骨架值 `surface_brightness` 只是让模板可直接运行，不是「缺省可用」的许可，见上条）。`width_px/height_px = 512` 与 HiPS tile 默认（`../../science/PHASE3_HIPS_TO_FITS.md`）同值，仅作可运行的示例几何。
+- **模板示例值声明**：模板中的 `path/to/...` 路径、`filter_passband: "None"`、export 的 `center_deg: [0,0]` 与 `s_out_deg: 0.001`、`width_px/height_px: 512` 都是**示例占位**（用户必须按观测改写），**不是**科学默认值；**示例用语义中性的 `None`（无滤镜通带，`channel="NONE"` 的单位透过率曲线）**，不主张「推荐用某片滤镜」，也不主张「本次观测的真实通带就是它」——示例值不承载任何通带推荐；通带声明正确性由本文件「响应曲线库」一节的曲线身份核对与测光残差判据承担。schema 不再持有滤镜枚举（见「响应曲线库」一节的枚举退役），故示例串的合法性由**运行时扫描集**判定（用库外串 ⇒ `unknown_filter` 判红）。除 `precision`/`projection`/`rotation_deg` 等有权威默认者外，模板不主张任何数值默认（**`output_mode` 不在其列**：它**必填**，模板骨架值 `surface_brightness` 只是让模板可直接运行，不是「缺省可用」的许可，见上条）。`width_px/height_px = 512` 与 HiPS tile 默认（`../../science/PHASE3_HIPS_TO_FITS.md`）同值，仅作可运行的示例几何。
 - 硬约束：normalize 块内（`additionalProperties:false`）、`drizzle`/`wcs` 两级与顶层 `propertyNames` 都拒绝任何未登记字段；mosaic/export 的 `config`/`inputs` 两级 `additionalProperties:false` ⇒ cpu_profile 的 `workers`/`isa`/`block_size` 混入必失败（负例 ④）。
 - 内存/流式预算类字段（`docs/detail/registry/acsd.phase3.writer.md` 配置键表的 `band_height`/`tile_cache_mb`）**不进** phase_config：它们不可跨机器复现，属实现策略，按 `../../detail/common/unified_model.md` 的「3. 三类配置严格分离」一节 只入 `runtime_policy` 面。登记面把它们登记为 `runtime_policy` 类（权威 = 插件文档；校验判据断言此类旋钮只出现在 `runtime_policy` 面（phase_config 属性面零命中）），见本文件的「旋钮与默认登记册 `eng/packaging/config/config_registry.json`」一节。CFG002-ANCHOR: item2-knob-ownership → eng/packaging/config/config_registry.json
 
-### `eng/packaging/config/filters.json`（`acsd.filter-library/v1`）
+### 响应曲线库（代码内单一路径 + 运行时扫描）
 
-- **逐字转录** `lib/algorithms/photometry/data/response_curves/filters.json`（45 条；字段 `name/channel/wavelength_nm/value/n_points`），未重采样、未插值、未改数值。**`channel` 是转录字段之一**，因此其角色与空值语义按本节下文的冻结条款判定（见「`channel`（通带类别列）的角色与空值语义」）；转录保真只保证「值与源文件逐字相同」，**不**主张曲线物理正确（provenance 见下条）；校验项逐条与源文件比对（`TestFiltersLibrary::test_verbatim_transcription`）。
-- **provenance**：登记在本文件自己的 `eng/packaging/config/filters.json` 的 `provenance` 面（`source_statement` 逐字为 `unverified: original curve source not recorded in repository`，另记 `status=unverified` 与 `gap_id=GAP-025`；原外部 provenance 源文件已不在现行文件树内，其内容指纹留在该面的 `source_sha256`），本库 **45/45 如实标注** `status=unverified`、`verified=false`、`url=null`、`gap_id=GAP-025`；曲线统计量（`curve_stats`）由校验项与曲线逐条对账。**适用域与验证方式（严格自洽说明）**：曲线数据只以「与源文件逐字相同的转录」身份入库，其物理正确性未经外部来源核对；任何「与标准滤光片/文献一致」的主张必须另附独立可核验出处（原始曲线来源 + 版本 + 获取方式 + 校验和）。**缺口登记**：原始曲线来源未入库，登记在册（`gap_id=GAP-025`，登记面 = `eng/packaging/config/config_registry.json`）。
-- **未知滤镜 → error**：`lookup.unknown_filter = "error"`（最高设计的「输入合同」一节 滤镜型号逐字匹配、红级 error）；三份 phase_config schema 都保留 45 键 `$defs.filter_name` 枚举（normalize 由块级 `filter_passband` 消费：`anyOf[{const:""}, {$ref: filter_name}]`；mosaic 由 `inputs[].filter` 消费），并由配置校验项锁定 `enum == eng/packaging/config/filters.json 的 filters 键`（`test_filter_enum_equals_library_keys`）。
-- **不含每滤镜零点**（合同口径）：零点 `location` 是**逐次运行估计量**且满足**零点平移不变量**——`../../science/photometry/PHOTOMETRY.md`（估计零点 location、尺度因子 scale…）与 `../../science/photometry/PHOTOMETRY.md` 的零点平移不变量条款：F_instr 同乘 k ⇒ location 增 log10 k，scale 除 k，sigma_residual 不变）。**适用域（正向约束）**：该不变量成立的条件是 `r_i = log10(F_instr,i/F_syn,i)` 取**同一 scale 口径**（同一参考通量单位与同一 `F_syn` 定义）且 `k` 是**纯乘性**变换（线性区，无饱和/无截断）。跨运行比较 `location` 时，`F_syn` 口径变化会整体平移 `location` ⇒ **数值不可跨运行直接比较**；量纲与换算见 `docs/science/unified/DATA_SEMANTICS`  的量纲条；测光拟合算法卷明确 `zero_point` 字段因「无定义式、结构体无字段」被删除。故滤镜库**不出现**任何零点列/占位/null 字段；校验项 `test_no_zero_point_column_anywhere` 对**键路径与全文**双向断言（大小写不敏感）。若将来需要每滤镜零点，属**新科学定义**，须走变更流程另立条款。
-- **匹配语义（冻结）**：`lookup = {unknown_filter: error, match: exact, case_sensitive: true, normalization: none, aliases: {}}` ⇒ `resolve(name) = filters[name] if name ∈ keys(filters) else ERROR(unknown_filter)`；不做大小写/空白/Unicode 归一，不解析别名（`aliases` 为空对象 = 显式声明「本库不解析任何别名」）。冻结理由：库内品牌大小写不一致（`Optolong B/G/R` 与 `OPTOLONG L-PRO Light Pollution` 并存），品牌级归一化会引入歧义；当前 45 键在「大小写 + 空白」折叠下无重名（校验项断言），但该事实不替代显式规则。
-- **曲线身份核对（装配期 fail-closed，冻结）**：`resolve(name)` 命中键后，装载器**必须**再核对「取到的曲线对象就是该键声明的曲线」，四项同时成立才算通过：① 对象 `name` 字段与库键**逐字节相等**；② 对象 `n_points` 与实际 `wavelength_nm` 数组长度相等；③ 对象自述与 `provenance.per_filter[<键>].curve_stats` 的 `n_points`/`wl_min`/`wl_max`/`val_min`/`val_max` 一致；④ 同上的 `wl_sum`/`val_sum`/`val_sumsq`（逐元素和）与**实际数组**算出的值一致。任一项不成立 ⇒ 具名错误 `curve_identity_mismatch`（作用域 = 环境/配置），装载器只返回该具名错误。
+- **形态（单一路径，无覆盖链）**：曲线库不再是固定清单文件，而是一个**目录**。代码内只固定**一个相对路径** `config/response_curves/`，相对**可执行文件所在目录**解析；运行期**扫描该目录**得到可用曲线集合。**不设环境变量覆盖、不设 CLI 覆盖、不设任何优先级链**；目录不可达 / 不是目录 ⇒ **具名 fail-closed**（不回退到任何内建清单、不回退到别处、不当作「无滤镜」）。
+- **用户可增减**：用户往该目录增删曲线文件即改变可用集合，无需改代码、改 schema、改登记。用户自定义曲线**不入仓**；其名字合法性由**本次扫描集**判定（见下「未知滤镜 ⇒ error」）。
+- **打包与安装**：Linux `<prefix>/config/response_curves/`、Windows `<install>\config\response_curves\`；随包发布的 45 条滤镜曲线与 12 条 QE 曲线置于该目录。安装树合同（`eng/packaging/install-tree.contract.json`）与 install 规则（`eng/cmake/install_layout.cmake`）必须同步该目录——**不安装该目录 = 本特性不存在**。
+- **同一目录、同一机制承载滤镜曲线与 QE 曲线**：两类曲线共用同一文件格式、同一扫描与同一身份核对；由 `channel` 列区分（QE 曲线为 `Q`）。不再有 `filters.json` / `qe_curves.json` 两份聚合文件，也不再有两套加载机制。
+- **曲线文件格式（唯一格式：一文件一曲线，无后备格式）**：每个 `*.json` 文件是一个 JSON 对象，字段 = `name`（曲线名/库键）、`channel`、`wavelength_nm`（nm 数组）、`value`（响应/透过率数组）、`n_points`（== 数组长度）、`provenance`（该条自带，见「曲线出处与状态词表」）。扫描规则：**非递归**、`*.json`、按文件名**字节序稳定排序**；不跟随指向目录外的符号链接；单文件大小与文件数设硬上限（防误放）。文件不可解析、字段缺失、`n_points` 与数组长度不等 ⇒ 具名 fail-closed。
+- **名字唯一性（字节精确）**：扫描期按 `name` 去重；重名 ⇒ 具名 `curve_name_duplicate` fail-closed（报按文件名序的第一个冲突），**不得「取第一条」**。
+- **匹配语义（冻结，合同级）**：`resolve(name) = scanned[name] if name ∈ 扫描集 else ERROR(unknown_filter)`；比较为**字节精确**——不折叠大小写、不折叠空白、不做 Unicode 归一、**不解析任何别名**。冻结理由：库内品牌大小写不一致（`Optolong B/G/R` 与 `OPTOLONG L-PRO Light Pollution` 并存），品牌级归一化会引入歧义；该事实不替代显式规则。匹配规则本身是**固定代码行为**（本条款），不随目录内容变化。
+- **未知滤镜 ⇒ error（保留）**：配置里的 `filter_passband` / `inputs[].filter` 名字必须命中**本次扫描集**；否则 `unknown_filter`，错误串含 `requested`、曲线目录、候选名排序前 N 个与扫描总数。扫描集为空 / 目录不可达 ⇒ fail-closed（不得静默变成「无滤镜」）。
+- **已退役的配置键 `photometry.fit.filters_json`**：它是「文件路径」语义，与目录扫描机制冲突 ⇒ **退役**；**不新增任何目录配置键**——目录由代码固定的相对路径给出（用户以增删文件改变可用集合，符合「运行参数优先由 config 读取」中"无需配置"的一端）。
+- **不含每滤镜零点**（合同口径）：零点 `location` 是**逐次运行估计量**且满足**零点平移不变量**——`../../science/photometry/PHOTOMETRY.md`（估计零点 location、尺度因子 scale…）与 `../../science/photometry/PHOTOMETRY.md` 的零点平移不变量条款：F_instr 同乘 k ⇒ location 增 log10 k，scale 除 k，sigma_residual 不变）。**适用域（正向约束）**：该不变量成立的条件是 `r_i = log10(F_instr,i/F_syn,i)` 取**同一 scale 口径**（同一参考通量单位与同一 `F_syn` 定义）且 `k` 是**纯乘性**变换（线性区，无饱和/无截断）。跨运行比较 `location` 时，`F_syn` 口径变化会整体平移 `location` ⇒ **数值不可跨运行直接比较**；量纲与换算见 `docs/science/unified/DATA_SEMANTICS`  的量纲条；测光拟合算法卷明确 `zero_point` 字段因「无定义式、结构体无字段」被删除。故曲线文件**不出现**任何零点列/占位/null 字段；判据对**键路径与全文**双向断言（大小写不敏感），作用域 = 扫描目录内全部曲线文件及其 `provenance`。若将来需要每滤镜零点，属**新科学定义**，须走变更流程另立条款。
+- **曲线身份核对（装配期 fail-closed，冻结；逐条对每个扫描到的文件执行）**：扫描器**必须**核对「取到的曲线对象就是它自述的那条曲线」，四项同时成立才算通过：① 对象 `name` 字段与请求名**逐字节相等**；② `n_points` 与实际 `wavelength_nm` 数组长度相等；③ 该条 `provenance.curve_stats` 的 `n_points`/`wl_min`/`wl_max`/`val_min`/`val_max` 与实际数组一致；④ `wl_sum`/`val_sum`/`val_sumsq`（逐元素和）与**实际数组**算出的值一致。任一项不成立 ⇒ 具名错误 `curve_identity_mismatch`（作用域 = 环境/配置），只返回该具名错误。
   - ③ 与 ④ 的分工（冻结）：`min`/`max` 只是包络，两支不同曲线可以共用同一包络 ⇒ ④ 的逐元素指纹是**必需项**，`curve_stats` 缺这三个字段即 fail-closed（缺字段 ≠ 身份已核对）。
-  - 该核对**不改变** `lookup` 语义（仍是字节精确、无别名），也不放宽任何科学阈值；它约束的是「解析器有没有取错对象」。
-  - 消费侧另有两条独立约束：配置声明的通带名与 `FILTER` 关键字解析出的库键必须相等（不等 ⇒ `passband identity mismatch`）；同一次运行内各组帧只能有一条模型通带（不一致帧判 `PHOT_PASSBAND_IDENTITY_INCONSISTENT`）。
+  - 该核对不改变匹配语义（仍是字节精确、无别名），也不放宽任何科学阈值；它约束的是「解析器有没有取错对象」。
+  - 消费侧另有两条独立约束：配置声明的通带名与 `FILTER` 关键字解析出的曲线名必须相等（不等 ⇒ `passband identity mismatch`）；同一次运行内各组帧只能有一条模型通带（不一致帧判 `PHOT_PASSBAND_IDENTITY_INCONSISTENT`）。
   - 判据锚：`lib/infrastructure/pipeline/orchestrator/cpp/tests/test_photometry_curve_resolve.cpp`（`[I0..I9]`，含恒真自检）与 `test_p1phot_passband_identity.cpp`（`[F1..F6]`）（两个路径在跟踪集内不存在，登记为需代码侧订正）。正本 = `../../science/photometry/PHOTOMETRY.md` 的「2a 参考通量 `F_syn` 的合成口径（定义 · 量纲 · 适用域 · 证据）」一节。
-- **反例串的权威锚点**：`"bader r"`/`"bader v"` 的**唯一权威锚点 = 本文件 「滤镜名匹配语义」一节 负例表**（`eng/packaging/config/filters.json#lookup.non_key_examples[].where` 指向它）。最高设计全篇不含 `bader`，因此这两个串的锚点只落在本文件 「滤镜名匹配语义」一节 负例表。两个串仍登记为 `lookup.non_key_examples`（`kind=design_doc_negative_example`、`resolution=ERROR`，值与判据未变）——它们不是合法库键，也不能靠归一化变成合法键（`bader` ≠ `Baader`；且库内不存在 Baader V 曲线）。`non_key_examples` 只把反例与合法值分开，**不**把反例升级为别名。正反例与门见 「滤镜名匹配语义」一节。CFG002-ANCHOR: item3-filter-name-policy → eng/packaging/config/config_registry.json
-- **死定义已登记**：三份 schema 都保留 `$defs/filter_name`；被字段 `$ref` 的只有 normalize（块级 `filter_passband`，后取代逐帧 `inputs[].filter`）与 mosaic（`inputs[].filter` 可选、模板未用）；export 无字段引用它（导出以 HiPS 产品为单位、滤镜在上游分离）⇒ `config_registry.filter_name_policy.dead_filter_enum_phases` 登记，校验项断言该集合的每次变化都显式登记。
-- **`channel`（通带类别列）的角色与空值语义（冻结）**：最高设计的「输入合同」一节 冻结 `filters.json` 承载**三列**——「型号、通带、波长」；`channel` 即其中的**通带类别**列，与 `wavelength_nm`（波长轴，nm）配合。本文件**不新增取值**，只冻结其角色与空值语义：
-  - 值域 = `{B,G,R,L,HA,OIII,PAN,""}`；空值组 = `Johnson I`、`Johnson U`、`SDSS g`、`SDSS i`、`SDSS r`、`SDSS u`、`SDSS z`。**复算方法（就地，不依赖外部目录）**：读 `eng/packaging/config/filters.json`，对每个滤镜条目取 `channel` 字段
-（缺字段按 `""` 计），按取值分组计数；判据 = 按上述方法就地复算出的分组计数与空值组型号清单恒与 `eng/packaging/config/filters.json` 一致，空值组恰为列出的 7 个型号名。
-反例（负对照）：把任一空值条目的 `channel` 填成合法类别后重跑，计数与空值清单必须同时变化 ⇒ 判据非退化。
-  - **空值语义（冻结）**：`""` = **未声明通带类别**（≠「无通带」、≠「宽带」）。
-  - **解析器的校验责任（冻结）**：`resolve(name)` 在名字命中后**必须**再校验 `channel` 非空；`channel == ""` 的曲线只走不依赖通带类别的路径：判定、筛选、换算与 `F_syn` 通带积分都需要通带类别 ⇒ **必须 fail-closed**（具名报错），通带类别只取自 `channel` 列。
-  - 适用域：本条只约束 `filter_passband` → 曲线的解析与消费；**不改变**已冻结的 `lookup = {unknown_filter: error, match: exact, case_sensitive: true, normalization: none, aliases: {}}` 语义。
+- **反例串的权威锚点**：`"bader r"`/`"bader v"` 的**唯一权威锚点 = 本文件「滤镜名匹配语义」一节 负例表**。最高设计全篇不含 `bader`，因此这两个串的锚点只落在本文件该节。它们不是合法曲线名，也不能靠归一化变成合法名（`bader` ≠ `Baader`；且扫描集内不存在 Baader V 曲线）。负例只把反例与合法值分开，**不**把反例升级为别名。CFG002-ANCHOR: item3-filter-name-policy → eng/packaging/config/config_registry.json
+- **枚举锁定退役**：三份 phase_config schema 的 `$defs.filter_name` **45 键枚举退役**（枚举与"运行时扫描、用户可增减"根本矛盾）；schema 侧只约束**字符串形态**（normalize `filter_passband = anyOf[{const:""}, {type:string, minLength:1}]`、mosaic `inputs[].filter = {type:string, minLength:1}` 可选、export 的该 `$defs` 删除）。存在性判据**从 schema 移到运行时**（命中扫描集否则 `unknown_filter`）；`config_registry.filter_name_policy.dead_filter_enum_phases` 改为退役登记。
+- **`channel`（通带类别列）的角色与值域（冻结）**：`channel` 是**通带类别**列，与 `wavelength_nm`（nm 波长轴）配合。值域 = `{B,G,R,L,HA,OIII,PAN,Q,NONE,""}`：
+  - `Q` = 该条是 **QE 曲线**，只作探测器量子效率装载，不作为 `filter_passband` 的通带类别（该取值本就在用、此前未登记，本次显式补上）；
+  - `NONE` = **显式无通带**（单位透过率，见「`None`：无滤镜通带」）；**允许**走通带积分；
+  - `""` = **未声明通带类别**（≠「无通带」、≠「宽带」）：判定、筛选、换算与 `F_syn` 通带积分都需要通带类别 ⇒ **必须 fail-closed**（具名报错），通带类别只取自 `channel` 列；
+  - `B/G/R/L/HA/OIII/PAN` = 既有通带类别。
+  - 反例（负对照）：把任一 `""` 条目的 `channel` 改成合法类别后重跑，空值计数必须变化 ⇒ 判据非退化。
+- **`None`：无滤镜通带**：是目录里的一个曲线文件，`channel = "NONE"`，单位透过率 `value[i] ≡ 1`，波长网格 = **生产积分网格**（XPSD 文件头 `parameters="spectrumStart=336,spectrumStep=2,spectrumCount=343"`，即 336–1020 nm / 343 点；依据 = `../../science/algorithms/normalize/PHOTOMETRIC_FIT.md` 的「逐符号实现锚定」与「实现事实修订」两节：生产路径把 T/Q 重采样到完整 343 点谱网格、区间外置 0）⇒ `F_syn = ∫F_λ·Q·λ dλ` 在光谱支撑域上良定义。
+  - **`""` 与 `None` 语义不同、并存，不是同义词**：`""` = **本次未使用滤镜**（通带积分不适用 ⇒ 测光路径 fail-closed）；`None` = **使用「无滤镜」通带**（单位透过率 ⇒ 可做通带积分）。二者不是"同一件事的两种写法"。
+- **曲线出处与状态词表（冻结）**：每条曲线自带 `provenance`，字段 = `source`、`version`、`acquired`、`original_file_sha256`（原始文件校验和，可为 `null`）、`checksum_status`、`repo_intermediate_sha256`（如适用，**仅**记录仓内中间文件指纹，**不得**充当原始文件校验和）、`status`、`verified`、`curve_stats`。
+  - **本次 45 条滤镜曲线的出处**：来源 = **PixInsight 1.8.9 随包发布的滤镜曲线配置**（**用户可自行修改的配置文件，不是软件内置硬编码**）；获取方式 = 从该随包配置拷贝入仓；版本 = `1.8.9`。**原始 PixInsight 文件的校验和缺失** ⇒ `original_file_sha256 = null`、`checksum_status = "missing"`，**必须如实标注缺失，不得写成完整**（仓内中间文件指纹只能记在 `repo_intermediate_sha256`，不得冒充原始校验和）。
+  - **本次 12 条 QE 曲线的出处（与滤镜同源，但不套用滤镜的任何指纹）**：来源 = **PixInsight 1.8.9 随包发布的 QE/传感器曲线配置**（用户可自行修改）；获取方式 = 从该随包配置拷贝入仓；版本 = `1.8.9`；`status=source_recorded`、`verified=false`、`original_file_sha256=null`、`checksum_status="missing"`。QE 与滤镜**各自登记**，**不得**把滤镜的 `repo_intermediate_sha256`（`e0a44393…`）挪给 QE。QE 曲线库当前是一份无 provenance/lookup/transcription 面的裸 JSON（比滤镜库更缺登记），迁移时按本条补齐。
+  - **定义性条目（`None` 无滤镜通带；`Ideal QE curve` 理想 QE）待裁决**：二者都不是"来自 PixInsight 的真实器件/滤光片曲线"，而是**按定义构造**的曲线。其 `status` 归类**尚未裁决**（候选：新增第四值 `defined_by_construction`，`verified` 语义与判据随之定义）；在裁决前不得混入"来自 PixInsight 的真实曲线"一类。
+  - **`status` 词表（三值封闭，唯一判据，无别名）**：`unverified_source_missing` = 原始来源未记录（`verified` 恒 `false`）；`source_recorded` = 来源 + 版本 + 获取方式三项齐备、原始校验和缺失并已如实标注（`verified` 恒 `false`）；`verified` = 来源/版本/获取方式齐备**且**原始校验和存在并与原始文件核对通过（`verified` 恒 `true`）。本词表**不保留旧名 `unverified` 作别名**。迁移后 45 条应为 `status=source_recorded`、`verified=false`、`original_file_sha256=null`、`checksum_status="missing"`。
+  - **缺口登记**：旧缺口 `GAP-025`（原始曲线来源未记录）**关闭**；替换为**新缺口**「原始 PixInsight 文件校验和缺失（滤镜 45 条 + QE 12 条）」与**待裁决项**「定义性条目（`None` / `Ideal QE curve`）的 `status` 归类」，登记面 = `eng/packaging/config/config_registry.json` 的 `filter_name_policy.provenance_gaps`。
+  - **词表与退役对 QE 与滤镜一并适用**：`status` 三值词表、两条旧校验项退役、运行时扫描器承担校验，均同时覆盖滤镜曲线与 QE 曲线（E1/E6）。
+- **物理正确性边界（必须逐字保留）**：**「出处可追溯」≠「该曲线物理上就是本设备那片滤镜」**；`verified=true` 也**不等于**与本设备匹配。前者（来源/版本/获取方式已记录；原始校验和仍缺）现在成立；后者**不能**由出处推出，**仍由单帧测光一致性残差判据承担**。
 - **通带正确性的证据资格与判据锚（冻结）**：
-  - 本库全部曲线 `status=unverified`、`verified=false`、`url=null`（见上一条的出处声明）⇒ 「与标准滤光片/文献一致」的主张只走独立可核验出处（原始曲线来源 + 版本 + 获取方式 + 校验和，见本册的旋钮归属登记）；本库曲线本身只承担曲线数据。
+  - 曲线出处只承担"来源可追溯"，**不**主张「与标准滤光片/文献一致」或「与本设备匹配」；这类主张必须另附独立可核验出处（原始曲线来源 + 版本 + 获取方式 + 校验和）。
   - **判据锚（可执行）**：通带错配的后果是 `F_syn` 的跨星散度；正本与四类证据 = `../../science/photometry/PHOTOMETRY.md` 的「2a 参考通量 `F_syn` 的合成口径（定义 · 量纲 · 适用域 · 证据）」一节（刻度实证读数见该节所引的 `run/SCI-PHOT-FORMULA-01/evidence/` 证据面；`SCI-PHOT-FORMULA-01` 是该实验单元的目录名，不是条款号）。⇒ **单帧测光一致性残差是通带声明正确性的机器判据**：`channel` 未声明却按通带消费、或曲线取错时，该残差判红。
-  - **转录偏差（按行登记，修复归 `eng/packaging/config/filters.json` 域）**：逐字段复算 45 条曲线，除 `Astronomik UV-IR Block L-2` 外在库条目与源文件逐字段一致；该条在库中**缺少**源文件具有的 `default` 字段（曲线数值未变，仅该键缺失）。
+- **旧面退役（登记）**：`eng/packaging/config/filters.json` 的 `transcription` 面（"源文件 → 库逐字转录"）与 `lookup`/`non_key_examples` 数据面**退役**——新形态无固定清单文件、无"库键集合"、匹配规则为合同级固定行为；已登记的转录偏差（`Astronomik UV-IR Block L-2` 源文件多 `default` 字段）随该面一并退役。两条旧校验项 `TestFiltersLibrary::test_verbatim_transcription` 与 `test_filter_enum_equals_library_keys` **退役**：其职责由**运行时扫描器**承担（见「配置校验判据」一节的退役登记）。
+- **迁移清单（下一轮数据落盘）**：滤镜 45 条（`lib/algorithms/photometry/data/response_curves/filters.json`）+ QE 12 条（同目录 `qe_curves.json`，含本设备对应的 `KAF-16803`）**一并**拆成一文件一曲线落入新目录（`config/response_curves/`），每条自带 `provenance`；旧两份聚合 JSON 随 `transcription`/`lookup` 面一并退役（删文件属机械改动，与功能改动分开提交）。QE 曲线当前在生产消费侧**尚无配置键**（`photometry.fit` 无 QE 键 ⇒ 实际相当于 `Q≡1`），迁移后 QE 曲线名与滤镜曲线名同在一个扫描集内，由 `channel="Q"` 区分。
 
 ### `eng/contracts/schemas/cpu_profile.schema.json`（单一文件，两分支）
 
@@ -173,6 +188,8 @@ normalize 只接受**多块**与**平铺单块**两形态；CLI 遇到逐帧 `{p
 
 下表中的测试 ID 与脚本路径为判据的既有标识，仓内无对应实现，改动判据时同步更新本节与登记面。
 
+**旧滤镜库校验项退役登记（两条）**：`TestFiltersLibrary` 的 `test_verbatim_transcription`（库 == 源文件逐字相同）与 `test_filter_enum_equals_library_keys`（schema 枚举 == 库键）**退役**——两者与「运行时扫描、用户可增减」根本矛盾，且经核对**在跟踪集内本就没有实现**（全仓只在本文本出现过；本条如实登记，不主张它们曾是生效判据）。其职责改由**运行时扫描器**承担，替代判据是**运行时可执行**的（强于原两条只写在合同里的断言）：① 曲线目录可达且为目录（否则具名 fail-closed）；② 目录内每个 `*.json` 可解析且为一个曲线对象；③ 对每个扫描到的曲线执行**曲线身份核对四项**（`name`/`n_points`/`curve_stats` 的 min-max 与逐元素指纹）；④ 名字在扫描集内**字节精确唯一**（重名 ⇒ `curve_name_duplicate`）；⑤ 配置里每个 `filter_passband`/`inputs[].filter` 名字必须命中扫描集（否则 `unknown_filter`，附候选列表）；⑥ 扫描集为空 ⇒ fail-closed。原「滤镜库」逐字一致与「enum == 库键」两条不再作为判据存在。
+
 **可复现轮 T05–T10 诚实化（CONFIG 门表 2 项）**：
 
 - T-CFG-01（门表全部 20 行：三模板过 schema / 负例必败 / defaults 计数 / 转录保真 / 跨类不相交 / 滤镜库 / cpu_profile / CFG002-01..12）：**不可验收（缺复现载体）**。本节已明示门表在本仓没有执行器（`eng/tests/` 下只有 `conformance/` 与 `validation/` 两个目录，其中不含配置合同测试；`eng/tools/` 下无 `config_consistency_check.py`；门脚本 `check_cfg002_registry.py` 与测试 `test_cfg001_contracts.py`/`test_cfg002_registry.py` 在跟踪集内不存在；运行期 `jsonschema` 依赖不在仓内）。下表列出的是应门禁的判据，不是可复跑的命令；逐条核对判据由人读执行，登记为需代码侧订正项。实验单元指向：配置合同执行器单元（待建：门脚本 + 测试文件 + jsonschema 依赖落地）。
@@ -185,12 +202,12 @@ normalize 只接受**多块**与**平铺单块**两形态；CLI 遇到逐帧 `{p
 | defaults 计数 | 字段数 == 带 unit 数 == 带 source 或 pending 数；来源不明 == 0 | `TestDefaultsContract::test_counts_and_no_unknown_source` |
 | 转录保真 | 11 个关键 source 锚点（文件 + 值文本 + 内容指纹）成立；全部 `source_ref` 内容锚存活；pending 值必为 null | `test_every_source_ref_resolves_and_key_anchors_hold`、`test_pending_items_are_the_adjudicated_gap_set` |
 | 跨类不相交 | phase_config ∩ cpu_profile(v2) == ∅；∩ run_manifest == ∅；∩ cpu_profile(全体) == {precision}（登记） | `TestCrossClassDisjointness` |
-| 滤镜库 | 45/45 逐字一致 + provenance unverified/GAP-025 + 无零点键 + enum==库键 | `TestFiltersLibrary` |
+| 滤镜库（运行时扫描） | 目录可达；每文件可解析；逐条身份核对四项；名字字节精确唯一；配置名命中扫描集；空目录 fail-closed。**旧 `test_verbatim_transcription`/`test_filter_enum_equals_library_keys` 已退役**（职责由运行时扫描器承担） | 运行时扫描器（无独立门脚本；判据见「响应曲线库」一节） |
 | cpu_profile | 单一定义、benchmark-only、v1/v2 双分支可绿、缺必有字段可红 | `TestCpuProfileMigration`、`test_cpu_profile_v1_missing_required_still_fails` |
 | CFG002-01 登记对应 | `docs/detail/**` **配置表**（表头白名单 = `字段|默认|单位|说明`、`字段|默认|说明`、`字段|说明`）全集 ↔ `eng/packaging/config/config_registry.json#plugin_knobs` 一一对应（缺登记/多登记/默认值漂移/单位漂移/**表行内容指纹漂移**/登记行内嵌行号/summary 撒谎均判红）；位置由内容锚实时解析，不再断言行号 | `check_cfg002_registry.py` CFG002-01 |
 | CFG002-02 登记点可解析 | 每行登记点必须真实解析（defaults 键存在 / phase_config 指针落到属性 / `blocks[]` 项属性存在 / cpu_profile 指针存在 / 文档路径存在且带内容锚）；登记点内嵌行号即红；runtime_policy 与 resource_binding 进科学配置即红；phase_config 默认值必须 ∈ 目标 enum | 同上 CFG002-02 |
 | CFG002-03 默认值→值域 | `fields[].enum_target` 指针落到含 enum 节点且 `enum_token` ∈ enum | 同上 CFG002-03 |
-| CFG002-04 滤镜名语义 | `match=exact` / `case_sensitive=true` / `normalization=none` / `aliases={}`；三 schema enum == 库键；6 反例必拒、4 正例必过；`non_key_examples` 锚点成立；消费 filter 的 phase 面与登记一致 | 同上 CFG002-04 |
+| CFG002-04 滤镜名语义 | 匹配为字节精确（无大小写/空白归一、无别名）；**枚举锁定退役**，schema 只约束字符串形态；6 反例必拒、4 正例须命中**运行时扫描集**；`non_key_examples` 锚点移入本文本；消费 filter 的 phase 面与登记一致 | 同上 CFG002-04 |
 | CFG002-05 os_abi 值域 | schema enum == 生产者字面量集合 == 登记册；profile_gen_v2 回落字面量 ∈ enum；负例必拒、正例必过 | 同上 CFG002-05 |
 | CFG002-06 module.yaml 键闭包 | 20 份 `lib/**/module.yaml` 顶层键 ⊆ 登记键集；出现 knobs/params/config/defaults 等旋钮声明键即红 | 同上 CFG002-06 |
 | CFG002-07 索引归属 | `eng/packaging/config/**` 无 schema、`eng/contracts/config/**` 全 schema、两侧无同名文件；DOCUMENT_INDEX 中本文件恰一次且 ACTIVE_NORMATIVE | 同上 CFG002-07 |
@@ -216,15 +233,17 @@ normalize 只接受**多块**与**平铺单块**两形态；CLI 遇到逐帧 `{p
 ### 滤镜名匹配语义（可执行规则 + 正反例）
 
 ```text
-rule:   resolve(name) = filters[name] if name in keys(filters) else ERROR(unknown_filter)
-        （lookup.match=exact、case_sensitive=true、normalization=none、aliases={}）
-positive: "Baader R" | "Johnson V" | "SDSS r" | "OPTOLONG L-PRO Light Pollution"  -> 命中
+rule:   resolve(name) = scanned[name] if name in 扫描集 else ERROR(unknown_filter)
+        扫描集 = 运行时扫描 <可执行文件目录>/config/response_curves/ 得到的曲线名集合
+        （字节精确：无大小写/空白归一、无 Unicode 归一、不解析任何别名）
+positive: "Baader R" | "Johnson V" | "SDSS r" | "OPTOLONG L-PRO Light Pollution" | "None"  -> 命中
 negative: "bader r" | "bader v" | "baader r" | "BAADER R" | "Baader  R" | " Baader R" -> ERROR
 ```
 
-- 三份 phase_config schema 的 `filter` 字段 enum 必须逐项等于库键（45），门同时断言 `enum == keys(filters)`。
-- 正反例由门 CFG002-04 在每个消费滤镜的 phase（normalize/mosaic）上**双向**复跑：反例必须被拒、正例必须通过；`non_key_examples` 的 `where` 是**内容锚**（`{id,path,quote,sha256,value_text}`）：引文必须在本文件内**唯一**命中且含该反例串（`value_text` 逐字相等）。最高设计不含这两个反例串，故锚点只落在本文件（规则正本 = `../../detail/anchors/ANCHOR_CONTRACT.md` 的「4. 内容锚（content anchor）」一节：位置优先用内容锚表达，不写行号）。
-- 归一化被**显式拒绝**（不是「暂未实现」）：`aliases` 为空对象即声明「无别名」；将来要支持别名必须先登记（登记=改合同，需权威条款 + 校验项 + 迁移说明）。
+- **枚举锁定退役**：三份 phase_config schema 不再持有滤镜枚举（`$defs.filter_name` 的 45 键枚举与"运行时扫描、用户可增减"根本矛盾）；schema 只约束**字符串形态**，名字存在性由运行时扫描集判定。
+- 正反例由门 CFG002-04 在每个消费滤镜的 phase（normalize/mosaic）上**双向**复跑：反例必须被拒（`unknown_filter`）、正例必须在**扫描集**中命中；反例串的权威锚点 = 本节的负例表（内容锚形态，位置不入册）。最高设计不含这两个反例串，故锚点只落在本文件（规则正本 = `../../detail/anchors/ANCHOR_CONTRACT.md` 的「4. 内容锚（content anchor）」一节：位置优先用内容锚表达，不写行号）。
+- 归一化被**显式拒绝**（不是「暂未实现」）：本机制不存在别名表（`aliases` 概念随旧 `lookup` 数据面退役）；将来要支持别名必须先登记（登记=改合同，需权威条款 + 校验项 + 迁移说明）。
+- **`None` 与 `""` 的关系**：`None` 是扫描集里的一个合法曲线名（`channel="NONE"`，可做通带积分）；`""` 不是曲线名，而是 `filter_passband` 的 `const`（本次未使用滤镜，通带积分不适用）。二者语义不同、并存。
 
 ### `cpu_profile.host.os_abi` 值域（冻结）
 
