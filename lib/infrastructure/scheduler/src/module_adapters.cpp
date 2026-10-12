@@ -7323,7 +7323,26 @@ Result<void> p1_op_noise(const Json& doc, Json* man) {
   std::map<std::string, double> zp_inst_of_key;  // p1_frame_key -> ZP_k [mag]
   std::vector<double> zp_syn_vals;
   bool phot_fit_available = false;
-  if (ref_mag_usable) {
+  // ── `C_abs` 参考通带守卫（fail-closed）──────────────────────────────────────
+  // `C_abs` **分通带**（`C^G ≠ C^R`），而方案 A 的常数只在**参考通带**上测定 ⇒ 非参考
+  // 通带**不得复用**该常数：静默复用会使 `m5` 的绝对数值错（偏差可达 1 等量级），
+  // 且**不会自暴露**——常数在 `w ∝ 1/F_ref²` 中整体抵消，权重侧完全不受影响。
+  // 因此本运行的通带身份**必须确认等于参考通带**；不等于或取不到 ⇒ fail-closed：
+  // 不产出绝对深度（沿用既有「缺该帧标定 ⇒ 本帧 fail-closed，不伪造、不回退」的模式），
+  // 并记录原因。这是**数据有效性**的 fail-closed，不引入新的门禁式机制（章程 §13）。
+  const std::string kCAbsReferencePassband = "Baader R";
+  const std::string run_passband = doc.value("filter_passband", std::string());
+  const bool cabs_passband_ok = (run_passband == kCAbsReferencePassband);
+  if (!cabs_passband_ok) {
+    std::fprintf(stderr,
+                 "[module_adapters] C_abs 参考通带守卫: fail-closed "
+                 "(运行通带='%s', 参考通带='%s', 原因=%s) ⇒ 本运行不产出绝对深度 m5\n",
+                 run_passband.c_str(), kCAbsReferencePassband.c_str(),
+                 run_passband.empty() ? "passband_identity_unavailable"
+                                      : "passband_not_reference");
+  }
+
+  if (ref_mag_usable && cabs_passband_ok) {
     const std::string pp = out_dir + "/p1_phot.json";
     if (aio_fs::exists(pp)) {
       std::string ptext;
