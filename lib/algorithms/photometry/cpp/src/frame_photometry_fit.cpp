@@ -46,12 +46,9 @@ namespace {
 
 // ── 曲线解析: **唯一实现** = lib/algorithms/photometry/cpp/src/filter_curve_json.h ──
 // 依据 docs/engineering/standards/CODE.md「MUST」一节「禁止重复 production science
-// implementation（单一实现 + oracle）」。本 TU 与 orchestrator 路径
-// (lib/infrastructure/pipeline/orchestrator/cpp/src/orchestrator.cpp) 共用同一份
-// 定位/抽取代码；通带名与 QE 名都按库键**字节精确**解析（无别名表）。
-// 修复前两处各持一份**文本搜索**实现：在转录版 eng/packaging/config/filters.json
-// 上会把 "Baader R" 解析成 filters 段的第一条曲线 "Antlia V Pro Series B"
-// （53 点 / 420–524 nm）—— 缺陷记录与规范依据见 filter_curve_json.h 文件头。
+// implementation（单一实现 + oracle）」。本 TU 只做委托：曲线库 = 运行期扫描
+// `<可执行文件目录>/config/response_curves/`（`curve_json::scan_curve_library`），
+// 通带名与 QE 名都按库键**字节精确**命中扫描集（无归一、无别名）。
 
 }  // namespace
 

@@ -72,7 +72,8 @@ ingest → calibration → cosmetic/validity → background/noise
   `failed_frames`/`n_frames_failed`/`n_frames_ok`/`n_frames_applied`）。
   帧级失败**不是降级**：不写 `degraded_reason`（失败 ≠ 降级，判据见
   `docs/engineering/contracts/LOG_AND_ERROR.md`「显式降级登记要件」一节与 `docs/detail/infrastructure/log_and_error_system.md`）。
-- **全局失败**（换任何一帧都不会好：星表/响应曲线不可读、`gaia_data_dir`/`filter`/`filters_json`
+- **全局失败**（换任何一帧都不会好：星表不可读、曲线库目录不可达或为空、目录内曲线文件
+  不可解析或身份核对失败、名字不在扫描集（`unknown_filter`）、`gaia_data_dir`/`filter`/`qe_name`
   配置缺项、冻结 C 入口返回非零）⇒ **中止运行**（`ErrorDomain::CONFIG`/`IO` 上行到 CLI 收敛为退出码），
   不把整批帧逐帧判 fail。
 - **运行级判红**：产品基数按《ACSD 最高设计》normalize 一章的「输出合同」一节「每一帧输入对应一个 HiPS 产品，任何一帧未被处理、
