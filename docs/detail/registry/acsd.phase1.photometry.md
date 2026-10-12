@@ -99,6 +99,14 @@ repeat-flat / sky-flat 对照）、Gaia XP 合成通量 `F_syn` 定标误差、�
 测光一致性门取「未生效」形态，固定 mag 阈值
 不以任何形式进入实现、测试与文档。
 
+**空间场噪声底只作诊断，不作门**：`spatial_gain` 的 `noise_floor_dex` /
+`noise_floor_max_dex` 是空间场**系数**的解析噪声底（`S·sqrt(mean_pix(B̃ᵀH⁻¹B̃))`
+与 `max_pix` 对应量），只含系数估计的统计误差，**不含逐星测光误差**，故
+`sigma_spatial_residual_dex / noise_floor_dex` 恒大于 1，其数值**不构成达标判据**。
+测光一致性判据仍为「施加标定后星点星等与 Gaia 残差的散度落在本帧误差预算的
+下界与上界之间」（本页「测光一致性判据」一节）；其中"不可再降"的参照量是
+**逐星光子噪声**（由 `p1_flux` 的 `flux` / `flux_error` 按 `0.4343·σ_F/F` 换算）。
+
 ### 外部参考实现的引用纪律
 
 PhotometricMosaic（PMM）的使用面 = 只读方法研究：可读源码做方法研究；代码只读、
