@@ -125,12 +125,17 @@ HP_DRIZZLE_API int hp_drizzle_run_hips(PipelineFrame* frame,
 // hips_dir: HiPS 产品集根目录 (signal/ support/ Moc.fits metadata.fits properties)
 // filter_passband: obs_filter 透传 (可 NULL 或空串)
 // 返回: 0=成功, 非 0=失败 (result->error_msg 给出原因)
+// hips_geometry_json: 可选。非空 ⇒ 该 JSON 对象文本作为**加性** `geometry` 写进逐帧
+//   产品集清单（口径正本 = docs/engineering/contracts/HIPS_STORAGE_FORM.md「逐帧 HiPS
+//   产品集清单 manifest.json#geometry（加性）」一节）；缺省 nullptr ⇒ 该键**缺席**
+//   （既有调用方不受影响；不得以零值或未解算 WCS 冒充解算几何）。
 HP_DRIZZLE_API int hp_drizzle_run_phase1_hips(PipelineFrame* frame,
                                               int nside, int nested, double pixfrac,
                                               const char* hips_dir,
                                               const char* filter_passband,
                                               HpDrizzleResult* result,
-                                              int precision_mode);
+                                              int precision_mode,
+                                              const char* hips_geometry_json = nullptr);
 
 // P1-DRZ-ASYNC-01: Phase1 写盘异步化（跨帧流水, 帧内仍单线程且仍按
 // parent_ipix 升序）。形态：

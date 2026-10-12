@@ -119,6 +119,11 @@ int run_drizzle_internal(PipelineFrame* frame,
                          int precision_mode,
                          int hips_profile,
                          const char* hips_filter_passband,
-                         HpDrizzleJob** out_job = nullptr);
+                         HpDrizzleJob** out_job = nullptr,
+                         // 逐帧产品集清单的**加性** geometry 对象（JSON 对象文本）。
+                         // nullptr/空串 ⇒ 不写该键（缺席语义）。口径正本 =
+                         // docs/engineering/contracts/HIPS_STORAGE_FORM.md
+                         // 「逐帧 HiPS 产品集清单 manifest.json#geometry（加性）」一节。
+                         const char* hips_geometry_json = nullptr);
 
 #endif /* HP_DRIZZLE_INTERNAL_H */

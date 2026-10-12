@@ -106,7 +106,8 @@ HP_DRIZZLE_API int hp_drizzle_run_phase1_hips(PipelineFrame* frame,
                                               const char* hips_dir,
                                               const char* filter_passband,
                                               HpDrizzleResult* result,
-                                              int precision_mode)
+                                              int precision_mode,
+                                              const char* hips_geometry_json)
 {
     // C 边界异常屏障, 同 hp_drizzle_run / hp_drizzle_run_hips 薄壳 (对齐 -11)。
     try {
@@ -116,7 +117,9 @@ HP_DRIZZLE_API int hp_drizzle_run_phase1_hips(PipelineFrame* frame,
                                 /*write_legacy_hiss=*/false,
                                 result, precision_mode,
                                 /*hips_profile=*/1,
-                                /*hips_filter_passband=*/filter_passband);
+                                /*hips_filter_passband=*/filter_passband,
+                                /*out_job=*/nullptr,
+                                /*hips_geometry_json=*/hips_geometry_json);
     } catch (const std::exception& e) {
         fprintf(stderr, "[hp_drizzle_api] hp_drizzle_run_phase1_hips: C 边界捕获异常: %s\n", e.what());
         if (result) {

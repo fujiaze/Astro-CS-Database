@@ -8194,6 +8194,9 @@ Result<void> p1_op_drizzle(const Json& doc, Json* man) {
     if (p1_frame_should_abandon(frame_path)) return;
     // 该帧 WCS: 逐帧上游产物优先, 回退 config.wcs; 两者都无 → fail-closed。
     Json wj_storage = Json::object();
+    // 本帧 WCS 是否来自**解算产物** p1_wcs.json#wcs（vs config 回退）：只有解算几何
+    // 才允许并入逐帧产品集清单的加性 geometry（config 回退的指向 WCS 不是解算几何）。
+    bool wcs_from_product = false;
     {
       const std::string wcs_prod_path = p1_frame_dir(doc, lp) + "/p1_wcs.json";
       std::string wtext;
@@ -8208,6 +8211,7 @@ Result<void> p1_op_drizzle(const Json& doc, Json* man) {
       if (have_prod && wcs_prod.is_object() && wcs_prod.contains("wcs") &&
           wcs_prod["wcs"].is_object()) {
         wj_storage = wcs_prod["wcs"];
+        wcs_from_product = true;
       } else if (p1_has(doc, "wcs") && doc["wcs"].is_object()) {
         wj_storage = doc["wcs"];
       } else {
@@ -8768,8 +8772,39 @@ Result<void> p1_op_drizzle(const Json& doc, Json* man) {
     // 另一帧的 aio_hips_product_begin 不会抹掉本帧的判定, 另一帧的失败收尾也不会
     // 抢走本帧的判定 (aio_disk_full.h 头注「归因粒度=帧级」)。
     const aio_disk::FailureEpoch dsk_epoch;
+    // ── 解算几何 → 逐帧产品集清单的**加性** `geometry`（AGENTS §13.1「几何取自产品自身」）──
+    // 仅当本帧 WCS 来自**解算产物** `p1_wcs.json#wcs` 时构造；config 回退的 WCS 不是解算
+    // 几何 ⇒ 传 nullptr（该键**缺席**；**不填零、不以指向 WCS 冒充**）。字段与解算产物
+    // 同口径（`pixel_origin` 恒 0 = 0-based 数组下标）；字段不齐 ⇒ 同样不写该键。
+    // 口径正本 = docs/engineering/contracts/HIPS_STORAGE_FORM.md「逐帧 HiPS 产品集清单
+    // manifest.json#geometry（加性）」一节。
+    std::string geom_text;
+    if (wcs_from_product) {
+      Json geo = Json::object();
+      bool complete = true;
+      for (const char* k : {"ctype1", "ctype2"}) {
+        if (wj.contains(k) && wj[k].is_string()) geo[k] = wj[k];
+        else complete = false;
+      }
+      for (const char* k : {"crval1", "crval2", "crpix1", "crpix2",
+                            "cd11", "cd12", "cd21", "cd22"}) {
+        if (wj.contains(k) && wj[k].is_number()) geo[k] = wj[k];
+        else complete = false;
+      }
+      if (wj.contains("sip") && wj["sip"].is_object()) geo["sip"] = wj["sip"];
+      else geo["sip"] = nullptr;
+      geo["pixel_origin"] = 0;
+      if (complete) {
+        geom_text = geo.dump();
+      } else {
+        std::fprintf(stderr,
+                     "[module_adapters] 解算几何字段不齐 ⇒ 本帧产品集清单不写 geometry "
+                     "(frame %s)\n", frame_path.c_str());
+      }
+    }
     rc = hp_drizzle_run_phase1_hips(frame, frame_nside, nested, pixfrac, fdir.c_str(),
-                                    filter_passband.c_str(), &res, precision_mode);
+                                    filter_passband.c_str(), &res, precision_mode,
+                                    geom_text.empty() ? nullptr : geom_text.c_str());
     aio_pipeline_frame_destroy(frame);
     if (rc != 0) {
       // §10 原子产品 + §7.2 退出码表「10 = 磁盘写满/写盘失败」:
