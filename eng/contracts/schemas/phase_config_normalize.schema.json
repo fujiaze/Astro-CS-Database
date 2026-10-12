@@ -226,7 +226,7 @@
     },
     "snr": {
       "type": "object",
-      "description": "可选 SNR 科学块（gain_e_per_adu/read_noise_e/zero_point_mag/sigma_logflux_dex/n_matches 等）；缺失 = 未知 gain/ZP（天空受限最优提取，m_5 = null），消费 = p1_op_noise"
+      "description": "可选 SNR 科学块（gain_e_per_adu/read_noise_e/zero_point_mag/sigma_logflux_dex/n_matches 等）。其中 `zero_point_mag` 取**帧级仪器星等零点** `ZP_k`（满足 `mag = ZP_k - 2.5*log10(F_adu)`），不是星表侧的天区合成颜色项 `synthetic_colour_*`（后者输入不含该帧观测数据、逐天区量；填入会使 5σ 深度带逐天区颜色差）。缺失 = 未知 gain/ZP（天空受限最优提取，m_5 = null），消费 = p1_op_noise"
     },
     "noise_config": {
       "type": "object",
