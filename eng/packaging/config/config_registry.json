@@ -2451,14 +2451,39 @@
       "qe_keys": 12,
       "qe_keys_semantics": "12 = 随包发布的 QE 曲线条数（含 Ideal QE curve）；与滤镜同目录、同扫描器、同身份核对，channel=Q。",
       "case_or_space_collisions": 0,
-      "brand_case_inconsistency": ["Optolong B/G/R", "OPTOLONG L-PRO Light Pollution"],
-      "channel_domain": ["B", "G", "R", "L", "HA", "OIII", "PAN", "Q", "NONE", ""],
+      "brand_case_inconsistency": [
+        "Optolong B/G/R",
+        "OPTOLONG L-PRO Light Pollution"
+      ],
+      "channel_domain": [
+        "B",
+        "G",
+        "R",
+        "L",
+        "HA",
+        "OIII",
+        "PAN",
+        "Q",
+        "NONE",
+        ""
+      ],
       "channel_domain_note": "Q = QE 曲线类别（本就在用，本次显式补登记）；NONE = 显式无通带（单位透过率，允许通带积分）；空串 = 未声明通带类别（F_syn 路径 fail-closed）。",
-      "channel_empty_keys": ["Johnson I", "Johnson U", "SDSS g", "SDSS i", "SDSS r", "SDSS u", "SDSS z"],
+      "channel_empty_keys": [
+        "Johnson I",
+        "Johnson U",
+        "SDSS g",
+        "SDSS i",
+        "SDSS r",
+        "SDSS u",
+        "SDSS z"
+      ],
       "device_qe_curve": "KAF-16803（本设备 FLI Proline 16803 的传感器；曲线在库内，但当前生产配置无 QE 键 ⇒ 实际相当于 Q≡1）。",
       "curve_dir": "config/response_curves/（仓内源目录与运行期相对路径同名；exe-relative 解析）",
       "curve_files_total": 58,
-      "definitional_keys": ["None", "Ideal QE curve"],
+      "definitional_keys": [
+        "None",
+        "Ideal QE curve"
+      ],
       "retired_aggregate_files": [
         "lib/algorithms/photometry/data/response_curves/filters.json",
         "lib/algorithms/photometry/data/response_curves/qe_curves.json"
@@ -2477,9 +2502,22 @@
       "adjudicated": "定义性条目（None / Ideal QE curve）的 status 归类已裁决 = defined_by_construction（OPEN-ADJ-01 关闭）。"
     },
     "provenance_gaps": [
-      {"id": "GAP-025", "state": "closed", "statement": "原始曲线来源未记录（旧状态）。", "superseded_by": "GAP-035"},
-      {"id": "GAP-035", "state": "open", "statement": "原始 PixInsight 文件校验和缺失（滤镜 45 条 + QE 12 条）；来源/版本/获取方式已记录，status=source_recorded。"},
-      {"id": "OPEN-ADJ-01", "state": "closed", "statement": "定义性条目（None / Ideal QE curve）的 status 归类已裁决 = defined_by_construction。"}
+      {
+        "id": "GAP-025",
+        "state": "closed",
+        "statement": "原始曲线来源未记录（旧状态）。",
+        "superseded_by": "GAP-035"
+      },
+      {
+        "id": "GAP-035",
+        "state": "open",
+        "statement": "原始 PixInsight 文件校验和缺失（滤镜 45 条 + QE 12 条）；来源/版本/获取方式已记录，status=source_recorded。"
+      },
+      {
+        "id": "OPEN-ADJ-01",
+        "state": "closed",
+        "statement": "定义性条目（None / Ideal QE curve）的 status 归类已裁决 = defined_by_construction。"
+      }
     ]
   },
   "os_abi": {
@@ -2792,5 +2830,61 @@
       "reason": "事件协议字段（承载事实 = 事件载荷语义），不是配置键；配置表解析只认白名单表头 字段|默认|单位|说明 / 字段|默认|说明 / 字段|说明。",
       "authority": "lib/infrastructure/cli/protocol.h"
     }
-  ]
+  ],
+  "engineering_status": {
+    "header": "项|状态|依据|处置|阻塞",
+    "rule": "本表登记**工程状态与缺口**（不是配置键）。正本只陈述设计口径；现状与缺口在此登记，避免正本里两处维护状态而失实。",
+    "authority": "docs/engineering/architecture/DEV_MODE.md（构建期能力边界，设计口径正本）",
+    "rows": [
+      {
+        "item": "内存块传递（阶段一内部载荷经内存块而非磁盘）",
+        "status": "目标未达成",
+        "evidence": "lib/infrastructure/scheduler/src/block_flow.cpp 的 set_input/set_input_f64/product/run_unit 在 lib/ 全树零消费者；且契约与实现存在两处结构障碍（块流执行器按帧驱动 vs 阶段一节点体按整次运行组织；公开 API 只装载扁平标量缓冲，无结构化载荷、无 F32 阶段边界注入）",
+        "disposition": "列为**性能阶段**独立项；当前内部载荷仍经磁盘传递（工作区内）",
+        "blocked_by": "块流装配器 + 帧级节点体改造 + 公开块 API 扩展"
+      },
+      {
+        "item": "产品面与工作区分离（12 项中间产物移出产品面）",
+        "status": "本批落地（设计已定，实施中）",
+        "evidence": "实验/photometric-magnitude/docs/P1-product-surface-boundary-design.md（边界逐项表、工作区位置与清理语义、不可移出清单）",
+        "disposition": "工作区 = <output_dir> 同级兄弟目录（同文件系统以保持落盘原子替换语义；/tmp 为 tmpfs 会把 ≈64 MiB/帧 放进内存）；缺省启用，位置可配置；运行收尾按开关决定是否保留",
+        "blocked_by": "消费者更新（见下条）"
+      },
+      {
+        "item": "检查点与续跑",
+        "status": "未实现",
+        "evidence": "ACSD_DEV_CHECKPOINT 定义后无任何代码消费者；无检查点写入与读回实现",
+        "disposition": "保留为设计能力登记，不得当作既有能力引用",
+        "blocked_by": ""
+      },
+      {
+        "item": "性能探针",
+        "status": "未实现",
+        "evidence": "ACSD_DEV_PROBES 定义后无任何代码消费者",
+        "disposition": "保留为设计能力登记，不得当作既有能力引用",
+        "blocked_by": ""
+      },
+      {
+        "item": "构建期开关越权（开关改变执行路径）",
+        "status": "已修",
+        "evidence": "ACSD_DEV_INTERMEDIATE_CACHE 的两处条件已删除：p1_calibrated_path 只留一条路径；p1_prerun_calibrated_check 由 fail-closed 门改为不阻塞的显式诊断读数。全 lib 树该宏 0 处残留",
+        "disposition": "开关只决定中间产物是否额外输出，不改变执行路径",
+        "blocked_by": ""
+      },
+      {
+        "item": "中间产物默认清理（消费者更新后再把默认翻转为删除）",
+        "status": "待办",
+        "evidence": "T1 活树消费者清点：12 项中 10 项有活树脚本消费者，含契约级消费者 eng/tests/validation/release02/{q1_photometry_gradient,q3_additive_truth,unc_propagation} 与 eng/tools/monitoring/concurrency_sweep.py；另有枚举式消费者按 <product>/calibrated_*.fts 枚举帧集（q2_snr_smoothness/realdata/stageAB_nmap_loci.py、q3_additive_truth/src/q3lib.py、eng/tools/astrometry/closure_metric.py），其正确修法是改从 p1_products.json 取帧集",
+        "disposition": "更新顺序：① release02/q1_photometry_gradient + q3_additive_truth → ② unc_propagation/audit_evidence.py → ③ eng/tools/monitoring/concurrency_sweep.py → ④ eng/** 其余 → ⑤ 实验/** 各单元 → ⑥ 才翻转默认为删除。顺序不可倒置",
+        "blocked_by": "枚举式消费者依赖 p1_products.json 接线（阶段二输入 JSON 汇总）"
+      },
+      {
+        "item": "发布/打包运行必须显式清理工作区",
+        "status": "待办",
+        "evidence": "标准发布的产物目录不得留工作区（负责人：标准模式真正的产物只有逐帧 HiPS 与一个阶段二输入 JSON）",
+        "disposition": "发布/打包路径须显式设「运行收尾清理工作区」；该取值随打包配置固定，不由操作者临时决定",
+        "blocked_by": ""
+      }
+    ]
+  }
 }
