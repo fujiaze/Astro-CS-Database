@@ -7371,9 +7371,14 @@ Result<void> p1_op_noise(const Json& doc, Json* man) {
   // QE 侧空串 = 「未声明 QE（`Q≡1`）」。库内 `Ideal QE curve` **归一到同一键**：该曲线
   // 6 点全为 1.0、波长域 1–2500 nm ⊇ XP 网格 336–1020 nm ⇒ 对 `F_syn` 积分与 `Q≡1`
   // 逐位等价（这是**QE 因子等价**，依据 = 该曲线文件内容，不是名字别名）。
+  // 查表为**精确匹配**（逐字节比较 `filter` 与归一后的 `qe`，无前缀/模糊/大小写折叠）。
+  // 四对都在**同一参考域（16 帧 T2 参考集）**上测定；跨域平移实测约 0.015 mag
+  // ⇒ 常数**不可跨域复用**（换参考域必须重测重登记）。
   static constexpr CAbsPair kCAbsTable[] = {
-      {"Baader R", "", -14.276811281840642},                    // 方案 A 原始参考对（16 帧 T2）
-      {"Astrodon E-series R", "KAF-16803", -15.711040624768852}, // 同参考域重测（A4）
+      {"Baader R", "", -14.276811281840642},                     // ①方案 A 原始参考对
+      {"Astrodon E-series R", "KAF-16803", -15.711040624768852},  // ④同参考域重测（A4）
+      {"Baader R", "KAF-16803", -15.086716871104473},             // ③只变 QE（A3 同参考域重测）
+      {"Astrodon E-series R", "", -14.845903818286661},           // ②只变滤镜（A3 同参考域重测）
   };
   // 与 p1_op_photometry 同一解析口径：滤镜 = `photometry.fit.filter`，否则块级
   // `filter_passband`；QE = `photometry.fit.qe_name`。
