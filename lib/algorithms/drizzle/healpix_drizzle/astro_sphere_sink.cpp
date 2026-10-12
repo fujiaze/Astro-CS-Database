@@ -88,7 +88,8 @@ bool write_hips_direct(const std::vector<TileAccumulatorT<Scalar>>& tiles,
                        const std::string& hips_dir,
                        const std::vector<AioHipsSnrPoint>& snr_pts,
                        int has_variance,
-                       std::string& err) {
+                       std::string& err,
+                       const char* geometry_json) {
     const uint32_t nside = (uint32_t)config.nside;
     const uint32_t depth = config.tile_depth ? config.tile_depth
                                              : phase1_tile_depth(nside);
@@ -120,6 +121,17 @@ bool write_hips_direct(const std::vector<TileAccumulatorT<Scalar>>& tiles,
               std::string(aio_hips_last_error() ? aio_hips_last_error() : "?");
         std::fprintf(stderr, "[sink] %s\n", err.c_str());
         return false;
+    }
+    // 逐帧产品集清单的**加性** geometry 对象（可选入参；nullptr = 不写该键）。
+    // 口径正本 = docs/engineering/contracts/HIPS_STORAGE_FORM.md
+    // 「逐帧 HiPS 产品集清单 manifest.json#geometry（加性）」一节。
+    if (geometry_json != nullptr && geometry_json[0] != '\0') {
+        if (aio_hips_set_geometry(ps, geometry_json) != 0) {
+            err = "aio_hips_set_geometry 失败: " +
+                  std::string(aio_hips_last_error() ? aio_hips_last_error() : "?");
+            aio_hips_abort(ps);
+            return false;
+        }
     }
     // （K_CORR_DOMAIN 选项 B）：Drizzle provenance 写入 properties，
     // Phase2 sampler 按帧选择 control-ivar 的 k_corr 标定值。
@@ -293,10 +305,12 @@ bool write_hips_direct(const std::vector<TileAccumulatorT<Scalar>>& tiles,
 
 template bool write_hips_direct<float>(
     const std::vector<TileAccumulatorT<float>>&, const DrizzleConfig&, const DrizzleMeta&,
-    const std::string&, const std::vector<AioHipsSnrPoint>&, int, std::string&);
+    const std::string&, const std::vector<AioHipsSnrPoint>&, int, std::string&,
+    const char*);
 template bool write_hips_direct<double>(
     const std::vector<TileAccumulatorT<double>>&, const DrizzleConfig&, const DrizzleMeta&,
-    const std::string&, const std::vector<AioHipsSnrPoint>&, int, std::string&);
+    const std::string&, const std::vector<AioHipsSnrPoint>&, int, std::string&,
+    const char*);
 
 // ============================================================================
 // write_hips_phase1 - Phase1 生产末端: TileAccumulator -> 标准 HiPS 直写
@@ -311,7 +325,8 @@ bool write_hips_phase1(const std::vector<TileAccumulatorT<Scalar>>& tiles,
                        const std::string& hips_dir,
                        const std::string& filter_passband,
                        int has_variance,
-                       std::string& err) {
+                       std::string& err,
+                       const char* geometry_json) {
     const uint32_t nside = (uint32_t)config.nside;
     const uint32_t depth = config.tile_depth ? config.tile_depth
                                              : phase1_tile_depth(nside);
@@ -369,6 +384,17 @@ bool write_hips_phase1(const std::vector<TileAccumulatorT<Scalar>>& tiles,
               std::string(aio_hips_last_error() ? aio_hips_last_error() : "?");
         std::fprintf(stderr, "[sink][phase1] %s\n", err.c_str());
         return false;
+    }
+    // 逐帧产品集清单的**加性** geometry 对象（可选入参；nullptr = 不写该键）。
+    // 口径正本 = docs/engineering/contracts/HIPS_STORAGE_FORM.md
+    // 「逐帧 HiPS 产品集清单 manifest.json#geometry（加性）」一节。
+    if (geometry_json != nullptr && geometry_json[0] != '\0') {
+        if (aio_hips_set_geometry(ps, geometry_json) != 0) {
+            err = "aio_hips_set_geometry 失败: " +
+                  std::string(aio_hips_last_error() ? aio_hips_last_error() : "?");
+            aio_hips_abort(ps);
+            return false;
+        }
     }
 
     // ── 帧级未加权通量型 SNR → HiPS properties ──────────
@@ -626,9 +652,9 @@ bool write_hips_phase1(const std::vector<TileAccumulatorT<Scalar>>& tiles,
 
 template bool write_hips_phase1<float>(
     const std::vector<TileAccumulatorT<float>>&, const DrizzleConfig&,
-    const std::string&, const std::string&, int, std::string&);
+    const std::string&, const std::string&, int, std::string&, const char*);
 template bool write_hips_phase1<double>(
     const std::vector<TileAccumulatorT<double>>&, const DrizzleConfig&,
-    const std::string&, const std::string&, int, std::string&);
+    const std::string&, const std::string&, int, std::string&, const char*);
 
 } // namespace drizzle

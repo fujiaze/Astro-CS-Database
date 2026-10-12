@@ -522,6 +522,44 @@
           "description": "本次运行的数据集级覆盖索引；不产出覆盖索引的运行（Phase3）恒 null"
         }
       }
+    },
+    "manifest_geometry": {
+      "type": ["object", "null"],
+      "additionalProperties": false,
+      "required": ["ctype1", "ctype2", "crval1", "crval2", "crpix1", "crpix2",
+                   "cd11", "cd12", "cd21", "cd22", "pixel_origin", "sip"],
+      "description": "阶段一逐帧 HiPS 产品集清单 <output_dir>/<frame_key>/manifest.json 的加性 geometry 对象（唯一正本 = docs/engineering/contracts/HIPS_STORAGE_FORM.md「逐帧 HiPS 产品集清单 manifest.json#geometry（加性）」一节）。未设置几何 ⇒ 该键整体不出现（不是 null）；设置后各字段必须与同帧解算产物 p1_wcs.json#wcs 逐位一致（G4）。键名不得与 §30.3 双写的四个 provenance 键同名（G3）。",
+      "properties": {
+        "ctype1": {"type": "string", "minLength": 1},
+        "ctype2": {"type": "string", "minLength": 1},
+        "crval1": {"type": "number"},
+        "crval2": {"type": "number"},
+        "crpix1": {"type": "number"},
+        "crpix2": {"type": "number"},
+        "cd11": {"type": "number"},
+        "cd12": {"type": "number"},
+        "cd21": {"type": "number"},
+        "cd22": {"type": "number"},
+        "pixel_origin": {
+          "type": "integer",
+          "const": 0,
+          "description": "0 = 0-based 数组下标（index-is-center）；FITS 1-based xp = x + 1。沿用解算产物 p1_wcs.json#pixel_origin 的同一约定。"
+        },
+        "sip": {
+          "type": ["object", "null"],
+          "additionalProperties": false,
+          "required": ["order", "ap_order", "a", "b", "ap", "bp"],
+          "description": "SIP 系数；无 SIP 时为 null（此时 ctype1/2 不带 -SIP 后缀）。",
+          "properties": {
+            "order": {"type": "integer", "minimum": 0},
+            "ap_order": {"type": "integer", "minimum": 0},
+            "a": {"type": "array", "items": {"type": "number"}},
+            "b": {"type": "array", "items": {"type": "number"}},
+            "ap": {"type": "array", "items": {"type": "number"}},
+            "bp": {"type": "array", "items": {"type": "number"}}
+          }
+        }
+      }
     }
   }
 }

@@ -65,6 +65,18 @@
   `archive_bytes` / `tree_hash`）的写出均为**待实现项**；形态事实登记落点的合同
   口径见 docs/engineering/contracts/HIPS_STORAGE_FORM.md「形态的输入配置与输出清单字段」一节；
 - 所有产品：临时文件 / 目录 + 校验 + fsync + 原子 rename 提交；
+- **逐帧 HiPS 产品集清单的加性 `geometry` 对象**：阶段一逐帧产品集清单
+  `<output_dir>/<frame_key>/manifest.json` 由 `lib/infrastructure/aio/src/hips/aio_hips_writer.cpp`
+  的组装块拼文本写出；解算几何（含 SIP）经公开 C 面
+  `aio_hips_set_geometry(AioHipsProductSet*, const char* geometry_json)`（**取字符串**，
+  不在公开 C 面引入 JSON 类型依赖）设置后，在该组装块以 `"geometry": <json>` **加性**写出；
+  **未设置 ⇒ 该键整体不出现**，清单其余部分逐字节不变。字段面 = `ctype1/2`、`crval1/2`、
+  `crpix1/2`、`cd11/cd12/cd21/cd22`、`pixel_origin`（恒 `0`，0-based 数组下标）、
+  `sip{a,b,ap,bp,order,ap_order}`；`format_version` **保持 1**（加性、读侧无未知键拒绝）。
+  键名**不得**与 §30.3 双写的四个 provenance 键同名（清单取键函数 `json_scalar` 是朴素
+  文本搜索，非 JSON 解析）。口径正本 = docs/engineering/contracts/HIPS_STORAGE_FORM.md
+  「逐帧 HiPS 产品集清单 `manifest.json#geometry`（加性）」一节；机器事实源 =
+  `eng/contracts/schemas/hips_storage_form.schema.json#/$defs/manifest_geometry`；
 - **裸形态体积削减（文件系统打洞）**：`aio_sparse_punch.h` 是打洞机制的**唯一
   实现** —— 只对 4 KiB 对齐的**字面全零**块调
   `fallocate(FALLOC_FL_PUNCH_HOLE | FALLOC_FL_KEEP_SIZE)`（Windows：
