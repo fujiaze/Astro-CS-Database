@@ -350,28 +350,77 @@ inline CurveIdentity check_curve_identity(const std::string& content,
     return id;
 }
 
-// FITS FILTER 关键字 → 滤镜库键（**单一实现**）。
-// 修复前 orchestrator.cpp:1342 与 frame_photometry_fit.cpp:45 各持一份逐字相同的
-// 表；两份表一旦漂移，同一 FILTER 会在两条路径上解析成不同曲线 ⇒ 合并到本处。
-inline std::string map_filter_name(const std::string& fits_filter) {
-    // 大小写不敏感比较的辅助
-    auto ieq = [](const std::string& a, const char* b) {
-        return std::equal(a.begin(), a.end(), b, b + std::strlen(b),
-            [](char c1, char c2) { return std::tolower(c1) == std::tolower(c2); });
+// ── 已退役：FITS FILTER 关键字 → 滤镜库键的**别名表**（map_filter_name）──────────
+// 曾存在于此的函数把 FITS 头的 `FILTER` 值（`Red`/`R`、`Green`/`G`、`Blue`/`B`、
+// `Lum`/`L`/`Luminance`、`H-alpha`/`Ha`/`HA`、`OIII`/`Oiii`）**大小写不敏感地**折叠
+// 成库键（`Baader R` 等）。它违反已冻结的解析合同：
+//   eng/packaging/config/filters.json#lookup =
+//     {unknown_filter: error, match: exact, case_sensitive: true, normalization: none,
+//      aliases: {}}  ⇒  resolve(name) = filters[name] if name ∈ keys(filters) else ERROR
+//   docs/engineering/contracts/CONFIG.md「滤镜名匹配语义」一节逐字「字节精确、无归一、
+//   无别名」，并明示「`non_key_examples` 只把反例与合法值分开，不把反例升级为别名」。
+// 处置（AGENTS §7「退役代码删除」）：函数体与 6 条映射已删除；曲线名**只**由配置
+// 声明（`photometry.fit.filter`，否则块级 `filter_passband`）提供，按库键字节精确解析。
+// 需要「Q(λ)≡1」这类语义时，声明库内已有的显式条目（如 `Ideal QE curve`），不靠别名。
+
+// ── 曲线库键清单（名字不在库里时**列候选**；与 load_curve 同一份扫描实现）──────
+// 判据与 find_curve_object 逐条一致：键后紧跟 ':' 与 '{'，且该对象内含
+// "wavelength_nm"（曲线对象判据）。保持文件内键序、不归一、不别名、不做任何加工。
+inline std::vector<std::string> list_curve_keys(const std::string& content,
+                                                std::size_t max_keys = 64) {
+    std::vector<std::string> keys;
+    auto is_space = [](char c) {
+        return c == ' ' || c == '\t' || c == '\n' || c == '\r' || c == '\f' || c == '\v';
     };
-    if (ieq(fits_filter, "Red") || ieq(fits_filter, "R")) return "Baader R";
-    if (ieq(fits_filter, "Green") || ieq(fits_filter, "G")) return "Baader G";
-    if (ieq(fits_filter, "Blue") || ieq(fits_filter, "B")) return "Baader B";
-    if (ieq(fits_filter, "Lum") || ieq(fits_filter, "L") || ieq(fits_filter, "Luminance"))
-        return "Baader UV/IR Cut / L CMOS Optimized";
-    // 窄带滤光片映射 (H-alpha / OIII 大小写变体)
-    // T4: Baader RGBHaOIII (7nm HA, 8.5nm OIII); T2/T3: Astrodon (暂用 Baader 曲线近似)
-    if (ieq(fits_filter, "H-alpha") || ieq(fits_filter, "Ha") || ieq(fits_filter, "HA"))
-        return "Baader 7nm H-alpha";
-    if (ieq(fits_filter, "OIII") || ieq(fits_filter, "Oiii"))
-        return "Baader 8.5nm OIII";
-    // 未匹配时原样返回 (可能本身就是 filters.json 中的名称)
-    return fits_filter;
+    std::size_t p = content.find('"');
+    while (p != std::string::npos && keys.size() < max_keys) {
+        const std::size_t e = content.find('"', p + 1);
+        if (e == std::string::npos) break;
+        const std::string name = content.substr(p + 1, e - p - 1);
+        std::size_t q = e + 1;
+        while (q < content.size() && is_space(content[q])) ++q;
+        if (q >= content.size() || content[q] != ':') { p = content.find('"', e + 1); continue; }
+        ++q;
+        while (q < content.size() && is_space(content[q])) ++q;
+        if (q >= content.size() || content[q] != '{') { p = content.find('"', e + 1); continue; }
+        std::size_t depth = 0, end = std::string::npos;
+        for (std::size_t i = q; i < content.size(); ++i) {
+            if (content[i] == '{') ++depth;
+            else if (content[i] == '}') { if (--depth == 0) { end = i; break; } }
+        }
+        if (end == std::string::npos) break;
+        const std::string obj = content.substr(q, end - q + 1);
+        // 曲线对象判据 = ① `wavelength_nm` 是**数组字段**（键后 ':' 再 '['；排除
+        // transcription.transcribed_fields 这类把字段名当字符串列出的元数据对象）、
+        // ② 对象内**无嵌套对象**（曲线对象的字段值是数组，不是对象；排除装曲线的
+        // 容器对象，如转录版的 filters 段）。两条合起来使本函数在两种库布局
+        // （扁平 45 键 / 转录版容器内 45 键）下给出同样的键清单。
+        bool wl_is_array = false;
+        const std::size_t wl = obj.find("\"wavelength_nm\"");
+        if (wl != std::string::npos) {
+            const std::size_t colon = obj.find_first_not_of(" \t\r\n", wl + 15);
+            if (colon != std::string::npos && obj[colon] == ':') {
+                const std::size_t br = obj.find_first_not_of(" \t\r\n", colon + 1);
+                wl_is_array = (br != std::string::npos && obj[br] == '[');
+            }
+        }
+        const bool is_curve_obj = wl_is_array && obj.find('{', 1) == std::string::npos;
+        if (is_curve_obj) keys.push_back(name);
+        p = content.find('"', e + 1);   // 继续扫描（不跳过对象 ⇒ 嵌套布局也能列全）
+    }
+    return keys;
+}
+
+// 候选串（供「不在库里 ⇒ 列候选」的具名报错；最多 max_show 条，超出以 "..." 收尾）
+inline std::string format_key_candidates(const std::vector<std::string>& keys,
+                                         std::size_t max_show = 12) {
+    std::string out;
+    for (std::size_t i = 0; i < keys.size() && i < max_show; ++i) {
+        if (i) out += ", ";
+        out += keys[i];
+    }
+    if (keys.size() > max_show) out += ", ...";
+    return out;
 }
 
 // 在**已读入的 JSON 文本**中定位曲线对象。返回 false 表示未找到曲线对象；
