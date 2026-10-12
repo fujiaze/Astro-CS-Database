@@ -4878,8 +4878,9 @@ Result<void> p1_op_wcs(const Json& doc, Json* man) {
     // 后者 = WcsTan 线性 pix2sky）。因此"漏施加 SIP / 系数全零 / 阶数为 0"都会
     // 让作用量塌到 0 而**失败**。上面那条 max_forward_cross_deg 是「含 SIP 对
     // 含 SIP」，对"漏 SIP"零判别力 —— 这正是本单要修的自检恒真问题。
-    // 下界 1e-9 deg 与线性前向的舍入量级一致；SIP 有效时场角作用量实测约
-    // 1e-2 deg（~16"），高出下界 7 个量级。
+    // 下界 1e-9 deg 与线性前向的舍入量级一致；SIP 有效时场角作用量实测
+    // 0.006919 deg = 24.91"（本帧 sip.order=3），高出下界 6 个量级。证据 =
+    // 实验/engineering-evidence/DEV-MODE-01/README.md「优先 3」一节。
     if (sip.present && sip.order > 0) {
       if (!std::isfinite(max_sip_effect_deg) || max_sip_effect_deg <= 1e-9) {
         return Result<void>::fail(Error(ErrorDomain::DATA,
@@ -5314,7 +5315,8 @@ Result<void> p1_op_wcs(const Json& doc, Json* man) {
     // i*6+j 布局)。SIP 必须在生成 samples 之前构造：samples 的 ra/dec 是
     // **含 SIP 的完整前向**（契约见 docs/detail/registry/acsd.phase1.wcs-platesolve.md
     //《p1_wcs.json 的 samples[] 几何契约》）；修复前本路径用纯线性 WcsTan 生成
-    // samples 却照样落盘 wcs.sip，同一份 JSON 自相矛盾（场角约 16" 假偏移）。
+    // samples 却照样落盘 wcs.sip，同一份 JSON 自相矛盾（场角约 24.9" 假偏移，
+    // 实测见 实验/engineering-evidence/DEV-MODE-01/README.md）。
     P1SipCoeffs sip;
     sip.order = r.sip_order;
     sip.ap_order = r.sip_ap_order;
@@ -5380,8 +5382,9 @@ Result<void> p1_op_wcs(const Json& doc, Json* man) {
     // 线性前向」互比，两条前向由不同代码路径产生。因此"解算器给了 SIP 系数但
     // 生成 samples 时漏施加 / 系数全零"都会让作用量塌到 0 而**失败**。修复前
     // 本路径的 max_forward_cross_deg 是"无 SIP 对无 SIP"，对该缺陷零判别力。
-    // 下界 1e-9 deg 与线性前向舍入量级一致；SIP 有效时场角作用量实测约
-    // 1e-2 deg（~16"）。
+    // 下界 1e-9 deg 与线性前向舍入量级一致；SIP 有效时场角作用量实测
+    // 0.006919 deg = 24.91"（本帧 sip.order=3），证据 =
+    // 实验/engineering-evidence/DEV-MODE-01/README.md「优先 3」一节。
     if (sip.present && sip.order > 0) {
       if (!std::isfinite(max_sip_effect_deg) || max_sip_effect_deg <= 1e-9) {
         cleanup();
