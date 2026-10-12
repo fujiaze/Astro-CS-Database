@@ -1540,21 +1540,12 @@ std::string p1_product_path(const Json& doc, const std::string& light,
   return out_dir + "/" + prefix + "_" + p1_base_name(light);
 }
 
-// 节点输入帧路径: 优先 cal 节点产物 calibrated_<base>（节点链约定）。
-// 产物缺失时的行为由**构建期**开关决定（正本
-// docs/engineering/architecture/DEV_MODE.md《运行前检查与中间产物》"运行期的静默回退"）：
-//   · 发布构建（ACSD_DEV_INTERMEDIATE_CACHE 未定义）：**不编入**回退分支——绝不静默
-//     改用原帧，而是返回那个**不存在的**产物路径，使缺失以明确的上游错误暴露；
-//   · 开发构建：保留回退，但必须显式留痕——由 p1_prerun_calibrated_check 把
-//     fell_out/why 落进 manifest（见该函数）。
+// 节点输入帧路径: 取 cal 节点产物 calibrated_<base>（节点链约定）。
+// **只有一条路径**：缺失时返回那个**不存在的**产物路径，由统一 I/O 以明确的上游错误
+// 暴露，绝不静默改用原帧。依据正本
+// docs/engineering/architecture/DEV_MODE.md《中间产物的取数与缺失判定（退役登记）》。
 std::string p1_calibrated_path(const Json& doc, const std::string& light) {
-  const std::string cand = p1_product_path(doc, light, "calibrated");
-  if (aio_fs::exists(cand)) return cand;
-#if defined(ACSD_DEV_INTERMEDIATE_CACHE)
-  return light;   // 开发模式：回退原帧（留痕在运行前检查）
-#else
-  return cand;    // 发布模式：无静默回退分支；缺失路径交由统一 I/O 报错
-#endif
+  return p1_product_path(doc, light, "calibrated");
 }
 
 // ── 运行前输入面校验 ────────────────────────────────────────────────────────
@@ -1635,29 +1626,23 @@ static Result<void> p1_prerun_input_check(const Json& doc, Json* man) {
   return Result<void>::success();
 }
 
-// E3：calibrated 产物**取数之前**的判定。只在消费 calibrated 的节点调用
+// E3：calibrated 产物的**显式诊断读数**（不阻塞）。只在消费 calibrated 的节点调用
 // （cal 节点本身是生产者，不调用）。
-//   · 发布构建：产物缺失 ⇒ fail-closed（点名文件），绝不进入静默回退；
-//   · 开发构建：放行，但把 fell_out/why 逐帧落进 manifest（不得静默）。
+// 依据正本 docs/engineering/architecture/DEV_MODE.md《中间产物的取数与缺失判定（退役登记）》：
+//   · 取数只有一条路径（p1_calibrated_path），缺失由统一 I/O 以明确的上游错误暴露；
+//   · 本项目不设门禁，故此处只逐帧**上报**缺失（记录、可复核），不阻塞正常流程，
+//     也不再留 `calibrated_fell_out`。
 static Result<void> p1_prerun_calibrated_check(const Json& doc, Json* man) {
+  (void)man;
   if (!p1_has(doc, "input_lights")) return Result<void>::success();
   for (const auto& v : doc["input_lights"]) {
     const std::string lp = v.get<std::string>();
     const std::string cand = p1_product_path(doc, lp, "calibrated");
     if (aio_fs::exists(cand)) continue;
-#if defined(ACSD_DEV_INTERMEDIATE_CACHE)
-    if (man)
-      (*man)["calibrated_fell_out"].push_back(Json{
-          {"frame", lp},
-          {"requested_product", cand},
-          {"fell_out", true},
-          {"why", "calibrated_<base> missing; dev build falls back to the original light frame "
-                  "(ACSD_DEV_INTERMEDIATE_CACHE=1)"}});
-#else
-    return Result<void>::fail(Error(ErrorDomain::DATA,
-        "prerun: calibrated product required but missing: " + cand +
-            " (release build has no silent fallback to the original frame)"));
-#endif
+    std::fprintf(stderr,
+                 "[p1_prerun_calibrated_check] calibrated product missing: %s "
+                 "(frame: %s); 取数只有一条路径，缺失将由统一 I/O 报错\n",
+                 cand.c_str(), lp.c_str());
   }
   return Result<void>::success();
 }
@@ -2976,7 +2961,7 @@ static const double kP1BadcolMasterWideFracMax = 1e-3;
 Result<void> p1_op_cosmetic(const Json& doc, Json* man) {
   auto p1_lights_rc = p1_require_lights(doc);
   if (p1_lights_rc.failed()) return p1_lights_rc;
-  // E3：calibrated 取数前的判定（发布构建缺失即 fail-closed；开发构建落 fell_out/why）
+  // E3：calibrated 缺失的显式诊断读数（不阻塞；取数只有一条路径）
   {
     auto rc = p1_prerun_calibrated_check(doc, man);
     if (rc.failed()) return rc;
@@ -4754,7 +4739,7 @@ Result<void> p1_op_wcs(const Json& doc, Json* man) {
   if (!p1_has(doc, "input_lights") || doc["input_lights"].empty()) {
     return Result<void>::fail(Error(ErrorDomain::DATA, "input_lights required"));
   }
-  // E3：calibrated 取数前的判定（发布构建缺失即 fail-closed；开发构建落 fell_out/why）
+  // E3：calibrated 缺失的显式诊断读数（不阻塞；取数只有一条路径）
   {
     auto rc = p1_prerun_calibrated_check(doc, man);
     if (rc.failed()) return rc;
@@ -5471,7 +5456,7 @@ Result<void> p1_op_wcs(const Json& doc, Json* man) {
 // ── op: measure_flux（唯一真实入口 Photometer::measure; 无源 → 如实空输出）──
 Result<void> p1_op_photometry(const Json& doc, Json* man) {
   const std::string out_dir = doc.value("output_dir", std::string("."));
-  // E3：calibrated 取数前的判定（发布构建缺失即 fail-closed；开发构建落 fell_out/why）
+  // E3：calibrated 缺失的显式诊断读数（不阻塞；取数只有一条路径）
   {
     auto rc = p1_prerun_calibrated_check(doc, man);
     if (rc.failed()) return rc;
@@ -7892,7 +7877,7 @@ Json p1_variance_audit_block(const Json& var_diag, const std::string& status,
 Result<void> p1_op_drizzle(const Json& doc, Json* man) {
   auto p1_lights_rc = p1_require_lights(doc);
   if (p1_lights_rc.failed()) return p1_lights_rc;
-  // E3：calibrated 取数前的判定（发布构建缺失即 fail-closed；开发构建落 fell_out/why）
+  // E3：calibrated 缺失的显式诊断读数（不阻塞；取数只有一条路径）
   {
     auto rc = p1_prerun_calibrated_check(doc, man);
     if (rc.failed()) return rc;

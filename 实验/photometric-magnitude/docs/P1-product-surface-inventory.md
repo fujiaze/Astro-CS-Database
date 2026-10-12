@@ -458,3 +458,61 @@ generated_utc, output_hash, unavailable.{flag, reason, scope}
 4. **`badcol_*` 与 `badcolsrc_*` 的关系**：两者是否可合并、`badcolsrc_*` 停止产出是否安全，未追其语义差异。
 5. **K8 峰值 RSS**：未测（见 §9.4）。
 6. 本轮**未运行构建与端到端**；T1 为静态字面量检索，动态路径拼接（如变量拼出的文件名）**可能漏检**。
+
+---
+
+## 12 内存块接线的结构障碍（③④ 的施工前置）
+
+核查 `lib/include/acsd/core/block_flow.h`、`lib/include/acsd/core/block_frame.h`、`lib/infrastructure/scheduler/src/block_flow.cpp`、`eng/contracts/block_flow/stage_block_flow.json` 后，发现 ③「接线」不是接线，而是**阶段一驱动器的架构返工**。四条硬事实：
+
+### 12.1 块图**已经声明齐全**，缺的是装配器
+
+`eng/contracts/block_flow/stage_block_flow.json`（`derived_from: lib/infrastructure/pipeline/module_ports.registry.json`，`generated_by: eng/tools/quality/gen_block_flow_spec.py`，note 明写「块名 = 注册表端口名（不发明新名）」）**已把 normalize 阶段 18 个块与 8 个节点全部声明**，含本批要动的每一个：
+
+| 块 | 生命周期 | 生产者 | 消费者 |
+|---|---|---|---|
+| `p1_calibrated` | STAGE | calibration | cosmetic / wcs-platesolve / photometry / drizzle |
+| `p1_cleaned` | STAGE | cosmetic | star-psf / noise-snr |
+| `p1_photoapplied` | **SHORT** | photometry | drizzle |
+| `p1_wcs` | STAGE | wcs-platesolve | star-psf / photometry / drizzle |
+| `p1_sources` | STAGE | star-psf | photometry / noise-snr / drizzle |
+| `p1_phot` | STAGE | photometry | noise-snr / drizzle / writer |
+| `p1_snr` | **SHORT** | noise-snr | drizzle |
+| `p1_stack` | **SHORT** | drizzle | writer |
+| `frame_hips` / `p1_final` / `p1_products` | EXTERNAL_OUT | drizzle / writer | writer / — |
+| `lights` / `master_bias` / `master_dark` / `master_flat` / `p1_photscale` | EXTERNAL_IN | — | calibration / photometry |
+
+⇒ **H1 的「消费即释放」在声明面已经就是对的**（`p1_photoapplied`/`p1_snr`/`p1_stack` 都是 SHORT，`StageBlockFlow` 按引用计数在最后一次消费后销毁）。声明不是缺口。
+
+**缺口 = 装配器**：`StageBlockFlow` 类在 `lib/` 全树**零装配方**（除自身头/实现外无命中），`parse_stage_block_flow_spec` 亦无调用者。要用它，得**新写**一个装配方（解析规格 → 注入 EXTERNAL_IN → 逐节点 `run` 回调 → `run_unit` → 取 EXTERNAL_OUT）。
+
+### 12.2 节点粒度不匹配：执行器按**帧**，生产节点按**整次运行**
+
+- `block_flow.h:90` 口径：`run_unit`「P1/P3 = **一帧**；P2 = 一个天球窗口」；`block_flow.cpp:106` 每次 `run_unit` 新建一个 `BlockFrame` 并跑完整节点表。
+- 而 `module_adapters.cpp` 的 8 个 `p1_op_*` 是**整次运行级**函数：各自含**帧循环**与帧内并行轴，例如 `p1_op_calibrate` 在 `:2731` 调 `p1_parallel_for(cal_workers, n_lights, ...)`；`p1_op_cosmetic:3142`、`p1_op_star_psf_impl:3989`、`p1_op_photometry:5519/6422`、`p1_op_noise:7474`、`p1_op_drizzle:8095` 同构。并含内存闸门签票与丢弃安全点（`:2048` `p1_frame_should_abandon`）。
+
+⇒ 把 `p1_op_*` 变成 `BlockFlowNode::run(BlockFrame&)` 的单帧执行体，等于**把并行轴从「节点内的帧轴」倒转为「单元外的帧驱动」**，并把内存闸门重新安家。这是对 16 387 行主 TU 的结构性改写，**不是取数点替换**。
+
+### 12.3 公开 API **装不进载荷**
+
+`Block` 只有 `f64()`（仅 F64 块，其他 dtype 返回 `nullptr`）与 `raw()`；`BlockDtype = {F64, F32, I32, U8}` 是**扁平标量缓冲**，**没有结构化载荷类型**。而注入侧只有 `set_input(name, element_count)`（只登记尺寸，**不装数据**）与 `set_input_f64(name, values)`（**只装 f64 向量**）。
+
+两条后果：
+- **R1–R3 的 64 MiB FP32 平面无法经阶段边界注入**：`lights` 是 EXTERNAL_IN，公开 API 没有 `set_input_f32`/raw-span 入口；用 `set_input_f64` 代偿则是「64 MiB 数据 → 128 MiB double 拷贝」，且每帧一次而 `set_input` **拒绝重名覆盖**（`block_flow.cpp:88`「重名覆盖 = 拒绝」）。
+- **R4–R7 的四个 JSON 无法表示**：`p1_wcs` 含 SIP 多项式数组、`p1_sources` 含逐源行数组，均为嵌套结构；扁平 dtype 装不下，只能新增载荷类型或约定「序列化字节」，两者都要**编辑公开头**。
+
+（阶段内边可由生产者用 `frame.create` + `raw()` 装像素，故 R1–R3 的**内部流转**可行；堵点在**阶段边界注入**与**结构化载荷**。）
+
+### 12.4 规格由注册表派生，**禁止手改**
+
+`stage_block_flow.json` 由 `gen_block_flow_spec.py` 从 `module_ports.registry.json` 生成，且有机器门 `check_block_flow_spec.py` 校验「禁止手改漂移」。⇒ 任何块声明变更须改**注册表**并重新生成，而注册表不在本批写面。
+
+### 12.5 结论与建议的切分
+
+③④ 的最小可行范围 = ①新写装配器 + ②把 8 个节点体从运行级改为帧级（含内存闸门再安家）+ ③扩公开块 API（`set_input_f32`/raw-span + 结构化载荷类型）+ ④注册表/规格同步。这是**多阶段的架构返工**，其验收（标准构建 + ≥4 帧跨 ≥2 夜晚端到端 + 峰值 RSS 前后 + 科学量等价）本身也需要一轮完整的性能与等价性测量。
+
+**建议切分**（把可独立验证的先落地）：
+- **子批 A0（可立即落地且可证等价）**：⑤ 删两处 `#if`。**等价性可证**：当前交付构建 `ACSD_DEV_INTERMEDIATE_CACHE` **未定义**（`build/linux-control/CMakeCache.txt` 为 `OFF`）⇒ 编译进去的本就是 `#else` 分支（`p1_calibrated_path` 返回产物路径、`p1_prerun_calibrated_check` fail-closed）。删掉 `#if/#else/#endif` 并保留 `#else` 分支体 ⇒ **对交付构建逐字节等价**，只移除那条不可达的第二路径。写侧当前未门控（`calibrated_` 确实在写），故取数不受影响 ⇒ **无半坏状态**。验收 = 标准构建 + 同一配置实跑成功 + H4 grep（无 `#if`、无第二条取数路径）。
+- **子批 A1（架构返工）**：①②③④，独立派单，先出装配器与帧级节点体的设计，再动 `module_adapters.cpp`。
+
+**H2/H3 可行性事实**（供排期）：真实 M42 数据跨 8 个夜晚（20251127/28、20251211/12/13/16/24、20260108），≥4 帧跨 ≥2 夜晚可组；构建目录在树内（`CMAKE_HOME_DIRECTORY` 即本工作树）故可增量构建；`run/PERF-760/evidence/*_normalize_monitor.json` 是既有 RSS 监控读数，可作为 H2 的口径基准。
