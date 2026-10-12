@@ -1531,10 +1531,18 @@ bool p1_write_fits_atomic(const P1Image& im, const std::string& final_path,
   return true;
 }
 
+// 阶段一帧级平面产物路径的**唯一实现**：<前缀>_<base>.fts 落在该块的 output_dir。
+// 写侧（各节点写产物）与回写侧（解算完成后补写几何键）都必须调用本函数；
+// 调用方不得自行拼接命名规则——否则命名约定会变成两处各写一遍（违 §13 复用条）。
+std::string p1_product_path(const Json& doc, const std::string& light,
+                            const std::string& prefix) {
+  const std::string out_dir = doc.value("output_dir", std::string("."));
+  return out_dir + "/" + prefix + "_" + p1_base_name(light);
+}
+
 // 节点输入帧路径: 优先 cal 节点产物 calibrated_<base>（节点链约定）, 无则原帧
 std::string p1_calibrated_path(const Json& doc, const std::string& light) {
-  const std::string out_dir = doc.value("output_dir", std::string("."));
-  const std::string cand = out_dir + "/calibrated_" + p1_base_name(light);
+  const std::string cand = p1_product_path(doc, light, "calibrated");
   if (aio_fs::exists(cand)) return cand;
   return light;
 }
@@ -1542,8 +1550,7 @@ std::string p1_calibrated_path(const Json& doc, const std::string& light) {
 // cosmetic 节点产物路径（DATA-P1-COSMETIC / artifact:cos）: cleaned_<base>。
 // 独立于 artifact:cal —— cos 不再就地覆写上游产物（CORE-RACE-001）。
 std::string p1_cosmetic_path(const Json& doc, const std::string& light) {
-  const std::string out_dir = doc.value("output_dir", std::string("."));
-  return out_dir + "/cleaned_" + p1_base_name(light);
+  return p1_product_path(doc, light, "cleaned");
 }
 
 // 坏列掩膜产物路径（LINDEF-IMPL-01）: badcol_<base>。float32 [H][W]，
@@ -1552,8 +1559,7 @@ std::string p1_cosmetic_path(const Json& doc, const std::string& light) {
 // 这是"修复像素在产品里可识别"的落盘面（DATA-P1-COS §10.3 的掩膜不作产品
 // 输出条款只约束**坏点**掩膜；本掩膜是坏列路径新增的独立产物，不改该条款）。
 std::string p1_badcol_path(const Json& doc, const std::string& light) {
-  const std::string out_dir = doc.value("output_dir", std::string("."));
-  return out_dir + "/badcol_" + p1_base_name(light);
+  return p1_product_path(doc, light, "badcol");
 }
 
 // 坏列**来源**掩膜路径: badcolsrc_<base>。float32 [H][W]，值为
@@ -1579,9 +1585,10 @@ std::string p1_cleaned_input_path(const Json& doc, const std::string& light) {
 // 独立路径 photoapplied_<base>（不就地覆写上游产物, 同 CORE-RACE-001 语义）。
 // drizzle 消费该路径; 若 provenance 声明 applied=true 而产物缺失 ⇒ 调用方
 // fail-closed（不得静默退回未测光 ADU）。
+// 独立路径（不就地覆写上游产物, 同 CORE-RACE-001 语义）：命名由 p1_product_path
+// 唯一给出，本函数只提供前缀。
 std::string p1_photoapplied_path(const Json& doc, const std::string& light) {
-  const std::string out_dir = doc.value("output_dir", std::string("."));
-  return out_dir + "/photoapplied_" + p1_base_name(light);
+  return p1_product_path(doc, light, "photoapplied");
 }
 
 bool p1_write_text(const std::string& path, const std::string& text) {
