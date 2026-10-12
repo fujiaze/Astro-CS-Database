@@ -1190,7 +1190,7 @@ int p2_star_mask_caps_gaia_halo(const double*, const double*,
 // ===========================================================================
 
 // ---------------------------------------------------------------------------
-// 节点间距的输入自适应导出（SCI-UPM-CAP-001；docs/science/PHASE2_UPM.md §7a）
+// 节点间距的输入自适应导出（SCI-UPM-CAP-001；docs/science/sky/UPM.md「物理模型」一节）
 // ---------------------------------------------------------------------------
 //
 // 规则 1（§7a）：节点间距 ≤ (该产品实际约束帧间改正量的最小尺度) / 2。
@@ -1571,7 +1571,8 @@ int p2_sky_plane_build(const P2SkySample* samples, std::uint64_t n,
     // 两个方向的二阶差分 stencil（v={1,-2,1}）各自湮灭"关于该方向仿射"的系数向量，
     // 公共零空间 = 关于 ix、iy 均仿射的 bilinear 系数空间 a + b·ix + c·iy + d·ix·iy
     // （4 维；在均匀张量 B 样条下等价于函数空间 {1, u, v, u·v}）。
-    // 注意：它比 11_upm.md §4.3 的 δ_k 一次多项式 gauge（3 维 {1, ξ, η}）**多一维**——
+    // 注意：它比 docs/science/sky/UPM.md「公式与推导」一节 的
+    // δ_k 一次多项式 gauge（3 维 {1, ξ, η}）**多一维**——
     // δ_k 只到一阶、无法吸收 bilinear 项，故 bilinear 是真实模型方向，由数据决定，
     // 不是规范自由度。这里只用于：(i) 求解前把惩罚零空间方向锚成正定；(ii) 求解后
     // 用 deflation 校正精确抵消锚偏置。两处都只作用在该 4 维零空间上。
@@ -3448,7 +3449,7 @@ int p2_sky_plane_open(const char* path, void** out_model) {
         //   us/vs < 0 ⇒ x 整体反号 ⇒ δ 多项式**符号翻转** ⇒ 帧间天光偏差被
         //   反向扣除，台阶不消反增，而 rc 全程为 0（成功）。
         // 合法域 = (0,+∞) 且有限（正本：几何量缺失 ⇒ 显式失败，不回退常数，
-        // docs/science/PHASE2_UPM.md 节点间距导出条款；DATA_SEMANTICS.md 禁
+        // docs/science/sky/UPM.md 节点间距导出条款；DATA_SEMANTICS.md 禁
         // clamp 静默饱和）。系数非有限同理：δ/B_ref 非有限 ⇒ 母版天光面非有限。
         if (!(std::isfinite(m->h) && m->h > 0.0) ||
             !(std::isfinite(m->us) && m->us > 0.0) ||

@@ -24,7 +24,8 @@
 // smoothing_lambda 不能为 0（λ>0 必须）。
 // **不是**生产取值裁决面：具体生产 λ 由 SMOOTH-LAMBDA 配置面确定
 // （本常量只定义 "auto" 这个键值解析成什么，不定义生产链路的 λ）。
-// 注意与 docs/science/algorithms/PHASE2_UPM_IMPL.md:382「0.0（默认关闭平滑）」的
+// 注意与 docs/science/algorithms/mosaic/PHASE2_UPM_IMPL.md「容差与冻结清单」一节
+// 「0.0（默认关闭平滑）」的
 // 冲突：该表自述「冻结面，任何修改必须走 SCI/合同变更」⇒ 本实现不擅自改
 // 冻结面（现行权威以 docs/science/algorithms/ 为准，不擅自改动）。
 constexpr double P2_SMOOTHING_LAMBDA_AUTO = 0.1;
@@ -74,8 +75,9 @@ struct P2Stage2Config {
     int robust_loss = 0;
     int snr_weight_mode = 0;
     double huber_delta = 1.345;
-    // CONFORM-FIX-B-009: struct 默认 == parser 默认 == CONFIG_SCHEMA「auto」
-    // 解析值（CONFIG_SCHEMA.md:3-4「C++ struct 默认值、parser 默认值…必须一致」）。
+    // CONFORM-FIX-B-009: struct 默认 == parser 默认 == 配置面「auto」
+    // 解析值（docs/engineering/contracts/CONFIG.md「索引归属（单一事实源）」一节
+    // 「C++ struct 默认值、parser 默认值…必须一致」）。
     double smoothing_lambda = P2_SMOOTHING_LAMBDA_AUTO;
     double zero_anchor_weight = 1e-3;
     double sigma_floor = 1e-3;
@@ -125,7 +127,8 @@ struct P2Stage2Config {
     int reject_method = P2_REJECT_AUTO;  // production default = auto
     // CONFORM-FIX-B-007: 生产默认 profile = ACSD 自研档
     // （FIX-SCI-SNR-CANON-001「自研的 ⇒ 改文档
-    // 对齐代码」；docs/science/REJECTION.md:21,47、CONFIG_SCHEMA.md:25、
+    // 对齐代码」；docs/science/integration/REJECTION.md「物理模型」一节、
+    // docs/engineering/contracts/CONFIG.md、
     // eng/contracts/data/phase2_uncertainty_rejection_provenance_v1.json:67 同值）。
     // 旧默认 wbpp_2_9_1 是**对照档**，使工具链与交付 node chain 的排异方法
     // 在 n=3/6..7/≥16 边界全部分叉。
@@ -219,10 +222,11 @@ bool p2_acr_block_eligible(const P2Stage2Config& cfg,
                            bool large_scale_active);
 
 // ═══════════════════════════════════════════════════════════════════════════
-// CHAIN-WIRE-ADAPT-01（docs/science/PHASE2_UPM.md §7a）
+// CHAIN-WIRE-ADAPT-01（docs/science/sky/UPM.md「物理模型」一节）
 // 天光面节点间距所需的**输入几何**：由产品自身的控制点/观测集合导出。
 //
-// §7a 正向约束：「节点间距必须由输入自适应导出（不得是标定常数）…节点间距 ≤
+// 正向约束（docs/science/sky/UPM.md「物理模型」一节）：
+// 「节点间距必须由输入自适应导出（不得是标定常数）…节点间距 ≤
 // （该产品实际约束帧间改正量的最小尺度）/2；该尺度是**重叠带宽度**与**指向间距**
 // 两者中的较小者…由 manifest/输入几何逐产品算出。**禁止**在配置里留一个
 // 「默认节点间距」标定值。」

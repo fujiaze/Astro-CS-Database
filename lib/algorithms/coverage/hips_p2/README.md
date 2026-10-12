@@ -91,7 +91,7 @@
 - 不做原子发布（IO-003 编排层合同；stage2 直写 cfg.out_hips :592，
   DISP-P2HIPS-003 如实登记）；
 - 不做 UPM 拟合/排异判据/积分公式（SCI-UPM-001/SCI-REJ-001/SCI-INT-001
-  FROZEN；w_UPM 唯一冻结式 PHASE2_UPM.md §5）；
+  FROZEN；w_UPM 唯一冻结式 docs/science/sky/UPM.md「公式与推导」一节）；
 - 不做 P3 HiPS→FITS（SCI-P3-001 域，只读引用）；
 - 不跨滤镜统一（filter 取 infos[0] :531，多滤镜分组归调用方）。
 
@@ -166,9 +166,10 @@ PUBLIC_API.md Phase2 mosaic write 节（API-P2-HIPS-001）。
 
 ## 8. 关联
 
-- 上游 SCI：SCI-UPM-001（PHASE2_UPM.md §5）、SCI-INT-001（INTEGRATION.md
-  §5）、SCI-REJ-001（REJECTION.md）、SCI-SCOPE-001——共享 FROZEN 零改动。
-- ALG：ALG-P2-HIPS-001..004（PHASE2_MOSAIC_WRITE.md）；库上游
+- 上游 SCI：SCI-UPM-001（docs/science/sky/UPM.md「公式与推导」一节）、
+  SCI-INT-001（docs/science/integration/INTEGRATION.md
+  §5）、SCI-REJ-001（docs/science/integration/REJECTION.md）、SCI-SCOPE-001——共享 FROZEN 零改动。
+- ALG：ALG-P2-HIPS-001..004（docs/science/algorithms/mosaic/PHASE2_MOSAIC_WRITE.md）；库上游
   ALG-HIPS-001..005（HIPS_WRITER.md）、ALG-UPM-001、ALG-REJ-001..008、
   ALG-COV-001。
 - 契约：DATA-P2-HIPS（`docs/detail/registry/acsd.phase2.write.md`「输入输出端口、DATA、单位、坐标、invalid」一节）、API-P2-HIPS-001（PUBLIC_API）、

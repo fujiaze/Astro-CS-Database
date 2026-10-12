@@ -2,7 +2,7 @@
 //
 // Phase2 W3：输入发现 / 兼容校验 / coverage union / target_order。
 //
-// 语义（冻结；权威 = docs/science/PHASE2_UPM.md §5 与
+// 语义（冻结；权威 = docs/science/sky/UPM.md（覆盖并集口径）与
 // docs/detail/registry/acsd.phase2.sample.md）：
 // - 输入为多个 Phase1 单帧 HiPS（signal/support/snr），不重新校准/PlateSolve/PSF/DR3SP/Drizzle；
 // - 兼容：同一 equatorial/ICRS、同一 filter/passband、同一 signal/support 语义、NESTED；
@@ -77,7 +77,8 @@ P2_API int p2_coverage_free(P2CoverageResult* out);
 //                              w = SNR^2 / F_ref^2（docs/ACSD_DESIGN.md §3.1、
 //                              docs/science/unified/UNIFIED_SCIENCE_MODEL.md §4）；
 //   FZ-MODE-RETIRED          : psfsw_robust 不得进生产路由 —— psfsw_robust_weight
-//                              不是现行对象（docs/ACSD_DESIGN.md §3.1；UNIFIED_MODEL.md:58），
+//                              不是现行对象（docs/ACSD_DESIGN.md §3.1；
+//                              docs/detail/common/unified_model.md），
 //                              显式拒绝 + 迁移提示（唯一口径 = 逆方差）；
 //   FZ-FIELD-WEIGHTMODE      : legacy 整数 0(=support x snr^2) 不得进科学
 //                              权重面；
@@ -162,7 +163,7 @@ P2_API int p2_deterministic_reduction_order(
 // 起不再表示"在役的相对复合权重"，而是**退役对象的显式拒绝面**——旧产品若把该
 // 对象写进 weight.sources/variance_from，必须在此判红（不得静默接受）。该两 token
 // 因此不得按"残留清理"删除。依据 docs/ACSD_DESIGN.md §3.1（订正后）+
-// docs/detail/UNIFIED_MODEL.md:58（旧产品声明该对象 ⇒ 显式拒绝 + 迁移提示）。
+// docs/detail/common/unified_model.md（旧产品声明该对象 ⇒ 显式拒绝 + 迁移提示）。
 // 返回 0=通过；1=命中禁止 token；2=参数错误（tokens==NULL 且 n>0）。
 P2_API int p2_weight_source_token_reject(
     const char* const* tokens, std::uint64_t n,

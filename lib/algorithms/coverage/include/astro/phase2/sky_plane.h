@@ -6,9 +6,9 @@
 //   docs/ACSD_DESIGN.md §5.4（天光亮度平面稀疏表示、按需求值）
 //   docs/detail/registry/acsd.phase2.sample.md（star_mask / sky_samples / 点权重）
 //   docs/detail/registry/acsd.phase2.upm-fit.md §4.1-§4.4（b_k(x)=B_ref(x)+δ_k(x)、SNR 加权最小 RMS）
-//   docs/detail/UNIFIED_MODEL.md §2（sky_samples / sky_plane 数据对象）
+//   docs/detail/common/unified_model.md（sky_samples / sky_plane 数据对象）
 //
-// 模型（加性天光面，与 11_upm.md §4.1 一致）：
+// 模型（加性天光面，与 docs/science/sky/UPM.md「物理模型」一节 一致）：
 //     y_k(x) = b_k(x) + ε_k(x)
 //     b_k(x) = B_ref(x) + δ_k(x)
 //   B_ref  全帧联合参考信号面，稀疏二维张量积 B 样条系数（不建稠密栅格）；
@@ -22,14 +22,17 @@
 //     **内存与帧数无关**，也不随像素数增长；像素值一律现场求值（eval/eval_block）；
 //   - 稀疏持久化：save/open 只写系数与网格参数。
 //
-// 权重（11_upm.md §4.4）：加权最小二乘，w_i = 1/σ_i²（inverse_variance，canonical）
+// 权重（docs/science/sky/UPM.md「公式与推导」一节）：加权最小二乘，
+// w_i = 1/σ_i²（inverse_variance，canonical）
 // 或显式 w_i ∝ SNR_i²（snr2）；稳健 IRLS（Huber）抑制离群采样点。
 //
-// gauge（11_upm.md §4.3）：reference_frame（参考帧 δ≡0，参考帧=最小 frame_id，与
+// gauge（docs/science/sky/UPM.md「公式与推导」一节 规范自由度处理）：
+// reference_frame（参考帧 δ≡0，参考帧=最小 frame_id，与
 // UPM MA 同构）或 sum（Σ_k δ_k ≡ 0，由 reference_frame 解作常数平移得到，平移量
 // 记入 gauge_shift）。
 //
-// fail-closed（11_upm.md §4.5）：无采样点 / 全被掩膜 / 点不足 / 帧欠定 /
+// fail-closed（docs/science/sky/UPM.md「判据与误差」一节）：
+// 无采样点 / 全被掩膜 / 点不足 / 帧欠定 /
 // 节点数超上限 / **未通过唯一可辨识性判据** / 非有限解 一律显式失败；求值越域不外插。
 // 可辨识性判据 = astro/phase2/identifiability.h 的 p2_identifiability_assess
 // （与 UPM/GLS 侧**同一个函数**）：r_eff(H_red) == n_free ⟺ κ(H_red) < 1/rank_rtol。
@@ -62,10 +65,10 @@ enum {
     P2_SKY_FLAG_REJECTED           = 1u << 4   // 稳健迭代剔除
 };
 
-// 每帧稀疏天光采样点（10_sampling.md §3/§4.2）。
+// 每帧稀疏天光采样点（docs/detail/registry/acsd.phase2.sample.md）。
 // value 单位 ADU·sr⁻¹（面亮度，与 UPM control 观测同标度）；
 // variance 单位 ADU²·sr⁻²；snr 为点 SNR（帧级 × 帧内，缺帧内时=帧级）。
-// 量纲依据 = docs/science/PHASE2_UPM.md §3（写盘 BUNIT 冻结集
+// 量纲依据 = docs/science/algorithms/mosaic/PHASE2_UPM_IMPL.md「符号与单位」一节（写盘 BUNIT 冻结集
 // {ADU/sr, ADU^2/sr^2, sr^2/ADU^2}；裸 ADU 判红）。
 typedef struct {
     std::uint64_t frame_id;
@@ -223,10 +226,11 @@ P2_API int p2_star_mask_caps_gaia_halo(const double* ra_deg, const double* dec_d
 // ===========================================================================
 
 // ---------------------------------------------------------------------------
-// 2a. 节点间距的输入自适应导出（SCI-UPM-CAP-001；docs/science/PHASE2_UPM.md §7a）
+// 2a. 节点间距的输入自适应导出（SCI-UPM-CAP-001；docs/science/sky/UPM.md「物理模型」一节）
 // ---------------------------------------------------------------------------
 //
-// 规范依据（§7a「节点间距必须由输入自适应导出（不得是标定常数）」）：
+// 规范依据（docs/science/sky/UPM.md「物理模型」一节：
+// 「节点间距必须由输入自适应导出（不得是标定常数）」）：
 //   节点间距 ≤ (该产品实际约束帧间改正量的最小尺度) / 2；
 //   对「帧间加性天光差」这一目标量，该尺度是**重叠带宽度**与**指向间距**中的较小者。
 //
