@@ -1733,3 +1733,150 @@ S.8 登记为「仍在运行」的 `baader` 对照臂（**当前 build `a13461ae
 
 **仍未验证的**（与 S.6 相同）：`m5` 的**绝对数值**需由 SNR 节点用 `zp_inst` 重算，
 本轮只验证了 `zp_inst` 可算且落在物理合理区间，**未复算 `m5` 数值**。
+
+---
+
+# 附录 T：A3 干净对照重跑 —— **被阻断**（登记表未覆盖臂②③）
+
+**前提变化**：`C_abs` 已按 **(滤镜曲线, QE 曲线) 二元组**登记，守卫改为查表
+（`lib/infrastructure/scheduler/src/module_adapters.cpp:7374-7396`）。据此**预期**四臂全部命中
+`fixed_magnitude`、混淆项消失。
+
+## T.1 实际查表口径（读代码）
+
+```cpp
+static constexpr CAbsPair kCAbsTable[] = {                                    // :7374
+    {"Baader R", "", -14.276811281840642},                    // 方案 A 原始参考对
+    {"Astrodon E-series R", "KAF-16803", -15.711040624768852}, // 同参考域重测（A4）
+};
+```
+- **键的构造**：`filter` = `photometry.fit.filter`，缺则 `filter_passband`（**:7384-7385**）；
+  `qe` = `photometry.fit.qe_name`，且 **`"Ideal QE curve"` 被归一为空串 `""`**（**:7388-7389**）；
+- **匹配**：**精确相等**（`:7391-7396`），无通配、无别名。
+
+⇒ 表内**只有两对**：`(Baader R, "")` 与 `(Astrodon E-series R, KAF-16803)`。
+⇒ 四臂实际需要的键：
+
+| 臂 | 声明 | 归一后的键 | 是否在表内 |
+|---|---|---|---|
+| ① | `Baader R` + `Ideal QE curve` | `("Baader R", "")` | **在**（表第 1 对） |
+| ② | `Astrodon E-series R` + `Ideal QE curve` | `("Astrodon E-series R", "")` | **不在** |
+| ③ | `Baader R` + `KAF-16803` | `("Baader R", "KAF-16803")` | **不在** |
+| ④ | `Astrodon E-series R` + `KAF-16803` | `("Astrodon E-series R", "KAF-16803")` | **在**（表第 2 对） |
+
+**⇒ 与派单的预期（「臂①③ 命中第 1 对、臂②④ 命中第 2 对」）不符**：第 1 对登记的是
+**未声明 QE**（`qe=""`），**不是** `KAF-16803`；因此臂③ 不命中。第 2 对登记的是 `KAF-16803`，
+**不是**未声明 QE；因此臂② 不命中。
+
+## T.2 实测证据（单帧探针，四臂同帧）
+
+**先钉住二进制与曲线**：`run/PHOT-FIX/a3b_clean/pinned/`（`acsd` md5 `32f6b85b8783ef82b5900750cea838c2`，
+58 条曲线，build `335fb3efc769a5018449137415a57086f0687fc3`）。
+探针帧 = 6 帧集的第 1 帧 `M42_M1_T3_flying_dutchman-20251126@041940-300S-Red`。
+命令：`pinned/acsd normalize --json probe{N}_config.json -y`。
+
+| 臂 | filter | qe_name | `reference_flux_source` | `m5` 产出 | `exit_code` | 判定 |
+|---|---|---|---|---|---|---|
+| ① | `Baader R` | `Ideal QE curve` | **`fixed_magnitude`** | **是** | 0 | **命中** |
+| ② | `Astrodon E-series R` | `Ideal QE curve` | `group_median` | **否** | 0 | **fail-closed** |
+| ③ | `Baader R` | `KAF-16803` | `group_median` | **否** | 0 | **fail-closed** |
+| ④ | `Astrodon E-series R` | `KAF-16803` | **`fixed_magnitude`** | **是** | 0 | **命中** |
+
+臂②③ 的守卫原始报错（stderr，逐字）：
+
+```
+[module_adapters] C_abs 二元组守卫: fail-closed (运行二元组=(滤镜='Astrodon E-series R',
+QE='Ideal QE curve'（Ideal QE curve 归一为未声明 QE）), 已登记对数=2,
+原因=cabs_pair_not_registered) ⇒ 本运行不产出绝对深度 m5
+```
+```
+[module_adapters] C_abs 二元组守卫: fail-closed (运行二元组=(滤镜='Baader R', QE='KAF-16803'),
+已登记对数=2, 原因=cabs_pair_not_registered) ⇒ 本运行不产出绝对深度 m5
+```
+
+臂①④ **无**守卫消息。⇒ **`exit_code` 全为 0**（fail-closed 是数据有效性分支、不置非零退出码），
+故**不能靠 exit_code 判命中**，必须读 `reference_flux_source` 与 `m5`——本表即按此判。
+
+**⇒ 按派单第 6 条「若某臂仍不产出 `m5` 或路径不是 `fixed_magnitude`，先停下报告」：
+已停下，未执行四臂正式重跑**（避免产出一份臂②③ 无 `m5`、无法作干净对照的读数）。
+
+## T.3 解除阻断所需的两个常数（已在正确参考域上补测）
+
+要让四臂全部命中，需在**文档化参考域（16 帧 T2 参考集）**上补测两对：
+
+| 待登记对 | 用途 | 状态 |
+|---|---|---|
+| `("Baader R", "KAF-16803")` | 臂③ 命中 | 见 T.4 |
+| `("Astrodon E-series R", "")` | 臂② 命中 | 见 T.4 |
+
+**为什么不复用 A3 已有的同对读数**：A3 臂②③ 的 `synthetic_colour_median_mag` 块中位是在
+**6 帧 T3/M1** 上取的，**不是**正本 :147 指定的 **16 帧 T2 参考域**。实测两域对同一对曲线的偏移
+并不相同（`(Baader R, "")`：T2 −14.276811 vs T3M1 −14.265598，差 **+0.0112**；
+`(Astrodon, KAF-16803)`：T2 −15.711041 vs T3M1 −15.709913，差 **−0.0011**）⇒
+**跨域平移会引入约 0.01 mag 量级的误差**，对「冻结常数」不可接受 ⇒ **必须在参考域上重测**。
+
+## T.4 参考域补测读数（四对常数，**同一 16 帧 T2 参考域**）
+
+命令：`pinned/acsd normalize --json <name>_config.json -y`（钉住 build `335fb3efc769a5018449137415a57086f0687fc3`）。
+口径与 S.2/S.3 完全相同（16 帧 T2、块中位）。
+
+| (滤镜, QE) | `C_abs`（mag） | n | MAD |
+|---|---|---|---|
+| (`Baader R`, `Ideal QE curve`) | **−14.276811281840642** | 16 | 9.212e-03 |
+| (`Astrodon E-series R`, `KAF-16803`) | **−15.711040624768852** | 16 | 8.381e-03 |
+| **( `Baader R`, `KAF-16803` )** ← 臂③ 需要 | **−15.086716871104473** | 16 | 1.126e-02 |
+| **( `Astrodon E-series R`, `Ideal QE curve` )** ← 臂② 需要 | **−14.845903818286661** | 16 | 9.310e-03 |
+
+**核对**：已登记的两对在本轮**逐位复现**（Δ = 0.00e+00）⇒ 口径与登记值一致。
+
+**两对常数的效应分解**（同一参考域，mag）：
+
+| 只变 QE（同滤镜） | Δ | 只变滤镜（同 QE） | Δ |
+|---|---|---|---|
+| `Baader R`：Ideal→KAF | **−0.809906** | `Ideal QE`：Baader→Astrodon | **−0.569093** |
+| `Astrodon`：Ideal→KAF | **−0.865137** | `KAF-16803`：Baader→Astrodon | **−0.624324** |
+
+⇒ QE 的贡献（≈0.81–0.87）**大于**滤镜（≈0.57–0.62）⇒ 印证 S.5 的结论：常数按
+**(滤镜, QE) 二元组**登记是必要的，仅按滤镜分通带会漏掉更大的那一项。
+
+**跨域对照（证明必须在本域测）**：同一对曲线在 6 帧 T3/M1 上的块中位与本域相差
+`(Baader R, "")` **+0.0112**、`(Baader R, KAF-16803)` **+0.0153**、`(Astrodon, Ideal)` **−0.00005**、
+`(Astrodon, KAF-16803)` **−0.0011** ⇒ 跨域平移误差可达 **0.015 mag**，对冻结常数不可接受。
+
+## T.5 **重要更正**：零点路径混淆项**不影响主判据**（我上轮 B2 的表述过宽）
+
+上一轮（附录 R.7.3/B2）我写「臂①→④ 的差异**同时包含**「通带」与「零点方法」两项」。
+本轮核对代码后确认：**该表述对 `m5`/`zp_inst` 成立，但对主判据 `sigma_residual_dex` 不成立。**
+
+**结构性证据**：
+
+- `sigma_residual_dex` 由**测光节点**产出，计算处
+  `lib/algorithms/photometry/cpp/src/frame_photometry_fit.cpp:371`
+  （`out.sigma_residual_dex = sigma_residual;`），其输入只有 `r = log10(F_instr/F_syn)`。
+- 该文件**没有任何 `C_abs`/`cabs`/`kCAbs` 引用**（grep 零命中）。
+- `C_abs` 的全部消费点在 `lib/infrastructure/scheduler/src/module_adapters.cpp`
+  **:7444-7451**（`kCAbsMag` → `zp_inst_of_key` / `zp_syn_vals`），再经 :7461/:7467/:7649-7650
+  进入**深度/信噪比节点**——位于测光节点**下游**，而 `p1_phot.json` 在测光节点即已写盘。
+
+⇒ **`C_abs` 在结构上不可能影响 `sigma_residual_dex`**：两条零点路径（`fixed_magnitude` /
+`group_median`）对主判据的贡献**恒为 0**。
+
+**⇒ 回答派单第 4 条**：上轮 ①→④ = −12.15%（−6.84σ）中，
+**归因于「零点路径」的部分 = 0（结构性为 0，不是"估计很小"）**；
+**全部归因于「曲线对（滤镜 + QE）」**。故上轮的 −12.15% **就是滤镜/QE 的干净读数**，
+本轮重跑预期得到**同一数值**（同一帧集、同一曲线对）——重跑的意义在于**取回 `m5`**，
+而非修正主判据。该更正按 §13.2 保留原表述并在此订正，不删除原文。
+
+## T.6 解除阻断所需（请裁决/登记）
+
+在 `lib/infrastructure/scheduler/src/module_adapters.cpp:7374-7377` 的 `kCAbsTable` 中
+**补登记两对**（值取 T.4，均为 16 帧 T2 参考域实测）：
+
+```cpp
+{"Baader R",            "KAF-16803",      -15.086716871104473},  // 臂③
+{"Astrodon E-series R", "",               -14.845903818286661},  // 臂②（Ideal QE 归一为 ""）
+```
+
+登记后四臂应全部命中 `fixed_magnitude`、全部产出 `m5`；届时再做四臂正式重跑
+（同一 6 帧 / 6 夜晚 / 同天区），并按派单交付 1–5 项。
+**本轮未改任何代码**（`module_adapters.cpp` 属并行路），只补测并给出可直接登记的值。
