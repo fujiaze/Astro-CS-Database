@@ -1,0 +1,46 @@
+{
+  "acsd_version": "0.1.0-alpha.1+g19a2adb45bc5fdae2a83527b85805c5a3a6a89c6",
+  "artifacts": [],
+  "config_path": "/tmp/e1check/cfg_bad.json",
+  "config_sha256": "6853ffab0704b6c7897a129ef3dd8e4f930c90b80d2b13c4fa768dbb6f517e70",
+  "cpu_profile_path": null,
+  "cpu_profile_sha256": null,
+  "error": {
+    "message": "phase1 failed: node cal failed: prerun: master frame size mismatch: master 'master_bias' (/workspace/Astro CS Database/testdata/T2 calibration files/masterBias_BIN-1_4096x4096.xisf) is 4096x4096 but master 'master_flat' (/tmp/e1check/masterFlat_bad_4096x4112.fits) is 4096x4112"
+  },
+  "finished_utc": "2026-10-12T08:44:12Z",
+  "kind": "acsd_run_manifest",
+  "phases": [
+    1
+  ],
+  "platform": {
+    "arch": "amd64",
+    "os": "linux"
+  },
+  "provenance": {
+    "algorithm_ids": [
+      "ALG-P1-CAL-001"
+    ],
+    "build_dirty": true,
+    "build_head_sha": "19a2adb45bc5fdae2a83527b85805c5a3a6a89c6",
+    "build_source_digest": "a870dbb09a7170e2aade7d8634c1fd7f85a51bf7a4774a88c2260eee29bc12f7",
+    "configure_head_sha": "19a2adb45bc5fdae2a83527b85805c5a3a6a89c6",
+    "coordinate_frames": [],
+    "input_product_hashes": [],
+    "module_build_ids": [
+      "acsd.phase1.calibration@0.1.0-alpha.1+g19a2adb45bc5fdae2a83527b85805c5a3a6a89c6"
+    ],
+    "output_product_hashes": [],
+    "providers": [
+      "baseline"
+    ],
+    "source_sha": "19a2adb45bc5fdae2a83527b85805c5a3a6a89c6",
+    "source_version": "0.1.0-alpha.1+g19a2adb45bc5fdae2a83527b85805c5a3a6a89c6",
+    "units": []
+  },
+  "run_id": "0e213f48d9a3",
+  "schema_version": "1",
+  "started_utc": "2026-10-12T08:44:12Z",
+  "status": "incomplete",
+  "summary": "phase1 failed: node cal failed: prerun: master frame size mismatch: master 'master_bias' (/workspace/Astro CS Database/testdata/T2 calibration files/masterBias_BIN-1_4096x4096.xisf) is 4096x4096 but master 'master_flat' (/tmp/e1check/masterFlat_bad_4096x4112.fits) is 4096x4112"
+}

@@ -1,0 +1,243 @@
+{
+  "acsd_version": "0.1.0-alpha.1+g19a2adb45bc5fdae2a83527b85805c5a3a6a89c6",
+  "artifacts": [
+    {
+      "canonical_format": "fits",
+      "canonical_hash_spec": "acsd.canonical-product-hash/v1",
+      "canonical_sha256": "873037fddf1d380eb8d094b4f33ce9999f31f1f1c76e899c055935eaca60abc3",
+      "integrity_sha256": "2d53aa41035ffb8524e22e5e7b06121f95d77e05454cab822917eecaf47e9c5c",
+      "path": "/tmp/e1check/out_ok/calibrated_M42_M1_T2_flying_dutchman-20251212@012404-300S-Red.fts",
+      "sha256": "2d53aa41035ffb8524e22e5e7b06121f95d77e05454cab822917eecaf47e9c5c",
+      "size_bytes": 67121280
+    },
+    {
+      "canonical_format": "fits",
+      "canonical_hash_spec": "acsd.canonical-product-hash/v1",
+      "canonical_sha256": "83d8f247f090008bdbae3a65f47a645ead45dd93d75eaba93d2e306bb642ac41",
+      "integrity_sha256": "f473ef88591e849448b6d417254b4edaa65f5a5e5f3060b913760b22dc048bd6",
+      "path": "/tmp/e1check/out_ok/cleaned_M42_M1_T2_flying_dutchman-20251212@012404-300S-Red.fts",
+      "sha256": "f473ef88591e849448b6d417254b4edaa65f5a5e5f3060b913760b22dc048bd6",
+      "size_bytes": 67121280
+    },
+    {
+      "canonical_format": "fits",
+      "canonical_hash_spec": "acsd.canonical-product-hash/v1",
+      "canonical_sha256": "64f144eaae5bfbc66fcb3d49875e4f94c809fdc2ec9daaba4bd7c3ff8bfd7f82",
+      "integrity_sha256": "a98f68ce84c0379b530eef4361c7eb4baed76ddc79ba702f38ac8785bc7c2c5a",
+      "path": "/tmp/e1check/out_ok/badcol_M42_M1_T2_flying_dutchman-20251212@012404-300S-Red.fts",
+      "sha256": "a98f68ce84c0379b530eef4361c7eb4baed76ddc79ba702f38ac8785bc7c2c5a",
+      "size_bytes": 67121280
+    },
+    {
+      "canonical_format": "fits",
+      "canonical_hash_spec": "acsd.canonical-product-hash/v1",
+      "canonical_sha256": "f085e79385ed10313602e0bfc34fe094cb531f6667d09406356c7d1c6ba8f4e2",
+      "integrity_sha256": "a4f9d7c98b5ad9305d58025ff45f077d3078c0a722f4da8c6cc2fd548cab7356",
+      "path": "/tmp/e1check/out_ok/badcolsrc_M42_M1_T2_flying_dutchman-20251212@012404-300S-Red.fts",
+      "sha256": "a4f9d7c98b5ad9305d58025ff45f077d3078c0a722f4da8c6cc2fd548cab7356",
+      "size_bytes": 67121280
+    },
+    {
+      "canonical_format": "json",
+      "canonical_hash_spec": "acsd.canonical-product-hash/v1",
+      "canonical_sha256": "b3bc82a07663c15ab97cde0df88bb39a1d6b939ce41b90b502b92dcc2e047c03",
+      "integrity_sha256": "1719ba11147c531ae688d39d6717bf0ca2efd2bc340dce64c02da0f9395415f2",
+      "path": "/tmp/e1check/out_ok/M42_M1_T2_flying_dutchman-20251212_012404-300S-Red/p1_wcs.json",
+      "sha256": "1719ba11147c531ae688d39d6717bf0ca2efd2bc340dce64c02da0f9395415f2",
+      "size_bytes": 22100
+    },
+    {
+      "canonical_format": "json",
+      "canonical_hash_spec": "acsd.canonical-product-hash/v1",
+      "canonical_sha256": "c41d32d76f3d128274055add9ef83d501593205c1160ba17ef7be3810c45c4c0",
+      "integrity_sha256": "ade1ede0433f00804872ff30a28ae75518815bd02fd49f3df448bb5ea0f370d1",
+      "path": "/tmp/e1check/out_ok/p1_sources.json",
+      "sha256": "ade1ede0433f00804872ff30a28ae75518815bd02fd49f3df448bb5ea0f370d1",
+      "size_bytes": 1706119
+    },
+    {
+      "canonical_format": "json",
+      "canonical_hash_spec": "acsd.canonical-product-hash/v1",
+      "canonical_sha256": "faf7f9782511d8001084297d1c1d22268559c0b7ce9bf43bb4edd5a6b8b7c20b",
+      "integrity_sha256": "72b98d7836f9d4d4385d569f1fb13f166b1ca4184c66877baadf40fc65b2c514",
+      "path": "/tmp/e1check/out_ok/p1_psf.json",
+      "sha256": "72b98d7836f9d4d4385d569f1fb13f166b1ca4184c66877baadf40fc65b2c514",
+      "size_bytes": 455
+    },
+    {
+      "canonical_format": "json",
+      "canonical_hash_spec": "acsd.canonical-product-hash/v1",
+      "canonical_sha256": "f92404e3559ae453f4a7fa0d302f7d5765162cbea53bc7d708619b441208ead6",
+      "integrity_sha256": "0ca0a24a145e1af8b43e7c119eb3e9b2640266accff392a284ba250b40664191",
+      "path": "/tmp/e1check/out_ok/p1_flux.json",
+      "sha256": "0ca0a24a145e1af8b43e7c119eb3e9b2640266accff392a284ba250b40664191",
+      "size_bytes": 808797
+    },
+    {
+      "canonical_format": "json",
+      "canonical_hash_spec": "acsd.canonical-product-hash/v1",
+      "canonical_sha256": "08a9eacf2b2a18343c547a5ee9ea76a353217769af7aea6acb699d61258d6980",
+      "integrity_sha256": "8d7de3a91f28c519bb634153ac3387b3b10e977e74d35d20029a1f14b09ca1c0",
+      "path": "/tmp/e1check/out_ok/p1_phot.json",
+      "sha256": "8d7de3a91f28c519bb634153ac3387b3b10e977e74d35d20029a1f14b09ca1c0",
+      "size_bytes": 101807
+    },
+    {
+      "canonical_format": "fits",
+      "canonical_hash_spec": "acsd.canonical-product-hash/v1",
+      "canonical_sha256": "47a96f4433c83dd654714feb6aa101f95bf44635b8d18c8cbd77f32e5254970b",
+      "integrity_sha256": "73dbdcf09220478cd1564abf70b184ca2e767c20cc6f492dba50f353f14b1132",
+      "path": "/tmp/e1check/out_ok/photoapplied_M42_M1_T2_flying_dutchman-20251212@012404-300S-Red.fts",
+      "sha256": "73dbdcf09220478cd1564abf70b184ca2e767c20cc6f492dba50f353f14b1132",
+      "size_bytes": 67121280
+    },
+    {
+      "canonical_format": "json",
+      "canonical_hash_spec": "acsd.canonical-product-hash/v1",
+      "canonical_sha256": "37b98459e163aa09f0a46278b2c563fcaacb28aa0cc22ac400f66d4302d92d02",
+      "integrity_sha256": "f03af1fd476a7632d281911527094e4dcccd589ff9aa5ae515461b1975940c78",
+      "path": "/tmp/e1check/out_ok/p1_snr.json",
+      "sha256": "f03af1fd476a7632d281911527094e4dcccd589ff9aa5ae515461b1975940c78",
+      "size_bytes": 689260
+    },
+    {
+      "canonical_format": "json",
+      "canonical_hash_spec": "acsd.canonical-product-hash/v1",
+      "canonical_sha256": "41d9befcf4fdd403a122a937e675835be612305a4a4abd3b4ec3345e197c4bd2",
+      "integrity_sha256": "fa387f6b39ac5076ce93614a862899af57408a7979d6fc686689cbf945879c9a",
+      "path": "/tmp/e1check/out_ok/M42_M1_T2_flying_dutchman-20251212_012404-300S-Red/p1_stack.json",
+      "sha256": "fa387f6b39ac5076ce93614a862899af57408a7979d6fc686689cbf945879c9a",
+      "size_bytes": 2182
+    },
+    {
+      "canonical_format": "json",
+      "canonical_hash_spec": "acsd.canonical-product-hash/v1",
+      "canonical_sha256": "ccf57af0743da5fd6cc64f444aed1dd640967f72727680065c47ea12c310f07d",
+      "integrity_sha256": "2066c8c910bde9813c6f94195324436d164d69e8f8d5d7da2becb67de1287f94",
+      "path": "/tmp/e1check/out_ok/M42_M1_T2_flying_dutchman-20251212_012404-300S-Red/p1_final.json",
+      "sha256": "2066c8c910bde9813c6f94195324436d164d69e8f8d5d7da2becb67de1287f94",
+      "size_bytes": 2998
+    },
+    {
+      "canonical_format": "json",
+      "canonical_hash_spec": "acsd.canonical-product-hash/v1",
+      "canonical_sha256": "0c20e8b9413dcb7896e54d4f917a31732a474a2842b4de5dc0653c69bcb2fcc3",
+      "integrity_sha256": "8495887a82d1b3d786aacbabf59e10b7c364e1a063e0e3ad4082428d7903f321",
+      "path": "/tmp/e1check/out_ok/p1_products.json",
+      "sha256": "8495887a82d1b3d786aacbabf59e10b7c364e1a063e0e3ad4082428d7903f321",
+      "size_bytes": 1495
+    }
+  ],
+  "config_path": "/tmp/e1check/cfg_ok.json",
+  "config_sha256": "5b820beaf114721517490bc37aee791100e25df3186cd0b9c6b5d6f520cbc6b5",
+  "cpu_profile_path": null,
+  "cpu_profile_sha256": null,
+  "finished_utc": "2026-10-12T08:47:07Z",
+  "kind": "acsd_run_manifest",
+  "phases": [
+    1
+  ],
+  "platform": {
+    "arch": "amd64",
+    "os": "linux"
+  },
+  "provenance": {
+    "algorithm_ids": [
+      "ALG-002",
+      "ALG-004",
+      "ALG-005",
+      "ALG-P1-CAL-001",
+      "ALG-P1-COS-001",
+      "ALG-P1-WR-001"
+    ],
+    "build_dirty": true,
+    "build_head_sha": "19a2adb45bc5fdae2a83527b85805c5a3a6a89c6",
+    "build_source_digest": "a870dbb09a7170e2aade7d8634c1fd7f85a51bf7a4774a88c2260eee29bc12f7",
+    "configure_head_sha": "19a2adb45bc5fdae2a83527b85805c5a3a6a89c6",
+    "coordinate_frames": [
+      "equatorial"
+    ],
+    "input_product_hashes": [],
+    "module_build_ids": [
+      "acsd.phase1.calibration@0.1.0-alpha.1+g19a2adb45bc5fdae2a83527b85805c5a3a6a89c6",
+      "acsd.phase1.cosmetic@0.1.0-alpha.1+g19a2adb45bc5fdae2a83527b85805c5a3a6a89c6",
+      "acsd.phase1.drizzle@0.1.0-alpha.1+g19a2adb45bc5fdae2a83527b85805c5a3a6a89c6",
+      "acsd.phase1.noise-snr@0.1.0-alpha.1+g19a2adb45bc5fdae2a83527b85805c5a3a6a89c6",
+      "acsd.phase1.photometry@0.1.0-alpha.1+g19a2adb45bc5fdae2a83527b85805c5a3a6a89c6",
+      "acsd.phase1.star-psf@0.1.0-alpha.1+g19a2adb45bc5fdae2a83527b85805c5a3a6a89c6",
+      "acsd.phase1.wcs-platesolve@0.1.0-alpha.1+g19a2adb45bc5fdae2a83527b85805c5a3a6a89c6",
+      "acsd.phase1.writer@0.1.0-alpha.1+g19a2adb45bc5fdae2a83527b85805c5a3a6a89c6"
+    ],
+    "output_product_hashes": [
+      {
+        "path": "/tmp/e1check/out_ok/calibrated_M42_M1_T2_flying_dutchman-20251212@012404-300S-Red.fts",
+        "sha256": "2d53aa41035ffb8524e22e5e7b06121f95d77e05454cab822917eecaf47e9c5c"
+      },
+      {
+        "path": "/tmp/e1check/out_ok/cleaned_M42_M1_T2_flying_dutchman-20251212@012404-300S-Red.fts",
+        "sha256": "f473ef88591e849448b6d417254b4edaa65f5a5e5f3060b913760b22dc048bd6"
+      },
+      {
+        "path": "/tmp/e1check/out_ok/badcol_M42_M1_T2_flying_dutchman-20251212@012404-300S-Red.fts",
+        "sha256": "a98f68ce84c0379b530eef4361c7eb4baed76ddc79ba702f38ac8785bc7c2c5a"
+      },
+      {
+        "path": "/tmp/e1check/out_ok/badcolsrc_M42_M1_T2_flying_dutchman-20251212@012404-300S-Red.fts",
+        "sha256": "a4f9d7c98b5ad9305d58025ff45f077d3078c0a722f4da8c6cc2fd548cab7356"
+      },
+      {
+        "path": "/tmp/e1check/out_ok/M42_M1_T2_flying_dutchman-20251212_012404-300S-Red/p1_wcs.json",
+        "sha256": "1719ba11147c531ae688d39d6717bf0ca2efd2bc340dce64c02da0f9395415f2"
+      },
+      {
+        "path": "/tmp/e1check/out_ok/p1_sources.json",
+        "sha256": "ade1ede0433f00804872ff30a28ae75518815bd02fd49f3df448bb5ea0f370d1"
+      },
+      {
+        "path": "/tmp/e1check/out_ok/p1_psf.json",
+        "sha256": "72b98d7836f9d4d4385d569f1fb13f166b1ca4184c66877baadf40fc65b2c514"
+      },
+      {
+        "path": "/tmp/e1check/out_ok/p1_flux.json",
+        "sha256": "0ca0a24a145e1af8b43e7c119eb3e9b2640266accff392a284ba250b40664191"
+      },
+      {
+        "path": "/tmp/e1check/out_ok/p1_phot.json",
+        "sha256": "8d7de3a91f28c519bb634153ac3387b3b10e977e74d35d20029a1f14b09ca1c0"
+      },
+      {
+        "path": "/tmp/e1check/out_ok/photoapplied_M42_M1_T2_flying_dutchman-20251212@012404-300S-Red.fts",
+        "sha256": "73dbdcf09220478cd1564abf70b184ca2e767c20cc6f492dba50f353f14b1132"
+      },
+      {
+        "path": "/tmp/e1check/out_ok/p1_snr.json",
+        "sha256": "f03af1fd476a7632d281911527094e4dcccd589ff9aa5ae515461b1975940c78"
+      },
+      {
+        "path": "/tmp/e1check/out_ok/M42_M1_T2_flying_dutchman-20251212_012404-300S-Red/p1_stack.json",
+        "sha256": "fa387f6b39ac5076ce93614a862899af57408a7979d6fc686689cbf945879c9a"
+      },
+      {
+        "path": "/tmp/e1check/out_ok/M42_M1_T2_flying_dutchman-20251212_012404-300S-Red/p1_final.json",
+        "sha256": "2066c8c910bde9813c6f94195324436d164d69e8f8d5d7da2becb67de1287f94"
+      },
+      {
+        "path": "/tmp/e1check/out_ok/p1_products.json",
+        "sha256": "8495887a82d1b3d786aacbabf59e10b7c364e1a063e0e3ad4082428d7903f321"
+      }
+    ],
+    "providers": [
+      "baseline"
+    ],
+    "source_sha": "19a2adb45bc5fdae2a83527b85805c5a3a6a89c6",
+    "source_version": "0.1.0-alpha.1+g19a2adb45bc5fdae2a83527b85805c5a3a6a89c6",
+    "units": [
+      "ADU/sr"
+    ]
+  },
+  "run_id": "0e2b1fca6504",
+  "schema_version": "1",
+  "started_utc": "2026-10-12T08:47:07Z",
+  "status": "complete",
+  "summary": "phase1 ok"
+}

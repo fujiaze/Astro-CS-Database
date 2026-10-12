@@ -1,0 +1,46 @@
+{
+ "schema_version": "1",
+ "blocks": [
+  {
+   "name": "m42_t2_red",
+   "input_lights": [
+    "/tmp/e1check/masterFlat_bad_4096x4112.fits"
+   ],
+   "master_bias": "/workspace/Astro CS Database/testdata/T2 calibration files/masterBias_BIN-1_4096x4096.xisf",
+   "master_dark": "/workspace/Astro CS Database/testdata/T2 calibration files/masterDark_BIN-1_4096x4096_EXPOSURE-600.00s.xisf",
+   "master_flat": "/workspace/Astro CS Database/testdata/T2 calibration files/masterFlat_BIN-1_4096x4096_FILTER-Red_mono.xisf",
+   "output_dir": "/tmp/e1check/out_light",
+   "drizzle": {
+    "nested": 1,
+    "pixfrac": 0.8,
+    "precision_mode": 1
+   },
+   "filter_passband": "Baader R",
+   "wcs": {
+    "init_source": "header_pointing",
+    "gaia_data_dir": "/workspace/Astro CS Database/gaia/GaiaDR3SP"
+   },
+   "photometry": {
+    "fit": {
+     "enabled": true,
+     "gaia_data_dir": "/workspace/Astro CS Database/gaia/GaiaDR3SP",
+     "filter": "Baader R",
+     "filters_json": "/workspace/Astro CS Database/eng/packaging/config/filters.json"
+    }
+   },
+   "dark_optimization": true,
+   "dark_scale_factor": 0.5,
+   "master_flat_normalize": "median",
+   "master_units": {
+    "bias": "normalized",
+    "dark": "normalized",
+    "flat": "normalized"
+   },
+   "master_scale": {
+    "bias": 65535,
+    "dark": 65535,
+    "flat": 65535
+   }
+  }
+ ]
+}
