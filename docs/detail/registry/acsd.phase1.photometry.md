@@ -138,8 +138,10 @@ dex 残差 + `sigma_mag` / `sigma_cal_rel`。`a_k` 随产品输出，供 Phase2 
 「绝对刻度检验的残差 `median(m_syn − magG)`」误当作常数本身，量级差约 14 mag，会使 `m5`
 落到物理不可能的量级。
 
-**QE 与滤镜同量级（实测）**：同帧集**只变 QE** ⇒ `Baader R` 下 `Ideal QE curve`→`KAF-16803`
-**−0.806 mag**、`Astrodon E-series R` 下 **−0.864 mag**；**只变滤镜** ⇒ **−0.580 / −0.639 mag**。
+**QE 的贡献大于滤镜（同参考域实测）**：在**同一参考域（16 帧 T2）**上，同帧集**只变 QE**
+（`Ideal QE curve`→`KAF-16803`）⇒ `Baader R` 下 **−0.809906 mag**、`Astrodon E-series R` 下
+**−0.865137 mag**；**只变滤镜**（`Baader R`→`Astrodon E-series R`）⇒ 未声明 QE 时
+**−0.569093 mag**、`KAF-16803` 时 **−0.624324 mag** ⇒ **QE 的贡献大于滤镜**。
 ⇒ 「分通带」在实现上必须读作**分「(滤镜曲线, QE 曲线) 二元组」**：只按 `filter_passband`
 一个字符串取常数，会在 QE 不同时**静默用到为另一 QE 测的常数**（与 `PHOTOMETRY.md §2`
 「`Q` 是通带的组成部分而非可选项」一致）。
@@ -150,11 +152,10 @@ dex 残差 + `sigma_mag` / `sigma_cal_rel`。`a_k` 随产品输出，供 Phase2 
 
 | 项 | 值 |
 |---|---|
-| 参考域 | 16 帧 T2 参考集（其 `median(z^R)` 的块中位取自已发布的基线产物） |
+| 参考域 | **固定为 16 帧 T2 参考集**（其 `median(z^R)` 的块中位取自已发布的基线产物）；**跨域平移实测约 0.015 mag ⇒ 常数不可跨域复用**，换参考域必须重测重登记 |
 | 参考二元组 | **(`Baader R`, 未声明 QE / `Ideal QE curve`)** —— 该二元组的 QE 因子恒 1（库内 `Ideal QE curve` 6 点全为 1.0、波长域 1–2500 nm 覆盖 XP 网格 336–1020 nm，故与 `Q≡1` 数值等价） |
 | 数值 | **−14.276811281840642 mag**（MAD 9.212e-03、峰峰 5.872e-02） |
-| 适用域 | **仅对该二元组成立**；其它二元组各自测量、各自登记（见《`C_abs` 的通带适用范围与守卫》） |
-| 已登记的第二对 | **(`Astrodon E-series R`, `KAF-16803`) → −15.711040624768852 mag**（同一 16 帧 T2 参考域；MAD 8.381e-03、峰峰 3.539e-02；跨域跨 build 复现差 0.0011 mag；Δ vs 参考对 = −1.434229343 mag） |
+| 适用域 | **仅对该二元组成立**；其它二元组各自测量、各自登记（见《`C_abs` 的通带适用范围与守卫》的《已登记表》） |
 
 **边界（必须如实）**：该常数**包含参考域样本的中位合成颜色**，因此系统的绝对刻度锚在
 上述**参考域**，而不是 Gaia G 的绝对通量刻度。两者的差别是**一个常数**，在相对权重里整体
@@ -189,12 +190,17 @@ dex 残差 + `sigma_mag` / `sigma_cal_rel`。`a_k` 随产品输出，供 Phase2 
 
 ⇒ **已登记二元组可产出 `m5`；未登记二元组 fail-closed。**
 
-**已登记表（当前两对）**：
+**已登记表（当前四对，同一参考域 = 16 帧 T2）**：
 
-| 滤镜曲线 | QE 曲线 | `C_abs` [mag] | 参考域 / 统计量 |
-|---|---|---|---|
-| `Baader R` | 未声明 QE（`Q≡1`）／`Ideal QE curve` | **−14.276811281840642** | 16 帧 T2 参考集，`median(z^R)` 的块中位（MAD 9.212e-03、峰峰 5.872e-02） |
-| `Astrodon E-series R` | `KAF-16803` | **−15.711040624768852** | 同一 16 帧 T2 参考集（MAD 8.381e-03、峰峰 3.539e-02；跨域跨 build 复现差 0.0011 mag） |
+| 滤镜曲线 | QE 曲线 | `C_abs` [mag] | MAD | 参考域 / 统计量 |
+|---|---|---|---|---|
+| `Baader R` | 未声明 QE（`Q≡1`）／`Ideal QE curve` | **−14.276811281840642** | 9.212e-03 | 16 帧 T2 参考集，`median(z^R)` 的块中位（峰峰 5.872e-02） |
+| `Astrodon E-series R` | `KAF-16803` | **−15.711040624768852** | 8.381e-03 | 同一 16 帧 T2 参考集（峰峰 3.539e-02；跨域跨 build 复现差 0.0011 mag） |
+| `Baader R` | `KAF-16803` | **−15.086716871104473** | 1.126e-02 | 同一 16 帧 T2 参考集（只变 QE 的一对） |
+| `Astrodon E-series R` | 未声明 QE（`Q≡1`）／`Ideal QE curve` | **−14.845903818286661** | 9.310e-03 | 同一 16 帧 T2 参考集（只变滤镜的一对） |
+
+⇒ 四对覆盖 A3 四臂的全部组合（①历史口径 / ②只修滤镜 / ③只修 QE / ④全修）。**参考域固定为
+16 帧 T2**；跨域平移实测约 **0.015 mag** ⇒ 常数**不可跨域复用**。
 
 **守卫的实测证据**（同一单帧配置，仅改声明）：
 
@@ -203,15 +209,32 @@ dex 残差 + `sigma_mag` / `sigma_cal_rel`。`a_k` 随产品输出，供 Phase2 
 | (`Baader G`, 未声明)（未登记） | **未知** | **未知** | **未知** | 出现守卫原因行（`cabs_pair_not_registered`） | 既有同型分支（`reference_flux_source = group_median`）｜该行为历史读数；QE 现为必填，等价复跑须声明 `Ideal QE curve` |
 | (`Baader R`, 未声明／`Ideal QE curve`)（已登记） | 20.5772 | 26.3330 | −14.2768 | 无守卫行 | 正常产出 |
 | (`Astrodon E-series R`, `KAF-16803`)（已登记） | **20.5755** | 26.4036（等价复算） | −15.7110 | 无守卫行 | 正常产出 |
-| (`Astrodon E-series R`, `Ideal QE curve`)（未登记） | **未知** | **未知** | **未知** | 出现守卫原因行（`cabs_pair_not_registered`） | fail-closed |
+| (`Astrodon E-series R`, `Ideal QE curve`)（已登记） | **20.5756** | — | −14.8459 | 无守卫行 | 正常产出 |
 
-**查表守卫的实测读数**（单帧真实 T2/M1；`m5` 取自该次运行的 `p1_snr.json`）：
+**查表守卫的实测读数**（单帧真实 T2/M1；`m5` 与 `reference_flux_source` 取自该次运行的 `p1_snr.json`）：
 
-| 运行二元组（配置声明） | 守卫 | `m5` | 判词 / 去向 |
-|---|---|---|---|
-| (`Astrodon E-series R`, `KAF-16803`) | **命中**（第 2 条） | **20.575476559797803** | 无守卫行；正常产出 |
-| (`Baader R`, `Ideal QE curve`) | **命中**（第 1 条，QE 归一为「未声明」） | **20.57716689703168** | 无守卫行；与历史口径 20.5772 一致 |
-| (`Astrodon E-series R`, `Ideal QE curve`) | **未命中** | `null`（**不产出**） | `C_abs 二元组守卫: fail-closed (运行二元组=(滤镜='Astrodon E-series R', QE='Ideal QE curve'（归一为未声明 QE）), 已登记对数=2, 原因=cabs_pair_not_registered)`；**不复用**他组常数 |
+**四臂逐臂探针**（A3 四臂的组合，现**全部命中**）：
+
+| 臂 | 配置声明 `filter` / `qe_name` | 归一后二元组 | 守卫 | `reference_flux_source` | `m5` |
+|---|---|---|---|---|---|
+| ① 历史口径 | `Baader R` / `Ideal QE curve` | (`Baader R`, 未声明) | **命中**（第 1 条） | `fixed_magnitude` | **20.57716689703168** |
+| ② 只修滤镜 | `Astrodon E-series R` / `Ideal QE curve` | (`Astrodon E-series R`, 未声明) | **命中**（第 4 条） | `fixed_magnitude` | **20.575565574197906** |
+| ③ 只修 QE | `Baader R` / `KAF-16803` | (`Baader R`, `KAF-16803`) | **命中**（第 3 条） | `fixed_magnitude` | **20.57644752216904** |
+| ④ 全修 | `Astrodon E-series R` / `KAF-16803` | (`Astrodon E-series R`, `KAF-16803`) | **命中**（第 2 条） | `fixed_magnitude` | **20.575476559797803** |
+
+**未登记二元组的负例**（`Baader G` + `Ideal QE curve`）：守卫**未命中** ⇒
+`reference_flux_source = group_median`（既有同型分支）、`m5 = null`（**不产出**），日志
+`C_abs 二元组守卫: fail-closed (运行二元组=(滤镜='Baader G', QE='Ideal QE curve'（归一为未声明 QE）), 已登记对数=4, 原因=cabs_pair_not_registered)`。
+⇒ **判命中不能看 `exit_code`**：该分支是数据有效性 fail-closed，**不置非零退出码**（四臂与负例
+`exit_code` 全为 0）；判据是产物 `p1_snr.json` 的 `reference_flux_source` 与 `m5`。
+
+**结构性事实（已定案）：`sigma_residual_dex` 不含零点路径依赖**。它由测光节点在
+`r = log10(F_instr/F_syn)` 上算出，并在 `lib/algorithms/photometry/cpp/src/frame_photometry_fit.cpp:371`
+赋给 `out.sigma_residual_dex`；该文件对 `C_abs`/`cabs`/`kCAbs` 的命中数为 **0**。`C_abs` 的全部
+消费点都在 `lib/infrastructure/scheduler/src/module_adapters.cpp`（24 处），且只进入**深度/SNR
+节点**（`p1_op_noise`，写 `p1_snr.json`）——该节点在节点序 `phot→snr→drz→wr` 中位于测光节点
+**下游**，而 `p1_phot.json`（承载 `sigma_residual_dex`）在测光节点即写盘。⇒ **两条零点路径
+（冻结常数 / 逐运行中位）对该量的贡献结构性恒为 0**，不得把零点路径差异记到该量上。
 
 **剩下的限制（不是静默错误）**：其它二元组的常数**尚未登记** ⇒ 要支持它们，按
 「**按二元组登记常数**」逐个做参考域测量并登记（本页的《已登记表》即该机制的登记面；
