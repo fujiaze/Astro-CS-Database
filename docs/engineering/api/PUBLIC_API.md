@@ -345,8 +345,12 @@
  int precision_mode)`；hips 变体增加可选 legacy 容器路径参数
  （:70-75）；`int hp_drizzle_run_phase1_hips(PipelineFrame* frame, int nside,
  int nested, double pixfrac, const char* hips_dir,
- const char* filter_passband, HpDrizzleResult* result, int precision_mode)`
- （:78-96）；reverse: `int hp_drizzle_reverse_run(const
+ const char* filter_passband, HpDrizzleResult* result, int precision_mode,
+ const char* hips_geometry_json = nullptr, const char* snr_sidecar_path = nullptr)`
+ （**两个可选**入参：`hips_geometry_json` 非空 ⇒ 该 JSON 对象文本作为**加性** `geometry`
+ 写进逐帧产品集清单，缺省 `nullptr` ⇒ 不写 `geometry`；`snr_sidecar_path` 非空 ⇒ 从该路径
+ 读 `p1_snr.json` 的本帧 `snr_reference` 写帧级 SNR 键，缺省 `nullptr` ⇒ 保持既有语义
+ `<产品面>/p1_snr.json`）（:78-96）；reverse: `int hp_drizzle_reverse_run(const
  HpReverseDrizzleInput* in, void* signal_out, void* coverage_out,
  HpReverseDrizzleResult* result)`。
 - 返回码：0=成功，非 0=失败；实测语义——文件通道正值 1..12

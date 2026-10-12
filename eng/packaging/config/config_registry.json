@@ -2915,11 +2915,12 @@
         "blocked_by": "块流装配器 + 帧级节点体改造 + 公开块 API 扩展"
       },
       {
-        "item": "产品面与工作区分离（11 项中间产物移出产品面）",
-        "status": "B 轮待做（A 轮已完成消费侧切换：q3lib/stageAB_nmap_loci/closure_metric 帧集与头部来源）",
+        "item": "产品面与工作区分离（13 项中间产物移出产品面）",
+        "status": "B 轮已落地（写/读路径已切换；sink 侧 sidecar 读取点已随移，见下条）",
         "evidence": "实验/photometric-magnitude/docs/P1-product-surface-boundary-design.md（边界逐项表、工作区位置与清理语义、不可移出清单）",
-        "disposition": "工作区 = <output_dir> 同级兄弟目录（同文件系统以保持落盘原子替换语义；/tmp 为 tmpfs 会把 ≈64 MiB/帧 放进内存）；缺省启用，位置可配置；运行收尾按开关决定是否保留。移出清单 = **11 项**（原 12 项中的 p1_wcs.json，其**解算几何须先并入逐帧 HiPS 产品树**，见下条）",
-        "blocked_by": "B 轮；且 p1_wcs.json 的移出前置 = 解算几何并入产品树（见下条）"
+        "disposition": "工作区 = <output_dir> 同级兄弟目录（同文件系统以保持落盘原子替换语义；/tmp 为 tmpfs 会把 ≈64 MiB/帧 放进内存）；位置由配置键 work_dir 覆盖（缺省同级兄弟 <out 基名>.p1-work）；运行收尾按开关 keep_intermediates 决定是否保留（缺省保留）。**移出清单 = 13 项**（逐项）：① 帧级平面件 5 类 calibrated_* / cleaned_* / photoapplied_* / badcol_* / badcolsrc_*；② 运行级 JSON 6 个 p1_sources.json / p1_phot.json / p1_snr.json / p1_flux.json / p1_psf.json / badcol_report.json；③ 逐帧 JSON 2 个 <frame_key>/p1_wcs.json、<frame_key>/p1_final.json。与设计文档的对应：实验/photometric-magnitude/docs/P1-product-surface-boundary-design.md D1.1 的逐项表列出 12 项（5 平面件 + 5 运行级 JSON + p1_final.json + p1_wcs.json），另 badcol_report.json 由 D1.4「工作区要接走的那一批」点名 ⇒ 合计 13；本行此前的「11 项」= 12 项中除去 p1_wcs.json（其移出前置 = 解算几何并入产品树，见下条），**不再与 13 并存**。",
+        "blocked_by": "",
+        "evidence_landed": "工作区 helper（p1_work_dir/p1_work_path/p1_work_frame_dir/p1_keep_intermediates）唯一实现于 lib/infrastructure/scheduler/src/module_adapters.cpp；写/读点全部改指工作区（帧级平面件 5 类、运行级 6 个 JSON、逐帧 p1_wcs/p1_final）；配置键 work_dir / keep_intermediates 已进 CONFIG.md 与 CLI 白名单；收尾清理接线于 wr 节点（唯一开关）。实测（1 帧真实 M42）：产品面只剩逐帧 HiPS 树 + manifest.json + p1_stack.json + p1_products.json；工作区含 12 项；逐帧 k_photo/sigma_residual_dex 与改造前**逐位一致**；HiPS 载荷 744 文件中 740 逐字节一致（4 个 properties 仅差 hips_creation_date 与**缺失的 ACSD_FRAME_SNR/ACSD_REFERENCE_FLUX** ⇒ 即下条缺陷）；峰值 RSS 3.417 GiB（改造前 3.645 GiB，未恶化）；p1_products.json 帧集与枚举帧集一致（@→_ 映射）"
       },
       {
         "item": "检查点与续跑",
@@ -2943,17 +2944,25 @@
         "blocked_by": ""
       },
       {
-        "item": "中间产物默认清理（消费者更新后再把默认翻转为删除）",
+        "item": "工作区移出后 sink 侧 p1_snr.json sidecar 读取点未随移（帧级 SNR 键静默缺失）",
+        "status": "已修（方案 ①：节点告知 sidecar 路径）",
+        "judgement": "astro_sphere_sink.cpp 的 write_hips_phase1 从 hips_dir 的**父目录**读 <output_dir>/p1_snr.json 取 snr_reference.{snr_f,flux_adu} 写进 HiPS properties 的 ACSD_FRAME_SNR/ACSD_REFERENCE_FLUX。p1_snr.json 移入工作区后该读取失败，按既有 fail-closed 语义**不写这两键** ⇒ 产品 properties 少两个键（实测 4 个 properties 文件均如此），Phase2 权重链将据缺失 fail-closed。",
+        "disposition": "**已按方案 ① 修**：write_hips_phase1/write_hips_direct 增加可选 const char* snr_sidecar_path（缺省 nullptr ⇒ **保持既有 <parent>/p1_snr.json 语义**，既有调用方不受影响；sink **不自推**工作区命名规则），由 drizzle 节点传 p1_work_path(doc, \"p1_snr.json\")，逐层转发同几何入参那 4 个文件。显式给出而不可读时打具名读数（与「未配置 sidecar」可区分），**fail-closed 语义本身不变**。",
+        "blocked_by": "",
+        "evidence": "实测（1 帧真实 M42，修复后）：sink 日志 frame-SNR keys written: snr=3381898.961 F_ref=2.068158171e-09；产物 4 个 properties 与改造前**逐字节一致（仅 hips_creation_date 不同）**；其余四项读数同批重跑不变"
+      },
+      {
+        "item": "W4 消费者随移更新（q3lib.py:44/:104、q3core.py:47、star_residual.py:22）——移出已落地 ⇒ 这些脚本现指向失效，**不应久拖**",
         "status": "待办",
         "evidence": "T1 活树消费者清点：12 项中 10 项有活树脚本消费者，含契约级消费者 eng/tests/validation/release02/{q1_photometry_gradient,q3_additive_truth,unc_propagation} 与 eng/tools/monitoring/concurrency_sweep.py；另有枚举式消费者按 <product>/calibrated_*.fts 枚举帧集（q2_snr_smoothness/realdata/stageAB_nmap_loci.py、q3_additive_truth/src/q3lib.py、eng/tools/astrometry/closure_metric.py），其正确修法是改从 p1_products.json 取帧集",
-        "disposition": "更新顺序：① release02/q1_photometry_gradient + q3_additive_truth → ② unc_propagation/audit_evidence.py → ③ eng/tools/monitoring/concurrency_sweep.py → ④ eng/** 其余 → ⑤ 实验/** 各单元 → ⑥ 才翻转默认为删除。顺序不可倒置",
+        "disposition": "**紧急度：高**——13 项移出已落地，下列消费者现在读的是**产品面外的旧路径**（文件已不在那里）：eng/tests/validation/release02/q3_additive_truth/src/q3lib.py:44（dirname(pj)/p1_phot.json）、q3lib.py:104 与 q3core.py:47（dirname(frame['path'])/p1_flux.json）、q1_photometry_gradient/src/star_residual.py:22（<out>/p1_flux.json）。按设计文档 D2.3 它们是**独立有序步骤**（与默认翻转绑定），本轮按「追加文档 + 列清单」处理、未改脚本；修法 = 解析工作区（<out 基名>.p1-work）或改从 p1_products.json 取帧集。整体顺序：① release02/q1_photometry_gradient + q3_additive_truth → ② unc_propagation/audit_evidence.py → ③ eng/tools/monitoring/concurrency_sweep.py → ④ eng/** 其余 → ⑤ 实验/** 各单元 → ⑥ 才翻转默认为删除。顺序不可倒置",
         "blocked_by": "枚举式消费者依赖 p1_products.json 接线（阶段二输入 JSON 汇总）"
       },
       {
         "item": "发布/打包运行必须显式清理工作区",
         "status": "待办",
         "evidence": "标准发布的产物目录不得留工作区（负责人：标准模式真正的产物只有逐帧 HiPS 与一个阶段二输入 JSON）",
-        "disposition": "发布/打包路径须显式设「运行收尾清理工作区」；该取值随打包配置固定，不由操作者临时决定",
+        "disposition": "发布/打包路径须显式设「运行收尾清理工作区」（配置键 keep_intermediates=false；该取值随打包配置固定，不由操作者临时决定）。**开关已落地并实测**：显式 work_dir + keep_intermediates=false 的运行 exit 0、工作区被整体删除、产品面完整（1 帧真实 M42）。**待做**：打包侧配置文件的接线（不在本轮写面内）",
         "blocked_by": ""
       },
       {
@@ -2980,9 +2989,9 @@
       },
       {
         "item": "p1_wcs.json 移入工作区",
-        "status": "待做",
+        "status": "已落地（随 11 项一并移出产品面）",
         "judgement": "依赖「移走之后产品还剩什么」这一事实：只有上一条落地（解算几何已在产品树内）之后，移走它才不产生『移走即断』的依赖",
-        "disposition": "**前置 = 解算几何并入逐帧 HiPS 产品树**：已**完全满足**（上一条已落地，几何随产品落盘、生产路径实测通过）。本项**仍待做**：p1_wcs.json 的移出属 B 轮第二步，本单**不移动**任何中间产物；随 11 项一并移出。",
+        "disposition": "前置（解算几何并入逐帧 HiPS 产品树）已完全满足；本项已随 B 轮第二步落地：p1_wcs.json 写/读点全部改指工作区 `<output_dir 基名>.p1-work/<frame_key>/p1_wcs.json`，产品树内不再有该文件。实测（1 帧真实 M42）：产品 `<frame_key>/` 只剩 HiPS 子产品 + manifest.json + p1_stack.json，工作区帧目录含 p1_wcs.json/p1_final.json。",
         "blocked_by": ""
       },
       {

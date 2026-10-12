@@ -124,6 +124,10 @@ int run_drizzle_internal(PipelineFrame* frame,
                          // nullptr/空串 ⇒ 不写该键（缺席语义）。口径正本 =
                          // docs/engineering/contracts/HIPS_STORAGE_FORM.md
                          // 「逐帧 HiPS 产品集清单 manifest.json#geometry（加性）」一节。
-                         const char* hips_geometry_json = nullptr);
+                         const char* hips_geometry_json = nullptr,
+                         // 帧级 SNR sidecar（p1_snr.json）路径。工作区位置由配置决定
+                         // ⇒ 由持有配置的调用方显式传入；nullptr/空串 ⇒ 保持既有语义
+                         // <产品面>/p1_snr.json（sink 不自推命名规则）。
+                         const char* snr_sidecar_path = nullptr);
 
 #endif /* HP_DRIZZLE_INTERNAL_H */

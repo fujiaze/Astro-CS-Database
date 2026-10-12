@@ -2139,3 +2139,52 @@ U.5 的换算实验得到的正是这个结论（实测散度贡献 0.0048–0.0
 
 **探针**：`run/PHOT-FILTER-QE/probe/hips_geometry_probe.cpp`（驱动公开 C API；`--verify <dir>`
 模式对既有产品目录跑核验）。
+
+## 追加 · B 轮第二步：中间产物移出产品面（工作区落地过程）
+
+**依据**：`P1-product-surface-boundary-design.md`（D1 逐项表 / D1.2 位置与清理语义 / D1.3 不可移出清单 / D2 开关）
+与 `config_registry.json#engineering_status` 的「产品面与工作区分离（11 项）」行。
+
+**实际移出清单**（产品面 `<output_dir>/` 与 `<frame_key>/` → 工作区 `<output_dir 基名>.p1-work/`）：
+- 帧级平面件 5 类：`calibrated_*`、`cleaned_*`、`photoapplied_*`、`badcol_*`、`badcolsrc_*`
+- 运行级 JSON 6 个：`p1_sources.json`、`p1_phot.json`、`p1_snr.json`、`p1_flux.json`、`p1_psf.json`、`badcol_report.json`
+- 逐帧 JSON 2 个：`<frame_key>/p1_wcs.json`、`<frame_key>/p1_final.json`
+（合计 13 项；设计文档的「11 项」= 除 `p1_wcs.json` 外的 11 项，`badcol_report.json` 由 D1.4 的「工作区要接走的那一批」点名。）
+
+**产品面保留**：逐帧 HiPS 产品树（`signal/ support/ variance/ ivar/ [snr/]`）+ `<frame_key>/manifest.json` +
+`<frame_key>/p1_stack.json`（跨进程契约）+ `p1_products.json`；运行级记账（run manifest / 资源读数 / 调度图）不属本步。
+
+**实现（唯一实现，全部在 `lib/infrastructure/scheduler/src/module_adapters.cpp`）**：`p1_work_dir` / `p1_work_path` /
+`p1_work_frame_dir` / `p1_keep_intermediates` 四个 helper；写/读点全部改指工作区；父目录幂等创建（`p1_ensure_parent_dir`，
+aio 的 `write_atomic` 明确父目录由调用方建）；收尾清理接线于 `wr` 节点（唯一开关，产品清单发布成功之后执行）。
+配置键 `work_dir` / `keep_intermediates` 进 `CONFIG.md` 与 CLI 白名单。
+
+**实测（1 帧真实 M42，改造前 vs 改造后同配置）**：
+- 逐帧 `k_photo` / `sigma_residual_dex` **逐位一致**（1.524215866973497e-17 / 0.025930122372967417）；
+- HiPS 载荷 744 文件中 740 逐字节一致；4 个 `properties` 只差 `hips_creation_date`（运行时刻）与**缺失的
+  `ACSD_FRAME_SNR`/`ACSD_REFERENCE_FLUX`**；
+- 产品面只剩逐帧 HiPS 树 + `manifest.json` + `p1_stack.json` + `p1_products.json`；
+- 峰值 RSS 3.417 GiB（改造前同配置 3.645 GiB，未恶化）；
+- `p1_products.json` 帧集与枚举帧集一致（`@`→`_` 映射）。
+
+**发现并登记的缺陷**：`ACSD_FRAME_SNR`/`ACSD_REFERENCE_FLUX` 缺失 = `astro_sphere_sink.cpp` 的 `write_hips_phase1`
+仍从 `hips_dir` 的**父目录**（即产品面）读 `p1_snr.json`；该文件移入工作区后读取失败，按既有 fail-closed 语义不写这两键。
+修法见注册表新增行的两条选项（推荐给 sink 加可选 `snr_sidecar_path` 入参）。**该文件不在本轮写面内 ⇒ 待授权。**
+
+### 追加 · sidecar 缺陷修复（方案 ①）与 R1 复跑
+
+**修法**（授权写面内 6 个文件）：`write_hips_phase1` / `write_hips_direct` 增可选
+`const char* snr_sidecar_path = nullptr`（**缺省 ⇒ 保持既有 `<产品面>/p1_snr.json` 语义**，
+既有调用方不受影响；sink **不自推**工作区命名规则 ⇒ 无第二份实现），由 drizzle 节点传
+`p1_work_path(doc, "p1_snr.json")`，经 `hp_drizzle_run_phase1_hips` → `run_drizzle_internal`
+逐层转发。显式给出而不可读时打具名读数（与「未配置 sidecar」可区分）；**fail-closed 语义不变**。
+
+**R1 复跑读数**（1 帧真实 M42，与改造前同配置）：
+1. 逐帧 `k_photo` / `sigma_residual_dex` **逐位一致**（1.524215866973497e-17 / 0.025930122372967417）；
+2. HiPS 载荷：4 个 `properties` 与改造前**逐字节一致（仅 `hips_creation_date` 不同）** ⇒
+   `ACSD_FRAME_SNR`/`ACSD_REFERENCE_FLUX` **回来了**（sink 日志 `frame-SNR keys written:
+   snr=3381898.961 F_ref=2.068158171e-09`）；`manifest.json`、`p1_stack.json` 逐字节一致；
+   文件数差 2 = 移入工作区的 `p1_wcs.json`/`p1_final.json`（预期）；
+3. 产品面只剩逐帧 HiPS 树 + `manifest.json` + `p1_stack.json` + `p1_products.json`；工作区 13 项；
+4. 峰值 RSS 3.600 GiB（改造前 3.645 GiB，未恶化）；
+5. `p1_products.json` 帧集与枚举帧集一致（`@`→`_` 映射）。

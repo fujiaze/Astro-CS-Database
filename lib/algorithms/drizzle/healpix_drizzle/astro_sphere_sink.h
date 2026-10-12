@@ -67,7 +67,13 @@ bool write_hips_direct(const std::vector<TileAccumulatorT<Scalar>>& tiles,
                        const std::vector<AioHipsSnrPoint>& snr_pts,
                        int has_variance,
                        std::string& err,
-                       const char* geometry_json = nullptr);
+                       const char* geometry_json = nullptr,
+                       // snr_sidecar_path: 可选。非空 ⇒ 从该路径读 p1_snr.json 的本帧
+                       //   snr_reference（工作区位置由配置决定 ⇒ 由持有配置的节点显式
+                       //   传入，sink 不自推规则）；缺省 nullptr ⇒ 保持既有语义
+                       //   <产品面>/p1_snr.json。读不到 ⇒ 仍不写帧级 SNR 键
+                       //   （fail-closed 语义不变；显式给出而不可读时打具名读数）。
+                       const char* snr_sidecar_path = nullptr);
 
 // Phase1 生产末端: 与旧 writer 节点 (读取 legacy 单文件容器后写 HiPS)
 // 逐字节等价的直写 sink。产物 = 标准 HiPS 树 (signal/ + support/ + Moc.fits +
@@ -116,7 +122,13 @@ bool write_hips_phase1(const std::vector<TileAccumulatorT<Scalar>>& tiles,
                        const std::string& filter_passband,
                        int has_variance,
                        std::string& err,
-                       const char* geometry_json = nullptr);
+                       const char* geometry_json = nullptr,
+                       // snr_sidecar_path: 可选。非空 ⇒ 从该路径读 p1_snr.json 的本帧
+                       //   snr_reference（工作区位置由配置决定 ⇒ 由持有配置的节点显式
+                       //   传入，sink 不自推规则）；缺省 nullptr ⇒ 保持既有语义
+                       //   <产品面>/p1_snr.json。读不到 ⇒ 仍不写帧级 SNR 键
+                       //   （fail-closed 语义不变；显式给出而不可读时打具名读数）。
+                       const char* snr_sidecar_path = nullptr);
 
 } // namespace drizzle
 

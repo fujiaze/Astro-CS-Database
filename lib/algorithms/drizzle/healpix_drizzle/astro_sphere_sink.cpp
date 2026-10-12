@@ -89,7 +89,8 @@ bool write_hips_direct(const std::vector<TileAccumulatorT<Scalar>>& tiles,
                        const std::vector<AioHipsSnrPoint>& snr_pts,
                        int has_variance,
                        std::string& err,
-                       const char* geometry_json) {
+                       const char* geometry_json,
+                       const char* snr_sidecar_path) {
     const uint32_t nside = (uint32_t)config.nside;
     const uint32_t depth = config.tile_depth ? config.tile_depth
                                              : phase1_tile_depth(nside);
@@ -306,11 +307,11 @@ bool write_hips_direct(const std::vector<TileAccumulatorT<Scalar>>& tiles,
 template bool write_hips_direct<float>(
     const std::vector<TileAccumulatorT<float>>&, const DrizzleConfig&, const DrizzleMeta&,
     const std::string&, const std::vector<AioHipsSnrPoint>&, int, std::string&,
-    const char*);
+    const char*, const char*);
 template bool write_hips_direct<double>(
     const std::vector<TileAccumulatorT<double>>&, const DrizzleConfig&, const DrizzleMeta&,
     const std::string&, const std::vector<AioHipsSnrPoint>&, int, std::string&,
-    const char*);
+    const char*, const char*);
 
 // ============================================================================
 // write_hips_phase1 - Phase1 生产末端: TileAccumulator -> 标准 HiPS 直写
@@ -326,7 +327,8 @@ bool write_hips_phase1(const std::vector<TileAccumulatorT<Scalar>>& tiles,
                        const std::string& filter_passband,
                        int has_variance,
                        std::string& err,
-                       const char* geometry_json) {
+                       const char* geometry_json,
+                       const char* snr_sidecar_path) {
     const uint32_t nside = (uint32_t)config.nside;
     const uint32_t depth = config.tile_depth ? config.tile_depth
                                              : phase1_tile_depth(nside);
@@ -413,9 +415,16 @@ bool write_hips_phase1(const std::vector<TileAccumulatorT<Scalar>>& tiles,
             const std::string frame_key = hd.substr(slash + 1);
             // 读取经 aio (aio_file::read_all, aio_fopen_utf8 通道);
             // 读取失败 = 不写键 (与原 ifstream 打开失败同语义, fail-closed)。
+            // sidecar 路径：**调用方显式给出者优先**（工作区位置由配置决定 ⇒ 由持有
+            // 配置的节点传入，sink 不自推命名规则）；缺省保持既有语义
+            // <产品面>/p1_snr.json（既有调用方行为不变）。
+            const bool sidecar_explicit =
+                (snr_sidecar_path != nullptr && snr_sidecar_path[0] != '\0');
+            const std::string snr_path =
+                sidecar_explicit ? std::string(snr_sidecar_path)
+                                 : (parent + "/p1_snr.json");
             std::string snr_json_text;
-            if (aio_file::read_all((parent + "/p1_snr.json").c_str(),
-                                   &snr_json_text)) {
+            if (aio_file::read_all(snr_path.c_str(), &snr_json_text)) {
                 try {
                     const nlohmann::json sj =
                         nlohmann::json::parse(snr_json_text);
@@ -509,6 +518,13 @@ bool write_hips_phase1(const std::vector<TileAccumulatorT<Scalar>>& tiles,
                         "[sink][phase1] p1_snr.json 解析失败 (%s) → 不写帧级 SNR 键\n",
                         e.what());
                 }
+            } else if (sidecar_explicit) {
+                // 与「未配置 sidecar」区分开：显式给出却读不到 = 上游产物缺失
+                // （具名读数；**不改** fail-closed 语义本身——仍然不写这两键）。
+                std::fprintf(stderr,
+                    "[sink][phase1] 显式 sidecar 路径不可读: %s → 不写帧级 SNR 键"
+                    " (ACSD_FRAME_SNR/ACSD_REFERENCE_FLUX; Phase2 权重链 fail-closed)\n",
+                    snr_path.c_str());
             }
         }
     }
@@ -652,9 +668,9 @@ bool write_hips_phase1(const std::vector<TileAccumulatorT<Scalar>>& tiles,
 
 template bool write_hips_phase1<float>(
     const std::vector<TileAccumulatorT<float>>&, const DrizzleConfig&,
-    const std::string&, const std::string&, int, std::string&, const char*);
+    const std::string&, const std::string&, int, std::string&, const char*, const char*);
 template bool write_hips_phase1<double>(
     const std::vector<TileAccumulatorT<double>>&, const DrizzleConfig&,
-    const std::string&, const std::string&, int, std::string&, const char*);
+    const std::string&, const std::string&, int, std::string&, const char*, const char*);
 
 } // namespace drizzle
