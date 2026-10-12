@@ -100,27 +100,57 @@ def _json_default(o):
 
 
 # --------------------------------------------------------------------------
-# 1. 通带曲线：滤镜（eng/packaging/config/filters.json）与 QE（qe_curves.json）
+# 1. 通带曲线：**运行期扫描** config/response_curves/（一文件一曲线）
+#    滤镜曲线与 QE 曲线同目录、同格式，由 `channel` 列区分（QE 曲线 = "Q"）。
+#    名字按库键**逐字**命中（不折叠大小写/空白、不做归一、不解析别名）；
+#    依据 docs/engineering/contracts/CONFIG.md「响应曲线库（代码内单一路径 + 运行时扫描）」。
 # --------------------------------------------------------------------------
-def load_filter(name: str):
-    """从仓内 eng/packaging/config/filters.json 取滤镜曲线（逐字转录自 response_curves/filters.json）。"""
-    with open(os.path.join(REPO, "eng", "packaging", "config", "filters.json"),
-              encoding="utf-8") as f:
-        lib = json.load(f)
-    if name not in lib["filters"]:
-        raise KeyError(f"filter {name!r} not in eng/packaging/config/filters.json; have {len(lib['filters'])}")
-    e = lib["filters"][name]
+CURVE_DIR = os.path.join(REPO, "config", "response_curves")
+
+
+def _load_curve(name: str, want_qe: bool):
+    """在曲线库目录里按 `name` 逐字命中一条曲线，返回 (wavelength_nm, value)。
+
+    `want_qe=True` 只接受 `channel == "Q"` 的曲线，False 只接受非 QE。
+    目录不可达 / 无同名曲线 / 同名不同类 / 重名 ⇒ 抛 KeyError（不静默取别的曲线）。
+    """
+    if not os.path.isdir(CURVE_DIR):
+        raise KeyError(f"curve library dir not reachable: {CURVE_DIR}")
+    hits = []
+    for fn in sorted(os.listdir(CURVE_DIR)):          # 文件名字节序，稳定
+        if not fn.endswith(".json"):
+            continue
+        with open(os.path.join(CURVE_DIR, fn), encoding="utf-8") as f:
+            e = json.load(f)
+        if e.get("name") == name and (e.get("channel") == "Q") == want_qe:
+            hits.append((fn, e))
+    kind = "QE" if want_qe else "filter"
+    if not hits:
+        have = []
+        for fn in sorted(os.listdir(CURVE_DIR)):
+            if not fn.endswith(".json"):
+                continue
+            with open(os.path.join(CURVE_DIR, fn), encoding="utf-8") as f:
+                e = json.load(f)
+            if (e.get("channel") == "Q") == want_qe:
+                have.append(e.get("name"))
+        raise KeyError(f"{kind} {name!r} not in {CURVE_DIR}; have {sorted(have)}")
+    if len(hits) > 1:
+        raise KeyError(f"{kind} name {name!r} duplicated in {CURVE_DIR}: "
+                       f"{[fn for fn, _ in hits]}")
+    _, e = hits[0]
     return np.asarray(e["wavelength_nm"], float), np.asarray(e["value"], float)
+
+
+def load_filter(name: str):
+    """取滤镜曲线（config/response_curves/ 内 `channel != "Q"` 的那条）。"""
+    return _load_curve(name, want_qe=False)
 
 
 def load_qe(name: str):
-    with open(os.path.join(REPO, "lib", "algorithms", "photometry", "data",
-                           "response_curves", "qe_curves.json"), encoding="utf-8") as f:
-        lib = json.load(f)
-    if name not in lib:
-        raise KeyError(f"QE {name!r} not found; have {sorted(lib)}")
-    e = lib[name]
-    return np.asarray(e["wavelength_nm"], float), np.asarray(e["value"], float)
+    """取 QE 曲线（config/response_curves/ 内 `channel == "Q"` 的那条）。"""
+    return _load_curve(name, want_qe=True)
+
 
 
 # --------------------------------------------------------------------------
