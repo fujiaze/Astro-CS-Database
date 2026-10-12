@@ -1,0 +1,42 @@
+{
+  "name": "Ideal QE curve",
+  "channel": "Q",
+  "wavelength_nm": [
+    1.0,
+    500.0,
+    1000.0,
+    1500.0,
+    2000.0,
+    2500.0
+  ],
+  "value": [
+    1.0,
+    1.0,
+    1.0,
+    1.0,
+    1.0,
+    1.0
+  ],
+  "n_points": 6,
+  "provenance": {
+    "source": "by construction (ideal flat Q, value ≡ 1 over the production integration grid)",
+    "version": null,
+    "acquired": null,
+    "original_file_sha256": null,
+    "checksum_status": "not_applicable",
+    "repo_intermediate_sha256": null,
+    "status": "defined_by_construction",
+    "verified": false,
+    "exact_by_definition": true,
+    "curve_stats": {
+      "n_points": 6,
+      "wl_min": 1.0,
+      "wl_max": 2500.0,
+      "val_min": 1.0,
+      "val_max": 1.0,
+      "wl_sum": 7501.0,
+      "val_sum": 6.0,
+      "val_sumsq": 6.0
+    }
+  }
+}
