@@ -70,16 +70,17 @@ flowchart LR
 
 ```text
 F_ref,k = 10^(−0.4·(m_ref − ZP_k))        [ADU]
-ZP_k    = ZP_syn,k − 2.5·log10(k_photo,k) [mag]
+ZP_k    = C_abs − 2.5·log10(k_photo,k) [mag]
 ```
 
+- `C_abs` 是**固定的通带常数**（把绝对通量换成星等的约定常数），作为常数使用时不随星族、天区变化；其**取值取自文档化的参考域**。它与“纯通带常数”（完全锚定在 Gaia G 绝对通量刻度上的常数）之间相差**参考域样本的中位合成颜色**，该量**尚未测定** ⇒ 当前系统的绝对刻度锚定在**参考域**，而非直接锚定在 Gaia G 绝对通量刻度上；该差值为常数，在相对权重里整体抵消，只影响 `m5` 的绝对数值。定义正本 = `docs/science/noise_snr/NOISE_SNR.md` 的「绝对信噪比」一节；参考域/参考通带与取值、不确定度 = `docs/detail/registry/acsd.phase1.photometry.md` 的「正确的仪器零点式」一节（精化项登记于测试 `photometry_gpassband_absolute_constant`）。
 - `m_ref` 是**配置缺省的参考电平约定**（不是需由数据标定的量）：缺省 `6.0`、可被输入 JSON 覆盖、一次运行内取值不变；合同只约束它是 number，故它不是冻结常数。星等制为
   Gaia G 星等，通量由 Gaia DR3 XP 绝对谱经本帧滤光片与探测器量子效率正向合成。
   `m_ref` **随产品落盘**——信噪比数值只有配上 `m_ref` 才有物理含义。
 - **两种合法写侧约定**（合同 `frame_snr.schema.json` 的 `reference_baseline.scope`
   取值域恰为这两项，二者都必须配对写侧，不是可选口径）：
   - `scope = frame_independent_fixed_magnitude`：逐帧 `F_ref,k` 是**有意逐帧**的，
-    公共量取与帧无关的**物理公共锚** `F0 = 10^(−0.4·(m_ref − ZP_syn))`，
+    公共量取与帧无关的**物理公共锚** `F0 = 10^(−0.4·(m_ref − C_abs))`，
     同波段同星场恒为同一数；产品头必须写该公共锚，权重链按 `w = SNR²/F0²` 换算。
   - `scope = group`：公共量直接取块级公共 `F0`（ADU），逐帧 `F_ref,k` 不再单独成立。
   - 本页下述公式给出的是**逐帧档**的 `F_ref,k`。走哪一档由配置与合同决定，
@@ -87,8 +88,8 @@ ZP_k    = ZP_syn,k − 2.5·log10(k_photo,k) [mag]
 - **帧间独立**：逐帧档的 `F_ref,k` 只依赖该帧自身的测光标定，不需要「组」的概念；
   不同指向、不同光学系统的帧**合法地**有不同 `F_ref,k`。
 - **两档权重式的差一个 `a_k²`（本页两处权重式不是同一式，必须分名读）**：
-  由 `ZP_k = ZP_syn,k − 2.5·log10(k_photo,k)` 逐项展开得
-  `F_ref,k = 10^(−0.4·(m_ref − ZP_k)) = 10^(−0.4·(m_ref − ZP_syn,k))·(k_photo,k)^−1 = F0/k_photo,k`，
+  由 `ZP_k = C_abs − 2.5·log10(k_photo,k)` 逐项展开得
+  `F_ref,k = 10^(−0.4·(m_ref − ZP_k)) = 10^(−0.4·(m_ref − C_abs))·(k_photo,k)^−1 = F0/k_photo,k`，
   即 `a_k := F_ref,k/F0 = 1/k_photo,k` 是该帧的标度因子。于是
 
   ```text

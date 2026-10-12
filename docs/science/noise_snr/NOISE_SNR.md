@@ -261,13 +261,13 @@ SNR          = F_ref / sigma_F
 **参考通量的闭式与跨帧可比性**。参考通量由**固定参考星等档** `m_ref` 与本帧测光零点共同确定，同时另有一个与帧无关的**物理公共锚**：
 
 ```text
-ZP_k    = ZP_syn - 2.5 * log10( k_photo,k )        [mag] ,   mag = ZP_k - 2.5*log10(F_adu)
+ZP_k    = C_abs - 2.5 * log10( k_photo,k )         [mag] ,   mag = ZP_k - 2.5*log10(F_adu)
 F_ref,k = 10^( -0.4 * ( m_ref - ZP_k ) )            [ADU]
-F0      = 10^( -0.4 * ( m_ref - ZP_syn ) )          [F_syn]  与帧无关的物理公共锚
+F0      = 10^( -0.4 * ( m_ref - C_abs ) )           [F_syn]  与帧无关的物理公共锚
 F_ref,k = F0 / k_photo,k        ⇔  a_k := F_ref,k / F0 = 1 / k_photo,k
 ```
 
-`m_ref` 是组内公共的**固定参考星等档**，不是「本帧能测到的星」；`k_photo,k` 是帧 `k` 的**测光标度因子**（帧面 ADU 与统一测光坐标系之间的乘性标度，`F_sys ≡ k_photo,k · F_adu`）；`ZP_syn` 是由 Gaia DR3 XP 绝对谱经本帧滤光片与 QE 曲线正向合成的合成零点，只依赖 `(filter, QE, 天区星族)`，故 `F0` 跨帧恒定。`k_photo,k` 带量纲 `[F_syn]/ADU`，因此 `F_ref,k` 在帧面 ADU 标度、`F0` 在合成系通量标度，`a_k := F_ref,k/F0` 的单位是 `ADU/F_syn`；`F0` 与 `k_photo,k` 同在帧面上做比值没有意义，两个通量不确定度因此必须分名：
+`m_ref` 是组内公共的**固定参考星等档**，不是「本帧能测到的星」；`k_photo,k` 是帧 `k` 的**测光标度因子**（帧面 ADU 与统一测光坐标系之间的乘性标度，`F_sys ≡ k_photo,k · F_adu`）；`C_abs` 是**固定的通带常数**（把绝对通量换成星等的约定常数），作为常数使用时不随星族、天区变化，故 `F0` 跨帧恒定；其**取值取自文档化的参考域**（参考域与参考通带由「正确的仪器零点式」一节单一承载[26]，本节不引数）。它与“纯通带常数”（完全锚定在 Gaia G 绝对通量刻度上的常数）之间相差**参考域样本的中位合成颜色**，该量**尚未测定** ⇒ 当前系统的绝对刻度锚定在**参考域**，而非直接锚定在 Gaia G 绝对通量刻度上。该差值是常数，在相对权重里整体抵消，只影响 `m5` 的绝对数值；完全锚定到 Gaia G 绝对通量刻度的精化（需双通带合成）已登记在测试 `photometry_gpassband_absolute_constant`。`k_photo,k` 带量纲 `[F_syn]/ADU`，因此 `F_ref,k` 在帧面 ADU 标度、`F0` 在合成系通量标度，`a_k := F_ref,k/F0` 的单位是 `ADU/F_syn`；`F0` 与 `k_photo,k` 同在帧面上做比值没有意义，两个通量不确定度因此必须分名：
 
 ```text
 sigma_F^{frame,k}                     帧面通量不确定度（ADU），即上式的 sigma_F
@@ -583,6 +583,7 @@ E = Var_w / Var_opt - 1
 [23] 《实验单元 · 绝对信噪比》`实验/absolute-snr/` — 本册判据的仓内实验证据与读数正本。
 [24] 《实验单元 · 重建稠密信噪比》`实验/dense-snr-reconstruct/` — 三种重建方式的适用域证据。
 [25] 《实验单元 · 守恒映射》`实验/healpix-polar/` — 控制点方差的相关校正因子证据。
+[26] 《模块 acsd.phase1.photometry》`docs/detail/registry/acsd.phase1.photometry.md` — 帧级天区合成颜色项读数键与「正确的仪器零点式」（常数 `C_abs` 的定义、取值与不确定度）。
 
 ### 7.4 核对方式
 
