@@ -3045,6 +3045,14 @@
         "disposition": "构建期开关 ACSD_DEV_MODE（DEV_MODE.md 的授权边界：只决定额外输出，不改执行路径/数值/判据/节点顺序）。落点 = <work_dir>/p1_phot_stars_<frame_key>.json；字段 = star_id / dr3sp_id / f_instr / gaia_mag / f_syn / r_i / colour_i_mag / inlier / status / reject_reason + 口径自述（colour_definition / r_definition / null_means / product_face=false）。",
         "blocked_by": "",
         "evidence": "开关 ON：真实 1 帧产出该 JSON（2419 行、926 inlier、样例见实验文档）；开关 OFF：不产出且产品面与科学量与 ON **逐字节一致**（仅 properties 时间戳）；产品面 0 个 dev 文件、工作区 1 个；grep 全 lib 仅 module_adapters.cpp:6224 一处 #if defined(ACSD_DEV_MODE)"
+      },
+      {
+        "item": "误导键名订正：reference_zero_point_syn_mag → reference_pair_zero_point_mag（A11）",
+        "status": "已落地（三处同批：正本 + 注释 + 代码；写侧只写新名，读侧兼容旧名）",
+        "judgement": "旧名的 syn 不表意且暗示该量与「合成」而非「参考域冻结」有关，会被读成逐帧算出来的量。新名按正本词汇说出两件事：**参考域** + **(滤镜曲线, QE 曲线) 二元组**（正本《C_abs 的通带适用范围与守卫》的《已登记表》即按二元组登记）。",
+        "disposition": "写侧只写新键（module_adapters.cpp 两处）；读侧兼容旧键（统一模型 schema frame_snr 同时列出两属性，additionalProperties=false ⇒ 显式保留旧属性）。**兼容窗口与退役条件**写进正本《键名订正与兼容窗口》与 schema 描述：仓内不再存在含旧键的产物与消费者（grep 归零）后删除旧属性，不留永远兼容的悬空约定。值不变。",
+        "blocked_by": "",
+        "evidence": "实测（1 帧真实 M42 同配置）：新产物含 reference_pair_zero_point_mag = −15.711040624768852 且**不含旧键**；与旧产物旧键取值**逐位一致**；snr_reference 差异仅旧/新名一对；HiPS 载荷与改名前的运行**逐字节一致**（仅 properties 时间戳）；标准构建 0/0"
       }
     ]
   }

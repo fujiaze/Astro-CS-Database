@@ -7879,7 +7879,15 @@ Result<void> p1_op_noise(const Json& doc, Json* man) {
           {"reference_mag", fref_fixed ? Json(ref_mag) : Json(nullptr)},
           {"reference_mag_system",
            fref_fixed ? Json("gaia_g_via_synthetic_xpsd") : Json(nullptr)},
-          {"reference_zero_point_syn_mag",
+          // A11 改名（三处同批）：`reference_zero_point_syn_mag` →
+          // **`reference_pair_zero_point_mag`**。旧名里的 `syn` 既不表意、又暗示
+          // 它与「合成」而非「参考域冻结」有关，会误导读者以为它是逐帧算出来的量；
+          // 新名按正本词汇说出两件事：**参考域** + **(滤镜曲线, QE 曲线) 二元组**
+          // （正本 docs/detail/registry/acsd.phase1.photometry.md《`C_abs` 的
+          // 通带适用范围与守卫》的《已登记表》即按二元组登记该常数）。
+          // **写侧只写新键**；读侧兼容旧键（见统一模型 schema frame_snr 的同名
+          // 属性与正本「键名订正与兼容窗口」一节）。
+          {"reference_pair_zero_point_mag",
            fref_fixed ? Json(ref_zero_point_syn) : Json(nullptr)},
           {"frame_zero_point_mag",
            std::isfinite(frame_zp_inst) ? Json(frame_zp_inst) : Json(nullptr)},
@@ -7965,7 +7973,8 @@ Result<void> p1_op_noise(const Json& doc, Json* man) {
                       {"reference_mag", fref_fixed_out ? Json(ref_mag) : Json(nullptr)},
                       {"reference_mag_system",
                        fref_fixed_out ? Json("gaia_g_via_synthetic_xpsd") : Json(nullptr)},
-                      {"reference_zero_point_syn_mag",
+                      // A11 改名：同上，写侧只写新键 `reference_pair_zero_point_mag`。
+                      {"reference_pair_zero_point_mag",
                        fref_fixed_out ? Json(ref_zero_point_syn) : Json(nullptr)},
                       // ── SNR 口径汇总：逐帧 snr_caliber 的聚合。全帧一致时等于该值，
                       // 否则 mixed_or_unavailable。消费者据此判断本文件的 SNR 能否

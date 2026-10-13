@@ -511,7 +511,7 @@ HiPS writer     ACSD_FRAME_SNR / ACSD_REFERENCE_FLUX
 | 帧数 / 其中带 `snr_reference` | **71 / 69** |
 | `snr_schema` | **`DATA-P1-SNR/2`**：31 个产品（另 1 个是无 `snr_reference` 的 golden 前缀夹具） |
 | **C1** `snr_f == flux_adu/sigma_f_adu` | **69/69 帧 ✓**（1e-9 相对容差）⇒ 落盘的就是**通量型 `F_ref/σ_F`**，与定案式 (2.4)(2.7) **一致**。C1 测的正是"同帧同源"，与 `F_ref` 的定义域无关 |
-| **C2** `F_ref` 逐帧可解释 + **组内公共对象一致** | **C2-a（同帧同源）**：由 C1 覆盖，恒成立。**C2-b（组内公共对象）**：`reference_mag` 与 `reference_flux_common` 在同一产品内**逐帧完全相同**（实测 8 帧产品：distinct `reference_mag` = {6.0}，distinct `flux_common` = {7.776198323e-09}）。**C2-c（公共锚自洽）**：`flux_common == 10^(-0.4 (reference_mag − reference_zero_point_syn_mag))` 相对偏差 **0.000e+00**（两个多帧产品复现）。**`F_ref,k` 组内逐帧不等本身不再是判据**（逐帧定义 (2.4a)，不等的幅度由帧间 `ZP_k`/`k_photo,k` 差完整解释） |
+| **C2** `F_ref` 逐帧可解释 + **组内公共对象一致** | **C2-a（同帧同源）**：由 C1 覆盖，恒成立。**C2-b（组内公共对象）**：`reference_mag` 与 `reference_flux_common` 在同一产品内**逐帧完全相同**（实测 8 帧产品：distinct `reference_mag` = {6.0}，distinct `flux_common` = {7.776198323e-09}）。**C2-c（公共锚自洽）**：`flux_common == 10^(-0.4 (reference_mag − reference_pair_zero_point_mag))`（**A11 键名订正**：旧名 `reference_zero_point_syn_mag`，同义同值；写侧只写新名，旧产物仍可读，见正本《键名订正与兼容窗口》） 相对偏差 **0.000e+00**（两个多帧产品复现）。**`F_ref,k` 组内逐帧不等本身不再是判据**（逐帧定义 (2.4a)，不等的幅度由帧间 `ZP_k`/`k_photo,k` 差完整解释） |
 | **C3** 分支判别 | **31/31 产品为 gain-free 天空受限分支**（`sigma_F^{dark10}/sigma_F^{bright10} = 1.0000–1.0001`，通量跨 542–1283×）；红对照变红（0.9970） |
 | **C4** `frame_depth_m5_mag` 非空 | **取决于该帧 `ZP_k` 是否可得**，不是恒假：`snr_frame_depth_f64` 仅在 `zero_point_mag > 0` 时写值（`snr_science.cpp`），否则 NaN。取该帧 `ZP_k` 的产物中 **8/8 帧非空**（实测 19.59–20.82 mag）；`ZP_k` 不可得的产物全为 null。⇒ 判据应写「`ZP_k` 可得 ⇔ `m_5` 非空」，不是「`m_5` 从不产出」 |
 | **C5** `frame_snr` 字段自文档化 | **31/32 产品**带 `"NOT a whole-frame scalar SNR"` 说明（G10 部分缓解） |

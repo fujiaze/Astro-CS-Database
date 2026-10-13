@@ -366,8 +366,12 @@
             "gaia_g_via_synthetic_xpsd"
           ]
         },
+        "reference_pair_zero_point_mag": {
+          "description": "**参考二元组零点**：`C_abs` [mag]，按「**(滤镜曲线, QE 曲线) 二元组**」在**文档化参考域**上冻结的常数（同一参考域、同一二元组，与帧无关，不随星族/天区变化）。正本 = docs/detail/registry/acsd.phase1.photometry.md《`C_abs` 的通带适用范围与守卫》的《已登记表》。它与「完全锚定在 Gaia G 绝对通量刻度上的纯通带常数」相差参考域样本的中位合成颜色（该量尚未测定，故当前系统的绝对刻度锚定在参考域）。**A11 订正**：本键由 `reference_zero_point_syn_mag` 改名而来（旧名的 `syn` 不表意且暗示逐帧合成量）。**写侧只写本键**；旧键在兼容窗口内仍被接受（见下条）。",
+          "type": "number"
+        },
         "reference_zero_point_syn_mag": {
-          "description": "绝对刻度零点（键名沿用旧名，现承载固定通带常数，不再是逐天区合成零点）：`C_abs` [mag]，是固定通带常数，作为常数使用时不随星族/天区变化、与帧无关；取值取自文档化的参考域，与完全锚定在 Gaia G 绝对通量刻度上的“纯通带常数”相差参考域样本的中位合成颜色（该量尚未测定，故当前系统的绝对刻度锚定在参考域）。定义正本 = docs/science/noise_snr/NOISE_SNR.md 的「绝对信噪比」一节。",
+          "description": "**已退役（兼容读取）**：A11 之前的键名，语义 = 上一条 `reference_pair_zero_point_mag`（同一常数、同一取值）。**保留的唯一理由是旧产物仍可读**；写侧不再产出。**退役条件**：仓库内不再存在含本键的产物与消费者（grep 归零）后删除本属性——不得留「永远兼容」的悬空约定。",
           "type": "number"
         },
         "frame_zero_point_mag": {
