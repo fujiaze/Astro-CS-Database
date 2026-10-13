@@ -6221,6 +6221,70 @@ Result<void> p1_op_photometry(const Json& doc, Json* man) {
         sc.synthetic_colour_median_mag = fr.synthetic_colour_median_mag;
         sc.synthetic_colour_n_stars = fr.synthetic_colour_n_stars;
         sc.synthetic_colour_scatter_mag = fr.synthetic_colour_scatter_mag;
+#if defined(ACSD_DEV_MODE)
+        // ── A8/A10 逐星诊断（**非产品面**；只在调试开关打开时产出）─────────────
+        // 落点 = **工作区**（产品面之外），一帧一份 JSON。开关只决定**额外输出**，
+        // 不改执行路径/数值/判据/节点顺序（DEV_MODE.md 的授权边界）。
+        // 口径：逐星行按 **PSF 行索引域**（与零点锥形搜索星表不同域）。
+        //   f_instr    PSF 域解析通量（非有限/≤0 写 null = NaN；禁 0.0 占位）
+        //   gaia_mag   Gaia G 星等（未匹配写 null）
+        //   f_syn      = reference_flux，由该星 XP 绝对谱经本帧 (滤镜, QE) 正向合成
+        //   r_i        = log10(f_instr/f_syn)（未匹配/非正写 null）
+        //   colour_i   = gaia_mag + 2.5·log10(f_syn) = (G−R)_i + C_R [mag]
+        //   inlier     status==1（matched+used，IRLS inlier）
+        //   status/reject_reason 原样（0=unmatched/1=used/2=rejected/3=psf-invalid）
+        // 正本 = docs/detail/registry/acsd.phase1.photometry.md「测光一致性判据」的
+        //   逐星残差表（star_id, F_instr, G_Gaia, F_syn, r_i, inlier）与
+        //   「帧级天区合成颜色项读数键」一节。
+        {
+          auto nn = [](double v) -> Json {
+            return (std::isfinite(v) && v > 0.0) ? Json(v) : Json(nullptr);
+          };
+          auto nf = [](double v) -> Json {
+            return std::isfinite(v) ? Json(v) : Json(nullptr);
+          };
+          Json rows = Json::array();
+          for (const auto& st : fr.stars) {
+            const double fsyn = st.reference_flux;
+            const double colour =
+                (std::isfinite(st.gaia_mag) && std::isfinite(fsyn) && fsyn > 0.0)
+                    ? (st.gaia_mag + 2.5 * std::log10(fsyn))
+                    : std::numeric_limits<double>::quiet_NaN();
+            rows.push_back(Json{
+                {"star_id", st.star_id},
+                {"dr3sp_id", st.dr3sp_id},
+                {"f_instr", nn(st.f_instr)},
+                {"gaia_mag", nf(st.gaia_mag)},
+                {"f_syn", nn(fsyn)},
+                {"r_i", nf(st.residual)},
+                {"colour_i_mag", nf(colour)},
+                {"inlier", st.status == 1},
+                {"status", st.status},
+                {"reject_reason", st.reject_reason}});
+          }
+          Json dev = Json{{"schema", "acsd.dev.p1_phot_stars/v1"},
+                          {"node", "acsd.phase1.photometry"},
+                          {"frame_key", sc.key},
+                          {"filter_key", fr.filter_key},
+                          {"qe_key", fr.qe_key},
+                          {"n_psf_rows", static_cast<int64_t>(fr.stars.size())},
+                          {"n_inliers", fr.n_matched},
+                          {"sigma_residual_dex", fr.sigma_residual_dex},
+                          {"colour_definition",
+                           "colour_i_mag = gaia_mag + 2.5*log10(f_syn) = (G-R)_i + C_R"},
+                          {"r_definition", "r_i = log10(f_instr/f_syn)"},
+                          {"null_means",
+                           "非有限值写 null（未匹配/非正通量）；禁 0.0 占位"},
+                          {"product_face", false},
+                          {"stars", rows}};
+          const std::string dev_path =
+              p1_work_path(doc, "p1_phot_stars_" + sc.key + ".json");
+          if (!p1_write_text(dev_path, dev.dump(2)))
+            std::fprintf(stderr,
+                         "[phot] 调试开关：逐星诊断写盘失败（不影响产品）: %s\n",
+                         dev_path.c_str());
+        }
+#endif
         // ── PASSBAND-IDENTITY-GATE-01: 通带身份（组级一致性）─────────────
         // 首帧落定组级身份；后续帧必须与首帧**逐项**一致（同一组只能有一条
         // 模型通带）。不一致 ⇒ 该帧 fail（帧间不得混装不同通带的产品）。
@@ -7394,6 +7458,15 @@ Result<void> p1_op_noise(const Json& doc, Json* man) {
   const bool ref_mag_usable = std::isfinite(ref_mag) && ref_mag > -30.0 && ref_mag < 60.0;
 
   std::map<std::string, double> kphoto_of_key;   // p1_frame_key -> k_photo
+  // ── A7：逐帧测光定标残差（供零点标准误）────────────────────────────────────
+  // `sigma_location_se_dex` 的正本口径 = 高斯下中位数的标准误
+  // `1.253·sigma_residual/sqrt(N_eff)`（PHOTOMETRY.md；MAD/0.6745 → sigma）。
+  // 此前该量**只**从配置键 `snr.sigma_logflux_dex`/`snr.n_matches` 取，生产配置不给
+  // ⇒ 恒 0（"看起来像不确定度"的字段恒为 0 = 产物缺陷）。上游 `p1_phot.json` 的
+  // `photscale_fit[frame]` 已带**逐帧**的 `sigma_residual_dex` 与 `n_matched`
+  // ⇒ 配置未声明时由它们导出（显式配置仍是首选，语义不变）。
+  std::map<std::string, double> sigma_resid_of_key;   // p1_frame_key -> sigma_residual_dex
+  std::map<std::string, int>    nmatch_of_key;        // p1_frame_key -> n_matched
   std::map<std::string, double> zp_inst_of_key;  // p1_frame_key -> ZP_k [mag]
   std::vector<double> zp_syn_vals;
   bool phot_fit_available = false;
@@ -7497,6 +7570,14 @@ Result<void> p1_op_noise(const Json& doc, Json* man) {
               const double kp = e.value("k_photo", 0.0);
               if (!(std::isfinite(kp) && kp > 0.0)) continue;
               kphoto_of_key[key] = kp;
+              // A7：同一产物里的逐帧定标残差（sigma_residual_dex 已是 dex 标度，
+              // 由 MAD(r_inliers)/0.6744897501960817 得到）+ 匹配星数。
+              const double sres = e.value("sigma_residual_dex", 0.0);
+              const int nm = e.value("n_matched", 0);
+              if (std::isfinite(sres) && sres > 0.0 && nm > 0) {
+                sigma_resid_of_key[key] = sres;
+                nmatch_of_key[key] = nm;
+              }
               zp_inst_of_key[key] = kCAbsMag - 2.5 * std::log10(kp);
               // 公共绝对锚 F0 的零点同样用该冻结常数（不再取逐运行的颜色项中位）：
               // 与帧无关的常数在 w ∝ 1/F_ref² 中整体抵消，但决定 m5 的绝对数值。
@@ -7506,6 +7587,8 @@ Result<void> p1_op_noise(const Json& doc, Json* man) {
         } catch (const std::exception&) {
           kphoto_of_key.clear();
           zp_inst_of_key.clear();
+          sigma_resid_of_key.clear();
+          nmatch_of_key.clear();
           zp_syn_vals.clear();
         }
       }
@@ -7679,6 +7762,22 @@ Result<void> p1_op_noise(const Json& doc, Json* man) {
       frame["psf_mode"] = "unavailable";
     } else {
       acsd::phase1::SnrFrameScienceConfig cfg = sci_cfg;
+      // ── A7：零点标准误的输入来源（逐帧）──────────────────────────────────────
+      // 配置显式声明 `snr.sigma_logflux_dex`/`snr.n_matches` ⇒ 沿用（首选路径，
+      // 语义与数值不变）；未声明（0）而本帧上游测光产物带定标残差 ⇒ 由**该帧**的
+      // `sigma_residual_dex` + `n_matched` 导出，使 `sigma_location_se_dex` 是
+      // 可复核的真实不确定度而非恒 0 占位。**只影响这三个"零点标准误"读数**
+      // （sigma_location_se_dex/mag 与其 status），不进入 SNR/深度/权重计算。
+      if (!(cfg.sigma_logflux_dex > 0.0) || cfg.n_matches <= 0) {
+        const std::string fk =
+            p1_frame_key(doc["input_lights"][fi].get<std::string>());
+        const auto sit2 = sigma_resid_of_key.find(fk);
+        const auto nit2 = nmatch_of_key.find(fk);
+        if (sit2 != sigma_resid_of_key.end() && nit2 != nmatch_of_key.end()) {
+          cfg.sigma_logflux_dex = sit2->second;
+          cfg.n_matches = nit2->second;
+        }
+      }
       cfg.sigma_sky_adu = src_frame->value("noise_sigma", 0.0);
       // SCI-B D1 定案 (07_noise_snr.md 4.2a): noise_sigma 来自
       // StarDetector::estimate_background 的**整帧 2 轮 median±3*1.482602218505602*MAD 裁剪后 RMS**

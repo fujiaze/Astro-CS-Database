@@ -369,6 +369,9 @@ FramePhotFitResult fit_frame_photometry(const FramePhotFitRequest& req) {
     out.k_photo = scale;
     out.n_matched = n_matched;
     out.sigma_residual_dex = sigma_residual;
+    // A8/A10：逐星诊断（**非产品面**）——本处只把已填充的逐星记录随结果带出，
+    // 不参与任何数值/判据；是否落盘由调用方按调试开关决定（写工作区）。
+    out.stars = records;
     out.n_gaia = diag.spectrum_rows_total;
     out.psf_valid = diag.psf_valid;
     out.robust_iterations = diag.robust_iterations;

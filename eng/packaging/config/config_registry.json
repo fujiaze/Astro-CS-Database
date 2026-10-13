@@ -2549,8 +2549,8 @@
         "qe": "",
         "qe_note": "未声明 QE（Q≡1）／Ideal QE curve（等价）",
         "cabs_mag": -14.276811281840642,
-        "mad": 9.212e-3,
-        "peak_to_peak": 5.872e-2,
+        "mad": 0.009212,
+        "peak_to_peak": 0.05872,
         "source": "方案 A 原始参考对；历史基线产物复算 Δ=0.000000"
       },
       {
@@ -2558,8 +2558,8 @@
         "filter": "Astrodon E-series R",
         "qe": "KAF-16803",
         "cabs_mag": -15.711040624768852,
-        "mad": 8.381e-3,
-        "peak_to_peak": 3.539e-2,
+        "mad": 0.008381,
+        "peak_to_peak": 0.03539,
         "source": "同参考域重测（A4）；跨域跨 build 复现差 0.0011 mag；Δ vs 参考对 = −1.434229343 mag"
       },
       {
@@ -2567,7 +2567,7 @@
         "filter": "Baader R",
         "qe": "KAF-16803",
         "cabs_mag": -15.086716871104473,
-        "mad": 1.126e-2,
+        "mad": 0.01126,
         "source": "只变 QE 的一对；16 帧 T2 参考域重测（A3）"
       },
       {
@@ -2576,7 +2576,7 @@
         "qe": "",
         "qe_note": "未声明 QE（Q≡1）／Ideal QE curve（等价）",
         "cabs_mag": -14.845903818286661,
-        "mad": 9.310e-3,
+        "mad": 0.00931,
         "source": "只变滤镜的一对；16 帧 T2 参考域重测（A3）"
       }
     ],
@@ -2954,10 +2954,9 @@
       {
         "item": "W4 消费者随移更新（q3lib.py、q3core.py、star_residual.py）",
         "status": "已落地",
-        "evidence": "T1 活树消费者清点：12 项中 10 项有活树脚本消费者，含契约级消费者 eng/tests/validation/release02/{q1_photometry_gradient,q3_additive_truth,unc_propagation} 与 eng/tools/monitoring/concurrency_sweep.py；另有枚举式消费者按 <product>/calibrated_*.fts 枚举帧集（q2_snr_smoothness/realdata/stageAB_nmap_loci.py、q3_additive_truth/src/q3lib.py、eng/tools/astrometry/closure_metric.py），其正确修法是改从 p1_products.json 取帧集",
+        "evidence": "grep：q3lib/q3core/star_residual 对 p1_wcs.json / p1_phot.json / p1_flux.json / calibrated_*.fts 的**旧拼接代码路径 0 命中**（仅注释说明已移出）；数据级：产品 manifest.json#geometry 与工作区 <frame_key>/p1_wcs.json#wcs **12 字段 + SIP 四数组逐位一致**；load_work_dir 从 run_context.json 取到工作区（默认与**显式覆盖**两种运行均验证：覆盖运行记录 /tmp/geo-work5/custom-work，而推导值 out.p1-work 是错的）；load_flux 取到 2419 源、load_wcs 由产品几何构造且 SIP 在场；帧集一致",
         "disposition": "**已按来源口径逐处改完**：① **几何/SIP 取自产品** —— q3lib 新增 load_geometry(fdir)（读逐帧 HiPS 清单的加性 geometry），load_wcs() 改走它，frames() 的 wcs_json=<fdir>/p1_wcs.json 字段删除、crval1/2 亦改取自产品几何；q3core.py 的 wcs_lin/wcs_sip 两处同批改（同一字段两处消费）。② **帧集取自产品** —— 仍由 p1_products.json#frames[] 提供（含 @→_ 映射规则）。③ **p1_phot.json/p1_flux.json（调试输出，在工作区）** —— 新增 q3lib.load_work_dir(out_dir)，从**运行级记账面** <out>/run_context.json#work_dir 读实际路径（**不自行推导**；配置覆盖时推导会错），frames() 增加 work_dir/phot_json/flux_json 字段；load_flux（q3lib）与 flux_all（q3core）改用 frame['flux_json']（**订正**：旧实现拼的是输入亮场目录 dirname(frame['path']) ⇒ 那个拼接本来就取不到），docstring 写明**要求 keep_intermediates=true**（缺省即 true）。④ **star_residual.py load_group(g)** —— flux 改从记账面记录的工作区读；WCS 改**取自产品几何**，group→帧目录映射经 p1_products.json#frames[] 的 input_light（**映射不到即报错、不猜**，禁止 `_`→`@` 反向替换）；几何读取复用 q3lib（不复制第二份实现）。整体顺序（默认翻转）不变：① release02/q1_photometry_gradient + q3_additive_truth → ② unc_propagation/audit_evidence.py → ③ eng/tools/monitoring/concurrency_sweep.py → ④ eng/** 其余 → ⑤ 实验/** 各单元 → ⑥ 才翻转默认为删除。",
-        "blocked_by": "",
-        "evidence": "grep：q3lib/q3core/star_residual 对 p1_wcs.json / p1_phot.json / p1_flux.json / calibrated_*.fts 的**旧拼接代码路径 0 命中**（仅注释说明已移出）；数据级：产品 manifest.json#geometry 与工作区 <frame_key>/p1_wcs.json#wcs **12 字段 + SIP 四数组逐位一致**；load_work_dir 从 run_context.json 取到工作区（默认与**显式覆盖**两种运行均验证：覆盖运行记录 /tmp/geo-work5/custom-work，而推导值 out.p1-work 是错的）；load_flux 取到 2419 源、load_wcs 由产品几何构造且 SIP 在场；帧集一致"
+        "blocked_by": ""
       },
       {
         "item": "发布/打包运行必须显式清理工作区",
@@ -3022,6 +3021,30 @@
         "judgement": "实测 os.path.isdir('run/RELEASE-02/L4-rebuild') = False ⇒ 相关 release02 校验脚本**在当前工作区无法端到端复跑**；其等价性证据改用数据级重导对比（帧集逐项一致、9 项头部键 × 4 帧逐键一致、NAXIS 一致）",
         "disposition": "改硬编码路径不属本批；**只登记**。复跑这些校验需先恢复 L4 树或提供其路径配置",
         "blocked_by": ""
+      },
+      {
+        "item": "逐星导出字段的填充路径（PER-STAR-EXPORT-01：f_instr / gaia_mag）",
+        "status": "已落地",
+        "judgement": "这两个字段在公开头只声明未填充 ⇒ 读出为 vector 值初始化的 0.0（会被误读成「通量为 0 的星」），且产物不落逐星量 ⇒ 逐星颜色（(G−R)_i + C_R）无法测。属**已声明的缺口被落地**，不是有意近似（头注原文即要求「填充路径必须对未匹配/非有限值显式写 NaN」）。",
+        "disposition": "在星匹配的 matched 分支填充 rec.f_instr（PSF 域解析通量；非有限/≤0 写 NaN）与 rec.gaia_mag（Gaia G）；未匹配分支已写 NaN。逐星颜色由下游按 colour_i = gaia_mag + 2.5·log10(f_syn) 导出。",
+        "blocked_by": "",
+        "evidence": "lib/algorithms/photometry/cpp/src/pc_api.cpp（matched 分支填充）；实测 dev JSON 2419 行 / 926 inlier，f_instr/gaia_mag/r_i/colour 均非空"
+      },
+      {
+        "item": "sigma_location_se_dex 恒为 0（产物字段）",
+        "status": "已修（由逐帧定标残差导出）",
+        "judgement": "该量此前**只**从配置键 snr.sigma_logflux_dex / snr.n_matches 取；生产配置不给 ⇒ 恒 0，而字段名看起来像不确定度 ⇒ 产物缺陷（既有 status 键 unavailable_no_calibration_residual 只是把它标出来，未提供数值）。正本口径 = 1.253·sigma_residual/sqrt(N_eff)（PHOTOMETRY.md；MAD/0.6745 → sigma）。",
+        "disposition": "配置显式声明时沿用（首选，数值不变）；未声明时由**该帧**上游 p1_phot.json#photscale_fit[frame] 的 sigma_residual_dex + n_matched 导出。只影响三个「零点标准误」读数（sigma_location_se_dex/mag/status），**不进入** SNR/深度/权重计算。",
+        "blocked_by": "",
+        "evidence": "实测（1 帧真实 M42）：sigma_location_se_dex 0.0 → 0.0010677022157859271（=1.253·0.025930122372967417/√926 ✓）、status unavailable_no_calibration_residual → ok；同批 frame_depth_m5_mag / median_source_snr / snr_reference **逐位不变**；HiPS 载荷与改造前逐字节一致（仅 properties 时间戳）"
+      },
+      {
+        "item": "逐星诊断（逐星合成通量 / 残差 r_i / 颜色）的调试输出（A8/A10）",
+        "status": "已落地（调试开关 ON 时产出；标准构建不产出）",
+        "judgement": "逐星诊断**不是产物**（负责人口径：标准模式产物只有逐帧 HiPS + 一个阶段二 JSON）⇒ 只在调试开关打开时产出，且写**工作区**。",
+        "disposition": "构建期开关 ACSD_DEV_MODE（DEV_MODE.md 的授权边界：只决定额外输出，不改执行路径/数值/判据/节点顺序）。落点 = <work_dir>/p1_phot_stars_<frame_key>.json；字段 = star_id / dr3sp_id / f_instr / gaia_mag / f_syn / r_i / colour_i_mag / inlier / status / reject_reason + 口径自述（colour_definition / r_definition / null_means / product_face=false）。",
+        "blocked_by": "",
+        "evidence": "开关 ON：真实 1 帧产出该 JSON（2419 行、926 inlier、样例见实验文档）；开关 OFF：不产出且产品面与科学量与 ON **逐字节一致**（仅 properties 时间戳）；产品面 0 个 dev 文件、工作区 1 个；grep 全 lib 仅 module_adapters.cpp:6224 一处 #if defined(ACSD_DEV_MODE)"
       }
     ]
   }
