@@ -110,7 +110,10 @@ def main():
     inst = ss.Instrument(gain=1.333, read_noise=8.59, dark_rate=0.002, fwhm_px=1.98,
                          beta_fit=4.0, beta_inject=3.5, ellipticity=0.0,
                          saturation_adu=65535.0)
-    var = (np.clip(img, 0, None) + inst.read_noise ** 2) / inst.gain ** 2
+    # img 是 **ADU** 图（`ADU = N_e/g` ⇒ Var_adu = d/g），不是电子期望图；
+    # 同一式子在 scia_pipeline.py:48 / step5:36 / step7:38 作用于 `mu`（电子）故彼处正确。
+    # 订正（T05 E1）：散粒项由 `d/g²` 改为 `d/g`，σ 由低估 √g = 1.1547 倍恢复。
+    var = img / inst.gain + (inst.read_noise / inst.gain) ** 2
     t0 = time.perf_counter()
     g = guided_photometry(img, w, cat.ra, cat.dec, inst, var_map=var,
                           wcs_shift=shift, mag_limit=16.5, mag_g=cat.magG)
