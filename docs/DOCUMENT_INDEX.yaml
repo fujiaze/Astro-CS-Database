@@ -35,13 +35,13 @@
 #
 doc_index:
   schema_rev: "3"
-  coverage: "docs/** 全部 .md 与 .yaml + 仓库根固定条目（AGENTS.md、README.md、VERSION）；目录招牌件按「每目录必有 README」治理，不进规范索引面。覆盖面以人读件为界：机器源（.json/.csv/.py 等）不因跨域而自动取得登记资格；跨域件按 docs/engineering/governance/DOCUMENT_GOVERNANCE.md 的跨域豁免登记条款 以 notes 具名豁免登记，当前豁免 3 条（跨域人读件 1 条：实验/裁决台账.md；人读正本直接依赖的判据实现 2 条：eng/contracts/ledgers/ledger_schema.py、eng/tools/source_scan.py）"
+  coverage: "docs/** 全部 .md 与 .yaml + 仓库根固定条目（AGENTS.md、README.md、VERSION）；目录招牌件按「每目录必有 README」治理，不进规范索引面。覆盖面以人读件为界：机器源（.json/.csv/.py 等）不因跨域而自动取得登记资格；跨域件按 docs/engineering/governance/DOCUMENT_GOVERNANCE.md 的跨域豁免登记条款 以 notes 具名豁免登记，当前在册豁免 4 条（跨域人读件 1 条：实验/裁决台账.md；人读正本直接依赖的判据实现 3 条：eng/contracts/ledgers/ledger_schema.py、eng/tools/source_scan.py、eng/contracts/anchors/anchor_contract.json）。治理面另具名的「已知限制台账」缺可指路径，不在册，差异见 T10 复核记录"
   active:
     - path: "实验/裁决台账.md"
       status: ACTIVE_NORMATIVE
       duty: "跨单元裁决台账：五个创新点实验重做的分歧终裁，含依据与落点正本节"
-      upstream: "docs/ACSD_DESIGN.md §12.1（科学正确性与三重佐证）"
-      notes: 豁免登记（规则 6）：落在 docs/** 之外，实验域的分歧终裁面，属 ACSD_DESIGN §12.1 直接点名的终裁载体，不因跨域而免于索引
+      upstream: "docs/ACSD_DESIGN.md §13.1（科学正确性与三重佐证）"
+      notes: 豁免登记（规则 6）：落在 docs/** 之外，实验域的分歧终裁面，属 ACSD_DESIGN §13.1 直接点名的终裁载体，不因跨域而免于索引
     - path: "eng/contracts/ledgers/ledger_schema.py"
       status: ACTIVE_NORMATIVE
       duty: 合同台账的 schema 校验与加载（fail-closed）
@@ -52,10 +52,15 @@ doc_index:
       duty: 源码扫描工具：注释剥离与源文件遍历
       upstream: "docs/engineering/governance/DOCUMENT_GOVERNANCE.md"
       notes: 豁免登记（规则 6）：落在 docs/** 之外且为代码，是文档治理规范的写法纪律所依赖的扫描实现；索引指向它是纪律—实现的反向指针
+    - path: "eng/contracts/anchors/anchor_contract.json"
+      status: ACTIVE_NORMATIVE
+      duty: 行号锚合同：解析规则、已知豁免与符号绑定
+      upstream: "docs/engineering/governance/DOCUMENT_GOVERNANCE.md"
+      notes: 豁免登记（规则 6）：落在 docs/** 之外且为机器源，是文档治理规范「锚纪律」一节明定的锚合同唯一正本；索引指向它是纪律—实现的反向指针
     - path: "docs/science/calibration/CCD_DEFECT.md"
       status: ACTIVE_NORMATIVE
       duty: "CCD/CMOS 线性缺陷的分类、检测判据、插值修复的方差处置与一手文献证据（坏列、CTE 拖尾、宇宙线、卫星线）"
-      upstream: "docs/ACSD_DESIGN.md §4.2（normalize 节点流程）、§12.1（科学正确性与三重佐证）"
+      upstream: "docs/ACSD_DESIGN.md §4.2（normalize 节点流程）、§13.1（科学正确性与三重佐证）"
       notes: "由原 CCD_LINEAR_DEFECT_LITERATURE 迁入并与 CALIBRATION 的缺陷可分性条款合并重写；唯一正本。参考文献逐条登记核验状态。κ=2 的依据是非重复计数的记账约定而非信息论下界；坏列七步判据无复跑脚本，§3.1 读数登记为历史读数"
     - path: "docs/DOCUMENT_INDEX.yaml"
       status: ACTIVE_NORMATIVE
@@ -79,7 +84,7 @@ doc_index:
     - path: "VERSION"
       status: ACTIVE_NORMATIVE
       duty: "产品版本唯一源（版本注入链起点）"
-      upstream: "docs/ACSD_DESIGN.md §13（版本与发布权）"
+      upstream: "docs/ACSD_DESIGN.md §14（版本与发布权）"
       downstream: ".gitignore、AGENTS.md"
     - path: "docs/GLOSSARY.md"
       status: ACTIVE_INFORMATIVE
@@ -365,7 +370,7 @@ doc_index:
     - path: "docs/science/algorithms/common/GATES_AND_TOLERANCES.md"
       status: ACTIVE_NORMATIVE
       duty: "P1 星检测/PSF/WCS 冻结门表与 SNR 定义（机器可校验）"
-      upstream: "docs/ACSD_DESIGN.md §12.1（科学正确性与三重佐证）、§4.4（输出合同）"
+      upstream: "docs/ACSD_DESIGN.md §13.1（科学正确性与三重佐证）、§4.4（输出合同）"
       downstream: "README.md"
     - path: "docs/science/algorithms/export/HEALPIX_MAPPING.md"
       status: ACTIVE_NORMATIVE
@@ -507,7 +512,7 @@ doc_index:
     - path: "docs/detail/normalize/modules/star_detection.md"
       status: ACTIVE_NORMATIVE
       duty: "星检测模块实现细节设计（设计稿净室②段）：16 算子逐项规格，论文锚定 5（YvV95/T&S06/B&A96 §3·§6/Stetson 1987/信赖域 LM 文献）＋替换为论文构造 1（O11→SExtractor 多阈值 deblending 树，B&A96 §4）＋Project-defined 10（就地标注）；三条冻结合同与重写边界；CLEAN 门与 DAOFIND 门/Kron 孔径备置合同"
-      upstream: "docs/ACSD_DESIGN.md §2（核心科学方法：五个创新点）、§4（normalize：单帧标准化）；docs/science/algorithms/normalize/STAR_DETECTION_ALGORITHMS.md（ALG §11.4 冻结 κ 表）"
+      upstream: "docs/ACSD_DESIGN.md §2（核心科学方法：五个创新点）、§4（normalize：单帧标准化）；docs/science/algorithms/normalize/STAR_DETECTION_ALGORITHMS.md（该文「TEST-STAR-DESIGN-001 冻结测试设计」一节的冻结 κ 表）"
       downstream: "unresolved_registry.json"
       notes: "设计稿：YvV q²=1.4281 行为锚冻结；σ_eff=2.2666 为 κ 1.25× 残差候选成因假设（登记未改表）；引文勘误 YvV95=Signal Processing 44(2)、T&S06=IEEE TSP 54(6)"
     - path: "docs/detail/common/unified_model.md"
