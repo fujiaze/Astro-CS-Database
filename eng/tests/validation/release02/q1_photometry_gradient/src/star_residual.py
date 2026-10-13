@@ -11,6 +11,12 @@ import numpy as np
 from astropy.io import fits
 from astropy.wcs import WCS
 OUT=os.path.dirname(os.path.abspath(__file__))
+# 几何/SIP **取自产品**（逐帧 HiPS 清单的加性 geometry）的唯一读取实现 = q3lib
+# （同 release02 内的共享库）；此处 import 它以免复制第二份读法。
+_Q3LIB = os.path.join(os.path.dirname(os.path.dirname(OUT)), 'q3_additive_truth', 'src')
+if _Q3LIB not in sys.path:
+    sys.path.insert(0, _Q3LIB)
+import q3lib
 
 def pp(v):
     v=np.asarray(v); v=v[np.isfinite(v)]
@@ -18,12 +24,51 @@ def pp(v):
 def pb(x,y,deg=2):
     return np.column_stack([(x**i)*(y**j) for i in range(deg+1) for j in range(deg+1-i)])
 
+def _frame_dir_map(g):
+    """group → {亮场 stem（`@` 形态）: 帧产品目录}，来源 = 产品面 p1_products.json#frames[]
+    （帧集取自产品；`@`→`_` 映射规则见 q3lib.frames 的说明）。"""
+    pj = os.path.join(g, 'p1_products.json')
+    m = {}
+    for fr in json.load(open(pj)).get('frames', []):
+        stem = os.path.basename(fr['input_light']).rsplit('.', 1)[0]
+        m[stem] = fr['hips_path']
+    return m
+
 def load_group(g):
-    F=json.load(open(os.path.join(g,'p1_flux.json')))['frames']
+    """每帧星表 + 天球坐标。
+
+    · `p1_flux.json` 是**中间产物**（工作区）⇒ 路径取自运行级记账面
+      <g>/run_context.json#work_dir（**要求 keep_intermediates=true**，缺省即 true）。
+    · WCS **取自产品**（`AGENTS §13.1`）：逐帧 HiPS 清单的加性 `geometry`
+      （经 q3lib.load_geometry）。旧实现读 <g>/calibrated_<file>.fts 的头 ——
+      该文件是中间产物，已移入工作区、产品面内不再存在。
+    · group → 帧目录映射经 p1_products.json#frames[] 的 `input_light`；**映射不到即
+      报错，不猜**（不做 `_`→`@` 反向替换）。
+    """
+    work = q3lib.load_work_dir(g)
+    F=json.load(open(os.path.join(work,'p1_flux.json')))['frames']
+    fmap=_frame_dir_map(g)
     out=[]
     for fr in F:
-        cal=os.path.join(g,'calibrated_'+fr['file'].replace('cleaned_',''))
-        h=fits.getheader(cal); w=WCS(h)
+        stem = fr['file'].replace('cleaned_','').rsplit('.fts',1)[0]
+        fdir = fmap.get(stem)
+        if fdir is None:
+            raise KeyError('帧不在产品清单 frames[] 中（不猜几何来源）: ' + fr['file'])
+        geo = q3lib.load_geometry(fdir)
+        hdr = dict(CTYPE1=geo['ctype1'], CTYPE2=geo['ctype2'],
+                   CRPIX1=geo['crpix1'], CRPIX2=geo['crpix2'],
+                   CRVAL1=geo['crval1'], CRVAL2=geo['crval2'],
+                   CD1_1=geo['cd11'], CD1_2=geo['cd12'],
+                   CD2_1=geo['cd21'], CD2_2=geo['cd22'],
+                   NAXIS=2, NAXIS1=4096, NAXIS2=4096, RADESYS='ICRS')
+        w=WCS(hdr)
+        s=geo.get('sip')
+        if s:
+            from astropy.wcs import Sip
+            def _sq(v):
+                a=np.array(v, dtype=np.float64); k=int(round(len(a)**0.5))
+                return a.reshape(k,k)
+            w.sip = Sip(_sq(s['a']), _sq(s['b']), _sq(s['ap']), _sq(s['bp']), w.wcs.crpix)
         res=[r for r in fr['results'] if r.get('valid') and r.get('flux',0)>0 and np.isfinite(r.get('flux',np.nan))]
         x=np.array([r['x'] for r in res]); y=np.array([r['y'] for r in res])
         f=np.array([r['flux'] for r in res]); fe=np.array([r['flux_error'] for r in res])

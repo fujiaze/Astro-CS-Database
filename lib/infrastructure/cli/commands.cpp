@@ -422,9 +422,10 @@ nlohmann::json with_canonical_hash(const nlohmann::json& row, const std::string&
 // 前写入 output_dir，供各 phase 的 provenance 消费端读取（禁节点级占位串）。
 // 生成逻辑唯一实现 = acsd::core::write_run_context（node 级测试夹具同源复用）；
 // 本处仅做 Result→CLI exit code 映射，与 run manifest 同序，绝不半写。
-int write_run_context(const std::string& out_dir, const std::string& run_id) {
+int write_run_context(const std::string& out_dir, const std::string& run_id,
+                      const char* work_dir = nullptr) {
     auto rc = acsd::core::write_run_context(out_dir, run_id, ACSD_VERSION_STRING,
-                                               ACSD_COMMIT_SHA);
+                                               ACSD_COMMIT_SHA, work_dir);
     if (rc.failed()) {
         std::fprintf(stderr, "acsd: cannot write run context: %s\n",
                      rc.error().message().c_str());
@@ -2255,7 +2256,18 @@ BlockOutcome run_phase1_block(const Parsed& p, acsd::JsonlEmitter& ev,
     }
     // B2-A10: 同 phase3 —— 会话前落 run_context（§4.3 provenance 单一来源）。
     {
-        const int ctxrc = write_run_context(cfg_out_dir, ev.run_id());
+        // 中间产物工作区的**实际路径**记进运行级记账面（消费者从这里读、不自行推导；
+        // 位置可被块级 work_dir 键覆盖 ⇒ 推导会错）。唯一实现 =
+        // acsd::core::resolve_work_dir（与节点侧 p1_work_dir 同规则）。
+        std::string work_override;
+        try {
+            const nlohmann::json bd = nlohmann::json::parse(block_text);
+            if (bd.contains("work_dir") && bd["work_dir"].is_string())
+                work_override = bd["work_dir"].get<std::string>();
+        } catch (...) { work_override.clear(); }
+        const std::string work_dir =
+            acsd::core::resolve_work_dir(cfg_out_dir, work_override);
+        const int ctxrc = write_run_context(cfg_out_dir, ev.run_id(), work_dir.c_str());
         if (ctxrc != acsd::OK) { out.rc = ctxrc; out.kind = "phase1_failed"; out.why = "run context write failed"; return out; }
     }
     std::string fail_reason;
