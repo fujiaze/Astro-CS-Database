@@ -38,7 +38,7 @@ contracts:
     status: ACTIVE
     owner: ACSD
     version: 1.0.0
-    path: docs/science/PHOTOMETRY.md
+    path: docs/science/photometry/PHOTOMETRY.md
     upstream: [SCI-SCOPE-001]
     downstream: [ALG-PHOT-001, ALG-PHOT-002]
   - id: SCI-PSF-001
@@ -70,7 +70,7 @@ contracts:
     status: ACTIVE
     owner: ACSD
     version: 1.0.0
-    path: docs/science/PHASE2_UPM.md
+    path: docs/science/sky/UPM.md
     upstream: [SCI-SCOPE-001]
     downstream: [ALG-UPM-001, ALG-COV-001, ALG-P2-HIPS-001, ALG-P2-HIPS-002, ALG-P2-HIPS-003, ALG-P2-HIPS-004, ALG-P2-SESSION-001, ALG-P2-UPM-IMPL-001]
   - id: SCI-REJ-001
@@ -78,7 +78,7 @@ contracts:
     status: ACTIVE
     owner: ACSD
     version: 1.0.0
-    path: docs/science/REJECTION.md
+    path: docs/science/integration/REJECTION.md
     upstream: [SCI-SCOPE-001]
     downstream: [ALG-REJ-001, ALG-P2-REJ-001, ALG-P2-HIPS-001, ALG-P2-HIPS-002, ALG-P2-HIPS-003, ALG-P2-HIPS-004, ALG-P2-SESSION-001, DATA-P2-REJ-001]
   - id: SCI-INT-001
@@ -86,7 +86,7 @@ contracts:
     status: ACTIVE
     owner: ACSD
     version: 1.0.0
-    path: docs/science/INTEGRATION.md
+    path: docs/science/integration/INTEGRATION.md
     upstream: [SCI-SCOPE-001]
     downstream: [ALG-INT-001, ALG-P2-INT-001, ALG-P2-HIPS-001, ALG-P2-HIPS-002, ALG-P2-HIPS-003, ALG-P2-HIPS-004, ALG-P2-SESSION-001, DATA-P2-VAR-001]
   - id: SCI-CW-001
@@ -118,7 +118,7 @@ contracts:
     status: ACTIVE
     owner: ACSD
     version: 1.0.0
-    path: docs/science/PHASE3_HIPS_TO_FITS.md
+    path: docs/science/projection/HIPS_TO_FITS.md
     upstream: [SCI-WCS-001, SCI-DRZ-001, SCI-SCOPE-001]
     downstream: [ALG-P3-001, ALG-P3-002, ALG-P3-003, ALG-P3-004, ALG-P3-FITS-IMPL-001, ALG-P3-PROJ-IMPL-001, ALG-P3-RSMP-IMPL-001, DATA-P3-UNC-001]
 
@@ -129,7 +129,7 @@ contracts:
     status: ACTIVE
     owner: ACSD
     version: 1.0.0
-    path: docs/detail/anchors/ANCHOR_CONTRACT.md
+    path: eng/contracts/anchors/anchor_contract.json
     upstream: []
     downstream: []
   - id: ALG-CAL-001
@@ -137,7 +137,7 @@ contracts:
     status: ACTIVE
     owner: ACSD
     version: 1.0.0
-    path: docs/science/algorithms/CALIBRATION_ALGORITHMS.md
+    path: docs/science/algorithms/normalize/CALIBRATION_ALGORITHMS.md
     upstream: [SCI-CAL-001]
     downstream: []
   - id: ALG-WCS-001
@@ -145,7 +145,7 @@ contracts:
     status: ACTIVE
     owner: ACSD
     version: 1.0.0
-    path: docs/science/algorithms/PLATESOLVE.md
+    path: docs/science/algorithms/normalize/PLATESOLVE.md
     upstream: [SCI-WCS-001]
     downstream: [DATA-P1-WCS, API-WCS-001]
   - id: DATA-P1-WCS
@@ -169,7 +169,7 @@ contracts:
     status: ACTIVE
     owner: ACSD
     version: 1.0.0
-    path: docs/science/algorithms/PHOTOMETRIC_FIT.md
+    path: docs/science/algorithms/normalize/PHOTOMETRIC_FIT.md
     upstream: [SCI-PHOT-001]
     downstream: [DATA-P1-PHOT, API-PHOT-001]
   - id: ALG-PHOT-002
@@ -177,7 +177,7 @@ contracts:
     status: ACTIVE
     owner: ACSD
     version: 1.0.0
-    path: docs/science/algorithms/PHOTOMETRIC_FIT.md
+    path: docs/science/algorithms/normalize/PHOTOMETRIC_FIT.md
     upstream: [SCI-PHOT-001]
     downstream: [DATA-P1-PHOT, API-PHOT-001]
   - id: ALG-STARPSF-001
@@ -185,7 +185,7 @@ contracts:
     status: ACTIVE
     owner: ACSD
     version: 1.0.0
-    path: docs/science/algorithms/STAR_PSF_ALGORITHMS.md
+    path: docs/science/algorithms/normalize/STAR_PSF_ALGORITHMS.md
     upstream: [SCI-PSF-001]
     downstream: [DATA-P1-PSF, API-PSF-001]
   - id: ALG-NOISE-001
@@ -193,7 +193,7 @@ contracts:
     status: ACTIVE
     owner: ACSD
     version: 1.0.0
-    path: docs/science/algorithms/NOISE_ESTIMATION.md
+    path: docs/science/algorithms/common/NOISE_ESTIMATION.md
     upstream: [SCI-NOISE-001]
     downstream: [DATA-P1-NOISE, API-NOISE-001]
   - id: ALG-NOISE-002
@@ -201,7 +201,7 @@ contracts:
     status: ACTIVE
     owner: ACSD
     version: 1.0.0
-    path: docs/science/algorithms/NOISE_ESTIMATION.md
+    path: docs/science/algorithms/common/NOISE_ESTIMATION.md
     upstream: [SCI-NOISE-001]
     downstream: [DATA-P1-NOISE, API-NOISE-001]
   - id: ALG-NOISE-003
@@ -209,7 +209,7 @@ contracts:
     status: ACTIVE
     owner: ACSD
     version: 1.0.0
-    path: docs/science/algorithms/NOISE_ESTIMATION.md
+    path: docs/science/algorithms/common/NOISE_ESTIMATION.md
     upstream: [SCI-NOISE-001]
     downstream: [API-NOISE-001]
   - id: ALG-DRZ-001
@@ -217,7 +217,7 @@ contracts:
     status: ACTIVE
     owner: ACSD
     version: 1.0.0
-    path: docs/science/algorithms/DRIZZLE_GEOMETRY.md
+    path: docs/science/algorithms/export/DRIZZLE_GEOMETRY.md
     upstream: [SCI-DRZ-001]
     downstream: []
   - id: ALG-HIPS-001
@@ -225,7 +225,7 @@ contracts:
     status: ACTIVE
     owner: ACSD
     version: 1.0.0
-    path: docs/science/algorithms/HIPS_WRITER.md
+    path: docs/science/algorithms/export/HIPS_WRITER.md
     upstream: [SCI-DRZ-001]
     downstream: [DATA-P1-HIPS]
   - id: ALG-UPM-001
@@ -233,7 +233,7 @@ contracts:
     status: ACTIVE
     owner: ACSD
     version: 1.0.0
-    path: docs/science/algorithms/UPM_SOLVER.md
+    path: docs/science/algorithms/mosaic/UPM_SOLVER.md
     upstream: [SCI-UPM-001]
     downstream: [ALG-P2-UPM-IMPL-001]
   - id: ALG-UPM-CONTROL-IVAR-001
@@ -241,7 +241,7 @@ contracts:
     status: ACTIVE
     owner: ACSD
     version: 1.0.0
-    path: docs/science/algorithms/PHASE2_SAMPLER.md
+    path: docs/science/algorithms/mosaic/PHASE2_SAMPLER.md
     upstream: [SCI-NOISE-001, SCI-CW-001]
     downstream: [ALG-P2-UPM-IMPL-001]
   - id: ALG-P2-UPM-IMPL-001
@@ -249,7 +249,7 @@ contracts:
     status: ACTIVE
     owner: SA-P2-U21
     version: 1.0.0
-    path: docs/science/algorithms/PHASE2_UPM_IMPL.md
+    path: docs/science/algorithms/mosaic/PHASE2_UPM_IMPL.md
     upstream: [SCI-UPM-001, ALG-UPM-001, ALG-UPM-CONTROL-IVAR-001]
     downstream: [DATA-P2-UPM, DATA-P2-COR, API-P2-UPM-001]
   - id: DATA-P2-UPM
@@ -281,7 +281,7 @@ contracts:
     status: DORMANT
     owner: SA-P2-U21
     version: 1.0.0
-    path: docs/science/algorithms/PHASE2_UPM_IMPL.md
+    path: docs/science/algorithms/mosaic/PHASE2_UPM_IMPL.md
     upstream: [API-P2-UPM-001]
     downstream: []
   - id: TEST-P2-UPM-002
@@ -289,7 +289,7 @@ contracts:
     status: DORMANT
     owner: SA-P2-U21
     version: 1.0.0
-    path: docs/science/algorithms/PHASE2_UPM_IMPL.md
+    path: docs/science/algorithms/mosaic/PHASE2_UPM_IMPL.md
     upstream: [API-P2-UPM-001]
     downstream: []
   - id: DATA-P3-FITS
@@ -313,7 +313,7 @@ contracts:
     status: DORMANT
     owner: SA-P3-F27
     version: 1.0.0
-    path: docs/science/algorithms/PHASE3_FITS_IMPL.md
+    path: docs/science/algorithms/export/PHASE3_FITS_IMPL.md
     upstream: [API-P3-FITS-001]
     downstream: []
   - id: DATA-P3-WCS
@@ -337,7 +337,7 @@ contracts:
     status: DORMANT
     owner: SA-P3-P25
     version: 1.0.0
-    path: docs/science/algorithms/PHASE3_PROJ_IMPL.md
+    path: docs/science/algorithms/export/PHASE3_PROJ_IMPL.md
     upstream: [API-P3-PROJ-001]
     downstream: []
   - id: DATA-P3-RES
@@ -361,7 +361,7 @@ contracts:
     status: DORMANT
     owner: SA-P3-S26
     version: 1.0.0
-    path: docs/science/algorithms/PHASE3_RSMP_IMPL.md
+    path: docs/science/algorithms/export/PHASE3_RSMP_IMPL.md
     upstream: [API-P3-RSMP-001]
     downstream: []
   - id: ALG-COV-001
@@ -369,7 +369,7 @@ contracts:
     status: ACTIVE
     owner: SA-P2-S20
     version: 1.0.0
-    path: docs/science/algorithms/PHASE2_COVERAGE.md
+    path: docs/science/algorithms/mosaic/PHASE2_COVERAGE.md
     upstream: [SCI-UPM-001]
     downstream: [DATA-COV-001, API-COV-001]
   - id: DATA-COV-001
@@ -393,7 +393,7 @@ contracts:
     status: ACTIVE
     owner: SA-P2-I23
     version: 1.0.0
-    path: docs/science/algorithms/PHASE2_MOSAIC_WRITE.md
+    path: docs/science/algorithms/mosaic/PHASE2_MOSAIC_WRITE.md
     upstream: [SCI-UPM-001, SCI-INT-001, SCI-REJ-001, SCI-SCOPE-001]
     downstream: [DATA-P2-HIPS, API-P2-HIPS-001]
   - id: ALG-P2-HIPS-002
@@ -401,7 +401,7 @@ contracts:
     status: ACTIVE
     owner: SA-P2-I23
     version: 1.0.0
-    path: docs/science/algorithms/PHASE2_MOSAIC_WRITE.md
+    path: docs/science/algorithms/mosaic/PHASE2_MOSAIC_WRITE.md
     upstream: [SCI-UPM-001, SCI-INT-001, SCI-REJ-001, SCI-SCOPE-001]
     downstream: [DATA-P2-HIPS, API-P2-HIPS-001]
   - id: ALG-P2-HIPS-003
@@ -409,7 +409,7 @@ contracts:
     status: ACTIVE
     owner: SA-P2-I23
     version: 1.0.0
-    path: docs/science/algorithms/PHASE2_MOSAIC_WRITE.md
+    path: docs/science/algorithms/mosaic/PHASE2_MOSAIC_WRITE.md
     upstream: [SCI-UPM-001, SCI-INT-001, SCI-REJ-001, SCI-SCOPE-001]
     downstream: [DATA-P2-HIPS, API-P2-HIPS-001]
   - id: ALG-P2-HIPS-004
@@ -417,7 +417,7 @@ contracts:
     status: ACTIVE
     owner: SA-P2-I23
     version: 1.0.0
-    path: docs/science/algorithms/PHASE2_MOSAIC_WRITE.md
+    path: docs/science/algorithms/mosaic/PHASE2_MOSAIC_WRITE.md
     upstream: [SCI-UPM-001, SCI-INT-001, SCI-REJ-001, SCI-SCOPE-001]
     downstream: [DATA-P2-HIPS, API-P2-HIPS-001]
   - id: DATA-P2-HIPS
@@ -441,7 +441,7 @@ contracts:
     status: ACTIVE
     owner: ACSD
     version: 1.0.0
-    path: docs/science/algorithms/PHASE2_REJECTION.md
+    path: docs/science/algorithms/mosaic/PHASE2_REJECTION.md
     upstream: [SCI-REJ-001]
     downstream: [ALG-P2-REJ-001]
   - id: ALG-INT-001
@@ -449,7 +449,7 @@ contracts:
     status: ACTIVE
     owner: ACSD
     version: 1.0.0
-    path: docs/science/algorithms/PHASE2_INTEGRATION.md
+    path: docs/science/algorithms/mosaic/PHASE2_INTEGRATION.md
     upstream: [SCI-INT-001]
     downstream: [ALG-P2-INT-001]
   - id: ALG-P2-INT-001
@@ -457,7 +457,7 @@ contracts:
     status: ACTIVE
     owner: SA-P2-I23
     version: 1.0.0
-    path: docs/science/algorithms/PHASE2_INTEGRATION.md
+    path: docs/science/algorithms/mosaic/PHASE2_INTEGRATION.md
     upstream: [SCI-INT-001, ALG-INT-001]
     downstream: [DATA-P2-INT, API-P2-INT-001]
   - id: DATA-P2-INT
@@ -481,7 +481,7 @@ contracts:
     status: DORMANT
     owner: SA-P2-I23
     version: 1.0.0
-    path: docs/science/algorithms/PHASE2_INTEGRATION.md
+    path: docs/science/algorithms/mosaic/PHASE2_INTEGRATION.md
     upstream: [API-P2-INT-001]
     downstream: []
   - id: ALG-P2-REJ-001
@@ -489,7 +489,7 @@ contracts:
     status: ACTIVE
     owner: SA-P2-R22
     version: 1.0.0
-    path: docs/science/algorithms/PHASE2_REJECTION.md
+    path: docs/science/algorithms/mosaic/PHASE2_REJECTION.md
     upstream: [SCI-REJ-001, ALG-REJ-001]
     downstream: [DATA-P2-REJ, API-P2-REJ-001]
   - id: DATA-P2-REJ
@@ -513,7 +513,7 @@ contracts:
     status: DORMANT
     owner: SA-P2-R22
     version: 1.0.0
-    path: docs/science/algorithms/PHASE2_REJECTION.md
+    path: docs/science/algorithms/mosaic/PHASE2_REJECTION.md
     upstream: [API-P2-REJ-001]
     downstream: []
   - id: ALG-P2-SESSION-001
@@ -521,7 +521,7 @@ contracts:
     status: ACTIVE
     owner: SA-P2-X24
     version: 1.0.0
-    path: docs/science/algorithms/PHASE2_SESSION.md
+    path: docs/science/algorithms/mosaic/PHASE2_SESSION.md
     upstream: [SCI-UPM-001, SCI-INT-001, SCI-REJ-001]
     downstream: [DATA-P2-SESSION, API-P2-SESSION-001]
   - id: DATA-P2-SESSION
@@ -545,7 +545,7 @@ contracts:
     status: DORMANT
     owner: SA-P2-X24
     version: 1.0.0
-    path: docs/science/algorithms/PHASE2_SESSION.md
+    path: docs/science/algorithms/mosaic/PHASE2_SESSION.md
     upstream: [API-P2-SESSION-001]
     downstream: []
   - id: ALG-P3-001
@@ -553,7 +553,7 @@ contracts:
     status: DRAFT
     owner: ACSD
     version: 0.1.0
-    path: docs/science/algorithms/PHASE3_RESAMPLE.md
+    path: docs/science/algorithms/export/PHASE3_RESAMPLE.md
     upstream: [SCI-P3-001]
     downstream: [ALG-P3-FITS-IMPL-001]
   - id: ALG-P3-002
@@ -561,7 +561,7 @@ contracts:
     status: ACTIVE
     owner: ACSD
     version: 0.1.0
-    path: docs/science/algorithms/PHASE3_RESAMPLE.md
+    path: docs/science/algorithms/export/PHASE3_RESAMPLE.md
     upstream: [SCI-P3-001]
     downstream: [ALG-P3-FITS-IMPL-001, ALG-P3-PROJ-IMPL-001]
   - id: ALG-P3-003
@@ -569,7 +569,7 @@ contracts:
     status: ACTIVE
     owner: ACSD
     version: 0.1.0
-    path: docs/science/algorithms/PHASE3_RESAMPLE.md
+    path: docs/science/algorithms/export/PHASE3_RESAMPLE.md
     upstream: [SCI-P3-001]
     downstream: [ALG-P3-RSMP-IMPL-001, DATA-P3-RES]
   - id: ALG-P3-004
@@ -577,7 +577,7 @@ contracts:
     status: DRAFT
     owner: ACSD
     version: 0.1.0
-    path: docs/science/algorithms/PHASE3_RESAMPLE.md
+    path: docs/science/algorithms/export/PHASE3_RESAMPLE.md
     upstream: [SCI-P3-001]
     downstream: [ALG-P3-FITS-IMPL-001]
   - id: ALG-P3-FITS-IMPL-001
@@ -585,7 +585,7 @@ contracts:
     status: ACTIVE
     owner: SA-P3-F27
     version: 1.0.0
-    path: docs/science/algorithms/PHASE3_FITS_IMPL.md
+    path: docs/science/algorithms/export/PHASE3_FITS_IMPL.md
     upstream: [SCI-P3-001, ALG-P3-001, ALG-P3-002, ALG-P3-004]
     downstream: [DATA-P3-FITS, API-P3-FITS-001]
   - id: ALG-P3-PROJ-IMPL-001
@@ -593,7 +593,7 @@ contracts:
     status: ACTIVE
     owner: SA-P3-P25
     version: 1.0.0
-    path: docs/science/algorithms/PHASE3_PROJ_IMPL.md
+    path: docs/science/algorithms/export/PHASE3_PROJ_IMPL.md
     upstream: [SCI-P3-001, ALG-P3-002]
     downstream: [DATA-P3-WCS, API-P3-PROJ-001]
   - id: ALG-P3-RSMP-IMPL-001
@@ -601,7 +601,7 @@ contracts:
     status: ACTIVE
     owner: SA-P3-S26
     version: 1.0.0
-    path: docs/science/algorithms/PHASE3_RSMP_IMPL.md
+    path: docs/science/algorithms/export/PHASE3_RSMP_IMPL.md
     upstream: [SCI-P3-001, ALG-P3-003]
     downstream: [DATA-P3-RES, API-P3-RSMP-001]
   - id: ALG-HEALPIX-001
@@ -609,7 +609,7 @@ contracts:
     status: ACTIVE
     owner: ACSD
     version: 1.0.0
-    path: docs/science/algorithms/HEALPIX_MAPPING.md
+    path: docs/science/algorithms/export/HEALPIX_MAPPING.md
     upstream: [SCI-DRZ-001]
     downstream: []
   - id: ALG-GAIA-001
@@ -617,7 +617,7 @@ contracts:
     status: ACTIVE
     owner: ACSD
     version: 1.0.0
-    path: docs/science/algorithms/GAIA_QUERY.md
+    path: docs/science/algorithms/common/GAIA_QUERY.md
     upstream: [SCI-AST-001]
     downstream: []
 
@@ -691,7 +691,7 @@ contracts:
     status: ACTIVE
     owner: SA-P1-S15
     version: 1.0.0
-    path: docs/science/algorithms/STAR_DETECTION_ALGORITHMS.md
+    path: docs/science/algorithms/normalize/STAR_DETECTION_ALGORITHMS.md
     upstream: [SCI-PSF-001]
     downstream: [DATA-P1-STAR, API-STAR-001]
   - id: DATA-P1-STAR
