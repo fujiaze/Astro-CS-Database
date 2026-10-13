@@ -2188,3 +2188,26 @@ aio 的 `write_atomic` 明确父目录由调用方建）；收尾清理接线于
 3. 产品面只剩逐帧 HiPS 树 + `manifest.json` + `p1_stack.json` + `p1_products.json`；工作区 13 项；
 4. 峰值 RSS 3.600 GiB（改造前 3.645 GiB，未恶化）；
 5. `p1_products.json` 帧集与枚举帧集一致（`@`→`_` 映射）。
+
+### 追加 · W4 消费者随移（来源口径：几何取自产品 / 帧集取自产品 / 调试输出取自记账面）
+
+**记录面（裁决 A）**：工作区的**实际路径**记进运行级记账面 `<output_dir>/run_context.json#work_dir`
+（加性；缺省不写 ⇒ 既有产物逐字节不变）。唯一实现 = `acsd::core::resolve_work_dir`（公开头
+`acsd/core/module_adapters.h`）；节点侧 `p1_work_dir` 与 CLI 侧记录同源 ⇒ 命名规则只有一份实现。
+消费者**从该字段读、不自行推导**（位置可被配置键 `work_dir` 覆盖；实测覆盖运行记录
+`/tmp/geo-work5/custom-work`，而推导值 `out.p1-work` 是错的）。
+
+**消费者改动**：
+- `q3lib.py`：`load_geometry(fdir)`（读逐帧 HiPS 清单的加性 `geometry`）；`load_wcs()` 走它；
+  `frames()` 删 `wcs_json=<fdir>/p1_wcs.json`、`crval1/2` 亦取自产品几何；新增
+  `load_work_dir(out_dir)`（读 `run_context.json#work_dir`），`frames()` 增 `work_dir/phot_json/flux_json`；
+  `load_flux()` 改用 `frame['flux_json']`（**订正**旧拼接 `dirname(frame['path'])` 指输入亮场目录）。
+- `q3core.py`：`wcs_lin`/`wcs_sip` 改 `q3lib.load_geometry(frame['fdir'])`；`flux_all` 改用 `frame['flux_json']`。
+- `star_residual.py`：`load_group(g)` 的 flux 从记账面记录的工作区读；WCS **取自产品几何**
+  （group→帧目录映射经 `p1_products.json#frames[]` 的 `input_light`；映射不到即报错、不猜）；
+  几何读取复用 `q3lib`（不复制第二份实现）。
+
+**证据**：grep 旧拼接代码路径 0 命中（仅注释/docstring 说明）；数据级：产品 `manifest.json#geometry`
+与工作区 `<frame_key>/p1_wcs.json#wcs` **12 字段 + SIP 四数组逐位一致**；`load_work_dir` 默认与覆盖
+两种运行均取到正确工作区；`load_flux` 取到 2419 源；`load_wcs` 由产品几何构造且 SIP 在场；帧集一致。
+**限制**：`run/RELEASE-02/L4-rebuild` 不在本工作区 ⇒ 这些校验脚本**仍无法端到端跑**，以上为数据级替代证据。

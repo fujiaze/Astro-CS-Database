@@ -15,7 +15,8 @@ import q3lib
 
 # ---------- WCS ----------
 def wcs_lin(frame):
-    d = json.load(open(frame['wcs_json'])); w = d['wcs']
+    # 几何取自**产品**（逐帧 HiPS 清单的 geometry；中间产物 p1_wcs.json 已移入工作区）
+    w = q3lib.load_geometry(frame['fdir'])
     return WCS(dict(CTYPE1='RA---TAN', CTYPE2='DEC--TAN',
                     CRPIX1=w['crpix1'], CRPIX2=w['crpix2'],
                     CRVAL1=w['crval1'], CRVAL2=w['crval2'],
@@ -25,7 +26,7 @@ def wcs_lin(frame):
 
 def wcs_sip(frame):
     """Effective drizzle WCS: TAN + SIP A/B (FITS convention, dx = xp-crpix)."""
-    d = json.load(open(frame['wcs_json'])); w = d['wcs']; s = w.get('sip')
+    w = q3lib.load_geometry(frame['fdir']); s = w.get('sip')
     W = wcs_lin(frame)
     if s:
         W.sip = __import__('astropy.wcs', fromlist=['Sip']).Sip(
@@ -43,8 +44,12 @@ def frame_data(frame):
 
 _FLUX_CACHE = {}
 def flux_all(frame):
-    """Load the whole group flux json once; return per-frame catalog dict."""
-    pj = os.path.join(os.path.dirname(frame['path']), 'p1_flux.json')
+    """Load the whole group flux json once; return per-frame catalog dict.
+
+    p1_flux.json 是**中间产物**（工作区）⇒ 路径取自运行级记账面记录的 work_dir
+    （`frame['flux_json']`，见 q3lib.load_work_dir），**要求 keep_intermediates=true**。
+    订正：旧实现拼 `dirname(frame['path'])`（输入亮场目录）⇒ 那个拼接本来就取不到。"""
+    pj = frame['flux_json']
     if pj not in _FLUX_CACHE:
         d = json.load(open(pj))
         cat = {}

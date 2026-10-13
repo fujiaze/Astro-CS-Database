@@ -1468,18 +1468,12 @@ std::string p1_frame_dir(const Json& doc, const std::string& light) {
 // 正本：docs/engineering/architecture/DEV_MODE.md《中间产物的工作区与开关》与
 // 实验/photometric-magnitude/docs/P1-product-surface-boundary-design.md（D1）。
 std::string p1_work_dir(const Json& doc) {
-  if (p1_has(doc, "work_dir") && doc["work_dir"].is_string()) {
-    const std::string w = doc["work_dir"].get<std::string>();
-    if (!w.empty()) return w;
-  }
-  std::string out = doc.value("output_dir", std::string("."));
-  while (out.size() > 1 && out.back() == '/') out.pop_back();
-  const size_t slash = out.find_last_of('/');
-  const std::string base =
-      (slash == std::string::npos) ? out : out.substr(slash + 1);
-  const std::string parent =
-      (slash == std::string::npos) ? std::string() : out.substr(0, slash + 1);
-  return parent + base + ".p1-work";
+  const std::string override_ =
+      (p1_has(doc, "work_dir") && doc["work_dir"].is_string())
+          ? doc["work_dir"].get<std::string>()
+          : std::string();
+  return acsd::core::resolve_work_dir(
+      doc.value("output_dir", std::string(".")), override_);
 }
 
 // 工作区内的运行级中间产物路径（p1_sources/p1_phot/p1_snr/p1_flux/p1_psf/
@@ -16356,9 +16350,27 @@ extern "C" void acsd_cfitsio_ensure_initialized(void);
 // B2-A10（宪章 §4.3）: run_context.json 唯一生成路径（CLI run 与 node 级测试
 // 夹具共用）。原子写(tmp+rename)；run_id/software_version 必须非空（fail-closed，
 // 消费端 p3_op_writer 依赖其真实性，禁占位）。
+// 中间产物工作区路径的**唯一实现**（声明见公开头 acsd/core/module_adapters.h）：
+// work_dir_override 非空 ⇒ 原样返回；否则 <output_dir 基名>.p1-work（同级兄弟目录，
+// 同文件系统 ⇒ 保持「同目录临时文件 → rename」原子替换语义）。节点侧 p1_work_dir
+// 与 CLI 侧记进 run_context 的路径都调用本函数 ⇒ 命名规则只有一份实现。
+std::string resolve_work_dir(const std::string& output_dir,
+                             const std::string& work_dir_override) {
+  if (!work_dir_override.empty()) return work_dir_override;
+  std::string out = output_dir.empty() ? std::string(".") : output_dir;
+  while (out.size() > 1 && out.back() == '/') out.pop_back();
+  const size_t slash = out.find_last_of('/');
+  const std::string base =
+      (slash == std::string::npos) ? out : out.substr(slash + 1);
+  const std::string parent =
+      (slash == std::string::npos) ? std::string() : out.substr(0, slash + 1);
+  return parent + base + ".p1-work";
+}
+
 Result<void> write_run_context(const std::string& out_dir, const std::string& run_id,
                                const std::string& software_version,
-                               const std::string& source_sha) {
+                               const std::string& source_sha,
+                               const char* work_dir) {
   if (run_id.empty() || software_version.empty())
     return Result<void>::fail(Error(ErrorDomain::DATA,
         "run_context requires non-empty run_id/software_version (§4.3)"));
@@ -16384,6 +16396,10 @@ Result<void> write_run_context(const std::string& out_dir, const std::string& ru
               {"build_dirty", stamp.dirty},
               {"build_source_digest", stamp.source_digest},
               {"configure_head_sha", stamp.configure_head_sha}};
+  // 中间产物工作区实际路径（加性；阶段一）。消费者（eng/**、实验/**）从**这里**读
+  // 工作区在哪，**不自行推导**命名规则（位置可被配置键 work_dir 覆盖 ⇒ 推导会错）。
+  // 缺省 nullptr/空串 ⇒ 不写该键（既有调用方与既有产物逐字节不变）。
+  if (work_dir != nullptr && work_dir[0] != '\0') ctx["work_dir"] = work_dir;
   // CLEAN-403: 目录创建与原子落盘经 aio 唯一实现 (make_dirs /
   // write_file_atomic = 同目录临时文件 → fflush → fsync → 原子 rename)。
   (void)aio_fs::make_dirs(out_dir);

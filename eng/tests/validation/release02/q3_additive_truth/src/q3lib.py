@@ -1,5 +1,7 @@
 """Q3 ADDITIVE-TRUTH shared library.
-Frame registry + solved-WCS loading (p1_wcs.json) + bilinear sampling.
+Frame registry + solved-geometry loading (**from the product**: per-frame HiPS
+manifest's additive `geometry`; the intermediate `p1_wcs.json` lives in the run's
+workspace, not in the product face) + bilinear sampling.
 Read-only: never writes outside run/RELEASE-02/q3-additive-truth/.
 """
 import glob, json, os, re
@@ -30,6 +32,12 @@ def registry():
     for pj in sorted(glob.glob(os.path.join(L4, 'norm', '*', 'p1_products.json'))):
         grp = os.path.basename(os.path.dirname(pj))
         prods = json.load(open(pj))
+        # 中间产物（p1_phot/p1_flux 等）落在**工作区**，其实际路径记在运行级记账面
+        # <out>/run_context.json#work_dir（位置可被配置键 work_dir 覆盖 ⇒ **不得**
+        # 自行推导 <out 基名>.p1-work）。读取该字段即"从记录读"。
+        # **要求 keep_intermediates=true**（缺省即 true）；显式关掉后这些中间产物
+        # 在运行收尾被清理 ⇒ 本脚本不可用。
+        work_dir = load_work_dir(os.path.dirname(pj))
         for fr in prods.get('frames', []):
             light = fr['input_light']
             stem = os.path.basename(light).rsplit('.', 1)[0]   # '@' 形态（权威来源）
@@ -37,21 +45,52 @@ def registry():
             fdir = fr['hips_path']
             m = re.match(r'M42_(M\d)_(T\d)_flying_dutchman-(\d{8})@(\d{6})', stem)
             panel, tel, date, tm = m.groups()
-            h = fits.getheader(light)                          # 输入亮场头（见上口径）
+            h = fits.getheader(light)                          # 输入亮场头（EXPTIME/AIRMASS/DATE-OBS）
+            # 几何/SIP **取自产品**（AGENTS §13.1）：逐帧 HiPS 产品集清单
+            # <fdir>/manifest.json 的加性 `geometry` 对象（口径正本 =
+            # docs/engineering/contracts/HIPS_STORAGE_FORM.md）。原先读
+            # <fdir>/p1_wcs.json —— 该文件是中间产物，已移入工作区，产品面内不再存在。
+            geo = load_geometry(fdir)
             out.append(dict(path=light, group=grp, stem=stem, key=key, fdir=fdir,
                             panel=panel, tel=tel, date=date, time=tm,
-                            wcs_json=os.path.join(fdir, 'p1_wcs.json'),
-                            phot_json=os.path.join(os.path.dirname(pj), 'p1_phot.json'),
-                            crval1=h.get('CRVAL1'), crval2=h.get('CRVAL2'),
+                            geometry_json=os.path.join(fdir, 'manifest.json'),
+                            work_dir=work_dir,
+                            phot_json=os.path.join(work_dir, 'p1_phot.json'),
+                            flux_json=os.path.join(work_dir, 'p1_flux.json'),
+                            crval1=geo['crval1'], crval2=geo['crval2'],
                             exptime=h.get('EXPTIME'), airmass=h.get('AIRMASS'),
                             dateobs=h.get('DATE-OBS')))
     return out
 
+def load_work_dir(out_dir):
+    """中间产物工作区的**实际路径**：从运行级记账面 <out_dir>/run_context.json 的
+    `work_dir` 字段读（阶段一 CLI 写入；唯一实现 = acsd::core::resolve_work_dir）。
+    **不自行推导**命名规则——位置可被配置键 work_dir 覆盖。
+    **这些中间产物要求 keep_intermediates=true**（缺省即 true）。"""
+    with open(os.path.join(out_dir, 'run_context.json')) as f:
+        rc = json.load(f)
+    w = rc.get('work_dir')
+    if not w:
+        raise KeyError('run_context.json 无 work_dir 字段（本运行未记录工作区；'
+                       '该运行可能早于工作区落地或非阶段一）: ' + out_dir)
+    return w
+
+def load_geometry(fdir):
+    """**几何取自产品**（AGENTS §13.1）：读逐帧 HiPS 产品集清单的加性 `geometry`
+    对象（<fdir>/manifest.json）。这是解算几何（含 SIP）在产品面内的**唯一承载点**；
+    中间产物 <fdir>/p1_wcs.json 已移入工作区、产品面内不再存在。
+    口径正本 = docs/engineering/contracts/HIPS_STORAGE_FORM.md
+    「逐帧 HiPS 产品集清单 manifest.json#geometry（加性）」一节。"""
+    with open(os.path.join(fdir, 'manifest.json')) as f:
+        m = json.load(f)
+    g = m['geometry']                      # 加性对象；缺失即该帧未承载几何（fail-closed）
+    return g
+
 def load_wcs(frame):
-    """Build astropy WCS (TAN-SIP) from p1_wcs.json. 0-based array index in/out:
+    """Build astropy WCS (TAN-SIP) from the product geometry
+    (<fdir>/manifest.json#geometry). 0-based array index in/out:
     all_world2pix returns 0-based (we subtract 1 from FITS xp)."""
-    d = json.load(open(frame['wcs_json']))
-    w = d['wcs']
+    w = load_geometry(frame['fdir'])
     hdr = {}
     hdr['CTYPE1'] = w['ctype1']; hdr['CTYPE2'] = w['ctype2']
     hdr['CRPIX1'] = w['crpix1']; hdr['CRPIX2'] = w['crpix2']
@@ -61,7 +100,7 @@ def load_wcs(frame):
     hdr['NAXIS'] = 2; hdr['NAXIS1'] = 4096; hdr['NAXIS2'] = 4096
     hdr['RADESYS'] = 'ICRS'
     W = WCS(hdr)
-    if 'sip' in w:
+    if w.get('sip'):
         s = w['sip']
         def _sq(v):
             a = np.array(v, dtype=np.float64)
@@ -100,9 +139,13 @@ def sample_bilinear(arr, x, y):
     return v
 
 def load_flux(frame):
-    """Per-frame source catalog (x,y,flux,snr,background) from p1_flux.json."""
-    pj = os.path.join(os.path.dirname(frame['path']), 'p1_flux.json')
-    d = json.load(open(pj))
+    """Per-frame source catalog (x,y,flux,snr,background) from p1_flux.json.
+
+    p1_flux.json 是**中间产物**（工作区，非产品面）⇒ 路径取自运行级记账面记录的
+    work_dir（`frame['flux_json']`），**要求 keep_intermediates=true**（缺省即 true）。
+    订正：旧实现拼的是 `dirname(frame['path'])`，而 `frame['path']` 是**输入亮场**的
+    路径 ⇒ 那个拼接本来指向输入数据目录（从来取不到 p1_flux.json）。"""
+    d = json.load(open(frame['flux_json']))
     for fr in d['frames']:
         if fr['file'].replace('cleaned_', '').replace('.fts', '') == frame['stem']:
             res = fr['results']
