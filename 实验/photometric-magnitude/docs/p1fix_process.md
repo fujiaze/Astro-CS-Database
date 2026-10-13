@@ -2248,3 +2248,183 @@ S15/A11 行、注册表新增一行。
 
 **注**：本文档此前各节的表格仍使用旧键名——那是**当时的过程记录**（§13.2 过程即写、不覆盖），
 不在本次订正范围；新名以正本《键名订正与兼容窗口》为准。
+
+---
+
+# 附录 V：阶段一端到端重跑（本批次总验收）
+
+**运行命令**（标准构建、dev 开关 OFF）：
+
+```
+mem_guard --max-rss-gb <L> --timeout 14400 build/linux-control/acsd \
+    normalize --json run/PHOT-FIX/p1_rerun_final_config.json -y
+```
+
+**构建与开关实测**：`build/linux-control/CMakeCache.txt` 的
+`ACSD_DEV_MODE:BOOL=OFF`、`ACSD_DEV_INTERMEDIATE_CACHE:BOOL=OFF`、
+`ACSD_DEV_CHECKPOINT:BOOL=OFF`、`ACSD_DEV_PROBES:BOOL=OFF` ⇒ **标准构建**。
+构建指纹 `ACSD_BUILD_HEAD_SHA=5d7c86d944d7d8cb01936798b1d88abdf236cc3c`（`DIRTY=1`）；
+曲线库 `build/linux-control/config/response_curves/` **58 条**。
+
+**配置**：`run/PHOT-FIX/p1_rerun_final_config.json` = 规范副本
+`configs/p1_rerun_config.json` 的派生工作副本，**唯一差异是两个 `output_dir`**
+（指向新目录）。**规范副本未改**。两块 `m42_t2_red` 16 帧 + `m42_t3_red` 33 帧 = **49 帧**；
+每块 `filter_passband = Astrodon E-series R`、`photometry.fit.filter = Astrodon E-series R`、
+`qe_name = KAF-16803`；**无退役键**（`filters_json`/`qe_json` 已不在配置中）；
+母版与全部 49 帧输入**存在性检查通过**（缺 0）。
+
+## V.1 第一次尝试：**被内存护栏杀死**（如实记录）
+
+| 项 | 值 |
+|---|---|
+| 启动 | 11:15:31 |
+| 结束 | 11:27:24（**约 12 分钟**） |
+| 命令 | `mem_guard --max-rss-gb 14 --timeout 14400 …` |
+| 结果 | **`EXIT=137`、`exit=-9`** |
+| 护栏读数 | `KILLED label=acsd pid=330431 RSS 14.01 GiB > 上限 14.0 GiB`；`peak_rss_gb=14.013` |
+| 进度 | `t2` 完成 **8/16** 帧目录、`t3` **0/33**；日志显示 **16** 帧进入过 `Step 1` |
+| 产物 | 保留为证据目录 `run/PHOT-FIX/p1_rerun_final_attempt1_killed/`（**未删**） |
+
+**原因**：护栏上限 14 GiB **设得过紧**——本机当时可用内存读数偏低
+（首次 `free` 显示 total 20 / available 16 GB；随后为 total 23 / available 19 GB）。
+**不是节点缺陷**：被杀发生在 `t2` 的 drizzle 阶段，日志无任何 `fail-closed` 或具名错误码。
+**处置**：保留该次全部产物与日志为证据，另起新目录重跑（见 V.2），护栏上限提到 **18 GiB**。
+
+**与既有性能读数对照**：同一 `t2` 16 帧块在本会话 A4 轮（旧构建）峰值为
+**11.73–11.97 GB**；本轮 8 帧即达 **14.01 GB** ⇒ 新构建的内存占用**高于**旧构建，
+差值约 2 GB 量级（登记为观察，未定位到具体分配点）。
+
+## V.2 第二次尝试：**跑通**（总验收读数）
+
+| 项 | 值 |
+|---|---|
+| 命令 | `mem_guard --max-rss-gb 18 --timeout 14400 build/linux-control/acsd normalize --json run/PHOT-FIX/p1_rerun_final_config.json -y` |
+| 输出目录 | `run/PHOT-FIX/p1_rerun_final/`（`t2/`、`t3/` 产品面 + `t2.p1-work/`、`t3.p1-work/` 工作区） |
+| 起止 | 11:28:27 → 12:30:41，**3734 s = 62 min 14 s** |
+| `exit_code` | **0**；最终事件 `phase1 complete (blocks=2)` |
+| `run_id` / 状态 | `4b7b1066453f` / `status = "complete"` |
+| 分块时长 | `t2` 1186 s、`t3` 2179 s（`resource_summary.json`） |
+| **峰值 RSS** | **14.476 GB**（`peak_rss_gb`，上限 18 GB） |
+| 构建 | `ACSD_BUILD_HEAD_SHA=5d7c86d944d7d8cb01936798b1d88abdf236cc3c`、dev 开关全 OFF、曲线库 58 条 |
+
+### V.2.1 跑完与逐帧计数（验收 1）
+
+| 块 | 期望帧数 | 实际帧目录 | 缺失 | 多出 |
+|---|---|---|---|---|
+| `m42_t2_red` | 16 | **16** | 0 | 0 |
+| `m42_t3_red` | 33 | **33** | 0 | 0 |
+| 合计 | **49** | **49** | **0** | **0** |
+
+### V.2.2 产品面清单（验收 2，关键）
+
+**产品面 `run/PHOT-FIX/p1_rerun_final/{t2,t3}/` 顶层**：
+
+```
+<FRAME>/ × 16（t2）、× 33（t3）      ← 逐帧 HiPS 树
+p1_products.json
+acsd_run_4b7b1066453f.json   alloc_report.json   alloc_samples.csv
+graph/   master_refs.json   memory_pressure_ledger.jsonl
+resource_summary.json   resource_timeseries.csv   run_context.json   worker_balance.csv
+```
+
+**逐帧目录内容**（49/49 一致）：`signal/`、`support/`、`variance/`、`ivar/`、`manifest.json`、`p1_stack.json`。
+
+**断言：产品面**不含**任何中间产物**——对
+`{p1_snr,p1_phot,p1_sources,p1_psf,p1_flux,badcol_report}.json` 求交集为空（实测 `[]`）。
+
+**工作区**（同级兄弟目录 `{t2,t3}.p1-work/`）**存在**，顶层 **12 类**，
+其 `<FRAME>/` 内另有 2 项 ⇒ **共 13 类中间产物**：
+
+| # | 工作区产物 | # | 工作区产物 |
+|---|---|---|---|
+| 1 | `badcol_<FRAME>.fts` | 8 | `p1_phot.json` |
+| 2 | `badcolsrc_<FRAME>.fts` | 9 | `p1_psf.json` |
+| 3 | `calibrated_<FRAME>.fts` | 10 | `p1_snr.json` |
+| 4 | `cleaned_<FRAME>.fts` | 11 | `p1_sources.json` |
+| 5 | `photoapplied_<FRAME>.fts` | 12 | `<FRAME>/p1_final.json` |
+| 6 | `badcol_report.json` | 13 | `<FRAME>/p1_wcs.json` |
+| 7 | `p1_flux.json` | | |
+
+### V.2.3 通带与几何 provenance（验收 3）
+
+**通带身份**（两块同值，取自 `{t2,t3}.p1-work/p1_phot.json` 的 `passband_identity`）：
+
+| 项 | 声明值 | 解析库键 | 来源文件 | 点数 | gate |
+|---|---|---|---|---|---|
+| 滤镜 | `Astrodon E-series R` | `Astrodon E-series R` | `build/linux-control/config/response_curves/Astrodon_E_series_R.json` | 88 | `enforced (curve identity == declared filter name)` |
+| QE | `KAF-16803` | `KAF-16803` | `…/response_curves/KAF_16803.json` | 343 | — |
+
+**守卫行数**：`C_abs 二元组守卫` **0**、`C_abs 参考通带守卫` **0**、日志中 `fail-closed` **0**。
+
+**逐帧几何**（**全部 49 帧**核验，非抽样）：帧内清单 `manifest.json` 的 `geometry` **49/49 存在**；
+与工作区 `p1_wcs.json` 的 `wcs` 在 `crval1/crval2/crpix1/crpix2/cd11/cd12/cd21/cd22` 上
+**49/49 逐位相同**（容差 1e-12）；`sip.a` **49/49 非空**。抽样读数：
+
+| 块 | 帧 | `crval` | `ctype` |
+|---|---|---|---|
+| t2 | `M42_M1_T2_…-20251212_012404` | (83.28357233693426, −6.374461934745007) | `RA---TAN-SIP` / `DEC--TAN-SIP` |
+| t2 | `M42_M1_T2_…-20251224_031410` | 同族 | 同 |
+| t3 | `M42_M1_T3_…-20251126_041940` | 同族 | 同 |
+| t3 | `M42_M1_T3_…-20251127_042719` | 同族 | 同 |
+
+### V.2.4 `m5` 与零点路径（验收 4）
+
+| 块 | 帧数 | `m5` 非空 | `reference_flux_source` | `snr_reference_scope` | `m5` 中位 | 范围 |
+|---|---|---|---|---|---|---|
+| t2 | 16 | **16/16** | **`fixed_magnitude`** | `frame_independent_fixed_magnitude` | 20.2926 | — |
+| t3 | 33 | **33/33** | **`fixed_magnitude`** | `frame_independent_fixed_magnitude` | 20.2783 | — |
+
+⇒ **49 帧全部产出 `m5`，零点路径全部为 `fixed_magnitude`**（按二元组命中，无 fail-closed）。
+
+### V.2.5 `sigma_location_se_dex`（验收 5）
+
+| 块 | 帧数 | 非 0 帧数 | 状态 | 中位 | 范围 |
+|---|---|---|---|---|---|
+| t2 | 16 | **16** | 全部 `ok` | **1.518365e-03** | [8.8473e-04, 2.3440e-03] |
+| t3 | 33 | **33** | 全部 `ok` | **1.080217e-03** | [5.9252e-04, 2.6693e-03] |
+
+⇒ **49/49 帧非 0、状态全部 `ok`** ⇒ 「零点标准误不再恒 0」在本批实测成立。
+（该键位于 **`p1_snr.json`**，**不在 `p1_phot.json`**——登记为读数位置口径。）
+
+### V.2.6 帧级失败（验收 7）
+
+- `p1_phot.json`：`n_frames_failed = 0`（t2、t3 均 0）、`failed_frames = []`。
+- `p1_snr.json`：**49/49 帧**均带同一条**口径性**标注
+  `snr_degraded_reason = "gain_unknown: source shot-noise term F*P_i/g is not computable without g; … SNR is an UPPER BOUND"`，
+  对应 `snr_caliber = upper_bound_no_gain`、`n_frames_absolute_snr = 0`、`n_frames_upper_bound_no_gain = 49`。
+  ⇒ 这是**配置未声明增益**导致的全批统一口径，**不是帧级失败**，**未从统计中剔除任何帧**。
+
+### V.2.7 自描述性 smoke（验收 8）
+
+从**产品自身**取帧集与几何（不依赖配置）：
+
+| 读数 | 值 |
+|---|---|
+| 从产品目录枚举的帧数 | **49**（t2 16 + t3 33） |
+| `p1_products.json` 的 `frames` 数 | t2 **16**、t3 **33** |
+| 从帧内清单取几何 | 49/49 帧有 `geometry`（含 `crval`/`crpix`/`CD`/`ctype`/`sip`） |
+| 与解算几何一致 | **49/49 逐位相同** |
+
+⇒ 产品面**自描述**：仅凭产品即可取到「帧集 + 几何」，无需回读配置。
+
+## V.3 结论（验收 10）
+
+**阶段一在本批次可判「修完并跑通」**，依据逐项：
+
+1. **跑通**：两块完成、`exit_code=0`、**49/49** 帧目录、`status=complete`；
+2. **产品面干净**：产品面**只有**逐帧 HiPS 树（`signal/support/variance/ivar` + `manifest.json` +
+   `p1_stack.json`）+ `p1_products.json` + 运行级记账；**13 类中间产物全部在工作区**（断言通过）；
+3. **通带与几何**：声明→解析→来源三段落齐全、gate enforced；**守卫 0 行**；
+   逐帧几何 **49/49** 存在且与解算几何**逐位一致**（含 SIP）；
+4. **`m5`**：**49/49 产出**，零点路径**全部 `fixed_magnitude`**；
+5. **`sigma_location_se_dex`**：**49/49 非 0、全部 `ok`**；
+6. **帧级失败**：**0**；全批统一的 `gain_unknown` 是口径标注、非失败，未剔除任何帧；
+7. **性能**：wall **3734 s**、峰值 RSS **14.476 GB**；
+8. **自描述**：产品面可独立取到帧集与几何。
+
+**仍需如实保留的边界**：
+- 本批 `m5` 为 **`upper_bound_no_gain`（上限）**，非绝对深度（配置未声明增益）；
+- 单一天区/单次运行，**未做跨运行重复性**；
+- **首次尝试被内存护栏杀死**（V.1）——护栏上限设得过紧所致，已保留全部证据；
+  新构建的峰值 RSS（14.476 GB）**高于**本会话旧构建同规模读数（11.7–12.0 GB），
+  **差值未定位到具体分配点**，登记为观察。
