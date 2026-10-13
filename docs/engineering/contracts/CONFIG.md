@@ -50,7 +50,7 @@
 - 校验判据：字段数 == 带 unit 数 == 带 source 或 pending_authority 数，来源不明字段 == 0；
   且**非 pending 字段的 unit 一律为具体单位**（`unspecified` 只属 pending 字段）；每个 `source_ref` 必须是**内容锚**
   `{id,path,quote,sha256,value_text}`——引文在目标文档内**唯一**命中（区分力自检）、指纹自洽、`value_text` 落在引文内。
-  锚形态规则正本 = `../../detail/anchors/ANCHOR_CONTRACT.md` 的「4. 内容锚（content anchor）」一节；
+  锚形态规则正本 = `eng/contracts/anchors/anchor_contract.json`（机读件，跨域豁免登记；内容锚形态规则见其 `resolvers`/`bindings`/`exemptions` 三段的语义说明）；
   登记面与校验判据一律**不内嵌行号**：需要位置信息时用「锚 id + 内容指纹」。
 - 分组与来源（只转录，不改数值）：
 
@@ -250,7 +250,7 @@ negative: "bader r" | "bader v" | "baader r" | "BAADER R" | "Baader  R" | " Baad
 ```
 
 - **枚举锁定退役**：三份 phase_config schema 不再持有滤镜枚举（`$defs.filter_name` 的 45 键枚举与"运行时扫描、用户可增减"根本矛盾）；schema 只约束**字符串形态**，名字存在性由运行时扫描集判定。
-- 正反例由门 CFG002-04 在每个消费滤镜的 phase（normalize/mosaic）上**双向**复跑：反例必须被拒（`unknown_filter`）、正例必须在**扫描集**中命中；反例串的权威锚点 = 本节的负例表（内容锚形态，位置不入册）。最高设计不含这两个反例串，故锚点只落在本文件（规则正本 = `../../detail/anchors/ANCHOR_CONTRACT.md` 的「4. 内容锚（content anchor）」一节：位置优先用内容锚表达，不写行号）。
+- 正反例由门 CFG002-04 在每个消费滤镜的 phase（normalize/mosaic）上**双向**复跑：反例必须被拒（`unknown_filter`）、正例必须在**扫描集**中命中；反例串的权威锚点 = 本节的负例表（内容锚形态，位置不入册）。最高设计不含这两个反例串，故锚点只落在本文件（规则正本 = `eng/contracts/anchors/anchor_contract.json`：位置优先用内容锚表达，不写行号）。
 - 归一化被**显式拒绝**（不是「暂未实现」）：本机制不存在别名表（`aliases` 概念随旧 `lookup` 数据面退役）；将来要支持别名必须先登记（登记=改合同，需权威条款 + 校验项 + 迁移说明）。
 - **`None` 与 `""` 的关系**：`None` 是扫描集里的一个合法曲线名（`channel="NONE"`，可做通带积分）；`""` 不是曲线名，而是 `filter_passband` 的 `const`（本次未使用滤镜，通带积分不适用）。二者语义不同、并存。
 
