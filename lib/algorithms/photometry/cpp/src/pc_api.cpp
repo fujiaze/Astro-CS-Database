@@ -1153,6 +1153,17 @@ int run_with_gaia_impl(
             const pc::StarMatch& sm = raw_matches[(size_t)mi];
             rec.dr3sp_id = make_dr3sp_id(gaia_ra[sm.gaia_idx], gaia_dec[sm.gaia_idx]);
             rec.reference_flux = sm.f_syn;
+            // ── PER-STAR-EXPORT-01：逐星导出字段的**填充路径**（本处即落地）──────
+            // `f_instr` = 该星 PSF 域解析通量；`gaia_mag` = 该星 Gaia G 星等。
+            // 二者此前**只声明未填充**（读出来是 vector 值初始化的 0.0 ⇒ 会被误读成
+            // "通量为 0 的星"），且产物不落逐星量 ⇒ 逐星颜色无法测。
+            // 口径：非有限/≤0 的仪器通量如实写 NaN（**不留 0.0**）。
+            rec.f_instr = (std::isfinite(sm.f_instr) && sm.f_instr > 0.0)
+                              ? sm.f_instr
+                              : std::numeric_limits<double>::quiet_NaN();
+            rec.gaia_mag = std::isfinite(gaia_mag[sm.gaia_idx])
+                               ? gaia_mag[sm.gaia_idx]
+                               : std::numeric_limits<double>::quiet_NaN();
             if (sm.f_instr > 0.0 && sm.f_syn > 0.0) {
                 rec.residual = std::log10(sm.f_instr / sm.f_syn);
             }

@@ -2211,3 +2211,20 @@ aio 的 `write_atomic` 明确父目录由调用方建）；收尾清理接线于
 与工作区 `<frame_key>/p1_wcs.json#wcs` **12 字段 + SIP 四数组逐位一致**；`load_work_dir` 默认与覆盖
 两种运行均取到正确工作区；`load_flux` 取到 2419 源；`load_wcs` 由产品几何构造且 SIP 在场；帧集一致。
 **限制**：`run/RELEASE-02/L4-rebuild` 不在本工作区 ⇒ 这些校验脚本**仍无法端到端跑**，以上为数据级替代证据。
+
+### 追加 · A6/A7/A8/A10（逐星诊断走调试开关 + 修「恒为 0」的产物字段）
+
+- **A6 根因**：逐星导出字段 `PcMatchRecord::f_instr` / `gaia_mag` 在公开头**只声明未填充**
+  （`lib/algorithms/photometry/cpp/include/photometric_calib.h:56-67` 头注即要求「填充路径必须
+  对未匹配/非有限值显式写 NaN」）⇒ 读出为 vector 值初始化的 `0.0`，且产物不落逐星量 ⇒ 逐星颜色
+  `(G−R)_i + C_R` 无法测。判定 = **已声明缺口未落地**（非有意近似）。修法：在星匹配的 matched 分支
+  （`pc_api.cpp`，`sm.f_instr`/`gaia_mag[sm.gaia_idx]` 已在手）填充，非有限/≤0 写 NaN。
+- **A7 修正**：`sigma_location_se_dex` 此前只从配置 `snr.sigma_logflux_dex`/`snr.n_matches` 取 ⇒
+  生产配置不给 ⇒ 恒 0。改为：配置显式声明时沿用；未声明时由**该帧** `p1_phot.json#photscale_fit`
+  的 `sigma_residual_dex` + `n_matched` 按 `1.253·σ/√N` 导出。实测 1 帧：
+  `0.0 → 0.0010677022157859271`（= 1.253·0.025930122372967417/√926 ✓），status → `ok`；
+  `frame_depth_m5_mag` / `median_source_snr` / `snr_reference` **逐位不变**（只影响三个零点标准误读数）。
+- **A8/A10**：逐星诊断（`f_instr` / `gaia_mag` / `f_syn` / `r_i` / `colour_i_mag` / `inlier`）只在
+  构建期调试开关 `ACSD_DEV_MODE` 打开时产出，落点 = **工作区** `<work_dir>/p1_phot_stars_<frame_key>.json`
+  （产品面零文件）。实测：ON ⇒ 2419 行 / 926 inlier；OFF ⇒ 不产出，且产品面与 ON **逐字节一致**
+  （仅 `properties` 时间戳）。标准构建（宏 OFF）下该代码不参与编译 ⇒ 交付形态不含该分支。

@@ -1,5 +1,7 @@
 #ifndef ACSD_PHOTOMETRY_FRAME_FIT_H
 #define ACSD_PHOTOMETRY_FRAME_FIT_H
+// A8/A10 逐星诊断需要 PcMatchRecord（公开头；逐星导出字段的载体）。
+#include "../include/photometric_calib.h"
 // ============================================================================
 // frame_photometry_fit.h - 单帧测光比例 k_photo 的**文件无关**装配入口
 //
@@ -114,6 +116,14 @@ enum class FitFailureScope : uint8_t {
 };
 
 struct FramePhotFitResult {
+  // ── A8/A10 逐星诊断（**非产品面**；只在调试开关打开时由节点写进工作区）──────
+  // 逐星行 = PSF 行索引域（与 `PcMatchRecord` 同域、与零点锥形搜索星表**不同域**）。
+  // 每行给：`star_id`、`f_instr`（PSF 域解析通量）、`gaia_mag`（Gaia G）、
+  // `reference_flux`（= F_syn，由该星 XP 绝对谱经本帧 (滤镜, QE) 正向合成）、
+  // `residual`（r_i = log10(F_instr/F_syn)）、`status`（1 = IRLS inlier）、
+  // `reject_reason`。逐星颜色由下游按 `colour_i = gaia_mag + 2.5·log10(F_syn)`
+  // 导出（= (G−R)_i + C_R；见正本「帧级天区合成颜色项读数键」一节）。
+  std::vector<PcMatchRecord> stars;
   int rc = -1;                  // 0=成功算出 k_photo; <0 失败/未产出标度
   double k_photo = 1.0;         // 10^(-location)
   // 失败作用域（见 FitFailureScope 的逐值语义）。fit_ok=true 时恒为 kNone。
