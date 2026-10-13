@@ -96,7 +96,7 @@ stage2.cpp 与积分一致传入（内核面）。
 
 | 字段 | 默认 | 单位 | 说明 |
 |---|---|---|---|
-| 施加语义（唯一） | `corrected = raw − δ_k` | —— | 一次扣除单语义：`δ_k = δ_poly,k + F_k`，`F_k` 为拟合残差上的逐帧场（构建时已去跨帧公共模，每个格点 `Σ_k w_k F_k ≡ 0`），由块坐标联合解给出（`p2_sky_plane_build_joint`）。产物加权平均电平不变，真实信号按构造保留。`seam.additive_mode` 三档（c/delta/both）退役，出现即判错 |
+| 施加语义（唯一） | `corrected = raw − δ_k` | —— | 一次扣除单语义：`δ_k = δ_poly,k + F_k`，`F_k` 为拟合残差上的逐帧场（构建时已去跨帧公共模，每个格点 `Σ_k w_k F_k ≡ 0`），由块坐标联合解给出（`p2_sky_plane_build_joint`）。产物加权平均电平不变；加权平均电平不变不等于无偏恢复真实低频辐射，其成立前提见 `docs/science/sky/UPM.md` 的一致性一节。`seam.additive_mode` 三档（c/delta/both）退役，出现即判错 |
 | `sky_plane.enabled` | 开（`true`） | —— | 是否构建 / 落盘信号面产品（公共面 + 联合解逐帧场）。面是生产必需产物，缺省必建；显式 `false` 时 apply 侧缺面即 fail-closed（实现 = module_adapters.cpp 的 `sp_cfg.value("enabled", true)`） |
 | `sky_plane.own_surface_step_deg` | 0.02 | deg | 逐帧场 F 的格点间距（表示基频）。0.02–0.04° 为实测甜点；过粗中段变差、过细吃噪声。实现 = `spc.own_surface_step_deg` |
 | `sky_plane.joint_outer_iterations` | 1 | 层 | 块坐标联合解的迭代层数（0 = 退回"公共面 + 低阶项"）。实现 = `spc.joint_outer_iterations` |
@@ -176,7 +176,7 @@ Oracle 面：
 - **非退化接缝判据**（见 fit 页）：在**保留 `B_ref`** 的前提下比较帧间一致性；
   判据量取有符号台阶并套适用域；负例 = 注入已知台阶必判红、两侧噪声差大但无台阶
   必判绿、旧方差比口径在同一输入上判绿（盲区复现）；
-- **施加语义判别 oracle**：在控制点重叠面上复算死约束
+- **施加语义判别 oracle**：在控制点重叠面上复算重叠区一致性关系
   `D_i − D_j = raw_i − raw_j`，逐臂比较扣除量。生产臂 = 逐帧低阶偏差 δ_k
   （落回公共面）；负例 = 用逐帧分块校正场（跨瓦片不连续、无观测格子取 0），
   成品上必现瓦片菱形格与帧足迹矩形台阶，实测瓦片边界跳变 5e-06 ~ 1.5e-04、
