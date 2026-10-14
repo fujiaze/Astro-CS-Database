@@ -1,5 +1,8 @@
 # ACSD 统一科学模型 V2：DeepSeek Agent 代码实施任务
 
+> **已被本轮 Normalize 科学/代码设计收敛暂时取代。不要直接执行本文件此前的多阶段实验与代码改造顺序。** 用户已经决定先由前台亲自收敛设计，暂不启动 Mosaic 权重切换、曲边/HST 批量实验或其它跨阶段运行任务。本文件保留为**旧执行历史和参考材料**，不再拥有科学设计/优先级决定权。当前唯一阶段一科学正本：docs/science/normalize/NORMALIZE_SCIENCE.md；工程实现设计：docs/engineering/architecture/NORMALIZE_PIPELINE.md；冲突裁决：docs/engineering/governance/NORMALIZE_CONVERGENCE.md。此声明不意味着 Agent 的旧执行结果被删除，也不意味着阶段一代码已经实施完成。
+
+
 
 > **2026-10-14 新一轮权威补充**：第一轮 Agent 完成至 f8c011bad3001fd9dd3ac993dc3ae945d3fabb4e。下一轮动手之前必须先读 实验/engineering-evidence/acsd-science-docs-p5/SCIENCE_V2_AGENT_INDEPENDENT_REVIEW_F8C011BAD.md；该文件对 R3、gain、31 帧 WCS、FAULT 注入给出前台裁决，并指出 F01–F07 的实际错误/语义冲突。旧本包对“R0D 尚未实现”“coverage 仍会 filter mismatch”“Phase2 仍输出四层”等陈述只描述旧基线，不覆盖 f8c011bad 以后已核实代码。数学有效域更正以 docs/science/noise_snr/NOISE_SNR.md §4.2 为准，诊断更正以 docs/engineering/standards/DIAGNOSTIC_PROBES.md §9A 为准。
 
