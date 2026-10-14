@@ -1,7 +1,11 @@
 {
  "schema": "ACSD S03 P5 component-gauge evidence v1",
  "base_sha": "e31b2be66ffe37d547e67a4ba007e7257e49789d",
- "build": "build/linux-sci (Ninja/Release, +ge31b2be66)",
+ "build": {
+  "lead_regression_build": "build/linux-sci (Ninja/Release, +ge31b2be66)",
+  "executor_regression_build": "build/linux-sci-p5",
+  "note": "two independent build dirs; headline readings agree (S9b A0 0.1281497171821252 -> 0.0005981665755358275)"
+ },
  "source": {
   "file": "lib/algorithms/coverage/src/sky_plane.cpp",
   "sha256_after": "1c0024fa3c7a94cbb7fccf923bcf0756ea3fde243928966f8bb385e4f8d830e8"
@@ -177,9 +181,32 @@
  },
  "negative_control": {
   "env": "ACSD_SKY_P5_FAULT=global_anchor",
-  "observed": "rc=7 with 'P5 per-component identifiability RED: component_id=1 frames=2 anchor=2 rank_eff=118 < n_free'",
+  "observed_rc": 7,
+  "error": "P5 per-component identifiability RED: component_id=1 frames=2 anchor=2 rank_eff=118 < n_free=127 (unidentified=9, ...)",
+  "fault_per_component": {
+   "comp0": {
+    "rank": 160,
+    "n_params": 160,
+    "n_unidentified": 0,
+    "status": 0
+   },
+   "comp1": {
+    "rank": 118,
+    "n_params": 127,
+    "n_unidentified": 9,
+    "kappa": -1.0,
+    "status": 1
+   }
+  },
+  "fault_global": {
+   "rank": 256,
+   "n_free": 256,
+   "n_unidentified": 0,
+   "identifiable": 1,
+   "kappa": 3890461309.6218023
+  },
   "judged": "RED_AS_PREDECLARED",
-  "note": "with the per-component identifiability gate in place the fault is caught (fail-closed) rather than producing the drifted product; an earlier pre-gate build reproduced the 0.1281497171821252 drift bit-exactly."
+  "why_it_matters": "under the fault the WHOLE-product gate reads rank 256/256, identifiable=1, kappa=3.89e9 and would pass; only the per-component gate exposes comp1 rank 118/127 with 9 unidentified. This is exactly D-02 section 3/4."
  },
  "per_component_diagnostic": {
   "env": "ACSD_SKY_COMPONENT_DUMP=<path>",
@@ -191,32 +218,46 @@
      0,
      1
     ],
+    "edge_count": 1,
     "cell_edges": 192,
-    "rank": 119,
+    "rank": 160,
     "n_params": 160,
-    "n_unidentified": 41
+    "n_unidentified": 0,
+    "kappa": 13239.551590965882,
+    "lambda_min": 0.00045050628376331063,
+    "support_frac": 0.6486486486486487,
+    "status": 0,
+    "cross_component_comparable": 1
    },
    "comp1": {
     "frame_ids": [
      2,
      3
     ],
+    "edge_count": 1,
     "cell_edges": 96,
-    "rank": 88,
+    "rank": 127,
     "n_params": 127,
-    "n_unidentified": 39
+    "n_unidentified": 0,
+    "kappa": 38296.54493571422,
+    "lambda_min": 0.0001768858856783397,
+    "support_frac": 0.35135135135135137,
+    "status": 0,
+    "cross_component_comparable": 1
    },
    "global": {
     "rank": 256,
     "n_free": 256,
-    "identifiable": 1
+    "n_unidentified": 0,
+    "identifiable": 1,
+    "kappa": 36617.23468972051
    },
    "gauge": {
     "applied": 2,
     "expected": 2,
     "explicit_ok": 1
    },
-   "solve_perturbation_gain": 4376.8954481521605
+   "corrected": "these are the FINAL-source readings (source sha256 1c0024fa3c7a94cb). An intermediate build (before the executor fixed H_C to include anchor-frame data rows) gave the stale values comp0 rank 119/160 n_unidentified 41 and comp1 rank 88/127 n_unidentified 39; those MUST NOT be quoted."
   },
   "why_it_matters": "per-component rank/n_unidentified reveal the structural failure that the whole-product identifiable=1 masks (D-02 section 3/4)."
  },
