@@ -117,7 +117,7 @@
   "2": 196,
   "0": 196
  },
- "n_evaluable_note": "n_evaluable_by_ctrl_shift[N] = 若把对照线偏移从 200 px 降到 N px，两侧各有 >=20 个有效样本（即 margin_px >= N）的边界条数。N=200 给出 114（现判据覆盖）；N=32 给出全部 196 ⇒ 82 条被排除的边界**不是无观测**，而是固定 200 px 对照偏移超出局部足迹余量。在 N<200 上重算 rel_step 会改变对照基线（更接近边界的梯度估计），必须重跑生产门才能出判据值 ⇒ 本轮登记 NOT_RUN。",
+ "n_evaluable_note": "n_evaluable_by_ctrl_shift[N] = 若把对照线偏移从 200 px 降到 N px，两侧各有 >=20 个有效样本（即 margin_px >= N）的边界条数。N=200 给出 114（现判据覆盖）；N=4 给出全部 196（N=32 给出 151） ⇒ 82 条被排除的边界**不是无观测**，而是固定 200 px 对照偏移超出局部足迹余量。在 N<200 上重算 rel_step 会改变对照基线（更接近边界的梯度估计），必须重跑生产门才能出判据值 ⇒ 本轮登记 NOT_RUN。",
  "followup": {
   "experiment_id": "P5-D-boundary-coverage",
   "status": "NOT_RUN",
