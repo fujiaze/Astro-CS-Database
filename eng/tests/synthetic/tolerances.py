@@ -437,6 +437,43 @@ SYNTH_INSTRUMENT_SOURCE_NOTE = """\
 """
 
 
+#: 面亮度最优权重 w_B 达到 Cramér–Rao 下界的 MC 相对偏差半宽。
+#: σ 的推导：n 点样本方差的相对标准差 √(2/(n−1))；取 n = 4000 ⇒ σ ≈ 0.0224；
+#: 半宽 = Z95·0.0224 = 0.0439，**冻结取 6.0e-2（向上取整）**。
+SYNTH_R3_WB_CRB_REL = Frozen(
+    "synth.r3.wb_crb_rel", 6.0e-2,
+    "无量纲相对量；被比较量 = Var(B̂|w_B)/CRB − 1，真值 0.0，域 0–1；n = 4000 MC",
+    "科学推导：样本方差的相对标准差 √(2/(n−1))（标准抽样分布，与"
+    " synth.mc.var_ratio_ci95 同族）；分位数法口径见 synth.mc.method",
+    "判据只检验『w_B 确实达到 CRB』这一最优性，不检验 CRB 本身的绝对正确性"
+    "（后者由解析式 1/Σ(1/V_B) 独立给出）。",
+)
+
+#: 旧权重 w_F 与等权（T≡1）相对 CRB 的**超出量**下限。
+#: 这是一个不等式判据：超出量必须为正。取一个有物理意义的构造下界
+#: （对应 Var 比 CRB 至少高 1%），远小于两臂世界的实际超出量（约 5%–30%），
+#: 因此不会因为 MC 噪声误判；也不会因为世界构造太弱而恒真。
+SYNTH_R3_SUBOPTIMAL_EXCESS = Frozen(
+    "synth.r3.suboptimal_excess_min", 1.0e-2,
+    "无量纲比值；被比较量 = Var(B̂|w)/CRB − 1，下限 1.0e-2，域 0–1；n = 4000 MC",
+    "科学推导：非最优权重的方差上界式 Var = Σw²V/(Σw)² ≥ 1/Σ(1/V)（Cauchy–Schwarz），"
+    "取等条件恰为 w ∝ 1/V；构造世界里权重比偏离最优比 ⇒ 超出量可解析预估。",
+    "⚠ 这是**不等式**判据（超出量 > 下限），不是等式判据。下限故意取得远低于"
+    "构造世界的实际超出量：若某实现给出 0 < 超出量 < 下限，那是世界构造太弱，"
+    "应增强构型而不是放宽下限。",
+)
+
+#: 阳性反例里 w_F 与 w_B 合成差的中位数绝对值下限。
+#: MC 中位数对单样本噪声稳健；取 1e-12 只为挡浮点恒等，真值远大于此。
+SYNTH_R3_BLEND_DIFF_MIN = Frozen(
+    "synth.r3.blend_diff_min_abs", 1.0e-12,
+    "面亮度单位；被比较量 = median|B̂(w_F) − B̂(w_B)|，下限 1e-12；200 seeds",
+    "科学推导：两权重族不同 ⇒ 加权平均一般不同；当且仅当权重比相同"
+    "（阴性世界）时逐位相等。下限只挡浮点恒等，不参与量级判断。",
+    "与 r3-a 阴性世界配对：阴性世界必须逐位相等，阳性世界必须显著不等。"
+    "一对判据同时成立才证明『差异来自 T 而非实现误差』。",
+)
+
 # ---------------------------------------------------------------------------
 # §7 冻结表自检
 # ---------------------------------------------------------------------------
@@ -448,6 +485,7 @@ FROZEN_TABLE = {f.key: f for f in (
     SYNTH_P1_LINEAR_SCALE, SYNTH_P1_INTEGRATED_FLUX, SYNTH_P2_CROSS_FRAME_SPREAD,
     SYNTH_P3_FLUX_CONSERVATION, SYNTH_P4_DENSE_SNR, SYNTH_P5_SEAM_RESIDUAL,
     SYNTH_P5_SKY_RESIDUAL,
+    SYNTH_R3_WB_CRB_REL, SYNTH_R3_SUBOPTIMAL_EXCESS, SYNTH_R3_BLEND_DIFF_MIN,
     SYNTH_FIXTURE_M16_BAND, SYNTH_FIXTURE_M16_WINDOW, SYNTH_FIXTURE_M16_WINDOW_PX,
 )}
 
@@ -458,6 +496,8 @@ P_PLACEHOLDER_KEYS = {
     "P3": ("synth.p3.flux_conservation_rel",),
     "P4": ("synth.p4.dense_snr_rel",),
     "P5": ("synth.p5.seam_residual_rel", "synth.p5.sky_residual_rel"),
+    "R3": ("synth.r3.wb_crb_rel", "synth.r3.suboptimal_excess_min",
+           "synth.r3.blend_diff_min_abs"),
 }
 
 
