@@ -138,6 +138,14 @@ docs/science/algorithms/mosaic/PHASE2_MOSAIC_WRITE.md 曾以 signal/support 输�
 
 **应改**：将故障注入限制在专用测试/实验构建、测试编排的显式注入接口或独立执行程序；生产始终使用正常数学路径。这是代码可信性与维护问题，不是审批流程门禁。
 
+### D19 — 开发诊断构建分散且可能改变科学路径（新增工程差异）
+
+CMakeLists.txt 确有独立 `ACSD_PROBES` 性能开关与 `ACSD_DEV_MODE`、`ACSD_DEV_INTERMEDIATE_CACHE`、`ACSD_DEV_CHECKPOINT`、`ACSD_DEV_PROBES` 并存。已有 `lib/infrastructure/observability/probes/include/acsd/probe.h` 和 `src/probe.cpp` 提供 steady_clock、线程本地批量 JSONL 性能探针，但其编译/运行期触发与 ACSD_DEV_MODE 并不相同。旧版 DEV_MODE.md 曾记录阶段一某些节点通过盘上中间文件读回，编译宏可能改变该文件缺失时的回退行为，当前尚未证明 ON/OFF 科学等价。现有 `ACSD_NODE_TRACE`、`ACSD_UPM_PROFILE` 等独立 env 路径和 `ACSD_*_FAULT` 实验注入亦需分离。
+
+**用户确认的目标**：一个公开编译开关 `ACSD_DEV_MODE=ON/OFF`，ON 编入被动科学快照与详细性能探针，OFF 彻底不编译这些详细诊断能力。允许开发版按 ROI/tile/节点与预算选择写出，发布版正式科学日志与产品不变；科学数据通路不得随宏切换。纯调试 snapshot 只能旁路观察输出块、不供下游读回，性能探针复用已有 infrastructure/probes 而非重新造计时库，写盘由统一 AIO 完成。Checkpoint/续跑可能改变流程，不属于被动诊断开关。
+
+**独立对照**：同一输入 OFF/ON(no diagnostics)/ON(perf)/ON(snapshot) 的科学输出、计算依赖、编译符号、开发工作区、性能开销与诊断失败；必须明确目前是**待实现目标**。正本：docs/engineering/architecture/DEV_MODE.md、docs/engineering/standards/DIAGNOSTIC_PROBES.md。Agent 实施范围在 SCIENCE_V2_AGENT_TASK_PACKAGE.md §0A。
+
 ## 3. 不改哪些有效设计
 
 - 三条命令互相独立，阶段间通过 HiPS/manifest 交换。
