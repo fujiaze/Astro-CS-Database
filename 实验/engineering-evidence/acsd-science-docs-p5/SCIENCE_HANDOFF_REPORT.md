@@ -6,7 +6,7 @@
 >
 > - 分支：`audit/acsd-science-docs-p5`
 > - 交接基线（工作包 pinned）：`e31b2be66ffe37d547e67a4ba007e7257e49789d`
-> - 起草时 HEAD：**`d025932d1`**（完整 SHA 见表 A）
+> - 起草时 HEAD：**`ceca`**；刷新时 HEAD：**cec31850d**（完整清单见表 A，共 25 个提交）
 > - 仓库：`https://github.com/fujiaze/Astro-CS-Database`
 > - 科学正本：`docs/ACSD_DESIGN.md`、`docs/science/**`（本报告不改这些文件）
 > - 原始 FITS 一律未上传（仅索引、哈希与头部摘要）；`testdata/` 零改写
@@ -26,20 +26,33 @@
 
 ## 1 提交清单（表 A，按时间序）
 
-| # | commit | 主题 | 主要变更面 |
-|---|---|---|---|
-| 1 | `6e0aa96ff` | science(S00)：真实帧轻量索引与哈希清单 | `实验/shared/data_catalog.json` |
-| 2 | `183b83c73` | fix(drizzle)：P3 `ε_j` 的两处近简并叉积缺陷 | `lib/algorithms/drizzle/healpix_drizzle/spherical_overlap.cpp` |
-| 3 | `9f1e99f2a` | test(p3)：drop 边法向精度律的独立 Oracle | `实验/healpix-polar/code/s02_p3_normal_precision_oracle.py` |
-| 4 | `f679a34bb` | test(p3)：1500 格独立并行回归矩阵 + 微小多边形面积误差源订正 | `实验/healpix-polar/{REPORT_experiment.md,code,docs}` |
-| 5 | `449278205` | refs(S01)：修文献登记件字面量换行缺陷 + 机器可核验引文审计 | `实验/shared/references/**` |
-| 6 | `120e75c28` | fix(coverage)：P5 断连重叠图改为逐分量 gauge 并加逐分量判据 | `lib/algorithms/coverage/src/sky_plane.cpp` |
-| 7 | `535f891e7` | fix(evidence)：订正 S03 逐分量诊断过期读数 + 全图/逐分量判据分裂对照 | `实验/additive-sky-seamless/**` |
-| 8 | `061271253` | test(p1)：S04 复验专节 + 可复跑脚本 | `实验/photometric-magnitude/**` |
-| 9 | `fd52161d9` | test(p5)：S03 执行者 canonical 证据与回归脚本 | `实验/additive-sky-seamless/**` |
-| 10 | `a73f577b0` | docs(p5)：S03-exec 附录 + Lead 七条裁决 | `实验/additive-sky-seamless/REPORT_experiment.md` |
-| 11 | `4a0a3dc4a` | test(S09)：两处生产补丁的测试集零回归基线对照 | `实验/engineering-evidence/acsd-science-docs-p5/S09_TEST_REGRESSION_BASELINE.md` |
-| 12 | `d025932d1` | test(p4)：S06 复验专节 + P4 证据 JSON + 可复跑脚本 | `实验/dense-snr-reconstruct/**` |
+| # | commit | 主题 |
+|---|---|---|
+| 1 | `6e0aa96ff` | science(S00): 建立 P1-P5 实验用的真实帧轻量索引与哈希清单 |
+| 2 | `183b83c73` | fix(drizzle): 修 P3 逐 drop 完备性 epsilon_j 的两处近简并叉积条件数缺陷 |
+| 3 | `9f1e99f2a` | test(p3): 补 drop 边法向精度律的独立 Oracle（不链接生产库） |
+| 4 | `f679a34bb` | test(p3): 补 S02 独立并行回归矩阵（1500 格）与微小多边形面积误差源订正 |
+| 5 | `449278205` | refs(S01): 修文献登记件字面量换行缺陷并加机器可核验引文审计 |
+| 6 | `120e75c28` | fix(coverage): P5 断连重叠图改为逐分量 gauge 并加逐分量判据 |
+| 7 | `535f891e7` | fix(evidence): 订正 S03 逐分量诊断的过期读数并补全图/逐分量判据分裂对照 |
+| 8 | `061271253` | test(p1): S04 第二轮复验专节 + 可复跑脚本（P1 真实帧光度与颜色误差归因） |
+| 9 | `fd52161d9` | test(p5): 补 S03 执行者的 canonical 证据与回归脚本 |
+| 10 | `a73f577b0` | docs(p5): 提交 S03-exec 附录并落 Lead 对 S03 的七条裁决 |
+| 11 | `4a0a3dc4a` | test(S09): 记录两处生产补丁的测试集零回归基线对照 |
+| 12 | `d025932d1` | test(p4): S06 复验专节 + P4 证据 JSON + 可复跑脚本（重建统计目标与域外失败） |
+| 13 | `448b76163` | docs(S09): 起草 SCIENCE_HANDOFF_REPORT（DRAFT，含 12 个 commit 清单与逐篇证据级别） |
+| 14 | `eca227f10` | chore(p4): 采纳 S06 台账刷新并入库实测图（bookkeeping-only 变更） |
+| 15 | `f35e4d120` | docs(S09): 记录端到端 9/9 判据静态跳过的原因与阻塞 |
+| 16 | `4bb8ae219` | docs(S09): normalize->mosaic->export 真实帧端到端实跑证据（三命令 rc=0） |
+| 17 | `b894e9048` | docs(S09): 刷新回传报告 DRAFT（端到端已跑通、P2 中间判红读数、E2E.* 静态跳过） |
+| 18 | `c93b4a6f9` | test(p2): 入库 S05 可复跑脚本与实测图（P2 证据的可复算面） |
+| 19 | `0ddd5a710` | docs(S08): Lead 复核记录——H3 论文表 4 第 6 行 pre/post 非同构型（必须修正） |
+| 20 | `c825ac5c9` | docs(S08): 复核记录追加 R-4（P4 流程叙事）与 R-5（逐篇来源列须真含所列数值） |
+| 21 | `021858c7e` | test(p2): S05 复验专节 + P2 证据 JSON（四臂 Oracle / k_corr 未标定 / 117 星真实复核） |
+| 22 | `1b7a61ea8` | docs(p2): 入库 S05_REPORT.md（逐字镜像，唯一新增未提交件） |
+| 23 | `92416c767` | docs(S09): 回传报告补入 P2 两项阻断裁决（k_corr 方向性缺陷、2.7928 表述分歧） |
+| 24 | `09b14b13d` | docs(S08): 更新 P1/P3/P4 三篇论文结果·图表·证据级别（含 Lead 复核修正） |
+| 25 | `cec31850d` | test(p5): S07 乘性增益研究证据（status=FAIL，生产默认须保持恒等） |
 
 `lib/` 全局改动面仅两个文件：`spherical_overlap.cpp`（P3）与 `sky_plane.cpp`（P5）。
 **未合并 `main`、未开 PR、未 force-push。**
@@ -163,6 +176,13 @@ D-02 §3/§4 的「不得仅用 `κ < 1/τ` 判绿」。
 ---
 
 ## 5 逐篇证据级别（本轮，**不改论文**）
+
+> **证据级别命名统一（本任务发现的口径不一致，在此声明映射）**：`03_SCIENTIFIC_ACCEPTANCE.md` 定义六级为
+> `BIB_VERIFIED / SELF_CHECK / ORACLE_CHECKED / IMPLEMENTATION_CHECKED / EXPERIMENT_CHECKED / RELEASE_VERIFIED`。
+> 但部分单元证据件（如 `实验/healpix-polar/docs/S02_P3_*.json` 的 `status`、本报告早期草稿）曾使用
+> **`PRODUCTION_CHECKED`** 这一**不在六级内**的名称。本文档与五篇论文一律按**六级**书写，其中
+> **`PRODUCTION_CHECKED` ≡ `IMPLEMENTATION_CHECKED`**（生产源码 + 可追溯调用链 + 可执行负例）。
+> 历史证据件**不改写**（AGENTS §13.2：过程记录不得覆盖），仅在此声明映射；**五篇论文中不得出现 `PRODUCTION_CHECKED`**。
 
 | 篇 | 被估量 | 本轮新增证据 | 当前证据级别 | 阻断未闭合项 |
 |---|---|---|---|---|
