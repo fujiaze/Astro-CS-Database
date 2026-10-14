@@ -233,8 +233,8 @@ calibrated 中位数 58.46 ADU/px，帧像素 0.9407″ ⇒ 像素球面立体�
 
 | 项 | 状态 |
 |---|---|
-| R3 精度桥梁 T=V_B/V_F 的生产实现 | **未改**。`weight_chain.h` 仍是 `w=(SNR/F_ref)²·g²`（点源通量恒等式）。本轮只做了静态定位 + 规范摘录，未动权重公式 |
-| R3 反例（两帧同 S_ref、不同 PSF/像元面积/相关 K，w_B 不同）| **未构造/未跑** |
+| R3 精度桥梁 T=V_B/V_F 的生产实现 | **未改**。`weight_chain.h` 仍是 `w=(SNR/F_ref)²·g²`（点源通量恒等式）。本轮未动**生产**权重公式 |
+| R3 反例（两帧同 S_ref、不同 PSF/像元面积/相关 K，w_B 不同）| **本轮已构造并跑通**：`eng/tests/synthetic/test_r3_surface_precision.py`，7 条（6 正例 + 1 负例），实测 `Var(w_F)/CRB−1 = +0.789` 而 `Var(w_B)/CRB−1 = +0.0188`；`T(K=I)=0.5` vs `T(K=ρ=0.7)=0.200`。**但这是解析世界的公式结构检验，不是生产数据上的端到端验证** —— 生产 mosaic 仍走 `per_sample_ivar`（§5.1），未消费 T 桥梁 |
 | R2 稀疏控制点真正闭环 | **未闭合**。HiPS 头帧级 SNR 已证可用；规整 sparse layer 无生产者 |
 | R5 连通分量规范/gauge 实测 | **未跑**（生产 `snr_path_effective=not_used`，本轮 mosaic 未触发星空联合模型路径的独立读回）|
 | R4 曲边 oracle / 混合分辨率 target_order | **未跑**。`target_order=min(...)` 逻辑未改 |
