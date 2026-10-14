@@ -68,10 +68,10 @@ doc_index:
       upstream: "docs/ACSD_DESIGN.md §0（文档权威与索引）"
     - path: "docs/ACSD_DESIGN.md"
       status: ACTIVE_NORMATIVE
-      duty: "最高设计：三阶段科学产品、跨设备自由合并、单 signal HiPS、单一 ACSD_DEV_MODE 构建与仪表边界、不设研发流程门禁"
+      duty: "最高设计：三命令与产品、用户跨设备自由、Normalize 真正 IPV 解析与单层最终 mosaic 目标、开发构建隔离和研发无流程门禁"
       upstream: "（最高权威，无上游）"
       downstream: "AGENTS.md、CMakeLists.txt"
-      notes: "与 science 物理正本共同构成目标设计；当前生产实现差异见 SCIENCE_IMPLEMENTATION_DELTA"
+      notes: "阶段一科学/工程两个唯一横向正本为 science/normalize/NORMALIZE_SCIENCE.md 与 engineering/architecture/NORMALIZE_PIPELINE.md"
     - path: "AGENTS.md"
       status: ACTIVE_NORMATIVE
       duty: "执行代理开发规范：科学模型阅读链、工程文档规范、内部开发诊断与发布隔离、不设流程门禁"
@@ -112,6 +112,11 @@ doc_index:
       duty: "唯一 ACSD_DEV_MODE 编译开关、开发诊断与发布构建边界、正式产品与工作区隔离、纯观察不改科学数据依赖"
       upstream: "docs/ACSD_DESIGN.md §8、§10.1、§13"
       notes: "合并旧 ACSD_PROBES 与 ACSD_DEV_* 分叉是目标实现任务；旧代码并不因文档存在而自动符合。Checkpoint 续跑不是被动仪表能力"
+    - path: "docs/engineering/architecture/NORMALIZE_PIPELINE.md"
+      status: ACTIVE_NORMATIVE
+      duty: "Normalize 唯一工程横向设计：真实 P1NodeModule/IPV DAG、typed 数据对象、代码模块责任、既有文件依赖迁移"
+      upstream: "docs/ACSD_DESIGN.md §4；docs/science/normalize/NORMALIZE_SCIENCE.md"
+      notes: "实现在审查基线 6a62ea10e 静态定位，后续代码改动不自动视为本设计已实施"
     - path: "docs/engineering/architecture/SCIENCE_IMPLEMENTATION_DELTA.md"
       status: ACTIVE_INFORMATIVE
       duty: "科学设计与生产源码的静态差异地图：D01–D19，含编译期诊断多开关与开发快照科学路径隔离"
@@ -347,6 +352,11 @@ doc_index:
       duty: "双线文件域与合并点合同：写域互斥、数值等价基线、合并点规则"
       upstream: "docs/ACSD_DESIGN.md"
       downstream: ""
+    - path: "docs/engineering/governance/NORMALIZE_CONVERGENCE.md"
+      status: ACTIVE_INFORMATIVE
+      duty: "Normalize 旧规范与当前代码的矛盾裁决、单一文档权威地图及证据状态分离"
+      upstream: "docs/ACSD_DESIGN.md §4；docs/science/normalize/NORMALIZE_SCIENCE.md；docs/engineering/architecture/NORMALIZE_PIPELINE.md"
+      notes: "设计裁决已完成；实现未改前不能升级为真实生产科学闭环"
     - path: "docs/engineering/governance/UNRESOLVED.md"
       status: ACTIVE_NORMATIVE
       duty: "未决登记：方向裁决、来源核实、已裁、工程阻塞项与更新规则"
@@ -504,11 +514,11 @@ doc_index:
       upstream: "docs/ACSD_DESIGN.md §1、§3、§5、§6"
       notes: "最终单信号不等于计算中无精度模型；校准单位真实随物理响应变化，不一律为 ADU/sr；HiPS 512 tile NESTED 行列约定需独立对拍"
     - path: "docs/detail/normalize/pipeline.md"
-      status: ACTIVE_NORMATIVE
-      duty: "normalize 阶段的目标态详细设计"
-      upstream: "docs/ACSD_DESIGN.md §4（normalize：单帧标准化）"
+      status: ACTIVE_INFORMATIVE
+      duty: "旧 Phase1 目标态详细设计收敛后的导航和真实模块接口入口；不再另立完整科学方案"
+      upstream: "docs/science/normalize/NORMALIZE_SCIENCE.md；docs/engineering/architecture/NORMALIZE_PIPELINE.md"
       downstream: "hips_storage_form.schema.json、psfsw.h、psf_information.h、wcs_degrade_policy.h"
-      notes: "DESIGN-P1-001：Phase1 单帧观测模型、PSF/噪声/信息产品目标态"
+      notes: "原 241 行相互冲突的详细设计已替换为导航；旧正文保留 Git 历史，不再有目标裁决权限"
     - path: "docs/detail/mosaic/pipeline.md"
       status: ACTIVE_NORMATIVE
       duty: "mosaic 阶段的目标态详细设计"
@@ -533,11 +543,11 @@ doc_index:
       downstream: "unresolved_registry.json"
       notes: "设计稿：YvV q²=1.4281 行为锚冻结；σ_eff=2.2666 为 κ 1.25× 残差候选成因假设（登记未改表）；引文勘误 YvV95=Signal Processing 44(2)、T&S06=IEEE TSP 54(6)"
     - path: "docs/detail/common/unified_model.md"
-      status: ACTIVE_NORMATIVE
-      duty: "统一观测模型、数据对象表与三类配置的唯一正本"
-      upstream: "docs/ACSD_DESIGN.md §3.1（数据对象）、§3.2（三类配置）"
+      status: ACTIVE_INFORMATIVE
+      duty: "历史数据模型和字段索引；与新统一科学/数据语义冲突时仅作旧实现记录"
+      upstream: "docs/science/unified/UNIFIED_SCIENCE_MODEL.md；docs/science/unified/DATA_SEMANTICS.md"
       downstream: "clause_registry.json"
-      notes: "数据对象与三类配置分离（docs/ACSD_DESIGN §0/§2 指名）"
+      notes: "旧公共 F0、ADU/sr、数据对象唯一正本等声明不能覆盖 2026-10-14 正本"
     - path: "docs/detail/infrastructure/log_and_error_system.md"
       status: ACTIVE_NORMATIVE
       duty: "日志与错误系统详细设计（LOG-004）：层次架构、数据对象、落点与 output_dir 的关系、生命周期、与 manifest/provenance 和 observability 各面的关系"
@@ -761,12 +771,12 @@ doc_index:
       status: ACTIVE_NORMATIVE
       duty: "WCS/SIP 天体测量科学口径：像元-天球桥接、切平面投影与畸变模型、不变量与外部闭环判据"
       upstream: "docs/ACSD_DESIGN.md §4.2（节点流程）、§4.4（输出合同）"
-      notes: "由原 ASTROMETRY 迁入重写：剥离源码行号与逐次运行读数，只保留公式、约定、不变量与可复现判据；闭环指标的阈值数值面待标定。发散区按 C&G Paper II 落在原生赤道而非天球北极；桥接门的 C_env、FOV 与余量三组常数互锁"
+      notes: "WCS 求解科学数学正本；原始 FITS 头没有 WCS 并不妨碍项目 IPV 基于初始指向与 Gaia 解析；独立外部配准是证明绝对准确性的指标"
     - path: "docs/science/calibration/CALIBRATION.md"
       status: ACTIVE_NORMATIVE
-      duty: "定标科学口径（母版约定、单帧标定式与双分支、平场响应适用域、暗流曝光线性与曝光容差科学判据、标度声明拒绝规则）"
-      upstream: "docs/ACSD_DESIGN.md §4.2（节点流程）、§3.3（精度归属）"
-      notes: "由原 CALIBRATION 迁入重写；缺陷可分性条款并入同目录 CCD_DEFECT。flat 只表示盘上母版、除法一律作用于 flat_norm；暗流截距失配式带显式前提与偏置电平失配项；暗流线性表与亮场稳健尺度为历史读数（无复跑脚本）"
+      duty: "单帧偏置/暗流/平场校准算子、母版标度与校准误差模型；物理上应传播已知共享母版相关性，未实现记 unmodelled"
+      upstream: "docs/science/normalize/NORMALIZE_SCIENCE.md §4；docs/ACSD_DESIGN.md §4"
+      notes: "§5.7 不再把无 master 方差传播当永久科学规范；生产是否真正传播仍需独立证据"
     - path: "docs/science/noise_snr/NOISE_SNR.md"
       status: ACTIVE_NORMATIVE
       duty: "P2/P4 科学正本：条件点源 SNR、稀疏精度场、空间重建、像元面亮度权重精度桥梁 T"
@@ -795,6 +805,15 @@ doc_index:
       upstream: "docs/ACSD_DESIGN.md §6"
       downstream: "clause_registry.json、phase_config_export.schema.json、config_registry.json"
       notes: "不把最终 variance/ivar/point-information 当作单信号产品的必备对象"
+    - path: "docs/science/normalize/README.md"
+      status: ACTIVE_INFORMATIVE
+      duty: "Normalize 科学正本导航"
+      upstream: "docs/science/normalize/NORMALIZE_SCIENCE.md"
+    - path: "docs/science/normalize/NORMALIZE_SCIENCE.md"
+      status: ACTIVE_NORMATIVE
+      duty: "Normalize 完整科学链唯一横向正本：IPV 实际天测、Gaia 引导星表/PSF、XP 光度、稀疏参考 SNR 和球面 Drizzle 的被估计量与产品"
+      upstream: "docs/ACSD_DESIGN.md §4；docs/science/unified/UNIFIED_SCIENCE_MODEL.md"
+      notes: "跨物理模块科学因果与状态唯一裁决；详式由各 science 专题维护；不意味着生产已全实现"
     - path: "docs/science/photometry/PHOTOMETRY.md"
       status: ACTIVE_NORMATIVE
       duty: "P1 Gaia XP 与跨设备光度科学正本：R_k/R_0、星表零点与颜色项、未知 SED 的系统失配"
@@ -818,9 +837,9 @@ doc_index:
       downstream: "anchor_contract.json、phase_config_mosaic.schema.json、config_registry.json"
     - path: "docs/science/unified/SCIENCE_SCOPE.md"
       status: ACTIVE_NORMATIVE
-      duty: "科学范围与假设正本（处理链、标度类别链与标度律、局部平稳假设的失效判据、两个方差面、有效域与失效条件）"
-      upstream: "docs/ACSD_DESIGN.md §1（项目定位）、§2（核心科学方法：五个创新点）"
-      notes: "由原 SCIENCE_SCOPE 迁入重写并吸收其假设条款族；合同编号 SCI-SCOPE-001 沿用不变。局部平稳判据的符号取 s_log 以与信噪比指数 γ 分名，冻结面归本分册；标度律的正文与推导移交同目录 DATA_SEMANTICS"
+      duty: "当前统一科学范围、适用性与不可辨识物理量；允许用户跨设备/通带自由组合，真实误差诚实标注"
+      upstream: "docs/ACSD_DESIGN.md §1–§5；docs/science/unified/UNIFIED_SCIENCE_MODEL.md"
+      notes: "原文限制跨滤镜、固定 ADU/sr、否认增益建模等旧前提已重写；Normalize 具体链见 science/normalize/NORMALIZE_SCIENCE.md"
     - path: "docs/science/detection/STAR_DETECTION.md"
       status: ACTIVE_NORMATIVE
       duty: "星点检测科学口径（像元中心约定、检测阈值与其噪声单位换算、亚像素质心、召回域统计判据、饱和与边缘判据）"
