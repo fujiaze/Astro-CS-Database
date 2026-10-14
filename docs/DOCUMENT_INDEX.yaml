@@ -583,11 +583,11 @@ doc_index:
       downstream: "unified_object_compatibility_map_v1.json、memory.md"
       notes: "eng/tools/quality/gen_module_readmes.py 生成"
     - path: "docs/detail/registry/acsd.phase1.drizzle.md"
-      status: GENERATED
+      status: ACTIVE_INFORMATIVE
       duty: "Registry production 模块（唯一源=module_adapters.cpp descriptor）"
       upstream: "docs/ACSD_DESIGN.md §8.5（模块与 ABI）"
       downstream: "unified_object_compatibility_map_v1.json"
-      notes: "eng/tools/quality/gen_module_readmes.py 生成"
+      notes: "旧模块接口与算法锚信息保留；2026-10-14 阶段一唯一 science/engineering 横向正本优先。本页已有历史字段/已实现判定必须与真实源码比对"
     - path: "docs/detail/registry/acsd.phase1.hips-writer.md"
       status: ACTIVE_NORMATIVE
       duty: "生产实现=lib/infrastructure/aio/src/hips/aio_hips_writer.cpp（CMake"
@@ -595,17 +595,17 @@ doc_index:
       downstream: "unified_object_compatibility_map_v1.json、memory.md、CMakeLists.txt"
       notes: "手写合同页（registry 无 hips_writer descriptor，生成器不覆盖；gen_module_readmes.py 以 module_adapters.cpp 为源——重生成时须排除/保留本页）"
     - path: "docs/detail/registry/acsd.phase1.noise-snr.md"
-      status: GENERATED
+      status: ACTIVE_INFORMATIVE
       duty: "Registry production 模块(唯一源=module_adapters.cpp descriptor)。职责由"
       upstream: "docs/ACSD_DESIGN.md §8.5（模块与 ABI）"
       downstream: "anchor_contract.json、memory.md"
-      notes: "eng/tools/quality/gen_module_readmes.py 生成"
+      notes: "旧模块接口与算法锚信息保留；2026-10-14 阶段一唯一 science/engineering 横向正本优先。本页已有历史字段/已实现判定必须与真实源码比对"
     - path: "docs/detail/registry/acsd.phase1.photometry.md"
-      status: GENERATED
+      status: ACTIVE_INFORMATIVE
       duty: "Registry production 模块(唯一源=module_adapters.cpp descriptor)。职责由"
       upstream: "docs/ACSD_DESIGN.md §8.5（模块与 ABI）"
       downstream: "anchor_contract.json、memory.md"
-      notes: "eng/tools/quality/gen_module_readmes.py 生成"
+      notes: "旧模块接口与算法锚信息保留；2026-10-14 阶段一唯一 science/engineering 横向正本优先。本页已有历史字段/已实现判定必须与真实源码比对"
     - path: "docs/detail/registry/acsd.phase1.session.md"
       status: ACTIVE_NORMATIVE
       duty: "模块 acsd.phase1.session"
@@ -625,11 +625,11 @@ doc_index:
       downstream: "unified_object_compatibility_map_v1.json"
       notes: "eng/tools/quality/gen_module_readmes.py 生成"
     - path: "docs/detail/registry/acsd.phase1.wcs-platesolve.md"
-      status: ACTIVE_NORMATIVE
+      status: ACTIVE_INFORMATIVE
       duty: "Registry production 模块(唯一源=module_adapters.cpp:512-526 descriptor)"
       upstream: "docs/ACSD_DESIGN.md §8.5（模块与 ABI）"
       downstream: "anchor_contract.json"
-      notes: "冻结点：`SCI-WCS-001`、`ALG-WCS-001`、`SCI-P1-WCS-001`、`API-WCS-001`、`DISP-WCS-001`、`TEST-WCS-DESIGN-001`"
+      notes: "旧模块接口与算法锚信息保留；2026-10-14 阶段一唯一 science/engineering 横向正本优先。本页已有历史字段/已实现判定必须与真实源码比对"
     - path: "docs/detail/registry/acsd.phase1.writer.md"
       status: GENERATED
       duty: "Registry production 模块(唯一源=module_adapters.cpp descriptor)。职责由"
