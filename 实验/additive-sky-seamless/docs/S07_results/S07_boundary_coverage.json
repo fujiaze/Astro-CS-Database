@@ -1,0 +1,127 @@
+{
+ "schema": "ACSD-P5-S07-BOUNDARY/1",
+ "source": "/workspace/Astro CS Database/run/M42-E2E-02/results/seam_e2e02_v3.json",
+ "source_sha256": "61bc51bd39688c5f785b12fba3795e16925286972095e470c41c49019686693c",
+ "frozen_record_source_sha256": "61bc51bd39688c5f785b12fba3795e16925286972095e470c41c49019686693c",
+ "source_matches_record": true,
+ "gate_rel_step": 0.01,
+ "frozen_record_read_from_git": true,
+ "n_edges_total": 196,
+ "n_edges_valid": 114,
+ "n_edges_excluded": 82,
+ "exclude_kinds": {
+  "not_interior": 82
+ },
+ "criterion": {
+  "name": "signed_level_step",
+  "statistic": "rel_step = median(img[+d] − img[−d]) / bg （有符号电平台阶 / 边界处的局部背景电平）",
+  "gate": "max_e |rel_step(e)| <= max_rel_excess",
+  "domain": "只对两侧都在数据内部的边界计入：法向 ±ctrl_shift 两侧都能放对照线且各有 >= min_samples 个有效样本（N = ctrl_shift，从输入导出）",
+  "diagnostics": [
+   "step_d4x / rel_step_d4x（4d 采样半距的 d 扫描；判据的梯度敏感度）",
+   "step_net / rel_step_net（扣 200 px 平行对照线后的净台阶；不判红）",
+   "noise_ratio = MAD(seam)/MAD(ctrl)（噪声差；不判红）",
+   "noise_diff = MAD(seam) − MAD(ctrl)（不判红）",
+   "excess / rel_excess（v1 无符号口径，历史对照；不判红）"
+  ],
+  "v1_note": "v1 的 excess = median|seam| − median|ctrl| 对噪声差敏感，已降级为诊断量（run/VIS-E2E02-01/REPORT.md §1.1/§9）"
+ },
+ "gate_readings": {
+  "verdict": "PASS",
+  "max_abs_rel": 0.007256101148201211,
+  "n_exceed": 0,
+  "n_exceed_legacy": 21,
+  "stats": {
+   "n_edges_total": 196,
+   "n_edges_valid": 114,
+   "n_edges_rel": 114,
+   "n_edges_excluded_not_interior": 82,
+   "n_edges_excluded_few_samples": 0,
+   "n_edges_legacy_valid": 196,
+   "rel_med": 0.0019379047641779157,
+   "rel_p90": 0.004565985455593046,
+   "rel_max": 0.007256101148201211,
+   "step_med_abs": 1.1042105042432767e-06,
+   "step_p90_abs": 4.646640014331052e-06,
+   "step_max_abs": 8.759942939705865e-06,
+   "rel_step_net_max": 0.012948198594091534,
+   "rel_step_d4x_max": 0.021915164073480705,
+   "noise_ratio_med": 1.1118502454598675,
+   "noise_ratio_max": 2.3113862793314652,
+   "noise_diff_med": 8.450351743372193e-07,
+   "ex_med": 1.8699074807745453e-06,
+   "ex_p90": 5.547170171055652e-06,
+   "ex_max": 2.2528190199734555e-05,
+   "legacy_rel_med": 0.003072308901691793,
+   "legacy_rel_p90": 0.010028328563574457,
+   "legacy_rel_max": 0.026108913554962455
+  },
+  "reason": "max|rel_step| = 0.0072561 <= 0.01（门 114 条有效边界全过）（判据覆盖 114/196 条边界；未计入 82 条两侧并非都在数据内部、0 条样本不足）"
+ },
+ "excluded_breakdown": {
+  "by_missing_control_side": {
+   "plus_side_absent": 56,
+   "minus_side_absent": 26
+  },
+  "by_ctrl_side_selected": {
+   "-": 56,
+   "+": 26
+  },
+  "by_margin_px": {
+   "8.0": 3,
+   "32.0": 37,
+   "16.0": 41,
+   "4.0": 1
+  },
+  "by_edge_name": {
+   "bottom": 35,
+   "right": 21,
+   "left": 12,
+   "top": 14
+  },
+  "by_edge_name_valid": {
+   "top": 35,
+   "left": 37,
+   "right": 28,
+   "bottom": 14
+  },
+  "margin_none_count": 0,
+  "margin_le_32_count": 82,
+  "margin_le_16_count": 45,
+  "seam_samples_min": 46,
+  "seam_samples_max": 256,
+  "n_distinct_frames": 49
+ },
+ "excluded_recorded_rel_step": {
+  "n": 82,
+  "median": 0.004454838962660728,
+  "p90": 0.009350541666917114,
+  "max": 0.01226744002013484,
+  "n_exceed_gate": 5,
+  "n_exceed_ingate_max": 16,
+  "note": "这些读数用**单侧可用**的 200 px 对照线口径算出，不是适用域内的判据值；登记为诊断，不得当作判据通过/不通过"
+ },
+ "valid_recorded_rel_step": {
+  "n": 114,
+  "max": 0.007256101148201211,
+  "n_exceed_gate": 0
+ },
+ "n_evaluable_by_ctrl_shift": {
+  "200": 114,
+  "128": 114,
+  "64": 114,
+  "32": 151,
+  "16": 192,
+  "8": 195,
+  "4": 196,
+  "2": 196,
+  "0": 196
+ },
+ "n_evaluable_note": "n_evaluable_by_ctrl_shift[N] = 若把对照线偏移从 200 px 降到 N px，两侧各有 >=20 个有效样本（即 margin_px >= N）的边界条数。N=200 给出 114（现判据覆盖）；N=32 给出全部 196 ⇒ 82 条被排除的边界**不是无观测**，而是固定 200 px 对照偏移超出局部足迹余量。在 N<200 上重算 rel_step 会改变对照基线（更接近边界的梯度估计），必须重跑生产门才能出判据值 ⇒ 本轮登记 NOT_RUN。",
+ "followup": {
+  "experiment_id": "P5-D-boundary-coverage",
+  "status": "NOT_RUN",
+  "reason": "产品 FITS 已被回收（冻结记录 provenance_note 明示），无法在 N=32/16 上重算判据值",
+  "needed": "重新跑 49 帧端到端并保存成品 FITS（或保留 union footprint 掩膜）"
+ }
+}
