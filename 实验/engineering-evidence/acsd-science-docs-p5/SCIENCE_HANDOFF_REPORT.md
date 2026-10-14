@@ -86,10 +86,10 @@
 | S02 | P3 几何/守恒 Oracle 与修复 | **完成** | `run/ACSDSDOC-02/S02/REPORT_S02.md` + `实验/healpix-polar/**`（附录 A/B/C） |
 | S03 | P5 连通分量 gauge 与回归 | **完成** | `run/ACSDSDOC-02/S03/REPORT_S03.md` + `实验/additive-sky-seamless/**`（附录 S03/S03-exec/S03-裁决） |
 | S04 | P1 真实帧光度与误差归因 | **完成** | `run/ACSDSDOC-02/S04/REPORT_S04.md` + `实验/photometric-magnitude/**`（§11） |
-| S05 | P2 噪声/协方差/真实 coverage | **执行中** | `run/ACSDSDOC-02/S05/**`（尚无报告与章节） |
+| S05 | P2 噪声/协方差/真实 coverage | **完成** | `实验/absolute-snr/docs/{S05_P2_evidence.json,S05_REPORT.md}` + `code/s05/` + `figures/`（4 图）+ `REPORT_experiment.md` 追加 6 节（`021858c7e`、`1b7a61ea8`） |
 | S06 | P4 重建统计目标与域外失败 | **完成** | `run/ACSDSDOC-02/S06/REPORT_S06.md` + `实验/dense-snr-reconstruct/**`（§9） |
-| S07 | P5 乘性增益研究 | **执行中** | `run/ACSDSDOC-02/S07/**`（本轮启动） |
-| S08 | 五篇论文结果/跨篇传递 | **未开始** | —（论文正文本轮**未改**） |
+| S07 | P5 乘性增益研究 | **完成（结论 `FAIL`）** | `实验/additive-sky-seamless/docs/S07_P5_GAIN_evidence.json` + `docs/S07_results/`（5 件）+ `code/s07_*.py` + `REPORT_experiment.md` 附录 S07（`cec31850d`、`e1d80dcd7`） |
+| S08 | 五篇论文结果/跨篇传递 | **部分完成** | P1/P3/P4 已提交（`09b14b13d`）；验收对照表已补（`48e5041e9`）；**P2/P5 两篇待更新** |
 | S09 | 构建/端到端/回传 | **部分完成** | 零回归对照已落（`S09_TEST_REGRESSION_BASELINE.md`）；`normalize→mosaic→export` **真实帧端到端已跑通、三命令均 rc=0**（`S09_E2E_RUN.md`），但**只验证链路与合同、不验证测光定标**；回传报告尚未定稿 |
 
 ---
