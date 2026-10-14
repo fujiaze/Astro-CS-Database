@@ -126,6 +126,14 @@ flowchart TD
 - 历史审核包、证据目录、旧控制包在收尾阶段清理，只保留最新生产代码与持续维护的自解释文档。
 - 无法裁决的事项登记为 UNRESOLVED，写明分歧、影响与所需输入，随审核包交付，不强行下结论。
 
+### 开发快照与性能探针（编译期边界）
+
+- 唯一公开诊断构建开关为 `ACSD_DEV_MODE`（默认 OFF）。工程目标与迁移责任在 `docs/engineering/architecture/DEV_MODE.md`，实际插入点、数据语义、采样/配额及并发 I/O 标准在 `docs/engineering/standards/DIAGNOSTIC_PROBES.md`；动手改仪表代码前先读。
+- 探针只能观测既有科学输出块，不得成为下游取数路径、强制科学落盘、改变归一/排异/线程分配或故障回退。开发数据写出失败不改变科学任务成功/失败；科学产品和正式日志错误仍按既有合同处理。
+- `ACSD_PROBES`、旧 `ACSD_DEV_*` 子开关、旧 `ACSD_NODE_TRACE` 等现存触发路径需要逐项并入/隔离开发主开关，不允许 RELEASE 使用旧环境变量旁路打开。旧 `ACSD_DEV_CHECKPOINT` 的跳算/续跑语义不属于被动诊断。
+- 阶段二单 signal HiPS 的最终产品面与开发工作区两者必须独立：允许开发保存内部 V_F、T、w_B、背景差模、Drizzle overlap、排异等诊断快照，但**不得**作为正式第二层图像，也不得上传原始观测 FITS 到 Git。
+- Agent 实现探针要将 `OFF`、`ON+none`、`ON+perf`、`ON+selected snapshots` 的科学产物、执行路径和性能数据对照记录；未编译测试不能报告为已符合。
+
 ## 11. 一条科学链、五个研究单元
 
 **目标产品与公式以 docs/ACSD_DESIGN.md 和 docs/science/unified/UNIFIED_SCIENCE_MODEL.md 为准**；P1–P5 是相互支持的研究问题，不以功能分拆数量代替科学原创性论证。
