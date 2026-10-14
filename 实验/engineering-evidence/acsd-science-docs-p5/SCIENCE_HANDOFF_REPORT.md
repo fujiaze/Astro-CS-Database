@@ -77,7 +77,7 @@
 | S06 | P4 重建统计目标与域外失败 | **完成** | `run/ACSDSDOC-02/S06/REPORT_S06.md` + `实验/dense-snr-reconstruct/**`（§9） |
 | S07 | P5 乘性增益研究 | **执行中** | `run/ACSDSDOC-02/S07/**`（本轮启动） |
 | S08 | 五篇论文结果/跨篇传递 | **未开始** | —（论文正文本轮**未改**） |
-| S09 | 构建/端到端/回传 | **部分** | 零回归对照已落；`normalize→mosaic→export` 端到端与回传定稿 **未做** |
+| S09 | 构建/端到端/回传 | **部分完成** | 零回归对照已落（`S09_TEST_REGRESSION_BASELINE.md`）；`normalize→mosaic→export` **真实帧端到端已跑通、三命令均 rc=0**（`S09_E2E_RUN.md`），但**只验证链路与合同、不验证测光定标**；回传报告尚未定稿 |
 
 ---
 
@@ -167,7 +167,7 @@ D-02 §3/§4 的「不得仅用 `κ < 1/τ` 判绿」。
 | 篇 | 被估量 | 本轮新增证据 | 当前证据级别 | 阻断未闭合项 |
 |---|---|---|---|---|
 | **P1** | `F_syn` vs `F_instr`、逐帧零点、颜色/空间残差 | 合规 8 帧 `σ_obs` 0.0253–0.0421 mag；色轴 `−0.0534 mag/mag(R−B)`（−10.05σ），跨仪器留出中位降 25.0%；P1-D 5/5 判红 | `ORACLE_CHECKED` + `EXPERIMENT_CHECKED`（真帧） | 线性区 `NOT_MEASURED`；`gain/RN/饱和电平` `UNVERIFIED`；论文数与 HEAD 代码版本不符（§8 裁决 4） |
-| **P2** | 条件 `SNR_ref`、协方差、真实 coverage | **执行中（S05）** | `UNVERIFIED` | 117 星 coverage、`k_corr` 单位与标定域、`sparse_snr_layer` 落地状态 |
+| **P2** | 条件 `SNR_ref`、协方差、真实 coverage | 执行中（S05）。**中间读数（未定稿，不得作结论）**：独立 numpy Oracle（不链接生产）20000 次 MC + Wilson 95% 区间；真实帧 2195 星对覆盖率 nominal `0.6827` → 实测 **`0.4752`**（去趋势后 `0.4639`），`contains_nominal=false`；SNR 分层系统地板 `0.045–0.070 mag`；`k_corr` 在 86 配置中 **51 个 `k>14`、最大 `5.0e18`**；`k_corr` 单位已用 `hp_drizzle_api.cpp:1110-1113` 原文闭合为**输入帧像元角尺度 [arcsec/px]** | `UNVERIFIED`（待 S05 报告定稿） | 覆盖率判红机理待按科学正本口径闭合；`k_corr` 灾难性发散须处置；`sparse_snr_layer` 落地状态 |
 | **P3** | `w_jp=a_jp/A_drop,j`、逐 drop 完备性 | 两处缺陷修复；1500 格矩阵 218→0 破门；连通图/叶内逐位不变 | `ORACLE_CHECKED` + `PRODUCTION_CHECKED`（负例判红） | `60″–290″` 叶弦/分支残差未修；FP32 未复测；`docs/science` 判据文字未改 |
 | **P4** | 固定 `F_ref` 的 `V_ref(x)`、支持域重建 | 过冲 `2.011325955375069`（越节点 `+1.1326e-02`、下冲 `−0.307920`）；域外 `55.5556%`/`43.7500%`；clamp 非无偏；NaN 静默填充；`idw_power` 生产 `2.0` vs 规范 `1.0` | `ORACLE_CHECKED` + `PRODUCTION_CHECKED`（探针） | `idw_power` 分裂未修（§8 裁决 5）；真实控制点链未跑 |
 | **P5** | `y_i=g_i S+a_i+noise`、重叠连通分量 | 逐分量 gauge 修复（214×）；判据分裂对照；乘性**研究臂执行中（S07）** | 加性：`IMPLEMENTATION_CHECKED` + `PRODUCTION_CHECKED`；乘性：`UNVERIFIED` | 跨分量绝对零点需外部锚；乘性默认恒等**未验证**；边界 114/196 未审计 |
@@ -197,8 +197,13 @@ D-02 §3/§4 的「不得仅用 `κ < 1/τ` 判绿」。
 4. **P1 探测器线性区 `NOT_MEASURED`**，且论文 §5 数字对应旧版代码。
 5. **P3 大 drop 叶弦/分支残差未修**（不破 `1e-6`，但属未声明适用域）。
 6. **S08 未做** ⇒ 五篇论文正文尚未更新结果/图表/证据级别；`docs/science/**` 判据文字未同步。
-7. **端到端未跑** ⇒ `normalize→mosaic→export`、C++ 单测（仓库无 `add_test` 注册）、
-   FP32、Windows 构建一律 `NOT_RUN`。
+7. **端到端**：`normalize→mosaic→export` 已在真实帧上跑通（三命令 `rc=0`，产物经 astropy 独立读回，
+   导出 FITS `1024×1024 >f4`、`RA---TAN`、`coverage 1048576/1048576`、`p3_verify.canonical_match=true`），
+   但**该跑只验证链路与合同**：`master_scale` 为冒烟测试值、母版实际已归一化 ⇒ 导出绝对量级不可信。
+   仍 **`NOT_RUN`**：C++ 单测（仓库无 `add_test` 注册）、FP32 端到端、Windows 构建、多 block/多帧相对定标、
+   GUI 视觉验收、`acsd benchmark` 全量、`doctor` 的 avx512 腿（本机 ISA 不支持）。
+   另：`eng/tests/e2e/` 的 9 条 `E2E.*` 判据**全部静态 `pytest.mark.skip`**（`requires: build/acsd`
+   这一不存在路径 + 过期车道约束），其自带 A 类自洽守卫禁止改 skip 打开 ⇒ 不得引用为已通过。
 8. **29 项既存测试失败**（`module_adapters.cpp` 锚点漂移）未修，不在本任务写面内。
 
 ---
