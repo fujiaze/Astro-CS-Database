@@ -88,9 +88,9 @@ T_p 的单位是 1/sr²（若 F 的单位是面亮度乘 sr）。当每个 B 像
 
 已审阅 `eng/tests/synthetic/test_r3_surface_precision.py` 的 `corr_eye(n, rho)`。当 n=4 时，它定义的是主对角线 1、相邻非对角线 rho、其余非对角线为 0 的三对角 Toeplitz 矩阵，特征值为
 
-[
- lambda_j = 1+2hocos!left( rac{jpi}{5}ight),quad j=1,2,3,4.
-]
+\[
+ \lambda_j=1+2\rho\cos\left(\frac{j\pi}{5}\right),\qquad j=1,2,3,4.
+\]
 
 其 rho=0.7 构型的最小特征值约为 -0.132624，**不是**物理可实现的噪声协方差。因此，历史 Agent 报告的 `T(K=I)=0.5` 与 `T(K=rho=0.7)=0.200087` 两点比较中，**第二个数值不能作为有效相关噪声世界的证据**，必须重跑。可改用 `rho=0.3` 的这一三对角家族，或使用 `K_ij=rho^|i-j|` 这种在 |rho|<1 时正定的 AR(1)/Toeplitz 相关核；后一种与前一种是**不同的协方差模型**，必须分别记录其参数、实际相关范围及求逆条件数。
 
@@ -162,3 +162,7 @@ T_p 的单位是 1/sr²（若 F 的单位是面亮度乘 sr）。当每个 B 像
 - 实验/dense-snr-reconstruct/REPORT_paper.md、docs/S06_P4_evidence.json；
 - lib/algorithms/noise_snr、lib/algorithms/integration/phase2_integrate/src/weight_chain.cpp；
 - Horne 1986；Fruchter & Hook 2002；Zackay & Ofek 2017；相关完整文献以实验/shared/references/CORE_REFERENCES_VERIFIED.md 为准。
+
+## 11. Normalize 的唯一数据完成边界
+
+正式 controls 采用 Drizzle 后球面域的 h、C、Z，并在参考源条件下冻结协方差。平面噪声先由 noise 节点建立，再由 Drizzle 节点调用同一个 noise 库完成球面 GLS；不构成 noise←Drizzle 的调度循环。reference-source 的泊松条件不能当成任意 actual-scene 方差。只有参考 PSD 缺项、模板与观测子空间固定时才能声明条件 SNR 上界，其它模型缺项用 approximate。正式承载固定为 frame_science.json，详见 [Normalize 数据合同](../../engineering/contracts/NORMALIZE_DATA.md)。像素网格 sparse_snr_layer 与 Catalogue proxy 为兼容视图，不是另一份 canonical 真源，也不固定阶段二自然样条/IDW 的算法选择。

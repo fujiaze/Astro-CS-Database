@@ -84,3 +84,13 @@
 前台负责以上**三份主文档的数学/代码归属**，同步顶层 docs/ACSD_DESIGN.md、science README、engineering README、DOCUMENT_INDEX.yaml 和 AGENTS.md 的指向，旧 task package/第二轮运行提示暂不拥有设计权限。Agent 可以提交真实代码/源调用变化清单和事实报告，不能编辑上述主文档重新创立定义。
 
 本收敛令仍未修改 C++ 与真实服务器的数据，故不作“阶段一完成”的表述。
+
+## 6. 接口裁决与实施边界
+
+阶段一完整接口已由 NORMALIZE_DATA 与 detail/normalize/contracts 定稿：参考缺失不发明中位 F0；唯一 sidecar 为 frame_science.json；noise 平面生产、Drizzle 后由 noise 库完成球面 precision；已应用面和原生 gain 坐标分开；Runtime typed payload 与正式 cache 逐边迁移；每帧状态明确。
+
+该规格允许执行者推进完整阶段一代码，不再限于只做结构整理。此前第 4、5 节描述的“接口待细化”工作已由这两份合同承接；多阶段执行包保持历史身份。代码、source set、port registry、AIO reader/writer、老产品 adapter 的更新由执行者完成；本次前台修改只定稿文档、schema 和形状示例，没有在 /testdata 重跑科学实验。
+
+新增裁决：Drizzle 的无条件面积平均简式只在 Ω/A 共同常数时成立；数据合同必须保留实际 Ω/A。外部 WCS 的 CRPIX 不强制为图像中心；Gaia 的参考历元与 ICRS 的坐标系身份分开。相关核必须 PSD，球面 R 的秩亏须按可估计子空间处理，不能用任意地板伪造精度。
+
+文档定稿检查：规范索引 157 项无重复/悬空，新增本地 Markdown 链接可解析；新 frame-science schema 自身可加载，available/unavailable 两种夹具通过，9 种形状负例被拒绝。一般面积归一公式、正定相关核与秩亏线性传递做了局部数值核对。以上只验证文档/接口形状及局部数学，不是 production C++、真实 IPV 成功率或阶段一科学端到端验证。

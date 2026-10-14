@@ -4,14 +4,7 @@
 
 ## 载体
 
-| 载体 | 范围 | 形态 | 规范依据 |
-|---|---|---|---|
-| 命名块（`PipelineFrame`） | 单节点执行期 | 内存对象，带冻结元数据（名字、形状、类型、单位、可缺性、生产者、消费者、生命周期） | `../contracts/PIPELINE_BLOCK.md` |
-| 阶段内文件约定 | 同阶段节点之间 | `output_dir` 下的具体产物（文件或产品目录），生产者写、消费者按同一路径读 | `../contracts/PIPELINE_BLOCK.md` 载体合同 |
-| HiPS 产品树 | 跨阶段 | 磁盘目录 + manifest + 哈希 | `../contracts/HIPS_STORAGE_FORM.md` |
-| 运行配置 | 阶段入口 | JSON 块列表，每块一个块级 `output_dir` | `../contracts/CONFIG.md` |
-
-跨阶段流转的载体只有 HiPS 产品树；阶段内节点的交换面是 `output_dir` 文件约定，不是命名块。
+同阶段目标为 Runtime 管理的 typed 对象/数组块；科学 spill/cache 显式登记且 OFF/ON 相同；当前节点间 output_dir 文件约定是需迁移的实现状态。跨阶段只经磁盘产品与 manifest，不共享内存。字段与生命周期见 PIPELINE_BLOCK.md；Normalize 具体边和迁移见 NORMALIZE_DATA.md。
 
 ## normalize 的数据流
 
@@ -19,8 +12,8 @@
 |---|---|---|
 | 输入 | 亮场帧 + 母版校准帧（偏置/暗流/平场） | FITS / XISF，经统一 I/O 边界读入 |
 | 输入 | 运行配置（滤镜、精度模式、落盘形态、块级 `output_dir`） | JSON |
-| 中间 | 校准像素面、有效与坏点掩膜、背景与噪声面、权威 WCS、星点绑定行、PSF 模型、测光归一化后的像素面、帧级与稀疏信噪比 | 单节点执行期的内存对象；**标准模式不落盘**；**开发期**可开启落盘缓存（见 [开发模式与构建期能力边界](DEV_MODE.md)）；**逐帧 JSON 是节点间 typed 端口契约，属标准产物** |
-| 输出 | 逐帧 HiPS 产品树（signal / support / variance / ivar / 可选稀疏信噪比标准层） | 磁盘产品 + manifest + 哈希 |
+| 中间 | 校准像素面、有效与坏点掩膜、背景与噪声面、权威 WCS、星点绑定行、PSF 模型、测光归一化后的像素面、帧级与稀疏信噪比 | 目标为 typed payload；当前正式工作文件仍有消费者；科学 cache 不受 DEV_MODE 控制，快照只旁路 |
+| 输出 | 逐帧 signal HiPS + frame_science.json；有来源的辅助层可选 | 磁盘产品 + manifest + 哈希 |
 | 输出 | 结构化 JSON（声明产物路径与必需字段，符合 `mosaic` 输入格式） | JSON |
 
 测光输出语义：产物通量处于逐帧相对测光零点的线性面亮度；测光归一化在 `measure_flux` 同一步内施加到像素，不落中间面。

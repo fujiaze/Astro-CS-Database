@@ -13,3 +13,5 @@ ACSD 是 CCD/CMOS 天文图像标准化与球面成像系统：Normalize 逐帧�
 **不可混淆**：原始 FITS 缺 WCS 不是 IPV 无法求解；当前生产已有 IPV。仅扫描原始 FITS 头不能得出阶段一解析失败结论。同样，HiPS frame_snr 与自身 JSON 一致不意味着 canonical sparse SNR 已经产生。
 
 旧 docs/detail 和 docs/science/algorithms 的实现级描述、实验历史继续可查，但与以上正本冲突时不能重建另一套 Normalize 科学流程。项目文档机器索引在 [DOCUMENT_INDEX.yaml](DOCUMENT_INDEX.yaml)。用户数据的大型 FITS 不上传 Git；开发不设置形式主义流程门禁，科学可信性由实际估计量与独立证据而不是重复 PASS 标志决定。
+
+阶段一完整实施依据还包括 [数据合同与产品 schema](engineering/contracts/NORMALIZE_DATA.md) 和 [C++ 接口及迁移规格](detail/normalize/contracts.md)。设计接口已确定，执行者按它们实施；代码和独立科学验证仍须分别报告。

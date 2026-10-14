@@ -1,7 +1,5 @@
 # Normalize 生产链工程正本：真实接线、Typed 数据合同与改码责任
 
-> **状态：架构目标与代码现状对照，不代表已实现。** 2026-10-14 前台收敛。上游 docs/ACSD_DESIGN.md §4 与 docs/science/normalize/NORMALIZE_SCIENCE.md；此处不重复科学公式。静态审查的生产代码基准为 audit/acsd-science-docs-p5 / 6a62ea10eb7f8ad8cfbdee16fa39afc4d27baf0e；未连接服务器运行缺原始 WCS 帧。之后修码须同步更新“现状”字段，不让历史行号当唯一权威。
-
 ## 1. 只有一个完整的 Normalize DAG，另一个 Phase1 session 不是全链
 
 项目实际用户入口：lib/infrastructure/cli/commands.cpp 的 run_phase1_block → build_pipeline_ir → scheduler P1NodeModule。对应 lib/infrastructure/scheduler/src/module_adapters.cpp 按 P1NodeOp 调度：
@@ -102,3 +100,9 @@ Agent 的工作是按这些设计修真实代码、报告与源代码不符之�
 ## 7. 科学证据的准确归属
 
 必须区别 “接口存在”“真实 production 命中”“能写产品”“独立真值成立”。历史 agent 报 1496 tiles ON/OFF 相同只说明那些输入下构建等价；HiPS 头 ACSD_FRAME_SNR 与 p1_snr.json 完全相同只说明字段传递一致；P1 8 帧 HiPS exit=0 不等于全部光度绝对、SNR 稀疏、几何真实性验证完成。旧 header WCS census 既不是 IPV 成功率也不是失败率。未来技术报告需要用这些标签归因，但**不是新增机械任务门禁**。
+
+## 8. 已定的接口与持久化规格
+
+上述逻辑对象现在由 [NORMALIZE_DATA.md](../contracts/NORMALIZE_DATA.md) 定义字段、状态、端口、所有权、八节点完成边界、唯一 frame_science.json 与兼容规则；[contracts.md](../../detail/normalize/contracts.md) 给出待实现 C++ 签名、现有头文件落点、配置和逐边迁移。
+
+目标取数统一为 cleaned→photometry→photoapplied→noise/Drizzle；当前 descriptor 的 calibrated 输入不能继续被当作 photoapplied 的物理单位。WCS 保留 calibrated 输入。noise 先产 planar model，Drizzle 以真实 R 完成 sphere model 后调用 noise 库产 sparse_reference/frame_reference，writer 消费它们，避免循环依赖。PSF 从零消费者工作文件变成显式模型输入。当前代码仍未完成这些接口；机器注册表和 IR 在实施时与真实取数同步改，不把本目标表冒称当前已接线。
