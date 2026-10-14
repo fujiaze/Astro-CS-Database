@@ -1,12 +1,9 @@
-# docs — ACSD 自解释文档集
+# ACSD 文档总入口
 
-> 上游：《ACSD 最高设计》的「文档权威与索引」与「文档写法」两节
+ACSD 目标是三个相互独立的科学命令：**Normalize** 生成逐帧 HiPS 和稀疏参考 SNR 控制数据；**Mosaic** 用稀疏精度重建、跨设备光度、相对背景和球面统计合成，最终只写**一个 signal HiPS 科学图像通道**；**Export** 将该 HiPS 信号按 WCS 导出普通平面 FITS。用户可以自主组合不同相机、望远镜、滤镜和带宽，不以设备一致性设处理限制。
 
-本目录是 ACSD 的全部设计、科学与工程文档，是构建、测试、验收与二次开发的唯一权威参照。权威链自上而下递减：`ACSD_DESIGN.md`（最高设计）→ `science/` 与 `engineering/`（一级正本，平级互不越界）→ `detail/`（二级细节）→ 代码。冲突以更高一层为准。
+先读 [最高设计](ACSD_DESIGN.md)，再读 [科学阅读入口](science/README.md)。该入口按数学因果链组织，而不是让每个实验/Agent 各自维护一套不一致的权重公式。
 
-- `science/`：科学公式、常数、判据与算法推导，每条结论由论文、实验或开源代码支撑；`science/algorithms/` 承载逐符号推导与实现锚定。
-- `engineering/`：与科学无关的工程设计——架构、行为合同、接口、资源、构建、发行、日志与错误标准；治理规范见 `engineering/governance/DOCUMENT_GOVERNANCE.md`。
-- `detail/`：由两个一级正本推理产出的模块工作细节、数据对象与接口落地；`detail/registry/` 为模块登记正本，`detail/infrastructure/` 为基建模块落地设计。
-- `GLOSSARY.md` 为术语叫法与单位口径的登记面（对象定义以 canonical schema 与 `engineering/UNIFIED_OBJECTS.md` 为准）；`DOCUMENT_INDEX.yaml` 是全文档集的唯一索引地图：docs/ 下每份文档都要在其中登记，目录招牌 README 按索引自订条款不进规范索引面。
+[生产实现差异地图](engineering/architecture/SCIENCE_IMPLEMENTATION_DELTA.md) 将目标模型与当前实际 C++ 代码分开，**不能把目标设计文本当成代码已实现的证据**。工程模块 API、I/O、资源、发行等由 engineering/ 和 detail/ 承载。历史已保留的研究实验及失败记录位于 实验/；实际设备大型 FITS 不上传 Git。
 
-阅读方式：从 `ACSD_DESIGN.md` 起，沿各篇抬头的上游条款与最高设计各节的索引指针逐层下钻。
+[文档机器索引](DOCUMENT_INDEX.yaml) 记录在册文件身份。过时的工程实现分册可以保留为历史/现状说明，不再覆盖现行科学定义。开发不设置流程门禁，质量依靠明确的物理估计量、可独立计算的对照实验和最终真实 FITS 效果。
