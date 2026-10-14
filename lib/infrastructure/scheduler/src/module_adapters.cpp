@@ -109,6 +109,8 @@
 #include "acsd/variance_propagation.h"
 #include "crypto/sha256.h"         // acsd::crypto::sha256_hex (input_manifest_hash)
 #include "acsd/probe.h"         // 探针 (ACSD_PROBES=OFF 时宏为空语句)
+// DEV-MODE-001: 开发诊断 sink（ACSD_DEV_MODE=OFF 时宏为空语句且表达式不求值）
+#include "acsd/dev_diagnostics.h"
 
 #include "photometer.h"
 #include "snr_estimator.h"   // NOISE-MODEL-CANON-001: SCI-NOISE-001 §5/§5a 唯一实现 (A)
@@ -1485,6 +1487,89 @@ std::string p1_work_path(const Json& doc, const std::string& name) {
 // 工作区内的逐帧中间产物目录（<frame_key>/p1_wcs.json、<frame_key>/p1_final.json）。
 std::string p1_work_frame_dir(const Json& doc, const std::string& light) {
   return p1_work_dir(doc) + "/" + p1_frame_key(light);
+}
+
+// ── DEV-MODE-001: 开发快照调用点的公共薄包装 ────────────────────────────────
+// 正本 docs/engineering/standards/DIAGNOSTIC_PROBES.md §3「最少应暴露的科学
+// 快照位置」。本文件只负责把**调用点上已经存在的数值缓冲/记录**连同元数据交给
+// 共用 sink；不构造新科学量、不改任何算法输入、不成为下游数据源。
+// ACSD_DEV_MODE=OFF 时三个宏都展开为 ((void)0) 且**表达式不求值**。
+//
+// frame_id / tile 字符串借用：这里统一由 std::string 持有并传 c_str()，其生命
+// 周期覆盖本次调用（dev_diagnostics.h 的 SnapshotMeta 按借用保存）。
+inline void p1_devdiag_snr_controls(const Json& frame_obj,
+                                    const std::string& frame_id,
+                                    const std::string& upstream) {
+#if ACSD_DEV_DIAGNOSTICS
+  auto meta = acsd::devdiag::SnapshotMeta{}
+                  .frame(frame_id.c_str())
+                  .upstream(upstream.c_str());
+  meta.probe_id = "normalize.noise.reference_snr";
+  meta.stage = "normalize";
+  meta.producer = "acsd.phase1.noise_snr.compute_snr_frame_science";
+  // 被估计量：点源参考通量的条件方差 V_F = (F_ref/snr_f)^2 与参考 SNR。
+  // 与面亮度方差 V_B 是**两个不同的估计目标**（UNIFIED_SCIENCE_MODEL §4），
+  // 不得把 snr_f^2/F_ref^2 直接当成 HEALPix 像元的 w_B。
+  meta.semantic =
+      "reference point-source flux variance V_F = (F_ref/snr_f)^2 with its "
+      "reference SNR snr_f = F_ref/sigma_F (Horne 1986 conditional estimator; "
+      "NOT a surface-brightness inverse variance)";
+  meta.unit = "ADU^2 (flux variance); ADU (flux); dimensionless (SNR)";
+  meta.coord_space = acsd::devdiag::CoordSpace::Icrs;
+  meta.dtype = "table";
+  meta.shape = "[n_records]";
+  meta.boundary("after background estimation, before drizzle");
+  (void)ACSD_DEV_SNAPSHOT_TEXT(meta, frame_obj.dump().c_str());
+#endif
+}
+
+inline void p2_devdiag_signal_tile(const std::string& frame_id,
+                                   const std::string& tile_note,
+                                   const std::string& upstream, int span,
+                                   const float* flux) {
+#if ACSD_DEV_DIAGNOSTICS
+  auto meta = acsd::devdiag::SnapshotMeta{}
+                  .frame(frame_id.c_str())
+                  .tile(tile_note.c_str())
+                  .upstream(upstream.c_str());
+  meta.probe_id = "mosaic.integration.signal_tile";
+  meta.stage = "mosaic";
+  meta.producer = "acsd.phase2.write_mosaic.tile_transform";
+  meta.semantic =
+      "weighted surface-brightness signal (flux_sum/covered_area) for the tile "
+      "about to be emitted; NO NaN clamping, NO stretch";
+  meta.unit = "ADU/sr (surface brightness)";
+  meta.coord_space = acsd::devdiag::CoordSpace::HipsTileFitsRowmajor;
+  meta.dtype = "float32";
+  meta.shape = "[512,512]";
+  meta.boundary("after rejection and weighted integration, before AIO write");
+  meta.support("NaN where covered_area<=0 (no coverage); finite negative values "
+               "are legitimate sky-subtracted signal and must not be clamped");
+  meta.policy("real output buffer of the write node, not a derived copy");
+  (void)ACSD_DEV_SNAPSHOT_IMAGE_F32(meta, span, span, flux);
+#endif
+}
+
+inline void p3_devdiag_output_tile(const std::string& upstream, int rows,
+                                   int cols, const float* sig, int r0, int c0,
+                                   int rn, int cn) {
+#if ACSD_DEV_DIAGNOSTICS
+  auto meta = acsd::devdiag::SnapshotMeta{}.roi(r0, c0, rn, cn).upstream(
+      upstream.c_str());
+  meta.probe_id = "export.fits.signal_tile";
+  meta.stage = "export";
+  meta.producer = "acsd.phase3.export_writer";
+  meta.semantic =
+      "un-stretched signal region actually written into the output 2-D WCS FITS";
+  meta.unit = "ADU/sr (surface brightness)";
+  meta.coord_space = acsd::devdiag::CoordSpace::TargetWcsPixel;
+  meta.dtype = "float32";
+  meta.shape = "[rows,cols]";
+  meta.boundary("after projection/resampling, before FITS serialization");
+  meta.support("NaN = no input coverage; negatives are legitimate");
+  meta.policy("real output plane of the export writer, not a derived copy");
+  (void)ACSD_DEV_SNAPSHOT_IMAGE_F32(meta, rows, cols, sig);
+#endif
 }
 
 // 中间产物是否**保留**（唯一开关口径）：只决定工作区在运行收尾是否被清理，
@@ -7921,6 +8006,12 @@ Result<void> p1_op_noise(const Json& doc, Json* man) {
           {"m5_mag", sci.frame_depth_m5_mag},
           {"zero_point_mag", cfg.zero_point_mag}};
       frame["sources"] = sarr;
+      // ── DEV-MODE-001: 参考 SNR 控制点开发快照（只读旁路）──────────────────
+      // 取自本节点**实际**产出的稀疏控制记录（sources + snr_reference + sigma
+      // 口径）。OFF 时整段编译消除; ON 时也只是额外写一份到开发工作区，消费者
+      // 仍是 p1_snr.json 本身。
+      p1_devdiag_snr_controls(frame, base,
+                              "work_dir/p1_sources.json (DATA-P1-SOURCES)");
     }
     f_frame[fi] = frame;
   });
@@ -13364,8 +13455,12 @@ bool p2_publish_mosaic_tree(const std::string& out_dir,
 //     ACSD_PIXEL_AREA_POWER（canonical 幂次: signal -2 / variance -4 / ivar +4）;
 //   * 产品根 manifest.json（完成清单）: units 块（键名同义, 值同源）。
 // 幂等: 同名键先摘除再追加（HiPS properties 解析器禁重复键）。
+// variance_products_present = variance/ivar 图像子产品**是否真的在磁盘上**。
+// Phase1 单帧产品按自身需要保留 variance/ivar（D02 明确"阶段一仍可按其自身需要
+// 保留辅助层"）⇒ 传 true；Phase2 最终只发布 signal（D02）⇒ 传 false。
+// 这不是"方差是否可算"，而是"哪些 BUNIT 声明面存在"——两个面必须同源。
 bool declare_hips_surface_brightness_units(const std::string& product_root,
-                                        bool uncertainty_available,
+                                        bool variance_products_present,
                                         std::string* err) {
   const std::string sb = kP3BunitSurfaceBrightness;
   const std::string var = kP3BunitSbVariance;
@@ -13376,7 +13471,7 @@ bool declare_hips_surface_brightness_units(const std::string& product_root,
     int pixel_area_power;
   };
   std::vector<SubUnit> subs{{"signal", sb.c_str(), -2}};
-  if (uncertainty_available) {
+  if (variance_products_present) {
     subs.push_back({"variance", var.c_str(), -4});
     subs.push_back({"ivar", ivar.c_str(), 4});
   }
@@ -13424,8 +13519,8 @@ bool declare_hips_surface_brightness_units(const std::string& product_root,
                        {"signal_unit", sb},
                        {"pixel_semantics", "surface_brightness"},
                        {"pixel_area_power", -2},
-                       {"variance_bunit", uncertainty_available ? var : std::string()},
-                       {"ivar_bunit", uncertainty_available ? ivar : std::string()}};
+                       {"variance_bunit", variance_products_present ? var : std::string()},
+                       {"ivar_bunit", variance_products_present ? ivar : std::string()}};
   std::string werr;
   if (aio_atomic::write_file_atomic(man_path, mdoc.dump(2) + "\n", &werr) != 0) {
     if (err) *err = "manifest.json 原子写失败: " + man_path + " (" + werr + ")";
@@ -13755,13 +13850,58 @@ Result<void> p2_op_write(const Json& doc, Json* man) {
     }
   }
 
-  int flags = AIO_HIPS_PRODUCT_SIGNAL | AIO_HIPS_PRODUCT_SUPPORT;
-  if (uncertainty_available) flags |= AIO_HIPS_PRODUCT_VARIANCE | AIO_HIPS_PRODUCT_IVAR;
+  // ── D02 (SCIENCE-V2 R6): 阶段二最终只发布**一个** signal 科学图像通道 ──
+  // 正本 docs/science/unified/UNIFIED_SCIENCE_MODEL.md §8「阶段二单信号产品」：
+  // 内部 support / variance / ivar / 权重都是**中间量**，不是最终科学图像层。
+  // AIO 的 flags 决定哪些子产品目录真正落盘 ⇒ 这里只置 SIGNAL。
+  //
+  // ⚠ 归一化不被破坏：aio_hips_write_signal_support_tile 的 signal =
+  //   flux_sum / covered_area，其中 covered_area 是**输入面**（view 的
+  //   covered_area 成员），不是"support 子产品"。删 support 产品位不影响
+  //   signal 的除法分母 —— cov_out 继续填充，见下方变换段。
+  //
+  // ⚠ uncertainty_available 仍是**方差面完整性**的事实登记（写进 p2_final.json
+  //   与 provenance），不再触发额外图像产品。逐像素精度作为运行摘要/诊断快照
+  //   存在，不作为最终第二层图像。
+  int flags = AIO_HIPS_PRODUCT_SIGNAL;
+  // ── D07 (SCIENCE-V2 R1): 最终 obs_filter 不再取首帧身份 ──────────────
+  // 旧实现取 cov_doc.frames[0].filter_passband 当"全组通带"，随 R1 放开跨滤镜
+  // 合并后必然失真：不同相机/滤镜/带宽的合法合并不存在单一真实通带。
+  // 新口径：
+  //   · 所有帧通带**一致** ⇒ 原样透传该身份（与旧行为逐字相同）；
+  //   · 通带**不一致**（含空/未声明混入）⇒ 写具名混合响应声明
+  //     "mixed:<n_frames>_passbands"，**不**挑选任一帧冒充总体响应；
+  //   · 通带分布写进 p2_final.json 的 response_distribution，如实可查。
+  // 这不是"为了好看把 filter 统一"，也不阻止合并：用户始终可合并，产品只是
+  // 如实说明自己的响应状态（UNIFIED_SCIENCE_MODEL §1/§3）。
   std::string obs_filter;
+  Json passband_distribution = Json::object();
   {
     const auto& frames = cov_doc["frames"];
-    if (frames.is_array() && !frames.empty())
-      obs_filter = frames[0].value("filter_passband", "");
+    if (frames.is_array() && !frames.empty()) {
+      std::map<std::string, uint64_t> counts;
+      std::string first;
+      bool same = true;
+      for (const auto& fr : frames) {
+        const std::string f = fr.value("filter_passband", std::string());
+        if (first.empty()) first = f;
+        else if (f != first) same = false;
+        counts[f] += 1;
+      }
+      for (const auto& kv : counts)
+        passband_distribution[kv.first.empty() ? std::string("(undeclared)")
+                                               : kv.first] = kv.second;
+      if (same) {
+        obs_filter = first;      // 与旧行为一致：全组同一身份
+      } else {
+        obs_filter = "mixed:" + std::to_string(counts.size()) + "_passbands";
+        std::fprintf(stderr,
+                     "[write_mosaic][passband] 参与帧通带不一致 (%zu 种) ⇒ 最终 "
+                     "signal 声明混合响应 '%s'; 逐帧身份见 p2_final.json "
+                     "response_distribution（不冒充单一通带）\n",
+                     counts.size(), obs_filter.c_str());
+      }
+    }
   }
   // §10: 全部子产品先落本次运行私有暂存区, 校验通过后统一原子发布
   // (不再直写正式 output_dir)。
@@ -13932,19 +14072,20 @@ Result<void> p2_op_write(const Json& doc, Json* man) {
           std::string("aio_hips_write_signal_support_tile failed: ") +
           aio_hips_last_error()));
     }
-    if (uncertainty_available) {
-      aio_hips_tile_view_abi_init(&view);
-      const int wv = aio_hips_write_variance_tile(ps, &view);
-      if (wv != 0) {
-        aio_hips_abort(ps);
-        if (man && dsk_epoch.failed()) (*man)["error_kind"] = "disk_full";
-        aio_atomic::remove_tree(staging, 0);   // §10: 失败路径清临时产物
-        return Result<void>::fail(Error(ErrorDomain::IO,
-            std::string("aio_hips_write_variance_tile failed: ") +
-            aio_hips_last_error()));
-      }
-    }
+    // D02: variance/ivar 图像子产品不再写出（阶段二最终只有一个 signal）。
+    // variance 面事实仍由 uncertainty_available 登记于 p2_final.json /
+    // provenance；var_num 变换保留（诊断快照与运行摘要用），不落最终图像层。
     ++n_tiles_written;
+    // ── DEV-MODE-001: 最终 tile 生成**之前**的加权 signal 开发快照（只读旁路）
+    // 数值直接取自本循环刚算出的 write_flux 槽（AIO 写入前的那一份）。选择器
+    // 未选中或预算耗尽 ⇒ sink 内部登记 NOT_SELECTED/SKIPPED_BUDGET 后返回，
+    // 不影响本节点的产品写出与失败语义。
+    p2_devdiag_signal_tile("mosaic",
+                           "order=" + std::to_string(target_order + 9) +
+                               " ipix=" + std::to_string(tip),
+                           "p2_integrated.bin signal/support/wsum planes",
+                           static_cast<int>(kP2TileLeafSpan),
+                           write_flux.data() + wi * kP2TileLeafSpan);
   }
   // 内存管线：变换缓冲使命结束即释放（不带 3×n_tiles×1MB 进 finalize/verify/
   // publish；523 tiles 下约 1.5GB 常驻的峰值窗口到此关闭）。
@@ -13969,29 +14110,19 @@ Result<void> p2_op_write(const Json& doc, Json* man) {
         "HiPS properties missing after finalize: " + staging_props));
   }
 
-  // 产品面回读校验（variance/ivar tile 数一致; HIPS_VERIFY 目标态 §30.1 扩展）
-  Json products = Json::array({"signal", "support"});
-  if (uncertainty_available) {
-    products.push_back("variance");
-    products.push_back("ivar");
-    AioHipsDataset* dv = aio_hips_open(staging.c_str(), AIO_HIPS_RD_VARIANCE);
-    AioHipsDataset* di = aio_hips_open(staging.c_str(), AIO_HIPS_RD_IVAR);
-    const bool ok = dv && di &&
-                    aio_hips_tile_count(dv) == aio_hips_tile_count(di);
-    if (dv) aio_hips_close(dv);
-    if (di) aio_hips_close(di);
-    if (!ok) {
-      aio_atomic::remove_tree(staging, 0);
-      return Result<void>::fail(Error(ErrorDomain::IO,
-          "variance/ivar product tile count mismatch after finalize (HIPS_VERIFY)"));
-    }
-  }
+  // 产品面回读校验（D02: 最终产品只有 signal）。variance/ivar 不再作为科学
+  // 图像子产品发布；uncertainty_available 只作为**方差面完整性事实**登记。
+  // 内部方差面（p2_integrated_wsum.bin / var_num 变换）继续存在并参与 signal
+  // 之外的运行摘要，不进入最终 HiPS 图像层。
+  const Json products = Json::array({"signal"});
   // 单位/像素语义声明（在暂存区内完成 → 随产品集一起原子发布;
   // properties 与 manifest.json 双写同源）。声明失败 = 产品单位面不完整 →
   // 丢弃暂存区显式拒（output_dir 不出现无单位声明的 mosaic）。
   {
     std::string uerr;
-    if (!declare_hips_surface_brightness_units(staging, uncertainty_available, &uerr)) {
+    // D02: 阶段二只发布 signal ⇒ variance/ivar 不在磁盘上, 传 false。
+    // uncertainty_available（方差面完整性事实）仍单独写进 p2_final.json。
+    if (!declare_hips_surface_brightness_units(staging, false, &uerr)) {
       aio_atomic::remove_tree(staging, 0);
       return Result<void>::fail(Error(ErrorDomain::IO,
           "mosaic 单位/像素语义声明失败: " + uerr));
@@ -14027,17 +14158,7 @@ Result<void> p2_op_write(const Json& doc, Json* man) {
     if (!aio_atomic::path_exists(fprops, nullptr))
       return Result<void>::fail(Error(ErrorDomain::IO,
           "HiPS properties missing after publish: " + fprops));
-    if (uncertainty_available) {
-      AioHipsDataset* dv = aio_hips_open(out_dir.c_str(), AIO_HIPS_RD_VARIANCE);
-      AioHipsDataset* di = aio_hips_open(out_dir.c_str(), AIO_HIPS_RD_IVAR);
-      const bool ok = dv && di &&
-                      aio_hips_tile_count(dv) == aio_hips_tile_count(di);
-      if (dv) aio_hips_close(dv);
-      if (di) aio_hips_close(di);
-      if (!ok)
-        return Result<void>::fail(Error(ErrorDomain::IO,
-            "variance/ivar tile count mismatch after publish (HIPS_VERIFY)"));
-    }
+    // D02: 只回读 signal（最终唯一科学图像子产品）。
   }
 
   // p2_final.json 的 properties 引用必须是**正式目录**路径
@@ -14057,13 +14178,17 @@ Result<void> p2_op_write(const Json& doc, Json* man) {
   const std::string uncertainty_unavailable_reason =
       int_doc.value("uncertainty_unavailable_reason", std::string());
   Json final_out = Json{{"schema", "DATA-P2-RES"},
-                        {"entry", "aio_hips_product_begin/write_signal_support_tile/write_variance_tile/finalize"},
+                        {"entry", "aio_hips_product_begin/write_signal_support_tile/finalize (signal only, D02)"},
                         {"hips_root", out_dir},
                         {"nside", nside},
                         {"target_order", target_order},
                         {"n_tiles_written", n_tiles_written},
                         {"products", products},
                         {"covered_area_model", "support_x_A_cell"},
+                        // D07/R1: 参与帧通带分布与最终响应声明的依据（如实记录，
+                        // 不用首帧滤镜冒充总体响应）。
+                        {"obs_filter", obs_filter},
+                        {"response_distribution", passband_distribution},
                         // 像素语义/单位随产品 manifest 落盘（与已发布的
                         // signal/properties BUNIT 声明同源同值; FZ-BUNIT-SEMANTICS）。
                         {"bunit", kP3BunitSurfaceBrightness},
@@ -15993,6 +16118,34 @@ Result<void> p3_op_writer(const Json& doc, Json* man, uint32_t cap,
       ores.covered_px = vr.covered_px;
       ores.total_px = vr.total_px;
       covn = vr.covered_px;
+    }
+  }
+  // ── DEV-MODE-001: 导出 signal 平面开发快照（只读旁路）────────────────────
+  // 数值 = p3_resampled.bin 的 plane 0（PRIMARY signal）中一个**确定性** ROI，
+  // 也就是本节点实际写入 output_phase3.fits 的那些字节（未拉伸、未量化）。
+  // 不替代正式产物、不成为任何下游科学输入。
+  {
+    const int roi_w = std::min(512, ow);
+    const int roi_h = std::min(512, oh);
+    const int r0 = std::max(0, (ow - roi_w) / 2);
+    const int c0 = std::max(0, (oh - roi_h) / 2);
+    std::vector<float> roi((std::size_t)roi_w * (std::size_t)roi_h, 0.0f);
+    bool roi_ok = true;
+    const std::size_t row_bytes = sizeof(float) * (std::size_t)roi_w;
+    for (int yy = 0; yy < roi_h && roi_ok; ++yy) {
+      const std::uint64_t off =
+          ((std::uint64_t)(c0 + yy) * (std::uint64_t)g.w + (std::uint64_t)r0) *
+          sizeof(float);
+      std::string buf;
+      if (!aio_file::read_range(bin_p.c_str(), off, row_bytes, &buf)) {
+        roi_ok = false;
+        break;
+      }
+      std::memcpy(roi.data() + (std::size_t)yy * roi_w, buf.data(), row_bytes);
+    }
+    if (roi_ok) {
+      // 以 ROI 为原点给出 rows=roi_h, cols=roi_w, 偏移 (0,0) —— 缓冲本身已是窗口。
+      p3_devdiag_output_tile(bin_p, roi_h, roi_w, roi.data(), 0, 0, roi_h, roi_w);
     }
   }
   const std::string json_path = g.out_dir + "/p3_writer.json";
