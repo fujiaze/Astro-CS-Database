@@ -243,3 +243,82 @@ python3 code/audit/sim/exp_sim01_m16_forward_conservation.py   # M16 物理前�
 | HPX 支结构与赤道带/极冠分支 | Calabretta & Roukema 2007, MNRAS 381, 865（refs.md V6） | `p3lib.chart_to_vec`（生产 `spherical_overlap.cpp` 分支结构的逐条复刻） | route1/route3 全天穷举 N ≤ 256；仿真腿 0 个 drop 跨 chart 分支 |
 | 物理前向仿真数据本身 | Merline & Howell 1995；Howell 2006（CCD 噪声模型），见 `实验/shared/synthetic/noise_model.py` 模块 docstring 的逐条文献锚 | 共享链 `实验/shared/synthetic/{noise_model,m16_scene,m16_sampling,m16_mask}.py`（自检面全四项） | `bash 实验/shared/synthetic/run_selftests.sh` → 实测 4/4 PASS、rc=0、约 2 分 32 秒；判别力已由注入缺陷实测（见审核包） |
 | 真实数据腿 | — | `testdata/HST_M16/*.drz`（HST WFC3/UVIS 窄带 drizzled 产品，PHOTFLAM 带头，NDRIZIM=32） | M16 仿真腿的信号模板与 WCS 来源；route3/exp04、p4_hst 系列读数 |
+
+---
+
+## 附录 A（2026-10-14 追加，**不删改任何历史章节**）：S02 逐 drop 完备性 ε_j 的生产缺陷复现与修复
+
+> 纪律声明：本节是**本轮新增的复验专节**，不覆盖上文任何历史读数。上文历史 PASS/读数仍按原样保留，
+> 其证据级别不因本节提升。完整报告见
+> `run/ACSDSDOC-02/S02/REPORT_S02.md`；独立 Oracle 见 `code/s02_p3_oracle.py`。
+
+**基线与构建**：分支 `audit/acsd-science-docs-p5`、HEAD=`e31b2be66ffe37d547e67a4ba007e7257e49789d`；
+生产构建 `build/linux-sci`（Ninja/Release，版本串含 `+ge31b2be66`）。修复前源 SHA256
+`363c34211cf99062651dfca7a592c33139dad10025ec4a758a9969f57ad22569`，修复后
+`49cf726d7da549107e613809434a5cb09a6e37d1eebe1807c1814f53f7ae4ef4`。
+
+**被估量**：`ε_j = Σ_p a_jp / A_drop,j − 1`（无量纲）。生产 1×1 帧探针的 `sumw_m1` 与本量恒等
+（`drizzle_engine.cpp:1402` 的 `weight = overlap_area/drop_area`，`:1424` 的
+`sumFlux += pixelValue*weight`，探针 `custom_x ≡ 1`）⇒ 上一轮历史读数与正本判据可**同物量比较**。
+
+**受检构型**：1×1 TAN、`scale=0.04″/px`、`pixfrac=0.8`、`CRVAL=(RA=45°, dec=asin(2/3))`、
+`nside=8192`；该点是 4 个叶的公共顶点（4 叶各有一角点距顶点 `1.9e-16 rad`），drop 边长 `0.032″`，
+drop/叶尺度比 ≈ 840。
+
+**独立 Oracle 结论（连续极限下 ε ≡ 0）**：①精确切平面 2D 凸裁剪（TAN 下大圆为直线）得
+`ε = +1.33e-15`；②drop 内 4001² 网格对四个四角弦叶做半空间测试，四叶分数和 `= 1.000000`；
+③`healpy.ang2pix` 真叶成员判定确认铺满。⇒ **叶边界四角弦表示恰好铺满 drop，不是本异常来源**，
+也不是候选漏选。方法学注记：`l'Huilier` 扇剖分对 `~1e-7 rad` 的微小多边形相消严重，微小面积
+必须用切平面投影式（本单元早期一次 `−1.78e-3` 读数即为该相消伪影）。
+
+**根因（两处独立缺陷，均须修）**：
+
+| 臂（同一生产调用路径） | `ε`（顶点构型） | 破 `1e-6` 门 |
+|---|---|---|
+| 修复前 HEAD | `−3.209422e-03` | 是（3209×） |
+| 只修 P3-NORM-01（drop 边法向） | `+5.499704e-05` | 是（55×） |
+| P3-NORM-01 + P3-NORM-02（S-H 交点） | `−8.370272e-10` | 否 |
+
+- **P3-NORM-01**：`build_drop_geometry_into` 用 `normalize(cross(C_j,C_{j+1}))` 求 drop 边法向；
+  `|cross| ≈ θ` 而分量为 O(1) 乘积之差 ⇒ 法向角误差 `~ε_mach/θ`，平面距中心 `θ/2`
+  ⇒ 平面位置相对误差 `~2ε_mach/θ²`。**实测**四条边平面偏移 `n·c` 由
+  `[7.760822e-08, 7.725840e-08, 7.760172e-08, 7.734707e-08]`（最大偏差 0.45%）变为四个逐位相同的
+  `7.757019e-08`。修法：恒等式 `P1×P2 ∝ c×(α2−α1) + α1×α2`，`α_i = P_i/(P_i·c) − c`。
+- **P3-NORM-02（本构型主残差）**：`compute_intersection` 原用 `cross(cross(S,E), n_clip)`；S-H 迭代后
+  会出现边长 `~1e-7 rad` 的 subject 边，`|cross(S,E)| ≈ 边长` ⇒ 同样近简并。修法：弦-平面零点
+  `x = (d_S·E − d_E·S)/(d_S − d_E)` 后归一化（调用点恒有 `d_S`、`d_E` 异号 ⇒ 分母无相消），
+  保留 `den` 近零时的叉积回退。
+
+**修前/修后生产读数**（`E12` 面缝 RA 扫描，nside 8192、0.04″、pixfrac 0.8）：
+
+| RA | 修复前 | 修复后 |
+|---|---|---|
+| 45 | `−3.209422e-03` | `−8.370e-10` |
+| 135 | `−1.002136e-03` | `+8.375e-10` |
+| 225 | `−1.779342e-03` | `−1.543e-11` |
+
+`E13` 逐 drop 完备性 `max|ε|`：`leaf_edge` nside 512 `6.4952e-04 → 2.2099e-08`、
+4096 `1.7874e-05 → 2.0005e-07`、16384 `1.1672e-05 → 2.1035e-07`；`face_seam`/`interior` 基本不变。
+
+**误差律**：修复前 `ε ∝ ε_mach/θ²`（`θ∈[0.04″,5″]`，`θ²|ε|/ε_mach = 0.02–0.42`）；修复后
+`ε ∝ ε_mach/θ`（`θ|ε|/ε_mach = 0.14–0.60`）。修复前 `ε=1e-6` 对应 `θ≈1.5″` ⇒ 1″/px 级真帧在
+叶边界/顶点会破逐 drop `1e-6` 门；修复后全测域 `max|ε| ≤ 8.4e-9`。
+
+**负例判红**：`ACSD_DRZ_P3_FAULT=legacy_cross_normal`（静态缓存，稳态零开销）同时回退两处补丁，
+同一二进制读回 `−3.209422e-03`，与 HEAD 探针逐位一致。回归门：默认路径必须 `<1e-6`，
+注入路径必须回到 `1e-3` 量级。
+
+**回归面**：全探针 46 组中 `E11`/`E14`/`E15` 逐位不变；`E3/E4/E5/E6/E8/E10` 变化量级
+`1e-13…1e-10`（噪声级）；`E1_constant_sb`（nside 16384）帧级通量守恒由 `−1.18e-08…−4.85e-09`
+改善到 `+3.78e-13…+9.55e-13`（**4–5 个数量级**）；`E7_distortion` `flux_rel` 由 `−3.33e-10`
+改善到 `+6.9e-13`。既有 Python 测试集 `eng/tests/unit/test_drizzle_conservation.py` 与
+`eng/tests/synthetic/test_p3_conservative_map.py` 仍 **30 passed**。
+
+**口径订正**：NORM-02 作用于所有尺度的 S-H 交点，故 `max_angle ≥ 1e-3` 的大 drop 路径**不再逐位零回归**；
+实测 `Δε ≤ 1.6e-11`、`Δflux/flux ≤ 4e-12`，均在 ε 地板以下、不改变任何判据结论。只打 NORM-01 时该路径
+逐位不变，但 ε 修不好。故保留两项合用，并把「零回归」如实改写为上述界。
+
+**未覆盖域**：`60″–290″` 档 `~2e-7` 残差由叶四角弦表示支配，**未修**，不得声称已修或已覆盖。
+`docs/science/` 的判据与适用域文字本轮**未改**，待负责人裁决后同批订正。
+
+**复现**：见 `run/ACSDSDOC-02/S02/REPORT_S02.md` §8（构建、`probe_p3_detail`、独立 Oracle、pytest）。
