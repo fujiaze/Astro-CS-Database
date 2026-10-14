@@ -429,13 +429,30 @@ python3 实验/additive-sky-seamless/code/reverse_verify/data_matrix/exp1_sky_po
 - **`S9` 由 `rc=0` 变为 `rc=7` 是有意的行为变更**：该场景含 1 个单帧分量，其跨分量零点不可由重叠
   数据求得；`REVIEW_DECISIONS.md` D-02 §2 明许「有小于 2 帧的孤立分量按**独立产品或显式失败/未可
   定标状态**」。本轮取**显式失败**（保守方向），未实现「单帧分量作为独立产品输出」的替代分支。
-- `S9b` 逐分量诊断（`ACSD_SKY_COMPONENT_DUMP`）：compA `frames=[0,1] cell_edges=192 rank=119/160
-  n_unidentified=41`、compB `frames=[2,3] cell_edges=96 rank=88/127 n_unidentified=39`，而全图
-  `rank=256/256 identifiable=1` —— 正是 D-02 §3/§4 要求的「近奇异但形式满秩不得判绿」。
+- `S9b` 逐分量诊断（`ACSD_SKY_COMPONENT_DUMP`，**修后最终源码**）：compA `frames=[0,1]
+  edge_count=1 cell_edges=192 rank=160/160 n_unidentified=0 kappa=1.32e4 support_frac=0.649`、
+  compB `frames=[2,3] edge_count=1 cell_edges=96 rank=127/127 n_unidentified=0 kappa=3.83e4
+  support_frac=0.351`；全图 `rank=256/256 identifiable=1 kappa=3.66e4`；
+  `gauge_constraints_applied=2 == expected=2`、`gauge_explicit_ok=1`。
+  > **订正留档（重要）**：本附录初稿引用的是**中间构建**读数（compA `rank 119/160, n_unidentified 41`、
+  > compB `rank 88/127, n_unidentified 39`）——那是执行者修复 `H_C` 漏掉锚帧数据行**之前**的版本，
+  > **已作废、不得再引用**。修后各分量均为**满秩且全部可辨识**；该缺陷的可辨识性由下面的
+  > 故障注入臂暴露（全图绿、逐分量红）。
 
-**负例判红**：`ACSD_SKY_P5_FAULT=global_anchor` 在 `S9b` 上给
+**负例判红（本附录最关键的一条）**：`ACSD_SKY_P5_FAULT=global_anchor` 在 `S9b` 上给
 `rc=7`、错误串 `P5 per-component identifiability RED: component_id=1 frames=2 anchor=2
-rank_eff=118 < n_free` ⇒ **判红成立**（注入路径被逐分量秩判据抓到，fail-closed）。
+rank_eff=118 < n_free=127 (unidentified=9, …)` ⇒ **判红成立**（fail-closed）。
+同一注入下**两条判据分裂**，这正是 D-02 §3/§4 要防的事：
+
+| 注入臂读数 | comp0 | comp1 | 全图 |
+|---|---|---|---|
+| `rank / n_free` | `160/160` | **`118/127`** | `256/256` |
+| `n_unidentified` | 0 | **9** | **0** |
+| `identifiable` | `status=0` | **`status=1`（RED）** | **`identifiable=1`（绿）** |
+| `kappa` | `1.33e4` | — | **`3.89e9`（仍 < `1/τ=1e10`，绿）** |
+
+⇒ **全图 `identifiable=1`、`rank=256/256`、`κ=3.89e9` 全部读绿，只有逐分量判据抓到 `comp1`
+秩亏 9 个自由度**。仅靠全图秩/条件数判据（D-02 §3 明令不得单独使用）会漏掉本缺陷。
 注：在加入该判据之前的中间版本上，该注入曾**逐位复现** `0.1281497171821252` 与逐帧
 `frame_delta_coeffs`；两种表现都指向同一缺陷，现版本更强（直接失败关闭）。
 
