@@ -91,9 +91,10 @@ log f_is - log f_js ≈ eta_i - eta_j + color/PSF terms + noise
 若完成 P5-A～F 且独立真值/真实留出实验均收敛，可发表的特色是“重叠拓扑约束 + 加乘性分离 + 模型显式退化 + 天体低频保真联合检验”，而不是孤立地把拼图接缝做平。
 
 
-[R15] Makovoz, Khan & Moshir (2005), PASP 117, 274–280, [10.1086/428409](https://doi.org/10.1086/428409)。
 
 ## 参考文献
+
+[R15] Makovoz, Khan & Moshir (2005), PASP 117, 274–280, [10.1086/428409](https://doi.org/10.1086/428409)。
 
 [R03] Padmanabhan et al. (2008), ApJ 674, 1217, [10.1086/524677](https://doi.org/10.1086/524677)。
 
