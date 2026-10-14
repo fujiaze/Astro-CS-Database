@@ -1,3 +1,1 @@
-本目录是文档与决策治理正本：文档治理规范 是文档体系规则，`TRACEABILITY.md` 是
-合同 ID 追溯，`DUAL_LINE.md` 是写域互斥与合并点，`UNRESOLVED.md` 是需负责人裁决的未决登记。
-给维护文档集与派工作包的编排者阅读。
+本目录维护文档与科学/代码责任的收敛。**Normalize 的旧设计冲突及确定裁决见 [NORMALIZE_CONVERGENCE.md](NORMALIZE_CONVERGENCE.md)**；DOCUMENT_GOVERNANCE.md 说明全项目文档层级，TRACEABILITY.md 是合同身份索引，DUAL_LINE.md 说明写域/合并原则，UNRESOLVED.md 仅登记真正没有足够证据的事项。历史“未验证”不是交给 Agent 自由设计新科学方案的授权。
