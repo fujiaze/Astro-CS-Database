@@ -1,3 +1,1 @@
-本目录是架构正本：`ARCHITECTURE.md` 是组件职责与依赖方向，`DATA_FLOW.md` 是数据流、
-执行模型与线程预算，`MODULE_MAP.md` 是模块到目录与产物的逐行登记。给读代码前建立全局视图的
-开发者阅读。
+本目录维护软件结构。全局组件与依赖方向见 ARCHITECTURE.md、DATA_FLOW.md，模块地图见 MODULE_MAP.md。**Normalize 唯一实际工程链及 C++ 归属见 [NORMALIZE_PIPELINE.md](NORMALIZE_PIPELINE.md)**，其物理定义由 [科学正本](../../science/normalize/NORMALIZE_SCIENCE.md) 拥有。ACSD_DEV_MODE 的开发诊断边界见 DEV_MODE.md，现行代码差异见 SCIENCE_IMPLEMENTATION_DELTA.md。
