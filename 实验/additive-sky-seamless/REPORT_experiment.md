@@ -391,3 +391,57 @@ python3 实验/additive-sky-seamless/code/reverse_verify/data_matrix/exp1_sky_po
 可复核面因此只保留上表三条腿；
 凡仅由台账支撑、未落在仓内读数或 `refs.md` 条目上的陈述，本稿一律标为登记面
 （见 §6），不作证据。
+
+---
+
+## 附录 S03（2026-10-14 追加，**不删改任何历史章节**）：P5 断连重叠图逐分量 gauge 的生产修复与 S0/S9/S9b 回归
+
+> 纪律：本节为**本轮新增复验专节**，不覆盖上文历史读数，其证据级别不因本节提升。
+> 基线 `e31b2be66`；生产构建 `build/linux-sci`（Ninja/Release，`+ge31b2be66`）。
+> 源码 `lib/algorithms/coverage/src/sky_plane.cpp`（修后 sha256 见
+> [S03_P5_COMPONENT_evidence.json](docs/S03_P5_COMPONENT_evidence.json)）。
+
+**缺陷与机理（上一轮已定位，本轮在基线构建上复现）**：前向模型 `y_k = B_ref + δ_k` 只约束组合
+`(B_ref + δ_k)`；每个**连通分量**内存在规范自由 `B_ref → B_ref + f`、`δ_k → δ_k − f`。生产原用
+`sky_plane.cpp:1506 model->ref_frame = 0` 的**全局单一**参考帧，只固定了分量 0 的规范，compB 的漂移
+被 `B_ref` 吸收进产品，而 `rms_weighted`/`χ²_red` 结构性失明。
+
+**修法**：以**实际有效控制点**（`used` 样本共享 `control_id`）建帧重叠图，并查集枚举连通分量，
+**每分量取分量内最小 `frame_id` 作锚帧令 `δ_anchor ≡ 0`**；`ref_frame` 降为兼容字段（= 分量 0 的锚）。
+新增：
+- 逐分量状态旁路 `ACSD_SKY_COMPONENT_DUMP=<path>`（格式 `acsd-sky-plane-p5-components-v1`），
+  每分量给 `component_id / frame_ids / anchor / edge_count / cell_edges / rank / n_params /
+  n_unidentified / kappa / lambda_min / support_frac / overlap_pair_* / delta_ramp_max / status`，
+  另有 `gauge_constraints_applied==expected`、`gauge_explicit_ok`、`solve_perturbation_gain`。
+- 逐分量判据：任一分量帧数 `<2`，或该分量 `rank_eff < n_free` ⇒ 显式
+  `P2_SKY_PLANE_NOT_IDENTIFIABLE`（**不**用全图 `identifiable=1` 掩盖）。
+- 负例注入 `ACSD_SKY_P5_FAULT=global_anchor`（静态缓存，稳态零开销）：回退全局单一参考帧。
+
+**读数（同一探针源码，只换 `libacsd_phase2.a`）**
+
+| 场景 | 修前 `rc` | 修后 `rc` | `A0 seam_rel_maxabs` 修前 → 修后 |
+|---|---|---|---|
+| `S0_no_overlap_two_single_frames`（两单帧分量，零重叠） | 7 | 7 | 无接缝可评 |
+| `S9_disconnected`（两帧分量 + 单帧分量） | 0（seam `1.31e-3`） | **7** | 见下注 |
+| `S9b_two_components`（两分量各 2 帧） | 0 | 0 | **`0.1281497171821252` → `0.0005981665755358275`（214×）** |
+
+- `S9b` 修后已接近**非生产**参照臂 `A3`（全局联合参考解）的 `0.000459671221881036`。
+- **`S9` 由 `rc=0` 变为 `rc=7` 是有意的行为变更**：该场景含 1 个单帧分量，其跨分量零点不可由重叠
+  数据求得；`REVIEW_DECISIONS.md` D-02 §2 明许「有小于 2 帧的孤立分量按**独立产品或显式失败/未可
+  定标状态**」。本轮取**显式失败**（保守方向），未实现「单帧分量作为独立产品输出」的替代分支。
+- `S9b` 逐分量诊断（`ACSD_SKY_COMPONENT_DUMP`）：compA `frames=[0,1] cell_edges=192 rank=119/160
+  n_unidentified=41`、compB `frames=[2,3] cell_edges=96 rank=88/127 n_unidentified=39`，而全图
+  `rank=256/256 identifiable=1` —— 正是 D-02 §3/§4 要求的「近奇异但形式满秩不得判绿」。
+
+**负例判红**：`ACSD_SKY_P5_FAULT=global_anchor` 在 `S9b` 上给
+`rc=7`、错误串 `P5 per-component identifiability RED: component_id=1 frames=2 anchor=2
+rank_eff=118 < n_free` ⇒ **判红成立**（注入路径被逐分量秩判据抓到，fail-closed）。
+注：在加入该判据之前的中间版本上，该注入曾**逐位复现** `0.1281497171821252` 与逐帧
+`frame_delta_coeffs`；两种表现都指向同一缺陷，现版本更强（直接失败关闭）。
+
+**未决 / 诚实边界**
+1. `S9` 的 `rc=0 → 7` 是产品行为变更；是否改为「单帧分量作为独立产品输出、其余分量照常成功」需
+   负责人裁决（D-02 允许两者，本轮取较保守的一支）。
+2. 逐分量 gauge 只解决**加性规范**；`D-02` 的「跨分量绝对零点需外部锚」仍未实现外部锚。
+3. FP32 实例与 Windows 构建未针对本改动复测。
+4. `60″–290″` 等叶弦/分支类残差属 P3 侧，不在本节范围。

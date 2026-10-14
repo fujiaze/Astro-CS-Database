@@ -600,7 +600,19 @@ struct SkyPlaneModel {
     std::vector<SkyOwnGrid> own;
     int own_enabled = 1;
     double own_step_deg = 0.02;
+    // 兼容字段：全图最小 frame_id（= 分量 0 的锚帧）。**不再是全图统一规范**：
+    // 规范固定按连通分量逐分量做（见 is_anchor / n_components）。
     int ref_frame = 0;
+    // S03/P5-C：帧重叠图连通分量与逐分量规范。
+    // docs/science/sky/UPM.md「物理模型」「公式与推导」两节：加性场对全局常数存在
+    // 规范自由，**以连通分量独立规范固定**；未显式指定时一律走该规则，不得静默
+    // 回退到全局单一规范。is_anchor[k]=1 ⇔ k 是其分量的锚帧（δ_k ≡ 0）。
+    int n_components = 1;
+    std::vector<int> comp_of_frame;            // 每帧分量号（按分量内最小 frame_id 升序）
+    std::vector<char> is_anchor;               // 每帧是否锚帧（长度 = n_frames）
+    std::vector<std::uint64_t> anchor_frame_ids;  // 每分量锚帧 = 分量内最小 frame_id
+    // S03/P5-C：per-component 状态旁路 payload（默认空；由最终生效模型写出）。
+    std::string p5_component_json;
     std::vector<double> last_weights;   // 最后使用的样本权重（诊断/残差）
     std::vector<std::uint64_t> used_idx;
     // docs/science/sky/UPM.md「物理模型」一节：节点间距自适应的完整 provenance（单次 build 时 n_attempts=0）。
@@ -612,6 +624,187 @@ struct SkyPlaneModel {
 };
 
 void sky_plane_free(void* p) { delete static_cast<SkyPlaneModel*>(p); }
+
+// ===========================================================================
+// S03 / P5-C：帧重叠图连通分量（docs/science/sky/UPM.md「物理模型」一节）
+//
+// 「求解采用稳健迭代重加权与控制点逆方差，在按**真实有效重叠边**枚举图连通
+//   分量之后，对每个分量单独选最小 frame_id 参考帧并实施规范固定；跨分量相对
+//   零点不可由分量内部重叠数据求得。」
+//
+// 边定义（真实有效重叠边）：两帧在**同一个有效控制格点**上都有参与拟合的样本
+//   （`used`）即相邻。生产控制采样给所有帧的是同一套控制格点索引
+//   （sampler.cpp 的 `control_id = ci`，同一格点即同一天区位置），故
+//   「共享 control_id」就是该格点上的实际有效重叠，不依赖文件名/目录推断。
+// 分量：并查集；分量号按分量内最小 frame_id 升序编号（确定性，线程无关）。
+// 锚：每分量取分量内最小 frame_id 作参考帧，令 δ_anchor ≡ 0（参考帧规范）。
+// 单帧分量：锚即该帧自身，登记为「独立产品/不可跨分量比较」，不伪称可比。
+// ===========================================================================
+struct P5ComponentGraph {
+    int n_components = 0;
+    std::vector<int> comp_of_frame;                       // n_frames
+    std::vector<char> is_anchor;                          // n_frames
+    std::vector<std::vector<std::uint64_t>> frames_of_comp;
+    std::vector<std::uint64_t> anchor_of_comp;            // 最小 frame_id
+    std::vector<std::uint64_t> frame_edges_of_comp;       // 分量内相邻帧对数
+    std::vector<std::uint64_t> cell_edges_of_comp;        // 共享控制格点数
+    std::vector<std::uint64_t> samples_of_comp;           // 分量内有效控制点数
+    std::vector<std::uint64_t> cells_of_comp;             // 分量内不同控制格点数
+};
+
+inline P5ComponentGraph p5_component_graph(const P2SkySample* samples,
+                                           const std::vector<std::uint64_t>& used,
+                                           const std::vector<std::uint64_t>& frame_ids) {
+    P5ComponentGraph g;
+    const int nf = static_cast<int>(frame_ids.size());
+    g.comp_of_frame.assign(static_cast<std::size_t>(nf), -1);
+    g.is_anchor.assign(static_cast<std::size_t>(nf), 0);
+    if (nf <= 0) return g;
+    std::map<std::uint64_t, int> fpos;
+    for (int k = 0; k < nf; ++k)
+        fpos[frame_ids[static_cast<std::size_t>(k)]] = k;
+
+    // 控制格点 → 该格点上有效样本所属帧（去重）
+    std::map<std::uint64_t, std::vector<int>> cell_frames;
+    for (std::uint64_t idx : used) {
+        const P2SkySample& s = samples[idx];
+        const auto it = fpos.find(s.frame_id);
+        if (it == fpos.end()) continue;
+        cell_frames[s.control_id].push_back(it->second);
+    }
+    // 并查集（路径压缩；迭代实现，避免递归深度依赖输入）
+    std::vector<int> parent(static_cast<std::size_t>(nf));
+    for (int k = 0; k < nf; ++k) parent[static_cast<std::size_t>(k)] = k;
+    auto find_root = [&parent](int a) {
+        while (parent[static_cast<std::size_t>(a)] != a) {
+            parent[static_cast<std::size_t>(a)] =
+                parent[static_cast<std::size_t>(parent[static_cast<std::size_t>(a)])];
+            a = parent[static_cast<std::size_t>(a)];
+        }
+        return a;
+    };
+    auto unite = [&find_root, &parent](int a, int b) {
+        a = find_root(a);
+        b = find_root(b);
+        if (a != b) parent[static_cast<std::size_t>(b)] = a;
+    };
+    std::map<std::pair<int, int>, int> edges;   // 相邻帧对（去重）
+    for (auto& kv : cell_frames) {
+        std::vector<int>& v = kv.second;
+        std::sort(v.begin(), v.end());
+        v.erase(std::unique(v.begin(), v.end()), v.end());
+        if (v.size() < 2) continue;
+        for (std::size_t a = 0; a < v.size(); ++a)
+            for (std::size_t b = a + 1; b < v.size(); ++b) {
+                edges[std::make_pair(v[a], v[b])] = 1;
+                unite(v[a], v[b]);
+            }
+    }
+    // 分量编号：根 = 分量内最小帧下标（frame_ids 升序 ⇒ 最小 frame_id），
+    // 按该根升序编号，故 component_id 与输入顺序无关、只由帧集决定。
+    std::map<int, int> root_comp;
+    for (int k = 0; k < nf; ++k) {
+        const int r = find_root(k);
+        if (root_comp.find(r) == root_comp.end())
+            root_comp[r] = static_cast<int>(root_comp.size());
+    }
+    g.n_components = static_cast<int>(root_comp.size());
+    g.frames_of_comp.assign(static_cast<std::size_t>(g.n_components), {});
+    g.anchor_of_comp.assign(static_cast<std::size_t>(g.n_components), 0);
+    g.frame_edges_of_comp.assign(static_cast<std::size_t>(g.n_components), 0);
+    g.cell_edges_of_comp.assign(static_cast<std::size_t>(g.n_components), 0);
+    g.samples_of_comp.assign(static_cast<std::size_t>(g.n_components), 0);
+    g.cells_of_comp.assign(static_cast<std::size_t>(g.n_components), 0);
+    for (int k = 0; k < nf; ++k) {
+        const int c = root_comp[find_root(k)];
+        g.comp_of_frame[static_cast<std::size_t>(k)] = c;
+        g.frames_of_comp[static_cast<std::size_t>(c)].push_back(
+            frame_ids[static_cast<std::size_t>(k)]);
+    }
+    for (int c = 0; c < g.n_components; ++c) {
+        g.anchor_of_comp[static_cast<std::size_t>(c)] =
+            g.frames_of_comp[static_cast<std::size_t>(c)].front();   // 最小 frame_id
+        g.is_anchor[static_cast<std::size_t>(
+            fpos[g.anchor_of_comp[static_cast<std::size_t>(c)]])] = 1;
+    }
+    for (const auto& e : edges)
+        ++g.frame_edges_of_comp[static_cast<std::size_t>(
+            g.comp_of_frame[static_cast<std::size_t>(e.first.first)])];
+    for (const auto& kv : cell_frames) {
+        const std::vector<int>& v = kv.second;
+        if (v.size() < 2) continue;
+        g.cell_edges_of_comp[static_cast<std::size_t>(
+            g.comp_of_frame[static_cast<std::size_t>(v[0])])] +=
+            static_cast<std::uint64_t>(v.size() - 1);
+    }
+    for (std::uint64_t idx : used) {
+        const int k = fpos[samples[idx].frame_id];
+        const int c = g.comp_of_frame[static_cast<std::size_t>(k)];
+        ++g.samples_of_comp[static_cast<std::size_t>(c)];
+    }
+    {
+        std::map<int, std::vector<std::uint64_t>> cells_by_comp;
+        for (const auto& kv : cell_frames) {
+            const std::vector<int>& v = kv.second;
+            if (v.empty()) continue;
+            cells_by_comp[g.comp_of_frame[static_cast<std::size_t>(v[0])]].push_back(
+                kv.first);
+        }
+        for (auto& kv : cells_by_comp)
+            g.cells_of_comp[static_cast<std::size_t>(kv.first)] = kv.second.size();
+    }
+    return g;
+}
+
+// ---- S03/P5-C 负例注入（生产默认关闭；静态缓存 ⇒ 稳态零开销）----
+// 与 P3 的负例注入同风格（lib/algorithms/drizzle/healpix_drizzle/spherical_overlap.cpp
+// 的 ACSD_DRZ_P3_FAULT）：
+//   ACSD_SKY_P5_FAULT=global_anchor
+//     强制回退到订正前的**全局单一参考帧**语义：只有 frame_ids[0] 被钉 δ≡0，
+//     即使重叠图有多个连通分量。该路径复现断连图后续分量未对齐
+//     （S9b compB 相对台阶 1.281e-1），逐分量数据部分秩检验必须对它判红。
+inline bool p5_fault_global_anchor() {
+    static const bool en = [] {
+        const char* v = std::getenv("ACSD_SKY_P5_FAULT");
+        return v && std::strcmp(v, "global_anchor") == 0;
+    }();
+    return en;
+}
+
+// ---- S03/P5-C per-component 状态旁路（生产默认关闭；静态缓存 ⇒ 稳态零开销）----
+// 头文件与 P2SkyPlaneInfo 的 ABI 不在本任务写面内（D-02 要求「可被测试读取即可」），
+// 故逐分量状态经**显式声明、默认关闭**的诊断旁路输出为紧凑 JSON：
+//   ACSD_SKY_COMPONENT_DUMP=<path>
+// 键：n_components / components[]（component_id, frame_ids, anchor, edge_count,
+//     cell_edges, n_samples, n_cells, n_nodes, rank, kappa, identifiable, status）
+//     + gates（求解扰动敏感性、显式规范约束计数）。
+inline const std::string& p5_component_dump_path() {
+    static const std::string path = [] {
+        const char* v = std::getenv("ACSD_SKY_COMPONENT_DUMP");
+        return v ? std::string(v) : std::string();
+    }();
+    return path;
+}
+
+// 旁路是否启用（静态缓存 ⇒ 未设环境变量时稳态零开销：连 payload 都不构造）。
+inline bool p5_component_dump_enabled() { return !p5_component_dump_path().empty(); }
+
+inline void p5_component_dump_write(const std::string& payload) {
+    const std::string& path = p5_component_dump_path();
+    if (path.empty() || payload.empty()) return;
+    // 统一 I/O：与 p2_sky_plane_save 同一实现（不允许本 TU 另开文件写路径）。
+    std::string werr;
+    aio_atomic::write_file_atomic(path, payload, &werr);
+}
+
+// 由**最终生效**模型写旁路（build 每次尝试都会重建 payload；自适应/联合解在
+// 采纳解确定后覆写，保证文件描述的是被采纳的那个解，而不是最后一次尝试）。
+inline void p5_component_dump_model(const void* model_in) {
+    if (!model_in) return;
+    const SkyPlaneModel* m = static_cast<const SkyPlaneModel*>(model_in);
+    p5_component_dump_write(m->p5_component_json);
+}
+
 
 // ---- task-3：逐帧 δ 多项式残差 → 多尺度低频修正（§5.11/C9 fit_multiscale 同构） ----
 // 输入：build 已收敛的 B 系数/Deltas/基函数与样本残差（只读），输出逐帧 grid。
@@ -1503,7 +1696,25 @@ int p2_sky_plane_build(const P2SkySample* samples, std::uint64_t n,
     const int n_full = model->nx * model->ny;
     model->frame_ids = frame_ids;
     for (int k = 0; k < n_frames; ++k) model->frame_index[frame_ids[static_cast<std::size_t>(k)]] = static_cast<std::size_t>(k);
-    model->ref_frame = 0;   // 最小 frame_id
+    // S03/P5-C：按**真实有效控制点**（used）枚举帧重叠图连通分量，逐分量钉锚帧
+    // δ≡0（参考帧规范）；禁止用全局 ref_frame=0 充当全图统一规范（D-02 §1）。
+    P5ComponentGraph cgraph = p5_component_graph(samples, used, frame_ids);
+    const bool fault_global_anchor = p5_fault_global_anchor();
+    if (fault_global_anchor) {
+        // 负例路径：回退订正前的全局单一参考帧（只有 frame_ids[0] 是锚）。
+        std::fill(cgraph.is_anchor.begin(), cgraph.is_anchor.end(), 0);
+        cgraph.is_anchor[0] = 1;
+    }
+    model->n_components = cgraph.n_components;
+    model->comp_of_frame = cgraph.comp_of_frame;
+    model->is_anchor = cgraph.is_anchor;
+    model->anchor_frame_ids = cgraph.anchor_of_comp;
+    model->ref_frame = 0;   // 兼容字段 = 分量 0 的锚帧（最小 frame_id）
+    // 注：「零重叠边 ⇒ 不可跨分量定标」不由本处单独判红，而统一交给 build 后段的
+    // **逐分量状态判据**（见本文件 P5 逐分量诊断段：任一 `component` 的帧数 < 2 ⇒
+    // 该分量无法由重叠数据定标 ⇒ 显式失败 `P2_SKY_PLANE_NOT_IDENTIFIABLE`，
+    // 并把逐分量 status 落盘）。这样 S0（两单帧分量）与 S9（一单帧分量）走**同一条**
+    // 判据、只有一处口径，不会出现「零边门 vs 分量门」两套不一致统计。
     model->deltas.assign(static_cast<std::size_t>(n_frames), std::vector<double>(static_cast<std::size_t>(m), 0.0));
     model->coeff.assign(static_cast<std::size_t>(n_full), 0.0);
     model->used_idx = used;
@@ -1630,6 +1841,9 @@ int p2_sky_plane_build(const P2SkySample* samples, std::uint64_t n,
     std::vector<double> B(static_cast<std::size_t>(n_free), 0.0);
     // 派生数值岭 λ_eff（每次 IRLS 迭代按当次 H_red 的尺度重算；见下方说明）。
     double lam = 0.0;
+    // S03/P5-C 诊断：最后一次解是否走了「惩罚零空间极小锚 + deflation 校正」分支。
+    // deflation 分支保留的 Cholesky 因子属锚定矩阵，其上的扰动敏感性不可用。
+    bool solve_deflated = false;
     int iterations = 0;
     // task-10：瞬态线程预算（每 build 解析一次；IRLS 迭代间复用同一个 budget 值，
     // 使「线程数」在同一次求解内恒定 ⇒ 同输入同线程数逐位可复现）。
@@ -1689,7 +1903,7 @@ int p2_sky_plane_build(const P2SkySample* samples, std::uint64_t n,
              used.size() >= 4096);
         if (!asm_par) {
         for (int k = 0; k < n_frames; ++k) {
-            const bool ref = (k == model->ref_frame);
+            const bool ref = (model->is_anchor[static_cast<std::size_t>(k)] != 0);
             std::vector<double>& Mk_ = Mk[static_cast<std::size_t>(k)];
             std::vector<double>& Sk_ = Sk[static_cast<std::size_t>(k)];
             std::vector<double>& tk_ = tk[static_cast<std::size_t>(k)];
@@ -1769,7 +1983,7 @@ int p2_sky_plane_build(const P2SkySample* samples, std::uint64_t n,
                     std::vector<long double>& H_loc = asm_H[static_cast<std::size_t>(ww)];
                     std::vector<long double>& rhs_loc = asm_rhs[static_cast<std::size_t>(ww)];
                     for (int k = klo; k < khi; ++k) {
-                        const bool ref = (k == model->ref_frame);
+                        const bool ref = (model->is_anchor[static_cast<std::size_t>(k)] != 0);
                         std::vector<double>& Mk_ = Mk[static_cast<std::size_t>(k)];
                         std::vector<double>& Sk_ = Sk[static_cast<std::size_t>(k)];
                         std::vector<double>& tk_ = tk[static_cast<std::size_t>(k)];
@@ -1839,7 +2053,8 @@ int p2_sky_plane_build(const P2SkySample* samples, std::uint64_t n,
         // 秩/κ 诊断必须用它，而不是原始 Σ AᵀWA（后者恒满秩、无鉴别力）。
         H_red = H_data;
         for (int k = 0; k < n_frames; ++k) {
-            if (k == model->ref_frame) continue;
+            // S03/P5-C：逐分量锚帧（δ_k ≡ 0）不进入 Schur；不再只跳过全局 ref_frame。
+            if (model->is_anchor[static_cast<std::size_t>(k)]) continue;
             std::vector<double> Lk;
             if (!chol_spd(Mk[static_cast<std::size_t>(k)], m, Lk)) {
                 sky_plane_free(model);
@@ -2049,6 +2264,7 @@ int p2_sky_plane_build(const P2SkySample* samples, std::uint64_t n,
                                 }
                             });
                         solved = true;
+                        solve_deflated = true;
                     }
                 }
             }
@@ -2067,7 +2283,8 @@ int p2_sky_plane_build(const P2SkySample* samples, std::uint64_t n,
         B = Bnew;
         // δ_k
         for (int k = 0; k < n_frames; ++k) {
-            if (k == model->ref_frame) { std::fill(model->deltas[static_cast<std::size_t>(k)].begin(), model->deltas[static_cast<std::size_t>(k)].end(), 0.0); continue; }
+            // S03/P5-C：每分量锚帧的 δ 多项式恒为 0（参考帧规范按分量施加）。
+            if (model->is_anchor[static_cast<std::size_t>(k)]) { std::fill(model->deltas[static_cast<std::size_t>(k)].begin(), model->deltas[static_cast<std::size_t>(k)].end(), 0.0); continue; }
             // 重命名 dvec：此处 d 遮蔽了外层的样条阶数 d（本文件:565
             // `const int d = cfg.spline_degree;`），MSVC C4456。两者本就是不同的量，
             // 分名后求值顺序与数值逐位不变 ⇒ 零行为变化。
@@ -2217,6 +2434,400 @@ int p2_sky_plane_build(const P2SkySample* samples, std::uint64_t n,
             rank_solve = ids.rank_eff;
         }
     }
+    // =======================================================================
+    // S03/P5-C：逐分量诊断与**分开的三道门**（D-02 §3）
+    //   门 1（数值预条件/全局秩）：上面的 H_red 判据，语义不变；
+    //   门 2（数据部分秩，**逐分量**）：下面每个分量各自重装数据块 + Schur；
+    //   门 3（显式规范约束）：锚帧计数与 δ_anchor≡0 的显式核对；
+    //   附加诊断：求解扰动敏感性（门 1 的可辨识性不能只看 κ<1/τ）与
+    //             各分量重叠边配对残差。
+    // 逐分量判据的动机：全局 H_red 满秩**不排除**某一分量内近奇异——「分量内规范
+    //   方向」在全局矩阵里与「全图规范方向」混在一起（后者已被锚帧消去），
+    //   故 D-02 §4 要求「任何失败的分量不可伴随整个产品 identifiable=1 而无状态限定」。
+    // =======================================================================
+    struct P5CompGate {
+        int comp = 0;
+        std::vector<std::uint64_t> frame_ids;
+        std::uint64_t anchor = 0;
+        std::uint64_t edge_count = 0, cell_edges = 0, n_samples = 0, n_cells = 0;
+        std::uint64_t n_nodes = 0, n_free_delta = 0;
+        std::uint64_t rank = 0, n_params = 0, n_unidentified = 0;
+        double kappa = std::numeric_limits<double>::quiet_NaN();
+        double lambda_min = 0.0, lambda_max = 0.0;
+        int identifiable = 0;
+        int status = 0;   // 0=GREEN 1=RED 2=SINGLETON_NOT_CROSS_COMPARABLE 3=ASSESS_UNDEFINED
+        double delta_const_span = 0.0;   // max_k |δ_k[0] − δ_anchor[0]|（运行化诊断）
+        double delta_ramp_max = 0.0;     // max_{k,q>=1} |δ_k[q]|（归一化坐标斜率）
+        std::uint64_t pair_n = 0;
+        double pair_abs_max = 0.0, pair_abs_median = 0.0;
+    };
+    std::vector<P5CompGate> cgates(static_cast<std::size_t>(cgraph.n_components));
+    // n_components == 1：分量支撑 = 全图支撑、自由 δ 块 = 全部非锚帧 ⇒ 逐分量判据
+    // 与上面的全局判据是**同一个问题**；直接继承全局读数并跳过重装（零额外开销，
+    // 生产里连通的 49 帧走这条路，逐位不变）。
+    if (cgraph.n_components == 1) {
+        P5CompGate& cg0 = cgates[0];
+        cg0.comp = 0;
+        cg0.frame_ids = cgraph.frames_of_comp[0];
+        cg0.anchor = cgraph.anchor_of_comp[0];
+        cg0.edge_count = cgraph.frame_edges_of_comp[0];
+        cg0.cell_edges = cgraph.cell_edges_of_comp[0];
+        cg0.n_samples = cgraph.samples_of_comp[0];
+        cg0.n_cells = cgraph.cells_of_comp[0];
+        cg0.n_nodes = static_cast<std::uint64_t>(n_free);
+        cg0.n_free_delta = static_cast<std::uint64_t>(n_frames - 1);
+        cg0.rank = rank;
+        cg0.n_params = static_cast<std::uint64_t>(n_free);
+        cg0.n_unidentified = id.n_unidentified;
+        cg0.kappa = kappa;
+        cg0.lambda_min = id.lambda_min;
+        cg0.lambda_max = id.lambda_max;
+        cg0.identifiable = id.identifiable;
+        cg0.status = id.identifiable ? 0 : 1;
+    } else
+    for (int c = 0; c < cgraph.n_components; ++c) {
+        P5CompGate& cg = cgates[static_cast<std::size_t>(c)];
+        cg.comp = c;
+        cg.frame_ids = cgraph.frames_of_comp[static_cast<std::size_t>(c)];
+        cg.anchor = cgraph.anchor_of_comp[static_cast<std::size_t>(c)];
+        cg.edge_count = cgraph.frame_edges_of_comp[static_cast<std::size_t>(c)];
+        cg.cell_edges = cgraph.cell_edges_of_comp[static_cast<std::size_t>(c)];
+        cg.n_samples = cgraph.samples_of_comp[static_cast<std::size_t>(c)];
+        cg.n_cells = cgraph.cells_of_comp[static_cast<std::size_t>(c)];
+        // δ 运行化诊断（用本轮 IRLS 解出的 deltas；锚帧 δ≡0）
+        {
+            const auto ita = model->frame_index.find(cg.anchor);
+            const std::size_t ka = (ita == model->frame_index.end()) ? 0 : ita->second;
+            const double d0a = model->deltas[ka].empty() ? 0.0 : model->deltas[ka][0];
+            for (std::uint64_t f : cg.frame_ids) {
+                const auto itf = model->frame_index.find(f);
+                if (itf == model->frame_index.end()) continue;
+                const std::vector<double>& dk = model->deltas[itf->second];
+                if (!dk.empty())
+                    cg.delta_const_span =
+                        std::max(cg.delta_const_span, std::fabs(dk[0] - d0a));
+                for (std::size_t q = 1; q < dk.size(); ++q)
+                    cg.delta_ramp_max = std::max(cg.delta_ramp_max, std::fabs(dk[q]));
+            }
+        }
+        // 分量内重叠边配对残差：共享控制格点上两帧的拟合残差之差。
+        // **诚实边界**：这是「已拟合模型在跨帧配对控制点上的残差」，不是
+        // 「去掉该边后重拟合」的留一残差；按 UPM.md「公式与推导」一节，拟合残差
+        // 对「分量内 gauge 漂移」结构性失明（漂移被 B_ref↔δ_k 互相搬运抵消），
+        // 故它只作一致性读数，判红由门 2/门 3 承担。
+        {
+            std::map<std::uint64_t, std::vector<std::pair<int, double>>> cell_res;
+            for (int k = 0; k < n_frames; ++k) {
+                if (cgraph.comp_of_frame[static_cast<std::size_t>(k)] != c) continue;
+                for (std::uint64_t gi : frames[static_cast<std::size_t>(k)].idx) {
+                    const std::size_t t = sample_pos[static_cast<std::size_t>(gi)];
+                    double fit = 0.0;
+                    const int* bi = &bfree[t * static_cast<std::size_t>(nb)];
+                    const double* bv = &bval[t * static_cast<std::size_t>(nb)];
+                    for (int a = 0; a < nb; ++a) {
+                        if (bi[a] < 0) continue;
+                        fit += bv[a] * B[static_cast<std::size_t>(bi[a])];
+                    }
+                    const std::vector<double>& dk = model->deltas[static_cast<std::size_t>(k)];
+                    for (int q = 0; q < m; ++q)
+                        fit += pu[t][static_cast<std::size_t>(q)] * dk[static_cast<std::size_t>(q)];
+                    cell_res[samples[gi].control_id].push_back(
+                        std::make_pair(k, samples[gi].value - fit));
+                }
+            }
+            std::vector<double> diffs;
+            for (const auto& kv : cell_res) {
+                const std::vector<std::pair<int, double>>& v = kv.second;
+                for (std::size_t a = 0; a < v.size(); ++a)
+                    for (std::size_t b = a + 1; b < v.size(); ++b) {
+                        if (v[a].first == v[b].first) continue;
+                        diffs.push_back(std::fabs(v[a].second - v[b].second));
+                    }
+            }
+            cg.pair_n = diffs.size();
+            if (!diffs.empty()) {
+                cg.pair_abs_max = diffs[0];
+                for (double d : diffs) cg.pair_abs_max = std::max(cg.pair_abs_max, d);
+                std::vector<double> tmp = diffs;
+                std::sort(tmp.begin(), tmp.end());
+                cg.pair_abs_median = tmp[tmp.size() / 2];
+            }
+        }
+        if (cg.frame_ids.size() < 2) {
+            // 单帧分量：无自由 δ；按「独立产品/不可跨分量比较」登记，不伪称可比。
+            cg.status = 2;
+            continue;
+        }
+        // C 自己的节点支撑（与全局自由节点门同一相对规则，只换支撑来源）
+        std::vector<double> nw_loc(static_cast<std::size_t>(n_free), 0.0);
+        for (int k = 0; k < n_frames; ++k) {
+            if (cgraph.comp_of_frame[static_cast<std::size_t>(k)] != c) continue;
+            for (std::uint64_t gi : frames[static_cast<std::size_t>(k)].idx) {
+                const std::size_t t = sample_pos[static_cast<std::size_t>(gi)];
+                for (int a = 0; a < nb; ++a) {
+                    const int ia = bfree[t * static_cast<std::size_t>(nb) + static_cast<std::size_t>(a)];
+                    if (ia < 0) continue;
+                    const double bvv = bval[t * static_cast<std::size_t>(nb) + static_cast<std::size_t>(a)];
+                    nw_loc[static_cast<std::size_t>(ia)] += bvv * bvv;
+                }
+            }
+        }
+        double mxw = 0.0;
+        for (double v : nw_loc) mxw = std::max(mxw, v);
+        const double floorC = 1e-9 * std::max(mxw, 1e-300);
+        std::vector<int> loc(static_cast<std::size_t>(n_free), -1);
+        std::vector<int> klist;
+        for (int k = 0; k < n_frames; ++k)
+            if (cgraph.comp_of_frame[static_cast<std::size_t>(k)] == c) klist.push_back(k);
+        const int nk = static_cast<int>(klist.size());
+        int nl = 0;
+        for (int f = 0; f < n_free; ++f)
+            if (nw_loc[static_cast<std::size_t>(f)] > floorC)
+                loc[static_cast<std::size_t>(f)] = nl++;
+        cg.n_nodes = static_cast<std::uint64_t>(nl);
+        cg.n_free_delta = static_cast<std::uint64_t>(nk - 1);
+        cg.n_params = static_cast<std::uint64_t>(nl);
+        if (nl <= 0) { cg.status = 3; continue; }
+        // 重装 H_C 与 S_C/M_C（同一 w、同一基函数、同一累加序 ⇒ 与求解同物量）
+        std::vector<double> HC(static_cast<std::size_t>(nl) * nl, 0.0);
+        std::vector<std::vector<double>> MC(static_cast<std::size_t>(nk));
+        std::vector<std::vector<double>> SC(static_cast<std::size_t>(nk));
+        for (int s = 0; s < nk; ++s) {
+            MC[static_cast<std::size_t>(s)].assign(static_cast<std::size_t>(m) * m, 0.0);
+            SC[static_cast<std::size_t>(s)].assign(static_cast<std::size_t>(nl) * m, 0.0);
+        }
+        for (int s = 0; s < nk; ++s) {
+            const int k = klist[static_cast<std::size_t>(s)];
+            // 锚帧：其 δ≡0，故不贡献 δ 块（M/S），但**仍贡献 B_ref 的数据行**——
+            // 锚帧数据是该分量参考面的直接约束，漏掉会在 H_C 里留下大量零列。
+            const bool is_anchor_k = (model->is_anchor[static_cast<std::size_t>(k)] != 0);
+            std::vector<double>& Ms = MC[static_cast<std::size_t>(s)];
+            std::vector<double>& Ss = SC[static_cast<std::size_t>(s)];
+            for (std::uint64_t gi : frames[static_cast<std::size_t>(k)].idx) {
+                const std::size_t t = sample_pos[static_cast<std::size_t>(gi)];
+                const double wi = w[t];
+                if (!(wi > 0.0) || !std::isfinite(wi)) continue;
+                for (int a = 0; a < nb; ++a) {
+                    const int ia = bfree[t * static_cast<std::size_t>(nb) + static_cast<std::size_t>(a)];
+                    if (ia < 0) continue;
+                    const int la = loc[static_cast<std::size_t>(ia)];
+                    if (la < 0) continue;
+                    const double av = wi * bval[t * static_cast<std::size_t>(nb) + static_cast<std::size_t>(a)];
+                    for (int b = 0; b < nb; ++b) {
+                        const int ib = bfree[t * static_cast<std::size_t>(nb) + static_cast<std::size_t>(b)];
+                        if (ib < 0) continue;
+                        const int lb = loc[static_cast<std::size_t>(ib)];
+                        if (lb < 0) continue;
+                        HC[static_cast<std::size_t>(la) * nl + static_cast<std::size_t>(lb)] +=
+                            av * bval[t * static_cast<std::size_t>(nb) + static_cast<std::size_t>(b)];
+                    }
+                    if (!is_anchor_k)
+                        for (int q = 0; q < m; ++q)
+                            Ss[static_cast<std::size_t>(la) * m + static_cast<std::size_t>(q)] +=
+                                av * pu[t][static_cast<std::size_t>(q)];
+                }
+                if (!is_anchor_k)
+                    for (int p = 0; p < m; ++p) {
+                        const double pw = wi * pu[t][static_cast<std::size_t>(p)];
+                        for (int q = 0; q < m; ++q)
+                            Ms[static_cast<std::size_t>(p) * m + static_cast<std::size_t>(q)] +=
+                                pw * pu[t][static_cast<std::size_t>(q)];
+                    }
+            }
+        }
+        std::vector<double> HredC = HC;
+        bool okC = true;
+        for (int s = 0; s < nk && okC; ++s) {
+            if (model->is_anchor[static_cast<std::size_t>(klist[static_cast<std::size_t>(s)])])
+                continue;
+            std::vector<double> Ls;
+            if (!chol_spd(MC[static_cast<std::size_t>(s)], m, Ls)) { okC = false; break; }
+            std::vector<double> Z(static_cast<std::size_t>(m) * nl, 0.0);
+            for (int i = 0; i < nl; ++i) {
+                std::vector<double> col(static_cast<std::size_t>(m));
+                for (int q = 0; q < m; ++q)
+                    col[static_cast<std::size_t>(q)] =
+                        SC[static_cast<std::size_t>(s)][static_cast<std::size_t>(i) * m +
+                                                        static_cast<std::size_t>(q)];
+                chol_solve(Ls, m, col);
+                for (int q = 0; q < m; ++q)
+                    Z[static_cast<std::size_t>(q) * nl + static_cast<std::size_t>(i)] =
+                        col[static_cast<std::size_t>(q)];
+            }
+            for (int i = 0; i < nl; ++i)
+                for (int j = 0; j < nl; ++j) {
+                    double acc = 0.0;
+                    for (int q = 0; q < m; ++q)
+                        acc += SC[static_cast<std::size_t>(s)][static_cast<std::size_t>(i) * m +
+                                                               static_cast<std::size_t>(q)] *
+                               Z[static_cast<std::size_t>(q) * nl + static_cast<std::size_t>(j)];
+                    HredC[static_cast<std::size_t>(i) * nl + static_cast<std::size_t>(j)] -= acc;
+                }
+        }
+        if (!okC) { cg.status = 3; continue; }
+        P2Identifiability idc{};
+        const int rcC = p2_identifiability_assess(
+            HredC.data(), static_cast<std::uint64_t>(nl), cg.n_samples, cfg.rank_rtol, &idc);
+        if (rcC != 0) { cg.status = 3; continue; }
+        cg.rank = idc.rank_eff;
+        cg.n_unidentified = idc.n_unidentified;
+        cg.kappa = idc.kappa;
+        cg.lambda_min = idc.lambda_min;
+        cg.lambda_max = idc.lambda_max;
+        cg.identifiable = idc.identifiable;
+        cg.status = idc.identifiable ? 0 : 1;
+    }
+    // 门 3：显式规范约束。期望锚帧数 = 分量数；实际锚帧数由 is_anchor 计数。
+    std::uint64_t n_anchor_actual = 0;
+    for (char a : model->is_anchor) if (a) ++n_anchor_actual;
+    const bool gauge_ok = (n_anchor_actual == static_cast<std::uint64_t>(cgraph.n_components));
+    // δ_anchor ≡ 0 的显式核对
+    bool anchor_delta_zero = true;
+    for (int k = 0; k < n_frames; ++k) {
+        if (!model->is_anchor[static_cast<std::size_t>(k)]) continue;
+        for (double v : model->deltas[static_cast<std::size_t>(k)])
+            if (v != 0.0) { anchor_delta_zero = false; break; }
+    }
+    // 附加诊断：求解扰动敏感性。以最后一次 H_solve 的 Cholesky 因子对 rhs 施加
+    // 相对 eps 的确定性符号扰动，读 ∞-范数放大因子 ‖ΔB‖∞/(eps‖B‖∞)。
+    // 定义域：仅直接 Cholesky 分支（deflation 分支的因子属锚定矩阵，不可用）。
+    double solve_perturb_gain = std::numeric_limits<double>::quiet_NaN();
+    if (!solve_deflated && n_free > 0 && !L.empty() && !rhs.empty()) {
+        const double eps = 1e-6;
+        std::vector<double> Bp = rhs;
+        for (int i = 0; i < n_free; ++i) {
+            const double sgn =
+                (((static_cast<std::uint64_t>(i) * 2654435761ull) >> 31) & 1ull) ? 1.0 : -1.0;
+            Bp[static_cast<std::size_t>(i)] += eps * sgn * std::fabs(rhs[static_cast<std::size_t>(i)]);
+        }
+        chol_solve(L, n_free, Bp);
+        double dbmax = 0.0, sbmax = 0.0;
+        for (int i = 0; i < n_free; ++i) {
+            dbmax = std::max(dbmax, std::fabs(Bp[static_cast<std::size_t>(i)] - B[static_cast<std::size_t>(i)]));
+            sbmax = std::max(sbmax, std::fabs(B[static_cast<std::size_t>(i)]));
+        }
+        solve_perturb_gain = (sbmax > 0.0) ? (dbmax / (eps * sbmax)) : 0.0;
+    }
+    // per-component 状态旁路（默认关闭；见 p5_component_dump_write）。
+    // 未设 ACSD_SKY_COMPONENT_DUMP 时连 payload 都不构造（稳态零开销）。
+    if (p5_component_dump_enabled()) {
+        nlohmann::json jd;
+        jd["format"] = "acsd-sky-plane-p5-components-v1";
+        jd["n_components"] = cgraph.n_components;
+        jd["fault"] = fault_global_anchor ? "global_anchor" : "";
+        jd["component_anchor_frames"] = cgraph.anchor_of_comp;
+        jd["gauge_mode_cfg"] = cfg.gauge_mode;
+        jd["gauge_constraints_expected"] = cgraph.n_components;
+        jd["gauge_constraints_applied"] = n_anchor_actual;
+        jd["gauge_explicit_ok"] = gauge_ok ? 1 : 0;
+        jd["anchor_delta_zero"] = anchor_delta_zero ? 1 : 0;
+        jd["node_spacing_deg"] = model->h;
+        jd["solve_deflated"] = solve_deflated ? 1 : 0;
+        jd["solve_perturbation_gain"] =
+            std::isfinite(solve_perturb_gain) ? solve_perturb_gain : -1.0;
+        jd["global"] = {{"n_free", n_free}, {"rank", rank}, {"kappa", kappa},
+                        {"n_unidentified", id.n_unidentified},
+                        {"identifiable", id.identifiable},
+                        {"rank_rtol", id.rank_rtol_effective},
+                        {"lambda_min", id.lambda_min}, {"lambda_max", id.lambda_max},
+                        {"n_used", static_cast<std::uint64_t>(used.size())}};
+        nlohmann::json jcidf = nlohmann::json::object();
+        nlohmann::json janch = nlohmann::json::object();
+        for (int k = 0; k < n_frames; ++k) {
+            jcidf[std::to_string(frame_ids[static_cast<std::size_t>(k)])] =
+                cgraph.comp_of_frame[static_cast<std::size_t>(k)];
+            janch[std::to_string(frame_ids[static_cast<std::size_t>(k)])] =
+                model->is_anchor[static_cast<std::size_t>(k)] ? 1 : 0;
+        }
+        jd["component_id_by_frame"] = jcidf;
+        jd["anchor_by_frame"] = janch;
+        nlohmann::json jcomps = nlohmann::json::array();
+        for (const P5CompGate& cg : cgates) {
+            jcomps.push_back(
+                {{"component_id", cg.comp},
+                 {"frame_ids", cg.frame_ids},
+                 {"anchor", cg.anchor},
+                 {"edge_count", cg.edge_count},
+                 {"cell_edges", cg.cell_edges},
+                 {"n_samples", cg.n_samples},
+                 {"n_cells", cg.n_cells},
+                 {"support_frac",
+                  (used.size() > 0) ? static_cast<double>(cg.n_samples) /
+                                          static_cast<double>(used.size())
+                                    : 0.0},
+                 {"n_nodes", cg.n_nodes},
+                 {"n_free_delta", cg.n_free_delta},
+                 {"rank", cg.rank},
+                 {"n_params", cg.n_params},
+                 {"n_unidentified", cg.n_unidentified},
+                 {"kappa", std::isfinite(cg.kappa) ? cg.kappa : -1.0},
+                 {"lambda_min", cg.lambda_min},
+                 {"lambda_max", cg.lambda_max},
+                 {"identifiable", cg.identifiable},
+                 {"status", cg.status},
+                 {"delta_const_span", cg.delta_const_span},
+                 {"delta_ramp_max", cg.delta_ramp_max},
+                 {"overlap_pair_n", cg.pair_n},
+                 {"overlap_pair_abs_max", cg.pair_abs_max},
+                 {"overlap_pair_abs_median", cg.pair_abs_median},
+                 {"cross_component_comparable", (cg.frame_ids.size() >= 2) ? 1 : 0}});
+        }
+        jd["components"] = jcomps;
+        jd["cross_component_absolute_zero_identifiable"] =
+            (cgraph.n_components == 1) ? 1 : 0;
+        // 只落 payload；由最终生效模型写文件（见 p5_component_dump_model）。
+        model->p5_component_json = jd.dump(2);
+    }
+    // 门 2b：断连图里的单帧分量 ⇒ 该分量没有任何「分量内相对零点」证据，
+    // 跨分量绝对零点更不可由内部重叠求得。docs/science/sky/UPM.md「判据与误差」
+    // 一节：「无重叠或无控制时显式失败」。不得把这种图当作一个有统一规范的
+    // 单一产品发布（D-02 §2）。
+    if (cgraph.n_components > 1) {
+        for (const P5CompGate& cg : cgates) {
+            if (cg.frame_ids.size() >= 2) continue;
+            // 失败路径也落旁路（默认关闭）：负例证据需要读到该分量的显式状态。
+            p5_component_dump_write(model->p5_component_json);
+            sky_plane_free(model);
+            if (err && err_size)
+                std::snprintf(err, err_size,
+                              "P5 disconnected graph: component_id=%d has %zu frame(s) "
+                              "and no intra-component overlap edge; cross-component "
+                              "absolute zero is not identifiable from internal overlap "
+                              "(external anchor required) ⇒ explicit failure per "
+                              "docs/science/sky/UPM.md「判据与误差」一节",
+                              cg.comp, cg.frame_ids.size());
+            return P2_SKY_PLANE_NOT_IDENTIFIABLE;
+        }
+    }
+    // 门 2：任一分量（≥2 帧）数据部分秩判红 ⇒ 显式失败（不伴随全产品报绿）。
+    for (const P5CompGate& cg : cgates) {
+        if (cg.status != 1) continue;
+        p5_component_dump_write(model->p5_component_json);
+        sky_plane_free(model);
+        if (err && err_size)
+            std::snprintf(err, err_size,
+                          "P5 per-component identifiability RED: component_id=%d "
+                          "frames=%zu anchor=%llu rank_eff=%llu < n_free=%llu "
+                          "(unidentified=%llu, kappa=%.3e, tau=%.3e); "
+                          "component-internal gauge direction not fixed "
+                          "(docs/science/sky/UPM.md「公式与推导」一节)",
+                          cg.comp, cg.frame_ids.size(), (unsigned long long)cg.anchor,
+                          (unsigned long long)cg.rank, (unsigned long long)cg.n_params,
+                          (unsigned long long)cg.n_unidentified, cg.kappa,
+                          cfg.rank_rtol);
+        return P2_SKY_PLANE_NOT_IDENTIFIABLE;
+    }
+    if (!gauge_ok || !anchor_delta_zero) {
+        p5_component_dump_write(model->p5_component_json);
+        sky_plane_free(model);
+        if (err && err_size)
+            std::snprintf(err, err_size,
+                          "P5 explicit gauge constraint violated: anchors=%llu != "
+                          "n_components=%d (anchor_delta_zero=%d)",
+                          (unsigned long long)n_anchor_actual, cgraph.n_components,
+                          anchor_delta_zero ? 1 : 0);
+        return P2_SKY_PLANE_NOT_IDENTIFIABLE;
+    }
     if (!id.identifiable) {
         sky_plane_free(model);
         if (err && err_size)
@@ -2229,7 +2840,6 @@ int p2_sky_plane_build(const P2SkySample* samples, std::uint64_t n,
                           id.rank_rtol_effective, lam, kappa_solve);
         return P2_SKY_PLANE_NOT_IDENTIFIABLE;
     }
-
     // ---- task-3 多尺度低频 δ_k（§5.11）：IRLS 收敛后、判据判绿后构建 ----
     // 位置说明：判据（H_red）与 gauge 语义都不动——grid 由已收敛解的逐帧残差
     // 派生，只在 δ_k 求值段叠加；方差链（base_w/Huber）早已冻结，不回写。
@@ -2275,8 +2885,14 @@ int p2_sky_plane_build(const P2SkySample* samples, std::uint64_t n,
     }
 
     // ---- gauge ----
+    // gauge_mode=1（δ 常数项跨帧和为零）是**单连通分量**下的规范重分配：它把常数
+    // c 从各帧 δ 常数项搬到 B_ref（gauge_shift 在求值里同时加给 b_k 与 δ_k，
+    // (B_ref+δ_k) 不变）。多分量时「把 c_C 搬进 B_ref」需要把 c_C·1_C 加进参考面，
+    // 而 1_C 一般不在 B 样条表示空间内 ⇒ 该重分配不可精确实现。故多分量下：
+    // 规范固定由逐分量锚帧（δ_anchor≡0）承担，gauge_mode=1 的全局常数和规范
+    // **不施加**并显式登记（不得静默回退到全局单一规范）。
     model->gauge_shift = 0.0;
-    if (cfg.gauge_mode == 1 && n_frames > 1) {
+    if (cfg.gauge_mode == 1 && n_frames > 1 && cgraph.n_components == 1) {
         double c = 0.0;
         for (int k = 0; k < n_frames; ++k) c += model->deltas[static_cast<std::size_t>(k)][0];
         c /= static_cast<double>(n_frames);
@@ -2315,11 +2931,16 @@ int p2_sky_plane_build(const P2SkySample* samples, std::uint64_t n,
     // n_params = **判据矩阵的阶**（= Schur 消元后 B_ref 的自由节点数 n_free）。
     // δ_k 已被精确消去，不是判据面对的未知量；求解器全部未知量另记 n_params_full。
     info.n_params = static_cast<std::uint64_t>(n_free);
+    // S03/P5-C：自由 δ 块数 = n_frames − n_components（每分量一个锚帧 δ≡0）。
+    // 连通图（n_components=1）下与旧口径逐位相同；断连图下旧口径
+    // (n_frames−1) 会把被锚定的规范方向也算作被拟合自由度 ⇒ dof 低估。
+    const std::uint64_t n_free_delta_blocks =
+        static_cast<std::uint64_t>(n_frames - cgraph.n_components);
     info.n_params_full = static_cast<std::uint64_t>(n_free) +
-                         static_cast<std::uint64_t>(n_frames - 1) * static_cast<std::uint64_t>(m);
+                         n_free_delta_blocks * static_cast<std::uint64_t>(m);
     info.rank = rank;              // r_eff(H_red)：τ 口径下的**计数**（不是布尔）
     info.rank_full = static_cast<std::uint64_t>(rank) +
-                     static_cast<std::uint64_t>(n_frames - 1) * static_cast<std::uint64_t>(m);
+                     n_free_delta_blocks * static_cast<std::uint64_t>(m);
     info.kappa = kappa;            // 判据读数 κ(H_red)；秩亏 ⇒ +inf（不发布伪值）
     info.kappa_data = kappa_data;  // 同 kappa（兼容字段）
     info.kappa_solve = kappa_solve;// 诊断：κ(H_solve)，**不参与判决**
@@ -2647,6 +3268,8 @@ int p2_sky_plane_build_adaptive(const P2SkySample* samples, std::uint64_t n,
     finalize();
     static_cast<SkyPlaneModel*>(best)->adaptive = rep;
     *out_model = best;
+    // S03/P5-C：旁路写的是**采纳解**的逐分量状态（不是最后一次尝试）。
+    p5_component_dump_model(best);
     if (err && err_size) err[0] = '\0';
     return P2_SKY_PLANE_OK;
 }
@@ -2806,6 +3429,8 @@ int p2_sky_plane_build_joint(const P2SkySample* samples, std::uint64_t n,
         mm->own_step_deg = cfg.own_surface_step_deg;
     }
     *out_model = m;
+    // S03/P5-C：联合解的最终生效模型即旁路描述对象（覆写各次尝试留下的 payload）。
+    p5_component_dump_model(m);
     return P2_SKY_PLANE_OK;
 }
 
@@ -2960,7 +3585,9 @@ int p2_sky_plane_eval_delta(const void* model_in, std::uint64_t frame_id,
     // 参考帧 δ≡0 规范下参考帧不叠加——修正派生自残差，参考帧残差恒归 B_ref）。
     // task-4：本叠加只作旁路/诊断，生产施加走 UPM C 场（见 PHASE2_SAMPLER §5.11）。
     double ms = 0.0;
-    if (m->delta_ms_enabled && it->second != static_cast<std::size_t>(m->ref_frame) &&
+    // S03/P5-C：多尺度 overlay 同样按分量锚帧跳过（锚帧 δ≡0；原按全局 ref_frame）。
+    if (m->delta_ms_enabled && it->second < m->is_anchor.size() &&
+        !m->is_anchor[it->second] &&
         it->second < m->delta_ms.size())
         ms = sky_delta_ms_eval_grid(m->delta_ms[it->second], u, v);
     // §5.11 联合解：δ_k = δ_poly,k + F_k。F_k 是该帧在**拟合残差**上的逐帧场，
@@ -3087,6 +3714,18 @@ int p2_sky_plane_save(const void* model_in, const char* path) {
         j["coeff"] = m->coeff;
         j["frame_ids"] = m->frame_ids;
         j["deltas"] = m->deltas;
+        // S03/P5-C：逐分量锚帧与分量划分落盘（旧读方按 j.value/contains 读取，
+        // 不认识的键被忽略 ⇒ 前向兼容；旧文件无该键 ⇒ open 侧回退全局单锚）。
+        j["n_components"] = m->n_components;
+        {
+            nlohmann::json ja = nlohmann::json::array();
+            for (std::size_t k = 0; k < m->frame_ids.size(); ++k) {
+                const bool an = (k < m->is_anchor.size()) && m->is_anchor[k];
+                ja.push_back(an ? 1 : 0);
+            }
+            j["anchor_by_frame"] = std::move(ja);
+            j["component_anchor_frames"] = m->anchor_frame_ids;
+        }
         // task-3 多尺度低频 δ_k（§5.11）：逐帧修正 grid 落盘（中位已扣）。
         // 旧文件无该段 → open 侧回退为空（纯多项式），前向兼容。
         {
@@ -3334,6 +3973,29 @@ int p2_sky_plane_open(const char* path, void** out_model) {
         if (j.contains("own_step_deg")) m->own_step_deg = j.value("own_step_deg", 0.0);
         for (std::size_t k = 0; k < m->frame_ids.size(); ++k) m->frame_index[m->frame_ids[k]] = k;
         m->ref_frame = 0;
+        // S03/P5-C：回读逐分量锚帧（旧文件缺键 ⇒ 回退全局单锚 frame_ids[0]，
+        // 与订正前语义一致；多分量文件带 anchor_by_frame）。
+        m->n_components = j.value("n_components", 1);
+        m->is_anchor.assign(m->frame_ids.size(), 0);
+        if (!m->frame_ids.empty()) m->is_anchor[0] = 1;
+        if (j.contains("anchor_by_frame") && j["anchor_by_frame"].is_array()) {
+            const std::size_t na =
+                std::min<std::size_t>(j["anchor_by_frame"].size(), m->frame_ids.size());
+            std::fill(m->is_anchor.begin(), m->is_anchor.end(), 0);
+            for (std::size_t k = 0; k < na; ++k)
+                m->is_anchor[k] = (j["anchor_by_frame"][k].get<int>() != 0) ? 1 : 0;
+            if (m->frame_ids.size() > 0 && na == 0) m->is_anchor[0] = 1;
+        }
+        m->anchor_frame_ids.clear();
+        if (j.contains("component_anchor_frames") &&
+            j["component_anchor_frames"].is_array()) {
+            for (const auto& e : j["component_anchor_frames"])
+                m->anchor_frame_ids.push_back(e.get<std::uint64_t>());
+            m->n_components = static_cast<int>(m->anchor_frame_ids.size());
+        } else {
+            if (!m->frame_ids.empty()) m->anchor_frame_ids.push_back(m->frame_ids[0]);
+            m->n_components = 1;
+        }
         if (j.contains("info")) {
             const auto& i = j["info"];
             m->info.version = 1;
