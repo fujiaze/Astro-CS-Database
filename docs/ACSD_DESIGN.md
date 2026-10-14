@@ -1,6 +1,6 @@
 # ACSD 最高设计
 
-本文档定义 ACSD 的用户目标、三阶段产品、基本科学边界、软件架构和发行责任。它描述**目标设计**，不因某段文字存在就表示生产代码已实现。科学基础唯一解释来自 docs/science/unified/UNIFIED_SCIENCE_MODEL.md，专题公式在各 science 正本细化；现状差异记录于 docs/engineering/architecture/SCIENCE_IMPLEMENTATION_DELTA.md。下级文档按三个目录组织：`docs/science/` 承载科学公式、常数、判据与推导；`docs/engineering/` 承载架构、行为合同、工程标准与 GUI 设计；`docs/detail/` 承载模块工作细节、数据对象与接口落地。开发与验收的标准动作是：审查实际代码与本文档集的偏差并消除之。
+本文档定义 ACSD 的用户目标、三阶段产品、基本科学边界、软件架构和发行责任。**阶段一唯一完整科学链见 science/normalize/NORMALIZE_SCIENCE.md；它如何映射生产代码见 engineering/architecture/NORMALIZE_PIPELINE.md；多份旧说明的冲突裁决见 engineering/governance/NORMALIZE_CONVERGENCE.md。**它描述**目标设计**，不因某段文字存在就表示生产代码已实现。科学基础唯一解释来自 docs/science/unified/UNIFIED_SCIENCE_MODEL.md，专题公式在各 science 正本细化；现状差异记录于 docs/engineering/architecture/SCIENCE_IMPLEMENTATION_DELTA.md。下级文档按三个目录组织：`docs/science/` 承载科学公式、常数、判据与推导；`docs/engineering/` 承载架构、行为合同、工程标准与 GUI 设计；`docs/detail/` 承载模块工作细节、数据对象与接口落地。开发与验收的标准动作是：审查实际代码与本文档集的偏差并消除之。
 
 ## 0. 文档权威与索引
 
@@ -131,28 +131,18 @@ ACSD 是天文 CCD/CMOS 图像标准化与 HEALPix 球面合成系统：利用 G
 
 把一帧传感器观测变成可独立消费的观测模型：光度与天球坐标已定义、噪声可传播、PSF 可解释、帧级信噪比可靠独立，使 mosaic 不回读原始帧即可做方差正确的扩展源合并与 PSF 感知的点源检测测光。
 
-### 4.2 节点流程
+### 4.2 唯一科学链与 WCS 解算责任
 
-```mermaid
-flowchart TD
-    I["ingest 输入校验"] --> C["calibration 偏置/暗流/平场"]
-    C --> CS["cosmetic 坏点/宇宙线"]
-    CS --> BN["background 背景与噪声"]
-    BN --> A["platesolve WCS 解算"]
-    A --> D["star_detection 星表引导检测"]
-    D --> P["psf 建模"]
-    P --> PH["photometry 测光拟合并施加归一化"]
-    PH --> S["noise_snr 噪声与信噪比"]
-    S --> R["drizzle 球面重采样"]
-    R --> V["产品验证"]
-    V --> O["原子发布 HiPS + JSON"]
-```
+Normalize 在同一帧上构建相互一致的几何、光度、PSF、噪声与参考精度模型；**不是只读取原始 FITS 已有的 WCS**。完整理论与实际实现分别以 science/normalize/NORMALIZE_SCIENCE.md、engineering/architecture/NORMALIZE_PIPELINE.md 为唯一横向正本，本章只固定次序与外部合同：
 
-- 节点序由真实数据流决定：WCS 解算在前，星表引导检测与 PSF 建模在后；节点序与依赖边由注册表端口图唯一确定。
-- WCS 解算在给定近似指向下完成星表匹配与稳健迭代精化，近似指向来自帧头、配置或邻居产品，不设独立盲解节点。
-- 星表引导检测用本帧权威 WCS 把 Gaia 逆投影到像素域，只对星表位置做质心/PSF 拟合，拟合成功即星点、失败丢弃；星点上限由配置承载、极限星等按焦距画幅曝光派生。
-- 测光与归一化在同一节点完成，不因是否开启开发快照改变科学数据来源；溯源记录使该乘法可由独立读者逐像素复算。开发构建允许**额外**落盘该节点的只读中间数据，详见 engineering/architecture/DEV_MODE.md。
-- 检测、PSF、测光、信噪比共用同一份星点绑定行，全链一个通量口径。
+1. 输入/校准/缺陷和背景有效性；保留 master 与像元状态。
+2. **IPV 独立 PlateSolve**：在校准像元上私有盲检 solver_detections、Gaia 星表匹配与 TAN+SIP 求解，近似指向可以来自 OBJCTRA/OBJCTDEC、FOCALLEN/XPIXSZ、配置或此前自解邻帧；**原始 FITS 无 CRVAL/CD 不是未解 WCS 的证据**。失败逐帧记录真正 unsolved 原因。
+3. 得到本帧权威 WCS 后，再用完整 WCS+SIP 把 Gaia 星点投到像素，生成独立的 **science_sources** 与空间 PSF 模型。解算器私有 star candidates 和科学测光星表不可互相冒充。
+4. Gaia XP **每帧实际通带 R_k** 测光拟合并对线性像元**恰好一次**施加比例，记录参考/混合光度约定、颜色限制、scale 状态与真实单位。
+5. 在真实 PSF、背景/噪声及逐帧响应下计算 frame reference SNR 和位置相关 canonical sparse reference-SNR control points，明确 F_ref,k、V_F、空间支持与模型完整性。旧 source/median SNR 不等于条件稀疏信息量。
+6. 由该帧已解 WCS+SIP 和已施加光度的线性面完成 HEALPix 球面 Drizzle，保留适当几何、相关噪声及 provenance；统一 writer 发布每帧 signal HiPS 和必要科学模型/控制数据。
+
+这是依赖顺序，不阻止 WCS 无关的噪声初估并行。调度边要靠真实 typed ports 和对象版本，不由工作文件是否碰巧出现决定。开发数据快照只是旁路，不供科学消费者读取。Normalize 不负责最终跨帧权重/接缝。
 
 ### 4.3 输入合同
 
@@ -176,16 +166,16 @@ flowchart TD
 ```
 
 - 三个命令配置同一形状：顶层块列表，每块含输出名称、运行参数、一组输入帧。
-- 一块 = 一组亮场 + 一套母版校准帧 + 一个波段 + 块级参数 = 一次独立运行。
+- 一个 block 是复用共同校准母版与科学参数的组织单位，建议把需要同一 master/滤镜响应模型的帧归组；同命令可以多个 block。**这是参数/物理模型共享范围，而不是禁止不同设备或滤镜参与阶段二合成。** 同块若实际包含不同 R_k，也须按帧建模或内部拆光度子组，不能把第一帧响应强加给其它帧；现有代码的组内响应全等拒绝属于待修实现。
 - 滤镜型号/响应曲线若已知则用于 Gaia XP 绝对/颜色模型；未知型号或通带差不构成禁止跨设备合并的理由，应使用可辨识的相对标度并报告响应模型未知。缺失必要图像文件、损坏 WCS 或非法数值仍是普通输入错误。计算精度按 3.3。
 
 ### 4.4 输出合同
 
-每个 light 帧对应一份阶段一 HiPS 及其辅助数据和运行摘要。必要对象包括信号、WCS/坐标、参考通量及其光度尺度、帧级 SNR、稀疏 SNR 控制数据（若可估计）、PSF/噪声条件模型、可解释的有效域与处理来源；若部分科学估计不可辨识，明确报告其能力边界。不同的稀疏对象载体（SNR Catalogue、sidecar、规整重建层）必须统一生产者—消费者关系。
+每个有可用真实天体测量解、合法球面化信号的 light 帧对应一份独立的阶段一 HiPS 及其辅助模型/运行摘要；未解帧保留 WCS 求解与数据错误归因，不发布伪 HiPS。必要对象包括信号、WCS/坐标、参考通量及其光度尺度、帧级 SNR、稀疏 SNR 控制数据（若可估计）、PSF/噪声条件模型、可解释的有效域与处理来源；若部分科学估计不可辨识，明确报告其能力边界。不同的稀疏对象载体（SNR Catalogue、sidecar、规整重建层）必须统一生产者—消费者关系。
 
 ### 4.5 运行输入检查与诊断（不设流程门禁）
 
-输入文件不存在、格式损坏、WCS 无法解析或必要数值无定义时，程序应明确报错，避免产出伪科学图像。对不同相机/滤镜、通带宽度、数据质量、控制点密度和计算资源给出解释性诊断，**不以评审、用户确认、设备一致性或科学质量分数设强制流程关卡**。
+输入文件不存在、格式损坏、真实 IPV 求解失败而缺可用 WCS、或必要数值无定义时，应记录精确错误/逐帧状态，避免产出伪科学图像。**原始文件头未提供 WCS 不是错误本身**，应按初始指向、设备尺度和 Gaia 星表进行实际求解。对不同相机/滤镜、通带宽度、数据质量、控制点密度和计算资源给出解释性诊断，**不以评审、用户确认、设备一致性或科学质量分数设强制流程关卡**。
 
 科学模型的误差大小、颜色残差与支持域应保留为观测读数供用户决策，不用大量“必须全绿才能继续”的机制替代理论设计。现存预检/确认 UI 和相关自动化门禁属于后续工程调整范围；保留有实际意义的输入错误处理与产品原子性。
 
