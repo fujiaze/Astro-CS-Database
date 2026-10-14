@@ -35,7 +35,7 @@ HEALPix 使用 NESTED、nside=2^K，所有叶为等立体角
 \[
  F_p=\sum_jw_{jp}x_j,\qquad
  S_p=\frac{F_p}{N_p}
- =\frac{\sum_j a_{jp} B_j}{\sum_j a_{jp}},
+ =\frac{\sum_j a_{jp}(\Omega_j/A_j) B_j}{\sum_j a_{jp}(\Omega_j/A_j)},
  \qquad c_{pj}=\frac{w_{jp}}{N_p}.
 \]
 
@@ -49,7 +49,7 @@ HEALPix 使用 NESTED、nside=2^K，所有叶为等立体角
 
 一般不允许用 A_j=pixfrac²Ω_j 作为精确球面恒等式：球面收缩方式、WCS 曲率和几何近似会引入误差。必须实际求两种面积；当 pixfrac=1 且 drop 几何就是未收缩足迹时，两者应一致。尤其不允许权重分子按 drop 面积归一，面亮度分母却改用 D_p 而没有补偿 N_p，避免出现 B0/pixfrac² 偏差。
 
-这里定义的 c_pj 作用于 x_j，单位 1/sr；作用于 B_j 的等价无量纲系数是 a_jp/D_p。不可混读，特别在不同源像元角尺度时。
+这里定义的 c_pj 作用于 x_j，单位 1/sr；作用于 B_j 的等价无量纲系数是 w_jpΩ_j/N_p。不可混读，特别在不同源像元角尺度时。
 
 ## 3. 球面几何实现与独立对照
 
@@ -163,3 +163,7 @@ Tile宽度固定为 512（2^9）时，某 tile 的 leaf 分辨率 order_leaf=ord
 - 实验/healpix-polar/REPORT_paper.md 与该目录代码和证据。
 
 理论参考：Fruchter & Hook 2002；Górski et al. 2005；IVOA HiPS Recommendation 1.0；FITS Standard 4.0。引用具体算法闭式与有效域时，优先使用实验/shared/references/CORE_REFERENCES_VERIFIED.md 中核对过的原文。
+
+### 面积平均的适用条件
+
+一般情形的信号是 S_p=Σ a_jp(Ω_j/A_j)B_j / Σ a_jp(Ω_j/A_j)。只有参与该像元的 Ω_j/A_j 为共同常数时才简化为 Σa_jpB_j/Σa_jp；例如相同局部面积收缩比例的理想情形。既然真实球面上 A_j=pixfrac²Ω_j 只是近似，不能同时无条件写面积平均等式。常值场保持和分配通量守恒不依赖这一简化。科学接口必须传实际 Ω、A、a 或同一 R，不由消费者重建近似比例。

@@ -44,3 +44,5 @@
 docs/detail/registry/acsd.phase1.* 和 docs/science/algorithms/normalize/* 记录历史函数、数据域与局部算法。若某项已经在源码实现，可以当定位线索；**不能**由“合同已冻结/验收门已通过”的标题推断其物理实现真实达到目标。修改相应 API 后由前台将旧接口说明更新为真实签名/数据类型；Agent 不另起独立科学版本。
 
 工程与科学的冲突登记只放 NORMALIZE_CONVERGENCE，不在每个文件再复制一份覆盖性的 Normalize pipeline。项目无研发流程门禁，但文件不存在、WCS 无效、模型数值不可计算等数据错误照常准确处理。
+
+完整数据与代码接口已在 [NORMALIZE_DATA.md](../../engineering/contracts/NORMALIZE_DATA.md)、[contracts.md](contracts.md) 定稿；本页只导航，不再由执行者补选科学定义。

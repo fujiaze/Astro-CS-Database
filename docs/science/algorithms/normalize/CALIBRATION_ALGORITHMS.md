@@ -1,5 +1,8 @@
 # Calibration Algorithms (ALG-CAL)
 
+本页的函数/参数记录按实际源码维护；阶段一字段、生产—消费关系与迁移以 [Normalize 数据合同](../../../engineering/contracts/NORMALIZE_DATA.md) 为准。未接入生产的接口不可因“冻结/通过”措辞视为已实现。
+
+
 > 上游：ACSD_DESIGN.md [D-1]「节点流程」一节（Phase1 节点流程）
 > 连续数学定义以 `docs/science/calibration/CALIBRATION.md`（SCI-CAL-001，FROZEN）为唯一权威；
 > 本文只做离散化与实现事实登记，**本文为下游派生件，SCI 的修改从 SCI 自身发起**。现行源码中不存在

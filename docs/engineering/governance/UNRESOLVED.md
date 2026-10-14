@@ -2,6 +2,12 @@
 
 上游：最高设计的验证体系与版本与发布权两章 [1]；登记面的交付形状见文档治理规范 [2]。
 
+## Normalize 已定的边界
+
+本页中的裁-18、裁-27、裁-28、裁-29 及 ENG-B1 的历史分歧按 NORMALIZE_DATA.md 和 NORMALIZE_CONVERGENCE.md 的现行裁决解释：点源精度需经同条件 T 才成为面亮度精度；控制点 reference 固定具名，空间 scale 必须配对逐点 F_ref；大面 FP32 与 metadata/controls FP64 同时成立；目标阶段内 typed payload，当前文件载体是待迁移事实。它们不再要求执行者选择科学方向。
+
+ENG-B2 的已有 solver 失败记录属于其记录输入/代码下的事实，与仅有 header census 的 31 帧不是同一种证据。正常失败原因与 attempts 必须经正式日志/帧状态记录，详细 solver 快照才受 DEV_MODE 控制；不能关闭普通失败诊断或先放弃 IPV。其它跨阶段未决项保留，不扩大本轮 Normalize 的实施范围。
+
 ## 1 本面的定位
 
 本面登记**需项目负责人裁决**的事项，每条给四项：内容、为什么必须由负责人裁、阻塞哪个交付面、

@@ -1,9 +1,5 @@
 # Normalize 科学正本：阶段一唯一因果链与物理量合同
 
-> **状态：正式目标设计，不是当前全部已实现的证明。** 由 ChatGPT 前台于 2026-10-14 统一整理。上游 docs/ACSD_DESIGN.md §1–§4、docs/science/unified/UNIFIED_SCIENCE_MODEL.md 和 DATA_SEMANTICS.md。本文件唯一决定 Normalize 全链的物理量、阶段先后关系、数据语义；各专题 science/calibration、science/detection、science/psf、science/photometry、science/noise_snr、science/drizzle 只维护自身数学细节。源码与落地状态见 docs/engineering/architecture/NORMALIZE_PIPELINE.md。
->
-> **重要纠正**：历史 实验/science-v2-impl/code/wcs_census.py 只检查原始 FITS 头里有没有现成 CRVAL/CRPIX/CD，没有调用项目 IPV 解算器。“31 帧缺原始 WCS”不等于“31 帧 Normalize 无法解析”。历史三阶段 exit=0 也不等于本文件定义的全科学链已成立。
-
 ## 1. 单帧 Normalize 究竟估计什么
 
 由 CCD/CMOS 像素观测、仪器母版、Gaia 数据和设备记录，构建**每帧独立的球面已成像线性信号**及其几何、光度、PSF、噪声与空间条件精度说明。Mosaic 无须回读光帧，就能解释该帧的坐标、统一参考光度约定、参考源信息量和相关噪声模型。Normalize 绝不做跨帧接缝/相对天光求解、最终多帧权重与合成。
@@ -12,7 +8,7 @@
 
 ## 2. 唯一逻辑处理顺序
 
-\`\`\`text
+```text
 raw lights / masters / Gaia XP / instrument metadata
   → ingest + 校准观测与数据单位/有效域
   → calibration / cosmetic / 初始背景噪声统计
@@ -21,10 +17,10 @@ raw lights / masters / Gaia XP / instrument metadata
   → Gaia WCS-guided science_sources / centroid / flux
   → spatial PSF model
   → Gaia XP per-frame photometric response + scale application ONCE
-  → canonical noise conditions and sparse conditional reference-SNR controls
-  → sphere Drizzle (+ effective PSF / correlation / geometry provenance)
+  → planar conditional noise / reference model
+  → sphere Drizzle → spherical PSF/covariance → canonical reference controls
   → per-frame signal HiPS + sparse controls + scientific manifest
-\`\`\`
+```
 
 图是**因果图而不是禁止并行的线性程序**：不依赖 WCS 的初始天空噪声统计可并行；但最终 photometry、science_sources、SNR、Drizzle 的 WCS、标度和质量状态必须来自同一帧确定的版本。下游不得靠“p1_wcs.json 文件刚好已经出现”猜测上游已完成；明确使用 typed port/版本化对象。
 
@@ -131,7 +127,7 @@ S_p 单位为 [x]/sr；N_p 不等于任意覆盖并集面积；Σa_jp、N_p、su
 |---|---|
 | 每帧 signal HiPS | 正式跨阶段图像输入，真实 BUNIT/坐标/响应/层级 |
 | WCS、Gaia XP photo、PSF、noise、有效性、响应及来源 | 正式科学模型/manifest；无需都转成第二张 HiPS 图像 |
-| canonical sparse reference SNR controls | **若物理可估计**必须输出可解析 Catalogue HiPS 或有版本的唯一 sidecar，并声明参考量/支持域 |
+| canonical sparse reference SNR controls | **若物理可估计**必须输出唯一 frame_science.json sidecar；Catalogue HiPS 仅可作浏览投影，并声明参考量/支持域 |
 | per-sample variance/ivar、coverage | Phase1 可选**有来源**的辅助科学输入，保留供统计研究/真实基线；不能替代空间参考 SNR |
 | p1_wcs.json、p1_phot.json、p1_snr.json、p1_stack.json | 目前 C++ 阶段内的真实数据依赖；目标是被版本化 typed nodes 和单一 writer 统一，不把工作路径当架构接口 |
 | Dev snapshots、perf | 只有 ACSD_DEV_MODE=ON 的**旁路观察**，从不供任何科学消费者读取 |
@@ -154,3 +150,13 @@ S_p 单位为 [x]/sr；N_p 不等于任意覆盖并集面积；Σa_jp、N_p、su
 ## 11. 不再允许并行起草第二条 Normalize 权威链
 
 本文件是**唯一横向 Normalize 科学正本**。旧 docs/detail/normalize/pipeline.md、science/algorithms/normalize/*、detail/registry/acsd.phase1.* 只说明历史算法/API 或实现细节，不能重新定义被估计量、跨通带禁令、公共 F0、WCS 先验要求、或产品发布政策。实现责任集中到 docs/engineering/architecture/NORMALIZE_PIPELINE.md。发现本模型有数学反例须由前台修改此正本，不交给 Agent 自己立另一套新体系。
+
+## 12. 平面模型到球面参考精度的完成步骤
+
+噪声节点先生产已施加光度标度的平面模型；Drizzle 完成真实几何后，由同一 noise 库在球面观测域求 canonical controls。设平面积分像元响应为 P，球面模板 h=R P，协方差 C=R C_planar Rᵀ；共同估计背景时同时变换背景基 Z。不可把平面 V_F 直接贴球面标签，也不能在下游再重复乘相关噪声修正。
+
+C 在参考源通量条件下冻结，点源泊松期望和实际天空的泊松期望分开；对应 V_F 是冻结模型下的 GLS 方差，不是所有亮度下通用的无条件 CRB。秩亏时在可估计子空间使用一致的分解，模板/背景不可辨识就记 unavailable，不用任意对角地板制造信息量。母版、测光参数共同误差另外表达。
+
+控制点位置是确定性有效 patch 网格中心，不要求在那里有一颗真实星；参考是具名 SED/response 或显式单位通量，不能自动从检出星中位数发明。每点保存自身 F_ref、V_F、SNR、球面支持、模板和协方差身份。帧摘要采用支持面积加权的 log SNR 中位数，只用于摘要。参考完整性、缺项与 unavailable 不剥夺合法 signal 的产品身份。
+
+这些科学对象的唯一工程表达见 [Normalize 数据合同](../../engineering/contracts/NORMALIZE_DATA.md)，C++ 与配置迁移见 [接口规格](../../detail/normalize/contracts.md)。这里固定球面参考精度的时间点；阶段二默认权重保持现有实现，不能以这个定义存在就宣称已完成生产转换。

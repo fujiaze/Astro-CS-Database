@@ -76,7 +76,7 @@ T 有面积/PSF 相关量纲，须由当前像素响应、重采样算子、有�
 
 \[
  F_p=\sum_j w_{jp}x_j,\qquad
- S_p=F_p/N_p=\frac{\sum_j a_{jp}B_j}{\sum_j a_{jp}},
+ S_p=F_p/N_p=\frac{\sum_j a_{jp}(\Omega_j/A_j)B_j}{\sum_j a_{jp}(\Omega_j/A_j)},
  \qquad c_{pj}=w_{jp}/N_p .
 \]
 

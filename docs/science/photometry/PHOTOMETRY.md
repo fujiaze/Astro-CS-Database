@@ -92,3 +92,5 @@ a_k 含口径、曝光、总体透过率与单位换算之积；如果组成因�
 - lib/algorithms/photometry/、lib/algorithms/noise_snr/、Phase1 生产编排；
 - Gaia DR3 XP 外定标/合成测光、Padmanabhan et al. 重叠测光及相关应用研究以 实验/shared/references/CORE_REFERENCES_VERIFIED.md 为准；
 - 阶段二输出只包含一个 signal HiPS 图像层；颜色/响应元数据可以存在产品头部与运行摘要，不需额外彩色或校准图像层。
+
+归一参数、每帧 response、application ID、空间参考模板和输出单位的工程表达见 [Normalize 数据合同](../../engineering/contracts/NORMALIZE_DATA.md)。默认完整 signal 可以是 native_calibrated 或明确相对标度；未知曲线不伪造 response-calibrated 标志。

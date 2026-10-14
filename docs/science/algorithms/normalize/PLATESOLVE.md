@@ -1,5 +1,8 @@
 # WCS / PlateSolve Algorithms (ALG-WCS)
 
+本页的函数/参数记录按实际源码维护；阶段一字段、生产—消费关系与迁移以 [Normalize 数据合同](../../../engineering/contracts/NORMALIZE_DATA.md) 为准。未接入生产的接口不可因“冻结/通过”措辞视为已实现。
+
+
 > 上游：ACSD_DESIGN.md [D-1]「节点流程」一节（Phase1 节点流程）
 
 ## 1 上游 SCI 与输入输出

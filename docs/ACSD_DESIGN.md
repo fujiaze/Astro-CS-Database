@@ -477,3 +477,5 @@ signal、variance、ivar、source_snr、frame_snr、point_information、sparse_s
 - IVOA HiPS、HEALPix（Górski 2005）、FITS WCS 系列、FITS 标准、Drizzle（Fruchter & Hook 2002）；
 - 测光标定、PSF 信噪比、逆方差叠加的专项文献与开源对照（Horne 1986；Zackay & Ofek；Gaia DR3 XP 文档；SExtractor、photutils、SEP、Siril、SWarp、SCAMP、DrizzlePac、Astropy、HEALPix、Qt6 等）。
 - 文献正本与编号见 engineering 的参考文献表与各实验单元文献台账。
+
+阶段一数据对象、端口、单一科学 sidecar 与兼容迁移由 [Normalize 数据合同](engineering/contracts/NORMALIZE_DATA.md) 和 [接口落地规格](detail/normalize/contracts.md) 定义。先生产平面噪声模型，Drizzle 后完成球面参考精度，再由统一 writer 发布；不把未实施的 typed 合同称为现有实现。

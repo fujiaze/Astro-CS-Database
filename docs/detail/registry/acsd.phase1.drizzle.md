@@ -1,5 +1,8 @@
 # 模块 acsd.phase1.drizzle
 
+本页的函数/参数记录按实际源码维护；阶段一字段、生产—消费关系与迁移以 [Normalize 数据合同](../../engineering/contracts/NORMALIZE_DATA.md) 为准。未接入生产的接口不可因“冻结/通过”措辞视为已实现。
+
+
 > **实现/历史接口参考，非阶段一独立科学正本（2026-10-14 收敛说明）**。跨模块完整 Normalize 因果与科学量以 docs/science/normalize/NORMALIZE_SCIENCE.md 为准；真实用户命令和 C++ 生产 DAG 以 docs/engineering/architecture/NORMALIZE_PIPELINE.md 及实际源码为准；旧矛盾见 docs/engineering/governance/NORMALIZE_CONVERGENCE.md。本页保留局部模块/API/数据字段的历史参考价值，但旧“唯一正本”“未编入根 CMake”“缺 WCS 需外解”“跨通带禁止”“全图 ADU/sr”“公共 F0=绝对空间 SNR”等叙述不自动有效。Agent 不得以本页重新决定科学模型；真实接口改动后由前台更新。该提示不表示本页每个公式都错误。
 
 

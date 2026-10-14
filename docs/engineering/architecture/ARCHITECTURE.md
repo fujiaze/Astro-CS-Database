@@ -59,33 +59,33 @@ flowchart TD
 
 每个阶段有两层链，两者不可合成一条：目标链给出科学步骤与次序约束，生产节点序给出调度单元，每个生产节点映射唯一真实模块入口。
 
-- **normalize 目标链**：`ingest → calibration → cosmetic → background → plate_solve → star_detection → psf → photometry → noise_snr → drizzle → 产品验证 → 原子发布`。
+- **normalize 目标链**：`ingest → calibration → cosmetic → background → plate_solve → star_detection → psf → photometry → planar_noise → drizzle → spherical_reference → 产品验证 → 原子发布`。
 - **normalize 生产节点序**：`calibrate → cosmetic_correct → plate_solve → detect_sources → measure_flux → estimate_snr → drizzle_stack → write_hips`。
 - **mosaic 目标链**：`admit → coverage → sampling → upm → upm apply → rejection → integration → 产品验证 → 原子发布`。
 - **mosaic 生产节点序**：`coverage → sample → upm_fit → upm_apply → reject → integrate → write`。
 - **export 目标链**：`输入 HiPS 与模式声明 → WCS 计划 → 反向映射与重采样 → 流式 FITS → 独立 WCS/FITS 验证 → 原子发布`。
 
-生产节点序等于模块端口注册表端口图的拓扑序，并与注册表 `modules` 数组的声明序一致。`lib/infrastructure/pipeline/module_ports.registry.json` 是节点序与依赖边的唯一事实源，保真判据见 `../contracts/PIPELINE_BLOCK.md`。
+生产节点序须是实际数据依赖的合法拓扑序，独立节点声明序不构成额外数学约束。`lib/infrastructure/pipeline/module_ports.registry.json` 是节点序与依赖边的唯一事实源，保真判据见 `../contracts/PIPELINE_BLOCK.md`。
 
 三条节点序由数据流决定，不是实现选择：
 
 - **WCS 解算只有一个节点、一个权威解**。近似指向由 `wcs.init_source`（`header_pointing` / `config` / `neighbor_crval`）给出，不是独立的解算节点；`plate_solve` 在该指向下完成星表匹配与稳健迭代精化，其输出即唯一权威 WCS。解算轮次数是求解器实现细节，不是流程语义。
 - **`plate_solve` 在 `detect_sources` 之前**。`plate_solve` 按帧读校准后像素自行做星点检测与星表匹配，不消费 `detect_sources` 的产物；星表引导检测要把星表逆投影到像素域，需要含取向的完整 WCS。
-- **测光归一化施加是 `measure_flux` 节点内的强制步骤**。归一化落到像素，施加与拟合同一步完成，省掉一次中间产物落盘。该步不可用时产品显式记 `degraded_reason` 并收敛为失败，同时声明 `photometry_applied=false`。
+- **测光归一化施加是 `measure_flux` 节点内的强制步骤**。归一化落到像素，施加与拟合同一步完成，实际是否 spill 由 Runtime 决定。模型不可辨识时保留合法 native/relative signal 并明确状态，不能把未知响应作为数据组合禁令。
 
 ```mermaid
-flowchart LR
+flowchart TD
  A["calibrate 偏置/暗流/平场"] --> B["cosmetic_correct 坏点/宇宙线"]
  B --> C["plate_solve 星表匹配 + 稳健迭代精化"]
  C --> D["detect_sources 星表引导检测"]
  D --> E["measure_flux 测光拟合并施加归一化"]
- E --> F["estimate_snr 噪声与帧级/稀疏 SNR"]
- F --> G["drizzle_stack HEALPix NESTED 重采样"]
+ E --> F["estimate_snr 平面条件模型"]
+ F --> G["drizzle_stack 与球面精度完成"]
  G --> H["write_hips 产品验证 + 原子发布"]
 ```
 
 ```mermaid
-flowchart LR
+flowchart TD
  A["coverage 重叠图 union"] --> B["sample 控制采样 + patch 估计"]
  B --> C["upm_fit 公共信号面 + 逐帧偏差"]
  C --> D["upm_apply 加性归一化"]

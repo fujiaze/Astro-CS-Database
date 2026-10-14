@@ -196,3 +196,9 @@ flowchart TD
 - **只有大体积二进制中间产物可以删**（FITS、缓存，为磁盘考虑）；过程与证据的文字、JSON、脚本不得删；
 - **收尾统一整理由前台负责**（排序、合并、去重、成册）；执行方**只负责写全**，不得提前归纳掉细节；
 - 既有过程文档不得合并或覆盖，新材料按时间或主题追加。
+
+### Normalize 完整实施依据
+
+阶段一实施前完整阅读 docs/engineering/contracts/NORMALIZE_DATA.md 与 docs/detail/normalize/contracts.md。它们定稿了内部类型/端口、参考定义、球面完成边界、唯一 frame_science.json schema、旧接口迁移和每帧能力状态；不再将这些核心选择交给执行 Agent 自由设计。允许据此推进完整阶段一实现；本授权范围不包括切换 Mosaic 权重或开展跨阶段算法重构。实验目录中的 SCIENCE_V2_AGENT_TASK_PACKAGE / LAUNCH_PROMPT / ROUND2_LAUNCH_PROMPT 保留为历史，不恢复执行效力。
+
+当前机器合同与生产代码尚有迁移差异，执行时须按新目标同步 descriptor、IR、port registry 和 AIO reader/writer，不能以旧 machine schema 的冻结措辞推翻科学正本。实现改动与真正取得的独立科学证据分开报告，前台继续维护科学定义。

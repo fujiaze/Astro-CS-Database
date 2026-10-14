@@ -1,5 +1,8 @@
 # 模块 acsd.phase1.star-detection
 
+本页的函数/参数记录按实际源码维护；阶段一字段、生产—消费关系与迁移以 [Normalize 数据合同](../../engineering/contracts/NORMALIZE_DATA.md) 为准。未接入生产的接口不可因“冻结/通过”措辞视为已实现。
+
+
 > 上游：`docs/ACSD_DESIGN.md`「模块与 ABI」一节、「节点流程」一节（星表引导检测与WCS解算）、
 「P1 通量积分拟合」一节
 > 科学正本：docs/science/detection/STAR_DETECTION.md（SCI-P1-STAR-001）、

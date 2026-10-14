@@ -33,7 +33,7 @@
 
 **65535 换算因子**：XISF 规范要求浮点实型图像必须声明 `bounds`（可表示域），其定义是「像素样本可在显示设备上表示的取值范围」，上下界即图像的黑点与白点 [4]。PixInsight 的参考实现把该区间线性映射到目标类型域，映射系数是**乘数** `scale = (2ᵏ−1)/(upper − lower)`；16 位整数目标取 `2ᵏ−1 = 2¹⁶−1 = 65535`，文件 `bounds` 取 `0:1` 时 `scale = 65535`（PixInsight Class Library 的 `XISFReader.cpp`，`NormalizeSamples`）。同一物理数据在 Float32 `[0, 1]` 与 UInt16 `[0, 65535]` 两种表示之间的换算因子因此是 65535。**该因子是声明制，不是推断制**：调用方必须显式给出，取值错误由下文 U1/U4 门拦截。
 
-**待裁决的 1 LSB 口径差**：仓内一份真实母版的回归反解给出的是 `value = ADU/65536` 而不是 `ADU/65535`，相对差 `1.5e-5`，恰为 1 LSB 量级。`65535` 是 UInt16 `[0, 65535]` 可表示域的满量程，`65536` 则是 `BZERO = 32768` 有符号存储约定下的自然满量程，而本仓亮场正是后一种存储。两者在本链的适用面（低响应像元占比远低于百分之一）上对最终 ADU 的影响低于读出噪声，但在地板与满阱判据上不可互换，因此**取值冻结前须由负责人裁决**；在此之前该因子按声明制消费，其声明值必须在溯源中逐帧登记。
+**待裁决的 1 LSB 口径差**：仓内一份真实母版的回归反解给出的是 `value = ADU/65536` 而不是 `ADU/65535`，相对差 `1.5e-5`，恰为 1 LSB 量级。`65535` 是 UInt16 `[0, 65535]` 可表示域的满量程，`65536` 可能来自文件生产者采用的另一归一化约定；`BZERO = 32768` 仅决定 FITS 有符号存储的偏移，并不能决定浮点归一化分母，而本仓亮场正是后一种存储。两者在本链的适用面（低响应像元占比远低于百分之一）上对最终 ADU 的影响低于读出噪声，但在地板与满阱判据上不可互换，因此按文件生产者声明与独立读数确定因子，不设置全项目统一的猜测值；该因子按声明制消费，其声明值必须在溯源中逐帧登记。
 
 **本仓真实亮场的实测锚**：仓内 T4 180 秒 Lum 帧的 FITS 头为 `BITPIX=16`、`BSCALE=1.0`、`BZERO=32768.0`、`EXPTIME=180.0`，读入后落在 `[0, 65535]` ADU。`BZERO=32768` 与 `BSCALE=1` 把无符号 16 位整数装进有符号 16 位 FITS 数组，是**存储约定**而不是标准强制值 [3]，因此其他位深或关键字组合下读入域随之改变，必须重新判定。
 
@@ -128,7 +128,7 @@ cal_pipeline − cal_true = −b_bias − K·b0 + K·b_bias + b_light + I_d·t_l
                          = −K · Δb + (K − 1)·(b_bias − b_light) ,      Δb ≡ b0 − b_light
 ```
 
-第三步用到亮场自身的曝光关系 `I_d·t_light = K·I_d·t_d`。式子成立的前提是 `b_bias = median(master_bias) = b_light`，即母版偏置中位与亮场偏置电平取同一值——**标准式与兼容式都只减一次偏置，因此任何 `b_bias ≠ b_light` 都按一条与 `K` 无关的常量平移进入两支的分子**：
+第三步用到亮场自身的曝光关系 `I_d·t_light = K·I_d·t_d`。式子成立的前提是 `b_bias = median(master_bias) = b_light`，即母版偏置中位与亮场偏置电平取同一值——标准式采用已去偏置 dark，其偏置失配直接为 b_light−b_bias；兼容式使用含偏置 dark，失配依上式含 (K−1) 项，两分支不能混用同一暗场截距定义：
 
 ```text
 偏置电平失配项 = (b_bias − b_light) · (K − 1)
@@ -308,3 +308,7 @@ z 是否独立取决于实际母版制作与暗场约定：dark 是否已含 bia
 [8] Rousseeuw P. J., Croux C. Alternatives to the median absolute deviation. Journal of the American Statistical Association, 1993, 88(424): 1273–1283. https://doi.org/10.1080/01621459.1993.10476408（该文把 `b = 1.4826` 作为渐近一致性常数给出；引用面限于"稳健离散度估计量的选择"这一主题层，其 4 位有效数字写法不含本册的全精度值）
 
 参考代码：PixInsight Class Library（PixInsight Class Library License Version 2.0，仓库 `https://gitlab.com/pixinsight/PCL`，commit `5a3902196a7d7a701385a7113cbdce2976ae1a85`）是 XISF 可表示域到目标类型域映射的取证来源：`src/pcl/XISFReader.cpp` 的 `NormalizeSamples`（UInt16 分支）以 `scale = MaxSampleValue()/(upperRange − lowerRange)` 线性映射，`include/pcl/PixelTraits.h` 的 `UInt16PixelTraits::MaxSampleValue()` 返回 `2¹⁶−1`；astropy ccdproc（BSD-3-Clause）与 LSST `ip_isr`（GPL-3.0）只作行为对照。传染性许可的代码只读、不复制入仓。
+
+## 校准不确定性的 typed 输入
+
+母版格式/标度、暗场是否去偏置与曝光比例由 input binding 明确，数据中位数只作诊断，不由文件名/数量级决定物理约定。缺失母版不虚构扣除；flat floor 生效区必须带质量状态，不宣称完整校正。随机项以 Jacobian 和实际输入关联传播，共享 master 用相同内容身份表示跨帧共同源；可用对角项、稀疏算子或低秩参数表达，缺项记 unmodelled。cosmetic 修复关联与 noise 估计各只计算一次。完整载荷见 [Normalize 数据合同](../../engineering/contracts/NORMALIZE_DATA.md)。

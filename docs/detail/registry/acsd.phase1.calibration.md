@@ -1,5 +1,8 @@
 # 模块 acsd.phase1.calibration
 
+本页的函数/参数记录按实际源码维护；阶段一字段、生产—消费关系与迁移以 [Normalize 数据合同](../../engineering/contracts/NORMALIZE_DATA.md) 为准。未接入生产的接口不可因“冻结/通过”措辞视为已实现。
+
+
 > 上游：`docs/ACSD_DESIGN.md`「模块与 ABI」一节
 > 科学正本：docs/science/calibration/CALIBRATION.md（SCI-CAL-001）、docs/science/noise_snr/NOISE_SNR.md（噪声模型「噪声项分类学」与「协方差传播」两节）、
 > docs/science/algorithms/CALIBRATION_ALGORITHMS.md（ALG-CAL-001..006）

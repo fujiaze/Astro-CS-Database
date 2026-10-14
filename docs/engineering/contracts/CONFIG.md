@@ -467,3 +467,7 @@ https://www.ivoa.net/documents/HiPS/
 [6] 内部文档 `HIPS_STORAGE_FORM.md`，落盘形态与归档容器合同，不变式 F0–F4 与 M1–M4 的唯一正本。
 
 [7] 内部文档 `../testing/TEST.md`，测试标准，通用浮点容差与 NaN/Inf 语义的唯一正本。
+
+## Normalize 配置扩展
+
+阶段一新的 snr.reference 与 frame_overrides 字段依据 [接口规格](../../detail/normalize/contracts.md) 实施，与既有 phase_config_normalize.schema、默认值和 CLI 校验同步登记。此处是确定的扩展设计，不声称当前严格 schema 已接受这些键。缺 reference 合法输出 unavailable precision，不从旧 reference_flux_adu/source-median 自动升级物理身份。response override 逐输入 occurrence 绑定，不把 block 第一帧响应强加给不同 R_k。科学大面 dtype 与 sparse/metadata FP64 分别处理。

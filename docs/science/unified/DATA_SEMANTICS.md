@@ -85,9 +85,9 @@ HiPS 的 Norder/Dir/Npix 目录、NESTED index、HiPS 层级 FITS tile、MOC（�
 
 ## 8. 稀疏 SNR 控制点的生产对象
 
-阶段一的数据对象必须有实际的生产载体与消费者，可为 Catalogue HiPS 或清楚约定的 sidecar，但生产实际写出的星表 SNR 点并不会自动满足“规整 sparse_snr_layer” schema。转换需要显式说明：frame_id、控制点坐标系、tile/local 位置、样本数、PSF/noise 统计量、F_ref,k、有效域、层中的 SNR 是绝对参考通量 SNR 还是相对因子。
+Normalize 每帧唯一正式精度载体为 frame_science.json，包含 Drizzle 后的球面 control records、逐点 F_ref/V_F/SNR、response/reference、局部 PSF/协方差、支持域与缺项状态，完整合同见 engineering/contracts/NORMALIZE_DATA.md。Catalogue HiPS 只可作为浏览投影；像素网格 sparse_snr_layer 是兼容视图，不能因 schema 可加载就视为球面数据完备。
 
-阶段二从稀疏节点预测同一参考精度量并利用精度桥梁 T 求取面亮度权重。该预测和控制点观测不是一回事，空洞不能靠无痕迹最近邻填满。插值算法的有效参数必须由实际生产读回，与实验对照一致。
+控制点的 C_ref 依 reference-source 条件计算；actual-scene 面亮度方差另行求值。T 有单位和独立 availability；没有 T 不能假设为 1。无精度的合法信号仍可发布，但下游必须报告精度能力。
 
 ## 9. 阶段三平面导出合同
 

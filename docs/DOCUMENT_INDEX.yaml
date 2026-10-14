@@ -37,6 +37,16 @@ doc_index:
   schema_rev: "3"
   coverage: "docs/** 全部 .md 与 .yaml + 仓库根固定条目（AGENTS.md、README.md、VERSION）；目录招牌件按「每目录必有 README」治理，不进规范索引面。覆盖面以人读件为界：机器源（.json/.csv/.py 等）不因跨域而自动取得登记资格；跨域件按 docs/engineering/governance/DOCUMENT_GOVERNANCE.md 的跨域豁免登记条款 以 notes 具名豁免登记，当前在册豁免 4 条（跨域人读件 1 条：实验/裁决台账.md；人读正本直接依赖的判据实现 3 条：eng/contracts/ledgers/ledger_schema.py、eng/tools/source_scan.py、eng/contracts/anchors/anchor_contract.json）。治理面另具名的「已知限制台账」缺可指路径，不在册，差异见 T10 复核记录"
   active:
+    - path: "docs/engineering/contracts/NORMALIZE_DATA.md"
+      status: ACTIVE_NORMATIVE
+      duty: "Normalize typed 数据、端口、参考精度、唯一 sidecar 和兼容读写合同"
+      upstream: "docs/science/normalize/NORMALIZE_SCIENCE.md；docs/engineering/architecture/NORMALIZE_PIPELINE.md"
+      downstream: "docs/detail/normalize/contracts.md、eng/contracts/schemas/normalize_frame_science.schema.json"
+    - path: "docs/detail/normalize/contracts.md"
+      status: ACTIVE_NORMATIVE
+      duty: "Normalize C++ 接口、现有文件落点、配置和逐边迁移规格"
+      upstream: "docs/engineering/contracts/NORMALIZE_DATA.md"
+      downstream: "module_adapters.cpp、module_ports.registry.json"
     - path: "实验/裁决台账.md"
       status: ACTIVE_NORMATIVE
       duty: "跨单元裁决台账：五个创新点实验重做的分歧终裁，含依据与落点正本节"

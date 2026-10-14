@@ -1,5 +1,8 @@
 # 模块 acsd.phase1.star-psf
 
+本页的函数/参数记录按实际源码维护；阶段一字段、生产—消费关系与迁移以 [Normalize 数据合同](../../engineering/contracts/NORMALIZE_DATA.md) 为准。未接入生产的接口不可因“冻结/通过”措辞视为已实现。
+
+
 > 上游：`docs/ACSD_DESIGN.md`「模块与 ABI」一节与星表引导检测口径（候选星来自
 > 星表位置拟合）、科学叠加权重边界口径
 > 科学正本：docs/science/algorithms/STAR_PSF_ALGORITHMS.md（SCI-P1-PSF-001、

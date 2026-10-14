@@ -1,127 +1,35 @@
-# 命名块生命周期合同
+# 命名块与阶段内对象生命周期
 
-上游：最高设计的顶层结构与命名块内存管线两章。
+本合同依据最高设计的阶段内内存管线。Normalize 字段与端口由 [NORMALIZE_DATA.md](NORMALIZE_DATA.md) 定义；跨阶段产品由 [PHASE_PRODUCT_EXCHANGE.md](../data/PHASE_PRODUCT_EXCHANGE.md) 定义。
 
-命名块的字段合同、载体合同、状态机与端口双向一致判据的正本。调度机制见同目录的 `SCHEDULER.md`，
-数据在阶段内与阶段之间的流动形态见 `../architecture/DATA_FLOW.md`。
+## 载体与现状
 
-机器 schema：`eng/contracts/schemas/pipeline_block.schema.json`（本合同的机器取值源）。
-端口事实源：`lib/infrastructure/pipeline/module_ports.registry.json`（v2，冻结绑定表）。
+目标：同阶段节点通过 Runtime 管理的 typed metadata、模型句柄和命名数组块交换数据，跨阶段通过磁盘产品交换。output_dir 文件约定是当前生产实现的载体，须逐边迁移为 typed payload 或显式科学 cache，不能定义成永久唯一载体。当前 BlockFrame 数值块主要在节点内部使用，RunContext artifact descriptor 也不等于已具备跨节点 typed 载荷；扩展范围见 Normalize 接口规格。
 
-## 模型
+开发快照仅旁路观察。正式 spill/cache 由内存预算、恢复需求决定，ON/OFF 同样可用。cache 引用按 run/frame/object/revision/input hashes 校验，禁止以“文件存在”替代生产者完成和身份核验。
 
-每个阶段内部是一条**内存管线**：`PipelineFrame` 承载一组**命名块（block）**；模块从帧读入参块、产出新块写回、显式声明**消费**的旧块；调度器按生命周期即时回收，模块不私藏大块数据的长期副本，**不跨阶段共享内存**。
+## 字段
 
-### 载体合同（生产链路的真实载体）
-
-命名块是**阶段内单节点执行期**的内存概念：`PipelineFrame` 承载的块不落盘、不跨节点、不跨阶段。生产链路上节点间交换的数据**不是**命名块，而是磁盘产品：
-
-- **阶段内**：唯一载体是 `output_dir` **文件约定**。注册表里每个端口对应 `output_dir` 下的一个具体产物（文件或产品目录），生产者按该路径写、消费者按同一路径读；
-- **跨阶段**：唯一载体是 **HiPS 产品树**（磁盘目录 + manifest + 哈希）。`normalize` 产出逐帧 HiPS 树，`mosaic` 产出马赛克 HiPS 树，`export` 只读马赛克 HiPS 树；
-- 端口到载体的对应由注册表的 `carrier` 字段声明，取值 `output_dir_file` / `hips_product_tree` / `config_path`（阶段外部输入，本阶段无生产者）。产物身份在阶段内闭合：跨阶段流转的载体只有 HiPS 产品树。
-- **节点序由端口图唯一确定**：同阶段内「A 的输出端口名 == B 的输入端口名」即一条依赖边；管线 IR 的节点序必须是该 DAG 的拓扑序，并与该阶段在注册表 `modules` 数组里的声明序一致（判据见 「机器判据」一节）。注册表是节点序与依赖边的唯一事实源，IR 的边集与注册表边集逐条相等。
-
-判据见「机器判据（端口 ↔ 代码双向一致）」与「机器判据（注册表 ↔ 管线 IR 的节点序与边保真）」两节，由人读对抗性审核逐条核对。
-
-## 块元数据（冻结字段）
-
-| 字段 | 类型 | 语义 |
-|---|---|---|
-| `name` | string | 块名（阶段内唯一，小写蛇形） |
-| `shape` | int[] | 维度（像素域块为 [h,w] 或 [n]） |
-| `dtype` | enum | `f64` / `f32` / `i32` / `u8` |
-| `unit` | string | 物理单位（ADU / ADU² / e⁻ / pixel / 无量纲 / null） |
-| `optional` | bool | 可缺性：true 时缺失**必须**走**显式降级声明**（具名登记） |
-| `producer` | string | 生产者节点 ID（有且仅有一个） |
-| `consumers` | string[] | 消费者节点 ID 集合（可空 ⇒ 终态块） |
-| `lifecycle` | enum | `short`（节点内即时消耗）/ `frame`（帧内跨节点）/ `run`（长生命周期：活到本阶段末） |
-| `provenance` | object | 头部 KV（随块流转，见 「provenance 流转」一节） |
-
-**生命周期 DAG 校验（构建期，非法即报错）**：
-1. 每个被消费的块**有且仅有**一个生产者；
-2. 消费不存在的块 ⇒ 非法；
-3. 同一块被重复生产 ⇒ 非法；
-4. 声明的 `lifecycle` 与实际消费者跨度不一致 ⇒ 非法。
-
-## 状态机（创建 → 消费 → 销毁）
-
-```text
-CREATED --(所有声明消费者执行完毕)--> CONSUMED --(调度器回收)--> DESTROYED
- | ^
- +--(帧取消 / 异常)---------------------+--> DESTROYED（无泄漏路径）
-```
-
-- 块被**全部声明消费者**用完即销毁、内存归还（引用计数 = 剩余消费者数）；
-- 阶段结束时块残留数 = 0（跨阶段只走磁盘产品 + manifest + 哈希）；
-- 异常/取消路径必须与正常路径一样销毁（单测覆盖）。
-
-## provenance 流转
-
-- 头部 KV（如 `frame_id`、`photometry_applied`、`k_photo`、`snr_path_effective`、`saturation_filter`）随块流转，下游逐项透传；
-- 降级必须**显式**：`optional=true` 的块缺失时，消费方须写 `degraded_reason`，缺省值只在该声明之下取用。
-
-## 生命周期与峰值内存
-
-- 典型短生命周期：`raw` 在校准后销毁、`calibrated` 在测光归一化后销毁；
-- 阶段终产物以**磁盘产品**形态发布、不占运行期块：逐帧 HiPS 树 + 产品清单（normalize）、马赛克 HiPS 树 + 马赛克清单（mosaic）、投影 FITS + 校验报告（export）；
-- **一次运行的峰值内存由在途块集合与分块大小决定**，不由总图大小决定（验收判据见本条）。
-
-## 负例（必须能红）
-
-- 消费不存在的块 / 重复生产 / 生命周期声明不一致 ⇒ 构建期报错；
-- 退化面（无合格数据）的形态 = **无块**：块的存在即表示有合格数据；
-- 取消路径泄漏（块未销毁）⇒ 内存归还计数判红；
-- 注册表声明的边在代码中无对应读写（端口锚点解析不到）⇒ 判红（「机器判据（端口 ↔ 代码双向一致）」一节 C2）；
-- 代码中真实存在的数据流未在注册表声明 ⇒ 判红（同上 C3）；
-- 端口方向与代码读写角色不符、或角色无法由代码证据确认 ⇒ 判红（同上 PC-C4）；
-- 节点触碰 HiPS 产品树却无对应 `carrier` 端口、或同一产物身份跨阶段出现 ⇒ 判红（同上 C3b、PC-C5）；
-- 注册表为空、或端口数/代码 token 数/边数低于下界 ⇒ 判红（同上 PC-C6；恒真比较无证据资格）。
-
-## 机器判据（端口 ↔ 代码双向一致）
-
-**判据域 = pipeline-carrier 侧（注册表端口面 ↔ 代码数据流面）**。本表的判据只回答「注册表声明的端口与代码里真实发生的数据流是否一致」，不回答「管线 IR 的节点序与边是否与注册表端口图一致」——后者属插值算子侧判据，见「机器判据（注册表 ↔ 管线 IR 的节点序与边保真）」一节。
-
-编号分两段：`C1`、`C2`、`C3`、`C3b` 是本合同的**基础判据**（结构完整、锚点解析、双向闭合、载体一致），只在本表出现；`PC-` 前缀者是**本判据域专有**判据。两个判据域的编号空间互不相交，不存在跨域同号。
-
-端口↔代码双向一致判据（C1、C2、C3、C3b、PC-C4–PC-C6）把注册表的端口面与
-`lib/infrastructure/scheduler/src/module_adapters.cpp` 的真实数据流做**双向**核对：
-
-| 判据 | 内容 |
+| 字段 | 语义 |
 |---|---|
-| C1 结构 | 注册表 v2 + `carrier_contract`；每 module 恰一个 operation；端口 `name/direction/carrier/artifacts/code` 齐全 |
-| C2 声明⇒实现 | 每条端口的 `code` 锚点必须解析：文件存在、`symbol` 在本文件内唯一解析到函数体、`token` 落在该函数体内 |
-| C3 实现⇒声明 | 以**代码侧闭合文法**（与注册表无关）抽出每个节点函数触碰的产物 token，必须全部已在注册表声明 |
-| C3b 载体一致 | 节点触碰 HiPS 产品树 ⇒ 必须有对应 `carrier=hips_product_tree` 且方向一致的端口 |
-| PC-C4 方向一致 | 声明 token 必须在代码里出现，且变量流分析推断出的读写角色必须包含声明的 `direction`；推不出角色即判红 |
-| PC-C5 载体合同 | 节点间端口 `carrier` ∈ {`output_dir_file`, `hips_product_tree`}；`output_dir` 产物身份限本阶段；`carrier_contract` 必须显式声明 HiPS 产品树为跨阶段载体 |
-| PC-C6 非退化 | 模块数/端口数/代码 token 数/生产→消费边数均有下界；空注册表判红 |
+| name/schema_id | 阶段内对象身份与载荷类型 |
+| shape/dtype/unit | 数值数组尺寸、位深和真实单位；模型 metadata 有自己的字段合同 |
+| run_id/frame_id/revision | 当前帧和上游版本绑定 |
+| producer/consumers | 唯一生产者与实际消费者 |
+| optional/status/reason | 可缺性及明确能力状态；未知不等于零 |
+| lifecycle | node、frame 或 run 范围 |
+| provenance/input_revisions | 来源与准确上游对象 |
 
-`--self-test` 给出 1 条正例（必绿）与逐条负例（声明不存在的边、漏声明真实流、方向写反、锚点 token 删除/移出符号/符号不存在/文件不存在、跨阶段边、载体合同缺失、端口无锚点、节点函数改名、空注册表），负例必须逐条判红。
+数值数组使用现有 BlockMeta；对象身份与复合 metadata 由 typed header 承载，不要求全部塞到单个 unit 字符串或浮点数组。大面默认 FP32、稀疏与元数据 FP64。
 
-### 机器判据（注册表 ↔ 管线 IR 的节点序与边保真）
+## 生命周期与并发
 
-**判据域 = 插值算子侧（管线 IR ↔ 注册表端口图）**。本表的判据只回答「管线 IR 的节点序与边集是否与注册表端口图逐条一致」，不回答「注册表端口与代码数据流是否一致」——后者属 pipeline-carrier 侧判据，见「机器判据（端口 ↔ 代码双向一致）」一节。
+生产者构建新对象后一次发布，之后只读。Runtime 给声明消费者分发借用/lease，最后一个完成即回收；异常/取消同样归还数组、AIO 和模型句柄。模块不保留未登记的大对象副本，不用全局 map 绕过预算。
 
-编号一律带 `IR-` 前缀，与本判据域专属的编号空间互不相交，不与 pipeline-carrier 侧判据共用同号。
+图必须有唯一生产者、真实消费边和合法生命周期。descriptor、IR、port registry 与实际取数需一起更新；注册表是当前代码的事实登记，不能推翻目标科学图。节点序可取任意合法拓扑序，独立节点不因数组声明顺序获得额外数学依赖。typed metadata/availability 可以存在但某数值载荷不可用，不能要求“有对象就意味着全部科学模型合格”。
 
-`CHK-REGISTRY-IR-PARITY`在模块集合双向一致（P1–P3）之外，
-断言管线 IR 与注册表端口图的**序**与**边**一致（IR-C4–IR-C8；**不走台账豁免**——幻边与序错一律按判红处理）：
+## 检验与机器登记的边界
 
-| 判据 | 内容 |
-|---|---|
-| IR-C4 无幻边 | IR 声明的每条边必须由注册表端口图支持：该产物身份对应的注册表端口必须是生产模块的**输出**端口、且是消费模块的**输入**端口；IR 产物身份须在 `PHASE1_ARTIFACT_TO_PORT` 桥表中登记（未登记即判红，新增产物必须同步该桥） |
-| IR-C5 序为拓扑序 | 注册表端口图 DAG 的每条边必须满足 `pos(上游) < pos(下游)`；IR 自身声明的边也必须与节点数组序一致 |
-| IR-C5b 声明序一致 | IR 的 phase1 节点序必须等于注册表 `modules` 数组里同阶段模块的出现序（块流规格 `stage_block_flow.json` 的 declared order 与 R4 同源） |
-| IR-C6 psf 在 wcs 之后 | `pos(psf) > pos(wcs)`，且 `psf` 节点必须声明 `artifact:p1_wcs` 输入边（取向先验的真实来源） |
-| IR-C7 非退化 | phase1 节点数 / IR 边数 / 注册表端口边数均有下界；解析不到即 fail-closed（判据 = 解析成功；解析不到一律判红） |
-| IR-C8 IR 端口 ∈ descriptor | IR 每个节点的输入/输出端口名必须出现在 `module_adapters.cpp` 对应 descriptor 的端口表里（运行期 `MISSING_PORT` 静态验证的 CI 侧等价判据；不启动产品二进制即可发现 IR ↔ descriptor 漂移） |
+核对重复生产、跨帧错配、版本陈旧、漏声明读写、方向错误、缺模型、取消泄漏和实际峰值内存。未声明的必要输入返回数据错误；允许缺失的模型返回 status/reason。检查用于发现真实错误，不创设人工审批流程。
 
-`--self-test` 含 5 条负例注入：交换 `psf`/`wcs` 节点序、注入 `wcs ← p1_sources` 幻边、
-移除 `psf` 的 `artifact:p1_wcs` 输入、注入 `photometry ← p1_psf` 幻边、把 IR 端口名改成 descriptor 里不存在的名字
-——逐条必须判红；仓库现状必绿。
-
-## 参考文献
-
-[1] 内部文档 `docs/ACSD_DESIGN.md，最高设计`，上位来源。
-[2] 内部文档 `docs/engineering/architecture/ARCHITECTURE.md`，同层相关正本。
-[3] 内部文档 `docs/engineering/contracts/SCHEDULER.md`，同层相关正本。
+当前 module_ports.registry.json、pipeline_block.schema.json 及 port/IR 检查脚本仍记录文件载体和既有词表。执行者随每条生产边的改动同步迁移，旧脚本 PASS 只能说明其登记域，不能证明 typed payload 已流过生产代码。不得把仅匹配 token 的检查当作科学数值证据。
