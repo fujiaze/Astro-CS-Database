@@ -210,3 +210,8 @@ run/GOVERN-08/审核包-R2/_work/
 实验/**/*.npy
 实验/**/*.tar.gz
 实验/**/*.zip
+
+# science-v2-impl: 预览图是交付物的一部分（小体积 PNG，非原始 FITS）。
+# 只放开本实验单元 run/A/preview/ 下的图；其余 *.png 规则不变
+# （testdata / run/ 的大图与位图仍被排除）。
+!实验/science-v2-impl/run/A/preview/*.png
