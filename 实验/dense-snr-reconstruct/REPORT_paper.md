@@ -66,9 +66,10 @@ W_ref,k(x)   = SNR_ref,k(x)^2 / F_ref,k^2 = 1/V_ref,k(x)
 P4 可辩护的研究贡献是“物理估计量不变 + HEALPix 稀疏支持域清晰 + 显式重建偏差传播”，不是“样条或 IDW 作为新算法”。在 `F_ref` 目标、生产者、负例和下游应用没有闭合前，“绝对 SNR 最优权重可在全域重建”处于 **UNVERIFIED**。需要完成 P4-A～F 的独立 oracle 与真实生产验证，再给出实际可接受场型、控制点最低信息量和运行复杂度。
 
 
-[R14] Fritsch & Carlson (1980), SIAM J. Numer. Anal. 17, 238–246, [10.1137/0717021](https://doi.org/10.1137/0717021)。
 
 ## 参考文献
+
+[R14] Fritsch & Carlson (1980), SIAM J. Numer. Anal. 17, 238–246, [10.1137/0717021](https://doi.org/10.1137/0717021)。
 
 [R08] Wahba, G. (1990), *Spline Models for Observational Data*, SIAM, [10.1137/1.9781611970128](https://doi.org/10.1137/1.9781611970128)。
 
