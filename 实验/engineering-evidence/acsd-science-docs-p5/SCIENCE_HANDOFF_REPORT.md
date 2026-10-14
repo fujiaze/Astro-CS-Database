@@ -1,11 +1,10 @@
 # ACSD P1–P5 科学实验 · 回传报告（SCIENCE_HANDOFF_REPORT）
 
-> **状态：定稿（FINAL）。** S00–S09 各任务已收口，五篇论文均已按最低图表集更新并提交。本文件的 `HEAD`、commit 列表、
-> 逐篇主张状态与未决清单均已刷新到最终值。
+> **状态：交接定稿快照（FINAL AS SUBMITTED；后经独立复核补正）**。S00–S09 的规定执行件已经交付，五篇论文均有结果章节；“执行已完成”不等于科学结论已通过或完整 E2E 已验收。以下记录的 SHA 为历史快照，当前分支可能因审查提交而前移；独立复核与尚待处置的完整清单见 [INDEPENDENT_REVIEW_8ecaac427.md](INDEPENDENT_REVIEW_8ecaac427.md)。
 >
 > - 分支：`audit/acsd-science-docs-p5`
 > - 交接基线（工作包 pinned）：`e31b2be66ffe37d547e67a4ba007e7257e49789d`
-> - 定稿 HEAD：**`bab607107`**（完整清单见表 A，共 38 个提交）
+> - 五篇论文最后一次更新提交：**`bab607107`**（表 A 第 38 项）；首次 FINAL 报告提交快照：**`8ecaac427d8d4466b5213d0dd6a6ad1a9`**（第 39 项）。它们不是本文件再次修改后的动态 HEAD。
 > - 仓库：`https://github.com/fujiaze/Astro-CS-Database`
 > - 科学正本：`docs/ACSD_DESIGN.md`、`docs/science/**`（本报告不改这些文件）
 > - 原始 FITS 一律未上传（仅索引、哈希与头部摘要）；`testdata/` 零改写
@@ -16,8 +15,7 @@
 
 1. **两处结构性生产缺陷已复现、修复、验证并推送**：
    P3 逐 drop 完备性 `ε_j`（两处近简并叉积条件数）与 P5 断连重叠图逐分量 gauge。
-2. **五篇论文的正文（`REPORT_paper.md`）本轮**未改**——`S08` 尚未执行**。本报告只登记实验读数与
-   证据级别，不改写论文，也不改 `docs/science/**` 判据文字。
+2. **五篇 `REPORT_paper.md` 已按 S08 更新**，分别在 `09b14b13d`（P1/P3/P4）及 `bab607107`（P2/P5）提交；各篇的**跨篇误差传播实跑仍为 `NOT_RUN`**，不能因论文表格齐备就宣称五篇科学真值闭合。本任务没有修改 `docs/science/**` 正本。
 3. **每个已跑项目都带阴性/阳性对照**；无法跑的一律 `NOT_RUN`；无外部证据的一律 `UNVERIFIED`。
 4. **仍阻断发布的项目**见 §7；**需负责人裁决**的见 §8。
 
@@ -65,6 +63,7 @@
 | 36 | `fd3d6ad15` | docs(S09): 刷新回传报告 §11 待补清单并补 §12 交付纪律核对（刷新至 dda7c813c） |
 | 37 | `2334ddce4` | docs(S09): 增补 RESUME_NOTES（断点续做说明） |
 | 38 | `bab607107` | docs(S08): 更新 P2/P5 两篇论文结果·图表·证据级别（S08 五篇完成） |
+| 39 | `8ecaac427` | docs(S09): 回传报告由 DRAFT 转为 FINAL（本次交接快照） |
 
 `lib/` 全局改动面仅两个文件：`spherical_overlap.cpp`（P3）与 `sky_plane.cpp`（P5）。
 **未合并 `main`、未开 PR、未 force-push。**
@@ -102,7 +101,7 @@
 | S06 | P4 重建统计目标与域外失败 | **完成** | `run/ACSDSDOC-02/S06/REPORT_S06.md` + `实验/dense-snr-reconstruct/**`（§9） |
 | S07 | P5 乘性增益研究 | **完成（结论 `FAIL`）** | `实验/additive-sky-seamless/docs/S07_P5_GAIN_evidence.json` + `docs/S07_results/`（5 件）+ `code/s07_*.py` + `REPORT_experiment.md` 附录 S07（`cec31850d`、`e1d80dcd7`） |
 | S08 | 五篇论文结果/跨篇传递 | **完成** | P1/P3/P4（`09b14b13d`）、P2/P5（`bab607107`）；验收对照表 `48e5041e9`；跨篇反例五篇均如实 `NOT_RUN` |
-| S09 | 构建/端到端/回传 | **部分完成** | 零回归对照已落（`S09_TEST_REGRESSION_BASELINE.md`）；`normalize→mosaic→export` **真实帧端到端已跑通、三命令均 rc=0**（`S09_E2E_RUN.md`），但**只验证链路与合同、不验证测光定标**；回传报告尚未定稿 |
+| S09 | 构建/端到端/回传 | **执行与回传完成；完整科学验证未完成** | 子集测试基线与 HEAD 同为 `29 failed / 152 passed`（仅数量对照，缺逐用例 nodeid diff）；真实帧 **CLI 三命令 rc=0**（只验证链路，冒烟 master_scale 不能作科学定标）；`eng/tests/e2e` 的 9 条 **静态跳过**；报告已定稿但须结合独立审查补正阅读 |
 
 ---
 
@@ -187,7 +186,7 @@ D-02 §3/§4 的「不得仅用 `κ < 1/τ` 判绿」。
 
 ---
 
-## 5 逐篇证据级别（本轮，**不改论文**）
+## 5 逐篇证据级别（**五篇论文已在 S08 更新，科学结论仍按本表分级**）
 
 > **证据级别命名统一（本任务发现的口径不一致，在此声明映射）**：`03_SCIENTIFIC_ACCEPTANCE.md` 定义六级为
 > `BIB_VERIFIED / SELF_CHECK / ORACLE_CHECKED / IMPLEMENTATION_CHECKED / EXPERIMENT_CHECKED / RELEASE_VERIFIED`。
@@ -200,8 +199,8 @@ D-02 §3/§4 的「不得仅用 `κ < 1/τ` 判绿」。
 |---|---|---|---|---|
 | **P1** | `F_syn` vs `F_instr`、逐帧零点、颜色/空间残差 | 合规 8 帧 `σ_obs` 0.0253–0.0421 mag；色轴 `−0.0534 mag/mag(R−B)`（−10.05σ），跨仪器留出中位降 25.0%；P1-D 5/5 判红 | `ORACLE_CHECKED` + `EXPERIMENT_CHECKED`（真帧） | 线性区 `NOT_MEASURED`；`gain/RN/饱和电平` `UNVERIFIED`；论文数与 HEAD 代码版本不符（§8 裁决 4） |
 | **P2** | 条件 `SNR_ref`、协方差、真实 coverage | **已完成（S05）**。四臂独立 numpy Oracle（不链接生产库）20000 次 MC + Wilson 95% 区间；真实帧 **2195 星对**覆盖率 nominal `0.6827` → 实测 **`0.4752`**（去趋势 `0.4639`），`contains_nominal=false`；多余散度由**与 SNR 无关的系统项**支配（SNR 分层地板 `0.036–0.070 mag`）；空间共模超额 `37.9×`、有效独立样本 **64 块**；`k_corr` 单位已由 `hp_drizzle_api.cpp:1112-1113` 原文闭合为**源帧像元角尺度 `[arcsec/px]`**，但生产几何 `rho≈0.83` 下真值 `2.05–2.33` 而冻结回退仅 `1.4`| `ORACLE_CHECKED` + `IMPLEMENTATION_CHECKED`（探针）+ `EXPERIMENT_CHECKED`（真实帧）；**`k_corr` = `UNCALIBRATED`**；`sparse_snr_layer` = `NOT_IMPLEMENTED` | `k_corr` 三选一处置；`2.7928` 表述须改为分层读数；真实帧无平场/暗场改正；`tile_order=12` 域 `k>38` |
-| **P3** | `w_jp=a_jp/A_drop,j`、逐 drop 完备性 | 两处缺陷修复；1500 格矩阵 218→0 破门；连通图/叶内逐位不变 | `ORACLE_CHECKED` + `PRODUCTION_CHECKED`（负例判红） | `60″–290″` 叶弦/分支残差未修；FP32 未复测；`docs/science` 判据文字未改 |
-| **P4** | 固定 `F_ref` 的 `V_ref(x)`、支持域重建 | 过冲 `2.011325955375069`（越节点 `+1.1326e-02`、下冲 `−0.307920`）；域外 `55.5556%`/`43.7500%`；clamp 非无偏；NaN 静默填充；`idw_power` 生产 `2.0` vs 规范 `1.0` | `ORACLE_CHECKED` + `PRODUCTION_CHECKED`（探针） | `idw_power` 分裂未修（§8 裁决 5）；真实控制点链未跑 |
+| **P3** | `w_jp=a_jp/A_drop,j`、逐 drop 完备性 | 两处缺陷修复；1500 格矩阵 218→0 破门；连通图/叶内逐位不变 | `ORACLE_CHECKED` + `IMPLEMENTATION_CHECKED`（生产负例判红） | `60″–290″` 叶弦/分支残差未修；FP32 未复测；`docs/science` 判据文字未改 |
+| **P4** | 固定 `F_ref` 的 `V_ref(x)`、支持域重建 | 过冲 `2.011325955375069`（越节点 `+1.1326e-02`、下冲 `−0.307920`）；域外 `55.5556%`/`43.7500%`；clamp 非无偏；NaN 静默填充；`idw_power` 生产 `2.0` vs 规范 `1.0` | `ORACLE_CHECKED` + `IMPLEMENTATION_CHECKED`（生产探针） | `idw_power` 分裂未修（§8 裁决 5）；真实控制点链未跑 |
 | **P5** | `y_i=g_i S+a_i+noise`、重叠连通分量 | **已完成（S03+S07）**。加性：逐分量 gauge 修复，`S9b` compB `1.281497171821252e-1 → 5.981665755358275e-4`（`214×`），连通图 `S12_chain4`/`S14_thin_bridge_1cell` 的 `model_hash` 修前修后**逐字相同**，负例 `ACSD_SKY_P5_FAULT=global_anchor` 判红；**判据分裂**——故障注入下全图 `rank 256/256`/`identifiable=1`/`κ=3.89e9` 全绿，只有逐分量判据抓到 comp1 `rank 118/127`、`n_unidentified=9`。乘性：阴性世界（无真实增益，10 seeds）联合 A+G 仍给统计显著「改善」（`+0.00968`，CI `[0.00681,0.01740]`，`frac_pos=1.0`）而 **oracle 增益给恰 `0.0`** ⇒ 假阳性 ⇒ 预声明 C3 不成立 ⇒ **`status=FAIL`**；接线审计 `P1_kphoto_mxy=APPLIED`、`P5_MA_scalar_solver=NOT_IMPLEMENTED_ON_PRODUCTION_PATH`、`P5_multiplicative_gain=IDENTITY` | 加性：`ORACLE_CHECKED` + `IMPLEMENTATION_CHECKED`（已上线）+ 逐分量诊断；乘性：**`FAIL`**（不得默认启用） | 跨分量绝对零点不可辨识、**需外部锚**（未实现）；乘性**次序缺陷**已登记未修；边界 196 条仅 114 条有效；真实帧乘性腿 `NOT_RUN` |
 
 **S01 状态**：引文一致性为机器核验（15 条登记、五篇引用零悬空、13 条 DOI 一一对应、
@@ -223,12 +222,12 @@ D-02 §3/§4 的「不得仅用 `κ < 1/τ` 判绿」。
 
 ## 7 仍阻断发布的项目（`RELEASE_VERIFIED` 不成立）
 
-1. **S05（P2）未完成** ⇒ 条件 `SNR_ref` 与真实 coverage 的关系未闭合，`k_corr` 仍 `UNCALIBRATED`。
-2. **S07（P5 乘性）未完成** ⇒ 乘性增益必须保持**默认恒等**；阴性对照历史「8/10 也改善」未推翻。
+1. **S05（P2）已执行，但科学校准未完成** ⇒ 真实 coverage 尚未在正确统计被估量下校准到标称；`k_corr` 仍 `UNCALIBRATED`，`sparse_snr_layer` = `NOT_IMPLEMENTED`。
+2. **S07（P5 乘性）研究已执行，结论是 `FAIL`** ⇒ 阴性 `g=1` 时 10/10 seeds 误检增益，生产必须保持**默认恒等**；P5 MA 未接入生产。
 3. **P5 跨分量绝对零点无外部锚** ⇒ 产品不得声称跨分量定标。
 4. **P1 探测器线性区 `NOT_MEASURED`**，且论文 §5 数字对应旧版代码。
 5. **P3 大 drop 叶弦/分支残差未修**（不破 `1e-6`，但属未声明适用域）。
-6. **S08 未做** ⇒ 五篇论文正文尚未更新结果/图表/证据级别；`docs/science/**` 判据文字未同步。
+6. **S08 五篇论文正文已更新结果/图表索引/证据级别**，但跨篇传播反例均 `NOT_RUN`，远端 Git 树无跟踪的 PNG/SVG 图件，P1/P3 部分结果文件仍只在被忽略的 `run/`；科学正本需要对剩余实现缺陷作证据支持的同步订正。
 7. **端到端**：`normalize→mosaic→export` 已在真实帧上跑通（三命令 `rc=0`，产物经 astropy 独立读回，
    导出 FITS `1024×1024 >f4`、`RA---TAN`、`coverage 1048576/1048576`、`p3_verify.canonical_match=true`），
    但**该跑只验证链路与合同**：`master_scale` 为冒烟测试值、母版实际已归一化 ⇒ 导出绝对量级不可信。
@@ -261,7 +260,7 @@ D-02 §3/§4 的「不得仅用 `κ < 1/τ` 判绿」。
 
 ## 9 `NOT_RUN` 清单（不得由其他读数推断）
 
-FP32 生产实例复测（P3/P5）；Windows 构建与 MSVC 复测；`normalize→mosaic→export` 端到端；
+FP32 生产实例复测（P3/P5）；Windows 构建与 MSVC 复测；**完整科学定标验证的** `normalize→mosaic→export`（**CLI 三命令冒烟已运行且 rc=0；9 个 E2E pytest 仍跳过**）；
 C++ 单测（无注册）；`HP_CIRCUMRADIUS_FACTOR=1.25` 在 nside≥512 的全天穷举；
 P3 `290″–3600″` 之外更粗像元域；P4 留一边残差重拟合、二维 footprint 的环、`gauge_mode=1` 多分量；
 P5 乘法臂的二维 `g_i(x)`；P1 绝对透过率/消光、母版施加后残余平场、线性区拐点；
@@ -311,7 +310,7 @@ python3 -m pytest eng/tests/unit eng/tests/synthetic eng/tests/module \
 
 ---
 
-## 11 定稿说明
+## 11 定稿说明与后续审查
 
 1. **S08 已完成**：五篇论文均按 `03_SCIENTIFIC_ACCEPTANCE.md` 的最低图表集更新并提交
    （P1/P3/P4 于 `09b14b13d`，P2/P5 于 `bab607107`），验收对照表见
