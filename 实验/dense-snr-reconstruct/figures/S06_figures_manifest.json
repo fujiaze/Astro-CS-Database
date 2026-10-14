@@ -1,0 +1,50 @@
+{
+  "paper_id": "P4",
+  "task_id": "S06",
+  "script": "s06_figures.py",
+  "script_sha256": "52d8c6da4a7e3af9b41a290a6112e79e69a3e12c4346a30aebb3202c9dd7ce4f",
+  "command": "python3 实验/dense-snr-reconstruct/code/s06/s06_figures.py",
+  "seed": 20261020,
+  "f_ref_adu": 100.0,
+  "gain_e_per_adu": 1.3,
+  "read_noise_e": 5.0,
+  "delta_px": 64,
+  "patch_px": 8,
+  "unit_of_snr": "dimensionless [1] (flux-type unweighted SNR = F_ref/sigma_F)",
+  "unit_of_variance": "ADU^2",
+  "unit_of_weight": "ADU^-2",
+  "e_eff_denominator": "Var_opt = 1/sum(1/v_true) per pixel (P4-B02 sole definition)",
+  "figures": [
+    {
+      "path": "run/ACSDSDOC-02/S06/figures/fig_S06_b_overshoot.png",
+      "sha256": "43f4bf03f4c82ace3b1d134f7b90e4d631af4bc5c2394f98205cea0b4657f356"
+    },
+    {
+      "path": "run/ACSDSDOC-02/S06/figures/fig_S06_c_domain_out_of_domain.png",
+      "sha256": "8537d03e86efa8c572cc719940bb9eb72aa19f651501ace2ca8effe4efb5618c"
+    },
+    {
+      "path": "run/ACSDSDOC-02/S06/figures/fig_S06_c_arm_var_ratio.png",
+      "sha256": "aca7a7c701c97e4099159c406cda04643b11ed5861ec7777a381adc4983a9089"
+    },
+    {
+      "path": "run/ACSDSDOC-02/S06/figures/fig_S06_c_dense_vs_cell.png",
+      "sha256": "55526a60624dc52ce033b72b86372dc511948285e7d1b6afe656f981ad452466"
+    }
+  ],
+  "inputs": {
+    "S06_B_overshoot.json": {
+      "path": "run/ACSDSDOC-02/S06/results/S06_B_overshoot.json",
+      "sha256": "c5e9b12892c48904857f482b3bd021cf581c75054b08da7ded06220936dedd35"
+    },
+    "S06_C_holdout_cv.json": {
+      "path": "run/ACSDSDOC-02/S06/results/S06_C_holdout_cv.json",
+      "sha256": "7184def8e1f25e8be87fa4248d29ef220cfec8f28a57122b06eb9dee78ba57a1"
+    },
+    "probe_s06_results.json": {
+      "path": "run/ACSDSDOC-02/S06/results/probe_s06_results.json",
+      "sha256": "553cb78c1b7a7acbc323e91fdc24b727a9c3893f75a11ab324c3387be63768de"
+    }
+  },
+  "note": "所有曲线/柱来自上述真实读数文件，无合成曲线"
+}
