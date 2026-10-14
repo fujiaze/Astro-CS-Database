@@ -1,5 +1,8 @@
 # 模块 acsd.phase1.photometry
 
+> **实现/历史接口参考，非阶段一独立科学正本（2026-10-14 收敛说明）**。跨模块完整 Normalize 因果与科学量以 docs/science/normalize/NORMALIZE_SCIENCE.md 为准；真实用户命令和 C++ 生产 DAG 以 docs/engineering/architecture/NORMALIZE_PIPELINE.md 及实际源码为准；旧矛盾见 docs/engineering/governance/NORMALIZE_CONVERGENCE.md。本页保留局部模块/API/数据字段的历史参考价值，但旧“唯一正本”“未编入根 CMake”“缺 WCS 需外解”“跨通带禁止”“全图 ADU/sr”“公共 F0=绝对空间 SNR”等叙述不自动有效。Agent 不得以本页重新决定科学模型；真实接口改动后由前台更新。该提示不表示本页每个公式都错误。
+
+
 > 上游：`docs/ACSD_DESIGN.md`「模块与 ABI」一节、「Phase1 节点流程」一节、
 > 「产品基数不变量」口径
 > 科学正本：docs/science/photometry/PHOTOMETRY.md（SCI-PHOT-001，含「判据与误差」一节判据与观测统计量、
