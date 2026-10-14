@@ -83,6 +83,8 @@ uint64_t acsd_cpu_detect_features_v1(void);
 #include "acsd/core/build_stamp.h"
 
 #include "acsd/core/module_adapters.h"  // B2-A10: write_run_context 唯一路径
+// DEV-MODE-001: 开发诊断运行根（OFF 时头内全部宏为空语句）
+#include "acsd/dev_diagnostics.h"
 
 #include "cli_common.h"
 #include "runtime_client.h"
@@ -433,6 +435,35 @@ int write_run_context(const std::string& out_dir, const std::string& run_id,
     }
     return acsd::OK;
 }
+
+// ── DEV-MODE-001: 运行级开发诊断根（正本 docs/engineering/architecture/DEV_MODE.md
+//    §6「一次运行的专用诊断根由 runtime 统一生成」）───────────────────────────
+// ACSD_DEV_MODE=OFF ⇒ 这两个函数体被编译消除（头内宏边界），无目录创建、无 env
+// 读取、无文件打开。诊断根 = <work_dir>/_dev_diagnostics/<run_id>/，与正式
+// signal/ Norder*/ 用户最终 FITS 完全隔离；**任何科学模块都不读它**。
+static void devdiag_session_begin(const std::string& work_dir,
+                                  const std::string& run_id) {
+#if ACSD_DEV_DIAGNOSTICS
+    (void)acsd::devdiag::begin_run(work_dir.c_str(), run_id.c_str(),
+                                   ACSD_VERSION_STRING, nullptr);
+#else
+    (void)work_dir;
+    (void)run_id;
+#endif
+}
+
+static void devdiag_session_finish() {
+#if ACSD_DEV_DIAGNOSTICS
+    acsd::devdiag::finish_run();
+#endif
+}
+
+// 作用域收尾：命令函数任一路径返回前都做一次 bounded flush + 写 debug_manifest
+// （含取消与正式计算失败路径；DEV_MODE.md §6「诊断必须能在正常成功、取消/中断和
+// 正式计算失败时尽量完成 bounded flush」）。
+struct DevDiagSessionGuard {
+    ~DevDiagSessionGuard() { devdiag_session_finish(); }
+};
 
 // B2-A10（宪章 §4.3）: run manifest provenance 子对象。
 // 字段来源（不造占位）:
@@ -1472,6 +1503,9 @@ BlockOutcome run_phase2_block(const Parsed& p, acsd::JsonlEmitter& ev,
         const int ctxrc = write_run_context(cfg_out_dir, ev.run_id());
         if (ctxrc != acsd::OK) { out.rc = ctxrc; out.kind = "phase2_failed"; out.why = "run context write failed"; return out; }
     }
+    // DEV-MODE-001: 开发诊断根（OFF 时零成本；与正式产品树隔离）
+    devdiag_session_begin(cfg_out_dir, ev.run_id());
+    const DevDiagSessionGuard devdiag_guard;
     std::string fail_reason;
     const uint32_t budget = cli_affinity_cpu_count();
     // RESCUE-FD-08(观测链): 预算注入链正向证据(session 层 host budget = 真机
@@ -1785,6 +1819,9 @@ BlockOutcome run_phase3_block(const Parsed& p, acsd::JsonlEmitter& ev,
         const int ctxrc = write_run_context(cfg_out_dir, ev.run_id());
         if (ctxrc != acsd::OK) { out.rc = ctxrc; out.kind = "phase3_failed"; out.why = "run context write failed"; return out; }
     }
+    // DEV-MODE-001: 开发诊断根（OFF 时零成本；与正式产品树隔离）
+    devdiag_session_begin(cfg_out_dir, ev.run_id());
+    const DevDiagSessionGuard devdiag_guard;
     std::string fail_reason;
     const uint32_t budget = cli_affinity_cpu_count();
     acsd::ProcessMonitor::Summary p3_summary;
@@ -2269,7 +2306,12 @@ BlockOutcome run_phase1_block(const Parsed& p, acsd::JsonlEmitter& ev,
             acsd::core::resolve_work_dir(cfg_out_dir, work_override);
         const int ctxrc = write_run_context(cfg_out_dir, ev.run_id(), work_dir.c_str());
         if (ctxrc != acsd::OK) { out.rc = ctxrc; out.kind = "phase1_failed"; out.why = "run context write failed"; return out; }
+        // DEV-MODE-001: 开发诊断根（OFF 时零成本；与正式产品树隔离）
+        devdiag_session_begin(work_dir, ev.run_id());
     }
+    // ⚠ 生命周期必须覆盖 run_with_resource_gate（否则 guard 在会话前析构，
+    //   debug_manifest.json 會在快照之前写出，entries 恒空 —— 实测过的缺陷）。
+    const DevDiagSessionGuard devdiag_guard;
     std::string fail_reason;
     const uint32_t budget = cli_affinity_cpu_count();
     acsd::ProcessMonitor::Summary p1_summary;
