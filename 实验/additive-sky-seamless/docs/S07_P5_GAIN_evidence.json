@@ -6,7 +6,7 @@
  "branch": "audit/acsd-science-docs-p5",
  "base_sha": "c93b4a6f90023c61ddbc4f9221c828f3de22325c",
  "source_sha": "c93b4a6f90023c61ddbc4f9221c828f3de22325c",
- "head_at_bundle_time": "09b14b13dfc7dab7ca49638e34d0c46f9b7e138c",
+ "head_at_bundle_time": "48e5041e949defc1c7d071013a6b2ed3d53a6046",
  "base_sha_note": "本单元未做任何 git 写操作；base == source == 测量时刻 HEAD。本单元开工时 HEAD=a73f577b0，实验运行时刻 HEAD=c93b4a6f9（期间其它轮次并发提交），聚合时刻 HEAD 见 head_at_bundle_time；a73f577b0..head_at_bundle_time 对 lib/** 零改动（`git diff --stat a73f577b0..HEAD -- lib/` 为空）⇒ 接线审计与探针构建对当前 HEAD 同样有效。",
  "build_dir": "build/linux-sci-s07",
  "probe_sha256": "e3231ea1df36ba325bc69089610e7407cf50d43920c8c2739f61e613a64aeac4",
