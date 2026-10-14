@@ -1,16 +1,9 @@
-# 科学正本阅读入口
+# ACSD 科学正本阅读入口
 
-本目录只维护 ACSD 的统一科学模型、各物理问题的详细推导，以及算法/实验与生产接口的关系。阶段二最终是**只有 signal 的 HiPS 科学图像产品**；阶段一稀疏 SNR、阶段二内部精度/背景/排异均不是最终必须输出的第二数据层。
+首先阅读 [最高设计](../ACSD_DESIGN.md)、[统一模型](unified/UNIFIED_SCIENCE_MODEL.md)、[数据语义](unified/DATA_SEMANTICS.md) 与 [适用域](unified/SCIENCE_SCOPE.md)。**Normalize 的唯一横向科学因果链**是 [normalize/NORMALIZE_SCIENCE.md](normalize/NORMALIZE_SCIENCE.md)，不是目录下各旧算法分册的多套拼接。
 
-**科学阅读顺序：**
+阶段一按因果关系阅读：[校准](calibration/CALIBRATION.md) → [IPV 天测的物理几何](detection/ASTROMETRY.md) → [Gaia 引导星点](detection/STAR_DETECTION.md) 与 [PSF](psf/PSF.md) → [Gaia XP 光度](photometry/PHOTOMETRY.md) → [参考 SNR](noise_snr/NOISE_SNR.md) → [球面 Drizzle](drizzle/DRIZZLE.md)。IPV 在解算过程中先私有盲检候选星，并不要求原始 FITS 已有 WCS；这个 solver 候选目录不同于求解后用于科学测光的 Gaia 引导目录。
 
-1. [最高设计](../ACSD_DESIGN.md)：用户可任意合并不同设备/滤镜；Normalize→Mosaic→Export；不设研发流程门禁。
-2. [统一科学模型](unified/UNIFIED_SCIENCE_MODEL.md)：同一被估计量、单位、球面协方差和产品定义。
-3. [数据语义](unified/DATA_SEMANTICS.md)：HEALPix NESTED、光度单位、无效域和阶段产品。
-4. [Gaia XP 光度](photometry/PHOTOMETRY.md)：原生 R_k 与目标 R_0 及未知 SED 系统误差。
-5. [稀疏 SNR → 球面精度](noise_snr/NOISE_SNR.md)：点源 V_F 和面亮度 V_B 不相同，需传递 T。
-6. [球面 Drizzle / HiPS](drizzle/DRIZZLE.md)：等面积曲边、重建算子、相关噪声与多层级。
-7. [相对背景和接缝](sky/UPM.md)：真实重叠图、通带/PSF/加性分离、星云低频保真。
-8. [阶段三导出](projection/HIPS_TO_FITS.md)、[重采样](resample/RESAMPLE.md)：单信号 HiPS→平面 FITS。
+阶段二：参考精度空间重建仍见 [NOISE_SNR](noise_snr/NOISE_SNR.md)，相对天空在 [UPM](sky/UPM.md)，最终合成见 [INTEGRATION](integration/INTEGRATION.md)。阶段二最终**仅一个 signal 科学通道的 HiPS**，但阶段一可保留科学必需的 PSF/噪声/稀疏控制辅助对象。阶段三 [HiPS → FITS](projection/HIPS_TO_FITS.md)、[重采样](resample/RESAMPLE.md)。
 
-[生产源码差异地图](../engineering/architecture/SCIENCE_IMPLEMENTATION_DELTA.md) 对照哪些已实现、哪些尚未闭合。旧 science/algorithms、detail/registry 中的某些实现级叙述是历史生产路径描述；当它与上面科学正本冲突，以统一科学模型和物理实验为准，并在 Agent 修码后由前台重写对应工程文档。独立实验数据和历史失败记录保存在 仓库实验/ 中，不因重写自动升级为新科学结果。
+代码实现结构与当前真实功能分离阅读：[阶段一工程实现](../engineering/architecture/NORMALIZE_PIPELINE.md) 和 [文档收敛与事实](../engineering/governance/NORMALIZE_CONVERGENCE.md)。旧 science/algorithms/normalize 与 detail/registry 可作为源码定位/历史接口，不拥有与 Normalize 科学正本冲突的第二套物理定义。历史 P1–P5 实验按自身输入/方法保留原结论，不自动升级为当前 E2E 证明。
