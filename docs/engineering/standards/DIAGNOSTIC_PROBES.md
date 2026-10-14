@@ -231,6 +231,29 @@ void compute_weight_tile(const Input& input, MutableOutput& output) {
 - 逐像元热点的 detailed event 应按确定性采样或 per-thread 聚合，不因探针采集本身超过算法耗时而误判优化方向；
 - 诊断异常不穿透科学 API；普通产品/正式日志错误仍使用正式错误模型。
 
+## 9A. 现有实现的独立审查更正：观测身份与非阻塞写盘
+
+> 来源：实验/engineering-evidence/acsd-science-docs-p5/SCIENCE_V2_AGENT_INDEPENDENT_REVIEW_F8C011BAD.md 的 F02、F05、F06。这是**正向目标规范**，不宣称当前 C++ 全部实现。
+
+### 9A.1 探针必须保存真正的被观测量
+
+当前阶段二 writer 的内部量 flux_sum = signal × covered_area，是归一前的累加分子，不是面亮度 signal。若 probe_id 为 mosaic.integration.signal_tile，其值应是最终 signal = flux_sum / covered_area（或同义上游 signal，须与 HiPS 读回值对拍）。**禁止**把 flux_sum 直接标为 ADU/sr 和 signal。若三个量都要观察，明确分别命名 mosaic.integration.flux_sum、mosaic.integration.covered_area（单位 sr）、mosaic.integration.signal_tile（面亮度单位），说明无覆盖 NaN、真零与有限负数，检查实际 NESTED ↔ HiPS FITS-local 手性转换、F32 量化和除法次序。
+
+阶段一 normalize.noise.reference_snr 也必须依据真实 snr_caliber、gain、F_ref、PSF/noise model 写动态 metadata：upper_bound_no_gain 是源散粒项未计算的条件上界，不是绝对参考通量方差。frame_snr 快照与实际稀疏空间控制点 catalogue **不能混同**。
+
+### 9A.2 快照 I/O 不应在全局锁内堵住科学热点
+
+当前 dev_diagnostics.cpp 在持有全局 mutex 时执行 FITS/JSON 写盘和 SHA-256，mosaic 的 tile 循环同步调用，违反已有“有界低干扰”目标。统一实现应当：
+
+1. 很短的临界区只进行 selector/预算/sequence 预留；没有选中或 byte-budget/queue 已满立即登记 SKIPPED_BUDGET，不等待磁盘。
+2. 在数据 view 有效时，做有界只读复制并将**有所有权**的缓冲交独立低优先 I/O worker；任何异步借用必须显式证明生命周期，不允许 use-after-free。
+3. 经 AIO 写私有临时数据、完整 sidecar、实际 SHA-256 并原子发布；**都成功才记录 WRITTEN**。任一必要元数据写失败，记录 IO_ERROR 和未完成状态，不以主文件存在替代一个可解读的快照。
+4. 多工作线程的 dev writer 自身异步队列、流量及内存均有界；取消/科学错误时有明确的 bounded drain/flush 与丢失读数，不损害正式产物。
+5. 同一进程内连续 begin_run/finish_run 必须重置全局 session、预算、run_id、计数和输出工作区，避免上轮诊断串入下一轮；测试跨线程退出和科学内存复用。
+6. ON+none、ON+perf、ON+snapshot 与 OFF 同科学算法结果；其独立开销、IO waits、写入字节数分别实测。**异步不能保证零开销**，需明确限制与真实测量。
+
+本项不改变单信号 HiPS 的最终产品合同，也不把诊断异常当成科学处理的失败或流程门禁。
+
 ## 10. Agent 实施时的对照和证据
 
 优先交付实际编译与行为事实，而非“开关已添加”四个字：
