@@ -1,9 +1,15 @@
 # ACSD 文档总入口
 
-ACSD 目标是三个相互独立的科学命令：**Normalize** 生成逐帧 HiPS 和稀疏参考 SNR 控制数据；**Mosaic** 用稀疏精度重建、跨设备光度、相对背景和球面统计合成，最终只写**一个 signal HiPS 科学图像通道**；**Export** 将该 HiPS 信号按 WCS 导出普通平面 FITS。用户可以自主组合不同相机、望远镜、滤镜和带宽，不以设备一致性设处理限制。
+ACSD 是 CCD/CMOS 天文图像标准化与球面成像系统：Normalize 逐帧产生已校准 HiPS/必要科学模型，Mosaic 将用户自行选择的不同设备/通带数据合成最终**仅一个 signal 科学图像通道**的 HiPS，Export 重投影为普通二维 WCS FITS。
 
-先读 [最高设计](ACSD_DESIGN.md)，再读 [科学阅读入口](science/README.md)。该入口按数学因果链组织，而不是让每个实验/Agent 各自维护一套不一致的权重公式。
+**先读 [ACSD 最高设计](ACSD_DESIGN.md)**，再按实际责任选择。当前优先收敛 Normalize：
 
-[生产实现差异地图](engineering/architecture/SCIENCE_IMPLEMENTATION_DELTA.md) 将目标模型与当前实际 C++ 代码分开，**不能把目标设计文本当成代码已实现的证据**。工程模块 API、I/O、资源、发行等由 engineering/ 和 detail/ 承载。历史已保留的研究实验及失败记录位于 实验/；实际设备大型 FITS 不上传 Git。
+- **[阶段一完整科学链](science/normalize/NORMALIZE_SCIENCE.md)**：校准→IPV 自解天测→Gaia guided science sources/PSF→XP 测光→canonical reference SNR→Drizzle。
+- **[阶段一工程与代码](engineering/architecture/NORMALIZE_PIPELINE.md)**：真实调度函数、Typed 端口、producer/consumer 与代码模块归属。
+- **[阶段一文档冲突裁决](engineering/governance/NORMALIZE_CONVERGENCE.md)**：哪些旧表述不再有效、哪些代码已经有、哪些科学实验其实没运行。
+- [全项目统一科学模型](science/unified/UNIFIED_SCIENCE_MODEL.md)、[数据语义](science/unified/DATA_SEMANTICS.md) 和 [科学阅读入口](science/README.md)。
+- [开发与发布诊断](engineering/architecture/DEV_MODE.md)、[探针规范](engineering/standards/DIAGNOSTIC_PROBES.md)。
 
-[文档机器索引](DOCUMENT_INDEX.yaml) 记录在册文件身份。过时的工程实现分册可以保留为历史/现状说明，不再覆盖现行科学定义。开发不设置流程门禁，质量依靠明确的物理估计量、可独立计算的对照实验和最终真实 FITS 效果。
+**不可混淆**：原始 FITS 缺 WCS 不是 IPV 无法求解；当前生产已有 IPV。仅扫描原始 FITS 头不能得出阶段一解析失败结论。同样，HiPS frame_snr 与自身 JSON 一致不意味着 canonical sparse SNR 已经产生。
+
+旧 docs/detail 和 docs/science/algorithms 的实现级描述、实验历史继续可查，但与以上正本冲突时不能重建另一套 Normalize 科学流程。项目文档机器索引在 [DOCUMENT_INDEX.yaml](DOCUMENT_INDEX.yaml)。用户数据的大型 FITS 不上传 Git；开发不设置形式主义流程门禁，科学可信性由实际估计量与独立证据而不是重复 PASS 标志决定。
