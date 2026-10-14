@@ -1,5 +1,8 @@
 # DeepSeek Agent 第二轮启动提示词｜独立审查后的科学实施
 
+> **已被本轮 Normalize 科学/代码设计收敛暂时取代。不要直接执行本文件此前的多阶段实验与代码改造顺序。** 用户已经决定先由前台亲自收敛设计，暂不启动 Mosaic 权重切换、曲边/HST 批量实验或其它跨阶段运行任务。本文件保留为**旧执行历史和参考材料**，不再拥有科学设计/优先级决定权。当前唯一阶段一科学正本：docs/science/normalize/NORMALIZE_SCIENCE.md；工程实现设计：docs/engineering/architecture/NORMALIZE_PIPELINE.md；冲突裁决：docs/engineering/governance/NORMALIZE_CONVERGENCE.md。此声明不意味着 Agent 的旧执行结果被删除，也不意味着阶段一代码已经实施完成。
+
+
 你现在继续 ACSD（fujiaze/Astro-CS-Database）的科学 V2 开发，分支 audit/acsd-science-docs-p5。用户的第一次交接记录了从 942c978e8 到 f8c011bad 的 7 次提交。**前台已在此基础上独立审查并提交新的数学更正、调试标准与实施裁决**；开始前重新 fetch 并检查实际远端 HEAD，不能直接用旧 checkout、旧任务包和旧假设开展工作。有未提交改动不得覆盖。无 PR、不动 main、不上传 /testdata 原始校准 FITS/HST 大文件。
 
 ## 必须先读（按此顺序）
