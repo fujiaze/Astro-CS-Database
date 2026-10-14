@@ -1,5 +1,8 @@
 # P4 重建稠密 SNR · 实验报告（实验单元）
 
+> **科学证据状态说明（P4）**：本文件保留原实验轮次的日志、数字、公式与脚本指针，属于**历史实验报告**；它不是修订后的当前论文结论。涉及相互冲突的正本、已退役路径、未真正执行的生产验证或没有完整输入哈希的历史 PASS，均不能直接转写为新论文的 `EXPERIMENT_CHECKED`。当前研究被估量、独立 Oracle、失败域和外部文献请以 [当前论文](REPORT_paper.md) 与 [五篇统一实验协议](../shared/FIVE_PAPER_EXPERIMENT_PLAN.md) 为准。此插入不改变下面原始历史读数的真实性声明；待服务器按新的证据协议复跑后，应逐项登记是否复现。
+
+
 **单元目录**: 实验/dense-snr-reconstruct/
 **科学链位置**: 第 4 点——由稀疏控制点重建稠密信噪比场及其定权消费（最高设计 §2）
 **证据源**: 三路互不通信的独立重做之 code/results，原样收录本单元 code/ 与 results/；全部读数引用既有存档 JSON，并由订正轮在**单元副本**上重跑 `bash code/run_all.sh` 逐叶核对（19/19 JSON 除计时字段 `runtime_s` 外全同，见 `run/FINAL-07/logs/P4_F4_reproducibility.out`）。
