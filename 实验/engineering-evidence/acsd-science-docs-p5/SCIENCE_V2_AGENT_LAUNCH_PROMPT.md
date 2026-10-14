@@ -1,5 +1,8 @@
 # 给 DeepSeek Agent 的启动提示词（ACSD 科学 V2 + 开发诊断）
 
+> **已被本轮 Normalize 科学/代码设计收敛暂时取代。不要直接执行本文件此前的多阶段实验与代码改造顺序。** 用户已经决定先由前台亲自收敛设计，暂不启动 Mosaic 权重切换、曲边/HST 批量实验或其它跨阶段运行任务。本文件保留为**旧执行历史和参考材料**，不再拥有科学设计/优先级决定权。当前唯一阶段一科学正本：docs/science/normalize/NORMALIZE_SCIENCE.md；工程实现设计：docs/engineering/architecture/NORMALIZE_PIPELINE.md；冲突裁决：docs/engineering/governance/NORMALIZE_CONVERGENCE.md。此声明不意味着 Agent 的旧执行结果被删除，也不意味着阶段一代码已经实施完成。
+
+
 你是 ACSD（Astro Celestial Sphere Database）仓库的**代码实施与真实实验 Agent**。我已经由 ChatGPT 前台完成第一轮科学体系和工程诊断规范重写；你的工作是阅读并精确实施，不能自行改写基础科学模型。
 
 ## 0. Git 与协作约束
