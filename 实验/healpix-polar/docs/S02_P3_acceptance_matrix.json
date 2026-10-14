@@ -1,0 +1,99 @@
+{
+ "schema": "ACSD S02 P3 acceptance v1",
+ "base_sha": "e31b2be66ffe37d547e67a4ba007e7257e49789d",
+ "fix_commit": "183b83c73",
+ "source_sha256": {
+  "pre_fix": "363c34211cf99062651dfca7a592c33139dad10025ec4a758a9969f57ad22569",
+  "norm01_only": "6e2e11f5",
+  "post_fix": "49cf726d7da549107e613809434a5cb09a6e37d1eebe1807c1814f53f7ae4ef4"
+ },
+ "estimand": "epsilon_j = sum_p a_jp / A_drop,j - 1 (dimensionless)",
+ "independent_parallel_matrix": {
+  "n_cells": 1500,
+  "pre_fix": {
+   "max_abs_epsilon": 0.015649,
+   "cells_over_1e-6": 218,
+   "max_cell": "face_vertex RA=45 nside16384 pixfrac0.5 scale0.04\""
+  },
+  "norm01_only": {
+   "max_abs_epsilon": 0.0023783,
+   "cells_over_1e-6": 172
+  },
+  "post_fix": {
+   "max_abs_epsilon": 1.3755e-08,
+   "cells_over_1e-6": 0
+  }
+ },
+ "per_scale_max_abs": {
+  "0.04\"": {
+   "pre": 0.01565,
+   "post": 5.35e-09
+  },
+  "0.5\"": {
+   "pre": 5.79e-05,
+   "post": 3.32e-10
+  },
+  "2\"": {
+   "pre": 5.4e-06,
+   "post": 6.72e-11
+  },
+  "10\"": {
+   "pre": 1.2e-07,
+   "post": 2.94e-10
+  },
+  "60\"": {
+   "pre": 1.39e-08,
+   "post": 1.38e-08
+  }
+ },
+ "negative_control": {
+  "env": "ACSD_DRZ_P3_FAULT=legacy_cross_normal",
+  "bit_identical_records_vs_pre_fix": 1537,
+  "injected_cells_over_1e-6": 218,
+  "default_cells_over_1e-6": 0,
+  "judged": "RED_AS_PREDECLARED"
+ },
+ "large_drop_regression": {
+  "lock_cases": 27,
+  "norm01_only_bitwise_identical": "24/24 (remaining 3 are max_angle<1e-3 branch)",
+  "both_fixes_bitwise_identical": "0/27",
+  "max_abs_delta_epsilon": 5.7e-11,
+  "max_abs_delta_flux_over_flux": 3.91e-12
+ },
+ "scale_law_post_fix": {
+  "form": "epsilon ~ C*eps_mach/theta",
+  "slope_dln_eps_dln_theta": [
+   -1.12,
+   -0.98
+  ],
+  "C_range": [
+   0.57,
+   2.47
+  ],
+  "C_median_range": [
+   1.27,
+   1.81
+  ],
+  "theta_1e-6_rad": [
+   2.8e-10,
+   4e-10
+  ],
+  "theta_1e-6_arcsec": [
+   5.8e-05,
+   8.3e-05
+  ]
+ },
+ "small_polygon_area_error_arcsec_0p032": {
+  "lhuilier_atan2_angle": 1.11e-09,
+  "lhuilier_acos_dot_angle": 0.000926,
+  "vos_fan": -0.000617,
+  "note": "cancellation is in acos(dot) and in VOS triple product, NOT in the l'Huilier formula"
+ },
+ "unsupported": [
+  "60\"-290\" leaf-chord regime not fixed",
+  "290\"-2000\" not scanned",
+  "production FP32 instance not retested",
+  "HP_CIRCUMRADIUS_FACTOR=1.25 full-sky exhaustion not done (nside>=512)"
+ ],
+ "status": "ORACLE_CHECKED + PRODUCTION_CHECKED (negative control red)"
+}
