@@ -1406,6 +1406,23 @@ void DrizzleEngine::processPixelSharedTiled(
         }
         counters.true_overlaps++;
 
+        // ── 实际算子捕获（球面参考精度; 与 signal 同一几何系数）────────────────
+        // 只在 set_overlap_capture 启用且本叶是某控制点目标叶、源像元在该点半径
+        // 内时记录 R 的 (像素, 叶) 系数三要素 (a_jp, A_drop,j, A_pixel,j)。
+        if (op_capture_out_ != nullptr && op_capture_targets_ != nullptr) {
+            const auto tit = op_capture_targets_->find(ipix);
+            if (tit != op_capture_targets_->end()) {
+                const double dx = px - tit->second.cx;
+                const double dy = py - tit->second.cy;
+                if (dx * dx + dy * dy <= tit->second.radius * tit->second.radius) {
+                    op_capture_out_->push_back({static_cast<int>(px), static_cast<int>(py),
+                                                ipix, static_cast<double>(overlap_area),
+                                                static_cast<double>(drop_area),
+                                                static_cast<double>(pixel_area)});
+                }
+            }
+        }
+
         uint64_t parent = (shift > 0) ? (ipix >> shift) : ipix;
         uint32_t local  = (shift > 0) ? (uint32_t)(ipix & mask) : 0u;
 
@@ -2155,6 +2172,19 @@ bool DrizzleEngine::drizzleTiled_f64(const FitsImage& img, const DrizzleConfig& 
 {
     return drizzleTiledImpl<double>(img, config, snrData, weightData, varianceData,
                                     img.pixels_f64.data(), tiles, stats, error_msg);
+}
+
+// ── 算子捕获（NORMALIZE_DATA §4/§6: 球面参考精度用同一次 Drizzle 的实际 R）────
+void DrizzleEngine::set_overlap_capture(
+    std::vector<SourceLeafOverlap>* out,
+    const std::unordered_map<uint64_t, OverlapTarget>& targets) {
+    op_capture_out_ = out;
+    op_capture_targets_ = &targets;
+}
+
+void DrizzleEngine::clear_overlap_capture() {
+    op_capture_out_ = nullptr;
+    op_capture_targets_ = nullptr;
 }
 
 } // namespace drizzle
