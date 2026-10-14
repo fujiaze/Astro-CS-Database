@@ -51,6 +51,23 @@
 
 历史负例不删除，不让一个真实数据 smoke 的退出码覆盖理论反例。没有必要为了这五种标签再新增一个自动检查“门禁系统”。
 
+### 3.1 已上传证据对 Normalize 各段真正支持到哪里
+
+**这是对当前 GitHub 中 Agent 实跑记录/源码的独立语义复核，不是前台重跑 /testdata 得到的新实验。** 来源：实验/science-v2-impl/docs/E2E_RUN.md、SCIENCE_V2_FACT_REPORT.md、实验/engineering-evidence/DEV-MODE-01/README.md 与实际 module_adapters.cpp。数值只用于明确证据强弱，不构成新的“运行计划”。
+
+| 环节 | 已有事实 | 尚未被这些事实证明 |
+|---|---|---|
+| 校准与坏点 | 既有节点、真实母版/帧 E2E，选定光帧校准图统计；历史修复真实参与 | 共享 master 误差/相关噪声全传播、任意设备数据域 |
+| 天体测量 IPV | 生产 p1_op_wcs 真调用 ipv；历史 DEV-MODE-01 记录一帧 wcs_source=ipv、SIP samples 几何复核 | **原始头无 WCS 的 31 帧实际 IPV 求解结果**；外部独立 Gaia held-out 全域误差及真实成功率 |
+| 科学源/PSF | 生产 p1_sources/p1_psf 对象和可调用 guided detector；一些局部源结果存在 | 所有帧 source_id 绑定/PSF 实际积分归一/独立注入回收质量 |
+| Gaia XP photometry | 真实节点产出 p1_phot、k_photo 与条件 photometric provenance；历史 P1 M42 对某类帧有残差读数 | 跨设备/通带已做可靠响应同一化、未知 SED 的无偏性、每条路径 BUNIT 与 photo scale 完全一致 |
+| noise/frame reference SNR | 8 帧 Hα E2E 中一帧 ACSD_FRAME_SNR 与 p1_snr.json 同为 14.042478467183946 | 这个数的**绝对准确性**；实跑已标记 upper_bound_no_gain，缺源泊松项 |
+| canonical sparse controls | 旧 Catalogue writer 存在，现有 HioSnrControlPoint 为 (A−B)/mad | **F_ref,k/√V_F 的真实空间控制点**；P1 canonical producer → P2 consumer，现有产物未闭合 |
+| sphere Drizzle | 已观察 8 帧逐帧 HiPS、原始仪器 ADU/球面面积量级自洽；对照 58.46 ADU/px 和 Ω≈2.0799e−11 sr 导出 2.81e12 ADU/sr 的量级 | HEALPix 真曲边/所有 WCS 畸变/相关噪声等独立误差已正确，量级正确不等于完整守恒与 PSF 无损 |
+| 产品/诊断 | 双编译构建的 1496 公共科学文件逐字节一致的 Agent 记录；阶段一至阶段三选定两帧 E2E exit=0 | 完整阶段一科学对象在所有帧具备，或多设备/无预置 WCS/缺 gain 的真实适用域普遍成立 |
+
+因此，**阶段一尚未通过完整独立科学链验证**是准确表述；**阶段一没有天测解算器**、**31 帧确定无法求解**则是错误表述。下一轮任何报告都应能把真实 solver 的输出与简单头部 census 分开，且把已定义模型和已得到物理独立证据分开。
+
 ## 4. 当前代码收敛的方向（只有设计规格，暂不编写运行任务）
 
 - 恢复统一 FrameIdentity/CalibratedPlane/AstrometrySolution/ScienceSourceCatalogue/EffectivePsfModel/PhotometricSolution/ConditionalNoiseModel/SparseReferencePrecision/DrizzleModel 的物理关系，复用已有实现与稳定数据指纹。
