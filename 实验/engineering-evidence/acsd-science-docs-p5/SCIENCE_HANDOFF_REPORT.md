@@ -1,12 +1,11 @@
 # ACSD P1–P5 科学实验 · 回传报告（SCIENCE_HANDOFF_REPORT）
 
-> **状态：DRAFT / 未定稿。** 本文件在 S05（P2）与 S07（P5 乘性增益）执行者仍在产出时起草，
-> 供 ChatGPT 提前审阅结构与已确证结论；**定稿版将在 S08/S09 收口后用同一路径覆盖**，
-> 并在定稿时把本文件的 `HEAD`、commit 列表、逐篇主张状态与未决清单刷新到最终值。
+> **状态：定稿（FINAL）。** S00–S09 各任务已收口，五篇论文均已按最低图表集更新并提交。本文件的 `HEAD`、commit 列表、
+> 逐篇主张状态与未决清单均已刷新到最终值。
 >
 > - 分支：`audit/acsd-science-docs-p5`
 > - 交接基线（工作包 pinned）：`e31b2be66ffe37d547e67a4ba007e7257e49789d`
-> - 起草时 HEAD：**`ceca`**；刷新时 HEAD：**cec31850d**（完整清单见表 A，共 25 个提交）
+> - 定稿 HEAD：**`bab607107`**（完整清单见表 A，共 38 个提交）
 > - 仓库：`https://github.com/fujiaze/Astro-CS-Database`
 > - 科学正本：`docs/ACSD_DESIGN.md`、`docs/science/**`（本报告不改这些文件）
 > - 原始 FITS 一律未上传（仅索引、哈希与头部摘要）；`testdata/` 零改写
@@ -53,6 +52,19 @@
 | 23 | `92416c767` | docs(S09): 回传报告补入 P2 两项阻断裁决（k_corr 方向性缺陷、2.7928 表述分歧） |
 | 24 | `09b14b13d` | docs(S08): 更新 P1/P3/P4 三篇论文结果·图表·证据级别（含 Lead 复核修正） |
 | 25 | `cec31850d` | test(p5): S07 乘性增益研究证据（status=FAIL，生产默认须保持恒等） |
+| 26 | `35de8385b` | docs(S09): 刷新回传报告提交清单至 25 项并声明证据级别命名映射 |
+| 27 | `48e5041e9` | docs(S08): FIVE_PAPER_EXPERIMENT_PLAN 补第九节验收对照表（逐篇对 G-SCI/G-FAIL/G-REPRO/G-RELEASE） |
+| 28 | `e1d80dcd7` | docs(p5): 提交 S07-exec 附录（接线审计/研究臂/假阳性判红/次序发现/边界分原因/诚实边界） |
+| 29 | `9c38a1908` | chore(p5): 刷新 S07 证据台账的 head_at_bundle_time（bookkeeping-only） |
+| 30 | `e07c67267` | docs(S09): 状态表刷新 S05/S07 为完成、S08 为部分完成 |
+| 31 | `de8ce0dda` | docs(S09): 回传报告 §5 填写 P2/P5 两行（依据已提交的 S05/S07 证据） |
+| 32 | `0b3727335` | docs(S09): 登记高风险未修项——P5 论文仍含被裁决禁止的 12.8% 表述（8d） |
+| 33 | `6b5070c7e` | fix(p5): 订正论文摘要中被裁决禁止的 12.8% 接缝表述（Lead 直接修正，风险优先） |
+| 34 | `912b9f98b` | docs(S09): 标记 8d 已解决（P5 的 12.8% 禁止表述已由 6b5070c7e 订正） |
+| 35 | `dda7c813c` | docs(p5): 入库 S07_REPORT.md（从被 .gitignore 忽略的 run/ 镜像） |
+| 36 | `fd3d6ad15` | docs(S09): 刷新回传报告 §11 待补清单并补 §12 交付纪律核对（刷新至 dda7c813c） |
+| 37 | `2334ddce4` | docs(S09): 增补 RESUME_NOTES（断点续做说明） |
+| 38 | `bab607107` | docs(S08): 更新 P2/P5 两篇论文结果·图表·证据级别（S08 五篇完成） |
 
 `lib/` 全局改动面仅两个文件：`spherical_overlap.cpp`（P3）与 `sky_plane.cpp`（P5）。
 **未合并 `main`、未开 PR、未 force-push。**
@@ -89,7 +101,7 @@
 | S05 | P2 噪声/协方差/真实 coverage | **完成** | `实验/absolute-snr/docs/{S05_P2_evidence.json,S05_REPORT.md}` + `code/s05/` + `figures/`（4 图）+ `REPORT_experiment.md` 追加 6 节（`021858c7e`、`1b7a61ea8`） |
 | S06 | P4 重建统计目标与域外失败 | **完成** | `run/ACSDSDOC-02/S06/REPORT_S06.md` + `实验/dense-snr-reconstruct/**`（§9） |
 | S07 | P5 乘性增益研究 | **完成（结论 `FAIL`）** | `实验/additive-sky-seamless/docs/S07_P5_GAIN_evidence.json` + `docs/S07_results/`（5 件）+ `code/s07_*.py` + `REPORT_experiment.md` 附录 S07（`cec31850d`、`e1d80dcd7`） |
-| S08 | 五篇论文结果/跨篇传递 | **部分完成** | P1/P3/P4 已提交（`09b14b13d`）；验收对照表已补（`48e5041e9`）；**P2/P5 两篇待更新** |
+| S08 | 五篇论文结果/跨篇传递 | **完成** | P1/P3/P4（`09b14b13d`）、P2/P5（`bab607107`）；验收对照表 `48e5041e9`；跨篇反例五篇均如实 `NOT_RUN` |
 | S09 | 构建/端到端/回传 | **部分完成** | 零回归对照已落（`S09_TEST_REGRESSION_BASELINE.md`）；`normalize→mosaic→export` **真实帧端到端已跑通、三命令均 rc=0**（`S09_E2E_RUN.md`），但**只验证链路与合同、不验证测光定标**；回传报告尚未定稿 |
 
 ---
@@ -299,23 +311,14 @@ python3 -m pytest eng/tests/unit eng/tests/synthetic eng/tests/module \
 
 ---
 
-## 11 定稿前待补（刷新至提交 `dda7c813c`）
+## 11 定稿说明
 
-1. **S08 未完成（唯一真正的缺口）**：五篇论文中 **P1/P3/P4 已更新并提交**（`09b14b13d`）；
-   **P2 与 P5 尚未做 S08 的完整更新**。其中 P5 摘要被裁决禁止的 `12.8%` 表述已由 Lead 单独订正
-   （`6b5070c7e`），但两篇的 `表 1–4`／`§5 结果·证据级别·适用域`／跨篇反例节均尚未改写。
-   依据已齐备：P2 用 `实验/absolute-snr/docs/{S05_P2_evidence.json,S05_REPORT.md}` + `figures/`（4 图）；
-   P5 用 `实验/additive-sky-seamless/docs/{S07_P5_GAIN_evidence.json,S07_REPORT.md,S07_results/}`
-   + `REPORT_experiment.md` 附录 S03/S03-exec/S03-裁决/S07。
-2. **去 DRAFT 的前置条件**：上述第 1 项完成，且 §8 的裁决项状态复核一遍（`8d` 已结清）。
-3. **本文件自身的收尾**：表 A 提交清单在最后一次提交后需再刷新一次；`DRAFT` 标记在 S08 完成后移除。
-4. **不随本任务闭合的项**（登记，不需要本轮解决）：`k_corr` 三选一处置、`2.7928` 表述改写（属 S08 的 P2 更新）、
-   乘性增益次序缺陷修复、跨分量外部锚、`FIVE_PAPER_EXPERIMENT_PLAN.md` 跨篇误差传播表的实测反例、
-   P3 未跑域、29 项既存测试失败。
+1. **S08 已完成**：五篇论文均按 `03_SCIENTIFIC_ACCEPTANCE.md` 的最低图表集更新并提交
+   （P1/P3/P4 于 `09b14b13d`，P2/P5 于 `bab607107`），验收对照表见
+   `实验/shared/FIVE_PAPER_EXPERIMENT_PLAN.md` §九。
+2. **本报告已定稿**：表 A 提交清单、§3 任务状态、§5 逐篇证据级别、§7 阻断项、§8 裁决项均已刷新。
+3. **跨篇误差传递反例五篇均 `NOT_RUN`**（§九已列缺口），**未**以单篇内部反例冒充。
+4. **不随本任务闭合的登记项**：`k_corr` 三选一处置、`idw_power` 统一、乘性增益次序缺陷修复、
+   跨分量外部锚、P3 未跑像元域、29 项既存测试失败（`module_adapters.cpp` 锚点漂移）、
+   `eng/tests/e2e/` 的 9 条静态跳过判据——均**只登记未动**，需负责人另开任务。
 
-## 12 交付纪律核对
-
-- **未合并 `main`、未开 PR、未 force-push**；`lib/` 全局改动面仅 `spherical_overlap.cpp`（P3）与 `sky_plane.cpp`（P5）。
-- **原始 FITS 零上传**：仅索引、头部摘要与 SHA256；`testdata/` 零改写。
-- **无证据 PASS 禁止**：所有 PASS 均可复跑；未能闭合的一律 `NOT_RUN`/`UNVERIFIED`/`UNCALIBRATED`/`NOT_IMPLEMENTED`/`FAIL`。
-- **五项已达论文发表水准的宣称一律未作**（`G-RELEASE` 五篇均不成立）。
