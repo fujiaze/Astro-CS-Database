@@ -1184,7 +1184,9 @@ endif()
 add_library(acsd_phase1_noise STATIC
   lib/algorithms/noise_snr/cpp/src/noise_model.cpp
   lib/algorithms/noise_snr/wrapper_phase1/snr_frame_science.cpp
-  lib/algorithms/noise_snr/cpp/src/snr_science.cpp)
+  lib/algorithms/noise_snr/cpp/src/snr_science.cpp
+  # NORMALIZE_DATA §6: 球面参考精度 GLS 完成（数学唯一实现在 noise 库）
+  lib/algorithms/noise_snr/cpp/src/sparse_reference.cpp)
 target_include_directories(acsd_phase1_noise PUBLIC
   ${CMAKE_CURRENT_SOURCE_DIR}/lib/algorithms/noise_snr/wrapper_phase1
   ${CMAKE_CURRENT_SOURCE_DIR}/lib/algorithms/noise_snr/cpp/include
