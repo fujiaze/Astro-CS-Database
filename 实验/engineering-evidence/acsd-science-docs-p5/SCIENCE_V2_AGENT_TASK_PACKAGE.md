@@ -1,5 +1,8 @@
 # ACSD 统一科学模型 V2：DeepSeek Agent 代码实施任务
 
+
+> **2026-10-14 新一轮权威补充**：第一轮 Agent 完成至 f8c011bad3001fd9dd3ac993dc3ae945d3fabb4e。下一轮动手之前必须先读 实验/engineering-evidence/acsd-science-docs-p5/SCIENCE_V2_AGENT_INDEPENDENT_REVIEW_F8C011BAD.md；该文件对 R3、gain、31 帧 WCS、FAULT 注入给出前台裁决，并指出 F01–F07 的实际错误/语义冲突。旧本包对“R0D 尚未实现”“coverage 仍会 filter mismatch”“Phase2 仍输出四层”等陈述只描述旧基线，不覆盖 f8c011bad 以后已核实代码。数学有效域更正以 docs/science/noise_snr/NOISE_SNR.md §4.2 为准，诊断更正以 docs/engineering/standards/DIAGNOSTIC_PROBES.md §9A 为准。
+
 > 执行规格，2026-10-14。执行分支 audit/acsd-science-docs-p5，原始数据在用户计算节点 /testdata。本包不是已执行结果。不得 PR、不得合并 main、不得上传原始 FITS/HST/母版。项目不设研发审批门禁；验证用于发现实际物理错误，不追求机械全绿。用户自主选择跨设备/滤镜合成，不允许以设备/滤镜不同拒绝合法输入。
 >
 > 前台负责 science 正本和最终工程文档重写；Agent 负责实际 C++、可复现实验、API 变化报告。不得擅自重写 docs/ACSD_DESIGN.md 或 docs/science 核心公式。若有独立反例证明模型错误，提交反例与证据，由前台调整后再实施。
@@ -149,3 +152,25 @@ HiPS properties、MOC、Norder/Dir/Npix、多级 FITS、BUNIT、NaN/负值规则
 ## 10. 开发诊断落地的额外交付
 
 Agent 的最终报告须给出：发布构建 CMakeCache 与真实诊断符号扫描、开发构建的性能 JSONL 和至少 P1/P2/P3 各一个可独立解读的快照样例，debug_manifest 元数据字段完整程度、实际 I/O/s 和 wall 额外开销、诊断写盘失败处理、与三命令正式产品逐位/数值对照、旧 ACSD_PROBES/子开关/环境变量的真实迁移表。所有样例应来自真实正在调用的生产函数，不得手工构造虚拟“成功快照”冒充。
+
+
+## 下一轮附录：执行重点与首轮误差的具体订正
+
+首轮已实现的开发模式基座、coverage 中跨滤镜字符串拒绝移除、Phase2 signal-only writer 可保留。**不要**机械重复整个旧 R0–R6 任务；先根据真实 Git diff 建立最新代码行为对照，再沿本附录推进。
+
+**P0 当前已证实缺陷**：
+- Phase1 module_adapters.cpp PASSBAND-IDENTITY-GATE-01 仍拒绝不同通带的**同组帧**；应分帧/按响应内部分组求每帧 Gaia XP photometry，合法混滤镜任务不要被数据准入拒绝，但不得套用错误共同滤镜模型。
+- Phase2 的 mosaic.integration.signal_tile 开发探针实际输入 write_flux=signal×covered_area，却标成已归一 signal、ADU/sr；改成真实 signal 并与标准 HiPS tile 的实际值对拍，额外允许独立记录 flux_sum、covered_area。
+- C++ R3 测试相关核必须先验是正定/半正定合法协方差。当前 n=4 三对角 rho=0.7 的最小特征值约 -0.132624，旧报告 T≈0.200087 **无物理意义**。换 SPD 模型后 7 例全部重新复跑、补运行时生产 C++ oracle。
+- P2 mixed filter 名的 first.empty() 首帧空字符串漏洞；使用 first_set 分离未知通带与初始化状态。 distinct_passband_count 与 frame_count 独立。
+- dev_diagnostics 当前持全局锁执行写盘+SHA，且忽略 meta sidecar 写盘失败；改为有界只读转移+独立低优先 writer、记录完成状态，补 RunState 多会话/取消/超预算故障实验。
+- normalize.noise.reference_snr 探针 metadata 可能过度宣称绝对方差；按实际 gain/snr_caliber/PSF 的状态写明确条件/上界。
+- P2 最终只发布 signal；p2_final 的 variance_bunit/ivar_bunit 如有内部模型存在但图像未发布，应使用清晰的 internal_uncertainty_* 字段，不让最终消费者误认另一组 science image HDU。
+
+**P1 目标科学实现**：canonical P1 sparse SNR controls（真实 F_ref,k、σ_F、PSF/相关核、caliber、ICRS 与支持域）→ 单一 Catalogue HiPS/sidecar reader → P2 密集现场 V_F 重建 → 可辨识 T=V_B/V_F → w_B 的实际 C++ 权重。先以实验可选择的 sparse_T_model 对比原 per_sample_ivar，不盲改默认或暗中 T=1；验证不同 PSF/Ω/K/噪声条件与真正 Drizzle。旧 snr_psf=(A−B)/MAD 与 source_snr、frame_snr 不得混名。缺 gain 可提供带来源配置/实测 PTC，否则注明 conditional upper bound，不能凭空补 g=1。
+
+**P2 数据真实实验**：先核对 Phase1 混滤镜输入，真实不同通带 mosaic，额外处理 M42 30 帧 + GalaxyCenter 1 帧缺 WCS 的 plate-solve/sidecar（不覆盖原 FITS、不以 OBJCTRA 冒充 WCS）；HST 成品作为信号模板构造 CCD 前向世界；P3 HEALPix 曲边 oracle、混合 order 与 P5 低频星云保真后续如实报告。FAULT 故障注入仅迁移测试专用 harness，普通 DEV_MODE=ON 不因环境开关改变科学答案。
+
+**机器证据**：将 Normalize ON/OFF 的 1496 tile 校验写成逐文件机器可读 diff（已有 run/A/onoff_compare.json 是 D02 改前/改后 188 文件，不可偷换），保存完整 source SHA、输入 hash、cmd、退出码。真实调用链及实际 weight source 必须逐批打印并保存；运行结束主动报告 NOT_RUN 而不承诺所有实验均已完成。
+
+**科学约束**：不同通带、高分辨率和不同 PSF 允许用户合并，但未知 SED/有效 PSF 失配不是随机噪声；不能靠 w_B 最优随机权重宣称无偏高精度图像。结果不取决于开发调试开关；单层 signal HiPS 与普通 FITS 不变。无审批门禁，但实际数值不合法/文件损坏必须正确报错。
