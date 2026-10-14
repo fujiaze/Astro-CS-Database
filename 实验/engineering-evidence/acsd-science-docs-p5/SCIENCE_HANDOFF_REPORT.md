@@ -299,9 +299,23 @@ python3 -m pytest eng/tests/unit eng/tests/synthetic eng/tests/module \
 
 ---
 
-## 11 定稿前待补
+## 11 定稿前待补（刷新至提交 `dda7c813c`）
 
-1. 写入 S05（P2）与 S07（P5 乘性）的报告与章节，并刷新 §3、§5、§7、§8。
-2. 执行 S08：按 `03_SCIENTIFIC_ACCEPTANCE.md` 的最低图表集更新五篇 `REPORT_paper.md`
-   （Table 1–4、Figure 1–4；无实测数据的图只留图题与待跑说明）。
-3. 执行 S09：`normalize→mosaic→export` 端到端、C++ 侧回归、本文件定稿并去掉 DRAFT 标记。
+1. **S08 未完成（唯一真正的缺口）**：五篇论文中 **P1/P3/P4 已更新并提交**（`09b14b13d`）；
+   **P2 与 P5 尚未做 S08 的完整更新**。其中 P5 摘要被裁决禁止的 `12.8%` 表述已由 Lead 单独订正
+   （`6b5070c7e`），但两篇的 `表 1–4`／`§5 结果·证据级别·适用域`／跨篇反例节均尚未改写。
+   依据已齐备：P2 用 `实验/absolute-snr/docs/{S05_P2_evidence.json,S05_REPORT.md}` + `figures/`（4 图）；
+   P5 用 `实验/additive-sky-seamless/docs/{S07_P5_GAIN_evidence.json,S07_REPORT.md,S07_results/}`
+   + `REPORT_experiment.md` 附录 S03/S03-exec/S03-裁决/S07。
+2. **去 DRAFT 的前置条件**：上述第 1 项完成，且 §8 的裁决项状态复核一遍（`8d` 已结清）。
+3. **本文件自身的收尾**：表 A 提交清单在最后一次提交后需再刷新一次；`DRAFT` 标记在 S08 完成后移除。
+4. **不随本任务闭合的项**（登记，不需要本轮解决）：`k_corr` 三选一处置、`2.7928` 表述改写（属 S08 的 P2 更新）、
+   乘性增益次序缺陷修复、跨分量外部锚、`FIVE_PAPER_EXPERIMENT_PLAN.md` 跨篇误差传播表的实测反例、
+   P3 未跑域、29 项既存测试失败。
+
+## 12 交付纪律核对
+
+- **未合并 `main`、未开 PR、未 force-push**；`lib/` 全局改动面仅 `spherical_overlap.cpp`（P3）与 `sky_plane.cpp`（P5）。
+- **原始 FITS 零上传**：仅索引、头部摘要与 SHA256；`testdata/` 零改写。
+- **无证据 PASS 禁止**：所有 PASS 均可复跑；未能闭合的一律 `NOT_RUN`/`UNVERIFIED`/`UNCALIBRATED`/`NOT_IMPLEMENTED`/`FAIL`。
+- **五项已达论文发表水准的宣称一律未作**（`G-RELEASE` 五篇均不成立）。
