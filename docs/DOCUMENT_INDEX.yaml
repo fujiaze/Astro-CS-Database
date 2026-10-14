@@ -68,13 +68,13 @@ doc_index:
       upstream: "docs/ACSD_DESIGN.md §0（文档权威与索引）"
     - path: "docs/ACSD_DESIGN.md"
       status: ACTIVE_NORMATIVE
-      duty: "最高设计：三阶段产品、跨设备自由合并、阶段二单信号 HiPS、阶段三普通 FITS；研发无流程门禁"
+      duty: "最高设计：三阶段科学产品、跨设备自由合并、单 signal HiPS、单一 ACSD_DEV_MODE 构建与仪表边界、不设研发流程门禁"
       upstream: "（最高权威，无上游）"
       downstream: "AGENTS.md、CMakeLists.txt"
       notes: "与 science 物理正本共同构成目标设计；当前生产实现差异见 SCIENCE_IMPLEMENTATION_DELTA"
     - path: "AGENTS.md"
       status: ACTIVE_NORMATIVE
-      duty: "机器干活手册：读文档顺序、工作流、硬禁令与落位速查"
+      duty: "执行代理开发规范：科学模型阅读链、工程文档规范、内部开发诊断与发布隔离、不设流程门禁"
       upstream: "docs/ACSD_DESIGN.md §0（文档权威与索引）、§0.1（文档写法）"
       downstream: ""
     - path: "README.md"
@@ -107,9 +107,14 @@ doc_index:
       duty: "模块地图：模块到目录、产物与证据锚的逐行登记"
       upstream: "docs/ACSD_DESIGN.md"
       downstream: ""
+    - path: "docs/engineering/architecture/DEV_MODE.md"
+      status: ACTIVE_NORMATIVE
+      duty: "唯一 ACSD_DEV_MODE 编译开关、开发诊断与发布构建边界、正式产品与工作区隔离、纯观察不改科学数据依赖"
+      upstream: "docs/ACSD_DESIGN.md §8、§10.1、§13"
+      notes: "合并旧 ACSD_PROBES 与 ACSD_DEV_* 分叉是目标实现任务；旧代码并不因文档存在而自动符合。Checkpoint 续跑不是被动仪表能力"
     - path: "docs/engineering/architecture/SCIENCE_IMPLEMENTATION_DELTA.md"
       status: ACTIVE_INFORMATIVE
-      duty: "科学设计与生产实现静态差异地图：跨通带拒绝、单信号输出、稀疏 SNR 断链、精度模型与几何接线"
+      duty: "科学设计与生产源码的静态差异地图：D01–D19，含编译期诊断多开关与开发快照科学路径隔离"
       upstream: "docs/ACSD_DESIGN.md §2、§5、§6 与 docs/science/unified/UNIFIED_SCIENCE_MODEL.md"
       notes: "截至 2026-10-14 静态源码追踪；不宣称真实 FITS 运行；按科学模型正向组织修改建议，不作为审批门禁"
     - path: "docs/engineering/contracts/CLI_PROTOCOL.md"
@@ -182,6 +187,11 @@ doc_index:
       duty: "ABI-003 安全装载器：六查、信任边界、装载失败语义与清单校验"
       upstream: "docs/ACSD_DESIGN.md"
       downstream: ""
+    - path: "docs/engineering/standards/DIAGNOSTIC_PROBES.md"
+      status: ACTIVE_NORMATIVE
+      duty: "开发科学中间量快照与性能细探针的插入身份/测量口径/数据格式/坐标单位/采样预算/AIO/线程与失败隔离规范"
+      upstream: "docs/ACSD_DESIGN.md §10.1、docs/engineering/architecture/DEV_MODE.md"
+      notes: "规范复用现有 lib/infrastructure/observability/probes 与统一 AIO；拟议样例 JSON 和 Snapshot API 尚未实现；最终 Phase2 仍只有 signal HiPS"
     - path: "docs/engineering/standards/CODE.md"
       status: ACTIVE_NORMATIVE
       duty: "代码标准：必须遵守条目、命名与机器契约保留面、编译器告警口径"
