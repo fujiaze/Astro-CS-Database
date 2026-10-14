@@ -14,12 +14,15 @@
 | R08 | Wahba 1990, *Spline Models for Observational Data*, SIAM CBMS 59, [DOI](https://doi.org/10.1137/1.9781611970128) | P4 样条平滑、正则化、偏差-方差权衡 | 自然三次样条天然无过冲或无需外推门 | BIB_VERIFIED |
 | R09 | Hyman 1983, *Accurate Monotonicity Preserving Cubic Interpolation*, SIAM J. Sci. Stat. Comput. 4, 645–654, [DOI](https://doi.org/10.1137/0904045) | P4 形状保持插值是一套有专门约束的算法，不可与自然样条混同 | Hyman 的形状保持结果天然适用于任意二维自然样条 | BIB_VERIFIED |
 | R10 | Huber 1964, *Robust Estimation of a Location Parameter*, Annals of Mathematical Statistics 35, 73–101, [DOI](https://doi.org/10.1214/aoms/1177703732) | P1/P5 稳健位置拟合的理论先例 | 具体代码收敛、`delta=1.345` 对所有误差分布均 95% 有效 | BIB_VERIFIED |
-| R12 | PixInsight Team, *Messier 31 H-alpha Processing Notes: LocalNormalization*, [官方案例](https://www.pixinsight.com/examples/M31-Ha/) | P5 的局部背景与全局尺度适配消融、参考图像影响 | ACSD/PMM 的源代码数学细节与真实天空公共模可辨识性 | OFFICIAL_DOC_VERIFIED |\n| R13 | Horne K. 1986, *An optimal extraction algorithm for CCD spectroscopy*, PASP 98, 609–617, [DOI](https://doi.org/10.1086/131801) | P2 按轮廓加权提取、非均匀噪声下的最优估计传统；**光谱抽取情境不等同于本项目所有图像源测量** | 不能证明未知背景、相关噪声和任意扩展源都有同一精度 | BIB_VERIFIED |
+| R12 | PixInsight Team, *Messier 31 H-alpha Processing Notes: LocalNormalization*, [官方案例](https://www.pixinsight.com/examples/M31-Ha/) | P5 的局部背景与全局尺度适配消融、参考图像影响 | ACSD/PMM 的源代码数学细节与真实天空公共模可辨识性 | OFFICIAL_DOC_VERIFIED |
+| R13 | Horne K. 1986, *An optimal extraction algorithm for CCD spectroscopy*, PASP 98, 609–617, [DOI](https://doi.org/10.1086/131801) | P2 按轮廓加权提取、非均匀噪声下的最优估计传统；**光谱抽取情境不等同于本项目所有图像源测量** | 不能证明未知背景、相关噪声和任意扩展源都有同一精度 | BIB_VERIFIED |
 | R14 | Fritsch F. N. & Carlson R. E. 1980, *Monotone Piecewise Cubic Interpolation*, SIAM J. Numer. Anal. 17(2), 238–246, [DOI](https://doi.org/10.1137/0717021) | P4 必须区别天然自然样条与受导数约束的形状保持三次插值 | 不能证明二维/球面推广后自动单调 | BIB_VERIFIED |
 | R15 | Makovoz D., Khan I., Moshir M. 2005, *Background Consistency in Overlapping Images*, PASP 117, 274–280, [DOI](https://doi.org/10.1086/428409) | P5 重叠图加性常量偏置的全局联合最小化先例，比 NSG/PMM 更直接的数学前例 | 不涵盖 ACSD 连通分量 gauge 和低频信号真值恢复的实证；不直接给任意空间乘性场 | BIB_VERIFIED |
 | R11 | John Murphy, *AstroProcessing: NormalizeScaleGradient and PhotometricMosaic*, [作者官网](https://www.astroprocessing.com/) | P5 天文马赛克增益/背景/渐变处理的可对照软件工作流 | 源码求解方程、二维增益可辨识性、PMM 与 ACSD 数学同构 | AUTHOR_SITE_VERIFIED |
 
-专题对照与新颖性限定见 [PRIOR_ART_CLAIM_MATRIX.md](PRIOR_ART_CLAIM_MATRIX.md)，其中 NSG 的一手算法行为采用作者官方 [NSG 说明](https://www.astroprocessing.com/nsg.html)：差分恒星测光求 scale，surface spline 建梯度模型，先乘性标度、再相对背景校正；参考图的背景梯度仍残留。此类软件说明不是数学期刊论文。\n\n## 用于五篇论文的引文归属
+专题对照与新颖性限定见 [PRIOR_ART_CLAIM_MATRIX.md](PRIOR_ART_CLAIM_MATRIX.md)，其中 NSG 的一手算法行为采用作者官方 [NSG 说明](https://www.astroprocessing.com/nsg.html)：差分恒星测光求 scale，surface spline 建梯度模型，先乘性标度、再相对背景校正；参考图的背景梯度仍残留。此类软件说明不是数学期刊论文。
+
+## 用于五篇论文的引文归属
 
 - P1 直接引 R01/R02/R03，统计论证引 R10；须把“小论文贡献”限定为 ACSD 特定单位语义、稳健错误预算和真实帧适用域，不能泛称发明 Gaia XP 合成测光。
 - P2 引 R04/R05/R13；必须解释 `sigma_F` 的统计被估量、自由背景、协方差、条件假设与真实覆盖率分立。
