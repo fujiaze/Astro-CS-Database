@@ -68,9 +68,10 @@ doc_index:
       upstream: "docs/ACSD_DESIGN.md §0（文档权威与索引）"
     - path: "docs/ACSD_DESIGN.md"
       status: ACTIVE_NORMATIVE
-      duty: "最高设计（Design Authority）：是什么/做到什么/顶层架构/CLI/发行/验收"
-      upstream: "（最高权威：本文即权威链顶点，无上游）"
+      duty: "最高设计：三阶段产品、跨设备自由合并、阶段二单信号 HiPS、阶段三普通 FITS；研发无流程门禁"
+      upstream: "（最高权威，无上游）"
       downstream: "AGENTS.md、CMakeLists.txt"
+      notes: "与 science 物理正本共同构成目标设计；当前生产实现差异见 SCIENCE_IMPLEMENTATION_DELTA"
     - path: "AGENTS.md"
       status: ACTIVE_NORMATIVE
       duty: "机器干活手册：读文档顺序、工作流、硬禁令与落位速查"
@@ -106,6 +107,11 @@ doc_index:
       duty: "模块地图：模块到目录、产物与证据锚的逐行登记"
       upstream: "docs/ACSD_DESIGN.md"
       downstream: ""
+    - path: "docs/engineering/architecture/SCIENCE_IMPLEMENTATION_DELTA.md"
+      status: ACTIVE_INFORMATIVE
+      duty: "科学设计与生产实现静态差异地图：跨通带拒绝、单信号输出、稀疏 SNR 断链、精度模型与几何接线"
+      upstream: "docs/ACSD_DESIGN.md §2、§5、§6 与 docs/science/unified/UNIFIED_SCIENCE_MODEL.md"
+      notes: "截至 2026-10-14 静态源码追踪；不宣称真实 FITS 运行；按科学模型正向组织修改建议，不作为审批门禁"
     - path: "docs/engineering/contracts/CLI_PROTOCOL.md"
       status: ACTIVE_NORMATIVE
       duty: "API-CLI-001 命令行协议合同：命令树、退出码、机器输出纪律、JSONL 运行事件流、output_dir 与 crop"
@@ -402,11 +408,11 @@ doc_index:
       downstream: "anchor_contract.json、module.yaml"
       notes: "冻结点：`ALG-P2-INT-001`、`DISP-P2INT-001`、`DISP-P2INT-002`、`TEST-P2-INT-DESIGN-001`、`SCI-P2-INT-001`、`SCI-INT-001`"
     - path: "docs/science/algorithms/mosaic/PHASE2_MOSAIC_WRITE.md"
-      status: ACTIVE_NORMATIVE
+      status: "ACTIVE_INFORMATIVE"
       duty: "Phase2 产品写出与原子发布合同"
       upstream: "docs/ACSD_DESIGN.md §10（I/O 与原子产品）"
       downstream: ""
-      notes: "冻结点：`ALG-P2-HIPS-001`、`HIPS-IMG-001`、`DISP-P2HIPS-001`、`TEST-P2-HIPS-001`、`SCI-UPM-001`、`SCI-INT-001`、`SCI-REJ-001`"
+      notes: "旧生产实现细节的描述资料，与当前单信号 HiPS 目标可能冲突；以 ACSD_DESIGN 与现行 science 正本定义目标，后续与代码同改"
     - path: "docs/science/algorithms/mosaic/PHASE2_REJECTION.md"
       status: ACTIVE_NORMATIVE
       duty: "排异统计量（sigma-clip/winsorized/linear_fit/ESD）算法"
@@ -443,10 +449,11 @@ doc_index:
       downstream: "projection_registry.schema.json、CMakeLists.txt"
       notes: "Phase3 投影/WCS 实现级合同（p3_wcs.h:11-59/p3_wcs.cpp 165 行逐符号行号锚定+G1 CD 构造/PA 推广展开式 §6+G2 正反映射冻结式 §7+错误语义表 §9+并发确定性合同 §10+偏差登记(PA 未接线/kMaxSide 编译期覆盖/TAN 硬编码/dll 未建) §11+TEST-P3-WCS-DESIGN-001 T1-T7 §12+SCI-P3-WCS-001⇒SCI-P3-001 映射声明 §5）"
     - path: "docs/science/algorithms/export/PHASE3_RESAMPLE.md"
-      status: ACTIVE_NORMATIVE
+      status: "ACTIVE_INFORMATIVE"
       duty: "Phase3 重采样算法与核语义"
       upstream: "docs/ACSD_DESIGN.md §6.2（流程）、§6.3（投影算法）"
       downstream: "config_registry.json、memory.md、README.md"
+      notes: "旧生产实现细节的描述资料，与当前单信号 HiPS 目标可能冲突；以 ACSD_DESIGN 与现行 science 正本定义目标，后续与代码同改"
     - path: "docs/science/algorithms/export/PHASE3_RSMP_IMPL.md"
       status: ACTIVE_NORMATIVE
       duty: "Phase3 重采样实现级算法合同"
@@ -483,9 +490,9 @@ doc_index:
       downstream: "clause_registry.json"
     - path: "docs/science/unified/DATA_SEMANTICS.md"
       status: ACTIVE_NORMATIVE
-      duty: "跨阶段数据语义唯一正本（坐标与球面索引、HiPS tile 内行列方向、对象量纲、产品态无效编码、标度类别与 BUNIT、帧身份与溯源最小集）"
-      upstream: "docs/ACSD_DESIGN.md §3.1（数据对象）、§10（I/O 与原子产品）"
-      notes: "由原 DATA_SEMANTICS 迁入重写：模块级端口字段表移交 detail 正本的模块登记页与 engineering 正本的接口页，本分册只固定语义；DATA-* 合同编号的正本仍在 eng/contracts/data/contract_index.yaml。HiPS tile 的行项与列项各由一手来源锚定并与真实 tile 逐像元对拍，单位串大写 ADU 登记为对 FITS 的大小写显式偏离"
+      duty: "三阶段数据对象和单位/坐标/无效值正本；阶段二只有 signal HiPS，阶段三普通 FITS"
+      upstream: "docs/ACSD_DESIGN.md §1、§3、§5、§6"
+      notes: "最终单信号不等于计算中无精度模型；校准单位真实随物理响应变化，不一律为 ADU/sr；HiPS 512 tile NESTED 行列约定需独立对拍"
     - path: "docs/detail/normalize/pipeline.md"
       status: ACTIVE_NORMATIVE
       duty: "normalize 阶段的目标态详细设计"
@@ -654,10 +661,11 @@ doc_index:
       upstream: "docs/ACSD_DESIGN.md §8.5（模块与 ABI）"
       downstream: "unified_object_compatibility_map_v1.json"
     - path: "docs/detail/registry/acsd.phase2.write.md"
-      status: ACTIVE_INFORMATIVE
+      status: "ACTIVE_INFORMATIVE"
       duty: "*负责**（stage2.cpp HIPS_WRITE 域，ALG-P2-HIPS-001..004）："
       upstream: "docs/ACSD_DESIGN.md §8.5（模块与 ABI）"
       downstream: "module_adapters.cpp"
+      notes: "旧生产实现细节的描述资料，与当前单信号 HiPS 目标可能冲突；以 ACSD_DESIGN 与现行 science 正本定义目标，后续与代码同改"
     - path: "docs/detail/registry/acsd.phase3.properties.md"
       status: GENERATED
       duty: "Registry production 模块(唯一源=module_adapters.cpp descriptor)。职责由"
@@ -751,15 +759,15 @@ doc_index:
       notes: "由原 CALIBRATION 迁入重写；缺陷可分性条款并入同目录 CCD_DEFECT。flat 只表示盘上母版、除法一律作用于 flat_norm；暗流截距失配式带显式前提与偏置电平失配项；暗流线性表与亮场稳健尺度为历史读数（无复跑脚本）"
     - path: "docs/science/noise_snr/NOISE_SNR.md"
       status: ACTIVE_NORMATIVE
-      duty: "噪声模型、绝对信噪比、方差与协方差传播的唯一正本：两个方差面、信噪比定义与参考通量基准、逆方差定权与协方差二次型、掩膜半径的物理导出"
-      upstream: "docs/ACSD_DESIGN.md §2.2（P2 跨帧绝对信噪比）、§2.4（P4 重建稠密信噪比）、§5.3（信噪比重建与逆方差叠加）、§3.1（数据对象）"
+      duty: "P2/P4 科学正本：条件点源 SNR、稀疏精度场、空间重建、像元面亮度权重精度桥梁 T"
+      upstream: "docs/ACSD_DESIGN.md §2.2、§2.4、§5.3"
       downstream: "docs/detail/normalize/pipeline.md、docs/detail/common/unified_model.md、docs/detail/registry/ 9 处、docs/engineering/contracts/CONFIG.md、docs/engineering/governance/{TRACEABILITY,UNRESOLVED}.md、docs/engineering/resources/PERFORMANCE_MODEL.md、docs/engineering/standards/NUMERIC.md、docs/engineering/UNIFIED_OBJECTS.md、docs/GLOSSARY.md、docs/science/{integration/{INTEGRATION,REJECTION},sky/UPM,projection/HIPS_TO_FITS,photometry/PHOTOMETRY}.md、docs/science/algorithms/{common/{GATES_AND_TOLERANCES,NOISE_ESTIMATION},export/PHASE3_RESAMPLE}.md、eng/contracts/data/{clause_registry,contract_index}、eng/contracts/schemas/phase_config_normalize.schema.json、eng/packaging/config/{config_registry.json,defaults.json}"
-      notes: "唯一正本指认：背景方差面、加权方差面、绝对信噪比、逐源通量不确定度、逆方差定权与协方差传播六件事同属一个物理口径，合为一册，不得在别处另立同主题正本；四合一吸收声明：原噪声模型、点扩散函数信号信噪比、控制点权重信噪比、不确定度协方差四个旧件统一由本册正文承载，不再各自成册；产品面只发布方差对角线，完整协方差矩阵不作为产品交付，方差面取有限对/成对零/NaN 三态互斥编码；帧面通量不确定度与统一测光坐标系下的通量不确定度必须分名，二者相差该帧测光标度因子，叠加权重的归一化因子取与帧无关的公共通量锚"
+      notes: "原有实验保留；不再允许通量权重恒等式代替弥散源面亮度统计最优证明；k_corr 几何域需复验"
     - path: "docs/science/drizzle/DRIZZLE.md"
       status: ACTIVE_NORMATIVE
-      duty: "守恒映射算子的科学正本：drop 归一核、面亮度归一分母、方差与协方差传播、几何闭合与常量场判据"
-      upstream: "docs/ACSD_DESIGN.md §2.3（P3 守恒映射算子：平面到 HEALPix drizzle）、§4.2（normalize：单帧标准化）"
-      notes: 平面到球面的守恒重采样唯一正本；球面到平面一侧的重采样口径由 docs/science/resample/RESAMPLE.md 承担，两者不合并；pixfrac 值域 0 < pixfrac <= 1 由 eng/contracts/schemas/phase_config_normalize.schema.json 机器强制；数值默认 0.8 在本册「参数与常数」与 eng/packaging/config/defaults.json（authority_status=owner_adjudicated）两处一致，而同一 schema 的 algorithm_drizzle_pixfrac 描述仍写「数值默认未冻结（defaults.json 的 drizzle.pixfrac 为 pending_authority）」——该描述与 defaults.json 现状不符，数值默认的权威归属口径尚未在三处统一，登记为待 eng 侧裁决
+      duty: "P3 球面 Drizzle 科学正本：drop 权重、真实 HEALPix 曲边/近似、相关噪声、HiPS 父级和导出变换"
+      upstream: "docs/ACSD_DESIGN.md §2.3、§4、§6"
+      notes: "分配通量守恒不等同任意输出信号全域积分守恒；P3 数值修复结果仅适用于既测几何；曲边真实性待独立求积"
     - path: "docs/science/integration/INTEGRATION.md"
       status: ACTIVE_NORMATIVE
       duty: "逆方差叠加与 SNR 重建的科学公式"
@@ -767,19 +775,22 @@ doc_index:
       downstream: "clause_registry.json、README.md"
     - path: "docs/science/sky/UPM.md"
       status: ACTIVE_NORMATIVE
-      duty: "统一相对模型（UPM）的科学公式与可辨识性"
-      upstream: "docs/ACSD_DESIGN.md §5.4（信号面（UPM））"
+      duty: "P5 相对天光科学正本：有效重叠图与规范、加性/乘性/通带/PSF 区分、真实星云低频保真"
+      upstream: "docs/ACSD_DESIGN.md §2.5、§5"
       downstream: "config_registry.json"
+      notes: "用户选择任意通带合并；背景不能强行吸收星云的未知通带混合或真实天体梯度"
     - path: "docs/science/projection/HIPS_TO_FITS.md"
       status: ACTIVE_NORMATIVE
-      duty: "HiPS→FITS 投影导出的科学公式与核语义"
-      upstream: "docs/ACSD_DESIGN.md §6.2（流程）、§6.3（投影算法）"
+      duty: "阶段三唯一信号 HiPS 到普通 WCS FITS 的投影、层级选择、数值细节保持"
+      upstream: "docs/ACSD_DESIGN.md §6"
       downstream: "clause_registry.json、phase_config_export.schema.json、config_registry.json"
+      notes: "不把最终 variance/ivar/point-information 当作单信号产品的必备对象"
     - path: "docs/science/photometry/PHOTOMETRY.md"
       status: ACTIVE_NORMATIVE
-      duty: "测光科学公式与测光一致性判据的误差预算"
-      upstream: "docs/ACSD_DESIGN.md §2.1（P1 通量积分拟合：测光校准到测光星等坐标系）、§4.4（输出合同）"
+      duty: "P1 Gaia XP 与跨设备光度科学正本：R_k/R_0、星表零点与颜色项、未知 SED 的系统失配"
+      upstream: "docs/ACSD_DESIGN.md §2.1、§4、§5"
       downstream: "defaults.json"
+      notes: "不同滤镜和带宽由用户自主合并；恒星校准不能在无逐像元 SED 下证明任意星云响应相等"
     - path: "docs/science/psf/PSF.md"
       status: ACTIVE_NORMATIVE
       duty: "PSF 建模的科学正本：轮廓模型与 σ 口径、FWHM 因子、解析通量、拟合残差截尾标度及其适用域"
@@ -787,9 +798,9 @@ doc_index:
       notes: PSF 建模唯一正本；σ 口径（含与 σ_g 口径的换算与对照）、FWHM 因子、解析通量、窗截尾份额与截尾均值→σ 因子在本册给出可独立复算的推导与脚本；位置角 θ 的规范值域与轴约定 sx ≥ sy、位置角的归轴归约判法、以及判据中的反例式判法也在本册给出；本分册的公式与常数均为针对本仓七参数模型的独立推导，外部文献只承担另一尺度口径的出处与判据设计依据；psf 相关配置的模型取值权威见 docs/engineering/contracts/CONFIG.md
     - path: "docs/science/resample/RESAMPLE.md"
       status: ACTIVE_NORMATIVE
-      duty: "重采样的科学正本：层序选择、采样核权重与样本级掩膜、行/列归一算子、协方差传播、有效 PSF 与输出帧 Q/W 重算"
-      upstream: "docs/ACSD_DESIGN.md §6.1（export：投影导出）、§6.2（流程）、§6.3（投影算法）"
-      notes: 投影之后平面网格上的重采样唯一正本；帧面到球面的守恒重采样由 docs/science/drizzle/DRIZZLE.md 承担，两者不合并；对外配置的 sampler 取值域 nearest | bilinear 见 eng/contracts/schemas/phase_config_export.schema.json，而本册「采样核的注册与准入」的注册表 id 是 nearest / bilinear_4quad / bilinear_area_overlap_exact（bicubic 与 lanczos 未注册）——配置 token 与注册表 id 的映射缺失，eng 侧全仓核不到任何把 bilinear 对应到具体核 id 的声明，登记为待补齐
+      duty: "阶段三从球面面亮度到平面图像的重采样核、面积平均/样本缺失与二次插值相关性"
+      upstream: "docs/ACSD_DESIGN.md §6"
+      notes: "不从单信号图制造科学方差；当前生产支持的核与研究中的面积核要分开标记"
     - path: "docs/science/integration/REJECTION.md"
       status: ACTIVE_NORMATIVE
       duty: "逐像素排异的科学定义与合法性窗口"
@@ -807,9 +818,9 @@ doc_index:
       notes: "由原 STAR_DETECTION 迁入重写；逐档 99% 召回阈的复跑入口不在仓内，阈值表登记为待复算，取值路径在本分册给出。阈值等效倍数按生产 Young–van Vliet 核冻结，权威路径为星表引导检测、盲检为显式声明的诊断路径"
     - path: "docs/science/unified/UNIFIED_SCIENCE_MODEL.md"
       status: ACTIVE_NORMATIVE
-      duty: "跨阶段统一科学模型正本（线性观测模型、科学目标分层、点源与扩展源最优统计、绝对信噪比与逆方差权重的唯一换算、对象与权重的关系）"
-      upstream: "docs/ACSD_DESIGN.md §2（核心科学方法：五个创新点）、§3.1（数据对象）"
-      notes: "由原 UNIFIED_SCIENCE_MODEL 迁入重写；ACSD-SCIENCE-MODEL-001 沿用不变，w = SNR²/F_ref² = 1/σ_F² 是全链唯一权重换算。帧间相关时用一般分块协方差而非块对角；点源族与面亮度族的量纲由承载面决定"
+      duty: "统一科学基础：观测前向模型、跨响应光度、Drizzle、点源 SNR/球面像元精度分立、单信号产品"
+      upstream: "docs/ACSD_DESIGN.md §2、§3、§5"
+      notes: "SNR²/F_ref² 严格只等于参考通量信息量；球面面亮度权重需 T=V_B/V_F；协方差及通带系统误差分开。重写 2026-10-14"
     - path: "docs/detail/common/unified_objects.md"
       status: ACTIVE_INFORMATIVE
       duty: "统一数据对象登记：细节层消费工程统一对象合同的方式，不定义新对象"
