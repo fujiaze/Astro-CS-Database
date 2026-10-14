@@ -1,3 +1,1 @@
-# normalize
-
-单帧标准化管线与模块：把一帧传感器观测转换为光度与天球坐标已定义、噪声可传播的球面单帧产品。
+阶段一实现级导航在 [pipeline.md](pipeline.md)，但它不再定义新的 Normalize 科学方案。唯一横向科学链是 [NORMALIZE_SCIENCE.md](../../science/normalize/NORMALIZE_SCIENCE.md)；C++ 模块与真实产品接线在 [NORMALIZE_PIPELINE.md](../../engineering/architecture/NORMALIZE_PIPELINE.md)。旧 module 页仅供查看当前/历史 API。
