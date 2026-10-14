@@ -12,7 +12,26 @@
 
 **阶段三 Export**：从阶段二 single signal HiPS 导出普通二维 WCS FITS，供通用后期处理；不要求最终 variance、ivar、SNR 或 support 产品。
 
-阅读必须先按顺序：docs/ACSD_DESIGN.md → docs/science/unified/UNIFIED_SCIENCE_MODEL.md → DATA_SEMANTICS.md → photometry/PHOTOMETRY.md → noise_snr/NOISE_SNR.md → drizzle/DRIZZLE.md → sky/UPM.md → projection/HIPS_TO_FITS.md → resample/RESAMPLE.md → docs/engineering/architecture/SCIENCE_IMPLEMENTATION_DELTA.md。旧详细算法/模块登记文件可能是历史实现快照，不得覆盖新的物理目标。
+阅读必须先按顺序：docs/ACSD_DESIGN.md → docs/engineering/architecture/DEV_MODE.md → docs/engineering/standards/DIAGNOSTIC_PROBES.md → docs/science/unified/UNIFIED_SCIENCE_MODEL.md → DATA_SEMANTICS.md → photometry/PHOTOMETRY.md → noise_snr/NOISE_SNR.md → drizzle/DRIZZLE.md → sky/UPM.md → projection/HIPS_TO_FITS.md → resample/RESAMPLE.md → docs/engineering/architecture/SCIENCE_IMPLEMENTATION_DELTA.md。旧详细算法/模块登记文件可能是历史实现快照，不得覆盖新的物理目标。
+
+## 0A. 先处理本轮补充：内部开发构建、探针与中间量落盘
+
+用户明确要求：**只有一个公开编译开关**控制内部开发诊断是否编入程序。开发模式可以额外保存中间科学数据并采集性能调试探针；发布模式不编译这两类诊断能力。具体规范已由前台写成两个工程正本：
+
+1. `docs/engineering/architecture/DEV_MODE.md`：`ACSD_DEV_MODE=ON/OFF` 的唯一构建边界、科学数据通路不变、产品/工作区隔离、checkpoint 不属于被动探针，以及旧机制迁移。
+2. `docs/engineering/standards/DIAGNOSTIC_PROBES.md`：稳定 probe_id 清单、P1/P2/P3 中间数据只读采集、FITS/JSON/JSONL 格式、坐标与 BUNIT、选帧/tile/ROI 与磁盘配额、AIO 并发落盘、失败语义、ON/OFF 性能对照。
+
+**这是需要落实的正式工程任务，不是旁注。** 目前 CMake 同时存在 `ACSD_PROBES` 与 `ACSD_DEV_MODE` 及三个开发子项，`lib/infrastructure/observability/probes/include/acsd/probe.h` 与 src/probe.cpp 已有真实可复用的性能框架。必须统一入口、复用已有基础设施；不要再造新计时库、debug image writer、日志 sink 或额外公开 CMake option。
+
+**首要科学中立性问题**：旧 DEV_MODE.md 曾指出若干 P1 节点“写中间文件→读回”和按编译宏改变缺失回退；这会使两档改变科学行为。请先定位实际调用，确保数据计算依赖始终走同一管线；额外 snapshot 只能读取现有输出块而不可成为消费者的数据源。内部需要的暂存与“纯调试快照”必须区分；不能靠 `#ifdef` 删除算法必需文件再制造隐蔽缺输入。
+
+建议在已有运行时和 AIO 实现被动 `SnapshotProbe`，现有 `acsd/probe.h` 作为细分计时唯一入口；由 ACSD_DEV_MODE 统一编译条件。构建 OFF 时诊断参数表达式不求值、probe.cpp 不链接、无计时/分配/ENV 读取；ON 时用开发诊断选择器选少量有代表性的 P1 SNR 点、Drizzle tile、P2 稀疏输入/重建 `V_F`、精度桥梁 `T`/`V_B`/`w_B`、天空背景场、接缝、排异与 P3 导出区域。开发快照一律落单独工作区，不变成第二个最终 HiPS 科学图像层。
+
+性能记录沿用 thread-local/steady_clock/batched JSONL，增加工作量、nside/tile、backend/worker、IO 与结果身份以支持真实调优。无意义逐像素 printf、每 tile 上锁或无预算全图 dump 均不可接受。快照队列超预算/开发磁盘失败应记录诊断缺失但不破坏科学任务；正式科学产物/正式日志写失败仍按正常错误语义。故障注入环境变量不得从发布版触发；`ACSD_DEV_CHECKPOINT` 的“跳过已完成帧”不是诊断副作用，不能在此任务偷偷改变运行路径。
+
+复核四类同优化构建：OFF、ON 但不记录、ON 仅性能、ON 定位快照。比较物理输出（尽可能 bitwise）、正式产品树、开发工作区、发布二进制诊断符号、实际采样的性能开销，包含并发、取消、磁盘满、内存复用场景。**科学结果不同必须查明原因，不得以“debug 精度不同”掩盖路径分叉。**
+
+Agent **只负责实现和实验**：上述工程设计正本由前台维护；发现设计矛盾提交可复核证据和建议，不得自行覆盖这两个文档或科学正本。实际接口/ABI 修改以函数签名和证据供前台回填。
 
 ## 1. 第一份交付：真实正在调用的科学数据流
 
@@ -111,17 +130,22 @@ HiPS properties、MOC、Norder/Dir/Npix、多级 FITS、BUNIT、NaN/负值规则
 
 ## 9. 建议提交顺序与交付
 
-1. R0 源码读图、基线真实调用与数据单位表；
-2. R1 取消跨滤镜拒绝，元数据、混合分辨率可选择；
-3. R2 P1 真正 reference SNR 稀疏 producer 和 Catalogue/sidecar；
-4. R3 Phase2 真正的稀疏 reader/现场重建与模型支持域；
-5. R4 精度传递 T 和正确的面亮度逆方差叠加；
-6. R5 geometry/HiPS、P5 接缝与低频真值；
-7. R6 单信号写盘与 phase3 普通 FITS；
-8. R7 独立解析→HST 结构前向→真实 E2E 与用户可视化预览。
+1. R0 源码读图、基线真实调用、数据单位表；同时审计旧 CMake 双探针路径和中间产物读回。
+2. R0D 实施唯一 ACSD_DEV_MODE 编译边界、复用性能探针、被动 snapshot 工作区与诊断接口；先验证 OFF/ON 科学行为不分叉，再逐步插入更多 P1/P2/P3 probes。
+3. R1 取消跨滤镜拒绝，元数据、混合分辨率可选择；
+4. R2 P1 真正 reference SNR 稀疏 producer 和 Catalogue/sidecar；
+5. R3 Phase2 真正的稀疏 reader/现场重建与模型支持域；
+6. R4 精度传递 T 和正确的面亮度逆方差叠加；
+7. R5 geometry/HiPS、P5 接缝与低频真值；
+8. R6 单信号写盘与 phase3 普通 FITS；
+9. R7 独立解析→HST 结构前向→真实 E2E 与用户可视化预览。
 
 提交允许合理重构 module_adapters.cpp 超长混合编排，优先建立清晰 producer/consumer、复用真实 API，不能为了机械锚字符串和最小 diff 容忍单位错误。CMake/Windows/Linux 变更按实际实现适配。旧工程 API 需要修文档时 Agent 只交真实签名、调用图和差异说明，由前台重写文档。
 
 每批提交报告必须包含 Git SHA、真实构建和运行命令/退出码、源文件路径、输入数据索引、科学估计目标、独立读数与误差、未实施事项、对图像的影响；最终产生真实可浏览的 HiPS、普通 FITS、全景预览、边界放大、PSF 裁切与低表面亮度对照，由用户自行判断效果。**没有在计算节点运行就不许声称已运行，没有真实 E2E 就不许声称科学链完全验收。**
 
 直接代码定位：coverage/src/coverage.cpp；integration/phase2_integrate/src/weight_chain.cpp；drizzle/healpix_drizzle/{hp_drizzle_api.cpp,drizzle_engine.cpp,spherical_overlap.cpp}；shared/healpix/healpix_core.cpp；infrastructure/scheduler/src/module_adapters.cpp；infrastructure/aio/src/hips/aio_hips_writer.cpp；coverage/src/{sampler.cpp,sky_plane.cpp,upm.cpp,integrate.cpp}；resample/p3_resample.cpp；photometry/ 和 noise_snr/。完整差异 D01–D18 在 docs/engineering/architecture/SCIENCE_IMPLEMENTATION_DELTA.md。
+
+## 10. 开发诊断落地的额外交付
+
+Agent 的最终报告须给出：发布构建 CMakeCache 与真实诊断符号扫描、开发构建的性能 JSONL 和至少 P1/P2/P3 各一个可独立解读的快照样例，debug_manifest 元数据字段完整程度、实际 I/O/s 和 wall 额外开销、诊断写盘失败处理、与三命令正式产品逐位/数值对照、旧 ACSD_PROBES/子开关/环境变量的真实迁移表。所有样例应来自真实正在调用的生产函数，不得手工构造虚拟“成功快照”冒充。
