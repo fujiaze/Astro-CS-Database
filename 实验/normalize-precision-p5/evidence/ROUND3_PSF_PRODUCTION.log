@@ -1,0 +1,43 @@
+# PSF 单位总通量像元积分（PSF.md §4）——生产实跑对照
+
+构建: cmake --build build/linux-sci-p5 -j 8 (Release, exit 0)
+复现: g++ -std=c++17 -O2 -Ilib/algorithms/psf/include \
+  实验/normalize-precision-p5/code/verify_round3_psf_pixel_integration.cpp \
+  lib/algorithms/psf/src/pixel_integrated_psf.cpp -o /tmp/psf_test
+
+r6 elapsed 148s
+
+生产 sidecar support 模型实读字段（run/norm-round1-r6）:
+  flux_estimator                   = analytic_total
+  psf_family                       = moffat4
+  psf_sigma_px                     = 2.211089
+  subpixel_phase                   = (256.000000,256.000000)
+  pixel_integration_method         = gauss_legendre_tensor
+  pixel_integration_order          = 10
+  normalization_basis              = analytic_total
+  f_enclosed                       = 0.999889277
+  f_out                            = 0.000110723
+  ideal_disc_f_out_ref             = 1.457938e-04
+  operator_coverage_of_N_p         = 1.000000
+  pixel_integration_error          = 5.315192730392937e-15
+
+科学读数（同一帧、同一配置、Release 构建）:
+
+| 量 | r5（裸中心值模板, legacy center_sample） | r6（单位总通量像元积分, analytic_total） |
+|---|---|---|
+| 控制点 p0_r0 V_F | 49.957517737016886 | 5439.9640804091068 |
+| 控制点 p0_r0 SNR_ref | 141.48147354128085 | 13.558198375223254 |
+| 帧摘要 reference_snr | 153.30158821945577 | 14.708858952409543 |
+| covariance_rank | 627 | 627 |
+| 支持面积 | 7.7720570706390662e-07 | 7.7720570706390662e-07 |
+
+r6 总墙钟见上一行（含 drizzle 50s 与精度段）。SNR 下降 ~10.4x 是**预期方向**:
+裸中心值模板把 (1+r²/2σ²)^{-4} 的原函数中心值直接当 P_j 且按 ΣP=1 归一,
+中心像素权重被放大约 12 倍 ⇒ ΣP² 偏大 ⇒ 信息量虚高。PSF.md §4 裁定该实现
+"不得作为 analytic_total reference SNR 的最终有效模板"; 141.47/153.30 与
+NORMALIZE_SCIENCE §5.1 声明一致, 只作为旧 SHA 历史数值保留。
+
+f_enclosed=0.999889277 与 f_out=1.10723e-04 由实际像元集合求和得到;
+ideal_disc_f_out_ref=1.457938e-04 是理想圆闭式参考值（PSF.md §4 明示它
+不等于任意离散且非圆像元联盟的真实窗外份额）, 两者并列落盘不互相替代。
+pixel_integration_error=5.32e-15 是 order=10 与 order=11 的自检差最大值。

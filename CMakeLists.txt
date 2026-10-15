@@ -1267,7 +1267,9 @@ set_property(SOURCE ${CMAKE_CURRENT_SOURCE_DIR}/lib/infrastructure/gaia_xpsd_cli
 add_library(acsd_p1_dpsf STATIC
   ${CMAKE_CURRENT_SOURCE_DIR}/lib/algorithms/psf/src/dpsf_psf.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/lib/algorithms/psf/src/dpsf_image.cpp
-  ${CMAKE_CURRENT_SOURCE_DIR}/lib/algorithms/psf/src/dpsf_log.cpp)
+  ${CMAKE_CURRENT_SOURCE_DIR}/lib/algorithms/psf/src/dpsf_log.cpp
+  # PSF.md §4: 单位总通量像元积分响应（数学唯一实现在 PSF 库）
+  ${CMAKE_CURRENT_SOURCE_DIR}/lib/algorithms/psf/src/pixel_integrated_psf.cpp)
 target_include_directories(acsd_p1_dpsf PUBLIC
   ${CMAKE_CURRENT_SOURCE_DIR}/lib/algorithms/psf/include
   ${CMAKE_CURRENT_SOURCE_DIR}/lib/algorithms/psf/src
@@ -1464,6 +1466,8 @@ add_library(acsd_module_adapters STATIC
 # 版本单源 = 构建期 version_generated.h (与 CLI 共用同一生成头)。
 target_include_directories(acsd_module_adapters PUBLIC
   ${CMAKE_CURRENT_SOURCE_DIR}/lib/include
+  # PSF.md §4: 单位总通量像元积分的公共头（数学在 PSF 库, scheduler 只消费）
+  ${CMAKE_CURRENT_SOURCE_DIR}/lib/algorithms/psf/include
   ${CMAKE_CURRENT_SOURCE_DIR}/lib/algorithms/integration/normalize_science/include
   ${CMAKE_CURRENT_SOURCE_DIR}/lib/algorithms/noise_snr/include
   ${CMAKE_CURRENT_SOURCE_DIR}/lib/algorithms/noise_snr/cpp/include

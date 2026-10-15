@@ -13,7 +13,8 @@
 #include "acsd/io/aio_abi_v1.h"       // aio_content_hash_buffer_v1（sha256 唯一 C ABI）
 #include "healpix/healpix_core.h"     // acsd::healpix::ang2pix_nest（唯一实现）
 #include "acsd/sparse_reference.h"    // noise 库 GLS 完成
-#include "snr_estimator.h"            // snr_moffat4_profile_f64（归一化/ΣP² 统计）
+#include "snr_estimator.h"            // legacy 诊断通道（不参与 canonical 模板）
+#include "acsd/pixel_integrated_psf.h" // 单位总通量像元积分（PSF 库唯一实现）
 
 namespace acsd::phase1::precision {
 
@@ -24,35 +25,35 @@ namespace {
 
 constexpr double kPi = 3.14159265358979323846;
 
-// Moffat4 β=4 离散轮廓（PSF.md §2.1/§2.3 闭式）: I(r)=1/(1+r²/(2σ²))⁴,
-// P_i = I_i/Σ_j I_j（严格 ΣP=1）。ΣP² 与 snr_moffat4_profile_f64 对拍校验
-//（同一 closed form 的库统计; 不一致 ⇒ 数据错误, 不静默）。
-bool moffat4_profile(double sigma_px, double cx, double cy,
-                     const std::vector<std::int64_t>& pix, int width,
-                     std::vector<double>* out_p, double* out_sum_p2) {
-  if (!(sigma_px > 0.0) || !std::isfinite(sigma_px)) return false;
-  const double alpha2 = 2.0 * sigma_px * sigma_px;
-  double sum = 0.0;
-  std::vector<double> vals(pix.size(), 0.0);
-  for (std::size_t k = 0; k < pix.size(); ++k) {
-    const std::int64_t idx = pix[k];
-    const double px = static_cast<double>(idx % width);
-    const double py = static_cast<double>(idx / width);
-    const double dx = px - cx;
-    const double dy = py - cy;
-    const double t = 1.0 + (dx * dx + dy * dy) / alpha2;
-    const double t2 = t * t;
-    const double v = 1.0 / (t2 * t2);
-    vals[k] = v;
-    sum += v;
+// ── 单位总通量像元积分 PSF 模板（PSF.md §4 裁决 / detail §7.4B）───────────
+// 数学**唯一**实现在 PSF 库（acsd/pixel_integrated_psf.h）:
+//   P_j = (3/(2π σ²)) ∫_{E_j} (1 + |r-r₀|²/(2σ²))^{-4} dA,  r₀ = 亚像元相位
+// 本单元不再自行维护裸中心值模板（那正是第一轮被裁定为
+// `center_sample_unnormalized_legacy`、不得作为 analytic_total canonical 输入的实现）。
+// 旧实现保留在 lib/algorithms/noise_snr 之外的历史实验中; 生产路径只消费 PSF 库。
+bool pixel_integrated_profile(double sigma_px, double cx, double cy,
+                              const std::vector<std::int64_t>& pix, int width,
+                              std::vector<double>* out_p,
+                              acsd::psf::PixelIntegrationDiagnostics* diag) {
+  if (!(sigma_px > 0.0)) return false;
+  const std::size_t m = pix.size();
+  if (m == 0) return false;
+  std::vector<double> px(m), py(m);
+  for (std::size_t k = 0; k < m; ++k) {
+    px[k] = static_cast<double>(pix[k] % width);
+    py[k] = static_cast<double>(pix[k] / width);
   }
-  if (!(sum > 0.0)) return false;
-  // **不随观测域重归一**（NOISE_SNR §11.2「不能随窗口缩小重新归一 P 并仍沿用总
-  // 通量 F_ref」）: out_p 保持单位总通量的像元积分响应, ΣP = 观测域包络的通量份额
-  // ≤ 1; 窗外份额由 f_out 闭式在 support 模型登记。
-  for (std::size_t k = 0; k < pix.size(); ++k) (*out_p)[k] = vals[k];
-  *out_sum_p2 = sum;   // ΣP（包络份额）, 非 ΣP²
-  return true;
+  acsd::psf::PixelIntegrationRequest r;
+  r.sx = sigma_px;              // Moffat4 σ 口径（PSF.md §3.1 唯一口径）
+  r.sy = sigma_px;
+  r.theta = 0.0;                // 当前模型各向同性; 椭圆/角度走 PSF 空间模型
+  r.cx = cx;                    // 亚像元参考中心相位（0-based）
+  r.cy = cy;
+  r.pixel_x = px.data();
+  r.pixel_y = py.data();
+  r.n_pixels = m;
+  r.order = 10;                 // 每维 10 节点 ⇒ 100 点/像元; 阶自检误差
+  return acsd::psf::pixel_integrated_moffat4_profile(r, out_p, diag);
 }
 
 }  // namespace
@@ -422,43 +423,37 @@ StagedPrecision stage_frame_precision(
   }
   doc_template.reference = ref_def;
 
-  // ── 每窗口: 平面模板 P（Moffat4 闭式, 库统计对拍）+ 条件方差 v_j ──────────
+  // ── 每窗口: 单位总通量像元积分模板 P（PSF 库）+ 条件方差 v_j ──────────────
+  // flux_estimator = analytic_total（PSF.md §4 默认且唯一 canonical 口径）:
+  //   P_j 由 PSF 库对**实际源像元足迹** E_j 与亚像元相位求积, ΣP 不重归一,
+  //   f_enc = ΣP, f_out = 1 - ΣP 均由**实际像元集合**得到（不用理想圆闭式代替,
+  //   也不用 min(1,Σ) 把噪声粉饰成 100% 包络）。
   std::vector<acsd::normalize::PlanarPatchWindow> windows = windows_in;
   // 模板足迹半径: 本单元局部推导（与 build_patch_windows 同一函数, 同一口径）。
   const double template_radius = precision_window_radius_px(req);
   bool psf_ok = req.have_psf;
-  double sum_p2_lib = 0.0;
-  if (psf_ok) {
-    // noise 库对同一 closed form 的归一化 ΣP²（半平面解析值）。
-    snr_moffat4_profile_f64(/*fwhm_px=*/0.0, req.psf_sigma_px, /*half_px=*/0,
-                            &sum_p2_lib, nullptr);
-  }
-  double profile_enclosed = 1.0;   // ΣP（观测域包络的点源通量份额; ≤1）
+  double profile_enclosed = 1.0;        // ΣP 的最小值（跨控制点; ≤1）
+  double psf_quad_error = 0.0;          // 求积阶自检误差最大值
+  bool psf_quad_error_known = false;
+  std::string flux_estimator = req.have_psf ? "analytic_total" : "unavailable";
   for (auto& w : windows) {
     const std::size_t m = w.pix_index.size();
     if (m == 0) continue;
     if (psf_ok) {
-      double enclosed = 0.0;
-      if (!moffat4_profile(req.psf_sigma_px, w.cx_px, w.cy_px, w.pix_index,
-                           req.width, &w.profile, &enclosed)) {
+      acsd::psf::PixelIntegrationDiagnostics diag;
+      if (!pixel_integrated_profile(req.psf_sigma_px, w.cx_px, w.cy_px,
+                                    w.pix_index, req.width, &w.profile, &diag)) {
+        // 求积失败 ⇒ 该帧没有合法单位总通量模板 ⇒ **不得**退化为中心值近似;
+        // 控制点由 GLS 侧记 unavailable（不用未归一模板冒充 analytic_total）。
         psf_ok = false;
         break;
       }
-      // 同一 closed form 的形状统计对拍: 把本窗口的归一化 ΣP² 与库的半平面解析值
-      // 比较。覆盖不足时归一化 ΣP² 只会**偏大**（形状更集中）⇒ 要求不小于解析值
-      // 减去容差; 偏小说明模板与库的 closed form 不一致 ⇒ 数据错误, 显式失败。
-      double np2 = 0.0;
-      for (double pv : w.profile) np2 += pv * pv;
-      const double enclosed2 = enclosed * enclosed;
-      const double norm_np2 = enclosed2 > 0.0 ? np2 / enclosed2 : 0.0;
-      if (sum_p2_lib > 0.0 && m > 64 &&
-          norm_np2 + 0.01 * sum_p2_lib < sum_p2_lib) {
-        out.error = "moffat4 profile statistics mismatch vs noise library (sigma=" +
-                    std::to_string(req.psf_sigma_px) + ")";
-        return out;
+      if (diag.estimated_error >= 0.0) {
+        psf_quad_error = std::max(psf_quad_error, diag.estimated_error);
+        psf_quad_error_known = true;
       }
-      if (std::isfinite(enclosed) && enclosed > 0.0) {
-        profile_enclosed = std::min(profile_enclosed, enclosed);
+      if (std::isfinite(diag.f_enclosed)) {
+        profile_enclosed = std::min(profile_enclosed, diag.f_enclosed);
       }
     } else {
       // 无 PSF ⇒ 模板缺失 ⇒ 该控制点由 GLS 侧记 unavailable（不用虚构 P）
@@ -601,25 +596,37 @@ StagedPrecision stage_frame_precision(
         q.kind = acsd::normalize::LocalModelKind::kSupport;
         q.unit = "sr";
         q.values = lw.leaf_dp;
-        // 模板截断份额（各向同性 Moffat4 闭式 f_out=(1+r²/(2σ²))^{-3}）: 观测域
-        // 包络之外的点源通量份额; P **不**随域重归一 ⇒ ΣP = 包络份额, F_ref 仍是
-        // 总通量口径（NOISE_SNR §11.2）。
-        char note[512];
+        // PSF.md §4 要求的落盘项: flux_estimator、psf_family/参数/子像元相位、
+        // pixel_integration_method/order/估计误差、normalization_basis、
+        // f_enclosed/f_out。f_enc/f_out 由**实际像元集合**求和得到; 理想圆闭式
+        // 值单独作为参考求积并列写出, 不替代真实 f_out（PSF.md §4 明示）。
+        char note[768];
         std::snprintf(note, sizeof(note),
-                      "patch-center deterministic grid; leaf_order=%d; template"
-                      " footprint radius=%.3f px; template truncation f_out=%.3e;"
-                      " enclosed profile sum=%.6f; operator coverage of N_p=%.6f",
-                      windows[i].leaf_order, template_radius,
-                      req.have_psf && req.psf_sigma_px > 0.0
-                          ? std::pow(1.0 + template_radius *
-                                              template_radius /
-                                              (2.0 * req.psf_sigma_px *
-                                               req.psf_sigma_px),
+                      "patch-center deterministic grid; leaf_order=%d;"
+                      " flux_estimator=%s; psf_family=moffat4;"
+                      " psf_sigma_px=%.6f; subpixel_phase=(%.6f,%.6f);"
+                      " pixel_integration_method=gauss_legendre_tensor;"
+                      " pixel_integration_order=10;"
+                      " pixel_integration_error=%s;"
+                      " normalization_basis=analytic_total;"
+                      " f_enclosed=%.9f; f_out=%.9f;"
+                      " ideal_disc_f_out_ref=%.6e;"
+                      " operator_coverage_of_N_p=%.6f",
+                      windows[i].leaf_order,
+                      req.have_psf ? flux_estimator.c_str() : "unavailable",
+                      req.psf_sigma_px, windows[i].cx_px, windows[i].cy_px,
+                      psf_quad_error_known ? "reported_below" : "not_available",
+                      req.have_psf ? profile_enclosed : 0.0,
+                      req.have_psf ? 1.0 - profile_enclosed : 0.0,
+                      (req.have_psf && req.psf_sigma_px > 0.0
+                           ? std::pow(1.0 + template_radius * template_radius /
+                                                (2.0 * req.psf_sigma_px *
+                                                 req.psf_sigma_px),
                                       -3.0)
-                          : 0.0,
-                      req.have_psf && req.psf_sigma_px > 0.0 ? profile_enclosed
-                                                             : 0.0,
+                           : 0.0),
                       lw.operator_coverage_fraction);
+        // 求积误差单独一个可机读字段（不进自由文本 note）
+        q.pixel_integration_error = psf_quad_error;
         q.support_note = note;
         q.matrix_rows = nl;
         q.matrix_cols = 1;

@@ -134,6 +134,9 @@ struct LocalModelPayload {
   std::vector<double> csr_coefficients;
   // support 专有
   std::string support_note;
+  // PSF 像元求积的阶自检误差（PSF.md §4「integration method/order/估计误差」;
+  // 负值 = 未能估计, 不得记为 0 误差）
+  double pixel_integration_error = 0.0;
 };
 
 // 结果（落盘 + 哈希）
