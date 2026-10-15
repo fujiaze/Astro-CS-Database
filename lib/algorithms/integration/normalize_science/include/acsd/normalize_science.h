@@ -119,6 +119,7 @@ struct LocalModelPayload {
   std::vector<std::uint64_t> leaf_ipix;           // sphere 叶
   int matrix_rows = 0, matrix_cols = 0;           // values 为矩阵时的形状
   // covariance 专有
+  std::vector<double> covariance;                 // 显式 nl×nl（仅作对照/小窗）
   std::optional<std::uint64_t> covariance_rank;
   std::optional<double> condition_number;
   std::vector<double> background_basis;           // Z (row-major n_leaf × n_bg)
@@ -129,6 +130,28 @@ struct LocalModelPayload {
   std::vector<double> source_omega;               // Ω_j (sr)
   std::vector<double> source_a_drop;              // A_drop,j (sr)
   std::vector<double> source_n_leaf;              // 每叶完整 N_l (sr; 同次生产)
+  // ── local-factor/v2（NORMALIZE_DATA §7.1 2026-10-15 裁决）────────────────
+  // v1 的错位: 把 factor payload values=v_j 的 unit 写成 adu^2/sr^2、
+  // matrix_shape 写成 [m,1], 与派生 C 的真实 shape/单位混同。v2 用不可混淆的
+  // 字段分别声明逻辑 C shape/单位、因子 shape/单位、算子 shape/单位与 basis。
+  std::string factor_variance_unit;   // v_j 的单位（[linear_integrated_signal]^2）
+  std::string derived_covariance_unit;// 派生 C = R diag(v) Rᵀ 的单位
+  std::string covariance_condition;   // "reference_source" | ...
+  std::string operator_unit;          // R 的单位 (sr^-1)
+  std::string background_basis_unit;  // Z 与被估计 β 的单位配对
+  std::string background_basis_definition;
+  std::vector<std::string> assumptions;   // ["diagonal_planar_condition"]
+  int operator_rows = 0;              // nl
+  int operator_cols = 0;              // m
+  int logical_covariance_rows = 0;     // nl
+  int logical_covariance_cols = 0;     // nl
+  bool exact_factorization_of_model = false;  // 仅当 C=R diag(v)Rᵀ 精确重建成立
+  std::string solver;                 // NOISE_SNR §11.4 solver 身份
+  double solver_relative_tol = 0.0;
+  int solver_rank = 0;
+  double solver_condition_number = 0.0;
+  int background_basis_rank = 0;
+  double flux_information = 0.0;
   std::vector<std::int64_t> csr_row_offsets;
   std::vector<std::int32_t> csr_column_indices;
   std::vector<double> csr_coefficients;
@@ -159,6 +182,44 @@ bool write_frame_science_document(const std::string& product_root,
                                   ModelWriteResult* out);
 
 // ── 读取兼容（§8）───────────────────────────────────────────────────────────
+// ── local-factor/v2 的读侧重算（NORMALIZE_DATA §7.1/§8 末段）────────────────
+// 目的: reader 不只要"能解码 JSON", 还要能从同一控制点的 factor(v_j) 与算子
+// CSR(R) **精确重建** C_sphere = R diag(v) Rᵀ, 并核验 shape/单位/hash 三者一致;
+// 这正是 §8 末段「C factor 与派生单位」要求的执行者校验。
+struct FactorReconstruction {
+  bool ok = false;                 // 重建成功且单位/shape 自洽
+  std::string error;               // 具体数据错误（不是 unavailable）
+  std::vector<double> c_row_major; // nl×nl row-major（仅在允许大小时返回）
+  int rows = 0, cols = 0;
+  double derived_unit_sr_power = 0.0;  // 派生 C 的 sr 幂次（须为 -2）
+  double factor_unit_sr_power = 0.0;   // v_j 的 sr 幂次（须为 0）
+  double operator_unit_sr_power = 0.0; // R 的 sr 幂次（须为 -1）
+  double max_abs_diff_vs_payload = 0.0;  // 与 payload.values 的逐项最大差
+};
+
+// 从已解析的 payload + 同控制点算子 payload 重建 C 并核验单位/shape。
+// dense_limit 为安全阀: nl×nl 超过该元素个数时只核验单位/shape 与 CSR 结构,
+// 不返回稠密矩阵（避免为了校验而分配数百 MB）。
+FactorReconstruction reconstruct_factor_covariance(const LocalModelPayload& covariance,
+                                                   const LocalModelPayload& operator_model,
+                                                   std::size_t dense_limit);
+
+// 从产品根读入单份局部模型文件的数值载荷（用于读侧重算）。
+// 文件不存在/不可解析 ⇒ ok=false, error 为具体数据错误（不是 unavailable）。
+struct LocalModelLoadResult {
+  bool ok = false;
+  std::string error;
+  LocalModelPayload payload;
+};
+LocalModelLoadResult load_local_model_payload(const std::string& product_root,
+                                             const std::string& rel_path);
+
+// 对整个帧产品执行 §8 末段的 factor/单位重算校验; findings 追加到 out。
+// 只做结构/单位/shape/（小窗）逐项对拍, 不重算 V_F。
+void verify_frame_science_factor_models(
+    const std::string& product_root, const FrameScienceDocument& doc,
+    std::vector<std::string>* findings);
+
 struct FrameScienceReadResult {
   bool ok = false;                 // false = 无法读作 canonical precision 真源
   std::string error;               // 具体原因（损坏 = 数据错误, 不是 unavailable）

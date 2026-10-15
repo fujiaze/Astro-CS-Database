@@ -531,13 +531,43 @@ StagedPrecision stage_frame_precision(
         q.matrix_cols = 1;
         model_payloads->push_back(q);
       }
-      {  // covariance: C_sphere（nl×nl row-major; unit=linear_unit²/sr²）+ Z + 秩
+      {  // covariance: 精确因子 v_j + CSR(R) ⇒ C=R diag(v)ᵀ（local-factor/v2）
         auto q = base();
         q.kind = acsd::normalize::LocalModelKind::kCovariance;
-        q.unit = ref_def.flux_unit.empty() ? std::string("adu^2/sr^2")
-                                           : ref_def.flux_unit + "^2/sr^2";
+        // 单位分工（NORMALIZE_DATA §7.1 裁决, 三者不可共用一个 BUNIT）:
+        //   factor v_j            : [线性被估计量]^2（即 reference flux unit^2）
+        //   算子 R                : sr^-1
+        //   派生 C = R diag(v) Rᵀ : [线性被估计量]^2 / sr^2
+        q.factor_variance_unit = ref_def.flux_unit.empty() ? std::string("adu^2")
+                                                            : ref_def.flux_unit + "^2";
+        q.derived_covariance_unit =
+            (ref_def.flux_unit.empty() ? std::string("adu^2")
+                                       : ref_def.flux_unit + "^2") + "/sr^2";
+        q.operator_unit = "sr^-1";
+        q.covariance_condition = "reference_source";
+        q.background_basis_unit = "1/sr";   // Z_s = R Z_planar; β 与 Z 成对
+        q.background_basis_definition =
+            lw.n_bg == 0 ? "known_background"
+                         : (lw.n_bg == 1 ? "constant_fit_unit_column"
+                                         : "plane_fit_unit_x_y_columns");
+        q.assumptions = {"diagonal_planar_condition"};
+        q.operator_rows = nl;
+        q.operator_cols = m;
+        q.logical_covariance_rows = nl;
+        q.logical_covariance_cols = nl;
+        // 仅当模型内部精确（planar diagonal 且所有 v_j>0）才可声明;
+        // 未建模 master/scale 相关项仍在 omitted_terms, 不因此变成"全协方差已建模"。
+        q.exact_factorization_of_model = true;
+        q.solver = lw.solver;
+        q.solver_relative_tol = lw.solver_relative_tol;
+        q.solver_rank = lw.solver_rank;
+        q.solver_condition_number = lw.solver_condition_number;
+        q.background_basis_rank = lw.background_basis_rank;
+        q.flux_information = lw.flux_information;
+        q.unit = q.derived_covariance_unit;   // 顶层 unit = 派生 C 的单位
         if (lw.covariance_explicit) {
           q.values = lw.covariance;                 // 显式 nl×nl row-major
+          q.covariance = lw.covariance;             // 供读侧重算对拍
           q.matrix_rows = nl;
           q.matrix_cols = nl;
         } else {
@@ -638,11 +668,14 @@ StagedPrecision stage_frame_precision(
         ref.model_id = lw.control_id + "." + acsd::normalize::to_string(kind);
         ref.kind = kind;
         ref.domain = acsd::normalize::LocalModelDomain::kDrizzledSphere;
-        // covariance 在预算外改用版本化因子表示; 其余 kind 恒为显式表示。
+        // representation 必须与**实际写出的模型文件**一致（NORMALIZE_DATA §7.1:
+        // 读者按 version 判定语义, 不猜）。covariance 在预算外写 local-factor/v2
+        //（v_j + CSR ⇒ C=R diag(v)Rᵀ, 单位/shape 分列声明）; 预算内写显式
+        // local-model/v1。其余 kind 恒为 local-model/v1。
         ref.representation =
             (kind == acsd::normalize::LocalModelKind::kCovariance &&
              !lw.covariance_explicit)
-                ? "acsd.normalize.local-factor/v1"
+                ? "acsd.normalize.local-factor/v2"
                 : "acsd.normalize.local-model/v1";
         ref.path = "models/" + lw.control_id + "." +
                    acsd::normalize::to_string(kind) + ".json";
