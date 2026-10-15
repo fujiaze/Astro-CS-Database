@@ -106,3 +106,31 @@ Agent 的工作是按这些设计修真实代码、报告与源代码不符之�
 上述逻辑对象现在由 [NORMALIZE_DATA.md](../contracts/NORMALIZE_DATA.md) 定义字段、状态、端口、所有权、八节点完成边界、唯一 frame_science.json 与兼容规则；[contracts.md](../../detail/normalize/contracts.md) 给出待实现 C++ 签名、现有头文件落点、配置和逐边迁移。
 
 目标取数统一为 cleaned→photometry→photoapplied→noise/Drizzle；当前 descriptor 的 calibrated 输入不能继续被当作 photoapplied 的物理单位。WCS 保留 calibrated 输入。noise 先产 planar model，Drizzle 以真实 R 完成 sphere model 后调用 noise 库产 sparse_reference/frame_reference，writer 消费它们，避免循环依赖。PSF 从零消费者工作文件变成显式模型输入。当前代码仍未完成这些接口；机器注册表和 IR 在实施时与真实取数同步改，不把本目标表冒称当前已接线。
+
+## 9. A/D 第一轮独立复核与后续模块责任（2026-10-15）
+
+已读取审核 12204600edbad8e23ba9e8fe4cbc8427efee0bf9 → d0b61a297f140935e63df24caa3a91965ebf44c3 的 5 次提交和 实验/normalize-precision-p5/ROUND1_FACT_REPORT.md。本次**只核对远端源码与已有实验日志，没有运行远端 /testdata 的 4096×4096 实帧**。已实际改写 sparse_reference.cpp、drizzle_engine、normalize_precision.cpp、normalize_science reader、逐 occurrence photometric binding 与 schema；Linux Release/单帧重复的原始数值由 Agent 提供，前台不能冒充独立复跑。
+
+### 三项 UNRESOLVED 已由前台确定实现目标
+
+**A. 模型精确因子是正规载体**：同一科学窗中的 v_j（源空间，单位 linear_unit²）和生产 CSR(R)（球面，单位 sr⁻¹）就是该 diagonal-planar 条件模型 C_sphere=R diag(v)Rᵀ 的**无损可重算表示**。不要求 nl≈800 时每控制点重复写 798² 的 JSON。为消除旧 `local-factor/v1` 将源 v_j 标成面亮度协方差单位的错误，需要新版本 `local-factor/v2` 或等效不能混读的明确 schema：logical C_shape=[nl,nl]、factor_shape=[m]、factor_unit/derived_unit 独立、operator_ref 指向同模型的 CSR、模型维度/背景/随机分量/遗漏项完整。reader 能独立重建 C 及核验 PSD/单位/rank/导出的 SNR 与 T；旧 v1 必须作真实来源的严格适配而非无声改 BUNIT。权威：NORMALIZE_DATA §7.1、detail/normalize/contracts.md §7.4。
+
+**B. 不默认截断观测随机贡献求速度**：Drizzle 同次 R 及真实选择叶的完整源贡献是科学估计量定义。当前 m≈645、rank≈626，代码为半正定 Gram 矩阵执行 hand-written Jacobi 约 20–26 分钟，而 Drizzle 约 43–61 秒。数值性能工作归 **lib/algorithms/noise_snr**，不是 scheduler 临时取 m≤256 或另外构造看起来满秩的 R。使用 NOISE_SNR §11.4 的 Q=R√D 行空间投影定理：在经确认的满列秩支路直接计算源空间 GLS；秩亏在数值 rank-revealing QR/SVD 上求正交行/零空间投影，再单独处理 nuisance 背景的通量可辨识性。选择现有工程可验证支持的数值 backend，不能把失败的 Householder+QL 自实现反向塞入生产。输出 solver、r、阈值/条件、真实数值误差和性能；在未独立验证时保留原结果为可重复基线，**不声称当前速率已经解决**。
+
+**C. 先修 PSF 物理模板再解释 SNR**：目前 normalize_precision.cpp::moffat4_profile 是无总积分归一的中心取样，且 profile_enclosed=`min(1,sum(raw))`；这不是 canonical unit-total-flux 的 P。阶段一参考模型要复用 PSF 模块，给出 \(\int_{\mathrm{pixel}}p(x-x_0,y-y_0)\) 和实际子像元中心/椭圆参数、单次通量归一、finite support 的 f_out。`flux_estimator=analytic_total` 可作为 canonical 总通量参考，`aperture_with_correction` 必须显式定义修正模型及误差，`diagnostic` 不可标为已校准 canonical。PSF 有效域和空间模型状态与已拟合参数必须绑定，遗留全帧中位 sigma 仅为 approximate 代理。实现责任在 **lib/algorithms/psf**；scheduler 只能消费 PSF evaluator，不能维护第二套 raw Moffat 模板。修模板后连带重新评估 F_ref、V_F、Poisson 和空间 alpha，不允许拿旧实帧 SNR 数字复用。
+
+### 已发现的实现标签错误与其它未完成项
+
+- 目前 `lib/algorithms/noise_snr/include/acsd/sparse_reference.h` 中注释写的是 `M=Bᵀ H⁺ B`，与数学实际应为 `H^{+2}` 冲突；源文件仍有旧 `B=G V^{1/2}A` 误导性注释。代码实际求解路径按最新实现/独立数值核实，修注释不能当作修算法的替代。
+- `normalize_precision.cpp::build_patch_windows` 用 const_cast 修改 const PrecisionFrameRequest 内的 window_radius_px。应去掉这种对输入的隐式写回，窗口半径成为局部计算值/具名输出状态，避免 const 原对象及并发情形的未定义行为。
+- 本轮统计 `covariance_rank=626`、`condition_number≈2.3×10^9` 显示真实病态/秩亏；不可单凭 64/64 controls.status=available 推断一般数值可靠性。参考 PSF 模板的物理错误是额外关键缺陷，必须保留记录。
+- 帧摘要 `supported_area_sr` 在控制窗重复叶时未去重，当前值只是旧口径累计；科学帧摘要要求按真正唯一的球面支持归属合并，不能把重复叶误认为更多独立信息。
+- F08 typed Runtime、sed_response 真正 Gaia XP 参考积分、空间 alpha 模型、母版协方差、实际扰动一列→正式 HiPS signal 的独立对拍、Windows/DEV_MODE 四构建及 mixed instrument 数据仍在后续实现清单；不要把 C++ 类已声明当作这些功能已经完成。
+- 单帧 raw FITS 头没有 WCS 但真实 acsd normalize exit=0 的 Agent 结果，是项目 IPV 生产接线的**有意义证据**；不是全部 31 帧或 Gaia 留出星全域精度的保证。
+- 本轮未触碰 Mosaic 与 Export，不应让后续 Agent 借“先修科学精度”擅自切换阶段二默认权重。
+
+### 工程分工和顺序
+
+由前台 science/psf 定义像元积分 PSF，science/noise_snr 定义秩亏 GLS 与适用域，NORMALIZE_DATA 定义正式 factor/单位/schema，detail/normalize/contracts 定义 ABI/typed 接线。Agent 先解决与物理正确性直接相关的真实 PSF、精度因子单位及消费者和秩亏求解；**不需要重新发明算法决策**。完成这些后再推进 Runtime typed 迁移和 sed_response/母版错误模型，使八节点的临时 JSON 传递从真实生产依赖迁成统一 typed ports 与显式科学 spill，不能把它们误判为可关闭的开发快照。
+
+
