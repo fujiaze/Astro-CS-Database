@@ -90,7 +90,8 @@ struct ReferenceControl {
   double source_x0 = 0.0;                // detector 0-based 中心
   double source_y0 = 0.0;
   std::uint64_t leaf_ipix = 0;           // NESTED @ declared leaf_order
-  int leaf_order = 0;
+  bool leaf_ipix_valid = true;            // 十进制字符串解析失败 ⇒ false（不猜 0）
+  int leaf_order = 0;                     // 实际叶阶 log2(nside)
   std::optional<double> reference_flux;  // 与其模板 h 配对的积分通量尺度
   std::optional<double> flux_variance;   // 同单位平方
   std::optional<double> reference_snr;   // F_ref/√V_F（非 legacy 代理量）

@@ -43,7 +43,12 @@ static PlanarPatchWindow make_window() {
   w.op_leaf = {0, 0, 1, 1, 2, 2};
   w.op_c = {0.5, 0.5, 0.5, 0.5, 0.5, 0.5};
   w.leaf_dp = {1.0, 1.0, 1.0};
+  // 目标叶状态是**显式**的（leaf 编号 0 同样合法, 不用 0 当缺失判据; detail §7.4）
+  w.has_target_leaf = true;
   w.target_leaf = 13;   // leaf2（控制叶; V_B = C 对角 = 0.5）
+  // 每叶完整 N_l 与窗口覆盖（本测试直接把 c_lj 作为最终信号算子给出 ⇒ covered=full）
+  w.leaf_n_full = {1.0, 1.0, 1.0};
+  w.leaf_n_covered = {1.0, 1.0, 1.0};
   w.pix_omega = {2.2e-11, 2.2e-11, 2.2e-11, 2.2e-11};
   w.pix_a_drop = {2.2e-11, 2.2e-11, 2.2e-11, 2.2e-11};
   return w;
@@ -138,7 +143,10 @@ int main() {
     w.op_leaf = {0, 0, 1, 1, 2};
     w.op_c = {0.8, 0.2, 0.2, 0.8, 1.0};
     w.leaf_dp = {1.0, 1.0, 1.0};
+    w.has_target_leaf = true;
     w.target_leaf = 101;
+    w.leaf_n_full = {1.0, 1.0, 1.0};
+    w.leaf_n_covered = {1.0, 1.0, 1.0};
     const auto r = complete_spherical_reference({w}, cfg);
     check(r.precision.controls[0].status.availability ==
               PrecisionAvailability::kAvailable,
@@ -159,7 +167,10 @@ int main() {
     w.op_leaf = {0, 0};
     w.op_c = {0.5, 0.5};
     w.leaf_dp = {1.0};
+    w.has_target_leaf = true;
     w.target_leaf = 11;
+    w.leaf_n_full = {1.0};
+    w.leaf_n_covered = {1.0};
     SphericalCompletionConfig c2 = cfg;
     c2.background = BackgroundNuisance::kConstantFit;  // 1 观测 2 参数 ⇒ 秩亏
     const auto r = complete_spherical_reference({w}, c2);
@@ -184,7 +195,10 @@ int main() {
     w.op_leaf = {0, 1, 2, 2};
     w.op_c = {1.0, 1.0, 1.0, 1.0};
     w.leaf_dp = {1.0, 1.0, 2.0};
+    w.has_target_leaf = true;
     w.target_leaf = 13;
+    w.leaf_n_full = {1.0, 1.0, 2.0};
+    w.leaf_n_covered = {1.0, 1.0, 2.0};
     // 像元 2/3 方差 0 ⇒ 源空间 V 奇异 ⇒ 该方向不可估计 ⇒ 具名拒绝
     // （不用地板制造信息量; 零方差窗口由 zero_variance_in_window 捕捉）
     w.variance = {1.0, 1.0, 0.0, 0.0};

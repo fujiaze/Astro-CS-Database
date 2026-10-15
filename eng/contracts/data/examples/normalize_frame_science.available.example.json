@@ -168,6 +168,7 @@
           49.5
         ],
         "leaf_ipix": "1000",
+        "leaf_order": 10,
         "support_id": "support",
         "support_area_sr": 1e-08,
         "psf_model_id": "psf",

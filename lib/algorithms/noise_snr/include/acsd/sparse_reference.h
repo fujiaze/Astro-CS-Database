@@ -29,23 +29,23 @@ namespace acsd::normalize {
 // 窗口语义（合同 §4/§7.1）: patch 中心附近、对目标叶及其邻叶有贡献的源像元集合。
 // R 以**稀疏三元组**给出（(j, l, c_lj)）, 不生成 nl×m 稠密矩阵（nl 可达数千）。
 //
-// 数学要点（球面 GLS; NORMALIZE_DATA §6, NOISE_SNR §3）:
+// 数学要点（球面 GLS; NORMALIZE_DATA §6, NOISE_SNR §3/§11.1）:
 //   观测 y = R w, w = F·P + Z·β + η, η ~ N(0, V=diag(v_j)), C = R V Rᵀ,
-//   A_s = [R P, R Z]；V_F = [(A_sᵀ C⁺ A_s)^{-1}]_{FF}。
-//   实现按 m ≤ nl / m > nl 选两条精确路径（各一次稠密 Cholesky）:
-//     m ≤ nl: (RVRᵀ)⁺ = R̃(R̃ᵀR̃)⁻²R̃ᵀ, R̃ = R V^{1/2}
-//              ⇒ M = BᵀH⁻²B, B = G V^{1/2}A_src, G = RᵀR, H = V^{1/2}GV^{1/2}
-//     m > nl : C = RVRᵀ 直接 Cholesky, M = A_sᵀC⁻¹A_s
-//   秩亏 ⇒ unavailable（不用伪逆制造信息量、不加任意地板）。
+//   A_s = [R P, R Z]；V_F = [(A_sᵀ C⁺ A_s)⁻¹]_{FF}。
+//   令 Q=R V^{1/2}, G=RᵀR, H=V^{1/2}G V^{1/2}=QᵀQ（H 与 C 的非零特征值相同）:
+//     RᵀC⁺R = G V^{1/2} H⁺ V^{1/2} G
+//     ⇒ M = A_srcᵀ RᵀC⁺R A_src = Bᵀ H⁺ B,  B = V^{1/2} G A_src
+//   H ≻ 0（R 满列秩）时 H⁺=H⁻¹ ⇒ M = A_srcᵀ V⁻¹ A_src（NOISE_SNR §11.1 恒等式）。
+//   H 半正定（R 秩亏）时用显式特征分解取保留子空间, 报告秩与条件数; 参数子空间
+//   内不可辨识 ⇒ unavailable（不盲加 epsilon、不用伪逆制造信息量）。
 //   V_B = Σ_j c_pj²·v_j（目标叶 p 的 C 对角; 同源同位置同条件）。
-//   两条路径互相一致 + 与显式定义式的一致性由 eng/tests/unit 的 dual 对拍验证。
 struct PlanarPatchWindow {
   std::string control_id;
   double cx_px = 0.0;      // patch 中心 (detector, 0-based)
   double cy_px = 0.0;
   double ra_deg = 0.0;     // patch 中心 ICRS（调用方经既有 pix2sky 回填）
   double dec_deg = 0.0;
-  int leaf_order = 0;
+  int leaf_order = 0;      // 实际叶阶 log2(nside)（非 tile 阶; detail §7.4）
   double omega_leaf = 0.0;               // 4π/(12·nside²) (sr)
   std::vector<std::int64_t> pix_index;   // 源像元下标 (row-major, y*w+x), m 个
   std::vector<double> profile;           // P_j: 单位点源通量的像元积分响应, ΣP=1
@@ -57,10 +57,17 @@ struct PlanarPatchWindow {
   // 稀疏算子三元组（同一几何路径导出; 与生产 signal 的 R 逐项同源）
   std::vector<int> op_pix;               // 像元槽位 (0..m-1)
   std::vector<int> op_leaf;              // 叶槽位 (0..nl-1)
-  std::vector<double> op_c;              // c_lj (1/sr)
+  std::vector<double> op_c;              // c_lj = (a_lj/A_drop,j)/N_l (1/sr)
   std::vector<std::uint64_t> leaf_ipix;  // n_leaf 个 NESTED 叶
   std::vector<double> leaf_dp;           // 每叶 D_l = Σ_j a_lj (sr)
-  std::uint64_t target_leaf = 0;         // 控制点目标叶（支持面积最大的叶）
+  // N_l = 同次生产该叶的**完整**面亮度归一分母 Σ_j w_lj·Ω_j（NOISE_SNR §11.2:
+  // 必须来自生产累加器, 不在局部窗口重新归一）。空 ⇒ 调用方未提供（按局部口径
+  // 计算并记 truncation, 不当成完整 R）。
+  std::vector<double> leaf_n_full;
+  // 窗口内已覆盖的 N_l 部分（Σ_{j∈window} w_lj·Ω_j）; 用于判定窗口外贡献被省略的份额。
+  std::vector<double> leaf_n_covered;
+  bool has_target_leaf = false;  // 显式状态: leaf 编号 0 是合法值, 不充当缺失
+  std::uint64_t target_leaf = 0; // 控制点目标叶（由控制点 sky 的 NESTED ang2pix 求得）
   // 汇总期暂存（由接线方在构造窗口时使用; 不参与科学与序列化）
   std::vector<double> op_raw_a, op_raw_adrop, op_raw_apixel;
   std::vector<int> op_raw_pix, op_raw_leaf;
@@ -73,10 +80,22 @@ struct SphericalCompletionConfig {
   ReferenceDefinition reference;
   BackgroundNuisance background = BackgroundNuisance::kKnown;
   // 精度判定输入（调用方如实登记，不得伪造）:
-  double gain_e_per_adu = 0.0;      // <=0 = 未知 ⇒ 源泊松项缺项
+  double gain_e_per_adu = 0.0;      // <=0 = 未知 ⇒ 源泊松项缺项（**原生** ADU 面 gain）
   bool master_uncertainty_modelled = false;  // false ⇒ omitted_terms 记 master_uncertainty
   bool template_fixed = true;       // 模板/有效域固定（upper_bound 的前提）
   double support_rank_tol = 1e-10;  // 秩判定相对容差
+  // ── 标度面事实（NOISE_SNR §11.3 / PHOTOMETRY §4）────────────────────────
+  // plane_scale = α = applied/native（确定性线性标度; =1 表示未施加测光）。
+  // 源泊松项在 applied 面为 α_j²·F_native·P_j/g；以 F_applied 表示时
+  // = α_j·F_applied·P_j/g，等价有效 gain g_eff = g·a_ref/α_j²。
+  // 原生 gain 的设备来源保留在 gain_provenance, 不被有效 gain 覆盖。
+  double plane_scale = 1.0;
+  // 逐像元 α_j（空间标度 D_alpha）; 空 ⇒ 全窗取常量 plane_scale。
+  std::vector<double> pixel_scale;
+  std::string gain_provenance;      // 原生 gain 来源（config/header/unavailable）
+  // 显式 nl×nl 协方差矩阵的落盘预算（合同 §7.1）。超出时该控制点的 covariance
+  // 模型改记版本化因子表示（v_j + R 的 CSR）并如实登记, 不伪造 explicit 矩阵标签。
+  std::uint64_t covariance_matrix_budget = 256;
 };
 
 struct SphericalCompletionResult {
@@ -87,14 +106,19 @@ struct SphericalCompletionResult {
     std::string control_id;
     std::vector<std::int64_t> pix_index;   // 源像元下标
     std::vector<double> profile;           // P ( planar )
-    std::vector<double> h_sphere;          // h = R P (1/sr)
-    std::vector<double> variance;          // C_sphere 对角 (h 同标度平方)
-    std::vector<double> z_sphere;          // Z_sphere 列 (benign nuisance 基)
+    std::vector<double> h_sphere;          // h = R P（长度 nl; 1/sr）
+    std::vector<double> source_variance;   // v_j（长度 m; C=R diag(v) Rᵀ 的精确因子）
+    std::vector<double> covariance;        // C = R diag(v) Rᵀ（nl×nl row-major; 仅预算内）
+    std::vector<double> z_sphere;          // Z_sphere（nl×n_bg row-major）
     int n_bg = 0;
-    double d_p = 0.0, n_p = 0.0;
+    std::vector<std::string> random_components;  // 本窗口已建模随机分量
+    std::vector<std::string> omitted_terms;      // 被省略/截断项（不静默）
+    bool covariance_explicit = false;     // true = covariance 是显式 nl×nl 矩阵
+    double d_p = 0.0, n_p = 0.0;          // 目标叶 D_p 与完整 N_p
     double support_area_sr = 0.0;
     double a_drop_sum = 0.0;
     double omega_sum = 0.0;
+    double operator_coverage_fraction = 0.0;  // 窗口像素对 N_p 的覆盖份额
     std::vector<double> pix_omega;    // 与 pix_index 对齐 (sr)
     std::vector<double> pix_a_drop;   // 与 pix_index 对齐 (sr)
     // 稀疏算子三元组（与输入窗口同源; 供 drizzle_operator 模型文件）

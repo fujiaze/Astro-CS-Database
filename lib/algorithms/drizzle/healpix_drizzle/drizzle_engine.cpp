@@ -1416,16 +1416,16 @@ void DrizzleEngine::processPixelSharedTiled(
         // 只在 set_overlap_capture 启用且本叶是某控制点目标叶、源像元在该点半径
         // 内时记录 R 的 (像素, 叶) 系数三要素 (a_jp, A_drop,j, A_pixel,j)。
         if (t_op_sink != nullptr && op_capture_targets_ != nullptr) {
-            const auto tit = op_capture_targets_->find(ipix);
-            if (tit != op_capture_targets_->end()) {
-                const double dx = px - tit->second.cx;
-                const double dy = py - tit->second.cy;
-                if (dx * dx + dy * dy <= tit->second.radius * tit->second.radius) {
-                    t_op_sink->push_back({static_cast<int>(px), static_cast<int>(py),
-                                          ipix, static_cast<double>(overlap_area),
-                                          static_cast<double>(drop_area),
-                                          static_cast<double>(pixel_area)});
-                }
+            // 捕获判据 = **该叶是某控制点的目标叶**（NOISE_SNR §11.2「局部模型要包含
+            // 所选观测叶的全部随机贡献; N_p 必须来自同次生产叶的完整有效样本」）。
+            // 旧实现在此再按控制点半径过滤源像元 ⇒ 叶的完整 N_p 与完整随机贡献被
+            // 局部窗口偷偷换掉（F02）。半径不再进入捕获判据; 模板足迹半径由
+            // normalize_precision 侧独立施加（只影响 P, 不影响 R/方差域）。
+            if (op_capture_targets_->find(ipix) != op_capture_targets_->end()) {
+                t_op_sink->push_back({static_cast<int>(px), static_cast<int>(py),
+                                      ipix, static_cast<double>(overlap_area),
+                                      static_cast<double>(drop_area),
+                                      static_cast<double>(pixel_area)});
             }
         }
 
