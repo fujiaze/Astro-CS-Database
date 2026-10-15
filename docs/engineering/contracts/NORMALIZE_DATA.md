@@ -99,12 +99,24 @@ writer 是唯一最终发布者。Drizzle 可以借用统一 HiPS writer 在 run
 
 | kind | 必需数值/索引载荷 | 计算意义 |
 |---|---|---|
-| psf | source pixel indices、积分响应 P、实际窗口/截断策略、sphere leaf indices、h | h=R P；P 与 F_ref 的通量约定配对 |
-| covariance | 同一 sphere leaf 顺序、维数、C_ref 矩阵、rank/conditioning、background basis Z 及列数、随机分量列表/缺项 | 对称 PSD 的冻结条件模型；窗口中的 V_F 可独立重算 |
+| psf | source pixel indices、**单位总通量的像元积分响应** P、flux_estimator、积分方法/子像元相位、f_enclosed/f_out、支持域、sphere leaf indices、h | h=R P；analytic_total 必须连续模型归一 + 实际像元求积，中心点未归一代理不具 canonical 精度 |
+| covariance | 同一 sphere leaf 与 source pixel 顺序、维数、**显式 C_ref 或同一个精确 factor+CSR 表示**、rank/conditioning、background basis Z、随机分量/缺项 | 对称 PSD 的冻结条件模型；允许精确重建 C=R diag(v) Rᵀ，不强制落 nl×nl 数组 |
 | drizzle_operator | source pixel indices、source Ω/A、sphere leaf indices、CSR row_offsets/column_indices/coefficients、shape | R 对已缩放积分像元的真实线性映射，非另算近似几何 |
 | support | 每 patch 的 detector 边界、实际球面边界采样/面积、有效性与孔洞、leaf_order | 网格分区及模型有效域；边界曲线近似明确记录 |
 | scale | 参数基函数/系数、有效域、输入/输出单位、application ID、参数误差状态 | 一次标度与参考模板变换 |
 | calibration_uncertainty | master IDs、Jacobian/已有分量表示、共享源绑定、遗漏项 | 已建模误差；未测母版不补假矩阵 |
+
+**正式载体选择（2026-10-15 前台裁决）**：在生产模型明确为平面独立条件随机分量且 v_j>0 的情况下，**优先使用 CSR(R) + 逐源像元 v_j 的精确因子表示**，不要求默认写明文 nl×nl 协方差。显式矩阵只作小规模科学对照/开发可选表示。此取舍在模型假设成立时没有统计近似，减少模型体积，但**并不补回** omitted master/photometric correlation 或未知实测噪声分量。因子真实单位为 [linear_integrated_signal]²，R 单位 sr⁻¹，派生 C 单位 [linear_signal]²/sr²；三者不可共用一个 BUNIT。
+
+**因子格式的正式版本与读侧强约束**：既有 `acsd.normalize.local-factor/v1` 是早期实现，出现了 factor payload `values=v_j` 却把 `unit` 写为 ADU²/sr²、`matrix_shape` 写成 [m,1] 而非实际逻辑 C 的 [nl,nl] 的错位。修复时必须将**新语义**以显式新版本 `acsd.normalize.local-factor/v2` 或经证明不会误读的等价版本化 schema 表达；推荐如下不可混淆字段：
+
+- `logical_covariance_shape=[nl,nl]`、`derived_covariance_unit=linear_unit²/sr²`、`covariance_condition=reference_source`；
+- `factor_model=planar_diagonal`、`factor_variance=v_j`、`factor_shape=[m]`、`factor_variance_unit=linear_unit²`、`source_pixel_indices`；
+- `operator_ref=<same control R>`、`operator_shape=[nl,m]`、`operator_unit=sr^-1`、`leaf_ipix_order=HEALPix_NESTED`、真实 CSR row/column/coeff 与每叶完整 N_p；
+- `background_basis_shape=[nl,n_bg]`、`background_basis_unit/basis_definition`（Z 必须与被估计的 β 单位成对）、`rank/condition/solver/relative_tol` 和独立模型/hash refs；
+- `assumptions=[diagonal_planar_condition]` 及所有 `omitted_terms`，不把模型内的“精确”冒称物理世界中所有误差都已建模。
+
+同一个完成模型以 **C=R diag(v)Rᵀ** 精确重建、能与小窗显式 C 逐项对拍，才可写 `exact_factorization_of_model=true`。如果未来有平面共同母版/标度低秩项，必须使用声明了额外因子的更一般模型/新版本，不能把源噪声近似成 diagonal 后仍称全协方差已建模。已有 v1 读侧按旧含义/真实来源做严格兼容或拒绝 canonical 使用，不允许悄悄重新标记其数值单位。FrameScience v1 可以通过已有具版本的 model refs 指向 factor v2；只有发生破坏性 top-level 形状修改时才升级 frame_science schema。
 
 同一局部窗口的索引、h、C、Z 和 R 必须维数相容；CSR 数组非负几何系数及归一按实际有效样本验证。计算 `V_F` 不能先逆全帧矩阵，采用局部 SPD 解或一致的可估计子空间分解；留出/截断/窗口模型误差单独标记。每个控制点可引用自己的模型 ID，多个点确实共享同一模型时才共用 ID。跨控制点不凭同名 PSF 强加同一数值矩阵。
 
