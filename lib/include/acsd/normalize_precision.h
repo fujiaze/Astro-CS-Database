@@ -73,6 +73,10 @@ struct PrecisionFrameRequest {
   //   applied_scale = α。var_plane 以**同一数组标度**给出（= α²·原生 ADU²）。
   bool photometry_applied = false;
   double applied_scale = 1.0;
+  // 逐像元标度 α_j（= applied/native; 空间 alpha）。空 ⇒ 全帧常量 applied_scale。
+  // 用于 NOISE_SNR §11.3 的源泊松有效 gain g_eff = g·a_ref/α_j²。
+  std::vector<double> pixel_scale;
+  std::string gain_provenance = "unavailable";
   double window_radius_px = 0.0;   // 实际使用的窗口半径（support 模型记录用）
   double pixel_scale_arcsec = 1.0; // 输入像元角尺度（query_disc 半径估计用）
 };
@@ -94,11 +98,16 @@ build_capture_targets(
 // 由捕获结果构造每控制点平面局部窗口（R 的 CSR→稠密小矩阵 + P + v）。
 // 控制点与 req.ctrl_x/ctrl_y 逐一对齐（同序）; 无捕获贡献的点给空窗口（由 GLS
 // 侧记 unavailable, 不虚构）。
+// targets = build_capture_targets 的返回（叶 → 归属控制点中心）。观测域 = 归属本
+// 控制点的目标叶 + 给这些叶贡献的**全部**源像元（NOISE_SNR §11.2「所选观测叶的
+// 完整有效样本」）; 半径不参与观测域判定, 只用于模板足迹记录。
 std::vector<acsd::normalize::PlanarPatchWindow> build_patch_windows(
     const PrecisionFrameRequest& req,
     const std::vector<drizzle::DrizzleEngine::SourceLeafOverlap>& overlaps,
     const std::function<void(double, double, double*, double*)>& pixel_to_sky_fits1,
-    double omega_leaf);
+    double omega_leaf,
+    const std::unordered_map<std::uint64_t, drizzle::DrizzleEngine::OverlapTarget>&
+        targets);
 
 // ── staging（run-private; writer 唯一发布者）────────────────────────────────
 struct StagedPrecision {

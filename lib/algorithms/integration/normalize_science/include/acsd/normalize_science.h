@@ -128,6 +128,7 @@ struct LocalModelPayload {
   // drizzle_operator 专有
   std::vector<double> source_omega;               // Ω_j (sr)
   std::vector<double> source_a_drop;              // A_drop,j (sr)
+  std::vector<double> source_n_leaf;              // 每叶完整 N_l (sr; 同次生产)
   std::vector<std::int64_t> csr_row_offsets;
   std::vector<std::int32_t> csr_column_indices;
   std::vector<double> csr_coefficients;

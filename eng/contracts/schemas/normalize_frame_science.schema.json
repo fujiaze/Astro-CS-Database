@@ -997,8 +997,15 @@
           "minLength": 1
         },
         "support_area_sr": {
-          "type": "number",
-          "exclusiveMinimum": 0
+          "anyOf": [
+            {
+              "type": "number",
+              "exclusiveMinimum": 0
+            },
+            {
+              "type": "null"
+            }
+          ]
         },
         "psf_model_id": {
           "type": "string",
@@ -1055,8 +1062,15 @@
           "$ref": "#/$defs/status"
         },
         "covariance_rank": {
-          "type": "integer",
-          "minimum": 0
+          "anyOf": [
+            {
+              "type": "integer",
+              "minimum": 0
+            },
+            {
+              "type": "null"
+            }
+          ]
         },
         "condition_number": {
           "anyOf": [
@@ -1071,6 +1085,10 @@
         },
         "surface_transfer": {
           "$ref": "#/$defs/transfer"
+        },
+        "leaf_order": {
+          "type": "integer",
+          "minimum": 1
         }
       },
       "required": [
@@ -1090,7 +1108,8 @@
         "status",
         "covariance_rank",
         "condition_number",
-        "surface_transfer"
+        "surface_transfer",
+        "leaf_order"
       ],
       "allOf": [
         {
@@ -1143,6 +1162,32 @@
                 "type": "null"
               },
               "reference_snr": {
+                "type": "null"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "status": {
+                "properties": {
+                  "availability": {
+                    "const": "unavailable"
+                  }
+                }
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "support_area_sr": {
+                "type": "null"
+              },
+              "covariance_rank": {
+                "type": "null"
+              },
+              "leaf_order": {
                 "type": "null"
               }
             }

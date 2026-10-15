@@ -9241,7 +9241,7 @@ Result<void> p1_op_drizzle(const Json& doc, Json* man) {
       if (precision_reference_.kind ==
           acsd::normalize::ReferenceKind::kExplicitLinearFlux) {
         prec_windows = acsd::phase1::precision::build_patch_windows(
-            preq, prec_overlaps, pix2sky, omega_leaf);
+            preq, prec_overlaps, pix2sky, omega_leaf, prec_targets);
       }
       acsd::normalize::FrameScienceDocument fdoc;
       {

@@ -183,6 +183,66 @@ bool invert_ff_entry(const std::vector<double>& m, int n, double* out_vf,
   return true;
 }
 
+// ── 对称半正定矩阵的保留子空间二次型（F01 修复的核心）───────────────────────
+// 输入 H（m×m, 对称 PSD = V^{1/2} RᵀR V^{1/2}）与 B（m×ncol = V^{1/2} G A_src）。
+// 输出 M = Bᵀ H⁺² B（**平方**的 Moore-Penrose 逆; 显式特征分解 + 保留子空间;
+// rank 报告 H 的秩 = rank(C_sphere)）。
+// 推导: C = R V Rᵀ = Q Qᵀ（Q = R V^{1/2}）⇒ C⁺ = Q H⁺² Qᵀ ⇒
+//   RᵀC⁺R = G V^{1/2} H⁺² V^{1/2} G（G = RᵀR）
+//   ⇒ M = A_srcᵀ RᵀC⁺R A_src = Bᵀ H⁺² B,  B = V^{1/2} G A_src
+// H ≻ 0（R 满列秩）时严格有 M = A_srcᵀ V⁻¹ A_src（NOISE_SNR §11.1 恒等式;
+// 旧实现除了矩阵次序错误还漏掉 H 的平方 ⇒ 反例 rel err -0.66）。
+// H 半正定（R 秩亏）时只在保留子空间内报告; 被投掉的方向不当作零信息, 不加地板。
+bool retained_subspace_quadratic(const std::vector<double>& h, int m,
+                                 const std::vector<double>& b, int ncol,
+                                 double rank_tol, std::vector<double>* m_out,
+                                 int* rank_out, double* cond_out) {
+  std::vector<double> w, v;
+  jacobi_eigh(h, m, w, v);
+  double wmax = 0.0;
+  for (int i = 0; i < m; ++i) wmax = std::max(wmax, w[static_cast<std::size_t>(i)]);
+  if (!(wmax > 0.0) || !std::isfinite(wmax)) return false;
+  const double tol = (rank_tol > 0.0 ? rank_tol : 1e-12) * wmax;
+  int rank = 0;
+  double wmin_pos = 0.0;
+  for (int i = 0; i < m; ++i) {
+    if (w[static_cast<std::size_t>(i)] > tol) {
+      ++rank;
+      if (wmin_pos == 0.0) wmin_pos = w[static_cast<std::size_t>(i)];
+    }
+  }
+  m_out->assign(static_cast<std::size_t>(ncol) * ncol, 0.0);
+  for (int i = 0; i < m; ++i) {
+    if (!(w[static_cast<std::size_t>(i)] > tol)) continue;  // 非保留方向不进 M
+    std::vector<double> bi(ncol, 0.0);
+    for (int j = 0; j < m; ++j) {
+      const double vji = v[static_cast<std::size_t>(j) * m + i];
+      if (vji == 0.0) continue;
+      for (int c = 0; c < ncol; ++c) {
+        bi[static_cast<std::size_t>(c)] +=
+            vji * b[static_cast<std::size_t>(j) * ncol + c];
+      }
+    }
+    const double inv = 1.0 / (w[static_cast<std::size_t>(i)] *
+                               w[static_cast<std::size_t>(i)]);
+    for (int a = 0; a < ncol; ++a) {
+      const double ba = bi[static_cast<std::size_t>(a)];
+      if (ba == 0.0) continue;
+      for (int c = a; c < ncol; ++c) {
+        const double val = ba * bi[static_cast<std::size_t>(c)] * inv;
+        (*m_out)[static_cast<std::size_t>(a) * ncol + c] += val;
+        if (c != a) (*m_out)[static_cast<std::size_t>(c) * ncol + a] += val;
+      }
+    }
+  }
+  if (rank_out) *rank_out = rank;
+  if (cond_out) *cond_out = wmin_pos > 0.0 ? wmax / wmin_pos : kNaN;
+  for (double x : *m_out) {
+    if (!std::isfinite(x)) return false;
+  }
+  return true;
+}
+
 }  // namespace
 
 const char* to_string(LocalModelKind kind) {
@@ -284,18 +344,24 @@ SphericalCompletionResult complete_spherical_reference(
 
   // 缺项登记（合同 §5: 只有确定被省略项是 PSD 随机噪声且模板/域固定时才可称
   // upper_bound; 有未定标增益/母版/模板误差 ⇒ approximate）。
+  // 帧级缺项基线（合同 §5）。逐点可因窗口截断/模板缺项**进一步降级**;
+  // 帧级状态在循环后由全部有效控制点归约（不提前宣告比任何点都严格的结论）。
   const bool gain_known = std::isfinite(cfg.gain_e_per_adu) && cfg.gain_e_per_adu > 0.0;
-  std::vector<std::string> omitted;
-  if (!gain_known) omitted.push_back("source_poisson");
-  if (!cfg.master_uncertainty_modelled) omitted.push_back("master_uncertainty");
-  PrecisionAccuracy accuracy = PrecisionAccuracy::kConditionalComplete;
+  std::vector<std::string> omitted_frame;
+  if (!gain_known) omitted_frame.push_back("source_poisson");
+  if (!cfg.master_uncertainty_modelled) omitted_frame.push_back("master_uncertainty");
+  PrecisionAccuracy accuracy_frame = PrecisionAccuracy::kConditionalComplete;
   if (!gain_known) {
-    accuracy = cfg.template_fixed ? PrecisionAccuracy::kUpperBound
-                                  : PrecisionAccuracy::kApproximate;
+    accuracy_frame = cfg.template_fixed ? PrecisionAccuracy::kUpperBound
+                                        : PrecisionAccuracy::kApproximate;
   }
   if (!cfg.master_uncertainty_modelled &&
-      accuracy == PrecisionAccuracy::kConditionalComplete) {
-    accuracy = PrecisionAccuracy::kApproximate;
+      accuracy_frame == PrecisionAccuracy::kConditionalComplete) {
+    accuracy_frame = PrecisionAccuracy::kApproximate;
+  }
+  if (!cfg.template_fixed &&
+      accuracy_frame == PrecisionAccuracy::kConditionalComplete) {
+    accuracy_frame = PrecisionAccuracy::kApproximate;
   }
 
   const double f_ref = *cfg.reference.flux;
@@ -308,10 +374,14 @@ SphericalCompletionResult complete_spherical_reference(
   const int ncol = 1 + n_bg;
 
   out.precision.status.availability = PrecisionAvailability::kAvailable;
-  out.precision.status.accuracy = accuracy;
-  out.precision.status.omitted_terms = omitted;
+  out.precision.status.accuracy = accuracy_frame;
+  out.precision.status.omitted_terms = omitted_frame;
 
   std::uint64_t n_available = 0;
+  // 帧级归约用: 有效控制点中最严格的 accuracy 与 omitted_terms 并集。
+  PrecisionAccuracy worst_accuracy = accuracy_frame;
+  bool any_available = false;
+  std::vector<std::string> union_omitted = omitted_frame;
   for (std::size_t window_index = 0; window_index < windows.size();
        ++window_index) {
     const acsd::normalize::PlanarPatchWindow& w = windows[window_index];
@@ -340,7 +410,7 @@ SphericalCompletionResult complete_spherical_reference(
     };
 
     if (m == 0 || nl == 0 || w.op_c.size() != w.op_pix.size() ||
-        w.op_c.size() != w.op_leaf.size() || w.target_leaf == 0) {
+        w.op_c.size() != w.op_leaf.size() || !w.has_target_leaf) {
       fail_point("empty_local_window");
       out.precision.controls.push_back(ctrl);
       continue;
@@ -357,9 +427,88 @@ SphericalCompletionResult complete_spherical_reference(
       continue;
     }
 
-    // 平面源泊松条件: v_j 已是 (调用方换算到数组标度的) blank-sky 方差;
-    // 参考源泊松期望 F_ref·P_j/gain 在**原生** gain 下建模后随 D_alpha 变换进入
-    // （调用方已按合同 §4 把 α² 乘入 v_j; 这里只加参考源项）。
+    // 平面源泊松条件（NOISE_SNR §11.3 / PHOTOMETRY §4）:
+    //   v_j 已是（调用方换算到 applied 数组标度的）blank-sky 方差 = α_j²·原生方差;
+    //   参考源泊松期望在**原生** gain g 下为 F_native·P_j/g，施加确定性标度后
+    //   为 α_j²·F_native·P_j/g。以 applied 面的 F_applied 表示时该分量写作
+    //   α_j·F_applied·P_j/g（等价有效 gain g_eff = g·a_ref/α_j²）。
+    //   原生 gain 的设备来源保留在 cfg.gain_provenance, 不被有效 gain 覆盖。
+    const double alpha_const =
+        std::isfinite(cfg.plane_scale) && cfg.plane_scale > 0.0 ? cfg.plane_scale
+                                                                : 1.0;
+    std::vector<double> alpha(m, alpha_const);
+    if (!cfg.pixel_scale.empty()) {
+      if (cfg.pixel_scale.size() != m) {
+        fail_point("pixel_scale_length_mismatch");
+        out.precision.controls.push_back(ctrl);
+        continue;
+      }
+      for (std::size_t j = 0; j < m; ++j) {
+        if (!std::isfinite(cfg.pixel_scale[j]) || !(cfg.pixel_scale[j] > 0.0)) {
+          fail_point("nonfinite_pixel_scale");
+          alpha.clear();
+          break;
+        }
+        alpha[j] = cfg.pixel_scale[j];
+      }
+      if (alpha.empty()) {
+        out.precision.controls.push_back(ctrl);
+        continue;
+      }
+    }
+    // a_ref(u) = Σ_j α_j·P_j（NORMALIZE_DATA §5 的空间标度配对归一）
+    double a_ref = 0.0;
+    for (std::size_t j = 0; j < m; ++j) a_ref += alpha[j] * std::max(0.0, w.profile[j]);
+    if (!(a_ref > 0.0) || !std::isfinite(a_ref)) {
+      fail_point("nonfinite_reference_scale");
+      out.precision.controls.push_back(ctrl);
+      continue;
+    }
+    const bool gain_known =
+        std::isfinite(cfg.gain_e_per_adu) && cfg.gain_e_per_adu > 0.0;
+    // 窗口算子截断: 窗口像素对目标叶完整 N_p 的覆盖不足 ⇒ 随机贡献被省略,
+    // 不得声称完整（NOISE_SNR §11.2「随机方差不能被省略后称完整」）。
+    double n_p_full = 0.0;
+    double n_p_cov = 0.0;
+    {
+      const int nlf = static_cast<int>(w.leaf_ipix.size());
+      const double* nf = w.leaf_n_full.empty() ? nullptr : w.leaf_n_full.data();
+      const double* nc = w.leaf_n_covered.empty() ? nullptr : w.leaf_n_covered.data();
+      for (int l = 0; l < nlf; ++l) {
+        if (w.leaf_ipix[static_cast<std::size_t>(l)] != w.target_leaf) continue;
+        if (nf && l < static_cast<int>(w.leaf_n_full.size()))
+          n_p_full = w.leaf_n_full[static_cast<std::size_t>(l)];
+        if (nc && l < static_cast<int>(w.leaf_n_covered.size()))
+          n_p_cov = w.leaf_n_covered[static_cast<std::size_t>(l)];
+      }
+    }
+    const bool operator_complete =
+        n_p_full > 0.0 && n_p_cov >= n_p_full * (1.0 - 1e-9);
+    // 逐点 accuracy / omitted_terms（帧级基线 + 本点专属缺项）。
+    PrecisionAccuracy accuracy_pw = accuracy_frame;
+    std::vector<std::string> omitted_pw = omitted_frame;
+    if (!gain_known) {
+      // 只有省略项是 PSD 随机噪声且模板/域固定时才可称 upper_bound（合同 §5）;
+      // 算子被截断 ⇒ 不满足「局部域完整」前提 ⇒ 至多 approximate。
+      accuracy_pw = (cfg.template_fixed && operator_complete)
+                        ? PrecisionAccuracy::kUpperBound
+                        : PrecisionAccuracy::kApproximate;
+    }
+    if (!operator_complete) {
+      omitted_pw.push_back("operator_window_truncation");
+      if (accuracy_pw == PrecisionAccuracy::kConditionalComplete) {
+        accuracy_pw = PrecisionAccuracy::kApproximate;
+      }
+    }
+    if (!cfg.master_uncertainty_modelled &&
+        accuracy_pw == PrecisionAccuracy::kConditionalComplete) {
+      accuracy_pw = PrecisionAccuracy::kApproximate;
+    }
+    if (!cfg.template_fixed &&
+        accuracy_pw == PrecisionAccuracy::kConditionalComplete) {
+      accuracy_pw = PrecisionAccuracy::kApproximate;
+    }
+
     std::vector<double> v(m);
     double vmin = 0.0, vmax = 0.0;
     for (std::size_t j = 0; j < m; ++j) {
@@ -371,7 +520,10 @@ SphericalCompletionResult complete_spherical_reference(
       }
       if (gain_known) {
         const double pj = std::max(0.0, w.profile[j]);
-        vj += f_ref * pj / cfg.gain_e_per_adu;
+        // applied 面源泊松 = α_j²·F_native·P_j/g, F_native = F_applied/a_ref
+        // ⇒ (α_j²/a_ref)·F_applied·P_j/g。α_j 恒为 α 时化简为 α·F_applied·P_j/g
+        // （NOISE_SNR §11.3 逐字）; α=1 时逐位退化为 F_applied·P_j/g。
+        vj += (alpha[j] * alpha[j] / a_ref) * (f_ref * pj / cfg.gain_e_per_adu);
       }
       if (!std::isfinite(vj)) {
         fail_point("nonfinite_local_variance");
@@ -415,19 +567,25 @@ SphericalCompletionResult complete_spherical_reference(
     // 秩亏（Cholesky 失败）⇒ 参数不可辨识 ⇒ unavailable（合同 §6: 不用伪逆制造
     // 信息量, 不用任意地板）。该路径与显式 nl 空间 GLS 的数值一致性由
     // eng/tests/unit/sparse_reference_gls_test.cpp 的 dual 段对拍验证。
-    // ── 球面 GLS（精确; NORMALIZE_DATA §6 + NOISE_SNR §3）────────────────────
-    // y = F·(R P) + Z_s·β + n, C = R V Rᵀ, V = diag(v_j), A_s = [R P, R Z]。
-    // 两条等价精确路径（按 m 与 nl 的大小选, 都只做一次稠密 Cholesky）:
-    //   (a) m ≤ nl（R 满列秩）: (RVRᵀ)⁺ = R̃(R̃ᵀR̃)⁻²R̃ᵀ, R̃ = R V^{1/2}
-    //       ⇒ M = Bᵀ H⁻² B, B = G V^{1/2} A_src, G = RᵀR, H = V^{1/2} G V^{1/2}
-    //   (b) m > nl（R 满行秩）: C = R V Rᵀ (nl×nl) 直接 Cholesky,
-    //       M = A_sᵀ C⁻¹ A_s
-    // 秩亏（Cholesky 失败）⇒ 参数不可辨识 ⇒ unavailable（合同 §6: 不用伪逆制造
-    // 信息量、不用任意地板）。与显式定义式 [(AᵀC⁻¹A)⁻¹]_FF 的数值一致性由
-    // eng/tests/unit/sparse_reference_gls_test.cpp 的 dual 段对拍验证。
+    // ── 球面 GLS（精确; NORMALIZE_DATA §6 + NOISE_SNR §3/§11.1）────────────
+    // y = F·(R P) + Z_s·β + n, C = R V Rᵀ, V = diag(v_j), A_s = [R P, R Z]（nl×ncol）。
+    // 欲求 M = A_sᵀ C⁺ A_s。直接做需要 nl×nl 求逆（nl 可达数千）。用恒等式
+    //   Rᵀ(RVRᵀ)⁺R = G V^{1/2} H⁺ V^{1/2} G,  G = RᵀR, H = V^{1/2} G V^{1/2}
+    // （H 与 C 的非零特征值相同 ⇒ 秩与条件数同源）, 于是
+    //   M = A_srcᵀ RᵀC⁺R A_src = Bᵀ H⁺² B,  B = V^{1/2} G A_src,  A_src = [P, Z]
+    // **次序**: B = V^{1/2}·G·A_src（V^{1/2} 在左）。G 与 V^{1/2} 一般不交换;
+    // 旧实现写成 G·V^{1/2}·A_src ⇒ 异方差下错误（F01 反例, NOISE_SNR §11.1）。
+    // H ≻ 0（R 满列秩, 由特征分解显式验证）时严格有
+    //   M = A_srcᵀ V⁻¹ A_src            （NOISE_SNR §11.1 条件信息恒等式）
+    // H 半正定（R 秩亏）时用显式特征分解取保留子空间; 被投掉的方向不当作零信息,
+    // 参数子空间内不可辨识 ⇒ unavailable（合同 §6: 不加 epsilon、不用伪逆造信息量）。
+    // 与显式 nl 空间 GLS 的数值一致性由 eng/tests/unit/sparse_reference_gls_test.cpp
+    // 的 dual 段对拍验证（不调用同一构造函数作 oracle）。
     std::vector<double> mm(static_cast<std::size_t>(ncol) * ncol, 0.0);
+    int cov_rank = 0;
+    double cov_cond = kNaN;
     bool gls_ok = false;
-    if (m <= static_cast<std::size_t>(nl)) {
+    {
       // G = RᵀR (m×m): G[j][j'] = Σ_l c_lj·c_lj'（按叶聚合, O(nnz + Σk_l²)）
       std::vector<double> g(static_cast<std::size_t>(m) * m, 0.0);
       {
@@ -453,7 +611,8 @@ SphericalCompletionResult complete_spherical_reference(
           }
         }
       }
-      std::vector<double> hmat = g;   // H = V^{1/2} G V^{1/2}
+      // H = V^{1/2} G V^{1/2}
+      std::vector<double> hmat = g;
       for (int j = 0; j < static_cast<int>(m); ++j) {
         const double sj = std::sqrt(v[static_cast<std::size_t>(j)]);
         for (int j2 = 0; j2 < static_cast<int>(m); ++j2) {
@@ -461,122 +620,30 @@ SphericalCompletionResult complete_spherical_reference(
           hmat[static_cast<std::size_t>(j) * m + j2] *= sj * s2;
         }
       }
-      if (cholesky_spd(hmat, static_cast<int>(m))) {
-        // B = G V^{1/2} A_src, Y = H⁻¹B, M = YᵀY
-        std::vector<double> ymat(static_cast<std::size_t>(m) * ncol, 0.0);
-        for (int c = 0; c < ncol; ++c) {
-          std::vector<double> bcol(static_cast<std::size_t>(m), 0.0);
-          for (int j = 0; j < static_cast<int>(m); ++j) {
-            // B[j][c] = Σ_{j2} G[j][j2]·V^{1/2}[j2]·A_src[j2][c]
-            double sum = 0.0;
-            for (int j2 = 0; j2 < static_cast<int>(m); ++j2) {
-              const double s2 = std::sqrt(v[static_cast<std::size_t>(j2)]);
-              const double colv = c == 0   ? w.profile[static_cast<std::size_t>(j2)]
-                                 : c == 1 ? 1.0
-                                 : c == 2 ? w.src_x[static_cast<std::size_t>(j2)]
-                                          : w.src_y[static_cast<std::size_t>(j2)];
-              sum += g[static_cast<std::size_t>(j) * m + j2] * s2 * colv;
+      // B = V^{1/2} G A_src（m×ncol; 正确次序: V^{1/2} 在左）
+      std::vector<double> bmat(static_cast<std::size_t>(m) * ncol, 0.0);
+      for (int c = 0; c < ncol; ++c) {
+        for (int j = 0; j < static_cast<int>(m); ++j) {
+          auto src_col = [&](int j2) -> double {
+            switch (c) {
+              case 0:  return w.profile[static_cast<std::size_t>(j2)];
+              case 1:  return 1.0;
+              case 2:  return w.src_x[static_cast<std::size_t>(j2)];
+              default: return w.src_y[static_cast<std::size_t>(j2)];
             }
-            bcol[static_cast<std::size_t>(j)] = sum;
+          };
+          // (V^{1/2} G A_src)[j][c] = sqrt(v_j) · Σ_{j2} G[j][j2]·A_src[j2][c]
+          double sum = 0.0;
+          for (int j2 = 0; j2 < static_cast<int>(m); ++j2) {
+            sum += g[static_cast<std::size_t>(j) * m + j2] * src_col(j2);
           }
-          std::vector<double> xcol(static_cast<std::size_t>(m), 0.0);
-          cholesky_solve(hmat, static_cast<int>(m), bcol.data(), xcol.data());
-          for (int j = 0; j < static_cast<int>(m); ++j) {
-            ymat[static_cast<std::size_t>(j) * ncol + c] =
-                xcol[static_cast<std::size_t>(j)];
-          }
-        }
-        for (std::size_t j = 0; j < m; ++j) {
-          for (int a = 0; a < ncol; ++a) {
-            const double ya = ymat[j * ncol + a];
-            if (ya == 0.0) continue;
-            for (int b = a; b < ncol; ++b) {
-              const double val = ya * ymat[j * ncol + b];
-              mm[static_cast<std::size_t>(a) * ncol + b] += val;
-              if (b != a) mm[static_cast<std::size_t>(b) * ncol + a] += val;
-            }
-          }
-        }
-        gls_ok = true;
-      }
-    } else {
-      // C = R V Rᵀ (nl×nl) 直接路径
-      std::vector<double> cov(static_cast<std::size_t>(nl) * nl, 0.0);
-      {
-        std::vector<std::vector<std::pair<int, double>>> per_leaf(
-            static_cast<std::size_t>(nl));
-        for (std::size_t k = 0; k < w.op_c.size(); ++k) {
-          const int l = w.op_leaf[k];
-          const int j = w.op_pix[k];
-          if (l < 0 || l >= nl || j < 0 || static_cast<std::size_t>(j) >= m) continue;
-          per_leaf[static_cast<std::size_t>(l)].emplace_back(j, w.op_c[k]);
-        }
-        for (int l = 0; l < nl; ++l) {
-          const auto& js = per_leaf[static_cast<std::size_t>(l)];
-          for (std::size_t a = 0; a < js.size(); ++a) {
-            const std::size_t ja = static_cast<std::size_t>(js[a].first);
-            cov[static_cast<std::size_t>(l) * nl + l] +=
-                js[a].second * v[ja] * js[a].second;
-            for (std::size_t b = a + 1; b < js.size(); ++b) {
-              const std::size_t jb = static_cast<std::size_t>(js[b].first);
-              const double val = js[a].second * v[ja] * js[b].second;
-              cov[static_cast<std::size_t>(l) * nl + l] += 0.0;  // 对角已计
-              (void)val;
-            }
-          }
-        }
-        // 非对角: C[l][l'] = Σ_j c_lj v_j c_lj'（共享像元对）
-        for (std::size_t j = 0; j < m; ++j) {
-          if (!(v[j] > 0.0)) continue;
-          std::vector<std::pair<int, double>> lj;   // (leaf, c) for this pixel
-          for (std::size_t k = 0; k < w.op_c.size(); ++k) {
-            if (w.op_pix[k] != static_cast<int>(j)) continue;
-            const int l = w.op_leaf[k];
-            if (l < 0 || l >= nl) continue;
-            lj.emplace_back(l, w.op_c[k]);
-          }
-          for (std::size_t a = 0; a < lj.size(); ++a) {
-            for (std::size_t b = a + 1; b < lj.size(); ++b) {
-              const double val = lj[a].second * v[j] * lj[b].second;
-              cov[static_cast<std::size_t>(lj[a].first) * nl + lj[b].first] += val;
-              cov[static_cast<std::size_t>(lj[b].first) * nl + lj[a].first] += val;
-            }
-          }
+          bmat[static_cast<std::size_t>(j) * ncol + c] =
+              std::sqrt(v[static_cast<std::size_t>(j)]) * sum;
         }
       }
-      if (cholesky_spd(cov, nl)) {
-        // A_s = [R P, R Z]（nl × ncol）
-        std::vector<double> as(static_cast<std::size_t>(nl) * ncol, 0.0);
-        for (std::size_t k = 0; k < w.op_c.size(); ++k) {
-          const int l = w.op_leaf[k];
-          const int j = w.op_pix[k];
-          if (l < 0 || l >= nl || j < 0 || static_cast<std::size_t>(j) >= m) continue;
-          const double c = w.op_c[k];
-          as[static_cast<std::size_t>(l) * ncol + 0] += c * w.profile[static_cast<std::size_t>(j)];
-          if (ncol > 1)
-            as[static_cast<std::size_t>(l) * ncol + 1] += c * 1.0;
-          if (ncol > 2)
-            as[static_cast<std::size_t>(l) * ncol + 2] += c * w.src_x[static_cast<std::size_t>(j)];
-          if (ncol > 3)
-            as[static_cast<std::size_t>(l) * ncol + 3] += c * w.src_y[static_cast<std::size_t>(j)];
-        }
-        for (int c = 0; c < ncol; ++c) {
-          std::vector<double> bcol(static_cast<std::size_t>(nl), 0.0);
-          for (int l = 0; l < nl; ++l)
-            bcol[static_cast<std::size_t>(l)] = as[static_cast<std::size_t>(l) * ncol + c];
-          std::vector<double> xcol(static_cast<std::size_t>(nl), 0.0);
-          cholesky_solve(cov, nl, bcol.data(), xcol.data());
-          for (int a = 0; a < ncol; ++a) {
-            double sum = 0.0;
-            for (int l = 0; l < nl; ++l)
-              sum += as[static_cast<std::size_t>(l) * ncol + a] *
-                    xcol[static_cast<std::size_t>(l)];
-            mm[static_cast<std::size_t>(a) * ncol + c] = sum;
-            mm[static_cast<std::size_t>(c) * ncol + a] = sum;
-          }
-        }
-        gls_ok = true;
-      }
+      gls_ok = retained_subspace_quadratic(hmat, static_cast<int>(m), bmat, ncol,
+                                           cfg.support_rank_tol, &mm, &cov_rank,
+                                           &cov_cond);
     }
     if (!gls_ok) {
       fail_point("operator_rank_deficient");
@@ -598,7 +665,11 @@ SphericalCompletionResult complete_spherical_reference(
       continue;
     }
 
-    // 支持面积（合同 §5: 各有效 patch 的真实球面支持面积为权重; 不重复计面积）
+
+    // 支持面积（合同 §5）: 叶之间互不相交 ⇒ Σ_l min(D_l, Ω_leaf) 本身是不重叠的
+    // 球面面积分区（D_l 是真实 drop 命中面积, Ω_leaf 是其上界）。patch 之间可能
+    // 共享叶 ⇒ **帧级**摘要的权重去重由调用方按 leaf 归属唯一 patch 完成
+    // （detail §7.4「不按求解预算圆盘面积替换」; 求解预算不是物理支持定义）。
     double support_total = 0.0;
     for (double d : w.leaf_dp) support_total += std::min(d, w.omega_leaf);
 
@@ -614,14 +685,18 @@ SphericalCompletionResult complete_spherical_reference(
     }
 
     ctrl.status.availability = PrecisionAvailability::kAvailable;
-    ctrl.status.accuracy = accuracy;
-    ctrl.status.omitted_terms = omitted;
+    ctrl.status.accuracy = accuracy_pw;
+    ctrl.status.omitted_terms = omitted_pw;
     ctrl.reference_flux = f_ref;
     ctrl.flux_variance = v_f;
     ctrl.reference_snr = f_ref / std::sqrt(v_f);
     ctrl.support_area_sr = support_total;
-    ctrl.covariance_rank = static_cast<std::uint64_t>(mrank);
-    ctrl.condition_number = mcond;
+    // covariance_rank / condition_number 指 **C_sphere 的保留子空间**
+    // （detail §7.4: 与参数信息矩阵的秩分名, 不偷换意义）。
+    ctrl.covariance_rank = static_cast<std::uint64_t>(cov_rank);
+    ctrl.condition_number = std::isfinite(cov_cond) && cov_cond >= 1.0
+                                ? std::optional<double>(cov_cond)
+                                : std::nullopt;
     ctrl.leaf_ipix = w.target_leaf;
     ctrl.leaf_order = w.leaf_order;
     if (std::isfinite(v_b) && v_b > 0.0) {
@@ -635,35 +710,133 @@ SphericalCompletionResult complete_spherical_reference(
       ctrl.transfer.reason = "surface_variance_unavailable";
     }
     ++n_available;
+    any_available = true;
+    // 帧级归约: 最严格 accuracy（upper_bound > conditional_complete > approximate
+    // 的严格度排序: approximate 最宽松 ⇒ 任一点 approximate ⇒ 摘要 approximate）。
+    if (accuracy_pw == PrecisionAccuracy::kApproximate) {
+      worst_accuracy = PrecisionAccuracy::kApproximate;
+    } else if (accuracy_pw == PrecisionAccuracy::kConditionalComplete &&
+               worst_accuracy == PrecisionAccuracy::kUpperBound) {
+      worst_accuracy = PrecisionAccuracy::kConditionalComplete;
+    }
+    for (const auto& t : omitted_pw) {
+      if (std::find(union_omitted.begin(), union_omitted.end(), t) ==
+          union_omitted.end()) {
+        union_omitted.push_back(t);
+      }
+    }
 
+    // ── 局部窗口载荷（合同 §7.1 + detail §7.4 的真实 shape/单位/秩）──────────
     SphericalCompletionResult::LocalWindow lw;
     lw.window_index = window_index;
     lw.control_id = w.control_id;
     lw.pix_index = w.pix_index;
     lw.profile = w.profile;
-    lw.h_sphere = w.profile;   // h = R P 的信息等价源空间像
-    lw.variance = v;           // C_sphere = R diag(v) Rᵀ 的逐像元因子
-    for (int b = 1; b < n_bg; ++b) {
-      for (std::size_t j = 0; j < m; ++j) {
-        lw.z_sphere.push_back(b == 1 ? 1.0
-                                     : (b == 2 ? w.src_x[j] : w.src_y[j]));
+    // h_sphere = R P（长度 nl; 单位 1/sr）。旧实现把平面 P（长度 m）标成球面 h。
+    lw.h_sphere.assign(static_cast<std::size_t>(nl), 0.0);
+    for (std::size_t k = 0; k < w.op_c.size(); ++k) {
+      const int l = w.op_leaf[k];
+      const int j = w.op_pix[k];
+      if (l < 0 || l >= nl || j < 0 || static_cast<std::size_t>(j) >= m) continue;
+      lw.h_sphere[static_cast<std::size_t>(l)] +=
+          w.op_c[k] * w.profile[static_cast<std::size_t>(j)];
+    }
+    // v_j（C = R diag(v) Rᵀ 的精确源空间因子; 长度 m, linear_unit²/sr² 的因子）
+    lw.source_variance = v;
+    // Z_sphere = R Z_planar（nl × n_bg row-major; 与 h 同一叶序）
+    lw.n_bg = n_bg;
+    // Z_sphere = R Z_planar: nl × n_bg row-major（n_bg 列; 列索引 1..n_bg）
+    for (int b = 1; b <= n_bg; ++b) {
+      for (int l = 0; l < nl; ++l) lw.z_sphere.push_back(0.0);
+    }
+    for (std::size_t k = 0; k < w.op_c.size(); ++k) {
+      const int l = w.op_leaf[k];
+      const int j = w.op_pix[k];
+      if (l < 0 || l >= nl || j < 0 || static_cast<std::size_t>(j) >= m) continue;
+      const double c = w.op_c[k];
+      for (int b = 1; b <= n_bg; ++b) {
+        const double planar = (b == 1) ? 1.0
+                            : (b == 2) ? w.src_x[static_cast<std::size_t>(j)]
+                                       : w.src_y[static_cast<std::size_t>(j)];
+        lw.z_sphere[static_cast<std::size_t>(b - 1) * nl +
+                    static_cast<std::size_t>(l)] += c * planar;
       }
     }
-    lw.n_bg = n_bg;
+    // C_sphere = R diag(v) Rᵀ（nl×nl row-major）。仅在 nl 不超过落盘预算时写显式
+    // 矩阵; 超出时只保留精确因子（v_j + R 的 CSR, 由 drizzle_operator 模型承载）
+    // 并如实登记 representation, **不把因子塞进显式矩阵标签**（合同 §7.1）。
+    lw.covariance_explicit =
+        static_cast<std::uint64_t>(nl) <= cfg.covariance_matrix_budget;
+    if (lw.covariance_explicit) {
+      std::vector<std::vector<std::pair<int, double>>> per_leaf(
+          static_cast<std::size_t>(nl));
+      for (std::size_t k = 0; k < w.op_c.size(); ++k) {
+        const int l = w.op_leaf[k];
+        const int j = w.op_pix[k];
+        if (l < 0 || l >= nl || j < 0 || static_cast<std::size_t>(j) >= m) continue;
+        per_leaf[static_cast<std::size_t>(l)].emplace_back(j, w.op_c[k]);
+      }
+      lw.covariance.assign(static_cast<std::size_t>(nl) * nl, 0.0);
+      // 对角: C[l][l] = Σ_j c_lj² v_j
+      for (int l = 0; l < nl; ++l) {
+        for (const auto& e : per_leaf[static_cast<std::size_t>(l)]) {
+          const double c = e.second;
+          lw.covariance[static_cast<std::size_t>(l) * nl + l] +=
+              c * v[static_cast<std::size_t>(e.first)] * c;
+        }
+      }
+      // 跨叶非对角（共享源像元）: C[l][l'] = Σ_j c_lj v_j c_lj' 
+      for (std::size_t j = 0; j < m; ++j) {
+        if (!(v[j] > 0.0)) continue;
+        std::vector<std::pair<int, double>> lj;
+        for (std::size_t k = 0; k < w.op_c.size(); ++k) {
+          if (w.op_pix[k] != static_cast<int>(j)) continue;
+          const int l = w.op_leaf[k];
+          if (l < 0 || l >= nl) continue;
+          lj.emplace_back(l, w.op_c[k]);
+        }
+        for (std::size_t a = 0; a < lj.size(); ++a) {
+          for (std::size_t b = a + 1; b < lj.size(); ++b) {
+            const double val = lj[a].second * v[j] * lj[b].second;
+            lw.covariance[static_cast<std::size_t>(lj[a].first) * nl +
+                          static_cast<std::size_t>(lj[b].first)] += val;
+            lw.covariance[static_cast<std::size_t>(lj[b].first) * nl +
+                          static_cast<std::size_t>(lj[a].first)] += val;
+          }
+        }
+      }
+    }
+    lw.random_components = {"background", "read_noise", "dark",
+                            "reference_source_poisson"};
+    if (!operator_complete) {
+      lw.random_components.push_back("operator_window_truncation");
+    }
+    lw.omitted_terms = omitted_pw;
     lw.d_p = 0.0;
     for (double d : w.leaf_dp) lw.d_p += d;
+    lw.n_p = n_p_full;
     lw.pix_omega = w.pix_omega;
     lw.pix_a_drop = w.pix_a_drop;
     lw.op_pix = w.op_pix;
     lw.op_leaf = w.op_leaf;
     lw.op_c = w.op_c;
     lw.leaf_dp = w.leaf_dp;
+    lw.omega_sum = 0.0;
     for (double x : w.pix_omega) lw.omega_sum += x;
+    lw.a_drop_sum = 0.0;
     for (double x : w.pix_a_drop) lw.a_drop_sum += x;
     lw.support_area_sr = support_total;
+    lw.operator_coverage_fraction =
+        n_p_full > 0.0 ? std::min(1.0, n_p_cov / n_p_full) : 0.0;
     lw.op_nnz = w.op_c.size();
     out.windows.push_back(std::move(lw));
     out.precision.controls.push_back(std::move(ctrl));
+  }
+
+  // 帧级状态由全部有效控制点归约（不提前宣告比任何点都严格的结论）。
+  if (any_available) {
+    out.precision.status.accuracy = worst_accuracy;
+    out.precision.status.omitted_terms = union_omitted;
   }
 
   if (n_available == 0) {

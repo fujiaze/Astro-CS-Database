@@ -47,12 +47,11 @@ bool moffat4_profile(double sigma_px, double cx, double cy,
     sum += v;
   }
   if (!(sum > 0.0)) return false;
-  double s2 = 0.0;
-  for (std::size_t k = 0; k < pix.size(); ++k) {
-    (*out_p)[k] = vals[k] / sum;
-    s2 += vals[k] * vals[k];
-  }
-  *out_sum_p2 = s2 / (sum * sum);
+  // **不随观测域重归一**（NOISE_SNR §11.2「不能随窗口缩小重新归一 P 并仍沿用总
+  // 通量 F_ref」）: out_p 保持单位总通量的像元积分响应, ΣP = 观测域包络的通量份额
+  // ≤ 1; 窗外份额由 f_out 闭式在 support 模型登记。
+  for (std::size_t k = 0; k < pix.size(); ++k) (*out_p)[k] = vals[k];
+  *out_sum_p2 = sum;   // ΣP（包络份额）, 非 ΣP²
   return true;
 }
 
@@ -249,18 +248,21 @@ std::vector<acsd::normalize::PlanarPatchWindow> build_patch_windows(
     const PrecisionFrameRequest& req,
     const std::vector<drizzle::DrizzleEngine::SourceLeafOverlap>& overlaps,
     const std::function<void(double, double, double*, double*)>& pixel_to_sky_fits1,
-    double omega_leaf) {
+    double omega_leaf,
+    const std::unordered_map<std::uint64_t, drizzle::DrizzleEngine::OverlapTarget>&
+        targets) {
   std::vector<acsd::normalize::PlanarPatchWindow> windows;
   if (req.ctrl_x.size() != req.ctrl_y.size()) return windows;
+  // 记录实际使用的模板足迹半径（support 模型据它估算窗外通量份额 f_out; 不影响
+  // R 与方差域 —— 观测域由归属叶的完整贡献决定, 见下）。
   double& radius_for_note = const_cast<double&>(req.window_radius_px);
-  // 窗口半径 = precision_window_radius_px(req)（与 build_capture_targets 同一推导;
-  //   说明: ① patch 半径 ⇒ 相邻控制点窗口不重叠; ② PSF 足迹 6σ（Moffat4 在
-  //   r=6σ 外通量份额 (1+18)^{-3}=1.4e-4, 截断份额记入 support 模型, 不静默）;
-  //   ③ 像元预算 sqrt(1024/π) ⇒ GLS 稠密求解规模 m ≤ 1024）。
-  const double radius = precision_window_radius_px(req);
-  const double r2 = radius * radius;
-  // 供 stage/support 模型记录（window 输入是 const, 用 mutable 语义的局部副本）
-  radius_for_note = radius;
+  radius_for_note = precision_window_radius_px(req);
+  int leaf_order = 0;
+  {
+    int k = 0;
+    while ((1u << k) < static_cast<unsigned>(req.nside)) ++k;
+    leaf_order = k;   // 实际叶阶 log2(nside)（detail §7.4: 不是 tile 阶）
+  }
 
   for (std::size_t ci = 0; ci < req.ctrl_x.size(); ++ci) {
     acsd::normalize::PlanarPatchWindow w;
@@ -268,11 +270,7 @@ std::vector<acsd::normalize::PlanarPatchWindow> build_patch_windows(
                    std::to_string(ci % std::max(1, req.patch_grid_y));
     w.cx_px = req.ctrl_x[ci];
     w.cy_px = req.ctrl_y[ci];
-    {
-      int k = 0;
-      while ((1u << k) < static_cast<unsigned>(req.nside)) ++k;
-      w.leaf_order = k;
-    }
+    w.leaf_order = leaf_order;
     w.omega_leaf = omega_leaf;
     {  // ICRS（FITS 1-based 桥接 + SIP; pix2sky 单一实现由调用方注入）
       double ra = 0.0, dec = 0.0;
@@ -282,36 +280,47 @@ std::vector<acsd::normalize::PlanarPatchWindow> build_patch_windows(
         w.dec_deg = dec;
       }
     }
+    // 目标叶 = 控制点 sky 的统一 NESTED ang2pix（F06: 不用 D_l 最大的叶; 不用
+    // target_leaf==0 当缺失判据）。ang2pix 由调用方经 pixel_to_sky 提供 ICRS, 这里
+    // 直接复用同一 healpix 实现（唯一实现, 不在本单元重写）。
+    if (req.nside > 0 && std::isfinite(w.ra_deg) && std::isfinite(w.dec_deg)) {
+      // 统一 HEALPix NESTED 实现（唯一, 不在本单元重写）; 合法编号 0 与其它编号
+      // 同权, 由 has_target_leaf 表达"是否解出"。
+      w.has_target_leaf = true;
+      w.target_leaf = acsd::healpix::ang2pix_nest(
+          static_cast<std::uint32_t>(req.nside), w.ra_deg, w.dec_deg);
+    }
 
-    // 半径内的捕获记录 → 像元/叶槽位 + 稀疏算子三元组
+    // ── 观测域 = 归属本控制点的目标叶 + 给这些叶贡献的**全部**源像元 ──────────
+    // （NOISE_SNR §11.2: 所选观测叶的完整有效样本; 不在小窗口内重新归一）。
+    // 归属判定用 targets 的 cx/cy（capture 以叶为键, 同叶只归属第一个控制点）。
     std::map<std::int64_t, int> pix_slot;
     std::map<std::uint64_t, int> leaf_slot;
     for (const auto& o : overlaps) {
-      const double dx = static_cast<double>(o.px) - w.cx_px;
-      const double dy = static_cast<double>(o.py) - w.cy_px;
-      if (dx * dx + dy * dy > r2) continue;
-      const std::int64_t idx = static_cast<std::int64_t>(o.py) * req.width + o.px;
-      int pslot;
+      const auto tit = targets.find(o.leaf_ipix);
+      if (tit == targets.end()) continue;
+      if (tit->second.cx != w.cx_px || tit->second.cy != w.cy_px) continue;
+      const std::int64_t idx =
+          static_cast<std::int64_t>(o.py) * req.width + o.px;
       const auto pit = pix_slot.find(idx);
+      int pslot;
       if (pit == pix_slot.end()) {
         pslot = static_cast<int>(pix_slot.size());
         pix_slot.emplace(idx, pslot);
       } else {
         pslot = pit->second;
       }
-      int lslot;
       const auto lit = leaf_slot.find(o.leaf_ipix);
+      int lslot;
       if (lit == leaf_slot.end()) {
         lslot = static_cast<int>(leaf_slot.size());
         leaf_slot.emplace(o.leaf_ipix, lslot);
       } else {
         lslot = lit->second;
       }
-      // c_lj = (a_lj/A_drop,j)·(D_l/N_l) —— 与生产 signal 的同一几何系数。
-      // D_l/N_l 需先按叶汇总; 先记 (a, A_drop, A_pixel) 三元组, 汇总后换算。
       w.op_pix.push_back(pslot);
       w.op_leaf.push_back(lslot);
-      w.op_c.push_back(0.0);   // 占位; 下方汇总后回填
+      w.op_c.push_back(0.0);   // 占位; 汇总后按完整 N_l 回填
       w.op_raw_a.push_back(o.a_jp);
       w.op_raw_adrop.push_back(o.a_drop);
       w.op_raw_apixel.push_back(o.a_pixel);
@@ -341,42 +350,38 @@ std::vector<acsd::normalize::PlanarPatchWindow> build_patch_windows(
       w.pix_omega[static_cast<std::size_t>(p)] = w.op_raw_apixel[k];
       w.pix_a_drop[static_cast<std::size_t>(p)] = w.op_raw_adrop[k];
     }
-    // 每叶 D_l = Σ a_lj; N_l = Σ (a_lj/A_drop,j)·A_pixel,j
+    // D_l = Σ_j a_lj（全部贡献像元）;  N_l = Σ_j (a_lj/A_drop,j)·Ω_j
+    // = 同次生产该叶的**完整**面亮度归一分母（与 sink 的 sumNorm 同一口径）。
     w.leaf_dp.assign(nl, 0.0);
-    std::vector<double> leaf_np(nl, 0.0);
+    w.leaf_n_full.assign(nl, 0.0);
+    w.leaf_n_covered.assign(nl, 0.0);
     for (std::size_t k = 0; k < w.op_raw_a.size(); ++k) {
       const int l = w.op_raw_leaf[k];
       if (l < 0 || l >= nl) continue;
       if (!(w.op_raw_adrop[k] > 0.0)) continue;
       w.leaf_dp[static_cast<std::size_t>(l)] += w.op_raw_a[k];
-      leaf_np[static_cast<std::size_t>(l)] +=
+      w.leaf_n_full[static_cast<std::size_t>(l)] +=
           w.op_raw_a[k] * (w.op_raw_apixel[k] / w.op_raw_adrop[k]);
     }
-    // 回填 c_lj = (a_lj/A_drop,j)·(D_l/N_l)
+    // 回填 c_lj = (a_lj/A_drop,j)/N_l  —— 生产 signal 的 R=w/N（NOISE_SNR §11.2;
+    // 写盘前 flux 载荷的 w·D_p/N_p 仍缺一次除以 D_p, 不是这个 R）。
     for (std::size_t k = 0; k < w.op_raw_a.size(); ++k) {
       const int l = w.op_raw_leaf[k];
       if (l < 0 || l >= nl) continue;
       if (!(w.op_raw_adrop[k] > 0.0)) continue;
-      const double dl = w.leaf_dp[static_cast<std::size_t>(l)];
-      const double nlz = leaf_np[static_cast<std::size_t>(l)];
-      if (!(dl > 0.0) || !(nlz > 0.0)) continue;
-      w.op_c[k] = (w.op_raw_a[k] / w.op_raw_adrop[k]) * (dl / nlz);
-    }
-    // 目标叶 = D_l 最大的叶（控制点的球面落点）
-    if (nl > 0) {
-      int best = 0;
-      for (int l = 1; l < nl; ++l) {
-        if (w.leaf_dp[static_cast<std::size_t>(l)] >
-            w.leaf_dp[static_cast<std::size_t>(best)]) {
-          best = l;
-        }
-      }
-      w.target_leaf = w.leaf_ipix[static_cast<std::size_t>(best)];
+      const double nlz = w.leaf_n_full[static_cast<std::size_t>(l)];
+      if (!(nlz > 0.0)) continue;
+      const double c = (w.op_raw_a[k] / w.op_raw_adrop[k]) / nlz;
+      w.op_c[k] = c;
+      // 观测域按构造完整 ⇒ covered == full（留待将来引入显式子域时区分）
+      w.leaf_n_covered[static_cast<std::size_t>(l)] =
+          w.leaf_n_full[static_cast<std::size_t>(l)];
     }
     windows.push_back(std::move(w));
   }
   return windows;
 }
+
 
 StagedPrecision stage_frame_precision(
     const PrecisionFrameRequest& req,
@@ -424,27 +429,36 @@ StagedPrecision stage_frame_precision(
   bool psf_ok = req.have_psf;
   double sum_p2_lib = 0.0;
   if (psf_ok) {
+    // noise 库对同一 closed form 的归一化 ΣP²（半平面解析值）。
     snr_moffat4_profile_f64(/*fwhm_px=*/0.0, req.psf_sigma_px, /*half_px=*/0,
                             &sum_p2_lib, nullptr);
   }
+  double profile_enclosed = 1.0;   // ΣP（观测域包络的点源通量份额; ≤1）
   for (auto& w : windows) {
     const std::size_t m = w.pix_index.size();
     if (m == 0) continue;
     if (psf_ok) {
-      double s2 = 0.0;
+      double enclosed = 0.0;
       if (!moffat4_profile(req.psf_sigma_px, w.cx_px, w.cy_px, w.pix_index,
-                           req.width, &w.profile, &s2)) {
+                           req.width, &w.profile, &enclosed)) {
         psf_ok = false;
         break;
       }
-      // 同一 closed form 的库统计对拍: 笛卡尔半平面 ΣP² 与以窗口中心为原点的
-      // 离散网格统计只在覆盖相当时逐位相等 ⇒ 只做量级核对; 偏差 > 1% 记数据
-      // 错误并阻断（不静默接受不匹配的模板统计）。
+      // 同一 closed form 的形状统计对拍: 把本窗口的归一化 ΣP² 与库的半平面解析值
+      // 比较。覆盖不足时归一化 ΣP² 只会**偏大**（形状更集中）⇒ 要求不小于解析值
+      // 减去容差; 偏小说明模板与库的 closed form 不一致 ⇒ 数据错误, 显式失败。
+      double np2 = 0.0;
+      for (double pv : w.profile) np2 += pv * pv;
+      const double enclosed2 = enclosed * enclosed;
+      const double norm_np2 = enclosed2 > 0.0 ? np2 / enclosed2 : 0.0;
       if (sum_p2_lib > 0.0 && m > 64 &&
-          std::abs(s2 - sum_p2_lib) > 0.01 * sum_p2_lib) {
+          norm_np2 + 0.01 * sum_p2_lib < sum_p2_lib) {
         out.error = "moffat4 profile statistics mismatch vs noise library (sigma=" +
                     std::to_string(req.psf_sigma_px) + ")";
         return out;
+      }
+      if (std::isfinite(enclosed) && enclosed > 0.0) {
+        profile_enclosed = std::min(profile_enclosed, enclosed);
       }
     } else {
       // 无 PSF ⇒ 模板缺失 ⇒ 该控制点由 GLS 侧记 unavailable（不用虚构 P）
@@ -461,15 +475,21 @@ StagedPrecision stage_frame_precision(
     }
   }
 
+
   // ── GLS 完成（数学唯一实现在 noise 库）────────────────────────────────────
   acsd::normalize::SphericalCompletionConfig cfg;
   cfg.reference = ref_def;
   cfg.background = req.background_constant_fit
                        ? acsd::normalize::BackgroundNuisance::kConstantFit
                        : acsd::normalize::BackgroundNuisance::kKnown;
-  cfg.gain_e_per_adu = req.gain_e_per_adu;
+  cfg.gain_e_per_adu = req.gain_e_per_adu;      // **原生** ADU 面 gain（设备来源）
   cfg.master_uncertainty_modelled = req.master_uncertainty_modelled;
   cfg.template_fixed = psf_ok;  // 无 PSF ⇒ 模板不固定 ⇒ 不得称 upper_bound
+  // NOISE_SNR §11.3 / PHOTOMETRY §4: applied 面源泊松 = α_j²·F_native·P_j/g。
+  // 原生 gain 的 provenance 单独保留, 不被有效 gain 覆盖。
+  cfg.plane_scale = req.applied_scale;
+  cfg.pixel_scale = req.pixel_scale;
+  cfg.gain_provenance = req.gain_provenance;
   const auto comp = acsd::normalize::complete_spherical_reference(windows, cfg);
 
   doc_template.precision = comp.precision;
@@ -508,35 +528,52 @@ StagedPrecision stage_frame_precision(
         q.leaf_ipix = windows[i].leaf_ipix;
         return q;
       };
-      {  // psf: h = R P (1/sr)
+      {  // psf: h = R P（长度 nl; 单位 1/sr）
         auto q = base();
         q.kind = acsd::normalize::LocalModelKind::kPsf;
         q.unit = "sr^-1";
         q.values = lw.h_sphere;
         q.matrix_rows = nl;
-        q.matrix_cols = m;
+        q.matrix_cols = 1;
         model_payloads->push_back(q);
       }
-      {  // covariance: C_sphere (nl×nl) + Z + rank/cond + 随机分量
+      {  // covariance: C_sphere（nl×nl row-major; unit=linear_unit²/sr²）+ Z + 秩
         auto q = base();
         q.kind = acsd::normalize::LocalModelKind::kCovariance;
-        q.unit = "adu^2";
-        q.values = lw.variance;
-        q.matrix_rows = nl;
-        q.matrix_cols = nl;
+        q.unit = ref_def.flux_unit.empty() ? std::string("adu^2/sr^2")
+                                           : ref_def.flux_unit + "^2/sr^2";
+        if (lw.covariance_explicit) {
+          q.values = lw.covariance;                 // 显式 nl×nl row-major
+          q.matrix_rows = nl;
+          q.matrix_cols = nl;
+        } else {
+          // 落盘预算之外的显式矩阵: 只写精确因子（v_j, 长度 m）并把
+          // representation 记为 local-factor/v1。C = R diag(v) Rᵀ 可由本文件的
+          // v_j 与同控制点的 drizzle_operator CSR **精确**重算, 不是近似; 但
+          // 不在"显式矩阵"标签下塞因子（合同 §7.1）。nl 与理由写入 support_note。
+          q.values = lw.source_variance;
+          q.matrix_rows = m;
+          q.matrix_cols = 1;
+          q.support_note =
+              "representation=acsd.normalize.local-factor/v1; explicit nl x nl "
+              "matrix exceeds covariance_matrix_budget (" +
+              std::to_string(cfg.covariance_matrix_budget) + "); C = R diag(v) R^T "
+              "with v = values[] and R = the drizzle_operator CSR of the same "
+              "control; nl=" + std::to_string(nl) + " m=" + std::to_string(m);
+        }
         q.covariance_rank = ctrl.covariance_rank;
         q.condition_number = ctrl.condition_number;
         q.background_basis = lw.z_sphere;
         q.n_bg = lw.n_bg;
-        q.random_components = {"blank_sky"};
-        q.omitted_terms = ctrl.status.omitted_terms;
+        q.random_components = lw.random_components;
+        q.omitted_terms = lw.omitted_terms;
         model_payloads->push_back(q);
       }
-      {  // drizzle_operator: CSR（由 op 三元组直接生成; 不展开 nl×m 稠密矩阵）
+      {  // drizzle_operator: R 的 CSR（行=叶, 列=像元, 系数=c_lj; shape=nl×m）
         auto q = base();
         q.kind = acsd::normalize::LocalModelKind::kDrizzleOperator;
         q.unit = "sr^-1";
-        // 按叶分组的 CSR: 行 = 叶槽位, 列 = 像元槽位, 系数 = c_lj
+        // 按叶分组的 CSR: 行 = 叶槽位, 列 = 像元槽位, 系数 = c_lj = w_lj/N_l
         std::vector<std::vector<std::pair<int, double>>> rows(
             static_cast<std::size_t>(nl));
         for (std::size_t k = 0; k < lw.op_nnz; ++k) {
@@ -554,6 +591,10 @@ StagedPrecision stage_frame_precision(
         }
         q.source_omega = lw.pix_omega;
         q.source_a_drop = lw.pix_a_drop;
+        // 每叶完整 N_l（同次生产叶的完整有效样本; 使 R 的归一可被独立复核）
+        q.source_n_leaf = windows[i].leaf_n_full;
+        q.matrix_rows = nl;
+        q.matrix_cols = m;
         model_payloads->push_back(q);
       }
       {  // support: 每叶 D_l（真实 drop 命中面积; 不重复计面积的上界 = Ω_leaf）
@@ -561,19 +602,28 @@ StagedPrecision stage_frame_precision(
         q.kind = acsd::normalize::LocalModelKind::kSupport;
         q.unit = "sr";
         q.values = lw.leaf_dp;
-        // 模板截断份额（各向同性 Moffat4 闭式 f_out=(1+r²/(2σ²))^{-3}）: 窗口
-        // 外的点源通量份额; >0 时该控制点的条件 SNR 是截断模板下的值。
-        char note[256];
+        // 模板截断份额（各向同性 Moffat4 闭式 f_out=(1+r²/(2σ²))^{-3}）: 观测域
+        // 包络之外的点源通量份额; P **不**随域重归一 ⇒ ΣP = 包络份额, F_ref 仍是
+        // 总通量口径（NOISE_SNR §11.2）。
+        char note[512];
         std::snprintf(note, sizeof(note),
-                      "patch-center deterministic grid; leaf_order=%d; window"
-                      " radius=%.3f px; template truncation f_out=%.3e",
+                      "patch-center deterministic grid; leaf_order=%d; template"
+                      " footprint radius=%.3f px; template truncation f_out=%.3e;"
+                      " enclosed profile sum=%.6f; operator coverage of N_p=%.6f",
                       windows[i].leaf_order, req.window_radius_px,
                       req.have_psf && req.psf_sigma_px > 0.0
-                          ? std::pow(1.0 + req.window_radius_px * req.window_radius_px /
-                                             (2.0 * req.psf_sigma_px * req.psf_sigma_px),
-                                     -3.0)
-                          : 0.0);
+                          ? std::pow(1.0 + req.window_radius_px *
+                                              req.window_radius_px /
+                                              (2.0 * req.psf_sigma_px *
+                                               req.psf_sigma_px),
+                                      -3.0)
+                          : 0.0,
+                      req.have_psf && req.psf_sigma_px > 0.0 ? profile_enclosed
+                                                             : 0.0,
+                      lw.operator_coverage_fraction);
         q.support_note = note;
+        q.matrix_rows = nl;
+        q.matrix_cols = 1;
         model_payloads->push_back(q);
       }
       // sidecar models[] 登记（sha256 由发布方写实际文件后回填）
@@ -582,7 +632,12 @@ StagedPrecision stage_frame_precision(
         ref.model_id = lw.control_id + "." + acsd::normalize::to_string(kind);
         ref.kind = kind;
         ref.domain = acsd::normalize::LocalModelDomain::kDrizzledSphere;
-        ref.representation = "acsd.normalize.local-model/v1";
+        // covariance 在预算外改用版本化因子表示; 其余 kind 恒为显式表示。
+        ref.representation =
+            (kind == acsd::normalize::LocalModelKind::kCovariance &&
+             !lw.covariance_explicit)
+                ? "acsd.normalize.local-factor/v1"
+                : "acsd.normalize.local-model/v1";
         ref.path = "models/" + lw.control_id + "." +
                    acsd::normalize::to_string(kind) + ".json";
         ref.sha256.clear();
