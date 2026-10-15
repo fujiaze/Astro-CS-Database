@@ -136,9 +136,11 @@
   `nnz` max 3292、64 控制点。生产 R **秩亏**（`covariance_rank=626 < m=633/645`），
   因此 Cholesky 快路径不成立（H 半正定），必须走保留子空间特征分解。
 - 实测运行时（Release, `build/linux-sci-p5`，单帧 4096×4096, nside=262144）：
-  drizzle 段 `drizzle_run=48.2s hips_write=12.9s total=61.2s`；精度段
-  （`build_patch_windows`+`complete_spherical_reference`+staging 落盘）约 **20–24 min**
-  （两次独立实跑：`run/norm-round1-r1` 与 `run/norm-round1-r4`）。
+  - `run/norm-round1-r1`（已完整结束, exit=0）：`drizzle_run=34.7s hips_write=8.9s
+    total=43.6s`，精度段约 20 min。
+  - `run/norm-round1-r4`（Cholesky 快路径构建后的确认重跑；报告撰写时仍在精度段，
+    已 27 min）：`drizzle_run=48.2s hips_write=12.9s total=61.2s`。
+    快路径因 R 秩亏未被采用，与诊断一致；该运行是"确认"而非新证据。
   归因：循环 Jacobi 在 m≈645 上单控制点约 19 s（O(sweeps·m³)）。
 - 代码：`sparse_reference.cpp` 已同时实现 Cholesky 快路径（H ≻0 时 O(m³/3)）与
   保留子空间特征路径（秩亏时唯一正确路径）。本轮尝试以 Householder+QL 替换 Jacobi
