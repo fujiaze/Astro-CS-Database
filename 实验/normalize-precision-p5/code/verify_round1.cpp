@@ -438,8 +438,14 @@ int main() {
     }
   }
 
-  // plane_fit: 3 像元 + 4 参数 ⇒ 参数不可辨识 ⇒ 必须显式 unavailable（不造信息量）
-  g_case = "plane_fit unidentifiable (m=3 < ncol=4)";
+  // 参数多于观测**不再**自动判 unavailable —— 前台 2026-10-15 裁决
+  // （NOISE_SNR §11.4 末段 / NORMALIZE_CONVERGENCE N14）:
+  //   「背景基冗余不自动意味着通量不可辨识; 若通量响应在背景列空间之外仍有有效
+  //     分量, 就不应因整个参数矩阵 M 退化而误判通量不可辨识。」
+  // 本窗口 rank(R)=m ⇒ 投影空间即 R^m ⇒ 通量必然可辨识 ⇒ **available**。
+  // 真正不可辨识的情形（通量整体落在背景列空间内）见 verify_round2 的
+  // flux_direction_inside_background_span 用例。
+  g_case = "plane_fit: parameter count > observations, flux still identifiable";
   {
     PlanarPatchWindow w = make_full_rank_window(1);
     SphericalCompletionConfig cfg;
@@ -450,10 +456,17 @@ int main() {
     const auto& c = r.precision.controls[0];
     std::printf("  plane_fit availability=%d reason=%s\n",
                 static_cast<int>(c.status.availability), c.status.reason.c_str());
-    check(c.status.availability == PrecisionAvailability::kUnavailable,
-          "more parameters than observations => named unavailable");
-    check(!c.flux_variance.has_value(),
-          "no fabricated flux variance when unidentifiable");
+    check(c.status.availability == PrecisionAvailability::kAvailable,
+          "background redundancy does not auto-imply flux unidentifiable (NOISE_SNR 11.4)");
+    check(c.flux_variance.has_value() && *c.flux_variance > 0.0,
+          "V_F reported although the full parameter matrix is singular");
+    if (!r.windows.empty()) {
+      std::printf("    bg_basis_rank=%d I_F=%.10g\n",
+                  r.windows[0].background_basis_rank,
+                  r.windows[0].flux_information);
+      check(r.windows[0].background_basis_rank < 3,
+            "effective background basis rank < declared columns");
+    }
   }
 
   // plane_fit 可辨识: 6 像元 × 4 叶, 参数 4 < 观测
@@ -761,7 +774,7 @@ int main() {
                 c.covariance_rank ? std::to_string(*c.covariance_rank).c_str()
                                   : "none");
     check(c.covariance_rank.has_value() && *c.covariance_rank == 1,
-          "covariance_rank reports rank(C)=1 (not padded up)");
+          "covariance_rank reports rank(C)=1 (QR rank detection, no 1e-16 noise floor)");
     check(c.status.availability == PrecisionAvailability::kAvailable,
           "flux remains identifiable in the retained subspace");
     // 与独立显式 GLS（用伪逆口径的满秩子空间）不同: 这里只断言报告一致。

@@ -253,10 +253,9 @@ std::vector<acsd::normalize::PlanarPatchWindow> build_patch_windows(
         targets) {
   std::vector<acsd::normalize::PlanarPatchWindow> windows;
   if (req.ctrl_x.size() != req.ctrl_y.size()) return windows;
-  // 记录实际使用的模板足迹半径（support 模型据它估算窗外通量份额 f_out; 不影响
-  // R 与方差域 —— 观测域由归属叶的完整贡献决定, 见下）。
-  double& radius_for_note = const_cast<double&>(req.window_radius_px);
-  radius_for_note = precision_window_radius_px(req);
+  // 模板足迹半径是**局部计算值**（不再通过 const_cast 写回 const 请求对象 ——
+  // 那会对并发共享的 req 造成未定义行为; 见 NORMALIZE_PIPELINE §9）。
+  const double template_radius = precision_window_radius_px(req);
   int leaf_order = 0;
   {
     int k = 0;
@@ -425,6 +424,8 @@ StagedPrecision stage_frame_precision(
 
   // ── 每窗口: 平面模板 P（Moffat4 闭式, 库统计对拍）+ 条件方差 v_j ──────────
   std::vector<acsd::normalize::PlanarPatchWindow> windows = windows_in;
+  // 模板足迹半径: 本单元局部推导（与 build_patch_windows 同一函数, 同一口径）。
+  const double template_radius = precision_window_radius_px(req);
   bool psf_ok = req.have_psf;
   double sum_p2_lib = 0.0;
   if (psf_ok) {
@@ -608,10 +609,10 @@ StagedPrecision stage_frame_precision(
                       "patch-center deterministic grid; leaf_order=%d; template"
                       " footprint radius=%.3f px; template truncation f_out=%.3e;"
                       " enclosed profile sum=%.6f; operator coverage of N_p=%.6f",
-                      windows[i].leaf_order, req.window_radius_px,
+                      windows[i].leaf_order, template_radius,
                       req.have_psf && req.psf_sigma_px > 0.0
-                          ? std::pow(1.0 + req.window_radius_px *
-                                              req.window_radius_px /
+                          ? std::pow(1.0 + template_radius *
+                                              template_radius /
                                               (2.0 * req.psf_sigma_px *
                                                req.psf_sigma_px),
                                       -3.0)
