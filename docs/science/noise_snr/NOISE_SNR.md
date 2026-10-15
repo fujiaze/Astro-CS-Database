@@ -193,3 +193,62 @@ R 可逆地保留这组局部观测的信息，球面采样变多不创造额外
 在原生 ADU 面且独立泊松模型适用时，参考源分量为 F_native P_native/g。标量确定性标度 alpha 后，该分量为 alpha^2 F_native P_native/g；若 F_applied=alpha F_native 且模板归一不变，可写 alpha F_applied P/g，不能只写 F_applied P/g。有效 gain=g/alpha 仅是同一算术的数组单位表示，不能覆盖原生 gain 的设备来源。
 
 平场、修复和空间标度须经各自算子/Jacobian 从正确原生条件传播，不能对已校准/已缩放面无条件套用原生 gain。读噪、背景泊松、暗流、母版和参考源分量分别登记，避免把含源的方差面再加一次源泊松。确定性统一标度下 F 与 sqrt(V_F) 同比变化，SNR 不变。
+
+### 11.4 秩亏精度的源空间投影定理：不必对大型 C 或 H 做慢速 Jacobi 特征分解（2026-10-15 裁决）
+
+本节扩充 11.1 的秩亏情况；**观测域完整性仍须遵守 11.2，数值加速不得靠遗漏真实随机贡献**。本节是可独立复算的代数恒等式，不是现行 C++ 已采用此算法的证据。
+
+设局部平面被估计量
+
+\[
+ x=A_{\rm src}\theta+\epsilon,\quad
+ A_{\rm src}=[P,Z],\quad
+ \operatorname{Cov}(\epsilon)=D=\operatorname{diag}(v_j)\succ0,\quad
+ y=Rx.
+\]
+
+其中 R 是**同次生产最终球面面亮度**的真实固定线性算子。令
+
+\[
+ Q=RD^{1/2},\qquad W=D^{-1/2}A_{\rm src},
+ \qquad C_y=QQ^\mathsf T,\quad A_y=QW.
+\]
+
+对 Q 的秩 r 进行真正的 rank-revealing 分解，令 \(V_r\in\mathbb R^{m\times r}\) 为 Q **行空间**的一组正交基（薄 SVD \(Q=U_r\Sigma_rV_r^\mathsf T\) 的右奇异向量）。则
+
+\[
+ \boxed{M=A_y^\mathsf T C_y^+ A_y
+   =W^\mathsf T V_rV_r^\mathsf T W.}
+\]
+
+同理，若 N 是 Q 的零空间正交基（m×(m−r)，满足 \(QN=0\)），则
+
+\[
+ \boxed{M=W^\mathsf TW-(N^\mathsf TW)^\mathsf T(N^\mathsf TW).}
+\]
+
+**证明**：\(Q^\mathsf T(QQ^\mathsf T)^+Q=V_rV_r^\mathsf T\) 是 Q 的行空间正交投影。它不依赖非零奇异值的倒数二次幂，且秩亏时也成立。在满列秩 m=r 时，退化为 \(M=A_{\rm src}^\mathsf TD^{-1}A_{\rm src}\)；在本轮真实例子 m≈645、r≈626 时，零空间维数约19，**数学上可使用小零空间修正代替重复求稠密伪逆**。求 N 自身仍需要经过验证的秩揭示数值算法，不能凭“零空间很小”就假定没有任何计算开销。
+
+含背景 nuisance 但仅需识别源通量时，还有比要求整个 M 可逆更精确的形式。设 \(t=V_r^\mathsf TD^{-1/2}P\)、\(Z_w=V_r^\mathsf TD^{-1/2}Z\)。若背景基不独立，对 Z_w 的列空间使用秩揭示正交投影 \(\Pi_{Z_w}\)：
+
+\[
+ I_{F\mid\beta}=\|(I-\Pi_{Z_w})\,t\|_2^2,\qquad
+ V_F=I_{F\mid\beta}^{-1}\ \ (\text{若 }I_{F\mid\beta}>0).
+\]
+
+**背景基冗余不自动意味着源通量不可辨识**。若通量响应在背景列空间之内，则 I_F=0，应标记 unavailable；若背景基不满列秩但通量在其正交补中仍有有效分量，就不应因整个 M 退化而误判通量不可辨识。数值求解器同时报告 Q 的有效秩/奇异谱、背景基有效秩、源通量信息残差和数值条件，避免把协方差秩/参数秩混写。
+
+#### 数值设计边界
+
+- **优先**用可验证的 Householder 秩揭示 QR 或 SVD（可调用项目构建中验证可用的数值库；不得把未经验证的手写 QL/Jacobi 替换进生产）。稀疏结构、直接 Q 的分解和薄/零空间投影允许复用；不要先组成条件数被平方的 H=QᵀQ 再用几十轮朴素 Jacobi 作为默认大规模算法。
+- 满列秩时仍可采用本节等价的 \(A_{\rm src}^\mathsf TD^{-1}A_{\rm src}\) 快路径，但要从**真实 Q 的数值秩**确认条件，不能用“每叶/像元非零”代替。近秩亏应分解后记录奇异值谱和容差来源，不能 Cholesky 成功就宣称可忽略病态。
+- 默认仍保留已选择球面叶的**完整随机贡献集合**。可以在数学等价的观测/源空间、稀疏算子或受控分块中降低时间/内存；不得为了让 Cholesky 成功静默按 256/1024 像元裁剪。若用户或资源策略确实选择了不同物理观测域，它是**另一个条件估计量**，其截断项及对 F_ref/V_F 的影响须声明 approximate，而非冒充原完整控制点。
+- 不给 C_y 加任意 epsilon 产生虚假独立信息，不由基于同一 R 的回归自证科学真值。验证包括满列秩/秩亏/近秩亏、异方差、自由背景基退化、独立观测域、同一算子下 Monte Carlo 与对应直接 C_y^+ 参考；每条可重复的读数都应包含 m、nl、r、tolerance、solver 和运行开销。
+- 如果平面 covariance 不止 diagonal D，而包含已建模的相关 PSD 项，应先构建有来源的分解 \(V=LL^\mathsf T\)（有可辨识的正定支持），再将 Q=RL、W=L^{-1}A_src；**不能**直接把对角公式适用域扩大到未知的共享母版/flat 相关项。尚未建模者继续标记 omitted/approximate。
+
+### 11.5 现有参考 SNR 读数的 PSF 前提更正
+
+2026-10-15 代码复查：`normalize_precision.cpp::moffat4_profile` 使用未连续积分归一的 Moffat4 像元中心原始值，且 `profile_enclosed` 对其累加结果取 `min(1,·)`。§3 的 reference flux 若是**总源通量**，上述 P_j 还不是合法单位总通量的积分响应；据它所得的 V_F 与 SNR 虽可重复且 GLS 在线性代数上自洽，**仍不能作为绝对条件参考点源精度的物理证据**。修正办法及全/有限窗估计量身份统一由 science/psf/PSF.md §4 的“连续单位总通量、像元求积”定义，Noise 不另发明一种归一方式。
+
+本轮 Agent 报告的 `F_ref=1000 adu`、`V_F=49.9623625751`、`SNR=141.474613663`、帧摘要 `153.2957990916` 是特定代码版本与 explicit_linear_flux 约定的**已报告输出**，不应在未完成 PSF 单位归一、实际子像元响应、真实 per-frame SED reference 与缺失 master 项之前升级为无条件真实测光精度。错误的 P 也可能影响基于 P 的参考源 Poisson 方差、alpha 面的 a_ref；不能只改 JSON 的单位或者 f_out 字段。
+
