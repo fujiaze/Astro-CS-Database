@@ -1,0 +1,127 @@
+# Normalize 第二轮（P3 秩亏 GLS 求解器）验证运行记录
+
+分支 audit/acsd-science-docs-p5；本轮实现起点 4f7ecb6b8。
+全部 expected 由解析恒等式/独立代码路径给出，不由被测实现反推；不放宽容差凑全绿。
+
+## 1. 复现命令
+
+g++ -std=c++17 -O2 -Ilib/include -Ilib/algorithms/noise_snr/include \
+  实验/normalize-precision-p5/code/verify_round2.cpp \
+  lib/algorithms/noise_snr/cpp/src/sparse_reference.cpp -o /tmp/verify_round2
+/tmp/verify_round2
+
+g++ -std=c++17 -O2 -Ilib/include -Ilib/algorithms/noise_snr/include \
+  实验/normalize-precision-p5/code/verify_round1.cpp \
+  lib/algorithms/noise_snr/cpp/src/sparse_reference.cpp -o /tmp/verify_round1
+/tmp/verify_round1
+
+g++ -std=c++17 -O2 -Ilib/include -Ilib/algorithms/noise_snr/include \
+  eng/tests/unit/sparse_reference_gls_test.cpp \
+  lib/algorithms/noise_snr/cpp/src/sparse_reference.cpp -o /tmp/gls_unit
+/tmp/gls_unit
+
+## 2. verify_round2（三条独立路径对拍）
+
+  nbg=0 prod=554.06084537545973 truth=554.06084537545985 oracle=554.06084537582296 rel_tr=2.052e-16 rel_or=6.556e-13
+    kernel: I_F=0.00180485592575  direct ΣP²/v=0.00180485592575  rel=3.604e-16
+    diag: solver=pivoted_householder_qr_rowspace rank=6 bg_rank=0 I_F=0.001804855926 V_F=1/I_F=554.0608454
+  [PASS] full column rank ⇒ available (full-col-rank, background=known)
+  [PASS] V_F equals A_src^T D^-1 A_src identity (NOISE_SNR §11.1) (full-col-rank, background=known)
+  [PASS] V_F equals independent Jacobi+Explicit-H^+2 oracle (full-col-rank, background=known)
+  [PASS] solver recorded as pivoted Householder QR row-space (full-col-rank, background=known)
+  nbg=1 prod=1969.5495196174829 truth=1969.5495196174822 oracle=1969.5495195736482 rel_tr=3.463e-16 rel_or=2.226e-11
+    kernel: I_F=0.000507730316014  direct ΣP²/v=0.00180485592575  rel=7.187e-01
+    diag: solver=pivoted_householder_qr_rowspace rank=6 bg_rank=1 I_F=0.000507730316 V_F=1/I_F=1969.54952
+  [PASS] full column rank ⇒ available (full-col-rank, constant_fit)
+  [PASS] V_F equals A_src^T D^-1 A_src identity (NOISE_SNR §11.1) (full-col-rank, constant_fit)
+  [PASS] V_F equals independent Jacobi+Explicit-H^+2 oracle (full-col-rank, constant_fit)
+  [PASS] solver recorded as pivoted Householder QR row-space (full-col-rank, constant_fit)
+  nbg=2 prod=49588.306156325314 truth=49588.306156323932 oracle=49588.306160632135 rel_tr=2.788e-14 rel_or=8.685e-11
+    kernel: I_F=2.01660447293e-05  direct ΣP²/v=0.00180485592575  rel=9.888e-01
+    diag: solver=pivoted_householder_qr_rowspace rank=6 bg_rank=3 I_F=2.016604473e-05 V_F=1/I_F=49588.30616
+  [PASS] full column rank ⇒ available (full-col-rank, plane_fit)
+  [PASS] V_F equals A_src^T D^-1 A_src identity (NOISE_SNR §11.1) (full-col-rank, plane_fit)
+  [PASS] V_F equals independent Jacobi+Explicit-H^+2 oracle (full-col-rank, plane_fit)
+  [PASS] solver recorded as pivoted Householder QR row-space (full-col-rank, plane_fit)
+  prod=615.01882372412285 oracle=615.01882372412263 nl_truth=615.0188237241224 rank_oracle=3 rel=3.697e-16 rel_nl=7.394e-16
+  [PASS] rank deficient but flux identifiable ⇒ available (rank-deficient (rank(R)=3 < m=5))
+  [PASS] rank-deficient V_F equals Jacobi+Explicit-H^+2 oracle (different path) (rank-deficient (rank(R)=3 < m=5))
+  [PASS] rank-deficient V_F equals explicit nl-space C_y^-1 GLS (third path) (rank-deficient (rank(R)=3 < m=5))
+  [PASS] covariance_rank == rank(C_sphere) == 3 (not padded to m) (rank-deficient (rank(R)=3 < m=5))
+  [PASS] LocalWindow records solver_rank=3 (rank-deficient (rank(R)=3 < m=5))
+  availability=0 reason=
+  [PASS] background collinearity does not auto-imply flux unidentifiable (rank-deficient + collinear background, flux still identifiable)
+  [PASS] V_F reported although full parameter matrix is singular (rank-deficient + collinear background, flux still identifiable)
+  bg_basis_rank=2 I_F=2.6129e-05
+  [PASS] effective background basis rank < declared columns (rank-deficient + collinear background, flux still identifiable)
+  [PASS] flux information I_{F|beta} > 0 recorded (rank-deficient + collinear background, flux still identifiable)
+  availability=1 reason=flux_direction_inside_background_span
+  [PASS] flux inside background span ⇒ unavailable (flux direction inside background span ⇒ unavailable)
+  [PASS] no fabricated V_F/SNR (flux direction inside background span ⇒ unavailable)
+  [PASS] named reason (flux direction inside background span ⇒ unavailable)
+  sd=24.887364 sqrt(V_F)=24.799573 ratio=1.0035 (n=200000)
+  MC se=0.1581% (4-sigma band 0.6325%)
+  [PASS] Monte Carlo scatter within 4 sigma of predicted sqrt(V_F) (Monte Carlo flux scatter vs predicted sqrt(V_F))
+  solver=pivoted_householder_qr_rowspace rank=6 rel_tol=1e-10 cond=39116.1 bg_rank=1 I_F=0.00050773
+  [PASS] solver/rank/rel_tol/condition/background_rank/I_F all recorded (solver diagnostics completeness)
+
+ALL PASS: 0 failure(s)
+exit=0
+
+## 3. verify_round1（第一轮回归, 按 §11.4 新语义更新后）
+
+  F01 production_VF=2.6470588235294135 oracle_VF=2.6470588235294117 rel=6.711e-16
+  [PASS] V_F equals source-space truth (F01 heteroscedastic counterexample)
+  [PASS] V_F equals 1/(P^T V^-1 P) (NOISE_SNR §11.1 identity) (F01 heteroscedastic counterexample)
+  dual nbg=0 production=546.71673504807984 source_truth=546.71673504807961 rel=4.159e-16
+  [PASS] V_F equals independent source-space closed form (dual background=known)
+  [PASS] persisted h length == nl (F03) (dual background=known)
+  [PASS] persisted C is nl x nl (F03) (dual background=known)
+  [PASS] known background => Z empty (dual background=known)
+  [PASS] persisted C == R diag(v) R^T (independent) (dual background=known)
+  [PASS] persisted h == R P (independent) (dual background=known)
+  [PASS] persisted C symmetric (dual background=known)
+  [PASS] persisted C has positive diagonal (dual background=known)
+  [PASS] covariance_rank == rank(C) == rank(R) == 3 (dual background=known)
+  dual nbg=1 production=2406.2602137020717 source_truth=2406.2602137020699 rel=7.559e-16
+  [PASS] V_F equals independent source-space closed form (dual background=constant_fit)
+  note: n_bg=1 z_size=4 (nl=4)
+  [PASS] constant_fit => Z is nl x 1 (F03) (dual background=constant_fit)
+  plane_fit availability=0 reason=
+  [PASS] background redundancy does not auto-imply flux unidentifiable (NOISE_SNR 11.4) (plane_fit: parameter count > observations, flux still identifiable)
+  [PASS] V_F reported although the full parameter matrix is singular (plane_fit: parameter count > observations, flux still identifiable)
+    bg_basis_rank=2 I_F=9.487666034e-06
+  [PASS] effective background basis rank < declared columns (plane_fit: parameter count > observations, flux still identifiable)
+  plane_ok reason= cov_rank=4
+  plane_ok production=8635289.4811503291 source_truth=8635289.4795241673 rel=1.883e-10 availability=0
+  [PASS] identifiable plane_fit is available (plane_fit identifiable (m=6))
+  [PASS] plane_fit V_F equals independent nl-space GLS (R rank-deficient) (plane_fit identifiable (m=6))
+  [PASS] plane_fit => Z is nl x 3 (F03) (plane_fit identifiable (m=6))
+  F04 alpha=0.5 production=136.67918376201996 source_truth=136.6791837620199 rel=4.159e-16
+  [PASS] alpha-scaled source Poisson = alpha^2 F_native P/g (F04 gain/alpha source Poisson)
+  F04 SNR(native)=42.767987655283726 SNR(alpha=0.5)=42.767987655283726
+  [PASS] deterministic scale leaves SNR invariant (NOISE_SNR §2) (F04 gain/alpha source Poisson)
+  [PASS] no double counting of RN/background/source (F04 gain/alpha source Poisson)
+  [PASS] double-scaled variance would give a different answer (discriminating) (F04 gain/alpha source Poisson)
+  random availability=0 reason=
+  [PASS] random heteroscedastic V_F equals source-space closed form (random heteroscedastic + Monte Carlo)
+  MC sd=20.053691 predicted sqrt(V_F)=20.081935 ratio=0.9986 (n=20000)
+  [PASS] Monte Carlo flux scatter matches predicted sqrt(V_F) (2%) (random heteroscedastic + Monte Carlo)
+  [PASS] leaf index 0 is a valid target leaf (F06 target leaf 0)
+  [PASS] leaf_ipix preserved as 0 (F06 target leaf 0)
+  [PASS] missing target leaf ⇒ unavailable (not silently 0) (F06 target leaf 0)
+  rank_def availability=0 reason= rank=1
+  [PASS] covariance_rank reports rank(C)=1 (QR rank detection, no 1e-16 noise floor) (rank deficiency)
+  [PASS] flux remains identifiable in the retained subspace (rank deficiency)
+  [PASS] zero template ⇒ flux not identifiable (rank deficiency)
+
+ALL PASS: 0 failure(s)
+exit=0
+
+## 4. 既有单元检验 sparse_reference_gls_test
+
+  [PASS] no reference: reason propagated to control
+  [PASS] sed_response without evaluable integration ⇒ unavailable
+
+ALL PASS (failures=0)
+exit=0

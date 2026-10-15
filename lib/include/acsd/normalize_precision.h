@@ -77,7 +77,6 @@ struct PrecisionFrameRequest {
   // 用于 NOISE_SNR §11.3 的源泊松有效 gain g_eff = g·a_ref/α_j²。
   std::vector<double> pixel_scale;
   std::string gain_provenance = "unavailable";
-  double window_radius_px = 0.0;   // 实际使用的窗口半径（support 模型记录用）
   double pixel_scale_arcsec = 1.0; // 输入像元角尺度（query_disc 半径估计用）
 };
 

@@ -29,15 +29,21 @@ namespace acsd::normalize {
 // 窗口语义（合同 §4/§7.1）: patch 中心附近、对目标叶及其邻叶有贡献的源像元集合。
 // R 以**稀疏三元组**给出（(j, l, c_lj)）, 不生成 nl×m 稠密矩阵（nl 可达数千）。
 //
-// 数学要点（球面 GLS; NORMALIZE_DATA §6, NOISE_SNR §3/§11.1）:
+// 数学要点（球面 GLS; NORMALIZE_DATA §6, NOISE_SNR §3/§11.1/§11.4）:
 //   观测 y = R w, w = F·P + Z·β + η, η ~ N(0, V=diag(v_j)), C = R V Rᵀ,
 //   A_s = [R P, R Z]；V_F = [(A_sᵀ C⁺ A_s)⁻¹]_{FF}。
-//   令 Q=R V^{1/2}, G=RᵀR, H=V^{1/2}G V^{1/2}=QᵀQ（H 与 C 的非零特征值相同）:
-//     RᵀC⁺R = G V^{1/2} H⁺ V^{1/2} G
-//     ⇒ M = A_srcᵀ RᵀC⁺R A_src = Bᵀ H⁺ B,  B = V^{1/2} G A_src
-//   H ≻ 0（R 满列秩）时 H⁺=H⁻¹ ⇒ M = A_srcᵀ V⁻¹ A_src（NOISE_SNR §11.1 恒等式）。
-//   H 半正定（R 秩亏）时用显式特征分解取保留子空间, 报告秩与条件数; 参数子空间
-//   内不可辨识 ⇒ unavailable（不盲加 epsilon、不用伪逆制造信息量）。
+//   **生产求解路径（NOISE_SNR §11.4, 秩亏安全）** 不组成 Gram 矩阵:
+//     Q = R V^{1/2}（nl×m）, W = V^{-1/2} A_src（m×ncol）
+//     M = Wᵀ V_r V_rᵀ W,  V_r = Q 的行空间正交基（秩揭示 QR of Qᵀ）
+//     V_F = 1 / I_{F|β},  I_{F|β} = ‖(I−Π_Z) W̃[:,0]‖²,  W̃ = Q'ᵀW, Z = W̃[:,1:]
+//   **等价代数参考式**（仅用于理解/对拍, 不作为默认大规模算法）:
+//     令 G=RᵀR, H=V^{1/2}G V^{1/2}=QᵀQ, B=V^{1/2}G A_src（**V^{1/2} 在左**;
+//     G 与 V^{1/2} 一般不交换, 写成 G V^{1/2}A_src 即 F01 反例）:
+//       RᵀC⁺R = G V^{1/2} H⁺ V^{1/2} G
+//       ⇒ M = A_srcᵀ RᵀC⁺R A_src = Bᵀ H⁺² B      ← **H 的逆是平方（H⁺²）**
+//     H ≻ 0（R 满列秩, r=m）时 V_rV_rᵀ=I ⇒ M = A_srcᵀ V⁻¹ A_src（§11.1 恒等式）。
+//   H/Q 秩亏 ⇒ 走 §11.4 的保留子空间/零空间投影, 报告秩/条件/容差; 参数不可
+//   辨识 ⇒ unavailable（不盲加 epsilon、不用伪逆制造信息量）。
 //   V_B = Σ_j c_pj²·v_j（目标叶 p 的 C 对角; 同源同位置同条件）。
 struct PlanarPatchWindow {
   std::string control_id;
@@ -114,6 +120,15 @@ struct SphericalCompletionResult {
     std::vector<std::string> random_components;  // 本窗口已建模随机分量
     std::vector<std::string> omitted_terms;      // 被省略/截断项（不静默）
     bool covariance_explicit = false;     // true = covariance 是显式 nl×nl 矩阵
+    // solver 诊断（NORMALIZE_DATA §7.1「rank/condition/solver/relative_tol」;
+    // NOISE_SNR §11.4「同时报告 Q 的有效秩/奇异谱、背景基有效秩、源通量信息残差」）
+    std::string solver;                    // pivoted_householder_qr_rowspace |
+                                           // jacobi_retained_subspace
+    int solver_rank = 0;                   // rank(C_sphere)
+    double solver_relative_tol = 0.0;      // 秩判定相对容差
+    double solver_condition_number = 0.0;  // 估计/精确（见 SolverDiagnostics 注释）
+    int background_basis_rank = 0;         // Z_w 的有效秩（共线列被识别并记录）
+    double flux_information = 0.0;         // I_{F|β} = ‖(I−Π_Z)t‖²
     double d_p = 0.0, n_p = 0.0;          // 目标叶 D_p 与完整 N_p
     double support_area_sr = 0.0;
     double a_drop_sum = 0.0;
@@ -142,5 +157,37 @@ SphericalCompletionResult complete_spherical_reference(
 // 权重 = 各有效 patch 的真实球面支持面积; 无有效点 ⇒ status unavailable。
 FrameReferenceSummary summarize_frame_reference(
     const std::vector<ReferenceControl>& controls);
+
+// ── 秩亏 GLS 的 solver 诊断（NOISE_SNR §11.4 / NORMALIZE_DATA §7.1）──────────
+// 同一字段在两条路径下口径不同, 由 solver 名字标识, 不由字段名暗示唯一含义:
+//   * pivoted_householder_qr_rowspace: 生产路径。对 B = D^{1/2}Rᵀ（=Qᵀ, Q=RD^{1/2}）
+//     做列主元 Householder QR 求 range(Qᵀ) 正交基, M = WᵀV_rV_rᵀW,
+//     W = D^{-1/2}[P,Z_planar]; V_F 由 I_{F|β}=‖(I−Π_Z)t‖² 反解得。
+//     covariance_rank = rank(Q) = rank(C_sphere); condition_number 为
+//     (max/min 保留 pivot 比)² 的**保守估计**, 与 rel_tol、rank 一并落盘供审计。
+//   * jacobi_retained_subspace: 仅在稠密工作集 m·nl 超过预算时的正确优先回退,
+//     由 spherical_reference_jacobi_oracle 求得; 不冒充已用 QR。
+struct SolverDiagnostics {
+  std::string solver;                 // 见上
+  int rank = 0;                       // rank(C_sphere)
+  double relative_tol = 0.0;          // 秩判定相对容差
+  double condition_number = 0.0;      // 估计/精确（见 solver 注释）
+};
+
+// ── 独立数值 oracle（仅测试/诊断, 不在生产调用路径）────────────────────────
+// 用循环 Jacobi 特征分解 + 显式 H⁺²（H = V^{1/2}RᵀRV^{1/2}）重算
+//   M = A_srcᵀ Rᵀ(RDRᵀ)⁺R A_src, 再取 [(M⁻¹)]_FF。
+// 与生产 QR 行空间投影是**不同代码路径**, 用于 verify 程序对拍; 其数学等价性见
+// NOISE_SNR §11.4（满列秩时同为 A_srcᵀD⁻¹A_src）。
+struct JacobiOracleResult {
+  bool ok = false;
+  double flux_variance = 0.0;   // V_F = [(A_srcᵀ Rᵀ(RDRᵀ)⁺R A_src)⁻¹]_FF
+  int covariance_rank = 0;      // rank(C_sphere) = rank(H)
+  double condition_number = 0.0;// 保留特征值精确比 λmax/λmin
+};
+
+// v_override 为空时使用 w.variance（即调用方已把参考源 Poisson 等并入的方差）。
+JacobiOracleResult spherical_reference_jacobi_oracle(
+    const PlanarPatchWindow& w, int n_bg, const std::vector<double>& v_override);
 
 }  // namespace acsd::normalize

@@ -25,53 +25,6 @@ constexpr double kNaN = std::numeric_limits<double>::quiet_NaN();
 const char* kAccuracyTokens[] = {"conditional_complete", "approximate",
                                  "upper_bound", "not_applicable"};
 
-
-// 稠密对称正定 Cholesky (A = L L^T, 下三角存入 a)。返回 true = 成功;
-// 失败（非正定/秩亏）⇒ false（调用方按秩亏处理, 不猜）。
-bool cholesky_spd(std::vector<double>& a, int n) {
-  // 相对秩判定: 对角必须 > tol·max|a_ii|。纯 d>0 会把数值零（相近行/列造成
-  // 的 ~1e-34 残差）当成"正定 ⇒ 满秩", 从而让秩亏系统给出伪造的高信息量。
-  double anorm = 0.0;
-  for (int j = 0; j < n; ++j)
-    anorm = std::max(anorm, std::abs(a[static_cast<std::size_t>(j) * n + j]));
-  const double tol = 1e-12 * (anorm > 0.0 ? anorm : 1.0);
-  for (int j = 0; j < n; ++j) {
-    double d = a[static_cast<std::size_t>(j) * n + j];
-    for (int k = 0; k < j; ++k) {
-      const double ljk = a[static_cast<std::size_t>(j) * n + k];
-      d -= ljk * ljk;
-    }
-    if (!(d > tol) || !std::isfinite(d)) return false;
-    const double ljj = std::sqrt(d);
-    a[static_cast<std::size_t>(j) * n + j] = ljj;
-    for (int i = j + 1; i < n; ++i) {
-      double sum = a[static_cast<std::size_t>(i) * n + j];
-      for (int k = 0; k < j; ++k) {
-        sum -= a[static_cast<std::size_t>(i) * n + k] *
-               a[static_cast<std::size_t>(j) * n + k];
-      }
-      a[static_cast<std::size_t>(i) * n + j] = sum / ljj;
-    }
-  }
-  return true;
-}
-
-// 解 L y = b (前代) 与 L^T x = y (回代); L 下三角 n×n row-major, b/x 为 n 向量。
-void cholesky_solve(const std::vector<double>& l, int n, const double* b,
-                    double* x) {
-  std::vector<double> y(static_cast<std::size_t>(n), 0.0);
-  for (int i = 0; i < n; ++i) {
-    double sum = b[i];
-    for (int k = 0; k < i; ++k) sum -= l[static_cast<std::size_t>(i) * n + k] * y[static_cast<std::size_t>(k)];
-    y[static_cast<std::size_t>(i)] = sum / l[static_cast<std::size_t>(i) * n + i];
-  }
-  for (int i = n - 1; i >= 0; --i) {
-    double sum = y[static_cast<std::size_t>(i)];
-    for (int k = i + 1; k < n; ++k) sum -= l[static_cast<std::size_t>(k) * n + i] * x[static_cast<std::size_t>(k)];
-    x[static_cast<std::size_t>(i)] = sum / l[static_cast<std::size_t>(i) * n + i];
-  }
-}
-
 // 对称矩阵 Jacobi 特征分解 (A = V diag(w) V^T), n 小 (<= 数百)。原地破坏 a。
 void jacobi_eigh(std::vector<double> a, int n, std::vector<double>& w,
                  std::vector<double>& v) {
@@ -152,36 +105,139 @@ void jacobi_eigh(std::vector<double> a, int n, std::vector<double>& w,
   v = v2;
 }
 
-// 在保留子空间内求 M 的逆并取 [0][0]; 不可逆 ⇒ false。
-bool invert_ff_entry(const std::vector<double>& m, int n, double* out_vf,
-                     int* out_rank, double* out_cond) {
-  std::vector<double> w, v;
-  jacobi_eigh(m, n, w, v);
-  double wmax = 0.0;
-  for (int i = 0; i < n; ++i) wmax = std::max(wmax, w[static_cast<std::size_t>(i)]);
-  if (!(wmax > 0.0) || !std::isfinite(wmax)) return false;
-  const double tol = 1e-12 * wmax;
-  int rank = 0;
-  double wmin_pos = 0.0;
-  for (int i = 0; i < n; ++i) {
-    if (w[static_cast<std::size_t>(i)] > tol) {
+// ── 列主元 Householder QR（秩揭示; NOISE_SNR §11.4 指定的数值 backend）─────
+// 分解 B（m×n）。Q' 由反射子隐式表示（存于 B 的下三角部分）, 因此
+//   * rank 由"最大残余列范数 ≤ rel_tol · 初始最大列范数"判定, 不用零计数;
+//   * apply_qt() 只做 O(r·m·ncol) 即得 Q'ᵀW, 不需显式生成 Q'。
+struct PivotedQr {
+  int m = 0, n = 0, rank = 0;
+  std::vector<double> a;       // m×n row-major: 上三角 R + 下三角反射子
+  std::vector<double> beta;    // 每步 2/(vᵀv)
+  std::vector<double> pivnorm; // 每步 pivot 列范数（秩/条件诊断）
+  double max_col_norm = 0.0;   // 初始最大列范数（相对容差基准）
+  double rel_tol = 1e-12;
+
+  // B[j][l] = sqrt(d[j]) · R[l][j], 由 CSR 三元组 (op_pix/op_leaf/op_c) 组装。
+  // d = 逐源像元条件方差（含参考源 Poisson）。
+  bool build_from_csr(const std::vector<double>& d,
+                      const std::vector<int>& op_pix,
+                      const std::vector<int>& op_leaf,
+                      const std::vector<double>& op_c, int m_, int n_,
+                      double rel_tol_) {
+    m = m_; n = n_; rank = 0; rel_tol = rel_tol_;
+    if (m <= 0 || n <= 0) return false;
+    a.assign(static_cast<std::size_t>(m) * n, 0.0);
+    beta.assign(static_cast<std::size_t>(m), 0.0);
+    pivnorm.assign(static_cast<std::size_t>(m), 0.0);
+    for (std::size_t k = 0; k < op_c.size(); ++k) {
+      const int j = op_pix[k];
+      const int l = op_leaf[k];
+      if (j < 0 || j >= m || l < 0 || l >= n) continue;
+      if (!(d[static_cast<std::size_t>(j)] > 0.0)) return false;
+      a[static_cast<std::size_t>(j) * n + l] =
+          std::sqrt(d[static_cast<std::size_t>(j)]) * op_c[k];
+    }
+    // 残余列范数**每步重新显式计算**（不用递推降更新）: 递推式
+    //   cnorm²[j] ← cnorm²[j] − a[k][j]²
+    // 的舍入噪声底约 ε·‖B‖²（开方后 ~ε·‖B‖）, 会把结构性零残差读成 ~1e-9
+    // （相对 1e-10 门限高两个量级）⇒ 秩被虚报为 m（反例: R 两列完全相同,
+    // 真秩 1 却被报 2）。显式重算的噪声底是 ε·‖B‖ ≈ 1e-16·max, 低于门限。
+    // 成本 O(m²n/2), 与反射子本身同阶。
+    auto residual_norms = [&](int k) {
+      std::vector<double> cn(static_cast<std::size_t>(n), 0.0);
+      for (int l = k; l < n; ++l) {
+        double s = 0.0;
+        for (int j = k; j < m; ++j) {
+          const double x = a[static_cast<std::size_t>(j) * n + l];
+          s += x * x;
+        }
+        cn[static_cast<std::size_t>(l)] = std::sqrt(s);
+      }
+      return cn;
+    };
+    std::vector<double> cnorm = residual_norms(0);
+    max_col_norm = 0.0;
+    for (int l = 0; l < n; ++l)
+      max_col_norm = std::max(max_col_norm, cnorm[static_cast<std::size_t>(l)]);
+    if (!(max_col_norm > 0.0)) return false;
+    const int kmax = std::min(m, n);
+    for (int k = 0; k < kmax; ++k) {
+      // 列主元: 在残余列里取范数最大者（秩揭示）
+      int p = k;
+      double best = cnorm[static_cast<std::size_t>(k)];
+      for (int l = k + 1; l < n; ++l) {
+        if (cnorm[static_cast<std::size_t>(l)] > best) {
+          best = cnorm[static_cast<std::size_t>(l)];
+          p = l;
+        }
+      }
+      cnorm = residual_norms(k);                      // 显式重算（见上）
+      best = cnorm[static_cast<std::size_t>(k)];
+      p = k;
+      for (int l = k + 1; l < n; ++l) {
+        if (cnorm[static_cast<std::size_t>(l)] > best) {
+          best = cnorm[static_cast<std::size_t>(l)];
+          p = l;
+        }
+      }
+      if (!(best > rel_tol * max_col_norm)) break;   // 数值秩耗尽
+      if (p != k) {
+        for (int j = 0; j < m; ++j)
+          std::swap(a[static_cast<std::size_t>(j) * n + k],
+                    a[static_cast<std::size_t>(j) * n + p]);
+        std::swap(cnorm[static_cast<std::size_t>(k)],
+                  cnorm[static_cast<std::size_t>(p)]);
+      }
+      const double xnorm = cnorm[static_cast<std::size_t>(k)];
+      if (!(xnorm > 0.0)) break;
+      const double x0 = a[static_cast<std::size_t>(k) * n + k];
+      const double alpha = (x0 >= 0.0) ? -xnorm : xnorm;
+      const double v0 = x0 - alpha;
+      double vtv = v0 * v0;
+      for (int i = k + 1; i < m; ++i) {
+        const double vi = a[static_cast<std::size_t>(i) * n + k];
+        vtv += vi * vi;
+      }
+      if (!(vtv > 0.0) || !std::isfinite(vtv)) break;
+      const double b = 2.0 / vtv;
+      beta[static_cast<std::size_t>(k)] = b;
+      pivnorm[static_cast<std::size_t>(k)] = xnorm;
+      a[static_cast<std::size_t>(k) * n + k] = v0;   // 存反射子首元
+      for (int l = k + 1; l < n; ++l) {
+        double dot = v0 * a[static_cast<std::size_t>(k) * n + l];
+        for (int i = k + 1; i < m; ++i)
+          dot += a[static_cast<std::size_t>(i) * n + k] *
+                 a[static_cast<std::size_t>(i) * n + l];
+        const double s = b * dot;
+        a[static_cast<std::size_t>(k) * n + l] -= s * v0;
+        for (int i = k + 1; i < m; ++i)
+          a[static_cast<std::size_t>(i) * n + l] -=
+              s * a[static_cast<std::size_t>(i) * n + k];
+      }
       ++rank;
-      if (wmin_pos == 0.0) wmin_pos = w[static_cast<std::size_t>(i)];
+    }
+    return rank > 0;
+  }
+
+  // W（m×ncol, row-major）就地变为 Q'ᵀW（只应用 rank 个反射子）。
+  void apply_qt(std::vector<double>* w, int ncol) const {
+    for (int k = 0; k < rank; ++k) {
+      const double v0 = a[static_cast<std::size_t>(k) * n + k];
+      const double b = beta[static_cast<std::size_t>(k)];
+      for (int c = 0; c < ncol; ++c) {
+        double dot = v0 * (*w)[static_cast<std::size_t>(k) * ncol + c];
+        for (int i = k + 1; i < m; ++i)
+          dot += a[static_cast<std::size_t>(i) * n + k] *
+                 (*w)[static_cast<std::size_t>(i) * ncol + c];
+        const double s = b * dot;
+        (*w)[static_cast<std::size_t>(k) * ncol + c] -= s * v0;
+        for (int i = k + 1; i < m; ++i)
+          (*w)[static_cast<std::size_t>(i) * ncol + c] -=
+              s * a[static_cast<std::size_t>(i) * n + k];
+      }
     }
   }
-  if (out_rank) *out_rank = rank;
-  if (out_cond) *out_cond = wmin_pos > 0.0 ? wmax / wmin_pos : kNaN;
-  if (rank != n) return false;  // 参数子空间内不可辨识 ⇒ 不用伪逆
-  // M^{-1} = V diag(1/w) V^T; 取 [0][0]
-  double s = 0.0;
-  for (int i = 0; i < n; ++i) {
-    const double vi0 = v[static_cast<std::size_t>(0) * n + i];
-    s += vi0 * vi0 / w[static_cast<std::size_t>(i)];
-  }
-  if (!std::isfinite(s) || !(s > 0.0)) return false;
-  *out_vf = s;
-  return true;
-}
+};
 
 // ── 对称半正定矩阵的保留子空间二次型（F01 修复的核心）───────────────────────
 // 输入 H（m×m, 对称 PSD = V^{1/2} RᵀR V^{1/2}）与 B（m×ncol = V^{1/2} G A_src）。
@@ -555,159 +611,167 @@ SphericalCompletionResult complete_spherical_reference(
       continue;
     }
 
-    // ── 球面 GLS（精确; NORMALIZE_DATA §6 + NOISE_SNR §3）────────────────────
-    // y = F·(R P) + Z_s·β + n, C = R V Rᵀ, V = diag(v_j)。欲求
-    //   M = A_sᵀ C⁺ A_s, A_s = [R P, R Z]  (nl × ncol)
-    // 直接做需要 nl×nl 求逆（nl 可达数千）。用满列秩恒等式（m ≤ nl 且 R 满列秩,
-    // 几何上由捕获构造保证每像元/每叶都有贡献时成立）:
-    //   (R V Rᵀ)⁺ = R̃ (R̃ᵀR̃)⁻² R̃ᵀ,  R̃ = R V^{1/2}
-    //   ⇒ K := Rᵀ(RVRᵀ)⁺R = V^{1/2} G H⁻² G V^{1/2},  G = RᵀR, H = V^{1/2}GV^{1/2}
-    //   ⇒ M = Bᵀ H⁻² B,  B = G V^{1/2} A_src,  A_src = [P, Z]
-    // 其中 H ≻ 0 ⇒ Cholesky 解两次三角系统（O(m³/3); m 由 PSF 足迹窗口界定）。
-    // 秩亏（Cholesky 失败）⇒ 参数不可辨识 ⇒ unavailable（合同 §6: 不用伪逆制造
-    // 信息量, 不用任意地板）。该路径与显式 nl 空间 GLS 的数值一致性由
-    // eng/tests/unit/sparse_reference_gls_test.cpp 的 dual 段对拍验证。
-    // ── 球面 GLS（精确; NORMALIZE_DATA §6 + NOISE_SNR §3/§11.1）────────────
-    // y = F·(R P) + Z_s·β + n, C = R V Rᵀ, V = diag(v_j), A_s = [R P, R Z]（nl×ncol）。
-    // 欲求 M = A_sᵀ C⁺ A_s。直接做需要 nl×nl 求逆（nl 可达数千）。用恒等式
-    //   Rᵀ(RVRᵀ)⁺R = G V^{1/2} H⁺ V^{1/2} G,  G = RᵀR, H = V^{1/2} G V^{1/2}
-    // （H 与 C 的非零特征值相同 ⇒ 秩与条件数同源）, 于是
-    //   M = A_srcᵀ RᵀC⁺R A_src = Bᵀ H⁺² B,  B = V^{1/2} G A_src,  A_src = [P, Z]
-    // **次序**: B = V^{1/2}·G·A_src（V^{1/2} 在左）。G 与 V^{1/2} 一般不交换;
-    // 旧实现写成 G·V^{1/2}·A_src ⇒ 异方差下错误（F01 反例, NOISE_SNR §11.1）。
-    // H ≻ 0（R 满列秩, 由特征分解显式验证）时严格有
-    //   M = A_srcᵀ V⁻¹ A_src            （NOISE_SNR §11.1 条件信息恒等式）
-    // H 半正定（R 秩亏）时用显式特征分解取保留子空间; 被投掉的方向不当作零信息,
-    // 参数子空间内不可辨识 ⇒ unavailable（合同 §6: 不加 epsilon、不用伪逆造信息量）。
-    // 与显式 nl 空间 GLS 的数值一致性由 eng/tests/unit/sparse_reference_gls_test.cpp
-    // 的 dual 段对拍验证（不调用同一构造函数作 oracle）。
-    std::vector<double> mm(static_cast<std::size_t>(ncol) * ncol, 0.0);
-    int cov_rank = 0;
+    // ── 球面 GLS: 秩亏安全的源空间投影（NOISE_SNR §11.4 裁决）────────────────
+    // 被估计量 y = F h + Z β + n, h = R P, C = R V Rᵀ, V = diag(v_j)（v_j 已含
+    // 冻结参考源 Poisson 与 blank-sky 分量, 与输入面同标度）。
+    //
+    // §11.4 行/零空间投影定理（可独立复算的代数恒等式）:
+    //   Q = R D^{1/2}（nl×m）, W = D^{-1/2} A_src, A_src = [P, Z_planar]
+    //   M = A_srcᵀ Rᵀ(RDRᵀ)⁺R A_src = Wᵀ V_r V_rᵀ W
+    // V_r = Q 的行空间正交基 ⇒ 等价 M = WᵀW − (NᵀW)ᵀ(NᵀW)（N = 零空间基）。
+    // 满列秩 (r=m) 时 V_rV_rᵀ = I ⇒ M = A_srcᵀD⁻¹A_src，与 §11.1 恒等式逐位一致。
+    //
+    // 数值 backend: 列主元 Householder QR 分解 B = Qᵀ = D^{1/2}Rᵀ（m×nl, 由 CSR
+    // 三元组直接稠密组装）。range(B) = range(Qᵀ); 反射子隐式存于 B, 只需把它们作用
+    // 到 W 上即得 W̃ = Q'ᵀW, 其前 r 行就是 V_rᵀW。成本 O(m²nl), 不组成条件数被
+    // 平方的 Gram H=QᵀQ, 也不对其做几十轮循环 Jacobi（生产 m≈645/nl≈798 时后者
+    // 单控制点约 19 s ⇒ 64 控制点约 20 min）。Jacobi 保留子空间路径保留为独立
+    // 数值 oracle（spherical_reference_jacobi_oracle）供 verify 程序对拍。
+    //
+    // 背景冗余 ≠ 通量不可辨识（§11.4 末段）: 设 t = W̃[0:r,0]（通量列）、
+    // Z_w = W̃[0:r,1:ncol]，正交投影 I_{F|β} = ‖(I−Π_Z)t‖², V_F = 1/I_{F|β}。
+    // 只有通量响应整体落在背景列空间内才判 unavailable, 不因参数矩阵退化误判。
+    double v_f_pre = 0.0;         // 由本块直接给出 V_F（取代 invert_ff_entry）
+    bool have_v_f = false;
+    int cov_rank = 0;             // rank(C_sphere), 与 solver 诊断同源
     double cov_cond = kNaN;
     bool gls_ok = false;
+    std::string solver_name;      // solver 身份（随 LocalWindow 落盘供审计）
+    double solver_rel_tol = 0.0;
+    int z_rank_out = 0;           // Z_w 有效秩（共线背景列被识别并记录）
+    double i_f_out = 0.0;         // I_{F|β}
     {
-      // G = RᵀR (m×m): G[j][j'] = Σ_l c_lj·c_lj'（按叶聚合, O(nnz + Σk_l²)）
-      std::vector<double> g(static_cast<std::size_t>(m) * m, 0.0);
-      {
-        std::vector<std::vector<std::pair<int, double>>> per_leaf(
-            static_cast<std::size_t>(nl));
-        for (std::size_t k = 0; k < w.op_c.size(); ++k) {
-          const int l = w.op_leaf[k];
-          const int j = w.op_pix[k];
-          if (l < 0 || l >= nl || j < 0 || static_cast<std::size_t>(j) >= m) continue;
-          per_leaf[static_cast<std::size_t>(l)].emplace_back(j, w.op_c[k]);
+      const double rel_tol = (std::isfinite(cfg.support_rank_tol) &&
+                              cfg.support_rank_tol > 0.0)
+                                 ? cfg.support_rank_tol
+                                 : 1e-12;
+      // 稠密工作集预算（元素个数）。超出则退回已验证的 Jacobi 保留子空间 oracle:
+      // 正确性优先于速度, 并在 solver 名字里如实反映（不冒充已用 QR）。
+      const double kDenseQrBudget = 6.0e7;
+      if (static_cast<double>(m) * static_cast<double>(nl) > kDenseQrBudget) {
+        const JacobiOracleResult jr = spherical_reference_jacobi_oracle(w, n_bg, v);
+        if (!jr.ok || !(jr.flux_variance > 0.0) ||
+            !std::isfinite(jr.flux_variance)) {
+          fail_point("operator_rank_deficient");
+          out.precision.controls.push_back(ctrl);
+          continue;
         }
-        for (int l = 0; l < nl; ++l) {
-          const auto& js = per_leaf[static_cast<std::size_t>(l)];
-          for (std::size_t a = 0; a < js.size(); ++a) {
-            const std::size_t ja = static_cast<std::size_t>(js[a].first);
-            g[ja * m + ja] += js[a].second * js[a].second;
-            for (std::size_t b = a + 1; b < js.size(); ++b) {
-              const std::size_t jb = static_cast<std::size_t>(js[b].first);
-              const double val = js[a].second * js[b].second;
-              g[ja * m + jb] += val;
-              g[jb * m + ja] += val;
-            }
-          }
-        }
-      }
-      // H = V^{1/2} G V^{1/2}
-      std::vector<double> hmat = g;
-      for (int j = 0; j < static_cast<int>(m); ++j) {
-        const double sj = std::sqrt(v[static_cast<std::size_t>(j)]);
-        for (int j2 = 0; j2 < static_cast<int>(m); ++j2) {
-          const double s2 = std::sqrt(v[static_cast<std::size_t>(j2)]);
-          hmat[static_cast<std::size_t>(j) * m + j2] *= sj * s2;
-        }
-      }
-      // B = V^{1/2} G A_src（m×ncol; 正确次序: V^{1/2} 在左）
-      std::vector<double> bmat(static_cast<std::size_t>(m) * ncol, 0.0);
-      for (int c = 0; c < ncol; ++c) {
-        for (int j = 0; j < static_cast<int>(m); ++j) {
-          auto src_col = [&](int j2) -> double {
-            switch (c) {
-              case 0:  return w.profile[static_cast<std::size_t>(j2)];
-              case 1:  return 1.0;
-              case 2:  return w.src_x[static_cast<std::size_t>(j2)];
-              default: return w.src_y[static_cast<std::size_t>(j2)];
-            }
-          };
-          // (V^{1/2} G A_src)[j][c] = sqrt(v_j) · Σ_{j2} G[j][j2]·A_src[j2][c]
-          double sum = 0.0;
-          for (int j2 = 0; j2 < static_cast<int>(m); ++j2) {
-            sum += g[static_cast<std::size_t>(j) * m + j2] * src_col(j2);
-          }
-          bmat[static_cast<std::size_t>(j) * ncol + c] =
-              std::sqrt(v[static_cast<std::size_t>(j)]) * sum;
-        }
-      }
-      // 快路径: H ≻ 0（R 满列秩）⇒ Cholesky + 两次三角求解即得 M = YᵀY,
-      // Y = H⁻¹B。与慢路径（显式特征分解）在 H 正定时逐位等价, 但 O(m³/3) 而非
-      // O(sweeps·m³)（生产 m 可达 3×10³, 慢路径单控制点数分钟）。
-      std::vector<double> hchol = hmat;
-      if (cholesky_spd(hchol, static_cast<int>(m))) {
-        for (int c = 0; c < ncol; ++c) {
-          std::vector<double> bcol(static_cast<std::size_t>(m), 0.0);
-          for (int j = 0; j < static_cast<int>(m); ++j)
-            bcol[static_cast<std::size_t>(j)] =
-                bmat[static_cast<std::size_t>(j) * ncol + c];
-          std::vector<double> xcol(static_cast<std::size_t>(m), 0.0);
-          cholesky_solve(hchol, static_cast<int>(m), bcol.data(), xcol.data());
-          for (int j = 0; j < static_cast<int>(m); ++j)
-            bmat[static_cast<std::size_t>(j) * ncol + c] =
-                xcol[static_cast<std::size_t>(j)];
-        }
-        mm.assign(static_cast<std::size_t>(ncol) * ncol, 0.0);
-        for (std::size_t j = 0; j < m; ++j) {
-          for (int a = 0; a < ncol; ++a) {
-            const double ya = bmat[static_cast<std::size_t>(j) * ncol + a];
-            if (ya == 0.0) continue;
-            for (int b = a; b < ncol; ++b) {
-              const double val = ya * bmat[static_cast<std::size_t>(j) * ncol + b];
-              mm[static_cast<std::size_t>(a) * ncol + b] += val;
-              if (b != a) mm[static_cast<std::size_t>(b) * ncol + a] += val;
-            }
-          }
-        }
-        cov_rank = static_cast<int>(m);
-        // 条件数: Cholesky 对角比的上界 (max L_ii / min L_ii)² —— 保守（不小估）,
-        // 且是计算因子的确定性函数。秩亏路径改为保留子空间特征值精确比。
-        double lmax = 0.0, lmin = 0.0;
-        for (int j = 0; j < static_cast<int>(m); ++j) {
-          const double ljj = hchol[static_cast<std::size_t>(j) * m + j];
-          lmax = std::max(lmax, ljj);
-          if (lmin == 0.0 || ljj < lmin) lmin = ljj;
-        }
-        cov_cond = (lmin > 0.0 && lmax > 0.0)
-                       ? (lmax / lmin) * (lmax / lmin)
-                       : kNaN;
-        gls_ok = true;
+        v_f_pre = jr.flux_variance;
+        have_v_f = true;
+        cov_rank = jr.covariance_rank;
+        cov_cond = jr.condition_number;
+        solver_name = "jacobi_retained_subspace";
+        solver_rel_tol = rel_tol;
       } else {
-        gls_ok = retained_subspace_quadratic(hmat, static_cast<int>(m), bmat, ncol,
-                                             cfg.support_rank_tol, &mm, &cov_rank,
-                                             &cov_cond);
+        PivotedQr qr;
+        if (!qr.build_from_csr(v, w.op_pix, w.op_leaf, w.op_c,
+                               static_cast<int>(m), nl, rel_tol) ||
+            qr.rank <= 0 || !(qr.max_col_norm > 0.0)) {
+          fail_point("operator_rank_deficient");
+          out.precision.controls.push_back(ctrl);
+          continue;
+        }
+        // W = D^{-1/2} A_src（m × ncol, row-major）
+        std::vector<double> w_mat(static_cast<std::size_t>(m) * ncol, 0.0);
+        for (int j = 0; j < static_cast<int>(m); ++j) {
+          const double inv_sqrt = 1.0 / std::sqrt(v[static_cast<std::size_t>(j)]);
+          w_mat[static_cast<std::size_t>(j) * ncol + 0] =
+              w.profile[static_cast<std::size_t>(j)] * inv_sqrt;
+          for (int c = 1; c < ncol; ++c) {
+            const double planar =
+                (c == 1) ? 1.0 : (c == 2) ? w.src_x[static_cast<std::size_t>(j)]
+                                          : w.src_y[static_cast<std::size_t>(j)];
+            w_mat[static_cast<std::size_t>(j) * ncol + c] = planar * inv_sqrt;
+          }
+        }
+        qr.apply_qt(&w_mat, ncol);   // W̃ = Q'ᵀW
+        const int r = qr.rank;
+        cov_rank = r;
+        double min_piv = qr.max_col_norm;
+        for (int k = 0; k < r; ++k)
+          min_piv = std::min(min_piv, qr.pivnorm[static_cast<std::size_t>(k)]);
+        const double ratio = qr.max_col_norm / min_piv;
+        // 条件数估计: (QR pivot 比)² —— 与 C 的 σ²max/σ²min 同口径的保守估计,
+        // 配合 solver/rel_tol/rank 一并落盘供审计, 不用它单独特判病态。
+        cov_cond = std::isfinite(ratio) ? ratio * ratio : kNaN;
+        double t_norm2 = 0.0;
+        for (int i = 0; i < r; ++i) {
+          const double x = w_mat[static_cast<std::size_t>(i) * ncol + 0];
+          t_norm2 += x * x;
+        }
+        // 对 Z_w 做两次修正 Gram-Schmidt ⇒ 列空间正交基（记录有效背景秩）
+        std::vector<double> basis(static_cast<std::size_t>(r) *
+                                      (ncol > 1 ? ncol - 1 : 1),
+                                  0.0);
+        int z_rank = 0;
+        for (int c = 1; c < ncol; ++c) {
+          std::vector<double> z(static_cast<std::size_t>(r), 0.0);
+          double cn = 0.0;
+          for (int i = 0; i < r; ++i) {
+            const double x = w_mat[static_cast<std::size_t>(i) * ncol + c];
+            z[static_cast<std::size_t>(i)] = x;
+            cn += x * x;
+          }
+          if (!(cn > 0.0)) continue;
+          const double cn0 = std::sqrt(cn);
+          for (int pass = 0; pass < 2; ++pass) {
+            for (int q = 0; q < z_rank; ++q) {
+              double d = 0.0;
+              for (int i = 0; i < r; ++i)
+                d += z[static_cast<std::size_t>(i)] *
+                     basis[static_cast<std::size_t>(q) * r + i];
+              for (int i = 0; i < r; ++i)
+                z[static_cast<std::size_t>(i)] -=
+                    d * basis[static_cast<std::size_t>(q) * r + i];
+            }
+          }
+          double rn = 0.0;
+          for (double x : z) rn += x * x;
+          rn = std::sqrt(rn);
+          if (rn <= rel_tol * cn0) continue;   // 与既有背景列共线 ⇒ 非新方向
+          for (int i = 0; i < r; ++i)
+            basis[static_cast<std::size_t>(z_rank) * r + i] =
+                z[static_cast<std::size_t>(i)] / rn;
+          ++z_rank;
+        }
+        double proj = 0.0;
+        for (int q = 0; q < z_rank; ++q) {
+          double d = 0.0;
+          for (int i = 0; i < r; ++i)
+            d += w_mat[static_cast<std::size_t>(i) * ncol + 0] *
+                 basis[static_cast<std::size_t>(q) * r + i];
+          proj += d * d;
+        }
+        const double i_f = t_norm2 - proj;
+        if (!std::isfinite(i_f) || !(i_f > rel_tol * std::max(t_norm2, 0.0))) {
+          fail_point(ncol > 1 ? "flux_direction_inside_background_span"
+                              : "flux_not_identifiable");
+          out.precision.controls.push_back(ctrl);
+          continue;
+        }
+        v_f_pre = 1.0 / i_f;
+        have_v_f = true;
+        solver_name = "pivoted_householder_qr_rowspace";
+        solver_rel_tol = rel_tol;
+        z_rank_out = z_rank;
+        i_f_out = i_f;
       }
     }
+    gls_ok = have_v_f;
+
     if (!gls_ok) {
       fail_point("operator_rank_deficient");
       out.precision.controls.push_back(ctrl);
       continue;
     }
-    double v_f = 0.0;
-    int mrank = 0;
-    double mcond = kNaN;
-    if (!invert_ff_entry(mm, ncol, &v_f, &mrank, &mcond)) {
-      fail_point(ncol > 1 ? "flux_not_identifiable_with_background"
-                          : "flux_not_identifiable");
-      out.precision.controls.push_back(ctrl);
-      continue;
-    }
+    // V_F 由上面的源空间投影直接给出（I_{F|β} 取代参数信息矩阵求逆）;
+    // 秩/条件数来自同一 solver（cov_rank / cov_cond）, 不再混用参数矩阵的秩。
+    const double v_f = v_f_pre;
     if (!std::isfinite(v_f) || !(v_f > 0.0)) {
       fail_point("nonfinite_flux_variance");
       out.precision.controls.push_back(ctrl);
       continue;
     }
-
 
     // 支持面积（合同 §5）: 叶之间互不相交 ⇒ Σ_l min(D_l, Ω_leaf) 本身是不重叠的
     // 球面面积分区（D_l 是真实 drop 命中面积, Ω_leaf 是其上界）。patch 之间可能
@@ -788,6 +852,12 @@ SphericalCompletionResult complete_spherical_reference(
     lw.source_variance = v;
     // Z_sphere = R Z_planar（nl × n_bg row-major; 与 h 同一叶序）
     lw.n_bg = n_bg;
+    lw.solver = solver_name;
+    lw.solver_rank = cov_rank;
+    lw.solver_relative_tol = solver_rel_tol;
+    lw.solver_condition_number = std::isfinite(cov_cond) ? cov_cond : 0.0;
+    lw.background_basis_rank = z_rank_out;
+    lw.flux_information = i_f_out;
     // Z_sphere = R Z_planar: nl × n_bg row-major（n_bg 列; 列索引 1..n_bg）
     for (int b = 1; b <= n_bg; ++b) {
       for (int l = 0; l < nl; ++l) lw.z_sphere.push_back(0.0);
@@ -944,6 +1014,134 @@ FrameReferenceSummary summarize_frame_reference(
   }
   s.status.omitted_terms = omitted;
   return s;
+}
+
+// ── 独立数值 oracle（仅测试/诊断; 不在生产调用路径）────────────────────────
+// 用循环 Jacobi 特征分解 + 显式 H⁺² 重算 M = A_srcᵀ Rᵀ(RDRᵀ)⁺R A_src, 再取
+// [(M⁻¹)]_FF。与生产 QR 行空间投影是**不同代码路径**; 满列秩时两者同为
+// A_srcᵀD⁻¹A_src（NOISE_SNR §11.1/§11.4）。verify 程序对拍二者。
+JacobiOracleResult spherical_reference_jacobi_oracle(
+    const PlanarPatchWindow& w, int n_bg, const std::vector<double>& v_override) {
+  JacobiOracleResult out;
+  const int m = static_cast<int>(w.pix_index.size());
+  const int nl = static_cast<int>(w.leaf_ipix.size());
+  const int ncol = 1 + n_bg;
+  if (m <= 0 || nl <= 0 || w.op_c.size() != w.op_pix.size() ||
+      w.op_c.size() != w.op_leaf.size()) {
+    return out;
+  }
+  const std::vector<double>& v = v_override.empty() ? w.variance : v_override;
+  if (v.size() != w.pix_index.size()) return out;
+  for (double x : v) {
+    if (!std::isfinite(x) || x <= 0.0) return out;
+  }
+  // H = V^{1/2} RᵀR V^{1/2}
+  std::vector<double> g(static_cast<std::size_t>(m) * m, 0.0);
+  {
+    std::vector<std::vector<std::pair<int, double>>> per_leaf(
+        static_cast<std::size_t>(nl));
+    for (std::size_t k = 0; k < w.op_c.size(); ++k) {
+      const int l = w.op_leaf[k];
+      const int j = w.op_pix[k];
+      if (l < 0 || l >= nl || j < 0 || j >= m) continue;
+      per_leaf[static_cast<std::size_t>(l)].emplace_back(j, w.op_c[k]);
+    }
+    for (int l = 0; l < nl; ++l) {
+      const auto& js = per_leaf[static_cast<std::size_t>(l)];
+      for (std::size_t a = 0; a < js.size(); ++a) {
+        const std::size_t ja = static_cast<std::size_t>(js[a].first);
+        g[ja * m + ja] += js[a].second * js[a].second;
+        for (std::size_t b = a + 1; b < js.size(); ++b) {
+          const std::size_t jb = static_cast<std::size_t>(js[b].first);
+          const double val = js[a].second * js[b].second;
+          g[ja * m + jb] += val;
+          g[jb * m + ja] += val;
+        }
+      }
+    }
+  }
+  std::vector<double> hmat = g;
+  for (int j = 0; j < m; ++j) {
+    const double sj = std::sqrt(v[static_cast<std::size_t>(j)]);
+    for (int j2 = 0; j2 < m; ++j2)
+      hmat[static_cast<std::size_t>(j) * m + j2] *=
+          sj * std::sqrt(v[static_cast<std::size_t>(j2)]);
+  }
+  // A_src = [P, Z_planar]（m × ncol）
+  std::vector<double> a_src(static_cast<std::size_t>(m) * ncol, 0.0);
+  for (int j = 0; j < m; ++j) {
+    a_src[static_cast<std::size_t>(j) * ncol + 0] =
+        w.profile[static_cast<std::size_t>(j)];
+    for (int c = 1; c < ncol; ++c) {
+      a_src[static_cast<std::size_t>(j) * ncol + c] =
+          (c == 1) ? 1.0
+                   : (c == 2) ? w.src_x[static_cast<std::size_t>(j)]
+                              : w.src_y[static_cast<std::size_t>(j)];
+    }
+  }
+  // B = V^{1/2} G A_src —— retained_subspace_quadratic 的**第二参数必须是 B**,
+  // 不是 A_src（NOISE_SNR §11.1: M = BᵀH⁺²B, H=V^{1/2}GV^{1/2}）。
+  std::vector<double> bmat(static_cast<std::size_t>(m) * ncol, 0.0);
+  for (int j = 0; j < m; ++j) {
+    const double sj = std::sqrt(v[static_cast<std::size_t>(j)]);
+    for (int c = 0; c < ncol; ++c) {
+      double sum = 0.0;
+      for (int j2 = 0; j2 < m; ++j2)
+        sum += g[static_cast<std::size_t>(j) * m + j2] *
+               a_src[static_cast<std::size_t>(j2) * ncol + c];
+      bmat[static_cast<std::size_t>(j) * ncol + c] = sj * sum;
+    }
+  }
+  std::vector<double> mm(static_cast<std::size_t>(ncol) * ncol, 0.0);
+  int rank = 0;
+  double cond = kNaN;
+  if (!retained_subspace_quadratic(hmat, m, bmat, ncol, 1e-10, &mm, &rank,
+                                   &cond)) {
+    return out;
+  }
+  // Gauss-Jordan 反转 M 取 [0][0]（ncol ≤ 4; 与生产 QR 路径独立实现）
+  double vf = 0.0;
+  {
+    const int k = ncol;
+    std::vector<double> aug(static_cast<std::size_t>(k) * 2 * k, 0.0);
+    for (int i = 0; i < k; ++i) {
+      for (int j = 0; j < k; ++j)
+        aug[static_cast<std::size_t>(i) * 2 * k + j] =
+            mm[static_cast<std::size_t>(i) * k + j];
+      aug[static_cast<std::size_t>(i) * 2 * k + k + i] = 1.0;
+    }
+    for (int col = 0; col < k; ++col) {
+      int piv = col;
+      double best = std::abs(aug[static_cast<std::size_t>(col) * 2 * k + col]);
+      for (int r = col + 1; r < k; ++r) {
+        const double x = std::abs(aug[static_cast<std::size_t>(r) * 2 * k + col]);
+        if (x > best) { best = x; piv = r; }
+      }
+      if (!(best > 0.0)) return out;
+      if (piv != col)
+        for (int j = 0; j < 2 * k; ++j)
+          std::swap(aug[static_cast<std::size_t>(col) * 2 * k + j],
+                    aug[static_cast<std::size_t>(piv) * 2 * k + j]);
+      const double d = aug[static_cast<std::size_t>(col) * 2 * k + col];
+      for (int j = 0; j < 2 * k; ++j)
+        aug[static_cast<std::size_t>(col) * 2 * k + j] /= d;
+      for (int r = 0; r < k; ++r) {
+        if (r == col) continue;
+        const double f = aug[static_cast<std::size_t>(r) * 2 * k + col];
+        if (f == 0.0) continue;
+        for (int j = 0; j < 2 * k; ++j)
+          aug[static_cast<std::size_t>(r) * 2 * k + j] -=
+              f * aug[static_cast<std::size_t>(col) * 2 * k + j];
+      }
+    }
+    vf = aug[static_cast<std::size_t>(0) * 2 * k + k];
+  }
+  if (!std::isfinite(vf) || !(vf > 0.0)) return out;
+  out.ok = true;
+  out.flux_variance = vf;
+  out.covariance_rank = rank;
+  out.condition_number = std::isfinite(cond) ? cond : 0.0;
+  return out;
 }
 
 }  // namespace acsd::normalize
