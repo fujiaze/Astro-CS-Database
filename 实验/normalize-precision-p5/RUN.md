@@ -40,6 +40,22 @@ cmake --build build/linux-dev  -j 8
 
 `p1_final.json` 新增 `frame_science_published=true` 与 `frame_science_sha256`。
 
+## 3b. canonical 与 legacy 诊断量的区别（不互相冒充）
+
+同一帧同一次运行：
+
+| 量 | 值 | 定义 | 定位 |
+|---|---|---|---|
+| `p1_snr.json#frames[].snr_reference.snr_f` | 11.7638 | Horne 逐源 SNR_F 的参考轮廓值，分母通量 = 组内检出通量**中位数**（`reference_flux_source=group_median`） | legacy 诊断（旧 F0 路径） |
+| `frame_science.json#precision.frame_summary.reference_snr` | 19.9989 | GLS 固定参考源（F_ref=1000 ADU, `explicit_linear_flux`）+ 常量背景 nuisance，支持面积加权 log SNR 中位数 | **canonical 稀疏参考精度** |
+
+两者被估计量不同（分母参考通量、背景 nuisance、估计子空间都不同），**不可互换**；legacy 值保持原路径可查，canonical 值只由新 producer 生产。`p1_stack.json#bunit`、HiPS `signal/properties#BUNIT=ADU/sr` 与 sidecar `signal.linear_unit=adu/native_calibrated` 三者一致（本帧 photometry 通道缺席 ⇒ native_calibrated，无 α 换算）。
+
+## 3c. HiPS/FITS 预览
+
+- `frame_signal_preview.fits` / `frame_signal_preview.png`：`<frame>/signal/Norder9/Dir1370000/Npix1371955.fits` 的实读预览（512×512 float32 → float64 复制后写出；asinh/线性拉伸，1–99.5 百分位）。
+- 读数：262144/262144 有限；min −1.64e13、max 9.41e14、mean 3.13e12 ADU/sr —— 与历史 E2E「58 ADU/px ÷ Ω≈2.08e-11 sr ≈ 2.8e12 ADU/sr」的量级自洽（本帧未施加测光 ⇒ native ADU 面亮度）。
+
 ## 4. 开发/发布构建一致性（串行、独立目录、同配置）
 
 | 对象 | 结果 |
