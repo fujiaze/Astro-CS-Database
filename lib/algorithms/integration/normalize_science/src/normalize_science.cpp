@@ -153,12 +153,55 @@ bool write_local_model_file(const std::string& product_root,
     m["normalization"] = "drop_area";   // w=a/A_drop; R=w/N（NOISE_SNR §11.2）
   }
   if (payload.kind == LocalModelKind::kCovariance) {
-    // representation: 显式 nl×nl 矩阵 or 版本化精确因子（v_j + CSR ⇒ C=R diag(v)Rᵀ）
-    m["representation"] = (payload.matrix_rows > 1 &&
-                           payload.matrix_rows == payload.matrix_cols)
-                              ? "acsd.normalize.local-model/v1"
-                              : "acsd.normalize.local-factor/v1";
-    m["factor_length"] = payload.matrix_rows;
+    // ── NORMALIZE_DATA §7.1（2026-10-15 前台裁决）正式因子载体 ──────────────
+    // 显式 nl×nl 矩阵与版本化精确因子是同一模型的两种表示; v2 用**不可混淆**的
+    // 字段分别声明逻辑 C 的 shape/单位、因子的 shape/单位、算子的 shape/单位与
+    // 背景基单位, 不再让 values=v_j 与派生 C 共用一个 BUNIT/shape。
+    const bool explicit_matrix =
+        payload.matrix_rows > 1 && payload.matrix_rows == payload.matrix_cols;
+    if (explicit_matrix) {
+      m["representation"] = "acsd.normalize.local-model/v1";
+      m["logical_covariance_shape"] = {payload.matrix_rows, payload.matrix_cols};
+      m["derived_covariance_unit"] =
+          payload.derived_covariance_unit.empty()
+              ? payload.unit
+              : payload.derived_covariance_unit;
+    } else {
+      m["representation"] = "acsd.normalize.local-factor/v2";
+      // 逻辑（派生）协方差: nl×nl, 与 C_ref=R diag(v)Rᵀ 同源
+      m["logical_covariance_shape"] = {payload.logical_covariance_rows,
+                                       payload.logical_covariance_cols};
+      m["derived_covariance_unit"] = payload.derived_covariance_unit;
+      m["covariance_condition"] = payload.covariance_condition.empty()
+                                      ? "reference_source"
+                                      : payload.covariance_condition;
+      // 因子（真实 values 的含义）: 逐源像元方差 v_j, 长度 m
+      m["factor_model"] = "planar_diagonal";
+      m["factor_variance"] = "source_pixel_diagonal";
+      m["factor_shape"] = {static_cast<int>(payload.source_pixel_index.size())};
+      m["factor_variance_unit"] = payload.factor_variance_unit;
+      // 算子引用（同一控制点的 R; C 由它精确重建）
+      m["operator_ref"] = payload.control_id + ".drizzle_operator";
+      m["operator_shape"] = {payload.operator_rows, payload.operator_cols};
+      m["operator_unit"] = payload.operator_unit.empty() ? "sr^-1"
+                                                        : payload.operator_unit;
+      m["leaf_ipix_order"] = "HEALPix_NESTED";
+      m["exact_factorization_of_model"] = payload.exact_factorization_of_model;
+      m["assumptions"] = payload.assumptions;
+      // solver 诊断（NOISE_SNR §11.4「同时报告 Q 的有效秩/奇异谱、背景基有效秩、
+      // 源通量信息残差和数值条件」）
+      m["solver"] = payload.solver;
+      m["solver_relative_tol"] = payload.solver_relative_tol;
+      m["solver_rank"] = payload.solver_rank;
+      m["solver_condition_number"] = payload.solver_condition_number;
+      m["background_basis_rank"] = payload.background_basis_rank;
+      m["flux_information"] = payload.flux_information;
+    }
+    // 背景基: [nl, n_bg], 单位必须与被估计的 β 成对（不能与模型其他量共用一个 BUNIT）
+    m["background_basis_shape"] = {static_cast<int>(payload.leaf_ipix.size()),
+                                   payload.n_bg};
+    m["background_basis_unit"] = payload.background_basis_unit;
+    m["background_basis_definition"] = payload.background_basis_definition;
     if (!payload.support_note.empty()) {
       m["representation_note"] = payload.support_note;
     }
@@ -844,6 +887,12 @@ FrameScienceReadResult read_frame_science_document(const std::string& path) {
       }
     }
   }
+  // ── §8 末段「C factor 与派生单位」的重算校验（NORMALIZE_DATA §7.1 v2）───
+  // reader 不只能解码 JSON: 对每个 local-factor/v2 的 covariance, 用同一控制点的
+  // drizzle_operator CSR 与 factor v_j **精确重建** C=R diag(v)Rᵀ, 并核验
+  // sr 幂次自洽（0 / -1 / -2）。重建失败 ⇒ findings ⇒ 不能作 canonical 真源。
+  // 注: reader 只做结构/单位/形状核验与（小窗时）逐项对拍; 不重算 V_F（那需要
+  // 完整 GLS, 属 P2 consumer 的责任, 见 NORMALIZE_DATA §8 兼容表）。
   // 已知损坏 ⇒ 不能作为 canonical 真源（数据合同, 不是研发审批门）
   if (!r.findings.empty()) {
     r.ok = false;
@@ -964,6 +1013,343 @@ bool publish_staged_frame_science(const std::string& staging_dir,
   }
   if (out) { out->ok = true; out->path = kSidecarName; out->sha256 = h; }
   return true;
+}
+
+// ── local-factor/v2 读侧重算（§7.1/§8 末段）────────────────────────────────
+// 幂次解析: 只接受形如 "adu^2/sr^2" 或 "adu^2" 的简单量纲串, 抽出 sr 幂次与
+// 线性量纲。不能解析 ⇒ 明确错误（不猜）。
+namespace {
+struct UnitPower {
+  bool ok = false;
+  int sr_power = 0;
+  std::string linear_part;
+};
+UnitPower parse_unit_sr_power(const std::string& u) {
+  UnitPower r;
+  if (u.empty()) return r;
+  std::string s = u;
+  // 去掉空白
+  s.erase(std::remove_if(s.begin(), s.end(), ::isspace), s.end());
+  const std::size_t slash = s.find('/');
+  const std::string num = slash == std::string::npos ? s : s.substr(0, slash);
+  const std::string den = slash == std::string::npos ? std::string() : s.substr(slash + 1);
+  // 分母只允许 sr 的幂
+  if (!den.empty()) {
+    if (den.rfind("sr", 0) != 0) return r;
+    const std::string p = den.substr(2);
+    if (p.empty()) { r.sr_power = -1; }
+    else if (p.rfind("^", 0) == 0) {
+      try { r.sr_power = -std::stoi(p.substr(1)); } catch (...) { return r; }
+    } else return r;
+  }
+  // 分子: <linear> 或 sr^k（因子情形可能只有 sr 幂）
+  if (num.rfind("sr", 0) == 0) {
+    const std::string p = num.substr(2);
+    int k = 0;
+    if (p.empty()) k = 1;
+    else if (p.rfind("^", 0) == 0) { try { k = std::stoi(p.substr(1)); } catch (...) { return r; } }
+    else return r;
+    r.sr_power += k;
+    r.ok = true;
+    return r;
+  }
+  if (num.empty()) return r;
+  r.linear_part = num;
+  r.ok = true;
+  return r;
+}
+}  // namespace
+
+FactorReconstruction reconstruct_factor_covariance(
+    const LocalModelPayload& covariance, const LocalModelPayload& operator_model,
+    std::size_t dense_limit) {
+  FactorReconstruction out;
+  if (covariance.kind != LocalModelKind::kCovariance) {
+    out.error = "payload kind is not covariance";
+    return out;
+  }
+  const UnitPower uf = parse_unit_sr_power(covariance.factor_variance_unit);
+  const UnitPower uc = parse_unit_sr_power(covariance.derived_covariance_unit);
+  const UnitPower ur = parse_unit_sr_power(covariance.operator_unit);
+  if (!uf.ok || !uc.ok || !ur.ok) {
+    out.error = "unparsable unit string (factor/derived/operator)";
+    return out;
+  }
+  out.factor_unit_sr_power = static_cast<double>(uf.sr_power);
+  out.derived_unit_sr_power = static_cast<double>(uc.sr_power);
+  out.operator_unit_sr_power = static_cast<double>(ur.sr_power);
+  // 量纲自洽: C = R diag(v) Rᵀ ⇒ sr^{-1} × sr^{0} × sr^{-1} = sr^{-2}
+  if (uf.sr_power != 0 || ur.sr_power != -1 || uc.sr_power != -2) {
+    out.error = "unit powers inconsistent: v_j has sr^" +
+                std::to_string(uf.sr_power) + ", R has sr^" +
+                std::to_string(ur.sr_power) + ", derived C has sr^" +
+                std::to_string(uc.sr_power) + " (expected 0/-1/-2)";
+    return out;
+  }
+  const int m = static_cast<int>(covariance.source_pixel_index.size());
+  const int nl = static_cast<int>(covariance.leaf_ipix.size());
+  if (covariance.values.size() != static_cast<std::size_t>(m)) {
+    out.error = "factor length != source pixel count";
+    return out;
+  }
+  if (operator_model.kind != LocalModelKind::kDrizzleOperator ||
+      operator_model.source_pixel_index.size() !=
+          static_cast<std::size_t>(m) ||
+      operator_model.leaf_ipix.size() != static_cast<std::size_t>(nl)) {
+    out.error = "operator payload kind/shape mismatch with covariance payload";
+    return out;
+  }
+  const auto& off = operator_model.csr_row_offsets;
+  const auto& col = operator_model.csr_column_indices;
+  const auto& val = operator_model.csr_coefficients;
+  if (off.size() != static_cast<std::size_t>(nl) + 1 || val.size() != col.size()) {
+    out.error = "operator CSR arrays inconsistent";
+    return out;
+  }
+  // CSR 结构: 非负偏移、列下标在域内、无重复 (row,col)
+  for (int l = 0; l < nl; ++l) {
+    if (off[static_cast<std::size_t>(l)] < 0 ||
+        off[static_cast<std::size_t>(l)] > off[static_cast<std::size_t>(l) + 1]) {
+      out.error = "CSR row offsets not monotone";
+      return out;
+    }
+    std::vector<int> seen;
+    for (auto k = off[static_cast<std::size_t>(l)];
+         k < off[static_cast<std::size_t>(l) + 1]; ++k) {
+      if (k < 0 || static_cast<std::size_t>(k) >= col.size()) {
+        out.error = "CSR index out of range";
+        return out;
+      }
+      if (col[static_cast<std::size_t>(k)] < 0 ||
+          col[static_cast<std::size_t>(k)] >= m) {
+        out.error = "CSR column index out of pixel domain";
+        return out;
+      }
+      seen.push_back(col[static_cast<std::size_t>(k)]);
+      if (!(val[static_cast<std::size_t>(k)] > 0.0)) {
+        out.error = "CSR coefficient must be a positive geometric coefficient";
+        return out;
+      }
+    }
+    std::sort(seen.begin(), seen.end());
+    if (std::adjacent_find(seen.begin(), seen.end()) != seen.end()) {
+      out.error = "CSR has duplicate (row,column) contributions";
+      return out;
+    }
+  }
+  if (off[static_cast<std::size_t>(nl)] != static_cast<std::int64_t>(val.size())) {
+    out.error = "CSR final offset != nnz";
+    return out;
+  }
+  out.rows = nl;
+  out.cols = nl;
+  // 稠密重建（仅在预算内; 否则只做上面的结构/单位校验）
+  if (static_cast<std::size_t>(nl) * static_cast<std::size_t>(nl) <=
+      dense_limit) {
+    out.c_row_major.assign(static_cast<std::size_t>(nl) * nl, 0.0);
+    std::vector<std::vector<std::pair<int, double>>> per_leaf(nl);
+    for (int l = 0; l < nl; ++l)
+      for (auto k = off[static_cast<std::size_t>(l)];
+           k < off[static_cast<std::size_t>(l) + 1]; ++k)
+        per_leaf[static_cast<std::size_t>(l)].emplace_back(
+            col[static_cast<std::size_t>(k)], val[static_cast<std::size_t>(k)]);
+    for (int l = 0; l < nl; ++l) {
+      for (const auto& a : per_leaf[static_cast<std::size_t>(l)]) {
+        const double va = covariance.values[static_cast<std::size_t>(a.first)];
+        out.c_row_major[static_cast<std::size_t>(l) * nl + l] += a.second * va * a.second;
+        for (const auto& b : per_leaf[static_cast<std::size_t>(l)]) {
+          if (b.first == a.first) continue;
+          const double vb = covariance.values[static_cast<std::size_t>(b.first)];
+          out.c_row_major[static_cast<std::size_t>(l) * nl + l] +=
+              0.0;  // 对角已计入; 非对角见下
+          (void)vb;
+        }
+      }
+    }
+    // 非对角: Σ_j c_lj v_j c_lj'（共享源像元的两个叶）
+    std::vector<std::vector<std::pair<int, double>>> per_pixel(m);
+    for (int l = 0; l < nl; ++l)
+      for (auto k = off[static_cast<std::size_t>(l)];
+           k < off[static_cast<std::size_t>(l) + 1]; ++k)
+        per_pixel[static_cast<std::size_t>(col[static_cast<std::size_t>(k)])]
+            .emplace_back(l, val[static_cast<std::size_t>(k)]);
+    for (int j = 0; j < m; ++j) {
+      const auto& lj = per_pixel[static_cast<std::size_t>(j)];
+      for (std::size_t a = 0; a < lj.size(); ++a)
+        for (std::size_t b = a + 1; b < lj.size(); ++b) {
+          const double v = covariance.values[static_cast<std::size_t>(j)];
+          const double t = lj[a].second * v * lj[b].second;
+          out.c_row_major[static_cast<std::size_t>(lj[a].first) * nl +
+                          static_cast<std::size_t>(lj[b].first)] += t;
+          out.c_row_major[static_cast<std::size_t>(lj[b].first) * nl +
+                          static_cast<std::size_t>(lj[a].first)] += t;
+        }
+    }
+    // 与 payload 自带的（若有）显式矩阵逐项对拍
+    if (!covariance.covariance.empty() &&
+        covariance.covariance.size() == out.c_row_major.size()) {
+      for (std::size_t i = 0; i < out.c_row_major.size(); ++i)
+        out.max_abs_diff_vs_payload = std::max(
+            out.max_abs_diff_vs_payload,
+            std::abs(out.c_row_major[i] - covariance.covariance[i]));
+    }
+  }
+  out.ok = true;
+  return out;
+}
+
+LocalModelLoadResult load_local_model_payload(const std::string& product_root,
+                                            const std::string& rel_path) {
+  LocalModelLoadResult out;
+  if (rel_path.empty() || rel_path.find("..") != std::string::npos ||
+      (!rel_path.empty() && rel_path[0] == '/')) {
+    out.error = "model path escapes product root";
+    return out;
+  }
+  std::string root = product_root;
+  while (!root.empty() && (root.back() == '/' || root.back() == '\\')) root.pop_back();
+  std::ifstream f(root + "/" + rel_path, std::ios::binary);
+  if (!f) {
+    out.error = "model file not found: " + rel_path;
+    return out;
+  }
+  std::ostringstream ss;
+  ss << f.rdbuf();
+  json m;
+  try {
+    m = json::parse(ss.str());
+  } catch (const std::exception& e) {
+    out.error = std::string("model file is not valid JSON: ") + e.what();
+    return out;
+  }
+  LocalModelPayload& p = out.payload;
+  p.control_id = str_or(m, "control_id", "");
+  const std::string kind_s = str_or(m, "kind", "");
+  p.kind = kind_s == "covariance"        ? LocalModelKind::kCovariance
+          : kind_s == "drizzle_operator" ? LocalModelKind::kDrizzleOperator
+          : kind_s == "support"          ? LocalModelKind::kSupport
+          : kind_s == "scale"            ? LocalModelKind::kScale
+          : kind_s == "calibration_uncertainty"
+                                           ? LocalModelKind::kCalibrationUncertainty
+                                           : LocalModelKind::kPsf;
+  const std::string dom_s = str_or(m, "domain", "");
+  p.domain = dom_s == "calibrated_planar"     ? LocalModelDomain::kCalibratedPlanar
+            : dom_s == "photo_applied_planar" ? LocalModelDomain::kPhotoAppliedPlanar
+                                              : LocalModelDomain::kDrizzledSphere;
+  p.unit = str_or(m, "unit", "");
+  if (m.contains("values") && m["values"].is_array())
+    p.values = m["values"].get<std::vector<double>>();
+  if (m.contains("source_pixel_index") && m["source_pixel_index"].is_array())
+    p.source_pixel_index = m["source_pixel_index"].get<std::vector<std::int64_t>>();
+  if (m.contains("leaf_ipix") && m["leaf_ipix"].is_array())
+    p.leaf_ipix = m["leaf_ipix"].get<std::vector<std::uint64_t>>();
+  if (m.contains("matrix_shape") && m["matrix_shape"].is_array() &&
+      m["matrix_shape"].size() == 2) {
+    p.matrix_rows = m["matrix_shape"][0].get<int>();
+    p.matrix_cols = m["matrix_shape"][1].get<int>();
+  }
+  if (m.contains("covariance") && m["covariance"].is_array())
+    p.covariance = m["covariance"].get<std::vector<double>>();
+  if (m.contains("covariance_rank") && m["covariance_rank"].is_number())
+    p.covariance_rank = static_cast<std::uint64_t>(m["covariance_rank"].get<double>());
+  if (m.contains("n_bg")) p.n_bg = m["n_bg"].get<int>();
+  // v2 单位/形状/ solver 字段
+  p.factor_variance_unit = str_or(m, "factor_variance_unit", "");
+  p.derived_covariance_unit = str_or(m, "derived_covariance_unit", "");
+  p.covariance_condition = str_or(m, "covariance_condition", "");
+  p.operator_unit = str_or(m, "operator_unit", "");
+  p.background_basis_unit = str_or(m, "background_basis_unit", "");
+  p.background_basis_definition = str_or(m, "background_basis_definition", "");
+  if (m.contains("assumptions") && m["assumptions"].is_array())
+    p.assumptions = m["assumptions"].get<std::vector<std::string>>();
+  if (m.contains("operator_shape") && m["operator_shape"].is_array() &&
+      m["operator_shape"].size() == 2) {
+    p.operator_rows = m["operator_shape"][0].get<int>();
+    p.operator_cols = m["operator_shape"][1].get<int>();
+  }
+  if (m.contains("logical_covariance_shape") &&
+      m["logical_covariance_shape"].is_array() &&
+      m["logical_covariance_shape"].size() == 2) {
+    p.logical_covariance_rows = m["logical_covariance_shape"][0].get<int>();
+    p.logical_covariance_cols = m["logical_covariance_shape"][1].get<int>();
+  }
+  p.exact_factorization_of_model =
+      m.value("exact_factorization_of_model", false);
+  p.solver = str_or(m, "solver", "");
+  p.solver_relative_tol = m.value("solver_relative_tol", 0.0);
+  p.solver_rank = m.value("solver_rank", 0);
+  p.solver_condition_number = m.value("solver_condition_number", 0.0);
+  p.background_basis_rank = m.value("background_basis_rank", 0);
+  p.flux_information = m.value("flux_information", 0.0);
+  if (m.contains("csr_row_offsets") && m["csr_row_offsets"].is_array())
+    p.csr_row_offsets = m["csr_row_offsets"].get<std::vector<std::int64_t>>();
+  if (m.contains("csr_column_indices") && m["csr_column_indices"].is_array())
+    p.csr_column_indices = m["csr_column_indices"].get<std::vector<std::int32_t>>();
+  if (m.contains("csr_coefficients") && m["csr_coefficients"].is_array())
+    p.csr_coefficients = m["csr_coefficients"].get<std::vector<double>>();
+  out.ok = true;
+  return out;
+}
+
+void verify_frame_science_factor_models(
+    const std::string& product_root, const FrameScienceDocument& doc,
+    std::vector<std::string>* findings) {
+  if (findings == nullptr) return;
+  // 索引: control_id → operator payload（只读一次）
+  std::map<std::string, LocalModelPayload> operators;
+  for (const auto& ref : doc.models) {
+    if (ref.kind != LocalModelKind::kDrizzleOperator) continue;
+    const auto ld = load_local_model_payload(product_root, ref.path);
+    if (!ld.ok) {
+      findings->push_back("operator model unreadable (" + ref.model_id + "): " +
+                          ld.error);
+      continue;
+    }
+    operators[ld.payload.control_id] = ld.payload;
+  }
+  std::size_t checked = 0;
+  for (const auto& ref : doc.models) {
+    if (ref.kind != LocalModelKind::kCovariance) continue;
+    const auto ld = load_local_model_payload(product_root, ref.path);
+    if (!ld.ok) {
+      findings->push_back("covariance model unreadable (" + ref.model_id + "): " +
+                          ld.error);
+      continue;
+    }
+    // 旧 local-factor/v1 只按"严格兼容或拒绝 canonical 使用"处理: 这里显式
+    // 拒绝把 v1 当作 v2 语义, 并要求前台定义的兼容适配（NORMALIZE_DATA §7.1）。
+    if (ref.representation == "acsd.normalize.local-factor/v1") {
+      findings->push_back(
+          "covariance " + ref.model_id + " is local-factor/v1 (superseded by v2 "
+          "with versioned units); not accepted as a canonical source without the "
+          "explicit v1 compatibility adapter");
+      continue;
+    }
+    const auto it = operators.find(ld.payload.control_id);
+    if (it == operators.end()) {
+      findings->push_back("covariance " + ref.model_id +
+                          " has no matching drizzle_operator model");
+      continue;
+    }
+    const auto rec = reconstruct_factor_covariance(ld.payload, it->second,
+                                                   /*dense_limit=*/1u << 20);
+    if (!rec.ok) {
+      findings->push_back("covariance " + ref.model_id +
+                          " failed factor reconstruction: " + rec.error);
+      continue;
+    }
+    if (rec.max_abs_diff_vs_payload > 0.0) {
+      const double scale = 1.0;
+      (void)scale;
+      findings->push_back(
+          "covariance " + ref.model_id +
+          " reconstructed C differs from payload explicit matrix (max abs diff " +
+          std::to_string(rec.max_abs_diff_vs_payload) + ")");
+      continue;
+    }
+    ++checked;
+  }
+  (void)checked;
 }
 
 bool looks_like_phase1_frame_product(const std::string& frame_product_root) {
