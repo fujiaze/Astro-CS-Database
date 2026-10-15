@@ -139,13 +139,34 @@ ConditionalNoiseModel 分别承载背景/读噪/暗流、冻结参考源 Poisson
 
 缺实测噪声输入允许单帧 approximate，但对应模型接口、已知输入的求值与持久化路径须实现并由合成真值检验。基础 diagonal 模型、低秩共同项和需要局部显式协方差的情形需明确 representation，不把所有噪声强塞进一个 variance 数组。PSF 模型失配、母版未知、标度共同误差、几何近似和截断分别反映在状态/来源中；仅缺已知 PSD 随机分量且符合科学分册的前提时才允许 upper_bound。
 
-### 7.4 局部球面模型与独立读取
+### 7.4 局部球面模型与独立读取（2026-10-15 更新）
 
-基础正式序列化继续使用 NORMALIZE_DATA §7.1 的显式局部表示：P 与 source pixel indices；h 长度 nl；C 为 nl×nl row-major；Z 为 nl×n_bg row-major；R 的 CSR shape=nl×m。单位分别为积分响应、1/sr、linear_unit²/sr²、按背景参数约定声明、1/sr。covariance_rank/condition_number 指 C 的保留子空间；参数信息矩阵的诊断另存具名字段或诊断载荷，不偷换此字段意义。大矩阵以局部/分块和预算处理，不为节约内存错误声明 shape；若确需新的因子 representation，先由前台更新其版本化合同。
+正式工程数值载体以 NORMALIZE_DATA §7.1 为准。**优先的生产载体不是重复写巨大 nl×nl JSON，而是模型精确因子**：source pixel index（长度 m）、球面叶索引（长度 nl）、CSR(R) [nl,m]、对应 source diagonal variance v_j（长度 m）、实际 h=RP、背景基 Z_s、归一/量纲/响应与 PSF/支持域模型，且声明 C_ref=R diag(v)Rᵀ。只有当平面条件噪声确实是 diagonal 时这才是**模型内部精确**表示；未建模 master/scale 等误差仍记 omitted。
 
-control 的 leaf_order 是实际叶阶 log2(nside)，不是 tile 阶 log2(nside)-9；signal 层级也分别登记 tile/leaf 语义。目标 leaf 由控制点 sky 的统一 NESTED ang2pix 求出，合法编号0不充当缺失。控制点估计窗口与其 patch 分区支持分别表示；帧摘要以非重叠有效 patch 的球面支持面积加权，不按求解预算圆盘面积替换。
+超小控制窗可另选显式 C_ref [nl,nl] 作同一模型的对照，但不能把因子 values=[v_j] 的 [m,1] 错当派生 C 的 shape。**当前 `acsd.normalize.local-factor/v1` 单位说明有错位风险**：v_j 的单位是线性源积分量的平方，而派生 C_sphere 单位再多 sr^-2；新正式载体使用版本化 `local-factor/v2`（或等效明确不混读的新 schema）。旧产品严格按版本兼容，不将已经写错 BUNIT 的 v1 在不核对模型来源时悄悄升级。
 
-reader 必须恢复全部科学字段、status/accuracy、SIP 系数、reference/response identity、模型 refs 与真实模型，并完成 shape/hash/引用/单位/索引及 F-V_F-SNR-T-summary 的核对。读取成功分为合法 available 与合法 unavailable；已知损坏是 error。可供诊断的 findings 不得与可作为 canonical 真源的成功混为一个布尔值。相同产品经 read→write 后科学字段与有效模型含义保持；unsupported schema 只按正式兼容表处理。
+每控制点记录真实 leaf_order=log2(nside)，不是 tile order；目标 leaf=0 合法，必须有 `has_target_leaf`。CSR R 的每个非零值 \(R_{lj}=(a_{lj}/A_{\rm drop,j})/N_l\)，N_l 是同次正式 Drizzle 产出的**完整**叶归一分母；debug 或 patch 截断算子不得冒称相同 R。PSF P 和 F_ref 的 flux_estimator/单位配对，h=RP 在 sphere leaf 域的单位为 sr^-1。Z 按 [nl,n_bg] 定义，background nuisance 的估计值与单位与模型不可脱钩。
+
+读者除 schema/hash/shape/索引与版本核对外，还必须重算或可复核：P 的总通量口径、h=RP、C factor 与派生单位、V_F、SNR=F_ref/√V_F、T=V_B/V_F、support/leaf 位置、scale once、含 SIP 的 WCS、frame-summary 去重。这些是科学语义而非仅“JSON 能解码”。损坏 refs/null 未经辨识的字段均不得以 availability=available 吞错。
+
+### 7.4A 秩亏球面信息求解器：源空间行子空间投影，而非默认 Jacobi 巨分解
+
+科学证明见 NOISE_SNR §11.4。用同次实际 R 和 D=diag(v)，Q=R D^1/2、W=D^-1/2 [P,Z]，取 rank-revealing SVD/QR 得 Q 的行空间正交基 V_r 或零空间正交基 N；参数信息矩阵为
+
+\[
+ M=W^\mathsf{T}V_rV_r^\mathsf{T}W
+ =W^\mathsf{T}W-(N^\mathsf{T}W)^\mathsf{T}(N^\mathsf{T}W).
+\]
+
+R 满列秩时直接等价于 A_srcᵀD^-1A_src；本轮真实 m≈645、r≈626 时源空间零空间约19 维，可以用小零空间修正构成精度信息，**但 N 的求得仍要可靠的秩揭示数值实现**。对于 nuisance Z 有冗余但 F 可辨识的情况，应以通量分量正交于背景列空间的有效信息 I_F 解 V_F，而不是因为全部参数 M 不可逆就错误拒绝。
+
+推荐优先**数值库提供的可靠 Householder rank-revealing QR / thin SVD**，尽量使用真实稀疏结构；必要时选已验证的高性能 LAPACK/BLAS 后端（必须先检查 ACSD Linux/Windows/CMake 能力及依赖许可）。当前手写 Jacobi/曾失败的 Householder+QL 不能因为耗时严重就直接替换成未验证实现，也不能为了 m≤256 的伪效率把选定观测叶的真实随机贡献裁掉。若资源强迫选不同观测域，明确 `approximate` 与实际丢失贡献比例/误差，它不再是原全叶同一统计估计量。所有算子截断、量纲、rank tolerance/奇异值谱、数值误差与 solver/backend 版本写入真实产品/运行诊断。
+
+### 7.4B 像元积分 PSF 的固定实现边界
+
+唯一默认通量口径 `flux_estimator=analytic_total`。PSF 由 science/psf/PSF.md §4 的单位总通量连续 Moffat4 定义，对各实际源像元面积、亚像元中心相位进行数值求积；部分 footprint 的通量 \(f_{\rm enc}=\sum P_j\) 不重新归一，f_out 从**实际像元集合**求，不以理想圆半径代替实际边界；超 1 不可用 clamp 掩盖。使用 PSF library 的有效模型/空间三角插值，不在 scheduler 独立实现另一个与库口径不同的无单位中心值模板。
+
+已有 scheduler::moffat4_profile 只是 raw center-sampling legacy，即使其 GLS 代数经证明也不足以给 canonical absolute reference SNR。旧代码未改完时所有受其影响控制点标记 `model_invalid_or_unnormalized_psf`/unavailable 或具名 proxy，不宣称 analytic_total 和 accurate；reference flux、Poisson 与 spatial alpha 需要与真正积分模板配对后才可声明完整。缺空间支持、通量修正误差或曲线失败的点按自身状态报告，不能通过每窗重新归一挽救。
 
 ### 7.5 发布事务
 
