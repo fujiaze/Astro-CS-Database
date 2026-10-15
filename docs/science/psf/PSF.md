@@ -183,6 +183,37 @@ robust_residual_sigma = residual_scale / 0.7316727929211932
 
 基础空间求值采用有效星位置三角剖分内的重心凸组合：在包含位置 u 的有效三角形中，权重 lambda_s 非负且和为1，取 P_i(u)=sum_s lambda_s(u) P_i(theta_s;u)，即先把各顶点的单位通量模型平移到同一参考中心，再按同一像元边界积分并混合。不直接线性插值有周期简并的 theta。三角形只能使用已通过星点质量与空间支持检查的顶点，跨无效区、支持空洞或模型质量不足的单元不得自动填满；凸包外不外推。
 
+#### 连续单位总通量、像元求积与测光估计量的强制一致性（2026-10-15 裁决）
+
+**先单位归一连续轮廓，再对每个实际像元面积求积**；不是把未除连续积分的 Moffat 函数中心值直接填进 P_j。对于最简单的圆对称 Moffat4：
+
+\[
+ g_\sigma(x,y)=\left(1+\frac{x^2+y^2}{2\sigma^2}\right)^{-4},\qquad
+ \int_{\mathbb R^2}g_\sigma(x,y)\,dx\,dy=\frac{2\pi\sigma^2}{3}.
+\]
+
+故给探测器实际像元足迹 \(E_j\)、子像元参考中心 \((x_0,y_0)\) 的**单位总源通量**模板严格是
+
+\[
+ P_j(x_0,y_0)=\frac{3}{2\pi\sigma^2}
+ \int_{E_j}g_\sigma(x-x_0,y-y_0)\,dx\,dy.
+\]
+
+推广到本分册带旋转的 \((s_x,s_y,\theta)\) 二次型时，连续未归一模型的积分为 \(2\pi s_xs_y/3\)（按本分册的轴/尺度约定）；P_j 按同一二维面积积分归一，不能拿中位 sqrt(sx·sy) 代替有效椭圆/空间模型后宣称精确。
+
+当前 `lib/infrastructure/scheduler/src/normalize_precision.cpp::moffat4_profile` 直接保存
+\((1+r_j^2/(2\sigma^2))^{-4}\) 的**中心点裸值**，没有除以 \(2\pi\sigma^2/3\)，也没有对 E_j 积分。其所谓 `profile_enclosed` 从 1 起取与 `sum(raw)` 的最小值，所以当未归一总和大于 1 时会报告恰好 1，**不是积分通量包络为 100% 的证据**。这个实现只能标为 `center_sample_unnormalized_legacy`，不得作为 `analytic_total` reference SNR 的最终有效模板。中心采样在欠采样条件下还会因子像元相位产生偏差；仅在明确高采样/已验证数值误差的情况下可标具名近似，不等于物理精度已证明。
+
+正式 `flux_estimator` 的解释：
+- `analytic_total`：F_ref 是上述连续 PSF 总积分的源通量，P_j 为单位总通量响应；有限观测窗口/图像边界不重新归一 P。这是 canonical sparse reference SNR 的默认口径。
+- `aperture_with_correction`：仅在孔径修正、背景/PSF 和修正自身误差具有可执行模型且通量定义已与 F_ref 统一时可用于 canonical 模型；必须记录实际 correction 和不确定性。它**不是**在每个局部窗把 P 除以 sum(P) 的别名。
+- `diagnostic`：拟合质量、中心值轮廓、已知未归一的代理量，不能冒充单位总通量的 canonical reference-SNR 输入。
+- `unavailable`：无有效 PSF/通量口径，控制点 reference precision 不可用，但合法信号不因此删除。
+
+定义当前实际参与的源像元/像元交集 \(E_{\rm used}=\bigcup_j E_j\)。通量已入窗份额为 \(f_{\rm enc}=\sum_{j\in E_{\rm used}}P_j\)，窗外份额 \(f_{\rm out}=1-f_{\rm enc}\)，数学允许 \(0\le f_{\rm enc}\le1\)，数值容差和求积误差要显示报告；**不允许通过 `min(1,sum(raw_profile))` 制造表面满足 1 的读数**。圆盘闭式 `f_out=(1+r²/(2σ²))^{-3}` 仅是圆对称、理想半径 r 的参考求积，不等于任意离散且非圆源像元联盟的真实窗外份额。空间标度 α(x) 的 a_ref 如需将总 native 通量换算为 applied 通量，也应对**相同完整积分支持**计算 \(\int \alpha P\)，不能用截断窗口内的近似代替并声称精确。
+
+实际版本与诊断至少记录 `flux_estimator`、`psf_family`/参数/中心子像元相位、`pixel_integration_method`/阶数/估计误差、`normalization_basis=analytic_total`、`f_enclosed`、`f_out`、`spatial_model_status`、`support`、`reference_scale_identity`。先保证已拟合模型的科学积分，再研究空间插值准确性；后者未通过留出星证据时如实 `approximate`。
+
 这个模型具有正值和通量归一性质，但不保证真实 PSF 的空间插值无偏，精度状态为 approximate，必须用空间留出星及注入回收量化模板失配。全帧常 PSF 仅在独立留出支持且明确选择时作为具名受限模型。没有有效局部支持的控制点返回 unavailable；合法信号仍可以发布。
 
 | 量 | 取值 | 单位 | 来源 |
