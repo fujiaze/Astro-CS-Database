@@ -163,8 +163,13 @@ bool write_local_model_file(const std::string& product_root,
       m["representation_note"] = payload.support_note;
     }
   }
-  if (payload.kind == LocalModelKind::kSupport && !payload.support_note.empty()) {
+  if (payload.kind == LocalModelKind::kSupport &&
+      !payload.support_note.empty()) {
     m["support_note"] = payload.support_note;
+  }
+  if (payload.kind == LocalModelKind::kSupport) {
+    // PSF.md §4: 求积误差必须是可机读数字; 负值表示"未能估计"而不是 0 误差。
+    m["pixel_integration_error"] = payload.pixel_integration_error;
   }
 
   std::string root = product_root;
