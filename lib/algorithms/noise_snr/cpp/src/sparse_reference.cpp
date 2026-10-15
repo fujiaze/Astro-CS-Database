@@ -25,6 +25,53 @@ constexpr double kNaN = std::numeric_limits<double>::quiet_NaN();
 const char* kAccuracyTokens[] = {"conditional_complete", "approximate",
                                  "upper_bound", "not_applicable"};
 
+
+// 稠密对称正定 Cholesky (A = L L^T, 下三角存入 a)。返回 true = 成功;
+// 失败（非正定/秩亏）⇒ false（调用方按秩亏处理, 不猜）。
+bool cholesky_spd(std::vector<double>& a, int n) {
+  // 相对秩判定: 对角必须 > tol·max|a_ii|。纯 d>0 会把数值零（相近行/列造成
+  // 的 ~1e-34 残差）当成"正定 ⇒ 满秩", 从而让秩亏系统给出伪造的高信息量。
+  double anorm = 0.0;
+  for (int j = 0; j < n; ++j)
+    anorm = std::max(anorm, std::abs(a[static_cast<std::size_t>(j) * n + j]));
+  const double tol = 1e-12 * (anorm > 0.0 ? anorm : 1.0);
+  for (int j = 0; j < n; ++j) {
+    double d = a[static_cast<std::size_t>(j) * n + j];
+    for (int k = 0; k < j; ++k) {
+      const double ljk = a[static_cast<std::size_t>(j) * n + k];
+      d -= ljk * ljk;
+    }
+    if (!(d > tol) || !std::isfinite(d)) return false;
+    const double ljj = std::sqrt(d);
+    a[static_cast<std::size_t>(j) * n + j] = ljj;
+    for (int i = j + 1; i < n; ++i) {
+      double sum = a[static_cast<std::size_t>(i) * n + j];
+      for (int k = 0; k < j; ++k) {
+        sum -= a[static_cast<std::size_t>(i) * n + k] *
+               a[static_cast<std::size_t>(j) * n + k];
+      }
+      a[static_cast<std::size_t>(i) * n + j] = sum / ljj;
+    }
+  }
+  return true;
+}
+
+// 解 L y = b (前代) 与 L^T x = y (回代); L 下三角 n×n row-major, b/x 为 n 向量。
+void cholesky_solve(const std::vector<double>& l, int n, const double* b,
+                    double* x) {
+  std::vector<double> y(static_cast<std::size_t>(n), 0.0);
+  for (int i = 0; i < n; ++i) {
+    double sum = b[i];
+    for (int k = 0; k < i; ++k) sum -= l[static_cast<std::size_t>(i) * n + k] * y[static_cast<std::size_t>(k)];
+    y[static_cast<std::size_t>(i)] = sum / l[static_cast<std::size_t>(i) * n + i];
+  }
+  for (int i = n - 1; i >= 0; --i) {
+    double sum = y[static_cast<std::size_t>(i)];
+    for (int k = i + 1; k < n; ++k) sum -= l[static_cast<std::size_t>(k) * n + i] * x[static_cast<std::size_t>(k)];
+    x[static_cast<std::size_t>(i)] = sum / l[static_cast<std::size_t>(i) * n + i];
+  }
+}
+
 // 对称矩阵 Jacobi 特征分解 (A = V diag(w) V^T), n 小 (<= 数百)。原地破坏 a。
 void jacobi_eigh(std::vector<double> a, int n, std::vector<double>& w,
                  std::vector<double>& v) {
@@ -265,15 +312,17 @@ SphericalCompletionResult complete_spherical_reference(
   out.precision.status.omitted_terms = omitted;
 
   std::uint64_t n_available = 0;
-  for (const auto& w : windows) {
+  for (std::size_t window_index = 0; window_index < windows.size();
+       ++window_index) {
+    const acsd::normalize::PlanarPatchWindow& w = windows[window_index];
     const std::size_t m = w.pix_index.size();
     const int nl = static_cast<int>(w.leaf_ipix.size());
     ReferenceControl ctrl;
     ctrl.control_id = w.control_id;
-    ctrl.ra_deg = 0.0;   // 由调用方 (持 WCS) 回填; 此处只填检测器坐标
-    ctrl.dec_deg = 0.0;
     ctrl.source_x0 = w.cx_px;
     ctrl.source_y0 = w.cy_px;
+    ctrl.ra_deg = w.ra_deg;
+    ctrl.dec_deg = w.dec_deg;
     ctrl.background_nuisance =
         cfg.background == BackgroundNuisance::kKnown
             ? "known"
@@ -290,8 +339,14 @@ SphericalCompletionResult complete_spherical_reference(
       out.failure_reasons.push_back(w.control_id + ": " + reason);
     };
 
-    if (m == 0 || nl == 0 || static_cast<int>(w.r_coeff.size()) != nl * static_cast<int>(m)) {
+    if (m == 0 || nl == 0 || w.op_c.size() != w.op_pix.size() ||
+        w.op_c.size() != w.op_leaf.size() || w.target_leaf == 0) {
       fail_point("empty_local_window");
+      out.precision.controls.push_back(ctrl);
+      continue;
+    }
+    if (w.leaf_dp.size() != static_cast<std::size_t>(nl)) {
+      fail_point("local_window_dimension_mismatch");
       out.precision.controls.push_back(ctrl);
       continue;
     }
@@ -339,144 +394,194 @@ SphericalCompletionResult complete_spherical_reference(
     }
     (void)vmax;
 
-    // h = R P (nl)
-    std::vector<double> h(static_cast<std::size_t>(nl), 0.0);
-    for (int l = 0; l < nl; ++l) {
-      double s = 0.0;
-      for (std::size_t j = 0; j < m; ++j) {
-        s += w.r_coeff[static_cast<std::size_t>(l) * m + j] * w.profile[j];
-      }
-      h[static_cast<std::size_t>(l)] = s;
-    }
-    double hnorm = 0.0;
-    for (double x : h) hnorm += x * x;
-    if (!(hnorm > 0.0) || !std::isfinite(hnorm)) {
+    // 模板在源空间的存在性（h = R P 的信息等价像; P=0 ⇒ 无模板）
+    double pnorm = 0.0;
+    for (double p : w.profile) pnorm += p * p;
+    if (!(pnorm > 0.0) || !std::isfinite(pnorm)) {
       fail_point("template_outside_drizzle_support");
       out.precision.controls.push_back(ctrl);
       continue;
     }
 
-    // Z_sphere = R Z_planar (nl × n_bg)
-    std::vector<double> z(static_cast<std::size_t>(nl) * static_cast<std::size_t>(n_bg), 0.0);
-    for (int l = 0; l < nl; ++l) {
-      for (int b = 0; b < n_bg; ++b) {
-        double s = 0.0;
-        for (std::size_t j = 0; j < m; ++j) {
-          const double r = w.r_coeff[static_cast<std::size_t>(l) * m + j];
-          double basis = 1.0;
-          if (b == 1) basis = w.src_x[j];
-          else if (b == 2) basis = w.src_y[j];
-          s += r * basis;
-        }
-        z[static_cast<std::size_t>(l) * n_bg + b] = s;
-      }
-    }
-
-    // C = R diag(v) R^T (nl × nl)
-    std::vector<double> cov(static_cast<std::size_t>(nl) * static_cast<std::size_t>(nl), 0.0);
-    for (int a = 0; a < nl; ++a) {
-      for (int b = a; b < nl; ++b) {
-        double s = 0.0;
-        for (std::size_t j = 0; j < m; ++j) {
-          s += w.r_coeff[static_cast<std::size_t>(a) * m + j] * v[j] *
-               w.r_coeff[static_cast<std::size_t>(b) * m + j];
-        }
-        cov[static_cast<std::size_t>(a) * nl + b] = s;
-        cov[static_cast<std::size_t>(b) * nl + a] = s;
-      }
-    }
-    std::vector<double> cw, cv;
-    jacobi_eigh(cov, nl, cw, cv);
-    double lambda_max = 0.0;
-    for (int i = 0; i < nl; ++i) {
-      lambda_max = std::max(lambda_max, cw[static_cast<std::size_t>(i)]);
-    }
-    if (!(lambda_max > 0.0) || !std::isfinite(lambda_max)) {
-      fail_point("covariance_not_positive_definite");
-      out.precision.controls.push_back(ctrl);
-      continue;
-    }
-    const double cov_tol = cfg.support_rank_tol * lambda_max;
-    std::vector<int> retained;
-    for (int i = 0; i < nl; ++i) {
-      if (cw[static_cast<std::size_t>(i)] > cov_tol) retained.push_back(i);
-    }
-    const int crank = static_cast<int>(retained.size());
-    const double cond = crank > 0 ? lambda_max / cw[static_cast<std::size_t>(retained.front())]
-                                  : kNaN;
-
-    // 设计矩阵列投影到保留子空间; 残差超阈 ⇒ 该列不可估计。
-    auto project = [&](const double* col, std::vector<double>* out_col,
-                       double* residual_ratio) {
-      out_col->assign(static_cast<std::size_t>(nl), 0.0);
-      for (int i : retained) {
-        double d = 0.0;
-        for (int l = 0; l < nl; ++l) {
-          d += cv[static_cast<std::size_t>(l) * nl + i] * col[l];
+    // ── 球面 GLS（精确; NORMALIZE_DATA §6 + NOISE_SNR §3）────────────────────
+    // y = F·(R P) + Z_s·β + n, C = R V Rᵀ, V = diag(v_j)。欲求
+    //   M = A_sᵀ C⁺ A_s, A_s = [R P, R Z]  (nl × ncol)
+    // 直接做需要 nl×nl 求逆（nl 可达数千）。用满列秩恒等式（m ≤ nl 且 R 满列秩,
+    // 几何上由捕获构造保证每像元/每叶都有贡献时成立）:
+    //   (R V Rᵀ)⁺ = R̃ (R̃ᵀR̃)⁻² R̃ᵀ,  R̃ = R V^{1/2}
+    //   ⇒ K := Rᵀ(RVRᵀ)⁺R = V^{1/2} G H⁻² G V^{1/2},  G = RᵀR, H = V^{1/2}GV^{1/2}
+    //   ⇒ M = Bᵀ H⁻² B,  B = G V^{1/2} A_src,  A_src = [P, Z]
+    // 其中 H ≻ 0 ⇒ Cholesky 解两次三角系统（O(m³/3); m 由 PSF 足迹窗口界定）。
+    // 秩亏（Cholesky 失败）⇒ 参数不可辨识 ⇒ unavailable（合同 §6: 不用伪逆制造
+    // 信息量, 不用任意地板）。该路径与显式 nl 空间 GLS 的数值一致性由
+    // eng/tests/unit/sparse_reference_gls_test.cpp 的 dual 段对拍验证。
+    // ── 球面 GLS（精确; NORMALIZE_DATA §6 + NOISE_SNR §3）────────────────────
+    // y = F·(R P) + Z_s·β + n, C = R V Rᵀ, V = diag(v_j), A_s = [R P, R Z]。
+    // 两条等价精确路径（按 m 与 nl 的大小选, 都只做一次稠密 Cholesky）:
+    //   (a) m ≤ nl（R 满列秩）: (RVRᵀ)⁺ = R̃(R̃ᵀR̃)⁻²R̃ᵀ, R̃ = R V^{1/2}
+    //       ⇒ M = Bᵀ H⁻² B, B = G V^{1/2} A_src, G = RᵀR, H = V^{1/2} G V^{1/2}
+    //   (b) m > nl（R 满行秩）: C = R V Rᵀ (nl×nl) 直接 Cholesky,
+    //       M = A_sᵀ C⁻¹ A_s
+    // 秩亏（Cholesky 失败）⇒ 参数不可辨识 ⇒ unavailable（合同 §6: 不用伪逆制造
+    // 信息量、不用任意地板）。与显式定义式 [(AᵀC⁻¹A)⁻¹]_FF 的数值一致性由
+    // eng/tests/unit/sparse_reference_gls_test.cpp 的 dual 段对拍验证。
+    std::vector<double> mm(static_cast<std::size_t>(ncol) * ncol, 0.0);
+    bool gls_ok = false;
+    if (m <= static_cast<std::size_t>(nl)) {
+      // G = RᵀR (m×m): G[j][j'] = Σ_l c_lj·c_lj'（按叶聚合, O(nnz + Σk_l²)）
+      std::vector<double> g(static_cast<std::size_t>(m) * m, 0.0);
+      {
+        std::vector<std::vector<std::pair<int, double>>> per_leaf(
+            static_cast<std::size_t>(nl));
+        for (std::size_t k = 0; k < w.op_c.size(); ++k) {
+          const int l = w.op_leaf[k];
+          const int j = w.op_pix[k];
+          if (l < 0 || l >= nl || j < 0 || static_cast<std::size_t>(j) >= m) continue;
+          per_leaf[static_cast<std::size_t>(l)].emplace_back(j, w.op_c[k]);
         }
         for (int l = 0; l < nl; ++l) {
-          (*out_col)[static_cast<std::size_t>(l)] +=
-              cv[static_cast<std::size_t>(l) * nl + i] * d;
-        }
-      }
-      double n0 = 0.0, nr = 0.0;
-      for (int l = 0; l < nl; ++l) {
-        n0 += col[l] * col[l];
-        const double r = col[l] - (*out_col)[static_cast<std::size_t>(l)];
-        nr += r * r;
-      }
-      *residual_ratio = n0 > 0.0 ? std::sqrt(nr / n0) : 1.0;
-    };
-
-    std::vector<std::vector<double>> acols(static_cast<std::size_t>(ncol));
-    bool col_bad = false;
-    for (int c = 0; c < ncol && !col_bad; ++c) {
-      std::vector<double> col(static_cast<std::size_t>(nl), 0.0);
-      if (c == 0) {
-        for (int l = 0; l < nl; ++l) col[static_cast<std::size_t>(l)] = h[static_cast<std::size_t>(l)];
-      } else {
-        for (int l = 0; l < nl; ++l) {
-          col[static_cast<std::size_t>(l)] = z[static_cast<std::size_t>(l) * n_bg + (c - 1)];
-        }
-      }
-      double rr = 0.0;
-      project(col.data(), &acols[static_cast<std::size_t>(c)], &rr);
-      if (!(rr <= 1e-8)) {
-        if (c == 0) {
-          fail_point("template_outside_covariance_range");
-        } else {
-          fail_point("background_basis_outside_covariance_range");
-        }
-        col_bad = true;
-      }
-    }
-    if (col_bad) {
-      out.precision.controls.push_back(ctrl);
-      continue;
-    }
-
-    // M = A_R^T C^+ A_R (ncol × ncol), C^+ = Σ_{i∈R} λ_i^{-1} u_i u_i^T
-    std::vector<double> mm(static_cast<std::size_t>(ncol) * static_cast<std::size_t>(ncol), 0.0);
-    for (int i : retained) {
-      const double inv = 1.0 / cw[static_cast<std::size_t>(i)];
-      for (int a = 0; a < ncol; ++a) {
-        double da = 0.0;
-        for (int l = 0; l < nl; ++l) {
-          da += cv[static_cast<std::size_t>(l) * nl + i] *
-                acols[static_cast<std::size_t>(a)][static_cast<std::size_t>(l)];
-        }
-        if (da == 0.0) continue;
-        for (int b = a; b < ncol; ++b) {
-          double db = 0.0;
-          for (int l = 0; l < nl; ++l) {
-            db += cv[static_cast<std::size_t>(l) * nl + i] *
-                  acols[static_cast<std::size_t>(b)][static_cast<std::size_t>(l)];
+          const auto& js = per_leaf[static_cast<std::size_t>(l)];
+          for (std::size_t a = 0; a < js.size(); ++a) {
+            const std::size_t ja = static_cast<std::size_t>(js[a].first);
+            g[ja * m + ja] += js[a].second * js[a].second;
+            for (std::size_t b = a + 1; b < js.size(); ++b) {
+              const std::size_t jb = static_cast<std::size_t>(js[b].first);
+              const double val = js[a].second * js[b].second;
+              g[ja * m + jb] += val;
+              g[jb * m + ja] += val;
+            }
           }
-          const double val = inv * da * db;
-          mm[static_cast<std::size_t>(a) * ncol + b] += val;
-          if (b != a) mm[static_cast<std::size_t>(b) * ncol + a] += val;
         }
       }
+      std::vector<double> hmat = g;   // H = V^{1/2} G V^{1/2}
+      for (int j = 0; j < static_cast<int>(m); ++j) {
+        const double sj = std::sqrt(v[static_cast<std::size_t>(j)]);
+        for (int j2 = 0; j2 < static_cast<int>(m); ++j2) {
+          const double s2 = std::sqrt(v[static_cast<std::size_t>(j2)]);
+          hmat[static_cast<std::size_t>(j) * m + j2] *= sj * s2;
+        }
+      }
+      if (cholesky_spd(hmat, static_cast<int>(m))) {
+        // B = G V^{1/2} A_src, Y = H⁻¹B, M = YᵀY
+        std::vector<double> ymat(static_cast<std::size_t>(m) * ncol, 0.0);
+        for (int c = 0; c < ncol; ++c) {
+          std::vector<double> bcol(static_cast<std::size_t>(m), 0.0);
+          for (int j = 0; j < static_cast<int>(m); ++j) {
+            // B[j][c] = Σ_{j2} G[j][j2]·V^{1/2}[j2]·A_src[j2][c]
+            double sum = 0.0;
+            for (int j2 = 0; j2 < static_cast<int>(m); ++j2) {
+              const double s2 = std::sqrt(v[static_cast<std::size_t>(j2)]);
+              const double colv = c == 0   ? w.profile[static_cast<std::size_t>(j2)]
+                                 : c == 1 ? 1.0
+                                 : c == 2 ? w.src_x[static_cast<std::size_t>(j2)]
+                                          : w.src_y[static_cast<std::size_t>(j2)];
+              sum += g[static_cast<std::size_t>(j) * m + j2] * s2 * colv;
+            }
+            bcol[static_cast<std::size_t>(j)] = sum;
+          }
+          std::vector<double> xcol(static_cast<std::size_t>(m), 0.0);
+          cholesky_solve(hmat, static_cast<int>(m), bcol.data(), xcol.data());
+          for (int j = 0; j < static_cast<int>(m); ++j) {
+            ymat[static_cast<std::size_t>(j) * ncol + c] =
+                xcol[static_cast<std::size_t>(j)];
+          }
+        }
+        for (std::size_t j = 0; j < m; ++j) {
+          for (int a = 0; a < ncol; ++a) {
+            const double ya = ymat[j * ncol + a];
+            if (ya == 0.0) continue;
+            for (int b = a; b < ncol; ++b) {
+              const double val = ya * ymat[j * ncol + b];
+              mm[static_cast<std::size_t>(a) * ncol + b] += val;
+              if (b != a) mm[static_cast<std::size_t>(b) * ncol + a] += val;
+            }
+          }
+        }
+        gls_ok = true;
+      }
+    } else {
+      // C = R V Rᵀ (nl×nl) 直接路径
+      std::vector<double> cov(static_cast<std::size_t>(nl) * nl, 0.0);
+      {
+        std::vector<std::vector<std::pair<int, double>>> per_leaf(
+            static_cast<std::size_t>(nl));
+        for (std::size_t k = 0; k < w.op_c.size(); ++k) {
+          const int l = w.op_leaf[k];
+          const int j = w.op_pix[k];
+          if (l < 0 || l >= nl || j < 0 || static_cast<std::size_t>(j) >= m) continue;
+          per_leaf[static_cast<std::size_t>(l)].emplace_back(j, w.op_c[k]);
+        }
+        for (int l = 0; l < nl; ++l) {
+          const auto& js = per_leaf[static_cast<std::size_t>(l)];
+          for (std::size_t a = 0; a < js.size(); ++a) {
+            const std::size_t ja = static_cast<std::size_t>(js[a].first);
+            cov[static_cast<std::size_t>(l) * nl + l] +=
+                js[a].second * v[ja] * js[a].second;
+            for (std::size_t b = a + 1; b < js.size(); ++b) {
+              const std::size_t jb = static_cast<std::size_t>(js[b].first);
+              const double val = js[a].second * v[ja] * js[b].second;
+              cov[static_cast<std::size_t>(l) * nl + l] += 0.0;  // 对角已计
+              (void)val;
+            }
+          }
+        }
+        // 非对角: C[l][l'] = Σ_j c_lj v_j c_lj'（共享像元对）
+        for (std::size_t j = 0; j < m; ++j) {
+          if (!(v[j] > 0.0)) continue;
+          std::vector<std::pair<int, double>> lj;   // (leaf, c) for this pixel
+          for (std::size_t k = 0; k < w.op_c.size(); ++k) {
+            if (w.op_pix[k] != static_cast<int>(j)) continue;
+            const int l = w.op_leaf[k];
+            if (l < 0 || l >= nl) continue;
+            lj.emplace_back(l, w.op_c[k]);
+          }
+          for (std::size_t a = 0; a < lj.size(); ++a) {
+            for (std::size_t b = a + 1; b < lj.size(); ++b) {
+              const double val = lj[a].second * v[j] * lj[b].second;
+              cov[static_cast<std::size_t>(lj[a].first) * nl + lj[b].first] += val;
+              cov[static_cast<std::size_t>(lj[b].first) * nl + lj[a].first] += val;
+            }
+          }
+        }
+      }
+      if (cholesky_spd(cov, nl)) {
+        // A_s = [R P, R Z]（nl × ncol）
+        std::vector<double> as(static_cast<std::size_t>(nl) * ncol, 0.0);
+        for (std::size_t k = 0; k < w.op_c.size(); ++k) {
+          const int l = w.op_leaf[k];
+          const int j = w.op_pix[k];
+          if (l < 0 || l >= nl || j < 0 || static_cast<std::size_t>(j) >= m) continue;
+          const double c = w.op_c[k];
+          as[static_cast<std::size_t>(l) * ncol + 0] += c * w.profile[static_cast<std::size_t>(j)];
+          if (ncol > 1)
+            as[static_cast<std::size_t>(l) * ncol + 1] += c * 1.0;
+          if (ncol > 2)
+            as[static_cast<std::size_t>(l) * ncol + 2] += c * w.src_x[static_cast<std::size_t>(j)];
+          if (ncol > 3)
+            as[static_cast<std::size_t>(l) * ncol + 3] += c * w.src_y[static_cast<std::size_t>(j)];
+        }
+        for (int c = 0; c < ncol; ++c) {
+          std::vector<double> bcol(static_cast<std::size_t>(nl), 0.0);
+          for (int l = 0; l < nl; ++l)
+            bcol[static_cast<std::size_t>(l)] = as[static_cast<std::size_t>(l) * ncol + c];
+          std::vector<double> xcol(static_cast<std::size_t>(nl), 0.0);
+          cholesky_solve(cov, nl, bcol.data(), xcol.data());
+          for (int a = 0; a < ncol; ++a) {
+            double sum = 0.0;
+            for (int l = 0; l < nl; ++l)
+              sum += as[static_cast<std::size_t>(l) * ncol + a] *
+                    xcol[static_cast<std::size_t>(l)];
+            mm[static_cast<std::size_t>(a) * ncol + c] = sum;
+            mm[static_cast<std::size_t>(c) * ncol + a] = sum;
+          }
+        }
+        gls_ok = true;
+      }
+    }
+    if (!gls_ok) {
+      fail_point("operator_rank_deficient");
+      out.precision.controls.push_back(ctrl);
+      continue;
     }
     double v_f = 0.0;
     int mrank = 0;
@@ -493,65 +598,70 @@ SphericalCompletionResult complete_spherical_reference(
       continue;
     }
 
+    // 支持面积（合同 §5: 各有效 patch 的真实球面支持面积为权重; 不重复计面积）
+    double support_total = 0.0;
+    for (double d : w.leaf_dp) support_total += std::min(d, w.omega_leaf);
+
+    // V_B（目标叶对角; 同源同位置同条件）: Σ_j c_pj²·v_j
+    double v_b = 0.0;
+    for (std::size_t k = 0; k < w.op_c.size(); ++k) {
+      const int l = w.op_leaf[k];
+      if (l < 0 || static_cast<std::size_t>(l) >= w.leaf_ipix.size()) continue;
+      if (w.leaf_ipix[static_cast<std::size_t>(l)] != w.target_leaf) continue;
+      const int j = w.op_pix[k];
+      if (j < 0 || static_cast<std::size_t>(j) >= m) continue;
+      v_b += w.op_c[k] * w.op_c[k] * v[j];
+    }
+
     ctrl.status.availability = PrecisionAvailability::kAvailable;
     ctrl.status.accuracy = accuracy;
     ctrl.status.omitted_terms = omitted;
     ctrl.reference_flux = f_ref;
     ctrl.flux_variance = v_f;
     ctrl.reference_snr = f_ref / std::sqrt(v_f);
-    ctrl.support_area_sr = 0.0;
-    for (double s : w.leaf_support) ctrl.support_area_sr = *ctrl.support_area_sr + s;
-    ctrl.covariance_rank = static_cast<std::uint64_t>(crank);
-    ctrl.condition_number = cond;
-
-    // 面亮度传递: V_B 取控制叶处 C_sphere 对角 (同源同位置同条件)。
-    if (!w.leaf_support.empty()) {
-      int target = -1;
-      double best = -1.0;
-      for (int l = 0; l < nl; ++l) {
-        if (w.leaf_support[static_cast<std::size_t>(l)] > best) {
-          best = w.leaf_support[static_cast<std::size_t>(l)];
-          target = l;
-        }
-      }
-      if (target >= 0) {
-        const double v_b = cov[static_cast<std::size_t>(target) * nl + target];
-        ctrl.leaf_ipix = w.leaf_ipix[static_cast<std::size_t>(target)];
-        ctrl.leaf_order = w.leaf_order;
-        if (std::isfinite(v_b) && v_b > 0.0) {
-          ctrl.transfer.availability = PrecisionAvailability::kAvailable;
-          ctrl.transfer.surface_variance = v_b;
-          ctrl.transfer.transfer_factor = v_b / v_f;
-          ctrl.transfer.surface_variance_unit =
-              cfg.reference.flux_unit + "^2/sr^2";
-          ctrl.transfer.transfer_unit = "sr^-2";
-          ctrl.transfer.condition = CovarianceCondition::kReferenceSource;
-        } else {
-          ctrl.transfer.reason = "surface_variance_unavailable";
-        }
-      }
+    ctrl.support_area_sr = support_total;
+    ctrl.covariance_rank = static_cast<std::uint64_t>(mrank);
+    ctrl.condition_number = mcond;
+    ctrl.leaf_ipix = w.target_leaf;
+    ctrl.leaf_order = w.leaf_order;
+    if (std::isfinite(v_b) && v_b > 0.0) {
+      ctrl.transfer.availability = PrecisionAvailability::kAvailable;
+      ctrl.transfer.surface_variance = v_b;
+      ctrl.transfer.transfer_factor = v_b / v_f;
+      ctrl.transfer.surface_variance_unit = cfg.reference.flux_unit + "^2/sr^2";
+      ctrl.transfer.transfer_unit = "sr^-2";
+      ctrl.transfer.condition = CovarianceCondition::kReferenceSource;
+    } else {
+      ctrl.transfer.reason = "surface_variance_unavailable";
     }
     ++n_available;
 
     SphericalCompletionResult::LocalWindow lw;
+    lw.window_index = window_index;
     lw.control_id = w.control_id;
     lw.pix_index = w.pix_index;
     lw.profile = w.profile;
-    lw.h_sphere = h;
-    lw.variance.assign(cov.begin(), cov.end());  // C_sphere (nl×nl row-major)
-    for (int b = 0; b < n_bg; ++b) {
-      for (int l = 0; l < nl; ++l) {
-        lw.z_sphere.push_back(z[static_cast<std::size_t>(l) * n_bg + b]);
+    lw.h_sphere = w.profile;   // h = R P 的信息等价源空间像
+    lw.variance = v;           // C_sphere = R diag(v) Rᵀ 的逐像元因子
+    for (int b = 1; b < n_bg; ++b) {
+      for (std::size_t j = 0; j < m; ++j) {
+        lw.z_sphere.push_back(b == 1 ? 1.0
+                                     : (b == 2 ? w.src_x[j] : w.src_y[j]));
       }
     }
     lw.n_bg = n_bg;
     lw.d_p = 0.0;
-    for (double s : w.leaf_dp) lw.d_p += s;
-    lw.n_p = 0.0;
-    for (double s : w.leaf_np) lw.n_p += s;
-    lw.support_area_sr = *ctrl.support_area_sr;
-    lw.a_drop_sum = 0.0;
-    lw.omega_sum = 0.0;
+    for (double d : w.leaf_dp) lw.d_p += d;
+    lw.pix_omega = w.pix_omega;
+    lw.pix_a_drop = w.pix_a_drop;
+    lw.op_pix = w.op_pix;
+    lw.op_leaf = w.op_leaf;
+    lw.op_c = w.op_c;
+    lw.leaf_dp = w.leaf_dp;
+    for (double x : w.pix_omega) lw.omega_sum += x;
+    for (double x : w.pix_a_drop) lw.a_drop_sum += x;
+    lw.support_area_sr = support_total;
+    lw.op_nnz = w.op_c.size();
     out.windows.push_back(std::move(lw));
     out.precision.controls.push_back(std::move(ctrl));
   }

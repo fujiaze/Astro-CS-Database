@@ -22,6 +22,9 @@
 
 #include <cstdio>
 #include <cstring>
+#ifdef _OPENMP
+#include <omp.h>
+#endif
 #include <cmath>
 #include <chrono>
 #include <exception>
@@ -505,6 +508,15 @@ static int read_wcs_params_from_frame(PipelineFrame* frame, WcsParams& wcs,
 // write_legacy_hiss: 是否同时写 legacy .hiss (validation.legacy_hiss_compare)
 // output_path: legacy .hiss 路径 (write_legacy_hiss 时必需)
 // ============================================================================
+// 捕获 sink 的桶数（帧内并行宽度）。auto 时取 OpenMP 上限; 无 OpenMP = 1。
+static int acsd_drizzle_capture_default_threads() {
+#ifdef _OPENMP
+    return omp_get_max_threads() > 0 ? omp_get_max_threads() : 1;
+#else
+    return 1;
+#endif
+}
+
 int run_drizzle_internal(PipelineFrame* frame,
                                 int nside, int nested, double pixfrac,
                                 const char* output_path,
@@ -517,7 +529,9 @@ int run_drizzle_internal(PipelineFrame* frame,
                                 const char* hips_filter_passband,
                                 HpDrizzleJob** out_job,
                                 const char* hips_geometry_json,
-                                const char* snr_sidecar_path)
+                                const char* snr_sidecar_path,
+                                const void* overlap_capture_targets,
+                                void* overlap_capture_out)
 try {
     // 0. G4: actual-buffer trace 状态清理 (env 由 drizzleTiledImpl 内读取)
     drizzle_trace::reset();
@@ -1070,6 +1084,20 @@ try {
     std::vector<drizzle::TileAccumulatorT<double>> tiles_f64;
     DrizzleStats stats;
     std::string errMsg;
+
+    // 实际算子捕获（球面参考精度）。目标/接收指针由调用方（持有配置的节点）
+    // 显式给出; 只在该次生产 drizzle 的同一几何路径上记录, 不影响数值/调度。
+    if (overlap_capture_targets != nullptr && overlap_capture_out != nullptr) {
+        engine.set_overlap_capture(
+            static_cast<std::vector<drizzle::DrizzleEngine::SourceLeafOverlap>*>(
+                overlap_capture_out),
+            *static_cast<const std::unordered_map<
+                uint64_t, drizzle::DrizzleEngine::OverlapTarget>*>(
+                overlap_capture_targets),
+            /*max_threads=*/config.threads > 0
+                ? config.threads
+                : acsd_drizzle_capture_default_threads());
+    }
 
     bool drizzle_ok;
     if (img.use_f64) {

@@ -1112,6 +1112,12 @@ void DrizzleEngine::getHealpixCorners(const healpix::HealpixCore& hp, int64_t ip
     corners[3] = {ra_c + half_ra, dec_c            };  // 东
 }
 
+// ── 算子捕获的线程本地 sink（帧内 OpenMP 并行安全; 见 set_overlap_capture）───
+// drizzleTiledImpl 的并行区按 tid 置位/复位; processPixelSharedTiled 只写本线程桶,
+// run 结束后由 set_overlap_capture 的持有方按 tid 顺序压平（确定性）。
+static thread_local std::vector<drizzle::DrizzleEngine::SourceLeafOverlap>* t_op_sink =
+    nullptr;
+
 // ============================================================================
 // processPixelTiled - 处理单个像素的 Drizzle (模板双实例, Tile 级累加)
 //
@@ -1409,16 +1415,16 @@ void DrizzleEngine::processPixelSharedTiled(
         // ── 实际算子捕获（球面参考精度; 与 signal 同一几何系数）────────────────
         // 只在 set_overlap_capture 启用且本叶是某控制点目标叶、源像元在该点半径
         // 内时记录 R 的 (像素, 叶) 系数三要素 (a_jp, A_drop,j, A_pixel,j)。
-        if (op_capture_out_ != nullptr && op_capture_targets_ != nullptr) {
+        if (t_op_sink != nullptr && op_capture_targets_ != nullptr) {
             const auto tit = op_capture_targets_->find(ipix);
             if (tit != op_capture_targets_->end()) {
                 const double dx = px - tit->second.cx;
                 const double dy = py - tit->second.cy;
                 if (dx * dx + dy * dy <= tit->second.radius * tit->second.radius) {
-                    op_capture_out_->push_back({static_cast<int>(px), static_cast<int>(py),
-                                                ipix, static_cast<double>(overlap_area),
-                                                static_cast<double>(drop_area),
-                                                static_cast<double>(pixel_area)});
+                    t_op_sink->push_back({static_cast<int>(px), static_cast<int>(py),
+                                          ipix, static_cast<double>(overlap_area),
+                                          static_cast<double>(drop_area),
+                                          static_cast<double>(pixel_area)});
                 }
             }
         }
@@ -1722,6 +1728,14 @@ bool DrizzleEngine::drizzleTiledImpl(const FitsImage& img, const DrizzleConfig& 
     // 重叠, 串行合并不再进入关键路径 (P22 剖面: T4 合并 4.4 s 原全部叠加在墙上)。
     auto t_par0 = fine ? std::chrono::high_resolution_clock::now()
                        : std::chrono::time_point<std::chrono::high_resolution_clock>{};
+    // 帧内并行安全捕获: 每线程一个 sink 桶（在并行区内按 tid 绑定）。
+    std::vector<std::vector<SourceLeafOverlap>> op_tls;
+    const bool op_capture_on =
+        (op_capture_out_ != nullptr && op_capture_targets_ != nullptr);
+    if (op_capture_on) {
+        op_tls.resize(static_cast<std::size_t>(
+            num_threads > 0 ? num_threads : op_capture_threads_));
+    }
     #pragma omp parallel num_threads(num_threads)
     {
 #ifdef _OPENMP
@@ -1729,6 +1743,9 @@ bool DrizzleEngine::drizzleTiledImpl(const FitsImage& img, const DrizzleConfig& 
 #else
         const int tid = 0;  // 串行退化
 #endif
+        if (op_capture_on && tid < static_cast<int>(op_tls.size())) {
+            t_op_sink = &op_tls[static_cast<std::size_t>(tid)];
+        }
 
         // 每线程 target-ipix geometry cache 随 run generation 切换
         // 时 clear（避免跨 run NSIDE 不同导致几何污染；容量有界见类定义）
@@ -1959,6 +1976,17 @@ bool DrizzleEngine::drizzleTiledImpl(const FitsImage& img, const DrizzleConfig& 
             }
         }  // for (;;) stripe 工作循环
     }  // omp parallel
+    t_op_sink = nullptr;   // 本线程桶解绑（parallel 区外不得再写）
+    if (op_capture_on) {
+        // 按 tid 顺序压平（确定性; 与帧序无关, 与 worker 数无关）
+        std::size_t total = 0;
+        for (const auto& b : op_tls) total += b.size();
+        op_capture_out_->clear();
+        op_capture_out_->reserve(total);
+        for (const auto& b : op_tls) {
+            op_capture_out_->insert(op_capture_out_->end(), b.begin(), b.end());
+        }
+    }
     if (fine) {
         profP_par_wall = std::chrono::duration<double>(
             std::chrono::high_resolution_clock::now() - t_par0).count();
@@ -2177,14 +2205,19 @@ bool DrizzleEngine::drizzleTiled_f64(const FitsImage& img, const DrizzleConfig& 
 // ── 算子捕获（NORMALIZE_DATA §4/§6: 球面参考精度用同一次 Drizzle 的实际 R）────
 void DrizzleEngine::set_overlap_capture(
     std::vector<SourceLeafOverlap>* out,
-    const std::unordered_map<uint64_t, OverlapTarget>& targets) {
+    const std::unordered_map<uint64_t, OverlapTarget>& targets,
+    int max_threads) {
     op_capture_out_ = out;
     op_capture_targets_ = &targets;
+    op_capture_threads_ = max_threads > 1 ? max_threads : 1;
+    t_op_sink = nullptr;   // 由 drizzleTiledImpl 并行区按 tid 置位
 }
 
 void DrizzleEngine::clear_overlap_capture() {
     op_capture_out_ = nullptr;
     op_capture_targets_ = nullptr;
+    op_capture_threads_ = 1;
+    t_op_sink = nullptr;
 }
 
 } // namespace drizzle

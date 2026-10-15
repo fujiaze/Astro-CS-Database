@@ -38,13 +38,14 @@ static PlanarPatchWindow make_window() {
   w.leaf_ipix = {11, 12, 13};
   w.leaf_order = 10;
   w.omega_leaf = 4.0 * 3.14159265358979323846 / (12.0 * 1024.0 * 1024.0);
-  // R (3×4): leaf0←{0,1}, leaf1←{2,3}, leaf2←{0,2}
-  w.r_coeff = {0.5, 0.5, 0.0, 0.0,
-               0.0, 0.0, 0.5, 0.5,
-               0.5, 0.0, 0.5, 0.0};
+  // R（稀疏三元组）: leaf0←{0,1}, leaf1←{2,3}, leaf2←{0,2}（每项 c=0.5）
+  w.op_pix = {0, 1, 2, 3, 0, 2};
+  w.op_leaf = {0, 0, 1, 1, 2, 2};
+  w.op_c = {0.5, 0.5, 0.5, 0.5, 0.5, 0.5};
   w.leaf_dp = {1.0, 1.0, 1.0};
-  w.leaf_np = {1.0, 1.0, 1.0};
-  w.leaf_support = {w.omega_leaf, w.omega_leaf, w.omega_leaf};
+  w.target_leaf = 13;   // leaf2（控制叶; V_B = C 对角 = 0.5）
+  w.pix_omega = {2.2e-11, 2.2e-11, 2.2e-11, 2.2e-11};
+  w.pix_a_drop = {2.2e-11, 2.2e-11, 2.2e-11, 2.2e-11};
   return w;
 }
 
@@ -120,14 +121,45 @@ int main() {
     }
   }
 
+  // ── dual 对拍: m≤nl 路径（投影恒等式）与显式 nl 空间 GLS 一致 ─────────────
+  // 窗口: 2 像元 × 3 叶, R 满列秩 ⇒ 走 m 空间路径; oracle = numpy 显式
+  // C = R V Rᵀ 的 nl 空间 GLS（I_F = hᵀC⁺h, 独立计算）。
+  {
+    PlanarPatchWindow w;
+    w.control_id = "dual";
+    w.pix_index = {10, 11};
+    w.profile = {0.6, 0.4};
+    w.variance = {1.0, 1.0};
+    w.src_x = {10.0, 11.0};
+    w.src_y = {20.0, 21.0};
+    w.leaf_ipix = {101, 102, 103};
+    w.leaf_order = 9;
+    w.op_pix = {0, 1, 0, 1, 1};
+    w.op_leaf = {0, 0, 1, 1, 2};
+    w.op_c = {0.8, 0.2, 0.2, 0.8, 1.0};
+    w.leaf_dp = {1.0, 1.0, 1.0};
+    w.target_leaf = 101;
+    const auto r = complete_spherical_reference({w}, cfg);
+    check(r.precision.controls[0].status.availability ==
+              PrecisionAvailability::kAvailable,
+          "dual path (m<nl): available");
+    if (r.precision.controls[0].flux_variance.has_value()) {
+      const double oracle_i_f = 0.52;                    // numpy nl-space GLS
+      const double got = 1.0 / *r.precision.controls[0].flux_variance;
+      check(std::abs(got - oracle_i_f) <= 1e-9 * oracle_i_f,
+            "dual path V_F matches explicit nl-space GLS (<=1e-9)");
+    }
+  }
+
   // ── 反例: 观测数不足（设计秩亏）⇒ unavailable, 不造伪值 ────────────────────
   {
     PlanarPatchWindow w = make_window();
-    w.leaf_ipix = {11};                  // 只剩 1 个观测
-    w.r_coeff = {0.5, 0.5, 0.0, 0.0};     // 1×4
+    w.leaf_ipix = {11};                  // 只剩 1 个叶
+    w.op_pix = {0, 1};
+    w.op_leaf = {0, 0};
+    w.op_c = {0.5, 0.5};
     w.leaf_dp = {1.0};
-    w.leaf_np = {1.0};
-    w.leaf_support = {w.omega_leaf};
+    w.target_leaf = 11;
     SphericalCompletionConfig c2 = cfg;
     c2.background = BackgroundNuisance::kConstantFit;  // 1 观测 2 参数 ⇒ 秩亏
     const auto r = complete_spherical_reference({w}, c2);
@@ -148,20 +180,20 @@ int main() {
   {
     PlanarPatchWindow w = make_window();
     w.leaf_ipix = {11, 12, 13};
-    w.r_coeff = {1.0, 0.0, 0.0, 0.0,
-                 0.0, 1.0, 0.0, 0.0,
-                 0.0, 0.0, 1.0, 0.0};
-    w.leaf_dp = {1.0, 1.0, 1.0};
-    w.leaf_np = {1.0, 1.0, 1.0};
-    w.leaf_support = {w.omega_leaf, w.omega_leaf, w.omega_leaf};
-    w.variance = {1.0, 1.0, 1e-20, 1.0};
+    w.op_pix = {0, 1, 2, 3};
+    w.op_leaf = {0, 1, 2, 2};
+    w.op_c = {1.0, 1.0, 1.0, 1.0};
+    w.leaf_dp = {1.0, 1.0, 2.0};
+    w.target_leaf = 13;
+    // 像元 2/3 方差 0 ⇒ 源空间 V 奇异 ⇒ 该方向不可估计 ⇒ 具名拒绝
+    // （不用地板制造信息量; 零方差窗口由 zero_variance_in_window 捕捉）
+    w.variance = {1.0, 1.0, 0.0, 0.0};
     const auto r = complete_spherical_reference({w}, cfg);
     check(r.precision.controls[0].status.availability ==
               PrecisionAvailability::kUnavailable,
-          "template outside covariance range ⇒ unavailable");
-    check(r.precision.controls[0].status.reason.find(
-              "template_outside_covariance_range") == 0,
-          "template outside covariance range: named reason");
+          "zero-variance window ⇒ unavailable");
+    check(r.precision.controls[0].status.reason == "zero_variance_in_window",
+          "zero-variance window: named reason (no floor creates information)");
   }
 
   // ── 反例: 参考缺项 ⇒ 整体 unavailable, 不发明中位 F0 ───────────────────────

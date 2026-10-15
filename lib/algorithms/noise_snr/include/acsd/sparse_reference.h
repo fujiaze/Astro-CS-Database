@@ -26,27 +26,44 @@ namespace acsd::normalize {
 
 // 单个控制点的平面局部窗口输入（由 Drizzle 节点按 patch 中心汇集; FP64）。
 //
-// 窗口语义（合同 §4/§7.1）: 源像元集合 (patch 内对目标叶及其邻叶有贡献的像元)
-// 与它们实际落入的球面叶集合。R 为 (n_leaf × m) 实系数矩阵:
-//   S_l = Σ_j c_lj x_j,  c_lj = (a_lj/A_drop,j)·(D_l/N_l)
-// 其中 D_l = Σ_j a_lj, N_l = Σ_j (a_lj/A_drop,j)·A_pixel,j —— 与生产 signal
-// 的**同一几何系数**（信号算子与协方差算子共享几何, NOISE_SNR §5.1）。
+// 窗口语义（合同 §4/§7.1）: patch 中心附近、对目标叶及其邻叶有贡献的源像元集合。
+// R 以**稀疏三元组**给出（(j, l, c_lj)）, 不生成 nl×m 稠密矩阵（nl 可达数千）。
+//
+// 数学要点（球面 GLS; NORMALIZE_DATA §6, NOISE_SNR §3）:
+//   观测 y = R w, w = F·P + Z·β + η, η ~ N(0, V=diag(v_j)), C = R V Rᵀ,
+//   A_s = [R P, R Z]；V_F = [(A_sᵀ C⁺ A_s)^{-1}]_{FF}。
+//   实现按 m ≤ nl / m > nl 选两条精确路径（各一次稠密 Cholesky）:
+//     m ≤ nl: (RVRᵀ)⁺ = R̃(R̃ᵀR̃)⁻²R̃ᵀ, R̃ = R V^{1/2}
+//              ⇒ M = BᵀH⁻²B, B = G V^{1/2}A_src, G = RᵀR, H = V^{1/2}GV^{1/2}
+//     m > nl : C = RVRᵀ 直接 Cholesky, M = A_sᵀC⁻¹A_s
+//   秩亏 ⇒ unavailable（不用伪逆制造信息量、不加任意地板）。
+//   V_B = Σ_j c_pj²·v_j（目标叶 p 的 C 对角; 同源同位置同条件）。
+//   两条路径互相一致 + 与显式定义式的一致性由 eng/tests/unit 的 dual 对拍验证。
 struct PlanarPatchWindow {
   std::string control_id;
   double cx_px = 0.0;      // patch 中心 (detector, 0-based)
   double cy_px = 0.0;
-  std::vector<std::int64_t> pix_index;   // 源像元下标 (row-major, y*w+x), m 个
-  std::vector<double> profile;           // P_j: 单位点源通量的像元积分响应, ΣP=1
-  std::vector<double> variance;          // C_planar 对角 (blank-sky, 数组标度 ADU^2)
-  std::vector<double> src_x;             // 像元 x (0-based, 背景基用)
-  std::vector<double> src_y;             // 像元 y
-  std::vector<std::uint64_t> leaf_ipix;  // NESTED 叶, n_leaf 个
+  double ra_deg = 0.0;     // patch 中心 ICRS（调用方经既有 pix2sky 回填）
+  double dec_deg = 0.0;
   int leaf_order = 0;
   double omega_leaf = 0.0;               // 4π/(12·nside²) (sr)
-  std::vector<double> r_coeff;           // row-major n_leaf × m 系数 (1/sr)
+  std::vector<std::int64_t> pix_index;   // 源像元下标 (row-major, y*w+x), m 个
+  std::vector<double> profile;           // P_j: 单位点源通量的像元积分响应, ΣP=1
+  std::vector<double> variance;          // v_j: 条件方差（数组标度, 与输入面同标度）
+  std::vector<double> src_x;             // 像元 x (0-based, 背景基用)
+  std::vector<double> src_y;             // 像元 y
+  std::vector<double> pix_omega;         // Ω_j: 未收缩源像元球面面积 (sr)
+  std::vector<double> pix_a_drop;        // A_drop,j: 收缩 drop 面积 (sr)
+  // 稀疏算子三元组（同一几何路径导出; 与生产 signal 的 R 逐项同源）
+  std::vector<int> op_pix;               // 像元槽位 (0..m-1)
+  std::vector<int> op_leaf;              // 叶槽位 (0..nl-1)
+  std::vector<double> op_c;              // c_lj (1/sr)
+  std::vector<std::uint64_t> leaf_ipix;  // n_leaf 个 NESTED 叶
   std::vector<double> leaf_dp;           // 每叶 D_l = Σ_j a_lj (sr)
-  std::vector<double> leaf_np;           // 每叶 N_l (sr)
-  std::vector<double> leaf_support;      // 每叶 min(D_l, Ω_leaf) (sr, 不重复计面积)
+  std::uint64_t target_leaf = 0;         // 控制点目标叶（支持面积最大的叶）
+  // 汇总期暂存（由接线方在构造窗口时使用; 不参与科学与序列化）
+  std::vector<double> op_raw_a, op_raw_adrop, op_raw_apixel;
+  std::vector<int> op_raw_pix, op_raw_leaf;
 };
 
 // 背景 nuisance 口径（合同 §5）
@@ -66,6 +83,7 @@ struct SphericalCompletionResult {
   SparseReferencePrecision precision;
   // 逐点局部模型文件内容（serialize 由 writer 侧统一负责; 这里给出数值载荷）
   struct LocalWindow {
+    std::size_t window_index = 0;   // 输入 windows[] 的下标（与 controls 对齐）
     std::string control_id;
     std::vector<std::int64_t> pix_index;   // 源像元下标
     std::vector<double> profile;           // P ( planar )
@@ -77,6 +95,13 @@ struct SphericalCompletionResult {
     double support_area_sr = 0.0;
     double a_drop_sum = 0.0;
     double omega_sum = 0.0;
+    std::vector<double> pix_omega;    // 与 pix_index 对齐 (sr)
+    std::vector<double> pix_a_drop;   // 与 pix_index 对齐 (sr)
+    // 稀疏算子三元组（与输入窗口同源; 供 drizzle_operator 模型文件）
+    std::vector<int> op_pix, op_leaf;
+    std::vector<double> op_c;
+    std::vector<double> leaf_dp;
+    std::size_t op_nnz = 0;
   };
   std::vector<LocalWindow> windows;
   std::vector<std::string> failure_reasons;  // 逐点 unavailable 的具名原因

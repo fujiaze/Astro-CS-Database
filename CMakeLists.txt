@@ -1450,6 +1450,9 @@ endif()
 # RT-005 可执行模块适配器: Phase1/2/3 session → IModule (core 不依赖会话库)
 add_library(acsd_module_adapters STATIC
   lib/infrastructure/scheduler/src/module_adapters.cpp
+  # NORMALIZE_DATA §4-§7: 球面参考精度生产接线（config→typed 输入→算法库→staging;
+  # 不含科学公式, 数学在 acsd_phase1_noise, 序列化在 acsd_normalize_science）
+  lib/infrastructure/scheduler/src/normalize_precision.cpp
   # RELEASE-02 权重链（weight-chain-report §6）: HiPS 头帧级 SNR → 逆方差权重
   # （w = SNR²/F_ref²; 纯 FP64 + std, 无第三方依赖）。直接编入本 target ——
   # 不链 acsd_phase2_integrate: 后者重复编译 upm/rejection/sampler/
@@ -1461,6 +1464,11 @@ add_library(acsd_module_adapters STATIC
 # 版本单源 = 构建期 version_generated.h (与 CLI 共用同一生成头)。
 target_include_directories(acsd_module_adapters PUBLIC
   ${CMAKE_CURRENT_SOURCE_DIR}/lib/include
+  ${CMAKE_CURRENT_SOURCE_DIR}/lib/algorithms/integration/normalize_science/include
+  ${CMAKE_CURRENT_SOURCE_DIR}/lib/algorithms/noise_snr/include
+  ${CMAKE_CURRENT_SOURCE_DIR}/lib/algorithms/noise_snr/cpp/include
+  ${CMAKE_CURRENT_SOURCE_DIR}/lib/algorithms/noise_snr/wrapper_phase1
+  ${CMAKE_CURRENT_SOURCE_DIR}/lib/algorithms/shared
   ${CMAKE_CURRENT_SOURCE_DIR}/lib/third_party
   ${CMAKE_CURRENT_BINARY_DIR}
   # RELEASE-02 权重链公共头 (acsd/weight_chain.h)
@@ -1477,6 +1485,8 @@ target_link_libraries(acsd_module_adapters PUBLIC
   acsd_core acsd_common acsd_contracts
   acsd_phase1_session acsd_phase2_session acsd_phase3_session
   acsd_cpu acsd_drizzle acsd_p1_dpsf acsd_p1_ipv acsd_p1_sdet
+  # NORMALIZE_DATA: 球面参考精度（noise 库数学 + sidecar 序列化/读回）
+  acsd_phase1_noise acsd_normalize_science
   # RELEASE-02 FIX-P1 (P1-1): Phase1 测光定标生产库 (star_matcher Tukey-IRLS
   # → k_photo); 由 p1_op_photometry 经 frame_photometry_fit 调用。
   acsd_phase1_photcal
@@ -1534,6 +1544,9 @@ add_subdirectory(lib/algorithms/resample)
 add_subdirectory(lib/algorithms/fits_output)
 add_subdirectory(lib/algorithms/integration/phase1_product)
 add_subdirectory(lib/algorithms/integration/phase2_integrate)
+# NORMALIZE_DATA §7/§8: frame_science.json 唯一 serializer/reader
+# （旧产品读取兼容 + 局部模型文件 + 原子发布; 无科学公式）
+add_subdirectory(lib/algorithms/integration/normalize_science)
 
 # ── BLD-003 模块化安装骨架: 唯一 install 规则源 (白名单 install 树) ──
 # include 于全部 target 声明之后; 本文件只允许在根 CMake 出现 (BLD-002)。
