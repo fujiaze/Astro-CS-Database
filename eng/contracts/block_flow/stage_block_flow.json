@@ -271,7 +271,8 @@
       ],
       "writes": [
         "frame_hips",
-        "p1_stack"
+        "p1_stack",
+        "p1_frame_science"
       ]
     },
     {
@@ -282,11 +283,13 @@
       "reads": [
         "frame_hips",
         "p1_stack",
-        "p1_phot"
+        "p1_phot",
+        "p1_frame_science"
       ],
       "writes": [
         "p1_final",
-        "p1_products"
+        "p1_products",
+        "p1_frame_science_published"
       ]
     }
   ],
@@ -379,6 +382,26 @@
       "lifecycle": "STAGE",
       "produced_by": [
         "acsd.phase1.photometry"
+      ],
+      "consumed_by": []
+    },
+    {
+      "stage": "normalize",
+      "block": "p1_frame_science",
+      "lifecycle": "SHORT",
+      "produced_by": [
+        "acsd.phase1.drizzle"
+      ],
+      "consumed_by": [
+        "acsd.phase1.writer"
+      ]
+    },
+    {
+      "stage": "normalize",
+      "block": "p1_frame_science_published",
+      "lifecycle": "STAGE",
+      "produced_by": [
+        "acsd.phase1.writer"
       ],
       "consumed_by": []
     },
