@@ -166,3 +166,30 @@ T_p 的单位是 1/sr²（若 F 的单位是面亮度乘 sr）。当每个 B 像
 ## 11. Normalize 的唯一数据完成边界
 
 正式 controls 采用 Drizzle 后球面域的 h、C、Z，并在参考源条件下冻结协方差。平面噪声先由 noise 节点建立，再由 Drizzle 节点调用同一个 noise 库完成球面 GLS；不构成 noise←Drizzle 的调度循环。reference-source 的泊松条件不能当成任意 actual-scene 方差。只有参考 PSD 缺项、模板与观测子空间固定时才能声明条件 SNR 上界，其它模型缺项用 approximate。正式承载固定为 frame_science.json，详见 [Normalize 数据合同](../../engineering/contracts/NORMALIZE_DATA.md)。像素网格 sparse_snr_layer 与 Catalogue proxy 为兼容视图，不是另一份 canonical 真源，也不固定阶段二自然样条/IDW 的算法选择。
+
+### 11.1 满列秩算子的条件信息恒等式
+
+在平面条件协方差 V 为正定、R 满列秩、球面模板与背景均由同一 R 变换时，令 A_src=[P,Z_planar]，有
+
+\[
+ A_{\rm sphere}^{T}(RVR^T)^+A_{\rm sphere}
+ =A_{\rm src}^{T}V^{-1}A_{\rm src}.
+\]
+
+R 可逆地保留这组局部观测的信息，球面采样变多不创造额外信息。满列秩必须实际验证，不能由每行/列都有非零贡献推出；窗口裁剪也不能暗中改变观测域。
+
+若使用源空间 Gram 路径，令 Q=RV^(1/2)、G=R^TR、H=V^(1/2)GV^(1/2)，则 B=Q^TRA_src=V^(1/2)GA_src，信息矩阵为 B^TH^(-2)B。G 与 V^(1/2) 一般不交换。异方差输入是这一实现的必要反例，V 为常量乘单位矩阵时的对拍不足以支持一般正确性。
+
+更一般的秩亏采用 Q 的秩揭示分解，在保留观测子空间同时投影模板和背景；参数信息矩阵的秩与协方差的秩分别报告。模板/背景的冗余不自动等于通量不可辨识，须检查通量估计量本身的可辨识性。数值容差以归一后的尺度与分解残差解释，不把不同单位的参数列直接用单一绝对阈值比较。
+
+### 11.2 最终信号算子与局部域
+
+传递使用的 R_pj 是最终 signal 的 w_jp/N_p，单位 1/sr；写盘前 flux 载荷的 w_jp D_p/N_p 仍缺除以 D_p，不是这个 R。N_p 必须来自同次生产叶的完整有效样本，不在小窗口内重新归一。局部模型要包含所选观测叶的全部随机贡献；窗口外源的模板贡献可以按有记录的截断近似处理，但随机方差不能被省略后称完整。
+
+平面 P 是像元积分响应。若 F_ref 定义为总源通量，裁剪后 sum(P)<1 可以是合法已记录的截断；不能随窗口缩小重新归一 P 并仍沿用总通量 F_ref。若采用窗内通量定义，则 F_ref、模板与 estimator identity 必须同时变换。
+
+### 11.3 原生 gain 与标度后的源泊松项
+
+在原生 ADU 面且独立泊松模型适用时，参考源分量为 F_native P_native/g。标量确定性标度 alpha 后，该分量为 alpha^2 F_native P_native/g；若 F_applied=alpha F_native 且模板归一不变，可写 alpha F_applied P/g，不能只写 F_applied P/g。有效 gain=g/alpha 仅是同一算术的数组单位表示，不能覆盖原生 gain 的设备来源。
+
+平场、修复和空间标度须经各自算子/Jacobian 从正确原生条件传播，不能对已校准/已缩放面无条件套用原生 gain。读噪、背景泊松、暗流、母版和参考源分量分别登记，避免把含源的方差面再加一次源泊松。确定性统一标度下 F 与 sqrt(V_F) 同比变化，SNR 不变。

@@ -116,3 +116,37 @@ photometry 优先消费 `CleanedPlane`，保证检测、PSF、flux 和输入像�
 执行 Agent 可据本页完成阶段一结构、接口、科学模型和 writer 的实施，无需再选择参考定义或载体。各项验证针对对应行为：原点/SIP 的独立读写、scale 一次与 covariance 二次幂、参考 GLS 的有效协方差、秩亏/不可辨识、sidecar round-trip 和负例、缺模型但合法信号、OFF/ON 取数等价。它们是代码及模型的检验意图，不规定服务器运行批次、数据目录或新的审批门。
 
 当前生产入口/端口和已有科学证据见 NORMALIZE_PIPELINE 与 NORMALIZE_CONVERGENCE；代码改后提交事实差异，尚无实测支持的项目保留 designed/unverified。Mosaic 本轮只兼容读取新产品/能力状态，不改默认权重、背景拟合或 Export 算法。独立数学反例由前台修正科学正本，不由执行者新立一套科学方案。
+
+## 7. 完成实现时的数据边界
+
+### 7.1 Runtime 对象与缓存
+
+对象键为 `(run_id, input_occurrence, object_kind, revision)`；frame_id 由冻结输入清单中的 occurrence 绑定，不由 basename 或源 hash 单独充当。RunContext 拥有每帧 BlockFrame 或同生命周期的 typed payload 容器；容器以类型检查过的 owned immutable object/模型 lease 保存元数据和大面视图。publish 校验唯一 producer 与上游 revisions，acquire 校验实际类型/帧/run/revision，consumer 完成、异常及取消均归还 lease。实现不需另建全局 map，也不要求把 STL 放入 C ABI。
+
+八个现有调度节点可以保持 execute 调用方式；一次节点处理多帧时，对每个 occurrence 发布/获取独立对象。科学数组由 Runtime 预算管理，必要 spill 用带键与 hash 的 AIO cache 句柄；Drizzle 大 tile 可以直接流式进入私有 staging。普通内存充足执行不能为取得上游元数据而写读 p1_*.json；这些文件仅保留具名诊断或显式恢复兼容用途。缓存重算失效须跟随 upstream revision，不能按 mtime 或文件碰巧存在判断。
+
+### 7.2 每帧响应与参考 SED
+
+frame_overrides 在 ingest 时按 input occurrence 一次解析，形成该帧的 masters、gain、response/QE 绑定；优先级为显式逐帧配置、block 继承、允许的真实元数据推导，来源逐项保留。滤镜头名称只是观测记录，不能替代曲线。响应 identity 包含曲线字节 hash、波长/响应单位、光子/能量积分约定与实际 QE 组合。相同 identity 可共享计算缓存，不能拿第一帧的 filter/QE 给不同 identity 的帧用。
+
+sed_response 的基础可执行输入是带 sed_id/hash/波长单位/f_lambda 单位的已归一参考谱，以及本帧响应与拟合系数。复用 photometry 的同一响应积分公开 API 得到 Q_k,ref；在科学分册的 `f_obs=a_k m_k Q_k` 约定下，F_native(u)=a_k m_k(u) Q_k,ref，再按实际像元标度求 F_applied(u)。代码中若存逆系数，须由一个显式 adapter 转换。参考谱已具有绝对归一时不再额外要求任意星等零点；若输入选择星等归一，则须有具名通带、星等系统及其零点/参考谱的可执行定义。缺这些输入的 unavailable 是数据能力状态；有完整输入仍返回 not_wired 则是实现未完成。
+
+逐位置参考通量和模板的标度变换使用 NORMALIZE_DATA §5 的 a_ref、P' 配对，不用中心 alpha 冒充全窗空间变换。显式积分通量参考仍是合法独立路径，不能被用于绕开已配置的 sed_response。
+
+### 7.3 噪声与共同误差
+
+ConditionalNoiseModel 分别承载背景/读噪/暗流、冻结参考源 Poisson、校准/修复算子和共享参数的模型或具名缺项。输入已含哪些分量必须可查询，不能在 completion 重复加源泊松。校准算法对已有母版不确定度输入提供 Jacobian 传播及共享 master hash；仅有母版均值而无原始样本/误差模型时，不从一个文件杜撰母版方差。光度拟合参数协方差及与测量共享数据的交叉项同理，未知交叉项不能默认为0或被称完整。
+
+缺实测噪声输入允许单帧 approximate，但对应模型接口、已知输入的求值与持久化路径须实现并由合成真值检验。基础 diagonal 模型、低秩共同项和需要局部显式协方差的情形需明确 representation，不把所有噪声强塞进一个 variance 数组。PSF 模型失配、母版未知、标度共同误差、几何近似和截断分别反映在状态/来源中；仅缺已知 PSD 随机分量且符合科学分册的前提时才允许 upper_bound。
+
+### 7.4 局部球面模型与独立读取
+
+基础正式序列化继续使用 NORMALIZE_DATA §7.1 的显式局部表示：P 与 source pixel indices；h 长度 nl；C 为 nl×nl row-major；Z 为 nl×n_bg row-major；R 的 CSR shape=nl×m。单位分别为积分响应、1/sr、linear_unit²/sr²、按背景参数约定声明、1/sr。covariance_rank/condition_number 指 C 的保留子空间；参数信息矩阵的诊断另存具名字段或诊断载荷，不偷换此字段意义。大矩阵以局部/分块和预算处理，不为节约内存错误声明 shape；若确需新的因子 representation，先由前台更新其版本化合同。
+
+control 的 leaf_order 是实际叶阶 log2(nside)，不是 tile 阶 log2(nside)-9；signal 层级也分别登记 tile/leaf 语义。目标 leaf 由控制点 sky 的统一 NESTED ang2pix 求出，合法编号0不充当缺失。控制点估计窗口与其 patch 分区支持分别表示；帧摘要以非重叠有效 patch 的球面支持面积加权，不按求解预算圆盘面积替换。
+
+reader 必须恢复全部科学字段、status/accuracy、SIP 系数、reference/response identity、模型 refs 与真实模型，并完成 shape/hash/引用/单位/索引及 F-V_F-SNR-T-summary 的核对。读取成功分为合法 available 与合法 unavailable；已知损坏是 error。可供诊断的 findings 不得与可作为 canonical 真源的成功混为一个布尔值。相同产品经 read→write 后科学字段与有效模型含义保持；unsupported schema 只按正式兼容表处理。
+
+### 7.5 发布事务
+
+writer 在私有 staging 内等待所有 AIO 完成，先验证 signal、sidecar、模型与 manifest 的同帧同版本关系，再统一发布并最后标记完成；中途失败/取消不可留下可被普通 reader 当作完整产品的新 sidecar。运行清单反映全部 occurrence，包括 failed/cancelled/precision unavailable。旧 HiPS 的显式读取兼容保留，旧损坏产品不在本机静默修成新 canonical。
