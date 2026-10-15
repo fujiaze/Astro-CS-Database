@@ -139,7 +139,15 @@ HP_DRIZZLE_API int hp_drizzle_run_phase1_hips(PipelineFrame* frame,
                                               HpDrizzleResult* result,
                                               int precision_mode,
                                               const char* hips_geometry_json = nullptr,
-                                              const char* snr_sidecar_path = nullptr);
+                                              const char* snr_sidecar_path = nullptr,
+                                              // 球面参考精度（NORMALIZE_DATA §4/§6）: 非空 ⇒ 本次
+                                              // 生产 drizzle 的同一几何路径导出 (源像元, 叶) 实际
+                                              // 算子。targets = const void* 指向
+                                              // std::unordered_map<uint64_t, DrizzleEngine::OverlapTarget>;
+                                              // out = void* 指向
+                                              // std::vector<DrizzleEngine::SourceLeafOverlap>。
+                                              const void* overlap_capture_targets = nullptr,
+                                              void* overlap_capture_out = nullptr);
 
 // P1-DRZ-ASYNC-01: Phase1 写盘异步化（跨帧流水, 帧内仍单线程且仍按
 // parent_ipix 升序）。形态：

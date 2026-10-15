@@ -252,7 +252,6 @@ public:
                                 tiles, stats, error_msg);
     }
 
-private:
     // 处理单个像素的 Drizzle (6步流水线) — 模板双实例 (Scalar=float/double)
     // tileMap: 线程本地 Tile 累加 map (key=parent_ipix, Scalar=float/double)
     // shift/mask: NESTED 位运算 (leaf_ipix >> shift = parent, leaf_ipix & mask = local)
@@ -314,6 +313,7 @@ private:
     // targets: 叶 ipix → (中心 x, 中心 y, 半径 px); 只捕获落在某目标叶且源像元
     // 在对应半径内的交叠（有界内存; 目标叶集 = 控制点目标叶）。
     // 并发语义: set 之后到 clear 之前不得并发调用本引擎（帧级并行各自持引擎实例）。
+    // 帧内 OpenMP 并行安全: 每线程写自己的 sink 桶, run 结束后按 tid 顺序压平。
     struct OverlapTarget {
         double cx = 0.0, cy = 0.0, radius = 0.0;
     };
@@ -324,16 +324,22 @@ private:
         double a_drop = 0.0;       // 收缩 drop 面积 (sr)
         double a_pixel = 0.0;      // 未收缩源像元球面面积 (sr)
     };
+    // max_threads = 该次运行的帧内并行宽度（预分配 sink 桶; <=1 时单桶）。
     void set_overlap_capture(std::vector<SourceLeafOverlap>* out,
-                             const std::unordered_map<uint64_t, OverlapTarget>& targets);
+                             const std::unordered_map<uint64_t, OverlapTarget>& targets,
+                             int max_threads);
     void clear_overlap_capture();
 
 private:
     // ── 算子捕获状态（mutable: processPixelSharedTiled 为 const 成员）──────────
     // set_overlap_capture 置位; clear_overlap_capture 复位。默认 nullptr ⇒
     // 生产路径每像元仅多一次指针判假（可忽略）, 无数值/调度影响。
-    mutable std::vector<SourceLeafOverlap>* op_capture_out_ = nullptr;
+    // 声明置于嵌套类型之后（类作用域名字须先声明后使用）。
+    mutable std::vector<SourceLeafOverlap>* op_capture_out_ = nullptr;      // 压平输出
+    mutable std::vector<std::vector<SourceLeafOverlap>>* op_capture_tls_ =
+        nullptr;                                                           // 每线程桶（帧内）
     mutable const std::unordered_map<uint64_t, OverlapTarget>* op_capture_targets_ = nullptr;
+    mutable int op_capture_threads_ = 1;
 };
 
 } // namespace drizzle

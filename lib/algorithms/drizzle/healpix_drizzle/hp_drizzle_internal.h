@@ -128,6 +128,16 @@ int run_drizzle_internal(PipelineFrame* frame,
                          // 帧级 SNR sidecar（p1_snr.json）路径。工作区位置由配置决定
                          // ⇒ 由持有配置的调用方显式传入；nullptr/空串 ⇒ 保持既有语义
                          // <产品面>/p1_snr.json（sink 不自推命名规则）。
-                         const char* snr_sidecar_path = nullptr);
+                         const char* snr_sidecar_path = nullptr,
+                         // 球面参考精度用的实际算子捕获（NORMALIZE_DATA §4/§6）:
+                         //   targets = drizzle::DrizzleEngine::OverlapTarget 表的
+                         //             无序映射（叶 ipix → 中心/半径）指针;
+                         //   out     = std::vector<drizzle::DrizzleEngine::
+                         //              SourceLeafOverlap>* 接收指针。
+                         // 两者皆非空 ⇒ 引擎在这一次生产 drizzle 的同一几何路径上
+                         // 记录 (源像元, 叶) → (a_jp, A_drop, A_pixel)（信号算子与
+                         // 协方差算子共享几何系数）。nullptr = 不捕获（零影响）。
+                         const void* overlap_capture_targets = nullptr,
+                         void* overlap_capture_out = nullptr);
 
 #endif /* HP_DRIZZLE_INTERNAL_H */
