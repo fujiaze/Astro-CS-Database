@@ -641,9 +641,52 @@ SphericalCompletionResult complete_spherical_reference(
               std::sqrt(v[static_cast<std::size_t>(j)]) * sum;
         }
       }
-      gls_ok = retained_subspace_quadratic(hmat, static_cast<int>(m), bmat, ncol,
-                                           cfg.support_rank_tol, &mm, &cov_rank,
-                                           &cov_cond);
+      // 快路径: H ≻ 0（R 满列秩）⇒ Cholesky + 两次三角求解即得 M = YᵀY,
+      // Y = H⁻¹B。与慢路径（显式特征分解）在 H 正定时逐位等价, 但 O(m³/3) 而非
+      // O(sweeps·m³)（生产 m 可达 3×10³, 慢路径单控制点数分钟）。
+      std::vector<double> hchol = hmat;
+      if (cholesky_spd(hchol, static_cast<int>(m))) {
+        for (int c = 0; c < ncol; ++c) {
+          std::vector<double> bcol(static_cast<std::size_t>(m), 0.0);
+          for (int j = 0; j < static_cast<int>(m); ++j)
+            bcol[static_cast<std::size_t>(j)] =
+                bmat[static_cast<std::size_t>(j) * ncol + c];
+          std::vector<double> xcol(static_cast<std::size_t>(m), 0.0);
+          cholesky_solve(hchol, static_cast<int>(m), bcol.data(), xcol.data());
+          for (int j = 0; j < static_cast<int>(m); ++j)
+            bmat[static_cast<std::size_t>(j) * ncol + c] =
+                xcol[static_cast<std::size_t>(j)];
+        }
+        mm.assign(static_cast<std::size_t>(ncol) * ncol, 0.0);
+        for (std::size_t j = 0; j < m; ++j) {
+          for (int a = 0; a < ncol; ++a) {
+            const double ya = bmat[static_cast<std::size_t>(j) * ncol + a];
+            if (ya == 0.0) continue;
+            for (int b = a; b < ncol; ++b) {
+              const double val = ya * bmat[static_cast<std::size_t>(j) * ncol + b];
+              mm[static_cast<std::size_t>(a) * ncol + b] += val;
+              if (b != a) mm[static_cast<std::size_t>(b) * ncol + a] += val;
+            }
+          }
+        }
+        cov_rank = static_cast<int>(m);
+        // 条件数: Cholesky 对角比的上界 (max L_ii / min L_ii)² —— 保守（不小估）,
+        // 且是计算因子的确定性函数。秩亏路径改为保留子空间特征值精确比。
+        double lmax = 0.0, lmin = 0.0;
+        for (int j = 0; j < static_cast<int>(m); ++j) {
+          const double ljj = hchol[static_cast<std::size_t>(j) * m + j];
+          lmax = std::max(lmax, ljj);
+          if (lmin == 0.0 || ljj < lmin) lmin = ljj;
+        }
+        cov_cond = (lmin > 0.0 && lmax > 0.0)
+                       ? (lmax / lmin) * (lmax / lmin)
+                       : kNaN;
+        gls_ok = true;
+      } else {
+        gls_ok = retained_subspace_quadratic(hmat, static_cast<int>(m), bmat, ncol,
+                                             cfg.support_rank_tol, &mm, &cov_rank,
+                                             &cov_cond);
+      }
     }
     if (!gls_ok) {
       fail_point("operator_rank_deficient");

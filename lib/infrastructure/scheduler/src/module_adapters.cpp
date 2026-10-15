@@ -5835,6 +5835,12 @@ Result<void> p1_op_photometry(const Json& doc, Json* man) {
     std::string key;
     // N04: 该帧 FITS 头 FILTER 关键字（逐帧 response binding 的真实观测记录）
     std::string frame_filter_header;
+    // F07: 逐 occurrence 解析出的响应身份与来源（detail contracts §7.2）
+    std::string response_filter;
+    std::string response_qe;
+    std::string response_filter_source;   // explicit_frame_override | block_inherit
+    std::string response_qe_source;
+    std::string response_matched_by;      // input_path | basename | frame_key
     double k_photo = 1.0;
     int n_matched = 0;
     double sigma_residual_dex = 0.0;
@@ -6020,6 +6026,66 @@ Result<void> p1_op_photometry(const Json& doc, Json* man) {
   // 全局性失败 = 环境/配置问题（星表不可读、配置缺项、C 入口自身失败）。
   // 语义依据: AGENTS §10（环境/数据缺失不停在"猜"）+ LOG 合同 §6 D3
   // （改变科学语义的情形不是降级, 必须 fail-closed 上行）。
+  // ── F07: 逐 input occurrence 的 response/master/gain 绑定 ────────────────────
+  // 正本: docs/detail/normalize/contracts.md §7.2「frame_overrides 在 ingest 时按
+  //   input occurrence 一次解析, 形成该帧的 masters、gain、response/QE 绑定; 优先级
+  //   为显式逐帧配置、block 继承、允许的真实元数据推导, 来源逐项保留。滤镜头名称
+  //   只是观测记录, 不能替代曲线。真实未知曲线记 unknown, 不自动拿同名滤镜库代替。」
+  // 旧实现只用 block 级 filter/qe_name ⇒ 同 block 内不同 R_k 的帧被套上 block 第一帧
+  // 的响应曲线（独立审查 F07）。此处按 input occurrence 解析, 未提供 override 的帧
+  // 继承 block 并如实登记来源（不伪造 override）。
+  struct P1FrameBinding {
+    std::string filter;      // 解析出的曲线库键（响应身份的第一分量）
+    std::string qe;          // QE 曲线库键
+    std::string filter_source;  // explicit_frame_override | block_inherit
+    std::string qe_source;
+    std::string matched_by;     // input_path | basename | frame_key
+    bool have_override = false;
+  };
+  auto p1_resolve_frame_binding = [&](const std::string& lp,
+                                       const std::string& key)
+      -> P1FrameBinding {
+    P1FrameBinding b;
+    b.filter = fit_cfg.value("filter", std::string());
+    if (b.filter.empty()) b.filter = doc.value("filter_passband", std::string());
+    b.qe = fit_cfg.value("qe_name", std::string());
+    b.filter_source = "block_inherit";
+    b.qe_source = "block_inherit";
+    if (!p1_has(doc, "photometry") || !doc["photometry"].is_object()) return b;
+    const Json& ph = doc["photometry"];
+    if (!ph.contains("frame_overrides") || !ph["frame_overrides"].is_array())
+      return b;
+    // occurrence 匹配: ① 完整输入路径; ② basename; ③ 净化后的 frame_key。
+    const std::size_t slash = lp.find_last_of("/\\");
+    const std::string base =
+        slash == std::string::npos ? lp : lp.substr(slash + 1);
+    for (const auto& ov : ph["frame_overrides"]) {
+      if (!ov.is_object()) continue;
+      std::string occ = ov.value("input", std::string());
+      if (occ.empty()) occ = ov.value("input_light", std::string());
+      if (occ.empty()) occ = ov.value("frame_key", std::string());
+      std::string matched;
+      if (!occ.empty() && occ == lp) matched = "input_path";
+      else if (!occ.empty() && occ == base) matched = "basename";
+      else if (!occ.empty() && occ == key) matched = "frame_key";
+      if (matched.empty()) continue;
+      b.have_override = true;
+      b.matched_by = matched;
+      if (ov.contains("filter") && ov["filter"].is_string() &&
+          !ov["filter"].get<std::string>().empty()) {
+        b.filter = ov["filter"].get<std::string>();
+        b.filter_source = "explicit_frame_override";
+      }
+      if (ov.contains("qe_name") && ov["qe_name"].is_string() &&
+          !ov["qe_name"].get<std::string>().empty()) {
+        b.qe = ov["qe_name"].get<std::string>();
+        b.qe_source = "explicit_frame_override";
+      }
+      break;   // 同一 occurrence 只允许一条 override（第一条命中即止）
+    }
+    return b;
+  };
+
   auto fail_global = [&](ErrorDomain d, const std::string& status_code,
                          const std::string& why) -> Result<void> {
     (*man)["error_status"] = status_code;
@@ -6067,6 +6133,20 @@ Result<void> p1_op_photometry(const Json& doc, Json* man) {
       for (size_t i = 0; i < n_lights; ++i) {
         const std::string lp = lights[i].get<std::string>();
         const std::string key = p1_frame_key(lp);
+        // F07: 逐 occurrence 解析本帧的 filter/QE 绑定（不套 block 第一帧曲线）
+        const P1FrameBinding fb = p1_resolve_frame_binding(lp, key);
+        if (fb.filter.empty()) {
+          return fail_global(ErrorDomain::CONFIG, "PHOT_CONFIG_FILTER_MISSING",
+              "photometry.fit.filter / filter_passband / "
+              "photometry.frame_overrides[].filter required for frame " + key +
+              "（全局性失败: 配置缺项, 中止运行）");
+        }
+        if (fb.qe.empty()) {
+          return fail_global(ErrorDomain::CONFIG, "PHOT_CONFIG_QE_MISSING",
+              "photometry.fit.qe_name / "
+              "photometry.frame_overrides[].qe_name required for frame " + key +
+              "（全局性失败: 配置缺项, 中止运行）");
+        }
         // PSF 星: p1_sources.json 帧序 == input_lights 序 (star-psf 顺序写出)
         if (i >= cat.size() || !cat[i].is_object() ||
             !cat[i].contains("sources") || !cat[i]["sources"].is_array()) {
@@ -6219,18 +6299,23 @@ Result<void> p1_op_photometry(const Json& doc, Json* man) {
           if (fmeta.calibration.filter_name[0] != '\0')
             frame_filter_header = fmeta.calibration.filter_name;
         }
+        // FITS 头 FILTER 关键字与**本帧实际曲线键**不一致只登记（真实观测记录）,
+        // 不判帧失败（头是自述, 曲线是显式声明; 二者矛盾由用户决策, 不由算法臆断）。
         const bool frame_filter_mismatch =
-            !frame_filter_header.empty() && !filter_name.empty() &&
-            frame_filter_header != filter_name;
-        (void)frame_filter_mismatch;
-        freq.filter_name = filter_name;
+            !frame_filter_header.empty() && !fb.filter.empty() &&
+            frame_filter_header != fb.filter;
+        // F07: 本帧 occurrence 解析出的曲线身份（来源逐项保留, 不静默继承）
+        freq.filter_name = fb.filter;
         // PASSBAND-IDENTITY-GATE-01: 把配置**声明**的通带名送进拟合入口，由
         // 生产唯一实现核对「FILTER 关键字解析出的库键 == 声明名」；不等 ⇒
         // 拟合拒绝产出标度（具名环境作用域失败，见 frame_photometry_fit.cpp）。
         // 依据 docs/science/PHOTOMETRY.md §2a.4/§2a.5（通带形状不被零点吸收、
         // 比较 sigma_residual 必须声明所用模型通带）。
-        freq.declared_filter_passband = doc.value("filter_passband", std::string());
-        freq.qe_name = qe_name;
+        freq.declared_filter_passband =
+            fb.filter_source == "explicit_frame_override" ? fb.filter
+                                                          : doc.value("filter_passband",
+                                                                      std::string());
+        freq.qe_name = fb.qe;
         // PHOT-MXY-01: m(x,y) 请求阶与降级门（0 = 关闭 ⇒ 空间路径完全不被触碰）
         freq.spatial_gain_order = spatial_gain_order;
         freq.spatial_gain_min_stars_order1 = spatial_min_stars_order1;
@@ -6335,6 +6420,14 @@ Result<void> p1_op_photometry(const Json& doc, Json* man) {
         // PASSBAND-IDENTITY-GATE-01: 帧级通带身份自述（组级一致性见下方落盘）
         sc.filter_key = fr.filter_key;
         sc.frame_filter_header = frame_filter_header;
+        // F07: 逐 occurrence 响应身份与来源（如实登记; 未知/不一致不判帧失败）
+        sc.response_filter = fb.filter;
+        sc.response_qe = fb.qe;
+        sc.response_filter_source = fb.filter_source;
+        sc.response_qe_source = fb.qe_source;
+        sc.response_matched_by = fb.have_override
+                                     ? fb.matched_by
+                                     : std::string("none");
         sc.filter_curve_name = fr.filter_curve_name;
         sc.filter_n_points = fr.filter_n_points;
         sc.filter_wl_min_nm = fr.filter_wl_min_nm;
@@ -6801,6 +6894,13 @@ Result<void> p1_op_photometry(const Json& doc, Json* man) {
              {"frame_filter_header", sc->frame_filter_header},
              {"declared_filter_passband", doc.value("filter_passband",
                                                     std::string())},
+             // F07: 本帧**实际**用于合成 F_syn 的曲线身份与来源（可机检;
+             // explicit_frame_override ⇒ 该帧有自己的 R_k; block_inherit ⇒ 继承块）
+             {"response_filter", sc->response_filter},
+             {"response_qe", sc->response_qe},
+             {"response_filter_source", sc->response_filter_source},
+             {"response_qe_source", sc->response_qe_source},
+             {"response_matched_by", sc->response_matched_by},
              {"filter_key", sc->filter_key},
              {"f_instr_domain", "psf_analytic_flux_2pi_A_sx_sy_over_3"},
              {"synthetic_colour_valid", sc->synthetic_colour_valid},
