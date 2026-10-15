@@ -5833,6 +5833,8 @@ Result<void> p1_op_photometry(const Json& doc, Json* man) {
   };
   struct P1FrameScale {
     std::string key;
+    // N04: 该帧 FITS 头 FILTER 关键字（逐帧 response binding 的真实观测记录）
+    std::string frame_filter_header;
     double k_photo = 1.0;
     int n_matched = 0;
     double sigma_residual_dex = 0.0;
@@ -5945,6 +5947,8 @@ Result<void> p1_op_photometry(const Json& doc, Json* man) {
   std::string passband_identity_declared;   // 配置声明的通带名（块级 filter_passband）
   std::string passband_identity_filter;     // FILTER 关键字（fit.filter 或 filter_passband）
   std::string passband_identity_key;        // 解析出的库键（= filters.json 对象键）
+  // N04: 组内模型通带 identity 不一致的**计数**（合法输入, 不判失败; 供诊断）
+  std::size_t n_passband_identity_mismatch = 0;
   std::string passband_identity_curve_name; // 曲线对象自述 name（身份门要求 == 库键）
   int passband_identity_n_points = 0;
   double passband_identity_wl_min_nm = 0.0;
@@ -6207,6 +6211,18 @@ Result<void> p1_op_photometry(const Json& doc, Json* man) {
         freq.sip_order = sip.present ? sip.order : 0;
         freq.sip_a = sip.a; freq.sip_b = sip.b; freq.sip_ap = sip.ap; freq.sip_bp = sip.bp;
         freq.gaia_data_dir = gaia_dir;
+        // N04 逐帧 response binding: 该帧 FITS 头 FILTER 关键字（真实观测记录）
+        // 与运行级声明名分别登记 —— 未知/不一致不判失败, 明确记录供用户决策。
+        std::string frame_filter_header;
+        {
+          const AIOImageMetadata fmeta = aio_read_metadata(lp.c_str());
+          if (fmeta.calibration.filter_name[0] != '\0')
+            frame_filter_header = fmeta.calibration.filter_name;
+        }
+        const bool frame_filter_mismatch =
+            !frame_filter_header.empty() && !filter_name.empty() &&
+            frame_filter_header != filter_name;
+        (void)frame_filter_mismatch;
         freq.filter_name = filter_name;
         // PASSBAND-IDENTITY-GATE-01: 把配置**声明**的通带名送进拟合入口，由
         // 生产唯一实现核对「FILTER 关键字解析出的库键 == 声明名」；不等 ⇒
@@ -6318,6 +6334,7 @@ Result<void> p1_op_photometry(const Json& doc, Json* man) {
         sc.n_psf_skipped = n_psf_skipped;
         // PASSBAND-IDENTITY-GATE-01: 帧级通带身份自述（组级一致性见下方落盘）
         sc.filter_key = fr.filter_key;
+        sc.frame_filter_header = frame_filter_header;
         sc.filter_curve_name = fr.filter_curve_name;
         sc.filter_n_points = fr.filter_n_points;
         sc.filter_wl_min_nm = fr.filter_wl_min_nm;
@@ -6419,18 +6436,22 @@ Result<void> p1_op_photometry(const Json& doc, Json* man) {
                    fr.filter_n_points != passband_identity_n_points ||
                    fr.filter_wl_min_nm != passband_identity_wl_min_nm ||
                    fr.filter_wl_max_nm != passband_identity_wl_max_nm) {
-          mark_frame_fail(i, "SCIENCE_PRECONDITION", "PHOT_PASSBAND_IDENTITY_INCONSISTENT",
-                          "passband identity differs from the group's first fitted frame"
-                          " for " + key + " (group key='" + passband_identity_key +
-                          "' n_points=" + std::to_string(passband_identity_n_points) +
-                          " range=[" + std::to_string(passband_identity_wl_min_nm) + "," +
-                          std::to_string(passband_identity_wl_max_nm) + "] nm; frame key='" +
-                          fr.filter_key + "' n_points=" + std::to_string(fr.filter_n_points) +
-                          " range=[" + std::to_string(fr.filter_wl_min_nm) + "," +
-                          std::to_string(fr.filter_wl_max_nm) + "] nm)"
-                          " -- refusing to mix different model passbands in one group",
-                          "passband_identity_inconsistent");
-          continue;
+          // N04（NORMALIZE_CONVERGENCE §2 裁决「跨滤镜不得合并」→ 用户自由组合）:
+          // 组内模型通带 identity 不一致**不再判帧失败**。逐帧 response binding 已
+          // 由 frame_filter_header 记录（下方 photscale_fit 落盘）; 该帧的标度
+          // 成败由拟合通道自身判决（PHOT_FIT_NO_SCALE 等），组级身份差异只作
+          // 具名诊断记录，供用户决定是否合并，不设设备一致性流程关卡。
+          n_passband_identity_mismatch++;
+          std::fprintf(stderr,
+                       "[phot][WARN] 组内模型通带 identity 不一致（合法输入, 不判失败）:"
+                       " frame=%s group_key='%s' frame_key='%s' n_points %zu vs %zu"
+                       " range=[%g,%g] vs [%g,%g] nm -- 逐帧 response binding 见"
+                       " p1_phot.json#photscale_fit[].filter_* / frame_filter_header\n",
+                       key.c_str(), passband_identity_key.c_str(), fr.filter_key.c_str(),
+                       (std::size_t)passband_identity_n_points,
+                       (std::size_t)fr.filter_n_points, passband_identity_wl_min_nm,
+                       passband_identity_wl_max_nm, fr.filter_wl_min_nm,
+                       fr.filter_wl_max_nm);
         }
         scales[key] = sc;
       }
@@ -6775,6 +6796,12 @@ Result<void> p1_op_photometry(const Json& doc, Json* man) {
              {"sigma_residual_dex", sc->sigma_residual_dex},
              {"fitted", sc->fitted},
              {"source", sc->source},
+             // N04 逐帧 response binding: 该帧 FITS 头 FILTER（真实观测记录）
+             // 与运行级声明名分别登记; 空 = 头无 FILTER 关键字（不是伪造相同）。
+             {"frame_filter_header", sc->frame_filter_header},
+             {"declared_filter_passband", doc.value("filter_passband",
+                                                    std::string())},
+             {"filter_key", sc->filter_key},
              {"f_instr_domain", "psf_analytic_flux_2pi_A_sx_sy_over_3"},
              {"synthetic_colour_valid", sc->synthetic_colour_valid},
              {"synthetic_colour_median_mag", sc->synthetic_colour_median_mag},
@@ -6895,6 +6922,8 @@ Result<void> p1_op_photometry(const Json& doc, Json* man) {
                    {"photscale_spread_dex", photscale_spread_dex},
                    {"photscale_spread_warn", photscale_spread_warn},
                    {"photscale_spread_gate", "none (owner ruling 9.49: frame-independent)"},
+                   // N04: 组内模型通带 identity 不一致的帧数（合法输入, 不判失败）
+                   {"n_passband_identity_mismatch", n_passband_identity_mismatch},
                    // PASSBAND-IDENTITY-GATE-01: 通带身份自述（声明 vs 实际曲线）
                    {"passband_identity", passband_identity_json()},
                    {"n_frames", static_cast<uint64_t>(n_lights)},
@@ -6953,6 +6982,7 @@ Result<void> p1_op_photometry(const Json& doc, Json* man) {
   (*man)["photscale_spread_dex"] = photscale_spread_dex;
   (*man)["photscale_spread_warn"] = photscale_spread_warn;
   (*man)["photscale_spread_gate"] = "none (owner ruling 9.49: frame-independent)";
+  (*man)["n_passband_identity_mismatch"] = n_passband_identity_mismatch;
   // PASSBAND-IDENTITY-GATE-01: 通带身份（与 p1_phot.json 同一对象，逐字段可核）
   (*man)["passband_identity"] = passband_identity_json();
   // F-INSTR-CONFORM-FIX (SCI-PHOT-001 §9a): 本节点 F_instr 的域 = PSF 拟合域

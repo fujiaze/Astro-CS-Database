@@ -1978,7 +1978,9 @@ bool DrizzleEngine::drizzleTiledImpl(const FitsImage& img, const DrizzleConfig& 
     }  // omp parallel
     t_op_sink = nullptr;   // 本线程桶解绑（parallel 区外不得再写）
     if (op_capture_on) {
-        // 按 tid 顺序压平（确定性; 与帧序无关, 与 worker 数无关）
+        // 按 tid 顺序压平后**再按 (py, px, leaf) 排序**: 捕获顺序必须与帧内并行
+        // 宽度无关（否则 GLS 窗口的三元组求和顺序随 worker 数变化 ⇒ FP 级差异;
+        // DEV_MODE §7 要求 ON/OFF 与非线程变化下科学结果可复现）。
         std::size_t total = 0;
         for (const auto& b : op_tls) total += b.size();
         op_capture_out_->clear();
@@ -1986,6 +1988,12 @@ bool DrizzleEngine::drizzleTiledImpl(const FitsImage& img, const DrizzleConfig& 
         for (const auto& b : op_tls) {
             op_capture_out_->insert(op_capture_out_->end(), b.begin(), b.end());
         }
+        std::sort(op_capture_out_->begin(), op_capture_out_->end(),
+                  [](const SourceLeafOverlap& a, const SourceLeafOverlap& b) {
+                      if (a.py != b.py) return a.py < b.py;
+                      if (a.px != b.px) return a.px < b.px;
+                      return a.leaf_ipix < b.leaf_ipix;
+                  });
     }
     if (fine) {
         profP_par_wall = std::chrono::duration<double>(
