@@ -407,6 +407,11 @@ StagedPrecision stage_frame_precision(
     }
   }
   acsd::normalize::ReferenceDefinition ref_def = req.reference;
+  // 未配置参考时 unit/normalization 继承调用方（drizzle 节点）按输入面真实状态
+  // 填的值 —— schema 要求非空, 但不能因此伪造参考身份。
+  if (ref_def.flux_unit.empty()) ref_def.flux_unit = doc_template.reference.flux_unit;
+  if (ref_def.normalization.empty())
+    ref_def.normalization = doc_template.reference.normalization;
   if (f_ref_scale != 1.0 && ref_def.flux.has_value()) {
     ref_def.flux = *ref_def.flux * f_ref_scale;
     ref_def.reason = "reference_flux converted to the drizzle input plane scale "

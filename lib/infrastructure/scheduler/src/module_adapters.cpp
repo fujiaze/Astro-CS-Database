@@ -9324,6 +9324,13 @@ Result<void> p1_op_drizzle(const Json& doc, Json* man) {
           }
         }
         fdoc.wcs.epoch_propagation = "not_applicable";
+        // reference 段单位/归一在 unavailable 时也要如实表达输入面的真实状态
+        // （schema 要求非空; 不用空串假装缺单位, 也不用响应标定状态冒充）。
+        if (fdoc.reference.flux_unit.empty()) fdoc.reference.flux_unit = "adu";
+        if (fdoc.reference.normalization.empty()) {
+          fdoc.reference.normalization =
+              frame_applied ? "photo_applied" : "native_calibrated";
+        }
         fdoc.photometry.status = frame_applied ? "relative_only"
                                                : "native_unscaled";
         fdoc.photometry.scale_applied = frame_applied;
