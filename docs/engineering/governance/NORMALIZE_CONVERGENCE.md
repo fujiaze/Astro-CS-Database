@@ -102,3 +102,20 @@
 后续收敛维持既有八节点与 Runtime typed payload 目标。新增正式补充将 GLS 的矩阵次序/可估计子空间、最终 signal 的 R、原生 gain/alpha、PSF 积分与空间求值以及读取/发布完整性写回各自正本；不让实验包创立第二条科学权威链。`p1_session` 保留兼容 facade，不以删兼容文件替代数据链迁移。
 
 完整实施要求由上述正式正本支撑，任务范围见 `实验/normalize-precision-p5/NORMALIZE_COMPLETE_TASK_PACKAGE.md`。一帧信号输出、新对象可写与完整条件精度已验证分别报告；缺真实设备信息的 approximate 与代码仍 not_wired 也分别报告。阶段二算法切换仍暂停。
+
+## 8. 第一轮 A/D 后的三项科学裁决（2026-10-15）
+
+本次复核的分支：审查起点 12204600edbad8e23ba9e8fe4cbc8427efee0bf9，Agent 最新 d0b61a297f140935e63df24caa3a91965ebf44c3，共 5 个新提交。直接审查源代码、真值程序、evidence log 与 ROUND1_FACT_REPORT.md；前台**没有**再次执行用户服务器的真实 FITS，所以两次生产一致性、20–26 分钟的耗时和读数是 Agent 已报告且有仓内证据的观察，不是本轮重新独立测得的结果。
+
+| 裁决 | 单一目标与原因 | 本轮真实状态 |
+|---|---|---|
+| **N13 允许因子协方差** | 正式科学数据若假设平面条件 covariance 为 D=diag(v)，CSR R+v 是派生 C=RDRᵀ 的精确表示；不要求每窗把 nl×nl JSON 落盘。明确旧 v1 factor 的源方差与球面派生 C 单位曾错位，新 factor v2 需分别声明逻辑/物理 shape、unit、rank 与模型缺项 | 生产 v1 factor 已写 64 控制，reader 可部分识别；语义/单位还未按新合同修正 |
+| **N14 秩亏求解不靠缩小真实观测域** | 用 Q=R√D 的行空间/零空间正交投影计算 GLS Fisher 信息；选择验证过的 rank-revealing QR/SVD、保留真正选定球面叶的全部贡献，不能故意削掉噪声来换 O(m³) 的速度；背景基冗余不能自动判 F 不可辨识 | 现行手写 Jacobi 保留子空间约 20–26 分钟/帧（Agent 报告）；数学上可改算法，不意味着已有高性能代码 |
+| **N15 PSF 归一与像元积分先于宣称绝对 SNR** | Moffat4 未归一原函数值不等于单位总通量像元积分 P；正确 P_j 先连续归一再像元求积，保留真实子像元相位/有限窗 f_out 和通量估计器身份；F_ref 和条件源 Poisson 要同一口径 | **新发现的生产数值口径缺陷**；d0b61a297 的 F_ref=1000/控制 SNR=141.47/帧 SNR=153.30 只算该代码下历史可复现数据，不是经 PSF 修复的物理真值 |
+
+其它已证事实：GLS full-rank 异方差反例的新数值 V_F=2.6470588235294117 与理论吻合，源码已经把 B 的矩阵次序改正并处理 H^+²；源 R 的完整叶 N_p 和 sidecar read/write 也有实际修复。不能因此自动推断直接真实 signal 对 R 每列的扰动检查已做、source-space 标度/PSF 物理匹配全面正确、31 帧 IPV 独立留出都通过。原用户希望的是正确且简洁的科学链，而不是进一步复制 N13–N15 到十份旧 registry。
+
+**追加需整理的实际源码问题**：sparse_reference.h 和 sparse_reference.cpp 内部分注释仍有 H^+ 与 H^+²、B 顺序互相矛盾的旧口径；normalize_precision.cpp 对 const PrecisionFrameRequest 进行 const_cast 写回窗口半径；surface factor values 的单位与 derived surface covariance 单位混标；帧支持面积跨 patch 未去重。这些由工程主链中唯一记录并交 Agent 真正修，不因此重新定义新的数学路线。
+
+下一步不进入 Mosaic/Export。Agent 依据已更新 science/psf/PSF.md、science/noise_snr/NOISE_SNR.md、engineering/contracts/NORMALIZE_DATA.md、detail/normalize/contracts.md 和 architecture/NORMALIZE_PIPELINE.md 实现正确的 PSF→F_ref/V_F、因子载体、秩揭示求解，再推进 typed Runtime/SED reference/spatial PSF/校准相关误差。源程序依旧不需要在所有平台得到任意数值 PASS 才准研发；但不能把未建模、非物理模板和单位错位的数值称“conditional complete”。
+
