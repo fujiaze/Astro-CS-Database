@@ -202,3 +202,5 @@ flowchart TD
 阶段一实施前完整阅读 docs/engineering/contracts/NORMALIZE_DATA.md 与 docs/detail/normalize/contracts.md。它们定稿了内部类型/端口、参考定义、球面完成边界、唯一 frame_science.json schema、旧接口迁移和每帧能力状态；不再将这些核心选择交给执行 Agent 自由设计。允许据此推进完整阶段一实现；本授权范围不包括切换 Mosaic 权重或开展跨阶段算法重构。实验目录中的 SCIENCE_V2_AGENT_TASK_PACKAGE / LAUNCH_PROMPT / ROUND2_LAUNCH_PROMPT 保留为历史，不恢复执行效力。
 
 当前机器合同与生产代码尚有迁移差异，执行时须按新目标同步 descriptor、IR、port registry 和 AIO reader/writer，不能以旧 machine schema 的冻结措辞推翻科学正本。实现改动与真正取得的独立科学证据分开报告，前台继续维护科学定义。
+
+阶段一完整收敛实施包位于 `实验/normalize-precision-p5/NORMALIZE_COMPLETE_TASK_PACKAGE.md`，入口提示为同目录 `NORMALIZE_COMPLETE_LAUNCH_PROMPT.md`；它们指向本章正式正本及独立复核，不另立科学定义。执行范围覆盖八节点的 typed Runtime 迁移、实际逐帧响应/参考生产、数学与模型读写修复及对应科学验证，不限于修复单个 GLS 反例。阶段二/三算法仍不在授权范围内。
