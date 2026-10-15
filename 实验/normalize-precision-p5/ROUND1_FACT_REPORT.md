@@ -136,12 +136,16 @@
   `nnz` max 3292、64 控制点。生产 R **秩亏**（`covariance_rank=626 < m=633/645`），
   因此 Cholesky 快路径不成立（H 半正定），必须走保留子空间特征分解。
 - 实测运行时（Release, `build/linux-sci-p5`，单帧 4096×4096, nside=262144）：
-  - `run/norm-round1-r1`（已完整结束, exit=0）：`drizzle_run=34.7s hips_write=8.9s
-    total=43.6s`，精度段约 20 min。
-  - `run/norm-round1-r4`（Cholesky 快路径构建后的确认重跑；报告撰写时仍在精度段，
-    已 27 min）：`drizzle_run=48.2s hips_write=12.9s total=61.2s`。
-    快路径因 R 秩亏未被采用，与诊断一致；该运行是"确认"而非新证据。
-  归因：循环 Jacobi 在 m≈645 上单控制点约 19 s（O(sweeps·m³)）。
+
+  | 运行 | drizzle 段 | 精度段 | 总墙钟 | exit |
+  |---|---|---|---|---|
+  | `run/norm-round1-r1` | `drizzle_run=34.7s hips_write=8.9s total=43.6s` | ≈20 min | ≈23 min | 0 |
+  | `run/norm-round1-r4` | `drizzle_run=48.2s hips_write=12.9s total=61.2s` | ≈26 min | 1655 s | 0 |
+
+  两次运行的科学产物**逐位一致**：控制点 `p0_r0` 的 `V_F=49.962362575138478`、
+  `SNR=141.47461366297361`、`leaf=359682634784`、`covariance_rank=626`，帧摘要
+  `SNR=153.29579909162405`、`n_valid=64`、`supported_area_sr=7.7720570706390662e-07`
+  在 r1 与 r4 完全相同（可复现）。精度段是瓶颈（Jacobian O(sweeps·m³)）。
 - 代码：`sparse_reference.cpp` 已同时实现 Cholesky 快路径（H ≻0 时 O(m³/3)）与
   保留子空间特征路径（秩亏时唯一正确路径）。本轮尝试以 Householder+QL 替换 Jacobi
   以求 O(m³) 总量，独立验证未通过即撤回，**未**以未验证数值例程进入生产。
