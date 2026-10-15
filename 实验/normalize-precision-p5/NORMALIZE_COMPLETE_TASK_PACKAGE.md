@@ -1,5 +1,20 @@
 # Normalize 完整收敛实施包
 
+
+> **2026-10-15 前台裁决：第一轮 A/D 批已提交至 d0b61a297；下面的 A 批若无特别说明不重复实现。下一批只依当前最新 science、engineering 合同改真实代码。** 本任务包的“代码起点 950c261”属于历史编写时间，不再代表最新分支状态。第一轮事实报告 实验/normalize-precision-p5/ROUND1_FACT_REPORT.md 可用作已运行证据；未经独立核实的数据不能视作已经由前台服务器复跑。具体权威更正：docs/science/psf/PSF.md §4、docs/science/noise_snr/NOISE_SNR.md §11.4/§11.5、docs/engineering/contracts/NORMALIZE_DATA.md §7.1、docs/detail/normalize/contracts.md §7.4 与 docs/engineering/governance/NORMALIZE_CONVERGENCE.md §8。
+
+### 现在执行的确定实现重点（不是让 Agent 再设计）
+
+1. **先处理真实 PSF 单位总通量缺陷**。现行 `normalize_precision.cpp::moffat4_profile` 的裸中心采样 P_j 不能代表 analytic_total 的单位总通量响应，`profile_enclosed=min(1,sum(raw))` 也不等于 f_enc。基于 PSF 科学正本的连续 Moffat4（含椭圆、角度、亚像元相位），在真实源像元足迹上做可验证数值积分与 analytic 总积分归一，窗外损失由实际像元集合决定、不能改为逐窗重归一。复用 PSF 模块而不是在 scheduler 复制算法；定义并实际落盘 flux_estimator、PSF 族/空间支持、integration method/error、f_enc/f_out。此前的 141.47/153.30 只作为旧 SHA 历史数值，新实现须重新报告；源泊松和空间 alpha 的 a_ref 同模板口径更新。未拥有完整通量模板的控制点不能继续标 canonical 高精度 available。
+2. **完成模型精确因子合同而非倒退到巨大显式矩阵**。当前 v_j + CSR(R) 在 planar diagonal 条件假设下精确重算 C_sphere，正式产品按 `local-factor/v2`（或真正等价的版本语义）分别声明 m、nl、逻辑 C shape、factor/source variance 单位 [linear]^2、operator 单位 sr^-1、derived C 单位 [linear]^2/sr²、背景 Z 与 model assumptions/omitted_terms。reader 能按同帧同控制点 hash/shape/物理单位重建 C；旧 v1 只经明确兼容适配。不要因旧 detail §7.4 曾写 nl×nl 就输出数百 MB 明文 JSON。
+3. **数学上等价地加速秩亏 GLS**。源空间 \(Q=R D^{1/2}\) 的正交行空间投影 \(M=W^T P_{\operatorname{row}(Q)}W\)、\(W=D^{-1/2}[P,Z]\)，或零空间修正 \(M=W^TW-(N^TW)^T(N^TW)\)；由可靠 rank-revealing QR/SVD 求基，保留输入真实 R 与已选叶的全部贡献，不按窗口预算静默截断随机协方差。背景参数即使共线，通量本身仍可能可辨；必须以它对背景空间的正交残差判断。使用已独立验证的数值库/Backend，不能把上一轮失败的手写 QL 再塞入生产。源代码里旧 H^+、B 顺序注释按正确数学更正。
+4. **完成 F08 typed Runtime/DataModel 迁移**。逐一把现有 calibration/IPV/Gaia guided PSF/photometry/noise/Drizzle/writer 的同 run/frame 身份、typed 生产者与消费者从 `p1_*.json` 隐式热路径迁到统一 RunContext/BlockFrame 的版本化对象与明示科学 spill。已有算法保留，不造第二套求解器，ACSD_DEV_MODE 仅旁路快照，不作为科学取数条件。
+5. **剩余真实模型端口**。接通 sed_response 的 Gaia XP 合成参考谱与每帧 R_k/QE/光度 α；实现有来源的 spatial alpha 与合理的 PSF 空间模型；master covariance、共享误差及实际噪声条件已知则传播，未知明确 omitted；frame-summary 的重叠叶支持面积去重；查明前轮 quantization.s12 和 registry parity，处理真实混响应/Windows/Dev 四模式的事实。
+6. **保留独立、能改变被测输出的数值证明**。新 PSF 单位模板→R→h→C→V_F→SNR 整条量纲链要有人工可手算/独立像元积分/随机对照；“扰动一个输入源像元→真实 HiPS signal 变化等于对应 R 列”用实际生产 writer 路径核验；rank-nullspace 与满列秩世界对比直接 sphere C^+；正式序列化用实际 reader 重新求 V_F，不自引用写盘函数断言；每次实帧的版本/哈希/误差项要明确。无输入数据或平台则写 NOT_RUN，不伪造。
+
+在实施时发现物理公式冲突，只向前台提交最小反例与代码/观测依据，**不要自行修订以上科学正本或再添加一个不同的 PSF/GLS 方案**。Mosaic 默认权重、P5 背景和 Export 暂不改；原始 /testdata FITS/HST/母版不入 Git，不动 main、不建 PR。
+
+
 本包面向执行 Agent，由前台给出实施范围和收敛要求；科学定义仍以 docs/science、数据/架构合同仍以 docs/engineering 与 docs/detail 为唯一正本。代码起点是 `950c261be` 的交付及其独立复核。本包覆盖阶段一完整实现，不只修复一次数值反例。三阶段工作中的 Mosaic 权重、背景与 Export 算法本轮暂停。
 
 ## 1. 阅读顺序与执行方式
