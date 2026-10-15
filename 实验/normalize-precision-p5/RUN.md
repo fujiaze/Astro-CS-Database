@@ -56,6 +56,16 @@ cmake --build build/linux-dev  -j 8
 - `frame_signal_preview.fits` / `frame_signal_preview.png`：`<frame>/signal/Norder9/Dir1370000/Npix1371955.fits` 的实读预览（512×512 float32 → float64 复制后写出；asinh/线性拉伸，1–99.5 百分位）。
 - 读数：262144/262144 有限；min −1.64e13、max 9.41e14、mean 3.13e12 ADU/sr —— 与历史 E2E「58 ADU/px ÷ Ω≈2.08e-11 sr ≈ 2.8e12 ADU/sr」的量级自洽（本帧未施加测光 ⇒ native ADU 面亮度）。
 
+## 3d. 默认路径（无 snr.reference）验证
+
+同一硬件/同一帧、配置去掉 `snr.reference` 后重跑：`exit=0`，`frame_science.json`
+**仍然发布**且 schema 0 错误 —— `precision.availability=unavailable` +
+`reason="no snr.reference configured (canonical reference precision
+unavailable; legacy F0 path stays a named diagnostic)"`，`controls=[]`、
+`models=[]`；`reference.kind=unavailable` 且 `flux_unit=adu`、
+`normalization=native_calibrated`（输入面真实状态，不伪造参考身份）。signal
+HiPS 产品面不受影响 —— 即「缺参考不阻断合法 signal」按合同落地。
+
 ## 4. 开发/发布构建一致性（串行、独立目录、同配置）
 
 | 对象 | 结果 |
