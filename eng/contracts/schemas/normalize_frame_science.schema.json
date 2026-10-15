@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://acsd.local/schemas/normalize/frame_science/v1",
   "title": "Normalize per-frame scientific model and spherical reference precision",
-  "description": "Design contract; production reader/writer integration is not yet implemented. Authority: docs/engineering/contracts/NORMALIZE_DATA.md. JSON shape does not validate cross-field physical identities or model file hashes.",
+  "description": "Normalize per-frame scientific product. Current production writer/reader exist; schema validates JSON shape, not cross-field physical identities, hashes, PSF pixel-integration validity, or the exact factorized covariance model. Canonical semantics: docs/engineering/contracts/NORMALIZE_DATA.md; factorized covariance v2 remains a required implementation update.",
   "type": "object",
   "additionalProperties": false,
   "properties": {
