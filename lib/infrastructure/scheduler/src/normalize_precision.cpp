@@ -382,7 +382,6 @@ std::vector<acsd::normalize::PlanarPatchWindow> build_patch_windows(
   return windows;
 }
 
-
 StagedPrecision stage_frame_precision(
     const PrecisionFrameRequest& req,
     const std::vector<acsd::normalize::PlanarPatchWindow>& windows_in,
@@ -474,7 +473,6 @@ StagedPrecision stage_frame_precision(
       w.variance[j] = v;
     }
   }
-
 
   // ── GLS 完成（数学唯一实现在 noise 库）────────────────────────────────────
   acsd::normalize::SphericalCompletionConfig cfg;
