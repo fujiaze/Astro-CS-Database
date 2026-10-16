@@ -34,6 +34,10 @@ REWRITTEN = {
     'docs/engineering/build/BUILD_NODES.md',
     'docs/engineering/build/RELEASE.md',
     'docs/engineering/standards/DEPENDENCY.md',
+    'docs/engineering/data/ARTIFACTS.md',
+    'docs/engineering/data/ARTIFACT_STORE.md',
+    'docs/engineering/data/PROVENANCE.md',
+    'docs/engineering/contracts/ATOMIC_PUBLISH.md',
 }
 REVIEWED = {
     'docs/science/unified/UNIFIED_SCIENCE_MODEL.md',
@@ -60,6 +64,11 @@ REVIEWED = {
     'docs/engineering/standards/DIAGNOSTIC_PROBES.md',
     'docs/engineering/resources/observability/STRUCTURED_LOGGING.md',
     'docs/engineering/resources/observability/RUN_GRAPH.md',
+    'docs/engineering/UNIFIED_OBJECTS.md',
+    'docs/engineering/data/PHASE_PRODUCT_EXCHANGE.md',
+    'docs/engineering/data/README.md',
+    'docs/engineering/contracts/MANIFEST_VERIFY.md',
+    'docs/engineering/api/abi/ABI.md',
 }
 EXTRACTED = {
     'docs/science/calibration/CCD_DEFECT.md': 'CCD_DEFECT_OBSERVATIONS.md',

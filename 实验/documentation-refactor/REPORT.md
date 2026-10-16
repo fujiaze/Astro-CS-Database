@@ -108,3 +108,11 @@ Runtime 续查确认：run_pipeline 使用 RuntimeResourceBudget 工厂，在调
 重写前四份构建/依赖正文，原文按 blob/字节数完整保存于 BUILD_SOURCE.txt。过时的34目标手抄表、旧复现任务编号和未接线声明归档；正文改为当前构建关系、配置条件、工具局限及可执行入口。源码路径列表摘要、声明源内容摘要与实际二进制哈希分别解释，Windows CLI zip 和目标 Inno Setup GUI 安装包分别解释。新增 E20–E22，没有改编译器、指纹、打包器或产品算法。
 
 累计30份原始文件全文重写；文档检查和源码阅读不代替构建、打包或实际科学验证。
+
+## 数据、溯源与发布主题续整理
+
+构建主题提交 `f23ce01e1` 后立即推送。继续全文阅读工件、产物库、溯源、阶段交换、原子发布、运行清单与统一工程对象，重写 ARTIFACTS、ARTIFACT_STORE、PROVENANCE、ATOMIC_PUBLISH 四篇，原文完整存入 PRODUCTS_SOURCE.txt。保留既有 DATA ID 的定位，删除旧表对模型、单位、未知误差和最终辅助通道的重复定义，统一引用科学正本和阶段交换政策。
+
+实际阅读 Python Store 的 start/publish、HipsOutputStore::publish_directory 与覆盖恢复、provenance 版本解析/摘要声明、完整 atomic_publish.h。区分 Python 语义层与 C++ 生产接线；内容/清单/sidecar多次rename不称整体事务；发布可见性、完整性与持久化分别报告。新增 E23–E26，未执行 I/O 故障注入或更改发布代码。
+
+累计34份原始文件全文重写。完整任务继续以 ORIGINAL_FILES.tsv 的实际范围推进，历史来源归档不作为余下文档精读的替代品。

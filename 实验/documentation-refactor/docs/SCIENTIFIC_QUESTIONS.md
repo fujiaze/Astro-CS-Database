@@ -240,6 +240,10 @@
 | E20 | RELEASE/BUILD_NODES 将 build_source_digest 相同当“同一二进制”；实际摘要仅覆盖 gen_build_stamp.py 声明源集，未覆盖编译器/选项/外部链接库等全部输入 | 正式文档区分 configure HEAD、构建 HEAD、声明源摘要和实际二进制哈希；不修改指纹代码 |
 | E21 | 旧构建闭包表和阻断叙述已过时：gen_build_graph_doc.py 的 DOC_REL 现为正确路径，NONPROD 的 coverage 工具登记仍与根图不符；文本解析也不能代替实际配置闭包 | 旧表完整归档，正式页提供真实目标/调用定位与工具限制，未运行生成器覆盖正文或编译产品 |
 | E22 | make_*_release.py 使用旧响应曲线目录、版本回落字面量和固定生成时间；安装规则已改 config/response_curves，Windows 脚本只生成 CLI zip | 交付目标与已有材料生成器分别说明；本轮未打包、升级版本或发布 |
+| E23 | ARTIFACTS 旧表把 DATA-IMG-WEIGHT-001 同时用于[0,1]质量因子与积分逆方差，并称点源 SNR²/F_ref² 可直接作信号权；还把未知 variance=0、最终 P2/P3 辅助图像写成现行合同 | 已按统一工程对象和最高设计解释 legacy 哨兵、同估计量精度及单 signal 发布；保留全部旧 ID/原文，不改 schema 或权重代码；统计重推导见 Q13/Q19 |
+| E24 | production_store.py::publish 实际依次 rename 内容、COMPLETE manifest、hash sidecar、provenance；中断可能留下 COMPLETE 而缺后续文件，且部分 open 绕过 StoreIO | 原文“任一失败无 COMPLETE”“同一原子区”“spy证明全部读写”过强；已区分恢复完整条件、最终验证读和真实生产接线，未修代码或运行故障注入 |
+| E25 | provenance.parse_version 只取数值段，忽略预发布；revision.module 取模块 ID，revision.abi 从文档形态派生；strategy 不进摘要 | 正文说明实际绑定和摘要范围，不能声称完整 SemVer/C ABI/算法身份均已核验；不改载体 |
+| E26 | ATOMIC 旧文称 overwrite先删旧产品，实际 HipsOutputStore 已先暂存再让位旧副本并尝试恢复；C++ PublishResult 也有已可见但持久化未确认状态 | 按当前 publish_directory 与 atomic_publish.h 说明真实次序/三态，旧过强或过时结论归档；尚未验证进程崩溃、竞态及跨平台持久化 |
 
 ### 远端合并后的核对范围
 
