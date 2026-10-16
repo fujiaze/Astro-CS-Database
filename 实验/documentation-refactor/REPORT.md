@@ -132,3 +132,9 @@ Runtime 续查确认：run_pipeline 使用 RuntimeResourceBudget 工厂，在调
 阅读全文核对CODE、COMMENT、CONCURRENCY、CACHE、COMPATIBILITY、OPTIMIZATION、NUMERIC，重写前六项；旧文保存在STANDARDS_SOURCE.txt。科学单位/浮点正文保留，其历史诊断附录仍待移出。标准统一接口/寿命/资源责任，区分本地查询与外部网络、受控多轴预算与隐藏嵌套、科学容差与逐位复现，新增E30。
 
 累计71份原始文件全文重写（含根与目录入口），另有已读保留与归并主题；该数包括短导航，不能把导航改写量当作超长科学算法或实验精读的替代。科学问题仍25项，工程记录30项；全部剩余范围继续如实列出。
+
+## 调度与异步队列续整理
+
+目录/标准主题 `10e78d380` 已立即推送。全文阅读 PIPELINE_BLOCK、SCHEDULER、ASYNC_IO，核对完整scheduler.h与async_io.h、executor注册头、两类事件schema；重写后两份合同，旧文保存在SCHEDULING_SOURCE.txt。纠正探针与stdout协议同格式、Mosaic全局拟合可按窗口完全独立、错误取消后必排空、容量最低1即满足预算等过强描述。新增E31–E32，本轮未运行或修改调度/队列。
+
+累计73份原始文件全文重写，25项待推导问题、32项工程记录。仍按清单处理超长算法、剩余工程/detail及实验正文。

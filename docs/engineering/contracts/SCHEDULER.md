@@ -1,83 +1,41 @@
-# 三阶段调度器合同
+# 阶段调度
 
-上游：最高设计的顶层结构、三个阶段调度器、CPU 后端与资源三章。
+每个 normalize、mosaic、export 命令建立独立Runtime、调度与内存管线，跨阶段只交换已发布产品。资源来源和并行轴见[数据流](../architecture/DATA_FLOW.md)，对象交接见[命名块](PIPELINE_BLOCK.md)，线程/数组寿命见[Runtime](RUNTIME.md)及[所有权](OWNERSHIP_LIFETIME.md)。
 
-三阶段的调度形态、并行确定性口径、资源声明与探针事件 schema 的正本。线程预算的来源与并行轴
-分配见 `../architecture/DATA_FLOW.md`，命名块字段见 `PIPELINE_BLOCK.md`。
+## 1. 实际接口与计划
 
-机器 schema：`eng/contracts/schemas/scheduler_probe_event.schema.json`（探针事件的机器取值源）。
+`lib/include/acsd/core/scheduler.h` 声明 `Scheduler`、`NodeSpec`、`NodeStatus` 与 `NodeFn`。NodeFn为`(node_id,RunContext&)→Result<void>`；节点声明依赖、operation对应执行器、resource_class、内存估计、最小/最大worker及估计来源。`add_node/build/run`负责建图与执行，不能把设计中的泛称`run(stage,config)→manifest`误写成现有C++签名。
 
-## 总则
+计划校验唯一生产者、合法依赖、无环和资源/生命周期。估计值与实际观测分开：不可估计时给原因，不把未知内存写成真实0。节点状态为PLANNED、QUEUED、RUNNING、COMPLETED、FAILED、CANCELLED、SKIPPED，状态快照含node_id。
 
-- 三个命令 = 三个**独立进程**，各自实例化调度器与内存管线；阶段间只通过磁盘产品 + manifest + 哈希交换；
-- 调度器是阶段内的**唯一执行者**：按 DAG 调度模块、管理块生命周期、分配线程预算、处理异步预取、响应取消；
-- **统一 entrypoint**：`run(stage, config_json) -> manifest_json`，失败返回非零 rc 与显式错误域；
-- **统一 DAG 声明**：节点 = {id, operation, 入参块集合, 产出块集合, 消费块集合, 线程安全性}；调度器据此推导执行序与块回收点；
-- **模块不私建线程池**：线程数、内存上限、队列深度一律从配置/资源门读取（`../../ACSD_DESIGN.md` 「命名块内存管线与块生命周期」一节）。
+## 2. 阶段执行形态
 
-## 三阶段调度形态（冻结）
+| 阶段 | 目标形态与当前核对点 |
+|---|---|
+| Normalize | WCS→科学源/PSF→光度/噪声→球面完成的真实依赖；帧级并发和帧内工作共享预算，预取和查询复用不得跳过科学条件 |
+| Mosaic | 全局覆盖/背景模型和局部tile消费具有不同范围，不能将全局拟合简单描述为每窗口独立；内部统计权按同估计量构造 |
+| Export | 有界子块读、目标WCS重采样、写出；真实流式程度、内存上限和参考结果按实际路径核对 |
 
-| 阶段 | 形态 | 关键机制 | 确定性要求 |
-|---|---|---|---|
-| normalize | **异步工作流编排** | 帧内节点按 DAG 流水；多帧并行；资源空闲时异步启动独立工作流（预取下一帧 FITS、预解析星表、预建 PSF）；星表同组查询合并 + 两级缓存 | 固定 worker 数下归约顺序冻结；1/N worker **数值等价**（异步只影响顺序，归约按帧/块 ID 排序）；容差口径见 「并行确定性口径」一节 |
-| mosaic | **空间窗口并行** | 以固定大小天球窗口（tile）为调度单元；窗口内 coverage→UPM→排异→SNR² 集成顺序**固定**；窗口间无共享可变状态；输入帧块按窗口路由（只读必要切片） | 归约顺序冻结（窗口 ID、像素序）；1/N worker 数值等价（容差口径见 「并行确定性口径」一节） |
-| export | **子块流式** | 读子块 → 投影重采样 → 写 FITS；三级有界流水线 + 背压；不整幅驻留 | 输出与整幅参考路径数值一致（TAN，容差事前冻结，口径见 「并行确定性口径」一节） |
+这是设计与实现阅读路径，不声明三种形态都已完整接入。真实八/七/五节点和局部session区别见[模块地图](../architecture/MODULE_MAP.md)，缺口见[实施差异](../architecture/SCIENCE_IMPLEMENTATION_DELTA.md)。
 
-### 并行确定性口径（冻结）
+## 3. 租约、内存与取消
 
-**归约顺序冻结是结构性不变量，判据是事前冻结的浮点容差**——两者不可互换：
+Scheduler持有ThreadBudget并注入RunContext。节点根据计划申请真实租约，帧内和帧间不能重复占有同一授权；模块不另设全局预算或私建长期池。`executor_runtime.h::shared_work_executor`按预算实例复用池，只有预算源确实唯一时才能得到该范围的统一执行资源。
 
-- **结构性不变量（必须满足，判红项）**：归约顺序按帧 ID / 块 ID / 窗口 ID / 像素序固定；跨 worker **无共享浮点累加器**；异步与工作窃取只改变执行顺序，不改变结合顺序；归约量是整数/索引/mask/计数时要求**精确一致**。
-- **数值判据（浮点结果）**：1 worker 与 N worker **数值等价**，容差来源按优先级取：
- 1. 模块科学页已冻结的三档（`../../science/algorithms/UPM_SOLVER.md`「容差来源」一节：同配置重复=位精确 + `model_hash` 逐字相同；跨 worker 数（1..N）= **rtol 1e-12**，判据 `|ΔC| ≤ 1e-12·max(|C|, C_scale)`；跨后端等价=无此合同，判据面为空）；
- 2. 未在模块页冻结的，按 `../testing/TEST.md` 的通用浮点容差与可满足性下限规则（通用容差数值与可满足性下限的唯一正本是该文件，本合同不复述）。
-- **模块自有门可以更严**：由构造保证位精确的路径（固定槽位写回、per-thread 定序归并、整数索引归约）其共址测试仍可断言 bitwise——这是模块的更强保证，不违反本合同；**合同层不要求逐位一致**。
-- 容差在写测试前冻结；NaN/Inf/缺失的**位置与语义**必须精确一致，唯一正本同样是
-  `../testing/TEST.md` 的 NaN 与 Inf 语义一节。
+内存估计和压力治理控制派发/在飞对象，不能在像元计算中改变科学精度。队列同时限制条目与在飞字节，具体见[异步I/O](ASYNC_IO.md)。CPU/内存利用率只测量，不设产品审批或性能退出门。
 
-## 资源声明（每阶段必填）
+cancel置调度器及当前RunContext的token，节点和内核按明确粒度响应。停止派发后等待在飞借用结束再回收，I/O收尾保留真实发布状态；已可见但未确认持久化的对象不能一律删除。进程退出码在CLI映射，详见[错误合同](LOG_AND_ERROR.md)。
 
-- 线程预算、内存上限（峰值工作集）、队列深度、分块/窗口/子块大小；
-- 上述参数**由配置/资源门决定**，线程数与 ISA 取自该配置/门的取值；
-- 编排参数（窗口大小、预取深度、帧并发度、工作窃取策略）的**最终取值**由性能门基于探针实测数据确定；本合同只保证机制正确与探针齐全。
+## 4. 数值复现
 
-## 探针事件 schema（JSONL，随事件流落盘）
+归约按声明的帧/块/像素顺序与算法进行，整数身份、资格和计数精确比较。跨worker/ISA的浮点结果按模块数值域与[测试标准](../testing/TEST.md)容差比较，固定归约结构与误差限分别检查。不能由“无跨星归约”或“任务按下标回填”推出整条科学链逐位一致。
 
-每事件一行 JSON，字段冻结：
+优化与工作窃取只改变合法执行安排，不能改变输入有效集合、模型和发布物理定义。确定性参数、随机种子、配置、二进制、输入和实际worker随实验保存。
 
-| 字段 | 类型 | 语义 |
-|---|---|---|
-| `ts` | float | 单调时钟秒（进程内） |
-| `stage` | enum | `normalize` / `mosaic` / `export` |
-| `kind` | enum | `node_wall` / `queue_wait` / `block_birth` / `block_death` / `rss` / `io` / `worker_busy` / `cache_hit` |
-| `node` | string? | 节点 ID（`node_wall`/`queue_wait`） |
-| `block` | string? | 块名（`block_birth`/`block_death`） |
-| `bytes` | int? | 块字节数或 I/O 字节数 |
-| `value` | float | 主测度（秒 / 字节 / 比例 / 命中率） |
-| `unit` | string | `s` / `B` / `1` |
-| `frame_id` | uint64? | 帧身份（可缺） |
-| `window_id` | uint64? | 窗口/子块身份（可缺） |
-| `worker` | int? | worker 序号（`worker_busy`） |
+## 5. 调度探针与运行事件
 
-**与运行事件流的关系**：本 schema 与 `eng/contracts/schemas/jsonl_event_v1.schema.json` 兼容——
-`ts`/`kind`/`value`/`unit` 复用其字段名；`stage`/`node`/`block`/`worker`/`frame_id`/`window_id`
-在两份 schema 中都是**独立顶层字段**（本 schema 不存在 `tags` 属性，故不存在「等价展开」这种形态）。
-落地时由 observability 侧提供单一写出点，事件格式只有这一份。
+`eng/contracts/schemas/scheduler_probe_event.schema.json`描述独立探针行：必填`ts/stage/kind/value/unit`；kind为node_wall、queue_wait、block_birth、block_death、rss、io、worker_busy、cache_hit，可带node/block/bytes/frame_id/window_id/worker。ts为进程内单调秒，单位为s/B/1。
 
-## 取消与原子性
+这些探针行不满足CLI运行事件的必填字段与kind枚举，不能直接称与`jsonl_event_v1`同格式兼容。写stdout时必须显式适配到[CLI协议](CLI_PROTOCOL.md)，开发细分事件另受[探针规范](../standards/DIAGNOSTIC_PROBES.md)控制。schema允许某字段不代表生产已有对应采样，计划值不填观测值。
 
-- SIGTERM：原子落盘语义保持，退出码 9；
-- 磁盘满：exit 10；
-- 取消点：节点间检查；取消时不写半成品产品。
-
-## 负例（必须能红）
-
-- 模块私建线程池 ⇒ 判红；
-- 1/N worker 数值差超出 「并行确定性口径」一节 冻结容差 ⇒ 判红；归约顺序随 worker 数变化（共享浮点累加器/动态归约序）⇒ 判红；
-- 探针缺 `stage`/`kind` ⇒ schema 校验判红。
-
-## 参考文献
-
-[1] 内部文档 `docs/ACSD_DESIGN.md，最高设计`，上位来源。
-[2] 内部文档 `docs/engineering/architecture/DATA_FLOW.md`，同层相关正本。
-[3] 内部文档 `docs/engineering/contracts/PIPELINE_BLOCK.md`，同层相关正本。
+核对DAG失败、预算超卖、内存回压、取消/异常、数组寿命、跨worker数值和真实trace来源。旧参数与过程叙述保存在[来源档案](../../../实验/documentation-refactor/docs/SCHEDULING_SOURCE.txt)；本轮没有执行调度或科学运行。

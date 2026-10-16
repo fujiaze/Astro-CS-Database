@@ -1,88 +1,33 @@
-# 有界异步 I/O 合同
+# 有界异步 I/O
 
-上游：最高设计的软件架构与 CPU 后端与资源两章。
+本合同说明producer/consumer队列及reader寿命，依据[并发标准](../standards/CONCURRENCY.md)与[调度合同](SCHEDULER.md)。参考实现为`lib/algorithms/coverage/include/astro/phase2/async_io.h`，通用模板存在不代表科学生产路径已采用它。
 
-有界生产者消费者队列的容量、所有权、线程安全、取消与关闭顺序的正本。并行适用范围见
-`../standards/CONCURRENCY.md`，队列容量的预算来源见 `../architecture/DATA_FLOW.md`。
+## 1. 类型与容量
 
-关联代码：`lib/algorithms/coverage/include/astro/phase2/async_io.h`。目标：HiPS/FITS/XISF 读取与计算解耦，使用有界 producer/consumer；队列容量由 `memory_budget_bytes / item_bytes` 推导，取值有上界。
+`BoundedAsyncQueue<T>`持deque、每实例mutex及两个condition_variable。T按值传入push后移动入队，成功出队时所有权移给消费者；失败push也可能销毁已传入的值，调用方不能继续借用原buffer。条目自身负责数组/句柄的RAII，不能把裸悬空指针作为有所有权条目。
 
-## 模型
+`bounded_queue_capacity(budget,item_bytes)`当前返回至少1，item_bytes=0也返回1。该函数不验证总预算足以容纳一项，不能把结果称严格内存上限。调用方先检查条目尺寸并把buffer、控制块、在飞producer/consumer及scratch纳入预算；内存不足时调整分块或明确失败，不凭最低容量1宣称预算满足。
 
-- **生产者**：读取 HiPS/FITS/XISF tile / 文件块，产出 buffer 所有权对象。
-- **消费者**：计算/写入阶段消费 buffer。
-- **队列**：`astro::phase2::BoundedAsyncQueue<T>`，固定容量，满时生产者阻塞（背压），空时消费者阻塞。
-- **容量**：`bounded_queue_capacity(memory_budget_bytes, item_bytes)`；`item_bytes` 必须包含该条目在队列中持有期间的全部内存占用（buffer + 控制块）。容量下界为 1，0 不是合法取值。
+## 2. 正常与取消语义
 
-## Buffer 所有权
-
-- 每队列条目持有 `T` 的所有权；`T` 必须是可移动类型（`std::move` 入队）。
-- 入队后，生产者不再访问该 buffer；出队后所有权移交给消费者。
-- 消费者处理后必须显式释放或复用；已出队 buffer 的去向就此确定。
-- 同一 buffer 的读写归属唯一线程；每个 `TilePair` 等条目绑定唯一 reader 会话。
-
-## Reader 线程安全
-
-- cfitsio 同一 `AioHipsDataset*` 不保证并发读安全。
-- 因此每个 worker / 每个 reader 使用独立数据集句柄；异步 IO 池中 `io_workers` 个 worker 各自持有自己的 reader 实例。
-- 共享句柄只允许串行读取；若要在异步队列中共享，需要由 reader 层加串行锁，并计入串行时间预算（当前不采用，优先 per-worker reader）。
-
-## 异常传播
-
-- `BoundedAsyncQueue::cancel(reason)` 唤醒所有阻塞者，后续 `push/pop` 返回失败。
-- Worker 捕获读取/写入异常后调用 `cancel`，主线程通过 `error` 获得第一错误文本。
-- worker 线程的错误一律经 `cancel` 上达主线程并逐条登记；未取消且未关闭的队列对错误一律显式报告。
-
-## 取消
-
-- 已入队条目可以被丢弃（取决于消费端策略）；
-- 阻塞在 `push` 的生产者立即返回 `false`；
-- 阻塞在 `pop` 的消费者立即返回 `nullopt`；
-- 已持有的 buffer 由各自 owner 释放。
-- 取消后不可恢复，必须重建 pipeline。
-
-## Flush / Shutdown
-
-- **正常关闭**：`close`。生产者停止入队，消费者继续排空队列，直到 `pop == nullopt`。
-- **Flush**：消费者必须在计算阶段结束时保证所有已入队 buffer 被消费；对写队列，flush 表示等待所有 writer 完成并关闭文件。
-- **Shutdown**：所有 worker 线程 join 后销毁队列；析构时点 = 线程全部 join 之后。
-
-## 内存预算
-
-| 参数 | 含义 |
+| 操作 | 当前行为 |
 |---|---|
-| `memory_budget_bytes` | 该 pipeline 可用内存预算 |
-| `item_bytes` | 单条目在队列中占用的估算字节 |
-| `capacity` | 队列条目上限 = `max(1, budget / item_bytes)` |
+| push | 满时等待；closed或有错误时返回false，否则移入并唤醒consumer |
+| pop | 空时等待；有非空error立即nullopt；closed且空时nullopt；其余移出首项 |
+| close | 不再接收新项，唤醒双方，已有项可排空 |
+| cancel(reason) | 保存首个非空错误并close，唤醒双方；非空error使后续pop停止消费 |
+| error/has_error | 锁内读取错误；没有独立的取消标志 |
 
-- 队列容量不是全局内存上限；各阶段还需要自己的工作缓冲预算。
-- 用 `std::deque::size` 施加容量上界；超预算应通过背压或分块降级。
+因此错误取消不等于正常close排空。cancel后队列里未消费的对象仍由队列持有，join后销毁；不能承诺“错误后消费者排空全部剩余”。空reason不会置has_error，实际近似close语义，是当前实现限制。队列没有自身timeout或重开方法，完整流水线须在上层处理等待/取消和重建。
 
-## 测试要求
+## 3. Reader与线程
 
-必须覆盖：队列满背压；正常 close 排空；cancel 唤醒阻塞者并传播错误；读取失败/写入失败传导；多 worker 并发消费确定性。
+每worker使用独立AioHipsDataset/reader，或由单I/O线程串行调用同一句柄；不要推定CFITSIO任意共享句柄可并发读取。条目若引用reader会话，该会话覆盖最后消费者。数据集关闭、缓存淘汰、数组复用都等待在途借用结束。
 
-用例正本 = `lib/algorithms/coverage/tests/async_io_test.cpp`（含生产型 pipeline 形态的 `ReadFailureCancelsAndPropagatesNoDeadlock`、`WriteFailureStopsProducerAndPreservesError`、`BoundedQueueDeliversAllItemsInOrder`）。
+正常收尾为停止producer→close→consumer排空→等待writer完成并关闭文件→join所有worker→销毁队列。错误时保留首错和后续收尾错误，取消唤醒后释放各owner对象。正式发布只有在所有写任务完成后登记清单；开发诊断丢弃策略另按探针合同。
 
-## 生产接入形态与当前接线状态
+## 4. 生产接线与验证
 
-**计算并行是现行生产形态**：每个工作线程持有独立 `AioHipsDataset*` 句柄读取，杜绝跨线程共享句柄并发读；phase2 的采样与眼睛 tile 处理由 `std::thread` 池 + Runtime lease 驱动（`sampler.cpp`：`cpu_workers = budget.max_workers`，`next_c.fetch_add(1)` 动态认领），不经过本合同的队列。
+当前Mosaic采样/集成可由Runtime租约下的worker独立读tile，不因此等同已使用本队列解耦I/O与计算。具体接线从sampler.cpp及节点adapter查起。旧文列出的测试路径和用例名要先取得文件、输入、命令和结果，不能将名称当作通过证据。
 
-**本合同（有界队列解耦）属设计面**：`BoundedAsyncQueue` 当前无生产调用点（唯一使用面 = `lib/algorithms/coverage/tests/async_io_test.cpp`）；接线后其形态为「有界预取队列 + 单一 IO 线程 / 每 worker 独立 reader」，用于隐藏读延迟并给内存占用装上界。接线状态登记面 = 已知限制台账。
-
-## 运行时判据
-
-机器判据 = `eng/tests/cli/test_parallel_queue.py`：
-
-- **无全局串行锁**：`BoundedAsyncQueue` 每实例持有独立 `mutex_`/`condition_variable`，是 per-queue 锁而非单一全局锁；header 无 `static std::mutex` / 全局锁对象（`test_06`）。
-- **I/O×compute overlap**：生产者（模拟读 I/O）与消费者（compute）并行推进，总时长贴近 I/O 下界，未被全局串行锁串行化（`test_02`、`test_03`）。
-- **有界背压**：容量 `max(1, budget/item_bytes)`；满时生产者阻塞，`size ≤ capacity` 不无界增长，可排空无死锁（`test_01`、`test_03`）。
-- **error / cancel**：生产错误 → `cancel(reason)` 唤醒 push/pop 双方，消费者经 `error`/`has_error` 收到第一错误，无死锁；取消后不可恢复（`test_04`、`test_05`）。
-- **failure drain**：生产者错误后消费者排空剩余 + 收到错误标志，不静默吞错（`test_04`）。
-- **CPU compute 不被饿死**：I/O 生产者与 compute 消费者独立队列解耦，compute 全程推进（overlap 中 consumed = N 全部完成），无 writer 饿死 compute。
-
-## 参考文献
-
-[1] 内部文档 `docs/ACSD_DESIGN.md，最高设计`，上位来源。
-[2] 内部文档 `docs/engineering/standards/CONCURRENCY.md`，同层相关正本。
-[3] 内部文档 `docs/engineering/architecture/DATA_FLOW.md`，同层相关正本。
+验证容量背压、满/空时close/cancel、空reason、move后失败、reader释放、在飞内存、读写失败与join死锁，分别测实际I/O×compute重叠和科学数值等价。队列size受限不证明总RSS受限，模拟sleep重叠也不证明真实磁盘和科学内核性能。原文保存在[来源档案](../../../实验/documentation-refactor/docs/SCHEDULING_SOURCE.txt)，本轮不改队列代码。
