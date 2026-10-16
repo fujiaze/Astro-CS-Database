@@ -34,7 +34,7 @@
 | `P2HipsInputInfo` | hips_path、frame_id、max_leaf_order、n_tiles、filter_passband、frame_type、hips_ordering |
 | `P2MocCell` | order/ipix 整数 NESTED 位置；须随实际层级解释，tile 阶与叶阶相差 9 |
 | `P2CoverageResult` | 调用方分配 inputs/union_cells，n_inputs/n_union_cells/target_order/status/error |
-| target_order | 当前取各输入最大叶阶的最小值；不是独立配置的科学目标分辨率已实现 |
+| target_order | 当前取各输入properties.hips_order的最小值（实际tile层级，像元叶阶另加9）；不是独立配置的科学目标分辨率已实现 |
 | union | 几何并集，允许断连；不提供点源信息量或面亮度统计权重 |
 
 `p2_coverage_free` 清零 POD，不释放调用方数组；调用者拥有所有缓冲。整数集合处理无独立线程预算，文件读取经 AIO；Runtime 节点管理生命周期和取消。覆盖数/并集不是背景有效观测边，也不自动给出 UPM 连通分量的绝对零点。
@@ -48,6 +48,93 @@
 ### 验证入口与边界
 
 从 `p2_coverage_build` probe/fill、[coverage 实现](../../../lib/algorithms/coverage/src/coverage.cpp)及 [Mosaic 管线](pipeline.md)的调用者进入核对：已知并集、断连、降阶父聚合、空集、缺产品、同天区几何与混合通带。target_order、帧身份及输出响应的当前限制集中见[实施地图](../../engineering/architecture/SCIENCE_IMPLEMENTATION_DELTA.md)，本页未进行运行验证。
+
+### 完整Coverage声明与两遍调用
+
+```cpp
+typedef struct {
+    std::uint64_t order;
+    std::uint64_t ipix;
+} P2MocCell;
+
+typedef struct {
+    char hips_path[1024];
+    char frame_id[64];
+    int  max_leaf_order;
+    int  n_tiles;
+    char filter_passband[64];
+    char frame_type[32];
+
+    char hips_ordering[16];
+} P2HipsInputInfo;
+
+typedef struct {
+    std::uint64_t n_inputs;
+    P2HipsInputInfo* inputs;
+    std::uint64_t n_union_cells;
+    P2MocCell* union_cells;
+    int  target_order;
+    int  status;
+    char error[512];
+} P2CoverageResult;
+
+typedef enum {
+    P2_CELL_UNCOVERED           = 0,
+    P2_CELL_COVERED_UNSUPPORTED = 1,
+    P2_CELL_SUPPORTED           = 2,
+    P2_CELL_UNAVAILABLE         = 3
+
+} P2CellState;
+
+typedef struct {
+    std::uint64_t n_cells;
+    const std::uint8_t*  coverage;
+    const std::uint8_t*  coverage_known;
+    const std::uint32_t* support_frames;
+    const std::uint8_t*  support_known;
+    std::uint32_t min_support_frames;
+} P2CoverageSupportInput;
+
+P2_API int p2_coverage_build(
+    const char* const* hips_paths, std::uint64_t n_inputs,
+    P2CoverageResult* out);
+
+P2_API int p2_coverage_free(P2CoverageResult* out);
+
+P2_API int p2_coverage_support_classify(
+    const P2CoverageSupportInput* in,
+    P2CellState* out_state,
+    std::uint64_t* out_n_supported,
+    std::uint64_t* out_n_covered_unsupported,
+    std::uint64_t* out_n_uncovered,
+    std::uint64_t* out_n_unavailable,
+    char* err, std::size_t err_size);
+
+P2_API std::uint64_t p2_tile_boundary_owner(std::uint64_t leaf_ipix,
+                                            int leaf_shift);
+
+P2_API int p2_deterministic_reduction_order(
+    const std::uint64_t* ipix_in, std::uint64_t n_in,
+    std::uint64_t* out_sorted, std::uint64_t capacity,
+    std::uint64_t* out_n,
+    char* err, std::size_t err_size);
+
+P2_API int p2_weight_source_token_reject(
+    const char* const* tokens, std::uint64_t n,
+    char* err, std::size_t err_size);
+```
+
+hips_paths借用n_inputs个NUL终止路径，out调用方分配且初始inputs/union_cells置空；第一次build回需求N/K，分配N个P2HipsInputInfo和K个P2MocCell后，第二次回填。**当前build并不检查实际容量**：进入时只保留两个指针，清零其它字段，重新扫描得到K后直接写K项；所以n_union_cells输入值不是生效的容量护栏。两遍间需冻结相同输入产品快照；底层接口不能安全接收任意小缓冲，变化/陈旧需求的风险见E71。free只清零POD，必须先保留并由调用者释放自己分配的数组。
+
+max_leaf_order这个既有字段在实现中实际赋properties.hips_order，对应当前ACSD存储的**tile层级**；P2MocCell和target_order也沿这个tile层级，512 tile的内部像元叶阶另加9。不能按字段英文“leaf”直接把它当像元叶阶。n_tiles是AIO成功枚举的tile数；frame_id为最多63字节basename，非p2_frame_id的64位内容ID。hips_path最多1023、filter63、frame_type31、ordering15字节并NUL终止，截断不能提供身份唯一性。
+
+build的rc0含全部帧tile列表为空的K0；rc1为out/路径/属性/reader/坐标等失败，no-input分支status仍为0，必须以rc判失败。obs_filter键必需但空串合法且不同值不互拒；frame逐帧可equatorial/icrs，但当前跨帧仍按字符串全等比较，两名混用拒绝。hips_version仅要求非空，不验证等于某版；ordering缺键登记空串，显式非NESTED拒绝。属性int用atoi，未完成严格数字词法验证；各tile_ipix读取失败目前跳过，该行为不是保证完整目录。
+
+support_classify数组长度n_cells，coverage/support_frames/support_known必需，coverage_known可空视为全已知；任一known假优先UNAVAILABLE，其后coverage0为UNCOVERED，再按support_frames<min分UNSUPPORTED/SUPPORTED。状态0/1/2/3及四计数不相互冒充；out_state必需，各计数和err可空。参数错误rc1且不保证清零输出；合法n_cells>0时固定顺序写，不计算权重。
+
+boundary_owner仅整数移位：leaf_shift0–31，非法返UINT64_MAX，不验证ipix实际天区范围。deterministic_reduction_order升序去重，out_sorted空时仅回需求；容量不足rc1且out_n回真实需求，不写部分排序结果；空输入与null指针算术/异常屏障仍需核。weight_source_token_reject对18个既有禁用token作ASCII忽略大小写全等，null/空token跳过；rc0未命中、1命中、2数组null且n>0。它只是拒绝已知坏来源，不是对任意新token的科学认证。
+
+数组/结构只调用期借用，无隐式转移；同步build无内部worker或cancel回调，各次重扫全部产品。独立out可并发但底层AIO句柄/全局能力仍按其合同；不能由无锁推不线程安全，也不能由固定整数排序保证外部文件在两次调用中不变。C链接函数内vector/string仍可分配抛异常，当前未完整捕获，不能沿旧文称已具异常屏障。
 
 ## sample
 

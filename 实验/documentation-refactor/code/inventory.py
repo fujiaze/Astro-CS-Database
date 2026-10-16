@@ -23,6 +23,9 @@ UNIT = ROOT / '实验/documentation-refactor'
 # Human semantic comparisons against the fixed baseline, recorded in the
 # existing inventory. These are not inferred from length or keyword checks.
 SEMANTIC_REVIEWS = {
+    'docs/science/algorithms/mosaic/PHASE2_COVERAGE.md':
+        '完整408行基线/现文逐项对照：保留集合/父聚合推导、全部伪代码、协议/几何域、复杂度/误差/Oracle与参考；6接口5结构/所有参数/容量/资源归正式Mosaic detail；纠正旧filter政策、tile阶、复杂度和假容量保护，历史任务/失效测试入既有SOURCE；未运行',
+
     'docs/engineering/api/PUBLIC_API.md':
         '完整2325行基线精读并逐主题对照现正式模块：Normalize完整实参/布局回填，Runtime完整类型与15会话签名回填；纠正历史路径/取消/并发/compact误述；Mosaic/Export详细接口与算法逐项语义复核仍未完成，不能据此标全篇闭合',
 
@@ -38,6 +41,7 @@ SEMANTIC_REVIEWS = {
 
 REWRITTEN = {
     'AGENTS.md', 'README.md', 'docs/README.md', 'docs/ACSD_DESIGN.md',
+    'docs/science/algorithms/mosaic/PHASE2_COVERAGE.md',
     'docs/science/README.md', 'docs/engineering/README.md',
     'docs/science/normalize/NORMALIZE_SCIENCE.md',
     'docs/science/integration/INTEGRATION.md',

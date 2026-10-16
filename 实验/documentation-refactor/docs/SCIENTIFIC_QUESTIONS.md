@@ -391,6 +391,8 @@
 
 | E70 | Issue6公共API完整2325行复读发现多处同页矛盾：取消/并发总表与逐族冲突、Noise无锁注册表风险已被mutex修复、旧Drizzle缺自动/异步/capture形参、PSF compact原行映射曾错误要求只取n_valid前缀 | 已恢复Normalize18校准/缺陷、7 PSF、27 Noise和14 Drizzle完整声明/布局及语义，修正有锁/取消/并发/原行映射；Runtime全公开字段/方法及15 session签名入正式正文。Mosaic/Export逐参数与完整模块算法仍待后批，不以完整读过API等同所有接口已对照完；未改生产代码或运行ABI/并发实验 |
 
+| E71 | Coverage build只保存输入/union指针后memset，未保存或校验容量，第二遍重扫K后直写；tile_ipix读取错误跳过；max_leaf_order实际hips_order/tile层级，像元叶阶+9；旧复杂度误用去重K且漏所有frame_tiles驻留 | science/detail已写真实两遍/快照与容量风险、TlogT/O(T+N)、外包络不等真实重叠、六接口/五结构；保留代码不修。旧filter全等政策按现代码删除，no-input的rc1/status0与无完整C异常屏障仍记录；下游order+9有效域、tile错误完整性需实现方独立负例核验 |
+
 本轮已合并远端 `5b33e0417`，保留 Normalize Round 3 的空间 PSF、空间 alpha、typed 边与实验记录。已重读新增空间PSF完整实现、相关改动与生产调用，确认E52所列路径并同步架构/实施差异及接口说明；第三轮报告全文已读，其数值本轮未重跑。E01–E15来自合并前抽查，E01的sed_response未接线、E03的basename身份、E04的signal叶阶、E07释放后EXPTIME读取本轮相应代码段仍可见；其余不自动当作仍存或已解决。E05中因子基础单位检查已增加，但通用reader是否全面调用仍须分开核对。原始191篇清单继续固定基线，新增代码/记录另外登记。
 
 ## 本轮证据边界
