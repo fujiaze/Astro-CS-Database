@@ -35,7 +35,7 @@
 70 未分类内部错误（必须出脱敏崩溃报告）。
 
 码 10 的适用面是磁盘；内存、CPU 与线程不设资源超限门，内存面由调度器按预算内化处理。
-跨平台同失败同码，由双平台断言锁定。
+跨平台同类失败按相同语义映射；是否已经由双平台用例覆盖需附实际命令与输出。
 
 ## 标准输出与标准错误纪律
 
@@ -72,14 +72,14 @@
 ## 取消与崩溃
 
 - Ctrl-C/Windows console cancel 触发协作取消令牌；内核在已声明的安全点检查，停止在途任务并释放资源后完成收尾。
-- 取消后: 关 writer→写 incomplete manifest→删除/隔离临时产物→exit 9;**取消后的 HiPS/结果一律为 incomplete 形态**(与本文件「取消与崩溃」一节的原子单元一致；上位取消语义见最高设计的机器输出与退出码[1]与错误传播与日志[1])。
+- 取消后停止派发、等待在飞消费者并收尾writer，尝试写incomplete运行清单，清理或隔离未发布暂存后返回9。已完成独立帧与已可见但持久化未确认对象按[原子发布](ATOMIC_PUBLISH.md)处理，不能把所有已发布结果一律改成未完成或删除。
 - 未捕获异常→70+run_id/阶段/最小脱敏 crash report(不泄露凭据)。
 
 ## 机器化一致性检查项
 
 1. `--help` golden 树与 「命令树」一节 逐行一致;
 2. JSON/JSONL 样例对 schema 有效(jsonschema 或 stdlib 等价校验);
-3. 退出码常量唯一源(`lib/infrastructure/cli/exit_codes.h`, grep 无第二处数值表);
+3. 退出码声明源为`lib/infrastructure/cli/exit_codes.h`，与核心头现存镜像逐名逐值核对；不能以“唯一源”的规范文字代替源码去重事实；
 4. handler 到实际 Runtime、节点与 writer 的生产调用路径可追溯，局部 facade 不能代替完整阶段;
 5. 发布 manifest 不含 `phase1|2|3` 可执行文件(与 `../build/BUILD_GRAPH.md` 的 exe_target 面同源: 生产可执行目标恰一 = `acsd`, CLI-001);
 6. 双平台命令测试的字段与退出码一致。

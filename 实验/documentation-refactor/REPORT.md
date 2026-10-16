@@ -144,3 +144,9 @@ Runtime 续查确认：run_pipeline 使用 RuntimeResourceBudget 工厂，在调
 调度主题 `1bef89b3b` 已立即推送。全文阅读FITS_IO、HIPS_IO、AIO detail及common两份统一对象/模型页；重写前三份，区分生产物理值读取、低层存储值流式C接口、内部C++发布writer。核对fits.h全文、C接口头相关段、aio_fits.cpp实际缩放位置及发布机制，新增E33–E34。
 
 原文完整保存在IO_SOURCE.txt；正式文档不再把归档目标、纯C接口、格式库枚举和阶段发布能力混为一体。累计76份原始文件全文重写，科学问题25项、工程记录34项；检查只覆盖文档结构，不是I/O运行验证。
+
+## 配置、CLI与运行清单续整理
+
+I/O主题 `759541170` 已立即推送。全文阅读CONFIG、CLI_PROTOCOL、CLI detail及运行清单合同，核对完整command_tree、cmd_verify、write_run_manifest与预检/parser相关分支。重写MANIFEST_VERIFY与CLI detail，修正协议中的取消/源码镜像描述，原文保存在CLI_RECORDS_SOURCE.txt。
+
+新增E35–E36，区分doctor实际校验、未接线画像hash、收尾now时间与真实运行起止、flush/rename与持久化确认、运行JSONL与非运行单JSON。没有运行doctor、生成模板或修改CLI代码。累计78份原始文件全文重写，25项待推导与36项工程/文档记录。

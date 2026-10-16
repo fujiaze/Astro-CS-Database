@@ -48,6 +48,8 @@ REWRITTEN = {
     'docs/engineering/contracts/FITS_IO.md',
     'docs/engineering/contracts/HIPS_IO.md',
     'docs/detail/infrastructure/aio.md',
+    'docs/engineering/contracts/MANIFEST_VERIFY.md',
+    'docs/detail/infrastructure/cli.md',
 }
 REWRITTEN.update(GUIDES)
 REWRITTEN.update(STANDARD_DOCUMENTS)
@@ -90,6 +92,8 @@ REVIEWED = {
     'docs/engineering/contracts/PIPELINE_BLOCK.md',
     'docs/detail/common/unified_objects.md',
     'docs/detail/common/unified_model.md',
+    'docs/engineering/contracts/CONFIG.md',
+    'docs/engineering/contracts/CLI_PROTOCOL.md',
 }
 EXTRACTED = {
     'docs/science/calibration/CCD_DEFECT.md': 'CCD_DEFECT_OBSERVATIONS.md',

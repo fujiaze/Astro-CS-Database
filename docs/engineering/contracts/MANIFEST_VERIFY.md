@@ -1,117 +1,58 @@
-# 运行清单与校验合同
+# 运行清单与验证
 
-上游：最高设计的 I/O 与原子产品一章[1]。
+运行清单记录一次命令执行的输入、软件、配置、产物和结果。它不同于阶段科学配置、机器画像、逐帧科学sidecar及产品完成清单。配置形状见[配置合同](CONFIG.md)，内容发布见[原子发布](ATOMIC_PUBLISH.md)，来源语义见[溯源](../data/PROVENANCE.md)。
 
-运行清单的字段、分离原则、溯源子对象与校验顺序的正本。科学配置与 CPU 机器画像是两个独立文件、
-独立校验、独立散列，画像陈旧即确定错误，不做猜测。退出码语义见 `LOG_AND_ERROR.md`[2]；
-发布产物的交付口径见 `RELEASE.md`[3]。
+## 1. 生产写出
 
-## pipeline_config.json v1（配置校验 schema）
+`lib/infrastructure/cli/commands.cpp::write_run_manifest`写入块级`<output_dir>/acsd_run_<run_id>.json`，先tmp、flush和大小核对，再rename，登记artifact事件和final所引用的清单路径。该路径有实际写入/rename检查，不等于已经具备完整文件/目录fsync持久化确认。
 
-```json
-{
- "schema_version": "1",
- "inputs": { "lights": ["<path>"], "darks": [], "flats": [], "bias": [] },
- "output_dir": ".",
- "phase3": { "source": {"hips_dir": "<path>"}, "center": {"ra_deg": 0.0, "dec_deg": 0.0},
- "scale_deg_per_px": 0.0, "width_px": 0, "height_px": 0 }
-}
+| 字段 | 当前来源与解释 |
+|---|---|
+| `schema_version/kind` | `1` / `acsd_run_manifest`，当前生产运行清单身份 |
+| `run_id` | 事件发射器的本运行身份 |
+| `acsd_version` / `platform` | 二进制构建版本与编译平台 |
+| `config_path/config_sha256` | 实际输入配置路径及文件字节摘要 |
+| `cpu_profile_path/cpu_profile_sha256` | 当前writer基础对象写null；不能宣称该面已记录并验证所用画像 |
+| `phases` | 本独立命令阶段编号列表，不表示自动串接 |
+| `artifacts[]` | role/path/sha256/size_bytes，实际收集对象 |
+| `status` | complete或incomplete；非complete时带error.message |
+| `started_utc/finished_utc` | 当前函数在写清单时分别取now，尚不能当实际运行起止历时 |
+| `summary`及extra | 运行说明和调用者汇总的节点事实；缺失不补假值 |
+
+字段表描述当前writer，不定义新的科学schema。`run_manifest.schema.json`仍有与此不同的词表，不能据本表断言现有产物已通过它。目标provenance包括算法、构建、provider、worker、输入/产物摘要、单位/坐标及能力；具体字段须沿extra实际装配核对。`log_artifacts[]`完整双日志登记仍见[实施差异](../architecture/SCIENCE_IMPLEMENTATION_DELTA.md)。
+
+## 2. 产品清单和存储事实
+
+逐帧signal/模型/sidecar有自己的完成状态；运行complete不自动表示所有科学误差模型已具备。不同清单的COMPLETE/complete大小写、schema和根路径按各自协议解释，不能凭相似键互读。
+
+运行级storage字段的目标定义见[存储形态](HIPS_STORAGE_FORM.md)，内容tree_hash、容器sha256和索引sha256分别具名。归档容器不能把自身哈希写进被封装内容形成自引用；产品级清单和运行级事实分工不因此证明接线已完成。
+
+构建source_sha、build_head_sha、build_source_digest、dirty与实际二进制哈希的证据范围见[发行合同](../build/RELEASE.md)。只有实际采集的值可写入；配置值不能冒充观测worker/provider。
+
+## 3. 实际验证命令
+
+```sh
+acsd doctor --json --run-manifest <run-manifest.json>
 ```
 
-validate 校验序(错误码确定, 不猜测): JSON 语法(3)→顶层对象+schema_version=="1"(3)→inputs 四键存在且为字符串数组、路径非空且文件存在(3)→output_dir 存在(3)。已知键白名单外键→3(防拼写静默忽略)。schema_version≠"1"→2(参数/配置错, 与输入缺失区分)。
-cpu profile(独立文件): **契约唯一源 = `eng/contracts/schemas/cpu_profile.schema.json`**[1]（CFG-001 单文件双分支：legacy_v1 `schema_version=1` + profile_v2 `schema=acsd.cpu-profile/v2`；`x-acsd-writer` 声明生产者仅 `benchmark`）；校验 oracle = `eng/tools/validate_cpu_profile.py`（schema 最小校验 + stale 判定）；无/失配 profile → 回落 generic(baseline) + 动态多线程，不阻塞（`profile_store.h`）。CLI 侧运行时校验入口 `lib/infrastructure/cli/parser.cpp`（`validate_cpu_profile`）当前无生产调用方——消费链接线缺口已在死键台账（`eng/contracts/ledgers/dead_config_keys.json`）与开放项清单登记在案，处置排期随该登记推进。**判据无载体**：消费侧测试 `eng/tests/backend/test_cpu_profile.py` 在仓内不存在（`eng/tests/` 只有 `conformance/` 与 `validation/` 两个子目录），故本条的 stale 判定只有 oracle 一处载体，不得写成已有回归测试锁定。
+该机器旗标进入`commands.cpp::cmd_verify`，不是独立verify命令。当前顺序与返回为：
 
-## run_manifest.json v1(run 结束原子写，落点映射见「落点映射与测试」一节)
+1. 文件/JSON及kind/schema_version失败→3。
+2. status非complete→8。
+3. acsd_version与本二进制字符串不同→5；这是当前校验器限制，不是旧产品科学上必定不可读。
+4. phase3须有phase3_output角色，phase1/2要求非空artifacts，否则→8。
+5. 配置路径给出时重算配置字节hash，不可读/不符→3。
+6. 各artifact存在性→3，整文件SHA-256和大小不符→8。
+7. 通过则输出一个JSON文档`{verify:"ok",checked:N,manifest:...}`并返回0。
 
-```json
-{ "schema_version":"1", "kind":"acsd_run_manifest", "run_id":"<12hex>",
- "acsd_version":"<X.Y.Z-alpha.N+g12hex>", "platform":{"os":"linux|windows","arch":"amd64"},
- "config_path": "<utf-8>", "cpu_profile_path": "<utf-8|null>",
- "config_sha256":"<hex>", "cpu_profile_sha256":"<hex|null>", "phases":[1,2,3],
- "artifacts":[{"role":"phase3_output","path":"<rel>","sha256":"<hex>","size_bytes":N}],
- "status":"complete|incomplete", "started_utc":"...", "finished_utc":"..." }
-```
+当前代码没有重算cpu_profile hash的分支，也未显示执行完整run_manifest schema、逐帧模型或所有科学恒等式验证。checked是上述检查项计数，不是科学测试数量。畸形字段类型、目录型artifact、相对路径解析与缺失嵌套字段还需负例核对，不能把“验证ok”提升为完整科学验收。
 
-- `config_sha256`/`cpu_profile_sha256` 记录**输入文件字节 hash**(verify 重算比对;路径由 `config_path`/`cpu_profile_path` 提供)。
-- 取消/崩溃/not-wired stub → `status:"incomplete"` manifest(**complete manifest 只出自完成的科学运行**——run 命令 stub 亦写 incomplete 并 exit 2);atomic tmp+rename。
+## 4. 配置与画像分离
 
-### provenance 子对象（加性扩展；最高设计的 manifest 必记项）
+科学配置由parser/precheck和所属模块解释；cpu_profile是benchmark产出的机器绑定文件，缺失/失配可按明确基线策略处理。schema兼容分支和独立校验工具存在，不证明CLI已经消费全部字段。禁止把科学配置、画像和运行事实合并成一个模糊config对象。
 
-`run` 命令在 run manifest 顶层追加 `provenance` 对象（additive；v1 校验器/
-`verify` 忽略未知顶层键，向后兼容）。字段全部**由真实节点 manifest 汇总**，
-不写占位串；缺省即空数组而非伪造值：
+## 5. 错误与验证记录
 
-```json
-"provenance": {
- "source_sha": "<40hex>", // CMake **configure 期** HEAD（version_generated.h）——
- // 不是构建指纹；相等不蕴含同一二进制（「provenance 子对象」一节）
- "source_version": "<X.Y.Z-alpha.N+g<12hex>>",
- "build_source_digest": "<64hex>", // **构建期**源集内容摘要 = 构建指纹（RUN-PROVENANCE-01）
- "build_head_sha": "<40hex>", // 构建期 HEAD（人读补充，不得单独当指纹）
- "build_dirty": false, // 构建期工作树是否有未提交改动
- "configure_head_sha": "<40hex>", // configure 期 HEAD（对照 source_sha 的来历）
- "algorithm_ids": ["<ALG-id>"], // 各节点 manifest.algorithm_id 去重
- "module_build_ids": ["<module_id>@<version>"],
- "providers": ["baseline"],
- "units": ["ADU"], // 节点 manifest.bunit 去重
- "coordinate_frames": ["equatorial","icrs"],
- "input_product_hashes": [{"node":"<node_id>","sha256":"<64hex>"}],
- "output_product_hashes":[{"role":"phase3_output","path":"<rel>","sha256":"<hex>"}]
-}
-```
+清单写失败是I/O故障，已写产品完整性失败是另一语义，映射见[日志错误](LOG_AND_ERROR.md)。取消或节点失败尝试写incomplete及原始原因；没有合法输出目录或磁盘故障时如实报告清单未写成。
 
-- Phase3 writer 节点另落 `run_context.json`（`<out_dir>/run_context.json`，原子写：
- `schema_version/kind/run_id/software_version/source_sha` + 构建指纹
- `build_source_digest/build_head_sha/build_dirty/configure_head_sha`，语义见
- 「provenance 子对象」一节；构建指纹缺失时写入 fail-closed，不产出不可锚的上下文）；
- `p3_op_writer` 在缺失或
- `run_id`/`software_version` 为空时 fail-closed，把输入 HiPS `signal/properties` +
- `signal/Moc.fits` 的 sha256 作为 `input_manifest_hash` 注入 FITS HISTORY 与 provenance。
-
-### 加性顶层键 `storage`（运行级形态事实）
-
-`run` 命令在 run manifest 顶层**可选**追加 `storage` 对象（additive，与 「provenance 子对象」一节 的
-`provenance` 同形：v1 校验器/`verify` 忽略未知顶层键，向后兼容）。**条款归属**：该键的
-字段词表与不变式 M1..M4 的**唯一正本** = `HIPS_STORAGE_FORM.md`「运行完成清单 `manifest.json#storage`（加性）」一节
-（本文件只登记键的存在与归属，不复写字段）；**唯一机器事实源** =
-`eng/contracts/schemas/hips_storage_form.schema.json` 的 `$defs.manifest_storage`；CFG-001
-`eng/contracts/schemas/run_manifest.schema.json` 只登记该键位与类型。
-缺失 ⇒ 无形态事实（**不判红**）；出现 ⇒ 必须逐条满足 M1..M4（运行清单 schema 校验项的加性键
-白名单须已登记 `storage`）。**产品级**完成 manifest
-（`products/{user_path}/manifest.json`）
-**不承载**该键——其形态事实只在 `tree`/`tree_hash`/`fitsverify` 三项
-（「落点映射与测试」一节）。
-
-## manifest verify 合同(acsd doctor --json --run-manifest <manifest.json>)
-
-命令面不含 `verify*`；调用返回 rc=2。**判据无载体**：锁定该退出码的负例
-（`test_03`）在仓内不存在（`eng/tests/` 无 CLI 测试面）。manifest verify 的现行载体 = **`doctor` 的机器旗标
-`--run-manifest`**（`lib/infrastructure/cli/commands.cpp` → `cmd_verify`）。
-校验序→错误码: manifest 语法/schema(3)→status=="complete"(否则 8)→acsd_version 与本机一致(5, 版本不同不可 verify)→重算 config/profile hash(3, 输入已变)→逐 artifact 存在性(3)+sha256(8)+size(8)→全部过→0 并输出 JSON `{verify:"ok", checked:N, manifest:<path>}`（stdout 恰一个 JSON 文档；逐码语义见 `LOG_AND_ERROR.md`[2]，机器输出纪律见最高设计的机器输出与退出码[1]）。
-
-## config/profile 分离校验落点
-
-config 与 cpu profile 的分离校验由 `normalize|mosaic|export` 运行前预检
-（`lib/infrastructure/cli/subcommand.h` `precheck_config`）与 `doctor --json` 承接
-（现行校验入口声明：`lib/infrastructure/cli/commands.cpp`）；独立 `show-effective` 命令
-无载体（CLI-001 唯一命令树，调用 rc=2）。
-
-## 落点映射与测试
-
-- manifest 原子写: `lib/infrastructure/cli/commands.cpp` `write_run_manifest`
- （tmp+rename；stub/not-wired/cancelled 恒 `incomplete`）；provenance 子对象 =
- `commands.cpp`（含构建期指纹锚）；artifact 规范化哈希 = `commands.cpp` 两处。
-- config 校验: `lib/infrastructure/cli/parser.cpp` `validate_config_full`
- （V1 顶层形态 → exit 3，与运行前预检同源）。
-- manifest verify: `acsd doctor --json --run-manifest`（「manifest verify 合同」一节，`cmd_verify`）。
-- hash 工具: CRYPTO 公共层 `lib/algorithms/shared/crypto` sha256（CLI 侧封装 `file_sha256`，
- `commands.cpp` 三处在役调用）。
-- golden: schema_version 篡改→2 / 未知键 / 路径不存在 / manifest verify 全组 test_01..test_06 /
- manifest verify 全组 test_01..test_06 / 独立 verify 命令返回 rc=2 test_07），每组断言退出码。**判据无载体**：该 golden 测试文件在仓内
-不存在（`eng/tests/` 无 CLI 测试面），故本组退出码断言不得写成已生效。
-
-## 参考文献
-
-[1] 内部文档 `docs/ACSD_DESIGN.md，最高设计`，上位来源。
-[2] 内部文档 `docs/engineering/contracts/LOG_AND_ERROR.md`，同层相关正本。
-[3] 内部文档 `docs/engineering/build/RELEASE.md`，同层相关正本。
+检查配置篡改、产物缺失、错误大小/摘要、畸形字段、部分写、取消、版本差异与来源未接线。旧文列出的test_01..等名称不作为现有执行证据，完整原文保存在[来源档案](../../../实验/documentation-refactor/docs/CLI_RECORDS_SOURCE.txt)。本轮未运行doctor或科学命令。
