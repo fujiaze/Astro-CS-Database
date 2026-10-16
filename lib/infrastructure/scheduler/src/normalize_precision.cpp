@@ -545,8 +545,29 @@ StagedPrecision stage_frame_precision(
   // NOISE_SNR §11.3 / PHOTOMETRY §4: applied 面源泊松 = α_j²·F_native·P_j/g。
   // 原生 gain 的 provenance 单独保留, 不被有效 gain 覆盖。
   cfg.plane_scale = req.applied_scale;
-  cfg.pixel_scale = req.pixel_scale;
   cfg.gain_provenance = req.gain_provenance;
+  // 空间 alpha 接线（NOISE_SNR §11.3, P5 空间 alpha）: req.pixel_alpha_at 是
+  // 帧级求值器（输入源像元下标; m() 的唯一实现在 calibration::photo_spatial_m,
+  // 由 drizzle 节点按 p1_phot.json 的 spatial_gain 场与 k_photo 组装）。GLS 侧
+  // 的空间 alpha 是**逐窗口**量（PlanarPatchWindow::pixel_alpha, 与 pix_index
+  // 对齐）——每个窗口在此就地求值映射, 不要求调用方预生成整帧 α 数组
+  // （4096² 帧省 134 MB）。旧口径 cfg.pixel_scale 保留给单窗口调用方。
+  if (req.pixel_alpha_at) {
+    for (auto& w : windows) {
+      w.pixel_alpha.resize(w.pix_index.size());
+      for (std::size_t j = 0; j < w.pix_index.size(); ++j) {
+        const std::int64_t idx = w.pix_index[j];
+        // 下标非法 ⇒ 0（非正 ⇒ GLS 具名拒绝 nonfinite_pixel_scale, 不猜）。
+        w.pixel_alpha[j] =
+            (idx >= 0 &&
+             static_cast<std::int64_t>(idx) <
+                 static_cast<std::int64_t>(req.width) *
+                     static_cast<std::int64_t>(req.height))
+                ? req.pixel_alpha_at(idx)
+                : 0.0;
+      }
+    }
+  }
   const auto comp = acsd::normalize::complete_spherical_reference(windows, cfg);
 
   doc_template.precision = comp.precision;
