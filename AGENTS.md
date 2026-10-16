@@ -12,7 +12,7 @@ Normalize 先读[科学链](docs/science/normalize/NORMALIZE_SCIENCE.md)、[生�
 
 ## 当前工作与 Git
 
-直接在 `main` 整理和重写文档，按主题提交。科学与数学疑点集中写入[待推导问题](实验/documentation-refactor/docs/SCIENTIFIC_QUESTIONS.md)，记录原文、分歧、影响与所需证据，本轮不据疑点切换模型或算法。任务范围以用户当前指令为准，实验内的任务包不自动恢复执行效力。
+直接在 `main` 整理和重写文档，按主题提交，每次提交后立即推送到远端 `main`；远端有新提交时先保留并整合，推送失败如实记录并重试，不强推。科学与数学疑点集中写入[待推导问题](实验/documentation-refactor/docs/SCIENTIFIC_QUESTIONS.md)，记录原文、分歧、影响与所需证据，本轮不据疑点切换模型或算法。任务范围以用户当前指令为准，实验内的任务包不自动恢复执行效力。
 
 保留他人的修改和未跟踪文件，并发修改同一文件先协调。不 force-push，不创建未经请求的 PR。发布由项目负责人决定；文档完成不代表科学产品已验收。
 

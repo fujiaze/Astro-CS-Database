@@ -90,3 +90,13 @@ git diff --check
 Runtime 续查确认：run_pipeline 使用 RuntimeResourceBudget 工厂，在调用方栈上创建 RunContext，协作取消监视线程在同步 run 后 join；IModule 的公开成员不含 create/destroy，模块寿命来自工厂与 RAII。ThreadBudget 的三种获取政策和 ThreadLease 的真实预留/兼容大小租约分别说明。
 
 截至本次整理，20 个原始文件已重写、28 个来源页已归并、4 个附录已分离。完整来源身份和逐文件范围以清单为准。没有修改 C/C++ 实现或运行科学程序。
+
+## 日志与资源主题续整理
+
+用户补充要求每次提交立即推送，已写入 AGENTS。第一次直连推送连接重置，第二次连接超时；随后发现本机可用 SOCKS 代理，成功 fetch。远端已推进到 `5b33e0417`，先合并其 Normalize Round 3 代码与实验记录，再将文档提交和合并结果以 `015a18b26` 推送 main。没有强推或重写远端历史。
+
+此次新增全文重写6个原始文件：日志错误合同、错误模型、日志系统、可观测性、性能模型、资源监控。结构化日志修订来源权威与运行层接线说明；开发模式、探针标准、运行图全文已读，保留其专题内容。日志/资源旧正文完整保存于 OBSERVABILITY_SOURCE.txt 与 RESOURCE_RECORDS_SOURCE.txt，历史数字和相互冲突的评价规则没有丢失，也未变成新的运行结论。
+
+静态核对覆盖核心 Error/Result/Cancel/ExitCode、CLI 实际域映射与失败 manifest 分类、probe.h/dev_diagnostics.h、CMake 开关、快照锁位置、monitor.py 的字段和指纹函数以及 trace_feed.py 完整 observer。新增 Q24 资源测量问题和 E16–E19 接线/身份/重复类型记录；本轮不改资源阈值或采样实现。原有 E01–E15 是合并前事实，按新代码逐项重核，不能用旧结论覆盖远端修复。
+
+累计26个原始文件已全文重写，28份归并、4份附录分离，24个待推导/核验问题与19项工程记录。结构检查仍覆盖167个 docs、25份归并模块正文及15份仅导航字符串变化的 JSON。源码是合并远端而更新，文档整理自身没有修改 C/C++。尚未执行科学运行或宣称全部191篇完成。

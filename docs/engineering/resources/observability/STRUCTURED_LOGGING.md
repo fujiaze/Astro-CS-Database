@@ -6,10 +6,7 @@
 
 ## 目的与边界
 
-机器可读事实源：`lib/infrastructure/observability/logging/log_event_v1.schema.json`（字段定义、
-枚举与验收的唯一权威）、`lib/infrastructure/observability/logging/log_event.py`（参考实现）、
-日志行校验项（schema / seq 单调性 / error 载荷 / 级别与事件枚举 / 脱敏样例 / 单行大小）。本文件是该合同的说明视图；
-JSON/JSONL 输出为真相，两者不一致时以 schema 与检查器为准。
+本文件定义字段语义、枚举、顺序与脱敏要求；`lib/infrastructure/observability/logging/log_event_v1.schema.json` 编码机器形状，`log_event.py` 提供参考生成器。语义、schema、生成器和消费者必须同步；发现分歧时登记并订正对应责任面，实际 JSON 输出不能反向覆盖合同。
 
 ACSD 需要一个跨 run/任务/节点/模块/线程的统一结构化日志接口：
 
@@ -130,12 +127,11 @@ ACSD 需要一个跨 run/任务/节点/模块/线程的统一结构化日志接�
 
 ## 落盘与错误收敛
 
-本合同的 JSONL 行写到哪、什么时候写、写失败怎么办，正本 = `../../../ACSD_DESIGN.md` 「错误传播与日志」一节、
-`../../../detail/LOG_AND_ERROR_SYSTEM.md` 与 `../../contracts/LOG_AND_ERROR.md`：
+日志的工件和失败语义由[日志错误合同](../../contracts/LOG_AND_ERROR.md)定义，生命周期及实际接线由[日志系统](../../../detail/infrastructure/log_and_error_system.md)说明：
 
 - 运行日志落 `<output_dir>/logs/run_<run_id>.jsonl`（机器）与 `run_<run_id>.log`（人可读摘要，与 JSONL 同源）；
-- 成功/失败/取消三路都产出，收尾 fsync + 算哈希 + 原子发布，并在 run manifest 的 `log_artifacts[]` 登记；
-- 日志写入失败即运行失败（非 0 退出码），不静默；判据 = `CHK-LOG-SYS`。
+- 成功/失败/取消均保留实际取得的日志，完成必要的 fsync、哈希及清单登记；配置尚未解析或日志磁盘不可写时，报告日志缺失，不能承诺文件必定存在；
+- `log_artifacts[]` 是合同目标，不能据参考生成器存在认定生产 CLI 已接线；正式日志写入失败使运行非零退出并报告原因。
 
 落点合同消费本合同的行格式：字段语义、枚举与 schema 的正本仍在 「必需字段」一节 与本文件的机器事实源。
 
@@ -148,8 +144,7 @@ ACSD 需要一个跨 run/任务/节点/模块/线程的统一结构化日志接�
 
 `lib/include/acsd/core/logging.h`（`Logger`/`MetricsAggregator`）是本合同事件语义的外部化对象：
 既有字段 `ts/component/event/message/seq/node_id/run_id/progress/wall_us` 的等价语义映射到
-合同字段表 「必需字段」一节（`component→module/phase` 归属、`message→diagnostic` 等）。Runtime 集成以
-本合同为单一事实源做适配，映射与双写细节正本 = `../../../detail/LOG_AND_ERROR_SYSTEM.md`。
+合同字段表 「必需字段」一节（`component→module/phase` 归属、`message→diagnostic` 等）。这些映射是适配要求，是否形成完整生产双写链应按[日志系统](../../../detail/infrastructure/log_and_error_system.md)核对实际调用。
 
 ## 验收
 

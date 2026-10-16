@@ -1,0 +1,1088 @@
+Reviewed sources before observability rewrite
+commit=015a18b263f7da5573bc3df2676a542dcf87ebd0
+
+===== docs/engineering/contracts/LOG_AND_ERROR.md | blob=029dca45d9689298441f265de5dfab286447fd93 | bytes=10944 =====
+# 日志与错误合同
+
+上游：最高设计的机器输出与退出码、错误传播与日志两章。
+
+本文冻结四件事：运行日志行格式的机器可校验性、运行日志工件在运行清单中的登记字段、错误对象与
+退出码映射、显式降级的登记要件与落点。科学判定、产品 schema、运行事件流、运行图、资源监控
+时序工件与探针格式各有一份正本，本文不复制它们的字段。
+
+---
+
+## 1 合同范围
+
+本合同冻结四件事：
+
+1. 运行日志**行格式**的机器可校验性（指向既有正本，不复制字段表）；
+2. 运行日志**工件**在 run manifest 中的登记字段；
+3. **错误对象**与退出码映射；
+4. **显式降级**的登记要件与词表与**落点**。
+
+**不冻结**：科学判定、产品 schema、运行事件流（`protocol.h` / `jsonl.h`）、运行图、
+资源监控 CSV、探针格式。上述各项各有一份正本，本合同不复制其字段。
+
+错误的三层语义、硬错误类别表、码值语义与 error-sensitive 模块的必备要件属于
+`../standards/ERROR_MODEL.md`；本合同只做域到退出码的映射，不复写码值语义。
+
+---
+
+## 2 日志行格式：机器校验格式
+
+**运行日志的机器通道是机器校验格式**，正本为结构化日志合同与其 schema：
+
+| 项 | 正本 |
+|---|---|
+| 字段表、语义 | `../resources/observability/STRUCTURED_LOGGING.md` 的事件模型（JSONL 行结构、必需字段、error 载荷三节） |
+| JSON Schema（draft-07） | `lib/infrastructure/observability/logging/log_event_v1.schema.json` |
+| 参考实现与校验器 | `lib/infrastructure/observability/logging/log_event.py`；校验面 = 日志行 schema / 字段 / 枚举 / 单行大小（正本同上 schema，校验项） |
+| 诊断工具 | `eng/tools/acsd_diagnose.py <run_dir>`，由一次运行的日志工件汇总输出小 bundle |
+
+- 每行 = 一个 JSON 对象 + `\n`；单行（含换行）≤ **4096 字节**；
+- 事件键名 `event`、顺序键 `seq`；与运行事件流的 `kind` / `sequence` **各自独立**；
+- `level=error` 必须携带 `error{source,symbol,status}`；
+- `commit` 为真实运行现场的 40 位小写 SHA（取值只来自运行现场，config 值不参与）；
+- 落点文件名固定 `run_<run_id>.jsonl`（见本合同的落点合同一节）。
+
+**为什么定成机器校验格式**：运行日志要能被机器判定（判据 R1–R3 的输入）、被审计回放、
+被哈希登记进 manifest；自由文本无法承担这三件事。
+
+---
+
+## 3 人可读摘要：自由文本
+
+摘要通道（`run_<run_id>.log`）是**自由文本**，理由：
+
+- 它的消费者是人（操作员 / 验收者），不参与任何机器判定；
+- 它的内容必须与 JSONL **同源生成**（同一事件的两路渲染，摘要模板见结构化日志合同的中文摘要一节），
+  因此自由文本不引入第二套语义；
+- 机器判定一律走 JSONL；摘要行的用途限于人读。
+
+摘要行仍受两条约束：脱敏（见本合同的脱敏与大小上限一节）与单行 ≤ 4096 字节。
+
+---
+
+## 4 `run_log` 与 manifest 登记字段
+
+run manifest 增列 `log_artifacts[]`（**每次运行必填，可为空数组仅当运行在解析配置前终止**）：
+
+| 字段 | 类型 | 必填 | 语义 | 约束 |
+|---|---|---|---|---|
+| `log_dir` | string | 是 | 相对 `output_dir` 的日志目录 | 固定 `logs`；非该值即合同违例 |
+| `files[].kind` | string | 是 | 工件种类 | `jsonl` \| `summary` |
+| `files[].name` | string | 是 | 相对 `log_dir` 的文件名 | `run_<run_id>.jsonl` / `run_<run_id>.log`；不含路径分隔符 |
+| `files[].sha256` | string | 是 | 文件内容 SHA-256 | 64 位小写 hex；与磁盘实算一致 |
+| `files[].bytes` | int | 是 | 文件字节数 | ≥ 0；与磁盘实际一致 |
+| `files[].lines` | int | 是 | 行数 | ≥ 0；与磁盘实际一致 |
+| `files[].level_counts` | object | 是 | 级别分布 | 四键 `debug/info/warn/error` 齐全，和 == `lines` |
+| `files[].truncated` | bool | 是 | 是否因上限截断 | true 时日志内首行记截断原因与上限 |
+
+- 两个工件**必须都存在**（成功、失败、取消三路皆然）；缺任一 ⇒ exit 8（`INTEGRITY`）；
+- manifest 自身**不写进日志**（避免自引用）；
+- 溯源链：`run manifest → log_artifacts[] → sha256 → 行内容`，任一环断裂 ⇒ exit 8。
+
+**载体缺口登记**：本节要求的 `log_artifacts[]` 顶层键目前**没有任何生产写出点**，
+全仓对 `log_artifacts` 的字面引用为零（生产写出点是 `commands.cpp` 的 `write_run_manifest`，
+其顶层键集见运行清单与校验合同）。因此本节的字段表是**已冻结但未接线**的合同，
+不得据此认为线上运行会产出该键。
+
+---
+
+## 5 错误对象与退出码映射
+
+`error_report` 是 CLI 收敛面的唯一错误对象：
+
+| 字段 | 类型 | 语义 |
+|---|---|---|
+| `domain` | string | `ErrorDomain` 名（`lib/include/acsd/core/contracts.h`） |
+| `exit_code` | int | 下表映射结果（`lib/infrastructure/cli/exit_codes.h` 的 `acsd::ExitCode`） |
+| `status` | string | 稳定错误码（`^[A-Z][A-Z0-9_]{0,63}$`） |
+| `source` | string | 出错位置（模块 id 或仓库内相对路径） |
+| `symbol` | string | 出错符号 |
+| `message` | string | 脱敏后的中文诊断 |
+| `run` / `node` / `phase` | string | 归属（与日志行同源字段） |
+| `degraded` | bool | 本次运行是否发生过显式降级 |
+
+**退出码映射（唯一；码值语义以 `exit_codes.h` 为准，全文码值表见
+`../standards/ERROR_MODEL.md` 的进程退出码一节）**：
+
+| `ErrorDomain` | 退出码 | 依据 |
+|---|---|---|
+| `CONFIG` | 2（ARGS） | 参数 / 配置错误 |
+| `DATA` | 2（ARGS） | 数据合同违例；失败节点 manifest 的 `error_kind==input` 时改判 3（INPUT） |
+| `SCIENCE_PRECONDITION` | 4（SCIENCE） | 科学验证 / 不变量失败 |
+| `BACKEND` | 5（BACKEND） | ABI / 签名 / CPU 特征 / 加载失败 |
+| `IO` | 7（IO） | I/O 失败；失败节点 manifest 的 `error_kind==disk_full` 时改判 10 |
+| `RESOURCE` | 10（RESOURCE） | 磁盘写满 / 写盘失败 |
+| `CANCELLED` | 9（CANCELLED） | 用户取消或超时 |
+| `INTERNAL` | 70（INTERNAL） | 未分类内部错误；必须生成脱敏 crash report |
+
+- **数值表只有一份**：本合同只做「域 → 码」映射，不复写码值含义；
+- 未列出的域一律 70，并在 `status` 里给出可定位的稳定错误码；
+- 现行实现与本表的域映射偏差逐条登记在错误模型的稳定错误码族登记一节（登记不改码；
+  未登记的偏差按判红处理）。
+
+---
+
+## 6 显式降级登记要件
+
+「降级」= 上游产物 / 能力缺失时改走替代路径并**继续运行**。降级合法当且仅当三要件齐备：
+
+| # | 要件 | 判据 |
+|---|---|---|
+| D1 | **显式**：代码路径写出机器可读的 `degraded_reason` 字符串 | 函数体内出现 `degraded_reason` 赋值或写入 |
+| D2 | **可溯**：manifest / provenance 记录降级事实与理由键 | manifest 含 `degraded_reason`（或 `degraded` 布尔 + 理由） |
+| D3 | **不改科学语义**：降级不改变科学结果的定义（只改变执行路径或元数据完整度） | 科学语义改变 ⇒ 不是降级，必须 fail-closed 上行 |
+
+`degraded_reason` 词表（小写下划线，稳定不变）：`photscale_incomplete`、`photscale_absent`、
+`upstream_artifact_absent`、`optional_keyword_unparsed`、`cache_miss_recompute`。
+新增词先在本合同登记再使用。`photscale_incomplete` 为**读侧保留词**（读侧仍可解释既有产物），
+生产写侧不产生它：测光拟合失败属**显式失败**，按错误模型的三层语义第 3 层口径逐帧记
+`status=fail` + `error_domain` / `error_status` / `error`，不写 `degraded_reason`
+（失败 ≠ 降级，判据见本节 D1–D3 与 `../../detail/LOG_AND_ERROR_SYSTEM.md` ）。
+
+**三种情形一律具名上行**：回退到低优先输入、保持缺省值、跳过校验都属故障，必须上行到 CLI。
+
+---
+
+## 7 落点合同
+
+| 项 | 值 |
+|---|---|
+| 日志目录 | `log_dir`，默认 `<output_dir>/logs` |
+| 机器日志 | `<log_dir>/run_<run_id>.jsonl` |
+| 人可读摘要 | `<log_dir>/run_<run_id>.log` |
+| 目录创建 | 幂等；由运行层在 `run_start` 前创建 |
+
+运行日志的落点全部由 `output_dir` 派生。写出位置取自显式配置；
+进程 CWD 只标识进程自身位置，不作为落点依据。
+
+判据 R3 强制本约束（落点合同本身即判据），
+落点之外的位置一律判红，包括：进程 CWD 相对路径、源码树目录（如 `lib/**/logs/`）、
+仓库过程产物目录（`run/`，承载开发与实验过程日志）、安装目录、用户家目录。
+
+---
+
+## 8 脱敏与大小上限
+
+沿用结构化日志合同的敏感路径脱敏与大小上限两节，不另立规则：绝对用户路径 / 家目录 / URL 凭据 / 密钥键值一律 `<redacted>`；
+结构化字段只接受安全字符；单行 ≤ 4096 字节，超限按 UTF-8 边界截断。
+
+---
+
+## 9 判据与负例
+
+| 判据 | 审核面 | 正例（绿） | 负例（红） |
+|---|---|---|---|
+| R1 错误不吞 | 生产收敛面 | 无未登记吞错点 | 注入 `catch (...) {}` ⇒ FAIL |
+| R2 降级显式 | 同上 | 条件回退点已登记且写 `degraded_reason` | 注入静默回退函数 ⇒ FAIL |
+| R3 日志落点 | 同上 | 落点均派生自 `output_dir` 或已登记 | 落点字面量指向 `output_dir` 之外 ⇒ FAIL |
+| R4 登记完整 | 同上 | 锚存活、已登记偏差条目只减不增、审核面非空 | 删条目 / 新增未登记偏差 / 清空审核面 ⇒ FAIL |
+| R5 合同锚 | 同上 | 落点默认值与本合同、最高设计一致 | 改落点默认值 ⇒ FAIL |
+
+判据的审核面 = `lib/infrastructure/observability/` 的生产收敛面，与错误模型标准的
+阶段 ID、error-sensitive 模块的必备要件两张表；逐条由人工对抗审核执行，
+证据 = 复核命令 + 实测输出或结构化读数，不产出流水线判决。
+每条判据必须能红：注入对应缺陷后复核不给出红，即判该判据失效。
+
+R3 的落点扫描按字面量执行：源码中出现写死的落点路径字面量（不限于本节列举的落点之外位置）
+即判红，注入样例取仓库过程产物目录下的日志路径。该判据只允许一处声明，即本节。
+
+## 参考文献
+
+[1] 内部文档 `../../ACSD_DESIGN.md`，最高设计的机器输出与错误传播两章。
+
+[2] 内部文档 `CLI_PROTOCOL.md`，命令行协议合同。
+
+[3] 内部文档 `MANIFEST_VERIFY.md`，运行清单与校验合同。
+
+[4] 内部文档 `../resources/observability/STRUCTURED_LOGGING.md`，结构化日志合同。
+
+[5] 内部文档 `../standards/ERROR_MODEL.md`，错误模型标准。
+
+===== END SOURCE =====
+
+===== docs/engineering/standards/ERROR_MODEL.md | blob=e12bf77bc0c46bfd0d7d9c37f60decdb24b54591 | bytes=8553 =====
+# 错误模型标准
+
+上游：最高设计的错误传播与日志一章、命令行合同一章的机器输出与退出码[1]。
+
+本文规定错误的三层语义、违规判据、硬错误类别表、进程退出码与 error-sensitive 模块的必备要件。
+域到退出码的映射面不在本文，映射的唯一正本是 `../contracts/LOG_AND_ERROR.md`[2]；本文定义码值语义本身。
+
+## 1 三层语义
+
+1. **success**：`rc=0`，状态为 `OK`；
+2. **recoverable science status**：`rc=0`，`status` 字段取 `UNDERDETERMINED`、
+   `NO_CANDIDATES`、`ALL_REJECTED`、`ZERO_VALID_WEIGHT`、`INPUT_TRUNCATED` 之一，
+   产品仍有效或走显式 fallback；
+3. **hard error**：`rc≠0`，`status` 字段取第 3 节硬错误类别之一。
+
+三层之外没有第四种结果：任何未分类的失败按 `INTERNAL`（码 70）上行，并生成脱敏 crash report。
+
+**两层的互斥判据**：第 2 层与第 3 层共用 `status` 字段与同一个机器可校验词形
+`^[A-Z][A-Z0-9_]{0,63}$`，二者由**返回码**区分而非由词形区分。消费面的读法固定为
+先读 `rc`，`rc=0` 时 `status` 必属第 2 层词表、`rc≠0` 时 `status` 必属第 3 层词表；
+只读 `status` 不带 `rc` 的消费面不得对两层做判定，视为调用方缺陷。
+
+因此第 2 层的 `INPUT_TRUNCATED`（输入在可辨识域内被截断，走显式 fallback、产品仍有效）
+与第 3 层的 `INPUT_CORRUPT`（输入缺失、格式错误或 hash 不符，产品不可消费）是两个不同语义的
+稳定码，不得互相顶替：把不可消费的输入按可恢复状态上行，等于让损坏输入继续参与计算。
+
+## 2 违规判据
+
+下列形态一律判为未传播，判红：
+
+| # | 违规形态 | 判红理由 |
+|---|---|---|
+| V1 | `rc=0` + invalid status 双语义 | 一个返回值承载两套语义，调用方无法判定成功与否 |
+| V2 | 以 warning 或 log 替代 error status | 失败不进入收敛面，退出码与实际结果不一致 |
+| V3 | 默认 swallow 错误（`catch(...)` 空吞） | 错误在模块边界消失，溯源链断裂 |
+| V4 | 静默截断或置零（损坏输入） | 损坏输入被当作有效数据继续参与计算 |
+
+## 3 硬错误类别
+
+十类硬错误覆盖模块可能上报的全部不可恢复情形：
+
+| 类别 | 语义 |
+|---|---|
+| `CONFIG` | 参数或配置错误 |
+| `INPUT_CORRUPT` | 输入缺失、格式错误或 hash 不符 |
+| `DEPENDENCY` | 依赖模块或产物不可用 |
+| `NUMERIC` | 数值不变量失败 |
+| `NO_DATA` | 无可用数据，产品无内容可发 |
+| `RESOURCE` | 磁盘写满或写盘失败 |
+| `TIMEOUT` | 超时 |
+| `IO` | I/O 失败 |
+| `SCIENCE` | 科学验证失败或不变量被破坏 |
+| `INTERNAL` | 未分类内部错误 |
+
+## 4 错误域
+
+机器面错误域 = `lib/include/acsd/core/contracts.h` 的 `ErrorDomain` 枚举：
+`CONFIG` / `DATA` / `SCIENCE_PRECONDITION` / `IO` / `RESOURCE` / `BACKEND` /
+`CANCELLED` / `INTERNAL`。
+
+错误域是分类维度，退出码是对外收敛维度，二者的映射表唯一声明处 =
+`../contracts/LOG_AND_ERROR.md` 的错误对象与退出码映射一节。
+
+模块以 `Result` 报错，`exit` / `abort` 归进程宿主；异常在模块内部转为 `Result`，
+不穿过 C ABI。`Result<T>` 携带 nested cause、serialization、cancel 与错误码映射。
+
+## 5 阶段 ID
+
+每个阶段有一个阶段 ID 前缀，逐节点一枚；节点名与 `docs/detail/registry/` 的注册表节点一致。
+日志与诊断面统一使用本表的阶段 ID：
+
+| 阶段 | 阶段 ID |
+| --- | --- |
+| normalize | `P1.READ` / `P1.CALIBRATE` / `P1.STAR` / `P1.PSF` / `P1.PLATESOLVE` / `P1.PHOTOMETRIC` / `P1.NOISE` / `P1.DRIZZLE` / `P1.HIPS_WRITE` |
+| mosaic | `P2.COVERAGE` / `P2.SAMPLER` / `P2.UPM` / `P2.REJECTION` / `P2.INTEGRATE` / `P2.HIPS_WRITE` |
+| export | `P3.PROPERTIES` / `P3.WCS` / `P3.RESAMPLE` / `P3.WRITE` / `P3.VERIFY` |
+
+## 6 稳定错误语义
+
+- C API：`0` = success；非 `0` = hard error，类别由调用上下文与 troubleshooting 条目定位；
+- 可恢复科学状态经 `status` 字段表达，取值集合与第 1 节第 2 层一致；
+- 每个 high-risk error 对应一条 troubleshooting 条目
+  （`../../detail/merged_TROUBLESHOOTING.md`）。
+
+`status` 字段的机器可校验形态为 `^[A-Z][A-Z0-9_]{0,63}$`；错误对象的完整字段表见
+`../contracts/LOG_AND_ERROR.md` 的错误对象与退出码映射一节。
+
+## 7 进程退出码
+
+**退出码唯一源 = `lib/infrastructure/cli/exit_codes.h` 的 `acsd::ExitCode` 枚举**。
+凡需要退出码数值处一律引用该头文件；本节的表与最高设计的机器输出与退出码一节同源[1]，
+是全仓唯一一份码值语义表。码值在命令行协议上的对外可观测形态见
+`../contracts/CLI_PROTOCOL.md`[3]；清单与校验面触发 hard error 的判定见
+`../contracts/MANIFEST_VERIFY.md`[4]；错误事件与结构化日志字段的落盘形态见
+`../resources/observability/STRUCTURED_LOGGING.md`[5]。
+
+| 码 | 枚举名 | 语义 |
+|---|---|---|
+| 0 | `OK` | 运行正常结束：无硬错误、无取消；可恢复科学状态由 `status` 字段表达 |
+| 2 | `ARGS` | CLI 参数或配置错误 |
+| 3 | `INPUT` | 输入缺失、格式或 hash 错误 |
+| 4 | `SCIENCE` | 科学验证 / 数值不变量失败 |
+| 5 | `BACKEND` | backend ABI / 签名 / CPU 特征 / 加载失败 |
+| 6 | `COMPUTE` | 计算执行失败 |
+| 7 | `IO` | I/O 失败 |
+| 8 | `INTEGRITY` | 输出完整性 / 验证失败 |
+| 9 | `CANCELLED` | 用户取消或超时 |
+| 10 | `RESOURCE` | 磁盘写满 / 写盘失败 |
+| 70 | `INTERNAL` | 未分类内部错误（必须生成脱敏 crash report） |
+
+- 码 10 的适用面是磁盘；内存、CPU 与线程不设资源超限门，内存面由调度器按预算内化处理；
+- CLI 面的同一张表不再重复声明，接口面引用本节。
+- **本表的适用边界**：本表只解释 `acsd::ExitCode` 枚举成员在三个生产命令
+  （`cmd_session{1,2,3}_run`）上的语义。未 include 本头文件、以裸整数 `return` 收敛的
+  诊断/工具二进制，其返回值不属于本表；这类二进制的返回值语义在各自的接口正本中就地登记，
+  且**不得**按本表反查。两者共用同一码值空间时，以 `acsd::ExitCode` 成员的语义为准，
+  非枚举来源的裸整数不获得本表的语义。
+
+### 7.1 模块特定码
+
+模块特定的非进程退出码走 JSONL 事件流的 `error.numeric_code` 面，与进程退出码分立，
+保留区间 20–29，已定义 20–28：
+
+```text
+STAR_DETECT_FAILED=20    PSF_FAILED=21              PHOTOMETRIC_FAILED=22
+SNR_FAILED=23            STACK_FAILED=24             HISS_INVALID=25
+HCSD_INVALID=26          MODULE_ABI_UNSUPPORTED=27   INPUT_INVALID=28
+MODULE_SPECIFIC_BASE=100
+```
+
+### 7.2 机器判据
+
+本节 11 码与 `lib/infrastructure/cli/exit_codes.h` 的 `acsd::ExitCode` 枚举逐名逐值一致。
+该一致性目前**无自动执行器**：仓内的文档一致性检查脚本集不含本项，核对由人读两侧表逐码对照完成。
+第 7.1 节的模块特定码属 JSONL `error.numeric_code` 面，不参与该核对。
+
+## 8 error-sensitive 模块的必备要件
+
+每个 error-sensitive 模块必须同时具备：
+
+| # | 要件 | 判据 |
+|---|---|---|
+| M1 | diagnostics stage ID | 每一失败节点都能给出第 5 节表中的阶段 ID |
+| M2 | stable error category / code | `status` 为稳定码，`error.category` 取第 3 节类别之一 |
+| M3 | troubleshooting 条目 | 条目存在且可由错误码直达（`../../detail/merged_TROUBLESHOOTING.md`） |
+
+三项缺任一 ⇒ 该模块不进入生产构建。
+
+## 9 稳定错误码族登记
+
+稳定错误码族 `ERR-*` 的登记面 = `../governance/TRACEABILITY.md` 的 `error_codes` 列。
+
+以 `ERR-P2-UPM-001`（UPM 模型文件畸形）为例：`frames` 非数组、`frames` 内重复、
+帧数与 C 行数不等，都在模型打开时判错，并沿 `p2_upm_open` 上行
+（实现 `lib/algorithms/coverage/src/upm.cpp` 的 frames 校验）。
+
+## 参考文献
+
+[1] 内部文档 `../../ACSD_DESIGN.md`，最高设计的机器输出与错误传播两章。
+
+[2] 内部文档 `../contracts/LOG_AND_ERROR.md`，错误域到退出码的映射正本与落点合同。
+
+[3] 内部文档 `../contracts/CLI_PROTOCOL.md`，命令行协议合同。
+
+[4] 内部文档 `../contracts/MANIFEST_VERIFY.md`，运行清单与校验合同。
+
+[5] 内部文档 `../resources/observability/STRUCTURED_LOGGING.md`，结构化日志合同。
+
+===== END SOURCE =====
+
+===== docs/detail/infrastructure/log_and_error_system.md | blob=2899fba5d271ad410526d95e3152fc04cadc7ab1 | bytes=15877 =====
+# 日志与错误系统落地设计
+
+> 上游：《ACSD 最高设计》的「命令行合同」一章（错误传播与运行日志：顶层约束）与「I/O 与原子产品」一章
+
+> 机器事实源：`lib/infrastructure/observability/logging/log_event_v1.schema.json`（日志行，LOG-001 正本）。
+> 日志系统判据 R1–R5 的判定以本文件正文与 `docs/engineering/contracts/LOG_AND_ERROR.md` 为准。
+
+本文件回答"日志系统具体怎么设计"：有哪些对象、落在哪、怎么走完一生、与 manifest/provenance 和
+observability 各面是什么关系。字段级格式合同在 `docs/engineering/contracts/LOG_AND_ERROR.md`。
+
+---
+
+## 1. 范围与两条硬要求
+
+日志与错误系统服务两条顶层要求（《ACSD 最高设计》的「命令行合同」一章）：
+
+1. **任何模块运行出问题都必须抛错到 CLI**：模块不吞错、不静默降级；故障以稳定错误码上行，
+   在 CLI 收敛为 `lib/infrastructure/cli/exit_codes.h` 的退出码；
+2. **详细运行日志落输出目录**：每次运行在块级 `output_dir` 下产出完整运行日志，默认目录
+   `<output_dir>/logs`，不落进程 CWD、不落源码目录、不落 `run/`。
+
+**不是**本系统的职责：科学判定（`docs/science/`）、产品 I/O 实现（`aio`）、资源门数值
+（`eng/contracts/resource_gate_v1.json`）、GUI 消费协议（运行事件流）。
+
+---
+
+## 2. 层次架构
+
+日志与错误是**一条链**：事件从产生点上行汇聚，错误从产生点上行收敛，两者共用同一份归属字段。
+
+```mermaid
+flowchart TD
+    subgraph L0["L0 事件产生（模块/节点）"]
+        E1["科学模块 C ABI 返回码"]
+        E2["节点编排错误（scheduler）"]
+        E3["I/O 错误（aio）"]
+    end
+    subgraph L1["L1 汇聚（observability/logging）"]
+        A1["seq 分配 + 级别过滤"]
+        A2["脱敏 + 单行上限"]
+        A3["双通道同源：中文摘要 + 机器 JSONL"]
+    end
+    subgraph L2["L2 落盘（经 aio）"]
+        W1["目录解析：log_dir = &lt;output_dir&gt;/logs"]
+        W2["追加写 + fsync + sha256 + 原子发布"]
+    end
+    subgraph L3["L3 收敛（cli）"]
+        C1["退出码映射（exit_codes.h 唯一源）"]
+        C2["stdout 机器 JSON / stderr 摘要 / crash report"]
+    end
+    E1 & E2 & E3 --> A1 --> A2 --> A3
+    A3 --> W1 --> W2
+    E1 & E2 & E3 --> C1 --> C2
+    W2 --> C2
+```
+
+| 层 | 名称 | 唯一责任 | 落点 | 行为边界 |
+|---|---|---|---|---|
+| L0 | 事件产生 | 产生事件 + 返回稳定错误码 | 各模块/节点 | 直接开文件写日志；吞错；自行决定退出码 |
+| L1 | 汇聚 | seq 分配、级别过滤、脱敏、双通道同源、单行上限 | `lib/infrastructure/observability/logging/` | 另立第二套行格式 |
+| L2 | 落盘 | 解析日志目录、追加写、fsync、哈希、原子发布 | `observability` 经 `aio` 唯一 I/O 边界 | 绕过 aio；写非 `output_dir` 位置 |
+| L3 | 收敛 | 退出码、stdout 机器文档、stderr 摘要、crash report | `lib/infrastructure/cli/` | 把错误降级为"警告后继续" |
+
+**层次不可跨越**：L0 不写文件（L2 独占写入），L2 不判定退出码（L3 独占收敛），
+L3 不改写事件内容（L1 独占格式）。
+
+---
+
+## 3. 数据对象
+
+| 对象 | 定义 | 归属 | 权威 |
+|---|---|---|---|
+| `log_event` | 单行结构化日志事件（必含字段名：`run` / `task` / `node` / `module` / `phase` / `commit` / `host` / `level` / `event` / `units` / `elapsed` / `diagnostic`；可选字段名：`error` / `progress` / `value`） | L1 产出 | 既有 schema `acsd.log.event.v1`（LOG-001 正本，本设计**不新建第二套**） |
+| `run_log` | 一次运行的日志工件集合：`{log_dir, files[]}`；`files[]` 条目 = `{kind: jsonl\|summary, name, sha256, bytes, lines, level_counts{debug,info,warn,error}, truncated}` | L2 产出 | `docs/engineering/contracts/LOG_AND_ERROR.md`「`run_log` 与 manifest 登记字段」一节 |
+| `error_report` | CLI 收敛面错误对象：`{domain, exit_code, status, source, symbol, message, run, node, phase, degraded}` | L3 产出 | `docs/engineering/contracts/LOG_AND_ERROR.md`「错误对象与退出码映射」一节 |
+| `degradation_record` | 显式降级记录：`{site_id, module, symbol, reason, scientific_effect, manifest_key}` | L0 产出、manifest 承载 | `docs/engineering/contracts/LOG_AND_ERROR.md`「显式降级登记要件」一节 |
+
+- `run_log` 与 `error_report` **各自具名**：`run_log` 是运行过程的完整记录（含成功路径），
+  `error_report` 是失败结论（一次运行至多一条终止性结论）；
+- `degradation_record` 只在"降级已发生且不改变科学语义"时出现；改变科学语义的降级不是降级，
+  是**故障**，必须 fail-closed 上行。
+
+---
+
+## 4. 落点与 `output_dir` 的关系
+
+`output_dir` 是块级必填配置键（`docs/engineering/contracts/CLI_PROTOCOL.md`「配置与 `output_dir`」一节；`docs/engineering/contracts/CONFIG.md`）。
+日志落点由它派生，不另立全局目录：
+
+| 项 | 取值 | 说明 |
+|---|---|---|
+| 日志目录 | `log_dir`，默认 `<output_dir>/logs` | 显式配置优先；**必须**是绝对路径或由 `output_dir` 派生的路径 |
+| 机器日志文件 | `<log_dir>/run_<run_id>.jsonl` | 每行 = 一个 `log_event`（UTF-8，LF，单行 ≤ 4096 字节） |
+| 人可读摘要 | `<log_dir>/run_<run_id>.log` | 与 JSONL 同源生成的摘要行 |
+| 多数据块 | 每块自己的 `<block output_dir>/logs` | 块 = 一次运行 = 一份独立 run manifest 与独立日志 |
+| 失败/取消路径 | 同样落 `<log_dir>` | 失败与取消的日志是**最有价值**的证据，一律保留 |
+
+**落点范围**：`<log_dir>` 及其子目录；判据红 = 进程 CWD 相对路径、源码树内目录（如 `lib/**/logs/`）、
+`run/` 下的运行日志、安装目录、用户家目录。
+
+`run/` 的定位不变：**只放临时产物与日志**（《ACSD 最高设计》的「I/O 与原子产品」一章）——但那是**开发过程日志**
+（仓库 `run/` 目录下按任务名分的 `logs/` 子目录），不是**程序运行日志**；两者各占一个目录。
+
+---
+
+## 5. 生命周期
+
+一次运行的日志生命周期六步，**成功、失败、取消三路都必须走完第 4–6 步**：
+
+```mermaid
+flowchart LR
+    S1["1 解析 log_dir<br/>= &lt;output_dir&gt;/logs"] --> S2["2 创建目录（幂等）"]
+    S2 --> S3["3 写 run_start 事件<br/>（run_id/commit/host/配置哈希）"]
+    S3 --> S4["4 运行中追加事件<br/>seq 严格递增"]
+    S4 --> S5["5 收尾 flush + fsync"]
+    S5 --> S6["6 算 sha256 → 原子发布 → 登记 manifest"]
+```
+
+| 步 | 时机 | 失败处置 |
+|---|---|---|
+| 1 解析 | CLI 解析配置后、任何节点执行前 | `log_dir` 非法/不可派生 ⇒ exit 2（ARGS） |
+| 2 创建 | 同上 | 目录不可创建 ⇒ exit 7（IO）；磁盘满 ⇒ exit 10（RESOURCE） |
+| 3 run_start | 同上 | 写失败 ⇒ 按步 2 处置 |
+| 4 追加 | 运行中每个事件 | 写失败 ⇒ 记 stderr 摘要 + 置运行失败标志，运行结束以非 0 退出 |
+| 5 收尾 | run 终止点（成功/失败/取消） | fsync 失败 ⇒ exit 7；磁盘满 ⇒ exit 10 |
+| 6 发布 | 收尾之后 | 哈希失败 ⇒ exit 8（INTEGRITY）；manifest 登记失败 ⇒ exit 7 |
+
+- manifest 面两码分立（P-159 定一，禁止混用）：**manifest 登记/写入失败** = exit 7（IO）；
+  **manifest verify/完整性失败**（status≠complete、artifact sha256/size 不匹配等）= exit 8
+  （INTEGRITY）。唯一源 = `docs/engineering/contracts/MANIFEST_VERIFY.md`「manifest verify 合同」一节「校验序→错误码」
+  （语法/schema=3、status≠complete=8、版本不一致=5、输入 hash 已变=3、产物缺失=3、
+  sha256/size 不匹配=8、全过=0；实现见命令行命令源文件）+
+  域→码表 `docs/engineering/contracts/LOG_AND_ERROR.md`「错误对象与退出码映射」一节（IO→7 / INTEGRITY→8）；码值语义表见 `docs/engineering/standards/ERROR_MODEL.md`「进程退出码」一节。
+
+**日志写失败一律显式**：任何一步失败都在 stderr 输出一条脱敏摘要，并让本次运行以非 0 退出码结束。
+"日志写不进去就继续跑完"不是可接受行为。
+
+---
+
+## 6. 与 manifest / provenance 的关系
+
+- `run_log` 是 run 产物的一部分，登记在 run manifest 的 `log_artifacts[]`（字段表见 `docs/engineering/contracts/LOG_AND_ERROR.md`「`run_log` 与 manifest 登记字段」一节）；
+- **manifest 不写进日志**（避免自引用循环）：manifest 是日志的登记面，日志不是 manifest 的载体；
+- 日志行内的 `commit` 来自真实构建/运行现场（既有 schema 强制 40 位 SHA，取值只来自现场），
+  因此日志可作为 provenance 的独立佐证；
+- 溯源链：`run manifest → log_artifacts[] → 日志文件 sha256 → 行内容`；任一环断裂 ⇒ exit 8。
+
+---
+
+## 7. 与 observability 各面的关系
+
+`lib/infrastructure/observability/` 是**日志与可观测性的唯一实现家**；五个面各有唯一合同，互不冒充：
+
+| 面 | 合同（正本） | 键名/工件 | 消费者 |
+|---|---|---|---|
+| 结构化日志（本设计 L1） | `docs/engineering/resources/observability/STRUCTURED_LOGGING.md`（LOG-001）+ `log_event_v1.schema.json` | `event` / `seq` / `acsd.log.event.v1` 行 | 操作员、审计、回放 |
+| 运行事件流 | `lib/infrastructure/cli/protocol.h` + `jsonl.h` | `kind` / `sequence` / CLI stdout JSONL | GUI、外部 harness |
+| 运行图 | `docs/engineering/resources/observability/RUN_GRAPH.md`（LOG-003） | run-graph / observed_trace | 审计、性能 |
+| 资源监控伴随器 | `docs/engineering/resources/observability/RESOURCE_MONITORING.md`（LOG-002） | `monitor_timeseries.csv` | 容量分析、资源门 |
+| 性能探针 | `lib/infrastructure/observability/probes/README.md` | `ACSD_PROBE_LOG` JSONL（编译期 OFF） | 性能迭代 |
+
+**本设计新增的是 L2 落盘器与 L3 收敛面**，不是第六个面：它把 L1 已冻结的行格式**写到
+`<output_dir>/logs`**，并把错误收敛到退出码。日志行格式、事件流字段、运行图字段**一律不动**。
+
+---
+
+## 8. 运行期旋钮（落点与默认值）
+
+日志落点**不需要新配置键就已成立**：默认由块级 `output_dir` 派生。可覆盖的旋钮都是
+**运行期策略（runtime_policy）**，权威在插件/CLI 文档面，**不进 `phase_config`、不进 `defaults.json`**
+（`docs/engineering/contracts/CONFIG.md`「三类配置（现场清单）」一节 三类配置分离红线；`CFG002-02` 机器强制）。
+
+| 旋钮 | 登记点（权威） | 默认 | 值域/约束 |
+|---|---|---|---|
+| `log_dir` | `docs/detail/infrastructure/observability.md` 的「配置项」一章（`log_dir` / `log_keep` / `log_level`） | `<output_dir>/logs` | 绝对路径，或由 `output_dir` 派生；CWD 相对路径属判据红 |
+| `log_level` | 同上 | `info` | `debug\|info\|warn\|error` |
+| `log_keep` | 同上 | `all` | `all`（保留全部运行日志）或正整数（保留最近 N 次运行） |
+
+- 缺省即默认值，且**落点与旋钮设置无关**：不设任何旋钮时落点恒为 `<output_dir>/logs`；
+- `log_dir` 显式给出时，其解析结果必须落在本次运行的 `output_dir` 可写域内（跨块写同一目录 = 配置错 ⇒ exit 2）；
+- 旋钮的**取值通道**（CLI 旗标 / 环境变量）由实现任务接线；通道一旦落地，其登记点随之迁移到对应文档面
+  （CLI 旗标 → 命令行入口页的 `cli_surface` 行），并由 `CFG002-01` 强制唯一登记点。
+
+---
+
+## 9. 判据与登记
+
+| 判据 | 内容 | 核对面 | 负例面 |
+|---|---|---|---|
+| R1 错误不吞 | 生产收敛面 catch 吞错点必须登记（台账只减不增） | 对抗性审查逐条核对 | 注入空 catch ⇒ 判红 |
+| R2 降级显式 | 生产面条件回退点必须登记且函数体内记录 `degraded_reason` | 同上 | 注入静默回退 ⇒ 判红 |
+| R3 日志落点 | 生产面日志落点必须派生自 `output_dir` 或登记 | 同上 | 注入 `run/` 字面量 ⇒ 判红 |
+| R4 台账完整 | 台账锚存活、只减不增、扫描面非空（fail-closed） | 同上 | 抹掉锚/清空扫描面 ⇒ 判红 |
+
+**这四条判据约束 agent 写代码时的自律**：改动生产收敛面、日志落点或台账的每一次提交，都要自己
+逐条核对「正确实现成立、注入对应缺陷不成立」；只报告不注入负例不算核对完成。
+
+---
+
+## 10. 失败作用域：帧级失败与全局失败
+
+多帧节点（一次调用处理 N 帧输入）必须把失败按**作用域**分开上报，两种作用域各自具名：
+
+| 作用域 | 触发条件 | 上报形态 | 运行结果 |
+|---|---|---|---|
+| **帧级失败** | 失败只由**该帧自身**的条件决定：换一帧可能成功（本帧 WCS 不可用、本帧星点目录缺行、本帧拟合未产出标度、本帧标度非物理、帧内残差散度超门限） | 该帧记 `status=fail` + `error_domain`/`error_status`/`error`（`error_report` 口径见 `docs/engineering/contracts/LOG_AND_ERROR.md`「错误对象与退出码映射」一节），落在节点 manifest 与 provenance 的**逐帧判决表**里 | **该帧不产出产品，其余帧照常完成**；运行级是否判红由产品基数与不变量决定（《ACSD 最高设计》「normalize」一章的「输出合同」一节：任何一帧未被处理、跳过或失败都显式判红），判红时**不发布**数据集清单 |
+| **全局失败** | 失败与具体帧无关：换任何一帧都不会好（星表/响应曲线等程序级输入不可读、配置缺项、冻结 C 入口返回非零） | 节点直接返回 `Error`（域 = `CONFIG`/`IO`）上行到 CLI，收敛为退出码（判据见 `docs/engineering/contracts/LOG_AND_ERROR.md`「错误对象与退出码映射」一节） | **中止运行**：不处理后续帧，也不把整批帧逐帧判 fail |
+
+**帧级失败不是降级**：降级 = 上游能力缺失时改走替代路径并**继续运行**且**科学语义不变**（判据见 `docs/engineering/contracts/LOG_AND_ERROR.md`「显式降级登记要件」一节）。
+帧级失败改变的是「这一帧有没有合格的科学结果」，因此不写 `degraded_reason`，并以帧级失败状态上报（L3 行为边界项）。
+反之，**通道整体缺席**（例如测光标定通道未配置、产品以未归一化的中性标度继续）是降级：写 `degraded_reason` 并在元数据如实登记标度。
+
+**逐帧判决表是唯一真相**：组级摘要（如 `photometry_applied`）只表示「至少一帧成立」，下游节点必须按逐帧表选择输入面；
+下游对上游判 fail 的帧**显式跳过**并在自己的 manifest 记跳过原因与上游错误码，记录完整。
+
+## 落地对照与参考文献
+
+本页是支撑面的日志错误落地设计，对应最高设计命令行合同一章的错误传播与运行日志条目。定位是事件产生到落盘再到退出码收敛的整条链，数据对象是日志事件、运行日志、错误报告与降级记录。块读写经统一输入输出边界，日志落点由块输出目录派生。接口签名以日志事件模式与退出码表为准。处理步骤按生命周期六步执行。配置旋钮是运行期策略，不进阶段科学配置。相邻关系是上游承接各模块的错误返回，下游供给命令行收敛与可观测性。调试入口是阶段日志目录与运行清单登记。
+
+### 参考文献
+
+[1] 工程日志错误合同，docs/engineering目录。
+[2] 命令行入口落地页，本文infrastructure目录。
+[3] 可观测性落地页，本文infrastructure目录。
+
+===== END SOURCE =====
+
+===== docs/detail/infrastructure/observability.md | blob=4d6d0e104dc3796ee43763bb7b7be0aae75653c6 | bytes=18317 =====
+# observability（可观测性）
+
+> 上游：《ACSD 最高设计》的「命令行合同」一章（错误传播与运行日志）与「软件架构」一章（顶层结构）
+
+## 1. 职责与边界
+
+- **职责**：结构化日志与**运行日志落盘**、事件流（JSONL）、运行图、资源监控与诊断，贯穿 CLI 到科学模块。
+- **不是**：不改变科学结果；不做 I/O 提交（`aio` 是唯一 I/O 边界，本模块经它写日志）；不判定退出码（退出码收敛在 CLI）；不因观测开销影响性能预算。
+
+## 2. 权威依据
+
+- 《ACSD 最高设计》的「命令行合同」一章（配置、事件与退出码：JSONL 事件流；错误传播与运行日志）、「CPU 后端与资源」一章（资源记录与重计算资源门）、「I/O 与原子产品」一章（run 产物）
+- `docs/detail/infrastructure/log_and_error_system.md`（日志与错误系统详细设计）、`docs/engineering/contracts/LOG_AND_ERROR.md`（日志行/落点/降级/退出码映射合同）
+- `eng/contracts/schemas/jsonl_event_v1.schema.json`（运行事件流唯一 schema）
+- `eng/contracts/resource_gate_v1.json`（G-RES-01 数值唯一源，判据正文见下文「重计算负载资源门（G-RES-01）」一章）
+
+## 3. 输入/输出数据合同
+
+- **输出**：JSONL 事件流（schema_version/event_id/run_id/kind：progress/resource/artifact/backend/final）、运行图三件（`graph/static_graph.json`、`graph/observed_trace.json`、`graph/graph_sidecar.json`）、`resource_timeseries.csv`、`resource_summary.json`、`worker_balance.csv`；
+- **运行日志工件**：`<output_dir>/logs/run_<run_id>.jsonl`（机器，行格式 = `acsd.log.event.v1`）与 `<output_dir>/logs/run_<run_id>.log`（人可读摘要，与 JSONL 同源）；两工件在 run manifest 的 `log_artifacts[]` 登记（字段表见 `docs/engineering/contracts/LOG_AND_ERROR.md`「`run_log` 与 manifest 登记字段」一节）。
+- 参考：`eng/contracts/schemas/jsonl_event_v1.schema.json`、`eng/contracts/schemas/run_manifest.schema.json`、`eng/contracts/schemas/scheduler_probe_event.schema.json`（探针事件单行；合同说明见 `docs/engineering/contracts/SCHEDULER.md`）、`lib/infrastructure/observability/logging/log_event_v1.schema.json`。
+
+## 4. 算法与公式要点
+
+- 事件类型统一 schema，跨模块一致；
+- stdout 无日志污染（CLI 合同）：日志走文件/JSONL；
+- 运行图（run-graph）是实际观测（trace），`plan` 是预期，**两者的值各按各自来源登记**；
+- 资源监控字段见运行时页（scheduler + pipeline）；与退出码联动（exit 10 资源门禁）。
+
+## 5. 配置项
+
+| 字段 | 默认 | 单位 | 说明 |
+|---|---|---|---|
+| `log_level` | `info` | —— | debug/info/warn/error |
+| `log_dir` | `<output_dir>/logs` | —— | 运行日志目录；由块级 `output_dir` 派生，禁落 CWD/源码树/`run/` |
+| `log_keep` | `all` | —— | 运行日志保留策略（`all` = 全保留，或最近 N 次） |
+| `sampling` | —— | —— | 资源采样间隔 |
+
+## 6. 接口/ABI
+
+- 公共日志/事件 API（C ABI 版本化），所有模块调用。
+
+## 7. 错误与边界
+
+- 日志/事件写入失败 → 记 stderr 脱敏摘要 + 本次运行以非 0 退出码结束（IO=7；磁盘满=10）；**故障一律按上述退出码上行**（"换一路日志继续跑"不在处置面内）；
+- 日志目录解析失败 → exit 2（ARGS）；目录创建失败 → exit 7（IO）；收尾 fsync 失败 → exit 7；manifest 登记失败 → exit 7（IO）；哈希失败 → exit 8（INTEGRITY）；
+- manifest 面两码分立（P-159 定一，禁止混用）：**manifest 登记/写入失败** = exit 7（IO）；
+  **manifest verify/完整性失败**（status≠complete、artifact sha256/size 不匹配等）= exit 8
+  （INTEGRITY）。唯一源 = `docs/engineering/contracts/MANIFEST_VERIFY.md`「manifest verify 合同」一节「校验序→错误码」
+  （语法/schema=3、status≠complete=8、版本不一致=5、输入 hash 已变=3、产物缺失=3、
+  sha256/size 不匹配=8、全过=0；实现见命令行命令源文件）+
+  域→码表 `docs/engineering/contracts/LOG_AND_ERROR.md`「错误对象与退出码映射」一节（IO→7 / INTEGRITY→8）；码值语义表见 `docs/engineering/standards/ERROR_MODEL.md`「进程退出码」一节。
+- 降级必须显式：写 `degraded_reason` 并入 manifest；静默回退到低优先输入/静默保持缺省值/静默跳过校验都按故障上行（`docs/engineering/contracts/LOG_AND_ERROR.md`「显式降级登记要件」一节）；
+- 日志/事件/诊断一律走脱敏处理，凭据、密钥与绝对用户路径按规则替换（脱敏规则唯一源 = `docs/engineering/contracts/LOG_AND_ERROR.md`「脱敏与大小上限」一节）。
+
+## 8. 重计算负载资源门（G-RES-01）
+
+> **本节是 G-RES-01 判据的唯一语义权威**（《ACSD 最高设计》的「文档权威与索引」一章：具体硬约束与细节写入下级文档）。
+> **数值唯一源 = `eng/contracts/resource_gate_v1.json`**；实现侧（C++ / Python 冻结门 / 外挂 judge）的阈值一律从该文件取。
+> 维护规则：**改数值只改契约，改语义只改本节**；两侧必须同一次提交内保持一致。
+
+### 8.1 判定域（applicability）
+
+| 条件 | 处置 |
+|---|---|
+| 有效 CPU 数 < 2 | `NOT_APPLICABLE`（显式分类，**不是豁免**） |
+| 计算区间**未严格超过 10 s**（`<= 10.0 s`） | `NOT_APPLICABLE`（显式分类） |
+| 有效 CPU 数不可得（affinity ∩ cgroup 均不可得） | **fail-closed → FAIL**（判定只取 affinity ∩ cgroup 的实测值） |
+
+判定域的界是**严格大于 10 s**；窗口判据自身的长度界是 **≥ 10 s**（滑窗长度，与判定域区分）。
+
+### 8.2 已分配容量分母（denominator）
+
+利用率是占**已分配容量**的百分比，不是占机器核数的百分比。
+
+| 优先级 | 取值 | 说明 |
+|---|---|---|
+| ① 主 | `granted_workers`（并发租约授予宽度峰值） | 真实观测/显式声明 |
+| ② 回落 | `min(selected_workers, available_cpus)` | 仅当 ① 取哨兵 0（未观测）时启用 |
+| ③ 两者皆哨兵 | 分母 = 0 → 利用率类判据不成立 | 记入 `recorded`（`allocated_capacity_undeclared`） |
+
+- 哨兵 0 = 未观测，按未观测处理；
+- 判定证据同时回显三分量：`selected_workers` / `available_cpus` / `granted_workers`（外加解析结果 `allocated` 与来源标签 `allocated_source`）。
+
+### 8.3 判据表
+
+| # | 判据 | 阈值 | 执行面（唯一数值源 = `eng/contracts/resource_gate_v1.json`） | 违约后果 |
+|---|---|---|---|---|
+| ① | 单活跃计算线程 | 活跃计算线程统计量 < **2** | **record_and_justify**（合同**未给该判据 enforcement 键**） | 记录 + 超标登记（不改退出码） |
+| ② | 连续低利用窗 | 任何连续 **≥10 s** 窗利用率 < **60%**，且队列有工作 | **hard_fail**（`queue_low_window_enforcement`） | 判定面 fail-closed；程序内（CLI）无此路径 |
+| ③ | 无界内存增长 | 分配/RSS 稳健斜率 **≥ 32 MiB·s⁻¹** 且 run 结束回落不可解释 | **record_and_justify**（合同**未给该判据 enforcement 键**；C++ 分配报告面） | 记录 + 超标登记（不改退出码） |
+| ④ | 平均利用率 | 计算区间均值 < **85%** | **record_and_justify** | 记录 + 超标登记（不改退出码） |
+| ⑤ | 利用率 p50 | 样本中位数 < **90%** | **record_and_justify** | 记录 + 超标登记 |
+| ⑥ | 逐样本利用率 | 单样本 ≥ **85%** 的样本占比 < **0.70** | **record_and_justify** | 记录 + 超标登记 |
+| ⑦ | 工作量下限 | 线程秒（等效核·秒）< **10** | 事实标记 | 只记录，不参与判定 |
+
+七项中**只有 ② 在合同里带硬失败执行面**；①③ 在合同里没有 enforcement 键，而程序内实现 `gate_enforcement()` **恒返回 `RecordOnly`**（CLI 面不存在由 CPU/内存判据产生 `rc=10` 的路径）。判据表与合同、实现三方在此对齐：**任何资源判据都不改变程序退出码**，`exit 10` 只属磁盘写满/写盘失败（见本章「错误与边界」一节）。
+
+**统计量口径（全实现统一）**
+
+- ①的被测量：**并发活跃计算线程数的 p50**；有效样本 < 2 时回落峰值，并在证据里回显所用统计量。C++ 侧采样量为租约活跃宽度（`workers_p50`），外挂监控侧为进程线程数中位数（`threads_p50`）：采样源允许不同，统计量与方向保持一致。
+- ②的队列有工作：在低利用窗内，**就绪线程数（`/proc` R 态）中位数 > 已分配容量核数**（就绪线程多于可用槽位即有线程在排队），且同时 ≥ 2。并行宽度不足（如 2 线程在 16 核配额上）归记录项 ④⑤⑥。证据面不可得时沿用无前置判据。
+- ③的单位统一为 **MiB·s⁻¹（1048576 B/s）**，方向统一 **≥**。
+
+### 8.4 record / enforce 划分与判定点
+
+- **程序内恒 record_only**（《ACSD 最高设计》的「运行前预检」一节「资源门只管磁盘…内存、CPU、线程不设门」；数值与判据唯一源 = `eng/contracts/resource_gate_v1.json#enforcement`）：CLI 运行期只记录与报告，**不因资源判据改变退出码**；`--strict-resource-gate` / `--on-resource-gate strict` **保留接受但不改变门结论**（旗标请求事实由事件字段如实登记，见下「事件面登记」）。实现唯一收口 = `lib/infrastructure/cli/resource_gate.h::gate_enforcement`（恒返回 `RecordOnly`；`Enforced` 枚举值仅为既有 ABI/测试引用保留）。
+- **唯一判定点 = 重计算监控实测 + 发布验收**（判定参数与阈值唯一源 = `eng/contracts/resource_gate_v1.json`），以 `run_monitored.py --gate-required --gate-workers <registry 声明>` 形式实测。**`--gate-workers` 必须由 registry 显式声明**；未声明时利用率类判据不成立（记 `allocated_capacity_undeclared`），只有 ① 生效。
+- **exit 10（RESOURCE）在资源门判定域内的充分条件**：判定域内 ①②③ 任一违约且处于 enforce 面——该路径**只存在于资源门判定面**，程序内（CLI）无此路径。`NOT_APPLICABLE` 与 record-only 记录项**都不产生 exit 10**。本节只界定资源门判定域内的 exit 10；**磁盘写满 / 写盘失败 ⇒ exit 10** 是独立触发路径（运行时页的「错误与边界」一章与 `docs/engineering/contracts/LOG_AND_ERROR.md`「错误对象与退出码映射」一节）。
+
+**事件面登记（`resource` / `resource_gate`）**
+
+`resource_gate`（severity=warning，仅判定为违规时发出）的**冻结必含扩展字段**（五面一致；正本 = `lib/infrastructure/cli/protocol.h::missing_required_extension_v1`）：
+
+| 字段 | 承载事实 |
+|---|---|
+| `diag` / `enforcement` / `enforced` | 诊断分类 / 处置口径（恒 `record_only`）/ 是否已强制（恒 `false`） |
+| `strict` | 用户是否请求了 strict 旗标（`--strict-resource-gate` / `--on-resource-gate strict`）；**不改变门结论** |
+| `work_core_seconds` / `workload_floor_core_seconds` / `workload_floor_reached` | 工作量下限事实（判据 ⑦，只记录，不参与判定） |
+| `so05_signoff_id` / `so05_signoff_status` | SO-05 签字项身份与状态（`docs/engineering/contracts/CLI_PROTOCOL.md`「JSONL 运行事件流」一节：恒 `SO-05` / `PENDING_OWNER_SIGNOFF`） |
+| `auto_adjudication_allowed` | 自动判定是否放行（恒 `false`） |
+
+**`resource_gate` 事件只写可表达逐判据 enforce/record 分类的字段**：「判据表」一节的 ④⑤⑥ 是 `record_and_justify`（违约后果 = 记录 + 超标登记，**不改退出码**），事件级常量无法表达逐判据的 enforce/record 分类，「若已签字是否会失败」类字段即属此类。
+
+`resource`（severity=info，每阶段末发出）的必含扩展字段 = 冻结五项（`cpu_cores_used` / `rss_bytes` / `io_read_bytes` / `io_write_bytes` / `threads`）；其余（含 SO-05 记录字段 `measurement_policy` / `so05_signoff_id` / `so05_signoff_status` / `auto_adjudication_allowed` / `auto_adjudication_policy` / `one_budget_source_rule` / `determinism_contract`，以及 `strict_flag_requested`）是**实现侧附加字段**，不属冻结必含集（口径同 `docs/engineering/contracts/CLI_PROTOCOL.md`「JSONL 运行事件流」一节 对 `artifact` 的附加字段）。
+
+### 8.5 豁免与不可豁免面
+
+- `NOT_APPLICABLE`（有效 CPU<2 或计算区间 ≤10 s）是**显式分类**，必须在证据里给出 `reason`，该分类与「通过」各自具名。
+- 监控/采样证据缺失（无 CPU 样本、`threads_max` 非法、区间中部断流、`effective_cpus` 不可得）**不是**低利用率的豁免，一律 fail-closed 判 FAIL。
+- 本门不因任务性质自动豁免：判定请求只对重计算面发出（`--gate-required` / `--gate-workers` 不出现即不判定）。
+
+### 8.6 实现落点
+
+| 实现 | 落点 | 与本节的关系 |
+|---|---|---|
+| C++ CLI | `lib/infrastructure/cli/resource_gate.h`、`memory_report.h`（阈值经 CMake 从契约生成的 `resource_gate_thresholds_generated.h` 引入） | 程序内 record_only；① 用 `workers_p50` |
+| Python 冻结门 | `eng/tools/monitoring/run_monitored.py::evaluate_frozen_gate` / `resolve_allocated_capacity` | 资源门判定面实现；① 用 `threads_p50` |
+| 外挂 judge（建议面） | `eng/tools/quality/resource_monitor.py` | 只给建议，不做发布判定；阈值同契约 |
+
+### 8.7 节点级归因探针与两个 I/O 口径
+
+G-RES-01 的采样面是**进程级**的：它能判「利用率低」，不能回答「哪个节点、几条线程」。
+补上归因面的三个 env-gated 观测开关（默认零输出零开销，只观测、不改调度与数值路径）：
+
+| 开关 | 输出行 | 落点 |
+|---|---|---|
+| `ACSD_NODE_TRACE=1` | `[nodetrace] BEGIN <node> <steady_s>` / `END <node> <elapsed_s>` | `module_adapters.cpp` |
+| `ACSD_LEASE_TRACE=1` | `[lease] <node> host_workers=… acquired=… cap=… budget_available=…` | `module_adapters.cpp` |
+| `ACSD_P1CAP_TRACE=1` | `[p1cap] frame_workers/parallel_for node=… lease=… memory_cap=… frame_workers=… n_units=… inner_omp=…` | `module_adapters.cpp` |
+
+消费者 = `eng/tools/monitoring/node_waterfall.py`：把上述行与 `resource_timeseries.csv`
+（或外挂 `resource_monitor.py` 的 `samples.csv`）按时间轴对齐，输出**节点瀑布 + 逐节点并行宽度**
+（`--self-test` 自证解析与归因口径）。
+
+节点探针覆盖两个阶段：阶段一各节点经 `P10NodeTraceGuard` 落 `[nodetrace]`；阶段二
+的七个节点（coverage / sample / upm-fit / upm-apply / reject / integrate / write）
+在 `p2_op_*` 分发点按同一格式、同一开关落行（节点名与既有阶段探针同名），
+故阶段二也可直接进节点瀑布。
+
+信号面求解器另有一个**候选对比实验旋钮**：`ACSD_SKY_MAX_ITER=<n>`（缺省缺失即冻结值
+30）覆盖其迭代上限。动机：真数据产物里 `info/iterations = 30` 即**打满上限**，而该
+求解器**全文没有任何未收敛上报**（产物依赖的模型被静默截断）；此旋钮用于实测
+「30 轮够不够、截断对产物有无影响」。与 UPM 那个旋钮同属候选对比面，缺省行为不变。
+
+UPM 侧另有一个**候选对比实验旋钮**：`ACSD_UPM_CG_MAX=<n>`（缺省缺失即冻结值
+200）覆盖内层共轭梯度（`cg_solve_frame`）的迭代上限。它只用于候选方案的冒烟对比，
+**不改变缺省行为**；调参结论在落地前须走容差类准入（声明等价判据并核验）。
+
+同一归因面另有一个**节点内**分段开关：`ACSD_UPM_PROFILE=1` 落
+`[upm_profile] n_solve=… alloc=… assemble=… chol=… objective=… total=…`，
+把 GN-IRLS 每轮成本分到「正规矩阵分配清零 / 观测装配 / Cholesky / 目标函数」四段。
+它只在节点内部细分，不改变调度与数值路径。
+
+**两个 I/O 口径不可混用**：
+
+- `resource_timeseries.csv` 的 `io_wait_pct` / `resource_summary.json` 的 `io_wait_pct_mean`
+  是 **`/proc/stat` 首行第 5 个数值（系统级 iowait，jiffies）÷ 采样区间 × 100**
+  （`lib/infrastructure/cli/monitor.h` 取值、`resource_recorder.h` 归一），
+  单位与 `cpu_pct` 同刻度 = **等效核 × 100**，且**含其它进程**的 I/O 等待。
+  ⇒ 它回答「盘上有没有负载」，**不**回答「是不是 Astro Celestial Sphere Database（ACSD） 在等盘」。
+- `io_wait_all_ms` = **Σ 全线程 `delayacct_blkio_ticks` 增量**（`/proc/<pid>/task/<tid>/stat` 第 42 字段），口径 = **本进程树**真实块 I/O 等待；
+  `io_wait_ms` = 线程组组长（`/proc/<pid>/stat`）的同类增量，口径 = **低估**（帧级并行下不覆盖全部线程）。两字段均由 `resource_monitor.py` 输出，**报告必须声明所用字段**。
+
+读字节同理有两档，报告时必须写明用哪档：`/proc/<pid>/io` 的 `read_bytes` = 物理盘读；
+`rchar` = 含 page cache 命中的逻辑读（`run_monitored.py --io` 默认取 `rchar`）。
+
+## 9. 测试与 Oracle
+
+- 事件 schema 校验；
+- 事件与 run 产物一致性（trace 反映实际）；
+- 取消/失败路径事件完整，且**失败与取消路径同样产出 `<output_dir>/logs/` 两工件**并在 manifest 登记（sha256/行数/级别分布与磁盘一致）；
+- 日志落点测试：`log_dir` 缺省落 `<output_dir>/logs`；显式 `log_dir` 越出 `output_dir` 判 exit 2；**注入"落 `run/`/CWD/源码树"必红**（日志落点判据见 `docs/engineering/contracts/LOG_AND_ERROR.md`「落点合同」一节）；
+- 日志写失败不静默：注入只读日志目录 ⇒ 运行非 0 退出 + stderr 有脱敏摘要；
+- 脱敏测试（无凭据泄漏）；
+- G-RES-01：判据边界（10 s 严格界 / ≥10 s 窗）、分母三分量与哨兵、record_and_justify 不改退出码、fail-closed 注入（抹掉样本必翻转）—— 判据正文见 `docs/engineering/resources/PERFORMANCE_MODEL.md`「L2 冻结判据」一节，执行面见 `eng/tools/monitoring/run_monitored.py`。
+
+===== END SOURCE =====
+
+===== docs/engineering/resources/PERFORMANCE_MODEL.md | blob=12bbe2936552f56bd8dfdd186ec6089d19f3a10d | bytes=22414 =====
+# 性能模型与资源判据
+
+上游：最高设计的软件架构、CPU 后端与资源两章[6]；并行轴分配见 `../architecture/DATA_FLOW.md`。
+
+结构原则、编排参数标定、有效并行宽度模型、冻结标定常数与合成性能判据的正本。
+每个科学浮点量的量纲与标度口径见 `../standards/NUMERIC.md`[2]；受影响构建目标的反查依据见
+`../build/BUILD_GRAPH.md`[3]。
+实测读数与逐档墙钟落实验域的工程证据面，本分册只承载结构结论与冻结参数。
+
+## 结构原则与来源
+
+- 热路径内每像素零 alloc/log/fs/clock；per-pixel 数学用连续 buffer。
+- 科学精度优先：FP64 reference；FP32 仅显式精度等价路径。
+- 关键 fast path 与各自 reference（逐条给定义与验证方式）：
+  - **Drizzle candidate conservative test**：候选判定取保守上界（宁可多算、不可漏算）；
+    验证方式 = 与穷举候选集比对时 **false negative 恒为 0**（本仓 oracle）。
+  - **UPM dense cache**：稠密缓存与逐点稀疏求值必须给出同一结果；
+    验证方式 = 缓存命中域上的最大相对偏差不超过第 4 节冻结的双精度非归约档容差，
+    适用量级域 = 缓存命中域上的缓存值量级 `scale`，超出该域按同值的相对形式判[4]。
+    定义见 `../../science/sky/UPM.md`；容差数值不在本篇复述。
+  - **NoiseWeightModelV1**：权重模型以 oracle 矩阵与 Monte Carlo 双向核对；
+    定义见 `../../science/noise_snr/NOISE_SNR.md`[5]。
+  - **Gaia 极区 prune**：剪枝用**可证明保守**的球面判据（不丢候选）；cache 键精确匹配，
+    实现锚 = `lib/infrastructure/gaia_xpsd_client/src/gaia_client.c` 的 `query_cache_lookup`。
+
+- 编排与内存的实测读数、拟合与逐档墙钟见 `实验/engineering-evidence/l2_performance/`；
+  本文件只承载结构结论与冻结参数。
+
+## 编排参数标定（探针驱动）
+
+> 上游条款：编排参数的**最终取值**由探针基于实测数据确定，合同只保证机制正确与探针齐全；
+> `../../ACSD_DESIGN.md` 的 CPU 后端与资源一章（探针驱动优化）。
+> 并行轴语义（含帧内 OpenMP 度公式与轴不变式）唯一正本 = `../architecture/DATA_FLOW.md`[1]；
+> 本篇只给编排参数的结构结论与冻结参数，不复制轴公式。
+
+### 结构性根因
+
+帧级并发受**内存闸门**限制：Runtime lease 给出的 CPU 预算在 4096² 级帧上不能全量转成帧级并发；
+实际帧级宽度由内存预算与单帧驻留字节数决定。后果是**预算剩余**：CPU 用量远低于 lease，
+剩余预算必须转给**帧内轴**才能被利用。
+
+帧内尚存的**串行段**：`hips_write` 在帧内与 `drizzle_run` 串行；`wcs-platesolve` 无帧级并行。
+逐节点瀑布、CPU 曲线与串行段占比读数见 `实验/engineering-evidence/l2_performance/`。
+
+### 冻结参数
+
+冻结参数的两个数值（每像素字节、安全系数）与内存预算百分比的**唯一数值源** =
+`eng/packaging/config/runtime_resources.json`；本篇只登记参数名、落点与取值口径，不声明第二套数值。
+
+| 参数 | 数值键 | 落点 | 依据 |
+|---|---|---|---|
+| 帧内 OpenMP 度 | `../architecture/DATA_FLOW.md` 的并行轴分配[1] | `p1_parallel_for`（`lib/infrastructure/scheduler/src/module_adapters.cpp`） | 内存或输入帧数限制帧级宽度时可使用剩余帧内预算；只有实际在飞帧数达到租约时才退化为 1 |
+| `kP1FrameBytesPerPixel`（`B`） | `frame_memory_gate.bytes_per_pixel` | `p1_memory_cap`（`lib/infrastructure/scheduler/src/module_adapters.cpp`） | 闸门系数的标定口径与实测拟合见内存模型形态 |
+| `kP1FrameMemSafetyFrac` | `frame_memory_gate.safety_frac` | 同上 | 留基础占用与运行波动；取值随帧几何与精度模式重标定 |
+| 内存预算百分比 | `memory_budget_percent` | `eng/packaging/config/runtime_resources.json` | 单一来源；准入预算 = `MemAvailable` 按该比例的派生值 |
+
+- **实现侧字面量的现状**：`module_adapters.cpp` 当前仍以 `static constexpr double` 持有这两个字面量，
+  未消费 CMake `configure_file` 生成的配置头。该登记与实现侧现状不一致，属代码侧待订正项；
+  在订正前，**唯一数值源是上表所列 JSON 键**，实现侧字面量只作镜像，不得反向覆盖。
+
+### 并行等价性的验证
+
+固定帧集、二进制与 lease，仅改变帧内轴宽度，比较 FITS 像元、科学头信息与目录/星表科学字段；遥测、路径、时间戳和 run_id 分开处理。按预定义数值容差报告差异；只有具体实验同时固定运算序、类型和浮点环境，并取得逐位对照结果时，才报告相应范围的逐位一致。Drizzle 的归约顺序见其[算法说明](../../science/algorithms/export/DRIZZLE_GEOMETRY.md)，实验记录位置为 `实验/engineering-evidence/l2_performance/`。本页的预算代数不证明并行数值等价。
+
+## 有效并行宽度
+
+**符号**：`A` = 运行时 `MemAvailable`；`P` = 单帧像素数；`B` = `kP1FrameBytesPerPixel`；
+`L` = lease（`granted_workers`）；`K` = scratch 池上限（`drizzle_engine.cpp` 的
+`kScratchPoolCap`）；`F` = 帧级并发上限；`n` = 本次运行的输入帧数；
+`in_flight` = 帧级实际在飞数；`I` = 帧内 OpenMP 度；`W_eff` = 线程预算与暂存槽模型给出的并行宽度上限，并非实测忙碌线程数。
+
+```
+F = min(L, floor(kP1FrameMemSafetyFrac·A / (P·B)))   // 帧级内存闸门上限
+in_flight = min(n, F)                                // 帧级实际在飞数
+I = max(1, L / in_flight)                            // 帧内轴（正本 = ../architecture/DATA_FLOW.md 的并行轴分配）
+W_eff = in_flight × min(I, K)                        // drizzle 节点；K 为每帧 scratch 槽上限
+```
+
+上式的逐字来源 = `../architecture/DATA_FLOW.md` 的并行轴分配：`in_flight = min(n, frame_workers)`
+（`frame_workers = min(lease, 内存闸门上限)`）、`inner_omp = max(1, thread_budget / in_flight)`
+（`thread_budget = lease`）、总并行度 `in_flight × inner_omp ≤ thread_budget`[1]；
+实现侧同式见 `lib/infrastructure/scheduler/src/module_adapters.cpp` 的 `p1_parallel_for`。
+
+上述公式要求正租约、非空输入且内存允许至少一帧；不足时由调度器明确处理，不计算零分母。若内核线程数另有限制，`W_eff` 的第二因子还须与 `num_threads` 取最小值。
+
+**内存模型形态**：固定单帧像素数 `P` 时，总峰值驻留的经验模型为 `RSS = base + P × 边际字节/像素 × in_flight`。这不是单帧驻留公式。标定口径与报告读数如下；引用的输入、命令和输出未重新取得前，不把读数作为本次复测结果。
+
+| 项 | 值 | 性质 |
+|---|---|---|
+| `base` | 0.143 GB | 实测（拟合截距） |
+| 边际项 | 1.6724 GB/帧 = 99.68 B/px（`P = 4096² = 16.777e6 px`） | 实测（拟合斜率） |
+| 闸门系数 `B` | 取 `frame_memory_gate.bytes_per_pixel` | 标定值，取可行窗口上端 |
+| 拟合残差 | ≤ ±2.5%（F = 1/2/4/8 四档） | 实测 |
+
+- **件名**：`run/P1-CONCURRENCY-CALIB-01/`（报告的实测内存模型与可采纳值一节，
+  逐档峰值 RSS 见同目录 `summary_F1.json`、`summary_F2a.json`、`summary_F4.json`、`summary_F8.json`）；
+  适用域 = 同场 8 帧 4096² FP64、drizzle auto nside、`kScratchPoolCap = 2`、无 swap。
+- **拟合口径**：同一二进制、同场 8 帧、`inner_omp = 1`，对峰值 RSS 与 `in_flight` 做最小二乘，
+  得 `RSS(F) = 0.143 GB + F × 1.6724 GB`；闸门系数**不取实测边际**（99.68 B/px），
+  而取「使闸门放行目标 `F` 且需求 RSS 不越 `kP1FrameMemSafetyFrac·A`」的**可行窗口上端** ——
+  该窗口为 `(0.75·A/(9P), 0.75·A/(8P)]`，随 `A` 平移，故 `B` 是**与机器 `A` 绑定**的标定值，
+  换机器必须按同一口径重标定。
+- 本机实测的逐档峰值 RSS、墙钟与指纹见 `实验/engineering-evidence/l2_performance/`。
+
+**结构性结论（与具体读数无关）**：
+
+1. **整数除法的预算余量**：记 `m=in_flight`，则未受槽数限制的宽度为 `m × floor(L/m)`。它等于 `L` 当且仅当 `m` 整除 `L`；实际达到这一模型宽度还要求 `K` 和内核线程数不小于 `floor(L/m)`。当 `L/2 < m < L` 时帧内度为 1，宽度小于 `L`；其它区间也可能存在整数余量，不能把满宽只归结为两个档位。`F > n` 时 `m=n`，继续提高帧级上限不改变该模型。真实吞吐仍需测量。
+2. **每帧存在不可并行的串行段**（FITS 读、`hips_write`、星表查询、`wcs-platesolve`），
+   见 `../architecture/DATA_FLOW.md`；该串行段是「帧级并发是手段」的**结构性**理由，
+   并有本仓受控四档墙钟对照支撑（`run/P1-PARALLEL-AXIS-REDESIGN-01/REPORT.md`：
+   帧在飞数 8 → 2 → 1 时墙钟 390.7 → 532.9 → 583.7 s，CPU p50 1321% → 701% → 98.9%，
+   相邻档区间不重叠）。
+3. **内核效率的 stripe 收益递减拐点是待标定的经验拐点，不是已标定的物理常数**：把「帧内 stripe 数超过
+   某阈值后进入收益递减区」写成阈值，需要一条固定其它变量、只变 stripe 数的墙钟扫描读数；
+   本仓现有工件中无该扫描（`实验/engineering-evidence/l2_performance/` 与
+   `run/P1-PARALLEL-AXIS-REDESIGN-01/` 扫的是帧在飞数 × 帧内线程数，不是 stripe 数），
+   故本篇**不给该拐点数值**，也不把它列为不可改项。该拐点标定后结论落实验域，本篇只回引。
+4. **内存闸门是准入边界**：若某档的 `F` 使需求 RSS 超过 `kP1FrameMemSafetyFrac·A`，
+   该档不采纳 —— 安全边界优先于并行宽度。
+5. **`hips_write` 串行**是 drizzle 帧时的固定占比项，不随 `F` 缩小。
+
+**分类结论**：
+
+| 类别 | 条目 |
+|---|---|
+| **当前实现的结构限制（可改）** | ① `K` 是**策略值**不是物理值（派生规则见 scratch 池上限的派生一节）；② `B` 与 `kP1FrameMemSafetyFrac` 随帧几何与精度模式重标定；③ 帧级并发受内存闸门限制；④ `hips_write` 在帧内与 `drizzle_run` **串行**；⑤ `wcs-platesolve` 无帧级并行；⑥ `inner_omp = max(1, L/in_flight)` 的整数除法使 `W_eff` 在 `in_flight ∈ (L/2, L)` 非单调（死区，见结构结论 1）；⑦ 内核效率的 stripe 收益递减拐点**待标定**（见结构结论 3） |
+| **物理/算法限制（调度参数不可改）** | ① 每帧**不可压缩的输出本体**：canonical 累加器容量不随 `K` 变；② 每帧**不可并行串行段**（FITS 读、`hips_write`、星表查询、`wcs-platesolve`）的墙钟下界；③ 逻辑核 / 物理核 / 物理内存上限共同决定 `W_eff` 的取值上界 |
+
+在给定 `B` 与 `kP1FrameMemSafetyFrac` 下，能否取得预算满宽取决于实际在飞数、整数余量、内核线程数与槽数。科学产品等价性和目标档位利用率须分别用对应输入、二进制与输出检验，不能由预算公式推出（报告位置为 `实验/engineering-evidence/l2_performance/`）。
+剩余可达路径 = 让 `hips_write` 与 `drizzle_run` 重叠 + 改善内核在高 stripe 数时的效率；
+后两项属算法开发，不属编排参数标定。
+
+## scratch 池上限的派生（`K = num_threads`）
+
+**充分条件（非定理陈述）**：在 drizzle 由帧级轴驱动时，`K = num_threads` 是达成满宽的一个**充分条件**，
+且**不是唯一取值**；其成立依赖四条可核事实：
+
+- **满宽的充要条件**：抽象口径 `W_eff = in_flight × min(inner_omp, K)` 对 `K` 单调不降，
+  故 `W_eff` 达到帧内轴宽度 `in_flight × inner_omp` 当且仅当 `K ≥ inner_omp`；`K < inner_omp` 时多余线程在池上空等。
+  实现实际分配的池是 `kScratchPool = min(num_threads, kScratchPoolCap)`
+  （`lib/algorithms/drizzle/healpix_drizzle/drizzle_engine.cpp`），把 `num_threads` 也纳入截断后，
+  **达成满宽的充要条件是 `min(num_threads, K) ≥ inner_omp`**，等价于 `K ≥ inner_omp` 与 `num_threads ≥ inner_omp` 同时成立。
+  当 `num_threads ≥ inner_omp` 时，按此整数槽数模型，达到帧内预算宽度的最小 `K` 是 `inner_omp`；更大取值不再增加该模型宽度。若 `num_threads < inner_omp`，只提高 `K` 无法补足线程限制。`K` 超过 `num_threads` 后实际池大小不再增加。
+- **充分性来源**：`K = num_threads` 且 `num_threads = inner_omp` 时，同时在飞的 scratch 份数 =
+  `in_flight × inner_omp ≤ lease`（`../architecture/DATA_FLOW.md` 的轴不变式[1]），
+  故总份数不越租约；整数除法有余量时总份数随轴形态变化，不能宣称恒定。
+- **`num_threads = inner_omp` 的来源链**（逐条可核）：
+  ① `drizzle_engine.h` 的 `DrizzleConfig::threads` 缺省为 `0`，其注释写明 `0 = 自动 omp_get_max_threads`；
+  ② 帧级轴驱动路径上无任何赋值覆盖该缺省（`module_adapters.cpp` 内无 `cfg.threads = …`）；
+  ③ `drizzle_engine.cpp` 取 `num_threads = config.threads > 0 ? config.threads : omp_get_max_threads()`，
+  而每个帧级 worker 线程在进入 drizzle 前先执行 `omp_set_num_threads(inner_omp)`；
+  `omp_get_max_threads()` 返回当前任务 `nthreads-var` 的值，故此处恰为 `inner_omp`。
+  另：实现把 `kScratchPoolCap` 的缺省置为 `num_threads`，故「不设环境变量」本身就取到 `K = num_threads`，
+  它是缺省策略；当 `num_threads = inner_omp` 时也恰是该模型达到帧内预算宽度的最小槽数，不由此证明全系统性能最优。
+- **适用域**：本条只覆盖**由 `p1_parallel_for` 驱动**的 drizzle 路径。不经帧级轴调用 drizzle 时，
+  `omp_get_max_threads()` 取线程默认 ICV，`num_threads` 与 `inner_omp` 不必相等，本条不成立；
+  此时 `K = num_threads` 成立与否取决于 `num_threads ≥ inner_omp` 是否碰巧成立，不是本条保证的。
+
+**等价形态的算例**（补齐全部参数，使「标定形态」与算例同面）：取 `L = 16`、`n = 2`、`K = 2`
+（本机标定形态），则 `F = min(16, 闸门) = 2` ⇒ `in_flight = min(2, 2) = 2` ⇒ `I = max(1, 16/2) = 8`，
+`W_eff = 2 × min(8, 2) = 4`。把 `K` 由 `2` 提到 `num_threads = 8` 后 `W_eff = 2 × min(8, 8) = 16`
+—— 同一组 `(n, L, F, I)` 下只改 `K` 即取到满宽，总份数 `in_flight × K = 2 × 8 = 16 = lease` 未越界。
+反之，若形态为 `I = 2`（例如 `L = 8`、`in_flight = 4`），则 `num_threads = 2`，
+`K = 2` 与 `K = 4` 等价（后者被 `min(num_threads, kScratchPoolCap)` 截回），提高 `K` 无效 ——
+可见 `K = num_threads` 的收益**依赖 `in_flight` 落在哪个档**，不是单调的。
+
+**槽数对科学结果的验证要求**：对照 `K=2` 与 `K=num_threads`
+时，应固定输入与二进制，比较逐 leaf 转储 `.canon` 与 `.norm.hiss` 的科学值；若声明确定性逐位一致，还须比较 sha256
+（256×1024 高瘦帧 / 64 stripe / FP32+FP64 / `taskset` 预算 1,2,4,8,16 / 每预算两轮重复）；
+另有同二进制多档轴形态 A/B 下全部产品**逐位相同**的判据。
+相应复现执行器未随本文提供；只有代码注释或报告引用时不能登记为已执行。需要评估实际生产路径时，应补可取得的输入、命令与输出。
+内存代价：每份额外 scratch 的增量落实验域登记。
+
+## 关联锚
+
+- 编排参数语义与轴分配不变式：`../architecture/DATA_FLOW.md`。
+- 跨帧零浮点归约（帧结果按下标写各自槽位、join 后帧序归约）：
+  `lib/infrastructure/scheduler/src/module_adapters.cpp`。
+- 生产实现的 z 映射按 `s` 互斥、祖先归约是互不相交的散射（不存在跨瓦片求和形态）：
+  `lib/infrastructure/aio/src/hips/aio_hips_writer.cpp`（确定性注入面注释）。
+- 编排/内存实测读数与拟合：`实验/engineering-evidence/l2_performance/`。
+
+机器 schema：`eng/contracts/schemas/perf_gate_criteria.schema.json`、`eng/contracts/schemas/monitor_field_semantics.schema.json`；判据阈值唯一数值源 = `eng/contracts/resource_gate_v1.json` 的 `compute` 块。
+
+## L2 冻结判据（四条；裁决强度逐条不同）
+
+| # | 判据 | 阈值 | enforcement（唯一数值源逐键给出） | 违规处置 |
+|---|---|---|---|---|
+| 1 | 平均 CPU 利用率 | ≥ 0.85 | `record_and_justify` | 记录 + 超标登记 |
+| 2 | 利用率 p50 | ≥ 0.90 | `record_and_justify` | 记录 + 超标登记 |
+| 3 | 达标样本占比（利用率 ≥ 0.85 的采样窗比例） | ≥ 0.70 | `record_and_justify` | 记录 + 超标登记 |
+| 4 | 无「连续 ≥10 s 且利用率 <60% 的低利用窗」（无就绪积压同样计违规） | 无 | `hard_fail` | red |
+
+- **enforcement 取自唯一数值源，不得在文档侧升级或降级**：`eng/contracts/resource_gate_v1.json` 的
+  `compute.mean_utilization_enforcement`、`compute.p50_utilization_enforcement`、
+  `compute.per_sample_enforcement` 三键同为 `record_and_justify`，只有
+  `compute.queue_low_window_enforcement = hard_fail`。数值源给出的理由是：85% 均值门在
+  16-worker 真负载上实测仅 65.09%，未标定前不得硬失败。
+  **本篇不得把这四条整体表述为 fail-closed**：判据 1–3 不改变裁决，判据 4 才进硬失败清单
+  （数值源的 `hard_fail_criteria` 含 `queue_low_window_with_queued_work`）。
+- **适用范围**：产品进程内的资源面**不设门**（数值源 `enforcement.in_process_default = record_only`、
+  `in_process_hard_fail = retired`）；上述 enforcement 属**外部裁决面**（重计算资源门检查与发布验收），
+  其退出码是外部程序的退出码，不是产品命令行退出码。内存、CPU、线程均不在产品面设门。
+- 判据阈值本身**保持事前冻结值**（唯一数值源同上）；硬件/算法上限只作证据化上限随判据登记，不 waiver。
+- **定义与适用域（自洽说明）**：`utilization = busy_cpu_seconds / (window_seconds × n_workers)`；
+  适用域 = 生产重计算面、`effective_cpus ≥ 2` 且采样区间 > 10 s（数值源 `applicability` 的
+  `min_effective_cpus = 2`、`min_active_window_seconds_exclusive = 10`）；低于该域记
+  `not_applicable`，且该分类**不是豁免**。分母取 `granted_workers_peak`，哨兵 0 不得用配置预算回填。
+  **验证方式** = 已归档运行证据回放与红绿双向自测，均由人读对抗审核与实验单元执行，
+  **本条不设机器执行面**；`L2-FROZEN-GATE-REPLAY` 在现行树中**无执行器**，判据由人读判读。
+
+## 测量口径（冻结）
+
+- **采样窗**：固定长度窗口（默认 1 s）内的 CPU 时间占比；`utilization = busy_cpu_seconds / (window_seconds × n_workers)`；
+- **测量面**：进程级 `/proc/self/stat`（Linux）/ 等价的进程 CPU 时间（Windows）；不含 I/O 等待；
+- **积压定义**：待处理任务队列非空且无 worker 空闲；就绪线程判据必须同时满足
+  `> 已分配容量核数` 与 `≥ 2`（数值源 `queued_work_predicate`、`queued_work_min_runnable_threads`）；
+- **样本集合**：同一 registry SHA 下的完整运行；跨 SHA 不比较；
+- **回放**：已归档运行数据必须能被同一检查器重放并给出与当时一致的判定。
+  `L2-FROZEN-GATE-REPLAY` 当前**无执行器**，本条由人读判读，不写成可复跑命令。
+
+## worker_balance 指标（正确算法）
+
+```text
+utilization_pct = 100 × mean_over_windows( busy_workers_in_window / n_workers )
+```
+
+- 判据算法必须与负载相关：「0.5 × 100」式常量与「(min+max)/2」式恒值算法一律判红；
+- 判据：合成两组不同负载必须给出**不同**输出（`WORKER-BALANCE-METRIC-REPLAY` 负例）。
+  该判据当前**无执行器**，由人读判读。
+
+## 监控字段语义（二选一落地，冻结为「真强制」）
+
+| 字段 | 语义（冻结） | 执行 |
+|---|---|---|
+| `requires_monitor` | 声明该检查**必须**有监控证据（CPU/RSS/时长采样） | **真强制**：声明为 true 而监控证据缺失/为空/不可解析 ⇒ **判红**（fail-closed）；判定只走具名分支（`else PASS` 属未登记形态） |
+| `mutates_workspace` | 声明该检查**会改写工作区**（如生成产物、改配置） | **真语义**：为 true 时检查前后工作区指纹必须**可解释**（改动面 = 声明的 outputs）；指纹对比是唯一判据（「跳过 git 对比」属未登记形态） |
+
+- `requires_monitor` 声明逐个核对执行语义；采样隔离见 `../testing/VALIDATION_EVIDENCE.md`；
+- 语义是**真强制**，不改名为 `monitor_capable`；改名属合同变更，走变更流程。
+
+## fail-closed 普查（全部判据）
+
+每条判据必须对三种情况判红：**缺失证据** / **坏证据（不可解析、空文件）** / **无输出**；
+普查表见 `实验/engineering-evidence/release-05/FAILCLOSED_SURVEY.md`。
+
+## 基准口径
+
+同一机器、同一数据、同一 config，每 benchmark ≥3 次，记录 median/p95。
+基准数据：
+
+```text
+Phase1 小真实帧 / 代表性完整帧
+Phase2 t4 overlap / GC 3-panel
+Browser GC wide / pan / zoom / STF
+```
+
+实测读数与逐档墙钟落 `实验/engineering-evidence/`（实测类证据的唯一留档区，
+登记口径见 `../../ACSD_DESIGN.md` 的 I/O 与原子产品一章）。
+
+优化类结论必须同时满足：
+
+- 优化前后 science 输出 hash/数值等价；
+- 无 >5% 无解释总体回退；
+- 未安全优化项标注 `NO_SAFE_OPTIMIZATION_FOUND`。
+
+**现行基线由实验域给出**：本篇不复制任何基线数值；引用基线必须给出 `实验/engineering-evidence/`
+下的落位件名与该件的重复次数口径（≥3 次、记 median/p95）。未落位件名的数值不得写入本篇。
+
+## 参考文献
+
+[1] [数据流与并行轴](../architecture/DATA_FLOW.md)。
+
+[2] [数值标准](../standards/NUMERIC.md)。
+
+[3] [生产构建图](../build/BUILD_GRAPH.md)。
+
+[4] [测试标准](../testing/TEST.md)。
+[5] [噪声与参考精度](../../science/noise_snr/NOISE_SNR.md)。
+[6] [ACSD 最高设计](../../ACSD_DESIGN.md)。
+
+===== END SOURCE =====
