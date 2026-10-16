@@ -14,6 +14,7 @@ from rewrite_storage import DOCUMENTS as STORAGE_DOCUMENTS
 from rewrite_support import DOCUMENTS as SUPPORT_DOCUMENTS
 from rewrite_mosaic_reducers import DOCUMENTS as MOSAIC_REDUCER_DOCUMENTS
 from rewrite_detection import DOCUMENTS as DETECTION_DOCUMENTS
+from rewrite_astrometry_photometry import DOCUMENTS as ASTROMETRY_PHOTOMETRY_DOCUMENTS
 
 ROOT = Path(__file__).resolve().parents[3]
 UNIT = ROOT / '实验/documentation-refactor'
@@ -67,6 +68,7 @@ REWRITTEN.update(STORAGE_DOCUMENTS)
 REWRITTEN.update(SUPPORT_DOCUMENTS)
 REWRITTEN.update(MOSAIC_REDUCER_DOCUMENTS)
 REWRITTEN.update(DETECTION_DOCUMENTS)
+REWRITTEN.update(ASTROMETRY_PHOTOMETRY_DOCUMENTS)
 REVIEWED = {
     'docs/science/unified/UNIFIED_SCIENCE_MODEL.md',
     'docs/science/unified/DATA_SEMANTICS.md', 'docs/science/unified/SCIENCE_SCOPE.md',
