@@ -9306,6 +9306,40 @@ Result<void> p1_op_drizzle(const Json& doc, Json* man) {
             std::string pwhy;
             preq.have_psf = acsd::phase1::precision::frame_psf_sigma_px(
                 sj, p1_frame_key(lp), &preq.psf_sigma_px, &pwhy);
+            // PSF.md §4 空间模型顶点: 本帧 psf_params 行（p1_sources.json 只含
+            // 拟合成功行 ⇒ 已过质量过滤; sx/sy/θ 的规范化在 spatial_psf 模块内）。
+            // theta 原样传入（弧度, 未规范化; 模块内做 mod π 与轴约定归约）。
+            for (const auto& fr : sj.at("frames")) {
+              std::string file = fr.value("file", std::string());
+              for (const char* pfx : {"cleaned_", "calibrated_",
+                                      "photoapplied_"}) {
+                const std::size_t n = std::strlen(pfx);
+                if (file.rfind(pfx, 0) == 0) { file = file.substr(n); break; }
+              }
+              const std::size_t dot = file.find_last_of('.');
+              if (dot != std::string::npos) file = file.substr(0, dot);
+              std::string sane;
+              for (char c : file) {
+                const bool ok = (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') ||
+                                (c >= '0' && c <= '9') || c == '_' ||
+                                c == '-' || c == '.';
+                sane.push_back(ok ? c : '_');
+              }
+              if (sane != p1_frame_key(lp)) continue;
+              const auto rows = fr.find("psf_params");
+              if (rows == fr.end() || !rows->is_array()) break;
+              for (const auto& p : *rows) {
+                acsd::psf::PsfVertex v;
+                v.x = p.value("cx", 0.0);
+                v.y = p.value("cy", 0.0);
+                v.sx = p.value("sx", 0.0);
+                v.sy = p.value("sy", 0.0);
+                v.theta = p.value("theta", 0.0);
+                v.star_id = preq.psf_vertices.size();
+                preq.psf_vertices.push_back(v);
+              }
+              break;
+            }
           } catch (const std::exception&) { preq.have_psf = false; }
         }
       }

@@ -235,3 +235,39 @@ output_dir 文件约定, 无内存块传递 ⇒ typed 迁移 = descriptor/IR/reg
   wr inputs 同步 ⇒ 调度图可见该数据流（此前只存在于注册表文本）
 - 验证: `pytest eng/tests/integration/test_registry_code_parity.py` 失败集与
   基线**逐条一致**（12 项既有, 0 新增）; 生产 E2E exit=0（见 run_p5c.log）。
+
+## 8. P5 空间 Moffat4 模型（PSF.md §4 基础完成模型; 生产已接线）
+
+新增 `lib/algorithms/psf/{include/acsd/spatial_psf.h,src/spatial_psf.cpp}`
+（Delaunay Bowyer–Watson + 重心凸组合 + 顶点规范化）, CMake 目标
+`acsd_p1_dpsf` 增源; normalize_precision 按控制点优先用空间模型, 凸包外/无
+顶点回退帧常 σ 并在 support note 登记 `psf_model=`; drizzle 节点从
+p1_sources.json 提取本帧 psf_params 顶点（p1_sources 只含拟合成功行 ⇒ 已过
+质量过滤; star_id 用行序下标）。
+
+验证（`code/verify_round5_spatial_psf.cpp`, evidence/verify_round5_spatial_psf.log）:
+- 规范化恒等: (sx,sy,θ) 与 (sy,sx,θ+π/2) 逐像元响应**逐位相同**（rel=0）;
+  θ mod π 归约精确; 轴交换+π/2 后参数一致
+- 顶点命中: λ=(1,0,0), 响应 == 单体响应; 质心: λ=1/3, 响应 == 三顶点平移后
+  算术平均（rel 2.9e-15）
+- 凸包外: 具名 outside_hull 拒绝（不外推）
+- 518 颗真实星 ⇒ 1017 个三角形
+- **留一法（13 颗留出星）: L1 模板失配 mean=0.135, worst=0.266** —— 对比圆对称
+  帧常模型的逐点失配 median 0.470（§6.2）⇒ 模板保真度改善约 3.5 倍
+
+生产 E2E（run_p5d_spatial_psf.log, exit=0; 64/64 available）:
+- 63/64 控制点 psf_model=spatial_delaunay_barycentric; 1 个
+  frame_constant_median_sigma_fallback_outside_hull（凸包外, 如实登记）
+- ctrl0 `p0_r0`: V_F 5439.96409 → **5006.86906**, SNR_ref 13.55820 → **14.13243**
+  （秩仍 627; 局部椭圆模型比几何平均圆模型更集中 ⇒ 信息量更高, 方向符合预期）
+- 帧摘要 SNR: 14.70886 → **14.02998**; 逐点 V_F ∈ [3489, 6460],
+  SNR_ref ∈ [12.44, 16.93]
+- sidecar 独立重算（SVD 路径）: 64 ok / 0 failed, 秩一致 63/64（near-null
+  p3_r0 同上登记）, 帧摘要 rel 0.00
+- 回归: 单元层 159/160（唯一红项 quantization.s12 为既有）; schema 一致性 18/18
+
+**参考精度口径变化（前台知悉）**: 本轮起 reference SNR 使用逐位置椭圆 Moffat4
+（PSF.md §4 基础空间模型）, 不再是帧中位圆 σ 具名近似。新旧数值差（本帧
+−8% V_F / +4% SNR_ref at ctrl0; 帧摘要 −4.6%）是 PSF 模型保真度变化, 不是
+求解器变化; 空间模型的模板失配已达留一法定量（0.135 L1）, 但 SED 参考通带
+与 master covariance 尚未闭合, 参考精度保持 approximate 定位不变。
