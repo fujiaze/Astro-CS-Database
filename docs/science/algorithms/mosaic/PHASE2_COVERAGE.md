@@ -6,11 +6,11 @@
 > 三概念分离权威=SCI-INT-001（docs/science/INTEGRATION.md，FROZEN，共享引用不改动）；
 > 处理链位置=SCI-SCOPE-001 §处理链第 5 步（coverage union 为 Phase2 首节点）。
 > 本域零SCI层改动。
-> 下游: DATA-COV-001（`docs/detail/registry/acsd.phase2.coverage.md`）、API-COV-001（PUBLIC_API）、
+> 下游: DATA-COV-001（`docs/detail/mosaic/modules.md`）、API-COV-001（PUBLIC_API）、
 > MOD-acsd-phase2-coverage（registry）
 > 唯一权威生产源: lib/algorithms/coverage/src/coverage.cpp（455 行，复测）+ 唯一权威签名头
 > lib/algorithms/coverage/include/astro/phase2/coverage.h（172 行，同上）；取值与签名一律以本头文件为唯一来源。
-> 矩阵行: docs/engineering/governance/TRACEABILITY.md「逐模块追溯台账（人读正本）」一节
+> 矩阵行: docs/engineering/governance/DOCUMENT_GOVERNANCE.md「逐模块追溯台账（人读正本）」一节
 > MOD-acsd-phase2-coverage（matrix P2-COV，legacy_paths=lib/algorithms/coverage coverage
 > sources，迁移目标 acsd_p2_coverage.dll，module_id=acsd.p2.coverage）。
 
@@ -244,7 +244,7 @@ p2_coverage_build(hips_paths, n_inputs, out):
 
 - API-COV-001（docs/engineering/api/PUBLIC_API.md）: p2_coverage_build/free
   2 导出 + 两阶段协议 + P2CoverageResult 所有权。
-- DATA-COV-001（docs/detail/registry/acsd.phase2.coverage.md）: 输入 HiPS 树
+- DATA-COV-001（docs/detail/mosaic/modules.md）: 输入 HiPS 树
   与输出 MOC/逐帧元信息的单位/dtype/shape/invalid 唯一权威。
 - API-P2-001（docs/engineering/api/PUBLIC_API.md，FROZEN）: 逐函数
   并发五字段（p2_coverage_build/free: yes/no(独立对象)/none/无/TST-COV-*）
@@ -404,5 +404,5 @@ status 语义: 0=ok；错误路径部分分支置 1（`lib/algorithms/coverage/s
 
 - 球面交叠/覆盖几何：Project-defined（本文件 §2/§7）；独立几何 Oracle 可用 astropy-healpix（BSD-3-Clause）与 Górski et al. 2005, ApJ 622, 759。
 - 连通分量分解：Tarjan 1972, SIAM J. Comput. 1, 146（DOI 10.1137/0201010）；Hopcroft & Tarjan 1973, Comm. ACM 16, 372。
-- coverage 非权重：统一科学模型 [S-9]「公式与推导」一节 与 `docs/detail/registry/acsd.phase2.coverage.md`「职责与明确非职责」一节；权威语义在本文件 §7 负向条款。
+- coverage 非权重：统一科学模型 [S-9]「公式与推导」一节 与 `docs/detail/mosaic/modules.md`「职责与明确非职责」一节；权威语义在本文件 §7 负向条款。
 - MOC 域表达：IVOA MOC 1.0（https://www.ivoa.net/documents/MOC/）。

@@ -21,10 +21,10 @@
   status。实现=reducer 无知策略（policy/reducer 分离冻结）。
 - **非目标**：不决定排异/eligibility gather（SCI-REJ/P2-REJ）；不做
   权重策略（权重=外部 numeric weights，构造在 Stage2）；不输出
-  variance/ivar 产品（ivar 为输入侧权重语义，`docs/science/unified/DATA_SEMANTICS.md`「方差与逆方差的三态编码」一节；端口表见 `docs/detail/registry/acsd.phase2.integrate.md`）；
+  variance/ivar 产品（ivar 为输入侧权重语义，`docs/science/unified/DATA_SEMANTICS.md`「方差与逆方差的三态编码」一节；端口表见 `docs/detail/mosaic/modules.md`）；
   不做马赛克编排/逆归一化（Stage2 域）；无内部并行（像素级纯函数）。
 
-## 2 符号与单位（权威=本表 + `docs/detail/registry/acsd.phase2.integrate.md`）
+## 2 符号与单位（权威=本表 + `docs/detail/mosaic/modules.md`）
 
 | 符号 | 含义 | 单位/dtype | 锚 |
 |---|---|---|---|
@@ -52,7 +52,7 @@
 >    2 份 `ADU/px^2`（手工语料）、**零份裸 `ADU`**。
 >
 > ⇒ **本表按面亮度口径判读**（与`docs/science/algorithms/mosaic/PHASE2_REJECTION.md` [A-2]「逐公式定义」一节、
-> `docs/science/algorithms/PHASE2_MOSAIC_WRITE.md` 一致）。`docs/detail/registry/acsd.phase2.integrate.md`
+> `docs/science/algorithms/PHASE2_MOSAIC_WRITE.md` 一致）。`docs/detail/mosaic/modules.md`
 > 的输入/输出端口面若给出像素域 ADU 字面读法，以本表的面亮度口径为准。
 
 权重语义（`lib/algorithms/coverage/include/astro/phase2/integrate.h` 注释冻结）: 权重是 Phase2 按该天球像素
@@ -161,7 +161,7 @@ eligibility（逐候选 i，候选索引固定序）:
   "support 唯一 canonical reducer（max accepted support）由
   p2_integrate_pixel 计算，Stage2 只消费"——**调用方的用法 = 只消费该值，不做二次
   max/mean**）、large_scale 二次积分（以上均在 `lib/algorithms/coverage/tools/stage2.cpp`）。逆归一化
-  `area=support_out×A_cell`、`flux=signal×area`（两处，同文件）在 Stage2 域（`docs/detail/registry/acsd.phase2.write.md`）。
+  `area=support_out×A_cell`、`flux=signal×area`（两处，同文件）在 Stage2 域（`docs/detail/mosaic/modules.md`）。
 - **ACR 加速（`lib/algorithms/coverage/src/acr_kernels.cpp`）**: process_pixel
   （P2PixelStack 构造、p2_integrate_pixel 调用、失败清零
   与 Stage2 `(status==0)?signal:0` 同型）；缓冲布局 frame-major。
@@ -190,7 +190,7 @@ eligibility（逐候选 i，候选索引固定序）:
 - 本层的锚一律给到文件/符号级；外部文档给出的行号区间与实测文件长度不符时，
   以本文档 §3 为准（语义一致不受影响）。
 
-## 8 单位与 dtype 登记（唯一权威=`docs/detail/registry/acsd.phase2.integrate.md`）
+## 8 单位与 dtype 登记（唯一权威=`docs/detail/mosaic/modules.md`）
 
 - signal: ADU（f64 输出；写盘 f32/f64 由 Stage2 precision 决定）；
   weights: 1/ADU²（本层仅数值域，与无量纲量各自独立）；support: 无量纲
@@ -250,7 +250,7 @@ eligibility（逐候选 i，候选索引固定序）:
   `{w=1,1,0}`、全 accepted，必须输出 `support=0.9`；置于分支之后的实现输出
   `support=0.3` ⇒ 判红（证明该判据有判别力）；两臂 `signal` 逐位相同（=11），
   即 support 与 signal 正交。
-- **约束（`DISP-P2INT-002` 面）**：`docs/science/integration/INTEGRATION.md` [S-1]「判据与误差」一节、`docs/detail/registry/acsd.phase2.integrate.md`的错误/边界面
+- **约束（`DISP-P2INT-002` 面）**：`docs/science/integration/INTEGRATION.md` [S-1]「判据与误差」一节、`docs/detail/mosaic/modules.md`的错误/边界面
   与 ``lib/algorithms/coverage/include/astro/phase2/integrate.h`` 的文本口径必须同为 `max_{accepted} support[i]`，
   **该口径即唯一口径**。
 
@@ -328,11 +328,11 @@ eligibility（逐候选 i，候选索引固定序）:
 
 - 实现: lib/algorithms/coverage/src/integrate.cpp（89 行）+
   lib/algorithms/coverage/include/astro/phase2/integrate.h（83 行）。
-- 合同: DATA-P2-INT（`docs/detail/registry/acsd.phase2.integrate.md`）/ API-P2-INT-001
+- 合同: DATA-P2-INT（`docs/detail/mosaic/modules.md`）/ API-P2-INT-001
   （PUBLIC_API.md）/ TEST-P2-INT-001（MISSING，[S-4]「推导补遗」一节 设计冻结）。
-- 交叉: `docs/detail/registry/acsd.phase2.integrate.md`（手写合同页）+
+- 交叉: `docs/detail/mosaic/modules.md`（手写合同页）+
   lib/algorithms/integration/ 三件套。
-- 消费者: stage2.cpp（`docs/detail/registry/acsd.phase2.write.md` 域）/ acr_kernels.cpp
+- 消费者: stage2.cpp（`docs/detail/mosaic/modules.md` 域）/ acr_kernels.cpp
   （ACR 域）/ `lib/infrastructure/scheduler/src/module_adapters.cpp` descriptor 占位。
 
 ## 14 SIMD 安全、取消点与复杂度
@@ -349,7 +349,7 @@ eligibility（逐候选 i，候选索引固定序）:
 > 本文引用上游正本（论文式编号，正文引用处均已改为自然语言节名，不再使用跨文档 §N 跳转）：
 > - [D-1] docs/ACSD_DESIGN.md（最高设计）。
 > - [S-1] docs/science/integration/INTEGRATION.md（集成科学正本 SCI-INT-001）。
-> - [S-4] docs/detail/registry/acsd.phase2.integrate.md（相关科学正本）。
+> - [S-4] docs/detail/mosaic/modules.md（相关科学正本）。
 > - [U-1] docs/science/unified/DATA_SEMANTICS.md（数据语义正本）。
 > - [A-2] docs/science/algorithms/mosaic/PHASE2_REJECTION.md（排异算法分册）。
 

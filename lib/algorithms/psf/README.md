@@ -234,7 +234,7 @@ P14 起 `p1_op_noise` 的 SNR 样本 = `DATA-P1-SOURCES.sources` 的全部测光
   module_adapters.h）直接调用它，断言全量拟合仍能跑出真实结果。
 - 未来启用接线要点（一段话）：把 `kPrecisePsfEnabled` 置 true（或把节点
   `psf.max_stars` 置 0 并把光测光口径改为 PSF 测光），同步在 DATA-P1-PSF
-  （`docs/detail/registry/acsd.phase1.star-psf.md`「输入输出端口、DATA、单位、坐标、invalid」一节）、registry `acsd.phase1.star-psf`、
+  （`docs/detail/normalize/modules.md`「输入输出端口、DATA、单位、坐标、invalid」一节）、registry `acsd.phase1.star-psf`、
   module_ports.registry.json 与 `psf_mode` 字段登记由 fast 升 precise，
   并按 §10.5 重评资源门禁（全量拟合单帧 >150 s）与星↔行 compact 映射（B2-A2
   语义不变）。

@@ -230,7 +230,7 @@ sdet_detect_impl(image, w, h, params):            # sdet_api.cpp（模板双实�
   PHASE1_API_V1 §2 表行 `sdet_create/destroy/detect/detect_ex`（handle 级
   并发合同）。
 - TST: 本页保留测试设计参考；是否执行及其结果必须由对应运行记录说明。
-- DATA: DATA-P1-STAR（`docs/detail/registry/acsd.phase1.star-detection.md`，star_det v1 [N,6] 权威块十数组语义）。
+- DATA: DATA-P1-STAR（`docs/detail/normalize/modules.md`，star_det v1 [N,6] 权威块十数组语义）。
 
 ## 11 源码行为与实测记录
 

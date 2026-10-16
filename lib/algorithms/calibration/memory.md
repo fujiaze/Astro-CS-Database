@@ -7,7 +7,7 @@
   （acsd.p1.calibration / acsd_p1_calibration.dll 目标）。
 - 产物: docs/science/algorithms/CALIBRATION_ALGORITHMS.md 重写为 ALG-CAL-001..006
   （逐公式源码锚定 + TEST-CAL-DESIGN-001 设计与冻结容差 rtol=1e-6/atol=1e-7）；
-  docs/detail/registry/acsd.phase1.calibration.md「输入输出端口、DATA、单位、坐标、invalid」一节（DATA-P1-CAL 端口表）；docs/engineering/
+  docs/detail/normalize/modules.md「输入输出端口、DATA、单位、坐标、invalid」一节（DATA-P1-CAL 端口表）；docs/engineering/
   PUBLIC_API.md（API-CAL-001，12 导出符号 + 缺陷清单）；docs/detail/registry/
   calibration.md 事实修订；本 README/module.yaml 重写与新建；
   TRACEABILITY_SPEC §9 行 MOD-acsd-phase1-calibration 更新

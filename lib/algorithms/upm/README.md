@@ -37,8 +37,8 @@
   → ALG-P2-UPM-IMPL-001（docs/science/algorithms/PHASE2_UPM_IMPL.md，
   P2-UPM-DOC 新建，兼承接 ALG-UPM-001 权威推导（docs/science/algorithms/
   UPM_SOLVER.md）与 ALG-UPM-CONTROL-IVAR-001 control-ivar 权重子面）
-  → DATA-P2-UPM（`docs/detail/registry/acsd.phase2.upm-fit.md`「输入输出端口、DATA、单位、坐标、invalid」一节，fit 侧）+ DATA-P2-COR
-  （`docs/detail/registry/acsd.phase2.upm-apply.md`「输入输出端口、DATA、单位、坐标、invalid」一节，apply 侧 corrected 输出）/
+  → DATA-P2-UPM（`docs/detail/mosaic/modules.md`「输入输出端口、DATA、单位、坐标、invalid」一节，fit 侧）+ DATA-P2-COR
+  （`docs/detail/mosaic/modules.md`「输入输出端口、DATA、单位、坐标、invalid」一节，apply 侧 corrected 输出）/
   API-P2-UPM-001（PUBLIC_API "Phase2 UPM 公共消费面"节）+
   API-P2-001（PHASE2_API_V1 编排上游，引用不改动）→
   TEST-P2-UPM-001（fit）/ TEST-P2-UPM-002（apply）（登记面=
@@ -100,7 +100,7 @@
   upm.cpp）+ :454 acsd_phase2_session STATIC（:458 链接
   acsd_phase2）。
 - entrypoint=MISSING：registry 入口未接（registry 页
-  docs/detail/registry/acsd.phase2.upm-fit.md /
+  docs/detail/mosaic/modules.md /
   acsd.phase2.upm-apply.md 已存在， descriptor 现状为占位词汇，
   见下节）。
 - threading_model=host_executor_lease 为迁移目标合同值（11 号标准
@@ -176,11 +176,11 @@ use_ivar_weight=1 / control_reliability=1.0 / cpu_workers=1）。
 - ALG：docs/science/algorithms/PHASE2_UPM_IMPL.md（ALG-P2-UPM-IMPL-001，
   P2-UPM-DOC 新建）；承接 docs/science/algorithms/UPM_SOLVER.md
   （ALG-UPM-001）
-- DATA：`docs/detail/registry/acsd.phase2.upm-fit.md`「输入输出端口、DATA、单位、坐标、invalid」一节（DATA-P2-UPM）/
-  `docs/detail/registry/acsd.phase2.upm-apply.md`「输入输出端口、DATA、单位、坐标、invalid」一节（DATA-P2-COR）
+- DATA：`docs/detail/mosaic/modules.md`「输入输出端口、DATA、单位、坐标、invalid」一节（DATA-P2-UPM）/
+  `docs/detail/mosaic/modules.md`「输入输出端口、DATA、单位、坐标、invalid」一节（DATA-P2-COR）
 - API：docs/engineering/api/PUBLIC_API.md API-P2-UPM-001；
   API-P2-001（docs/engineering/api/PUBLIC_API.md，编排上游）
-- 模块页：docs/detail/registry/acsd.phase2.upm-fit.md /
+- 模块页：docs/detail/mosaic/modules.md /
   acsd.phase2.upm-apply.md
 - ARCH：ARCH-001
 

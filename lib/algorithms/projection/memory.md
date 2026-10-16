@@ -33,7 +33,7 @@
   由 P3-PROJ-INT 对齐，不入合同。
 - MOD ID 决策: registry 现有行 MOD-acsd-phase3-wcs（单
   descriptor 域），module.yaml id 与之一致；registry 页手写化
-  （docs/detail/registry/acsd.phase3.wcs.md，原 GENERATED
+  （docs/detail/export/modules.md，原 GENERATED
   风格改 ACTIVE_INFORMATIVE 手写合同页，照
   acsd.phase3.writer.md 先例），模块总页新建
   docs/detail/phase3_proj.md。

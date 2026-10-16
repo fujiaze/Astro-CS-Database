@@ -24,14 +24,14 @@
   锚定 + TEST-HIPS-DESIGN-001（§9）+ DISP-HIPS-001..008（§10）。
 - docs/science/unified/DATA_SEMANTICS.md 追加 §12（DATA-P1-HIPS）。
 - docs/engineering/api/PUBLIC_API.md 追加 API-HIPS-001 节（9 符号现状 C API）。
-- docs/detail/registry/acsd.phase1.hips-writer.md 新建。phase3 registry
+- docs/detail/infrastructure/hips_writer.md 新建。phase3 registry
   页 `DATA-HIPS-001` 引用**经查非悬空**：该 ID 是既有自洽语义（matrix
   services-io 行 data=DATA-HIPS-001 VERIFIED、TRACEABILITY_SPEC.md:74
   示例、生产源码 lib/infrastructure/scheduler/src/module_adapters.cpp:300/:323 端口表在用，
   Phase3 通用 HiPS 语义），不属本模块合同、不在本任务域——不改（改动
   会扩 diff 并触碰生产源码）；本模块用 DATA-P1-HIPS（§12），两者并存
   合法。
-- docs/engineering/governance/TRACEABILITY.md「逐模块追溯台账（人读正本）」一节 追加
+- docs/engineering/governance/DOCUMENT_GOVERNANCE.md「逐模块追溯台账（人读正本）」一节 追加
   MOD-acsd-phase1-hips-writer 行（七层 VERIFIED + EVID-MISSING，
   追加不重排）。
 - docs/DOCUMENT_INDEX.yaml 登记 docs/science/algorithms/HIPS_WRITER.md 与

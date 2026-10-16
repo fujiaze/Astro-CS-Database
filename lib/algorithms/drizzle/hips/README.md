@@ -44,7 +44,7 @@ support=covered_area/A_cell）、方差产品（variance=var_num_sum/covered_are
 ivar=1/variance）、低阶 hierarchy tiles 从磁盘聚合、Moc.fits（BINTABLE
 UNIQ）、properties（IVOa 关键字 + ACSD 扩展键）、metadata.fits、
 manifest.json、Drizzle provenance 键（ACSD_DRIZZLE_PIXFRAC/SCALE_ARCSEC，
-Phase2 k_corr 选择输入）。数据语义 DATA-P1-HIPS（`docs/detail/registry/acsd.phase1.hips-writer.md`「输入输出端口、DATA、单位、坐标、invalid」一节）。
+Phase2 k_corr 选择输入）。数据语义 DATA-P1-HIPS（`docs/detail/infrastructure/hips_writer.md`「输入输出端口、DATA、单位、坐标、invalid」一节）。
 
 不负责：tile 累加本身（sumFlux/sumArea/sumVarNum 生成=P1-DRZ drizzle 引擎，
 本模块仅消费 AstroSphereTileView；tile_depth!=9/nside<512 在 sink 层拒绝，
@@ -77,7 +77,7 @@ photometric_status 0=unmatched/1=used/2=rejected，aio_hips.h:74-82）。
 ra/dec deg。所有权：view 数据调用方持有、调用期间有效（writer 同步消费）。
 
 输出（单位/dtype/shape/invalid 全表见
-`docs/detail/registry/acsd.phase1.hips-writer.md`「输入输出端口、DATA、单位、坐标、invalid」一节）：
+`docs/detail/infrastructure/hips_writer.md`「输入输出端口、DATA、单位、坐标、invalid」一节）：
 `<out_dir>/signal|support|variance|ivar/NorderK/DirD/NpixN.fits`（512×512，
 bitpix −32/−64 随 data_type，PIXTYPE=HEALPIX/ORDERING=NESTED/COORDSYS=C/
 NSIDE/FIRSTPIX/LASTPIX cards + DATASUM/CHECKSUM，write_fits_image :171-238）；
@@ -101,11 +101,11 @@ covered_area≤0 或非有限 → signal=NaN、support=0（:476-485）；varianc
 |---|---|---|
 | SCI | SCI-DRZ-001（共享引用，不改 SCI） | docs/science/drizzle/DRIZZLE.md（FROZEN T105 2026-08-23；:130 实现锚 aio_hips_writer finalize_tile；:145 support=D_p 归一语义）；产品语义另见 docs/science/unified/SCIENCE_SCOPE.md:9-10 与读侧消费合同 SCI-P3-001 |
 | ALG | ALG-HIPS-001..005 | docs/science/algorithms/HIPS_WRITER.md（逐公式源码锚定 + DISP-HIPS-001..012） |
-| DATA | DATA-P1-HIPS | `docs/detail/registry/acsd.phase1.hips-writer.md`「输入输出端口、DATA、单位、坐标、invalid」一节（上游 `docs/detail/registry/acsd.phase1.drizzle.md`「输入输出端口、DATA、单位、坐标、invalid」一节）；
+| DATA | DATA-P1-HIPS | `docs/detail/infrastructure/hips_writer.md`「输入输出端口、DATA、单位、坐标、invalid」一节（上游 `docs/detail/normalize/modules.md`「输入输出端口、DATA、单位、坐标、invalid」一节）；
   产品位/ivar 语义（DATA-HIPS-VAR-001/DATA-HIPS-IVAR-001）= `docs/science/unified/DATA_SEMANTICS.md`「方差与逆方差的三态编码」一节；
   帧身份 = `docs/science/unified/DATA_SEMANTICS.md`「帧身份与输入清单摘要」一节 |
 | API | API-HIPS-001 | docs/engineering/api/PUBLIC_API.md（aio_hips.h 9 符号现状 C API；编排级经 API-P1-007 hp_drizzle_run_hips 间接到达） |
-| ARCH/MOD/SRC | ARCH-001 / MOD-acsd-phase1-hips-writer / SRC-HIPS-001 | docs/engineering/governance/TRACEABILITY.md「逐模块追溯台账（人读正本）」一节；SRC 锚 aio_hips.h::9 符号 |
+| ARCH/MOD/SRC | ARCH-001 / MOD-acsd-phase1-hips-writer / SRC-HIPS-001 | docs/engineering/governance/DOCUMENT_GOVERNANCE.md「逐模块追溯台账（人读正本）」一节；SRC 锚 aio_hips.h::9 符号 |
 
 ## 5. 公共入口与符号（API-HIPS-001）
 

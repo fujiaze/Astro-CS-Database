@@ -248,7 +248,7 @@ interpolate_pixels/correct_frame`（cosmetic_corrector.cpp:61-265，经
 > SCI 侧无独立条款（`docs/science/calibration/CALIBRATION.md`「坏点与坏列的可分性」一节只登记坏点检测/修复判据 = ALG-CAL-004）；本族为
 > **Project-defined 实现**，其 `ALG-COS-006` 身份由本节首次落册。
 > **记录范围**：判据形式、`1.482602218505602` 常数、状态位语义、修复算子与**默认参数**按本处源码记录
-> （`docs/detail/registry/acsd.phase1.cosmetic.md` 的坏列检测/修复行），本节只登记事实，不改公式/容差/默认值。
+> （`docs/detail/normalize/modules.md` 的坏列检测/修复行），本节只登记事实，不改公式/容差/默认值。
 
 - 源码锚：`lib/algorithms/calibration/src/cosmetic_corrector.cpp:268-784`。
 - **独立路径**：本节任何函数都不被 ALG-COS-001..005 的函数调用，也不改变其判据/阈值/语义；
@@ -469,7 +469,7 @@ var_out[y][x] = (Σw² · var_in[y][x]) · κ      # 只对被修复列（掩膜
 
 - SCI: [单帧校准与母版不确定性](../../calibration/CALIBRATION.md) 与 [CCD缺陷分册](../../calibration/CCD_DEFECT.md)；
   [S-1]「与上下游的关系」一节坏点稀疏假设、「判据与误差」一节mask极性1=坏点与oracle容差标度）。
-- DATA: DATA-P1-COS（docs/detail/registry/acsd.phase1.cosmetic.md）；上游输入
+- DATA: DATA-P1-COS（docs/detail/normalize/modules.md）；上游输入
   DATA-P1-CAL（[S-4]「推导补遗」一节）。
 - API: API-COS-001（docs/engineering/api/PUBLIC_API.md，ac_correct_frame/
   ac_correct_frame_f64/ac_set_num_threads）；API-P1-002
@@ -485,7 +485,7 @@ var_out[y][x] = (Σw² · var_in[y][x]) · κ      # 只对被修复列（掩膜
 > 本文引用上游正本（论文式编号，正文引用处均已改为自然语言节名，不再使用跨文档 §N 跳转）：
 > - [D-1] docs/ACSD_DESIGN.md（最高设计）。
 > - [S-1] docs/science/calibration/CALIBRATION.md（校准科学正本 SCI-CAL-001）。
-> - [S-4] docs/detail/registry/acsd.phase1.cosmetic.md（相关科学正本）。
+> - [S-4] docs/detail/normalize/modules.md（相关科学正本）。
 > - [S-5] docs/engineering/api/PUBLIC_API.md（相关科学正本）。
 > - [A-1] docs/science/algorithms/normalize/CALIBRATION_ALGORITHMS.md（标定算法分册）。
 

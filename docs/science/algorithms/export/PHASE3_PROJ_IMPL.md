@@ -43,7 +43,7 @@
   phase3_fits 先例新建；lib/phase3_session/ 为会话编排域共享源，
   不整目录归属）。
 - 合同链: SCI-P3-001（共享 FROZEN）→ ALG-P3-PROJ-IMPL-001（本文档，
-  兼承接 ALG-P3-002 本域子面）→ DATA-P3-WCS（`docs/detail/registry/acsd.phase3.wcs.md`）+
+  兼承接 ALG-P3-002 本域子面）→ DATA-P3-WCS（`docs/detail/export/modules.md`）+
   API-P3-PROJ-001（PUBLIC_API.md Phase3 投影公共消费面节）→
   TEST-P3-WCS-001（登记面=TEST-P3-WCS-DESIGN-001 设计冻结 VERIFIED，
   见[S-1]「判据与误差」一节；可执行面升级归P3-PROJ-TEST）；编排面按API-P3-001（p3_session
@@ -425,7 +425,7 @@ G-P1-WCS-BRIDGE / G-P1-WCS-BRIDGE-GLOBAL；推导依据
   建库——均归 P3-PROJ-IMPL/TEST/INT，本合同层不修码。
 - 边界: 不改 vendored 第三方；不改 SCI 公式（§14）；跨域消费
   （p3_session/p3_output）只登记不修；模块页（registry 手写页）=
-  docs/detail/registry/acsd.phase3.wcs.md。
+  docs/detail/export/modules.md。
 
 ## 14 SCI 侧一致性：以独立证据判定，不预设谁为准
 
@@ -447,7 +447,7 @@ G-P1-WCS-BRIDGE / G-P1-WCS-BRIDGE-GLOBAL；推导依据
 > 首批冻结 **TAN / SIN / CAR / AIT / STG / MOL / CEA / ZEA**，每种声明适用域、
 > 奇点、经度 wrap、轴手性、CRPIX/CRVAL/CD/PC/CDELT/CTYPE；新增投影经
 > projection registry 注册并附独立往返 Oracle）+
-> `docs/detail/registry/acsd.phase3.wcs.md`（⑥ 级）+ Calabretta & Greisen (2002) FITS WCS Paper II。
+> `docs/detail/export/modules.md`（⑥ 级）+ Calabretta & Greisen (2002) FITS WCS Paper II。
 > 投影集合按 最高设计 [D-1]「投影算法」一节 的**八投影**为准。
 > **可执行标准**：astropy 7.0.1（WCSLIB）逐点对拍，22 组配置最大球面偏差
 > 6.854e-13°；证据与逐项判据见 `docs/science/projection/HIPS_TO_FITS.md` [S-1]「判据与误差」一节。
@@ -683,16 +683,16 @@ G-P1-WCS-BRIDGE / G-P1-WCS-BRIDGE-GLOBAL；推导依据
 
 | # | 位置 | 现状（实测） | 归属 |
 |---|---|---|---|
-| C1 | `docs/detail/registry/acsd.phase2.write.md:51` | `UnitId::ADU（signal surface brightness）` | ✅ 现行 `UnitId::SURFACE_BRIGHTNESS` |
+| C1 | `docs/detail/mosaic/modules.md:51` | `UnitId::ADU（signal surface brightness）` | ✅ 现行 `UnitId::SURFACE_BRIGHTNESS` |
 | C1b | 同页 `:63-64` / `lib/algorithms/coverage/hips_p2/README.md:100` / `lib/algorithms/coverage/hips_p2/module.yaml:33` | 行锚 `module_adapters.cpp:1166-1188` / `:677-694` 已漂移 | ✅ 现址 `:1040-1057`（`grep -n p2_write_descriptor → :1040`） |
 | **C1a** | `lib/infrastructure/scheduler/src/module_adapters.cpp:1040-1057`（`p2_write_descriptor`） | `mosaic` 端口仍 `UnitId::ADU`（:1049），`integrated` 亦为 `UnitId::ADU`（:1048）；`UnitId::SURFACE_BRIGHTNESS` 枚举已存在但 phase2 未用 | **lib/** ⇒ FIX / P2-XX-INT（本包只登记） |
-| C2 | `docs/detail/registry/acsd.phase2.write.md` 的写出链「逆归一」小节（`acsd.phase2.write.md:41`） | writer 视图中间量 `flux` 与产品语义混淆 | ✅ 已补「该 `flux` 是 writer 视图中间量、落盘值 = `flux_sum/covered_area`」 |
+| C2 | `docs/detail/mosaic/modules.md` 的写出链「逆归一」小节（`acsd.phase2.write.md:41`） | writer 视图中间量 `flux` 与产品语义混淆 | ✅ 已补「该 `flux` 是 writer 视图中间量、落盘值 = `flux_sum/covered_area`」 |
 | C3 | `docs/science/unified/DATA_SEMANTICS.md` [U-1]「面亮度单位的推导」一节 | `ADU surface brightness` 措辞歧义 | ✅ 已明确为 `ADU/sr` 并登记「产品 tile 无 `BUNIT`、properties 无像素语义 provenance」 |
 | **C4** | `lib/phase3_session/p3_session.cpp:166-172,396` + `CMakeLists.txt:759-760` | export **无**输入语义守卫：只透传 BUNIT（缺省 "ADU"）；守卫内核 `p3_rsmp_units.cpp:137-171` 与会话接线层 `p3_export.cpp` **未进构建**（`grep -c p3_export CMakeLists.txt` = **0**） | **lib/** ⇒ FIX / Phase3 export 域（本包只登记；§6.3 生效与否以接线实测为准） |
 | **C5** | `lib/infrastructure/aio/src/hips/aio_hips_writer.cpp` finalize | signal 产品不写 `BUNIT="ADU/sr"`，properties 无 `pixel_semantics`/`pixel_area_power` ⇒ 即使接线，当前产品会被自己的守卫 REJECT | **lib/** ⇒ FIX（本包只登记） |
 | C6 | 上游 P1 产品 | 真实 Phase1 `signal` 含 `±1e14–1e15` 量级值（低覆盖像素分母退化） | P1 域单独处理（登记） |
 | C7 | 实验内部判据（非生产文档） | 预注册把舍入预算 `τ=2e-6` 用于像素化主导的统计量 | 后续实验（登记） |
-| C8 | `docs/detail/registry/acsd.phase2.write.md` | 未说明「输入 support 恒为 1 时 `acsd_support_clamped_pixels` 也非零」 | ✅ 已补注（实测常量场 = 262144） |
+| C8 | `docs/detail/mosaic/modules.md` | 未说明「输入 support 恒为 1 时 `acsd_support_clamped_pixels` 也非零」 | ✅ 已补注（实测常量场 = 262144） |
 | **C9** | `lib/infrastructure/aio/src/hips/aio_hips_writer.cpp:495-499,776-800` | hierarchy 归约在 **f32** 累加器上做：dk=1 逐位精确、dk=9 偏差 **2.5e-3**（合成）/ **3.95e-4**（真实）；`f32_accum_repro.json` 复现发布值到 1.5e-9，float64 理想值差 2.52e-3 | **lib/** ⇒ FIX（本包只登记；修法 = `sumFluxD/sumAreaD` 分支或 Kahan/分块补偿求和） |
 
 - **判据冻结**：`docs/science/PHASE3_HIPS_TO_FITS.md` [S-1]「判据与误差」一节 结论表 + 实验/engineering-evidence/ 的 `results/PREREGISTRATION*`。
@@ -703,7 +703,7 @@ G-P1-WCS-BRIDGE / G-P1-WCS-BRIDGE-GLOBAL；推导依据
 > - [D-1] docs/ACSD_DESIGN.md（最高设计）。
 > - [S-1] docs/science/projection/HIPS_TO_FITS.md（投影导出科学正本 SCI-P3-001）。
 > - [S-4] docs/science/algorithms/common/GATES_AND_TOLERANCES.md（相关科学正本）。
-> - [S-5] docs/detail/registry/acsd.phase3.wcs.md（相关科学正本）。
+> - [S-5] docs/detail/export/modules.md（相关科学正本）。
 > - [A-1] docs/science/algorithms/export/PHASE3_RESAMPLE.md（重采样施工规格分册）。
 > - [U-1] docs/science/unified/DATA_SEMANTICS.md（数据语义正本）。
 

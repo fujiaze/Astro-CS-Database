@@ -38,7 +38,7 @@
 （compute_auto_nside）、FP32/FP64 双精度模板通道、逐 tile SNR 控制点
 （KD-tree IDW 评估器）、HiPS 直写 sink（tile_depth=9，512×512 leaf tile）
 与 legacy HISS 写、Sphere→Plane 反向 drizzle（REV-101..107 球面面积语义）、
-C ABI 门面六导出。数据语义 DATA-P1-DRZ（`docs/detail/registry/acsd.phase1.drizzle.md`「输入输出端口、DATA、单位、坐标、invalid」一节）。
+C ABI 门面六导出。数据语义 DATA-P1-DRZ（`docs/detail/normalize/modules.md`「输入输出端口、DATA、单位、坐标、invalid」一节）。
 
 不负责：S_p=F_p/D_p 面亮度归一与 variance/ivar finalize（astro_image_io
 侧 astro_sphere_sink 传出原始累加量后由 aio_hips_writer finalize_tile
@@ -61,7 +61,7 @@ drizzle_engine.cpp:1567-1574）。文件通道 hp_drizzle_fits_to_ahpx 另接
 可选 SNR/权重 FITS。
 
 输出（单位/dtype/shape/invalid 全表见
-`docs/detail/registry/acsd.phase1.drizzle.md`「输入输出端口、DATA、单位、坐标、invalid」一节）：HEALPix
+`docs/detail/normalize/modules.md`「输入输出端口、DATA、单位、坐标、invalid」一节）：HEALPix
 NESTED tile 累加量（sumFlux/sumArea/sumVarNum 原始和 + nContrib 计数，
 tile 内 leaf 连续数组）经 HiPS 直写（产品 SIGNAL/SUPPORT/variance/ivar）
 或 legacy .hiss；HpDrizzleResult 统计（n_healpix_pixels/n_source_pixels/
@@ -75,10 +75,10 @@ operation_counts.json 剖面（api.cpp:1087-1130）。方差仅当 varianceValue
 |---|---|---|
 | SCI | SCI-DRZ-001 | docs/science/drizzle/DRIZZLE.md（FROZEN T105 2026-08-23；SCI-DRZ-001/014/015/016 集合） |
 | ALG | ALG-DRZ-001 | docs/science/algorithms/DRIZZLE_GEOMETRY.md（逐公式源码锚定 + DISP-DRZ 清单） |
-| DATA | DATA-P1-DRZ | `docs/detail/registry/acsd.phase1.drizzle.md`「输入输出端口、DATA、单位、坐标、invalid」一节（上游
-  `docs/detail/registry/acsd.phase1.calibration.md`「输入输出端口、DATA、单位、坐标、invalid」一节；编排现状引用 DATA-P1-STACK） |
+| DATA | DATA-P1-DRZ | `docs/detail/normalize/modules.md`「输入输出端口、DATA、单位、坐标、invalid」一节（上游
+  `docs/detail/normalize/modules.md`「输入输出端口、DATA、单位、坐标、invalid」一节；编排现状引用 DATA-P1-STACK） |
 | API | API-DRZ-001 / API-P1-007 | docs/engineering/api/PUBLIC_API.md / docs/engineering/api/PUBLIC_API.md（区间 API-P1-001..010） |
-| MOD/SRC | MOD-acsd-phase1-drizzle / SRC-DRZ-001 | docs/engineering/governance/TRACEABILITY.md「逐模块追溯台账（人读正本）」一节；实现源 lib/algorithms/drizzle/healpix_drizzle/（签名源 hp_drizzle_api.h:42-51,62-75,130-140） |
+| MOD/SRC | MOD-acsd-phase1-drizzle / SRC-DRZ-001 | docs/engineering/governance/DOCUMENT_GOVERNANCE.md「逐模块追溯台账（人读正本）」一节；实现源 lib/algorithms/drizzle/healpix_drizzle/（签名源 hp_drizzle_api.h:42-51,62-75,130-140） |
 | TEST | TEST-DRZ-DESIGN-001 | docs/science/algorithms/DRIZZLE_GEOMETRY.md §9（可执行 TEST-P1-DRZ-001 由 P1-DRZ-TEST 落地） |
 
 ## 5. 实现事实（源码核对）
@@ -107,7 +107,7 @@ operation_counts.json 剖面（api.cpp:1087-1130）。方差仅当 varianceValue
   drizzle_engine.cpp:2171-2178）；precision_mode 0/1/-1（-1=读 header
   "PRECISION" KV；**无 KV 时按 `docs/science/algorithms/DRIZZLE_GEOMETRY.md`
   `RESCUE-FD-02` 缺省 FP64（原引「宪章 §5.3」已废止，现行载体即该条 +
-  `docs/detail/registry/acsd.phase1.drizzle.md`「PRECISION」行；**语义不变**），未知 KV/参数值
+  `docs/detail/normalize/modules.md`「PRECISION」行；**语义不变**），未知 KV/参数值
   显式拒绝**）；FP32 累加器真 binary32（门 1e-5）。
 - **生产调用现状**：orchestrator DLL 通道（orchestrator.cpp:3256-3371）
   经函数指针调 `hp_drizzle_run_hips` 直写 HiPS；registry descriptor
@@ -159,7 +159,7 @@ lease；ThreadLease 迁移整改点（P1-DRZ-IMPL）。
   （variance_propagation_test）、reverse false_hole/false_fill=0。
 - 不变量：常量场均匀性、总通量守恒、NESTED 地址往返、1/2/4 线程
   结果一致性、HEALPix 地址 parent/local 位分解。
-- 负面：DATA-P1-DRZ 端口的 invalid 列（`docs/detail/registry/acsd.phase1.drizzle.md`「输入输出端口、DATA、单位、坐标、invalid」一节）+
+- 负面：DATA-P1-DRZ 端口的 invalid 列（`docs/detail/normalize/modules.md`「输入输出端口、DATA、单位、坐标、invalid」一节）+
   参数矩阵逐行断言
   （pixfrac 0/负/>1、RING、多通道、缺 WCS、NaN 面）。
 

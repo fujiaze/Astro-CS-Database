@@ -76,8 +76,4 @@ Drizzle消费本帧已解WCS+SIP以定义真实像元足迹，science_sources与
 
 [4] Astropy. [WCS接口与独立变换](https://docs.astropy.org/en/stable/wcs/index.html)。
 
-## 附录：数值预算记录的边界
-
-保留的桥接预算采用ε≈C_env u sec²γ/s_rad，u=2⁻⁵³；C_env取78（采样最大系数）或128（设计系数），视场参数不超过20°时使用sec²γ≤1.03046。记录在0.18 arcsec/pixel处的区间包络为1.78×10⁻⁸ pixel，按1/s估到0.9 arcsec/pixel为3.56×10⁻⁹ pixel，并据此比较1e−8 pixel目标。相应参考尺度1.79×10⁻³、2.93×10⁻³及0.9 arcsec/pixel都只属于该预算构型。
-
-这些经验系数没有在本页绑定完整证明或复跑载体，不能称全域严格舍入包络。二维方形视场的角点距离、方向条件数和实现运算均须按实际输入复核；量纲式不替代其界限证明。逆多项式阶数5/7、采样网格41²/81²、前向阶数2–3及极区分支45°/85°亦为实现记录，不是SIP或TAN的标准常数。真实无原始WCS的求解记录见[阶段一独立复核](../../../实验/normalize-precision-p5/INDEPENDENT_REVIEW_950C261.md)，其成功范围依该记录的单帧输入解释。
+过程记录与复算示例见[记录](../../../实验/documentation-refactor/docs/ASTROMETRY_BUDGET_RECORDS.md)；正文定义不以未配套复现载体的历史读数作为验证依据。

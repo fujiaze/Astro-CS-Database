@@ -39,7 +39,7 @@ WCS（ipv/gaia_client，消费 star_det 块禁止重检测 orchestrator.cpp:1748
 
 ## 2. 输入 / 输出 ports、DATA ID、单位、dtype、shape、invalid
 
-权威=DATA-P1-STAR（`docs/detail/registry/acsd.phase1.star-detection.md`「输入输出端口、DATA、单位、坐标、invalid」一节）；下表为实现层摘要：
+权威=DATA-P1-STAR（`docs/detail/normalize/modules.md`「输入输出端口、DATA、单位、坐标、invalid」一节）；下表为实现层摘要：
 
 | 端口 | DATA ID | 方向 | 必/可 | 单位 | dtype/shape | invalid |
 |---|---|---|---|---|---|---|

@@ -180,7 +180,7 @@ photometric scale、新 runtime I/O DLL。
   docs/science/algorithms/mosaic/PHASE2_COVERAGE.md（§2 逐公式行号锚 + §11.3
   DISP-COV-001..005 + §11.4 TEST-COV-DESIGN-001）；DATA-COV-001=
   DATA_SEMANTICS.md §19；API-COV-001=PUBLIC_API.md；registry 页
-  docs/detail/registry/acsd.phase2.coverage.md 事实修订 + 矩阵行
+  docs/detail/mosaic/modules.md 事实修订 + 矩阵行
   MOD-acsd-phase2-coverage 更新（SCI/ALG/SRC/TEST 转 Verified）。
 - SCI 层：零改动——SCI-P2-COV-001 指向既有 FROZEN 共享 SCI
   （docs/science/sky/UPM.md §1 覆盖并集 /
@@ -314,7 +314,7 @@ photometric scale、新 runtime I/O DLL。
   `lib/algorithms/coverage/src/upm.cpp` 的收敛面注释（`:293`、`:302`、`:1139`、
   `:1658`、`:2258`、`:2260`、`:2720`）。影响面 = 它被当作「收敛状态枚举 + 相对容差
   尺度」的契约号引用，读者按该 ID 检索不到任何规范条文。现行口径正本 =
-  `docs/detail/registry/acsd.phase2.upm-fit.md`「数值落地口径」一节与
+  `docs/detail/mosaic/modules.md`「数值落地口径」一节与
   `docs/science/algorithms/mosaic/PHASE2_UPM_IMPL.md`「收敛容差与报告字段」一节。
   处置：**不自行改名、不自行立条款**，登记待负责人裁决。
 - **`SCI-UPM-CAP-001`**：`docs/` 全仓零命中——同为无正本承载的契约 ID。出现位置 =

@@ -3,7 +3,7 @@
 > 上游：《ACSD 最高设计》的「软件架构」一章（顶层结构：hips_browser 基建目录；模块与 ABI）、
 > 「项目定位」一章（非目标：Alpha 不含 GUI）、「export：投影导出」一章（`visualization` 模式标注
 > 「不可测量」）
-> 数据正本：docs/detail/registry/acsd.phase1.hips-writer.md（DATA-HIPS-001 端口表，读侧复用；
+> 数据正本：docs/detail/infrastructure/hips_writer.md（DATA-HIPS-001 端口表，读侧复用；
 > 依赖 DATA-HIPS-*）
 > 读侧：infrastructure/aio.md（读侧复用 aio，不复制 reader）
 > 引用规范：[IVOA HiPS 1.0 Recommendation](https://www.ivoa.net/documents/HiPS/)
@@ -30,7 +30,7 @@ OpenGL，STF 显示，可选构建），落地目录 =
 
 - **输入**：HiPS 产品（signal/variance/coverage/...，只读）。
 - **输出**：可视化（渲染图像、导航状态、诊断视图）。
-- 参考：`docs/detail/registry/acsd.phase1.hips-writer.md`（DATA-HIPS-001 端口表：HiPS 产品数据合同，读侧复用）。
+- 参考：`docs/detail/infrastructure/hips_writer.md`（DATA-HIPS-001 端口表：HiPS 产品数据合同，读侧复用）。
 
 ## 4. 算法与公式要点
 

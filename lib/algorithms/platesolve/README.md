@@ -7,10 +7,10 @@
 > 权威来源: SCI=docs/science/detection/ASTROMETRY.md（SCI-WCS-001，FROZEN T102
 > 2026-08-23，共享引用不改动）；ALG=docs/science/algorithms/PLATESOLVE.md
 > （ALG-WCS-001 + §11 逐符号源码锚定）；
-> DATA=docs/detail/registry/acsd.phase1.wcs-platesolve.md「输入输出端口、DATA、单位、坐标、invalid」一节
+> DATA=docs/detail/normalize/modules.md「输入输出端口、DATA、单位、坐标、invalid」一节
 > （DATA-P1-WCS）；
 > API=docs/engineering/api/PUBLIC_API.md（API-WCS-001）；
-> 矩阵行=docs/engineering/governance/TRACEABILITY.md「逐模块追溯台账（人读正本）」一节
+> 矩阵行=docs/engineering/governance/DOCUMENT_GOVERNANCE.md「逐模块追溯台账（人读正本）」一节
 > MOD-acsd-phase1-wcs-platesolve。
 > 唯一权威签名头: lib/algorithms/platesolve/cpp/ipv/include/ipv_api.h（238 行；
 > 禁止手抄他版）。
@@ -51,7 +51,7 @@ star_det 块）；不做图像重采样（drizzle 域）；不做 Gaia 星表缓
 管理（gaia_xpsd_client 域，句柄注入）；不做星表-图像流量定标（P1-PHOT
 域）；不输出逐像素坐标映射网格（仅 FITS WCS 参数化）。
 
-## 3. 输入输出（DATA-P1-WCS，`docs/detail/registry/acsd.phase1.wcs-platesolve.md`「输入输出端口、DATA、单位、坐标、invalid」一节 唯一权威）
+## 3. 输入输出（DATA-P1-WCS，`docs/detail/normalize/modules.md`「输入输出端口、DATA、单位、坐标、invalid」一节 唯一权威）
 
 生产通道（ipv_solve_from_detections_v1，orchestrator.cpp:1967 实调）：
 

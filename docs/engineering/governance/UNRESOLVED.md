@@ -75,7 +75,7 @@ Normalize 的科学、架构、字段和接口以对应正本为准[2–5]：IPV
 
 [6] [文档治理规范](DOCUMENT_GOVERNANCE.md)。
 
-[7] [追溯规范](TRACEABILITY.md)。
+[7] [追溯规范](DOCUMENT_GOVERNANCE.md)。
 
 [8] [Normalize 收敛记录](NORMALIZE_CONVERGENCE.md)。
 

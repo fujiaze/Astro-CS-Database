@@ -23,7 +23,7 @@
   θ=rad、residual_scale=ADU、q_psf=无量纲（均为 double/FLOAT64）。
 - 使用面：LM 拟合参数向量序（常数与维数 `lib/algorithms/psf/src/dpsf_psf.cpp`）、
   [S-1]「公式与推导」一节 伪代码 init/回填、测试oracle（[S-1]「判据与误差」一节解析Moffat4 合成图回收 B,A,cx,cy,sx,sy,θ）。
-- 逐列 dtype/invalid 详见 `docs/detail/registry/acsd.phase1.star-psf.md`（DATA-P1-PSF 端口，
+- 逐列 dtype/invalid 详见 `docs/detail/normalize/modules.md`（DATA-P1-PSF 端口，
   `DPSFFitResult` 逐列面）的生产表布局 B 对照。
 
 ### 1.2 布局 B：legacy orchestrator PSF 块（历史编排序列化序，9 列）
@@ -46,7 +46,7 @@
 - **[7] 列名 `mad` 与语义**：此处是 10–90% 截尾均值 |残差|（`residual_scale`，
   单位 ADU），**不是**中位绝对偏差。`0.7316730952806130` 是独立、固定分布高斯残差的渐近比例；有限样本偏差须按具体秩规则和样本量检验，拟合后相关残差不由该常数保证绝对标度（见[PSF科学分册](../../psf/PSF.md)）。
 - 历史消费者：PHOTOMETRIC 与 `snr_psf_fit_quality`（见 legacy orchestrator 及其旧载体）；
-  逐列 dtype/invalid 权威表见 **`docs/detail/registry/acsd.phase1.star-psf.md` 的
+  逐列 dtype/invalid 权威表见 **`docs/detail/normalize/modules.md` 的
   DATA-P1-PSF 端口输出面**（`DPSFFitResult` 逐列序）
   （本页只作消歧引用，不复制其表）。
 

@@ -43,13 +43,13 @@ team，迁移后由 host 授予）；整 Phase 行为（禁止）。
 输入：全部内存数组，行主序 `idx=y·w+x` 0-based，单位 ADU；
 stack `[n_frames][h][w]` 连续；master_bias/dark/flat 与 light `[h][w]`，
 均可 NULL（dark/bias NULL=不减/不检测，flat NULL=不除；端口登记见
-`docs/detail/registry/acsd.phase1.calibration.md`「输入输出端口、DATA、单位、坐标、invalid」一节，
+`docs/detail/normalize/modules.md`「输入输出端口、DATA、单位、坐标、invalid」一节，
 NULL 退化行为逐行见 `docs/science/algorithms/CALIBRATION_ALGORITHMS.md`
 「边界 / invalid / 退化行为（实现如实）」一节）；K 无量纲（=t_light/t_dark）；
 sigma 参数无量纲（MAD 倍数，<=0 禁用对应检测）；掩码 1=坏点。
 
 输出（单位/dtype/shape/invalid 全表见
-`docs/detail/registry/acsd.phase1.calibration.md`「输入输出端口、DATA、单位、坐标、invalid」一节）：
+`docs/detail/normalize/modules.md`「输入输出端口、DATA、单位、坐标、invalid」一节）：
 
 - master 生成 → `out[h][w]` float32/64（ADU；全 NaN 像素列 → NaN 合法）。
 - `ac_calibrate_frame(+_f64)` → 校准帧（可负，不 clamp 不加 pedestal，
@@ -67,9 +67,9 @@ float32 / f64 ABI double。
 |---|---|---|
 | SCI | SCI-CAL-001 | docs/science/calibration/CALIBRATION.md（FROZEN） |
 | ALG | ALG-CAL-001..006 | docs/science/algorithms/CALIBRATION_ALGORITHMS.md（§3 逐公式源码锚定） |
-| DATA | DATA-P1-CAL | `docs/detail/registry/acsd.phase1.calibration.md`「输入输出端口、DATA、单位、坐标、invalid」一节 |
+| DATA | DATA-P1-CAL | `docs/detail/normalize/modules.md`「输入输出端口、DATA、单位、坐标、invalid」一节 |
 | API | API-CAL-001 / API-P1-001 | docs/engineering/api/PUBLIC_API.md（两者**同面**：calibration 与编排级 P1 入口在同一份合同的分阶段 API 面内） |
-| MOD/SRC | MOD-acsd-phase1-calibration / SRC-CAL-001 | docs/engineering/governance/TRACEABILITY.md「逐模块追溯台账（人读正本）」一节；lib/algorithms/calibration/include/astro_calibration.h（14 AC_API 符号） |
+| MOD/SRC | MOD-acsd-phase1-calibration / SRC-CAL-001 | docs/engineering/governance/DOCUMENT_GOVERNANCE.md「逐模块追溯台账（人读正本）」一节；lib/algorithms/calibration/include/astro_calibration.h（14 AC_API 符号） |
 | TEST | TEST-CAL-DESIGN-001 | docs/science/algorithms/CALIBRATION_ALGORITHMS.md §9（可执行 TEST-P1-CAL-001 由 P1-CAL-TEST 落地） |
 
 ## 5. 实现事实（源码核对）
@@ -136,7 +136,7 @@ SIMD kernel 注册（ISA 迁移由 P1-CAL-IMPL 按约束 C.4-C.8 逐内核 bench
   复算连通域；K 恒等映射。
 - 不变量 I1-I6：常量场、空平场、幂等归一、确定性（1/2 线程 bitwise）、
   负值保留、掩码极性（SCI §7 四门超集）。
-- 负面：DATA-P1-CAL 端口的 invalid 列（`docs/detail/registry/acsd.phase1.calibration.md`「输入输出端口、DATA、单位、坐标、invalid」一节）+
+- 负面：DATA-P1-CAL 端口的 invalid 列（`docs/detail/normalize/modules.md`「输入输出端口、DATA、单位、坐标、invalid」一节）+
   `docs/science/algorithms/CALIBRATION_ALGORITHMS.md`
   「边界 / invalid / 退化行为（实现如实）」一节全表逐行断言。
 - 串并行：1/2/4 线程 bitwise 一致；2 核 ≥1.60 加速比（约束 D.7）；无

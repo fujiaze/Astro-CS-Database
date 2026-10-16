@@ -14,7 +14,7 @@
 > ALG-UPM-001（UPM 拟合，下游消费方）。
 > 实现源: lib/algorithms/coverage/src/sampler.cpp（1544 行）+ 唯一权威签名头
 > lib/algorithms/coverage/include/astro/phase2/sampler.h（278 行，实测）；
-> DATA: DATA-P2-SMP（`docs/detail/registry/acsd.phase2.sample.md`）；API: API-P2-SMP-001
+> DATA: DATA-P2-SMP（`docs/detail/mosaic/modules.md`）；API: API-P2-SMP-001
 > （PUBLIC_API.md）；MOD: acsd.p2.sampling（合同三件套
 > lib/algorithms/sampling/，迁移目标 acsd_p2_sampling.dll 为矩阵合同值
 > 尚未存在，由 P2-SAMP-IMPL 建立；IMPLEMENTED 词由验收在建立后签发）。
@@ -37,7 +37,7 @@ y_ik/σ_ik/snr_ik/support_ik/quality_ik，产出 UPM 联合加性校准的
 - 不解释 ivar 产品的科学权重语义（obs.ivar 仅诊断，弃用不进科学
   权重，upm.h:38-41 冻结）。
 
-## 2 符号与单位（权威=本表 + `docs/detail/registry/acsd.phase2.sample.md`）
+## 2 符号与单位（权威=本表 + `docs/detail/mosaic/modules.md`）
 
 | 符号 | 含义 | 单位/域 | 实现锚 |
 |---|---|---|---|
@@ -59,7 +59,7 @@ y_ik/σ_ik/snr_ik/support_ik/quality_ik，产出 UPM 联合加性校准的
 **单位约束（正向）**：value / uncertainty / σ_bg / y_ik = 面亮度 **ADU·sr⁻¹**；
 control_variance = **(ADU·sr⁻¹)²**；control_ivar = **(ADU·sr⁻¹)⁻²**；
 ra_deg / dec_deg = 度（J2000）；snr / support / quality_flags = 无量纲；
-连续数学定义见 §5，dtype/shape 唯一权威=`docs/detail/registry/acsd.phase2.sample.md`。
+连续数学定义见 §5，dtype/shape 唯一权威=`docs/detail/mosaic/modules.md`。
 
 **适用域与证据**（本条是上表的量纲依据，不是约定）：
 
@@ -815,7 +815,7 @@ lib/algorithms/coverage/CMakeLists.txt:28 的 `P2_ENABLE_OPENMP` option 仅影�
 | per-control `control_reliability`（`geometric_reliability` 为**禁用**旧名）参与归一化 | 采样器不产出 per-control 可靠度；UPM 侧实现为**配置常量 1.0**（`upm.cpp:374/403` 归一化消费） | 不在本模块域（UPM 侧缺陷，已登记 SC-005） |
 | wiki 语义版本 34A532A2...B2EB308 | sampler.cpp:3/:86-87 注释锚定 | 一致 |
 
-## 8 单位与 dtype 登记（唯一权威=`docs/detail/registry/acsd.phase2.sample.md`）
+## 8 单位与 dtype 登记（唯一权威=`docs/detail/mosaic/modules.md`）
 
 - P2ControlObservation 14 字段（upm.h:31-57）：frame_id/control_id/
   leaf_ipix u64；ra_deg/dec_deg/value/uncertainty/snr/ivar/
@@ -823,7 +823,7 @@ lib/algorithms/coverage/CMakeLists.txt:28 的 `P2_ENABLE_OPENMP` option 仅影�
   quality_flags u32；
 - P2SampleStats 10 字段 u64（sampler.h:69-81）；
 - tile payload float32（aio read_tile_f32；:383-389/:417-422）；
-- 输出 dtype/shape/invalid/可空语义唯一权威=`docs/detail/registry/acsd.phase2.sample.md`；
+- 输出 dtype/shape/invalid/可空语义唯一权威=`docs/detail/mosaic/modules.md`；
   本节单位表（[S-5]「输入输出端口」一节）与之一致，冲突以 [S-5]「输入输出端口」一节 为准。
 
 ## 9 边界与退化（matrix 专项 4/5）
@@ -971,7 +971,7 @@ fill）。fixture 由固定 seed 合成 HiPS 树生成，不提交大二进制�
 
 - 上游 SCI: SCI-UPM-001（共享 FROZEN 零改动）；
 - 本层: ALG-P2-SMP-001（本文件）；ALG-UPM-CONTROL-IVAR-001（子面）；
-- 下游 DATA: DATA-P2-SMP（`docs/detail/registry/acsd.phase2.sample.md`）；API: API-P2-SMP-001
+- 下游 DATA: DATA-P2-SMP（`docs/detail/mosaic/modules.md`）；API: API-P2-SMP-001
   （PUBLIC_API.md）；MOD: MOD-acsd-phase2-sample（registry 行，
   合同三件套 lib/algorithms/sampling/）；TEST: TEST-P2-SMP-DESIGN-001
   （[S-1]设计冻结，registry页承载）→ TEST-P2-SMP-001（可执行，
@@ -985,7 +985,7 @@ fill）。fixture 由固定 seed 合成 HiPS 树生成，不提交大二进制�
 > - [S-1] docs/science/sky/UPM.md（信号面科学正本 SCI-UPM-001）。
 > - [S-2] docs/science/noise_snr/NOISE_SNR.md（噪声与信噪比正本）。
 > - [S-3] docs/science/unified/SCIENCE_SCOPE.md。
-> - [S-5] docs/detail/registry/acsd.phase2.sample.md（相关科学正本）。
+> - [S-5] docs/detail/mosaic/modules.md（相关科学正本）。
 > - [S-9] docs/science/unified/UNIFIED_SCIENCE_MODEL.md（相关科学正本）。
 > - [U-1] docs/science/unified/DATA_SEMANTICS.md（数据语义正本）。
 
@@ -995,7 +995,7 @@ fill）。fixture 由固定 seed 合成 HiPS 树生成，不提交大二进制�
 - 稳健尺度/clipping：Hoaglin et al. 1983；Rousseeuw & Croux 1993。
 - 稀疏信号面样条（目标表示）：Duchon 1977（薄板样条）；Wahba 1990, Spline Models for Observational Data, SIAM。
 - var(median)≈πσ²/(2N)：Hoaglin et al. 1983（中位数渐近方差）；本文件 §5.4 承接 ALG-UPM-CONTROL-IVAR-001。
-- SNR 加权采样：统一科学模型 [S-9]「参数与常数」一节；`docs/detail/registry/acsd.phase2.sample.md`（该页「职责与明确非职责」一节载明科学权重一律 `control_ivar`、`SNR²` 为对照臂，与本条标题口径相冲，按 UNRESOLVED-8 待裁）。
+- SNR 加权采样：统一科学模型 [S-9]「参数与常数」一节；`docs/detail/mosaic/modules.md`（该页「职责与明确非职责」一节载明科学权重一律 `control_ivar`、`SNR²` 为对照臂，与本条标题口径相冲，按 UNRESOLVED-8 待裁）。
 - [1] Coupon, J., Czakon, N., Bosch, J., et al. 2017, The bright-star masks for the HSC-SSP survey, [arXiv:1705.00622](https://arxiv.org/abs/1705.00622)（§5.9 星等分档包络与两段指数拟合的依据）。
 - [2] Sandin, C. 2014, The influence of diffuse scattered light I, A&A 567, A97, [arXiv:1406.5508](https://arxiv.org/abs/1406.5508)（§5.9 散射光下限平方反比翼的依据）。
 - [3] Racine, R. 1996, The telescopic point-spread function, PASP 108, 699, DOI [10.1086/133788](https://doi.org/10.1086/133788)（§5.9 光环幂律翼方法证据）。

@@ -280,7 +280,7 @@
 - **库边界精度缺省（无 silent FP32）**: `hp_drizzle_run` 参数
   `precision_mode==-1` 且帧头无 `PRECISION` KV 时取 **FP64**
   （现行载体 = 本条；数据面同源 =
-  `docs/detail/registry/acsd.phase1.drizzle.md` 的「PRECISION」行；**语义不变**）
+  `docs/detail/normalize/modules.md` 的「PRECISION」行；**语义不变**）
   （不再静默 FP32）；帧头显式 `fp32`/`fp64` 生效；未知 KV 值或参数
   非 -1/0/1 → 显式拒绝（返回非零，不写产物）。生产节点仍由
   `drizzle.precision_mode`（0|1）显式门把关。
@@ -387,7 +387,7 @@
 | DISP-DRZ-006 | TileLeafAccumulatorT release 仅 3 字段（`lib/algorithms/drizzle/healpix_drizzle/drizzle_engine.h` 注释） | 实际 4 字段（sumVarNum 为正式产品） | 同一头文件的注释 vs 结构体定义 |
 | DISP-DRZ-007 | SCI[S-1]「判据与误差」一节 方差锚指向 `drizzle_engine.cpp`（该锚所在段已随引擎重构消失） | 锚漂移：现行方差锚在 `astro_sphere_sink.cpp` + aio_hips_writer finalize_tile | `docs/science/drizzle/DRIZZLE.md` vs `lib/algorithms/drizzle/healpix_drizzle/drizzle_engine.cpp` 的锚注释 |
 | DISP-DRZ-008 | poly_clip.h 自述生产重叠面积用途 | PolyClip（平面 S-H/Shoelace）生产 tiled 路径零调用 | poly_clip.h vs `drizzle_engine.cpp` 全文 |
-| DISP-DRZ-009 | SCI-DRZ-001 [S-1]「判据与误差」一节 canonical 核 `w_jp=a_jp/A_drop,j` + 面亮度归一分母 `N_p=Σ_j w_jp·A_pixel,j`（`S_p=F_p/N_p=Σ_j B_j a_jp/Σ_j a_jp`） | **约束（覆盖正向与反向两条路径）**。**正向** `processPixelSharedTiled`：`weight = overlap_area / drop_area`（drop 面积归一，F&H 2002 §2 式(2)–(5)（原引 §7.2 撤换）/ drizzlepac `dover/=jaco`），归一分母 `acc.sumNorm`。**反向** `reverse_drizzle.cpp`：`S_p = Σ_j B_j·a_jp / Σ_j a_jp`（面亮度加权平均，分子分母各自累加后相除）。**禁用**把正向分母换成覆盖面积 `D_p=Σ_j a_jp`：`pixfrac<1` 时偏 `1/pixfrac²`（pf=0.8→+56.25%，与 `1/pf²−1` 逐位吻合）；反向路径若改用非面亮度归一，输出随**源 nside** 变化（实测 nside=16/64/256 偏 −99.98%/−99.70%/−95.23%，`S_p` 与 `B0·A_pixel/A_leaf` 逐位吻合）——两者均为负例判据 | docs/science/drizzle/DRIZZLE.md [S-1]「判据与误差」一节 vs drizzle_engine.cpp `processPixelSharedTiled`（`weight=overlap_area/drop_area` + `sumNorm`）/ `astro_sphere_sink.cpp`（`k=sumArea/sumNorm`）/ reverse_drizzle.cpp（`weight` 累加 + 输出归一）/ `spherical_overlap.cpp` 的 `polygon_area_consistent`；契约 `FZ-FORMULA-DRIZZLE-SB`（docs/science/unified/DATA_SEMANTICS.md [U-1]「面亮度单位的推导」一节 面亮度单位推导；输出面见 `docs/detail/registry/acsd.phase1.drizzle.md`）；回归门 `p1drz_disp009` |
+| DISP-DRZ-009 | SCI-DRZ-001 [S-1]「判据与误差」一节 canonical 核 `w_jp=a_jp/A_drop,j` + 面亮度归一分母 `N_p=Σ_j w_jp·A_pixel,j`（`S_p=F_p/N_p=Σ_j B_j a_jp/Σ_j a_jp`） | **约束（覆盖正向与反向两条路径）**。**正向** `processPixelSharedTiled`：`weight = overlap_area / drop_area`（drop 面积归一，F&H 2002 §2 式(2)–(5)（原引 §7.2 撤换）/ drizzlepac `dover/=jaco`），归一分母 `acc.sumNorm`。**反向** `reverse_drizzle.cpp`：`S_p = Σ_j B_j·a_jp / Σ_j a_jp`（面亮度加权平均，分子分母各自累加后相除）。**禁用**把正向分母换成覆盖面积 `D_p=Σ_j a_jp`：`pixfrac<1` 时偏 `1/pixfrac²`（pf=0.8→+56.25%，与 `1/pf²−1` 逐位吻合）；反向路径若改用非面亮度归一，输出随**源 nside** 变化（实测 nside=16/64/256 偏 −99.98%/−99.70%/−95.23%，`S_p` 与 `B0·A_pixel/A_leaf` 逐位吻合）——两者均为负例判据 | docs/science/drizzle/DRIZZLE.md [S-1]「判据与误差」一节 vs drizzle_engine.cpp `processPixelSharedTiled`（`weight=overlap_area/drop_area` + `sumNorm`）/ `astro_sphere_sink.cpp`（`k=sumArea/sumNorm`）/ reverse_drizzle.cpp（`weight` 累加 + 输出归一）/ `spherical_overlap.cpp` 的 `polygon_area_consistent`；契约 `FZ-FORMULA-DRIZZLE-SB`（docs/science/unified/DATA_SEMANTICS.md [U-1]「面亮度单位的推导」一节 面亮度单位推导；输出面见 `docs/detail/normalize/modules.md`）；回归门 `p1drz_disp009` |
 
 无差异项（核对通过）: F/D/sumVarNum 结构、HP_CIRCUMRADIUS
 _FACTOR=1.25、三层缓冲语义、NESTED 统一、按线程序合并确定性。
@@ -441,7 +441,7 @@ B0=1000、nside=512、W=H=16）：注入态（分母取 A_drop）逐 leaf `S_p/B
 - SCI: SCI-DRZ-001（docs/science/drizzle/DRIZZLE.md，FROZEN；[S-1]「判据与误差」一节 公式、[S-1]「参考文献与参考代码」一节
   不变量、[S-1]「判据与误差」一节验收；集合 SCI-DRZ-014 方差传播 / 015 支撑 /
   016 协方差）。
-- DATA: DATA-P1-DRZ（docs/detail/registry/acsd.phase1.drizzle.md）；上游
+- DATA: DATA-P1-DRZ（docs/detail/normalize/modules.md）；上游
   DATA-P1-CAL（[S-5]「输入输出端口」一节）；编排现状引用 DATA-P1-STACK（descriptor）。
 - API: API-DRZ-001（docs/engineering/api/PUBLIC_API.md）；API-P1-007
   （docs/engineering/api/PUBLIC_API.md，区间 API-P1-001..010 编排合同）。
@@ -455,7 +455,7 @@ B0=1000、nside=512、W=H=16）：注入态（分母取 A_drop）逐 leaf `S_p/B
 > - [D-1] docs/ACSD_DESIGN.md（最高设计）。
 > - [S-1] docs/science/drizzle/DRIZZLE.md（守恒映射科学正本 SCI-DRZ-001）。
 > - [S-4] docs/DERIVATIONS-P3.md（相关科学正本）。
-> - [S-5] docs/detail/registry/acsd.phase1.drizzle.md（相关科学正本）。
+> - [S-5] docs/detail/normalize/modules.md（相关科学正本）。
 > - [U-1] docs/science/unified/DATA_SEMANTICS.md（数据语义正本）。
 
 ## 参考文献与参考代码库（含许可证）

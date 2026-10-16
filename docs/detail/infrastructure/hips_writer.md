@@ -30,7 +30,7 @@
 
 输入视图由调用方持有，至少覆盖同步写调用；句柄由 begin 创建，并由 finalize/abort 结束，不重复释放。单句柄按调用方串行写，tile 转换可在外部预算下并行；ancestor 聚合和 Catalogue 缓存随覆盖/点数增长，不能写成全库固定常数内存。
 
-非法 nside/width/dtype/flags、ABI 不匹配和 I/O 失败通过 NULL、非零码及 last_error 传递。库 finalize 与文件写完整不等于整帧科学事务完成。最终 signal、模型、sidecar 与完成清单的统一发布责任在[阶段一 writer](acsd.phase1.writer.md)；当前完整性边界见[差异地图](../../engineering/architecture/SCIENCE_IMPLEMENTATION_DELTA.md)。
+非法 nside/width/dtype/flags、ABI 不匹配和 I/O 失败通过 NULL、非零码及 last_error 传递。库 finalize 与文件写完整不等于整帧科学事务完成。最终 signal、模型、sidecar 与完成清单的统一发布责任在[阶段一 writer](../normalize/modules.md#writer)；当前完整性边界见[差异地图](../../engineering/architecture/SCIENCE_IMPLEMENTATION_DELTA.md)。
 
 ## 验证入口
 

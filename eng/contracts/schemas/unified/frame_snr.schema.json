@@ -347,7 +347,7 @@
           ]
         },
         "reference_flux_common": {
-          "description": "**物理公共锚** F0（配对性定理的 F_ref）。fixed_magnitude 作用域下 = 10^(-0.4*(m_ref-C_abs))，`C_abs` 是固定的通带常数（把绝对通量换成星等的约定常数，作为常数使用时不随星族/天区变化，取值取自文档化的参考域）⇒ 跨帧恒等；它与完全锚定在 Gaia G 绝对通量刻度上的“纯通带常数”相差参考域样本的中位合成颜色（该量尚未测定 ⇒ 当前系统的绝对刻度锚定在参考域；该差值为常数，只影响 m5 的绝对数值）。定义正本 = docs/science/noise_snr/NOISE_SNR.md 的「绝对信噪比」一节；参考域/参考通带与取值、不确定度 = docs/detail/registry/acsd.phase1.photometry.md 的「正确的仪器零点式」一节。相位 2 的公共通量闸门（ACSD_REFERENCE_FLUX 组内一致，相对容差 1e-9）读此值。禁止用它反推增益/口径/曝光。",
+          "description": "**物理公共锚** F0（配对性定理的 F_ref）。fixed_magnitude 作用域下 = 10^(-0.4*(m_ref-C_abs))，`C_abs` 是固定的通带常数（把绝对通量换成星等的约定常数，作为常数使用时不随星族/天区变化，取值取自文档化的参考域）⇒ 跨帧恒等；它与完全锚定在 Gaia G 绝对通量刻度上的“纯通带常数”相差参考域样本的中位合成颜色（该量尚未测定 ⇒ 当前系统的绝对刻度锚定在参考域；该差值为常数，只影响 m5 的绝对数值）。定义正本 = docs/science/noise_snr/NOISE_SNR.md 的「绝对信噪比」一节；参考域/参考通带与取值、不确定度 = docs/detail/normalize/modules.md 的「正确的仪器零点式」一节。相位 2 的公共通量闸门（ACSD_REFERENCE_FLUX 组内一致，相对容差 1e-9）读此值。禁止用它反推增益/口径/曝光。",
           "type": "number",
           "exclusiveMinimum": 0
         },
@@ -367,7 +367,7 @@
           ]
         },
         "reference_pair_zero_point_mag": {
-          "description": "**参考二元组零点**：`C_abs` [mag]，按「**(滤镜曲线, QE 曲线) 二元组**」在**文档化参考域**上冻结的常数（同一参考域、同一二元组，与帧无关，不随星族/天区变化）。正本 = docs/detail/registry/acsd.phase1.photometry.md《`C_abs` 的通带适用范围与守卫》的《已登记表》。它与「完全锚定在 Gaia G 绝对通量刻度上的纯通带常数」相差参考域样本的中位合成颜色（该量尚未测定，故当前系统的绝对刻度锚定在参考域）。**A11 订正**：本键由 `reference_zero_point_syn_mag` 改名而来（旧名的 `syn` 不表意且暗示逐帧合成量）。**写侧只写本键**；旧键在兼容窗口内仍被接受（见下条）。",
+          "description": "**参考二元组零点**：`C_abs` [mag]，按「**(滤镜曲线, QE 曲线) 二元组**」在**文档化参考域**上冻结的常数（同一参考域、同一二元组，与帧无关，不随星族/天区变化）。正本 = docs/detail/normalize/modules.md《`C_abs` 的通带适用范围与守卫》的《已登记表》。它与「完全锚定在 Gaia G 绝对通量刻度上的纯通带常数」相差参考域样本的中位合成颜色（该量尚未测定，故当前系统的绝对刻度锚定在参考域）。**A11 订正**：本键由 `reference_zero_point_syn_mag` 改名而来（旧名的 `syn` 不表意且暗示逐帧合成量）。**写侧只写本键**；旧键在兼容窗口内仍被接受（见下条）。",
           "type": "number"
         },
         "reference_zero_point_syn_mag": {

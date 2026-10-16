@@ -105,6 +105,6 @@
 
 [4] [命名块与端口合同](../contracts/PIPELINE_BLOCK.md)。
 
-[5] [追溯规范](../governance/TRACEABILITY.md)。
+[5] [追溯规范](../governance/DOCUMENT_GOVERNANCE.md)。
 
 [6] [Normalize 生产链与模块责任](NORMALIZE_PIPELINE.md)。

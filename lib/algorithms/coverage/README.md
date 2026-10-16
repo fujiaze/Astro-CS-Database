@@ -56,7 +56,7 @@
 
 ## 3. 输入/输出 ports、DATA ID、单位、坐标、dtype、shape、invalid
 
-唯一权威 = DATA-COV-001（`docs/detail/registry/acsd.phase2.coverage.md`「输入输出端口、DATA、单位、坐标、invalid」一节）。
+唯一权威 = DATA-COV-001（`docs/detail/mosaic/modules.md`「输入输出端口、DATA、单位、坐标、invalid」一节）。
 端口视图（descriptor 词汇，module_adapters.cpp:561-576）：
 
 | 端口 | DATA | 必/可 | 单位 | 坐标 | dtype/shape |
@@ -79,13 +79,13 @@ DISP-COV-003；K=0（空 MOC）合法 rc=0。
 - ALG: **ALG-COV-001**（docs/science/algorithms/mosaic/PHASE2_COVERAGE.md，§2 逐公式
   源码行号锚定 + §11.4 TEST-COV-DESIGN-001 冻结容差 + §11.3
   DISP-COV-001..005）。
-- DATA: **DATA-COV-001**（`docs/detail/registry/acsd.phase2.coverage.md`「输入输出端口、DATA、单位、坐标、invalid」一节）。
+- DATA: **DATA-COV-001**（`docs/detail/mosaic/modules.md`「输入输出端口、DATA、单位、坐标、invalid」一节）。
 - API: **API-COV-001**（docs/engineering/api/PUBLIC_API.md §Coverage union
   C API）+ 编排级 **API-P2-001**（docs/engineering/api/PUBLIC_API.md，FROZEN，
   所有权图 Coverage 行 / §2 并发五字段行 1）。
 - ARCH: **ARCH-001**（cpu_heavy 资源类/单线程 internal_parallel=none/
   host_executor_lease 合同值依据 docs/science/algorithms/mosaic/PHASE2_COVERAGE.md）。
-- MOD: docs/detail/registry/acsd.phase2.coverage.md（本模块 registry
+- MOD: docs/detail/mosaic/modules.md（本模块 registry
   合同页）。
 
 ## 5. public entry 和实际主要 source symbols（AST/行号实测，非手抄）
@@ -187,7 +187,7 @@ DISP-COV-003；K=0（空 MOC）合法 rc=0。
   docs/science/unified/DATA_SEMANTICS.md#§19；API:
   docs/engineering/api/PUBLIC_API.md#API-COV-001；编排 API:
   docs/engineering/api/PUBLIC_API.md；registry:
-  docs/detail/registry/acsd.phase2.coverage.md。
+  docs/detail/mosaic/modules.md。
 
 ## 13. legacy 构建/运行说明（原 42 行 README 全文保留，非权威）
 

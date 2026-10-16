@@ -12,7 +12,7 @@
 
 > 上游 SCI（共享引用零改动）: SCI-UPM-001 / SCI-INT-001 / SCI-REJ-001
 > （docs/science/，映射声明见本节）。
-> 下游合同: DATA-P2-SESSION（`docs/detail/registry/acsd.phase2.session.md`，并行任务生成）/ 
+> 下游合同: DATA-P2-SESSION（`docs/detail/mosaic/modules.md`，并行任务生成）/
 > API-P2-SESSION-001（PUBLIC_API.md，并行任务生成）。
 > 模块: acsd.p2.session（本任务冻结的合同模块词汇）——迁移目标
 > acsd_p2_session.dll 为 MODULE_MIGRATION_MATRIX 矩阵合同值，
@@ -142,7 +142,7 @@ owner=创建者、threadsafe:no（handle 级）、reentrant:yes。
    绝对 1e-6 低于 ULP 5–8 个数量级、原理上不可达（`lib/algorithms/coverage/src/upm.cpp`；
    实测 iterations=100, converged=0））、
    sigma_floor=1e-3（**量纲 = σ(ADU)，帧面标度**，与所消费的 `uncertainty` 同标度；
-   权威 = `docs/detail/registry/acsd.phase2.upm-fit.md` 的单位/dtype 面标度条与「三地板互不代用」条
+   权威 = `docs/detail/mosaic/modules.md` 的单位/dtype 面标度条与「三地板互不代用」条
    （**不是**面亮度 ADU·sr⁻¹；`photo_scaled_adu` 时按 α 换算）；
    当 `|uncertainty| < sigma_floor` 时 Huber 的 z 失去统计尺度意义，
    见 `docs/science/sky/UPM.md` [S-1]「公式与推导」一节）、support_power=1.0、use_ivar_weight=1、
@@ -359,7 +359,7 @@ DATA-P2-SESSION（并行任务生成）；本节为实现现状锚定。
 - `ALG-P2-SESSION-001` = 本文档整体（DAG [S-1]「公式与推导」一节/端口 [S-1]「参数与常数」一节/生命周期 [S-1]「判据与误差」一节/
   唯一性 [S-1]「参考文献与参考代码」一节；矩阵 P2-SESSION 行 algorithm_id，INDEX.yaml path 绑定
   本文件——由并行任务登记，此处引用 id 不引节号）。
-- `DATA-P2-SESSION`（`docs/detail/registry/acsd.phase2.session.md`，生成中）= config 键集
+- `DATA-P2-SESSION`（`docs/detail/mosaic/modules.md`，生成中）= config 键集
   （[S-5]「输入输出端口」一节）/manifest 字段（[S-5]「输入输出端口」一节）契约面；冲突以 [S-5]「输入输出端口」一节 为准。
 - `API-P2-SESSION-001`（PUBLIC_API.md，生成中）= 五函数 C API +
   last_error 诊断面（[S-1]「判据与误差」一节）。
@@ -391,7 +391,7 @@ DATA-P2-SESSION（并行任务生成）；本节为实现现状锚定。
 > - [S-1] docs/science/sky/UPM.md（信号面科学正本）。
 > - [S-2] docs/science/integration/INTEGRATION.md（集成科学正本）。
 > - [S-3] docs/science/integration/REJECTION.md（排异科学正本）。
-> - [S-5] docs/detail/registry/acsd.phase2.session.md（相关科学正本）。
+> - [S-5] docs/detail/mosaic/modules.md（相关科学正本）。
 
 ## 参考文献与参考代码库（含许可证）
 

@@ -1,1 +1,3 @@
-本目录说明[文档治理](DOCUMENT_GOVERNANCE.md)、[协作分工](DUAL_LINE.md)与[证据追溯](TRACEABILITY.md)。Normalize 的冲突归因见[收敛记录](NORMALIZE_CONVERGENCE.md)，尚需输入或科学裁决的事项见[未决登记](UNRESOLVED.md)。
+# 文档与问题维护
+
+[维护规范](DOCUMENT_GOVERNANCE.md)统一文档写法、协作、索引和追溯；[未决登记](UNRESOLVED.md)说明尚缺输入的事项，[Normalize 收敛记录](NORMALIZE_CONVERGENCE.md)解释既有设计与证据的归属。

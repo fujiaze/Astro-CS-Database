@@ -146,5 +146,5 @@ notes: >-
   index-is-center ↔ IPV 接口契约 center=index+0.5）由 orchestrator
   :1867 显式桥接（`docs/science/unified/DATA_SEMANTICS.md`「坐标语义」一节）；编排 port DATA 编目
   （sources→DATA-P1-SOURCES/wcs→DATA-P1-WCS）由 P1-WCS-INT 对齐本合同
-  （模块 DATA 层=DATA-P1-WCS，`docs/detail/registry/acsd.phase1.wcs-platesolve.md`「输入输出端口、DATA、单位、坐标、invalid」一节），不得反向作为冻结
+  （模块 DATA 层=DATA-P1-WCS，`docs/detail/normalize/modules.md`「输入输出端口、DATA、单位、坐标、invalid」一节），不得反向作为冻结
   依据。禁止声明 IMPLEMENTED（迁移落码未发生）。

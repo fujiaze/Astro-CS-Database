@@ -37,6 +37,7 @@
 | 应用身份 | reader 会拒绝 scale_applied=true 却缺 application_id | 生产 fdoc 只写 scale_applied/status，没有赋 application_id；因此已标度分支不能由 native 单帧记录推断已成功发布 |
 | reader | 已恢复 SIP、leaf/order、kind/domain/representation 与状态；另有 `load_local_model_payload`、`reconstruct_factor_covariance` 和 `verify_frame_science_factor_models` 实现 | 通用 `read_frame_science_document` 尚未调用模型 verifier；独立读取仍缺真实模型 hash/重建及 h-C-Z-R、V_F/T/summary 全面核对。重建函数只检查 sr 幂次，未完整核对基础线性单位。发布器的 hash 校验不能替代读侧调用 |
 | 发布 | 发布器逐文件验证 hash、原子写模型及 sidecar、回读并返回结果 | 整帧 signal 与所有模型/sidecar 尚非同一发布事务；回读失败直接返回且未撤回已写 sidecar；writer 将该失败记为 precision 不可用，不能等同合法 unavailable 产品已完整发布 |
+| Drizzle frame 生命周期 | `p1_op_drizzle` 在 `hp_drizzle_run_phase1_hips` 返回后调用 `aio_pipeline_frame_destroy(frame)`；`aio_pipeline.cpp` 的 destroy 释放块并 delete frame | 后续 precision staging 的 exposure fallback 在原始 EXPTIME 无效时仍调用 `aio_frame_kv_get(frame,"header","EXPTIME")`，形成释放后访问路径。需在销毁前保存所需元数据或延长明确所有权；本轮仅静态定位，没有执行缺 EXPTIME 构型或修复代码 |
 
 上表列出的数学/模型风险保持源码证据身份。它们不声明已运行新反例，不修改科学定义，不否定合法 signal 的存在；需要科学裁决的具体反例回到唯一 science 正本处理。
 
