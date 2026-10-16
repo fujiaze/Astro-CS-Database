@@ -1,0 +1,21 @@
+[INFO] [spec_int] prepare_filter_cache: 滤光片 2 点 + QE 2 点 -> 光谱 343 点, 范围 F[336.0,1020.0] Q[336.0,1020.0] nm
+[INFO] [spec_int] prepare_filter_cache: 滤光片 343 点 + QE 161 点 -> 光谱 343 点, 范围 F[336.0,1020.0] Q[300.0,1100.0] nm
+[INFO] [spec_int] prepare_filter_cache: QE curve not provided, F_syn without Q(λ)
+[INFO] [spec_int] prepare_filter_cache: 滤光片 343 点 -> 光谱 343 点, 范围 [336.0, 1020.0] nm (无 QE)
+[INFO] [spec_int] prepare_filter_cache: QE curve not provided, F_syn without Q(λ)
+[INFO] [spec_int] prepare_filter_cache: 滤光片 2 点 -> 光谱 343 点, 范围 [336.0, 1020.0] nm (无 QE)
+[INFO] [spec_int] prepare_filter_cache: QE curve not provided, F_syn without Q(λ)
+[INFO] [spec_int] prepare_filter_cache: 滤光片 2 点 -> 光谱 343 点, 范围 [336.0, 1020.0] nm (无 QE)
+== 参考 SED 合成通量积分核独立复核 ==
+  const SED: production=1.159380000000e-08 analytic=1.159380000000e-08 rel=0.00e+00
+  [PASS] constant SED + unit curves == closed form F*(l2^2-l1^2)/2 (lambda weight)
+  power-law x window x QE: production=7.0909568639e-10 independent(1nm)=7.0909568639e-10 rel=1.31e-15
+  [PASS] production (Akima+Simpson on spectrum grid) == independent fine-grid quadrature (within grid discretization)
+  T==0: production=0.000e+00
+  [PASS] zero transmission == 0 (degenerate, not a numeric value)
+  flux_min linearity: f0=4.637520e-09 f1=4.683895e-09 pred=4.683895e-09 rel=1.77e-16
+  [PASS] XPSD decode F=byte*mul+flux_min: linear in flux_min with kernel Int(lambda dlambda)
+  unit check: F_syn=4.637520e-08  hc*N_gamma=4.637520e-08 rel=2.85e-16
+  [PASS] F_syn numerically equals hc * photon-count rate (lambda/(hc) weighting)
+
+ALL PASS: 0 failure(s)
