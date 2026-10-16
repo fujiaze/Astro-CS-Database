@@ -1,7 +1,10 @@
 # Issue #10 验证报告：`frame_science.signal.leaf_order` 真实生产核对
 
 - Issue: [#10](https://github.com/fujiaze/Astro-CS-Database/issues/10)（施工评论 `6218578949`）
-- 起始/报告 main: `0793b8d621bcdc98485d14994f031502c467a71c`（任务评论写定值）
+- 起始/验证基线 main: `0793b8d621bcdc98485d14994f031502c467a71c`（任务评论写定值）
+- 报告 main: `4da73ed5c67b4de27c7f91635eafae911d2c38ca`（在并发的无关 P2 修复 `b2c82f7ae`
+  之上 rebase；`git diff 0793b8d62 HEAD -- module_adapters.cpp normalize_science/` 为空 ⇒
+  本报告结论在报告 main 上同样成立）
 - 被验证的静态修复: `e8ff4bc90`（`module_adapters.cpp::p1_op_drizzle`：`leaf_order` 由 `k-9` → `k`）
 - **本轮零生产代码修改**（仅新增 `eng/tests/**` 测试与 `实验/issue10-leaf-order-verify/**` 脚本/证据）。
   §5 的 A/B 需要"修复前同一配置"二进制，做法是在**未提交的工作区**临时把该行还原、构建后立即
