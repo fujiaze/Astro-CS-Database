@@ -768,9 +768,16 @@ bool SparseSnrReconstructor::eval(double x, double y, double* out_snr,
   const double dom_hi_x = grid_origin_x_ + static_cast<double>(nx_) * dx_ - 0.5;
   const double dom_lo_y = grid_origin_y_ - 0.5;
   const double dom_hi_y = grid_origin_y_ + static_cast<double>(ny_) * dy_ - 0.5;
+  // grid_tol 仅用于输入控制点的坐标登记误差，绝不是科学覆盖的外推半径。
+  // 查询边界只允许机器浮点计算误差，并且余量仅取决于声明的固定域端点，
+  // 不能让极远查询点的 |x|/|y| 膨胀这一容许量。
+  const double eps_x = 16.0 * std::numeric_limits<double>::epsilon() *
+      std::max(1.0, std::max(std::fabs(dom_lo_x), std::fabs(dom_hi_x)));
+  const double eps_y = 16.0 * std::numeric_limits<double>::epsilon() *
+      std::max(1.0, std::max(std::fabs(dom_lo_y), std::fabs(dom_hi_y)));
   if (!std::isfinite(gx) || !std::isfinite(gy) ||
-      x < dom_lo_x - tol_ || x > dom_hi_x + tol_ ||
-      y < dom_lo_y - tol_ || y > dom_hi_y + tol_) {
+      x < dom_lo_x - eps_x || x > dom_hi_x + eps_x ||
+      y < dom_lo_y - eps_y || y > dom_hi_y + eps_y) {
     local.out_of_domain = true;
     if (info) *info = local;
     set("query pixel outside sparse SNR layer domain (no extrapolation; "
