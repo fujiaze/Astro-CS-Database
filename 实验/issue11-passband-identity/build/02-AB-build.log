@@ -1,0 +1,28 @@
+# [A/B] pre-#11 临时还原 (uncommitted, restored after)
+# main SHA: ece85ace5c3f7151f6afbd0ee1aa17abf7bedb21
+ lib/infrastructure/scheduler/src/module_adapters.cpp | 9 ++-------
+ 1 file changed, 2 insertions(+), 7 deletions(-)
+# building pre-#11 ...
+ninja: Entering directory `build/linux-sci-p5'
+[1/7] ACSD: 同步响应曲线库 → /workspace/Astro CS Database/build/linux-sci-p5/config/response_curves
+[2/7] 生成构建期指纹 build_stamp_generated.h (RUN-PROVENANCE-01)
+[3/7] Building CXX object CMakeFiles/acsd_core.dir/lib/infrastructure/scheduler/src/build_stamp.cpp.o
+[4/7] Linking CXX static library libacsd_core.a
+[5/7] Building CXX object CMakeFiles/acsd_module_adapters.dir/lib/infrastructure/scheduler/src/module_adapters.cpp.o
+[6/7] Linking CXX static library libacsd_module_adapters.a
+[7/7] Linking CXX executable acsd
+93a6be342bb8bcdd275d05265661045c7a37760e569d40e8b01427a18dbc6772  /tmp/issue11_acsd_pre11
+# restoring source via git checkout
+# restore verified clean
+# byte-identical to pre-A/B source
+# rebuilding post-#11 ...
+ninja: Entering directory `build/linux-sci-p5'
+[1/7] ACSD: 同步响应曲线库 → /workspace/Astro CS Database/build/linux-sci-p5/config/response_curves
+[2/7] 生成构建期指纹 build_stamp_generated.h (RUN-PROVENANCE-01)
+[3/7] Building CXX object CMakeFiles/acsd_core.dir/lib/infrastructure/scheduler/src/build_stamp.cpp.o
+[4/7] Linking CXX static library libacsd_core.a
+[5/7] Building CXX object CMakeFiles/acsd_module_adapters.dir/lib/infrastructure/scheduler/src/module_adapters.cpp.o
+[6/7] Linking CXX static library libacsd_module_adapters.a
+[7/7] Linking CXX executable acsd
+9175527877afe054ca9b5ff89f4f41fc67dc2326e5ec9eb23dd43e4120457636  /tmp/issue11_acsd_post
+# [A/B] done

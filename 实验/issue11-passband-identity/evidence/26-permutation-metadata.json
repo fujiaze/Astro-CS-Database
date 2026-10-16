@@ -1,0 +1,101 @@
+{
+  "meta_dir": "/workspace/issue11-scratch/matrix_perm_post/meta",
+  "groups": [
+    {
+      "group": "empty+Halpha (2 frames)",
+      "n": 2,
+      "pass": true,
+      "expected_obs_filter": "mixed:2_passbands",
+      "expected_distribution": {
+        "(undeclared)": 1,
+        "Halpha": 1
+      },
+      "obs_filter_lines_observed": [
+        "obs_filter=mixed:2_passbands"
+      ],
+      "response_distribution_observed": [
+        "{\"(undeclared)\": 1, \"Halpha\": 1}"
+      ],
+      "non_path_fields_differing_across_perms": [
+        ".phase2_audit.solvers.sky_plane.adaptive.attempts[0].rms_weighted",
+        ".phase2_audit.solvers.sky_plane.adaptive.attempts[1].rms_weighted",
+        ".phase2_audit.solvers.sky_plane.rms_weighted"
+      ],
+      "cases": [
+        "empty_halpha",
+        "halpha_empty"
+      ]
+    },
+    {
+      "group": "Red+Blue (2 frames)",
+      "n": 2,
+      "pass": true,
+      "expected_obs_filter": "mixed:2_passbands",
+      "expected_distribution": {
+        "Blue": 1,
+        "Red": 1
+      },
+      "obs_filter_lines_observed": [
+        "obs_filter=mixed:2_passbands"
+      ],
+      "response_distribution_observed": [
+        "{\"Blue\": 1, \"Red\": 1}"
+      ],
+      "non_path_fields_differing_across_perms": [
+        ".phase2_audit.solvers.sky_plane.adaptive.attempts[0].chi2_red",
+        ".phase2_audit.solvers.sky_plane.adaptive.attempts[0].kappa",
+        ".phase2_audit.solvers.sky_plane.adaptive.attempts[0].kappa_solve",
+        ".phase2_audit.solvers.sky_plane.adaptive.attempts[0].lambda_numerical",
+        ".phase2_audit.solvers.sky_plane.adaptive.attempts[0].rms_weighted",
+        ".phase2_audit.solvers.sky_plane.adaptive.attempts[1].chi2_red",
+        ".phase2_audit.solvers.sky_plane.adaptive.attempts[1].kappa",
+        ".phase2_audit.solvers.sky_plane.adaptive.attempts[1].kappa_solve",
+        ".phase2_audit.solvers.sky_plane.adaptive.attempts[1].lambda_numerical",
+        ".phase2_audit.solvers.sky_plane.adaptive.attempts[1].rms_weighted",
+        ".phase2_audit.solvers.sky_plane.chi2_red",
+        ".phase2_audit.solvers.sky_plane.kappa",
+        ".phase2_audit.solvers.sky_plane.kappa_data",
+        ".phase2_audit.solvers.sky_plane.model_hash",
+        ".phase2_audit.solvers.sky_plane.rms_weighted",
+        ".provenance.ACSD_INPUT_MANIFEST_HASH",
+        ".provenance.ACSD_MODEL_HASH"
+      ],
+      "cases": [
+        "red_blue",
+        "blue_red"
+      ]
+    },
+    {
+      "group": "empty+Red+Blue (3 frames, 6 perms)",
+      "n": 6,
+      "pass": true,
+      "expected_obs_filter": "mixed:3_passbands",
+      "expected_distribution": {
+        "(undeclared)": 1,
+        "Blue": 1,
+        "Red": 1
+      },
+      "obs_filter_lines_observed": [
+        "obs_filter=mixed:3_passbands"
+      ],
+      "response_distribution_observed": [
+        "{\"(undeclared)\": 1, \"Blue\": 1, \"Red\": 1}"
+      ],
+      "non_path_fields_differing_across_perms": [
+        ".phase2_audit.solvers.sky_plane.adaptive.attempts[0].chi2_red",
+        ".phase2_audit.solvers.sky_plane.adaptive.attempts[0].rms_weighted",
+        ".phase2_audit.solvers.sky_plane.chi2_red",
+        ".phase2_audit.solvers.sky_plane.rms_weighted"
+      ],
+      "cases": [
+        "pem_01",
+        "pem_02",
+        "pem_03",
+        "pem_04",
+        "pem_05",
+        "pem_06"
+      ]
+    }
+  ],
+  "all_metadata_identical": true
+}

@@ -1,0 +1,10 @@
+# build command: ninja -C build/linux-sci-p5
+# main SHA: ece85ace5c3f7151f6afbd0ee1aa17abf7bedb21
+# started: 2026-10-16T17:41:48Z
+ninja: Entering directory `build/linux-sci-p5'
+[1/5] ACSD: 同步响应曲线库 → /workspace/Astro CS Database/build/linux-sci-p5/config/response_curves
+[2/5] Linking CXX shared library lib/algorithms/calibration/acsd_p1_calibration.so
+[3/5] Linking CXX shared library lib/algorithms/cosmetic/acsd_p1_cosmetic.so
+[4/5] Linking CXX shared library lib/algorithms/drizzle/hips/acsd_p1_hips_writer.so
+[5/5] Linking CXX shared library lib/algorithms/drizzle/acsd_p1_drizzle.so
+ninja exit=0

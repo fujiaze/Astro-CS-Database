@@ -1,0 +1,138 @@
+{
+  "bunit": "ADU/sr",
+  "covered_area_model": "support_x_A_cell",
+  "entry": "aio_hips_product_begin/write_signal_support_tile/finalize (signal only, D02)",
+  "hips_root": "/workspace/issue11-scratch/matrix_pre/run_empty_halpha",
+  "ivar_product_missing_frames": 0,
+  "n_tiles_written": 116,
+  "nside": 262144,
+  "obs_filter": "Halpha",
+  "pending_contracts": {
+    "nused_nrej_planes": "DATA-P2-REJ-001 §30.2 AIO bits 32/64: writer channels not implemented in AIO domain; planes carried by p2_integrated_n{used,rej}.bin (diagnostic surface, not science planes)",
+    "properties_provenance_channel": "DATA-P2-PROV-001 §30.3: AIO writer provenance channel (aio_hips_set_drizzle_provenance) only exposes pixfrac/scale; ACSD_* property keys pending AIO-domain contract registration"
+  },
+  "phase2_audit": {
+    "audit_complete": true,
+    "clause": "SCI-UPM §7a (docs/science/PHASE2_UPM.md 的 §7a 可辨识性判决)",
+    "missing_fields": [],
+    "schema": "DATA-P2-AUDIT",
+    "solvers": {
+      "sky_plane": {
+        "adaptive": {
+          "attempts": [
+            {
+              "action": 0,
+              "adopted": 1,
+              "chi2_red": 58.89383664423587,
+              "identifiable": 1,
+              "kappa": 14914.02570750513,
+              "kappa_solve": 14911.159032168578,
+              "lambda_numerical": 4.412865379505821e-30,
+              "n_nodes": 25,
+              "n_params": 25,
+              "n_unidentified": 0,
+              "node_spacing_deg": 0.553735639305885,
+              "rank": 25,
+              "rank_solve": 25,
+              "rc": 0,
+              "rms_weighted": 214254268012.0922
+            },
+            {
+              "action": 0,
+              "adopted": 0,
+              "chi2_red": 32.44213767310208,
+              "identifiable": 1,
+              "kappa": 3456.332884448294,
+              "kappa_solve": 3455.9879695918908,
+              "lambda_numerical": 3.2359050214278146e-30,
+              "n_nodes": 49,
+              "n_params": 49,
+              "n_unidentified": 0,
+              "node_spacing_deg": 0.2768678196529425,
+              "rank": 49,
+              "rank_solve": 49,
+              "rc": 0,
+              "rms_weighted": 158852033320.78262
+            }
+          ],
+          "clamped_to_upper": false,
+          "constraining_scale_deg": 1.10747127861177,
+          "n_attempts": 2,
+          "n_node_coarsenings": 0,
+          "n_node_refinements": 0,
+          "n_penalty_escalations": 0,
+          "node_adaptive_used": false,
+          "penalty_adaptive_used": false,
+          "representation_limited": false,
+          "residual_improve_ratio": 0.5,
+          "roughness_penalty": 0.0
+        },
+        "artifact": "/workspace/issue11-scratch/matrix_pre/run_empty_halpha/p2_sky_plane.bin",
+        "audit_available": true,
+        "chi2_red": 58.89383664423587,
+        "gauge_mode": 0,
+        "iterations": 30,
+        "kappa": 14914.02570750513,
+        "kappa_data": 14914.02570750513,
+        "kappa_max_effective": null,
+        "kappa_max_source": null,
+        "missing_fields": [],
+        "model_hash": "87adf1c7100d43e0603f177b9d15769f760d163438dfba09a98cee24d775bb1f",
+        "n_masked": 0,
+        "n_nodes": 25,
+        "n_params": 25,
+        "n_rejected": 3253,
+        "n_samples": 11456,
+        "n_used": 11456,
+        "node_spacing_deg": 0.553735639305885,
+        "node_spacing_lower_deg": 0.014396569917633974,
+        "node_spacing_source": 0,
+        "node_spacing_upper_deg": 0.553735639305885,
+        "present": true,
+        "rank": 25,
+        "rank_rtol": 1e-10,
+        "rank_solve": 25,
+        "required_fields": [
+          "kappa",
+          "rank",
+          "n_params",
+          "chi2_red",
+          "node_spacing_deg"
+        ],
+        "rms_weighted": 214254268012.0922,
+        "solver": "p2_sky_plane_build_joint/p2_sky_plane_build_adaptive"
+      }
+    },
+    "sources": {
+      "sky_plane": "/workspace/issue11-scratch/matrix_pre/run_empty_halpha/p2_sky_plane.bin"
+    }
+  },
+  "products": [
+    "signal"
+  ],
+  "properties": "/workspace/issue11-scratch/matrix_pre/run_empty_halpha/signal/properties",
+  "provenance": {
+    "ACSD_INPUT_MANIFEST_HASH": "ad2dc6074aed2b8f5800a5a1b5fad3166e631d1e25d7d78532ba45fe1779f5d3",
+    "ACSD_MODEL_HASH": "87adf1c7100d43e0603f177b9d15769f760d163438dfba09a98cee24d775bb1f",
+    "ACSD_REJECT_PROFILE": "acsd_adaptive_pixel",
+    "ACSD_UNCERTAINTY_AVAILABLE": "true"
+  },
+  "response_distribution": {
+    "(undeclared)": 1,
+    "Halpha": 1
+  },
+  "schema": "DATA-P2-RES",
+  "target_order": 9,
+  "uncertainty_available": true,
+  "uncertainty_unavailable_reason": "",
+  "units": {
+    "bunit": "ADU/sr",
+    "ivar_bunit": "sr^2/ADU^2",
+    "pixel_area_power": -2,
+    "pixel_semantics": "surface_brightness",
+    "quadratic_law": "variance = signal^2; ivar = 1/variance; Phase3 variance BUNIT = (main HDU signal BUNIT)^2",
+    "signal_unit": "ADU/sr",
+    "variance_bunit": "ADU^2/sr^2"
+  },
+  "weight_basis": "per_sample_ivar"
+}
