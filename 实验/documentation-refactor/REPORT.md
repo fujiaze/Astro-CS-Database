@@ -268,3 +268,12 @@ Q10旧t_norm2−proj已修，历史反例保留，剩余秩阈值/误差证书�
 **具体语义纠偏**：现行 BlockFrame 持数值字节和声明消费者而不是跨异步 read lease；RunContext artifact 是描述符而非完整 typed payload；ABI v1 的 execute 走 JSON manifest 且无多 operation/credits/tickets；压力 `evicted` 标记不是释放内存或停止 CPU/AIO 的证明；单文件 rename 不足以证明 signal+sidecar/model 的完整产品事务。此批不更改已有 science 量或生产头文件；Issue #7 既有 EXPTIME 生命周期修复视为后续代码事实，不在此批重复指派。
 
 **覆盖与证据边界**：这是 ARS 主题的文档详细设计和跨合同整合，**不是 Issue #6 原 191 篇全部语义审计终版**。此前的 PUBLIC_API、PLATESOLVE、PHOTOMETRIC_FIT、Star Detection、Coverage、P2 session 等基线精读结论继续按本报告原有批次有效；本批没有把它们的阅读重新计数，也没有深读余下全部原文、Mosaic/Export 全部 API、HiPS writer、Gaia 与 246 份实验文本。未编译新 v2，未执行 ABI、E2E、科学真值、内存故障或性能实验，记录 `NOT_RUN`。新详细设计是 TARGET，不等于 Runtime 已具备这些能力；Issue #6 须保持 open，继续分批审阅其余原文及最终跨层对照。
+
+
+## Issue #6：ARS-02 接口冻结与校准双 Operation（2026-10-16）
+
+复审 [cebea102] 的 ARS 设计后，按 #6 评论 6218177842 精读当前模块化 ABI v1 的 `module_api_v1.h/host_api_v1.h/status_codes.h`、`core/module.h`、ARS 详细设计；本批还对照 `lib/algorithms/calibration/{include/astro_calibration.h,CMakeLists.txt,module.yaml,src/module_entry.cpp,src/ac_api.cpp,src/calibrator.cpp,src/cosmetic_corrector.cpp}` 和现行 CLI `runtime_client.cpp`/P1 cal→cos 注册/数据流。唯一目标入口位于 [Process ABI v2 冻结设计](../../docs/engineering/api/abi/PROCESS_ABI_V2.md)，嵌入可从单头抽取并独立编译的 C11 函数/结构、Host credits/store/scratch/cancel/logger/AIO/task 服务表、layout/static asserts、buffer probe/fill、Instance serial 策略、两 operation 真实调用、错误/取消/释放/loader pin、正反例与机器迁移入口。
+
+**关键生产信息保留**：两个 op 复用现有 `ac_calibrate_frame` 和 `ac_correct_frame` 科学算子，采用 FP32 单帧单 work unit 和每实例串行；原 `acsd.phase1.calibration/acsd.phase1.cosmetic` 是两个旧注册 module_id，而 DLL 新身份 `acsd.p1.calibration`，显式映射不改旧 IR 默认；Cosmetic 节点的 `ac_correct_columns_ex2` 坏列修复必须继续保留，不能以单个 v2 point-cosmetic op 替代整节点。传统 dark_opt 两式与配置给定 K，不引入虚构的自动优化；method=1 实际是四正交方向逆距离修复而非真正 bilinear。
+
+**范围/验证**：本批抽取参考头后，本地 GCC C11 和 G++ C++17 严格警告（`-Werror`）**编译通过**，LP64 sizeof/offsetof 与正式合同一致；Windows MSVC、DLL 链接/装载、实际 CLI、AIO、内存压力与科学数值回归 **NOT_RUN**。这不是新增可链接 ABI v2；尚未在 main 创建/修改生产 .cpp/.h。#23 科学与资源基线仍为 #24 施工前置；#19 的旧测试失败 26 failed/56 passed 需要独立分类而非计入本批成功。此批推进的是 #6 的 ARS-02 专题，仍不代表原191篇全文审计结束，Issue #6 保持 Open。

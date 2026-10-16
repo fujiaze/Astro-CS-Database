@@ -51,6 +51,9 @@ CLI 的取消监视线程把外部取消转发到 Runtime::cancel，等待同步
 
 ## 目标纵向切片：从真实 CLI 接到新 ARS
 
+首个真实生产切片已在[ARS-02 ABI v2 冻结合同](../../engineering/api/abi/PROCESS_ABI_V2.md)定为一个 `acsd_p1_calibration` DLL 的 `calibrate_frame` 与 `correct_frame` 两个独立 descriptor；现行 `acsd.phase1.calibration`/`acsd.phase1.cosmetic` 的 node 身份由 adapter 显式映射，保留 cal/cos 的前后处理与 `ac_correct_columns_ex2` 坏列修复。该规范优先于下述早期抽象纵向示例，代码尚未实施。
+
+
 在 `runtime_client.cpp → ModuleRegistry → Scheduler → module_adapters.cpp` 生产路径引入 v2 loader 时，第一条最小生产链依次执行：真实 DLL 多 operation 描述与 plan→IR typed port 校验→Host reserve_bundle→borrow typed 输入→execute_unit→reduce→immutable publish→AIO ticket→complete revision。负例是中途内存收缩/慢盘与取消，要求实测 TaskGroup join、AIO drain、实际 reclaim、同一 occurrence 的新 attempt 重算以及数值等价。当前 P1/P2/P3 内建 node 和局部 session 属于迁移前事实，新 [ARS 可编码设计](../../engineering/architecture/PROCESS_RUNTIME_DETAILED_DESIGN.md) 只是接口施工规格，不能假称已做生产 E2E。
 
 ## 6. 验证入口与限制

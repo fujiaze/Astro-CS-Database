@@ -72,6 +72,9 @@ Normalize 的 typed 模型目标与现行 artifact/work-file 载体仍有迁移�
 
 ## ARS v2 公共边界与兼容层
 
+**ARS-02 首切片的接口权威**为[冻结的 ABI v2 C11 头与 Host 子服务表](abi/PROCESS_ABI_V2.md)：完整 struct/function pointer 及大小/偏移、两阶段字符串、实际 `calibrate_frame/correct_frame`、read lease/OutputWriter/Credit/Task/AIO 能力协商、异常和卸载时序。原 [ARS 框架](../architecture/PROCESS_RUNTIME_DETAILED_DESIGN.md) §2 的 skeleton 仅作旧候选参考；正式代码不能从那个骨架自选另一版签名。
+
+
 现行 `acsd_module_query_v1` 的 module 级 `execute(inst,input_manifest_json,config_json,out_manifest_json,err)` 与 `acsd_host_api_v1` 只提供清单/allocator/executor/有限 artifact service，**没有** multi-operation typed lease、MemoryCredit 或 AIO ticket。目标在 loader/Host 新增 `acsd_module_query_v2`，按 DLL 内 operation_id 注册科学 Process，公开 `plan/partition/execute_unit/reduce/request_cancel`；typed payload 经 Host opaque view/writer 交换，大阵列不走 Base64 JSON。详见 [ARS 可编码设计](../architecture/PROCESS_RUNTIME_DETAILED_DESIGN.md) 的 C11 函数、布局检查、错误/线程/卸载及 v1 shim；新头尚不存在，不能写成真实可链接符号。原 v1 和局部 session 函数签名不因目标改动。
 
 ## 4. 算法与 I/O 接口定位
