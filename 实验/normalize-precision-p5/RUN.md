@@ -98,3 +98,26 @@ HiPS 产品面不受影响 —— 即「缺参考不阻断合法 signal」按合
 删去旧口径的窗口 sum 归一。推导、实现点、独立闭式/MC 判据与真实产品 A/B 数字见
 `ROUND4_FLUX_CONVENTION.md`；日志见 `evidence/verify_round4_flux_total.log`、
 `evidence/run_p5f_flux_total.log`、`evidence/verify_round6_alpha_contract.log`。
+
+## 8. ROUND6/7/8：空间 PSF 退化修复、真实空间 α E2E、quantization.s12 订正
+
+- **空间 PSF（ROUND6）**：Bowyer–Watson in-circle 判定改为平移+正标量归一
+  （数学等价、超大坐标不溢出），`DelaunayTriangulation.dropped_points` 登记静默
+  丢点；审计程序 `code/verify_round6_spatial_psf.cpp`（重复点/精确与近共圆/共线/
+  1e6…1e150 坐标/确定性/置换不变/欠采样/凸包外 + **同一样本·窗口·指标**的空间-圆
+  模型留出对照与位置泄漏量化）。真实 518 星留出（train 414 / hold 104）：
+  spatial L1 median 0.0986 vs circular 0.2058（同一指标）；泄漏对照（留出星当顶点）
+  L1 = 0。日志 `evidence/verify_round6_spatial_psf.log`、`run_p5g_spatial_bw.log`。
+- **真实空间 α E2E（ROUND8）**：配置 `configs/c-phot-spatial-e2e.json`（真实 Red
+  帧 + Gaia DR3 XP + Astrodon E-series R + KAF-16803，spatial_gain order=2 可辨识）
+  跑完 校准→拟合/应用→Drizzle→precision→writer；日志
+  `evidence/run_c_phot_spatial_e2e.log`。修复真实缺陷：施加测光的帧此前缺
+  `application_id` 导致 sidecar 拒发（reader 物理一致性门）；drizzle 节点现由
+  实际施加事实构造 `application_id`/`response_id`。独立复核
+  `code/verify_round8_real_spatial_alpha.py`：57/57 控制点 α_j == k_photo·m(x,y)
+  逐位、α_* 逐位、F_ref(u)=α_*F_native、h_sphere==R·planar_template；
+  α 非恒等（m ∈ [0.869, 1.060]）。日志 `evidence/verify_round8_real_spatial_alpha.log`、
+  `verify_round6_alpha_contract_c.log`、`verify_round5_sidecar_recompute_c.log`。
+- **quantization.s12（ROUND7）**：红项根因 = 测试总体不匹配（不是量化缺陷）；
+  门限值未改。见 `ROUND7_QUANTIZATION_S12.md` 与
+  `evidence/verify_round7_quantization_s12.log`；单元层现 160/160。
