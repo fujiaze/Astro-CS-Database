@@ -1055,6 +1055,13 @@ ModuleDescriptor p1_drizzle_descriptor() {
       // 产品缺少 SNR 而运行仍报成功。声明依赖边后调度器保证 snr 先落盘。
       {"snr", "DATA-P1-SNR", true, UnitId::DIMENSIONLESS, CoordinateFrame::ICRS},
       {"stacked", "DATA-P1-STACK", false, UnitId::SURFACE_BRIGHTNESS, CoordinateFrame::ICRS},
+      // frame_science 暂存（注册表 p1_frame_science 输出端口; carrier=
+      // output_dir_file, 产物 = <work>/<frame_key>/frame_science/{frame_science.json,
+      // models/*.json}）。此前只有 registry 声明、descriptor/IR 缺失 ⇒ IR 无法
+      // 绑定该数据流（P4 typed Runtime 收敛项: 端口必须 descriptor/IR/registry
+      // 三处同声明, 不能只存在于注册表文本）。
+      {"frame_science", "DATA-P1-FRAMESCIENCE", false,
+       UnitId::DIMENSIONLESS, CoordinateFrame::ICRS},
   };
   d.sci_id = "SCI-P1-DRIZ-001";
   d.alg_id = "ALG-005";            // drizzle-* kernels
@@ -1073,6 +1080,15 @@ ModuleDescriptor p1_writer_descriptor() {
   d.parallel_ok = false;
   d.ports = {
       {"stacked", "DATA-P1-STACK", true, UnitId::SURFACE_BRIGHTNESS, CoordinateFrame::ICRS},
+      // frame_science 暂存的真实消费者（注册表 p1_frame_science 输入端口;
+      // carrier=output_dir_file）。p1_op_writer 经 publish_staged_frame_science
+      // 读回该暂存并原子发布, 不是文件约定之外的隐式流。
+      {"frame_science", "DATA-P1-FRAMESCIENCE", true,
+       UnitId::DIMENSIONLESS, CoordinateFrame::ICRS},
+      // 发布后的 frame_science 产品面（注册表 p1_frame_science_published 输出;
+      // 载体 = output_dir_file, <frame_key>/frame_science.json + models/*.json）。
+      {"frame_science_published", "DATA-P1-FRAMESCIENCE", false,
+       UnitId::DIMENSIONLESS, CoordinateFrame::ICRS},
       {"fits", "DATA-P1-FITS", false, UnitId::SURFACE_BRIGHTNESS, CoordinateFrame::ICRS},
   };
   d.sci_id = "SCI-P1-WR-001";
