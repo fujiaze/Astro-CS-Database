@@ -128,10 +128,27 @@ ReferenceDefinition parse_reference_config(const Json& snr_cfg, std::string* why
     def.flux_unit = r.value("flux_unit", std::string());
     def.normalization = r.value("normalization", std::string());
     // sed_response 需要可求值的响应积分（谱曲线 + 归一/零点）; 未接线时显式
-    // unavailable（不伪造绝对零点）。
-    def.reason = "sed_response requires evaluable response integration "
-                 "(SED curve + zero point); not wired in this build ⇒ "
-                 "precision unavailable, signal unaffected";
+    // unavailable（不伪造绝对零点）。缺失输入**逐项列出**（合同与裁决点见
+    // 实验/normalize-precision-p5/ROUND9_SED_RESPONSE_CONTRACT.md §4）:
+    //   (1) 参考 SED 身份/解析路径与按星 flux_mul/flux_min、波长网格;
+    //   (2) 响应曲线 R_k 数值本体是否落盘为产品（现仅落身份）;
+    //   (3) 零点/归一约定（A 帧相对 F_ref=a_k·m_k(u)·F_syn_ref, 或 B 绝对零点）
+    //       与 reference.normalization 取值;
+    //   (4) 参考 SED 外定标误差与拟合 a_k 参数协方差是否显式进入 V_F;
+    //   (5) 星等→通量换算所用零点常数的适用范围。
+    def.reason = "sed_response requires evaluable response integration; "
+                 "not wired in this build. Missing inputs (see "
+                 "ROUND9_SED_RESPONSE_CONTRACT.md §4): (1) reference SED "
+                 "identity/resolution path and per-star flux_mul/flux_min + "
+                 "wavelength grid; (2) whether R_k curve values are published "
+                 "as a product (only identity is recorded today); "
+                 "(3) zero-point/normalization convention (A frame-relative "
+                 "F_ref=a_k*m_k(u)*F_syn_ref, or B absolute zero point) and "
+                 "reference.normalization; (4) reference-SED external "
+                 "calibration error and fitted a_k covariance propagation "
+                 "into V_F; (5) applicability of any magnitude-to-flux zero "
+                 "point constant. explicit_linear_flux remains the only "
+                 "canonical path; precision unavailable, signal unaffected";
   } else {
     def.reason = "unknown snr.reference.kind='" + kind + "' (expected "
                  "explicit_linear_flux|sed_response) ⇒ unavailable";
@@ -546,12 +563,46 @@ StagedPrecision stage_frame_precision(
   // 原生 gain 的 provenance 单独保留, 不被有效 gain 覆盖。
   cfg.plane_scale = req.applied_scale;
   cfg.gain_provenance = req.gain_provenance;
-  // 空间 alpha 接线（NOISE_SNR §11.3, P5 空间 alpha）: req.pixel_alpha_at 是
+  // 空间 alpha 接线（NOISE_SNR §2 总通量口径, P5 空间 alpha）: req.pixel_alpha_at 是
   // 帧级求值器（输入源像元下标; m() 的唯一实现在 calibration::photo_spatial_m,
   // 由 drizzle 节点按 p1_phot.json 的 spatial_gain 场与 k_photo 组装）。GLS 侧
   // 的空间 alpha 是**逐窗口**量（PlanarPatchWindow::pixel_alpha, 与 pix_index
   // 对齐）——每个窗口在此就地求值映射, 不要求调用方预生成整帧 α 数组
   // （4096² 帧省 134 MB）。旧口径 cfg.pixel_scale 保留给单窗口调用方。
+  //
+  // α_*(u)（参考源位置 u=(cx_px,cy_px) 的声明标度, NOISE_SNR §2）:
+  //   * 有连续求值器 alpha_at_xy ⇒ 直接在 u 求值（α 场是连续低阶多项式,
+  //     无近似）;
+  //   * 否则只有 pixel_alpha_at ⇒ 最近像元近似（误差 O(|m''|/8) px², 在
+  //     support note 具名登记 nearest_pixel_alpha_star）;
+  //   * 无空间场 ⇒ 常量 req.applied_scale（与 α_j ≡ α_* 标量模型一致）。
+  //   非正/非有限 ⇒ fail_point（reference_alpha_star_invalid）, 不猜。
+  const double alpha_star_const = req.applied_scale;
+  // native_calibrated 声明 + 已施加测光 + 空间场: 参考源按**原生总通量**声明,
+  // 在位置 u 的 applied 总通量 = α_*(u)·F_native = f_ref·(α_*/k_photo)
+  // （f_ref 已由上方换算到输入面的帧级标度; NORMALIZE_DATA §5「每个控制点
+  // 分别保存 F_ref」/ NOISE_SNR §2）。photo_applied 声明 ⇒ applied 面常量
+  // 参考通量（另一种自洽口径, 由配置选择; 此时 reference_flux 保持帧级常量）。
+  const bool per_point_reference_flux =
+      req.pixel_alpha_at != nullptr && req.photometry_applied &&
+      req.reference.normalization == "native_calibrated";
+  auto alpha_star_at = [&](const acsd::normalize::PlanarPatchWindow& w) -> double {
+    if (!req.pixel_alpha_at && !req.alpha_at_xy) return alpha_star_const;
+    const double cx = w.cx_px, cy = w.cy_px;
+    if (req.alpha_at_xy) {
+      const double a = req.alpha_at_xy(cx, cy);
+      if (std::isfinite(a) && a > 0.0) return a;
+      return 0.0;   // 求值失败 ⇒ 调用方具名拒绝
+    }
+    // 最近像元近似（下限 0 ⇒ 调用方判非法; GLS 侧仍会复核正性）
+    const long long ix = static_cast<long long>(std::floor(cx + 0.5));
+    const long long iy = static_cast<long long>(std::floor(cy + 0.5));
+    const long long idx = iy * static_cast<long long>(req.width) + ix;
+    if (ix < 0 || iy < 0 || ix >= req.width || iy >= req.height) return 0.0;
+    return req.pixel_alpha_at(idx);
+  };
+  bool alpha_star_ok = true;
+  std::string alpha_star_reason;
   if (req.pixel_alpha_at) {
     for (auto& w : windows) {
       w.pixel_alpha.resize(w.pix_index.size());
@@ -566,6 +617,24 @@ StagedPrecision stage_frame_precision(
                 ? req.pixel_alpha_at(idx)
                 : 0.0;
       }
+      // α_*(u): 参考源位置声明标度（NOISE_SNR §2 总通量口径）。
+      w.reference_alpha_star = alpha_star_at(w);
+      if (!(w.reference_alpha_star > 0.0) || !std::isfinite(w.reference_alpha_star)) {
+        alpha_star_ok = false;
+        alpha_star_reason = "reference_alpha_star_invalid";
+        continue;
+      }
+      // F_ref(u) = α_*·F_native（仅 native_calibrated + 空间场口径）;
+      // f_ref/k_photo = F_native（k_photo = req.applied_scale）。
+      if (per_point_reference_flux && ref_def.flux.has_value() &&
+          std::isfinite(req.applied_scale) && req.applied_scale > 0.0) {
+        const double f_native = *ref_def.flux / req.applied_scale;
+        w.reference_flux = w.reference_alpha_star * f_native;
+      }
+    }
+    if (!alpha_star_ok) {
+      out.error = alpha_star_reason;
+      return out;
     }
   }
   const auto comp = acsd::normalize::complete_spherical_reference(windows, cfg);
@@ -606,13 +675,21 @@ StagedPrecision stage_frame_precision(
         q.leaf_ipix = windows[i].leaf_ipix;
         return q;
       };
-      {  // psf: h = R P（长度 nl; 单位 1/sr）
+      {  // psf: h = R·(α/α_*)·P（长度 nl; 单位 1/sr）
         auto q = base();
         q.kind = acsd::normalize::LocalModelKind::kPsf;
         q.unit = "sr^-1";
         q.values = lw.h_sphere;
         q.matrix_rows = nl;
         q.matrix_cols = 1;
+        // 空间标度合同（NOISE_SNR §2 总通量口径）: 平面模板
+        // h_j = (α_j/α_*)·P_j 与源泊松 Var_src,j = F_ref·α_j²·P_j/(g·α_*)
+        // 共用同一 α 场。逐像元 α_j、参考位置标度 α_* 与平面模板随 h 落盘,
+        // 使独立读者可复核 h_sphere = R·planar_template 且 α_j = α(u_j)、
+        // α_* = α(u_c) 与 photometry 的 spatial_gain 记录一致。
+        q.source_pixel_alpha = lw.source_pixel_alpha;
+        q.reference_alpha_star = lw.reference_alpha_star;
+        q.planar_template = lw.planar_template;
         model_payloads->push_back(q);
       }
       {  // covariance: 精确因子 v_j + CSR(R) ⇒ C=R diag(v)ᵀ（local-factor/v2）
@@ -748,7 +825,7 @@ StagedPrecision stage_frame_precision(
                         win_spatial[i].max_vertex_sigma);
           spatial_extra = sb;
         }
-        char note[1024];
+        char note[1280];
         std::snprintf(note, sizeof(note),
                       "patch-center deterministic grid; leaf_order=%d;"
                       " flux_estimator=%s; psf_family=moffat4;"
@@ -761,7 +838,11 @@ StagedPrecision stage_frame_precision(
                       " f_enclosed=%.9f; f_out=%.9f;"
                       " ideal_disc_f_out_ref=%.6e;"
                       "%s"
-                      " operator_coverage_of_N_p=%.6f",
+                      " operator_coverage_of_N_p=%.6f;"
+                      " alpha_convention=applied_total_flux_at_u;"
+                      " reference_alpha_star=%.9g;"
+                      " alpha_window_scale=%.9g;"
+                      " per_point_reference_flux=%s",
                       windows[i].leaf_order,
                       req.have_psf ? flux_estimator.c_str() : "unavailable",
                       psf_model.c_str(),
@@ -777,7 +858,13 @@ StagedPrecision stage_frame_precision(
                                       -3.0)
                            : 0.0),
                       spatial_extra.c_str(),
-                      lw.operator_coverage_fraction);
+                      lw.operator_coverage_fraction,
+                      lw.reference_alpha_star,
+                      lw.reference_window_scale,
+                      (lw.reference_alpha_star > 0.0 &&
+                       windows[i].reference_flux > 0.0)
+                          ? "true"
+                          : "false");
         // 求积误差单独一个可机读字段（不进自由文本 note）; 负值 = 未能估计
         q.pixel_integration_error = pd.estimated_error;
         q.support_note = note;

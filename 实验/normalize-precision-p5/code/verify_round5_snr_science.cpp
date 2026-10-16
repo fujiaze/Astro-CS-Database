@@ -425,10 +425,11 @@ int main() {
   // ═══ Part 2: 已知真值 photon+RN 前向模拟 vs GLS 条件 V_F ═══════════════════
   // 噪声模型（NOISE_SNR §2, 电子→ADU, g=1 e-/ADU, RN=9 e, 空sky 58 ADU/px）:
   //   物理世界（总通量语义, PSF.md §4 analytic_total）: v^sim_j = (F·P_j+B)/g + RN²/g²
-  //   生产冻结条件模型（§3/§11.3）: v_j = v^blank_j + F_ref·P_j/(g·a_ref)
+  //   生产冻结条件模型（NOISE_SNR §2 总通量口径, 2026-10-16 订正）:
+  //     v_j = v^blank_j + F_ref·P_j/g（α≡1; 无窗口 sum 因子）
   // 调用方只向 production 提供 blank-sky 方差面（var_plane 契约）; 源泊松项由
-  // production 自己按 §11.3 加入。9x9 窗 ΣP=0.9734 ⇒ 两种世界差 1/a_ref≈2.7%
-  // （Poisson 份额约 79% ⇒ 方差约 2%, Part 3 用显式路径量化并登记待裁决）。
+  // production 自己加入。订正后 F_true=F_ref 处条件方差 == 物理世界精确方差
+  // （Part 3 以 F_true==F_ref 的比值==1 直接断言, 不再有 1/a_ref 效应）。
   // MC 在**条件模型世界**（v）与**物理世界**（v^sim）各跑一遍。
   std::printf("\n== Part 2: forward photon+RN simulation vs conditional V_F ==\n");
   {
@@ -460,12 +461,11 @@ int main() {
     const double blank =
         kSkyADUPerPx / kGainEPerADU +
         kReadNoiseE * kReadNoiseE / (kGainEPerADU * kGainEPerADU);
-    // 生产冻结条件方差（§11.3 逐字: v_j = blank + F_ref·P_j/(g·a_ref)）
+    // 生产冻结条件方差（NOISE_SNR §2 总通量口径: v_j = blank + F_ref·P_j/g）
     std::vector<double> v_cond(m);
     for (int j = 0; j < m; ++j)
       v_cond[static_cast<std::size_t>(j)] =
-          blank + kFRefADU * P[static_cast<std::size_t>(j)] /
-                      (kGainEPerADU * a_ref);
+          blank + kFRefADU * P[static_cast<std::size_t>(j)] / kGainEPerADU;
     // 物理世界方差（总通量语义: 源泊松 = F·P_j/g, F=F_ref）
     std::vector<double> v_phys(m);
     for (int j = 0; j < m; ++j)
@@ -599,19 +599,19 @@ int main() {
                     4.0 * cov_se,
                 "conditional-world 95% interval coverage matches nominal");
         } else {
-          // 物理世界: 仅作量化记录（1/a_ref 效应使条件 V_F 略保守; 幅度必须
-          // 小于 Poisson 份额的 1/a_ref-1, 不设硬门, 登记供前台裁决）
+          // 物理世界（F_true=F_ref）: 订正后条件方差 == 精确物理方差, 散度比
+          // 应在 4 MC se 内为 1（旧口径在此处有 1/a_ref 的泊松份额偏差）。
           const double infl =
               std::abs(ratio * ratio - 1.0);   // 方差相对差
           std::printf("    physical-world variance rel dev = %.4f%% "
-                      "(1/a_ref-1 = %.4f%%)\n",
-                      100 * infl, 100 * (1.0 / a_ref - 1.0));
+                      "(corrected convention: 0; no window-sum factor)\n",
+                      100 * infl);
           check(std::abs(bias) < 4.0 * std::sqrt(v_f) /
                                      std::sqrt(static_cast<double>(nrep)),
                 "physical-world estimator unbiased within 4 MC se");
-          check(infl < 0.05,
-                "physical-world scatter deviates <5% from conditional V_F "
-                "(a_ref window effect quantified, not gated by physics)");
+          check(std::abs(ratio - 1.0) < 4.0 * mc_se,
+                "physical-world scatter == sqrt(V_F) exactly at F_true=F_ref "
+                "(total-flux convention)");
         }
       }
     }
@@ -667,13 +667,11 @@ int main() {
       std::printf("  F_true=%7.1f: conditional V_F=%.6g  true Var(F_hat)=%.6g "
                   "ratio=%.4f\n", f_true, v_f, eg.var_f, eg.var_f / v_f);
       if (f_true == kFRefADU) {
-        // 9x9 窗 a_ref=0.9734: 条件模型源泊松用 P/a_ref（窗归一）, 物理世界用 P
-        // ⇒ 条件 V_F 系统性偏大约 1/a_ref 的 Poisson 份额。生产窗 m≈633
-        // （a_ref≈1）时该效应 <0.1%; 此处量化登记, 由前台裁决是否需要把
-        // §11.3 的 a_ref 配对从"窗归一"改为"总通量语义"。
-        check(eg.var_f / v_f > 0.9 && eg.var_f / v_f < 1.0,
-              "at F_true=F_ref conditional V_F is within the a_ref window "
-              "effect of the exact variance (quantified, not exact)");
+        // 订正后总通量口径: 条件方差与物理世界精确方差逐位一致（9x9 窗
+        // ΣP=0.9765 也成立, 因为不再有 1/ΣP 因子）。这是本轮的判据。
+        check(std::abs(eg.var_f / v_f - 1.0) < 1e-12,
+              "at F_true=F_ref conditional V_F == exact physical variance "
+              "(no a_ref window effect)");
       }
       if (f_true < kFRefADU) {
         check(eg.var_f < v_f,

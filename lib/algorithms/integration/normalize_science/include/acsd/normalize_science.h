@@ -130,6 +130,13 @@ struct LocalModelPayload {
   std::vector<double> source_omega;               // Ω_j (sr)
   std::vector<double> source_a_drop;              // A_drop,j (sr)
   std::vector<double> source_n_leaf;              // 每叶完整 N_l (sr; 同次生产)
+  // ── PSF 空间标度合同（NOISE_SNR §2 总通量口径, 2026-10-16 接线）──────────
+  // h_j = (α_j/α_*)·P_j; 源泊松 Var_src,j = F_ref·α_j²·P_j/(g·α_*)。逐像元 α_j、
+  // 参考位置标度 α_* 与平面模板随 psf 模型落盘, 供独立读侧重算
+  // （h_sphere == R·planar_template; α_j/α_* 与 photometry spatial_gain 一致）。
+  std::vector<double> source_pixel_alpha;   // α_j（与 source_pixel_index 对齐）
+  double reference_alpha_star = 0.0;        // α_*(u)（参考源位置声明标度）
+  std::vector<double> planar_template;      // h_j = (α_j/α_*)·P_j（长度 m）
   // ── local-factor/v2（NORMALIZE_DATA §7.1 2026-10-15 裁决）────────────────
   // v1 的错位: 把 factor payload values=v_j 的 unit 写成 adu^2/sr^2、
   // matrix_shape 写成 [m,1], 与派生 C 的真实 shape/单位混同。v2 用不可混淆的

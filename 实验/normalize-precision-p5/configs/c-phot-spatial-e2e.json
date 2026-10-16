@@ -1,0 +1,61 @@
+{
+  "schema_version": "1",
+  "blocks": [
+    {
+      "name": "c_phot_spatial_e2e",
+      "input_lights": [
+        "/workspace/Astro CS Database/testdata/M42_T2T3_mosaic_Flying_dutchman/T2/M1/M42_M1_T2_flying_dutchman-20251212@012404-300S-Red.fts"
+      ],
+      "master_bias": "/workspace/Astro CS Database/testdata/T2 calibration files/masterBias_BIN-1_4096x4096.xisf",
+      "master_dark": "/workspace/Astro CS Database/testdata/T2 calibration files/masterDark_BIN-1_4096x4096_EXPOSURE-600.00s.xisf",
+      "master_flat": "/workspace/Astro CS Database/testdata/T2 calibration files/masterFlat_BIN-1_4096x4096_FILTER-Red_mono.xisf",
+      "output_dir": "/workspace/Astro CS Database/run/C-PHOT-SPATIAL-E2E/out",
+      "drizzle": {
+        "nested": 1,
+        "nside": 0,
+        "pixfrac": 0.8,
+        "precision_mode": 1
+      },
+      "filter_passband": "Astrodon E-series R",
+      "wcs": {
+        "init_source": "header_pointing",
+        "gaia_data_dir": "/workspace/Astro CS Database/gaia/GaiaDR3SP"
+      },
+      "photometry": {
+        "fit": {
+          "enabled": true,
+          "gaia_data_dir": "/workspace/Astro CS Database/gaia/GaiaDR3SP",
+          "filter": "Astrodon E-series R",
+          "qe_name": "KAF-16803"
+        }
+      },
+      "dark_optimization": true,
+      "dark_scale_factor": 0.5,
+      "master_flat_normalize": "median",
+      "master_units": {
+        "bias": "normalized",
+        "dark": "normalized",
+        "flat": "normalized"
+      },
+      "master_scale": {
+        "bias": 65535,
+        "dark": 65535,
+        "flat": 65535
+      },
+      "work_dir": "/workspace/Astro CS Database/run/C-PHOT-SPATIAL-E2E/work",
+      "snr": {
+        "gain_e_per_adu": 1.0,
+        "read_noise_e": 9.0,
+        "aperture_radius_px": 4,
+        "n_sky": 20,
+        "reference": {
+          "kind": "explicit_linear_flux",
+          "reference_id": "user:test-ref-star",
+          "flux": 1000.0,
+          "flux_unit": "adu",
+          "normalization": "native_calibrated"
+        }
+      }
+    }
+  ]
+}
