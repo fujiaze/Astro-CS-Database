@@ -493,19 +493,27 @@ SphericalCompletionResult complete_spherical_reference(
         std::isfinite(cfg.plane_scale) && cfg.plane_scale > 0.0 ? cfg.plane_scale
                                                                 : 1.0;
     std::vector<double> alpha(m, alpha_const);
-    if (!cfg.pixel_scale.empty()) {
-      if (cfg.pixel_scale.size() != m) {
+    // 空间 alpha 的两个来源（按优先级）:
+    //   1) 窗口级 w.pixel_alpha（调用方按本窗像元映射的帧级 α 场; P5 接线）;
+    //   2) cfg.pixel_scale（旧调用方的单窗口口径; 保留兼容, 长度须 = m）。
+    const std::vector<double>* alpha_src = nullptr;
+    if (!w.pixel_alpha.empty())
+      alpha_src = &w.pixel_alpha;
+    else if (!cfg.pixel_scale.empty())
+      alpha_src = &cfg.pixel_scale;
+    if (alpha_src != nullptr) {
+      if (alpha_src->size() != m) {
         fail_point("pixel_scale_length_mismatch");
         out.precision.controls.push_back(ctrl);
         continue;
       }
       for (std::size_t j = 0; j < m; ++j) {
-        if (!std::isfinite(cfg.pixel_scale[j]) || !(cfg.pixel_scale[j] > 0.0)) {
+        if (!std::isfinite((*alpha_src)[j]) || !((*alpha_src)[j] > 0.0)) {
           fail_point("nonfinite_pixel_scale");
           alpha.clear();
           break;
         }
-        alpha[j] = cfg.pixel_scale[j];
+        alpha[j] = (*alpha_src)[j];
       }
       if (alpha.empty()) {
         out.precision.controls.push_back(ctrl);
@@ -631,15 +639,20 @@ SphericalCompletionResult complete_spherical_reference(
     // 背景冗余 ≠ 通量不可辨识（§11.4 末段）: 设 t = W̃[0:r,0]（通量列）、
     // Z_w = W̃[0:r,1:ncol]，正交投影 I_{F|β} = ‖(I−Π_Z)t‖², V_F = 1/I_{F|β}。
     // 只有通量响应整体落在背景列空间内才判 unavailable, 不因参数矩阵退化误判。
+    // I_F 以显式正交残差 e=t−Π_Zt 的两轮重投影计算（§11.6 审查的消去误差修正;
+    // 不得退回 ‖t‖²−‖Π_Zt‖² 相减）。‖t‖、‖e‖、有效背景秩与 rank 容差一并落盘。
     double v_f_pre = 0.0;         // 由本块直接给出 V_F（取代 invert_ff_entry）
     bool have_v_f = false;
     int cov_rank = 0;             // rank(C_sphere), 与 solver 诊断同源
     double cov_cond = kNaN;
+    std::string cov_cond_method;  // 条件数估计方法（§11.6: 估计 ≠ κ₂(C) 本身）
     bool gls_ok = false;
     std::string solver_name;      // solver 身份（随 LocalWindow 落盘供审计）
     double solver_rel_tol = 0.0;
     int z_rank_out = 0;           // Z_w 有效秩（共线背景列被识别并记录）
     double i_f_out = 0.0;         // I_{F|β}
+    double t_norm_out = 0.0;      // ‖t‖
+    double e_norm_out = 0.0;      // ‖t − Π_Z t‖
     {
       const double rel_tol = (std::isfinite(cfg.support_rank_tol) &&
                               cfg.support_rank_tol > 0.0)
@@ -660,6 +673,7 @@ SphericalCompletionResult complete_spherical_reference(
         have_v_f = true;
         cov_rank = jr.covariance_rank;
         cov_cond = jr.condition_number;
+        cov_cond_method = "retained_eigenvalue_ratio";
         solver_name = "jacobi_retained_subspace";
         solver_rel_tol = rel_tol;
       } else {
@@ -691,9 +705,11 @@ SphericalCompletionResult complete_spherical_reference(
         for (int k = 0; k < r; ++k)
           min_piv = std::min(min_piv, qr.pivnorm[static_cast<std::size_t>(k)]);
         const double ratio = qr.max_col_norm / min_piv;
-        // 条件数估计: (QR pivot 比)² —— 与 C 的 σ²max/σ²min 同口径的保守估计,
-        // 配合 solver/rel_tol/rank 一并落盘供审计, 不用它单独特判病态。
+        // 条件数估计: (QR pivot 比)² —— 与 C 的 σ²max/σ²min 同口径的保守估计。
+        // NOISE_SNR §11.6 审查: 这是**估计**（pivot 范数比平方）, 不等于严格谱
+        // 条件数 κ₂(C); 估计方法名随值落盘, 不用它单独特判病态。
         cov_cond = std::isfinite(ratio) ? ratio * ratio : kNaN;
+        cov_cond_method = "pivot_norm_ratio_squared";
         double t_norm2 = 0.0;
         for (int i = 0; i < r; ++i) {
           const double x = w_mat[static_cast<std::size_t>(i) * ncol + 0];
@@ -734,15 +750,30 @@ SphericalCompletionResult complete_spherical_reference(
                 z[static_cast<std::size_t>(i)] / rn;
           ++z_rank;
         }
-        double proj = 0.0;
-        for (int q = 0; q < z_rank; ++q) {
-          double d = 0.0;
-          for (int i = 0; i < r; ++i)
-            d += w_mat[static_cast<std::size_t>(i) * ncol + 0] *
-                 basis[static_cast<std::size_t>(q) * r + i];
-          proj += d * d;
+        // I_{F|β} 的数值稳定计算（NOISE_SNR §11.6 第二轮审查修正）:
+        // 旧实现以 ‖t‖² − Σ_q(t·q)² 两个近似相等的量相减, 当通量方向接近背景
+        // 列空间时发生灾难性消去（相对误差 ~ε·‖t‖²/I_F 放大）。改为**显式构造
+        // 正交残差** e = t − Π_Z t（对正交基做两轮投影 = 重正交, 防单轮舍入
+        // 残留）, 直接求 ‖e‖²。数学等价, 近共线时保持满相对精度。
+        std::vector<double> e(static_cast<std::size_t>(r), 0.0);
+        for (int i = 0; i < r; ++i)
+          e[static_cast<std::size_t>(i)] =
+              w_mat[static_cast<std::size_t>(i) * ncol + 0];
+        for (int pass = 0; pass < 2; ++pass) {
+          for (int q = 0; q < z_rank; ++q) {
+            double d = 0.0;
+            for (int i = 0; i < r; ++i)
+              d += e[static_cast<std::size_t>(i)] *
+                   basis[static_cast<std::size_t>(q) * r + i];
+            for (int i = 0; i < r; ++i)
+              e[static_cast<std::size_t>(i)] -=
+                  d * basis[static_cast<std::size_t>(q) * r + i];
+          }
         }
-        const double i_f = t_norm2 - proj;
+        double e_norm2 = 0.0;
+        for (double x : e) e_norm2 += x * x;
+        const double i_f = e_norm2;
+        // 可辨识判据: 残差相对 ‖t‖ 超过 rank 容差（相对量纲, 不随模板缩放漂移）。
         if (!std::isfinite(i_f) || !(i_f > rel_tol * std::max(t_norm2, 0.0))) {
           fail_point(ncol > 1 ? "flux_direction_inside_background_span"
                               : "flux_not_identifiable");
@@ -755,6 +786,8 @@ SphericalCompletionResult complete_spherical_reference(
         solver_rel_tol = rel_tol;
         z_rank_out = z_rank;
         i_f_out = i_f;
+        t_norm_out = std::sqrt(t_norm2);
+        e_norm_out = std::sqrt(e_norm2);
       }
     }
     gls_ok = have_v_f;
@@ -799,7 +832,9 @@ SphericalCompletionResult complete_spherical_reference(
     ctrl.reference_snr = f_ref / std::sqrt(v_f);
     ctrl.support_area_sr = support_total;
     // covariance_rank / condition_number 指 **C_sphere 的保留子空间**
-    // （detail §7.4: 与参数信息矩阵的秩分名, 不偷换意义）。
+    // （detail §7.4: 与参数信息矩阵的秩分名, 不偷换意义）。condition_number 是
+    // solver_condition_estimate_method 标注的**估计**（§11.6）; QR 路径的秩容差
+    // 作用于 Q 的奇异值（pivot 列范数）, 与 Jacobi 路径的特征值尺度不可比。
     ctrl.covariance_rank = static_cast<std::uint64_t>(cov_rank);
     ctrl.condition_number = std::isfinite(cov_cond) && cov_cond >= 1.0
                                 ? std::optional<double>(cov_cond)
@@ -855,9 +890,12 @@ SphericalCompletionResult complete_spherical_reference(
     lw.solver = solver_name;
     lw.solver_rank = cov_rank;
     lw.solver_relative_tol = solver_rel_tol;
+    lw.solver_condition_estimate_method = cov_cond_method;
     lw.solver_condition_number = std::isfinite(cov_cond) ? cov_cond : 0.0;
     lw.background_basis_rank = z_rank_out;
     lw.flux_information = i_f_out;
+    lw.flux_response_norm = t_norm_out;
+    lw.flux_residual_norm = e_norm_out;
     // Z_sphere = R Z_planar: nl × n_bg row-major（n_bg 列; 列索引 1..n_bg）
     for (int b = 1; b <= n_bg; ++b) {
       for (int l = 0; l < nl; ++l) lw.z_sphere.push_back(0.0);

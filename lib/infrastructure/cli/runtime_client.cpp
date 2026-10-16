@@ -239,10 +239,17 @@ std::string build_pipeline_ir(const std::vector<int>& phases,
            {{"calibrated", "artifact:cal"}, {"wcs", "artifact:p1_wcs"},
             {"photprov", "artifact:p1_phot"}, {"sources", "artifact:p1_sources"},
             {"snr", "artifact:p1_snr"}},
-           {{"stacked", "artifact:p1_stack"}},
+           {{"stacked", "artifact:p1_stack"},
+            // frame_science 暂存（<work>/<frame_key>/frame_science/…）: drz 的
+            // 正式 typed 输出（descriptor 端口 frame_science 与注册表
+            // p1_frame_science 均已声明; 此前 IR 缺该边 ⇒ 数据流只存在于
+            // 注册表文本, 调度图不可见, 违反「IR 边集与注册表边集逐条相等」）。
+            {"frame_science", "artifact:p1_frame_science"}},
            "cpu_heavy", true),
         mk("wr", "acsd.phase1.writer",
-           {{"stacked", "artifact:p1_stack"}}, {{"fits", "artifact:p1_hips"}},
+           {{"stacked", "artifact:p1_stack"},
+            {"frame_science", "artifact:p1_frame_science"}},
+           {{"fits", "artifact:p1_hips"}},
            "io", false),
     };
   };

@@ -189,13 +189,17 @@ bool write_local_model_file(const std::string& product_root,
       m["exact_factorization_of_model"] = payload.exact_factorization_of_model;
       m["assumptions"] = payload.assumptions;
       // solver 诊断（NOISE_SNR §11.4「同时报告 Q 的有效秩/奇异谱、背景基有效秩、
-      // 源通量信息残差和数值条件」）
+      // 源通量信息残差和数值条件」; §11.6 补充: 条件数是带方法名的估计, 并记录
+      // 通量响应/残差范数使近共线情形可独立复核）
       m["solver"] = payload.solver;
       m["solver_relative_tol"] = payload.solver_relative_tol;
       m["solver_rank"] = payload.solver_rank;
+      m["condition_estimate_method"] = payload.condition_estimate_method;
       m["solver_condition_number"] = payload.solver_condition_number;
       m["background_basis_rank"] = payload.background_basis_rank;
       m["flux_information"] = payload.flux_information;
+      m["flux_response_norm"] = payload.flux_response_norm;
+      m["flux_residual_norm"] = payload.flux_residual_norm;
     }
     // 背景基: [nl, n_bg], 单位必须与被估计的 β 成对（不能与模型其他量共用一个 BUNIT）
     m["background_basis_shape"] = {static_cast<int>(payload.leaf_ipix.size()),
@@ -1017,12 +1021,16 @@ bool publish_staged_frame_science(const std::string& staging_dir,
 
 // ── local-factor/v2 读侧重算（§7.1/§8 末段）────────────────────────────────
 // 幂次解析: 只接受形如 "adu^2/sr^2" 或 "adu^2" 的简单量纲串, 抽出 sr 幂次与
-// 线性量纲。不能解析 ⇒ 明确错误（不猜）。
+// 线性量纲（base + 指数）。NORMALIZE_DATA §7.1B（第二轮独立审查）: 量纲自洽
+// **同时**包括线性单位自身与立体角幂次 —— "adu^2" 与 "electron^2/sr^2" 即使
+// sr 幂次满足计算规则也不是可组合的同一模型。不能解析 ⇒ 明确错误（不猜）。
 namespace {
 struct UnitPower {
   bool ok = false;
   int sr_power = 0;
-  std::string linear_part;
+  std::string linear_part;   // 原始分子串（诊断用）
+  std::string linear_base;   // 线性单位基名（如 "adu" / "electron"）; 空 = 无量纲
+  int linear_exp = 0;        // 线性单位指数（v_j/C 的单位 L^2 ⇒ 2）
 };
 UnitPower parse_unit_sr_power(const std::string& u) {
   UnitPower r;
@@ -1042,7 +1050,7 @@ UnitPower parse_unit_sr_power(const std::string& u) {
       try { r.sr_power = -std::stoi(p.substr(1)); } catch (...) { return r; }
     } else return r;
   }
-  // 分子: <linear> 或 sr^k（因子情形可能只有 sr 幂）
+  // 分子: <linear>^<k> 或 sr^k（因子情形可能只有 sr 幂）
   if (num.rfind("sr", 0) == 0) {
     const std::string p = num.substr(2);
     int k = 0;
@@ -1054,7 +1062,30 @@ UnitPower parse_unit_sr_power(const std::string& u) {
     return r;
   }
   if (num.empty()) return r;
+  // 线性单位: 解析 "<base>" 或 "<base>^<exp>"（只允许字母/数字/下划线 base 与
+  // 非负整数指数; 乘法/拼接等其它写法视为不可解析 ⇒ 拒绝, 不猜测）。
+  const std::size_t caret = num.find('^');
+  const std::string base = caret == std::string::npos ? num : num.substr(0, caret);
+  int exp = 1;
+  if (caret != std::string::npos) {
+    const std::string pe = num.substr(caret + 1);
+    if (pe.empty()) return r;
+    try {
+      std::size_t used = 0;
+      const long v = std::stol(pe, &used);
+      if (used != pe.size() || v < 0) return r;
+      exp = static_cast<int>(v);
+    } catch (...) { return r; }
+  }
+  if (base.empty()) return r;
+  for (char c : base) {
+    const bool safe = (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') ||
+                      (c >= '0' && c <= '9') || c == '_';
+    if (!safe) return r;
+  }
   r.linear_part = num;
+  r.linear_base = base;
+  r.linear_exp = exp;
   r.ok = true;
   return r;
 }
@@ -1062,7 +1093,7 @@ UnitPower parse_unit_sr_power(const std::string& u) {
 
 FactorReconstruction reconstruct_factor_covariance(
     const LocalModelPayload& covariance, const LocalModelPayload& operator_model,
-    std::size_t dense_limit) {
+    std::size_t dense_limit, const std::string& expected_linear_unit) {
   FactorReconstruction out;
   if (covariance.kind != LocalModelKind::kCovariance) {
     out.error = "payload kind is not covariance";
@@ -1086,6 +1117,32 @@ FactorReconstruction reconstruct_factor_covariance(
                 std::to_string(uc.sr_power) + " (expected 0/-1/-2)";
     return out;
   }
+  // 线性单位核对（NORMALIZE_DATA §7.1B 独立审查裁决）: sr 幂次正确只是量纲
+  // 自洽的一半; v_j 的单位必须是 L²、派生 C 的单位必须是 L²/sr², 且两者的 L
+  // 是**同一个** frame 真正施加 photometric scale 后的线性 signal 单位。
+  // "adu^2" 因子与 "electron^2/sr^2" 派生即使 sr 幂次满足规则也拒绝。
+  out.factor_linear_unit = uf.linear_part;
+  out.derived_linear_unit = uc.linear_part;
+  if (expected_linear_unit.empty()) {
+    out.error = "frame signal linear unit unknown; cannot verify factor base "
+                "linear units (sr exponent alone is not sufficient)";
+    return out;
+  }
+  if (uf.linear_exp != 2 || uf.linear_base != expected_linear_unit) {
+    out.error = "factor_variance_unit '" + covariance.factor_variance_unit +
+                "' is not " + expected_linear_unit +
+                "^2 (base linear unit mismatch; factor and derived covariance "
+                "must share the frame signal linear unit)";
+    return out;
+  }
+  if (uc.linear_exp != 2 || uc.linear_base != expected_linear_unit) {
+    out.error = "derived_covariance_unit '" + covariance.derived_covariance_unit +
+                "' is not " + expected_linear_unit +
+                "^2/sr^2 (base linear unit mismatch; factor and derived "
+                "covariance must share the frame signal linear unit)";
+    return out;
+  }
+  out.linear_unit_checked = true;
   const int m = static_cast<int>(covariance.source_pixel_index.size());
   const int nl = static_cast<int>(covariance.leaf_ipix.size());
   if (covariance.values.size() != static_cast<std::size_t>(m)) {
@@ -1278,9 +1335,12 @@ LocalModelLoadResult load_local_model_payload(const std::string& product_root,
   p.solver = str_or(m, "solver", "");
   p.solver_relative_tol = m.value("solver_relative_tol", 0.0);
   p.solver_rank = m.value("solver_rank", 0);
+  p.condition_estimate_method = str_or(m, "condition_estimate_method", "");
   p.solver_condition_number = m.value("solver_condition_number", 0.0);
   p.background_basis_rank = m.value("background_basis_rank", 0);
   p.flux_information = m.value("flux_information", 0.0);
+  p.flux_response_norm = m.value("flux_response_norm", 0.0);
+  p.flux_residual_norm = m.value("flux_residual_norm", 0.0);
   if (m.contains("csr_row_offsets") && m["csr_row_offsets"].is_array())
     p.csr_row_offsets = m["csr_row_offsets"].get<std::vector<std::int64_t>>();
   if (m.contains("csr_column_indices") && m["csr_column_indices"].is_array())
@@ -1332,10 +1392,17 @@ void verify_frame_science_factor_models(
       continue;
     }
     const auto rec = reconstruct_factor_covariance(ld.payload, it->second,
-                                                   /*dense_limit=*/1u << 20);
+                                                   /*dense_limit=*/1u << 20,
+                                                   doc.signal.linear_unit);
     if (!rec.ok) {
       findings->push_back("covariance " + ref.model_id +
                           " failed factor reconstruction: " + rec.error);
+      continue;
+    }
+    if (!rec.linear_unit_checked) {
+      findings->push_back("covariance " + ref.model_id +
+                          " factor/derived linear units were not verified "
+                          "against the frame signal linear unit");
       continue;
     }
     if (rec.max_abs_diff_vs_payload > 0.0) {
