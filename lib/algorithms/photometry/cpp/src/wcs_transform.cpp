@@ -7,6 +7,7 @@
 #include <cstdio>
 #include <cmath>
 #include <stdexcept>
+#include <limits>
 
 #ifndef M_PI
 #define M_PI 3.14159265358979323846
@@ -163,13 +164,12 @@ void WcsTransform::tanWorldToIntermediate(double ra, double dec,
     const double cdra  = std::cos(dra);
     const double sdra  = std::sin(dra);
 
-    // cos(c) = 点到切点的角距离余弦；|cosc| < 1e-12 视为投影背面/发散（数值奇异守卫），
-    // 返回 1e6 哨兵像素（单位 px），调用方按无效匹配拒绝，不计入定标。
+    // TAN/gnomonic 仅在切点可见半球 cos(c)>0 有唯一有限正投影；
+    // 背半球不是另一组合法像素，必须返回逐星无效值。
     const double cosc = sdec0 * sdec + cdec0 * cdec * cdra;
-    if (std::fabs(cosc) < 1e-12) {
-        // 投影发散 (点在投影背面)
-        xi  = 1e6;
-        eta = 1e6;
+    if (!std::isfinite(cosc) || cosc <= 1e-12) {
+        xi = std::numeric_limits<double>::quiet_NaN();
+        eta = xi;
         return;
     }
 
@@ -215,9 +215,18 @@ void WcsTransform::pixelToSky(double x, double y, double& ra, double& dec) const
 void WcsTransform::skyToPixel(double ra, double dec, double& x, double& y) const {
     double xi, eta;
     tanWorldToIntermediate(ra, dec, xi, eta);
+    // 逆变换不得在背半球、非法天球坐标或奇异CD时产生虚假中心像素。
+    if (!std::isfinite(xi) || !std::isfinite(eta) ||
+        !std::isfinite(m_cdDet) || std::fabs(m_cdDet) < 1e-15) {
+        x = std::numeric_limits<double>::quiet_NaN();
+        y = x;
+        return;
+    }
 
     double dx = m_cdInv[0] * xi + m_cdInv[1] * eta;
     double dy = m_cdInv[2] * xi + m_cdInv[3] * eta;
+    const double distorted_dx = dx;
+    const double distorted_dy = dy;
 
     if (m_has_sip) {
         if (m_sip_ap != nullptr && m_sip_bp != nullptr) {
@@ -227,34 +236,38 @@ void WcsTransform::skyToPixel(double ra, double dec, double& x, double& y) const
             dx += fp;
             dy += gp;
         } else {
-            // 无逆向SIP, 用一次迭代近似:
-            // 前向SIP: U = dx + A(U,V), V = dy + B(U,V)
-            // 一次迭代: U ≈ dx + A(dx,dy), V ≈ dy + B(dx,dy)
-            // 然后反解: dx_orig = U - A(U,V), dy_orig = V - B(U,V)
-            // 这里我们需要从dx,dy(含SIP修正后的)反推原始像素坐标
-            // 实际上CD逆矩阵给出的是含SIP修正的中间坐标对应的像素偏移
-            // 对于无AP/BP的情况, 用牛顿迭代一次
+            // 求解 (u+A(u,v), v+B(u,v))=(distorted_dx,distorted_dy)。
+            // 固定三轮不构成收敛证明：用至多64轮保守不动点迭代，
+            // 最终还必须检验前向残差；非收敛坐标不能作为有效引导源。
             double u = dx, v = dy;
-            for (int iter = 0; iter < 3; ++iter) {
-                double f = evalSip(m_sip_a, u, v, m_sip_order);
-                double g = evalSip(m_sip_b, u, v, m_sip_order);
-                // U = u_orig + A(u_orig, v_orig), 求 u_orig
-                // 近似: u_orig = U - A(u, v)
-                double u_new = dx - f;
-                double v_new = dy - g;
-                if (std::fabs(u_new - u) < 1e-10 && std::fabs(v_new - v) < 1e-10) {
-                    u = u_new;
-                    v = v_new;
-                    break;
-                }
+            for (int iter = 0; iter < 64; ++iter) {
+                const double f = evalSip(m_sip_a, u, v, m_sip_order);
+                const double g = evalSip(m_sip_b, u, v, m_sip_order);
+                const double u_new = distorted_dx - f;
+                const double v_new = distorted_dy - g;
+                if (!std::isfinite(u_new) || !std::isfinite(v_new)) break;
+                const double step = std::max(std::fabs(u_new - u), std::fabs(v_new - v));
                 u = u_new;
                 v = v_new;
+                if (step <= 1e-10) break;
             }
             dx = u;
             dy = v;
         }
     }
 
+    // 无论逆向系数是显式AP/BP还是迭代求得，均以同一前向SIP检验。
+    if (m_has_sip) {
+        const double check_x = dx + evalSip(m_sip_a, dx, dy, m_sip_order);
+        const double check_y = dy + evalSip(m_sip_b, dx, dy, m_sip_order);
+        if (!std::isfinite(check_x) || !std::isfinite(check_y) ||
+            std::fabs(check_x - distorted_dx) > 1e-7 ||
+            std::fabs(check_y - distorted_dy) > 1e-7) {
+            x = std::numeric_limits<double>::quiet_NaN();
+            y = x;
+            return;
+        }
+    }
     x = dx + (m_crpix1 - 1.0);
     y = dy + (m_crpix2 - 1.0);
 }
