@@ -90,3 +90,11 @@ HiPS 产品面不受影响 —— 即「缺参考不阻断合法 signal」按合
 3. `lib/infrastructure/scheduler/src/normalize_precision.cpp`（config→typed 输入→算法库→staging）
 4. `module_adapters.cpp` 的 `p1_op_drizzle`（捕获 + staging）与 `p1_op_writer`（发布）
 5. `lib/algorithms/integration/normalize_science/`（sidecar 唯一 serializer/reader + 发布）
+
+## 7. ROUND4：参考通量总通量口径订正（NOISE_SNR §2）
+
+本轮把空间 α 从"只进源泊松分母"改为"模板与源泊松共用同一 α 合同"
+（`h_j=(α_j/α_*)P_j`、`Var_src=F_ref·α_j²·P_j/(g·α_*)`，`F_ref(u)=α_*·F_native`），
+删去旧口径的窗口 sum 归一。推导、实现点、独立闭式/MC 判据与真实产品 A/B 数字见
+`ROUND4_FLUX_CONVENTION.md`；日志见 `evidence/verify_round4_flux_total.log`、
+`evidence/run_p5f_flux_total.log`、`evidence/verify_round6_alpha_contract.log`。

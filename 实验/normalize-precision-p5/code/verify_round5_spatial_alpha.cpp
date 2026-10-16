@@ -1,11 +1,16 @@
-// ACSD Normalize — 空间 alpha（P5）语义验证: NOISE_SNR §11.3 的
-// α_j²/a_ref 配对 + PHOT-MXY-01 的 α_j = k_photo·m(x,y)。
+// ACSD Normalize — 空间 alpha（P5）语义验证:
+// NOISE_SNR §2 总通量口径的 h_j=(α_j/α_*)P_j + Var_src=F_ref·α_j²·P_j/(g·α_*)
+// 配对 + PHOT-MXY-01 的 α_j = k_photo·m(x,y)。
+//
+// 2026-10-16 订正（ROUND4_FLUX_CONVENTION.md）: 本程序原先验证旧口径
+// α_j²/a_ref 配对。旧口径把窗口 sum 当总通量归一且模板 h=P 不承载 α,
+// 已被科学订正取代; 本文件同步更新到新约定, 历史读数保留在 evidence/ 旧日志。
 //
 // 判据（expected 不由被测实现反推）:
-//  1. 恒等退化: α_j ≡ k（常量）⇒ 与旧标量口径逐位一致（接线的兼容性）;
-//  2. a_ref 配对: 合成线性梯度场 α(x,y)=k·(1+g·x̃), 生产 V_F 等于闭式
-//     I_F = Σ_j P_j²/v_j, v_j = blank + F·α_j²·P_j/(g·a_ref), a_ref=Σα_jP_j
-//     （独立第三条路径直接算该和式）;
+//  1. 恒等退化: α_j ≡ k（常量, α_*=k）⇒ 与标量口径逐位一致（接线兼容性）;
+//  2. 空间配对: 合成线性梯度场 α(x,y)=k·(1+g·x̃), 生产 V_F 等于闭式
+//     I_F = Σ_j h_j²/v_j, h_j=(α_j/α_*)P_j, v_j = blank + F·α_j²·P_j/(g·α_*),
+//     α_* = α(u)（参考位置声明标度）。
 //  3. 条件模型世界 MC: 噪声方差取 v_j 本身 ⇒ 估计量无偏、散度 == √V_F、
 //     95% 覆盖（α_j² 加权确实进入条件方差）;
 //  4. 物理方向: 若 α_j 与 P_j 正相关（亮核处标度更大）, 有效 gain 变化使
@@ -64,7 +69,8 @@ Patch make_patch(double cx, double cy) {
 
 PlanarPatchWindow make_window(const Patch& p,
                               const std::vector<double>& alpha,
-                              BackgroundNuisance bg) {
+                              BackgroundNuisance bg,
+                              double reference_alpha_star = 0.0) {
   PlanarPatchWindow w;
   w.control_id = "alpha5";
   w.leaf_order = 11;
@@ -82,6 +88,8 @@ PlanarPatchWindow make_window(const Patch& p,
   w.pix_omega.assign(m, 1.0);
   w.pix_a_drop.assign(m, 1.0);
   w.pixel_alpha = alpha;                       // 空间 alpha（逐窗, 与像元对齐）
+  // 参考位置 u 的声明标度 α_*（NOISE_SNR §2 总通量口径）; 0 = 未声明（常量 α 路径）。
+  w.reference_alpha_star = reference_alpha_star;
   for (int j = 0; j < m; ++j) {
     w.op_pix.push_back(j);
     w.op_leaf.push_back(j);
@@ -132,7 +140,8 @@ int main() {
   const double k0 = 2.5;
   {
     std::vector<double> a_const(m, k0);
-    PlanarPatchWindow w = make_window(p, a_const, BackgroundNuisance::kKnown);
+    PlanarPatchWindow w =
+        make_window(p, a_const, BackgroundNuisance::kKnown, k0);
     const double v_alpha = prod_vf(w, BackgroundNuisance::kKnown);
     // 同一窗口, alpha 走 plane_scale 常量路径（pixel_alpha 空）。
     PlanarPatchWindow w2 = make_window(p, {}, BackgroundNuisance::kKnown);
@@ -152,35 +161,40 @@ int main() {
   }
 
   // 2. 线性梯度场 α_j = k·(1+g·x̃)（x̃ = (x−cx)/4 ∈ [−1,1]）的闭式对拍。
+  //    控制点在 cx（x̃=0）⇒ α_* = kg。
   const double kg = 2.0, ggrad = 0.15;
   std::vector<double> a_lin(m);
   for (int j = 0; j < m; ++j) {
     const double xt = (p.px[static_cast<std::size_t>(j)] - 100.37) / 4.0;
     a_lin[static_cast<std::size_t>(j)] = kg * (1.0 + ggrad * xt);
   }
-  double a_ref = 0.0;
-  for (int j = 0; j < m; ++j)
-    a_ref += a_lin[static_cast<std::size_t>(j)] * p.P[static_cast<std::size_t>(j)];
+  const double alpha_star = kg;   // α(u): x̃=0 处 m=1
   double i_f_closed = 0.0;
+  double a_ref = 0.0;
   for (int j = 0; j < m; ++j) {
     const double blank = kSky / kGain + kRN * kRN / (kGain * kGain);
     const double aj = a_lin[static_cast<std::size_t>(j)];
-    const double vj = blank + kFRef * aj * aj * p.P[static_cast<std::size_t>(j)] /
-                                   (kGain * a_ref);
-    i_f_closed += p.P[static_cast<std::size_t>(j)] * p.P[static_cast<std::size_t>(j)] / vj;
+    const double Pj = p.P[static_cast<std::size_t>(j)];
+    const double hj = (aj / alpha_star) * Pj;
+    const double vj = blank + kFRef * aj * aj * Pj / (kGain * alpha_star);
+    i_f_closed += hj * hj / vj;
+    a_ref += aj * Pj;             // 仅诊断（不再参与归一）
   }
   {
-    PlanarPatchWindow w = make_window(p, a_lin, BackgroundNuisance::kKnown);
+    PlanarPatchWindow w =
+        make_window(p, a_lin, BackgroundNuisance::kKnown, alpha_star);
     const double v_f = prod_vf(w, BackgroundNuisance::kKnown);
     const double v_closed = 1.0 / i_f_closed;
     std::printf("  spatial-alpha V_F=%.10g  closed-form=%.10g  rel=%.3e "
-                "(a_ref=%.9f)\n", v_f, v_closed, rel(v_f, v_closed), a_ref);
+                "(alpha_*=%.9f, diagnostic sum=%.9f)\n",
+                v_f, v_closed, rel(v_f, v_closed), alpha_star, a_ref);
     chk(rel(v_f, v_closed) < 1e-12,
-        "spatial-alpha V_F equals closed form with alpha_j^2/a_ref pairing");
+        "spatial-alpha V_F equals closed form with h=(alpha/alpha_*)P pairing");
     // 与常量 α=k 的差别方向: 梯度场使 a_ref 偏离 k（Jensen 效应）
     std::vector<double> a_k(m, kg);
-    const double v_k = prod_vf(make_window(p, a_k, BackgroundNuisance::kKnown),
-                               BackgroundNuisance::kKnown);
+    const double v_k = prod_vf(
+        make_window(p, a_k, BackgroundNuisance::kKnown, kg),
+        BackgroundNuisance::kKnown);
     std::printf("  gradient-field V_F=%.6g vs constant-k V_F=%.6g (ratio %.5f)\n",
                 v_f, v_k, v_f / v_k);
     chk(std::abs(v_f / v_k - 1.0) > 1e-6,
@@ -189,7 +203,8 @@ int main() {
 
   // 3. 条件模型世界 MC: 噪声方差 = GLS 使用的 v_j（α_j²/a_ref 已含）。
   {
-    PlanarPatchWindow w = make_window(p, a_lin, BackgroundNuisance::kConstantFit);
+    PlanarPatchWindow w = make_window(p, a_lin, BackgroundNuisance::kConstantFit,
+                                      alpha_star);
     const double v_f = prod_vf(w, BackgroundNuisance::kConstantFit);
     std::vector<double> v(m);
     const double blank = kSky / kGain + kRN * kRN / (kGain * kGain);
@@ -197,17 +212,21 @@ int main() {
       v[static_cast<std::size_t>(j)] =
           blank + kFRef * a_lin[static_cast<std::size_t>(j)] *
                       a_lin[static_cast<std::size_t>(j)] *
-                      p.P[static_cast<std::size_t>(j)] / (kGain * a_ref);
+                      p.P[static_cast<std::size_t>(j)] / (kGain * alpha_star);
     // GLS（常量 nuisance, R=I）: 估计行向量 precompute
     // A = [P, 1]; M = AᵀD⁻¹A; W = [1,0]M⁻¹AᵀD⁻¹
     const int ncol = 2;
+    auto hcol = [&](int j) {
+      return (a_lin[static_cast<std::size_t>(j)] / alpha_star) *
+             p.P[static_cast<std::size_t>(j)];
+    };
     std::vector<double> mm(ncol * ncol, 0.0);
     for (int a = 0; a < ncol; ++a)
       for (int b = 0; b < ncol; ++b) {
         double s = 0.0;
         for (int j = 0; j < m; ++j) {
-          const double ac = (a == 0) ? p.P[static_cast<std::size_t>(j)] : 1.0;
-          const double bc = (b == 0) ? p.P[static_cast<std::size_t>(j)] : 1.0;
+          const double ac = (a == 0) ? hcol(j) : 1.0;
+          const double bc = (b == 0) ? hcol(j) : 1.0;
           s += ac * bc / v[static_cast<std::size_t>(j)];
         }
         mm[static_cast<std::size_t>(a) * ncol + b] = s;
@@ -217,8 +236,7 @@ int main() {
     std::vector<double> wrow(m, 0.0);
     for (int j = 0; j < m; ++j)
       wrow[static_cast<std::size_t>(j)] =
-          (inv00 * p.P[static_cast<std::size_t>(j)] + inv01) /
-          v[static_cast<std::size_t>(j)];
+          (inv00 * hcol(j) + inv01) / v[static_cast<std::size_t>(j)];
     const double v_explicit = inv00;
     std::printf("  MC setup: V_F=%.6g explicit[M^-1]_FF=%.6g rel=%.3e\n",
                 v_f, v_explicit, rel(v_f, v_explicit));
@@ -234,7 +252,7 @@ int main() {
     for (int rep = 0; rep < nrep; ++rep) {
       for (int j = 0; j < m; ++j)
         x[static_cast<std::size_t>(j)] =
-            kFRef * p.P[static_cast<std::size_t>(j)] + kSky +
+            kFRef * hcol(j) + kSky +
             std::sqrt(v[static_cast<std::size_t>(j)]) * nz(rng);
       double fh = 0.0;
       for (int j = 0; j < m; ++j)
@@ -270,7 +288,7 @@ int main() {
     cfg.background = BackgroundNuisance::kKnown;
     cfg.gain_e_per_adu = kGain;
     const auto r = complete_spherical_reference(
-        {make_window(p, bad, BackgroundNuisance::kKnown)}, cfg);
+        {make_window(p, bad, BackgroundNuisance::kKnown, 1.0)}, cfg);
     chk(!r.precision.controls.empty() &&
             r.precision.controls[0].status.availability ==
                 PrecisionAvailability::kUnavailable &&
@@ -278,7 +296,7 @@ int main() {
         "non-positive alpha entry ⇒ named unavailable, no fabricated V_F");
     std::vector<double> shortv(m - 2, 1.0);
     const auto r2 = complete_spherical_reference(
-        {make_window(p, shortv, BackgroundNuisance::kKnown)}, cfg);
+        {make_window(p, shortv, BackgroundNuisance::kKnown, 1.0)}, cfg);
     chk(!r2.precision.controls.empty() &&
             r2.precision.controls[0].status.availability ==
                 PrecisionAvailability::kUnavailable,

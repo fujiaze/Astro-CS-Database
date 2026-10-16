@@ -9332,6 +9332,12 @@ Result<void> p1_op_drizzle(const Json& doc, Json* man) {
               const double y = static_cast<double>(idx / wpx);
               return k_photo * calibration::photo_spatial_m(field, x, y);
             };
+            // 连续坐标版（同一 α 场）。m(x,y) 是连续低阶多项式 ⇒ 参考源位置 u
+            // 处的声明标度 α_*(u) 直接求值, 无最近像元近似
+            // （NOISE_SNR §2 总通量口径; h=(α/α_*)P 与源泊松共用该 α_*）。
+            preq.alpha_at_xy = [field, k_photo](double x, double y) {
+              return k_photo * calibration::photo_spatial_m(field, x, y);
+            };
           }
         }
       }
