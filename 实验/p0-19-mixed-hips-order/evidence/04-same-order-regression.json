@@ -1,7 +1,7 @@
 {
   "note": "同阶生产构型 pre-fix vs post-fix 逐字节对照（coverage artifact + sampler artifact）",
   "pre_fix_binary_sha256": "502556166b992f577035cc7877f2e4de8b6ebbdb601875928048ce05fde1ca88",
-  "post_fix_binary_sha256": "fd46cb791613af019850a43cc17b617c91befa09fefa94a689df0746e37516b8",
+  "post_fix_binary_sha256": "34343e9cece62cc9a82bf2f5b56aa761d8411eba328b1bee9fda3df2f1a56efc",
   "rows": [
     {
       "case": "same00_samepath",
@@ -23,5 +23,6 @@
       "samples_byte_identical_to_pre_fix_run": true,
       "pre_fix_samples_sha256_recorded": "dd010ecb7127482d21ab31e8cf164a3bdd2129c74b37075f94c888b74bdc4393"
     }
-  ]
+  ],
+  "post_fix_commit": "7198f50ef4139b242d8dc567ac7273c5e6c2a64c"
 }

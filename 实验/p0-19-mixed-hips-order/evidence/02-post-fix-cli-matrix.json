@@ -1,7 +1,7 @@
 {
   "issue": "https://github.com/fujiaze/Astro-CS-Database/issues/19",
   "acsd": "build/linux-sci-p5/acsd",
-  "acsd_sha256": "fd46cb791613af019850a43cc17b617c91befa09fefa94a689df0746e37516b8",
+  "acsd_sha256": "34343e9cece62cc9a82bf2f5b56aa761d8411eba328b1bee9fda3df2f1a56efc",
   "fixtures_dir": "/tmp/p019/fx",
   "fixture_properties_sha256": {
     "ord0_halpha": "931f28faa1692f54791e61ddfddbd7b621f2b2aebd9b8896875d7c81fdf47d5d",
@@ -29,7 +29,7 @@
       "coverage_artifact_present": true,
       "named_error_present": false,
       "pass": true,
-      "stderr_line": "[2026-10-16T14:31:25Z] seq=5 error final (mosaic/n/a)：node upm_apply failed: public signal surface artifact missing: <redacted>（exit_code=2）",
+      "stderr_line": "[2026-10-16T14:42:46Z] seq=5 error final (mosaic/n/a)：node upm_apply failed: public signal surface artifact missing: <redacted>（exit_code=2）",
       "config": "/workspace/Astro CS Database/实验/p0-19-mixed-hips-order/evidence/02-post-fix-cli-logs/same00_samepath.cfg.json",
       "stderr_log": "/workspace/Astro CS Database/实验/p0-19-mixed-hips-order/evidence/02-post-fix-cli-logs/same00_samepath.stderr"
     },
@@ -50,7 +50,7 @@
       "coverage_artifact_present": true,
       "named_error_present": false,
       "pass": true,
-      "stderr_line": "[2026-10-16T14:31:26Z] seq=5 error final (mosaic/n/a)：node upm_apply failed: public signal surface artifact missing: <redacted>（exit_code=2）",
+      "stderr_line": "[2026-10-16T14:42:46Z] seq=5 error final (mosaic/n/a)：node upm_apply failed: public signal surface artifact missing: <redacted>（exit_code=2）",
       "config": "/workspace/Astro CS Database/实验/p0-19-mixed-hips-order/evidence/02-post-fix-cli-logs/same00_filter_diff.cfg.json",
       "stderr_log": "/workspace/Astro CS Database/实验/p0-19-mixed-hips-order/evidence/02-post-fix-cli-logs/same00_filter_diff.stderr"
     },
@@ -71,7 +71,7 @@
       "coverage_artifact_present": true,
       "named_error_present": false,
       "pass": true,
-      "stderr_line": "[2026-10-16T14:31:27Z] seq=5 error final (mosaic/n/a)：node upm_apply failed: public signal surface artifact missing: <redacted>（exit_code=2）",
+      "stderr_line": "[2026-10-16T14:42:47Z] seq=5 error final (mosaic/n/a)：node upm_apply failed: public signal surface artifact missing: <redacted>（exit_code=2）",
       "config": "/workspace/Astro CS Database/实验/p0-19-mixed-hips-order/evidence/02-post-fix-cli-logs/same00_empty_filter.cfg.json",
       "stderr_log": "/workspace/Astro CS Database/实验/p0-19-mixed-hips-order/evidence/02-post-fix-cli-logs/same00_empty_filter.stderr"
     },
@@ -92,7 +92,7 @@
       "coverage_artifact_present": true,
       "named_error_present": false,
       "pass": true,
-      "stderr_line": "[2026-10-16T14:31:27Z] seq=5 error final (mosaic/n/a)：node upm_apply failed: public signal surface artifact missing: <redacted>（exit_code=2）",
+      "stderr_line": "[2026-10-16T14:42:47Z] seq=5 error final (mosaic/n/a)：node upm_apply failed: public signal surface artifact missing: <redacted>（exit_code=2）",
       "config": "/workspace/Astro CS Database/实验/p0-19-mixed-hips-order/evidence/02-post-fix-cli-logs/same11_filter_diff.cfg.json",
       "stderr_log": "/workspace/Astro CS Database/实验/p0-19-mixed-hips-order/evidence/02-post-fix-cli-logs/same11_filter_diff.stderr"
     },
@@ -109,7 +109,7 @@
       "coverage_artifact_present": true,
       "named_error_present": false,
       "pass": true,
-      "stderr_line": "[2026-10-16T14:31:28Z] seq=5 error final (mosaic/n/a)：node upm_apply failed: public signal surface artifact missing: <redacted>（exit_code=2）",
+      "stderr_line": "[2026-10-16T14:42:48Z] seq=5 error final (mosaic/n/a)：node upm_apply failed: public signal surface artifact missing: <redacted>（exit_code=2）",
       "config": "/workspace/Astro CS Database/实验/p0-19-mixed-hips-order/evidence/02-post-fix-cli-logs/single0.cfg.json",
       "stderr_log": "/workspace/Astro CS Database/实验/p0-19-mixed-hips-order/evidence/02-post-fix-cli-logs/single0.stderr"
     },
@@ -126,7 +126,7 @@
       "coverage_artifact_present": true,
       "named_error_present": false,
       "pass": true,
-      "stderr_line": "[2026-10-16T14:31:28Z] seq=5 error final (mosaic/n/a)：node upm_apply failed: public signal surface artifact missing: <redacted>（exit_code=2）",
+      "stderr_line": "[2026-10-16T14:42:49Z] seq=5 error final (mosaic/n/a)：node upm_apply failed: public signal surface artifact missing: <redacted>（exit_code=2）",
       "config": "/workspace/Astro CS Database/实验/p0-19-mixed-hips-order/evidence/02-post-fix-cli-logs/single1.cfg.json",
       "stderr_log": "/workspace/Astro CS Database/实验/p0-19-mixed-hips-order/evidence/02-post-fix-cli-logs/single1.stderr"
     },
@@ -147,7 +147,7 @@
       "coverage_artifact_present": false,
       "named_error_present": true,
       "pass": true,
-      "stderr_line": "[2026-10-16T14:31:29Z] seq=5 error final (mosaic/n/a)：node coverage failed: mixed hips_order unsupported without spherical resampling: distinct orders={0,1}; inputs=[0|<redacted>,1|<redacted>（exit_code=3）",
+      "stderr_line": "[2026-10-16T14:42:49Z] seq=5 error final (mosaic/n/a)：node coverage failed: mixed hips_order unsupported without spherical resampling: distinct orders={0,1}; inputs=[0|<redacted>,1|<redacted>（exit_code=3）",
       "config": "/workspace/Astro CS Database/实验/p0-19-mixed-hips-order/evidence/02-post-fix-cli-logs/mixed01.cfg.json",
       "stderr_log": "/workspace/Astro CS Database/实验/p0-19-mixed-hips-order/evidence/02-post-fix-cli-logs/mixed01.stderr"
     },
@@ -168,7 +168,7 @@
       "coverage_artifact_present": false,
       "named_error_present": true,
       "pass": true,
-      "stderr_line": "[2026-10-16T14:31:29Z] seq=5 error final (mosaic/n/a)：node coverage failed: mixed hips_order unsupported without spherical resampling: distinct orders={0,1}; inputs=[0|<redacted>,1|<redacted>（exit_code=3）",
+      "stderr_line": "[2026-10-16T14:42:50Z] seq=5 error final (mosaic/n/a)：node coverage failed: mixed hips_order unsupported without spherical resampling: distinct orders={0,1}; inputs=[0|<redacted>,1|<redacted>（exit_code=3）",
       "config": "/workspace/Astro CS Database/实验/p0-19-mixed-hips-order/evidence/02-post-fix-cli-logs/mixed10_perm.cfg.json",
       "stderr_log": "/workspace/Astro CS Database/实验/p0-19-mixed-hips-order/evidence/02-post-fix-cli-logs/mixed10_perm.stderr"
     },
@@ -193,7 +193,7 @@
       "coverage_artifact_present": false,
       "named_error_present": true,
       "pass": true,
-      "stderr_line": "[2026-10-16T14:31:30Z] seq=5 error final (mosaic/n/a)：node coverage failed: mixed hips_order unsupported without spherical resampling: distinct orders={0,1}; inputs=[0|<redacted>,0|<redacted>,1|<redacted>（exit_code=3）",
+      "stderr_line": "[2026-10-16T14:42:50Z] seq=5 error final (mosaic/n/a)：node coverage failed: mixed hips_order unsupported without spherical resampling: distinct orders={0,1}; inputs=[0|<redacted>,0|<redacted>,1|<redacted>（exit_code=3）",
       "config": "/workspace/Astro CS Database/实验/p0-19-mixed-hips-order/evidence/02-post-fix-cli-logs/mixed010_three.cfg.json",
       "stderr_log": "/workspace/Astro CS Database/实验/p0-19-mixed-hips-order/evidence/02-post-fix-cli-logs/mixed010_three.stderr"
     },
@@ -214,7 +214,7 @@
       "coverage_artifact_present": false,
       "named_error_present": true,
       "pass": true,
-      "stderr_line": "[2026-10-16T14:31:30Z] seq=5 error final (mosaic/n/a)：node coverage failed: mixed hips_order unsupported without spherical resampling: distinct orders={0,1}; inputs=[0|<redacted>,1|<redacted>（exit_code=3）",
+      "stderr_line": "[2026-10-16T14:42:51Z] seq=5 error final (mosaic/n/a)：node coverage failed: mixed hips_order unsupported without spherical resampling: distinct orders={0,1}; inputs=[0|<redacted>,1|<redacted>（exit_code=3）",
       "config": "/workspace/Astro CS Database/实验/p0-19-mixed-hips-order/evidence/02-post-fix-cli-logs/mixed01_filter_diff.cfg.json",
       "stderr_log": "/workspace/Astro CS Database/实验/p0-19-mixed-hips-order/evidence/02-post-fix-cli-logs/mixed01_filter_diff.stderr"
     }
