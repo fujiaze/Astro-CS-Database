@@ -33,7 +33,7 @@ docs/detail/mosaic/README.md	63eccbb6133aef56389641d43c55df6e243819c5	13bdddfdcd
 docs/detail/mosaic/pipeline.md	63eccbb6133aef56389641d43c55df6e243819c5	8ee09b09d828ea788b0c35fe486a7e10c798aa3b	5234	保留专题内容；必要导航同步	docs/detail/mosaic/pipeline.md	已读正文；未完成逐引文/逐函数外部核验
 docs/detail/normalize/README.md	63eccbb6133aef56389641d43c55df6e243819c5	0e41de6b6785962b7324951ca7a4e8c36ded58c9	481	重写	docs/detail/normalize/README.md	已读；按本轮授权整理，科学重推导未执行
 docs/detail/normalize/contracts.md	63eccbb6133aef56389641d43c55df6e243819c5	5a64b0cd00b91bbca77dc2e4df0c773e125d39af	20777	保留专题内容；必要导航同步	docs/detail/normalize/contracts.md	已读正文；未完成逐引文/逐函数外部核验
-docs/detail/normalize/modules/star_detection.md	63eccbb6133aef56389641d43c55df6e243819c5	16e32c3edf9851b50cc48810301519ceec952741	40036	保留当前主题归属；逐篇重写尚未完成	docs/detail/normalize/modules/star_detection.md	已枚举；局部查阅或尚未精读
+docs/detail/normalize/modules/star_detection.md	63eccbb6133aef56389641d43c55df6e243819c5	16e32c3edf9851b50cc48810301519ceec952741	40036	重写	docs/detail/normalize/modules/star_detection.md	已读；按本轮授权整理，科学重推导未执行
 docs/detail/normalize/pipeline.md	63eccbb6133aef56389641d43c55df6e243819c5	955d49b4e54eec4de86837e524a2fcf65e4e02f9	2808	保留专题内容；必要导航同步	docs/detail/normalize/pipeline.md	已读正文；未完成逐引文/逐函数外部核验
 docs/detail/registry/README.md	63eccbb6133aef56389641d43c55df6e243819c5	5fb16d8168c6f4d4f3df1b339704f26dd0eaee98	329	重写	docs/detail/registry/README.md	已读；按本轮授权整理，科学重推导未执行
 docs/detail/registry/acsd.phase1.calibration.md	63eccbb6133aef56389641d43c55df6e243819c5	545e761bc97875d24b685d119ea45b4bfdb08648	3422	并入同主题正文；原文件退役	docs/detail/normalize/modules.md#calibration	已读模块/规范；接口按已查生产段抽查，未做全函数运行核验
@@ -162,7 +162,7 @@ docs/science/algorithms/normalize/COSMETIC_ALGORITHMS.md	63eccbb6133aef56389641d
 docs/science/algorithms/normalize/PHOTOMETRIC_FIT.md	63eccbb6133aef56389641d43c55df6e243819c5	04275ba17add6ee9b48783d939c65487296cc4d9	37559	保留当前主题归属；逐篇重写尚未完成	docs/science/algorithms/normalize/PHOTOMETRIC_FIT.md	已枚举；局部查阅或尚未精读
 docs/science/algorithms/normalize/PLATESOLVE.md	63eccbb6133aef56389641d43c55df6e243819c5	3fad272c5072b4c603d54b90e5a209305611a083	31259	保留当前主题归属；逐篇重写尚未完成	docs/science/algorithms/normalize/PLATESOLVE.md	已枚举；局部查阅或尚未精读
 docs/science/algorithms/normalize/README.md	63eccbb6133aef56389641d43c55df6e243819c5	774b8ba7798ac98bd86875ea72a47564de0ecd4a	313	重写	docs/science/algorithms/normalize/README.md	已读；按本轮授权整理，科学重推导未执行
-docs/science/algorithms/normalize/STAR_DETECTION_ALGORITHMS.md	63eccbb6133aef56389641d43c55df6e243819c5	d576b83b4fd1383be52c3a408aea1713e3f0ae43	38540	保留当前主题归属；逐篇重写尚未完成	docs/science/algorithms/normalize/STAR_DETECTION_ALGORITHMS.md	已枚举；局部查阅或尚未精读
+docs/science/algorithms/normalize/STAR_DETECTION_ALGORITHMS.md	63eccbb6133aef56389641d43c55df6e243819c5	d576b83b4fd1383be52c3a408aea1713e3f0ae43	38540	重写	docs/science/algorithms/normalize/STAR_DETECTION_ALGORITHMS.md	已读；按本轮授权整理，科学重推导未执行
 docs/science/algorithms/normalize/STAR_PSF_ALGORITHMS.md	63eccbb6133aef56389641d43c55df6e243819c5	631ce4aae118dbd2f1b9009d0369f84d254e78ac	20083	重写	docs/science/algorithms/normalize/STAR_PSF_ALGORITHMS.md	已读；按本轮授权整理，科学重推导未执行
 docs/science/calibration/CALIBRATION.md	63eccbb6133aef56389641d43c55df6e243819c5	77786189139eab233e9aa9adc8bacc663bcc296f	7872	保留专题内容；必要导航同步	docs/science/calibration/CALIBRATION.md	已读正文；未完成逐引文/逐函数外部核验
 docs/science/calibration/CCD_DEFECT.md	63eccbb6133aef56389641d43c55df6e243819c5	b16afb5121f5c7c333599de27361430341d93b4a	8280	保留科学正文；观察/复算附录归研究记录	docs/science/calibration/CCD_DEFECT.md ; 实验/documentation-refactor/docs/CCD_DEFECT_OBSERVATIONS.md	已读；未重跑数值
