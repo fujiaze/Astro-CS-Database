@@ -65,6 +65,8 @@ def main():
                         duty='共用 HiPS writer 的视图、单位、句柄、错误与层级写出',
                         upstream='docs/engineering/contracts/HIPS_IO.md'))
     for name, duty, upstream in [
+        ('photometry', '光度完整C接口、C++装配字段、诊断/逐星布局、所有权和实际退化分支',
+         'docs/science/algorithms/normalize/PHOTOMETRIC_FIT.md'),
         ('platesolve', 'IPV完整C接口、参数/结果/回调布局、选星交接、错误和生命周期',
          'docs/science/algorithms/normalize/PLATESOLVE.md'),
     ]:

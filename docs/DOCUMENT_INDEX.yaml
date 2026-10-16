@@ -129,6 +129,10 @@ doc_index:
     status: ACTIVE_INFORMATIVE
     duty: normalize 模块的输入输出、公开接口、所有权、错误与生产调用说明
     upstream: docs/detail/normalize/pipeline.md
+  - path: docs/detail/normalize/modules/photometry.md
+    status: ACTIVE_INFORMATIVE
+    duty: 光度完整C接口、C++装配字段、诊断/逐星布局、所有权和实际退化分支
+    upstream: docs/science/algorithms/normalize/PHOTOMETRIC_FIT.md
   - path: docs/detail/normalize/modules/platesolve.md
     status: ACTIVE_INFORMATIVE
     duty: IPV完整C接口、参数/结果/回调布局、选星交接、错误和生命周期
