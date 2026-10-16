@@ -3303,6 +3303,17 @@ static int sky_make_residual_fields(const SkyPlaneModel* m, const P2SkySample* s
         if (s.flags & (P2_SKY_FLAG_MASKED | P2_SKY_FLAG_LOW_SUPPORT |
                        P2_SKY_FLAG_HIGH_CONTAMINATION | P2_SKY_FLAG_REJECTED))
             continue;
+        // 与 p2_sky_plane_build 的 used 样本集采用同一观测资格。
+        // 不可用的控制方差/SNR不得在 own 残差场中退回任意权重 1 或 1e-12：
+        // 否则基础联合解已排除的数据又会污染最终实际施加的 F_k。
+        if (!std::isfinite(s.ra_deg) || !std::isfinite(s.dec_deg) ||
+            !std::isfinite(s.value))
+            continue;
+        if (m->cfg.weight_mode == 0) {
+            if (!finite_pos(s.variance)) continue;
+        } else {
+            if (!finite_pos(s.snr)) continue;
+        }
         const auto itk = m->frame_index.find(s.frame_id);
         if (itk == m->frame_index.end()) continue;
         double bk = 0.0;
@@ -3323,9 +3334,7 @@ static int sky_make_residual_fields(const SkyPlaneModel* m, const P2SkySample* s
             static_cast<std::size_t>(iv) * static_cast<std::size_t>(nu) +
             static_cast<std::size_t>(iu);
         const double w = (m->cfg.weight_mode == 0)
-                             ? ((s.variance > 0.0 && std::isfinite(s.variance))
-                                    ? 1.0 / s.variance : 1.0)
-                             : std::max(s.snr * s.snr, 1e-12);
+                             ? 1.0 / s.variance : s.snr * s.snr;
         const std::size_t k = itk->second;
         fsum[k][c] += (s.value - bk) * w;
         fw[k][c] += w;
