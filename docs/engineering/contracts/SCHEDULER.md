@@ -26,6 +26,10 @@ Scheduler持有ThreadBudget并注入RunContext。节点根据计划申请真实�
 
 cancel置调度器及当前RunContext的token，节点和内核按明确粒度响应。停止派发后等待在飞借用结束再回收，I/O收尾保留真实发布状态；已可见但未确认持久化的对象不能一律删除。进程退出码在CLI映射，详见[错误合同](LOG_AND_ERROR.md)。
 
+## ARS 事件驱动调度的目标准入顺序
+
+现有 `Scheduler::run`、`heavy_gate`、`MemoryPressureGovernor::choose_victim` 仅提供节点派发与压力治理，`evicted` 标记不等于内存已回收。目标先确认科学依赖/typed revisions，再为 `new_output+scratch+new_AIO_buffer+staging` 申请原子增量 credit/IO slots，最后才按关键路径、预计耗时、资源驻留、I/O 背压、公平 aging 排序。无法满足时放 scheduler waiting queue，不让 compute worker 阻塞于 MemoryCredit；高压只牺牲可回滚且未提交的 Frame，join CPU、drain AIO、释放实际 bytes 后从相同 occurrence 完整重算。具体条件、未知估算处理和伪代码参见 [ARS 设计 §4–7](../architecture/PROCESS_RUNTIME_DETAILED_DESIGN.md)。
+
 ## 4. 数值复现
 
 归约按声明的帧/块/像素顺序与算法进行，整数身份、资格和计数精确比较。跨worker/ISA的浮点结果按模块数值域与[测试标准](../testing/TEST.md)容差比较，固定归约结构与误差限分别检查。不能由“无跨星归约”或“任务按下标回填”推出整条科学链逐位一致。

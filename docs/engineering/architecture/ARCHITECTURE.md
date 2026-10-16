@@ -37,6 +37,8 @@ Normalize 逐帧发布合法球面信号、WCS、光度/PSF/噪声模型、参�
 
 上述边界在一个阶段内形成唯一执行平面，不存在跨三个命令持久存活的全局会话。调度实现可复用基础设施，每次运行的预算、对象和状态独立。
 
+[ARS 总体设计](PROCESS_RUNTIME_ARS.md)与[ARS 可编码设计](PROCESS_RUNTIME_DETAILED_DESIGN.md)进一步落实 Frame（所有权和可回滚事务）、Operation（科学语义）与 WorkUnit（CPU 分片）的职责及 Host 服务边界。当前 BlockFrame、静态 NodeModule 和内存压力 governor 尚未完全实现 ARS 目标；迁移时必须保留这一实现差异。
+
 ## 阶段内数据与所有权
 
 目标载体为 Runtime 持有的 typed 模型与命名数组块，每个对象有帧/run 身份、类型、版本、单位、坐标、有效性、来源及输入版本。生产者发布后只读；最后一个消费者完成后释放。模块不长期私藏大数组，不读全局配置，不私建无预算线程池，不绕过 AIO 写未声明文件。

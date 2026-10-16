@@ -51,6 +51,10 @@ fitsverify 只记录实际检查范围：图像 tile 的结构和所用校验卡
 
 裸 `.hips/` 与 `.hips.zst` 的互斥形态、索引、容器哈希和逻辑产品 tree_hash 见[存储形态](HIPS_STORAGE_FORM.md)。归档容器完整性与解压后内容等价分别验证。运行级 storage 元数据和产品级 tree 清单分别保存，不能互相替代。
 
+## ARS 多文件 revision 提交
+
+单文件 rename、已有 Python HiPS COMPLETE manifest 和新 Host revision 事务是不同层。Frame 的 signal、同版本 frame_science、metadata/model 先写私有 staging、等待所有 AIO tickets、校验 hash/geometry/BUNIT/来源、确认所能声明的 durable 状态；最后 CAS/串行切换完整 revision pointer。读者只消费 `pointer→COMPLETE manifest→校验目标`，不是“路径已出现”。取消在 pointer 发布前可 abort；若 pointer 已可见但目录 fsync 未证实，结果为 `COMMIT_UNCERTAIN`，重启核验后恢复，不得盲删已发布版本。目标协议与故障注入例见 [ARS 可编码设计 §6](../architecture/PROCESS_RUNTIME_DETAILED_DESIGN.md)。当前三个 CLI 的正式接线仍须单独验证。
+
 ## 5. 当前边界与验证
 
 typed Python Store 的内容/manifest/hash/provenance 是另一多文件顺序；C++ CLI、Mosaic writer、Normalize signal+sidecar 是否共享事务，分别按生产调用登记，见[实施差异](../architecture/SCIENCE_IMPLEMENTATION_DELTA.md)。库接口存在不能推断所有命令都符合目标发布协议。

@@ -1,6 +1,6 @@
 # ACSD Process Runtime 与自适应资源调度（ARS）架构设计
 
-**性质：目标工程设计；非已实现能力声明。** 适用：Normalize、Mosaic、Export 三个独立 CLI 科学命令，共用实现库而不跨命令共享活跃内存。本文承接 [最高设计](../../ACSD_DESIGN.md)、[系统架构](ARCHITECTURE.md)、[统一科学模型](../../science/unified/UNIFIED_SCIENCE_MODEL.md)、[Runtime 合同](../contracts/RUNTIME.md)、[Block 生命周期](../contracts/PIPELINE_BLOCK.md)、[异步 I/O](../contracts/ASYNC_IO.md)、[原子发布](../contracts/ATOMIC_PUBLISH.md) 与 [所有权](../contracts/OWNERSHIP_LIFETIME.md)。工程拆分和迁移见 [实施路线](PROCESS_RUNTIME_IMPLEMENTATION.md)。科学算法及估计量以科学正本为准，本文不改写算法物理定义。
+**性质：目标工程设计；非已实现能力声明。** 适用：Normalize、Mosaic、Export 三个独立 CLI 科学命令，共用实现库而不跨命令共享活跃内存。本文承接 [最高设计](../../ACSD_DESIGN.md)、[系统架构](ARCHITECTURE.md)、[统一科学模型](../../science/unified/UNIFIED_SCIENCE_MODEL.md)、[Runtime 合同](../contracts/RUNTIME.md)、[Block 生命周期](../contracts/PIPELINE_BLOCK.md)、[异步 I/O](../contracts/ASYNC_IO.md)、[原子发布](../contracts/ATOMIC_PUBLISH.md) 与 [所有权](../contracts/OWNERSHIP_LIFETIME.md)。工程拆分和迁移见 [实施路线](PROCESS_RUNTIME_IMPLEMENTATION.md)；v2 C ABI、typed IR/store、MemoryCredit 原子转换、取消状态机、AIO ticket、revision 提交、调度伪代码与反例的函数级目标设计见 [ARS 可编码详细设计](PROCESS_RUNTIME_DETAILED_DESIGN.md)。科学算法及估计量以科学正本为准，本文不改写算法物理定义。
 
 ## 1. 动机与预期边界
 

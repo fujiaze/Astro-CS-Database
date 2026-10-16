@@ -257,3 +257,14 @@ Q10旧t_norm2−proj已修，历史反例保留，剩余秩阈值/误差证书�
 ### Issue6 批次：局部Mosaic session全语义对照
 
 完整复读63eccbb6的PHASE2_SESSION 402行（现文仅链接改动）与当前p2_session.h/cpp全文、基础ABI头及真实工厂注册；上层最高设计、science/engineering/detail索引、Mosaic管线、集成与维护规范已读，UPM沿用此前全文阅读。旧有效设计逐项归modules.md#session：五完整声明、所有参数/span布局/host握手、全部配置及默认、完整manifest/partial能力表、调用顺序/计数、分配/释放/并行/取消、错误和验证负例。算法页保留完整顺序伪代码与复杂度归属，旧任务原文追加同一SOURCE（固定原archive revision精确blob）。当前模型仅run局部且无RAII、partial状态、独立七节点工厂等纠正历史误述；E72记录异常/重复run/rc0空模型等静态风险，不改生产代码。只作静态/文档检查，未运行科学或ABI测试；191篇完整语义对照仍未完成。
+
+
+## Issue #6：ARS × Runtime/AIO/Block/API 的接口级整合（2026-10-16）
+
+**本批范围**：阅读当前 `PROCESS_RUNTIME_ARS.md`、`PROCESS_RUNTIME_IMPLEMENTATION.md`、`RUNTIME.md`、`PIPELINE_BLOCK.md`、`ASYNC_IO.md`、`OWNERSHIP_LIFETIME.md`、`SCHEDULER.md`、`ATOMIC_PUBLISH.md` 及其工程/细节入口；对照 `PUBLIC_API.md`、`ARCHITECTURE.md`、`docs/detail/infrastructure/{runtime,aio}.md` 的真实现状、`lib/include/acsd/abi/{module_api_v1,host_api_v1,artifact_api_v1,status_codes}.h`、`lib/include/acsd/core/{module,block_frame,executor,memory_pressure}.h` 和 `lib/infrastructure/aio/include/aio_pipeline.h`。其中 v1 标准头与 Block/Executor/Module 的可见声明已读；现有大型生产源文件的真实业务行为沿当前已有调用记录对照，**本批未全文逐函数审计大型 module_adapters.cpp**，不能据此声称生产迁移已经实现。
+
+**发现与处理**：此前两份 ARS 正本给出架构与路线，但缺少 v2 C ABI POD 形状与多 operation 分派、typed store 的 attempt/revision/read lease、原子 MemoryCredit live/reserved 转移、CPU TaskGroup quiescence→AIO drain→真实回收→retry、Host AIO ticket 与 bounded bytes、完整多文件 revision pointer 读者协议、Benchmark 有效域与可执行调度伪代码。新增正式 [PROCESS_RUNTIME_DETAILED_DESIGN](../../docs/engineering/architecture/PROCESS_RUNTIME_DETAILED_DESIGN.md) 逐层说明字段、输入输出、单位/身份、调用序、失败/取消、不变量、伪代码、反例及对应目标代码与测试。回填既有 Runtime/Block/Ownership/Scheduler/AIO/Publish/API 与 infrastructure detail，明确哪部分属现行代码事实、哪部分是 TARGET。把三份 ARS 文档登记进 `DOCUMENT_INDEX.yaml` 并加入工程正常阅读入口，不新建另一套审批/状态台账。
+
+**具体语义纠偏**：现行 BlockFrame 持数值字节和声明消费者而不是跨异步 read lease；RunContext artifact 是描述符而非完整 typed payload；ABI v1 的 execute 走 JSON manifest 且无多 operation/credits/tickets；压力 `evicted` 标记不是释放内存或停止 CPU/AIO 的证明；单文件 rename 不足以证明 signal+sidecar/model 的完整产品事务。此批不更改已有 science 量或生产头文件；Issue #7 既有 EXPTIME 生命周期修复视为后续代码事实，不在此批重复指派。
+
+**覆盖与证据边界**：这是 ARS 主题的文档详细设计和跨合同整合，**不是 Issue #6 原 191 篇全部语义审计终版**。此前的 PUBLIC_API、PLATESOLVE、PHOTOMETRIC_FIT、Star Detection、Coverage、P2 session 等基线精读结论继续按本报告原有批次有效；本批没有把它们的阅读重新计数，也没有深读余下全部原文、Mosaic/Export 全部 API、HiPS writer、Gaia 与 246 份实验文本。未编译新 v2，未执行 ABI、E2E、科学真值、内存故障或性能实验，记录 `NOT_RUN`。新详细设计是 TARGET，不等于 Runtime 已具备这些能力；Issue #6 须保持 open，继续分批审阅其余原文及最终跨层对照。

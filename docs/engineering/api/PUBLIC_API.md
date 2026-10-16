@@ -70,6 +70,10 @@ ModuleDescriptor 描述端口及身份；ModulePlan 说明 work_units、估计�
 
 Normalize 的 typed 模型目标与现行 artifact/work-file 载体仍有迁移差异，按[Normalize 数据合同](../contracts/NORMALIZE_DATA.md)和[实施差异](../architecture/SCIENCE_IMPLEMENTATION_DELTA.md)判断，不能从类型声明宣布迁移完成。
 
+## ARS v2 公共边界与兼容层
+
+现行 `acsd_module_query_v1` 的 module 级 `execute(inst,input_manifest_json,config_json,out_manifest_json,err)` 与 `acsd_host_api_v1` 只提供清单/allocator/executor/有限 artifact service，**没有** multi-operation typed lease、MemoryCredit 或 AIO ticket。目标在 loader/Host 新增 `acsd_module_query_v2`，按 DLL 内 operation_id 注册科学 Process，公开 `plan/partition/execute_unit/reduce/request_cancel`；typed payload 经 Host opaque view/writer 交换，大阵列不走 Base64 JSON。详见 [ARS 可编码设计](../architecture/PROCESS_RUNTIME_DETAILED_DESIGN.md) 的 C11 函数、布局检查、错误/线程/卸载及 v1 shim；新头尚不存在，不能写成真实可链接符号。原 v1 和局部 session 函数签名不因目标改动。
+
 ## 4. 算法与 I/O 接口定位
 
 | 主题 | 真实头文件 | 模块责任 |

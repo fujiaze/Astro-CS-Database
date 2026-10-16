@@ -38,6 +38,10 @@ RAII 保证离开作用域时清理，不代表任意提前析构都是安全的
 
 当前 CLI 的 RunContext 是 run_pipeline 局部对象，覆盖同步 Runtime::run；原始对象版本、typed 模型仓与最后消费者回收的目标和实现差异见[Runtime](RUNTIME.md)、[命名块](PIPELINE_BLOCK.md)和[实施差异](../architecture/SCIENCE_IMPLEMENTATION_DELTA.md)。
 
+## ARS 层级所有权补充
+
+`FrameExecution` 拥有 attempt 私有 Block、scratch、AIO ticket 与可回滚科学进度；`Operation` 是科学逻辑和有寿命的 DLL 回调实例，`WorkUnit` 只持经 Host 授权的短期 CPU/内存租约，不继承科学提交事务。Mosaic 的 GlobalModelRevision/已合并贡献归 Run，Export 归产品事务。回滚资源释放的必要证据是 `CPU_QUIESCED && IO_QUIESCED && no_read_leases && no_pending_writers`，再归还 credit 和对同一 input occurrence 产生新 attempt。晚回调必须检查 attempt/cancel_generation，详见 [ARS 设计 §5](../architecture/PROCESS_RUNTIME_DETAILED_DESIGN.md)。这不是现有 `BlockFrame` 已实现的自动行为。
+
 ## 4. 并发与失败清理
 
 同一 handle 的并发性逐函数定义；不同 handle 能否并行还取决于共享缓存、全局表与文件服务。thread_local 错误文本避免部分线程污染，但不自动使整个库线程安全。错误字符串只用于诊断，返回码与具名状态才决定调用结果。

@@ -22,6 +22,10 @@
 
 数值数组使用现有 BlockMeta；对象身份与复合 metadata 由 typed header 承载，不要求全部塞到单个 unit 字符串或浮点数组。大面默认 FP32、稀疏与元数据 FP64。
 
+## ARS 目标：typed Block 与版本转移
+
+现在 `BlockFrame::create` 内部为数值块分配 bytes，`consume` 按声明消费者回收，但并未提供跨异步请求的 read lease/AIO pin、attempt_id 或 immutable revision。新数据链为 `reserve_bundle → begin_output(private) → fill → validate → publish(immutable) → borrow/read → last lease/ticket release → memory credit release`。旧块在新块计算完成、所有消费者和 AIO 借用结束前始终 live；复合 WCS/PSF/photometric/noise 模型应有 typed model handle、单位/几何和来源，不用 Block 名称猜测。Frame 压力回滚必须先 quiesce CPU/AIO 再批量销毁该 attempt 的私有 Block，不能直接清空整个 Run 或 Mosaic 共享对象。对象 Key、接口签名、shape 溢出与移交释放域见 [ARS 可编码设计 §3–5](../architecture/PROCESS_RUNTIME_DETAILED_DESIGN.md)。
+
 ## 生命周期与并发
 
 生产者构建新对象后一次发布，之后只读。Runtime 给声明消费者分发借用/lease，最后一个完成即回收；异常/取消同样归还数组、AIO 和模型句柄。模块不保留未登记的大对象副本，不用全局 map 绕过预算。

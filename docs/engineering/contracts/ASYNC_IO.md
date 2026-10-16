@@ -26,6 +26,10 @@
 
 正常收尾为停止producer→close→consumer排空→等待writer完成并关闭文件→join所有worker→销毁队列。错误时保留首错和后续收尾错误，取消唤醒后释放各owner对象。正式发布只有在所有写任务完成后登记清单；开发诊断丢弃策略另按探针合同。
 
+## ARS Host AIO 与 BufferCredit 目标接线
+
+现有 `BoundedAsyncQueue<T>` 限制条目数量不等于限制独立 buffer+encoder scratch+inflight 的总驻留。目标由 Host `submit_async(IoRequest,IoSlotGrant) → IoTicket` 接管 slot 和 buffer lease，buffer/队列/在飞/staging 全部计入单一 MemoryCredit。zero-copy 读取原 Block 是 pin，不能为相同物理地址重复扣 live；拷贝进独立 AIO buffer 是新分配必须扣费。队列满返回 BACKPRESSURE 给 scheduler waiting 队列，compute worker 不占线程等待磁盘；取消必须先 CPU join 再 abort/drain I/O 后释放 pinned 数组。multi-file revision 以 complete manifest 为读者合同，见 [ARS 设计 §6](../architecture/PROCESS_RUNTIME_DETAILED_DESIGN.md)。这些能力尚未由模板队列自动赋予正式 CLI。
+
 ## 4. 生产接线与验证
 
 当前Mosaic采样/集成可由Runtime租约下的worker独立读tile，不因此等同已使用本队列解耦I/O与计算。具体接线从sampler.cpp及节点adapter查起。旧文列出的测试路径和用例名要先取得文件、输入、命令和结果，不能将名称当作通过证据。

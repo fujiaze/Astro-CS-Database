@@ -1,6 +1,6 @@
 # ACSD Process Runtime / ARS 分阶段实施路线
 
-**用途**：供规划 Agent 分解、排期、确认依赖和分配执行节点；本文件不是已经完成的里程碑或研发审批制度。技术正本为 [PROCESS_RUNTIME_ARS.md](PROCESS_RUNTIME_ARS.md)，科学定义仍以 [ACSD_DESIGN.md](../../ACSD_DESIGN.md) 及 `docs/science/` 为准。与功能域 DLL、多 operation、JS 编排、Frame–Block 生命周期及整帧重算共同实施，不另造第二个调度体系。2026-10-16 依据已核查的 main 基线编制；Agent 开工前读取实时 main SHA。
+**用途**：供规划 Agent 分解、排期、确认依赖和分配执行节点；本文件不是已经完成的里程碑或研发审批制度。技术正本为 [PROCESS_RUNTIME_ARS.md](PROCESS_RUNTIME_ARS.md)，函数级接口与验收反例见 [ARS 可编码详细设计](PROCESS_RUNTIME_DETAILED_DESIGN.md)，科学定义仍以 [ACSD_DESIGN.md](../../ACSD_DESIGN.md) 及 `docs/science/` 为准。与功能域 DLL、多 operation、JS 编排、Frame–Block 生命周期及整帧重算共同实施，不另造第二个调度体系。2026-10-16 依据已核查的 main 基线编制；Agent 开工前读取实时 main SHA。
 
 ## A. 共同执行与协作要求
 
