@@ -341,3 +341,34 @@ tile 变换可在 Runtime 预算下并行写独立槽，实际 writer 句柄按�
 handle、host allocator、budget、cancel、JSON 和 manifest 的实际所有权依[局部 session 卡](modules.md#session)。本描述符不定义新的 source 数组、WCS、插值核、缓存格式或物理单位，不新增重采样配置。返回码经 session→Result 映射，不能把占位输出存在当完整马赛克成功。
 
 验证应分别检查聚合工厂确实委托会话、CLI 七节点没有误选该兼容描述符，以及产品消费端使用真实 HiPS 合同。没有独立 kernel 就没有本页专属数值通过证据；本页未运行测试。生产差异统一见[实施地图](../../engineering/architecture/SCIENCE_IMPLEMENTATION_DELTA.md)。
+
+## 归约与背景内核的当前接口核对
+
+以下按当前公开头和生产调用补充，对上文保留模块材料中的旧五态、行数、固定ADU或旧工具生产声明作消歧。科学定义分别由[集成](../../science/integration/INTEGRATION.md)和[天空模型](../../science/sky/UPM.md)拥有，旧算法全文保存在[来源档案](../../../实验/documentation-refactor/docs/MOSAIC_REDUCERS_SOURCE.txt)。
+
+### 集成入口、状态与计数
+
+公开头为lib/algorithms/coverage/include/astro/phase2/integrate.h，实现为coverage/src/integrate.cpp。p2_integrate_pixel(const P2PixelStack*,P2PixelResult*)同步借用数组，由调用者持有输入/输出；无内部线程或可变共享状态，独立缓冲可并发，同一输出不可无同步共写。内部为C++可调用C链接面，头使用cstdint/std::uint32_t，不能由extern C推断纯C编译能力。
+
+P2PixelStack包含values、weights、support、accepted和count。values缺失或count=0归NO_CANDIDATES；weights缺省等权、support缺省1、accepted缺省全接受。公开函数p2_validate_candidate_weights接受非负有限权重，null合规。算法值域保持实际面亮度尺度，reducer不决定物理响应、精度策略或最终图像发布集合。
+
+| status | 数值 | 实际含义 |
+|---|---|---|
+| OK | 0 | 输入合法、有正权贡献且结果有限 |
+| NO_CANDIDATES | 1 | count=0或values=null |
+| ALL_REJECTED | 2 | 有候选但无接受样本 |
+| ZERO_VALID_WEIGHT | 3 | 接受样本无正权贡献 |
+| INVALID_INPUT | 4 | 接受样本值/支撑/权重非法 |
+| NON_FINITE_OUTPUT | 5 | 输入有限但乘积、累加或商不可表示 |
+
+rc=1仅用于stack/result空指针，rc=0时仍需检查status。输出先memset为零，空栈/全拒/非法/全零权等分支不都主动填NaN；生产调用者按非OK转换信号。因此不能凭默认signal=0当成功或声称库全部失败分支已编码NaN。NON_FINITE_OUTPUT自身写NaN并保留支撑，ZERO_VALID_WEIGHT保留接受样本支撑。
+
+n_candidates=count；n_accepted计掩膜接受数；当前n_finite在检查value/support之后、检查weight之前增加，与头注释“value/support/weight finite”不完全相符。n_positive_weight/n_used计真实正权贡献；INVALID_INPUT仍可能保留先前合法样本计数，不能据n_used>0当可发布。support在权重检查前取合法value/support的最大值，包含接受零权样本，且实现未检查support≤1。
+
+实际CLI调用在module_adapters.cpp::p2_op_integrate，构造外部weights并调用reducer与权重校验；非OK信号转换NaN，ZERO_VALID_WEIGHT的内部wsum为0，其余失败设NaN。上层完整掩膜/溢出计数还须验证。旧stage2/ACR文档不作为当前CLI入口证明。真实权重构造与点源到面亮度传递仍见实施差异，reducer成功不认证其科学含义。
+
+### 背景库与生产链
+
+coverage/src/upm.cpp保留p2_upm_build、raw_weight、convergence及持久化库能力，当前mosaic adapter生产拟合/施加使用p2_sky_plane_build_joint、p2_sky_plane_open与p2_sky_plane_eval_delta_block。不能把保留M+C内核、同名upm端口和旧模型文件当作当前扣除路径。
+
+p2_upm_control_variance输入k_corr、sigma_bg、n_retained及域/标定身份，输出控制方差和逆方差；当前拒k_corr<1、=1以及缺少规定身份的情况，具体码值从upm.h/实现核对，不直接映射CLI。其科学适用域、弱锚和格内归一问题记录在Q31，本轮未改。库调用者持有输入数组，opaque model按公开释放接口回收，在途求值结束后才销毁；构建成功与converged标志分开报告。
