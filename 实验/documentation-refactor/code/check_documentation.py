@@ -142,6 +142,7 @@ def main():
     archived_sources = check_source_archives()
     current_docs = {p for p in original if p.startswith('docs/') and (ROOT / p).is_file()}
     current_docs.update(dest for dest, _ in mapping.values() if dest.startswith('docs/'))
+    current_docs.add('docs/detail/normalize/modules/platesolve.md')
     index = yaml.load((ROOT / 'docs/DOCUMENT_INDEX.yaml').read_text(encoding='utf-8'), Loader=UniqueLoader)
     paths = [row['path'] for row in index['doc_index']['active']]
     assert len(paths) == len(set(paths)), 'Duplicate indexed path'

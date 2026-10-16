@@ -386,6 +386,7 @@
 | E65 | Cosmetic旧文同页先写计数串行又写omp reduction，称所有IDW O(N)、零计数一律“检测关闭”；当前correct_frame计数为普通for，方向搜索含坏点游程 | 正文说明真实复杂度/计数分工；开启无缺陷与关闭分别记状态，不用零计数猜测 |
 | E66 | ac_correct_frame_f64/columns_f64仍double→float→double；内核int宽高乘法和异常/别名边界旧问题须按真实调用核验，输出px_inflated实际计列数 | 模块补充精度、所有权、返回值与记账单位；未改接口/计数或执行错误构型 |
 | E67 | Issue6重新核对检测：LM轴比五参重拟合发生在MAD计算后，MAD可能未配最终参数；nls_lm的cost_old=cost−actred与旧代价注释不符，gtol使用步前g；O11对负/零thr指数数学域无全面校验 | 正式文档给准确实现/影响，不将这些保护称普适等价；保留生产代码，交实现方用独立负例核验。接口还无预测索引回传、提前失败不总清出参、vector异常无完整屏障，均已说明 |
+| E68 | Issue6天测现源码：select_image_stars只把NaN排后，短候选可选入；总返回N>=每文件cap不证明实际截断；三角a<1e−6不排所有共线、b/a>0.9含近等边；iter_trans_inner的is_ok初为true；trans.sig=q68.3(d²)却作initial_rms_arcsec传精化；重投影仍用valid_inliers而非refit.inliers | 逐项在正式算法/接口说明准确行为；参数/统计、秩与样本需实现方独立负例核验，保留代码；to_c_result的n_detected/n_catalog固定0及best_inliers复制n_pairs已说明，旧SIP奇异仅warn记录按当前明确失败更新 |
 
 本轮已合并远端 `5b33e0417`，保留 Normalize Round 3 的空间 PSF、空间 alpha、typed 边与实验记录。已重读新增空间PSF完整实现、相关改动与生产调用，确认E52所列路径并同步架构/实施差异及接口说明；第三轮报告全文已读，其数值本轮未重跑。E01–E15来自合并前抽查，E01的sed_response未接线、E03的basename身份、E04的signal叶阶、E07释放后EXPTIME读取本轮相应代码段仍可见；其余不自动当作仍存或已解决。E05中因子基础单位检查已增加，但通用reader是否全面调用仍须分开核对。原始191篇清单继续固定基线，新增代码/记录另外登记。
 

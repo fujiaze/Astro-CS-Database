@@ -77,7 +77,7 @@ Normalize 的 typed 模型目标与现行 artifact/work-file 载体仍有迁移�
 | 校准/缺陷 | [astro_calibration.h](../../../lib/algorithms/calibration/include/astro_calibration.h) | 母版、单帧校准、坏点/列与标度应用 |
 | 检测 | [star_detector.h](../../../lib/algorithms/star_detection/include/star_detector.h) | 盲检与给定位置引导拟合，输出成组释放 |
 | PSF | [dynamic_psf.h](../../../lib/algorithms/psf/include/dynamic_psf.h)、[像元积分](../../../lib/algorithms/psf/include/acsd/pixel_integrated_psf.h) | 批量参数/状态与单位总通量积分模板 |
-| 天体测量 | [ipv_api.h](../../../lib/algorithms/platesolve/cpp/ipv/include/ipv_api.h) | solver、Gaia/detector 句柄、内存/候选入口和解 |
+| 天体测量 | [ipv_api.h](../../../lib/algorithms/platesolve/cpp/ipv/include/ipv_api.h) | [完整函数、参数、布局与调用](../../detail/normalize/modules/platesolve.md)：solver、Gaia/detector句柄、内存/候选和解 |
 | 光度 | [photometric_calib.h](../../../lib/algorithms/photometry/cpp/include/photometric_calib.h) | 响应积分、匹配、拟合与诊断 |
 | 条件噪声/参考 | [snr_estimator.h](../../../lib/algorithms/noise_snr/cpp/include/snr_estimator.h)、[sparse_reference.h](../../../lib/algorithms/noise_snr/include/acsd/sparse_reference.h) | 平面模型、球面 GLS、状态和摘要 |
 | Drizzle | [hp_drizzle_api.h](../../../lib/algorithms/drizzle/healpix_drizzle/hp_drizzle_api.h) | 同次真实几何、信号和 precision 捕获 |
