@@ -1,334 +1,71 @@
-# 落盘形态与归档容器合同
+# HiPS 存储形态合同
 
-上游：最高设计的 I/O 与原子产品一章；`docs/detail/infrastructure/` 的产品存储形态设计。
+本合同说明[最高设计](../../ACSD_DESIGN.md)的裸目录与归档形态、索引、身份和兼容要求；实现入口与现状见[存储细节](../../detail/infrastructure/storage_form.md)。科学内容与有效值由[数据语义](../../science/unified/DATA_SEMANTICS.md)定义，发布由[原子发布合同](ATOMIC_PUBLISH.md)约束。schema 表达载体形状，不能反向拥有科学定义。
 
-本文冻结六件事，每件都机器可校验：产品落盘名与扩展名、归档容器布局、产品级与数据集级索引的
-schema 与不变式、哈希口径、裸形态体积削减口径、形态的输入配置键与输出清单字段。压缩编码的
-选型依据与实测读数落实验域的压缩编码评估证据面。
+## 形态、内容与能力
 
-> 上游：`../../ACSD_DESIGN.md` 的「I/O 与原子产品」一章；`docs/detail/infrastructure/` 的产品存储形态设计
-> 机器事实源：`eng/contracts/schemas/hips_storage_form.schema.json`（索引文件 schema）
-> 判据载体：逐层字段口径核对（见下文「形态核对与负例」一节），由人工对抗审核执行
-> 下游：science 分册的 HiPS 输入接口面、`ATOMIC_PUBLISH.md`、`../../detail/infrastructure/17_aio.md`
-
-## 冻结面
-
-本合同冻结六件事，六者都是**机器可校验**的：
-
-1. **命名与扩展名**：产品落盘名的唯一两种形态（「命名与扩展名」一节）；
-2. **归档容器布局**：tar 流、帧边界、可被标准工具还原（「归档容器布局」一节）；
-3. **索引 schema**：产品级索引与数据集级覆盖索引的字段与不变式（「索引 schema」一节）；
-4. **哈希口径**：产品身份哈希与容器指纹的分工（「哈希口径」一节）；
-5. **裸形态体积削减口径**：打洞与包围盒 TRIM 的生效面、失败语义与判据（「体积削减」一节）；
-6. **形态的输入配置与输出清单字段**：形态选择键、缺省/留空的 warn 语义、产物自报的索引路径与指纹、清单 storage 段（「形态的输入配置与输出清单字段」一节）。
-
-不在此冻结：压缩档位（默认值见「压缩档位」一节，可配置）、tar 实现、索引载体的未来演进（见「载体演进」一节）。
-
-## 命名与扩展名
-
-| 规则 | 内容 |
-|---|---|
-| N1 | 裸形态落盘名 = `<name>.hips`，且必须是**目录** |
-| N2 | 归档形态落盘名 = `<name>.hips.zst`，且必须是**常规文件**（不是目录、不是符号链接） |
-| N3 | 产品级索引落盘名 = `<name>.hips.index.json`，与产品同父目录 |
-| N4 | 数据集级覆盖索引落盘名 = `coverage.index.json`，位于运行输出根 |
-| N5 | 同一 `<name>` 的两形态**互斥**；共存 ⇒ 产品歧义，读端 fail-closed |
-| N6 | 归档形态**必须**有产品级索引；索引缺失 ⇒ 产品不完整，读端 fail-closed（判定只走索引面：扫描归档与逐瓦片探测不在读路径内） |
-| N7 | 裸形态**允许**无产品级索引；此时读端按目录枚举重建覆盖，并在 provenance 记降级 |
-| N8 | `.hips` / `.hips.zst` 中缀只用于 HiPS 产品[1]；非 HiPS 产物（如 export 平面 FITS）的落盘名取自其产品族命名 |
-
-`<name>` 的取值由阶段与块决定，且必须与运行清单中的产品名一致。
-
-## 归档容器布局
-
-### tar 层
-
-| 规则 | 内容 |
-|---|---|
-| A1 | 归档内容 = 一个 tar 流的压缩结果；tar 根 = 产品根的内容（成员名以子产品名开头，不含前导 `./`） |
-| A2 | tar 成员集合 = 裸形态产品树的**全部常规文件**（`properties`、`NorderK/DirD/NpixN.fits`、`Moc.fits`、`metadata.fits`、产品集 `manifest.json` 等；FITS 文件的 HDU 与关键字语法依 FITS 标准 4.0[2]），不含目录项之外的额外文件[1] |
-| A3 | 成员顺序 = 成员路径的**字典序**（确定性）；成员头字段（mtime/uid/gid/uname/gname/mode）取固定值，使同一内容的两次打包字节一致 |
-| A4 | 归档内 `properties` 与裸形态 `properties` **逐字节一致**；`hips_tile_format` 取**两档词表**的登记值 —— **Image 产品**子产品（`signal`/`support`/`variance`/`ivar`）= `fits`；**HiPS 目录（catalogue）**子产品 `snr/` = `tsv`（承载 SNR-PREC-001 `%.9g/%.17g` 精度锚，该锚的正本在 science 分册算法卷的 HiPS 写出器设计，不是数据语义卷——数据语义卷全篇不含该精度锚）。逐子产品档位表 = 机器事实源 `x-acsd-field-vocabulary.hips_tile_format_two_tiers.by_subproduct`；档位不符（`snr` 写 `fits`、Image 子产品写 `tsv`）或任何非标准 token（`zstd` / `fits.zst` / …）一律判红 |
-| A5 | 产品级索引与数据集级覆盖索引位于归档之外（产品同父目录 / 运行输出根）；归档形态的发布次序由 `ATOMIC_PUBLISH.md`[5] 冻结 |
-
-### zstd 层
-
-zstd 帧格式与 `application/zstd` 媒体类型依 RFC 8878[3]。
-
-| 规则 | 内容 |
-|---|---|
-| Z1 | 归档 = **N 个独立 zstd 帧的串接**；帧边界 = tar 成员边界（一个成员恰好一个帧）[3] |
-| Z2 | 帧必须使标准工具可还原完整 tar 流：`zstd -dc <archive>` 的输出必须与打包前的 tar 流**逐字节一致** |
-| Z3 | 流内每个区段都是常规压缩帧（skippable frame 会跳过其内容，使标准工具解压后的产物缺块，与"解压后合法"冲突） |
-| Z4 | 瓦片数据只做标准 zstd 压缩（byte-shuffle 等需解压侧二次反变换的预变换一律判红）：标准工具解压后必须是合法 FITS |
-| Z5 | 归档的帧参数 = 解压侧默认参数（长距离匹配窗口等需额外参数的帧参数判红）：解压侧只允许默认参数 |
-
-### 压缩档位
-
-- 默认 **zstd level 3**；档位依据（各档体积与压缩时间的实测读数与取舍）见 `实验域的压缩编码评估证据面`，本节只冻结默认档位。
-- 档位是**打包参数**，不进产品身份哈希（「哈希口径」一节）。
-
-## 索引 schema
-
-机器事实源：`eng/contracts/schemas/hips_storage_form.schema.json`。索引文件是 UTF-8 JSON，**不压缩**。同一 schema 还承载形态的输入配置键与输出清单字段（`$defs.frame_storage` / `$defs.coverage_index_ref` / `$defs.manifest_storage`，见 「形态的输入配置与输出清单字段」一节）与字段词表 `x-acsd-field-vocabulary`。
-
-### 产品级索引 `<name>.hips.index.json`
-
-| 字段 | 类型 | 不变式 |
+| 形态 | 落盘名 | 要求 |
 |---|---|---|
-| `index_schema` | string | 恒 `acsd.hips-index/v1` |
-| `product` | string | = `<name>` |
-| `storage_form` | enum | `archive` 或 `bare`，必须与磁盘实际形态一致 |
-| `archive` | object / null | `archive` 形态必填：`name`（= `<name>.hips.zst` 的 basename）、`bytes`、`sha256`、`frame_unit` 恒 `tar_member`；`bare` 形态恒 null |
-| `subproducts[]` | array | 每个子产品一条；`name` 唯一 |
-| `subproducts[].hips_order` / `hips_tile_width` / `hips_tile_format` | int / int / string | 必须与归档内（或裸目录内）同名 `properties` 一致 |
-| `subproducts[].n_leaf_tiles` | int | = `coverage` 展开后的叶块数 |
-| `subproducts[].coverage` | object | `encoding` 恒 `runs`；`leaf_ipix_runs` 为按 ipix 升序、互不重叠、不相邻的 `[start, count]` 段；`frac_quant` 恒 255；`leaf_frac` 与展开顺序一一对应，取值 0..255 |
-| `subproducts[].tiles[]` | array | **`archive` 形态必填**：每条 `{ipix, coff, csize, usize, doff, dsize}`；`ipix` 集合必须与 `coverage` 展开集合**完全相同**；`doff+dsize ≤ usize`；`bare` 形态省略 |
+| bare | name.hips 目录 | 直接呈现产品树 |
+| archive | name.hips.zst 常规文件 | 解压得到同一产品树；外置产品级索引支持随机读 |
 
-不变式（任一不满足 ⇒ 产品损坏，读端 fail-closed）：
+同名两形态互斥，共存报歧义。normalize 的目标配置 storage_form 为 archive（缺省）或 bare；缺失、null、空串按既有合同取 archive 并点名警告，form_source 记录 default/config。mosaic 输出固定裸 HiPS，export 输出普通二维 FITS，二者配置不接受 storage_form。目标默认不代表当前 writer 已支持归档：CLI 识别、落盘、索引生产与读取分别验证，不允许无效键静默成功。
 
-- I1 `coverage` 展开集合 = 该子产品在 `hips_order` 阶实际存在的叶瓦片 ipix 集合；
-- I2 `tiles[].ipix` 集合 = I1 的集合；
-- I3 每条 `tiles` 的 `coff/csize` 必须落在归档字节范围内，且解压 `csize` 字节后长度 = `usize`；
-- I4 索引可由产品内容**重算**并逐字段一致。
+产品树包含实际科学通道、模型、元数据与产品清单。normalize 的辅助数据不改成 mosaic 的最终额外科学通道。frame_science.json 是唯一正式科学模型载体，Catalogue/兼容视图不能替代它；旧文 snr/ TSV 的硬性主载体措辞不推翻现行合同。HiPS properties 按实际子产品声明 Image fits 或已定义 Catalogue tsv，不能把容器压缩写成 hips_tile_format=zstd/fits.zst。
 
-### 数据集级覆盖索引 `coverage.index.json`
+## 归档与随机访问
 
-| 字段 | 类型 | 不变式 |
-|---|---|---|
-| `index_schema` | string | 恒 `acsd.coverage-index/v1` |
-| `granularity.unit` | string | 恒 `hips_leaf_tile`（**块粒度**，值域 = 该单一取值） |
-| `granularity.tile_width` / `hips_order` | int | 与参与产品一致 |
-| `frames[]` | array[string] | 参与本次运行的帧标识，升序且唯一 |
-| `blocks[].ipix` | int | 叶级 NESTED ipix，升序且唯一 |
-| `blocks[].frames[]` | array | `{f, frac}`；`f` ∈ `frames[]`；`frac` ∈ 0..255 |
+归档解压为完整 tar 流，成员路径相对产品根，无前导 ./、绝对路径、逃逸、符号链接或外部依赖。包括产品内全部合法常规文件，外置产品/数据集索引不放入内容树。成员按路径字典序，tar 头的时间、身份与模式采用声明的确定值。
 
-- 登记语义 = **存在性 + 覆盖分数**（不登记"完全覆盖"单一布尔）。
-- 该索引是**派生产物**：可由各产品级索引重算；缺失时的规定回退 = 读入全部产品级索引并现场倒排。
+目标编码为独立标准 zstd 帧串接，每个 tar 成员连同其必要头/填充位于可定位帧；还须明确 tar 终止块的归属，不能遗漏。标准工具解压得到与打包前逐字节相同的合法 tar 流，不采用需额外反变换的 byte-shuffle 或混装 skippable 数据。默认压缩档位保留 level 3，读端按约定默认解压能力执行，压缩档位不改变内容身份。
 
-**生产者与发布路径**：
+随机读依产品级索引取得压缩范围，读取并解压该帧，再取成员文件字节；不整包展开到磁盘。一次逻辑读取不能承诺底层系统调用恰好一次，短读、重试与校验仍需完整处理。打包前 FITS 合法不证明归档过程无损，压缩后仍须验证还原与随机定位。
 
-- **指定生产者** = 写出产品集清单的**同一条命令（`mosaic`）的发布步**：在运行输出**根层**写出 `coverage.index.json`，与产品集清单一并**同一次原子发布**（同批、同原子序，见 「形态核对与负例」一节；原子发布步序见 `ATOMIC_PUBLISH.md`[5]）。
-- **裁决口径不变**：仍**单判据**（本轮只裁 `coverage.index.json` 一项，兄弟面不随之进入白名单）、**不设豁免名单**；`ATOMIC_PUBLISH.md`「发布流水线（原子语义）」一节的「发布清单必含 `properties`」**不得放宽**，产品集判定**不得**改为白名单。
-- **生产者尚未接线**：登记面 = `eng/contracts/ledgers/dead_config_keys.json#dead_config_key:coverage_index`；**不得静默留白**。
-- **落地判据**：该发布路径实现时，须同时提供**正例**（索引存在且同批清单含 `properties`、随清单原子落盘）与**负例**（索引缺失或与清单不同批 ⇒ 判红）；在此之前不得声称覆盖索引可用。
+## 产品级索引
 
-### 查询语义
+同父目录 name.hips.index.json 为 UTF-8 JSON，字段形状见 eng/contracts/schemas/hips_storage_form.schema.json。archive 必须有索引；bare 写侧目标也生成索引，兼容读侧可在缺失时枚举目录并记录来源/降级。
 
-- 阶段2 按块查得**候选帧集合**，用于剪枝与调度；**不是**像素级裁决。
-- 索引的用途 = 剪枝与调度；有效性裁决走瓦片实际状态：索引声明覆盖而瓦片缺失/非法 ⇒ 按既有 `MISSING` / `INVALID` 语义处理，结果具名登记。
-- 低阶 hierarchy 瓦片不参与覆盖查询。
-
-### 粒度依据
-
-登记粒度 = 一个叶 tile（`tile_width`² 像素；HEALPix 的 leaf 像素化定义见 HEALPix 论文的 NESTED 索引与像素化约定[4]）。相对逐像素登记，记录数降低 `tile_width²` 倍；且与阶段2 的块级工作流粒度、稀疏层控制点间隔 Δ = tile_width/8 的父级、mesh 父级同构，**不引入第二套几何**。
-
-### 载体演进
-
-当前载体 = 单个不压缩 UTF-8 JSON 文件（可审计、无新依赖），承载的是 HiPS 产品树本身[1]。当记录数超过 `10^7` 条时允许切换载体（列存/定长二进制表），**但字段模型与不变式不变**；载体切换是独立变更，不在本合同内。
-
-## 哈希口径
-
-| 哈希 | 对象 | 用途 | 边界外用途 |
-|---|---|---|---|
-| `tree_hash`（**产品身份**） | 解压后的 HiPS 内容：**条目三元组数组** `[[path,size,sha256], …]`（非对象数组）按 `(path,size,sha256)` 字典序升序后做 `sha256(canonical_json)`；规范序列化参数**冻结** = UTF-8、`ensure_ascii=false`、分隔符 `(",",":")`（无空白） | 产品身份、跨阶段交换、可重算校验 | — |
-| `archive_sha256`（容器指纹） | `<name>.hips.zst` 的字节 | 容器完整性、缓存键 | 用途限于容器面（产品身份 = `tree_hash`） |
-| `index_sha256` | `<name>.hips.index.json` 的字节 | 索引完整性 | 用途限于索引面（产品身份 = `tree_hash`） |
-
-- H1 同一产品两形态的 `tree_hash` **必须相同**（身份与打包参数无关）；
-- H2 `manifest.json` 的 `tree` 记录**解压后内容**的条目；`storage` 段记录 `storage_form` / `form_source` / `index_path` / `index_sha256` / `archive_bytes` / `archive_sha256`（逐产品一条，字段与不变式见「运行完成清单 `manifest.json#storage`（加性）」一节）；
-- H3 压缩档位、帧切分、tar 头字段的取值与 `tree_hash` 无关（身份取解压后内容）。
-
-## 读路径不变式
-
-| 规则 | 内容 |
+| 字段 | 语义与不变式 |
 |---|---|
-| R1 | 形态由落盘名判定（后缀 `.hips` / `.hips.zst`），调用方传入的路径无需改写 |
-| R2 | 调用方不感知形态：`hips_paths` / `source.hips_dir` 的元素可以是任一形态，语义相同 |
-| R3 | 归档形态的瓦片读取 = 一次 `pread` + 一次单帧解压（读取粒度 = 单帧） |
-| R4 | 归档形态的覆盖查询 = 纯索引查询（归档字节不参与） |
-| R5 | 归档形态缺索引 ⇒ fail-closed；裸形态缺索引 ⇒ 目录枚举重建 + provenance 记降级 |
-| R6 | 形态解析失败、索引不一致、归档截断 ⇒ 显式错误码，不静默回退 |
+| index_schema、product、storage_form | acsd.hips-index/v1、产品名、实际形态 |
+| archive | archive 时含 name/bytes/sha256/frame_unit=tar_member；bare 为 null |
+| subproducts | name 唯一，hips_order/tile_width/format 与实际 properties 相同 |
+| coverage | encoding=runs；leaf_ipix_runs 为升序、不重叠、不相邻的 start/count 段；frac_quant=255，leaf_frac 对应展开顺序 |
+| n_leaf_tiles | 展开叶 tile 数，与实际文件集合一致 |
+| tiles | archive 的 ipix/coff/csize/usize/doff/dsize；bare 可省略 |
 
-## 体积削减（裸形态）
+coff/csize 是容器压缩字节偏移/长度，doff/dsize 是解压帧内文件偏移/长度；范围非负、不溢出且落在对应字节域，doff+dsize≤usize。tiles 的 ipix 集合、coverage 展开集合与实际叶 tile 集合完全一致，拒绝重复与错阶。索引可由内容与帧表重算，摘要一致不替代这些不变式。
 
-**两种机制，冻结口径与判据如下**（机制与推导见 `docs/detail/infrastructure/` 的产品存储形态设计 「形态核对与负例」一节；读数复现 = 按本节判据在 Linux 面实测，实测读数见 `实验/engineering-evidence/`）：
+## 数据集覆盖索引
 
-| 机制 | 作用层 | 冻结规则 | 失败语义 | 判据（机器可校验） |
-|---|---|---|---|---|
-| **T1 文件系统打洞** | 文件分配层，**字节不变** | 只对 **4 KiB 对齐的整块全零区域**打洞；打洞在 `fsync` 之后、算哈希与原子发布之前完成；`st_size` 必须不变 | **不 fail-closed**：跳过、保留完整 `.fits`、provenance 记 `trim=skipped(reason)` | ① 打洞前后整文件 `sha256` 相同；② cfitsio 与 astropy 两路读器逐 HDU header+像素全等；③ `DATASUM`/`CHECKSUM` 自洽；④ 跨洞边界 `pread` 全等；⑤ `st_blocks` 必须下降（未下降 ⇒ 判红，不静默通过） |
-| **T2 包围盒 TRIM**（FITS 关键字 `TRIM1`/`TRIM2`/`ONAXIS1`/`ONAXIS2`[2]） | 瓦片内容层，**改 FITS 结构** | 仅当产品显式声明该形态（`properties`/provenance 记 TRIM 关键字与原始 `ONAXIS1/ONAXIS2`）且下游读端 TRIM-aware；**默认不启用** | 读端不认 TRIM 关键字 ⇒ **fail-closed**（拒绝）；缩小的 NAXIS 不作续读依据 | ① 补边后像素与未 TRIM 同源瓦片逐字节全等（补边位模式 = IEEE NaN）；② `ONAXIS1/ONAXIS2` == 未 TRIM 的 NAXIS1/NAXIS2；③ 负例：边距改 0.0 或错位 1 像素必须判红 |
+coverage.index.json 的 index_schema=acsd.coverage-index/v1；granularity 记录 hips_leaf_tile、tile_width 和 hips_order；frames 是唯一升序帧标识；blocks 按唯一 ipix 排序，其中 frames[] 的 f 引用已登记帧，frac 为0..255。它是产品级索引的派生倒排，用于块级候选和调度，不能代替实际像素有效性。
 
-- **生效面**：仅**裸形态** `<name>.hips/`。**归档形态 `<name>.hips.zst` 两种都不实施**（收益被 zstd 吸收）。
-- **产品身份不受影响（T1）**：字节不变 ⇒ 产品哈希不变。**T2 改变内容** ⇒ 启用 T2 的产品与未 TRIM 的同源产品**不同身份**，必须在 `properties` 与 manifest 的 `storage` 段显式区分（两个身份都须显式具名，静默分化判红）。
-- **T1 与 T2 的收益口径分立对照**：T1 的整产物收益与 T2 的缩小-NAXIS 收益是两个独立口径，各自成立，只允许在同一机制内引用；T1 的收益只在 Linux 面有可核验读数（Windows 面无可核验读数，其等价实现只有一手文档依据），signal/variance/ivar 三层的收益口径另计。**实测读数与逐层数值见 `实验/engineering-evidence/`**；收益数值的复现 = 在 Linux 面按上表 T1 判据①–⑤ 实测（`st_blocks` 下降量即整产物收益），机制与口径正本 = `docs/detail/infrastructure/` 的产品存储形态设计 「形态核对与负例」一节。
-- **降级**：T1 在卷不支持稀疏（`EOPNOTSUPP` 等）时跳过，产品保持完整可读；T2 在读端不支持时拒绝，不降级为"读小图"。
+缺数据集索引时目标回退是从产品级索引重建，产品级索引也缺失的 bare 则按其兼容规则枚举。索引存在不等于瓦片有效；缺 tile、损坏和错误单位分别报告。低阶层级不冒充叶级覆盖。覆盖比例与量化剪枝的科学域见[Q29](../../../实验/documentation-refactor/docs/SCIENTIFIC_QUESTIONS.md)，不由调度索引发明像素权重或裁掉合法边界。
 
-## 错误语义
+当前来源文件对 coverage.index.json 的生产者存在冲突：normalize 输出示例要求逐批索引，另一段却指定 mosaic 发布才生产。生产者必须与输入数据集身份和消费时序一致；本轮登记 E46，不凭正文宣布已接线。跨批合并保留逐帧产品/索引身份，数据集索引重建，不直接拼接不同运行的偏移。
 
-| 情形 | 结果 |
-|---|---|
-| 两形态共存 | 产品歧义错误（fail-closed） |
-| 归档形态缺产品级索引 | 产品不完整错误（fail-closed） |
-| 索引 `coverage` 与 `tiles` 集合不一致 | 索引损坏错误（fail-closed） |
-| 索引声明覆盖但瓦片缺失 | 既有 `MISSING` 语义（以瓦片实际状态为准） |
-| 归档截断 / 帧解压长度不符 | 既有 `INVALID` / I/O 错误（fail-closed） |
-| `properties` 的 `hips_tile_format` 与该子产品档位不符（`signal` 写 `tsv` / `snr` 写 `fits`）或为非标准 token | 既有读端拒绝（`UNSUPPORTED`）；目录子产品 `snr` 的 `tsv` 是登记值，不在此列 |
+## 哈希与清单
 
-## 形态核对与负例
+tree_hash 对解压内容的条目三元组 [path,size,sha256] 排序后计算紧凑 UTF-8 JSON 的 SHA-256；排序键为三元组字典序，ensure_ascii=false，分隔符为逗号和冒号。条目成员集合须明确排除自引用摘要，归档参数不参与。相同内容两形态具有相同 tree_hash，archive_sha256 只认证容器字节，index_sha256 只认证索引字节。内容身份与来源真实性是两件事。
 
-- 唯一机器事实源 = 索引 schema `eng/contracts/schemas/hips_storage_form.schema.json`；
- 落盘实例是否满足该 schema，按 「形态的输入配置与输出清单字段」一节 的不变式 F0–F4 / M1–M4 逐条核对；
-- **逐层口径核对**：每层文档必须只使用 「形态的输入配置与输出清单字段」一节 词表登记的字段名与取值，词表外的同义名一律判红；
- 词表 = `hips_storage_form.schema.json#x-acsd-field-vocabulary`；
-- **负例必须能红**，覆盖面与本节判据同口径：形态键缺省/留空却无 warn、逐帧索引字段缺失、
- 清单 storage 段缺字段、mosaic/export 输入含形态键却未 REJECT、层间口径不一致 ——
- 每条各配一个构造样例，样例不合预期即判该判据失效；
-- 核对由人工对抗审核逐条执行，证据 = 复核命令 + 实测读数或产物路径，不产出流水线判决。
+逐帧产品清单目标登记 storage_form、index_path、index_sha256、archive_sha256；bare 的 archive_sha256=null。外部运行清单 storage 段保存 form_source、products[] 的 product/形态/索引/容器字节数与哈希/tree_hash，以及 coverage_index 引用；bare 的 archive_bytes 也为 null。coverage_index 在运行清单是 path/sha256/n_frames/n_blocks 对象，在 mosaic 输入是可选路径字符串，不能混读定义。完整字段见 schema 的 frame_storage、manifest_storage、coverage_index_ref 与阶段配置 schema。
 
-## 形态的输入配置与输出清单字段
+容器摘要必须放在容器之外，不能写入被它自己覆盖的内容。索引和内容多文件发布不因连续 rename 就成为事务，恢复/验证应按整组完整性判断。已可见但持久化未确认的状态不能伪装为从未发布。实现状态和发布顺序见原子发布合同与 detail。
 
-形态是**输入配置项**，不是运行期开关；产物必须**自报形态与索引路径**，使不同批次 normalize 的输出 JSON 可以合并而不丢索引。
+## 产品几何
 
-字段词表唯一源 = `eng/contracts/schemas/hips_storage_form.schema.json#x-acsd-field-vocabulary`：字段名、取值、段名与文件名后缀只在那里定义一次，本文档与各层文档只引用，**同义名一律以词表为准**。逐层口径一致性是硬判据（缺登记词、词表外的同义名、取值口径漂移都判红，核对口径见 「形态核对与负例」一节）。
+逐帧产品 manifest 的可选 geometry 保存同帧 WCS 来源的 ctype1/2、crval1/2（deg）、crpix1/2（内部零基中心）、CD（deg/pixel）、pixel_origin=0 和 SIP 系数/阶；无 SIP 按合同 null。FITS 一基参考像元只在转换边界加一。系数布局以实际结构为准，不把某轮数组长度36定为所有阶的通则。
 
-### normalize 输入配置键 `storage_form`
+未设置 geometry 时省略，不制造几何；在场时应与相同帧的实际解一致。加性键的兼容性需验证真实 reader，不能由“可选”推导所有旧解析器都会接受。geometry 与 frame_science、产品和运行清单作用域不同，不能凭同名 manifest.json 或路径前缀互相冒充。
 
-| 项 | 内容 |
-|---|---|
-| 键名 | `storage_form` |
-| 取值 | `archive`（默认）\| `bare` |
-| 落点 | normalize（normalize）输入 JSON 的**块内**键（多块形态 `blocks[].storage_form`）与平铺单块简写的顶层键 |
-| 缺省语义 | **键缺失、空串 `""` 或 `null` ⇒ 取默认 `archive`，并报一条 `level=warn` / `event=warn` 事件**（结构化日志事件模型，`level` 取 `debug/info/warn/error`、`event` 取 `start/progress/end/warn/error/metric/checkpoint/cancel/trace`，正本 = `../resources/observability/STRUCTURED_LOGGING.md`「事件模型」一节，经 `LOG_AND_ERROR.md`「日志行格式：机器校验格式」一节转发）[6]；**取默认与 warn 事件成对出现** |
-| 显式语义 | 显式给出 `archive` / `bare` ⇒ 按该形态落盘，**不报** warn |
-| 形态来源登记 | 运行完成清单 `manifest.json#storage.form_source` = `config`（显式）/ `default`（缺省）；`default` 是 warn 必须存在的机器证据（见「运行完成清单 `manifest.json#storage`（加性）」一节的 M2） |
-| 键域 | 该键**只**属 normalize。mosaic / export 的输入合同不设该键，出现即 REJECT（见「mosaic / export：形态键必须 REJECT」一节） |
+## 裸形态体积优化
 
-不变式：
+T1 文件系统打洞仅作用字面全零的4 KiB对齐块，保持逻辑长度与全部字节；EOF末块的文件内字节也必须全零。负零和 NaN 位型不可按浮点等于零判定。写满/同步后、摘要与发布前执行，比较前后哈希、逻辑长度、跨洞读取、FITS校验与实际分配字节。卷不支持时保留完整文件并记录；读回不一致是数据错误。未释放空间不能报告优化成功，当前 writer 对此直接失败的行为另见 detail，不据本轮文档私改代码。
 
-- F0 缺省或留空 ⇒ 解析结果必须是登记的默认值，**且**必须存在一条点名该键的 warn 事件；显式声明 ⇒ warn 面为空。两者缺一即判红（静默取默认与误报 warn 都是故障）。
-- 形态**不改变科学结果**：同一输入下两形态的产品内容逐字节一致（H1）。
+T2 包围盒 TRIM 改变 FITS 结构和内容身份，默认关闭，只能在显式声明且下游 TRIM-aware 时使用；记录 TRIM1/TRIM2/ONAXIS1/ONAXIS2，补边位型与位置须对应原对象。读端不支持则拒绝，不能把缩小 NAXIS 静默当原瓦片。它属于待核标准/生态的可选扩展，不把草案当稳定标准。归档不采用上述两种额外优化；两机制收益分开，不能由 TRIM 压缩比证明打洞释放量。
 
-### normalize 输出清单 `p1_products.json`（加性）
+## 验证与来源
 
-逐帧条目（`frames[]`，与既有 `frame_id` / `hips_path` 同层）新增四个字段：
+核对两形态互斥、容器/索引/内容身份、随机读取、重算覆盖、损坏/截断/缺索引、跨批引用、写盘/取消/恢复、负零/NaN 与不支持卷。能力存在、生产可达、真实跨平台执行和独立读器验证分别报告，schema 通过不等于已完成生产支持。
 
-| 字段 | 类型 | 不变式 |
-|---|---|---|
-| `storage_form` | enum | `archive` \| `bare`，必须与磁盘实际形态一致 |
-| `index_path` | string | 该帧**产品级索引**路径 = `<name>.hips.index.json`（与 `hips_path` 同父目录） |
-| `index_sha256` | string | 索引文件字节的 sha256（64hex 小写） |
-| `archive_sha256` | string / null | 归档容器指纹；`bare` 形态恒 `null` |
-
-运行级新增 `coverage_index`（加性）：
-
-```json
-"coverage_index": {"path": "coverage.index.json", "sha256": "<64hex>",
- "n_frames": 16, "n_blocks": 523}
-```
-
-- F1 四个字段一个不少——缺任一 ⇒ 该帧的形态与索引不可追溯，读端 fail-closed。
-- F2 `storage_form=bare` ⇔ `archive_sha256=null`。
-- F3 `index_path` 的 basename 必须等于 `<产品名>.hips.index.json`。
-- F4 `index_sha256` 必须与磁盘索引字节一致；索引必须可由产品内容重算（见「索引 schema」一节的 I4）。
-- `archive_sha256` 的用途限于容器面；产品身份 = `tree_hash`（取解压后内容，「哈希口径」一节）。
-- 机器事实源：`$defs.frame_storage`（逐帧）与 `$defs.coverage_index_ref`（运行级）。
-
-### 运行完成清单 `manifest.json#storage`（加性）
-
-```json
-"storage": {
- "storage_form": "archive",
- "form_source": "config",
- "products": [
- {"product": "f00", "storage_form": "archive",
- "index_path": "f00.hips.index.json", "index_sha256": "<64hex>",
- "archive_bytes": 12345, "archive_sha256": "<64hex>", "tree_hash": "<64hex>"}
- ],
- "coverage_index": {"path": "coverage.index.json", "sha256": "<64hex>",
- "n_frames": 16, "n_blocks": 523}
-}
-```
-
-- 字段名与「形态的输入配置与输出清单字段」一节 **同词表**（`storage_form` / `index_path` / `index_sha256` / `archive_sha256`），另加 `archive_bytes` 与产品身份 `tree_hash`。
-- M1 运行级 `storage_form` 与每个 `products[].storage_form` 一致；`bare` 条目的 `archive_bytes` / `archive_sha256` 必须为 `null`。
-- M2 `form_source=default` ⇒ 必须存在点名 `storage_form` 的 warn 事件；`form_source=config` ⇒ warn 面为空。
-- M3 `coverage_index` 非 `null` 时 `path` 的 basename 必须是 `coverage.index.json` 且 `n_blocks` ≥ 1；不产出覆盖索引的运行（export）恒 `null`。
-- M4 `products[].index_path` 的 basename 必须等于 `<product>.hips.index.json`。
-- `tree` 记录**解压后内容**的条目（与裸形态相同），`tree_hash` 与 「哈希口径」一节 同口径；形态事实的落点 = 本段与产品级索引（HiPS `properties` 的字段面保持科学属性，「形态的输入配置与输出清单字段」一节）。
-- 机器事实源：`$defs.manifest_storage`。
-
-### 逐帧 HiPS 产品集清单 `manifest.json#geometry`（加性）
-
-**落点**：阶段一逐帧 HiPS 产品集清单 `<output_dir>/<frame_key>/manifest.json`（写出侧 = `lib/infrastructure/aio/src/hips/aio_hips_writer.cpp` 的组装块；产品集句柄 = `AioHipsProductSet`）。本键是**加性可选对象**：设置了几何 ⇒ 出现；未设置 ⇒ **不出现**，清单其余部分逐字节不变。
-
-```json
-"geometry": {
- "ctype1": "RA---TAN-SIP", "ctype2": "DEC--TAN-SIP",
- "crval1": 83.28357233693426, "crval2": -6.374461934745007,
- "crpix1": 2048.5, "crpix2": 2048.5,
- "cd11": 4.551029629190523e-06, "cd12": 0.00026860497761203454,
- "cd21": -0.00026854492605997654, "cd22": 4.6740662299943e-06,
- "pixel_origin": 0,
- "sip": {"order": 3, "ap_order": 5,
-         "a": [/* 36 */], "b": [/* 36 */], "ap": [/* 36 */], "bp": [/* 36 */]}
-}
-```
-
-| 字段 | 类型 | 不变式 |
-|---|---|---|
-| `ctype1` / `ctype2` | string | 与解算产物 `p1_wcs.json#wcs.ctype1/2` **逐字相同**（含 `-SIP` 后缀，当且仅当 SIP 系数在场） |
-| `crval1` / `crval2` | number | 参考点赤经/赤纬 [deg]；与解算产物**逐位相同** |
-| `crpix1` / `crpix2` | number | 参考像素（**0-based 数组下标**，见 `pixel_origin`）；与解算产物逐位相同 |
-| `cd11` / `cd12` / `cd21` / `cd22` | number | 线性变换矩阵 [deg/pix]；与解算产物逐位相同 |
-| `pixel_origin` | integer | 恒 `0` = **0-based 数组下标（index-is-center）**；FITS 1-based `xp = x + 1`。沿用解算产物 `p1_wcs.json#pixel_origin` 的同一约定 |
-| `sip.order` / `sip.ap_order` | integer | SIP 正/逆多项式阶；无 SIP 时 `sip` 整体为 `null` |
-| `sip.a` / `sip.b` / `sip.ap` / `sip.bp` | number[] | SIP 系数数组；与解算产物**逐位相同**（长度由阶决定，实测各 36） |
-
-- **G1 加性 ⇒ `format_version` 保持 1**：本键是加性对象，既有读侧无未知键拒绝 ⇒ **不升版**（与 `storage` 段成例同）。
-- **G2 几何取自产品自身**（`AGENTS §13.1`）：解算几何（含 SIP）随产品落盘后，「几何取自产品自身」不再依赖 `p1_wcs.json` ⇒ 该中间产物移入可清理工作区的前置由此满足。
-- **G3 与 provenance 四键无关**：`geometry` 的键名**不得**与 §30.3 双写的四个 provenance 键（`acsd_input_manifest_hash` / `acsd_model_hash` / `acsd_reject_profile` / `acsd_uncertainty_available`）**同名**——manifest 的取键函数是朴素文本搜索（`json_scalar`，非 JSON 解析），同名会污染双写面核对。本键及其子键均不与之同名。
-- **G4 值一致性**：在场时 `geometry` 各字段必须与同一帧的解算产物 `p1_wcs.json#wcs`（含 `sip`）**逐位一致**；不一致 ⇒ 产品几何不可解释，判红。
-- **G5 未设置即不出现**：不传几何的写出路径（如非解算来源的直写）清单**不含** `geometry`，且其余键面与设置前**逐字节相同**。
-- 机器事实源：`$defs.manifest_geometry`（`eng/contracts/schemas/hips_storage_form.schema.json`）。
-- **同名两份 `manifest.json` 消歧（勿据路径前缀互推）**：① 阶段一逐帧 HiPS **产品集清单** `<output_dir>/<frame_key>/manifest.json`（唯一正本 = 本文件，含 `storage` / `geometry` 加性段）；② 导出/product 面**完成清单** `products/{user_path}/manifest.json`（正本 = `docs/engineering/contracts/MANIFEST_VERIFY.md`）。两者由**同一写出函数**服务但**不同产品实例**，字段面与判据各依其正本，不得据路径前缀互推。
-
-
-### mosaic 输入：索引引用是加性可选键
-
-- `hips_paths` 的元素**保持字符串**（不做元素对象化）：逐帧产品级索引路径由命名规则派生 —— `<name>.hips` / `<name>.hips.zst` → `<name>.hips.index.json`（与 `hips_path` 同父目录）。
-- 额外的「总索引」引用用**加性可选键** `coverage_index`（字符串路径，指向数据集级 `coverage.index.json`）。存在 ⇒ 阶段二启动时载入它做块级查询；缺失 ⇒ 规定回退 = 读入全部产品级索引现场倒排（「数据集级覆盖索引 `coverage.index.json`」一节）。
-- 该键**不**承载形态选择：mosaic 产物固定裸形态（「mosaic / export：形态键必须 REJECT」一节）。
-- 机器事实源 = `eng/contracts/schemas/phase_config_mosaic.schema.json#/$defs.coverage_index_path`（**字符串**路径键）。
-- **同名异型消歧**：运行级清单引用取名 `coverage_index_ref`、在本合同机器事实源里是**对象**（`$defs.coverage_index_ref` = `{path, sha256, n_frames, n_blocks}`，见「运行完成清单 `manifest.json#storage`（加性）」一节）；mosaic 输入侧的路径键取名 `coverage_index_path`、是**字符串**（`eng/contracts/schemas/phase_config_mosaic.schema.json#/$defs.coverage_index_path`）。同名异型属机器可读面的最坏形态，故两侧按「输出清单引用 / 输入配置路径」分名：属性名 `coverage_index` 两侧不变（唯一词表 `x-acsd-field-vocabulary.mosaic_input_index_ref_key.name`）；引用本键的注释面（`lib/infrastructure/cli/parser.cpp`、`session_commands.h`）与死键台账（`eng/contracts/ledgers/dead_config_keys.json`）按此名对齐。
-
-### mosaic / export：形态键必须 REJECT
-
-| 阶段 | 产物形态 | 输入合同是否含 `storage_form` | 出现该键的后果 |
-|---|---|---|---|
-| mosaic mosaic | 固定裸 `<name>.hips/`（服务面，被随机读取） | **不含** | REJECT |
-| export export | 固定裸 FITS（不压缩、不套壳，不使用 `.hips` 中缀） | **不含** | REJECT |
-
-- REJECT 在**两处**生效：schema 面（块内 `additionalProperties:false` / 平铺 `propertyNames`）与 CLI 面（块内未知键门，`validate_config_full`）。
-- **为什么值域取「`archive` / `bare`」两个取值**：运行期配置门是**键白名单**，不是 JSON Schema；只收窄值域会让 `storage_form: "archive"` 在运行期**静默透传成 no-op** —— 正是本合同的静默失效判红面。
-
-### 合并语义（为什么索引路径必须显式进输出 JSON）
-
-不同批次的 normalize 输出 JSON 合并成一个数据集时，逐帧 `index_path` / `index_sha256` 随条目一起搬移 ⇒ 索引不会丢、不会指向错产品；运行级 `coverage_index` 是**派生产物**，合并后按「数据集级覆盖索引 `coverage.index.json`」一节 由各产品级索引重算，不需要跨批次拼接。
-## 参考文献
-
-[1] IVOA. HiPS — Hierarchical Progressive Survey, Version 1.0. REC-HIPS-1.0.
-https://www.ivoa.net/documents/HiPS/
-
-[2] FITS 工作组. FITS 标准 4.0. IAU, 2018. https://fits.gsfc.nasa.gov/standard40/fits_standard40aa-le.pdf
-
-[3] Y. Collet. RFC 8878: Zstandard Compression and the 'application/zstd' Media Type. IETF, 2021.
-https://www.rfc-editor.org/info/rfc8878/
-
-[4] Górski K. M., et al. HEALPix: A Framework for High-Resolution Discretization and Fast Analysis of
-Data Distributed on the Sphere. ApJ, 2005, 622: 759–771. https://doi.org/10.1086/427976
-
-[5] 内部文档 `ATOMIC_PUBLISH.md`，原子发布合同。
-
-[6] 内部文档 `LOG_AND_ERROR.md`，日志与错误合同。
+完整旧字段表、历史裁决、实测引用和参考资料保存于[存储来源](../../../实验/documentation-refactor/docs/STORAGE_SOURCE.txt)。原引用包括 IVOA HiPS 1.0、FITS 4.0、RFC8878、HEALPix 论文与 HiPS 工作草案，本轮未重新外部核验标准条款。来源中的强断言与未来实现不能据归档提升为已验证事实。

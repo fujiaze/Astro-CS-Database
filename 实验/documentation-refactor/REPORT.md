@@ -166,3 +166,7 @@ CLI主题 `922ecfb65` 已立即推送。全文阅读benchmark两页、BACKEND、
 ### 测试与验证证据重写
 
 全文阅读 TEST 与 VALIDATION_EVIDENCE，重写两页，将旧轮次门表、mutation矩阵和流程原文完整保存为 TESTING_SOURCE.txt。正式正文保留独立真值、仿真/真实观测分工、计数与失败记录、适用域和视觉评价，明确测试范围按当前影响选择；容差数值保持，普适性疑点列 Q27，旧模式最优性与接缝阈值列 Q28，另登记 E44–E45。累计重写原文件89篇、待推导28项。本轮没有执行科学测试，不代表全仓精读或产品验收完成。
+
+### 存储形态合同与接线细节
+
+全文阅读并重写 HIPS_STORAGE_FORM 与 storage_form，保留原字段、序列化/身份、归档/索引目标和TRIM条件，完整原文保存在 STORAGE_SOURCE.txt。核对 parser、dead_config_keys、tree_hash、geometry setter与manifest、publish_finish及打洞原语；分别说明目标支持和真实分支。新增 Q29 覆盖量化/保守候选、E46–E48生产者冲突/打洞失败/几何校验问题。累计重写91篇、29项待推导；未执行归档、打洞或科学产品读取。

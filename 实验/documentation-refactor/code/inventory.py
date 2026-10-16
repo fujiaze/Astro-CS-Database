@@ -10,6 +10,7 @@ from rewrite_standards import DOCUMENTS as STANDARD_DOCUMENTS
 from rewrite_cpu import DOCUMENTS as CPU_DOCUMENTS
 from rewrite_gui import DOCUMENTS as GUI_DOCUMENTS
 from rewrite_testing import DOCUMENTS as TESTING_DOCUMENTS
+from rewrite_storage import DOCUMENTS as STORAGE_DOCUMENTS
 
 ROOT = Path(__file__).resolve().parents[3]
 UNIT = ROOT / '实验/documentation-refactor'
@@ -59,6 +60,7 @@ REWRITTEN.update(STANDARD_DOCUMENTS)
 REWRITTEN.update(CPU_DOCUMENTS)
 REWRITTEN.update(GUI_DOCUMENTS)
 REWRITTEN.update(TESTING_DOCUMENTS)
+REWRITTEN.update(STORAGE_DOCUMENTS)
 REVIEWED = {
     'docs/science/unified/UNIFIED_SCIENCE_MODEL.md',
     'docs/science/unified/DATA_SEMANTICS.md', 'docs/science/unified/SCIENCE_SCOPE.md',
