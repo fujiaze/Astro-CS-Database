@@ -260,6 +260,8 @@
 | E32 | BoundedAsyncQueue非空error时pop立即nullopt，不排空；cancel空reason时has_error仍false；容量函数即使预算不足也至少1 | 已说明真实close/cancel/所有权与内存边界，不改队列或声明测试已过；需覆盖空原因和中断构型 |
 | E33 | FITS_IO低层“不施加缩放”被泛称全AIO行为，生产aio_fits.cpp的native/CFITSIO分支却返回已解码物理值；纯C流式与内部C++ writer也混称统一接口 | 正文区分三层入口、缩放责任、输出部分写和状态域，避免重复BSCALE/BZERO；未改变读取代码 |
 | E34 | HIPS_IO把归档读取写成已有保证，AIO旧细节同时登记archive写读/索引/storage未接线；接口枚举还被当阶段发布集合 | 正文区分目标、实际裸读与各层能力，单signal产品政策保持；不凭文档宣称归档生产支持 |
+| E35 | cmd_verify未重算cpu_profile摘要，也未运行完整run_manifest schema；writer基础字段两项profile为null，started/finished都在收尾取now，且只flush/rename不能证明完整fsync | 正文按真实写出/验证顺序与范围说明；读取完整函数后记录，不改清单或版本策略 |
+| E36 | CLI detail将运行--json写成单JSON、-force写成越过全部检查、日志双文件/清单接线和CPU资源退出10写成已实现 | 依据command_tree/subcommand/parser/commands改写真实JSONL、结构硬检查与磁盘错误，取消不再笼统删除已发布对象；不改CLI代码 |
 
 ### 远端合并后的核对范围
 

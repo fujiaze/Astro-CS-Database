@@ -1,67 +1,42 @@
-# cli（命令行入口）
+# CLI 实现
 
-> 上游：《ACSD 最高设计》的「命令行合同」一章（命令树、配置与事件与退出码、错误传播与运行日志）
+CLI解析参数、配置、运行控制和事件，调用各独立阶段Runtime。协议正本为[命令行合同](../../engineering/contracts/CLI_PROTOCOL.md)，配置见[CONFIG](../../engineering/contracts/CONFIG.md)，错误映射见[日志错误](../../engineering/contracts/LOG_AND_ERROR.md)。科学计算在算法库，文件读写在AIO。
 
-## 1. 职责与边界
+## 1. 真实调用
 
-- **职责**：三个平级命令（`normalize` / `mosaic` / `export`）的入口：命令解析、配置校验、检查页面（绿/橙/红 + yes 确认）、模板生成、帮助、机器输出、取消与退出码；科学公式实现在 `lib/algorithms/` 各模块，FITS/HiPS 读写由 `infrastructure/aio` 承担，线程池由 scheduler/runtime 统一管理；**薄入口**。
+```text
+CLI main / parser
+  → command_tree.h 与 session_commands.h
+  → subcommand.h 的配置预检与现有交互
+  → commands.cpp::run_phase1_block / run_phase2_block / run_phase3_block
+  → runtime_client.cpp::run_pipeline → Runtime → 节点adapter
+  → AIO产品 + 运行清单 + 收尾事件
+```
 
-## 2. 权威依据
+三个命令为normalize/mosaic/export，不隐式串接；局部session facade不等于完整命令。Runtime借用调用方RunContext，取消监视和在飞消费者结束后再释放，详见[Runtime细节](runtime.md)。
 
-- 《ACSD 最高设计》的「命令行合同」一章、「运行前预检」一节、「错误传播与日志」一节
-- `docs/engineering/contracts/LOG_AND_ERROR.md`「错误对象与退出码映射」一节、「落点合同」（日志落点）一节
-- `eng/contracts/schemas/phase_config_normalize.schema.json`、`eng/contracts/schemas/phase_config_mosaic.schema.json`、`eng/contracts/schemas/phase_config_export.schema.json`
+## 2. 命令与输出
 
-## 3. 输入/输出数据合同
+command_tree.h提供help、--version、doctor、benchmark和三个科学命令；旧phase1/2/3与verify等用户别名不在命令表。`--json <config>`对科学命令是配置路径，运行stdout为默认JSONL事件；`--events-jsonl`是兼容别名。版本/doctor机器响应和模板输出是单个JSON文档，不能只凭--json字面判断输出形态。
 
-- **输入**：命令行参数 + `--json` 挂载的 phase_config。
-- **输出**：stdout 机器 JSON（`--json` 时恰一个 JSON 文档）、JSONL 事件、退出码；运行产物落 `output_dir`；
-- **运行日志**：每次运行（含失败与取消）落 `<output_dir>/logs/run_<run_id>.jsonl`（机器）与 `run_<run_id>.log`（摘要），并在 run manifest 的 `log_artifacts[]` 登记；stdout 无日志污染。
-- 参考：`eng/contracts/schemas/jsonl_event_v1.schema.json`（JSONL 事件面唯一 schema）、`docs/engineering/contracts/CLI_PROTOCOL.md`「JSONL 运行事件流」一节（stdout 机器 JSON 与事件协议权威）。
+模板由session_commands.h字段信息与生成器组成，`--template`及-o/--output选择落点。生成结构与真实合法输入分开：占位路径、示例数值不表示科学条件已经具备。GUI捕获事件流和退出码，不从普通stderr文本判断是否产生科学产品。
 
-## 4. 算法与公式要点
+## 3. 配置与现有预检
 
-- 命令树（唯一）见《ACSD 最高设计》的「命令行合同」一章：`help / --version / doctor / benchmark / normalize|mosaic|export --json|--template|--help`；
-- 三个命令直接以命令名调用（`normalize` / `mosaic` / `export`），是平级独立命令；`phase1|2|3` 仅为内部命名；
-- **运行前预检（检查页面）**：见《ACSD 最高设计》的「运行前预检」一节——三档（🟢 correct / 🟠 warn 不阻塞 / 🔴 error 阻塞），三档都显示完整检查页面；**无 error 时（correct 与 warn）都需用户输入 `yes` 确认才运行**，`-y`/`-yes` 跳过确认；存在 error 时 `-y`/`-yes` 不能越过；`-force` 跳过整个检查步骤直接运行（后果由用户承担）；
-- `benchmark` 直接输出 profile 到**安装目录**（自动生成/更新），后续运行时自动读取；
-- `help` 直接输入即为详细帮助；
-- 取消：协作取消 → 关 writer → incomplete manifest → 隔离临时产物 → **收尾并发布运行日志** → exit 9；
-- **错误收敛（唯一判定点）**：模块/节点/子系统的错误以稳定错误码上行，CLI 按 `docs/engineering/contracts/LOG_AND_ERROR.md`「错误对象与退出码映射」一节 映射为退出码并输出 `error_report`；**故障一律按错误码上行处理**；
-- stdout 无日志污染；事件走 JSONL（schema_version/event_id/run_id/kind 含 progress/resource/artifact/backend/final）。
+parser.cpp::validate_config_full负责对象/键/类型、块与输入路径等检查，模块负责科学值域。blocks[]与平铺形态互斥，每块明确output_dir及输入。未知键、不可读输入、非法几何等具体报错；不同设备/滤镜名称不构成人为拒绝理由。
 
-## 5. 配置项
+当前subcommand.h保留预检页面及confirm_run；-y/--yes跳过交互，EOF不当用户确认。-force是兼容路径，不能描述成越过所有检查：config_structure_errors等结构拒绝仍存在。该CLI行为不转化为文档研发的Agent审批或负责人发布许可。
 
-（CLI 自身配置极少；主要转发 phase_config 校验规则）
+benchmark画像路径由cli_resolve_cpu_profile_path决定，安装位置不可写/构建树环境的回落须报告实际路径。机器字段是否进入生产路由按实际消费者核对，不从profile文件存在推定已生效。
 
-| 字段 | 默认 | 说明 |
-|---|---|---|
-| `json` | —— | 配置路径（必填于运行） |
-| `template` | —— | 生成模板 |
-| `output` | stdout | 模板输出路径 |
-| `help` | —— | 帮助与字段说明 |
-| `-y` | —— | 跳过运行确认（自动 yes） |
-| `-force` | —— | 跳过整个检查步骤直接运行（后果由用户承担） |
+## 4. 事件、清单与错误
 
-## 6. 接口/ABI
+JsonlEmitter和protocol.h校验事件身份、序号、kind与扩展字段；人可读摘要走stderr。错误通过Result/节点manifest进入runtime_client的域映射；内存、CPU和线程利用率不触发产品资源超限退出，磁盘写失败按相应I/O/RESOURCE错误处理。
 
-- entrypoint：`main()` → 解析 → 预检 → 确认 → 调度执行 → 退出码；
-- 退出码唯一源 `lib/infrastructure/cli/exit_codes.h`（0/2/3/4/5/6/7/8/9/10/70）；域→码映射唯一源 `docs/engineering/contracts/LOG_AND_ERROR.md`「错误对象与退出码映射」一节。
+write_run_manifest写`acsd_run_<run_id>.json`并回填final路径；字段与doctor校验范围见[运行清单](../../engineering/contracts/MANIFEST_VERIFY.md)。正式结构化日志、Core logger和stdout事件是不同通道，不能声明现有CLI已经写出完整log_artifacts[]。仅开发快照失败与正式I/O失败分开处理。
 
-## 7. 错误与边界
+取消在内核安全点传播，停止派发、等待在飞借用、收尾并记录incomplete。已经完成的独立帧与已可见但持久化未确认对象按各自发布合同处理，不能笼统删除所有结果。崩溃报告去敏并保留最初错误上下文。
 
-- 参数错误 → 2；输入缺失/格式错 → 3；科学验证失败 → 4；ABI/加载失败 → 5；执行失败 → 6；I/O → 7；输出完整性 → 8；取消/超时 → 9；资源门禁 → 10；未分类 → 70；
-- 存在 error 时**强制阻断**运行（`-y`/`-yes` 不能越过；`-force` 跳过整个检查步骤）；
-- 未捕获异常 → exit 70 + 脱敏 crash report，不泄露凭据；
-- **日志落点**：默认 `<output_dir>/logs`；落点由 `output_dir` 唯一决定（进程 CWD、源码树、安装目录、家目录均不取）；日志落点判据见 `docs/engineering/contracts/LOG_AND_ERROR.md`「落点合同」一节；
-- **日志写失败不静默**：记 stderr 脱敏摘要 + 本次运行以非 0 退出码结束（IO=7；磁盘满=10）。
+## 5. 验证范围
 
-## 8. 测试与 Oracle
-
-- 命令树/帮助/模板输出测试；
-- 预检页面测试：correct / warn / error 三档展示与阻断行为；
-- 每个退出码的可达测试，且每个 `ErrorDomain` 的映射与 `docs/engineering/contracts/LOG_AND_ERROR.md`「错误对象与退出码映射」一节 逐行一致；
-- 取消路径（Ctrl-C）无半成品，且 `<output_dir>/logs/` 两工件仍发布并登记；
-- 失败路径运行日志完整（错误事件含 `error{source,symbol,status}`），日志 sha256/行数/级别分布与磁盘一致；
-- `--json` 输出恰一个 JSON 文档、无日志污染；
-- 跨平台同失败同码。
+核对命令表、帮助/模板、合法配置到真实节点、未知键/退役形态、预检交互/非交互、JSONL序号/终止事件、取消、逐域退出码、日志缺失与清单验证。双平台实测、静态调用和独立科学评价分别报告；旧测试名与历史协议描述存入[来源档案](../../../实验/documentation-refactor/docs/CLI_RECORDS_SOURCE.txt)，不声称本轮执行通过。
