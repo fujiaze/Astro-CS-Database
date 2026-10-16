@@ -1,0 +1,27 @@
+{
+  "note": "同阶生产构型 pre-fix vs post-fix 逐字节对照（coverage artifact + sampler artifact）",
+  "pre_fix_binary_sha256": "502556166b992f577035cc7877f2e4de8b6ebbdb601875928048ce05fde1ca88",
+  "post_fix_binary_sha256": "fd46cb791613af019850a43cc17b617c91befa09fefa94a689df0746e37516b8",
+  "rows": [
+    {
+      "case": "same00_samepath",
+      "pre_fix_coverage_sha256": "b4e2112bd84c8591122893ff3d42967e4ff40f852c0e5d58f46f76a0ab211a48",
+      "pre_fix_coverage_sha256_recorded": "b4e2112bd84c8591122893ff3d42967e4ff40f852c0e5d58f46f76a0ab211a48",
+      "post_fix_coverage_sha256": "b4e2112bd84c8591122893ff3d42967e4ff40f852c0e5d58f46f76a0ab211a48",
+      "coverage_byte_identical": true,
+      "post_fix_samples_sha256": "cb21641a4ccca4ebb9f6f98b61e7f643b36884d31501099140c2de4daf4229ea",
+      "samples_byte_identical_to_pre_fix_run": true,
+      "pre_fix_samples_sha256_recorded": "cb21641a4ccca4ebb9f6f98b61e7f643b36884d31501099140c2de4daf4229ea"
+    },
+    {
+      "case": "same11_filter_diff",
+      "pre_fix_coverage_sha256": "672ab9299aeeb06983821c8ad8dd52fd7ed76518d8900ce3cfc2bd76398d5954",
+      "pre_fix_coverage_sha256_recorded": "672ab9299aeeb06983821c8ad8dd52fd7ed76518d8900ce3cfc2bd76398d5954",
+      "post_fix_coverage_sha256": "672ab9299aeeb06983821c8ad8dd52fd7ed76518d8900ce3cfc2bd76398d5954",
+      "coverage_byte_identical": true,
+      "post_fix_samples_sha256": "dd010ecb7127482d21ab31e8cf164a3bdd2129c74b37075f94c888b74bdc4393",
+      "samples_byte_identical_to_pre_fix_run": true,
+      "pre_fix_samples_sha256_recorded": "dd010ecb7127482d21ab31e8cf164a3bdd2129c74b37075f94c888b74bdc4393"
+    }
+  ]
+}

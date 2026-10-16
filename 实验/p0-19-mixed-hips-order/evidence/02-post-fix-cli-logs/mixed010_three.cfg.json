@@ -1,0 +1,9 @@
+{
+  "schema_version": "1",
+  "hips_paths": [
+    "/tmp/p019/fx/ord0_halpha",
+    "/tmp/p019/fx/ord1_halpha",
+    "/tmp/p019/fx/ord0_empty"
+  ],
+  "output_dir": "/tmp/p019/matrix/mixed010_three"
+}
