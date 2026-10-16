@@ -1,0 +1,1745 @@
+{
+ "schema": "ACSD-P5-S07-EVIDENCE/1",
+ "paper_id": "P5",
+ "experiment_id": "P5-B/D/F-S07",
+ "git_write_performed": false,
+ "branch": "audit/acsd-science-docs-p5",
+ "base_sha": "c93b4a6f90023c61ddbc4f9221c828f3de22325c",
+ "source_sha": "c93b4a6f90023c61ddbc4f9221c828f3de22325c",
+ "head_at_bundle_time": "48e5041e949defc1c7d071013a6b2ed3d53a6046",
+ "base_sha_note": "本单元未做任何 git 写操作；base == source == 测量时刻 HEAD。本单元开工时 HEAD=a73f577b0，实验运行时刻 HEAD=c93b4a6f9（期间其它轮次并发提交），聚合时刻 HEAD 见 head_at_bundle_time；a73f577b0..head_at_bundle_time 对 lib/** 零改动（`git diff --stat a73f577b0..HEAD -- lib/` 为空）⇒ 接线审计与探针构建对当前 HEAD 同样有效。",
+ "build_dir": "build/linux-sci-s07",
+ "probe_sha256": "e3231ea1df36ba325bc69089610e7407cf50d43920c8c2739f61e613a64aeac4",
+ "script_sha256": "de0d1e9010a2b9ab715ea432d1ba1763fbe4f44eff37bfd79ad245009a6969ab",
+ "lib_sha256": "9e7421cd3c6b63073d70e69a148503867aa404463bee53f4f1503c84757e91a1",
+ "predeclared": {
+  "C1": "positive: median(RMS_A-RMS_AG_ORACLE)>0 and 95% CI excludes 0",
+  "C2": "positive: median(RMS_A-RMS_AG)>0, 95% CI excludes 0, median ratio RMS_AG/RMS_A<=0.8",
+  "C3": "negative: median(RMS_A-RMS_AG) 95% CI includes 0; chi2(eta=0) reject rate <= 5%",
+  "C4": "positive: lowfreq_ratio(AG) >= 0.8*lowfreq_ratio(A); seam(AG) <= max(gate,1.2*seam(A))",
+  "C5": "positive: median(RMS_A-RMS_AG_SHUFFLE) <= 0",
+  "C6": "specificity: max|d eta| / sigma < 3 for both worlds under aperture change (r_ap -> r_ap+3); a true multiplicative gain is aperture-independent",
+  "gate_rel_step": 0.01
+ },
+ "metrics_def": {
+  "heldout_disp": "RMS over held-out matched stars of (log f_sk - mean_k log f_sk); unit=dex; denominator = number of (star,frame) residuals",
+  "seam": "signed level step across frame footprint boundary / local bg; unit=1",
+  "diffuse": "gaussian(sigma=8px) smoothed mosaic vs truth S: slope/bias/rms/struct_ratio/lowfreq_ratio"
+ },
+ "conditions": {
+  "main": {
+   "tag": "main",
+   "color_condition": false,
+   "psf_condition": "varying",
+   "r_ap_px": 5.0,
+   "n": 10,
+   "rms_A": 0.206861806408345,
+   "rms_AG_JOINT": 0.042723484009051016,
+   "rms_AG_ORACLE_JOINT": 0.05274861449279015,
+   "rms_AG_SHUFFLE_JOINT": 0.21002109899310845,
+   "prod_rms_A": 0.2068005545594231,
+   "prod_rms_AG_JOINT": 0.04126396838772056,
+   "diff_A_minus_AG_JOINT": {
+    "median": 0.16850712344303448,
+    "ci": [
+     0.13702808775056222,
+     0.1795749353493611
+    ],
+    "n": 10,
+    "frac_positive": 1.0,
+    "ratio_median": 0.2050996547671679
+   },
+   "diff_A_minus_AG_ORACLE_JOINT": {
+    "median": 0.1554469502109606,
+    "ci": [
+     0.12893067725310772,
+     0.16626305382176707
+    ],
+    "n": 10,
+    "frac_positive": 1.0,
+    "ratio_median": 0.2527307066379496
+   },
+   "diff_A_minus_AG_SHUFFLE_JOINT": {
+    "median": 0.01661976905825005,
+    "ci": [
+     -0.06828581635642614,
+     0.10656536413606779
+    ],
+    "n": 10,
+    "frac_positive": 0.5,
+    "ratio_median": 0.9101583596505094
+   },
+   "gain_chi2_red": {
+    "median": 3.4399796788115244,
+    "max": 11.783916484858262,
+    "min": 1.5211663047676869,
+    "n": 10
+   },
+   "gain_p_eta0": {
+    "median": 0.0,
+    "max": 0.0,
+    "min": 0.0,
+    "n": 10
+   },
+   "gain_max_deta_over_sigma": {
+    "median": 21.905301410948535,
+    "max": 26.02879756582419,
+    "n": 10
+   },
+   "gain_eta": [
+    [
+     -0.0011184435127375057,
+     0.0996661696751016,
+     -0.14165154356776902,
+     0.07609232546392934
+    ],
+    [
+     0.010720740698490725,
+     0.10878306714196688,
+     -0.14242311331664023,
+     0.0701608572469405
+    ],
+    [
+     0.002516778732606886,
+     0.10142839679009329,
+     -0.14618157526970346,
+     0.07014667625827944
+    ],
+    [
+     -0.01629475649870079,
+     0.1093650385542212,
+     -0.1416524761331674,
+     0.07648572290311198
+    ],
+    [
+     0.006109526352221495,
+     0.11193910500209435,
+     -0.13674698864061116,
+     0.06345117659331025
+    ],
+    [
+     0.006524570469668845,
+     0.10545059677316085,
+     -0.13682869460810967,
+     0.08399979660932017
+    ],
+    [
+     0.006330011198369978,
+     0.1048171454968781,
+     -0.13847061269276467,
+     0.0636782720639563
+    ],
+    [
+     0.0021653935029638163,
+     0.0993906998682064,
+     -0.14764437070820308,
+     0.07255333476330532
+    ],
+    [
+     -0.008586634552575386,
+     0.11091297687277639,
+     -0.1364525858825485,
+     0.08011992728408561
+    ],
+    [
+     0.036133040856173484,
+     0.12868845191251224,
+     -0.1375811485875976,
+     0.08370926258654282
+    ]
+   ],
+   "seam_A": [
+    0.008528190887546536,
+    0.012114524690830651,
+    0.007314164879934277,
+    0.005652670587008613,
+    0.006431597677685737,
+    0.007404714483399693,
+    0.014259783621562326,
+    0.0058993347988257235,
+    0.0026322362408621254,
+    0.003719456648933354
+   ],
+   "seam_AG_JOINT": [
+    0.007274553499998915,
+    0.009485145379436106,
+    0.007941246395203645,
+    0.0034572808783748456,
+    0.006799555875791122,
+    0.006368286968273575,
+    0.011230963043210643,
+    0.004784918692621067,
+    0.0010887119353790952,
+    0.0026162894693845555
+   ],
+   "seam_AG": [
+    0.11420095485265895,
+    0.11600326872339876,
+    0.12072357791621993,
+    0.11534603898695395,
+    0.11759618543222751,
+    0.11299153012841598,
+    0.11431805945247375,
+    0.11157218326677558,
+    0.11348328686331924,
+    0.12494191026202935
+   ],
+   "lowfreq_A": [
+    1.0380007239452176,
+    1.0204947858644489,
+    0.9984484549150593,
+    1.045237327684151,
+    0.9749927767681424,
+    0.9664777953435446,
+    0.9930617799657501,
+    0.9871398775992973,
+    0.9922335659570148,
+    1.0064177313996954
+   ],
+   "lowfreq_AG_JOINT": [
+    0.9938908980369581,
+    0.9801417855265012,
+    0.9775098902842919,
+    0.9878255327913611,
+    0.9731961186151397,
+    0.9658449242195335,
+    1.000308255627636,
+    0.9857691989469405,
+    0.9766305749732849,
+    0.9657666087293654
+   ],
+   "verdict": {
+    "C1": true,
+    "C2": true,
+    "C3": false,
+    "C3_detail": {
+     "neg_ci": [
+      0.006814321689668987,
+      0.017400090547132332
+     ],
+     "neg_eta0_reject_rate": 1.0
+    },
+    "C4": true,
+    "C5": false,
+    "C5_alt_no_same_direction_significant_improvement": true,
+    "C6": false,
+    "C6_detail": {
+     "pos_max_deta_over_sigma": 26.02879756582419,
+     "neg_max_deta_over_sigma": 24.90353511441895
+    },
+    "PASS": false,
+    "production_default": "IDENTITY"
+   }
+  },
+  "psf_uniform": {
+   "tag": "psf_uniform",
+   "color_condition": false,
+   "psf_condition": "uniform",
+   "r_ap_px": 5.0,
+   "n": 10,
+   "rms_A": 0.22096852867237576,
+   "rms_AG_JOINT": 0.04255740170639154,
+   "rms_AG_ORACLE_JOINT": 0.04178731488941455,
+   "rms_AG_SHUFFLE_JOINT": 0.209200204666514,
+   "prod_rms_A": 0.22069200202134454,
+   "prod_rms_AG_JOINT": 0.042279986162003146,
+   "diff_A_minus_AG_JOINT": {
+    "median": 0.17717712314578,
+    "ci": [
+     0.15635696740935545,
+     0.19049616502599398
+    ],
+    "n": 10,
+    "frac_positive": 1.0,
+    "ratio_median": 0.19367810950615155
+   },
+   "diff_A_minus_AG_ORACLE_JOINT": {
+    "median": 0.17794720996275698,
+    "ci": [
+     0.1570175413604607,
+     0.19018921528963556
+    ],
+    "n": 10,
+    "frac_positive": 1.0,
+    "ratio_median": 0.19017083999897524
+   },
+   "diff_A_minus_AG_SHUFFLE_JOINT": {
+    "median": 0.0031798259069346774,
+    "ci": [
+     -0.07211656746821263,
+     0.09058938726753503
+    ],
+    "n": 10,
+    "frac_positive": 0.5,
+    "ratio_median": 0.9771236457168495
+   },
+   "gain_chi2_red": {
+    "median": 1.4079646196990248,
+    "max": 12.283505262701532,
+    "min": 1.027333249762993,
+    "n": 10
+   },
+   "gain_p_eta0": {
+    "median": 0.0,
+    "max": 0.0,
+    "min": 0.0,
+    "n": 10
+   },
+   "gain_max_deta_over_sigma": {
+    "median": 3.6788724125747367,
+    "max": 10.860569818830093,
+    "n": 10
+   },
+   "gain_eta": [
+    [
+     -0.01891826823225693,
+     0.12206887999308874,
+     -0.14042548025417112,
+     0.0443300107155589
+    ],
+    [
+     -0.011584859200632043,
+     0.12873211169971904,
+     -0.1443936413870602,
+     0.04364837175710002
+    ],
+    [
+     -0.015601319267388045,
+     0.12414391474648757,
+     -0.14564666105177732,
+     0.03983391655302964
+    ],
+    [
+     -0.014828670179902189,
+     0.1261373343942097,
+     -0.14562085675385633,
+     0.041738778316693
+    ],
+    [
+     -0.010919160705446055,
+     0.13234604572211822,
+     -0.13707839189624602,
+     0.05074057430786967
+    ],
+    [
+     -0.009108070568182764,
+     0.12991100220539392,
+     -0.1353395391448592,
+     0.05181735708773857
+    ],
+    [
+     -0.014064800571406853,
+     0.12573071195532057,
+     -0.1387829361372513,
+     0.048725395237273525
+    ],
+    [
+     -0.020278787876769063,
+     0.12030365995387263,
+     -0.14794079164762633,
+     0.04078530415558842
+    ],
+    [
+     -0.03095946551700147,
+     0.13013074590963872,
+     -0.1373080360787774,
+     0.048626641317958214
+    ],
+    [
+     0.020847257699730958,
+     0.15617954700869982,
+     -0.1336107693966833,
+     0.053849582949060816
+    ]
+   ],
+   "seam_A": [
+    0.00673369823508433,
+    0.009960665659972614,
+    0.006691612646897914,
+    0.004913935645329278,
+    0.005053350026190607,
+    0.006206344164375089,
+    0.010786099966405888,
+    0.004744194701298358,
+    0.0029048564495932727,
+    0.006255977477998538
+   ],
+   "seam_AG_JOINT": [
+    0.005074253482828881,
+    0.008209367436847644,
+    0.006524110263956634,
+    0.003008802795973551,
+    0.005759257220060115,
+    0.0035541809014915677,
+    0.006728840409450549,
+    0.004382475557055469,
+    0.0022613466176800833,
+    0.004842015471377595
+   ],
+   "seam_AG": [
+    0.1242683099429788,
+    0.12445890161013398,
+    0.12132682218288508,
+    0.1220587780592706,
+    0.1276359250362624,
+    0.12310314231364926,
+    0.1254439028168019,
+    0.12073599823559467,
+    0.12256767826427403,
+    0.13544322686607163
+   ],
+   "lowfreq_A": [
+    1.036943655875754,
+    1.0163778605198097,
+    0.9943845650783473,
+    1.0376396714835023,
+    0.969451516372769,
+    0.9772467369340595,
+    0.9871583779847124,
+    0.9829151140293,
+    0.9912029734908352,
+    1.0035901735653887
+   ],
+   "lowfreq_AG_JOINT": [
+    1.0024993539717078,
+    0.9958831075383281,
+    0.9879491861213452,
+    0.9908296306112737,
+    0.9778250106458212,
+    0.996339959040648,
+    1.0016129166465277,
+    0.9931807577174198,
+    0.9894056987212567,
+    0.9674114014777663
+   ],
+   "verdict": {
+    "C1": true,
+    "C2": true,
+    "C3": true,
+    "C3_detail": {
+     "neg_ci": [
+      -0.0005026940766059244,
+      0.00011122891692679979
+     ],
+     "neg_eta0_reject_rate": 0.0
+    },
+    "C4": true,
+    "C5": false,
+    "C5_alt_no_same_direction_significant_improvement": true,
+    "C6": false,
+    "C6_detail": {
+     "pos_max_deta_over_sigma": 10.860569818830093,
+     "neg_max_deta_over_sigma": 4.376023730436856
+    },
+    "PASS": false,
+    "production_default": "IDENTITY"
+   }
+  },
+  "color": {
+   "tag": "color",
+   "color_condition": true,
+   "psf_condition": "varying",
+   "r_ap_px": 5.0,
+   "n": 10,
+   "rms_A": 0.20524146171069318,
+   "rms_AG_JOINT": 0.06965606636276955,
+   "rms_AG_ORACLE_JOINT": 0.07160098699339927,
+   "rms_AG_SHUFFLE_JOINT": 0.21317366332140372,
+   "prod_rms_A": 0.20468123711115654,
+   "prod_rms_AG_JOINT": 0.06929415247951207,
+   "diff_A_minus_AG_JOINT": {
+    "median": 0.13551713275237415,
+    "ci": [
+     0.10918043675805399,
+     0.14652614835944483
+    ],
+    "n": 10,
+    "frac_positive": 1.0,
+    "ratio_median": 0.35471404874199464
+   },
+   "diff_A_minus_AG_ORACLE_JOINT": {
+    "median": 0.12556391936303285,
+    "ci": [
+     0.0981264444911917,
+     0.14963297673030274
+    ],
+    "n": 10,
+    "frac_positive": 1.0,
+    "ratio_median": 0.38528218668092173
+   },
+   "diff_A_minus_AG_SHUFFLE_JOINT": {
+    "median": 0.00016603913509068147,
+    "ci": [
+     -0.0665116995160861,
+     0.10536213933912678
+    ],
+    "n": 10,
+    "frac_positive": 0.5,
+    "ratio_median": 0.9855490860015714
+   },
+   "gain_chi2_red": {
+    "median": 24.258249775224826,
+    "max": 45.5785424293215,
+    "min": 14.269261463720031,
+    "n": 10
+   },
+   "gain_p_eta0": {
+    "median": 0.0,
+    "max": 0.0,
+    "min": 0.0,
+    "n": 10
+   },
+   "gain_max_deta_over_sigma": {
+    "median": 21.55071373411098,
+    "max": 29.390602037307758,
+    "n": 10
+   },
+   "gain_eta": [
+    [
+     0.0012740407605300644,
+     0.10023159146443794,
+     -0.14814203871333317,
+     0.08428032932678287
+    ],
+    [
+     0.003268478554588194,
+     0.1175964254961202,
+     -0.14247216849315808,
+     0.05358673834181433
+    ],
+    [
+     0.003526693981784716,
+     0.1335609980856491,
+     -0.17897155824276234,
+     0.05079477588753232
+    ],
+    [
+     -0.02285855764734236,
+     0.11762056354148102,
+     -0.144973293329053,
+     0.06929741549744312
+    ],
+    [
+     0.027925585384599452,
+     0.1178105893039771,
+     -0.1453274252931404,
+     0.051567316070300497
+    ],
+    [
+     0.02349680215771095,
+     0.09908104390368619,
+     -0.13226745707456233,
+     0.07703329943186843
+    ],
+    [
+     0.006071726598664215,
+     0.09353180484080233,
+     -0.137336831331341,
+     0.07986403438072107
+    ],
+    [
+     -0.0035152906591475793,
+     0.09591942348395481,
+     -0.14679087004481872,
+     0.08293538059941696
+    ],
+    [
+     0.033763562061177664,
+     0.12062734712345174,
+     -0.15600926638164225,
+     0.06702090948200473
+    ],
+    [
+     0.042345110459868524,
+     0.12806578262310167,
+     -0.13583963634721466,
+     0.07917239367439345
+    ]
+   ],
+   "seam_A": [
+    0.008566131414471741,
+    0.012121938866380156,
+    0.0072975042326070124,
+    0.005682443048654028,
+    0.006408470938297905,
+    0.007418183767990984,
+    0.014194501612040025,
+    0.005913967522618206,
+    0.0025504176877371248,
+    0.0037313735566757563
+   ],
+   "seam_AG_JOINT": [
+    0.007108279598103246,
+    0.00974224284853439,
+    0.008228984408091717,
+    0.0031300905863424033,
+    0.006991485579915382,
+    0.006414348783116063,
+    0.011848793552639812,
+    0.004720206627272346,
+    0.0014324825729776203,
+    0.0026786882534377806
+   ],
+   "seam_AG": [
+    0.11710100820695775,
+    0.11985770045012484,
+    0.14009439939371407,
+    0.11761472421935065,
+    0.12391146487929272,
+    0.10788037638601752,
+    0.10905891420167264,
+    0.11513648480071394,
+    0.12660660229175846,
+    0.12386978912558459
+   ],
+   "lowfreq_A": [
+    1.040682853867147,
+    1.0228268096199964,
+    1.0011790089945736,
+    1.0491409402938245,
+    0.9752534317445943,
+    0.9645251910115323,
+    0.9940752054775613,
+    0.9877907600726031,
+    0.988201937309667,
+    1.011425555973582
+   ],
+   "lowfreq_AG_JOINT": [
+    0.9932508679181585,
+    0.9932511121714622,
+    0.9856677697675306,
+    0.9954949609803205,
+    0.9699305992042901,
+    0.95363132594212,
+    0.9941279238341882,
+    0.9863123651973363,
+    0.9518202205929639,
+    0.9687153156743672
+   ],
+   "verdict": {
+    "C1": true,
+    "C2": true,
+    "C3": false,
+    "C3_detail": {
+     "neg_ci": [
+      -0.0031034707376978027,
+      0.010084952846262207
+     ],
+     "neg_eta0_reject_rate": 1.0
+    },
+    "C4": true,
+    "C5": false,
+    "C5_alt_no_same_direction_significant_improvement": true,
+    "C6": false,
+    "C6_detail": {
+     "pos_max_deta_over_sigma": 29.390602037307758,
+     "neg_max_deta_over_sigma": 32.50063166648174
+    },
+    "PASS": false,
+    "production_default": "IDENTITY"
+   }
+  }
+ },
+ "negative_world": {
+  "main": {
+   "tag": "main",
+   "color_condition": false,
+   "psf_condition": "varying",
+   "r_ap_px": 5.0,
+   "n": 10,
+   "rms_A": 0.05458994206845622,
+   "rms_AG_JOINT": 0.04176087500427628,
+   "rms_AG_ORACLE_JOINT": 0.05458994206845622,
+   "rms_AG_SHUFFLE_JOINT": 0.07875781290608325,
+   "prod_rms_A": 0.05403536025408662,
+   "prod_rms_AG_JOINT": 0.040278234110830244,
+   "diff_A_minus_AG_JOINT": {
+    "median": 0.009682548980904274,
+    "ci": [
+     0.006814321689668987,
+     0.017400090547132332
+    ],
+    "n": 10,
+    "frac_positive": 1.0,
+    "ratio_median": 0.8324999400292639
+   },
+   "diff_A_minus_AG_ORACLE_JOINT": {
+    "median": 0.0,
+    "ci": [
+     0.0,
+     0.0
+    ],
+    "n": 10,
+    "frac_positive": 0.0,
+    "ratio_median": 1.0
+   },
+   "diff_A_minus_AG_SHUFFLE_JOINT": {
+    "median": -0.02083223543026389,
+    "ci": [
+     -0.02324668001962174,
+     -0.0011310169597981076
+    ],
+    "n": 10,
+    "frac_positive": 0.2,
+    "ratio_median": 1.3202269058113594
+   },
+   "gain_chi2_red": {
+    "median": 1.7063014611053555,
+    "max": 4.735075921846701,
+    "min": 0.9610530694002101,
+    "n": 10
+   },
+   "gain_p_eta0": {
+    "median": 5.231501117887974e-136,
+    "max": 8.848054503725159e-93,
+    "min": 3.533922833056335e-225,
+    "n": 10
+   },
+   "gain_max_deta_over_sigma": {
+    "median": 19.752783981127557,
+    "max": 24.90353511441895,
+    "n": 10
+   },
+   "gain_eta": [
+    [
+     0.01961136396347622,
+     -0.02338448541287202,
+     -0.002617122617800505,
+     0.029823471233602853
+    ],
+    [
+     0.010055962563982968,
+     -0.028407030371597447,
+     -0.0012866739826281088,
+     0.02924281712766159
+    ],
+    [
+     0.018485379979609067,
+     -0.02241288407859832,
+     0.0024804701295634097,
+     0.032916656532573904
+    ],
+    [
+     0.025925562361960634,
+     -0.02326348293853485,
+     -0.0027159466362964286,
+     0.02776525875935734
+    ],
+    [
+     0.01531190682675016,
+     -0.027174227486477995,
+     -0.00024570119128383775,
+     0.032550114846580665
+    ],
+    [
+     0.016989368093555723,
+     -0.022617262363589616,
+     -0.001683887399461605,
+     0.03414083762408016
+    ],
+    [
+     0.015309995175617028,
+     -0.02268626858327732,
+     -0.0036489466937721943,
+     0.027938548704925008
+    ],
+    [
+     0.013108326239992687,
+     -0.02402742994684416,
+     0.0011201904192182366,
+     0.031773497962780776
+    ],
+    [
+     0.019049687776482176,
+     -0.023457245551933535,
+     -0.0031380895200928357,
+     0.02998077412446275
+    ],
+    [
+     0.0182983293152406,
+     -0.024203166868180272,
+     -0.0027097446504273314,
+     0.03089693756631274
+    ]
+   ],
+   "seam_A": [
+    0.006558751336837488,
+    0.005784738749816465,
+    0.002399373974718577,
+    0.007108005534938167,
+    0.002949810567311056,
+    0.009325201939789552,
+    0.007078334498623148,
+    0.002534728443861115,
+    0.007223045745361014,
+    0.007408016609461497
+   ],
+   "seam_AG_JOINT": [
+    0.00664860685053005,
+    0.005866033942330672,
+    0.0023768365676494446,
+    0.007246373937990431,
+    0.002697700619141993,
+    0.010450172193807278,
+    0.006379081262997971,
+    0.002593387752373055,
+    0.0073280594036388355,
+    0.006899775104977614
+   ],
+   "seam_AG": [
+    0.02018129147598202,
+    0.021225300153268456,
+    0.017791500228774897,
+    0.021629158114672486,
+    0.01928355040989409,
+    0.02893883349234705,
+    0.021101308134702203,
+    0.02091734587559832,
+    0.013863433415572807,
+    0.01942856992848277
+   ],
+   "lowfreq_A": [
+    0.942352098915366,
+    0.9767893005211815,
+    0.9718410568604586,
+    0.9799702926933769,
+    0.9826090346862478,
+    0.9537197524997965,
+    0.9538249190353247,
+    0.9667675076542477,
+    0.9839821479884994,
+    0.9784235318216546
+   ],
+   "lowfreq_AG_JOINT": [
+    0.9387596428508863,
+    0.9613121951791924,
+    0.9567401339333795,
+    0.9648298656279881,
+    0.9638127793011254,
+    0.9287061660360185,
+    0.936166298420805,
+    0.9593145848538354,
+    0.9647556183457277,
+    0.9654207251706689
+   ],
+   "verdict": {
+    "C1": true,
+    "C2": true,
+    "C3": false,
+    "C3_detail": {
+     "neg_ci": [
+      0.006814321689668987,
+      0.017400090547132332
+     ],
+     "neg_eta0_reject_rate": 1.0
+    },
+    "C4": true,
+    "C5": false,
+    "C5_alt_no_same_direction_significant_improvement": true,
+    "C6": false,
+    "C6_detail": {
+     "pos_max_deta_over_sigma": 26.02879756582419,
+     "neg_max_deta_over_sigma": 24.90353511441895
+    },
+    "PASS": false,
+    "production_default": "IDENTITY"
+   }
+  },
+  "psf_uniform": {
+   "tag": "psf_uniform",
+   "color_condition": false,
+   "psf_condition": "uniform",
+   "r_ap_px": 5.0,
+   "n": 10,
+   "rms_A": 0.03864463096868874,
+   "rms_AG_JOINT": 0.03891961191764167,
+   "rms_AG_ORACLE_JOINT": 0.03864463096868874,
+   "rms_AG_SHUFFLE_JOINT": 0.03793832209861825,
+   "prod_rms_A": 0.038498719610031054,
+   "prod_rms_AG_JOINT": 0.03895234890938254,
+   "diff_A_minus_AG_JOINT": {
+    "median": -0.00022278824317143765,
+    "ci": [
+     -0.0005026940766059244,
+     0.00011122891692679979
+    ],
+    "n": 10,
+    "frac_positive": 0.3,
+    "ratio_median": 1.0067734426169959
+   },
+   "diff_A_minus_AG_ORACLE_JOINT": {
+    "median": 0.0,
+    "ci": [
+     0.0,
+     0.0
+    ],
+    "n": 10,
+    "frac_positive": 0.0,
+    "ratio_median": 1.0
+   },
+   "diff_A_minus_AG_SHUFFLE_JOINT": {
+    "median": -0.00010570105484153554,
+    "ci": [
+     -0.0003469138883123585,
+     0.0007637781785768925
+    ],
+    "n": 10,
+    "frac_positive": 0.3,
+    "ratio_median": 1.004168128610949
+   },
+   "gain_chi2_red": {
+    "median": 1.544925918710719,
+    "max": 3.916244133178833,
+    "min": 0.7442312262672555,
+    "n": 10
+   },
+   "gain_p_eta0": {
+    "median": 0.9999999999999577,
+    "max": 1.0,
+    "min": 0.9976159298168907,
+    "n": 10
+   },
+   "gain_max_deta_over_sigma": {
+    "median": 2.588456326601854,
+    "max": 4.376023730436856,
+    "n": 10
+   },
+   "gain_eta": [
+    [
+     -0.0022349334809165064,
+     0.0006074752789541425,
+     0.00042316052280389036,
+     7.194573977779275e-05
+    ],
+    [
+     -0.00370461283002014,
+     -0.002037888303054924,
+     0.0025510289775321554,
+     0.002014687411121987
+    ],
+    [
+     0.0002957771485631978,
+     -0.0013304722607413858,
+     0.0010248902950184134,
+     0.0009855253218333272
+    ],
+    [
+     0.005551589711986104,
+     -0.00048152068209318357,
+     -0.0013082787806045926,
+     -0.002206295755675919
+    ],
+    [
+     -0.001692924062120849,
+     -0.0035718538477663747,
+     0.002300596083098669,
+     0.0017578970456269786
+    ],
+    [
+     -0.0022898229752206243,
+     -0.0001808241029564223,
+     -0.0007411887848401633,
+     0.004096988674191214
+    ],
+    [
+     -0.000346599755076115,
+     0.002323135408566505,
+     -0.00026214688173818355,
+     -0.0029738817603695137
+    ],
+    [
+     -0.0017097635337001147,
+     -0.0016257654953881812,
+     0.001551553021019162,
+     0.002329391738424408
+    ],
+    [
+     -0.000661137933259762,
+     0.00035495626379273215,
+     -0.00021811763448649924,
+     0.000470526980667283
+    ],
+    [
+     3.668848571285735e-05,
+     -2.9764421877440226e-06,
+     -0.00037500119564415173,
+     0.000684760839864082
+    ]
+   ],
+   "seam_A": [
+    0.006899543253521319,
+    0.0038904579037828445,
+    0.0029632597771017816,
+    0.006871482441589758,
+    0.004289805841755089,
+    0.007989207770449477,
+    0.0036174806297213646,
+    0.002777836081299383,
+    0.007083038575998306,
+    0.006628111976524292
+   ],
+   "seam_AG_JOINT": [
+    0.006883727632008653,
+    0.0038619171676166175,
+    0.002867486250843905,
+    0.006910539892799778,
+    0.004237961178236221,
+    0.00796264389521641,
+    0.003623360362595291,
+    0.0027636853393690985,
+    0.007082498533800588,
+    0.0066216492209267685
+   ],
+   "seam_AG": [
+    0.006991838098303556,
+    0.0036203957530783373,
+    0.00280613957850226,
+    0.007283598446187833,
+    0.0013891957467815391,
+    0.006936281385256795,
+    0.004967832147861633,
+    0.00238458924051833,
+    0.007592829338870225,
+    0.006097906870866549
+   ],
+   "lowfreq_A": [
+    0.9405801060047244,
+    0.970686846858146,
+    0.9667643139866856,
+    0.9767397294504193,
+    0.9773599070926097,
+    0.9415391846241167,
+    0.9524031010281843,
+    0.9665755687825183,
+    0.9881004415678555,
+    0.9737221958129701
+   ],
+   "lowfreq_AG_JOINT": [
+    0.9418288006938355,
+    0.9740885129001587,
+    0.966310727679058,
+    0.9737415068888211,
+    0.9773432806548727,
+    0.9414114899462582,
+    0.9538715087157386,
+    0.9661690136296304,
+    0.9886792219263879,
+    0.9735283111452241
+   ],
+   "verdict": {
+    "C1": true,
+    "C2": true,
+    "C3": true,
+    "C3_detail": {
+     "neg_ci": [
+      -0.0005026940766059244,
+      0.00011122891692679979
+     ],
+     "neg_eta0_reject_rate": 0.0
+    },
+    "C4": true,
+    "C5": false,
+    "C5_alt_no_same_direction_significant_improvement": true,
+    "C6": false,
+    "C6_detail": {
+     "pos_max_deta_over_sigma": 10.860569818830093,
+     "neg_max_deta_over_sigma": 4.376023730436856
+    },
+    "PASS": false,
+    "production_default": "IDENTITY"
+   }
+  },
+  "color": {
+   "tag": "color",
+   "color_condition": true,
+   "psf_condition": "varying",
+   "r_ap_px": 5.0,
+   "n": 10,
+   "rms_A": 0.07202487826806281,
+   "rms_AG_JOINT": 0.06512711305120027,
+   "rms_AG_ORACLE_JOINT": 0.07202487826806281,
+   "rms_AG_SHUFFLE_JOINT": 0.08618136702782866,
+   "prod_rms_A": 0.07189404045448429,
+   "prod_rms_AG_JOINT": 0.06467412311906413,
+   "diff_A_minus_AG_JOINT": {
+    "median": 0.008046257992519946,
+    "ci": [
+     -0.0031034707376978027,
+     0.010084952846262207
+    ],
+    "n": 10,
+    "frac_positive": 0.7,
+    "ratio_median": 0.8999314547496173
+   },
+   "diff_A_minus_AG_ORACLE_JOINT": {
+    "median": 0.0,
+    "ci": [
+     0.0,
+     0.0
+    ],
+    "n": 10,
+    "frac_positive": 0.0,
+    "ratio_median": 1.0
+   },
+   "diff_A_minus_AG_SHUFFLE_JOINT": {
+    "median": -0.016132609946491506,
+    "ci": [
+     -0.021234064131615486,
+     0.0035473301608778124
+    ],
+    "n": 10,
+    "frac_positive": 0.3,
+    "ratio_median": 1.2236599486147275
+   },
+   "gain_chi2_red": {
+    "median": 20.534072647569474,
+    "max": 36.162716205605925,
+    "min": 14.695008978263361,
+    "n": 10
+   },
+   "gain_p_eta0": {
+    "median": 7.835099223503326e-173,
+    "max": 8.165235732601169e-81,
+    "min": 0.0,
+    "n": 10
+   },
+   "gain_max_deta_over_sigma": {
+    "median": 23.0360047130092,
+    "max": 32.50063166648174,
+    "n": 10
+   },
+   "gain_eta": [
+    [
+     0.040611929729764525,
+     -0.03125802963426661,
+     -0.005996385098139525,
+     0.03332235508217823
+    ],
+    [
+     0.01088240696733833,
+     -0.03192211587502195,
+     0.006190311395938034,
+     0.023716087700624767
+    ],
+    [
+     0.04449821872683972,
+     -0.028438242339473802,
+     -0.0017857279106347078,
+     0.0225602628495897
+    ],
+    [
+     0.04166471226179098,
+     -0.010346080521719021,
+     -0.017781827864603954,
+     0.016263909255379978
+    ],
+    [
+     -0.005800845289359193,
+     -0.02938344040476314,
+     0.005091171648589956,
+     0.03368874415810419
+    ],
+    [
+     0.03287379896692782,
+     -0.024052477957335956,
+     -0.006283740424018424,
+     0.02474857216324465
+    ],
+    [
+     0.00011710755558710704,
+     -0.014032155474586182,
+     -0.00406311866617674,
+     0.029809447888919767
+    ],
+    [
+     0.012740304141813224,
+     -0.03064064811236557,
+     -0.0011812083333800653,
+     0.050193217251118465
+    ],
+    [
+     0.04005481769941803,
+     -0.03099975810313252,
+     -0.0011230057914288032,
+     0.016469868185170832
+    ],
+    [
+     -0.0007413500483361597,
+     -0.015448549959001934,
+     -0.004618667797602022,
+     0.034705548176687584
+    ]
+   ],
+   "seam_A": [
+    0.006599140388765089,
+    0.005777661178824053,
+    0.0023978028513777323,
+    0.0070531439806922015,
+    0.0030331032800869485,
+    0.009550490545992373,
+    0.007079359293250782,
+    0.0025080734894686934,
+    0.007252204089031059,
+    0.0074066378354745695
+   ],
+   "seam_AG_JOINT": [
+    0.006820352763023117,
+    0.0058050654167813775,
+    0.0029571111419298126,
+    0.007595489315225076,
+    0.0024255187723093096,
+    0.010815859759381045,
+    0.00636475816157184,
+    0.002555234088639119,
+    0.007487042901703204,
+    0.006783604158211236
+   ],
+   "seam_AG": [
+    0.034284099127404974,
+    0.02081283154515708,
+    0.03325073204066163,
+    0.02289518304883665,
+    0.014986963609901578,
+    0.03759149257200233,
+    0.009970145558795893,
+    0.0256731849696722,
+    0.027733303848178452,
+    0.01249626751138517
+   ],
+   "lowfreq_A": [
+    0.9431646979458262,
+    0.9783275109536016,
+    0.9703487437415166,
+    0.9799993943935708,
+    0.9842952249992934,
+    0.9515601881714195,
+    0.9545296078743076,
+    0.9672381254041235,
+    0.9827621448443553,
+    0.9826832623538134
+   ],
+   "lowfreq_AG_JOINT": [
+    0.9298124326273463,
+    0.9633159051238014,
+    0.9462468207045714,
+    0.9569407222554289,
+    0.9779011384364609,
+    0.9210275853669204,
+    0.9428840706295637,
+    0.9570706754568838,
+    0.9484823407303083,
+    0.9701275726087448
+   ],
+   "verdict": {
+    "C1": true,
+    "C2": true,
+    "C3": false,
+    "C3_detail": {
+     "neg_ci": [
+      -0.0031034707376978027,
+      0.010084952846262207
+     ],
+     "neg_eta0_reject_rate": 1.0
+    },
+    "C4": true,
+    "C5": false,
+    "C5_alt_no_same_direction_significant_improvement": true,
+    "C6": false,
+    "C6_detail": {
+     "pos_max_deta_over_sigma": 29.390602037307758,
+     "neg_max_deta_over_sigma": 32.50063166648174
+    },
+    "PASS": false,
+    "production_default": "IDENTITY"
+   }
+  }
+ },
+ "wire_audit": {
+  "verdict": {
+   "P1_kphoto_mxy": {
+    "state": "APPLIED",
+    "scope": "normalize/Phase1 photometry 节点（逐帧、in-place 施加于像素）",
+    "evidence": {
+     "default_spatial_order": [
+      {
+       "file": "lib/infrastructure/scheduler/src/module_adapters.cpp",
+       "line": 5870,
+       "text": "constexpr int kDefaultSpatialGainOrder = 2;"
+      },
+      {
+       "file": "lib/infrastructure/scheduler/src/module_adapters.cpp",
+       "line": 5871,
+       "text": "int spatial_gain_order = kDefaultSpatialGainOrder;"
+      }
+     ],
+     "spatial_apply_call": [
+      {
+       "file": "lib/infrastructure/scheduler/src/module_adapters.cpp",
+       "line": 6542,
+       "text": "// m_order > 0 ⇒ 走 apply_photometry_spatial（同一函数在 order==0 时也委托"
+      },
+      {
+       "file": "lib/infrastructure/scheduler/src/module_adapters.cpp",
+       "line": 6555,
+       "text": "? calibration::apply_photometry_spatial(im.px(), im.w(), im.h(),"
+      },
+      {
+       "file": "lib/infrastructure/scheduler/src/module_adapters.cpp",
+       "line": 6825,
+       "text": "prov[\"apply_entry_spatial\"] = \"calibration::apply_photometry_spatial\";"
+      },
+      {
+       "file": "lib/algorithms/calibration/src/photometry_apply.h",
+       "line": 56,
+       "text": "// order=0（m ≡ 1）时 apply_photometry_spatial 与 apply_photometry **逐位一致**"
+      },
+      {
+       "file": "lib/algorithms/calibration/src/photometry_apply.h",
+       "line": 112,
+       "text": "int apply_photometry_spatial(const float* light, int w, int h, double photoscale,"
+      },
+      {
+       "file": "lib/algorithms/calibration/src/photometry_apply.cpp",
+       "line": 88,
+       "text": "int apply_photometry_spatial(const float* light, int w, int h, double photoscale,"
+      }
+     ],
+     "kphoto_pass": [
+      {
+       "file": "lib/infrastructure/scheduler/src/module_adapters.cpp",
+       "line": 120,
+       "text": "//  - apply_photometry: I_photo = k_photo·I_cal (生产零调用者缺陷的修复;"
+      },
+      {
+       "file": "lib/infrastructure/scheduler/src/module_adapters.cpp",
+       "line": 6175,
+       "text": "sc.key = key; sc.k_photo = fr.k_photo; sc.n_matched = fr.n_matched;"
+      },
+      {
+       "file": "lib/infrastructure/scheduler/src/module_adapters.cpp",
+       "line": 6391,
+       "text": "sc.k_photo = k;"
+      },
+      {
+       "file": "lib/infrastructure/scheduler/src/module_adapters.cpp",
+       "line": 6469,
+       "text": "if (n_k == 0 || sc->k_photo < kmin) kmin = sc->k_photo;"
+      },
+      {
+       "file": "lib/infrastructure/scheduler/src/module_adapters.cpp",
+       "line": 6470,
+       "text": "if (n_k == 0 || sc->k_photo > kmax) kmax = sc->k_photo;"
+      },
+      {
+       "file": "lib/infrastructure/scheduler/src/module_adapters.cpp",
+       "line": 6556,
+       "text": "sc->k_photo, poly, im.px())"
+      }
+     ],
+     "spatial_gain_field": [
+      {
+       "file": "lib/infrastructure/scheduler/src/module_adapters.cpp",
+       "line": 5787,
+       "text": "auto p1_spatial_gain_json = [](const P1FrameScale& sc) -> Json {"
+      },
+      {
+       "file": "lib/infrastructure/scheduler/src/module_adapters.cpp",
+       "line": 5866,
+       "text": "// photometry.fit.spatial_gain_order ∈ {0,1,2}（>=3 钳到 2；规范只授权「低阶」）。"
+      },
+      {
+       "file": "lib/infrastructure/scheduler/src/module_adapters.cpp",
+       "line": 5869,
+       "text": "// 语义与两级可辨识性检查见 lib/algorithms/photometry/cpp/src/spatial_gain.h。"
+      },
+      {
+       "file": "lib/infrastructure/scheduler/src/module_adapters.cpp",
+       "line": 5871,
+       "text": "int spatial_gain_order = kDefaultSpatialGainOrder;"
+      },
+      {
+       "file": "lib/infrastructure/scheduler/src/module_adapters.cpp",
+       "line": 5872,
+       "text": "if (fit_cfg.contains(\"spatial_gain_order\") && fit_cfg[\"spatial_gain_order\"].is_number_integer())"
+      },
+      {
+       "file": "lib/infrastructure/scheduler/src/module_adapters.cpp",
+       "line": 5873,
+       "text": "spatial_gain_order = fit_cfg[\"spatial_gain_order\"].get<int>();"
+      }
+     ]
+    },
+    "condition": "仅当该帧取得标度（拟合或 p1_photscale.json 侧车）时施加；缺标度即该帧 fail（fail-closed，不静默按 1 冒充）。`fit.enabled` 默认 false（module_adapters.cpp:5888），故未配置测光的运行不施加。",
+    "note": "m_order==0 走标量 `apply_photometry`；m_order>0 走 `apply_photometry_spatial`（m(x,y)）。默认 `kDefaultSpatialGainOrder = 2`。"
+   },
+   "P5_MA_scalar_solver": {
+    "state": "NOT_IMPLEMENTED_ON_PRODUCTION_PATH",
+    "evidence": {
+     "callers": [
+      {
+       "file": "lib/algorithms/coverage/tools/stage2.cpp",
+       "line": 627,
+       "text": "const int mrc = p2_upm_ma_build(ma.data(), ma.size(), &macfg, &ma_model);"
+      },
+      {
+       "file": "lib/algorithms/integration/phase2_integrate/src/phase2_integrate.cpp",
+       "line": 1362,
+       "text": "const int brc = p2_upm_ma_build(obs.data(), obs.size(), &cfg, &model);"
+      },
+      {
+       "file": "lib/algorithms/integration/phase2_integrate/src/phase2_integrate.cpp",
+       "line": 1363,
+       "text": "if (brc != 0 || model == nullptr) { r.error = \"p2_upm_ma_build rc=\" + std::to_string(brc); return r; }"
+      }
+     ],
+     "wiring": [
+      {
+       "file": "lib/algorithms/integration/phase2_integrate/src/phase2_integrate.cpp",
+       "line": 1288,
+       "text": "UpmRejSampResult run_upm_rej_samp_wiring(const FrameSet& fs, const RunMeta& meta) {"
+      },
+      {
+       "file": "lib/algorithms/integration/phase2_integrate/include/acsd/phase2_integrate.h",
+       "line": 245,
+       "text": "UpmRejSampResult run_upm_rej_samp_wiring(const FrameSet& fs,"
+      }
+     ]
+    },
+    "note": "`p2_upm_ma_build` 的调用者只有 tools/stage2.cpp（工具面）与 phase2_integrate.cpp:1362（函数 run_upm_rej_samp_wiring，全仓仅定义+声明、**零调用者**）。⇒ 生产扣除链（p2_sky_plane_build_joint + eval_delta_block）不经过该求解器。"
+   },
+   "P5_multiplicative_gain": {
+    "state": "IDENTITY",
+    "status_channel": "NOT_EVALUATED",
+    "evidence": {
+     "reads": [
+      {
+       "file": "lib/infrastructure/scheduler/src/module_adapters.cpp",
+       "line": 12534,
+       "text": "const bool require_gain = cor_doc.value(\"multiplicative_gain_applied\", false);"
+      }
+     ],
+     "writes": [],
+     "gain_ptr": [
+      {
+       "file": "lib/infrastructure/scheduler/src/module_adapters.cpp",
+       "line": 12579,
+       "text": "in.gain = nullptr;"
+      },
+      {
+       "file": "lib/infrastructure/scheduler/src/module_adapters.cpp",
+       "line": 12582,
+       "text": "in.gain = &frame_gain[f];"
+      },
+      {
+       "file": "lib/algorithms/integration/phase2_integrate/src/weight_chain.cpp",
+       "line": 184,
+       "text": "if (in.gain != nullptr) {"
+      },
+      {
+       "file": "lib/algorithms/integration/phase2_integrate/src/weight_chain.cpp",
+       "line": 185,
+       "text": "if (!positive_finite(*in.gain)) {"
+      },
+      {
+       "file": "lib/algorithms/integration/phase2_integrate/src/weight_chain.cpp",
+       "line": 190,
+       "text": "g = *in.gain;"
+      },
+      {
+       "file": "lib/algorithms/integration/phase2_integrate/src/weight_chain.cpp",
+       "line": 918,
+       "text": "if (f.gain != nullptr) {"
+      },
+      {
+       "file": "lib/algorithms/integration/phase2_integrate/src/weight_chain.cpp",
+       "line": 919,
+       "text": "if (!positive_finite(*f.gain)) {"
+      },
+      {
+       "file": "lib/algorithms/integration/phase2_integrate/src/weight_chain.cpp",
+       "line": 925,
+       "text": "g = *f.gain;"
+      }
+     ],
+     "additive_apply": [
+      {
+       "file": "lib/infrastructure/scheduler/src/module_adapters.cpp",
+       "line": 24,
+       "text": "//   upm-apply  → p2_sky_plane_open + p2_sky_plane_eval_delta_block"
+      },
+      {
+       "file": "lib/infrastructure/scheduler/src/module_adapters.cpp",
+       "line": 10826,
+       "text": "//    p2_sky_plane_eval_delta_block 求值一次（UPM C 场分块求值路 p2_upm_calibrate_block"
+      },
+      {
+       "file": "lib/infrastructure/scheduler/src/module_adapters.cpp",
+       "line": 11186,
+       "text": "(void)p2_sky_plane_eval_delta_block(sky_guard.m, fid, valid_ra.data(),"
+      },
+      {
+       "file": "lib/infrastructure/scheduler/src/module_adapters.cpp",
+       "line": 11325,
+       "text": "{\"entry\", \"p2_sky_plane_open/p2_sky_plane_eval_delta_block\"},"
+      },
+      {
+       "file": "lib/algorithms/coverage/src/upm.cpp",
+       "line": 2788,
+       "text": "扣除改为公共信号面（δ_k = b_k − B_ref，走 p2_sky_plane_eval_delta_block）后，"
+      },
+      {
+       "file": "lib/algorithms/coverage/src/sky_plane.cpp",
+       "line": 3606,
+       "text": "int p2_sky_plane_eval_delta_block(const void* model, std::uint64_t frame_id,"
+      },
+      {
+       "file": "lib/algorithms/coverage/include/astro/phase2/sky_plane.h",
+       "line": 607,
+       "text": "P2_API int p2_sky_plane_eval_delta_block(const void* model, std::uint64_t frame_id,"
+      }
+     ],
+     "additive_subtract": [
+      {
+       "file": "lib/infrastructure/scheduler/src/module_adapters.cpp",
+       "line": 11193,
+       "text": "out_v[static_cast<size_t>(k)] = base - dvals[static_cast<size_t>(k)];"
+      }
+     ],
+     "frame_gain": [
+      {
+       "file": "lib/infrastructure/scheduler/src/module_adapters.cpp",
+       "line": 12535,
+       "text": "std::vector<double> frame_gain(frames.size(), 1.0);"
+      },
+      {
+       "file": "lib/infrastructure/scheduler/src/module_adapters.cpp",
+       "line": 12581,
+       "text": "frame_gain[f] = frames[f].value(\"frame_gain\", 1.0);"
+      },
+      {
+       "file": "lib/infrastructure/scheduler/src/module_adapters.cpp",
+       "line": 12582,
+       "text": "in.gain = &frame_gain[f];"
+      },
+      {
+       "file": "lib/infrastructure/scheduler/src/module_adapters.cpp",
+       "line": 12674,
+       "text": "snr_gain_k = wres.frame_gain;"
+      },
+      {
+       "file": "lib/algorithms/coverage/src/stage2_common.cpp",
+       "line": 362,
+       "text": "\"weight_mode\", \"rank_rtol\", \"frame_gain\"},"
+      },
+      {
+       "file": "lib/algorithms/coverage/src/stage2_common.cpp",
+       "line": 375,
+       "text": "cfg->frame_gain_enabled = sp.value(\"frame_gain\", cfg->frame_gain_enabled);"
+      },
+      {
+       "file": "lib/algorithms/coverage/tools/stage2.cpp",
+       "line": 461,
+       "text": "std::map<std::uint64_t, double> frame_gain;"
+      },
+      {
+       "file": "lib/algorithms/coverage/tools/stage2.cpp",
+       "line": 629,
+       "text": "log(\"[frame_gain] MA build FAILED rc=\" + std::to_string(mrc) +"
+      }
+     ],
+     "require_frame_gain": [
+      {
+       "file": "lib/infrastructure/scheduler/src/module_adapters.cpp",
+       "line": 12533,
+       "text": "// gain=nullptr、require_frame_gain=false，行为与旧口径逐位一致。"
+      },
+      {
+       "file": "lib/infrastructure/scheduler/src/module_adapters.cpp",
+       "line": 12642,
+       "text": "m06_pixel_wpolicy.require_frame_gain = require_gain;"
+      },
+      {
+       "file": "lib/algorithms/integration/phase2_integrate/src/weight_chain.cpp",
+       "line": 191,
+       "text": "} else if (policy.require_frame_gain) {"
+      },
+      {
+       "file": "lib/algorithms/integration/phase2_integrate/src/weight_chain.cpp",
+       "line": 193,
+       "text": "\"frame gain g_k missing but policy.require_frame_gain=true \""
+      },
+      {
+       "file": "lib/algorithms/integration/phase2_integrate/src/weight_chain.cpp",
+       "line": 926,
+       "text": "} else if (policy.require_frame_gain) {"
+      },
+      {
+       "file": "lib/algorithms/integration/phase2_integrate/src/weight_chain.cpp",
+       "line": 929,
+       "text": "tag + \": frame gain g_k missing but policy.require_frame_gain=true \""
+      }
+     ]
+    },
+    "note": "`multiplicative_gain_applied` 全仓 1 处读（value(...)，默认 false）、**0 处写**；读点随后 `in.gain = nullptr` ⇒ 逐帧 g≡1。生产取 G_i={0}，等价于**硬先验 eta≡0**，不是规范固定。状态通道无生产者 ⇒ 三态里的状态位为 NOT_EVALUATED，行为位为 IDENTITY（不得读成『已应用』，也不得读成『已证明无乘性差』）。二维 g_i(x) 在生产链无任何成员（sky_plane 求值为纯加性）。"
+   }
+  },
+  "n_hits": {
+   "multiplicative_gain_applied": 2,
+   "frame_gain": 23,
+   "k_photo": 84,
+   "spatial_gain": 79,
+   "apply_photometry_spatial": 6,
+   "p2_upm_ma_build": 7,
+   "p2_sky_estimate_gain_dc": 3,
+   "run_upm_rej_samp_wiring": 2,
+   "require_frame_gain": 11,
+   "kDefaultSpatialGainOrder": 2,
+   "apply_photometry": 25,
+   "gain_input_ptr": 8,
+   "eval_delta_block": 7,
+   "additive_subtract": 1
+  }
+ },
+ "boundary_coverage": {
+  "schema": "ACSD-P5-S07-BOUNDARY/1",
+  "source": "/workspace/Astro CS Database/run/M42-E2E-02/results/seam_e2e02_v3.json",
+  "source_sha256": "61bc51bd39688c5f785b12fba3795e16925286972095e470c41c49019686693c",
+  "frozen_record_source_sha256": "61bc51bd39688c5f785b12fba3795e16925286972095e470c41c49019686693c",
+  "source_matches_record": true,
+  "gate_rel_step": 0.01,
+  "frozen_record_read_from_git": true,
+  "n_edges_total": 196,
+  "n_edges_valid": 114,
+  "n_edges_excluded": 82,
+  "exclude_kinds": {
+   "not_interior": 82
+  },
+  "criterion": {
+   "name": "signed_level_step",
+   "statistic": "rel_step = median(img[+d] − img[−d]) / bg （有符号电平台阶 / 边界处的局部背景电平）",
+   "gate": "max_e |rel_step(e)| <= max_rel_excess",
+   "domain": "只对两侧都在数据内部的边界计入：法向 ±ctrl_shift 两侧都能放对照线且各有 >= min_samples 个有效样本（N = ctrl_shift，从输入导出）",
+   "diagnostics": [
+    "step_d4x / rel_step_d4x（4d 采样半距的 d 扫描；判据的梯度敏感度）",
+    "step_net / rel_step_net（扣 200 px 平行对照线后的净台阶；不判红）",
+    "noise_ratio = MAD(seam)/MAD(ctrl)（噪声差；不判红）",
+    "noise_diff = MAD(seam) − MAD(ctrl)（不判红）",
+    "excess / rel_excess（v1 无符号口径，历史对照；不判红）"
+   ],
+   "v1_note": "v1 的 excess = median|seam| − median|ctrl| 对噪声差敏感，已降级为诊断量（run/VIS-E2E02-01/REPORT.md §1.1/§9）"
+  },
+  "gate_readings": {
+   "verdict": "PASS",
+   "max_abs_rel": 0.007256101148201211,
+   "n_exceed": 0,
+   "n_exceed_legacy": 21,
+   "stats": {
+    "n_edges_total": 196,
+    "n_edges_valid": 114,
+    "n_edges_rel": 114,
+    "n_edges_excluded_not_interior": 82,
+    "n_edges_excluded_few_samples": 0,
+    "n_edges_legacy_valid": 196,
+    "rel_med": 0.0019379047641779157,
+    "rel_p90": 0.004565985455593046,
+    "rel_max": 0.007256101148201211,
+    "step_med_abs": 1.1042105042432767e-06,
+    "step_p90_abs": 4.646640014331052e-06,
+    "step_max_abs": 8.759942939705865e-06,
+    "rel_step_net_max": 0.012948198594091534,
+    "rel_step_d4x_max": 0.021915164073480705,
+    "noise_ratio_med": 1.1118502454598675,
+    "noise_ratio_max": 2.3113862793314652,
+    "noise_diff_med": 8.450351743372193e-07,
+    "ex_med": 1.8699074807745453e-06,
+    "ex_p90": 5.547170171055652e-06,
+    "ex_max": 2.2528190199734555e-05,
+    "legacy_rel_med": 0.003072308901691793,
+    "legacy_rel_p90": 0.010028328563574457,
+    "legacy_rel_max": 0.026108913554962455
+   },
+   "reason": "max|rel_step| = 0.0072561 <= 0.01（门 114 条有效边界全过）（判据覆盖 114/196 条边界；未计入 82 条两侧并非都在数据内部、0 条样本不足）"
+  },
+  "excluded_breakdown": {
+   "by_missing_control_side": {
+    "plus_side_absent": 56,
+    "minus_side_absent": 26
+   },
+   "by_ctrl_side_selected": {
+    "-": 56,
+    "+": 26
+   },
+   "by_margin_px": {
+    "8.0": 3,
+    "32.0": 37,
+    "16.0": 41,
+    "4.0": 1
+   },
+   "by_edge_name": {
+    "bottom": 35,
+    "right": 21,
+    "left": 12,
+    "top": 14
+   },
+   "by_edge_name_valid": {
+    "top": 35,
+    "left": 37,
+    "right": 28,
+    "bottom": 14
+   },
+   "margin_none_count": 0,
+   "margin_le_32_count": 82,
+   "margin_le_16_count": 45,
+   "seam_samples_min": 46,
+   "seam_samples_max": 256,
+   "n_distinct_frames": 49
+  },
+  "excluded_recorded_rel_step": {
+   "n": 82,
+   "median": 0.004454838962660728,
+   "p90": 0.009350541666917114,
+   "max": 0.01226744002013484,
+   "n_exceed_gate": 5,
+   "n_exceed_ingate_max": 16,
+   "note": "这些读数用**单侧可用**的 200 px 对照线口径算出，不是适用域内的判据值；登记为诊断，不得当作判据通过/不通过"
+  },
+  "valid_recorded_rel_step": {
+   "n": 114,
+   "max": 0.007256101148201211,
+   "n_exceed_gate": 0
+  },
+  "n_evaluable_by_ctrl_shift": {
+   "200": 114,
+   "128": 114,
+   "64": 114,
+   "32": 151,
+   "16": 192,
+   "8": 195,
+   "4": 196,
+   "2": 196,
+   "0": 196
+  },
+  "n_evaluable_note": "n_evaluable_by_ctrl_shift[N] = 若把对照线偏移从 200 px 降到 N px，两侧各有 >=20 个有效样本（即 margin_px >= N）的边界条数。N=200 给出 114（现判据覆盖）；N=32 给出全部 196 ⇒ 82 条被排除的边界**不是无观测**，而是固定 200 px 对照偏移超出局部足迹余量。在 N<200 上重算 rel_step 会改变对照基线（更接近边界的梯度估计），必须重跑生产门才能出判据值 ⇒ 本轮登记 NOT_RUN。",
+  "followup": {
+   "experiment_id": "P5-D-boundary-coverage",
+   "status": "NOT_RUN",
+   "reason": "产品 FITS 已被回收（冻结记录 provenance_note 明示），无法在 N=32/16 上重算判据值",
+   "needed": "重新跑 49 帧端到端并保存成品 FITS（或保留 union footprint 掩膜）"
+  }
+ },
+ "evidence_level": "PHYSICAL_FORWARD(synthetic analytic worlds) + PRODUCTION(read-only code audit)",
+ "status": "FAIL",
+ "limitations": [
+  "世界为解析合成（逐像素独立噪声）；真实 drz 噪声已相关化 ⇒ 本结论不得迁移为真实数据可辨识性结论",
+  "色差条件用注入的帧间色斜率 b_k 表示，不是真实滤光片/光谱色差",
+  "PSF 条件用逐帧高斯 sigma 表示；真实 PSF 各向异性与重采样核未建模",
+  "二维 g_i(x) 不在本轮；只做逐帧标量臂",
+  "权重链 g^-2 缩放与增益估计不确定度传播属 P2 单元，未在本轮闭合",
+  "真实帧乘性增益腿 NOT_RUN：无该运行的真实帧集与独立星表；本单元只做合成世界 + 生产只读接线审计"
+ ],
+ "followups": [
+  "用真实帧 + 独立星表（Gaia 匹配）重跑同一四臂协议",
+  "在 N=32/16 px 对照偏移上重跑生产接缝门以评估被排除的 82 条边界（需保留成品 FITS）",
+  "二维 g_i(x) 需独立空间增益锚与明确模型自由度后另立任务"
+ ]
+}

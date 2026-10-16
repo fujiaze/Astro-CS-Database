@@ -1,155 +1,32 @@
-# 模块 acsd.p2.coverage
+# Mosaic 输入发现与覆盖并集
 
-> 上游：`docs/ACSD_DESIGN.md`「模块与 ABI」一节与「固定科学流程」一节（coverage重叠图）、
-> 科学正本：`docs/science/sky/UPM.md`「覆盖并集」口径、`docs/science/integration/INTEGRATION.md`「判据与误差」一节
-> （support/validity 分离）、docs/science/unified/SCIENCE_SCOPE.md（处理链第 5 环节，`## 2 物理模型`）、
-> `docs/science/noise_snr/NOISE_SNR.md`「适用域与失效域」一节、
-> `docs/science/noise_snr/NOISE_SNR.md`「定权」一节
-> 算法正本：docs/science/algorithms/PHASE2_COVERAGE.md（ALG-COV-001；状态声明一节、
-> 逐公式锚、缺陷登记与测试设计三节）
-> 数据正本：docs/detail/registry/acsd.phase2.coverage.md（DATA-COV-001 端口表，本页输入输出端口表）、
-> eng/contracts/schemas/unified/coverage.schema.json（coverage 对象 canonical schema）
-> API 正本：docs/engineering/api/PUBLIC_API.md（API-COV-001，Coverage union C API 节）、
-> docs/engineering/api/PUBLIC_API.md「分阶段 API 面」（API-P2-001，FROZEN）
+本节点枚举逐帧 HiPS 的产品几何，计算目标阶和覆盖并集，给后续采样与空间调度提供帧/区域映射。用户可自由组合设备、滤镜和带宽；单位/几何损坏仍需报具体错误。科学边界见[最高设计](../../ACSD_DESIGN.md)和 [Mosaic 管线](../mosaic/pipeline.md)。
 
-模块级事实以 `lib/algorithms/coverage/README.md` + `lib/algorithms/coverage/module.yaml`
-（MOD-acsd-phase2-coverage，dll_target=acsd_p2_coverage.dll）为准；权威签名头
-`lib/algorithms/coverage/include/astro/phase2/coverage.h`。模块词汇
-`acsd.p2.coverage`，owner = SA-P2-S20，实现面 = lib/algorithms/coverage；
-depends_on_int = IO-003 / DATA-004 / RT-006。目标交付形态
-acsd_p2_coverage.dll 为合同值，尚未落地。
+## 入口与生产者、消费者
 
-## 职责与明确非职责
+[adapter](../../../lib/infrastructure/scheduler/src/module_adapters.cpp) 的 `p2_op_coverage` 对应 `acsd.phase2.coverage`，调用 [coverage.h](../../../lib/algorithms/coverage/include/astro/phase2/coverage.h) 的
+`p2_coverage_build(hips_paths,n_inputs,out)`。当前分两次查询容量/回填，并写 `p2_coverage.json`，供 sample、apply、write 等消费。局部 `p2_session` 也可调用该库。
 
-职责：建立输入帧 / 区域的重叠图与几何有效域，输出 coverage 产品与连通分量。
-本模块是 Phase2 DAG 的首节点。
+[coverage.cpp](../../../lib/algorithms/coverage/src/coverage.cpp)检查实际产品，保留各帧 filter 字符串而不作跨帧全等拒绝。坐标/ordering、tile_width、signal/support 语义及属性可解析性是数据检查，不能写成统一物理通带的证明。
 
-**不做**：不做权重；**coverage 是几何 / 数据有效域，不是权重，不能作为
-inverse-variance 或 SNR 权重**；不做集成。
+## 字段、坐标与内存
 
-**科学红线（负向条款）**：coverage / support / validity 三概念分离（support =
-SCI-INT-001 样本级 [0,1]、validity = 有效性标志（SCI-INT-001 [S-1]「判据与误差」一节），均不在本模块域）；
-**no use as implicit scientific weight** —— union cell / n_tiles / 覆盖帧数是
-几何登记量，禁入任何权重式（`w_UPM`的唯一冻结式 = `docs/science/sky/UPM.md`「公式与推导」一节，support
-仅承担 eligibility / coverage 语义）。
+| 类型/字段 | 合同 |
+|---|---|
+| `P2HipsInputInfo` | hips_path、frame_id、max_leaf_order、n_tiles、filter_passband、frame_type、hips_ordering |
+| `P2MocCell` | order/ipix 整数 NESTED 位置；须随实际层级解释，tile 阶与叶阶相差 9 |
+| `P2CoverageResult` | 调用方分配 inputs/union_cells，n_inputs/n_union_cells/target_order/status/error |
+| target_order | 当前取各输入最大叶阶的最小值；不是独立配置的科学目标分辨率已实现 |
+| union | 几何并集，允许断连；不提供点源信息量或面亮度统计权重 |
 
-**归属边界**：处理链阶段序 = coverage → sampler → …，后续环节不属本模块。
+`p2_coverage_free` 清零 POD，不释放调用方数组；调用者拥有所有缓冲。整数集合处理无独立线程预算，文件读取经 AIO；Runtime 节点管理生命周期和取消。覆盖数/并集不是背景有效观测边，也不自动给出 UPM 连通分量的绝对零点。
 
-## 输入输出端口、DATA、单位、坐标、invalid
+## 公共辅助 API 与错误
 
-| 端口 | DATA | 必/可 | 单位 | 坐标 |
-|---|---|---|---|---|
-| `calibrated` | `DATA-COV-001`（入：HiPS 树路径数组 `const char* const* [n_inputs]`） | 必 | —— | —— |
-| `coverage` | `DATA-COV-001`（出：union MOC，`P2MocCell [K]` 无量纲整数） | 可 | 无量纲 | `HEALPix NESTED equatorial / ICRS` |
+同头的 `p2_coverage_support_classify` 区分 uncovered、covered_unsupported、supported、unavailable；coverage/support 的 known 位不能用零替代。另有 `p2_tile_boundary_owner`、`p2_deterministic_reduction_order` 及 `p2_weight_source_token_reject`。它们分别处理边界归属、整数定序及具名来源检查，不生成科学权重，也不能据头内辅助 API 推断 CLI 全部调用它们。
 
-`DATA-P2-COV` 端口名为编排词汇，权威定义 = DATA-COV-001（本页输入输出端口表）。
+主 build 返回 0/非零并带 `error[512]`；probe 容量与普通失败需要结合需求量判断。缺属性、坏数据、非 NESTED 等按真实 reader 错误上行；空 filter 或不同 filter 字符串不自动构成物理坏帧。
 
-输入面：一组合同兼容 Phase1 产品（含各自 coverage / validity / WCS / manifest）。
-产品的落盘形态不进入科学语义（裸 / 归档同义，形态由落盘名判定）；`hips_paths` 的
-元素**保持字符串**，逐帧产品级索引路径由命名规则派生；按天区查帧集合走**块级
-覆盖索引**（不压缩；由**加性可选键** `coverage_index` 引用数据集级
-`coverage.index.json`，缺失时由产品级索引现场倒排），不逐瓦片探测。输入合同
-**不设** `storage_form` 键（Phase2 产物固定裸形态），出现即 REJECT。
+## 验证入口与边界
 
-**索引边界**：索引给出块 → 候选帧集合与覆盖分数，只用于剪枝与调度；像素级裁决
-仍由 support / validity / 排异语义执行；**有效性来源 = support / validity /
-排异语义本身**。
-
-输出面：帧 / 区域重叠图、有效面积、信息量、连通分量、coverage 产品。
-
-### 数值落地口径
-
-重叠图的定义、推导与适用域正本 = ALG-COV-001 与 docs/detail/mosaic/pipeline.md；
-本页只记落地方式与适用域：
-
-- 重叠图：帧间球面交叠（几何有效域交集），以 MOC 表达（NESTED）；
-- 记录有效面积（球面交叠面积积分，单位 deg² / sr）与信息量（可推导到
-  `point_information` 的域面；该量的定义与推导正本 =
-  `docs/science/noise_snr/NOISE_SNR.md`「适用域与失效域」一节，模块侧口径见
-  registry/acsd.phase1.noise-snr.md）；
-- 连通分量：在几何有效域上按球面邻接求连通分量，互不相连的分量一律分组件输出，
-  **不**按同一零点 / 背景基准合并；分量划分由 `connected_components` 键控制；
-- **假设与适用域**：输入帧的同一零点 / 背景基准只在**连通分量内**成立；几何
-  有效域不重叠的帧不构成同一分量（域外不做外推）。
-
-## 公共 header、核心 symbol 与生命周期
-
-生产符号（SRC-COV-001，2 导出 + 2 内部链接）：`p2_coverage_build`（唯一生产
-入口）/ `p2_coverage_free`（POD memset 清零，不释放堆）/ `parse_props` /
-`inspect_frame`；类型 `P2MocCell` / `P2HipsInputInfo` / `P2CoverageResult`
-（coverage.h）。模块注册 = `lib/infrastructure/pipeline/module_ports.registry.json`
-的 `acsd.phase2.coverage`。
-
-entrypoint = Phase1 产品组 → 重叠图 + coverage；生产接线 =
-lib/infrastructure/scheduler/src/module_adapters.cpp 的 `p2_op_coverage`。输出可被
-sampling / upm / integration 消费。
-
-### Production callers
-
-生产调用 = lib/phase2_session/p2_session.cpp 的 coverage 阶段（两阶段调用，
-manifest 登记）。
-
-### 源文件
-
-`lib/algorithms/coverage/src/coverage.cpp`。层级 = Phase2 生产模块（DAG 首节点）；
-现状构建 = 根 CMakeLists 目标 `acsd_phase2` STATIC（无独立 DLL target）；
-`lib/algorithms/coverage/CMakeLists.txt` 的 phase2 STATIC 为模块自测
-compatibility target（非产品事实源）。
-
-## Registry descriptor 与配置 schema
-
-配置字段：
-
-| 字段 | 默认 | 单位 | 说明 |
-|---|---|---|---|
-| `min_overlap` | —— | deg² | 最小有效重叠 |
-| `connected_components` | true | —— | 是否分解连通分量 |
-
-## Execution class、并行轴、ThreadBudget lease、确定性
-
-reentrant=yes / threadsafe=no（独立对象）/ internal_parallel = none（单线程整数
-集合运算）。determinism = `fixed_reduction_order`（bitwise 确定）。ThreadLease /
-取消检查点未接线 —— 阶段级取消由 session 阶段边界提供（p2_session.cpp 的检查在
-其内）；该接线尚未落地。
-
-## 内存/cache/I-O/所有权
-
-`p2_coverage_free` 以 POD memset 清零，不释放堆（调用方持有输出 POD）。
-
-## 错误、日志、指标、取消和 checkpoint
-
-rc：0 = 成功（含 K = 0）/ 1 = 失败 + `error[512]` 载因；status 与 rc 同步
-（"no inputs" 分支例外，缺陷登记 = ALG-COV-001）。编排映射
-`ACS_ERR_PARAM` / `ACS_ERR_STATE`（API-P2-001）。
-
-- 输入互不兼容（不同 frame / 滤镜 / 单位）→ 拒绝；
-- 断图 → 输出分组件，不假装同一基准；
-- coverage 缺失的输入 → fail-closed；
-- 错误码与退出码唯一源 = lib/infrastructure/cli/exit_codes.h（本页不复制数值表）。
-- **负例与归零分支 N30（T05–T07 负向轮，本卡死值与静默 scale）**：负例输入构造甲 =
-  空 filter 输入；负例输入构造乙 = 把 union cell 计数当权重的消费。预期行为甲 =
-  fail-closed，不静默放行。落盘标记甲 = 拒绝原因。预期行为乙 = 拒绝，
-  coverage 禁作隐式科学权重。落盘标记乙 = 权重拒绝登记；静默放行或作权重 ⇒ 判红。
-
-## 独立 synthetic 验证命令与容差
-
-测试设计 = `TEST-COV-DESIGN-001`（PHASE2_COVERAGE.md [S-1]「判据与误差」一节，冻结容差 = 整数 /
-bitwise 断言，零数值容差）；可执行 `TEST-P2-COV-001` 待建。gate
-`Phase2Coverage.RealHipsUnion` / `FilterMismatchRejected`（均 synthetic_gate.cpp）
-依赖本地大数据路径 GTEST_SKIP，合成 fixture 待建。
-
-Oracle 面：
-
-- 构造已知重叠几何 → 覆盖面积 / 连通分量符合解析；
-- 断图检测；
-- **coverage 不作为权重**的负例测试。
-
-## 已知限制
-
-缺陷登记 = ALG-COV-001 的缺陷登记节："no inputs" status 不一致 /
-frame_id 基名截断 / 空 filter 静默放行 / intersection / depth / missing-tiles
-产品缺失（四语义仅 union 落地；覆盖度几何非 UPM geometric_reliability 权重因子，
-该乘数恒 1.0，修正归 P2-UPM 域）/ extern "C" include + 两阶段全量重扫 / ThreadLease。
-
-目标交付形态 acsd_p2_coverage.dll 尚未落地。全局限制登记 =
-artifacts/evidence/known-limitations-ledger/LIMITATIONS.md。
+从 `p2_coverage_build` probe/fill、[coverage 实现](../../../lib/algorithms/coverage/src/coverage.cpp)及 [Mosaic 管线](../mosaic/pipeline.md)的调用者进入核对：已知并集、断连、降阶父聚合、空集、缺产品、同天区几何与混合通带。target_order、帧身份及输出响应的当前限制集中见[实施地图](../../engineering/architecture/SCIENCE_IMPLEMENTATION_DELTA.md)，本页未进行运行验证。

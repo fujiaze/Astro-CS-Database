@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://acsd.local/schemas/unified/frame_snr/v1",
   "title": "ACSD 统一对象 frame_snr —— 帧级信噪比（不是权重）",
-  "description": "UNIFIED_MODEL §2：frame_snr = 帧级 SNR（信噪比，非权重）：真实信号/噪声比，不受天光影响；可否作权重 = 唯一帧级参考；权重由 Phase2 逆方差叠加从 SNR 计算。frame_snr 本身不是权重，也不是 depth_m5（5σ 深度），二者不得互填。",
+  "description": "Legacy frame reference scalar serialization. Only a summary; does not define surface-brightness weights or canonical spatial sphere controls. New Normalize summary and pairing are defined in NORMALIZE_DATA.md; existing v1 shape retained.",
   "x-acsd-object": {
     "name": "frame_snr",
     "canonical_file": "eng/contracts/schemas/unified/frame_snr.schema.json",

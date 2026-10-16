@@ -1,0 +1,35 @@
+# 生产实跑对照：秩亏 GLS 求解器替换前后（同一帧、同一配置、Release 构建）
+
+输入: run/norm-round1-r1.json（M42 T2/M4 单帧, 4096x4096, 原始 FITS 头无 WCS, IPV 自解）
+构建: cmake --build build/linux-sci-p5 -j 8  (Release, exit 0)
+
+| 运行 | 求解器 | drizzle 段 | 精度段（含 writer） | 总墙钟 | exit |
+|---|---|---|---|---|---|
+| run/norm-round1-r1 | hand-written Jacobi 保留子空间（H⁺²） | 34.7s | ~1594s | 1655s | 0 |
+| run/norm-round1-r5 | 列主元 Householder QR 行空间投影 | 50.3s | ~77s | 138s | 0 |
+
+加速 ~12x（总墙钟）、精度段 ~21x。科学读数（64/64 控制点 available, approximate,
+omitted=[master_uncertainty]）:
+
+| 量 | r1（旧 solver） | r5（新 solver） | 相对差 |
+|---|---|---|---|
+| 控制点 p0_r0 V_F | 49.962362575138478 | 49.957517737016886 | 9.7e-05 |
+| 控制点 p0_r0 SNR_ref | 141.47461366297361 | 141.48147354128085 | 4.9e-05 |
+| 控制点 p0_r0 covariance_rank | 626 | 627 | +1 |
+| 控制点 p0_r0 condition_number | 2.29944e+09 | 5.29340e+10 | ~23x |
+| 帧摘要 reference_snr | 153.29579909162405 | 153.30158821945577 | 3.7e-05 |
+| 支持面积 | 7.7720570706390662e-07 | 7.7720570706390662e-07 | 0 |
+
+rank 差 1 的原因（不是代数分歧, 是**判定策略**差异, 已如实登记）:
+  * 旧路径: 对 Gram H=D^{1/2}RᵀRD^{1/2} 的特征值取 rel_tol=1e-10 → σ_rel > 1e-5;
+  * 新路径: 对 B=D^{1/2}Rᵀ 的残余列范数取 rel_tol=1e-10 → σ_rel > 1e-10。
+  因此新路径多保留 1 个 σ_rel≈1e-5..1e-10 的病态方向。两者都在同一 declared
+  tolerance (SphericalCompletionConfig.support_rank_tol=1e-10) 下, 只是作用在
+  σ 还是 σ² 上。solver/rank/rel_tol/condition 已随每个控制点落盘供审计。
+
+附带修复的生产缺陷（由 verify_round1 抓到）:
+  列主元 QR 原先用递推降更新残余列范数, 舍入噪声底 ~ε·‖B‖² 把结构性零残差读成
+  ~1e-9（高于 1e-10 门限两个量级）⇒ 秩被虚报为 m。反例: R 两列完全相同（真秩 1）
+  曾被报 2。已改为每步显式重算（噪声底 ε·‖B‖≈1e-16·max, 成本同阶）。
+
+r5 elapsed 138s

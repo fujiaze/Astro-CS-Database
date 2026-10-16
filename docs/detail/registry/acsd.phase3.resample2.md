@@ -1,239 +1,40 @@
-# 模块 acsd.phase3.resample2
+# Export 单信号重采样
 
-> 上游：`docs/ACSD_DESIGN.md`「模块与 ABI」一节与「流程」一节（反向映射 +
-> 重采样）、「投影算法」一节（输入语义守卫与输出模式）
-> 科学正本：docs/science/PHASE3_HIPS_TO_FITS.md（SCI-P3-001，FROZEN，零改动）、
-> `docs/science/noise_snr/NOISE_SNR.md`「协方差传播」一节
-> 算法正本：docs/science/algorithms/PHASE3_RSMP_IMPL.md（ALG-P3-RSMP-IMPL-001；
-> 映射声明、公式与值语义表、线程合同、实测偏差与测试设计五节、
-> 合同边界一节）；承接 docs/science/algorithms/export/PHASE3_RESAMPLE.md（ALG-P3-003的
-> G3/G4 施工规格 + 采样核定义/误差/边界/适用域，公式零改动）
-> 数据正本：docs/detail/registry/acsd.phase3.resample2.md（DATA-P3-RES 端口表与 invalid 语义，本页输入输出端口表）；
-> tile 内 leaf local 坐标 CDS oracle 见 `docs/science/unified/DATA_SEMANTICS.md`「坐标语义」一节，规则项见同文件「判据与误差」一节
-> API 正本：docs/engineering/api/PUBLIC_API.md（API-P3-RSMP-001，重采样公共消费面节）、
-> docs/engineering/api/PUBLIC_API.md「分阶段 API 面」（API-P3-001，p3_session 五段 FROZEN 镜像）
-> 架构正本：docs/engineering/architecture/ARCHITECTURE.md
-> 落地设计：`docs/detail/export/pipeline.md`「反向映射与采样」一节
+本节点将已有 HiPS 信号采样到目标平面，不进行新的光度、背景或多帧权重求解。核的物理含义、缺数政策与二次重采样影响取自[重采样正本](../../science/resample/RESAMPLE.md)和 [Export 管线](../export/pipeline.md)。
 
-模块 = `acsd.p3.resample`（module_id 合同值）；registry 行
-MOD-acsd-phase3-resample2；dll_target = `acsd_p3_resample.dll`（迁移合同值，
-未落地，IMPLEMENTED 只由验收签发）；现状构建 = `acsd_phase3_session` 静态库
-成员，`p3_resample.cpp` 为其五源文件之一。owner = SA-P3-S26；language = c++17；
-abi_version = 1；phase_scope = phase3；resource_class = cpu_heavy；
-threading_model = `host_executor_lease`（迁移目标合同值；现状 = 内核无内部线程，
-并行由会话 worker 池每 worker 独立 sampler 组织）。descriptor 词汇
-（module_id=`acsd.phase3.resample2`、SCI-P3-RES-001 / ALG-P3-003 /
-TEST-P3-RES-001）与 module_id 合同值 `acsd.p3.resample` 的对齐属迁移目标
-（未落地）。
+## 生产入口与工作载体
 
-## 1 身份与合同落位
+[adapter](../../../lib/infrastructure/scheduler/src/module_adapters.cpp) 的 `p3_op_resample` 对应 `acsd.phase3.resample2`，消费 props、wcs_plan 和实际 HiPS。它读取 `p3_props.json`、`p3_wcs.json`，选择实际 order，经 Runtime executor 按子块采样，用 AIO 位置写产生 `p3_resampled.bin`，并写 `p3_resampled.json`。工作二进制按未裁剪平面连续存 f32 signal、coverage；后者是内部有效域对象，不是最终 FITS 科学层。
 
-- 合同落位: lib/algorithms/resample/ 三件套（CONTRACT_READY）。
-- 生产源: lib/algorithms/resample/p3_resample.cpp + 权威签名头 p3_resample.h。
-- 合同链: SCI-P3-001（FROZEN；映射声明SCI-P3-RES-001 ⇒ SCI-P3-001见［A-1］）
-  → ALG-P3-003（PHASE3_RESAMPLE.md G3/G4 施工规格，公式零改动）+
-  ALG-P3-RSMP-IMPL-001 → DATA-P3-RES（本页输入输出端口表）+
-  API-P3-RSMP-001 → TEST-P3-RES-001（设计冻结 = TEST-P3-RSMP-DESIGN-001，
-  见本页「验证与测试面（TEST-P3-RSMP-DESIGN-001 设计冻结 VERIFIED）」；
-  矩阵 test_status = DORMANT，可执行面待落地）；编排面 API-P3-001 镜像不变；
-  ARCHITECTURE（VERIFIED）。
-- 上游依赖: acsd_phase3_session（properties 校验经
-  p3_sampler_open 间接消费 + lib/algorithms/shared/healpix 权威球面函数
-  `leaf_to_tile_nest` / `tile_to_leaf_nest` / `nested_local_to_fits_index` /
-  `ang2pix` / `pix2ang`）；
-  depends_on_int=P3-PROJ;IO-003;CPU-005（P3-PROJ=上游 WCS 域对齐、IO-003=tile 文件读路径、CPU-005=worker 池并行
-  由每 worker 独立 sampler 结构性满足，ALG-P3-RSMP-IMPL-001）。
-- **相邻占位 descriptor（`acsd.phase3.resample`）仍存在**：registry 的
-  `phase3_descriptor` 登记的占位 module_id 为 `acsd.phase3.resample`，端口
-  `hips`（`DATA-HIPS-001`，必）与 `tile`（`DATA-TILE-001`，可），单位
-  `UnitId::SURFACE_BRIGHTNESS`，坐标分别 `CoordinateFrame::PIXEL` /
-  `CoordinateFrame::HEALPIX`；合同 ID SCI-P3-RES-001 / ALG-P3-003 为模板口径。
-  该 descriptor 现状按会话委托注册（工厂委托 P3Api session adapter），无独立
-  C ABI，**不是**本页的生产面；`execution_class = cpu_heavy`、`parallel_ok = True`、
-  配置 = phase config JSON（键集 = API-P3-001）；上游 `props` / `wcs_plan` 非法即
-  显式拒（fail-closed，无 silent default），数值 invalid 依 DATA-P3-RES。
-  **对齐该占位 module_id 与合同值 `acsd.p3.resample` 属迁移目标（未落地）**。
+`acsd.phase3.resample` 另为聚合 session 适配描述符，不能与本五节点生产 operation 混称。reader、WCS 与写出有各自责任。
 
-## 2 职责与明确非职责
+## 公开 API 与字段
 
-- 职责: HiPS tile 重采样域——sampler 生命周期（open/open_ex/
-  set_max_tiles/close）、G3 order 选择（p3_order_select）、输入模式
-  守卫（p3_resample_check_mode，surface_brightness 唯一合法）、
-  NEAREST（精确 cell）/BILINEAR（一阶插值）逐输出像素采样（含跨
-  tile 3×3 邻域读取）、有界 tile 缓存（FIFO）、coverage 二值语义。
-- 非职责: 不做投影/WCS 构造（ALG-P3-PROJ-IMPL-001 域）、不做 FITS
-  原子写（ALG-P3-FITS-IMPL-001 域）、不做请求解析与编排
-  （p3_session run 段）、不实现 variance/weight/ivar/support/flux-
-  per-pixel输入与alpha channel/BLANK int tile（SCI「判据与误差」一节冻结项
-  显式拒）、不引入第三种采样核、不改 SCI 公式（SCI-P3 FROZEN
-  零改动）。
+[p3_resample.h](../../../lib/algorithms/resample/p3_resample.h)和 [p3_resample.cpp](../../../lib/algorithms/resample/p3_resample.cpp)提供：
 
-## 3 输入输出端口、DATA、单位、坐标、invalid
+| 接口 | 消费合同 |
+|---|---|
+| `p3_sampler_open/open_ex`、`_close` | 产品→sampler；open_ex 返回实际 order/BUNIT，非成功带原因 |
+| `p3_order_select` | 从现有层级与输出 degree/pixel 选 order；放大不增加真实分辨率 |
+| `p3_sample_nearest` / `_nearest_ex` | 取包含 sky 的叶；ex 暴露 leaf ipix |
+| `p3_sample_bilinear` / `_bilinear_ex` | 局部切平面四象限叶中心插值，ex 暴露有效权重/叶号 |
+| `p3_sample_bilinear_nanmask_ex` | 同一数值路径，另返回逐类剔除/合格计数 |
+| `p3_sampler_set_max_tiles`、`_attach_cache`、`_cache_stats` | 共享有界只读 tile/缺失缓存及命中读数 |
 
-| 端口 | DATA | 必/可 | 单位 | 坐标 |
-|---|---|---|---|---|
-| `wcs_plan` | `DATA-P3-WCS` | 必 | `UnitId::DEGREE` | `CoordinateFrame::ICRS` |
-| `hips` | `DATA-HIPS-001` | 必 | `UnitId::ADU` | `CoordinateFrame::HEALPIX` |
-| `resampled` | `DATA-P3-RES` | 可 | `UnitId::SURFACE_BRIGHTNESS` | `CoordinateFrame::PIXEL` |
+sky 为 ICRS degree；叶索引为 NESTED，tile=512，索引/FITS 手性复用共享 HEALPix。signal 沿实际球面面亮度单位，不按单叶通量解释；有限零与负值保留。局部 bilinear 不等于真实球面面积交叠，当前生产不能把 area-overlap 列为已接入核。
 
-- invalid 权威源=DATA-P3-RES：properties 语义不符→
-  P3_RS_PARAM（hips_properties.cpp；order∈[0,20]、
-  tile_width 必须 512、NESTED 唯一）；max_order 越界/scale≤0→
-  P3_RS_PARAM（p3_resample.cpp）；input_mode 非
-  surface_brightness→P3_RS_UNSUPPORTED（p3_resample.cpp）；properties
-  解析失败/HiPS 目录或 tile 不可读→P3_RS_IO；**tile 缺失=coverage=0
-  数据语义非错误**（值语义表：tile 内 NaN→值 NaN+coverage=1
-  传播；tile 缺失→NaN+coverage=0；未打开→coverage=0）。
-- 坐标/单位冻结: 采样值=面亮度（BUNIT 承载，缺省 canonical **'ADU/sr'** 绝不裸 ADU、绝不
-  Jy/beam——SCI「判据与误差」一节冻结项）；coverage 无量纲二值；tile 内 leaf
-  local 坐标 fits_index=(511-x)*512+y（`docs/science/unified/DATA_SEMANTICS.md`「坐标语义」一节CDS
-  oracle 冻结，nested_local_to_fits_index 权威函数）。
-- 端口词汇（wcs_plan/hips/resampled）为 descriptor 派生（p3_resample2_descriptor），
-  其与 DATA-P3-RES 的对齐属迁移目标（未落地），不作冻结依据。
+## NaN、支持与资源
 
-## 4 公共 header、核心 symbol 与生命周期
+nearest 的 tile 缺失返回 NaN、coverage=0，tile 存在但像元非有限可返回 NaN、coverage=1。bilinear 区分缺 tile 与已读邻域的无效样本；后者掩除并按剩余有效权重重归一，零合格样本不制造有限信号。coverage 是可用 tile/支持语义，不自动代表数值有限或精度。
 
-- 内核消费面=API-P3-RSMP-001（p3_resample.h 签名头正本）:
-  `p3_sampler_open`、`p3_sampler_open_ex`、`p3_order_select`、
-  `p3_resample_check_mode`、
-  `p3_sampler_set_max_tiles`、
-  `p3_sample_nearest`、`p3_sample_bilinear`、
-  `p3_sampler_close`（均在 p3_resample.h 声明 / p3_resample.cpp 实现）+
-  数据结构 P3ResampleStatus（p3_resample.h，OK=0/PARAM=1/UNSUPPORTED=2/
-  IO=3）/P3Sampler（p3_resample.h，impl+last_error[256]）。
-- 生命周期: open(_ex)→set_max_tiles（可选，≤0 恢复默认 8）→
-  逐像素 sample_nearest/sample_bilinear N 次→close（幂等）；
-  sampler 自含 TileCache，**单实例非线程安全**（无内部锁）；使用方式 = 每 worker 独立实例，以免
-  跨线程共享——每 worker 独立实例（详见重采样实现分册的会话编排合同）；会话编排面 API-P3-001
-  FROZEN 五段 create→validate→run→inspect→destroy 不变，run 内
-  主 sampler open_ex（p3_session.cpp）→每 worker 独立
-  open_ex→逐像素分派→close（均 p3_session.cpp）。
-- 域际: DATA-P3-FITS 写路径 resampled 平面承载本域输出
-  （p3_writer_descriptor 端口词汇，API-P3-FITS-001 消费面）。
-- 不新增/不修改任何 C 头/C ABI（本页为既有符号展开冻结）。
+sampler 单实例由一个执行线程使用；worker 可各自 open，再 attach 到同一受控共享 cache。不能继续写成每 worker 必有完全独立缓存或总容量必乘 worker 数。缓存只改变 I/O，不改变 order/核；输入子产品不同不得共享同键 cache。sub_block_px、queue_depth、max_tiles 由实际配置/资源解析控制，不能由接口存在推断任意尺寸的资源实测已满足。
 
-## 5 Registry descriptor 与配置 schema
+## 模式、错误与科学边界
 
-- descriptor（p3_resample2_descriptor，编排层口径）:
-  module_id=`acsd.phase3.resample2`；
-  execution_class=cpu_heavy；parallel_ok=true（每 worker 独立
-  sampler的进程内并行安全（与本文件结构性一致）；单实例内无并发）；
-  ports wcs_plan(DATA-P3-WCS 必)+hips(DATA-HIPS-001 必)+resampled
-  (DATA-P3-RES 可)；alg_id=ALG-P3-003、data_id=DATA-P3-RES、
-  api_id=API-P3-001、test_id=TEST-P3-RES-001——descriptor 派生的占位 ID/端口与
-  lib/algorithms/resample/module.yaml 的对齐属迁移目标（未落地），不作冻结依据。
-- 注册序: phase3_descriptor→p3_wcs_descriptor→p3_resample2_descriptor→
-  p3_writer_descriptor（registry 注册序列）；配置=phase config JSON（键集 = API-P3-001）。
-- 模块注册 = `lib/infrastructure/pipeline/module_ports.registry.json` 的
-  `acsd.phase3.resample2`；生产接线 =
-  lib/infrastructure/scheduler/src/module_adapters.cpp 的 `p3_op_resample`。
+当前 adapter 要求 output_mode，接受 surface_brightness/visualization，明确拒绝未实现 point_source_flux；这些是实现事实，不把它们改写为最高科学目标。当前正式路径不探测/传播 uncertainty，单信号输入不能反演协方差。
 
-| 字段 | 默认 | 单位 | 说明 |
-|---|---|---|---|
-| `sampler` | `bilinear` | —— | 重采样核（权威名 `sampler`，取值 `nearest\|bilinear`，语义与适用域正本 = docs/science/algorithms/PHASE3_RESAMPLE.md） |
-| `correlation_output` | true | —— | 是否输出相关核 |
-| `order_limits` | —— | —— | 输入 order 选择约束（Nyquist） |
+头中 `p3_uncertainty_open/propagate` 等保留库能力，不构成正式 export 已消费误差层。P3ResampleStatus 区分 PARAM、UNSUPPORTED、IO；输入损坏和合法缺数分别处理，取消经 Runtime/AIO 上行。
 
-## 6 冻结公式（G3/G4 摘要；权威源=ALG-P3-RSMP-IMPL-001）
+## 验证入口
 
-- G3 order 选择（p3_resample.cpp）: 最小 k∈[0,max_order] 使
-  pixel_resolution_arcsec(512<<k)/3600 ≤ scale_deg_per_px
-  （pixel_resolution_arcsec=sqrt(π/3)/nside rad，healpix_core.cpp
-  权威；与 ALG-P3-003 G3 ceil 式 `order=clamp(ceil(log2(sqrt(π/3)/
-  (W·s_out))), 0, hips_order)` 数学等价，nside=W·2^k）；无更细层
-  →out_order=max_order（欠采样降级，SCI「判据与误差」一节）；会话 max_order=
-  输入实际 order（p3_session.cpp，禁仅写 metadata）。
-- G4 NEAREST（p3_resample.cpp）: 输出像素中心→pix2ang→ang2pix(nside_leaf)
-  精确cell；无插值误差（SCI「判据与误差」一节）。
-- G4 BILINEAR（p3_resample.cpp）: leaf 3×3 邻域（healpix_neighbors）四象限
-  最近中心（d² 比较）→切平面双线性（den=dx·dy2−dx2·dy≤0 跳过背面；
-  |dx|>1e-300 防 0 除；u,v∈[0,1]）→权重 w00=(1−u)(1−v)/w10=u(1−v)/
-  w01=(1−u)v/w11=uv（FP64，Σw=1精确——SCI「判据与误差」一节不变量）；离散化
-  方案与 G4 施工规格的差异登记 = ALG-P3-RSMP-IMPL-001。
-- tile 寻址: tile_ipix=leaf_ipix>>18（leaf_to_tile_nest(leaf,9)，
-  W=512→shift=9，SCI「判据与误差」一节）；fits_index=(511−x)·512+y
-  （`docs/science/unified/DATA_SEMANTICS.md`「坐标语义」一节）；值语义表（NaN/C）见［A-1］。
-- **采样核是产品语义**（核定义、误差 / 边界与适用域正本 =
-  docs/science/algorithms/PHASE3_RESAMPLE.md；验证方式见本页
-  「验证与测试面（TEST-P3-RSMP-DESIGN-001 设计冻结 VERIFIED）」）：nearest 仅用于
-  离散 mask / 诊断或显式用户选择；bilinear / 高阶核用于连续场，但必须说明
-  通量 / 面亮度语义；**point-source Q/W/PSF 参数按各自语义插值，与普通 signal
-  插值分属两套口径**（普通 signal 插值规则**不得**机械套用于点源）。
-- 科学模式要求球面几何一致，**距离一律取球面量**；线性采样的输出协方差由输入
-  协方差经该算子双向作用得到，**仅输出对角 variance 时必须给相关核 / 近似误差**
-  （方差传播推导正本 = `docs/science/noise_snr/NOISE_SNR.md`「协方差传播」一节）。
-  **coverage 与 variance 各自独立、互不代用**。
-
-## 7 执行类、并行轴、ThreadBudget lease、确定性
-
-- execution_class=cpu_heavy；内核无内部线程（TileCache 每 sampler
-  实例自含，p3_resample.cpp）；并行=会话 worker 池
-  （p3_session.cpp，worker 数=ThreadBudget.max_workers，禁
-  hardware_concurrency；>hpx clamp 行带不空；<2 串行；
-  std::thread 池）——**每 worker 独立 sampler+cache**
-  （闭包内 open_ex，p3_session.cpp），HiPS tile 文件只读共享无写锁；CPU-005 禁单线程
-  重计算由 worker 池结构性满足。
-- 单一 P3Sampler 实例非线程安全（无内部锁）——合同条款 = 每 worker 独立实例，以免跨线程
-  共享（ALG-P3-RSMP-IMPL-001）。
-- 确定性: 逐像素计算路径固定（邻域确定→最近中心确定→权重确定）
-  ⇒ 输出与 tile 装载顺序/worker 数/缓存容量无关，bitwise 一致
-  （ALG-P3-RSMP-IMPL-001）。
-
-## 8 实测偏差与现行语义（权威源 = ALG-P3-RSMP-IMPL-001）
-
-- bilinear 现行为切平面四象限最近中心双线性（p3_resample.cpp）；G4 施工规格写
-  「面积重叠分数（投影线性化）」——同族一阶插值、Σw=1 不变量一致。
-- tile cache 逐出为 FIFO（p3_resample.cpp）；［A-1］伪代码写「LRU」。
-- p3_resample_check_mode 在会话编排层无调用点（仅探针
-  p3_resample_probe_main.cpp 消费）。
-- provenance.missing_tiles 恒 nullptr（p3_session.cpp）——缺 tile
-  聚合上报未接线（SCI「判据与误差」一节）。
-- acsd_p3_resample.dll 未建（entrypoint 未落地）；探针/回归为内联编译。
-- 错误码与退出码唯一源 = lib/infrastructure/cli/exit_codes.h（本页不复制数值表）；
-  取消 = 协作取消（宿主 cancel 通道 → 停止调度新单元 → 等运行中单元完成 →
-  exit 9，最高设计协作取消口径）；模块内无checkpoint（无断点续算）。
-- **错误与边界补充**：缺 tile / 非有限 → validity 标记，**不以零填充**；
-  无覆盖 / 无数据 = NaN（与支撑度 ≤ 0 一致），不用 0 或 ±Inf 冒充无效；NaN 采用
-  **样本级掩膜**（被掩除的样本不参与该输出像素，剩余样本权重**重归一**），
-  整个输出像素无有效覆盖则置NaN并**强制计数**（最高设计「逐像素排异」一节）；
-  point-source 模式缺 Q/W/PSF → fail-closed（普通 signal 插值属另一口径）；
-  采样核语义未声明 → 拒绝。
-- 合同边界与缺陷登记 = ALG-P3-RSMP-IMPL-001［A-1］；全局限制登记 =
-  artifacts/evidence/known-limitations-ledger/LIMITATIONS.md。
-
-## 9 验证与测试面（TEST-P3-RSMP-DESIGN-001 设计冻结 VERIFIED）
-
-- 设计冻结: ALG-P3-RSMP-IMPL-001（①order 选择等价性对拍
-  pixel_resolution_arcsec/②seam 连续性 SYN-007 预冻结容差/③NaN/
-  coverage 值语义全表/④缺 tile→C=0/⑤nearest 精确 cell/⑥bilinear
-  Σw=1 与背面跳过/⑦max_tiles FIFO 逐出/⑧open 守卫负面清单）。
-- 本节承载 TEST-P3-RES-001 登记面；可执行面待建。
-- 已取证但载体不在仓内的相邻结论（不冒认）：探针六模式读数、NaN 语义、
-  seam 域界 1e8-1..12e8+1 连续性 1e-5°、并行重采样面，以及独立参考实现
-  （非生产自证）的插值与 coverage 对拍。这些读数不在本仓可复算路径上，
-  引用时只作背景。
-- Oracle 面补充：常量面亮度、点源通量、variance / correlation 传播与注入源恢复；
-  输出协方差与高精度矩阵 oracle 对比；HEALPix / HiPS 外部实现交叉；跨 tile
-  连续场无缝；不同 block / cache / worker 输出科学值一致；Q/W 重采样保持信息
-  解释（注入源验证）。
-- 执行证据：NOT_VERIFIED（验收证据待补）。
-
-## 10 合同链接
-
-- SCI: docs/science/PHASE3_HIPS_TO_FITS.md（FROZEN）
-- ALG: docs/science/algorithms/PHASE3_RSMP_IMPL.md；承接:
-  docs/science/algorithms/PHASE3_RESAMPLE.md（ALG-P3-003 G3/G4 施工规格，
-  零改动）
-- DATA: docs/detail/registry/acsd.phase3.resample2.md（本页输入输出端口表）
-- API: docs/engineering/api/PUBLIC_API.md（API-P3-RSMP-001 节）
-- 合同三件套: lib/algorithms/resample/
-- 会话编排面现行权威 = docs/engineering/contracts/RUNTIME.md + 本目录的 export 命令
-  各模块卡（acsd.phase3.properties / acsd.phase3.wcs / acsd.phase3.resample2 /
-  acsd.phase3.writer / acsd.phase3.verify）
-
-## NaN 与写端口
-
-- NaN规则（权威 = `ACSD_DESIGN.md`「逐像素排异」一节）：**样本级掩膜 + 重归一 + 覆盖级NaN + 强制计数**；
-  剔除项逐条进场级计数。无覆盖/无数据 = NaN；0 与 ±Inf 不作有效值。
-- signal 语义 = **面亮度**，写端口 `UnitId::SURFACE_BRIGHTNESS`；输出模式显式声明
-  （`surface_brightness` / `point_source_flux` / `visualization`，最高设计「输出模式显式声明」一节）。
+[Export 管线测试入口](../../../eng/tests/pipeline/test_stage_export.py)与本头采样函数用于核对生产、正/负缓存、实际读取量及科学值不变；[Export 管线](../export/pipeline.md)定位 production。独立检验常值、梯度、点源孔径/FWHM、RA wrap/极区/face/tile 边界、NaN 重归一和真实空洞。不得以自读自写或平滑外观宣称光通/噪声完整正确；本页未运行测试。

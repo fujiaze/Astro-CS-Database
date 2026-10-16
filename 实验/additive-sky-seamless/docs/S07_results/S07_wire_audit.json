@@ -1,0 +1,1678 @@
+{
+ "schema": "ACSD-P5-S07-WIRE/1",
+ "repo_root": "/workspace/Astro CS Database",
+ "n_hits": {
+  "multiplicative_gain_applied": 2,
+  "frame_gain": 23,
+  "k_photo": 84,
+  "spatial_gain": 79,
+  "apply_photometry_spatial": 6,
+  "p2_upm_ma_build": 7,
+  "p2_sky_estimate_gain_dc": 3,
+  "run_upm_rej_samp_wiring": 2,
+  "require_frame_gain": 11,
+  "kDefaultSpatialGainOrder": 2,
+  "apply_photometry": 25,
+  "gain_input_ptr": 8,
+  "eval_delta_block": 7,
+  "additive_subtract": 1
+ },
+ "hits": {
+  "multiplicative_gain_applied": [
+   {
+    "file": "lib/infrastructure/scheduler/src/module_adapters.cpp",
+    "line": 12532,
+    "text": "// 生产方案 B（加性-only, g≡1）不置 multiplicative_gain_applied ⇒"
+   },
+   {
+    "file": "lib/infrastructure/scheduler/src/module_adapters.cpp",
+    "line": 12534,
+    "text": "const bool require_gain = cor_doc.value(\"multiplicative_gain_applied\", false);"
+   }
+  ],
+  "frame_gain": [
+   {
+    "file": "lib/infrastructure/scheduler/src/module_adapters.cpp",
+    "line": 12535,
+    "text": "std::vector<double> frame_gain(frames.size(), 1.0);"
+   },
+   {
+    "file": "lib/infrastructure/scheduler/src/module_adapters.cpp",
+    "line": 12581,
+    "text": "frame_gain[f] = frames[f].value(\"frame_gain\", 1.0);"
+   },
+   {
+    "file": "lib/infrastructure/scheduler/src/module_adapters.cpp",
+    "line": 12582,
+    "text": "in.gain = &frame_gain[f];"
+   },
+   {
+    "file": "lib/infrastructure/scheduler/src/module_adapters.cpp",
+    "line": 12674,
+    "text": "snr_gain_k = wres.frame_gain;"
+   },
+   {
+    "file": "lib/algorithms/coverage/src/stage2_common.cpp",
+    "line": 362,
+    "text": "\"weight_mode\", \"rank_rtol\", \"frame_gain\"},"
+   },
+   {
+    "file": "lib/algorithms/coverage/src/stage2_common.cpp",
+    "line": 375,
+    "text": "cfg->frame_gain_enabled = sp.value(\"frame_gain\", cfg->frame_gain_enabled);"
+   },
+   {
+    "file": "lib/algorithms/coverage/tools/stage2.cpp",
+    "line": 461,
+    "text": "std::map<std::uint64_t, double> frame_gain;"
+   },
+   {
+    "file": "lib/algorithms/coverage/tools/stage2.cpp",
+    "line": 629,
+    "text": "log(\"[frame_gain] MA build FAILED rc=\" + std::to_string(mrc) +"
+   },
+   {
+    "file": "lib/algorithms/coverage/tools/stage2.cpp",
+    "line": 634,
+    "text": "log(\"[frame_gain] ok n_params=\" + std::to_string(mainfo.n_params) +"
+   },
+   {
+    "file": "lib/algorithms/coverage/tools/stage2.cpp",
+    "line": 638,
+    "text": "if (frame_gain.count(o.frame_id)) continue;"
+   },
+   {
+    "file": "lib/algorithms/coverage/tools/stage2.cpp",
+    "line": 643,
+    "text": "frame_gain[o.frame_id] = g;"
+   },
+   {
+    "file": "lib/algorithms/coverage/tools/stage2.cpp",
+    "line": 653,
+    "text": "for (auto& kv : frame_gain) {"
+   },
+   {
+    "file": "lib/algorithms/coverage/tools/stage2.cpp",
+    "line": 658,
+    "text": "log(\"[frame_gain] frame \" + std::to_string(kv.first) +"
+   },
+   {
+    "file": "lib/algorithms/coverage/tools/stage2.cpp",
+    "line": 665,
+    "text": "log(\"[frame_gain] frame \" + std::to_string(kv.first) +"
+   },
+   {
+    "file": "lib/algorithms/coverage/tools/stage2.cpp",
+    "line": 671,
+    "text": "log(\"[frame_gain] frame \" + std::to_string(kv.first) +"
+   },
+   {
+    "file": "lib/algorithms/coverage/tools/stage2.cpp",
+    "line": 1288,
+    "text": "if (!frame_gain.empty()) {"
+   },
+   {
+    "file": "lib/algorithms/coverage/tools/stage2.cpp",
+    "line": 1289,
+    "text": "const auto git = frame_gain.find(frame_id_cache[f]);"
+   },
+   {
+    "file": "lib/algorithms/coverage/tools/stage2.cpp",
+    "line": 1290,
+    "text": "if (git != frame_gain.end()) gain = git->second;"
+   },
+   {
+    "file": "lib/algorithms/coverage/include/astro/phase2/stage2_common.h",
+    "line": 95,
+    "text": "// 生产 config 模板显式 sky_plane.enabled=true / frame_gain=true 启用目标模型；"
+   },
+   {
+    "file": "lib/algorithms/integration/phase2_integrate/src/weight_chain.cpp",
+    "line": 849,
+    "text": "r.frame_gain.assign(n, 1.0);"
+   },
+   {
+    "file": "lib/algorithms/integration/phase2_integrate/src/weight_chain.cpp",
+    "line": 932,
+    "text": "r.frame_gain[k] = g;"
+   },
+   {
+    "file": "lib/algorithms/integration/phase2_integrate/src/weight_chain.cpp",
+    "line": 983,
+    "text": "r.frame_gain.assign(n_frames, 1.0);"
+   },
+   {
+    "file": "lib/algorithms/integration/phase2_integrate/include/acsd/weight_chain.h",
+    "line": 372,
+    "text": "std::vector<double> frame_gain;  /* 逐帧 g_k（未声明 = 1.0；审计用） */"
+   }
+  ],
+  "k_photo": [
+   {
+    "file": "lib/infrastructure/pipeline/orchestrator/cpp/src/orchestrator.cpp",
+    "line": 2385,
+    "text": "// 再对 photometric.qe_curve 做同样的 QE 加载，随后是整段 F_syn 合成与 k_photo"
+   },
+   {
+    "file": "lib/infrastructure/scheduler/src/module_adapters.cpp",
+    "line": 120,
+    "text": "//  - apply_photometry: I_photo = k_photo·I_cal (生产零调用者缺陷的修复;"
+   },
+   {
+    "file": "lib/infrastructure/scheduler/src/module_adapters.cpp",
+    "line": 123,
+    "text": "//    Tukey-IRLS k_photo (acsd_phase1_photcal)"
+   },
+   {
+    "file": "lib/infrastructure/scheduler/src/module_adapters.cpp",
+    "line": 1729,
+    "text": "// photometry 节点在 Drizzle 前把 I_photo = k_photo·I_cal 应用到 cal 产物, 写成"
+   },
+   {
+    "file": "lib/infrastructure/scheduler/src/module_adapters.cpp",
+    "line": 2461,
+    "text": "//     跨通带曲线**的对照 —— 两跑 k_photo 差 ×2.457905（0.86 mag），signal 逐像素 A/B 比值"
+   },
+   {
+    "file": "lib/infrastructure/scheduler/src/module_adapters.cpp",
+    "line": 5653,
+    "text": "// ── FIX-P1 (P1-1): 取 k_photo 并真正施加 I_photo = k_photo·I_cal ──"
+   },
+   {
+    "file": "lib/infrastructure/scheduler/src/module_adapters.cpp",
+    "line": 5656,
+    "text": "//   k_photo = scale = 10^(-location), location = Tukey-IRLS(r_i) (c=4.685)。"
+   },
+   {
+    "file": "lib/infrastructure/scheduler/src/module_adapters.cpp",
+    "line": 5663,
+    "text": "// 修复: 在 Drizzle 前对**每一帧**施加 I_photo=k_photo·I_cal, 写独立产物"
+   },
+   {
+    "file": "lib/infrastructure/scheduler/src/module_adapters.cpp",
+    "line": 5665,
+    "text": "//   k_photo 两个显式来源:"
+   },
+   {
+    "file": "lib/infrastructure/scheduler/src/module_adapters.cpp",
+    "line": 5678,
+    "text": "//   (a) 该帧产出标度 ⇒ 施加 I_photo = k_photo·I_cal 并写 photoapplied 产物；"
+   },
+   {
+    "file": "lib/infrastructure/scheduler/src/module_adapters.cpp",
+    "line": 5730,
+    "text": "double k_photo = 1.0;"
+   },
+   {
+    "file": "lib/infrastructure/scheduler/src/module_adapters.cpp",
+    "line": 5739,
+    "text": "// 旧名会被读成\"本帧的星等零点\"，曾导致真实误诊（被当成与 k_photo 算同一件事）。"
+   },
+   {
+    "file": "lib/infrastructure/scheduler/src/module_adapters.cpp",
+    "line": 5742,
+    "text": "// **帧的测光标度是 `k_photo`**；帧的星等零点由 k_photo 换算即得。"
+   },
+   {
+    "file": "lib/infrastructure/scheduler/src/module_adapters.cpp",
+    "line": 6147,
+    "text": "if (!(std::isfinite(fr.k_photo) && fr.k_photo > 0.0)) {"
+   },
+   {
+    "file": "lib/infrastructure/scheduler/src/module_adapters.cpp",
+    "line": 6149,
+    "text": "\"non-physical k_photo for \" + key, \"non_physical_scale\");"
+   },
+   {
+    "file": "lib/infrastructure/scheduler/src/module_adapters.cpp",
+    "line": 6175,
+    "text": "sc.key = key; sc.k_photo = fr.k_photo; sc.n_matched = fr.n_matched;"
+   },
+   {
+    "file": "lib/infrastructure/scheduler/src/module_adapters.cpp",
+    "line": 6352,
+    "text": "const double k = sfj.value(\"k_photo\", 0.0);"
+   },
+   {
+    "file": "lib/infrastructure/scheduler/src/module_adapters.cpp",
+    "line": 6356,
+    "text": "\"p1_photscale.json frame requires file + finite k_photo>0\");"
+   },
+   {
+    "file": "lib/infrastructure/scheduler/src/module_adapters.cpp",
+    "line": 6391,
+    "text": "sc.k_photo = k;"
+   },
+   {
+    "file": "lib/infrastructure/scheduler/src/module_adapters.cpp",
+    "line": 6469,
+    "text": "if (n_k == 0 || sc->k_photo < kmin) kmin = sc->k_photo;"
+   },
+   {
+    "file": "lib/infrastructure/scheduler/src/module_adapters.cpp",
+    "line": 6470,
+    "text": "if (n_k == 0 || sc->k_photo > kmax) kmax = sc->k_photo;"
+   },
+   {
+    "file": "lib/infrastructure/scheduler/src/module_adapters.cpp",
+    "line": 6540,
+    "text": "// I_photo = k_photo·m(x,y)·I_cal（SCI-PHOT-001 §16.1 ⑤）"
+   },
+   {
+    "file": "lib/infrastructure/scheduler/src/module_adapters.cpp",
+    "line": 6556,
+    "text": "sc->k_photo, poly, im.px())"
+   },
+   {
+    "file": "lib/infrastructure/scheduler/src/module_adapters.cpp",
+    "line": 6558,
+    "text": "sc->k_photo, im.px());"
+   },
+   {
+    "file": "lib/infrastructure/scheduler/src/module_adapters.cpp",
+    "line": 6572,
+    "text": "f_k[fi] = sc->k_photo;"
+   },
+   {
+    "file": "lib/infrastructure/scheduler/src/module_adapters.cpp",
+    "line": 6579,
+    "text": "f_detail[fi] = Json{{\"k_photo\", sc->k_photo},"
+   },
+   {
+    "file": "lib/infrastructure/scheduler/src/module_adapters.cpp",
+    "line": 6588,
+    "text": "// 不重算、不改拟合）。与 k_photo 同帧同星样本、同参考（Gaia DR3"
+   },
+   {
+    "file": "lib/infrastructure/scheduler/src/module_adapters.cpp",
+    "line": 6658,
+    "text": "//   F_ref,k = 10^(-0.4*(m_ref - ZP_k)),  ZP_k = C_abs - 2.5*log10(k_photo,k)"
+   },
+   {
+    "file": "lib/infrastructure/scheduler/src/module_adapters.cpp",
+    "line": 6667,
+    "text": "Json{{\"k_photo\", sc->k_photo},"
+   },
+   {
+    "file": "lib/infrastructure/scheduler/src/module_adapters.cpp",
+    "line": 7438,
+    "text": "//     ZP_k    = C_abs - 2.5*log10(k_photo,k)"
+   },
+   {
+    "file": "lib/infrastructure/scheduler/src/module_adapters.cpp",
+    "line": 7447,
+    "text": "//        （帧间独立; 跨帧 k_photo 不同是正常的, 不是错误）;"
+   },
+   {
+    "file": "lib/infrastructure/scheduler/src/module_adapters.cpp",
+    "line": 7454,
+    "text": "// 不可得（无 photscale_fit / 该帧 k_photo 非有限或 ≤0）⇒ 保持既有来源, 不伪造。"
+   },
+   {
+    "file": "lib/infrastructure/scheduler/src/module_adapters.cpp",
+    "line": 7460,
+    "text": "std::map<std::string, double> kphoto_of_key;   // p1_frame_key -> k_photo"
+   },
+   {
+    "file": "lib/infrastructure/scheduler/src/module_adapters.cpp",
+    "line": 7551,
+    "text": "// 形式：`zp_inst = C_abs − 2.5·log10(k_photo)`，`C_abs` 是本帧通带「绝对通量→"
+   },
+   {
+    "file": "lib/infrastructure/scheduler/src/module_adapters.cpp",
+    "line": 7559,
+    "text": "// `zp_inst` 的差异**只来自 `k_photo`**，跨指向组的颜色项差消失。"
+   },
+   {
+    "file": "lib/infrastructure/scheduler/src/module_adapters.cpp",
+    "line": 7566,
+    "text": "// 与 `k_photo` 决定，帧内颜色项无效（其键保留初值 0.0）**不再**污染零点。"
+   },
+   {
+    "file": "lib/infrastructure/scheduler/src/module_adapters.cpp",
+    "line": 7570,
+    "text": "const double kp = e.value(\"k_photo\", 0.0);"
+   },
+   {
+    "file": "lib/infrastructure/scheduler/src/module_adapters.cpp",
+    "line": 7791,
+    "text": "// 只读本帧自身的测光标定（k_photo, ZP_syn）⇒ 帧间独立, 无组概念。"
+   },
+   {
+    "file": "lib/infrastructure/scheduler/src/module_adapters.cpp",
+    "line": 8182,
+    "text": "// FIX-P1: 逐帧 k_photo (frame_key → 标量)。p1_phot.json.photscales 缺省时"
+   },
+   {
+    "file": "lib/infrastructure/cli/parser.cpp",
+    "line": 316,
+    "text": "//   由 p1_op_photometry 消费 (I_photo=k_photo*I_cal, 02_FROZEN §7)。"
+   },
+   {
+    "file": "lib/algorithms/calibration/src/photometry_apply.h",
+    "line": 10,
+    "text": "// I_photo = k_photo·I_cal 落到像素；空间增益见 SCI-PHOT-001 §16.1 ④⑤）"
+   },
+   {
+    "file": "lib/algorithms/calibration/src/photometry_apply.h",
+    "line": 12,
+    "text": "// I_photo = k_photo * I_cal"
+   },
+   {
+    "file": "lib/algorithms/calibration/src/photometry_apply.h",
+    "line": 24,
+    "text": "// 公式: I_photo = k_photo * I_cal（线性乘性因子，单位见 DATA_SEMANTICS）"
+   },
+   {
+    "file": "lib/algorithms/calibration/src/photometry_apply.h",
+    "line": 28,
+    "text": "// photscal: 测光比例 k_photo (必须为有限值)"
+   },
+   {
+    "file": "lib/algorithms/calibration/src/photometry_apply.h",
+    "line": 47,
+    "text": "// 规范: I_photo = k_photo·m(x,y)·I_cal，施加到**整帧像素**（不只星点）。"
+   },
+   {
+    "file": "lib/algorithms/calibration/src/photometry_apply.h",
+    "line": 63,
+    "text": "// B_j 会引入一个整体乘性常数偏移（使 k_photo 的全局语义被暗改）。"
+   },
+   {
+    "file": "lib/algorithms/calibration/src/photometry_apply.h",
+    "line": 107,
+    "text": "// 施加空间增益: out[i] = in[i] · k_photo · m(x, y)，(x,y) 为 0-based 像素坐标"
+   },
+   {
+    "file": "lib/algorithms/calibration/src/photometry_apply.cpp",
+    "line": 5,
+    "text": "// I_photo = k_photo·I_cal 落到像素；空间增益见 SCI-PHOT-001 §16.1 ④⑤）"
+   },
+   {
+    "file": "lib/algorithms/calibration/src/photometry_apply.cpp",
+    "line": 7,
+    "text": "// I_photo = k_photo * I_cal"
+   },
+   {
+    "file": "lib/algorithms/calibration/src/photometry_apply.cpp",
+    "line": 34,
+    "text": "// I_photo = k_photo * I_cal（线性乘性因子，单位见 DATA_SEMANTICS）"
+   },
+   {
+    "file": "lib/algorithms/calibration/src/photometry_apply.cpp",
+    "line": 65,
+    "text": "// ---- 应用测光比例: I_photo = k_photo * I_cal ----"
+   },
+   {
+    "file": "lib/algorithms/calibration/src/photometry_apply.cpp",
+    "line": 79,
+    "text": "// PHOT-MXY-01: 低阶乘性空间增益施加  I_photo = k_photo·m(x,y)·I_cal"
+   },
+   {
+    "file": "lib/algorithms/calibration/src/photometry_apply.cpp",
+    "line": 85,
+    "text": "//   · order >= 1 ⇒ 逐像素乘因子 (k_photo · m(x,y))，double 中间精度。"
+   },
+   {
+    "file": "lib/algorithms/photometry/cpp/src/spatial_gain.h",
+    "line": 11,
+    "text": "//     **低阶乘性空间增益** m(x,y)（平场/光学大尺度响应的低阶残余），与 k_photo"
+   },
+   {
+    "file": "lib/algorithms/photometry/cpp/src/spatial_gain.h",
+    "line": 13,
+    "text": "//   · 同文件 §16.1 ⑤：「I_photo = k_photo·m(x,y)·I_cal 施加到**整帧像素**」；"
+   },
+   {
+    "file": "lib/algorithms/photometry/cpp/src/spatial_gain.h",
+    "line": 14,
+    "text": "//   · 同文件 §16.2：可辨识量只有**乘性标定面** k_photo·m(x,y)。"
+   },
+   {
+    "file": "lib/algorithms/photometry/cpp/src/spatial_gain.h",
+    "line": 24,
+    "text": "//       ⇔ 该集合上 m 的加权几何均值为 1（该文件 §2.1）。因此 k_photo 仍严格是"
+   },
+   {
+    "file": "lib/algorithms/photometry/cpp/src/spatial_gain.h",
+    "line": 46,
+    "text": "//   k_photo·m 的尺度可互换：任意常数 λ 下 (k·λ, m/λ) 给出同一标定面。本模块把"
+   },
+   {
+    "file": "lib/algorithms/photometry/cpp/src/spatial_gain.h",
+    "line": 47,
+    "text": "//   λ 固定为「星集合加权几何均值 1」，于是 k_photo 保持为既有定义的全局项，"
+   },
+   {
+    "file": "lib/algorithms/photometry/cpp/src/spatial_gain.h",
+    "line": 81,
+    "text": "double location_dex = 0.0;    // 阶段 2 的全局稳健位置 L（k_photo = 10^(−L)）"
+   },
+   {
+    "file": "lib/algorithms/photometry/cpp/src/spatial_gain.cpp",
+    "line": 5,
+    "text": "//                          ⇒ k_photo = 10^(−location)，inlier 集合。"
+   },
+   {
+    "file": "lib/algorithms/photometry/cpp/src/spatial_gain.cpp",
+    "line": 10,
+    "text": "//   为什么不让阶段 3 重估常数项: 常数项重估会把 k_photo 移动 O(1e-9) dex，破坏"
+   },
+   {
+    "file": "lib/algorithms/photometry/cpp/src/spatial_gain.cpp",
+    "line": 314,
+    "text": "\"k_photo stays the global term (10^-location), unchanged\";"
+   },
+   {
+    "file": "lib/algorithms/photometry/cpp/src/spatial_gain.cpp",
+    "line": 491,
+    "text": "// 全局 k_photo 承载帧级零点（真实量级 ~1e-17）; m(x,y) 只承载**帧内**残余，"
+   },
+   {
+    "file": "lib/algorithms/photometry/cpp/src/spatial_gain.cpp",
+    "line": 531,
+    "text": "// 施加端按 B̃ = B − center 求值（否则 k_photo 的全局语义被暗改）。"
+   },
+   {
+    "file": "lib/algorithms/photometry/cpp/src/frame_photometry_fit.cpp",
+    "line": 2,
+    "text": "// frame_photometry_fit.cpp - 单帧 k_photo 装配（见 frame_photometry_fit.h）"
+   },
+   {
+    "file": "lib/algorithms/photometry/cpp/src/frame_photometry_fit.cpp",
+    "line": 15,
+    "text": "// k_photo\"的一个入口。"
+   },
+   {
+    "file": "lib/algorithms/photometry/cpp/src/frame_photometry_fit.cpp",
+    "line": 369,
+    "text": "out.k_photo = scale;"
+   },
+   {
+    "file": "lib/algorithms/photometry/cpp/src/frame_photometry_fit.cpp",
+    "line": 384,
+    "text": "// k_photo 保留 1.0 但**不得**被施加。"
+   },
+   {
+    "file": "lib/algorithms/photometry/cpp/src/frame_photometry_fit.cpp",
+    "line": 388,
+    "text": "out.k_photo = 1.0;"
+   },
+   {
+    "file": "lib/algorithms/photometry/cpp/src/frame_photometry_fit.cpp",
+    "line": 395,
+    "text": "out.k_photo = 1.0;"
+   },
+   {
+    "file": "lib/algorithms/photometry/cpp/src/frame_photometry_fit.cpp",
+    "line": 403,
+    "text": "out.k_photo = 1.0;"
+   },
+   {
+    "file": "lib/algorithms/photometry/cpp/src/frame_photometry_fit.cpp",
+    "line": 418,
+    "text": "// **零均值**修正：全局项仍是既有 k_photo，故 order=0 时与改动前逐位一致。"
+   },
+   {
+    "file": "lib/algorithms/photometry/cpp/src/frame_photometry_fit.cpp",
+    "line": 419,
+    "text": "// location_dex 由 scale 反算（−log10 k_photo）：这是 1 ulp 量级的往返，且"
+   },
+   {
+    "file": "lib/algorithms/photometry/cpp/src/frame_photometry_fit.h",
+    "line": 6,
+    "text": "// frame_photometry_fit.h - 单帧测光比例 k_photo 的**文件无关**装配入口"
+   },
+   {
+    "file": "lib/algorithms/photometry/cpp/src/frame_photometry_fit.h",
+    "line": 9,
+    "text": "//   k_photo = scale = 10^(-location),"
+   },
+   {
+    "file": "lib/algorithms/photometry/cpp/src/frame_photometry_fit.h",
+    "line": 16,
+    "text": "// 的 p1_op_photometry）取到该标量并施加 I_photo = k_photo·I_cal。"
+   },
+   {
+    "file": "lib/algorithms/photometry/cpp/src/frame_photometry_fit.h",
+    "line": 127,
+    "text": "int rc = -1;                  // 0=成功算出 k_photo; <0 失败/未产出标度"
+   },
+   {
+    "file": "lib/algorithms/photometry/cpp/src/frame_photometry_fit.h",
+    "line": 128,
+    "text": "double k_photo = 1.0;         // 10^(-location)"
+   },
+   {
+    "file": "lib/algorithms/photometry/cpp/src/frame_photometry_fit.h",
+    "line": 131,
+    "text": "// P1-PHOT-BROKEN: fit_ok 是**唯一**允许调用方据以施加 k_photo 的判据。"
+   },
+   {
+    "file": "lib/algorithms/photometry/cpp/src/frame_photometry_fit.h",
+    "line": 148,
+    "text": "// `k_photo`（帧级测光标度）当成\"同一件事的两条独立实现\"去比对不一致。"
+   },
+   {
+    "file": "lib/algorithms/photometry/cpp/src/frame_photometry_fit.h",
+    "line": 155,
+    "text": "// **帧的测光标度是 `k_photo`**；帧的星等零点由 k_photo 换算即得。"
+   },
+   {
+    "file": "lib/algorithms/photometry/cpp/src/frame_photometry_fit.h",
+    "line": 202,
+    "text": "// 运行单帧生产星匹配链, 返回 k_photo。"
+   },
+   {
+    "file": "lib/algorithms/photometry/cpp/src/frame_photometry_fit.h",
+    "line": 203,
+    "text": "// 失败或未产出标度时 rc<0、fit_ok=false 且 k_photo=1.0（占位, 不得施加）。"
+   }
+  ],
+  "spatial_gain": [
+   {
+    "file": "lib/infrastructure/scheduler/src/module_adapters.cpp",
+    "line": 5787,
+    "text": "auto p1_spatial_gain_json = [](const P1FrameScale& sc) -> Json {"
+   },
+   {
+    "file": "lib/infrastructure/scheduler/src/module_adapters.cpp",
+    "line": 5866,
+    "text": "// photometry.fit.spatial_gain_order ∈ {0,1,2}（>=3 钳到 2；规范只授权「低阶」）。"
+   },
+   {
+    "file": "lib/infrastructure/scheduler/src/module_adapters.cpp",
+    "line": 5869,
+    "text": "// 语义与两级可辨识性检查见 lib/algorithms/photometry/cpp/src/spatial_gain.h。"
+   },
+   {
+    "file": "lib/infrastructure/scheduler/src/module_adapters.cpp",
+    "line": 5871,
+    "text": "int spatial_gain_order = kDefaultSpatialGainOrder;"
+   },
+   {
+    "file": "lib/infrastructure/scheduler/src/module_adapters.cpp",
+    "line": 5872,
+    "text": "if (fit_cfg.contains(\"spatial_gain_order\") && fit_cfg[\"spatial_gain_order\"].is_number_integer())"
+   },
+   {
+    "file": "lib/infrastructure/scheduler/src/module_adapters.cpp",
+    "line": 5873,
+    "text": "spatial_gain_order = fit_cfg[\"spatial_gain_order\"].get<int>();"
+   },
+   {
+    "file": "lib/infrastructure/scheduler/src/module_adapters.cpp",
+    "line": 5874,
+    "text": "if (spatial_gain_order < 0) spatial_gain_order = 0;"
+   },
+   {
+    "file": "lib/infrastructure/scheduler/src/module_adapters.cpp",
+    "line": 5875,
+    "text": "if (spatial_gain_order > 2) spatial_gain_order = 2;"
+   },
+   {
+    "file": "lib/infrastructure/scheduler/src/module_adapters.cpp",
+    "line": 5877,
+    "text": "fit_cfg.value(\"spatial_gain_min_stars_order1\", 50);"
+   },
+   {
+    "file": "lib/infrastructure/scheduler/src/module_adapters.cpp",
+    "line": 5879,
+    "text": "fit_cfg.value(\"spatial_gain_min_stars_order2\", 200);"
+   },
+   {
+    "file": "lib/infrastructure/scheduler/src/module_adapters.cpp",
+    "line": 5881,
+    "text": "fit_cfg.value(\"spatial_gain_coverage_block_grid\", 3);"
+   },
+   {
+    "file": "lib/infrastructure/scheduler/src/module_adapters.cpp",
+    "line": 5883,
+    "text": "fit_cfg.value(\"spatial_gain_coverage_min_stars_per_block\", 5);"
+   },
+   {
+    "file": "lib/infrastructure/scheduler/src/module_adapters.cpp",
+    "line": 5885,
+    "text": "fit_cfg.value(\"spatial_gain_coverage_min_blocks\", 6);"
+   },
+   {
+    "file": "lib/infrastructure/scheduler/src/module_adapters.cpp",
+    "line": 5887,
+    "text": "fit_cfg.value(\"spatial_gain_coverage_min_bbox_frac\", 0.5);"
+   },
+   {
+    "file": "lib/infrastructure/scheduler/src/module_adapters.cpp",
+    "line": 6113,
+    "text": "freq.spatial_gain_order = spatial_gain_order;"
+   },
+   {
+    "file": "lib/infrastructure/scheduler/src/module_adapters.cpp",
+    "line": 6114,
+    "text": "freq.spatial_gain_min_stars_order1 = spatial_min_stars_order1;"
+   },
+   {
+    "file": "lib/infrastructure/scheduler/src/module_adapters.cpp",
+    "line": 6115,
+    "text": "freq.spatial_gain_min_stars_order2 = spatial_min_stars_order2;"
+   },
+   {
+    "file": "lib/infrastructure/scheduler/src/module_adapters.cpp",
+    "line": 6116,
+    "text": "freq.spatial_gain_coverage_block_grid = spatial_coverage_grid;"
+   },
+   {
+    "file": "lib/infrastructure/scheduler/src/module_adapters.cpp",
+    "line": 6117,
+    "text": "freq.spatial_gain_coverage_min_stars_per_block = spatial_coverage_min_per_block;"
+   },
+   {
+    "file": "lib/infrastructure/scheduler/src/module_adapters.cpp",
+    "line": 6118,
+    "text": "freq.spatial_gain_coverage_min_blocks = spatial_coverage_min_blocks;"
+   },
+   {
+    "file": "lib/infrastructure/scheduler/src/module_adapters.cpp",
+    "line": 6119,
+    "text": "freq.spatial_gain_coverage_min_bbox_frac = spatial_coverage_min_bbox;"
+   },
+   {
+    "file": "lib/infrastructure/scheduler/src/module_adapters.cpp",
+    "line": 6171,
+    "text": "\"spatial_gain_fit_failed\");"
+   },
+   {
+    "file": "lib/infrastructure/scheduler/src/module_adapters.cpp",
+    "line": 6180,
+    "text": "sc.m_status = acsd::photometry::spatial_gain_status_name(fr.spatial.status);"
+   },
+   {
+    "file": "lib/infrastructure/scheduler/src/module_adapters.cpp",
+    "line": 6500,
+    "text": "std::string spatial_gain_mode = \"absent\";"
+   },
+   {
+    "file": "lib/infrastructure/scheduler/src/module_adapters.cpp",
+    "line": 6602,
+    "text": "{\"spatial_gain\", p1_spatial_gain_json(*sc)}};"
+   },
+   {
+    "file": "lib/infrastructure/scheduler/src/module_adapters.cpp",
+    "line": 6623,
+    "text": "//   off_scalar       有意保持全局常数（spatial_gain_order=0）"
+   },
+   {
+    "file": "lib/infrastructure/scheduler/src/module_adapters.cpp",
+    "line": 6625,
+    "text": "// photscale_detail[<frame>].spatial_gain 与顶层 spatial_gain[<frame>]。"
+   },
+   {
+    "file": "lib/infrastructure/scheduler/src/module_adapters.cpp",
+    "line": 6627,
+    "text": "spatial_gain_mode = (n_spatial_applied == (int)ks.size()) ? std::string(\"applied_spatial\")"
+   },
+   {
+    "file": "lib/infrastructure/scheduler/src/module_adapters.cpp",
+    "line": 6630,
+    "text": "spatial_gain_mode = (n_spatial_requested > 0) ? std::string(\"degraded_scalar\")"
+   },
+   {
+    "file": "lib/infrastructure/scheduler/src/module_adapters.cpp",
+    "line": 6678,
+    "text": "{\"spatial_gain\", p1_spatial_gain_json(*sc)}};"
+   },
+   {
+    "file": "lib/infrastructure/scheduler/src/module_adapters.cpp",
+    "line": 6785,
+    "text": "// photscale_detail[<frame>].spatial_gain（同一份 JSON）。"
+   },
+   {
+    "file": "lib/infrastructure/scheduler/src/module_adapters.cpp",
+    "line": 6786,
+    "text": "{\"spatial_gain_mode\", spatial_gain_mode},"
+   },
+   {
+    "file": "lib/infrastructure/scheduler/src/module_adapters.cpp",
+    "line": 6815,
+    "text": "Json e = p1_spatial_gain_json(kv.second);"
+   },
+   {
+    "file": "lib/infrastructure/scheduler/src/module_adapters.cpp",
+    "line": 6820,
+    "text": "prov[\"spatial_gain\"] = sgm;"
+   },
+   {
+    "file": "lib/infrastructure/scheduler/src/module_adapters.cpp",
+    "line": 6823,
+    "text": "// 二者不互相替代（逐帧真相仍在 photscale_detail[<frame>].spatial_gain.order）。"
+   },
+   {
+    "file": "lib/infrastructure/scheduler/src/module_adapters.cpp",
+    "line": 6824,
+    "text": "if (spatial_gain_mode == \"applied_spatial\" || spatial_gain_mode == \"partial_spatial\")"
+   },
+   {
+    "file": "lib/algorithms/calibration/src/photometry_apply.h",
+    "line": 48,
+    "text": "// 形式与规范自由度: 见 lib/algorithms/photometry/cpp/src/spatial_gain.h 文件头"
+   },
+   {
+    "file": "lib/algorithms/calibration/src/photometry_apply.h",
+    "line": 53,
+    "text": "// 拟合侧（spatial_gain.cpp）与像素施加侧（photometry_apply.cpp）共用同一份内联"
+   },
+   {
+    "file": "lib/algorithms/calibration/src/photometry_apply.h",
+    "line": 72,
+    "text": "// 基函数（阶 1: {x̃, ỹ}; 阶 2: {x̃, ỹ, x̃², x̃ỹ, ỹ²}）。阶 >=3 不启用（见 spatial_gain.h）。"
+   },
+   {
+    "file": "lib/algorithms/photometry/cpp/src/spatial_gain.h",
+    "line": 4,
+    "text": "// spatial_gain.h - 单帧低阶乘性空间增益场 m(x,y) 的拟合（SCI-PHOT-001 §16.1 ④）"
+   },
+   {
+    "file": "lib/algorithms/photometry/cpp/src/spatial_gain.h",
+    "line": 58,
+    "text": "// 拟合状态（具名；落盘到 provenance 的 spatial_gain.status）"
+   },
+   {
+    "file": "lib/algorithms/photometry/cpp/src/spatial_gain.h",
+    "line": 69,
+    "text": "const char* spatial_gain_status_name(SpatialGainStatus s);"
+   },
+   {
+    "file": "lib/algorithms/photometry/cpp/src/spatial_gain.h",
+    "line": 155,
+    "text": "SpatialGainField fit_spatial_gain(const SpatialGainSample* s, int n,"
+   },
+   {
+    "file": "lib/algorithms/photometry/cpp/src/spatial_gain.h",
+    "line": 161,
+    "text": "bool spatial_gain_solve_spd(const double* H, const double* g, int n, double* c);"
+   },
+   {
+    "file": "lib/algorithms/photometry/cpp/src/spatial_gain.h",
+    "line": 168,
+    "text": "SpatialGainGrid spatial_gain_frame_grid(int width, int height, int max_samples);"
+   },
+   {
+    "file": "lib/algorithms/photometry/cpp/src/spatial_gain.cpp",
+    "line": 1,
+    "text": "// spatial_gain.cpp - 低阶乘性空间增益 m(x,y) 的拟合（见 spatial_gain.h 的规范依据）"
+   },
+   {
+    "file": "lib/algorithms/photometry/cpp/src/spatial_gain.cpp",
+    "line": 23,
+    "text": "#include \"spatial_gain.h\""
+   },
+   {
+    "file": "lib/algorithms/photometry/cpp/src/spatial_gain.cpp",
+    "line": 99,
+    "text": "//       本模块「绝不发布未被约束的场」的降级要求（spatial_gain.h 文件头）。"
+   },
+   {
+    "file": "lib/algorithms/photometry/cpp/src/spatial_gain.cpp",
+    "line": 197,
+    "text": "if (!spatial_gain_solve_spd(H.data(), g.data(), J, cnew.data()))"
+   },
+   {
+    "file": "lib/algorithms/photometry/cpp/src/spatial_gain.cpp",
+    "line": 238,
+    "text": "const char* spatial_gain_status_name(SpatialGainStatus s) {"
+   },
+   {
+    "file": "lib/algorithms/photometry/cpp/src/spatial_gain.cpp",
+    "line": 251,
+    "text": "bool spatial_gain_solve_spd(const double* H, const double* g, int n, double* c) {"
+   },
+   {
+    "file": "lib/algorithms/photometry/cpp/src/spatial_gain.cpp",
+    "line": 289,
+    "text": "SpatialGainGrid spatial_gain_frame_grid(int width, int height, int max_samples) {"
+   },
+   {
+    "file": "lib/algorithms/photometry/cpp/src/spatial_gain.cpp",
+    "line": 306,
+    "text": "SpatialGainField fit_spatial_gain(const SpatialGainSample* s, int n,"
+   },
+   {
+    "file": "lib/algorithms/photometry/cpp/src/spatial_gain.cpp",
+    "line": 311,
+    "text": "// 规范字符串（必须落盘；见 spatial_gain.h 的规范自由度论证）"
+   },
+   {
+    "file": "lib/algorithms/photometry/cpp/src/spatial_gain.cpp",
+    "line": 324,
+    "text": "f.degraded_reason = \"spatial_gain_disabled(order_requested=0)\";"
+   },
+   {
+    "file": "lib/algorithms/photometry/cpp/src/spatial_gain.cpp",
+    "line": 348,
+    "text": "// 逐星样本（审计证据; 见 spatial_gain.h）——在此处填, 使任何降级路径也都带样本"
+   },
+   {
+    "file": "lib/algorithms/photometry/cpp/src/spatial_gain.cpp",
+    "line": 499,
+    "text": "const SpatialGainGrid gg = spatial_gain_frame_grid(p.width, p.height,"
+   },
+   {
+    "file": "lib/algorithms/photometry/cpp/src/spatial_gain.cpp",
+    "line": 569,
+    "text": "if (!spatial_gain_solve_spd(H.data(), e.data(), J, sol.data())) {"
+   },
+   {
+    "file": "lib/algorithms/photometry/cpp/src/spatial_gain.cpp",
+    "line": 577,
+    "text": "const SpatialGainGrid gr = spatial_gain_frame_grid(p.width, p.height,"
+   },
+   {
+    "file": "lib/algorithms/photometry/cpp/src/spatial_gain.cpp",
+    "line": 613,
+    "text": "// 重命名 npx：此处 n 遮蔽了函数形参 n（fit_spatial_gain 的**样本数**，"
+   },
+   {
+    "file": "lib/algorithms/photometry/cpp/src/frame_photometry_fit.cpp",
+    "line": 243,
+    "text": "// 会让未开空间增益的帧没有逐星记录。下游消费（:355 段）仍只在 spatial_gain_order>0"
+   },
+   {
+    "file": "lib/algorithms/photometry/cpp/src/frame_photometry_fit.cpp",
+    "line": 422,
+    "text": "if (req.spatial_gain_order > 0) {"
+   },
+   {
+    "file": "lib/algorithms/photometry/cpp/src/frame_photometry_fit.cpp",
+    "line": 441,
+    "text": "sp.order_requested = req.spatial_gain_order;"
+   },
+   {
+    "file": "lib/algorithms/photometry/cpp/src/frame_photometry_fit.cpp",
+    "line": 445,
+    "text": "sp.min_stars_order1 = req.spatial_gain_min_stars_order1;"
+   },
+   {
+    "file": "lib/algorithms/photometry/cpp/src/frame_photometry_fit.cpp",
+    "line": 446,
+    "text": "sp.min_stars_order2 = req.spatial_gain_min_stars_order2;"
+   },
+   {
+    "file": "lib/algorithms/photometry/cpp/src/frame_photometry_fit.cpp",
+    "line": 447,
+    "text": "sp.coverage_block_grid = req.spatial_gain_coverage_block_grid;"
+   },
+   {
+    "file": "lib/algorithms/photometry/cpp/src/frame_photometry_fit.cpp",
+    "line": 448,
+    "text": "sp.coverage_min_stars_per_block = req.spatial_gain_coverage_min_stars_per_block;"
+   },
+   {
+    "file": "lib/algorithms/photometry/cpp/src/frame_photometry_fit.cpp",
+    "line": 449,
+    "text": "sp.coverage_min_blocks = req.spatial_gain_coverage_min_blocks;"
+   },
+   {
+    "file": "lib/algorithms/photometry/cpp/src/frame_photometry_fit.cpp",
+    "line": 450,
+    "text": "sp.coverage_min_bbox_frac = req.spatial_gain_coverage_min_bbox_frac;"
+   },
+   {
+    "file": "lib/algorithms/photometry/cpp/src/frame_photometry_fit.cpp",
+    "line": 451,
+    "text": "out.spatial = fit_spatial_gain(samples.empty() ? nullptr : samples.data(),"
+   },
+   {
+    "file": "lib/algorithms/photometry/cpp/src/frame_photometry_fit.h",
+    "line": 23,
+    "text": "#include \"spatial_gain.h\"   // PHOT-MXY-01: m(x,y) 空间增益场（SCI-PHOT-001 §16.1 ④）"
+   },
+   {
+    "file": "lib/algorithms/photometry/cpp/src/frame_photometry_fit.h",
+    "line": 81,
+    "text": "// 1/2 = 请求阶（>=3 由 spatial_gain.cpp 钳到 2；规范未授权更高阶）。"
+   },
+   {
+    "file": "lib/algorithms/photometry/cpp/src/frame_photometry_fit.h",
+    "line": 82,
+    "text": "int spatial_gain_order = 0;"
+   },
+   {
+    "file": "lib/algorithms/photometry/cpp/src/frame_photometry_fit.h",
+    "line": 84,
+    "text": "int spatial_gain_min_stars_order1 = 50;"
+   },
+   {
+    "file": "lib/algorithms/photometry/cpp/src/frame_photometry_fit.h",
+    "line": 85,
+    "text": "int spatial_gain_min_stars_order2 = 200;"
+   },
+   {
+    "file": "lib/algorithms/photometry/cpp/src/frame_photometry_fit.h",
+    "line": 86,
+    "text": "int spatial_gain_coverage_block_grid = 3;"
+   },
+   {
+    "file": "lib/algorithms/photometry/cpp/src/frame_photometry_fit.h",
+    "line": 87,
+    "text": "int spatial_gain_coverage_min_stars_per_block = 5;"
+   },
+   {
+    "file": "lib/algorithms/photometry/cpp/src/frame_photometry_fit.h",
+    "line": 88,
+    "text": "int spatial_gain_coverage_min_blocks = 6;"
+   },
+   {
+    "file": "lib/algorithms/photometry/cpp/src/frame_photometry_fit.h",
+    "line": 89,
+    "text": "double spatial_gain_coverage_min_bbox_frac = 0.5;"
+   }
+  ],
+  "apply_photometry_spatial": [
+   {
+    "file": "lib/infrastructure/scheduler/src/module_adapters.cpp",
+    "line": 6542,
+    "text": "// m_order > 0 ⇒ 走 apply_photometry_spatial（同一函数在 order==0 时也委托"
+   },
+   {
+    "file": "lib/infrastructure/scheduler/src/module_adapters.cpp",
+    "line": 6555,
+    "text": "? calibration::apply_photometry_spatial(im.px(), im.w(), im.h(),"
+   },
+   {
+    "file": "lib/infrastructure/scheduler/src/module_adapters.cpp",
+    "line": 6825,
+    "text": "prov[\"apply_entry_spatial\"] = \"calibration::apply_photometry_spatial\";"
+   },
+   {
+    "file": "lib/algorithms/calibration/src/photometry_apply.h",
+    "line": 56,
+    "text": "// order=0（m ≡ 1）时 apply_photometry_spatial 与 apply_photometry **逐位一致**"
+   },
+   {
+    "file": "lib/algorithms/calibration/src/photometry_apply.h",
+    "line": 112,
+    "text": "int apply_photometry_spatial(const float* light, int w, int h, double photoscale,"
+   },
+   {
+    "file": "lib/algorithms/calibration/src/photometry_apply.cpp",
+    "line": 88,
+    "text": "int apply_photometry_spatial(const float* light, int w, int h, double photoscale,"
+   }
+  ],
+  "p2_upm_ma_build": [
+   {
+    "file": "lib/infrastructure/scheduler/src/module_adapters.cpp",
+    "line": 13492,
+    "text": "//   ② UPM/GLS 正规矩阵 p2_upm_ma_build：冻结 FZ-AP2S-KAPPA-MAX=1e6 —— 但**生产链"
+   },
+   {
+    "file": "lib/algorithms/coverage/src/upm.cpp",
+    "line": 625,
+    "text": "// 与姊妹求解器 p2_upm_ma_build 的逐条校验（:2470-:2471，rc=1/2）一致。"
+   },
+   {
+    "file": "lib/algorithms/coverage/src/upm.cpp",
+    "line": 3221,
+    "text": "int p2_upm_ma_build(const P2UpmMaObservation* obs, std::uint64_t n_obs,"
+   },
+   {
+    "file": "lib/algorithms/coverage/tools/stage2.cpp",
+    "line": 627,
+    "text": "const int mrc = p2_upm_ma_build(ma.data(), ma.size(), &macfg, &ma_model);"
+   },
+   {
+    "file": "lib/algorithms/coverage/include/astro/phase2/upm.h",
+    "line": 372,
+    "text": "P2_API int p2_upm_ma_build("
+   },
+   {
+    "file": "lib/algorithms/integration/phase2_integrate/src/phase2_integrate.cpp",
+    "line": 1362,
+    "text": "const int brc = p2_upm_ma_build(obs.data(), obs.size(), &cfg, &model);"
+   },
+   {
+    "file": "lib/algorithms/integration/phase2_integrate/src/phase2_integrate.cpp",
+    "line": 1363,
+    "text": "if (brc != 0 || model == nullptr) { r.error = \"p2_upm_ma_build rc=\" + std::to_string(brc); return r; }"
+   }
+  ],
+  "p2_sky_estimate_gain_dc": [
+   {
+    "file": "lib/algorithms/coverage/src/sky_plane.cpp",
+    "line": 4141,
+    "text": "int p2_sky_estimate_gain_dc(const P2SkySample* samples, std::uint64_t n,"
+   },
+   {
+    "file": "lib/algorithms/coverage/tools/stage2.cpp",
+    "line": 656,
+    "text": "if (p2_sky_estimate_gain_dc(sky_samples.data(), sky_samples.size(),"
+   },
+   {
+    "file": "lib/algorithms/coverage/include/astro/phase2/sky_plane.h",
+    "line": 626,
+    "text": "P2_API int p2_sky_estimate_gain_dc(const P2SkySample* samples, std::uint64_t n,"
+   }
+  ],
+  "run_upm_rej_samp_wiring": [
+   {
+    "file": "lib/algorithms/integration/phase2_integrate/src/phase2_integrate.cpp",
+    "line": 1288,
+    "text": "UpmRejSampResult run_upm_rej_samp_wiring(const FrameSet& fs, const RunMeta& meta) {"
+   },
+   {
+    "file": "lib/algorithms/integration/phase2_integrate/include/acsd/phase2_integrate.h",
+    "line": 245,
+    "text": "UpmRejSampResult run_upm_rej_samp_wiring(const FrameSet& fs,"
+   }
+  ],
+  "require_frame_gain": [
+   {
+    "file": "lib/infrastructure/scheduler/src/module_adapters.cpp",
+    "line": 12533,
+    "text": "// gain=nullptr、require_frame_gain=false，行为与旧口径逐位一致。"
+   },
+   {
+    "file": "lib/infrastructure/scheduler/src/module_adapters.cpp",
+    "line": 12642,
+    "text": "m06_pixel_wpolicy.require_frame_gain = require_gain;"
+   },
+   {
+    "file": "lib/algorithms/integration/phase2_integrate/src/weight_chain.cpp",
+    "line": 191,
+    "text": "} else if (policy.require_frame_gain) {"
+   },
+   {
+    "file": "lib/algorithms/integration/phase2_integrate/src/weight_chain.cpp",
+    "line": 193,
+    "text": "\"frame gain g_k missing but policy.require_frame_gain=true \""
+   },
+   {
+    "file": "lib/algorithms/integration/phase2_integrate/src/weight_chain.cpp",
+    "line": 926,
+    "text": "} else if (policy.require_frame_gain) {"
+   },
+   {
+    "file": "lib/algorithms/integration/phase2_integrate/src/weight_chain.cpp",
+    "line": 929,
+    "text": "tag + \": frame gain g_k missing but policy.require_frame_gain=true \""
+   },
+   {
+    "file": "lib/algorithms/integration/phase2_integrate/include/acsd/weight_chain.h",
+    "line": 309,
+    "text": "* policy.require_frame_gain=false 时合法；声明要求而缺 → fail-closed"
+   },
+   {
+    "file": "lib/algorithms/integration/phase2_integrate/include/acsd/weight_chain.h",
+    "line": 327,
+    "text": "kUnclosedMissingGain = 11,                 /* require_frame_gain 但 gain 缺失 */"
+   },
+   {
+    "file": "lib/algorithms/integration/phase2_integrate/include/acsd/weight_chain.h",
+    "line": 343,
+    "text": "bool require_frame_gain = false;"
+   },
+   {
+    "file": "lib/algorithms/integration/phase2_integrate/include/acsd/weight_chain.h",
+    "line": 402,
+    "text": "* nullptr = 未声明（按 g=1），仅当 policy.require_frame_gain=false 时合法。 */"
+   },
+   {
+    "file": "lib/algorithms/integration/phase2_integrate/include/acsd/weight_chain.h",
+    "line": 452,
+    "text": "*   - gain 缺（require_frame_gain）→ kUnclosedMissingGain；gain 非法 → kUnclosedInvalidGain。"
+   }
+  ],
+  "kDefaultSpatialGainOrder": [
+   {
+    "file": "lib/infrastructure/scheduler/src/module_adapters.cpp",
+    "line": 5870,
+    "text": "constexpr int kDefaultSpatialGainOrder = 2;"
+   },
+   {
+    "file": "lib/infrastructure/scheduler/src/module_adapters.cpp",
+    "line": 5871,
+    "text": "int spatial_gain_order = kDefaultSpatialGainOrder;"
+   }
+  ],
+  "apply_photometry": [
+   {
+    "file": "lib/infrastructure/scheduler/src/module_adapters.cpp",
+    "line": 120,
+    "text": "//  - apply_photometry: I_photo = k_photo·I_cal (生产零调用者缺陷的修复;"
+   },
+   {
+    "file": "lib/infrastructure/scheduler/src/module_adapters.cpp",
+    "line": 5659,
+    "text": "//   photometry_applied=false/photscal=1.0; apply_photometry 生产零调用者;"
+   },
+   {
+    "file": "lib/infrastructure/scheduler/src/module_adapters.cpp",
+    "line": 5758,
+    "text": "// calibration::apply_photometry，与改动前逐位一致。"
+   },
+   {
+    "file": "lib/infrastructure/scheduler/src/module_adapters.cpp",
+    "line": 6541,
+    "text": "// m_order == 0 ⇒ 走**未改动**的 calibration::apply_photometry（逐位一致）；"
+   },
+   {
+    "file": "lib/infrastructure/scheduler/src/module_adapters.cpp",
+    "line": 6557,
+    "text": ": calibration::apply_photometry(im.px(), im.w(), im.h(),"
+   },
+   {
+    "file": "lib/infrastructure/scheduler/src/module_adapters.cpp",
+    "line": 6561,
+    "text": "\"apply_photometry failed rc=\" + std::to_string(arc) + \" for \" + key));"
+   },
+   {
+    "file": "lib/infrastructure/scheduler/src/module_adapters.cpp",
+    "line": 6826,
+    "text": "prov[\"apply_entry\"] = \"calibration::apply_photometry\";"
+   },
+   {
+    "file": "lib/infrastructure/scheduler/src/module_adapters.cpp",
+    "line": 8537,
+    "text": "//   的 apply_photometry=false 口径）。"
+   },
+   {
+    "file": "lib/algorithms/calibration/src/photometry_apply.h",
+    "line": 42,
+    "text": "int apply_photometry(const float* light, int w, int h, double photscal, float* out);"
+   },
+   {
+    "file": "lib/algorithms/calibration/src/photometry_apply.h",
+    "line": 56,
+    "text": "// order=0（m ≡ 1）时 apply_photometry_spatial 与 apply_photometry **逐位一致**"
+   },
+   {
+    "file": "lib/algorithms/calibration/src/photometry_apply.h",
+    "line": 109,
+    "text": "// 返回: 0=成功; -1/-2/-3/-4/-5 同 apply_photometry; -6: 场的定标量非有限或 <=0。"
+   },
+   {
+    "file": "lib/algorithms/calibration/src/photometry_apply.h",
+    "line": 111,
+    "text": "//       apply_photometry 逐位一致; 逐像素独立 ⇒ 与 OpenMP/线程数无关。"
+   },
+   {
+    "file": "lib/algorithms/calibration/src/photometry_apply.cpp",
+    "line": 35,
+    "text": "int apply_photometry(const float* light, int w, int h, double photscal, float* out)"
+   },
+   {
+    "file": "lib/algorithms/calibration/src/photometry_apply.cpp",
+    "line": 83,
+    "text": "// 与冻结的 apply_photometry 的关系:"
+   },
+   {
+    "file": "lib/algorithms/calibration/src/photometry_apply.cpp",
+    "line": 84,
+    "text": "//   · order == 0（m ≡ 1）⇒ **直接委托** apply_photometry，逐位一致（可回归对照）；"
+   },
+   {
+    "file": "lib/algorithms/calibration/src/photometry_apply.cpp",
+    "line": 94,
+    "text": "return apply_photometry(light, w, h, photoscale, out);"
+   },
+   {
+    "file": "lib/algorithms/calibration/src/photometry_apply.cpp",
+    "line": 97,
+    "text": "// ---- 参数校验（与 apply_photometry 同判据，逐条同码）----"
+   },
+   {
+    "file": "lib/algorithms/drizzle/healpix_drizzle/drizzle_engine.h",
+    "line": 30,
+    "text": "bool   apply_photometry = false;  // 测光已应用到像素 (元数据标记, drizzle 不再应用)"
+   },
+   {
+    "file": "lib/algorithms/drizzle/healpix_drizzle/hp_drizzle_api.cpp",
+    "line": 320,
+    "text": "config.apply_photometry          = false;                       // drizzle 不再应用"
+   },
+   {
+    "file": "lib/algorithms/drizzle/healpix_drizzle/hp_drizzle_api.cpp",
+    "line": 944,
+    "text": "config.apply_photometry          = false;                  // drizzle 不再应用"
+   },
+   {
+    "file": "lib/algorithms/drizzle/healpix_drizzle/drizzle_engine.cpp",
+    "line": 907,
+    "text": "// apply_photometry / photometry_applied_upstream 仅作为元数据标记,"
+   },
+   {
+    "file": "lib/algorithms/drizzle/healpix_drizzle/drizzle_engine.cpp",
+    "line": 910,
+    "text": "\"[drizzle_engine] Photometry status: apply_photometry=%d \""
+   },
+   {
+    "file": "lib/algorithms/drizzle/healpix_drizzle/drizzle_engine.cpp",
+    "line": 913,
+    "text": "(int)config.apply_photometry,"
+   },
+   {
+    "file": "lib/algorithms/drizzle/healpix_drizzle/drizzle_engine.cpp",
+    "line": 1032,
+    "text": "(int)config.apply_photometry,"
+   },
+   {
+    "file": "lib/algorithms/photometry/cpp/src/frame_photometry_fit.h",
+    "line": 195,
+    "text": "// 全局路径（calibration::apply_photometry），以保证与改动前逐位一致。"
+   }
+  ],
+  "gain_input_ptr": [
+   {
+    "file": "lib/infrastructure/scheduler/src/module_adapters.cpp",
+    "line": 12579,
+    "text": "in.gain = nullptr;"
+   },
+   {
+    "file": "lib/infrastructure/scheduler/src/module_adapters.cpp",
+    "line": 12582,
+    "text": "in.gain = &frame_gain[f];"
+   },
+   {
+    "file": "lib/algorithms/integration/phase2_integrate/src/weight_chain.cpp",
+    "line": 184,
+    "text": "if (in.gain != nullptr) {"
+   },
+   {
+    "file": "lib/algorithms/integration/phase2_integrate/src/weight_chain.cpp",
+    "line": 185,
+    "text": "if (!positive_finite(*in.gain)) {"
+   },
+   {
+    "file": "lib/algorithms/integration/phase2_integrate/src/weight_chain.cpp",
+    "line": 190,
+    "text": "g = *in.gain;"
+   },
+   {
+    "file": "lib/algorithms/integration/phase2_integrate/src/weight_chain.cpp",
+    "line": 918,
+    "text": "if (f.gain != nullptr) {"
+   },
+   {
+    "file": "lib/algorithms/integration/phase2_integrate/src/weight_chain.cpp",
+    "line": 919,
+    "text": "if (!positive_finite(*f.gain)) {"
+   },
+   {
+    "file": "lib/algorithms/integration/phase2_integrate/src/weight_chain.cpp",
+    "line": 925,
+    "text": "g = *f.gain;"
+   }
+  ],
+  "eval_delta_block": [
+   {
+    "file": "lib/infrastructure/scheduler/src/module_adapters.cpp",
+    "line": 24,
+    "text": "//   upm-apply  → p2_sky_plane_open + p2_sky_plane_eval_delta_block"
+   },
+   {
+    "file": "lib/infrastructure/scheduler/src/module_adapters.cpp",
+    "line": 10826,
+    "text": "//    p2_sky_plane_eval_delta_block 求值一次（UPM C 场分块求值路 p2_upm_calibrate_block"
+   },
+   {
+    "file": "lib/infrastructure/scheduler/src/module_adapters.cpp",
+    "line": 11186,
+    "text": "(void)p2_sky_plane_eval_delta_block(sky_guard.m, fid, valid_ra.data(),"
+   },
+   {
+    "file": "lib/infrastructure/scheduler/src/module_adapters.cpp",
+    "line": 11325,
+    "text": "{\"entry\", \"p2_sky_plane_open/p2_sky_plane_eval_delta_block\"},"
+   },
+   {
+    "file": "lib/algorithms/coverage/src/upm.cpp",
+    "line": 2788,
+    "text": "扣除改为公共信号面（δ_k = b_k − B_ref，走 p2_sky_plane_eval_delta_block）后，"
+   },
+   {
+    "file": "lib/algorithms/coverage/src/sky_plane.cpp",
+    "line": 3606,
+    "text": "int p2_sky_plane_eval_delta_block(const void* model, std::uint64_t frame_id,"
+   },
+   {
+    "file": "lib/algorithms/coverage/include/astro/phase2/sky_plane.h",
+    "line": 607,
+    "text": "P2_API int p2_sky_plane_eval_delta_block(const void* model, std::uint64_t frame_id,"
+   }
+  ],
+  "additive_subtract": [
+   {
+    "file": "lib/infrastructure/scheduler/src/module_adapters.cpp",
+    "line": 11193,
+    "text": "out_v[static_cast<size_t>(k)] = base - dvals[static_cast<size_t>(k)];"
+   }
+  ]
+ },
+ "verdict": {
+  "P1_kphoto_mxy": {
+   "state": "APPLIED",
+   "scope": "normalize/Phase1 photometry 节点（逐帧、in-place 施加于像素）",
+   "evidence": {
+    "default_spatial_order": [
+     {
+      "file": "lib/infrastructure/scheduler/src/module_adapters.cpp",
+      "line": 5870,
+      "text": "constexpr int kDefaultSpatialGainOrder = 2;"
+     },
+     {
+      "file": "lib/infrastructure/scheduler/src/module_adapters.cpp",
+      "line": 5871,
+      "text": "int spatial_gain_order = kDefaultSpatialGainOrder;"
+     }
+    ],
+    "spatial_apply_call": [
+     {
+      "file": "lib/infrastructure/scheduler/src/module_adapters.cpp",
+      "line": 6542,
+      "text": "// m_order > 0 ⇒ 走 apply_photometry_spatial（同一函数在 order==0 时也委托"
+     },
+     {
+      "file": "lib/infrastructure/scheduler/src/module_adapters.cpp",
+      "line": 6555,
+      "text": "? calibration::apply_photometry_spatial(im.px(), im.w(), im.h(),"
+     },
+     {
+      "file": "lib/infrastructure/scheduler/src/module_adapters.cpp",
+      "line": 6825,
+      "text": "prov[\"apply_entry_spatial\"] = \"calibration::apply_photometry_spatial\";"
+     },
+     {
+      "file": "lib/algorithms/calibration/src/photometry_apply.h",
+      "line": 56,
+      "text": "// order=0（m ≡ 1）时 apply_photometry_spatial 与 apply_photometry **逐位一致**"
+     },
+     {
+      "file": "lib/algorithms/calibration/src/photometry_apply.h",
+      "line": 112,
+      "text": "int apply_photometry_spatial(const float* light, int w, int h, double photoscale,"
+     },
+     {
+      "file": "lib/algorithms/calibration/src/photometry_apply.cpp",
+      "line": 88,
+      "text": "int apply_photometry_spatial(const float* light, int w, int h, double photoscale,"
+     }
+    ],
+    "kphoto_pass": [
+     {
+      "file": "lib/infrastructure/scheduler/src/module_adapters.cpp",
+      "line": 120,
+      "text": "//  - apply_photometry: I_photo = k_photo·I_cal (生产零调用者缺陷的修复;"
+     },
+     {
+      "file": "lib/infrastructure/scheduler/src/module_adapters.cpp",
+      "line": 6175,
+      "text": "sc.key = key; sc.k_photo = fr.k_photo; sc.n_matched = fr.n_matched;"
+     },
+     {
+      "file": "lib/infrastructure/scheduler/src/module_adapters.cpp",
+      "line": 6391,
+      "text": "sc.k_photo = k;"
+     },
+     {
+      "file": "lib/infrastructure/scheduler/src/module_adapters.cpp",
+      "line": 6469,
+      "text": "if (n_k == 0 || sc->k_photo < kmin) kmin = sc->k_photo;"
+     },
+     {
+      "file": "lib/infrastructure/scheduler/src/module_adapters.cpp",
+      "line": 6470,
+      "text": "if (n_k == 0 || sc->k_photo > kmax) kmax = sc->k_photo;"
+     },
+     {
+      "file": "lib/infrastructure/scheduler/src/module_adapters.cpp",
+      "line": 6556,
+      "text": "sc->k_photo, poly, im.px())"
+     }
+    ],
+    "spatial_gain_field": [
+     {
+      "file": "lib/infrastructure/scheduler/src/module_adapters.cpp",
+      "line": 5787,
+      "text": "auto p1_spatial_gain_json = [](const P1FrameScale& sc) -> Json {"
+     },
+     {
+      "file": "lib/infrastructure/scheduler/src/module_adapters.cpp",
+      "line": 5866,
+      "text": "// photometry.fit.spatial_gain_order ∈ {0,1,2}（>=3 钳到 2；规范只授权「低阶」）。"
+     },
+     {
+      "file": "lib/infrastructure/scheduler/src/module_adapters.cpp",
+      "line": 5869,
+      "text": "// 语义与两级可辨识性检查见 lib/algorithms/photometry/cpp/src/spatial_gain.h。"
+     },
+     {
+      "file": "lib/infrastructure/scheduler/src/module_adapters.cpp",
+      "line": 5871,
+      "text": "int spatial_gain_order = kDefaultSpatialGainOrder;"
+     },
+     {
+      "file": "lib/infrastructure/scheduler/src/module_adapters.cpp",
+      "line": 5872,
+      "text": "if (fit_cfg.contains(\"spatial_gain_order\") && fit_cfg[\"spatial_gain_order\"].is_number_integer())"
+     },
+     {
+      "file": "lib/infrastructure/scheduler/src/module_adapters.cpp",
+      "line": 5873,
+      "text": "spatial_gain_order = fit_cfg[\"spatial_gain_order\"].get<int>();"
+     }
+    ]
+   },
+   "condition": "仅当该帧取得标度（拟合或 p1_photscale.json 侧车）时施加；缺标度即该帧 fail（fail-closed，不静默按 1 冒充）。`fit.enabled` 默认 false（module_adapters.cpp:5888），故未配置测光的运行不施加。",
+   "note": "m_order==0 走标量 `apply_photometry`；m_order>0 走 `apply_photometry_spatial`（m(x,y)）。默认 `kDefaultSpatialGainOrder = 2`。"
+  },
+  "P5_MA_scalar_solver": {
+   "state": "NOT_IMPLEMENTED_ON_PRODUCTION_PATH",
+   "evidence": {
+    "callers": [
+     {
+      "file": "lib/algorithms/coverage/tools/stage2.cpp",
+      "line": 627,
+      "text": "const int mrc = p2_upm_ma_build(ma.data(), ma.size(), &macfg, &ma_model);"
+     },
+     {
+      "file": "lib/algorithms/integration/phase2_integrate/src/phase2_integrate.cpp",
+      "line": 1362,
+      "text": "const int brc = p2_upm_ma_build(obs.data(), obs.size(), &cfg, &model);"
+     },
+     {
+      "file": "lib/algorithms/integration/phase2_integrate/src/phase2_integrate.cpp",
+      "line": 1363,
+      "text": "if (brc != 0 || model == nullptr) { r.error = \"p2_upm_ma_build rc=\" + std::to_string(brc); return r; }"
+     }
+    ],
+    "wiring": [
+     {
+      "file": "lib/algorithms/integration/phase2_integrate/src/phase2_integrate.cpp",
+      "line": 1288,
+      "text": "UpmRejSampResult run_upm_rej_samp_wiring(const FrameSet& fs, const RunMeta& meta) {"
+     },
+     {
+      "file": "lib/algorithms/integration/phase2_integrate/include/acsd/phase2_integrate.h",
+      "line": 245,
+      "text": "UpmRejSampResult run_upm_rej_samp_wiring(const FrameSet& fs,"
+     }
+    ]
+   },
+   "note": "`p2_upm_ma_build` 的调用者只有 tools/stage2.cpp（工具面）与 phase2_integrate.cpp:1362（函数 run_upm_rej_samp_wiring，全仓仅定义+声明、**零调用者**）。⇒ 生产扣除链（p2_sky_plane_build_joint + eval_delta_block）不经过该求解器。"
+  },
+  "P5_multiplicative_gain": {
+   "state": "IDENTITY",
+   "status_channel": "NOT_EVALUATED",
+   "evidence": {
+    "reads": [
+     {
+      "file": "lib/infrastructure/scheduler/src/module_adapters.cpp",
+      "line": 12534,
+      "text": "const bool require_gain = cor_doc.value(\"multiplicative_gain_applied\", false);"
+     }
+    ],
+    "writes": [],
+    "gain_ptr": [
+     {
+      "file": "lib/infrastructure/scheduler/src/module_adapters.cpp",
+      "line": 12579,
+      "text": "in.gain = nullptr;"
+     },
+     {
+      "file": "lib/infrastructure/scheduler/src/module_adapters.cpp",
+      "line": 12582,
+      "text": "in.gain = &frame_gain[f];"
+     },
+     {
+      "file": "lib/algorithms/integration/phase2_integrate/src/weight_chain.cpp",
+      "line": 184,
+      "text": "if (in.gain != nullptr) {"
+     },
+     {
+      "file": "lib/algorithms/integration/phase2_integrate/src/weight_chain.cpp",
+      "line": 185,
+      "text": "if (!positive_finite(*in.gain)) {"
+     },
+     {
+      "file": "lib/algorithms/integration/phase2_integrate/src/weight_chain.cpp",
+      "line": 190,
+      "text": "g = *in.gain;"
+     },
+     {
+      "file": "lib/algorithms/integration/phase2_integrate/src/weight_chain.cpp",
+      "line": 918,
+      "text": "if (f.gain != nullptr) {"
+     },
+     {
+      "file": "lib/algorithms/integration/phase2_integrate/src/weight_chain.cpp",
+      "line": 919,
+      "text": "if (!positive_finite(*f.gain)) {"
+     },
+     {
+      "file": "lib/algorithms/integration/phase2_integrate/src/weight_chain.cpp",
+      "line": 925,
+      "text": "g = *f.gain;"
+     }
+    ],
+    "additive_apply": [
+     {
+      "file": "lib/infrastructure/scheduler/src/module_adapters.cpp",
+      "line": 24,
+      "text": "//   upm-apply  → p2_sky_plane_open + p2_sky_plane_eval_delta_block"
+     },
+     {
+      "file": "lib/infrastructure/scheduler/src/module_adapters.cpp",
+      "line": 10826,
+      "text": "//    p2_sky_plane_eval_delta_block 求值一次（UPM C 场分块求值路 p2_upm_calibrate_block"
+     },
+     {
+      "file": "lib/infrastructure/scheduler/src/module_adapters.cpp",
+      "line": 11186,
+      "text": "(void)p2_sky_plane_eval_delta_block(sky_guard.m, fid, valid_ra.data(),"
+     },
+     {
+      "file": "lib/infrastructure/scheduler/src/module_adapters.cpp",
+      "line": 11325,
+      "text": "{\"entry\", \"p2_sky_plane_open/p2_sky_plane_eval_delta_block\"},"
+     },
+     {
+      "file": "lib/algorithms/coverage/src/upm.cpp",
+      "line": 2788,
+      "text": "扣除改为公共信号面（δ_k = b_k − B_ref，走 p2_sky_plane_eval_delta_block）后，"
+     },
+     {
+      "file": "lib/algorithms/coverage/src/sky_plane.cpp",
+      "line": 3606,
+      "text": "int p2_sky_plane_eval_delta_block(const void* model, std::uint64_t frame_id,"
+     },
+     {
+      "file": "lib/algorithms/coverage/include/astro/phase2/sky_plane.h",
+      "line": 607,
+      "text": "P2_API int p2_sky_plane_eval_delta_block(const void* model, std::uint64_t frame_id,"
+     }
+    ],
+    "additive_subtract": [
+     {
+      "file": "lib/infrastructure/scheduler/src/module_adapters.cpp",
+      "line": 11193,
+      "text": "out_v[static_cast<size_t>(k)] = base - dvals[static_cast<size_t>(k)];"
+     }
+    ],
+    "frame_gain": [
+     {
+      "file": "lib/infrastructure/scheduler/src/module_adapters.cpp",
+      "line": 12535,
+      "text": "std::vector<double> frame_gain(frames.size(), 1.0);"
+     },
+     {
+      "file": "lib/infrastructure/scheduler/src/module_adapters.cpp",
+      "line": 12581,
+      "text": "frame_gain[f] = frames[f].value(\"frame_gain\", 1.0);"
+     },
+     {
+      "file": "lib/infrastructure/scheduler/src/module_adapters.cpp",
+      "line": 12582,
+      "text": "in.gain = &frame_gain[f];"
+     },
+     {
+      "file": "lib/infrastructure/scheduler/src/module_adapters.cpp",
+      "line": 12674,
+      "text": "snr_gain_k = wres.frame_gain;"
+     },
+     {
+      "file": "lib/algorithms/coverage/src/stage2_common.cpp",
+      "line": 362,
+      "text": "\"weight_mode\", \"rank_rtol\", \"frame_gain\"},"
+     },
+     {
+      "file": "lib/algorithms/coverage/src/stage2_common.cpp",
+      "line": 375,
+      "text": "cfg->frame_gain_enabled = sp.value(\"frame_gain\", cfg->frame_gain_enabled);"
+     },
+     {
+      "file": "lib/algorithms/coverage/tools/stage2.cpp",
+      "line": 461,
+      "text": "std::map<std::uint64_t, double> frame_gain;"
+     },
+     {
+      "file": "lib/algorithms/coverage/tools/stage2.cpp",
+      "line": 629,
+      "text": "log(\"[frame_gain] MA build FAILED rc=\" + std::to_string(mrc) +"
+     }
+    ],
+    "require_frame_gain": [
+     {
+      "file": "lib/infrastructure/scheduler/src/module_adapters.cpp",
+      "line": 12533,
+      "text": "// gain=nullptr、require_frame_gain=false，行为与旧口径逐位一致。"
+     },
+     {
+      "file": "lib/infrastructure/scheduler/src/module_adapters.cpp",
+      "line": 12642,
+      "text": "m06_pixel_wpolicy.require_frame_gain = require_gain;"
+     },
+     {
+      "file": "lib/algorithms/integration/phase2_integrate/src/weight_chain.cpp",
+      "line": 191,
+      "text": "} else if (policy.require_frame_gain) {"
+     },
+     {
+      "file": "lib/algorithms/integration/phase2_integrate/src/weight_chain.cpp",
+      "line": 193,
+      "text": "\"frame gain g_k missing but policy.require_frame_gain=true \""
+     },
+     {
+      "file": "lib/algorithms/integration/phase2_integrate/src/weight_chain.cpp",
+      "line": 926,
+      "text": "} else if (policy.require_frame_gain) {"
+     },
+     {
+      "file": "lib/algorithms/integration/phase2_integrate/src/weight_chain.cpp",
+      "line": 929,
+      "text": "tag + \": frame gain g_k missing but policy.require_frame_gain=true \""
+     }
+    ]
+   },
+   "note": "`multiplicative_gain_applied` 全仓 1 处读（value(...)，默认 false）、**0 处写**；读点随后 `in.gain = nullptr` ⇒ 逐帧 g≡1。生产取 G_i={0}，等价于**硬先验 eta≡0**，不是规范固定。状态通道无生产者 ⇒ 三态里的状态位为 NOT_EVALUATED，行为位为 IDENTITY（不得读成『已应用』，也不得读成『已证明无乘性差』）。二维 g_i(x) 在生产链无任何成员（sky_plane 求值为纯加性）。"
+  }
+ }
+}

@@ -1,5 +1,8 @@
 # P4 重建稠密 SNR · 实验报告（实验单元）
 
+> **科学证据状态说明（P4）**：本文件保留原实验轮次的日志、数字、公式与脚本指针，属于**历史实验报告**；它不是修订后的当前论文结论。涉及相互冲突的正本、已退役路径、未真正执行的生产验证或没有完整输入哈希的历史 PASS，均不能直接转写为新论文的 `EXPERIMENT_CHECKED`。当前研究被估量、独立 Oracle、失败域和外部文献请以 [当前论文](REPORT_paper.md) 与 [五篇统一实验协议](../shared/FIVE_PAPER_EXPERIMENT_PLAN.md) 为准。此插入不改变下面原始历史读数的真实性声明；待服务器按新的证据协议复跑后，应逐项登记是否复现。
+
+
 **单元目录**: 实验/dense-snr-reconstruct/
 **科学链位置**: 第 4 点——由稀疏控制点重建稠密信噪比场及其定权消费（最高设计 §2）
 **证据源**: 三路互不通信的独立重做之 code/results，原样收录本单元 code/ 与 results/；全部读数引用既有存档 JSON，并由订正轮在**单元副本**上重跑 `bash code/run_all.sh` 逐叶核对（19/19 JSON 除计时字段 `runtime_s` 外全同，见 `run/FINAL-07/logs/P4_F4_reproducibility.out`）。
@@ -267,3 +270,65 @@ M16 仿真腿另需 astropy + scipy 与 `testdata/HST_M16/`（唯一仓外只读
 | 物理前向仿真数据本身 | Merline & Howell 1995；Howell 2006（CCD 噪声模型），逐条文献锚见 `实验/shared/synthetic/noise_model.py` 模块 docstring | 共享链 `实验/shared/synthetic/`（本单元只读 import） | `bash 实验/shared/synthetic/run_selftests.sh` → 4/4 PASS、rc=0、约 2 分 32 秒；判别力已由注入缺陷实测 |
 | 真实数据腿 | — | `testdata/HST_M16/*.drz`（HST WFC3/UVIS 窄带 drizzled，PHOTFLAM 带头，NDRIZIM=32）；本地 MAD² 代理参照 | `python3 code/realdata/exp_P4RD_01_real_hst_m16.py`（见 §6 第 5 条：HLA drz 无 ERR/WHT，参照量是局部 MAD² 代理，不是绝对真方差） |
 | 辅助常数链 1.4826 / 9216 预算 / Moffat4 = 1.230310 | Rousseeuw & Croux 1993（参考文献 14）；Trujillo et al. 2001（参考文献 15） | `code/route2/exp_P4R2_08_mad_sigma_budget.py`、`exp_P4R2_09_moffat4_factor.py` | 1.4826022185056023（1.50e-16）；9216 = (1.44/0.015)² 精确；闭式 1.2303076526 vs 独立数值积分 1.2303076507（差 1.91e-6） |
+
+---
+
+## 9 S06 复验专节：重建统计目标与域外失败（第二轮）
+
+> **本轮性质**：`DEEPSEEK_SCIENCE_EXECUTION.md` **S06** 的独立复验，产物落
+> `run/ACSDSDOC-02/S06/**` 与 `实验/dense-snr-reconstruct/{code/s06,docs/S06_P4_evidence.json}`；
+> 本节**只追加**，不删改上文任何历史章节。
+> 任务起点 HEAD `9f1e99f2a`、证据生成 HEAD `a73f577b0`；P4 相关 `lib/**` 在两者间逐字节未变；
+> 探针只读链接 `build/linux-sci/.../libacsd_phase2_integrate.a`（构建指纹 `e31b2be66`）。
+> 一键复现：`bash run/ACSDSDOC-02/S06/code/run_all.sh`（rc=0，约 6 分钟；seed 20261020）。
+> 完整报告：`run/ACSDSDOC-02/S06/REPORT_S06.md`；机器可读证据：`docs/S06_P4_evidence.json`。
+
+### 9.1 结论增量（相对上文历史读数）
+
+| # | 本轮结论 | 关键读数 | 证据级别 | 复现 |
+|---|---|---|---|---|
+| S06-1 | **两对象冻结**：`SNR_ref(F_ref fixed)` 与 `SNR_scene(F_scene(x))` 在分子、分母、支持域、下游权重上逐项分离；混装成同一个 SNR 场不承载任何被估量的逆方差 | 亮源世界误配 `E_eff=31.2581`、偏差 +32.89；混装场 `E_eff=8283.64`、偏差 +401.07；零效应（`F_scene≡F_ref`）四条臂 `E_eff=0` 精确 | ORACLE | `S06_A_two_objects.json` |
+| S06-2 | **过冲 `[0,2,0,0]` 重测**：max = **2.011325955375069**（区间 `[2.0113259553750686, 2.0113259553750695]`），过冲 +1.1326e-2，min = **−0.307920**；`frac>max=3.852%`（N=2e6）/3.848%（N=2001）；PCHIP 同节点 max=2.0 精确不越界 | 双 oracle（本仓独立实现 + scipy 1.15.3）差 9.96e-13；节点复现 0.0 | ORACLE | `S06_B_overshoot.json` |
+| S06-3 | **生产路径检出未钳制过冲**：`[0,2,0,0]`+1 平移模式在 `clip_high` 咬合 32/1024（3.125%）、`clip_low` 咬合 512/1024（50%）⇒ 上界由**显式钳制**保证，非样条性质 | 生产算子 `natural_bicubic_spline_clip_v1`，clip = `[min(node),max(node)]` | PRODUCTION | `probe_s06_results.json::S06_D5` |
+| S06-4 | **域外可检测性复现**：`2×2` 域外 **55.5556%**、`3×3` **43.7500%**（192² 视场，36 864 查询点），`EXTRAPOLATED` 恒为 0；`prepare_ok=true` 与「域外占比 0」的守卫对 2×2/3×3 **判红**、对全幅网格 PASS | 历史 55.6/43.8 逐位复现；静默外推在域外像素上 `|bias|>2%`（恒定场为预声明零效应子例） | PRODUCTION | `probe_s06_results.json::S06_D1/D2`、`S06_C_holdout_cv.json` |
+| S06-5 | **六臂留出 CV**（Δ=16，train=偶节点子网格，评分=留出 cell 内部像素 19 200 点）：`natural_spline_clip` 在 6 场型中最优或并列最优；`dense`（生产 MAD² 估计器）**无一最优**，`blobs` 上 `bias_rel=+228×` | 平坦场零效应 `var_ratio=1.0000000`（精确）；`idw_p2` 优于 `idw_p1`（1.0015–1.3267 vs 1.0108–1.6949） | ORACLE | `S06_C_holdout_cv.json` |
+| S06-6 | **「dense 非一律最优」逐场型复核**：解析结构场 `E_cell=0.009028 < E_dense=0.5774 < E_frame=1.159`（历史 0.577/0.00903 **完全复现**）；HST 前向 `0.2064/0.4159/2.571e5`；真实帧代理 `0.1707/11.82/6.459e4`；子实验 S（Δ=64）里 `dense` 仅 3/6 场型最优，`strong_gradient` 上 cell 更好、`blobs` 上帧级更好 | 重跑 `calibers/exp_P4CAL_02_three_calibers_guarded.py`，`all_pass=true` | ORACLE | `results/calibers/exp_P4CAL_02_...json` |
+| S06-7 | **0 距 / NaN / NaN mask / 负值 clamp 全部显式化**：0 距（`d<1e-10`）精确取节点值 6/6（朴素无守卫 6/6 `NaN` 判红）；NaN 控制值最近填充偏差 **+0.5621**（判红）；NaN mask 静默处理（`inf` 或中位数插补 −0.2154）判红；值域钳制咬合像素偏差 **−0.04115** vs 非咬合 **+0.00815**（判红）⇒ **不得把 clamp 负值当无偏** | 生产 `prepare` 对零/负/全 NaN 控制值与 `NaN/Inf/负` 查询坐标全部 fail-closed | ORACLE + PRODUCTION | `S06_D_degenerate_states.json`、`probe_s06_results.json::S06_D3` |
+| S06-8 | **`idw_power` 分裂是活的（RED）**：规范终裁 1.0（registry:325-330）与 drizzle 兜底 1.0（`snr_evaluator.h:110`、`.cpp:212,268`）均对，但 Phase1 三处硬写 **2.0**（`snr_estimator.cpp:593,730,833`）→ orchestrator 序列化（`orchestrator.cpp:3943,3956`）→ drizzle 读回（`hp_drizzle_api.cpp:779,860`）→ **显式传参**给 `build(..., idw_power)`（`:798,823`）⇒ 生产有效值仍是 2.0，兜底永不触发 | 9/9 file:line 断言成立 | PRODUCTION | `S06_E_idw_power_audit.json` |
+| S06-9 | **判据判别力边界（新登记）**：留出方差比 `var_ratio=E_eff+1` 是分布型判据，对控制点空间置换不敏感（置换后 `var_ratio` 比值 1.05–8.58，而 `dex_rmse` 比值 2.04–114.4）⇒ 必须与水平型判据成对报告；置换注入在「Δ 格不可表示」的场上判别力弱（dex 比值 ~2.0），本轮按可表示性分层登记 | `G_C2` 分层：可表示场 114.4/61.9，弱对照 2.11/2.19/2.04 | ORACLE | `S06_C_holdout_cv.json::findings` |
+
+### 9.2 与历史章节的关系
+
+- §1 H2「生产默认算子 = `natural_bicubic_spline_clip_v1`、钳制必要」：本轮以**生产路径上的咬合计数**
+  （`clip_high` 3.125%、`clip_low` 50%）给出钳制必要性的直接证据（历史为机制佐证，§6 第 7 条）。
+- §5 H5 与 §6 第 13/16 条「`dense` 非一律最优」：本轮在**六臂留出 CV**（独立协议）与**逐场型全量对照**
+  （重跑历史口径）两条路径上同时复核，结论一致；历史 `0.577 / 0.00903` 完全复现。
+- §1 H3「`idw_power` 默认分裂」：本轮回溯到**数据面**，证明分裂不是「兜底值不一致」而是
+  「块内显式值 2.0 覆盖兜底」⇒ 生产有效默认仍为 2.0。历史 §4 第 3 条「drizzle 侧已落地 1.0」
+  的表述需按本轮补注：**兜底**已落地 1.0，**生产有效值**仍由 Phase1 的 2.0 决定。
+- §6 第 19 条「2×2/3×3 域外占比 0.750/0.438」：本轮在 192² 视场按 `W=H=192` 重算得 0.5556/0.4375，
+  与 T07 同构；§7-19 的 0.750 来自 4 点固定构型，两者同量级不同构造，均保留。
+- §6 第 7 条「05 规格去钳制 E 1.007→1.44e4 数字未独立复刻」：本轮不重复该路径，仍登记为未复刻。
+
+### 9.3 本节读数台账（物理定义 / 单位 / 分母 / 样本量 / seed / 输入 / SHA）
+
+| 读数 | 定义与单位 | 分母 | 样本量 | seed | 输入 | 脚本 SHA256 |
+|---|---|---|---|---|---|---|
+| `2.011325955375069` | `max_x s(x)`，节点同单位 | — | 解析驻点 + `N=2 000 001` | 20261020 | 节点 `[0,2,0,0]@[0,1,2,3]` | `0001acdc5b95…`（`s06_b_overshoot.py`） |
+| `0.5555555555555556` | 域外查询占比，无量纲 | `W·H=36 864` 查询点 | 36 864 | — | `2×2` 控制网格 dx=dy=64 | `649195bef154…`（`probe_s06.cpp`） |
+| `0.4375` | 同上 | 同上 | 36 864 | — | `3×3` dx=dy=48 | 同上 |
+| `31.2581` / `8283.64` | `E_eff = Var_w/Var_opt − 1`，无量纲 | `Var_opt=1/Σ(1/V_scene)` | 4 096 像素 | 20261020 | 亮源 `F_scene` 峰值 1000×`F_ref` | `89b18eb70987…`（`s06_a_two_objects.py`） |
+| `1.0000 / 1.0208 / 1.0685 …` | `var_ratio = Var_w/Var_opt`，无量纲 | 同上（真值 `V_true`） | 19 200 留出像素 | 20261020 | 6 场型 × Δ=16 物理前向世界 | `e0c1469c650e…`（`s06_c_holdout_cv.py`） |
+| `+0.5621` | 空洞填充偏差 `mean((V̂−V_ref)/V_ref)`，无量纲 | 未挖空节点值同算子对照 | 1 024 空洞像素 | 20261020 | 节点尺度交替场 | `19b898f9c263…`（`s06_d_degenerate_states.py`） |
+| `2.0`（有效）/`1.0`（规范） | `idw_power`，无量纲 | — | 9 处 file:line | — | 源码静态审计 | `41c275e726be…`（`s06_e_idw_power_audit.py`） |
+
+### 9.4 待裁决（追加，紧接 §8）
+
+| # | 事项 | 状态 |
+|---|---|---|
+| U-S06-1 | `docs/science/noise_snr/NOISE_SNR.md` §5.3「可分离样条不外插出控制点之上的值」被本轮实测否证（未钳制自然样条越上界 +1.1326e-2；生产靠显式钳制） | 分歧登记，文档不在本单元写域，交 Lead；与 `REPORT_paper.md` §3 现行口径不冲突 |
+| U-S06-2 | `idw_power` 有效默认（2.0）≠ 规范（1.0），数据链证据见 §9.1 S06-8 | 登记 + 建议，`lib/**` 改动交 Lead |
+| U-S06-3 | 规整稀疏层无法表达空洞：NaN 控制点被静默最近填充（偏差 +0.56） | 登记，产品合同问题 |
+| U-S06-4 | `var_ratio` 对控制点空间置换不敏感；置换注入在不可表示场上判别力弱 | 判据判别力边界，本轮成对报告 `var_ratio` 与 `dex_rmse` |
+| U-S06-5 | 真实帧/真实产品的 P4 端到端验证 | `NOT_RUN`（缺按 §13.1 枚举的合格输入）；C 臂仍为 MAD² 代理 |
+| U-S06-6 | 相关噪声下绝对效率、`k_corr` 定标 | `NOT_RUN`（本轮 iid）；归 P2/S05 |

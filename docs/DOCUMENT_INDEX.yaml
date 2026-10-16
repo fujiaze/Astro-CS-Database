@@ -1,816 +1,832 @@
-# ACSD 文档机器索引（DOCUMENT_INDEX）——全文档集唯一索引地图
-#
-# 依据：docs/ACSD_DESIGN.md §0（文档权威与索引）、§0.1（文档写法）
-#
-# 字段：
-#   path        文档路径（相对仓库根；必须真实存在，悬空条目即缺陷）
-#   status      文档活动分类 ∈ {ACTIVE_NORMATIVE, ACTIVE_INFORMATIVE, GENERATED,
-#               ARCHIVED_NON_NORMATIVE}；不是 §12.5 的交付状态阶梯
-#   duty        职责一句话（本文档承担什么）
-#   upstream    上游条款（本文档落实的 docs/ACSD_DESIGN.md 条款，与文档抬头「上游」区同源）
-#   downstream  下游被引用处（机器扫描出的活动引用方）
-#   notes       （可选）当下生效的口径补充：唯一正本指认、字段取值域、生成与再生成纪律；
-#               不写日期、任务号、轮次、沿革与出处
-#
-# 规则：
-#   1. path 全索引唯一，不跨区段重复；active 区段不含任何 archive 路径，archived 区段全部 ARCHIVED_NON_NORMATIVE；
-#   2. 每份下级文档（docs/**/*.md）在 active 区段登记且抬头有「上游」条款区；目录招牌件（各目录
-#      README.md）按「每目录必有 README」治理，不进规范索引面；本索引自身以条目登记；
-#   3. 本文件是唯一索引地图，不用 README 合集代替；悬空指针（含代码注释里的 docs/ 路径）按缺陷处置，
-#      跨域未修项随对应治理任务登记；
-#   4. 覆盖 = docs/** 全部 .md 与 .yaml + 仓库根固定条目（AGENTS.md、README.md、VERSION、
-#      ACSD_DESIGN.md 本体与本索引）；
-#   5. docs 一层只保留最高设计、本索引、术语表、入口 README 与 science/、engineering/、detail/
-#      三个文件夹；机器源与台账不进 docs，落在 eng/contracts/ 与 artifacts/evidence/。
-#   6. 豁免（覆盖面的越界登记）：落在规则 4 覆盖面之外的条目必须逐条在 notes 写明豁免理由，
-#      无 notes 豁免说明的越界条目即缺陷。机器源（.json/.csv/.py 等非人读件）一律不登记 ——
-#      规则 4 的覆盖面以人读件为界，机器源由其人读正本承载。
-#
-# 扫描口径（downstream）：git 跟踪文件，排除 artifacts/、run/、build/、lib/third_party/、
-#   实验/、logs/ 等过程与证据目录。
-#
-# 现态：机器门禁面退场后本索引已剔除全部指向已删除测试/预言机/自检件的 downstream 名；
-#   因「等 N 处」计数随删除失效，本轮一并丢弃这些计数后缀。该计数须由前台按现行扫描口径
-#   整体重算后回填，不得凭本轮删除量反推。
-#
+# ACSD 文档索引
+# 覆盖 Git 跟踪的 docs 全部文件，包含 README 与本索引；外部依据由正文链接。
+# path 相对仓库根且唯一；duty 是职责，upstream 是拥有相关定义的上层或主题正本。
+# status 表示文档用途：ACTIVE_NORMATIVE 正式定义，ACTIVE_INFORMATIVE 导航或参考，
+# GENERATED 生成说明，ARCHIVED_NON_NORMATIVE 存档；不表示构建、运行或科学已验证。
+# science 与 engineering 同级，detail 为二级实施细节；算法补充资料服从主题正本。
+# 下游引用按需要从实际跟踪集提取，不在索引内手抄缩写清单或引用计数。
 doc_index:
-  schema_rev: "3"
-  coverage: "docs/** 全部 .md 与 .yaml + 仓库根固定条目（AGENTS.md、README.md、VERSION）；目录招牌件按「每目录必有 README」治理，不进规范索引面。覆盖面以人读件为界：机器源（.json/.csv/.py 等）不因跨域而自动取得登记资格；跨域件按 docs/engineering/governance/DOCUMENT_GOVERNANCE.md 的跨域豁免登记条款 以 notes 具名豁免登记，当前豁免 3 条（跨域人读件 1 条：实验/裁决台账.md；人读正本直接依赖的判据实现 2 条：eng/contracts/ledgers/ledger_schema.py、eng/tools/source_scan.py）"
+  schema_rev: '3'
+  coverage: Git 跟踪的 docs 全部文件，含目录 README 和索引自身；根章程、代码、工程机器合同与实验单元由正文链接，不进入本集合。
   active:
-    - path: "实验/裁决台账.md"
-      status: ACTIVE_NORMATIVE
-      duty: "跨单元裁决台账：五个创新点实验重做的分歧终裁，含依据与落点正本节"
-      upstream: "docs/ACSD_DESIGN.md §12.1（科学正确性与三重佐证）"
-      notes: 豁免登记（规则 6）：落在 docs/** 之外，实验域的分歧终裁面，属 ACSD_DESIGN §12.1 直接点名的终裁载体，不因跨域而免于索引
-    - path: "eng/contracts/ledgers/ledger_schema.py"
-      status: ACTIVE_NORMATIVE
-      duty: 合同台账的 schema 校验与加载（fail-closed）
-      upstream: "docs/engineering/contracts/CONFIG.md"
-      notes: 豁免登记（规则 6）：落在 docs/** 之外且为代码，配置合同明定的台账 schema 载体；登记它是为了让配置正本的反向指针可达
-    - path: "eng/tools/source_scan.py"
-      status: ACTIVE_NORMATIVE
-      duty: 源码扫描工具：注释剥离与源文件遍历
-      upstream: "docs/engineering/governance/DOCUMENT_GOVERNANCE.md"
-      notes: 豁免登记（规则 6）：落在 docs/** 之外且为代码，是文档治理规范的写法纪律所依赖的扫描实现；索引指向它是纪律—实现的反向指针
-    - path: "docs/science/calibration/CCD_DEFECT.md"
-      status: ACTIVE_NORMATIVE
-      duty: "CCD/CMOS 线性缺陷的分类、检测判据、插值修复的方差处置与一手文献证据（坏列、CTE 拖尾、宇宙线、卫星线）"
-      upstream: "docs/ACSD_DESIGN.md §4.2（normalize 节点流程）、§12.1（科学正确性与三重佐证）"
-      notes: "由原 CCD_LINEAR_DEFECT_LITERATURE 迁入并与 CALIBRATION 的缺陷可分性条款合并重写；唯一正本。参考文献逐条登记核验状态。κ=2 的依据是非重复计数的记账约定而非信息论下界；坏列七步判据无复跑脚本，§3.1 读数登记为历史读数"
-    - path: "docs/DOCUMENT_INDEX.yaml"
-      status: ACTIVE_NORMATIVE
-      duty: "全文档集唯一索引地图：条目登记、双向索引、扫描口径与状态分类"
-      upstream: "docs/ACSD_DESIGN.md §0（文档权威与索引）"
-    - path: "docs/ACSD_DESIGN.md"
-      status: ACTIVE_NORMATIVE
-      duty: "最高设计（Design Authority）：是什么/做到什么/顶层架构/CLI/发行/验收"
-      upstream: "（最高权威：本文即权威链顶点，无上游）"
-      downstream: "ACCEPTANCE_SPEC.md、AGENTS.md、CMakeLists.txt 等 462 处"
-    - path: "AGENTS.md"
-      status: ACTIVE_NORMATIVE
-      duty: "机器干活手册：读文档顺序、工作流、硬禁令与落位速查"
-      upstream: "docs/ACSD_DESIGN.md §0（文档权威与索引）、§0.1（文档写法）"
-      downstream: "ACCEPTANCE_SPEC.md、CONTROL_PACK_SPEC.md 等 276 处"
-    - path: "README.md"
-      status: ACTIVE_INFORMATIVE
-      duty: "仓库入口说明（定位/快速开始/文档导航）"
-      upstream: "docs/ACSD_DESIGN.md §1（项目定位）"
-      downstream: ".gitignore、ACCEPTANCE_SPEC.md、CMakePresets.json 等 353 处"
-    - path: "VERSION"
-      status: ACTIVE_NORMATIVE
-      duty: "产品版本唯一源（版本注入链起点）"
-      upstream: "docs/ACSD_DESIGN.md §13（版本与发布权）"
-      downstream: ".gitignore、ACCEPTANCE_SPEC.md、AGENTS.md 等 366 处"
-    - path: "docs/GLOSSARY.md"
-      status: ACTIVE_INFORMATIVE
-      duty: "全项目术语与别名唯一性登记（词典锚点）"
-      upstream: "docs/ACSD_DESIGN.md 附录 A（术语）"
-      downstream: "文档现状审计台账.csv、文档现状审计台账.md 等 36 处"
-    - path: "docs/engineering/architecture/ARCHITECTURE.md"
-      status: ACTIVE_NORMATIVE
-      duty: "ARCH-001 系统架构：组件职责、依赖方向、两层链、不变量、关键决策理由"
-      upstream: "docs/ACSD_DESIGN.md"
-      downstream: ""
-    - path: "docs/engineering/architecture/DATA_FLOW.md"
-      status: ACTIVE_NORMATIVE
-      duty: "数据流、执行模型与线程预算：载体、各阶段数据流、并行轴分配、确定性锚、预算唯一来源"
-      upstream: "docs/ACSD_DESIGN.md"
-      downstream: ""
-    - path: "docs/engineering/architecture/MODULE_MAP.md"
-      status: ACTIVE_NORMATIVE
-      duty: "模块地图：模块到目录、产物与证据锚的逐行登记"
-      upstream: "docs/ACSD_DESIGN.md"
-      downstream: ""
-    - path: "docs/engineering/contracts/CLI_PROTOCOL.md"
-      status: ACTIVE_NORMATIVE
-      duty: "API-CLI-001 命令行协议合同：命令树、退出码、机器输出纪律、JSONL 运行事件流、output_dir 与 crop"
-      upstream: "docs/ACSD_DESIGN.md"
-      downstream: ""
-    - path: "docs/engineering/contracts/CONFIG.md"
-      status: ACTIVE_NORMATIVE
-      duty: "配置合同：三类配置分离、默认值与来源、滤镜库、阶段配置 schema、CPU 画像、运行清单 schema"
-      upstream: "docs/ACSD_DESIGN.md"
-      downstream: ""
-    - path: "docs/engineering/contracts/LOG_AND_ERROR.md"
-      status: ACTIVE_NORMATIVE
-      duty: "日志与错误合同：日志行格式、run_log 登记字段、错误对象与退出码映射、显式降级三要件、落点"
-      upstream: "docs/ACSD_DESIGN.md"
-      downstream: ""
-    - path: "docs/engineering/contracts/SCHEDULER.md"
-      status: ACTIVE_NORMATIVE
-      duty: "三阶段调度器合同：调度形态、并行确定性口径、资源声明、探针事件 schema"
-      upstream: "docs/ACSD_DESIGN.md"
-      downstream: ""
-    - path: "docs/engineering/contracts/PIPELINE_BLOCK.md"
-      status: ACTIVE_NORMATIVE
-      duty: "命名块生命周期合同：块元数据、载体合同、状态机、端口与代码双向一致判据"
-      upstream: "docs/ACSD_DESIGN.md"
-      downstream: ""
-    - path: "docs/engineering/contracts/HIPS_STORAGE_FORM.md"
-      status: ACTIVE_NORMATIVE
-      duty: "落盘形态合同：命名、归档容器布局、索引 schema、哈希口径、体积削减、形态配置键与清单字段"
-      upstream: "docs/ACSD_DESIGN.md"
-      downstream: ""
-    - path: "docs/engineering/contracts/ASYNC_IO.md"
-      status: ACTIVE_NORMATIVE
-      duty: "有界异步 I/O 合同：容量、所有权、取消与关闭顺序"
-      upstream: "docs/ACSD_DESIGN.md"
-      downstream: ""
-    - path: "docs/engineering/contracts/OWNERSHIP_LIFETIME.md"
-      status: ACTIVE_NORMATIVE
-      duty: "所有权与生命周期合同：句柄所有权、输出缓冲语义、线程局部状态"
-      upstream: "docs/ACSD_DESIGN.md"
-      downstream: ""
-    - path: "docs/engineering/contracts/ATOMIC_PUBLISH.md"
-      status: ACTIVE_NORMATIVE
-      duty: "原子发布合同：发布步序、发布清单、校验序与错误码"
-      upstream: "docs/ACSD_DESIGN.md"
-      downstream: ""
-    - path: "docs/engineering/contracts/MANIFEST_VERIFY.md"
-      status: ACTIVE_NORMATIVE
-      duty: "运行清单与校验合同：清单字段、分离原则、溯源子对象、校验顺序与错误码"
-      upstream: "docs/ACSD_DESIGN.md"
-      downstream: ""
-    - path: "docs/engineering/contracts/RUNTIME.md"
-      status: ACTIVE_NORMATIVE
-      duty: "运行时与模块公共合同：公共头冻结签名面、模块生命周期、线程租约、边界规则"
-      upstream: "docs/ACSD_DESIGN.md"
-      downstream: ""
-    - path: "docs/engineering/api/PUBLIC_API.md"
-      status: ACTIVE_NORMATIVE
-      duty: "公共 API 合同：分层、错误模型、API 规则、C ABI 规则、分阶段 API 面与符号登记"
-      upstream: "docs/ACSD_DESIGN.md"
-      downstream: ""
-    - path: "docs/engineering/api/abi/ABI.md"
-      status: ACTIVE_NORMATIVE
-      duty: "COMMON-ABI-001 公共 C ABI 基础层：类型、逐字段单位与所有权、并发合同模板、头文件独立性验证"
-      upstream: "docs/ACSD_DESIGN.md"
-      downstream: ""
-    - path: "docs/engineering/api/abi/SECURE_LOADER.md"
-      status: ACTIVE_NORMATIVE
-      duty: "ABI-003 安全装载器：六查、信任边界、装载失败语义与清单校验"
-      upstream: "docs/ACSD_DESIGN.md"
-      downstream: ""
-    - path: "docs/engineering/standards/CODE.md"
-      status: ACTIVE_NORMATIVE
-      duty: "代码标准：必须遵守条目、命名与机器契约保留面、编译器告警口径"
-      upstream: "docs/ACSD_DESIGN.md"
-      downstream: ""
-    - path: "docs/engineering/standards/COMMENT.md"
-      status: ACTIVE_NORMATIVE
-      duty: "注释纪律标准：注释原则、必须注释与必须删除迁移面、叙述性注释清理面、长度与审计"
-      upstream: "docs/ACSD_DESIGN.md"
-      downstream: ""
-    - path: "docs/engineering/standards/ERROR_MODEL.md"
-      status: ACTIVE_NORMATIVE
-      duty: "错误模型标准：三层语义与两层互斥判据、违规判据、硬错误类别、错误域、阶段 ID、进程退出码与 error-sensitive 模块要件"
-      upstream: "docs/ACSD_DESIGN.md"
-      downstream: ""
-    - path: "docs/engineering/standards/NUMERIC.md"
-      status: ACTIVE_NORMATIVE
-      duty: "数值标准：量纲与标度类别、线性与面亮度标度律、无效值契约、权重语义"
-      upstream: "docs/ACSD_DESIGN.md"
-      downstream: ""
-    - path: "docs/engineering/standards/CONCURRENCY.md"
-      status: ACTIVE_NORMATIVE
-      duty: "并发标准：并行适用范围、共享状态所有权、线程数取值、嵌套并行"
-      upstream: "docs/ACSD_DESIGN.md"
-      downstream: ""
-    - path: "docs/engineering/standards/CACHE.md"
-      status: ACTIVE_NORMATIVE
-      duty: "缓存策略：生产缓存清单与四要素"
-      upstream: "docs/ACSD_DESIGN.md"
-      downstream: ""
-    - path: "docs/engineering/standards/COMPATIBILITY.md"
-      status: ACTIVE_NORMATIVE
-      duty: "兼容性策略：持久化模型、配置与接口的兼容边界"
-      upstream: "docs/ACSD_DESIGN.md"
-      downstream: ""
-    - path: "docs/engineering/standards/OPTIMIZATION.md"
-      status: ACTIVE_NORMATIVE
-      duty: "优化标准：只从实测剖面出发、只改实现不改精度档位"
-      upstream: "docs/ACSD_DESIGN.md"
-      downstream: ""
-    - path: "docs/engineering/standards/DOCUMENTATION.md"
-      status: ACTIVE_NORMATIVE
-      duty: "文档标准：分层、每类文档的必备内容、名词口径同向性"
-      upstream: "docs/ACSD_DESIGN.md"
-      downstream: ""
-    - path: "docs/engineering/standards/DEPENDENCY.md"
-      status: ACTIVE_NORMATIVE
-      duty: "依赖规则：依赖方向、唯一动态加载路径、第三方依赖与工具链锁定读取面"
-      upstream: "docs/ACSD_DESIGN.md"
-      downstream: ""
-    - path: "docs/engineering/resources/PERFORMANCE_MODEL.md"
-      status: ACTIVE_NORMATIVE
-      duty: "性能模型与资源判据：结构原则、编排参数标定、有效并行宽度、冻结常数、L2 冻结判据"
-      upstream: "docs/ACSD_DESIGN.md"
-      downstream: ""
-    - path: "docs/engineering/resources/BENCHMARK.md"
-      status: ACTIVE_NORMATIVE
-      duty: "Benchmark 标准：运行条件、读数口径、机器画像产物"
-      upstream: "docs/ACSD_DESIGN.md"
-      downstream: ""
-    - path: "docs/engineering/resources/cpu/BACKEND.md"
-      status: ACTIVE_NORMATIVE
-      duty: "CPU 后端架构：编译隔离、CPU 与 OS 检测、信任边界、C ABI、逐内核注册、失败回退"
-      upstream: "docs/ACSD_DESIGN.md"
-      downstream: ""
-    - path: "docs/engineering/resources/cpu/ISA_VARIANTS.md"
-      status: ACTIVE_NORMATIVE
-      duty: "ISA 变体与逐 kernel 选路：测量口径、档位决策、注册、编译隔离配方、污染防线"
-      upstream: "docs/ACSD_DESIGN.md"
-      downstream: ""
-    - path: "docs/engineering/resources/cpu/CAPABILITY_PROBE.md"
-      status: ACTIVE_NORMATIVE
-      duty: "CPU-001 能力探测：探测接口、特征位定义与承载面"
-      upstream: "docs/ACSD_DESIGN.md"
-      downstream: ""
-    - path: "docs/engineering/resources/cpu/AVX2_PROVIDER.md"
-      status: ACTIVE_NORMATIVE
-      duty: "CPU-003 AVX2 provider：门面与计算面 TU 划分、能力闸门、容差冻结"
-      upstream: "docs/ACSD_DESIGN.md"
-      downstream: ""
-    - path: "docs/engineering/resources/observability/STRUCTURED_LOGGING.md"
-      status: ACTIVE_NORMATIVE
-      duty: "结构化日志合同（LOG-001）：行格式字段、脱敏、双通道同源"
-      upstream: "docs/ACSD_DESIGN.md"
-      downstream: ""
-    - path: "docs/engineering/resources/observability/RESOURCE_MONITORING.md"
-      status: ACTIVE_NORMATIVE
-      duty: "资源监控合同（LOG-002）：时序工件列定义、采样语义、指纹链、记录项"
-      upstream: "docs/ACSD_DESIGN.md"
-      downstream: ""
-    - path: "docs/engineering/resources/observability/RUN_GRAPH.md"
-      status: ACTIVE_NORMATIVE
-      duty: "运行图合同（LOG-003）：运行图工件字段与语义、与事件流的关系"
-      upstream: "docs/ACSD_DESIGN.md"
-      downstream: ""
-    - path: "docs/engineering/build/BUILD_GRAPH.md"
-      status: ACTIVE_NORMATIVE
-      duty: "生产构建图的传递闭包、非生产闭包面、子项目构建文件、编译定义与链接面"
-      upstream: "docs/ACSD_DESIGN.md"
-      downstream: ""
-    - path: "docs/engineering/build/BUILD_NODES.md"
-      status: ACTIVE_NORMATIVE
-      duty: "两个具名构建节点各自执行的构建动作（细目层）、冻结工具链取值与处置纪律、构建档位与可复现判据；平台角色不在本篇承载"
-      upstream: "docs/ACSD_DESIGN.md"
-      downstream: ""
-    - path: "docs/engineering/build/RELEASE.md"
-      status: ACTIVE_NORMATIVE
-      duty: "发布与版本合同：版本唯一源、生成接口、构建指纹、交付产物与留存、发布候选门槛、发布状态"
-      upstream: "docs/ACSD_DESIGN.md"
-      downstream: ""
-    - path: "docs/engineering/testing/TEST.md"
-      status: ACTIVE_NORMATIVE
-      duty: "测试标准与矩阵：覆盖判据、确定性与容差规则、回归集合、执行范围与分档、独立 Oracle 归属面"
-      upstream: "docs/ACSD_DESIGN.md"
-      downstream: ""
-    - path: "docs/engineering/testing/VALIDATION_EVIDENCE.md"
-      status: ACTIVE_NORMATIVE
-      duty: "验证证据标准：Oracle 独立性、零用例判红、负向注入、基线比较矩阵、四层验收判据、条款强度分级"
-      upstream: "docs/ACSD_DESIGN.md"
-      downstream: ""
-    - path: "docs/engineering/data/ARTIFACTS.md"
-      status: ACTIVE_NORMATIVE
-      duty: "数据工件字段合同、不可用值表示、构建产物留存"
-      upstream: "docs/ACSD_DESIGN.md"
-      downstream: ""
-    - path: "docs/engineering/data/PHASE_PRODUCT_EXCHANGE.md"
-      status: ACTIVE_NORMATIVE
-      duty: "阶段间产品交换：角色与类型强绑定、输入面校验、无效值处置"
-      upstream: "docs/ACSD_DESIGN.md"
-      downstream: ""
-    - path: "docs/engineering/data/ARTIFACT_STORE.md"
-      status: ACTIVE_NORMATIVE
-      duty: "产物库：目录布局、寻址、生命周期与并发访问"
-      upstream: "docs/ACSD_DESIGN.md"
-      downstream: ""
-    - path: "docs/engineering/data/PROVENANCE.md"
-      status: ACTIVE_NORMATIVE
-      duty: "产品溯源：字段、写入者与不可伪造约束"
-      upstream: "docs/ACSD_DESIGN.md"
-      downstream: ""
-    - path: "docs/engineering/governance/DOCUMENT_GOVERNANCE.md"
-      status: ACTIVE_NORMATIVE
-      duty: "文档治理规范：分层模型、准入判据、引用与登记纪律、写法检查、订正意见形状、根条目登记"
-      upstream: "docs/ACSD_DESIGN.md"
-      downstream: ""
-    - path: "docs/engineering/governance/TRACEABILITY.md"
-      status: ACTIVE_NORMATIVE
-      duty: "追溯规范：合同 ID 分类与登记面、文档与代码双向对应、证据层规则"
-      upstream: "docs/ACSD_DESIGN.md"
-      downstream: ""
-    - path: "docs/engineering/governance/DUAL_LINE.md"
-      status: ACTIVE_NORMATIVE
-      duty: "双线文件域与合并点合同：写域互斥、数值等价基线、合并点规则"
-      upstream: "docs/ACSD_DESIGN.md"
-      downstream: ""
-    - path: "docs/engineering/governance/UNRESOLVED.md"
-      status: ACTIVE_NORMATIVE
-      duty: "未决登记：方向裁决、来源核实、已裁、工程阻塞项与更新规则"
-      upstream: "docs/ACSD_DESIGN.md"
-      downstream: ""
-    - path: "docs/engineering/UNIFIED_OBJECTS.md"
-      status: ACTIVE_NORMATIVE
-      duty: "统一工程对象正本；归属 detail 层，待 detail 车道迁出后本路径失效"
-      upstream: "docs/ACSD_DESIGN.md"
-      downstream: ""
-    - path: "docs/detail/infrastructure/troubleshooting.md"
-      status: ACTIVE_INFORMATIVE
-      duty: "常见故障的现象—诊断—处置对照（由原两篇同名排障手册合并：症状速查 + 高风险故障覆盖门）"
-      upstream: "docs/ACSD_DESIGN.md §7.2（机器输出与退出码）"
-      downstream: "acsd_diagnose.py"
-    - path: "docs/science/algorithms/normalize/CALIBRATION_ALGORITHMS.md"
-      status: ACTIVE_NORMATIVE
-      duty: "定标算法推导与逐符号实现锚定"
-      upstream: "docs/ACSD_DESIGN.md §4.2（节点流程）"
-      downstream: "anchor_contract.json、defaults.json 等 25 处"
-    - path: "docs/science/algorithms/normalize/COSMETIC_ALGORITHMS.md"
-      status: ACTIVE_NORMATIVE
-      duty: "坏点检测/修复算法推导与逐符号锚定"
-      upstream: "docs/ACSD_DESIGN.md §4.2（节点流程）"
-      downstream: "anchor_contract.json、README.md 等 14 处"
-      notes: "冻结点：`ALG-COS-001..005`（坏点检测/修复逐公式源码锚定 + TEST-COS-DESIGN-001 + DISP-COS-001..011）"
-    - path: "docs/science/algorithms/export/DRIZZLE_GEOMETRY.md"
-      status: ACTIVE_NORMATIVE
-      duty: "Drizzle 几何与重采样核推导"
-      upstream: "docs/ACSD_DESIGN.md §5.2（固定科学流程）、§6.3（投影算法）"
-      downstream: "ACCEPTANCE_SPEC.md、anchor_contract.json、phase_config_normalize.schema.json 等 25 处"
-    - path: "docs/science/algorithms/common/GAIA_QUERY.md"
-      status: ACTIVE_NORMATIVE
-      duty: "Gaia 星表查询与匹配算法"
-      upstream: "docs/ACSD_DESIGN.md §3.3（精度归属）、§4.2（节点流程）"
-      downstream: "README.md 等 8 处"
-    - path: "docs/science/algorithms/common/GATES_AND_TOLERANCES.md"
-      status: ACTIVE_NORMATIVE
-      duty: "P1 星检测/PSF/WCS 冻结门表与 SNR 定义（机器可校验）"
-      upstream: "docs/ACSD_DESIGN.md §12.1（科学正确性与三重佐证）、§4.4（输出合同）"
-      downstream: "README.md 等 16 处"
-    - path: "docs/science/algorithms/export/HEALPIX_MAPPING.md"
-      status: ACTIVE_NORMATIVE
-      duty: "HEALPix 球面索引映射与层级归约算法"
-      upstream: "docs/ACSD_DESIGN.md §6.3（投影算法）、§3.1（数据对象）"
-      downstream: "anchor_contract.json、registry.json 等 5 处"
-    - path: "docs/science/algorithms/export/HIPS_WRITER.md"
-      status: ACTIVE_NORMATIVE
-      duty: "HiPS 写出算法与格式合同"
-      upstream: "docs/ACSD_DESIGN.md §4.2（节点流程）、§10（I/O 与原子产品）"
-      downstream: "anchor_contract.json、README.md 等 16 处"
-      notes: "冻结点：`ALG-HIPS-001..005`（HiPS 写出逐公式源码锚定 + TEST-HIPS-DESIGN-001 + DISP-HIPS-001..012）"
-    - path: "docs/science/algorithms/common/NOISE_ESTIMATION.md"
-      status: ACTIVE_NORMATIVE
-      duty: "噪声估计算法推导与实现锚定"
-      upstream: "docs/ACSD_DESIGN.md §2.2（P2 跨帧绝对信噪比）、§4.2（节点流程）"
-      downstream: "anchor_contract.json、defaults.json、README.md 等 19 处"
-      notes: "冻结点：`DISP-NOISE-001`、`TEST-NOISE-DESIGN-001`、`ALG-NOISE-001`"
-    - path: "docs/science/algorithms/mosaic/PHASE2_COVERAGE.md"
-      status: ACTIVE_NORMATIVE
-      duty: "coverage/union/target_order 算法与三概念分离"
-      upstream: "docs/ACSD_DESIGN.md §5.2（固定科学流程）"
-      downstream: "memory.md、检查-S6-algorithmsB.md"
-      notes: "冻结点：`ALG-COV-001`、`DISP-COV-001`、`TEST-COV-DESIGN-001`、`SCI-P2-COV-001`"
-    - path: "docs/science/algorithms/mosaic/PHASE2_INTEGRATION.md"
-      status: ACTIVE_NORMATIVE
-      duty: "Phase2 集成算法（加权叠加与 SNR 重建）"
-      upstream: "docs/ACSD_DESIGN.md §5.3（信噪比重建与逆方差叠加）"
-      downstream: "anchor_contract.json、module.yaml 等 5 处"
-      notes: "冻结点：`ALG-P2-INT-001`、`DISP-P2INT-001`、`DISP-P2INT-002`、`TEST-P2-INT-DESIGN-001`、`SCI-P2-INT-001`、`SCI-INT-001`"
-    - path: "docs/science/algorithms/mosaic/PHASE2_MOSAIC_WRITE.md"
-      status: ACTIVE_NORMATIVE
-      duty: "Phase2 产品写出与原子发布合同"
-      upstream: "docs/ACSD_DESIGN.md §10（I/O 与原子产品）"
-      downstream: "问题台账.md"
-      notes: "冻结点：`ALG-P2-HIPS-001`、`HIPS-IMG-001`、`DISP-P2HIPS-001`、`TEST-P2-HIPS-001`、`SCI-UPM-001`、`SCI-INT-001`、`SCI-REJ-001`"
-    - path: "docs/science/algorithms/mosaic/PHASE2_REJECTION.md"
-      status: ACTIVE_NORMATIVE
-      duty: "排异统计量（sigma-clip/winsorized/linear_fit/ESD）算法"
-      upstream: "docs/ACSD_DESIGN.md §5.5（逐像素排异）"
-      downstream: "clause_registry.json、memory.md 等 5 处"
-      notes: "冻结点：`ALG-P2-REJ-001`、`API-P2-REJ-001`"
-    - path: "docs/science/algorithms/mosaic/PHASE2_SAMPLER.md"
-      status: ACTIVE_NORMATIVE
-      duty: "天光采样点选择与采样算法"
-      upstream: "docs/ACSD_DESIGN.md §5.4（信号面（UPM））"
-      downstream: "anchor_contract.json、sampler.h、sampler.cpp 等 11 处"
-    - path: "docs/science/algorithms/mosaic/PHASE2_SESSION.md"
-      status: ACTIVE_NORMATIVE
-      duty: "Phase2 会话装配拓扑与调用序"
-      upstream: "docs/ACSD_DESIGN.md §5.2（固定科学流程）、§8.2（命名块内存管线与块生命周期）"
-      downstream: "memory.md"
-      notes: "冻结点：ALG-P2-SESSION-001 四段装配拓扑/端口连接/调用序逐源码行号锚定+TEST-P2-SESSION-001 设计冻结+DISP 清单"
-    - path: "docs/science/algorithms/mosaic/PHASE2_UPM_IMPL.md"
-      status: ACTIVE_NORMATIVE
-      duty: "Phase2 UPM fit+apply 实现级算法合同"
-      upstream: "docs/ACSD_DESIGN.md §5.4（信号面（UPM））"
-      downstream: "stage2_common.h、memory.md、README.md 等 7 处"
-      notes: "冻结点：`ALG-P2-UPM-IMPL-001`、`DISP-P2UPM-001`、`SCI-UPM-001`"
-    - path: "docs/science/algorithms/export/PHASE3_FITS_IMPL.md"
-      status: ACTIVE_NORMATIVE
-      duty: "Phase3 FITS 写出实现级算法合同"
-      upstream: "docs/ACSD_DESIGN.md §6.2（流程）、§10（I/O 与原子产品）"
-      downstream: "anchor_contract.json、config_registry.json、README.md 等 6 处"
-      notes: "Phase3 FITS 写出实现级合同（p3_output.h:45-60/p3_output.cpp 370 行逐符号行号锚定+F1-F4 原子发布/完整性/二值门/NaN 回环合同+§8 lint 关键词表+SCI-P3-WR-001⇒SCI-P3-001 映射声明 §5+TEST-P3-WR-DESIGN-001 T1-T7 §12+DISP-P3FITS-001..002 §14）"
-    - path: "docs/science/algorithms/export/PHASE3_PROJ_IMPL.md"
-      status: ACTIVE_NORMATIVE
-      duty: "Phase3 投影实现级算法合同"
-      upstream: "docs/ACSD_DESIGN.md §6.3（投影算法）"
-      downstream: "projection_registry.schema.json、CMakeLists.txt 等 9 处"
-      notes: "Phase3 投影/WCS 实现级合同（p3_wcs.h:11-59/p3_wcs.cpp 165 行逐符号行号锚定+G1 CD 构造/PA 推广展开式 §6+G2 正反映射冻结式 §7+错误语义表 §9+并发确定性合同 §10+偏差登记(PA 未接线/kMaxSide 编译期覆盖/TAN 硬编码/dll 未建) §11+TEST-P3-WCS-DESIGN-001 T1-T7 §12+SCI-P3-WCS-001⇒SCI-P3-001 映射声明 §5）"
-    - path: "docs/science/algorithms/export/PHASE3_RESAMPLE.md"
-      status: ACTIVE_NORMATIVE
-      duty: "Phase3 重采样算法与核语义"
-      upstream: "docs/ACSD_DESIGN.md §6.2（流程）、§6.3（投影算法）"
-      downstream: "config_registry.json、memory.md、README.md 等 12 处"
-    - path: "docs/science/algorithms/export/PHASE3_RSMP_IMPL.md"
-      status: ACTIVE_NORMATIVE
-      duty: "Phase3 重采样实现级算法合同"
-      upstream: "docs/ACSD_DESIGN.md §6.2（流程）"
-      downstream: "anchor_contract.json、PHASE3_RSMP_IMPL.md、README.md 等 6 处"
-      notes: "Phase3 HiPS 重采样实现级合同（p3_resample.h 58 行十符号/p3_resample.cpp 239 行逐符号行号锚定+G3 order 选择 pixel_resolution_arcsec 等价性核对 §6.1+G4 采样核（NEAREST 精确 cell/BILINEAR 四象限最近中心切平面双线性 Σw=1 冻结）§6.5+tile 寻址 leaf>>18/fits_index=(511-x)*512+y §6.4+值语义表 §6.6+TileCache FIFO 并发确定性合同 §7+会话编排消费链逐点锚 §8+错误语义表 §9+偏差登记 DISP-P3RSMP-001..005 §11+TEST-P3-RSMP-DESIGN-001 §12+SCI-P3-RES-001⇒SCI-P3-001 映射声明 §5，ALG-P3-003 G3/G4 公式零改动）"
-    - path: "docs/science/algorithms/normalize/PHOTOMETRIC_FIT.md"
-      status: ACTIVE_NORMATIVE
-      duty: "测光拟合算法推导与星等定标"
-      upstream: "docs/ACSD_DESIGN.md §2.1（P1 通量积分拟合：测光校准到测光星等坐标系）、§4.4（输出合同）"
-      downstream: "anchor_contract.json、defaults.json、README.md 等 14 处"
-      notes: "冻结点：`ALG-PHOT-001`、`DISP-PHOT-001`、`TEST-PHOT-DESIGN-001`"
-    - path: "docs/science/algorithms/normalize/PLATESOLVE.md"
-      status: ACTIVE_NORMATIVE
-      duty: "天测解算算法推导与 SIP 前向式"
-      upstream: "docs/ACSD_DESIGN.md §4.2（节点流程）"
-      downstream: "anchor_contract.json、CMakeLists.txt 等 19 处"
-      notes: "§11 冻结增补：ALG-WCS-001 逐符号源码锚定(ipv_solve_from_detections_v1 生产链 12 导出+内核 ipv_select/ipv_triangle/ipv_itertrans/robust_refine/extract_wcs_sip)+像素中心双契约(+0.5 桥接)+DISP-WCS-001..006(CD 退化静默坍缩 R1=001)+TEST-WCS-DESIGN-001 冻结容差+SCI-WCS-001 状态声明(§11.5)"
-    - path: "docs/science/algorithms/normalize/STAR_DETECTION_ALGORITHMS.md"
-      status: ACTIVE_NORMATIVE
-      duty: "星点检测算法推导与冻结门"
-      upstream: "docs/ACSD_DESIGN.md §4.2（节点流程）"
-      downstream: "anchor_contract.json、ipv_api.h 等 14 处"
-      notes: "冻结点：ALG-STARDET-001 逐符号源码锚定(sdet_detect_impl/peaker 七步/sdet_gauss_fit/sdet_lm_fit/reject_star)+DISP-STAR-001..007+TEST-STAR-DESIGN-001 冻结容差+SCI-P1-STAR-001 状态声明(§11.5)"
-    - path: "docs/science/algorithms/normalize/STAR_PSF_ALGORITHMS.md"
-      status: ACTIVE_NORMATIVE
-      duty: "PSF 拟合算法推导（Moffat4/椭圆高斯双模型）"
-      upstream: "docs/ACSD_DESIGN.md §4.2（节点流程）"
-      downstream: "dpsf_psf.cpp 等 10 处"
-    - path: "docs/science/algorithms/mosaic/UPM_SOLVER.md"
-      status: ACTIVE_NORMATIVE
-      duty: "UPM 求解器算法（稀疏平面/阻尼迭代）"
-      upstream: "docs/ACSD_DESIGN.md §5.4（信号面（UPM））"
-      downstream: "clause_registry.json、bad_id_format.json、chain_break.json 等 12 处"
-    - path: "docs/science/unified/DATA_SEMANTICS.md"
-      status: ACTIVE_NORMATIVE
-      duty: "跨阶段数据语义唯一正本（坐标与球面索引、HiPS tile 内行列方向、对象量纲、产品态无效编码、标度类别与 BUNIT、帧身份与溯源最小集）"
-      upstream: "docs/ACSD_DESIGN.md §3.1（数据对象）、§10（I/O 与原子产品）"
-      notes: "由原 DATA_SEMANTICS 迁入重写：模块级端口字段表移交 detail 正本的模块登记页与 engineering 正本的接口页，本分册只固定语义；DATA-* 合同编号的正本仍在 eng/contracts/data/contract_index.yaml。HiPS tile 的行项与列项各由一手来源锚定并与真实 tile 逐像元对拍，单位串大写 ADU 登记为对 FITS 的大小写显式偏离"
-    - path: "docs/detail/normalize/pipeline.md"
-      status: ACTIVE_NORMATIVE
-      duty: "normalize 阶段的目标态详细设计"
-      upstream: "docs/ACSD_DESIGN.md §4（normalize：单帧标准化）"
-      downstream: "hips_storage_form.schema.json、psfsw.h、psf_information.h、wcs_degrade_policy.h"
-      notes: "DESIGN-P1-001：Phase1 单帧观测模型、PSF/噪声/信息产品目标态"
-    - path: "docs/detail/mosaic/pipeline.md"
-      status: ACTIVE_NORMATIVE
-      duty: "mosaic 阶段的目标态详细设计"
-      upstream: "docs/ACSD_DESIGN.md §5（mosaic：相对定标·排异·集成）"
-      downstream: "dead_config_keys.json、hips_storage_form.schema.json"
-      notes: "DESIGN-P2-001：Phase2 UPM/排异及扩展源与点源最优合并目标态"
-    - path: "docs/detail/export/pipeline.md"
-      status: ACTIVE_NORMATIVE
-      duty: "export 阶段的目标态详细设计"
-      upstream: "docs/ACSD_DESIGN.md §6（export：投影导出）"
-      downstream: "hips_storage_form.schema.json、phase_config_export.schema.json、test_export_crop_contract.py 等 8 处"
-      notes: "DESIGN-P3-001：Phase3 HiPS 到科学 WCS FITS 目标态"
-    - path: "docs/detail/infrastructure/storage_form.md"
-      status: ACTIVE_NORMATIVE
-      duty: "产品落盘形态（DESIGN-STORAGE-001）：裸 HiPS / zstd 归档包的定义、形态判据、完整形态、索引分层、properties 与哈希口径、形态的输入配置与清单登记"
-      upstream: "docs/ACSD_DESIGN.md §10（I/O 与原子产品）"
-      downstream: "ACCEPTANCE_SPEC.md、ENGINEERING_SPEC.md、dead_config_keys.json 等 8 处"
-    - path: "docs/detail/normalize/modules/star_detection.md"
-      status: ACTIVE_NORMATIVE
-      duty: "星检测模块实现细节设计（设计稿净室②段）：16 算子逐项规格，论文锚定 5（YvV95/T&S06/B&A96 §3·§6/Stetson 1987/信赖域 LM 文献）＋替换为论文构造 1（O11→SExtractor 多阈值 deblending 树，B&A96 §4）＋Project-defined 10（就地标注）；三条冻结合同与重写边界；CLEAN 门与 DAOFIND 门/Kron 孔径备置合同"
-      upstream: "docs/ACSD_DESIGN.md §2（核心科学方法：五个创新点）、§4（normalize：单帧标准化）；docs/science/algorithms/normalize/STAR_DETECTION_ALGORITHMS.md（ALG §11.4 冻结 κ 表）"
-      downstream: "unresolved_registry.json"
-      notes: "设计稿：YvV q²=1.4281 行为锚冻结；σ_eff=2.2666 为 κ 1.25× 残差候选成因假设（登记未改表）；引文勘误 YvV95=Signal Processing 44(2)、T&S06=IEEE TSP 54(6)"
-    - path: "docs/detail/common/unified_model.md"
-      status: ACTIVE_NORMATIVE
-      duty: "统一观测模型、数据对象表与三类配置的唯一正本"
-      upstream: "docs/ACSD_DESIGN.md §3.1（数据对象）、§3.2（三类配置）"
-      downstream: "ENGINEERING_SPEC.md、clause_registry.json 等 43 处"
-      notes: "数据对象与三类配置分离（docs/ACSD_DESIGN §0/§2 指名）"
-    - path: "docs/detail/infrastructure/log_and_error_system.md"
-      status: ACTIVE_NORMATIVE
-      duty: "日志与错误系统详细设计（LOG-004）：层次架构、数据对象、落点与 output_dir 的关系、生命周期、与 manifest/provenance 和 observability 各面的关系"
-      upstream: "docs/ACSD_DESIGN.md §7.3（错误传播与日志）、§10（I/O 与原子产品）"
-      downstream: "ACCEPTANCE_SPEC.md、ENGINEERING_SPEC.md、runtime_event_stream_test.cpp 等 6 处"
-      notes: "判据 = `CHK-LOG-SYS`（`docs/engineering/contracts/LOG_AND_ERROR.md`）"
-    - path: "docs/engineering/contracts/FITS_IO.md"
-      status: ACTIVE_NORMATIVE
-      duty: "FITS 流式读写接口合同"
-      upstream: "docs/ACSD_DESIGN.md §10（I/O 与原子产品）"
-      downstream: "fits_stream_v1.h"
-    - path: "docs/engineering/contracts/HIPS_IO.md"
-      status: ACTIVE_NORMATIVE
-      duty: "HiPS 输入接口合同"
-      upstream: "docs/ACSD_DESIGN.md §10（I/O 与原子产品）"
-      downstream: "hips_storage_form.schema.json、test_hips_input_contract.py 等 6 处"
-    - path: "docs/detail/common/shared_libraries.md"
-      status: ACTIVE_INFORMATIVE
-      duty: "共享权威基础库：HEALPix 核心（NESTED 唯一实现）+ SHA-256 + 标量精度抽象。作为全链路通用基础设施，被上层科学/IO/浏览器复用，不承载业务科学语义"
-      upstream: "docs/ACSD_DESIGN.md §8.5（模块与 ABI）"
-      downstream: ""
-      notes: "冻结点：`API-P1-001`"
-    - path: "docs/detail/registry/acsd.phase1.calibration.md"
-      status: GENERATED
-      duty: "Registry production 模块(唯一源=module_adapters.cpp descriptor)。职责由"
-      upstream: "docs/ACSD_DESIGN.md §8.5（模块与 ABI）"
-      downstream: "unified_object_compatibility_map_v1.json"
-      notes: "eng/tools/quality/gen_module_readmes.py 生成"
-    - path: "docs/detail/registry/acsd.phase1.cosmetic.md"
-      status: GENERATED
-      duty: "Registry production 模块(唯一源=module_adapters.cpp descriptor)。职责:"
-      upstream: "docs/ACSD_DESIGN.md §8.5（模块与 ABI）"
-      downstream: "unified_object_compatibility_map_v1.json、memory.md"
-      notes: "eng/tools/quality/gen_module_readmes.py 生成"
-    - path: "docs/detail/registry/acsd.phase1.drizzle.md"
-      status: GENERATED
-      duty: "Registry production 模块（唯一源=module_adapters.cpp descriptor）"
-      upstream: "docs/ACSD_DESIGN.md §8.5（模块与 ABI）"
-      downstream: "unified_object_compatibility_map_v1.json"
-      notes: "eng/tools/quality/gen_module_readmes.py 生成"
-    - path: "docs/detail/registry/acsd.phase1.hips-writer.md"
-      status: ACTIVE_NORMATIVE
-      duty: "生产实现=lib/infrastructure/aio/src/hips/aio_hips_writer.cpp（CMake"
-      upstream: "docs/ACSD_DESIGN.md §8.5（模块与 ABI）"
-      downstream: "unified_object_compatibility_map_v1.json、memory.md、CMakeLists.txt 等 5 处"
-      notes: "手写合同页（registry 无 hips_writer descriptor，生成器不覆盖；gen_module_readmes.py 以 module_adapters.cpp 为源——重生成时须排除/保留本页）"
-    - path: "docs/detail/registry/acsd.phase1.noise-snr.md"
-      status: GENERATED
-      duty: "Registry production 模块(唯一源=module_adapters.cpp descriptor)。职责由"
-      upstream: "docs/ACSD_DESIGN.md §8.5（模块与 ABI）"
-      downstream: "anchor_contract.json、memory.md"
-      notes: "eng/tools/quality/gen_module_readmes.py 生成"
-    - path: "docs/detail/registry/acsd.phase1.photometry.md"
-      status: GENERATED
-      duty: "Registry production 模块(唯一源=module_adapters.cpp descriptor)。职责由"
-      upstream: "docs/ACSD_DESIGN.md §8.5（模块与 ABI）"
-      downstream: "anchor_contract.json、memory.md"
-      notes: "eng/tools/quality/gen_module_readmes.py 生成"
-    - path: "docs/detail/registry/acsd.phase1.session.md"
-      status: ACTIVE_NORMATIVE
-      duty: "模块 acsd.phase1.session"
-      upstream: "docs/ACSD_DESIGN.md §8.5（模块与 ABI）"
-      downstream: "memory.md"
-      notes: "手写合同页（生成器不覆盖）：`eng/tools/quality/gen_module_readmes.py` 重生成时须保留本页"
-    - path: "docs/detail/registry/acsd.phase1.star-detection.md"
-      status: ACTIVE_NORMATIVE
-      duty: "模块 acsd.p1.star_detection"
-      upstream: "docs/ACSD_DESIGN.md §8.5（模块与 ABI）"
-      downstream: "unified_object_compatibility_map_v1.json"
-      notes: "手写合同页（生成器不覆盖）：`eng/tools/quality/gen_module_readmes.py` 重生成时须保留本页"
-    - path: "docs/detail/registry/acsd.phase1.star-psf.md"
-      status: GENERATED
-      duty: "Registry production 模块(唯一源=module_adapters.cpp descriptor)。职责由"
-      upstream: "docs/ACSD_DESIGN.md §8.5（模块与 ABI）"
-      downstream: "unified_object_compatibility_map_v1.json"
-      notes: "eng/tools/quality/gen_module_readmes.py 生成"
-    - path: "docs/detail/registry/acsd.phase1.wcs-platesolve.md"
-      status: ACTIVE_NORMATIVE
-      duty: "Registry production 模块(唯一源=module_adapters.cpp:512-526 descriptor)"
-      upstream: "docs/ACSD_DESIGN.md §8.5（模块与 ABI）"
-      downstream: "anchor_contract.json"
-      notes: "冻结点：`SCI-WCS-001`、`ALG-WCS-001`、`SCI-P1-WCS-001`、`API-WCS-001`、`DISP-WCS-001`、`TEST-WCS-DESIGN-001`"
-    - path: "docs/detail/registry/acsd.phase1.writer.md"
-      status: GENERATED
-      duty: "Registry production 模块(唯一源=module_adapters.cpp descriptor)。职责由"
-      upstream: "docs/ACSD_DESIGN.md §8.5（模块与 ABI）"
-      downstream: ""
-      notes: "eng/tools/quality/gen_module_readmes.py 生成"
-    - path: "docs/detail/registry/acsd.phase2.coverage.md"
-      status: ACTIVE_INFORMATIVE
-      duty: "模块 acsd.p2.coverage"
-      upstream: "docs/ACSD_DESIGN.md §8.5（模块与 ABI）"
-      downstream: "memory.md"
-    - path: "docs/detail/registry/acsd.phase2.integrate.md"
-      status: ACTIVE_INFORMATIVE
-      duty: "逐像素加权积分 reducer——signal=Σwᵢxᵢ/Σwᵢ（仅 eligible ∧"
-      upstream: "docs/ACSD_DESIGN.md §8.5（模块与 ABI）"
-      downstream: ""
-    - path: "docs/detail/registry/acsd.phase2.reject.md"
-      status: ACTIVE_INFORMATIVE
-      duty: "eligibility strided gather（source_indices 权威映射"
-      upstream: "docs/ACSD_DESIGN.md §8.5（模块与 ABI）"
-      downstream: ""
-      notes: "冻结点：`SCI-REJ-001`、`ALG-P2-REJ-001`、`API-P2-REJ-001`、`API-P2-001`、`TEST-P2-REJ-DESIGN-001`、`TEST-P2-REJ-001`"
-    - path: "docs/detail/registry/acsd.phase2.resample.md"
-      status: GENERATED
-      duty: "Registry production 模块(唯一源=module_adapters.cpp descriptor)。职责由"
-      upstream: "docs/ACSD_DESIGN.md §8.5（模块与 ABI）"
-      downstream: "unified_object_compatibility_map_v1.json"
-      notes: "eng/tools/quality/gen_module_readmes.py 生成"
-    - path: "docs/detail/registry/acsd.phase2.sample.md"
-      status: GENERATED
-      duty: "三阶段 background-clean 控制点采样（Stage A 候选 patch →"
-      upstream: "docs/ACSD_DESIGN.md §8.5（模块与 ABI）"
-      downstream: "unified_object_compatibility_map_v1.json"
-      notes: "eng/tools/quality/gen_module_readmes.py 生成"
-    - path: "docs/detail/registry/acsd.phase2.session.md"
-      status: ACTIVE_NORMATIVE
-      duty: "模块 acsd.phase2.session"
-      upstream: "docs/ACSD_DESIGN.md §8.5（模块与 ABI）"
-      downstream: ""
-      notes: "手写登记：acsd.p2.session 五导出 C API/四段 canonical 节点/DLL 目标未建如实登记/重生成时须保留"
-    - path: "docs/detail/registry/acsd.phase2.upm-apply.md"
-      status: ACTIVE_INFORMATIVE
-      duty: "职责（apply）：按 frame_id 稳定绑定逐块校准——**默认只扣偏差 δ_k、保留公共"
-      upstream: "docs/ACSD_DESIGN.md §8.5（模块与 ABI）"
-      downstream: ""
-    - path: "docs/detail/registry/acsd.phase2.upm-fit.md"
-      status: ACTIVE_INFORMATIVE
-      duty: "职责（fit）：消费 DATA-P2-SMP 控制观测，联合求解唯一 UPM——"
-      upstream: "docs/ACSD_DESIGN.md §8.5（模块与 ABI）"
-      downstream: "unified_object_compatibility_map_v1.json"
-    - path: "docs/detail/registry/acsd.phase2.write.md"
-      status: ACTIVE_INFORMATIVE
-      duty: "*负责**（stage2.cpp HIPS_WRITE 域，ALG-P2-HIPS-001..004）："
-      upstream: "docs/ACSD_DESIGN.md §8.5（模块与 ABI）"
-      downstream: "module_adapters.cpp"
-    - path: "docs/detail/registry/acsd.phase3.properties.md"
-      status: GENERATED
-      duty: "Registry production 模块(唯一源=module_adapters.cpp descriptor)。职责由"
-      upstream: "docs/ACSD_DESIGN.md §8.5（模块与 ABI）"
-      downstream: "anchor_contract.json"
-      notes: "eng/tools/quality/gen_module_readmes.py 生成"
-    - path: "docs/detail/registry/acsd.phase3.resample2.md"
-      status: ACTIVE_INFORMATIVE
-      duty: "HiPS tile 重采样域——sampler 生命周期（open/open_ex/"
-      upstream: "docs/ACSD_DESIGN.md §8.5（模块与 ABI）"
-      downstream: "anchor_contract.json、memory.md"
-      notes: "冻结点：`SCI-P3-001`、`SCI-P3-RES-001`、`ALG-P3-003`、`ALG-P3-RSMP-IMPL-001`、`API-P3-RSMP-001`、`API-P3-001`、`TEST-P3-RSMP-DESIGN-001`、`TEST-P3-RES-001`、`DISP-P3RSMP-001`"
-    - path: "docs/detail/registry/acsd.phase3.verify.md"
-      status: GENERATED
-      duty: "Registry production 模块(唯一源=module_adapters.cpp descriptor)。职责由"
-      upstream: "docs/ACSD_DESIGN.md §8.5（模块与 ABI）"
-      downstream: ""
-      notes: "eng/tools/quality/gen_module_readmes.py 生成"
-    - path: "docs/detail/registry/acsd.phase3.wcs.md"
-      status: ACTIVE_INFORMATIVE
-      duty: "TAN(gnomonic) 投影域——descriptor 构造（G1：CRPIX/CRVAL/"
-      upstream: "docs/ACSD_DESIGN.md §8.5（模块与 ABI）"
-      downstream: "memory.md"
-      notes: "冻结点：`SCI-P3-001`、`ALG-P3-PROJ-IMPL-001`、`ALG-P3-002`、`API-P3-PROJ-001`、`API-P3-001`、`TEST-P3-WCS-DESIGN-001`、`TEST-P3-WCS-001`、`SCI-P3-WCS-001`"
-    - path: "docs/detail/registry/acsd.phase3.writer.md"
-      status: ACTIVE_INFORMATIVE
-      duty: "把上游重采样结果（signal+coverage）写成 FITS 单文件"
-      upstream: "docs/ACSD_DESIGN.md §8.5（模块与 ABI）"
-      downstream: "memory.md"
-      notes: "冻结点：`SCI-P3-001`、`ALG-P3-FITS-IMPL-001`、`API-P3-FITS-001`、`API-P3-001`、`TEST-P3-WR-DESIGN-001`、`TEST-P3-WR-001`、`DISP-P3FITS-001`、`SCI-P3-WR-001`、`ALG-P3-004`"
-    - path: "docs/detail/00_INDEX.md"
-      status: ACTIVE_NORMATIVE
-      duty: "插件工作细节层的索引与阅读顺序"
-      upstream: "docs/ACSD_DESIGN.md §0（文档权威与索引）"
-      downstream: "CONTROL_PACK_SPEC.md、ENGINEERING_SPEC.md、README.md 等 5 处"
-      notes: "插件文档总索引（§0 权威链 ⑥）"
-    - path: "docs/detail/infrastructure/aio.md"
-      status: ACTIVE_NORMATIVE
-      duty: "FITS/HiPS/manifest 的**唯一 I/O 边界**：读、写、校验、原子提交、缓存"
-      upstream: "docs/ACSD_DESIGN.md §10（I/O 与原子产品）"
-      downstream: "config_registry.json、atomic_durability_probe.cpp 等 9 处"
-    - path: "docs/detail/infrastructure/cli.md"
-      status: ACTIVE_NORMATIVE
-      duty: "三个平级命令（`normalize` / `mosaic` / `export`）的入口：命令解析、配置校验、检查页面（绿/橙/红 + yes 确认）、模板生成、帮助、机器输出、取消与退出码；科学公式实现在 `lib/a"
-      upstream: "docs/ACSD_DESIGN.md §7.1（命令树）、§7.2（机器输出与退出码）"
-      downstream: "phase_config_export.schema.json、phase_config_mosaic.schema.json、phase_config_normalize.schema.json 等 5 处"
-    - path: "docs/detail/infrastructure/runtime.md"
-      status: ACTIVE_NORMATIVE
-      duty: "typed DAG 的执行（注册、依赖、调度）、统一线程预算、**locality-aware 编排**、流式内存管理、资源监控、取消与 checkpoint"
-      upstream: "docs/ACSD_DESIGN.md §8.4（顶层结构）"
-      downstream: "config_registry.json"
-    - path: "docs/detail/infrastructure/benchmark.md"
-      status: ACTIVE_NORMATIVE
-      duty: "`benchmark` 按 kernel 测量数值误差、吞吐、线程扩展、内存带宽、block/worker，生成机器绑定的 `cpu_profile`"
-      upstream: "docs/ACSD_DESIGN.md §9（CPU 后端与资源）"
-      downstream: "ACCEPTANCE_SPEC.md、config_registry.json"
-    - path: "docs/detail/infrastructure/observability.md"
-      status: ACTIVE_NORMATIVE
-      duty: "结构化日志、事件流（JSONL）、运行图、资源监控与诊断，贯穿 CLI 到科学模块"
-      upstream: "docs/ACSD_DESIGN.md §8.4（顶层结构）"
-      downstream: "ACCEPTANCE_SPEC.md、resource_gate_v1.json 等 18 处"
-    - path: "docs/detail/infrastructure/gaia_xpsd_client.md"
-      status: ACTIVE_NORMATIVE
-      duty: "查询 Gaia（及 XPSD 等外部服务）星表数据，管理网络、**多级缓存与查询合并**、坐标/历元语义与版本，供 platesolve 等消费"
-      upstream: "docs/ACSD_DESIGN.md §8.4（顶层结构）"
-      downstream: "config_registry.json"
-    - path: "docs/detail/infrastructure/hips_browser.md"
-      status: ACTIVE_NORMATIVE
-      duty: "未来 GUI 可视化组件，浏览 HiPS 产品（渲染、缩放、导航）与工程诊断"
-      upstream: "docs/ACSD_DESIGN.md §8.4（顶层结构）"
-      downstream: "config_registry.json"
-    - path: "docs/science/photometry/references/PHOTOMETRY_RESEARCH_PACK.md"
-      status: ACTIVE_INFORMATIVE
-      duty: "测光标定的研究包（文献与开源对照）"
-      upstream: "docs/ACSD_DESIGN.md §2.1（P1 通量积分拟合：测光校准到测光星等坐标系）、附录 B（外部标准与文献）"
-      downstream: "unresolved_registry.json"
-    - path: "docs/science/formats/HIPS_TILE_FORMAT.md"
-      status: ACTIVE_INFORMATIVE
-      duty: "IVOA HiPS 标准对瓦片（tile）文件格式的规定（21 条带英文原文引文与 URL 的一手查证）"
-      upstream: "docs/ACSD_DESIGN.md §4.4（输出合同）、附录 B（外部标准与文献）"
-      downstream: ""
-    - path: "docs/science/detection/ASTROMETRY.md"
-      status: ACTIVE_NORMATIVE
-      duty: "WCS/SIP 天体测量科学口径：像元-天球桥接、切平面投影与畸变模型、不变量与外部闭环判据"
-      upstream: "docs/ACSD_DESIGN.md §4.2（节点流程）、§4.4（输出合同）"
-      notes: "由原 ASTROMETRY 迁入重写：剥离源码行号与逐次运行读数，只保留公式、约定、不变量与可复现判据；闭环指标的阈值数值面待标定。发散区按 C&G Paper II 落在原生赤道而非天球北极；桥接门的 C_env、FOV 与余量三组常数互锁"
-    - path: "docs/science/calibration/CALIBRATION.md"
-      status: ACTIVE_NORMATIVE
-      duty: "定标科学口径（母版约定、单帧标定式与双分支、平场响应适用域、暗流曝光线性与曝光容差科学判据、标度声明拒绝规则）"
-      upstream: "docs/ACSD_DESIGN.md §4.2（节点流程）、§3.3（精度归属）"
-      notes: "由原 CALIBRATION 迁入重写；缺陷可分性条款并入同目录 CCD_DEFECT。flat 只表示盘上母版、除法一律作用于 flat_norm；暗流截距失配式带显式前提与偏置电平失配项；暗流线性表与亮场稳健尺度为历史读数（无复跑脚本）"
-    - path: "docs/science/noise_snr/NOISE_SNR.md"
-      status: ACTIVE_NORMATIVE
-      duty: "噪声模型、绝对信噪比、方差与协方差传播的唯一正本：两个方差面、信噪比定义与参考通量基准、逆方差定权与协方差二次型、掩膜半径的物理导出"
-      upstream: "docs/ACSD_DESIGN.md §2.2（P2 跨帧绝对信噪比）、§2.4（P4 重建稠密信噪比）、§5.3（信噪比重建与逆方差叠加）、§3.1（数据对象）"
-      downstream: "docs/detail/normalize/pipeline.md、docs/detail/common/unified_model.md、docs/detail/registry/ 9 处、docs/engineering/contracts/CONFIG.md、docs/engineering/governance/{TRACEABILITY,UNRESOLVED}.md、docs/engineering/resources/PERFORMANCE_MODEL.md、docs/engineering/standards/NUMERIC.md、docs/engineering/UNIFIED_OBJECTS.md、docs/GLOSSARY.md、docs/science/{integration/{INTEGRATION,REJECTION},sky/UPM,projection/HIPS_TO_FITS,photometry/PHOTOMETRY}.md、docs/science/algorithms/{common/{GATES_AND_TOLERANCES,NOISE_ESTIMATION},export/PHASE3_RESAMPLE}.md、eng/contracts/data/{clause_registry,contract_index}、eng/contracts/schemas/phase_config_normalize.schema.json、eng/packaging/config/{config_registry.json,defaults.json} 等 35 处"
-      notes: "唯一正本指认：背景方差面、加权方差面、绝对信噪比、逐源通量不确定度、逆方差定权与协方差传播六件事同属一个物理口径，合为一册，不得在别处另立同主题正本；四合一吸收声明：原噪声模型、点扩散函数信号信噪比、控制点权重信噪比、不确定度协方差四个旧件统一由本册正文承载，不再各自成册；产品面只发布方差对角线，完整协方差矩阵不作为产品交付，方差面取有限对/成对零/NaN 三态互斥编码；帧面通量不确定度与统一测光坐标系下的通量不确定度必须分名，二者相差该帧测光标度因子，叠加权重的归一化因子取与帧无关的公共通量锚"
-    - path: "docs/science/drizzle/DRIZZLE.md"
-      status: ACTIVE_NORMATIVE
-      duty: "守恒映射算子的科学正本：drop 归一核、面亮度归一分母、方差与协方差传播、几何闭合与常量场判据"
-      upstream: "docs/ACSD_DESIGN.md §2.3（P3 守恒映射算子：平面到 HEALPix drizzle）、§4.2（normalize：单帧标准化）"
-      notes: 平面到球面的守恒重采样唯一正本；球面到平面一侧的重采样口径由 docs/science/resample/RESAMPLE.md 承担，两者不合并；pixfrac 值域 0 < pixfrac <= 1 由 eng/contracts/schemas/phase_config_normalize.schema.json 机器强制；数值默认 0.8 在本册「参数与常数」与 eng/packaging/config/defaults.json（authority_status=owner_adjudicated）两处一致，而同一 schema 的 algorithm_drizzle_pixfrac 描述仍写「数值默认未冻结（defaults.json 的 drizzle.pixfrac 为 pending_authority）」——该描述与 defaults.json 现状不符，数值默认的权威归属口径尚未在三处统一，登记为待 eng 侧裁决
-    - path: "docs/science/integration/INTEGRATION.md"
-      status: ACTIVE_NORMATIVE
-      duty: "逆方差叠加与 SNR 重建的科学公式"
-      upstream: "docs/ACSD_DESIGN.md §5.3（信噪比重建与逆方差叠加）"
-      downstream: "clause_registry.json、README.md 等 37 处"
-    - path: "docs/science/sky/UPM.md"
-      status: ACTIVE_NORMATIVE
-      duty: "统一相对模型（UPM）的科学公式与可辨识性"
-      upstream: "docs/ACSD_DESIGN.md §5.4（信号面（UPM））"
-      downstream: "ACCEPTANCE_SPEC.md、config_registry.json 等 201 处"
-    - path: "docs/science/projection/HIPS_TO_FITS.md"
-      status: ACTIVE_NORMATIVE
-      duty: "HiPS→FITS 投影导出的科学公式与核语义"
-      upstream: "docs/ACSD_DESIGN.md §6.2（流程）、§6.3（投影算法）"
-      downstream: "clause_registry.json、phase_config_export.schema.json、config_registry.json 等 73 处"
-    - path: "docs/science/photometry/PHOTOMETRY.md"
-      status: ACTIVE_NORMATIVE
-      duty: "测光科学公式与测光一致性判据的误差预算"
-      upstream: "docs/ACSD_DESIGN.md §2.1（P1 通量积分拟合：测光校准到测光星等坐标系）、§4.4（输出合同）"
-      downstream: "defaults.json、test_cfg001_contracts.py 等 193 处"
-    - path: "docs/science/psf/PSF.md"
-      status: ACTIVE_NORMATIVE
-      duty: "PSF 建模的科学正本：轮廓模型与 σ 口径、FWHM 因子、解析通量、拟合残差截尾标度及其适用域"
-      upstream: "docs/ACSD_DESIGN.md §2.1（P1 通量积分拟合：测光校准到测光星等坐标系）、§4.2（节点流程）"
-      notes: PSF 建模唯一正本；σ 口径（含与 σ_g 口径的换算与对照）、FWHM 因子、解析通量、窗截尾份额与截尾均值→σ 因子在本册给出可独立复算的推导与脚本；位置角 θ 的规范值域与轴约定 sx ≥ sy、位置角的归轴归约判法、以及判据中的反例式判法也在本册给出；本分册的公式与常数均为针对本仓七参数模型的独立推导，外部文献只承担另一尺度口径的出处与判据设计依据；psf 相关配置的模型取值权威见 docs/engineering/contracts/CONFIG.md
-    - path: "docs/science/resample/RESAMPLE.md"
-      status: ACTIVE_NORMATIVE
-      duty: "重采样的科学正本：层序选择、采样核权重与样本级掩膜、行/列归一算子、协方差传播、有效 PSF 与输出帧 Q/W 重算"
-      upstream: "docs/ACSD_DESIGN.md §6.1（export：投影导出）、§6.2（流程）、§6.3（投影算法）"
-      notes: 投影之后平面网格上的重采样唯一正本；帧面到球面的守恒重采样由 docs/science/drizzle/DRIZZLE.md 承担，两者不合并；对外配置的 sampler 取值域 nearest | bilinear 见 eng/contracts/schemas/phase_config_export.schema.json，而本册「采样核的注册与准入」的注册表 id 是 nearest / bilinear_4quad / bilinear_area_overlap_exact（bicubic 与 lanczos 未注册）——配置 token 与注册表 id 的映射缺失，eng 侧全仓核不到任何把 bilinear 对应到具体核 id 的声明，登记为待补齐
-    - path: "docs/science/integration/REJECTION.md"
-      status: ACTIVE_NORMATIVE
-      duty: "逐像素排异的科学定义与合法性窗口"
-      upstream: "docs/ACSD_DESIGN.md §5.5（逐像素排异）"
-      downstream: "anchor_contract.json、phase_config_mosaic.schema.json、config_registry.json 等 79 处"
-    - path: "docs/science/unified/SCIENCE_SCOPE.md"
-      status: ACTIVE_NORMATIVE
-      duty: "科学范围与假设正本（处理链、标度类别链与标度律、局部平稳假设的失效判据、两个方差面、有效域与失效条件）"
-      upstream: "docs/ACSD_DESIGN.md §1（项目定位）、§2（核心科学方法：五个创新点）"
-      notes: "由原 SCIENCE_SCOPE 迁入重写并吸收其假设条款族；合同编号 SCI-SCOPE-001 沿用不变。局部平稳判据的符号取 s_log 以与信噪比指数 γ 分名，冻结面归本分册；标度律的正文与推导移交同目录 DATA_SEMANTICS"
-    - path: "docs/science/detection/STAR_DETECTION.md"
-      status: ACTIVE_NORMATIVE
-      duty: "星点检测科学口径（像元中心约定、检测阈值与其噪声单位换算、亚像素质心、召回域统计判据、饱和与边缘判据）"
-      upstream: "docs/ACSD_DESIGN.md §2.1（P1 通量积分拟合：测光校准到测光星等坐标系）、§4.2（节点流程）"
-      notes: "由原 STAR_DETECTION 迁入重写；逐档 99% 召回阈的复跑入口不在仓内，阈值表登记为待复算，取值路径在本分册给出。阈值等效倍数按生产 Young–van Vliet 核冻结，权威路径为星表引导检测、盲检为显式声明的诊断路径"
-    - path: "docs/science/unified/UNIFIED_SCIENCE_MODEL.md"
-      status: ACTIVE_NORMATIVE
-      duty: "跨阶段统一科学模型正本（线性观测模型、科学目标分层、点源与扩展源最优统计、绝对信噪比与逆方差权重的唯一换算、对象与权重的关系）"
-      upstream: "docs/ACSD_DESIGN.md §2（核心科学方法：五个创新点）、§3.1（数据对象）"
-      notes: "由原 UNIFIED_SCIENCE_MODEL 迁入重写；ACSD-SCIENCE-MODEL-001 沿用不变，w = SNR²/F_ref² = 1/σ_F² 是全链唯一权重换算。帧间相关时用一般分块协方差而非块对角；点源族与面亮度族的量纲由承载面决定"
-    - path: "docs/detail/common/unified_objects.md"
-      status: ACTIVE_INFORMATIVE
-      duty: "统一数据对象登记：细节层消费工程统一对象合同的方式，不定义新对象"
-      upstream: "docs/ACSD_DESIGN.md §3.1（数据对象）"
-    - path: "docs/engineering/gui/GUI_DESIGN.md"
-      status: ACTIVE_NORMATIVE
-      duty: "GUI 权威设计：定位边界、总体架构、预配置分组与构建方式"
-      upstream: "docs/ACSD_DESIGN.md §12（图形界面）"
-  archived:
+  - path: docs/ACSD_DESIGN.md
+    status: ACTIVE_NORMATIVE
+    duty: 最高设计：用户目标、三命令、产品边界、软件架构和发行责任
+    upstream: 无上游
+  - path: docs/DOCUMENT_INDEX.yaml
+    status: ACTIVE_NORMATIVE
+    duty: 全文档唯一地图：Git 跟踪 docs 文件的职责、上游与用途分类
+    upstream: docs/ACSD_DESIGN.md
+  - path: docs/GLOSSARY.md
+    status: ACTIVE_INFORMATIVE
+    duty: 全项目术语与别名登记
+    upstream: docs/ACSD_DESIGN.md
+  - path: docs/README.md
+    status: ACTIVE_INFORMATIVE
+    duty: docs 目录职责与阅读入口
+    upstream: docs/ACSD_DESIGN.md
+  - path: docs/detail/00_INDEX.md
+    status: ACTIVE_INFORMATIVE
+    duty: 细节层阅读导航：模块、接口和生产调用的实施入口
+    upstream: docs/ACSD_DESIGN.md
+  - path: docs/detail/README.md
+    status: ACTIVE_INFORMATIVE
+    duty: docs/detail 目录职责与阅读入口
+    upstream: docs/README.md
+  - path: docs/detail/common/README.md
+    status: ACTIVE_INFORMATIVE
+    duty: docs/detail/common 目录职责与阅读入口
+    upstream: docs/detail/README.md
+  - path: docs/detail/common/shared_libraries.md
+    status: ACTIVE_INFORMATIVE
+    duty: 共享权威基础库：HEALPix 核心（NESTED 唯一实现）+ SHA-256 + 标量精度抽象。作为全链路通用基础设施，被上层科学/IO/浏览器复用，不承载业务科学语义
+    upstream: docs/engineering/architecture/ARCHITECTURE.md
+  - path: docs/detail/common/unified_model.md
+    status: ACTIVE_INFORMATIVE
+    duty: 实现字段与数据模型参考；物理定义服从统一科学与数据语义
+    upstream: docs/science/unified/DATA_SEMANTICS.md
+  - path: docs/detail/common/unified_objects.md
+    status: ACTIVE_INFORMATIVE
+    duty: 统一数据对象登记：细节层消费工程统一对象合同的方式，不定义新对象
+    upstream: docs/engineering/UNIFIED_OBJECTS.md
+  - path: docs/detail/export/README.md
+    status: ACTIVE_INFORMATIVE
+    duty: docs/detail/export 目录职责与阅读入口
+    upstream: docs/detail/README.md
+  - path: docs/detail/export/pipeline.md
+    status: ACTIVE_INFORMATIVE
+    duty: 单 signal HiPS 到普通 WCS FITS 的实施边界与生产入口导航
+    upstream: docs/science/projection/HIPS_TO_FITS.md；docs/engineering/architecture/ARCHITECTURE.md
+  - path: docs/detail/infrastructure/README.md
+    status: ACTIVE_INFORMATIVE
+    duty: docs/detail/infrastructure 目录职责与阅读入口
+    upstream: docs/detail/README.md
+  - path: docs/detail/infrastructure/aio.md
+    status: ACTIVE_NORMATIVE
+    duty: FITS/HiPS/manifest 的**唯一 I/O 边界**：读、写、校验、原子提交、缓存
+    upstream: docs/engineering/contracts/HIPS_IO.md；docs/engineering/contracts/FITS_IO.md
+  - path: docs/detail/infrastructure/benchmark.md
+    status: ACTIVE_NORMATIVE
+    duty: '`benchmark` 按 kernel 测量数值误差、吞吐、线程扩展、内存带宽、block/worker，生成机器绑定的 `cpu_profile`'
+    upstream: docs/engineering/architecture/ARCHITECTURE.md
+  - path: docs/detail/infrastructure/cli.md
+    status: ACTIVE_NORMATIVE
+    duty: 命令解析、配置、事件流、取消与退出码的实施参考
+    upstream: docs/engineering/contracts/CLI_PROTOCOL.md
+  - path: docs/detail/infrastructure/gaia_xpsd_client.md
+    status: ACTIVE_NORMATIVE
+    duty: 本地 Gaia 星表读取、查询合并、缓存和坐标历元的实施参考
+    upstream: docs/ACSD_DESIGN.md
+  - path: docs/detail/infrastructure/hips_browser.md
+    status: ACTIVE_NORMATIVE
+    duty: Windows GUI 复用的 Qt6/OpenGL 球面与 HiPS 浏览组件
+    upstream: docs/engineering/gui/GUI_DESIGN.md
+  - path: docs/detail/infrastructure/log_and_error_system.md
+    status: ACTIVE_NORMATIVE
+    duty: 日志与错误系统详细设计（LOG-004）：层次架构、数据对象、落点与 output_dir 的关系、生命周期、与 manifest/provenance 和 observability 各面的关系
+    upstream: docs/engineering/contracts/LOG_AND_ERROR.md
+  - path: docs/detail/infrastructure/observability.md
+    status: ACTIVE_NORMATIVE
+    duty: 结构化日志、事件流（JSONL）、运行图、资源监控与诊断，贯穿 CLI 到科学模块
+    upstream: docs/engineering/standards/DIAGNOSTIC_PROBES.md
+  - path: docs/detail/infrastructure/runtime.md
+    status: ACTIVE_NORMATIVE
+    duty: 阶段 typed DAG、预算与生命周期的实施参考；科学缓存和开发快照分开
+    upstream: docs/engineering/architecture/ARCHITECTURE.md
+  - path: docs/detail/infrastructure/storage_form.md
+    status: ACTIVE_NORMATIVE
+    duty: 产品落盘形态（DESIGN-STORAGE-001）：裸 HiPS / zstd 归档包的定义、形态判据、完整形态、索引分层、properties 与哈希口径、形态的输入配置与清单登记
+    upstream: docs/engineering/contracts/HIPS_STORAGE_FORM.md
+  - path: docs/detail/infrastructure/troubleshooting.md
+    status: ACTIVE_INFORMATIVE
+    duty: 症状、诊断与处置的实现参考；结论按具体输入和执行证据核实
+    upstream: docs/engineering/contracts/LOG_AND_ERROR.md
+  - path: docs/detail/mosaic/README.md
+    status: ACTIVE_INFORMATIVE
+    duty: docs/detail/mosaic 目录职责与阅读入口
+    upstream: docs/detail/README.md
+  - path: docs/detail/mosaic/pipeline.md
+    status: ACTIVE_INFORMATIVE
+    duty: Mosaic 单 signal 目标的实施边界、节点调用与证据导航
+    upstream: docs/science/unified/UNIFIED_SCIENCE_MODEL.md；docs/engineering/architecture/ARCHITECTURE.md
+  - path: docs/detail/normalize/README.md
+    status: ACTIVE_INFORMATIVE
+    duty: docs/detail/normalize 目录职责与阅读入口
+    upstream: docs/detail/README.md
+  - path: docs/detail/normalize/contracts.md
+    status: ACTIVE_NORMATIVE
+    duty: Normalize C++ 接口、现有文件落点、配置和逐边迁移规格
+    upstream: docs/engineering/contracts/NORMALIZE_DATA.md
+  - path: docs/detail/normalize/modules/star_detection.md
+    status: ACTIVE_NORMATIVE
+    duty: 科学源检测的算子、参数、接口和生产消费说明；物理口径服从 Normalize 科学正本
+    upstream: docs/science/normalize/NORMALIZE_SCIENCE.md；docs/engineering/contracts/NORMALIZE_DATA.md
+  - path: docs/detail/normalize/pipeline.md
+    status: ACTIVE_INFORMATIVE
+    duty: Normalize 实现入口导航与节点对应，不另立阶段科学定义
+    upstream: docs/engineering/architecture/NORMALIZE_PIPELINE.md
+  - path: docs/detail/registry/README.md
+    status: ACTIVE_INFORMATIVE
+    duty: docs/detail/registry 目录职责与阅读入口
+    upstream: docs/detail/README.md
+    notes: 模块页需与当前公开头、descriptor、IR 和真实调用核对；不拥有独立科学定义。
+  - path: docs/detail/registry/acsd.phase1.calibration.md
+    status: ACTIVE_INFORMATIVE
+    duty: acsd.phase1.calibration 的模块接口、端口和实现位置参考
+    upstream: docs/engineering/architecture/MODULE_MAP.md
+    notes: 模块页需与当前公开头、descriptor、IR 和真实调用核对；不拥有独立科学定义。
+  - path: docs/detail/registry/acsd.phase1.cosmetic.md
+    status: ACTIVE_INFORMATIVE
+    duty: acsd.phase1.cosmetic 的模块接口、端口和实现位置参考
+    upstream: docs/engineering/architecture/MODULE_MAP.md
+    notes: 模块页需与当前公开头、descriptor、IR 和真实调用核对；不拥有独立科学定义。
+  - path: docs/detail/registry/acsd.phase1.drizzle.md
+    status: ACTIVE_INFORMATIVE
+    duty: acsd.phase1.drizzle 的模块接口、端口和实现位置参考
+    upstream: docs/engineering/architecture/MODULE_MAP.md
+    notes: 模块页需与当前公开头、descriptor、IR 和真实调用核对；不拥有独立科学定义。
+  - path: docs/detail/registry/acsd.phase1.hips-writer.md
+    status: ACTIVE_INFORMATIVE
+    duty: acsd.phase1.hips-writer 的模块接口、端口和实现位置参考
+    upstream: docs/engineering/architecture/MODULE_MAP.md
+    notes: 模块页需与当前公开头、descriptor、IR 和真实调用核对；不拥有独立科学定义。
+  - path: docs/detail/registry/acsd.phase1.noise-snr.md
+    status: ACTIVE_INFORMATIVE
+    duty: acsd.phase1.noise-snr 的模块接口、端口和实现位置参考
+    upstream: docs/engineering/architecture/MODULE_MAP.md
+    notes: 模块页需与当前公开头、descriptor、IR 和真实调用核对；不拥有独立科学定义。
+  - path: docs/detail/registry/acsd.phase1.photometry.md
+    status: ACTIVE_INFORMATIVE
+    duty: acsd.phase1.photometry 的模块接口、端口和实现位置参考
+    upstream: docs/engineering/architecture/MODULE_MAP.md
+    notes: 模块页需与当前公开头、descriptor、IR 和真实调用核对；不拥有独立科学定义。
+  - path: docs/detail/registry/acsd.phase1.session.md
+    status: ACTIVE_INFORMATIVE
+    duty: acsd.phase1.session 的模块接口、端口和实现位置参考
+    upstream: docs/engineering/architecture/MODULE_MAP.md
+    notes: 模块页需与当前公开头、descriptor、IR 和真实调用核对；不拥有独立科学定义。
+  - path: docs/detail/registry/acsd.phase1.star-detection.md
+    status: ACTIVE_INFORMATIVE
+    duty: acsd.phase1.star-detection 的模块接口、端口和实现位置参考
+    upstream: docs/engineering/architecture/MODULE_MAP.md
+    notes: 模块页需与当前公开头、descriptor、IR 和真实调用核对；不拥有独立科学定义。
+  - path: docs/detail/registry/acsd.phase1.star-psf.md
+    status: ACTIVE_INFORMATIVE
+    duty: acsd.phase1.star-psf 的模块接口、端口和实现位置参考
+    upstream: docs/engineering/architecture/MODULE_MAP.md
+    notes: 模块页需与当前公开头、descriptor、IR 和真实调用核对；不拥有独立科学定义。
+  - path: docs/detail/registry/acsd.phase1.wcs-platesolve.md
+    status: ACTIVE_INFORMATIVE
+    duty: acsd.phase1.wcs-platesolve 的模块接口、端口和实现位置参考
+    upstream: docs/engineering/architecture/MODULE_MAP.md
+    notes: 模块页需与当前公开头、descriptor、IR 和真实调用核对；不拥有独立科学定义。
+  - path: docs/detail/registry/acsd.phase1.writer.md
+    status: ACTIVE_INFORMATIVE
+    duty: acsd.phase1.writer 的模块接口、端口和实现位置参考
+    upstream: docs/engineering/architecture/MODULE_MAP.md
+    notes: 模块页需与当前公开头、descriptor、IR 和真实调用核对；不拥有独立科学定义。
+  - path: docs/detail/registry/acsd.phase2.coverage.md
+    status: ACTIVE_INFORMATIVE
+    duty: acsd.phase2.coverage 的模块接口、端口和实现位置参考
+    upstream: docs/engineering/architecture/MODULE_MAP.md
+    notes: 模块页需与当前公开头、descriptor、IR 和真实调用核对；不拥有独立科学定义。
+  - path: docs/detail/registry/acsd.phase2.integrate.md
+    status: ACTIVE_INFORMATIVE
+    duty: acsd.phase2.integrate 的模块接口、端口和实现位置参考
+    upstream: docs/engineering/architecture/MODULE_MAP.md
+    notes: 模块页需与当前公开头、descriptor、IR 和真实调用核对；不拥有独立科学定义。
+  - path: docs/detail/registry/acsd.phase2.reject.md
+    status: ACTIVE_INFORMATIVE
+    duty: acsd.phase2.reject 的模块接口、端口和实现位置参考
+    upstream: docs/engineering/architecture/MODULE_MAP.md
+    notes: 模块页需与当前公开头、descriptor、IR 和真实调用核对；不拥有独立科学定义。
+  - path: docs/detail/registry/acsd.phase2.resample.md
+    status: ACTIVE_INFORMATIVE
+    duty: acsd.phase2.resample 的模块接口、端口和实现位置参考
+    upstream: docs/engineering/architecture/MODULE_MAP.md
+    notes: 模块页需与当前公开头、descriptor、IR 和真实调用核对；不拥有独立科学定义。
+  - path: docs/detail/registry/acsd.phase2.sample.md
+    status: ACTIVE_INFORMATIVE
+    duty: acsd.phase2.sample 的模块接口、端口和实现位置参考
+    upstream: docs/engineering/architecture/MODULE_MAP.md
+    notes: 模块页需与当前公开头、descriptor、IR 和真实调用核对；不拥有独立科学定义。
+  - path: docs/detail/registry/acsd.phase2.session.md
+    status: ACTIVE_INFORMATIVE
+    duty: acsd.phase2.session 的模块接口、端口和实现位置参考
+    upstream: docs/engineering/architecture/MODULE_MAP.md
+    notes: 模块页需与当前公开头、descriptor、IR 和真实调用核对；不拥有独立科学定义。
+  - path: docs/detail/registry/acsd.phase2.upm-apply.md
+    status: ACTIVE_INFORMATIVE
+    duty: acsd.phase2.upm-apply 的模块接口、端口和实现位置参考
+    upstream: docs/engineering/architecture/MODULE_MAP.md
+    notes: 模块页需与当前公开头、descriptor、IR 和真实调用核对；不拥有独立科学定义。
+  - path: docs/detail/registry/acsd.phase2.upm-fit.md
+    status: ACTIVE_INFORMATIVE
+    duty: acsd.phase2.upm-fit 的模块接口、端口和实现位置参考
+    upstream: docs/engineering/architecture/MODULE_MAP.md
+    notes: 模块页需与当前公开头、descriptor、IR 和真实调用核对；不拥有独立科学定义。
+  - path: docs/detail/registry/acsd.phase2.write.md
+    status: ACTIVE_INFORMATIVE
+    duty: acsd.phase2.write 的模块接口、端口和实现位置参考
+    upstream: docs/engineering/architecture/MODULE_MAP.md
+    notes: 模块页需与当前公开头、descriptor、IR 和真实调用核对；不拥有独立科学定义。
+  - path: docs/detail/registry/acsd.phase3.properties.md
+    status: ACTIVE_INFORMATIVE
+    duty: acsd.phase3.properties 的模块接口、端口和实现位置参考
+    upstream: docs/engineering/architecture/MODULE_MAP.md
+    notes: 模块页需与当前公开头、descriptor、IR 和真实调用核对；不拥有独立科学定义。
+  - path: docs/detail/registry/acsd.phase3.resample2.md
+    status: ACTIVE_INFORMATIVE
+    duty: acsd.phase3.resample2 的模块接口、端口和实现位置参考
+    upstream: docs/engineering/architecture/MODULE_MAP.md
+    notes: 模块页需与当前公开头、descriptor、IR 和真实调用核对；不拥有独立科学定义。
+  - path: docs/detail/registry/acsd.phase3.verify.md
+    status: ACTIVE_INFORMATIVE
+    duty: acsd.phase3.verify 的模块接口、端口和实现位置参考
+    upstream: docs/engineering/architecture/MODULE_MAP.md
+    notes: 模块页需与当前公开头、descriptor、IR 和真实调用核对；不拥有独立科学定义。
+  - path: docs/detail/registry/acsd.phase3.wcs.md
+    status: ACTIVE_INFORMATIVE
+    duty: acsd.phase3.wcs 的模块接口、端口和实现位置参考
+    upstream: docs/engineering/architecture/MODULE_MAP.md
+    notes: 模块页需与当前公开头、descriptor、IR 和真实调用核对；不拥有独立科学定义。
+  - path: docs/detail/registry/acsd.phase3.writer.md
+    status: ACTIVE_INFORMATIVE
+    duty: acsd.phase3.writer 的模块接口、端口和实现位置参考
+    upstream: docs/engineering/architecture/MODULE_MAP.md
+    notes: 模块页需与当前公开头、descriptor、IR 和真实调用核对；不拥有独立科学定义。
+  - path: docs/engineering/README.md
+    status: ACTIVE_INFORMATIVE
+    duty: docs/engineering 目录职责与阅读入口
+    upstream: docs/README.md
+  - path: docs/engineering/UNIFIED_OBJECTS.md
+    status: ACTIVE_NORMATIVE
+    duty: 跨模块工程对象的字段与实施说明；Normalize 具体字段服从阶段数据合同
+    upstream: docs/science/unified/DATA_SEMANTICS.md
+  - path: docs/engineering/api/PUBLIC_API.md
+    status: ACTIVE_NORMATIVE
+    duty: 公共 API 合同：分层、错误模型、API 规则、C ABI 规则、分阶段 API 面与符号登记
+    upstream: docs/ACSD_DESIGN.md
+  - path: docs/engineering/api/README.md
+    status: ACTIVE_INFORMATIVE
+    duty: docs/engineering/api 目录职责与阅读入口
+    upstream: docs/engineering/README.md
+  - path: docs/engineering/api/abi/ABI.md
+    status: ACTIVE_NORMATIVE
+    duty: COMMON-ABI-001 公共 C ABI 基础层：类型、逐字段单位与所有权、并发合同模板、头文件独立性验证
+    upstream: docs/ACSD_DESIGN.md
+  - path: docs/engineering/api/abi/README.md
+    status: ACTIVE_INFORMATIVE
+    duty: docs/engineering/api/abi 目录职责与阅读入口
+    upstream: docs/engineering/api/README.md
+  - path: docs/engineering/api/abi/SECURE_LOADER.md
+    status: ACTIVE_NORMATIVE
+    duty: ABI-003 安全装载器：六查、信任边界、装载失败语义与清单校验
+    upstream: docs/ACSD_DESIGN.md
+  - path: docs/engineering/architecture/ARCHITECTURE.md
+    status: ACTIVE_NORMATIVE
+    duty: 系统架构：组件职责、阶段独立、数据与资源边界、静态实现范围
+    upstream: docs/ACSD_DESIGN.md
+  - path: docs/engineering/architecture/DATA_FLOW.md
+    status: ACTIVE_NORMATIVE
+    duty: 阶段数据流与载体、单 signal 产品边界、资源预算和受控并发对照
+    upstream: docs/engineering/architecture/ARCHITECTURE.md
+  - path: docs/engineering/architecture/DEV_MODE.md
+    status: ACTIVE_NORMATIVE
+    duty: 唯一 ACSD_DEV_MODE 编译开关、开发诊断与发布构建边界、正式产品与工作区隔离、纯观察不改科学数据依赖
+    upstream: docs/ACSD_DESIGN.md
+  - path: docs/engineering/architecture/MODULE_MAP.md
+    status: ACTIVE_NORMATIVE
+    duty: 模块与目录、安装声明、构建内调用和待接入目标的定位地图
+    upstream: docs/engineering/architecture/ARCHITECTURE.md
+  - path: docs/engineering/architecture/NORMALIZE_PIPELINE.md
+    status: ACTIVE_NORMATIVE
+    duty: Normalize 唯一工程横向设计：真实 P1NodeModule/IPV DAG、typed 数据对象、代码模块责任、既有文件依赖迁移
+    upstream: docs/ACSD_DESIGN.md
+    notes: 目标合同与实现事实分开；具体代码状态需沿真实生产入口更新。
+  - path: docs/engineering/architecture/README.md
+    status: ACTIVE_INFORMATIVE
+    duty: docs/engineering/architecture 目录职责与阅读入口
+    upstream: docs/engineering/README.md
+  - path: docs/engineering/architecture/SCIENCE_IMPLEMENTATION_DELTA.md
+    status: ACTIVE_INFORMATIVE
+    duty: 科学设计与源码实现的差异地图；静态记录不替代当前调用与运行证据
+    upstream: docs/ACSD_DESIGN.md
+  - path: docs/engineering/build/BUILD_GRAPH.md
+    status: ACTIVE_NORMATIVE
+    duty: 生产构建图的传递闭包、非生产闭包面、子项目构建文件、编译定义与链接面
+    upstream: docs/ACSD_DESIGN.md
+  - path: docs/engineering/build/BUILD_NODES.md
+    status: ACTIVE_NORMATIVE
+    duty: 两个具名构建节点各自执行的构建动作（细目层）、冻结工具链取值与处置纪律、构建档位与可复现判据；平台角色不在本篇承载
+    upstream: docs/ACSD_DESIGN.md
+  - path: docs/engineering/build/README.md
+    status: ACTIVE_INFORMATIVE
+    duty: docs/engineering/build 目录职责与阅读入口
+    upstream: docs/engineering/README.md
+  - path: docs/engineering/build/RELEASE.md
+    status: ACTIVE_NORMATIVE
+    duty: 版本、构建指纹、打包内容、交付记录与负责人发布决定
+    upstream: docs/ACSD_DESIGN.md
+  - path: docs/engineering/contracts/ASYNC_IO.md
+    status: ACTIVE_NORMATIVE
+    duty: 有界异步 I/O 合同：容量、所有权、取消与关闭顺序
+    upstream: docs/ACSD_DESIGN.md
+  - path: docs/engineering/contracts/ATOMIC_PUBLISH.md
+    status: ACTIVE_NORMATIVE
+    duty: 原子发布合同：发布步序、发布清单、校验序与错误码
+    upstream: docs/ACSD_DESIGN.md
+  - path: docs/engineering/contracts/CLI_PROTOCOL.md
+    status: ACTIVE_NORMATIVE
+    duty: API-CLI-001 命令行协议合同：命令树、退出码、机器输出纪律、JSONL 运行事件流、output_dir 与 crop
+    upstream: docs/ACSD_DESIGN.md
+  - path: docs/engineering/contracts/CONFIG.md
+    status: ACTIVE_NORMATIVE
+    duty: 配置合同：三类配置分离、默认值与来源、滤镜库、阶段配置 schema、CPU 画像、运行清单 schema
+    upstream: docs/ACSD_DESIGN.md
+  - path: docs/engineering/contracts/FITS_IO.md
+    status: ACTIVE_NORMATIVE
+    duty: FITS 流式读写接口合同
+    upstream: docs/ACSD_DESIGN.md
+  - path: docs/engineering/contracts/HIPS_IO.md
+    status: ACTIVE_NORMATIVE
+    duty: HiPS 输入接口合同
+    upstream: docs/ACSD_DESIGN.md
+  - path: docs/engineering/contracts/HIPS_STORAGE_FORM.md
+    status: ACTIVE_NORMATIVE
+    duty: 落盘形态合同：命名、归档容器布局、索引 schema、哈希口径、体积削减、形态配置键与清单字段
+    upstream: docs/ACSD_DESIGN.md
+  - path: docs/engineering/contracts/LOG_AND_ERROR.md
+    status: ACTIVE_NORMATIVE
+    duty: 日志与错误合同：日志行格式、run_log 登记字段、错误对象与退出码映射、显式降级三要件、落点
+    upstream: docs/ACSD_DESIGN.md
+  - path: docs/engineering/contracts/MANIFEST_VERIFY.md
+    status: ACTIVE_NORMATIVE
+    duty: 运行清单与校验合同：清单字段、分离原则、溯源子对象、校验顺序与错误码
+    upstream: docs/ACSD_DESIGN.md
+  - path: docs/engineering/contracts/NORMALIZE_DATA.md
+    status: ACTIVE_NORMATIVE
+    duty: Normalize typed 数据、端口、参考精度、唯一 sidecar 和兼容读写合同
+    upstream: docs/science/normalize/NORMALIZE_SCIENCE.md；docs/engineering/architecture/NORMALIZE_PIPELINE.md
+  - path: docs/engineering/contracts/OWNERSHIP_LIFETIME.md
+    status: ACTIVE_NORMATIVE
+    duty: 所有权与生命周期合同：句柄所有权、输出缓冲语义、线程局部状态
+    upstream: docs/ACSD_DESIGN.md
+  - path: docs/engineering/contracts/PIPELINE_BLOCK.md
+    status: ACTIVE_NORMATIVE
+    duty: 命名块生命周期合同：块元数据、载体合同、状态机、端口与代码双向一致判据
+    upstream: docs/ACSD_DESIGN.md
+  - path: docs/engineering/contracts/README.md
+    status: ACTIVE_INFORMATIVE
+    duty: docs/engineering/contracts 目录职责与阅读入口
+    upstream: docs/engineering/README.md
+  - path: docs/engineering/contracts/RUNTIME.md
+    status: ACTIVE_NORMATIVE
+    duty: 运行时与模块公共合同：公共头冻结签名面、模块生命周期、线程租约、边界规则
+    upstream: docs/ACSD_DESIGN.md
+  - path: docs/engineering/contracts/SCHEDULER.md
+    status: ACTIVE_NORMATIVE
+    duty: 三阶段调度器合同：调度形态、并行确定性口径、资源声明、探针事件 schema
+    upstream: docs/ACSD_DESIGN.md
+  - path: docs/engineering/data/ARTIFACTS.md
+    status: ACTIVE_NORMATIVE
+    duty: 数据工件字段合同、不可用值表示、构建产物留存
+    upstream: docs/ACSD_DESIGN.md
+  - path: docs/engineering/data/ARTIFACT_STORE.md
+    status: ACTIVE_NORMATIVE
+    duty: 产物库：目录布局、寻址、生命周期与并发访问
+    upstream: docs/ACSD_DESIGN.md
+  - path: docs/engineering/data/PHASE_PRODUCT_EXCHANGE.md
+    status: ACTIVE_NORMATIVE
+    duty: 阶段间产品交换：角色与类型强绑定、输入面校验、无效值处置
+    upstream: docs/ACSD_DESIGN.md
+  - path: docs/engineering/data/PROVENANCE.md
+    status: ACTIVE_NORMATIVE
+    duty: 产品溯源：字段、写入者与不可伪造约束
+    upstream: docs/ACSD_DESIGN.md
+  - path: docs/engineering/data/README.md
+    status: ACTIVE_INFORMATIVE
+    duty: docs/engineering/data 目录职责与阅读入口
+    upstream: docs/engineering/README.md
+  - path: docs/engineering/governance/DOCUMENT_GOVERNANCE.md
+    status: ACTIVE_NORMATIVE
+    duty: 文档权威、唯一正本、引用与索引、语义复核和自动辅助
+    upstream: docs/ACSD_DESIGN.md
+  - path: docs/engineering/governance/DUAL_LINE.md
+    status: ACTIVE_NORMATIVE
+    duty: 设计、实施和独立复核的职责与任务文件分工；并发修改协调
+    upstream: docs/ACSD_DESIGN.md
+  - path: docs/engineering/governance/NORMALIZE_CONVERGENCE.md
+    status: ACTIVE_INFORMATIVE
+    duty: Normalize 冲突归因、模型裁决和实现证据的收敛记录
+    upstream: docs/ACSD_DESIGN.md
+  - path: docs/engineering/governance/README.md
+    status: ACTIVE_INFORMATIVE
+    duty: docs/engineering/governance 目录职责与阅读入口
+    upstream: docs/engineering/README.md
+  - path: docs/engineering/governance/TRACEABILITY.md
+    status: ACTIVE_NORMATIVE
+    duty: 定义到实现和独立证据的追溯；合同 ID 导航及证据强度边界
+    upstream: docs/ACSD_DESIGN.md
+  - path: docs/engineering/governance/UNRESOLVED.md
+    status: ACTIVE_NORMATIVE
+    duty: 待核实数值与实施问题、已定设计边界和所需证据导航
+    upstream: docs/ACSD_DESIGN.md
+  - path: docs/engineering/gui/GUI_DESIGN.md
+    status: ACTIVE_NORMATIVE
+    duty: GUI 权威设计：定位边界、总体架构、预配置分组与构建方式
+    upstream: docs/ACSD_DESIGN.md
+  - path: docs/engineering/gui/README.md
+    status: ACTIVE_INFORMATIVE
+    duty: docs/engineering/gui 目录职责与阅读入口
+    upstream: docs/engineering/README.md
+  - path: docs/engineering/resources/BENCHMARK.md
+    status: ACTIVE_NORMATIVE
+    duty: Benchmark 标准：运行条件、读数口径、机器画像产物
+    upstream: docs/ACSD_DESIGN.md
+  - path: docs/engineering/resources/PERFORMANCE_MODEL.md
+    status: ACTIVE_NORMATIVE
+    duty: 性能模型与资源判据：结构原则、编排参数标定、有效并行宽度、冻结常数、L2 冻结判据
+    upstream: docs/ACSD_DESIGN.md
+  - path: docs/engineering/resources/README.md
+    status: ACTIVE_INFORMATIVE
+    duty: docs/engineering/resources 目录职责与阅读入口
+    upstream: docs/engineering/README.md
+  - path: docs/engineering/resources/cpu/AVX2_PROVIDER.md
+    status: ACTIVE_NORMATIVE
+    duty: CPU-003 AVX2 provider：门面与计算面 TU 划分、能力闸门、容差冻结
+    upstream: docs/ACSD_DESIGN.md
+  - path: docs/engineering/resources/cpu/BACKEND.md
+    status: ACTIVE_NORMATIVE
+    duty: CPU 后端架构：编译隔离、CPU 与 OS 检测、信任边界、C ABI、逐内核注册、失败回退
+    upstream: docs/ACSD_DESIGN.md
+  - path: docs/engineering/resources/cpu/CAPABILITY_PROBE.md
+    status: ACTIVE_NORMATIVE
+    duty: CPU-001 能力探测：探测接口、特征位定义与承载面
+    upstream: docs/ACSD_DESIGN.md
+  - path: docs/engineering/resources/cpu/ISA_VARIANTS.md
+    status: ACTIVE_NORMATIVE
+    duty: ISA 变体与逐 kernel 选路：测量口径、档位决策、注册、编译隔离配方、污染防线
+    upstream: docs/ACSD_DESIGN.md
+  - path: docs/engineering/resources/cpu/README.md
+    status: ACTIVE_INFORMATIVE
+    duty: docs/engineering/resources/cpu 目录职责与阅读入口
+    upstream: docs/engineering/resources/README.md
+  - path: docs/engineering/resources/observability/README.md
+    status: ACTIVE_INFORMATIVE
+    duty: docs/engineering/resources/observability 目录职责与阅读入口
+    upstream: docs/engineering/resources/README.md
+  - path: docs/engineering/resources/observability/RESOURCE_MONITORING.md
+    status: ACTIVE_NORMATIVE
+    duty: 资源监控合同（LOG-002）：时序工件列定义、采样语义、指纹链、记录项
+    upstream: docs/ACSD_DESIGN.md
+  - path: docs/engineering/resources/observability/RUN_GRAPH.md
+    status: ACTIVE_NORMATIVE
+    duty: 运行图合同（LOG-003）：运行图工件字段与语义、与事件流的关系
+    upstream: docs/ACSD_DESIGN.md
+  - path: docs/engineering/resources/observability/STRUCTURED_LOGGING.md
+    status: ACTIVE_NORMATIVE
+    duty: 结构化日志合同（LOG-001）：行格式字段、脱敏、双通道同源
+    upstream: docs/ACSD_DESIGN.md
+  - path: docs/engineering/standards/CACHE.md
+    status: ACTIVE_NORMATIVE
+    duty: 缓存策略：生产缓存清单与四要素
+    upstream: docs/ACSD_DESIGN.md
+  - path: docs/engineering/standards/CODE.md
+    status: ACTIVE_NORMATIVE
+    duty: 代码标准：必须遵守条目、命名与机器契约保留面、编译器告警口径
+    upstream: docs/ACSD_DESIGN.md
+  - path: docs/engineering/standards/COMMENT.md
+    status: ACTIVE_NORMATIVE
+    duty: 注释纪律标准：注释原则、必须注释与必须删除迁移面、叙述性注释清理面、长度与审计
+    upstream: docs/ACSD_DESIGN.md
+  - path: docs/engineering/standards/COMPATIBILITY.md
+    status: ACTIVE_NORMATIVE
+    duty: 兼容性策略：持久化模型、配置与接口的兼容边界
+    upstream: docs/ACSD_DESIGN.md
+  - path: docs/engineering/standards/CONCURRENCY.md
+    status: ACTIVE_NORMATIVE
+    duty: 并发标准：并行适用范围、共享状态所有权、线程数取值、嵌套并行
+    upstream: docs/ACSD_DESIGN.md
+  - path: docs/engineering/standards/DEPENDENCY.md
+    status: ACTIVE_NORMATIVE
+    duty: 依赖规则：依赖方向、唯一动态加载路径、第三方依赖与工具链锁定读取面
+    upstream: docs/ACSD_DESIGN.md
+  - path: docs/engineering/standards/DIAGNOSTIC_PROBES.md
+    status: ACTIVE_NORMATIVE
+    duty: 开发科学中间量快照与性能细探针的插入身份/测量口径/数据格式/坐标单位/采样预算/AIO/线程与失败隔离规范
+    upstream: docs/ACSD_DESIGN.md
+  - path: docs/engineering/standards/DOCUMENTATION.md
+    status: ACTIVE_NORMATIVE
+    duty: 科学、工程与细节文档的内容、引文、表达和状态区分标准
+    upstream: docs/engineering/governance/DOCUMENT_GOVERNANCE.md
+  - path: docs/engineering/standards/ERROR_MODEL.md
+    status: ACTIVE_NORMATIVE
+    duty: 错误模型标准：三层语义与两层互斥判据、违规判据、硬错误类别、错误域、阶段 ID、进程退出码与 error-sensitive 模块要件
+    upstream: docs/ACSD_DESIGN.md
+  - path: docs/engineering/standards/NUMERIC.md
+    status: ACTIVE_NORMATIVE
+    duty: 数值标准：量纲与标度类别、线性与面亮度标度律、无效值契约、权重语义
+    upstream: docs/ACSD_DESIGN.md
+  - path: docs/engineering/standards/OPTIMIZATION.md
+    status: ACTIVE_NORMATIVE
+    duty: 优化标准：只从实测剖面出发、只改实现不改精度档位
+    upstream: docs/ACSD_DESIGN.md
+  - path: docs/engineering/standards/README.md
+    status: ACTIVE_INFORMATIVE
+    duty: docs/engineering/standards 目录职责与阅读入口
+    upstream: docs/engineering/README.md
+  - path: docs/engineering/testing/README.md
+    status: ACTIVE_INFORMATIVE
+    duty: docs/engineering/testing 目录职责与阅读入口
+    upstream: docs/engineering/README.md
+  - path: docs/engineering/testing/TEST.md
+    status: ACTIVE_NORMATIVE
+    duty: 测试标准与矩阵：覆盖判据、确定性与容差规则、回归集合、执行范围与分档、独立 Oracle 归属面
+    upstream: docs/ACSD_DESIGN.md
+  - path: docs/engineering/testing/VALIDATION_EVIDENCE.md
+    status: ACTIVE_NORMATIVE
+    duty: 独立 Oracle、正负例、执行证据与适用范围的说明标准
+    upstream: docs/ACSD_DESIGN.md
+  - path: docs/science/README.md
+    status: ACTIVE_INFORMATIVE
+    duty: docs/science 目录职责与阅读入口
+    upstream: docs/README.md
+  - path: docs/science/algorithms/README.md
+    status: ACTIVE_INFORMATIVE
+    duty: docs/science/algorithms 目录职责与阅读入口
+    upstream: docs/science/README.md
+    notes: 补充推导与源码定位资料；被估计量、产品和流程以对应科学正本为准，登记不代表实现或验证完成。
+  - path: docs/science/algorithms/common/GAIA_QUERY.md
+    status: ACTIVE_INFORMATIVE
+    duty: 专题算法与实现推导参考：Gaia XPSD 查询（ALG-GAIA-001）
+    upstream: docs/science/detection/ASTROMETRY.md
+    notes: 补充推导与源码定位资料；被估计量、产品和流程以对应科学正本为准，登记不代表实现或验证完成。
+  - path: docs/science/algorithms/common/GATES_AND_TOLERANCES.md
+    status: ACTIVE_INFORMATIVE
+    duty: 专题算法与实现推导参考：GATES_AND_TOLERANCES — P1 星检测 / PSF / WCS 冻结门表与 SNR 定义
+    upstream: docs/science/normalize/NORMALIZE_SCIENCE.md
+    notes: 补充推导与源码定位资料；被估计量、产品和流程以对应科学正本为准，登记不代表实现或验证完成。
+  - path: docs/science/algorithms/common/NOISE_ESTIMATION.md
+    status: ACTIVE_INFORMATIVE
+    duty: 专题算法与实现推导参考：Noise Estimation Algorithms (ALG-NOISE)
+    upstream: docs/science/noise_snr/NOISE_SNR.md
+    notes: 补充推导与源码定位资料；被估计量、产品和流程以对应科学正本为准，登记不代表实现或验证完成。
+  - path: docs/science/algorithms/common/README.md
+    status: ACTIVE_INFORMATIVE
+    duty: docs/science/algorithms/common 目录职责与阅读入口
+    upstream: docs/science/algorithms/README.md
+    notes: 补充推导与源码定位资料；被估计量、产品和流程以对应科学正本为准，登记不代表实现或验证完成。
+  - path: docs/science/algorithms/export/DRIZZLE_GEOMETRY.md
+    status: ACTIVE_INFORMATIVE
+    duty: 专题算法与实现推导参考：Drizzle Geometry Algorithms (P1-DRZ)
+    upstream: docs/science/drizzle/DRIZZLE.md
+    notes: 补充推导与源码定位资料；被估计量、产品和流程以对应科学正本为准，登记不代表实现或验证完成。
+  - path: docs/science/algorithms/export/HEALPIX_MAPPING.md
+    status: ACTIVE_INFORMATIVE
+    duty: 专题算法与实现推导参考：HEALPix Mapping
+    upstream: docs/science/drizzle/DRIZZLE.md
+    notes: 补充推导与源码定位资料；被估计量、产品和流程以对应科学正本为准，登记不代表实现或验证完成。
+  - path: docs/science/algorithms/export/HIPS_WRITER.md
+    status: ACTIVE_INFORMATIVE
+    duty: 专题算法与实现推导参考：ALG-HIPS-001..005 — acsd.p1.hips_writer HiPS 产品集写出算法
+    upstream: docs/science/drizzle/DRIZZLE.md
+    notes: 补充推导与源码定位资料；被估计量、产品和流程以对应科学正本为准，登记不代表实现或验证完成。
+  - path: docs/science/algorithms/export/PHASE3_FITS_IMPL.md
+    status: ACTIVE_INFORMATIVE
+    duty: 专题算法与实现推导参考：Phase3 FITS Write-out Algorithms（P3-FITS / acsd.p3.fits_writer）
+    upstream: docs/science/projection/HIPS_TO_FITS.md
+    notes: 补充推导与源码定位资料；被估计量、产品和流程以对应科学正本为准，登记不代表实现或验证完成。
+  - path: docs/science/algorithms/export/PHASE3_PROJ_IMPL.md
+    status: ACTIVE_INFORMATIVE
+    duty: 专题算法与实现推导参考：Phase3 Projection/WCS 实现级算法合同（ALG-P3-PROJ-IMPL-001）
+    upstream: docs/science/projection/HIPS_TO_FITS.md
+    notes: 补充推导与源码定位资料；被估计量、产品和流程以对应科学正本为准，登记不代表实现或验证完成。
+  - path: docs/science/algorithms/export/PHASE3_RESAMPLE.md
+    status: ACTIVE_INFORMATIVE
+    duty: 专题算法与实现推导参考：Phase3 HiPS→FITS Resample Algorithms (ALG-P3)
+    upstream: docs/science/resample/RESAMPLE.md
+    notes: 补充推导与源码定位资料；被估计量、产品和流程以对应科学正本为准，登记不代表实现或验证完成。
+  - path: docs/science/algorithms/export/PHASE3_RSMP_IMPL.md
+    status: ACTIVE_INFORMATIVE
+    duty: 专题算法与实现推导参考：Phase3 HiPS Resample 实现级算法合同（ALG-P3-RSMP-IMPL-001）
+    upstream: docs/science/resample/RESAMPLE.md
+    notes: 补充推导与源码定位资料；被估计量、产品和流程以对应科学正本为准，登记不代表实现或验证完成。
+  - path: docs/science/algorithms/export/README.md
+    status: ACTIVE_INFORMATIVE
+    duty: docs/science/algorithms/export 目录职责与阅读入口
+    upstream: docs/science/algorithms/README.md
+    notes: 补充推导与源码定位资料；被估计量、产品和流程以对应科学正本为准，登记不代表实现或验证完成。
+  - path: docs/science/algorithms/mosaic/PHASE2_COVERAGE.md
+    status: ACTIVE_INFORMATIVE
+    duty: 专题算法与实现推导参考：Phase2 Coverage Union Algorithms (ALG-COV-001)
+    upstream: docs/science/sky/UPM.md
+    notes: 补充推导与源码定位资料；被估计量、产品和流程以对应科学正本为准，登记不代表实现或验证完成。
+  - path: docs/science/algorithms/mosaic/PHASE2_INTEGRATION.md
+    status: ACTIVE_INFORMATIVE
+    duty: 专题算法与实现推导参考：Phase2 Integration Algorithms（P2-INT / acsd.p2.integration）
+    upstream: docs/science/integration/INTEGRATION.md
+    notes: 补充推导与源码定位资料；被估计量、产品和流程以对应科学正本为准，登记不代表实现或验证完成。
+  - path: docs/science/algorithms/mosaic/PHASE2_MOSAIC_WRITE.md
+    status: ACTIVE_INFORMATIVE
+    duty: 专题算法与实现推导参考：Phase2 HiPS Mosaic Write Algorithms (ALG-P2-HIPS-001..004)
+    upstream: docs/science/unified/DATA_SEMANTICS.md
+    notes: 补充推导与源码定位资料；被估计量、产品和流程以对应科学正本为准，登记不代表实现或验证完成。
+  - path: docs/science/algorithms/mosaic/PHASE2_REJECTION.md
+    status: ACTIVE_INFORMATIVE
+    duty: 专题算法与实现推导参考：Phase2 Rejection Algorithms（P2-REJ / acsd.p2.rejection）
+    upstream: docs/science/integration/REJECTION.md
+    notes: 补充推导与源码定位资料；被估计量、产品和流程以对应科学正本为准，登记不代表实现或验证完成。
+  - path: docs/science/algorithms/mosaic/PHASE2_SAMPLER.md
+    status: ACTIVE_INFORMATIVE
+    duty: 专题算法与实现推导参考：Phase2 Sampler Algorithms（P2-SAMP / acsd.p2.sampling）
+    upstream: docs/science/sky/UPM.md
+    notes: 补充推导与源码定位资料；被估计量、产品和流程以对应科学正本为准，登记不代表实现或验证完成。
+  - path: docs/science/algorithms/mosaic/PHASE2_SESSION.md
+    status: ACTIVE_INFORMATIVE
+    duty: 专题算法与实现推导参考：Phase2 Session Assembly（P2-SESSION / acsd.p2.session）
+    upstream: docs/science/sky/UPM.md
+    notes: 补充推导与源码定位资料；被估计量、产品和流程以对应科学正本为准，登记不代表实现或验证完成。
+  - path: docs/science/algorithms/mosaic/PHASE2_UPM_IMPL.md
+    status: ACTIVE_INFORMATIVE
+    duty: 专题算法与实现推导参考：Phase2 UPM Fit/Apply Algorithms（P2-UPM / acsd.p2.upm）
+    upstream: docs/science/sky/UPM.md
+    notes: 补充推导与源码定位资料；被估计量、产品和流程以对应科学正本为准，登记不代表实现或验证完成。
+  - path: docs/science/algorithms/mosaic/README.md
+    status: ACTIVE_INFORMATIVE
+    duty: docs/science/algorithms/mosaic 目录职责与阅读入口
+    upstream: docs/science/algorithms/README.md
+    notes: 补充推导与源码定位资料；被估计量、产品和流程以对应科学正本为准，登记不代表实现或验证完成。
+  - path: docs/science/algorithms/mosaic/UPM_SOLVER.md
+    status: ACTIVE_INFORMATIVE
+    duty: 专题算法与实现推导参考：UPM Solver Algorithms (ALG-UPM)
+    upstream: docs/science/sky/UPM.md
+    notes: 补充推导与源码定位资料；被估计量、产品和流程以对应科学正本为准，登记不代表实现或验证完成。
+  - path: docs/science/algorithms/normalize/CALIBRATION_ALGORITHMS.md
+    status: ACTIVE_INFORMATIVE
+    duty: 专题算法与实现推导参考：Calibration Algorithms (ALG-CAL)
+    upstream: docs/science/calibration/CALIBRATION.md
+    notes: 补充推导与源码定位资料；被估计量、产品和流程以对应科学正本为准，登记不代表实现或验证完成。
+  - path: docs/science/algorithms/normalize/COSMETIC_ALGORITHMS.md
+    status: ACTIVE_INFORMATIVE
+    duty: 专题算法与实现推导参考：Cosmetic Correction Algorithms (P1-COS)
+    upstream: docs/science/calibration/CCD_DEFECT.md
+    notes: 补充推导与源码定位资料；被估计量、产品和流程以对应科学正本为准，登记不代表实现或验证完成。
+  - path: docs/science/algorithms/normalize/PHOTOMETRIC_FIT.md
+    status: ACTIVE_INFORMATIVE
+    duty: 专题算法与实现推导参考：Photometric Fit Algorithms (ALG-PHOT)
+    upstream: docs/science/photometry/PHOTOMETRY.md
+    notes: 补充推导与源码定位资料；被估计量、产品和流程以对应科学正本为准，登记不代表实现或验证完成。
+  - path: docs/science/algorithms/normalize/PLATESOLVE.md
+    status: ACTIVE_INFORMATIVE
+    duty: 专题算法与实现推导参考：WCS / PlateSolve Algorithms (ALG-WCS)
+    upstream: docs/science/detection/ASTROMETRY.md
+    notes: 补充推导与源码定位资料；被估计量、产品和流程以对应科学正本为准，登记不代表实现或验证完成。
+  - path: docs/science/algorithms/normalize/README.md
+    status: ACTIVE_INFORMATIVE
+    duty: docs/science/algorithms/normalize 目录职责与阅读入口
+    upstream: docs/science/algorithms/README.md
+    notes: 补充推导与源码定位资料；被估计量、产品和流程以对应科学正本为准，登记不代表实现或验证完成。
+  - path: docs/science/algorithms/normalize/STAR_DETECTION_ALGORITHMS.md
+    status: ACTIVE_INFORMATIVE
+    duty: 专题算法与实现推导参考：Star Detection Algorithms (ALG-STARDET-001)
+    upstream: docs/science/detection/STAR_DETECTION.md
+    notes: 补充推导与源码定位资料；被估计量、产品和流程以对应科学正本为准，登记不代表实现或验证完成。
+  - path: docs/science/algorithms/normalize/STAR_PSF_ALGORITHMS.md
+    status: ACTIVE_INFORMATIVE
+    duty: 专题算法与实现推导参考：PSF Algorithms (ALG-PSF)
+    upstream: docs/science/psf/PSF.md
+    notes: 补充推导与源码定位资料；被估计量、产品和流程以对应科学正本为准，登记不代表实现或验证完成。
+  - path: docs/science/calibration/CALIBRATION.md
+    status: ACTIVE_NORMATIVE
+    duty: 单帧偏置/暗流/平场校准算子、母版标度与校准误差模型；物理上应传播已知共享母版相关性，未实现记 unmodelled
+    upstream: docs/science/unified/UNIFIED_SCIENCE_MODEL.md
+  - path: docs/science/calibration/CCD_DEFECT.md
+    status: ACTIVE_NORMATIVE
+    duty: CCD/CMOS 线性缺陷的分类、检测判据、插值修复的方差处置与一手文献证据（坏列、CTE 拖尾、宇宙线、卫星线）
+    upstream: docs/science/unified/UNIFIED_SCIENCE_MODEL.md
+  - path: docs/science/calibration/README.md
+    status: ACTIVE_INFORMATIVE
+    duty: docs/science/calibration 目录职责与阅读入口
+    upstream: docs/science/README.md
+  - path: docs/science/detection/ASTROMETRY.md
+    status: ACTIVE_NORMATIVE
+    duty: WCS/SIP 天体测量科学口径：像元-天球桥接、切平面投影与畸变模型、不变量与外部闭环判据
+    upstream: docs/science/unified/UNIFIED_SCIENCE_MODEL.md
+  - path: docs/science/detection/README.md
+    status: ACTIVE_INFORMATIVE
+    duty: docs/science/detection 目录职责与阅读入口
+    upstream: docs/science/README.md
+  - path: docs/science/detection/STAR_DETECTION.md
+    status: ACTIVE_NORMATIVE
+    duty: 科学源检测、阈值单位、像元中心、质心与有效域；区分 solver 候选与引导目录
+    upstream: docs/science/unified/UNIFIED_SCIENCE_MODEL.md
+  - path: docs/science/drizzle/DRIZZLE.md
+    status: ACTIVE_NORMATIVE
+    duty: P3 球面 Drizzle 科学正本：drop 权重、真实 HEALPix 曲边/近似、相关噪声、HiPS 父级和导出变换
+    upstream: docs/science/unified/UNIFIED_SCIENCE_MODEL.md
+  - path: docs/science/drizzle/README.md
+    status: ACTIVE_INFORMATIVE
+    duty: docs/science/drizzle 目录职责与阅读入口
+    upstream: docs/science/README.md
+  - path: docs/science/formats/HIPS_TILE_FORMAT.md
+    status: ACTIVE_INFORMATIVE
+    duty: IVOA HiPS 标准对瓦片（tile）文件格式的规定（21 条带英文原文引文与 URL 的一手查证）
+    upstream: docs/science/unified/UNIFIED_SCIENCE_MODEL.md
+  - path: docs/science/formats/README.md
+    status: ACTIVE_INFORMATIVE
+    duty: docs/science/formats 目录职责与阅读入口
+    upstream: docs/science/README.md
+  - path: docs/science/integration/INTEGRATION.md
+    status: ACTIVE_NORMATIVE
+    duty: 逆方差叠加与 SNR 重建的科学公式
+    upstream: docs/science/unified/UNIFIED_SCIENCE_MODEL.md
+  - path: docs/science/integration/README.md
+    status: ACTIVE_INFORMATIVE
+    duty: docs/science/integration 目录职责与阅读入口
+    upstream: docs/science/README.md
+  - path: docs/science/integration/REJECTION.md
+    status: ACTIVE_NORMATIVE
+    duty: 逐像素排异的科学定义与合法性窗口
+    upstream: docs/science/unified/UNIFIED_SCIENCE_MODEL.md
+  - path: docs/science/noise_snr/NOISE_SNR.md
+    status: ACTIVE_NORMATIVE
+    duty: P2/P4 科学正本：条件点源 SNR、稀疏精度场、空间重建、像元面亮度权重精度桥梁 T
+    upstream: docs/science/unified/UNIFIED_SCIENCE_MODEL.md
+  - path: docs/science/noise_snr/README.md
+    status: ACTIVE_INFORMATIVE
+    duty: docs/science/noise_snr 目录职责与阅读入口
+    upstream: docs/science/README.md
+  - path: docs/science/normalize/NORMALIZE_SCIENCE.md
+    status: ACTIVE_NORMATIVE
+    duty: Normalize 横向科学正本：IPV、Gaia 引导源与 PSF、逐帧响应、条件参考精度和球面产品
+    upstream: docs/science/unified/UNIFIED_SCIENCE_MODEL.md
+  - path: docs/science/normalize/README.md
+    status: ACTIVE_INFORMATIVE
+    duty: docs/science/normalize 目录职责与阅读入口
+    upstream: docs/science/README.md
+  - path: docs/science/photometry/PHOTOMETRY.md
+    status: ACTIVE_NORMATIVE
+    duty: P1 Gaia XP 与跨设备光度科学正本：R_k/R_0、星表零点与颜色项、未知 SED 的系统失配
+    upstream: docs/science/unified/UNIFIED_SCIENCE_MODEL.md
+  - path: docs/science/photometry/README.md
+    status: ACTIVE_INFORMATIVE
+    duty: docs/science/photometry 目录职责与阅读入口
+    upstream: docs/science/README.md
+  - path: docs/science/photometry/references/PHOTOMETRY_RESEARCH_PACK.md
+    status: ACTIVE_INFORMATIVE
+    duty: 测光标定的研究包（文献与开源对照）
+    upstream: docs/science/unified/UNIFIED_SCIENCE_MODEL.md
+  - path: docs/science/photometry/references/README.md
+    status: ACTIVE_INFORMATIVE
+    duty: docs/science/photometry/references 目录职责与阅读入口
+    upstream: docs/science/photometry/README.md
+  - path: docs/science/projection/HIPS_TO_FITS.md
+    status: ACTIVE_NORMATIVE
+    duty: 阶段三唯一信号 HiPS 到普通 WCS FITS 的投影、层级选择、数值细节保持
+    upstream: docs/science/unified/UNIFIED_SCIENCE_MODEL.md
+  - path: docs/science/projection/README.md
+    status: ACTIVE_INFORMATIVE
+    duty: docs/science/projection 目录职责与阅读入口
+    upstream: docs/science/README.md
+  - path: docs/science/psf/PSF.md
+    status: ACTIVE_NORMATIVE
+    duty: PSF 建模的科学正本：轮廓模型与 σ 口径、FWHM 因子、解析通量、拟合残差截尾标度及其适用域
+    upstream: docs/science/unified/UNIFIED_SCIENCE_MODEL.md
+  - path: docs/science/psf/README.md
+    status: ACTIVE_INFORMATIVE
+    duty: docs/science/psf 目录职责与阅读入口
+    upstream: docs/science/README.md
+  - path: docs/science/resample/README.md
+    status: ACTIVE_INFORMATIVE
+    duty: docs/science/resample 目录职责与阅读入口
+    upstream: docs/science/README.md
+  - path: docs/science/resample/RESAMPLE.md
+    status: ACTIVE_NORMATIVE
+    duty: 阶段三从球面面亮度到平面图像的重采样核、面积平均/样本缺失与二次插值相关性
+    upstream: docs/science/unified/UNIFIED_SCIENCE_MODEL.md
+  - path: docs/science/sky/README.md
+    status: ACTIVE_INFORMATIVE
+    duty: docs/science/sky 目录职责与阅读入口
+    upstream: docs/science/README.md
+  - path: docs/science/sky/UPM.md
+    status: ACTIVE_NORMATIVE
+    duty: P5 相对天光科学正本：有效重叠图与规范、加性/乘性/通带/PSF 区分、真实星云低频保真
+    upstream: docs/science/unified/UNIFIED_SCIENCE_MODEL.md
+  - path: docs/science/unified/DATA_SEMANTICS.md
+    status: ACTIVE_NORMATIVE
+    duty: 三阶段数据对象和单位/坐标/无效值正本；阶段二只有 signal HiPS，阶段三普通 FITS
+    upstream: docs/ACSD_DESIGN.md
+  - path: docs/science/unified/README.md
+    status: ACTIVE_INFORMATIVE
+    duty: docs/science/unified 目录职责与阅读入口
+    upstream: docs/science/README.md
+  - path: docs/science/unified/SCIENCE_SCOPE.md
+    status: ACTIVE_NORMATIVE
+    duty: 统一科学范围、可辨识性与误差限制；用户自主跨设备和通带组合
+    upstream: docs/ACSD_DESIGN.md
+  - path: docs/science/unified/UNIFIED_SCIENCE_MODEL.md
+    status: ACTIVE_NORMATIVE
+    duty: 统一科学基础：观测前向模型、跨响应光度、Drizzle、点源 SNR/球面像元精度分立、单信号产品
+    upstream: docs/ACSD_DESIGN.md
+  archived: []

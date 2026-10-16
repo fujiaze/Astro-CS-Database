@@ -1,5 +1,8 @@
 # P2 跨帧绝对 SNR · 实验报告（REPORT_experiment）
 
+> **科学证据状态说明（P2）**：本文件保留原实验轮次的日志、数字、公式与脚本指针，属于**历史实验报告**；它不是修订后的当前论文结论。涉及相互冲突的正本、已退役路径、未真正执行的生产验证或没有完整输入哈希的历史 PASS，均不能直接转写为新论文的 `EXPERIMENT_CHECKED`。当前研究被估量、独立 Oracle、失败域和外部文献请以 [当前论文](REPORT_paper.md) 与 [五篇统一实验协议](../shared/FIVE_PAPER_EXPERIMENT_PLAN.md) 为准。此插入不改变下面原始历史读数的真实性声明；待服务器按新的证据协议复跑后，应逐项登记是否复现。
+
+
 > ⚠ **判据证据等级（必读，G08-05 审计裁定）** — 本文中带 `[自检]` 的 `code/audit/` 引用一律指
 > **本地重实现自检**，不是生产判别力证据：`code/audit/` 的 36 个脚本中有 35 个
 > **不 import、不链接、不执行**生产 `lib/**`（实测读侧操作 `open`/`json.load`/`fits.open`/
@@ -183,3 +186,94 @@ bash 实验/absolute-snr/code/reverse_verify/f_instr/run_all.sh
 | 合成器链自检 | 实验读数可作为证据的前置条件：证明的是分布与口径正确，不是代码自洽 | `实验/shared/synthetic/run_selftests.sh`（见 §7.1） |
 
 被拒绝采信的文献主张与未决登记项分别见 `refs.md` §C 与 §D，不进入正文。
+
+---
+
+# S05 复验专节：P2 噪声 / 协方差 / 真实 coverage（追加，不删历史章节）
+
+> 执行分支 `audit/acsd-science-docs-p5`，任务书基线 `9f1e99f2a5ace6965b7b427743eed8c4242945df`
+> （执行中 HEAD 被其它执行者前移到 `449278205`）。本轮未做 git 写操作。
+> 完整报告：`run/ACSDSDOC-02/S05/REPORT_S05.md`；机器证据：
+> `实验/absolute-snr/docs/S05_P2_evidence.json`；原始读数：
+> `run/ACSDSDOC-02/S05/results/{arms_oracle,kcorr_units,real117}.json`；
+> 代码（唯一来源）：`实验/absolute-snr/code/s05/`。seed 20261014。
+
+## 1. 四臂独立 Oracle（不链接生产库）
+
+| 臂 | 被估量 | 主读数 | 阴性 / 阳性 |
+|---|---|---|---|
+| A 白噪+光子（背景已知） | 固定 PSF 的条件通量方差 | `sd(F_hat)/sigma_F = 0.9929–1.0095`；68/90/95% 覆盖 0.6769–0.6914 / 0.8957–0.9049 / 0.9473–0.9531；135 次 Wilson 检验 5 次不含标称（期望 6.75） | 零效应：对角 vs 严格式相对差 ≤2.1e-16；注入 g 约定反转 ⇒ 45/45 判红 |
+| B 自由背景 GLS `J=[P,1]` | 同上的带背景代价 | `E = 0.0185–0.0816`；正确 σ 下覆盖 0.6743–0.6937 | 用已知背景 σ 标准化自由背景估计 ⇒ **24/24 方向欠覆盖**，16/24 Wilson 显著 |
+| C 线性 R 重采样 | `C_out = R V Rᵀ + eps²I` 下的方差 | rho=0.83 生产几何 `k_corr=2.33`；rho=1.374 标定几何 `k_corr=1.339`（对照记录 1.3883，−3.5%）；对角近似最负 `E_diag=−0.4858` | 零效应：`R=I` 时非对角逐位 0；丢非对角 ⇒ 35 个有效应构型中 33 个判红 |
+| D 点源 / 弥散源 | 通量 vs 孔径平均面亮度 | 两向 E 闭式对称（差 3.6e-15）；`E>10%` 孔径阈 0.5–0.75 FWHM | 零效应：孔径内 PSF 平坦 ⇒ E 逐位 0 |
+
+## 2. `k_corr`：单位、标定域与「1.4 是否保守」
+
+- **单位（源码行号）**：`hp_drizzle_api.cpp:1112-1113` 写 `|cd[0]|×3600` →
+  `astro_sphere_sink.cpp:143-157` → `ACSD_DRIZZLE_SCALE_ARCSEC` → `sampler.cpp:136-146` 读回。
+  ⇒ `scale_arcsec` 是**源（输入）帧像元角尺度 [arcsec/px]**，不是输出叶尺度。
+  表轴单位正确（**不得**未经审查改成 0.3–0.6）。
+- **结构性问题**：物理驱动量是 `rho = 叶尺度/源尺度`，而 `kcorr_lookup` 只收
+  `(pixfrac, scale_arcsec)`、不收 nside；标定件把输出固定在 `nside=512`（叶 412.258″，
+  `tile_order=0`，见归档快照 `control_median_mc_test.cpp:47-70`）⇒ 表只对该 tile_order 有效。
+- **叶尺度映射（本轮关键订正）**：`hips_order`(properties) 是 **tile 序**（`aio_hips_writer.cpp:2063`），
+  叶 `nside = 2^(tile_order+9)`；由 `hips_pixel_scale` 实测反推：`hips_order=9 → 0.8064″`、
+  `hips_order=12 → 0.1008″`（生产实测存在 `tile_order=12` 产品）。
+- **生产真帧几何**：源 0.9666″/px、默认 `tile_order=9` ⇒ `rho≈0.83`。
+  独立 MC（生产估计量口径：迭代亮端 3σ 裁剪 + median + MAD）给 `k_corr = 2.33`；
+  生产球面权重探针（直接调 `spherical::compute_overlap_area_g_ctx`）在 6×6/10×10 叶窗口给
+  **2.054 / 2.058**（模型与真实 HEALPix 叶几何一致到 ±16%）。
+  ⇒ **冻结回退 1.4 在该域不保守**（真值大 1.5 倍），逐帧权重要标 `UNCALIBRATED`。
+  保守域：`rho ≳ 1.3`。域外（含现有 run/ 产品无 provenance 键的情形）一律走 1.4。
+
+## 3. 117 星真实帧复核（重新测量，未乘 2.7928）
+
+- 输入按 `AGENTS.md §13.1`：从 `实验/shared/data_catalog.json` 枚举 `T2/M1` 两夜 Red+Green 300 s
+  （4 帧），几何逐帧读 FITS 头；**CRVAL 两两最大 1.6905″**（容差 36″）⇒ PASS。
+- 自建检测+孔径测光（无 photutils/sep；4 px 孔径/8–14 px 环带；噪声按正本 §3.3
+  `shot_noise_only`，`sky = 环带中位 − 暗区底`），共同星 **2195**，训练/留出 **1108/1087**（不重叠）。
+- `sd(dmag)=0.0529 mag`、`median(sigma_analytic)=0.0157 mag` ⇒ **比值 3.37**（empirical 口径 2.73），
+  复现历史 2.8–3.4 量级；但分层显示解析 σ 只在**低 SNR 端**与实测散度相当
+  （z_rms 1.86–2.11），亮端 z_rms 达 5.1–10.3 ⇒ 多余散度由**与 SNR 无关的系统项**支配。
+- 经验地板层（`Var = sigma_analytic² + sigma_sys²`，`sigma_sys` 按 SNR 分层在训练集估计）：
+  `sigma_sys = 0.036–0.070 mag`（全局 0.0485 mag）；留出集覆盖率
+  68.27%→**0.861**、90%→**0.944**、95%→**0.960**，`z_rms=1.028`（68% 档过覆盖 ⇒ 残差厚尾）。
+- 共同系统误差：8×8 空间块均值分散 / 独立预期 = **37.9×**；有效独立样本数保守取 **64 块**（星数 2195）。
+- 对照：零效应（不注入）95% 覆盖率含标称 ✔；注入 0.10 mag 随机误差 ⇒ 68% 覆盖 0.371 判红 ✔；
+  注入 +0.05 mag 共模偏移（模型固定）⇒ `median(z)` 位移 +3.56 判红 ✔，同数据重拟合则被吸收
+  （位移 0.00，退化性登记）。
+- **适用域**：T2/M1 Red 300 s、0.967″/px、两夜、M42 视场、未做平场改正、4 px 孔径。
+  **禁止**写成全局"×2.79 修正"。
+
+## 4. `sparse_snr_layer` 状态
+
+- 消费面存在：`lib/infrastructure/scheduler/src/module_adapters.cpp:12106-12140`（C1–C8 fail-closed），
+  `phase2_integrate/src/weight_chain.cpp:211,965` 置 `weight_source="sparse_snr_layer_absolute_snr"`。
+- **生产写点缺失**：`grep -rn ACSD_SPARSE_SNR_LAYER lib/` 只有读侧两处；
+  `module_ports.registry.json` 0 命中；生产运行 `sparse_snr_layer_frames_declared=0`
+  （`run/STARMASK/out_maskoff`、`run/LAMBDA-ROLLBACK/base/mosaic`）。
+- 唯一 declared>0 的 `run/FINAL-07/P2-B2` 其 sidecar 由审计夹具 `make_arms.py` **手写**。
+- ⇒ 判 **`NOT_IMPLEMENTED`（Phase1 生产者）**；HiPS `snr/` 目录（`aio_hips_write_snr_points`）
+  是另一载体，不得冒名。
+
+## 5. P3 修复前后 covariance（防把 P3 几何当 P2 随机噪声）
+
+同一二进制 + `ACSD_DRZ_P3_FAULT=legacy_cross_normal` 回退两处近简并修复：
+
+| 构型 | `eps_max` 固定→legacy | 权重最大差 | 协方差相对差(max/中位) | 叶方差相对变化 | `Δk_corr` vs P2 MC 2.24% |
+|---|---:|---:|---:|---:|---:|
+| 顶点（0.04″，nside 8192） | 1.62e-9 → 3.52e-3 | 3.51e-3 | 2.05e-3 / 1.36e-3 | −5.7e-7 | −1.41% |
+| 生产真帧几何（0.9666″，nside 2¹⁸） | 2.86e-11 → 5.69e-7 | 3.59e-7 | 1.79e-3 / 0 | −2.3e-10 | +0.36% |
+| 标定几何（300″，nside 512） | 1.35e-7 → 1.35e-7 | 8.0e-11 | 7.4e-9 / 0 | +2.9e-12 | +3.30% |
+
+⇒ P3 修复对**通量完备性**是数量级改善，对**噪声协方差**是幅度小于 P2 MC 分辨率的
+确定性局域扰动 ⇒ 二者不可互相冒充。唯一需留意的是在**顶点构型**上做 P2 方差评估时，
+legacy 路径的 0.35% 完备性缺陷会以"多出来的方差"（~2e-3 相对量级）出现。
+
+## 6. 与现行论文口径的分歧（登记，未改 `REPORT_paper.md`）
+
+`REPORT_paper.md` §摘要/§5 的"117 颗…0.037978/0.013599 mag…2.7928"是本轮**独立重测**的对照：
+本轮得 2195 颗共同星、比值 3.37（shot-only）/2.73（empirical），方向与量级一致，
+但（i）样本与分母口径不同；（ii）本轮证明多余散度主要由与 SNR 无关的系统项贡献，
+不能表述为"独立像素噪声低估 2.79 倍"。建议论文把该数字改为分层读数并补经验地板层与适用域；
+**本轮未动论文（不在写域）**，按纪律先回报分歧。

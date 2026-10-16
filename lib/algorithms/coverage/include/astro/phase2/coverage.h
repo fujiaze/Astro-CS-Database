@@ -2,10 +2,15 @@
 //
 // Phase2 W3：输入发现 / 兼容校验 / coverage union / target_order。
 //
-// 语义（冻结；权威 = docs/science/sky/UPM.md（覆盖并集口径）与
-// docs/detail/registry/acsd.phase2.sample.md）：
+// 语义（SCIENCE-V2 R1；权威 = docs/science/unified/UNIFIED_SCIENCE_MODEL.md
+// §1「禁止以设备/通带一致性设项目级拒绝条件」、§3「跨设备光度」与
+// docs/science/sky/UPM.md（覆盖并集口径））：
 // - 输入为多个 Phase1 单帧 HiPS（signal/support/snr），不重新校准/PlateSolve/PSF/DR3SP/Drizzle；
-// - 兼容：同一 equatorial/ICRS、同一 filter/passband、同一 signal/support 语义、NESTED；
+// - 兼容：同一 equatorial/ICRS（坐标系一致性，保留）、同一 signal/support 语义、
+//   NESTED、tile_width=512、显式声明 obs_filter **键**存在；
+// - **filter/passband 字符串不再作为跨帧准入条件**：不同相机/滤镜/带宽由用户
+//   自主决定合并，每帧真实通带身份原样登记，跨通带失配作为物理系统误差由
+//   mosaic 侧如实记录，不用首帧滤镜冒充最终混合响应；
 // - target_order = min(所有输入最高 leaf order)，禁止低 order 插值伪装分辨率；
 // - Ω = MOC_1 ∪ ... ∪ MOC_N（NESTED，允许不连通分量）。
 #pragma once

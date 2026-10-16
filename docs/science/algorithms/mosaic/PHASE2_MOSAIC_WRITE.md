@@ -1,5 +1,8 @@
 # Phase2 HiPS Mosaic Write Algorithms (ALG-P2-HIPS-001..004)
 
+> **历史生产实现说明（非现行科学目标正本）**：本页记录旧版/当前部分代码的模块行为与接口，可能包含最终 signal/support/variance/ivar、阶段三必需误差层、同滤镜输入、旧 SNR 权重等已被新科学设计修正的前提。现行目标：docs/ACSD_DESIGN.md、docs/science/unified/UNIFIED_SCIENCE_MODEL.md、docs/science/noise_snr/NOISE_SNR.md；实际待修源码与定位：docs/engineering/architecture/SCIENCE_IMPLEMENTATION_DELTA.md。代码变更后由前台对本页重新组织，**不得以本页反向推翻用户已确定的科学设计**。
+
+
 > 本文件条款为冻结定义，变更走变更流程。
 > 上游：ACSD_DESIGN.md [D-1]「I/O 与原子产品」一节（I/O 与原子产品）
 

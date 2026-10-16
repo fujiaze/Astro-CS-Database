@@ -125,6 +125,15 @@
       "retire_after_change": "OWNER_DECISION",
       "retire_note": "依 docs/ACSD_DESIGN §12，版本号不得作为退役条件；本项退役须由负责人裁决并登记变更编号。",
       "evidence": "V6 产品族正例集（含 10 个对象族示例）"
+    },
+    {
+      "path": "eng/contracts/schemas/normalize_frame_science.schema.json",
+      "covers_object": "normalize_frame_science",
+      "canonical_schema": "eng/contracts/schemas/normalize_frame_science.schema.json",
+      "canonical_schema_id": "https://acsd.local/schemas/normalize/frame_science/v1",
+      "relation": "normalize_product_composition",
+      "authority": "docs/engineering/contracts/NORMALIZE_DATA.md",
+      "implementation_status": "designed_not_production_wired"
     }
   ],
   "retired_entries": [

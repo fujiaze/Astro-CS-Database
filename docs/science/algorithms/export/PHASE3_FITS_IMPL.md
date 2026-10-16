@@ -50,7 +50,7 @@
 
 ## 3 逐符号对照（`p3_output.cpp` 1270 行 / `p3_output.h` 176 行 / `p3_wcs.h` 373 行）
 
-> 本节按「**文件 + 符号**」定位，覆盖 CTYPE1/2、CUNIT1/2、CRPIX1/2、CRVAL1/2、CD1_1..CD2_2、BUNIT、HIPSID..SWVER、`cfitsio_io_mutex`；仓内行号按 `ANCHOR_CONTRACT.md` §1 撤销口径**一律不再给出**（原 §2/§5「只改数字、不动符号/公式/门」中「只改数字」一节随仓内行锚撤销**作废**，其余「不动符号/公式/门」义务对本节继续适用）。**符号/公式/门语义不变。**
+> 本节按「**文件 + 符号**」定位，覆盖 CTYPE1/2、CUNIT1/2、CRPIX1/2、CRVAL1/2、CD1_1..CD2_2、BUNIT、HIPSID..SWVER、`cfitsio_io_mutex`；仓内行号按 `eng/contracts/anchors/anchor_contract.json` 的撤销口径**一律不再给出**（原 §2/§5「只改数字、不动符号/公式/门」中「只改数字」一节随仓内行锚撤销**作废**，其余「不动符号/公式/门」义务对本节继续适用）。**符号/公式/门语义不变。**
 
 - 平台宏（Windows `_getpid` 别名映射）；
   头包含 aio_fits.h/fitsio.h/aio_cfitsio_mutex.h/sha256.h，
@@ -364,7 +364,7 @@ function p3_output_verify(path, wcs, signal, coverage, W, H, out result):
   与实际命名恒不匹配 → 残留检查弱匹配空转（不误报亦捕不到本实现
   形态残留）。命名统一归 P3-FITS-IMPL（含测试修正）。
 - **DISP-P3FITS-003**：实现面已扩展，本文件逐符号对照表已按现行实现重定位
-  （改按「文件 + 符号」定位；原 `ANCHOR_CONTRACT.md` [S-1]「物理模型」一节 的「只改数字」一节随仓内行锚撤销**作废**，
+  （改按「文件 + 符号」定位；原「只改数字」一节随仓内行锚撤销**作废**，
   「不动符号/公式/门」义务不变）——(a) 主实现体更名为
   `p3_output_write_atomic_ex`（`lib/algorithms/fits_output/p3_output.cpp`；新增 variance/ivar 双平面入参，
   单边 NULL → P3_OUT_PARAM；`p3_output_write_atomic` 同文件为旧签名薄壳）；

@@ -1,184 +1,65 @@
-# Phase3 目标态详细设计
+# Export 管线与平面文件
 
-> 上游：《ACSD 最高设计》的「export：投影导出」一章
+Export 将单 signal HiPS 按目标 WCS 重采样为普通二维 FITS。输入输出范围由最高设计规定，投影和采样的科学含义由专题正本规定 [1–3]。本页描述阶段内交接、裁剪与实现限制。
 
-使命：把任意合同兼容 HiPS 科学产品按用户指定 WCS 导出为测量意义明确的平面 FITS；Phase3 是坐标/采样/格式变换，不重新发明上游科学权重。
+## 输入与输出
 
-## 1. 输入与模式
+输入具有可解释坐标、光度标度和有效域。科学主流程消费 Mosaic 产品；独立单帧产品是否兼容，由实际 reader 合同确认。导出不依赖最终马赛克不存在的 variance、ivar、PSF 或点源信息量图层。
 
-输入可为 Phase1 或 Phase2 产品。读取 properties、manifest、signal、variance/correlation、coverage/validity、PSF 或 point-source statistics。输出模式必须显式：
+输出是二维浮点信号图像，携带 WCS、BUNIT、来源和实际采样方法。有限零和负值合法，无有效贡献写 NaN。HiPS 的分辨率层级属于同一信号通道，选择粗层会改变有效分辨率。
 
-- `surface_brightness`：科学面亮度/扩展源；
-- `point_source_flux`：Q/W/flux/detection 产品；
-- `visualization`：允许显示型降级，类别字段标为显示型，与测量产品分列。
+## 节点交接与资源
 
-- 输入 signal **只接受面亮度语义**（写端口单位 `SURFACE_BRIGHTNESS`，落盘值 = `flux_sum / covered_area`）；flux-per-pixel 等其它语义**显式拒绝**（《ACSD 最高设计》的「投影算法」一章的输入语义守卫与硬约束；正本见球面投影到平面文件的科学分册）。
-- 输入的 signal 是**线性**面亮度（Phase1 面亮度产品为 `ADU/sr`）：本阶段只做坐标/采样/格式变换，采样核是输入的**凸组合**，因此**不改量纲类别、不做星等换算**；输出 `BUNIT` 透传输入语义，variance/ivar 按二次律同幂传播（统一数据语义分册的量纲与二次律传播各段）。
-- 输入产品的落盘形态由落盘名判定，裸 `<name>.hips/` 与归档 `<name>.hips.zst` 语义相同，按天区取瓦片走输入产品的覆盖索引（`docs/detail/infrastructure/storage_form.md`）。
-- **Phase3 产物是交付物**：输出为**裸 FITS 文件，不压缩、不套壳**（用户与外部工具直接打开）；Phase3 不产出 HiPS，因此不使用 `.hips` / `.hips.zst` 命名。输入合同**不设** `storage_form` 键（形态由落盘名判定、对调用方透明），出现即 REJECT。
-
-缺少所选模式所需的不确定度/PSF 信息时拒绝或明确输出 unavailable。
-
-## 2. WCS 计划
-
-用户提供中心、尺度、shape、旋转、投影或足够约束。**冻结清单 = 8 种**（TAN/SIN/CAR/AIT/STG/MOL/CEA/ZEA）；**已实现并可作为产品声明的以实际注册表为准——当前仅 TAN**，**未实现的必须显式报「不支持」**，**支持声明只以该注册表为准**（《ACSD 最高设计》的「投影算法」一节）。每种定义适用域、奇点、经度 wrap、轴手性、CRPIX/CRVAL/CD/PC/CDELT 和 CTYPE。采用 FITS 1-based 关键字、内部 0-based 像素中心，转换唯一。
-
-计划阶段：
-
-1. 验证输出足迹和投影有效域；
-2. 选择满足 Nyquist/信息损失约束的输入 order；
-3. 估算 tile、内存、I/O、缺失域；
-4. 冻结 run_manifest 后执行。
-
-## 3. 反向映射与采样
-
-对每个输出像素中心，WCS inverse 得到 sky，再 HEALPix 定位输入。科学模式要求球面几何一致，距离一律取球面量。采样核是产品语义：
-
-- nearest 仅离散 mask/诊断或显式用户选择；
-- bilinear/高阶核用于连续场，但必须说明通量/面亮度语义；
-- point-source Q、W、PSF 参数各自具名插值规则，与普通 signal 规则分列；
-- coverage、variance、correlation 分别传播；非有限/缺 tile 不以零填充。
-
-当前“四象限最近中心双线性”只能在独立 Oracle 和误差/边界定义后作为一个注册核；不能因现码存在就成为永恒目标。
-
-## 4. 不确定度与 PSF
-
-线性采样 `y = R x` 时：
-
-```text
-C_y = R C_x Rᵀ
-```
-
-若仅输出对角 variance，必须同时给相关核/近似误差；coverage 与 variance 是两个独立量。PSF 随同采样算子传播，输出 effective PSF 或明确无法支持点源测量。Q/W 产品的重采样必须保持信息解释，并用注入源验证。
-
-## 5. FITS 产品
-
-- PRIMARY：所选科学 signal/flux/statistic；
-- 扩展 HDU：COVERAGE、VARIANCE/IVAR（语义择一且一致）；**其余候选面（VALIDITY、SUPPORT、REJECTION、POINT_INFORMATION/W、PSF 表/图与 correlation 描述）为待实现项，落盘前须先在 `docs/detail/registry/acsd.phase3.writer.md` 立输出行与 HDU 合同**（本节不预设 HDU 清单；现行落盘面 = PRIMARY + COVERAGE + VARIANCE/IVAR + 标准 WCS/BUNIT/DATASUM/CHECKSUM + provenance，口径与 `registry/acsd.phase3.writer.md` 同源）；
-- 标准 WCS、BUNIT（面亮度语义，写端口单位 `SURFACE_BRIGHTNESS`）、DATASUM/CHECKSUM；
-- provenance：源 product/hash、软件完整 SHA、配置、投影、核、order、近似和生成时间。
-- **不确定度可得性（fail-closed，唯一出口）**：输入 HiPS 不含 variance/ivar 子产品（或权重非纯逆方差、发生 fallback 等 `docs/science/unified/DATA_SEMANTICS.md`「状态与失败语义」一节的规则项）时 → **不写** VARIANCE/IVAR 扩展 HDU（禁静默丢弃、禁用常量 0 冒充）+ manifest 写 `uncertainty_available=false` + diagnostics 标红计数；**该键不是失败态**，是 unavailable 显式登记模式。正本：`docs/science/unified/DATA_SEMANTICS.md`「状态与失败语义」一节（禁占位/静默缺键/空输出冒充）。
-
-所有 HDU shape/WCS 对齐。写临时文件、flush/close/fsync、标准 checksum、原子 rename、重开独立验证；失败/取消无可见半成品。
-
-## 6. 流式与资源
-
-输出按行带/块执行，内存 `O(width × band_height + tile_cache)`，常驻内存限于单条带与 tile cache。cache 只缓存，不改变 order/核/科学值。线程预算来自 Runtime；并行输出与单线程科学结果一致。
-
-## 7. 验收
-
-- Astropy/WCSLIB 独立正反投影，TAN/SIN/CAR/AIT 覆盖中心、边、wrap、极点和奇点；
-- HEALPix/HiPS 外部实现交叉；跨 tile 连续场无缝；
-- 常量面亮度、点源通量、variance/correlation 传播与注入源恢复；
-- 不同 block/cache/worker 输出科学值一致；
-- >2 GiB、长 UTF-8 路径、Windows CFITSIO、取消和缺 tile；
-- 标 VERIFIED 的条件 = 输出含其声明的全部科学层。
-
-## 8. 导出裁剪范围（crop）
-
-> 上游：《ACSD 最高设计》的「export：投影导出」一章（按用户指定 WCS 导出平面 FITS）。
-> 约束：导出**保留全部有效像素**；边界黑边**允许**保留，由用户到平面后自行裁剪；
-> 裁剪范围**可手动输入**；保留 GUI HiPS 浏览器框选导出的接口。
-
-### 8.1 语义
-
-- **默认不裁剪**：配置里没有 `crop` 键 ⇒ 导出**整幅**请求画幅，行为与既有导出逐位相同。
-  请求画幅可以大于数据足迹，此时边框上自然出现**非有限黑边**——这是**设计允许**的
-  （导出保留全部有效像素；用户到平面后自行裁剪）。视觉验收判据因此只覆盖**内部空洞**
-  （被有限值包围的非有限像素），不禁边界黑边（《ACSD 最高设计》的「验证层级与四层验收」一节（L4 真实视觉验收）「无"黑洞"」）。
-- **裁剪 = 在已定义好的输出画幅上取矩形子窗**。画幅仍由 `center` / `width_px` /
-  `height_px` / `scale_deg_per_px` / `longitude_parity` / `projection` 定义；`crop`
-  **不改画幅定义、不改投影、不改重采样**，只决定最终写出的 FITS 覆盖画幅的哪一块。
-- **精确性（关键判据）**：裁剪帧的 WCS 必须是原画幅 WCS 在窗口上的**精确限制** ——
-  `CRVAL`/`CD` 逐位不变、`CRPIX` 减去**整数**窗口原点（无重投影、无二次插值）。
-  由此「裁剪框内的像素与不裁剪时**逐位相同**」由构造保证：**裁剪只能裁，不能改数值**。
-
-### 8.2 两种输入形式（互斥）
-
-| `crop_form` | 形式 | 坐标约定 |
+| 节点 | 消费 | 产生与消费者 |
 |---|---|---|
-| `pixels` | 平面像素矩形 | FITS 1-based **闭区间** `[x0,x1]x[y0,y1]`（与 `crpix_px` 同约定），相对**未裁剪输出画幅**；窗口 = `(x1-x0+1)x(y1-y0+1)`。用户到平面后手动裁剪；GUI 框选也是平面矩形 |
-| `sky` | 天球轴对齐矩形 | ICRS deg `[ra_min_deg,ra_max_deg]x[dec_min_deg,dec_max_deg]`；`ra_min_deg > ra_max_deg` = 跨 RA=0 绕回。GUI 的框选来自 HiPS 浏览器，框的是**天区** |
+| properties | 输入产品及来源 | 几何、层级、单位和身份，供规划与采样使用 |
+| wcs | 输出中心、尺寸、尺度、方向、投影与裁剪请求 | 未裁剪 WCS 和窗口，供采样、writer 与校验使用 |
+| resample | 输入信号、WCS 和实际核 | 平面结果和实际层级，供 writer 使用 |
+| writer | 平面信号、窗口、WCS 和来源 | 二维 FITS 及摘要，供独立 reader 核验 |
+| verify | 完成的文件及请求描述 | 读回、坐标与数值一致性结果 |
 
-- 两形式**互斥**：`crop_form` 选中其一，另一形式同时出现即**具名拒绝**（不比较、不取一）。
-- `sky` 的转换 = 边界**加密采样**（每边 257 点，确定性）→ 逐点 `world2pix` → **外扩**整数
-  包围盒（`floor(min)` / `floor(max)+1`）⇒ 保证不切掉任何**中心落在矩形内**的像素。
-- 判别键名取 `crop_form` 而非 `mode`：`cpu_profile` 的 `legacy_v1`/`kernel_v1` 已占用
-  `mode`，同名异义与 `docs/detail/common/unified_model.md`「三类配置严格分离」一章冲突（与 export 用 `output_mode`
-  避开 `mode` 同一处置）。
+Runtime 管理线程、缓冲和取消，I/O 管理 tile 缓存及输出文件。生产 writer/verify 已有 P3FitsStream 与 P3FitsVerifyStream 的子块路径；这证明存在流式处理路径，仍需实际峰值测量核对全阶段内存上限。当前适配器的 p3_resampled.json、p3_wcs.json 是实际阶段内依赖，其生命周期按 Runtime 和 I/O 合同管理 [4,5]。
 
-### 8.3 fail-closed 判据（全部具名报错，禁静默夹取）
+## WCS 与重采样
 
-| 情形 | 判据 |
-|---|---|
-| 越界 | `pixels` 超出 `[1,width_px]x[1,height_px]`；或 `sky` 转换后的窗口超出画幅 ⇒ 拒绝 |
-| 宽高非正 | `x1<x0` / `y1<y0` / `dec_min_deg>=dec_max_deg` / `ra_min_deg==ra_max_deg` ⇒ 拒绝 |
-| 两种形式同时给 | `crop_form` 与其未选中的形式同时出现 ⇒ 拒绝（不比较、不取一） |
-| 裁剪后为空 | 转换后窗口零面积或空集 ⇒ 拒绝 |
-| 适用域 | `sky` 边界点落在 TAN 半球之外 / abs(dec)>85° ⇒ 拒绝（继承「WCS 计划」一章的 TAN 冻结域） |
+内部数组中心从零起，FITS 像元中心坐标从一起，两者相差一。投影有效域、RA 回绕、手性和像元中心分别核验。生产 p3_wcs_make 当前实现 TAN，配置枚举不等于已实现投影。
 
-夹取（clamp）不进入实现：把「用户以为裁到了」变成静默错图，比拒绝更危险。
+p3_wcs_validate_request 及相关变换包含当前软件的纬度和视场限制；这些不构成 TAN 在某个赤纬必然发散的理论结论。TAN 奇点取决于方向距投影中心的角距离 [6]。
 
-### 8.4 落点与不变式
+最近邻与局部双线性核处理线性面亮度。常值保持、目标面积平均和点源孔径通量分别核验；部分邻域失效后的重归一改变有效核。精确面积交叠是独立几何能力，未接入生产时不能列为已实现 [2,3]。
 
-- **几何唯一实现** = `lib/algorithms/projection/p3_wcs.h`（header-only）：CLI 配置面与
-  scheduler 节点面共用，禁第二份（与 `p3_wcs_validate_request` 同一「唯一语义源」处置）。
-- **生产消费点** = scheduler 的 p3 节点链：`wcs` 节点解析窗口并随 `p3_wcs.json` 落盘；
-  `writer` 只按窗口写出（流式读起点按窗口原点平移）；`verify` 独立重开对**裁剪后画幅**
-  逐像素对拍。`resample` **不变**（仍按未裁剪画幅产出平面）⇒ 窗口内像素与不裁剪逐位相同。
-- **接口稳定性**：键形固定、可机器生成，GUI 的 HiPS 浏览器框选导出将来直接填该键
-  （登记见 `docs/engineering/contracts/CLI_PROTOCOL.md`「导出裁剪范围参数 `crop`」一节；字段合同见
-  `eng/contracts/schemas/phase_config_export.schema.json#/$defs/export_crop`）。
+最终单信号输入不足以恢复完整协方差。研究中若另有可靠协方差，固定算子可用 C_out=R C_in Rᵀ；该公式不提供从单图生成绝对方差的方法。
 
-## 9. 导出产品的视觉验收判据（V1a / V1b）
+## 矩形裁剪
 
-工具 = `eng/tools/e2e/render_vis.py`（整幅 PNG + 分块 PNG + 逐块自检）；其接缝度量是**方差比**口径，只作渲染分块伪影的**粗筛**——方差比对电平阶跃**原理性失明**（阶跃不改变方差），**帧间无接缝不能由方差比判**：帧间接缝的唯一口径 = **有符号电平台阶 + 适用域**（判据与门槛见《ACSD 最高设计》的「验证层级与四层验收」一节（L4 真实视觉验收，由负责人目检判定）与 `docs/detail/registry/acsd.phase2.upm-fit.md` 的「接缝判据的唯一口径」段）；
-上游 = 《ACSD 最高设计》的「验证层级与四层验收」一节（L4 真实视觉验收）「无"黑洞"：无异常零值/死区/未填充孔洞」+ 同节 L4 真实数据端到端视觉验收口径
-（真实数据端到端视觉验收）+ 本设计「导出裁剪范围（crop）」一章（导出保留全部有效像素，**允许**边界黑边）。
+裁剪在已定义画幅上取子窗。像素形式采用配置声明的 FITS 一基闭区间；天区形式通过目标 WCS 转为像素窗口。字段和互斥关系由导出配置定义 [7]。
 
-### 9.1 V1a：未覆盖却有值（幻影数据）
+子窗在未裁剪数组中的零基原点为 (x0,y0) 时，CRVAL 与线性变换不变，CRPIX 分别减去 x0、y0。子窗像元对应整幅输出的相同位置，裁剪不增加一次插值。应独立核验非对称子窗，不要求裁剪后参考像元仍位于画幅中心。
 
-`COVERAGE == 0` 而 SIGNAL 有限 ⇒ 判红（`phantom_data_px > 0`）。覆盖平面语义 =
-**足迹内有 tile 像素**（见「导出裁剪范围（crop）」一章）；未覆盖处出现有限值只能是幻影数据。
+当前 p3_crop_window_from_sky 固定密度采样天区边界，再求整数包围盒。有限采样本身不给连续边界极值的严格包络保证；需要独立误差或自适应极值控制才能声称不裁掉目标区域。越界、空窗和投影域错误由接口给出具体状态。
 
-### 9.2 V1b：内部空洞（阈值 0）
+## 文件与质量核对
 
-判据 = **不与画幅边界连通的非有限像素连通域数 == 0**（4-连通；`internal_hole_px`、
-`internal_hole_components`、`internal_hole_largest_px`）。
+当前 p3_op_writer 使用单 HDU，并明确不确定度不可用。它仍含固定面亮度 BUNIT 和输出模式检查；相对标度或模型通带输入需要核对这些实现与真实单位合同的差异 [8]。
 
-**为什么不是「覆盖却非有限」**：导出画幅由用户给定，**可以大于数据足迹** —— 此时边框上
-必然出现非有限黑边，这是设计允许的几何（「导出裁剪范围（crop）」一章）。**禁用**「覆盖 > 0 ⇒ 必须有限」作为判红
-条件：它把「画幅大于足迹」这一合法几何误判成缺陷。负例（判据判别力）：全画幅导出时非有限
-像素**全部**与画幅边界连通（`boundary_nonfinite_px > 0` ∧ `internal_hole_px = 0`）⇒
-该条件下判红即误报。真正该判的是被**有限值包围**的非有限像素 = 内部空洞。
+独立 FITS/WCS reader 检查头、尺寸、像元、坐标与裁剪。目标画幅可大于足迹，内部也可能有真实未观测区域；NaN 的拓扑位置不足以单独判缺陷。输出支持应与输入有效域及采样核比较，区分合法缺数、异常丢失和无来源有限值。
 
-阈值出处：《ACSD 最高设计》的「验证层级与四层验收」一节（L4 真实视觉验收）的「未填充孔洞」逐字对应内部空洞 ⇒ 阈值 **0**
-（一个像素也算缺陷），与「边界黑边」的合法裕度互不冲突。
+质量评价分别测量 CCD 到球面、HiPS 层级派生、球面到平面的影响，检查星点光度及形状、扩展源低频和边界。单信号通道允许这些独立实验，但不意味着绝对误差已随文件发布。
 
-**无覆盖平面时的同一口径**：产品没有 COVERAGE 平面时，V1a 不适用，V1b 用**同一条**
-内部空洞规则。**禁用** `finite_fraction != 1.0` 作为判红条件：它把该章允许的边界黑边判成缺陷，与该章冲突。
+## 参考文献
 
-### 9.3 可核对量（`vis_report.json#coverage_crosscheck`）
+[1] [ACSD 最高设计](../../ACSD_DESIGN.md)。
 
-| 字段 | 含义 |
-|---|---|
-| `boundary_nonfinite_px` | 与画幅边界连通的非有限像素数（合法黑边） |
-| `internal_hole_px` / `_components` / `_largest_px` | 内部空洞像素数 / 连通域数 / 最大连通域 |
-| `covered_fraction` | COVERAGE > 0 的占比（= 足迹覆盖率，**不是**有效率） |
-| `phantom_data_px` | 未覆盖却有值的像素数（V1a 判据量） |
-| `covered_but_nonfinite_px` | 覆盖却非有限的像素数（**仅诊断**，不判红） |
+[2] [HiPS 到平面 FITS](../../science/projection/HIPS_TO_FITS.md)。
 
-`covered_fraction` 与 `finite_fraction` 的差就是「覆盖 ≠ 有效数据」的量。判据不因该差值
-判红（见「V1b：内部空洞（阈值 0）」一节），但两者必须同时落盘，便于独立复核；真帧读数见 `实验/` 证据面。
+[3] [球面到平面的重采样](../../science/resample/RESAMPLE.md)。
 
+[4] [Runtime 合同](../../engineering/contracts/RUNTIME.md)。
 
-## 落地对照与参考文献
+[5] [统一 I/O](../infrastructure/aio.md)。
 
-本页是投影导出管线的落地描述，对应最高设计投影导出一章的输入语义、投影算法与输出产品条目。各环节的端口、配置、并行、内存、错误与验证口径以模块登记页为准：产品属性读取、天球坐标系规划、重采样、文件写出、独立校验。块读写遵循内存管线纪律。配置来自阶段输入文件，执行预算来自运行时。调试从阶段日志与各模块登记页的验证入口进入。
+[6] Calabretta M. R., Greisen E. W. Representations of celestial coordinates in FITS. A&A, 395: 1077–1122. https://doi.org/10.1051/0004-6361:20021327
 
-### 参考文献
+[7] [配置合同](../../engineering/contracts/CONFIG.md)；字段定义位于 eng/contracts/schemas/phase_config_export.schema.json。
 
-[1] Calabretta M. R., Greisen E. W. Representations of celestial coordinates in FITS. Astronomy and Astrophysics, 2002, 395: 1077–1122. https://doi.org/10.1051/0004-6361:20021327
-[2] Fernique P., Allen M. G., Boch T., Burke D., Castro-Ginard A., Davidson J., Durand D., Kreckel K. Hierarchical progressive surveys: Visualisation and streaming of astronomical images and catalogues with HiPS. Astronomy and Astrophysics, 2015, 578: A114. https://doi.org/10.1051/0004-6361/201526075
-[3] 统一观测模型与数据对象细节页，本文common目录。
-[4] 投影导出各模块登记页，本文registry目录。
+[8] [科学设计与生产实现差异](../../engineering/architecture/SCIENCE_IMPLEMENTATION_DELTA.md)。

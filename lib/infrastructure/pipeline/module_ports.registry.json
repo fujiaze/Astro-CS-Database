@@ -782,6 +782,28 @@
                 }
               ],
               "note": "nside/精度/SIP/测光 provenance 的编排证据（产品面逐字节可复现，墙钟遥测只进节点 manifest）。carrier 口径修订（FINAL-07/carrier-conformance）：output_dir_file → hips_product_tree，理由二条可机检复核。① 物理位置在 HiPS 树内：p1_op_drizzle 把 fdir 当 HiPS 产品集根传给 hp_drizzle_run_phase1_hips(..., fdir.c_str(), ...)（module_adapters.cpp:8468；该 API 形参 hips_dir 即「HiPS 产品集根目录」，hp_drizzle_hips_api.cpp:31/36），随后用 fdir + '/p1_stack.json' 落盘（module_adapters.cpp:8485），而 fdir = p1_frame_dir(doc,lp) = output_dir + '/' + frame_key（module_adapters.cpp:1434）⇒ 本文件与 signal/support/variance/ivar 同处 <frame_key>/ 根。磁盘实测：run/FINAL-07-e2e/evidence/face/t2_ab_p1_B/<frame_key>/ 目录清单为 ivar/ manifest.json p1_final.json p1_stack.json p1_wcs.json signal/ support/ variance/，p1_stack.json 与四个 HiPS 产品子目录同级。② 合同依据：docs/engineering/contracts/PIPELINE_BLOCK.md「载体合同（生产链路的真实载体）」一节「跨阶段唯一载体 = HiPS 产品树」；同一路径 <frame_key>/p1_stack.json 在 acsd.phase2.upm-fit 侧本就声明为 frame_hips / hips_product_tree，两处同指一个物理事实却用两种载体口径，按前台裁决对齐事实。边界声明：它不是 manifest.products 成员（那里只列 signal/support/variance/ivar），而是 HiPS 树根的 provenance 旁挂文件；这一点 acsd.phase2.upm-fit 的同名 note 已有记录，不靠本字段单独承担。"
+            },
+            {
+              "name": "p1_frame_science",
+              "direction": "output",
+              "carrier": "output_dir_file",
+              "artifacts": [
+                "<work>/<frame_key>/frame_science/frame_science.json",
+                "<work>/<frame_key>/frame_science/models/*.json"
+              ],
+              "data_schema_id": "acsd.normalize.frame-science/v1",
+              "unit": "DIMENSIONLESS",
+              "coordinate": "ICRS",
+              "scalar": "f64",
+              "shape_hint": "n_records",
+              "code": [
+                {
+                  "file": "lib/infrastructure/scheduler/src/module_adapters.cpp",
+                  "symbol": "p1_op_drizzle",
+                  "token": "frame_science"
+                }
+              ],
+              "note": "NORMALIZE_DATA §7: 阶段一 canonical 稀疏参考精度 staging（run-private 工作区; writer 是唯一最终发布者, 发布面 = <frame_key>/frame_science.json + models/）。"
             }
           ]
         }
@@ -906,6 +928,49 @@
                 }
               ],
               "note": "聚合产品清单：hips_paths 直接作为 mosaic 的输入路径来源。"
+            },
+            {
+              "name": "p1_frame_science",
+              "direction": "input",
+              "carrier": "output_dir_file",
+              "artifacts": [
+                "<work>/<frame_key>/frame_science/frame_science.json"
+              ],
+              "data_schema_id": "acsd.normalize.frame-science/v1",
+              "unit": "DIMENSIONLESS",
+              "coordinate": "ICRS",
+              "scalar": "f64",
+              "shape_hint": "n_records",
+              "code": [
+                {
+                  "file": "lib/infrastructure/scheduler/src/module_adapters.cpp",
+                  "symbol": "p1_op_writer",
+                  "token": "publish_staged_frame_science"
+                }
+              ],
+              "note": "NORMALIZE_DATA §7: writer 读取 drizzle 的 staging sidecar, 复制模型文件并复核 sha256, 原子发布 <frame_key>/frame_science.json 后回读验证。"
+            },
+            {
+              "name": "p1_frame_science_published",
+              "direction": "output",
+              "carrier": "output_dir_file",
+              "artifacts": [
+                "<frame_key>/frame_science.json",
+                "<frame_key>/models/*.json"
+              ],
+              "data_schema_id": "acsd.normalize.frame-science/v1",
+              "unit": "DIMENSIONLESS",
+              "coordinate": "ICRS",
+              "scalar": "f64",
+              "shape_hint": "n_records",
+              "code": [
+                {
+                  "file": "lib/infrastructure/scheduler/src/module_adapters.cpp",
+                  "symbol": "p1_op_writer",
+                  "token": "frame_science_published"
+                }
+              ],
+              "note": "阶段一正式发布面: 每帧 frame_science.json + 局部模型文件; p1_final.json 记 frame_science_published/frame_science_sha256。"
             }
           ]
         }

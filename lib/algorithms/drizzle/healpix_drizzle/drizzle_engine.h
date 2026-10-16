@@ -252,7 +252,6 @@ public:
                                 tiles, stats, error_msg);
     }
 
-private:
     // 处理单个像素的 Drizzle (6步流水线) — 模板双实例 (Scalar=float/double)
     // tileMap: 线程本地 Tile 累加 map (key=parent_ipix, Scalar=float/double)
     // shift/mask: NESTED 位运算 (leaf_ipix >> shift = parent, leaf_ipix & mask = local)
@@ -305,6 +304,44 @@ private:
     void getHealpixCorners(const healpix::HealpixCore& hp, int64_t ipix,
                            double ra0, double dec0,
                            std::vector<SkyCoord>& corners) const;
+
+    // ── 源像元→叶 实际算子捕获（球面参考精度用, NORMALIZE_DATA §4/§6）──────────
+    // 语义: 捕获期间, 生产**同一几何路径**（同一次 drizzleTiled/f64 的同一组
+    // drop/candidate/overlap 计算）把每 (源像元, 叶) 交叠写入 sink。因此 R 不是
+    // 另算的近似几何, 而是生产 signal 实际使用的算子 ⇒ 信号算子与协方差算子
+    // 共享几何系数（NOISE_SNR.md §5.1）。
+    // targets: 叶 ipix → (中心 x, 中心 y, 半径 px)。捕获判据 = **该叶是 targets 的键**
+    // （NOISE_SNR §11.2: 所选观测叶的完整有效样本 ⇒ 叶的完整 N_p 与完整随机贡献）。
+    // cx/cy/radius 仅供调用方识别归属控制点与模板足迹半径; 半径**不**参与捕获判据
+    // （按半径过滤会把叶的完整 N_p 换成局部窗口口径 ⇒ F02）。
+    // 并发语义: set 之后到 clear 之前不得并发调用本引擎（帧级并行各自持引擎实例）。
+    // 帧内 OpenMP 并行安全: 每线程写自己的 sink 桶, run 结束后按 tid 顺序压平。
+    struct OverlapTarget {
+        double cx = 0.0, cy = 0.0, radius = 0.0;
+    };
+    struct SourceLeafOverlap {
+        int px = 0, py = 0;        // 源像元中心 (0-based)
+        uint64_t leaf_ipix = 0;    // NESTED ipix
+        double a_jp = 0.0;         // 交叠面积 (sr)
+        double a_drop = 0.0;       // 收缩 drop 面积 (sr)
+        double a_pixel = 0.0;      // 未收缩源像元球面面积 (sr)
+    };
+    // max_threads = 该次运行的帧内并行宽度（预分配 sink 桶; <=1 时单桶）。
+    void set_overlap_capture(std::vector<SourceLeafOverlap>* out,
+                             const std::unordered_map<uint64_t, OverlapTarget>& targets,
+                             int max_threads);
+    void clear_overlap_capture();
+
+private:
+    // ── 算子捕获状态（mutable: processPixelSharedTiled 为 const 成员）──────────
+    // set_overlap_capture 置位; clear_overlap_capture 复位。默认 nullptr ⇒
+    // 生产路径每像元仅多一次指针判假（可忽略）, 无数值/调度影响。
+    // 声明置于嵌套类型之后（类作用域名字须先声明后使用）。
+    mutable std::vector<SourceLeafOverlap>* op_capture_out_ = nullptr;      // 压平输出
+    mutable std::vector<std::vector<SourceLeafOverlap>>* op_capture_tls_ =
+        nullptr;                                                           // 每线程桶（帧内）
+    mutable const std::unordered_map<uint64_t, OverlapTarget>* op_capture_targets_ = nullptr;
+    mutable int op_capture_threads_ = 1;
 };
 
 } // namespace drizzle

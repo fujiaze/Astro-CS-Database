@@ -1,0 +1,41 @@
+{
+ "paper_id": "P3",
+ "unit": "healpix-polar",
+ "estimand": "epsilon_j = sum_p a_jp / A_drop,j - 1 (dimensionless)",
+ "gate": "|epsilon_j| <= 1e-6 (DRIZZLE_GEOMETRY.md §9, unchanged this round)",
+ "generator": "实验/healpix-polar/figures/make_figures.py",
+ "generator_sha256": "f6fa900ea6be381a031d99dbd176719f44bbb277341d90485961b2d345d6843b",
+ "seed": null,
+ "units": {
+  "epsilon_j": "dimensionless",
+  "drop_scale": "arcsec"
+ },
+ "sources": {
+  "s02b_matrix_cells.csv": "run/ACSDSDOC-02/S02/results/s02b_matrix_cells.csv",
+  "s02b_theta_pre.json": "run/ACSDSDOC-02/S02/results/s02b_theta_pre.json",
+  "s02b_theta_post.json": "run/ACSDSDOC-02/S02/results/s02b_theta_post.json",
+  "S02_P3_acceptance_matrix.json": "实验/healpix-polar/docs/S02_P3_acceptance_matrix.json"
+ },
+ "figures": [
+  {
+   "path": "实验/healpix-polar/figures/fig_P3_matrix_arms.png",
+   "content": "核心统计量三臂 max|eps_j|（300 格 + 1500 格矩阵）",
+   "sha256": "1f73659bed5c1b8bf084b4de10d00acf6723dbe8fb2c4006a4391c9d20d9a990"
+  },
+  {
+   "path": "实验/healpix-polar/figures/fig_P3_epsilon_heatmap.png",
+   "content": "几何位置误差热图（位置类 × nside）",
+   "sha256": "b544faf34f1e700f718fccc0e1efd6ad656f4c46e6648b6732a1206887bdb9e6"
+  },
+  {
+   "path": "实验/healpix-polar/figures/fig_P3_negative_control.png",
+   "content": "注入缺陷臂 |eps_j| 分布（阴性/阳性对照）",
+   "sha256": "5f432c8daee6ef1639ce8928c86a4ab83fbed6b005d8e6bb1c951d6c732dcff3"
+  },
+  {
+   "path": "实验/healpix-polar/figures/fig_P3_domain_scale.png",
+   "content": "适用域：|eps_j| 对 drop 尺度 0.02\"-3600\"",
+   "sha256": "6536cfedf0e69a3f429d20f5f7fe65381349a597d9b43a9946f67ab3d919aa2a"
+  }
+ ]
+}
