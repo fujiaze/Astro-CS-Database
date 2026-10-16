@@ -67,6 +67,10 @@ checkpoint 标记不等于已有持久化恢复协议；恢复能力改变执行
 
 接口验证分别检查 IR/registry 错误、真实工厂创建、预算不足、取消、异常归还、状态快照及 trace 与真实调用一致性。构建、局部测试和真实科学运行各自报告；本合同没有因接口声明而宣称这些验证已运行。实际限制集中在[实施差异](../architecture/SCIENCE_IMPLEMENTATION_DELTA.md)。
 
+## ARS v2 与现行 C++ Runtime 的接口分界
+
+现行 `Runtime::run(RunContext&)`、`ModuleRegistry`、`IModule::plan/execute` 的签名保持下文的 C++ 事实。新目标是在 Host/loader 另建多 operation `acsd_module_query_v2`、`operation_at/plan/partition/execute_unit/reduce/request_cancel` 与 typed store/memory/AIO 子服务，不在 v1 struct 尾部悄然修改布局。详见 [ARS 可编码设计 §2–3](../architecture/PROCESS_RUNTIME_DETAILED_DESIGN.md) 的拟实现 POD、接口寿命和错误。运行对象应按 `run/occurrence/attempt` 隔离；`cancel` 只置请求位，CPU TaskGroup join 和 AIO drain 以后才能释放旧块。当前 ModulePlan 粗略 estimated_memory_bytes、RunContext artifact descriptor 并不构成严格 MemoryCredit 或 typed payload；该能力尚需逐边迁移。
+
 ## 完整Runtime和Module声明
 
 以下为现有acsd::core公开声明。RssProbe、Result/Error、UnitId、CoordinateFrame、NodeStatus和RunContext沿已有相应合同类型；不是新的ABI或额外生命周期。RuntimeResourceBudget的字节与百分比字段分别给数值和来源，rss_probe调用期/运行期保持有效；pressure_ledger_path是观测输出，不能改变科学模型。trace的duration_ms为毫秒、workers/granted_workers为数量、时间为RFC3339，entry/call_count是实际调用观测，不是descriptor声明的执行证明。

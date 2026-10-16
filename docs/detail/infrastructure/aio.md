@@ -36,6 +36,10 @@ HiPS writer的write_fits_atomic使用私有tmp、验证/持久化、可选字面
 
 归档`.hips.zst`、产品级索引和storage清单是明确设计目标；当前生产裸形态与未接线部分见实施差异。原文的archive默认、已有reader、文件枚举和未实现说明曾混在一起，完整保留于[来源档案](../../../实验/documentation-refactor/docs/IO_SOURCE.txt)。
 
+## ARS 异步 BufferPool 与多对象产品的接线
+
+Host 目标 `submit_async(request,slot_grant) → ticket`：成功接管 buffer read lease 或独立拷贝的所有权，完成/失败/取消一致归还 credits；queue+inflight+压缩 scratch+staging 严格计费，不能只限制 I/O 线程数。计算 worker 不等待普通磁盘完成，慢盘背压交给 scheduler，减少预取/产出任务并发；任务不存在时允许 CPU idle。Frame 的 signal+frame_science+metadata/model 由 complete revision manifest 作为唯一读者入口，单文件 write_fits_atomic 不等价于多文件事务。详见 [ARS 详细设计 §6](../../engineering/architecture/PROCESS_RUNTIME_DETAILED_DESIGN.md)，现有 `aio_pipeline_engine` 与 writer 的实际接线必须逐个验证。
+
 ## 5. 并发、错误与验证
 
 reader/writer句柄默认单调用串行，不同worker各持独立会话。异步复制/借用明确寿命，文件发布和数组回收完成后才关闭所属运行。磁盘、格式、权限、取消、缺块和能力不可用分别返回，错误沿Runtime到CLI；普通日志与开发诊断见[日志系统](log_and_error_system.md)。

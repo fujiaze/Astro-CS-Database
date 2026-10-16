@@ -199,6 +199,18 @@ doc_index:
     duty: Normalize 唯一工程横向设计：真实 P1NodeModule/IPV DAG、typed 数据对象、代码模块责任、既有文件依赖迁移
     upstream: docs/ACSD_DESIGN.md
     notes: 目标合同与实现事实分开；具体代码状态需沿真实生产入口更新。
+  - path: docs/engineering/architecture/PROCESS_RUNTIME_ARS.md
+    status: ACTIVE_NORMATIVE
+    duty: ARS 目标架构：Frame/Operation/WorkUnit、内存与 AIO 资源模型、三阶段事务
+    upstream: docs/engineering/architecture/ARCHITECTURE.md
+  - path: docs/engineering/architecture/PROCESS_RUNTIME_DETAILED_DESIGN.md
+    status: ACTIVE_NORMATIVE
+    duty: ARS 可编码设计：C ABI v2、typed store/lease、MemoryCredit、取消/AIO、revision 与调度伪代码
+    upstream: docs/engineering/architecture/ARCHITECTURE.md
+  - path: docs/engineering/architecture/PROCESS_RUNTIME_IMPLEMENTATION.md
+    status: ACTIVE_NORMATIVE
+    duty: ARS-01～18 的阶段依赖、工程分工与真实验证路线
+    upstream: docs/engineering/architecture/ARCHITECTURE.md
   - path: docs/engineering/architecture/README.md
     status: ACTIVE_INFORMATIVE
     duty: docs/engineering/architecture 目录职责与阅读入口
