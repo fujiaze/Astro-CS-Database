@@ -61,7 +61,7 @@ flowchart LR
 
 `lib/include/acsd/normalize_data.h` 已声明参考、状态、控制点和摘要等类型；`lib/algorithms/noise_snr/include/acsd/sparse_reference.h` 与其实现已有球面 GLS；`lib/algorithms/integration/normalize_science/` 已有 serializer、reader 和发布函数。不能继续将这些接口统称为未实现，也不能由它们的存在推断完整数据合同已满足。
 
-当前 canonical 可执行参考路径为 `explicit_linear_flux`。`parse_reference_config` 对 `sed_response` 明确记录响应积分未接线；逐帧 response/SED 与 Runtime 完整迁移仍受实现限制。PSF 已从逐帧 psf_params 构建空间三角模型，逐控制点求积；无三角支持时仍回退具名帧常宽度。空间 alpha 已按窗口求值，支持空洞、回退状态和总通量配对的合同覆盖仍需核对。实际限制及可追踪符号集中在差异地图[4]，不在本页复制待办台账。
+当前 canonical 可执行参考路径为 `explicit_linear_flux`。`parse_reference_config` 对 `sed_response` 明确记录响应积分未接线；逐帧 response/SED 与 Runtime 完整迁移仍受实现限制。PSF 已从逐帧 psf_params 构建空间三角模型，逐控制点求积；无三角支持时仍回退具名帧常宽度。空间alpha已按窗口求值并有真实applied运行记录。当前模板改用位置alpha_star约定，支持空洞、回退状态与科学总通量定义仍需核对，不能把新接线等同完整合同。实际限制及可追踪符号集中在差异地图[4]，不在本页复制待办台账。
 
 ## 4. 产品发布与能力状态
 
